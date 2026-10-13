@@ -32,6 +32,7 @@
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/Monsters/GridMonsterPathfinder.h"
 #include "UObject/UObjectIterator.h"
+#include "UI/UILocalizationText.h"
 
 namespace
 {
@@ -105,9 +106,9 @@ namespace
 			SourcePolicy == EGridCombatActionSourcePolicy::Spell || SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
 	}
 
-	FText MakeMON1286TargetingReason(const TCHAR* Reason)
+	FText MakeMON1286TargetingReason(const TCHAR* Key)
 	{
-		return FText::FromString(Reason ? Reason : TEXT("Cible invalide."));
+		return FUILocalizationText::Get(Key ? Key : TEXT("Combat.Targeting.Invalid.Default"));
 	}
 
 	bool MatchesRPG0391MonsterTargetFilter(
@@ -486,7 +487,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 		{
 			Action.bEnabled = false;
 			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::MissingRequirement;
-			Action.DisabledReason = FText::FromString(TEXT("Un effet de statut empêche l'utilisation des sorts."));
+			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.StatusBlocksSpells"));
 		}
 		ResolveSuggestedCombatActionTarget(Action);
 	}
@@ -1277,19 +1278,19 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 
 	if (!IsValid(RuntimeActor) || !IsValid(PartyPawn))
 	{
-		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Le niveau ou le groupe est indisponible."));
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.LevelOrPartyUnavailable"));
 		return false;
 	}
 	const bool bCardinalFacing = PartyPawn->Facing == EGridEdge::North || PartyPawn->Facing == EGridEdge::East || PartyPawn->Facing == EGridEdge::South ||
 		PartyPawn->Facing == EGridEdge::West;
 	if (!bCardinalFacing)
 	{
-		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("L'orientation du groupe est invalide."));
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.InvalidPartyFacing"));
 		return false;
 	}
 	if (!Action.IsValid() || !Action.bEnabled)
 	{
-		OutPreview.InvalidReason = Action.DisabledReason.IsEmpty() ? MakeMON1286TargetingReason(TEXT("Cette action est indisponible.")) : Action.DisabledReason;
+		OutPreview.InvalidReason = Action.DisabledReason.IsEmpty() ? MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.ActionUnavailable")) : Action.DisabledReason;
 		return false;
 	}
 
@@ -1310,29 +1311,29 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 	if (!IsMON1286TargetedSource(Action.Definition.SourcePolicy) || !IsMON1286ExplicitTargetingPolicy(Action.Definition.TargetingPolicy) ||
 		(!bAttackResolution && !bSurfaceEffectResolution && !bTrapEffectResolution && !bRelocationEffectResolution))
 	{
-		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Cette action ne prend pas de cible cellule ou zone."));
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.UnsupportedTargetingPolicy"));
 		return false;
 	}
 	if (!RuntimeActor->IsValidCell(TargetCell.X, TargetCell.Y) || RuntimeActor->GetCell(TargetCell.X, TargetCell.Y).CellType == EGridCellType::Empty)
 	{
-		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Cette cellule n'appartient pas au niveau jouable."));
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.CellOutsideLevel"));
 		return false;
 	}
 	if (bTrapEffectResolution && !RuntimeActor->IsWalkableCell(TargetCell.X, TargetCell.Y))
 	{
-		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Un piège doit être posé sur une cellule marchable."));
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.TrapRequiresWalkableCell"));
 		return false;
 	}
 	if (bRelocationEffectResolution && !RuntimeActor->IsWalkableCell(TargetCell.X, TargetCell.Y))
 	{
-		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("La destination doit être une cellule marchable."));
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.DestinationRequiresWalkableCell"));
 		return false;
 	}
 
 	const int32 TargetDistance = FMath::Abs(TargetCell.X - PartyCell.X) + FMath::Abs(TargetCell.Y - PartyCell.Y);
 	if (TargetDistance > Action.Definition.RangeCells)
 	{
-		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Cette cellule est hors de portée."));
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.OutOfRange"));
 		return false;
 	}
 	if (Action.Definition.bRequiresLineOfSight)
@@ -1349,7 +1350,7 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 			RuntimeActor->DoesCombatSmokeBlockLine(PartyCell, TargetCell);
 		if (!bGridLineClear || bSmokeBlocked)
 		{
-			OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("La ligne de vue vers cette cellule est bloquée."));
+			OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.LineOfSightBlocked"));
 			return false;
 		}
 	}
@@ -1408,8 +1409,7 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		}
 		if (!bHasCanonicalReaction)
 		{
-			OutPreview.InvalidReason = MakeMON1286TargetingReason(
-				TEXT("Cette cellule ne contient aucune réaction de surface canonique possible."));
+			OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.NoSurfaceReaction"));
 			return false;
 		}
 	}
@@ -1418,7 +1418,7 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 	UGridMonsterOccupancySubsystem* Occupancy = World ? World->GetSubsystem<UGridMonsterOccupancySubsystem>() : nullptr;
 	if (!IsValid(Occupancy))
 	{
-		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("L'occupation du niveau est indisponible."));
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.OccupancyUnavailable"));
 		return false;
 	}
 	if (bRelocationEffectResolution &&
@@ -1426,7 +1426,7 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 			PartyCell, TargetCell, Action.Definition.RangeCells, RuntimeActor, Occupancy))
 	{
 		OutPreview.InvalidReason =
-			MakeMON1286TargetingReason(TEXT("La destination est occupée ou séparée par un mur, une porte fermée ou une limite de niveau."));
+			MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.RelocationBlocked"));
 		return false;
 	}
 
@@ -1501,8 +1501,8 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		!Action.Definition.TrapEffect.bPlaceTrap)
 	{
 		OutPreview.InvalidReason = MakeMON1286TargetingReason(Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area
-				? TEXT("Cette zone ne contient aucune cible éligible.")
-				: TEXT("Cette cellule ne contient aucune cible éligible."));
+				? TEXT("Combat.Targeting.Invalid.AreaNoEligibleTarget")
+				: TEXT("Combat.Targeting.Invalid.CellNoEligibleTarget"));
 		return false;
 	}
 
@@ -1525,7 +1525,7 @@ bool UGridTurnManagerComponent::BuildCombatActionTargetingPreview(int32 Characte
 	if (!Action)
 	{
 		OutPreview.TargetCell = TargetCell;
-		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Cette action n'est plus disponible."));
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.ActionNoLongerAvailable"));
 		return false;
 	}
 	return BuildTargetingPreviewForAction(*Action, TargetCell, OutPreview);

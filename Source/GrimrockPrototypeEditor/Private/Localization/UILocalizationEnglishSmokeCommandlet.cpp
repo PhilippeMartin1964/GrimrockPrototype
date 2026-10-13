@@ -127,6 +127,17 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 	CheckText(TEXT("en"), TEXT("Interaction.Receptacle.PlaceItem"), TEXT("Place item"));
 	CheckText(TEXT("en"), TEXT("Interaction.Lock.Locked"), TEXT("The lock is locked."));
 
+	CheckText(TEXT("fr"), TEXT("Combat.State.Active"), TEXT("ACTIF"));
+	CheckText(TEXT("en"), TEXT("Combat.State.Active"), TEXT("ACTIVE"));
+	CheckText(TEXT("en"), TEXT("Combat.EndTurn.EnemyTurn"), TEXT("Enemy turn"));
+	CheckText(TEXT("en"), TEXT("Combat.Hotbar.EmptyTooltip"), TEXT("Drop an inventory item, spell, or ability here."));
+	CheckText(TEXT("en"), TEXT("Combat.Hotbar.Tooltip.Cost"), TEXT("Cost: {Cost}"));
+	CheckText(TEXT("fr"), TEXT("Combat.Initiative.Round"), TEXT("MANCHE {Round}"));
+	CheckText(TEXT("en"), TEXT("Combat.Initiative.Round"), TEXT("ROUND {Round}"));
+	CheckText(TEXT("en"), TEXT("Combat.Resource.ActionPoints"), TEXT("AP {Current} / {Maximum}"));
+	CheckText(TEXT("en"), TEXT("Combat.Targeting.Invalid.OutOfRange"), TEXT("This cell is out of range."));
+	CheckText(TEXT("en"), TEXT("Combat.Action.Unavailable.StatusBlocksSpells"), TEXT("A status effect prevents spell use."));
+
 	Internationalization.RestoreCultureState(Snapshot);
 	LocalizationManager.RefreshResources();
 	LocalizationManager.WaitForAsyncTasks();

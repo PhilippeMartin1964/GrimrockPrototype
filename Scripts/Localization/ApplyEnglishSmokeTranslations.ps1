@@ -50,6 +50,14 @@ $TranslationsByKey = [ordered]@{
     "Interaction.Lock.Locked" = "The lock is locked."
     "Interaction.Readable.Read" = "Read"
     "Interaction.Receptacle.PlaceItem" = "Place item"
+    "Combat.Action.Unavailable.StatusBlocksSpells" = "A status effect prevents spell use."
+    "Combat.EndTurn.EnemyTurn" = "Enemy turn"
+    "Combat.Hotbar.EmptyTooltip" = "Drop an inventory item, spell, or ability here."
+    "Combat.Hotbar.Tooltip.Cost" = "Cost: {Cost}"
+    "Combat.Initiative.Round" = "ROUND {Round}"
+    "Combat.Resource.ActionPoints" = "AP {Current} / {Maximum}"
+    "Combat.State.Active" = "ACTIVE"
+    "Combat.Targeting.Invalid.OutOfRange" = "This cell is out of range."
 }
 
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)

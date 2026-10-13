@@ -29,6 +29,7 @@
 #include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridPersistentHudWidget.h"
+#include "UI/UILocalizationText.h"
 
 namespace
 {
@@ -108,7 +109,7 @@ namespace
 
 		if (!IsValid(InventoryComponent) || !InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
 		{
-			Action.DisabledReason = FText::FromString(TEXT("Personnage indisponible."));
+			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.Character"));
 			return Action;
 		}
 		Action.CharacterId = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
@@ -119,24 +120,26 @@ namespace
 		}
 		if (!IsValid(Definition))
 		{
-			Action.DisabledReason = FText::FromString(TEXT("Définition d'objet indisponible."));
+			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.ItemDefinition"));
 			return Action;
 		}
-		Action.Definition.DisplayName = FText::Format(FText::FromString(TEXT("Lancer {0}")), Definition->DisplayName);
+		Action.Definition.DisplayName = FText::FormatNamed(
+			FUILocalizationText::Get(TEXT("Combat.Action.ThrowName")),
+			TEXT("ItemName"), Definition->DisplayName);
 		Action.Definition.Description = Definition->Description;
 		Action.Definition.Icon = Definition->Icon;
 		Action.CurrentSourceItemQuantity = InventoryComponent->CountItemDefinitionInCharacterInventory(CharacterIndex, Binding.SourceDefinitionId);
 		if (Action.CurrentSourceItemQuantity <= 0)
 		{
 			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::InsufficientSourceItems;
-			Action.DisabledReason = FText::FromString(TEXT("Aucun exemplaire dans l'inventaire."));
+			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.NoInventoryCopies"));
 			return Action;
 		}
 		FGridInventoryCharacterSummary Summary;
 		if (!InventoryComponent->GetCharacterSummary(CharacterIndex, Summary) || !Definition->CanBeThrownByStrength(Summary.Attributes.Strength))
 		{
 			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::MissingRequirement;
-			Action.DisabledReason = FText::FromString(TEXT("Cet objet est trop lourd ou ne peut pas être lancé d'une seule main."));
+			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.ThrowRequirement"));
 			return Action;
 		}
 		Action.bEnabled = true;
@@ -198,65 +201,86 @@ namespace
 
 	FText FormatActionCost(const FGridAvailableCombatAction& Action)
 	{
-		FString Result = FString::Printf(TEXT("%d PA"), Action.CurrentActionPointCost);
 		if (Action.CurrentManaCost > 0)
 		{
-			Result += FString::Printf(TEXT(" | %d mana"), Action.CurrentManaCost);
+			return FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Combat.Cost.ActionPointsMana")),
+				TEXT("ActionPoints"), Action.CurrentActionPointCost,
+				TEXT("Mana"), Action.CurrentManaCost);
 		}
-		return FText::FromString(Result);
+		return FText::FormatNamed(
+			FUILocalizationText::Get(TEXT("Combat.Cost.ActionPoints")),
+			TEXT("ActionPoints"), Action.CurrentActionPointCost);
 	}
 
-	FString FormatActionCostAndQuantity(const FGridAvailableCombatAction& Action)
+	FText FormatActionCostAndQuantity(const FGridAvailableCombatAction& Action)
 	{
-		FString Result = FormatActionCost(Action).ToString();
+		const FText Cost = FormatActionCost(Action);
 		if (Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem && Action.CurrentSourceItemQuantityCost > 0)
 		{
-			Result += FString::Printf(TEXT(" — quantité : %d"), Action.CurrentSourceItemQuantity);
 			if (Action.CurrentSourceItemQuantityCost > 1)
 			{
-				Result += FString::Printf(TEXT(" (consomme %d)"), Action.CurrentSourceItemQuantityCost);
+				return FText::FormatNamed(
+					FUILocalizationText::Get(TEXT("Combat.Cost.WithQuantityConsumed")),
+					TEXT("Cost"), Cost,
+					TEXT("Quantity"), Action.CurrentSourceItemQuantity,
+					TEXT("Consumed"), Action.CurrentSourceItemQuantityCost);
 			}
+			return FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Combat.Cost.WithQuantity")),
+				TEXT("Cost"), Cost,
+				TEXT("Quantity"), Action.CurrentSourceItemQuantity);
 		}
-		return Result;
+		return Cost;
 	}
 
-	FText FormatCurrentAndMaximum(const TCHAR* Prefix, int32 Current, int32 Maximum)
+	FText FormatResourceCurrentAndMaximum(const TCHAR* Key, int32 Current, int32 Maximum)
 	{
-		return FText::FromString(FString::Printf(TEXT("%s %d / %d"), Prefix, FMath::Max(0, Current), FMath::Max(0, Maximum)));
+		return FText::FormatNamed(
+			FUILocalizationText::Get(Key),
+			TEXT("Current"), FMath::Max(0, Current),
+			TEXT("Maximum"), FMath::Max(0, Maximum));
 	}
 
 	FText BuildAssignedHotbarToolTip(const FGridCombatHudActionView& ActionView)
 	{
 		const FGridCombatActionDefinition& Definition = ActionView.Action.Definition;
-		FString Result = Definition.DisplayName.ToString();
-		if (Result.IsEmpty())
+		TArray<FText> Sections;
+
+		FText DisplayName = Definition.DisplayName;
+		if (DisplayName.IsEmpty())
 		{
-			Result = !Definition.ActionId.IsNone() ? Definition.ActionId.ToString() : ActionView.Binding.ActionId.ToString();
+			DisplayName = FText::FromName(!Definition.ActionId.IsNone() ? Definition.ActionId : ActionView.Binding.ActionId);
 		}
+		Sections.Add(DisplayName);
+
 		if (ActionView.bResolved)
 		{
-			Result += FString::Printf(TEXT("\nCoût : %s"), *FormatActionCostAndQuantity(ActionView.Action));
+			Sections.Add(
+				FText::FormatNamed(
+					FUILocalizationText::Get(TEXT("Combat.Hotbar.Tooltip.Cost")),
+					TEXT("Cost"), FormatActionCostAndQuantity(ActionView.Action)));
 		}
-		const FString Description = Definition.Description.ToString();
-		if (!Description.IsEmpty())
+		if (!Definition.Description.IsEmpty())
 		{
-			Result += TEXT("\n\n");
-			Result += Description;
+			Sections.Add(Definition.Description);
 		}
 		if (!ActionView.bResolved || !ActionView.Action.bEnabled)
 		{
-			FString Reason = ActionView.DisabledReason.ToString();
-			if (Reason.IsEmpty())
-			{
-				Reason = TEXT("cette action n’est plus disponible.");
-			}
-			Result += TEXT("\n\nIndisponible : ");
-			Result += Reason;
+			const FText Reason = ActionView.DisabledReason.IsEmpty()
+				? FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.Stale"))
+				: ActionView.DisabledReason;
+			Sections.Add(
+				FText::FormatNamed(
+					FUILocalizationText::Get(TEXT("Combat.Hotbar.Tooltip.Unavailable")),
+					TEXT("Reason"), Reason));
 		}
-		Result += TEXT("\n\n"
-					   "Clic droit : retirer le raccourci.\n"
-					   "L’objet reste dans l’inventaire ou équipé.");
-		return FText::FromString(Result);
+
+		TArray<FText> ShortcutInstructions;
+		ShortcutInstructions.Add(FUILocalizationText::Get(TEXT("Combat.Hotbar.Tooltip.RemoveShortcut")));
+		ShortcutInstructions.Add(FUILocalizationText::Get(TEXT("Combat.Hotbar.Tooltip.KeepsItem")));
+		Sections.Add(FText::Join(FText::FromString(TEXT("\n")), ShortcutInstructions));
+		return FText::Join(FText::FromString(TEXT("\n\n")), Sections);
 	}
 
 }
@@ -330,7 +354,7 @@ FGridCombatHudMobilityView FGridCombatHudViewModelBuilder::BuildMobility(const F
 	FGridCombatHudMobilityView View;
 	View.RemainingMobilityActionPoints = MobilityState.RemainingMobilityActionPoints;
 	View.MaximumMobilityActionPoints = MobilityState.MaximumMobilityActionPoints;
-	View.DisplayText = FormatCurrentAndMaximum(TEXT("PAM"), View.RemainingMobilityActionPoints, View.MaximumMobilityActionPoints);
+	View.DisplayText = FormatResourceCurrentAndMaximum(TEXT("Combat.Resource.MobilityActionPoints"), View.RemainingMobilityActionPoints, View.MaximumMobilityActionPoints);
 	return View;
 }
 
@@ -462,7 +486,7 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 		if (!View.bHasBinding)
 		{
 			Button_Action->SetToolTipText(
-				FText::FromString(TEXT("Déposez ici un objet de l'inventaire, un sort ou une capacité.")));
+				FUILocalizationText::Get(TEXT("Combat.Hotbar.EmptyTooltip")));
 		}
 		else
 		{
@@ -646,18 +670,18 @@ void UGridCombatHudInitiativeSlotWidget::RefreshWidgets()
 	}
 	if (Text_Health)
 	{
-		Text_Health->SetText(FormatCurrentAndMaximum(TEXT("PV"), View.Combatant.CurrentHealth, View.Combatant.MaximumHealth));
+		Text_Health->SetText(FormatResourceCurrentAndMaximum(TEXT("Combat.Resource.Health"), View.Combatant.CurrentHealth, View.Combatant.MaximumHealth));
 	}
 	if (ProgressBar_Health)
 	{
 		ProgressBar_Health->SetPercent(View.HealthPercent);
 		ProgressBar_Health->SetFillColorAndOpacity(HealthBarFillColor);
 		ProgressBar_Health->SetVisibility(ESlateVisibility::HitTestInvisible);
-		ProgressBar_Health->SetToolTipText(FormatCurrentAndMaximum(TEXT("PV"), View.Combatant.CurrentHealth, View.Combatant.MaximumHealth));
+		ProgressBar_Health->SetToolTipText(FormatResourceCurrentAndMaximum(TEXT("Combat.Resource.Health"), View.Combatant.CurrentHealth, View.Combatant.MaximumHealth));
 	}
 	if (Text_State)
 	{
-		Text_State->SetText(View.bActive ? FText::FromString(TEXT("ACTIF")) : FText::GetEmpty());
+		Text_State->SetText(View.bActive ? FUILocalizationText::Get(TEXT("Combat.State.Active")) : FText::GetEmpty());
 		Text_State->SetVisibility(View.bActive ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 	if (Border_Active)
@@ -817,20 +841,20 @@ void UGridCombatHudWidget::RefreshFromSources()
 	{
 		if (!View.bCombatActive)
 		{
-			View.EndTurnDisabledReason = FText::FromString(TEXT("Combat inactif"));
+			View.EndTurnDisabledReason = FUILocalizationText::Get(TEXT("Combat.EndTurn.InactiveCombat"));
 		}
 		else if (!IsValid(TurnManagerComponent) || !TurnManagerComponent->GetActiveCombatant(ActiveCombatant) ||
 			ActiveCombatant.Side != EGridCombatantSide::Party)
 		{
-			View.EndTurnDisabledReason = FText::FromString(TEXT("Tour ennemi"));
+			View.EndTurnDisabledReason = FUILocalizationText::Get(TEXT("Combat.EndTurn.EnemyTurn"));
 		}
 		else if (TurnManagerComponent->IsPartyMotionInProgress())
 		{
-			View.EndTurnDisabledReason = FText::FromString(TEXT("Déplacement en cours"));
+			View.EndTurnDisabledReason = FUILocalizationText::Get(TEXT("Combat.EndTurn.PartyMotion"));
 		}
 		else
 		{
-			View.EndTurnDisabledReason = FText::FromString(TEXT("Résolution en cours"));
+			View.EndTurnDisabledReason = FUILocalizationText::Get(TEXT("Combat.EndTurn.Resolution"));
 		}
 	}
 
@@ -1225,14 +1249,13 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 		switch (ActionView.Binding.SourcePolicy)
 		{
 			case EGridCombatActionSourcePolicy::QuickItem:
-				ActionView.DisabledReason = FText::FromString(TEXT("Aucune action de combat n’est configurée dans la "
-																   "définition de cette potion ou de ce parchemin."));
+				ActionView.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.QuickItemMissingAction"));
 				break;
 			case EGridCombatActionSourcePolicy::Equipment:
-				ActionView.DisabledReason = FText::FromString(TEXT("L’arme liée n’est plus équipée par ce personnage."));
+				ActionView.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.EquipmentMissing"));
 				break;
 			default:
-				ActionView.DisabledReason = FText::FromString(TEXT("Cette action n’est pas disponible actuellement."));
+				ActionView.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.Generic"));
 				break;
 		}
 	}
@@ -1351,7 +1374,10 @@ void UGridCombatHudWidget::RefreshInitiativeWidgets()
 		{
 			UBorder* Separator = InitiativeRoundSeparatorWidgets[UsedSeparatorCount];
 			UTextBlock* SeparatorText = InitiativeRoundSeparatorTexts[UsedSeparatorCount];
-			SeparatorText->SetText(FText::FromString(FString::Printf(TEXT("ROUND %d"), InitiativeView.RoundNumber)));
+			SeparatorText->SetText(
+				FText::FormatNamed(
+					FUILocalizationText::Get(TEXT("Combat.Initiative.Round")),
+					TEXT("Round"), InitiativeView.RoundNumber));
 			Separator->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 			Panel_Initiative->AddChild(Separator);
 			++UsedSeparatorCount;
@@ -1392,7 +1418,7 @@ void UGridCombatHudWidget::RefreshBoundWidgets()
 	{
 		Button_EndTurn->SetIsEnabled(View.bCanEndTurn);
 		Button_EndTurn->SetVisibility(bShowCombatOnly ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-		Button_EndTurn->SetToolTipText(View.bCanEndTurn ? FText::FromString(TEXT("Terminer le tour actif")) : View.EndTurnDisabledReason);
+		Button_EndTurn->SetToolTipText(View.bCanEndTurn ? FUILocalizationText::Get(TEXT("Combat.EndTurn.Tooltip")) : View.EndTurnDisabledReason);
 	}
 	if (Text_EndTurnDisabledReason)
 	{

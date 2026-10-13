@@ -4,6 +4,7 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Components/Widget.h"
+#include "UI/UILocalizationText.h"
 
 namespace
 {
@@ -14,7 +15,10 @@ namespace
 
 	FText FormatActionPoints(int32 CurrentValue, int32 MaximumValue)
 	{
-		return FText::FromString(FString::Printf(TEXT("PA %d / %d"), FMath::Max(0, CurrentValue), FMath::Max(0, MaximumValue)));
+		return FText::FormatNamed(
+			FUILocalizationText::Get(TEXT("Combat.Resource.ActionPoints")),
+			TEXT("Current"), FMath::Max(0, CurrentValue),
+			TEXT("Maximum"), FMath::Max(0, MaximumValue));
 	}
 
 	FText BuildStatusToolTip(const TArray<FGridStatusEffectPresentationView>& StatusEffects)
@@ -42,13 +46,13 @@ FText UGridCombatActionPanelWidget::GetActionStateText() const
 	switch (View.TurnState)
 	{
 		case EGridCombatantTurnState::Active:
-			return FText::FromString(TEXT("ACTIF"));
+			return FUILocalizationText::Get(TEXT("Combat.State.Active"));
 		case EGridCombatantTurnState::Completed:
 			return FText::GetEmpty();
 		case EGridCombatantTurnState::Incapacitated:
-			return FText::FromString(TEXT("INCAPACITÉ"));
+			return FUILocalizationText::Get(TEXT("Combat.State.Incapacitated"));
 		case EGridCombatantTurnState::Defeated:
-			return FText::FromString(TEXT("VAINCU"));
+			return FUILocalizationText::Get(TEXT("Combat.State.Defeated"));
 		case EGridCombatantTurnState::Waiting:
 		default:
 			return FText::GetEmpty();
