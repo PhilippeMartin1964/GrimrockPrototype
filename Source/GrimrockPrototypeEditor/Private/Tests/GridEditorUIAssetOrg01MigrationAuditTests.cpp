@@ -28,7 +28,7 @@ namespace GridEditorUIAssetOrg01Private
 		{ TEXT("ItemTooltipComparisonRow"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltipComparisonRow"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipComparisonRow") },
 		{ TEXT("ItemTooltipStatLine"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltipStatLine"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipStatLine") },
 		{ TEXT("GrimrockMenu"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_GrimrockMenu"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GrimrockMenu") },
-		{ TEXT("GridSkills"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_GridSkills"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GridSkills") },
+		{ TEXT("GridSkills"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_GridSkills"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills") },
 		{ TEXT("GridSpellbook"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_GridSpellbook"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GridSpellbook") },
 		{ TEXT("GridSpellbookEntry"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_GridSpellbookEntry"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GridSpellbookEntry") },
 		{ TEXT("GridJournal"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_GridJournal"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GridJournal") },
