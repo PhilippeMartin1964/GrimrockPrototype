@@ -70,24 +70,14 @@ namespace
 
 		Component->InitializeDefaultPartyIfNeeded();
 
-		URPGRaceAsset* RaceDefinition = NewObject<URPGRaceAsset>(Component);
-		URPGClassAsset* ClassDefinition = NewObject<URPGClassAsset>(Component);
+		URPGRaceAsset* RaceDefinition = LoadObject<URPGRaceAsset>(
+			nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Race_Human.DA_Race_Human"));
+		URPGClassAsset* ClassDefinition = LoadObject<URPGClassAsset>(
+			nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior"));
 		if (!RaceDefinition || !ClassDefinition)
 		{
 			return nullptr;
 		}
-
-		RaceDefinition->RaceId = TEXT("MON135_Human");
-		RaceDefinition->DisplayName = FText::FromString(TEXT("MON13.5 Human"));
-		RaceDefinition->AttributeBonuses = FRPGAttributes{ 0, 0, 0, 0, 0, 0 };
-
-		ClassDefinition->ClassId = TEXT("MON135_Fighter");
-		ClassDefinition->DisplayName = FText::FromString(TEXT("MON13.5 Fighter"));
-		ClassDefinition->BaseAttributes = FRPGAttributes{ 12, 12, 12, 10, 10, 10 };
-		ClassDefinition->HealthAtLevelOne = 20;
-		ClassDefinition->HealthPerLevel = 5;
-		ClassDefinition->ManaAtLevelOne = 5;
-		ClassDefinition->ManaPerLevel = 2;
 
 		FRPGCharacterCreationRequest Request;
 		Request.DisplayName = FText::FromString(TEXT("MON13.5 PIE Test"));
