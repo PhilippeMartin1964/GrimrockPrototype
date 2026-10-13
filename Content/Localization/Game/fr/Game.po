@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Game\n"
-"POT-Creation-Date: 2026-10-13 10:23\n"
-"PO-Revision-Date: 2026-10-13 10:23\n"
+"POT-Creation-Date: 2026-10-13 10:35\n"
+"PO-Revision-Date: 2026-10-13 10:35\n"
 "Language-Team: \n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -1125,6 +1125,14 @@ msgctxt "ST_UI,Combat.Targeting.Invalid.UnsupportedTargetingPolicy"
 msgid "Cette action ne prend pas de cible cellule ou zone."
 msgstr "Cette action ne prend pas de cible cellule ou zone."
 
+#. Key:	Combat.Targeting.SelectDungeonCell
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Instruction générique de ciblage combat lorsqu'aucune cellule n'est sélectionnée"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.SelectDungeonCell"
+msgid "Sélectionnez une cellule du donjon."
+msgstr "Sélectionnez une cellule du donjon."
+
 #. Key:	Interaction.Button.Push
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
 #. InfoMetaData:	"Comment" : "Action générique sur un bouton"
@@ -1221,6 +1229,110 @@ msgctxt "ST_UI,Interaction.Receptacle.PlaceItem"
 msgid "Placer l'objet"
 msgstr "Placer l'objet"
 
+#. Key:	Interaction.Throw.CharacterChanged
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Le personnage source d'un lancer physique a changé pendant le ciblage"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.CharacterChanged"
+msgid "Le personnage sélectionné a changé."
+msgstr "Le personnage sélectionné a changé."
+
+#. Key:	Interaction.Throw.DefinitionOrCharacterUnavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Données nécessaires au lancer physique indisponibles"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.DefinitionOrCharacterUnavailable"
+msgid "Définition d'objet ou personnage indisponible."
+msgstr "Définition d'objet ou personnage indisponible."
+
+#. Key:	Interaction.Throw.EmptyMainHand
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Aucun objet équipé en main principale à lancer"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.EmptyMainHand"
+msgid "La main droite est vide."
+msgstr "La main droite est vide."
+
+#. Key:	Interaction.Throw.Failed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Échec générique d'exécution d'un lancer physique"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.Failed"
+msgid "Lancer impossible."
+msgstr "Lancer impossible."
+
+#. Key:	Interaction.Throw.HeldItemChanged
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "L'objet source du lancer physique a changé pendant le ciblage"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.HeldItemChanged"
+msgid "L'objet tenu en main a changé."
+msgstr "L'objet tenu en main a changé."
+
+#. Key:	Interaction.Throw.ItemMissingInventory
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Objet d'inventaire disparu pendant le ciblage de lancer"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.ItemMissingInventory"
+msgid "Cet objet n'est plus présent dans l'inventaire."
+msgstr "Cet objet n'est plus présent dans l'inventaire."
+
+#. Key:	Interaction.Throw.NoActiveLevel
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Lancer physique impossible faute de niveau runtime actif"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.NoActiveLevel"
+msgid "Aucun niveau actif."
+msgstr "Aucun niveau actif."
+
+#. Key:	Interaction.Throw.NoItemSelected
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Aucun objet source sélectionné pour le lancer physique"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.NoItemSelected"
+msgid "Aucun objet de lancer sélectionné."
+msgstr "Aucun objet de lancer sélectionné."
+
+#. Key:	Interaction.Throw.NoTargetUnderCursor
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Aucune cible monde sous le curseur lors du lancer physique"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.NoTargetUnderCursor"
+msgid "Aucune cible de lancer sous le curseur."
+msgstr "Aucune cible de lancer sous le curseur."
+
+#. Key:	Interaction.Throw.PlacementFailed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Échec de pose proche lors d'un lancer depuis l'inventaire"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.PlacementFailed"
+msgid "Pose impossible."
+msgstr "Pose impossible."
+
+#. Key:	Interaction.Throw.RequiresOneHand
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "L'objet ne respecte pas la contrainte de lancer à une main"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.RequiresOneHand"
+msgid "Cet objet ne peut pas être lancé d'une seule main."
+msgstr "Cet objet ne peut pas être lancé d'une seule main."
+
+#. Key:	Interaction.Throw.TargetTooFarOrInvalid
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Cible de lancer physique hors portée ou invalide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.TargetTooFarOrInvalid"
+msgid "Cible de lancer trop éloignée ou invalide."
+msgstr "Cible de lancer trop éloignée ou invalide."
+
+#. Key:	Interaction.Throw.TooHeavy
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Objet trop lourd pour la Force du personnage lors d'un lancer"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Throw.TooHeavy"
+msgid "Trop lourd : {Weight} kg (maximum {MaximumWeight} kg avec Force {Strength})."
+msgstr "Trop lourd : {Weight} kg (maximum {MaximumWeight} kg avec Force {Strength})."
+
 #. Key:	Inventory.Bag.Weight
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
 #. InfoMetaData:	"Comment" : "Poids courant et capacité maximale du sac sélectionné"
@@ -1228,6 +1340,14 @@ msgstr "Placer l'objet"
 msgctxt "ST_UI,Inventory.Bag.Weight"
 msgid "Poids : {Current} / {Maximum}"
 msgstr "Poids : {Current} / {Maximum}"
+
+#. Key:	Progression.LevelUp.CharacterFallback
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom joueur de repli dans les notifications de montée de niveau"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Progression.LevelUp.CharacterFallback"
+msgid "Personnage {Index}"
+msgstr "Personnage {Index}"
 
 #. Key:	Progression.Skill.AllocationFailed
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
