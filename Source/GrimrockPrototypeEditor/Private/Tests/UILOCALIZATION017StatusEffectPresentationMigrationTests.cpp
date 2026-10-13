@@ -41,7 +41,7 @@ namespace UILOCALIZATION017
 		TEXT("Les déplacements de case sont bloqués."),
 		TEXT("T%d"),
 		TEXT("R%d"),
-		TEXT("PERM"),
+		TEXT("TEXT(\"PERM\")"),
 		TEXT("1 tour"),
 		TEXT("%d tours"),
 		TEXT("1 manche"),
