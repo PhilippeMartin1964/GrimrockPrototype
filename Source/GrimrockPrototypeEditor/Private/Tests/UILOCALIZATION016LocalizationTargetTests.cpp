@@ -116,6 +116,8 @@ bool FUILOCALIZATION016TargetContractTest::RunTest(const FString&)
 	FString RuntimeSmoke;
 	if (LoadProjectFile(TEXT("Source/GrimrockPrototypeEditor/Private/Localization/UILocalizationEnglishSmokeCommandlet.cpp"), RuntimeSmoke, *this))
 	{
+		TestTrue(TEXT("Runtime smoke forces Game localization in editor context"), RuntimeSmoke.Contains(TEXT("Localization.ForceLoadGameLocalizationInEditor")));
+		TestTrue(TEXT("Runtime smoke verifies Game localization is enabled"), RuntimeSmoke.Contains(TEXT("LocalizationManager.ShouldForceLoadGameLocalization()")));
 		TestTrue(TEXT("Runtime smoke explicitly refreshes localization resources"), RuntimeSmoke.Contains(TEXT("LocalizationManager.RefreshResources()")));
 		TestTrue(TEXT("Runtime smoke waits for localization reload"), RuntimeSmoke.Contains(TEXT("LocalizationManager.WaitForAsyncTasks()")));
 	}

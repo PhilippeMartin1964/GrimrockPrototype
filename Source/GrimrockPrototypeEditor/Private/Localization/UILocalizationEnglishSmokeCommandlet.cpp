@@ -1,5 +1,6 @@
 #include "Localization/UILocalizationEnglishSmokeCommandlet.h"
 
+#include "HAL/IConsoleManager.h"
 #include "Internationalization/Internationalization.h"
 #include "Internationalization/TextLocalizationManager.h"
 #include "UI/UILocalizationText.h"
@@ -18,6 +19,22 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 
 	FInternationalization& Internationalization = FInternationalization::Get();
 	FTextLocalizationManager& LocalizationManager = FTextLocalizationManager::Get();
+
+	IConsoleVariable* ForceGameLocalizationCVar =
+		IConsoleManager::Get().FindConsoleVariable(TEXT("Localization.ForceLoadGameLocalizationInEditor"));
+	if (!ForceGameLocalizationCVar)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[UI-LOCALIZATION01.6] Missing Localization.ForceLoadGameLocalizationInEditor CVar."));
+		return 1;
+	}
+
+	ForceGameLocalizationCVar->Set(1, ECVF_SetByCode);
+	if (!LocalizationManager.ShouldForceLoadGameLocalization())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[UI-LOCALIZATION01.6] Game localization is still disabled in editor context."));
+		return 1;
+	}
+
 	FInternationalization::FCultureStateSnapshot Snapshot;
 	Internationalization.BackupCultureState(Snapshot);
 
