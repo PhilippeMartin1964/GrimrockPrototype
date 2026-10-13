@@ -66,6 +66,13 @@ français et cinq traductions anglaises, puis restaure l état de culture.
 Le script resynchronise ST_UI, gather, exporte les PO, applique le fixture
 anglais, importe, compile les locres et lance le smoke runtime.
 
+Les quatre fichiers source controles sous Config/Localization ne sont jamais
+passes directement aux commandlets GatherText. Le script les copie dans le
+dossier Saved/Localization/UI-LOCALIZATION01.6/<timestamp>/Config, utilise
+uniquement ces copies de travail, puis verifie par SHA-256 que les fichiers
+versionnes sont restes byte-for-byte inchanges. Cette isolation evite les
+rewrites automatiques Unreal de type ;METADATA=(Diff=true, UseCommands=true).
+
 ## Validation source
 
 ~~~text

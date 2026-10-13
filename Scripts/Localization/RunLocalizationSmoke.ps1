@@ -59,19 +59,19 @@ $Manifest = Join-Path $LocalizationRoot "Game.manifest"
 $LocMeta = Join-Path $LocalizationRoot "Game.locmeta"
 $StringTableAsset = Join-Path $ProjectRoot "Content\Localization\StringTables\ST_UI.uasset"
 
-$GatherConfig = Join-Path $ProjectRoot "Config\Localization\Game_Gather.ini"
-$ExportConfig = Join-Path $ProjectRoot "Config\Localization\Game_Export.ini"
-$ImportConfig = Join-Path $ProjectRoot "Config\Localization\Game_Import.ini"
-$CompileConfig = Join-Path $ProjectRoot "Config\Localization\Game_Compile.ini"
+$GatherConfigSource = Join-Path $ProjectRoot "Config\Localization\Game_Gather.ini"
+$ExportConfigSource = Join-Path $ProjectRoot "Config\Localization\Game_Export.ini"
+$ImportConfigSource = Join-Path $ProjectRoot "Config\Localization\Game_Import.ini"
+$CompileConfigSource = Join-Path $ProjectRoot "Config\Localization\Game_Compile.ini"
 
 Assert-FileExists -Path $EditorCmd -Label "UnrealEditor-Cmd.exe"
 Assert-FileExists -Path $BuildBat -Label "Build.bat"
 Assert-FileExists -Path $ApplyTranslationsScript -Label "English smoke translation script"
 Assert-FileExists -Path $ScriptValidator -Label "localization PowerShell validator"
-Assert-FileExists -Path $GatherConfig -Label "Gather config"
-Assert-FileExists -Path $ExportConfig -Label "Export config"
-Assert-FileExists -Path $ImportConfig -Label "Import config"
-Assert-FileExists -Path $CompileConfig -Label "Compile config"
+Assert-FileExists -Path $GatherConfigSource -Label "Gather config"
+Assert-FileExists -Path $ExportConfigSource -Label "Export config"
+Assert-FileExists -Path $ImportConfigSource -Label "Import config"
+Assert-FileExists -Path $CompileConfigSource -Label "Compile config"
 Assert-FileExists -Path (Join-Path $ProjectRoot "Localization\Source\UI.csv") -Label "UI localization CSV"
 Assert-NoUnrealProcess
 
@@ -79,6 +79,33 @@ $Timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $ReportRoot = Join-Path $ProjectRoot ("Saved\Localization\UI-LOCALIZATION01.6\{0}" -f $Timestamp)
 [void](New-Item -ItemType Directory -Path $ReportRoot -Force)
 Write-Host ("Localization report directory: {0}" -f $ReportRoot)
+
+# Unreal may rewrite GatherText config files by adding metadata comments.
+# Never expose source-controlled configs to that mutation. Work on report-local
+# copies and verify that the repository copies remain byte-for-byte unchanged.
+$WorkingConfigRoot = Join-Path $ReportRoot "Config"
+[void](New-Item -ItemType Directory -Path $WorkingConfigRoot -Force)
+
+$GatherConfig = Join-Path $WorkingConfigRoot "Game_Gather.ini"
+$ExportConfig = Join-Path $WorkingConfigRoot "Game_Export.ini"
+$ImportConfig = Join-Path $WorkingConfigRoot "Game_Import.ini"
+$CompileConfig = Join-Path $WorkingConfigRoot "Game_Compile.ini"
+
+$SourceConfigPaths = @(
+    $GatherConfigSource,
+    $ExportConfigSource,
+    $ImportConfigSource,
+    $CompileConfigSource
+)
+$SourceConfigHashes = @{}
+foreach ($SourceConfigPath in $SourceConfigPaths) {
+    $SourceConfigHashes[$SourceConfigPath] = (Get-FileHash -LiteralPath $SourceConfigPath -Algorithm SHA256).Hash
+}
+
+Copy-Item -LiteralPath $GatherConfigSource -Destination $GatherConfig -Force
+Copy-Item -LiteralPath $ExportConfigSource -Destination $ExportConfig -Force
+Copy-Item -LiteralPath $ImportConfigSource -Destination $ImportConfig -Force
+Copy-Item -LiteralPath $CompileConfigSource -Destination $CompileConfig -Force
 
 $PowerShellExe = (Get-Command powershell.exe -ErrorAction Stop).Source
 
@@ -185,6 +212,14 @@ Assert-FileExists -Path $FrenchLocRes -Label "French locres"
 Assert-FileExists -Path $LocMeta -Label "localization target metadata"
 
 Invoke-UnrealStep -Label "Runtime_Culture_Smoke" -Arguments @("-run=UILocalizationEnglishSmoke")
+
+foreach ($SourceConfigPath in $SourceConfigPaths) {
+    $CurrentHash = (Get-FileHash -LiteralPath $SourceConfigPath -Algorithm SHA256).Hash
+    if ($CurrentHash -ne $SourceConfigHashes[$SourceConfigPath]) {
+        throw ("Source-controlled localization config was modified during smoke execution: {0}" -f $SourceConfigPath)
+    }
+}
+Write-Host "[OK] Source-controlled localization configs remained unchanged."
 
 Write-Host ""
 Write-Host "[OK] UI-LOCALIZATION01.6 localization pipeline and English smoke test completed successfully."
