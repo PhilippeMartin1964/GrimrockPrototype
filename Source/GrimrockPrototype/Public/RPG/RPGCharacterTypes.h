@@ -145,8 +145,6 @@ struct FRPGRaceIllustrationOption
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Race Illustration")
 	TSoftObjectPtr<UTexture2D> RaceEnvironment;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Race Illustration")
-	FText DisplayName;
 
 	bool IsValidDefinition() const
 	{

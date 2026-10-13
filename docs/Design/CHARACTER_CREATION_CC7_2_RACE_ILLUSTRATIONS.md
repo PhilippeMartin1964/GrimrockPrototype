@@ -11,6 +11,8 @@ RaceDefinition.RaceId
 SelectedPortraitGender
 ```
 
+Le libellé de race ne fait pas partie de `FRPGRaceIllustrationOption` : il provient de `URPGRaceAsset::DisplayName`. Le genre est présenté via le vocabulaire localisé de création de personnage. L'option d'illustration reste donc strictement visuelle.
+
 Le choix du sexe se fait dans l'étape Race avec deux boutons :
 
 ```text
@@ -36,7 +38,7 @@ Champs :
 RaceId
 Gender
 Illustration
-DisplayName
+RaceEnvironment
 ```
 
 Propriété ajoutée dans `RPGCharacterCreationWidget` :
