@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Game\n"
-"POT-Creation-Date: 2026-10-13 09:37\n"
-"PO-Revision-Date: 2026-10-13 09:37\n"
+"POT-Creation-Date: 2026-10-13 09:54\n"
+"PO-Revision-Date: 2026-10-13 09:54\n"
 "Language-Team: \n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
@@ -748,6 +748,382 @@ msgstr ""
 msgctxt "ST_UI,CharacterCreation.Wizard.Step.Summary"
 msgid "Résumé"
 msgstr "Summary"
+
+#. Key:	Combat.Action.ThrowName
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom générique d'action de lancer d'objet"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Action.ThrowName"
+msgid "Lancer {ItemName}"
+msgstr ""
+
+#. Key:	Combat.Action.Unavailable.Character
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Raison générique d'indisponibilité combat"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Action.Unavailable.Character"
+msgid "Personnage indisponible."
+msgstr ""
+
+#. Key:	Combat.Action.Unavailable.EquipmentMissing
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Raccourci d'équipement devenu invalide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Action.Unavailable.EquipmentMissing"
+msgid "L’arme liée n’est plus équipée par ce personnage."
+msgstr ""
+
+#. Key:	Combat.Action.Unavailable.Generic
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback générique d'action indisponible"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Action.Unavailable.Generic"
+msgid "Cette action n’est pas disponible actuellement."
+msgstr ""
+
+#. Key:	Combat.Action.Unavailable.ItemDefinition
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Définition d'item introuvable pour l'action"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Action.Unavailable.ItemDefinition"
+msgid "Définition d'objet indisponible."
+msgstr ""
+
+#. Key:	Combat.Action.Unavailable.NoInventoryCopies
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Quantité d'item insuffisante"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Action.Unavailable.NoInventoryCopies"
+msgid "Aucun exemplaire dans l'inventaire."
+msgstr ""
+
+#. Key:	Combat.Action.Unavailable.QuickItemMissingAction
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Objet rapide sans action combat configurée"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Action.Unavailable.QuickItemMissingAction"
+msgid "Aucune action de combat n’est configurée dans la définition de cette potion ou de ce parchemin."
+msgstr ""
+
+#. Key:	Combat.Action.Unavailable.Stale
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Raccourci devenu indisponible"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Action.Unavailable.Stale"
+msgid "Cette action n’est plus disponible."
+msgstr ""
+
+#. Key:	Combat.Action.Unavailable.StatusBlocksSpells
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Contrôle de statut bloquant les sorts"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Action.Unavailable.StatusBlocksSpells"
+msgid "Un effet de statut empêche l'utilisation des sorts."
+msgstr "A status effect prevents spell use."
+
+#. Key:	Combat.Action.Unavailable.ThrowRequirement
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Prérequis de lancer physique non satisfait"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Action.Unavailable.ThrowRequirement"
+msgid "Cet objet est trop lourd ou ne peut pas être lancé d'une seule main."
+msgstr ""
+
+#. Key:	Combat.Cost.ActionPoints
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Coût combat en points d'action"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Cost.ActionPoints"
+msgid "{ActionPoints} PA"
+msgstr ""
+
+#. Key:	Combat.Cost.ActionPointsMana
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Coût combat en points d'action et mana"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Cost.ActionPointsMana"
+msgid "{ActionPoints} PA | {Mana} mana"
+msgstr ""
+
+#. Key:	Combat.Cost.WithQuantity
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Coût d'action avec quantité disponible"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Cost.WithQuantity"
+msgid "{Cost} — quantité : {Quantity}"
+msgstr ""
+
+#. Key:	Combat.Cost.WithQuantityConsumed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Coût d'action avec quantité et consommation"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Cost.WithQuantityConsumed"
+msgid "{Cost} — quantité : {Quantity} (consomme {Consumed})"
+msgstr ""
+
+#. Key:	Combat.EndTurn.EnemyTurn
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Raison de désactivation de fin de tour"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.EndTurn.EnemyTurn"
+msgid "Tour ennemi"
+msgstr "Enemy turn"
+
+#. Key:	Combat.EndTurn.InactiveCombat
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Raison de désactivation de fin de tour"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.EndTurn.InactiveCombat"
+msgid "Combat inactif"
+msgstr ""
+
+#. Key:	Combat.EndTurn.PartyMotion
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Raison de désactivation de fin de tour"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.EndTurn.PartyMotion"
+msgid "Déplacement en cours"
+msgstr ""
+
+#. Key:	Combat.EndTurn.Resolution
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Raison de désactivation de fin de tour"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.EndTurn.Resolution"
+msgid "Résolution en cours"
+msgstr ""
+
+#. Key:	Combat.EndTurn.Tooltip
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Tooltip du bouton fin de tour"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.EndTurn.Tooltip"
+msgid "Terminer le tour actif"
+msgstr ""
+
+#. Key:	Combat.Hotbar.EmptyTooltip
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Tooltip d'un raccourci vide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Hotbar.EmptyTooltip"
+msgid "Déposez ici un objet de l'inventaire, un sort ou une capacité."
+msgstr "Drop an inventory item, spell, or ability here."
+
+#. Key:	Combat.Hotbar.Tooltip.Cost
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Ligne de coût du tooltip de raccourci"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Hotbar.Tooltip.Cost"
+msgid "Coût : {Cost}"
+msgstr "Cost: {Cost}"
+
+#. Key:	Combat.Hotbar.Tooltip.KeepsItem
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Instruction de suppression de raccourci"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Hotbar.Tooltip.KeepsItem"
+msgid "L’objet reste dans l’inventaire ou équipé."
+msgstr ""
+
+#. Key:	Combat.Hotbar.Tooltip.RemoveShortcut
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Instruction de suppression de raccourci"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Hotbar.Tooltip.RemoveShortcut"
+msgid "Clic droit : retirer le raccourci."
+msgstr ""
+
+#. Key:	Combat.Hotbar.Tooltip.Unavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Ligne d'indisponibilité du tooltip de raccourci"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Hotbar.Tooltip.Unavailable"
+msgid "Indisponible : {Reason}"
+msgstr ""
+
+#. Key:	Combat.Initiative.Round
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Séparateur de manche dans l'initiative"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Initiative.Round"
+msgid "MANCHE {Round}"
+msgstr "ROUND {Round}"
+
+#. Key:	Combat.Resource.ActionPoints
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Affichage des points d'action d'un membre"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Resource.ActionPoints"
+msgid "PA {Current} / {Maximum}"
+msgstr "AP {Current} / {Maximum}"
+
+#. Key:	Combat.Resource.Health
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Affichage des points de vie dans l'initiative"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Resource.Health"
+msgid "PV {Current} / {Maximum}"
+msgstr ""
+
+#. Key:	Combat.Resource.MobilityActionPoints
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Affichage des points d'action de mobilité"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Resource.MobilityActionPoints"
+msgid "PAM {Current} / {Maximum}"
+msgstr ""
+
+#. Key:	Combat.State.Active
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État de combattant actif"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.State.Active"
+msgid "ACTIF"
+msgstr "ACTIVE"
+
+#. Key:	Combat.State.Defeated
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État de combattant vaincu"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.State.Defeated"
+msgid "VAINCU"
+msgstr ""
+
+#. Key:	Combat.State.Incapacitated
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État de combattant incapacité"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.State.Incapacitated"
+msgid "INCAPACITÉ"
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.ActionNoLongerAvailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Ciblage d'une action disparue du catalogue"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.ActionNoLongerAvailable"
+msgid "Cette action n'est plus disponible."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.ActionUnavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Ciblage d'une action désactivée"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.ActionUnavailable"
+msgid "Cette action est indisponible."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.AreaNoEligibleTarget
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Zone sans cible valide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.AreaNoEligibleTarget"
+msgid "Cette zone ne contient aucune cible éligible."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.CellNoEligibleTarget
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Cellule sans cible valide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.CellNoEligibleTarget"
+msgid "Cette cellule ne contient aucune cible éligible."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.CellOutsideLevel
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Cellule de ciblage hors niveau"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.CellOutsideLevel"
+msgid "Cette cellule n'appartient pas au niveau jouable."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.Default
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback de ciblage invalide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.Default"
+msgid "Cible invalide."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.DestinationRequiresWalkableCell
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Destination de déplacement invalide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.DestinationRequiresWalkableCell"
+msgid "La destination doit être une cellule marchable."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.InvalidPartyFacing
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Orientation du groupe invalide pour ciblage"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.InvalidPartyFacing"
+msgid "L'orientation du groupe est invalide."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.LevelOrPartyUnavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Contexte runtime indisponible pour ciblage"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.LevelOrPartyUnavailable"
+msgid "Le niveau ou le groupe est indisponible."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.LineOfSightBlocked
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Ligne de vue bloquée"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.LineOfSightBlocked"
+msgid "La ligne de vue vers cette cellule est bloquée."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.NoSurfaceReaction
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Aucune réaction de surface valide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.NoSurfaceReaction"
+msgid "Cette cellule ne contient aucune réaction de surface canonique possible."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.OccupancyUnavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Occupation runtime indisponible"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.OccupancyUnavailable"
+msgid "L'occupation du niveau est indisponible."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.OutOfRange
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Cellule hors portée"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.OutOfRange"
+msgid "Cette cellule est hors de portée."
+msgstr "This cell is out of range."
+
+#. Key:	Combat.Targeting.Invalid.RelocationBlocked
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Relocalisation impossible"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.RelocationBlocked"
+msgid "La destination est occupée ou séparée par un mur, une porte fermée ou une limite de niveau."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.TrapRequiresWalkableCell
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Placement de piège invalide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.TrapRequiresWalkableCell"
+msgid "Un piège doit être posé sur une cellule marchable."
+msgstr ""
+
+#. Key:	Combat.Targeting.Invalid.UnsupportedTargetingPolicy
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Politique de ciblage incompatible"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Combat.Targeting.Invalid.UnsupportedTargetingPolicy"
+msgid "Cette action ne prend pas de cible cellule ou zone."
+msgstr ""
 
 #. Key:	Interaction.Button.Push
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
