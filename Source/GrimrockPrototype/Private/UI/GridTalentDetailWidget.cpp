@@ -89,6 +89,16 @@ void UGridTalentDetailWidget::ApplyLocalizedStaticLabels()
 	SetResolvedText(Text_CancelAcquire, TEXT("Talent.Action.Cancel"));
 }
 
+void UGridTalentDetailWidget::SetTalentTypeImage(UTexture2D* ImageTexture)
+{
+	if (!Image_TalentType)
+	{
+		return;
+	}
+	Image_TalentType->SetBrushFromTexture(ImageTexture, false);
+	Image_TalentType->SetVisibility(ImageTexture ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+}
+
 void UGridTalentDetailWidget::BindAcquireButtons()
 {
 	if (Button_AcquireTalent)
@@ -155,16 +165,16 @@ bool UGridTalentDetailWidget::InitializeTalentDetail(
 
 void UGridTalentDetailWidget::SetTalentIcon(UTexture2D* IconTexture)
 {
-	if (!Image_DetailTalentIcon)
+	const ESlateVisibility IconVisibility = IconTexture ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
+	if (Image_DetailTalentIcon)
 	{
-		return;
+		Image_DetailTalentIcon->SetBrushFromTexture(IconTexture, false);
+		Image_DetailTalentIcon->SetVisibility(IconVisibility);
 	}
-
-	Image_DetailTalentIcon->SetBrushFromTexture(IconTexture, false);
-	Image_DetailTalentIcon->SetVisibility(
-		IconTexture
-			? ESlateVisibility::SelfHitTestInvisible
-			: ESlateVisibility::Collapsed);
+	if (Border_DetailTalentIconFrame)
+	{
+		Border_DetailTalentIconFrame->SetVisibility(IconVisibility);
+	}
 }
 
 void UGridTalentDetailWidget::ClearTalentDetail()
@@ -181,6 +191,7 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	SelectedVariantChoiceId = NAME_None;
 	AcquisitionFeedback = FText::GetEmpty();
 	SetTalentIcon(nullptr);
+	SetTalentTypeImage(nullptr);
 
 	if (Border_DetailAccent)
 	{

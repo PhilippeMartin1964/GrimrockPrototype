@@ -17,6 +17,9 @@ struct GRIMROCKPROTOTYPE_API FRPGTalentBranchVisualDefinition
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual|Talents")
 	TSoftObjectPtr<UTexture2D> Background;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual|Talents")
+	TSoftObjectPtr<UTexture2D> DetailPanelImage;
 };
 
 /** Presentation-only icon assigned to one canonical conceptual Talent node. */

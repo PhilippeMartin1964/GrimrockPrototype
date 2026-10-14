@@ -72,6 +72,9 @@ public:
 	/** Presentation-only icon resolved from URPGClassVisualAsset by canonical TalentNodeId. */
 	void SetTalentIcon(UTexture2D* IconTexture);
 
+		/** Branch-specific illustration supplied by URPGClassVisualAsset. */
+	void SetTalentTypeImage(UTexture2D* ImageTexture);
+
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Acquire")
 	bool CanRequestSimpleAcquisition() const;
 
@@ -131,8 +134,14 @@ private:
 	void ApplyAcquisitionPresentation();
 	void ApplyLocalizedStaticLabels();
 
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_TalentType;
+
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UBorder> Border_DetailAccent;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBorder> Border_DetailTalentIconFrame;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> Image_DetailTalentIcon;

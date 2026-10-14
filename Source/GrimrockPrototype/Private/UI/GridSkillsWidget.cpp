@@ -730,6 +730,7 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 	}
 
 	UTexture2D* IconTexture = nullptr;
+	UTexture2D* DetailPanelTexture = nullptr;
 	if (const URPGClassVisualAsset* ClassVisual = ResolveCurrentClassVisual())
 	{
 		if (const FRPGTalentNodeVisualDefinition* NodeVisual =
@@ -737,9 +738,14 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 		{
 			IconTexture = NodeVisual->Icon.LoadSynchronous();
 		}
+		if (const FRPGTalentBranchVisualDefinition* BranchVisual = ClassVisual->FindTalentBranchVisual(SelectedNode.TalentBranchId))
+		{
+			DetailPanelTexture = BranchVisual->DetailPanelImage.LoadSynchronous();
+		}
 	}
 
 	Detail_Talent->SetTalentIcon(IconTexture);
+	Detail_Talent->SetTalentTypeImage(DetailPanelTexture);
 }
 
 void UGridSkillsWidget::RebuildSkillEntryWidgets()
