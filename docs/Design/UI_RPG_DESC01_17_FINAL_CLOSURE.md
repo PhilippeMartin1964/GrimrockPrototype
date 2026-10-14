@@ -5,6 +5,11 @@ Projet : **GrimrockPrototype — Unreal Engine 5.5.4**
 État : **VALIDÉ / CLOS**  
 Périmètre : **fiche Talent — 6 classes / 18 branches / 90 Talents**
 
+> **Mise à jour postérieure — 14 octobre 2026 :**
+> UI-RPG-VARIANT-FLYOUT01 remplace l'ancienne section VARIANTES de la fiche par
+> un flyout icon-only ancré au nœud, puis projette la variante choisie comme un
+> Talent normal dans le panneau droit.
+
 ## 1. Objet
 
 DESC01.17 clôt officiellement le chantier UI-RPG-DESC01.
@@ -43,7 +48,6 @@ STATUT
 PRINCIPE
 EFFETS
 [UTILISATION]
-[VARIANTES]
 ACQUISITION
 ```
 
@@ -54,8 +58,8 @@ Invariants :
 - STATUT décrit uniquement l'acquisition ;
 - les informations gameplay sont visibles avant acquisition ;
 - UTILISATION n'existe que pour un déclenchement volontaire ;
-- VARIANTES n'existe que sur les quatre vrais nœuds multi-choix ;
-- toutes les variantes restent visibles simultanément ;
+- les quatre vrais nœuds multi-choix ouvrent un flyout icon-only ;
+- toutes leurs variantes restent directement consultables avant acquisition ;
 - ACQUISITION est toujours la dernière section ;
 - un seul scroll vertical porte toute la fiche ;
 - aucun ComboBox de variante ;
@@ -91,20 +95,24 @@ Talent.
 
 ## 5. Acquisition des variantes
 
-Flux final :
+Flux courant :
 
 ```text
-CHOISIR
-    -> CHOIX EN COURS
-    -> ANNULER
-       ou
+clic sur le nœud conceptuel
+    -> flyout icon-only
+    -> clic sur une variante
+    -> fermeture du flyout
+    -> fiche standard de la variante
+    -> ACQUÉRIR
     -> CONFIRMER
         -> Talent conceptuel : ACQUIS
-        -> variante choisie : ACQUISE
-        -> variantes sœurs : INDISPONIBLE
+        -> ChoiceId choisi : acquis
+        -> icône du nœud remplacée
 ```
 
-La transaction reste autoritaire. L'UMG ne fabrique aucun état d'acquisition.
+Le choix est définitif pendant la partie normale. Tout changement ultérieur est
+réservé à un futur système de déspécialisation. La transaction reste
+autoritaire et l'UMG ne fabrique aucun état d'acquisition.
 
 ## 6. Langage joueur et recettes
 
@@ -136,23 +144,26 @@ FRPGClassProgressionService
 FRPGClassProgressionTransactionService
     -> disponibilité / acquisition
 
-CombatActions / modifiers / reactions / skills / party modifiers
-    -> valeurs gameplay
-
 FGridSkillsPageService
     -> read-model Talent canonique read-only
 
-UGridTalentDetailWidget
-UGridTalentVariantBlockWidget
-    -> presenter natif
+UGridSkillsWidget
+    -> sélection/navigation + flyout viewport
 
+UGridTalentVariantFlyoutWidget / UGridTalentVariantIconWidget
+    -> choix visuel temporaire d'un ChoiceId
+
+UGridTalentDetailWidget
+    -> présentation du Talent concret + acquisition
+
+WBP_RPGTalentVariantFlyout / WBP_RPGTalentVariantIcon
 WBP_RPGTalentDetail
-WBP_RPGTalentVariantBlock
-    -> composition et rendu UMG
+    -> composition UMG
 ```
 
-DESC01.15.5 a supprimé les champs, bindings et chemins de projection legacy.
-Aucune double autorité Talent n'est conservée pour compatibilité.
+L'ancien bloc de variante du panneau droit a été supprimé par
+UI-RPG-VARIANT-FLYOUT01. Aucune double autorité Talent n'est conservée pour
+compatibilité.
 
 ## 8. Validation finale
 

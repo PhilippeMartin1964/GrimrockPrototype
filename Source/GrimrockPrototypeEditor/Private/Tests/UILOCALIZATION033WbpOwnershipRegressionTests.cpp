@@ -149,12 +149,17 @@ namespace UILOCALIZATION033
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelPrinciple.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelStatus.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelType.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelUsage.Text"),
+		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelUsage.Text")
+	};
+
+	const TCHAR* const LegacyTalentVariantPaths[] = {
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelVariants.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantBlock.WBP_RPGTalentVariantBlock_C:WidgetTree.Text_ChooseVariant.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantBlock.WBP_RPGTalentVariantBlock_C:WidgetTree.Text_LabelVariantEffects.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantBlock.WBP_RPGTalentVariantBlock_C:WidgetTree.Text_LabelVariantUsage.Text")
 	};
+
+	const TCHAR* const SharedVocabularyPaths[] = {
 
 	const TCHAR* const SharedVocabularyPaths[] = {
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextLabel_Equipment.Text"),
@@ -214,7 +219,8 @@ namespace UILOCALIZATION033
 	// The six historical Script Bytecode occurrences shared four manifest paths.
 	static_assert(UE_ARRAY_COUNT(ScriptBytecodePaths) == 4);
 	static_assert(UE_ARRAY_COUNT(ExistingAuthorityPaths) == 14);
-	static_assert(UE_ARRAY_COUNT(TalentPaths) == 12);
+	static_assert(UE_ARRAY_COUNT(TalentPaths) == 8);
+	static_assert(UE_ARRAY_COUNT(LegacyTalentVariantPaths) == 4);
 	static_assert(UE_ARRAY_COUNT(SharedVocabularyPaths) == 14);
 	static_assert(UE_ARRAY_COUNT(RaceIllustrationPaths) == 12);
 	static_assert(UE_ARRAY_COUNT(MechanicalGlyphPaths) == 12);
@@ -239,6 +245,7 @@ bool FUILOCALIZATION033WbpOwnershipRegressionTest::RunTest(const FString&)
 	RequirePathsAbsent(*this, Manifest, TEXT("Blueprint Script Bytecode"), ScriptBytecodePaths);
 	RequirePathsAbsent(*this, Manifest, TEXT("Existing text authority"), ExistingAuthorityPaths);
 	RequirePathsAbsent(*this, Manifest, TEXT("Talent text authority"), TalentPaths);
+	RequirePathsAbsent(*this, Manifest, TEXT("Legacy Talent variant UI"), LegacyTalentVariantPaths);
 	RequirePathsAbsent(*this, Manifest, TEXT("Shared WBP vocabulary"), SharedVocabularyPaths);
 	RequirePathsAbsent(*this, Manifest, TEXT("Race illustration authored text"), RaceIllustrationPaths);
 

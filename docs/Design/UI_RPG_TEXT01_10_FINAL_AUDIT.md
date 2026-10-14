@@ -13,7 +13,8 @@ Les fichiers runtime Talent audités sont notamment :
 ~~~text
 GridSkillsPageService.cpp
 GridTalentDetailWidget.cpp
-GridTalentVariantBlockWidget.cpp
+GridTalentVariantFlyoutWidget.cpp
+GridTalentVariantIconWidget.cpp
 GridTalentDetailLineWidget.cpp
 GridTalentNodeWidget.cpp
 GridTalentBranchWidget.cpp

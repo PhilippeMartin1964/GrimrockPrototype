@@ -6,6 +6,11 @@ Ticket : **UI-LOCALIZATION03.1**
 État : **AUDIT UNIQUEMENT — aucun WBP, Data Asset, C++ runtime ou catalogue de localisation modifié**  
 Baseline auditée : **8304e12be63d7aa16b9dc915ab69fdecb520df31** (`UI-LOCALIZATION02.DOC`)
 
+> **Note de supersession — 14 octobre 2026 :**
+> cette page conserve le snapshot historique de l'audit 03.1. Depuis
+> UI-RPG-VARIANT-FLYOUT01, l'ancien bloc WBP de variante a été supprimé et les
+> variantes sont affichées dans un flyout icon-only sans texte joueur sérialisé.
+
 ## 1. Objet
 
 Inventorier les textes joueur encore sérialisés sous :

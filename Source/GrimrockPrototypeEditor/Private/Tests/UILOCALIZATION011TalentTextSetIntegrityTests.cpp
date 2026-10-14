@@ -104,7 +104,14 @@ bool FUILOCALIZATION011TalentTextSetIntegrityTest::RunTest(const FString&)
 
 	for (const FName ObsoleteTextId : {
 		FName(TEXT("Talent.Action.Cancel")),
-		FName(TEXT("Talent.Acquisition.Prompt.ConfirmTalent"))
+		FName(TEXT("Talent.Acquisition.Prompt.ConfirmTalent")),
+		FName(TEXT("Talent.Acquisition.Prompt.ConfirmVariant")),
+		FName(TEXT("Talent.Acquisition.Prompt.ChooseVariant")),
+		FName(TEXT("Talent.Section.Variants")),
+		FName(TEXT("Talent.Variant.Acquired")),
+		FName(TEXT("Talent.Variant.Pending")),
+		FName(TEXT("Talent.Variant.Choose")),
+		FName(TEXT("Talent.Variant.Unavailable"))
 	})
 	{
 		TestFalse(

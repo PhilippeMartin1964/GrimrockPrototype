@@ -1,6 +1,7 @@
 # UI-RPG-VARIANT-FLYOUT01 — Contrat UX des Talents à variantes
 
 Date : 14 octobre 2026
+État : **VALIDÉ / MATÉRIALISÉ**
 
 ## Décision
 
@@ -60,10 +61,9 @@ directement au viewport à Z=9000 : au-dessus de l'écran Skills, mais sous le
 curseur Grimrock.
 
 `WBP_RPGTalentNode` conserve `VariantFlyoutWidgetClass =
-WBP_RPGTalentVariantFlyout`. Le `MenuAnchor_Variants` éventuellement présent
-dans l'asset n'est plus consommé par le C++ et doit être retiré lors du prochain
-nettoyage UMG, en replaçant `Button_TalentNode` directement sous
-`SB_NodeRoot`.
+WBP_RPGTalentVariantFlyout`. Le `MenuAnchor` expérimental a été retiré :
+l'ouverture est routée par `UGridSkillsWidget`, puis le flyout est ajouté
+directement au viewport à Z=9000.
 
 `WBP_RPGTalentVariantFlyout` :
 - parent `UGridTalentVariantFlyoutWidget` ;
@@ -85,28 +85,19 @@ ferme le flyout puis projette le ChoiceId dans le panneau droit.
 
 ## Nettoyage du panneau droit
 
-Le choix de variante ne relève plus de WBP_RPGTalentDetail.
+Le choix de variante ne relève plus de `WBP_RPGTalentDetail`. Une variante
+choisie dans le flyout est projetée comme un Talent concret normal avant
+d'entrer dans `ACQUÉRIR / CONFIRMER`.
 
-À retirer du Designer :
-- HB_AcquireConfirm ;
-- Text_AcquirePrompt ;
-- Text_AcquireFeedback.
+Nettoyage final réalisé :
 
-Le feedback de transaction est exclusivement porté par le toast.
-
-Le presenter C++ du panneau droit ne possède plus aucun flux de sélection de
-variante. Une variante choisie dans le flyout est projetée comme un Talent
-concret normal avant d'entrer dans ACQUÉRIR / CONFIRMER.
-
-Nettoyage UMG/DataAsset restant :
-- supprimer de WBP_RPGTalentDetail : VB_DetailVariants, VB_VariantEntries,
-  Text_LabelVariants, HB_AcquireConfirm, Text_AcquirePrompt et
-  Text_AcquireFeedback s'ils existent encore ;
-- supprimer WBP_RPGTalentVariantBlock après contrôle des références ;
-- supprimer MenuAnchor_Variants de WBP_RPGTalentNode et replacer
-  Button_TalentNode directement dans son conteneur d'origine ;
-- supprimer de DA_RPGTalentDetailTextSet :
-- Talent.Acquisition.Prompt.ConfirmVariant ;
-- Talent.Acquisition.Prompt.ChooseVariant.
+- suppression de l'ancienne section `VARIANTES` dans le panneau droit ;
+- suppression des prompts et du feedback inline devenus redondants ;
+- suppression de l'ancien Widget Blueprint de bloc de variante ;
+- suppression du presenter C++ associé ;
+- suppression des TextIds `Talent.Section.Variants`,
+  `Talent.Variant.*`, `Talent.Acquisition.Prompt.ConfirmVariant` et
+  `Talent.Acquisition.Prompt.ChooseVariant` ;
+- le toast reste l'unique feedback de transaction.
 
 Talent.Acquisition.Exclusivity.SingleVariant reste utile dans les conditions d'acquisition.

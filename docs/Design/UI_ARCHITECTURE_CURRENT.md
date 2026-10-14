@@ -355,7 +355,6 @@ STATUT
 PRINCIPE
 EFFETS
 [UTILISATION]
-[VARIANTES]
 ACQUISITION
 ```
 
@@ -477,8 +476,8 @@ ACQUISITION
 - 86 Talents simples ;
 - exactement 4 familles exclusives à variantes : Spécialisation martiale,
   Ennemi juré, Affinité élémentaire et Imprégnation ;
-- toutes les variantes sont visibles simultanément dans la fiche ;
-- aucun ComboBox de choix de variante ;
+- les variantes sont visibles simultanément dans le flyout icon-only du nœud ;
+- aucun ComboBox ni section VARIANTES dans la fiche de détail ;
 - consultation, TYPE et STATUT sont trois notions indépendantes ;
 - aucun Talent n'est acquis par simple consultation ;
 - le panneau de détail est vide avant le premier Talent consulté ;

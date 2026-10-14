@@ -28,7 +28,8 @@ bool FUIRPGCODEAUDIT01BlueprintCompatibilityTest::RunTest(const FString&)
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetailLine.WBP_RPGTalentDetailLine"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantBlock.WBP_RPGTalentVariantBlock")
+		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantFlyout.WBP_RPGTalentVariantFlyout"),
+		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantIcon.WBP_RPGTalentVariantIcon")
 	};
 
 	for (const TCHAR* BlueprintPath : BlueprintPaths)
