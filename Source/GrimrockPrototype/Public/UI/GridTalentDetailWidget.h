@@ -13,7 +13,6 @@ class UTextBlock;
 class UTexture2D;
 class UVerticalBox;
 class UGridTalentDetailLineWidget;
-class UGridTalentVariantBlockWidget;
 class URPGTalentDetailGlyphSet;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentAcquireConfirmedSignature, FName, ChoiceId);
@@ -49,12 +48,6 @@ public:
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Talents|Acquire")
 	bool bAcquireConfirmationPending = false;
 
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Talents|Acquire")
-	bool bVariantSelectionPending = false;
-
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Talents|Acquire")
-	FName SelectedVariantChoiceId = NAME_None;
-
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|Acquire|Events")
 	FGridTalentAcquireConfirmedSignature OnAcquireConfirmed;
 
@@ -75,23 +68,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Acquire")
 	bool CanRequestSimpleAcquisition() const;
 
-	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Acquire")
-	bool CanRequestVariantAcquisition() const;
-
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
 	bool BeginAcquireConfirmation();
-
-	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
-	bool BeginVariantSelection();
-
-	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
-	bool SelectVariantChoice(FName ChoiceId);
-
-	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Acquire")
-	FName GetSelectedVariantChoiceId() const { return SelectedVariantChoiceId; }
-
-	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Acquire")
-	bool GetVariantDisplayLabel(FName ChoiceId, FText& OutLabel) const;
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
 	bool ConfirmAcquire();
@@ -105,15 +83,10 @@ private:
 	void HandleAcquireClicked();
 
 	UFUNCTION()
-	void HandleVariantChooseRequested(FName ChoiceId);
-
-	UFUNCTION()
 	void HandleConfirmAcquireClicked();
 
 	void BindAcquireButtons();
 	void UnbindAcquireButtons();
-	bool HasExclusiveVariants() const;
-	void RebuildVariantBlocks();
 	void RebuildDetailLineRows();
 	void PopulateDetailLineRows(UVerticalBox* Container, const TArray<FGridTalentDetailLineView>& Lines);
 	void BuildAcquisitionLines(TArray<FGridTalentDetailLineView>& OutLines) const;
@@ -174,9 +147,6 @@ private:
 	TObjectPtr<UTextBlock> Text_LabelAcquisition;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_LabelVariants;
-
-	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailEffects;
 
 	UPROPERTY(meta = (BindWidgetOptional))
@@ -193,15 +163,6 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailAcquisitionEntries;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UVerticalBox> VB_DetailVariants;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UVerticalBox> VB_VariantEntries;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Variant", meta = (AllowPrivateAccess = "true"))
-	TSubclassOf<UGridTalentVariantBlockWidget> VariantBlockWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Detail|Lines", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UGridTalentDetailLineWidget> DetailLineWidgetClass;

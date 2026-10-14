@@ -9,7 +9,6 @@
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentDetailLineWidget.h"
 #include "UI/GridTalentDetailWidget.h"
-#include "UI/GridTalentVariantBlockWidget.h"
 #include "UI/RPGTalentDetailGlyphSet.h"
 #include "UI/RPGTalentDetailTextSet.h"
 #include "Engine/Texture2D.h"
@@ -326,16 +325,16 @@ bool FUIRPGDESC01CanonicalVariantDetailTest::RunTest(const FString&)
 	FGridTalentNodeView Node = MakeCanonicalVariantNode();
 
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Canonical variant detail initializes"),
+	TestTrue(TEXT("Canonical conceptual variant detail can initialize for diagnostics"),
 		Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId)));
-	TestTrue(TEXT("Node is recognized as true variant node"), Detail->CanRequestVariantAcquisition());
-	TestFalse(TEXT("True variant node is never a simple acquisition"), Detail->CanRequestSimpleAcquisition());
-	TestTrue(TEXT("Variant selection begins"), Detail->BeginVariantSelection());
-	TestTrue(TEXT("Fire can become pending"), Detail->SelectVariantChoice(TEXT("Choice_Fire")));
-	TestEqual(TEXT("Pending ChoiceId is explicit"), Detail->GetSelectedVariantChoiceId(), FName(TEXT("Choice_Fire")));
-	TestTrue(TEXT("Reselecting the same Talent reinitializes detail"),
-		Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId)));
-	TestTrue(TEXT("Reselecting clears pending ChoiceId"), Detail->GetSelectedVariantChoiceId().IsNone());
+	TestFalse(TEXT("Conceptual multi-variant node is never directly acquirable in detail"),
+		Detail->CanRequestSimpleAcquisition());
+	TestFalse(TEXT("Conceptual multi-variant node cannot enter simple confirmation"),
+		Detail->BeginAcquireConfirmation());
+	TestFalse(TEXT("Conceptual multi-variant node cannot confirm acquisition"),
+		Detail->ConfirmAcquire());
+	TestEqual(TEXT("Conceptual variant payload remains intact"),
+		Detail->NodeView.Variants.Num(), Node.Variants.Num());
 	return true;
 }
 
@@ -357,22 +356,14 @@ bool FUIRPGDESC01AcquiredVariantContractTest::RunTest(const FString&)
 	Node.Variants[1].bCanChoose = false;
 
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Acquired variant detail initializes"),
+	TestTrue(TEXT("Acquired conceptual variant detail initializes for diagnostics"),
 		Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId)));
-	TestFalse(TEXT("Acquired variant node cannot restart acquisition"), Detail->CanRequestVariantAcquisition());
-	TestFalse(TEXT("Acquired variant node cannot enter pending flow"), Detail->BeginVariantSelection());
-
-	UGridTalentVariantBlockWidget* AcquiredBlock = NewObject<UGridTalentVariantBlockWidget>();
-	AcquiredBlock->ConfigureDetailRows(nullptr, nullptr);
-	TestTrue(TEXT("Acquired block initializes"),
-		AcquiredBlock->InitializeVariant(Node.Variants[1], FText::FromString(TEXT("Glace")), false));
-	TestEqual(TEXT("Acquired block says ACQUISE"), AcquiredBlock->ResolvedChooseLabel.ToString(), FString(TEXT("ACQUISE")));
-
-	UGridTalentVariantBlockWidget* SiblingBlock = NewObject<UGridTalentVariantBlockWidget>();
-	SiblingBlock->ConfigureDetailRows(nullptr, nullptr);
-	TestTrue(TEXT("Sibling block initializes"),
-		SiblingBlock->InitializeVariant(Node.Variants[0], FText::FromString(TEXT("Feu")), false));
-	TestEqual(TEXT("Sibling block says INDISPONIBLE"), SiblingBlock->ResolvedChooseLabel.ToString(), FString(TEXT("INDISPONIBLE")));
+	TestFalse(TEXT("Acquired conceptual variant is not directly acquirable in detail"),
+		Detail->CanRequestSimpleAcquisition());
+	TestFalse(TEXT("Acquired conceptual variant cannot enter confirmation"),
+		Detail->BeginAcquireConfirmation());
+	TestEqual(TEXT("Selected acquired ChoiceId remains read-model authority"),
+		Detail->NodeView.SelectedChoiceId, FName(TEXT("Choice_Frost")));
 	return true;
 }
 
@@ -400,6 +391,12 @@ bool FUIRPGDESC01LegacyBindingsRemovedTest::RunTest(const FString&)
 		TEXT("Text_CancelAcquire"),
 		TEXT("Text_AcquirePrompt"),
 		TEXT("Text_AcquireFeedback"),
+		TEXT("Text_LabelVariants"),
+		TEXT("VB_DetailVariants"),
+		TEXT("VB_VariantEntries"),
+		TEXT("VariantBlockWidgetClass"),
+		TEXT("bVariantSelectionPending"),
+		TEXT("SelectedVariantChoiceId"),
 		TEXT("Text_DetailEffects"),
 		TEXT("Text_DetailUsage"),
 		TEXT("Text_DetailAcquisition"),
@@ -419,40 +416,12 @@ bool FUIRPGDESC01LegacyBindingsRemovedTest::RunTest(const FString&)
 		TEXT("Text_DetailPrinciple"),
 		TEXT("VB_DetailEffectsEntries"),
 		TEXT("VB_DetailUsageEntries"),
-		TEXT("VB_DetailAcquisitionEntries"),
-		TEXT("VB_DetailVariants"),
-		TEXT("VB_VariantEntries")
+		TEXT("VB_DetailAcquisitionEntries")
 	})
 	{
 		TestNotNull(
 			*FString::Printf(TEXT("%s canonical binding remains"), PropertyName),
 			FindFProperty<FProperty>(DetailClass, FName(PropertyName)));
-	}
-
-	UClass* VariantClass = UGridTalentVariantBlockWidget::StaticClass();
-	for (const TCHAR* PropertyName : {
-		TEXT("Text_VariantType"),
-		TEXT("Text_VariantStatus"),
-		TEXT("ResolvedTypeText"),
-		TEXT("ResolvedStatusText"),
-		TEXT("Text_VariantEffects"),
-		TEXT("Text_VariantUsage"),
-		TEXT("ResolvedEffectsText"),
-		TEXT("ResolvedUsageText")
-	})
-	{
-		TestTrue(
-			*FString::Printf(TEXT("%s variant legacy property is removed"), PropertyName),
-			FindFProperty<FProperty>(VariantClass, FName(PropertyName)) == nullptr);
-	}
-	for (const TCHAR* PropertyName : {
-		TEXT("VB_VariantEffectsEntries"),
-		TEXT("VB_VariantUsageEntries")
-	})
-	{
-		TestNotNull(
-			*FString::Printf(TEXT("%s structured variant binding remains"), PropertyName),
-			FindFProperty<FProperty>(VariantClass, FName(PropertyName)));
 	}
 	return true;
 }
@@ -468,11 +437,12 @@ bool FUIRPGDESC01LockedVariantFlowTest::RunTest(const FString&)
 	FGridTalentNodeView Node = MakeCanonicalVariantNode(EGridTalentNodeState::LockedPoints);
 
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Locked node initializes"),
+	TestTrue(TEXT("Locked conceptual variant node initializes for diagnostics"),
 		Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId)));
-	TestFalse(TEXT("Locked node cannot begin purchase"), Detail->BeginVariantSelection());
-	TestFalse(TEXT("Locked node cannot choose a variant"), Detail->SelectVariantChoice(TEXT("Choice_Fire")));
-	TestFalse(TEXT("Locked node cannot confirm purchase"), Detail->ConfirmAcquire());
+	TestFalse(TEXT("Locked conceptual variant cannot begin simple purchase"),
+		Detail->BeginAcquireConfirmation());
+	TestFalse(TEXT("Locked conceptual variant cannot confirm purchase"),
+		Detail->ConfirmAcquire());
 	return true;
 }
 
@@ -638,10 +608,6 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Status.LockedPrerequisite")),
 		FName(TEXT("Talent.Status.LockedPoints")),
 		FName(TEXT("Talent.Status.LockedExclusive")),
-		FName(TEXT("Talent.Variant.Acquired")),
-		FName(TEXT("Talent.Variant.Pending")),
-		FName(TEXT("Talent.Variant.Choose")),
-		FName(TEXT("Talent.Variant.Unavailable")),
 		FName(TEXT("Talent.Section.Acquisition")),
 		FName(TEXT("Talent.Action.Acquire")),
 		FName(TEXT("Talent.Action.Confirm")),
@@ -650,7 +616,6 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Section.Status")),
 		FName(TEXT("Talent.Section.Type")),
 		FName(TEXT("Talent.Section.Usage")),
-		FName(TEXT("Talent.Section.Variants")),
 		FName(TEXT("Talent.Effect.CriticalChance")),
 		FName(TEXT("Talent.Effect.CriticalDamage")),
 		FName(TEXT("Talent.Effect.PhysicalArmorReference")),
@@ -1073,40 +1038,16 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 	Effect.Value = FText::FromString(TEXT("+1"));
 	Variant.Effects.Add(Effect);
 
-	UGridTalentVariantBlockWidget* Block = NewObject<UGridTalentVariantBlockWidget>();
-	URPGTalentDetailGlyphSet* VariantGlyphSet = NewObject<URPGTalentDetailGlyphSet>(Block);
-	Block->ConfigureDetailRows(UGridTalentDetailLineWidget::StaticClass(), VariantGlyphSet);
-	TestTrue(TEXT("Variant block initializes"),
-		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), false));
-	TestEqual(TEXT("Short display name is preserved"), Block->ResolvedDisplayName.ToString(), FString(TEXT("Tranchant")));
-	TestTrue(TEXT("Variant EFFETS are structured"), Block->VariantView.Effects.ContainsByPredicate(
-		[](const FGridTalentDetailLineView& Line)
-		{
-			return Line.LabelTextId == TEXT("Test.Effect.Accuracy") && Line.Value.ToString() == TEXT("+1");
-		}));
-	TestEqual(TEXT("Available variant exposes CHOISIR"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("CHOISIR")));
-	TestTrue(TEXT("Available variant choice is enabled"), Block->bChooseEnabled);
-
-	TestTrue(TEXT("Pending variant reinitializes"),
-		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), true));
-	TestEqual(TEXT("Pending variant exposes CHOIX EN COURS"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("CHOIX EN COURS")));
-	TestFalse(TEXT("Pending variant cannot be chosen twice"), Block->bChooseEnabled);
-
-	Variant.bAcquired = true;
-	Variant.bCanChoose = false;
-	Variant.State = EGridTalentNodeState::Acquired;
-	TestTrue(TEXT("Acquired variant reinitializes"),
-		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), false));
-	TestEqual(TEXT("Acquired variant exposes ACQUISE"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("ACQUISE")));
-	TestFalse(TEXT("Acquired variant choice is disabled"), Block->bChooseEnabled);
-
-	Variant.bAcquired = false;
-	Variant.State = EGridTalentNodeState::LockedExclusive;
-	Variant.bCanChoose = false;
-	TestTrue(TEXT("Unavailable variant reinitializes"),
-		Block->InitializeVariant(Variant, FText::FromString(TEXT("Perforant")), false));
-	TestEqual(TEXT("Unavailable variant exposes INDISPONIBLE"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("INDISPONIBLE")));
-	TestFalse(TEXT("Unavailable variant choice is disabled"), Block->bChooseEnabled);
+	TestFalse(TEXT("Variant ChoiceId is present"), Variant.ChoiceId.IsNone());
+	TestEqual(TEXT("Variant authored display name is preserved"),
+		Variant.DisplayName.ToString(), FString(TEXT("Spécialisation martiale — Tranchant")));
+	TestTrue(TEXT("Variant EFFETS remain structured read-model data"),
+		Variant.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == TEXT("Test.Effect.Accuracy") &&
+					Line.Value.ToString() == TEXT("+1");
+			}));
 	return true;
 }
 

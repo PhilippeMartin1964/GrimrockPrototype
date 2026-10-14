@@ -7,7 +7,6 @@
 #include "RPG/RPGClassVisualAsset.h"
 #include "UI/GridTalentDetailLineWidget.h"
 #include "UI/GridTalentDetailWidget.h"
-#include "UI/GridTalentVariantBlockWidget.h"
 #include "UI/RPGTalentDetailGlyphSet.h"
 
 namespace UIRPGVISUAL014
@@ -263,9 +262,6 @@ bool FUIRPGVISUAL014DeadPresentationFieldsTest::RunTest(const FString&)
 	TestNull(
 		TEXT("Detail widget no longer owns a configurable second text authority"),
 		UGridTalentDetailWidget::StaticClass()->FindPropertyByName(TEXT("DetailTextSet")));
-	TestNull(
-		TEXT("Variant block no longer owns a configurable second text authority"),
-		UGridTalentVariantBlockWidget::StaticClass()->FindPropertyByName(TEXT("DetailTextSet")));
 	return true;
 }
 

@@ -4,7 +4,6 @@
 #include "RPGMON155TestHelpers.h"
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridSkillsWidget.h"
-#include "UI/GridTalentDetailWidget.h"
 
 namespace UIRPG044Tests
 {
@@ -113,33 +112,28 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG044GenericNVariantSelectionTest,
 bool FUIRPG044GenericNVariantSelectionTest::RunTest(const FString&)
 {
 	using namespace UIRPG044Tests;
+
+	UGridSkillsWidget* Skills = NewObject<UGridSkillsWidget>();
+	Skills->View.CharacterIndex = 0;
+	Skills->View.CharacterId = FGuid::NewGuid();
+	Skills->View.ClassId = TEXT("Mage");
+	Skills->View.TalentTree.ClassId = Skills->View.ClassId;
+
+	FGridTalentBranchView Branch;
+	Branch.TalentBranchId = TEXT("Branch");
 	FGridTalentNodeView Node = MakeVariantNode(4);
-	Node.Variants[1].State = EGridTalentNodeState::LockedPoints;
-	Node.Variants[1].bCanChoose = false;
+	Branch.Nodes.Add(Node);
+	Skills->View.TalentTree.Branches.Add(Branch);
 
-	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Four-variant conceptual node initializes"),
-		Detail->InitializeTalentDetail(Node, MakePresentation()));
-	TestFalse(TEXT("Multi-variant node is not a simple acquisition"), Detail->CanRequestSimpleAcquisition());
-	TestTrue(TEXT("Multi-variant node can open generic selector"), Detail->CanRequestVariantAcquisition());
-	TestTrue(TEXT("Variant selector enters pending state"), Detail->BeginVariantSelection());
-	TestTrue(TEXT("Variant pending flag is set"), Detail->bVariantSelectionPending);
-	TestFalse(TEXT("Locked sibling cannot become the pending choice"), Detail->SelectVariantChoice(TEXT("Choice_1")));
-	TestTrue(TEXT("Rejected sibling leaves no pending ChoiceId"), Detail->GetSelectedVariantChoiceId().IsNone());
-	TestTrue(TEXT("A concrete available ChoiceId can be selected"), Detail->SelectVariantChoice(TEXT("Choice_3")));
-	TestEqual(TEXT("Selected variant ChoiceId is stable"), Detail->GetSelectedVariantChoiceId(), FName(TEXT("Choice_3")));
-
-	TestTrue(TEXT("Reselecting the same Talent reinitializes detail"),
-		Detail->InitializeTalentDetail(Node, MakePresentation()));
-	TestFalse(TEXT("Reselecting clears variant pending state"), Detail->bVariantSelectionPending);
-	TestTrue(TEXT("Reselecting clears the pending ChoiceId"), Detail->GetSelectedVariantChoiceId().IsNone());
-	TestFalse(TEXT("Nothing can be confirmed after reselecting"), Detail->ConfirmAcquire());
-
-	TestTrue(TEXT("Variant acquisition can be started again after reselecting"), Detail->BeginVariantSelection());
-	TestTrue(TEXT("Available variant can be selected again"), Detail->SelectVariantChoice(TEXT("Choice_3")));
-	TestTrue(TEXT("Selected variant can be confirmed"), Detail->ConfirmAcquire());
-	TestFalse(TEXT("Variant pending state clears after confirmation"), Detail->bVariantSelectionPending);
-	TestTrue(TEXT("Confirmed ChoiceId is no longer retained as transient UI state"), Detail->GetSelectedVariantChoiceId().IsNone());
+	TestEqual(TEXT("Conceptual node exposes four flyout choices"), Node.Variants.Num(), 4);
+	for (const FGridTalentVariantView& Variant : Node.Variants)
+	{
+		TestTrue(
+			*FString::Printf(TEXT("%s can be selected for consultation"), *Variant.ChoiceId.ToString()),
+			Skills->SelectTalentVariant(Node.TalentNodeId, Variant.ChoiceId));
+		TestEqual(TEXT("Consultation keeps conceptual node selected"), Skills->SelectedTalentNodeId, Node.TalentNodeId);
+		TestEqual(TEXT("Consultation stores concrete ChoiceId"), Skills->SelectedTalentChoiceId, Variant.ChoiceId);
+	}
 	return true;
 }
 
@@ -150,15 +144,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG044AuthoredVariantLabelsTest,
 bool FUIRPG044AuthoredVariantLabelsTest::RunTest(const FString&)
 {
 	using namespace UIRPG044Tests;
-	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Variant node initializes"),
-		Detail->InitializeTalentDetail(MakeVariantNode(3), MakePresentation()));
+	const FGridTalentNodeView Node = MakeVariantNode(3);
 
-	FText Label;
-	TestTrue(TEXT("Variant label resolves"), Detail->GetVariantDisplayLabel(TEXT("Choice_0"), Label));
-	TestEqual(TEXT("Authored variant label is returned verbatim"), Label.ToString(), FString(TEXT("Talent conceptuel — Feu")));
-	TestTrue(TEXT("Third variant label resolves"), Detail->GetVariantDisplayLabel(TEXT("Choice_2"), Label));
-	TestEqual(TEXT("Third authored variant label is returned verbatim"), Label.ToString(), FString(TEXT("Talent conceptuel — Air")));
+	TestEqual(TEXT("Three authored variants remain in the read model"), Node.Variants.Num(), 3);
+	TestEqual(TEXT("First authored variant label is preserved verbatim"),
+		Node.Variants[0].DisplayName.ToString(), FString(TEXT("Talent conceptuel — Feu")));
+	TestEqual(TEXT("Third authored variant label is preserved verbatim"),
+		Node.Variants[2].DisplayName.ToString(), FString(TEXT("Talent conceptuel — Air")));
 	return true;
 }
 

@@ -511,12 +511,13 @@ UGridSkillsWidget
     -> sélection/navigation
 
 UGridTalentDetailWidget
-UGridTalentVariantBlockWidget
-    -> présentation native
+    -> présentation du Talent concret + acquisition
 
 WBP_RPGTalentDetail
-WBP_RPGTalentVariantBlock
     -> composition UMG
+
+UGridTalentVariantFlyoutWidget / UGridTalentVariantIconWidget
+    -> sélection temporaire d'un ChoiceId avant acquisition
 ```
 
 Les chemins de détail legacy ont été supprimés par DESC01.15.5. La dernière

@@ -7,7 +7,6 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentDetailWidget.h"
-#include "UI/GridTalentVariantBlockWidget.h"
 #include "UI/RPGTalentPresentationAsset.h"
 #include "UI/RPGTalentDetailTextSet.h"
 
@@ -336,11 +335,6 @@ bool FUIRPGDESC016SixClassCanonicalSurfaceTest::RunTest(const FString&)
 							Variant.Type, Node.Type);
 						TestFalse(*FString::Printf(TEXT("%s has PRINCIPE"), *VariantContext), Variant.Principle.IsEmpty());
 
-						UGridTalentVariantBlockWidget* Block = NewObject<UGridTalentVariantBlockWidget>();
-						FText ShortLabel;
-						Detail->GetVariantDisplayLabel(Variant.ChoiceId, ShortLabel);
-						TestTrue(*FString::Printf(TEXT("%s initializes a variant block"), *VariantContext),
-							Block->InitializeVariant(Variant, ShortLabel, false));
 					}
 				}
 				else

@@ -7,7 +7,6 @@
 #include "Components/VerticalBox.h"
 #include "Engine/World.h"
 #include "UI/GridTalentDetailLineWidget.h"
-#include "UI/GridTalentVariantBlockWidget.h"
 #include "UI/RPGTalentDetailGlyphSet.h"
 #include "UI/RPGTalentDetailTextSet.h"
 
@@ -49,7 +48,6 @@ void UGridTalentDetailWidget::NativeConstruct()
 	ApplyLocalizedStaticLabels();
 	if (bInitialized)
 	{
-		RebuildVariantBlocks();
 		RebuildDetailLineRows();
 		ApplyDetailPresentation();
 		ApplyAcquisitionPresentation();
@@ -83,7 +81,6 @@ void UGridTalentDetailWidget::ApplyLocalizedStaticLabels()
 	SetResolvedText(Text_LabelEffects, TEXT("Talent.Section.Effects"));
 	SetResolvedText(Text_LabelUsage, TEXT("Talent.Section.Usage"));
 	SetResolvedText(Text_LabelAcquisition, TEXT("Talent.Section.Acquisition"));
-	SetResolvedText(Text_LabelVariants, TEXT("Talent.Section.Variants"));
 	SetResolvedText(Text_AcquireTalent, TEXT("Talent.Action.Acquire"));
 	SetResolvedText(Text_ConfirmAcquire, TEXT("Talent.Action.Confirm"));
 }
@@ -146,7 +143,6 @@ bool UGridTalentDetailWidget::InitializeTalentDetail(
 	BranchAccentColor = InBranchPresentation.AccentColor;
 	bInitialized = true;
 	RefreshCanonicalSections();
-	RebuildVariantBlocks();
 	RebuildDetailLineRows();
 	ApplyDetailPresentation();
 	ApplyAcquisitionPresentation();
@@ -177,8 +173,6 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	BranchAccentColor = FLinearColor::White;
 	bInitialized = false;
 	bAcquireConfirmationPending = false;
-	bVariantSelectionPending = false;
-	SelectedVariantChoiceId = NAME_None;
 	SetTalentIcon(nullptr);
 	SetTalentTypeImage(nullptr);
 
@@ -238,37 +232,16 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 		VB_DetailAcquisitionEntries->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
-	if (VB_VariantEntries) VB_VariantEntries->ClearChildren();
-	if (VB_DetailVariants) VB_DetailVariants->SetVisibility(ESlateVisibility::Collapsed);
 	ApplyAcquisitionPresentation();
-}
-
-bool UGridTalentDetailWidget::HasExclusiveVariants() const
-{
-	return NodeView.bHasExclusiveVariants;
 }
 
 bool UGridTalentDetailWidget::CanRequestSimpleAcquisition() const
 {
 	return bInitialized &&
-		!HasExclusiveVariants() &&
+		!NodeView.bHasExclusiveVariants &&
 		NodeView.State == EGridTalentNodeState::Available &&
 		NodeView.bCanAcquireSimple &&
 		!NodeView.SimpleChoiceId.IsNone();
-}
-
-bool UGridTalentDetailWidget::CanRequestVariantAcquisition() const
-{
-	if (!bInitialized || !HasExclusiveVariants() || NodeView.State != EGridTalentNodeState::Available)
-	{
-		return false;
-	}
-
-	return NodeView.Variants.ContainsByPredicate(
-		[](const FGridTalentVariantView& Variant)
-		{
-			return !Variant.ChoiceId.IsNone() && Variant.bCanChoose && !Variant.bAcquired;
-		});
 }
 
 bool UGridTalentDetailWidget::BeginAcquireConfirmation()
@@ -276,90 +249,24 @@ bool UGridTalentDetailWidget::BeginAcquireConfirmation()
 	if (!CanRequestSimpleAcquisition()) return false;
 
 	bAcquireConfirmationPending = true;
-	bVariantSelectionPending = false;
-	SelectedVariantChoiceId = NAME_None;
 	ApplyAcquisitionPresentation();
 	return true;
-}
-
-bool UGridTalentDetailWidget::BeginVariantSelection()
-{
-	if (!CanRequestVariantAcquisition()) return false;
-
-	bAcquireConfirmationPending = false;
-	bVariantSelectionPending = true;
-	SelectedVariantChoiceId = NAME_None;
-	RebuildVariantBlocks();
-	ApplyAcquisitionPresentation();
-	return true;
-}
-
-bool UGridTalentDetailWidget::SelectVariantChoice(FName ChoiceId)
-{
-	if (!bInitialized || !bVariantSelectionPending || !HasExclusiveVariants() || ChoiceId.IsNone())
-	{
-		return false;
-	}
-
-	const FGridTalentVariantView* Variant = NodeView.Variants.FindByPredicate(
-		[ChoiceId](const FGridTalentVariantView& Candidate)
-		{
-			return Candidate.ChoiceId == ChoiceId;
-		});
-	if (!Variant || !Variant->bCanChoose || Variant->bAcquired)
-	{
-		return false;
-	}
-
-	SelectedVariantChoiceId = ChoiceId;
-	RebuildVariantBlocks();
-	ApplyAcquisitionPresentation();
-	return true;
-}
-
-bool UGridTalentDetailWidget::GetVariantDisplayLabel(FName ChoiceId, FText& OutLabel) const
-{
-	OutLabel = FText::GetEmpty();
-	const FGridTalentVariantView* Variant = NodeView.Variants.FindByPredicate(
-		[ChoiceId](const FGridTalentVariantView& Candidate)
-		{
-			return Candidate.ChoiceId == ChoiceId;
-		});
-	if (!Variant) return false;
-
-	OutLabel = Variant->DisplayName;
-	return !OutLabel.IsEmpty();
 }
 
 bool UGridTalentDetailWidget::ConfirmAcquire()
 {
-	if (!bInitialized) return false;
-
-	FName ChoiceId = NAME_None;
-	if (bAcquireConfirmationPending)
+	if (!bInitialized || !bAcquireConfirmationPending || !CanRequestSimpleAcquisition())
 	{
-		if (!CanRequestSimpleAcquisition()) return false;
-		ChoiceId = NodeView.SimpleChoiceId;
-	}
-	else if (bVariantSelectionPending)
-	{
-		ChoiceId = SelectedVariantChoiceId;
-		const FGridTalentVariantView* Variant = NodeView.Variants.FindByPredicate(
-			[ChoiceId](const FGridTalentVariantView& Candidate)
-			{
-				return Candidate.ChoiceId == ChoiceId;
-			});
-		if (!Variant || !Variant->bCanChoose || Variant->bAcquired)
-		{
-			return false;
-		}
+		return false;
 	}
 
-	if (ChoiceId.IsNone()) return false;
+	const FName ChoiceId = NodeView.SimpleChoiceId;
+	if (ChoiceId.IsNone())
+	{
+		return false;
+	}
 
 	bAcquireConfirmationPending = false;
-	bVariantSelectionPending = false;
-	SelectedVariantChoiceId = NAME_None;
 	ApplyAcquisitionPresentation();
 	OnAcquireConfirmed.Broadcast(ChoiceId);
 	return true;
@@ -370,43 +277,9 @@ void UGridTalentDetailWidget::HandleAcquireClicked()
 	BeginAcquireConfirmation();
 }
 
-void UGridTalentDetailWidget::HandleVariantChooseRequested(FName ChoiceId)
-{
-	if (!HasExclusiveVariants() || ChoiceId.IsNone()) return;
-	if (!bVariantSelectionPending && !BeginVariantSelection()) return;
-	SelectVariantChoice(ChoiceId);
-}
-
 void UGridTalentDetailWidget::HandleConfirmAcquireClicked()
 {
 	ConfirmAcquire();
-}
-
-void UGridTalentDetailWidget::RebuildVariantBlocks()
-{
-	if (!VB_DetailVariants || !VB_VariantEntries) return;
-
-	VB_VariantEntries->ClearChildren();
-	const bool bShowVariants =
-		bInitialized && HasExclusiveVariants() && VariantBlockWidgetClass != nullptr && GetWorld() != nullptr;
-	VB_DetailVariants->SetVisibility(
-		bShowVariants ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
-	if (!bShowVariants) return;
-
-	for (const FGridTalentVariantView& Variant : NodeView.Variants)
-	{
-		UGridTalentVariantBlockWidget* Block =
-			CreateWidget<UGridTalentVariantBlockWidget>(GetWorld(), VariantBlockWidgetClass);
-		if (!Block) continue;
-
-		Block->ConfigureDetailRows(DetailLineWidgetClass, DetailGlyphSet);
-
-		const bool bPending = bVariantSelectionPending && Variant.ChoiceId == SelectedVariantChoiceId;
-		if (!Block->InitializeVariant(Variant, Variant.DisplayName, bPending)) continue;
-
-		Block->OnChooseRequested.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleVariantChooseRequested);
-		VB_VariantEntries->AddChildToVerticalBox(Block);
-	}
 }
 
 void UGridTalentDetailWidget::PopulateDetailLineRows(
@@ -627,25 +500,21 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 
 void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 {
-	const bool bCanAcquireSimple = CanRequestSimpleAcquisition();
-	const bool bAnyPending = bAcquireConfirmationPending || bVariantSelectionPending;
+	const bool bCanAcquire = CanRequestSimpleAcquisition();
 
 	if (Button_AcquireTalent)
 	{
 		Button_AcquireTalent->SetVisibility(
-			bCanAcquireSimple && !bAnyPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			bCanAcquire && !bAcquireConfirmationPending
+				? ESlateVisibility::Visible
+				: ESlateVisibility::Collapsed);
 	}
 	if (Button_ConfirmAcquire)
 	{
 		Button_ConfirmAcquire->SetVisibility(
-			bAnyPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-		Button_ConfirmAcquire->SetIsEnabled(
-			bAcquireConfirmationPending ||
-			(bVariantSelectionPending && NodeView.Variants.ContainsByPredicate(
-				[this](const FGridTalentVariantView& Variant)
-				{
-					return Variant.ChoiceId == SelectedVariantChoiceId &&
-						Variant.bCanChoose && !Variant.bAcquired;
-				})));
+			bAcquireConfirmationPending
+				? ESlateVisibility::Visible
+				: ESlateVisibility::Collapsed);
+		Button_ConfirmAcquire->SetIsEnabled(bAcquireConfirmationPending && bCanAcquire);
 	}
 }

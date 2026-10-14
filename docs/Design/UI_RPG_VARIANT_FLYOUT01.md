@@ -94,9 +94,18 @@ Le choix de variante ne relève plus de WBP_RPGTalentDetail.
 
 Le feedback de transaction est exclusivement porté par le toast.
 
-Après matérialisation du flyout, l'ancienne section de sélection de variantes dans le détail pourra être supprimée avec son presenter legacy.
+Le presenter C++ du panneau droit ne possède plus aucun flux de sélection de
+variante. Une variante choisie dans le flyout est projetée comme un Talent
+concret normal avant d'entrer dans ACQUÉRIR / CONFIRMER.
 
-À supprimer de DA_RPGTalentDetailTextSet :
+Nettoyage UMG/DataAsset restant :
+- supprimer de WBP_RPGTalentDetail : VB_DetailVariants, VB_VariantEntries,
+  Text_LabelVariants, HB_AcquireConfirm, Text_AcquirePrompt et
+  Text_AcquireFeedback s'ils existent encore ;
+- supprimer WBP_RPGTalentVariantBlock après contrôle des références ;
+- supprimer MenuAnchor_Variants de WBP_RPGTalentNode et replacer
+  Button_TalentNode directement dans son conteneur d'origine ;
+- supprimer de DA_RPGTalentDetailTextSet :
 - Talent.Acquisition.Prompt.ConfirmVariant ;
 - Talent.Acquisition.Prompt.ChooseVariant.
 
