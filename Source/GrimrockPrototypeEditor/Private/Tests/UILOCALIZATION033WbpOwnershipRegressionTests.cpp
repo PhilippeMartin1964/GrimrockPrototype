@@ -160,8 +160,6 @@ namespace UILOCALIZATION033
 	};
 
 	const TCHAR* const SharedVocabularyPaths[] = {
-
-	const TCHAR* const SharedVocabularyPaths[] = {
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextLabel_Equipment.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextLabel_Mana.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_InventoryBag.WBP_InventoryBag_C:WidgetTree.Button_FilterEquipment.ToolTipText"),
