@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Game\n"
-"POT-Creation-Date: 2026-10-13 13:59\n"
-"PO-Revision-Date: 2026-10-13 13:59\n"
+"POT-Creation-Date: 2026-10-14 19:49\n"
+"PO-Revision-Date: 2026-10-14 19:49\n"
 "Language-Team: \n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -1560,75 +1560,75 @@ msgctxt ",9619ABE447B7AB985349D383D01F879E"
 msgid "Niveau requis :"
 msgstr "Niveau requis :"
 
-#. Key:	88DECD554C04AA81F6F333A4ED9B6020
+#. Key:	2AF1043C4E154B328254AF8CD5F47DE6
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(100).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(100).Entries.Text
-msgctxt ",88DECD554C04AA81F6F333A4ED9B6020"
-msgid "Confirmer « {0} » pour « {1} » ?"
-msgstr "Confirmer « {0} » pour « {1} » ?"
-
-#. Key:	92D6F75E416552904B3010ACEC16F65F
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(101).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(101).Entries.Text
-msgctxt ",92D6F75E416552904B3010ACEC16F65F"
-msgid "Choisissez une variante pour « {0} »."
-msgstr "Choisissez une variante pour « {0} »."
-
-#. Key:	EB4BD0554AB2354C5DB9B3B3D58457F2
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(102).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(102).Entries.Text
-msgctxt ",EB4BD0554AB2354C5DB9B3B3D58457F2"
-msgid "Bombe incendiaire"
-msgstr "Bombe incendiaire"
-
-#. Key:	070B53E6440B3A3925CA959C215E0C93
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(103).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(103).Entries.Text
-msgctxt ",070B53E6440B3A3925CA959C215E0C93"
-msgid "Bombe toxique"
-msgstr "Bombe toxique"
-
-#. Key:	FCE3CE2749B4672F72FCCA8679B4E572
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(104).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(104).Entries.Text
-msgctxt ",FCE3CE2749B4672F72FCCA8679B4E572"
-msgid "Antidote"
-msgstr "Antidote"
-
-#. Key:	BF769D1744F90E19EC94E49B8E41E389
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(105).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(105).Entries.Text
-msgctxt ",BF769D1744F90E19EC94E49B8E41E389"
-msgid "Élixir défensif - Feu"
-msgstr "Élixir défensif - Feu"
-
-#. Key:	172EE7294420E068BC8747BB3F3E097D
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(106).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(106).Entries.Text
-msgctxt ",172EE7294420E068BC8747BB3F3E097D"
-msgid "Élixir défensif - Glace"
-msgstr "Élixir défensif - Glace"
-
-#. Key:	2AF1043C4E154B328254AF8CD5F47DE6
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(107).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(107).Entries.Text
 msgctxt ",2AF1043C4E154B328254AF8CD5F47DE6"
 msgid "Élixir défensif - Foudre"
 msgstr "Élixir défensif - Foudre"
 
 #. Key:	2D71AD524BF80F13AD8F3485B679CC8E
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(108).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(108).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(101).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(101).Entries.Text
 msgctxt ",2D71AD524BF80F13AD8F3485B679CC8E"
 msgid "Élixir défensif - Poison"
 msgstr "Élixir défensif - Poison"
 
 #. Key:	32FE67DD4C140E2B5531C78CBC86BC3B
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(109).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(109).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(102).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(102).Entries.Text
 msgctxt ",32FE67DD4C140E2B5531C78CBC86BC3B"
 msgid "Panacée"
 msgstr "Panacée"
+
+#. Key:	952FE2C14050C476DF57D781656F108D
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(103).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(103).Entries.Text
+msgctxt ",952FE2C14050C476DF57D781656F108D"
+msgid "Flasque d'huile"
+msgstr "Flasque d'huile"
+
+#. Key:	C818061148A0FEE4CB1E258AEA5D06CF
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(104).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(104).Entries.Text
+msgctxt ",C818061148A0FEE4CB1E258AEA5D06CF"
+msgid "Flasque acide"
+msgstr "Flasque acide"
+
+#. Key:	0BA58605497540D47E2AF7838403A96E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(105).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(105).Entries.Text
+msgctxt ",0BA58605497540D47E2AF7838403A96E"
+msgid "Flasque de nuage corrosif"
+msgstr "Flasque de nuage corrosif"
+
+#. Key:	75520D874A0B019E2DD1EDB676252514
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(106).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(106).Entries.Text
+msgctxt ",75520D874A0B019E2DD1EDB676252514"
+msgid "Transmutation majeure - Feu"
+msgstr "Transmutation majeure - Feu"
+
+#. Key:	E9C3582948F4C4B8878F44AC0953EC8E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(107).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(107).Entries.Text
+msgctxt ",E9C3582948F4C4B8878F44AC0953EC8E"
+msgid "Transmutation majeure - Glace"
+msgstr "Transmutation majeure - Glace"
+
+#. Key:	173071AB4DACEE82BC603E8557661EBF
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(108).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(108).Entries.Text
+msgctxt ",173071AB4DACEE82BC603E8557661EBF"
+msgid "Transmutation majeure - Poison"
+msgstr "Transmutation majeure - Poison"
+
+#. Key:	5D716FD845E29EC5AB5D9DBA489DE4B7
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(109).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(109).Entries.Text
+msgctxt ",5D716FD845E29EC5AB5D9DBA489DE4B7"
+msgid "Transmutation majeure - Huile"
+msgstr "Transmutation majeure - Huile"
 
 #. Key:	B38468604ED8F28E1B7AA286BFE057FE
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(11).Entries.Text
@@ -1637,75 +1637,75 @@ msgctxt ",B38468604ED8F28E1B7AA286BFE057FE"
 msgid "Coût :"
 msgstr "Coût :"
 
-#. Key:	952FE2C14050C476DF57D781656F108D
+#. Key:	432049974A08F30D2269A2B0F2AA6FF3
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(110).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(110).Entries.Text
-msgctxt ",952FE2C14050C476DF57D781656F108D"
-msgid "Flasque d'huile"
-msgstr "Flasque d'huile"
-
-#. Key:	C818061148A0FEE4CB1E258AEA5D06CF
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(111).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(111).Entries.Text
-msgctxt ",C818061148A0FEE4CB1E258AEA5D06CF"
-msgid "Flasque acide"
-msgstr "Flasque acide"
-
-#. Key:	0BA58605497540D47E2AF7838403A96E
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(112).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(112).Entries.Text
-msgctxt ",0BA58605497540D47E2AF7838403A96E"
-msgid "Flasque de nuage corrosif"
-msgstr "Flasque de nuage corrosif"
-
-#. Key:	75520D874A0B019E2DD1EDB676252514
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(113).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(113).Entries.Text
-msgctxt ",75520D874A0B019E2DD1EDB676252514"
-msgid "Transmutation majeure - Feu"
-msgstr "Transmutation majeure - Feu"
-
-#. Key:	E9C3582948F4C4B8878F44AC0953EC8E
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(114).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(114).Entries.Text
-msgctxt ",E9C3582948F4C4B8878F44AC0953EC8E"
-msgid "Transmutation majeure - Glace"
-msgstr "Transmutation majeure - Glace"
-
-#. Key:	173071AB4DACEE82BC603E8557661EBF
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(115).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(115).Entries.Text
-msgctxt ",173071AB4DACEE82BC603E8557661EBF"
-msgid "Transmutation majeure - Poison"
-msgstr "Transmutation majeure - Poison"
-
-#. Key:	5D716FD845E29EC5AB5D9DBA489DE4B7
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(116).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(116).Entries.Text
-msgctxt ",5D716FD845E29EC5AB5D9DBA489DE4B7"
-msgid "Transmutation majeure - Huile"
-msgstr "Transmutation majeure - Huile"
-
-#. Key:	432049974A08F30D2269A2B0F2AA6FF3
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(117).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(117).Entries.Text
 msgctxt ",432049974A08F30D2269A2B0F2AA6FF3"
 msgid "Armure physique de référence :"
 msgstr "Armure physique de référence :"
 
 #. Key:	7FB153AC4BC6CA842BA50C9FF68BF3E1
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(118).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(118).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(111).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(111).Entries.Text
 msgctxt ",7FB153AC4BC6CA842BA50C9FF68BF3E1"
 msgid "Chance de critique :"
 msgstr "Chance de critique :"
 
 #. Key:	25478FA6435BE5FA107546AF4C3DCB6D
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(119).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(119).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(112).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(112).Entries.Text
 msgctxt ",25478FA6435BE5FA107546AF4C3DCB6D"
 msgid "Multiplicateur de dégâts critiques :"
 msgstr "Multiplicateur de dégâts critiques :"
+
+#. Key:	5F112ED84ACBEBFDB167B78C25615931
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(113).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(113).Entries.Text
+msgctxt ",5F112ED84ACBEBFDB167B78C25615931"
+msgid "Cible n’ayant pas encore agi ce round"
+msgstr "Cible n’ayant pas encore agi ce round"
+
+#. Key:	1C130A7344C9365E082F569FB5D5ABD6
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(114).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(114).Entries.Text
+msgctxt ",1C130A7344C9365E082F569FB5D5ABD6"
+msgid "Cible sous contrôle physique"
+msgstr "Cible sous contrôle physique"
+
+#. Key:	63D5DD7A40720D694C7DB2AE4FC3DF98
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(115).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(115).Entries.Text
+msgctxt ",63D5DD7A40720D694C7DB2AE4FC3DF98"
+msgid "Groupe dans l’arc arrière de la cible"
+msgstr "Groupe dans l’arc arrière de la cible"
+
+#. Key:	3CC5671E483EEC2372469B98E4051A15
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(116).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(116).Entries.Text
+msgctxt ",3CC5671E483EEC2372469B98E4051A15"
+msgid "Dégâts de l’arme"
+msgstr "Dégâts de l’arme"
+
+#. Key:	C0A0A649451F5D9B517356A8EBFC0AA8
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(117).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(117).Entries.Text
+msgctxt ",C0A0A649451F5D9B517356A8EBFC0AA8"
+msgid "Condition :"
+msgstr "Condition :"
+
+#. Key:	C494AFA6411CDB3B28B67CB964F926B6
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(118).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(118).Entries.Text
+msgctxt ",C494AFA6411CDB3B28B67CB964F926B6"
+msgid "Arme légère"
+msgstr "Arme légère"
+
+#. Key:	72E28BF9402D53183D9651818E21C551
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(119).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(119).Entries.Text
+msgctxt ",72E28BF9402D53183D9651818E21C551"
+msgid "Hors actions de zone"
+msgstr "Hors actions de zone"
 
 #. Key:	F3159BA74B7D2C207C077DB0DCDC45CF
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(12).Entries.Text
@@ -1714,75 +1714,75 @@ msgctxt ",F3159BA74B7D2C207C077DB0DCDC45CF"
 msgid "Prérequis :"
 msgstr "Prérequis :"
 
-#. Key:	5F112ED84ACBEBFDB167B78C25615931
+#. Key:	C2D63C7E4BA867E215B375B6D1B0D079
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(120).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(120).Entries.Text
-msgctxt ",5F112ED84ACBEBFDB167B78C25615931"
-msgid "Cible n’ayant pas encore agi ce round"
-msgstr "Cible n’ayant pas encore agi ce round"
-
-#. Key:	1C130A7344C9365E082F569FB5D5ABD6
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(121).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(121).Entries.Text
-msgctxt ",1C130A7344C9365E082F569FB5D5ABD6"
-msgid "Cible sous contrôle physique"
-msgstr "Cible sous contrôle physique"
-
-#. Key:	63D5DD7A40720D694C7DB2AE4FC3DF98
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(122).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(122).Entries.Text
-msgctxt ",63D5DD7A40720D694C7DB2AE4FC3DF98"
-msgid "Groupe dans l’arc arrière de la cible"
-msgstr "Groupe dans l’arc arrière de la cible"
-
-#. Key:	3CC5671E483EEC2372469B98E4051A15
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(123).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(123).Entries.Text
-msgctxt ",3CC5671E483EEC2372469B98E4051A15"
-msgid "Dégâts de l’arme"
-msgstr "Dégâts de l’arme"
-
-#. Key:	C0A0A649451F5D9B517356A8EBFC0AA8
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(124).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(124).Entries.Text
-msgctxt ",C0A0A649451F5D9B517356A8EBFC0AA8"
-msgid "Condition :"
-msgstr "Condition :"
-
-#. Key:	C494AFA6411CDB3B28B67CB964F926B6
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(125).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(125).Entries.Text
-msgctxt ",C494AFA6411CDB3B28B67CB964F926B6"
-msgid "Arme légère"
-msgstr "Arme légère"
-
-#. Key:	72E28BF9402D53183D9651818E21C551
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(126).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(126).Entries.Text
-msgctxt ",72E28BF9402D53183D9651818E21C551"
-msgid "Hors actions de zone"
-msgstr "Hors actions de zone"
-
-#. Key:	C2D63C7E4BA867E215B375B6D1B0D079
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(127).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(127).Entries.Text
 msgctxt ",C2D63C7E4BA867E215B375B6D1B0D079"
 msgid "Durée du statut appliqué (rounds) :"
 msgstr "Durée du statut appliqué (rounds) :"
 
 #. Key:	B636DA5047B942DD16A842AFF5A55C9B
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(128).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(128).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(121).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(121).Entries.Text
 msgctxt ",B636DA5047B942DD16A842AFF5A55C9B"
 msgid "Statut requis sur la cible :"
 msgstr "Statut requis sur la cible :"
 
 #. Key:	270D346547A16748E8667DBD48BB2835
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(129).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(129).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(122).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(122).Entries.Text
 msgctxt ",270D346547A16748E8667DBD48BB2835"
 msgid "Catégorie de cible :"
 msgstr "Catégorie de cible :"
+
+#. Key:	9B8474334CAA5BD7128F1FB3DE53A114
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(123).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(123).Entries.Text
+msgctxt ",9B8474334CAA5BD7128F1FB3DE53A114"
+msgid "Durée du statut transféré (rounds) :"
+msgstr "Durée du statut transféré (rounds) :"
+
+#. Key:	88282FE64E3018C240B1AA94E51F9D3D
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(124).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(124).Entries.Text
+msgctxt ",88282FE64E3018C240B1AA94E51F9D3D"
+msgid "Portée :"
+msgstr "Portée :"
+
+#. Key:	FE9AE2BD40B599F768CB6586125052DA
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(125).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(125).Entries.Text
+msgctxt ",FE9AE2BD40B599F768CB6586125052DA"
+msgid "Groupe immobile depuis la précédente activation"
+msgstr "Groupe immobile depuis la précédente activation"
+
+#. Key:	2E4691F4435E87FAC40902A1543A0667
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(126).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(126).Entries.Text
+msgctxt ",2E4691F4435E87FAC40902A1543A0667"
+msgid "Sorts"
+msgstr "Sorts"
+
+#. Key:	A2D80BBC4585C193BCA1708CAFE68B4F
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(127).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(127).Entries.Text
+msgctxt ",A2D80BBC4585C193BCA1708CAFE68B4F"
+msgid "École arcanique"
+msgstr "École arcanique"
+
+#. Key:	8BD8084E4FC4D633939D93A1495B7270
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(128).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(128).Entries.Text
+msgctxt ",8BD8084E4FC4D633939D93A1495B7270"
+msgid "Coût en mana :"
+msgstr "Coût en mana :"
+
+#. Key:	C0464A664CFC8CD151B2E7BCBDE40E32
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(129).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(129).Entries.Text
+msgctxt ",C0464A664CFC8CD151B2E7BCBDE40E32"
+msgid "Coût minimal en mana :"
+msgstr "Coût minimal en mana :"
 
 #. Key:	482FDE6A487EA024431EE388E5D66924
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(13).Entries.Text
@@ -1791,75 +1791,75 @@ msgctxt ",482FDE6A487EA024431EE388E5D66924"
 msgid "Recette :"
 msgstr "Recette :"
 
-#. Key:	9B8474334CAA5BD7128F1FB3DE53A114
+#. Key:	0718AA794DCECE61E7A9BB8F70BF2624
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(130).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(130).Entries.Text
-msgctxt ",9B8474334CAA5BD7128F1FB3DE53A114"
-msgid "Durée du statut transféré (rounds) :"
-msgstr "Durée du statut transféré (rounds) :"
-
-#. Key:	88282FE64E3018C240B1AA94E51F9D3D
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(131).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(131).Entries.Text
-msgctxt ",88282FE64E3018C240B1AA94E51F9D3D"
-msgid "Portée :"
-msgstr "Portée :"
-
-#. Key:	FE9AE2BD40B599F768CB6586125052DA
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(132).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(132).Entries.Text
-msgctxt ",FE9AE2BD40B599F768CB6586125052DA"
-msgid "Groupe immobile depuis la précédente activation"
-msgstr "Groupe immobile depuis la précédente activation"
-
-#. Key:	2E4691F4435E87FAC40902A1543A0667
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(133).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(133).Entries.Text
-msgctxt ",2E4691F4435E87FAC40902A1543A0667"
-msgid "Sorts"
-msgstr "Sorts"
-
-#. Key:	A2D80BBC4585C193BCA1708CAFE68B4F
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(134).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(134).Entries.Text
-msgctxt ",A2D80BBC4585C193BCA1708CAFE68B4F"
-msgid "École arcanique"
-msgstr "École arcanique"
-
-#. Key:	8BD8084E4FC4D633939D93A1495B7270
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(135).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(135).Entries.Text
-msgctxt ",8BD8084E4FC4D633939D93A1495B7270"
-msgid "Coût en mana :"
-msgstr "Coût en mana :"
-
-#. Key:	C0464A664CFC8CD151B2E7BCBDE40E32
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(136).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(136).Entries.Text
-msgctxt ",C0464A664CFC8CD151B2E7BCBDE40E32"
-msgid "Coût minimal en mana :"
-msgstr "Coût minimal en mana :"
-
-#. Key:	0718AA794DCECE61E7A9BB8F70BF2624
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(137).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(137).Entries.Text
 msgctxt ",0718AA794DCECE61E7A9BB8F70BF2624"
 msgid "École de l’Air"
 msgstr "École de l’Air"
 
 #. Key:	49F359B44EE54A628FDA50995B3DD9EB
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(138).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(138).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(131).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(131).Entries.Text
 msgctxt ",49F359B44EE54A628FDA50995B3DD9EB"
 msgid "École de la Terre"
 msgstr "École de la Terre"
 
 #. Key:	AD9972D24A61FFF10DC85DB4C3C188C2
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(139).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(139).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(132).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(132).Entries.Text
 msgctxt ",AD9972D24A61FFF10DC85DB4C3C188C2"
 msgid "École du Feu"
 msgstr "École du Feu"
+
+#. Key:	F0869DA242172B3031F40ABC75AC70DC
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(133).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(133).Entries.Text
+msgctxt ",F0869DA242172B3031F40ABC75AC70DC"
+msgid "École du Givre"
+msgstr "École du Givre"
+
+#. Key:	C54DFC2C47ED5D1C767A41B928AACA48
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(134).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(134).Entries.Text
+msgctxt ",C54DFC2C47ED5D1C767A41B928AACA48"
+msgid "Dégâts directs aux alliés :"
+msgstr "Dégâts directs aux alliés :"
+
+#. Key:	C95A23064674EB3852019F98AB2ACEAB
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(135).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(135).Entries.Text
+msgctxt ",C95A23064674EB3852019F98AB2ACEAB"
+msgid "Dégâts directs à soi-même :"
+msgstr "Dégâts directs à soi-même :"
+
+#. Key:	618890384B22B86723691EB0C826B565
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(136).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(136).Entries.Text
+msgctxt ",618890384B22B86723691EB0C826B565"
+msgid "Dégâts de feu"
+msgstr "Dégâts de feu"
+
+#. Key:	8A2DBD70429BC3781C27F7B233711CBD
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(137).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(137).Entries.Text
+msgctxt ",8A2DBD70429BC3781C27F7B233711CBD"
+msgid "Dégâts de glace"
+msgstr "Dégâts de glace"
+
+#. Key:	9D309A5346F2D26D6B934D93A6618598
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(138).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(138).Entries.Text
+msgctxt ",9D309A5346F2D26D6B934D93A6618598"
+msgid "Dégâts de foudre"
+msgstr "Dégâts de foudre"
+
+#. Key:	486314A1411238147C79CF80B968B0E5
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(139).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(139).Entries.Text
+msgctxt ",486314A1411238147C79CF80B968B0E5"
+msgid "Dégâts physiques"
+msgstr "Dégâts physiques"
 
 #. Key:	0CA7095B43C0FDAD9918D09C4E633BD9
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(14).Entries.Text
@@ -1868,75 +1868,75 @@ msgctxt ",0CA7095B43C0FDAD9918D09C4E633BD9"
 msgid "Recettes"
 msgstr "Recettes"
 
-#. Key:	F0869DA242172B3031F40ABC75AC70DC
+#. Key:	FF57EDC946CB481428999B9D3D3DBAD1
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(140).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(140).Entries.Text
-msgctxt ",F0869DA242172B3031F40ABC75AC70DC"
-msgid "École du Givre"
-msgstr "École du Givre"
-
-#. Key:	C54DFC2C47ED5D1C767A41B928AACA48
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(141).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(141).Entries.Text
-msgctxt ",C54DFC2C47ED5D1C767A41B928AACA48"
-msgid "Dégâts directs aux alliés :"
-msgstr "Dégâts directs aux alliés :"
-
-#. Key:	C95A23064674EB3852019F98AB2ACEAB
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(142).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(142).Entries.Text
-msgctxt ",C95A23064674EB3852019F98AB2ACEAB"
-msgid "Dégâts directs à soi-même :"
-msgstr "Dégâts directs à soi-même :"
-
-#. Key:	618890384B22B86723691EB0C826B565
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(143).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(143).Entries.Text
-msgctxt ",618890384B22B86723691EB0C826B565"
-msgid "Dégâts de feu"
-msgstr "Dégâts de feu"
-
-#. Key:	8A2DBD70429BC3781C27F7B233711CBD
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(144).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(144).Entries.Text
-msgctxt ",8A2DBD70429BC3781C27F7B233711CBD"
-msgid "Dégâts de glace"
-msgstr "Dégâts de glace"
-
-#. Key:	9D309A5346F2D26D6B934D93A6618598
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(145).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(145).Entries.Text
-msgctxt ",9D309A5346F2D26D6B934D93A6618598"
-msgid "Dégâts de foudre"
-msgstr "Dégâts de foudre"
-
-#. Key:	486314A1411238147C79CF80B968B0E5
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(146).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(146).Entries.Text
-msgctxt ",486314A1411238147C79CF80B968B0E5"
-msgid "Dégâts physiques"
-msgstr "Dégâts physiques"
-
-#. Key:	FF57EDC946CB481428999B9D3D3DBAD1
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(147).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(147).Entries.Text
 msgctxt ",FF57EDC946CB481428999B9D3D3DBAD1"
 msgid "Dégâts de poison"
 msgstr "Dégâts de poison"
 
 #. Key:	3672F3AF4DB2AB7CB79D2DA63090D484
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(148).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(148).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(141).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(141).Entries.Text
 msgctxt ",3672F3AF4DB2AB7CB79D2DA63090D484"
 msgid "Durée des surfaces :"
 msgstr "Durée des surfaces :"
 
 #. Key:	CF6619BF45141736ED3C749F71000DBE
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(149).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(149).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(142).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(142).Entries.Text
 msgctxt ",CF6619BF45141736ED3C749F71000DBE"
 msgid "Dégâts périodiques des surfaces :"
 msgstr "Dégâts périodiques des surfaces :"
+
+#. Key:	4FF5B1D844B43150530063A8D5351736
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(143).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(143).Entries.Text
+msgctxt ",4FF5B1D844B43150530063A8D5351736"
+msgid "Soins prodigués :"
+msgstr "Soins prodigués :"
+
+#. Key:	B4B6778A43089665B41CCE98F2576BE1
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(144).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(144).Entries.Text
+msgctxt ",B4B6778A43089665B41CCE98F2576BE1"
+msgid "Objets rapides"
+msgstr "Objets rapides"
+
+#. Key:	15CED79548CF16CC8210C483DA040517
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(145).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(145).Entries.Text
+msgctxt ",15CED79548CF16CC8210C483DA040517"
+msgid "Potion bénéfique"
+msgstr "Potion bénéfique"
+
+#. Key:	3B66FDDC4B235EC4C30242B4DC138179
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(146).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(146).Entries.Text
+msgctxt ",3B66FDDC4B235EC4C30242B4DC138179"
+msgid "Effets positifs :"
+msgstr "Effets positifs :"
+
+#. Key:	7951312D499A6CB53A71DC8C0B543CC3
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(147).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(147).Entries.Text
+msgctxt ",7951312D499A6CB53A71DC8C0B543CC3"
+msgid "Cibles secondaires :"
+msgstr "Cibles secondaires :"
+
+#. Key:	9C66C85544978710A0E6618A2714E287
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(148).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(148).Entries.Text
+msgctxt ",9C66C85544978710A0E6618A2714E287"
+msgid "Puissance secondaire :"
+msgstr "Puissance secondaire :"
+
+#. Key:	BE139FB4414A59A6076159B05F8A1D91
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(149).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(149).Entries.Text
+msgctxt ",BE139FB4414A59A6076159B05F8A1D91"
+msgid "Durée secondaire :"
+msgstr "Durée secondaire :"
 
 #. Key:	C82621FF415C64FEAFB60DB51F7626A9
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(15).Entries.Text
@@ -1945,75 +1945,75 @@ msgctxt ",C82621FF415C64FEAFB60DB51F7626A9"
 msgid "Statut :"
 msgstr "Statut :"
 
-#. Key:	4FF5B1D844B43150530063A8D5351736
+#. Key:	FEEB21FD4FA0AB95BECFF5BDD9BB2002
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(150).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(150).Entries.Text
-msgctxt ",4FF5B1D844B43150530063A8D5351736"
-msgid "Soins prodigués :"
-msgstr "Soins prodigués :"
-
-#. Key:	B4B6778A43089665B41CCE98F2576BE1
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(151).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(151).Entries.Text
-msgctxt ",B4B6778A43089665B41CCE98F2576BE1"
-msgid "Objets rapides"
-msgstr "Objets rapides"
-
-#. Key:	15CED79548CF16CC8210C483DA040517
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(152).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(152).Entries.Text
-msgctxt ",15CED79548CF16CC8210C483DA040517"
-msgid "Potion bénéfique"
-msgstr "Potion bénéfique"
-
-#. Key:	3B66FDDC4B235EC4C30242B4DC138179
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(153).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(153).Entries.Text
-msgctxt ",3B66FDDC4B235EC4C30242B4DC138179"
-msgid "Effets positifs :"
-msgstr "Effets positifs :"
-
-#. Key:	7951312D499A6CB53A71DC8C0B543CC3
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(154).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(154).Entries.Text
-msgctxt ",7951312D499A6CB53A71DC8C0B543CC3"
-msgid "Cibles secondaires :"
-msgstr "Cibles secondaires :"
-
-#. Key:	9C66C85544978710A0E6618A2714E287
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(155).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(155).Entries.Text
-msgctxt ",9C66C85544978710A0E6618A2714E287"
-msgid "Puissance secondaire :"
-msgstr "Puissance secondaire :"
-
-#. Key:	BE139FB4414A59A6076159B05F8A1D91
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(156).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(156).Entries.Text
-msgctxt ",BE139FB4414A59A6076159B05F8A1D91"
-msgid "Durée secondaire :"
-msgstr "Durée secondaire :"
-
-#. Key:	FEEB21FD4FA0AB95BECFF5BDD9BB2002
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(157).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(157).Entries.Text
 msgctxt ",FEEB21FD4FA0AB95BECFF5BDD9BB2002"
 msgid "Bombe"
 msgstr "Bombe"
 
 #. Key:	675AB24842F9774A545CE1A0757693DD
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(158).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(158).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(151).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(151).Entries.Text
 msgctxt ",675AB24842F9774A545CE1A0757693DD"
 msgid "Coût en PA :"
 msgstr "Coût en PA :"
 
 #. Key:	28BE5F3B490852571AC9109E67A7A2B7
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(159).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(159).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(152).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(152).Entries.Text
 msgctxt ",28BE5F3B490852571AC9109E67A7A2B7"
 msgid "Dégâts de réaction de surface"
 msgstr "Dégâts de réaction de surface"
+
+#. Key:	73037C404832DA78841E1E8C5DAF64E2
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(153).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(153).Entries.Text
+msgctxt ",73037C404832DA78841E1E8C5DAF64E2"
+msgid "Niv. {0}"
+msgstr "Niv. {0}"
+
+#. Key:	FA6E944E44266DE59A5ECDB7E8E32663
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(154).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(154).Entries.Text
+msgctxt ",FA6E944E44266DE59A5ECDB7E8E32663"
+msgid "Acquis"
+msgstr "Acquis"
+
+#. Key:	B01D60574A585EABFA0BE6A74B6EA361
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(155).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(155).Entries.Text
+msgctxt ",B01D60574A585EABFA0BE6A74B6EA361"
+msgid "Disponible"
+msgstr "Disponible"
+
+#. Key:	22A29CAB42B2F56DD62049BFC28CE648
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(156).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(156).Entries.Text
+msgctxt ",22A29CAB42B2F56DD62049BFC28CE648"
+msgid "Niveau"
+msgstr "Niveau"
+
+#. Key:	499E76FC4E89D649F0B9F8898B997E44
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(157).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(157).Entries.Text
+msgctxt ",499E76FC4E89D649F0B9F8898B997E44"
+msgid "Prérequis"
+msgstr "Prérequis"
+
+#. Key:	4623644D4076C7C88D5A9B941DF4F04C
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(158).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(158).Entries.Text
+msgctxt ",4623644D4076C7C88D5A9B941DF4F04C"
+msgid "Points"
+msgstr "Points"
+
+#. Key:	BACCA8F94A13BAF2BE51E4870B2C14C4
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(159).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(159).Entries.Text
+msgctxt ",BACCA8F94A13BAF2BE51E4870B2C14C4"
+msgid "Exclusif"
+msgstr "Exclusif"
 
 #. Key:	3671450C499340BE268D5DB376C50416
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(16).Entries.Text
@@ -2022,75 +2022,75 @@ msgctxt ",3671450C499340BE268D5DB376C50416"
 msgid "Si l'armure physique est épuisée après les dégâts"
 msgstr "Si l'armure physique est épuisée après les dégâts"
 
-#. Key:	73037C404832DA78841E1E8C5DAF64E2
+#. Key:	511839C845EC55A65E4D4AAF6E7E1922
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(160).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(160).Entries.Text
-msgctxt ",73037C404832DA78841E1E8C5DAF64E2"
-msgid "Niv. {0}"
-msgstr "Niv. {0}"
-
-#. Key:	FA6E944E44266DE59A5ECDB7E8E32663
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(161).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(161).Entries.Text
-msgctxt ",FA6E944E44266DE59A5ECDB7E8E32663"
-msgid "Acquis"
-msgstr "Acquis"
-
-#. Key:	B01D60574A585EABFA0BE6A74B6EA361
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(162).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(162).Entries.Text
-msgctxt ",B01D60574A585EABFA0BE6A74B6EA361"
-msgid "Disponible"
-msgstr "Disponible"
-
-#. Key:	22A29CAB42B2F56DD62049BFC28CE648
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(163).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(163).Entries.Text
-msgctxt ",22A29CAB42B2F56DD62049BFC28CE648"
-msgid "Niveau"
-msgstr "Niveau"
-
-#. Key:	499E76FC4E89D649F0B9F8898B997E44
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(164).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(164).Entries.Text
-msgctxt ",499E76FC4E89D649F0B9F8898B997E44"
-msgid "Prérequis :"
-msgstr "Prérequis :"
-
-#. Key:	4623644D4076C7C88D5A9B941DF4F04C
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(165).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(165).Entries.Text
-msgctxt ",4623644D4076C7C88D5A9B941DF4F04C"
-msgid "Points"
-msgstr "Points"
-
-#. Key:	BACCA8F94A13BAF2BE51E4870B2C14C4
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(166).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(166).Entries.Text
-msgctxt ",BACCA8F94A13BAF2BE51E4870B2C14C4"
-msgid "Exclusif"
-msgstr "Exclusif"
-
-#. Key:	511839C845EC55A65E4D4AAF6E7E1922
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(167).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(167).Entries.Text
 msgctxt ",511839C845EC55A65E4D4AAF6E7E1922"
 msgid "Aucun personnage sélectionné"
 msgstr "Aucun personnage sélectionné"
 
 #. Key:	6C2C742A493DA4DE30254CA87C0B787B
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(168).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(168).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(161).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(161).Entries.Text
 msgctxt ",6C2C742A493DA4DE30254CA87C0B787B"
 msgid "Personnage sélectionné"
 msgstr "Personnage sélectionné"
 
 #. Key:	1E1AFD7E4C4F8073B486E9A786B47465
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(169).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(169).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(162).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(162).Entries.Text
 msgctxt ",1E1AFD7E4C4F8073B486E9A786B47465"
 msgid "{0} - Niveau {1}"
 msgstr "{0} - Niveau {1}"
+
+#. Key:	98B1F95145843FA5788C4494C5EC97E3
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(163).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(163).Entries.Text
+msgctxt ",98B1F95145843FA5788C4494C5EC97E3"
+msgid "Points de talent : {0}"
+msgstr "Points de talent : {0}"
+
+#. Key:	ABA50CC64CFF223AE248CE8920C6B158
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(164).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(164).Entries.Text
+msgctxt ",ABA50CC64CFF223AE248CE8920C6B158"
+msgid "Points de compétence : -"
+msgstr "Points de compétence : -"
+
+#. Key:	C9F2E62B419DB74379AB19BDBDC9C244
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(165).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(165).Entries.Text
+msgctxt ",C9F2E62B419DB74379AB19BDBDC9C244"
+msgid "Points de compétence : {0} - Rang max : {1}"
+msgstr "Points de compétence : {0} - Rang max : {1}"
+
+#. Key:	D232605C4CA0828C119C36B25B7BB29A
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(166).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(166).Entries.Text
+msgctxt ",D232605C4CA0828C119C36B25B7BB29A"
+msgid "Le personnage n'est plus disponible."
+msgstr "Le personnage n'est plus disponible."
+
+#. Key:	96D909AA475860DD6554288798209ED5
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(167).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(167).Entries.Text
+msgctxt ",96D909AA475860DD6554288798209ED5"
+msgid "La définition de classe n'est plus valide."
+msgstr "La définition de classe n'est plus valide."
+
+#. Key:	3598D1014C447C3463AA208F2355CAB1
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(168).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(168).Entries.Text
+msgctxt ",3598D1014C447C3463AA208F2355CAB1"
+msgid "L'état de progression courant est incohérent."
+msgstr "L'état de progression courant est incohérent."
+
+#. Key:	EC6448F24C9AAF32827627B4A394936A
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(169).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(169).Entries.Text
+msgctxt ",EC6448F24C9AAF32827627B4A394936A"
+msgid "Aucun talent n'est sélectionné."
+msgstr "Aucun talent n'est sélectionné."
 
 #. Key:	2DFB565E4EF4B877A9D5F1948FF43439
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(17).Entries.Text
@@ -2099,75 +2099,75 @@ msgctxt ",2DFB565E4EF4B877A9D5F1948FF43439"
 msgid "Si l'armure magique est épuisée après les dégâts"
 msgstr "Si l'armure magique est épuisée après les dégâts"
 
-#. Key:	98B1F95145843FA5788C4494C5EC97E3
+#. Key:	44302B094572E895B14F47A4FD4580E4
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(170).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(170).Entries.Text
-msgctxt ",98B1F95145843FA5788C4494C5EC97E3"
-msgid "Points de talent : {0}"
-msgstr "Points de talent : {0}"
-
-#. Key:	ABA50CC64CFF223AE248CE8920C6B158
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(171).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(171).Entries.Text
-msgctxt ",ABA50CC64CFF223AE248CE8920C6B158"
-msgid "Points de compétence : -"
-msgstr "Points de compétence : -"
-
-#. Key:	C9F2E62B419DB74379AB19BDBDC9C244
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(172).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(172).Entries.Text
-msgctxt ",C9F2E62B419DB74379AB19BDBDC9C244"
-msgid "Points de compétence : {0} - Rang max : {1}"
-msgstr "Points de compétence : {0} - Rang max : {1}"
-
-#. Key:	D232605C4CA0828C119C36B25B7BB29A
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(173).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(173).Entries.Text
-msgctxt ",D232605C4CA0828C119C36B25B7BB29A"
-msgid "Le personnage n'est plus disponible."
-msgstr "Le personnage n'est plus disponible."
-
-#. Key:	96D909AA475860DD6554288798209ED5
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(174).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(174).Entries.Text
-msgctxt ",96D909AA475860DD6554288798209ED5"
-msgid "La définition de classe n'est plus valide."
-msgstr "La définition de classe n'est plus valide."
-
-#. Key:	3598D1014C447C3463AA208F2355CAB1
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(175).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(175).Entries.Text
-msgctxt ",3598D1014C447C3463AA208F2355CAB1"
-msgid "L'état de progression courant est incohérent."
-msgstr "L'état de progression courant est incohérent."
-
-#. Key:	EC6448F24C9AAF32827627B4A394936A
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(176).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(176).Entries.Text
-msgctxt ",EC6448F24C9AAF32827627B4A394936A"
-msgid "Aucun talent n'est sélectionné."
-msgstr "Aucun talent n'est sélectionné."
-
-#. Key:	44302B094572E895B14F47A4FD4580E4
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(177).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(177).Entries.Text
 msgctxt ",44302B094572E895B14F47A4FD4580E4"
 msgid "Un même talent apparaît plusieurs fois dans la transaction."
 msgstr "Un même talent apparaît plusieurs fois dans la transaction."
 
 #. Key:	C9E52FA94CF10BE032B7FC9640F2A835
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(178).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(178).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(171).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(171).Entries.Text
 msgctxt ",C9E52FA94CF10BE032B7FC9640F2A835"
 msgid "Un talent de classe n'existe plus."
 msgstr "Un talent de classe n'existe plus."
 
 #. Key:	A8A953C24FBE1A3BB45767A1052B8A35
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(179).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(179).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(172).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(172).Entries.Text
 msgctxt ",A8A953C24FBE1A3BB45767A1052B8A35"
 msgid "Ce talent est déjà acquis."
 msgstr "Ce talent est déjà acquis."
+
+#. Key:	8279E2D6404EF2ED0B122EB28E50336E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(173).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(173).Entries.Text
+msgctxt ",8279E2D6404EF2ED0B122EB28E50336E"
+msgid "Le niveau requis n'est pas atteint."
+msgstr "Le niveau requis n'est pas atteint."
+
+#. Key:	7B048CC8401AB7870C9B4D9A7F9A3519
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(174).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(174).Entries.Text
+msgctxt ",7B048CC8401AB7870C9B4D9A7F9A3519"
+msgid "Un prérequis de talent manque."
+msgstr "Un prérequis de talent manque."
+
+#. Key:	FAA89FFD4D708D8F870A8BA5245FFA34
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(175).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(175).Entries.Text
+msgctxt ",FAA89FFD4D708D8F870A8BA5245FFA34"
+msgid "Il n'y a pas assez de points de talent."
+msgstr "Il n'y a pas assez de points de talent."
+
+#. Key:	17131D63488C55B54B0789B47B8C221B
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(176).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(176).Entries.Text
+msgctxt ",17131D63488C55B54B0789B47B8C221B"
+msgid "Une autre variante exclusive de ce talent est déjà acquise."
+msgstr "Une autre variante exclusive de ce talent est déjà acquise."
+
+#. Key:	EFE0913C46B2BD97FA2CCD99064082DC
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(177).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(177).Entries.Text
+msgctxt ",EFE0913C46B2BD97FA2CCD99064082DC"
+msgid "Talent acquis"
+msgstr "Talent acquis"
+
+#. Key:	437CF6E1485636C419385B941279DFBB
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(178).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(178).Entries.Text
+msgctxt ",437CF6E1485636C419385B941279DFBB"
+msgid "Acquisition réussie. Points de talent restants : {0}."
+msgstr "Acquisition réussie. Points de talent restants : {0}."
+
+#. Key:	7C61D1984747FBC7790A5FAC4D1A13D3
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(179).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(179).Entries.Text
+msgctxt ",7C61D1984747FBC7790A5FAC4D1A13D3"
+msgid "« {0} » a été acquis. Points de talent restants : {1}."
+msgstr "« {0} » a été acquis. Points de talent restants : {1}."
 
 #. Key:	1CC30EBD413D3F06A889BDB44C978AAB
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(18).Entries.Text
@@ -2176,75 +2176,75 @@ msgctxt ",1CC30EBD413D3F06A889BDB44C978AAB"
 msgid "Après un coup réussi"
 msgstr "Après un coup réussi"
 
-#. Key:	8279E2D6404EF2ED0B122EB28E50336E
+#. Key:	740236D04917F202B082A5929ADD8DC3
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(180).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(180).Entries.Text
-msgctxt ",8279E2D6404EF2ED0B122EB28E50336E"
-msgid "Le niveau requis n'est pas atteint."
-msgstr "Le niveau requis n'est pas atteint."
-
-#. Key:	7B048CC8401AB7870C9B4D9A7F9A3519
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(181).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(181).Entries.Text
-msgctxt ",7B048CC8401AB7870C9B4D9A7F9A3519"
-msgid "Un prérequis de talent manque."
-msgstr "Un prérequis de talent manque."
-
-#. Key:	FAA89FFD4D708D8F870A8BA5245FFA34
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(182).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(182).Entries.Text
-msgctxt ",FAA89FFD4D708D8F870A8BA5245FFA34"
-msgid "Il n'y a pas assez de points de talent."
-msgstr "Il n'y a pas assez de points de talent."
-
-#. Key:	17131D63488C55B54B0789B47B8C221B
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(183).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(183).Entries.Text
-msgctxt ",17131D63488C55B54B0789B47B8C221B"
-msgid "Une autre variante exclusive de ce talent est déjà acquise."
-msgstr "Une autre variante exclusive de ce talent est déjà acquise."
-
-#. Key:	EFE0913C46B2BD97FA2CCD99064082DC
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(184).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(184).Entries.Text
-msgctxt ",EFE0913C46B2BD97FA2CCD99064082DC"
-msgid "Talent acquis"
-msgstr "Talent acquis"
-
-#. Key:	437CF6E1485636C419385B941279DFBB
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(185).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(185).Entries.Text
-msgctxt ",437CF6E1485636C419385B941279DFBB"
-msgid "Acquisition réussie. Points de talent restants : {0}."
-msgstr "Acquisition réussie. Points de talent restants : {0}."
-
-#. Key:	7C61D1984747FBC7790A5FAC4D1A13D3
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(186).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(186).Entries.Text
-msgctxt ",7C61D1984747FBC7790A5FAC4D1A13D3"
-msgid "« {0} » a été acquis. Points de talent restants : {1}."
-msgstr "« {0} » a été acquis. Points de talent restants : {1}."
-
-#. Key:	740236D04917F202B082A5929ADD8DC3
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(187).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(187).Entries.Text
 msgctxt ",740236D04917F202B082A5929ADD8DC3"
 msgid "Acquisition refusée"
 msgstr "Acquisition refusée"
 
 #. Key:	EA39BA7D473E7D0C39C00FBF86E94C6D
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(188).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(188).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(181).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(181).Entries.Text
 msgctxt ",EA39BA7D473E7D0C39C00FBF86E94C6D"
 msgid "Le talent n'a pas pu être acquis."
 msgstr "Le talent n'a pas pu être acquis."
 
 #. Key:	4BCAA87F471542266070CFA5531AEA51
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(189).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(189).Entries.Text
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(182).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(182).Entries.Text
 msgctxt ",4BCAA87F471542266070CFA5531AEA51"
 msgid "ACQUISITION"
 msgstr "ACQUISITION"
+
+#. Key:	93F1E3C7453D07C13A3C968B51F2099F
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(183).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(183).Entries.Text
+msgctxt ",93F1E3C7453D07C13A3C968B51F2099F"
+msgid "ACQUÉRIR"
+msgstr "ACQUÉRIR"
+
+#. Key:	EB058D21425630923E50A89572FF684A
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(184).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(184).Entries.Text
+msgctxt ",EB058D21425630923E50A89572FF684A"
+msgid "CONFIRMER"
+msgstr "CONFIRMER"
+
+#. Key:	936A6C7C467E2D5556EF72A8C46E46F1
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(185).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(185).Entries.Text
+msgctxt ",936A6C7C467E2D5556EF72A8C46E46F1"
+msgid "EFFETS"
+msgstr "EFFETS"
+
+#. Key:	A0275A614F4518D7E5604FADEBD7CF3A
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(186).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(186).Entries.Text
+msgctxt ",A0275A614F4518D7E5604FADEBD7CF3A"
+msgid "PRINCIPE"
+msgstr "PRINCIPE"
+
+#. Key:	6610924A4325BF35ED39F2BB9F52BFDC
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(187).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(187).Entries.Text
+msgctxt ",6610924A4325BF35ED39F2BB9F52BFDC"
+msgid "STATUT"
+msgstr "STATUT"
+
+#. Key:	8F9226204794D67FE9FB6E939586DE6E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(188).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(188).Entries.Text
+msgctxt ",8F9226204794D67FE9FB6E939586DE6E"
+msgid "TYPE"
+msgstr "TYPE"
+
+#. Key:	51013C8F46B68EE1B8DC1DB4F079F90E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(189).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(189).Entries.Text
+msgctxt ",51013C8F46B68EE1B8DC1DB4F079F90E"
+msgid "UTILISATION"
+msgstr "UTILISATION"
 
 #. Key:	259673F54D8391062B82B3946F284BD2
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(19).Entries.Text
@@ -2252,69 +2252,6 @@ msgstr "ACQUISITION"
 msgctxt ",259673F54D8391062B82B3946F284BD2"
 msgid "Actions d'équipement"
 msgstr "Actions d'équipement"
-
-#. Key:	93F1E3C7453D07C13A3C968B51F2099F
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(190).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(190).Entries.Text
-msgctxt ",93F1E3C7453D07C13A3C968B51F2099F"
-msgid "ACQUÉRIR"
-msgstr "ACQUÉRIR"
-
-#. Key:	6FC3D0FD4FB74CBC67AC289C5724E904
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(191).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(191).Entries.Text
-msgctxt ",6FC3D0FD4FB74CBC67AC289C5724E904"
-msgid "ANNULER"
-msgstr "ANNULER"
-
-#. Key:	EB058D21425630923E50A89572FF684A
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(192).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(192).Entries.Text
-msgctxt ",EB058D21425630923E50A89572FF684A"
-msgid "CONFIRMER"
-msgstr "CONFIRMER"
-
-#. Key:	936A6C7C467E2D5556EF72A8C46E46F1
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(193).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(193).Entries.Text
-msgctxt ",936A6C7C467E2D5556EF72A8C46E46F1"
-msgid "EFFETS"
-msgstr "EFFETS"
-
-#. Key:	A0275A614F4518D7E5604FADEBD7CF3A
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(194).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(194).Entries.Text
-msgctxt ",A0275A614F4518D7E5604FADEBD7CF3A"
-msgid "PRINCIPE"
-msgstr "PRINCIPE"
-
-#. Key:	6610924A4325BF35ED39F2BB9F52BFDC
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(195).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(195).Entries.Text
-msgctxt ",6610924A4325BF35ED39F2BB9F52BFDC"
-msgid "STATUT"
-msgstr "STATUT"
-
-#. Key:	8F9226204794D67FE9FB6E939586DE6E
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(196).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(196).Entries.Text
-msgctxt ",8F9226204794D67FE9FB6E939586DE6E"
-msgid "TYPE"
-msgstr "TYPE"
-
-#. Key:	51013C8F46B68EE1B8DC1DB4F079F90E
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(197).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(197).Entries.Text
-msgctxt ",51013C8F46B68EE1B8DC1DB4F079F90E"
-msgid "UTILISATION"
-msgstr "UTILISATION"
-
-#. Key:	019793DE44753760BB9D28AAD81DC520
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(198).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(198).Entries.Text
-msgctxt ",019793DE44753760BB9D28AAD81DC520"
-msgid "VARIANTES"
-msgstr "VARIANTES"
 
 #. Key:	4C781DAD492D0220562E25A9F677A8BD
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(2).Entries.Text
@@ -2810,8 +2747,8 @@ msgstr "ACTIF"
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(83).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(83).Entries.Text
 msgctxt ",9A612B984D0C60A930D492BB252F6453"
-msgid "SORT ACTIF"
-msgstr "SORT ACTIF"
+msgid "ACTIF"
+msgstr "ACTIF"
 
 #. Key:	E190171046C1913DD9B7F7BBBFC9ECA3
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(84).Entries.Text
@@ -2890,47 +2827,47 @@ msgctxt ",CA37C7EE4535D50F22AAB88F5FE85746"
 msgid "INDISPONIBLE - autre variante déjà choisie"
 msgstr "INDISPONIBLE - autre variante déjà choisie"
 
-#. Key:	03BF712A450F8F086BB116A05614899D
+#. Key:	68A7F4FC412F235AE3980796A6184402
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(94).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(94).Entries.Text
-msgctxt ",03BF712A450F8F086BB116A05614899D"
-msgid "ACQUISE"
-msgstr "ACQUISE"
-
-#. Key:	D3A81F8B4CA48C58157691A66EE6248E
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(95).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(95).Entries.Text
-msgctxt ",D3A81F8B4CA48C58157691A66EE6248E"
-msgid "CHOIX EN COURS"
-msgstr "CHOIX EN COURS"
-
-#. Key:	7DD37D264ADF5B4E45898980C2D5BA4B
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(96).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(96).Entries.Text
-msgctxt ",7DD37D264ADF5B4E45898980C2D5BA4B"
-msgid "CHOISIR"
-msgstr "CHOISIR"
-
-#. Key:	C7C8F9C14F6F9CEECF781F9EF3D4D890
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(97).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(97).Entries.Text
-msgctxt ",C7C8F9C14F6F9CEECF781F9EF3D4D890"
-msgid "INDISPONIBLE"
-msgstr "INDISPONIBLE"
-
-#. Key:	68A7F4FC412F235AE3980796A6184402
-#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(98).Entries.Text
-#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(98).Entries.Text
 msgctxt ",68A7F4FC412F235AE3980796A6184402"
 msgid "Une seule variante peut être acquise."
 msgstr "Une seule variante peut être acquise."
 
-#. Key:	CECE3B6D4ADD7BAF1E301AA677831365
+#. Key:	EB4BD0554AB2354C5DB9B3B3D58457F2
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(95).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(95).Entries.Text
+msgctxt ",EB4BD0554AB2354C5DB9B3B3D58457F2"
+msgid "Bombe incendiaire"
+msgstr "Bombe incendiaire"
+
+#. Key:	070B53E6440B3A3925CA959C215E0C93
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(96).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(96).Entries.Text
+msgctxt ",070B53E6440B3A3925CA959C215E0C93"
+msgid "Bombe toxique"
+msgstr "Bombe toxique"
+
+#. Key:	FCE3CE2749B4672F72FCCA8679B4E572
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(97).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(97).Entries.Text
+msgctxt ",FCE3CE2749B4672F72FCCA8679B4E572"
+msgid "Antidote"
+msgstr "Antidote"
+
+#. Key:	BF769D1744F90E19EC94E49B8E41E389
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(98).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(98).Entries.Text
+msgctxt ",BF769D1744F90E19EC94E49B8E41E389"
+msgid "Élixir défensif - Feu"
+msgstr "Élixir défensif - Feu"
+
+#. Key:	172EE7294420E068BC8747BB3F3E097D
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(99).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(99).Entries.Text
-msgctxt ",CECE3B6D4ADD7BAF1E301AA677831365"
-msgid "Confirmer l’acquisition de « {0} » ?"
-msgstr "Confirmer l’acquisition de « {0} » ?"
+msgctxt ",172EE7294420E068BC8747BB3F3E097D"
+msgid "Élixir défensif - Glace"
+msgstr "Élixir défensif - Glace"
 
 #. Key:	6B64A9B24C430ED316061F8D02CE0285
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/Visuals/ClassVisuals/DA_ClassVisual_Alchemist.DA_ClassVisual_Alchemist.Description
@@ -5576,6 +5513,46 @@ msgctxt "ST_UI,Inventory.Bag.Weight"
 msgid "Poids : {Current} / {Maximum}"
 msgstr "Poids : {Current} / {Maximum}"
 
+#. Key:	Inventory.Category.Equipment
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Catégorie générique d’équipement dans l’interface d’inventaire"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Inventory.Category.Equipment"
+msgid "Equipement"
+msgstr "Equipement"
+
+#. Key:	Menu.License
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Libellé partagé du menu des licences"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Menu.License"
+msgid "Licence"
+msgstr "Licence"
+
+#. Key:	Menu.LoadGame
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Libellé partagé du menu de chargement"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Menu.LoadGame"
+msgid "Charger partie"
+msgstr "Charger partie"
+
+#. Key:	Menu.Options
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Libellé partagé du menu des options"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Menu.Options"
+msgid "Options"
+msgstr "Options"
+
+#. Key:	Navigation.Back
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Action de navigation générique pour revenir à l’écran précédent"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Navigation.Back"
+msgid "Retour"
+msgstr "Retour"
+
 #. Key:	Progression.LevelUp.CharacterFallback
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
 #. InfoMetaData:	"Comment" : "Nom joueur de repli dans les notifications de montée de niveau"
@@ -5719,6 +5696,14 @@ msgstr "Les données de ce compagnon sont invalides."
 msgctxt "ST_UI,Recruitment.Registration.InvalidInventory"
 msgid "Le groupe n'est pas disponible pour préparer ce compagnon."
 msgstr "Le groupe n'est pas disponible pour préparer ce compagnon."
+
+#. Key:	Resource.Mana
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Libellé générique de la ressource Mana"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Resource.Mana"
+msgid "Mana"
+msgstr "Mana"
 
 #. Key:	SaveLoad.Slot.Available
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
@@ -5959,48 +5944,6 @@ msgstr "Dégâts périodiques actifs."
 msgctxt "ST_UI,Status.Tooltip.Stacks"
 msgid "Stacks : {Count}"
 msgstr "Stacks : {Count}"
-
-#. Key:	Inventory.Category.Equipment
-#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
-#: /Game/Localization/StringTables/ST_UI.ST_UI
-msgctxt "ST_UI,Inventory.Category.Equipment"
-msgid "Equipement"
-msgstr "Equipement"
-
-#. Key:	Menu.License
-#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
-#: /Game/Localization/StringTables/ST_UI.ST_UI
-msgctxt "ST_UI,Menu.License"
-msgid "Licence"
-msgstr "Licence"
-
-#. Key:	Menu.LoadGame
-#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
-#: /Game/Localization/StringTables/ST_UI.ST_UI
-msgctxt "ST_UI,Menu.LoadGame"
-msgid "Charger partie"
-msgstr "Charger partie"
-
-#. Key:	Menu.Options
-#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
-#: /Game/Localization/StringTables/ST_UI.ST_UI
-msgctxt "ST_UI,Menu.Options"
-msgid "Options"
-msgstr "Options"
-
-#. Key:	Navigation.Back
-#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
-#: /Game/Localization/StringTables/ST_UI.ST_UI
-msgctxt "ST_UI,Navigation.Back"
-msgid "Retour"
-msgstr "Retour"
-
-#. Key:	Resource.Mana
-#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
-#: /Game/Localization/StringTables/ST_UI.ST_UI
-msgctxt "ST_UI,Resource.Mana"
-msgid "Mana"
-msgstr "Mana"
 
 #. Key:	UnarmedName
 #. SourceLocation:	Source/GrimrockPrototype/Private/Runtime/Combat/GridCombatActionCatalog.cpp(432)
@@ -6997,67 +6940,46 @@ msgid "(Δ {Delta})"
 msgstr "(Δ {Delta})"
 
 #. Key:	StatStrength
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(172)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(172)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(178)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(178)
 msgctxt "GridInventoryTooltip,StatStrength"
 msgid "Force"
 msgstr "Force"
 
 #. Key:	StatDexterity
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(174)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(174)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(180)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(180)
 msgctxt "GridInventoryTooltip,StatDexterity"
 msgid "Dextérité"
 msgstr "Dextérité"
 
 #. Key:	StatConstitution
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(176)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(176)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(182)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(182)
 msgctxt "GridInventoryTooltip,StatConstitution"
 msgid "Constitution"
 msgstr "Constitution"
 
 #. Key:	StatIntelligence
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(178)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(178)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(184)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(184)
 msgctxt "GridInventoryTooltip,StatIntelligence"
 msgid "Intelligence"
 msgstr "Intelligence"
 
 #. Key:	StatWisdom
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(180)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(180)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(186)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(186)
 msgctxt "GridInventoryTooltip,StatWisdom"
 msgid "Sagesse"
 msgstr "Sagesse"
 
 #. Key:	StatCharisma
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(182)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(182)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(188)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(188)
 msgctxt "GridInventoryTooltip,StatCharisma"
 msgid "Charisme"
 msgstr "Charisme"
-
-#. Key:	StatHealth
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(184)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(184)
-msgctxt "GridInventoryTooltip,StatHealth"
-msgid "PV max"
-msgstr "PV max"
-
-#. Key:	StatMana
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(186)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(186)
-msgctxt "GridInventoryTooltip,StatMana"
-msgid "Mana max"
-msgstr "Mana max"
-
-#. Key:	StatCarry
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(188)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(188)
-msgctxt "GridInventoryTooltip,StatCarry"
-msgid "Charge max"
-msgstr "Charge max"
 
 #. Key:	EquipmentSlotMainHand
 #. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(19)
@@ -7066,40 +6988,40 @@ msgctxt "GridInventoryTooltip,EquipmentSlotMainHand"
 msgid "Main directrice"
 msgstr "Main directrice"
 
-#. Key:	StatArmor
+#. Key:	StatHealth
 #. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(190)
 #: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(190)
+msgctxt "GridInventoryTooltip,StatHealth"
+msgid "PV max"
+msgstr "PV max"
+
+#. Key:	StatMana
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(192)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(192)
+msgctxt "GridInventoryTooltip,StatMana"
+msgid "Mana max"
+msgstr "Mana max"
+
+#. Key:	StatCarry
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(194)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(194)
+msgctxt "GridInventoryTooltip,StatCarry"
+msgid "Charge max"
+msgstr "Charge max"
+
+#. Key:	StatArmor
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(196)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(196)
 msgctxt "GridInventoryTooltip,StatArmor"
 msgid "Armure physique"
 msgstr "Armure physique"
 
 #. Key:	ResPhysical
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(193)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(193)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(199)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(199)
 msgctxt "GridInventoryTooltip,ResPhysical"
 msgid "Résistance physique"
 msgstr "Résistance physique"
-
-#. Key:	ResFire
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(195)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(195)
-msgctxt "GridInventoryTooltip,ResFire"
-msgid "Résistance feu"
-msgstr "Résistance feu"
-
-#. Key:	ResIce
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(197)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(197)
-msgctxt "GridInventoryTooltip,ResIce"
-msgid "Résistance glace"
-msgstr "Résistance glace"
-
-#. Key:	ResLightning
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(199)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(199)
-msgctxt "GridInventoryTooltip,ResLightning"
-msgid "Résistance foudre"
-msgstr "Résistance foudre"
 
 #. Key:	EquipmentSlotOffHand
 #. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(20)
@@ -7108,33 +7030,40 @@ msgctxt "GridInventoryTooltip,EquipmentSlotOffHand"
 msgid "Main secondaire"
 msgstr "Main secondaire"
 
-#. Key:	ResPoison
+#. Key:	ResFire
 #. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(201)
 #: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(201)
+msgctxt "GridInventoryTooltip,ResFire"
+msgid "Résistance feu"
+msgstr "Résistance feu"
+
+#. Key:	ResIce
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(203)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(203)
+msgctxt "GridInventoryTooltip,ResIce"
+msgid "Résistance glace"
+msgstr "Résistance glace"
+
+#. Key:	ResLightning
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(205)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(205)
+msgctxt "GridInventoryTooltip,ResLightning"
+msgid "Résistance foudre"
+msgstr "Résistance foudre"
+
+#. Key:	ResPoison
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(207)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(207)
 msgctxt "GridInventoryTooltip,ResPoison"
 msgid "Résistance poison"
 msgstr "Résistance poison"
 
 #. Key:	ResHoly
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(203)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(203)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(209)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(209)
 msgctxt "GridInventoryTooltip,ResHoly"
 msgid "Résistance sacrée"
 msgstr "Résistance sacrée"
-
-#. Key:	ResNecrotic
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(205)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(205)
-msgctxt "GridInventoryTooltip,ResNecrotic"
-msgid "Résistance nécrotique"
-msgstr "Résistance nécrotique"
-
-#. Key:	ResArcane
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(207)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(207)
-msgctxt "GridInventoryTooltip,ResArcane"
-msgid "Résistance arcanique"
-msgstr "Résistance arcanique"
 
 #. Key:	EquipmentSlotHead
 #. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(21)
@@ -7142,6 +7071,20 @@ msgstr "Résistance arcanique"
 msgctxt "GridInventoryTooltip,EquipmentSlotHead"
 msgid "Tête"
 msgstr "Tête"
+
+#. Key:	ResNecrotic
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(211)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(211)
+msgctxt "GridInventoryTooltip,ResNecrotic"
+msgid "Résistance nécrotique"
+msgstr "Résistance nécrotique"
+
+#. Key:	ResArcane
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(213)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(213)
+msgctxt "GridInventoryTooltip,ResArcane"
+msgid "Résistance arcanique"
+msgstr "Résistance arcanique"
 
 #. Key:	EquipmentSlotChest
 #. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(22)
@@ -7249,8 +7192,8 @@ msgid "Brassards"
 msgstr "Brassards"
 
 #. Key:	ItemTypeUnknown
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(363)
-#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(363)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(369)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(369)
 msgctxt "GridInventoryTooltip,ItemTypeUnknown"
 msgid "Objet"
 msgstr "Objet"
@@ -7501,8 +7444,8 @@ msgid "Sort inconnu"
 msgstr "Sort inconnu"
 
 #. Key:	TalentTooltip
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridTalentNodeWidget.cpp(185)
-#: Source/GrimrockPrototype/Private/UI/GridTalentNodeWidget.cpp(185)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridTalentNodeWidget.cpp(209)
+#: Source/GrimrockPrototype/Private/UI/GridTalentNodeWidget.cpp(209)
 msgctxt "GridTalentNode,TalentTooltip"
 msgid "{0}\n{1}"
 msgstr "{0}\n{1}"
@@ -7975,3 +7918,4 @@ msgstr "Poids ordre décroissant"
 msgctxt "GridInventorySort,NameAscending"
 msgid "Nom ordre croissant"
 msgstr "Nom ordre croissant"
+
