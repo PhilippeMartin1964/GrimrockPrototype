@@ -6,6 +6,8 @@
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
+#include "Blueprint/SlateBlueprintLibrary.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Engine/Texture2D.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassVisualAsset.h"
@@ -19,6 +21,7 @@
 #include "UI/GridTalentBranchWidget.h"
 #include "UI/GridTalentDetailWidget.h"
 #include "UI/GridTalentNodeWidget.h"
+#include "UI/GridTalentVariantFlyoutWidget.h"
 #include "UI/GridRPGNotificationWidget.h"
 #include "UI/RPGProgressionFeedbackService.h"
 #include "UI/RPGTalentDetailTextSet.h"
@@ -75,6 +78,7 @@ void UGridSkillsWidget::NativeConstruct()
 
 void UGridSkillsWidget::NativeDestruct()
 {
+	CloseTalentVariantFlyout();
 	UnbindDesignerShell();
 
 	if (InventoryComponent)
@@ -95,16 +99,10 @@ void UGridSkillsWidget::BindDesignerShell()
 
 	Branch_Left->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
 	Branch_Left->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
-	Branch_Left->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
-	Branch_Left->OnTalentVariantClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 	Branch_Center->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
 	Branch_Center->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
-	Branch_Center->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
-	Branch_Center->OnTalentVariantClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 	Branch_Right->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
 	Branch_Right->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
-	Branch_Right->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
-	Branch_Right->OnTalentVariantClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 
 	if (Detail_Talent)
 	{
@@ -126,17 +124,14 @@ void UGridSkillsWidget::UnbindDesignerShell()
 	if (Branch_Left)
 	{
 		Branch_Left->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
-		Branch_Left->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 	}
 	if (Branch_Center)
 	{
 		Branch_Center->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
-		Branch_Center->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 	}
 	if (Branch_Right)
 	{
 		Branch_Right->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
-		Branch_Right->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 	}
 	if (Detail_Talent)
 	{
@@ -144,8 +139,19 @@ void UGridSkillsWidget::UnbindDesignerShell()
 	}
 }
 
+FReply UGridSkillsWidget::NativeOnPreviewMouseButtonDown(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent)
+{
+	// The flyout is a top-level viewport sibling, not a child of this widget.
+	// Any click that reaches the Skills hierarchy is therefore outside the popup.
+	CloseTalentVariantFlyout();
+	return Super::NativeOnPreviewMouseButtonDown(InGeometry, InMouseEvent);
+}
+
 void UGridSkillsWidget::ClearView()
 {
+	CloseTalentVariantFlyout();
 	View = FGridSkillsPageView();
 }
 
@@ -339,6 +345,18 @@ bool UGridSkillsWidget::GetPresentedTalentBranch(
 	return false;
 }
 
+UGridTalentNodeWidget* UGridSkillsWidget::FindTalentNodeWidget(const FGridTalentNodeView& NodeView) const
+{
+	for (UGridTalentBranchWidget* BranchWidget : { Branch_Left.Get(), Branch_Center.Get(), Branch_Right.Get() })
+	{
+		if (BranchWidget && BranchWidget->BranchView.TalentBranchId == NodeView.TalentBranchId)
+		{
+			return BranchWidget->GetTalentNodeWidgetForTier(NodeView.Tier);
+		}
+	}
+	return nullptr;
+}
+
 const FGridTalentNodeView* UGridSkillsWidget::FindTalentNode(FName TalentNodeId) const
 {
 	if (TalentNodeId.IsNone())
@@ -358,6 +376,101 @@ const FGridTalentNodeView* UGridSkillsWidget::FindTalentNode(FName TalentNodeId)
 		}
 	}
 	return nullptr;
+}
+
+bool UGridSkillsWidget::OpenTalentVariantFlyout(FName TalentNodeId)
+{
+	const FGridTalentNodeView* Node = FindTalentNode(TalentNodeId);
+	if (!Node || !Node->bHasExclusiveVariants || !Node->SelectedChoiceId.IsNone() || Node->Variants.Num() < 2)
+	{
+		return false;
+	}
+
+	UGridTalentNodeWidget* NodeWidget = FindTalentNodeWidget(*Node);
+	if (!NodeWidget || !NodeWidget->GetVariantFlyoutWidgetClass())
+	{
+		return false;
+	}
+
+	CloseTalentVariantFlyout();
+
+	UGridTalentVariantFlyoutWidget* Flyout =
+		CreateWidget<UGridTalentVariantFlyoutWidget>(this, NodeWidget->GetVariantFlyoutWidgetClass());
+	if (!Flyout || !Flyout->InitializeFlyout(*Node, NodeWidget->GetVariantIcons()))
+	{
+		return false;
+	}
+
+	ActiveVariantFlyout = Flyout;
+	ActiveVariantFlyoutNodeWidget = NodeWidget;
+	ActiveVariantFlyoutNodeId = TalentNodeId;
+	NodeWidget->SetVariantFlyoutActive(true);
+
+	Flyout->OnVariantChosen.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentVariantFlyoutChosen);
+
+	// Keep the popup in the normal game viewport hierarchy. The project's custom
+	// Grimrock cursor is Z=9999, so this popup deliberately sits just below it.
+	Flyout->AddToViewport(9000);
+	Flyout->SetAlignmentInViewport(FVector2D::ZeroVector);
+	Flyout->ForceLayoutPrepass();
+
+	const FGeometry& NodeGeometry = NodeWidget->GetCachedGeometry();
+	const FVector2D NodeSize = NodeGeometry.GetLocalSize();
+	FVector2D PixelPosition;
+	FVector2D ViewportPosition;
+	USlateBlueprintLibrary::LocalToViewport(
+		this,
+		NodeGeometry,
+		FVector2D(NodeSize.X + 8.0f, 0.0f),
+		PixelPosition,
+		ViewportPosition);
+
+	const FVector2D DesiredSize = Flyout->GetDesiredSize();
+	const float ViewportScale = FMath::Max(UWidgetLayoutLibrary::GetViewportScale(this), KINDA_SMALL_NUMBER);
+	const FVector2D ViewportSize =
+		UWidgetLayoutLibrary::GetViewportSize(this) / ViewportScale;
+
+	if (ViewportPosition.X + DesiredSize.X > ViewportSize.X - 8.0f)
+	{
+		FVector2D LeftPixelPosition;
+		FVector2D LeftViewportPosition;
+		USlateBlueprintLibrary::LocalToViewport(
+			this,
+			NodeGeometry,
+			FVector2D::ZeroVector,
+			LeftPixelPosition,
+			LeftViewportPosition);
+		ViewportPosition.X = FMath::Max(8.0f, LeftViewportPosition.X - DesiredSize.X - 8.0f);
+	}
+
+	ViewportPosition.Y = FMath::Clamp(
+		ViewportPosition.Y,
+		8.0f,
+		FMath::Max(8.0f, ViewportSize.Y - DesiredSize.Y - 8.0f));
+
+	// ViewportPosition is already in widget/viewport space, so no inverse-DPI
+	// transform must be applied again.
+	Flyout->SetPositionInViewport(ViewportPosition, false);
+	return true;
+}
+
+void UGridSkillsWidget::CloseTalentVariantFlyout()
+{
+	if (ActiveVariantFlyout)
+	{
+		ActiveVariantFlyout->OnVariantChosen.RemoveDynamic(
+			this, &UGridSkillsWidget::HandleTalentVariantFlyoutChosen);
+		ActiveVariantFlyout->RemoveFromParent();
+		ActiveVariantFlyout = nullptr;
+	}
+
+	if (ActiveVariantFlyoutNodeWidget)
+	{
+		ActiveVariantFlyoutNodeWidget->SetVariantFlyoutActive(false);
+		ActiveVariantFlyoutNodeWidget = nullptr;
+	}
+
+	ActiveVariantFlyoutNodeId = NAME_None;
 }
 
 bool UGridSkillsWidget::SelectTalentNode(FName TalentNodeId)
@@ -949,6 +1062,7 @@ void UGridSkillsWidget::RefreshTabSelection()
 
 void UGridSkillsWidget::ShowSkillsTab()
 {
+	CloseTalentVariantFlyout();
 	Switcher_SkillsTalents->SetActiveWidgetIndex(0);
 	RefreshTabSelection();
 }
@@ -974,17 +1088,22 @@ void UGridSkillsWidget::HandleTalentNodeClicked(FName TalentNodeId)
 	const FGridTalentNodeView* Node = FindTalentNode(TalentNodeId);
 	if (Node && Node->bHasExclusiveVariants && Node->SelectedChoiceId.IsNone())
 	{
+		OpenTalentVariantFlyout(TalentNodeId);
 		return;
 	}
 
+	CloseTalentVariantFlyout();
 	if (SelectTalentNode(TalentNodeId))
 	{
 		ApplyTalentDetailPresentation();
 	}
 }
 
-void UGridSkillsWidget::HandleTalentVariantClicked(FName TalentNodeId, FName ChoiceId)
+void UGridSkillsWidget::HandleTalentVariantFlyoutChosen(FName ChoiceId)
 {
+	const FName TalentNodeId = ActiveVariantFlyoutNodeId;
+	CloseTalentVariantFlyout();
+
 	if (SelectTalentVariant(TalentNodeId, ChoiceId))
 	{
 		ApplyTalentDetailPresentation();

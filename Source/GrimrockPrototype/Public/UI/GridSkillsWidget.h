@@ -16,6 +16,8 @@ class UGridSkillEntryWidget;
 class URPGClassVisualAsset;
 class URPGSkillAsset;
 class UGridTalentBranchWidget;
+class UGridTalentNodeWidget;
+class UGridTalentVariantFlyoutWidget;
 class UPanelWidget;
 class UGridTalentDetailWidget;
 class UImage;
@@ -150,6 +152,9 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual FReply NativeOnPreviewMouseButtonDown(
+		const FGeometry& InGeometry,
+		const FPointerEvent& InMouseEvent) override;
 
 private:
 	UFUNCTION()
@@ -165,10 +170,10 @@ private:
 	void HandleTalentNodeClicked(FName TalentNodeId);
 
 	UFUNCTION()
-	void HandleTalentVariantClicked(FName TalentNodeId, FName ChoiceId);
+	void HandleTalentAcquireConfirmed(FName ChoiceId);
 
 	UFUNCTION()
-	void HandleTalentAcquireConfirmed(FName ChoiceId);
+	void HandleTalentVariantFlyoutChosen(FName ChoiceId);
 
 	UFUNCTION()
 	void HandleSkillIncreaseRequested(FName SkillId);
@@ -184,7 +189,10 @@ private:
 	void ConsumeSessionSkillPurchase(const FGuid& CharacterId, FName SkillId);
 
 	const FGridTalentNodeView* FindTalentNode(FName TalentNodeId) const;
+	UGridTalentNodeWidget* FindTalentNodeWidget(const FGridTalentNodeView& NodeView) const;
 	bool BuildSelectedTalentDetailView(FGridTalentNodeView& OutDetailNode) const;
+	bool OpenTalentVariantFlyout(FName TalentNodeId);
+	void CloseTalentVariantFlyout();
 	void ClearView();
 	void BindDesignerShell();
 	void UnbindDesignerShell();
@@ -247,6 +255,15 @@ private:
 	/** UI-RPG05 : optionnel jusqu’à matérialisation de WBP_RPGNotification. */
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UGridRPGNotificationWidget> Notification_Progression;
+
+	/** Viewport popup owned by Skills. Z=9000 intentionally stays below WBP_GridMouseCursor (Z=9999). */
+	UPROPERTY(Transient)
+	TObjectPtr<UGridTalentVariantFlyoutWidget> ActiveVariantFlyout;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGridTalentNodeWidget> ActiveVariantFlyoutNodeWidget;
+
+	FName ActiveVariantFlyoutNodeId = NAME_None;
 
 	/** UI-session-only history. Never persisted and never gameplay authority. */
 	TMap<FString, int32> SessionPurchasedSkillRanks;

@@ -8,17 +8,11 @@
 
 class UBorder;
 class UButton;
-class UMenuAnchor;
 class UTextBlock;
 class UTexture2D;
 class UGridTalentVariantFlyoutWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentNodeClickedSignature, FName, TalentNodeId);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
-	FGridTalentVariantClickedSignature,
-	FName, TalentNodeId,
-	FName, ChoiceId);
-
 /** Reusable read-only presentation widget for one conceptual Talent node. */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGridTalentNodeWidget : public UUserWidget
@@ -41,9 +35,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|Node|Events")
 	FGridTalentNodeClickedSignature OnTalentNodeClicked;
 
-	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|Node|Events")
-	FGridTalentVariantClickedSignature OnTalentVariantClicked;
-
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Node")
 	bool InitializeTalentNode(
 		const FGridTalentNodeView& InNodeView,
@@ -57,6 +48,11 @@ public:
 
 	void SetVariantIcon(FName ChoiceId, UTexture2D* IconTexture);
 	void ClearVariantIcons();
+	const TMap<FName, TObjectPtr<UTexture2D>>& GetVariantIcons() const { return VariantIcons; }
+	TSubclassOf<UGridTalentVariantFlyoutWidget> GetVariantFlyoutWidgetClass() const { return VariantFlyoutWidgetClass; }
+
+	/** Suppresses the source-node tooltip while the external viewport flyout is open. */
+	void SetVariantFlyoutActive(bool bActive);
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Node")
 	int32 GetVariantCount() const { return NodeView.bHasExclusiveVariants ? NodeView.Variants.Num() : 0; }
@@ -75,22 +71,10 @@ private:
 	UFUNCTION()
 	void HandleNodeClicked();
 
-	UFUNCTION()
-	UUserWidget* BuildVariantFlyoutContent();
-
-	UFUNCTION()
-	void HandleVariantChosen(FName ChoiceId);
-
-	UFUNCTION()
-	void HandleVariantMenuOpenChanged(bool bIsOpen);
-
 	void ApplyNodePresentation();
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_TalentNode;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UMenuAnchor> MenuAnchor_Variants;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Variant Flyout", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UGridTalentVariantFlyoutWidget> VariantFlyoutWidgetClass;

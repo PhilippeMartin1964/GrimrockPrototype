@@ -51,23 +51,37 @@ Chaque entrée est uniquement une icône. Taille Designer visée : 100 x 100.
 
 ## Matérialisation UMG
 
-WBP_RPGTalentNode :
-- insérer MenuAnchor_Variants autour du Button_TalentNode existant ;
-- Menu Class reste vide : le C++ fournit OnGetUserMenuContent ;
-- activer Fit In Window ;
-- assigner VariantFlyoutWidgetClass = WBP_RPGTalentVariantFlyout.
+Le flyout n'utilise plus `UMenuAnchor`.
 
-WBP_RPGTalentVariantFlyout :
-- parent UGridTalentVariantFlyoutWidget ;
-- un cadre visuel contenant UniformGridPanel Grid_Variants ;
-- VariantIconWidgetClass = WBP_RPGTalentVariantIcon.
+Le projet possède un curseur custom `WBP_GridMouseCursor` ajouté au viewport à
+Z=9999. Le contenu différé de `SMenuAnchor` peut être peint au-dessus de cette
+couche, ce qui rend le curseur invisible sur la popup. Le flyout est donc ajouté
+directement au viewport à Z=9000 : au-dessus de l'écran Skills, mais sous le
+curseur Grimrock.
 
-WBP_RPGTalentVariantIcon :
-- parent UGridTalentVariantIconWidget ;
+`WBP_RPGTalentNode` conserve `VariantFlyoutWidgetClass =
+WBP_RPGTalentVariantFlyout`. Le `MenuAnchor_Variants` éventuellement présent
+dans l'asset n'est plus consommé par le C++ et doit être retiré lors du prochain
+nettoyage UMG, en replaçant `Button_TalentNode` directement sous
+`SB_NodeRoot`.
+
+`WBP_RPGTalentVariantFlyout` :
+- parent `UGridTalentVariantFlyoutWidget` ;
+- un cadre visuel contenant `UniformGridPanel Grid_Variants` ;
+- `VariantIconWidgetClass = WBP_RPGTalentVariantIcon`.
+
+`WBP_RPGTalentVariantIcon` :
+- parent `UGridTalentVariantIconWidget` ;
 - SizeBox 100 x 100 ;
-- Button_Variant ;
-- Image_VariantIcon ;
+- `Button_Variant` ;
+- `Image_VariantIcon` ;
 - aucun TextBlock.
+
+Le positionnement est calculé depuis la géométrie du nœud cliqué puis converti
+en coordonnées viewport. La popup tente d'abord le côté droit du nœud, bascule
+à gauche si nécessaire et reste verticalement dans le viewport. Un clic qui
+revient dans la hiérarchie Skills ferme le flyout ; un clic sur une variante
+ferme le flyout puis projette le ChoiceId dans le panneau droit.
 
 ## Nettoyage du panneau droit
 

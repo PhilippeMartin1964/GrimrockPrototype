@@ -2,10 +2,8 @@
 
 #include "Components/Border.h"
 #include "Components/Button.h"
-#include "Components/MenuAnchor.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
-#include "UI/GridTalentVariantFlyoutWidget.h"
 #include "UI/RPGTalentDetailTextSet.h"
 
 namespace GridTalentNodeWidgetPrivate
@@ -76,17 +74,6 @@ void UGridTalentNodeWidget::NativeConstruct()
 		Button_TalentNode->OnClicked.RemoveDynamic(this, &UGridTalentNodeWidget::HandleNodeClicked);
 		Button_TalentNode->OnClicked.AddDynamic(this, &UGridTalentNodeWidget::HandleNodeClicked);
 	}
-	if (MenuAnchor_Variants)
-	{
-		MenuAnchor_Variants->OnGetUserMenuContentEvent.Unbind();
-		MenuAnchor_Variants->OnGetUserMenuContentEvent.BindDynamic(
-			this, &UGridTalentNodeWidget::BuildVariantFlyoutContent);
-		MenuAnchor_Variants->OnMenuOpenChanged.RemoveDynamic(
-			this, &UGridTalentNodeWidget::HandleVariantMenuOpenChanged);
-		MenuAnchor_Variants->OnMenuOpenChanged.AddUniqueDynamic(
-			this, &UGridTalentNodeWidget::HandleVariantMenuOpenChanged);
-	}
-
 	if (bInitialized)
 	{
 		ApplyNodePresentation();
@@ -99,14 +86,6 @@ void UGridTalentNodeWidget::NativeDestruct()
 	{
 		Button_TalentNode->OnClicked.RemoveDynamic(this, &UGridTalentNodeWidget::HandleNodeClicked);
 	}
-	if (MenuAnchor_Variants)
-	{
-		MenuAnchor_Variants->Close();
-		MenuAnchor_Variants->OnGetUserMenuContentEvent.Unbind();
-		MenuAnchor_Variants->OnMenuOpenChanged.RemoveDynamic(
-			this, &UGridTalentNodeWidget::HandleVariantMenuOpenChanged);
-	}
-
 	Super::NativeDestruct();
 }
 
@@ -143,7 +122,6 @@ void UGridTalentNodeWidget::ClearTalentNode()
 	ResolvedDescription = FText::GetEmpty();
 	bInitialized = false;
 	ClearVariantIcons();
-	if (MenuAnchor_Variants) MenuAnchor_Variants->Close();
 
 	if (Text_TalentTier) Text_TalentTier->SetText(FText::GetEmpty());
 	if (Text_TalentName) Text_TalentName->SetText(FText::GetEmpty());
@@ -173,6 +151,18 @@ void UGridTalentNodeWidget::SetVariantIcon(FName ChoiceId, UTexture2D* IconTextu
 void UGridTalentNodeWidget::ClearVariantIcons()
 {
 	VariantIcons.Reset();
+}
+
+void UGridTalentNodeWidget::SetVariantFlyoutActive(bool bActive)
+{
+	if (bActive)
+	{
+		SetToolTipText(FText::GetEmpty());
+	}
+	else if (bInitialized)
+	{
+		ApplyNodePresentation();
+	}
 }
 
 void UGridTalentNodeWidget::ApplyNodePresentation()
@@ -228,66 +218,8 @@ void UGridTalentNodeWidget::ApplyNodePresentation()
 
 void UGridTalentNodeWidget::HandleNodeClicked()
 {
-	if (!bInitialized)
-	{
-		return;
-	}
-
-	if (NodeView.bHasExclusiveVariants && NodeView.SelectedChoiceId.IsNone() &&
-		MenuAnchor_Variants && VariantFlyoutWidgetClass)
-	{
-		MenuAnchor_Variants->ToggleOpen(false);
-		return;
-	}
-
-	OnTalentNodeClicked.Broadcast(NodeView.TalentNodeId);
-}
-
-UUserWidget* UGridTalentNodeWidget::BuildVariantFlyoutContent()
-{
-	if (!bInitialized || !NodeView.bHasExclusiveVariants || !NodeView.SelectedChoiceId.IsNone() ||
-		!VariantFlyoutWidgetClass || !GetWorld())
-	{
-		return nullptr;
-	}
-
-	UGridTalentVariantFlyoutWidget* Flyout =
-		CreateWidget<UGridTalentVariantFlyoutWidget>(GetWorld(), VariantFlyoutWidgetClass);
-	if (!Flyout || !Flyout->InitializeFlyout(NodeView, VariantIcons))
-	{
-		return nullptr;
-	}
-
-	Flyout->OnVariantChosen.AddUniqueDynamic(this, &UGridTalentNodeWidget::HandleVariantChosen);
-	return Flyout;
-}
-
-void UGridTalentNodeWidget::HandleVariantChosen(FName ChoiceId)
-{
-	if (!bInitialized || ChoiceId.IsNone())
-	{
-		return;
-	}
-
-	if (MenuAnchor_Variants)
-	{
-		MenuAnchor_Variants->Close();
-	}
-	OnTalentVariantClicked.Broadcast(NodeView.TalentNodeId, ChoiceId);
-}
-
-void UGridTalentNodeWidget::HandleVariantMenuOpenChanged(bool bIsOpen)
-{
-	if (bIsOpen)
-	{
-		// The anchor can remain hovered while its popup is active. Suppress the
-		// source Talent tooltip so it cannot visually leak through the flyout.
-		SetToolTipText(FText::GetEmpty());
-		return;
-	}
-
 	if (bInitialized)
 	{
-		ApplyNodePresentation();
+		OnTalentNodeClicked.Broadcast(NodeView.TalentNodeId);
 	}
 }

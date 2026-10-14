@@ -92,10 +92,6 @@ bool FUIRPG041RoutingContractTest::RunTest(const FString&)
 		FindFProperty<FMulticastDelegateProperty>(NodeClass, TEXT("OnTalentNodeClicked")));
 	TestNotNull(TEXT("Branch exposes node-click rebroadcast delegate"),
 		FindFProperty<FMulticastDelegateProperty>(BranchClass, TEXT("OnTalentNodeClicked")));
-	TestNotNull(TEXT("Node exposes concrete variant-click delegate"),
-		FindFProperty<FMulticastDelegateProperty>(NodeClass, TEXT("OnTalentVariantClicked")));
-	TestNotNull(TEXT("Branch exposes concrete variant-click rebroadcast delegate"),
-		FindFProperty<FMulticastDelegateProperty>(BranchClass, TEXT("OnTalentVariantClicked")));
 	TestNotNull(TEXT("Skills exposes presentation selection delegate"),
 		FindFProperty<FMulticastDelegateProperty>(SkillsClass, TEXT("OnTalentSelectionChanged")));
 
@@ -106,6 +102,14 @@ bool FUIRPG041RoutingContractTest::RunTest(const FString&)
 
 	TestNotNull(TEXT("Skills exposes SelectTalentNode"), SkillsClass->FindFunctionByName(TEXT("SelectTalentNode")));
 	TestNotNull(TEXT("Skills exposes SelectTalentVariant"), SkillsClass->FindFunctionByName(TEXT("SelectTalentVariant")));
+	TestNull(TEXT("Node no longer owns MenuAnchor routing"),
+		NodeClass->FindPropertyByName(TEXT("MenuAnchor_Variants")));
+	TestNull(TEXT("Node no longer exposes a concrete variant-click delegate"),
+		FindFProperty<FMulticastDelegateProperty>(NodeClass, TEXT("OnTalentVariantClicked")));
+	TestNull(TEXT("Branch no longer exposes a concrete variant-click delegate"),
+		FindFProperty<FMulticastDelegateProperty>(BranchClass, TEXT("OnTalentVariantClicked")));
+	TestNotNull(TEXT("Skills owns viewport flyout choice handler"),
+		SkillsClass->FindFunctionByName(TEXT("HandleTalentVariantFlyoutChosen")));
 	TestNotNull(TEXT("Skills exposes ClearTalentSelection"), SkillsClass->FindFunctionByName(TEXT("ClearTalentSelection")));
 	TestNotNull(TEXT("Skills exposes GetSelectedTalentNode"), SkillsClass->FindFunctionByName(TEXT("GetSelectedTalentNode")));
 	return true;
