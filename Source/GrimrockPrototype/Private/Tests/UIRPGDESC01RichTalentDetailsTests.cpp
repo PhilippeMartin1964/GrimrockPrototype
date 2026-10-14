@@ -1066,7 +1066,7 @@ bool FUIRPGDESC01163EmptyInitialStateTest::RunTest(const FString&)
 	TestTrue(TEXT("Fresh STATUS is empty"), Detail->ResolvedStatusText.IsEmpty());
 	TestTrue(TEXT("Fresh PRINCIPE is empty"), Detail->ResolvedPrincipleText.IsEmpty());
 	TestFalse(TEXT("Fresh detail cannot acquire a simple Talent"), Detail->CanRequestSimpleAcquisition());
-	TestFalse(TEXT("Fresh detail cannot acquire a variant"), Detail->CanRequestVariantAcquisition());
+	TestFalse(TEXT("Fresh detail cannot enter acquisition confirmation"), Detail->BeginAcquireConfirmation());
 
 	FGridTalentNodeView Node;
 	Node.TalentNodeId = TEXT("Talent_DESC01_EmptyState");
@@ -1094,7 +1094,7 @@ bool FUIRPGDESC01163EmptyInitialStateTest::RunTest(const FString&)
 	TestTrue(TEXT("Clear removes TYPE"), Detail->ResolvedTypeText.IsEmpty());
 	TestTrue(TEXT("Clear removes STATUS"), Detail->ResolvedStatusText.IsEmpty());
 	TestTrue(TEXT("Clear removes PRINCIPE"), Detail->ResolvedPrincipleText.IsEmpty());
-	TestTrue(TEXT("Clear removes pending variant choice"), Detail->GetSelectedVariantChoiceId().IsNone());
+	TestFalse(TEXT("Clear removes pending acquisition confirmation"), Detail->bAcquireConfirmationPending);
 	return true;
 }
 
