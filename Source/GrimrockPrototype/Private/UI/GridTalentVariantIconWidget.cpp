@@ -7,10 +7,8 @@
 void UGridTalentVariantIconWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	SetCursor(EMouseCursor::Default);
 	if (Button_Variant)
 	{
-		Button_Variant->SetCursor(EMouseCursor::Default);
 		Button_Variant->OnClicked.RemoveDynamic(this, &UGridTalentVariantIconWidget::HandleVariantClicked);
 		Button_Variant->OnClicked.AddUniqueDynamic(this, &UGridTalentVariantIconWidget::HandleVariantClicked);
 	}
