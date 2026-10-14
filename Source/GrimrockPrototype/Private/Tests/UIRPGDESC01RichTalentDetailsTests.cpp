@@ -655,8 +655,6 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Effect.CriticalDamage")),
 		FName(TEXT("Talent.Effect.PhysicalArmorReference")),
 		FName(TEXT("Talent.Acquisition.Exclusivity.SingleVariant")),
-		FName(TEXT("Talent.Acquisition.Prompt.ConfirmVariant")),
-		FName(TEXT("Talent.Acquisition.Prompt.ChooseVariant")),
 		FName(TEXT("Talent.Recipe.Recipe_Bomb_Fire")),
 		FName(TEXT("Talent.Recipe.Recipe_Bomb_Toxic")),
 		FName(TEXT("Talent.Recipe.Recipe_Antidote")),

@@ -360,10 +360,17 @@ ACQUISITION
 ```
 
 Le focus de consultation d'un nœud est indépendant de son statut d'acquisition.
-Toutes les variantes doivent être lisibles simultanément ; le dropdown n'est plus
-retenu comme interaction finale.
+
+Depuis **UI-RPG-VARIANT-FLYOUT01**, un Talent conceptuel à variantes reste un
+seul nœud dans l'arbre. Tant qu'aucune variante n'est acquise, un clic ouvre un
+flyout ancré contenant uniquement les icônes des ChoiceIds concrets. Un clic sur
+une icône ferme le flyout et projette cette variante dans la fiche standard de
+droite. Après acquisition, l'icône du nœud est remplacée par celle du ChoiceId
+acquis et le flyout n'est plus proposé. Le changement ultérieur est réservé au
+futur système de déspécialisation.
 
 Références actives :
+`docs/Design/UI_RPG_VARIANT_FLYOUT01.md`.
 `docs/Design/UI_RPG_DESC01_5_TALENT_UX_CONTRACT.md`.
 `docs/Design/UI_RPG_DESC01_6_WARRIOR_TALENT_AUDIT.md` — validé.
 `docs/Design/UI_RPG_DESC01_7_ROGUE_TALENT_AUDIT.md` — validé.

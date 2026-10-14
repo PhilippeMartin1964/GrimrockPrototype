@@ -123,23 +123,19 @@ but de localisation.
 
 ## 7. Acquisition, confirmations et recettes
 
-Les règles d'exclusivité, les noms de recettes et les textes associés aux
-variantes sont du langage humain et suivent donc la même règle de localisation.
+Les règles d'exclusivité et les noms de recettes sont du langage humain et
+suivent donc la même règle de localisation.
 
-Le C++ peut conserver les identités et effectuer le `FText::Format` avec des
-valeurs dynamiques, mais le modèle de phrase vient de
-`URPGTalentDetailTextSet`.
-
-Pour un Talent simple, aucune phrase « Confirmer l'acquisition de… » n'est
-affichée : le bouton `CONFIRMER` porte seul l'intention de confirmation.
-Les prompts restent réservés au choix et à la confirmation des variantes.
+Le choix d'une variante n'utilise plus de phrase de confirmation. Depuis
+UI-RPG-VARIANT-FLYOUT01, la variante est choisie visuellement dans un flyout
+d'icônes, puis sa fiche est projetée comme un Talent normal dans le panneau de
+droite. Le bouton `CONFIRMER` porte seul l'intention de confirmation
+d'acquisition.
 
 Clés canoniques :
 
 ~~~text
 Talent.Acquisition.Exclusivity.SingleVariant
-Talent.Acquisition.Prompt.ConfirmVariant
-Talent.Acquisition.Prompt.ChooseVariant
 Talent.Recipe.Recipe_*
 ~~~
 
