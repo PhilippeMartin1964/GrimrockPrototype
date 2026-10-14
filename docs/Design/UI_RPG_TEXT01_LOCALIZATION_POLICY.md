@@ -123,19 +123,21 @@ but de localisation.
 
 ## 7. Acquisition, confirmations et recettes
 
-Les phrases de confirmation d'acquisition, les règles d'exclusivité et les noms
-de recettes sont du langage humain et suivent donc la même règle de
-localisation.
+Les règles d'exclusivité, les noms de recettes et les textes associés aux
+variantes sont du langage humain et suivent donc la même règle de localisation.
 
 Le C++ peut conserver les identités et effectuer le `FText::Format` avec des
 valeurs dynamiques, mais le modèle de phrase vient de
 `URPGTalentDetailTextSet`.
 
+Pour un Talent simple, aucune phrase « Confirmer l'acquisition de… » n'est
+affichée : le bouton `CONFIRMER` porte seul l'intention de confirmation.
+Les prompts restent réservés au choix et à la confirmation des variantes.
+
 Clés canoniques :
 
 ~~~text
 Talent.Acquisition.Exclusivity.SingleVariant
-Talent.Acquisition.Prompt.ConfirmTalent
 Talent.Acquisition.Prompt.ConfirmVariant
 Talent.Acquisition.Prompt.ChooseVariant
 Talent.Recipe.Recipe_*

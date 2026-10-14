@@ -102,6 +102,16 @@ bool FUILOCALIZATION011TalentTextSetIntegrityTest::RunTest(const FString&)
 			*FormatEntryIndices(Indices)));
 	}
 
+	for (const FName ObsoleteTextId : {
+		FName(TEXT("Talent.Action.Cancel")),
+		FName(TEXT("Talent.Acquisition.Prompt.ConfirmTalent"))
+	})
+	{
+		TestFalse(
+			*FString::Printf(TEXT("Obsolete Talent text id stays removed: %s"), *ObsoleteTextId.ToString()),
+			IndicesByTextId.Contains(ObsoleteTextId));
+	}
+
 	TestEqual(TEXT("Production Talent detail text set has no invalid entries"), InvalidEntryCount, 0);
 	TestEqual(TEXT("Production Talent detail text set has no duplicate TextIds"), DuplicateTextIdCount, 0);
 	TestTrue(TEXT("Production Talent detail text set satisfies its runtime definition contract"), TextSet->IsValidDefinition());

@@ -143,7 +143,6 @@ namespace UILOCALIZATION033
 
 	const TCHAR* const TalentPaths[] = {
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_AcquireTalent.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_CancelAcquire.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_ConfirmAcquire.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelAcquisition.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelEffects.Text"),
@@ -215,7 +214,7 @@ namespace UILOCALIZATION033
 	// The six historical Script Bytecode occurrences shared four manifest paths.
 	static_assert(UE_ARRAY_COUNT(ScriptBytecodePaths) == 4);
 	static_assert(UE_ARRAY_COUNT(ExistingAuthorityPaths) == 14);
-	static_assert(UE_ARRAY_COUNT(TalentPaths) == 13);
+	static_assert(UE_ARRAY_COUNT(TalentPaths) == 12);
 	static_assert(UE_ARRAY_COUNT(SharedVocabularyPaths) == 14);
 	static_assert(UE_ARRAY_COUNT(RaceIllustrationPaths) == 12);
 	static_assert(UE_ARRAY_COUNT(MechanicalGlyphPaths) == 12);
