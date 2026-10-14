@@ -86,7 +86,6 @@ void UGridTalentDetailWidget::ApplyLocalizedStaticLabels()
 	SetResolvedText(Text_LabelVariants, TEXT("Talent.Section.Variants"));
 	SetResolvedText(Text_AcquireTalent, TEXT("Talent.Action.Acquire"));
 	SetResolvedText(Text_ConfirmAcquire, TEXT("Talent.Action.Confirm"));
-	SetResolvedText(Text_CancelAcquire, TEXT("Talent.Action.Cancel"));
 }
 
 void UGridTalentDetailWidget::SetTalentTypeImage(UTexture2D* ImageTexture)
@@ -111,11 +110,6 @@ void UGridTalentDetailWidget::BindAcquireButtons()
 		Button_ConfirmAcquire->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleConfirmAcquireClicked);
 		Button_ConfirmAcquire->OnClicked.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleConfirmAcquireClicked);
 	}
-	if (Button_CancelAcquire)
-	{
-		Button_CancelAcquire->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleCancelAcquireClicked);
-		Button_CancelAcquire->OnClicked.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleCancelAcquireClicked);
-	}
 }
 
 void UGridTalentDetailWidget::UnbindAcquireButtons()
@@ -127,10 +121,6 @@ void UGridTalentDetailWidget::UnbindAcquireButtons()
 	if (Button_ConfirmAcquire)
 	{
 		Button_ConfirmAcquire->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleConfirmAcquireClicked);
-	}
-	if (Button_CancelAcquire)
-	{
-		Button_CancelAcquire->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleCancelAcquireClicked);
 	}
 }
 
@@ -344,16 +334,6 @@ bool UGridTalentDetailWidget::GetVariantDisplayLabel(FName ChoiceId, FText& OutL
 	return !OutLabel.IsEmpty();
 }
 
-void UGridTalentDetailWidget::CancelAcquireConfirmation()
-{
-	bAcquireConfirmationPending = false;
-	bVariantSelectionPending = false;
-	SelectedVariantChoiceId = NAME_None;
-	AcquisitionFeedback = FText::GetEmpty();
-	RebuildVariantBlocks();
-	ApplyAcquisitionPresentation();
-}
-
 bool UGridTalentDetailWidget::ConfirmAcquire()
 {
 	if (!bInitialized) return false;
@@ -409,11 +389,6 @@ void UGridTalentDetailWidget::HandleVariantChooseRequested(FName ChoiceId)
 void UGridTalentDetailWidget::HandleConfirmAcquireClicked()
 {
 	ConfirmAcquire();
-}
-
-void UGridTalentDetailWidget::HandleCancelAcquireClicked()
-{
-	CancelAcquireConfirmation();
 }
 
 void UGridTalentDetailWidget::RebuildVariantBlocks()
@@ -682,24 +657,10 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 						Variant.bCanChoose && !Variant.bAcquired;
 				})));
 	}
-	if (Button_CancelAcquire)
-	{
-		Button_CancelAcquire->SetVisibility(
-			bAnyPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-	}
 	if (Text_AcquirePrompt)
 	{
 		FText Prompt = FText::GetEmpty();
-		if (bAcquireConfirmationPending)
-		{
-			const FText Template = URPGTalentDetailTextSet::ResolveProductionText(
-				TEXT("Talent.Acquisition.Prompt.ConfirmTalent"));
-			if (!Template.IsEmpty())
-			{
-				Prompt = FText::Format(Template, ResolvedDisplayName);
-			}
-		}
-		else if (bVariantSelectionPending)
+		if (bVariantSelectionPending)
 		{
 			FText SelectedLabel;
 			if (!SelectedVariantChoiceId.IsNone() &&
@@ -723,9 +684,13 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 			}
 		}
 		Text_AcquirePrompt->SetText(Prompt);
+		Text_AcquirePrompt->SetVisibility(
+			Prompt.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 	}
 	if (Text_AcquireFeedback)
 	{
 		Text_AcquireFeedback->SetText(AcquisitionFeedback);
+		Text_AcquireFeedback->SetVisibility(
+			AcquisitionFeedback.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 	}
 }

@@ -97,9 +97,6 @@ public:
 	bool GetVariantDisplayLabel(FName ChoiceId, FText& OutLabel) const;
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
-	void CancelAcquireConfirmation();
-
-	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
 	bool ConfirmAcquire();
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
@@ -118,9 +115,6 @@ private:
 
 	UFUNCTION()
 	void HandleConfirmAcquireClicked();
-
-	UFUNCTION()
-	void HandleCancelAcquireClicked();
 
 	void BindAcquireButtons();
 	void UnbindAcquireButtons();
@@ -228,16 +222,10 @@ private:
 	TObjectPtr<UButton> Button_ConfirmAcquire;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_CancelAcquire;
-
-	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_AcquireTalent;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_ConfirmAcquire;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_CancelAcquire;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_AcquirePrompt;

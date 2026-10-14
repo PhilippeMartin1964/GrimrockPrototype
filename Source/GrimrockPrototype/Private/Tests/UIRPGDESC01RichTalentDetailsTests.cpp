@@ -333,8 +333,9 @@ bool FUIRPGDESC01CanonicalVariantDetailTest::RunTest(const FString&)
 	TestTrue(TEXT("Variant selection begins"), Detail->BeginVariantSelection());
 	TestTrue(TEXT("Fire can become pending"), Detail->SelectVariantChoice(TEXT("Choice_Fire")));
 	TestEqual(TEXT("Pending ChoiceId is explicit"), Detail->GetSelectedVariantChoiceId(), FName(TEXT("Choice_Fire")));
-	Detail->CancelAcquireConfirmation();
-	TestTrue(TEXT("Cancel clears pending ChoiceId"), Detail->GetSelectedVariantChoiceId().IsNone());
+	TestTrue(TEXT("Reselecting the same Talent reinitializes detail"),
+		Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId)));
+	TestTrue(TEXT("Reselecting clears pending ChoiceId"), Detail->GetSelectedVariantChoiceId().IsNone());
 	return true;
 }
 
@@ -395,6 +396,8 @@ bool FUIRPGDESC01LegacyBindingsRemovedTest::RunTest(const FString&)
 		TEXT("Text_DetailActionSummary"),
 		TEXT("Button_ChooseVariant"),
 		TEXT("Combo_VariantChoice"),
+		TEXT("Button_CancelAcquire"),
+		TEXT("Text_CancelAcquire"),
 		TEXT("Text_DetailEffects"),
 		TEXT("Text_DetailUsage"),
 		TEXT("Text_DetailAcquisition"),
@@ -639,7 +642,6 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Variant.Unavailable")),
 		FName(TEXT("Talent.Section.Acquisition")),
 		FName(TEXT("Talent.Action.Acquire")),
-		FName(TEXT("Talent.Action.Cancel")),
 		FName(TEXT("Talent.Action.Confirm")),
 		FName(TEXT("Talent.Section.Effects")),
 		FName(TEXT("Talent.Section.Principle")),
@@ -651,7 +653,6 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Effect.CriticalDamage")),
 		FName(TEXT("Talent.Effect.PhysicalArmorReference")),
 		FName(TEXT("Talent.Acquisition.Exclusivity.SingleVariant")),
-		FName(TEXT("Talent.Acquisition.Prompt.ConfirmTalent")),
 		FName(TEXT("Talent.Acquisition.Prompt.ConfirmVariant")),
 		FName(TEXT("Talent.Acquisition.Prompt.ChooseVariant")),
 		FName(TEXT("Talent.Recipe.Recipe_Bomb_Fire")),

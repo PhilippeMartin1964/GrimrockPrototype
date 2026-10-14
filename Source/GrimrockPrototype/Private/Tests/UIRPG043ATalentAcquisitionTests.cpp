@@ -62,8 +62,9 @@ bool FUIRPG043AConfirmationStateTest::RunTest(const FString&)
 	TestTrue(TEXT("Available one-choice node can request acquisition"), Detail->CanRequestSimpleAcquisition());
 	TestTrue(TEXT("Acquire starts confirmation"), Detail->BeginAcquireConfirmation());
 	TestTrue(TEXT("Confirmation becomes pending"), Detail->bAcquireConfirmationPending);
-	Detail->CancelAcquireConfirmation();
-	TestFalse(TEXT("Cancel clears confirmation"), Detail->bAcquireConfirmationPending);
+	TestTrue(TEXT("Reselecting the same Talent reinitializes detail"),
+		Detail->InitializeTalentDetail(Node, MakeBranch(BranchId)));
+	TestFalse(TEXT("Reselecting the Talent clears confirmation"), Detail->bAcquireConfirmationPending);
 	return true;
 }
 

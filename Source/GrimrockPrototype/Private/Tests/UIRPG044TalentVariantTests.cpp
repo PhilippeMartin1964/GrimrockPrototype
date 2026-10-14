@@ -129,12 +129,13 @@ bool FUIRPG044GenericNVariantSelectionTest::RunTest(const FString&)
 	TestTrue(TEXT("A concrete available ChoiceId can be selected"), Detail->SelectVariantChoice(TEXT("Choice_3")));
 	TestEqual(TEXT("Selected variant ChoiceId is stable"), Detail->GetSelectedVariantChoiceId(), FName(TEXT("Choice_3")));
 
-	Detail->CancelAcquireConfirmation();
-	TestFalse(TEXT("Cancel clears variant pending state"), Detail->bVariantSelectionPending);
-	TestTrue(TEXT("Cancel clears the pending ChoiceId"), Detail->GetSelectedVariantChoiceId().IsNone());
-	TestFalse(TEXT("Nothing can be confirmed after cancel"), Detail->ConfirmAcquire());
+	TestTrue(TEXT("Reselecting the same Talent reinitializes detail"),
+		Detail->InitializeTalentDetail(Node, MakePresentation()));
+	TestFalse(TEXT("Reselecting clears variant pending state"), Detail->bVariantSelectionPending);
+	TestTrue(TEXT("Reselecting clears the pending ChoiceId"), Detail->GetSelectedVariantChoiceId().IsNone());
+	TestFalse(TEXT("Nothing can be confirmed after reselecting"), Detail->ConfirmAcquire());
 
-	TestTrue(TEXT("Variant acquisition can be started again after cancel"), Detail->BeginVariantSelection());
+	TestTrue(TEXT("Variant acquisition can be started again after reselecting"), Detail->BeginVariantSelection());
 	TestTrue(TEXT("Available variant can be selected again"), Detail->SelectVariantChoice(TEXT("Choice_3")));
 	TestTrue(TEXT("Selected variant can be confirmed"), Detail->ConfirmAcquire());
 	TestFalse(TEXT("Variant pending state clears after confirmation"), Detail->bVariantSelectionPending);
