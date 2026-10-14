@@ -81,6 +81,10 @@ void UGridTalentNodeWidget::NativeConstruct()
 		MenuAnchor_Variants->OnGetUserMenuContentEvent.Unbind();
 		MenuAnchor_Variants->OnGetUserMenuContentEvent.BindDynamic(
 			this, &UGridTalentNodeWidget::BuildVariantFlyoutContent);
+		MenuAnchor_Variants->OnMenuOpenChanged.RemoveDynamic(
+			this, &UGridTalentNodeWidget::HandleVariantMenuOpenChanged);
+		MenuAnchor_Variants->OnMenuOpenChanged.AddUniqueDynamic(
+			this, &UGridTalentNodeWidget::HandleVariantMenuOpenChanged);
 	}
 
 	if (bInitialized)
@@ -99,6 +103,8 @@ void UGridTalentNodeWidget::NativeDestruct()
 	{
 		MenuAnchor_Variants->Close();
 		MenuAnchor_Variants->OnGetUserMenuContentEvent.Unbind();
+		MenuAnchor_Variants->OnMenuOpenChanged.RemoveDynamic(
+			this, &UGridTalentNodeWidget::HandleVariantMenuOpenChanged);
 	}
 
 	Super::NativeDestruct();
@@ -268,4 +274,20 @@ void UGridTalentNodeWidget::HandleVariantChosen(FName ChoiceId)
 		MenuAnchor_Variants->Close();
 	}
 	OnTalentVariantClicked.Broadcast(NodeView.TalentNodeId, ChoiceId);
+}
+
+void UGridTalentNodeWidget::HandleVariantMenuOpenChanged(bool bIsOpen)
+{
+	if (bIsOpen)
+	{
+		// The anchor can remain hovered while its popup is active. Suppress the
+		// source Talent tooltip so it cannot visually leak through the flyout.
+		SetToolTipText(FText::GetEmpty());
+		return;
+	}
+
+	if (bInitialized)
+	{
+		ApplyNodePresentation();
+	}
 }

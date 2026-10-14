@@ -81,6 +81,9 @@ private:
 	UFUNCTION()
 	void HandleVariantChosen(FName ChoiceId);
 
+	UFUNCTION()
+	void HandleVariantMenuOpenChanged(bool bIsOpen);
+
 	void ApplyNodePresentation();
 
 	UPROPERTY(meta = (BindWidgetOptional))
