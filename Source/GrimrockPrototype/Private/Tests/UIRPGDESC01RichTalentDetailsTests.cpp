@@ -398,6 +398,8 @@ bool FUIRPGDESC01LegacyBindingsRemovedTest::RunTest(const FString&)
 		TEXT("Combo_VariantChoice"),
 		TEXT("Button_CancelAcquire"),
 		TEXT("Text_CancelAcquire"),
+		TEXT("Text_AcquirePrompt"),
+		TEXT("Text_AcquireFeedback"),
 		TEXT("Text_DetailEffects"),
 		TEXT("Text_DetailUsage"),
 		TEXT("Text_DetailAcquisition"),

@@ -12,6 +12,10 @@ class UTextBlock;
 class UTexture2D;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentBranchNodeClickedSignature, FName, TalentNodeId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FGridTalentBranchVariantClickedSignature,
+	FName, TalentNodeId,
+	FName, ChoiceId);
 
 /** Reusable visual column for one five-tier Talent branch. */
 UCLASS()
@@ -32,6 +36,9 @@ public:
 	/** Presentation-only routing. No acquisition or progression mutation happens here. */
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|Branch|Events")
 	FGridTalentBranchNodeClickedSignature OnTalentNodeClicked;
+
+	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|Branch|Events")
+	FGridTalentBranchVariantClickedSignature OnTalentVariantClicked;
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Branch")
 	bool InitializeTalentBranch(
@@ -54,6 +61,9 @@ protected:
 private:
 	UFUNCTION()
 	void HandleTalentNodeClicked(FName TalentNodeId);
+
+	UFUNCTION()
+	void HandleTalentVariantClicked(FName TalentNodeId, FName ChoiceId);
 
 	void BindNodeEvents();
 	void UnbindNodeEvents();

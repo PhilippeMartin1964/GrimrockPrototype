@@ -46,3 +46,17 @@ const FRPGTalentNodeVisualDefinition* URPGClassVisualAsset::FindTalentNodeVisual
 			return Definition.TalentNodeId == TalentNodeId;
 		});
 }
+
+const FRPGTalentVariantVisualDefinition* URPGClassVisualAsset::FindTalentVariantVisual(FName ChoiceId) const
+{
+	if (ChoiceId.IsNone())
+	{
+		return nullptr;
+	}
+
+	return TalentVariantVisuals.FindByPredicate(
+		[ChoiceId](const FRPGTalentVariantVisualDefinition& Definition)
+		{
+			return Definition.ChoiceId == ChoiceId;
+		});
+}

@@ -2,8 +2,10 @@
 
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/MenuAnchor.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
+#include "UI/GridTalentVariantFlyoutWidget.h"
 #include "UI/RPGTalentDetailTextSet.h"
 
 namespace GridTalentNodeWidgetPrivate
@@ -74,6 +76,12 @@ void UGridTalentNodeWidget::NativeConstruct()
 		Button_TalentNode->OnClicked.RemoveDynamic(this, &UGridTalentNodeWidget::HandleNodeClicked);
 		Button_TalentNode->OnClicked.AddDynamic(this, &UGridTalentNodeWidget::HandleNodeClicked);
 	}
+	if (MenuAnchor_Variants)
+	{
+		MenuAnchor_Variants->OnGetUserMenuContentEvent.Unbind();
+		MenuAnchor_Variants->OnGetUserMenuContentEvent.BindDynamic(
+			this, &UGridTalentNodeWidget::BuildVariantFlyoutContent);
+	}
 
 	if (bInitialized)
 	{
@@ -86,6 +94,11 @@ void UGridTalentNodeWidget::NativeDestruct()
 	if (Button_TalentNode)
 	{
 		Button_TalentNode->OnClicked.RemoveDynamic(this, &UGridTalentNodeWidget::HandleNodeClicked);
+	}
+	if (MenuAnchor_Variants)
+	{
+		MenuAnchor_Variants->Close();
+		MenuAnchor_Variants->OnGetUserMenuContentEvent.Unbind();
 	}
 
 	Super::NativeDestruct();
@@ -123,6 +136,8 @@ void UGridTalentNodeWidget::ClearTalentNode()
 	ResolvedDisplayName = FText::GetEmpty();
 	ResolvedDescription = FText::GetEmpty();
 	bInitialized = false;
+	ClearVariantIcons();
+	if (MenuAnchor_Variants) MenuAnchor_Variants->Close();
 
 	if (Text_TalentTier) Text_TalentTier->SetText(FText::GetEmpty());
 	if (Text_TalentName) Text_TalentName->SetText(FText::GetEmpty());
@@ -139,6 +154,19 @@ void UGridTalentNodeWidget::SetTalentIcon(UTexture2D* IconTexture)
 	{
 		Border_TalentNode->SetBrushFromTexture(IconTexture);
 	}
+}
+
+void UGridTalentNodeWidget::SetVariantIcon(FName ChoiceId, UTexture2D* IconTexture)
+{
+	if (!ChoiceId.IsNone())
+	{
+		VariantIcons.FindOrAdd(ChoiceId) = IconTexture;
+	}
+}
+
+void UGridTalentNodeWidget::ClearVariantIcons()
+{
+	VariantIcons.Reset();
 }
 
 void UGridTalentNodeWidget::ApplyNodePresentation()
@@ -194,8 +222,50 @@ void UGridTalentNodeWidget::ApplyNodePresentation()
 
 void UGridTalentNodeWidget::HandleNodeClicked()
 {
-	if (bInitialized)
+	if (!bInitialized)
 	{
-		OnTalentNodeClicked.Broadcast(NodeView.TalentNodeId);
+		return;
 	}
+
+	if (NodeView.bHasExclusiveVariants && NodeView.SelectedChoiceId.IsNone() &&
+		MenuAnchor_Variants && VariantFlyoutWidgetClass)
+	{
+		MenuAnchor_Variants->ToggleOpen(false);
+		return;
+	}
+
+	OnTalentNodeClicked.Broadcast(NodeView.TalentNodeId);
+}
+
+UUserWidget* UGridTalentNodeWidget::BuildVariantFlyoutContent()
+{
+	if (!bInitialized || !NodeView.bHasExclusiveVariants || !NodeView.SelectedChoiceId.IsNone() ||
+		!VariantFlyoutWidgetClass || !GetWorld())
+	{
+		return nullptr;
+	}
+
+	UGridTalentVariantFlyoutWidget* Flyout =
+		CreateWidget<UGridTalentVariantFlyoutWidget>(GetWorld(), VariantFlyoutWidgetClass);
+	if (!Flyout || !Flyout->InitializeFlyout(NodeView, VariantIcons))
+	{
+		return nullptr;
+	}
+
+	Flyout->OnVariantChosen.AddUniqueDynamic(this, &UGridTalentNodeWidget::HandleVariantChosen);
+	return Flyout;
+}
+
+void UGridTalentNodeWidget::HandleVariantChosen(FName ChoiceId)
+{
+	if (!bInitialized || ChoiceId.IsNone())
+	{
+		return;
+	}
+
+	if (MenuAnchor_Variants)
+	{
+		MenuAnchor_Variants->Close();
+	}
+	OnTalentVariantClicked.Broadcast(NodeView.TalentNodeId, ChoiceId);
 }

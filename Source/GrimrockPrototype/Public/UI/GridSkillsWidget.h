@@ -67,9 +67,13 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Skills|UI|Events")
 	FGridSkillsWidgetRefreshedSignature OnSkillsRefreshed;
 
-	/** UI-only selection. NAME_None means that no conceptual Talent node is selected. */
+	/** UI-only conceptual selection. NAME_None means that no Talent node is selected. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FName SelectedTalentNodeId = NAME_None;
+
+	/** Concrete variant consulted before acquisition. UI-only and never persisted. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName SelectedTalentChoiceId = NAME_None;
 
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|UI|Events")
 	FGridTalentSelectionChangedSignature OnTalentSelectionChanged;
@@ -126,6 +130,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|UI")
 	bool SelectTalentNode(FName TalentNodeId);
 
+	/** Selects one concrete variant for consultation only; locked variants remain inspectable. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|UI")
+	bool SelectTalentVariant(FName TalentNodeId, FName ChoiceId);
+
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|UI")
 	void ClearTalentSelection();
 
@@ -157,6 +165,9 @@ private:
 	void HandleTalentNodeClicked(FName TalentNodeId);
 
 	UFUNCTION()
+	void HandleTalentVariantClicked(FName TalentNodeId, FName ChoiceId);
+
+	UFUNCTION()
 	void HandleTalentAcquireConfirmed(FName ChoiceId);
 
 	UFUNCTION()
@@ -173,6 +184,7 @@ private:
 	void ConsumeSessionSkillPurchase(const FGuid& CharacterId, FName SkillId);
 
 	const FGridTalentNodeView* FindTalentNode(FName TalentNodeId) const;
+	bool BuildSelectedTalentDetailView(FGridTalentNodeView& OutDetailNode) const;
 	void ClearView();
 	void BindDesignerShell();
 	void UnbindDesignerShell();

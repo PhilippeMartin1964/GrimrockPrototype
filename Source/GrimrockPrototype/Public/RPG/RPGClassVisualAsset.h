@@ -22,6 +22,19 @@ struct GRIMROCKPROTOTYPE_API FRPGTalentBranchVisualDefinition
 	TSoftObjectPtr<UTexture2D> DetailPanelImage;
 };
 
+/** Presentation-only icon assigned to one concrete exclusive Talent ChoiceId. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FRPGTalentVariantVisualDefinition
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual|Talents")
+	FName ChoiceId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual|Talents")
+	TSoftObjectPtr<UTexture2D> Icon;
+};
+
 /** Presentation-only icon assigned to one canonical conceptual Talent node. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FRPGTalentNodeVisualDefinition
@@ -71,6 +84,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual|Talents", meta = (TitleProperty = "TalentNodeId"))
 	TArray<FRPGTalentNodeVisualDefinition> TalentNodeVisuals;
 
+	/** Concrete variant icons keyed by authoritative progression ChoiceId. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual|Talents", meta = (TitleProperty = "ChoiceId"))
+	TArray<FRPGTalentVariantVisualDefinition> TalentVariantVisuals;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual")
 	FLinearColor AccentColor = FLinearColor::White;
 
@@ -82,4 +99,5 @@ public:
 
 	const FRPGTalentBranchVisualDefinition* FindTalentBranchVisual(FName TalentBranchId) const;
 	const FRPGTalentNodeVisualDefinition* FindTalentNodeVisual(FName TalentNodeId) const;
+	const FRPGTalentVariantVisualDefinition* FindTalentVariantVisual(FName ChoiceId) const;
 };

@@ -51,7 +51,8 @@ bool FUIRPG041KnownNodeSelectionTest::RunTest(const FString&)
 
 	const FName NodeId = Widget->View.TalentTree.Branches[0].Nodes[0].TalentNodeId;
 	TestTrue(TEXT("Known conceptual Talent node can be selected"), Widget->SelectTalentNode(NodeId));
-	TestEqual(TEXT("Selection stores only the conceptual TalentNodeId"), Widget->SelectedTalentNodeId, NodeId);
+	TestEqual(TEXT("Selection stores the conceptual TalentNodeId"), Widget->SelectedTalentNodeId, NodeId);
+	TestTrue(TEXT("Normal Talent selection has no concrete ChoiceId"), Widget->SelectedTalentChoiceId.IsNone());
 
 	FGridTalentNodeView Selected;
 	TestTrue(TEXT("Selected node resolves from the current read model"), Widget->GetSelectedTalentNode(Selected));
@@ -91,6 +92,10 @@ bool FUIRPG041RoutingContractTest::RunTest(const FString&)
 		FindFProperty<FMulticastDelegateProperty>(NodeClass, TEXT("OnTalentNodeClicked")));
 	TestNotNull(TEXT("Branch exposes node-click rebroadcast delegate"),
 		FindFProperty<FMulticastDelegateProperty>(BranchClass, TEXT("OnTalentNodeClicked")));
+	TestNotNull(TEXT("Node exposes concrete variant-click delegate"),
+		FindFProperty<FMulticastDelegateProperty>(NodeClass, TEXT("OnTalentVariantClicked")));
+	TestNotNull(TEXT("Branch exposes concrete variant-click rebroadcast delegate"),
+		FindFProperty<FMulticastDelegateProperty>(BranchClass, TEXT("OnTalentVariantClicked")));
 	TestNotNull(TEXT("Skills exposes presentation selection delegate"),
 		FindFProperty<FMulticastDelegateProperty>(SkillsClass, TEXT("OnTalentSelectionChanged")));
 
@@ -100,6 +105,7 @@ bool FUIRPG041RoutingContractTest::RunTest(const FString&)
 		SkillsClass->FindFunctionByName(TEXT("HandleTalentNodeClicked")));
 
 	TestNotNull(TEXT("Skills exposes SelectTalentNode"), SkillsClass->FindFunctionByName(TEXT("SelectTalentNode")));
+	TestNotNull(TEXT("Skills exposes SelectTalentVariant"), SkillsClass->FindFunctionByName(TEXT("SelectTalentVariant")));
 	TestNotNull(TEXT("Skills exposes ClearTalentSelection"), SkillsClass->FindFunctionByName(TEXT("ClearTalentSelection")));
 	TestNotNull(TEXT("Skills exposes GetSelectedTalentNode"), SkillsClass->FindFunctionByName(TEXT("GetSelectedTalentNode")));
 	return true;

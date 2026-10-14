@@ -25,6 +25,8 @@ void UGridTalentBranchWidget::BindNodeEvents()
 		{
 			NodeWidget->OnTalentNodeClicked.RemoveDynamic(this, &UGridTalentBranchWidget::HandleTalentNodeClicked);
 			NodeWidget->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridTalentBranchWidget::HandleTalentNodeClicked);
+			NodeWidget->OnTalentVariantClicked.RemoveDynamic(this, &UGridTalentBranchWidget::HandleTalentVariantClicked);
+			NodeWidget->OnTalentVariantClicked.AddUniqueDynamic(this, &UGridTalentBranchWidget::HandleTalentVariantClicked);
 		}
 	}
 }
@@ -36,6 +38,7 @@ void UGridTalentBranchWidget::UnbindNodeEvents()
 		if (UGridTalentNodeWidget* NodeWidget = GetTalentNodeWidgetForTier(Tier))
 		{
 			NodeWidget->OnTalentNodeClicked.RemoveDynamic(this, &UGridTalentBranchWidget::HandleTalentNodeClicked);
+			NodeWidget->OnTalentVariantClicked.RemoveDynamic(this, &UGridTalentBranchWidget::HandleTalentVariantClicked);
 		}
 	}
 }
@@ -45,6 +48,14 @@ void UGridTalentBranchWidget::HandleTalentNodeClicked(FName TalentNodeId)
 	if (bInitialized && !TalentNodeId.IsNone())
 	{
 		OnTalentNodeClicked.Broadcast(TalentNodeId);
+	}
+}
+
+void UGridTalentBranchWidget::HandleTalentVariantClicked(FName TalentNodeId, FName ChoiceId)
+{
+	if (bInitialized && !TalentNodeId.IsNone() && !ChoiceId.IsNone())
+	{
+		OnTalentVariantClicked.Broadcast(TalentNodeId, ChoiceId);
 	}
 }
 

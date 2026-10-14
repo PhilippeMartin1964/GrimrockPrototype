@@ -179,7 +179,6 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	bAcquireConfirmationPending = false;
 	bVariantSelectionPending = false;
 	SelectedVariantChoiceId = NAME_None;
-	AcquisitionFeedback = FText::GetEmpty();
 	SetTalentIcon(nullptr);
 	SetTalentTypeImage(nullptr);
 
@@ -279,7 +278,6 @@ bool UGridTalentDetailWidget::BeginAcquireConfirmation()
 	bAcquireConfirmationPending = true;
 	bVariantSelectionPending = false;
 	SelectedVariantChoiceId = NAME_None;
-	AcquisitionFeedback = FText::GetEmpty();
 	ApplyAcquisitionPresentation();
 	return true;
 }
@@ -291,7 +289,6 @@ bool UGridTalentDetailWidget::BeginVariantSelection()
 	bAcquireConfirmationPending = false;
 	bVariantSelectionPending = true;
 	SelectedVariantChoiceId = NAME_None;
-	AcquisitionFeedback = FText::GetEmpty();
 	RebuildVariantBlocks();
 	ApplyAcquisitionPresentation();
 	return true;
@@ -366,12 +363,6 @@ bool UGridTalentDetailWidget::ConfirmAcquire()
 	ApplyAcquisitionPresentation();
 	OnAcquireConfirmed.Broadcast(ChoiceId);
 	return true;
-}
-
-void UGridTalentDetailWidget::SetAcquisitionFeedback(const FText& InFeedback)
-{
-	AcquisitionFeedback = InFeedback;
-	ApplyAcquisitionPresentation();
 }
 
 void UGridTalentDetailWidget::HandleAcquireClicked()
@@ -656,41 +647,5 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 					return Variant.ChoiceId == SelectedVariantChoiceId &&
 						Variant.bCanChoose && !Variant.bAcquired;
 				})));
-	}
-	if (Text_AcquirePrompt)
-	{
-		FText Prompt = FText::GetEmpty();
-		if (bVariantSelectionPending)
-		{
-			FText SelectedLabel;
-			if (!SelectedVariantChoiceId.IsNone() &&
-				GetVariantDisplayLabel(SelectedVariantChoiceId, SelectedLabel))
-			{
-				const FText Template = URPGTalentDetailTextSet::ResolveProductionText(
-					TEXT("Talent.Acquisition.Prompt.ConfirmVariant"));
-				if (!Template.IsEmpty())
-				{
-					Prompt = FText::Format(Template, SelectedLabel, ResolvedDisplayName);
-				}
-			}
-			else
-			{
-				const FText Template = URPGTalentDetailTextSet::ResolveProductionText(
-					TEXT("Talent.Acquisition.Prompt.ChooseVariant"));
-				if (!Template.IsEmpty())
-				{
-					Prompt = FText::Format(Template, ResolvedDisplayName);
-				}
-			}
-		}
-		Text_AcquirePrompt->SetText(Prompt);
-		Text_AcquirePrompt->SetVisibility(
-			Prompt.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
-	}
-	if (Text_AcquireFeedback)
-	{
-		Text_AcquireFeedback->SetText(AcquisitionFeedback);
-		Text_AcquireFeedback->SetVisibility(
-			AcquisitionFeedback.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 	}
 }

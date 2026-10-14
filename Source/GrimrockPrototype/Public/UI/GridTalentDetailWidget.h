@@ -55,9 +55,6 @@ public:
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Talents|Acquire")
 	FName SelectedVariantChoiceId = NAME_None;
 
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Acquire")
-	FText AcquisitionFeedback;
-
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|Acquire|Events")
 	FGridTalentAcquireConfirmedSignature OnAcquireConfirmed;
 
@@ -98,9 +95,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
 	bool ConfirmAcquire();
-
-	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
-	void SetAcquisitionFeedback(const FText& InFeedback);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -227,9 +221,4 @@ private:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_ConfirmAcquire;
 
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_AcquirePrompt;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_AcquireFeedback;
 };

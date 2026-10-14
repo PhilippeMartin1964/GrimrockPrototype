@@ -95,10 +95,16 @@ void UGridSkillsWidget::BindDesignerShell()
 
 	Branch_Left->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
 	Branch_Left->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+	Branch_Left->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
+	Branch_Left->OnTalentVariantClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 	Branch_Center->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
 	Branch_Center->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+	Branch_Center->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
+	Branch_Center->OnTalentVariantClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 	Branch_Right->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
 	Branch_Right->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+	Branch_Right->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
+	Branch_Right->OnTalentVariantClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 
 	if (Detail_Talent)
 	{
@@ -120,14 +126,17 @@ void UGridSkillsWidget::UnbindDesignerShell()
 	if (Branch_Left)
 	{
 		Branch_Left->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+		Branch_Left->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 	}
 	if (Branch_Center)
 	{
 		Branch_Center->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+		Branch_Center->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 	}
 	if (Branch_Right)
 	{
 		Branch_Right->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+		Branch_Right->OnTalentVariantClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentVariantClicked);
 	}
 	if (Detail_Talent)
 	{
@@ -262,9 +271,26 @@ void UGridSkillsWidget::RefreshSkills()
 	{
 		const bool bCharacterChanged =
 			PreviousCharacterId.IsValid() && (!View.IsValid() || PreviousCharacterId != View.CharacterId);
-		if (bCharacterChanged || !FindTalentNode(SelectedTalentNodeId))
+		const FGridTalentNodeView* RefreshedNode = FindTalentNode(SelectedTalentNodeId);
+		if (bCharacterChanged || !RefreshedNode)
 		{
 			ClearTalentSelection();
+		}
+		else if (!SelectedTalentChoiceId.IsNone())
+		{
+			const bool bChoiceStillExists = RefreshedNode->Variants.ContainsByPredicate(
+				[this](const FGridTalentVariantView& Variant)
+				{
+					return Variant.ChoiceId == SelectedTalentChoiceId;
+				});
+			if (!bChoiceStillExists)
+			{
+				ClearTalentSelection();
+			}
+			else if (RefreshedNode->SelectedChoiceId == SelectedTalentChoiceId)
+			{
+				SelectedTalentChoiceId = NAME_None;
+			}
 		}
 	}
 
@@ -341,24 +367,58 @@ bool UGridSkillsWidget::SelectTalentNode(FName TalentNodeId)
 		return false;
 	}
 
-	if (SelectedTalentNodeId == TalentNodeId)
+	const bool bChanged = SelectedTalentNodeId != TalentNodeId || !SelectedTalentChoiceId.IsNone();
+	SelectedTalentNodeId = TalentNodeId;
+	SelectedTalentChoiceId = NAME_None;
+	if (bChanged)
 	{
-		return true;
+		OnTalentSelectionChanged.Broadcast(SelectedTalentNodeId);
+	}
+	return true;
+}
+
+bool UGridSkillsWidget::SelectTalentVariant(FName TalentNodeId, FName ChoiceId)
+{
+	if (!View.IsValid() || TalentNodeId.IsNone() || ChoiceId.IsNone())
+	{
+		return false;
 	}
 
+	const FGridTalentNodeView* Node = FindTalentNode(TalentNodeId);
+	if (!Node || !Node->bHasExclusiveVariants || !Node->SelectedChoiceId.IsNone())
+	{
+		return false;
+	}
+
+	const bool bKnownVariant = Node->Variants.ContainsByPredicate(
+		[ChoiceId](const FGridTalentVariantView& Variant)
+		{
+			return Variant.ChoiceId == ChoiceId;
+		});
+	if (!bKnownVariant)
+	{
+		return false;
+	}
+
+	const bool bChanged = SelectedTalentNodeId != TalentNodeId || SelectedTalentChoiceId != ChoiceId;
 	SelectedTalentNodeId = TalentNodeId;
-	OnTalentSelectionChanged.Broadcast(SelectedTalentNodeId);
+	SelectedTalentChoiceId = ChoiceId;
+	if (bChanged)
+	{
+		OnTalentSelectionChanged.Broadcast(SelectedTalentNodeId);
+	}
 	return true;
 }
 
 void UGridSkillsWidget::ClearTalentSelection()
 {
-	if (SelectedTalentNodeId.IsNone())
+	if (SelectedTalentNodeId.IsNone() && SelectedTalentChoiceId.IsNone())
 	{
 		return;
 	}
 
 	SelectedTalentNodeId = NAME_None;
+	SelectedTalentChoiceId = NAME_None;
 	OnTalentSelectionChanged.Broadcast(NAME_None);
 }
 
@@ -371,6 +431,52 @@ bool UGridSkillsWidget::GetSelectedTalentNode(FGridTalentNodeView& OutNode) cons
 		return true;
 	}
 	return false;
+}
+
+bool UGridSkillsWidget::BuildSelectedTalentDetailView(FGridTalentNodeView& OutDetailNode) const
+{
+	OutDetailNode = FGridTalentNodeView();
+	const FGridTalentNodeView* Node = FindTalentNode(SelectedTalentNodeId);
+	if (!Node)
+	{
+		return false;
+	}
+
+	OutDetailNode = *Node;
+	if (!Node->bHasExclusiveVariants)
+	{
+		return true;
+	}
+
+	const FName ChoiceId =
+		!Node->SelectedChoiceId.IsNone() ? Node->SelectedChoiceId : SelectedTalentChoiceId;
+	if (ChoiceId.IsNone())
+	{
+		return false;
+	}
+
+	const FGridTalentVariantView* Variant = Node->Variants.FindByPredicate(
+		[ChoiceId](const FGridTalentVariantView& Candidate)
+		{
+			return Candidate.ChoiceId == ChoiceId;
+		});
+	if (!Variant)
+	{
+		return false;
+	}
+
+	OutDetailNode.DisplayName = Variant->DisplayName;
+	OutDetailNode.State = Variant->State;
+	OutDetailNode.Type = Variant->Type;
+	OutDetailNode.Principle = Variant->Principle;
+	OutDetailNode.Effects = Variant->Effects;
+	OutDetailNode.Usage = Variant->Usage;
+	OutDetailNode.SimpleChoiceId = Variant->ChoiceId;
+	OutDetailNode.bCanAcquireSimple = Variant->bCanChoose && !Variant->bAcquired;
+	OutDetailNode.bHasExclusiveVariants = false;
+	OutDetailNode.Variants.Reset();
+	OutDetailNode.SelectedChoiceId = Variant->bAcquired ? Variant->ChoiceId : NAME_None;
+	return true;
 }
 
 bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFeedback)
@@ -647,11 +753,36 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 						{
 							IconTexture = NodeVisual->Icon.LoadSynchronous();
 						}
+						if (!NodeView.SelectedChoiceId.IsNone())
+						{
+							if (const FRPGTalentVariantVisualDefinition* VariantVisual =
+								ClassVisual->FindTalentVariantVisual(NodeView.SelectedChoiceId))
+							{
+								if (UTexture2D* AcquiredVariantIcon = VariantVisual->Icon.LoadSynchronous())
+								{
+									IconTexture = AcquiredVariantIcon;
+								}
+							}
+						}
 					}
 
 					if (UGridTalentNodeWidget* NodeWidget = BranchWidget->GetTalentNodeWidgetForTier(NodeView.Tier))
 					{
 						NodeWidget->SetTalentIcon(IconTexture);
+						NodeWidget->ClearVariantIcons();
+						if (ClassVisual && NodeView.bHasExclusiveVariants && NodeView.SelectedChoiceId.IsNone())
+						{
+							for (const FGridTalentVariantView& Variant : NodeView.Variants)
+							{
+								if (const FRPGTalentVariantVisualDefinition* VariantVisual =
+									ClassVisual->FindTalentVariantVisual(Variant.ChoiceId))
+								{
+									NodeWidget->SetVariantIcon(
+										Variant.ChoiceId,
+										VariantVisual->Icon.LoadSynchronous());
+								}
+							}
+						}
 					}
 				}
 			}
@@ -706,8 +837,9 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 		return;
 	}
 
-	FGridTalentNodeView SelectedNode;
-	if (!GetSelectedTalentNode(SelectedNode))
+	FGridTalentNodeView ConceptNode;
+	FGridTalentNodeView DetailNode;
+	if (!GetSelectedTalentNode(ConceptNode) || !BuildSelectedTalentDetailView(DetailNode))
 	{
 		Detail_Talent->ClearTalentDetail();
 		return;
@@ -721,9 +853,9 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 	}
 
 	const FRPGTalentBranchPresentationDefinition* BranchPresentation =
-		ClassPresentation.FindBranch(SelectedNode.TalentBranchId);
+		ClassPresentation.FindBranch(DetailNode.TalentBranchId);
 	if (!BranchPresentation ||
-		!Detail_Talent->InitializeTalentDetail(SelectedNode, *BranchPresentation))
+		!Detail_Talent->InitializeTalentDetail(DetailNode, *BranchPresentation))
 	{
 		Detail_Talent->ClearTalentDetail();
 		return;
@@ -733,12 +865,24 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 	UTexture2D* DetailPanelTexture = nullptr;
 	if (const URPGClassVisualAsset* ClassVisual = ResolveCurrentClassVisual())
 	{
-		if (const FRPGTalentNodeVisualDefinition* NodeVisual =
-			ClassVisual->FindTalentNodeVisual(SelectedNode.TalentNodeId))
+		if (ConceptNode.bHasExclusiveVariants && !DetailNode.SimpleChoiceId.IsNone())
 		{
-			IconTexture = NodeVisual->Icon.LoadSynchronous();
+			if (const FRPGTalentVariantVisualDefinition* VariantVisual =
+				ClassVisual->FindTalentVariantVisual(DetailNode.SimpleChoiceId))
+			{
+				IconTexture = VariantVisual->Icon.LoadSynchronous();
+			}
 		}
-		if (const FRPGTalentBranchVisualDefinition* BranchVisual = ClassVisual->FindTalentBranchVisual(SelectedNode.TalentBranchId))
+		if (!IconTexture)
+		{
+			if (const FRPGTalentNodeVisualDefinition* NodeVisual =
+				ClassVisual->FindTalentNodeVisual(ConceptNode.TalentNodeId))
+			{
+				IconTexture = NodeVisual->Icon.LoadSynchronous();
+			}
+		}
+		if (const FRPGTalentBranchVisualDefinition* BranchVisual =
+			ClassVisual->FindTalentBranchVisual(DetailNode.TalentBranchId))
 		{
 			DetailPanelTexture = BranchVisual->DetailPanelImage.LoadSynchronous();
 		}
@@ -827,7 +971,21 @@ void UGridSkillsWidget::HandleTalentsTabClicked()
 
 void UGridSkillsWidget::HandleTalentNodeClicked(FName TalentNodeId)
 {
+	const FGridTalentNodeView* Node = FindTalentNode(TalentNodeId);
+	if (Node && Node->bHasExclusiveVariants && Node->SelectedChoiceId.IsNone())
+	{
+		return;
+	}
+
 	if (SelectTalentNode(TalentNodeId))
+	{
+		ApplyTalentDetailPresentation();
+	}
+}
+
+void UGridSkillsWidget::HandleTalentVariantClicked(FName TalentNodeId, FName ChoiceId)
+{
+	if (SelectTalentVariant(TalentNodeId, ChoiceId))
 	{
 		ApplyTalentDetailPresentation();
 	}
@@ -836,13 +994,7 @@ void UGridSkillsWidget::HandleTalentNodeClicked(FName TalentNodeId)
 void UGridSkillsWidget::HandleTalentAcquireConfirmed(FName ChoiceId)
 {
 	FText Feedback;
-	const bool bCommitted = CommitConfirmedTalentChoice(ChoiceId, Feedback);
-	if (Detail_Talent)
-	{
-		// UI-RPG05: the toast is the sole success feedback surface.
-		// Keep inline detail feedback only for a rejected transaction.
-		Detail_Talent->SetAcquisitionFeedback(bCommitted ? FText::GetEmpty() : Feedback);
-	}
+	CommitConfirmedTalentChoice(ChoiceId, Feedback);
 }
 
 void UGridSkillsWidget::HandleSkillIncreaseRequested(FName SkillId)

@@ -162,6 +162,51 @@ bool FUIRPG044AuthoredVariantLabelsTest::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG044FlyoutConsultationSelectionTest,
+	"Grimrock.UI.RPG04.Variants.FlyoutConsultationSelection",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPG044FlyoutConsultationSelectionTest::RunTest(const FString&)
+{
+	using namespace UIRPG044Tests;
+
+	UGridSkillsWidget* Skills = NewObject<UGridSkillsWidget>();
+	Skills->View.CharacterIndex = 0;
+	Skills->View.CharacterId = FGuid::NewGuid();
+	Skills->View.ClassId = TEXT("Mage");
+	Skills->View.TalentTree.ClassId = Skills->View.ClassId;
+
+	FGridTalentBranchView Branch;
+	Branch.TalentBranchId = TEXT("SurfaceWeaver");
+	FGridTalentNodeView Node = MakeVariantNode(4);
+	Node.TalentBranchId = Branch.TalentBranchId;
+	for (FGridTalentVariantView& Variant : Node.Variants)
+	{
+		Variant.State = EGridTalentNodeState::LockedLevel;
+		Variant.bCanChoose = false;
+	}
+	Branch.Nodes.Add(Node);
+	Skills->View.TalentTree.Branches.Add(Branch);
+
+	const FName ChoiceId(TEXT("Choice_2"));
+	TestTrue(TEXT("Locked variant remains consultable through flyout selection"),
+		Skills->SelectTalentVariant(Node.TalentNodeId, ChoiceId));
+	TestEqual(TEXT("Flyout selection keeps conceptual node authority"),
+		Skills->SelectedTalentNodeId, Node.TalentNodeId);
+	TestEqual(TEXT("Flyout selection stores concrete consultation ChoiceId only in UI state"),
+		Skills->SelectedTalentChoiceId, ChoiceId);
+
+	TestTrue(TEXT("Selecting conceptual node clears transient variant consultation"),
+		Skills->SelectTalentNode(Node.TalentNodeId));
+	TestTrue(TEXT("Concrete consultation state is cleared"), Skills->SelectedTalentChoiceId.IsNone());
+
+	Node.SelectedChoiceId = TEXT("Choice_0");
+	Skills->View.TalentTree.Branches[0].Nodes[0] = Node;
+	TestFalse(TEXT("Acquired variant node cannot reopen a different flyout choice"),
+		Skills->SelectTalentVariant(Node.TalentNodeId, TEXT("Choice_1")));
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG044VariantTransactionTest,
 	"Grimrock.UI.RPG04.Variants.Transaction",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

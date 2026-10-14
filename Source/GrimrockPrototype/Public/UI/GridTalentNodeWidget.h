@@ -8,10 +8,16 @@
 
 class UBorder;
 class UButton;
+class UMenuAnchor;
 class UTextBlock;
 class UTexture2D;
+class UGridTalentVariantFlyoutWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentNodeClickedSignature, FName, TalentNodeId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FGridTalentVariantClickedSignature,
+	FName, TalentNodeId,
+	FName, ChoiceId);
 
 /** Reusable read-only presentation widget for one conceptual Talent node. */
 UCLASS()
@@ -35,6 +41,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|Node|Events")
 	FGridTalentNodeClickedSignature OnTalentNodeClicked;
 
+	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|Node|Events")
+	FGridTalentVariantClickedSignature OnTalentVariantClicked;
+
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Node")
 	bool InitializeTalentNode(
 		const FGridTalentNodeView& InNodeView,
@@ -45,6 +54,9 @@ public:
 
 	/** Presentation-only icon supplied by URPGClassVisualAsset for this canonical TalentNodeId. */
 	void SetTalentIcon(UTexture2D* IconTexture);
+
+	void SetVariantIcon(FName ChoiceId, UTexture2D* IconTexture);
+	void ClearVariantIcons();
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Node")
 	int32 GetVariantCount() const { return NodeView.bHasExclusiveVariants ? NodeView.Variants.Num() : 0; }
@@ -63,10 +75,25 @@ private:
 	UFUNCTION()
 	void HandleNodeClicked();
 
+	UFUNCTION()
+	UUserWidget* BuildVariantFlyoutContent();
+
+	UFUNCTION()
+	void HandleVariantChosen(FName ChoiceId);
+
 	void ApplyNodePresentation();
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_TalentNode;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UMenuAnchor> MenuAnchor_Variants;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Variant Flyout", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UGridTalentVariantFlyoutWidget> VariantFlyoutWidgetClass;
+
+	UPROPERTY(Transient)
+	TMap<FName, TObjectPtr<UTexture2D>> VariantIcons;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UBorder> Border_TalentNode;
