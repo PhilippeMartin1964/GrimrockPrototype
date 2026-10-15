@@ -51,9 +51,6 @@ public:
 	const TMap<FName, TObjectPtr<UTexture2D>>& GetVariantIcons() const { return VariantIcons; }
 	TSubclassOf<UGridTalentVariantFlyoutWidget> GetVariantFlyoutWidgetClass() const { return VariantFlyoutWidgetClass; }
 
-	/** Suppresses the source-node tooltip while the external viewport flyout is open. */
-	void SetVariantFlyoutActive(bool bActive);
-
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Node")
 	int32 GetVariantCount() const { return NodeView.bHasExclusiveVariants ? NodeView.Variants.Num() : 0; }
 

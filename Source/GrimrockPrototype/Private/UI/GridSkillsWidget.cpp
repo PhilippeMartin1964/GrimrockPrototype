@@ -402,9 +402,7 @@ bool UGridSkillsWidget::OpenTalentVariantFlyout(FName TalentNodeId)
 	}
 
 	ActiveVariantFlyout = Flyout;
-	ActiveVariantFlyoutNodeWidget = NodeWidget;
 	ActiveVariantFlyoutNodeId = TalentNodeId;
-	NodeWidget->SetVariantFlyoutActive(true);
 
 	Flyout->OnVariantChosen.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentVariantFlyoutChosen);
 
@@ -462,12 +460,6 @@ void UGridSkillsWidget::CloseTalentVariantFlyout()
 			this, &UGridSkillsWidget::HandleTalentVariantFlyoutChosen);
 		ActiveVariantFlyout->RemoveFromParent();
 		ActiveVariantFlyout = nullptr;
-	}
-
-	if (ActiveVariantFlyoutNodeWidget)
-	{
-		ActiveVariantFlyoutNodeWidget->SetVariantFlyoutActive(false);
-		ActiveVariantFlyoutNodeWidget = nullptr;
 	}
 
 	ActiveVariantFlyoutNodeId = NAME_None;

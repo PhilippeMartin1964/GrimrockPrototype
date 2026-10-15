@@ -17,6 +17,13 @@ Un clic sur une icône concrète :
 
 Le panneau droit se comporte alors exactement comme pour un Talent simple. ACQUÉRIR / CONFIRMER reste l'unique flux d'acquisition.
 
+## Survol des Talents
+
+Les nœuds Talent et les icônes du flyout n'affichent aucun tooltip. Le panneau
+de détail à droite est l'unique surface de lecture du nom, du principe, des
+effets, de l'utilisation éventuelle et de l'acquisition. Cette règle évite de
+dupliquer au survol une information déjà disponible après sélection.
+
 ## Identité visuelle dans l'arbre
 
 Avant acquisition, le nœud utilise l'icône générique du TalentNodeId.

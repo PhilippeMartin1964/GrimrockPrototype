@@ -260,9 +260,6 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UGridTalentVariantFlyoutWidget> ActiveVariantFlyout;
 
-	UPROPERTY(Transient)
-	TObjectPtr<UGridTalentNodeWidget> ActiveVariantFlyoutNodeWidget;
-
 	FName ActiveVariantFlyoutNodeId = NAME_None;
 
 	/** UI-session-only history. Never persisted and never gameplay authority. */

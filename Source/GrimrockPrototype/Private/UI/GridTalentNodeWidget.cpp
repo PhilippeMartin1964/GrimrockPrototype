@@ -153,18 +153,6 @@ void UGridTalentNodeWidget::ClearVariantIcons()
 	VariantIcons.Reset();
 }
 
-void UGridTalentNodeWidget::SetVariantFlyoutActive(bool bActive)
-{
-	if (bActive)
-	{
-		SetToolTipText(FText::GetEmpty());
-	}
-	else if (bInitialized)
-	{
-		ApplyNodePresentation();
-	}
-}
-
 void UGridTalentNodeWidget::ApplyNodePresentation()
 {
 	if (!bInitialized)
@@ -201,18 +189,6 @@ void UGridTalentNodeWidget::ApplyNodePresentation()
 	if (Border_TalentNode)
 	{
 		Border_TalentNode->SetBrushColor(NodeStateTint(NodeView.State));
-	}
-
-	if (!ResolvedDescription.IsEmpty())
-	{
-		SetToolTipText(FText::Format(
-			NSLOCTEXT("GridTalentNode", "TalentTooltip", "{0}\n{1}"),
-			ResolvedDisplayName,
-			ResolvedDescription));
-	}
-	else
-	{
-		SetToolTipText(ResolvedDisplayName);
 	}
 }
 
