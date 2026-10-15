@@ -7,6 +7,7 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGSkillAsset.h"
+#include "UI/GridSkillEntryWidget.h"
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridSkillsWidget.h"
 #include "UI/RPGSkillPresentationAsset.h"
