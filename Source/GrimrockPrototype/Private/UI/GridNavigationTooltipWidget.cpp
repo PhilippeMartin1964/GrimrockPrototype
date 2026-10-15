@@ -4,7 +4,7 @@
 
 void UGridNavigationTooltipWidget::InitializeTooltip(const FText& InText)
 {
-	TooltipText = InText;
+	NavigationTooltipText = InText;
 	ApplyTooltipPresentation();
 }
 
@@ -19,6 +19,6 @@ void UGridNavigationTooltipWidget::ApplyTooltipPresentation()
 {
 	if (Text_Tooltip)
 	{
-		Text_Tooltip->SetText(TooltipText);
+		Text_Tooltip->SetText(NavigationTooltipText);
 	}
 }

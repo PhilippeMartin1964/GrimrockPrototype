@@ -156,7 +156,7 @@ bool FGridUIGlobalHud01NavigationTooltipContractTest::RunTest(const FString& Par
 	const FText Expected = FText::FromString(TEXT("Inventaire"));
 	Tooltip->InitializeTooltip(Expected);
 	TestEqual(TEXT("Navigation tooltip stores exactly the supplied player-facing text"),
-		Tooltip->TooltipText.ToString(), Expected.ToString());
+		Tooltip->NavigationTooltipText.ToString(), Expected.ToString());
 
 	return true;
 }

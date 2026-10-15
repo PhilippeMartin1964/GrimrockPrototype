@@ -14,7 +14,7 @@ class GRIMROCKPROTOTYPE_API UGridNavigationTooltipWidget : public UUserWidget
 
 public:
 	UPROPERTY(BlueprintReadOnly, Category = "HUD|Persistent|Navigation")
-	FText TooltipText;
+	FText NavigationTooltipText;
 
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Navigation")
 	void InitializeTooltip(const FText& InText);
