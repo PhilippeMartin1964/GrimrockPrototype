@@ -164,6 +164,137 @@ bool FUIRPGVISUAL014SerializedVisualAssetsTest::RunTest(const FString&)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGVISUAL014VariantIconCoverageTest,
+	"Grimrock.UI.RPG.VISUAL01.FinalAudit.VariantIconCoverage",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGVISUAL014VariantIconCoverageTest::RunTest(const FString&)
+{
+	using namespace UIRPGVISUAL014;
+
+	int32 ExclusiveNodeCount = 0;
+	int32 VariantChoiceCount = 0;
+
+	for (const FClassSpec& Spec : Specs)
+	{
+		URPGClassAsset* ClassAsset = LoadObject<URPGClassAsset>(nullptr, Spec.ClassPath);
+		URPGClassVisualAsset* VisualAsset = LoadObject<URPGClassVisualAsset>(nullptr, Spec.VisualPath);
+		if (!TestNotNull(*FString::Printf(TEXT("%s serialized DA_Class loads"), *Spec.ClassId.ToString()), ClassAsset) ||
+			!TestNotNull(*FString::Printf(TEXT("%s serialized DA_ClassVisual loads"), *Spec.ClassId.ToString()), VisualAsset))
+		{
+			continue;
+		}
+
+		TMap<FName, TArray<const FRPGClassProgressionChoiceDefinition*>> ChoicesByNode;
+		for (const FRPGClassProgressionChoiceDefinition& Choice : ClassAsset->ProgressionChoices)
+		{
+			ChoicesByNode.FindOrAdd(Choice.TalentNodeId).Add(&Choice);
+		}
+
+		TSet<FName> ExpectedVariantChoiceIds;
+		for (const TPair<FName, TArray<const FRPGClassProgressionChoiceDefinition*>>& NodePair : ChoicesByNode)
+		{
+			const TArray<const FRPGClassProgressionChoiceDefinition*>& Choices = NodePair.Value;
+			if (Choices.Num() < 2)
+			{
+				continue;
+			}
+
+			const FName ExclusiveGroupId =
+				Choices[0] ? Choices[0]->ExclusiveChoiceGroupId : NAME_None;
+			if (ExclusiveGroupId.IsNone())
+			{
+				continue;
+			}
+
+			bool bExclusiveVariantNode = true;
+			for (const FRPGClassProgressionChoiceDefinition* Choice : Choices)
+			{
+				if (!Choice || Choice->ExclusiveChoiceGroupId != ExclusiveGroupId)
+				{
+					bExclusiveVariantNode = false;
+					break;
+				}
+			}
+			if (!bExclusiveVariantNode)
+			{
+				continue;
+			}
+
+			++ExclusiveNodeCount;
+			for (const FRPGClassProgressionChoiceDefinition* Choice : Choices)
+			{
+				TestFalse(
+					*FString::Printf(
+						TEXT("%s/%s variant ChoiceId is not empty"),
+						*Spec.ClassId.ToString(),
+						*NodePair.Key.ToString()),
+					Choice->ChoiceId.IsNone());
+
+				if (!Choice->ChoiceId.IsNone())
+				{
+					ExpectedVariantChoiceIds.Add(Choice->ChoiceId);
+					++VariantChoiceCount;
+				}
+			}
+		}
+
+		TSet<FName> SeenVisualChoiceIds;
+		for (const FRPGTalentVariantVisualDefinition& VariantVisual : VisualAsset->TalentVariantVisuals)
+		{
+			const FString Context =
+				Spec.ClassId.ToString() + TEXT("/") + VariantVisual.ChoiceId.ToString();
+
+			TestFalse(
+				*FString::Printf(TEXT("%s variant visual ChoiceId is not empty"), *Context),
+				VariantVisual.ChoiceId.IsNone());
+			TestFalse(
+				*FString::Printf(TEXT("%s variant visual ChoiceId is unique"), *Context),
+				SeenVisualChoiceIds.Contains(VariantVisual.ChoiceId));
+
+			if (!VariantVisual.ChoiceId.IsNone())
+			{
+				SeenVisualChoiceIds.Add(VariantVisual.ChoiceId);
+				TestTrue(
+					*FString::Printf(TEXT("%s variant visual maps a production exclusive ChoiceId"), *Context),
+					ExpectedVariantChoiceIds.Contains(VariantVisual.ChoiceId));
+			}
+
+			TestTexture(*this, Context + TEXT("/Icon"), VariantVisual.Icon);
+		}
+
+		TestEqual(
+			*FString::Printf(TEXT("%s variant visual count exactly covers production exclusive choices"), *Spec.ClassId.ToString()),
+			SeenVisualChoiceIds.Num(),
+			ExpectedVariantChoiceIds.Num());
+
+		for (const FName ChoiceId : ExpectedVariantChoiceIds)
+		{
+			const FRPGTalentVariantVisualDefinition* VariantVisual =
+				VisualAsset->FindTalentVariantVisual(ChoiceId);
+			if (!TestNotNull(
+					*FString::Printf(
+						TEXT("%s/%s has a concrete variant visual"),
+						*Spec.ClassId.ToString(),
+						*ChoiceId.ToString()),
+					VariantVisual))
+			{
+				continue;
+			}
+
+			TestTexture(
+				*this,
+				Spec.ClassId.ToString() + TEXT("/") + ChoiceId.ToString() + TEXT("/Icon"),
+				VariantVisual->Icon);
+		}
+	}
+
+	TestTrue(TEXT("Production visual coverage audits at least one exclusive Talent node"), ExclusiveNodeCount > 0);
+	TestTrue(TEXT("Production visual coverage audits at least one concrete variant ChoiceId"), VariantChoiceCount > 0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FUIRPGVISUAL014SerializedClassTextReadinessTest,
 	"Grimrock.UI.RPG.VISUAL01.FinalAudit.SerializedClassTextReadiness",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
