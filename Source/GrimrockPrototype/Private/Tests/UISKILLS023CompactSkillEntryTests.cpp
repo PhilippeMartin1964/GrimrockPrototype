@@ -148,13 +148,15 @@ bool FUISKILLS023WidgetContractTest::RunTest(const FString&)
 		TEXT("RequestSkillSelection function exists"),
 		EntryClass->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UGridSkillEntryWidget, RequestSkillSelection)));
 
-	const FName OptionalBindings[] =
+	const FName RequiredBindings[] =
 	{
 		TEXT("Image_SkillIcon"),
 		TEXT("Border_SkillSelection"),
-		TEXT("Border_SkillHover")
+		TEXT("Border_SkillHover"),
+		TEXT("Button_IncreaseSkill"),
+		TEXT("Button_DecreaseSkill")
 	};
-	for (const FName PropertyName : OptionalBindings)
+	for (const FName PropertyName : RequiredBindings)
 	{
 		FProperty* Property = FindFProperty<FProperty>(EntryClass, PropertyName);
 		TestNotNull(
@@ -163,11 +165,11 @@ bool FUISKILLS023WidgetContractTest::RunTest(const FString&)
 		if (Property)
 		{
 			TestTrue(
-				*FString::Printf(TEXT("%s remains optional before Designer materialization"), *PropertyName.ToString()),
-				Property->HasMetaData(TEXT("BindWidgetOptional")));
-			TestFalse(
-				*FString::Printf(TEXT("%s is not mandatory yet"), *PropertyName.ToString()),
+				*FString::Printf(TEXT("%s is mandatory after Designer materialization"), *PropertyName.ToString()),
 				Property->HasMetaData(TEXT("BindWidget")));
+			TestFalse(
+				*FString::Printf(TEXT("%s is no longer optional"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidgetOptional")));
 		}
 	}
 

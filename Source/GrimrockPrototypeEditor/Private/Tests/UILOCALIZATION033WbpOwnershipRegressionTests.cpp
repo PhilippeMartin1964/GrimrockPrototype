@@ -101,7 +101,6 @@ namespace UILOCALIZATION033
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_IdentityGender.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_IdentityRace.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillAttribute.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillDescription.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillName.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillRank.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillTrainingPolicy.Text"),
@@ -213,7 +212,7 @@ namespace UILOCALIZATION033
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GridJournal.WBP_GridJournal_C:WidgetTree.Text_Placeholder.Text")
 	};
 
-	static_assert(UE_ARRAY_COUNT(RuntimePlaceholderPaths) == 62);
+	static_assert(UE_ARRAY_COUNT(RuntimePlaceholderPaths) == 61);
 	// The six historical Script Bytecode occurrences shared four manifest paths.
 	static_assert(UE_ARRAY_COUNT(ScriptBytecodePaths) == 4);
 	static_assert(UE_ARRAY_COUNT(ExistingAuthorityPaths) == 14);

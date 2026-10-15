@@ -282,8 +282,8 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UGridTalentBranchWidget> Branch_Right;
 
-	/** UI-SKILLS02.4: optional until WBP_RPGSkillDetail is materialized in Designer. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	/** Materialized by UI-SKILLS02.5; the Skill browser requires its detail panel. */
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UGridSkillDetailWidget> Detail_Skill;
 
 	/** UI-RPG04.2A: optional until WBP_RPGTalentDetail is materialized in Designer. */

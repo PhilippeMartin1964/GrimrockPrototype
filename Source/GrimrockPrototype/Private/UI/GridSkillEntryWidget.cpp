@@ -161,11 +161,6 @@ void UGridSkillEntryWidget::ClearSkillEntry()
 	}
 	if (Text_SkillRank) Text_SkillRank->SetText(FText::GetEmpty());
 	if (Text_SkillTrainingPolicy) Text_SkillTrainingPolicy->SetText(FText::GetEmpty());
-	if (Text_SkillDescription)
-	{
-		Text_SkillDescription->SetText(FText::GetEmpty());
-		Text_SkillDescription->SetVisibility(ESlateVisibility::Collapsed);
-	}
 	if (Button_IncreaseSkill)
 	{
 		Button_IncreaseSkill->SetIsEnabled(false);
@@ -206,12 +201,6 @@ void UGridSkillEntryWidget::RefreshEntryVisual()
 	if (Text_SkillTrainingPolicy)
 	{
 		Text_SkillTrainingPolicy->SetText(ResolveTrainingLabel(Entry));
-	}
-	if (Text_SkillDescription)
-	{
-		// Long-form description belongs to the dedicated detail panel.
-		Text_SkillDescription->SetText(FText::GetEmpty());
-		Text_SkillDescription->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	if (Image_SkillIcon)
 	{

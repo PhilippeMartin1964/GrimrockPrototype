@@ -112,7 +112,11 @@ bool FUIRPG062BSkillsRendererContractTest::RunTest(const FString& Parameters)
 		TEXT("Text_SkillAttribute"),
 		TEXT("Text_SkillRank"),
 		TEXT("Text_SkillTrainingPolicy"),
-		TEXT("Text_SkillDescription")
+		TEXT("Image_SkillIcon"),
+		TEXT("Border_SkillSelection"),
+		TEXT("Border_SkillHover"),
+		TEXT("Button_IncreaseSkill"),
+		TEXT("Button_DecreaseSkill")
 	};
 	for (const FName PropertyName : RequiredEntryBindings)
 	{

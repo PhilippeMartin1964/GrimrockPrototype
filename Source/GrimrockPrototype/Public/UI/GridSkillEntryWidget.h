@@ -138,26 +138,23 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SkillTrainingPolicy;
 
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_SkillDescription;
-
 	/** UI-SKILLS02.3 Designer materialization is deferred to UI-SKILLS02.5. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_SkillIcon;
 
 	/** Designer-owned appearance; C++ only toggles semantic selected visibility. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> Border_SkillSelection;
 
 	/** Designer-owned appearance; hidden whenever selection takes precedence. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> Border_SkillHover;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_IncreaseSkill;
 
 	/** RPG-SKILL01.3B Designer materialization; optional until WBP_RPGSkillEntry is updated manually. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_DecreaseSkill;
 
 	bool bHovered = false;

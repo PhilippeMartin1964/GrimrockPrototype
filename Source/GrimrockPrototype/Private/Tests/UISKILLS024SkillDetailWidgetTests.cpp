@@ -199,7 +199,7 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 			DetailClass->FindFunctionByName(FunctionName));
 	}
 
-	const FName OptionalBindings[] =
+	const FName RequiredBindings[] =
 	{
 		TEXT("Image_SkillIcon"),
 		TEXT("Text_DetailName"),
@@ -233,7 +233,7 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 		TEXT("Text_DetailNextRankCost")
 	};
 
-	for (const FName PropertyName : OptionalBindings)
+	for (const FName PropertyName : RequiredBindings)
 	{
 		FProperty* Property = FindFProperty<FProperty>(DetailClass, PropertyName);
 		TestNotNull(
@@ -242,11 +242,11 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 		if (Property)
 		{
 			TestTrue(
-				*FString::Printf(TEXT("%s is optional before Designer materialization"), *PropertyName.ToString()),
-				Property->HasMetaData(TEXT("BindWidgetOptional")));
-			TestFalse(
-				*FString::Printf(TEXT("%s is not mandatory before materialization"), *PropertyName.ToString()),
+				*FString::Printf(TEXT("%s is mandatory after Designer materialization"), *PropertyName.ToString()),
 				Property->HasMetaData(TEXT("BindWidget")));
+			TestFalse(
+				*FString::Printf(TEXT("%s is no longer optional"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidgetOptional")));
 		}
 	}
 
@@ -256,10 +256,10 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 	TestNotNull(TEXT("Parent Detail_Skill binding exists"), ParentDetail);
 	if (ParentDetail)
 	{
-		TestTrue(TEXT("Parent Detail_Skill is optional before WBP creation"),
-			ParentDetail->HasMetaData(TEXT("BindWidgetOptional")));
-		TestFalse(TEXT("Parent Detail_Skill is not mandatory yet"),
+		TestTrue(TEXT("Parent Detail_Skill is mandatory after WBP materialization"),
 			ParentDetail->HasMetaData(TEXT("BindWidget")));
+		TestFalse(TEXT("Parent Detail_Skill is no longer optional"),
+			ParentDetail->HasMetaData(TEXT("BindWidgetOptional")));
 	}
 	return true;
 }
