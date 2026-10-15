@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "UObject/UnrealType.h"
 
 #include "RPG/RPGClassAsset.h"
 #include "UI/GridTalentNodeWidget.h"
@@ -50,6 +51,24 @@ namespace UIRPG032Tests
 		Variant.bCanChoose = true;
 		return Variant;
 	}
+
+	bool HasEmptyToolTipText(const UObject* Object)
+	{
+		if (!Object)
+		{
+			return false;
+		}
+
+		const FTextProperty* ToolTipTextProperty =
+			FindFProperty<FTextProperty>(Object->GetClass(), TEXT("ToolTipText"));
+		if (!ToolTipTextProperty)
+		{
+			return false;
+		}
+
+		const FText* ToolTipText = ToolTipTextProperty->ContainerPtrToValuePtr<FText>(Object);
+		return ToolTipText && ToolTipText->IsEmpty();
+	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG032SimpleNodeResolutionTest,
@@ -78,7 +97,7 @@ bool FUIRPG032SimpleNodeResolutionTest::RunTest(const FString&)
 	TestTrue(TEXT("Simple node initializes without presentation override"), Widget->InitializeTalentNode(Node, Branch));
 	TestEqual(TEXT("Simple node uses Choice display name"), Widget->ResolvedDisplayName.ToString(), FString(TEXT("Talent réel")));
 	TestEqual(TEXT("Simple node has no variant payload"), Widget->GetVariantCount(), 0);
-	TestTrue(TEXT("Simple Talent node exposes no tooltip"), Widget->GetToolTipText().IsEmpty());
+	TestTrue(TEXT("Simple Talent node exposes no tooltip"), HasEmptyToolTipText(Widget));
 	return true;
 }
 
@@ -120,7 +139,7 @@ bool FUIRPG032VariantOverrideTest::RunTest(const FString&)
 		Widget->InitializeTalentNode(Node, Branch));
 	TestEqual(TEXT("Canonical conceptual display name is consumed"), Widget->ResolvedDisplayName.ToString(), FString(TEXT("Talent conceptuel")));
 	TestEqual(TEXT("Variant count is preserved"), Widget->GetVariantCount(), 2);
-	TestTrue(TEXT("Variant Talent node exposes no tooltip"), Widget->GetToolTipText().IsEmpty());
+	TestTrue(TEXT("Variant Talent node exposes no tooltip"), HasEmptyToolTipText(Widget));
 	return true;
 }
 
