@@ -12,6 +12,7 @@ class UBorder;
 class UButton;
 class UGridPartyInventoryComponent;
 class UGridRPGNotificationWidget;
+class UGridSkillDetailWidget;
 class UGridSkillEntryWidget;
 class URPGClassVisualAsset;
 class URPGSkillAsset;
@@ -219,6 +220,7 @@ private:
 	void ConsumeSessionSkillPurchase(const FGuid& CharacterId, FName SkillId);
 	void RefreshSelectedSkillDetail(const TArray<const URPGSkillAsset*>& SkillDefinitions);
 	void RefreshSkillEntrySelection();
+	void ApplySkillDetailPresentation();
 
 	const FGridTalentNodeView* FindTalentNode(FName TalentNodeId) const;
 	UGridTalentNodeWidget* FindTalentNodeWidget(const FGridTalentNodeView& NodeView) const;
@@ -279,6 +281,10 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UGridTalentBranchWidget> Branch_Right;
+
+	/** UI-SKILLS02.4: optional until WBP_RPGSkillDetail is materialized in Designer. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UGridSkillDetailWidget> Detail_Skill;
 
 	/** UI-RPG04.2A: optional until WBP_RPGTalentDetail is materialized in Designer. */
 	UPROPERTY(meta = (BindWidgetOptional))

@@ -16,6 +16,7 @@
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGSkillAsset.h"
 #include "RPG/RPGSkillPointService.h"
+#include "UI/GridSkillDetailWidget.h"
 #include "UI/GridSkillEntryWidget.h"
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentBranchWidget.h"
@@ -75,6 +76,7 @@ void UGridSkillsWidget::NativeConstruct()
 	Super::NativeConstruct();
 	BindDesignerShell();
 	ApplyDesignerPresentation();
+	ApplySkillDetailPresentation();
 }
 
 void UGridSkillsWidget::NativeDestruct()
@@ -331,6 +333,7 @@ void UGridSkillsWidget::RefreshSkills()
 	}
 
 	ApplyDesignerPresentation();
+	ApplySkillDetailPresentation();
 	ApplyTalentDetailPresentation();
 	OnSkillsRefreshed.Broadcast();
 }
@@ -965,6 +968,20 @@ void UGridSkillsWidget::ApplyClassVisualIdentity()
 	Image_ClassFlag->SetBrushFromTexture(FlagTexture, false);
 }
 
+void UGridSkillsWidget::ApplySkillDetailPresentation()
+{
+	if (!Detail_Skill)
+	{
+		return;
+	}
+
+	if (!SelectedSkillDetail.IsValid() ||
+		!Detail_Skill->InitializeSkillDetail(SelectedSkillDetail))
+	{
+		Detail_Skill->ClearSkillDetail();
+	}
+}
+
 void UGridSkillsWidget::ApplyTalentDetailPresentation()
 {
 	if (!Detail_Talent)
@@ -1238,6 +1255,7 @@ bool UGridSkillsWidget::SelectSkill(FName SkillId)
 	}
 
 	RefreshSkillEntrySelection();
+	ApplySkillDetailPresentation();
 	if (bChanged)
 	{
 		OnSkillSelectionChanged.Broadcast(SelectedSkillId);
@@ -1255,6 +1273,7 @@ void UGridSkillsWidget::ClearSkillSelection()
 	SelectedSkillId = NAME_None;
 	SelectedSkillDetail = FGridSkillDetailView();
 	RefreshSkillEntrySelection();
+	ApplySkillDetailPresentation();
 	OnSkillSelectionChanged.Broadcast(NAME_None);
 }
 
