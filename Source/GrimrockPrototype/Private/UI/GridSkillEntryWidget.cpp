@@ -1,7 +1,11 @@
 #include "UI/GridSkillEntryWidget.h"
 
+#include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Engine/Texture2D.h"
+#include "InputCoreTypes.h"
 #include "UI/UILocalizationText.h"
 
 void UGridSkillEntryWidget::NativeConstruct()
@@ -31,6 +35,34 @@ void UGridSkillEntryWidget::NativeDestruct()
 		Button_DecreaseSkill->OnClicked.RemoveDynamic(this, &UGridSkillEntryWidget::HandleDecreaseSkillClicked);
 	}
 	Super::NativeDestruct();
+}
+
+FReply UGridSkillEntryWidget::NativeOnMouseButtonDown(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && RequestSkillSelection())
+	{
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
+void UGridSkillEntryWidget::NativeOnMouseEnter(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+	bHovered = true;
+	RefreshInteractionVisual();
+}
+
+void UGridSkillEntryWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+	bHovered = false;
+	RefreshInteractionVisual();
 }
 
 void UGridSkillEntryWidget::HandleIncreaseSkillClicked()
@@ -63,10 +95,63 @@ bool UGridSkillEntryWidget::InitializeSkillEntry(const FGridSkillEntryView& InEn
 	return true;
 }
 
+void UGridSkillEntryWidget::SetSkillIcon(UTexture2D* InIcon)
+{
+	SkillIcon = InIcon;
+	if (Image_SkillIcon)
+	{
+		Image_SkillIcon->SetBrushFromTexture(SkillIcon.Get(), false);
+		Image_SkillIcon->SetVisibility(SkillIcon.Get() ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+}
+
+void UGridSkillEntryWidget::SetSelected(bool bInSelected)
+{
+	bSelected = bInSelected;
+	RefreshInteractionVisual();
+}
+
+bool UGridSkillEntryWidget::RequestSkillSelection()
+{
+	if (!bInitialized || Entry.SkillId.IsNone())
+	{
+		return false;
+	}
+
+	OnSelectSkillRequested.Broadcast(Entry.SkillId);
+	return true;
+}
+
+EGridSkillEntryVisualState UGridSkillEntryWidget::ResolveVisualState(bool bInSelected, bool bInHovered)
+{
+	if (bInSelected)
+	{
+		return EGridSkillEntryVisualState::Selected;
+	}
+	return bInHovered
+		? EGridSkillEntryVisualState::Hovered
+		: EGridSkillEntryVisualState::Normal;
+}
+
+EGridSkillTrainingState UGridSkillEntryWidget::ResolveTrainingState(const FGridSkillEntryView& InEntry)
+{
+	if (InEntry.Rank > 0)
+	{
+		return EGridSkillTrainingState::Trained;
+	}
+	return InEntry.bAllowUntrainedChecks
+		? EGridSkillTrainingState::UntrainedAllowed
+		: EGridSkillTrainingState::TrainingRequired;
+}
+
 void UGridSkillEntryWidget::ClearSkillEntry()
 {
 	Entry = FGridSkillEntryView();
 	bInitialized = false;
+	bSelected = false;
+	bHovered = false;
+	VisualState = EGridSkillEntryVisualState::Normal;
+	SkillIcon = nullptr;
 
 	if (Text_SkillName) Text_SkillName->SetText(FText::GetEmpty());
 	if (Text_SkillAttribute)
@@ -89,6 +174,12 @@ void UGridSkillEntryWidget::ClearSkillEntry()
 	{
 		Button_DecreaseSkill->SetIsEnabled(false);
 	}
+	if (Image_SkillIcon)
+	{
+		Image_SkillIcon->SetBrushFromTexture(nullptr, false);
+		Image_SkillIcon->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	RefreshInteractionVisual();
 }
 
 void UGridSkillEntryWidget::RefreshEntryVisual()
@@ -118,9 +209,14 @@ void UGridSkillEntryWidget::RefreshEntryVisual()
 	}
 	if (Text_SkillDescription)
 	{
-		const bool bHasDescription = HasDescription(Entry);
-		Text_SkillDescription->SetText(bHasDescription ? Entry.Description : FText::GetEmpty());
-		Text_SkillDescription->SetVisibility(bHasDescription ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		// Long-form description belongs to the dedicated detail panel.
+		Text_SkillDescription->SetText(FText::GetEmpty());
+		Text_SkillDescription->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (Image_SkillIcon)
+	{
+		Image_SkillIcon->SetBrushFromTexture(SkillIcon.Get(), false);
+		Image_SkillIcon->SetVisibility(SkillIcon.Get() ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 	if (Button_IncreaseSkill)
 	{
@@ -129,6 +225,28 @@ void UGridSkillEntryWidget::RefreshEntryVisual()
 	if (Button_DecreaseSkill)
 	{
 		Button_DecreaseSkill->SetIsEnabled(Entry.bCanDecreaseRank);
+	}
+
+	RefreshInteractionVisual();
+}
+
+void UGridSkillEntryWidget::RefreshInteractionVisual()
+{
+	VisualState = ResolveVisualState(bSelected, bHovered);
+
+	if (Border_SkillSelection)
+	{
+		Border_SkillSelection->SetVisibility(
+			VisualState == EGridSkillEntryVisualState::Selected
+				? ESlateVisibility::HitTestInvisible
+				: ESlateVisibility::Collapsed);
+	}
+	if (Border_SkillHover)
+	{
+		Border_SkillHover->SetVisibility(
+			VisualState == EGridSkillEntryVisualState::Hovered
+				? ESlateVisibility::HitTestInvisible
+				: ESlateVisibility::Collapsed);
 	}
 }
 
@@ -176,15 +294,17 @@ FText UGridSkillEntryWidget::ResolveRankLabel(const FGridSkillEntryView& InEntry
 
 FText UGridSkillEntryWidget::ResolveTrainingLabel(const FGridSkillEntryView& InEntry)
 {
-	if (InEntry.bTrained)
+	switch (ResolveTrainingState(InEntry))
 	{
-		return NSLOCTEXT("GridSkills", "SkillTrained", "Entraînée");
+		case EGridSkillTrainingState::Trained:
+			return NSLOCTEXT("GridSkills", "SkillTrained", "Entraînée");
+		case EGridSkillTrainingState::UntrainedAllowed:
+			return NSLOCTEXT("GridSkills", "SkillUntrainedAllowed", "Utilisable sans entraînement");
+		case EGridSkillTrainingState::TrainingRequired:
+			return NSLOCTEXT("GridSkills", "SkillTrainingRequired", "Entraînement requis");
+		default:
+			return FText::GetEmpty();
 	}
-	if (InEntry.bAllowUntrainedChecks)
-	{
-		return NSLOCTEXT("GridSkills", "SkillUntrainedAllowed", "Test possible sans entraînement");
-	}
-	return NSLOCTEXT("GridSkills", "SkillTrainingRequired", "Entraînement requis");
 }
 
 bool UGridSkillEntryWidget::HasDescription(const FGridSkillEntryView& InEntry)

@@ -203,6 +203,9 @@ private:
 	void HandleTalentVariantFlyoutChosen(FName ChoiceId);
 
 	UFUNCTION()
+	void HandleSkillSelectionRequested(FName SkillId);
+
+	UFUNCTION()
 	void HandleSkillIncreaseRequested(FName SkillId);
 
 	UFUNCTION()
@@ -215,6 +218,7 @@ private:
 	void RecordSessionSkillPurchase(const FGuid& CharacterId, FName SkillId, int32 PreviousRank);
 	void ConsumeSessionSkillPurchase(const FGuid& CharacterId, FName SkillId);
 	void RefreshSelectedSkillDetail(const TArray<const URPGSkillAsset*>& SkillDefinitions);
+	void RefreshSkillEntrySelection();
 
 	const FGridTalentNodeView* FindTalentNode(FName TalentNodeId) const;
 	UGridTalentNodeWidget* FindTalentNodeWidget(const FGridTalentNodeView& NodeView) const;

@@ -1051,6 +1051,11 @@ void UGridSkillsWidget::RebuildSkillEntryWidgets()
 		return;
 	}
 
+	const URPGSkillPresentationAsset* PresentationCatalog =
+		IsValid(SkillPresentationAsset) && SkillPresentationAsset->IsValidDefinition()
+			? SkillPresentationAsset.Get()
+			: nullptr;
+
 	for (const FGridSkillEntryView& Entry : View.Skills)
 	{
 		UGridSkillEntryWidget* EntryWidget = CreateWidget<UGridSkillEntryWidget>(this, SkillEntryWidgetClass);
@@ -1066,9 +1071,41 @@ void UGridSkillsWidget::RebuildSkillEntryWidgets()
 			continue;
 		}
 
+		UTexture2D* SkillIcon = nullptr;
+		if (PresentationCatalog)
+		{
+			if (const FRPGSkillPresentationDefinition* Presentation = PresentationCatalog->FindSkill(Entry.SkillId))
+			{
+				SkillIcon = Presentation->Icon.LoadSynchronous();
+			}
+		}
+		EntryWidget->SetSkillIcon(SkillIcon);
+		EntryWidget->SetSelected(Entry.SkillId == SelectedSkillId);
+
+		EntryWidget->OnSelectSkillRequested.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSkillSelectionRequested);
 		EntryWidget->OnIncreaseSkillRequested.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSkillIncreaseRequested);
 		EntryWidget->OnDecreaseSkillRequested.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSkillDecreaseRequested);
 		Panel_SkillEntries->AddChild(EntryWidget);
+	}
+}
+
+void UGridSkillsWidget::RefreshSkillEntrySelection()
+{
+	if (!Panel_SkillEntries)
+	{
+		return;
+	}
+
+	const int32 ChildCount = Panel_SkillEntries->GetChildrenCount();
+	for (int32 Index = 0; Index < ChildCount; ++Index)
+	{
+		if (UGridSkillEntryWidget* EntryWidget =
+			Cast<UGridSkillEntryWidget>(Panel_SkillEntries->GetChildAt(Index)))
+		{
+			EntryWidget->SetSelected(
+				!SelectedSkillId.IsNone() &&
+				EntryWidget->Entry.SkillId == SelectedSkillId);
+		}
 	}
 }
 
@@ -1138,6 +1175,11 @@ void UGridSkillsWidget::HandleTalentAcquireConfirmed(FName ChoiceId)
 	CommitConfirmedTalentChoice(ChoiceId, Feedback);
 }
 
+void UGridSkillsWidget::HandleSkillSelectionRequested(FName SkillId)
+{
+	SelectSkill(SkillId);
+}
+
 void UGridSkillsWidget::HandleSkillIncreaseRequested(FName SkillId)
 {
 	SelectSkill(SkillId);
@@ -1195,6 +1237,7 @@ bool UGridSkillsWidget::SelectSkill(FName SkillId)
 		SelectedSkillDetail = FGridSkillDetailView();
 	}
 
+	RefreshSkillEntrySelection();
 	if (bChanged)
 	{
 		OnSkillSelectionChanged.Broadcast(SelectedSkillId);
@@ -1211,6 +1254,7 @@ void UGridSkillsWidget::ClearSkillSelection()
 
 	SelectedSkillId = NAME_None;
 	SelectedSkillDetail = FGridSkillDetailView();
+	RefreshSkillEntrySelection();
 	OnSkillSelectionChanged.Broadcast(NAME_None);
 }
 
