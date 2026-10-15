@@ -190,22 +190,14 @@ Après pull :
 
 ~~~powershell
 cd D:\Development\GrimrockPrototype
-
-.\Scripts\ValidateUE.ps1 ^
-    -EngineRoot D:\UE_5.5 ^
-    -AutomationFilter "Grimrock.UI.Skills02"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.Skills02"
 ~~~
 
 Puis régression :
 
 ~~~powershell
-.\Scripts\ValidateUE.ps1 ^
-    -EngineRoot D:\UE_5.5 ^
-    -AutomationFilter "Grimrock.MON20.8.SkillsPage"
-
-.\Scripts\ValidateUE.ps1 ^
-    -EngineRoot D:\UE_5.5 ^
-    -AutomationFilter "Grimrock.UI.RPG06.Skills"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.MON20.8.SkillsPage"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.RPG06.Skills"
 ~~~
 
 Ne pas déclarer UI-SKILLS02.1 validé tant que les sorties locales n'ont pas été

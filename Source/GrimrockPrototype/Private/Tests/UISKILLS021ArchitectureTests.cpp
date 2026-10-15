@@ -107,7 +107,8 @@ bool FUISKILLS021InvalidPresentationReferencesTest::RunTest(const FString&)
 	using namespace UISKILLS021Tests;
 
 	URPGSkillPresentationAsset* Catalog = MakeValidCatalog();
-	Catalog->Skills.Add(Catalog->Skills[0]);
+	const FRPGSkillPresentationDefinition DuplicateSkill = Catalog->Skills[0];
+	Catalog->Skills.Add(DuplicateSkill);
 	TestFalse(TEXT("Duplicate SkillId is rejected"), Catalog->IsValidDefinition());
 
 	Catalog = MakeValidCatalog();
