@@ -24,6 +24,7 @@
 #include "UI/GridTalentVariantFlyoutWidget.h"
 #include "UI/GridRPGNotificationWidget.h"
 #include "UI/RPGProgressionFeedbackService.h"
+#include "UI/RPGSkillPresentationAsset.h"
 #include "UI/RPGTalentDetailTextSet.h"
 #include "UI/UILocalizationText.h"
 
@@ -153,6 +154,7 @@ void UGridSkillsWidget::ClearView()
 {
 	CloseTalentVariantFlyout();
 	View = FGridSkillsPageView();
+	SelectedSkillDetail = FGridSkillDetailView();
 }
 
 void UGridSkillsWidget::BeginSkillAllocationSession()
@@ -179,6 +181,23 @@ const URPGSkillAsset* UGridSkillsWidget::ResolveCanonicalSkillDefinition(FName S
 		}
 	}
 	return nullptr;
+}
+
+void UGridSkillsWidget::RefreshSelectedSkillDetail(const TArray<const URPGSkillAsset*>& SkillDefinitions)
+{
+	SelectedSkillDetail = FGridSkillDetailView();
+	if (!InventoryComponent || SelectedSkillId.IsNone())
+	{
+		return;
+	}
+
+	FGridSkillsPageService::TryBuildSkillDetailView(
+		InventoryComponent,
+		View,
+		SelectedSkillId,
+		SkillDefinitions,
+		SkillPresentationAsset.Get(),
+		SelectedSkillDetail);
 }
 
 FString UGridSkillsWidget::MakeSkillAllocationSessionKey(const FGuid& CharacterId, FName SkillId) const
@@ -249,10 +268,12 @@ void UGridSkillsWidget::RefreshSkills()
 	TGuardValue<bool> RefreshGuard(bRefreshInProgress, true);
 
 	const FGuid PreviousCharacterId = View.CharacterId;
+	const FName PreviousSkillId = SelectedSkillId;
 	ClearView();
+
+	TArray<const URPGSkillAsset*> SkillDefinitions;
 	if (InventoryComponent)
 	{
-		TArray<const URPGSkillAsset*> SkillDefinitions;
 		FGridSkillsPageService::ResolveCanonicalSkillDefinitions(SkillDefinitions);
 
 		FGridSkillsPageView Candidate;
@@ -271,6 +292,15 @@ void UGridSkillsWidget::RefreshSkills()
 			}
 			View = MoveTemp(Candidate);
 		}
+	}
+
+	const FName ResolvedSkillId = FGridSkillsPageService::ResolveSkillSelection(View, PreviousSkillId);
+	const bool bSkillSelectionChanged = SelectedSkillId != ResolvedSkillId;
+	SelectedSkillId = ResolvedSkillId;
+	RefreshSelectedSkillDetail(SkillDefinitions);
+	if (bSkillSelectionChanged)
+	{
+		OnSkillSelectionChanged.Broadcast(SelectedSkillId);
 	}
 
 	if (!SelectedTalentNodeId.IsNone())
@@ -1110,12 +1140,14 @@ void UGridSkillsWidget::HandleTalentAcquireConfirmed(FName ChoiceId)
 
 void UGridSkillsWidget::HandleSkillIncreaseRequested(FName SkillId)
 {
+	SelectSkill(SkillId);
 	FText Feedback;
 	CommitSkillRankIncrease(SkillId, Feedback);
 }
 
 void UGridSkillsWidget::HandleSkillDecreaseRequested(FName SkillId)
 {
+	SelectSkill(SkillId);
 	FText Feedback;
 	CommitSkillRankDecrease(SkillId, Feedback);
 }
@@ -1134,6 +1166,63 @@ bool UGridSkillsWidget::GetSkillEntry(int32 EntryIndex, FGridSkillEntryView& Out
 	}
 
 	OutEntry = View.Skills[EntryIndex];
+	return true;
+}
+
+bool UGridSkillsWidget::SelectSkill(FName SkillId)
+{
+	if (SkillId.IsNone() ||
+		!View.Skills.ContainsByPredicate(
+			[SkillId](const FGridSkillEntryView& Entry)
+			{
+				return Entry.SkillId == SkillId;
+			}))
+	{
+		return false;
+	}
+
+	const bool bChanged = SelectedSkillId != SkillId;
+	SelectedSkillId = SkillId;
+
+	if (InventoryComponent)
+	{
+		TArray<const URPGSkillAsset*> SkillDefinitions;
+		FGridSkillsPageService::ResolveCanonicalSkillDefinitions(SkillDefinitions);
+		RefreshSelectedSkillDetail(SkillDefinitions);
+	}
+	else
+	{
+		SelectedSkillDetail = FGridSkillDetailView();
+	}
+
+	if (bChanged)
+	{
+		OnSkillSelectionChanged.Broadcast(SelectedSkillId);
+	}
+	return true;
+}
+
+void UGridSkillsWidget::ClearSkillSelection()
+{
+	if (SelectedSkillId.IsNone() && !SelectedSkillDetail.IsValid())
+	{
+		return;
+	}
+
+	SelectedSkillId = NAME_None;
+	SelectedSkillDetail = FGridSkillDetailView();
+	OnSkillSelectionChanged.Broadcast(NAME_None);
+}
+
+bool UGridSkillsWidget::GetSelectedSkillDetail(FGridSkillDetailView& OutDetail) const
+{
+	OutDetail = FGridSkillDetailView();
+	if (!SelectedSkillDetail.IsValid())
+	{
+		return false;
+	}
+
+	OutDetail = SelectedSkillDetail;
 	return true;
 }
 

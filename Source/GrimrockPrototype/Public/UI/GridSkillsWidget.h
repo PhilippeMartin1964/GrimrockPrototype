@@ -15,6 +15,7 @@ class UGridRPGNotificationWidget;
 class UGridSkillEntryWidget;
 class URPGClassVisualAsset;
 class URPGSkillAsset;
+class URPGSkillPresentationAsset;
 class UGridTalentBranchWidget;
 class UGridTalentNodeWidget;
 class UGridTalentVariantFlyoutWidget;
@@ -25,6 +26,7 @@ class UTextBlock;
 class UWidgetSwitcher;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGridSkillsWidgetRefreshedSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridSkillSelectionChangedSignature, FName, SkillId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentSelectionChangedSignature, FName, TalentNodeId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridProgressionNotificationSignature, const FRPGProgressionNotificationView&, Notification);
 
@@ -54,6 +56,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
 	TSubclassOf<UGridSkillEntryWidget> SkillEntryWidgetClass;
 
+	/** Optional UI-SKILLS02 presentation catalog; gameplay-only detail remains valid when unset. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
+	TObjectPtr<URPGSkillPresentationAsset> SkillPresentationAsset;
+
 	/** UI-RPG06.3A: mandatory Designer container for the canonical Skills projection. */
 	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
 	TObjectPtr<UPanelWidget> Panel_SkillEntries;
@@ -68,6 +74,17 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Skills|UI|Events")
 	FGridSkillsWidgetRefreshedSignature OnSkillsRefreshed;
+
+	/** UI-session-only Skill selection. It is never saved and never gameplay authority. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Skills|UI")
+	FName SelectedSkillId = NAME_None;
+
+	/** Presentation-ready projection for SelectedSkillId; rebuilt from authoritative state. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Skills|UI")
+	FGridSkillDetailView SelectedSkillDetail;
+
+	UPROPERTY(BlueprintAssignable, Category = "RPG|Skills|UI|Events")
+	FGridSkillSelectionChangedSignature OnSkillSelectionChanged;
 
 	/** UI-only conceptual selection. NAME_None means that no Talent node is selected. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Talents|UI")
@@ -112,6 +129,16 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
 	bool GetSkillEntry(int32 EntryIndex, FGridSkillEntryView& OutEntry) const;
+
+	/** Selects one Skill for consultation only; no rank mutation occurs. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI")
+	bool SelectSkill(FName SkillId);
+
+	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI")
+	void ClearSkillSelection();
+
+	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
+	bool GetSelectedSkillDetail(FGridSkillDetailView& OutDetail) const;
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|UI")
 	bool GetCurrentClassPresentation(FRPGClassPresentationDefinition& OutPresentation) const;
@@ -187,6 +214,7 @@ private:
 	int32 GetSessionSkillRankFloor(const FGuid& CharacterId, FName SkillId) const;
 	void RecordSessionSkillPurchase(const FGuid& CharacterId, FName SkillId, int32 PreviousRank);
 	void ConsumeSessionSkillPurchase(const FGuid& CharacterId, FName SkillId);
+	void RefreshSelectedSkillDetail(const TArray<const URPGSkillAsset*>& SkillDefinitions);
 
 	const FGridTalentNodeView* FindTalentNode(FName TalentNodeId) const;
 	UGridTalentNodeWidget* FindTalentNodeWidget(const FGridTalentNodeView& NodeView) const;

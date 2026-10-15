@@ -52,6 +52,9 @@ struct FRPGSkillPointMutationResult
  */
 struct GRIMROCKPROTOTYPE_API FRPGSkillPointService
 {
+	/** Canonical point cost of acquiring one Skill rank. */
+	static int32 GetRankPointCost();
+
 	/** Level 1 grants 4 points; every later level grants +1. Invalid levels return zero. */
 	static int32 GetTotalPointsGranted(int32 CharacterLevel);
 

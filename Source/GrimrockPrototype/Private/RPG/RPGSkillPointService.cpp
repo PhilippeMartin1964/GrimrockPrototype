@@ -5,6 +5,11 @@
 #include "RPG/RPGSkillService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
+int32 FRPGSkillPointService::GetRankPointCost()
+{
+	return 1;
+}
+
 int32 FRPGSkillPointService::GetTotalPointsGranted(int32 CharacterLevel)
 {
 	const int32 MinimumLevel = URPGCharacterRulesLibrary::GetMinimumLevel();
@@ -46,7 +51,7 @@ bool FRPGSkillPointService::TryGetBalance(
 	int32 SpentPoints = 0;
 	for (const FRPGSkillRank& Rank : CharacterState.SkillRanks)
 	{
-		SpentPoints += Rank.Rank;
+		SpentPoints += Rank.Rank * GetRankPointCost();
 	}
 
 	if (SpentPoints < 0 || SpentPoints > GrantedPoints)
@@ -95,7 +100,7 @@ ERPGSkillPointMutationRejectReason FRPGSkillPointService::GetNextRankPurchaseAva
 	{
 		return ERPGSkillPointMutationRejectReason::LevelRankCapReached;
 	}
-	if (Balance.RemainingPoints <= 0)
+	if (Balance.RemainingPoints < GetRankPointCost())
 	{
 		return ERPGSkillPointMutationRejectReason::NoSkillPoints;
 	}
@@ -155,8 +160,8 @@ bool FRPGSkillPointService::TryPurchaseNextRank(
 
 	OutResult.bCommitted = true;
 	OutResult.NewRank = Mutation.NewRank;
-	OutResult.SpentPoints = Balance.SpentPoints + 1;
-	OutResult.RemainingPoints = Balance.RemainingPoints - 1;
+	OutResult.SpentPoints = Balance.SpentPoints + GetRankPointCost();
+	OutResult.RemainingPoints = Balance.RemainingPoints - GetRankPointCost();
 	OutResult.RejectReason = ERPGSkillPointMutationRejectReason::None;
 
 	PartyInventoryComponent->NotifyPartyInventoryChanged(CharacterIndex);
@@ -240,8 +245,8 @@ bool FRPGSkillPointService::TryRefundPurchasedRank(
 
 	OutResult.bCommitted = true;
 	OutResult.NewRank = Mutation.NewRank;
-	OutResult.SpentPoints = Balance.SpentPoints - 1;
-	OutResult.RemainingPoints = Balance.RemainingPoints + 1;
+	OutResult.SpentPoints = Balance.SpentPoints - GetRankPointCost();
+	OutResult.RemainingPoints = Balance.RemainingPoints + GetRankPointCost();
 	OutResult.RejectReason = ERPGSkillPointMutationRejectReason::None;
 
 	PartyInventoryComponent->NotifyPartyInventoryChanged(CharacterIndex);

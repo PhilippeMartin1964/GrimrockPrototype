@@ -194,7 +194,6 @@ struct GRIMROCKPROTOTYPE_API FGridSkillDetailView
 			Rank > MaxRank ||
 			CurrentRankCap < 1 ||
 			CurrentRankCap > MaxRank ||
-			Rank > CurrentRankCap ||
 			RemainingSkillPoints < 0)
 		{
 			return false;

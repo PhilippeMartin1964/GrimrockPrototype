@@ -1,14 +1,17 @@
 #include "UI/GridSkillsPageService.h"
 
 #include "UI/RPGTalentPresentationAsset.h"
+#include "UI/RPGSkillPresentationAsset.h"
 #include "Runtime/Monsters/GridMonsterCategoryAsset.h"
 
 #include "Engine/AssetManager.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGSkillAsset.h"
+#include "RPG/RPGSkillCheckService.h"
 #include "RPG/RPGSkillPointService.h"
 #include "RPG/RPGSkillRequirementProjectionService.h"
 #include "RPG/RPGSkillService.h"
@@ -1309,6 +1312,208 @@ bool FGridSkillsPageService::TryBuildSelectedCharacterView(
 	OutView = FGridSkillsPageView();
 	if (!IsValid(PartyInventoryComponent)) return false;
 	return TryBuildCharacterView(PartyInventoryComponent, PartyInventoryComponent->GetSelectedCharacterIndex(), SkillDefinitions, OutView);
+}
+
+FName FGridSkillsPageService::ResolveSkillSelection(const FGridSkillsPageView& PageView, FName PreferredSkillId)
+{
+	if (!PreferredSkillId.IsNone())
+	{
+		const bool bPreferredExists = PageView.Skills.ContainsByPredicate(
+			[PreferredSkillId](const FGridSkillEntryView& Entry)
+			{
+				return Entry.SkillId == PreferredSkillId;
+			});
+		if (bPreferredExists)
+		{
+			return PreferredSkillId;
+		}
+	}
+
+	return PageView.Skills.IsEmpty() ? NAME_None : PageView.Skills[0].SkillId;
+}
+
+bool FGridSkillsPageService::TryBuildSkillDetailView(
+	UGridPartyInventoryComponent* PartyInventoryComponent,
+	const FGridSkillsPageView& PageView,
+	FName SkillId,
+	const TArray<const URPGSkillAsset*>& SkillDefinitions,
+	const URPGSkillPresentationAsset* PresentationCatalog,
+	FGridSkillDetailView& OutView)
+{
+	OutView = FGridSkillDetailView();
+	if (!IsValid(PartyInventoryComponent) || !PageView.IsValid() || SkillId.IsNone() ||
+		!PartyInventoryComponent->IsValidCharacterIndex(PageView.CharacterIndex))
+	{
+		return false;
+	}
+
+	const FGridCharacterInventoryState& Character =
+		PartyInventoryComponent->PartyInventoryState.ActiveCharacters[PageView.CharacterIndex];
+	if (Character.CharacterId != PageView.CharacterId ||
+		Character.Level != PageView.CharacterLevel ||
+		Character.ClassId != PageView.ClassId ||
+		!FRPGSkillService::ValidateSkillState(Character))
+	{
+		return false;
+	}
+
+	TArray<const URPGSkillAsset*> SortedDefinitions;
+	if (!ValidateAndSortDefinitions(SkillDefinitions, SortedDefinitions))
+	{
+		return false;
+	}
+
+	const URPGSkillAsset* SkillDefinition = nullptr;
+	for (const URPGSkillAsset* Definition : SortedDefinitions)
+	{
+		if (Definition && Definition->SkillId == SkillId)
+		{
+			SkillDefinition = Definition;
+			break;
+		}
+	}
+	if (!SkillDefinition)
+	{
+		return false;
+	}
+
+	const FGridSkillEntryView* SkillEntry = PageView.Skills.FindByPredicate(
+		[SkillId](const FGridSkillEntryView& Entry)
+		{
+			return Entry.SkillId == SkillId;
+		});
+	if (!SkillEntry)
+	{
+		return false;
+	}
+
+	FRPGSkillPointBalance Balance;
+	if (!FRPGSkillPointService::TryGetBalance(Character, Balance))
+	{
+		return false;
+	}
+
+	const int32 Rank = FRPGSkillService::GetSkillRank(Character, SkillId);
+	const int32 CurrentRankCap = FMath::Min(SkillDefinition->MaxRank, Balance.RankCap);
+	const bool bCanIncrease =
+		FRPGSkillPointService::GetNextRankPurchaseAvailability(Character, SkillDefinition) ==
+		ERPGSkillPointMutationRejectReason::None;
+
+	if (PageView.RemainingSkillPoints != Balance.RemainingPoints ||
+		PageView.SkillRankCap != Balance.RankCap ||
+		!SkillEntry->DisplayName.EqualTo(SkillDefinition->DisplayName) ||
+		!SkillEntry->Description.EqualTo(SkillDefinition->Description) ||
+		SkillEntry->GoverningAttribute != SkillDefinition->GoverningAttribute ||
+		SkillEntry->Rank != Rank ||
+		SkillEntry->MaxRank != SkillDefinition->MaxRank ||
+		SkillEntry->bAllowUntrainedChecks != SkillDefinition->bAllowUntrainedChecks ||
+		SkillEntry->bTrained != (Rank > 0) ||
+		SkillEntry->CurrentRankCap != CurrentRankCap ||
+		SkillEntry->bCanIncreaseRank != bCanIncrease)
+	{
+		return false;
+	}
+
+	FGridSkillDetailView Candidate;
+	Candidate.SkillId = SkillId;
+	Candidate.DisplayName = SkillEntry->DisplayName;
+	Candidate.Description = SkillEntry->Description;
+	Candidate.GoverningAttribute = SkillDefinition->GoverningAttribute;
+	Candidate.GoverningAttributeValue =
+		FRPGSkillCheckService::GetGoverningAttributeValue(Character.Attributes, SkillDefinition->GoverningAttribute);
+	Candidate.GoverningAttributeModifier =
+		SkillDefinition->GoverningAttribute == ERPGSkillGoverningAttribute::None
+			? 0
+			: URPGCharacterRulesLibrary::GetAttributeModifier(Candidate.GoverningAttributeValue);
+	Candidate.BaseCheckBonus = Rank + Candidate.GoverningAttributeModifier;
+	Candidate.Rank = Rank;
+	Candidate.MaxRank = SkillDefinition->MaxRank;
+	Candidate.CurrentRankCap = CurrentRankCap;
+	Candidate.RemainingSkillPoints = Balance.RemainingPoints;
+	Candidate.NextRank = Rank < SkillDefinition->MaxRank ? Rank + 1 : 0;
+	Candidate.NextRankCost = Candidate.NextRank > 0 ? FRPGSkillPointService::GetRankPointCost() : 0;
+	Candidate.bAllowUntrainedChecks = SkillDefinition->bAllowUntrainedChecks;
+	Candidate.TrainingState = Rank > 0
+		? EGridSkillTrainingState::Trained
+		: (SkillDefinition->bAllowUntrainedChecks
+			? EGridSkillTrainingState::UntrainedAllowed
+			: EGridSkillTrainingState::TrainingRequired);
+	Candidate.bCanIncreaseRank = bCanIncrease;
+	Candidate.bCanDecreaseRank = SkillEntry->bCanDecreaseRank;
+	Candidate.bAtCurrentRankCap = Rank >= CurrentRankCap;
+	Candidate.bAtSkillMaxRank = Rank >= SkillDefinition->MaxRank;
+
+	if (PresentationCatalog)
+	{
+		if (!IsValid(PresentationCatalog) || !PresentationCatalog->IsValidDefinition())
+		{
+			return false;
+		}
+
+		if (const FRPGSkillPresentationDefinition* Presentation = PresentationCatalog->FindSkill(SkillId))
+		{
+			Candidate.Icon = Presentation->Icon;
+			Candidate.UsageDescription = Presentation->UsageDescription;
+			Candidate.BuildAdvice = Presentation->BuildAdvice;
+
+			auto ResolveClassAffinities =
+				[](const TArray<FName>& ClassIds, TArray<FGridSkillClassAffinityView>& OutAffinities) -> bool
+				{
+					OutAffinities.Reset();
+					for (const FName ClassId : ClassIds)
+					{
+						const URPGClassAsset* ClassDefinition = FRPGAuthoringIdentityResolver::ResolveClassById(ClassId);
+						if (!IsValid(ClassDefinition) || ClassDefinition->DisplayName.IsEmpty())
+						{
+							OutAffinities.Reset();
+							return false;
+						}
+
+						FGridSkillClassAffinityView Affinity;
+						Affinity.ClassId = ClassId;
+						Affinity.DisplayName = ClassDefinition->DisplayName;
+						OutAffinities.Add(MoveTemp(Affinity));
+					}
+					return true;
+				};
+
+			if (!ResolveClassAffinities(Presentation->RecommendedClassIds, Candidate.RecommendedClasses) ||
+				!ResolveClassAffinities(Presentation->UsefulClassIds, Candidate.UsefulClasses))
+			{
+				return false;
+			}
+
+			for (const FName SynergySkillId : Presentation->SynergySkillIds)
+			{
+				const URPGSkillAsset* SynergyDefinition = nullptr;
+				for (const URPGSkillAsset* Definition : SortedDefinitions)
+				{
+					if (Definition && Definition->SkillId == SynergySkillId)
+					{
+						SynergyDefinition = Definition;
+						break;
+					}
+				}
+				if (!IsValid(SynergyDefinition) || SynergyDefinition->DisplayName.IsEmpty())
+				{
+					return false;
+				}
+
+				FGridSkillSynergyView Synergy;
+				Synergy.SkillId = SynergySkillId;
+				Synergy.DisplayName = SynergyDefinition->DisplayName;
+				Candidate.Synergies.Add(MoveTemp(Synergy));
+			}
+		}
+	}
+
+	if (!Candidate.IsValid())
+	{
+		return false;
+	}
+
+	OutView = MoveTemp(Candidate);
+	return true;
 }
 
 void FGridSkillsPageService::ResolveCanonicalSkillDefinitions(TArray<const URPGSkillAsset*>& OutDefinitions)
