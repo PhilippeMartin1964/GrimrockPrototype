@@ -30,7 +30,6 @@ bool FUIRPG062BSkillEntryPresentationTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Governing attribute uses localized UI vocabulary"), UGridSkillEntryWidget::ResolveAttributeLabel(Lockpicking).EqualTo(FText::FromString(TEXT("Dextérité"))));
 	TestTrue(TEXT("Rank uses existing rank/max only"), UGridSkillEntryWidget::ResolveRankLabel(Lockpicking).EqualTo(FText::FromString(TEXT("Rang 0 / 5"))));
 	TestTrue(TEXT("Trained-only policy is explicit"), UGridSkillEntryWidget::ResolveTrainingLabel(Lockpicking).EqualTo(FText::FromString(TEXT("Entraînement requis"))));
-	TestFalse(TEXT("Empty description remains absent"), UGridSkillEntryWidget::HasDescription(Lockpicking));
 
 	FGridSkillEntryView Perception = Lockpicking;
 	Perception.SkillId = TEXT("Skill_Perception");
@@ -39,12 +38,10 @@ bool FUIRPG062BSkillEntryPresentationTest::RunTest(const FString& Parameters)
 	Perception.Rank = 2;
 	Perception.bAllowUntrainedChecks = true;
 	Perception.bTrained = true;
-	Perception.Description = FText::FromString(TEXT("Description réelle."));
 
 	TestTrue(TEXT("Wisdom reuses localized attribute vocabulary"), UGridSkillEntryWidget::ResolveAttributeLabel(Perception).EqualTo(FText::FromString(TEXT("Sagesse"))));
 	TestTrue(TEXT("Trained Skill row initializes"), Widget->InitializeSkillEntry(Perception));
 	TestTrue(TEXT("Trained state is explicit"), UGridSkillEntryWidget::ResolveTrainingLabel(Perception).EqualTo(FText::FromString(TEXT("Entraînée"))));
-	TestTrue(TEXT("Existing description is exposed"), UGridSkillEntryWidget::HasDescription(Perception));
 	return true;
 }
 
@@ -82,6 +79,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FUIRPG062BSkillsRendererContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+
+	TestNull(
+		TEXT("Compact Skill row no longer carries long-form Description"),
+		FGridSkillEntryView::StaticStruct()->FindPropertyByName(TEXT("Description")));
 
 	UClass* SkillsClass = UGridSkillsWidget::StaticClass();
 	TestNotNull(TEXT("SkillEntryWidgetClass property exists"),

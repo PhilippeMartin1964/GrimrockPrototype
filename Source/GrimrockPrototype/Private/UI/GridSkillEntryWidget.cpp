@@ -296,11 +296,6 @@ FText UGridSkillEntryWidget::ResolveTrainingLabel(const FGridSkillEntryView& InE
 	}
 }
 
-bool UGridSkillEntryWidget::HasDescription(const FGridSkillEntryView& InEntry)
-{
-	return !InEntry.Description.IsEmpty();
-}
-
 bool UGridSkillEntryWidget::IsValidEntry(const FGridSkillEntryView& InEntry)
 {
 	const bool bRankCapValid =

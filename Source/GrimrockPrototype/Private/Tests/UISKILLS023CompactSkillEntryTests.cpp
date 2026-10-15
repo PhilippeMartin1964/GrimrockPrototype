@@ -17,7 +17,6 @@ namespace UISKILLS023Tests
 		FGridSkillEntryView Entry;
 		Entry.SkillId = SkillId;
 		Entry.DisplayName = FText::FromString(TEXT("Compétence test"));
-		Entry.Description = FText::FromString(TEXT("Description longue."));
 		Entry.GoverningAttribute = ERPGSkillGoverningAttribute::Dexterity;
 		Entry.Rank = Rank;
 		Entry.MaxRank = 5;

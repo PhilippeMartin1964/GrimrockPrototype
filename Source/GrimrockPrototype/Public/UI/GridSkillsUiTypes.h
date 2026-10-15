@@ -20,9 +20,6 @@ struct GRIMROCKPROTOTYPE_API FGridSkillEntryView
 	FText DisplayName;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
-	FText Description;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	ERPGSkillGoverningAttribute GoverningAttribute = ERPGSkillGoverningAttribute::None;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")

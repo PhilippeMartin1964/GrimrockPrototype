@@ -30,7 +30,6 @@ bool UGridSkillDetailWidget::InitializeSkillDetail(const FGridSkillDetailView& I
 
 	DetailView = InDetailView;
 	bInitialized = true;
-	RefreshResolvedPresentation();
 	RefreshDetailVisual();
 	return true;
 }

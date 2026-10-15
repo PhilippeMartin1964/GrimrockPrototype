@@ -101,9 +101,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|Entry")
 	static FText ResolveTrainingLabel(const FGridSkillEntryView& InEntry);
 
-	UFUNCTION(BlueprintPure, Category = "RPG|Skills|Entry")
-	static bool HasDescription(const FGridSkillEntryView& InEntry);
-
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;

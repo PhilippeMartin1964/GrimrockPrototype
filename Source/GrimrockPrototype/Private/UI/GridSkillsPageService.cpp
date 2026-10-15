@@ -1278,7 +1278,6 @@ bool FGridSkillsPageService::TryBuildCharacterView(UGridPartyInventoryComponent*
 		FGridSkillEntryView SkillView;
 		SkillView.SkillId = Definition->SkillId;
 		SkillView.DisplayName = Definition->DisplayName;
-		SkillView.Description = Definition->Description;
 		SkillView.GoverningAttribute = Definition->GoverningAttribute;
 		SkillView.Rank = Rank;
 		SkillView.MaxRank = Definition->MaxRank;
@@ -1402,7 +1401,6 @@ bool FGridSkillsPageService::TryBuildSkillDetailView(
 	if (PageView.RemainingSkillPoints != Balance.RemainingPoints ||
 		PageView.SkillRankCap != Balance.RankCap ||
 		!SkillEntry->DisplayName.EqualTo(SkillDefinition->DisplayName) ||
-		!SkillEntry->Description.EqualTo(SkillDefinition->Description) ||
 		SkillEntry->GoverningAttribute != SkillDefinition->GoverningAttribute ||
 		SkillEntry->Rank != Rank ||
 		SkillEntry->MaxRank != SkillDefinition->MaxRank ||
@@ -1417,7 +1415,7 @@ bool FGridSkillsPageService::TryBuildSkillDetailView(
 	FGridSkillDetailView Candidate;
 	Candidate.SkillId = SkillId;
 	Candidate.DisplayName = SkillEntry->DisplayName;
-	Candidate.Description = SkillEntry->Description;
+	Candidate.Description = SkillDefinition->Description;
 	Candidate.GoverningAttribute = SkillDefinition->GoverningAttribute;
 	Candidate.GoverningAttributeValue =
 		FRPGSkillCheckService::GetGoverningAttributeValue(Character.Attributes, SkillDefinition->GoverningAttribute);
