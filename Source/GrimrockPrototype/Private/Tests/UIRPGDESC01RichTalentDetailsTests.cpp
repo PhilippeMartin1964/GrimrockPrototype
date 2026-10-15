@@ -1052,6 +1052,43 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC01164AcquisitionWidgetContractTest,
+	"Grimrock.UI.RPG.DESC01.Detail.AcquisitionWidgetContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC01164AcquisitionWidgetContractTest::RunTest(const FString&)
+{
+	UClass* DetailClass = UGridTalentDetailWidget::StaticClass();
+
+	for (const TCHAR* PropertyName : {
+		TEXT("VB_DetailAcquisition"),
+		TEXT("VB_DetailAcquisitionEntries"),
+		TEXT("Button_AcquireTalent"),
+		TEXT("Button_ConfirmAcquire"),
+		TEXT("Text_AcquireTalent"),
+		TEXT("Text_ConfirmAcquire")
+	})
+	{
+		FProperty* Property = DetailClass->FindPropertyByName(FName(PropertyName));
+		if (!TestNotNull(
+			*FString::Printf(TEXT("%s acquisition widget property exists"), PropertyName),
+			Property))
+		{
+			continue;
+		}
+
+		TestTrue(
+			*FString::Printf(TEXT("%s is a mandatory BindWidget"), PropertyName),
+			Property->HasMetaData(TEXT("BindWidget")));
+		TestFalse(
+			*FString::Printf(TEXT("%s is no longer BindWidgetOptional"), PropertyName),
+			Property->HasMetaData(TEXT("BindWidgetOptional")));
+	}
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FUIRPGDESC01163EmptyInitialStateTest,
 	"Grimrock.UI.RPG.DESC01.Detail.EmptyInitialState",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

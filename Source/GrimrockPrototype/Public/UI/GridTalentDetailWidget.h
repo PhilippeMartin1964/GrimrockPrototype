@@ -158,10 +158,10 @@ private:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailUsageEntries;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UVerticalBox> VB_DetailAcquisition;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UVerticalBox> VB_DetailAcquisitionEntries;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Detail|Lines", meta = (AllowPrivateAccess = "true"))
@@ -170,16 +170,16 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Detail|Lines", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<URPGTalentDetailGlyphSet> DetailGlyphSet;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_AcquireTalent;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_ConfirmAcquire;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_AcquireTalent;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_ConfirmAcquire;
 
 };

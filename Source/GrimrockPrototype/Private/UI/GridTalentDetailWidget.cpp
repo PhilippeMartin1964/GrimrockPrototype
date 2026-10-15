@@ -97,28 +97,16 @@ void UGridTalentDetailWidget::SetTalentTypeImage(UTexture2D* ImageTexture)
 
 void UGridTalentDetailWidget::BindAcquireButtons()
 {
-	if (Button_AcquireTalent)
-	{
-		Button_AcquireTalent->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleAcquireClicked);
-		Button_AcquireTalent->OnClicked.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleAcquireClicked);
-	}
-	if (Button_ConfirmAcquire)
-	{
-		Button_ConfirmAcquire->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleConfirmAcquireClicked);
-		Button_ConfirmAcquire->OnClicked.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleConfirmAcquireClicked);
-	}
+	Button_AcquireTalent->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleAcquireClicked);
+	Button_AcquireTalent->OnClicked.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleAcquireClicked);
+	Button_ConfirmAcquire->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleConfirmAcquireClicked);
+	Button_ConfirmAcquire->OnClicked.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleConfirmAcquireClicked);
 }
 
 void UGridTalentDetailWidget::UnbindAcquireButtons()
 {
-	if (Button_AcquireTalent)
-	{
-		Button_AcquireTalent->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleAcquireClicked);
-	}
-	if (Button_ConfirmAcquire)
-	{
-		Button_ConfirmAcquire->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleConfirmAcquireClicked);
-	}
+	Button_AcquireTalent->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleAcquireClicked);
+	Button_ConfirmAcquire->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleConfirmAcquireClicked);
 }
 
 bool UGridTalentDetailWidget::InitializeTalentDetail(
@@ -211,10 +199,7 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	{
 		VB_DetailUsage->SetVisibility(ESlateVisibility::Collapsed);
 	}
-	if (VB_DetailAcquisition)
-	{
-		VB_DetailAcquisition->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	VB_DetailAcquisition->SetVisibility(ESlateVisibility::Collapsed);
 
 	if (VB_DetailEffectsEntries)
 	{
@@ -226,11 +211,8 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 		VB_DetailUsageEntries->ClearChildren();
 		VB_DetailUsageEntries->SetVisibility(ESlateVisibility::Collapsed);
 	}
-	if (VB_DetailAcquisitionEntries)
-	{
-		VB_DetailAcquisitionEntries->ClearChildren();
-		VB_DetailAcquisitionEntries->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	VB_DetailAcquisitionEntries->ClearChildren();
+	VB_DetailAcquisitionEntries->SetVisibility(ESlateVisibility::Collapsed);
 
 	ApplyAcquisitionPresentation();
 }
@@ -495,26 +477,30 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 
 	ApplyStructuredSection(VB_DetailEffects, VB_DetailEffectsEntries);
 	ApplyStructuredSection(VB_DetailUsage, VB_DetailUsageEntries);
-	ApplyStructuredSection(VB_DetailAcquisition, VB_DetailAcquisitionEntries);
+
+	const bool bHasAcquisitionRows = VB_DetailAcquisitionEntries->GetChildrenCount() > 0;
+	const bool bHasAcquisitionAction = CanRequestSimpleAcquisition() || bAcquireConfirmationPending;
+	const ESlateVisibility AcquisitionVisibility =
+		(bHasAcquisitionRows || bHasAcquisitionAction)
+			? ESlateVisibility::SelfHitTestInvisible
+			: ESlateVisibility::Collapsed;
+	VB_DetailAcquisition->SetVisibility(AcquisitionVisibility);
+	VB_DetailAcquisitionEntries->SetVisibility(
+		bHasAcquisitionRows ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 }
 
 void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 {
 	const bool bCanAcquire = CanRequestSimpleAcquisition();
 
-	if (Button_AcquireTalent)
-	{
-		Button_AcquireTalent->SetVisibility(
-			bCanAcquire && !bAcquireConfirmationPending
-				? ESlateVisibility::Visible
-				: ESlateVisibility::Collapsed);
-	}
-	if (Button_ConfirmAcquire)
-	{
-		Button_ConfirmAcquire->SetVisibility(
-			bAcquireConfirmationPending
-				? ESlateVisibility::Visible
-				: ESlateVisibility::Collapsed);
-		Button_ConfirmAcquire->SetIsEnabled(bAcquireConfirmationPending && bCanAcquire);
-	}
+	Button_AcquireTalent->SetVisibility(
+		bCanAcquire && !bAcquireConfirmationPending
+			? ESlateVisibility::Visible
+			: ESlateVisibility::Collapsed);
+
+	Button_ConfirmAcquire->SetVisibility(
+		bAcquireConfirmationPending
+			? ESlateVisibility::Visible
+			: ESlateVisibility::Collapsed);
+	Button_ConfirmAcquire->SetIsEnabled(bAcquireConfirmationPending && bCanAcquire);
 }
