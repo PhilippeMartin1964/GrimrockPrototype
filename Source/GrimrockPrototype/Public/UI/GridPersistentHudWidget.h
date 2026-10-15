@@ -9,6 +9,7 @@
 class AGrimrockPartyPawn;
 class UButton;
 class UGridCombatHudActionWidget;
+class UGridNavigationTooltipWidget;
 class UGridPartyInventoryComponent;
 class UGridRPGNotificationWidget;
 class UHorizontalBox;
@@ -34,6 +35,10 @@ public:
 	/** Required visual class for persistent action-bar slots. The combat HUD no longer provides a fallback. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Persistent|Actions")
 	TSubclassOf<UGridCombatHudActionWidget> ActionWidgetClass;
+
+	/** Compact custom tooltip class shared by ESC/I/K/G/M/J/H navigation buttons. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD|Persistent|Navigation")
+	TSubclassOf<UGridNavigationTooltipWidget> NavigationTooltipWidgetClass;
 
 	/** Used only until the first action widget can report its authored desired width. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Persistent|Actions", meta = (ClampMin = "1.0"))
@@ -131,6 +136,7 @@ private:
 	void SynchronizeActionBarToViewport();
 	void BindNavigationButtons();
 	void UnbindNavigationButtons();
+	void ApplyNavigationTooltips();
 	void RefreshNavigationSelection();
 	void EnsureActionWidgets();
 	void RefreshActionWidgets();

@@ -71,6 +71,54 @@ Chaque image est :
 
 `ESC` possède aussi un binding optionnel `Image_NavEscapeSelectionFrame`, mais il reste volontairement non sélectionné tant que le menu pause/main-menu Blueprint n'expose pas une autorité native de visibilité. Aucun faux état n'est inventé.
 
+## Tooltips de navigation
+
+Les sept boutons `ESC / I / K / G / M / J / H` utilisent un tooltip UMG compact
+et homogène avec le style de `WBP_ItemTooltip`, mais sans aucune donnée d'item.
+
+Le presenter natif est :
+
+```text
+UGridNavigationTooltipWidget
+└── Text_Tooltip [BindWidget]
+```
+
+Le Widget Blueprint à créer dans l'éditeur est :
+
+```text
+WBP_GridNavigationTooltip
+Parent Class = UGridNavigationTooltipWidget
+
+Border_Tooltip
+└── Text_Tooltip
+```
+
+`Border_Tooltip` reprend le brush, le padding et la typographie de
+`WBP_ItemTooltip`. Aucun champ d'item, icône, poids, statistique ou comparaison
+n'est réutilisé. Le widget est non hit-testable.
+
+`WBP_GridPersistentHud` configure une seule classe :
+
+```text
+Navigation Tooltip Widget Class = WBP_GridNavigationTooltip
+```
+
+Le C++ crée ensuite automatiquement un tooltip par bouton et résout les textes
+via `ST_UI` :
+
+```text
+ESC -> Menu / Retour
+I   -> Inventaire
+K   -> Compétences et talents
+G   -> Artisanat
+M   -> Carte
+J   -> Journal
+H   -> Aide / Codex
+```
+
+Les touches ne sont pas répétées dans le texte du tooltip : elles restent déjà
+visibles sur les boutons eux-mêmes.
+
 ## Barre générale d'actions
 
 La barre persistante contient désormais **un nombre dynamique de slots**. Elle conserve un minimum de **12 slots clavier** et ajoute autant de slots souris que la largeur réellement disponible permet d'en afficher.

@@ -80,6 +80,13 @@ $TranslationsByKey = [ordered]@{
     "Interaction.Throw.NoTargetUnderCursor" = "No throw target under the cursor."
     "Interaction.Throw.TooHeavy" = "Too heavy: {Weight} kg (maximum {MaximumWeight} kg with Strength {Strength})."
     "Progression.LevelUp.CharacterFallback" = "Character {Index}"
+    "Navigation.Tooltip.Escape" = "Menu / Back"
+    "Navigation.Tooltip.Inventory" = "Inventory"
+    "Navigation.Tooltip.Skills" = "Skills and Talents"
+    "Navigation.Tooltip.Crafting" = "Crafting"
+    "Navigation.Tooltip.Map" = "Map"
+    "Navigation.Tooltip.Journal" = "Journal"
+    "Navigation.Tooltip.Help" = "Help / Codex"
 }
 
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)

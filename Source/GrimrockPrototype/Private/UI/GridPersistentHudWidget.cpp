@@ -12,8 +12,10 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GrimrockPlayerController.h"
 #include "UI/GridCombatHudWidget.h"
+#include "UI/GridNavigationTooltipWidget.h"
 #include "UI/GridRPGNotificationWidget.h"
 #include "UI/GrimrockMenuWidget.h"
+#include "UI/UILocalizationText.h"
 
 namespace
 {
@@ -55,6 +57,7 @@ void UGridPersistentHudWidget::NativeConstruct()
 	Super::NativeConstruct();
 	VisibleActionSlotCount = FGridCombatHotbarBinding::MinimumSlotCount;
 	BindNavigationButtons();
+	ApplyNavigationTooltips();
 	EnsureActionWidgets();
 	RefreshFromSources();
 }
@@ -105,6 +108,47 @@ bool UGridPersistentHudWidget::ShowProgressionNotification(const FRPGProgression
 
 	Notification_Progression->ShowNotification(Notification);
 	return true;
+}
+
+void UGridPersistentHudWidget::ApplyNavigationTooltips()
+{
+	if (!NavigationTooltipWidgetClass)
+	{
+		return;
+	}
+
+	const auto AssignTooltip = [this](UButton* Button, const TCHAR* TextKey)
+	{
+		if (!Button)
+		{
+			return;
+		}
+
+		const FText TooltipText = FUILocalizationText::Get(TextKey);
+		if (TooltipText.IsEmpty())
+		{
+			return;
+		}
+
+		UGridNavigationTooltipWidget* TooltipWidget =
+			CreateWidget<UGridNavigationTooltipWidget>(this, NavigationTooltipWidgetClass);
+		if (!TooltipWidget)
+		{
+			return;
+		}
+
+		TooltipWidget->InitializeTooltip(TooltipText);
+		TooltipWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+		Button->SetToolTip(TooltipWidget);
+	};
+
+	AssignTooltip(Button_NavEscape, TEXT("Navigation.Tooltip.Escape"));
+	AssignTooltip(Button_NavInventory, TEXT("Navigation.Tooltip.Inventory"));
+	AssignTooltip(Button_NavSkills, TEXT("Navigation.Tooltip.Skills"));
+	AssignTooltip(Button_NavCrafting, TEXT("Navigation.Tooltip.Crafting"));
+	AssignTooltip(Button_NavMap, TEXT("Navigation.Tooltip.Map"));
+	AssignTooltip(Button_NavJournal, TEXT("Navigation.Tooltip.Journal"));
+	AssignTooltip(Button_NavHelp, TEXT("Navigation.Tooltip.Help"));
 }
 
 void UGridPersistentHudWidget::BindNavigationButtons()

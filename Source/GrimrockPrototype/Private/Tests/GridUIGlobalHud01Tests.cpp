@@ -13,6 +13,7 @@
 #include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridMapWidget.h"
+#include "UI/GridNavigationTooltipWidget.h"
 #include "UI/GridSkillsWidget.h"
 #include "UI/GridPersistentHudWidget.h"
 #include "UI/GrimrockMenuWidget.h"
@@ -122,6 +123,40 @@ bool FGridUICombatUnify01ContractsTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("DisabledOpacity is editable on widget defaults"), DisabledOpacityProperty->HasAnyPropertyFlags(CPF_Edit));
 		TestTrue(TEXT("DisabledOpacity is not a per-instance authority"), DisabledOpacityProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance));
 	}
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIGlobalHud01NavigationTooltipContractTest, "Grimrock.UI.GlobalHud01.NavigationTooltipContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIGlobalHud01NavigationTooltipContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	const UClass* HudClass = UGridPersistentHudWidget::StaticClass();
+	const FProperty* TooltipClassProperty = HudClass->FindPropertyByName(TEXT("NavigationTooltipWidgetClass"));
+	if (TestNotNull(TEXT("Persistent HUD exposes one shared navigation-tooltip class"), TooltipClassProperty))
+	{
+		TestTrue(TEXT("Navigation tooltip class is editable on widget defaults"),
+			TooltipClassProperty->HasAnyPropertyFlags(CPF_Edit));
+		TestTrue(TEXT("Navigation tooltip class is not a per-instance authority"),
+			TooltipClassProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance));
+	}
+
+	const UClass* TooltipClass = UGridNavigationTooltipWidget::StaticClass();
+	const FProperty* TextBinding = TooltipClass->FindPropertyByName(TEXT("Text_Tooltip"));
+	if (TestNotNull(TEXT("Navigation tooltip requires Text_Tooltip"), TextBinding))
+	{
+		TestTrue(TEXT("Text_Tooltip is a mandatory BindWidget"),
+			TextBinding->HasMetaData(TEXT("BindWidget")));
+	}
+
+	UGridNavigationTooltipWidget* Tooltip = NewObject<UGridNavigationTooltipWidget>();
+	const FText Expected = FText::FromString(TEXT("Inventaire"));
+	Tooltip->InitializeTooltip(Expected);
+	TestEqual(TEXT("Navigation tooltip stores exactly the supplied player-facing text"),
+		Tooltip->TooltipText.ToString(), Expected.ToString());
 
 	return true;
 }
