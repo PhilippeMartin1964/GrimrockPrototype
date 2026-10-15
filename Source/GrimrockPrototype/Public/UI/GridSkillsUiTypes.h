@@ -5,6 +5,8 @@
 #include "RPG/RPGClassAsset.h"
 #include "GridSkillsUiTypes.generated.h"
 
+class UTexture2D;
+
 /** Read-only presentation of one canonical Skill for the selected character. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridSkillEntryView
@@ -45,6 +47,246 @@ struct GRIMROCKPROTOTYPE_API FGridSkillEntryView
 	/** Session-only undo availability, supplied by UGridSkillsWidget. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	bool bCanDecreaseRank = false;
+};
+
+
+/** Stable UI semantic for the current training state of one Skill. */
+UENUM(BlueprintType)
+enum class EGridSkillTrainingState : uint8
+{
+	UntrainedAllowed,
+	TrainingRequired,
+	Trained
+};
+
+/** Resolved class label used by the Skill detail read model. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridSkillClassAffinityView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	FName ClassId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	FText DisplayName;
+
+	bool IsValid() const
+	{
+		return !ClassId.IsNone() && !DisplayName.IsEmpty();
+	}
+};
+
+/** Resolved related-Skill label used by the Skill detail read model. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridSkillSynergyView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	FName SkillId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	FText DisplayName;
+
+	bool IsValid() const
+	{
+		return !SkillId.IsNone() && !DisplayName.IsEmpty();
+	}
+};
+
+/**
+ * Presentation-ready detail projection for one selected Skill.
+ *
+ * This structure owns no gameplay state. Dynamic values are projected from the
+ * selected character and existing Skill services; authored guidance comes from
+ * URPGSkillPresentationAsset.
+ */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridSkillDetailView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	FName SkillId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	FText DisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	FText Description;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	TSoftObjectPtr<UTexture2D> Icon;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	ERPGSkillGoverningAttribute GoverningAttribute = ERPGSkillGoverningAttribute::None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	int32 GoverningAttributeValue = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	int32 GoverningAttributeModifier = 0;
+
+	/** Rank + governing attribute modifier only; excludes Talent, party and contextual modifiers. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	int32 BaseCheckBonus = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	int32 Rank = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	int32 MaxRank = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	int32 CurrentRankCap = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	int32 RemainingSkillPoints = 0;
+
+	/** Zero only when the Skill is already at MaxRank. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	int32 NextRank = 0;
+
+	/** Cost of NextRank; zero only when no next rank exists. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	int32 NextRankCost = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	bool bAllowUntrainedChecks = true;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	EGridSkillTrainingState TrainingState = EGridSkillTrainingState::UntrainedAllowed;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	bool bCanIncreaseRank = false;
+
+	/** Session-only undo availability; never persistent Skill authority. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	bool bCanDecreaseRank = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	bool bAtCurrentRankCap = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	bool bAtSkillMaxRank = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	FText UsageDescription;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	FText BuildAdvice;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	TArray<FGridSkillClassAffinityView> RecommendedClasses;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	TArray<FGridSkillClassAffinityView> UsefulClasses;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	TArray<FGridSkillSynergyView> Synergies;
+
+	bool IsValid() const
+	{
+		if (SkillId.IsNone() ||
+			MaxRank < 1 ||
+			Rank < 0 ||
+			Rank > MaxRank ||
+			CurrentRankCap < 1 ||
+			CurrentRankCap > MaxRank ||
+			Rank > CurrentRankCap ||
+			RemainingSkillPoints < 0)
+		{
+			return false;
+		}
+
+		if (GoverningAttribute == ERPGSkillGoverningAttribute::None &&
+			(GoverningAttributeValue != 0 || GoverningAttributeModifier != 0))
+		{
+			return false;
+		}
+
+		if (BaseCheckBonus != Rank + GoverningAttributeModifier)
+		{
+			return false;
+		}
+
+		const EGridSkillTrainingState ExpectedTrainingState =
+			Rank > 0
+				? EGridSkillTrainingState::Trained
+				: (bAllowUntrainedChecks
+					? EGridSkillTrainingState::UntrainedAllowed
+					: EGridSkillTrainingState::TrainingRequired);
+		if (TrainingState != ExpectedTrainingState)
+		{
+			return false;
+		}
+
+		const bool bExpectedAtSkillMaxRank = Rank >= MaxRank;
+		const bool bExpectedAtCurrentRankCap = Rank >= CurrentRankCap;
+		if (bAtSkillMaxRank != bExpectedAtSkillMaxRank ||
+			bAtCurrentRankCap != bExpectedAtCurrentRankCap)
+		{
+			return false;
+		}
+
+		const int32 ExpectedNextRank = Rank < MaxRank ? Rank + 1 : 0;
+		if (NextRank != ExpectedNextRank ||
+			(ExpectedNextRank == 0 && NextRankCost != 0) ||
+			(ExpectedNextRank > 0 && NextRankCost < 1))
+		{
+			return false;
+		}
+
+		if (bCanIncreaseRank &&
+			(bAtSkillMaxRank ||
+			 bAtCurrentRankCap ||
+			 RemainingSkillPoints < NextRankCost))
+		{
+			return false;
+		}
+
+		if (bCanDecreaseRank && Rank <= 0)
+		{
+			return false;
+		}
+
+		TSet<FName> RecommendedIds;
+		for (const FGridSkillClassAffinityView& ClassView : RecommendedClasses)
+		{
+			if (!ClassView.IsValid() || RecommendedIds.Contains(ClassView.ClassId))
+			{
+				return false;
+			}
+			RecommendedIds.Add(ClassView.ClassId);
+		}
+
+		TSet<FName> UsefulIds;
+		for (const FGridSkillClassAffinityView& ClassView : UsefulClasses)
+		{
+			if (!ClassView.IsValid() ||
+				UsefulIds.Contains(ClassView.ClassId) ||
+				RecommendedIds.Contains(ClassView.ClassId))
+			{
+				return false;
+			}
+			UsefulIds.Add(ClassView.ClassId);
+		}
+
+		TSet<FName> SynergyIds;
+		for (const FGridSkillSynergyView& Synergy : Synergies)
+		{
+			if (!Synergy.IsValid() ||
+				Synergy.SkillId == SkillId ||
+				SynergyIds.Contains(Synergy.SkillId))
+			{
+				return false;
+			}
+			SynergyIds.Add(Synergy.SkillId);
+		}
+
+		return true;
+	}
 };
 
 UENUM(BlueprintType)
