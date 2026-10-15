@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Game\n"
-"POT-Creation-Date: 2026-10-14 19:49\n"
-"PO-Revision-Date: 2026-10-14 19:49\n"
+"POT-Creation-Date: 2026-10-15 07:39\n"
+"PO-Revision-Date: 2026-10-15 07:39\n"
 "Language-Team: \n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
@@ -235,6 +235,13 @@ msgstr ""
 #: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextLabel_Wisdom.Text
 msgctxt ",1EE4C47E4745D1A4D33CA7858DDB3630"
 msgid "SAG"
+msgstr ""
+
+#. Key:	2B705A9247D3DC222DB06B9CA87D3C3A
+#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_GridNavigationTooltip.WBP_GridNavigationTooltip_C:WidgetTree.Text_Tooltip.Text
+#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_GridNavigationTooltip.WBP_GridNavigationTooltip_C:WidgetTree.Text_Tooltip.Text
+msgctxt ",2B705A9247D3DC222DB06B9CA87D3C3A"
+msgid "Tooltip"
 msgstr ""
 
 #. Key:	CBA296E84173F135977F2DA2A0966F06
@@ -1385,6 +1392,132 @@ msgctxt ",DD84A1B54A5EB98C467FFD8DA32F61BF"
 msgid "Alchimiste"
 msgstr ""
 
+#. Key:	D6AAEBB645F6B87D5EF8238AE1282ED8
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(0).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(0).CombatActions.Description
+msgctxt ",D6AAEBB645F6B87D5EF8238AE1282ED8"
+msgid "Le prochain sort de l'affinité élémentaire inflige +35 % de dégâts avant de consommer la surcharge."
+msgstr ""
+
+#. Key:	BC3E66814EB2E266BD10788A641CBD03
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(0).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(0).CombatActions.DisplayName
+msgctxt ",BC3E66814EB2E266BD10788A641CBD03"
+msgid "Surcharge élémentaire"
+msgstr ""
+
+#. Key:	8ED44F924647787F3FCF3DAB6DFFC0D7
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(1).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(1).CombatActions.Description
+msgctxt ",8ED44F924647787F3FCF3DAB6DFFC0D7"
+msgid "Frappe la cible primaire puis jusqu'à deux hostiles adjacents, une seule fois chacun."
+msgstr ""
+
+#. Key:	DFA9C30D40BA117B798AF282235142D6
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(1).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(1).CombatActions.DisplayName
+msgctxt ",DFA9C30D40BA117B798AF282235142D6"
+msgid "Chaîne élémentaire"
+msgstr ""
+
+#. Key:	DCF0FF1D434109C104669B9C282B2DBC
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(2).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(2).CombatActions.Description
+msgctxt ",DCF0FF1D434109C104669B9C282B2DBC"
+msgid "Frappe tous les hostiles dans un rayon de 2 et applique le contrôle de l'affinité si l'armure magique est épuisée."
+msgstr ""
+
+#. Key:	F62802644BD468BB2A0E299CC0620CAD
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(2).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(2).CombatActions.DisplayName
+msgctxt ",F62802644BD468BB2A0E299CC0620CAD"
+msgid "Cataclysme"
+msgstr ""
+
+#. Key:	DA42A3D64B3263CA5F81A0AB6D0DAFF8
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(3).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(3).CombatActions.Description
+msgctxt ",DA42A3D64B3263CA5F81A0AB6D0DAFF8"
+msgid "Restaure l'armure magique de 6 + modificateur d'INT + rang d'Arcane."
+msgstr ""
+
+#. Key:	03D1B9C1462D0C27BDB30D9B5B3BEB5A
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(3).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(3).CombatActions.DisplayName
+msgctxt ",03D1B9C1462D0C27BDB30D9B5B3BEB5A"
+msgid "Bouclier arcanique"
+msgstr ""
+
+#. Key:	BF0FE53F486C6C563ABF1FACEF13BB39
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(4).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(4).CombatActions.Description
+msgctxt ",BF0FE53F486C6C563ABF1FACEF13BB39"
+msgid "Allié : retire le Debuff magique amovible prioritaire. Hostile : retire le Buff magique amovible prioritaire."
+msgstr ""
+
+#. Key:	069D629646AA637CF02508A041759C0D
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(4).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(4).CombatActions.DisplayName
+msgctxt ",069D629646AA637CF02508A041759C0D"
+msgid "Dissipation"
+msgstr ""
+
+#. Key:	6A2279134ECDF01D62BEF894A3C2606F
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(5).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(5).CombatActions.Description
+msgctxt ",6A2279134ECDF01D62BEF894A3C2606F"
+msgid "Téléporte le groupe vers une cellule visible, libre et marchable à portée 2, sans PAM."
+msgstr ""
+
+#. Key:	C2F427AE4B5BAB6290C5AE812E2BE96E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(5).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(5).CombatActions.DisplayName
+msgctxt ",C2F427AE4B5BAB6290C5AE812E2BE96E"
+msgid "Téléportation courte"
+msgstr ""
+
+#. Key:	A1E11EB84C67F59E656C1EA3C760E41B
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(6).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(6).CombatActions.Description
+msgctxt ",A1E11EB84C67F59E656C1EA3C760E41B"
+msgid "Imprègne l'arme de la cible ; sa prochaine attaque d'arme ajoute 3 + modificateur d'INT du Mage en dégâts d'affinité."
+msgstr ""
+
+#. Key:	05C340B744A5A10E5A6BCD84CE4D3E2F
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(6).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(6).CombatActions.DisplayName
+msgctxt ",05C340B744A5A10E5A6BCD84CE4D3E2F"
+msgid "Imprégnation"
+msgstr ""
+
+#. Key:	6BC88C734669C7613C4AC0BA42F4EFBE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(7).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(7).CombatActions.Description
+msgctxt ",6BC88C734669C7613C4AC0BA42F4EFBE"
+msgid "Convertit les surfaces dans une zone selon l'affinité élémentaire."
+msgstr ""
+
+#. Key:	DE21E3834C5A7E7E52DF2DB5077D3003
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(7).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(7).CombatActions.DisplayName
+msgctxt ",DE21E3834C5A7E7E52DF2DB5077D3003"
+msgid "Conversion élémentaire"
+msgstr ""
+
+#. Key:	FFA23E6B4411543BBA1BC596C74F9DFF
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(8).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(8).CombatActions.Description
+msgctxt ",FFA23E6B4411543BBA1BC596C74F9DFF"
+msgid "Crée pendant 3 rounds une grande surface liée à l'affinité."
+msgstr ""
+
+#. Key:	740FF1214144D77D102CD09062B8F9F9
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(8).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.CombatActions(8).CombatActions.DisplayName
+msgctxt ",740FF1214144D77D102CD09062B8F9F9"
+msgid "Architecte du terrain"
+msgstr ""
+
 #. Key:	2A4CB94844598953B7C0AC9595EAB702
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.Description
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.Description
@@ -1397,6 +1530,300 @@ msgstr ""
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.DisplayName
 msgctxt ",7B699DF74E3E603F39DEB6B56D5515D9"
 msgid "Mage"
+msgstr ""
+
+#. Key:	BC20FAA3442CF2A5E9FBCB98B474DC3F
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(0).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(0).ProgressionChoices.Description
+msgctxt ",BC20FAA3442CF2A5E9FBCB98B474DC3F"
+msgid "Les sorts de l'école choisie infligent +15 % de dégâts."
+msgstr ""
+
+#. Key:	9C83297041F285AE20E25E809E7DED56
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(0).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(0).ProgressionChoices.DisplayName
+msgctxt ",9C83297041F285AE20E25E809E7DED56"
+msgid "Affinité élémentaire - Feu"
+msgstr ""
+
+#. Key:	6439FF6A48FD3D9FADD30CB912DD09F3
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(1).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(1).ProgressionChoices.Description
+msgctxt ",6439FF6A48FD3D9FADD30CB912DD09F3"
+msgid "Les sorts de l'école choisie infligent +15 % de dégâts."
+msgstr ""
+
+#. Key:	D1F4F6534A6ADAAF9CD36BA19CCDCA35
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(1).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(1).ProgressionChoices.DisplayName
+msgctxt ",D1F4F6534A6ADAAF9CD36BA19CCDCA35"
+msgid "Affinité élémentaire - Glace"
+msgstr ""
+
+#. Key:	CE89621640E23B4440A9938B28D9C286
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(10).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(10).ProgressionChoices.Description
+msgctxt ",CE89621640E23B4440A9938B28D9C286"
+msgid "Jets de Runes +2. Les dégâts arcaniques contre les cibles runiques ou artificielles augmentent de 20 %. Les interactions avec les mécanismes runiques gagnent également +2 au test, sans réussite automatique."
+msgstr ""
+
+#. Key:	366082714CDF6A92F6299A9EDE424805
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(10).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(10).ProgressionChoices.DisplayName
+msgctxt ",366082714CDF6A92F6299A9EDE424805"
+msgid "Manipulation runique"
+msgstr ""
+
+#. Key:	98CCAA40459FC3202CAE65BEAF77B854
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(11).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(11).ProgressionChoices.Description
+msgctxt ",98CCAA40459FC3202CAE65BEAF77B854"
+msgid "Téléporte le groupe entier vers une cellule visible, libre et marchable. Ne traverse ni mur solide, ni porte fermée, ni frontière de niveau et ne déclenche aucune transition. Aucun PAM dépensé."
+msgstr ""
+
+#. Key:	F74CE93043B746C2764E628CF204A430
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(11).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(11).ProgressionChoices.DisplayName
+msgctxt ",F74CE93043B746C2764E628CF204A430"
+msgid "Téléportation courte"
+msgstr ""
+
+#. Key:	2736A19E4D88DCCD8F4246B5DF171202
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(12).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(12).ProgressionChoices.Description
+msgctxt ",2736A19E4D88DCCD8F4246B5DF171202"
+msgid "Les sorts de l'école arcanique coûtent 1 point de mana de moins (minimum 1), gagnent +1 cellule de portée (maximum 32) et infligent +15 % de dégâts arcaniques."
+msgstr ""
+
+#. Key:	FC8D644E41ECAAA68266A3925EFEF1A2
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(12).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(12).ProgressionChoices.DisplayName
+msgctxt ",FC8D644E41ECAAA68266A3925EFEF1A2"
+msgid "Maîtrise de l'Arcane"
+msgstr ""
+
+#. Key:	09ABEE744585C94BFB029BAAD3A87FA5
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(13).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(13).ProgressionChoices.Description
+msgctxt ",09ABEE744585C94BFB029BAAD3A87FA5"
+msgid "Choisit cette affinité pour la branche Tisseur de surfaces et donne accès à Imprégnation. Imprégnation cible un allié : sa prochaine attaque d'arme ajoute 3 + modificateur d'Intelligence du Mage en dégâts de cette affinité. L'effet dure au maximum 2 rounds et est consommé par la première attaque d'arme réussie."
+msgstr ""
+
+#. Key:	027A623C4716606D7CDF119C834F1D22
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(13).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(13).ProgressionChoices.DisplayName
+msgctxt ",027A623C4716606D7CDF119C834F1D22"
+msgid "Imprégnation - Feu"
+msgstr ""
+
+#. Key:	D05D1B3D4D2F53B9A2E53DAC10565E61
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(14).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(14).ProgressionChoices.Description
+msgctxt ",D05D1B3D4D2F53B9A2E53DAC10565E61"
+msgid "Choisit cette affinité pour la branche Tisseur de surfaces et donne accès à Imprégnation. Imprégnation cible un allié : sa prochaine attaque d'arme ajoute 3 + modificateur d'Intelligence du Mage en dégâts de cette affinité. L'effet dure au maximum 2 rounds et est consommé par la première attaque d'arme réussie."
+msgstr ""
+
+#. Key:	15B5CE8E40EC83EC4D8941B0A7524AD0
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(14).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(14).ProgressionChoices.DisplayName
+msgctxt ",15B5CE8E40EC83EC4D8941B0A7524AD0"
+msgid "Imprégnation - Glace"
+msgstr ""
+
+#. Key:	E2F9A7ED4BAF39BD29EA8BA7335152D6
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(15).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(15).ProgressionChoices.Description
+msgctxt ",E2F9A7ED4BAF39BD29EA8BA7335152D6"
+msgid "Choisit cette affinité pour la branche Tisseur de surfaces et donne accès à Imprégnation. Imprégnation cible un allié : sa prochaine attaque d'arme ajoute 3 + modificateur d'Intelligence du Mage en dégâts de cette affinité. L'effet dure au maximum 2 rounds et est consommé par la première attaque d'arme réussie."
+msgstr ""
+
+#. Key:	5F9A983641BC1F81CC9AFD9C02C8000B
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(15).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(15).ProgressionChoices.DisplayName
+msgctxt ",5F9A983641BC1F81CC9AFD9C02C8000B"
+msgid "Imprégnation - Air"
+msgstr ""
+
+#. Key:	CEDD13AD410D3D489E1B9C92EF411041
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(16).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(16).ProgressionChoices.Description
+msgctxt ",CEDD13AD410D3D489E1B9C92EF411041"
+msgid "Choisit cette affinité pour la branche Tisseur de surfaces et donne accès à Imprégnation. Imprégnation cible un allié : sa prochaine attaque d'arme ajoute 3 + modificateur d'Intelligence du Mage en dégâts de cette affinité. L'effet dure au maximum 2 rounds et est consommé par la première attaque d'arme réussie."
+msgstr ""
+
+#. Key:	25BC1DDD48B704623AEDE0AADBD0CA22
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(16).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(16).ProgressionChoices.DisplayName
+msgctxt ",25BC1DDD48B704623AEDE0AADBD0CA22"
+msgid "Imprégnation - Terre"
+msgstr ""
+
+#. Key:	B24EA8D747C0BEC2F854C7A7834A50A5
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(17).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(17).ProgressionChoices.Description
+msgctxt ",B24EA8D747C0BEC2F854C7A7834A50A5"
+msgid "Convertit une surface selon la table canonique : Eau → Glace (affinité Glace), Eau/Sang → Eau électrifiée (Air), Huile/Poison → Feu (Feu), Eau → Poison ou terrain neutre → Huile (Terre). Aucun effet si la conversion est invalide."
+msgstr ""
+
+#. Key:	C1D96A8447586CBB98C7BEBA79788AB0
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(17).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(17).ProgressionChoices.DisplayName
+msgctxt ",C1D96A8447586CBB98C7BEBA79788AB0"
+msgid "Conversion élémentaire"
+msgstr ""
+
+#. Key:	DC726BC24756993DE2E436B199462B29
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(18).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(18).ProgressionChoices.Description
+msgctxt ",DC726BC24756993DE2E436B199462B29"
+msgid "Une attaque élémentaire exploitant une surface ou un état compatible gagne +20 % de dégâts. Si elle détruit l'armure magique, son contrôle associé peut s'appliquer immédiatement après les dégâts si les conditions d'armure sont remplies."
+msgstr ""
+
+#. Key:	60B6EBA542487B5D57627988B2EE3280
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(18).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(18).ProgressionChoices.DisplayName
+msgctxt ",60B6EBA542487B5D57627988B2EE3280"
+msgid "Conduction"
+msgstr ""
+
+#. Key:	D0FA7499411A4369538DAC8E7C4B8430
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(19).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(19).ProgressionChoices.Description
+msgctxt ",D0FA7499411A4369538DAC8E7C4B8430"
+msgid "Surfaces créées par le Mage : durée +2 rounds, plafonnée à 6 ; dégâts périodiques de surface +15 %. Ne prolonge pas les surfaces du décor ou d'un autre auteur."
+msgstr ""
+
+#. Key:	BE2A3DE24899A89454F3ACA0ACEE44BB
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(19).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(19).ProgressionChoices.DisplayName
+msgctxt ",BE2A3DE24899A89454F3ACA0ACEE44BB"
+msgid "Surface persistante"
+msgstr ""
+
+#. Key:	0BFA5BA54270AADED817E3B5F19B8ACF
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(2).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(2).ProgressionChoices.Description
+msgctxt ",0BFA5BA54270AADED817E3B5F19B8ACF"
+msgid "Les sorts de l'école choisie infligent +15 % de dégâts."
+msgstr ""
+
+#. Key:	11BBD2D945403C9ABD56AE9A01BD6EBA
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(2).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(2).ProgressionChoices.DisplayName
+msgctxt ",11BBD2D945403C9ABD56AE9A01BD6EBA"
+msgid "Affinité élémentaire - Air"
+msgstr ""
+
+#. Key:	7C77A98747206FAE11E73698239BE73E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(20).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(20).ProgressionChoices.Description
+msgctxt ",7C77A98747206FAE11E73698239BE73E"
+msgid "Crée pendant 3 rounds une grande surface maîtrisée liée à l'affinité (Feu, Glace, Eau électrifiée, Huile/Poison). Les réactions standards sont ensuite résolues par le système de surfaces, sans effet spécial codé en dur dans le Talent."
+msgstr ""
+
+#. Key:	34BC702248B51CCADBA32FB4FFDBC4A4
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(20).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(20).ProgressionChoices.DisplayName
+msgctxt ",34BC702248B51CCADBA32FB4FFDBC4A4"
+msgid "Architecte du terrain"
+msgstr ""
+
+#. Key:	0BD2BE244B75929A54ABB9AA25767BD1
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(3).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(3).ProgressionChoices.Description
+msgctxt ",0BD2BE244B75929A54ABB9AA25767BD1"
+msgid "Les sorts de l'école choisie infligent +15 % de dégâts."
+msgstr ""
+
+#. Key:	3504291C4F366EA3DBD7518FC808DB74
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(3).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(3).ProgressionChoices.DisplayName
+msgctxt ",3504291C4F366EA3DBD7518FC808DB74"
+msgid "Affinité élémentaire - Terre"
+msgstr ""
+
+#. Key:	EDFCEF6E4930CFD488DEF9966967CF61
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(4).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(4).ProgressionChoices.Description
+msgctxt ",EDFCEF6E4930CFD488DEF9966967CF61"
+msgid "Applique Status_ElementalOverload jusqu'à la fin du tour. Le prochain sort de l'Affinité gagne +35 % dégâts puis consomme l'effet."
+msgstr ""
+
+#. Key:	3ED66A4744AC671506070B8A4D4F9C62
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(4).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(4).ProgressionChoices.DisplayName
+msgctxt ",3ED66A4744AC671506070B8A4D4F9C62"
+msgid "Surcharge élémentaire"
+msgstr ""
+
+#. Key:	D3CA30C14B0A4E4EB0850D8716EE2DE8
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(5).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(5).ProgressionChoices.Description
+msgctxt ",D3CA30C14B0A4E4EB0850D8716EE2DE8"
+msgid "Le Mage ne subit aucun dégât direct de ses propres sorts de zone ; ses alliés en subissent 50 % de moins. Les surfaces et statuts créés restent inchangés et peuvent toujours affecter le groupe."
+msgstr ""
+
+#. Key:	4E075D3D44726DC7551BEE8AEDB033A5
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(5).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(5).ProgressionChoices.DisplayName
+msgctxt ",4E075D3D44726DC7551BEE8AEDB033A5"
+msgid "Explosion contrôlée"
+msgstr ""
+
+#. Key:	1FA8A44243BAEDE5C3AACCB3EBCADBD9
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(6).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(6).ProgressionChoices.Description
+msgctxt ",1FA8A44243BAEDE5C3AACCB3EBCADBD9"
+msgid "Cible primaire puis jusqu'à 2 autres hostiles à 1 cellule ou moins du précédent. Chaque impact inflige 7 + modificateur d'INT + rang d'Arcane du type de dégâts associé au sort d'affinité. Une cible ne peut être touchée qu'une fois."
+msgstr ""
+
+#. Key:	B68DB4A04C26D25D04229FB5D565C9D8
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(6).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(6).ProgressionChoices.DisplayName
+msgctxt ",B68DB4A04C26D25D04229FB5D565C9D8"
+msgid "Chaîne élémentaire"
+msgstr ""
+
+#. Key:	11432E3D47BB66F209468C9FCA65F8CA
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(7).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(7).ProgressionChoices.Description
+msgctxt ",11432E3D47BB66F209468C9FCA65F8CA"
+msgid "Chaque hostile subit 12 + modificateur d'INT + rang d'Arcane dégâts d'affinité. Si son armure magique est épuisée après les dégâts : Feu → Brûlure 2 rounds ; Glace → Ralentissement (Initiative -6) 2 rounds ; Air/Foudre → Étourdissement 1 tour ; Terre → Immobilisation 1 round ou Poison 3 tours selon le sort choisi."
+msgstr ""
+
+#. Key:	E0E2B2C74F8697D365A94389ADD90030
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(7).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(7).ProgressionChoices.DisplayName
+msgctxt ",E0E2B2C74F8697D365A94389ADD90030"
+msgid "Cataclysme"
+msgstr ""
+
+#. Key:	91E74A884EFA8F749BD5E688B87DEE31
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(8).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(8).ProgressionChoices.Description
+msgctxt ",91E74A884EFA8F749BD5E688B87DEE31"
+msgid "Restaure 6 + modificateur d'INT + rang d'Arcane points d'armure magique, sans dépasser la réserve d'armure magique de référence de la cible."
+msgstr ""
+
+#. Key:	ED49D74E40A9D085F8BDACB22AFDE51E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(8).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(8).ProgressionChoices.DisplayName
+msgctxt ",ED49D74E40A9D085F8BDACB22AFDE51E"
+msgid "Bouclier arcanique"
+msgstr ""
+
+#. Key:	679A02354F2AB26163132890490CE5B3
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(9).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(9).ProgressionChoices.Description
+msgctxt ",679A02354F2AB26163132890490CE5B3"
+msgid "Allié : retire 1 Debuff magique amovible. Hostile : retire 1 Buff magique amovible. Priorité déterministe : Potency la plus élevée puis EffectId lexical."
+msgstr ""
+
+#. Key:	1FE9D1434AE22E1639A4ADACC134C071
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(9).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage.ProgressionChoices(9).ProgressionChoices.DisplayName
+msgctxt ",1FE9D1434AE22E1639A4ADACC134C071"
+msgid "Dissipation"
 msgstr ""
 
 #. Key:	B37B9D33451779A3DFC8D0A01050BCF9
@@ -1413,6 +1840,132 @@ msgctxt ",0C48ACF346387E28A9E25F97CDCCB6DA"
 msgid "Prêtre"
 msgstr ""
 
+#. Key:	A8CED50144945760620131BD33E3E484
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(0).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(0).CombatActions.Description
+msgctxt ",A8CED50144945760620131BD33E3E484"
+msgid "150 % WD, Accuracy +2, portée de l'arme +2."
+msgstr ""
+
+#. Key:	685389E146C810A5E191BBA9FA8195DE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(0).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(0).CombatActions.DisplayName
+msgctxt ",685389E146C810A5E191BBA9FA8195DE"
+msgid "Tir précis"
+msgstr ""
+
+#. Key:	2E73E0F0487BE8E3272A0C85C3ABEE45
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(1).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(1).CombatActions.Description
+msgctxt ",2E73E0F0487BE8E3272A0C85C3ABEE45"
+msgid "110 % WD perforant et 50 % du RawDamage supplémentaires contre l'armure physique uniquement."
+msgstr ""
+
+#. Key:	AC4D1F1A42291ECA162CB7AE8BBAC1DE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(1).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(1).CombatActions.DisplayName
+msgctxt ",AC4D1F1A42291ECA162CB7AE8BBAC1DE"
+msgid "Tir perforant"
+msgstr ""
+
+#. Key:	B55CB8B2475D3722904E53A239554BA0
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(2).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(2).CombatActions.Description
+msgctxt ",B55CB8B2475D3722904E53A239554BA0"
+msgid "Deux attaques indépendantes à 65 % WD ; la seconde subit Accuracy -1."
+msgstr ""
+
+#. Key:	362EA1A845C794433B8C4CB59EB15D0A
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(2).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(2).CombatActions.DisplayName
+msgctxt ",362EA1A845C794433B8C4CB59EB15D0A"
+msgid "Tir rapide"
+msgstr ""
+
+#. Key:	334BA44C4A5644E18912B2AAE9E0CDC6
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(3).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(3).CombatActions.Description
+msgctxt ",334BA44C4A5644E18912B2AAE9E0CDC6"
+msgid "Chaque hostile de la zone reçoit une attaque indépendante à 80 % WD."
+msgstr ""
+
+#. Key:	7ECA46CE4B55F552A4DFBF9FB5C39E01
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(3).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(3).CombatActions.DisplayName
+msgctxt ",7ECA46CE4B55F552A4DFBF9FB5C39E01"
+msgid "Volée"
+msgstr ""
+
+#. Key:	5D1DAC8A4DB697D74DCD59BCFA2749CA
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(4).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(4).CombatActions.Description
+msgctxt ",5D1DAC8A4DB697D74DCD59BCFA2749CA"
+msgid "Marque une cible à portée 5 pendant 3 rounds."
+msgstr ""
+
+#. Key:	560B94D14CFC5E5DE3AA71AE5BFE90F8
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(4).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(4).CombatActions.DisplayName
+msgctxt ",560B94D14CFC5E5DE3AA71AE5BFE90F8"
+msgid "Marque de la proie"
+msgstr ""
+
+#. Key:	012673CF487E11EDDE312DABA4357B8C
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(5).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(5).CombatActions.Description
+msgctxt ",012673CF487E11EDDE312DABA4357B8C"
+msgid "100 % WD ; si l'armure physique est épuisée après dégâts, immobilise 1 round."
+msgstr ""
+
+#. Key:	709379CA42ABBCB2531299B0598E2C98
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(5).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(5).CombatActions.DisplayName
+msgctxt ",709379CA42ABBCB2531299B0598E2C98"
+msgid "Tir immobilisant"
+msgstr ""
+
+#. Key:	BCD384974B47ED5D710387B1B52C9B66
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(6).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(6).CombatActions.Description
+msgctxt ",BCD384974B47ED5D710387B1B52C9B66"
+msgid "170 % WD, Accuracy +1, uniquement contre la propre cible marquée du Rôdeur."
+msgstr ""
+
+#. Key:	F5026FEF4A39F33BF9885193D08DB209
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(6).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(6).CombatActions.DisplayName
+msgctxt ",F5026FEF4A39F33BF9885193D08DB209"
+msgid "Frappe du prédateur"
+msgstr ""
+
+#. Key:	0B53F58944F3C698D5AD41B7A91B637C
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(7).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(7).CombatActions.Description
+msgctxt ",0B53F58944F3C698D5AD41B7A91B637C"
+msgid "Pose un piège de chasse temporaire sur une cellule adjacente."
+msgstr ""
+
+#. Key:	B8958A224EB8A8DA74B543A520C8FEFE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(7).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(7).CombatActions.DisplayName
+msgctxt ",B8958A224EB8A8DA74B543A520C8FEFE"
+msgid "Piège de chasse"
+msgstr ""
+
+#. Key:	7AEEFA3B41573FB143BB738C54B046B2
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(8).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(8).CombatActions.Description
+msgctxt ",7AEEFA3B41573FB143BB738C54B046B2"
+msgid "Déplace le groupe d'une cellule en arrière pour 1 PAM."
+msgstr ""
+
+#. Key:	2AB710AB41C99A5DCEF15FAA0A847AAE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(8).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.CombatActions(8).CombatActions.DisplayName
+msgctxt ",2AB710AB41C99A5DCEF15FAA0A847AAE"
+msgid "Repli tactique"
+msgstr ""
+
 #. Key:	D3E6FEE84436886B1D06EF9EC12988E7
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.Description
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.Description
@@ -1425,6 +1978,230 @@ msgstr ""
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.DisplayName
 msgctxt ",AEEBD841417DD9D1ED380F9FD48CB7A0"
 msgid "Rôdeur"
+msgstr ""
+
+#. Key:	DC4EBE0E47E6A3EAA37F4FA4B028BBCE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(0).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(0).ProgressionChoices.Description
+msgctxt ",DC4EBE0E47E6A3EAA37F4FA4B028BBCE"
+msgid "150 % des dégâts de l'arme et Précision +2. Requiert une arme à distance. La portée finale est limitée à 32 cellules."
+msgstr ""
+
+#. Key:	7B7CDCA44B70A4131ACE86BC68514840
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(0).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(0).ProgressionChoices.DisplayName
+msgctxt ",7B7CDCA44B70A4131ACE86BC68514840"
+msgid "Tir précis"
+msgstr ""
+
+#. Key:	12E124B1451B196BDE8E329872DA6BCE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(1).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(1).ProgressionChoices.Description
+msgctxt ",12E124B1451B196BDE8E329872DA6BCE"
+msgid "110 % des dégâts de l'arme, de type physique perforant. Inflige en plus 50 % des dégâts bruts à l'armure physique uniquement, sans débordement vers les PV."
+msgstr ""
+
+#. Key:	6B1B2FFC4921E0070096FCB70F06EC87
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(1).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(1).ProgressionChoices.DisplayName
+msgctxt ",6B1B2FFC4921E0070096FCB70F06EC87"
+msgid "Tir perforant"
+msgstr ""
+
+#. Key:	E80B8931447D914E35F6708D51862301
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(10).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(10).ProgressionChoices.Description
+msgctxt ",E80B8931447D914E35F6708D51862301"
+msgid "1 fois/round, à la mort de la cible marquée, transfère automatiquement la marque vers l'hostile vivant le plus proche dans un rayon de 3 cellules ; nouvelle durée 2 rounds. Aucun PA."
+msgstr ""
+
+#. Key:	14287B5344CB664D598D19A8AF97C6ED
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(10).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(10).ProgressionChoices.DisplayName
+msgctxt ",14287B5344CB664D598D19A8AF97C6ED"
+msgid "Chasseur alpha"
+msgstr ""
+
+#. Key:	1C5072DF49910F2DB0B1C783DF032B1E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(11).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(11).ProgressionChoices.Description
+msgctxt ",1C5072DF49910F2DB0B1C783DF032B1E"
+msgid "Le Rôdeur apporte +2 au meilleur jet de groupe de Perception et gagne Initiative +2 au premier round de chaque combat. Ce bonus ne se cumule pas entre plusieurs Rôdeurs."
+msgstr ""
+
+#. Key:	5AB47D14426A25F38FE3658BDF461248
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(11).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(11).ProgressionChoices.DisplayName
+msgctxt ",5AB47D14426A25F38FE3658BDF461248"
+msgid "Vigilance"
+msgstr ""
+
+#. Key:	00CBBF1A4801943B2E58DE81FFE36F26
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(12).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(12).ProgressionChoices.Description
+msgctxt ",00CBBF1A4801943B2E58DE81FFE36F26"
+msgid "Pose un piège de chasse pendant 4 rounds. Le premier hostile qui entre subit 5 + modificateur de SAG dégâts physiques perforants ; si son armure physique est épuisée, il est immobilisé pendant 1 round. Le piège est ensuite consommé."
+msgstr ""
+
+#. Key:	12085E974F8209D16FA985B8F908391D
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(12).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(12).ProgressionChoices.DisplayName
+msgctxt ",12085E974F8209D16FA985B8F908391D"
+msgid "Piège de chasse"
+msgstr ""
+
+#. Key:	CE5430CE4200C640FE80E5BBA2A41A6C
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(13).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(13).ProgressionChoices.Description
+msgctxt ",CE5430CE4200C640FE80E5BBA2A41A6C"
+msgid "Déplace tout le groupe d'une cellule en arrière si la translation est légale. Ne paie pas le coût personnel normal de translation, mais paie 1 PAM. Aucun franchissement d'obstacle."
+msgstr ""
+
+#. Key:	01AFBF4E4CE7CF570A7A19B87838B1E9
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(13).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(13).ProgressionChoices.DisplayName
+msgctxt ",01AFBF4E4CE7CF570A7A19B87838B1E9"
+msgid "Repli tactique"
+msgstr ""
+
+#. Key:	5DFCA2BE4DABD698780621BD4BDB40BA
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(14).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(14).ProgressionChoices.Description
+msgctxt ",5DFCA2BE4DABD698780621BD4BDB40BA"
+msgid "Si le groupe n'a effectué aucune translation depuis la précédente activation du Rôdeur : attaques à distance +10 % dégâts et Précision +1. Le bonus disparaît immédiatement après une translation."
+msgstr ""
+
+#. Key:	24E53CBF4314E0162E5E36B30A165C7D
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(14).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(14).ProgressionChoices.DisplayName
+msgctxt ",24E53CBF4314E0162E5E36B30A165C7D"
+msgid "Maître du terrain"
+msgstr ""
+
+#. Key:	72BF4EA44970A291717CFD890F25E56B
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(15).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(15).ProgressionChoices.Description
+msgctxt ",72BF4EA44970A291717CFD890F25E56B"
+msgid "Tant qu'un Rôdeur vivant possède ce talent : meilleurs jets de groupe Perception/Survie +2 et MaximumMobilityActionPoints +1 par round. Effet global non cumulable."
+msgstr ""
+
+#. Key:	FE4D26C246C0A7564BD0F7B59783B490
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(15).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(15).ProgressionChoices.DisplayName
+msgctxt ",FE4D26C246C0A7564BD0F7B59783B490"
+msgid "Guide du groupe"
+msgstr ""
+
+#. Key:	9849FD3B415E6B350A75D8873A68D3A1
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(2).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(2).ProgressionChoices.Description
+msgctxt ",9849FD3B415E6B350A75D8873A68D3A1"
+msgid "Deux attaques successives indépendantes à 65 % dégâts de l'arme chacune. La seconde a Précision -1. Les deux peuvent critiquer ; la mort après le premier tir annule le second."
+msgstr ""
+
+#. Key:	62F429184ECF4E9EF52AA78643012B28
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(2).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(2).ProgressionChoices.DisplayName
+msgctxt ",62F429184ECF4E9EF52AA78643012B28"
+msgid "Tir rapide"
+msgstr ""
+
+#. Key:	0B8F25164370272FCC9B2BA5568B39C7
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(3).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(3).ProgressionChoices.Description
+msgctxt ",0B8F25164370272FCC9B2BA5568B39C7"
+msgid "Chaque hostile de la zone reçoit une attaque indépendante à 80 % dégâts de l'arme. Aucun statut. Les obstacles/ligne de vue sont évalués vers la cellule cible."
+msgstr ""
+
+#. Key:	C88506954E5FE96C6C9F85BA283B2D01
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(3).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(3).ProgressionChoices.DisplayName
+msgctxt ",C88506954E5FE96C6C9F85BA283B2D01"
+msgid "Volée"
+msgstr ""
+
+#. Key:	FC4C24754F7A606DF3733CAAB9C7BEE6
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(4).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(4).ProgressionChoices.Description
+msgctxt ",FC4C24754F7A606DF3733CAAB9C7BEE6"
+msgid "Actions à distance : portée +1 et Précision +1. Jets de Perception à distance +2. Les limites globales de portée restent applicables."
+msgstr ""
+
+#. Key:	CDB11B8140CDA9DE177C55B36C03E736
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(4).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(4).ProgressionChoices.DisplayName
+msgctxt ",CDB11B8140CDA9DE177C55B36C03E736"
+msgid "Œil d'aigle"
+msgstr ""
+
+#. Key:	FF7F659447B489C0E1AA9D8D348D5BCC
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(5).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(5).ProgressionChoices.Description
+msgctxt ",FF7F659447B489C0E1AA9D8D348D5BCC"
+msgid "Marque la cible pendant 3 rounds, quelle que soit son armure. Une seule marque peut être active par Rôdeur. Contre sa propre cible marquée : Précision +2 et dégâts +15 %."
+msgstr ""
+
+#. Key:	E9D840EE4B5633DDA2D8CEA003B0D0DD
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(5).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(5).ProgressionChoices.DisplayName
+msgctxt ",E9D840EE4B5633DDA2D8CEA003B0D0DD"
+msgid "Marque de la proie"
+msgstr ""
+
+#. Key:	A793E9724C82B3AC26823B87AD7EAF9B
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(6).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(6).ProgressionChoices.Description
+msgctxt ",A793E9724C82B3AC26823B87AD7EAF9B"
+msgid "Dégâts +15 % et tests liés +2 contre cette catégorie."
+msgstr ""
+
+#. Key:	A15E53F54C74F4A24C68D7BDE4E2A4D8
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(6).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(6).ProgressionChoices.DisplayName
+msgctxt ",A15E53F54C74F4A24C68D7BDE4E2A4D8"
+msgid "Ennemi juré - Gobelins"
+msgstr ""
+
+#. Key:	2A104E1146E1DF824533A4A2340FA5D5
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(7).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(7).ProgressionChoices.Description
+msgctxt ",2A104E1146E1DF824533A4A2340FA5D5"
+msgid "Dégâts +15 % et tests liés +2 contre cette catégorie."
+msgstr ""
+
+#. Key:	3482BE4947F09FDFB0B189B783E189F4
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(7).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(7).ProgressionChoices.DisplayName
+msgctxt ",3482BE4947F09FDFB0B189B783E189F4"
+msgid "Ennemi juré - Vermine"
+msgstr ""
+
+#. Key:	815C308B497B5E710A5E598A9BC910B9
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(8).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(8).ProgressionChoices.Description
+msgctxt ",815C308B497B5E710A5E598A9BC910B9"
+msgid "100 % dégâts de l'arme. Si armure physique=0 après dégâts, applique Status_Immobilized 1 round (bBlockTranslation=true)."
+msgstr ""
+
+#. Key:	D709235D4E64BFC21EA1328FD6A1E4D9
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(8).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(8).ProgressionChoices.DisplayName
+msgctxt ",D709235D4E64BFC21EA1328FD6A1E4D9"
+msgid "Tir immobilisant"
+msgstr ""
+
+#. Key:	6B6023B2417C45985095A7A02370D001
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(9).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(9).ProgressionChoices.Description
+msgctxt ",6B6023B2417C45985095A7A02370D001"
+msgid "Requiert Status_MarkedByRanger provenant du lanceur. Inflige 170 % dégâts de l'arme avec Précision +1. La marque n'est pas consommée."
+msgstr ""
+
+#. Key:	616BA3A44D175D5DF472B8A3AA90A2C9
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(9).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger.ProgressionChoices(9).ProgressionChoices.DisplayName
+msgctxt ",616BA3A44D175D5DF472B8A3AA90A2C9"
+msgid "Frappe du prédateur"
 msgstr ""
 
 #. Key:	E346ACB54F4F7AC3C864C686E1DD56DC
@@ -1441,6 +2218,146 @@ msgctxt ",27F882604C8812DFED09EF80D97AC987"
 msgid "Voleur"
 msgstr ""
 
+#. Key:	BE9F1B39413E47FB234FC0AADFBE6329
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(0).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(0).CombatActions.Description
+msgctxt ",BE9F1B39413E47FB234FC0AADFBE6329"
+msgid "Applique Garde pendant 2 rounds."
+msgstr ""
+
+#. Key:	58B5B37949C3519643BD3DA9ACB4969D
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(0).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(0).CombatActions.DisplayName
+msgctxt ",58B5B37949C3519643BD3DA9ACB4969D"
+msgid "Posture défensive"
+msgstr ""
+
+#. Key:	CEA061F248F0415860CD72A4DAFB81CE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(1).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(1).CombatActions.Description
+msgctxt ",CEA061F248F0415860CD72A4DAFB81CE"
+msgid "80 % WD contondant ; étourdit 1 tour si l'armure physique est épuisée."
+msgstr ""
+
+#. Key:	56C354824A850DF2A8A9D89A22CA5FC7
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(1).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(1).CombatActions.DisplayName
+msgctxt ",56C354824A850DF2A8A9D89A22CA5FC7"
+msgid "Coup de bouclier"
+msgstr ""
+
+#. Key:	C633F71545095CEF17F9AE9A90256496
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(2).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(2).CombatActions.Description
+msgctxt ",C633F71545095CEF17F9AE9A90256496"
+msgid "Restaure 40 % de l'armure physique de référence et applique Fortifié au rang avant."
+msgstr ""
+
+#. Key:	BA9665014736D4B99C996586D8390A6C
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(2).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(2).CombatActions.DisplayName
+msgctxt ",BA9665014736D4B99C996586D8390A6C"
+msgid "Forteresse"
+msgstr ""
+
+#. Key:	93F3C23A4E4FA67EA2E18A94EDF46BFD
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(3).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(3).CombatActions.Description
+msgctxt ",93F3C23A4E4FA67EA2E18A94EDF46BFD"
+msgid "Attaque d'arme lourde à 150 % WD avec Accuracy -2."
+msgstr ""
+
+#. Key:	18A3190E46B862F4B77BDB8F47B32C13
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(3).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(3).CombatActions.DisplayName
+msgctxt ",18A3190E46B862F4B77BDB8F47B32C13"
+msgid "Coup puissant"
+msgstr ""
+
+#. Key:	97FD17EA4222967726362CBD94A959A6
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(4).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(4).CombatActions.Description
+msgctxt ",97FD17EA4222967726362CBD94A959A6"
+msgid "100 % WD puis 50 % du RawDamage supplémentaires contre l'armure physique uniquement."
+msgstr ""
+
+#. Key:	27D5DEBB4FD0B9D6C40AC6A5B07DB23A
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(4).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(4).CombatActions.DisplayName
+msgctxt ",27D5DEBB4FD0B9D6C40AC6A5B07DB23A"
+msgid "Brise-armure"
+msgstr ""
+
+#. Key:	492BB1DE4782137B3EAD41BAB9EAB476
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(5).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(5).CombatActions.Description
+msgctxt ",492BB1DE4782137B3EAD41BAB9EAB476"
+msgid "Chaque hostile de la zone reçoit une attaque indépendante à 85 % WD."
+msgstr ""
+
+#. Key:	0524CE2B45EB26A256B83BBFB5782BF6
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(5).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(5).CombatActions.DisplayName
+msgctxt ",0524CE2B45EB26A256B83BBFB5782BF6"
+msgid "Balayage"
+msgstr ""
+
+#. Key:	EBD695384230EB37533D88ABFCEBF7C3
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(6).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(6).CombatActions.Description
+msgctxt ",EBD695384230EB37533D88ABFCEBF7C3"
+msgid "200 % WD, uniquement contre une cible sans armure physique à 35 % PV ou moins."
+msgstr ""
+
+#. Key:	AE5E69CE49F95C041AA41DA5108D448B
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(6).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(6).CombatActions.DisplayName
+msgctxt ",AE5E69CE49F95C041AA41DA5108D448B"
+msgid "Exécution"
+msgstr ""
+
+#. Key:	5B102AE149134F3B1647149E88F6F9FF
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(7).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(7).CombatActions.Description
+msgctxt ",5B102AE149134F3B1647149E88F6F9FF"
+msgid "140 % WD à tous les hostiles de la zone ; la cible primaire tombe si son armure physique est épuisée."
+msgstr ""
+
+#. Key:	15B0197246F34B85556829A59138FBD9
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(7).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(7).CombatActions.DisplayName
+msgctxt ",15B0197246F34B85556829A59138FBD9"
+msgid "Ravage"
+msgstr ""
+
+#. Key:	9FFF102940F0AA96F8CFA5B6E1CCE8AE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(8).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(8).CombatActions.Description
+msgctxt ",9FFF102940F0AA96F8CFA5B6E1CCE8AE"
+msgid "Restaure 20 % des PV maximum."
+msgstr ""
+
+#. Key:	4C4FBEE04D4F19575C25D7A29565E3D7
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(8).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(8).CombatActions.DisplayName
+msgctxt ",4C4FBEE04D4F19575C25D7A29565E3D7"
+msgid "Second souffle"
+msgstr ""
+
+#. Key:	A79707704EB4A3334B531FB4CC34F1FE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(9).CombatActions.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(9).CombatActions.Description
+msgctxt ",A79707704EB4A3334B531FB4CC34F1FE"
+msgid "Applique Seigneur de guerre pendant 2 rounds à tous les alliés actifs."
+msgstr ""
+
+#. Key:	F5B12AC040B03174006EDCA83E7059BC
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(9).CombatActions.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.CombatActions(9).CombatActions.DisplayName
+msgctxt ",F5B12AC040B03174006EDCA83E7059BC"
+msgid "Seigneur de guerre"
+msgstr ""
+
 #. Key:	98BF11EA46804407D1B0C393A7BFBF52
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.Description
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.Description
@@ -1453,6 +2370,244 @@ msgstr ""
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.DisplayName
 msgctxt ",D270F1004AE8072A2809A7897D17E11B"
 msgid "Guerrier"
+msgstr ""
+
+#. Key:	B81D0B9F4ED061A2E9C90997058C54D8
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(0).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(0).ProgressionChoices.Description
+msgctxt ",B81D0B9F4ED061A2E9C90997058C54D8"
+msgid "Applique Garde pendant 2 rounds : dégâts physiques reçus -20 %, Esquive +2, dégâts d'arme infligés -10 %. Réapplication : rafraîchit la durée."
+msgstr ""
+
+#. Key:	37D311994CC0FA6AFDF8F2A736E9E8FC
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(0).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(0).ProgressionChoices.DisplayName
+msgctxt ",37D311994CC0FA6AFDF8F2A736E9E8FC"
+msgid "Posture défensive"
+msgstr ""
+
+#. Key:	546725654128956F8C029B935EE9109A
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(1).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(1).ProgressionChoices.Description
+msgctxt ",546725654128956F8C029B935EE9109A"
+msgid "Requiert un bouclier équipé. Inflige 80 % des dégâts de l'arme, de type contondant. Après les dégâts, si l'armure physique est épuisée, applique Étourdi pendant 1 tour et fait perdre la prochaine activation."
+msgstr ""
+
+#. Key:	C5B73D7E425D34BC0BD734B03CDF381B
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(1).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(1).ProgressionChoices.DisplayName
+msgctxt ",C5B73D7E425D34BC0BD734B03CDF381B"
+msgid "Coup de bouclier"
+msgstr ""
+
+#. Key:	582306AF4B1D736F4561BFB0CE81C606
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(10).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(10).ProgressionChoices.Description
+msgctxt ",582306AF4B1D736F4561BFB0CE81C606"
+msgid "Avec une arme de ce type : Précision +1 et dégâts d'arme finaux +10 %."
+msgstr ""
+
+#. Key:	B65456F24420E98C6DF48DB9509A82C0
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(10).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(10).ProgressionChoices.DisplayName
+msgctxt ",B65456F24420E98C6DF48DB9509A82C0"
+msgid "Spécialisation martiale - Tranchant"
+msgstr ""
+
+#. Key:	26A03F574C54E6D1CEEA948323C1F01F
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(11).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(11).ProgressionChoices.Description
+msgctxt ",26A03F574C54E6D1CEEA948323C1F01F"
+msgid "Avec une arme de ce type : Précision +1 et dégâts d'arme finaux +10 %."
+msgstr ""
+
+#. Key:	F52FA42E4B902CB5A321E5B885E97FB8
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(11).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(11).ProgressionChoices.DisplayName
+msgctxt ",F52FA42E4B902CB5A321E5B885E97FB8"
+msgid "Spécialisation martiale - Perforant"
+msgstr ""
+
+#. Key:	30F5FE464C11A438CBF284AC99FB64B2
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(12).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(12).ProgressionChoices.Description
+msgctxt ",30F5FE464C11A438CBF284AC99FB64B2"
+msgid "Avec une arme de ce type : Précision +1 et dégâts d'arme finaux +10 %."
+msgstr ""
+
+#. Key:	EC7E06EB4758CB4DD02AD291619A2585
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(12).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(12).ProgressionChoices.DisplayName
+msgctxt ",EC7E06EB4758CB4DD02AD291619A2585"
+msgid "Spécialisation martiale - Contondant"
+msgstr ""
+
+#. Key:	E157B2D84EECE992B62C9DAC3D19C46D
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(13).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(13).ProgressionChoices.Description
+msgctxt ",E157B2D84EECE992B62C9DAC3D19C46D"
+msgid "1 fois/round après l'échec d'une attaque de mêlée ciblée contre le Guerrier : contre-attaque immédiate à 75 % dégâts de l'arme, sans PA et sans déclencher une nouvelle Riposte."
+msgstr ""
+
+#. Key:	678262C44B61BAF144DA6895D0D507A7
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(13).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(13).ProgressionChoices.DisplayName
+msgctxt ",678262C44B61BAF144DA6895D0D507A7"
+msgid "Riposte"
+msgstr ""
+
+#. Key:	E97C4A8E4177DB68B01D5D989ACB9DD7
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(14).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(14).ProgressionChoices.Description
+msgctxt ",E97C4A8E4177DB68B01D5D989ACB9DD7"
+msgid "Restaure 20 % PV maximum, arrondi au supérieur, minimum 1. Indisponible à PV max. Ne restaure ni mana ni armure."
+msgstr ""
+
+#. Key:	7F153F3D46F8D88F86D029B4F5B8B608
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(14).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(14).ProgressionChoices.DisplayName
+msgctxt ",7F153F3D46F8D88F86D029B4F5B8B608"
+msgid "Second souffle"
+msgstr ""
+
+#. Key:	8D538FE84CB439428F8926895442BECA
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(15).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(15).ProgressionChoices.Description
+msgctxt ",8D538FE84CB439428F8926895442BECA"
+msgid "Avec la spécialisation martiale choisie : chance de critique +10 points de pourcentage et multiplicateur de dégâts critiques +25 points de pourcentage."
+msgstr ""
+
+#. Key:	A1ABE18242512E7BB94090B44F0CBF66
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(15).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(15).ProgressionChoices.DisplayName
+msgctxt ",A1ABE18242512E7BB94090B44F0CBF66"
+msgid "Maîtrise critique"
+msgstr ""
+
+#. Key:	25B21D3A4A934A6618E74793F4BD05A5
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(16).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(16).ProgressionChoices.Description
+msgctxt ",25B21D3A4A934A6618E74793F4BD05A5"
+msgid "Pendant 2 rounds, tous les alliés actifs gagnent Précision +2 et Initiative +4. L'effet n'est pas cumulable ; une nouvelle application rafraîchit sa durée."
+msgstr ""
+
+#. Key:	995D9EA242988EA02D88C4AAC50AAC3D
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(16).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(16).ProgressionChoices.DisplayName
+msgctxt ",995D9EA242988EA02D88C4AAC50AAC3D"
+msgid "Seigneur de guerre"
+msgstr ""
+
+#. Key:	BFFF38FD4B83A2A47DEF5E84424EE1A1
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(2).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(2).ProgressionChoices.Description
+msgctxt ",BFFF38FD4B83A2A47DEF5E84424EE1A1"
+msgid "1 fois/round, lorsqu'un allié du rang avant subit une attaque physique ciblée : 50 % des dégâts finaux sont redirigés vers le Guerrier et résolus contre sa propre armure physique. Les attaques de zone, les dégâts périodiques et les surfaces sont ignorés."
+msgstr ""
+
+#. Key:	3EF39D4B41F833E5173F19BC72736EEC
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(2).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(2).ProgressionChoices.DisplayName
+msgctxt ",3EF39D4B41F833E5173F19BC72736EEC"
+msgid "Interception"
+msgstr ""
+
+#. Key:	B61FAB0B403AC98438D302BF86574684
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(3).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(3).ProgressionChoices.Description
+msgctxt ",B61FAB0B403AC98438D302BF86574684"
+msgid "Armure physique fournie par l'équipement et le bouclier +25 %. Le bonus modifie la réserve d'armure physique projetée au démarrage et lors des actualisations ; il ne crée pas une seconde armure parallèle."
+msgstr ""
+
+#. Key:	C7EED0814135B71DDB0852B98A047373
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(3).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(3).ProgressionChoices.DisplayName
+msgctxt ",C7EED0814135B71DDB0852B98A047373"
+msgid "Rempart"
+msgstr ""
+
+#. Key:	38174DD94A9B01E6CD13BF8963E50E4E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(4).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(4).ProgressionChoices.Description
+msgctxt ",38174DD94A9B01E6CD13BF8963E50E4E"
+msgid "Restaure 40 % de la réserve d'armure physique de référence à chaque allié vivant du rang avant, puis réduit de 25 % les dégâts physiques qu'il reçoit pendant 2 rounds."
+msgstr ""
+
+#. Key:	BEE187A94554594B2A180AA994C7BD0D
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(4).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(4).ProgressionChoices.DisplayName
+msgctxt ",BEE187A94554594B2A180AA994C7BD0D"
+msgid "Forteresse"
+msgstr ""
+
+#. Key:	83BBD2DA48231D4E553C1E8D65BF385F
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(5).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(5).ProgressionChoices.Description
+msgctxt ",83BBD2DA48231D4E553C1E8D65BF385F"
+msgid "Attaque d'arme lourde à 150 % dégâts de l'arme, Précision -2. Critique autorisé. Aucun contrôle."
+msgstr ""
+
+#. Key:	B088A8614ED55F29291CD5AC7CFF4ACE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(5).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(5).ProgressionChoices.DisplayName
+msgctxt ",B088A8614ED55F29291CD5AC7CFF4ACE"
+msgid "Coup puissant"
+msgstr ""
+
+#. Key:	7BD563F649E363314F08969110725280
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(6).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(6).ProgressionChoices.Description
+msgctxt ",7BD563F649E363314F08969110725280"
+msgid "Attaque à 100 % dégâts de l'arme. En plus, inflige à armure physique uniquement un bonus égal à 50 % du dégâts bruts de l'attaque ; l'excédent de ce bonus ne déborde jamais sur les PV."
+msgstr ""
+
+#. Key:	1D3E3CE44D136BBD8109688BED627613
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(6).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(6).ProgressionChoices.DisplayName
+msgctxt ",1D3E3CE44D136BBD8109688BED627613"
+msgid "Brise-armure"
+msgstr ""
+
+#. Key:	A281BEC84F1CC1D88989CEB7A1F9F80F
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(7).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(7).ProgressionChoices.Description
+msgctxt ",A281BEC84F1CC1D88989CEB7A1F9F80F"
+msgid "Chaque hostile dans la zone reçoit une attaque à 85 % des dégâts de l'arme avec un jet séparé. Les membres du groupe occupant la case de départ ne subissent aucun dégât."
+msgstr ""
+
+#. Key:	5FA80D6041F6A463AFE1058B311E48EE
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(7).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(7).ProgressionChoices.DisplayName
+msgctxt ",5FA80D6041F6A463AFE1058B311E48EE"
+msgid "Balayage"
+msgstr ""
+
+#. Key:	FCFF7F6349A793E70A43B48D4F11571A
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(8).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(8).ProgressionChoices.Description
+msgctxt ",FCFF7F6349A793E70A43B48D4F11571A"
+msgid "Disponible uniquement si armure physique=0 et PV <=35 % PV maximum. Inflige 200 % dégâts de l'arme. L'éligibilité est recalculée à la requête ; pas d'exécution automatique."
+msgstr ""
+
+#. Key:	A1F662234C2019F03150D2A13A5B58BB
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(8).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(8).ProgressionChoices.DisplayName
+msgctxt ",A1F662234C2019F03150D2A13A5B58BB"
+msgid "Exécution"
+msgstr ""
+
+#. Key:	F7AF5C414AC58DC9678A1B95F4EEE770
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(9).ProgressionChoices.Description
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(9).ProgressionChoices.Description
+msgctxt ",F7AF5C414AC58DC9678A1B95F4EEE770"
+msgid "Inflige 140 % dégâts de l'arme à tous les hostiles de la zone. La cible primaire, si armure physique=0 après dégâts, reçoit Status_KnockedDown 1 tour (fait perdre la prochaine activation)."
+msgstr ""
+
+#. Key:	51943A124F54F45DEF9D6995DBC5DBB0
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(9).ProgressionChoices.DisplayName
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior.ProgressionChoices(9).ProgressionChoices.DisplayName
+msgctxt ",51943A124F54F45DEF9D6995DBC5DBB0"
+msgid "Ravage"
 msgstr ""
 
 #. Key:	059BC6F34B29D634866485BA9B547887
@@ -5553,6 +6708,62 @@ msgctxt "ST_UI,Navigation.Back"
 msgid "Retour"
 msgstr ""
 
+#. Key:	Navigation.Tooltip.Crafting
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Tooltip du bouton G de la navigation persistante"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Navigation.Tooltip.Crafting"
+msgid "Artisanat"
+msgstr "Crafting"
+
+#. Key:	Navigation.Tooltip.Escape
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Tooltip du bouton ESC de la navigation persistante"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Navigation.Tooltip.Escape"
+msgid "Menu principal / Retour"
+msgstr "Menu / Back"
+
+#. Key:	Navigation.Tooltip.Help
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Tooltip du bouton H de la navigation persistante"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Navigation.Tooltip.Help"
+msgid "Aide / Codex"
+msgstr "Help / Codex"
+
+#. Key:	Navigation.Tooltip.Inventory
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Tooltip du bouton I de la navigation persistante"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Navigation.Tooltip.Inventory"
+msgid "Inventaire"
+msgstr "Inventory"
+
+#. Key:	Navigation.Tooltip.Journal
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Tooltip du bouton J de la navigation persistante"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Navigation.Tooltip.Journal"
+msgid "Journal"
+msgstr "Journal"
+
+#. Key:	Navigation.Tooltip.Map
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Tooltip du bouton M de la navigation persistante"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Navigation.Tooltip.Map"
+msgid "Carte"
+msgstr "Map"
+
+#. Key:	Navigation.Tooltip.Skills
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Tooltip du bouton K de la navigation persistante"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Navigation.Tooltip.Skills"
+msgid "Compétences et talents"
+msgstr "Skills and Talents"
+
 #. Key:	Progression.LevelUp.CharacterFallback
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
 #. InfoMetaData:	"Comment" : "Nom joueur de repli dans les notifications de montée de niveau"
@@ -7441,13 +8652,6 @@ msgstr ""
 #: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(98)
 msgctxt "GridSpellbook,UnknownSpell"
 msgid "Sort inconnu"
-msgstr ""
-
-#. Key:	TalentTooltip
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridTalentNodeWidget.cpp(209)
-#: Source/GrimrockPrototype/Private/UI/GridTalentNodeWidget.cpp(209)
-msgctxt "GridTalentNode,TalentTooltip"
-msgid "{0}\n{1}"
 msgstr ""
 
 #. Key:	LoadFailed

@@ -214,7 +214,7 @@ Key,SourceString,Comment
 "Interaction.Throw.TooHeavy","Trop lourd : {Weight} kg (maximum {MaximumWeight} kg avec Force {Strength}).","Objet trop lourd pour la Force du personnage lors d'un lancer"
 "Progression.LevelUp.CharacterFallback","Personnage {Index}","Nom joueur de repli dans les notifications de montée de niveau"
 "Navigation.Back","Retour","Action de navigation générique pour revenir à l’écran précédent"
-"Navigation.Tooltip.Escape","Menu / Retour","Tooltip du bouton ESC de la navigation persistante"
+"Navigation.Tooltip.Escape","Menu principal / Retour","Tooltip du bouton ESC de la navigation persistante"
 "Navigation.Tooltip.Inventory","Inventaire","Tooltip du bouton I de la navigation persistante"
 "Navigation.Tooltip.Skills","Compétences et talents","Tooltip du bouton K de la navigation persistante"
 "Navigation.Tooltip.Crafting","Artisanat","Tooltip du bouton G de la navigation persistante"
