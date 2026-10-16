@@ -58,6 +58,8 @@ $EnglishPo = Join-Path $LocalizationRoot "en\Game.po"
 $FrenchPo = Join-Path $LocalizationRoot "fr\Game.po"
 $EnglishLocRes = Join-Path $LocalizationRoot "en\Game.locres"
 $FrenchLocRes = Join-Path $LocalizationRoot "fr\Game.locres"
+$EnglishArchive = Join-Path $LocalizationRoot "en\Game.archive"
+$FrenchArchive = Join-Path $LocalizationRoot "fr\Game.archive"
 $Manifest = Join-Path $LocalizationRoot "Game.manifest"
 $ConflictReport = Join-Path $LocalizationRoot "Game_Conflicts.txt"
 $LocMeta = Join-Path $LocalizationRoot "Game.locmeta"
@@ -145,6 +147,16 @@ function Restore-FileSnapshot {
 $GameCsvSnapshot = New-FileSnapshot -Path $GameCsv
 $EnglishPoSnapshot = New-FileSnapshot -Path $EnglishPo
 $FrenchPoSnapshot = New-FileSnapshot -Path $FrenchPo
+
+# Gather/Import/Compile also rewrite tracked localization artifacts. Snapshot them
+# so the default smoke run is observational and leaves the working tree clean.
+$ManifestSnapshot = New-FileSnapshot -Path $Manifest
+$ConflictReportSnapshot = New-FileSnapshot -Path $ConflictReport
+$LocMetaSnapshot = New-FileSnapshot -Path $LocMeta
+$EnglishArchiveSnapshot = New-FileSnapshot -Path $EnglishArchive
+$FrenchArchiveSnapshot = New-FileSnapshot -Path $FrenchArchive
+$EnglishLocResSnapshot = New-FileSnapshot -Path $EnglishLocRes
+$FrenchLocResSnapshot = New-FileSnapshot -Path $FrenchLocRes
 
 function Invoke-NativeStep {
     param(
@@ -321,6 +333,13 @@ foreach ($SourceConfigPath in $SourceConfigPaths) {
 }
 Write-Host "[OK] Source-controlled localization configs remained unchanged."
 if (-not $KeepGeneratedOutputs) {
+    Restore-FileSnapshot -Path $Manifest -Snapshot $ManifestSnapshot
+    Restore-FileSnapshot -Path $ConflictReport -Snapshot $ConflictReportSnapshot
+    Restore-FileSnapshot -Path $LocMeta -Snapshot $LocMetaSnapshot
+    Restore-FileSnapshot -Path $EnglishArchive -Snapshot $EnglishArchiveSnapshot
+    Restore-FileSnapshot -Path $FrenchArchive -Snapshot $FrenchArchiveSnapshot
+    Restore-FileSnapshot -Path $EnglishLocRes -Snapshot $EnglishLocResSnapshot
+    Restore-FileSnapshot -Path $FrenchLocRes -Snapshot $FrenchLocResSnapshot
     Write-Host "[OK] Volatile generated localization outputs restored after smoke validation."
 }
 
