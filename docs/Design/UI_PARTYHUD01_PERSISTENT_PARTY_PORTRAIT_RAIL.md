@@ -664,12 +664,14 @@ Le coût reste borné au maximum courant de six personnages.
 
 Aucun `.uasset` n'est modifié automatiquement.
 
-Dans Unreal Editor, il faudra créer :
+Dans Unreal Editor, créer le widget dans le même domaine UI que le Persistent HUD et les widgets d'inventaire :
 
 ```text
-Content/Grimrock/Blueprints/Runtime/WBP_PartyPortraitHud
+/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_PartyPortraitHud
 Parent Class = UGridPartyPortraitHudWidget
 ```
+
+Ce chemin est cohérent avec le dépôt courant, où `WBP_GridPersistentHud`, `WBP_CharacterSheet`, `WBP_InventoryBag` et `WBP_PartyMember` résident déjà sous `Blueprints/UI/Inventory`.
 
 Puis ajouter dans `WBP_GridPersistentHud` :
 
@@ -739,3 +741,45 @@ D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20261016-174645
 **Socle C++ UI-PARTYHUD01.2 : VALIDÉ.**
 
 UI-PARTYHUD01.2 ne sera déclaré **CLOS** qu'après matérialisation UMG conforme dans `WBP_PartyPortraitHud` et `WBP_GridPersistentHud`, suivie d'une validation visuelle PIE.
+
+
+### 31.10 Checklist UMG obligatoire pour obtenir un rendu en PIE
+
+La validation Automation C++ ne matérialise aucun `.uasset`. Pour que le rail soit réellement visible en PIE, **les quatre conditions suivantes sont obligatoires** :
+
+```text
+1. WBP_PartyPortraitHud
+   Parent Class = UGridPartyPortraitHudWidget
+
+2. WBP_GridPersistentHud
+   contient un VerticalBox nommé exactement Panel_PartyPortraits
+   Is Variable = true
+
+3. WBP_GridPersistentHud / Class Defaults
+   Party Portrait Widget Class = WBP_PartyPortraitHud
+
+4. BP_GrimrockPartyPawn / Class Defaults
+   Persistent Hud Widget Class = WBP_GridPersistentHud
+```
+
+La condition 4 existe déjà dans le flux UI-GLOBALHUD01 lorsque la navigation et la barre d'actions persistantes sont visibles. Elle doit néanmoins être vérifiée si le Persistent HUD complet n'apparaît pas.
+
+Le presenter créé dynamiquement est ajouté à un `VerticalBox` en taille automatique. `WBP_PartyPortraitHud` doit donc fournir une **Desired Size non nulle**. La solution recommandée est un `SizeBox` root avec Width/Height Override explicites. Un Canvas root sans taille désirée peut produire un widget runtime de taille nulle et donc invisible.
+
+Diagnostic du C++ :
+
+```text
+Panel_PartyPortraits absent
+    -> aucun rail créé
+
+PartyPortraitWidgetClass non renseigné
+    -> Panel_PartyPortraits vidé, aucun portrait créé
+
+GetPartyPortraitViews() vide
+    -> rail vide
+
+WBP_PartyPortraitHud avec Desired Size = 0
+    -> widgets créés mais visuellement invisibles
+```
+
+Ces contrôles UMG font partie de la fermeture de UI-PARTYHUD01.2 et ne sont pas couverts par les tests Automation de réflexion C++.
