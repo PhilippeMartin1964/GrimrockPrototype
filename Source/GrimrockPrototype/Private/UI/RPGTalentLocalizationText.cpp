@@ -1,12 +1,35 @@
 #include "UI/RPGTalentLocalizationText.h"
 
-#include "UI/RPGTalentDetailTextSet.h"
+#include "RPG/RPGRecipeCatalogAsset.h"
 #include "UI/UILocalizationText.h"
 
-bool FRPGTalentLocalizationText::IsDeferredRecipeTextId(FName TextId)
+namespace RPGTalentLocalizationTextPrivate
 {
-	return !TextId.IsNone() &&
-		TextId.ToString().StartsWith(TEXT("Talent.Recipe."), ESearchCase::CaseSensitive);
+	const FString RecipeCompatibilityPrefix(TEXT("Talent.Recipe."));
+
+	FName RecipeIdFromCompatibilityTextId(FName TextId)
+	{
+		if (TextId.IsNone())
+		{
+			return NAME_None;
+		}
+
+		const FString Key = TextId.ToString();
+		if (!Key.StartsWith(RecipeCompatibilityPrefix, ESearchCase::CaseSensitive))
+		{
+			return NAME_None;
+		}
+
+		const FString RecipeId = Key.RightChop(RecipeCompatibilityPrefix.Len());
+		return RecipeId.StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive)
+			? FName(*RecipeId)
+			: NAME_None;
+	}
+}
+
+bool FRPGTalentLocalizationText::IsRecipeCompatibilityTextId(FName TextId)
+{
+	return !RPGTalentLocalizationTextPrivate::RecipeIdFromCompatibilityTextId(TextId).IsNone();
 }
 
 FText FRPGTalentLocalizationText::Get(FName TextId)
@@ -15,10 +38,14 @@ FText FRPGTalentLocalizationText::Get(FName TextId)
 	{
 		return FText::GetEmpty();
 	}
-	if (IsDeferredRecipeTextId(TextId))
+
+	const FName RecipeId =
+		RPGTalentLocalizationTextPrivate::RecipeIdFromCompatibilityTextId(TextId);
+	if (!RecipeId.IsNone())
 	{
-		return URPGTalentDetailTextSet::ResolveProductionText(TextId);
+		return URPGRecipeCatalogAsset::ResolveProductionDisplayName(RecipeId);
 	}
+
 	const FString Key = TextId.ToString();
 	return FUILocalizationText::Get(*Key);
 }

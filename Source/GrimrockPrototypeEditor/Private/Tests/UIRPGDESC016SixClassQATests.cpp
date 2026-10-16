@@ -8,7 +8,6 @@
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentDetailWidget.h"
 #include "UI/RPGTalentPresentationAsset.h"
-#include "UI/RPGTalentDetailTextSet.h"
 #include "UI/RPGTalentLocalizationText.h"
 
 namespace UIRPGDESC016QA
@@ -30,9 +29,6 @@ namespace UIRPGDESC016QA
 
 	const TCHAR* PresentationPath =
 		TEXT("/Game/GrimrockPrototype/Core/DataAssets/UI/RPG/DA_RPGTalentPresentation.DA_RPGTalentPresentation");
-
-	const TCHAR* TalentDetailTextPath =
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet");
 
 	UGridPartyInventoryComponent* MakeParty(URPGClassAsset* ClassAsset)
 	{
@@ -649,14 +645,6 @@ bool FUIRPGDESC016CanonicalRecipeDisplayNamesTest::RunTest(const FString&)
 		} }
 	};
 
-	const URPGTalentDetailTextSet* TextSet = LoadObject<URPGTalentDetailTextSet>(
-		nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet"));
-	if (!TestNotNull(TEXT("Production Talent detail text set loads for recipe audit"), TextSet))
-	{
-		return false;
-	}
-
 	int32 TotalGrantedRecipeIds = 0;
 	int32 TotalProjectedRecipeNames = 0;
 
@@ -707,7 +695,7 @@ bool FUIRPGDESC016CanonicalRecipeDisplayNamesTest::RunTest(const FString&)
 						++Index)
 					{
 						const FName RecipeTextId = Node.Acquisition.GrantedRecipeTextIds[Index];
-						const FText RecipeName = TextSet->ResolveText(RecipeTextId);
+						const FText RecipeName = FRPGTalentLocalizationText::Get(RecipeTextId);
 						ValidatePlayerFacingText(
 							*this,
 							FString::Printf(TEXT("%s/%s/Recipe"), *Spec.ClassId.ToString(), *Node.TalentNodeId.ToString()),

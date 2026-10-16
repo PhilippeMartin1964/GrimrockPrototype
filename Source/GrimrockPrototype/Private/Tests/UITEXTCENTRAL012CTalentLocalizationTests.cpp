@@ -27,11 +27,11 @@ bool FUITEXTCENTRAL012CRuntimeResolverTest::RunTest(const FString&)
 		FRPGTalentLocalizationText::Get(TEXT("UI.Section.Usage")).EqualTo(FText::FromString(TEXT("UTILISATION"))));
 	TestTrue(TEXT("Shared permanent duration resolves from ST_UI"),
 		FRPGTalentLocalizationText::Get(TEXT("Status.Duration.Permanent")).EqualTo(FText::FromString(TEXT("Permanent"))));
-	TestTrue(TEXT("Recipe ids are explicitly deferred"),
-		FRPGTalentLocalizationText::IsDeferredRecipeTextId(TEXT("Talent.Recipe.Recipe_Bomb_Fire")));
-	TestFalse(TEXT("Normal Talent UI ids are not deferred"),
-		FRPGTalentLocalizationText::IsDeferredRecipeTextId(TEXT("Talent.Type.Active")));
-	TestTrue(TEXT("Deferred recipe still resolves through the compatibility bridge"),
+	TestTrue(TEXT("Historical Talent.Recipe ids are explicit compatibility inputs"),
+		FRPGTalentLocalizationText::IsRecipeCompatibilityTextId(TEXT("Talent.Recipe.Recipe_Bomb_Fire")));
+	TestFalse(TEXT("Normal Talent UI ids are not Recipe compatibility inputs"),
+		FRPGTalentLocalizationText::IsRecipeCompatibilityTextId(TEXT("Talent.Type.Active")));
+	TestTrue(TEXT("Recipe compatibility input resolves through the Recipe catalog"),
 		FRPGTalentLocalizationText::Get(TEXT("Talent.Recipe.Recipe_Bomb_Fire")).EqualTo(FText::FromString(TEXT("Bombe incendiaire"))));
 
 	FFormatNamedArguments Args;

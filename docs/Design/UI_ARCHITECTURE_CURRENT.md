@@ -555,7 +555,9 @@ Le pipeline Talent visuel est désormais audité jusqu'aux Data Assets sérialis
 DA_Class_*                  -> 6 classes / 18 branches / 90 nœuds
 DA_ClassVisual_*            -> ClassIcon / Banner / Flag / 18 backgrounds / 90 icônes
 DA_RPGTalentDetailGlyphSet  -> 14 glyphes
-DA_RPGTalentDetailTextSet   -> autorité unique du vocabulaire Talent
+UI.csv / ST_UI              -> vocabulaire UI Talent
+DA_RPGRecipeCatalog         -> noms joueur des Recipe_*
+DA_RPGTalentDetailTextSet   -> source legacy de migration uniquement, suppression prévue 01.2D2
 ~~~
 
 Le cleanup retire les anciens miroirs numériques du row widget, la seconde
