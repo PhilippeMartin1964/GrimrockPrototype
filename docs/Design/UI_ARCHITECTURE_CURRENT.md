@@ -343,7 +343,7 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
-### UI-SKILLS-SORT01 — tri interactif des colonnes — SOURCE OUVERTE
+### UI-SKILLS-SORT01 — tri interactif des colonnes — MATÉRIALISÉ / VALIDATION FINALE EN ATTENTE
 
 La liste Skills conserve `FGridSkillsPageView::Skills` comme projection canonique
 et applique un ordre **uniquement de présentation** dans `UGridSkillsWidget`.
@@ -359,13 +359,14 @@ Rang       : 0 -> N / N -> 0
 ~~~
 
 L'état `SkillSortColumn + SkillSortDirection` est transient. Trois boutons
-Designer optionnels (`Button_SortName`, `Button_SortAttribute`,
+Designer obligatoires (`Button_SortName`, `Button_SortAttribute`,
 `Button_SortRank`) pilotent le tri ; les libellés statiques doivent référencer
 directement `ST_UI` avec `Skill.Column.Name`, `Skill.Column.Attribute` et
 `Skill.Column.Rank`. Les glyphes mécaniques ▲ / ▼ restent dynamiques en C++.
 
-La matérialisation de la ligne d'en-têtes dans `WBP_GridSkills` reste à faire
-manuellement dans Unreal Editor avant fermeture du ticket.
+La ligne d'en-têtes est matérialisée dans `WBP_GridSkills`; les six hooks
+natifs de tri sont maintenant des `BindWidget` obligatoires. La fermeture du
+ticket dépend encore des régressions finales et du smoke localisation.
 
 Référence :
 `docs/Design/UI_SKILLS_SORT01_COLUMN_SORTING.md`.

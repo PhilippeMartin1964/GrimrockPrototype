@@ -151,10 +151,12 @@ bool FUISKILLSSORT01WidgetContractTest::RunTest(const FString&)
 	})
 	{
 		FProperty* Property = FindFProperty<FProperty>(SkillsClass, PropertyName);
-		TestNotNull(*FString::Printf(TEXT("%s optional Designer hook exists"), *PropertyName.ToString()), Property);
+		TestNotNull(*FString::Printf(TEXT("%s materialized Designer hook exists"), *PropertyName.ToString()), Property);
 		if (Property)
 		{
-			TestTrue(*FString::Printf(TEXT("%s remains optional before WBP materialization"), *PropertyName.ToString()),
+			TestTrue(*FString::Printf(TEXT("%s is now a mandatory BindWidget"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidget")));
+			TestFalse(*FString::Printf(TEXT("%s is no longer optional"), *PropertyName.ToString()),
 				Property->HasMetaData(TEXT("BindWidgetOptional")));
 		}
 	}

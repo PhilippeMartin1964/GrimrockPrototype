@@ -285,24 +285,24 @@ private:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_SkillPoints;
 
-	/** UI-SKILLS-SORT01: optional until the column header row is materialized in WBP_GridSkills. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	/** UI-SKILLS-SORT01: materialized column sort controls in WBP_GridSkills. */
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_SortName;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_SortAttribute;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_SortRank;
 
 	/** Mechanical sort glyphs only; static column labels reference ST_UI directly in Designer. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SortNameIndicator;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SortAttributeIndicator;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SortRankIndicator;
 
 	UPROPERTY(meta = (BindWidget))

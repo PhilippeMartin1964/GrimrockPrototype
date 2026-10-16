@@ -2,7 +2,7 @@
 
 Date : **16 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **01.1 SOURCE IMPLÉMENTÉE — matérialisation WBP manuelle requise**
+État : **01.3 MATÉRIALISATION WBP EFFECTUÉE — contrat natif resserré, validation finale requise**
 
 ## 1. Objectif
 
@@ -109,8 +109,8 @@ Références directes :
 | Text_HeaderAttribute | Skill.Column.Attribute |
 | Text_HeaderRank | Skill.Column.Rank |
 
-Les six hooks natifs sont temporairement `BindWidgetOptional` jusqu'à cette
-matérialisation.
+Les six hooks natifs sont désormais `BindWidget` obligatoires : la ligne d'en-têtes
+est matérialisée dans `WBP_GridSkills` et validée visuellement en PIE.
 
 ## 6. Tests source
 
@@ -131,6 +131,7 @@ Après récupération du commit source :
     -AutomationFilter "Grimrock.UI.Skills02"
 ~~~
 
-Ensuite seulement : matérialiser les trois clés dans `ST_UI`, construire la
-ligne d'en-têtes dans `WBP_GridSkills`, rendre les six hooks obligatoires,
-rejouer Skills02 et le smoke, puis fermer UI-SKILLS-SORT01.
+La matérialisation `ST_UI` est versionnée dans `4df462a0`. La matérialisation
+WBP a été commitée avec les ajustements visuels Skills dans `d283efef`.
+Il reste à rejouer Skills02, la régression d'ownership localisation et le smoke,
+puis à fermer UI-SKILLS-SORT01.
