@@ -1,15 +1,17 @@
 #include "UI/GridPartyPortraitHudWidget.h"
 
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Border.h"
 #include "Components/Image.h"
 #include "Components/ProgressBar.h"
+#include "InputCoreTypes.h"
 
 void UGridPartyPortraitHudWidget::SetPortraitView(const FGridPartyPortraitView& InView)
 {
 	View = InView;
 	RefreshBoundVisuals();
 	RefreshPortraitVisual();
-	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	SetVisibility(ESlateVisibility::Visible);
 }
 
 FGuid UGridPartyPortraitHudWidget::GetCharacterId() const
@@ -20,6 +22,63 @@ FGuid UGridPartyPortraitHudWidget::GetCharacterId() const
 bool UGridPartyPortraitHudWidget::IsSelected() const
 {
 	return View.bIsSelected;
+}
+
+bool UGridPartyPortraitHudWidget::RequestSelection()
+{
+	if (!View.CharacterId.IsValid())
+	{
+		return false;
+	}
+
+	OnPortraitClicked.Broadcast(View.CharacterId);
+	return true;
+}
+
+FReply UGridPartyPortraitHudWidget::NativeOnMouseButtonDown(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && View.CharacterId.IsValid())
+	{
+		bLeftMousePressed = true;
+		bDragDetected = false;
+		return UWidgetBlueprintLibrary::DetectDragIfPressed(
+			InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
+	}
+
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
+FReply UGridPartyPortraitHudWidget::NativeOnMouseButtonUp(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && bLeftMousePressed)
+	{
+		const bool bShouldSelect = !bDragDetected;
+		bLeftMousePressed = false;
+		bDragDetected = false;
+		if (bShouldSelect)
+		{
+			RequestSelection();
+		}
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
+}
+
+void UGridPartyPortraitHudWidget::NativeOnDragDetected(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent,
+	UDragDropOperation*& OutOperation)
+{
+	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
+	bDragDetected = true;
+	bLeftMousePressed = false;
+	OutOperation = nullptr;
+	// UI-PARTYHUD01.4 will create the dedicated portrait drag operation.
 }
 
 void UGridPartyPortraitHudWidget::RefreshPortraitVisual_Implementation()

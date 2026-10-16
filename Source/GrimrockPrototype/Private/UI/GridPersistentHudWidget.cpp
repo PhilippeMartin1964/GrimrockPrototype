@@ -160,6 +160,8 @@ void UGridPersistentHudWidget::RefreshPartyPortraits()
 				continue;
 			}
 
+			PortraitWidget->OnPortraitClicked.AddUniqueDynamic(
+				this, &UGridPersistentHudWidget::HandlePartyPortraitClicked);
 			PortraitWidget->SetPortraitView(View);
 			if (UVerticalBoxSlot* PortraitSlot = Panel_PartyPortraits->AddChildToVerticalBox(PortraitWidget))
 			{
@@ -174,8 +176,36 @@ void UGridPersistentHudWidget::RefreshPartyPortraits()
 
 	for (int32 Index = 0; Index < Views.Num(); ++Index)
 	{
+		PartyPortraitWidgets[Index]->OnPortraitClicked.RemoveDynamic(
+			this, &UGridPersistentHudWidget::HandlePartyPortraitClicked);
+		PartyPortraitWidgets[Index]->OnPortraitClicked.AddUniqueDynamic(
+			this, &UGridPersistentHudWidget::HandlePartyPortraitClicked);
 		PartyPortraitWidgets[Index]->SetPortraitView(Views[Index]);
 	}
+}
+
+bool UGridPersistentHudWidget::SelectPartyPortraitCharacter(FGuid CharacterId)
+{
+	if (!IsValid(InventoryComponent) || !CharacterId.IsValid())
+	{
+		return false;
+	}
+
+	const int32 CharacterIndex = InventoryComponent->ResolveActiveCharacterIndexById(CharacterId);
+	if (!InventoryComponent->IsValidCharacterIndex(CharacterIndex))
+	{
+		return false;
+	}
+
+	if (!InventoryComponent->SetSelectedCharacterIndex(CharacterIndex))
+	{
+		return false;
+	}
+
+	// SetSelectedCharacterIndex broadcasts first; by the time it returns, all
+	// character-scoped listeners have consumed the authoritative selection.
+	RefreshFromSources();
+	return true;
 }
 
 bool UGridPersistentHudWidget::ShowProgressionNotification(const FRPGProgressionNotificationView& Notification)
@@ -213,6 +243,11 @@ void UGridPersistentHudWidget::HandlePartyInventoryChanged(int32 CharacterIndex)
 {
 	(void)CharacterIndex;
 	RefreshPartyPortraits();
+}
+
+void UGridPersistentHudWidget::HandlePartyPortraitClicked(FGuid CharacterId)
+{
+	SelectPartyPortraitCharacter(CharacterId);
 }
 
 void UGridPersistentHudWidget::ApplyNavigationTooltips()

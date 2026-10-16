@@ -130,6 +130,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Party")
 	void RefreshPartyPortraits();
 
+	/** UI-PARTYHUD01.3 resolves stable identity then delegates to the existing SelectedCharacterIndex authority. */
+	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Party")
+	bool SelectPartyPortraitCharacter(FGuid CharacterId);
+
 	/** Returns false until the optional Designer notification surface is materialized. */
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Progression")
 	bool ShowProgressionNotification(const FRPGProgressionNotificationView& Notification);
@@ -163,6 +167,9 @@ private:
 
 	UFUNCTION()
 	void HandlePartyInventoryChanged(int32 CharacterIndex);
+
+	UFUNCTION()
+	void HandlePartyPortraitClicked(FGuid CharacterId);
 
 	UFUNCTION()
 	void HandleNavEscapeClicked();

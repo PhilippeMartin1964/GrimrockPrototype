@@ -234,7 +234,7 @@ bool FGridPartyHud012PortraitWidgetPresentationTest::RunTest(const FString& Para
 	TestTrue(TEXT("Magical armor percentage follows read model"), FMath::IsNearlyEqual(Widget->ProgressBar_MagicalArmor->GetPercent(), 1.0f));
 	TestEqual(TEXT("Mana bar is visible for a mana user"), Widget->ProgressBar_Mana->GetVisibility(), ESlateVisibility::HitTestInvisible);
 	TestEqual(TEXT("Selected frame is visible"), Widget->Border_Selected->GetVisibility(), ESlateVisibility::HitTestInvisible);
-	TestEqual(TEXT("Presenter root never blocks world hit testing itself"), Widget->GetVisibility(), ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Portrait root is hit-testable because the portrait itself is the interaction surface"), Widget->GetVisibility(), ESlateVisibility::Visible);
 
 	View.bHasMana = false;
 	View.ManaRatio = 0.9f;
@@ -291,6 +291,69 @@ bool FGridPartyHud012PersistentRailContractTest::RunTest(const FString& Paramete
 	TestNotNull(TEXT("Persistent HUD exposes event-driven RefreshPartyPortraits"), HudClass->FindFunctionByName(TEXT("RefreshPartyPortraits")));
 	TestNull(TEXT("Persistent portrait presenter does not reuse inventory OwningInventoryWidget semantics"),
 		PortraitClass->FindPropertyByName(TEXT("OwningInventoryWidget")));
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud013InteractionContractTest, "Grimrock.UI.PartyHud01.PortraitInteractionContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud013InteractionContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	const UClass* PortraitClass = UGridPartyPortraitHudWidget::StaticClass();
+	TestNotNull(TEXT("Portrait exposes stable-id click delegate"),
+		PortraitClass->FindPropertyByName(TEXT("OnPortraitClicked")));
+	TestNotNull(TEXT("Portrait exposes native selection request"),
+		PortraitClass->FindFunctionByName(TEXT("RequestSelection")));
+	TestNull(TEXT("Portrait owns no parallel SelectedCharacterIndex"),
+		PortraitClass->FindPropertyByName(TEXT("SelectedCharacterIndex")));
+
+	UGridPartyPortraitHudWidget* Widget = NewObject<UGridPartyPortraitHudWidget>();
+	FGridPartyPortraitView InvalidView;
+	Widget->SetPortraitView(InvalidView);
+	TestFalse(TEXT("Invalid CharacterId cannot emit a selection request"), Widget->RequestSelection());
+
+	FGridPartyPortraitView ValidView;
+	ValidView.CharacterId = GridPartyHud01Tests::MakeId(50);
+	Widget->SetPortraitView(ValidView);
+	TestTrue(TEXT("Valid CharacterId can emit a selection request"), Widget->RequestSelection());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud013CharacterSelectionTest, "Grimrock.UI.PartyHud01.CharacterSelection",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud013CharacterSelectionTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	using namespace GridPartyHud01Tests;
+
+	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	URPGClassAsset* ClassDefinition = MakeClass(Inventory, TEXT("PartyHudSelection"), 0, 0);
+	const FGuid A = MakeId(60);
+	const FGuid B = MakeId(61);
+	Inventory->PartyInventoryState.ActiveCharacters.Add(MakeCharacter(A, ClassDefinition, 10, 10, 0, 0, 0, 0));
+	Inventory->PartyInventoryState.ActiveCharacters.Add(MakeCharacter(B, ClassDefinition, 10, 10, 0, 0, 0, 0));
+	Inventory->PartyInventoryState.ActiveEquipment.SetNum(2);
+	Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
+	Inventory->SanitizePartyPortraitOrder();
+	const TArray<FGuid> OrderBefore = Inventory->PartyPortraitOrder;
+
+	UGridPersistentHudWidget* Hud = NewObject<UGridPersistentHudWidget>();
+	Hud->InventoryComponent = Inventory;
+
+	TestTrue(TEXT("Stable CharacterId selects the second runtime character"), Hud->SelectPartyPortraitCharacter(B));
+	TestEqual(TEXT("Existing SelectedCharacterIndex authority changes to runtime index one"),
+		Inventory->GetSelectedCharacterIndex(), 1);
+	TestTrue(TEXT("Portrait selection never changes presentation order"), Inventory->PartyPortraitOrder == OrderBefore);
+	TestEqual(TEXT("Runtime character zero remains A"), Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId, A);
+	TestEqual(TEXT("Runtime character one remains B"), Inventory->PartyInventoryState.ActiveCharacters[1].CharacterId, B);
+
+	TestFalse(TEXT("Unknown CharacterId is rejected"), Hud->SelectPartyPortraitCharacter(MakeId(999)));
+	TestEqual(TEXT("Rejected selection preserves the selected runtime index"),
+		Inventory->GetSelectedCharacterIndex(), 1);
 	return true;
 }
 

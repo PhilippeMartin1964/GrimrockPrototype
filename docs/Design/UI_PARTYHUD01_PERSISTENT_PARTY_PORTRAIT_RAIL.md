@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1 VALIDÉ — UI-PARTYHUD01.2 VALIDÉ / CLOS — UI-PARTYHUD01.3 EN COURS**
+État courant : **UI-PARTYHUD01.1 VALIDÉ — UI-PARTYHUD01.2 VALIDÉ / CLOS — UI-PARTYHUD01.3 IMPLÉMENTÉ C++ / VALIDATION REQUISE**
 
 ## 1. Objectif général
 
@@ -860,3 +860,138 @@ Prochain sous-jalon :
 ```text
 UI-PARTYHUD01.3 — Character Selection
 ```
+
+
+## 33. UI-PARTYHUD01.3 — Character Selection
+
+### 33.1 Autorité inchangée
+
+Le clic sur un portrait ne crée aucune nouvelle sélection.
+
+Chaîne autoritaire :
+
+```text
+UGridPartyPortraitHudWidget
+    -> OnPortraitClicked(CharacterId)
+UGridPersistentHudWidget
+    -> ResolveActiveCharacterIndexById(CharacterId)
+UGridPartyInventoryComponent
+    -> SetSelectedCharacterIndex(CharacterIndex)
+    -> OnPartyInventoryChanged
+```
+
+`SelectedCharacterIndex` reste l'unique autorité runtime.
+
+### 33.2 Identité transportée par le clic
+
+Le portrait diffuse exclusivement :
+
+```text
+CharacterId : FGuid
+```
+
+Il ne diffuse pas `CharacterIndex` comme identité. Le parent résout l'index au moment de la transaction afin de rester correct si le roster runtime évolue.
+
+### 33.3 Interaction native sans nouveau contrôle UMG
+
+Aucun `Button_Portrait` n'est ajouté au WBP.
+
+Le `UGridPartyPortraitHudWidget` lui-même devient la surface interactive :
+
+```text
+MouseDown gauche
+    -> armement du clic
+    -> DetectDragIfPressed
+
+MouseUp gauche sans drag
+    -> RequestSelection()
+    -> OnPortraitClicked(CharacterId)
+
+drag détecté
+    -> annulation du clic
+    -> aucune réorganisation dans .3
+```
+
+Le drag réel et son opération dédiée restent réservés à UI-PARTYHUD01.4.
+
+### 33.4 Hit testing
+
+Le rail parent conserve dans le Designer UE5.5.4 :
+
+```text
+Panel_PartyPortraits
+Visibility = Not Hit-Testable (Self Only)
+```
+
+Cela autorise ses enfants à recevoir la souris.
+
+Le portrait individuel est forcé runtime à :
+
+```cpp
+ESlateVisibility::Visible
+```
+
+car il constitue désormais une surface interactive.
+
+Les éléments décoratifs internes (portrait, barres, cadre) restent non bloquants.
+
+### 33.5 Synchronisation des surfaces
+
+Après `SetSelectedCharacterIndex()`, la notification autoritaire existante rafraîchit les consommateurs déjà abonnés :
+
+```text
+Character Sheet
+Inventory
+Skills / Talents
+Spellbook
+held visual
+portrait rail
+```
+
+Le Persistent HUD exécute ensuite `RefreshFromSources()` afin de resynchroniser son propre chrome et sa barre d'actions après le retour de la notification.
+
+### 33.6 Aucun changement UMG requis
+
+Si UI-PARTYHUD01.2 est déjà matérialisé et visible, UI-PARTYHUD01.3 ne demande :
+
+```text
+aucun nouveau widget
+aucun nouveau Button
+aucun Event Graph
+aucun binding Blueprint
+```
+
+Important : ne pas rendre le contenu complet de `WBP_PartyPortraitHud` `Not Hit-Testable (Self & All Children)`, car le portrait doit pouvoir recevoir le clic.
+
+### 33.7 Automation
+
+Tests ajoutés :
+
+```text
+Grimrock.UI.PartyHud01.PortraitInteractionContract
+Grimrock.UI.PartyHud01.CharacterSelection
+```
+
+Le filtre contient désormais **8 tests** attendus.
+
+Validation :
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.PartyHud01"
+```
+
+PIE attendu :
+
+```text
+clic portrait 2
+    -> cadre sélection portrait 2
+    -> SelectedCharacterIndex = personnage 2
+    -> surfaces character-scoped suivent personnage 2
+
+clic portrait 1
+    -> sélection revient au personnage 1
+```
+
+UI-PARTYHUD01.3 ne sera déclaré VALIDÉ qu'après Automation locale et vérification PIE du clic.

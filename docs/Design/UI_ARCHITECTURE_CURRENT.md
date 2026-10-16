@@ -1143,3 +1143,10 @@ Le rail se rafraîchit via `OnPartyInventoryChanged`, sans polling RPG dans `Nat
 
 
 UI-PARTYHUD01.2 est désormais **VALIDÉ / CLOS** : 6/6 Automation, puis validation PIE du rail avec deux personnages actifs affichés à gauche. Le second membre peut légitimement présenter une zone de portrait vide tant que son asset portrait n'est pas renseigné.
+
+
+### UI-PARTYHUD01.3 — sélection par portrait
+
+Le portrait persistant devient une surface interactive native. Il diffuse le `CharacterId` stable ; `UGridPersistentHudWidget` résout l'index runtime puis appelle l'autorité existante `SetSelectedCharacterIndex()`. Aucun index parallèle ni état de sélection propre au HUD n'est introduit.
+
+Le clic est validé au MouseUp uniquement si aucun drag n'a été détecté, ce qui prépare UI-PARTYHUD01.4 sans ajouter de `Button` UMG.
