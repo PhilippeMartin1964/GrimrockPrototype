@@ -2,7 +2,7 @@
 
 Date : **16 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **SOURCE IMPLÉMENTÉE — validation locale requise**
+État : **VALIDÉ / CLOS — 16 octobre 2026**
 
 ## Architecture finale
 
@@ -39,3 +39,30 @@ préfixe de compatibilité recette absent du Source/
 Le test `Game.UI.TextCentral.CENTRAL01.TalentLegacyPurge` impose cette
 stop-condition. `TalentStringTableRuntime` valide directement ST_UI et les
 six formats nommés sans bridge intermédiaire.
+
+
+## Validation locale de fermeture
+
+~~~text
+Game.UI.TextCentral.CENTRAL01.TalentLegacyPurge
+    1/1 — 0 warning — 0 échec
+
+Game.UI.TextCentral.CENTRAL01.TalentStringTableRuntime
+    1/1 — 0 warning — 0 échec
+
+Game.UI.TextCentral.CENTRAL01.RecipeCatalogProduction
+    1/1 — 0 warning — 0 échec
+
+Grimrock.UI.RPG.DESC01
+    23/23 — 0 warning — 0 échec
+
+Grimrock.UI.Skills02
+    15/15 — 0 warning — 0 échec
+
+UI-LOCALIZATION01.6
+    pipeline + English smoke — 0 erreur — 0 warning
+~~~
+
+Le smoke confirme également que les configurations de localisation suivies par
+Git restent inchangées et que les sorties générées volatiles sont restaurées
+après validation.
