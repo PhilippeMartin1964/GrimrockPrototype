@@ -343,6 +343,24 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
+### UI-TEXT-CENTRAL01.3 — Skill remaining vocabulary
+
+Le dernier wording statique Skill quitte le C++ :
+
+~~~text
+Skill.Fallback.Unknown
+Skill.Rank.Format
+Skill.Training.Trained
+Skill.Training.UntrainedAllowed
+Skill.Training.Required
+~~~
+
+`Skill.Rank.Format` utilise des placeholders nommés `{Rank}` et
+`{MaxRank}`. Les widgets compact et détail résolvent directement ces clés via
+`FUILocalizationText`. Un nom Skill authoré manquant n'affiche plus le
+`SkillId` technique : il utilise le fallback localisé central.
+
+
 ### UI-RPG-DESC01.5-.11 — audits validés / DESC01.12 normalisation croisée
 
 Les captures PIE de DESC01.4 ont invalidé le contrat de présentation malgré une

@@ -357,10 +357,12 @@ FText UGridSkillDetailWidget::ResolveRankLabel(int32 Rank, int32 MaxRank)
 		return FText::GetEmpty();
 	}
 
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Rank"), FText::AsNumber(Rank));
+	Arguments.Add(TEXT("MaxRank"), FText::AsNumber(MaxRank));
 	return FText::Format(
-		NSLOCTEXT("GridSkills", "SkillRankFormat", "Rang {0} / {1}"),
-		FText::AsNumber(Rank),
-		FText::AsNumber(MaxRank));
+		FUILocalizationText::Get(TEXT("Skill.Rank.Format")),
+		Arguments);
 }
 
 FText UGridSkillDetailWidget::ResolveTrainingLabel(EGridSkillTrainingState TrainingState)
@@ -368,11 +370,11 @@ FText UGridSkillDetailWidget::ResolveTrainingLabel(EGridSkillTrainingState Train
 	switch (TrainingState)
 	{
 		case EGridSkillTrainingState::Trained:
-			return NSLOCTEXT("GridSkills", "SkillTrained", "Entraînée");
+			return FUILocalizationText::Get(TEXT("Skill.Training.Trained"));
 		case EGridSkillTrainingState::UntrainedAllowed:
-			return NSLOCTEXT("GridSkills", "SkillUntrainedAllowed", "Utilisable sans entraînement");
+			return FUILocalizationText::Get(TEXT("Skill.Training.UntrainedAllowed"));
 		case EGridSkillTrainingState::TrainingRequired:
-			return NSLOCTEXT("GridSkills", "SkillTrainingRequired", "Entraînement requis");
+			return FUILocalizationText::Get(TEXT("Skill.Training.Required"));
 		default:
 			return FText::GetEmpty();
 	}

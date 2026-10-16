@@ -245,9 +245,9 @@ FText UGridSkillEntryWidget::ResolveDisplayName(const FGridSkillEntryView& InEnt
 	{
 		return InEntry.DisplayName;
 	}
-	return InEntry.SkillId.IsNone()
-		? NSLOCTEXT("GridSkills", "UnknownSkill", "Compétence inconnue")
-		: FText::FromName(InEntry.SkillId);
+
+	// Missing authored content must never leak a technical SkillId to the player.
+	return FUILocalizationText::Get(TEXT("Skill.Fallback.Unknown"));
 }
 
 FText UGridSkillEntryWidget::ResolveAttributeLabel(const FGridSkillEntryView& InEntry)
@@ -275,10 +275,12 @@ FText UGridSkillEntryWidget::ResolveAttributeLabel(const FGridSkillEntryView& In
 
 FText UGridSkillEntryWidget::ResolveRankLabel(const FGridSkillEntryView& InEntry)
 {
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Rank"), FText::AsNumber(InEntry.Rank));
+	Arguments.Add(TEXT("MaxRank"), FText::AsNumber(InEntry.MaxRank));
 	return FText::Format(
-		NSLOCTEXT("GridSkills", "SkillRankFormat", "Rang {0} / {1}"),
-		FText::AsNumber(InEntry.Rank),
-		FText::AsNumber(InEntry.MaxRank));
+		FUILocalizationText::Get(TEXT("Skill.Rank.Format")),
+		Arguments);
 }
 
 FText UGridSkillEntryWidget::ResolveTrainingLabel(const FGridSkillEntryView& InEntry)
@@ -286,11 +288,11 @@ FText UGridSkillEntryWidget::ResolveTrainingLabel(const FGridSkillEntryView& InE
 	switch (ResolveTrainingState(InEntry))
 	{
 		case EGridSkillTrainingState::Trained:
-			return NSLOCTEXT("GridSkills", "SkillTrained", "Entraînée");
+			return FUILocalizationText::Get(TEXT("Skill.Training.Trained"));
 		case EGridSkillTrainingState::UntrainedAllowed:
-			return NSLOCTEXT("GridSkills", "SkillUntrainedAllowed", "Utilisable sans entraînement");
+			return FUILocalizationText::Get(TEXT("Skill.Training.UntrainedAllowed"));
 		case EGridSkillTrainingState::TrainingRequired:
-			return NSLOCTEXT("GridSkills", "SkillTrainingRequired", "Entraînement requis");
+			return FUILocalizationText::Get(TEXT("Skill.Training.Required"));
 		default:
 			return FText::GetEmpty();
 	}
