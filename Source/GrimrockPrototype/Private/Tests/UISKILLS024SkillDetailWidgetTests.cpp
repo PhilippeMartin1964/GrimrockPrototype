@@ -251,7 +251,7 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 	}
 
 
-	const FName OptionalLocalizedLabelBindings[] =
+	const FName RequiredLocalizedLabelBindings[] =
 	{
 		TEXT("Text_LabelDescription"),
 		TEXT("Text_LabelTraining"),
@@ -272,7 +272,7 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 		TEXT("Text_LabelNextRankCost")
 	};
 
-	for (const FName PropertyName : OptionalLocalizedLabelBindings)
+	for (const FName PropertyName : RequiredLocalizedLabelBindings)
 	{
 		FProperty* Property = FindFProperty<FProperty>(DetailClass, PropertyName);
 		TestNotNull(
@@ -281,7 +281,10 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 		if (Property)
 		{
 			TestTrue(
-				*FString::Printf(TEXT("%s remains optional until Designer materialization"), *PropertyName.ToString()),
+				*FString::Printf(TEXT("%s is mandatory after Designer materialization"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidget")));
+			TestFalse(
+				*FString::Printf(TEXT("%s is no longer optional"), *PropertyName.ToString()),
 				Property->HasMetaData(TEXT("BindWidgetOptional")));
 		}
 	}

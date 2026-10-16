@@ -99,58 +99,57 @@ private:
 	static void ApplyOptionalSection(UVerticalBox* Section, UTextBlock* ValueWidget, const FText& Value);
 
 
-	// UI-TEXT-CENTRAL01.1: static player-facing labels resolve from ST_UI.
-	// BindWidgetOptional keeps source compatible until the existing Designer
-	// TextBlocks are renamed/materialized in WBP_RPGSkillDetail.
-	UPROPERTY(meta = (BindWidgetOptional))
+	// UI-TEXT-CENTRAL01.1C: static player-facing labels resolve from ST_UI.
+	// The Designer materialization is validated, so these bindings are now mandatory.
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelDescription;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelTraining;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelUsage;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelBuildAdvice;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelCheck;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelCheckRank;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelCheckAttributeModifier;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelCheckBaseBonus;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelAffinities;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelRecommendedClasses;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelUsefulClasses;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelSynergies;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelProgression;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelCurrentRankCap;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelRemainingSkillPoints;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelNextRank;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LabelNextRankCost;
 
 	UPROPERTY(meta = (BindWidget))
