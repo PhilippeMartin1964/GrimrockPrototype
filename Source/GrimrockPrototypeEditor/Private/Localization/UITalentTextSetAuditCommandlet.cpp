@@ -23,8 +23,8 @@ namespace
 	FString CsvEscape(const FString& Value)
 	{
 		FString Escaped = Value;
-		Escaped.ReplaceInline(TEXT("""), TEXT(""""), ESearchCase::CaseSensitive);
-		return FString::Printf(TEXT(""%s""), *Escaped);
+		Escaped.ReplaceInline(TEXT("\""), TEXT("\"\""), ESearchCase::CaseSensitive);
+		return FString::Printf(TEXT("\"%s\""), *Escaped);
 	}
 
 	void ClassifyTextId(const FName TextId, FString& OutCategory, FString& OutDisposition)
@@ -156,7 +156,7 @@ int32 UUITalentTextSetAuditCommandlet::Main(const FString& Params)
 		ClassifyTextId(Entry.TextId, Row.Category, Row.Disposition);
 
 		const FString ExactCsvKey =
-			FString::Printf(TEXT(""%s""), *Entry.TextId.ToString());
+			FString::Printf(TEXT("\"%s\""), *Entry.TextId.ToString());
 		Row.bAlreadyInUiCsv = !Entry.TextId.IsNone() && UiCsv.Contains(ExactCsvKey);
 		if (Row.bAlreadyInUiCsv)
 		{
