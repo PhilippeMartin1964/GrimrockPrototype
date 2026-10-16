@@ -673,14 +673,29 @@ Parent Class = UGridPartyPortraitHudWidget
 
 Ce chemin est cohérent avec le dépôt courant, où `WBP_GridPersistentHud`, `WBP_CharacterSheet`, `WBP_InventoryBag` et `WBP_PartyMember` résident déjà sous `Blueprints/UI/Inventory`.
 
-Puis ajouter dans `WBP_GridPersistentHud` :
+Puis ajouter dans `WBP_GridPersistentHud`, directement sous `CanvasPanel_Root` :
 
 ```text
-VerticalBox
-Name = Panel_PartyPortraits
-Position = côté gauche de l'écran
-Visibility = Self Hit Test Invisible
+SizeBox_PartyPortraitRail
+└── Panel_PartyPortraits [VerticalBox]
 ```
+
+Réglages obligatoires de départ :
+
+```text
+SizeBox_PartyPortraitRail
+    Width Override  = 120
+    Height Override = 850
+    Canvas Anchors  = Top Left
+    Position        = 20,20
+
+Panel_PartyPortraits
+    Type       = VerticalBox
+    Is Variable = true
+    Visibility = Not Hit-Testable (Self Only)
+```
+
+Le `SizeBox_PartyPortraitRail` fournit l'emprise de layout du rail. Il ne doit pas être omis de la procédure UMG.
 
 Et renseigner sur les Class Defaults de `WBP_GridPersistentHud` :
 
@@ -752,8 +767,10 @@ La validation Automation C++ ne matérialise aucun `.uasset`. Pour que le rail s
    Parent Class = UGridPartyPortraitHudWidget
 
 2. WBP_GridPersistentHud
-   contient un VerticalBox nommé exactement Panel_PartyPortraits
-   Is Variable = true
+   contient obligatoirement :
+   SizeBox_PartyPortraitRail
+   └── Panel_PartyPortraits [VerticalBox]
+   Panel_PartyPortraits : Is Variable = true
 
 3. WBP_GridPersistentHud / Class Defaults
    Party Portrait Widget Class = WBP_PartyPortraitHud
@@ -783,3 +800,22 @@ WBP_PartyPortraitHud avec Desired Size = 0
 ```
 
 Ces contrôles UMG font partie de la fermeture de UI-PARTYHUD01.2 et ne sont pas couverts par les tests Automation de réflexion C++.
+
+
+### 31.11 Terminologie UE5.5.4 — Visibility
+
+Dans le code C++, l'enum reste :
+
+```cpp
+ESlateVisibility::SelfHitTestInvisible
+ESlateVisibility::HitTestInvisible
+```
+
+Mais dans le **Designer UMG de Unreal Engine 5.5.4**, les libellés affichés sont :
+
+```text
+SelfHitTestInvisible -> Not Hit-Testable (Self Only)
+HitTestInvisible     -> Not Hit-Testable (Self & All Children)
+```
+
+La documentation UI-PARTYHUD01 doit utiliser les libellés du Designer lorsqu'elle donne une manipulation manuelle dans l'éditeur.
