@@ -161,11 +161,11 @@ void UGridPersistentHudWidget::RefreshPartyPortraits()
 			}
 
 			PortraitWidget->SetPortraitView(View);
-			if (UVerticalBoxSlot* Slot = Panel_PartyPortraits->AddChildToVerticalBox(PortraitWidget))
+			if (UVerticalBoxSlot* PortraitSlot = Panel_PartyPortraits->AddChildToVerticalBox(PortraitWidget))
 			{
-				Slot->SetPadding(FMargin(0.0f));
-				Slot->SetHorizontalAlignment(HAlign_Left);
-				Slot->SetVerticalAlignment(VAlign_Top);
+				PortraitSlot->SetPadding(FMargin(0.0f));
+				PortraitSlot->SetHorizontalAlignment(HAlign_Left);
+				PortraitSlot->SetVerticalAlignment(VAlign_Top);
 			}
 			PartyPortraitWidgets.Add(PortraitWidget);
 		}
