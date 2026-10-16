@@ -124,13 +124,14 @@ function New-FileSnapshot {
     $Exists = Test-Path -LiteralPath $Path -PathType Leaf
     $Snapshot = @{
         Exists = $Exists
-        Bytes = $null
+        Base64 = $null
     }
 
     if ($Exists) {
-        # Assign directly instead of returning the byte array through an if
-        # expression: PowerShell enumerates an empty byte[] to no output.
-        $Snapshot.Bytes = [System.IO.File]::ReadAllBytes($Path)
+        # Store bytes as one scalar string. PowerShell may enumerate an empty
+        # byte[] to no output, while Base64 preserves empty files as "".
+        $Snapshot.Base64 = [Convert]::ToBase64String(
+            [System.IO.File]::ReadAllBytes($Path))
     }
 
     return $Snapshot
@@ -145,13 +146,10 @@ function Restore-FileSnapshot {
     )
 
     if ($Snapshot.Exists) {
-        $Bytes = if ($null -eq $Snapshot.Bytes) {
-            [byte[]]::new(0)
-        }
-        else {
-            [byte[]]$Snapshot.Bytes
-        }
-        [System.IO.File]::WriteAllBytes($Path, $Bytes)
+        $Base64 = [string]$Snapshot.Base64
+        [System.IO.File]::WriteAllBytes(
+            $Path,
+            [Convert]::FromBase64String($Base64))
     }
     elseif (Test-Path -LiteralPath $Path -PathType Leaf) {
         Remove-Item -LiteralPath $Path -Force
