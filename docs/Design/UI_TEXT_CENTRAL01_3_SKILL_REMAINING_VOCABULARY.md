@@ -2,7 +2,7 @@
 
 Date : **16 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **SOURCE IMPLÉMENTÉE — matérialisation ST_UI et validation locale requises**
+État : **VALIDÉ / CLOS — 16 octobre 2026**
 
 ## Objectif
 
@@ -74,9 +74,9 @@ Après récupération de la source, exécuter :
   -unattended -nop4 -nosplash -nullrhi
 ~~~
 
-Le premier passage doit produire `Changed=true` car cinq clés sont ajoutées.
-Après versionnement de `ST_UI.uasset`, un second passage doit produire
-`Changed=false`.
+Le premier passage a produit `Changed=true` car cinq clés ont été ajoutées.
+Le second passage a confirmé l'idempotence avec `Changed=false`.
+Le `ST_UI.uasset` matérialisé a ensuite été versionné et poussé.
 
 ## Régressions
 
@@ -87,3 +87,56 @@ Grimrock.UI.Skills02
 Grimrock.UI.RPG06.Skills
 UI-LOCALIZATION01.6
 ~~~
+
+
+## Validation finale
+
+~~~text
+UIStringTableAuthoring (2e passage)
+    Changed=false
+    0 erreur — 0 warning
+
+Game.UI.TextCentral.CENTRAL01.SkillRemainingVocabulary
+    1/1 — 0 warning — 0 échec
+
+Game.UI.TextCentral.CENTRAL01.SkillVocabularySourceGuard
+    1/1 — 0 warning — 0 échec
+
+Grimrock.UI.Skills02
+    15/15 — 0 warning — 0 échec
+
+Grimrock.UI.RPG06.Skills
+    7/7 — 0 warning — 0 échec
+
+UI-LOCALIZATION01.6
+    English smoke PASS
+    0 erreur — 0 warning
+~~~
+
+Matérialisation finale :
+
+~~~text
+5b018972 UI-TEXT-CENTRAL01.3 materialize Skill vocabulary
+~~~
+
+Le dépôt local a été confirmé propre après push.
+
+## Clôture de UI-TEXT-CENTRAL01
+
+Avec 01.3, les pipelines Skills, Talents et Recipes respectent désormais la
+séparation d'autorité suivante :
+
+~~~text
+vocabulaire UI statique
+    Localization/Source/UI.csv
+        -> ST_UI
+        -> FUILocalizationText
+
+contenu métier
+    DA_Skill_* / DA_Class_* / DA_RPGRecipeCatalog / autres Data Assets métier
+
+C++
+    mécanique, calculs, read-models, formatage non linguistique
+~~~
+
+Aucun des cinq anciens textes Skill statiques ne reste authoré dans le C++.

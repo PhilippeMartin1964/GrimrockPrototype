@@ -343,9 +343,9 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
-### UI-TEXT-CENTRAL01.3 — Skill remaining vocabulary
+### UI-TEXT-CENTRAL01.3 — Skill remaining vocabulary — VALIDÉ / CLOS
 
-Le dernier wording statique Skill quitte le C++ :
+Le dernier wording statique Skill a quitté le C++ :
 
 ~~~text
 Skill.Fallback.Unknown
@@ -359,6 +359,11 @@ Skill.Training.Required
 `{MaxRank}`. Les widgets compact et détail résolvent directement ces clés via
 `FUILocalizationText`. Un nom Skill authoré manquant n'affiche plus le
 `SkillId` technique : il utilise le fallback localisé central.
+
+Validation finale : `SkillRemainingVocabulary` 1/1,
+`SkillVocabularySourceGuard` 1/1, `Grimrock.UI.Skills02` 15/15,
+`Grimrock.UI.RPG06.Skills` 7/7, smoke localisation PASS, 0 warning/échec.
+Le `ST_UI.uasset` final est versionné dans `5b018972`.
 
 
 ### UI-RPG-DESC01.5-.11 — audits validés / DESC01.12 normalisation croisée
