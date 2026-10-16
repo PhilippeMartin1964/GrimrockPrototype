@@ -47,6 +47,38 @@ namespace
 		}
 		return LegacyTextId;
 	}
+
+	FString NormalizeCentralSource(const FString& LegacyTextId, const FString& LegacySource)
+	{
+		// UI.csv deliberately forbids ordered placeholders ({0}, {1}, ...).
+		// Convert the six legacy Talent templates to stable named placeholders
+		// while preserving their player-facing French wording.
+		if (LegacyTextId == TEXT("Talent.Feedback.Success.Generic"))
+		{
+			return TEXT("Acquisition réussie. Points de talent restants : {RemainingPoints}.");
+		}
+		if (LegacyTextId == TEXT("Talent.Feedback.Success.Named"))
+		{
+			return TEXT("« {TalentName} » a été acquis. Points de talent restants : {RemainingPoints}.");
+		}
+		if (LegacyTextId == TEXT("Talent.Node.LevelFormat"))
+		{
+			return TEXT("Niv. {Level}");
+		}
+		if (LegacyTextId == TEXT("Talent.Screen.ClassLevelFormat"))
+		{
+			return TEXT("{Class} - Niveau {Level}");
+		}
+		if (LegacyTextId == TEXT("Talent.Screen.SkillPointsFormat"))
+		{
+			return TEXT("Points de compétence : {SkillPoints} - Rang max : {RankCap}");
+		}
+		if (LegacyTextId == TEXT("Talent.Screen.TalentPointsFormat"))
+		{
+			return TEXT("Points de talent : {TalentPoints}");
+		}
+		return LegacySource;
+	}
 }
 
 UUITalentTextSetCentralizeCommandlet::UUITalentTextSetCentralizeCommandlet()
@@ -112,6 +144,10 @@ int32 UUITalentTextSetCentralizeCommandlet::Main(const FString& Params)
 		}
 
 		const FString CentralKey = ResolveCentralKey(LegacyKey);
+		const FString CentralSource =
+			CentralKey == LegacyKey
+				? NormalizeCentralSource(LegacyKey, LegacySource)
+				: LegacySource;
 		const bool bSharedReuse = CentralKey != LegacyKey;
 		if (bSharedReuse)
 		{
@@ -121,7 +157,7 @@ int32 UUITalentTextSetCentralizeCommandlet::Main(const FString& Params)
 		if (const int32* ExistingIndex = ExistingIndexByKey.Find(CentralKey))
 		{
 			const FUILocalizationCsvEntry& Existing = UiEntries[*ExistingIndex];
-			if (Existing.SourceString != LegacySource)
+			if (Existing.SourceString != CentralSource)
 			{
 				++ConflictCount;
 				UE_LOG(LogTemp, Error,
@@ -146,7 +182,7 @@ int32 UUITalentTextSetCentralizeCommandlet::Main(const FString& Params)
 
 		FUILocalizationCsvEntry NewEntry;
 		NewEntry.Key = CentralKey;
-		NewEntry.SourceString = LegacySource;
+		NewEntry.SourceString = CentralSource;
 		NewEntry.Comment =
 			CentralKey.StartsWith(TEXT("Talent.Target."), ESearchCase::CaseSensitive)
 				? TEXT("Vocabulaire de ciblage présenté dans l'interface Talent")
