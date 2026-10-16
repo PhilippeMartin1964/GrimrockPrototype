@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État du sous-jalon : **UI-PARTYHUD01.1 IMPLÉMENTÉ C++ — validation locale UE5.5.4 à recevoir**
+État du sous-jalon : **UI-PARTYHUD01.1 VALIDÉ UE5.5.4 — 4/4 Automation Success, 0 warning, 0 échec**
 
 ## 1. Objectif général
 
@@ -483,3 +483,46 @@ UI-PARTYHUD01.7  UMG / PIE Final
 10. L'ordre runtime est sanitizé à chaque changement du groupe.
 11. La persistance de l'ordre est différée explicitement à UI-PARTYHUD01.5.
 12. Aucun `.uasset` n'est modifié à l'aveugle.
+
+
+## 30. Validation UE5.5.4 — 16 octobre 2026
+
+Validation locale exécutée via le harness TD04.2 :
+
+```text
+Filter                 : Grimrock.UI.PartyHud01
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Rapport :
+
+```text
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20261016-173540
+```
+
+Logs :
+
+```text
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20261016-173540\Automation.log
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20261016-173540\Automation.console.log
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20261016-173540\Automation.summary.txt
+```
+
+Conclusion :
+
+```text
+[OK] Automation filter validated.
+TD04.2 validation completed successfully.
+```
+
+**UI-PARTYHUD01.1 est donc CLOS et VALIDÉ.**
+
+Le prochain sous-jalon autorisé est :
+
+```text
+UI-PARTYHUD01.2 — Persistent Portrait Rail
+```

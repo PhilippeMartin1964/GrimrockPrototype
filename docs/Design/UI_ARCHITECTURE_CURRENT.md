@@ -1131,3 +1131,5 @@ Contrat courant : `docs/Design/UI_PARTYHUD01_PERSISTENT_PARTY_PORTRAIT_RAIL.md`.
 Le Persistent HUD reçoit progressivement un rail vertical de portraits à gauche. L'autorité de sélection reste `UGridPartyInventoryComponent::SelectedCharacterIndex`. UI-PARTYHUD01.1 fournit le read model `FGridPartyPortraitView` et un ordre de présentation `PartyPortraitOrder` fondé sur les `CharacterId`, sans réordonner `ActiveCharacters`.
 
 Le portrait cible projette vie, mana conditionnelle, armure physique et armure magique. La persistance de l'ordre reste réservée à UI-PARTYHUD01.5.
+
+UI-PARTYHUD01.1 est **VALIDÉ UE5.5.4** : `Grimrock.UI.PartyHud01` = **4/4 Success, 0 warning, 0 échec**, validation TD04.2 du 16 octobre 2026.
