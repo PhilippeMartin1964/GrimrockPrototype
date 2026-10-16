@@ -11,6 +11,7 @@
 #include "UI/GridTalentDetailWidget.h"
 #include "UI/RPGTalentDetailGlyphSet.h"
 #include "UI/RPGTalentDetailTextSet.h"
+#include "UI/RPGTalentLocalizationText.h"
 #include "Engine/Texture2D.h"
 #include "UObject/UnrealType.h"
 
@@ -587,14 +588,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 {
-	const URPGTalentDetailTextSet* TextSet = LoadObject<URPGTalentDetailTextSet>(
-		nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet"));
-	if (!TestNotNull(TEXT("Production Talent detail text set loads"), TextSet))
-	{
-		return false;
-	}
-
 	for (const FName TextId : {
 		FName(TEXT("Talent.Type.Active")),
 		FName(TEXT("Talent.Type.ActiveSpell")),
@@ -615,7 +608,7 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Section.Principle")),
 		FName(TEXT("Talent.Section.Status")),
 		FName(TEXT("Talent.Section.Type")),
-		FName(TEXT("Talent.Section.Usage")),
+		FName(TEXT("UI.Section.Usage")),
 		FName(TEXT("Talent.Effect.CriticalChance")),
 		FName(TEXT("Talent.Effect.CriticalDamage")),
 		FName(TEXT("Talent.Effect.PhysicalArmorReference")),
@@ -664,11 +657,11 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Feedback.Success.Named")),
 		FName(TEXT("Talent.Feedback.Rejected.Title")),
 		FName(TEXT("Talent.Feedback.Rejected.Generic"))
-	})
+)
 	{
 		TestFalse(
-			*FString::Printf(TEXT("%s resolves from editable text data"), *TextId.ToString()),
-			TextSet->ResolveText(TextId).IsEmpty());
+			*FString::Printf(TEXT("%s resolves from the Talent runtime localization resolver"), *TextId.ToString()),
+			FRPGTalentLocalizationText::Get(TextId).IsEmpty());
 	}
 	return true;
 }

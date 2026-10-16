@@ -470,7 +470,7 @@ namespace
 				AddDetailNumberLine(Lines, RoundsLabelTextId, Duration);
 				break;
 			case EGridStatusEffectDurationUnit::Permanent:
-				AddDetailTextLine(Lines, PermanentLabelTextId, TEXT("Talent.Value.Permanent"));
+				AddDetailTextLine(Lines, PermanentLabelTextId, TEXT("Status.Duration.Permanent"));
 				break;
 			default:
 				break;

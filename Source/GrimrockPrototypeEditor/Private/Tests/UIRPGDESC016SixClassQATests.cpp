@@ -9,6 +9,7 @@
 #include "UI/GridTalentDetailWidget.h"
 #include "UI/RPGTalentPresentationAsset.h"
 #include "UI/RPGTalentDetailTextSet.h"
+#include "UI/RPGTalentLocalizationText.h"
 
 namespace UIRPGDESC016QA
 {
@@ -157,7 +158,6 @@ namespace UIRPGDESC016QA
 
 	void ValidateTextIdentity(
 		FAutomationTestBase& Test,
-		const URPGTalentDetailTextSet& TextSet,
 		const FString& Context,
 		FName TextId)
 	{
@@ -166,7 +166,7 @@ namespace UIRPGDESC016QA
 			return;
 		}
 
-		const FText Resolved = TextSet.ResolveText(TextId);
+		const FText Resolved = FRPGTalentLocalizationText::Get(TextId);
 		Test.TestFalse(
 			*FString::Printf(TEXT("%s resolves %s"), *Context, *TextId.ToString()),
 			Resolved.IsEmpty());
@@ -178,7 +178,6 @@ namespace UIRPGDESC016QA
 
 	void ValidateDetailTextCoverage(
 		FAutomationTestBase& Test,
-		const URPGTalentDetailTextSet& TextSet,
 		const FString& Context,
 		const TArray<FGridTalentDetailLineView>& Lines,
 		int32& InOutNumericLineCount)
@@ -198,11 +197,11 @@ namespace UIRPGDESC016QA
 
 			if (!Line.LabelTextId.IsNone())
 			{
-				ValidateTextIdentity(Test, TextSet, LineContext + TEXT("/Label"), Line.LabelTextId);
+				ValidateTextIdentity(Test, LineContext + TEXT("/Label"), Line.LabelTextId);
 			}
 			if (!Line.ValueTextId.IsNone())
 			{
-				ValidateTextIdentity(Test, TextSet, LineContext + TEXT("/Value"), Line.ValueTextId);
+				ValidateTextIdentity(Test, LineContext + TEXT("/Value"), Line.ValueTextId);
 			}
 
 			const bool bHasPayload =
@@ -454,13 +453,6 @@ bool FUIRPGDESC016TextSetCoverageTest::RunTest(const FString&)
 	using namespace UIRPGDESC016QA;
 	FRPGClassProgressionTransactionService::ResetRuntimeState();
 
-	const URPGTalentDetailTextSet* TextSet =
-		LoadObject<URPGTalentDetailTextSet>(nullptr, TalentDetailTextPath);
-	if (!TestNotNull(TEXT("Production Talent detail text set loads for systematic coverage"), TextSet))
-	{
-		return false;
-	}
-
 	int32 AuditedNodes = 0;
 	int32 NumericLineCount = 0;
 	for (const FClassSpec& Spec : ClassSpecs)
@@ -490,15 +482,14 @@ bool FUIRPGDESC016TextSetCoverageTest::RunTest(const FString&)
 					TEXT("%s/%s"), *Spec.ClassId.ToString(), *Node.TalentNodeId.ToString());
 
 				ValidateDetailTextCoverage(
-					*this, *TextSet, Context + TEXT("/Effects"), Node.Effects, NumericLineCount);
+					*this, Context + TEXT("/Effects"), Node.Effects, NumericLineCount);
 				ValidateDetailTextCoverage(
-					*this, *TextSet, Context + TEXT("/Usage"), Node.Usage, NumericLineCount);
+					*this, Context + TEXT("/Usage"), Node.Usage, NumericLineCount);
 
 				if (!Node.Acquisition.ExclusivityTextId.IsNone())
 				{
 					ValidateTextIdentity(
 						*this,
-						*TextSet,
 						Context + TEXT("/Acquisition/Exclusivity"),
 						Node.Acquisition.ExclusivityTextId);
 				}
@@ -506,7 +497,6 @@ bool FUIRPGDESC016TextSetCoverageTest::RunTest(const FString&)
 				{
 					ValidateTextIdentity(
 						*this,
-						*TextSet,
 						Context + TEXT("/Acquisition/Recipe"),
 						RecipeTextId);
 				}
@@ -516,9 +506,9 @@ bool FUIRPGDESC016TextSetCoverageTest::RunTest(const FString&)
 					const FString VariantContext =
 						Context + TEXT("/") + Variant.ChoiceId.ToString();
 					ValidateDetailTextCoverage(
-						*this, *TextSet, VariantContext + TEXT("/Effects"), Variant.Effects, NumericLineCount);
+						*this, VariantContext + TEXT("/Effects"), Variant.Effects, NumericLineCount);
 					ValidateDetailTextCoverage(
-						*this, *TextSet, VariantContext + TEXT("/Usage"), Variant.Usage, NumericLineCount);
+						*this, VariantContext + TEXT("/Usage"), Variant.Usage, NumericLineCount);
 				}
 			}
 		}

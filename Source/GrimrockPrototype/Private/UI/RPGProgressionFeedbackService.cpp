@@ -1,6 +1,6 @@
 #include "UI/RPGProgressionFeedbackService.h"
 
-#include "UI/RPGTalentDetailTextSet.h"
+#include "UI/RPGTalentLocalizationText.h"
 
 #define LOCTEXT_NAMESPACE "RPGProgressionFeedbackService"
 
@@ -8,7 +8,19 @@ namespace
 {
 	FText TalentFeedbackText(FName TextId)
 	{
-		return URPGTalentDetailTextSet::ResolveProductionText(TextId);
+		return FRPGTalentLocalizationText::Get(TextId);
+	}
+
+	FText FormatTalentSuccessMessage(const FText& Pattern, const FText& TalentDisplayName, int32 RemainingPoints)
+	{
+		if (Pattern.IsEmpty()) return FText::GetEmpty();
+		FFormatNamedArguments Arguments;
+		if (!TalentDisplayName.IsEmpty())
+		{
+			Arguments.Add(TEXT("TalentName"), TalentDisplayName);
+		}
+		Arguments.Add(TEXT("RemainingPoints"), FText::AsNumber(RemainingPoints));
+		return FText::Format(Pattern, Arguments);
 	}
 }
 
@@ -72,15 +84,10 @@ FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeTalentCommit
 			TalentDisplayName.IsEmpty()
 				? FName(TEXT("Talent.Feedback.Success.Generic"))
 				: FName(TEXT("Talent.Feedback.Success.Named")));
-		if (!Template.IsEmpty())
-		{
-			Notification.Message = TalentDisplayName.IsEmpty()
-				? FText::Format(Template, FText::AsNumber(Result.RemainingPoints))
-				: FText::Format(
-					Template,
-					TalentDisplayName,
-					FText::AsNumber(Result.RemainingPoints));
-		}
+		Notification.Message = FormatTalentSuccessMessage(
+			Template,
+			TalentDisplayName,
+			Result.RemainingPoints);
 		return Notification;
 	}
 

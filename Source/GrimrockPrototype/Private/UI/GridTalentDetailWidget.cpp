@@ -8,7 +8,7 @@
 #include "Engine/World.h"
 #include "UI/GridTalentDetailLineWidget.h"
 #include "UI/RPGTalentDetailGlyphSet.h"
-#include "UI/RPGTalentDetailTextSet.h"
+#include "UI/RPGTalentLocalizationText.h"
 
 namespace
 {
@@ -71,7 +71,7 @@ void UGridTalentDetailWidget::ApplyLocalizedStaticLabels()
 	{
 		if (Widget)
 		{
-			Widget->SetText(URPGTalentDetailTextSet::ResolveProductionText(FName(TextId)));
+			Widget->SetText(FRPGTalentLocalizationText::Get(FName(TextId)));
 		}
 	};
 
@@ -79,7 +79,7 @@ void UGridTalentDetailWidget::ApplyLocalizedStaticLabels()
 	SetResolvedText(Text_LabelStatus, TEXT("Talent.Section.Status"));
 	SetResolvedText(Text_LabelPrinciple, TEXT("Talent.Section.Principle"));
 	SetResolvedText(Text_LabelEffects, TEXT("Talent.Section.Effects"));
-	SetResolvedText(Text_LabelUsage, TEXT("Talent.Section.Usage"));
+	SetResolvedText(Text_LabelUsage, TEXT("UI.Section.Usage"));
 	SetResolvedText(Text_LabelAcquisition, TEXT("Talent.Section.Acquisition"));
 	SetResolvedText(Text_AcquireTalent, TEXT("Talent.Action.Acquire"));
 	SetResolvedText(Text_ConfirmAcquire, TEXT("Talent.Action.Confirm"));
@@ -313,9 +313,9 @@ void UGridTalentDetailWidget::PopulateDetailLineRows(
 		}
 
 		UTexture2D* Glyph = DetailGlyphSet ? DetailGlyphSet->ResolveGlyph(Line.Semantic) : nullptr;
-		const FText LabelText = URPGTalentDetailTextSet::ResolveProductionText(Line.LabelTextId);
+		const FText LabelText = FRPGTalentLocalizationText::Get(Line.LabelTextId);
 		const FText ValueText = !Line.ValueTextId.IsNone()
-			? URPGTalentDetailTextSet::ResolveProductionText(Line.ValueTextId)
+			? FRPGTalentLocalizationText::Get(Line.ValueTextId)
 			: Line.Value;
 		if (!Row->InitializeLine(Line, Glyph, LabelText, ValueText))
 		{
@@ -440,8 +440,8 @@ void UGridTalentDetailWidget::RebuildDetailLineRows()
 
 void UGridTalentDetailWidget::RefreshCanonicalSections()
 {
-	ResolvedTypeText = URPGTalentDetailTextSet::ResolveProductionText(TalentTypeTextId(NodeView.Type));
-	ResolvedStatusText = URPGTalentDetailTextSet::ResolveProductionText(TalentStatusTextId(NodeView.State));
+	ResolvedTypeText = FRPGTalentLocalizationText::Get(TalentTypeTextId(NodeView.Type));
+	ResolvedStatusText = FRPGTalentLocalizationText::Get(TalentStatusTextId(NodeView.State));
 	ResolvedPrincipleText = NodeView.Principle;
 }
 

@@ -4,7 +4,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
-#include "UI/RPGTalentDetailTextSet.h"
+#include "UI/RPGTalentLocalizationText.h"
 
 namespace GridTalentNodeWidgetPrivate
 {
@@ -19,6 +19,17 @@ namespace GridTalentNodeWidgetPrivate
 			case 5: return FText::FromString(TEXT("V"));
 			default: return FText::FromString(TEXT("?"));
 		}
+	}
+
+	FText FormatMinimumLevel(const FText& Pattern, int32 Level)
+	{
+		if (Pattern.IsEmpty())
+		{
+			return FText::GetEmpty();
+		}
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("Level"), FText::AsNumber(Level));
+		return FText::Format(Pattern, Arguments);
 	}
 
 	FName StateTextId(EGridTalentNodeState State)
@@ -167,16 +178,13 @@ void UGridTalentNodeWidget::ApplyNodePresentation()
 	if (Text_TalentLevel)
 	{
 		const FText LevelFormat =
-			URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Node.LevelFormat"));
-		Text_TalentLevel->SetText(
-			LevelFormat.IsEmpty()
-				? FText::GetEmpty()
-				: FText::Format(LevelFormat, FText::AsNumber(NodeView.MinimumLevel)));
+			FRPGTalentLocalizationText::Get(TEXT("Talent.Node.LevelFormat"));
+		Text_TalentLevel->SetText(FormatMinimumLevel(LevelFormat, NodeView.MinimumLevel));
 	}
 	if (Text_TalentState)
 	{
 		Text_TalentState->SetText(
-			URPGTalentDetailTextSet::ResolveProductionText(StateTextId(NodeView.State)));
+			FRPGTalentLocalizationText::Get(StateTextId(NodeView.State)));
 		Text_TalentState->SetColorAndOpacity(FSlateColor(NodeStateTextColor(NodeView.State)));
 	}
 	if (Text_VariantCount)

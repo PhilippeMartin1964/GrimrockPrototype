@@ -19,8 +19,11 @@ struct GRIMROCKPROTOTYPE_API FRPGTalentDetailTextEntry
 };
 
 /**
- * Editable/localizable player-facing vocabulary for Talent detail rows.
- * C++ owns stable TextIds and data only; wording lives in this asset and layout lives in UMG.
+ * Legacy Talent presentation TextSet retained during UI-TEXT-CENTRAL01.
+ *
+ * Static Talent UI vocabulary now belongs to UI.csv / ST_UI. Runtime access to
+ * this asset is transitional and limited to Talent.Recipe.* display names until
+ * Crafting owns recipe content.
  */
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API URPGTalentDetailTextSet : public UDataAsset
@@ -37,9 +40,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Detail|Text")
 	FText ResolveText(FName TextId) const;
 
-	/** Canonical production asset used by the runtime Talent presentation pipeline. */
+	/** Legacy production asset retained for deferred Talent.Recipe.* content. */
 	static const URPGTalentDetailTextSet* LoadProduction();
 
-	/** Resolves one production Talent UI text identity. No C++ wording fallback. */
+	/** Transitional resolver used only by the recipe fallback bridge. */
 	static FText ResolveProductionText(FName TextId);
 };
