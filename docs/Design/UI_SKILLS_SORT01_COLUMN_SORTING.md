@@ -2,7 +2,7 @@
 
 Date : **16 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **01.3 MATÉRIALISATION WBP EFFECTUÉE — contrat natif resserré, validation finale requise**
+État : **VALIDÉ / CLOS**
 
 ## 1. Objectif
 
@@ -121,17 +121,60 @@ Grimrock.UI.Skills02.Sort.Rank
 Grimrock.UI.Skills02.Sort.WidgetContract
 ~~~
 
-## 7. Validation
+## 7. Validation finale — 16 octobre 2026
 
-Après récupération du commit source :
+Validation locale après matérialisation WBP et resserrement des BindWidget :
 
-~~~powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.UI.Skills02"
+~~~text
+Grimrock.UI.Skills02
+    19 succeeded
+    0 warnings
+    0 failed
+
+Game.UI.Localization.LOCALIZATION03.WbpOwnershipRegression
+    1 succeeded
+    0 warnings
+    0 failed
+
+UI-LOCALIZATION01.6 smoke
+    Runtime_Culture_Smoke                  : OK
+    source-controlled configs unchanged    : OK
+    volatile generated outputs restored    : OK
+    final git status --short               : clean
+~~~
+
+Rapports :
+
+~~~text
+Saved/Automation/TD04/TD04-20261016-162401
+Saved/Automation/TD04/TD04-20261016-162453
+Saved/Localization/UI-LOCALIZATION01.6/20261016-162509
 ~~~
 
 La matérialisation `ST_UI` est versionnée dans `4df462a0`. La matérialisation
-WBP a été commitée avec les ajustements visuels Skills dans `d283efef`.
-Il reste à rejouer Skills02, la régression d'ownership localisation et le smoke,
-puis à fermer UI-SKILLS-SORT01.
+WBP a été commitée avec les ajustements visuels Skills dans `d283efef`. Le
+contrat natif obligatoire est versionné dans `1736ce0d`.
+
+## 8. Résultat final
+
+~~~text
+Compétence : A -> Z / Z -> A
+Attribut   : A -> Z / Z -> A
+Rang       : 0 -> N / N -> 0
+~~~
+
+Le tri reste strictement présentation-only, les égalités retombent sur le nom,
+les libellés d'en-tête sont des références directes `ST_UI`, les glyphes ▲ / ▼
+restent mécaniques et dynamiques, et le working tree reste propre après le smoke.
+
+## 9. Commits
+
+~~~text
+75a33546 UI-SKILLS-SORT01.1 add Skill column sorting source
+68639c40 UI-SKILLS-SORT01.1A stabilize Skill sort tie order
+4df462a0 UI-SKILLS-SORT01.2 materialize Skill sort column vocabulary
+d283efef UI-SKILLS02 polish Skill affinity rows
+1736ce0d UI-SKILLS-SORT01.3 require materialized Skill sort controls
+~~~
+
+UI-SKILLS-SORT01 est **clos**.

@@ -343,13 +343,13 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
-### UI-SKILLS-SORT01 — tri interactif des colonnes — MATÉRIALISÉ / VALIDATION FINALE EN ATTENTE
+### UI-SKILLS-SORT01 — tri interactif des colonnes — VALIDÉ / CLOS
 
 La liste Skills conserve `FGridSkillsPageView::Skills` comme projection canonique
 et applique un ordre **uniquement de présentation** dans `UGridSkillsWidget`.
 Le tri n'écrit jamais dans les rangs, les assets Skill ou la sauvegarde.
 
-Modes prévus :
+Modes validés :
 
 ~~~text
 Compétence : A -> Z / Z -> A
@@ -358,15 +358,24 @@ Rang       : 0 -> N / N -> 0
 égalité    : nom de compétence, puis SkillId
 ~~~
 
-L'état `SkillSortColumn + SkillSortDirection` est transient. Trois boutons
-Designer obligatoires (`Button_SortName`, `Button_SortAttribute`,
-`Button_SortRank`) pilotent le tri ; les libellés statiques doivent référencer
-directement `ST_UI` avec `Skill.Column.Name`, `Skill.Column.Attribute` et
-`Skill.Column.Rank`. Les glyphes mécaniques ▲ / ▼ restent dynamiques en C++.
+L'état `SkillSortColumn + SkillSortDirection` est transient. Les trois boutons
+Designer (`Button_SortName`, `Button_SortAttribute`, `Button_SortRank`) et
+les trois indicateurs sont des `BindWidget` obligatoires. Les libellés statiques
+référencent directement `ST_UI` via `Skill.Column.Name`,
+`Skill.Column.Attribute` et `Skill.Column.Rank`. Les glyphes mécaniques
+▲ / ▼ restent dynamiques en C++.
 
-La ligne d'en-têtes est matérialisée dans `WBP_GridSkills`; les six hooks
-natifs de tri sont maintenant des `BindWidget` obligatoires. La fermeture du
-ticket dépend encore des régressions finales et du smoke localisation.
+Validation finale du 16 octobre 2026 :
+
+~~~text
+Grimrock.UI.Skills02                                      19/19
+Game.UI.Localization.LOCALIZATION03.WbpOwnershipRegression 1/1
+UI-LOCALIZATION01.6 smoke                                 PASS
+git status après smoke                                    CLEAN
+~~~
+
+Rapport smoke :
+`Saved/Localization/UI-LOCALIZATION01.6/20261016-162509`.
 
 Référence :
 `docs/Design/UI_SKILLS_SORT01_COLUMN_SORTING.md`.
