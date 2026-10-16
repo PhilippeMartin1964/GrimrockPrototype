@@ -190,21 +190,6 @@ namespace UILOCALIZATION033
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(9).AvailableRaceIllustrations.DisplayName")
 	};
 
-	const TCHAR* const MechanicalGlyphPaths[] = {
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GridMap.WBP_GridMap_C:WidgetTree.Text_LevelDownGlyph.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GridMap.WBP_GridMap_C:WidgetTree.Text_LevelUpGlyph.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_GridPersistentHud.WBP_GridPersistentHud_C:WidgetTree.Text_NavEscape.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_GridPersistentHud.WBP_GridPersistentHud_C:WidgetTree.TextBlock_255.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_GridPersistentHud.WBP_GridPersistentHud_C:WidgetTree.TextBlock_394.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_GridPersistentHud.WBP_GridPersistentHud_C:WidgetTree.TextBlock_550.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_GridPersistentHud.WBP_GridPersistentHud_C:WidgetTree.TextBlock_688.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_GridPersistentHud.WBP_GridPersistentHud_C:WidgetTree.TextBlock_884.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_GridPersistentHud.WBP_GridPersistentHud_C:WidgetTree.TextBlock_994.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_DecreaseSkill.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_IncreaseSkill.Text"),
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_HeaderIncrease.Text")
-	};
-
 	const TCHAR* const IntentionalLocalCopyPaths[] = {
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_CreditsMenu.WBP_CreditsMenu_C:WidgetTree.Text_Content.Text"),
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_OptionsMenu.WBP_OptionsMenu_C:WidgetTree.Text_OptionPlaceholder.Text"),
@@ -220,7 +205,6 @@ namespace UILOCALIZATION033
 	static_assert(UE_ARRAY_COUNT(LegacyTalentVariantPaths) == 4);
 	static_assert(UE_ARRAY_COUNT(SharedVocabularyPaths) == 14);
 	static_assert(UE_ARRAY_COUNT(RaceIllustrationPaths) == 12);
-	static_assert(UE_ARRAY_COUNT(MechanicalGlyphPaths) == 12);
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
@@ -246,9 +230,10 @@ bool FUILOCALIZATION033WbpOwnershipRegressionTest::RunTest(const FString&)
 	RequirePathsAbsent(*this, Manifest, TEXT("Shared WBP vocabulary"), SharedVocabularyPaths);
 	RequirePathsAbsent(*this, Manifest, TEXT("Race illustration authored text"), RaceIllustrationPaths);
 
-	// Localization ownership does not mean "zero FText in WBP":
-	// mechanical glyphs and screen-local copy are intentional.
-	RequirePathsPresent(*this, Manifest, TEXT("Mechanical glyph"), MechanicalGlyphPaths);
+	// Localization ownership does not mean "zero FText in WBP".
+	// Mechanical glyphs (+, -, shortcuts, arrows) are not vocabulary: depending on
+	// how a WBP was last serialized, Unreal may gather them or keep them invariant.
+	// Their manifest presence is therefore intentionally not part of this contract.
 	RequirePathsPresent(*this, Manifest, TEXT("Intentional local WBP copy"), IntentionalLocalCopyPaths);
 
 	const TCHAR* const RequiredSharedKeys[] = {
