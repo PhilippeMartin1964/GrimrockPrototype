@@ -657,7 +657,7 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Feedback.Success.Named")),
 		FName(TEXT("Talent.Feedback.Rejected.Title")),
 		FName(TEXT("Talent.Feedback.Rejected.Generic"))
-)
+	})
 	{
 		TestFalse(
 			*FString::Printf(TEXT("%s resolves from the Talent runtime localization resolver"), *TextId.ToString()),
