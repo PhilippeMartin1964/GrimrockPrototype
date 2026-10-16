@@ -2,6 +2,8 @@
 
 #include "Misc/AutomationTest.h"
 
+#include <initializer_list>
+
 #include "UI/GridSkillsWidget.h"
 #include "UObject/UnrealType.h"
 
@@ -114,8 +116,8 @@ bool FUISKILLSSORT01RankSortingTest::RunTest(const FString&)
 
 	UGridSkillsWidget::SortSkillEntries(Entries, EGridSkillSortColumn::Rank, EGridSkillSortDirection::Descending);
 	ExpectOrder(*this, Entries,
-		{ TEXT("Skill_HeavyWeapons"), TEXT("Skill_Acrobatics"), TEXT("Skill_Shield"), TEXT("Skill_Alchemy") },
-		TEXT("Rank descending reverses the complete presentation order"));
+		{ TEXT("Skill_Acrobatics"), TEXT("Skill_HeavyWeapons"), TEXT("Skill_Alchemy"), TEXT("Skill_Shield") },
+		TEXT("Rank descending keeps alphabetical tie order"));
 	return true;
 }
 

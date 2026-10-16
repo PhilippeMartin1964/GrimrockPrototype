@@ -1149,10 +1149,43 @@ void UGridSkillsWidget::SortSkillEntries(
 	InOutEntries.Sort(
 		[Column, Direction](const FGridSkillEntryView& Left, const FGridSkillEntryView& Right)
 		{
-			const int32 Comparison = GridSkillsWidgetPrivate::CompareSkillEntries(Left, Right, Column);
-			return Direction == EGridSkillSortDirection::Ascending
-				? Comparison < 0
-				: Comparison > 0;
+			const int32 PrimaryComparison =
+				GridSkillsWidgetPrivate::CompareSkillEntries(Left, Right, Column);
+
+			if (Column == EGridSkillSortColumn::Name)
+			{
+				return Direction == EGridSkillSortDirection::Ascending
+					? PrimaryComparison < 0
+					: PrimaryComparison > 0;
+			}
+
+			int32 ColumnComparison = 0;
+			if (Column == EGridSkillSortColumn::Rank)
+			{
+				ColumnComparison = Left.Rank == Right.Rank
+					? 0
+					: (Left.Rank < Right.Rank ? -1 : 1);
+			}
+			else
+			{
+				const FString LeftAttribute =
+					UGridSkillEntryWidget::ResolveAttributeLabel(Left).ToString();
+				const FString RightAttribute =
+					UGridSkillEntryWidget::ResolveAttributeLabel(Right).ToString();
+				ColumnComparison =
+					LeftAttribute.Compare(RightAttribute, ESearchCase::IgnoreCase);
+			}
+
+			if (ColumnComparison != 0)
+			{
+				return Direction == EGridSkillSortDirection::Ascending
+					? ColumnComparison < 0
+					: ColumnComparison > 0;
+			}
+
+			// Secondary ordering stays alphabetical in both directions so equal
+			// ranks/attributes never jump into a reverse-name sub-order.
+			return GridSkillsWidgetPrivate::CompareSkillNames(Left, Right) < 0;
 		});
 }
 
