@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1 VALIDÉ UE5.5.4 — UI-PARTYHUD01.2 IMPLÉMENTÉ C++ / UMG À MATÉRIALISER ET VALIDER**
+État courant : **UI-PARTYHUD01.1 VALIDÉ — UI-PARTYHUD01.2 C++ VALIDÉ UE5.5.4 (6/6), UMG À MATÉRIALISER**
 
 ## 1. Objectif général
 
@@ -719,4 +719,23 @@ Validation locale :
     -AutomationFilter "Grimrock.UI.PartyHud01"
 ```
 
-UI-PARTYHUD01.2 ne sera déclaré **VALIDÉ** qu'après réception du log local UE5.5.4 et matérialisation UMG conforme.
+Validation C++ reçue le 16 octobre 2026 :
+
+```text
+Filter                 : Grimrock.UI.PartyHud01
+Succeeded              : 6
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Rapport TD04.2 :
+
+```text
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20261016-174645
+```
+
+**Socle C++ UI-PARTYHUD01.2 : VALIDÉ.**
+
+UI-PARTYHUD01.2 ne sera déclaré **CLOS** qu'après matérialisation UMG conforme dans `WBP_PartyPortraitHud` et `WBP_GridPersistentHud`, suivie d'une validation visuelle PIE.
