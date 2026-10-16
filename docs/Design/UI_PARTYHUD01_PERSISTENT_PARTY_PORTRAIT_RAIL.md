@@ -1,0 +1,485 @@
+# UI-PARTYHUD01 — Rail persistant des portraits du groupe
+
+Date : **16 octobre 2026**  
+Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
+Contrat : **ADOPTÉ**  
+État du sous-jalon : **UI-PARTYHUD01.1 IMPLÉMENTÉ C++ — validation locale UE5.5.4 à recevoir**
+
+## 1. Objectif général
+
+UI-PARTYHUD01 ajoute sur le côté gauche de l'écran un rail vertical permanent contenant les portraits des personnages actifs du groupe.
+
+Ce rail est un sélecteur de personnage global. Un clic sur un portrait change l'unique personnage sélectionné du runtime. Les surfaces dépendant d'un personnage — inventaire, feuille de personnage, compétences/talents, spellbook, barre d'actions et futures surfaces character-scoped — utilisent toutes cette même sélection.
+
+Le rail appartient au Persistent HUD. Il n'appartient ni à l'inventaire, ni à la feuille de personnage, ni au Skills, ni au Combat HUD.
+
+## 2. Autorité de sélection
+
+L'autorité existante reste unique :
+
+```text
+UGridPartyInventoryComponent
+    -> FGridPartyInventoryState::SelectedCharacterIndex
+```
+
+Aucun `ActiveCharacter`, `CurrentPortraitCharacter` ou index parallèle n'est introduit.
+
+Le `CharacterId` stable identifie un personnage. Le `CharacterIndex` n'est qu'un index runtime résolu à partir de cet identifiant.
+
+## 3. Contenu visuel cible d'un portrait
+
+Chaque portrait contient uniquement :
+
+```text
+Portrait
+Barre de vie
+Barre de mana si le personnage possède un pool de mana
+Barre d'armure physique
+Barre d'armure magique
+Cadre/indication décorative de sélection
+```
+
+La correction du contrat adoptée le 16 octobre 2026 précise que **la barre de mana est affichée uniquement lorsque MaximumMana > 0**.
+
+Aucun nom, classe, niveau, poids, équipement ou liste de statuts n'est imposé dans le portrait compact.
+
+## 4. Tooltip
+
+Un tooltip sera affiché au survol du portrait, mais son contenu métier reste volontairement hors scope de UI-PARTYHUD01.1. Le contenu sera défini dans un sous-jalon ultérieur afin de ne pas transformer le portrait compact en fiche de personnage.
+
+## 5. Placement et ownership UI
+
+Cible :
+
+```text
+WBP_GridPersistentHud
+├── Panel_PartyPortraits
+├── Global Navigation
+└── Persistent Action Bar
+```
+
+Le root du Persistent HUD reste `SelfHitTestInvisible`. Seuls les portraits et les contrôles interactifs doivent intercepter la souris.
+
+Aucun panneau transparent plein écran ne doit bloquer l'interaction avec le donjon.
+
+## 6. UI-PARTYHUD01.1 — Read Model
+
+UI-PARTYHUD01.1 introduit :
+
+```cpp
+FGridPartyPortraitView
+```
+
+Ce read model est une projection en lecture seule. Il ne devient jamais une autorité gameplay.
+
+Champs exposés :
+
+```text
+CharacterId
+CharacterIndex
+Portrait
+bIsSelected
+
+CurrentHealth
+MaximumHealth
+HealthRatio
+
+CurrentMana
+MaximumMana
+bHasMana
+ManaRatio
+
+CurrentPhysicalArmor
+ReferencePhysicalArmor
+PhysicalArmorRatio
+
+CurrentMagicalArmor
+ReferenceMagicalArmor
+MagicalArmorRatio
+```
+
+## 7. Vie
+
+Autorités existantes :
+
+```text
+CurrentHealth = Summary.Resources.CurrentHealth
+MaximumHealth = Summary.DerivedStats.MaxHealth
+```
+
+Ratio :
+
+```text
+HealthRatio = clamp(CurrentHealth / MaximumHealth, 0..1)
+```
+
+Le maximum est protégé à au moins 1.
+
+## 8. Mana
+
+Autorités existantes :
+
+```text
+CurrentMana = Summary.Resources.CurrentMana
+MaximumMana = Summary.DerivedStats.MaxMana
+```
+
+Règle d'affichage :
+
+```text
+bHasMana = MaximumMana > 0
+```
+
+Si `MaximumMana == 0` :
+
+```text
+bHasMana = false
+ManaRatio = 0
+```
+
+UMG devra masquer la barre de mana dans ce cas.
+
+## 9. Armure physique
+
+Le contrat RPG03.3 reste l'autorité.
+
+```text
+CurrentPhysicalArmor =
+    GetCharacterSummary().Resources.CurrentPhysicalArmor
+
+ReferencePhysicalArmor =
+    Class.BasePhysicalArmor
+    + EquipmentStatBonus.ArmorBonus
+```
+
+Ratio :
+
+```text
+PhysicalArmorRatio =
+    ReferencePhysicalArmor > 0
+        ? clamp(CurrentPhysicalArmor / ReferencePhysicalArmor, 0..1)
+        : 0
+```
+
+Le read model ne fabrique pas de maximum sauvegardé supplémentaire.
+
+## 10. Armure magique
+
+Le contrat RPG03.3 reste également inchangé :
+
+```text
+CurrentMagicalArmor =
+    GetCharacterSummary().Resources.CurrentMagicalArmor
+
+ReferenceMagicalArmor =
+    Class.BaseMagicalArmor
+```
+
+Ratio :
+
+```text
+MagicalArmorRatio =
+    ReferenceMagicalArmor > 0
+        ? clamp(CurrentMagicalArmor / ReferenceMagicalArmor, 0..1)
+        : 0
+```
+
+Une référence à zéro produit une barre vide, jamais une barre artificiellement pleine.
+
+## 11. Résolution de la classe
+
+Le read model utilise d'abord le cache runtime `Character.ClassDefinition`.
+
+Si ce cache ne correspond pas au `ClassId`, la résolution canonique existante est utilisée :
+
+```text
+FRPGAuthoringIdentityResolver::ResolveClassById()
+```
+
+Aucune nouvelle table de classes n'est créée.
+
+## 12. Ordre visuel du groupe
+
+UI-PARTYHUD01.1 introduit dans `UGridPartyInventoryComponent` :
+
+```cpp
+TArray<FGuid> PartyPortraitOrder;
+```
+
+Cette donnée est **transient dans UI-PARTYHUD01.1**.
+
+La persistance Save / Load reste réservée au sous-jalon :
+
+```text
+UI-PARTYHUD01.5 — Save / Load
+```
+
+Le futur Save stockera les `CharacterId`, jamais les indices runtime.
+
+## 13. Invariant critique : ActiveCharacters n'est jamais réordonné
+
+Un drag futur des portraits ne doit jamais permuter :
+
+```text
+PartyInventoryState.ActiveCharacters
+PartyInventoryState.ActiveEquipment
+SelectedCharacterIndex
+états de tour
+états de combat
+compétences
+talents
+spellbook
+inventaires
+```
+
+Seul `PartyPortraitOrder` change.
+
+Cette séparation est obligatoire car de nombreux systèmes utilisent encore les indices de `ActiveCharacters`.
+
+## 14. Sanitation de PartyPortraitOrder
+
+`SanitizePartyPortraitOrder()` garantit :
+
+1. suppression des GUID invalides ;
+2. suppression des GUID qui ne correspondent plus à un personnage actif ;
+3. suppression des doublons ;
+4. conservation de l'ordre valide choisi par le joueur ;
+5. ajout à la fin de tout personnage actif absent.
+
+Exemple :
+
+```text
+ActiveCharacters : A B C
+PartyPortraitOrder brut : C INVALID C A X
+
+résultat :
+C A B
+```
+
+## 15. Changement du roster
+
+`NotifyPartyInventoryChanged()` sanitize désormais l'ordre avant notification.
+
+Conséquences :
+
+- une nouvelle recrue est ajoutée à la fin ;
+- un personnage retiré disparaît de l'ordre ;
+- un changement de sélection ne modifie pas l'ordre ;
+- une notification normale ne peut pas créer de doublon.
+
+## 16. Résolution CharacterId -> index
+
+API :
+
+```cpp
+int32 ResolveActiveCharacterIndexById(FGuid CharacterId) const;
+```
+
+Elle parcourt `ActiveCharacters` et renvoie l'index runtime actuel.
+
+Un GUID invalide ou absent renvoie :
+
+```text
+INDEX_NONE
+```
+
+## 17. Construction du rail
+
+API :
+
+```cpp
+bool GetPartyPortraitViews(TArray<FGridPartyPortraitView>& OutViews);
+```
+
+Séquence :
+
+```text
+SanitizePartyPortraitOrder
+    -> pour chaque CharacterId
+        -> ResolveActiveCharacterIndexById
+        -> GetCharacterSummary
+        -> projection portrait / sélection / ressources / ratios
+```
+
+La fonction retourne vrai lorsque chaque entrée de l'ordre a pu être projetée.
+
+## 18. Réorganisation
+
+API C++ préparée pour le futur drag :
+
+```cpp
+bool ReorderPartyPortrait(
+    FGuid SourceCharacterId,
+    FGuid TargetCharacterId,
+    bool bInsertAfter);
+```
+
+Sémantique :
+
+```text
+A B C D
+
+Reorder(D, A, false)
+    -> D A B C
+
+Reorder(A, C, true)
+    -> B C A D
+```
+
+La transaction modifie uniquement `PartyPortraitOrder`, puis notifie l'UI.
+
+## 19. Clic vs drag
+
+La réalisation UMG ultérieure devra respecter :
+
+```text
+MouseDown
+    -> potentiel drag
+
+MouseUp sans drag
+    -> sélection
+
+drag valide
+    -> réorganisation
+    -> pas de clic parasite
+```
+
+Ce comportement n'est pas implémenté dans UI-PARTYHUD01.1.
+
+## 20. Séparation avec le drag d'inventaire
+
+Le futur drag de portraits utilisera une opération distincte de :
+
+```text
+UGridInventoryDragDropOperation
+```
+
+Il ne transportera aucun `CursorItem`.
+
+Le rail persistant ne devient pas une cible de transfert d'objet dans le contrat actuel.
+
+## 21. Widget futur
+
+UI-PARTYHUD01.2 créera un widget dédié, et ne détournera pas le `UGridPartyMemberWidget` existant.
+
+Cible :
+
+```text
+UGridPartyPortraitHudWidget
+WBP_PartyPortraitHud
+```
+
+Motif : `UGridPartyMemberWidget` possède déjà des responsabilités inventaire, drop d'items, surcharge et status effects.
+
+## 22. Surfaces synchronisées par SelectedCharacterIndex
+
+Après clic sur un portrait, les surfaces character-scoped devront lire le même personnage :
+
+```text
+Character Sheet
+Inventory
+Skills / Talents
+Spellbook
+Persistent Action Bar
+futures surfaces character-scoped
+```
+
+Map, Journal global et Help/Codex global ne deviennent pas artificiellement propres à un personnage.
+
+## 23. Combat
+
+Le personnage sélectionné et le combattant dont c'est le tour restent deux notions distinctes.
+
+Le Turn Manager peut continuer à appeler `SetSelectedCharacterIndex()` lorsqu'un tour de personnage devient actif. UI-PARTYHUD01 ne crée aucune sélection de combat parallèle.
+
+## 24. Persistance
+
+État actuel de UI-PARTYHUD01.1 :
+
+```text
+PartyPortraitOrder = Transient
+```
+
+UI-PARTYHUD01.5 décidera du bump SaveGame nécessaire et ajoutera le round-trip durable.
+
+Aucun changement de schéma SaveGame n'est effectué dans le présent sous-jalon.
+
+## 25. Tests Automation ajoutés
+
+Filtre :
+
+```text
+Grimrock.UI.PartyHud01
+```
+
+Tests UI-PARTYHUD01.1 :
+
+```text
+Grimrock.UI.PartyHud01.ViewProjection
+Grimrock.UI.PartyHud01.OrderSanitization
+Grimrock.UI.PartyHud01.ReorderPreservesRuntime
+Grimrock.UI.PartyHud01.RosterChangeSanitization
+```
+
+Ils vérifient notamment :
+
+- vie ;
+- mana conditionnelle ;
+- références d'armure ;
+- ratios ;
+- sanitation ;
+- ajout d'une recrue ;
+- retrait d'un membre ;
+- réorganisation visuelle ;
+- préservation stricte de `ActiveCharacters` ;
+- préservation de `SelectedCharacterIndex`.
+
+## 26. Validation locale attendue
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.PartyHud01"
+```
+
+Le sous-jalon ne sera déclaré **VALIDÉ** qu'après réception du log local UE5.5.4.
+
+## 27. Hors scope de UI-PARTYHUD01.1
+
+Non réalisés ici :
+
+- WBP du portrait ;
+- placement du rail dans `WBP_GridPersistentHud` ;
+- clic ;
+- drag souris ;
+- indicateur d'insertion ;
+- tooltip final ;
+- persistance SaveGame ;
+- validation PIE visuelle.
+
+## 28. Découpage adopté
+
+```text
+UI-PARTYHUD01.1  Read Model & Order Authority
+UI-PARTYHUD01.2  Persistent Portrait Rail
+UI-PARTYHUD01.3  Character Selection
+UI-PARTYHUD01.4  Portrait Drag Reorder
+UI-PARTYHUD01.5  Save / Load
+UI-PARTYHUD01.6  Tooltip
+UI-PARTYHUD01.7  UMG / PIE Final
+```
+
+## 29. Invariants définitifs
+
+1. `SelectedCharacterIndex` reste l'unique autorité de sélection.
+2. `CharacterId` est l'identité stable.
+3. `CharacterIndex` n'est jamais persisté comme identité du portrait.
+4. Le read model est en lecture seule.
+5. UMG ne calcule aucune règle RPG.
+6. `ActiveCharacters` n'est jamais réordonné par le HUD.
+7. `ActiveEquipment` n'est jamais réordonné par le HUD.
+8. La mana est affichée uniquement si `MaximumMana > 0`.
+9. Une référence d'armure nulle donne un ratio nul.
+10. L'ordre runtime est sanitizé à chaque changement du groupe.
+11. La persistance de l'ordre est différée explicitement à UI-PARTYHUD01.5.
+12. Aucun `.uasset` n'est modifié à l'aveugle.

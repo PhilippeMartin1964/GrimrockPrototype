@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/GridPartyPortraitTypes.h"
 #include "GridPartyInventoryComponent.generated.h"
 
 class UGridItemDefinitionAsset;
@@ -20,6 +21,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Party")
 	FGridPartyInventoryState PartyInventoryState;
+
+	/** UI-PARTYHUD01.1 runtime-only portrait presentation order. Persistence is introduced by UI-PARTYHUD01.5. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "UI|Party Portraits")
+	TArray<FGuid> PartyPortraitOrder;
 
 	/**
 	 * Authoritative party-wide inventory capacity.
@@ -86,6 +91,22 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	bool GetCharacterSummary(int32 CharacterIndex, FGridInventoryCharacterSummary& OutSummary) const;
+
+	/** Removes stale/duplicate ids and appends any active character missing from the presentation order. */
+	UFUNCTION(BlueprintCallable, Category = "UI|Party Portraits")
+	void SanitizePartyPortraitOrder();
+
+	/** Resolves a stable CharacterId to the current ActiveCharacters index. */
+	UFUNCTION(BlueprintPure, Category = "UI|Party Portraits")
+	int32 ResolveActiveCharacterIndexById(FGuid CharacterId) const;
+
+	/** Builds the canonical read-only portrait rail projection in the player-defined presentation order. */
+	UFUNCTION(BlueprintCallable, Category = "UI|Party Portraits")
+	bool GetPartyPortraitViews(TArray<FGridPartyPortraitView>& OutViews);
+
+	/** Reorders only PartyPortraitOrder. ActiveCharacters, ActiveEquipment and SelectedCharacterIndex are never permuted. */
+	UFUNCTION(BlueprintCallable, Category = "UI|Party Portraits")
+	bool ReorderPartyPortrait(FGuid SourceCharacterId, FGuid TargetCharacterId, bool bInsertAfter);
 
 	/** Gameplay query: true when at least one active party member exceeds their current carry capacity. */
 	bool IsAnyActiveCharacterOverloaded() const;

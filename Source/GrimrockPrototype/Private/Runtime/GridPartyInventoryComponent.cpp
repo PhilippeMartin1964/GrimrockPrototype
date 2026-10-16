@@ -31,6 +31,25 @@ namespace
 
 	constexpr float InventoryHeavyWeightRatio = 0.8f;
 
+	float ResolvePartyPortraitRatio(int32 CurrentValue, int32 ReferenceValue)
+	{
+		if (ReferenceValue <= 0)
+		{
+			return 0.0f;
+		}
+		return FMath::Clamp(static_cast<float>(FMath::Max(0, CurrentValue)) / static_cast<float>(ReferenceValue), 0.0f, 1.0f);
+	}
+
+	URPGClassAsset* ResolvePartyPortraitClassDefinition(const FGridCharacterInventoryState& Character)
+	{
+		URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
+		if (!FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition))
+		{
+			ClassDefinition = FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
+		}
+		return FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition) ? ClassDefinition : nullptr;
+	}
+
 	EGridInventoryWeightState ResolveInventoryWeightState(float CurrentWeight, float MaxWeight)
 	{
 		if (CurrentWeight > MaxWeight)
@@ -178,6 +197,7 @@ UGridPartyInventoryComponent::UGridPartyInventoryComponent()
 
 void UGridPartyInventoryComponent::NotifyPartyInventoryChanged(int32 CharacterIndex)
 {
+	SanitizePartyPortraitOrder();
 	OnPartyInventoryChanged.Broadcast(CharacterIndex);
 }
 
@@ -313,6 +333,7 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 	}
 
 	const FGridPartyInventoryState PreviousState = PartyInventoryState;
+	const TArray<FGuid> PreviousPortraitOrder = PartyPortraitOrder;
 	PartyInventoryState = MoveTemp(RestoredState);
 	NotifyPartyInventoryChanged(INDEX_NONE);
 
@@ -320,6 +341,7 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 	if (!ValidateInventoryOwnership(OwnershipError))
 	{
 		PartyInventoryState = PreviousState;
+		PartyPortraitOrder = PreviousPortraitOrder;
 		NotifyPartyInventoryChanged(INDEX_NONE);
 		OutError = FText::FromString(FString::Printf(TEXT("L'ownership de la sauvegarde est invalide : %s"), *OwnershipError));
 		return false;
@@ -410,6 +432,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	NewPartyState.CursorItem = FGridItemInstance();
 
 	const FGridPartyInventoryState PreviousPartyState = PartyInventoryState;
+	const TArray<FGuid> PreviousPortraitOrder = PartyPortraitOrder;
 	PartyInventoryState = MoveTemp(NewPartyState);
 	NotifyPartyInventoryChanged(INDEX_NONE);
 
@@ -417,6 +440,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	if (!ValidateInventoryOwnership(OwnershipError))
 	{
 		PartyInventoryState = PreviousPartyState;
+		PartyPortraitOrder = PreviousPortraitOrder;
 		NotifyPartyInventoryChanged(INDEX_NONE);
 		OutError = FText::FromString(FString::Printf(TEXT("La création du personnage a échoué lors de la validation de l'ownership : %s"), *OwnershipError));
 		return false;
@@ -512,6 +536,132 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.WeightState = ResolveInventoryWeightState(OutSummary.CurrentWeight, OutSummary.MaxWeight);
 	OutSummary.bOverloaded = OutSummary.WeightState == EGridInventoryWeightState::Overloaded;
 	OutSummary.bIsSelected = CharacterIndex == PartyInventoryState.SelectedCharacterIndex;
+	return true;
+}
+
+
+void UGridPartyInventoryComponent::SanitizePartyPortraitOrder()
+{
+	TArray<FGuid> SanitizedOrder;
+	SanitizedOrder.Reserve(PartyInventoryState.ActiveCharacters.Num());
+	TSet<FGuid> SeenIds;
+
+	for (const FGuid& CharacterId : PartyPortraitOrder)
+	{
+		if (CharacterId.IsValid() && ResolveActiveCharacterIndexById(CharacterId) != INDEX_NONE && !SeenIds.Contains(CharacterId))
+		{
+			SanitizedOrder.Add(CharacterId);
+			SeenIds.Add(CharacterId);
+		}
+	}
+
+	for (const FGridCharacterInventoryState& Character : PartyInventoryState.ActiveCharacters)
+	{
+		if (Character.CharacterId.IsValid() && !SeenIds.Contains(Character.CharacterId))
+		{
+			SanitizedOrder.Add(Character.CharacterId);
+			SeenIds.Add(Character.CharacterId);
+		}
+	}
+
+	PartyPortraitOrder = MoveTemp(SanitizedOrder);
+}
+
+int32 UGridPartyInventoryComponent::ResolveActiveCharacterIndexById(FGuid CharacterId) const
+{
+	if (!CharacterId.IsValid())
+	{
+		return INDEX_NONE;
+	}
+
+	for (int32 CharacterIndex = 0; CharacterIndex < PartyInventoryState.ActiveCharacters.Num(); ++CharacterIndex)
+	{
+		if (PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId == CharacterId)
+		{
+			return CharacterIndex;
+		}
+	}
+	return INDEX_NONE;
+}
+
+bool UGridPartyInventoryComponent::GetPartyPortraitViews(TArray<FGridPartyPortraitView>& OutViews)
+{
+	OutViews.Reset();
+	SanitizePartyPortraitOrder();
+	OutViews.Reserve(PartyPortraitOrder.Num());
+
+	for (const FGuid& CharacterId : PartyPortraitOrder)
+	{
+		const int32 CharacterIndex = ResolveActiveCharacterIndexById(CharacterId);
+		if (!PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
+		{
+			continue;
+		}
+
+		FGridInventoryCharacterSummary Summary;
+		if (!GetCharacterSummary(CharacterIndex, Summary))
+		{
+			continue;
+		}
+
+		const FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
+		FGridPartyPortraitView View;
+		View.CharacterId = Character.CharacterId;
+		View.CharacterIndex = CharacterIndex;
+		View.Portrait = Summary.Portrait;
+		View.bIsSelected = Summary.bIsSelected;
+
+		View.CurrentHealth = FMath::Max(0, Summary.Resources.CurrentHealth);
+		View.MaximumHealth = FMath::Max(1, Summary.DerivedStats.MaxHealth);
+		View.HealthRatio = ResolvePartyPortraitRatio(View.CurrentHealth, View.MaximumHealth);
+
+		View.CurrentMana = FMath::Max(0, Summary.Resources.CurrentMana);
+		View.MaximumMana = FMath::Max(0, Summary.DerivedStats.MaxMana);
+		View.bHasMana = View.MaximumMana > 0;
+		View.ManaRatio = View.bHasMana ? ResolvePartyPortraitRatio(View.CurrentMana, View.MaximumMana) : 0.0f;
+
+		View.CurrentPhysicalArmor = FMath::Max(0, Summary.Resources.CurrentPhysicalArmor);
+		View.CurrentMagicalArmor = FMath::Max(0, Summary.Resources.CurrentMagicalArmor);
+
+		if (const URPGClassAsset* ClassDefinition = ResolvePartyPortraitClassDefinition(Character))
+		{
+			View.ReferencePhysicalArmor = FMath::Max(0, ClassDefinition->BasePhysicalArmor + Summary.EquipmentStatBonus.ArmorBonus);
+			View.ReferenceMagicalArmor = FMath::Max(0, ClassDefinition->BaseMagicalArmor);
+		}
+
+		View.PhysicalArmorRatio = ResolvePartyPortraitRatio(View.CurrentPhysicalArmor, View.ReferencePhysicalArmor);
+		View.MagicalArmorRatio = ResolvePartyPortraitRatio(View.CurrentMagicalArmor, View.ReferenceMagicalArmor);
+		OutViews.Add(MoveTemp(View));
+	}
+
+	return OutViews.Num() == PartyPortraitOrder.Num();
+}
+
+bool UGridPartyInventoryComponent::ReorderPartyPortrait(FGuid SourceCharacterId, FGuid TargetCharacterId, bool bInsertAfter)
+{
+	SanitizePartyPortraitOrder();
+	if (!SourceCharacterId.IsValid() || !TargetCharacterId.IsValid() || SourceCharacterId == TargetCharacterId)
+	{
+		return false;
+	}
+
+	const int32 SourceIndex = PartyPortraitOrder.IndexOfByKey(SourceCharacterId);
+	if (SourceIndex == INDEX_NONE || PartyPortraitOrder.IndexOfByKey(TargetCharacterId) == INDEX_NONE)
+	{
+		return false;
+	}
+
+	PartyPortraitOrder.RemoveAt(SourceIndex);
+	const int32 TargetIndexAfterRemoval = PartyPortraitOrder.IndexOfByKey(TargetCharacterId);
+	if (TargetIndexAfterRemoval == INDEX_NONE)
+	{
+		SanitizePartyPortraitOrder();
+		return false;
+	}
+
+	const int32 InsertIndex = FMath::Clamp(TargetIndexAfterRemoval + (bInsertAfter ? 1 : 0), 0, PartyPortraitOrder.Num());
+	PartyPortraitOrder.Insert(SourceCharacterId, InsertIndex);
+	NotifyPartyInventoryChanged(INDEX_NONE);
 	return true;
 }
 
