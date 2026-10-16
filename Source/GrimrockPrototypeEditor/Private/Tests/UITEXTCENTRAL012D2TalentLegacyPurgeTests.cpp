@@ -40,22 +40,29 @@ bool FUITEXTCENTRAL012D2TalentLegacyPurgeTest::RunTest(const FString&)
 {
 	using namespace UITEXTCENTRAL012D2Purge;
 
+	const FString LegacyPackageName =
+		FString(TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/")) +
+		TEXT("DA_RPGTalent") +
+		TEXT("DetailTextSet");
 	TestFalse(
 		TEXT("Legacy Talent text package is physically absent"),
-		FPackageName::DoesPackageExist(
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/") + FString(TEXT("DA_RPGTalent")) + TEXT("DetailTextSet")));
+		FPackageName::DoesPackageExist(LegacyPackageName));
 
-	const TArray<FString> RemovedSourcePaths = {
-		TEXT("Source/GrimrockPrototype/Public/UI/") + FString(TEXT("RPGTalent")) + TEXT("DetailTextSet.h"),
-		TEXT("Source/GrimrockPrototype/Private/UI/") + FString(TEXT("RPGTalent")) + TEXT("DetailTextSet.cpp"),
-		TEXT("Source/GrimrockPrototype/Public/UI/") + FString(TEXT("RPGTalent")) + TEXT("LocalizationText.h"),
-		TEXT("Source/GrimrockPrototype/Private/UI/") + FString(TEXT("RPGTalent")) + TEXT("LocalizationText.cpp")
+	const FString PublicUiRoot =
+		FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Public/UI"));
+	const FString PrivateUiRoot =
+		FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Private/UI"));
+	const TArray<FString> RemovedSourceFiles = {
+		FPaths::Combine(PublicUiRoot, FString(TEXT("RPGTalent")) + TEXT("DetailTextSet.h")),
+		FPaths::Combine(PrivateUiRoot, FString(TEXT("RPGTalent")) + TEXT("DetailTextSet.cpp")),
+		FPaths::Combine(PublicUiRoot, FString(TEXT("RPGTalent")) + TEXT("LocalizationText.h")),
+		FPaths::Combine(PrivateUiRoot, FString(TEXT("RPGTalent")) + TEXT("LocalizationText.cpp"))
 	};
-	for (const FString& RelativePath : RemovedSourcePaths)
+	for (const FString& Filename : RemovedSourceFiles)
 	{
 		TestFalse(
-			*FString::Printf(TEXT("Removed legacy source stays absent: %s"), *RelativePath),
-			FPaths::FileExists(FPaths::Combine(FPaths::ProjectDir(), RelativePath)));
+			*FString::Printf(TEXT("Removed legacy source stays absent: %s"), *Filename),
+			IFileManager::Get().FileExists(*Filename));
 	}
 
 	const TArray<FString> ForbiddenTokens = {
