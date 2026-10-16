@@ -2,7 +2,7 @@
 
 Date : **16 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **01.1 CONTRAT OUVERT — matérialisation UMG manuelle requise**
+État : **VALIDÉ / CLOS — bindings ST_UI directs matérialisés, relais C++ statiques retirés**
 
 ## 1. Décision
 
@@ -141,29 +141,71 @@ se fait dans `Localization/Source/UI.csv`, puis via le materializer.
 ## 8. Phasage sûr
 
 ~~~text
-01.1  contrat + mapping
-01.2  matérialisation WBP_RPGSkillDetail dans UE
-01.3  matérialisation WBP_RPGTalentDetail dans UE
-01.4  suppression des relais C++ statiques + tests
-01.5  régressions / smoke / clôture
+01.1  contrat + mapping                                      CLOS
+01.2  matérialisation WBP_RPGSkillDetail dans UE            CLOS
+01.3  matérialisation WBP_RPGTalentDetail dans UE           CLOS
+01.4  suppression des relais C++ statiques + tests          CLOS
+01.5  régressions / smoke / clôture                         CLOS
 ~~~
 
 Les `.uasset` sont volontairement édités dans Unreal Editor avec contrôle
 visuel. Aucun script aveugle ne réécrit leur sérialisation.
 
-## 9. Validation finale cible
+## 9. Validation finale — 16 octobre 2026
+
+Validations locales fournies après retrait des relais C++ :
 
 ~~~text
 Grimrock.UI.Skills02
+    15 succeeded
+    0 warnings
+    0 failed
+
 Grimrock.UI.RPG.DESC01
+    23 succeeded
+    0 warnings
+    0 failed
+
 Game.UI.Localization.LOCALIZATION03.WbpOwnershipRegression
+    1 succeeded
+    0 warnings
+    0 failed
+
 UI-LOCALIZATION01.6 smoke
+    Build / Gather / Export / Import / Compile : OK
+    Runtime_Culture_Smoke                     : OK
+    source-controlled configs unchanged       : OK
+    volatile generated outputs restored       : OK
+    final git status --short                   : clean
 ~~~
 
-La stop-condition est atteinte lorsque :
+Rapport smoke final :
+
+~~~text
+Saved/Localization/UI-LOCALIZATION01.6/20261016-144758
+~~~
+
+La stop-condition est atteinte :
 
 - les 25 propriétés statiques ci-dessus référencent directement `ST_UI` ;
 - aucun setter C++ ne réinjecte leur wording ;
 - les `BindWidget` natifs devenus inutiles ont été supprimés ;
+- `Button_AcquireTalent` et `Button_ConfirmAcquire` restent liés au C++ pour l'interaction ;
 - aucune valeur dynamique/formatée n'a été déplacée dans le Designer ;
-- Automation et smoke restent verts.
+- Automation, ownership regression et smoke sont verts ;
+- le smoke laisse désormais le working tree propre, y compris pour les artefacts de localisation suivis par Git.
+
+## 10. Commits de la campagne
+
+~~~text
+f7d05952 UI-TEXT-DIRECT01.1 define direct ST_UI binding contract
+202b31bf UI-TEXT-DIRECT01.2 materialize Skill detail direct ST_UI bindings
+799e9824 UI-TEXT-DIRECT01.3 materialize Talent detail direct ST_UI bindings
+6758c81f UI-TEXT-DIRECT01.4 remove static C++ text relays
+607a3b3b UI-TEXT-DIRECT01.4A relax mechanical glyph manifest guard
+f3fd07f4 UI-TEXT-DIRECT01.5A keep localization smoke working tree clean
+92d1431b UI-TEXT-DIRECT01.5B handle empty localization snapshots
+dd96f6c2 UI-TEXT-DIRECT01.5C make empty snapshot restore scalar-safe
+~~~
+
+UI-TEXT-DIRECT01 est **clos**.

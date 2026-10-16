@@ -343,9 +343,7 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
-### UI-TEXT-DIRECT01 — direct ST_UI bindings for static UMG text
-
-État : **01.1 CONTRAT OUVERT — matérialisation UMG manuelle à suivre**.
+### UI-TEXT-DIRECT01 — direct ST_UI bindings for static UMG text — VALIDÉ / CLOS
 
 Règle canonique :
 
@@ -358,12 +356,27 @@ dynamique / conditionnel / formaté
     -> FUILocalizationText si wording central nécessaire
 ~~~
 
-Le C++ ne doit pas conserver un `BindWidget` et un `SetText()` uniquement
-pour pousser un libellé statique déjà présent dans `ST_UI`. La migration
-pilote porte sur les 17 labels de `WBP_RPGSkillDetail` et les 8 labels/actions
-statiques de `WBP_RPGTalentDetail`. Les edits `.uasset` restent réalisés
-dans Unreal Editor avec contrôle visuel, avant retrait du code natif devenu
-inutile.
+Les 17 labels de `WBP_RPGSkillDetail` et les 8 labels/actions statiques de
+`WBP_RPGTalentDetail` référencent directement `ST_UI`. Les anciens
+`ApplyLocalizedStaticLabels()` et les 25 `BindWidget` natifs uniquement
+destinés à ces textes ont été supprimés. Les boutons Talent restent des
+`BindWidget` C++ car ils portent l'interaction ; seuls leurs enfants texte
+statiques appartiennent au Designer.
+
+Validation finale du 16 octobre 2026 :
+
+~~~text
+Grimrock.UI.Skills02                                      15/15
+Grimrock.UI.RPG.DESC01                                    23/23
+Game.UI.Localization.LOCALIZATION03.WbpOwnershipRegression 1/1
+UI-LOCALIZATION01.6 smoke                                 PASS
+git status après smoke                                    CLEAN
+~~~
+
+Le smoke de localisation sauvegarde/restaure désormais également les manifest,
+archives, locres, locmeta et rapports de conflits suivis par Git ; les snapshots
+vides sont sérialisés en Base64 afin de préserver correctement les fichiers de
+0 octet.
 
 Référence :
 `docs/Design/UI_TEXT_DIRECT01_DIRECT_ST_UI_BINDINGS.md`.

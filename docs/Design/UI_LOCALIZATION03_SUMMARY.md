@@ -280,8 +280,7 @@ Cela représente :
 121 occurrences historiques supprimées
 ~~~
 
-Le garde-fou vérifie également que les 12 glyphes mécaniques connus restent
-intentionnellement présents :
+Le garde-fou continue d'autoriser les glyphes mécaniques connus :
 
 ~~~text
 ESC
@@ -291,9 +290,15 @@ I K G M J H
 - / +
 ~~~
 
-et que du copy local WBP légitime reste autorisé.
+Depuis UI-TEXT-DIRECT01.4A, leur **présence dans `Game.manifest` n'est plus
+exigée**. Ces glyphes ne constituent pas du vocabulaire localisable et Unreal
+peut, selon la sérialisation du WBP, les collecter comme `FText` ou les garder
+invariants. Leur présence/absence dans le manifest n'est donc pas une autorité
+fonctionnelle à verrouiller.
 
-La règle est donc explicitement :
+Le copy local WBP légitime reste, lui, explicitement autorisé et contrôlé.
+
+La règle reste :
 
 ~~~text
 PAS "zéro FText dans les WBP"
@@ -367,12 +372,16 @@ Grimrock.UI.RPG.CODEAUDIT01.BlueprintCompatibility
 ~~~
 
 Le pipeline de localisation complet a également été exécuté après les
-matérialisations WBP :
+matérialisations WBP. UI-TEXT-DIRECT01.5 a renforcé sa restauration des
+artefacts générés ; la validation finale du 16 octobre 2026 donne :
 
 ~~~text
 RunLocalizationSmoke.ps1
-Runtime_Culture_Smoke : OK
-volatile generated outputs restored : OK
+Runtime_Culture_Smoke                  : OK
+source-controlled configs unchanged    : OK
+volatile generated outputs restored    : OK
+git status --short après smoke          : CLEAN
+report                                  : Saved/Localization/UI-LOCALIZATION01.6/20261016-144758
 ~~~
 
 ## 11. Architecture finale
