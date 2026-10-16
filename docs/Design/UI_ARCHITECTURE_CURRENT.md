@@ -343,6 +343,33 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
+### UI-SKILLS-SORT01 — tri interactif des colonnes — SOURCE OUVERTE
+
+La liste Skills conserve `FGridSkillsPageView::Skills` comme projection canonique
+et applique un ordre **uniquement de présentation** dans `UGridSkillsWidget`.
+Le tri n'écrit jamais dans les rangs, les assets Skill ou la sauvegarde.
+
+Modes prévus :
+
+~~~text
+Compétence : A -> Z / Z -> A
+Attribut   : A -> Z / Z -> A, sur le libellé localisé affiché
+Rang       : 0 -> N / N -> 0
+égalité    : nom de compétence, puis SkillId
+~~~
+
+L'état `SkillSortColumn + SkillSortDirection` est transient. Trois boutons
+Designer optionnels (`Button_SortName`, `Button_SortAttribute`,
+`Button_SortRank`) pilotent le tri ; les libellés statiques doivent référencer
+directement `ST_UI` avec `Skill.Column.Name`, `Skill.Column.Attribute` et
+`Skill.Column.Rank`. Les glyphes mécaniques ▲ / ▼ restent dynamiques en C++.
+
+La matérialisation de la ligne d'en-têtes dans `WBP_GridSkills` reste à faire
+manuellement dans Unreal Editor avant fermeture du ticket.
+
+Référence :
+`docs/Design/UI_SKILLS_SORT01_COLUMN_SORTING.md`.
+
 ### UI-TEXT-DIRECT01 — direct ST_UI bindings for static UMG text — VALIDÉ / CLOS
 
 Règle canonique :

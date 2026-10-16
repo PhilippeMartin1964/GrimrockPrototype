@@ -75,6 +75,50 @@ namespace GridSkillsWidgetPrivate
 		Arguments.Add(TEXT("RankCap"), FText::AsNumber(RankCap));
 		return FText::Format(Pattern, Arguments);
 	}
+
+	int32 CompareSkillNames(const FGridSkillEntryView& Left, const FGridSkillEntryView& Right)
+	{
+		const FString LeftName = UGridSkillEntryWidget::ResolveDisplayName(Left).ToString();
+		const FString RightName = UGridSkillEntryWidget::ResolveDisplayName(Right).ToString();
+		const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
+		if (NameComparison != 0)
+		{
+			return NameComparison;
+		}
+		return Left.SkillId.ToString().Compare(Right.SkillId.ToString(), ESearchCase::CaseSensitive);
+	}
+
+	int32 CompareSkillEntries(
+		const FGridSkillEntryView& Left,
+		const FGridSkillEntryView& Right,
+		EGridSkillSortColumn Column)
+	{
+		switch (Column)
+		{
+			case EGridSkillSortColumn::Attribute:
+			{
+				const FString LeftAttribute = UGridSkillEntryWidget::ResolveAttributeLabel(Left).ToString();
+				const FString RightAttribute = UGridSkillEntryWidget::ResolveAttributeLabel(Right).ToString();
+				const int32 AttributeComparison = LeftAttribute.Compare(RightAttribute, ESearchCase::IgnoreCase);
+				if (AttributeComparison != 0)
+				{
+					return AttributeComparison;
+				}
+				return CompareSkillNames(Left, Right);
+			}
+
+			case EGridSkillSortColumn::Rank:
+				if (Left.Rank != Right.Rank)
+				{
+					return Left.Rank < Right.Rank ? -1 : 1;
+				}
+				return CompareSkillNames(Left, Right);
+
+			case EGridSkillSortColumn::Name:
+			default:
+				return CompareSkillNames(Left, Right);
+		}
+	}
 }
 
 void UGridSkillsWidget::InitializeSkillsWidget(AGrimrockPartyPawn* InPartyPawn)
@@ -137,6 +181,22 @@ void UGridSkillsWidget::BindDesignerShell()
 		Detail_Talent->OnAcquireConfirmed.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentAcquireConfirmed);
 		Detail_Talent->OnAcquireConfirmed.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentAcquireConfirmed);
 	}
+
+	if (Button_SortName)
+	{
+		Button_SortName->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSortNameClicked);
+		Button_SortName->OnClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSortNameClicked);
+	}
+	if (Button_SortAttribute)
+	{
+		Button_SortAttribute->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSortAttributeClicked);
+		Button_SortAttribute->OnClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSortAttributeClicked);
+	}
+	if (Button_SortRank)
+	{
+		Button_SortRank->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSortRankClicked);
+		Button_SortRank->OnClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSortRankClicked);
+	}
 }
 
 void UGridSkillsWidget::UnbindDesignerShell()
@@ -164,6 +224,18 @@ void UGridSkillsWidget::UnbindDesignerShell()
 	if (Detail_Talent)
 	{
 		Detail_Talent->OnAcquireConfirmed.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentAcquireConfirmed);
+	}
+	if (Button_SortName)
+	{
+		Button_SortName->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSortNameClicked);
+	}
+	if (Button_SortAttribute)
+	{
+		Button_SortAttribute->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSortAttributeClicked);
+	}
+	if (Button_SortRank)
+	{
+		Button_SortRank->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSortRankClicked);
 	}
 }
 
@@ -813,6 +885,7 @@ void UGridSkillsWidget::PublishProgressionNotification(const FRPGProgressionNoti
 void UGridSkillsWidget::ApplyDesignerPresentation()
 {
 	RebuildSkillEntryWidgets();
+	RefreshSkillSortIndicators();
 	ApplyClassVisualIdentity();
 	RefreshTabSelection();
 
@@ -1068,6 +1141,94 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 	Detail_Talent->SetTalentTypeImage(DetailPanelTexture);
 }
 
+void UGridSkillsWidget::SortSkillEntries(
+	TArray<FGridSkillEntryView>& InOutEntries,
+	EGridSkillSortColumn Column,
+	EGridSkillSortDirection Direction)
+{
+	InOutEntries.Sort(
+		[Column, Direction](const FGridSkillEntryView& Left, const FGridSkillEntryView& Right)
+		{
+			const int32 Comparison = GridSkillsWidgetPrivate::CompareSkillEntries(Left, Right, Column);
+			return Direction == EGridSkillSortDirection::Ascending
+				? Comparison < 0
+				: Comparison > 0;
+		});
+}
+
+void UGridSkillsWidget::SetSkillSort(
+	EGridSkillSortColumn Column,
+	EGridSkillSortDirection Direction)
+{
+	SkillSortColumn = Column;
+	SkillSortDirection = Direction;
+	RebuildSkillEntryWidgets();
+	RefreshSkillSortIndicators();
+}
+
+void UGridSkillsWidget::ToggleSkillSortColumn(EGridSkillSortColumn Column)
+{
+	if (SkillSortColumn == Column)
+	{
+		SkillSortDirection =
+			SkillSortDirection == EGridSkillSortDirection::Ascending
+				? EGridSkillSortDirection::Descending
+				: EGridSkillSortDirection::Ascending;
+	}
+	else
+	{
+		SkillSortColumn = Column;
+		SkillSortDirection = EGridSkillSortDirection::Ascending;
+	}
+
+	RebuildSkillEntryWidgets();
+	RefreshSkillSortIndicators();
+}
+
+void UGridSkillsWidget::HandleSortNameClicked()
+{
+	ToggleSkillSortColumn(EGridSkillSortColumn::Name);
+}
+
+void UGridSkillsWidget::HandleSortAttributeClicked()
+{
+	ToggleSkillSortColumn(EGridSkillSortColumn::Attribute);
+}
+
+void UGridSkillsWidget::HandleSortRankClicked()
+{
+	ToggleSkillSortColumn(EGridSkillSortColumn::Rank);
+}
+
+void UGridSkillsWidget::RefreshSkillSortIndicators()
+{
+	const FText AscendingGlyph = FText::FromString(TEXT("▲"));
+	const FText DescendingGlyph = FText::FromString(TEXT("▼"));
+
+	auto ApplyIndicator = [this, &AscendingGlyph, &DescendingGlyph](
+		UTextBlock* Indicator,
+		EGridSkillSortColumn Column)
+	{
+		if (!Indicator)
+		{
+			return;
+		}
+
+		const bool bActive = SkillSortColumn == Column;
+		Indicator->SetText(
+			bActive
+				? (SkillSortDirection == EGridSkillSortDirection::Ascending
+					? AscendingGlyph
+					: DescendingGlyph)
+				: FText::GetEmpty());
+		Indicator->SetVisibility(
+			bActive ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	};
+
+	ApplyIndicator(Text_SortNameIndicator, EGridSkillSortColumn::Name);
+	ApplyIndicator(Text_SortAttributeIndicator, EGridSkillSortColumn::Attribute);
+	ApplyIndicator(Text_SortRankIndicator, EGridSkillSortColumn::Rank);
+}
 void UGridSkillsWidget::RebuildSkillEntryWidgets()
 {
 	if (Text_EmptySkills)
@@ -1097,7 +1258,10 @@ void UGridSkillsWidget::RebuildSkillEntryWidgets()
 			? SkillPresentationAsset.Get()
 			: nullptr;
 
-	for (const FGridSkillEntryView& Entry : View.Skills)
+	TArray<FGridSkillEntryView> SortedEntries = View.Skills;
+	SortSkillEntries(SortedEntries, SkillSortColumn, SkillSortDirection);
+
+	for (const FGridSkillEntryView& Entry : SortedEntries)
 	{
 		UGridSkillEntryWidget* EntryWidget = CreateWidget<UGridSkillEntryWidget>(this, SkillEntryWidgetClass);
 		if (!EntryWidget)

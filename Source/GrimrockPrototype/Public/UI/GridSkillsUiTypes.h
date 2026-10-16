@@ -7,6 +7,21 @@
 
 class UTexture2D;
 
+UENUM(BlueprintType)
+enum class EGridSkillSortColumn : uint8
+{
+	Name,
+	Attribute,
+	Rank
+};
+
+UENUM(BlueprintType)
+enum class EGridSkillSortDirection : uint8
+{
+	Ascending,
+	Descending
+};
+
 /** Read-only presentation of one canonical Skill for the selected character. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridSkillEntryView

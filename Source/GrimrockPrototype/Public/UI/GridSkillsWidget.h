@@ -53,6 +53,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	FGridSkillsPageView View;
 
+	/** UI-only ordering. Never persisted and never mutates canonical Skill data. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Skills|UI|Sort")
+	EGridSkillSortColumn SkillSortColumn = EGridSkillSortColumn::Name;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Skills|UI|Sort")
+	EGridSkillSortDirection SkillSortDirection = EGridSkillSortDirection::Ascending;
+
 	/** UI-RPG06.2B: reusable row class used to render the authoritative Skills projection. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
 	TSubclassOf<UGridSkillEntryWidget> SkillEntryWidgetClass;
@@ -113,6 +120,16 @@ public:
 	/** Rebuilds the Designer Skills list from View.Skills. */
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI|Presentation")
 	void RebuildSkillEntryWidgets();
+
+	/** Applies presentation-only Skill ordering and rebuilds the list. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI|Sort")
+	void SetSkillSort(EGridSkillSortColumn Column, EGridSkillSortDirection Direction);
+
+	/** Deterministic presentation sort used by the widget and automation tests. */
+	static void SortSkillEntries(
+		TArray<FGridSkillEntryView>& InOutEntries,
+		EGridSkillSortColumn Column,
+		EGridSkillSortDirection Direction);
 
 	/** Starts a fresh undo boundary every time the standalone Skills window opens. */
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|Allocation")
@@ -212,6 +229,18 @@ private:
 	UFUNCTION()
 	void HandleSkillDecreaseRequested(FName SkillId);
 
+	UFUNCTION()
+	void HandleSortNameClicked();
+
+	UFUNCTION()
+	void HandleSortAttributeClicked();
+
+	UFUNCTION()
+	void HandleSortRankClicked();
+
+	void ToggleSkillSortColumn(EGridSkillSortColumn Column);
+	void RefreshSkillSortIndicators();
+
 	const URPGSkillAsset* ResolveCanonicalSkillDefinition(FName SkillId) const;
 	FString MakeSkillAllocationSessionKey(const FGuid& CharacterId, FName SkillId) const;
 	int32 GetSessionPurchasedSkillRankCount(const FGuid& CharacterId, FName SkillId) const;
@@ -255,6 +284,26 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_SkillPoints;
+
+	/** UI-SKILLS-SORT01: optional until the column header row is materialized in WBP_GridSkills. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Button_SortName;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Button_SortAttribute;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Button_SortRank;
+
+	/** Mechanical sort glyphs only; static column labels reference ST_UI directly in Designer. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_SortNameIndicator;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_SortAttributeIndicator;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_SortRankIndicator;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_SkillsTab;
