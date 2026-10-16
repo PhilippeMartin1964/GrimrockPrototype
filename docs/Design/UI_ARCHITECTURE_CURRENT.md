@@ -343,6 +343,31 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
+### UI-TEXT-DIRECT01 — direct ST_UI bindings for static UMG text
+
+État : **01.1 CONTRAT OUVERT — matérialisation UMG manuelle à suivre**.
+
+Règle canonique :
+
+~~~text
+statique + clé ST_UI
+    -> WBP référence directement ST_UI
+
+dynamique / conditionnel / formaté
+    -> C++ / read-model
+    -> FUILocalizationText si wording central nécessaire
+~~~
+
+Le C++ ne doit pas conserver un `BindWidget` et un `SetText()` uniquement
+pour pousser un libellé statique déjà présent dans `ST_UI`. La migration
+pilote porte sur les 17 labels de `WBP_RPGSkillDetail` et les 8 labels/actions
+statiques de `WBP_RPGTalentDetail`. Les edits `.uasset` restent réalisés
+dans Unreal Editor avec contrôle visuel, avant retrait du code natif devenu
+inutile.
+
+Référence :
+`docs/Design/UI_TEXT_DIRECT01_DIRECT_ST_UI_BINDINGS.md`.
+
 ### UI-TEXT-CENTRAL01.3 — Skill remaining vocabulary — VALIDÉ / CLOS
 
 Le dernier wording statique Skill a quitté le C++ :

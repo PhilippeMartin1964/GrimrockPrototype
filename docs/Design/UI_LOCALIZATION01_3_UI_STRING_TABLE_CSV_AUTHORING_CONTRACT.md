@@ -83,6 +83,61 @@ Le `.uasset` ne devient pas une seconde autorité.
 
 Toute édition manuelle de `ST_UI` est considérée comme temporaire et sera écrasée au prochain import.
 
+### 3.3 Consommation UMG directe — règle UI-TEXT-DIRECT01
+
+Lorsqu'un `TextBlock`, un libellé de bouton ou un tooltip UMG est **strictement
+statique** et possède déjà une clé stable dans `ST_UI`, le Designer doit
+référencer directement cette entrée de String Table via la propriété `FText`
+du widget :
+
+~~~text
+UI.csv
+    -> ST_UI
+    -> WBP Text property (Referenced Text / String Table / Key)
+~~~
+
+Le C++ ne doit pas servir d'intermédiaire uniquement pour recopier ce même
+texte dans le widget.
+
+La règle de décision devient :
+
+~~~text
+texte statique + clé ST_UI stable
+    -> référence ST_UI directe dans le WBP
+
+texte dynamique / conditionnel / formaté
+    -> C++ / read-model
+    -> FUILocalizationText pour le wording nécessaire
+
+contenu métier authoré
+    -> Data Asset du domaine
+~~~
+
+Un texte local propre à un écran et qui n'a volontairement aucune clé centrale
+peut rester authoré dans le WBP. UI-TEXT-DIRECT01 n'impose donc pas « zéro
+FText local dans les WBP ».
+
+#### Autorité unique
+
+Un même `TextBlock` ne doit pas cumuler une référence Designer vers `ST_UI`
+et un `SetText()` C++ qui lui réinjecte la même valeur. En UE 5.5,
+`UTextBlock::SetText()` remplace la valeur de la propriété Text et détruit
+notamment son binding. Une surface statique directement liée à `ST_UI` ne
+doit donc plus être réécrite au runtime.
+
+Cette règle ne modifie pas l'autorité d'authoring :
+
+~~~text
+UI.csv = autorité éditoriale
+ST_UI   = projection générée
+WBP     = consommateur de la clé
+~~~
+
+Le drapeau / menu `Referenced Text` du Designer choisit une clé déjà
+matérialisée ; il ne transforme pas `ST_UI.uasset` en fichier à éditer
+manuellement.
+
+
 ### 3.2 Pourquoi une String Table Asset générée
 
 Le CSV reste hors du contenu runtime :

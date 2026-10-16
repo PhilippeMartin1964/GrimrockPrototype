@@ -377,6 +377,13 @@ volatile generated outputs restored : OK
 
 ## 11. Architecture finale
 
+> **Mise à jour UI-TEXT-DIRECT01 — 16 octobre 2026 :**
+> les migrations 03.2C1 et 03.2D2 avaient déjà matérialisé dans des WBP des
+> références vers des clés `ST_UI`. UI-TEXT-DIRECT01 formalise ce mécanisme
+> comme mode de consommation canonique pour tout texte UMG strictement statique
+> qui possède une clé centrale. Le C++ reste propriétaire des valeurs
+> dynamiques, conditionnelles et formatées.
+
 ### ST_UI
 
 Réservé au vocabulaire générique réellement partagé.

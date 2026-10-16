@@ -11,6 +11,13 @@ Baseline auditée : **8304e12be63d7aa16b9dc915ab69fdecb520df31** (`UI-LOCALIZATI
 > UI-RPG-VARIANT-FLYOUT01, l'ancien bloc WBP de variante a été supprimé et les
 > variantes sont affichées dans un flyout icon-only sans texte joueur sérialisé.
 
+> **Note UI-TEXT-DIRECT01 — 16 octobre 2026 :**
+> l'audit reste historique. Les 14 doublons ST_UI traités ensuite par
+> UI-LOCALIZATION03.2C1 et le vocabulaire partagé de 03.2D2 constituent déjà un
+> précédent de référence directe String Table dans les propriétés FText UMG.
+> UI-TEXT-DIRECT01 généralise désormais cette règle aux labels UMG strictement
+> statiques possédant une clé `ST_UI`.
+
 ## 1. Objet
 
 Inventorier les textes joueur encore sérialisés sous :
