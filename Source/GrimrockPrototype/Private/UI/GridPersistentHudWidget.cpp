@@ -7,12 +7,15 @@
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBoxSlot.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GrimrockPlayerController.h"
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridNavigationTooltipWidget.h"
+#include "UI/GridPartyPortraitHudWidget.h"
 #include "UI/GridRPGNotificationWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/UILocalizationText.h"
@@ -46,8 +49,10 @@ int32 UGridPersistentHudWidget::CalculateVisibleActionSlotCount(float ViewportWi
 
 void UGridPersistentHudWidget::InitializePersistentHud(AGrimrockPartyPawn* InPartyPawn)
 {
+	UnbindInventoryEvents();
 	PartyPawn = InPartyPawn;
 	InventoryComponent = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent : nullptr;
+	BindInventoryEvents();
 	EnsureActionWidgets();
 	RefreshFromSources();
 }
@@ -57,6 +62,7 @@ void UGridPersistentHudWidget::NativeConstruct()
 	Super::NativeConstruct();
 	VisibleActionSlotCount = FGridCombatHotbarBinding::MinimumSlotCount;
 	BindNavigationButtons();
+	BindInventoryEvents();
 	ApplyNavigationTooltips();
 	EnsureActionWidgets();
 	RefreshFromSources();
@@ -71,6 +77,8 @@ void UGridPersistentHudWidget::NativeTick(const FGeometry& MyGeometry, float InD
 void UGridPersistentHudWidget::NativeDestruct()
 {
 	UnbindNavigationButtons();
+	UnbindInventoryEvents();
+	PartyPortraitWidgets.Reset();
 	ActionWidgets.Reset();
 	ActionBarRow = nullptr;
 	LastSynchronizedViewportWidth = -1.0f;
@@ -86,6 +94,7 @@ void UGridPersistentHudWidget::NativeDestruct()
 void UGridPersistentHudWidget::RefreshFromSources()
 {
 	RefreshNavigationSelection();
+	RefreshPartyPortraits();
 	EnsureActionWidgets();
 	RefreshActionWidgets();
 
@@ -96,6 +105,76 @@ void UGridPersistentHudWidget::RefreshFromSources()
 	if (Panel_ActionBar)
 	{
 		Panel_ActionBar->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+	if (Panel_PartyPortraits)
+	{
+		Panel_PartyPortraits->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+}
+
+void UGridPersistentHudWidget::RefreshPartyPortraits()
+{
+	if (!Panel_PartyPortraits)
+	{
+		PartyPortraitWidgets.Reset();
+		return;
+	}
+
+	Panel_PartyPortraits->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+	if (!IsValid(InventoryComponent) || !PartyPortraitWidgetClass)
+	{
+		Panel_PartyPortraits->ClearChildren();
+		PartyPortraitWidgets.Reset();
+		return;
+	}
+
+	TArray<FGridPartyPortraitView> Views;
+	if (!InventoryComponent->GetPartyPortraitViews(Views))
+	{
+		Panel_PartyPortraits->ClearChildren();
+		PartyPortraitWidgets.Reset();
+		return;
+	}
+
+	bool bCanRefreshInPlace =
+		PartyPortraitWidgets.Num() == Views.Num() && Panel_PartyPortraits->GetChildrenCount() == Views.Num();
+	for (int32 Index = 0; bCanRefreshInPlace && Index < Views.Num(); ++Index)
+	{
+		const UGridPartyPortraitHudWidget* Widget = PartyPortraitWidgets[Index];
+		bCanRefreshInPlace =
+			IsValid(Widget) && Widget->GetParent() == Panel_PartyPortraits && Widget->GetCharacterId() == Views[Index].CharacterId;
+	}
+
+	if (!bCanRefreshInPlace)
+	{
+		Panel_PartyPortraits->ClearChildren();
+		PartyPortraitWidgets.Reset(Views.Num());
+
+		for (const FGridPartyPortraitView& View : Views)
+		{
+			UGridPartyPortraitHudWidget* PortraitWidget =
+				CreateWidget<UGridPartyPortraitHudWidget>(this, PartyPortraitWidgetClass);
+			if (!PortraitWidget)
+			{
+				continue;
+			}
+
+			PortraitWidget->SetPortraitView(View);
+			if (UVerticalBoxSlot* Slot = Panel_PartyPortraits->AddChildToVerticalBox(PortraitWidget))
+			{
+				Slot->SetPadding(FMargin(0.0f));
+				Slot->SetHorizontalAlignment(HAlign_Left);
+				Slot->SetVerticalAlignment(VAlign_Top);
+			}
+			PartyPortraitWidgets.Add(PortraitWidget);
+		}
+		return;
+	}
+
+	for (int32 Index = 0; Index < Views.Num(); ++Index)
+	{
+		PartyPortraitWidgets[Index]->SetPortraitView(Views[Index]);
 	}
 }
 
@@ -108,6 +187,32 @@ bool UGridPersistentHudWidget::ShowProgressionNotification(const FRPGProgression
 
 	Notification_Progression->ShowNotification(Notification);
 	return true;
+}
+
+
+void UGridPersistentHudWidget::BindInventoryEvents()
+{
+	if (!IsValid(InventoryComponent))
+	{
+		return;
+	}
+
+	InventoryComponent->OnPartyInventoryChanged.RemoveDynamic(this, &UGridPersistentHudWidget::HandlePartyInventoryChanged);
+	InventoryComponent->OnPartyInventoryChanged.AddUniqueDynamic(this, &UGridPersistentHudWidget::HandlePartyInventoryChanged);
+}
+
+void UGridPersistentHudWidget::UnbindInventoryEvents()
+{
+	if (IsValid(InventoryComponent))
+	{
+		InventoryComponent->OnPartyInventoryChanged.RemoveDynamic(this, &UGridPersistentHudWidget::HandlePartyInventoryChanged);
+	}
+}
+
+void UGridPersistentHudWidget::HandlePartyInventoryChanged(int32 CharacterIndex)
+{
+	(void)CharacterIndex;
+	RefreshPartyPortraits();
 }
 
 void UGridPersistentHudWidget::ApplyNavigationTooltips()

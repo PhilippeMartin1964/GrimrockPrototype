@@ -1,8 +1,15 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Components/Border.h"
+#include "Components/Image.h"
+#include "Components/ProgressBar.h"
+#include "Components/VerticalBox.h"
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "UI/GridPartyPortraitHudWidget.h"
+#include "UI/GridPersistentHudWidget.h"
+#include "UObject/UnrealType.h"
 
 namespace GridPartyHud01Tests
 {
@@ -184,6 +191,106 @@ bool FGridPartyHud01RosterChangeTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Removed id is absent"), Inventory->PartyPortraitOrder.Contains(B));
 	TestTrue(TEXT("Remaining A is present"), Inventory->PartyPortraitOrder.Contains(A));
 	TestTrue(TEXT("Remaining C is present"), Inventory->PartyPortraitOrder.Contains(C));
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud012PortraitWidgetPresentationTest, "Grimrock.UI.PartyHud01.PersistentPortraitWidgetPresentation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud012PortraitWidgetPresentationTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridPartyPortraitHudWidget* Widget = NewObject<UGridPartyPortraitHudWidget>();
+	if (!TestNotNull(TEXT("Persistent portrait widget exists"), Widget))
+	{
+		return false;
+	}
+
+	Widget->Image_Portrait = NewObject<UImage>(Widget);
+	Widget->ProgressBar_Health = NewObject<UProgressBar>(Widget);
+	Widget->ProgressBar_Mana = NewObject<UProgressBar>(Widget);
+	Widget->ProgressBar_PhysicalArmor = NewObject<UProgressBar>(Widget);
+	Widget->ProgressBar_MagicalArmor = NewObject<UProgressBar>(Widget);
+	Widget->Border_Selected = NewObject<UBorder>(Widget);
+
+	FGridPartyPortraitView View;
+	View.CharacterId = GridPartyHud01Tests::MakeId(40);
+	View.CharacterIndex = 2;
+	View.bIsSelected = true;
+	View.HealthRatio = 0.75f;
+	View.bHasMana = true;
+	View.ManaRatio = 0.5f;
+	View.PhysicalArmorRatio = 0.25f;
+	View.MagicalArmorRatio = 1.0f;
+	Widget->SetPortraitView(View);
+
+	TestEqual(TEXT("Widget keeps stable CharacterId"), Widget->GetCharacterId(), View.CharacterId);
+	TestTrue(TEXT("Widget exposes selected state"), Widget->IsSelected());
+	TestTrue(TEXT("Health percentage follows read model"), FMath::IsNearlyEqual(Widget->ProgressBar_Health->GetPercent(), 0.75f));
+	TestTrue(TEXT("Mana percentage follows read model"), FMath::IsNearlyEqual(Widget->ProgressBar_Mana->GetPercent(), 0.5f));
+	TestTrue(TEXT("Physical armor percentage follows read model"), FMath::IsNearlyEqual(Widget->ProgressBar_PhysicalArmor->GetPercent(), 0.25f));
+	TestTrue(TEXT("Magical armor percentage follows read model"), FMath::IsNearlyEqual(Widget->ProgressBar_MagicalArmor->GetPercent(), 1.0f));
+	TestEqual(TEXT("Mana bar is visible for a mana user"), Widget->ProgressBar_Mana->GetVisibility(), ESlateVisibility::HitTestInvisible);
+	TestEqual(TEXT("Selected frame is visible"), Widget->Border_Selected->GetVisibility(), ESlateVisibility::HitTestInvisible);
+	TestEqual(TEXT("Presenter root never blocks world hit testing itself"), Widget->GetVisibility(), ESlateVisibility::SelfHitTestInvisible);
+
+	View.bHasMana = false;
+	View.ManaRatio = 0.9f;
+	View.bIsSelected = false;
+	Widget->SetPortraitView(View);
+	TestEqual(TEXT("Mana bar collapses without a mana pool"), Widget->ProgressBar_Mana->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Hidden mana bar resets to zero"), Widget->ProgressBar_Mana->GetPercent(), 0.0f);
+	TestEqual(TEXT("Selection frame collapses when not selected"), Widget->Border_Selected->GetVisibility(), ESlateVisibility::Collapsed);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud012PersistentRailContractTest, "Grimrock.UI.PartyHud01.PersistentRailContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud012PersistentRailContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	const UClass* PortraitClass = UGridPartyPortraitHudWidget::StaticClass();
+	const FName PortraitBindings[] = {
+		TEXT("Image_Portrait"),
+		TEXT("ProgressBar_Health"),
+		TEXT("ProgressBar_Mana"),
+		TEXT("ProgressBar_PhysicalArmor"),
+		TEXT("ProgressBar_MagicalArmor"),
+		TEXT("Border_Selected")
+	};
+	for (const FName PropertyName : PortraitBindings)
+	{
+		const FProperty* Property = PortraitClass->FindPropertyByName(PropertyName);
+		if (TestNotNull(FString::Printf(TEXT("Portrait presenter exposes optional binding %s"), *PropertyName.ToString()), Property))
+		{
+			TestTrue(FString::Printf(TEXT("%s is an optional Designer binding"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidgetOptional")));
+		}
+	}
+
+	const UClass* HudClass = UGridPersistentHudWidget::StaticClass();
+	const FProperty* PanelProperty = HudClass->FindPropertyByName(TEXT("Panel_PartyPortraits"));
+	if (TestNotNull(TEXT("Persistent HUD owns Panel_PartyPortraits"), PanelProperty))
+	{
+		TestTrue(TEXT("Party rail panel is an optional Designer binding"), PanelProperty->HasMetaData(TEXT("BindWidgetOptional")));
+	}
+
+	const FProperty* WidgetClassProperty = HudClass->FindPropertyByName(TEXT("PartyPortraitWidgetClass"));
+	if (TestNotNull(TEXT("Persistent HUD owns PartyPortraitWidgetClass"), WidgetClassProperty))
+	{
+		TestTrue(TEXT("Portrait class is editable on widget defaults"), WidgetClassProperty->HasAnyPropertyFlags(CPF_Edit));
+		TestTrue(TEXT("Portrait class is not a per-instance gameplay authority"),
+			WidgetClassProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance));
+	}
+
+	TestNotNull(TEXT("Persistent HUD exposes runtime PartyPortraitWidgets"), HudClass->FindPropertyByName(TEXT("PartyPortraitWidgets")));
+	TestNotNull(TEXT("Persistent HUD exposes event-driven RefreshPartyPortraits"), HudClass->FindFunctionByName(TEXT("RefreshPartyPortraits")));
+	TestNull(TEXT("Persistent portrait presenter does not reuse inventory OwningInventoryWidget semantics"),
+		PortraitClass->FindPropertyByName(TEXT("OwningInventoryWidget")));
 	return true;
 }
 

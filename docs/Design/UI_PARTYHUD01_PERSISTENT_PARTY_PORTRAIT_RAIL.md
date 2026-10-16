@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État du sous-jalon : **UI-PARTYHUD01.1 VALIDÉ UE5.5.4 — 4/4 Automation Success, 0 warning, 0 échec**
+État courant : **UI-PARTYHUD01.1 VALIDÉ UE5.5.4 — UI-PARTYHUD01.2 IMPLÉMENTÉ C++ / UMG À MATÉRIALISER ET VALIDER**
 
 ## 1. Objectif général
 
@@ -526,3 +526,197 @@ Le prochain sous-jalon autorisé est :
 ```text
 UI-PARTYHUD01.2 — Persistent Portrait Rail
 ```
+
+
+## 31. UI-PARTYHUD01.2 — Persistent Portrait Rail
+
+### 31.1 Implémentation C++
+
+UI-PARTYHUD01.2 ajoute le presenter dédié :
+
+```text
+UGridPartyPortraitHudWidget
+```
+
+Fichiers :
+
+```text
+Source/GrimrockPrototype/Public/UI/GridPartyPortraitHudWidget.h
+Source/GrimrockPrototype/Private/UI/GridPartyPortraitHudWidget.cpp
+```
+
+Le widget consomme exclusivement :
+
+```text
+FGridPartyPortraitView
+```
+
+Il ne lit ni ne modifie directement `FGridCharacterInventoryState`.
+
+### 31.2 Bindings UMG du portrait
+
+Le futur `WBP_PartyPortraitHud` doit avoir comme parent C++ :
+
+```text
+UGridPartyPortraitHudWidget
+```
+
+Bindings disponibles :
+
+```text
+Image_Portrait
+ProgressBar_Health
+ProgressBar_Mana
+ProgressBar_PhysicalArmor
+ProgressBar_MagicalArmor
+Border_Selected
+```
+
+Tous sont `BindWidgetOptional` afin que la compilation C++ et les Automation tests restent indépendants de la matérialisation du Blueprint.
+
+Le contrat visuel reste strict :
+
+```text
+portrait
+vie
+mana uniquement si MaximumMana > 0
+armure physique
+armure magique
+cadre décoratif de sélection
+```
+
+Le presenter ne contient ni poids, ni statut, ni nom, ni niveau, ni équipement.
+
+### 31.3 Règles de visibilité
+
+```text
+Health            -> toujours visible
+Mana              -> visible seulement si bHasMana
+Physical Armor    -> toujours visible
+Magical Armor     -> toujours visible
+Border_Selected   -> visible seulement si bIsSelected
+```
+
+Une barre d'armure dont la référence vaut zéro reste visible avec un pourcentage nul.
+
+Le root du presenter est `SelfHitTestInvisible`. Les éléments purement décoratifs sont `HitTestInvisible`.
+
+Cette règle préserve les interactions avec le monde et permettra à UI-PARTYHUD01.3 d'introduire un enfant cliquable sans rendre le fond du HUD bloquant.
+
+### 31.4 Ownership dans le Persistent HUD
+
+`UGridPersistentHudWidget` possède désormais :
+
+```text
+PartyPortraitWidgetClass
+Panel_PartyPortraits
+PartyPortraitWidgets
+```
+
+`Panel_PartyPortraits` est contractuellement un `VerticalBox`.
+
+La collection runtime `PartyPortraitWidgets` suit exactement l'ordre fourni par :
+
+```text
+UGridPartyInventoryComponent::GetPartyPortraitViews()
+```
+
+Elle ne possède aucune autorité de gameplay.
+
+### 31.5 Rafraîchissement événementiel
+
+Le Persistent HUD s'abonne à :
+
+```text
+UGridPartyInventoryComponent::OnPartyInventoryChanged
+```
+
+À chaque notification :
+
+```text
+HandlePartyInventoryChanged
+    -> RefreshPartyPortraits
+    -> GetPartyPortraitViews
+    -> mise à jour ou reconstruction du rail
+```
+
+Aucun polling RPG n'est ajouté à `NativeTick`.
+
+Le `NativeTick` déjà présent reste réservé au dimensionnement de la barre d'actions.
+
+### 31.6 Conservation des widgets
+
+Lorsque le nombre, l'ordre et les `CharacterId` n'ont pas changé, les presenters existants sont rafraîchis sur place.
+
+Le rail est reconstruit uniquement si :
+
+```text
+nombre différent
+ordre différent
+CharacterId différent
+parent invalide
+widget invalide
+```
+
+Le coût reste borné au maximum courant de six personnages.
+
+### 31.7 Matérialisation UMG requise
+
+Aucun `.uasset` n'est modifié automatiquement.
+
+Dans Unreal Editor, il faudra créer :
+
+```text
+Content/Grimrock/Blueprints/Runtime/WBP_PartyPortraitHud
+Parent Class = UGridPartyPortraitHudWidget
+```
+
+Puis ajouter dans `WBP_GridPersistentHud` :
+
+```text
+VerticalBox
+Name = Panel_PartyPortraits
+Position = côté gauche de l'écran
+Visibility = Self Hit Test Invisible
+```
+
+Et renseigner sur les Class Defaults de `WBP_GridPersistentHud` :
+
+```text
+PartyPortraitWidgetClass = WBP_PartyPortraitHud
+```
+
+Le layout exact, les couleurs, les dimensions et les brushes sont des responsabilités UMG.
+
+### 31.8 Hors scope de UI-PARTYHUD01.2
+
+Toujours différés :
+
+```text
+clic de sélection                 -> UI-PARTYHUD01.3
+drag / insertion                  -> UI-PARTYHUD01.4
+persistance de l'ordre            -> UI-PARTYHUD01.5
+contenu final du tooltip          -> UI-PARTYHUD01.6
+validation visuelle PIE complète  -> UI-PARTYHUD01.7
+```
+
+### 31.9 Automation
+
+Deux tests supplémentaires sont ajoutés au filtre existant :
+
+```text
+Grimrock.UI.PartyHud01.PersistentPortraitWidgetPresentation
+Grimrock.UI.PartyHud01.PersistentRailContract
+```
+
+Le filtre `Grimrock.UI.PartyHud01` contient donc désormais **6 tests** attendus.
+
+Validation locale :
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.PartyHud01"
+```
+
+UI-PARTYHUD01.2 ne sera déclaré **VALIDÉ** qu'après réception du log local UE5.5.4 et matérialisation UMG conforme.

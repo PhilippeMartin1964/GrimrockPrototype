@@ -1133,3 +1133,10 @@ Le Persistent HUD reçoit progressivement un rail vertical de portraits à gauch
 Le portrait cible projette vie, mana conditionnelle, armure physique et armure magique. La persistance de l'ordre reste réservée à UI-PARTYHUD01.5.
 
 UI-PARTYHUD01.1 est **VALIDÉ UE5.5.4** : `Grimrock.UI.PartyHud01` = **4/4 Success, 0 warning, 0 échec**, validation TD04.2 du 16 octobre 2026.
+
+
+### UI-PARTYHUD01.2 — rail persistant
+
+Le Persistent HUD expose désormais `Panel_PartyPortraits` et `PartyPortraitWidgetClass`. Le presenter natif `UGridPartyPortraitHudWidget` rend `FGridPartyPortraitView` sans calcul gameplay.
+
+Le rail se rafraîchit via `OnPartyInventoryChanged`, sans polling RPG dans `NativeTick`. La matérialisation des deux Blueprints `WBP_PartyPortraitHud` et `WBP_GridPersistentHud` reste une opération UMG manuelle dans Unreal Editor.
