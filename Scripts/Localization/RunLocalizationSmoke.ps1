@@ -122,10 +122,18 @@ function New-FileSnapshot {
     )
 
     $Exists = Test-Path -LiteralPath $Path -PathType Leaf
-    return @{
+    $Snapshot = @{
         Exists = $Exists
-        Bytes = if ($Exists) { [System.IO.File]::ReadAllBytes($Path) } else { $null }
+        Bytes = $null
     }
+
+    if ($Exists) {
+        # Assign directly instead of returning the byte array through an if
+        # expression: PowerShell enumerates an empty byte[] to no output.
+        $Snapshot.Bytes = [System.IO.File]::ReadAllBytes($Path)
+    }
+
+    return $Snapshot
 }
 
 function Restore-FileSnapshot {
@@ -137,7 +145,13 @@ function Restore-FileSnapshot {
     )
 
     if ($Snapshot.Exists) {
-        [System.IO.File]::WriteAllBytes($Path, [byte[]]$Snapshot.Bytes)
+        $Bytes = if ($null -eq $Snapshot.Bytes) {
+            [byte[]]::new(0)
+        }
+        else {
+            [byte[]]$Snapshot.Bytes
+        }
+        [System.IO.File]::WriteAllBytes($Path, $Bytes)
     }
     elseif (Test-Path -LiteralPath $Path -PathType Leaf) {
         Remove-Item -LiteralPath $Path -Force
