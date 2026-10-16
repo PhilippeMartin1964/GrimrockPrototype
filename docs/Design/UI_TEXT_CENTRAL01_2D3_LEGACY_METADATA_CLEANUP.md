@@ -2,7 +2,7 @@
 
 Date : **16 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **VALIDATION LOCALE OK — ST_UI matérialisé à versionner**
+État : **VALIDÉ / CLOS — 16 octobre 2026**
 
 ## Objectif
 
@@ -68,3 +68,8 @@ Sync_ST_UI                 — Changed=true (attendu pour cette migration de mé
 English smoke              — PASS
 ~~~
 
+
+
+## Fermeture
+
+Le String Table nettoyé a été matérialisé, versionné et poussé dans le commit `7286af2d`. Le dépôt local a ensuite été confirmé propre.
