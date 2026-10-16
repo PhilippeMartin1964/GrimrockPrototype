@@ -93,7 +93,6 @@ private:
 	void RefreshCanonicalSections();
 	void ApplyDetailPresentation();
 	void ApplyAcquisitionPresentation();
-	void ApplyLocalizedStaticLabels();
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_TalentType;
@@ -129,24 +128,6 @@ private:
 	TObjectPtr<UTextBlock> Text_DetailPrinciple;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_LabelType;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_LabelStatus;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_LabelPrinciple;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_LabelEffects;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_LabelUsage;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_LabelAcquisition;
-
-	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailEffects;
 
 	UPROPERTY(meta = (BindWidgetOptional))
@@ -176,10 +157,5 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_ConfirmAcquire;
 
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_AcquireTalent;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_ConfirmAcquire;
 
 };

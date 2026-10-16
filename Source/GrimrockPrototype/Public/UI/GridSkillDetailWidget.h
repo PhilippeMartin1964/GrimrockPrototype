@@ -92,65 +92,11 @@ protected:
 
 private:
 	void RefreshResolvedPresentation();
-	void ApplyLocalizedStaticLabels();
 
 	static FText JoinClassNames(const TArray<FGridSkillClassAffinityView>& Classes);
 	static FText JoinSynergyNames(const TArray<FGridSkillSynergyView>& Synergies);
 	static void ApplyOptionalSection(UVerticalBox* Section, UTextBlock* ValueWidget, const FText& Value);
 
-
-	// UI-TEXT-CENTRAL01.1C: static player-facing labels resolve from ST_UI.
-	// The Designer materialization is validated, so these bindings are now mandatory.
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelDescription;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelTraining;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelUsage;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelBuildAdvice;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelCheck;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelCheckRank;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelCheckAttributeModifier;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelCheckBaseBonus;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelAffinities;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelRecommendedClasses;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelUsefulClasses;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelSynergies;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelProgression;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelCurrentRankCap;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelRemainingSkillPoints;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelNextRank;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_LabelNextRankCost;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_SkillIcon;

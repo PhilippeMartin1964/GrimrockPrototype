@@ -1040,9 +1040,7 @@ bool FUIRPGDESC01164AcquisitionWidgetContractTest::RunTest(const FString&)
 		TEXT("VB_DetailAcquisition"),
 		TEXT("VB_DetailAcquisitionEntries"),
 		TEXT("Button_AcquireTalent"),
-		TEXT("Button_ConfirmAcquire"),
-		TEXT("Text_AcquireTalent"),
-		TEXT("Text_ConfirmAcquire")
+		TEXT("Button_ConfirmAcquire")
 	})
 	{
 		FProperty* Property = DetailClass->FindPropertyByName(FName(PropertyName));
@@ -1059,6 +1057,24 @@ bool FUIRPGDESC01164AcquisitionWidgetContractTest::RunTest(const FString&)
 		TestFalse(
 			*FString::Printf(TEXT("%s is no longer BindWidgetOptional"), PropertyName),
 			Property->HasMetaData(TEXT("BindWidgetOptional")));
+	}
+
+	for (const TCHAR* PropertyName : {
+		TEXT("Text_LabelType"),
+		TEXT("Text_LabelStatus"),
+		TEXT("Text_LabelPrinciple"),
+		TEXT("Text_LabelEffects"),
+		TEXT("Text_LabelUsage"),
+		TEXT("Text_LabelAcquisition"),
+		TEXT("Text_AcquireTalent"),
+		TEXT("Text_ConfirmAcquire")
+	})
+	{
+		TestNull(
+			*FString::Printf(
+				TEXT("%s static text no longer has native C++ ownership"),
+				PropertyName),
+			FindFProperty<FProperty>(DetailClass, FName(PropertyName)));
 	}
 
 	return true;

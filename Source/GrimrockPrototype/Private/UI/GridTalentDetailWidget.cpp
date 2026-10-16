@@ -45,7 +45,6 @@ void UGridTalentDetailWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	BindAcquireButtons();
-	ApplyLocalizedStaticLabels();
 	if (bInitialized)
 	{
 		RebuildDetailLineRows();
@@ -63,26 +62,6 @@ void UGridTalentDetailWidget::NativeDestruct()
 {
 	UnbindAcquireButtons();
 	Super::NativeDestruct();
-}
-
-void UGridTalentDetailWidget::ApplyLocalizedStaticLabels()
-{
-	auto SetResolvedText = [](UTextBlock* Widget, const TCHAR* TextId)
-	{
-		if (Widget)
-		{
-			Widget->SetText(FUILocalizationText::Get(FName(TextId)));
-		}
-	};
-
-	SetResolvedText(Text_LabelType, TEXT("Talent.Section.Type"));
-	SetResolvedText(Text_LabelStatus, TEXT("Talent.Section.Status"));
-	SetResolvedText(Text_LabelPrinciple, TEXT("Talent.Section.Principle"));
-	SetResolvedText(Text_LabelEffects, TEXT("Talent.Section.Effects"));
-	SetResolvedText(Text_LabelUsage, TEXT("UI.Section.Usage"));
-	SetResolvedText(Text_LabelAcquisition, TEXT("Talent.Section.Acquisition"));
-	SetResolvedText(Text_AcquireTalent, TEXT("Talent.Action.Acquire"));
-	SetResolvedText(Text_ConfirmAcquire, TEXT("Talent.Action.Confirm"));
 }
 
 void UGridTalentDetailWidget::SetTalentTypeImage(UTexture2D* ImageTexture)

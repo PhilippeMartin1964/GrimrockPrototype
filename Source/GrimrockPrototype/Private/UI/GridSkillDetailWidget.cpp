@@ -9,7 +9,6 @@
 void UGridSkillDetailWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	ApplyLocalizedStaticLabels();
 
 	if (bInitialized)
 	{
@@ -136,35 +135,6 @@ void UGridSkillDetailWidget::ClearSkillDetail()
 	{
 		VB_DetailNextRankCost->SetVisibility(ESlateVisibility::Collapsed);
 	}
-}
-
-void UGridSkillDetailWidget::ApplyLocalizedStaticLabels()
-{
-	auto SetLabel = [](UTextBlock* Widget, const TCHAR* Key)
-	{
-		if (Widget)
-		{
-			Widget->SetText(FUILocalizationText::Get(Key));
-		}
-	};
-
-	SetLabel(Text_LabelDescription, TEXT("UI.Section.Description"));
-	SetLabel(Text_LabelTraining, TEXT("Skill.Section.Training"));
-	SetLabel(Text_LabelUsage, TEXT("UI.Section.Usage"));
-	SetLabel(Text_LabelBuildAdvice, TEXT("Skill.Section.BuildAdvice"));
-	SetLabel(Text_LabelCheck, TEXT("Skill.Section.Check"));
-	SetLabel(Text_LabelCheckRank, TEXT("Skill.Check.Rank"));
-	SetLabel(Text_LabelCheckAttributeModifier, TEXT("Skill.Check.AttributeModifier"));
-	SetLabel(Text_LabelCheckBaseBonus, TEXT("Skill.Check.BaseBonus"));
-	SetLabel(Text_LabelAffinities, TEXT("Skill.Section.Affinities"));
-	SetLabel(Text_LabelRecommendedClasses, TEXT("Skill.Affinity.RecommendedClasses"));
-	SetLabel(Text_LabelUsefulClasses, TEXT("Skill.Affinity.UsefulClasses"));
-	SetLabel(Text_LabelSynergies, TEXT("Skill.Section.Synergies"));
-	SetLabel(Text_LabelProgression, TEXT("UI.Section.Progression"));
-	SetLabel(Text_LabelCurrentRankCap, TEXT("Skill.Progression.CurrentRankCap"));
-	SetLabel(Text_LabelRemainingSkillPoints, TEXT("Skill.Progression.RemainingSkillPoints"));
-	SetLabel(Text_LabelNextRank, TEXT("Skill.Progression.NextRank"));
-	SetLabel(Text_LabelNextRankCost, TEXT("Skill.Progression.NextRankCost"));
 }
 
 void UGridSkillDetailWidget::RefreshResolvedPresentation()

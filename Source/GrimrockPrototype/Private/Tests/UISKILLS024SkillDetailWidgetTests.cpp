@@ -251,7 +251,7 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 	}
 
 
-	const FName RequiredLocalizedLabelBindings[] =
+	const FName RetiredStaticLabelBindings[] =
 	{
 		TEXT("Text_LabelDescription"),
 		TEXT("Text_LabelTraining"),
@@ -272,21 +272,13 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 		TEXT("Text_LabelNextRankCost")
 	};
 
-	for (const FName PropertyName : RequiredLocalizedLabelBindings)
+	for (const FName PropertyName : RetiredStaticLabelBindings)
 	{
-		FProperty* Property = FindFProperty<FProperty>(DetailClass, PropertyName);
-		TestNotNull(
-			*FString::Printf(TEXT("%s localized label binding exists"), *PropertyName.ToString()),
-			Property);
-		if (Property)
-		{
-			TestTrue(
-				*FString::Printf(TEXT("%s is mandatory after Designer materialization"), *PropertyName.ToString()),
-				Property->HasMetaData(TEXT("BindWidget")));
-			TestFalse(
-				*FString::Printf(TEXT("%s is no longer optional"), *PropertyName.ToString()),
-				Property->HasMetaData(TEXT("BindWidgetOptional")));
-		}
+		TestNull(
+			*FString::Printf(
+				TEXT("%s static label no longer has native C++ ownership"),
+				*PropertyName.ToString()),
+			FindFProperty<FProperty>(DetailClass, PropertyName));
 	}
 
 	UClass* SkillsClass = UGridSkillsWidget::StaticClass();
