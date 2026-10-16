@@ -557,12 +557,12 @@ DA_ClassVisual_*            -> ClassIcon / Banner / Flag / 18 backgrounds / 90 i
 DA_RPGTalentDetailGlyphSet  -> 14 glyphes
 UI.csv / ST_UI              -> vocabulaire UI Talent
 DA_RPGRecipeCatalog         -> noms joueur des Recipe_*
-DA_RPGTalentDetailTextSet   -> source legacy de migration uniquement, suppression prévue 01.2D2
 ~~~
 
-Le cleanup retire les anciens miroirs numériques du row widget, la seconde
-référence configurable de TextSet et les fallbacks de présentation vers les IDs
-techniques. Les nœuds à variantes exigent leur override conceptuel dans
+UI-TEXT-CENTRAL01.2D2 retire physiquement l'ancienne autorité Talent et son
+resolver de compatibilité. Les recettes sont désormais projetées comme
+`RecipeId + DisplayName` depuis `DA_RPGRecipeCatalog`. Les fallbacks de
+présentation vers les IDs techniques restent interdits. Les nœuds à variantes exigent leur override conceptuel dans
 `DA_RPGTalentPresentation`.
 
 Validation canonique :

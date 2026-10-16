@@ -1,38 +1,32 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "UI/RPGTalentLocalizationText.h"
+#include "UI/UILocalizationText.h"
 
-namespace UITEXTCENTRAL012CTests
+namespace UITEXTCENTRAL012D2Tests
 {
 	FText FormatNamed(FName TextId, const FFormatNamedArguments& Arguments)
 	{
-		const FText Pattern = FRPGTalentLocalizationText::Get(TextId);
+		const FText Pattern = FUILocalizationText::Get(TextId);
 		return Pattern.IsEmpty() ? FText::GetEmpty() : FText::Format(Pattern, Arguments);
 	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FUITEXTCENTRAL012CRuntimeResolverTest,
-	"Game.UI.TextCentral.CENTRAL01.TalentRuntimeResolver",
+	FUITEXTCENTRAL012D2TalentStringTableRuntimeTest,
+	"Game.UI.TextCentral.CENTRAL01.TalentStringTableRuntime",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FUITEXTCENTRAL012CRuntimeResolverTest::RunTest(const FString&)
+bool FUITEXTCENTRAL012D2TalentStringTableRuntimeTest::RunTest(const FString&)
 {
-	using namespace UITEXTCENTRAL012CTests;
+	using namespace UITEXTCENTRAL012D2Tests;
 
-	TestTrue(TEXT("Talent UI vocabulary resolves from ST_UI"),
-		FRPGTalentLocalizationText::Get(TEXT("Talent.Type.Active")).EqualTo(FText::FromString(TEXT("ACTIF"))));
-	TestTrue(TEXT("Shared Usage resolves from ST_UI"),
-		FRPGTalentLocalizationText::Get(TEXT("UI.Section.Usage")).EqualTo(FText::FromString(TEXT("UTILISATION"))));
-	TestTrue(TEXT("Shared permanent duration resolves from ST_UI"),
-		FRPGTalentLocalizationText::Get(TEXT("Status.Duration.Permanent")).EqualTo(FText::FromString(TEXT("Permanent"))));
-	TestTrue(TEXT("Historical Talent.Recipe ids are explicit compatibility inputs"),
-		FRPGTalentLocalizationText::IsRecipeCompatibilityTextId(TEXT("Talent.Recipe.Recipe_Bomb_Fire")));
-	TestFalse(TEXT("Normal Talent UI ids are not Recipe compatibility inputs"),
-		FRPGTalentLocalizationText::IsRecipeCompatibilityTextId(TEXT("Talent.Type.Active")));
-	TestTrue(TEXT("Recipe compatibility input resolves through the Recipe catalog"),
-		FRPGTalentLocalizationText::Get(TEXT("Talent.Recipe.Recipe_Bomb_Fire")).EqualTo(FText::FromString(TEXT("Bombe incendiaire"))));
+	TestTrue(TEXT("Talent UI vocabulary resolves directly from ST_UI"),
+		FUILocalizationText::Get(TEXT("Talent.Type.Active")).EqualTo(FText::FromString(TEXT("ACTIF"))));
+	TestTrue(TEXT("Shared Usage resolves directly from ST_UI"),
+		FUILocalizationText::Get(TEXT("UI.Section.Usage")).EqualTo(FText::FromString(TEXT("UTILISATION"))));
+	TestTrue(TEXT("Shared permanent duration resolves directly from ST_UI"),
+		FUILocalizationText::Get(TEXT("Status.Duration.Permanent")).EqualTo(FText::FromString(TEXT("Permanent"))));
 
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("Level"), FText::AsNumber(6));

@@ -1,6 +1,6 @@
 #include "UI/RPGProgressionFeedbackService.h"
 
-#include "UI/RPGTalentLocalizationText.h"
+#include "UI/UILocalizationText.h"
 
 #define LOCTEXT_NAMESPACE "RPGProgressionFeedbackService"
 
@@ -8,7 +8,7 @@ namespace
 {
 	FText TalentFeedbackText(FName TextId)
 	{
-		return FRPGTalentLocalizationText::Get(TextId);
+		return FUILocalizationText::Get(TextId);
 	}
 
 	FText FormatTalentSuccessMessage(const FText& Pattern, const FText& TalentDisplayName, int32 RemainingPoints)

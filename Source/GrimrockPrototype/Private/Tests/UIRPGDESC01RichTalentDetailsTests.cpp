@@ -10,8 +10,7 @@
 #include "UI/GridTalentDetailLineWidget.h"
 #include "UI/GridTalentDetailWidget.h"
 #include "UI/RPGTalentDetailGlyphSet.h"
-#include "UI/RPGTalentDetailTextSet.h"
-#include "UI/RPGTalentLocalizationText.h"
+#include "UI/UILocalizationText.h"
 #include "Engine/Texture2D.h"
 #include "UObject/UnrealType.h"
 
@@ -613,21 +612,6 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Effect.CriticalDamage")),
 		FName(TEXT("Talent.Effect.PhysicalArmorReference")),
 		FName(TEXT("Talent.Acquisition.Exclusivity.SingleVariant")),
-		FName(TEXT("Talent.Recipe.Recipe_Bomb_Fire")),
-		FName(TEXT("Talent.Recipe.Recipe_Bomb_Toxic")),
-		FName(TEXT("Talent.Recipe.Recipe_Antidote")),
-		FName(TEXT("Talent.Recipe.Recipe_DefensiveElixir_Fire")),
-		FName(TEXT("Talent.Recipe.Recipe_DefensiveElixir_Ice")),
-		FName(TEXT("Talent.Recipe.Recipe_DefensiveElixir_Lightning")),
-		FName(TEXT("Talent.Recipe.Recipe_DefensiveElixir_Poison")),
-		FName(TEXT("Talent.Recipe.Recipe_Panacea")),
-		FName(TEXT("Talent.Recipe.Recipe_Flask_Oil")),
-		FName(TEXT("Talent.Recipe.Recipe_Flask_Acid")),
-		FName(TEXT("Talent.Recipe.Recipe_Flask_CorrosiveCloud")),
-		FName(TEXT("Talent.Recipe.Recipe_MajorTransmutation_Fire")),
-		FName(TEXT("Talent.Recipe.Recipe_MajorTransmutation_Ice")),
-		FName(TEXT("Talent.Recipe.Recipe_MajorTransmutation_Poison")),
-		FName(TEXT("Talent.Recipe.Recipe_MajorTransmutation_Oil")),
 		FName(TEXT("Talent.Node.LevelFormat")),
 		FName(TEXT("Talent.Node.State.Acquired")),
 		FName(TEXT("Talent.Node.State.Available")),
@@ -661,7 +645,7 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 	{
 		TestFalse(
 			*FString::Printf(TEXT("%s resolves from the Talent runtime localization resolver"), *TextId.ToString()),
-			FRPGTalentLocalizationText::Get(TextId).IsEmpty());
+			FUILocalizationText::Get(TextId).IsEmpty());
 	}
 	return true;
 }
@@ -701,9 +685,17 @@ bool FUIRPGDESC014StructuredReadModelTest::RunTest(const FString&)
 	const FGridTalentNodeView& UpdatedNode = UpdatedView.TalentTree.Branches[0].Nodes[0];
 	TestTrue(TEXT("Simple Talent has no exclusivity presentation"),
 		UpdatedNode.Acquisition.ExclusivityTextId.IsNone());
-	TestTrue(TEXT("Recipe acquisition uses a stable text id"),
-		UpdatedNode.Acquisition.GrantedRecipeTextIds.Contains(
-			TEXT("Talent.Recipe.Recipe_Bomb_Fire")));
+	TestEqual(TEXT("Recipe acquisition projects one Recipe record"),
+		UpdatedNode.Acquisition.GrantedRecipes.Num(), 1);
+	if (UpdatedNode.Acquisition.GrantedRecipes.Num() == 1)
+	{
+		TestEqual(TEXT("Recipe acquisition preserves the gameplay RecipeId"),
+			UpdatedNode.Acquisition.GrantedRecipes[0].RecipeId,
+			FName(TEXT("Recipe_Bomb_Fire")));
+		TestEqual(TEXT("Recipe acquisition resolves the canonical content name"),
+			UpdatedNode.Acquisition.GrantedRecipes[0].DisplayName.ToString(),
+			FString(TEXT("Bombe incendiaire")));
+	}
 	return true;
 }
 
@@ -816,29 +808,20 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	TargetLine.Semantic = EGridTalentDetailLineSemantic::Target;
 	TargetLine.LabelTextId = TEXT("Talent.Detail.Target");
 	TargetLine.Value = FText::FromString(TEXT("première cible dans l'axe"));
-	URPGTalentDetailTextSet* TextSet = NewObject<URPGTalentDetailTextSet>();
-	FRPGTalentDetailTextEntry TargetText;
-	TargetText.TextId = TEXT("Talent.Detail.Target");
-	TargetText.Text = FText::FromString(TEXT("Cible"));
-	TextSet->Entries.Add(TargetText);
-	FRPGTalentDetailTextEntry EquipmentText;
-	EquipmentText.TextId = TEXT("Talent.Context.Source.Equipment");
-	EquipmentText.Text = FText::FromString(TEXT("Actions d'équipement"));
-	TextSet->Entries.Add(EquipmentText);
-	TestTrue(TEXT("Detail text set validates"), TextSet->IsValidDefinition());
-	TestEqual(TEXT("Detail text set resolves editable label"), TextSet->ResolveText(TargetLine.LabelTextId).ToString(), FString(TEXT("Cible")));
+	const FText TargetLabel = FUILocalizationText::Get(TargetLine.LabelTextId);
+	TestEqual(TEXT("Detail label resolves from ST_UI"), TargetLabel.ToString(), FString(TEXT("Cible")));
 
 	UGridTalentDetailLineWidget* LineWidget = NewObject<UGridTalentDetailLineWidget>();
 	TestTrue(TEXT("Unglyphed detail row initializes without Designer bindings"),
-		LineWidget->InitializeLine(TargetLine, nullptr, TextSet->ResolveText(TargetLine.LabelTextId), TargetLine.Value));
-	TestEqual(TEXT("Unglyphed row receives asset-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
+		LineWidget->InitializeLine(TargetLine, nullptr, TargetLabel, TargetLine.Value));
+	TestEqual(TEXT("Unglyphed row receives ST_UI-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
 	TestEqual(TEXT("Unglyphed row exposes raw value content"),
 		LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
 
 	UTexture2D* InlineTargetGlyph = NewObject<UTexture2D>(LineWidget);
 	TestTrue(TEXT("Glyphed detail row reinitializes"),
-		LineWidget->InitializeLine(TargetLine, InlineTargetGlyph, TextSet->ResolveText(TargetLine.LabelTextId), TargetLine.Value));
-	TestEqual(TEXT("Glyphed row keeps asset-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
+		LineWidget->InitializeLine(TargetLine, InlineTargetGlyph, TargetLabel, TargetLine.Value));
+	TestEqual(TEXT("Glyphed row keeps ST_UI-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
 	TestEqual(TEXT("Glyphed row still exposes raw value content"), LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
 
 	FGridTalentDetailLineView ContextLine;
@@ -849,9 +832,9 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 			ContextLine,
 			nullptr,
 			FText::GetEmpty(),
-			TextSet->ResolveText(ContextLine.ValueTextId)));
+			FUILocalizationText::Get(ContextLine.ValueTextId)));
 	TestTrue(TEXT("Context row has no synthetic label"), LineWidget->ResolvedLabelText.IsEmpty());
-	TestEqual(TEXT("Context row wording comes from text data"),
+	TestEqual(TEXT("Context row wording comes from ST_UI"),
 		LineWidget->ResolvedValueText.ToString(), FString(TEXT("Actions d'équipement")));
 
 	FGridTalentDetailLineView NumericLine;

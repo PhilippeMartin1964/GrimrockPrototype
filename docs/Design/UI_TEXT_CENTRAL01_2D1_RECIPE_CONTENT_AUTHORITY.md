@@ -2,7 +2,7 @@
 
 Date : **16 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **SOURCE IMPLÉMENTÉE — matérialisation locale requise**
+État : **VALIDÉ / CLOS — catalogue matérialisé ; migration one-shot supprimée par 01.2D2**
 
 ## Objectif
 
@@ -74,3 +74,11 @@ Grimrock.UI.RPG.DESC01
 Le test de production D1 compare temporairement le nouveau catalogue avec les
 quinze noms du TextSet legacy. Ce test de parité sera remplacé lors de 01.2D2,
 en même temps que la suppression de l'ancien asset et de sa classe C++.
+
+
+## Clôture
+
+La matérialisation locale a été validée avec 15 recettes et un second passage
+idempotent `Changed=false`. UI-TEXT-CENTRAL01.2D2 retire ensuite le
+commandlet one-shot et l'ancienne autorité Talent : `DA_RPGRecipeCatalog`
+devient l'unique autorité sérialisée des noms joueur de recettes.

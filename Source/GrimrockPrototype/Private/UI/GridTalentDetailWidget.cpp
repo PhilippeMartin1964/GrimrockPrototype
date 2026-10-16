@@ -8,7 +8,7 @@
 #include "Engine/World.h"
 #include "UI/GridTalentDetailLineWidget.h"
 #include "UI/RPGTalentDetailGlyphSet.h"
-#include "UI/RPGTalentLocalizationText.h"
+#include "UI/UILocalizationText.h"
 
 namespace
 {
@@ -71,7 +71,7 @@ void UGridTalentDetailWidget::ApplyLocalizedStaticLabels()
 	{
 		if (Widget)
 		{
-			Widget->SetText(FRPGTalentLocalizationText::Get(FName(TextId)));
+			Widget->SetText(FUILocalizationText::Get(FName(TextId)));
 		}
 	};
 
@@ -313,9 +313,9 @@ void UGridTalentDetailWidget::PopulateDetailLineRows(
 		}
 
 		UTexture2D* Glyph = DetailGlyphSet ? DetailGlyphSet->ResolveGlyph(Line.Semantic) : nullptr;
-		const FText LabelText = FRPGTalentLocalizationText::Get(Line.LabelTextId);
+		const FText LabelText = FUILocalizationText::Get(Line.LabelTextId);
 		const FText ValueText = !Line.ValueTextId.IsNone()
-			? FRPGTalentLocalizationText::Get(Line.ValueTextId)
+			? FUILocalizationText::Get(Line.ValueTextId)
 			: Line.Value;
 		if (!Row->InitializeLine(Line, Glyph, LabelText, ValueText))
 		{
@@ -415,16 +415,16 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 		NAME_None,
 		NodeView.Acquisition.ExclusivityTextId);
 
-	const int32 RecipeCount = NodeView.Acquisition.GrantedRecipeTextIds.Num();
+	const int32 RecipeCount = NodeView.Acquisition.GrantedRecipes.Num();
 	for (int32 RecipeIndex = 0; RecipeIndex < RecipeCount; ++RecipeIndex)
 	{
 		const FName LabelTextId = RecipeIndex == 0
 			? (RecipeCount > 1 ? FName(TEXT("Talent.Detail.Recipes")) : FName(TEXT("Talent.Detail.Recipe")))
 			: NAME_None;
-		AddTextIdLine(
+		AddLine(
 			EGridTalentDetailLineSemantic::Recipe,
 			LabelTextId,
-			NodeView.Acquisition.GrantedRecipeTextIds[RecipeIndex]);
+			NodeView.Acquisition.GrantedRecipes[RecipeIndex].DisplayName);
 	}
 }
 
@@ -440,8 +440,8 @@ void UGridTalentDetailWidget::RebuildDetailLineRows()
 
 void UGridTalentDetailWidget::RefreshCanonicalSections()
 {
-	ResolvedTypeText = FRPGTalentLocalizationText::Get(TalentTypeTextId(NodeView.Type));
-	ResolvedStatusText = FRPGTalentLocalizationText::Get(TalentStatusTextId(NodeView.State));
+	ResolvedTypeText = FUILocalizationText::Get(TalentTypeTextId(NodeView.Type));
+	ResolvedStatusText = FUILocalizationText::Get(TalentStatusTextId(NodeView.State));
 	ResolvedPrincipleText = NodeView.Principle;
 }
 

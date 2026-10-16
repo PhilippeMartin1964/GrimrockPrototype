@@ -12,4 +12,5 @@
 struct GRIMROCKPROTOTYPE_API FUILocalizationText
 {
 	static FText Get(const TCHAR* Key);
+	static FText Get(FName Key);
 };

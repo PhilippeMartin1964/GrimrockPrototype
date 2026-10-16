@@ -11,6 +11,7 @@
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGSkillAsset.h"
+#include "RPG/RPGRecipeCatalogAsset.h"
 #include "RPG/RPGSkillCheckService.h"
 #include "RPG/RPGSkillPointService.h"
 #include "RPG/RPGSkillRequirementProjectionService.h"
@@ -731,14 +732,10 @@ namespace
 		return FText::GetEmpty();
 	}
 
-	FName RecipeTextId(FName RecipeId)
+	bool IsRecipeId(FName RecipeId)
 	{
-		if (RecipeId.IsNone() ||
-			!RecipeId.ToString().StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive))
-		{
-			return NAME_None;
-		}
-		return FName(*(FString(TEXT("Talent.Recipe.")) + RecipeId.ToString()));
+		return !RecipeId.IsNone() &&
+			RecipeId.ToString().StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive);
 	}
 
 	void BuildAcquisitionView(
@@ -763,11 +760,24 @@ namespace
 		}
 		for (const FName Id : Choice.GrantedRequirementIds)
 		{
-			const FName TextId = RecipeTextId(Id);
-			if (!TextId.IsNone())
+			if (!IsRecipeId(Id))
 			{
-				Out.GrantedRecipeTextIds.AddUnique(TextId);
+				continue;
 			}
+
+			if (Out.GrantedRecipes.ContainsByPredicate(
+				[Id](const FGridRecipeDisplayView& Existing)
+				{
+					return Existing.RecipeId == Id;
+				}))
+			{
+				continue;
+			}
+
+			FGridRecipeDisplayView Recipe;
+			Recipe.RecipeId = Id;
+			Recipe.DisplayName = URPGRecipeCatalogAsset::ResolveProductionDisplayName(Id);
+			Out.GrantedRecipes.Add(MoveTemp(Recipe));
 		}
 		if (bExclusiveVariant)
 		{

@@ -4,7 +4,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
-#include "UI/RPGTalentLocalizationText.h"
+#include "UI/UILocalizationText.h"
 
 namespace GridTalentNodeWidgetPrivate
 {
@@ -178,13 +178,13 @@ void UGridTalentNodeWidget::ApplyNodePresentation()
 	if (Text_TalentLevel)
 	{
 		const FText LevelFormat =
-			FRPGTalentLocalizationText::Get(TEXT("Talent.Node.LevelFormat"));
+			FUILocalizationText::Get(TEXT("Talent.Node.LevelFormat"));
 		Text_TalentLevel->SetText(FormatMinimumLevel(LevelFormat, NodeView.MinimumLevel));
 	}
 	if (Text_TalentState)
 	{
 		Text_TalentState->SetText(
-			FRPGTalentLocalizationText::Get(StateTextId(NodeView.State)));
+			FUILocalizationText::Get(StateTextId(NodeView.State)));
 		Text_TalentState->SetColorAndOpacity(FSlateColor(NodeStateTextColor(NodeView.State)));
 	}
 	if (Text_VariantCount)

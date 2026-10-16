@@ -258,21 +258,24 @@ bool FUIRPGCONTENTTEXT051RemainingAuthorityAuditTest::RunTest(const FString&)
 	const int32 UnarmedDescriptionWriterCount = CountOccurrences(
 		CombatCatalogSource,
 		TEXT("Definition.Description = LOCTEXT(\"UnarmedDescription\""));
-	const bool bRecipeUsesStableTextIds =
-		SkillsPageSource.Contains(TEXT("Talent.Recipe."));
+	const bool bRecipeUsesContentCatalog =
+		SkillsPageSource.Contains(TEXT("URPGRecipeCatalogAsset::ResolveProductionDisplayName"));
 	const bool bRecipeHumanizeFallback =
 		SkillsPageSource.Contains(TEXT("HumanizeId(RecipeId)"));
+
+	TestTrue(TEXT("Recipe read-model uses the canonical Recipe content catalog"), bRecipeUsesContentCatalog);
+	TestFalse(TEXT("Recipe read-model has no HumanizeId fallback"), bRecipeHumanizeFallback);
 
 	UE_LOG(
 		LogTemp,
 		Display,
-		TEXT("[UI-RPG-CONTENT-TEXT05.1][SOURCE] SkillDisplayNameWriters=%d SpellDisplayNameWriters=%d SpellDescriptionWriters=%d UnarmedDisplayNameWriters=%d UnarmedDescriptionWriters=%d RecipeStableTextIds=%d RecipeHumanizeFallback=%d"),
+		TEXT("[UI-RPG-CONTENT-TEXT05.1][SOURCE] SkillDisplayNameWriters=%d SpellDisplayNameWriters=%d SpellDescriptionWriters=%d UnarmedDisplayNameWriters=%d UnarmedDescriptionWriters=%d RecipeContentCatalog=%d RecipeHumanizeFallback=%d"),
 		SkillDisplayNameWriterCount,
 		SpellDisplayNameWriterCount,
 		SpellDescriptionWriterCount,
 		UnarmedDisplayNameWriterCount,
 		UnarmedDescriptionWriterCount,
-		bRecipeUsesStableTextIds ? 1 : 0,
+		bRecipeUsesContentCatalog ? 1 : 0,
 		bRecipeHumanizeFallback ? 1 : 0);
 
 	UE_LOG(

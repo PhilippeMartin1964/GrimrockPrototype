@@ -44,3 +44,16 @@ FText FUILocalizationText::Get(const TCHAR* Key)
 		TextKey,
 		EStringTableLoadingPolicy::Find);
 }
+
+
+FText FUILocalizationText::Get(FName Key)
+{
+	if (Key.IsNone())
+	{
+		UE_LOG(LogUILocalization, Error, TEXT("UI localization lookup rejected NAME_None."));
+		return FText::GetEmpty();
+	}
+
+	const FString KeyString = Key.ToString();
+	return Get(*KeyString);
+}

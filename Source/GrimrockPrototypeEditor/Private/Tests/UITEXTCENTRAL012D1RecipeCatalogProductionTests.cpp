@@ -1,9 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-
 #include "RPG/RPGRecipeCatalogAsset.h"
-#include "UI/RPGTalentDetailTextSet.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FUITEXTCENTRAL012D1RecipeCatalogProductionTest,
@@ -17,39 +15,42 @@ bool FUITEXTCENTRAL012D1RecipeCatalogProductionTest::RunTest(const FString&)
 	{
 		return false;
 	}
+
 	TestTrue(TEXT("Production Recipe catalog validates"), Catalog->IsValidDefinition());
 	TestEqual(TEXT("Production Recipe catalog contains the fifteen Alchemist recipes"),
 		Catalog->Recipes.Num(), 15);
 
-	const URPGTalentDetailTextSet* LegacyTextSet = URPGTalentDetailTextSet::LoadProduction();
-	if (!TestNotNull(TEXT("Legacy Talent TextSet remains available for D1 parity audit"), LegacyTextSet))
-	{
-		return false;
-	}
+	const TArray<FName> ExpectedRecipeIds = {
+		TEXT("Recipe_Antidote"),
+		TEXT("Recipe_Bomb_Fire"),
+		TEXT("Recipe_Bomb_Toxic"),
+		TEXT("Recipe_DefensiveElixir_Fire"),
+		TEXT("Recipe_DefensiveElixir_Ice"),
+		TEXT("Recipe_DefensiveElixir_Lightning"),
+		TEXT("Recipe_DefensiveElixir_Poison"),
+		TEXT("Recipe_Flask_Acid"),
+		TEXT("Recipe_Flask_CorrosiveCloud"),
+		TEXT("Recipe_Flask_Oil"),
+		TEXT("Recipe_MajorTransmutation_Fire"),
+		TEXT("Recipe_MajorTransmutation_Ice"),
+		TEXT("Recipe_MajorTransmutation_Oil"),
+		TEXT("Recipe_MajorTransmutation_Poison"),
+		TEXT("Recipe_Panacea")
+	};
 
-	const FString LegacyPrefix(TEXT("Talent.Recipe."));
-	int32 LegacyRecipeCount = 0;
-	for (const FRPGTalentDetailTextEntry& LegacyEntry : LegacyTextSet->Entries)
+	for (const FName RecipeId : ExpectedRecipeIds)
 	{
-		const FString LegacyTextId = LegacyEntry.TextId.ToString();
-		if (!LegacyTextId.StartsWith(LegacyPrefix, ESearchCase::CaseSensitive))
-		{
-			continue;
-		}
-
-		++LegacyRecipeCount;
-		const FName RecipeId(*LegacyTextId.RightChop(LegacyPrefix.Len()));
-		const FText MigratedName = Catalog->ResolveDisplayName(RecipeId);
+		const FText DisplayName = Catalog->ResolveDisplayName(RecipeId);
 		TestFalse(
-			*FString::Printf(TEXT("%s exists in Recipe catalog"), *RecipeId.ToString()),
-			MigratedName.IsEmpty());
-		TestTrue(
-			*FString::Printf(TEXT("%s preserves the player-facing name"), *RecipeId.ToString()),
-			MigratedName.EqualTo(LegacyEntry.Text));
+			*FString::Printf(TEXT("%s exists in the production Recipe catalog"), *RecipeId.ToString()),
+			DisplayName.IsEmpty());
+		if (!DisplayName.IsEmpty())
+		{
+			TestFalse(
+				*FString::Printf(TEXT("%s never leaks its technical identity"), *RecipeId.ToString()),
+				DisplayName.ToString().Contains(TEXT("Recipe_"), ESearchCase::CaseSensitive));
+		}
 	}
-
-	TestEqual(TEXT("Parity audit covers exactly fifteen legacy Recipe names"),
-		LegacyRecipeCount, 15);
 	return true;
 }
 

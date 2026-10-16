@@ -365,6 +365,20 @@ struct GRIMROCKPROTOTYPE_API FGridTalentDetailLineView
 };
 
 USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridRecipeDisplayView
+{
+	GENERATED_BODY()
+
+	/** Stable gameplay/content identity. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Crafting|UI")
+	FName RecipeId = NAME_None;
+
+	/** Player-facing authored content from DA_RPGRecipeCatalog. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Crafting|UI")
+	FText DisplayName;
+};
+
+USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridTalentAcquisitionView
 {
 	GENERATED_BODY()
@@ -382,9 +396,9 @@ struct GRIMROCKPROTOTYPE_API FGridTalentAcquisitionView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FName ExclusivityTextId = NAME_None;
 
-	/** Stable localizable recipe-name keys. Raw Recipe_* ids are never shown to the player. */
+	/** Granted Recipe content, resolved from the canonical Recipe catalog. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	TArray<FName> GrantedRecipeTextIds;
+	TArray<FGridRecipeDisplayView> GrantedRecipes;
 };
 
 USTRUCT(BlueprintType)

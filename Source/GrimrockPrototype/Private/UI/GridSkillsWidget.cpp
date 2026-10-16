@@ -26,7 +26,6 @@
 #include "UI/GridRPGNotificationWidget.h"
 #include "UI/RPGProgressionFeedbackService.h"
 #include "UI/RPGSkillPresentationAsset.h"
-#include "UI/RPGTalentLocalizationText.h"
 #include "UI/UILocalizationText.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridSkillsUI, Log, All);
@@ -820,11 +819,11 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 	if (!View.IsValid())
 	{
 		Text_CharacterName->SetText(
-			FRPGTalentLocalizationText::Get(TEXT("Talent.Screen.NoCharacterSelected")));
+			FUILocalizationText::Get(TEXT("Talent.Screen.NoCharacterSelected")));
 		Text_ClassLevel->SetText(FText::GetEmpty());
 
 		const FText TalentPointsFormat =
-			FRPGTalentLocalizationText::Get(TEXT("Talent.Screen.TalentPointsFormat"));
+			FUILocalizationText::Get(TEXT("Talent.Screen.TalentPointsFormat"));
 		Text_TalentPoints->SetText(
 			GridSkillsWidgetPrivate::FormatTalentPoints(
 				TalentPointsFormat,
@@ -833,7 +832,7 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 		if (Text_SkillPoints)
 		{
 			Text_SkillPoints->SetText(
-				FRPGTalentLocalizationText::Get(TEXT("Talent.Screen.SkillPointsUnavailable")));
+				FUILocalizationText::Get(TEXT("Talent.Screen.SkillPointsUnavailable")));
 		}
 
 		Branch_Left->ClearTalentBranch();
@@ -844,11 +843,11 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 
 	Text_CharacterName->SetText(
 		View.CharacterName.IsEmpty()
-			? FRPGTalentLocalizationText::Get(TEXT("Talent.Screen.SelectedCharacterFallback"))
+			? FUILocalizationText::Get(TEXT("Talent.Screen.SelectedCharacterFallback"))
 			: View.CharacterName);
 
 	const FText ClassLevelFormat =
-		FRPGTalentLocalizationText::Get(TEXT("Talent.Screen.ClassLevelFormat"));
+		FUILocalizationText::Get(TEXT("Talent.Screen.ClassLevelFormat"));
 	Text_ClassLevel->SetText(
 		GridSkillsWidgetPrivate::FormatClassLevel(
 			ClassLevelFormat,
@@ -856,7 +855,7 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 			View.CharacterLevel));
 
 	const FText TalentPointsFormat =
-		FRPGTalentLocalizationText::Get(TEXT("Talent.Screen.TalentPointsFormat"));
+		FUILocalizationText::Get(TEXT("Talent.Screen.TalentPointsFormat"));
 	Text_TalentPoints->SetText(
 		GridSkillsWidgetPrivate::FormatTalentPoints(
 			TalentPointsFormat,
@@ -865,7 +864,7 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 	if (Text_SkillPoints)
 	{
 		const FText SkillPointsFormat =
-			FRPGTalentLocalizationText::Get(TEXT("Talent.Screen.SkillPointsFormat"));
+			FUILocalizationText::Get(TEXT("Talent.Screen.SkillPointsFormat"));
 		Text_SkillPoints->SetText(
 			GridSkillsWidgetPrivate::FormatSkillPoints(
 				SkillPointsFormat,
