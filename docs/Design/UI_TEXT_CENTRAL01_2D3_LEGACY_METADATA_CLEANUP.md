@@ -2,7 +2,7 @@
 
 Date : **16 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **SOURCE IMPLÉMENTÉE — validation locale requise**
+État : **VALIDATION LOCALE OK — ST_UI matérialisé à versionner**
 
 ## Objectif
 
@@ -51,5 +51,20 @@ pipeline Talent ainsi que l'ancien préfixe de compatibilité Recipe.
     -EngineRoot D:\UE_5.5
 ~~~
 
-Le smoke doit matérialiser `ST_UI` avec `Changed=false`, puisque seuls les
-commentaires d'authoring ont changé.
+Le premier smoke après modification des commentaires matérialise `ST_UI` avec
+`Changed=true`. C'est attendu : la colonne `Comment` de `UI.csv` est stockée
+comme métadonnée `Comment` dans la String Table et fait partie du contrat
+d'égalité du materializer.
+
+Après versionnement du `ST_UI.uasset` matérialisé, un nouveau passage direct du
+commandlet doit devenir idempotent avec `Changed=false`.
+
+Validation locale observée le 16 octobre 2026 :
+
+~~~text
+TalentLegacyMetadata   1/1 — 0 warning — 0 échec
+UI-LOCALIZATION01.6        — 0 erreur — 0 warning
+Sync_ST_UI                 — Changed=true (attendu pour cette migration de métadonnées)
+English smoke              — PASS
+~~~
+
