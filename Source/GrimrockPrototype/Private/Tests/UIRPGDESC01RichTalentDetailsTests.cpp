@@ -809,19 +809,19 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	TargetLine.LabelTextId = TEXT("Talent.Detail.Target");
 	TargetLine.Value = FText::FromString(TEXT("première cible dans l'axe"));
 	const FText TargetLabel = FUILocalizationText::Get(TargetLine.LabelTextId);
-	TestEqual(TEXT("Detail label resolves from ST_UI"), TargetLabel.ToString(), FString(TEXT("Cible")));
+	TestEqual(TEXT("Detail label resolves from ST_UI"), TargetLabel.ToString(), FString(TEXT("Cible :")));
 
 	UGridTalentDetailLineWidget* LineWidget = NewObject<UGridTalentDetailLineWidget>();
 	TestTrue(TEXT("Unglyphed detail row initializes without Designer bindings"),
 		LineWidget->InitializeLine(TargetLine, nullptr, TargetLabel, TargetLine.Value));
-	TestEqual(TEXT("Unglyphed row receives ST_UI-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
+	TestEqual(TEXT("Unglyphed row receives ST_UI-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible :")));
 	TestEqual(TEXT("Unglyphed row exposes raw value content"),
 		LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
 
 	UTexture2D* InlineTargetGlyph = NewObject<UTexture2D>(LineWidget);
 	TestTrue(TEXT("Glyphed detail row reinitializes"),
 		LineWidget->InitializeLine(TargetLine, InlineTargetGlyph, TargetLabel, TargetLine.Value));
-	TestEqual(TEXT("Glyphed row keeps ST_UI-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
+	TestEqual(TEXT("Glyphed row keeps ST_UI-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible :")));
 	TestEqual(TEXT("Glyphed row still exposes raw value content"), LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
 
 	FGridTalentDetailLineView ContextLine;
