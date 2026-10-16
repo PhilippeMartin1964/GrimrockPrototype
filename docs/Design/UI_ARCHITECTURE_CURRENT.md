@@ -1140,3 +1140,6 @@ UI-PARTYHUD01.1 est **VALIDÉ UE5.5.4** : `Grimrock.UI.PartyHud01` = **4/4 Succe
 Le Persistent HUD expose désormais `Panel_PartyPortraits` et `PartyPortraitWidgetClass`. Le presenter natif `UGridPartyPortraitHudWidget` rend `FGridPartyPortraitView` sans calcul gameplay.
 
 Le rail se rafraîchit via `OnPartyInventoryChanged`, sans polling RPG dans `NativeTick`. Le socle C++ est **VALIDÉ UE5.5.4 : 6/6 Automation, 0 warning, 0 échec** (TD04.2 `TD04-20261016-174645`). La matérialisation des deux Blueprints `WBP_PartyPortraitHud` et `WBP_GridPersistentHud` reste une opération UMG manuelle dans Unreal Editor.
+
+
+UI-PARTYHUD01.2 est désormais **VALIDÉ / CLOS** : 6/6 Automation, puis validation PIE du rail avec deux personnages actifs affichés à gauche. Le second membre peut légitimement présenter une zone de portrait vide tant que son asset portrait n'est pas renseigné.

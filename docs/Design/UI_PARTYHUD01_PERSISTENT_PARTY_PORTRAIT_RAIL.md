@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1 VALIDÉ — UI-PARTYHUD01.2 C++ VALIDÉ UE5.5.4 (6/6), UMG À MATÉRIALISER**
+État courant : **UI-PARTYHUD01.1 VALIDÉ — UI-PARTYHUD01.2 VALIDÉ / CLOS — UI-PARTYHUD01.3 EN COURS**
 
 ## 1. Objectif général
 
@@ -819,3 +819,44 @@ HitTestInvisible     -> Not Hit-Testable (Self & All Children)
 ```
 
 La documentation UI-PARTYHUD01 doit utiliser les libellés du Designer lorsqu'elle donne une manipulation manuelle dans l'éditeur.
+
+
+## 32. Validation finale UI-PARTYHUD01.2 — 16 octobre 2026
+
+Le socle C++ a été validé via TD04.2 :
+
+```text
+Filter                 : Grimrock.UI.PartyHud01
+Succeeded              : 6
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20261016-174645
+```
+
+La matérialisation UMG a ensuite été validée en PIE par capture utilisateur :
+
+```text
+WBP_PartyPortraitHud
+    -> visible dans le rail persistant
+
+WBP_GridPersistentHud
+    -> SizeBox_PartyPortraitRail
+        -> Panel_PartyPortraits
+
+Groupe actif
+    -> 2 entrées visibles à gauche
+    -> portrait du personnage principal visible
+    -> deuxième entrée conservée malgré l'absence actuelle de portrait du personnage de rencontre
+```
+
+L'absence d'image du deuxième personnage est une donnée de présentation manquante du personnage de rencontre et non une défaillance du rail.
+
+**UI-PARTYHUD01.2 est VALIDÉ et CLOS.**
+
+Prochain sous-jalon :
+
+```text
+UI-PARTYHUD01.3 — Character Selection
+```
