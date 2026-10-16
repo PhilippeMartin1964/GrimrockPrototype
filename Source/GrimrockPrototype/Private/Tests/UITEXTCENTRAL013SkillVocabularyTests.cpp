@@ -42,6 +42,8 @@ bool FUITEXTCENTRAL013SkillVocabularyTest::RunTest(const FString&)
 
 	FGridSkillEntryView MissingAuthoredName;
 	MissingAuthoredName.SkillId = TEXT("Skill_InternalOnly");
+	MissingAuthoredName.Rank = 2;
+	MissingAuthoredName.MaxRank = 5;
 	TestTrue(
 		TEXT("Missing authored Skill name uses localized fallback instead of technical id"),
 		UGridSkillEntryWidget::ResolveDisplayName(MissingAuthoredName)
@@ -50,7 +52,7 @@ bool FUITEXTCENTRAL013SkillVocabularyTest::RunTest(const FString&)
 	TestTrue(
 		TEXT("Compact row rank formatter consumes centralized vocabulary"),
 		UGridSkillEntryWidget::ResolveRankLabel(MissingAuthoredName)
-			.EqualTo(FText::FromString(TEXT("Rang 0 / 0"))));
+			.EqualTo(FText::FromString(TEXT("Rang 2 / 5"))));
 	TestTrue(
 		TEXT("Detail rank formatter consumes centralized vocabulary"),
 		UGridSkillDetailWidget::ResolveRankLabel(2, 5)
