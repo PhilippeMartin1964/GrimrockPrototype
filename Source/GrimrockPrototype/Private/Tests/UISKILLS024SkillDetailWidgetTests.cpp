@@ -250,6 +250,42 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 		}
 	}
 
+
+	const FName OptionalLocalizedLabelBindings[] =
+	{
+		TEXT("Text_LabelDescription"),
+		TEXT("Text_LabelTraining"),
+		TEXT("Text_LabelUsage"),
+		TEXT("Text_LabelBuildAdvice"),
+		TEXT("Text_LabelCheck"),
+		TEXT("Text_LabelCheckRank"),
+		TEXT("Text_LabelCheckAttributeModifier"),
+		TEXT("Text_LabelCheckBaseBonus"),
+		TEXT("Text_LabelAffinities"),
+		TEXT("Text_LabelRecommendedClasses"),
+		TEXT("Text_LabelUsefulClasses"),
+		TEXT("Text_LabelSynergies"),
+		TEXT("Text_LabelProgression"),
+		TEXT("Text_LabelCurrentRankCap"),
+		TEXT("Text_LabelRemainingSkillPoints"),
+		TEXT("Text_LabelNextRank"),
+		TEXT("Text_LabelNextRankCost")
+	};
+
+	for (const FName PropertyName : OptionalLocalizedLabelBindings)
+	{
+		FProperty* Property = FindFProperty<FProperty>(DetailClass, PropertyName);
+		TestNotNull(
+			*FString::Printf(TEXT("%s localized label binding exists"), *PropertyName.ToString()),
+			Property);
+		if (Property)
+		{
+			TestTrue(
+				*FString::Printf(TEXT("%s remains optional until Designer materialization"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidgetOptional")));
+		}
+	}
+
 	UClass* SkillsClass = UGridSkillsWidget::StaticClass();
 	FProperty* ParentDetail =
 		FindFProperty<FProperty>(SkillsClass, TEXT("Detail_Skill"));

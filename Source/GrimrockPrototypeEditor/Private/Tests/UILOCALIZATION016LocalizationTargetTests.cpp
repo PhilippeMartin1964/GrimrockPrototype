@@ -228,6 +228,30 @@ bool FUILOCALIZATION022FullGameGatherContractTest::RunTest(const FString&)
 		{
 			TestTrue(*FString::Printf(TEXT("UI.csv contains '%s'"), RequiredKey), UiCsv.Contains(RequiredKey));
 		}
+
+		const TCHAR* RequiredSkillDetailKeys[] = {
+			TEXT("UI.Section.Description"),
+			TEXT("UI.Section.Usage"),
+			TEXT("UI.Section.Progression"),
+			TEXT("Skill.Section.Training"),
+			TEXT("Skill.Section.BuildAdvice"),
+			TEXT("Skill.Section.Check"),
+			TEXT("Skill.Section.Affinities"),
+			TEXT("Skill.Section.Synergies"),
+			TEXT("Skill.Check.Rank"),
+			TEXT("Skill.Check.AttributeModifier"),
+			TEXT("Skill.Check.BaseBonus"),
+			TEXT("Skill.Affinity.RecommendedClasses"),
+			TEXT("Skill.Affinity.UsefulClasses"),
+			TEXT("Skill.Progression.CurrentRankCap"),
+			TEXT("Skill.Progression.RemainingSkillPoints"),
+			TEXT("Skill.Progression.NextRank"),
+			TEXT("Skill.Progression.NextRankCost")
+		};
+		for (const TCHAR* RequiredKey : RequiredSkillDetailKeys)
+		{
+			TestTrue(*FString::Printf(TEXT("UI.csv contains Skill detail key '%s'"), RequiredKey), UiCsv.Contains(RequiredKey));
+		}
 	}
 
 	FString SpellbookEntrySource;
@@ -244,6 +268,15 @@ bool FUILOCALIZATION022FullGameGatherContractTest::RunTest(const FString&)
 		TestTrue(TEXT("Skill attribute presentation reads ST_UI vocabulary"), SkillEntrySource.Contains(TEXT("FUILocalizationText::Get")));
 		TestTrue(TEXT("Skill attribute presentation reuses the Dexterity key"), SkillEntrySource.Contains(TEXT("CharacterCreation.Attribute.Dexterity")));
 		TestFalse(TEXT("Skill attribute presentation no longer depends on enum metadata"), SkillEntrySource.Contains(TEXT("GetDisplayNameTextByValue")));
+	}
+
+	FString SkillDetailSource;
+	if (LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/UI/GridSkillDetailWidget.cpp"), SkillDetailSource, *this))
+	{
+		TestTrue(TEXT("Skill detail static labels read ST_UI vocabulary"), SkillDetailSource.Contains(TEXT("FUILocalizationText::Get")));
+		TestTrue(TEXT("Skill detail uses shared UI section vocabulary"), SkillDetailSource.Contains(TEXT("UI.Section.Usage")));
+		TestTrue(TEXT("Skill detail references the centralized rank label"), SkillDetailSource.Contains(TEXT("Skill.Check.Rank")));
+		TestTrue(TEXT("Skill detail references the centralized attribute modifier label"), SkillDetailSource.Contains(TEXT("Skill.Check.AttributeModifier")));
 	}
 
 	FString MaterializedManifest;
