@@ -562,7 +562,12 @@ DA_RPGRecipeCatalog         -> noms joueur des Recipe_*
 UI-TEXT-CENTRAL01.2D2 retire physiquement l'ancienne autorité Talent et son
 resolver de compatibilité. Les recettes sont désormais projetées comme
 `RecipeId + DisplayName` depuis `DA_RPGRecipeCatalog`. Les fallbacks de
-présentation vers les IDs techniques restent interdits. Les nœuds à variantes exigent leur override conceptuel dans
+présentation vers les IDs techniques restent interdits.
+
+UI-TEXT-CENTRAL01.2D3 neutralise également les métadonnées d'authoring de
+`UI.csv` : les commentaires des clés Talent décrivent désormais leur rôle
+courant dans l'interface et ne conservent plus de provenance vers un asset
+supprimé. Les nœuds à variantes exigent leur override conceptuel dans
 `DA_RPGTalentPresentation`.
 
 Validation canonique :
