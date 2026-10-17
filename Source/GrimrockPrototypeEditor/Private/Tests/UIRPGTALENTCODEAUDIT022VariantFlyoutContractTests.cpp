@@ -2,9 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "Components/Button.h"
-#include "Components/Image.h"
-#include "Components/UniformGridPanel.h"
 #include "Engine/Blueprint.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "UObject/UnrealType.h"
@@ -17,7 +14,7 @@ namespace UIRPGTalentCodeAudit022
 		FAutomationTestBase& Test,
 		UClass* OwnerClass,
 		FName PropertyName,
-		UClass* ExpectedWidgetClass)
+		FName ExpectedWidgetClassName)
 	{
 		FProperty* Property = FindFProperty<FProperty>(OwnerClass, PropertyName);
 		if (!Test.TestNotNull(
@@ -39,9 +36,10 @@ namespace UIRPGTalentCodeAudit022
 				*FString::Printf(TEXT("%s.%s remains an object binding"), *OwnerClass->GetName(), *PropertyName.ToString()),
 				ObjectProperty))
 		{
-			Test.TestTrue(
+			Test.TestEqual(
 				*FString::Printf(TEXT("%s.%s keeps the expected widget type"), *OwnerClass->GetName(), *PropertyName.ToString()),
-				ObjectProperty->PropertyClass && ObjectProperty->PropertyClass->IsChildOf(ExpectedWidgetClass));
+				ObjectProperty->PropertyClass ? ObjectProperty->PropertyClass->GetFName() : NAME_None,
+				ExpectedWidgetClassName);
 		}
 	}
 
@@ -86,19 +84,19 @@ bool FUIRPGTalentCodeAudit022VariantFlyoutContractTest::RunTest(const FString&)
 		*this,
 		UGridTalentVariantFlyoutWidget::StaticClass(),
 		TEXT("Grid_Variants"),
-		UUniformGridPanel::StaticClass());
+		TEXT("UniformGridPanel"));
 
 	ValidateMandatoryWidgetBinding(
 		*this,
 		UGridTalentVariantIconWidget::StaticClass(),
 		TEXT("Button_Variant"),
-		UButton::StaticClass());
+		TEXT("Button"));
 
 	ValidateMandatoryWidgetBinding(
 		*this,
 		UGridTalentVariantIconWidget::StaticClass(),
 		TEXT("Image_VariantIcon"),
-		UImage::StaticClass());
+		TEXT("Image"));
 
 	ValidateMaterializedWidgetBlueprint(
 		*this,
