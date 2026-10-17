@@ -13,6 +13,26 @@ namespace GridEventFeedPublisher
 		const FGridHudEventEntry& Entry,
 		bool bIsObservableToPlayer = true);
 
+	/**
+	 * EVENTHUD01.9 — publishes one NPC line that has actually been spoken.
+	 * Proposed/unselected dialogue choices must never call this API.
+	 */
+	GRIMROCKPROTOTYPE_API bool PublishNpcSpokenLine(
+		const UObject* WorldContextObject,
+		const FText& SpeakerDisplayName,
+		const FText& SpokenLine,
+		FName SourceId = NAME_None);
+
+	/**
+	 * EVENTHUD01.9 — publishes one player/group reply only after it has actually
+	 * been selected and spoken. There is intentionally no API for offered choices.
+	 */
+	GRIMROCKPROTOTYPE_API bool PublishPlayerSpokenReply(
+		const UObject* WorldContextObject,
+		const FText& SpeakerDisplayName,
+		const FText& SpokenLine,
+		FName SourceId = NAME_None);
+
 	/** Player-facing localized header for a readable world object. */
 	GRIMROCKPROTOTYPE_API FText ResolveReadableHeader(const UGridWorldObjectDefinitionAsset* Definition);
 	/** Conservative anti-spoiler rule for cell-bound observable dungeon effects. */

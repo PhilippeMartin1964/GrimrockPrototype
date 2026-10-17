@@ -20,6 +20,50 @@ namespace GridEventFeedPublisher
 		return EventFeed ? EventFeed->PublishEvent(Entry, bIsObservableToPlayer) : false;
 	}
 
+	bool PublishNpcSpokenLine(
+		const UObject* WorldContextObject,
+		const FText& SpeakerDisplayName,
+		const FText& SpokenLine,
+		FName SourceId)
+	{
+		if (!WorldContextObject || SpeakerDisplayName.IsEmpty() || SpokenLine.IsEmpty())
+		{
+			return false;
+		}
+
+		FGridHudEventEntry Entry;
+		Entry.Category = EGridHudEventCategory::Dialogue;
+		Entry.Semantic = EGridHudEventSemantic::Dialogue;
+		Entry.Visibility = EGridEventVisibility::Always;
+		Entry.EventCode = FName(TEXT("Dialogue.NPC.Spoken"));
+		Entry.Header = SpeakerDisplayName;
+		Entry.Message = SpokenLine;
+		Entry.SourceId = SourceId;
+		return PublishEvent(WorldContextObject, Entry, true);
+	}
+
+	bool PublishPlayerSpokenReply(
+		const UObject* WorldContextObject,
+		const FText& SpeakerDisplayName,
+		const FText& SpokenLine,
+		FName SourceId)
+	{
+		if (!WorldContextObject || SpeakerDisplayName.IsEmpty() || SpokenLine.IsEmpty())
+		{
+			return false;
+		}
+
+		FGridHudEventEntry Entry;
+		Entry.Category = EGridHudEventCategory::Dialogue;
+		Entry.Semantic = EGridHudEventSemantic::Dialogue;
+		Entry.Visibility = EGridEventVisibility::Always;
+		Entry.EventCode = FName(TEXT("Dialogue.Player.Spoken"));
+		Entry.Header = SpeakerDisplayName;
+		Entry.Message = SpokenLine;
+		Entry.SourceId = SourceId;
+		return PublishEvent(WorldContextObject, Entry, true);
+	}
+
 	FText ResolveReadableHeader(const UGridWorldObjectDefinitionAsset* Definition)
 	{
 		if (Definition && Definition->DefinitionId == FName(TEXT("WallInscription")))
