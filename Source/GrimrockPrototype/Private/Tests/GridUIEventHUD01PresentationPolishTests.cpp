@@ -44,10 +44,10 @@ bool FGridUIEventHUD01StyleDefaultsPolishTest::RunTest(const FString& Parameters
 	}
 
 	TestEqual(TEXT("Default shell opacity is more legible"), Widget->ShellBackgroundColor.A, 0.92f);
-	TestEqual(TEXT("Default event text font size is explicit"), Widget->EntryFont.Size, 16);
-	TestEqual(TEXT("Default filter font size is explicit"), Widget->FilterFont.Size, 14);
-	TestNotNull(TEXT("Event text has an explicit font object"), Widget->EntryFont.FontObject);
-	TestNotNull(TEXT("Filter text has an explicit font object"), Widget->FilterFont.FontObject);
+	TestEqual(TEXT("Default event text font size is explicit"), Widget->EntryFont.Size, 16.0f);
+	TestEqual(TEXT("Default filter font size is explicit"), Widget->FilterFont.Size, 14.0f);
+	TestTrue(TEXT("Event text has an explicit font object"), Widget->EntryFont.FontObject != nullptr);
+	TestTrue(TEXT("Filter text has an explicit font object"), Widget->FilterFont.FontObject != nullptr);
 
 	return true;
 }
