@@ -766,6 +766,9 @@ private:
 
 	void ResetActiveAttackState();
 	void SetPhase(EGridCombatPhase NewPhase);
+
+	// EVENTHUD01.8 integration test access only; keep the runtime API private.
+	friend class FGridUIEventHUD018CentralPublicationTest;
 	void AppendCombatLogEntry(FGridCombatLogEntry Entry);
 	FName ResolveMonsterLogId(const AGridMonsterActor* Monster) const;
 	FText ResolveMonsterDisplayName(const AGridMonsterActor* Monster) const;
