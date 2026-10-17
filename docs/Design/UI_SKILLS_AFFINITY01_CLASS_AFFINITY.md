@@ -2,7 +2,7 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **01.3A AUDIT PRODUCTION OUVERT — matrice actuelle à extraire avant authoring**
+État : **01.3C AUTHORING DÉTERMINISTE PRÉPARÉ — matérialisation de l’asset requise**
 
 ## 1. Objectif
 
@@ -175,3 +175,29 @@ NeutralClassIds
 
 Le commandlet vérifie les 25 Skills, les six classes canoniques et l’absence de
 chevauchement entre les trois groupes. Il ne modifie aucun `.uasset`.
+
+
+## 10. UI-SKILLS-AFFINITY01.3C — matérialisation déterministe
+
+La matrice retenue pour `DiscouragedClassIds` est volontairement conservatrice :
+`Discouraged` signifie « mauvais investissement pour cette classe », tandis que
+l’absence des trois groupes reste `Neutral`.
+
+~~~text
+Skill_Lockpicking -> Priest
+Skill_Traps       -> Warrior, Priest
+Skill_Alchemy     -> Warrior, Ranger, Priest
+Skill_Arcana      -> Warrior, Ranger, Priest
+Skill_Runes       -> Warrior, Ranger, Priest
+Skill_Religion    -> Warrior, Rogue, Alchemist
+Tous les autres   -> []
+~~~
+
+`FSkillAffinityProductionAuthoring` porte cette matrice canonique. Le commandlet
+`SkillAffinityAuthoring` ne modifie que `DiscouragedClassIds`, vérifie que les
+25 lignes sont présentes, préserve `SkillId`, `Icon`, `UsageDescription`,
+`BuildAdvice`, `RecommendedClassIds`, `UsefulClassIds` et `SynergySkillIds`,
+puis refuse de sauvegarder si le catalogue devient invalide.
+
+Le commandlet est idempotent : une seconde exécution sur un asset déjà canonique
+ne réécrit pas le `.uasset`.
