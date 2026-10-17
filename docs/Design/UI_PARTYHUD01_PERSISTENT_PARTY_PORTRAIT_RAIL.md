@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1/.2/.3/.4/.5 VALIDÉS / CLOS — UI-PARTYHUD01.6 IMPLÉMENTÉ / VALIDATION REQUISE**
+État courant : **UI-PARTYHUD01.1/.2/.3/.4/.5/.6 VALIDÉS / CLOS — UI-PARTYHUD01.7 À FAIRE**
 
 ## 1. Objectif général
 
@@ -1570,3 +1570,36 @@ Le filtre principal doit maintenant exécuter **16 tests**.
 7. vérifier que seul `Cursor_Default` reste visible.
 
 Aucune modification UMG n'est requise pour ce sous-jalon.
+
+
+## 41. Validation finale UI-PARTYHUD01.6 — 17 octobre 2026
+
+Validation TD04.2 :
+
+```text
+Filter                 : Grimrock.UI.PartyHud01
+Succeeded              : 16
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20261017-083555
+```
+
+Validation PIE confirmée par l'utilisateur :
+
+```text
+tooltip portrait        -> fonctionnel
+contenu compact         -> fonctionnel
+clic de sélection       -> toujours fonctionnel
+drag/reorder            -> toujours fonctionnel
+curseur custom unique   -> conservé
+```
+
+**UI-PARTYHUD01.6 est VALIDÉ et CLOS.**
+
+Prochain sous-jalon :
+
+```text
+UI-PARTYHUD01.7 — UMG / PIE Final
+```

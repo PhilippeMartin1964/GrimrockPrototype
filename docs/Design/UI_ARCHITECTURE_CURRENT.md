@@ -1189,3 +1189,6 @@ créé.
 Les références d'armure du read model suivent désormais RPG03.3 jusqu'aux
 modificateurs C2 de référence via `FGridCombatModifierResolver` et
 `FGridCombatArmorEffectResolver`. Le SaveGame reste **v25 exact-match**.
+
+
+UI-PARTYHUD01.6 est **VALIDÉ / CLOS** : 16/16 sur `Grimrock.UI.PartyHud01`, sans warning ni échec, avec validation PIE du tooltip. Le rail fournit désormais identité, ressources, armures effectives RPG03.3, sélection, drag/reorder, persistance v25 et tooltip compact.
