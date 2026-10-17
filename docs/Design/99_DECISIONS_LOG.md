@@ -1407,3 +1407,16 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le registre de définitions reste transient ; le scan dungeon-wide est réservé
   à MON21.4.3.
 - Le branchement Pawn Save/Load est réservé à MON21.4.4.
+
+
+---
+
+## 2026-10-17 — MON21.4.2 : validation et suspension
+
+- MON21.4.2 est validé localement : 3/3, 0 warning, 0 échec.
+- La characterization MON21.4 reste 4/4.
+- TD07.3.2 SaveContract reste 4/4.
+- UI-PARTYHUD01 reste 18/18 après le passage SaveGame v26.
+- MON21.4 est suspendu volontairement à la demande de l'utilisateur.
+- Aucun travail MON21.4.3/.4/.5 ne doit être engagé sans nouveau feu vert.
+- Le point de reprise autoritaire est MON21.4.3 — Dungeon-wide Quest Definition Registration.

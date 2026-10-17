@@ -2,7 +2,7 @@
 
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
-Statut : **MON21.4.1 CHARACTERIZATION VALIDÉE — MON21.4.2 IMPLÉMENTÉ / VALIDATION REQUISE**
+Statut : **MON21.4.1/.2 VALIDÉS — MON21.4 SUSPENDU VOLONTAIREMENT AVANT .3**
 
 ## 1. Reprise après TD07.3
 
@@ -234,3 +234,64 @@ SubsystemSnapshotApi
 La characterization historique reste également verte mais son
 `SaveEnvelopeGap` vérifie désormais que le gap est effectivement fermé tout en
 confirmant l'absence de miroir parallèle `QuestRuntimeState`.
+
+
+## 9. Validation MON21.4.2 et suspension volontaire — 17 octobre 2026
+
+Validation locale reçue :
+
+```text
+Grimrock.Quests.MON21_4_2
+Succeeded              : 3
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20261017-090359
+
+Grimrock.Quests.MON21_4.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20261017-090421
+
+Grimrock.TechnicalDebt.TD07_3_2.SaveContract
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20261017-090435
+
+Grimrock.UI.PartyHud01
+Succeeded              : 18
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20261017-090449
+```
+
+**MON21.4.2 est VALIDÉ / CLOS.**
+
+Décision utilisateur : suspendre volontairement MON21.4 à ce point afin de
+prioriser d'autres travaux du projet.
+
+Point de reprise exact :
+
+```text
+MON21.4.3 — Dungeon-wide Quest Definition Registration
+```
+
+État conservé pendant la suspension :
+
+```text
+SaveGame courant                  v26 exact-match
+CampaignQuestState                champ durable présent
+Quest subsystem snapshot API      validée
+Pawn Save/Load Quest              non branché
+Dungeon-wide Quest registration   non implémenté
+MON21.4.3/.4/.5                   non démarrés
+```

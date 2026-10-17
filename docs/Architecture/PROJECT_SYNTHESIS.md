@@ -155,7 +155,7 @@ Quest :
 - MON21.3 route `QuestStart`, `QuestCompleteObjective`,
   `QuestComplete`, `QuestFail`.
 
-**MON21.4 Quest Persistence est EN COURS** : MON21.4.2 ajoute désormais le snapshot Quest au SaveGame v26 ; le pipeline Pawn Save/Load n'est pas encore branché.
+**MON21.4 Quest Persistence est SUSPENDU après .2 VALIDÉ** : le SaveGame v26 porte le champ `CampaignQuestState` et l'API snapshot du subsystem est validée ; le pipeline Pawn Save/Load n'est pas encore branché. Reprise future en MON21.4.3.
 
 ## 7. Items, inventaire et équipement
 
@@ -325,11 +325,12 @@ Enveloppe persistée :
 
 - `PartyInventoryState` ;
 - `PartyPortraitOrder` (ordre UI keyed by `CharacterId`) ;
+- `CampaignQuestState` (champ durable v26 ; capture Pawn non encore branchée) ;
 - `DungeonRuntimeState` ;
 - `CurrentDungeonLevelId` ;
 - position/facing du groupe.
 
-La MapExploration est incluse dans le runtime state. Quest ne l'est pas encore.
+La MapExploration est incluse dans le runtime state. Le champ durable `CampaignQuestState` existe depuis MON21.4.2, mais le Pawn ne le capture/restaure pas encore : cette intégration reste MON21.4.4.
 
 ## 14. Validation
 
@@ -354,7 +355,7 @@ MON13–MON20                  CLOS / VALIDÉS
 MON21.1                      CLOS
 MON21.2 Quest Runtime        VALIDÉ
 MON21.3 Quest Event/Command  VALIDÉ
-MON21.4 Quest Persistence    EN COURS — .2 IMPLÉMENTÉ
+MON21.4 Quest Persistence    SUSPENDU — .2 VALIDÉ / REPRISE EN .3
 MON21.5 Journal              À FAIRE
 MON21.6 Map                  VALIDÉ / CLOS
 MAP-THEME01                  VALIDÉ / CLOS

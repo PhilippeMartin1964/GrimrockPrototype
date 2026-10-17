@@ -63,7 +63,7 @@ MON13–MON20                    CLOS / VALIDÉS
 MON21.1                        CLOS
 MON21.2 Quest Runtime          VALIDÉ
 MON21.3 Quest Event->Command   VALIDÉ
-MON21.4 Quest Persistence      EN COURS — .2 IMPLÉMENTÉ
+MON21.4 Quest Persistence      SUSPENDU — .2 VALIDÉ / REPRISE EN .3
 MON21.5 Journal                À FAIRE
 MON21.6 Map                    VALIDÉ — CLOS
 MAP-THEME01                    VALIDÉ — CLOS
@@ -106,7 +106,7 @@ Principes :
 - C++ porte logique, calculs, invariants et read models ;
 - Blueprint/UMG porte composition, configuration et présentation ;
 - aucune compatibilité arrière Save/DataAsset/Blueprint exigée pendant le prototype ;
-- SaveGame courant : **v24 exact-match**.
+- SaveGame courant : **v26 exact-match**.
 
 ### Progression RPG courante
 
@@ -174,3 +174,9 @@ statut d'un jalon a évolué.
 Mise à jour 17 octobre 2026 : MON21.4.2 a ouvert le SaveGame **v26
 exact-match** avec `CampaignQuestState` durable et l'API snapshot atomique du
 Quest subsystem. L'intégration Pawn Save/Load reste à venir.
+
+
+Validation du 17 octobre 2026 : MON21.4.2 est **VALIDÉ / CLOS** (3/3), la
+characterization MON21.4 reste 4/4, le SaveContract reste 4/4 et
+UI-PARTYHUD01 reste 18/18, sans warning ni échec. MON21.4 est ensuite suspendu
+volontairement ; reprise future en MON21.4.3.
