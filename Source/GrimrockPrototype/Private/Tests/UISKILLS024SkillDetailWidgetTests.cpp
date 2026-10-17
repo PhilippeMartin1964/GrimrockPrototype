@@ -48,6 +48,11 @@ namespace UISKILLS024Tests
 		Warrior.DisplayName = FText::FromString(TEXT("Guerrier"));
 		Detail.UsefulClasses.Add(Warrior);
 
+		FGridSkillClassAffinityView Priest;
+		Priest.ClassId = TEXT("Priest");
+		Priest.DisplayName = FText::FromString(TEXT("Prêtre"));
+		Detail.DiscouragedClasses.Add(Priest);
+
 		FGridSkillSynergyView Lockpicking;
 		Lockpicking.SkillId = TEXT("Skill_Lockpicking");
 		Lockpicking.DisplayName = FText::FromString(TEXT("Crochetage"));
@@ -93,6 +98,8 @@ bool FUISKILLS024DetailFormattingTest::RunTest(const FString&)
 		Widget->ResolvedRecommendedClassesText.EqualTo(FText::FromString(TEXT("Voleur, Éclaireur"))));
 	TestTrue(TEXT("Useful classes are presentation-ready"),
 		Widget->ResolvedUsefulClassesText.EqualTo(FText::FromString(TEXT("Guerrier"))));
+	TestTrue(TEXT("Discouraged classes are presentation-ready"),
+		Widget->ResolvedDiscouragedClassesText.EqualTo(FText::FromString(TEXT("Prêtre"))));
 	TestTrue(TEXT("Synergies preserve canonical display order"),
 		Widget->ResolvedSynergiesText.EqualTo(FText::FromString(TEXT("Crochetage, Athlétisme"))));
 	TestTrue(TEXT("Current rank cap is presentation-ready"),
@@ -167,6 +174,7 @@ bool FUISKILLS024RejectAndClearTest::RunTest(const FString&)
 	TestFalse(TEXT("Rejected detail leaves widget cleared"), Widget->bInitialized);
 	TestTrue(TEXT("Rejected detail clears SkillId"), Widget->DetailView.SkillId.IsNone());
 	TestTrue(TEXT("Rejected detail clears resolved rank"), Widget->ResolvedRankText.IsEmpty());
+	TestTrue(TEXT("Rejected detail clears discouraged classes"), Widget->ResolvedDiscouragedClassesText.IsEmpty());
 
 	TestTrue(TEXT("Widget can initialize again after rejection"), Widget->InitializeSkillDetail(MakeValidDetail()));
 	Widget->ClearSkillDetail();
@@ -250,6 +258,27 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 		}
 	}
 
+	const FName PendingDesignerBindings[] =
+	{
+		TEXT("VB_DetailDiscouragedClasses"),
+		TEXT("Text_DetailDiscouragedClasses")
+	};
+	for (const FName PropertyName : PendingDesignerBindings)
+	{
+		FProperty* Property = FindFProperty<FProperty>(DetailClass, PropertyName);
+		TestNotNull(
+			*FString::Printf(TEXT("%s pending Designer hook exists"), *PropertyName.ToString()),
+			Property);
+		if (Property)
+		{
+			TestTrue(
+				*FString::Printf(TEXT("%s stays optional only until manual WBP materialization"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidgetOptional")));
+			TestFalse(
+				*FString::Printf(TEXT("%s is not hardened before manual WBP materialization"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidget")));
+		}
+	}
 
 	const FName RetiredStaticLabelBindings[] =
 	{
@@ -264,6 +293,7 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 		TEXT("Text_LabelAffinities"),
 		TEXT("Text_LabelRecommendedClasses"),
 		TEXT("Text_LabelUsefulClasses"),
+		TEXT("Text_LabelDiscouragedClasses"),
 		TEXT("Text_LabelSynergies"),
 		TEXT("Text_LabelProgression"),
 		TEXT("Text_LabelCurrentRankCap"),

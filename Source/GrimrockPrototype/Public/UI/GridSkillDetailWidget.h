@@ -52,6 +52,9 @@ public:
 	FText ResolvedUsefulClassesText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Detail")
+	FText ResolvedDiscouragedClassesText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Detail")
 	FText ResolvedSynergiesText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Detail")
@@ -160,6 +163,14 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_DetailUsefulClasses;
+
+	/** UI-SKILLS-CODE-AUDIT02.1A: optional only until the Designer row is materialized. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UVerticalBox> VB_DetailDiscouragedClasses;
+
+	/** UI-SKILLS-CODE-AUDIT02.1A: optional only until the Designer row is materialized. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DetailDiscouragedClasses;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UVerticalBox> VB_DetailSynergies;

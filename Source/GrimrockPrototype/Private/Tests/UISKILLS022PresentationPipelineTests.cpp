@@ -92,6 +92,7 @@ namespace UISKILLS022Tests
 		Acrobatics.BuildAdvice = FText::FromString(TEXT("Conseil de build."));
 		Acrobatics.RecommendedClassIds = { TEXT("Rogue") };
 		Acrobatics.UsefulClassIds = { TEXT("Warrior") };
+		Acrobatics.DiscouragedClassIds = { TEXT("Priest") };
 		Acrobatics.SynergySkillIds = { TEXT("Skill_Athletics") };
 
 		FRPGSkillPresentationDefinition Athletics;
@@ -123,9 +124,11 @@ bool FUISKILLS022DetailProjectionTest::RunTest(const FString&)
 
 	URPGClassAsset* Rogue = MakeClass(GetTransientPackage(), TEXT("Rogue"), TEXT("Voleur"));
 	URPGClassAsset* Warrior = MakeClass(GetTransientPackage(), TEXT("Warrior"), TEXT("Guerrier"));
+	URPGClassAsset* Priest = MakeClass(GetTransientPackage(), TEXT("Priest"), TEXT("Prêtre"));
 	TestNotNull(TEXT("Rogue test class is valid"), Rogue);
 	TestNotNull(TEXT("Warrior affinity class is valid"), Warrior);
-	if (!Rogue || !Warrior) return false;
+	TestNotNull(TEXT("Priest discouraged class is valid"), Priest);
+	if (!Rogue || !Warrior || !Priest) return false;
 
 	FRPGAttributes Attributes;
 	Attributes.Dexterity = 14;
@@ -176,11 +179,17 @@ bool FUISKILLS022DetailProjectionTest::RunTest(const FString&)
 	TestEqual(TEXT("Training semantic is trained"), Detail.TrainingState, EGridSkillTrainingState::Trained);
 	TestEqual(TEXT("Recommended class resolves"), Detail.RecommendedClasses.Num(), 1);
 	TestEqual(TEXT("Useful class resolves"), Detail.UsefulClasses.Num(), 1);
+	TestEqual(TEXT("Discouraged class resolves"), Detail.DiscouragedClasses.Num(), 1);
 	TestEqual(TEXT("Synergy resolves"), Detail.Synergies.Num(), 1);
 	if (Detail.RecommendedClasses.Num() == 1)
 	{
 		TestTrue(TEXT("Recommended class label is Voleur"),
 			Detail.RecommendedClasses[0].DisplayName.EqualTo(FText::FromString(TEXT("Voleur"))));
+	}
+	if (Detail.DiscouragedClasses.Num() == 1)
+	{
+		TestTrue(TEXT("Discouraged class label is Prêtre"),
+			Detail.DiscouragedClasses[0].DisplayName.EqualTo(FText::FromString(TEXT("Prêtre"))));
 	}
 	if (Detail.Synergies.Num() == 1)
 	{

@@ -47,6 +47,7 @@ void UGridSkillDetailWidget::ClearSkillDetail()
 	ResolvedCheckBaseBonusText = FText::GetEmpty();
 	ResolvedRecommendedClassesText = FText::GetEmpty();
 	ResolvedUsefulClassesText = FText::GetEmpty();
+	ResolvedDiscouragedClassesText = FText::GetEmpty();
 	ResolvedSynergiesText = FText::GetEmpty();
 	ResolvedCurrentRankCapText = FText::GetEmpty();
 	ResolvedRemainingSkillPointsText = FText::GetEmpty();
@@ -108,6 +109,10 @@ void UGridSkillDetailWidget::ClearSkillDetail()
 		VB_DetailUsefulClasses,
 		Text_DetailUsefulClasses,
 		FText::GetEmpty());
+	ApplyOptionalSection(
+		VB_DetailDiscouragedClasses,
+		Text_DetailDiscouragedClasses,
+		FText::GetEmpty());
 	ApplyOptionalSection(VB_DetailSynergies, Text_DetailSynergies, FText::GetEmpty());
 
 	if (VB_DetailProgression)
@@ -152,6 +157,7 @@ void UGridSkillDetailWidget::RefreshResolvedPresentation()
 	ResolvedCheckBaseBonusText = ResolveSignedInteger(DetailView.BaseCheckBonus);
 	ResolvedRecommendedClassesText = JoinClassNames(DetailView.RecommendedClasses);
 	ResolvedUsefulClassesText = JoinClassNames(DetailView.UsefulClasses);
+	ResolvedDiscouragedClassesText = JoinClassNames(DetailView.DiscouragedClasses);
 	ResolvedSynergiesText = JoinSynergyNames(DetailView.Synergies);
 	ResolvedCurrentRankCapText = FText::AsNumber(DetailView.CurrentRankCap);
 	ResolvedRemainingSkillPointsText = FText::AsNumber(DetailView.RemainingSkillPoints);
@@ -239,10 +245,16 @@ void UGridSkillDetailWidget::RefreshDetailVisual()
 		VB_DetailUsefulClasses,
 		Text_DetailUsefulClasses,
 		ResolvedUsefulClassesText);
+	ApplyOptionalSection(
+		VB_DetailDiscouragedClasses,
+		Text_DetailDiscouragedClasses,
+		ResolvedDiscouragedClassesText);
 	if (VB_DetailAffinities)
 	{
 		VB_DetailAffinities->SetVisibility(
-			!ResolvedRecommendedClassesText.IsEmpty() || !ResolvedUsefulClassesText.IsEmpty()
+			!ResolvedRecommendedClassesText.IsEmpty() ||
+			!ResolvedUsefulClassesText.IsEmpty() ||
+			!ResolvedDiscouragedClassesText.IsEmpty()
 				? ESlateVisibility::SelfHitTestInvisible
 				: ESlateVisibility::Collapsed);
 	}

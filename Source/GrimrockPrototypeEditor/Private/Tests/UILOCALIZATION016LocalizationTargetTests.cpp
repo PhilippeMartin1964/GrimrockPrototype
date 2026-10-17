@@ -243,6 +243,7 @@ bool FUILOCALIZATION022FullGameGatherContractTest::RunTest(const FString&)
 			TEXT("Skill.Check.BaseBonus"),
 			TEXT("Skill.Affinity.RecommendedClasses"),
 			TEXT("Skill.Affinity.UsefulClasses"),
+			TEXT("Skill.Affinity.DiscouragedClasses"),
 			TEXT("Skill.Progression.CurrentRankCap"),
 			TEXT("Skill.Progression.RemainingSkillPoints"),
 			TEXT("Skill.Progression.NextRank"),
