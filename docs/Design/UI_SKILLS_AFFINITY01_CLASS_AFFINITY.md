@@ -2,7 +2,7 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **01.3D RÉGRESSION PRODUCTION VERROUILLÉE — validation finale requise**
+État : **VALIDÉ / CLOS — UI-SKILLS-AFFINITY01.4B**
 
 ## 1. Objectif
 
@@ -239,3 +239,104 @@ Puis audit read-only :
 ~~~
 
 L'audit final doit annoncer `Skills=25` et `Discouraged=15`.
+
+
+## 12. UI-SKILLS-AFFINITY01.4B — clôture finale
+
+Le jalon est **VALIDÉ / CLOS** le 17 octobre 2026.
+
+État final :
+
+~~~text
+Affinité par classe
+  Recommended  -> 2 étoiles pleines
+  Useful       -> 1 étoile pleine
+  Neutral      -> étoile contour
+  Discouraged  -> étoile barrée
+
+Autorité
+  DA_RPGSkillPresentation
+    RecommendedClassIds
+    UsefulClassIds
+    DiscouragedClassIds
+
+Runtime
+  UGridSkillsWidget
+    -> résolution selon la classe sélectionnée
+    -> tri Affinité ascendant / descendant
+
+UMG
+  WBP_GridSkills
+    Button_SortAffinity
+    Text_SortAffinityIndicator
+
+  WBP_RPGSkillEntry
+    Border_AffinityRecommended
+    Border_AffinityUseful
+    Border_AffinityNeutral
+    Border_AffinityDiscouraged
+~~~
+
+Le rendu Unicode provisoire a été supprimé. Les étoiles sont des images UMG ;
+le C++ ne possède ni texture, ni couleur, ni disposition graphique.
+
+Matrice de production matérialisée :
+
+~~~text
+Skill_Lockpicking -> Priest
+Skill_Traps       -> Warrior, Priest
+Skill_Alchemy     -> Warrior, Ranger, Priest
+Skill_Arcana      -> Warrior, Ranger, Priest
+Skill_Runes       -> Warrior, Ranger, Priest
+Skill_Religion    -> Warrior, Rogue, Alchemist
+Tous les autres   -> []
+~~~
+
+Validation finale locale :
+
+~~~text
+Grimrock.UI.Skills02
+  25/25 PASS
+  0 warning
+  0 échec
+  rapport : Saved/Automation/TD04/TD04-20261017-114757
+
+Production audit
+  Skills       = 25
+  Recommended  = 33
+  Useful       = 14
+  Discouraged  = 15
+  0 erreur
+  0 warning
+
+SkillAffinityAuthoring
+  second passage idempotent
+  "already matches the canonical discouraged matrix"
+
+Game.UI.Localization.LOCALIZATION03.WbpOwnershipRegression
+  1/1 PASS
+  0 warning
+  0 échec
+  rapport : Saved/Automation/TD04/TD04-20261017-115001
+
+UI-LOCALIZATION01.6
+  Runtime_Culture_Smoke               : OK
+  source-controlled configs unchanged : OK
+  volatile generated outputs restored : OK
+  rapport : Saved/Localization/UI-LOCALIZATION01.6/20261017-115112
+
+git status --short
+  CLEAN
+~~~
+
+Commits de matérialisation / durcissement finaux :
+
+~~~text
+b6a756b9 UI-SKILLS-AFFINITY01.3C materialize production discouraged affinities
+7702af17 UI-SKILLS-AFFINITY01.3D lock production affinity matrix
+554f38e0 UI-SKILLS-AFFINITY01.4A resave hardened Skill widgets
+~~~
+
+Les commandlets `SkillAffinityAudit` et `SkillAffinityAuthoring` restent des
+outils de maintenance déterministes ; ils ne constituent pas une seconde
+autorité de données runtime.

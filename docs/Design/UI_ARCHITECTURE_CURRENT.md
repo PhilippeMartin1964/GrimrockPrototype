@@ -343,7 +343,7 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
-### UI-SKILLS-AFFINITY01 — affinité compétence / classe — SOURCE OUVERTE
+### UI-SKILLS-AFFINITY01 — affinité compétence / classe — VALIDÉ / CLOS
 
 La liste Skills expose désormais une sémantique d’affinité entre chaque
 compétence et la classe du personnage actuellement sélectionné :
@@ -381,6 +381,25 @@ aucun autre champ et est idempotent. UI-SKILLS-AFFINITY01.3D verrouille désorma
 indépendamment la matrice exacte en régression de production : 6 Skills portent
 15 affectations déconseillées au total, et les 25 × 6 résolutions d’affinité
 sont contrôlées contre les quatre états canoniques.
+
+UI-SKILLS-AFFINITY01 est **VALIDÉ / CLOS** après resave des widgets durcis et
+validation finale du 17 octobre 2026 :
+
+~~~text
+Grimrock.UI.Skills02                                      25/25
+Game.UI.Localization.LOCALIZATION03.WbpOwnershipRegression 1/1
+SkillAffinityAudit                                        Skills=25 / Discouraged=15
+UI-LOCALIZATION01.6 smoke                                 PASS
+git status après smoke                                    CLEAN
+~~~
+
+Rapports :
+
+~~~text
+Saved/Automation/TD04/TD04-20261017-114757
+Saved/Automation/TD04/TD04-20261017-115001
+Saved/Localization/UI-LOCALIZATION01.6/20261017-115112
+~~~
 
 Référence :
 `docs/Design/UI_SKILLS_AFFINITY01_CLASS_AFFINITY.md`.
@@ -954,7 +973,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-INVENTORY02 | UI-INVENTORY02.9 C++ prêt : projection triée/filtrée mise à jour en place, sans recréer les slots ; Automation/PIE à valider |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | UI-FEEDBACK01.1 surcharge close ; UI-FEEDBACK01.2 effets de statut portrait actif |
-| UI-SKILLS01 | fonctionnel ; UI-RPG01→06 clos ; RPG-SKILL01 validé ; UI-RPG-DESC01 clos le 9 octobre 2026 |
+| UI-SKILLS01 | fonctionnel ; UI-RPG01→06 clos ; RPG-SKILL01 validé ; UI-RPG-DESC01 clos ; UI-SKILLS-AFFINITY01 clos le 17 octobre 2026 |
 | UI-CRAFT01 | shell |
 | UI-MAP01 | shell ; fonctionnalité prévue MON21.6 |
 | UI-JOURNAL01 | shell ; fonctionnalité prévue MON21.5 |
