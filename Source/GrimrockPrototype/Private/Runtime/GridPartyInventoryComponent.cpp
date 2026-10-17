@@ -2,6 +2,8 @@
 
 #include "GridEquipmentSlotUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Combat/GridCombatArmorEffectResolver.h"
+#include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
@@ -48,6 +50,43 @@ namespace
 			ClassDefinition = FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
 		}
 		return FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition) ? ClassDefinition : nullptr;
+	}
+
+	void ResolvePartyPortraitArmorReferences(
+		const FGridCharacterInventoryState& Character,
+		const FGridInventoryCharacterSummary& Summary,
+		int32& OutPhysicalArmor,
+		int32& OutMagicalArmor)
+	{
+		OutPhysicalArmor = 0;
+		OutMagicalArmor = 0;
+
+		URPGClassAsset* ClassDefinition = ResolvePartyPortraitClassDefinition(Character);
+		if (!ClassDefinition)
+		{
+			return;
+		}
+
+		FGridCombatArmorPoolSnapshot Snapshot;
+		Snapshot.ReferencePhysicalArmor =
+			FMath::Max(0, ClassDefinition->BasePhysicalArmor + Summary.EquipmentStatBonus.ArmorBonus);
+		Snapshot.ReferenceMagicalArmor = FMath::Max(0, ClassDefinition->BaseMagicalArmor);
+
+		// Identity caches are normally rehydrated before UI projection. Keep this
+		// helper robust when only ClassId can resolve the canonical class asset.
+		FGridCharacterInventoryState ModifierCharacter = Character;
+		ModifierCharacter.ClassDefinition = ClassDefinition;
+
+		TArray<FGridCombatModifierProfile> Profiles;
+		if (FGridCombatModifierResolver::CollectCharacterModifiers(ModifierCharacter, Profiles))
+		{
+			FGridResolvedCombatModifiers Modifiers;
+			FGridCombatModifierResolver::Resolve(Profiles, FGridCombatModifierContext(), Modifiers);
+			FGridCombatArmorEffectResolver::ApplyReferenceModifiers(Snapshot, Modifiers);
+		}
+
+		OutPhysicalArmor = FMath::Max(0, Snapshot.ReferencePhysicalArmor);
+		OutMagicalArmor = FMath::Max(0, Snapshot.ReferenceMagicalArmor);
 	}
 
 	EGridInventoryWeightState ResolveInventoryWeightState(float CurrentWeight, float MaxWeight)
@@ -617,6 +656,9 @@ bool UGridPartyInventoryComponent::GetPartyPortraitViews(TArray<FGridPartyPortra
 		View.CharacterIndex = CharacterIndex;
 		View.Portrait = Summary.Portrait;
 		View.bIsSelected = Summary.bIsSelected;
+		View.DisplayName = Summary.DisplayName;
+		View.ClassDisplayName = Summary.ClassDisplayName;
+		View.Level = FMath::Max(1, Summary.Level);
 
 		View.CurrentHealth = FMath::Max(0, Summary.Resources.CurrentHealth);
 		View.MaximumHealth = FMath::Max(1, Summary.DerivedStats.MaxHealth);
@@ -630,11 +672,8 @@ bool UGridPartyInventoryComponent::GetPartyPortraitViews(TArray<FGridPartyPortra
 		View.CurrentPhysicalArmor = FMath::Max(0, Summary.Resources.CurrentPhysicalArmor);
 		View.CurrentMagicalArmor = FMath::Max(0, Summary.Resources.CurrentMagicalArmor);
 
-		if (const URPGClassAsset* ClassDefinition = ResolvePartyPortraitClassDefinition(Character))
-		{
-			View.ReferencePhysicalArmor = FMath::Max(0, ClassDefinition->BasePhysicalArmor + Summary.EquipmentStatBonus.ArmorBonus);
-			View.ReferenceMagicalArmor = FMath::Max(0, ClassDefinition->BaseMagicalArmor);
-		}
+		ResolvePartyPortraitArmorReferences(
+			Character, Summary, View.ReferencePhysicalArmor, View.ReferenceMagicalArmor);
 
 		View.PhysicalArmorRatio = ResolvePartyPortraitRatio(View.CurrentPhysicalArmor, View.ReferencePhysicalArmor);
 		View.MagicalArmorRatio = ResolvePartyPortraitRatio(View.CurrentMagicalArmor, View.ReferenceMagicalArmor);

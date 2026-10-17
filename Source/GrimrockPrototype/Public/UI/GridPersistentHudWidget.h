@@ -43,7 +43,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD|Persistent|Party")
 	TSubclassOf<UGridPartyPortraitHudWidget> PartyPortraitWidgetClass;
 
-	/** Compact custom tooltip class shared by ESC/I/K/G/M/J/H navigation buttons. */
+	/** Compact custom tooltip class shared by navigation buttons and UI-PARTYHUD01 portrait hover text. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD|Persistent|Navigation")
 	TSubclassOf<UGridNavigationTooltipWidget> NavigationTooltipWidgetClass;
 

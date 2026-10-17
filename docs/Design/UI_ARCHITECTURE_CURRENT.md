@@ -1176,3 +1176,16 @@ Save : sanitize puis copie des ids. Load : restauration du roster, puis `Restore
 
 
 UI-PARTYHUD01.5 est **VALIDÉ / CLOS** : 13/13 sur `Grimrock.UI.PartyHud01`, puis 4/4 Map persistence, 8/8 LEVELUX01 et 4/4 SaveContract, sans warning ni échec. Le schéma courant reste **v25 exact-match**.
+
+
+### UI-PARTYHUD01.6 — tooltip de portrait
+
+Le portrait persistant expose désormais un tooltip compact construit depuis
+`FGridPartyPortraitView` : nom, classe/niveau, PV, mana conditionnelle et
+armures courant/référence. Le rail réutilise la même classe de tooltip compact
+que la navigation persistante ; aucun second Widget Blueprint de tooltip n'est
+créé.
+
+Les références d'armure du read model suivent désormais RPG03.3 jusqu'aux
+modificateurs C2 de référence via `FGridCombatModifierResolver` et
+`FGridCombatArmorEffectResolver`. Le SaveGame reste **v25 exact-match**.

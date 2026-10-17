@@ -6,7 +6,7 @@
 
 class UTextBlock;
 
-/** Presentation-only compact text tooltip used by the persistent navigation bar. */
+/** Presentation-only compact text tooltip shared by persistent HUD hover surfaces. */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGridNavigationTooltipWidget : public UUserWidget
 {

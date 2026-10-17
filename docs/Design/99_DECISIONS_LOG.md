@@ -1344,3 +1344,20 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - La v24 est rejetée ; aucune migration arrière n'est maintenue.
 - Au chargement, l'ordre sauvegardé est resanitisé : ids invalides/obsolètes/dupliqués supprimés, personnages actifs manquants ajoutés.
 - New Game efface explicitement l'ordre précédent.
+
+
+---
+
+## 2026-10-17 — UI-PARTYHUD01.6 : contenu du tooltip de portrait
+
+- Le tooltip de portrait reste compact : nom, classe, niveau, PV, mana lorsque
+  le personnage possède un pool de mana, armure physique et armure magique.
+- Les écrans détaillés restent propriétaires de l'équipement, du poids, des
+  caractéristiques, résistances, Skills, Talents et statuts détaillés.
+- Le portrait réutilise `NavigationTooltipWidgetClass` du Persistent HUD ; aucun
+  second asset UMG de tooltip n'est introduit.
+- Le read model du rail porte les textes d'identité et le niveau ; UMG ne lit
+  pas directement `FGridCharacterInventoryState`.
+- Les références d'armure du rail appliquent le contrat RPG03.3 complet,
+  y compris les modificateurs C2 de référence.
+- UI-PARTYHUD01.6 ne modifie pas le SaveGame ; le schéma reste v25 exact-match.

@@ -547,4 +547,148 @@ bool FGridPartyHud015RestoreSanitizationTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud016TooltipReadModelTest, "Grimrock.UI.PartyHud01.TooltipReadModel",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud016TooltipReadModelTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	using namespace GridPartyHud01Tests;
+
+	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	URPGClassAsset* ClassDefinition = MakeClass(Inventory, TEXT("PartyHudTooltipMage"), 10, 4);
+	ClassDefinition->DisplayName = FText::FromString(TEXT("Mage"));
+
+	FGridCharacterInventoryState Character =
+		MakeCharacter(MakeId(110), ClassDefinition, 75, 100, 25, 50, 8, 2);
+	Character.DisplayName = FText::FromString(TEXT("Elias"));
+	Character.ClassDisplayName = FText::FromString(TEXT("Mage"));
+	Character.Level = 5;
+
+	Inventory->PartyInventoryState.ActiveCharacters.Add(Character);
+	Inventory->PartyInventoryState.ActiveEquipment.SetNum(1);
+
+	TArray<FGridPartyPortraitView> Views;
+	if (!TestTrue(TEXT("Tooltip read model projects one portrait"), Inventory->GetPartyPortraitViews(Views)) ||
+		!TestEqual(TEXT("One portrait is available"), Views.Num(), 1))
+	{
+		return false;
+	}
+
+	const FGridPartyPortraitView& View = Views[0];
+	TestEqual(TEXT("Tooltip projects character display name"), View.DisplayName.ToString(), FString(TEXT("Elias")));
+	TestEqual(TEXT("Tooltip projects class display name"), View.ClassDisplayName.ToString(), FString(TEXT("Mage")));
+	TestEqual(TEXT("Tooltip projects level"), View.Level, 5);
+	TestEqual(TEXT("Tooltip keeps current health"), View.CurrentHealth, 75);
+	TestEqual(TEXT("Tooltip keeps maximum health"), View.MaximumHealth, 100);
+	TestTrue(TEXT("Tooltip exposes mana for a mana user"), View.bHasMana);
+	TestEqual(TEXT("Tooltip keeps current mana"), View.CurrentMana, 25);
+	TestEqual(TEXT("Tooltip keeps maximum mana"), View.MaximumMana, 50);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud016EffectiveArmorReferenceTest, "Grimrock.UI.PartyHud01.TooltipEffectiveArmorReference",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud016EffectiveArmorReferenceTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	using namespace GridPartyHud01Tests;
+
+	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	URPGClassAsset* ClassDefinition = MakeClass(Inventory, TEXT("PartyHudTooltipArmor"), 20, 8);
+
+	FRPGClassProgressionLevelGrant Grant;
+	Grant.Level = 1;
+	Grant.ChoicePointsGranted = 1;
+	ClassDefinition->ProgressionLevelGrants.Add(Grant);
+
+	FRPGClassProgressionChoiceDefinition Choice;
+	Choice.ChoiceId = TEXT("PartyHudTooltipArmorReference");
+	Choice.MinimumLevel = 1;
+	Choice.PointCost = 1;
+	FGridCombatModifierProfile ReferenceModifier;
+	ReferenceModifier.PhysicalArmorReferencePercentModifier = 25;
+	ReferenceModifier.MagicalArmorReferencePercentModifier = 50;
+	Choice.CombatModifiers.Add(ReferenceModifier);
+	ClassDefinition->ProgressionChoices.Add(Choice);
+
+	TestTrue(TEXT("Tooltip armor test class is structurally valid"), ClassDefinition->IsValidDefinition());
+
+	FGridCharacterInventoryState Character =
+		MakeCharacter(MakeId(111), ClassDefinition, 10, 10, 0, 0, 5, 4);
+	Character.SelectedClassProgressionChoiceIds.Add(Choice.ChoiceId);
+	Inventory->PartyInventoryState.ActiveCharacters.Add(Character);
+	Inventory->PartyInventoryState.ActiveEquipment.SetNum(1);
+
+	TArray<FGridPartyPortraitView> Views;
+	if (!TestTrue(TEXT("Armor-reference portrait projection succeeds"), Inventory->GetPartyPortraitViews(Views)) ||
+		!TestEqual(TEXT("One armor-reference portrait is available"), Views.Num(), 1))
+	{
+		return false;
+	}
+
+	const FGridPartyPortraitView& View = Views[0];
+	TestEqual(TEXT("RPG03.3 C2 raises physical reference 20 by 25 percent"), View.ReferencePhysicalArmor, 25);
+	TestEqual(TEXT("RPG03.3 C2 raises magical reference 8 by 50 percent"), View.ReferenceMagicalArmor, 12);
+	TestTrue(TEXT("Physical armor ratio uses effective C2 reference"),
+		FMath::IsNearlyEqual(View.PhysicalArmorRatio, 5.0f / 25.0f));
+	TestTrue(TEXT("Magical armor ratio uses effective C2 reference"),
+		FMath::IsNearlyEqual(View.MagicalArmorRatio, 4.0f / 12.0f));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud016TooltipPresentationTest, "Grimrock.UI.PartyHud01.TooltipPresentation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud016TooltipPresentationTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridPartyPortraitHudWidget* Widget = NewObject<UGridPartyPortraitHudWidget>();
+	FGridPartyPortraitView View;
+	View.CharacterId = GridPartyHud01Tests::MakeId(112);
+	View.DisplayName = FText::FromString(TEXT("Elias"));
+	View.ClassDisplayName = FText::FromString(TEXT("Mage"));
+	View.Level = 5;
+	View.CurrentHealth = 75;
+	View.MaximumHealth = 100;
+	View.bHasMana = true;
+	View.CurrentMana = 25;
+	View.MaximumMana = 50;
+	View.CurrentPhysicalArmor = 8;
+	View.ReferencePhysicalArmor = 10;
+	View.CurrentMagicalArmor = 2;
+	View.ReferenceMagicalArmor = 4;
+	Widget->SetPortraitView(View);
+
+	const FString WithMana = Widget->GetTooltipText().ToString();
+	TArray<FString> WithManaLines;
+	WithMana.ParseIntoArray(WithManaLines, TEXT("\n"), false);
+	TestEqual(TEXT("Mana character tooltip stays compact at six lines"), WithManaLines.Num(), 6);
+	TestTrue(TEXT("Tooltip names the character"), WithMana.Contains(TEXT("Elias")));
+	TestTrue(TEXT("Tooltip names the class"), WithMana.Contains(TEXT("Mage")));
+	TestTrue(TEXT("Tooltip exposes health values"), WithMana.Contains(TEXT("75")) && WithMana.Contains(TEXT("100")));
+	TestTrue(TEXT("Tooltip exposes mana values"), WithMana.Contains(TEXT("25")) && WithMana.Contains(TEXT("50")));
+	TestTrue(TEXT("Tooltip exposes physical armor values"), WithMana.Contains(TEXT("8")) && WithMana.Contains(TEXT("10")));
+	TestTrue(TEXT("Tooltip exposes magical armor values"), WithMana.Contains(TEXT("2")) && WithMana.Contains(TEXT("4")));
+
+	View.bHasMana = false;
+	View.CurrentMana = 0;
+	View.MaximumMana = 0;
+	Widget->SetPortraitView(View);
+	const FString WithoutMana = Widget->GetTooltipText().ToString();
+	TArray<FString> WithoutManaLines;
+	WithoutMana.ParseIntoArray(WithoutManaLines, TEXT("\n"), false);
+	TestEqual(TEXT("Zero-mana character tooltip omits exactly the mana line"), WithoutManaLines.Num(), 5);
+	TestFalse(TEXT("Zero-mana tooltip does not expose the previous mana values"),
+		WithoutMana.Contains(TEXT("25")) || WithoutMana.Contains(TEXT("50")));
+
+	FGridPartyPortraitView InvalidView;
+	Widget->SetPortraitView(InvalidView);
+	TestTrue(TEXT("Invalid portrait identity produces no tooltip"), Widget->GetTooltipText().IsEmpty());
+	return true;
+}
+
 #endif

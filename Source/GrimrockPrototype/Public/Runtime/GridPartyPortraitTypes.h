@@ -26,6 +26,16 @@ struct FGridPartyPortraitView
 	UPROPERTY(BlueprintReadOnly, Category = "UI|Party Portraits")
 	bool bIsSelected = false;
 
+	/** UI-PARTYHUD01.6 passive identity projection used by the portrait tooltip. */
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Party Portraits|Tooltip")
+	FText DisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Party Portraits|Tooltip")
+	FText ClassDisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Party Portraits|Tooltip")
+	int32 Level = 1;
+
 	UPROPERTY(BlueprintReadOnly, Category = "UI|Party Portraits|Health")
 	int32 CurrentHealth = 0;
 

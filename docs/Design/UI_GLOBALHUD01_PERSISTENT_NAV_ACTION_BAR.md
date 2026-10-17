@@ -272,3 +272,15 @@ Panel_CombatBottomRight
 Si `Panel_CombatBottomRight` existe, le déplacement vertical est appliqué une seule fois au conteneur. Tant qu'il n'existe pas dans le WBP, le runtime applique exactement le même déplacement aux trois widgets historiques individuellement.
 
 Le déplacement est relatif à leur translation UMG d'origine et est réversible : sans Persistent HUD, les widgets reviennent à leur baseline. Aucun offset Canvas absolu n'est imposé par le C++.
+
+
+### Extension UI-PARTYHUD01.6
+
+Depuis UI-PARTYHUD01.6, `NavigationTooltipWidgetClass` est le presenter compact
+partagé des surfaces de survol du Persistent HUD. Les boutons de navigation
+continuent à utiliser leurs textes `ST_UI`; les portraits lui fournissent leur
+texte dynamique déjà résolu depuis `FGridPartyPortraitView`.
+
+Aucun second Widget Blueprint de tooltip n'est nécessaire. Le nom historique
+`UGridNavigationTooltipWidget` est conservé pour éviter une migration d'asset
+sans bénéfice fonctionnel.

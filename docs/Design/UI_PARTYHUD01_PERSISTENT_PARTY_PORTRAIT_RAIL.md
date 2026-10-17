@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1/.2/.3/.4/.5 VALIDÉS / CLOS — UI-PARTYHUD01.6 EN COURS**
+État courant : **UI-PARTYHUD01.1/.2/.3/.4/.5 VALIDÉS / CLOS — UI-PARTYHUD01.6 IMPLÉMENTÉ / VALIDATION REQUISE**
 
 ## 1. Objectif général
 
@@ -1423,3 +1423,150 @@ Prochain sous-jalon :
 ```text
 UI-PARTYHUD01.6 — Tooltip
 ```
+
+
+## 40. UI-PARTYHUD01.6 — Tooltip
+
+### 40.1 Objectif
+
+Le survol d'un portrait expose uniquement les informations compactes qui ne
+peuvent pas être lues directement dans les petites barres du rail :
+
+```text
+Nom
+Classe - Niveau
+PV courant / maximum
+Mana courant / maximum        seulement si MaxMana > 0
+Armure physique courant / référence
+Armure magique courant / référence
+```
+
+Le tooltip reste volontairement distinct de la feuille de personnage. Il
+n'affiche pas :
+
+```text
+équipement
+poids
+caractéristiques détaillées
+résistances détaillées
+Skills / Talents
+liste des statuts
+description narrative
+```
+
+### 40.2 Read model
+
+`FGridPartyPortraitView` ajoute uniquement des données de présentation
+transitoires :
+
+```cpp
+FText DisplayName;
+FText ClassDisplayName;
+int32 Level;
+```
+
+Le widget ne relit jamais directement le personnage et ne recalcule pas les
+valeurs RPG.
+
+### 40.3 Référence d'armure RPG03.3
+
+UI-PARTYHUD01.6 ferme le gap historique identifié en UI-PARTYHUD01.1.
+
+La référence affichée et utilisée par les barres suit désormais le contrat
+RPG03.3 complet :
+
+```text
+Physical reference
+    = Class.BasePhysicalArmor
+    + EquipmentStatBonus.ArmorBonus
+    + modificateurs C2 de référence
+
+Magical reference
+    = Class.BaseMagicalArmor
+    + modificateurs C2 de référence
+```
+
+Le calcul réutilise les autorités existantes :
+
+```text
+FGridCombatModifierResolver::CollectCharacterModifiers
+FGridCombatModifierResolver::Resolve
+FGridCombatArmorEffectResolver::ApplyReferenceModifiers
+```
+
+Aucun second calcul d'armure n'est créé dans UMG.
+
+### 40.4 Présentation
+
+Aucun nouveau Widget Blueprint n'est nécessaire.
+
+Le portrait réutilise la classe de tooltip compacte déjà configurée sur le
+Persistent HUD :
+
+```text
+WBP_GridPersistentHud
+Navigation Tooltip Widget Class
+        |
+        v
+UGridNavigationTooltipWidget
+        |
+        +-- boutons ESC / I / K / G / M / J / H
+        +-- portraits du groupe
+```
+
+Si cette classe n'est pas configurée, le portrait conserve un fallback natif
+`ToolTipText`. Le tooltip est non hit-testable et ne prend aucune autorité
+sur le clic, le drag ou le curseur custom.
+
+Exemple :
+
+```text
+Elias
+Mage - Niveau 5
+PV 75 / 100
+Mana 25 / 50
+Armure physique 8 / 10
+Armure magique 2 / 4
+```
+
+Pour un personnage sans mana, la ligne Mana disparaît entièrement.
+
+### 40.5 Refresh
+
+Le tooltip est reconstruit uniquement lors de `SetPortraitView()`, lui-même
+alimenté par le refresh événementiel du rail. Aucun polling RPG par Tick n'est
+ajouté.
+
+### 40.6 Persistance
+
+Aucun champ durable supplémentaire n'est introduit :
+
+```text
+CurrentSaveVersion = 25
+```
+
+UI-PARTYHUD01.6 ne modifie donc pas le schéma SaveGame.
+
+### 40.7 Automation
+
+Trois tests sont ajoutés :
+
+```text
+Grimrock.UI.PartyHud01.TooltipReadModel
+Grimrock.UI.PartyHud01.TooltipEffectiveArmorReference
+Grimrock.UI.PartyHud01.TooltipPresentation
+```
+
+Le filtre principal doit maintenant exécuter **16 tests**.
+
+### 40.8 Validation PIE attendue
+
+1. survoler le portrait d'un personnage avec mana ;
+2. vérifier les six lignes du tooltip ;
+3. survoler un personnage sans mana ;
+4. vérifier que la ligne Mana est absente ;
+5. vérifier que le tooltip disparaît en quittant le portrait ;
+6. vérifier que clic de sélection et drag/reorder restent fonctionnels ;
+7. vérifier que seul `Cursor_Default` reste visible.
+
+Aucune modification UMG n'est requise pour ce sous-jalon.

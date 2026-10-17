@@ -11,6 +11,7 @@ class UProgressBar;
 class UDragDropOperation;
 class UGridPartyPortraitDragDropOperation;
 class UGridPersistentHudWidget;
+class UGridNavigationTooltipWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridPartyPortraitClickedSignature, FGuid, CharacterId);
 
@@ -59,6 +60,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "HUD|Persistent|Party")
 	bool IsSelected() const;
 
+	/** UI-PARTYHUD01.6 compact passive tooltip text built only from the current read model. */
+	UFUNCTION(BlueprintPure, Category = "HUD|Persistent|Party|Tooltip")
+	FText GetTooltipText() const;
+
+	/** Reuses the persistent HUD compact tooltip visual class; no second tooltip asset is required. */
+	void SetTooltipWidgetClass(TSubclassOf<UGridNavigationTooltipWidget> InTooltipWidgetClass);
+
 	/** Emits a selection request for the current stable CharacterId. Gameplay authority stays in the parent HUD/component. */
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Party|Interaction")
 	bool RequestSelection();
@@ -94,8 +102,15 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UGridPersistentHudWidget> OwningPersistentHudWidget;
 
+	UPROPERTY(Transient)
+	TSubclassOf<UGridNavigationTooltipWidget> TooltipWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGridNavigationTooltipWidget> TooltipWidget;
+
 	bool bLeftMousePressed = false;
 	bool bDragDetected = false;
 
 	void RefreshBoundVisuals();
+	void RefreshTooltip();
 };

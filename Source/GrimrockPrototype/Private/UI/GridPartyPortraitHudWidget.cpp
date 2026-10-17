@@ -6,7 +6,10 @@
 #include "Components/ProgressBar.h"
 #include "InputCoreTypes.h"
 #include "UI/GridPartyPortraitDragDropOperation.h"
+#include "UI/GridNavigationTooltipWidget.h"
 #include "UI/GridPersistentHudWidget.h"
+
+#define LOCTEXT_NAMESPACE "GridPartyPortraitHud"
 
 void UGridPartyPortraitHudWidget::SetPortraitView(const FGridPartyPortraitView& InView)
 {
@@ -19,6 +22,7 @@ void UGridPartyPortraitHudWidget::SetPortraitView(const FGridPartyPortraitView& 
 	SetCursor(EMouseCursor::None);
 
 	RefreshBoundVisuals();
+	RefreshTooltip();
 	RefreshPortraitVisual();
 	SetVisibility(ESlateVisibility::Visible);
 }
@@ -31,6 +35,54 @@ FGuid UGridPartyPortraitHudWidget::GetCharacterId() const
 bool UGridPartyPortraitHudWidget::IsSelected() const
 {
 	return View.bIsSelected;
+}
+
+FText UGridPartyPortraitHudWidget::GetTooltipText() const
+{
+	if (!View.CharacterId.IsValid() || View.DisplayName.IsEmpty())
+	{
+		return FText::GetEmpty();
+	}
+
+	const FText ResolvedClassName = View.ClassDisplayName.IsEmpty()
+		? LOCTEXT("TooltipClassUnavailable", "Classe non configurée")
+		: View.ClassDisplayName;
+
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Name"), View.DisplayName);
+	Arguments.Add(TEXT("Class"), ResolvedClassName);
+	Arguments.Add(TEXT("Level"), FText::AsNumber(FMath::Max(1, View.Level)));
+	Arguments.Add(TEXT("HealthCurrent"), FText::AsNumber(FMath::Max(0, View.CurrentHealth)));
+	Arguments.Add(TEXT("HealthMaximum"), FText::AsNumber(FMath::Max(1, View.MaximumHealth)));
+	Arguments.Add(TEXT("ManaCurrent"), FText::AsNumber(FMath::Max(0, View.CurrentMana)));
+	Arguments.Add(TEXT("ManaMaximum"), FText::AsNumber(FMath::Max(0, View.MaximumMana)));
+	Arguments.Add(TEXT("PhysicalCurrent"), FText::AsNumber(FMath::Max(0, View.CurrentPhysicalArmor)));
+	Arguments.Add(TEXT("PhysicalReference"), FText::AsNumber(FMath::Max(0, View.ReferencePhysicalArmor)));
+	Arguments.Add(TEXT("MagicalCurrent"), FText::AsNumber(FMath::Max(0, View.CurrentMagicalArmor)));
+	Arguments.Add(TEXT("MagicalReference"), FText::AsNumber(FMath::Max(0, View.ReferenceMagicalArmor)));
+
+	return FText::Format(
+		View.bHasMana
+			? LOCTEXT(
+				  "TooltipWithMana",
+				  "{Name}\n{Class} - Niveau {Level}\nPV {HealthCurrent} / {HealthMaximum}\nMana {ManaCurrent} / {ManaMaximum}\nArmure physique {PhysicalCurrent} / {PhysicalReference}\nArmure magique {MagicalCurrent} / {MagicalReference}")
+			: LOCTEXT(
+				  "TooltipWithoutMana",
+				  "{Name}\n{Class} - Niveau {Level}\nPV {HealthCurrent} / {HealthMaximum}\nArmure physique {PhysicalCurrent} / {PhysicalReference}\nArmure magique {MagicalCurrent} / {MagicalReference}"),
+		Arguments);
+}
+
+void UGridPartyPortraitHudWidget::SetTooltipWidgetClass(
+	TSubclassOf<UGridNavigationTooltipWidget> InTooltipWidgetClass)
+{
+	if (TooltipWidgetClass == InTooltipWidgetClass)
+	{
+		return;
+	}
+
+	TooltipWidgetClass = InTooltipWidgetClass;
+	TooltipWidget = nullptr;
+	RefreshTooltip();
 }
 
 bool UGridPartyPortraitHudWidget::RequestSelection()
@@ -145,6 +197,39 @@ void UGridPartyPortraitHudWidget::RefreshPortraitVisual_Implementation()
 {
 }
 
+void UGridPartyPortraitHudWidget::RefreshTooltip()
+{
+	const FText TooltipText = GetTooltipText();
+	if (TooltipText.IsEmpty())
+	{
+		SetToolTip(nullptr);
+		SetToolTipText(FText::GetEmpty());
+		TooltipWidget = nullptr;
+		return;
+	}
+
+	if (TooltipWidgetClass)
+	{
+		if (!IsValid(TooltipWidget) || !TooltipWidget->IsA(TooltipWidgetClass.Get()))
+		{
+			TooltipWidget = CreateWidget<UGridNavigationTooltipWidget>(this, TooltipWidgetClass);
+		}
+
+		if (IsValid(TooltipWidget))
+		{
+			TooltipWidget->InitializeTooltip(TooltipText);
+			TooltipWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+			SetToolTipText(FText::GetEmpty());
+			SetToolTip(TooltipWidget);
+			return;
+		}
+	}
+
+	TooltipWidget = nullptr;
+	SetToolTip(nullptr);
+	SetToolTipText(TooltipText);
+}
+
 void UGridPartyPortraitHudWidget::RefreshBoundVisuals()
 {
 	if (Image_Portrait)
@@ -189,3 +274,5 @@ void UGridPartyPortraitHudWidget::RefreshBoundVisuals()
 		Border_Selected->SetVisibility(View.bIsSelected ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -162,6 +162,7 @@ void UGridPersistentHudWidget::RefreshPartyPortraits()
 			}
 
 			PortraitWidget->SetOwnerPersistentHudWidget(this);
+			PortraitWidget->SetTooltipWidgetClass(NavigationTooltipWidgetClass);
 			PortraitWidget->OnPortraitClicked.AddUniqueDynamic(
 				this, &UGridPersistentHudWidget::HandlePartyPortraitClicked);
 			PortraitWidget->SetPortraitView(View);
@@ -179,6 +180,7 @@ void UGridPersistentHudWidget::RefreshPartyPortraits()
 	for (int32 Index = 0; Index < Views.Num(); ++Index)
 	{
 		PartyPortraitWidgets[Index]->SetOwnerPersistentHudWidget(this);
+		PartyPortraitWidgets[Index]->SetTooltipWidgetClass(NavigationTooltipWidgetClass);
 		PartyPortraitWidgets[Index]->OnPortraitClicked.RemoveDynamic(
 			this, &UGridPersistentHudWidget::HandlePartyPortraitClicked);
 		PartyPortraitWidgets[Index]->OnPortraitClicked.AddUniqueDynamic(
