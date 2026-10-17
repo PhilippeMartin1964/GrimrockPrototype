@@ -138,8 +138,11 @@ void UGridPersistentHudWidget::EnsureEventFeedWidget()
 {
 	if (!EventFeedWidgetInstance)
 	{
-		const TSubclassOf<UGridEventFeedWidget> EffectiveClass =
-			EventFeedWidgetClass ? EventFeedWidgetClass : UGridEventFeedWidget::StaticClass();
+		TSubclassOf<UGridEventFeedWidget> EffectiveClass = EventFeedWidgetClass;
+		if (!EffectiveClass)
+		{
+			EffectiveClass = UGridEventFeedWidget::StaticClass();
+		}
 		EventFeedWidgetInstance = CreateWidget<UGridEventFeedWidget>(this, EffectiveClass);
 	}
 
@@ -150,10 +153,10 @@ void UGridPersistentHudWidget::EnsureEventFeedWidget()
 
 	if (UCanvasPanel* RootCanvas = WidgetTree ? Cast<UCanvasPanel>(WidgetTree->RootWidget) : nullptr)
 	{
-		if (UCanvasPanelSlot* Slot = RootCanvas->AddChildToCanvas(EventFeedWidgetInstance))
+		if (UCanvasPanelSlot* CanvasSlot = RootCanvas->AddChildToCanvas(EventFeedWidgetInstance))
 		{
-			Slot->SetAnchors(FAnchors(1.0f, 1.0f));
-			Slot->SetAlignment(FVector2D(1.0f, 1.0f));
+			CanvasSlot->SetAnchors(FAnchors(1.0f, 1.0f));
+			CanvasSlot->SetAlignment(FVector2D(1.0f, 1.0f));
 		}
 		EventFeedWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 		return;
@@ -201,12 +204,12 @@ void UGridPersistentHudWidget::SynchronizeEventFeedLayout()
 		CalculateEventFeedBottomOffset(ResolvePersistentBottomBarHeight(), EventFeedFallbackBottomBarHeight, EventFeedBottomGap);
 	const FVector2D PanelSize(EventFeedWidgetInstance->GetPanelWidth(), EventFeedWidgetInstance->GetPanelHeight());
 
-	if (UCanvasPanelSlot* Slot = Cast<UCanvasPanelSlot>(EventFeedWidgetInstance->Slot))
+	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(EventFeedWidgetInstance->Slot))
 	{
-		Slot->SetAnchors(FAnchors(1.0f, 1.0f));
-		Slot->SetAlignment(FVector2D(1.0f, 1.0f));
-		Slot->SetPosition(FVector2D(-FMath::Max(0.0f, EventFeedRightMargin), -BottomOffset));
-		Slot->SetSize(PanelSize);
+		CanvasSlot->SetAnchors(FAnchors(1.0f, 1.0f));
+		CanvasSlot->SetAlignment(FVector2D(1.0f, 1.0f));
+		CanvasSlot->SetPosition(FVector2D(-FMath::Max(0.0f, EventFeedRightMargin), -BottomOffset));
+		CanvasSlot->SetSize(PanelSize);
 		return;
 	}
 
