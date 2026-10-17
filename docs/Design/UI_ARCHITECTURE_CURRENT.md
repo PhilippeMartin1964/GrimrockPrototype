@@ -392,7 +392,7 @@ Une régression de source garantit qu'un seul fichier runtime sous
 `Private/UI` possède encore le chemin canonique :
 `RPGTalentPresentationAsset.cpp`.
 
-### UI-RPG-TALENT-CODE-AUDIT02.6 — data-owned Talent node state styling — EN ATTENTE DE VALIDATION
+### UI-RPG-TALENT-CODE-AUDIT02.6 — data-owned Talent node state styling — VALIDÉ
 
 Les états restent sémantiques dans le read-model :
 
@@ -417,6 +417,38 @@ Config/DefaultGame.ini
 `FRPGTalentNodeStateVisualStyle` contenant uniquement la couleur du texte
 d'état et le tint du nœud. Le WBP conserve son fallback Designer si la
 configuration est absente ou invalide.
+
+### UI-RPG-TALENT-CODE-AUDIT02.7 — split des gros fichiers Skills/Talents — EN ATTENTE DE VALIDATION
+
+Le découpage est purement mécanique : aucune signature publique et aucun
+comportement gameplay/UI ne changent.
+
+```text
+GridSkillsWidget.cpp
+    -> cycle de vie / shell / refresh global
+
+GridSkillsWidgetSkills.cpp
+    -> session Skill / détail / tri / mutations
+
+GridSkillsWidgetTalents.cpp
+    -> sélection Talent / variantes / acquisition / détail
+
+GridSkillsWidgetPresentation.cpp
+    -> rendu branches / identité visuelle / onglets
+
+GridSkillsPageService.cpp
+    -> API publique et construction Skills
+
+GridSkillsPageServiceTalentTree.cpp
+    -> topologie / état / branches / nodes / variantes
+
+GridSkillsPageServiceTalentDetail.cpp
+    -> EFFETS / UTILISATION / ACQUISITION
+```
+
+Les helpers partagés du service Talent sont déclarés uniquement dans
+`Private/UI/GridSkillsPageServiceInternal.h`; aucune nouvelle API publique
+n'est introduite.
 
 ### UI-SKILLS-AFFINITY01 — affinité compétence / classe — VALIDÉ / CLOS
 
