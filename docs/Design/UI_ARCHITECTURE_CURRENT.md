@@ -1205,3 +1205,11 @@ plus la Feuille de personnage ni l'Inventaire.
 Le drag portrait utilise désormais un clone visuel du même WBP comme
 `DefaultDragVisual`, à 45 % d'opacité, non hit-testable et centré sous la
 souris. Le curseur custom reste au layer 9999.
+
+
+### UI-PARTYHUD01 — clôture finale
+
+UI-PARTYHUD01 est **CLOS** après validation utilisateur de la passe finale
+layering/drag ghost. Le Persistent HUD est un chrome de contexte bas, les
+fenêtres majeures passent devant lui, et le rail conserve sélection,
+drag/reorder, Save v25 et tooltip.

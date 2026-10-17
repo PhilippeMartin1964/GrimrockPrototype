@@ -1376,3 +1376,18 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le pivot du drag devient `CenterCenter` afin que le filigrane reste lisible
   sous le pointeur.
 - Aucun état gameplay, ordre de roster ou schéma SaveGame n'est modifié.
+
+
+---
+
+## 2026-10-17 — UI-PARTYHUD01 : clôture
+
+- Les sept sous-jalons UI-PARTYHUD01 sont clos.
+- Le rail permanent du groupe reste une projection du
+  `UGridPartyInventoryComponent`.
+- L'ordre visuel est identifié par `CharacterId`, séparé du roster gameplay et
+  persisté dans SaveGame v25.
+- Le Persistent HUD est un layer de contexte bas et ne recouvre plus les
+  fenêtres Character Sheet / Inventory.
+- Le drag dispose d'un ghost semi-transparent ; sélection, tooltip et curseur
+  custom restent indépendants.

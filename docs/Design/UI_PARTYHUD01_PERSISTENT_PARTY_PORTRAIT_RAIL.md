@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1/.2/.3/.4/.5/.6 VALIDÉS / CLOS — UI-PARTYHUD01.7 IMPLÉMENTÉ / VALIDATION REQUISE**
+État courant : **UI-PARTYHUD01.1/.2/.3/.4/.5/.6/.7 VALIDÉS / CLOS — UI-PARTYHUD01 CLOS**
 
 ## 1. Objectif général
 
@@ -1701,3 +1701,38 @@ Vérifier :
 
 Si ces points et les 18 tests sont validés, UI-PARTYHUD01 peut être clos dans
 son ensemble.
+
+
+## 43. Clôture finale UI-PARTYHUD01 — 17 octobre 2026
+
+L'utilisateur confirme la validation de UI-PARTYHUD01.7 après le correctif
+UE5.5.4 du Z-Order.
+
+Validation fonctionnelle confirmée :
+
+```text
+Persistent HUD derrière Character Sheet / Inventory
+drag ghost semi-transparent sous la souris
+reorder toujours fonctionnel
+tooltip toujours fonctionnel
+curseur custom conservé
+```
+
+Aucun numéro de rapport TD04 supplémentaire n'a été fourni pour cette dernière
+confirmation ; aucun résultat chiffré n'est donc inventé ici.
+
+État final :
+
+```text
+UI-PARTYHUD01.1 Read Model & Order Authority     VALIDÉ / CLOS
+UI-PARTYHUD01.2 Persistent Portrait Rail         VALIDÉ / CLOS
+UI-PARTYHUD01.3 Character Selection              VALIDÉ / CLOS
+UI-PARTYHUD01.4 Portrait Drag Reorder            VALIDÉ / CLOS
+UI-PARTYHUD01.5 Save / Load                      VALIDÉ / CLOS
+UI-PARTYHUD01.6 Tooltip                          VALIDÉ / CLOS
+UI-PARTYHUD01.7 UMG / PIE Final                  VALIDÉ / CLOS
+---------------------------------------------------------------
+UI-PARTYHUD01                                     CLOS
+```
+
+La suite fonctionnelle revient à la roadmap MON21.
