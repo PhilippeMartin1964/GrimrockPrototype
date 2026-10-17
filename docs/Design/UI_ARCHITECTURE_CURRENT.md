@@ -1150,3 +1150,6 @@ UI-PARTYHUD01.2 est désormais **VALIDÉ / CLOS** : 6/6 Automation, puis validat
 Le portrait persistant devient une surface interactive native. Il diffuse le `CharacterId` stable ; `UGridPersistentHudWidget` résout l'index runtime puis appelle l'autorité existante `SetSelectedCharacterIndex()`. Aucun index parallèle ni état de sélection propre au HUD n'est introduit.
 
 Le clic est validé au MouseUp uniquement si aucun drag n'a été détecté, ce qui prépare UI-PARTYHUD01.4 sans ajouter de `Button` UMG.
+
+
+UI-PARTYHUD01.3 est **VALIDÉ / CLOS** : `Grimrock.UI.PartyHud01` = **8/8 Automation, 0 warning, 0 échec**, puis validation PIE du clic entre les deux portraits. Le portrait diffuse le `CharacterId` stable et le Persistent HUD délègue à `SetSelectedCharacterIndex()`.

@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1 VALIDÉ — UI-PARTYHUD01.2 VALIDÉ / CLOS — UI-PARTYHUD01.3 IMPLÉMENTÉ C++ / VALIDATION REQUISE**
+État courant : **UI-PARTYHUD01.1 VALIDÉ — UI-PARTYHUD01.2 VALIDÉ / CLOS — UI-PARTYHUD01.3 VALIDÉ / CLOS**
 
 ## 1. Objectif général
 
@@ -995,3 +995,35 @@ clic portrait 1
 ```
 
 UI-PARTYHUD01.3 ne sera déclaré VALIDÉ qu'après Automation locale et vérification PIE du clic.
+
+
+## 34. Validation finale UI-PARTYHUD01.3 — 17 octobre 2026
+
+Validation TD04.2 :
+
+```text
+Filter                 : Grimrock.UI.PartyHud01
+Succeeded              : 8
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20261017-070714
+```
+
+Validation PIE :
+
+```text
+clic portrait 2 -> sélection personnage 2
+clic portrait 1 -> sélection personnage 1
+```
+
+Le clic fonctionne donc via le portrait lui-même, sans `Button` UMG additionnel et sans nouvelle autorité de sélection.
+
+**UI-PARTYHUD01.3 est VALIDÉ et CLOS.**
+
+Prochain sous-jalon :
+
+```text
+UI-PARTYHUD01.4 — Portrait Drag Reorder
+```
