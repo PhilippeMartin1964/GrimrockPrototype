@@ -809,9 +809,19 @@ bool AGrimrockPartyPawn::ShowPersistentHudWidget()
 	}
 
 	PersistentHudWidgetInstance->InitializePersistentHud(this);
+
+	// The Persistent HUD is background gameplay chrome. Even if an older
+	// Blueprint CDO still carries the historical value 200, keep it below the
+	// combat HUD and therefore below the major gameplay windows at z 100+.
+	const int32 EffectivePersistentHudZOrder =
+		FMath::Clamp(PersistentHudZOrder, 0, FMath::Max(0, CombatActionPanelZOrder - 1));
 	if (!PersistentHudWidgetInstance->IsInViewport())
 	{
-		PersistentHudWidgetInstance->AddToViewport(PersistentHudZOrder);
+		PersistentHudWidgetInstance->AddToViewport(EffectivePersistentHudZOrder);
+	}
+	else
+	{
+		PersistentHudWidgetInstance->SetZOrderInViewport(EffectivePersistentHudZOrder);
 	}
 	PersistentHudWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 

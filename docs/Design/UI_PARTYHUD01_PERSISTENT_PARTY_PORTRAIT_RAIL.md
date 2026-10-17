@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1/.2/.3/.4/.5/.6 VALIDÉS / CLOS — UI-PARTYHUD01.7 À FAIRE**
+État courant : **UI-PARTYHUD01.1/.2/.3/.4/.5/.6 VALIDÉS / CLOS — UI-PARTYHUD01.7 IMPLÉMENTÉ / VALIDATION REQUISE**
 
 ## 1. Objectif général
 
@@ -1603,3 +1603,101 @@ Prochain sous-jalon :
 ```text
 UI-PARTYHUD01.7 — UMG / PIE Final
 ```
+
+
+## 42. UI-PARTYHUD01.7 — UMG / PIE Final
+
+### 42.1 Hiérarchie visuelle du Persistent HUD
+
+Le Persistent HUD est un chrome de contexte permanent et ne doit pas recouvrir
+les fenêtres métier lorsque celles-ci s'ouvrent.
+
+Le défaut natif passe donc :
+
+```text
+PersistentHudZOrder
+200 -> 25
+```
+
+Hiérarchie cible :
+
+```text
+25    Persistent HUD
+50    Combat HUD
+100   Character Sheet / Skills / Map / pages majeures
+101   Inventory Bag
+500   Recruitment modal
+1000  Character Creation / modales fortes
+9999  Cursor_Default custom
+```
+
+Conséquence : lorsque `I` ouvre la Feuille de personnage et l'Inventaire,
+ces surfaces passent naturellement devant le rail de portraits. Le rail reste
+visible partout où les fenêtres ne le recouvrent pas.
+
+Le runtime plafonne en outre le Z-Order effectif du Persistent HUD juste sous
+`CombatActionPanelZOrder`. Ainsi, un ancien Blueprint qui aurait sérialisé la
+valeur historique `200` ne peut pas réintroduire le défaut de superposition.
+
+### 42.2 Filigrane pendant le drag
+
+Le drag d'un portrait crée désormais un `DefaultDragVisual` à partir de la
+même classe que le portrait source :
+
+```text
+WBP_PartyPortraitHud
+    -> clone visual-only
+    -> bIsSelected = false
+    -> tooltip supprimé
+    -> Visibility = HitTestInvisible
+    -> RenderOpacity = 0.45
+    -> Pivot = CenterCenter
+```
+
+Le filigrane suit donc la souris sans capturer le drop. Il conserve les
+informations visuelles du portrait (image et barres) et reste assez transparent
+pour voir la cible située dessous.
+
+Le curseur custom conserve son propre viewport layer à 9999 et reste au-dessus
+du filigrane.
+
+### 42.3 Autorités inchangées
+
+Ces ajustements sont purement présentation :
+
+```text
+SelectedCharacterIndex  inchangé
+PartyPortraitOrder      inchangé
+ActiveCharacters        inchangé
+ActiveEquipment         inchangé
+SaveGame v25            inchangé
+```
+
+### 42.4 Automation
+
+Deux tests finaux sont ajoutés :
+
+```text
+Grimrock.UI.PartyHud01.FinalLayeringContract
+Grimrock.UI.PartyHud01.FinalDragGhostContract
+```
+
+Le filtre principal doit désormais exécuter **18 tests**.
+
+### 42.5 Validation PIE finale
+
+Vérifier :
+
+1. le rail est visible en exploration ;
+2. `I` ouvre Character Sheet + Inventory au-dessus du rail ;
+3. les fenêtres principales ne sont jamais masquées par les portraits ;
+4. le drag affiche un portrait semi-transparent sous la souris ;
+5. le filigrane laisse voir la cible ;
+6. le drop avant/après reste correct ;
+7. un drag ne déclenche pas de sélection parasite ;
+8. le tooltip fonctionne toujours hors drag ;
+9. seul `Cursor_Default` est visible ;
+10. Save/Load restaure toujours l'ordre des portraits.
+
+Si ces points et les 18 tests sont validés, UI-PARTYHUD01 peut être clos dans
+son ensemble.

@@ -248,8 +248,9 @@ public:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "UI|Persistent HUD")
 	TObjectPtr<UGridPersistentHudWidget> PersistentHudWidgetInstance;
 
+	/** Background gameplay HUD layer. Major character/inventory pages intentionally render above it. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Persistent HUD", meta = (ClampMin = "0"))
-	int32 PersistentHudZOrder = 200;
+	int32 PersistentHudZOrder = 25;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|UI", meta = (ClampMin = "0"))
 	int32 CombatActionPanelZOrder = 50;

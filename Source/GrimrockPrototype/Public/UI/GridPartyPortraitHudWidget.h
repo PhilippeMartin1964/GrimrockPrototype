@@ -51,6 +51,10 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Persistent|Party")
 	TObjectPtr<UBorder> Border_Selected;
 
+	/** UI-PARTYHUD01.7 opacity of the visual-only portrait shown under the pointer while dragging. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD|Persistent|Party|Drag", meta = (ClampMin = "0.05", ClampMax = "1.0"))
+	float PortraitDragVisualOpacity = 0.45f;
+
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Party")
 	void SetPortraitView(const FGridPartyPortraitView& InView);
 
@@ -80,6 +84,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Party|Drag")
 	UGridPartyPortraitDragDropOperation* CreatePortraitDragDropOperation();
+
+	UFUNCTION(BlueprintPure, Category = "HUD|Persistent|Party|Drag")
+	float GetPortraitDragVisualOpacity() const
+	{
+		return PortraitDragVisualOpacity;
+	}
 
 protected:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
@@ -113,4 +123,5 @@ private:
 
 	void RefreshBoundVisuals();
 	void RefreshTooltip();
+	UGridPartyPortraitHudWidget* CreatePortraitDragVisual();
 };

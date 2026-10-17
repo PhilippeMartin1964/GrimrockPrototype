@@ -8,6 +8,7 @@
 #include "Components/VerticalBox.h"
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UI/GridPartyPortraitHudWidget.h"
 #include "UI/GridPartyPortraitDragDropOperation.h"
@@ -688,6 +689,54 @@ bool FGridPartyHud016TooltipPresentationTest::RunTest(const FString& Parameters)
 	FGridPartyPortraitView InvalidView;
 	Widget->SetPortraitView(InvalidView);
 	TestTrue(TEXT("Invalid portrait identity produces no tooltip"), Widget->GetTooltipText().IsEmpty());
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud017LayeringContractTest, "Grimrock.UI.PartyHud01.FinalLayeringContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud017LayeringContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	const AGrimrockPartyPawn* Defaults = GetDefault<AGrimrockPartyPawn>();
+	if (!TestNotNull(TEXT("Party pawn defaults are available"), Defaults))
+	{
+		return false;
+	}
+
+	TestEqual(TEXT("Persistent HUD uses the low background gameplay layer"), Defaults->PersistentHudZOrder, 25);
+	TestTrue(TEXT("Persistent HUD stays behind the combat HUD"), Defaults->PersistentHudZOrder < Defaults->CombatActionPanelZOrder);
+	TestTrue(TEXT("Persistent HUD stays behind major character/inventory pages at z 100+"), Defaults->PersistentHudZOrder < 100);
+	TestTrue(TEXT("Persistent HUD stays far below recruitment/modal layers"), Defaults->PersistentHudZOrder < Defaults->StoryCompanionRecruitmentZOrder);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud017DragGhostContractTest, "Grimrock.UI.PartyHud01.FinalDragGhostContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud017DragGhostContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridPartyPortraitHudWidget* Widget = NewObject<UGridPartyPortraitHudWidget>();
+	FGridPartyPortraitView View;
+	View.CharacterId = GridPartyHud01Tests::MakeId(120);
+	View.DisplayName = FText::FromString(TEXT("DragGhost"));
+	Widget->SetPortraitView(View);
+
+	TestTrue(TEXT("Portrait drag ghost default opacity is translucent"),
+		FMath::IsNearlyEqual(Widget->GetPortraitDragVisualOpacity(), 0.45f));
+
+	UGridPartyPortraitDragDropOperation* Operation = Widget->CreatePortraitDragDropOperation();
+	if (!TestNotNull(TEXT("Portrait still creates its dedicated drag operation"), Operation))
+	{
+		return false;
+	}
+
+	TestEqual(TEXT("Drag ghost is centered under the pointer"), Operation->Pivot, EDragPivot::CenterCenter);
+	TestEqual(TEXT("Drag payload still uses the stable source CharacterId"), Operation->SourceCharacterId, View.CharacterId);
 	return true;
 }
 

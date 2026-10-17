@@ -1192,3 +1192,16 @@ modificateurs C2 de référence via `FGridCombatModifierResolver` et
 
 
 UI-PARTYHUD01.6 est **VALIDÉ / CLOS** : 16/16 sur `Grimrock.UI.PartyHud01`, sans warning ni échec, avec validation PIE du tooltip. Le rail fournit désormais identité, ressources, armures effectives RPG03.3, sélection, drag/reorder, persistance v25 et tooltip compact.
+
+
+### UI-PARTYHUD01.7 — layering et drag ghost
+
+Le Persistent HUD passe sur le layer bas `25`, sous Combat HUD `50` et sous
+les fenêtres gameplay majeures `100+`. Le runtime plafonne également sa valeur
+effective juste sous le Combat HUD afin de neutraliser un éventuel ancien
+override Blueprint resté à `200`. Le rail de portraits ne recouvre donc
+plus la Feuille de personnage ni l'Inventaire.
+
+Le drag portrait utilise désormais un clone visuel du même WBP comme
+`DefaultDragVisual`, à 45 % d'opacité, non hit-testable et centré sous la
+souris. Le curseur custom reste au layer 9999.

@@ -5,6 +5,7 @@
 #include "Components/Image.h"
 #include "Components/ProgressBar.h"
 #include "InputCoreTypes.h"
+#include "GameFramework/PlayerController.h"
 #include "UI/GridPartyPortraitDragDropOperation.h"
 #include "UI/GridNavigationTooltipWidget.h"
 #include "UI/GridPersistentHudWidget.h"
@@ -121,9 +122,37 @@ UGridPartyPortraitDragDropOperation* UGridPartyPortraitHudWidget::CreatePortrait
 	}
 
 	Operation->InitializeFromPortrait(View.CharacterId);
-	Operation->DefaultDragVisual = nullptr;
-	Operation->Pivot = EDragPivot::MouseDown;
+	Operation->DefaultDragVisual = CreatePortraitDragVisual();
+	Operation->Pivot = EDragPivot::CenterCenter;
 	return Operation;
+}
+
+UGridPartyPortraitHudWidget* UGridPartyPortraitHudWidget::CreatePortraitDragVisual()
+{
+	APlayerController* OwningPlayer = GetOwningPlayer();
+	if (!OwningPlayer)
+	{
+		return nullptr;
+	}
+
+	UGridPartyPortraitHudWidget* DragVisual =
+		CreateWidget<UGridPartyPortraitHudWidget>(OwningPlayer, GetClass());
+	if (!DragVisual)
+	{
+		return nullptr;
+	}
+
+	FGridPartyPortraitView DragView = View;
+	DragView.bIsSelected = false;
+	DragVisual->SetPortraitView(DragView);
+
+	// Drag decorator only: it must never capture input, show a tooltip or compete
+	// with the project-owned Cursor_Default widget.
+	DragVisual->SetToolTip(nullptr);
+	DragVisual->SetToolTipText(FText::GetEmpty());
+	DragVisual->SetRenderOpacity(FMath::Clamp(PortraitDragVisualOpacity, 0.05f, 1.0f));
+	DragVisual->SetVisibility(ESlateVisibility::HitTestInvisible);
+	return DragVisual;
 }
 
 FReply UGridPartyPortraitHudWidget::NativeOnMouseButtonDown(

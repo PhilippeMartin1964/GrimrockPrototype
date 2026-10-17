@@ -1361,3 +1361,18 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Les références d'armure du rail appliquent le contrat RPG03.3 complet,
   y compris les modificateurs C2 de référence.
 - UI-PARTYHUD01.6 ne modifie pas le SaveGame ; le schéma reste v25 exact-match.
+
+
+---
+
+## 2026-10-17 — UI-PARTYHUD01.7 : hiérarchie visuelle et filigrane de drag
+
+- Le Persistent HUD est un layer de contexte bas : `PersistentHudZOrder = 25`.
+- Character Sheet / Inventory / Skills / Map restent au-dessus sur leurs layers
+  100+ ; les modales et le curseur custom conservent leurs layers supérieurs.
+- Le drag d'un portrait utilise un clone du même portrait comme
+  `DefaultDragVisual`, opacité 0.45, sans sélection ni tooltip et non
+  hit-testable.
+- Le pivot du drag devient `CenterCenter` afin que le filigrane reste lisible
+  sous le pointeur.
+- Aucun état gameplay, ordre de roster ou schéma SaveGame n'est modifié.
