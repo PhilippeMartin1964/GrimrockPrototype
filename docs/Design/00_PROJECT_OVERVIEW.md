@@ -63,7 +63,7 @@ MON13–MON20                    CLOS / VALIDÉS
 MON21.1                        CLOS
 MON21.2 Quest Runtime          VALIDÉ
 MON21.3 Quest Event->Command   VALIDÉ
-MON21.4 Quest Persistence      EN ATTENTE
+MON21.4 Quest Persistence      EN COURS — .2 IMPLÉMENTÉ
 MON21.5 Journal                À FAIRE
 MON21.6 Map                    VALIDÉ — CLOS
 MAP-THEME01                    VALIDÉ — CLOS
@@ -169,3 +169,8 @@ statut d'un jalon a évolué.
 - tests déclarés verts uniquement avec sortie UE fournie par l’utilisateur ;
 - assets binaires modifiés uniquement via Unreal Editor ;
 - mise à jour documentaire durable à la clôture d’un jalon.
+
+
+Mise à jour 17 octobre 2026 : MON21.4.2 a ouvert le SaveGame **v26
+exact-match** avec `CampaignQuestState` durable et l'API snapshot atomique du
+Quest subsystem. L'intégration Pawn Save/Load reste à venir.

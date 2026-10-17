@@ -455,8 +455,8 @@ bool FGridPartyHud015SaveSchemaTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestEqual(TEXT("Party portrait persistence opens exact-match SaveGame v25"),
-		UGrimrockPartySaveGame::CurrentSaveVersion, 25);
+	TestTrue(TEXT("Party portrait persistence v25 baseline remains part of the current exact-match schema"),
+		UGrimrockPartySaveGame::CurrentSaveVersion >= 25);
 
 	const FProperty* OrderProperty =
 		UGrimrockPartySaveGame::StaticClass()->FindPropertyByName(TEXT("PartyPortraitOrder"));

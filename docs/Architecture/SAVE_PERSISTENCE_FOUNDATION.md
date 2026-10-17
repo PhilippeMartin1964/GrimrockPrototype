@@ -2,7 +2,7 @@
 
 > **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
 >
-> `UGrimrockPartySaveGame::CurrentSaveVersion = 25`. Le prototype utilise un
+> `UGrimrockPartySaveGame::CurrentSaveVersion = 26`. Le prototype utilise un
 > contrat **exact-match** : aucune migration arrière n'est maintenue.
 
 ## 1. Principe
@@ -40,11 +40,11 @@ PartyFacing
 Contrat :
 
 ```text
-SaveVersion == 25
+SaveVersion == 26
     -> ValidateCurrentState()
     -> restore
 
-SaveVersion != 25
+SaveVersion != 26
     -> reject
 ```
 
@@ -181,7 +181,7 @@ Ils ne sont pas répétés ici comme contrat actif.
 La seule version courante est :
 
 ```text
-v25 exact-match
+v26 exact-match
 ```
 
 ## 11. Invariants
@@ -201,3 +201,14 @@ v25 exact-match
 Depuis UI-PARTYHUD01.5, `PartyPortraitOrder` est la préférence de présentation du rail persistée directement dans l'enveloppe Save. Elle est keyed by `CharacterId` et n'altère jamais l'ordre autoritaire de `PartyInventoryState.ActiveCharacters`.
 
 Au restore, l'ordre est resanitisé contre le roster actif ; une donnée UI manquante, dupliquée ou obsolète est réparée sans migration de schéma.
+
+
+### MON21.4.2 — snapshot Quest durable
+
+Le SaveGame v26 ajoute `CampaignQuestState : FGridCampaignQuestRuntimeState`.
+Le subsystem garde `CampaignState` transient comme unique autorité runtime et
+expose une API de capture/validation/restauration atomique.
+
+À ce stade, le Pawn Save/Load ne capture pas encore ce snapshot : l'intégration
+runtime complète reste MON21.4.4 après l'enregistrement dungeon-wide des
+définitions de MON21.4.3.

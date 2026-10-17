@@ -325,10 +325,43 @@ void UGridQuestSubsystem::ResetCampaignQuestState()
 
 bool UGridQuestSubsystem::ValidateRuntimeState(FString& OutError) const
 {
+	return ValidateCampaignQuestSnapshot(CampaignState, OutError);
+}
+
+bool UGridQuestSubsystem::CaptureCampaignQuestState(
+	FGridCampaignQuestRuntimeState& OutSnapshot,
+	FString& OutError) const
+{
+	OutSnapshot.Reset();
+	if (!ValidateCampaignQuestSnapshot(CampaignState, OutError))
+	{
+		return false;
+	}
+
+	OutSnapshot = CampaignState;
+	return true;
+}
+
+bool UGridQuestSubsystem::RestoreCampaignQuestState(
+	const FGridCampaignQuestRuntimeState& Snapshot,
+	FString& OutError)
+{
+	if (!ValidateCampaignQuestSnapshot(Snapshot, OutError))
+	{
+		return false;
+	}
+
+	CampaignState = Snapshot;
+	OnQuestStateChanged.Broadcast(NAME_None);
+	return true;
+}
+
+bool UGridQuestSubsystem::ValidateCampaignQuestSnapshot(const FGridCampaignQuestRuntimeState& Snapshot, FString& OutError) const
+{
 	OutError.Reset();
 	TSet<FName> SeenQuestIds;
 
-	for (const FGridQuestRuntimeState& QuestState : CampaignState.Quests)
+	for (const FGridQuestRuntimeState& QuestState : Snapshot.Quests)
 	{
 		if (QuestState.QuestId.IsNone())
 		{

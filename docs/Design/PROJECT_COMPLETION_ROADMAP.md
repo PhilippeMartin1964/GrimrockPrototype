@@ -52,7 +52,7 @@ MON22 — 45–90 Minute Vertical Slice
 Les campagnes TD05, TD06 et TD07 sont closes. TD07.3 a atteint sa stop
 condition le 28 août ; il ne suspend plus MON21. Les références TD07 qui
 décrivent v19/v20/v22 restent des checkpoints historiques : le SaveGame courant
-est désormais **v24 exact-match**.
+est désormais **v26 exact-match**.
 
 ---
 
@@ -125,7 +125,7 @@ Transformer les surfaces campagne déjà présentes en systèmes data-driven :
 MON21.1 — Audit & Architecture Contract                         CLOS
 MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
-MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
+MON21.4 — Quest Persistence                                   EN COURS — .2 IMPLÉMENTÉ / VALIDATION REQUISE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
 MON21.6 — Map Geometry + Exploration State + Existing WBP       VALIDÉ — CLOS
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
@@ -526,7 +526,7 @@ MON21.6 et MAP-THEME01 sont clos. Aucun chantier de clôture Map n’est encore 
 Les jalons fonctionnels restants à prioriser sont :
 
 ```text
-MON21.4 — Quest Persistence                         EN ATTENTE
+MON21.4 — Quest Persistence                         EN COURS — .2 IMPLÉMENTÉ
 MON21.5 — Journal Read Model + Existing WBP         À FAIRE
 MON21.7 — Codex Discovery + Projection              À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure   À FAIRE
@@ -552,3 +552,11 @@ TD07.8  Future-proofing re-audit / stop condition              VALIDÉ — STOP 
 ```
 
 MON21.4 reprend après validation de TD07.8.
+
+
+### Reprise MON21.4 — 17 octobre 2026
+
+MON21.4.2 ouvre le SaveGame **v26 exact-match** et ajoute le snapshot durable
+`CampaignQuestState` ainsi que les API atomiques du `UGridQuestSubsystem`.
+MON21.4.3 doit ensuite enregistrer les définitions Quest de toutes les dalles du
+DungeonAsset avant que MON21.4.4 branche le Pawn Save/Load.

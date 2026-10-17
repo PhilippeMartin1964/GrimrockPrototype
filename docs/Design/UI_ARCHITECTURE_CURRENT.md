@@ -1093,7 +1093,7 @@ IsLevelUpModalOpen()
 GetPendingLevelUpNotificationCount()
 ```
 
-Le SaveGame courant est **v25 exact-match** ; RPG-LEVELUX01 avait ouvert la baseline v24. L'audit Automation du Content n'a
+Le SaveGame courant est **v26 exact-match** ; UI-PARTYHUD01.5 avait ouvert v25 et MON21.4.2 ajoute le snapshot Quest durable. L'audit Automation du Content n'a
 détecté aucune référence sérialisée aux anciens symboles Level-Up.
 
 

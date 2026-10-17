@@ -12,9 +12,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridQuestStateChangedSignature, FNa
 /**
  * Unique campaign/session authority for quest runtime state.
  *
- * Definitions are data-driven and registered by stable QuestId. The state is
- * transient in MON21.2; SaveGame persistence is deliberately deferred to
- * MON21.4. No world Actor or permanent Tick is introduced.
+ * Definitions are data-driven and registered by stable QuestId. CampaignState
+ * remains the transient runtime authority; MON21.4 persists validated snapshots
+ * in UGrimrockPartySaveGame. No world Actor or permanent Tick is introduced.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGridQuestSubsystem : public UGameInstanceSubsystem
@@ -64,6 +64,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Quest|Validation")
 	bool ValidateRuntimeState(UPARAM(ref) FString& OutError) const;
+
+	/** MON21.4.2 validates current runtime state then copies it without exposing definition pointers. */
+	bool CaptureCampaignQuestState(FGridCampaignQuestRuntimeState& OutSnapshot, FString& OutError) const;
+
+	/** MON21.4.2 validates an arbitrary snapshot against the currently registered canonical definitions. */
+	bool ValidateCampaignQuestSnapshot(const FGridCampaignQuestRuntimeState& Snapshot, FString& OutError) const;
+
+	/** MON21.4.2 atomic restore: validates first, mutates CampaignState only after full success. */
+	bool RestoreCampaignQuestState(const FGridCampaignQuestRuntimeState& Snapshot, FString& OutError);
 
 private:
 	UPROPERTY(Transient)

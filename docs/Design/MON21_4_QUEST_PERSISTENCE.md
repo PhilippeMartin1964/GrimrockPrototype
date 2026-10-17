@@ -2,7 +2,7 @@
 
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
-Statut : CHARACTERIZATION VALIDÉE — SUSPENDU JUSQU'À CLÔTURE TD07
+Statut : **MON21.4.1 CHARACTERIZATION VALIDÉE — MON21.4.2 IMPLÉMENTÉ / VALIDATION REQUISE**
 
 ## 1. Reprise après TD07.3
 
@@ -136,3 +136,101 @@ TD07.6  Legacy asset/API cleanup audit          ABSORBÉ PAR TD07.3
 TD07.7  Targeted log / formatting hygiene
 TD07.8  Future-proofing re-audit / stop condition
 ```
+
+
+## 8. MON21.4.2 — Save schema + subsystem snapshot API
+
+Reprise autorisée le 17 octobre 2026 après clôture de TD07 et feu vert utilisateur.
+
+### 8.1 SaveGame v26 exact-match
+
+`UGrimrockPartySaveGame` ajoute :
+
+```cpp
+UPROPERTY(SaveGame)
+FGridCampaignQuestRuntimeState CampaignQuestState;
+```
+
+Le schéma passe :
+
+```text
+v25 -> v26
+```
+
+Politique inchangée :
+
+```text
+SaveVersion == 26 -> accepté
+SaveVersion != 26 -> rejet
+aucune migration v25 -> v26
+```
+
+Le snapshot ne contient aucun pointeur de définition : seulement les identités
+stables et états déjà portés par `FGridCampaignQuestRuntimeState`.
+
+### 8.2 Autorité runtime inchangée
+
+```text
+UGridQuestSubsystem::CampaignState
+    -> Transient
+    -> autorité campagne runtime
+
+UGrimrockPartySaveGame::CampaignQuestState
+    -> SaveGame
+    -> miroir durable
+```
+
+Le registre `QuestDefinitionsById` reste transient.
+
+### 8.3 API snapshot atomique
+
+MON21.4.2 introduit :
+
+```cpp
+CaptureCampaignQuestState(...)
+ValidateCampaignQuestSnapshot(...)
+RestoreCampaignQuestState(...)
+```
+
+`ValidateCampaignQuestSnapshot()` réutilise le contrat de validation déjà
+présent : QuestId connu, nombre et ordre d'ObjectiveId conformes à la définition,
+et cohérence des statuts.
+
+`RestoreCampaignQuestState()` valide entièrement le snapshot avant toute
+mutation. En cas d'échec, `CampaignState` reste inchangé. Après succès, un
+broadcast global `OnQuestStateChanged(NAME_None)` demande aux futures
+projections de se reconstruire.
+
+### 8.4 Limites volontaires de .2
+
+MON21.4.2 ne fait pas encore :
+
+```text
+scan de toutes les définitions du DungeonAsset
+capture Quest dans AGrimrockPartyPawn::SaveCurrentGame()
+restore Quest dans LoadCurrentGameData()
+rollback Quest dans le pipeline Pawn
+New Game reset explicite via Pawn
+```
+
+Ces responsabilités restent respectivement MON21.4.3 et MON21.4.4.
+
+### 8.5 Tests
+
+Nouveau filtre :
+
+```text
+Grimrock.Quests.MON21_4_2
+```
+
+Sous-tests :
+
+```text
+SaveSchemaV26
+SaveSnapshotRoundTrip
+SubsystemSnapshotApi
+```
+
+La characterization historique reste également verte mais son
+`SaveEnvelopeGap` vérifie désormais que le gap est effectivement fermé tout en
+confirmant l'absence de miroir parallèle `QuestRuntimeState`.

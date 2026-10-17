@@ -43,11 +43,14 @@ bool FGridQuestMON214SaveEnvelopeCharacterizationTest::RunTest(const FString& Pa
 {
 	(void)Parameters;
 
-	TestTrue(TEXT("MON21.4 characterization remains valid on schemas at or beyond v22"), UGrimrockPartySaveGame::CurrentSaveVersion >= 22);
+	TestTrue(TEXT("MON21.4 characterization remains valid on schemas at or beyond v26"), UGrimrockPartySaveGame::CurrentSaveVersion >= 26);
 
 	UClass* SaveClass = UGrimrockPartySaveGame::StaticClass();
-	TestNull(TEXT("Current SaveGame still has no CampaignQuestState snapshot yet"), SaveClass->FindPropertyByName(TEXT("CampaignQuestState")));
-	TestNull(TEXT("Current v22 SaveGame has no QuestRuntimeState mirror"), SaveClass->FindPropertyByName(TEXT("QuestRuntimeState")));
+	const FProperty* CampaignQuestStateProperty = SaveClass->FindPropertyByName(TEXT("CampaignQuestState"));
+	TestNotNull(TEXT("MON21.4.2 closes the campaign Quest snapshot envelope gap"), CampaignQuestStateProperty);
+	TestTrue(TEXT("CampaignQuestState is durable SaveGame data"),
+		CampaignQuestStateProperty && CampaignQuestStateProperty->HasAnyPropertyFlags(CPF_SaveGame));
+	TestNull(TEXT("No parallel QuestRuntimeState mirror is introduced"), SaveClass->FindPropertyByName(TEXT("QuestRuntimeState")));
 	return true;
 }
 
@@ -64,7 +67,7 @@ bool FGridQuestMON214RuntimeAuthorityCharacterizationTest::RunTest(const FString
 
 	TestNotNull(TEXT("Quest subsystem exposes one CampaignState authority"), CampaignStateProperty);
 	TestTrue(
-		TEXT("CampaignState remains transient before MON21.4 persistence"), CampaignStateProperty && CampaignStateProperty->HasAnyPropertyFlags(CPF_Transient));
+		TEXT("CampaignState remains transient runtime authority after adding the SaveGame mirror"), CampaignStateProperty && CampaignStateProperty->HasAnyPropertyFlags(CPF_Transient));
 	TestNotNull(TEXT("Quest definition registry exists"), DefinitionsProperty);
 	TestTrue(TEXT("Definition registry remains transient"), DefinitionsProperty && DefinitionsProperty->HasAnyPropertyFlags(CPF_Transient));
 

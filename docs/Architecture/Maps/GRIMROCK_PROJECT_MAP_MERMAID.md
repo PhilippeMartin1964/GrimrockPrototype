@@ -16,7 +16,7 @@ flowchart LR
     ED --> LVL[UGridLevelAsset]
     LVL --> RTA[AGridLevelRuntimeActor]
     RTA --> STATE[Runtime State]
-    STATE --> SAVE[UGrimrockPartySaveGame\nv25 exact-match]
+    STATE --> SAVE[UGrimrockPartySaveGame\nv26 exact-match]
     SAVE --> RTA
 ```
 

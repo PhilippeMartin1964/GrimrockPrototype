@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "Quests/GridQuestTypes.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "GrimrockPartySaveGame.generated.h"
@@ -12,8 +13,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** UI-PARTYHUD01.5: durable party portrait presentation order added. Exact-match, no backward migration. */
-	static constexpr int32 CurrentSaveVersion = 25;
+	/** MON21.4.2: durable campaign Quest snapshot added. Exact-match, no backward migration. */
+	static constexpr int32 CurrentSaveVersion = 26;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;
@@ -24,6 +25,10 @@ public:
 	/** UI-PARTYHUD01.5: presentation order keyed only by stable active-character identity. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|UI")
 	TArray<FGuid> PartyPortraitOrder;
+
+	/** MON21.4.2: durable campaign Quest snapshot keyed only by QuestId / ObjectiveId. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|Quests")
+	FGridCampaignQuestRuntimeState CampaignQuestState;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	FGridDungeonRuntimeState DungeonRuntimeState;

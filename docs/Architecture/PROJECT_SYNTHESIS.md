@@ -155,8 +155,7 @@ Quest :
 - MON21.3 route `QuestStart`, `QuestCompleteObjective`,
   `QuestComplete`, `QuestFail`.
 
-**MON21.4 Quest Persistence reste ouvert** : le SaveGame courant ne contient
-pas encore le snapshot Quest.
+**MON21.4 Quest Persistence est EN COURS** : MON21.4.2 ajoute désormais le snapshot Quest au SaveGame v26 ; le pipeline Pawn Save/Load n'est pas encore branché.
 
 ## 7. Items, inventaire et équipement
 
@@ -313,13 +312,13 @@ UMG.
 
 ## 13. Save / Continue
 
-`UGrimrockPartySaveGame::CurrentSaveVersion = 25`.
+`UGrimrockPartySaveGame::CurrentSaveVersion = 26`.
 
 Contrat :
 
 ```text
-SaveVersion == 25 -> validate -> restore
-SaveVersion != 25 -> reject
+SaveVersion == 26 -> validate -> restore
+SaveVersion != 26 -> reject
 ```
 
 Enveloppe persistée :
@@ -355,7 +354,7 @@ MON13–MON20                  CLOS / VALIDÉS
 MON21.1                      CLOS
 MON21.2 Quest Runtime        VALIDÉ
 MON21.3 Quest Event/Command  VALIDÉ
-MON21.4 Quest Persistence    EN ATTENTE
+MON21.4 Quest Persistence    EN COURS — .2 IMPLÉMENTÉ
 MON21.5 Journal              À FAIRE
 MON21.6 Map                  VALIDÉ / CLOS
 MAP-THEME01                  VALIDÉ / CLOS

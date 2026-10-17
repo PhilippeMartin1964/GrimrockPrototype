@@ -1391,3 +1391,19 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   fenêtres Character Sheet / Inventory.
 - Le drag dispose d'un ghost semi-transparent ; sélection, tooltip et curseur
   custom restent indépendants.
+
+
+---
+
+## 2026-10-17 — MON21.4.2 : snapshot Quest durable
+
+- `UGridQuestSubsystem::CampaignState` reste l'autorité runtime transient.
+- `UGrimrockPartySaveGame` persiste une copie
+  `FGridCampaignQuestRuntimeState CampaignQuestState`.
+- Le schéma exact-match passe de **v25 à v26** sans migration arrière.
+- Le subsystem expose capture, validation d'un snapshot arbitraire et restore
+  atomique.
+- Un snapshot invalide ne peut pas modifier `CampaignState`.
+- Le registre de définitions reste transient ; le scan dungeon-wide est réservé
+  à MON21.4.3.
+- Le branchement Pawn Save/Load est réservé à MON21.4.4.
