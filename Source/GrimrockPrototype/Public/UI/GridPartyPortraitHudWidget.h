@@ -106,7 +106,7 @@ private:
 	TSubclassOf<UGridNavigationTooltipWidget> TooltipWidgetClass;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UGridNavigationTooltipWidget> TooltipWidget;
+	TObjectPtr<UGridNavigationTooltipWidget> PortraitTooltipWidget;
 
 	bool bLeftMousePressed = false;
 	bool bDragDetected = false;

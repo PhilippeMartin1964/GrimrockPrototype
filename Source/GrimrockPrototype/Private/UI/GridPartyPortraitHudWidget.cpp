@@ -81,7 +81,7 @@ void UGridPartyPortraitHudWidget::SetTooltipWidgetClass(
 	}
 
 	TooltipWidgetClass = InTooltipWidgetClass;
-	TooltipWidget = nullptr;
+	PortraitTooltipWidget = nullptr;
 	RefreshTooltip();
 }
 
@@ -204,28 +204,28 @@ void UGridPartyPortraitHudWidget::RefreshTooltip()
 	{
 		SetToolTip(nullptr);
 		SetToolTipText(FText::GetEmpty());
-		TooltipWidget = nullptr;
+		PortraitTooltipWidget = nullptr;
 		return;
 	}
 
 	if (TooltipWidgetClass)
 	{
-		if (!IsValid(TooltipWidget) || !TooltipWidget->IsA(TooltipWidgetClass.Get()))
+		if (!IsValid(PortraitTooltipWidget) || !PortraitTooltipWidget->IsA(TooltipWidgetClass.Get()))
 		{
-			TooltipWidget = CreateWidget<UGridNavigationTooltipWidget>(this, TooltipWidgetClass);
+			PortraitTooltipWidget = CreateWidget<UGridNavigationTooltipWidget>(this, TooltipWidgetClass);
 		}
 
-		if (IsValid(TooltipWidget))
+		if (IsValid(PortraitTooltipWidget))
 		{
-			TooltipWidget->InitializeTooltip(TooltipText);
-			TooltipWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+			PortraitTooltipWidget->InitializeTooltip(TooltipText);
+			PortraitTooltipWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 			SetToolTipText(FText::GetEmpty());
-			SetToolTip(TooltipWidget);
+			SetToolTip(PortraitTooltipWidget);
 			return;
 		}
 	}
 
-	TooltipWidget = nullptr;
+	PortraitTooltipWidget = nullptr;
 	SetToolTip(nullptr);
 	SetToolTipText(TooltipText);
 }
