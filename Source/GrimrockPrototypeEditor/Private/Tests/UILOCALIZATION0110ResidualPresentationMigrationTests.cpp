@@ -14,7 +14,10 @@ namespace UILOCALIZATION0110
 		TEXT("Source/GrimrockPrototype/Private/Runtime/GrimrockGameInstance.cpp"),
 		TEXT("Source/GrimrockPrototype/Private/UI/GrimrockLoadGameSlotWidget.cpp"),
 		TEXT("Source/GrimrockPrototype/Private/Magic/GridSpellbookUI.cpp"),
-		TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsWidget.cpp")
+		TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsWidget.cpp"),
+		TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsWidgetSkills.cpp"),
+		TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsWidgetTalents.cpp"),
+		TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsWidgetPresentation.cpp")
 	};
 
 	const TCHAR* RequiredKeys[] = {

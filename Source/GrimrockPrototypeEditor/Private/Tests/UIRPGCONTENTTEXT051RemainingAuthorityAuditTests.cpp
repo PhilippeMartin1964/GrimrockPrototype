@@ -237,7 +237,7 @@ bool FUIRPGCONTENTTEXT051RemainingAuthorityAuditTest::RunTest(const FString&)
 	TestTrue(
 		TEXT("Skills/Talents read-model source loads"),
 		LoadProjectSource(
-			TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsPageService.cpp"),
+			TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsPageServiceTalentDetail.cpp"),
 			SkillsPageSource));
 
 	const int32 SkillDisplayNameWriterCount = CountOccurrences(

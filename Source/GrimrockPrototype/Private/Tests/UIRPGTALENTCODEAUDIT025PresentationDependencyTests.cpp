@@ -54,8 +54,8 @@ bool FUIRPGTalentCodeAudit025RuntimeSourceBoundaryTest::RunTest(const FString&)
 	using namespace UIRPGTalentCodeAudit025;
 
 	const TCHAR* Consumers[] = {
-		TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsPageService.cpp"),
-		TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsWidget.cpp")
+		TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsPageServiceTalentDetail.cpp"),
+		TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsWidgetTalents.cpp")
 	};
 
 	for (const TCHAR* RelativePath : Consumers)

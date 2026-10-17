@@ -200,7 +200,7 @@ bool FUIRPGCONTENTTEXT041MonsterCategoryOwnershipAuditTest::RunTest(const FStrin
 	FString SkillsPageSource;
 	const FString SkillsSourcePath = FPaths::Combine(
 		FPaths::ProjectDir(),
-		TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsPageService.cpp"));
+		TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsPageServiceTalentDetail.cpp"));
 	TestTrue(
 		TEXT("Skills read-model source loads for runtime-fallback characterization"),
 		FFileHelper::LoadFileToString(SkillsPageSource, *SkillsSourcePath));
@@ -600,7 +600,7 @@ bool FUIRPGCONTENTTEXT044FinalMonsterCategoryOwnershipAuditTest::RunTest(const F
 			SkillsPageSource,
 			*FPaths::Combine(
 				FPaths::ProjectDir(),
-				TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsPageService.cpp"))));
+				TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsPageServiceTalentDetail.cpp"))));
 	TestTrue(
 		TEXT("Skills read-model resolves monster category presentation from DA_MONCAT"),
 		SkillsPageSource.Contains(TEXT("UGridMonsterCategoryAsset::ResolveByCategoryId(CategoryId)")));
