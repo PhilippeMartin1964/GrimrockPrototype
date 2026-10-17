@@ -68,6 +68,66 @@ namespace
 		}
 		return false;
 	}
+
+	bool AreMON154ChoiceDependenciesResolvable(
+		const TArray<FRPGClassProgressionChoiceDefinition>& Choices,
+		const TSet<FName>& AutomaticallyGrantedRequirementIds,
+		FName ClassId)
+	{
+		TSet<FName> ResolvedChoiceIds;
+		TSet<FName> SatisfiedRequirementIds = AutomaticallyGrantedRequirementIds;
+		SatisfiedRequirementIds.Add(ClassId);
+
+		bool bMadeProgress = true;
+		while (ResolvedChoiceIds.Num() < Choices.Num() && bMadeProgress)
+		{
+			bMadeProgress = false;
+			for (const FRPGClassProgressionChoiceDefinition& Choice : Choices)
+			{
+				if (ResolvedChoiceIds.Contains(Choice.ChoiceId))
+				{
+					continue;
+				}
+
+				bool bPrerequisitesSatisfied = true;
+				for (const FName PrerequisiteChoiceId : Choice.PrerequisiteChoiceIds)
+				{
+					if (!ResolvedChoiceIds.Contains(PrerequisiteChoiceId))
+					{
+						bPrerequisitesSatisfied = false;
+						break;
+					}
+				}
+				if (!bPrerequisitesSatisfied)
+				{
+					continue;
+				}
+
+				for (const FName RequirementId : Choice.PrerequisiteRequirementIds)
+				{
+					if (!SatisfiedRequirementIds.Contains(RequirementId))
+					{
+						bPrerequisitesSatisfied = false;
+						break;
+					}
+				}
+				if (!bPrerequisitesSatisfied)
+				{
+					continue;
+				}
+
+				ResolvedChoiceIds.Add(Choice.ChoiceId);
+				SatisfiedRequirementIds.Add(Choice.ChoiceId);
+				for (const FName RequirementId : Choice.GrantedRequirementIds)
+				{
+					SatisfiedRequirementIds.Add(RequirementId);
+				}
+				bMadeProgress = true;
+			}
+		}
+
+		return ResolvedChoiceIds.Num() == Choices.Num();
+	}
 }
 
 bool URPGClassAsset::IsValidDefinition() const
@@ -194,7 +254,8 @@ bool URPGClassAsset::IsValidDefinition() const
 		}
 	}
 
-	if (HasMON154ChoiceDependencyCycle(ChoiceDependencies))
+	if (HasMON154ChoiceDependencyCycle(ChoiceDependencies) ||
+		!AreMON154ChoiceDependenciesResolvable(ProgressionChoices, AutomaticallyGrantedRequirementIds, ClassId))
 	{
 		return false;
 	}

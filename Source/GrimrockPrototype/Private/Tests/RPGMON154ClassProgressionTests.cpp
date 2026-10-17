@@ -149,6 +149,36 @@ bool FRPGMON154DefinitionValidationTest::RunTest(const FString& Parameters)
 	Cycle->ProgressionChoices[0].PrerequisiteChoiceIds.Add(TEXT("Choice_C"));
 	TestFalse(TEXT("Choice dependency cycle is rejected"), Cycle->IsValidDefinition());
 
+	URPGClassAsset* RequirementCycle = MakeMON154Class(GetTransientPackage());
+	RequirementCycle->ProgressionChoices[0].PrerequisiteRequirementIds.Add(TEXT("Feature_B"));
+	RequirementCycle->ProgressionChoices[1].PrerequisiteChoiceIds.Reset();
+	RequirementCycle->ProgressionChoices[1].PrerequisiteRequirementIds.Add(TEXT("Feature_A"));
+	TestFalse(TEXT("Requirement dependency cycle without an automatic seed is rejected"), RequirementCycle->IsValidDefinition());
+
+	URPGClassAsset* AutomaticRequirementSeed = MakeMON154Class(GetTransientPackage());
+	AutomaticRequirementSeed->ProgressionChoices[0].PrerequisiteRequirementIds.Add(TEXT("Feature_B"));
+	AutomaticRequirementSeed->ProgressionChoices[1].PrerequisiteChoiceIds.Reset();
+	AutomaticRequirementSeed->ProgressionChoices[1].PrerequisiteRequirementIds.Add(TEXT("Feature_A"));
+	AutomaticRequirementSeed->ProgressionLevelGrants[0].GrantedRequirementIds.Add(TEXT("Feature_B"));
+	TestTrue(TEXT("Automatic level requirement breaks an otherwise cyclic dependency"), AutomaticRequirementSeed->IsValidDefinition());
+
+	URPGClassAsset* ClassRequirementSeed = MakeMON154Class(GetTransientPackage());
+	ClassRequirementSeed->ProgressionChoices[0].PrerequisiteRequirementIds.Add(ClassRequirementSeed->ClassId);
+	TestTrue(TEXT("Class identity remains a valid automatic requirement seed"), ClassRequirementSeed->IsValidDefinition());
+
+	URPGClassAsset* AlternateRequirementProducer = MakeMON154Class(GetTransientPackage());
+	AlternateRequirementProducer->ProgressionChoices[0].PrerequisiteRequirementIds.Add(TEXT("Feature_B"));
+	AlternateRequirementProducer->ProgressionChoices[1].PrerequisiteChoiceIds.Reset();
+	AlternateRequirementProducer->ProgressionChoices[1].PrerequisiteRequirementIds.Add(TEXT("Feature_A"));
+	FRPGClassProgressionChoiceDefinition RequirementSeedChoice;
+	RequirementSeedChoice.ChoiceId = TEXT("Choice_RequirementSeed");
+	RequirementSeedChoice.DisplayName = FText::FromString(TEXT("Requirement Seed"));
+	RequirementSeedChoice.MinimumLevel = 2;
+	RequirementSeedChoice.PointCost = 1;
+	RequirementSeedChoice.GrantedRequirementIds.Add(TEXT("Feature_B"));
+	AlternateRequirementProducer->ProgressionChoices.Add(RequirementSeedChoice);
+	TestTrue(TEXT("An alternate reachable producer prevents a false requirement-cycle rejection"), AlternateRequirementProducer->IsValidDefinition());
+
 	URPGClassAsset* NoOpGrant = MakeMON154Class(GetTransientPackage());
 	FRPGClassProgressionLevelGrant EmptyGrant;
 	EmptyGrant.Level = 5;
