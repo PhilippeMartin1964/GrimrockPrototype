@@ -1,7 +1,7 @@
 # UI-RPG-TALENT-CODE-AUDIT02.4 — Dedicated Talent detail read-model
 
 Date : 17 octobre 2026  
-Statut : **IMPLÉMENTÉ — EN ATTENTE DE VALIDATION LOCALE**
+Statut : **VALIDÉ — 17 octobre 2026**
 
 ## Problème constaté
 

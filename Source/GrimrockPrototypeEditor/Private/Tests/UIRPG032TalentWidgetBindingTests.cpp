@@ -9,9 +9,6 @@
 
 namespace UIRPG032Tests
 {
-	const TCHAR* CatalogPath =
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/UI/RPG/DA_RPGTalentPresentation.DA_RPGTalentPresentation");
-
 	struct FClassSpec
 	{
 		FName ClassId;
@@ -171,7 +168,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG032ProductionCoverageTest,
 bool FUIRPG032ProductionCoverageTest::RunTest(const FString&)
 {
 	using namespace UIRPG032Tests;
-	URPGTalentPresentationAsset* Catalog = LoadObject<URPGTalentPresentationAsset>(nullptr, CatalogPath);
+	const URPGTalentPresentationAsset* Catalog = URPGTalentPresentationAsset::ResolveCanonical();
 	if (!TestNotNull(TEXT("Production presentation catalog loads"), Catalog))
 	{
 		return false;

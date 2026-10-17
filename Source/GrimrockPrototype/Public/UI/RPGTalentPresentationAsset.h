@@ -124,5 +124,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Presentation")
 	bool GetBranchPresentation(FName ClassId, FName TalentBranchId, FRPGTalentBranchPresentationDefinition& OutDefinition) const;
 
+	/** Single runtime authority for the production presentation asset identity. */
+	static const TCHAR* CanonicalObjectPath();
+
+	/** Loads and validates the canonical production presentation catalog. */
+	static const URPGTalentPresentationAsset* ResolveCanonical();
+
 	const FRPGClassPresentationDefinition* FindClass(FName ClassId) const;
 };

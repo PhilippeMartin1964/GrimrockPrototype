@@ -66,7 +66,7 @@ const TCHAR* FUIRPGTalentPresentationAuthoring::AssetName()
 
 const TCHAR* FUIRPGTalentPresentationAuthoring::ObjectPath()
 {
-	return TEXT("/Game/GrimrockPrototype/Core/DataAssets/UI/RPG/DA_RPGTalentPresentation.DA_RPGTalentPresentation");
+	return URPGTalentPresentationAsset::CanonicalObjectPath();
 }
 
 void FUIRPGTalentPresentationAuthoring::ConfigureCatalog(URPGTalentPresentationAsset& Catalog)

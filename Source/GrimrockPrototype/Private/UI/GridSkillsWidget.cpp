@@ -32,9 +32,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridSkillsUI, Log, All);
 
 namespace GridSkillsWidgetPrivate
 {
-	const TCHAR* TalentPresentationAssetPath =
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/UI/RPG/DA_RPGTalentPresentation.DA_RPGTalentPresentation");
-
 	UGridTalentBranchWidget* BranchWidgetByIndex(
 		int32 Index,
 		UGridTalentBranchWidget* Left,
@@ -468,8 +465,7 @@ bool UGridSkillsWidget::GetCurrentClassPresentation(FRPGClassPresentationDefinit
 		return false;
 	}
 
-	const URPGTalentPresentationAsset* Catalog =
-		LoadObject<URPGTalentPresentationAsset>(nullptr, GridSkillsWidgetPrivate::TalentPresentationAssetPath);
+	const URPGTalentPresentationAsset* Catalog = URPGTalentPresentationAsset::ResolveCanonical();
 	return Catalog && Catalog->GetClassPresentation(View.ClassId, OutPresentation);
 }
 

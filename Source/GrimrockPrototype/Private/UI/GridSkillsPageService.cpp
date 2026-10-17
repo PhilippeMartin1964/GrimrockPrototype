@@ -973,8 +973,7 @@ namespace
 	{
 		OutName = FText::GetEmpty();
 		OutPrinciple = FText::GetEmpty();
-		const URPGTalentPresentationAsset* Catalog = LoadObject<URPGTalentPresentationAsset>(
-			nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/UI/RPG/DA_RPGTalentPresentation.DA_RPGTalentPresentation"));
+		const URPGTalentPresentationAsset* Catalog = URPGTalentPresentationAsset::ResolveCanonical();
 		if (!Catalog) return false;
 		const FRPGClassPresentationDefinition* ClassPresentation = Catalog->FindClass(ClassId);
 		if (!ClassPresentation) return false;

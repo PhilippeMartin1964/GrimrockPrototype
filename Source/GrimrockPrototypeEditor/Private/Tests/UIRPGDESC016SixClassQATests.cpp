@@ -27,9 +27,6 @@ namespace UIRPGDESC016QA
 		{ TEXT("Alchemist"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Alchemist.DA_Class_Alchemist") }
 	};
 
-	const TCHAR* PresentationPath =
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/UI/RPG/DA_RPGTalentPresentation.DA_RPGTalentPresentation");
-
 	UGridPartyInventoryComponent* MakeParty(URPGClassAsset* ClassAsset)
 	{
 		UGridPartyInventoryComponent* Party = NewObject<UGridPartyInventoryComponent>();
@@ -237,8 +234,8 @@ bool FUIRPGDESC016SixClassCanonicalSurfaceTest::RunTest(const FString&)
 	using namespace UIRPGDESC016QA;
 	FRPGClassProgressionTransactionService::ResetRuntimeState();
 
-	URPGTalentPresentationAsset* Presentation =
-		LoadObject<URPGTalentPresentationAsset>(nullptr, PresentationPath);
+	const URPGTalentPresentationAsset* Presentation =
+		URPGTalentPresentationAsset::ResolveCanonical();
 	if (!TestNotNull(TEXT("Production Talent presentation catalog loads"), Presentation))
 	{
 		return false;

@@ -343,7 +343,7 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
-### UI-RPG-TALENT-CODE-AUDIT02.4 — dedicated Talent detail read-model — EN ATTENTE DE VALIDATION
+### UI-RPG-TALENT-CODE-AUDIT02.4 — dedicated Talent detail read-model — VALIDÉ
 
 Le panneau de détail Talent ne reçoit plus un `FGridTalentNodeView` transformé
 artificiellement pour représenter une variante. La frontière courante est :
@@ -365,6 +365,32 @@ FGridTalentNodeView
 identité d'acquisition du panneau. Une vue conceptuelle sans ChoiceId reste
 possible pour diagnostic/read-only, mais elle n'est jamais acquirable.
 
+
+### UI-RPG-TALENT-CODE-AUDIT02.5 — Talent presentation dependency cleanup — EN ATTENTE DE VALIDATION
+
+Le chemin runtime du catalogue Talent n'est plus dupliqué dans les consommateurs.
+
+```text
+URPGTalentPresentationAsset
+    -> CanonicalObjectPath()
+    -> ResolveCanonical()
+       -> LoadObject
+       -> IsValidDefinition
+
+FGridSkillsPageService
+UGridSkillsWidget
+    -> ResolveCanonical()
+```
+
+`GridSkillsPageService.cpp` et `GridSkillsWidget.cpp` ne connaissent plus
+`/Game/.../DA_RPGTalentPresentation` et n'effectuent plus de
+`LoadObject<URPGTalentPresentationAsset>` direct. L'authoring Editor réutilise
+également `CanonicalObjectPath()` pour son ObjectPath ; il conserve seulement
+le PackageName nécessaire à la création/resave de l'asset.
+
+Une régression de source garantit qu'un seul fichier runtime sous
+`Private/UI` possède encore le chemin canonique :
+`RPGTalentPresentationAsset.cpp`.
 
 ### UI-SKILLS-AFFINITY01 — affinité compétence / classe — VALIDÉ / CLOS
 

@@ -1,5 +1,19 @@
 #include "UI/RPGTalentPresentationAsset.h"
 
+#include "UObject/UObjectGlobals.h"
+
+const TCHAR* URPGTalentPresentationAsset::CanonicalObjectPath()
+{
+	return TEXT("/Game/GrimrockPrototype/Core/DataAssets/UI/RPG/DA_RPGTalentPresentation.DA_RPGTalentPresentation");
+}
+
+const URPGTalentPresentationAsset* URPGTalentPresentationAsset::ResolveCanonical()
+{
+	const URPGTalentPresentationAsset* Catalog =
+		LoadObject<URPGTalentPresentationAsset>(nullptr, CanonicalObjectPath());
+	return IsValid(Catalog) && Catalog->IsValidDefinition() ? Catalog : nullptr;
+}
+
 bool FRPGTalentNodePresentationDefinition::IsValidDefinition() const
 {
 	return !TalentNodeId.IsNone() && !DisplayName.IsEmpty();
