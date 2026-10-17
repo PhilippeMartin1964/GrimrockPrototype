@@ -11,6 +11,13 @@
 void UGridPartyPortraitHudWidget::SetPortraitView(const FGridPartyPortraitView& InView)
 {
 	View = InView;
+
+	// The project owns its visible pointer through WBP_GridMouseCursor.
+	// Once the portrait became hit-testable for click/drag, Slate could expose
+	// the platform cursor over this widget as well. Suppress only the portrait's
+	// UMG cursor so Cursor_Default remains the single visible pointer.
+	SetCursor(EMouseCursor::None);
+
 	RefreshBoundVisuals();
 	RefreshPortraitVisual();
 	SetVisibility(ESlateVisibility::Visible);

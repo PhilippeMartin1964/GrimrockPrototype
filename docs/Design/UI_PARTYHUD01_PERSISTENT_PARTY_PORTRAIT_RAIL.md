@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1/.2/.3 VALIDÉS / CLOS — UI-PARTYHUD01.4 IMPLÉMENTÉ C++ / VALIDATION REQUISE**
+État courant : **UI-PARTYHUD01.1/.2/.3 VALIDÉS / CLOS — UI-PARTYHUD01.4 Automation + drag PIE VALIDÉS, correctif curseur à valider**
 
 ## 1. Objectif général
 
@@ -1177,3 +1177,46 @@ avec au moins 2 portraits :
 ```
 
 UI-PARTYHUD01.4 sera clos après validation Automation et PIE.
+
+
+## 36. Validation UI-PARTYHUD01.4 et correctif curseur — 17 octobre 2026
+
+Validation fonctionnelle reçue :
+
+```text
+Filter                 : Grimrock.UI.PartyHud01
+Succeeded              : 10
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20261017-073041
+```
+
+Le drag/reorder est également validé en PIE.
+
+Un défaut visuel a cependant été observé lors du clic/drag sur un portrait :
+
+```text
+Cursor_Default custom visible
++
+curseur système Windows visible
+```
+
+Cause ciblée : depuis UI-PARTYHUD01.3, le portrait est une surface UMG hit-testable. Slate peut donc résoudre un curseur UMG/platform sur cette surface en plus du curseur custom global.
+
+Correctif :
+
+```cpp
+UGridPartyPortraitHudWidget::SetPortraitView()
+    -> SetCursor(EMouseCursor::None)
+```
+
+Cette correction est volontairement locale au portrait :
+
+- aucun changement de `WBP_GridMouseCursor` ;
+- aucun changement du PlayerController ;
+- aucun changement de l'inventaire ou de la hotbar ;
+- aucun changement du drag/reorder validé.
+
+UI-PARTYHUD01.4 sera déclaré **CLOS** après vérification PIE que seul `Cursor_Default` reste visible pendant clic et drag.
