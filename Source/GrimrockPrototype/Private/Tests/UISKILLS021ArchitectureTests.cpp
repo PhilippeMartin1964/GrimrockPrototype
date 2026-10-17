@@ -2,8 +2,12 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "UI/GridSkillsUiTypes.h"
 #include "UI/RPGSkillPresentationAsset.h"
+#include "UI/GridSkillsWidget.h"
+#include "UObject/UnrealType.h"
 
 namespace UISKILLS021Tests
 {
@@ -30,6 +34,33 @@ namespace UISKILLS021Tests
 
 		Catalog->Skills = { Acrobatics, Athletics };
 		return Catalog;
+	}
+
+	bool LoadProjectSource(const TCHAR* RelativePath, FString& OutSource)
+	{
+		return FFileHelper::LoadFileToString(
+			OutSource,
+			*FPaths::Combine(FPaths::ProjectDir(), RelativePath));
+	}
+
+	int32 CountOccurrences(const FString& Source, const TCHAR* Needle)
+	{
+		int32 Count = 0;
+		int32 SearchFrom = 0;
+		while (true)
+		{
+			const int32 FoundAt = Source.Find(
+				Needle,
+				ESearchCase::CaseSensitive,
+				ESearchDir::FromStart,
+				SearchFrom);
+			if (FoundAt == INDEX_NONE)
+			{
+				return Count;
+			}
+			++Count;
+			SearchFrom = FoundAt + FCString::Strlen(Needle);
+		}
 	}
 
 	FGridSkillDetailView MakeValidDetailView()
@@ -177,5 +208,78 @@ bool FUISKILLS021DetailReadModelTest::RunTest(const FString&)
 	TestFalse(TEXT("Skill entry rejects rank above current level cap"), Entry.IsValid());
 	return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUISKILLS021CanonicalSkillCacheContractTest,
+	"Grimrock.UI.Skills02.Architecture.CanonicalSkillCacheContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUISKILLS021CanonicalSkillCacheContractTest::RunTest(const FString&)
+{
+	using namespace UISKILLS021Tests;
+
+	UClass* SkillsClass = UGridSkillsWidget::StaticClass();
+	for (const FName PropertyName : {
+		FName(TEXT("CachedCanonicalSkillDefinitions")),
+		FName(TEXT("CachedCanonicalSkillDefinitionsById")),
+		FName(TEXT("CachedSkillIconTextures")),
+		FName(TEXT("CachedSkillIconPresentationAsset"))
+	})
+	{
+		FProperty* Property = FindFProperty<FProperty>(SkillsClass, PropertyName);
+		TestNotNull(
+			*FString::Printf(TEXT("%s cache property exists"), *PropertyName.ToString()),
+			Property);
+		if (Property)
+		{
+			TestTrue(
+				*FString::Printf(TEXT("%s is transient"), *PropertyName.ToString()),
+				Property->HasAnyPropertyFlags(CPF_Transient));
+		}
+	}
+
+	FString CoreSource;
+	FString SkillsSource;
+	FString DetailSource;
+	TestTrue(
+		TEXT("GridSkillsWidget core source loads"),
+		LoadProjectSource(
+			TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsWidget.cpp"),
+			CoreSource));
+	TestTrue(
+		TEXT("GridSkillsWidget Skills source loads"),
+		LoadProjectSource(
+			TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsWidgetSkills.cpp"),
+			SkillsSource));
+	TestTrue(
+		TEXT("GridSkillDetailWidget source loads"),
+		LoadProjectSource(
+			TEXT("Source/GrimrockPrototype/Private/UI/GridSkillDetailWidget.cpp"),
+			DetailSource));
+
+	TestEqual(
+		TEXT("Widget core scans canonical Skill assets in one cache initializer only"),
+		CountOccurrences(
+			CoreSource,
+			TEXT("FGridSkillsPageService::ResolveCanonicalSkillDefinitions(")),
+		1);
+	TestFalse(
+		TEXT("Skill selection/allocation path never rescans canonical assets"),
+		SkillsSource.Contains(TEXT("ResolveCanonicalSkillDefinitions(")));
+	TestTrue(
+		TEXT("Skill row rebuild uses the widget icon cache"),
+		SkillsSource.Contains(
+			TEXT("ResolveCachedSkillIcon(PresentationCatalog, Entry.SkillId)")));
+	TestEqual(
+		TEXT("Skill row icon synchronous load exists only inside first-use cache resolution"),
+		CountOccurrences(SkillsSource, TEXT("Presentation->Icon.LoadSynchronous()")),
+		1);
+	TestTrue(
+		TEXT("Skill detail checks an already loaded icon before synchronous fallback"),
+		DetailSource.Contains(TEXT("UTexture2D* IconTexture = DetailView.Icon.Get();")));
+
+	return true;
+}
+
 
 #endif

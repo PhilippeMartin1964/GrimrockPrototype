@@ -245,7 +245,11 @@ private:
 	void RefreshSkillSortIndicators();
 	void RefreshSkillSummaryPresentation();
 
-	const URPGSkillAsset* ResolveCanonicalSkillDefinition(FName SkillId) const;
+	void ResetSkillAssetCaches();
+	void EnsureCanonicalSkillDefinitionCache();
+	void GetCanonicalSkillDefinitions(TArray<const URPGSkillAsset*>& OutDefinitions);
+	const URPGSkillAsset* ResolveCanonicalSkillDefinition(FName SkillId);
+	UTexture2D* ResolveCachedSkillIcon(URPGSkillPresentationAsset* PresentationCatalog, FName SkillId);
 	FString MakeSkillAllocationSessionKey(const FGuid& CharacterId, FName SkillId) const;
 	int32 GetSessionPurchasedSkillRankCount(const FGuid& CharacterId, FName SkillId) const;
 	int32 GetSessionSkillRankFloor(const FGuid& CharacterId, FName SkillId) const;
@@ -369,6 +373,21 @@ private:
 	TObjectPtr<UGridTalentVariantFlyoutWidget> ActiveVariantFlyout;
 
 	FName ActiveVariantFlyoutNodeId = NAME_None;
+
+	/** Widget-lifetime canonical Skill snapshot. Never global and never gameplay authority. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<URPGSkillAsset>> CachedCanonicalSkillDefinitions;
+
+	UPROPERTY(Transient)
+	TMap<FName, TObjectPtr<URPGSkillAsset>> CachedCanonicalSkillDefinitionsById;
+
+	UPROPERTY(Transient)
+	TMap<FName, TObjectPtr<UTexture2D>> CachedSkillIconTextures;
+
+	UPROPERTY(Transient)
+	TObjectPtr<URPGSkillPresentationAsset> CachedSkillIconPresentationAsset;
+
+	bool bCanonicalSkillDefinitionCacheInitialized = false;
 
 	/** UI-session-only history. Never persisted and never gameplay authority. */
 	TMap<FString, int32> SessionPurchasedSkillRanks;

@@ -180,7 +180,11 @@ void UGridSkillDetailWidget::RefreshDetailVisual()
 
 	RefreshResolvedPresentation();
 
-	UTexture2D* IconTexture = DetailView.Icon.LoadSynchronous();
+	UTexture2D* IconTexture = DetailView.Icon.Get();
+	if (!IconTexture && !DetailView.Icon.IsNull())
+	{
+		IconTexture = DetailView.Icon.LoadSynchronous();
+	}
 	if (Image_SkillIcon)
 	{
 		Image_SkillIcon->SetBrushFromTexture(IconTexture, false);

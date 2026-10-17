@@ -465,6 +465,41 @@ void UGridSkillsWidget::RefreshSkillSortIndicators()
 	ApplyIndicator(Text_SortAffinityIndicator, EGridSkillSortColumn::Affinity);
 	ApplyIndicator(Text_SortRankIndicator, EGridSkillSortColumn::Rank);
 }
+UTexture2D* UGridSkillsWidget::ResolveCachedSkillIcon(
+	URPGSkillPresentationAsset* PresentationCatalog,
+	FName SkillId)
+{
+	if (CachedSkillIconPresentationAsset != PresentationCatalog)
+	{
+		CachedSkillIconTextures.Reset();
+		CachedSkillIconPresentationAsset = PresentationCatalog;
+	}
+
+	if (!PresentationCatalog || SkillId.IsNone())
+	{
+		return nullptr;
+	}
+
+	if (const TObjectPtr<UTexture2D>* CachedIcon = CachedSkillIconTextures.Find(SkillId))
+	{
+		return CachedIcon->Get();
+	}
+
+	UTexture2D* IconTexture = nullptr;
+	if (const FRPGSkillPresentationDefinition* Presentation =
+		PresentationCatalog->FindSkill(SkillId))
+	{
+		IconTexture = Presentation->Icon.Get();
+		if (!IconTexture && !Presentation->Icon.IsNull())
+		{
+			IconTexture = Presentation->Icon.LoadSynchronous();
+		}
+	}
+
+	CachedSkillIconTextures.Add(SkillId, IconTexture);
+	return IconTexture;
+}
+
 void UGridSkillsWidget::RebuildSkillEntryWidgets()
 {
 	if (Text_EmptySkills)
@@ -489,7 +524,7 @@ void UGridSkillsWidget::RebuildSkillEntryWidgets()
 		return;
 	}
 
-	const URPGSkillPresentationAsset* PresentationCatalog =
+	URPGSkillPresentationAsset* PresentationCatalog =
 		IsValid(SkillPresentationAsset) && SkillPresentationAsset->IsValidDefinition()
 			? SkillPresentationAsset.Get()
 			: nullptr;
@@ -512,15 +547,8 @@ void UGridSkillsWidget::RebuildSkillEntryWidgets()
 			continue;
 		}
 
-		UTexture2D* SkillIcon = nullptr;
-		if (PresentationCatalog)
-		{
-			if (const FRPGSkillPresentationDefinition* Presentation = PresentationCatalog->FindSkill(Entry.SkillId))
-			{
-				SkillIcon = Presentation->Icon.LoadSynchronous();
-			}
-		}
-		EntryWidget->SetSkillIcon(SkillIcon);
+		EntryWidget->SetSkillIcon(
+			ResolveCachedSkillIcon(PresentationCatalog, Entry.SkillId));
 		EntryWidget->SetSelected(Entry.SkillId == SelectedSkillId);
 
 		EntryWidget->OnSelectSkillRequested.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSkillSelectionRequested);
@@ -604,7 +632,7 @@ bool UGridSkillsWidget::SelectSkill(FName SkillId)
 	if (InventoryComponent)
 	{
 		TArray<const URPGSkillAsset*> SkillDefinitions;
-		FGridSkillsPageService::ResolveCanonicalSkillDefinitions(SkillDefinitions);
+		GetCanonicalSkillDefinitions(SkillDefinitions);
 		RefreshSelectedSkillDetail(SkillDefinitions);
 	}
 	else

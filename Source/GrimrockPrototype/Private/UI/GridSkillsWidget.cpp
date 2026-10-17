@@ -38,6 +38,7 @@ void UGridSkillsWidget::InitializeSkillsWidget(AGrimrockPartyPawn* InPartyPawn)
 
 	OwningPartyPawn = InPartyPawn;
 	InventoryComponent = InPartyPawn ? InPartyPawn->PartyInventoryComponent : nullptr;
+	ResetSkillAssetCaches();
 
 	if (InventoryComponent)
 	{
@@ -66,6 +67,7 @@ void UGridSkillsWidget::NativeDestruct()
 		InventoryComponent->OnPartyInventoryChanged.RemoveDynamic(this, &UGridSkillsWidget::HandlePartyInventoryChanged);
 	}
 
+	ResetSkillAssetCaches();
 	Super::NativeDestruct();
 }
 
@@ -173,23 +175,69 @@ void UGridSkillsWidget::ClearView()
 	SelectedSkillDetail = FGridSkillDetailView();
 }
 
-const URPGSkillAsset* UGridSkillsWidget::ResolveCanonicalSkillDefinition(FName SkillId) const
+void UGridSkillsWidget::ResetSkillAssetCaches()
+{
+	bCanonicalSkillDefinitionCacheInitialized = false;
+	CachedCanonicalSkillDefinitions.Reset();
+	CachedCanonicalSkillDefinitionsById.Reset();
+	CachedSkillIconTextures.Reset();
+	CachedSkillIconPresentationAsset = nullptr;
+}
+
+void UGridSkillsWidget::EnsureCanonicalSkillDefinitionCache()
+{
+	if (bCanonicalSkillDefinitionCacheInitialized)
+	{
+		return;
+	}
+
+	TArray<const URPGSkillAsset*> ResolvedDefinitions;
+	FGridSkillsPageService::ResolveCanonicalSkillDefinitions(ResolvedDefinitions);
+
+	CachedCanonicalSkillDefinitions.Reset(ResolvedDefinitions.Num());
+	CachedCanonicalSkillDefinitionsById.Reset();
+	for (const URPGSkillAsset* Definition : ResolvedDefinitions)
+	{
+		if (!IsValid(Definition))
+		{
+			continue;
+		}
+
+		CachedCanonicalSkillDefinitions.Add(const_cast<URPGSkillAsset*>(Definition));
+		CachedCanonicalSkillDefinitionsById.Add(
+			Definition->SkillId,
+			const_cast<URPGSkillAsset*>(Definition));
+	}
+
+	bCanonicalSkillDefinitionCacheInitialized = true;
+}
+
+void UGridSkillsWidget::GetCanonicalSkillDefinitions(TArray<const URPGSkillAsset*>& OutDefinitions)
+{
+	EnsureCanonicalSkillDefinitionCache();
+	OutDefinitions.Reset(CachedCanonicalSkillDefinitions.Num());
+	for (const TObjectPtr<URPGSkillAsset>& Definition : CachedCanonicalSkillDefinitions)
+	{
+		if (IsValid(Definition))
+		{
+			OutDefinitions.Add(Definition.Get());
+		}
+	}
+}
+
+const URPGSkillAsset* UGridSkillsWidget::ResolveCanonicalSkillDefinition(FName SkillId)
 {
 	if (SkillId.IsNone())
 	{
 		return nullptr;
 	}
 
-	TArray<const URPGSkillAsset*> Definitions;
-	FGridSkillsPageService::ResolveCanonicalSkillDefinitions(Definitions);
-	for (const URPGSkillAsset* Definition : Definitions)
-	{
-		if (IsValid(Definition) && Definition->SkillId == SkillId)
-		{
-			return Definition;
-		}
-	}
-	return nullptr;
+	EnsureCanonicalSkillDefinitionCache();
+	const TObjectPtr<URPGSkillAsset>* Definition =
+		CachedCanonicalSkillDefinitionsById.Find(SkillId);
+	return Definition && IsValid(Definition->Get())
+		? Definition->Get()
+		: nullptr;
 }
 
 void UGridSkillsWidget::RefreshSkills()
@@ -207,11 +255,16 @@ void UGridSkillsWidget::RefreshSkills()
 	TArray<const URPGSkillAsset*> SkillDefinitions;
 	if (InventoryComponent)
 	{
-		FGridSkillsPageService::ResolveCanonicalSkillDefinitions(SkillDefinitions);
+		GetCanonicalSkillDefinitions(SkillDefinitions);
 
 		FGridSkillsPageView Candidate;
 		if (FGridSkillsPageService::TryBuildSelectedCharacterView(InventoryComponent, SkillDefinitions, Candidate))
 		{
+			URPGSkillPresentationAsset* PresentationCatalog =
+				IsValid(SkillPresentationAsset) && SkillPresentationAsset->IsValidDefinition()
+					? SkillPresentationAsset.Get()
+					: nullptr;
+
 			for (FGridSkillEntryView& Entry : Candidate.Skills)
 			{
 				const FString SessionKey =
@@ -232,10 +285,6 @@ void UGridSkillsWidget::RefreshSkills()
 					SessionFloor >= 0 &&
 					Entry.Rank == SessionFloor + SessionPurchaseCount;
 
-				const URPGSkillPresentationAsset* PresentationCatalog =
-					IsValid(SkillPresentationAsset) && SkillPresentationAsset->IsValidDefinition()
-						? SkillPresentationAsset.Get()
-						: nullptr;
 				Entry.ClassAffinity =
 					PresentationCatalog
 						? PresentationCatalog->ResolveClassAffinity(Entry.SkillId, Candidate.ClassId)
