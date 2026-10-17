@@ -51,6 +51,10 @@ bool FRPGSkillPointService::TryGetBalance(
 	int32 SpentPoints = 0;
 	for (const FRPGSkillRank& Rank : CharacterState.SkillRanks)
 	{
+		if (Rank.Rank > RankCap)
+		{
+			return false;
+		}
 		SpentPoints += Rank.Rank * GetRankPointCost();
 	}
 

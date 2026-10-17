@@ -157,6 +157,24 @@ bool FUISKILLS021DetailReadModelTest::RunTest(const FString&)
 	Detail = MakeValidDetailView();
 	Detail.BaseCheckBonus = 99;
 	TestFalse(TEXT("Detail projection rejects a fabricated base check bonus"), Detail.IsValid());
+
+	Detail = MakeValidDetailView();
+	Detail.Rank = 3;
+	Detail.BaseCheckBonus = 5;
+	Detail.NextRank = 4;
+	Detail.bCanIncreaseRank = false;
+	Detail.bAtCurrentRankCap = true;
+	TestFalse(TEXT("Detail projection rejects rank above current level cap"), Detail.IsValid());
+
+	FGridSkillEntryView Entry;
+	Entry.SkillId = TEXT("Skill_Acrobatics");
+	Entry.Rank = 2;
+	Entry.MaxRank = 5;
+	Entry.CurrentRankCap = 2;
+	Entry.bTrained = true;
+	TestTrue(TEXT("Coherent Skill entry read model is valid"), Entry.IsValid());
+	Entry.Rank = 3;
+	TestFalse(TEXT("Skill entry rejects rank above current level cap"), Entry.IsValid());
 	return true;
 }
 

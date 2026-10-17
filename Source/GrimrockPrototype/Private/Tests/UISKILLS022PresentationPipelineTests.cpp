@@ -237,18 +237,22 @@ bool FUISKILLS022TrainingAndCapTest::RunTest(const FString&)
 	TestEqual(TEXT("Rank zero allowed maps to UntrainedAllowed"),
 		Detail.TrainingState, EGridSkillTrainingState::UntrainedAllowed);
 
-	TestTrue(TEXT("Direct high-rank setup succeeds"),
+	TestTrue(TEXT("Direct high-rank storage setup succeeds"),
 		SetRank(Party->PartyInventoryState.ActiveCharacters[0], Athletics, 4));
-	TestTrue(TEXT("High-rank page view still builds"),
+	TestFalse(TEXT("Rank above the level cap rejects the page read model"),
 		FGridSkillsPageService::TryBuildSelectedCharacterView(Party, Definitions, PageView));
-	TestTrue(TEXT("High existing rank detail remains valid"),
-		FGridSkillsPageService::TryBuildSkillDetailView(
-			Party, PageView, TEXT("Skill_Athletics"), Definitions, nullptr, Detail));
-	TestEqual(TEXT("Existing rank is preserved"), Detail.Rank, 4);
-	TestEqual(TEXT("Level-3 purchase cap remains two"), Detail.CurrentRankCap, 2);
-	TestTrue(TEXT("Existing rank above purchase cap is flagged at cap"), Detail.bAtCurrentRankCap);
-	TestFalse(TEXT("Existing rank above purchase cap cannot increase"), Detail.bCanIncreaseRank);
-	TestEqual(TEXT("Next intrinsic Skill rank remains five"), Detail.NextRank, 5);
+	TestFalse(TEXT("Rejected page read model remains invalid"), PageView.IsValid());
+	TestEqual(TEXT("Read-model rejection never mutates the stored rank"),
+		FRPGSkillService::GetSkillRank(
+			Party->PartyInventoryState.ActiveCharacters[0],
+			Athletics->SkillId),
+		4);
+
+	FRPGSkillPointBalance InvalidBalance;
+	TestFalse(TEXT("Rank above the level cap rejects the derived Skill Point balance"),
+		FRPGSkillPointService::TryGetBalance(
+			Party->PartyInventoryState.ActiveCharacters[0],
+			InvalidBalance));
 	return true;
 }
 

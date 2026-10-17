@@ -136,7 +136,7 @@ bool FRPGMON2084SkillRanksTest::RunTest(const FString& Parameters)
 	UGridPartyInventoryComponent* Party = MakeParty(ClassDefinition);
 	URPGSkillAsset* Lockpick = MakeSkill(Party, TEXT("Skill_Lockpicking"), TEXT("Crochetage"));
 	URPGSkillAsset* Alchemy = MakeSkill(Party, TEXT("Skill_Alchemy"), TEXT("Alchimie"));
-	TestTrue(TEXT("Trained rank setup succeeds"), SetRank(Party->PartyInventoryState.ActiveCharacters[0], Lockpick, 3));
+	TestTrue(TEXT("Trained rank setup succeeds"), SetRank(Party->PartyInventoryState.ActiveCharacters[0], Lockpick, 2));
 
 	FGridSkillsPageView View;
 	TestTrue(TEXT("View builds with trained and untrained Skills"), FGridSkillsPageService::TryBuildCharacterView(Party, 0, { Lockpick, Alchemy }, View));
@@ -155,7 +155,7 @@ bool FRPGMON2084SkillRanksTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("Alchemy view exists"), AlchemyView);
 	if (LockpickView)
 	{
-		TestEqual(TEXT("Trained rank is projected"), LockpickView->Rank, 3);
+		TestEqual(TEXT("Trained rank is projected"), LockpickView->Rank, 2);
 		TestTrue(TEXT("Trained flag is projected"), LockpickView->bTrained);
 	}
 	if (AlchemyView)
@@ -254,12 +254,12 @@ bool FRPGMON2084SelectedAuthorityTest::RunTest(const FString& Parameters)
 	UGridPartyInventoryComponent* Party = MakeParty(ClassDefinition);
 	URPGSkillAsset* Skill = MakeSkill(Party, TEXT("Skill_Lockpicking"), TEXT("Crochetage"));
 	TestTrue(TEXT("Character one selection succeeds"), Party->SetSelectedCharacterIndex(1));
-	TestTrue(TEXT("Character one rank setup succeeds"), SetRank(Party->PartyInventoryState.ActiveCharacters[1], Skill, 4));
+	TestTrue(TEXT("Character one rank setup succeeds"), SetRank(Party->PartyInventoryState.ActiveCharacters[1], Skill, 2));
 
 	FGridSkillsPageView View;
 	TestTrue(TEXT("Selected-character facade follows inventory selection"), FGridSkillsPageService::TryBuildSelectedCharacterView(Party, { Skill }, View));
 	TestEqual(TEXT("Character one is selected"), View.CharacterIndex, 1);
-	TestEqual(TEXT("Selected character rank is projected"), View.Skills[0].Rank, 4);
+	TestEqual(TEXT("Selected character rank is projected"), View.Skills[0].Rank, 2);
 	return true;
 }
 

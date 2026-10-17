@@ -119,6 +119,7 @@ bool FGridSkillsPageService::TryBuildCharacterView(UGridPartyInventoryComponent*
 		SkillView.bCanIncreaseRank =
 			FRPGSkillPointService::GetNextRankPurchaseAvailability(Character, Definition) ==
 			ERPGSkillPointMutationRejectReason::None;
+		if (!SkillView.IsValid()) return false;
 		Candidate.Skills.Add(MoveTemp(SkillView));
 	}
 
@@ -133,6 +134,7 @@ bool FGridSkillsPageService::TryBuildCharacterView(UGridPartyInventoryComponent*
 	}
 
 	if (!GridSkillsPageServicePrivate::BuildTalentTree(PartyInventoryComponent, CharacterIndex, Character, *ClassDefinition, Candidate.TalentTree)) return false;
+	if (!Candidate.IsValid()) return false;
 	OutView = MoveTemp(Candidate);
 	return true;
 }

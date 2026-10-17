@@ -75,6 +75,12 @@ bool FRPGSKILL01DerivedBalanceTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Spent points equal sum of ranks"), Balance.SpentPoints, 3);
 	TestEqual(TEXT("Unspent points are derived"), Balance.RemainingPoints, 5);
 	TestEqual(TEXT("Level five current rank cap"), Balance.RankCap, 3);
+
+	SetRank(Character, A, 4);
+	TestFalse(
+		TEXT("A persisted rank above the level cap invalidates the derived balance"),
+		FRPGSkillPointService::TryGetBalance(Character, Balance));
+	TestEqual(TEXT("Rejected balance is reset atomically"), Balance.RankCap, 0);
 	return true;
 }
 

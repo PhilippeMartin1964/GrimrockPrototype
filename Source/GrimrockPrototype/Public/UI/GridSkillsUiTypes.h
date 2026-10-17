@@ -65,6 +65,32 @@ struct GRIMROCKPROTOTYPE_API FGridSkillEntryView
 	/** Session-only undo availability, supplied by UGridSkillsWidget. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	bool bCanDecreaseRank = false;
+
+	bool IsValid() const
+	{
+		if (SkillId.IsNone() ||
+			MaxRank < 1 ||
+			CurrentRankCap < 1 ||
+			CurrentRankCap > MaxRank ||
+			Rank < 0 ||
+			Rank > CurrentRankCap ||
+			bTrained != (Rank > 0))
+		{
+			return false;
+		}
+
+		if (bCanIncreaseRank && (Rank >= MaxRank || Rank >= CurrentRankCap))
+		{
+			return false;
+		}
+
+		if (bCanDecreaseRank && Rank <= 0)
+		{
+			return false;
+		}
+
+		return true;
+	}
 };
 
 
@@ -215,6 +241,7 @@ struct GRIMROCKPROTOTYPE_API FGridSkillDetailView
 			Rank > MaxRank ||
 			CurrentRankCap < 1 ||
 			CurrentRankCap > MaxRank ||
+			Rank > CurrentRankCap ||
 			RemainingSkillPoints < 0)
 		{
 			return false;
@@ -243,7 +270,7 @@ struct GRIMROCKPROTOTYPE_API FGridSkillDetailView
 		}
 
 		const bool bExpectedAtSkillMaxRank = Rank >= MaxRank;
-		const bool bExpectedAtCurrentRankCap = Rank >= CurrentRankCap;
+		const bool bExpectedAtCurrentRankCap = Rank == CurrentRankCap;
 		if (bAtSkillMaxRank != bExpectedAtSkillMaxRank ||
 			bAtCurrentRankCap != bExpectedAtCurrentRankCap)
 		{
@@ -749,6 +776,32 @@ struct GRIMROCKPROTOTYPE_API FGridSkillsPageView
 
 	bool IsValid() const
 	{
-		return CharacterIndex != INDEX_NONE && CharacterId.IsValid();
+		if (CharacterIndex < 0 ||
+			!CharacterId.IsValid() ||
+			CharacterLevel < 1 ||
+			ClassId.IsNone() ||
+			GrantedSkillPoints < 0 ||
+			SpentSkillPoints < 0 ||
+			RemainingSkillPoints < 0 ||
+			SpentSkillPoints > GrantedSkillPoints ||
+			RemainingSkillPoints != GrantedSkillPoints - SpentSkillPoints ||
+			SkillRankCap < 1)
+		{
+			return false;
+		}
+
+		TSet<FName> SeenSkillIds;
+		for (const FGridSkillEntryView& Skill : Skills)
+		{
+			if (!Skill.IsValid() ||
+				SeenSkillIds.Contains(Skill.SkillId) ||
+				Skill.CurrentRankCap != FMath::Min(Skill.MaxRank, SkillRankCap))
+			{
+				return false;
+			}
+			SeenSkillIds.Add(Skill.SkillId);
+		}
+
+		return true;
 	}
 };
