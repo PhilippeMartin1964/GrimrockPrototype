@@ -37,18 +37,12 @@ namespace
 
 	FRPGClassPresentationDefinition MakeClass(
 		FName ClassId,
-		const FLinearColor& Primary,
-		const FLinearColor& Secondary,
 		const FLinearColor& Accent,
-		const FLinearColor& Glow,
 		TArray<FRPGTalentBranchPresentationDefinition> Branches)
 	{
 		FRPGClassPresentationDefinition ClassPresentation;
 		ClassPresentation.ClassId = ClassId;
-		ClassPresentation.PrimaryColor = Primary;
-		ClassPresentation.SecondaryColor = Secondary;
 		ClassPresentation.AccentColor = Accent;
-		ClassPresentation.GlowColor = Glow;
 		ClassPresentation.Branches = MoveTemp(Branches);
 		return ClassPresentation;
 	}
@@ -76,7 +70,7 @@ void FUIRPGTalentPresentationAuthoring::ConfigureCatalog(URPGTalentPresentationA
 
 	Catalog.Classes.Add(MakeClass(
 		TEXT("Warrior"),
-		Color(0.42f, 0.07f, 0.05f), Color(0.34f, 0.24f, 0.12f), Color(0.72f, 0.48f, 0.16f), Color(0.86f, 0.62f, 0.24f),
+		Color(0.72f, 0.48f, 0.16f),
 		{
 			MakeBranch(TEXT("Guardian"), Color(0.72f, 0.52f, 0.18f)),
 			MakeBranch(TEXT("Breaker"), Color(0.72f, 0.20f, 0.10f)),
@@ -91,7 +85,7 @@ void FUIRPGTalentPresentationAuthoring::ConfigureCatalog(URPGTalentPresentationA
 
 	Catalog.Classes.Add(MakeClass(
 		TEXT("Rogue"),
-		Color(0.08f, 0.08f, 0.09f), Color(0.32f, 0.32f, 0.35f), Color(0.34f, 0.12f, 0.46f), Color(0.48f, 0.22f, 0.68f),
+		Color(0.34f, 0.12f, 0.46f),
 		{
 			MakeBranch(TEXT("Assassin"), Color(0.66f, 0.68f, 0.72f)),
 			MakeBranch(TEXT("Shadow"), Color(0.38f, 0.18f, 0.52f)),
@@ -100,7 +94,7 @@ void FUIRPGTalentPresentationAuthoring::ConfigureCatalog(URPGTalentPresentationA
 
 	Catalog.Classes.Add(MakeClass(
 		TEXT("Ranger"),
-		Color(0.12f, 0.28f, 0.12f), Color(0.34f, 0.22f, 0.10f), Color(0.68f, 0.42f, 0.10f), Color(0.76f, 0.58f, 0.20f),
+		Color(0.68f, 0.42f, 0.10f),
 		{
 			MakeBranch(TEXT("Marksman"), Color(0.32f, 0.48f, 0.16f)),
 			MakeBranch(
@@ -115,7 +109,7 @@ void FUIRPGTalentPresentationAuthoring::ConfigureCatalog(URPGTalentPresentationA
 
 	Catalog.Classes.Add(MakeClass(
 		TEXT("Mage"),
-		Color(0.06f, 0.14f, 0.34f), Color(0.06f, 0.46f, 0.62f), Color(0.34f, 0.12f, 0.62f), Color(0.46f, 0.34f, 0.92f),
+		Color(0.34f, 0.12f, 0.62f),
 		{
 			MakeBranch(
 				TEXT("Evoker"),
@@ -136,7 +130,7 @@ void FUIRPGTalentPresentationAuthoring::ConfigureCatalog(URPGTalentPresentationA
 
 	Catalog.Classes.Add(MakeClass(
 		TEXT("Priest"),
-		Color(0.82f, 0.78f, 0.64f), Color(0.76f, 0.54f, 0.16f), Color(0.42f, 0.58f, 0.72f), Color(0.92f, 0.78f, 0.34f),
+		Color(0.42f, 0.58f, 0.72f),
 		{
 			MakeBranch(TEXT("Restoration"), Color(0.90f, 0.68f, 0.30f)),
 			MakeBranch(TEXT("Protection"), Color(0.48f, 0.64f, 0.78f)),
@@ -145,7 +139,7 @@ void FUIRPGTalentPresentationAuthoring::ConfigureCatalog(URPGTalentPresentationA
 
 	Catalog.Classes.Add(MakeClass(
 		TEXT("Alchemist"),
-		Color(0.46f, 0.20f, 0.08f), Color(0.72f, 0.42f, 0.08f), Color(0.12f, 0.48f, 0.20f), Color(0.34f, 0.82f, 0.28f),
+		Color(0.12f, 0.48f, 0.20f),
 		{
 			MakeBranch(TEXT("Grenadier"), Color(0.82f, 0.34f, 0.08f)),
 			MakeBranch(TEXT("Apothecary"), Color(0.30f, 0.62f, 0.22f)),

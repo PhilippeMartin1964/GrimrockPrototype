@@ -1,7 +1,7 @@
 # UI-RPG-TALENT-CODE-AUDIT02.7 — Split oversized Skills/Talents sources
 
 Date : 17 octobre 2026  
-Statut : **IMPLÉMENTÉ — EN ATTENTE DE VALIDATION LOCALE**
+Statut : **VALIDÉ — 17 octobre 2026**
 
 ## Constat
 

@@ -59,6 +59,8 @@ Il n'existe donc ni `OwningClassId`, ni `SortIndex`, ni `OrderedBranchIds`.
 
 ### FRPGClassPresentationDefinition
 
+Contrat initial UI-RPG02.1 :
+
 ```text
 ClassId
 PortraitTexture
@@ -71,15 +73,30 @@ MotifTextures[]
 Branches[3]
 ```
 
+Depuis **UI-RPG-TALENT-CODE-AUDIT02.8**, les placeholders visuels jamais
+consommés ont été retirés. Le contrat courant est :
+
+```text
+ClassId
+AccentColor
+Branches[3]
+```
+
 ### FRPGTalentBranchPresentationDefinition
+
+Contrat courant après 02.8 :
 
 ```text
 TalentBranchId
 DisplayName
 ShortDescription
-BranchEmblemTexture
 AccentColor
+NodePresentationOverrides[]
 ```
+
+`ShortDescription` est conservé comme texte sérialisé intentionnel même s'il
+n'est pas encore affiché. `BranchEmblemTexture` a été retiré : les visuels de
+branche sont désormais portés par `URPGClassVisualAsset::TalentBranchVisuals`.
 
 ## Frontière d'autorité
 
@@ -122,13 +139,25 @@ Prêtre     : Restauration / Protection / Exorcisme
 Alchimiste : Grenadier / Apothicaire / Transmutateur
 ```
 
-## Textures
+## Textures — historique et autorité courante
 
-Les références utilisent des `TSoftObjectPtr<UTexture2D>`.
+UI-RPG02.1 avait prévu des références texture directement dans
+`DA_RPGTalentPresentation`. Cette partie du contrat a été superseded par
+`UI-RPG-VISUAL01` puis nettoyée en 02.8.
 
-Elles sont volontairement facultatives dans `IsValidDefinition()` pendant UI-RPG02.1 : le contrat peut être validé avant que les 24+ assets graphiques finaux aient été importés.
+L'autorité visuelle courante est :
 
-UI-RPG02.2 imposera la couverture structurelle de production. Les validations de contenu graphique final pourront être renforcées progressivement sans bloquer le WBP.
+```text
+DA_ClassVisual_*
+    ClassIcon
+    Banner
+    Flag
+    TalentBranchVisuals
+    TalentNodeVisuals
+    TalentVariantVisuals
+```
+
+`DA_RPGTalentPresentation` ne contient donc plus de texture.
 
 ## Tests
 

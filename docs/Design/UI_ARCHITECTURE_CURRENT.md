@@ -418,7 +418,7 @@ Config/DefaultGame.ini
 d'état et le tint du nœud. Le WBP conserve son fallback Designer si la
 configuration est absente ou invalide.
 
-### UI-RPG-TALENT-CODE-AUDIT02.7 — split des gros fichiers Skills/Talents — EN ATTENTE DE VALIDATION
+### UI-RPG-TALENT-CODE-AUDIT02.7 — split des gros fichiers Skills/Talents — VALIDÉ
 
 Le découpage est purement mécanique : aucune signature publique et aucun
 comportement gameplay/UI ne changent.
@@ -449,6 +449,42 @@ GridSkillsPageServiceTalentDetail.cpp
 Les helpers partagés du service Talent sont déclarés uniquement dans
 `Private/UI/GridSkillsPageServiceInternal.h`; aucune nouvelle API publique
 n'est introduite.
+
+### UI-RPG-TALENT-CODE-AUDIT02.8 — dead/obsolete Talent presentation data audit — EN ATTENTE DE VALIDATION
+
+L'audit du contrat `URPGTalentPresentationAsset` distingue maintenant
+explicitement texte/ordre/accent encore utiles des anciens placeholders visuels.
+
+```text
+CONSERVÉ — vivant
+ClassId
+Class AccentColor
+Branches[3]
+Branch TalentBranchId
+Branch DisplayName
+Branch AccentColor
+NodePresentationOverrides
+
+CONSERVÉ — intentionnel
+Branch ShortDescription
+    -> texte sérialisé préservé par l'authoring
+    -> non affiché aujourd'hui, mais reste une donnée de contenu
+
+SUPPRIMÉ — obsolète
+PortraitTexture
+ClassEmblemTexture
+PrimaryColor
+SecondaryColor
+GlowColor
+MotifTextures
+BranchEmblemTexture
+```
+
+Les textures et illustrations Talent sont désormais sous l'autorité
+`URPGClassVisualAsset` (`ClassIcon / Banner / Flag / TalentBranchVisuals /
+TalentNodeVisuals / TalentVariantVisuals`). Les palettes supprimées n'avaient
+plus aucun consommateur runtime ; seul `Class.AccentColor` reste utilisé dans
+l'écran Skills/Talents.
 
 ### UI-SKILLS-AFFINITY01 — affinité compétence / classe — VALIDÉ / CLOS
 

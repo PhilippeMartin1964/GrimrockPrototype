@@ -117,20 +117,20 @@ URPGTalentPresentationAsset
 └── Classes[]
     └── FRPGClassPresentationDefinition
         ├── ClassId
-        ├── portrait / emblème / palette / motifs
+        ├── AccentColor
         └── Branches[3]
             └── FRPGTalentBranchPresentationDefinition
                 ├── TalentBranchId
                 ├── DisplayName / ShortDescription
-                ├── BranchEmblemTexture
-                └── AccentColor
+                ├── AccentColor
+                └── NodePresentationOverrides[]
 ```
 
 L'ordre de `Branches[3]` est directement gauche / centre / droite. Cette forme évite de dupliquer `OwningClassId`, `SortIndex` ou `OrderedBranchIds`.
 
 La couche de présentation ne contient aucun coût, niveau, prérequis, choix acquis, calcul de disponibilité ou transaction.
 
-Les données de nœud individuelles restent volontairement hors de UI-RPG02.1 : leurs noms/descriptions viennent déjà des `ProgressionChoices`; les icônes de talents pourront être ajoutées ultérieurement si la production graphique le justifie.
+Les nœuds simples continuent de tirer leur texte des `ProgressionChoices`. Les quatre familles conceptuelles à variantes utilisent les `NodePresentationOverrides`. Les textures/icônes ont depuis été déplacées vers `URPGClassVisualAsset` et ne font plus partie de `URPGTalentPresentationAsset` après CODE-AUDIT02.8.
 
 Après UI-RPG02.2 (catalogue de production minimal), **UI-RPG03.1 crée le vrai écran WBP Talent Tree**.
 

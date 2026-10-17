@@ -4,8 +4,6 @@
 #include "Engine/DataAsset.h"
 #include "RPGTalentPresentationAsset.generated.h"
 
-class UTexture2D;
-
 /**
  * Sparse presentation metadata for one conceptual Talent node.
  * Simple one-choice nodes deliberately need no override: their text comes from
@@ -24,7 +22,6 @@ struct GRIMROCKPROTOTYPE_API FRPGTalentNodePresentationDefinition
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation", meta = (MultiLine = "true"))
 	FText Description;
-
 
 	bool IsValidDefinition() const;
 };
@@ -46,9 +43,6 @@ struct GRIMROCKPROTOTYPE_API FRPGTalentBranchPresentationDefinition
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation", meta = (MultiLine = "true"))
 	FText ShortDescription;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
-	TSoftObjectPtr<UTexture2D> BranchEmblemTexture;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
 	FLinearColor AccentColor = FLinearColor::White;
@@ -74,25 +68,7 @@ struct GRIMROCKPROTOTYPE_API FRPGClassPresentationDefinition
 	FName ClassId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
-	TSoftObjectPtr<UTexture2D> PortraitTexture;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
-	TSoftObjectPtr<UTexture2D> ClassEmblemTexture;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
-	FLinearColor PrimaryColor = FLinearColor::White;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
-	FLinearColor SecondaryColor = FLinearColor::White;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
 	FLinearColor AccentColor = FLinearColor::White;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
-	FLinearColor GlowColor = FLinearColor::White;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
-	TArray<TSoftObjectPtr<UTexture2D>> MotifTextures;
 
 	/** Canonical visual order: index 0 = left, 1 = center, 2 = right. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation", meta = (TitleProperty = "TalentBranchId"))

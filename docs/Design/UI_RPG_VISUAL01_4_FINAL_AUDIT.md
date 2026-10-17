@@ -148,12 +148,15 @@ DA_Class_*
 
 DA_RPGTalentPresentation
     -> ordre des branches
+    -> DisplayName / ShortDescription des branches
+    -> AccentColor classe / branches
     -> noms/principes conceptuels des 4 familles à variantes
 
 DA_ClassVisual_*
     -> ClassIcon / Banner / Flag
-    -> 3 backgrounds
+    -> 3 backgrounds / images de détail
     -> 15 Talent icons
+    -> icônes de variantes
 
 DA_RPGTalentDetailGlyphSet
     -> glyphes sémantiques communs
