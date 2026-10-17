@@ -290,7 +290,7 @@ bool FGridUIEventHUD0110ProductionWbpTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Production Event Feed derives from UGridEventFeedWidget"),
 		FeedClass->IsChildOf(UGridEventFeedWidget::StaticClass()));
 	TestNotEqual(TEXT("Production Event Feed is not the native base class"), FeedClass, UGridEventFeedWidget::StaticClass());
-	TestNotNull(TEXT("Production Event Feed is an authored generated class"), FeedClass->ClassGeneratedBy);
+	TestTrue(TEXT("Production Event Feed is an authored generated class"), FeedClass->ClassGeneratedBy.Get() != nullptr);
 
 	const UGridPersistentHudWidget* PersistentDefaults =
 		Cast<UGridPersistentHudWidget>(PersistentHudClass->GetDefaultObject());
