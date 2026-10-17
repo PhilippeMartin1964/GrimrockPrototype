@@ -274,10 +274,15 @@ bool FUILOCALIZATION022FullGameGatherContractTest::RunTest(const FString&)
 	FString SkillDetailSource;
 	if (LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/UI/GridSkillDetailWidget.cpp"), SkillDetailSource, *this))
 	{
-		TestTrue(TEXT("Skill detail static labels read ST_UI vocabulary"), SkillDetailSource.Contains(TEXT("FUILocalizationText::Get")));
-		TestTrue(TEXT("Skill detail uses shared UI section vocabulary"), SkillDetailSource.Contains(TEXT("UI.Section.Usage")));
-		TestTrue(TEXT("Skill detail references the centralized rank label"), SkillDetailSource.Contains(TEXT("Skill.Check.Rank")));
-		TestTrue(TEXT("Skill detail references the centralized attribute modifier label"), SkillDetailSource.Contains(TEXT("Skill.Check.AttributeModifier")));
+		TestTrue(TEXT("Skill detail dynamic vocabulary still resolves through ST_UI"), SkillDetailSource.Contains(TEXT("FUILocalizationText::Get")));
+		TestTrue(TEXT("Skill detail keeps the dynamic localized rank format"), SkillDetailSource.Contains(TEXT("Skill.Rank.Format")));
+		TestTrue(TEXT("Skill detail keeps localized dynamic attribute names"), SkillDetailSource.Contains(TEXT("CharacterCreation.Attribute.Dexterity")));
+
+		// UI-TEXT-DIRECT01 moved static Skill-detail labels to direct WBP -> ST_UI
+		// ownership. These keys must stay in UI.csv, but must not be re-owned by C++.
+		TestFalse(TEXT("Skill detail shared Usage label is Designer-owned"), SkillDetailSource.Contains(TEXT("UI.Section.Usage")));
+		TestFalse(TEXT("Skill detail Check rank label is Designer-owned"), SkillDetailSource.Contains(TEXT("Skill.Check.Rank")));
+		TestFalse(TEXT("Skill detail attribute modifier label is Designer-owned"), SkillDetailSource.Contains(TEXT("Skill.Check.AttributeModifier")));
 	}
 
 	FString MaterializedManifest;
