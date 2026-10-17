@@ -4,6 +4,7 @@
 
 #include <initializer_list>
 
+#include "Internationalization/Internationalization.h"
 #include "UI/GridSkillsWidget.h"
 #include "UObject/UnrealType.h"
 
@@ -13,7 +14,8 @@ namespace UISKILLSSORT01Tests
 		const TCHAR* SkillId,
 		const TCHAR* DisplayName,
 		ERPGSkillGoverningAttribute Attribute,
-		int32 Rank)
+		int32 Rank,
+		EGridSkillClassAffinity Affinity = EGridSkillClassAffinity::Neutral)
 	{
 		FGridSkillEntryView Entry;
 		Entry.SkillId = FName(SkillId);
@@ -24,6 +26,7 @@ namespace UISKILLSSORT01Tests
 		Entry.CurrentRankCap = 5;
 		Entry.bTrained = Rank > 0;
 		Entry.bAllowUntrainedChecks = true;
+		Entry.ClassAffinity = Affinity;
 		return Entry;
 	}
 
@@ -53,6 +56,23 @@ namespace UISKILLSSORT01Tests
 			++Index;
 		}
 	}
+
+	struct FCultureStateGuard
+	{
+		FCultureStateGuard()
+			: Internationalization(FInternationalization::Get())
+		{
+			Internationalization.BackupCultureState(Snapshot);
+		}
+
+		~FCultureStateGuard()
+		{
+			Internationalization.RestoreCultureState(Snapshot);
+		}
+
+		FInternationalization& Internationalization;
+		FInternationalization::FCultureStateSnapshot Snapshot;
+	};
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
@@ -74,6 +94,29 @@ bool FUISKILLSSORT01NameSortingTest::RunTest(const FString&)
 	ExpectOrder(*this, Entries,
 		{ TEXT("Skill_Shield"), TEXT("Skill_HeavyWeapons"), TEXT("Skill_Alchemy"), TEXT("Skill_Acrobatics") },
 		TEXT("Name descending"));
+
+	FCultureStateGuard CultureGuard;
+	const bool bFrenchCultureAvailable =
+		CultureGuard.Internationalization.SetCurrentCulture(TEXT("fr"));
+	TestTrue(TEXT("French culture is available for localized collation"), bFrenchCultureAvailable);
+	if (!bFrenchCultureAvailable)
+	{
+		return false;
+	}
+
+	TArray<FGridSkillEntryView> AccentedEntries = {
+		MakeEntry(TEXT("Skill_Zoology"), TEXT("Zoologie"), ERPGSkillGoverningAttribute::Intelligence, 0),
+		MakeEntry(TEXT("Skill_Evasion"), TEXT("Évasion"), ERPGSkillGoverningAttribute::Dexterity, 0)
+	};
+	UGridSkillsWidget::SortSkillEntries(
+		AccentedEntries,
+		EGridSkillSortColumn::Name,
+		EGridSkillSortDirection::Ascending);
+	ExpectOrder(
+		*this,
+		AccentedEntries,
+		{ TEXT("Skill_Evasion"), TEXT("Skill_Zoology") },
+		TEXT("French collation keeps accented E with E before Z"));
 	return true;
 }
 
@@ -96,6 +139,57 @@ bool FUISKILLSSORT01AttributeSortingTest::RunTest(const FString&)
 	ExpectOrder(*this, Entries,
 		{ TEXT("Skill_Alchemy"), TEXT("Skill_HeavyWeapons"), TEXT("Skill_Acrobatics"), TEXT("Skill_Shield") },
 		TEXT("Attribute descending uses localized labels"));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUISKILLSSORT01AffinitySortingTest,
+	"Grimrock.UI.Skills02.Sort.Affinity",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUISKILLSSORT01AffinitySortingTest::RunTest(const FString&)
+{
+	using namespace UISKILLSSORT01Tests;
+
+	TArray<FGridSkillEntryView> Entries = {
+		MakeEntry(TEXT("Skill_Neutral"), TEXT("Neutre"), ERPGSkillGoverningAttribute::Wisdom, 0, EGridSkillClassAffinity::Neutral),
+		MakeEntry(TEXT("Skill_UsefulB"), TEXT("B utile"), ERPGSkillGoverningAttribute::Wisdom, 0, EGridSkillClassAffinity::Useful),
+		MakeEntry(TEXT("Skill_Discouraged"), TEXT("Déconseillée"), ERPGSkillGoverningAttribute::Wisdom, 0, EGridSkillClassAffinity::Discouraged),
+		MakeEntry(TEXT("Skill_Recommended"), TEXT("Recommandée"), ERPGSkillGoverningAttribute::Wisdom, 0, EGridSkillClassAffinity::Recommended),
+		MakeEntry(TEXT("Skill_UsefulA"), TEXT("A utile"), ERPGSkillGoverningAttribute::Wisdom, 0, EGridSkillClassAffinity::Useful)
+	};
+
+	UGridSkillsWidget::SortSkillEntries(
+		Entries,
+		EGridSkillSortColumn::Affinity,
+		EGridSkillSortDirection::Ascending);
+	ExpectOrder(
+		*this,
+		Entries,
+		{
+			TEXT("Skill_Recommended"),
+			TEXT("Skill_UsefulA"),
+			TEXT("Skill_UsefulB"),
+			TEXT("Skill_Neutral"),
+			TEXT("Skill_Discouraged")
+		},
+		TEXT("Affinity ascending uses semantic priority and localized name tie-break"));
+
+	UGridSkillsWidget::SortSkillEntries(
+		Entries,
+		EGridSkillSortColumn::Affinity,
+		EGridSkillSortDirection::Descending);
+	ExpectOrder(
+		*this,
+		Entries,
+		{
+			TEXT("Skill_Discouraged"),
+			TEXT("Skill_Neutral"),
+			TEXT("Skill_UsefulA"),
+			TEXT("Skill_UsefulB"),
+			TEXT("Skill_Recommended")
+		},
+		TEXT("Affinity descending reverses semantic priority but keeps name ties ascending"));
 	return true;
 }
 

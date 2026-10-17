@@ -9,6 +9,7 @@
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Engine/Texture2D.h"
+#include "Internationalization/TextComparison.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassVisualAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -41,19 +42,53 @@ namespace GridSkillsWidgetPrivate
 		return FText::Format(Pattern, Arguments);
 	}
 
+	int32 NormalizeComparison(int32 Comparison)
+	{
+		return Comparison < 0 ? -1 : (Comparison > 0 ? 1 : 0);
+	}
+
+	int32 CompareLocalizedText(const FText& Left, const FText& Right)
+	{
+		return NormalizeComparison(
+			FTextComparison::CompareToCaseIgnored(Left.ToString(), Right.ToString()));
+	}
+
 	int32 CompareSkillNames(const FGridSkillEntryView& Left, const FGridSkillEntryView& Right)
 	{
-		const FString LeftName = UGridSkillEntryWidget::ResolveDisplayName(Left).ToString();
-		const FString RightName = UGridSkillEntryWidget::ResolveDisplayName(Right).ToString();
-		const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
+		const int32 NameComparison =
+			CompareLocalizedText(
+				UGridSkillEntryWidget::ResolveDisplayName(Left),
+				UGridSkillEntryWidget::ResolveDisplayName(Right));
 		if (NameComparison != 0)
 		{
 			return NameComparison;
 		}
-		return Left.SkillId.ToString().Compare(Right.SkillId.ToString(), ESearchCase::CaseSensitive);
+
+		// Technical identity is only the deterministic final tie-breaker.
+		return NormalizeComparison(
+			Left.SkillId.ToString().Compare(
+				Right.SkillId.ToString(),
+				ESearchCase::CaseSensitive));
 	}
 
-	int32 CompareSkillEntries(
+	int32 GetAffinitySortPriority(EGridSkillClassAffinity Affinity)
+	{
+		switch (Affinity)
+		{
+			case EGridSkillClassAffinity::Recommended:
+				return 0;
+			case EGridSkillClassAffinity::Useful:
+				return 1;
+			case EGridSkillClassAffinity::Neutral:
+				return 2;
+			case EGridSkillClassAffinity::Discouraged:
+				return 3;
+			default:
+				return 4;
+		}
+	}
+
+	int32 ComparePrimaryColumn(
 		const FGridSkillEntryView& Left,
 		const FGridSkillEntryView& Right,
 		EGridSkillSortColumn Column)
@@ -61,35 +96,44 @@ namespace GridSkillsWidgetPrivate
 		switch (Column)
 		{
 			case EGridSkillSortColumn::Attribute:
-			{
-				const FString LeftAttribute = UGridSkillEntryWidget::ResolveAttributeLabel(Left).ToString();
-				const FString RightAttribute = UGridSkillEntryWidget::ResolveAttributeLabel(Right).ToString();
-				const int32 AttributeComparison = LeftAttribute.Compare(RightAttribute, ESearchCase::IgnoreCase);
-				if (AttributeComparison != 0)
-				{
-					return AttributeComparison;
-				}
-				return CompareSkillNames(Left, Right);
-			}
+				return CompareLocalizedText(
+					UGridSkillEntryWidget::ResolveAttributeLabel(Left),
+					UGridSkillEntryWidget::ResolveAttributeLabel(Right));
 
 			case EGridSkillSortColumn::Affinity:
-				if (Left.ClassAffinity != Right.ClassAffinity)
-				{
-					return static_cast<uint8>(Left.ClassAffinity) < static_cast<uint8>(Right.ClassAffinity) ? -1 : 1;
-				}
-				return CompareSkillNames(Left, Right);
+			{
+				const int32 LeftPriority = GetAffinitySortPriority(Left.ClassAffinity);
+				const int32 RightPriority = GetAffinitySortPriority(Right.ClassAffinity);
+				return LeftPriority < RightPriority ? -1 : (LeftPriority > RightPriority ? 1 : 0);
+			}
 
 			case EGridSkillSortColumn::Rank:
-				if (Left.Rank != Right.Rank)
-				{
-					return Left.Rank < Right.Rank ? -1 : 1;
-				}
-				return CompareSkillNames(Left, Right);
+				return Left.Rank < Right.Rank ? -1 : (Left.Rank > Right.Rank ? 1 : 0);
 
 			case EGridSkillSortColumn::Name:
 			default:
 				return CompareSkillNames(Left, Right);
 		}
+	}
+
+	int32 CompareSkillEntries(
+		const FGridSkillEntryView& Left,
+		const FGridSkillEntryView& Right,
+		EGridSkillSortColumn Column,
+		EGridSkillSortDirection Direction)
+	{
+		const int32 PrimaryComparison = ComparePrimaryColumn(Left, Right, Column);
+		if (PrimaryComparison != 0)
+		{
+			return Direction == EGridSkillSortDirection::Ascending
+				? PrimaryComparison
+				: -PrimaryComparison;
+		}
+
+		// Non-name ties stay alphabetic in both directions.
+		return Column == EGridSkillSortColumn::Name
+			? 0
+			: CompareSkillNames(Left, Right);
 	}
 }
 
@@ -335,55 +379,13 @@ void UGridSkillsWidget::SortSkillEntries(
 	InOutEntries.Sort(
 		[Column, Direction](const FGridSkillEntryView& Left, const FGridSkillEntryView& Right)
 		{
-			const int32 PrimaryComparison =
-				GridSkillsWidgetPrivate::CompareSkillEntries(Left, Right, Column);
-
-			if (Column == EGridSkillSortColumn::Name)
-			{
-				return Direction == EGridSkillSortDirection::Ascending
-					? PrimaryComparison < 0
-					: PrimaryComparison > 0;
-			}
-
-			int32 ColumnComparison = 0;
-			if (Column == EGridSkillSortColumn::Rank)
-			{
-				ColumnComparison = Left.Rank == Right.Rank
-					? 0
-					: (Left.Rank < Right.Rank ? -1 : 1);
-			}
-			else if (Column == EGridSkillSortColumn::Affinity)
-			{
-				const uint8 LeftAffinity = static_cast<uint8>(Left.ClassAffinity);
-				const uint8 RightAffinity = static_cast<uint8>(Right.ClassAffinity);
-				ColumnComparison =
-					LeftAffinity == RightAffinity
-						? 0
-						: (LeftAffinity < RightAffinity ? -1 : 1);
-			}
-			else
-			{
-				const FString LeftAttribute =
-					UGridSkillEntryWidget::ResolveAttributeLabel(Left).ToString();
-				const FString RightAttribute =
-					UGridSkillEntryWidget::ResolveAttributeLabel(Right).ToString();
-				ColumnComparison =
-					LeftAttribute.Compare(RightAttribute, ESearchCase::IgnoreCase);
-			}
-
-			if (ColumnComparison != 0)
-			{
-				return Direction == EGridSkillSortDirection::Ascending
-					? ColumnComparison < 0
-					: ColumnComparison > 0;
-			}
-
-			// Secondary ordering stays alphabetical in both directions so equal
-			// ranks/attributes never jump into a reverse-name sub-order.
-			return GridSkillsWidgetPrivate::CompareSkillNames(Left, Right) < 0;
+			return GridSkillsWidgetPrivate::CompareSkillEntries(
+				Left,
+				Right,
+				Column,
+				Direction) < 0;
 		});
 }
-
 void UGridSkillsWidget::SetSkillSort(
 	EGridSkillSortColumn Column,
 	EGridSkillSortDirection Direction)
