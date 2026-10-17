@@ -16,6 +16,7 @@
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridNavigationTooltipWidget.h"
 #include "UI/GridPartyPortraitHudWidget.h"
+#include "UI/GridPartyPortraitDragDropOperation.h"
 #include "UI/GridRPGNotificationWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/UILocalizationText.h"
@@ -160,6 +161,7 @@ void UGridPersistentHudWidget::RefreshPartyPortraits()
 				continue;
 			}
 
+			PortraitWidget->SetOwnerPersistentHudWidget(this);
 			PortraitWidget->OnPortraitClicked.AddUniqueDynamic(
 				this, &UGridPersistentHudWidget::HandlePartyPortraitClicked);
 			PortraitWidget->SetPortraitView(View);
@@ -176,6 +178,7 @@ void UGridPersistentHudWidget::RefreshPartyPortraits()
 
 	for (int32 Index = 0; Index < Views.Num(); ++Index)
 	{
+		PartyPortraitWidgets[Index]->SetOwnerPersistentHudWidget(this);
 		PartyPortraitWidgets[Index]->OnPortraitClicked.RemoveDynamic(
 			this, &UGridPersistentHudWidget::HandlePartyPortraitClicked);
 		PartyPortraitWidgets[Index]->OnPortraitClicked.AddUniqueDynamic(
@@ -206,6 +209,21 @@ bool UGridPersistentHudWidget::SelectPartyPortraitCharacter(FGuid CharacterId)
 	// character-scoped listeners have consumed the authoritative selection.
 	RefreshFromSources();
 	return true;
+}
+
+bool UGridPersistentHudWidget::HandlePartyPortraitDrop(
+	UGridPartyPortraitDragDropOperation* Operation,
+	FGuid TargetCharacterId,
+	bool bInsertAfter)
+{
+	if (!IsValid(InventoryComponent) || !IsValid(Operation) || !Operation->HasValidSource() ||
+		!TargetCharacterId.IsValid() || Operation->SourceCharacterId == TargetCharacterId)
+	{
+		return false;
+	}
+
+	return InventoryComponent->ReorderPartyPortrait(
+		Operation->SourceCharacterId, TargetCharacterId, bInsertAfter);
 }
 
 bool UGridPersistentHudWidget::ShowProgressionNotification(const FRPGProgressionNotificationView& Notification)

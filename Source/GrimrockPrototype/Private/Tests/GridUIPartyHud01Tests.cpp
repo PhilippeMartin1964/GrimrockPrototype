@@ -8,6 +8,8 @@
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridPartyPortraitHudWidget.h"
+#include "UI/GridPartyPortraitDragDropOperation.h"
+#include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridPersistentHudWidget.h"
 #include "UObject/UnrealType.h"
 
@@ -354,6 +356,91 @@ bool FGridPartyHud013CharacterSelectionTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Unknown CharacterId is rejected"), Hud->SelectPartyPortraitCharacter(MakeId(999)));
 	TestEqual(TEXT("Rejected selection preserves the selected runtime index"),
 		Inventory->GetSelectedCharacterIndex(), 1);
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud014DedicatedDragPayloadTest, "Grimrock.UI.PartyHud01.DedicatedPortraitDragPayload",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud014DedicatedDragPayloadTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridPartyPortraitHudWidget* Widget = NewObject<UGridPartyPortraitHudWidget>();
+	TestNull(TEXT("Portrait without stable identity cannot start a drag"), Widget->CreatePortraitDragDropOperation());
+
+	FGridPartyPortraitView View;
+	View.CharacterId = GridPartyHud01Tests::MakeId(70);
+	Widget->SetPortraitView(View);
+
+	UGridPartyPortraitDragDropOperation* Operation = Widget->CreatePortraitDragDropOperation();
+	if (!TestNotNull(TEXT("Valid portrait creates dedicated drag operation"), Operation))
+	{
+		return false;
+	}
+
+	TestTrue(TEXT("Portrait drag payload carries a valid stable identity"), Operation->HasValidSource());
+	TestEqual(TEXT("Portrait drag payload keeps source CharacterId"), Operation->SourceCharacterId, View.CharacterId);
+	TestFalse(TEXT("Portrait drag operation is distinct from inventory item drag"),
+		Operation->IsA(UGridInventoryDragDropOperation::StaticClass()));
+	TestTrue(TEXT("Upper half resolves insertion before"), !UGridPartyPortraitHudWidget::ResolveInsertAfter(24.0f, 100.0f));
+	TestTrue(TEXT("Lower half resolves insertion after"), UGridPartyPortraitHudWidget::ResolveInsertAfter(76.0f, 100.0f));
+	TestTrue(TEXT("Exact middle belongs to lower/after half"), UGridPartyPortraitHudWidget::ResolveInsertAfter(50.0f, 100.0f));
+	TestFalse(TEXT("Zero-height target never fabricates an after insertion"),
+		UGridPartyPortraitHudWidget::ResolveInsertAfter(10.0f, 0.0f));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud014PortraitDropReorderTest, "Grimrock.UI.PartyHud01.PortraitDropReorder",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud014PortraitDropReorderTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	using namespace GridPartyHud01Tests;
+
+	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	URPGClassAsset* ClassDefinition = MakeClass(Inventory, TEXT("PartyHudDrag"), 0, 0);
+	const FGuid A = MakeId(80);
+	const FGuid B = MakeId(81);
+	const FGuid C = MakeId(82);
+	Inventory->PartyInventoryState.ActiveCharacters.Add(MakeCharacter(A, ClassDefinition, 1, 1, 0, 0, 0, 0));
+	Inventory->PartyInventoryState.ActiveCharacters.Add(MakeCharacter(B, ClassDefinition, 1, 1, 0, 0, 0, 0));
+	Inventory->PartyInventoryState.ActiveCharacters.Add(MakeCharacter(C, ClassDefinition, 1, 1, 0, 0, 0, 0));
+	Inventory->PartyInventoryState.ActiveEquipment.SetNum(3);
+	Inventory->PartyInventoryState.SelectedCharacterIndex = 1;
+	Inventory->SanitizePartyPortraitOrder();
+
+	UGridPersistentHudWidget* Hud = NewObject<UGridPersistentHudWidget>();
+	Hud->InventoryComponent = Inventory;
+
+	UGridPartyPortraitDragDropOperation* DragC = NewObject<UGridPartyPortraitDragDropOperation>(Hud);
+	DragC->InitializeFromPortrait(C);
+	TestTrue(TEXT("Dropping C on upper half of A inserts C before A"),
+		Hud->HandlePartyPortraitDrop(DragC, A, false));
+	TestEqual(TEXT("Order[0] is C"), Inventory->PartyPortraitOrder[0], C);
+	TestEqual(TEXT("Order[1] is A"), Inventory->PartyPortraitOrder[1], A);
+	TestEqual(TEXT("Order[2] is B"), Inventory->PartyPortraitOrder[2], B);
+
+	UGridPartyPortraitDragDropOperation* DragCToAfterB = NewObject<UGridPartyPortraitDragDropOperation>(Hud);
+	DragCToAfterB->InitializeFromPortrait(C);
+	TestTrue(TEXT("Dropping C on lower half of B inserts C after B"),
+		Hud->HandlePartyPortraitDrop(DragCToAfterB, B, true));
+	TestEqual(TEXT("Order returns A first"), Inventory->PartyPortraitOrder[0], A);
+	TestEqual(TEXT("Order keeps B second"), Inventory->PartyPortraitOrder[1], B);
+	TestEqual(TEXT("Order moves C after B"), Inventory->PartyPortraitOrder[2], C);
+
+	TestEqual(TEXT("SelectedCharacterIndex remains runtime B"), Inventory->GetSelectedCharacterIndex(), 1);
+	TestEqual(TEXT("Runtime roster A index is unchanged"), Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId, A);
+	TestEqual(TEXT("Runtime roster B index is unchanged"), Inventory->PartyInventoryState.ActiveCharacters[1].CharacterId, B);
+	TestEqual(TEXT("Runtime roster C index is unchanged"), Inventory->PartyInventoryState.ActiveCharacters[2].CharacterId, C);
+	TestEqual(TEXT("ActiveEquipment count is unchanged"), Inventory->PartyInventoryState.ActiveEquipment.Num(), 3);
+
+	TestFalse(TEXT("Dropping a portrait onto itself is rejected"),
+		Hud->HandlePartyPortraitDrop(DragCToAfterB, C, false));
+	TestFalse(TEXT("Null portrait drag operation is rejected"),
+		Hud->HandlePartyPortraitDrop(nullptr, A, false));
 	return true;
 }
 

@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1 VALIDÉ — UI-PARTYHUD01.2 VALIDÉ / CLOS — UI-PARTYHUD01.3 VALIDÉ / CLOS**
+État courant : **UI-PARTYHUD01.1/.2/.3 VALIDÉS / CLOS — UI-PARTYHUD01.4 IMPLÉMENTÉ C++ / VALIDATION REQUISE**
 
 ## 1. Objectif général
 
@@ -1027,3 +1027,153 @@ Prochain sous-jalon :
 ```text
 UI-PARTYHUD01.4 — Portrait Drag Reorder
 ```
+
+
+## 35. UI-PARTYHUD01.4 — Portrait Drag Reorder
+
+### 35.1 Opération de drag dédiée
+
+UI-PARTYHUD01.4 introduit :
+
+```text
+UGridPartyPortraitDragDropOperation
+```
+
+Le payload contient uniquement :
+
+```text
+SourceCharacterId : FGuid
+```
+
+Il ne contient :
+
+```text
+aucun item
+aucun CursorItem
+aucun CharacterIndex persistant
+aucune donnée de combat
+```
+
+Il est donc strictement séparé de `UGridInventoryDragDropOperation` et de la hotbar.
+
+### 35.2 Détection du drag
+
+Le MouseDown de UI-PARTYHUD01.3 utilisait déjà `DetectDragIfPressed`.
+
+UI-PARTYHUD01.4 matérialise désormais l'opération dans `NativeOnDragDetected()` :
+
+```text
+portrait valide
+    -> UGridPartyPortraitDragDropOperation
+    -> SourceCharacterId
+    -> Pivot = MouseDown
+```
+
+Le clic est annulé dès que le drag est détecté.
+
+### 35.3 Drop avant / après
+
+Le portrait cible calcule la position locale verticale du pointeur :
+
+```text
+moitié supérieure -> insertion AVANT la cible
+moitié inférieure -> insertion APRÈS la cible
+milieu exact      -> APRÈS
+```
+
+Le choix est fourni par :
+
+```cpp
+UGridPartyPortraitHudWidget::ResolveInsertAfter()
+```
+
+Puis :
+
+```text
+UGridPartyPortraitHudWidget::NativeOnDrop
+    -> UGridPersistentHudWidget::HandlePartyPortraitDrop
+    -> UGridPartyInventoryComponent::ReorderPartyPortrait
+```
+
+### 35.4 Invariants
+
+La transaction modifie exclusivement :
+
+```text
+PartyPortraitOrder
+```
+
+Elle ne réordonne jamais :
+
+```text
+ActiveCharacters
+ActiveEquipment
+SelectedCharacterIndex
+inventaires
+skills
+talents
+spellbook
+états combat
+```
+
+Un drop sur le portrait source lui-même est rejeté.
+
+Un drop hors portrait ne possède aucune cible et ne modifie rien.
+
+### 35.5 Rafraîchissement
+
+`ReorderPartyPortrait()` utilise le chemin de notification existant :
+
+```text
+PartyPortraitOrder modifié
+    -> NotifyPartyInventoryChanged(INDEX_NONE)
+    -> OnPartyInventoryChanged
+    -> RefreshPartyPortraits()
+```
+
+Le Persistent HUD reconstruit alors le rail dans le nouvel ordre des `CharacterId`.
+
+### 35.6 UMG
+
+Aucune nouvelle modification de `WBP_PartyPortraitHud` n'est requise pour le fonctionnement de UI-PARTYHUD01.4.
+
+Le contrat UI-PARTYHUD01.2/.3 reste :
+
+```text
+Panel_PartyPortraits = Not Hit-Testable (Self Only)
+portrait runtime     = hit-testable
+contenu décoratif    = non bloquant
+```
+
+Un indicateur graphique explicite de ligne d'insertion n'est pas introduit dans ce sous-jalon ; la cible et la moitié de drop déterminent la transaction.
+
+### 35.7 Automation
+
+Deux tests supplémentaires :
+
+```text
+Grimrock.UI.PartyHud01.DedicatedPortraitDragPayload
+Grimrock.UI.PartyHud01.PortraitDropReorder
+```
+
+Le filtre contient désormais **10 tests** attendus.
+
+Validation :
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.PartyHud01"
+```
+
+PIE :
+
+```text
+avec au moins 2 portraits :
+- drag portrait 2 vers moitié haute du portrait 1 -> 2 passe avant 1
+- drag vers moitié basse -> insertion après
+- la sélection courante reste inchangée
+- un drag ne déclenche pas un clic parasite
+```
+
+UI-PARTYHUD01.4 sera clos après validation Automation et PIE.

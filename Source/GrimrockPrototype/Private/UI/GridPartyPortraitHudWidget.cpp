@@ -5,6 +5,8 @@
 #include "Components/Image.h"
 #include "Components/ProgressBar.h"
 #include "InputCoreTypes.h"
+#include "UI/GridPartyPortraitDragDropOperation.h"
+#include "UI/GridPersistentHudWidget.h"
 
 void UGridPartyPortraitHudWidget::SetPortraitView(const FGridPartyPortraitView& InView)
 {
@@ -33,6 +35,36 @@ bool UGridPartyPortraitHudWidget::RequestSelection()
 
 	OnPortraitClicked.Broadcast(View.CharacterId);
 	return true;
+}
+
+void UGridPartyPortraitHudWidget::SetOwnerPersistentHudWidget(UGridPersistentHudWidget* InOwnerPersistentHudWidget)
+{
+	OwningPersistentHudWidget = InOwnerPersistentHudWidget;
+}
+
+bool UGridPartyPortraitHudWidget::ResolveInsertAfter(float LocalY, float LocalHeight)
+{
+	return LocalHeight > KINDA_SMALL_NUMBER && LocalY >= LocalHeight * 0.5f;
+}
+
+UGridPartyPortraitDragDropOperation* UGridPartyPortraitHudWidget::CreatePortraitDragDropOperation()
+{
+	if (!View.CharacterId.IsValid())
+	{
+		return nullptr;
+	}
+
+	UGridPartyPortraitDragDropOperation* Operation =
+		NewObject<UGridPartyPortraitDragDropOperation>(this);
+	if (!Operation)
+	{
+		return nullptr;
+	}
+
+	Operation->InitializeFromPortrait(View.CharacterId);
+	Operation->DefaultDragVisual = nullptr;
+	Operation->Pivot = EDragPivot::MouseDown;
+	return Operation;
 }
 
 FReply UGridPartyPortraitHudWidget::NativeOnMouseButtonDown(
@@ -77,8 +109,29 @@ void UGridPartyPortraitHudWidget::NativeOnDragDetected(
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 	bDragDetected = true;
 	bLeftMousePressed = false;
-	OutOperation = nullptr;
-	// UI-PARTYHUD01.4 will create the dedicated portrait drag operation.
+	OutOperation = CreatePortraitDragDropOperation();
+}
+
+bool UGridPartyPortraitHudWidget::NativeOnDrop(
+	const FGeometry& InGeometry,
+	const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	UGridPartyPortraitDragDropOperation* Operation =
+		Cast<UGridPartyPortraitDragDropOperation>(InOperation);
+	if (!Operation || !Operation->HasValidSource() || !View.CharacterId.IsValid() ||
+		Operation->SourceCharacterId == View.CharacterId || !IsValid(OwningPersistentHudWidget))
+	{
+		return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
+	}
+
+	const FVector2D LocalPointerPosition =
+		InGeometry.AbsoluteToLocal(InDragDropEvent.GetScreenSpacePosition());
+	const bool bInsertAfter = ResolveInsertAfter(
+		LocalPointerPosition.Y, InGeometry.GetLocalSize().Y);
+
+	return OwningPersistentHudWidget->HandlePartyPortraitDrop(
+		Operation, View.CharacterId, bInsertAfter);
 }
 
 void UGridPartyPortraitHudWidget::RefreshPortraitVisual_Implementation()

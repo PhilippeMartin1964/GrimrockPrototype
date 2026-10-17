@@ -11,6 +11,7 @@ class UButton;
 class UGridCombatHudActionWidget;
 class UGridNavigationTooltipWidget;
 class UGridPartyInventoryComponent;
+class UGridPartyPortraitDragDropOperation;
 class UGridPartyPortraitHudWidget;
 class UGridRPGNotificationWidget;
 class UHorizontalBox;
@@ -133,6 +134,13 @@ public:
 	/** UI-PARTYHUD01.3 resolves stable identity then delegates to the existing SelectedCharacterIndex authority. */
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Party")
 	bool SelectPartyPortraitCharacter(FGuid CharacterId);
+
+	/** UI-PARTYHUD01.4 reorders presentation only; runtime roster/equipment/selection are never permuted. */
+	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Party|Drag")
+	bool HandlePartyPortraitDrop(
+		UGridPartyPortraitDragDropOperation* Operation,
+		FGuid TargetCharacterId,
+		bool bInsertAfter);
 
 	/** Returns false until the optional Designer notification surface is materialized. */
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Progression")

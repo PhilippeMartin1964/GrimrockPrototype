@@ -1153,3 +1153,10 @@ Le clic est validé au MouseUp uniquement si aucun drag n'a été détecté, ce 
 
 
 UI-PARTYHUD01.3 est **VALIDÉ / CLOS** : `Grimrock.UI.PartyHud01` = **8/8 Automation, 0 warning, 0 échec**, puis validation PIE du clic entre les deux portraits. Le portrait diffuse le `CharacterId` stable et le Persistent HUD délègue à `SetSelectedCharacterIndex()`.
+
+
+### UI-PARTYHUD01.4 — drag de l'ordre de présentation
+
+Le drag des portraits utilise `UGridPartyPortraitDragDropOperation`, distinct des opérations d'inventaire et de hotbar. Le payload transporte uniquement le `CharacterId` source. La moitié haute/basse de la cible détermine une insertion avant/après et délègue à `ReorderPartyPortrait()`.
+
+Seul `PartyPortraitOrder` est modifié ; le roster runtime, `ActiveEquipment` et `SelectedCharacterIndex` restent inchangés.

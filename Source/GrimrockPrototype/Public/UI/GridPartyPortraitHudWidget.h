@@ -9,6 +9,8 @@ class UBorder;
 class UImage;
 class UProgressBar;
 class UDragDropOperation;
+class UGridPartyPortraitDragDropOperation;
+class UGridPersistentHudWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridPartyPortraitClickedSignature, FGuid, CharacterId);
 
@@ -61,6 +63,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Party|Interaction")
 	bool RequestSelection();
 
+	/** Presentation router only. The Persistent HUD remains responsible for the authoritative reorder. */
+	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Party|Drag")
+	void SetOwnerPersistentHudWidget(UGridPersistentHudWidget* InOwnerPersistentHudWidget);
+
+	UFUNCTION(BlueprintPure, Category = "HUD|Persistent|Party|Drag")
+	static bool ResolveInsertAfter(float LocalY, float LocalHeight);
+
+	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Party|Drag")
+	UGridPartyPortraitDragDropOperation* CreatePortraitDragDropOperation();
+
 protected:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
@@ -68,6 +80,10 @@ protected:
 		const FGeometry& InGeometry,
 		const FPointerEvent& InMouseEvent,
 		UDragDropOperation*& OutOperation) override;
+	virtual bool NativeOnDrop(
+		const FGeometry& InGeometry,
+		const FDragDropEvent& InDragDropEvent,
+		UDragDropOperation* InOperation) override;
 
 public:
 	/** Optional Blueprint presentation hook; gameplay rules must stay outside UMG. */
@@ -75,6 +91,9 @@ public:
 	void RefreshPortraitVisual();
 
 private:
+	UPROPERTY(Transient)
+	TObjectPtr<UGridPersistentHudWidget> OwningPersistentHudWidget;
+
 	bool bLeftMousePressed = false;
 	bool bDragDetected = false;
 
