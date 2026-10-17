@@ -1173,3 +1173,6 @@ UI-PARTYHUD01.4 est **VALIDÉ / CLOS** : 10/10 Automation, reorder avant/après 
 `PartyPortraitOrder` reste transient dans `UGridPartyInventoryComponent`, mais une copie durable `TArray<FGuid>` est maintenant portée par `UGrimrockPartySaveGame`. Le schéma exact-match passe à **v25** sans migration v24 -> v25.
 
 Save : sanitize puis copie des ids. Load : restauration du roster, puis `RestorePartyPortraitOrder()` avec sanitization active-only/unique et notification du Persistent HUD.
+
+
+UI-PARTYHUD01.5 est **VALIDÉ / CLOS** : 13/13 sur `Grimrock.UI.PartyHud01`, puis 4/4 Map persistence, 8/8 LEVELUX01 et 4/4 SaveContract, sans warning ni échec. Le schéma courant reste **v25 exact-match**.

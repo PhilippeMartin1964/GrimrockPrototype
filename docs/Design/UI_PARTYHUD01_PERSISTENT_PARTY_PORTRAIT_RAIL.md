@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1/.2/.3/.4 VALIDÉS / CLOS — UI-PARTYHUD01.5 IMPLÉMENTÉ / VALIDATION REQUISE**
+État courant : **UI-PARTYHUD01.1/.2/.3/.4/.5 VALIDÉS / CLOS — UI-PARTYHUD01.6 EN COURS**
 
 ## 1. Objectif général
 
@@ -1371,3 +1371,55 @@ Validation PIE / Save-Continue :
 ```
 
 Aucune modification UMG n'est requise pour UI-PARTYHUD01.5.
+
+
+## 39. Validation finale UI-PARTYHUD01.5 — 17 octobre 2026
+
+Validation utilisateur reçue après implémentation du schéma **v25 exact-match**.
+
+### Filtre principal
+
+```text
+Grimrock.UI.PartyHud01
+Succeeded              : 13
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20261017-081236
+```
+
+### Régressions ciblées
+
+```text
+Grimrock.Map.MON21_6_5.Persistence
+Succeeded : 4
+Warnings  : 0
+Failed    : 0
+ExitCode  : 0
+Report    : Saved/Automation/TD04/TD04-20261017-081249
+
+Grimrock.RPG.LEVELUX01
+Succeeded : 8
+Warnings  : 0
+Failed    : 0
+ExitCode  : 0
+Report    : Saved/Automation/TD04/TD04-20261017-081303
+
+Grimrock.TechnicalDebt.TD07_3_2.SaveContract
+Succeeded : 4
+Warnings  : 0
+Failed    : 0
+ExitCode  : 0
+Report    : Saved/Automation/TD04/TD04-20261017-081324
+```
+
+Le Save/Load du rail est accepté comme validé par l'utilisateur.
+
+**UI-PARTYHUD01.5 est VALIDÉ et CLOS.**
+
+Prochain sous-jalon :
+
+```text
+UI-PARTYHUD01.6 — Tooltip
+```
