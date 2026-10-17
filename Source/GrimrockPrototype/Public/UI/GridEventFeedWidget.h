@@ -2,21 +2,25 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Runtime/GridEventFeedTypes.h"
 #include "GridEventFeedWidget.generated.h"
 
 class SBox;
 class SScrollBox;
+class SVerticalBox;
 class UBorder;
+class UButton;
+class UGridEventFeedSubsystem;
 class UScrollBox;
 class USizeBox;
+class UTextBlock;
 
 /**
- * EVENTHUD01.2 presentation shell.
+ * EVENTHUD01.3 Event Feed interaction shell.
  *
- * This step intentionally renders no event rows and no category controls.
- * EVENTHUD01.3 adds filter/resize interaction; later milestones bind producers.
- * A native Slate fallback keeps the shell usable before WBP_GridEventFeed is
- * authored in Unreal Editor.
+ * Owns presentation-only filtering, generic text projection, follow-newest
+ * scroll behaviour and vertical resizing. Gameplay authority and the bounded
+ * event history remain in UGridEventFeedSubsystem.
  */
 UCLASS(BlueprintType, Blueprintable)
 class GRIMROCKPROTOTYPE_API UGridEventFeedWidget : public UUserWidget
@@ -41,13 +45,38 @@ public:
 	UFUNCTION(BlueprintPure, Category = "HUD|Event Feed")
 	float GetMaxPanelHeight() const;
 
+	UFUNCTION(BlueprintCallable, Category = "HUD|Event Feed|Filters")
+	void SetCategoryEnabled(EGridHudEventCategory Category, bool bEnabled);
+
+	UFUNCTION(BlueprintCallable, Category = "HUD|Event Feed|Filters")
+	void ToggleCategory(EGridHudEventCategory Category);
+
+	UFUNCTION(BlueprintPure, Category = "HUD|Event Feed|Filters")
+	bool IsCategoryEnabled(EGridHudEventCategory Category) const;
+
+	/** Testable projection of the authoritative history. Never mutates SourceEntries. */
+	static void FilterEntries(
+		const TArray<FGridHudEventEntry>& SourceEntries,
+		bool bInShowEvents,
+		bool bInShowCombat,
+		bool bInShowDiscussion,
+		TArray<FGridHudEventEntry>& OutEntries);
+
 	static float ClampPanelHeight(float InHeight, float InMinHeight, float InMaxHeight);
+	static bool IsScrollAtEnd(float CurrentOffset, float EndOffset, float Tolerance = 8.0f);
+
+	/** Public deterministic resize primitives used by both native and authored handles. */
+	void BeginResizeAtScreenY(float ScreenY);
+	void UpdateResizeAtScreenY(float ScreenY);
+	void EndResize();
 
 	virtual void SynchronizeProperties() override;
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 public:
@@ -68,6 +97,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
 	FLinearColor ShellBackgroundColor = FLinearColor(0.015f, 0.02f, 0.025f, 0.82f);
 
+	/** EVENTHUD01.3 three independent filters, enabled by default. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Event Feed|Filters")
+	bool bShowEvents = true;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Event Feed|Filters")
+	bool bShowCombat = true;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Event Feed|Filters")
+	bool bShowDiscussion = true;
+
 	/** Optional WBP_GridEventFeed bindings. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
 	TObjectPtr<USizeBox> SizeBox_EventFeed;
@@ -78,12 +117,73 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
 	TObjectPtr<UScrollBox> ScrollBox_Entries;
 
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
+	TObjectPtr<UButton> Button_ResizeHandle;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
+	TObjectPtr<UButton> Button_FilterEvents;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
+	TObjectPtr<UButton> Button_FilterCombat;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
+	TObjectPtr<UButton> Button_FilterDiscussion;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
+	TObjectPtr<UTextBlock> Text_FilterEvents;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
+	TObjectPtr<UTextBlock> Text_FilterCombat;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
+	TObjectPtr<UTextBlock> Text_FilterDiscussion;
+
 private:
 	void SynchronizeShell();
+	void BindControls();
+	void UnbindControls();
+	void BindEventFeed();
+	void UnbindEventFeed();
+	void RebuildEntryPresentation(bool bForceScrollToEnd = false);
+	void ScrollPresentationToEnd();
+	float GetPresentationScrollOffset() const;
+	float GetPresentationScrollEndOffset() const;
+	FText BuildEntryText(const FGridHudEventEntry& Entry) const;
+	FText BuildFilterText(EGridHudEventCategory Category) const;
+	void HandleNativeUserScrolled(float CurrentOffset);
+	void BeginResizeFromCursor();
+
+	UFUNCTION()
+	void HandleFilterEventsClicked();
+
+	UFUNCTION()
+	void HandleFilterCombatClicked();
+
+	UFUNCTION()
+	void HandleFilterDiscussionClicked();
+
+	UFUNCTION()
+	void HandleResizePressed();
+
+	UFUNCTION()
+	void HandleResizeReleased();
+
+	UFUNCTION()
+	void HandleBlueprintUserScrolled(float CurrentOffset);
+
+	UFUNCTION()
+	void HandleEventPublished(const FGridHudEventEntry& Entry);
 
 	UPROPERTY(Transient)
 	float CurrentPanelHeight = 320.0f;
 
+	TWeakObjectPtr<UGridEventFeedSubsystem> EventFeedSubsystem;
+	bool bResizeDragging = false;
+	float ResizeStartScreenY = 0.0f;
+	float ResizeStartHeight = 320.0f;
+	bool bFollowNewestEntries = true;
+
 	TSharedPtr<SBox> NativeSizeBox;
 	TSharedPtr<SScrollBox> NativeScrollBox;
+	TSharedPtr<SVerticalBox> NativeEntryList;
 };
