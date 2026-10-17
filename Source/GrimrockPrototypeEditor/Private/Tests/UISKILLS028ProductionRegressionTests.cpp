@@ -136,6 +136,12 @@ bool FUISKILLS028ProductionRegressionTest::RunTest(const FString&)
 				*FString::Printf(TEXT("%s useful class %s resolves"), *SkillLabel, *ClassId.ToString()),
 				FRPGAuthoringIdentityResolver::ResolveClassById(ClassId));
 		}
+		for (const FName ClassId : Presentation.DiscouragedClassIds)
+		{
+			TestNotNull(
+				*FString::Printf(TEXT("%s discouraged class %s resolves"), *SkillLabel, *ClassId.ToString()),
+				FRPGAuthoringIdentityResolver::ResolveClassById(ClassId));
+		}
 		for (const FName SynergySkillId : Presentation.SynergySkillIds)
 		{
 			TestTrue(

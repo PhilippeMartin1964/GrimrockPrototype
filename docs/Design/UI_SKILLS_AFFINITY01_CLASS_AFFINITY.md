@@ -2,7 +2,7 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **01.2D CONTRAT UMG RESSERRÉ — validation finale requise**
+État : **01.3A AUDIT PRODUCTION OUVERT — matrice actuelle à extraire avant authoring**
 
 ## 1. Objectif
 
@@ -148,3 +148,30 @@ WBP_RPGSkillEntry
 
 Les images internes restent volontairement non liées au C++ : textures, nombre
 d’étoiles, couleurs et mise en page restent sous autorité UMG.
+
+
+## 9. UI-SKILLS-AFFINITY01.3A — audit de la matrice de production
+
+Avant d’authorer les `DiscouragedClassIds`, le commandlet read-only
+`SkillAffinityAudit` exporte l’état réel de `DA_RPGSkillPresentation` afin de
+ne pas inventer ou écraser les conseils Recommended / Useful existants.
+
+Sortie :
+
+~~~text
+Saved/SkillAffinity/UI-SKILLS-AFFINITY01.3A/SkillAffinityMatrix.csv
+~~~
+
+Colonnes :
+
+~~~text
+SkillId
+DisplayName
+RecommendedClassIds
+UsefulClassIds
+DiscouragedClassIds
+NeutralClassIds
+~~~
+
+Le commandlet vérifie les 25 Skills, les six classes canoniques et l’absence de
+chevauchement entre les trois groupes. Il ne modifie aucun `.uasset`.

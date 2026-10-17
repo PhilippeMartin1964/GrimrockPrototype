@@ -374,6 +374,10 @@ La matérialisation est maintenant versionnée : `Button_SortAffinity`,
 `BindWidget` obligatoires. Les images internes ne sont pas liées au C++ et
 restent entièrement sous autorité Designer.
 
+UI-SKILLS-AFFINITY01.3A ajoute un audit read-only de la matrice de production.
+Il exporte les 25 lignes Recommended / Useful / Discouraged / Neutral avant
+toute décision d’authoring des affinités déconseillées.
+
 Référence :
 `docs/Design/UI_SKILLS_AFFINITY01_CLASS_AFFINITY.md`.
 
