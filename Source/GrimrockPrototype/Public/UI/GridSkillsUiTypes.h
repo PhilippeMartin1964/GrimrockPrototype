@@ -544,6 +544,132 @@ struct GRIMROCKPROTOTYPE_API FGridTalentNodeView
 	TArray<FGridTalentVariantView> Variants;
 };
 
+/**
+ * Presentation-ready projection for the Talent detail panel.
+ *
+ * Unlike FGridTalentNodeView, this structure never carries tree topology or a
+ * Variants collection. ChoiceId identifies the concrete Choice being consulted;
+ * NAME_None is allowed only for a non-acquirable conceptual diagnostic view.
+ */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridTalentDetailView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI|Detail")
+	FName TalentNodeId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI|Detail")
+	FName TalentBranchId = NAME_None;
+
+	/** Concrete progression ChoiceId, or None for a conceptual non-acquirable view. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI|Detail")
+	FName ChoiceId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI|Detail")
+	FText DisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI|Detail")
+	EGridTalentNodeState State = EGridTalentNodeState::LockedPrerequisite;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI|Detail")
+	ERPGTalentPresentationType Type = ERPGTalentPresentationType::None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI|Detail")
+	FText Principle;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI|Detail")
+	TArray<FGridTalentDetailLineView> Effects;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI|Detail")
+	TArray<FGridTalentDetailLineView> Usage;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI|Detail")
+	FGridTalentAcquisitionView Acquisition;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI|Detail")
+	bool bCanAcquire = false;
+
+	bool IsValid() const
+	{
+		return !TalentNodeId.IsNone() &&
+			!TalentBranchId.IsNone() &&
+			!DisplayName.IsEmpty() &&
+			Type != ERPGTalentPresentationType::None &&
+			Acquisition.MinimumLevel >= 1 &&
+			Acquisition.PointCost >= 1 &&
+			(!bCanAcquire || (!ChoiceId.IsNone() && State == EGridTalentNodeState::Available));
+	}
+
+	/**
+	 * Projects one conceptual node or one concrete variant into the dedicated
+	 * detail shape. No tree-only state is copied into the result.
+	 */
+	static bool TryBuildFromNode(const FGridTalentNodeView& Node, FName RequestedChoiceId, FGridTalentDetailView& OutDetail)
+	{
+		OutDetail = FGridTalentDetailView();
+		if (Node.TalentNodeId.IsNone() || Node.TalentBranchId.IsNone())
+		{
+			return false;
+		}
+
+		OutDetail.TalentNodeId = Node.TalentNodeId;
+		OutDetail.TalentBranchId = Node.TalentBranchId;
+		OutDetail.Acquisition = Node.Acquisition;
+
+		if (!Node.bHasExclusiveVariants)
+		{
+			if (Node.SimpleChoiceId.IsNone() ||
+				(!RequestedChoiceId.IsNone() && RequestedChoiceId != Node.SimpleChoiceId))
+			{
+				return false;
+			}
+
+			OutDetail.ChoiceId = Node.SimpleChoiceId;
+			OutDetail.DisplayName = Node.DisplayName;
+			OutDetail.State = Node.State;
+			OutDetail.Type = Node.Type;
+			OutDetail.Principle = Node.Principle;
+			OutDetail.Effects = Node.Effects;
+			OutDetail.Usage = Node.Usage;
+			OutDetail.bCanAcquire = Node.bCanAcquireSimple && Node.State == EGridTalentNodeState::Available;
+			return OutDetail.IsValid();
+		}
+
+		if (RequestedChoiceId.IsNone())
+		{
+			OutDetail.DisplayName = Node.DisplayName;
+			OutDetail.State = Node.State;
+			OutDetail.Type = Node.Type;
+			OutDetail.Principle = Node.Principle;
+			OutDetail.Effects = Node.Effects;
+			OutDetail.Usage = Node.Usage;
+			OutDetail.bCanAcquire = false;
+			return OutDetail.IsValid();
+		}
+
+		const FGridTalentVariantView* Variant = Node.Variants.FindByPredicate(
+			[RequestedChoiceId](const FGridTalentVariantView& Candidate)
+			{
+				return Candidate.ChoiceId == RequestedChoiceId;
+			});
+		if (!Variant)
+		{
+			return false;
+		}
+
+		OutDetail.ChoiceId = Variant->ChoiceId;
+		OutDetail.DisplayName = Variant->DisplayName;
+		OutDetail.State = Variant->State;
+		OutDetail.Type = Variant->Type;
+		OutDetail.Principle = Variant->Principle;
+		OutDetail.Effects = Variant->Effects;
+		OutDetail.Usage = Variant->Usage;
+		OutDetail.bCanAcquire = Variant->bCanChoose && !Variant->bAcquired && Variant->State == EGridTalentNodeState::Available;
+		return OutDetail.IsValid();
+	}
+};
+
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridTalentBranchView
 {

@@ -257,7 +257,7 @@ private:
 
 	const FGridTalentNodeView* FindTalentNode(FName TalentNodeId) const;
 	UGridTalentNodeWidget* FindTalentNodeWidget(const FGridTalentNodeView& NodeView) const;
-	bool BuildSelectedTalentDetailView(FGridTalentNodeView& OutDetailNode) const;
+	bool BuildSelectedTalentDetailView(FGridTalentDetailView& OutDetailView) const;
 	bool OpenTalentVariantFlyout(FName TalentNodeId);
 	void CloseTalentVariantFlyout();
 	void ClearView();

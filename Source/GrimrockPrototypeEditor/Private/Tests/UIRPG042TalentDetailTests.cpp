@@ -52,10 +52,13 @@ bool FUIRPG042SimpleDetailTest::RunTest(const FString&)
 	Node.SimpleChoiceId = Node.TalentNodeId;
 	Node.bCanAcquireSimple = true;
 
+	FGridTalentDetailView TalentDetail;
+	TestTrue(TEXT("Simple node projects to dedicated detail"),
+		FGridTalentDetailView::TryBuildFromNode(Node, Node.SimpleChoiceId, TalentDetail));
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Simple detail initializes"), Detail->InitializeTalentDetail(Node, Branch));
+	TestTrue(TEXT("Simple detail initializes"), Detail->InitializeTalentDetail(TalentDetail, Branch));
 	TestEqual(TEXT("Simple detail reuses Choice display name"), Detail->ResolvedDisplayName.ToString(), FString(TEXT("Talent simple")));
-	TestEqual(TEXT("Detail keeps node cost"), Detail->NodeView.PointCost, 1);
+	TestEqual(TEXT("Detail keeps acquisition cost"), Detail->DetailView.Acquisition.PointCost, 1);
 	return true;
 }
 
@@ -77,10 +80,13 @@ bool FUIRPG042VariantDetailTest::RunTest(const FString&)
 	Node.Variants.Add(MakeVariant(TEXT("Choice_Piercing"), TEXT("Perforant")));
 	Node.Variants.Add(MakeVariant(TEXT("Choice_Bludgeoning"), TEXT("Contondant")));
 
+	FGridTalentDetailView TalentDetail;
+	TestTrue(TEXT("Conceptual variant node projects to dedicated detail"),
+		FGridTalentDetailView::TryBuildFromNode(Node, NAME_None, TalentDetail));
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Variant detail initializes from canonical conceptual projection"), Detail->InitializeTalentDetail(Node, Branch));
+	TestTrue(TEXT("Variant detail initializes from canonical conceptual projection"), Detail->InitializeTalentDetail(TalentDetail, Branch));
 	TestEqual(TEXT("Variant detail uses conceptual name"), Detail->ResolvedDisplayName.ToString(), FString(TEXT("Spécialisation martiale")));
-	TestEqual(TEXT("Variant detail preserves three choices"), Detail->NodeView.Variants.Num(), 3);
+	TestTrue(TEXT("Conceptual detail carries no concrete ChoiceId"), Detail->DetailView.ChoiceId.IsNone());
 	return true;
 }
 

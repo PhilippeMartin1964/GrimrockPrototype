@@ -101,24 +101,19 @@ void UGridTalentDetailWidget::UnbindAcquireButtons()
 }
 
 bool UGridTalentDetailWidget::InitializeTalentDetail(
-	const FGridTalentNodeView& InNodeView,
+	const FGridTalentDetailView& InDetailView,
 	const FRPGTalentBranchPresentationDefinition& InBranchPresentation)
 {
 	ClearTalentDetail();
 
-	if (InNodeView.TalentNodeId.IsNone() ||
-		InNodeView.TalentBranchId.IsNone() ||
-		InNodeView.TalentBranchId != InBranchPresentation.TalentBranchId ||
-		InNodeView.DisplayName.IsEmpty() ||
-		InNodeView.Type == ERPGTalentPresentationType::None ||
-		(InNodeView.bHasExclusiveVariants && InNodeView.Variants.Num() < 2) ||
-		(!InNodeView.bHasExclusiveVariants && !InNodeView.Variants.IsEmpty()))
+	if (!InDetailView.IsValid() ||
+		InDetailView.TalentBranchId != InBranchPresentation.TalentBranchId)
 	{
 		return false;
 	}
 
-	NodeView = InNodeView;
-	ResolvedDisplayName = NodeView.DisplayName;
+	DetailView = InDetailView;
+	ResolvedDisplayName = DetailView.DisplayName;
 	BranchAccentColor = InBranchPresentation.AccentColor;
 	bInitialized = true;
 	RefreshCanonicalSections();
@@ -144,7 +139,7 @@ void UGridTalentDetailWidget::SetTalentIcon(UTexture2D* IconTexture)
 
 void UGridTalentDetailWidget::ClearTalentDetail()
 {
-	NodeView = FGridTalentNodeView();
+	DetailView = FGridTalentDetailView();
 	ResolvedDisplayName = FText::GetEmpty();
 	ResolvedTypeText = FText::GetEmpty();
 	ResolvedStatusText = FText::GetEmpty();
@@ -217,10 +212,9 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 bool UGridTalentDetailWidget::CanRequestSimpleAcquisition() const
 {
 	return bInitialized &&
-		!NodeView.bHasExclusiveVariants &&
-		NodeView.State == EGridTalentNodeState::Available &&
-		NodeView.bCanAcquireSimple &&
-		!NodeView.SimpleChoiceId.IsNone();
+		DetailView.State == EGridTalentNodeState::Available &&
+		DetailView.bCanAcquire &&
+		!DetailView.ChoiceId.IsNone();
 }
 
 bool UGridTalentDetailWidget::BeginAcquireConfirmation()
@@ -239,7 +233,7 @@ bool UGridTalentDetailWidget::ConfirmAcquire()
 		return false;
 	}
 
-	const FName ChoiceId = NodeView.SimpleChoiceId;
+	const FName ChoiceId = DetailView.ChoiceId;
 	if (ChoiceId.IsNone())
 	{
 		return false;
@@ -347,17 +341,17 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 	AddNumberLine(
 		EGridTalentDetailLineSemantic::LevelRequirement,
 		TEXT("Talent.Detail.LevelRequirement"),
-		NodeView.Acquisition.MinimumLevel);
+		DetailView.Acquisition.MinimumLevel);
 
 	AddNumberLine(
 		EGridTalentDetailLineSemantic::TalentPointCost,
 		TEXT("Talent.Detail.TalentPointCost"),
-		NodeView.Acquisition.PointCost);
+		DetailView.Acquisition.PointCost);
 
-	if (!NodeView.Acquisition.PrerequisiteTalentNames.IsEmpty())
+	if (!DetailView.Acquisition.PrerequisiteTalentNames.IsEmpty())
 	{
 		TArray<FString> Names;
-		for (const FText& Name : NodeView.Acquisition.PrerequisiteTalentNames)
+		for (const FText& Name : DetailView.Acquisition.PrerequisiteTalentNames)
 		{
 			if (!Name.IsEmpty())
 			{
@@ -392,9 +386,9 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 	AddTextIdLine(
 		EGridTalentDetailLineSemantic::Exclusivity,
 		NAME_None,
-		NodeView.Acquisition.ExclusivityTextId);
+		DetailView.Acquisition.ExclusivityTextId);
 
-	const int32 RecipeCount = NodeView.Acquisition.GrantedRecipes.Num();
+	const int32 RecipeCount = DetailView.Acquisition.GrantedRecipes.Num();
 	for (int32 RecipeIndex = 0; RecipeIndex < RecipeCount; ++RecipeIndex)
 	{
 		const FName LabelTextId = RecipeIndex == 0
@@ -403,14 +397,14 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 		AddLine(
 			EGridTalentDetailLineSemantic::Recipe,
 			LabelTextId,
-			NodeView.Acquisition.GrantedRecipes[RecipeIndex].DisplayName);
+			DetailView.Acquisition.GrantedRecipes[RecipeIndex].DisplayName);
 	}
 }
 
 void UGridTalentDetailWidget::RebuildDetailLineRows()
 {
-	PopulateDetailLineRows(VB_DetailEffectsEntries, NodeView.Effects);
-	PopulateDetailLineRows(VB_DetailUsageEntries, NodeView.Usage);
+	PopulateDetailLineRows(VB_DetailEffectsEntries, DetailView.Effects);
+	PopulateDetailLineRows(VB_DetailUsageEntries, DetailView.Usage);
 
 	TArray<FGridTalentDetailLineView> AcquisitionLines;
 	BuildAcquisitionLines(AcquisitionLines);
@@ -419,9 +413,9 @@ void UGridTalentDetailWidget::RebuildDetailLineRows()
 
 void UGridTalentDetailWidget::RefreshCanonicalSections()
 {
-	ResolvedTypeText = FUILocalizationText::Get(TalentTypeTextId(NodeView.Type));
-	ResolvedStatusText = FUILocalizationText::Get(TalentStatusTextId(NodeView.State));
-	ResolvedPrincipleText = NodeView.Principle;
+	ResolvedTypeText = FUILocalizationText::Get(TalentTypeTextId(DetailView.Type));
+	ResolvedStatusText = FUILocalizationText::Get(TalentStatusTextId(DetailView.State));
+	ResolvedPrincipleText = DetailView.Principle;
 }
 
 void UGridTalentDetailWidget::ApplyDetailPresentation()

@@ -310,9 +310,13 @@ bool FUIRPGDESC016SixClassCanonicalSurfaceTest::RunTest(const FString&)
 				TestTrue(*FString::Printf(TEXT("%s has a positive Talent cost"), *Context),
 					Node.Acquisition.PointCost > 0);
 
+				FGridTalentDetailView TalentDetail;
+				const FName DetailChoiceId = Node.bHasExclusiveVariants ? NAME_None : Node.SimpleChoiceId;
+				TestTrue(*FString::Printf(TEXT("%s projects to the dedicated detail read-model"), *Context),
+					FGridTalentDetailView::TryBuildFromNode(Node, DetailChoiceId, TalentDetail));
 				UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 				TestTrue(*FString::Printf(TEXT("%s initializes the canonical detail presenter"), *Context),
-					Detail->InitializeTalentDetail(Node, *BranchPresentation));
+					Detail->InitializeTalentDetail(TalentDetail, *BranchPresentation));
 
 				if (Node.bHasExclusiveVariants)
 				{

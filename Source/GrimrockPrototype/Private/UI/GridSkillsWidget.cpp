@@ -693,50 +693,24 @@ bool UGridSkillsWidget::GetSelectedTalentNode(FGridTalentNodeView& OutNode) cons
 	return false;
 }
 
-bool UGridSkillsWidget::BuildSelectedTalentDetailView(FGridTalentNodeView& OutDetailNode) const
+bool UGridSkillsWidget::BuildSelectedTalentDetailView(FGridTalentDetailView& OutDetailView) const
 {
-	OutDetailNode = FGridTalentNodeView();
+	OutDetailView = FGridTalentDetailView();
 	const FGridTalentNodeView* Node = FindTalentNode(SelectedTalentNodeId);
 	if (!Node)
 	{
 		return false;
 	}
 
-	OutDetailNode = *Node;
-	if (!Node->bHasExclusiveVariants)
-	{
-		return true;
-	}
-
-	const FName ChoiceId =
-		!Node->SelectedChoiceId.IsNone() ? Node->SelectedChoiceId : SelectedTalentChoiceId;
-	if (ChoiceId.IsNone())
+	const FName ChoiceId = Node->bHasExclusiveVariants
+		? (!Node->SelectedChoiceId.IsNone() ? Node->SelectedChoiceId : SelectedTalentChoiceId)
+		: Node->SimpleChoiceId;
+	if (Node->bHasExclusiveVariants && ChoiceId.IsNone())
 	{
 		return false;
 	}
 
-	const FGridTalentVariantView* Variant = Node->Variants.FindByPredicate(
-		[ChoiceId](const FGridTalentVariantView& Candidate)
-		{
-			return Candidate.ChoiceId == ChoiceId;
-		});
-	if (!Variant)
-	{
-		return false;
-	}
-
-	OutDetailNode.DisplayName = Variant->DisplayName;
-	OutDetailNode.State = Variant->State;
-	OutDetailNode.Type = Variant->Type;
-	OutDetailNode.Principle = Variant->Principle;
-	OutDetailNode.Effects = Variant->Effects;
-	OutDetailNode.Usage = Variant->Usage;
-	OutDetailNode.SimpleChoiceId = Variant->ChoiceId;
-	OutDetailNode.bCanAcquireSimple = Variant->bCanChoose && !Variant->bAcquired;
-	OutDetailNode.bHasExclusiveVariants = false;
-	OutDetailNode.Variants.Reset();
-	OutDetailNode.SelectedChoiceId = Variant->bAcquired ? Variant->ChoiceId : NAME_None;
-	return true;
+	return FGridTalentDetailView::TryBuildFromNode(*Node, ChoiceId, OutDetailView);
 }
 
 bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFeedback)
@@ -1140,8 +1114,8 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 	}
 
 	FGridTalentNodeView ConceptNode;
-	FGridTalentNodeView DetailNode;
-	if (!GetSelectedTalentNode(ConceptNode) || !BuildSelectedTalentDetailView(DetailNode))
+	FGridTalentDetailView DetailView;
+	if (!GetSelectedTalentNode(ConceptNode) || !BuildSelectedTalentDetailView(DetailView))
 	{
 		Detail_Talent->ClearTalentDetail();
 		return;
@@ -1155,9 +1129,9 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 	}
 
 	const FRPGTalentBranchPresentationDefinition* BranchPresentation =
-		ClassPresentation.FindBranch(DetailNode.TalentBranchId);
+		ClassPresentation.FindBranch(DetailView.TalentBranchId);
 	if (!BranchPresentation ||
-		!Detail_Talent->InitializeTalentDetail(DetailNode, *BranchPresentation))
+		!Detail_Talent->InitializeTalentDetail(DetailView, *BranchPresentation))
 	{
 		Detail_Talent->ClearTalentDetail();
 		return;
@@ -1167,10 +1141,10 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 	UTexture2D* DetailPanelTexture = nullptr;
 	if (const URPGClassVisualAsset* ClassVisual = ResolveCurrentClassVisual())
 	{
-		if (ConceptNode.bHasExclusiveVariants && !DetailNode.SimpleChoiceId.IsNone())
+		if (ConceptNode.bHasExclusiveVariants && !DetailView.ChoiceId.IsNone())
 		{
 			if (const FRPGTalentVariantVisualDefinition* VariantVisual =
-				ClassVisual->FindTalentVariantVisual(DetailNode.SimpleChoiceId))
+				ClassVisual->FindTalentVariantVisual(DetailView.ChoiceId))
 			{
 				IconTexture = VariantVisual->Icon.LoadSynchronous();
 			}
@@ -1184,7 +1158,7 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 			}
 		}
 		if (const FRPGTalentBranchVisualDefinition* BranchVisual =
-			ClassVisual->FindTalentBranchVisual(DetailNode.TalentBranchId))
+			ClassVisual->FindTalentBranchVisual(DetailView.TalentBranchId))
 		{
 			DetailPanelTexture = BranchVisual->DetailPanelImage.LoadSynchronous();
 		}

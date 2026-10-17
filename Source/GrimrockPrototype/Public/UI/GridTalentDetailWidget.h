@@ -25,7 +25,7 @@ class GRIMROCKPROTOTYPE_API UGridTalentDetailWidget : public UUserWidget
 
 public:
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
-	FGridTalentNodeView NodeView;
+	FGridTalentDetailView DetailView;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedDisplayName;
@@ -53,7 +53,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Detail")
 	bool InitializeTalentDetail(
-		const FGridTalentNodeView& InNodeView,
+		const FGridTalentDetailView& InDetailView,
 		const FRPGTalentBranchPresentationDefinition& InBranchPresentation);
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Detail")

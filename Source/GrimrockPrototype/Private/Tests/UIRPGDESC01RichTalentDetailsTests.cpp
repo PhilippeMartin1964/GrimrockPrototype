@@ -293,19 +293,22 @@ bool FUIRPGDESC01CanonicalSimpleDetailTest::RunTest(const FString&)
 	Usage.Value = FText::FromString(TEXT("2 rounds"));
 	Node.Usage.Add(Usage);
 
+	FGridTalentDetailView TalentDetail;
+	TestTrue(TEXT("Canonical simple node projects to dedicated detail"),
+		FGridTalentDetailView::TryBuildFromNode(Node, Node.SimpleChoiceId, TalentDetail));
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Canonical simple detail initializes"),
-		Detail->InitializeTalentDetail(Node, UIRPGDESC01Tests::MakeBranch(Node.TalentBranchId)));
+		Detail->InitializeTalentDetail(TalentDetail, UIRPGDESC01Tests::MakeBranch(Node.TalentBranchId)));
 	TestEqual(TEXT("Name is canonical"), Detail->ResolvedDisplayName.ToString(), FString(TEXT("Talent simple")));
-	TestEqual(TEXT("TYPE semantic survives detail initialization"), Detail->NodeView.Type, ERPGTalentPresentationType::Active);
-	TestEqual(TEXT("STATUS semantic survives detail initialization"), Detail->NodeView.State, EGridTalentNodeState::Available);
+	TestEqual(TEXT("TYPE semantic survives detail initialization"), Detail->DetailView.Type, ERPGTalentPresentationType::Active);
+	TestEqual(TEXT("STATUS semantic survives detail initialization"), Detail->DetailView.State, EGridTalentNodeState::Available);
 	TestEqual(TEXT("PRINCIPE is independent"), Detail->ResolvedPrincipleText.ToString(), FString(TEXT("Principe canonique.")));
-	TestTrue(TEXT("EFFETS are canonical"), Detail->NodeView.Effects.ContainsByPredicate(
+	TestTrue(TEXT("EFFETS are canonical"), Detail->DetailView.Effects.ContainsByPredicate(
 		[](const FGridTalentDetailLineView& Line)
 		{
 			return Line.LabelTextId == TEXT("Test.Effect.Accuracy") && Line.Value.ToString() == TEXT("+2");
 		}));
-	TestTrue(TEXT("UTILISATION is canonical"), Detail->NodeView.Usage.ContainsByPredicate(
+	TestTrue(TEXT("UTILISATION is canonical"), Detail->DetailView.Usage.ContainsByPredicate(
 		[](const FGridTalentDetailLineView& Line)
 		{
 			return Line.LabelTextId == TEXT("Talent.Detail.Cooldown") && Line.Value.ToString() == TEXT("2 rounds");
@@ -324,17 +327,20 @@ bool FUIRPGDESC01CanonicalVariantDetailTest::RunTest(const FString&)
 	using namespace UIRPGDESC01Tests;
 	FGridTalentNodeView Node = MakeCanonicalVariantNode();
 
+	FGridTalentDetailView TalentDetail;
+	TestTrue(TEXT("Canonical conceptual variant projects to dedicated detail"),
+		FGridTalentDetailView::TryBuildFromNode(Node, NAME_None, TalentDetail));
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Canonical conceptual variant detail can initialize for diagnostics"),
-		Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId)));
+		Detail->InitializeTalentDetail(TalentDetail, MakeBranch(Node.TalentBranchId)));
 	TestFalse(TEXT("Conceptual multi-variant node is never directly acquirable in detail"),
 		Detail->CanRequestSimpleAcquisition());
 	TestFalse(TEXT("Conceptual multi-variant node cannot enter simple confirmation"),
 		Detail->BeginAcquireConfirmation());
 	TestFalse(TEXT("Conceptual multi-variant node cannot confirm acquisition"),
 		Detail->ConfirmAcquire());
-	TestEqual(TEXT("Conceptual variant payload remains intact"),
-		Detail->NodeView.Variants.Num(), Node.Variants.Num());
+	TestTrue(TEXT("Conceptual detail carries no concrete ChoiceId"),
+		Detail->DetailView.ChoiceId.IsNone());
 	return true;
 }
 
@@ -355,15 +361,18 @@ bool FUIRPGDESC01AcquiredVariantContractTest::RunTest(const FString&)
 	Node.Variants[1].bAcquired = true;
 	Node.Variants[1].bCanChoose = false;
 
+	FGridTalentDetailView TalentDetail;
+	TestTrue(TEXT("Acquired variant projects to dedicated detail"),
+		FGridTalentDetailView::TryBuildFromNode(Node, Node.SelectedChoiceId, TalentDetail));
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Acquired conceptual variant detail initializes for diagnostics"),
-		Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId)));
-	TestFalse(TEXT("Acquired conceptual variant is not directly acquirable in detail"),
+	TestTrue(TEXT("Acquired variant detail initializes"),
+		Detail->InitializeTalentDetail(TalentDetail, MakeBranch(Node.TalentBranchId)));
+	TestFalse(TEXT("Acquired variant is not directly acquirable in detail"),
 		Detail->CanRequestSimpleAcquisition());
-	TestFalse(TEXT("Acquired conceptual variant cannot enter confirmation"),
+	TestFalse(TEXT("Acquired variant cannot enter confirmation"),
 		Detail->BeginAcquireConfirmation());
-	TestEqual(TEXT("Selected acquired ChoiceId remains read-model authority"),
-		Detail->NodeView.SelectedChoiceId, FName(TEXT("Choice_Frost")));
+	TestEqual(TEXT("Selected acquired ChoiceId remains detail authority"),
+		Detail->DetailView.ChoiceId, FName(TEXT("Choice_Frost")));
 	return true;
 }
 
@@ -436,9 +445,12 @@ bool FUIRPGDESC01LockedVariantFlowTest::RunTest(const FString&)
 	using namespace UIRPGDESC01Tests;
 	FGridTalentNodeView Node = MakeCanonicalVariantNode(EGridTalentNodeState::LockedPoints);
 
+	FGridTalentDetailView TalentDetail;
+	TestTrue(TEXT("Locked conceptual variant projects to dedicated detail"),
+		FGridTalentDetailView::TryBuildFromNode(Node, NAME_None, TalentDetail));
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Locked conceptual variant node initializes for diagnostics"),
-		Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId)));
+		Detail->InitializeTalentDetail(TalentDetail, MakeBranch(Node.TalentBranchId)));
 	TestFalse(TEXT("Locked conceptual variant cannot begin simple purchase"),
 		Detail->BeginAcquireConfirmation());
 	TestFalse(TEXT("Locked conceptual variant cannot confirm purchase"),
@@ -755,54 +767,54 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 {
-	FGridTalentNodeView Node;
-	Node.TalentNodeId = TEXT("StaticSections");
-	Node.TalentBranchId = TEXT("StaticBranch");
-	Node.DisplayName = FText::FromString(TEXT("Talent statique"));
-	Node.Type = ERPGTalentPresentationType::ActiveSpell;
-	Node.State = EGridTalentNodeState::Available;
-	Node.Principle = FText::FromString(TEXT("Principe déjà résolu."));
-	Node.Acquisition.MinimumLevel = 3;
-	Node.Acquisition.PointCost = 2;
-	Node.Acquisition.PrerequisiteTalentNames.Add(FText::FromString(TEXT("Précurseur")));
-	Node.Acquisition.ExclusivityTextId = TEXT("Test.Acquisition.Exclusivity");
+	FGridTalentDetailView TalentDetail;
+	TalentDetail.TalentNodeId = TEXT("StaticSections");
+	TalentDetail.TalentBranchId = TEXT("StaticBranch");
+	TalentDetail.DisplayName = FText::FromString(TEXT("Talent statique"));
+	TalentDetail.Type = ERPGTalentPresentationType::ActiveSpell;
+	TalentDetail.State = EGridTalentNodeState::Available;
+	TalentDetail.Principle = FText::FromString(TEXT("Principe déjà résolu."));
+	TalentDetail.Acquisition.MinimumLevel = 3;
+	TalentDetail.Acquisition.PointCost = 2;
+	TalentDetail.Acquisition.PrerequisiteTalentNames.Add(FText::FromString(TEXT("Précurseur")));
+	TalentDetail.Acquisition.ExclusivityTextId = TEXT("Test.Acquisition.Exclusivity");
 
 	FGridTalentDetailLineView Effect;
 	Effect.LabelTextId = TEXT("Test.Effect.Damage");
 	Effect.Value = FText::FromString(TEXT("10"));
-	Node.Effects.Add(Effect);
+	TalentDetail.Effects.Add(Effect);
 	FGridTalentDetailLineView Usage;
 	Usage.Semantic = EGridTalentDetailLineSemantic::ManaCost;
 	Usage.LabelTextId = TEXT("Talent.Detail.ManaCost");
 	Usage.Value = FText::FromString(TEXT("5"));
-	Node.Usage.Add(Usage);
+	TalentDetail.Usage.Add(Usage);
 
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	const bool bInitialized =
-		Detail->InitializeTalentDetail(Node, UIRPGDESC01Tests::MakeBranch(Node.TalentBranchId));
+		Detail->InitializeTalentDetail(TalentDetail, UIRPGDESC01Tests::MakeBranch(TalentDetail.TalentBranchId));
 	TestTrue(TEXT("Static section detail initializes"), bInitialized);
 	if (!bInitialized)
 	{
 		return false;
 	}
-	TestEqual(TEXT("TYPE semantic is exposed independently"), Detail->NodeView.Type, ERPGTalentPresentationType::ActiveSpell);
-	TestEqual(TEXT("STATUS semantic is exposed independently"), Detail->NodeView.State, EGridTalentNodeState::Available);
+	TestEqual(TEXT("TYPE semantic is exposed independently"), Detail->DetailView.Type, ERPGTalentPresentationType::ActiveSpell);
+	TestEqual(TEXT("STATUS semantic is exposed independently"), Detail->DetailView.State, EGridTalentNodeState::Available);
 	TestEqual(TEXT("PRINCIPE is exposed independently"), Detail->ResolvedPrincipleText.ToString(), FString(TEXT("Principe déjà résolu.")));
-	TestEqual(TEXT("One EFFETS row remains structured"), Detail->NodeView.Effects.Num(), 1);
-	TestEqual(TEXT("One UTILISATION row remains structured"), Detail->NodeView.Usage.Num(), 1);
-	if (Detail->NodeView.Effects.Num() != 1 || Detail->NodeView.Usage.Num() != 1)
+	TestEqual(TEXT("One EFFETS row remains structured"), Detail->DetailView.Effects.Num(), 1);
+	TestEqual(TEXT("One UTILISATION row remains structured"), Detail->DetailView.Usage.Num(), 1);
+	if (Detail->DetailView.Effects.Num() != 1 || Detail->DetailView.Usage.Num() != 1)
 	{
 		return false;
 	}
-	TestEqual(TEXT("EFFETS remain structured"), Detail->NodeView.Effects[0].Value.ToString(), FString(TEXT("10")));
-	TestEqual(TEXT("UTILISATION remains structured"), Detail->NodeView.Usage[0].Value.ToString(), FString(TEXT("5")));
-	TestEqual(TEXT("ACQUISITION keeps canonical level"), Detail->NodeView.Acquisition.MinimumLevel, 3);
-	TestEqual(TEXT("ACQUISITION keeps canonical cost"), Detail->NodeView.Acquisition.PointCost, 2);
+	TestEqual(TEXT("EFFETS remain structured"), Detail->DetailView.Effects[0].Value.ToString(), FString(TEXT("10")));
+	TestEqual(TEXT("UTILISATION remains structured"), Detail->DetailView.Usage[0].Value.ToString(), FString(TEXT("5")));
+	TestEqual(TEXT("ACQUISITION keeps canonical level"), Detail->DetailView.Acquisition.MinimumLevel, 3);
+	TestEqual(TEXT("ACQUISITION keeps canonical cost"), Detail->DetailView.Acquisition.PointCost, 2);
 	TestTrue(TEXT("ACQUISITION keeps resolved prerequisite name"),
-		Detail->NodeView.Acquisition.PrerequisiteTalentNames.ContainsByPredicate(
+		Detail->DetailView.Acquisition.PrerequisiteTalentNames.ContainsByPredicate(
 			[](const FText& Value) { return Value.ToString() == TEXT("Précurseur"); }));
 	TestEqual(TEXT("ACQUISITION keeps exclusivity text identity"),
-		Detail->NodeView.Acquisition.ExclusivityTextId, FName(TEXT("Test.Acquisition.Exclusivity")));
+		Detail->DetailView.Acquisition.ExclusivityTextId, FName(TEXT("Test.Acquisition.Exclusivity")));
 
 	FGridTalentDetailLineView TargetLine;
 	TargetLine.Semantic = EGridTalentDetailLineSemantic::Target;
@@ -1110,10 +1122,13 @@ bool FUIRPGDESC01163EmptyInitialStateTest::RunTest(const FString&)
 	Node.Acquisition.MinimumLevel = 2;
 	Node.Acquisition.PointCost = 1;
 
+	FGridTalentDetailView TalentDetail;
+	TestTrue(TEXT("Temporary Talent projects to dedicated detail"),
+		FGridTalentDetailView::TryBuildFromNode(Node, Node.SimpleChoiceId, TalentDetail));
 	FRPGTalentBranchPresentationDefinition Branch;
 	Branch.TalentBranchId = Node.TalentBranchId;
 	TestTrue(TEXT("Temporary Talent initializes"),
-		Detail->InitializeTalentDetail(Node, Branch));
+		Detail->InitializeTalentDetail(TalentDetail, Branch));
 	TestTrue(TEXT("Initialized detail carries a name"), !Detail->ResolvedDisplayName.IsEmpty());
 
 	Detail->ClearTalentDetail();

@@ -343,6 +343,29 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
+### UI-RPG-TALENT-CODE-AUDIT02.4 — dedicated Talent detail read-model — EN ATTENTE DE VALIDATION
+
+Le panneau de détail Talent ne reçoit plus un `FGridTalentNodeView` transformé
+artificiellement pour représenter une variante. La frontière courante est :
+
+```text
+FGridTalentNodeView
+    -> arbre conceptuel / topologie / Variants[]
+    -> FGridTalentDetailView
+       -> TalentNodeId / TalentBranchId / ChoiceId
+       -> DisplayName / State / Type / Principle
+       -> Effects / Usage / Acquisition
+       -> bCanAcquire
+    -> UGridTalentDetailWidget
+```
+
+`FGridTalentDetailView` ne contient volontairement ni `Tier`,
+`PreviousNodeId`, `SelectedChoiceId`, `SimpleChoiceId`,
+`bHasExclusiveVariants` ni `Variants[]`. Le `ChoiceId` concret est la seule
+identité d'acquisition du panneau. Une vue conceptuelle sans ChoiceId reste
+possible pour diagnostic/read-only, mais elle n'est jamais acquirable.
+
+
 ### UI-SKILLS-AFFINITY01 — affinité compétence / classe — VALIDÉ / CLOS
 
 La liste Skills expose désormais une sémantique d’affinité entre chaque

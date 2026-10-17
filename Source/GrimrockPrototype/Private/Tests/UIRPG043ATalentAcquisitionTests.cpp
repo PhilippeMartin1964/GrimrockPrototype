@@ -57,13 +57,16 @@ bool FUIRPG043AConfirmationStateTest::RunTest(const FString&)
 	const FName BranchId(TEXT("Guardian"));
 	FGridTalentNodeView Node = MakeNode(TEXT("Talent_A"), BranchId, TEXT("Choice_A"));
 
+	FGridTalentDetailView TalentDetail;
+	TestTrue(TEXT("Simple node projects to dedicated detail"),
+		FGridTalentDetailView::TryBuildFromNode(Node, Node.SimpleChoiceId, TalentDetail));
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Detail initializes"), Detail->InitializeTalentDetail(Node, MakeBranch(BranchId)));
+	TestTrue(TEXT("Detail initializes"), Detail->InitializeTalentDetail(TalentDetail, MakeBranch(BranchId)));
 	TestTrue(TEXT("Available one-choice node can request acquisition"), Detail->CanRequestSimpleAcquisition());
 	TestTrue(TEXT("Acquire starts confirmation"), Detail->BeginAcquireConfirmation());
 	TestTrue(TEXT("Confirmation becomes pending"), Detail->bAcquireConfirmationPending);
 	TestTrue(TEXT("Reselecting the same Talent reinitializes detail"),
-		Detail->InitializeTalentDetail(Node, MakeBranch(BranchId)));
+		Detail->InitializeTalentDetail(TalentDetail, MakeBranch(BranchId)));
 	TestFalse(TEXT("Reselecting the Talent clears confirmation"), Detail->bAcquireConfirmationPending);
 	return true;
 }
@@ -89,8 +92,11 @@ bool FUIRPG043AVariantDeferredTest::RunTest(const FString&)
 
 	FRPGTalentBranchPresentationDefinition Branch = MakeBranch(BranchId);
 
+	FGridTalentDetailView TalentDetail;
+	TestTrue(TEXT("Conceptual variant node projects without carrying tree variants"),
+		FGridTalentDetailView::TryBuildFromNode(Node, NAME_None, TalentDetail));
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Variant detail initializes"), Detail->InitializeTalentDetail(Node, Branch));
+	TestTrue(TEXT("Variant detail initializes"), Detail->InitializeTalentDetail(TalentDetail, Branch));
 	TestFalse(TEXT("Multi-choice node is deferred to UI-RPG04.4"), Detail->CanRequestSimpleAcquisition());
 	TestFalse(TEXT("Variant node cannot enter simple confirmation"), Detail->BeginAcquireConfirmation());
 	return true;
