@@ -12,14 +12,18 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** RPG-LEVELUX01.3: legacy durable Level-Up acknowledgement state removed. */
-	static constexpr int32 CurrentSaveVersion = 24;
+	/** UI-PARTYHUD01.5: durable party portrait presentation order added. Exact-match, no backward migration. */
+	static constexpr int32 CurrentSaveVersion = 25;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	FGridPartyInventoryState PartyInventoryState;
+
+	/** UI-PARTYHUD01.5: presentation order keyed only by stable active-character identity. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|UI")
+	TArray<FGuid> PartyPortraitOrder;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	FGridDungeonRuntimeState DungeonRuntimeState;

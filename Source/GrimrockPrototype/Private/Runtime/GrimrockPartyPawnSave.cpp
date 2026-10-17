@@ -86,8 +86,11 @@ bool AGrimrockPartyPawn::SaveCurrentGame(FText& OutError)
 		return false;
 	}
 
+	PartyInventoryComponent->SanitizePartyPortraitOrder();
+
 	SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 	SaveGame->PartyInventoryState = PartyInventoryComponent->PartyInventoryState;
+	SaveGame->PartyPortraitOrder = PartyInventoryComponent->PartyPortraitOrder;
 	SaveGame->DungeonRuntimeState = LevelRuntimeActor->DungeonRuntimeState;
 	SaveGame->CurrentDungeonLevelId = LevelRuntimeActor->CurrentDungeonLevelId;
 	SaveGame->PartyCellX = CurrentCellX;
@@ -100,9 +103,9 @@ bool AGrimrockPartyPawn::SaveCurrentGame(FText& OutError)
 		return false;
 	}
 
-	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave Saved Slot=%s Version=%d Characters=%d KnownSpellCharacters=%d Cell=(%d,%d) Facing=%d"), *PartySaveSlotName,
-		SaveGame->SaveVersion, SaveGame->PartyInventoryState.ActiveCharacters.Num(), GridPartyPawnSaveCountKnownSpellCharacters(SaveGame->PartyInventoryState),
-		CurrentCellX, CurrentCellY, static_cast<int32>(Facing));
+	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave Saved Slot=%s Version=%d Characters=%d PortraitOrder=%d KnownSpellCharacters=%d Cell=(%d,%d) Facing=%d"), *PartySaveSlotName,
+		SaveGame->SaveVersion, SaveGame->PartyInventoryState.ActiveCharacters.Num(), SaveGame->PartyPortraitOrder.Num(),
+		GridPartyPawnSaveCountKnownSpellCharacters(SaveGame->PartyInventoryState), CurrentCellX, CurrentCellY, static_cast<int32>(Facing));
 	return true;
 }
 
@@ -160,6 +163,7 @@ bool AGrimrockPartyPawn::LoadCurrentGameData(FText& OutError, bool bApplyDungeon
 	}
 
 	const FGridPartyInventoryState PreviousPartyState = PartyInventoryComponent->PartyInventoryState;
+	const TArray<FGuid> PreviousPortraitOrder = PartyInventoryComponent->PartyPortraitOrder;
 	const FGridDungeonRuntimeState PreviousDungeonState = LevelRuntimeActor->DungeonRuntimeState;
 	const FName PreviousDungeonLevelId = LevelRuntimeActor->CurrentDungeonLevelId;
 	UGridLevelAsset* PreviousLevelAsset = LevelRuntimeActor->LevelAsset;
@@ -168,21 +172,25 @@ bool AGrimrockPartyPawn::LoadCurrentGameData(FText& OutError, bool bApplyDungeon
 	const EGridEdge PreviousFacing = Facing;
 
 	auto RestorePreviousState =
-		[this, &PreviousPartyState, &PreviousDungeonState, PreviousDungeonLevelId, PreviousLevelAsset, PreviousCellX, PreviousCellY, PreviousFacing]()
+		[this, &PreviousPartyState, &PreviousPortraitOrder, &PreviousDungeonState, PreviousDungeonLevelId, PreviousLevelAsset, PreviousCellX, PreviousCellY, PreviousFacing]()
 	{
 		PartyInventoryComponent->PartyInventoryState = PreviousPartyState;
+		PartyInventoryComponent->PartyPortraitOrder = PreviousPortraitOrder;
 		LevelRuntimeActor->DungeonRuntimeState = PreviousDungeonState;
 		LevelRuntimeActor->CurrentDungeonLevelId = PreviousDungeonLevelId;
 		LevelRuntimeActor->LevelAsset = PreviousLevelAsset;
 		CurrentCellX = PreviousCellX;
 		CurrentCellY = PreviousCellY;
 		Facing = PreviousFacing;
+		PartyInventoryComponent->NotifyPartyInventoryChanged(INDEX_NONE);
 	};
 
 	if (!PartyInventoryComponent->RestorePartyInventoryState(SaveGame->PartyInventoryState, OutError))
 	{
 		return false;
 	}
+
+	PartyInventoryComponent->RestorePartyPortraitOrder(SaveGame->PartyPortraitOrder);
 
 	if (bApplyDungeonState)
 	{
@@ -260,9 +268,10 @@ bool AGrimrockPartyPawn::LoadCurrentGame(FText& OutError)
 	{
 		MenuWidgetInstance->RefreshSpellbook();
 	}
+	RefreshPersistentHudWidget();
 
-
-	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave Loaded Slot=%s"), *PartySaveSlotName);
+	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave Loaded Slot=%s PortraitOrder=%d"), *PartySaveSlotName,
+		PartyInventoryComponent ? PartyInventoryComponent->PartyPortraitOrder.Num() : 0);
 	return true;
 }
 

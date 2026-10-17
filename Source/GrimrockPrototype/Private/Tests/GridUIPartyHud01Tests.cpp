@@ -1,12 +1,14 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Kismet/GameplayStatics.h"
 #include "Components/Border.h"
 #include "Components/Image.h"
 #include "Components/ProgressBar.h"
 #include "Components/VerticalBox.h"
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Save/GrimrockPartySaveGame.h"
 #include "UI/GridPartyPortraitHudWidget.h"
 #include "UI/GridPartyPortraitDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
@@ -441,6 +443,107 @@ bool FGridPartyHud014PortraitDropReorderTest::RunTest(const FString& Parameters)
 		Hud->HandlePartyPortraitDrop(DragCToAfterB, C, false));
 	TestFalse(TEXT("Null portrait drag operation is rejected"),
 		Hud->HandlePartyPortraitDrop(nullptr, A, false));
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud015SaveSchemaTest, "Grimrock.UI.PartyHud01.SaveSchemaV25",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud015SaveSchemaTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	TestEqual(TEXT("Party portrait persistence opens exact-match SaveGame v25"),
+		UGrimrockPartySaveGame::CurrentSaveVersion, 25);
+
+	const FProperty* OrderProperty =
+		UGrimrockPartySaveGame::StaticClass()->FindPropertyByName(TEXT("PartyPortraitOrder"));
+	if (TestNotNull(TEXT("SaveGame owns PartyPortraitOrder"), OrderProperty))
+	{
+		TestTrue(TEXT("PartyPortraitOrder is SaveGame-persistent"),
+			OrderProperty->HasAnyPropertyFlags(CPF_SaveGame));
+	}
+
+	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>();
+	Previous->SaveVersion = 24;
+	FText Error;
+	TestFalse(TEXT("Previous v24 is rejected without migration"), Previous->ValidateCurrentState(Error));
+	TestFalse(TEXT("Previous v24 is incompatible"), Previous->IsCompatible());
+	TestEqual(TEXT("Rejected v24 is never rewritten"), Previous->SaveVersion, 24);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud015SaveMemoryRoundTripTest, "Grimrock.UI.PartyHud01.SavePortraitOrderRoundTrip",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud015SaveMemoryRoundTripTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	const FGuid A = GridPartyHud01Tests::MakeId(90);
+	const FGuid B = GridPartyHud01Tests::MakeId(91);
+	const FGuid C = GridPartyHud01Tests::MakeId(92);
+
+	UGrimrockPartySaveGame* Source = NewObject<UGrimrockPartySaveGame>();
+	Source->PartyPortraitOrder = { C, A, B };
+
+	TArray<uint8> Bytes;
+	if (!TestTrue(TEXT("Current v25 SaveGame serializes portrait order"), UGameplayStatics::SaveGameToMemory(Source, Bytes)))
+	{
+		return false;
+	}
+
+	UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromMemory(Bytes));
+	if (!TestNotNull(TEXT("Serialized v25 SaveGame loads"), Loaded))
+	{
+		return false;
+	}
+
+	TestTrue(TEXT("Loaded v25 SaveGame is compatible"), Loaded->IsCompatible());
+	TestEqual(TEXT("Three persisted portrait ids survive"), Loaded->PartyPortraitOrder.Num(), 3);
+	if (Loaded->PartyPortraitOrder.Num() == 3)
+	{
+		TestEqual(TEXT("Persisted order[0] is C"), Loaded->PartyPortraitOrder[0], C);
+		TestEqual(TEXT("Persisted order[1] is A"), Loaded->PartyPortraitOrder[1], A);
+		TestEqual(TEXT("Persisted order[2] is B"), Loaded->PartyPortraitOrder[2], B);
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud015RestoreSanitizationTest, "Grimrock.UI.PartyHud01.RestorePortraitOrderSanitization",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud015RestoreSanitizationTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	using namespace GridPartyHud01Tests;
+
+	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	URPGClassAsset* ClassDefinition = MakeClass(Inventory, TEXT("PartyHudSaveRestore"), 0, 0);
+	const FGuid A = MakeId(100);
+	const FGuid B = MakeId(101);
+	const FGuid C = MakeId(102);
+	const FGuid Stale = MakeId(199);
+
+	Inventory->PartyInventoryState.ActiveCharacters.Add(MakeCharacter(A, ClassDefinition, 1, 1, 0, 0, 0, 0));
+	Inventory->PartyInventoryState.ActiveCharacters.Add(MakeCharacter(B, ClassDefinition, 1, 1, 0, 0, 0, 0));
+	Inventory->PartyInventoryState.ActiveCharacters.Add(MakeCharacter(C, ClassDefinition, 1, 1, 0, 0, 0, 0));
+	Inventory->PartyInventoryState.ActiveEquipment.SetNum(3);
+
+	Inventory->RestorePartyPortraitOrder({ C, FGuid(), C, Stale, A });
+
+	TestEqual(TEXT("Restored portrait order contains every active character exactly once"), Inventory->PartyPortraitOrder.Num(), 3);
+	TestEqual(TEXT("Valid persisted first id is preserved"), Inventory->PartyPortraitOrder[0], C);
+	TestEqual(TEXT("Valid persisted second id is preserved"), Inventory->PartyPortraitOrder[1], A);
+	TestEqual(TEXT("Missing active character is appended"), Inventory->PartyPortraitOrder[2], B);
+	TestFalse(TEXT("Stale persisted id is dropped"), Inventory->PartyPortraitOrder.Contains(Stale));
+
+	Inventory->RestorePartyPortraitOrder({});
+	TestEqual(TEXT("Missing persisted order recovers the active roster"), Inventory->PartyPortraitOrder.Num(), 3);
+	TestEqual(TEXT("Recovery uses runtime roster A first"), Inventory->PartyPortraitOrder[0], A);
+	TestEqual(TEXT("Recovery uses runtime roster B second"), Inventory->PartyPortraitOrder[1], B);
+	TestEqual(TEXT("Recovery uses runtime roster C third"), Inventory->PartyPortraitOrder[2], C);
 	return true;
 }
 

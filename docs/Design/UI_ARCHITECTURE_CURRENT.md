@@ -1093,7 +1093,7 @@ IsLevelUpModalOpen()
 GetPendingLevelUpNotificationCount()
 ```
 
-Le SaveGame courant est **v24 exact-match**. L'audit Automation du Content n'a
+Le SaveGame courant est **v25 exact-match** ; RPG-LEVELUX01 avait ouvert la baseline v24. L'audit Automation du Content n'a
 détecté aucune référence sérialisée aux anciens symboles Level-Up.
 
 
@@ -1119,7 +1119,7 @@ UGridCharacterSheetWidget
 ```
 
 Aucune monnaie Attribute Point n'est persistée. `Character.Attributes` reste
-l'autorité durable. Le SaveGame reste **v24 exact-match**.
+l'autorité durable. RPG-ATTR01 n'avait pas modifié le schéma ; le SaveGame courant est désormais **v25 exact-match** via UI-PARTYHUD01.5.
 
 Validation finale : **10/10 Automation, 0 warning, 0 échec, PIE validé**.
 
@@ -1166,3 +1166,10 @@ UI-PARTYHUD01.4 a passé **10/10 Automation** et son drag/reorder est validé en
 
 
 UI-PARTYHUD01.4 est **VALIDÉ / CLOS** : 10/10 Automation, reorder avant/après validé en PIE et correctif du double curseur validé. Le drag ne modifie que `PartyPortraitOrder`.
+
+
+### UI-PARTYHUD01.5 — persistance de l'ordre des portraits
+
+`PartyPortraitOrder` reste transient dans `UGridPartyInventoryComponent`, mais une copie durable `TArray<FGuid>` est maintenant portée par `UGrimrockPartySaveGame`. Le schéma exact-match passe à **v25** sans migration v24 -> v25.
+
+Save : sanitize puis copie des ids. Load : restauration du roster, puis `RestorePartyPortraitOrder()` avec sanitization active-only/unique et notification du Persistent HUD.

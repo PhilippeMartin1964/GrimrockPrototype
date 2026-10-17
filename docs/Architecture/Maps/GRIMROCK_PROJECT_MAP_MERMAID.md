@@ -16,7 +16,7 @@ flowchart LR
     ED --> LVL[UGridLevelAsset]
     LVL --> RTA[AGridLevelRuntimeActor]
     RTA --> STATE[Runtime State]
-    STATE --> SAVE[UGrimrockPartySaveGame\nv24 exact-match]
+    STATE --> SAVE[UGrimrockPartySaveGame\nv25 exact-match]
     SAVE --> RTA
 ```
 
@@ -212,14 +212,15 @@ flowchart TB
     ENG[Automatic Engagement] --> BEH
 ```
 
-## 12 — Save v24
+## 12 — Save v25
 
 ```mermaid
 flowchart TB
-    PARTY[FGridPartyInventoryState] --> SG[UGrimrockPartySaveGame v24]
+    PARTY[FGridPartyInventoryState] --> SG[UGrimrockPartySaveGame v25]
+    ORDER[PartyPortraitOrder / CharacterId] --> SG
     DUN[FGridDungeonRuntimeState] --> SG
     POS[Current Level + Party Cell/Facing] --> SG
-    SG --> CHECK{SaveVersion == 24}
+    SG --> CHECK{SaveVersion == 25}
     CHECK -- Yes --> VALID[ValidateCurrentState]
     VALID --> LOAD[Restore]
     CHECK -- No --> REJECT[Reject]
@@ -240,7 +241,7 @@ flowchart TB
 
     EXP --> LSTATE[FGridLevelRuntimeState::MapExploration]
     LSTATE --> DSTATE[FGridDungeonRuntimeState]
-    DSTATE --> SAVE[UGrimrockPartySaveGame v24]
+    DSTATE --> SAVE[UGrimrockPartySaveGame v25]
 
     DUN[UGridDungeonAsset<br/>LogicalPosition XYZ] --> READ[FGridMapReadModelBuilder]
     LEVEL --> READ

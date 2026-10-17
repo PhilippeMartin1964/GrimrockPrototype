@@ -1330,3 +1330,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   `FGridSkillsPageService -> FGridTalentTreeView`.
 - Les Skills joueur passent par `FRPGSkillPointService` ; aucune façade de
   mutation parallèle n'est conservée.
+
+
+---
+
+## 2026-10-17 — UI-PARTYHUD01.5 : persistance de l'ordre des portraits
+
+- `PartyPortraitOrder` est une préférence de présentation UI keyed uniquement par les `CharacterId` actifs.
+- L'ordre autoritaire gameplay de `ActiveCharacters` et `ActiveEquipment` n'est jamais réordonné.
+- Le runtime conserve `UGridPartyInventoryComponent::PartyPortraitOrder` comme donnée transient.
+- `UGrimrockPartySaveGame` persiste une copie `TArray<FGuid> PartyPortraitOrder`.
+- Le schéma exact-match passe de **v24 à v25**.
+- La v24 est rejetée ; aucune migration arrière n'est maintenue.
+- Au chargement, l'ordre sauvegardé est resanitisé : ids invalides/obsolètes/dupliqués supprimés, personnages actifs manquants ajoutés.
+- New Game efface explicitement l'ordre précédent.

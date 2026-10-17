@@ -313,18 +313,19 @@ UMG.
 
 ## 13. Save / Continue
 
-`UGrimrockPartySaveGame::CurrentSaveVersion = 24`.
+`UGrimrockPartySaveGame::CurrentSaveVersion = 25`.
 
 Contrat :
 
 ```text
-SaveVersion == 24 -> validate -> restore
-SaveVersion != 24 -> reject
+SaveVersion == 25 -> validate -> restore
+SaveVersion != 25 -> reject
 ```
 
 Enveloppe persistée :
 
 - `PartyInventoryState` ;
+- `PartyPortraitOrder` (ordre UI keyed by `CharacterId`) ;
 - `DungeonRuntimeState` ;
 - `CurrentDungeonLevelId` ;
 - position/facing du groupe.

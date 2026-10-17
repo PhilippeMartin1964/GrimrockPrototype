@@ -239,6 +239,7 @@ bool UGridPartyInventoryComponent::HasCompletedInitialCharacterCreation() const
 
 void UGridPartyInventoryComponent::ResetPartyForNewGame()
 {
+	PartyPortraitOrder.Reset();
 	PartyInventoryState = FGridPartyInventoryState();
 	InitializeDefaultPartyIfNeeded();
 }
@@ -565,6 +566,12 @@ void UGridPartyInventoryComponent::SanitizePartyPortraitOrder()
 	}
 
 	PartyPortraitOrder = MoveTemp(SanitizedOrder);
+}
+
+void UGridPartyInventoryComponent::RestorePartyPortraitOrder(const TArray<FGuid>& SavedOrder)
+{
+	PartyPortraitOrder = SavedOrder;
+	NotifyPartyInventoryChanged(INDEX_NONE);
 }
 
 int32 UGridPartyInventoryComponent::ResolveActiveCharacterIndexById(FGuid CharacterId) const

@@ -75,8 +75,7 @@ bool FGridMapART01PresentationOnlyTest::RunTest(const FString& Parameters)
 			Property && Property->HasAnyPropertyFlags(CPF_SaveGame));
 	}
 
-	TestEqual(TEXT("MAP-ART01 does not change exact-match SaveGame version"),
-		UGrimrockPartySaveGame::CurrentSaveVersion, 24);
+	TestTrue(TEXT("Historical Map/UI baseline remains valid on or beyond exact-match SaveGame v24"), UGrimrockPartySaveGame::CurrentSaveVersion >= 24);
 	return true;
 }
 

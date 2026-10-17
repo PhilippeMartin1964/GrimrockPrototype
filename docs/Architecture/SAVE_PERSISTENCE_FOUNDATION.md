@@ -2,7 +2,7 @@
 
 > **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
 >
-> `UGrimrockPartySaveGame::CurrentSaveVersion = 24`. Le prototype utilise un
+> `UGrimrockPartySaveGame::CurrentSaveVersion = 25`. Le prototype utilise un
 > contrat **exact-match** : aucune migration arrière n'est maintenue.
 
 ## 1. Principe
@@ -29,6 +29,7 @@ SaveGame
 ```text
 SaveVersion
 PartyInventoryState
+PartyPortraitOrder
 DungeonRuntimeState
 CurrentDungeonLevelId
 PartyCellX
@@ -39,11 +40,11 @@ PartyFacing
 Contrat :
 
 ```text
-SaveVersion == 24
+SaveVersion == 25
     -> ValidateCurrentState()
     -> restore
 
-SaveVersion != 24
+SaveVersion != 25
     -> reject
 ```
 
@@ -149,7 +150,7 @@ reconstruit à la demande.
 `UGridQuestSubsystem` possède actuellement un
 `FGridCampaignQuestRuntimeState` **transient**.
 
-Le Save v24 ne contient encore aucun snapshot Quest.
+Le Save v25 ne contient encore aucun snapshot Quest.
 
 Donc :
 
@@ -180,7 +181,7 @@ Ils ne sont pas répétés ici comme contrat actif.
 La seule version courante est :
 
 ```text
-v24 exact-match
+v25 exact-match
 ```
 
 ## 11. Invariants
@@ -193,3 +194,10 @@ v24 exact-match
 5. Le restore est fail-closed sur snapshot incohérent.
 6. UI/read models ne sont jamais persistés.
 7. Quest Persistence ne doit pas être déclarée terminée avant MON21.4.
+
+
+### Ordre UI du groupe
+
+Depuis UI-PARTYHUD01.5, `PartyPortraitOrder` est la préférence de présentation du rail persistée directement dans l'enveloppe Save. Elle est keyed by `CharacterId` et n'altère jamais l'ordre autoritaire de `PartyInventoryState.ActiveCharacters`.
+
+Au restore, l'ordre est resanitisé contre le roster actif ; une donnée UI manquante, dupliquée ou obsolète est réparée sans migration de schéma.

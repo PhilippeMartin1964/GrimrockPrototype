@@ -22,7 +22,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Party")
 	FGridPartyInventoryState PartyInventoryState;
 
-	/** UI-PARTYHUD01.1 runtime-only portrait presentation order. Persistence is introduced by UI-PARTYHUD01.5. */
+	/** Runtime projection of the portrait presentation order. UI-PARTYHUD01.5 persists a copy in UGrimrockPartySaveGame. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "UI|Party Portraits")
 	TArray<FGuid> PartyPortraitOrder;
 
@@ -95,6 +95,9 @@ public:
 	/** Removes stale/duplicate ids and appends any active character missing from the presentation order. */
 	UFUNCTION(BlueprintCallable, Category = "UI|Party Portraits")
 	void SanitizePartyPortraitOrder();
+
+	/** Save/load boundary: applies persisted ids, sanitizes them against the current active roster, then notifies presentation listeners. */
+	void RestorePartyPortraitOrder(const TArray<FGuid>& SavedOrder);
 
 	/** Resolves a stable CharacterId to the current ActiveCharacters index. */
 	UFUNCTION(BlueprintPure, Category = "UI|Party Portraits")

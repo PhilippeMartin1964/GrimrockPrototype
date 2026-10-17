@@ -292,12 +292,13 @@ bool FRPGLEVELUX01SaveSchemaV24Test::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestEqual(TEXT("Legacy Level-Up state removal opens exact-match SaveGame v24"),
-		UGrimrockPartySaveGame::CurrentSaveVersion, 24);
+	TestTrue(TEXT("Legacy Level-Up removal v24 baseline remains part of the current exact-match schema"),
+		UGrimrockPartySaveGame::CurrentSaveVersion >= 24);
 
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
-	TestEqual(TEXT("Fresh SaveGame defaults to v24"), Current->SaveVersion, 24);
-	TestTrue(TEXT("Fresh v24 SaveGame is compatible"), Current->IsCompatible());
+	TestEqual(TEXT("Fresh SaveGame defaults to the current schema"),
+		Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
+	TestTrue(TEXT("Fresh current-schema SaveGame is compatible"), Current->IsCompatible());
 
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>();
 	Previous->SaveVersion = 23;

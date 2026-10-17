@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1/.2/.3/.4 VALIDÉS / CLOS — UI-PARTYHUD01.5 EN COURS**
+État courant : **UI-PARTYHUD01.1/.2/.3/.4 VALIDÉS / CLOS — UI-PARTYHUD01.5 IMPLÉMENTÉ / VALIDATION REQUISE**
 
 ## 1. Objectif général
 
@@ -1253,3 +1253,121 @@ Prochain sous-jalon :
 ```text
 UI-PARTYHUD01.5 — Save / Load
 ```
+
+
+## 38. UI-PARTYHUD01.5 — Save / Load
+
+### 38.1 Schéma durable
+
+UI-PARTYHUD01.5 ajoute au `UGrimrockPartySaveGame` :
+
+```cpp
+UPROPERTY(SaveGame)
+TArray<FGuid> PartyPortraitOrder;
+```
+
+Le SaveGame passe :
+
+```text
+v24 -> v25
+```
+
+Politique inchangée :
+
+```text
+SaveVersion == 25 -> accepté
+SaveVersion != 25 -> rejet
+aucune migration arrière
+```
+
+La v24 n'est donc pas migrée silencieusement.
+
+### 38.2 Séparation runtime / disque
+
+Le composant conserve :
+
+```text
+UGridPartyInventoryComponent::PartyPortraitOrder
+    -> Transient
+    -> ordre runtime de présentation
+```
+
+Le Save contient une copie durable :
+
+```text
+UGrimrockPartySaveGame::PartyPortraitOrder
+    -> SaveGame
+    -> TArray<FGuid>
+```
+
+Aucun ordre n'est ajouté à `FGridPartyInventoryState`, afin de ne pas mélanger roster gameplay et préférence de présentation UI.
+
+### 38.3 Sauvegarde
+
+`AGrimrockPartyPawn::SaveCurrentGame()` :
+
+```text
+SanitizePartyPortraitOrder()
+    -> copie PartyInventoryState
+    -> copie PartyPortraitOrder
+    -> SaveGameToSlot
+```
+
+### 38.4 Chargement
+
+`LoadCurrentGameData()` restaure d'abord le roster puis applique :
+
+```text
+RestorePartyInventoryState(...)
+RestorePartyPortraitOrder(SaveGame->PartyPortraitOrder)
+```
+
+`RestorePartyPortraitOrder()` resanitise contre les personnages actifs et notifie le HUD.
+
+Ainsi :
+
+```text
+id invalide      -> supprimé
+id dupliqué      -> dédupliqué
+id obsolète      -> supprimé
+recrue manquante -> ajoutée à la fin
+ordre vide       -> reconstruit depuis ActiveCharacters
+```
+
+### 38.5 Atomicité / rollback
+
+Le chargement capture aussi `PreviousPortraitOrder`. Si une étape ultérieure échoue, le rollback restaure conjointement le roster, l'ordre des portraits, le runtime du donjon et la position du groupe.
+
+### 38.6 New Game
+
+`ResetPartyForNewGame()` efface explicitement `PartyPortraitOrder` avant de reconstruire le roster initial.
+
+### 38.7 Automation / PIE
+
+Tests ajoutés :
+
+```text
+Grimrock.UI.PartyHud01.SaveSchemaV25
+Grimrock.UI.PartyHud01.SavePortraitOrderRoundTrip
+Grimrock.UI.PartyHud01.RestorePortraitOrderSanitization
+```
+
+Total attendu : **13 tests**.
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.PartyHud01"
+```
+
+Validation PIE / Save-Continue :
+
+```text
+1. inverser l'ordre des portraits ;
+2. sauvegarder ;
+3. quitter/recharger via Continue ;
+4. vérifier que l'ordre est restauré ;
+5. vérifier que SelectedCharacterIndex reste l'autorité de sélection.
+```
+
+Aucune modification UMG n'est requise pour UI-PARTYHUD01.5.
