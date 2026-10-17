@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Core/GridObjectBehavior.h"
 #include "Runtime/Combat/GridCombatActionIdentityTypes.h"
+#include "Runtime/Combat/GridCombatTraceTypes.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "GridCombatTypes.generated.h"
 
@@ -2929,6 +2930,10 @@ struct FGridAttackResult
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Result")
 	EGridPhysicalDamageSubtype PhysicalSubtype = EGridPhysicalDamageSubtype::None;
+
+	/** EVENTHUD01.7 exact calculation trace. The HUD reads this snapshot and never recomputes combat. */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Result|Trace")
+	FGridCombatResolutionTrace Trace;
 
 	int32 GetTotalAppliedDamage() const
 	{
