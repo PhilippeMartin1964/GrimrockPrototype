@@ -369,9 +369,10 @@ Les symboles d’affinité sont désormais des images UMG, pas des caractères
 Unicode : `Text_SkillAffinity` et `ResolveAffinityGlyph()` ont été retirés du
 contrat natif. C++ ne sélectionne plus que le `Border_Affinity*` correspondant.
 
-Les hooks de colonne et les quatre Borders restent `BindWidgetOptional`
-jusqu’à la matérialisation finale versionnée de `WBP_GridSkills` et
-`WBP_RPGSkillEntry`.
+La matérialisation est maintenant versionnée : `Button_SortAffinity`,
+`Text_SortAffinityIndicator` et les quatre `Border_Affinity*` sont des
+`BindWidget` obligatoires. Les images internes ne sont pas liées au C++ et
+restent entièrement sous autorité Designer.
 
 Référence :
 `docs/Design/UI_SKILLS_AFFINITY01_CLASS_AFFINITY.md`.

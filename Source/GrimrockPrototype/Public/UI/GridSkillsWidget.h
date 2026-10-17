@@ -305,8 +305,8 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_SortAttribute;
 
-	/** UI-SKILLS-AFFINITY01: optional until the Affinité header is materialized in WBP_GridSkills. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	/** UI-SKILLS-AFFINITY01.2D: materialized Affinité sort header. */
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_SortAffinity;
 
 	UPROPERTY(meta = (BindWidget))
@@ -319,8 +319,8 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SortAttributeIndicator;
 
-	/** UI-SKILLS-AFFINITY01: optional until the Affinité header is materialized in WBP_GridSkills. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	/** Mechanical ▲ / ▼ indicator for the materialized Affinité sort header. */
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SortAffinityIndicator;
 
 	UPROPERTY(meta = (BindWidget))

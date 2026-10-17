@@ -116,7 +116,9 @@ bool FUISKILLSAFFINITY01WidgetContractTest::RunTest(const FString&)
 		TestNotNull(*FString::Printf(TEXT("%s affinity header hook exists"), *PropertyName.ToString()), Property);
 		if (Property)
 		{
-			TestTrue(*FString::Printf(TEXT("%s remains optional before WBP materialization"), *PropertyName.ToString()),
+			TestTrue(*FString::Printf(TEXT("%s is a mandatory materialized BindWidget"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidget")));
+			TestFalse(*FString::Printf(TEXT("%s is no longer optional"), *PropertyName.ToString()),
 				Property->HasMetaData(TEXT("BindWidgetOptional")));
 		}
 	}
@@ -136,7 +138,9 @@ bool FUISKILLSAFFINITY01WidgetContractTest::RunTest(const FString&)
 		TestNotNull(*FString::Printf(TEXT("%s affinity row hook exists"), *PropertyName.ToString()), Property);
 		if (Property)
 		{
-			TestTrue(*FString::Printf(TEXT("%s remains optional before WBP materialization"), *PropertyName.ToString()),
+			TestTrue(*FString::Printf(TEXT("%s is a mandatory materialized BindWidget"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidget")));
+			TestFalse(*FString::Printf(TEXT("%s is no longer optional"), *PropertyName.ToString()),
 				Property->HasMetaData(TEXT("BindWidgetOptional")));
 		}
 	}

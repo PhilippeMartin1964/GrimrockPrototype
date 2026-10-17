@@ -2,7 +2,7 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **01.2C SOURCE GLYPH CLEANUP — images UMG retenues, validation requise**
+État : **01.2D CONTRAT UMG RESSERRÉ — validation finale requise**
 
 ## 1. Objectif
 
@@ -117,8 +117,9 @@ Unicode étoile            -> plus aucun rendu runtime C++
 ~~~
 
 Les quatre `Border_Affinity*` restent les seuls hooks natifs de la cellule
-d’affinité. Ils restent temporairement `BindWidgetOptional` tant que la
-matérialisation finale de `WBP_RPGSkillEntry` n’est pas versionnée sur `master`.
+d’affinité. Après matérialisation/versioning de `WBP_RPGSkillEntry`, ils sont
+désormais des `BindWidget` obligatoires. `Button_SortAffinity` et
+`Text_SortAffinityIndicator` sont également obligatoires dans `WBP_GridSkills`.
 
 Validation attendue :
 
@@ -127,3 +128,23 @@ Validation attendue :
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.UI.Skills02"
 ~~~
+
+
+## 8. UI-SKILLS-AFFINITY01.2D — contrat matérialisé
+
+Les six hooks natifs d’affinité sont maintenant obligatoires :
+
+~~~text
+WBP_GridSkills
+  Button_SortAffinity
+  Text_SortAffinityIndicator
+
+WBP_RPGSkillEntry
+  Border_AffinityRecommended
+  Border_AffinityUseful
+  Border_AffinityNeutral
+  Border_AffinityDiscouraged
+~~~
+
+Les images internes restent volontairement non liées au C++ : textures, nombre
+d’étoiles, couleurs et mise en page restent sous autorité UMG.

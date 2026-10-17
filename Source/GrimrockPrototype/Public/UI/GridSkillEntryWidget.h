@@ -129,17 +129,17 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SkillAttribute;
 
-	/** Designer-owned backgrounds; C++ only selects the semantic state. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	/** UI-SKILLS-AFFINITY01.2D: materialized Designer-owned affinity states. */
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> Border_AffinityRecommended;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> Border_AffinityUseful;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> Border_AffinityNeutral;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> Border_AffinityDiscouraged;
 
 	UPROPERTY(meta = (BindWidget))
