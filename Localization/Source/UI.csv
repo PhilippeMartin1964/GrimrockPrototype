@@ -249,6 +249,8 @@ Key,SourceString,Comment
 "Skill.Affinity.UsefulClasses","Classes utiles :","Libellé des classes utiles pour une compétence"
 "Skill.Progression.CurrentRankCap","Plafond de rang actuel :","Libellé du plafond courant de progression d'une compétence"
 "Skill.Progression.RemainingSkillPoints","Points de compétence restants :","Libellé du budget restant de points de compétence"
+"Skill.Summary.AvailablePoints","Points de compétence disponibles :","Libellé statique du résumé des points de compétence disponibles dans l’écran des compétences"
+"Skill.Summary.CurrentRankCap","Rang maximum actuel possible :","Libellé statique du plafond de rang actuellement accessible dans l’écran des compétences"
 "Skill.Progression.NextRank","Prochain rang :","Libellé du prochain rang de compétence"
 "Skill.Progression.NextRankCost","Coût du prochain rang :","Libellé du coût du prochain rang de compétence"
 "Talent.Acquisition.Exclusivity.SingleVariant","Une seule variante peut être acquise.","Vocabulaire statique présenté dans l'interface Talent"

@@ -343,6 +343,32 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
+### UI-SKILLS-SUMMARY01 — résumé Skill éclaté — SOURCE OUVERTE
+
+`Text_SkillPoints` est en cours de remplacement par deux valeurs dynamiques
+indépendantes afin de permettre une mise en page modulaire avec icônes :
+
+~~~text
+Points de compétence disponibles : <valeur>
+Rang maximum actuel possible :      <valeur>
+~~~
+
+Les libellés statiques sont autoritaires dans `UI.csv` puis `ST_UI` :
+
+~~~text
+Skill.Summary.AvailablePoints
+Skill.Summary.CurrentRankCap
+~~~
+
+Les futures valeurs `Text_AvailableSkillPoints` et `Text_CurrentSkillRankCap`
+sont uniquement alimentées par C++ à partir de `View.RemainingSkillPoints` et
+`View.SkillRankCap`. `Text_SkillPoints` reste temporairement un bridge de
+matérialisation jusqu’au remplacement manuel dans `WBP_GridSkills`; il sera
+ensuite supprimé sans couche de compatibilité durable.
+
+Référence :
+`docs/Design/UI_SKILLS_SUMMARY01_SPLIT_SUMMARY.md`.
+
 ### UI-SKILLS-SORT01 — tri interactif des colonnes — VALIDÉ / CLOS
 
 La liste Skills conserve `FGridSkillsPageView::Skills` comme projection canonique
