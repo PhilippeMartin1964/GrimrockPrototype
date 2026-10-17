@@ -374,5 +374,11 @@ private:
 	TMap<FString, int32> SessionPurchasedSkillRanks;
 	TMap<FString, int32> SessionSkillRankFloors;
 
+	/**
+	 * Suppresses reconciliation only during the synchronous inventory broadcast
+	 * emitted by this widget's own Skill purchase/refund transaction.
+	 */
+	bool bSkillAllocationTransactionInProgress = false;
+
 	bool bRefreshInProgress = false;
 };

@@ -19,6 +19,7 @@
 #include "UI/GridSkillDetailWidget.h"
 #include "UI/GridSkillEntryWidget.h"
 #include "UI/GridSkillsPageService.h"
+#include "UI/GridSkillsWidgetSessionUndoInternal.h"
 #include "UI/GridTalentBranchWidget.h"
 #include "UI/GridTalentDetailWidget.h"
 #include "UI/GridTalentNodeWidget.h"
@@ -213,6 +214,15 @@ void UGridSkillsWidget::RefreshSkills()
 		{
 			for (FGridSkillEntryView& Entry : Candidate.Skills)
 			{
+				const FString SessionKey =
+					MakeSkillAllocationSessionKey(Candidate.CharacterId, Entry.SkillId);
+				GridSkillsWidgetSessionUndo::ReconcileHistory(
+					SessionKey,
+					Entry.Rank,
+					bSkillAllocationTransactionInProgress,
+					SessionPurchasedSkillRanks,
+					SessionSkillRankFloors);
+
 				const int32 SessionPurchaseCount =
 					GetSessionPurchasedSkillRankCount(Candidate.CharacterId, Entry.SkillId);
 				const int32 SessionFloor =
@@ -220,7 +230,7 @@ void UGridSkillsWidget::RefreshSkills()
 				Entry.bCanDecreaseRank =
 					SessionPurchaseCount > 0 &&
 					SessionFloor >= 0 &&
-					Entry.Rank > SessionFloor;
+					Entry.Rank == SessionFloor + SessionPurchaseCount;
 
 				const URPGSkillPresentationAsset* PresentationCatalog =
 					IsValid(SkillPresentationAsset) && SkillPresentationAsset->IsValidDefinition()

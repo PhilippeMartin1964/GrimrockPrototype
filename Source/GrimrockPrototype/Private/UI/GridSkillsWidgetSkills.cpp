@@ -193,8 +193,16 @@ bool UGridSkillsWidget::CommitSkillRankIncrease(FName SkillId, FText& OutFeedbac
 
 	const FGuid SessionCharacterId = View.CharacterId;
 	FRPGSkillPointMutationResult Result;
-	const bool bCommitted =
-		FRPGSkillPointService::TryPurchaseNextRank(InventoryComponent, View.CharacterIndex, Definition, Result);
+	bool bCommitted = false;
+	{
+		TGuardValue<bool> TransactionGuard(bSkillAllocationTransactionInProgress, true);
+		bCommitted =
+			FRPGSkillPointService::TryPurchaseNextRank(
+				InventoryComponent,
+				View.CharacterIndex,
+				Definition,
+				Result);
+	}
 
 	if (bCommitted)
 	{
@@ -240,6 +248,7 @@ bool UGridSkillsWidget::CommitSkillRankDecrease(FName SkillId, FText& OutFeedbac
 	}
 	else
 	{
+		TGuardValue<bool> TransactionGuard(bSkillAllocationTransactionInProgress, true);
 		bCommitted = FRPGSkillPointService::TryRefundPurchasedRank(
 			InventoryComponent,
 			View.CharacterIndex,
