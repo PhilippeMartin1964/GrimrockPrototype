@@ -1,7 +1,7 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — rebaseliné après UI-RPG-CODE-AUDIT01 ; UI-COMBAT-UNIFY02 UMG/PIE reste explicitement à valider**  
-Date : **9 octobre 2026**
+Statut : **CURRENT — rebaseliné après UI-SKILLS-CODE-AUDIT02 ; UI-COMBAT-UNIFY02 UMG/PIE reste explicitement à valider**  
+Date : **17 octobre 2026**
 
 ## Références canoniques
 
@@ -691,6 +691,31 @@ La ligne compacte ne maintient plus de validateur structurel parallèle :
 
 Référence :
 `docs/Design/UI_SKILLS_CODE_AUDIT02_7_SKILL_ERROR_BOUNDARY_LOCALIZATION_POLISH.md`.
+
+### UI-SKILLS-CODE-AUDIT02.8 — Regression Coverage & Final Closure
+
+L'audit Skills 02 est fermé. Les corrections 02.1 à 02.7 couvrent désormais :
+
+~~~text
+projection Discouraged dans le détail
+invariant Rank <= CurrentRankCap
+réconciliation de l'undo de session
+tri localisé et ordre d'affinité explicite
+cache widget du catalogue canonique et des icônes
+suppression du résumé Skill legacy
+boundary de feedback sans fuite de SkillId
+~~~
+
+La suite `Grimrock.UI.Skills02` contient **29 tests** après 02.7. Les contrats
+d'économie, read-model historique, feedback et localisation restent couverts par
+leurs suites spécialisées.
+
+Aucun P1/P2 identifié par l'audit initial ne reste ouvert dans ce périmètre.
+Les optimisations P3 résiduelles sont documentées comme non bloquantes dans le
+rapport final.
+
+Référence :
+`docs/Design/UI_SKILLS_CODE_AUDIT02_8_FINAL_CLOSURE.md`.
 
 ### UI-RPG-DESC01.5-.11 — audits validés / DESC01.12 normalisation croisée
 

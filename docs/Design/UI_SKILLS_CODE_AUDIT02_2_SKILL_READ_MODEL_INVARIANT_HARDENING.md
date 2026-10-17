@@ -2,7 +2,7 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **IMPLÉMENTÉ — validation locale requise**
+État : **VALIDÉ / CLOS**
 
 ## 1. Défaut
 
@@ -164,4 +164,14 @@ Puis la régression historique des read-models Skills :
     -AutomationFilter "Grimrock.MON20.8.SkillsPage"
 ~~~
 
-Ne pas déclarer `UI-SKILLS-CODE-AUDIT02.2` clos avant les résultats locaux.
+Validation locale reçue :
+
+~~~text
+Grimrock.UI.Skills02       25/25 PASS
+Grimrock.RPG.SKILL01        8/8 PASS
+Grimrock.MON20.8.SkillsPage 8/8 PASS
+warnings                    0
+failures                    0
+~~~
+
+État final : **UI-SKILLS-CODE-AUDIT02.2 VALIDÉ / CLOS**.

@@ -1,7 +1,7 @@
 # UI-SKILLS-CODE-AUDIT02.7 — Skill Error Boundary & Localization Polish
 
 Date : **17 octobre 2026**  
-État : **IMPLÉMENTÉ — validation locale requise**
+État : **VALIDÉ / CLOS**
 
 ## 1. Défaut de présentation
 
@@ -102,4 +102,20 @@ UMG / .uasset
     -AutomationFilter "Grimrock.UI.RPG05.Feedback"
 ~~~
 
-Ne pas déclarer 02.7 clos avant les résultats locaux.
+Validation locale reçue :
+
+~~~text
+Grimrock.UI.Skills02       29/29 PASS
+Grimrock.UI.RPG05.Feedback  4/4 PASS
+warnings                    0
+failures                    0
+~~~
+
+Rapports :
+
+~~~text
+Skills02       TD04-20261017-155827
+RPG05.Feedback TD04-20261017-155845
+~~~
+
+État final : **UI-SKILLS-CODE-AUDIT02.7 VALIDÉ / CLOS**.

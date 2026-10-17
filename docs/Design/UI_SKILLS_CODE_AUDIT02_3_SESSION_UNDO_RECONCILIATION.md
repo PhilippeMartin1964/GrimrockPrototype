@@ -2,7 +2,7 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **IMPLÉMENTÉ — validation locale requise**
+État : **VALIDÉ / CLOS**
 
 ## 1. Défaut
 
@@ -156,4 +156,13 @@ Puis l'autorité transactionnelle existante :
     -AutomationFilter "Grimrock.RPG.SKILL01"
 ~~~
 
-Ne pas déclarer `UI-SKILLS-CODE-AUDIT02.3` clos avant les résultats locaux.
+Validation locale reçue :
+
+~~~text
+Grimrock.UI.Skills02  26/26 PASS
+Grimrock.RPG.SKILL01   8/8 PASS
+warnings               0
+failures               0
+~~~
+
+État final : **UI-SKILLS-CODE-AUDIT02.3 VALIDÉ / CLOS**.

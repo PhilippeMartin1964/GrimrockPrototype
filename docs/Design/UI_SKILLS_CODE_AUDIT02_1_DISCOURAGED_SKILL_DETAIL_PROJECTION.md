@@ -2,7 +2,7 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **02.1C DURCISSEMENT NATIF IMPLÉMENTÉ — validation locale finale requise**
+État : **VALIDÉ / CLOS**
 
 ## 1. Défaut corrigé
 
@@ -57,7 +57,7 @@ Grimrock.UI.Skills02
   0 échec
   rapport : Saved/Automation/TD04/TD04-20261017-144051
 
-Game.UI.Localization.LOCALIZATION01.LocalizationTargetContract
+Game.UI.Localization.LOCALIZATION02.FullGameGatherContract
   1/1 PASS
   0 warning
   0 échec
@@ -168,8 +168,10 @@ Puis :
 ~~~powershell
 .\Scripts\ValidateUE.ps1 `
     -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Game.UI.Localization.LOCALIZATION01.LocalizationTargetContract"
+    -AutomationFilter "Game.UI.Localization.LOCALIZATION02.FullGameGatherContract"
 ~~~
 
-Le jalon `UI-SKILLS-CODE-AUDIT02.1` ne doit être déclaré clos qu'après ces
-résultats locaux finaux.
+Validation finale confirmée. Le contrat `LOCALIZATION02.FullGameGatherContract`
+est l'autorité correcte pour la clé `Skill.Affinity.DiscouragedClasses`.
+
+État final : **UI-SKILLS-CODE-AUDIT02.1 VALIDÉ / CLOS**.

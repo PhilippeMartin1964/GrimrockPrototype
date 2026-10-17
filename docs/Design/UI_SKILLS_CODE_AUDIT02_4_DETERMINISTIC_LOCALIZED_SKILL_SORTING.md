@@ -2,7 +2,7 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **IMPLÉMENTÉ — validation locale requise**
+État : **VALIDÉ / CLOS**
 
 ## 1. Défauts corrigés
 
@@ -121,4 +121,12 @@ Puis, si un diagnostic ciblé est nécessaire :
     -AutomationFilter "Grimrock.UI.Skills02.Sort"
 ~~~
 
-Ne pas déclarer UI-SKILLS-CODE-AUDIT02.4 clos avant le résultat local.
+Validation locale reçue :
+
+~~~text
+Grimrock.UI.Skills02  27/27 PASS
+warnings               0
+failures               0
+~~~
+
+État final : **UI-SKILLS-CODE-AUDIT02.4 VALIDÉ / CLOS**.

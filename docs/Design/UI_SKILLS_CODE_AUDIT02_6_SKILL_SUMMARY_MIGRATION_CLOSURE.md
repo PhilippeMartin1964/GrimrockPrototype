@@ -1,7 +1,7 @@
 # UI-SKILLS-CODE-AUDIT02.6 — Skill Summary Migration Closure
 
 Date : **17 octobre 2026**  
-État : **IMPLÉMENTÉ — validation locale requise**
+État : **VALIDÉ / CLOS**
 
 ## Défaut / dette
 
@@ -108,4 +108,18 @@ Aucun code runtime, `.uasset` ou contenu de localisation n'est modifié.
     -AutomationFilter "Game.UI.TextCentral.CENTRAL01.TalentStringTableRuntime"
 ~~~
 
-Ne pas déclarer 02.6 clos avant les résultats locaux.
+Validation locale finale reçue :
+
+~~~text
+Grimrock.UI.Skills02                                      28/28 PASS
+Grimrock.UI.RPG.DESC01                                    24/24 PASS
+Game.UI.TextCentral.CENTRAL01.TalentStringTableRuntime      1/1 PASS
+Game.UI.Localization.LOCALIZATION02.FullGameGatherContract  1/1 PASS
+warnings                                                    0
+failures                                                    0
+~~~
+
+Le dernier contrat de localisation a été validé dans
+`TD04-20261017-155220`.
+
+État final : **UI-SKILLS-CODE-AUDIT02.6 VALIDÉ / CLOS**.

@@ -2,7 +2,7 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **IMPLÉMENTÉ — validation locale requise**
+État : **VALIDÉ / CLOS**
 
 ## 1. Problème
 
@@ -151,4 +151,12 @@ Warnings  : 0
 Failed    : 0
 ~~~
 
-Ne pas déclarer UI-SKILLS-CODE-AUDIT02.5 clos avant le résultat local.
+Validation locale reçue :
+
+~~~text
+Grimrock.UI.Skills02  28/28 PASS
+warnings               0
+failures               0
+~~~
+
+État final : **UI-SKILLS-CODE-AUDIT02.5 VALIDÉ / CLOS**.
