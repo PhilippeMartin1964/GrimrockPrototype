@@ -32,9 +32,9 @@ private:
 	UFUNCTION()
 	void HandleVariantClicked();
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_Variant;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_VariantIcon;
 };

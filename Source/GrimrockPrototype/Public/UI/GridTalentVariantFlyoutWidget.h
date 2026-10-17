@@ -33,7 +33,7 @@ private:
 
 	static int32 ResolveColumnCount(int32 VariantCount);
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UUniformGridPanel> Grid_Variants;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Variant Flyout", meta = (AllowPrivateAccess = "true"))

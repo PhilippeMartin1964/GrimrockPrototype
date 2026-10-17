@@ -108,3 +108,28 @@ Nettoyage final réalisé :
 - le toast reste l'unique feedback de transaction.
 
 Talent.Acquisition.Exclusivity.SingleVariant reste utile dans les conditions d'acquisition.
+
+
+## Hardening UI-RPG-TALENT-CODE-AUDIT02.2 — 17 octobre 2026
+
+La matérialisation étant désormais stable, les contrôles structurels du flyout
+ne sont plus des points de migration optionnels.
+
+Les bindings natifs suivants sont obligatoires :
+
+```text
+WBP_RPGTalentVariantFlyout
+    Grid_Variants      -> BindWidget
+
+WBP_RPGTalentVariantIcon
+    Button_Variant     -> BindWidget
+    Image_VariantIcon  -> BindWidget
+```
+
+Une suppression, un renommage ou un type incompatible doit donc faire échouer
+la compilation du Widget Blueprint au lieu de produire un flyout partiellement
+fonctionnel.
+
+Le test `Grimrock.UI.RPG.CODEAUDIT02.VariantFlyoutContracts` verrouille à la
+fois les métadonnées C++ obligatoires, les types attendus et la recompilation
+des deux WBP matérialisés. Aucun `.uasset` n'est modifié par ce hardening.
