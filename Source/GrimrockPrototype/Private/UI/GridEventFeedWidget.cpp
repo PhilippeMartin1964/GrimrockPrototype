@@ -162,6 +162,8 @@ FLinearColor UGridEventFeedWidget::ResolveSemanticColor(
 		case EGridHudEventSemantic::Buff: return Palette.Buff;
 		case EGridHudEventSemantic::Debuff: return Palette.Debuff;
 		case EGridHudEventSemantic::Dialogue: return Palette.Dialogue;
+		case EGridHudEventSemantic::Holy: return Palette.Holy;
+		case EGridHudEventSemantic::Necrotic: return Palette.Necrotic;
 		case EGridHudEventSemantic::Default:
 		default:
 			return Palette.Default;

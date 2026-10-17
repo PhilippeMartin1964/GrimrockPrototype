@@ -29,6 +29,8 @@ bool FGridUIEventHUD016SemanticPaletteTest::RunTest(const FString& Parameters)
 	Palette.Buff = FLinearColor(0.41f, 0.82f, 0.43f, 1.0f);
 	Palette.Debuff = FLinearColor(0.91f, 0.32f, 0.33f, 1.0f);
 	Palette.Dialogue = FLinearColor(0.61f, 0.72f, 0.83f, 1.0f);
+	Palette.Holy = FLinearColor(0.91f, 0.82f, 0.63f, 1.0f);
+	Palette.Necrotic = FLinearColor(0.71f, 0.42f, 0.73f, 1.0f);
 
 	struct FCase
 	{
@@ -53,7 +55,9 @@ bool FGridUIEventHUD016SemanticPaletteTest::RunTest(const FString& Parameters)
 		{ EGridHudEventSemantic::Healing, Palette.Healing },
 		{ EGridHudEventSemantic::Buff, Palette.Buff },
 		{ EGridHudEventSemantic::Debuff, Palette.Debuff },
-		{ EGridHudEventSemantic::Dialogue, Palette.Dialogue }
+		{ EGridHudEventSemantic::Dialogue, Palette.Dialogue },
+		{ EGridHudEventSemantic::Holy, Palette.Holy },
+		{ EGridHudEventSemantic::Necrotic, Palette.Necrotic }
 	};
 
 	for (const FCase& Case : Cases)

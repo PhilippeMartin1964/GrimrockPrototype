@@ -8,6 +8,18 @@
 
 namespace GridEventFeedPublisher
 {
+	bool PublishEvent(const UObject* WorldContextObject, const FGridHudEventEntry& Entry, bool bIsObservableToPlayer)
+	{
+		if (!WorldContextObject)
+		{
+			return false;
+		}
+
+		UWorld* World = WorldContextObject->GetWorld();
+		UGridEventFeedSubsystem* EventFeed = World ? World->GetSubsystem<UGridEventFeedSubsystem>() : nullptr;
+		return EventFeed ? EventFeed->PublishEvent(Entry, bIsObservableToPlayer) : false;
+	}
+
 	FText ResolveReadableHeader(const UGridWorldObjectDefinitionAsset* Definition)
 	{
 		if (Definition && Definition->DefinitionId == FName(TEXT("WallInscription")))
@@ -48,13 +60,6 @@ namespace GridEventFeedPublisher
 			return false;
 		}
 
-		UWorld* World = WorldContextObject->GetWorld();
-		UGridEventFeedSubsystem* EventFeed = World ? World->GetSubsystem<UGridEventFeedSubsystem>() : nullptr;
-		if (!EventFeed)
-		{
-			return false;
-		}
-
 		FGridHudEventEntry Entry;
 		Entry.Category = EGridHudEventCategory::Dungeon;
 		Entry.Semantic = Semantic;
@@ -63,7 +68,7 @@ namespace GridEventFeedPublisher
 		Entry.Header = Header;
 		Entry.Message = Message;
 		Entry.SourceId = SourceId;
-		return EventFeed->PublishEvent(Entry, bIsObservableToPlayer);
+		return PublishEvent(WorldContextObject, Entry, bIsObservableToPlayer);
 	}
 
 	bool PublishDungeonEventAtCell(

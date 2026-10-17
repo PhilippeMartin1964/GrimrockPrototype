@@ -1,7 +1,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 
 #include "Blueprint/UserWidget.h"
-#include "GameFramework/PlayerController.h"
 #include "Runtime/GridEventFeedPublisher.h"
 #include "UI/ReadableMessageWidget.h"
 
@@ -84,43 +83,26 @@ void AGridLevelRuntimeActor::HideInteractionFeedback()
 
 void AGridLevelRuntimeActor::ShowCombatFeedback(const FGridPlayerAttackFeedbackRequest& Feedback)
 {
-	if (Feedback.PrimaryText.IsEmpty())
+	// EVENTHUD01.8: accepted attacks are projected centrally from the authoritative
+	// combat log. This legacy facade only preserves rejected player feedback.
+	HideCombatFeedback();
+	if (Feedback.PrimaryText.IsEmpty() || Feedback.bAccepted)
 	{
 		return;
 	}
-	UWorld* World = GetWorld();
-	const TSubclassOf<UReadableMessageWidget> WidgetClass = CombatFeedbackWidgetClass ? CombatFeedbackWidgetClass
-		: InteractionFeedbackWidgetClass                                              ? InteractionFeedbackWidgetClass
-																					  : ReadableMessageWidgetClass;
-	if (!World || !WidgetClass)
+
+	FGridHudEventEntry Entry;
+	Entry.Category = EGridHudEventCategory::Combat;
+	Entry.Semantic = EGridHudEventSemantic::Interaction;
+	Entry.Visibility = EGridEventVisibility::Always;
+	Entry.EventCode = FName(TEXT("Combat.Attack.Rejected"));
+	Entry.Message = Feedback.PrimaryText;
+	Entry.SourceId = GridEventFeedPublisher::SourceIdFromGuid(Feedback.AttackRequest.AttackerCharacterId);
+	if (!Feedback.DetailText.IsEmpty())
 	{
-		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("ShowCombatFeedback skipped: missing world or widget class."));
-		return;
+		Entry.Details.Add(Feedback.DetailText);
 	}
-	APlayerController* PlayerController = World->GetFirstPlayerController();
-	if (!PlayerController)
-	{
-		return;
-	}
-	if (!ActiveCombatFeedbackWidget)
-	{
-		ActiveCombatFeedbackWidget = CreateWidget<UReadableMessageWidget>(PlayerController, WidgetClass);
-		if (!ActiveCombatFeedbackWidget)
-		{
-			return;
-		}
-	}
-	const FText DisplayText = Feedback.DetailText.IsEmpty()
-		? Feedback.PrimaryText
-		: FText::Format(NSLOCTEXT("GridPlayerAttackPresentation", "FeedbackWithDetail", "{0}\n{1}"), Feedback.PrimaryText, Feedback.DetailText);
-	ActiveCombatFeedbackWidget->SetReadableText(DisplayText);
-	if (!ActiveCombatFeedbackWidget->IsInViewport())
-	{
-		ActiveCombatFeedbackWidget->AddToViewport(65);
-	}
-	GetWorldTimerManager().ClearTimer(CombatFeedbackTimerHandle);
-	GetWorldTimerManager().SetTimer(
-		CombatFeedbackTimerHandle, this, &AGridLevelRuntimeActor::HideCombatFeedback, FMath::Clamp(Feedback.DurationSeconds, 0.1f, 10.0f), false);
+	GridEventFeedPublisher::PublishEvent(this, Entry, true);
 }
 
 void AGridLevelRuntimeActor::HideCombatFeedback()

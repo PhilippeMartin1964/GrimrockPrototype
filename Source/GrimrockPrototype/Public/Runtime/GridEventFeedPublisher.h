@@ -7,6 +7,12 @@ class UGridWorldObjectDefinitionAsset;
 
 namespace GridEventFeedPublisher
 {
+	/** Publishes an already-resolved event payload into the world Event Feed. */
+	GRIMROCKPROTOTYPE_API bool PublishEvent(
+		const UObject* WorldContextObject,
+		const FGridHudEventEntry& Entry,
+		bool bIsObservableToPlayer = true);
+
 	/** Player-facing localized header for a readable world object. */
 	GRIMROCKPROTOTYPE_API FText ResolveReadableHeader(const UGridWorldObjectDefinitionAsset* Definition);
 	/** Conservative anti-spoiler rule for cell-bound observable dungeon effects. */

@@ -147,10 +147,16 @@ bool FGridUIEventHUD015CombatPopupBoundaryTest::RunTest(const FString& Parameter
 	}
 
 	FGridPlayerAttackFeedbackRequest CombatFeedback;
-	CombatFeedback.PrimaryText = FText::FromString(TEXT("Combat feedback remains outside EVENTHUD01.5"));
+	CombatFeedback.bAccepted = false;
+	CombatFeedback.PrimaryText = FText::FromString(TEXT("L'attaque est impossible."));
 	Runtime->ShowCombatFeedback(CombatFeedback);
 
-	TestEqual(TEXT("EVENTHUD01.5 does not migrate combat feedback into the generic dungeon feed"), Feed->GetEntries().Num(), 0);
+	TestEqual(TEXT("EVENTHUD01.8 migrates rejected combat feedback into the Event Feed"), Feed->GetEntries().Num(), 1);
+	if (Feed->GetEntries().Num() == 1)
+	{
+		TestEqual(TEXT("Rejected attack uses Combat category"), Feed->GetEntries()[0].Category, EGridHudEventCategory::Combat);
+		TestEqual(TEXT("Rejected attack keeps an interaction semantic"), Feed->GetEntries()[0].Semantic, EGridHudEventSemantic::Interaction);
+	}
 	return true;
 }
 

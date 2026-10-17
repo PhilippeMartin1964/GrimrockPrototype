@@ -9,7 +9,9 @@
 #include "RPG/StatusEffects/GridStatusEffectInitiativeResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectPeriodicDamageResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectPresentation.h"
+#include "Runtime/Combat/GridCombatEventFeedFormatter.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
@@ -1110,6 +1112,13 @@ void UGridStatusEffectLifecycleSubsystem::EmitStatusFeedback(EGridCombatLogEntry
 
 	LastStatusEffectFeedback = Entry;
 	OnStatusEffectFeedback.Broadcast(Entry);
+
+	FGridHudEventEntry EventFeedEntry;
+	if (FGridCombatEventFeedFormatter::BuildEntry(Entry, EventFeedEntry))
+	{
+		GridEventFeedPublisher::PublishEvent(this, EventFeedEntry, true);
+	}
+
 	UE_LOG(LogGridStatusEffects, Log, TEXT("[MON16.6] Feedback Type=%s Effect=%s Target=%s Message=\"%s\""), *UEnum::GetValueAsString(Type),
 		*Entry.StatusEffectId.ToString(), *Entry.TargetDisplayName.ToString(), *Entry.Message.ToString());
 }

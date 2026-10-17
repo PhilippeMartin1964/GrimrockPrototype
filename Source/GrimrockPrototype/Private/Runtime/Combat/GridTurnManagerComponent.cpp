@@ -4,6 +4,8 @@
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/PlatformTime.h"
+#include "Runtime/Combat/GridCombatEventFeedFormatter.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -441,6 +443,12 @@ void UGridTurnManagerComponent::AppendCombatLogEntry(FGridCombatLogEntry Entry)
 {
 	Entry.SequenceNumber = NextCombatLogSequenceNumber++;
 	CombatLogEntries.Add(Entry);
+
+	FGridHudEventEntry EventFeedEntry;
+	if (FGridCombatEventFeedFormatter::BuildEntry(Entry, EventFeedEntry))
+	{
+		GridEventFeedPublisher::PublishEvent(this, EventFeedEntry, true);
+	}
 
 	const int32 SafeCapacity = FMath::Clamp(MaxCombatLogEntries, 1, 512);
 	const int32 ExcessEntryCount = CombatLogEntries.Num() - SafeCapacity;

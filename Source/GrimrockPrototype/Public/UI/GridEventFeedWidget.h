@@ -69,6 +69,12 @@ struct GRIMROCKPROTOTYPE_API FGridEventFeedSemanticPalette
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
 	FLinearColor Dialogue = FLinearColor(0.82f, 0.86f, 0.96f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Holy = FLinearColor(1.00f, 0.92f, 0.62f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Necrotic = FLinearColor(0.76f, 0.42f, 0.78f, 1.0f);
 };
 
 /**
