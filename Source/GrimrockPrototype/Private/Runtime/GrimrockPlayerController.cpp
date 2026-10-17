@@ -1046,6 +1046,15 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 						UE_LOG(LogGridMouse, Log,
 							TEXT("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Rejected Reason=%s"),
 							*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(WallLockActor), RejectReason);
+
+						// EVENTHUD01.4: rejected lock clicks are still player-facing interactions.
+						// Route the attempt through the lock authority so the Event Feed receives
+						// the localized AlreadyUnlocked/MissingKey message without consuming the item.
+						if (WallLockActor)
+						{
+							WallLockActor->TryInteractWithParty(PartyPawn);
+						}
+
 						SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickWallLockRejected"));
 						return;
 					}

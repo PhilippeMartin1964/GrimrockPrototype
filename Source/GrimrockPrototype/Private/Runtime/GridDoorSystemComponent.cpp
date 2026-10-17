@@ -3,6 +3,7 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridDoorActor.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridSecretDoorActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
@@ -120,6 +121,7 @@ bool UGridDoorSystemComponent::OpenDoorOnEdge(int32 X, int32 Y, EGridEdge Edge)
 		return false;
 	}
 
+	const bool bWasTargetOpen = DoorActor->bIsOpen;
 	DoorActor->OpenDoor();
 	SetDoorPassageBlocked(X, Y, Edge, !DoorActor->IsFullyOpen());
 
@@ -128,6 +130,20 @@ bool UGridDoorSystemComponent::OpenDoorOnEdge(int32 X, int32 Y, EGridEdge Edge)
 		IsDoorPassageBlocked(X, Y, Edge) ? TEXT("true") : TEXT("false"), DoorActor->IsAnimating() ? TEXT("true") : TEXT("false"));
 
 	GridAutomaticPerceptionEngagement::Request(RuntimeActor, TEXT("DoorOpened"));
+
+	if (!bWasTargetOpen)
+	{
+		const FGridWorldObjectInstance* Instance = FindDoorInstanceAtEdge(X, Y, Edge);
+		GridEventFeedPublisher::PublishDungeonEventAtCell(
+			RuntimeActor,
+			X,
+			Y,
+			IsSecretDoorOnEdge(X, Y, Edge) ? FName(TEXT("Dungeon.SecretDoor.Opened")) : FName(TEXT("Dungeon.Door.Opened")),
+			NSLOCTEXT("GridEventFeed", "DoorOpened", "La porte s'ouvre."),
+			IsSecretDoorOnEdge(X, Y, Edge) ? EGridHudEventSemantic::Secret : EGridHudEventSemantic::Mechanism,
+			EGridEventVisibility::Observable,
+			Instance ? GridEventFeedPublisher::SourceIdFromGuid(Instance->InstanceId) : NAME_None);
+	}
 	return true;
 }
 
@@ -139,11 +155,26 @@ bool UGridDoorSystemComponent::CloseDoorOnEdge(int32 X, int32 Y, EGridEdge Edge)
 		UE_LOG(LogGridDoorSystem, Warning, TEXT("Grid door close failed: Cell=(%d,%d) Edge=%d Reason=runtime actor not found"), X, Y, static_cast<int32>(Edge));
 		return false;
 	}
+	const bool bWasTargetOpen = DoorActor->bIsOpen;
 	SetDoorPassageBlocked(X, Y, Edge, true);
 	DoorActor->CloseDoor();
 
 	UE_LOG(LogGridDoorSystem, Log, TEXT("Grid door command: Cell=(%d,%d) Edge=%d Command=Close Blocked=true Animating=%s"), X, Y, static_cast<int32>(Edge),
 		DoorActor->IsAnimating() ? TEXT("true") : TEXT("false"));
+
+	if (bWasTargetOpen)
+	{
+		const FGridWorldObjectInstance* Instance = FindDoorInstanceAtEdge(X, Y, Edge);
+		GridEventFeedPublisher::PublishDungeonEventAtCell(
+			RuntimeActor,
+			X,
+			Y,
+			FName(TEXT("Dungeon.Door.Closed")),
+			NSLOCTEXT("GridEventFeed", "DoorClosed", "La porte se ferme."),
+			EGridHudEventSemantic::Mechanism,
+			EGridEventVisibility::Observable,
+			Instance ? GridEventFeedPublisher::SourceIdFromGuid(Instance->InstanceId) : NAME_None);
+	}
 	return true;
 }
 
@@ -254,6 +285,18 @@ void UGridDoorSystemComponent::HandleDoorAnimationFinished(int32 X, int32 Y, EGr
 		{
 			bool bNewlyDiscovered = false;
 			RuntimeActor->TryDiscoverMapSecretDoor(Instance->InstanceId, bNewlyDiscovered);
+			if (bNewlyDiscovered)
+			{
+				GridEventFeedPublisher::PublishDungeonEventAtCell(
+					RuntimeActor,
+					X,
+					Y,
+					FName(TEXT("Dungeon.SecretDoor.Discovered")),
+					NSLOCTEXT("GridEventFeed", "SecretDoorDiscovered", "Passage secret découvert."),
+					EGridHudEventSemantic::Secret,
+					EGridEventVisibility::Observable,
+					GridEventFeedPublisher::SourceIdFromGuid(Instance->InstanceId));
+			}
 		}
 	}
 	UE_LOG(LogGridDoorSystem, Log, TEXT("Grid door animation finished: Cell=(%d,%d) Edge=%d FullyOpen=%s Blocked=%s"), X, Y, static_cast<int32>(Edge),

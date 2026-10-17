@@ -12,6 +12,7 @@
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridDoorActor.h"
 #include "Runtime/GridDoorSystemComponent.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridEditorPreviewComponent.h"
 #include "Runtime/GrimrockGameMode.h"
 #include "Runtime/GridItemActor.h"
@@ -1363,6 +1364,18 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridPit gameplay state settled ObjectId=%s Cell=(%d,%d) Previous=%s New=%s"), *PitObjectId.ToString(),
 		PitObject->CellX, PitObject->CellY, bWasOpen ? TEXT("Open") : TEXT("Closed"), bIsOpen ? TEXT("Open") : TEXT("Closed"));
 
+	GridEventFeedPublisher::PublishDungeonEventAtCell(
+		this,
+		PitObject->CellX,
+		PitObject->CellY,
+		bIsOpen ? FName(TEXT("Dungeon.Pit.Opened")) : FName(TEXT("Dungeon.Pit.Closed")),
+		bIsOpen
+			? NSLOCTEXT("GridEventFeed", "PitOpened", "Une trappe s'ouvre dans le sol.")
+			: NSLOCTEXT("GridEventFeed", "PitClosed", "La trappe se referme."),
+		bIsOpen ? EGridHudEventSemantic::Danger : EGridHudEventSemantic::Mechanism,
+		EGridEventVisibility::Observable,
+		GridEventFeedPublisher::SourceIdFromGuid(PitObjectId));
+
 	if (bIsOpen)
 	{
 		DropWorldItemsThroughOpenPitAtCell(PitObject->CellX, PitObject->CellY);
@@ -1547,7 +1560,17 @@ bool AGridLevelRuntimeActor::TryExecuteRelocationAtCell(int32 CellX, int32 CellY
 	if (TargetLevelId != CurrentDungeonLevelId)
 	{
 		const bool bTraveled = TravelToDungeonLevel(TargetLevelId, Relocation.TargetCellX, Relocation.TargetCellY, Facing, PartyPawn);
-		if (bTraveled) PartyPawn->ClearBufferedCommand();
+		if (bTraveled)
+		{
+			PartyPawn->ClearBufferedCommand();
+			GridEventFeedPublisher::PublishDungeonEvent(
+				this,
+				FName(TEXT("Dungeon.Relocation.Used")),
+				NSLOCTEXT("GridEventFeed", "RelocationUsed", "Un passage vous transporte."),
+				EGridHudEventSemantic::Mechanism,
+				EGridEventVisibility::Always,
+				true);
+		}
 		return bTraveled;
 	}
 
@@ -1566,6 +1589,13 @@ bool AGridLevelRuntimeActor::TryExecuteRelocationAtCell(int32 CellX, int32 CellY
 	PartyPawn->SnapToCurrentCell();
 	HandlePartyCellChanged(OldX, OldY, PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
 	PartyPawn->ClearBufferedCommand();
+	GridEventFeedPublisher::PublishDungeonEvent(
+		this,
+		FName(TEXT("Dungeon.Relocation.Used")),
+		NSLOCTEXT("GridEventFeed", "RelocationUsed", "Un passage vous transporte."),
+		EGridHudEventSemantic::Mechanism,
+		EGridEventVisibility::Always,
+		true);
 	return true;
 }
 

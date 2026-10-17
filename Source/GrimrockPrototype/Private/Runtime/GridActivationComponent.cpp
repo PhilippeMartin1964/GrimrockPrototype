@@ -1,6 +1,7 @@
 #include "Runtime/GridActivationComponent.h"
 
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridButtonActor.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
@@ -173,6 +174,30 @@ bool UGridActivationComponent::ActivateObject(FGuid ObjectId, AGrimrockPartyPawn
 			{
 				ButtonActor->TriggerPress();
 			}
+			const FText ButtonMessage = NSLOCTEXT("GridEventFeed", "ButtonPressed", "Le bouton s'enfonce.");
+			if (PartyPawn)
+			{
+				GridEventFeedPublisher::PublishDungeonEvent(
+					RuntimeActor,
+					FName(TEXT("Dungeon.Button.Pressed")),
+					ButtonMessage,
+					EGridHudEventSemantic::Mechanism,
+					EGridEventVisibility::Always,
+					true,
+					GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
+			}
+			else
+			{
+				GridEventFeedPublisher::PublishDungeonEventAtCell(
+					RuntimeActor,
+					ObjectData->CellX,
+					ObjectData->CellY,
+					FName(TEXT("Dungeon.Button.Pressed")),
+					ButtonMessage,
+					EGridHudEventSemantic::Mechanism,
+					EGridEventVisibility::Observable,
+					GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
+			}
 			return ExecuteLinksFromObjectForEvent(ObjectId, EGridObjectEvent::Activated);
 		}
 
@@ -191,6 +216,32 @@ bool UGridActivationComponent::ActivateObject(FGuid ObjectId, AGrimrockPartyPawn
 			if (AGridLeverActor* LeverActor = RuntimeActor->FindRuntimeObjectActor<AGridLeverActor>(ObjectId))
 			{
 				LeverActor->SetLeverState(bNewActive);
+			}
+			const FText LeverMessage = bNewActive
+				? NSLOCTEXT("GridEventFeed", "LeverActivated", "Le levier est activé.")
+				: NSLOCTEXT("GridEventFeed", "LeverDeactivated", "Le levier est désactivé.");
+			if (PartyPawn)
+			{
+				GridEventFeedPublisher::PublishDungeonEvent(
+					RuntimeActor,
+					bNewActive ? FName(TEXT("Dungeon.Lever.Activated")) : FName(TEXT("Dungeon.Lever.Deactivated")),
+					LeverMessage,
+					EGridHudEventSemantic::Mechanism,
+					EGridEventVisibility::Always,
+					true,
+					GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
+			}
+			else
+			{
+				GridEventFeedPublisher::PublishDungeonEventAtCell(
+					RuntimeActor,
+					ObjectData->CellX,
+					ObjectData->CellY,
+					bNewActive ? FName(TEXT("Dungeon.Lever.Activated")) : FName(TEXT("Dungeon.Lever.Deactivated")),
+					LeverMessage,
+					EGridHudEventSemantic::Mechanism,
+					EGridEventVisibility::Observable,
+					GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
 			}
 			const EGridObjectEvent LeverEvent = bNewActive ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated;
 			return ExecuteLinksFromObjectForEvent(ObjectId, LeverEvent);
@@ -275,6 +326,19 @@ bool UGridActivationComponent::RefreshPressurePlatesAtCell(int32 X, int32 Y)
 			TEXT("GridPressurePlate StateChanged Id=%s Cell=(%d,%d) Party=%s Monster=%s ItemWeight=%.2f RequiredWeight=%.2f Pressed=%s"),
 			*PlateId.ToString(), X, Y, bPartyActivates ? TEXT("true") : TEXT("false"), bMonsterActivates ? TEXT("true") : TEXT("false"),
 			CurrentItemWeight, WeightParams.RequiredItemWeight, bShouldBePressed ? TEXT("true") : TEXT("false"));
+
+		GridEventFeedPublisher::PublishDungeonEventAtCell(
+			RuntimeActor,
+			X,
+			Y,
+			bShouldBePressed ? FName(TEXT("Dungeon.PressurePlate.Pressed")) : FName(TEXT("Dungeon.PressurePlate.Released")),
+			bShouldBePressed
+				? NSLOCTEXT("GridEventFeed", "PressurePlatePressed", "La plaque de pression s'enfonce.")
+				: NSLOCTEXT("GridEventFeed", "PressurePlateReleased", "La plaque de pression se relève."),
+			EGridHudEventSemantic::Mechanism,
+			EGridEventVisibility::Observable,
+			GridEventFeedPublisher::SourceIdFromGuid(PlateId));
+
 		ExecuteLinksFromObjectForEvent(PlateId, StateEvent);
 		bAnyStateChanged = true;
 	}

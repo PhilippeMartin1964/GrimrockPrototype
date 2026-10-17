@@ -3,6 +3,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Runtime/GridInteractionUtils.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemTransferService.h"
@@ -535,6 +536,20 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 
 	ExecuteInsertionLinks();
 
+	const FText InsertedItemName = !CursorItem.DisplayName.IsEmpty()
+		? CursorItem.DisplayName
+		: FText::FromString(CursorItem.ItemDefinitionId.ToString());
+	GridEventFeedPublisher::PublishDungeonEvent(
+		this,
+		FName(TEXT("Dungeon.Receptacle.ItemInserted")),
+		FText::Format(
+			NSLOCTEXT("GridEventFeed", "ReceptacleItemInserted", "{0} est placé dans le réceptacle."),
+			InsertedItemName),
+		EGridHudEventSemantic::Interaction,
+		EGridEventVisibility::Always,
+		true,
+		GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
+
 	UE_LOG(LogGridReceptacle, Verbose, TEXT("Receptacle accepted cursor item %s ObjectId=%s RuntimeId=%s Count=%d"), *CursorItem.ItemDefinitionId.ToString(),
 		*ObjectId.ToString(), *CursorItem.RuntimeObjectId.ToString(), ContainedItems.Num());
 
@@ -616,6 +631,21 @@ bool AGridReceptacleActor::TryTakeItemAtIndex(int32 ItemIndex, AGrimrockPartyPaw
 	}
 	OutRemovedItemDefinitionId = RemovedItem.ItemDefinitionId;
 	ExecuteRemovalLinks();
+
+	const FText RemovedItemName = !RemovedItem.DisplayName.IsEmpty()
+		? RemovedItem.DisplayName
+		: FText::FromString(RemovedItem.ItemDefinitionId.ToString());
+	GridEventFeedPublisher::PublishDungeonEvent(
+		this,
+		FName(TEXT("Dungeon.Receptacle.ItemRemoved")),
+		FText::Format(
+			NSLOCTEXT("GridEventFeed", "ReceptacleItemRemoved", "{0} est retiré du réceptacle."),
+			RemovedItemName),
+		EGridHudEventSemantic::Interaction,
+		EGridEventVisibility::Always,
+		true,
+		GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
+
 	UE_LOG(LogGridReceptacle, Verbose, TEXT("Receptacle returned item %s ObjectId=%s Count=%d"), *RemovedItem.ItemDefinitionId.ToString(), *ObjectId.ToString(),
 		ContainedItems.Num());
 

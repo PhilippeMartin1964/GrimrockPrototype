@@ -1,6 +1,7 @@
 #include "Runtime/GridWallLockActor.h"
 
 #include "Runtime/GridInteractionUtils.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -83,6 +84,14 @@ bool AGridWallLockActor::TryInteractWithParty(AGrimrockPartyPawn* PartyPawn)
 	if (bIsUnlocked)
 	{
 		const FText Message = GetEffectiveAlreadyUnlockedMessage();
+		GridEventFeedPublisher::PublishDungeonEvent(
+			this,
+			FName(TEXT("Dungeon.Lock.AlreadyUnlocked")),
+			Message,
+			EGridHudEventSemantic::Locked,
+			EGridEventVisibility::Always,
+			true,
+			GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
 		UE_LOG(LogGridWallLock, Log, TEXT("GridWallLock AlreadyUnlocked ObjectId=%s Message=%s"), *ObjectId.ToString(), *Message.ToString());
 		return true;
 	}
@@ -97,6 +106,14 @@ bool AGridWallLockActor::TryInteractWithParty(AGrimrockPartyPawn* PartyPawn)
 		if (!IsAcceptedKey(CursorItem.ItemDefinitionId))
 		{
 			const FText Message = GetEffectiveMissingKeyMessage();
+			GridEventFeedPublisher::PublishDungeonEvent(
+				this,
+				FName(TEXT("Dungeon.Lock.KeyRejected")),
+				Message,
+				EGridHudEventSemantic::Locked,
+				EGridEventVisibility::Always,
+				true,
+				GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
 			UE_LOG(LogGridWallLock, Log, TEXT("GridWallLock UnlockFailed MissingKey ObjectId=%s AcceptedKeys=[%s] Cursor=%s Inventory=NotScanned"),
 				*ObjectId.ToString(), *JoinItemDefinitionIds(AcceptedKeyDefinitionIds), *CursorItem.ItemDefinitionId.ToString());
 			return false;
@@ -123,7 +140,15 @@ bool AGridWallLockActor::TryInteractWithParty(AGrimrockPartyPawn* PartyPawn)
 		return CompleteUnlock(PartyPawn, CursorItem.ItemDefinitionId, TEXT("Cursor"));
 	}
 
-	const FText Message = FText::FromString(TEXT("Cette serrure nécessite une clé compatible."));
+	const FText Message = GetEffectiveLockedMessage();
+	GridEventFeedPublisher::PublishDungeonEvent(
+		this,
+		FName(TEXT("Dungeon.Lock.Locked")),
+		Message,
+		EGridHudEventSemantic::Locked,
+		EGridEventVisibility::Always,
+		true,
+		GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
 	UE_LOG(LogGridWallLock, Log, TEXT("GridWallLock DirectInteract InventoryAutoUnlockBlocked ObjectId=%s AcceptedKeys=[%s] Message=%s"), *ObjectId.ToString(),
 		*JoinItemDefinitionIds(AcceptedKeyDefinitionIds), *Message.ToString());
 	return false;
@@ -153,9 +178,8 @@ bool AGridWallLockActor::CanInteract_Implementation(APawn* InstigatorPawn, UPrim
 {
 	const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn(InstigatorPawn);
 	AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
-	FGridItemInstance CursorItem;
-	return PartyPawn && RuntimeActor && HitComponent == MeshComponent && !bIsUnlocked && PartyPawn->GetCursorItem(CursorItem) &&
-		CanAcceptKeyDefinition(CursorItem.ItemDefinitionId) && RuntimeActor->CanPartyInteractWithEdgeObject(CellX, CellY, Edge, PartyPawn);
+	return PartyPawn && RuntimeActor && HitComponent == MeshComponent && !bIsUnlocked &&
+		RuntimeActor->CanPartyInteractWithEdgeObject(CellX, CellY, Edge, PartyPawn);
 }
 
 void AGridWallLockActor::Interact_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
@@ -270,6 +294,14 @@ bool AGridWallLockActor::CompleteUnlock(AGrimrockPartyPawn* PartyPawn, FName Mat
 
 	bIsUnlocked = true;
 	const FText Message = GetEffectiveUnlockSuccessMessage();
+	GridEventFeedPublisher::PublishDungeonEvent(
+		this,
+		FName(TEXT("Dungeon.Lock.Unlocked")),
+		Message,
+		EGridHudEventSemantic::Locked,
+		EGridEventVisibility::Always,
+		true,
+		GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
 	ShowFeedback(PartyPawn, Message);
 
 	UE_LOG(LogGridWallLock, Log, TEXT("GridWallLock UnlockSuccess ObjectId=%s MatchingKeyId=%s Source=%s Message=%s"), *ObjectId.ToString(),
