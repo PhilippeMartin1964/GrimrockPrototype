@@ -2,23 +2,26 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **01.1 SOURCE PRÉPARÉE — matérialisation ST_UI / WBP / données requise**
+État : **01.2C SOURCE GLYPH CLEANUP — images UMG retenues, validation requise**
 
 ## 1. Objectif
 
 Ajouter à la liste des compétences une colonne compacte qui indique
 l’affinité de chaque compétence avec la classe du personnage sélectionné.
 
+La sémantique reste à quatre états, mais **aucun caractère Unicode n’est rendu
+par C++**. Les symboles étoile sont des textures/images Designer afin d’éviter
+tout fallback de police ou rendu emoji.
+
 ~~~text
-Recommended -> ★★
-Useful      -> ★
-Neutral     -> ☆
-Discouraged -> ★̸
+Recommended -> 2 × image étoile pleine
+Useful      -> 1 × image étoile pleine
+Neutral     -> 1 × image étoile contour
+Discouraged -> 1 × image étoile barrée
 ~~~
 
-La couleur de fond est propriété du Designer : vert pour Recommended/Useful,
-neutre pour Neutral et rouge pour Discouraged. Les glyphes conservent une
-différence lisible même sans perception de la couleur.
+La couleur de fond reste propriété du Designer : vert pour Recommended/Useful,
+neutre pour Neutral et rouge pour Discouraged.
 
 ## 2. Autorité des données
 
@@ -68,15 +71,18 @@ Button_SortAffinity
 
 ~~~text
 Overlay_SkillAffinity
-├── Border_AffinityRecommended   -> fond vert fort
-├── Border_AffinityUseful        -> fond vert plus léger
-├── Border_AffinityNeutral       -> fond neutre / discret
-├── Border_AffinityDiscouraged   -> fond rouge
-└── Text_SkillAffinity
+├── Border_AffinityRecommended   -> fond vert fort + 2 images étoile pleine
+├── Border_AffinityUseful        -> fond vert léger + 1 image étoile pleine
+├── Border_AffinityNeutral       -> fond neutre + 1 image étoile contour
+└── Border_AffinityDiscouraged   -> fond rouge + 1 image étoile barrée
 ~~~
 
-C++ ne choisit que l’état visible et le glyphe. Les couleurs, bordures,
-marges et tailles restent sous autorité UMG.
+C++ choisit uniquement le `Border_Affinity*` visible. Les textures, couleurs,
+bordures, marges et tailles restent sous autorité UMG.
+
+`Text_SkillAffinity` et `ResolveAffinityGlyph()` ont été supprimés du contrat
+natif en 01.2C. Un éventuel `Text_SkillAffinity` résiduel dans le WBP peut être
+supprimé du Designer : il n’a plus aucune fonction runtime.
 
 ## 5. Vocabulaire
 
@@ -98,3 +104,26 @@ Nouveaux tests : Resolution, OverlapGuard, Sort et WidgetContract sous
 
 Après validation source : matérialiser ST_UI, authorer les `DiscouragedClassIds`
 pertinents dans `DA_RPGSkillPresentation`, puis construire les deux colonnes UMG.
+
+
+## 7. UI-SKILLS-AFFINITY01.2C — retrait du rendu Unicode
+
+Le chemin texte mécanique a été supprimé :
+
+~~~text
+Text_SkillAffinity        -> supprimé du C++
+ResolveAffinityGlyph()    -> supprimé
+Unicode étoile            -> plus aucun rendu runtime C++
+~~~
+
+Les quatre `Border_Affinity*` restent les seuls hooks natifs de la cellule
+d’affinité. Ils restent temporairement `BindWidgetOptional` tant que la
+matérialisation finale de `WBP_RPGSkillEntry` n’est pas versionnée sur `master`.
+
+Validation attendue :
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.Skills02"
+~~~

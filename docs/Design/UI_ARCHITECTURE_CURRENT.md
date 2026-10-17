@@ -349,10 +349,10 @@ La liste Skills expose désormais une sémantique d’affinité entre chaque
 compétence et la classe du personnage actuellement sélectionné :
 
 ~~~text
-Recommended -> ★★
-Useful      -> ★
-Neutral     -> ☆
-Discouraged -> ★̸
+Recommended -> 2 × image étoile pleine
+Useful      -> 1 × image étoile pleine
+Neutral     -> 1 × image étoile contour
+Discouraged -> 1 × image étoile barrée
 ~~~
 
 `RecommendedClassIds`, `UsefulClassIds` et le nouveau `DiscouragedClassIds`
@@ -365,8 +365,13 @@ Le catalogue refuse tout chevauchement entre les trois groupes. Le
 `View.ClassId`. La colonne `Affinity` participe au tri UI avec l’ordre
 Recommended -> Useful -> Neutral -> Discouraged en sens croissant.
 
-Les hooks de colonne et de ligne restent `BindWidgetOptional` jusqu’à la
-matérialisation manuelle dans `WBP_GridSkills` et `WBP_RPGSkillEntry`.
+Les symboles d’affinité sont désormais des images UMG, pas des caractères
+Unicode : `Text_SkillAffinity` et `ResolveAffinityGlyph()` ont été retirés du
+contrat natif. C++ ne sélectionne plus que le `Border_Affinity*` correspondant.
+
+Les hooks de colonne et les quatre Borders restent `BindWidgetOptional`
+jusqu’à la matérialisation finale versionnée de `WBP_GridSkills` et
+`WBP_RPGSkillEntry`.
 
 Référence :
 `docs/Design/UI_SKILLS_AFFINITY01_CLASS_AFFINITY.md`.

@@ -103,22 +103,12 @@ bool FUISKILLSAFFINITY01SortTest::RunTest(const FString&)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FUISKILLSAFFINITY01GlyphAndWidgetContractTest,
+	FUISKILLSAFFINITY01WidgetContractTest,
 	"Grimrock.UI.Skills02.Affinity.WidgetContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FUISKILLSAFFINITY01GlyphAndWidgetContractTest::RunTest(const FString&)
+bool FUISKILLSAFFINITY01WidgetContractTest::RunTest(const FString&)
 {
-	TestTrue(TEXT("Recommended uses two stars"),
-		UGridSkillEntryWidget::ResolveAffinityGlyph(EGridSkillClassAffinity::Recommended).EqualTo(FText::FromString(TEXT("★★"))));
-	TestTrue(TEXT("Useful uses one star"),
-		UGridSkillEntryWidget::ResolveAffinityGlyph(EGridSkillClassAffinity::Useful).EqualTo(FText::FromString(TEXT("★"))));
-	TestTrue(TEXT("Neutral uses an empty star"),
-		UGridSkillEntryWidget::ResolveAffinityGlyph(EGridSkillClassAffinity::Neutral).EqualTo(FText::FromString(TEXT("☆"))));
-	TestFalse(TEXT("Discouraged glyph differs from Useful"),
-		UGridSkillEntryWidget::ResolveAffinityGlyph(EGridSkillClassAffinity::Discouraged).EqualTo(
-			UGridSkillEntryWidget::ResolveAffinityGlyph(EGridSkillClassAffinity::Useful)));
-
 	UClass* SkillsClass = UGridSkillsWidget::StaticClass();
 	for (const FName PropertyName : { FName(TEXT("Button_SortAffinity")), FName(TEXT("Text_SortAffinityIndicator")) })
 	{
@@ -132,8 +122,10 @@ bool FUISKILLSAFFINITY01GlyphAndWidgetContractTest::RunTest(const FString&)
 	}
 
 	UClass* EntryClass = UGridSkillEntryWidget::StaticClass();
+	TestNull(TEXT("Legacy Unicode Text_SkillAffinity native binding is removed"),
+		FindFProperty<FProperty>(EntryClass, TEXT("Text_SkillAffinity")));
+
 	for (const FName PropertyName : {
-		FName(TEXT("Text_SkillAffinity")),
 		FName(TEXT("Border_AffinityRecommended")),
 		FName(TEXT("Border_AffinityUseful")),
 		FName(TEXT("Border_AffinityNeutral")),
