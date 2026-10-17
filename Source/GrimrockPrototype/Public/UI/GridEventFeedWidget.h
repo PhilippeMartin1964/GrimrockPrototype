@@ -13,6 +13,64 @@ class UScrollBox;
 class USizeBox;
 class UTextBlock;
 
+/** EVENTHUD01.6 editable semantic palette. Colour is supplementary; text remains authoritative. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridEventFeedSemanticPalette
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Default = FLinearColor(0.88f, 0.86f, 0.80f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Information = FLinearColor(0.88f, 0.86f, 0.80f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Interaction = FLinearColor(1.00f, 0.72f, 0.25f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Locked = FLinearColor(0.78f, 0.50f, 0.24f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Mechanism = FLinearColor(0.82f, 0.44f, 0.22f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Secret = FLinearColor(1.00f, 0.82f, 0.24f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Danger = FLinearColor(1.00f, 0.28f, 0.22f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor PhysicalDamage = FLinearColor(0.92f, 0.38f, 0.24f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Fire = FLinearColor(1.00f, 0.32f, 0.10f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Ice = FLinearColor(0.48f, 0.84f, 1.00f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Lightning = FLinearColor(0.58f, 0.52f, 1.00f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Poison = FLinearColor(0.46f, 0.86f, 0.34f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Arcane = FLinearColor(0.72f, 0.42f, 1.00f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Healing = FLinearColor(0.52f, 1.00f, 0.58f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Buff = FLinearColor(0.48f, 0.90f, 0.52f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Debuff = FLinearColor(1.00f, 0.42f, 0.36f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Dialogue = FLinearColor(0.82f, 0.86f, 0.96f, 1.0f);
+};
+
 /**
  * EVENTHUD01.3 Event Feed interaction shell.
  *
@@ -63,6 +121,14 @@ public:
 	static float ClampPanelHeight(float InHeight, float InMinHeight, float InMaxHeight);
 	static bool IsScrollAtEnd(float CurrentOffset, float EndOffset, float Tolerance = 8.0f);
 
+	/** EVENTHUD01.6 deterministic semantic-to-colour mapping. */
+	static FLinearColor ResolveSemanticColor(
+		EGridHudEventSemantic Semantic,
+		const FGridEventFeedSemanticPalette& Palette);
+
+	UFUNCTION(BlueprintPure, Category = "HUD|Event Feed|Style")
+	FLinearColor GetSemanticColor(EGridHudEventSemantic Semantic) const;
+
 	/** Public deterministic resize primitives used by the authored UMG handle. */
 	void BeginResizeAtScreenY(float ScreenY, float ViewportScale);
 	void UpdateResizeAtScreenY(float ScreenY);
@@ -95,6 +161,10 @@ public:
 	/** Explicit EVENTHUD font settings. Defaults to project Alegreya Sans when available. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
 	FSlateFontInfo EntryFont;
+
+	/** Editable in WBP_GridEventFeed Class Defaults; no semantic icons are used. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
+	FGridEventFeedSemanticPalette SemanticPalette;
 
 	/** EVENTHUD01.3 three independent filters, enabled by default. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Event Feed|Filters")

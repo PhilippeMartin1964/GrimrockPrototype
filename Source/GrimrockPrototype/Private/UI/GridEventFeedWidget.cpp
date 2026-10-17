@@ -140,6 +140,39 @@ bool UGridEventFeedWidget::IsScrollAtEnd(float CurrentOffset, float EndOffset, f
 	return FMath::Max(0.0f, EndOffset) - FMath::Max(0.0f, CurrentOffset) <= FMath::Max(0.0f, Tolerance);
 }
 
+FLinearColor UGridEventFeedWidget::ResolveSemanticColor(
+	EGridHudEventSemantic Semantic,
+	const FGridEventFeedSemanticPalette& Palette)
+{
+	switch (Semantic)
+	{
+		case EGridHudEventSemantic::Information: return Palette.Information;
+		case EGridHudEventSemantic::Interaction: return Palette.Interaction;
+		case EGridHudEventSemantic::Locked: return Palette.Locked;
+		case EGridHudEventSemantic::Mechanism: return Palette.Mechanism;
+		case EGridHudEventSemantic::Secret: return Palette.Secret;
+		case EGridHudEventSemantic::Danger: return Palette.Danger;
+		case EGridHudEventSemantic::PhysicalDamage: return Palette.PhysicalDamage;
+		case EGridHudEventSemantic::Fire: return Palette.Fire;
+		case EGridHudEventSemantic::Ice: return Palette.Ice;
+		case EGridHudEventSemantic::Lightning: return Palette.Lightning;
+		case EGridHudEventSemantic::Poison: return Palette.Poison;
+		case EGridHudEventSemantic::Arcane: return Palette.Arcane;
+		case EGridHudEventSemantic::Healing: return Palette.Healing;
+		case EGridHudEventSemantic::Buff: return Palette.Buff;
+		case EGridHudEventSemantic::Debuff: return Palette.Debuff;
+		case EGridHudEventSemantic::Dialogue: return Palette.Dialogue;
+		case EGridHudEventSemantic::Default:
+		default:
+			return Palette.Default;
+	}
+}
+
+FLinearColor UGridEventFeedWidget::GetSemanticColor(EGridHudEventSemantic Semantic) const
+{
+	return ResolveSemanticColor(Semantic, SemanticPalette);
+}
+
 void UGridEventFeedWidget::BeginResizeAtScreenY(float ScreenY, float ViewportScale)
 {
 	bResizeDragging = true;
@@ -350,6 +383,7 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 			}
 			Row->SetText(BuildEntryText(Entry));
 			Row->SetFont(EntryFont);
+			Row->SetColorAndOpacity(FSlateColor(GetSemanticColor(Entry.Semantic)));
 			Row->SetAutoWrapText(true);
 			Row->SetVisibility(ESlateVisibility::HitTestInvisible);
 			ScrollBox_Entries->AddChild(Row);
