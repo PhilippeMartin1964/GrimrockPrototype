@@ -66,8 +66,8 @@ public:
 	static bool IsScrollAtEnd(float CurrentOffset, float EndOffset, float Tolerance = 8.0f);
 
 	/** Public deterministic resize primitives used by both native and authored handles. */
-	void BeginResizeAtScreenY(float ScreenY);
-	void UpdateResizeAtScreenY(float ScreenY);
+	void BeginResizeAtLocalY(float LocalY);
+	void UpdateResizeAtLocalY(float LocalY);
 	void EndResize();
 
 	virtual void SynchronizeProperties() override;
@@ -179,7 +179,7 @@ private:
 
 	TWeakObjectPtr<UGridEventFeedSubsystem> EventFeedSubsystem;
 	bool bResizeDragging = false;
-	float ResizeStartScreenY = 0.0f;
+	float ResizeStartLocalY = 0.0f;
 	float ResizeStartHeight = 320.0f;
 	bool bFollowNewestEntries = true;
 

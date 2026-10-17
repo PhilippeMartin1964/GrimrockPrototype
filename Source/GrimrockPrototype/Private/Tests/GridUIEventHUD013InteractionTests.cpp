@@ -64,16 +64,16 @@ bool FGridUIEventHUD013ResizeTest::RunTest(const FString& Parameters)
 	}
 
 	Widget->SetPanelHeight(320.0f);
-	Widget->BeginResizeAtScreenY(500.0f);
-	Widget->UpdateResizeAtScreenY(450.0f);
-	TestEqual(TEXT("Dragging upper handle upward grows the feed"), Widget->GetPanelHeight(), 370.0f);
+	Widget->BeginResizeAtLocalY(500.0f);
+	Widget->UpdateResizeAtLocalY(450.0f);
+	TestEqual(TEXT("Local logical drag upward grows the feed one-for-one"), Widget->GetPanelHeight(), 370.0f);
 
-	Widget->UpdateResizeAtScreenY(900.0f);
+	Widget->UpdateResizeAtLocalY(900.0f);
 	TestEqual(TEXT("Dragging downward clamps to minimum height"), Widget->GetPanelHeight(), 180.0f);
 	Widget->EndResize();
 
-	Widget->BeginResizeAtScreenY(500.0f);
-	Widget->UpdateResizeAtScreenY(-100.0f);
+	Widget->BeginResizeAtLocalY(500.0f);
+	Widget->UpdateResizeAtLocalY(-100.0f);
 	TestEqual(TEXT("Dragging upward clamps to maximum height"), Widget->GetPanelHeight(), 600.0f);
 	Widget->EndResize();
 

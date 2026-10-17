@@ -132,21 +132,21 @@ bool UGridEventFeedWidget::IsScrollAtEnd(float CurrentOffset, float EndOffset, f
 	return FMath::Max(0.0f, EndOffset) - FMath::Max(0.0f, CurrentOffset) <= FMath::Max(0.0f, Tolerance);
 }
 
-void UGridEventFeedWidget::BeginResizeAtScreenY(float ScreenY)
+void UGridEventFeedWidget::BeginResizeAtLocalY(float LocalY)
 {
 	bResizeDragging = true;
-	ResizeStartScreenY = ScreenY;
+	ResizeStartLocalY = LocalY;
 	ResizeStartHeight = CurrentPanelHeight;
 }
 
-void UGridEventFeedWidget::UpdateResizeAtScreenY(float ScreenY)
+void UGridEventFeedWidget::UpdateResizeAtLocalY(float LocalY)
 {
 	if (!bResizeDragging)
 	{
 		return;
 	}
 
-	SetPanelHeight(ResizeStartHeight + (ResizeStartScreenY - ScreenY));
+	SetPanelHeight(ResizeStartHeight + (ResizeStartLocalY - LocalY));
 }
 
 void UGridEventFeedWidget::EndResize()
@@ -184,6 +184,7 @@ TSharedRef<SWidget> UGridEventFeedWidget::RebuildWidget()
 					SNew(SButton)
 						.ContentPadding(FMargin(0.0f))
 						.ToolTipText(LOCTEXT("ResizeTooltip", "Redimensionner le flux"))
+						.Cursor(EMouseCursor::None)
 						.OnPressed(FSimpleDelegate::CreateUObject(this, &UGridEventFeedWidget::HandleResizePressed))
 						.OnReleased(FSimpleDelegate::CreateUObject(this, &UGridEventFeedWidget::HandleResizeReleased))
 						[
@@ -256,6 +257,27 @@ TSharedRef<SWidget> UGridEventFeedWidget::RebuildWidget()
 void UGridEventFeedWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	// The project renders Cursor_Default through its custom cursor widget.
+	// Hit-testable Event Feed controls must not let Slate re-expose the platform cursor.
+	SetCursor(EMouseCursor::None);
+	if (Button_ResizeHandle)
+	{
+		Button_ResizeHandle->SetCursor(EMouseCursor::None);
+	}
+	if (Button_FilterEvents)
+	{
+		Button_FilterEvents->SetCursor(EMouseCursor::None);
+	}
+	if (Button_FilterCombat)
+	{
+		Button_FilterCombat->SetCursor(EMouseCursor::None);
+	}
+	if (Button_FilterDiscussion)
+	{
+		Button_FilterDiscussion->SetCursor(EMouseCursor::None);
+	}
+
 	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	BindControls();
 	BindEventFeed();
@@ -276,7 +298,8 @@ void UGridEventFeedWidget::NativeTick(const FGeometry& MyGeometry, float InDelta
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	if (bResizeDragging && FSlateApplication::IsInitialized())
 	{
-		UpdateResizeAtScreenY(static_cast<float>(FSlateApplication::Get().GetCursorPos().Y));
+		const FVector2D CursorLocal = MyGeometry.AbsoluteToLocal(FSlateApplication::Get().GetCursorPos());
+		UpdateResizeAtLocalY(CursorLocal.Y);
 	}
 }
 
@@ -559,7 +582,8 @@ void UGridEventFeedWidget::BeginResizeFromCursor()
 {
 	if (FSlateApplication::IsInitialized())
 	{
-		BeginResizeAtScreenY(static_cast<float>(FSlateApplication::Get().GetCursorPos().Y));
+		const FVector2D CursorLocal = GetCachedGeometry().AbsoluteToLocal(FSlateApplication::Get().GetCursorPos());
+		BeginResizeAtLocalY(CursorLocal.Y);
 	}
 }
 
