@@ -6,6 +6,15 @@
 
 class UTexture2D;
 
+UENUM(BlueprintType)
+enum class EGridSkillClassAffinity : uint8
+{
+	Recommended,
+	Useful,
+	Neutral,
+	Discouraged
+};
+
 /**
  * Presentation-only metadata for one canonical Skill.
  *
@@ -37,6 +46,10 @@ struct GRIMROCKPROTOTYPE_API FRPGSkillPresentationDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|Presentation")
 	TArray<FName> UsefulClassIds;
 
+	/** Presentation advice only; never a gameplay restriction. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|Presentation")
+	TArray<FName> DiscouragedClassIds;
+
 	/** Canonical SkillIds shown as related Skills in the detail panel. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|Presentation")
 	TArray<FName> SynergySkillIds;
@@ -62,6 +75,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|Presentation")
 	bool GetSkillPresentation(FName SkillId, FRPGSkillPresentationDefinition& OutDefinition) const;
+
+	/** Resolves presentation advice for one Skill against one canonical class. Missing metadata is Neutral. */
+	UFUNCTION(BlueprintPure, Category = "RPG|Skills|Presentation")
+	EGridSkillClassAffinity ResolveClassAffinity(FName SkillId, FName ClassId) const;
 
 	const FRPGSkillPresentationDefinition* FindSkill(FName SkillId) const;
 };

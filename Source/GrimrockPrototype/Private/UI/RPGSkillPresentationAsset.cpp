@@ -27,9 +27,11 @@ bool FRPGSkillPresentationDefinition::IsValidDefinition() const
 
 	TSet<FName> RecommendedClasses;
 	TSet<FName> UsefulClasses;
+	TSet<FName> DiscouragedClasses;
 	TSet<FName> Synergies;
 	if (!BuildUniqueNameSet(RecommendedClassIds, RecommendedClasses) ||
 		!BuildUniqueNameSet(UsefulClassIds, UsefulClasses) ||
+		!BuildUniqueNameSet(DiscouragedClassIds, DiscouragedClasses) ||
 		!BuildUniqueNameSet(SynergySkillIds, Synergies))
 	{
 		return false;
@@ -38,6 +40,14 @@ bool FRPGSkillPresentationDefinition::IsValidDefinition() const
 	for (const FName ClassId : UsefulClasses)
 	{
 		if (RecommendedClasses.Contains(ClassId))
+		{
+			return false;
+		}
+	}
+
+	for (const FName ClassId : DiscouragedClasses)
+	{
+		if (RecommendedClasses.Contains(ClassId) || UsefulClasses.Contains(ClassId))
 		{
 			return false;
 		}
@@ -104,4 +114,34 @@ bool URPGSkillPresentationAsset::GetSkillPresentation(
 
 	OutDefinition = *Found;
 	return true;
+}
+
+EGridSkillClassAffinity URPGSkillPresentationAsset::ResolveClassAffinity(
+	FName SkillId,
+	FName ClassId) const
+{
+	if (SkillId.IsNone() || ClassId.IsNone())
+	{
+		return EGridSkillClassAffinity::Neutral;
+	}
+
+	const FRPGSkillPresentationDefinition* Presentation = FindSkill(SkillId);
+	if (!Presentation)
+	{
+		return EGridSkillClassAffinity::Neutral;
+	}
+
+	if (Presentation->RecommendedClassIds.Contains(ClassId))
+	{
+		return EGridSkillClassAffinity::Recommended;
+	}
+	if (Presentation->UsefulClassIds.Contains(ClassId))
+	{
+		return EGridSkillClassAffinity::Useful;
+	}
+	if (Presentation->DiscouragedClassIds.Contains(ClassId))
+	{
+		return EGridSkillClassAffinity::Discouraged;
+	}
+	return EGridSkillClassAffinity::Neutral;
 }

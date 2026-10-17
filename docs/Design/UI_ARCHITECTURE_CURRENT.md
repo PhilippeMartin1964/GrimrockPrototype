@@ -343,6 +343,34 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
+### UI-SKILLS-AFFINITY01 — affinité compétence / classe — SOURCE OUVERTE
+
+La liste Skills expose désormais une sémantique d’affinité entre chaque
+compétence et la classe du personnage actuellement sélectionné :
+
+~~~text
+Recommended -> ★★
+Useful      -> ★
+Neutral     -> ☆
+Discouraged -> ★̸
+~~~
+
+`RecommendedClassIds`, `UsefulClassIds` et le nouveau `DiscouragedClassIds`
+sont des métadonnées de présentation uniquement. Elles ne limitent jamais
+l’utilisation ou la progression d’une compétence. Une classe absente des trois
+groupes est `Neutral` ; elle n’est jamais implicitement déconseillée.
+
+Le catalogue refuse tout chevauchement entre les trois groupes. Le
+`FGridSkillEntryView` porte `ClassAffinity`, résolu à chaque refresh contre
+`View.ClassId`. La colonne `Affinity` participe au tri UI avec l’ordre
+Recommended -> Useful -> Neutral -> Discouraged en sens croissant.
+
+Les hooks de colonne et de ligne restent `BindWidgetOptional` jusqu’à la
+matérialisation manuelle dans `WBP_GridSkills` et `WBP_RPGSkillEntry`.
+
+Référence :
+`docs/Design/UI_SKILLS_AFFINITY01_CLASS_AFFINITY.md`.
+
 ### UI-SKILLS-SUMMARY01 — résumé Skill éclaté — SOURCE OUVERTE
 
 `Text_SkillPoints` est en cours de remplacement par deux valeurs dynamiques

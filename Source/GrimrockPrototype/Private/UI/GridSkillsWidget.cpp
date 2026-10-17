@@ -107,6 +107,13 @@ namespace GridSkillsWidgetPrivate
 				return CompareSkillNames(Left, Right);
 			}
 
+			case EGridSkillSortColumn::Affinity:
+				if (Left.ClassAffinity != Right.ClassAffinity)
+				{
+					return static_cast<uint8>(Left.ClassAffinity) < static_cast<uint8>(Right.ClassAffinity) ? -1 : 1;
+				}
+				return CompareSkillNames(Left, Right);
+
 			case EGridSkillSortColumn::Rank:
 				if (Left.Rank != Right.Rank)
 				{
@@ -192,6 +199,11 @@ void UGridSkillsWidget::BindDesignerShell()
 		Button_SortAttribute->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSortAttributeClicked);
 		Button_SortAttribute->OnClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSortAttributeClicked);
 	}
+	if (Button_SortAffinity)
+	{
+		Button_SortAffinity->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSortAffinityClicked);
+		Button_SortAffinity->OnClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSortAffinityClicked);
+	}
 	if (Button_SortRank)
 	{
 		Button_SortRank->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSortRankClicked);
@@ -232,6 +244,10 @@ void UGridSkillsWidget::UnbindDesignerShell()
 	if (Button_SortAttribute)
 	{
 		Button_SortAttribute->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSortAttributeClicked);
+	}
+	if (Button_SortAffinity)
+	{
+		Button_SortAffinity->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSortAffinityClicked);
 	}
 	if (Button_SortRank)
 	{
@@ -388,6 +404,15 @@ void UGridSkillsWidget::RefreshSkills()
 					SessionPurchaseCount > 0 &&
 					SessionFloor >= 0 &&
 					Entry.Rank > SessionFloor;
+
+				const URPGSkillPresentationAsset* PresentationCatalog =
+					IsValid(SkillPresentationAsset) && SkillPresentationAsset->IsValidDefinition()
+						? SkillPresentationAsset.Get()
+						: nullptr;
+				Entry.ClassAffinity =
+					PresentationCatalog
+						? PresentationCatalog->ResolveClassAffinity(Entry.SkillId, Candidate.ClassId)
+						: EGridSkillClassAffinity::Neutral;
 			}
 			View = MoveTemp(Candidate);
 		}
@@ -1194,6 +1219,15 @@ void UGridSkillsWidget::SortSkillEntries(
 					? 0
 					: (Left.Rank < Right.Rank ? -1 : 1);
 			}
+			else if (Column == EGridSkillSortColumn::Affinity)
+			{
+				const uint8 LeftAffinity = static_cast<uint8>(Left.ClassAffinity);
+				const uint8 RightAffinity = static_cast<uint8>(Right.ClassAffinity);
+				ColumnComparison =
+					LeftAffinity == RightAffinity
+						? 0
+						: (LeftAffinity < RightAffinity ? -1 : 1);
+			}
 			else
 			{
 				const FString LeftAttribute =
@@ -1256,6 +1290,11 @@ void UGridSkillsWidget::HandleSortAttributeClicked()
 	ToggleSkillSortColumn(EGridSkillSortColumn::Attribute);
 }
 
+void UGridSkillsWidget::HandleSortAffinityClicked()
+{
+	ToggleSkillSortColumn(EGridSkillSortColumn::Affinity);
+}
+
 void UGridSkillsWidget::HandleSortRankClicked()
 {
 	ToggleSkillSortColumn(EGridSkillSortColumn::Rank);
@@ -1288,6 +1327,7 @@ void UGridSkillsWidget::RefreshSkillSortIndicators()
 
 	ApplyIndicator(Text_SortNameIndicator, EGridSkillSortColumn::Name);
 	ApplyIndicator(Text_SortAttributeIndicator, EGridSkillSortColumn::Attribute);
+	ApplyIndicator(Text_SortAffinityIndicator, EGridSkillSortColumn::Affinity);
 	ApplyIndicator(Text_SortRankIndicator, EGridSkillSortColumn::Rank);
 }
 void UGridSkillsWidget::RebuildSkillEntryWidgets()

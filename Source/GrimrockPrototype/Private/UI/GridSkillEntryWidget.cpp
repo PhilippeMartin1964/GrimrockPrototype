@@ -159,6 +159,23 @@ void UGridSkillEntryWidget::ClearSkillEntry()
 		Text_SkillAttribute->SetText(FText::GetEmpty());
 		Text_SkillAttribute->SetVisibility(ESlateVisibility::Collapsed);
 	}
+	if (Text_SkillAffinity)
+	{
+		Text_SkillAffinity->SetText(FText::GetEmpty());
+		Text_SkillAffinity->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	for (UBorder* AffinityBorder : {
+		Border_AffinityRecommended.Get(),
+		Border_AffinityUseful.Get(),
+		Border_AffinityNeutral.Get(),
+		Border_AffinityDiscouraged.Get()
+	})
+	{
+		if (AffinityBorder)
+		{
+			AffinityBorder->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
 	if (Text_SkillRank) Text_SkillRank->SetText(FText::GetEmpty());
 	if (Text_SkillTrainingPolicy) Text_SkillTrainingPolicy->SetText(FText::GetEmpty());
 	if (Button_IncreaseSkill)
@@ -194,6 +211,25 @@ void UGridSkillEntryWidget::RefreshEntryVisual()
 		Text_SkillAttribute->SetText(bHasAttribute ? ResolveAttributeLabel(Entry) : FText::GetEmpty());
 		Text_SkillAttribute->SetVisibility(bHasAttribute ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
+	if (Text_SkillAffinity)
+	{
+		Text_SkillAffinity->SetText(ResolveAffinityGlyph(Entry.ClassAffinity));
+		Text_SkillAffinity->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+	auto ApplyAffinityBorder = [this](UBorder* Border, EGridSkillClassAffinity Affinity)
+	{
+		if (Border)
+		{
+			Border->SetVisibility(
+				Entry.ClassAffinity == Affinity
+					? ESlateVisibility::HitTestInvisible
+					: ESlateVisibility::Collapsed);
+		}
+	};
+	ApplyAffinityBorder(Border_AffinityRecommended, EGridSkillClassAffinity::Recommended);
+	ApplyAffinityBorder(Border_AffinityUseful, EGridSkillClassAffinity::Useful);
+	ApplyAffinityBorder(Border_AffinityNeutral, EGridSkillClassAffinity::Neutral);
+	ApplyAffinityBorder(Border_AffinityDiscouraged, EGridSkillClassAffinity::Discouraged);
 	if (Text_SkillRank)
 	{
 		Text_SkillRank->SetText(ResolveRankLabel(Entry));
@@ -293,6 +329,23 @@ FText UGridSkillEntryWidget::ResolveTrainingLabel(const FGridSkillEntryView& InE
 			return FUILocalizationText::Get(TEXT("Skill.Training.UntrainedAllowed"));
 		case EGridSkillTrainingState::TrainingRequired:
 			return FUILocalizationText::Get(TEXT("Skill.Training.Required"));
+		default:
+			return FText::GetEmpty();
+	}
+}
+
+FText UGridSkillEntryWidget::ResolveAffinityGlyph(EGridSkillClassAffinity Affinity)
+{
+	switch (Affinity)
+	{
+		case EGridSkillClassAffinity::Recommended:
+			return FText::FromString(TEXT("★★"));
+		case EGridSkillClassAffinity::Useful:
+			return FText::FromString(TEXT("★"));
+		case EGridSkillClassAffinity::Neutral:
+			return FText::FromString(TEXT("☆"));
+		case EGridSkillClassAffinity::Discouraged:
+			return FText::FromString(TEXT("★̸"));
 		default:
 			return FText::GetEmpty();
 	}

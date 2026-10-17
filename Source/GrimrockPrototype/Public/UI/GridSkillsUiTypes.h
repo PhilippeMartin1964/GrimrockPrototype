@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "RPG/RPGSkillTypes.h"
 #include "RPG/RPGClassAsset.h"
+#include "UI/RPGSkillPresentationAsset.h"
 #include "GridSkillsUiTypes.generated.h"
 
 class UTexture2D;
@@ -12,6 +13,7 @@ enum class EGridSkillSortColumn : uint8
 {
 	Name,
 	Attribute,
+	Affinity,
 	Rank
 };
 
@@ -36,6 +38,10 @@ struct GRIMROCKPROTOTYPE_API FGridSkillEntryView
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	ERPGSkillGoverningAttribute GoverningAttribute = ERPGSkillGoverningAttribute::None;
+
+	/** Presentation-only relation between this Skill and the selected character class. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	EGridSkillClassAffinity ClassAffinity = EGridSkillClassAffinity::Neutral;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	int32 Rank = 0;
@@ -196,6 +202,9 @@ struct GRIMROCKPROTOTYPE_API FGridSkillDetailView
 	TArray<FGridSkillClassAffinityView> UsefulClasses;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
+	TArray<FGridSkillClassAffinityView> DiscouragedClasses;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI|Detail")
 	TArray<FGridSkillSynergyView> Synergies;
 
 	bool IsValid() const
@@ -282,6 +291,19 @@ struct GRIMROCKPROTOTYPE_API FGridSkillDetailView
 				return false;
 			}
 			UsefulIds.Add(ClassView.ClassId);
+		}
+
+		TSet<FName> DiscouragedIds;
+		for (const FGridSkillClassAffinityView& ClassView : DiscouragedClasses)
+		{
+			if (!ClassView.IsValid() ||
+				DiscouragedIds.Contains(ClassView.ClassId) ||
+				RecommendedIds.Contains(ClassView.ClassId) ||
+				UsefulIds.Contains(ClassView.ClassId))
+			{
+				return false;
+			}
+			DiscouragedIds.Add(ClassView.ClassId);
 		}
 
 		TSet<FName> SynergyIds;

@@ -1486,7 +1486,8 @@ bool FGridSkillsPageService::TryBuildSkillDetailView(
 				};
 
 			if (!ResolveClassAffinities(Presentation->RecommendedClassIds, Candidate.RecommendedClasses) ||
-				!ResolveClassAffinities(Presentation->UsefulClassIds, Candidate.UsefulClasses))
+				!ResolveClassAffinities(Presentation->UsefulClassIds, Candidate.UsefulClasses) ||
+				!ResolveClassAffinities(Presentation->DiscouragedClassIds, Candidate.DiscouragedClasses))
 			{
 				return false;
 			}

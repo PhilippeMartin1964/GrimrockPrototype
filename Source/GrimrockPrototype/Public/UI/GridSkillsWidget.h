@@ -236,6 +236,9 @@ private:
 	void HandleSortAttributeClicked();
 
 	UFUNCTION()
+	void HandleSortAffinityClicked();
+
+	UFUNCTION()
 	void HandleSortRankClicked();
 
 	void ToggleSkillSortColumn(EGridSkillSortColumn Column);
@@ -302,6 +305,10 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_SortAttribute;
 
+	/** UI-SKILLS-AFFINITY01: optional until the Affinité header is materialized in WBP_GridSkills. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Button_SortAffinity;
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_SortRank;
 
@@ -311,6 +318,10 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SortAttributeIndicator;
+
+	/** UI-SKILLS-AFFINITY01: optional until the Affinité header is materialized in WBP_GridSkills. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_SortAffinityIndicator;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SortRankIndicator;

@@ -101,6 +101,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|Entry")
 	static FText ResolveTrainingLabel(const FGridSkillEntryView& InEntry);
 
+	UFUNCTION(BlueprintPure, Category = "RPG|Skills|Entry|Affinity")
+	static FText ResolveAffinityGlyph(EGridSkillClassAffinity Affinity);
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -128,6 +131,23 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SkillAttribute;
+
+	/** Compact affinity glyph. Optional until UI-SKILLS-AFFINITY01 is materialized in WBP_RPGSkillEntry. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_SkillAffinity;
+
+	/** Designer-owned backgrounds; C++ only selects the semantic state. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBorder> Border_AffinityRecommended;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBorder> Border_AffinityUseful;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBorder> Border_AffinityNeutral;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBorder> Border_AffinityDiscouraged;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SkillRank;
