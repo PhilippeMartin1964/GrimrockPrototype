@@ -547,28 +547,28 @@ Saved/Localization/UI-LOCALIZATION01.6/20261017-115112
 Référence :
 `docs/Design/UI_SKILLS_AFFINITY01_CLASS_AFFINITY.md`.
 
-### UI-SKILLS-SUMMARY01 — résumé Skill éclaté — SOURCE OUVERTE
+### UI-SKILLS-SUMMARY01 — résumé Skill éclaté — FERMETURE NATIVE 02.6
 
-`Text_SkillPoints` est en cours de remplacement par deux valeurs dynamiques
-indépendantes afin de permettre une mise en page modulaire avec icônes :
+Le résumé Skill est matérialisé sous forme de deux valeurs dynamiques
+indépendantes :
 
 ~~~text
-Points de compétence disponibles : <valeur>
-Rang maximum actuel possible :      <valeur>
+Text_AvailableSkillPoints <- View.RemainingSkillPoints
+Text_CurrentSkillRankCap  <- View.SkillRankCap
 ~~~
 
-Les libellés statiques sont autoritaires dans `UI.csv` puis `ST_UI` :
+Les deux contrôles sont désormais des `BindWidget` obligatoires. Les libellés
+statiques restent des références directes ST_UI dans `WBP_GridSkills` :
 
 ~~~text
 Skill.Summary.AvailablePoints
 Skill.Summary.CurrentRankCap
 ~~~
 
-Les futures valeurs `Text_AvailableSkillPoints` et `Text_CurrentSkillRankCap`
-sont uniquement alimentées par C++ à partir de `View.RemainingSkillPoints` et
-`View.SkillRankCap`. `Text_SkillPoints` reste temporairement un bridge de
-matérialisation jusqu’au remplacement manuel dans `WBP_GridSkills`; il sera
-ensuite supprimé sans couche de compatibilité durable.
+Le bridge historique `Text_SkillPoints`, son formatter C++ et les deux clés
+`Talent.Screen.SkillPointsFormat` /
+`Talent.Screen.SkillPointsUnavailable` ont été retirés de l'autorité source.
+Aucune compatibilité durable n'est conservée.
 
 Référence :
 `docs/Design/UI_SKILLS_SUMMARY01_SPLIT_SUMMARY.md`.

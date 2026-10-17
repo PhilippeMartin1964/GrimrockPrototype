@@ -290,16 +290,12 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_TalentPoints;
 
-	/** UI-SKILLS-SUMMARY01.1 migration-only legacy combined summary; removed after WBP split. */
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_SkillPoints;
-
-	/** UI-SKILLS-SUMMARY01: dynamic value only; static label belongs to ST_UI in Designer. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	/** Split Skill summary dynamic value; static label belongs to ST_UI in Designer. */
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_AvailableSkillPoints;
 
-	/** UI-SKILLS-SUMMARY01: dynamic value only; static label belongs to ST_UI in Designer. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	/** Split Skill rank-cap value; static label belongs to ST_UI in Designer. */
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_CurrentSkillRankCap;
 
 	/** UI-SKILLS-SORT01: materialized column sort controls in WBP_GridSkills. */

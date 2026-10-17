@@ -635,8 +635,6 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Screen.SelectedCharacterFallback")),
 		FName(TEXT("Talent.Screen.ClassLevelFormat")),
 		FName(TEXT("Talent.Screen.TalentPointsFormat")),
-		FName(TEXT("Talent.Screen.SkillPointsUnavailable")),
-		FName(TEXT("Talent.Screen.SkillPointsFormat")),
 		FName(TEXT("Talent.Feedback.Reject.InvalidCharacter")),
 		FName(TEXT("Talent.Feedback.Reject.InvalidClassDefinition")),
 		FName(TEXT("Talent.Feedback.Reject.InvalidCurrentSelection")),

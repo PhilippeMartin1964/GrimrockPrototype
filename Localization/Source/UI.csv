@@ -390,8 +390,6 @@ Key,SourceString,Comment
 "Talent.Screen.ClassLevelFormat","{Class} - Niveau {Level}","Vocabulaire statique présenté dans l'interface Talent"
 "Talent.Screen.NoCharacterSelected","Aucun personnage sélectionné","Vocabulaire statique présenté dans l'interface Talent"
 "Talent.Screen.SelectedCharacterFallback","Personnage sélectionné","Vocabulaire statique présenté dans l'interface Talent"
-"Talent.Screen.SkillPointsFormat","Points de compétence : {SkillPoints} - Rang max : {RankCap}","Vocabulaire statique présenté dans l'interface Talent"
-"Talent.Screen.SkillPointsUnavailable","Points de compétence : -","Vocabulaire statique présenté dans l'interface Talent"
 "Talent.Screen.TalentPointsFormat","Points de talent : {TalentPoints}","Vocabulaire statique présenté dans l'interface Talent"
 "Talent.Section.Acquisition","ACQUISITION","Vocabulaire statique présenté dans l'interface Talent"
 "Talent.Section.Effects","EFFETS","Vocabulaire statique présenté dans l'interface Talent"

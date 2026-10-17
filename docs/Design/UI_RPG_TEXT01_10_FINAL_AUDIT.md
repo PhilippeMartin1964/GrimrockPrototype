@@ -44,8 +44,13 @@ Talent.Feedback.Success.*
 Talent.Feedback.Rejected.*
 ~~~
 
-Le test `Grimrock.UI.RPG.DESC01.ReadModel.PresentationTextAuthority` exige
-désormais la présence de ces clés dans le Data Asset de production.
+À la fermeture TEXT01.10, le test
+`Grimrock.UI.RPG.DESC01.ReadModel.PresentationTextAuthority` exigeait ces
+identités. Depuis `UI-SKILLS-CODE-AUDIT02.6`, les deux clés historiques
+`Talent.Screen.SkillPointsUnavailable` et
+`Talent.Screen.SkillPointsFormat` sont retirées du contrat runtime : le résumé
+Skills matérialisé utilise désormais les deux clés statiques
+`Skill.Summary.AvailablePoints` et `Skill.Summary.CurrentRankCap`.
 
 ## Hors périmètre identifié par l'audit
 

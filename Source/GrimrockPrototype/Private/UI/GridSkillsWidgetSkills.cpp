@@ -33,15 +33,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridSkillsUI, Log, All);
 
 namespace GridSkillsWidgetPrivate
 {
-	FText FormatSkillPoints(const FText& Pattern, int32 SkillPoints, int32 RankCap)
-	{
-		if (Pattern.IsEmpty()) return FText::GetEmpty();
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("SkillPoints"), FText::AsNumber(SkillPoints));
-		Arguments.Add(TEXT("RankCap"), FText::AsNumber(RankCap));
-		return FText::Format(Pattern, Arguments);
-	}
-
 	int32 NormalizeComparison(int32 Comparison)
 	{
 		return Comparison < 0 ? -1 : (Comparison > 0 ? 1 : 0);
@@ -320,41 +311,15 @@ void UGridSkillsWidget::RefreshSkillSummaryPresentation()
 	const bool bHasCharacter = View.IsValid();
 	const FText UnavailableValue = FText::FromString(TEXT("—"));
 
-	if (Text_AvailableSkillPoints)
-	{
-		Text_AvailableSkillPoints->SetText(
-			bHasCharacter
-				? FText::AsNumber(View.RemainingSkillPoints)
-				: UnavailableValue);
-	}
+	Text_AvailableSkillPoints->SetText(
+		bHasCharacter
+			? FText::AsNumber(View.RemainingSkillPoints)
+			: UnavailableValue);
 
-	if (Text_CurrentSkillRankCap)
-	{
-		Text_CurrentSkillRankCap->SetText(
-			bHasCharacter
-				? FText::AsNumber(View.SkillRankCap)
-				: UnavailableValue);
-	}
-
-	// Migration bridge for the currently materialized WBP. UI-SKILLS-SUMMARY01.2
-	// removes this path together with Text_SkillPoints and the two legacy keys.
-	if (Text_SkillPoints)
-	{
-		if (!bHasCharacter)
-		{
-			Text_SkillPoints->SetText(
-				FUILocalizationText::Get(TEXT("Talent.Screen.SkillPointsUnavailable")));
-			return;
-		}
-
-		const FText SkillPointsFormat =
-			FUILocalizationText::Get(TEXT("Talent.Screen.SkillPointsFormat"));
-		Text_SkillPoints->SetText(
-			GridSkillsWidgetPrivate::FormatSkillPoints(
-				SkillPointsFormat,
-				View.RemainingSkillPoints,
-				View.SkillRankCap));
-	}
+	Text_CurrentSkillRankCap->SetText(
+		bHasCharacter
+			? FText::AsNumber(View.SkillRankCap)
+			: UnavailableValue);
 }
 
 void UGridSkillsWidget::ApplySkillDetailPresentation()

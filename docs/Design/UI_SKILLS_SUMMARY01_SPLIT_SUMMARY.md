@@ -2,97 +2,106 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **01.1 SOURCE PRÉPARÉE — matérialisation ST_UI et WBP requise**
+État : **VALIDÉ CÔTÉ DESIGNER — fermeture native UI-SKILLS-CODE-AUDIT02.6 implémentée**
 
-## 1. Objectif
+## 1. Contrat final
 
-Remplacer le résumé monolithique :
-
-~~~text
-Points de compétence : {SkillPoints} - Rang max : {RankCap}
-~~~
-
-par deux informations indépendantes :
+Le résumé Skills utilise deux informations indépendantes :
 
 ~~~text
 Points de compétence disponibles : <valeur>
 Rang maximum actuel possible :      <valeur>
 ~~~
 
-Cette séparation permet d’ajouter ultérieurement une icône, un espacement ou
-un style propre à chaque information sans reconstruire une grosse chaîne.
-
-## 2. Autorités
-
-Libellés statiques :
+Autorités :
 
 ~~~text
-UI.csv
-  -> ST_UI
-  -> Text_LabelAvailableSkillPoints
-  -> Text_LabelCurrentSkillRankCap
+UI.csv / ST_UI
+    Skill.Summary.AvailablePoints
+    Skill.Summary.CurrentRankCap
+
+View.RemainingSkillPoints
+    -> Text_AvailableSkillPoints
+
+View.SkillRankCap
+    -> Text_CurrentSkillRankCap
 ~~~
 
-Clés :
+En l'absence de personnage valide, les deux valeurs dynamiques affichent le
+glyphe mécanique `—`.
+
+## 2. Designer matérialisé
+
+Le WBP est déjà matérialisé et confirmé dans le projet avec les deux valeurs
+séparées. Le contrat natif final est donc :
 
 ~~~text
-Skill.Summary.AvailablePoints
-Skill.Summary.CurrentRankCap
+Text_AvailableSkillPoints   -> BindWidget
+Text_CurrentSkillRankCap    -> BindWidget
 ~~~
 
-Valeurs dynamiques :
+Les labels statiques restent sous autorité Designer / ST_UI :
 
 ~~~text
-View.RemainingSkillPoints -> Text_AvailableSkillPoints
-View.SkillRankCap         -> Text_CurrentSkillRankCap
+Text_LabelAvailableSkillPoints
+    -> Skill.Summary.AvailablePoints
+
+Text_LabelCurrentSkillRankCap
+    -> Skill.Summary.CurrentRankCap
 ~~~
 
-En l’absence de personnage valide, les deux valeurs affichent `—`.
+Le C++ ne possède ni ces labels, ni leur style, ni leur mise en page.
 
-## 3. Phase 01.1
+## 3. Legacy supprimé
 
-Le C++ expose provisoirement deux nouveaux `BindWidgetOptional` :
-
-~~~text
-Text_AvailableSkillPoints
-Text_CurrentSkillRankCap
-~~~
-
-`Text_SkillPoints` et les anciennes clés `Talent.Screen.SkillPointsFormat` /
-`Talent.Screen.SkillPointsUnavailable` restent uniquement comme bridge de
-matérialisation afin de ne pas casser le WBP existant sur `master`.
-
-Après matérialisation du nouveau WBP, la phase 01.2 supprimera entièrement :
+UI-SKILLS-CODE-AUDIT02.6 retire définitivement :
 
 ~~~text
 Text_SkillPoints
+GridSkillsWidgetPrivate::FormatSkillPoints()
 Talent.Screen.SkillPointsFormat
 Talent.Screen.SkillPointsUnavailable
-GridSkillsWidgetPrivate::FormatSkillPoints()
 ~~~
 
-Aucune compatibilité durable ne sera conservée.
+Les deux anciennes clés quittent `Localization/Source/UI.csv` et ne sont plus
+requises par les tests runtime Talent.
 
-## 4. WBP cible
+Aucune couche de compatibilité n'est conservée.
+
+## 4. Propriété des données
+
+Le split ne change aucune règle de progression :
 
 ~~~text
-HB_AvailableSkillPoints
-├── [Image_AvailableSkillPoints]        futur / optionnel
-├── Text_LabelAvailableSkillPoints      -> ST_UI / Skill.Summary.AvailablePoints
-└── Text_AvailableSkillPoints           -> valeur C++
+FRPGSkillPointService
+    -> Granted / Spent / Remaining / RankCap
 
-HB_CurrentSkillRankCap
-├── [Image_CurrentSkillRankCap]         futur / optionnel
-├── Text_LabelCurrentSkillRankCap       -> ST_UI / Skill.Summary.CurrentRankCap
-└── Text_CurrentSkillRankCap            -> valeur C++
+FGridSkillsPageView
+    -> RemainingSkillPoints
+    -> SkillRankCap
+
+UGridSkillsWidget
+    -> projection des deux valeurs uniquement
 ~~~
 
-Les labels ne doivent pas être `Is Variable` pour le C++ : ils restent
-strictement Designer / ST_UI.
+Aucun compteur de points Skill supplémentaire n'est persisté.
 
-## 5. Validation 01.1
+## 5. Validation
 
-Après récupération du commit :
+Le test existant :
+
+~~~text
+Grimrock.UI.Skills02.Summary.WidgetContract
+~~~
+
+verrouille maintenant les deux `BindWidget` obligatoires et l'absence du
+symbole natif `Text_SkillPoints`.
+
+La régression de production `Grimrock.UI.Skills02.Production.CatalogIconsAndWiring`
+recompile `WBP_GridSkills` et détecte donc une divergence entre le Designer et
+les bindings natifs durcis.
+
+Validation locale finale requise après le commit 02.6 :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 `
@@ -100,11 +109,10 @@ Après récupération du commit :
     -AutomationFilter "Grimrock.UI.Skills02"
 ~~~
 
-Le filtre doit inclure le nouveau test :
+Puis :
 
-~~~text
-Grimrock.UI.Skills02.Summary.WidgetContract
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.RPG.DESC01"
 ~~~
-
-Ensuite : matérialiser les deux nouvelles clés dans `ST_UI`, puis modifier
-`WBP_GridSkills` avant de supprimer le bridge legacy en 01.2.

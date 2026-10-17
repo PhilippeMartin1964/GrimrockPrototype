@@ -50,12 +50,6 @@ bool FUITEXTCENTRAL012D2TalentStringTableRuntimeTest::RunTest(const FString&)
 		FormatNamed(TEXT("Talent.Screen.TalentPointsFormat"), Args).EqualTo(FText::FromString(TEXT("Points de talent : 4"))));
 
 	Args.Reset();
-	Args.Add(TEXT("SkillPoints"), FText::AsNumber(3));
-	Args.Add(TEXT("RankCap"), FText::AsNumber(2));
-	TestTrue(TEXT("Named SkillPoints/RankCap format"),
-		FormatNamed(TEXT("Talent.Screen.SkillPointsFormat"), Args).EqualTo(FText::FromString(TEXT("Points de compétence : 3 - Rang max : 2"))));
-
-	Args.Reset();
 	Args.Add(TEXT("RemainingPoints"), FText::AsNumber(2));
 	TestTrue(TEXT("Named generic success format"),
 		FormatNamed(TEXT("Talent.Feedback.Success.Generic"), Args).EqualTo(FText::FromString(TEXT("Acquisition réussie. Points de talent restants : 2."))));

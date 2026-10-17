@@ -21,23 +21,22 @@ bool FUISKILLSSUMMARY01WidgetContractTest::RunTest(const FString&)
 	{
 		FProperty* Property = FindFProperty<FProperty>(SkillsClass, PropertyName);
 		TestNotNull(
-			*FString::Printf(TEXT("%s future split summary hook exists"), *PropertyName.ToString()),
+			*FString::Printf(TEXT("%s split summary hook exists"), *PropertyName.ToString()),
 			Property);
 		if (Property)
 		{
 			TestTrue(
-				*FString::Printf(TEXT("%s remains optional until WBP materialization"), *PropertyName.ToString()),
+				*FString::Printf(TEXT("%s is a mandatory BindWidget"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidget")));
+			TestFalse(
+				*FString::Printf(TEXT("%s is no longer optional"), *PropertyName.ToString()),
 				Property->HasMetaData(TEXT("BindWidgetOptional")));
 		}
 	}
 
-	FProperty* LegacyProperty = FindFProperty<FProperty>(SkillsClass, TEXT("Text_SkillPoints"));
-	TestNotNull(TEXT("Legacy combined summary remains only for migration"), LegacyProperty);
-	if (LegacyProperty)
-	{
-		TestTrue(TEXT("Legacy combined summary remains optional during migration"),
-			LegacyProperty->HasMetaData(TEXT("BindWidgetOptional")));
-	}
+	TestNull(
+		TEXT("Legacy combined Skill summary native property is retired"),
+		FindFProperty<FProperty>(SkillsClass, TEXT("Text_SkillPoints")));
 
 	return true;
 }
