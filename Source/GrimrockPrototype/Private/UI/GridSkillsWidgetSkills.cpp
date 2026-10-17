@@ -20,6 +20,7 @@
 #include "UI/GridSkillDetailWidget.h"
 #include "UI/GridSkillEntryWidget.h"
 #include "UI/GridSkillsPageService.h"
+#include "UI/GridSkillsWidgetFeedbackInternal.h"
 #include "UI/GridTalentBranchWidget.h"
 #include "UI/GridTalentDetailWidget.h"
 #include "UI/GridTalentNodeWidget.h"
@@ -216,15 +217,11 @@ bool UGridSkillsWidget::CommitSkillRankIncrease(FName SkillId, FText& OutFeedbac
 	OutFeedback = FUILocalizationText::Get(TEXT("Progression.Skill.AllocationFailed"));
 
 	const URPGSkillAsset* Definition = ResolveCanonicalSkillDefinition(SkillId);
-	FText SkillDisplayName = FText::FromName(SkillId);
-	if (const FGridSkillEntryView* Entry = View.Skills.FindByPredicate(
-		[SkillId](const FGridSkillEntryView& Candidate)
-		{
-			return Candidate.SkillId == SkillId;
-		}))
-	{
-		SkillDisplayName = Entry->DisplayName.IsEmpty() ? FText::FromName(SkillId) : Entry->DisplayName;
-	}
+	const FText SkillDisplayName =
+		GridSkillsWidgetFeedback::ResolvePlayerFacingSkillName(
+			View,
+			SkillId,
+			Definition);
 
 	const FGuid SessionCharacterId = View.CharacterId;
 	FRPGSkillPointMutationResult Result;
@@ -260,15 +257,11 @@ bool UGridSkillsWidget::CommitSkillRankDecrease(FName SkillId, FText& OutFeedbac
 	OutFeedback = FUILocalizationText::Get(TEXT("Progression.Skill.CancellationFailed"));
 
 	const URPGSkillAsset* Definition = ResolveCanonicalSkillDefinition(SkillId);
-	FText SkillDisplayName = FText::FromName(SkillId);
-	if (const FGridSkillEntryView* Entry = View.Skills.FindByPredicate(
-		[SkillId](const FGridSkillEntryView& Candidate)
-		{
-			return Candidate.SkillId == SkillId;
-		}))
-	{
-		SkillDisplayName = Entry->DisplayName.IsEmpty() ? FText::FromName(SkillId) : Entry->DisplayName;
-	}
+	const FText SkillDisplayName =
+		GridSkillsWidgetFeedback::ResolvePlayerFacingSkillName(
+			View,
+			SkillId,
+			Definition);
 
 	const FGuid SessionCharacterId = View.CharacterId;
 	const int32 SessionPurchaseCount = GetSessionPurchasedSkillRankCount(SessionCharacterId, SkillId);

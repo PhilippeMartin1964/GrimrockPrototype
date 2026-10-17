@@ -121,7 +121,6 @@ private:
 	UFUNCTION()
 	void HandleDecreaseSkillClicked();
 
-	static bool IsValidEntry(const FGridSkillEntryView& InEntry);
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SkillName;

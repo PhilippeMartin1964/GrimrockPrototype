@@ -84,7 +84,7 @@ void UGridSkillEntryWidget::HandleDecreaseSkillClicked()
 bool UGridSkillEntryWidget::InitializeSkillEntry(const FGridSkillEntryView& InEntry)
 {
 	ClearSkillEntry();
-	if (!IsValidEntry(InEntry))
+	if (!InEntry.IsValid())
 	{
 		return false;
 	}
@@ -324,19 +324,3 @@ FText UGridSkillEntryWidget::ResolveTrainingLabel(const FGridSkillEntryView& InE
 	}
 }
 
-bool UGridSkillEntryWidget::IsValidEntry(const FGridSkillEntryView& InEntry)
-{
-	const bool bRankCapValid =
-		InEntry.CurrentRankCap == 0 ||
-		(InEntry.CurrentRankCap >= 1 && InEntry.CurrentRankCap <= InEntry.MaxRank);
-
-	return !InEntry.SkillId.IsNone() &&
-		InEntry.MaxRank > 0 &&
-		InEntry.Rank >= 0 &&
-		InEntry.Rank <= InEntry.MaxRank &&
-		bRankCapValid &&
-		InEntry.bTrained == (InEntry.Rank > 0) &&
-		(!InEntry.bCanIncreaseRank ||
-			(InEntry.CurrentRankCap > 0 && InEntry.Rank < InEntry.CurrentRankCap)) &&
-		(!InEntry.bCanDecreaseRank || InEntry.Rank > 0);
-}

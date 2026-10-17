@@ -355,18 +355,18 @@ TEXT05.1 ne les considère donc pas comme dette `CONTENT-TEXT`.
 Plusieurs consommateurs utilisent encore un ID stable comme fallback :
 
 ```text
-FText::FromName(SkillId)
 FText::FromName(ItemDefinitionId)
 FText::FromName(EffectId)
 FText::FromName(MonsterId)
 ```
 
-Ils servent à garder un état diagnostic exploitable lorsqu'une présentation
-n'est pas disponible.
+Le fallback `FText::FromName(SkillId)` a été retiré du chemin joueur par
+`UI-SKILLS-CODE-AUDIT02.7`. Les notifications Skill résolvent désormais le
+nom projeté, puis le `URPGSkillAsset::DisplayName`, puis
+`Skill.Fallback.Unknown`. Le `SkillId` reste uniquement une identité
+technique / de diagnostic.
 
-Ils ne réintroduisent pas de prose métier et restent hors migration, sauf si un
-écran utilisateur final exige explicitement de ne jamais exposer un identifiant
-technique.
+Les autres fallbacks listés ci-dessus restent hors périmètre de 02.7.
 
 ---
 

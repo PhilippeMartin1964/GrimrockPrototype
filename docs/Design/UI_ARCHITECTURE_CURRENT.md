@@ -671,6 +671,27 @@ Validation finale : `SkillRemainingVocabulary` 1/1,
 Le `ST_UI.uasset` final est versionné dans `5b018972`.
 
 
+### UI-SKILLS-CODE-AUDIT02.7 — Skill error boundary / localisation
+
+Le boundary joueur des notifications Skill n'utilise plus jamais le
+`SkillId` comme texte de secours :
+
+~~~text
+FGridSkillEntryView.DisplayName
+    -> URPGSkillAsset::DisplayName
+    -> Skill.Fallback.Unknown
+~~~
+
+`FText::FromName(SkillId)` est retiré du chemin UI. L'identifiant reste
+strictement technique.
+
+La ligne compacte ne maintient plus de validateur structurel parallèle :
+`UGridSkillEntryWidget::InitializeSkillEntry()` délègue directement à
+`FGridSkillEntryView::IsValid()`.
+
+Référence :
+`docs/Design/UI_SKILLS_CODE_AUDIT02_7_SKILL_ERROR_BOUNDARY_LOCALIZATION_POLISH.md`.
+
 ### UI-RPG-DESC01.5-.11 — audits validés / DESC01.12 normalisation croisée
 
 Les captures PIE de DESC01.4 ont invalidé le contrat de présentation malgré une
