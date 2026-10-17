@@ -9,6 +9,7 @@
 class AGrimrockPartyPawn;
 class UButton;
 class UGridCombatHudActionWidget;
+class UGridEventFeedWidget;
 class UGridNavigationTooltipWidget;
 class UGridPartyInventoryComponent;
 class UGridPartyPortraitDragDropOperation;
@@ -46,6 +47,30 @@ public:
 	/** Compact custom tooltip class shared by navigation buttons and UI-PARTYHUD01 portrait hover text. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD|Persistent|Navigation")
 	TSubclassOf<UGridNavigationTooltipWidget> NavigationTooltipWidgetClass;
+
+	/**
+	 * EVENTHUD01.2 optional authored shell class. When unset, the native
+	 * UGridEventFeedWidget fallback is created so the HUD never depends on a
+	 * blind binary asset edit.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD|Persistent|Event Feed")
+	TSubclassOf<UGridEventFeedWidget> EventFeedWidgetClass;
+
+	/** Runtime Event Feed shell owned by the persistent gameplay HUD. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Persistent|Event Feed")
+	TObjectPtr<UGridEventFeedWidget> EventFeedWidgetInstance;
+
+	/** Right-side spacing in logical UMG units. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Persistent|Event Feed", meta = (ClampMin = "0.0"))
+	float EventFeedRightMargin = 16.0f;
+
+	/** Gap kept between the Event Feed and the persistent Hotbar/navigation bar. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Persistent|Event Feed", meta = (ClampMin = "0.0"))
+	float EventFeedBottomGap = 8.0f;
+
+	/** Used before the authored bottom bar has a valid cached geometry. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Persistent|Event Feed", meta = (ClampMin = "0.0"))
+	float EventFeedFallbackBottomBarHeight = 64.0f;
 
 	/** Used only until the first action widget can report its authored desired width. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Persistent|Actions", meta = (ClampMin = "1.0"))
@@ -149,6 +174,9 @@ public:
 	/** Pure layout rule: fixed-width adjacent slots, with any remainder left empty at the right edge. */
 	static int32 CalculateVisibleActionSlotCount(float ViewportWidth, float NavigationWidth, float ActionSlotWidth);
 
+	/** EVENTHUD01.2 pure bottom-clearance rule used by the shell and automation. */
+	static float CalculateEventFeedBottomOffset(float PersistentBarHeight, float FallbackBarHeight, float BottomGap);
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -170,6 +198,9 @@ private:
 	void RefreshNavigationSelection();
 	void EnsureActionWidgets();
 	void RefreshActionWidgets();
+	void EnsureEventFeedWidget();
+	void SynchronizeEventFeedLayout();
+	float ResolvePersistentBottomBarHeight() const;
 	void BindInventoryEvents();
 	void UnbindInventoryEvents();
 

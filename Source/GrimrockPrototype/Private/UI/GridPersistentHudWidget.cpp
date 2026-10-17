@@ -3,6 +3,8 @@
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Button.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
@@ -14,6 +16,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GrimrockPlayerController.h"
 #include "UI/GridCombatHudWidget.h"
+#include "UI/GridEventFeedWidget.h"
 #include "UI/GridNavigationTooltipWidget.h"
 #include "UI/GridPartyPortraitHudWidget.h"
 #include "UI/GridPartyPortraitDragDropOperation.h"
@@ -48,6 +51,12 @@ int32 UGridPersistentHudWidget::CalculateVisibleActionSlotCount(float ViewportWi
 	return FMath::Max(FGridCombatHotbarBinding::MinimumSlotCount, FMath::FloorToInt(AvailableWidth / ActionSlotWidth));
 }
 
+float UGridPersistentHudWidget::CalculateEventFeedBottomOffset(float PersistentBarHeight, float FallbackBarHeight, float BottomGap)
+{
+	return FMath::Max(FMath::Max(0.0f, PersistentBarHeight), FMath::Max(0.0f, FallbackBarHeight)) +
+		FMath::Max(0.0f, BottomGap);
+}
+
 void UGridPersistentHudWidget::InitializePersistentHud(AGrimrockPartyPawn* InPartyPawn)
 {
 	UnbindInventoryEvents();
@@ -55,7 +64,9 @@ void UGridPersistentHudWidget::InitializePersistentHud(AGrimrockPartyPawn* InPar
 	InventoryComponent = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent : nullptr;
 	BindInventoryEvents();
 	EnsureActionWidgets();
+	EnsureEventFeedWidget();
 	RefreshFromSources();
+	SynchronizeEventFeedLayout();
 }
 
 void UGridPersistentHudWidget::NativeConstruct()
@@ -66,13 +77,16 @@ void UGridPersistentHudWidget::NativeConstruct()
 	BindInventoryEvents();
 	ApplyNavigationTooltips();
 	EnsureActionWidgets();
+	EnsureEventFeedWidget();
 	RefreshFromSources();
+	SynchronizeEventFeedLayout();
 }
 
 void UGridPersistentHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	SynchronizeActionBarToViewport();
+	SynchronizeEventFeedLayout();
 }
 
 void UGridPersistentHudWidget::NativeDestruct()
@@ -82,6 +96,11 @@ void UGridPersistentHudWidget::NativeDestruct()
 	PartyPortraitWidgets.Reset();
 	ActionWidgets.Reset();
 	ActionBarRow = nullptr;
+	if (EventFeedWidgetInstance)
+	{
+		EventFeedWidgetInstance->RemoveFromParent();
+		EventFeedWidgetInstance = nullptr;
+	}
 	LastSynchronizedViewportWidth = -1.0f;
 	LastSynchronizedNavigationWidth = -1.0f;
 	LastSynchronizedActionSlotWidth = -1.0f;
@@ -98,6 +117,8 @@ void UGridPersistentHudWidget::RefreshFromSources()
 	RefreshPartyPortraits();
 	EnsureActionWidgets();
 	RefreshActionWidgets();
+	EnsureEventFeedWidget();
+	SynchronizeEventFeedLayout();
 
 	if (Panel_GlobalNavigation)
 	{
@@ -110,6 +131,92 @@ void UGridPersistentHudWidget::RefreshFromSources()
 	if (Panel_PartyPortraits)
 	{
 		Panel_PartyPortraits->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+}
+
+void UGridPersistentHudWidget::EnsureEventFeedWidget()
+{
+	if (!EventFeedWidgetInstance)
+	{
+		const TSubclassOf<UGridEventFeedWidget> EffectiveClass =
+			EventFeedWidgetClass ? EventFeedWidgetClass : UGridEventFeedWidget::StaticClass();
+		EventFeedWidgetInstance = CreateWidget<UGridEventFeedWidget>(this, EffectiveClass);
+	}
+
+	if (!EventFeedWidgetInstance || EventFeedWidgetInstance->GetParent() || EventFeedWidgetInstance->IsInViewport())
+	{
+		return;
+	}
+
+	if (UCanvasPanel* RootCanvas = WidgetTree ? Cast<UCanvasPanel>(WidgetTree->RootWidget) : nullptr)
+	{
+		if (UCanvasPanelSlot* Slot = RootCanvas->AddChildToCanvas(EventFeedWidgetInstance))
+		{
+			Slot->SetAnchors(FAnchors(1.0f, 1.0f));
+			Slot->SetAlignment(FVector2D(1.0f, 1.0f));
+		}
+		EventFeedWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		return;
+	}
+
+	// Legacy/non-canvas WBP fallback. Keep the Event Feed on the same low
+	// gameplay layer rather than failing the shell entirely.
+	if (IsInViewport())
+	{
+		const int32 PersistentLayer = IsValid(PartyPawn) ? PartyPawn->PersistentHudZOrder : 25;
+		const int32 CombatLayer = IsValid(PartyPawn) ? PartyPawn->CombatActionPanelZOrder : 50;
+		const int32 EventFeedLayer = FMath::Clamp(PersistentLayer + 1, 0, FMath::Max(0, CombatLayer - 1));
+		EventFeedWidgetInstance->AddToViewport(EventFeedLayer);
+		EventFeedWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+}
+
+float UGridPersistentHudWidget::ResolvePersistentBottomBarHeight() const
+{
+	const auto ResolveWidgetHeight = [](const UWidget* Widget) -> float
+	{
+		if (!IsValid(Widget))
+		{
+			return 0.0f;
+		}
+
+		const float CachedHeight = Widget->GetCachedGeometry().GetLocalSize().Y;
+		return CachedHeight > KINDA_SMALL_NUMBER ? CachedHeight : Widget->GetDesiredSize().Y;
+	};
+
+	return FMath::Max(
+		ResolveWidgetHeight(Panel_GlobalNavigation),
+		ResolveWidgetHeight(Panel_ActionBar));
+}
+
+void UGridPersistentHudWidget::SynchronizeEventFeedLayout()
+{
+	EnsureEventFeedWidget();
+	if (!EventFeedWidgetInstance)
+	{
+		return;
+	}
+
+	const float BottomOffset =
+		CalculateEventFeedBottomOffset(ResolvePersistentBottomBarHeight(), EventFeedFallbackBottomBarHeight, EventFeedBottomGap);
+	const FVector2D PanelSize(EventFeedWidgetInstance->GetPanelWidth(), EventFeedWidgetInstance->GetPanelHeight());
+
+	if (UCanvasPanelSlot* Slot = Cast<UCanvasPanelSlot>(EventFeedWidgetInstance->Slot))
+	{
+		Slot->SetAnchors(FAnchors(1.0f, 1.0f));
+		Slot->SetAlignment(FVector2D(1.0f, 1.0f));
+		Slot->SetPosition(FVector2D(-FMath::Max(0.0f, EventFeedRightMargin), -BottomOffset));
+		Slot->SetSize(PanelSize);
+		return;
+	}
+
+	if (EventFeedWidgetInstance->IsInViewport())
+	{
+		EventFeedWidgetInstance->SetAnchorsInViewport(FAnchors(1.0f, 1.0f));
+		EventFeedWidgetInstance->SetAlignmentInViewport(FVector2D(1.0f, 1.0f));
+		EventFeedWidgetInstance->SetPositionInViewport(
+			FVector2D(-FMath::Max(0.0f, EventFeedRightMargin), -BottomOffset), false);
+		EventFeedWidgetInstance->SetDesiredSizeInViewport(PanelSize);
 	}
 }
 
