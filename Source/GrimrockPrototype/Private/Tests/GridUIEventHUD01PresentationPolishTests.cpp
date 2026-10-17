@@ -5,6 +5,7 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridEventFeedPublisher.h"
 #include "UI/GridEventFeedWidget.h"
+#include "Styling/CoreStyle.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIEventHUD01ReadableHeaderPolishTest, "Grimrock.UI.EventHUD01.PresentationPolish.ReadableHeader",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -44,6 +45,10 @@ bool FGridUIEventHUD01StyleDefaultsPolishTest::RunTest(const FString& Parameters
 	}
 
 	TestEqual(TEXT("Default shell opacity is more legible"), Widget->ShellBackgroundColor.A, 0.92f);
+	const FSlateBrush* SolidBrush = UGridEventFeedWidget::GetSolidBackgroundBrush();
+	TestNotNull(TEXT("Event Feed solid background brush exists"), SolidBrush);
+	TestTrue(TEXT("Event Feed uses CoreStyle WhiteBrush as a filled shell brush"),
+		SolidBrush == FCoreStyle::Get().GetBrush(TEXT("WhiteBrush")));
 	TestEqual(TEXT("Default event text font size is explicit"), Widget->EntryFont.Size, 16.0f);
 	TestEqual(TEXT("Default filter font size is explicit"), Widget->FilterFont.Size, 14.0f);
 	TestTrue(TEXT("Event text has an explicit font object"), Widget->EntryFont.FontObject != nullptr);

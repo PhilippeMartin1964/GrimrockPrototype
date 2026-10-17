@@ -178,6 +178,11 @@ float UGridEventFeedWidget::ScreenDeltaToViewportDelta(float ScreenDelta, float 
 	return ScreenDelta / FMath::Max(KINDA_SMALL_NUMBER, ViewportScale);
 }
 
+const FSlateBrush* UGridEventFeedWidget::GetSolidBackgroundBrush()
+{
+	return FCoreStyle::Get().GetBrush(TEXT("WhiteBrush"));
+}
+
 void UGridEventFeedWidget::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
@@ -198,6 +203,7 @@ TSharedRef<SWidget> UGridEventFeedWidget::RebuildWidget()
 		[
 			SNew(SBorder)
 			.Padding(FMargin(6.0f))
+			.BorderImage(GetSolidBackgroundBrush())
 			.BorderBackgroundColor(ShellBackgroundColor)
 			[
 				SNew(SVerticalBox)
@@ -358,6 +364,13 @@ void UGridEventFeedWidget::SynchronizeShell()
 	}
 	if (Border_EventFeed)
 	{
+		// A tint alone does not guarantee a filled center: Border-type brushes can
+		// intentionally leave the middle transparent. Force a solid image brush
+		// first, then apply the requested shell tint/alpha.
+		if (const FSlateBrush* SolidBrush = GetSolidBackgroundBrush())
+		{
+			Border_EventFeed->SetBrush(*SolidBrush);
+		}
 		Border_EventFeed->SetBrushColor(ShellBackgroundColor);
 		Border_EventFeed->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}

@@ -6,6 +6,7 @@
 #include "Runtime/GridEventFeedTypes.h"
 #include "GridEventFeedWidget.generated.h"
 
+struct FSlateBrush;
 class SBox;
 class SScrollBox;
 class SVerticalBox;
@@ -74,6 +75,9 @@ public:
 
 	/** Converts platform-pixel mouse movement into UMG viewport logical units. */
 	static float ScreenDeltaToViewportDelta(float ScreenDelta, float ViewportScale);
+
+	/** Solid fill brush used by both native Slate and optional UMG shell paths. */
+	static const FSlateBrush* GetSolidBackgroundBrush();
 
 	virtual void SynchronizeProperties() override;
 
