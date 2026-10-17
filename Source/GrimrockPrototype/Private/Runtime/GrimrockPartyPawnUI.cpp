@@ -819,10 +819,6 @@ bool AGrimrockPartyPawn::ShowPersistentHudWidget()
 	{
 		PersistentHudWidgetInstance->AddToViewport(EffectivePersistentHudZOrder);
 	}
-	else
-	{
-		PersistentHudWidgetInstance->SetZOrderInViewport(EffectivePersistentHudZOrder);
-	}
 	PersistentHudWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
 	if (CombatHudWidgetInstance)
