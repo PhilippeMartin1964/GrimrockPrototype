@@ -509,9 +509,7 @@ bool UGridActivationComponent::ActivateReadableObject(const FGridWorldObjectInst
 
 	const FText ReadableText = GenericActor->GetReadableText();
 	const FText ReadableHeader =
-		GenericActor->SourceWorldObjectDefinition && !GenericActor->SourceWorldObjectDefinition->DisplayName.IsEmpty()
-		? GenericActor->SourceWorldObjectDefinition->DisplayName
-		: NSLOCTEXT("GridEventFeed", "ReadableHeader", "Inscription");
+		GridEventFeedPublisher::ResolveReadableHeader(GenericActor->SourceWorldObjectDefinition);
 
 	UE_LOG(LogGridActivation, Log, TEXT("Readable object %s: %s"), *ObjectData.InstanceId.ToString(), *ReadableText.ToString());
 	GridEventFeedPublisher::PublishDungeonEvent(

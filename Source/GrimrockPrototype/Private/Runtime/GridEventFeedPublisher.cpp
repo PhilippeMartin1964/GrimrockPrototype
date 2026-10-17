@@ -1,11 +1,26 @@
 #include "Runtime/GridEventFeedPublisher.h"
 
+#include "Core/GridWorldObjectDefinitionAsset.h"
+
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/GridEventFeedSubsystem.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
 namespace GridEventFeedPublisher
 {
+	FText ResolveReadableHeader(const UGridWorldObjectDefinitionAsset* Definition)
+	{
+		if (Definition && Definition->DefinitionId == FName(TEXT("WallInscription")))
+		{
+			return NSLOCTEXT("GridEventFeed", "WallInscriptionHeader", "Écriture murale :");
+		}
+		if (Definition && !Definition->DisplayName.IsEmpty())
+		{
+			return Definition->DisplayName;
+		}
+		return NSLOCTEXT("GridEventFeed", "ReadableHeader", "Inscription :");
+	}
+
 	bool IsCellObservable(const FIntPoint& PartyCell, const FIntPoint& EventCell, int32 MaxManhattanDistance)
 	{
 		const int32 SafeDistance = FMath::Max(0, MaxManhattanDistance);

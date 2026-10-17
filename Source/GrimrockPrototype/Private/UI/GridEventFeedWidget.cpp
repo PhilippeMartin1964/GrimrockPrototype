@@ -8,6 +8,9 @@
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Engine/Font.h"
+#include "Styling/CoreStyle.h"
+#include "UObject/ConstructorHelpers.h"
 #include "Runtime/GridEventFeedSubsystem.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SBorder.h"
@@ -22,6 +25,19 @@ UGridEventFeedWidget::UGridEventFeedWidget(const FObjectInitializer& ObjectIniti
 	: Super(ObjectInitializer)
 {
 	CurrentPanelHeight = ClampPanelHeight(InitialPanelHeight, MinPanelHeight, MaxPanelHeight);
+
+	static ConstructorHelpers::FObjectFinder<UFont> EventFeedFontFinder(
+		TEXT("/Game/GrimrockPrototype/Core/Fonts/F_AlegreyaSans.F_AlegreyaSans"));
+	if (EventFeedFontFinder.Succeeded())
+	{
+		EntryFont = FSlateFontInfo(EventFeedFontFinder.Object, 16);
+		FilterFont = FSlateFontInfo(EventFeedFontFinder.Object, 14);
+	}
+	else
+	{
+		EntryFont = FCoreStyle::GetDefaultFontStyle(TEXT("Regular"), 16);
+		FilterFont = FCoreStyle::GetDefaultFontStyle(TEXT("Regular"), 14);
+	}
 }
 
 void UGridEventFeedWidget::SetPanelHeight(float InHeight)
@@ -224,12 +240,16 @@ TSharedRef<SWidget> UGridEventFeedWidget::RebuildWidget()
 						[
 							SNew(SButton)
 								.HAlign(HAlign_Center)
-								.Text_Lambda([this]() { return BuildFilterText(EGridHudEventCategory::Dungeon); })
 								.OnClicked_Lambda([this]()
 								{
 									ToggleCategory(EGridHudEventCategory::Dungeon);
 									return FReply::Handled();
 								})
+								[
+									SNew(STextBlock)
+										.Font(FilterFont)
+										.Text_Lambda([this]() { return BuildFilterText(EGridHudEventCategory::Dungeon); })
+								]
 						]
 						+ SHorizontalBox::Slot()
 						.FillWidth(1.0f)
@@ -237,12 +257,16 @@ TSharedRef<SWidget> UGridEventFeedWidget::RebuildWidget()
 						[
 							SNew(SButton)
 								.HAlign(HAlign_Center)
-								.Text_Lambda([this]() { return BuildFilterText(EGridHudEventCategory::Combat); })
 								.OnClicked_Lambda([this]()
 								{
 									ToggleCategory(EGridHudEventCategory::Combat);
 									return FReply::Handled();
 								})
+								[
+									SNew(STextBlock)
+										.Font(FilterFont)
+										.Text_Lambda([this]() { return BuildFilterText(EGridHudEventCategory::Combat); })
+								]
 						]
 						+ SHorizontalBox::Slot()
 						.FillWidth(1.0f)
@@ -250,12 +274,16 @@ TSharedRef<SWidget> UGridEventFeedWidget::RebuildWidget()
 						[
 							SNew(SButton)
 								.HAlign(HAlign_Center)
-								.Text_Lambda([this]() { return BuildFilterText(EGridHudEventCategory::Dialogue); })
 								.OnClicked_Lambda([this]()
 								{
 									ToggleCategory(EGridHudEventCategory::Dialogue);
 									return FReply::Handled();
 								})
+								[
+									SNew(STextBlock)
+										.Font(FilterFont)
+										.Text_Lambda([this]() { return BuildFilterText(EGridHudEventCategory::Dialogue); })
+								]
 						]
 				]
 			]
@@ -339,14 +367,17 @@ void UGridEventFeedWidget::SynchronizeShell()
 	}
 	if (Text_FilterEvents)
 	{
+		Text_FilterEvents->SetFont(FilterFont);
 		Text_FilterEvents->SetText(BuildFilterText(EGridHudEventCategory::Dungeon));
 	}
 	if (Text_FilterCombat)
 	{
+		Text_FilterCombat->SetFont(FilterFont);
 		Text_FilterCombat->SetText(BuildFilterText(EGridHudEventCategory::Combat));
 	}
 	if (Text_FilterDiscussion)
 	{
+		Text_FilterDiscussion->SetFont(FilterFont);
 		Text_FilterDiscussion->SetText(BuildFilterText(EGridHudEventCategory::Dialogue));
 	}
 	if (NativeSizeBox.IsValid())
@@ -453,6 +484,7 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 				continue;
 			}
 			Row->SetText(BuildEntryText(Entry));
+			Row->SetFont(EntryFont);
 			Row->SetAutoWrapText(true);
 			Row->SetVisibility(ESlateVisibility::HitTestInvisible);
 			ScrollBox_Entries->AddChild(Row);
@@ -470,6 +502,7 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 				[
 					SNew(STextBlock)
 						.AutoWrapText(true)
+						.Font(EntryFont)
 						.Text(BuildEntryText(Entry))
 				];
 		}

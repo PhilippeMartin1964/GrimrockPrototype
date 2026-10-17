@@ -3,8 +3,12 @@
 #include "CoreMinimal.h"
 #include "Runtime/GridEventFeedTypes.h"
 
+class UGridWorldObjectDefinitionAsset;
+
 namespace GridEventFeedPublisher
 {
+	/** Player-facing localized header for a readable world object. */
+	GRIMROCKPROTOTYPE_API FText ResolveReadableHeader(const UGridWorldObjectDefinitionAsset* Definition);
 	/** Conservative anti-spoiler rule for cell-bound observable dungeon effects. */
 	GRIMROCKPROTOTYPE_API bool IsCellObservable(const FIntPoint& PartyCell, const FIntPoint& EventCell, int32 MaxManhattanDistance = 1);
 

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Fonts/SlateFontInfo.h"
 #include "Runtime/GridEventFeedTypes.h"
 #include "GridEventFeedWidget.generated.h"
 
@@ -11,6 +12,7 @@ class SVerticalBox;
 class UBorder;
 class UButton;
 class UGridEventFeedSubsystem;
+class UFont;
 class UScrollBox;
 class USizeBox;
 class UTextBlock;
@@ -98,7 +100,14 @@ public:
 
 	/** Simple native colour only; semantic colour coding belongs to EVENTHUD01.6. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
-	FLinearColor ShellBackgroundColor = FLinearColor(0.015f, 0.02f, 0.025f, 0.82f);
+	FLinearColor ShellBackgroundColor = FLinearColor(0.015f, 0.02f, 0.025f, 0.92f);
+
+	/** Explicit EVENTHUD font settings. Defaults to project Alegreya Sans when available. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
+	FSlateFontInfo EntryFont;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
+	FSlateFontInfo FilterFont;
 
 	/** EVENTHUD01.3 three independent filters, enabled by default. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Event Feed|Filters")
