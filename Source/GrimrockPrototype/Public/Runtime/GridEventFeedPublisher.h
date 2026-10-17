@@ -19,7 +19,8 @@ namespace GridEventFeedPublisher
 		EGridHudEventSemantic Semantic,
 		EGridEventVisibility Visibility,
 		bool bIsObservableToPlayer,
-		FName SourceId = NAME_None);
+		FName SourceId = NAME_None,
+		FText Header = FText::GetEmpty());
 
 	/**
 	 * Publishes a cell-bound dungeon event.

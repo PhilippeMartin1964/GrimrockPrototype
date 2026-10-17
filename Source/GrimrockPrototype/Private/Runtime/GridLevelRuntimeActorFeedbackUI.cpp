@@ -2,6 +2,7 @@
 
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/PlayerController.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "UI/ReadableMessageWidget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridLevelRuntime, Log, All);
@@ -11,55 +12,32 @@ void AGridLevelRuntimeActor::ShowReadableMessage(const FText& MessageText)
 	{
 		return;
 	}
-	UWorld* World = GetWorld();
-	if (!World || !ReadableMessageWidgetClass)
-	{
-		UE_LOG(LogGridLevelRuntime, Warning, TEXT("ShowReadableMessage failed: missing world or widget class."));
-		return;
-	}
-	APlayerController* PlayerController = World->GetFirstPlayerController();
-	if (!PlayerController)
-	{
-		UE_LOG(LogGridLevelRuntime, Warning, TEXT("ShowReadableMessage failed: missing player controller."));
-		return;
-	}
-	if (!ActiveReadableMessageWidget)
-	{
-		ActiveReadableMessageWidget = CreateWidget<UReadableMessageWidget>(PlayerController, ReadableMessageWidgetClass);
 
-		if (!ActiveReadableMessageWidget)
-		{
-			UE_LOG(LogGridLevelRuntime, Warning, TEXT("ShowReadableMessage failed: widget creation failed."));
-			return;
-		}
-		ActiveReadableMessageWidget->AddToViewport(50);
-	}
-	ActiveReadableMessageWidget->SetReadableText(MessageText);
-	GetWorldTimerManager().ClearTimer(ReadableMessageTimerHandle);
-	if (bReadableMessageAutoHide)
-	{
-		GetWorldTimerManager().SetTimer(ReadableMessageTimerHandle, this, &AGridLevelRuntimeActor::HideReadableMessage, ReadableMessageDuration, false);
-	}
-	if (!ActiveReadableMessageWidget->IsInViewport())
-	{
-		ActiveReadableMessageWidget->AddToViewport(50);
-	}
+	// EVENTHUD01.5 compatibility façade: readable world information is no
+	// longer modal and no longer owns a viewport widget.
+	HideReadableMessage();
+	GridEventFeedPublisher::PublishDungeonEvent(
+		this,
+		FName(TEXT("Dungeon.Information.Readable")),
+		MessageText,
+		EGridHudEventSemantic::Information,
+		EGridEventVisibility::Always,
+		true,
+		NAME_None,
+		NSLOCTEXT("GridEventFeed", "InformationHeader", "Information"));
 }
 
 bool AGridLevelRuntimeActor::HasActiveReadableMessage() const
 {
-	return ActiveReadableMessageWidget && ActiveReadableMessageWidget->IsInViewport();
+	// EVENTHUD01.5: world readable content is non-blocking Event Feed content.
+	return false;
 }
 
 bool AGridLevelRuntimeActor::DismissReadableMessage()
 {
-	if (!HasActiveReadableMessage())
-	{
-		return false;
-	}
-
+	const bool bHadLegacyPopup = ActiveReadableMessageWidget && ActiveReadableMessageWidget->IsInViewport();
 	HideReadableMessage();
-	return true;
+	return bHadLegacyPopup;
 }
 
 void AGridLevelRuntimeActor::HideReadableMessage()
@@ -75,43 +53,22 @@ void AGridLevelRuntimeActor::HideReadableMessage()
 
 void AGridLevelRuntimeActor::ShowInteractionFeedback(const FText& MessageText, float DurationSeconds)
 {
+	(void)DurationSeconds;
 	if (MessageText.IsEmpty())
 	{
 		return;
 	}
 
-	UWorld* World = GetWorld();
-	const TSubclassOf<UReadableMessageWidget> WidgetClass = InteractionFeedbackWidgetClass ? InteractionFeedbackWidgetClass : ReadableMessageWidgetClass;
-	if (!World || !WidgetClass)
-	{
-		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("ShowInteractionFeedback skipped: missing world or widget class."));
-		return;
-	}
-
-	APlayerController* PlayerController = World->GetFirstPlayerController();
-	if (!PlayerController)
-	{
-		return;
-	}
-
-	if (!ActiveInteractionFeedbackWidget)
-	{
-		ActiveInteractionFeedbackWidget = CreateWidget<UReadableMessageWidget>(PlayerController, WidgetClass);
-		if (!ActiveInteractionFeedbackWidget)
-		{
-			return;
-		}
-	}
-
-	ActiveInteractionFeedbackWidget->SetReadableText(MessageText);
-	if (!ActiveInteractionFeedbackWidget->IsInViewport())
-	{
-		ActiveInteractionFeedbackWidget->AddToViewport(60);
-	}
-
-	GetWorldTimerManager().ClearTimer(InteractionFeedbackTimerHandle);
-	GetWorldTimerManager().SetTimer(
-		InteractionFeedbackTimerHandle, this, &AGridLevelRuntimeActor::HideInteractionFeedback, FMath::Max(0.1f, DurationSeconds), false);
+	// EVENTHUD01.5 compatibility façade: short non-blocking interaction errors
+	// now use the persistent feed instead of a transient popup.
+	HideInteractionFeedback();
+	GridEventFeedPublisher::PublishDungeonEvent(
+		this,
+		FName(TEXT("Dungeon.Interaction.Feedback")),
+		MessageText,
+		EGridHudEventSemantic::Interaction,
+		EGridEventVisibility::Always,
+		true);
 }
 
 void AGridLevelRuntimeActor::HideInteractionFeedback()

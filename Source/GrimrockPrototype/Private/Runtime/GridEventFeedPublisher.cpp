@@ -25,7 +25,8 @@ namespace GridEventFeedPublisher
 		EGridHudEventSemantic Semantic,
 		EGridEventVisibility Visibility,
 		bool bIsObservableToPlayer,
-		FName SourceId)
+		FName SourceId,
+		FText Header)
 	{
 		if (!WorldContextObject || Message.IsEmpty())
 		{
@@ -44,6 +45,7 @@ namespace GridEventFeedPublisher
 		Entry.Semantic = Semantic;
 		Entry.Visibility = Visibility;
 		Entry.EventCode = EventCode;
+		Entry.Header = Header;
 		Entry.Message = Message;
 		Entry.SourceId = SourceId;
 		return EventFeed->PublishEvent(Entry, bIsObservableToPlayer);

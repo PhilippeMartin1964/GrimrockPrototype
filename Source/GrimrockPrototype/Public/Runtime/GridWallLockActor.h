@@ -48,5 +48,4 @@ private:
 	bool IsAcceptedKey(FName ItemDefinitionId) const;
 	bool AttachInsertedKeyVisual(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& CursorItem);
 	bool CompleteUnlock(AGrimrockPartyPawn* PartyPawn, FName MatchingKeyId, const TCHAR* Source);
-	void ShowFeedback(AGrimrockPartyPawn* PartyPawn, const FText& Message) const;
 };

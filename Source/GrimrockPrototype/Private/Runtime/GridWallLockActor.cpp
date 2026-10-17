@@ -302,7 +302,6 @@ bool AGridWallLockActor::CompleteUnlock(AGrimrockPartyPawn* PartyPawn, FName Mat
 		EGridEventVisibility::Always,
 		true,
 		GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
-	ShowFeedback(PartyPawn, Message);
 
 	UE_LOG(LogGridWallLock, Log, TEXT("GridWallLock UnlockSuccess ObjectId=%s MatchingKeyId=%s Source=%s Message=%s"), *ObjectId.ToString(),
 		*MatchingKeyId.ToString(), Source, *Message.ToString());
@@ -313,10 +312,4 @@ bool AGridWallLockActor::CompleteUnlock(AGrimrockPartyPawn* PartyPawn, FName Mat
 	return true;
 }
 
-void AGridWallLockActor::ShowFeedback(AGrimrockPartyPawn* PartyPawn, const FText& Message) const
-{
-	if (PartyPawn && PartyPawn->LevelRuntimeActor && !Message.IsEmpty())
-	{
-		PartyPawn->LevelRuntimeActor->ShowInteractionFeedback(Message);
-	}
-}
+

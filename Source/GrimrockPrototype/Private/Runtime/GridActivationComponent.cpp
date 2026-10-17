@@ -506,14 +506,24 @@ bool UGridActivationComponent::ActivateReadableObject(const FGridWorldObjectInst
 	{
 		return true;
 	}
-	if (GEngine)
-	{
-		const FText ReadableText = GenericActor->GetReadableText();
-		UE_LOG(LogGridActivation, Log, TEXT("Readable object %s: %s"), *ObjectData.InstanceId.ToString(), *ReadableText.ToString());
-		RuntimeActor->ShowReadableMessage(ReadableText);
-		GenericActor->MarkAsRead();
-		return true;
-	}
+
+	const FText ReadableText = GenericActor->GetReadableText();
+	const FText ReadableHeader =
+		GenericActor->SourceWorldObjectDefinition && !GenericActor->SourceWorldObjectDefinition->DisplayName.IsEmpty()
+		? GenericActor->SourceWorldObjectDefinition->DisplayName
+		: NSLOCTEXT("GridEventFeed", "ReadableHeader", "Inscription");
+
+	UE_LOG(LogGridActivation, Log, TEXT("Readable object %s: %s"), *ObjectData.InstanceId.ToString(), *ReadableText.ToString());
+	GridEventFeedPublisher::PublishDungeonEvent(
+		RuntimeActor,
+		FName(TEXT("Dungeon.Readable")),
+		ReadableText,
+		EGridHudEventSemantic::Information,
+		EGridEventVisibility::Always,
+		true,
+		GridEventFeedPublisher::SourceIdFromGuid(ObjectData.InstanceId),
+		ReadableHeader);
+
 	GenericActor->MarkAsRead();
 	return true;
 }
