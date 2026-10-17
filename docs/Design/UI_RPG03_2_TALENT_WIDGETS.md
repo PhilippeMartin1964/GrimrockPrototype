@@ -188,7 +188,12 @@ A = 1.00
 
 Ne jamais laisser le Brush blanc par défaut.
 
-Le C++ remplacera ensuite cette couleur au runtime selon :
+Depuis UI-RPG-TALENT-CODE-AUDIT02.6, les RGB/luminances d'état ne sont plus codés dans le widget C++.
+Le runtime applique les valeurs de `URPGTalentNodeStyleSettings` chargées depuis
+`Config/DefaultGame.ini`. Le Brush Color ci-dessus reste le fallback Designer
+si la configuration n'est pas exploitable.
+
+Les états sémantiques restent :
 
 ```text
 Acquired

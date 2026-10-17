@@ -163,9 +163,14 @@ DA_RPGTalentDetailTextSet
 
 C++
     -> read-model / mécanique / nombres / notation universelle
+    -> mapping état sémantique -> style configuré, sans RGB d'état codé
+
+Config/DefaultGame.ini
+    -> couleurs/tints des états de nœud Talent
 
 UMG
     -> composition / taille / couleur / typographie / spacing
+    -> fallback Designer si un style configuré est indisponible
 ~~~
 
 ## 6. Point restant volontairement hors VISUAL01

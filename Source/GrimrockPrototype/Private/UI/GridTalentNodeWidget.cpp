@@ -5,6 +5,7 @@
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
 #include "UI/UILocalizationText.h"
+#include "UI/RPGTalentNodeStyleSettings.h"
 
 namespace GridTalentNodeWidgetPrivate
 {
@@ -46,34 +47,6 @@ namespace GridTalentNodeWidgetPrivate
 		}
 	}
 
-	FLinearColor NodeStateTextColor(EGridTalentNodeState State)
-	{
-		switch (State)
-		{
-			case EGridTalentNodeState::Acquired:
-				return FLinearColor(0.30f, 0.90f, 0.30f, 1.0f);
-			case EGridTalentNodeState::Available:
-				return FLinearColor(0.45f, 1.00f, 0.45f, 1.0f);
-			default:
-				return FLinearColor(0.65f, 0.65f, 0.65f, 1.0f);
-		}
-	}
-
-	FLinearColor NodeStateTint(EGridTalentNodeState State)
-	{
-		float Luminance = 0.20f;
-		switch (State)
-		{
-			case EGridTalentNodeState::Acquired:           Luminance = 1.00f; break;
-			case EGridTalentNodeState::Available:          Luminance = 0.50f; break;
-			case EGridTalentNodeState::LockedPoints:       Luminance = 0.02f; break;
-			case EGridTalentNodeState::LockedLevel:        Luminance = 0.02f; break;
-			case EGridTalentNodeState::LockedPrerequisite: Luminance = 0.02f; break;
-			case EGridTalentNodeState::LockedExclusive:    Luminance = 0.02f; break;
-			default:                                       Luminance = 0.02f; break;
-		}
-		return FLinearColor(Luminance, Luminance, Luminance, 1.0f);
-	}
 }
 
 void UGridTalentNodeWidget::NativeConstruct()
@@ -181,11 +154,19 @@ void UGridTalentNodeWidget::ApplyNodePresentation()
 			FUILocalizationText::Get(TEXT("Talent.Node.LevelFormat"));
 		Text_TalentLevel->SetText(FormatMinimumLevel(LevelFormat, NodeView.MinimumLevel));
 	}
+	FRPGTalentNodeStateVisualStyle StateStyle;
+	const URPGTalentNodeStyleSettings* StyleSettings = GetDefault<URPGTalentNodeStyleSettings>();
+	const bool bHasStateStyle =
+		StyleSettings && StyleSettings->TryGetStyle(NodeView.State, StateStyle);
+
 	if (Text_TalentState)
 	{
 		Text_TalentState->SetText(
 			FUILocalizationText::Get(StateTextId(NodeView.State)));
-		Text_TalentState->SetColorAndOpacity(FSlateColor(NodeStateTextColor(NodeView.State)));
+		if (bHasStateStyle)
+		{
+			Text_TalentState->SetColorAndOpacity(FSlateColor(StateStyle.TextColor));
+		}
 	}
 	if (Text_VariantCount)
 	{
@@ -194,9 +175,9 @@ void UGridTalentNodeWidget::ApplyNodePresentation()
 				? FText::FromString(FString::Printf(TEXT("×%d"), NodeView.Variants.Num()))
 				: FText::GetEmpty());
 	}
-	if (Border_TalentNode)
+	if (Border_TalentNode && bHasStateStyle)
 	{
-		Border_TalentNode->SetBrushColor(NodeStateTint(NodeView.State));
+		Border_TalentNode->SetBrushColor(StateStyle.NodeTint);
 	}
 }
 

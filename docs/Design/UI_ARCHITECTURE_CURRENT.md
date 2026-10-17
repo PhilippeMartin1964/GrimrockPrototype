@@ -366,7 +366,7 @@ identité d'acquisition du panneau. Une vue conceptuelle sans ChoiceId reste
 possible pour diagnostic/read-only, mais elle n'est jamais acquirable.
 
 
-### UI-RPG-TALENT-CODE-AUDIT02.5 — Talent presentation dependency cleanup — EN ATTENTE DE VALIDATION
+### UI-RPG-TALENT-CODE-AUDIT02.5 — Talent presentation dependency cleanup — VALIDÉ
 
 Le chemin runtime du catalogue Talent n'est plus dupliqué dans les consommateurs.
 
@@ -391,6 +391,32 @@ le PackageName nécessaire à la création/resave de l'asset.
 Une régression de source garantit qu'un seul fichier runtime sous
 `Private/UI` possède encore le chemin canonique :
 `RPGTalentPresentationAsset.cpp`.
+
+### UI-RPG-TALENT-CODE-AUDIT02.6 — data-owned Talent node state styling — EN ATTENTE DE VALIDATION
+
+Les états restent sémantiques dans le read-model :
+
+```text
+Acquired
+Available
+LockedLevel
+LockedPrerequisite
+LockedPoints
+LockedExclusive
+```
+
+Les valeurs visuelles ne sont plus codées dans `GridTalentNodeWidget.cpp`.
+Elles sont chargées depuis :
+
+```text
+Config/DefaultGame.ini
+[/Script/GrimrockPrototype.RPGTalentNodeStyleSettings]
+```
+
+`URPGTalentNodeStyleSettings` projette l'état sémantique vers un
+`FRPGTalentNodeStateVisualStyle` contenant uniquement la couleur du texte
+d'état et le tint du nœud. Le WBP conserve son fallback Designer si la
+configuration est absente ou invalide.
 
 ### UI-SKILLS-AFFINITY01 — affinité compétence / classe — VALIDÉ / CLOS
 
