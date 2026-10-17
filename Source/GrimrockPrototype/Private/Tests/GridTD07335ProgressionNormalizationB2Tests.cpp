@@ -84,7 +84,7 @@ bool FGridTD07335B2ProjectionRebuildTest::RunTest(const FString& Parameters)
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(3, 3000, ClassDefinition);
 
 	FRPGClassProgressionCommitResult CommitResult;
-	TestTrue(TEXT("Choice A commits before detached rebuild"),
+	TestTrue(TEXT("Choice A commits before scoped rebuild"),
 		FRPGClassProgressionTransactionService::TryCommitChoices(Component, 0, { TEXT("Choice_A") }, CommitResult));
 
 	const FGridPartyInventoryState Snapshot = Component->PartyInventoryState;
@@ -92,16 +92,16 @@ bool FGridTD07335B2ProjectionRebuildTest::RunTest(const FString& Parameters)
 
 	FRPGClassProgressionTransactionService::ResetRuntimeState();
 	TSet<FName> EmptyRequirements;
-	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(CharacterId, EmptyRequirements);
+	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Component, CharacterId, EmptyRequirements);
 	TestTrue(TEXT("Runtime projection is empty after explicit cache reset"), EmptyRequirements.IsEmpty());
 
 	FText RebuildError;
-	TestTrue(TEXT("Runtime projection rebuilds only from authoritative character state"),
-		FRPGClassProgressionTransactionService::RebuildRuntimeProjection(Snapshot, RebuildError));
+	TestTrue(TEXT("Scoped runtime projection rebuilds only from authoritative character state"),
+		FRPGClassProgressionTransactionService::RebuildRuntimeProjection(Component, RebuildError));
 	TestTrue(TEXT("Projection rebuild reports no error"), RebuildError.IsEmpty());
 
 	TSet<FName> Requirements;
-	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(CharacterId, Requirements);
+	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Component, CharacterId, Requirements);
 	TestTrue(TEXT("Choice A requirement is reconstructed"), Requirements.Contains(TEXT("Choice_A")));
 	TestTrue(TEXT("Choice A granted feature is reconstructed"), Requirements.Contains(TEXT("Feature_A")));
 	return true;

@@ -5,6 +5,7 @@
 #include "Magic/GridSpellHotbarExecution.h"
 #include "Magic/GridSpellPresentationComponent.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGSkillRequirementProjectionService.h"
@@ -368,7 +369,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, TArray<FGridAvailableCombatAction>& OutActions) const
 {
 	OutActions.Reset();
-	const UGridPartyInventoryComponent* Inventory = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
+	UGridPartyInventoryComponent* Inventory = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
 	if (!IsValid(Inventory) || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
 	{
 		return;
@@ -474,6 +475,17 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 	{
 		UE_LOG(LogGridTurnManager, Warning, TEXT("[GridActionCatalog] SkillRequirementProjectionFailed Character=%d CharacterId=%s Error=%s"), CharacterIndex,
 			*Character.CharacterId.ToString(EGuidFormats::Digits), *SkillRequirementError);
+	}
+
+	if (FRPGClassProgressionTransactionService::RefreshCharacterProjection(Inventory, CharacterIndex))
+	{
+		FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(
+			Inventory, Character.CharacterId, Context.SatisfiedRequirements);
+	}
+	else
+	{
+		UE_LOG(LogGridTurnManager, Warning, TEXT("[RPGClassProgression] RequirementProjectionFailed Character=%d CharacterId=%s"),
+			CharacterIndex, *Character.CharacterId.ToString(EGuidFormats::Digits));
 	}
 
 	TArray<FGridCombatActionContribution> Contributions;

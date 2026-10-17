@@ -7,7 +7,6 @@
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
-#include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGSkillPersistence.h"
 #include "RPG/StatusEffects/GridStatusEffectPersistence.h"
 #include "Runtime/GridLevelVariableStore.h"
@@ -357,13 +356,6 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 		bLoadValid = false;
 		LoadError = StatusRehydrateError;
 		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridStatusPersistence] PartyRehydrate Result=Rejected Reason=%s"), *LoadError);
-		return;
-	}
-	if (!FRPGClassProgressionTransactionService::RebuildRuntimeProjection(PartyInventoryState, ValidationError))
-	{
-		bLoadValid = false;
-		LoadError = ValidationError.ToString();
-		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] ProgressionProjection Result=Rejected Reason=%s"), *LoadError);
 		return;
 	}
 	UE_LOG(LogGrimrockPartySave, Log,

@@ -10,11 +10,40 @@ namespace
 {
 	struct FRuntimeClassProgressionState
 	{
-		TWeakObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
 		TSet<FName> SatisfiedRequirements;
 	};
 
-	TMap<FGuid, FRuntimeClassProgressionState> RuntimeStates;
+	using FRuntimeCharacterProgressionStates = TMap<FGuid, FRuntimeClassProgressionState>;
+	TMap<TWeakObjectPtr<UGridPartyInventoryComponent>, FRuntimeCharacterProgressionStates> RuntimeStates;
+
+	void PruneInvalidRuntimeStates()
+	{
+		for (auto It = RuntimeStates.CreateIterator(); It; ++It)
+		{
+			if (!It.Key().IsValid())
+			{
+				It.RemoveCurrent();
+			}
+		}
+	}
+
+	bool HasUniqueActiveCharacterId(const UGridPartyInventoryComponent* PartyInventoryComponent, const FGuid& CharacterId)
+	{
+		if (!IsValid(PartyInventoryComponent) || !CharacterId.IsValid())
+		{
+			return false;
+		}
+
+		int32 MatchCount = 0;
+		for (const FGridCharacterInventoryState& Character : PartyInventoryComponent->PartyInventoryState.ActiveCharacters)
+		{
+			if (Character.CharacterId == CharacterId)
+			{
+				++MatchCount;
+			}
+		}
+		return MatchCount == 1;
+	}
 
 	URPGClassAsset* ResolveClassDefinition(const FGridCharacterInventoryState& Character)
 	{
@@ -53,8 +82,8 @@ namespace
 		}
 	}
 
-	bool BuildRuntimeStateFromCharacter(const FGridCharacterInventoryState& Character, UGridPartyInventoryComponent* InventoryComponent,
-		FRuntimeClassProgressionState& OutState, FText& OutError)
+	bool BuildRuntimeStateFromCharacter(
+		const FGridCharacterInventoryState& Character, FRuntimeClassProgressionState& OutState, FText& OutError)
 	{
 		OutState = FRuntimeClassProgressionState();
 		OutError = FText::GetEmpty();
@@ -84,7 +113,6 @@ namespace
 				return false;
 			}
 
-			OutState.InventoryComponent = InventoryComponent;
 			if (!Character.ClassId.IsNone())
 			{
 				OutState.SatisfiedRequirements.Add(Character.ClassId);
@@ -111,7 +139,6 @@ namespace
 			return false;
 		}
 
-		OutState.InventoryComponent = InventoryComponent;
 		OutState.SatisfiedRequirements = MoveTemp(SatisfiedRequirements);
 		return true;
 	}
@@ -217,12 +244,14 @@ bool FRPGClassProgressionTransactionService::RefreshCharacterProjection(UGridPar
 
 	FRuntimeClassProgressionState RebuiltState;
 	FText RebuildError;
-	if (!BuildRuntimeStateFromCharacter(*Character, PartyInventoryComponent, RebuiltState, RebuildError))
+	if (!BuildRuntimeStateFromCharacter(*Character, RebuiltState, RebuildError))
 	{
 		return false;
 	}
 
-	RuntimeStates.Add(Character->CharacterId, MoveTemp(RebuiltState));
+	PruneInvalidRuntimeStates();
+	const TWeakObjectPtr<UGridPartyInventoryComponent> InventoryKey(PartyInventoryComponent);
+	RuntimeStates.FindOrAdd(InventoryKey).Add(Character->CharacterId, MoveTemp(RebuiltState));
 	return true;
 }
 
@@ -347,14 +376,16 @@ bool FRPGClassProgressionTransactionService::TryCommitChoices(UGridPartyInventor
 	CandidateCharacter.SelectedClassProgressionChoiceIds = NormalizedChoices;
 	FRuntimeClassProgressionState CandidateRuntimeState;
 	FText ProjectionError;
-	if (!BuildRuntimeStateFromCharacter(CandidateCharacter, PartyInventoryComponent, CandidateRuntimeState, ProjectionError))
+	if (!BuildRuntimeStateFromCharacter(CandidateCharacter, CandidateRuntimeState, ProjectionError))
 	{
 		OutResult.RejectReason = ERPGClassProgressionCommitRejectReason::InvalidCurrentSelection;
 		return false;
 	}
 
 	Character->SelectedClassProgressionChoiceIds = MoveTemp(NormalizedChoices);
-	RuntimeStates.Add(Character->CharacterId, MoveTemp(CandidateRuntimeState));
+	PruneInvalidRuntimeStates();
+	const TWeakObjectPtr<UGridPartyInventoryComponent> InventoryKey(PartyInventoryComponent);
+	RuntimeStates.FindOrAdd(InventoryKey).Add(Character->CharacterId, MoveTemp(CandidateRuntimeState));
 
 	OutResult.bCommitted = true;
 	OutResult.RejectReason = ERPGClassProgressionCommitRejectReason::None;
@@ -372,14 +403,18 @@ bool FRPGClassProgressionTransactionService::TryCommitChoices(UGridPartyInventor
 	return true;
 }
 
-void FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(const FGuid& CharacterId, TSet<FName>& InOutSatisfiedRequirements)
+void FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(
+	UGridPartyInventoryComponent* PartyInventoryComponent, const FGuid& CharacterId, TSet<FName>& InOutSatisfiedRequirements)
 {
-	if (!CharacterId.IsValid())
+	if (!HasUniqueActiveCharacterId(PartyInventoryComponent, CharacterId))
 	{
 		return;
 	}
 
-	const FRuntimeClassProgressionState* State = RuntimeStates.Find(CharacterId);
+	PruneInvalidRuntimeStates();
+	const TWeakObjectPtr<UGridPartyInventoryComponent> InventoryKey(PartyInventoryComponent);
+	const FRuntimeCharacterProgressionStates* CharacterStates = RuntimeStates.Find(InventoryKey);
+	const FRuntimeClassProgressionState* State = CharacterStates ? CharacterStates->Find(CharacterId) : nullptr;
 	if (!State)
 	{
 		return;
@@ -391,15 +426,20 @@ void FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(
 	}
 }
 
-bool FRPGClassProgressionTransactionService::RebuildRuntimeProjection(const FGridPartyInventoryState& PartyState, FText& OutError)
+bool FRPGClassProgressionTransactionService::RebuildRuntimeProjection(
+	UGridPartyInventoryComponent* PartyInventoryComponent, FText& OutError)
 {
 	OutError = FText::GetEmpty();
-	TMap<FGuid, FRuntimeClassProgressionState> RebuiltStates;
-	TSet<FGuid> CharacterIds;
-
-	for (int32 CharacterIndex = 0; CharacterIndex < PartyState.ActiveCharacters.Num(); ++CharacterIndex)
+	if (!IsValid(PartyInventoryComponent))
 	{
-		const FGridCharacterInventoryState& Character = PartyState.ActiveCharacters[CharacterIndex];
+		OutError = FText::FromString(TEXT("Le composant d'inventaire du groupe est invalide."));
+		return false;
+	}
+
+	FRuntimeCharacterProgressionStates RebuiltStates;
+	TSet<FGuid> CharacterIds;
+	for (const FGridCharacterInventoryState& Character : PartyInventoryComponent->PartyInventoryState.ActiveCharacters)
+	{
 		if (!Character.CharacterId.IsValid() || CharacterIds.Contains(Character.CharacterId))
 		{
 			OutError = FText::FromString(TEXT("Les personnages actifs possèdent un CharacterId invalide ou dupliqué."));
@@ -408,21 +448,16 @@ bool FRPGClassProgressionTransactionService::RebuildRuntimeProjection(const FGri
 		CharacterIds.Add(Character.CharacterId);
 
 		FRuntimeClassProgressionState RebuiltState;
-		if (!BuildRuntimeStateFromCharacter(Character, nullptr, RebuiltState, OutError))
+		if (!BuildRuntimeStateFromCharacter(Character, RebuiltState, OutError))
 		{
 			return false;
 		}
 		RebuiltStates.Add(Character.CharacterId, MoveTemp(RebuiltState));
 	}
 
-	for (const FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)
-	{
-		RuntimeStates.Remove(Character.CharacterId);
-	}
-	for (TPair<FGuid, FRuntimeClassProgressionState>& Pair : RebuiltStates)
-	{
-		RuntimeStates.Add(Pair.Key, MoveTemp(Pair.Value));
-	}
+	PruneInvalidRuntimeStates();
+	const TWeakObjectPtr<UGridPartyInventoryComponent> InventoryKey(PartyInventoryComponent);
+	RuntimeStates.Add(InventoryKey, MoveTemp(RebuiltStates));
 	return true;
 }
 
@@ -434,11 +469,6 @@ void FRPGClassProgressionTransactionService::ResetRuntimeState(UGridPartyInvento
 		return;
 	}
 
-	for (auto It = RuntimeStates.CreateIterator(); It; ++It)
-	{
-		if (It.Value().InventoryComponent.IsValid() && It.Value().InventoryComponent.Get() == PartyInventoryComponent)
-		{
-			It.RemoveCurrent();
-		}
-	}
+	RuntimeStates.Remove(TWeakObjectPtr<UGridPartyInventoryComponent>(PartyInventoryComponent));
+	PruneInvalidRuntimeStates();
 }

@@ -6,7 +6,6 @@
 #include "Runtime/Combat/GridQuickItemResolver.h"
 #include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
 
-#include "RPG/RPGClassProgressionTransactionService.h"
 
 #define LOCTEXT_NAMESPACE "GridCombatActionCatalog"
 
@@ -377,7 +376,6 @@ void FGridCombatActionCatalog::Build(
 	const FGridCombatActionCatalogContext& Context, const TArray<FGridCombatActionContribution>& Contributions, TArray<FGridAvailableCombatAction>& OutActions)
 {
 	FGridCombatActionCatalogContext EffectiveContext = Context;
-	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Context.CharacterId, EffectiveContext.SatisfiedRequirements);
 
 	OutActions.Reset(Contributions.Num());
 	for (const FGridCombatActionContribution& Contribution : Contributions)

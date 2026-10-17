@@ -96,10 +96,21 @@ bool FGridTD0732PersistentChoiceRoundTripTest::RunTest(const FString& Parameters
 	TestTrue(TEXT("Choice B survives serialization on the character"), LoadedCharacter.SelectedClassProgressionChoiceIds.Contains(TEXT("Choice_B")));
 	TestEqual(TEXT("Transient Level is rebuilt from Experience after load"), LoadedCharacter.Level, 3);
 
+	TSet<FName> DetachedRequirements;
+	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Component, CharacterId, DetachedRequirements);
+	TestTrue(TEXT("SaveGame deserialization does not repopulate the cleared live cache"), DetachedRequirements.IsEmpty());
+
+	UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent>();
+	RestoredComponent->PartyInventoryState = LoadedSave->PartyInventoryState;
+	FText ProjectionError;
+	TestTrue(TEXT("Loaded character authority rebuilds a scoped live projection"),
+		FRPGClassProgressionTransactionService::RebuildRuntimeProjection(RestoredComponent, ProjectionError));
+	TestTrue(TEXT("Scoped live projection rebuild reports no error"), ProjectionError.IsEmpty());
+
 	TSet<FName> RestoredRequirements;
-	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(CharacterId, RestoredRequirements);
-	TestTrue(TEXT("Choice A requirement is rebuilt before live cache binding"), RestoredRequirements.Contains(TEXT("Choice_A")));
-	TestTrue(TEXT("Choice B requirement is rebuilt before live cache binding"), RestoredRequirements.Contains(TEXT("Choice_B")));
+	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(RestoredComponent, CharacterId, RestoredRequirements);
+	TestTrue(TEXT("Choice A requirement is rebuilt after live cache binding"), RestoredRequirements.Contains(TEXT("Choice_A")));
+	TestTrue(TEXT("Choice B requirement is rebuilt after live cache binding"), RestoredRequirements.Contains(TEXT("Choice_B")));
 	TestTrue(TEXT("Choice A granted feature is rebuilt"), RestoredRequirements.Contains(TEXT("Feature_A")));
 	return true;
 }

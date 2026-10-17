@@ -41,7 +41,7 @@ DECLARE_MULTICAST_DELEGATE_FourParams(FRPGClassProgressionCommittedNativeSignatu
  *
  * TD07.3.3.5 makes FGridCharacterInventoryState::SelectedClassProgressionChoiceIds
  * the durable authority. RuntimeStates contains only reconstructible requirement
- * projections keyed by CharacterId.
+ * projections scoped by live PartyInventoryComponent and CharacterId.
  */
 struct GRIMROCKPROTOTYPE_API FRPGClassProgressionTransactionService
 {
@@ -59,11 +59,12 @@ struct GRIMROCKPROTOTYPE_API FRPGClassProgressionTransactionService
 	static bool TryCommitChoices(UGridPartyInventoryComponent* PartyInventoryComponent, int32 CharacterIndex, const TArray<FName>& ChoiceIdsToCommit,
 		FRPGClassProgressionCommitResult& OutResult);
 
-	/** Adds the current derived runtime projection to a combat catalogue context. */
-	static void AppendRuntimeSatisfiedRequirements(const FGuid& CharacterId, TSet<FName>& InOutSatisfiedRequirements);
+	/** Adds the current derived runtime projection for one character owned by a live party inventory. */
+	static void AppendRuntimeSatisfiedRequirements(
+		UGridPartyInventoryComponent* PartyInventoryComponent, const FGuid& CharacterId, TSet<FName>& InOutSatisfiedRequirements);
 
-	/** Rebuilds detached derived projections from authoritative character state, e.g. after SaveGame load. */
-	static bool RebuildRuntimeProjection(const FGridPartyInventoryState& PartyState, FText& OutError);
+	/** Atomically rebuilds all derived projections for one live party inventory from authoritative character state. */
+	static bool RebuildRuntimeProjection(UGridPartyInventoryComponent* PartyInventoryComponent, FText& OutError);
 
 	/** Test/session cache reset. Null clears all derived progression state. */
 	static void ResetRuntimeState(UGridPartyInventoryComponent* PartyInventoryComponent = nullptr);

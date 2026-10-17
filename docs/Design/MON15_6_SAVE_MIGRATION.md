@@ -5,6 +5,9 @@ Date : **16 août 2026**
 
 ---
 
+> **Mise à jour 17.10.2026 — UI-RPG-TALENT-CODE-AUDIT02.3**  
+> Le mécanisme historique de projection détachée pendant `SaveGame::Serialize()` a été retiré. Les `ChoiceIds` sont désormais durables sur le personnage et les requirements runtime sont reconstruits uniquement pour un `UGridPartyInventoryComponent` vivant. Les sections MON15.6 ci-dessous restent une trace historique de l'architecture v4.
+
 ## 1. Objectif
 
 MON15.6 rend persistante la progression introduite par MON15.1 à MON15.5 :

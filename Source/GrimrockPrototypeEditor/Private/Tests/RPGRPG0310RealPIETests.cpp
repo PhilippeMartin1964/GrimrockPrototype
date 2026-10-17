@@ -212,7 +212,7 @@ namespace RPG0310PIE
 				Test->TestEqual(TEXT("Unspent Talent Points are preserved"), RemainingPoints, 5);
 
 				TSet<FName> Requirements;
-				FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Character.CharacterId, Requirements);
+				FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Inventory, Character.CharacterId, Requirements);
 				Test->TestTrue(TEXT("Runtime requirements contain the class identity"), Requirements.Contains(Character.ClassId));
 				Test->TestTrue(TEXT("Runtime requirements contain the selected terminal talent"),
 					Requirements.Contains(Selections[Index].Last()));

@@ -92,12 +92,12 @@ bool FGridTD07335ProgressionMirrorBoundaryTest::RunTest(const FString& Parameter
 
 	FRPGClassProgressionTransactionService::ResetRuntimeState();
 	FText RebuildError;
-	TestTrue(TEXT("Detached runtime projection rebuilds from ordinary party snapshot"),
-		FRPGClassProgressionTransactionService::RebuildRuntimeProjection(OrdinaryPartySnapshot, RebuildError));
+	TestTrue(TEXT("Scoped runtime projection rebuilds from the live character authority"),
+		FRPGClassProgressionTransactionService::RebuildRuntimeProjection(Component, RebuildError));
 
 	TSet<FName> Requirements;
-	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Character.CharacterId, Requirements);
-	TestTrue(TEXT("Detached projection exposes Choice A requirement"), Requirements.Contains(TEXT("Choice_A")));
+	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Component, Character.CharacterId, Requirements);
+	TestTrue(TEXT("Scoped projection exposes Choice A requirement"), Requirements.Contains(TEXT("Choice_A")));
 	return true;
 }
 

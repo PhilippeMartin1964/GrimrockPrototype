@@ -50,7 +50,8 @@ bool FGridTD07335CharacterChoiceAuthorityTest::RunTest(const FString& Parameters
 	TestTrue(TEXT("Choice A survives cache reset"), Selected.Contains(TEXT("Choice_A")));
 
 	TSet<FName> Requirements;
-	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Component->PartyInventoryState.ActiveCharacters[0].CharacterId, Requirements);
+	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(
+		Component, Component->PartyInventoryState.ActiveCharacters[0].CharacterId, Requirements);
 	TestTrue(TEXT("Choice A requirement is reconstructed"), Requirements.Contains(TEXT("Choice_A")));
 	TestTrue(TEXT("Choice A granted feature is reconstructed"), Requirements.Contains(TEXT("Feature_A")));
 	return true;

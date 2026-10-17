@@ -30,6 +30,8 @@ FGridCharacterInventoryState::SelectedClassProgressionChoiceIds
 
 `FRPGClassProgressionTransactionService::RuntimeStates` ne stocke plus les ChoiceIds. Il ne contient que des informations reconstructibles telles que les requirements satisfaits.
 
+Depuis UI-RPG-TALENT-CODE-AUDIT02.3, cette projection est scopée par `UGridPartyInventoryComponent` vivant puis par `CharacterId`. La désérialisation d'un `UGrimrockPartySaveGame` ne crée plus de projection détachée globale. Un reset ciblé d'un composant ne peut donc ni effacer ni exposer le cache d'un autre monde/PIE.
+
 Un reset du cache runtime ne doit donc plus supprimer les choix acquis.
 
 ## SaveGame v14 — B1

@@ -152,7 +152,7 @@ namespace
 
 		FRPGClassProgressionTransactionService::RefreshCharacterProjection(Component, CharacterIndex);
 		const FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[CharacterIndex];
-		FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Character.CharacterId, Requirements);
+		FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Component, Character.CharacterId, Requirements);
 		return Requirements;
 	}
 
@@ -173,6 +173,9 @@ namespace
 		Context.CurrentMana = 10;
 		Context.MaximumMana = 10;
 		Context.SatisfiedRequirements.Add(ClassDefinition->ClassId);
+		FRPGClassProgressionTransactionService::RefreshCharacterProjection(Component, 0);
+		FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(
+			Component, Character.CharacterId, Context.SatisfiedRequirements);
 
 		FGridCombatActionContribution Contribution;
 		Contribution.Definition = ClassDefinition->CombatActions[0];

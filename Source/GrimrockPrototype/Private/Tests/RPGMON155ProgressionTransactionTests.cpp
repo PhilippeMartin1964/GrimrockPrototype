@@ -54,7 +54,7 @@ bool FRPGMON155AtomicFailureTest::RunTest(const FString& Parameters)
 		Component->PartyInventoryState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.IsEmpty());
 
 	TSet<FName> Requirements;
-	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(CharacterId, Requirements);
+	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Component, CharacterId, Requirements);
 	TestFalse(TEXT("Rejected Choice A grants no requirement"), Requirements.Contains(TEXT("Choice_A")));
 	TestTrue(TEXT("Automatic level grant remains projected"), Requirements.Contains(TEXT("Feature_Level2")));
 	return true;

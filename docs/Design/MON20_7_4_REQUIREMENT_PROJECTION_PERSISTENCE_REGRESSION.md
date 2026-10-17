@@ -6,6 +6,9 @@ Jalon parent : **MON20.7 — Talents / Progression Choice Integration**
 
 ---
 
+> **Mise à jour 17.10.2026 — UI-RPG-TALENT-CODE-AUDIT02.3**  
+> Les sections historiques décrivant un cache « détaché » indexé uniquement par `CharacterId` sont supersédées. La source durable reste `SelectedClassProgressionChoiceIds`, mais la projection runtime est désormais attachée à un `UGridPartyInventoryComponent` vivant. Le chargement/sondage d'un SaveGame ne peuple plus un cache global.
+
 ## 1. Objectif
 
 Vérifier que l’intégration Talent de MON20.7 ne casse ni la projection générique des `RequirementIds`, ni la persistance MON15.6 existante.
@@ -143,7 +146,7 @@ RequirementAfterTalent
 RequirementCharacterIsolation
 CaptureUsesMON15Snapshot
 RestoreTalentReadModel
-RestoreDetachedRequirements
+RestoreLiveRequirements
 InvalidRestoreAtomic
 RestoreByCharacterId
 ```
@@ -190,7 +193,7 @@ Aucun `.uasset`, `.umap` ou changement SaveGame.
 [OK] capture MON15.6 conserve SelectedChoiceIds
 [OK] SaveVersion reste 7
 [OK] restore rend le talent au read model MON20.7
-[OK] restore détaché projette déjà les requirements
+[OK] restore live reconstruit les requirements après rattachement au composant
 [OK] restore invalide est atomique
 [OK] ordre des snapshots sans importance
 [OK] 24/24 Automation cumulés
