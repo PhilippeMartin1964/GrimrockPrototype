@@ -57,3 +57,8 @@ FText FUILocalizationText::Get(FName Key)
 	const FString KeyString = Key.ToString();
 	return Get(*KeyString);
 }
+
+FText FUILocalizationText::GetOptional(FName Key)
+{
+	return Key.IsNone() ? FText::GetEmpty() : Get(Key);
+}

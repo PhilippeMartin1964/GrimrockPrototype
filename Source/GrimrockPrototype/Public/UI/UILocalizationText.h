@@ -13,4 +13,7 @@ struct GRIMROCKPROTOTYPE_API FUILocalizationText
 {
 	static FText Get(const TCHAR* Key);
 	static FText Get(FName Key);
+
+	/** Optional UI key: NAME_None means intentionally no localized text. */
+	static FText GetOptional(FName Key);
 };

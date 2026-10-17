@@ -28,6 +28,11 @@ bool FUITEXTCENTRAL012D2TalentStringTableRuntimeTest::RunTest(const FString&)
 	TestTrue(TEXT("Shared permanent duration resolves directly from ST_UI"),
 		FUILocalizationText::Get(TEXT("Status.Duration.Permanent")).EqualTo(FText::FromString(TEXT("Permanent"))));
 
+	TestTrue(TEXT("Optional localization key accepts intentional NAME_None"),
+		FUILocalizationText::GetOptional(NAME_None).IsEmpty());
+	TestTrue(TEXT("Optional localization key still resolves assigned ST_UI keys"),
+		FUILocalizationText::GetOptional(TEXT("Talent.Type.Active")).EqualTo(FText::FromString(TEXT("ACTIF"))));
+
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("Level"), FText::AsNumber(6));
 	TestTrue(TEXT("Named Level format"),

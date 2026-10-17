@@ -286,7 +286,7 @@ void UGridTalentDetailWidget::PopulateDetailLineRows(
 		}
 
 		UTexture2D* Glyph = DetailGlyphSet ? DetailGlyphSet->ResolveGlyph(Line.Semantic) : nullptr;
-		const FText LabelText = FUILocalizationText::Get(Line.LabelTextId);
+		const FText LabelText = FUILocalizationText::GetOptional(Line.LabelTextId);
 		const FText ValueText = !Line.ValueTextId.IsNone()
 			? FUILocalizationText::Get(Line.ValueTextId)
 			: Line.Value;
