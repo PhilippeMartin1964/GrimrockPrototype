@@ -821,6 +821,13 @@ bool AGrimrockPartyPawn::ShowPersistentHudWidget()
 	}
 	PersistentHudWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
+	// EVENTHUD01.2: InitializePersistentHud() runs before AddToViewport(). If the
+	// authored Persistent HUD root is not a CanvasPanel, the Event Feed fallback
+	// can only attach itself once the Persistent HUD is actually mounted. Refresh
+	// once after mounting so that shell creation and bottom-right placement are
+	// deterministic instead of depending on a later widget tick.
+	PersistentHudWidgetInstance->RefreshFromSources();
+
 	if (CombatHudWidgetInstance)
 	{
 		CombatHudWidgetInstance->RefreshFromSources();
