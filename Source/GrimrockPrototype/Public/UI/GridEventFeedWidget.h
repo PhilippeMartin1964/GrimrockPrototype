@@ -6,11 +6,6 @@
 #include "Runtime/GridEventFeedTypes.h"
 #include "GridEventFeedWidget.generated.h"
 
-struct FSlateBrush;
-class SBox;
-class SScrollBox;
-class SVerticalBox;
-class UBorder;
 class UButton;
 class UGridEventFeedSubsystem;
 class UFont;
@@ -68,7 +63,7 @@ public:
 	static float ClampPanelHeight(float InHeight, float InMinHeight, float InMaxHeight);
 	static bool IsScrollAtEnd(float CurrentOffset, float EndOffset, float Tolerance = 8.0f);
 
-	/** Public deterministic resize primitives used by both native and authored handles. */
+	/** Public deterministic resize primitives used by the authored UMG handle. */
 	void BeginResizeAtScreenY(float ScreenY, float ViewportScale);
 	void UpdateResizeAtScreenY(float ScreenY);
 	void EndResize();
@@ -76,17 +71,12 @@ public:
 	/** Converts platform-pixel mouse movement into UMG viewport logical units. */
 	static float ScreenDeltaToViewportDelta(float ScreenDelta, float ViewportScale);
 
-	/** Solid fill brush used by both native Slate and optional UMG shell paths. */
-	static const FSlateBrush* GetSolidBackgroundBrush();
-
 	virtual void SynchronizeProperties() override;
 
 protected:
-	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
-	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 public:
 	/** Fixed width for EVENTHUD01 V1. */
@@ -102,16 +92,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Layout", meta = (ClampMin = "1.0"))
 	float InitialPanelHeight = 320.0f;
 
-	/** Simple native colour only; semantic colour coding belongs to EVENTHUD01.6. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
-	FLinearColor ShellBackgroundColor = FLinearColor(0.015f, 0.02f, 0.025f, 0.92f);
-
 	/** Explicit EVENTHUD font settings. Defaults to project Alegreya Sans when available. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
 	FSlateFontInfo EntryFont;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
-	FSlateFontInfo FilterFont;
 
 	/** EVENTHUD01.3 three independent filters, enabled by default. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Event Feed|Filters")
@@ -123,12 +106,9 @@ public:
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Event Feed|Filters")
 	bool bShowDiscussion = true;
 
-	/** Optional WBP_GridEventFeed bindings. */
+	/** Authored WBP_GridEventFeed bindings. Visual style belongs to UMG. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
 	TObjectPtr<USizeBox> SizeBox_EventFeed;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
-	TObjectPtr<UBorder> Border_EventFeed;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
 	TObjectPtr<UScrollBox> ScrollBox_Entries;
@@ -166,7 +146,6 @@ private:
 	float GetPresentationScrollEndOffset() const;
 	FText BuildEntryText(const FGridHudEventEntry& Entry) const;
 	FText BuildFilterText(EGridHudEventCategory Category) const;
-	void HandleNativeUserScrolled(float CurrentOffset);
 	void BeginResizeFromCursor();
 
 	UFUNCTION()
@@ -199,8 +178,4 @@ private:
 	float ResizeStartHeight = 320.0f;
 	float ResizeViewportScale = 1.0f;
 	bool bFollowNewestEntries = true;
-
-	TSharedPtr<SBox> NativeSizeBox;
-	TSharedPtr<SScrollBox> NativeScrollBox;
-	TSharedPtr<SVerticalBox> NativeEntryList;
 };

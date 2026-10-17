@@ -57,6 +57,11 @@ float UGridPersistentHudWidget::CalculateEventFeedBottomOffset(float PersistentB
 		FMath::Max(0.0f, BottomGap);
 }
 
+bool UGridPersistentHudWidget::IsAuthoredEventFeedClass(TSubclassOf<UGridEventFeedWidget> WidgetClass)
+{
+	return WidgetClass && WidgetClass != UGridEventFeedWidget::StaticClass();
+}
+
 void UGridPersistentHudWidget::InitializePersistentHud(AGrimrockPartyPawn* InPartyPawn)
 {
 	UnbindInventoryEvents();
@@ -138,12 +143,13 @@ void UGridPersistentHudWidget::EnsureEventFeedWidget()
 {
 	if (!EventFeedWidgetInstance)
 	{
-		TSubclassOf<UGridEventFeedWidget> EffectiveClass = EventFeedWidgetClass;
-		if (!EffectiveClass)
+		if (!ensureMsgf(
+			IsAuthoredEventFeedClass(EventFeedWidgetClass),
+			TEXT("EVENTHUD01.5C requires an authored EventFeedWidgetClass (assign WBP_GridEventFeed on WBP_GridPersistentHud).")))
 		{
-			EffectiveClass = UGridEventFeedWidget::StaticClass();
+			return;
 		}
-		EventFeedWidgetInstance = CreateWidget<UGridEventFeedWidget>(this, EffectiveClass);
+		EventFeedWidgetInstance = CreateWidget<UGridEventFeedWidget>(this, EventFeedWidgetClass);
 	}
 
 	if (!EventFeedWidgetInstance || EventFeedWidgetInstance->GetParent() || EventFeedWidgetInstance->IsInViewport())
@@ -162,8 +168,8 @@ void UGridPersistentHudWidget::EnsureEventFeedWidget()
 		return;
 	}
 
-	// Legacy/non-canvas WBP fallback. Keep the Event Feed on the same low
-	// gameplay layer rather than failing the shell entirely.
+	// Non-canvas persistent HUD roots still use viewport placement, but the
+	// Event Feed itself must remain an authored UMG class.
 	if (IsInViewport())
 	{
 		const int32 PersistentLayer = IsValid(PartyPawn) ? PartyPawn->PersistentHudZOrder : 25;

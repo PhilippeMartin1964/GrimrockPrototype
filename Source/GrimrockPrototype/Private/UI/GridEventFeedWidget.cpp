@@ -2,7 +2,6 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
-#include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/ScrollBox.h"
 #include "Components/SizeBox.h"
@@ -12,12 +11,6 @@
 #include "Styling/CoreStyle.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Runtime/GridEventFeedSubsystem.h"
-#include "Widgets/Input/SButton.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Widgets/Layout/SBox.h"
-#include "Widgets/Layout/SScrollBox.h"
-#include "Widgets/SBoxPanel.h"
-#include "Widgets/Text/STextBlock.h"
 
 #define LOCTEXT_NAMESPACE "GridEventFeedWidget"
 
@@ -31,12 +24,10 @@ UGridEventFeedWidget::UGridEventFeedWidget(const FObjectInitializer& ObjectIniti
 	if (EventFeedFontFinder.Succeeded())
 	{
 		EntryFont = FSlateFontInfo(EventFeedFontFinder.Object, 16);
-		FilterFont = FSlateFontInfo(EventFeedFontFinder.Object, 14);
 	}
 	else
 	{
 		EntryFont = FCoreStyle::GetDefaultFontStyle(TEXT("Regular"), 16);
-		FilterFont = FCoreStyle::GetDefaultFontStyle(TEXT("Regular"), 14);
 	}
 }
 
@@ -178,122 +169,11 @@ float UGridEventFeedWidget::ScreenDeltaToViewportDelta(float ScreenDelta, float 
 	return ScreenDelta / FMath::Max(KINDA_SMALL_NUMBER, ViewportScale);
 }
 
-const FSlateBrush* UGridEventFeedWidget::GetSolidBackgroundBrush()
-{
-	return FCoreStyle::Get().GetBrush(TEXT("WhiteBrush"));
-}
-
 void UGridEventFeedWidget::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 	CurrentPanelHeight = ClampPanelHeight(CurrentPanelHeight, MinPanelHeight, MaxPanelHeight);
 	SynchronizeShell();
-}
-
-TSharedRef<SWidget> UGridEventFeedWidget::RebuildWidget()
-{
-	if (WidgetTree && WidgetTree->RootWidget)
-	{
-		return Super::RebuildWidget();
-	}
-
-	return SAssignNew(NativeSizeBox, SBox)
-		.WidthOverride(GetPanelWidth())
-		.HeightOverride(GetPanelHeight())
-		[
-			SNew(SBorder)
-			.Padding(FMargin(6.0f))
-			.BorderImage(GetSolidBackgroundBrush())
-			.BorderBackgroundColor(ShellBackgroundColor)
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(0.0f, 0.0f, 0.0f, 4.0f)
-				[
-					SNew(SButton)
-						.ContentPadding(FMargin(0.0f))
-						.ToolTipText(LOCTEXT("ResizeTooltip", "Redimensionner le flux"))
-						.Cursor(EMouseCursor::None)
-						.OnPressed(FSimpleDelegate::CreateUObject(this, &UGridEventFeedWidget::HandleResizePressed))
-						.OnReleased(FSimpleDelegate::CreateUObject(this, &UGridEventFeedWidget::HandleResizeReleased))
-						[
-							SNew(SBox)
-								.HeightOverride(8.0f)
-						]
-				]
-				+ SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				[
-					SAssignNew(NativeScrollBox, SScrollBox)
-						.OnUserScrolled_Lambda([this](float CurrentOffset)
-						{
-							HandleNativeUserScrolled(CurrentOffset);
-						})
-						+ SScrollBox::Slot()
-						[
-							SAssignNew(NativeEntryList, SVerticalBox)
-						]
-				]
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-				[
-					SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.FillWidth(1.0f)
-						.Padding(0.0f, 0.0f, 2.0f, 0.0f)
-						[
-							SNew(SButton)
-								.HAlign(HAlign_Center)
-								.OnClicked_Lambda([this]()
-								{
-									ToggleCategory(EGridHudEventCategory::Dungeon);
-									return FReply::Handled();
-								})
-								[
-									SNew(STextBlock)
-										.Font(FilterFont)
-										.Text_Lambda([this]() { return BuildFilterText(EGridHudEventCategory::Dungeon); })
-								]
-						]
-						+ SHorizontalBox::Slot()
-						.FillWidth(1.0f)
-						.Padding(2.0f, 0.0f)
-						[
-							SNew(SButton)
-								.HAlign(HAlign_Center)
-								.OnClicked_Lambda([this]()
-								{
-									ToggleCategory(EGridHudEventCategory::Combat);
-									return FReply::Handled();
-								})
-								[
-									SNew(STextBlock)
-										.Font(FilterFont)
-										.Text_Lambda([this]() { return BuildFilterText(EGridHudEventCategory::Combat); })
-								]
-						]
-						+ SHorizontalBox::Slot()
-						.FillWidth(1.0f)
-						.Padding(2.0f, 0.0f, 0.0f, 0.0f)
-						[
-							SNew(SButton)
-								.HAlign(HAlign_Center)
-								.OnClicked_Lambda([this]()
-								{
-									ToggleCategory(EGridHudEventCategory::Dialogue);
-									return FReply::Handled();
-								})
-								[
-									SNew(STextBlock)
-										.Font(FilterFont)
-										.Text_Lambda([this]() { return BuildFilterText(EGridHudEventCategory::Dialogue); })
-								]
-						]
-				]
-			]
-		];
 }
 
 void UGridEventFeedWidget::NativeConstruct()
@@ -344,14 +224,6 @@ void UGridEventFeedWidget::NativeTick(const FGeometry& MyGeometry, float InDelta
 	}
 }
 
-void UGridEventFeedWidget::ReleaseSlateResources(bool bReleaseChildren)
-{
-	Super::ReleaseSlateResources(bReleaseChildren);
-	NativeSizeBox.Reset();
-	NativeScrollBox.Reset();
-	NativeEntryList.Reset();
-}
-
 void UGridEventFeedWidget::SynchronizeShell()
 {
 	PanelWidth = FMath::Max(1.0f, PanelWidth);
@@ -362,41 +234,21 @@ void UGridEventFeedWidget::SynchronizeShell()
 		SizeBox_EventFeed->SetWidthOverride(PanelWidth);
 		SizeBox_EventFeed->SetHeightOverride(CurrentPanelHeight);
 	}
-	if (Border_EventFeed)
-	{
-		// A tint alone does not guarantee a filled center: Border-type brushes can
-		// intentionally leave the middle transparent. Force a solid image brush
-		// first, then apply the requested shell tint/alpha.
-		if (const FSlateBrush* SolidBrush = GetSolidBackgroundBrush())
-		{
-			Border_EventFeed->SetBrush(*SolidBrush);
-		}
-		Border_EventFeed->SetBrushColor(ShellBackgroundColor);
-		Border_EventFeed->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-	}
 	if (ScrollBox_Entries)
 	{
 		ScrollBox_Entries->SetVisibility(ESlateVisibility::Visible);
 	}
 	if (Text_FilterEvents)
 	{
-		Text_FilterEvents->SetFont(FilterFont);
 		Text_FilterEvents->SetText(BuildFilterText(EGridHudEventCategory::Dungeon));
 	}
 	if (Text_FilterCombat)
 	{
-		Text_FilterCombat->SetFont(FilterFont);
 		Text_FilterCombat->SetText(BuildFilterText(EGridHudEventCategory::Combat));
 	}
 	if (Text_FilterDiscussion)
 	{
-		Text_FilterDiscussion->SetFont(FilterFont);
 		Text_FilterDiscussion->SetText(BuildFilterText(EGridHudEventCategory::Dialogue));
-	}
-	if (NativeSizeBox.IsValid())
-	{
-		NativeSizeBox->SetWidthOverride(PanelWidth);
-		NativeSizeBox->SetHeightOverride(CurrentPanelHeight);
 	}
 }
 
@@ -504,23 +356,6 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 		}
 	}
 
-	if (NativeEntryList.IsValid())
-	{
-		NativeEntryList->ClearChildren();
-		for (const FGridHudEventEntry& Entry : VisibleEntries)
-		{
-			NativeEntryList->AddSlot()
-				.AutoHeight()
-				.Padding(2.0f, 2.0f, 6.0f, 6.0f)
-				[
-					SNew(STextBlock)
-						.AutoWrapText(true)
-						.Font(EntryFont)
-						.Text(BuildEntryText(Entry))
-				];
-		}
-	}
-
 	if (bWasAtEnd)
 	{
 		bFollowNewestEntries = true;
@@ -533,10 +368,6 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 		{
 			ScrollBox_Entries->SetScrollOffset(PreviousOffset);
 		}
-		if (NativeScrollBox.IsValid())
-		{
-			NativeScrollBox->SetScrollOffset(PreviousOffset);
-		}
 	}
 }
 
@@ -546,10 +377,6 @@ void UGridEventFeedWidget::ScrollPresentationToEnd()
 	{
 		ScrollBox_Entries->ScrollToEnd();
 	}
-	if (NativeScrollBox.IsValid())
-	{
-		NativeScrollBox->ScrollToEnd();
-	}
 }
 
 float UGridEventFeedWidget::GetPresentationScrollOffset() const
@@ -558,7 +385,7 @@ float UGridEventFeedWidget::GetPresentationScrollOffset() const
 	{
 		return ScrollBox_Entries->GetScrollOffset();
 	}
-	return NativeScrollBox.IsValid() ? NativeScrollBox->GetScrollOffset() : 0.0f;
+	return 0.0f;
 }
 
 float UGridEventFeedWidget::GetPresentationScrollEndOffset() const
@@ -567,7 +394,7 @@ float UGridEventFeedWidget::GetPresentationScrollEndOffset() const
 	{
 		return ScrollBox_Entries->GetScrollOffsetOfEnd();
 	}
-	return NativeScrollBox.IsValid() ? NativeScrollBox->GetScrollOffsetOfEnd() : 0.0f;
+	return 0.0f;
 }
 
 FText UGridEventFeedWidget::BuildEntryText(const FGridHudEventEntry& Entry) const
@@ -624,11 +451,6 @@ FText UGridEventFeedWidget::BuildFilterText(EGridHudEventCategory Category) cons
 		default:
 			return FText::GetEmpty();
 	}
-}
-
-void UGridEventFeedWidget::HandleNativeUserScrolled(float CurrentOffset)
-{
-	bFollowNewestEntries = IsScrollAtEnd(CurrentOffset, GetPresentationScrollEndOffset());
 }
 
 void UGridEventFeedWidget::BeginResizeFromCursor()

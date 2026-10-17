@@ -49,9 +49,9 @@ public:
 	TSubclassOf<UGridNavigationTooltipWidget> NavigationTooltipWidgetClass;
 
 	/**
-	 * EVENTHUD01.2 optional authored shell class. When unset, the native
-	 * UGridEventFeedWidget fallback is created so the HUD never depends on a
-	 * blind binary asset edit.
+	 * EVENTHUD01.5C authored Event Feed presentation class.
+	 * Must be assigned to WBP_GridEventFeed (or another authored subclass).
+	 * The native C++ fallback was intentionally removed.
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD|Persistent|Event Feed")
 	TSubclassOf<UGridEventFeedWidget> EventFeedWidgetClass;
@@ -176,6 +176,9 @@ public:
 
 	/** EVENTHUD01.2 pure bottom-clearance rule used by the shell and automation. */
 	static float CalculateEventFeedBottomOffset(float PersistentBarHeight, float FallbackBarHeight, float BottomGap);
+
+	/** EVENTHUD01.5C rejects the native base class as a presentation surface. */
+	static bool IsAuthoredEventFeedClass(TSubclassOf<UGridEventFeedWidget> WidgetClass);
 
 protected:
 	virtual void NativeConstruct() override;

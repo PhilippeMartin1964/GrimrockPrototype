@@ -52,6 +52,10 @@ bool FGridUIEventHUD012PersistentPlacementTest::RunTest(const FString& Parameter
 
 	TestTrue(TEXT("Event Feed shell is a UUserWidget"),
 		UGridEventFeedWidget::StaticClass()->IsChildOf(UUserWidget::StaticClass()));
+	TestFalse(TEXT("Native Event Feed base class is not an authored presentation"),
+		UGridPersistentHudWidget::IsAuthoredEventFeedClass(UGridEventFeedWidget::StaticClass()));
+	TestFalse(TEXT("Missing Event Feed class is not a valid authored presentation"),
+		UGridPersistentHudWidget::IsAuthoredEventFeedClass(nullptr));
 	return true;
 }
 
