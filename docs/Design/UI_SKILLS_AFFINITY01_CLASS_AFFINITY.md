@@ -2,7 +2,7 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **01.3C AUTHORING DÉTERMINISTE PRÉPARÉ — matérialisation de l’asset requise**
+État : **01.3D RÉGRESSION PRODUCTION VERROUILLÉE — validation finale requise**
 
 ## 1. Objectif
 
@@ -201,3 +201,41 @@ puis refuse de sauvegarder si le catalogue devient invalide.
 
 Le commandlet est idempotent : une seconde exécution sur un asset déjà canonique
 ne réécrit pas le `.uasset`.
+
+
+## 11. UI-SKILLS-AFFINITY01.3D — verrouillage de production
+
+Après matérialisation de `DA_RPGSkillPresentation`, la régression de production
+vérifie désormais indépendamment :
+
+~~~text
+25 Skill presentations
+6 Skills avec DiscouragedClassIds non vide
+15 affectations Discouraged au total
+matrice exacte Skill -> classes déconseillées
+résolution exacte des 4 états sur les 6 classes canoniques pour chacun des 25 Skills
+~~~
+
+La matrice attendue est dupliquée volontairement dans le test de régression :
+elle ne dépend pas du helper d'authoring, afin qu'une modification accidentelle
+du helper ne puisse pas faire évoluer silencieusement le test et les données
+dans le même sens.
+
+Validation finale attendue :
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.Skills02"
+~~~
+
+Puis audit read-only :
+
+~~~powershell
+& "D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" `
+  "D:\Development\GrimrockPrototype\GrimrockPrototype.uproject" `
+  -run=SkillAffinityAudit `
+  -unattended -nop4 -nosplash -nullrhi
+~~~
+
+L'audit final doit annoncer `Skills=25` et `Discouraged=15`.

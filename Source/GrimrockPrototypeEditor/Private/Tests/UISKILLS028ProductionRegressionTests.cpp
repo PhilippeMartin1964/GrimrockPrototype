@@ -26,6 +26,30 @@ namespace UISKILLS028Tests
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills")
 	};
 
+	const FName CanonicalClassIds[] =
+	{
+		TEXT("Warrior"),
+		TEXT("Rogue"),
+		TEXT("Ranger"),
+		TEXT("Mage"),
+		TEXT("Priest"),
+		TEXT("Alchemist")
+	};
+
+	const TMap<FName, TArray<FName>>& ExpectedDiscouragedMatrix()
+	{
+		static const TMap<FName, TArray<FName>> Matrix =
+		{
+			{ TEXT("Skill_Lockpicking"), { TEXT("Priest") } },
+			{ TEXT("Skill_Traps"), { TEXT("Warrior"), TEXT("Priest") } },
+			{ TEXT("Skill_Alchemy"), { TEXT("Warrior"), TEXT("Ranger"), TEXT("Priest") } },
+			{ TEXT("Skill_Arcana"), { TEXT("Warrior"), TEXT("Ranger"), TEXT("Priest") } },
+			{ TEXT("Skill_Runes"), { TEXT("Warrior"), TEXT("Ranger"), TEXT("Priest") } },
+			{ TEXT("Skill_Religion"), { TEXT("Warrior"), TEXT("Rogue"), TEXT("Alchemist") } }
+		};
+		return Matrix;
+	}
+
 	struct FResolverCacheGuard
 	{
 		FResolverCacheGuard()
@@ -84,6 +108,8 @@ bool FUISKILLS028ProductionRegressionTest::RunTest(const FString&)
 		CanonicalSkillIds.Add(Skill->SkillId);
 	}
 
+	int32 DiscouragedSkillCount = 0;
+	int32 DiscouragedAssignmentCount = 0;
 	TSet<FName> PresentedSkillIds;
 	for (const FRPGSkillPresentationDefinition& Presentation : Catalog->Skills)
 	{
@@ -142,6 +168,44 @@ bool FUISKILLS028ProductionRegressionTest::RunTest(const FString&)
 				*FString::Printf(TEXT("%s discouraged class %s resolves"), *SkillLabel, *ClassId.ToString()),
 				FRPGAuthoringIdentityResolver::ResolveClassById(ClassId));
 		}
+
+		const TArray<FName>* ExpectedDiscouraged =
+			ExpectedDiscouragedMatrix().Find(Presentation.SkillId);
+		const TArray<FName> EmptyDiscouraged;
+		const TArray<FName>& ExpectedDiscouragedIds =
+			ExpectedDiscouraged ? *ExpectedDiscouraged : EmptyDiscouraged;
+
+		TestTrue(
+			*FString::Printf(TEXT("%s has exact production DiscouragedClassIds"), *SkillLabel),
+			Presentation.DiscouragedClassIds == ExpectedDiscouragedIds);
+
+		if (!Presentation.DiscouragedClassIds.IsEmpty())
+		{
+			++DiscouragedSkillCount;
+			DiscouragedAssignmentCount += Presentation.DiscouragedClassIds.Num();
+		}
+
+		for (const FName ClassId : CanonicalClassIds)
+		{
+			EGridSkillClassAffinity ExpectedAffinity = EGridSkillClassAffinity::Neutral;
+			if (Presentation.RecommendedClassIds.Contains(ClassId))
+			{
+				ExpectedAffinity = EGridSkillClassAffinity::Recommended;
+			}
+			else if (Presentation.UsefulClassIds.Contains(ClassId))
+			{
+				ExpectedAffinity = EGridSkillClassAffinity::Useful;
+			}
+			else if (Presentation.DiscouragedClassIds.Contains(ClassId))
+			{
+				ExpectedAffinity = EGridSkillClassAffinity::Discouraged;
+			}
+
+			TestEqual(
+				*FString::Printf(TEXT("%s / %s production affinity resolves exactly"), *SkillLabel, *ClassId.ToString()),
+				Catalog->ResolveClassAffinity(Presentation.SkillId, ClassId),
+				ExpectedAffinity);
+		}
 		for (const FName SynergySkillId : Presentation.SynergySkillIds)
 		{
 			TestTrue(
@@ -149,6 +213,11 @@ bool FUISKILLS028ProductionRegressionTest::RunTest(const FString&)
 				CanonicalSkillIds.Contains(SynergySkillId));
 		}
 	}
+
+	TestEqual(TEXT("Exactly six production Skills carry discouraged affinities"),
+		DiscouragedSkillCount, 6);
+	TestEqual(TEXT("Production discouraged matrix contains exactly fifteen class assignments"),
+		DiscouragedAssignmentCount, 15);
 
 	TestEqual(TEXT("Presentation SkillIds exactly cover canonical SkillIds"),
 		PresentedSkillIds.Num(), CanonicalSkillIds.Num());

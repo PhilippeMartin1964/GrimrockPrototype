@@ -375,10 +375,12 @@ La matérialisation est maintenant versionnée : `Button_SortAffinity`,
 restent entièrement sous autorité Designer.
 
 UI-SKILLS-AFFINITY01.3A a audité les 25 lignes de production. La matrice
-`DiscouragedClassIds` retenue est désormais portée par
-`FSkillAffinityProductionAuthoring` et matérialisable de façon déterministe via
-le commandlet `SkillAffinityAuthoring`. L’authoring ne touche à aucun autre
-champ de `DA_RPGSkillPresentation` et est idempotent.
+`DiscouragedClassIds` retenue est portée par `FSkillAffinityProductionAuthoring`
+et a été matérialisée dans `DA_RPGSkillPresentation`. L’authoring ne touche à
+aucun autre champ et est idempotent. UI-SKILLS-AFFINITY01.3D verrouille désormais
+indépendamment la matrice exacte en régression de production : 6 Skills portent
+15 affectations déconseillées au total, et les 25 × 6 résolutions d’affinité
+sont contrôlées contre les quatre états canoniques.
 
 Référence :
 `docs/Design/UI_SKILLS_AFFINITY01_CLASS_AFFINITY.md`.
