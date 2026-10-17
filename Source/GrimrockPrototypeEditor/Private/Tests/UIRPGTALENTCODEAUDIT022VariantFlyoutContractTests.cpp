@@ -61,13 +61,14 @@ namespace UIRPGTalentCodeAudit022
 			*FString::Printf(TEXT("%s recompiles with mandatory Talent variant bindings"), BlueprintPath),
 			Blueprint->Status != BS_Error);
 
+		UClass* GeneratedClass = Blueprint->GeneratedClass.Get();
 		if (Test.TestNotNull(
 				*FString::Printf(TEXT("%s has a generated widget class"), BlueprintPath),
-				Blueprint->GeneratedClass))
+				GeneratedClass))
 		{
 			Test.TestTrue(
 				*FString::Printf(TEXT("%s keeps the expected native parent"), BlueprintPath),
-				Blueprint->GeneratedClass->IsChildOf(ExpectedNativeClass));
+				GeneratedClass->IsChildOf(ExpectedNativeClass));
 		}
 	}
 }

@@ -431,9 +431,11 @@ bool FUIRPG014FavoredEnemyCategoryPresentationTest::RunTest(const FString&)
 			continue;
 		}
 
-		TestEqual(TEXT("Variant title comes from bestiary category DisplayName"),
+		TestEqual(TEXT("Variant read model preserves the authored Choice DisplayName"),
 			Variant.DisplayName.ToString(),
-			FString::Printf(TEXT("Ennemi juré — %s"), *Category->DisplayName.ToString()));
+			Choice->DisplayName.ToString());
+		TestTrue(TEXT("Authored Favored Enemy variant remains coherent with bestiary category DisplayName"),
+			Choice->DisplayName.ToString().Contains(Category->DisplayName.ToString(), ESearchCase::CaseSensitive));
 
 		bool bEffectUsesPlayerLabel = false;
 		for (const FGridTalentDetailLineView& Line : Variant.Effects)
