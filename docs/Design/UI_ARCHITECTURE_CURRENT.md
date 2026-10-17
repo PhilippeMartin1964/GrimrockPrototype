@@ -1163,3 +1163,6 @@ Seul `PartyPortraitOrder` est modifié ; le roster runtime, `ActiveEquipment` et
 
 
 UI-PARTYHUD01.4 a passé **10/10 Automation** et son drag/reorder est validé en PIE. Un correctif local force désormais le curseur UMG de `UGridPartyPortraitHudWidget` à `EMouseCursor::None` afin d'éviter l'apparition du curseur système Windows en plus de `WBP_GridMouseCursor`.
+
+
+UI-PARTYHUD01.4 est **VALIDÉ / CLOS** : 10/10 Automation, reorder avant/après validé en PIE et correctif du double curseur validé. Le drag ne modifie que `PartyPortraitOrder`.

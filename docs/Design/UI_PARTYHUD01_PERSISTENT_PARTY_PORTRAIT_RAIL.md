@@ -3,7 +3,7 @@
 Date : **16 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Contrat : **ADOPTÉ**  
-État courant : **UI-PARTYHUD01.1/.2/.3 VALIDÉS / CLOS — UI-PARTYHUD01.4 Automation + drag PIE VALIDÉS, correctif curseur à valider**
+État courant : **UI-PARTYHUD01.1/.2/.3/.4 VALIDÉS / CLOS — UI-PARTYHUD01.5 EN COURS**
 
 ## 1. Objectif général
 
@@ -1220,3 +1220,36 @@ Cette correction est volontairement locale au portrait :
 - aucun changement du drag/reorder validé.
 
 UI-PARTYHUD01.4 sera déclaré **CLOS** après vérification PIE que seul `Cursor_Default` reste visible pendant clic et drag.
+
+
+## 37. Validation finale UI-PARTYHUD01.4 — 17 octobre 2026
+
+Validation TD04.2 :
+
+```text
+Filter                 : Grimrock.UI.PartyHud01
+Succeeded              : 10
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20261017-073041
+```
+
+Validation PIE :
+
+```text
+drag portrait avant/après -> OK
+SelectedCharacterIndex    -> inchangé pendant le reorder
+clic parasite             -> absent
+double curseur Windows    -> corrigé et validé
+Cursor_Default custom     -> seul curseur visible
+```
+
+**UI-PARTYHUD01.4 est VALIDÉ et CLOS.**
+
+Prochain sous-jalon :
+
+```text
+UI-PARTYHUD01.5 — Save / Load
+```
