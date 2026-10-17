@@ -66,9 +66,12 @@ public:
 	static bool IsScrollAtEnd(float CurrentOffset, float EndOffset, float Tolerance = 8.0f);
 
 	/** Public deterministic resize primitives used by both native and authored handles. */
-	void BeginResizeAtLocalY(float LocalY);
-	void UpdateResizeAtLocalY(float LocalY);
+	void BeginResizeAtScreenY(float ScreenY, float ViewportScale);
+	void UpdateResizeAtScreenY(float ScreenY);
 	void EndResize();
+
+	/** Converts platform-pixel mouse movement into UMG viewport logical units. */
+	static float ScreenDeltaToViewportDelta(float ScreenDelta, float ViewportScale);
 
 	virtual void SynchronizeProperties() override;
 
@@ -179,8 +182,9 @@ private:
 
 	TWeakObjectPtr<UGridEventFeedSubsystem> EventFeedSubsystem;
 	bool bResizeDragging = false;
-	float ResizeStartLocalY = 0.0f;
+	float ResizeStartScreenY = 0.0f;
 	float ResizeStartHeight = 320.0f;
+	float ResizeViewportScale = 1.0f;
 	bool bFollowNewestEntries = true;
 
 	TSharedPtr<SBox> NativeSizeBox;

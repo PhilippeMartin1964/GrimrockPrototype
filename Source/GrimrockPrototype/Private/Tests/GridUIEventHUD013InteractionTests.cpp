@@ -64,18 +64,27 @@ bool FGridUIEventHUD013ResizeTest::RunTest(const FString& Parameters)
 	}
 
 	Widget->SetPanelHeight(320.0f);
-	Widget->BeginResizeAtLocalY(500.0f);
-	Widget->UpdateResizeAtLocalY(450.0f);
-	TestEqual(TEXT("Local logical drag upward grows the feed one-for-one"), Widget->GetPanelHeight(), 370.0f);
+	Widget->BeginResizeAtScreenY(500.0f, 1.0f);
+	Widget->UpdateResizeAtScreenY(450.0f);
+	TestEqual(TEXT("At DPI scale 1, 50 pixels moves the border by 50 logical units"), Widget->GetPanelHeight(), 370.0f);
+	Widget->EndResize();
 
-	Widget->UpdateResizeAtLocalY(900.0f);
+	Widget->SetPanelHeight(320.0f);
+	Widget->BeginResizeAtScreenY(500.0f, 2.0f);
+	Widget->UpdateResizeAtScreenY(400.0f);
+	TestEqual(TEXT("At DPI scale 2, 100 pixels converts to 50 logical units"), Widget->GetPanelHeight(), 370.0f);
+
+	Widget->UpdateResizeAtScreenY(900.0f);
 	TestEqual(TEXT("Dragging downward clamps to minimum height"), Widget->GetPanelHeight(), 180.0f);
 	Widget->EndResize();
 
-	Widget->BeginResizeAtLocalY(500.0f);
-	Widget->UpdateResizeAtLocalY(-100.0f);
-	TestEqual(TEXT("Dragging upward clamps to maximum height"), Widget->GetPanelHeight(), 600.0f);
+	Widget->BeginResizeAtScreenY(500.0f, 0.5f);
+	Widget->UpdateResizeAtScreenY(250.0f);
+	TestEqual(TEXT("At DPI scale 0.5, 250 pixels reaches the maximum"), Widget->GetPanelHeight(), 600.0f);
 	Widget->EndResize();
+
+	TestEqual(TEXT("Screen delta converts through viewport scale"),
+		UGridEventFeedWidget::ScreenDeltaToViewportDelta(100.0f, 2.0f), 50.0f);
 
 	return true;
 }

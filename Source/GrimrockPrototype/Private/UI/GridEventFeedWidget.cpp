@@ -1,6 +1,7 @@
 #include "UI/GridEventFeedWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/ScrollBox.h"
@@ -132,26 +133,33 @@ bool UGridEventFeedWidget::IsScrollAtEnd(float CurrentOffset, float EndOffset, f
 	return FMath::Max(0.0f, EndOffset) - FMath::Max(0.0f, CurrentOffset) <= FMath::Max(0.0f, Tolerance);
 }
 
-void UGridEventFeedWidget::BeginResizeAtLocalY(float LocalY)
+void UGridEventFeedWidget::BeginResizeAtScreenY(float ScreenY, float ViewportScale)
 {
 	bResizeDragging = true;
-	ResizeStartLocalY = LocalY;
+	ResizeStartScreenY = ScreenY;
 	ResizeStartHeight = CurrentPanelHeight;
+	ResizeViewportScale = FMath::Max(KINDA_SMALL_NUMBER, ViewportScale);
 }
 
-void UGridEventFeedWidget::UpdateResizeAtLocalY(float LocalY)
+void UGridEventFeedWidget::UpdateResizeAtScreenY(float ScreenY)
 {
 	if (!bResizeDragging)
 	{
 		return;
 	}
 
-	SetPanelHeight(ResizeStartHeight + (ResizeStartLocalY - LocalY));
+	const float ScreenDelta = ResizeStartScreenY - ScreenY;
+	SetPanelHeight(ResizeStartHeight + ScreenDeltaToViewportDelta(ScreenDelta, ResizeViewportScale));
 }
 
 void UGridEventFeedWidget::EndResize()
 {
 	bResizeDragging = false;
+}
+
+float UGridEventFeedWidget::ScreenDeltaToViewportDelta(float ScreenDelta, float ViewportScale)
+{
+	return ScreenDelta / FMath::Max(KINDA_SMALL_NUMBER, ViewportScale);
 }
 
 void UGridEventFeedWidget::SynchronizeProperties()
@@ -298,8 +306,7 @@ void UGridEventFeedWidget::NativeTick(const FGeometry& MyGeometry, float InDelta
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	if (bResizeDragging && FSlateApplication::IsInitialized())
 	{
-		const FVector2D CursorLocal = MyGeometry.AbsoluteToLocal(FSlateApplication::Get().GetCursorPos());
-		UpdateResizeAtLocalY(CursorLocal.Y);
+		UpdateResizeAtScreenY(static_cast<float>(FSlateApplication::Get().GetCursorPos().Y));
 	}
 }
 
@@ -582,8 +589,11 @@ void UGridEventFeedWidget::BeginResizeFromCursor()
 {
 	if (FSlateApplication::IsInitialized())
 	{
-		const FVector2D CursorLocal = GetCachedGeometry().AbsoluteToLocal(FSlateApplication::Get().GetCursorPos());
-		BeginResizeAtLocalY(CursorLocal.Y);
+		const float ViewportScale =
+			FMath::Max(KINDA_SMALL_NUMBER, UWidgetLayoutLibrary::GetViewportScale(this));
+		BeginResizeAtScreenY(
+			static_cast<float>(FSlateApplication::Get().GetCursorPos().Y),
+			ViewportScale);
 	}
 }
 
