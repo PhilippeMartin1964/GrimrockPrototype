@@ -164,12 +164,10 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_DetailUsefulClasses;
 
-	/** UI-SKILLS-CODE-AUDIT02.1A: optional only until the Designer row is materialized. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UVerticalBox> VB_DetailDiscouragedClasses;
 
-	/** UI-SKILLS-CODE-AUDIT02.1A: optional only until the Designer row is materialized. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_DetailDiscouragedClasses;
 
 	UPROPERTY(meta = (BindWidget))

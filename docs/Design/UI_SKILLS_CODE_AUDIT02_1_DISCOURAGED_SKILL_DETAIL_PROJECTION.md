@@ -2,7 +2,7 @@
 
 Date : **17 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
-État : **02.1A SOURCE PROJECTION IMPLÉMENTÉE — matérialisation UMG requise avant clôture**
+État : **02.1C DURCISSEMENT NATIF IMPLÉMENTÉ — validation locale finale requise**
 
 ## 1. Défaut corrigé
 
@@ -10,7 +10,7 @@ Projet : **UE 5.5.4 dungeon crawler prototype**
 `FGridSkillsPageService`, mais `UGridSkillDetailWidget` ne projetait ni ne
 rendait cette collection.
 
-La chaîne s'arrêtait donc ici :
+La chaîne était interrompue avant le détail UMG :
 
 ~~~text
 DA_RPGSkillPresentation.DiscouragedClassIds
@@ -19,9 +19,10 @@ DA_RPGSkillPresentation.DiscouragedClassIds
     -> [perdu avant WBP_RPGSkillDetail]
 ~~~
 
-Aucune modification de la matrice d'affinité ou de son autorité n'est requise.
+Aucune modification de la matrice d'affinité ou de son autorité n'était
+nécessaire.
 
-## 2. Correction native 02.1A
+## 2. UI-SKILLS-CODE-AUDIT02.1A — projection source
 
 `UGridSkillDetailWidget` expose désormais :
 
@@ -31,7 +32,7 @@ VB_DetailDiscouragedClasses
 Text_DetailDiscouragedClasses
 ~~~
 
-Le texte est résolu avec le même chemin que Recommended / Useful :
+La projection suit le même chemin que Recommended / Useful :
 
 ~~~text
 DiscouragedClasses
@@ -43,36 +44,32 @@ DiscouragedClasses
 `VB_DetailAffinities` reste visible lorsqu'au moins l'un des trois groupes
 Recommended / Useful / Discouraged contient une valeur.
 
-Les deux nouveaux hooks UMG restent temporairement `BindWidgetOptional` dans
-02.1A. Cette optionalité est uniquement une frontière de matérialisation : elle
-ne doit pas devenir le contrat final.
+02.1A utilisait temporairement `BindWidgetOptional` pour les deux nouveaux
+hooks, uniquement afin de laisser la matérialisation Designer se faire sans
+rendre le WBP existant invalide.
 
-## 3. Tests renforcés
-
-`Grimrock.UI.Skills02.Pipeline.DetailProjection` vérifie maintenant que
-`DiscouragedClassIds` est résolu par le service vers un
-`FGridSkillClassAffinityView` correct.
-
-`Grimrock.UI.Skills02.DetailWidget.Formatting` vérifie que le widget produit
-le texte player-facing correspondant.
-
-`Grimrock.UI.Skills02.DetailWidget.WidgetContract` exige les deux hooks
-transitoires et vérifie qu'ils sont optionnels uniquement avant matérialisation.
-
-Le contrat de localisation exige explicitement la clé déjà existante :
+Validation locale reçue :
 
 ~~~text
-Skill.Affinity.DiscouragedClasses
+Grimrock.UI.Skills02
+  25/25 PASS
+  0 warning
+  0 échec
+  rapport : Saved/Automation/TD04/TD04-20261017-144051
+
+Game.UI.Localization.LOCALIZATION01.LocalizationTargetContract
+  1/1 PASS
+  0 warning
+  0 échec
+  rapport : Saved/Automation/TD04/TD04-20261017-144112
 ~~~
 
-Aucune nouvelle clé ST_UI n'est créée.
+## 3. UI-SKILLS-CODE-AUDIT02.1B — matérialisation UMG
 
-## 4. Matérialisation manuelle requise — 02.1B
+`WBP_RPGSkillDetail` a été matérialisé manuellement dans Unreal Editor et
+versionné sans modification automatique du `.uasset`.
 
-Ne pas modifier le `.uasset` par script.
-
-Dans `WBP_RPGSkillDetail`, sous la section d'affinités, ajouter sur le même
-modèle que Useful :
+Structure ajoutée sous la section d'affinités :
 
 ~~~text
 VB_DetailDiscouragedClasses
@@ -88,22 +85,60 @@ Text_LabelDiscouragedClasses
     -> Skill.Affinity.DiscouragedClasses
 
 Text_DetailDiscouragedClasses
-    -> Is Variable = YES
     -> valeur dynamique C++
 ~~~
 
-Le style, les marges, la police et la couleur restent propriété du Designer.
-
-Après matérialisation et validation, 02.1B doit transformer :
+Le rendu visuel a été vérifié dans le runtime avec une Skill affichant :
 
 ~~~text
-VB_DetailDiscouragedClasses   BindWidgetOptional -> BindWidget
-Text_DetailDiscouragedClasses BindWidgetOptional -> BindWidget
+Classes recommandées : Voleur, Rôdeur
+Classes utiles : Alchimiste
+Classes déconseillées : Guerrier, Prêtre
 ~~~
 
-et le test de contrat doit exiger leur caractère obligatoire.
+Commit de matérialisation :
 
-## 5. Non-objectifs
+~~~text
+d77d06dd UI-SKILLS-CODE-AUDIT02.1B materialize discouraged Skill detail row
+~~~
+
+## 4. UI-SKILLS-CODE-AUDIT02.1C — contrat durci
+
+Après matérialisation, les deux hooks sont désormais obligatoires :
+
+~~~text
+VB_DetailDiscouragedClasses   -> BindWidget
+Text_DetailDiscouragedClasses -> BindWidget
+~~~
+
+`Grimrock.UI.Skills02.DetailWidget.WidgetContract` les traite comme les autres
+bindings structurels du panneau détail et vérifie qu'ils ne sont plus
+`BindWidgetOptional`.
+
+Le C++ ne possède toujours ni style, ni couleur, ni marges, ni texte statique du
+label. Ces responsabilités restent dans UMG / ST_UI.
+
+## 5. Tests couverts
+
+`Grimrock.UI.Skills02.Pipeline.DetailProjection` vérifie la résolution de
+`DiscouragedClassIds` vers `FGridSkillClassAffinityView`.
+
+`Grimrock.UI.Skills02.DetailWidget.Formatting` vérifie la projection texte
+player-facing.
+
+`Grimrock.UI.Skills02.DetailWidget.RejectAndClear` vérifie le nettoyage du
+texte résolu.
+
+`Grimrock.UI.Skills02.DetailWidget.WidgetContract` verrouille maintenant les
+deux bindings matérialisés comme obligatoires.
+
+Le contrat de localisation exige explicitement la clé existante :
+
+~~~text
+Skill.Affinity.DiscouragedClasses
+~~~
+
+## 6. Non-objectifs
 
 02.1 ne modifie pas :
 
@@ -118,7 +153,7 @@ tri Affinity
 économie / allocation / undo Skill
 ~~~
 
-## 6. Validation source 02.1A
+## 7. Validation finale 02.1C
 
 ~~~powershell
 cd D:\Development\GrimrockPrototype
@@ -128,7 +163,7 @@ cd D:\Development\GrimrockPrototype
     -AutomationFilter "Grimrock.UI.Skills02"
 ~~~
 
-Puis régression localisation ciblée :
+Puis :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 `
@@ -136,5 +171,5 @@ Puis régression localisation ciblée :
     -AutomationFilter "Game.UI.Localization.LOCALIZATION01.LocalizationTargetContract"
 ~~~
 
-Ne pas déclarer 02.1 clos avant le résultat local et la matérialisation UMG
-manuelle.
+Le jalon `UI-SKILLS-CODE-AUDIT02.1` ne doit être déclaré clos qu'après ces
+résultats locaux finaux.

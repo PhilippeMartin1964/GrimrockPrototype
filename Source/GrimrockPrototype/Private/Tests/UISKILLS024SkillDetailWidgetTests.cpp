@@ -230,6 +230,8 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 		TEXT("Text_DetailRecommendedClasses"),
 		TEXT("VB_DetailUsefulClasses"),
 		TEXT("Text_DetailUsefulClasses"),
+		TEXT("VB_DetailDiscouragedClasses"),
+		TEXT("Text_DetailDiscouragedClasses"),
 		TEXT("VB_DetailSynergies"),
 		TEXT("Text_DetailSynergies"),
 		TEXT("VB_DetailProgression"),
@@ -258,27 +260,6 @@ bool FUISKILLS024WidgetContractTest::RunTest(const FString&)
 		}
 	}
 
-	const FName PendingDesignerBindings[] =
-	{
-		TEXT("VB_DetailDiscouragedClasses"),
-		TEXT("Text_DetailDiscouragedClasses")
-	};
-	for (const FName PropertyName : PendingDesignerBindings)
-	{
-		FProperty* Property = FindFProperty<FProperty>(DetailClass, PropertyName);
-		TestNotNull(
-			*FString::Printf(TEXT("%s pending Designer hook exists"), *PropertyName.ToString()),
-			Property);
-		if (Property)
-		{
-			TestTrue(
-				*FString::Printf(TEXT("%s stays optional only until manual WBP materialization"), *PropertyName.ToString()),
-				Property->HasMetaData(TEXT("BindWidgetOptional")));
-			TestFalse(
-				*FString::Printf(TEXT("%s is not hardened before manual WBP materialization"), *PropertyName.ToString()),
-				Property->HasMetaData(TEXT("BindWidget")));
-		}
-	}
 
 	const FName RetiredStaticLabelBindings[] =
 	{
