@@ -28,8 +28,8 @@ namespace SkillAffinityAuditCommandlet
 	FString CsvEscape(const FString& Value)
 	{
 		FString Escaped = Value;
-		Escaped.ReplaceInline(TEXT("""), TEXT(""""));
-		return FString::Printf(TEXT(""%s""), *Escaped);
+		Escaped.ReplaceInline(TEXT("\""), TEXT("\"\""));
+		return FString::Printf(TEXT("\"%s\""), *Escaped);
 	}
 
 	FString JoinNames(const TArray<FName>& Values)
