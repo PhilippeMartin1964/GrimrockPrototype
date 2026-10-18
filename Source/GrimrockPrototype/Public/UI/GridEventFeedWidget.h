@@ -143,6 +143,12 @@ public:
 	/** Converts platform-pixel mouse movement into UMG viewport logical units. */
 	static float ScreenDeltaToViewportDelta(float ScreenDelta, float ViewportScale);
 
+	/** EVENTHUD01.8P compact visible projection. Combat details remain out of the main feed text. */
+	static FText BuildEntryText(const FGridHudEventEntry& Entry);
+
+	/** EVENTHUD01.8P detailed hover text; empty when an entry has no inspectable details. */
+	static FText BuildEntryTooltipText(const FGridHudEventEntry& Entry);
+
 	virtual void SynchronizeProperties() override;
 
 protected:
@@ -220,7 +226,6 @@ private:
 	void ScrollPresentationToEnd();
 	float GetPresentationScrollOffset() const;
 	float GetPresentationScrollEndOffset() const;
-	FText BuildEntryText(const FGridHudEventEntry& Entry) const;
 	FText BuildFilterText(EGridHudEventCategory Category) const;
 	void BeginResizeFromCursor();
 

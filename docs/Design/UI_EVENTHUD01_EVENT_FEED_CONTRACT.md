@@ -201,75 +201,67 @@ Cette règle doit empêcher les spoilers liés aux triggers invisibles, scripts 
 
 ## 9. Combat : principe général
 
-La catégorie **Combat** doit fournir un compte rendu détaillé du calcul réel.
+La catégorie **Combat** doit conserver un compte rendu détaillé du calcul réel, mais le Flux permanent doit rester synthétique.
 
-Le Flux ne doit pas se limiter à :
+La présentation normale d'une attaque tient à un en-tête puis au maximum deux lignes de résolution :
 
 ```text
-Elias inflige 11 dégâts.
+Daniel attaque Rat géant — COUP CRITIQUE
+Attaque : 1d20 (20) = 20; Défense : 10 + 1 = 11
+Dégâts : 1d3 (2) × 200 % = 4; PV Rat géant : 8 → 4
 ```
 
-Le joueur doit pouvoir comprendre comment le résultat a été obtenu.
+Le détail exhaustif du snapshot est disponible dans une **info-bulle au survol** de l'entrée Combat. Ainsi le joueur peut comprendre le calcul sans que chaque attaque occupe la majorité du Flux.
 
-Le HUD ne calcule rien : le système de combat produit un snapshot résolu et structuré ; le Flux ne fait que le présenter.
+Le HUD ne calcule aucune règle de combat : le système de combat produit un snapshot résolu et structuré ; le Flux ne fait que projeter et formater ces valeurs.
 
 ## 10. Jets d’attaque et de défense
 
-Chaque dé réellement utilisé par le système de combat doit pouvoir être présenté.
+La résolution doit présenter explicitement les jets de dés.
 
-Exemple de présentation :
+Le jet d'attaque actuel est affiché comme un vrai `1d20`, avec son résultat naturel entre parenthèses puis les modificateurs réellement appliqués.
+
+Exemple synthétique :
 
 ```text
-Elias attaque le Rat géant — TOUCHÉ
-
-Jet d’attaque
-1d100 : 73
-
-Bonus d’arme : +12
-Compétence : +8
-Malus blessure : -4
-
-Total attaque : 89
-
-Défense
-Base : 42
-Esquive : +14
-
-Total défense : 56
+Attaque : 1d20 (14) + 3 + 2 = 19; Défense : 10 + 4 = 14
 ```
 
-Ces valeurs illustrent le niveau de détail attendu et ne définissent pas la formule de combat.
+L'info-bulle conserve les libellés détaillés des composantes (`Précision`, `Bonus d'attaque`, `Esquive`, seuil critique, etc.).
 
 ## 11. Calcul détaillé des dégâts
 
-Les dégâts doivent également être entièrement traçables.
+Les dégâts doivent également être entièrement traçables et présentés comme une résolution de dés.
 
-Exemple :
-
-```text
-Dégâts
-
-Épée longue : 1d8
-Jet : 6
-
-Force : +3
-Bonus arme : +2
-Critique : +6
-
-Dégâts bruts : 17
-
-Armure : -4
-Résistance : -2
-
-Dégâts finaux : 11
-```
-
-Pour plusieurs dés :
+Le resolver actuel utilise une plage uniforme inclusive `MinDamage..MaxDamage`. Cette plage est mathématiquement équivalente à :
 
 ```text
-2d6 : 4 + 6 = 10
+1d(MaxDamage - MinDamage + 1) + (MinDamage - 1)
 ```
 
+La présentation du Flux utilise donc cette notation de **dé virtuel**, même lorsque le nombre de faces n'existe pas comme dé physique :
+
+```text
+1..3  → 1d3
+2..8  → 1d7 + 1
+3..10 → 1d8 + 2
+```
+
+Exemple de résolution :
+
+```text
+Dégâts : (1d8 (6) + 2) × 200 % = 16; PV Rat géant : 20 → 4
+```
+
+Le décalage `+(MinDamage-1)` exprime seulement la normalisation exacte de la plage actuelle. Il ne doit pas être présenté comme provenant d'une recette, d'une pierre à affûter, d'un enchantement ou d'une caractéristique tant que cette provenance n'est pas explicitement fournie par le système de combat.
+
+L'info-bulle conserve la décomposition complète : jet, bonus et malus, coefficients, critique, multiplicateurs, armure, résistance, dégâts bruts, dégâts finaux et transition de PV.
+
+Pour plusieurs dés futurs, le modèle conserve les résultats individuels :
+
+```text
+2d6 (4 + 6) = 10
+```
 Le modèle doit pouvoir représenter, lorsque les règles de combat l’exigent :
 
 - dés lancés ;

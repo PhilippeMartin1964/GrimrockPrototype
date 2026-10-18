@@ -16,8 +16,9 @@ enum class EGridCombatRollTraceKind : uint8
  * One random value actually consumed by combat resolution.
  *
  * Die supports future multi-die rolls through DiceCount + IndividualRolls.
- * Range represents the current uniform Min..Max damage resolver without
- * pretending that an arbitrary authored interval is dice notation.
+ * Range preserves the current uniform inclusive Min..Max resolver exactly.
+ * Presentation may normalize that range to the mathematically equivalent
+ * virtual die 1d(Max-Min+1) + (Min-1), including non-physical dice such as d7.
  */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridCombatRollTrace

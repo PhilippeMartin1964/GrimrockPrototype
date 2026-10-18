@@ -387,7 +387,19 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 			Row->SetFont(EntryFont);
 			Row->SetColorAndOpacity(FSlateColor(GetSemanticColor(Entry.Semantic)));
 			Row->SetAutoWrapText(true);
-			Row->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+			const FText TooltipText = BuildEntryTooltipText(Entry);
+			if (Entry.Category == EGridHudEventCategory::Combat && !TooltipText.IsEmpty())
+			{
+				// Tooltips require the row to participate in Slate hit-testing.
+				// UTextBlock has no click action here, so gameplay input mode remains untouched.
+				Row->SetToolTipText(TooltipText);
+				Row->SetVisibility(ESlateVisibility::Visible);
+			}
+			else
+			{
+				Row->SetVisibility(ESlateVisibility::HitTestInvisible);
+			}
 			ScrollBox_Entries->AddChild(Row);
 		}
 	}
@@ -433,7 +445,7 @@ float UGridEventFeedWidget::GetPresentationScrollEndOffset() const
 	return 0.0f;
 }
 
-FText UGridEventFeedWidget::BuildEntryText(const FGridHudEventEntry& Entry) const
+FText UGridEventFeedWidget::BuildEntryText(const FGridHudEventEntry& Entry)
 {
 	TArray<FText> Lines;
 	if (!Entry.Header.IsEmpty())
@@ -456,6 +468,34 @@ FText UGridEventFeedWidget::BuildEntryText(const FGridHudEventEntry& Entry) cons
 		Lines.Add(FText::Join(FText::GetEmpty(), FragmentTexts));
 	}
 
+	// EVENTHUD01.8P: combat calculations are inspectable in a tooltip instead of
+	// expanding every resolved attack into a large permanent block.
+	if (Entry.Category != EGridHudEventCategory::Combat)
+	{
+		for (const FText& Detail : Entry.Details)
+		{
+			if (!Detail.IsEmpty())
+			{
+				Lines.Add(Detail);
+			}
+		}
+	}
+
+	return FText::Join(FText::FromString(TEXT("\n")), Lines);
+}
+
+FText UGridEventFeedWidget::BuildEntryTooltipText(const FGridHudEventEntry& Entry)
+{
+	if (Entry.Details.IsEmpty())
+	{
+		return FText::GetEmpty();
+	}
+
+	TArray<FText> Lines;
+	if (!Entry.Header.IsEmpty())
+	{
+		Lines.Add(Entry.Header);
+	}
 	for (const FText& Detail : Entry.Details)
 	{
 		if (!Detail.IsEmpty())
@@ -463,7 +503,6 @@ FText UGridEventFeedWidget::BuildEntryText(const FGridHudEventEntry& Entry) cons
 			Lines.Add(Detail);
 		}
 	}
-
 	return FText::Join(FText::FromString(TEXT("\n")), Lines);
 }
 

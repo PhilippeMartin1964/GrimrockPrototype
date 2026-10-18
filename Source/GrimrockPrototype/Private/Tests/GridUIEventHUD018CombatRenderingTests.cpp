@@ -124,7 +124,9 @@ bool FGridUIEventHUD018AttackProjectionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Attack roll is rendered"), ContainsDetail(FeedEntry.Details, TEXT("1d20")));
 	TestTrue(TEXT("Attack total is rendered"), ContainsDetail(FeedEntry.Details, TEXT("Total attaque")));
 	TestTrue(TEXT("Defense total is rendered"), ContainsDetail(FeedEntry.Details, TEXT("Total défense")));
-	TestTrue(TEXT("Damage range is rendered honestly"), ContainsDetail(FeedEntry.Details, TEXT("Tirage 1..8")));
+	TestTrue(TEXT("Damage range is projected as explicit dice"), ContainsDetail(FeedEntry.Details, TEXT("1d8 (6)")));
+	TestTrue(TEXT("Compact summary exposes attack and defense"), FeedEntry.Message.ToString().Contains(TEXT("Attaque : 1d20 (15)")));
+	TestTrue(TEXT("Compact summary exposes damage"), FeedEntry.Message.ToString().Contains(TEXT("Dégâts :")));
 	TestTrue(TEXT("Raw damage is rendered"), ContainsDetail(FeedEntry.Details, TEXT("Dégâts bruts")));
 	TestTrue(TEXT("Resistance is rendered"), ContainsDetail(FeedEntry.Details, TEXT("Résistance")));
 	TestTrue(TEXT("Health transition is rendered"), ContainsDetail(FeedEntry.Details, TEXT("PV :")));
@@ -145,6 +147,8 @@ bool FGridUIEventHUD018MissProjectionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Miss still renders attack total"), ContainsDetail(FeedEntry.Details, TEXT("Total attaque")));
 	TestTrue(TEXT("Miss still renders defense"), ContainsDetail(FeedEntry.Details, TEXT("Total défense")));
 	TestFalse(TEXT("Miss does not invent a damage section"), ContainsDetail(FeedEntry.Details, TEXT("Dégâts bruts")));
+	TestTrue(TEXT("Miss compact summary still exposes attack and defense"), FeedEntry.Message.ToString().Contains(TEXT("Attaque : 1d20 (1)")));
+	TestFalse(TEXT("Miss compact summary does not invent damage"), FeedEntry.Message.ToString().Contains(TEXT("Dégâts :")));
 	return true;
 }
 

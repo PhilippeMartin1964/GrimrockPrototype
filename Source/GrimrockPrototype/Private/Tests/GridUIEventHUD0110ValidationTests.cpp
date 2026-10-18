@@ -352,8 +352,12 @@ bool FGridUIEventHUD0110InputArchitectureTest::RunTest(const FString& Parameters
 	TestFalse(TEXT("Event Feed widget never owns bShowMouseCursor"), WidgetSource.Contains(TEXT("bShowMouseCursor")));
 	TestTrue(TEXT("Event Feed shell passes through non-control hit tests"),
 		WidgetSource.Contains(TEXT("SetVisibility(ESlateVisibility::SelfHitTestInvisible)")));
-	TestTrue(TEXT("Generated event rows never intercept world clicks"),
+	TestTrue(TEXT("Non-inspectable event rows remain hit-test invisible"),
 		WidgetSource.Contains(TEXT("Row->SetVisibility(ESlateVisibility::HitTestInvisible)")));
+	TestTrue(TEXT("Combat detail inspection is exposed through a native tooltip"),
+		WidgetSource.Contains(TEXT("Row->SetToolTipText(TooltipText)")));
+	TestFalse(TEXT("Combat inspection does not introduce a per-entry Button"),
+		WidgetSource.Contains(TEXT("ConstructWidget<UButton>")));
 
 	TestFalse(TEXT("Event Feed authority does not write to Journal"), SubsystemSource.Contains(TEXT("Journal")));
 	TestFalse(TEXT("Event Feed publisher does not write to Journal"), PublisherSource.Contains(TEXT("Journal")));
