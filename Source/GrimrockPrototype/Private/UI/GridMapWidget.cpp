@@ -1564,8 +1564,7 @@ int32 UGridMapWidget::PaintMapSurface(
 	const FPaintGeometry MapViewportPaintGeometry = AllottedGeometry.ToPaintGeometry(
 		MapViewportSize,
 		FSlateLayoutTransform(FVector2D(MapDrawPadding.Left, MapDrawPadding.Top)));
-	OutDrawElements.PushClip(FSlateClippingZone(MapViewportPaintGeometry));
-
+	// The parchment always fills MapSurface; MapDrawPadding only insets the dungeon drawing.
 	if (bUseTexturedTheme && VisualTheme->ParchmentTexture)
 	{
 		FLinearColor ParchmentTint = FLinearColor::White;
@@ -1573,7 +1572,7 @@ int32 UGridMapWidget::PaintMapSurface(
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			static_cast<uint32>(ParchmentLayer),
-			MapViewportPaintGeometry,
+			PaintGeometry,
 			&ThemeBrushes->Parchment,
 			ESlateDrawEffect::None,
 			ParchmentTint);
@@ -1585,7 +1584,7 @@ int32 UGridMapWidget::PaintMapSurface(
 			ParchmentLayer,
 			AllottedGeometry,
 			PaintGeometry,
-			MapDrawPadding,
+			FMargin(0.0f),
 			WhiteBrush,
 			ParchmentColor,
 			ParchmentGrainColor,
@@ -1593,6 +1592,9 @@ int32 UGridMapWidget::PaintMapSurface(
 			ParchmentEdgeThickness,
 			ParchmentGrainLineCount);
 	}
+
+	// Clip cells, boundaries and markers to the padded dungeon viewport, not the parchment.
+	OutDrawElements.PushClip(FSlateClippingZone(MapViewportPaintGeometry));
 
 	TSet<FIntPoint> VisibleCells;
 	VisibleCells.Reserve(FloorView.Cells.Num());
