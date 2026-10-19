@@ -113,3 +113,42 @@ Le premier run vert des 46 WBP a releve **8 fichiers sources scannes**, en fait 
 Le correctif collecte separement `*.cpp`, `*.h`, `*.cs` et `*.ini`, fusionne puis dedoublonne les chemins, et ajoute un garde-fou de **plus de 100 fichiers de production Source/** et au moins un fichier `Config/`. Le nombre de sources et de fichiers config est affiche explicitement dans le log et le rapport Markdown.
 
 **Il faut regénérer les deux rapports en relançant le meme filtre TD04.2**. Ne pas classer definitivement `WBP_ItemReadPanel` avant cette nouvelle verification et le test de la fonction Lire dans `WBP_InventoryBag`.
+
+## Resultat local valide — 19 octobre 2026, 20h51
+
+Le filtre `Grimrock.Editor.UIWBPAudit02` a ete execute avec succes (1 test passe,
+0 avertissement, 0 echec, exit code 0). Rapport :
+`Saved/Automation/TD04/TD04-20261019-205158`.
+
+Les rapports locaux `Saved/Audits/UI-WBP-AUDIT02/UI-WBP-AUDIT02.csv`
+et `UI-WBP-AUDIT02.md` ont ete fournis et examines.
+
+| Metrique | Resultat |
+| --- | ---: |
+| WBP dans l'arborescence UI | 46 / 46 |
+| Avec au moins un referencer AssetRegistry | 45 |
+| Sans referencer AssetRegistry | 1 |
+| Referencers hard cumules | 50 |
+| Referencers soft entrants | 0 |
+| Redirectors WBP | 0 |
+| Fichiers de production Source analyses | 554 |
+| Fichiers de configuration analyses | 8 |
+
+**Seul `WBP_ItemReadPanel`** est classe `ZERO_REFERENCER_REVIEW` :
+`/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemReadPanel`.
+Aucune reference hard, soft, autre, ni mention Source/Config n'a ete detectee.
+Il ne faut pas le supprimer sans verifier dans Reference Viewer et en PIE
+le parcours `WBP_InventoryBag -> action Lire -> PresentItemReading()` :
+la fonctionnalite de lecture d'items conserve un contrat C++ actif et la
+presentation peut etre incomplete ou chargee de maniere indirecte.
+
+Les 45 autres WBP restent classes `REFERENCED_KEEP`. Notamment :
+- `WBP_RPGNotification` : referents `WBP_GridPersistentHud` et `WBP_GridSkills` ; migration de feedback requise avant suppression.
+- `WBP_GrimrockMenu` : referent `BP_GrimrockPartyPawn` ; les pages Spellbook, Journal, Recipes et Codex sont encore integrees.
+- `WBP_GridCombatHudAction` : referent `WBP_GridPersistentHud` ; barre d'actions toujours active.
+- `WBP_ItemTooltipComparisonRow` : referent `WBP_ItemTooltip` ; conserve.
+
+**Statut : inventaire AssetRegistry UI-WBP-AUDIT02 valide ; aucune suppression
+autorisee a ce stade.** Etape suivante : confirmation PIE de la fonction
+Lire et Reference Viewer sur `WBP_ItemReadPanel`. La fermeture du chantier
+de suppression reste independante de la validation de l'inventaire.
