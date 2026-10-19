@@ -1,4 +1,5 @@
 #include "UI/GridEventFeedWidget.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "UI/GridNavigationTooltipWidget.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -380,6 +381,7 @@ void UGridEventFeedWidget::UnbindEventFeed()
 
 bool UGridEventFeedWidget::AppendEntryPresentation(const FGridHudEventEntry& Entry)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_EventFeed_AppendRow);
 	if (!ScrollBox_Entries)
 	{
 		return false;
@@ -457,6 +459,7 @@ bool UGridEventFeedWidget::AppendEntryPresentation(const FGridHudEventEntry& Ent
 
 void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_EventFeed_RebuildAllRows);
 	const float PreviousOffset = GetPresentationScrollOffset();
 	const bool bWasAtEnd = bForceScrollToEnd ||
 		IsScrollAtEnd(PreviousOffset, GetPresentationScrollEndOffset());
@@ -496,6 +499,7 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 
 void UGridEventFeedWidget::SynchronizePublishedEntryPresentation(const FGridHudEventEntry& PublishedEntry)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_EventFeed_SynchronizePublication);
 	if (!ScrollBox_Entries)
 	{
 		return;
@@ -597,6 +601,7 @@ void UGridEventFeedWidget::ApplyPendingScrollToEnd()
 	{
 		return;
 	}
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_EventFeed_DeferredScroll);
 
 	--PendingScrollToEndFrames;
 

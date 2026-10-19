@@ -1,4 +1,5 @@
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #include "GridEquipmentSlotUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -584,12 +585,14 @@ FText UGridPartyInventoryComponent::GetActiveCharacterDisplayName(int32 Characte
 
 bool UGridPartyInventoryComponent::HasUnspentCharacterProgressionPoints(int32 CharacterIndex) const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_RPG_ProgressionPointsRead);
 	return IsValidCharacterIndex(CharacterIndex) &&
 		HasUnspentPartyPortraitProgressionPoints(PartyInventoryState.ActiveCharacters[CharacterIndex]);
 }
 
 bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGridInventoryCharacterSummary& OutSummary) const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_RPG_CharacterSummary);
 	OutSummary = FGridInventoryCharacterSummary();
 	if (!IsValidCharacterIndex(CharacterIndex))
 	{
@@ -692,6 +695,7 @@ int32 UGridPartyInventoryComponent::ResolveActiveCharacterIndexById(FGuid Charac
 
 bool UGridPartyInventoryComponent::GetPartyPortraitViews(TArray<FGridPartyPortraitView>& OutViews)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_RPG_PortraitViews);
 	OutViews.Reset();
 	SanitizePartyPortraitOrder();
 	OutViews.Reserve(PartyPortraitOrder.Num());
@@ -775,6 +779,7 @@ bool UGridPartyInventoryComponent::ReorderPartyPortrait(FGuid SourceCharacterId,
 
 bool UGridPartyInventoryComponent::IsCharacterOverloaded(int32 CharacterIndex) const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_RPG_CharacterOverloaded);
 	if (!IsValidCharacterIndex(CharacterIndex))
 	{
 		return false;
@@ -801,6 +806,7 @@ bool UGridPartyInventoryComponent::IsAnyActiveCharacterOverloaded() const
 
 void UGridPartyInventoryComponent::GetOverloadedActiveCharacterIndices(TArray<int32>& OutIndices) const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_RPG_OverloadScan);
 	OutIndices.Reset();
 	for (int32 CharacterIndex = 0; CharacterIndex < PartyInventoryState.ActiveCharacters.Num(); ++CharacterIndex)
 	{

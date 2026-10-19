@@ -1,4 +1,5 @@
 #include "Runtime/GrimrockPartyPawn.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
@@ -337,6 +338,8 @@ void AGrimrockPartyPawn::UpdateProgressionEventFeed(float DeltaSeconds)
 		return;
 	}
 
+	// Record only the actual one-second RPG poll, not every otherwise idle Pawn tick.
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_Pawn_ProgressionPoll);
 	const float ElapsedSeconds = bProgressionReminderPollInitialized ? ProgressionReminderPollSeconds : 0.0f;
 	bProgressionReminderPollInitialized = true;
 	ProgressionReminderPollSeconds = 0.0f;

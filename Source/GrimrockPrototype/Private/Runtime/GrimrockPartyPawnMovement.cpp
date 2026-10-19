@@ -1,4 +1,5 @@
 #include "Runtime/GrimrockPartyPawn.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Core/GridDirectionUtils.h"
@@ -289,6 +290,7 @@ void AGrimrockPartyPawn::HandleStrafeRight(const FInputActionValue& Value)
 
 bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_Pawn_TryStartMove);
 	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling || !HasLevelRuntimeActor())
 	{
 		return false;

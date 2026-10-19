@@ -19,6 +19,7 @@ La mise à jour UI-RPG-VISUAL01.4 documente également `ValidateUIRPGVisual.ps1`
 - [Préparer PowerShell et les chemins](#preparer-powershell-et-les-chemins)
 - [CheckProjectDependencies.ps1](#checkprojectdependenciesps1)
 - [ValidateUE.ps1](#validateueps1)
+- [CapturePerfProfile01.ps1](#captureperfprofile01ps1)
 - [ValidateUIRPGVisual.ps1](#validateuirpgvisualps1)
 - [ValidatePackage.ps1](#validatepackageps1)
 - [CheckCppFormat.ps1 et FormatCpp.ps1](#checkcppformatps1-et-formatcppps1)
@@ -35,6 +36,7 @@ La mise à jour UI-RPG-VISUAL01.4 documente également `ValidateUIRPGVisual.ps1`
 | --- | --- | --- |
 | `CheckProjectDependencies.ps1` | Vérifier la présence des plugins déclarés dans le `.uproject` | Lecture seule ; n’installe aucun plugin |
 | `ValidateUE.ps1` | Compiler `GrimrockPrototypeEditor` en Win64 Development, puis exécuter un filtre Automation | Produits de compilation et rapports ; les effets propres aux tests sélectionnés dépendent de ces tests |
+| `CapturePerfProfile01.ps1` | Capturer un profil CPU Unreal Insights en standalone Editor Development | Écrit un `.utrace` et un `.json` dans `Saved/Profiling/PERF-PROFILE01` ; aucun changement d'asset |
 | `ValidateUIRPGVisual.ps1` | Valider la chaîne UI-RPG-VISUAL01.4, les Data Assets sérialisés et les WBP Talent | Lecture/compilation/tests uniquement ; ne réenregistre aucun `.uasset` |
 | `ValidatePackage.ps1` | Produire le jeu Win64, en Shipping par défaut | Produits de build/cook/stage et archive complète du jeu |
 | `CheckCppFormat.ps1` | Contrôler la conformité à `.clang-format` | Lecture seule des sources |
@@ -402,6 +404,39 @@ Les rapports et packages par défaut sont sous `Saved/`, ignoré par Git. Conser
 | Nombreux fichiers changés après `FormatCpp.ps1` | Le script couvre les trois modules complets ; examiner le diff et préserver les modifications utilisateur existantes |
 | `GridWorldObjectMIG08` introuvable | Ancien commandlet absent du code courant ; ne pas contourner ce constat en utilisant des binaires anciens ou en lançant `-Apply` |
 
+
+<a id="captureperfprofile01ps1"></a>
+## CapturePerfProfile01.ps1 — Profilage Unreal Insights (PERF-PROFILE01)
+
+**Rôle :** lancer `UnrealEditor.exe -game` avec les canaux
+`cpu,frame,bookmark,log`, diriger la sortie vers un `.utrace` local et
+produire un JSON de métadonnées après fermeture du jeu.
+
+| Paramètre | Type | Défaut | Fonction |
+| --- | --- | --- | --- |
+| `-EngineRoot` | string, obligatoire | aucun | Racine UE 5.5.4 contenant `Engine` |
+| `-Scenario` | choix | `Baseline` | `Baseline`, `EventFeed`, `Movement`, `Progression` ou `PortraitHUD` |
+| `-OutputRoot` | string | `Saved/Profiling/PERF-PROFILE01` | Dossier cible des traces et du JSON |
+| `-PreflightOnly` | switch | désactivé | Valide la commande sans démarrer Unreal ni écrire de trace |
+
+**Exemples :**
+
+    .\Scripts\CapturePerfProfile01.ps1 -EngineRoot 'D:\UE_5.5' -PreflightOnly
+    .\Scripts\CapturePerfProfile01.ps1 -EngineRoot 'D:\UE_5.5' -Scenario EventFeed
+
+Avant l'exécution, compiler le projet via `ValidateUE.ps1`. Pour délimiter
+l'intervalle de gameplay, utiliser les bookmarks dans la console du jeu,
+puis fermer le jeu pour finaliser la capture. Le script attend sa fermeture.
+Une trace existante avec le même nom ne sera pas écrasée.
+
+**Succès :** un fichier `.utrace` non vide et un fichier de métadonnées `.json`
+sont présents. La **validité des timers CPU** reste à vérifier en ouvrant
+la trace dans Unreal Insights : une capture seule ne constitue pas un
+benchmark. Les fichiers sous `Saved/` restent hors Git.
+
+**Guide des scénarios et analyse :**
+[PERF-PROFILE01 — Unreal Insights](Design/PERF_PROFILE01_UNREAL_INSIGHTS_CAPTURE.md).
+
 <a id="documentation-associee-et-maintenance"></a>
 ## Documentation associée et maintenance
 
@@ -419,4 +454,4 @@ D’autres documents citent des scripts ponctuels d’audit ou de réparation, p
 
 À chaque ajout, suppression ou modification d’un script, mettre à jour son statut, ses paramètres et valeurs par défaut, ses prérequis, ses effets sur les fichiers, ses critères de succès, ses exemples et les index. Vérifier aussi que les commandlets et filtres cités existent toujours. Ne pas annoncer une validation UE, un packaging ou une migration uniquement sur la base d’une lecture du code.
 
-**Vérification de cette documentation :** comparaison statique avec les six scripts et recherche de leurs dépendances dans la révision auditée. Aucune exécution PowerShell/UE5.5.4, compilation, migration ou génération de package n’a été effectuée pour cet audit documentaire.
+**Vérification de cette documentation :** comparaison statique avec les scripts inspectés lors de l'audit initial et recherche de leurs dépendances dans la révision auditée. Aucune exécution PowerShell/UE5.5.4, compilation, migration ou génération de package n’a été effectuée pour cet audit documentaire.

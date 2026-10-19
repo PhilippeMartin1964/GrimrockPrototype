@@ -1,4 +1,5 @@
 #include "UI/GridPersistentHudWidget.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -89,6 +90,7 @@ void UGridPersistentHudWidget::NativeConstruct()
 
 void UGridPersistentHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_HUD_NativeTick);
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	SynchronizeActionBarToViewport();
 	SynchronizeEventFeedLayout();
@@ -118,6 +120,7 @@ void UGridPersistentHudWidget::NativeDestruct()
 
 void UGridPersistentHudWidget::RefreshFromSources()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_HUD_RefreshFromSources);
 	RefreshNavigationSelection();
 	RefreshPartyPortraits();
 	EnsureActionWidgets();
@@ -205,6 +208,7 @@ float UGridPersistentHudWidget::ResolvePersistentBottomBarHeight() const
 
 void UGridPersistentHudWidget::SynchronizeEventFeedLayout()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_HUD_SynchronizeEventFeedLayout);
 	EnsureEventFeedWidget();
 	if (!EventFeedWidgetInstance)
 	{
@@ -236,6 +240,7 @@ void UGridPersistentHudWidget::SynchronizeEventFeedLayout()
 
 void UGridPersistentHudWidget::RefreshPartyPortraits()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_HUD_RefreshPartyPortraits);
 	if (!Panel_PartyPortraits)
 	{
 		PartyPortraitWidgets.Reset();
@@ -570,6 +575,7 @@ float UGridPersistentHudWidget::ResolveActionSlotWidth() const
 
 void UGridPersistentHudWidget::SynchronizeActionBarToViewport()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_HUD_SynchronizeActionBar);
 	if (!IsValid(InventoryComponent) || !Panel_ActionBar)
 	{
 		return;
@@ -688,6 +694,7 @@ void UGridPersistentHudWidget::EnsureActionWidgets()
 
 void UGridPersistentHudWidget::RefreshActionWidgets()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_HUD_RefreshActionWidgets);
 	if (!IsValid(PartyPawn) || !IsValid(PartyPawn->CombatHudWidgetInstance))
 	{
 		return;
