@@ -19,22 +19,27 @@ bool FGridUIEventHUD0111TimestampFormatTest::RunTest(const FString& Parameters)
 	TestEqual(
 		TEXT("New game starts at day zero midnight"),
 		UGridEventFeedWidget::FormatGameplayTimestamp(0).ToString(),
-		FString(TEXT("[Jour 0, 00:00]")));
+		FString(TEXT("[J 0, 00:00:00]")));
 
 	TestEqual(
-		TEXT("Two hours thirty-four minutes use the requested format"),
+		TEXT("Two hours thirty-four minutes keep seconds visible"),
 		UGridEventFeedWidget::FormatGameplayTimestamp(2 * 3600 + 34 * 60).ToString(),
-		FString(TEXT("[Jour 0, 02:34]")));
+		FString(TEXT("[J 0, 02:34:00]")));
 
 	TestEqual(
-		TEXT("Days roll after twenty-four gameplay hours"),
-		UGridEventFeedWidget::FormatGameplayTimestamp(86400 + 2 * 3600 + 34 * 60).ToString(),
-		FString(TEXT("[Jour 1, 02:34]")));
+		TEXT("Seconds are visible in the compact world timestamp"),
+		UGridEventFeedWidget::FormatGameplayTimestamp(156).ToString(),
+		FString(TEXT("[J 0, 00:02:36]")));
+
+	TestEqual(
+		TEXT("Days roll after twenty-four world hours"),
+		UGridEventFeedWidget::FormatGameplayTimestamp(86400 + 2 * 3600 + 34 * 60 + 5).ToString(),
+		FString(TEXT("[J 1, 02:34:05]")));
 
 	TestEqual(
 		TEXT("Negative defensive input is clamped to zero"),
 		UGridEventFeedWidget::FormatGameplayTimestamp(-42).ToString(),
-		FString(TEXT("[Jour 0, 00:00]")));
+		FString(TEXT("[J 0, 00:00:00]")));
 	return true;
 }
 
@@ -52,6 +57,16 @@ bool FGridUIEventHUD0111ClockStateTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
+
+	TestEqual(TEXT("World-time scale defaults to six"), GameInstance->GetWorldTimeScale(), 6.0);
+	TestEqual(TEXT("Ten gameplay seconds become one in-world minute"),
+		UGrimrockGameInstance::ScaleGameplayDeltaSeconds(10.0, GameInstance->GetWorldTimeScale()), 60.0);
+	TestEqual(TEXT("Twenty-six gameplay seconds become two minutes thirty-six seconds"),
+		UGrimrockGameInstance::ScaleGameplayDeltaSeconds(26.0, GameInstance->GetWorldTimeScale()), 156.0);
+	TestEqual(TEXT("Negative delta is clamped"),
+		UGrimrockGameInstance::ScaleGameplayDeltaSeconds(-5.0, 6.0), 0.0);
+	TestEqual(TEXT("Negative time scale is clamped"),
+		UGrimrockGameInstance::ScaleGameplayDeltaSeconds(10.0, -6.0), 0.0);
 
 	GameInstance->RestoreGameplayElapsedSeconds(9240.75);
 	TestEqual(TEXT("Restored clock keeps whole elapsed seconds"), GameInstance->GetGameplayElapsedWholeSeconds(), int64(9240));
@@ -141,7 +156,7 @@ bool FGridUIEventHUD0111EventPayloadTest::RunTest(const FString& Parameters)
 	TestEqual(
 		TEXT("Timestamp payload formats independently from semantic content"),
 		UGridEventFeedWidget::FormatGameplayTimestamp(Entry.GameplayElapsedSeconds).ToString(),
-		FString(TEXT("[Jour 0, 02:34]")));
+		FString(TEXT("[J 0, 02:34:00]")));
 
 	const FProperty* TimestampField =
 		FGridHudEventEntry::StaticStruct()->FindPropertyByName(TEXT("GameplayElapsedSeconds"));

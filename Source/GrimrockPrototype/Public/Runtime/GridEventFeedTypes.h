@@ -79,7 +79,7 @@ struct GRIMROCKPROTOTYPE_API FGridHudEventEntry
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Event Feed")
 	int64 SequenceId = 0;
 
-	/** EVENTHUD01.11 immutable gameplay timestamp captured when the event is accepted. */
+	/** EVENTHUD01.11P immutable logical world-time timestamp captured when the event is accepted. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Event Feed|Gameplay Time")
 	bool bHasGameplayTimestamp = false;
 

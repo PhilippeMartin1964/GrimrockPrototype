@@ -444,7 +444,8 @@ double UGrimrockGameInstance::GetGameplayElapsedSeconds() const
 		if (const UWorld* World = GameplayClockWorld.Get())
 		{
 			const double CurrentWorldSeconds = static_cast<double>(World->GetTimeSeconds());
-			Elapsed += FMath::Max(0.0, CurrentWorldSeconds - GameplayClockWorldStartSeconds);
+			const double GameplayDelta = FMath::Max(0.0, CurrentWorldSeconds - GameplayClockWorldStartSeconds);
+			Elapsed += ScaleGameplayDeltaSeconds(GameplayDelta, WorldTimeScale);
 		}
 	}
 	return Elapsed;
@@ -460,6 +461,24 @@ bool UGrimrockGameInstance::IsGameplayClockRunning() const
 	return bGameplayClockRunning;
 }
 
+double UGrimrockGameInstance::GetWorldTimeScale() const
+{
+	return FMath::IsFinite(WorldTimeScale) ? FMath::Max(0.0, WorldTimeScale) : 0.0;
+}
+
+double UGrimrockGameInstance::ScaleGameplayDeltaSeconds(
+	double GameplayDeltaSeconds,
+	double InWorldTimeScale)
+{
+	const double SafeDelta = FMath::IsFinite(GameplayDeltaSeconds)
+		? FMath::Max(0.0, GameplayDeltaSeconds)
+		: 0.0;
+	const double SafeScale = FMath::IsFinite(InWorldTimeScale)
+		? FMath::Max(0.0, InWorldTimeScale)
+		: 0.0;
+	return SafeDelta * SafeScale;
+}
+
 void UGrimrockGameInstance::CommitGameplayClock()
 {
 	if (!bGameplayClockRunning)
@@ -470,7 +489,8 @@ void UGrimrockGameInstance::CommitGameplayClock()
 	if (const UWorld* World = GameplayClockWorld.Get())
 	{
 		const double CurrentWorldSeconds = static_cast<double>(World->GetTimeSeconds());
-		AccumulatedGameplaySeconds += FMath::Max(0.0, CurrentWorldSeconds - GameplayClockWorldStartSeconds);
+		const double GameplayDelta = FMath::Max(0.0, CurrentWorldSeconds - GameplayClockWorldStartSeconds);
+		AccumulatedGameplaySeconds += ScaleGameplayDeltaSeconds(GameplayDelta, WorldTimeScale);
 		GameplayClockWorldStartSeconds = CurrentWorldSeconds;
 	}
 }

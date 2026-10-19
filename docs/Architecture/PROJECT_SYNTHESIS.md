@@ -329,7 +329,7 @@ Enveloppe persistée :
 - `DungeonRuntimeState` ;
 - `CurrentDungeonLevelId` ;
 - position/facing du groupe ;
-- `GameplayElapsedSeconds` (horloge gameplay durable v27).
+- `GameplayElapsedSeconds` (horloge monde durable v27, `WorldTimeScale = 6.0` par défaut).
 
 La MapExploration est incluse dans le runtime state. Le champ durable `CampaignQuestState` existe depuis MON21.4.2, mais le Pawn ne le capture/restaure pas encore : cette intégration reste MON21.4.4.
 

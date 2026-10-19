@@ -644,7 +644,8 @@ UI-EVENTHUD01 sera considéré valide lorsque :
 | **EVENTHUD01.8 — Combat Rendering** | Affichage des vrais jets et du calcul complet | Combat totalement explicable dans le Flux |
 | **EVENTHUD01.9 — Dialogue Feed** | Paroles PNJ et réponses réellement prononcées | Troisième catégorie alimentée |
 | **EVENTHUD01.10 — Validation** | Buffer 200, filtres, resize, souris, secrets, scroll, changement de niveau, stress test | Jalon maître validé |
-| **EVENTHUD01.11 — Gameplay Timestamp** | Horloge de partie persistante et préfixe bicolore `[Jour X, HH:MM]` | Chronologie lisible dans les trois catégories |
+| **EVENTHUD01.11 — Gameplay Timestamp** | Horloge de partie persistante et préfixe bicolore | Chronologie lisible dans les trois catégories |
+| **EVENTHUD01.11P — Gameplay/World Time Polish** | Format `[J X, HH:MM:SS]`, secondes et `WorldTimeScale = 6.0` | Horloge monde compacte et accélérée |
 
 ## 26. Extension ultérieure
 
@@ -671,10 +672,10 @@ Les améliorations éventuelles seront décidées après utilisation en jeu, san
 
 ## 28. EVENTHUD01.11 — Gameplay Timestamp
 
-Chaque événement accepté capture un timestamp immuable de **temps de jeu effectif** :
+Chaque événement accepté capture un timestamp immuable de **temps monde** dérivé du gameplay effectif :
 
 ```text
-[Jour 0, 02:34] Daniel attaque Rat géant — TOUCHÉ
+[J 0, 02:34:00] Daniel attaque Rat géant — TOUCHÉ
 ```
 
 Le timestamp :
@@ -682,6 +683,7 @@ Le timestamp :
 - utilise l'horloge gameplay persistante du `UGrimrockGameInstance` ;
 - ne dépend pas de `UWorld::GetTimeSeconds()` comme valeur absolue par niveau ;
 - progresse à partir du temps de monde actif, donc respecte la pause ;
+- applique un `WorldTimeScale` authored de **6.0** par défaut, sans modifier la `GlobalTimeDilation` du gameplay ;
 - ne compte pas le menu principal ni les chargements ;
 - est remis à zéro pour New Game ;
 - est restauré après Load Game ;
@@ -690,3 +692,27 @@ Le timestamp :
 - ne rend jamais l'historique du Flux persistant.
 
 La présentation est bicolore : `TimestampColor` est indépendant de la couleur sémantique du message et reste éditable dans `WBP_GridEventFeed`.
+
+
+## 29. EVENTHUD01.11P — Gameplay/World Time Polish
+
+Le format final du Flux est :
+
+```text
+[J 0, 00:02:36] Daniel attaque Rat géant — TOUCHÉ
+```
+
+L'horloge logique applique par défaut :
+
+```text
+WorldTimeScale = 6.0
+10 s gameplay = 60 s monde
+10 min gameplay = 1 h monde
+4 h gameplay = 1 jour monde
+```
+
+Le facteur est éditable dans les Class Defaults du `UGrimrockGameInstance`.
+Il n'utilise pas `GlobalTimeDilation` et n'accélère donc ni animations, ni
+portes, ni déplacements, ni combat. Le champ SaveGame v27 existant conserve
+les **secondes monde accumulées** ; aucun bump de schéma supplémentaire n'est
+nécessaire.

@@ -219,5 +219,7 @@ définitions de MON21.4.3.
 
 Le SaveGame v27 ajoute `GameplayElapsedSeconds`. L'autorité runtime vit dans
 `UGrimrockGameInstance`, traverse les changements de map et utilise le temps
-de monde uniquement comme delta pendant le gameplay actif. Le Flux d'événements
-reste transient : seules les secondes de campagne sont durables.
+de monde uniquement comme delta pendant le gameplay actif. Depuis
+EVENTHUD01.11P, ce delta est multiplié par `WorldTimeScale = 6.0` par défaut :
+le champ persiste donc les **secondes monde accumulées**, sans
+`GlobalTimeDilation`. Le Flux d'événements reste transient.

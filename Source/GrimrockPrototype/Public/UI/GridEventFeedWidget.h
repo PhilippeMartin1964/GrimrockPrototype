@@ -144,7 +144,7 @@ public:
 	/** Converts platform-pixel mouse movement into UMG viewport logical units. */
 	static float ScreenDeltaToViewportDelta(float ScreenDelta, float ViewportScale);
 
-	/** EVENTHUD01.11 canonical player-facing timestamp: [Jour X, HH:MM]. */
+	/** EVENTHUD01.11P canonical player-facing world timestamp: [J X, HH:MM:SS]. */
 	static FText FormatGameplayTimestamp(int64 GameplayElapsedSeconds);
 
 	/** EVENTHUD01.8P compact visible projection. Combat details remain out of the main feed text. */

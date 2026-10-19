@@ -502,12 +502,14 @@ FText UGridEventFeedWidget::FormatGameplayTimestamp(int64 GameplayElapsedSeconds
 	const int64 SecondsWithinDay = SafeSeconds % 86400;
 	const int64 Hour = SecondsWithinDay / 3600;
 	const int64 Minute = (SecondsWithinDay % 3600) / 60;
+	const int64 Second = SecondsWithinDay % 60;
 
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("Day"), FText::AsNumber(Day));
 	Args.Add(TEXT("Hour"), FText::FromString(FString::Printf(TEXT("%02lld"), static_cast<long long>(Hour))));
 	Args.Add(TEXT("Minute"), FText::FromString(FString::Printf(TEXT("%02lld"), static_cast<long long>(Minute))));
-	return FText::Format(LOCTEXT("GameplayTimestampFormat", "[Jour {Day}, {Hour}:{Minute}]"), Args);
+	Args.Add(TEXT("Second"), FText::FromString(FString::Printf(TEXT("%02lld"), static_cast<long long>(Second))));
+	return FText::Format(LOCTEXT("GameplayTimestampFormat", "[J {Day}, {Hour}:{Minute}:{Second}]"), Args);
 }
 
 FText UGridEventFeedWidget::BuildEntryText(const FGridHudEventEntry& Entry)

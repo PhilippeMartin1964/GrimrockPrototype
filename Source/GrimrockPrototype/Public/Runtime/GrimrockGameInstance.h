@@ -144,6 +144,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Runtime|Gameplay Time")
 	bool IsGameplayClockRunning() const;
 
+	UFUNCTION(BlueprintPure, Category = "Runtime|Gameplay Time")
+	double GetWorldTimeScale() const;
+
+	/** Deterministic EVENTHUD01.11P helper used by the persistent world clock. */
+	static double ScaleGameplayDeltaSeconds(double GameplayDeltaSeconds, double InWorldTimeScale);
+
 private:
 	FGrimrockSaveSlotInfo MakeSaveSlotInfo(const FString& SlotName, int32 UserIndex, bool bIsDefaultSlot, int32 DisplayIndex) const;
 	void ResetPendingLoadSlot();
@@ -186,6 +192,15 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Main Menu|Save", meta = (AllowPrivateAccess = "true"))
 	int32 PendingLoadSlotUserIndex = 0;
 
+	/**
+	 * Logical world-time acceleration. 6.0 means ten real gameplay seconds
+	 * advance one in-world minute. Authored in GameInstance Class Defaults.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Runtime|Gameplay Time",
+		meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	double WorldTimeScale = 6.0;
+
+	/** Accumulated logical world-time seconds persisted by SaveGame v27. */
 	UPROPERTY(Transient)
 	double AccumulatedGameplaySeconds = 0.0;
 

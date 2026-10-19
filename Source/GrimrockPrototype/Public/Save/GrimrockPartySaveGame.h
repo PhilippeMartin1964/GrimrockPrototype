@@ -45,7 +45,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	EGridEdge PartyFacing = EGridEdge::North;
 
-	/** EVENTHUD01.11 accumulated gameplay time; Event Feed history itself remains transient. */
+	/** EVENTHUD01.11P accumulated logical world-time seconds; Event Feed history itself remains transient. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|Gameplay Time")
 	double GameplayElapsedSeconds = 0.0;
 
