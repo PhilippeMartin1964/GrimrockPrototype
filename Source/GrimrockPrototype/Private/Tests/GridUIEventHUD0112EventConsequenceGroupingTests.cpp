@@ -178,7 +178,7 @@ bool FGridUIEventHUD0112HiddenRootTest::RunTest(const FString& Parameters)
 			FString(TEXT("Vous entendez un mécanisme au loin.")));
 		TestEqual(TEXT("Perceived consequence supplies the semantic when the cause is hidden"),
 			Feed->GetEntries()[0].Semantic, EGridHudEventSemantic::Danger);
-		TestEqual(TEXT("Hidden source identity is not leaked"), Feed->GetEntries()[0].SourceId, NAME_None);
+		TestEqual(TEXT("Hidden source identity is not leaked"), Feed->GetEntries()[0].SourceId, FName(NAME_None));
 	}
 	return true;
 }
