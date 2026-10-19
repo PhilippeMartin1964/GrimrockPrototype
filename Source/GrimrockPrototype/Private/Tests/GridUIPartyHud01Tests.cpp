@@ -150,6 +150,28 @@ bool FGridPartyHud01ProgressionBadgeBalanceTest::RunTest(const FString& Paramete
 	{
 		TestTrue(TEXT("Restored available points show the badge again"), Views[0].bHasUnspentProgressionPoints);
 	}
+
+	FGridInventorySlot HeavySlot;
+	HeavySlot.bOccupied = true;
+	HeavySlot.Item.RuntimeObjectId = MakeId(91);
+	HeavySlot.Item.ItemDefinitionId = TEXT("PartyHudTestHeavyItem");
+	HeavySlot.Item.Quantity = 1;
+	HeavySlot.Item.Weight = 100000.0f;
+	Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.Add(HeavySlot);
+	Views.Reset();
+	TestTrue(TEXT("Overload portrait projection succeeds"), Inventory->GetPartyPortraitViews(Views));
+	if (TestEqual(TEXT("One overloaded portrait exists"), Views.Num(), 1))
+	{
+		TestTrue(TEXT("Authoritative overload projects to portrait alert"), Views[0].bOverloaded);
+		TestTrue(TEXT("Overload does not hide available progression points"), Views[0].bHasUnspentProgressionPoints);
+	}
+	Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.Reset();
+	Views.Reset();
+	TestTrue(TEXT("Relieved portrait projection succeeds"), Inventory->GetPartyPortraitViews(Views));
+	if (TestEqual(TEXT("One relieved portrait exists"), Views.Num(), 1))
+	{
+		TestFalse(TEXT("Removing weight clears the portrait alert"), Views[0].bOverloaded);
+	}
 	return true;
 }
 
