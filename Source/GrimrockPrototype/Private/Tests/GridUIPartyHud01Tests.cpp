@@ -14,6 +14,7 @@
 #include "UI/GridPartyPortraitDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridPersistentHudWidget.h"
+#include "UI/GridEventFeedWidget.h"
 #include "UObject/UnrealType.h"
 
 namespace GridPartyHud01Tests
@@ -431,6 +432,17 @@ bool FGridPartyHud013CharacterSelectionTest::RunTest(const FString& Parameters)
 
 	UGridPersistentHudWidget* Hud = NewObject<UGridPersistentHudWidget>();
 	Hud->InventoryComponent = Inventory;
+
+	// This isolated NewObject fixture is not an authored persistent HUD Blueprint.
+	// Supply a presentation-only Event Feed instance so selection can refresh
+	// without invoking the production-only authored WidgetClass requirement.
+	// The EVENTHUD01.5C authored-class guard remains unchanged in runtime.
+	Hud->EventFeedWidgetInstance = NewObject<UGridEventFeedWidget>(Hud);
+	if (!TestNotNull(TEXT("Character selection fixture has an Event Feed presentation instance"),
+		Hud->EventFeedWidgetInstance.Get()))
+	{
+		return false;
+	}
 
 	TestTrue(TEXT("Stable CharacterId selects the second runtime character"), Hud->SelectPartyPortraitCharacter(B));
 	TestEqual(TEXT("Existing SelectedCharacterIndex authority changes to runtime index one"),
