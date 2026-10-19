@@ -196,6 +196,8 @@ bool FGridPartyWeightMovementLockTest::RunTest(const FString& Parameters)
 			TestEqual(TEXT("Overload warning identifies the cause"), Notice.EventCode, FName(TEXT("Party.Weight.MovementBlocked")));
 			TestTrue(TEXT("Overload warning uses an accessible player message"),
 				Notice.Message.ToString().Contains(TEXT("surcharge")));
+			TestTrue(TEXT("Overload warning preserves the overloaded character's canonical name"),
+				Notice.Message.ToString().Contains(Summary.DisplayName.ToString()));
 		}
 		TestTrue(TEXT("Overload starts canonical blocked-movement feedback"), Party->bIsBlockedMoveFeedbackActive);
 		TestFalse(TEXT("Overload feedback never enters real movement state"), Party->bIsMoving);

@@ -92,6 +92,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	bool GetCharacterSummary(int32 CharacterIndex, FGridInventoryCharacterSummary& OutSummary) const;
 
+	/** RPG-PERF01: same canonical Skill/Attribute/Talent point test as the portrait summary,
+	 *  without projecting equipment, portrait, resources, resistances or weight. */
+	bool HasUnspentCharacterProgressionPoints(int32 CharacterIndex) const;
+
+	/** RPG-PERF01: same player-facing name (including Hero_XX fallback) as GetCharacterSummary. */
+	FText GetActiveCharacterDisplayName(int32 CharacterIndex) const;
+
 	/** Removes stale/duplicate ids and appends any active character missing from the presentation order. */
 	UFUNCTION(BlueprintCallable, Category = "UI|Party Portraits")
 	void SanitizePartyPortraitOrder();
@@ -113,6 +120,10 @@ public:
 
 	/** Gameplay query: true when at least one active party member exceeds their current carry capacity. */
 	bool IsAnyActiveCharacterOverloaded() const;
+
+	/** RPG-PERF01: indices of overloaded active members, in party order, from one weight pass.
+	 *  Runtime/UI may resolve names without building full character summaries. */
+	void GetOverloadedActiveCharacterIndices(TArray<int32>& OutIndices) const;
 
 	UFUNCTION(BlueprintPure, Category = "Combat|Hotbar")
 	int32 GetCombatHotbarSlotCount() const;
@@ -335,6 +346,7 @@ private:
 	void InitializeCharacterDefaults(FGridCharacterInventoryState& CharacterState, int32 CharacterIndex) const;
 	void InitializeCombatHotbarDefaults(FGridCharacterInventoryState& CharacterState) const;
 	bool ValidateCombatHotbar(const FGridCharacterInventoryState& CharacterState, FString& OutError) const;
+	bool IsCharacterOverloaded(int32 CharacterIndex) const;
 	float CalculateCharacterCurrentWeight(int32 CharacterIndex) const;
 	float CalculateCharacterBaseMaxWeight(int32 CharacterIndex) const;
 	float CalculateEquipmentWeight(const FGridCharacterEquipmentState& EquipmentState) const;

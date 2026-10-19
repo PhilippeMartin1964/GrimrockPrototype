@@ -569,6 +569,25 @@ bool UGridPartyInventoryComponent::SetSelectedCharacterIndex(int32 NewIndex)
 	return true;
 }
 
+FText UGridPartyInventoryComponent::GetActiveCharacterDisplayName(int32 CharacterIndex) const
+{
+	if (!IsValidCharacterIndex(CharacterIndex))
+	{
+		return FText::GetEmpty();
+	}
+
+	const FText& DisplayName = PartyInventoryState.ActiveCharacters[CharacterIndex].DisplayName;
+	return DisplayName.IsEmpty()
+		? FText::FromString(CharacterIndex == 0 ? TEXT("Hero_01") : FString::Printf(TEXT("Hero_%02d"), CharacterIndex + 1))
+		: DisplayName;
+}
+
+bool UGridPartyInventoryComponent::HasUnspentCharacterProgressionPoints(int32 CharacterIndex) const
+{
+	return IsValidCharacterIndex(CharacterIndex) &&
+		HasUnspentPartyPortraitProgressionPoints(PartyInventoryState.ActiveCharacters[CharacterIndex]);
+}
+
 bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGridInventoryCharacterSummary& OutSummary) const
 {
 	OutSummary = FGridInventoryCharacterSummary();
@@ -580,9 +599,7 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	OutSummary.CharacterIndex = CharacterIndex;
 	OutSummary.CharacterId = CharacterState.CharacterId.IsValid() ? FName(*CharacterState.CharacterId.ToString(EGuidFormats::DigitsWithHyphens)) : NAME_None;
-	OutSummary.DisplayName = CharacterState.DisplayName.IsEmpty()
-		? FText::FromString(CharacterIndex == 0 ? TEXT("Hero_01") : FString::Printf(TEXT("Hero_%02d"), CharacterIndex + 1))
-		: CharacterState.DisplayName;
+	OutSummary.DisplayName = GetActiveCharacterDisplayName(CharacterIndex);
 	OutSummary.ClassId = CharacterState.ClassId;
 	OutSummary.ClassDisplayName = CharacterState.ClassDisplayName.IsEmpty() ? FText::FromName(CharacterState.ClassId) : CharacterState.ClassDisplayName;
 	OutSummary.RaceId = CharacterState.RaceId;
@@ -617,7 +634,7 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.MaxWeight = FMath::Max(0.0f, OutSummary.BaseMaxWeight + OutSummary.EquipmentStatBonus.CarryWeightBonus);
 	OutSummary.WeightState = ResolveInventoryWeightState(OutSummary.CurrentWeight, OutSummary.MaxWeight);
 	OutSummary.bOverloaded = OutSummary.WeightState == EGridInventoryWeightState::Overloaded;
-	OutSummary.bHasUnspentProgressionPoints = HasUnspentPartyPortraitProgressionPoints(CharacterState);
+	OutSummary.bHasUnspentProgressionPoints = HasUnspentCharacterProgressionPoints(CharacterIndex);
 	OutSummary.bIsSelected = CharacterIndex == PartyInventoryState.SelectedCharacterIndex;
 	return true;
 }
@@ -756,19 +773,42 @@ bool UGridPartyInventoryComponent::ReorderPartyPortrait(FGuid SourceCharacterId,
 	return true;
 }
 
+bool UGridPartyInventoryComponent::IsCharacterOverloaded(int32 CharacterIndex) const
+{
+	if (!IsValidCharacterIndex(CharacterIndex))
+	{
+		return false;
+	}
+	const float CurrentWeight = CalculateCharacterCurrentWeight(CharacterIndex);
+	const float MaxWeight = FMath::Max(
+		0.0f, CalculateCharacterBaseMaxWeight(CharacterIndex) +
+		ComputeCharacterEquipmentStatBonus(CharacterIndex).CarryWeightBonus);
+	return ResolveInventoryWeightState(CurrentWeight, MaxWeight) ==
+		EGridInventoryWeightState::Overloaded;
+}
+
 bool UGridPartyInventoryComponent::IsAnyActiveCharacterOverloaded() const
 {
 	for (int32 CharacterIndex = 0; CharacterIndex < PartyInventoryState.ActiveCharacters.Num(); ++CharacterIndex)
 	{
-		const float CurrentWeight = CalculateCharacterCurrentWeight(CharacterIndex);
-		const float MaxWeight = FMath::Max(
-			0.0f, CalculateCharacterBaseMaxWeight(CharacterIndex) + ComputeCharacterEquipmentStatBonus(CharacterIndex).CarryWeightBonus);
-		if (ResolveInventoryWeightState(CurrentWeight, MaxWeight) == EGridInventoryWeightState::Overloaded)
+		if (IsCharacterOverloaded(CharacterIndex))
 		{
 			return true;
 		}
 	}
 	return false;
+}
+
+void UGridPartyInventoryComponent::GetOverloadedActiveCharacterIndices(TArray<int32>& OutIndices) const
+{
+	OutIndices.Reset();
+	for (int32 CharacterIndex = 0; CharacterIndex < PartyInventoryState.ActiveCharacters.Num(); ++CharacterIndex)
+	{
+		if (IsCharacterOverloaded(CharacterIndex))
+		{
+			OutIndices.Add(CharacterIndex);
+		}
+	}
 }
 
 bool UGridPartyInventoryComponent::IsValidCharacterIndex(int32 Index) const

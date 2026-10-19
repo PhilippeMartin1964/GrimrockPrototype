@@ -345,9 +345,7 @@ void AGrimrockPartyPawn::UpdateProgressionEventFeed(float DeltaSeconds)
 	TArray<FText> PendingNames;
 	for (int32 Index = 0; Index < PartyInventoryComponent->GetActiveCharacterCount(); ++Index)
 	{
-		FGridInventoryCharacterSummary Summary;
-		if (!PartyInventoryComponent->GetCharacterSummary(Index, Summary) ||
-			!Summary.bHasUnspentProgressionPoints)
+		if (!PartyInventoryComponent->HasUnspentCharacterProgressionPoints(Index))
 		{
 			continue;
 		}
@@ -356,10 +354,9 @@ void AGrimrockPartyPawn::UpdateProgressionEventFeed(float DeltaSeconds)
 		{
 			continue;
 		}
-		PendingLevels.Add(Character.CharacterId, Summary.Level);
-		PendingNames.Add(Summary.DisplayName.IsEmpty()
-			? FText::AsNumber(Index + 1)
-			: Summary.DisplayName);
+		PendingLevels.Add(Character.CharacterId, Character.Level);
+		const FText DisplayName = PartyInventoryComponent->GetActiveCharacterDisplayName(Index);
+		PendingNames.Add(DisplayName.IsEmpty() ? FText::AsNumber(Index + 1) : DisplayName);
 	}
 
 	if (!ProgressionReminderState.Advance(PendingLevels, ElapsedSeconds))

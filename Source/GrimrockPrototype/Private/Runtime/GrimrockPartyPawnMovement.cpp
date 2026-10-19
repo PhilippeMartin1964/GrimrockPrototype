@@ -294,20 +294,21 @@ bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 		return false;
 	}
 
-	if (PartyInventoryComponent && PartyInventoryComponent->IsAnyActiveCharacterOverloaded())
+	TArray<int32> OverloadedCharacterIndices;
+	if (PartyInventoryComponent)
+	{
+		PartyInventoryComponent->GetOverloadedActiveCharacterIndices(OverloadedCharacterIndices);
+	}
+	if (!OverloadedCharacterIndices.IsEmpty())
 	{
 		UE_LOG(LogGrimrockParty, Verbose, TEXT("Party movement rejected: at least one active character is overloaded."));
 
 		TArray<FText> OverloadedNames;
-		for (int32 Index = 0; Index < PartyInventoryComponent->GetActiveCharacterCount(); ++Index)
+		OverloadedNames.Reserve(OverloadedCharacterIndices.Num());
+		for (const int32 Index : OverloadedCharacterIndices)
 		{
-			FGridInventoryCharacterSummary Summary;
-			if (PartyInventoryComponent->GetCharacterSummary(Index, Summary) && Summary.bOverloaded)
-			{
-				OverloadedNames.Add(Summary.DisplayName.IsEmpty()
-					? FText::AsNumber(Index + 1)
-					: Summary.DisplayName);
-			}
+			const FText DisplayName = PartyInventoryComponent->GetActiveCharacterDisplayName(Index);
+			OverloadedNames.Add(DisplayName.IsEmpty() ? FText::AsNumber(Index + 1) : DisplayName);
 		}
 
 		GridEventFeedPublisher::PublishDungeonEvent(
