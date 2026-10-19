@@ -554,9 +554,9 @@ Les événements restent dans l’ordre chronologique :
 - anciens en haut ;
 - récents en bas.
 
-Si le joueur consulte déjà le bas du Flux, une nouvelle entrée déclenche l’autoscroll.
+À chaque nouvelle entrée publiée dans une catégorie visible, le Flux revient automatiquement en bas pour afficher immédiatement l’événement le plus récent, y compris si le joueur avait remonté l’historique.
 
-S’il consulte une entrée plus ancienne, l’arrivée de nouveaux événements ne doit pas arracher sa position de lecture.
+Le défilement à la roulette reste libre entre deux nouveaux événements. Le changement de filtre conserve autant que possible la position de consultation courante ; une entrée dans une catégorie masquée ne déclenche pas de retour automatique en bas.
 
 ## 21. Interaction souris
 
@@ -625,7 +625,7 @@ UI-EVENTHUD01 sera considéré valide lorsque :
 20. aucune icône sémantique n’est requise ;
 21. le modèle permet de distinguer de futurs fragments de texte sémantiques ;
 22. l’architecture permet l’ajout ultérieur de tooltips sur ces fragments ;
-23. le scroll respecte la position de lecture du joueur ;
+23. la roulette permet de consulter l’historique, et toute nouvelle entrée visible replace le Flux en bas ;
 24. le Flux n’interfère pas avec les commandes du jeu ;
 25. aucun acteur métier ne dépend directement de `WBP_GridEventFeed`;
 26. aucune entrée du Flux n’est automatiquement copiée dans le Journal.

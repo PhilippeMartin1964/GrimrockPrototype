@@ -644,9 +644,9 @@ void UGridEventFeedWidget::HandleEventPublished(const FGridHudEventEntry& Entry)
 		return;
 	}
 
-	const bool bShouldFollow = bFollowNewestEntries &&
-		IsScrollAtEnd(GetPresentationScrollOffset(), GetPresentationScrollEndOffset());
-	RebuildEntryPresentation(bShouldFollow);
+	// A new visible event always brings the newest entry into view.
+	// Wheel scrolling remains available until the next published event.
+	RebuildEntryPresentation(true);
 }
 
 #undef LOCTEXT_NAMESPACE
