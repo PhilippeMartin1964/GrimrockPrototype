@@ -6,6 +6,7 @@
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridObjectBehavior.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/GridPartyProgressionReminderState.h"
 #include "GrimrockPartyPawn.generated.h"
 
 class UCameraComponent;
@@ -681,6 +682,9 @@ protected:
 	void ConsumeOneCursorItemAfterSuccessfulAction();
 
 private:
+	/** UI-PROGRESSIONFEED01: one-second sampled read-only projection, five-minute reminders. */
+	void UpdateProgressionEventFeed(float DeltaSeconds);
+
 	UFUNCTION()
 	void HandlePartyInventoryChanged(int32 CharacterIndex);
 
@@ -775,6 +779,10 @@ private:
 	float TurnElapsed = 0.f;
 	float TurnDeltaYaw = 0.f;
 	bool bIsTurning = false;
+
+	FGridPartyProgressionReminderState ProgressionReminderState;
+	float ProgressionReminderPollSeconds = 0.0f;
+	bool bProgressionReminderPollInitialized = false;
 
 	EBufferedCommandType BufferedCommandType = EBufferedCommandType::None;
 	EGridEdge BufferedMoveDirection = EGridEdge::None;

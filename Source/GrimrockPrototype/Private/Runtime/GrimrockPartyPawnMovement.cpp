@@ -9,6 +9,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
 
@@ -296,6 +297,33 @@ bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 	if (PartyInventoryComponent && PartyInventoryComponent->IsAnyActiveCharacterOverloaded())
 	{
 		UE_LOG(LogGrimrockParty, Verbose, TEXT("Party movement rejected: at least one active character is overloaded."));
+
+		TArray<FText> OverloadedNames;
+		for (int32 Index = 0; Index < PartyInventoryComponent->GetActiveCharacterCount(); ++Index)
+		{
+			FGridInventoryCharacterSummary Summary;
+			if (PartyInventoryComponent->GetCharacterSummary(Index, Summary) && Summary.bOverloaded)
+			{
+				OverloadedNames.Add(Summary.DisplayName.IsEmpty()
+					? FText::AsNumber(Index + 1)
+					: Summary.DisplayName);
+			}
+		}
+
+		GridEventFeedPublisher::PublishDungeonEvent(
+			this,
+			FName(TEXT("Party.Weight.MovementBlocked")),
+			OverloadedNames.IsEmpty()
+				? NSLOCTEXT("GridEventFeed", "PartyOverloadedMovementBlockedGeneric",
+					"Déplacement impossible : un personnage du groupe est en surcharge. Allégez son inventaire.")
+				: FText::Format(
+					NSLOCTEXT("GridEventFeed", "PartyOverloadedMovementBlockedNamed",
+						"Déplacement impossible : surcharge du groupe ({0}). Allégez les inventaires avant de vous déplacer."),
+					FText::Join(FText::FromString(TEXT(", ")), OverloadedNames)),
+			EGridHudEventSemantic::Danger,
+			EGridEventVisibility::Always,
+			true);
+
 		TryStartBlockedMoveFeedback(MoveDirection);
 		return false;
 	}

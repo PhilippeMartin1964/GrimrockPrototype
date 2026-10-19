@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridEventFeedSubsystem.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Sound/SoundWave.h"
 
@@ -173,11 +174,29 @@ bool FGridPartyWeightMovementLockTest::RunTest(const FString& Parameters)
 	Party->BlockedMoveForwardDuration = 0.08f;
 	Party->BlockedMoveReturnDuration = 0.10f;
 
+	UGridEventFeedSubsystem* Feed = TestWorld.World->GetSubsystem<UGridEventFeedSubsystem>();
+	if (!TestNotNull(TEXT("Event Feed exists for overweight movement"), Feed))
+	{
+		return false;
+	}
+	const int32 FeedBeforeOverload = Feed->GetEntries().Num();
+
 	const EGridEdge Directions[] = { EGridEdge::North, EGridEdge::South, EGridEdge::West, EGridEdge::East };
 	for (int32 DirectionIndex = 0; DirectionIndex < UE_ARRAY_COUNT(Directions); ++DirectionIndex)
 	{
 		const int32 PreviousSoundRequests = Party->BlockedMoveAudioPlaybackRequestCount;
 		TestFalse(TEXT("Overload rejects translation"), Party->TryStartMove(Directions[DirectionIndex]));
+		TestEqual(TEXT("Every refused translation publishes one warning"),
+			Feed->GetEntries().Num(), FeedBeforeOverload + DirectionIndex + 1);
+		if (Feed->GetEntries().Num() > FeedBeforeOverload + DirectionIndex)
+		{
+			const FGridHudEventEntry& Notice = Feed->GetEntries().Last();
+			TestEqual(TEXT("Overload warning uses Event category"), Notice.Category, EGridHudEventCategory::Dungeon);
+			TestEqual(TEXT("Overload warning uses Danger semantic"), Notice.Semantic, EGridHudEventSemantic::Danger);
+			TestEqual(TEXT("Overload warning identifies the cause"), Notice.EventCode, FName(TEXT("Party.Weight.MovementBlocked")));
+			TestTrue(TEXT("Overload warning uses an accessible player message"),
+				Notice.Message.ToString().Contains(TEXT("surcharge")));
+		}
 		TestTrue(TEXT("Overload starts canonical blocked-movement feedback"), Party->bIsBlockedMoveFeedbackActive);
 		TestFalse(TEXT("Overload feedback never enters real movement state"), Party->bIsMoving);
 		TestEqual(TEXT("Overload feedback preserves logical X"), Party->CurrentCellX, 1);
@@ -201,6 +220,8 @@ bool FGridPartyWeightMovementLockTest::RunTest(const FString& Parameters)
 	ClearCharacterTestWeight(Inventory, 0);
 	TestFalse(TEXT("Removing excess weight clears party movement lock"), Inventory->IsAnyActiveCharacterOverloaded());
 	TestTrue(TEXT("Translation resumes immediately after overload clears"), Party->TryStartMove(EGridEdge::North));
+	TestEqual(TEXT("Normal translation does not publish another overload warning"),
+		Feed->GetEntries().Num(), FeedBeforeOverload + UE_ARRAY_COUNT(Directions));
 	TestTrue(TEXT("Normal translation enters movement state"), Party->bIsMoving);
 	TestEqual(TEXT("Normal translation updates logical Y"), Party->CurrentCellY, 2);
 

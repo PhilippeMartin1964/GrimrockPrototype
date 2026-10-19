@@ -19,6 +19,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPIEPlaytestRequest.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GrimrockGameInstance.h"
 #include "Runtime/GrimrockPlayerController.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -305,6 +306,7 @@ void AGrimrockPartyPawn::Tick(float DeltaSeconds)
 	UpdatePitFallLandingCameraImpact(DeltaSeconds);
 	UpdateHeadBob(DeltaSeconds);
 	UpdateFreeLook(DeltaSeconds);
+	UpdateProgressionEventFeed(DeltaSeconds);
 
 	if (BufferedCommandType != EBufferedCommandType::None)
 	{
@@ -320,6 +322,63 @@ void AGrimrockPartyPawn::Tick(float DeltaSeconds)
 	{
 		TryConsumeBufferedCommand();
 	}
+}
+
+void AGrimrockPartyPawn::UpdateProgressionEventFeed(float DeltaSeconds)
+{
+	if (!IsValid(PartyInventoryComponent) || !HasLevelRuntimeActor() || bCharacterCreationModalActive)
+	{
+		return;
+	}
+
+	ProgressionReminderPollSeconds += FMath::Max(0.0f, DeltaSeconds);
+	if (bProgressionReminderPollInitialized && ProgressionReminderPollSeconds < 1.0f)
+	{
+		return;
+	}
+
+	const float ElapsedSeconds = bProgressionReminderPollInitialized ? ProgressionReminderPollSeconds : 0.0f;
+	bProgressionReminderPollInitialized = true;
+	ProgressionReminderPollSeconds = 0.0f;
+
+	TMap<FGuid, int32> PendingLevels;
+	TArray<FText> PendingNames;
+	for (int32 Index = 0; Index < PartyInventoryComponent->GetActiveCharacterCount(); ++Index)
+	{
+		FGridInventoryCharacterSummary Summary;
+		if (!PartyInventoryComponent->GetCharacterSummary(Index, Summary) ||
+			!Summary.bHasUnspentProgressionPoints)
+		{
+			continue;
+		}
+		const FGridCharacterInventoryState& Character = PartyInventoryComponent->PartyInventoryState.ActiveCharacters[Index];
+		if (!Character.CharacterId.IsValid())
+		{
+			continue;
+		}
+		PendingLevels.Add(Character.CharacterId, Summary.Level);
+		PendingNames.Add(Summary.DisplayName.IsEmpty()
+			? FText::AsNumber(Index + 1)
+			: Summary.DisplayName);
+	}
+
+	if (!ProgressionReminderState.Advance(PendingLevels, ElapsedSeconds))
+	{
+		return;
+	}
+
+	GridEventFeedPublisher::PublishDungeonEvent(
+		this,
+		FName(TEXT("Party.Progression.PointsAvailable")),
+		FText::Format(
+			NSLOCTEXT("GridEventFeed", "PartyProgressionPointsReminder",
+				"Des points de progression sont disponibles pour : {0}. Attribuez-les dans la feuille de personnage ou les compétences."),
+			FText::Join(FText::FromString(TEXT(", ")), PendingNames)),
+		EGridHudEventSemantic::Information,
+		EGridEventVisibility::Always,
+		true,
+		NAME_None,
+		NSLOCTEXT("GridEventFeed", "PartyProgressionHeader", "Progression"));
 }
 
 void AGrimrockPartyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
