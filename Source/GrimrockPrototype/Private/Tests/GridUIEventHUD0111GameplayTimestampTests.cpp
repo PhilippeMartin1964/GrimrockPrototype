@@ -17,29 +17,44 @@ bool FGridUIEventHUD0111TimestampFormatTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 
 	TestEqual(
-		TEXT("New game starts at day zero midnight"),
+		TEXT("New game displays day one at midnight"),
 		UGridEventFeedWidget::FormatGameplayTimestamp(0).ToString(),
-		FString(TEXT("[J 0, 00:00:00]")));
+		FString(TEXT("[J 1, 00:00:00]")));
 
 	TestEqual(
 		TEXT("Two hours thirty-four minutes keep seconds visible"),
 		UGridEventFeedWidget::FormatGameplayTimestamp(2 * 3600 + 34 * 60).ToString(),
-		FString(TEXT("[J 0, 02:34:00]")));
+		FString(TEXT("[J 1, 02:34:00]")));
 
 	TestEqual(
 		TEXT("Seconds are visible in the compact world timestamp"),
 		UGridEventFeedWidget::FormatGameplayTimestamp(156).ToString(),
-		FString(TEXT("[J 0, 00:02:36]")));
+		FString(TEXT("[J 1, 00:02:36]")));
 
 	TestEqual(
 		TEXT("Days roll after twenty-four world hours"),
 		UGridEventFeedWidget::FormatGameplayTimestamp(86400 + 2 * 3600 + 34 * 60 + 5).ToString(),
-		FString(TEXT("[J 1, 02:34:05]")));
+		FString(TEXT("[J 2, 02:34:05]")));
 
 	TestEqual(
 		TEXT("Negative defensive input is clamped to zero"),
 		UGridEventFeedWidget::FormatGameplayTimestamp(-42).ToString(),
-		FString(TEXT("[J 0, 00:00:00]")));
+		FString(TEXT("[J 1, 00:00:00]")));
+
+	TestEqual(
+		TEXT("Last second of first day still displays day one"),
+		UGridEventFeedWidget::FormatGameplayTimestamp(86400 - 1).ToString(),
+		FString(TEXT("[J 1, 23:59:59]")));
+
+	TestEqual(
+		TEXT("Day two starts exactly at twenty-four world hours"),
+		UGridEventFeedWidget::FormatGameplayTimestamp(86400).ToString(),
+		FString(TEXT("[J 2, 00:00:00]")));
+
+	TestEqual(
+		TEXT("Day three starts exactly at forty-eight world hours"),
+		UGridEventFeedWidget::FormatGameplayTimestamp(2 * 86400).ToString(),
+		FString(TEXT("[J 3, 00:00:00]")));
 	return true;
 }
 
@@ -156,7 +171,7 @@ bool FGridUIEventHUD0111EventPayloadTest::RunTest(const FString& Parameters)
 	TestEqual(
 		TEXT("Timestamp payload formats independently from semantic content"),
 		UGridEventFeedWidget::FormatGameplayTimestamp(Entry.GameplayElapsedSeconds).ToString(),
-		FString(TEXT("[J 0, 02:34:00]")));
+		FString(TEXT("[J 1, 02:34:00]")));
 
 	const FProperty* TimestampField =
 		FGridHudEventEntry::StaticStruct()->FindPropertyByName(TEXT("GameplayElapsedSeconds"));

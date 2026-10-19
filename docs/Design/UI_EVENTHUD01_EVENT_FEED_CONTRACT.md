@@ -694,7 +694,7 @@ Les améliorations éventuelles seront décidées après utilisation en jeu, san
 Chaque événement accepté capture un timestamp immuable de **temps monde** dérivé du gameplay effectif :
 
 ```text
-[J 0, 02:34:00] Daniel attaque Rat géant — TOUCHÉ
+[J 1, 02:34:00] Daniel attaque Rat géant — TOUCHÉ
 ```
 
 Le timestamp :
@@ -707,6 +707,8 @@ Le timestamp :
 - est remis à zéro pour New Game ;
 - est restauré après Load Game ;
 - est sauvegardé dans `UGrimrockPartySaveGame::GameplayElapsedSeconds` ;
+- affiche **Jour 1** pendant les premières 24 h monde, puis Jour 2 dès 86400 secondes ;
+- conserve le temps écoulé à zéro seconde au début de partie (sauvegardes inchangées) ;
 - ouvre le schéma exact-match **v27** ;
 - ne rend jamais l'historique du Flux persistant.
 
@@ -718,7 +720,7 @@ La présentation est bicolore : `TimestampColor` est indépendant de la couleur 
 Le format final du Flux est :
 
 ```text
-[J 0, 00:02:36] Daniel attaque Rat géant — TOUCHÉ
+[J 1, 00:02:36] Daniel attaque Rat géant — TOUCHÉ
 ```
 
 L'horloge logique applique par défaut :
@@ -746,13 +748,13 @@ publiées comme une seule `FGridHudEventEntry`, avec un seul `SequenceId` et
 un seul timestamp :
 
 ```text
-[J 0, 00:02:36] Le levier est activé → Une porte s'ouvre au fond du couloir.
+[J 1, 00:02:36] Le levier est activé → Une porte s'ouvre au fond du couloir.
 ```
 
 Plusieurs conséquences perceptibles utilisent le séparateur `·` :
 
 ```text
-[J 0, 00:02:36] Le levier est activé → Une porte s'ouvre · Un téléporteur s'active.
+[J 1, 00:02:36] Le levier est activé → Une porte s'ouvre · Un téléporteur s'active.
 ```
 
 Le widget peut naturellement replier le texte si sa largeur est insuffisante ;
@@ -821,3 +823,13 @@ pendant cette fenêtre deviennent des conséquences de l'entrée racine.
 
 Le widget continue donc à recevoir une `FGridHudEventEntry` normale et ne
 reconstruit aucune causalité a posteriori.
+
+### EVENTHUD01.17 — Index de jour affiché (19 octobre 2026)
+
+La première journée de la partie est désormais **J 1**, jamais J 0. La règle de
+présentation est `Jour = floor(max(0, GameplayElapsedSeconds) / 86400) + 1`.
+Seul `FormatGameplayTimestamp()` effectue ce décalage. Les événements, le
+chronométrage, les calculs d'horloge et le champ sauvegardé
+`GameplayElapsedSeconds` gardent leurs valeurs d'origine, à partir de zéro.
+Tests des frontières : 0 s, 86399 s, 86400 s, 172800 s, et entrée négative.
+

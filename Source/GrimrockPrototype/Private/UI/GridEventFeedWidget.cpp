@@ -543,7 +543,8 @@ float UGridEventFeedWidget::GetPresentationScrollEndOffset() const
 FText UGridEventFeedWidget::FormatGameplayTimestamp(int64 GameplayElapsedSeconds)
 {
 	const int64 SafeSeconds = FMath::Max<int64>(0, GameplayElapsedSeconds);
-	const int64 Day = SafeSeconds / 86400;
+	// The persisted clock is zero-based elapsed time, but the first displayed day is Day 1.
+	const int64 Day = SafeSeconds / 86400 + 1;
 	const int64 SecondsWithinDay = SafeSeconds % 86400;
 	const int64 Hour = SecondsWithinDay / 3600;
 	const int64 Minute = (SecondsWithinDay % 3600) / 60;
