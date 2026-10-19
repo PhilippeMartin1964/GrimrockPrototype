@@ -213,6 +213,8 @@ Dégâts : 1d3 (2) × 200 % = 4; PV Rat géant : 8 → 4
 
 Le détail exhaustif du snapshot est disponible dans une **info-bulle au survol** de l'entrée Combat. Ainsi le joueur peut comprendre le calcul sans que chaque attaque occupe la majorité du Flux.
 
+Cette info-bulle réutilise **la même classe authored `WBP_GridNavigationTooltip` que `WBP_GridPersistentHud`**. Son fond, son brush, son padding et sa typographie restent donc pilotés par un seul asset UMG partagé.
+
 Le HUD ne calcule aucune règle de combat : le système de combat produit un snapshot résolu et structuré ; le Flux ne fait que projeter et formater ces valeurs.
 
 ## 10. Jets d’attaque et de défense

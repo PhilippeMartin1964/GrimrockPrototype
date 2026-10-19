@@ -1,4 +1,5 @@
 #include "UI/GridEventFeedWidget.h"
+#include "UI/GridNavigationTooltipWidget.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -204,6 +205,12 @@ float UGridEventFeedWidget::ScreenDeltaToViewportDelta(float ScreenDelta, float 
 	return ScreenDelta / FMath::Max(KINDA_SMALL_NUMBER, ViewportScale);
 }
 
+void UGridEventFeedWidget::SetSharedTooltipWidgetClass(
+	TSubclassOf<UGridNavigationTooltipWidget> InTooltipWidgetClass)
+{
+	SharedTooltipWidgetClass = InTooltipWidgetClass;
+}
+
 void UGridEventFeedWidget::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
@@ -391,9 +398,23 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 			const FText TooltipText = BuildEntryTooltipText(Entry);
 			if (Entry.Category == EGridHudEventCategory::Combat && !TooltipText.IsEmpty())
 			{
-				// Tooltips require the row to participate in Slate hit-testing.
-				// UTextBlock has no click action here, so gameplay input mode remains untouched.
-				Row->SetToolTipText(TooltipText);
+				// EVENTHUD01.8P polish: reuse the exact authored tooltip presenter
+				// already owned by WBP_GridPersistentHud navigation/portrait surfaces.
+				if (SharedTooltipWidgetClass)
+				{
+					if (UGridNavigationTooltipWidget* TooltipWidget =
+						CreateWidget<UGridNavigationTooltipWidget>(this, SharedTooltipWidgetClass))
+					{
+						TooltipWidget->InitializeTooltip(TooltipText);
+						TooltipWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+						Row->SetToolTip(TooltipWidget);
+					}
+				}
+				else
+				{
+					// Defensive fallback for an incorrectly configured host HUD.
+					Row->SetToolTipText(TooltipText);
+				}
 				Row->SetVisibility(ESlateVisibility::Visible);
 			}
 			else

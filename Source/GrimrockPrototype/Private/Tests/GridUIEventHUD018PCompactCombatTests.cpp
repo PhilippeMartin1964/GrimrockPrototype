@@ -5,6 +5,7 @@
 #include "Runtime/Combat/GridCombatEventFeedFormatter.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "UI/GridEventFeedWidget.h"
+#include "UI/GridNavigationTooltipWidget.h"
 
 namespace
 {
@@ -200,6 +201,29 @@ bool FGridUIEventHUD018PTooltipProjectionTest::RunTest(const FString& Parameters
 		TEXT("Non-combat detail behavior is unchanged"),
 		UGridEventFeedWidget::BuildEntryText(Dungeon).ToString().Contains(TEXT("Le texte reste visible.")));
 
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridUIEventHUD018PSharedTooltipClassTest,
+	"Grimrock.UI.EventHUD01.CompactCombat.SharedTooltipClass",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIEventHUD018PSharedTooltipClassTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridEventFeedWidget* FeedWidget = NewObject<UGridEventFeedWidget>();
+	if (!TestNotNull(TEXT("Event Feed widget exists"), FeedWidget))
+	{
+		return false;
+	}
+
+	FeedWidget->SetSharedTooltipWidgetClass(UGridNavigationTooltipWidget::StaticClass());
+	TestEqual(
+		TEXT("Combat feed stores the shared persistent-HUD tooltip presenter"),
+		FeedWidget->SharedTooltipWidgetClass.Get(),
+		UGridNavigationTooltipWidget::StaticClass());
 	return true;
 }
 

@@ -8,6 +8,7 @@
 
 class UButton;
 class UGridEventFeedSubsystem;
+class UGridNavigationTooltipWidget;
 class UFont;
 class UScrollBox;
 class USizeBox;
@@ -149,6 +150,9 @@ public:
 	/** EVENTHUD01.8P detailed hover text; empty when an entry has no inspectable details. */
 	static FText BuildEntryTooltipText(const FGridHudEventEntry& Entry);
 
+	/** Shares the authored Persistent HUD tooltip presenter with Combat entries. */
+	void SetSharedTooltipWidgetClass(TSubclassOf<UGridNavigationTooltipWidget> InTooltipWidgetClass);
+
 	virtual void SynchronizeProperties() override;
 
 protected:
@@ -177,6 +181,10 @@ public:
 	/** Editable in WBP_GridEventFeed Class Defaults; no semantic icons are used. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
 	FGridEventFeedSemanticPalette SemanticPalette;
+
+	/** Runtime presentation class inherited from WBP_GridPersistentHud. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Event Feed|Style")
+	TSubclassOf<UGridNavigationTooltipWidget> SharedTooltipWidgetClass;
 
 	/** EVENTHUD01.3 three independent filters, enabled by default. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Event Feed|Filters")

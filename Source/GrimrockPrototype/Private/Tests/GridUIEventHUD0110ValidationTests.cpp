@@ -354,8 +354,10 @@ bool FGridUIEventHUD0110InputArchitectureTest::RunTest(const FString& Parameters
 		WidgetSource.Contains(TEXT("SetVisibility(ESlateVisibility::SelfHitTestInvisible)")));
 	TestTrue(TEXT("Non-inspectable event rows remain hit-test invisible"),
 		WidgetSource.Contains(TEXT("Row->SetVisibility(ESlateVisibility::HitTestInvisible)")));
-	TestTrue(TEXT("Combat detail inspection is exposed through a native tooltip"),
-		WidgetSource.Contains(TEXT("Row->SetToolTipText(TooltipText)")));
+	TestTrue(TEXT("Combat detail inspection reuses the shared authored tooltip widget"),
+		WidgetSource.Contains(TEXT("Row->SetToolTip(TooltipWidget)")));
+	TestTrue(TEXT("Combat tooltip presenter is the shared GridNavigationTooltipWidget"),
+		WidgetSource.Contains(TEXT("UGridNavigationTooltipWidget")));
 	TestFalse(TEXT("Combat inspection does not introduce a per-entry Button"),
 		WidgetSource.Contains(TEXT("ConstructWidget<UButton>")));
 

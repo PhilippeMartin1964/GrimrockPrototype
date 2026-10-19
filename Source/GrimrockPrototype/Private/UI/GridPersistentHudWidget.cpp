@@ -152,6 +152,11 @@ void UGridPersistentHudWidget::EnsureEventFeedWidget()
 		EventFeedWidgetInstance = CreateWidget<UGridEventFeedWidget>(this, EventFeedWidgetClass);
 	}
 
+	if (EventFeedWidgetInstance)
+	{
+		EventFeedWidgetInstance->SetSharedTooltipWidgetClass(NavigationTooltipWidgetClass);
+	}
+
 	if (!EventFeedWidgetInstance || EventFeedWidgetInstance->GetParent() || EventFeedWidgetInstance->IsInViewport())
 	{
 		return;
