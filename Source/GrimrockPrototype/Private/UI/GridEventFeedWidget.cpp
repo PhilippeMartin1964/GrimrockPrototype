@@ -18,6 +18,8 @@
 
 #define LOCTEXT_NAMESPACE "GridEventFeedWidget"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridEventFeedScroll, Log, All);
+
 UGridEventFeedWidget::UGridEventFeedWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -254,6 +256,7 @@ void UGridEventFeedWidget::NativeConstruct()
 
 void UGridEventFeedWidget::NativeDestruct()
 {
+	PendingScrollToEndFrames = 0;
 	EndResize();
 	UnbindEventFeed();
 	UnbindControls();
@@ -263,6 +266,7 @@ void UGridEventFeedWidget::NativeDestruct()
 void UGridEventFeedWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+	ApplyPendingScrollToEnd();
 	if (bResizeDragging && FSlateApplication::IsInitialized())
 	{
 		UpdateResizeAtScreenY(static_cast<float>(FSlateApplication::Get().GetCursorPos().Y));
@@ -465,16 +469,57 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 	}
 	else if (ScrollBox_Entries)
 	{
+		// A filter change while reading old messages must cancel an earlier
+		// follow-newest request rather than snap the player back down.
+		PendingScrollToEndFrames = 0;
 		ScrollBox_Entries->SetScrollOffset(PreviousOffset);
 	}
 }
 
 void UGridEventFeedWidget::ScrollPresentationToEnd()
 {
-	if (ScrollBox_Entries)
+	if (!ScrollBox_Entries)
 	{
-		ScrollBox_Entries->ScrollToEnd();
+		return;
 	}
+
+	// Rows were just replaced; their text may only acquire its final wrapped
+	// height in Slate's subsequent layout pass. One immediate ScrollToEnd()
+	// can therefore target the previous, too-small content extent.
+	ScrollBox_Entries->ForceLayoutPrepass();
+	ScrollBox_Entries->EndInertialScrolling();
+	PendingScrollToEndFrames = ScrollToEndSettleFrames;
+	ApplyPendingScrollToEnd();
+}
+
+void UGridEventFeedWidget::ApplyPendingScrollToEnd()
+{
+	if (PendingScrollToEndFrames <= 0 || !ScrollBox_Entries)
+	{
+		return;
+	}
+
+	--PendingScrollToEndFrames;
+
+	// ScrollToEnd and ScrollWidgetIntoView both defer their actual movement
+	// until layout. Repeat briefly after dynamic rows/wrapping have settled,
+	// anchoring the *last row*, not a stale previously computed offset.
+	ScrollBox_Entries->ForceLayoutPrepass();
+	ScrollBox_Entries->ScrollToEnd();
+	const int32 ChildCount = ScrollBox_Entries->GetChildrenCount();
+	if (ChildCount > 0)
+	{
+		ScrollBox_Entries->ScrollWidgetIntoView(
+			ScrollBox_Entries->GetChildAt(ChildCount - 1),
+			false,
+			EDescendantScrollDestination::BottomOrRight,
+			0.0f);
+	}
+
+	UE_LOG(LogGridEventFeedScroll, Verbose,
+		TEXT("FollowNewest Rows=%d ScrollOffset=%.1f EndOffset=%.1f RemainingPasses=%d"),
+		ChildCount, ScrollBox_Entries->GetScrollOffset(),
+		ScrollBox_Entries->GetScrollOffsetOfEnd(), PendingScrollToEndFrames);
 }
 
 float UGridEventFeedWidget::GetPresentationScrollOffset() const
@@ -633,8 +678,8 @@ void UGridEventFeedWidget::HandleEventPublished(const FGridHudEventEntry& Entry)
 		return;
 	}
 
-	// A new visible event always brings the newest entry into view.
-	// Wheel scrolling remains available until the next published event.
+	// Every visible publication must force the newest row into view, even if
+	// the user had scrolled up. The request is settled across Slate layout passes.
 	RebuildEntryPresentation(true);
 }
 

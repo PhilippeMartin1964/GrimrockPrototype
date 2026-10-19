@@ -3,8 +3,10 @@
 #include "Misc/AutomationTest.h"
 
 #include "Components/CheckBox.h"
+#include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
 #include "Runtime/GridEventFeedTypes.h"
+#include "Runtime/GridEventFeedSubsystem.h"
 #include "UI/GridEventFeedWidget.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIEventHUD013FiltersTest, "Grimrock.UI.EventHUD01.Interaction.Filters",
@@ -135,6 +137,75 @@ bool FGridUIEventHUD013AutoScrollTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Small rounding gap still counts as the end during filter rebuild"), UGridEventFeedWidget::IsScrollAtEnd(114.0f, 120.0f, 8.0f));
 	TestFalse(TEXT("Older history is detected for non-publication rebuilds"), UGridEventFeedWidget::IsScrollAtEnd(80.0f, 120.0f, 8.0f));
 	TestTrue(TEXT("Empty scroll content is treated as already at the end"), UGridEventFeedWidget::IsScrollAtEnd(0.0f, 0.0f));
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIEventHUD016ScrollFollowLayoutTest,
+	"Grimrock.UI.EventHUD01.Interaction.ScrollFollowLayout",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIEventHUD016ScrollFollowLayoutTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	// The previous AutoScroll test checked only IsScrollAtEnd(float,float).
+	// Here a real Event Feed publication rebuilds real UMG ScrollBox children
+	// and requests a bounded follow-up after Slate layout.
+	UGridEventFeedWidget* Widget = NewObject<UGridEventFeedWidget>();
+	UGridEventFeedSubsystem* Feed = NewObject<UGridEventFeedSubsystem>();
+	if (!TestNotNull(TEXT("Event Feed widget exists"), Widget) ||
+		!TestNotNull(TEXT("Event Feed subsystem exists"), Feed))
+	{
+		return false;
+	}
+	Widget->ScrollBox_Entries = NewObject<UScrollBox>(Widget);
+	if (!TestNotNull(TEXT("Native ScrollBox component exists"), Widget->ScrollBox_Entries.Get()))
+	{
+		return false;
+	}
+	Widget->EventFeedSubsystem = Feed;
+	Feed->OnEventPublished.AddUniqueDynamic(Widget, &UGridEventFeedWidget::HandleEventPublished);
+
+	FGridHudEventEntry Entry;
+	Entry.Category = EGridHudEventCategory::Dungeon;
+	Entry.Visibility = EGridEventVisibility::Always;
+	Entry.Message = FText::FromString(TEXT("Long first event, with content that can wrap when the panel is narrow."));
+	TestTrue(TEXT("Publishing the first event is accepted"), Feed->PublishEvent(Entry, true));
+	TestEqual(TEXT("One row is rebuilt inside the ScrollBox"), Widget->ScrollBox_Entries->GetChildrenCount(), 1);
+	TestTrue(TEXT("First event queues layout retries"), Widget->PendingScrollToEndFrames > 0);
+
+	while (Widget->PendingScrollToEndFrames > 0)
+	{
+		Widget->ApplyPendingScrollToEnd();
+	}
+	TestEqual(TEXT("Follow-newest retries terminate without an infinite scroll lock"),
+		Widget->PendingScrollToEndFrames, 0);
+
+	Entry.Message = FText::FromString(TEXT("A newly published event is the latest row."));
+	TestTrue(TEXT("Publishing another visible event is accepted"), Feed->PublishEvent(Entry, true));
+	TestEqual(TEXT("A second event rebuilds two chronological rows"),
+		Widget->ScrollBox_Entries->GetChildrenCount(), 2);
+	TestTrue(TEXT("Each visible event re-arms deferred bottom alignment"),
+		Widget->PendingScrollToEndFrames > 0);
+
+	Widget->SetCategoryEnabled(EGridHudEventCategory::Dungeon, false);
+	TestEqual(TEXT("Hidden category removes the displayed rows"),
+		Widget->ScrollBox_Entries->GetChildrenCount(), 0);
+	// Unrelated hidden publications may not force newly visible content.
+	while (Widget->PendingScrollToEndFrames > 0)
+	{
+		Widget->ApplyPendingScrollToEnd();
+	}
+	Entry.Message = FText::FromString(TEXT("Hidden event must not force autoscroll."));
+	TestTrue(TEXT("Hidden-category event still enters authoritative history"),
+		Feed->PublishEvent(Entry, true));
+	TestEqual(TEXT("Hidden event leaves the presentation empty"),
+		Widget->ScrollBox_Entries->GetChildrenCount(), 0);
+	TestEqual(TEXT("Hidden event does not queue a new scroll request"),
+		Widget->PendingScrollToEndFrames, 0);
+
+	Feed->OnEventPublished.RemoveDynamic(Widget, &UGridEventFeedWidget::HandleEventPublished);
 	return true;
 }
 

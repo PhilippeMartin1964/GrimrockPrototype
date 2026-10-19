@@ -566,6 +566,12 @@ Les événements restent dans l’ordre chronologique :
 
 Le défilement à la roulette reste libre entre deux nouveaux événements. Le changement de filtre conserve autant que possible la position de consultation courante ; une entrée dans une catégorie masquée ne déclenche pas de retour automatique en bas.
 
+**EVENTHUD01.16 — correction du layout différé.** `UScrollBox::ScrollToEnd()` ne déplace pas immédiatement le contenu : son effet est appliqué à la prochaine passe de layout Slate. Or `RebuildEntryPresentation()` détruit et recrée toutes les lignes avec retour automatique à la ligne, dont la hauteur finale peut ne pas encore être calculée. Le widget demande donc `ForceLayoutPrepass()`, puis réitère pendant quatre mises à jour UMG maximum le scroll vers la fin **et la dernière ligne** via `ScrollWidgetIntoView(..., BottomOrRight)`. Une publication visible réarme ce suivi, et le changement de filtre conserve la logique précédente. Aucun Tick supplémentaire n'est créé (réutilisation du `NativeTick` déjà présent pour la poignée de redimensionnement).
+
+Le test automatisé `Grimrock.UI.EventHUD01.Interaction.ScrollFollowLayout` vérifie la liaison à une publication réelle, la reconstruction des lignes, le réarmement des demandes différées et la non-réaction aux catégories masquées. Le défilement final en pixels exige toujours une vérification **en PIE avec un layout Slate rendu** : les tests commandlet ne mesurent pas la position graphique à l'écran.
+
+Si le problème persiste malgré la correction, activer les traces `LogGridEventFeedScroll Verbose` et vérifier les offsets `ScrollOffset` / `EndOffset`, ainsi que les éventuelles opérations Blueprint `SetScrollOffset` sur `WBP_GridEventFeed`.
+
 ## 21. Interaction souris
 
 Le Flux ne crée aucun nouveau mode souris.

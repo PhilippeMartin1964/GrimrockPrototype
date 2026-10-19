@@ -241,6 +241,7 @@ private:
 	void UnbindEventFeed();
 	void RebuildEntryPresentation(bool bForceScrollToEnd = false);
 	void ScrollPresentationToEnd();
+	void ApplyPendingScrollToEnd();
 	float GetPresentationScrollOffset() const;
 	float GetPresentationScrollEndOffset() const;
 	FText BuildFilterText(EGridHudEventCategory Category) const;
@@ -268,6 +269,15 @@ private:
 	float CurrentPanelHeight = 320.0f;
 
 	TWeakObjectPtr<UGridEventFeedSubsystem> EventFeedSubsystem;
+
+	/** ScrollToEnd is deferred until the Slate layout pass. Re-request for a few
+	 *  frames after rebuilding wrapped text so the last row really becomes visible. */
+	static constexpr int32 ScrollToEndSettleFrames = 4;
+	int32 PendingScrollToEndFrames = 0;
+
+	/** Automation exercises actual event publication and the deferred scroll path. */
+	friend class FGridUIEventHUD016ScrollFollowLayoutTest;
+
 	bool bResizeDragging = false;
 	float ResizeStartScreenY = 0.0f;
 	float ResizeStartHeight = 320.0f;
