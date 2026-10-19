@@ -240,6 +240,8 @@ private:
 	void BindEventFeed();
 	void UnbindEventFeed();
 	void RebuildEntryPresentation(bool bForceScrollToEnd = false);
+	bool AppendEntryPresentation(const FGridHudEventEntry& Entry);
+	void SynchronizePublishedEntryPresentation(const FGridHudEventEntry& PublishedEntry);
 	void ScrollPresentationToEnd();
 	void ApplyPendingScrollToEnd();
 	float GetPresentationScrollOffset() const;
@@ -270,6 +272,10 @@ private:
 
 	TWeakObjectPtr<UGridEventFeedSubsystem> EventFeedSubsystem;
 
+	/** Sequence IDs matching the actual ScrollBox children, in display order.
+	 *  Transient presentation-only bookkeeping, never saved or authoritative. */
+	TArray<int64> PresentedSequenceIds;
+
 	/** ScrollToEnd is deferred until the Slate layout pass. Re-request for a few
 	 *  frames after rebuilding wrapped text so the last row really becomes visible. */
 	static constexpr int32 ScrollToEndSettleFrames = 4;
@@ -277,6 +283,7 @@ private:
 
 	/** Automation exercises actual event publication and the deferred scroll path. */
 	friend class FGridUIEventHUD016ScrollFollowLayoutTest;
+	friend class FGridUIEventHUD018IncrementalProjectionTest;
 
 	bool bResizeDragging = false;
 	float ResizeStartScreenY = 0.0f;

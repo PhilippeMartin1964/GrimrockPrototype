@@ -257,6 +257,7 @@ void UGridEventFeedWidget::NativeConstruct()
 void UGridEventFeedWidget::NativeDestruct()
 {
 	PendingScrollToEndFrames = 0;
+	PresentedSequenceIds.Reset();
 	EndResize();
 	UnbindEventFeed();
 	UnbindControls();
@@ -377,89 +378,106 @@ void UGridEventFeedWidget::UnbindEventFeed()
 	EventFeedSubsystem.Reset();
 }
 
+bool UGridEventFeedWidget::AppendEntryPresentation(const FGridHudEventEntry& Entry)
+{
+	if (!ScrollBox_Entries)
+	{
+		return false;
+	}
+
+	UHorizontalBox* Row = WidgetTree
+		? WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass())
+		: NewObject<UHorizontalBox>(this);
+	UTextBlock* MessageText = WidgetTree
+		? WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass())
+		: NewObject<UTextBlock>(this);
+	if (!Row || !MessageText)
+	{
+		return false;
+	}
+
+	if (Entry.bHasGameplayTimestamp)
+	{
+		UTextBlock* TimestampText = WidgetTree
+			? WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass())
+			: NewObject<UTextBlock>(this);
+		if (TimestampText)
+		{
+			TimestampText->SetText(FormatGameplayTimestamp(Entry.GameplayElapsedSeconds));
+			TimestampText->SetFont(EntryFont);
+			TimestampText->SetColorAndOpacity(FSlateColor(TimestampColor));
+			TimestampText->SetAutoWrapText(false);
+			TimestampText->SetVisibility(ESlateVisibility::HitTestInvisible);
+			if (UHorizontalBoxSlot* TimestampSlot = Row->AddChildToHorizontalBox(TimestampText))
+			{
+				TimestampSlot->SetPadding(FMargin(0.0f, 0.0f, 8.0f, 0.0f));
+				TimestampSlot->SetVerticalAlignment(VAlign_Top);
+			}
+		}
+	}
+
+	MessageText->SetText(BuildEntryText(Entry));
+	MessageText->SetFont(EntryFont);
+	MessageText->SetColorAndOpacity(FSlateColor(GetSemanticColor(Entry.Semantic)));
+	MessageText->SetAutoWrapText(true);
+	MessageText->SetVisibility(ESlateVisibility::HitTestInvisible);
+	if (UHorizontalBoxSlot* MessageSlot = Row->AddChildToHorizontalBox(MessageText))
+	{
+		MessageSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		MessageSlot->SetVerticalAlignment(VAlign_Top);
+	}
+
+	const FText TooltipText = BuildEntryTooltipText(Entry);
+	if (Entry.Category == EGridHudEventCategory::Combat && !TooltipText.IsEmpty())
+	{
+		if (SharedTooltipWidgetClass)
+		{
+			if (UGridNavigationTooltipWidget* TooltipWidget =
+				CreateWidget<UGridNavigationTooltipWidget>(this, SharedTooltipWidgetClass))
+			{
+				TooltipWidget->InitializeTooltip(TooltipText);
+				TooltipWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+				Row->SetToolTip(TooltipWidget);
+			}
+		}
+		else
+		{
+			Row->SetToolTipText(TooltipText);
+		}
+		Row->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		Row->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+	ScrollBox_Entries->AddChild(Row);
+	PresentedSequenceIds.Add(Entry.SequenceId);
+	return true;
+}
+
 void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 {
 	const float PreviousOffset = GetPresentationScrollOffset();
 	const bool bWasAtEnd = bForceScrollToEnd ||
 		IsScrollAtEnd(PreviousOffset, GetPresentationScrollEndOffset());
 
+	// Full rebuild is deliberately limited to construction, filter changes,
+	// or recovery from a presentation/authoritative-history mismatch.
 	TArray<FGridHudEventEntry> VisibleEntries;
 	if (const UGridEventFeedSubsystem* Subsystem = EventFeedSubsystem.Get())
 	{
 		FilterEntries(Subsystem->GetEntries(), bShowEvents, bShowCombat, bShowDiscussion, VisibleEntries);
 	}
-
 	if (ScrollBox_Entries)
 	{
 		ScrollBox_Entries->ClearChildren();
-		for (const FGridHudEventEntry& Entry : VisibleEntries)
+	}
+	PresentedSequenceIds.Reset();
+	for (const FGridHudEventEntry& Entry : VisibleEntries)
+	{
+		if (!AppendEntryPresentation(Entry))
 		{
-			UHorizontalBox* Row = WidgetTree
-				? WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass())
-				: NewObject<UHorizontalBox>(this);
-			UTextBlock* MessageText = WidgetTree
-				? WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass())
-				: NewObject<UTextBlock>(this);
-			if (!Row || !MessageText)
-			{
-				continue;
-			}
-
-			if (Entry.bHasGameplayTimestamp)
-			{
-				UTextBlock* TimestampText = WidgetTree
-					? WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass())
-					: NewObject<UTextBlock>(this);
-				if (TimestampText)
-				{
-					TimestampText->SetText(FormatGameplayTimestamp(Entry.GameplayElapsedSeconds));
-					TimestampText->SetFont(EntryFont);
-					TimestampText->SetColorAndOpacity(FSlateColor(TimestampColor));
-					TimestampText->SetAutoWrapText(false);
-					TimestampText->SetVisibility(ESlateVisibility::HitTestInvisible);
-					if (UHorizontalBoxSlot* TimestampSlot = Row->AddChildToHorizontalBox(TimestampText))
-					{
-						TimestampSlot->SetPadding(FMargin(0.0f, 0.0f, 8.0f, 0.0f));
-						TimestampSlot->SetVerticalAlignment(VAlign_Top);
-					}
-				}
-			}
-
-			MessageText->SetText(BuildEntryText(Entry));
-			MessageText->SetFont(EntryFont);
-			MessageText->SetColorAndOpacity(FSlateColor(GetSemanticColor(Entry.Semantic)));
-			MessageText->SetAutoWrapText(true);
-			MessageText->SetVisibility(ESlateVisibility::HitTestInvisible);
-			if (UHorizontalBoxSlot* MessageSlot = Row->AddChildToHorizontalBox(MessageText))
-			{
-				MessageSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-				MessageSlot->SetVerticalAlignment(VAlign_Top);
-			}
-
-			const FText TooltipText = BuildEntryTooltipText(Entry);
-			if (Entry.Category == EGridHudEventCategory::Combat && !TooltipText.IsEmpty())
-			{
-				if (SharedTooltipWidgetClass)
-				{
-					if (UGridNavigationTooltipWidget* TooltipWidget =
-						CreateWidget<UGridNavigationTooltipWidget>(this, SharedTooltipWidgetClass))
-					{
-						TooltipWidget->InitializeTooltip(TooltipText);
-						TooltipWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
-						Row->SetToolTip(TooltipWidget);
-					}
-				}
-				else
-				{
-					Row->SetToolTipText(TooltipText);
-				}
-				Row->SetVisibility(ESlateVisibility::Visible);
-			}
-			else
-			{
-				Row->SetVisibility(ESlateVisibility::HitTestInvisible);
-			}
-			ScrollBox_Entries->AddChild(Row);
+			break;
 		}
 	}
 
@@ -469,10 +487,91 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 	}
 	else if (ScrollBox_Entries)
 	{
-		// A filter change while reading old messages must cancel an earlier
-		// follow-newest request rather than snap the player back down.
+		// Filter rebuilds while reading older history must cancel the
+		// previous follow-newest request.
 		PendingScrollToEndFrames = 0;
 		ScrollBox_Entries->SetScrollOffset(PreviousOffset);
+	}
+}
+
+void UGridEventFeedWidget::SynchronizePublishedEntryPresentation(const FGridHudEventEntry& PublishedEntry)
+{
+	if (!ScrollBox_Entries)
+	{
+		return;
+	}
+	const UGridEventFeedSubsystem* Subsystem = EventFeedSubsystem.Get();
+	if (!Subsystem)
+	{
+		RebuildEntryPresentation(IsCategoryEnabled(PublishedEntry.Category));
+		return;
+	}
+
+	// The runtime buffer is a bounded FIFO (by default 200). Inspect its
+	// sequence IDs, retaining existing UMG rows wherever they still match.
+	// This is O(history length) for a cheap ID check, not O(history length)
+	// allocation/destruction of Slate widgets on every published event.
+	TArray<const FGridHudEventEntry*> Desired;
+	const TArray<FGridHudEventEntry>& History = Subsystem->GetEntries();
+	Desired.Reserve(History.Num());
+	for (const FGridHudEventEntry& Event : History)
+	{
+		if (IsCategoryEnabled(Event.Category))
+		{
+			Desired.Add(&Event);
+		}
+	}
+
+	if (PresentedSequenceIds.Num() != ScrollBox_Entries->GetChildrenCount())
+	{
+		RebuildEntryPresentation(IsCategoryEnabled(PublishedEntry.Category));
+		return;
+	}
+
+	const int64 FirstDesiredSequence = Desired.IsEmpty() ? MAX_int64 : Desired[0]->SequenceId;
+	int32 EvictedVisibleCount = 0;
+	while (EvictedVisibleCount < PresentedSequenceIds.Num() &&
+		PresentedSequenceIds[EvictedVisibleCount] < FirstDesiredSequence)
+	{
+		++EvictedVisibleCount;
+	}
+
+	const int32 RetainedCount = PresentedSequenceIds.Num() - EvictedVisibleCount;
+	bool bConsistent = RetainedCount <= Desired.Num();
+	for (int32 Index = 0; bConsistent && Index < RetainedCount; ++Index)
+	{
+		bConsistent =
+			PresentedSequenceIds[EvictedVisibleCount + Index] == Desired[Index]->SequenceId;
+	}
+	if (!bConsistent)
+	{
+		// Covers a reset, external replacement or any unexpected divergence.
+		RebuildEntryPresentation(IsCategoryEnabled(PublishedEntry.Category));
+		return;
+	}
+
+	for (int32 Index = 0; Index < EvictedVisibleCount; ++Index)
+	{
+		ScrollBox_Entries->RemoveChildAt(0);
+	}
+	if (EvictedVisibleCount > 0)
+	{
+		PresentedSequenceIds.RemoveAt(0, EvictedVisibleCount, EAllowShrinking::No);
+	}
+	for (int32 Index = RetainedCount; Index < Desired.Num(); ++Index)
+	{
+		if (!AppendEntryPresentation(*Desired[Index]))
+		{
+			RebuildEntryPresentation(IsCategoryEnabled(PublishedEntry.Category));
+			return;
+		}
+	}
+
+	// Hidden publications can still evict an old visible FIFO entry, but may
+	// not force the player away from the history they are reading.
+	if (IsCategoryEnabled(PublishedEntry.Category))
+	{
+		ScrollPresentationToEnd();
 	}
 }
 
@@ -674,14 +773,10 @@ void UGridEventFeedWidget::HandleResizeReleased()
 
 void UGridEventFeedWidget::HandleEventPublished(const FGridHudEventEntry& Entry)
 {
-	if (!IsCategoryEnabled(Entry.Category))
-	{
-		return;
-	}
-
-	// Every visible publication must force the newest row into view, even if
-	// the user had scrolled up. The request is settled across Slate layout passes.
-	RebuildEntryPresentation(true);
+	// Even a filtered-out publication may evict an old visible FIFO entry.
+	// Keep existing rows; append only the new visible event and evict the
+	// oldest on FIFO overflow. The new event still forces the last row into view.
+	SynchronizePublishedEntryPresentation(Entry);
 }
 
 #undef LOCTEXT_NAMESPACE

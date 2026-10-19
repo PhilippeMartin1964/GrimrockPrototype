@@ -209,4 +209,125 @@ bool FGridUIEventHUD016ScrollFollowLayoutTest::RunTest(const FString& Parameters
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIEventHUD018IncrementalProjectionTest,
+	"Grimrock.UI.EventHUD01.Interaction.IncrementalProjection",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIEventHUD018IncrementalProjectionTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridEventFeedWidget* Widget = NewObject<UGridEventFeedWidget>();
+	UGridEventFeedSubsystem* Feed = NewObject<UGridEventFeedSubsystem>();
+	if (!TestNotNull(TEXT("Projection widget exists"), Widget) ||
+		!TestNotNull(TEXT("Event authority exists"), Feed))
+	{
+		return false;
+	}
+	Widget->ScrollBox_Entries = NewObject<UScrollBox>(Widget);
+	if (!TestNotNull(TEXT("Scroll box exists"), Widget->ScrollBox_Entries.Get()))
+	{
+		return false;
+	}
+	Widget->EventFeedSubsystem = Feed;
+	Feed->SetMaxEventCount(3);
+	Feed->OnEventPublished.AddUniqueDynamic(Widget, &UGridEventFeedWidget::HandleEventPublished);
+
+	auto Publish = [Feed](EGridHudEventCategory Category, const TCHAR* Message) -> bool
+	{
+		FGridHudEventEntry Entry;
+		Entry.Category = Category;
+		Entry.Visibility = EGridEventVisibility::Always;
+		Entry.Message = FText::FromString(Message);
+		Entry.bHasGameplayTimestamp = true;
+		Entry.GameplayElapsedSeconds = 86400;
+		if (Category == EGridHudEventCategory::Combat)
+		{
+			Entry.Details.Add(FText::FromString(TEXT("1d8 + 2 : 7")));
+		}
+		return Feed->PublishEvent(Entry, true);
+	};
+
+	TestTrue(TEXT("First dungeon publication accepted"), Publish(EGridHudEventCategory::Dungeon, TEXT("One")));
+	TestEqual(TEXT("First publication adds one row"), Widget->ScrollBox_Entries->GetChildrenCount(), 1);
+	UWidget* FirstRow = Widget->ScrollBox_Entries->GetChildAt(0);
+	TestNotNull(TEXT("First row retained for identity test"), FirstRow);
+
+	TestTrue(TEXT("Second combat publication accepted"), Publish(EGridHudEventCategory::Combat, TEXT("Two")));
+	TestEqual(TEXT("Second publication adds only one row"), Widget->ScrollBox_Entries->GetChildrenCount(), 2);
+	TestTrue(TEXT("First UMG row instance is reused"), Widget->ScrollBox_Entries->GetChildAt(0) == FirstRow);
+	UWidget* CombatRow = Widget->ScrollBox_Entries->GetChildAt(1);
+	TestNotNull(TEXT("Combat row exists"), CombatRow);
+	TestTrue(TEXT("Combat detailed tooltip is preserved"),
+		CombatRow && CombatRow->GetToolTipText().ToString().Contains(TEXT("1d8 + 2 : 7")));
+	TestTrue(TEXT("New publication re-arms bottom following"), Widget->PendingScrollToEndFrames > 0);
+
+	TestTrue(TEXT("Third dialogue publication accepted"), Publish(EGridHudEventCategory::Dialogue, TEXT("Three")));
+	UWidget* ThirdRow = Widget->ScrollBox_Entries->GetChildAt(2);
+	TestTrue(TEXT("Combat row survives a later dialogue event"), Widget->ScrollBox_Entries->GetChildAt(1) == CombatRow);
+
+	TestTrue(TEXT("Fourth combat event overflows capacity"), Publish(EGridHudEventCategory::Combat, TEXT("Four")));
+	TestEqual(TEXT("FIFO presentation stays at three rows"), Widget->ScrollBox_Entries->GetChildrenCount(), 3);
+	TestTrue(TEXT("Overflow removes only the oldest row"),
+		Widget->ScrollBox_Entries->GetChildAt(0) == CombatRow &&
+		Widget->ScrollBox_Entries->GetChildAt(1) == ThirdRow);
+	TestEqual(TEXT("Projection begins at sequence 2"), Widget->PresentedSequenceIds[0], int64(2));
+	TestEqual(TEXT("Projection ends at sequence 4"), Widget->PresentedSequenceIds.Last(), int64(4));
+
+	Widget->SetCategoryEnabled(EGridHudEventCategory::Combat, false);
+	TestEqual(TEXT("Filtering rebuilds exactly one dialogue row"),
+		Widget->ScrollBox_Entries->GetChildrenCount(), 1);
+	UWidget* DialogueRowAfterFilter = Widget->ScrollBox_Entries->GetChildAt(0);
+	while (Widget->PendingScrollToEndFrames > 0)
+	{
+		Widget->ApplyPendingScrollToEnd();
+	}
+
+	TestTrue(TEXT("A hidden combat publication is still accepted"),
+		Publish(EGridHudEventCategory::Combat, TEXT("Five")));
+	TestEqual(TEXT("Hidden event leaves dialogue row untouched"),
+		Widget->ScrollBox_Entries->GetChildrenCount(), 1);
+	TestTrue(TEXT("Hidden event retains exact row identity"),
+		Widget->ScrollBox_Entries->GetChildAt(0) == DialogueRowAfterFilter);
+	TestEqual(TEXT("Hidden publication does not rearm autoscroll"),
+		Widget->PendingScrollToEndFrames, 0);
+
+	TestTrue(TEXT("Another hidden event evicts old visible dialogue"),
+		Publish(EGridHudEventCategory::Combat, TEXT("Six")));
+	TestEqual(TEXT("Evicted old visible row is removed even when publication is hidden"),
+		Widget->ScrollBox_Entries->GetChildrenCount(), 0);
+	TestEqual(TEXT("No stale projected sequences after FIFO overflow"),
+		Widget->PresentedSequenceIds.Num(), 0);
+	TestEqual(TEXT("Hidden eviction still does not rearm autoscroll"),
+		Widget->PendingScrollToEndFrames, 0);
+
+	TestTrue(TEXT("A visible publication resumes incremental presentation"),
+		Publish(EGridHudEventCategory::Dungeon, TEXT("Seven")));
+	TestEqual(TEXT("One new dungeon row appears"), Widget->ScrollBox_Entries->GetChildrenCount(), 1);
+	TestEqual(TEXT("Projected sequence advances to 7"), Widget->PresentedSequenceIds.Last(), int64(7));
+
+	Widget->SetCategoryEnabled(EGridHudEventCategory::Combat, true);
+	TestEqual(TEXT("Filter restore reconstructs all three retained events"),
+		Widget->ScrollBox_Entries->GetChildrenCount(), 3);
+	TestEqual(TEXT("Reconstructed view starts at sequence 5"), Widget->PresentedSequenceIds[0], int64(5));
+	UWidget* SurvivingRow = Widget->ScrollBox_Entries->GetChildAt(1);
+	TestTrue(TEXT("Eighth event accepted"), Publish(EGridHudEventCategory::Dungeon, TEXT("Eight")));
+	TestTrue(TEXT("Restored view retains surviving event after overflow"),
+		Widget->ScrollBox_Entries->GetChildAt(0) == SurvivingRow);
+
+	// A disrupted widget tree is recovered from canonical history instead
+	// of silently duplicating or omitting rows.
+	Widget->ScrollBox_Entries->RemoveChildAt(0);
+	TestTrue(TEXT("Ninth event accepted after artificial tree desynchronization"),
+		Publish(EGridHudEventCategory::Dungeon, TEXT("Nine")));
+	TestEqual(TEXT("Mismatch recovers three canonical rows"),
+		Widget->ScrollBox_Entries->GetChildrenCount(), 3);
+	TestEqual(TEXT("Recovered view begins with sequence 7"), Widget->PresentedSequenceIds[0], int64(7));
+	TestEqual(TEXT("Recovered view ends with sequence 9"), Widget->PresentedSequenceIds.Last(), int64(9));
+
+	Feed->OnEventPublished.RemoveDynamic(Widget, &UGridEventFeedWidget::HandleEventPublished);
+	return true;
+}
+
 #endif
