@@ -45,11 +45,18 @@ bool FGridUIEventHUD013FiltersTest::RunTest(const FString& Parameters)
 		Widget->CheckBox_FilterDiscussion->IsChecked());
 	Widget->SetCategoryEnabled(EGridHudEventCategory::Combat, true);
 	TestTrue(TEXT("Re-enabling combat checks its native checkbox"), Widget->CheckBox_FilterCombat->IsChecked());
-	// Exercise the same native delegate consumed by OnCheckStateChanged in PIE.
-	Widget->CheckBox_FilterCombat->OnCheckStateChanged.Broadcast(false);
-	TestFalse(TEXT("Native combat toggle updates the filter model"), Widget->IsCategoryEnabled(EGridHudEventCategory::Combat));
-	Widget->CheckBox_FilterCombat->OnCheckStateChanged.Broadcast(true);
-	TestTrue(TEXT("Native combat toggle can restore the filter model"), Widget->IsCategoryEnabled(EGridHudEventCategory::Combat));
+	// Automation constructs the widget without NativeConstruct(), so invoke the
+	// UFUNCTION target directly instead of broadcasting an unbound delegate.
+	UFunction* CheckStateHandler = Widget->FindFunction(FName(TEXT("HandleFilterCombatCheckStateChanged")));
+	if (TestNotNull(TEXT("Native combat checkbox has a state-change handler"), CheckStateHandler))
+	{
+		struct FCheckStateChangeParams { bool bIsChecked; } Params{false};
+		Widget->ProcessEvent(CheckStateHandler, &Params);
+		TestFalse(TEXT("Native combat state-change handler disables the filter"), Widget->IsCategoryEnabled(EGridHudEventCategory::Combat));
+		Params.bIsChecked = true;
+		Widget->ProcessEvent(CheckStateHandler, &Params);
+		TestTrue(TEXT("Native combat state-change handler restores the filter"), Widget->IsCategoryEnabled(EGridHudEventCategory::Combat));
+	}
 	Widget->SetCategoryEnabled(EGridHudEventCategory::Combat, false);
 	TestFalse(TEXT("Combat can be hidden independently"), Widget->IsCategoryEnabled(EGridHudEventCategory::Combat));
 	TestTrue(TEXT("Events remain enabled"), Widget->IsCategoryEnabled(EGridHudEventCategory::Dungeon));
