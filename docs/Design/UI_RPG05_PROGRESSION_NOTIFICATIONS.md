@@ -1,3 +1,5 @@
+> **Actualisation UI-RPG-CLEAN02 (19 octobre 2026).** La fabrique historique `MakeLevelUpNotification()` et ses tests de toast ont ete retires : les disponibilites de progression passent par le portrait et `Party.Progression.PointsAvailable` dans le Flux. **WBP_RPGNotification est conserve** pour les confirmations et refus d'attribution (competences, talents, caracteristiques). Les sections originales ci-dessous sont conservees comme historique du jalon UI-RPG05.
+
 # UI-RPG05 — Notifications et feedback de progression
 
 Date : **7 octobre 2026**  

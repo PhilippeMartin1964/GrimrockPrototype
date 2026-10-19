@@ -7,7 +7,9 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGAttributePointService.h"
 #include "RPG/RPGLevelUpService.h"
+#include "RPG/RPGSkillPointService.h"
 #include "RPG/RPGProgressionPIESimulator.h"
 #include "RPGMON155TestHelpers.h"
 #include "Runtime/GridInventoryTypes.h"
@@ -106,54 +108,56 @@ bool FRPGLEVELUX01NoDurableAcknowledgementTest::RunTest(const FString& Parameter
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FRPGLEVELUX01SkillOnlyFeedbackTest,
-	"Grimrock.RPG.LEVELUX01.Feedback.SkillOnlyLevel",
+	FRPGLEVELUX01OddLevelProgressionAvailabilityTest,
+	"Grimrock.RPG.LEVELUX01.Progression.OddLevelBalances",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FRPGLEVELUX01SkillOnlyFeedbackTest::RunTest(const FString& Parameters)
+bool FRPGLEVELUX01OddLevelProgressionAvailabilityTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-
-	const FRPGProgressionNotificationView Notification =
-		FRPGProgressionFeedbackService::MakeLevelUpNotification(
-			FText::FromString(TEXT("Elias")),
-			4,
-			5,
-			1,
-			0,
-			0,
-			3);
-
-	TestEqual(TEXT("Title names the reached level"), Notification.Title.ToString(), FString(TEXT("Niveau 5 atteint")));
-	TestTrue(TEXT("Odd level feedback contains the Skill Point"), Notification.Message.ToString().Contains(TEXT("compétence")));
-	TestFalse(TEXT("Odd level feedback does not invent a Talent Point"), Notification.Message.ToString().Contains(TEXT("talent")));
-	TestTrue(TEXT("Rank-cap milestone is visible"), Notification.Message.ToString().Contains(TEXT("3")));
-	TestEqual(TEXT("Level-Up toast lasts five seconds"), Notification.DurationSeconds, 5.0f);
+	FMON155RuntimeStateGuard Guard;
+	URPGClassAsset* ClassDefinition = nullptr;
+	UGridPartyInventoryComponent* Component = MakeMON155Inventory(5, 0, ClassDefinition);
+	const FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
+	FRPGSkillPointBalance SkillBalance;
+	TestTrue(TEXT("Skill currency derives from the level-five character"),
+		FRPGSkillPointService::TryGetBalance(Character, SkillBalance));
+	TestEqual(TEXT("Level five grants eight total Skill Points"), SkillBalance.GrantedPoints, 8);
+	TestEqual(TEXT("Level five raises the canonical Skill rank cap"), SkillBalance.RankCap, 3);
+	TestEqual(TEXT("Level-five skill allocation is still available"), SkillBalance.RemainingPoints, 8);
+	TestEqual(TEXT("Level five grants no new Attribute Point beyond level four"),
+		FRPGAttributePointService::GetTotalPointsGranted(5),
+		FRPGAttributePointService::GetTotalPointsGranted(4));
+	FGridInventoryCharacterSummary Summary;
+	TestTrue(TEXT("Character summary remains available"), Component->GetCharacterSummary(0, Summary));
+	TestTrue(TEXT("Unspent currency is projected to the portrait badge"), Summary.bHasUnspentProgressionPoints);
 	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FRPGLEVELUX01SkillTalentFeedbackTest,
-	"Grimrock.RPG.LEVELUX01.Feedback.SkillAndTalentLevel",
+	FRPGLEVELUX01EvenLevelProgressionAvailabilityTest,
+	"Grimrock.RPG.LEVELUX01.Progression.EvenLevelBalances",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FRPGLEVELUX01SkillTalentFeedbackTest::RunTest(const FString& Parameters)
+bool FRPGLEVELUX01EvenLevelProgressionAvailabilityTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-
-	const FRPGProgressionNotificationView Notification =
-		FRPGProgressionFeedbackService::MakeLevelUpNotification(
-			FText::FromString(TEXT("Elias")),
-			5,
-			6,
-			1,
-			1,
-			0,
-			0);
-
-	TestTrue(TEXT("Even level feedback contains the Skill Point"), Notification.Message.ToString().Contains(TEXT("compétence")));
-	TestTrue(TEXT("Even level feedback contains the Talent Point"), Notification.Message.ToString().Contains(TEXT("talent")));
-	TestFalse(TEXT("No rank-cap line is fabricated"), Notification.Message.ToString().Contains(TEXT("Rang maximal")));
+	FMON155RuntimeStateGuard Guard;
+	URPGClassAsset* ClassDefinition = nullptr;
+	UGridPartyInventoryComponent* Component = MakeMON155Inventory(6, 0, ClassDefinition);
+	const FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
+	FRPGSkillPointBalance SkillBalance;
+	TestTrue(TEXT("Skill currency derives from the level-six character"),
+		FRPGSkillPointService::TryGetBalance(Character, SkillBalance));
+	TestEqual(TEXT("Level six grants nine total Skill Points"), SkillBalance.GrantedPoints, 9);
+	TestEqual(TEXT("Level six does not invent a new Skill rank cap"), SkillBalance.RankCap, 3);
+	TestEqual(TEXT("Each new level grants exactly one more Skill Point"),
+		FRPGSkillPointService::GetTotalPointsGranted(6) -
+			FRPGSkillPointService::GetTotalPointsGranted(5), 1);
+	FGridInventoryCharacterSummary Summary;
+	TestTrue(TEXT("Character summary remains available"), Component->GetCharacterSummary(0, Summary));
+	TestTrue(TEXT("Pending progression stays visible without a Level-Up toast"),
+		Summary.bHasUnspentProgressionPoints);
 	return true;
 }
 

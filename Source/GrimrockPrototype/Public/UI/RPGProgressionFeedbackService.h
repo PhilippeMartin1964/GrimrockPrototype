@@ -72,13 +72,4 @@ struct GRIMROCKPROTOTYPE_API FRPGProgressionFeedbackService
 		const FRPGAttributePointMutationResult& Result,
 		const FText& AttributeDisplayName);
 
-	/** Notification générique de montée de niveau, utilisable par les surfaces de progression. */
-	static FRPGProgressionNotificationView MakeLevelUpNotification(
-		const FText& CharacterName,
-		int32 PreviousLevel,
-		int32 NewLevel,
-		int32 SkillPointsGained,
-		int32 TalentPointsGained,
-		int32 AttributePointsGained,
-		int32 UnlockedSkillRankCap = 0);
 };

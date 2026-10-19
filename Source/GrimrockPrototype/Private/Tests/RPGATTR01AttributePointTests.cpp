@@ -350,27 +350,26 @@ bool FRPGATTR01UIContractTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FRPGATTR01LevelUpFeedbackTest,
-	"Grimrock.RPG.ATTR01.Feedback.LevelFour",
+	FRPGATTR01AllocationFeedbackTest,
+	"Grimrock.RPG.ATTR01.Feedback.Allocation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FRPGATTR01LevelUpFeedbackTest::RunTest(const FString& Parameters)
+bool FRPGATTR01AllocationFeedbackTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-
+	FRPGAttributePointMutationResult Result;
+	Result.bCommitted = true;
+	Result.NewValue = 14;
+	Result.RemainingPoints = 0;
 	const FRPGProgressionNotificationView Notification =
-		FRPGProgressionFeedbackService::MakeLevelUpNotification(
-			FText::FromString(TEXT("Elias")),
-			3,
-			4,
-			1,
-			1,
-			1,
-			0);
-
-	TestTrue(TEXT("Level-four toast mentions Attribute Point"), Notification.Message.ToString().Contains(TEXT("caractéristique")));
-	TestTrue(TEXT("Level-four toast still mentions Skill Point"), Notification.Message.ToString().Contains(TEXT("compétence")));
-	TestTrue(TEXT("Level-four toast still mentions Talent Point"), Notification.Message.ToString().Contains(TEXT("talent")));
+		FRPGProgressionFeedbackService::MakeAttributePointPurchaseNotification(
+			Result, FText::FromString(TEXT("Constitution")));
+	TestEqual(TEXT("Allocation confirmation keeps the non-modal success severity"),
+		Notification.Severity, ERPGProgressionNotificationSeverity::Success);
+	TestTrue(TEXT("Allocation confirmation names the improved characteristic"),
+		Notification.Message.ToString().Contains(TEXT("Constitution")));
+	TestTrue(TEXT("Allocation confirmation describes remaining points"),
+		Notification.Message.ToString().Contains(TEXT("0")));
 	return true;
 }
 

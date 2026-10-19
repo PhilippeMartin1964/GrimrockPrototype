@@ -92,3 +92,7 @@ sans recréer de double autorité.
 La file transitoire de toasts Level Up de RPG-LEVELUX01 est retirée. Les notifications de **montée de niveau** ne passent plus par `WBP_RPGNotification` : `FGridPartyPortraitView::bHasUnspentProgressionPoints` est recalculé à partir des soldes canoniques des points de compétence, attribut et talent. Les portraits montrent `Image_LevelUpAlert` jusqu'à consommation des points. La surcharge suit `FGridInventoryCharacterSummary::bOverloaded` via `Image_WeightAlert`.
 
 Le présent texte conserve l'historique du jalon original. `UGridRPGNotificationWidget` et son binding dans le HUD persistant restent utilisables **uniquement pour les autres feedbacks de progression** (ex. points d'attribut), pas pour une montée de niveau. L'asset UMG doit être adapté dans Unreal Editor ; aucun `.uasset` n'est supprimé par édition de texte.
+
+## Actualisation UI-RPG-CLEAN02 (19 octobre 2026)
+
+La fabrique de presentation du **toast de montee de niveau** `FRPGProgressionFeedbackService::MakeLevelUpNotification` et ses tests de formatage historiques ont ete supprimes. Les points disponibles sont visibles via le portrait et le Flux d'evenements. Le widget `WBP_RPGNotification` est **conserve** pour les retours utilisateur lors des transactions RPG (attributs, competences, talents). Les suites de validation `RPG-LEVELUX01` couvrent desormais les soldes canoniques du niveau 5 / 6, au lieu de construire un toast sans consommateur. Le diagramme et les resultats dates d'octobre ci-dessus restent des archives historiques.

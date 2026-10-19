@@ -85,21 +85,37 @@ bool FUIRPG05TalentFailureNotificationTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG05LevelUpNotificationTest,
-	"Grimrock.UI.RPG05.Feedback.LevelUp",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG05SkillAndAttributeFeedbackTest,
+	"Grimrock.UI.RPG05.Feedback.SkillAndAttribute",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FUIRPG05LevelUpNotificationTest::RunTest(const FString&)
+bool FUIRPG05SkillAndAttributeFeedbackTest::RunTest(const FString&)
 {
-	const FRPGProgressionNotificationView Notification =
-		FRPGProgressionFeedbackService::MakeLevelUpNotification(
-			FText::FromString(TEXT("Elias")), 1, 2, 1, 1, 0, 0);
+	// Purchase feedback still belongs to the non-modal RPG notification panel.
+	FRPGSkillPointMutationResult SkillResult;
+	SkillResult.bCommitted = true;
+	SkillResult.NewRank = 2;
+	SkillResult.RemainingPoints = 3;
+	const FRPGProgressionNotificationView SkillFeedback =
+		FRPGProgressionFeedbackService::MakeSkillRankPurchaseNotification(
+			SkillResult, FText::FromString(TEXT("Acrobatie")));
+	TestTrue(TEXT("Skill purchase feedback is valid"), SkillFeedback.IsValid());
+	TestEqual(TEXT("Skill purchase uses success severity"), SkillFeedback.Severity,
+		ERPGProgressionNotificationSeverity::Success);
+	TestTrue(TEXT("Skill purchase names the selected skill"),
+		SkillFeedback.Message.ToString().Contains(TEXT("Acrobatie")));
 
-	TestEqual(TEXT("Level-up severity"), Notification.Severity, ERPGProgressionNotificationSeverity::Success);
-	TestEqual(TEXT("Level-up title"), Notification.Title.ToString(), FString(TEXT("Niveau 2 atteint")));
-	TestTrue(TEXT("Level-up mentions character"), Notification.Message.ToString().Contains(TEXT("Elias")));
-	TestTrue(TEXT("Level-up mentions Skill point"), Notification.Message.ToString().Contains(TEXT("compétence")));
-	TestTrue(TEXT("Level-up mentions Talent point"), Notification.Message.ToString().Contains(TEXT("talent")));
+	FRPGAttributePointMutationResult AttributeResult;
+	AttributeResult.bCommitted = false;
+	AttributeResult.RejectReason = ERPGAttributePointMutationRejectReason::AttributeCapReached;
+	const FRPGProgressionNotificationView AttributeFeedback =
+		FRPGProgressionFeedbackService::MakeAttributePointPurchaseNotification(
+			AttributeResult, FText::FromString(TEXT("Force")));
+	TestTrue(TEXT("Attribute rejection feedback is valid"), AttributeFeedback.IsValid());
+	TestEqual(TEXT("Attribute rejection uses warning severity"), AttributeFeedback.Severity,
+		ERPGProgressionNotificationSeverity::Warning);
+	TestTrue(TEXT("Attribute rejection explains the cap"),
+		AttributeFeedback.Message.ToString().Contains(TEXT("20")));
 	return true;
 }
 
