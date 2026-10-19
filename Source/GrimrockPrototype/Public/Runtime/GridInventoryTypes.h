@@ -531,6 +531,10 @@ struct FGridInventoryCharacterSummary
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	bool bOverloaded = false;
 
+	/** Derived from authoritative Skill, Attribute and Talent balances. Never saved. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Progression")
+	bool bHasUnspentProgressionPoints = false;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Character")
 	bool bIsSelected = false;
 };

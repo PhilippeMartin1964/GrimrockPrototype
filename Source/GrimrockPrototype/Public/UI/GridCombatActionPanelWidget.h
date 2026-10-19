@@ -45,6 +45,12 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
 	TObjectPtr<UImage> Image_Portrait;
 
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI|Portrait Alerts")
+	TObjectPtr<UImage> Image_LevelUpAlert;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI|Portrait Alerts")
+	TObjectPtr<UImage> Image_WeightAlert;
+
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
 	TObjectPtr<UTextBlock> Text_Name;
 

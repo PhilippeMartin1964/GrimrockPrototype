@@ -37,3 +37,42 @@ git pull --ff-only
 ```
 
 Puis vérifier PIE : personnage avec points restants (plus affiché), dépense complète (plus masqué), nouvel échelon (plus réaffiché), sauvegarde/rechargement, surcharge et désurcharge, deux icônes simultanées, clic/sélection/drag du portrait, aucune popup en haut à droite lors du Level Up.
+
+## UI-PARTYHUD02.1 — Harmonisation des portraits de personnages (2026-10-19)
+
+### Source de vérité commune
+
+`FGridInventoryCharacterSummary` expose désormais deux indicateurs non persistants :
+- `bHasUnspentProgressionPoints`, obtenu via les soldes RPG canoniques existants (compétences, attributs, talents).
+- `bOverloaded`, obtenu via la règle de poids `Overloaded` existante.
+
+`GetPartyPortraitViews()` recopie ces deux états depuis `GetCharacterSummary()`, sans second calcul. Les widgets de l'inventaire et du combat consomment eux aussi le même résumé. Le rafraîchissement est piloté par les événements déjà existants, sans Tick ni nouveaux compteurs sauvegardés.
+
+### Surfaces à configurer dans l'éditeur UMG
+
+| Surface de portrait | Symbole « + » | Icône poids |
+|---|---|---|
+| `WBP_PartyPortraitHud` (HUD permanent) | `Image_LevelUpAlert` | `Image_WeightAlert` |
+| `WBP_PartyMember` (les six sélecteurs de la feuille de personnage) | **Ajouter** `Image_LevelUpAlert` | `Image_WeightAlert` existe déjà |
+| `WBP_CharacterSheet` (grand portrait sélectionné) | **Ajouter** `Image_CharacterLevelUpAlert` | **Ajouter** `Image_CharacterWeightAlert` |
+| WBP dérivé de `UGridCombatActionPanelWidget` (portrait d'un héros au combat) | **Ajouter** `Image_LevelUpAlert` | **Ajouter** `Image_WeightAlert` |
+| WBP dérivé de `UGridCombatHudInitiativeSlotWidget` (initiative : héros uniquement) | **Ajouter** `Image_LevelUpAlert` | **Ajouter** `Image_WeightAlert` |
+
+Les noms doivent correspondre exactement aux `BindWidgetOptional` C++. Chaque `Image` a `Is Variable = true`, `Not Hit-Testable (Self & All Children)` et `Collapsed` par défaut. Le C++ applique ensuite `HitTestInvisible` ou `Collapsed`. Choisir une texture RGBA de « + » graphique pour la progression, jamais un glyphe Unicode, et réutiliser `T_Weight` pour la surcharge. Ne pas couvrir les barres et zones cliquables.
+
+Dans les vues de combat, le modèle `FGridCombatHudPartyMemberView` transmet ces drapeaux pour chaque personnage du groupe. Les entrées d'initiative gardent les deux drapeaux à `false` pour les monstres, et le widget protège également la présentation par `Combatant.IsPartyMember()`.
+
+`WBP_InventoryBag` n'a pas de grand portrait indépendant dans ce contrat ; le portrait détaillé appartient à `WBP_CharacterSheet`. Les portraits de sélection initiale d'un personnage ne sont pas des portraits de personnages actifs avec progression inventaire.
+
+### Régressions ciblées
+
+```powershell
+cd D:\Development\GrimrockPrototype
+git pull --ff-only
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.PartyHud01"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.Feedback01"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.Character01"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.PartyHud02"
+```
+
+Ensuite vérifier sous PIE toutes les surfaces : progression disponible / dépensée, poids normal / lourd / surchargé / redevenu normal, coexistence des deux alertes, changement de personnage, affichage combat et initiative héros/monstre, clic et drag/drop. La réussite Automation ne valide pas l'intégration Designer, qui reste manuelle.

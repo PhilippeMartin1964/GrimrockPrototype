@@ -99,6 +99,7 @@ bool FGridUICharacter01PartyMemberCompactContractTest::RunTest(const FString& Pa
 	TestNull(TEXT("Party-specific class visual setter is removed"), PartyMemberClass->FindFunctionByName(TEXT("SetAvailableClassVisuals")));
 	TestNotNull(TEXT("Selection border binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Border_Selected")));
 	TestNotNull(TEXT("Overload warning binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Image_WeightAlert")));
+	TestNotNull(TEXT("Progression badge binding is shared with persistent portraits"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Image_LevelUpAlert")));
 	TestNotNull(TEXT("Status-effect row binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("HorizontalBox_StatusEffects")));
 	return true;
 }

@@ -63,6 +63,17 @@ void UGridCombatActionPanelWidget::RefreshBoundWidgets()
 {
 	SetVisibility(View.bPresent ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
+	if (Image_LevelUpAlert)
+	{
+		Image_LevelUpAlert->SetVisibility(
+			View.bPresent && View.bHasUnspentProgressionPoints ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+	if (Image_WeightAlert)
+	{
+		Image_WeightAlert->SetVisibility(
+			View.bPresent && View.bOverloaded ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+
 	if (Image_Portrait)
 	{
 		if (View.Portrait.IsNull())

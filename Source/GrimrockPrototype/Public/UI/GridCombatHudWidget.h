@@ -41,6 +41,12 @@ struct FGridCombatHudPartyMemberView
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
 	TSoftObjectPtr<UTexture2D> Portrait;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Portrait Alerts")
+	bool bHasUnspentProgressionPoints = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Portrait Alerts")
+	bool bOverloaded = false;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
 	int32 CurrentHealth = 0;
 
@@ -124,6 +130,13 @@ struct FGridCombatHudInitiativeView
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
 	FGridCombatantInitiativeEntry Combatant;
+
+	/** Player party only; monster portrait alerts always remain false. */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Portrait Alerts")
+	bool bHasUnspentProgressionPoints = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Portrait Alerts")
+	bool bOverloaded = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
 	bool bActive = false;
@@ -277,6 +290,12 @@ public:
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UImage> Image_Portrait;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Portrait Alerts")
+	TObjectPtr<UImage> Image_LevelUpAlert;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Portrait Alerts")
+	TObjectPtr<UImage> Image_WeightAlert;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UTextBlock> Text_Name;

@@ -81,6 +81,12 @@ void UGridPartyMemberWidget::RefreshBoundMemberVisuals()
 		Border_Selected->SetVisibility(CachedSummary.bIsSelected ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 
+	if (Image_LevelUpAlert)
+	{
+		Image_LevelUpAlert->SetVisibility(
+			CachedSummary.bHasUnspentProgressionPoints ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+
 	if (Image_WeightAlert)
 	{
 		Image_WeightAlert->SetVisibility(

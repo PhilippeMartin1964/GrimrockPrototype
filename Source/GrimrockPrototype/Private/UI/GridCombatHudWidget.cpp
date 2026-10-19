@@ -653,6 +653,18 @@ void UGridCombatHudInitiativeSlotWidget::EnsureHealthProgressBar()
 
 void UGridCombatHudInitiativeSlotWidget::RefreshWidgets()
 {
+	const bool bPartyPortrait = View.Combatant.IsPartyMember();
+	if (Image_LevelUpAlert)
+	{
+		Image_LevelUpAlert->SetVisibility(
+			bPartyPortrait && View.bHasUnspentProgressionPoints ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+	if (Image_WeightAlert)
+	{
+		Image_WeightAlert->SetVisibility(
+			bPartyPortrait && View.bOverloaded ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+
 	if (Image_Portrait)
 	{
 		if (View.Combatant.Portrait.IsNull())
@@ -755,6 +767,8 @@ void UGridCombatHudWidget::RefreshFromSources()
 			? FText::FromString(FString::Printf(TEXT("Hero_%02d"), Member.CharacterIndex + 1))
 			: Summary.DisplayName;
 		Member.Portrait = Summary.Portrait;
+		Member.bHasUnspentProgressionPoints = Summary.bHasUnspentProgressionPoints;
+		Member.bOverloaded = Summary.bOverloaded;
 		Member.CurrentHealth = Summary.Resources.CurrentHealth;
 		Member.MaximumHealth = Summary.DerivedStats.MaxHealth;
 		Member.CurrentMana = Summary.Resources.CurrentMana;
@@ -835,6 +849,20 @@ void UGridCombatHudWidget::RefreshFromSources()
 		TurnManagerComponent->GetInitiativePreview(InitiativePreview, FMath::Clamp(VisibleInitiativeSlotCount, 7, 10));
 	}
 	FGridCombatHudViewModelBuilder::BuildInitiative(InitiativePreview, View.Initiative, FMath::Clamp(VisibleInitiativeSlotCount, 7, 10));
+
+	for (FGridCombatHudInitiativeView& InitiativeEntry : View.Initiative)
+	{
+		if (!InitiativeEntry.Combatant.IsPartyMember() || !IsValid(InventoryComponent))
+		{
+			continue;
+		}
+		FGridInventoryCharacterSummary Summary;
+		if (InventoryComponent->GetCharacterSummary(InitiativeEntry.Combatant.CharacterIndex, Summary))
+		{
+			InitiativeEntry.bHasUnspentProgressionPoints = Summary.bHasUnspentProgressionPoints;
+			InitiativeEntry.bOverloaded = Summary.bOverloaded;
+		}
+	}
 
 	View.bCanEndTurn = IsValid(TurnManagerComponent) && TurnManagerComponent->CanEndActivePlayerTurn();
 	if (!View.bCanEndTurn)

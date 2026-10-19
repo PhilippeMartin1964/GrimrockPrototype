@@ -617,6 +617,7 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.MaxWeight = FMath::Max(0.0f, OutSummary.BaseMaxWeight + OutSummary.EquipmentStatBonus.CarryWeightBonus);
 	OutSummary.WeightState = ResolveInventoryWeightState(OutSummary.CurrentWeight, OutSummary.MaxWeight);
 	OutSummary.bOverloaded = OutSummary.WeightState == EGridInventoryWeightState::Overloaded;
+	OutSummary.bHasUnspentProgressionPoints = HasUnspentPartyPortraitProgressionPoints(CharacterState);
 	OutSummary.bIsSelected = CharacterIndex == PartyInventoryState.SelectedCharacterIndex;
 	return true;
 }
@@ -701,7 +702,7 @@ bool UGridPartyInventoryComponent::GetPartyPortraitViews(TArray<FGridPartyPortra
 		View.DisplayName = Summary.DisplayName;
 		View.ClassDisplayName = Summary.ClassDisplayName;
 		View.Level = FMath::Max(1, Summary.Level);
-		View.bHasUnspentProgressionPoints = HasUnspentPartyPortraitProgressionPoints(Character);
+		View.bHasUnspentProgressionPoints = Summary.bHasUnspentProgressionPoints;
 		View.bOverloaded = Summary.bOverloaded;
 
 		View.CurrentHealth = FMath::Max(0, Summary.Resources.CurrentHealth);

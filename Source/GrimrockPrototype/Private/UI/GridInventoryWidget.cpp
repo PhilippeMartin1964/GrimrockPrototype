@@ -694,6 +694,14 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails()
 		{
 			Image_CharacterPortrait->SetVisibility(ESlateVisibility::Collapsed);
 		}
+		if (Image_CharacterLevelUpAlert)
+		{
+			Image_CharacterLevelUpAlert->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		if (Image_CharacterWeightAlert)
+		{
+			Image_CharacterWeightAlert->SetVisibility(ESlateVisibility::Collapsed);
+		}
 		return;
 	}
 
@@ -744,6 +752,19 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails()
 			Image_CharacterPortrait->SetBrushFromSoftTexture(Summary.Portrait, false);
 			Image_CharacterPortrait->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
+	}
+
+	// Selected-character sheet and compact party selectors share the canonical
+	// summary. These overlays never intercept inventory drag/drop or selection.
+	if (Image_CharacterLevelUpAlert)
+	{
+		Image_CharacterLevelUpAlert->SetVisibility(
+			Summary.bHasUnspentProgressionPoints ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+	if (Image_CharacterWeightAlert)
+	{
+		Image_CharacterWeightAlert->SetVisibility(
+			Summary.bOverloaded ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 }
 

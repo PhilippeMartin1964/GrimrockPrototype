@@ -62,6 +62,14 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
 	TObjectPtr<UImage> Image_CharacterPortrait;
 
+	/** UI-PARTYHUD02: optional graphic '+' overlay in the selected-character portrait. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Alerts")
+	TObjectPtr<UImage> Image_CharacterLevelUpAlert;
+
+	/** UI-PARTYHUD02: optional overload icon overlay in the selected-character portrait. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Alerts")
+	TObjectPtr<UImage> Image_CharacterWeightAlert;
+
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
 	TObjectPtr<UImage> Image_CharacterClassIcon;
 

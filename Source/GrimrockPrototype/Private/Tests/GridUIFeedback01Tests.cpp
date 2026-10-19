@@ -18,14 +18,17 @@ bool FGridUIFeedback01PartyWeightAlertTest::RunTest(const FString& Parameters)
 
 	UGridPartyMemberWidget* MemberWidget = NewObject<UGridPartyMemberWidget>();
 	UImage* WeightAlert = NewObject<UImage>(MemberWidget);
+	UImage* ProgressionAlert = NewObject<UImage>(MemberWidget);
 	TestNotNull(TEXT("Party member widget exists"), MemberWidget);
 	TestNotNull(TEXT("Weight alert image exists"), WeightAlert);
-	if (!MemberWidget || !WeightAlert)
+	TestNotNull(TEXT("Progression alert image exists"), ProgressionAlert);
+	if (!MemberWidget || !WeightAlert || !ProgressionAlert)
 	{
 		return false;
 	}
 
 	MemberWidget->Image_WeightAlert = WeightAlert;
+	MemberWidget->Image_LevelUpAlert = ProgressionAlert;
 
 	FGridInventoryCharacterSummary Summary;
 	Summary.CharacterIndex = 0;
@@ -33,19 +36,92 @@ bool FGridUIFeedback01PartyWeightAlertTest::RunTest(const FString& Parameters)
 	Summary.WeightState = EGridInventoryWeightState::Normal;
 	MemberWidget->SetCharacterSummary(Summary);
 	TestEqual(TEXT("Normal weight hides alert"), WeightAlert->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("No progression points hides the '+' badge"), ProgressionAlert->GetVisibility(), ESlateVisibility::Collapsed);
 
 	Summary.WeightState = EGridInventoryWeightState::Heavy;
 	MemberWidget->SetCharacterSummary(Summary);
 	TestEqual(TEXT("Heavy weight still hides overload alert"), WeightAlert->GetVisibility(), ESlateVisibility::Collapsed);
 
 	Summary.WeightState = EGridInventoryWeightState::Overloaded;
+	Summary.bHasUnspentProgressionPoints = true;
 	MemberWidget->SetCharacterSummary(Summary);
 	TestEqual(TEXT("Overloaded weight shows alert"), WeightAlert->GetVisibility(), ESlateVisibility::HitTestInvisible);
+	TestEqual(TEXT("Unspent progression coexists with overload"), ProgressionAlert->GetVisibility(), ESlateVisibility::HitTestInvisible);
+
+	Summary.bHasUnspentProgressionPoints = false;
+	MemberWidget->SetCharacterSummary(Summary);
+	TestEqual(TEXT("Spending progression hides only '+'"), ProgressionAlert->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Spending progression leaves overload visible"), WeightAlert->GetVisibility(), ESlateVisibility::HitTestInvisible);
 
 	Summary.WeightState = EGridInventoryWeightState::Normal;
 	MemberWidget->SetCharacterSummary(Summary);
 	TestEqual(TEXT("Returning to normal hides alert again"), WeightAlert->GetVisibility(), ESlateVisibility::Collapsed);
 
+	Summary.bHasUnspentProgressionPoints = true;
+	MemberWidget->SetCharacterSummary(Summary);
+	TestEqual(TEXT("Progression badge is independent of weight"), ProgressionAlert->GetVisibility(), ESlateVisibility::HitTestInvisible);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIFeedback01CharacterSheetPortraitAlertsTest,
+	"Grimrock.UI.Feedback01.CharacterSheetPortraitAlerts",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIFeedback01CharacterSheetPortraitAlertsTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	UGridInventoryWidget* Sheet = NewObject<UGridInventoryWidget>();
+	if (!TestNotNull(TEXT("Inventory component exists"), Inventory) ||
+		!TestNotNull(TEXT("Character sheet presenter exists"), Sheet))
+	{
+		return false;
+	}
+
+	Sheet->InventoryComponent = Inventory;
+	Sheet->Image_CharacterLevelUpAlert = NewObject<UImage>(Sheet);
+	Sheet->Image_CharacterWeightAlert = NewObject<UImage>(Sheet);
+
+	// No selected character: the two overlays must disappear.
+	Sheet->RefreshSelectedCharacterDetails();
+	TestEqual(TEXT("Missing character hides progression"), Sheet->Image_CharacterLevelUpAlert->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Missing character hides overload"), Sheet->Image_CharacterWeightAlert->GetVisibility(), ESlateVisibility::Collapsed);
+
+	FGridCharacterInventoryState Character;
+	Character.CharacterId = FGuid(1, 2, 3, 4);
+	Character.Level = 1; // Four unspent skill points from the canonical RPG balance.
+	Character.DisplayName = FText::FromString(TEXT("Sheet Test Hero"));
+	Inventory->PartyInventoryState.ActiveCharacters.Add(Character);
+	Inventory->PartyInventoryState.ActiveEquipment.SetNum(1);
+	Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
+	Sheet->RefreshSelectedCharacterDetails();
+	TestEqual(TEXT("Available Skill points show the selected portrait '+'"), Sheet->Image_CharacterLevelUpAlert->GetVisibility(), ESlateVisibility::HitTestInvisible);
+	TestEqual(TEXT("Normal weight hides the selected portrait warning"), Sheet->Image_CharacterWeightAlert->GetVisibility(), ESlateVisibility::Collapsed);
+
+	FGridInventorySlot HeavySlot;
+	HeavySlot.bOccupied = true;
+	HeavySlot.Item.RuntimeObjectId = FGuid(1, 2, 3, 5);
+	HeavySlot.Item.ItemDefinitionId = TEXT("TestHeavyPortraitItem");
+	HeavySlot.Item.Quantity = 1;
+	HeavySlot.Item.Weight = 100000.0f;
+	Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.Add(HeavySlot);
+	Sheet->RefreshSelectedCharacterDetails();
+	TestEqual(TEXT("Overload appears on the selected portrait"), Sheet->Image_CharacterWeightAlert->GetVisibility(), ESlateVisibility::HitTestInvisible);
+	TestEqual(TEXT("Overload coexists with the selected portrait '+'"), Sheet->Image_CharacterLevelUpAlert->GetVisibility(), ESlateVisibility::HitTestInvisible);
+
+	Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.Reset();
+	FRPGSkillRank RankA;
+	RankA.SkillId = TEXT("SkillA");
+	RankA.Rank = 2;
+	FRPGSkillRank RankB;
+	RankB.SkillId = TEXT("SkillB");
+	RankB.Rank = 2;
+	Inventory->PartyInventoryState.ActiveCharacters[0].SkillRanks = { RankA, RankB };
+	Sheet->RefreshSelectedCharacterDetails();
+	TestEqual(TEXT("Spent points hide the selected portrait '+'"), Sheet->Image_CharacterLevelUpAlert->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Weight relief hides the selected portrait warning"), Sheet->Image_CharacterWeightAlert->GetVisibility(), ESlateVisibility::Collapsed);
 	return true;
 }
 

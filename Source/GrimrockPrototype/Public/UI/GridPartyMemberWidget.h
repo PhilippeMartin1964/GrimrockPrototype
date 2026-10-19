@@ -45,8 +45,12 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
 	TObjectPtr<UBorder> Border_Selected;
 
+	/** UI-PARTYHUD02: graphic '+' for remaining points, shared with persistent portraits. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party|Alerts")
+	TObjectPtr<UImage> Image_LevelUpAlert;
+
 	/** UI-FEEDBACK01.1: presentation-only warning shown when this character is overloaded. */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party|Alerts")
 	TObjectPtr<UImage> Image_WeightAlert;
 
 	/** UI-FEEDBACK01.2: compact, non-authoritative row of active status effects. */
