@@ -221,7 +221,7 @@ bool FGridPartyWeightMovementLockTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Removing excess weight clears party movement lock"), Inventory->IsAnyActiveCharacterOverloaded());
 	TestTrue(TEXT("Translation resumes immediately after overload clears"), Party->TryStartMove(EGridEdge::North));
 	TestEqual(TEXT("Normal translation does not publish another overload warning"),
-		Feed->GetEntries().Num(), FeedBeforeOverload + UE_ARRAY_COUNT(Directions));
+		Feed->GetEntries().Num(), FeedBeforeOverload + static_cast<int32>(UE_ARRAY_COUNT(Directions)));
 	TestTrue(TEXT("Normal translation enters movement state"), Party->bIsMoving);
 	TestEqual(TEXT("Normal translation updates logical Y"), Party->CurrentCellY, 2);
 
