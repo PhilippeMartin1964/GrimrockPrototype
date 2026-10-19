@@ -35,6 +35,14 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Persistent|Party")
 	TObjectPtr<UImage> Image_Portrait;
 
+	/** UMG graphic '+' badge; displayed until all canonical progression balances reach zero. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Persistent|Party|Alerts")
+	TObjectPtr<UImage> Image_LevelUpAlert;
+
+	/** Reuse T_Weight art and the same Overloaded-only rule as WBP_PartyMember. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Persistent|Party|Alerts")
+	TObjectPtr<UImage> Image_WeightAlert;
+
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Persistent|Party")
 	TObjectPtr<UProgressBar> ProgressBar_Health;
 

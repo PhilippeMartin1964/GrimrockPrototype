@@ -86,3 +86,9 @@ RPG-LEVELUX01     CLOS
 Prochain chantier : `RPG-ATTR01 — Attribute Point Economy & Allocation`,
 pour matérialiser les points de caractéristiques des niveaux 4 / 8 / 12 / 16 / 20
 sans recréer de double autorité.
+
+## Supplanté : UI-PARTYHUD02 — Indicateurs persistants (2026-10-19)
+
+La file transitoire de toasts Level Up de RPG-LEVELUX01 est retirée. Les notifications de **montée de niveau** ne passent plus par `WBP_RPGNotification` : `FGridPartyPortraitView::bHasUnspentProgressionPoints` est recalculé à partir des soldes canoniques des points de compétence, attribut et talent. Les portraits montrent `Image_LevelUpAlert` jusqu'à consommation des points. La surcharge suit `FGridInventoryCharacterSummary::bOverloaded` via `Image_WeightAlert`.
+
+Le présent texte conserve l'historique du jalon original. `UGridRPGNotificationWidget` et son binding dans le HUD persistant restent utilisables **uniquement pour les autres feedbacks de progression** (ex. points d'attribut), pas pour une montée de niveau. L'asset UMG doit être adapté dans Unreal Editor ; aucun `.uasset` n'est supprimé par édition de texte.

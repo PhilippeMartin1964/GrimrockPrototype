@@ -87,6 +87,8 @@ bool FGridPartyHud01ViewProjectionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Mage CharacterId remains stable"), Views[0].CharacterId, MakeId(1));
 	TestEqual(TEXT("Mage runtime index is resolved"), Views[0].CharacterIndex, 0);
 	TestTrue(TEXT("Mage is selected"), Views[0].bIsSelected);
+	TestTrue(TEXT("Level-one unspent Skill Points appear on portrait"), Views[0].bHasUnspentProgressionPoints);
+	TestFalse(TEXT("No weight excess on initial mage portrait"), Views[0].bOverloaded);
 	TestEqual(TEXT("Health current"), Views[0].CurrentHealth, 75);
 	TestEqual(TEXT("Health maximum"), Views[0].MaximumHealth, 100);
 	TestTrue(TEXT("Health ratio"), FMath::IsNearlyEqual(Views[0].HealthRatio, 0.75f));
@@ -101,6 +103,53 @@ bool FGridPartyHud01ViewProjectionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Zero-mana warrior ratio is zero"), Views[1].ManaRatio, 0.0f);
 	TestEqual(TEXT("Zero magical armor reference remains zero"), Views[1].ReferenceMagicalArmor, 0);
 	TestEqual(TEXT("Zero magical armor ratio remains zero"), Views[1].MagicalArmorRatio, 0.0f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyHud01ProgressionBadgeBalanceTest,
+	"Grimrock.UI.PartyHud01.ProgressionBadge.BalanceAndRestore",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyHud01ProgressionBadgeBalanceTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	using namespace GridPartyHud01Tests;
+
+	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	URPGClassAsset* ClassDefinition = MakeClass(Inventory, TEXT("PartyHudProgression"), 0, 0);
+	FGridCharacterInventoryState Character = MakeCharacter(MakeId(90), ClassDefinition, 10, 10, 0, 0, 0, 0);
+	Character.Level = 1;
+	Inventory->PartyInventoryState.ActiveCharacters.Add(Character);
+	Inventory->PartyInventoryState.ActiveEquipment.SetNum(1);
+
+	TArray<FGridPartyPortraitView> Views;
+	TestTrue(TEXT("Fresh portrait projection succeeds"), Inventory->GetPartyPortraitViews(Views));
+	if (!TestEqual(TEXT("One portrait exists"), Views.Num(), 1))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Four unspent level-one Skill Points show the badge"), Views[0].bHasUnspentProgressionPoints);
+
+	FRPGSkillRank FirstSkill;
+	FirstSkill.SkillId = TEXT("SkillA");
+	FirstSkill.Rank = 2;
+	FRPGSkillRank SecondSkill;
+	SecondSkill.SkillId = TEXT("SkillB");
+	SecondSkill.Rank = 2;
+	Inventory->PartyInventoryState.ActiveCharacters[0].SkillRanks = { FirstSkill, SecondSkill };
+	Views.Reset();
+	TestTrue(TEXT("Reconstructed portrait projection succeeds"), Inventory->GetPartyPortraitViews(Views));
+	if (TestEqual(TEXT("One reconstructed portrait exists"), Views.Num(), 1))
+	{
+		TestFalse(TEXT("Spending all Skill Points hides the badge"), Views[0].bHasUnspentProgressionPoints);
+	}
+	Inventory->PartyInventoryState.ActiveCharacters[0].SkillRanks.RemoveAt(1);
+	Views.Reset();
+	TestTrue(TEXT("Portrait recalculates from state after restoring a save"), Inventory->GetPartyPortraitViews(Views));
+	if (TestEqual(TEXT("One restored portrait exists"), Views.Num(), 1))
+	{
+		TestTrue(TEXT("Restored available points show the badge again"), Views[0].bHasUnspentProgressionPoints);
+	}
 	return true;
 }
 
@@ -214,6 +263,8 @@ bool FGridPartyHud012PortraitWidgetPresentationTest::RunTest(const FString& Para
 	}
 
 	Widget->Image_Portrait = NewObject<UImage>(Widget);
+	Widget->Image_LevelUpAlert = NewObject<UImage>(Widget);
+	Widget->Image_WeightAlert = NewObject<UImage>(Widget);
 	Widget->ProgressBar_Health = NewObject<UProgressBar>(Widget);
 	Widget->ProgressBar_Mana = NewObject<UProgressBar>(Widget);
 	Widget->ProgressBar_PhysicalArmor = NewObject<UProgressBar>(Widget);
@@ -224,6 +275,8 @@ bool FGridPartyHud012PortraitWidgetPresentationTest::RunTest(const FString& Para
 	View.CharacterId = GridPartyHud01Tests::MakeId(40);
 	View.CharacterIndex = 2;
 	View.bIsSelected = true;
+	View.bHasUnspentProgressionPoints = true;
+	View.bOverloaded = true;
 	View.HealthRatio = 0.75f;
 	View.bHasMana = true;
 	View.ManaRatio = 0.5f;
@@ -233,6 +286,8 @@ bool FGridPartyHud012PortraitWidgetPresentationTest::RunTest(const FString& Para
 
 	TestEqual(TEXT("Widget keeps stable CharacterId"), Widget->GetCharacterId(), View.CharacterId);
 	TestTrue(TEXT("Widget exposes selected state"), Widget->IsSelected());
+	TestEqual(TEXT("Unspent progression displays the image badge"), Widget->Image_LevelUpAlert->GetVisibility(), ESlateVisibility::HitTestInvisible);
+	TestEqual(TEXT("Overload displays the weight image badge"), Widget->Image_WeightAlert->GetVisibility(), ESlateVisibility::HitTestInvisible);
 	TestTrue(TEXT("Health percentage follows read model"), FMath::IsNearlyEqual(Widget->ProgressBar_Health->GetPercent(), 0.75f));
 	TestTrue(TEXT("Mana percentage follows read model"), FMath::IsNearlyEqual(Widget->ProgressBar_Mana->GetPercent(), 0.5f));
 	TestTrue(TEXT("Physical armor percentage follows read model"), FMath::IsNearlyEqual(Widget->ProgressBar_PhysicalArmor->GetPercent(), 0.25f));
@@ -244,10 +299,14 @@ bool FGridPartyHud012PortraitWidgetPresentationTest::RunTest(const FString& Para
 	View.bHasMana = false;
 	View.ManaRatio = 0.9f;
 	View.bIsSelected = false;
+	View.bHasUnspentProgressionPoints = false;
+	View.bOverloaded = false;
 	Widget->SetPortraitView(View);
 	TestEqual(TEXT("Mana bar collapses without a mana pool"), Widget->ProgressBar_Mana->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Hidden mana bar resets to zero"), Widget->ProgressBar_Mana->GetPercent(), 0.0f);
 	TestEqual(TEXT("Selection frame collapses when not selected"), Widget->Border_Selected->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Level-up badge collapses when no progression remains"), Widget->Image_LevelUpAlert->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Weight badge collapses when no longer overloaded"), Widget->Image_WeightAlert->GetVisibility(), ESlateVisibility::Collapsed);
 	return true;
 }
 
@@ -261,6 +320,8 @@ bool FGridPartyHud012PersistentRailContractTest::RunTest(const FString& Paramete
 	const UClass* PortraitClass = UGridPartyPortraitHudWidget::StaticClass();
 	const FName PortraitBindings[] = {
 		TEXT("Image_Portrait"),
+		TEXT("Image_LevelUpAlert"),
+		TEXT("Image_WeightAlert"),
 		TEXT("ProgressBar_Health"),
 		TEXT("ProgressBar_Mana"),
 		TEXT("ProgressBar_PhysicalArmor"),

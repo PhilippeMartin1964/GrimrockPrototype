@@ -14,6 +14,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UI/GridPersistentHudWidget.h"
+#include "UI/GridPartyPortraitHudWidget.h"
 #include "UI/RPGProgressionFeedbackService.h"
 #include "UObject/UnrealType.h"
 
@@ -167,8 +168,12 @@ bool FRPGLEVELUX01PersistentHudContractTest::RunTest(const FString& Parameters)
 
 	UClass* HudClass = UGridPersistentHudWidget::StaticClass();
 	TestNotNull(
-		TEXT("Persistent HUD exposes the progression toast binding"),
+		TEXT("Persistent HUD retains generic non-Level-Up progression feedback"),
 		FindFProperty<FProperty>(HudClass, FName(TEXT("Notification_Progression"))));
+	TestNotNull(TEXT("Portrait presenter exposes persistent progression badge"),
+		UGridPartyPortraitHudWidget::StaticClass()->FindPropertyByName(TEXT("Image_LevelUpAlert")));
+	TestNotNull(TEXT("Portrait presenter exposes weight warning badge"),
+		UGridPartyPortraitHudWidget::StaticClass()->FindPropertyByName(TEXT("Image_WeightAlert")));
 	TestNotNull(
 		TEXT("Persistent HUD exposes the non-modal notification entry point"),
 		HudClass->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UGridPersistentHudWidget, ShowProgressionNotification)));
@@ -214,25 +219,10 @@ bool FRPGLEVELUX01NoModalRuntimePathTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Legacy RPGLevelUpWidget Slate fallback is deleted"),
 		FPaths::FileExists(FPaths::Combine(ProjectDir, TEXT("Source/GrimrockPrototype/Private/UI/RPGLevelUpWidgetSlate.cpp"))));
 
-	FString HeaderText;
-	FString SourceText;
-	TestTrue(
-		TEXT("Level-Up subsystem header loads"),
-		FFileHelper::LoadFileToString(
-			HeaderText,
-			*FPaths::Combine(ProjectDir, TEXT("Source/GrimrockPrototype/Public/RPG/RPGLevelUpNotificationSubsystem.h"))));
-	TestTrue(
-		TEXT("Level-Up subsystem source loads"),
-		FFileHelper::LoadFileToString(
-			SourceText,
-			*FPaths::Combine(ProjectDir, TEXT("Source/GrimrockPrototype/Private/RPG/RPGLevelUpNotificationSubsystem.cpp"))));
-
-	TestFalse(TEXT("Subsystem has no legacy modal API"), HeaderText.Contains(TEXT("IsLevelUpModalOpen")));
-	TestFalse(TEXT("Subsystem has no durable catch-up API"), HeaderText.Contains(TEXT("RefreshFromPartyState")));
-	TestFalse(TEXT("Subsystem has no dead observed inventory mirror"), HeaderText.Contains(TEXT("ObservedPartyInventory")));
-	TestFalse(TEXT("Subsystem has no acknowledgement mutation"), SourceText.Contains(TEXT("AcknowledgeNotification")));
-	TestFalse(TEXT("Subsystem has no combat-deferred modal path"), HeaderText.Contains(TEXT("DeferredCombatTurnManager")));
-	TestTrue(TEXT("Subsystem still owns transient toast queue"), HeaderText.Contains(TEXT("PendingNotifications")));
+	TestFalse(TEXT("Obsolete Level-Up toast subsystem header is deleted"),
+		FPaths::FileExists(FPaths::Combine(ProjectDir, TEXT("Source/GrimrockPrototype/Public/RPG/RPGLevelUpNotificationSubsystem.h"))));
+	TestFalse(TEXT("Obsolete Level-Up toast subsystem implementation is deleted"),
+		FPaths::FileExists(FPaths::Combine(ProjectDir, TEXT("Source/GrimrockPrototype/Private/RPG/RPGLevelUpNotificationSubsystem.cpp"))));
 	return true;
 }
 

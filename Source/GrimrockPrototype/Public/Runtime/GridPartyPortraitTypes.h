@@ -36,6 +36,14 @@ struct FGridPartyPortraitView
 	UPROPERTY(BlueprintReadOnly, Category = "UI|Party Portraits|Tooltip")
 	int32 Level = 1;
 
+	/** Derived from remaining Skill, Talent or Attribute points; never saved. */
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Party Portraits|Alerts")
+	bool bHasUnspentProgressionPoints = false;
+
+	/** Same authoritative overload state as WBP_PartyMember; never saved. */
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Party Portraits|Alerts")
+	bool bOverloaded = false;
+
 	UPROPERTY(BlueprintReadOnly, Category = "UI|Party Portraits|Health")
 	int32 CurrentHealth = 0;
 

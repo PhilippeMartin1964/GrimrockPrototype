@@ -1489,3 +1489,7 @@ UI-PARTYHUD01 est **CLOS** après validation utilisateur de la passe finale
 layering/drag ghost. Le Persistent HUD est un chrome de contexte bas, les
 fenêtres majeures passent devant lui, et le rail conserve sélection,
 drag/reorder, Save v25 et tooltip.
+
+## 2026-10-19 — UI-PARTYHUD02 (migration Level Up)
+
+`GetPartyPortraitViews()` projette maintenant les indicateurs `bHasUnspentProgressionPoints` et `bOverloaded` à partir des autorités RPG et poids. `WBP_PartyPortraitHud` attend les images optionnelles `Image_LevelUpAlert` (signe + graphique, persistante tant que des points restent) et `Image_WeightAlert` (Overloaded uniquement). Le sous-système de toasts Level-Up transitoire a été retiré ; les autres usages du feedback générique `UGridRPGNotificationWidget` demeurent en place. La matérialisation et la validation visuelle UMG restent à effectuer dans UE5.5.4.

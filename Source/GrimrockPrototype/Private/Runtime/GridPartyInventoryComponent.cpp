@@ -7,6 +7,9 @@
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGClassProgressionService.h"
+#include "RPG/RPGAttributePointService.h"
+#include "RPG/RPGSkillPointService.h"
 #include "RPG/RPGRaceAsset.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
@@ -50,6 +53,45 @@ namespace
 			ClassDefinition = FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
 		}
 		return FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition) ? ClassDefinition : nullptr;
+	}
+
+	/** Read-only query against canonical progression balances; invalid balances never invent points. */
+	bool HasUnspentPartyPortraitProgressionPoints(const FGridCharacterInventoryState& Character)
+	{
+		FRPGSkillPointBalance SkillBalance;
+		if (FRPGSkillPointService::TryGetBalance(Character, SkillBalance) && SkillBalance.RemainingPoints > 0)
+		{
+			return true;
+		}
+
+		FRPGAttributePointBalance AttributeBalance;
+		if (FRPGAttributePointService::TryGetBalance(Character, AttributeBalance) && AttributeBalance.RemainingPoints > 0)
+		{
+			return true;
+		}
+
+		const URPGClassAsset* ClassDefinition = ResolvePartyPortraitClassDefinition(Character);
+		if (!ClassDefinition)
+		{
+			return false;
+		}
+
+		TSet<FName> SelectedChoices;
+		for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
+		{
+			if (ChoiceId.IsNone() || SelectedChoices.Contains(ChoiceId))
+			{
+				return false;
+			}
+			SelectedChoices.Add(ChoiceId);
+		}
+
+		int32 GrantedPoints = 0;
+		int32 SpentPoints = 0;
+		int32 RemainingPoints = 0;
+		return FRPGClassProgressionService::TryGetChoicePointBalance(
+			ClassDefinition, Character.Level, SelectedChoices, GrantedPoints, SpentPoints, RemainingPoints) &&
+			RemainingPoints > 0;
 	}
 
 	void ResolvePartyPortraitArmorReferences(
@@ -659,6 +701,8 @@ bool UGridPartyInventoryComponent::GetPartyPortraitViews(TArray<FGridPartyPortra
 		View.DisplayName = Summary.DisplayName;
 		View.ClassDisplayName = Summary.ClassDisplayName;
 		View.Level = FMath::Max(1, Summary.Level);
+		View.bHasUnspentProgressionPoints = HasUnspentPartyPortraitProgressionPoints(Character);
+		View.bOverloaded = Summary.bOverloaded;
 
 		View.CurrentHealth = FMath::Max(0, Summary.Resources.CurrentHealth);
 		View.MaximumHealth = FMath::Max(1, Summary.DerivedStats.MaxHealth);
