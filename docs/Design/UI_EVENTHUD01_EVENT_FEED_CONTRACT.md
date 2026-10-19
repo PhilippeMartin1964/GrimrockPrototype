@@ -39,9 +39,9 @@ Les trois filtres sont placés **en bas du Flux** et restent visibles pendant le
 
 EVENTHUD01.14 utilise trois **`UCheckBox` natives UMG** (`CheckBox_FilterEvents`, `CheckBox_FilterCombat`, `CheckBox_FilterDiscussion`), chacune contenant son `TextBlock` (`Text_FilterEvents`, `Text_FilterCombat`, `Text_FilterDiscussion`). Le `Checked` natif signifie que la catégorie est visible ; `Unchecked` signifie qu'elle est masquée. Les textes de catégories ne contiennent plus de caractères Unicode pseudo-checkbox ni de suffixes `[ON]` / `[OFF]`.
 
-Le changement d'état natif `OnCheckStateChanged` réutilise `SetCategoryEnabled`. La zone de la checkbox native, incluant son libellé, est cliquable. Les anciens `UButton` conservent un raccordement de compatibilité tant que l'asset UMG n'a pas été modifié ; aucun second modèle de filtres n'est créé.
+Le changement d'état natif `OnCheckStateChanged` réutilise `SetCategoryEnabled`. La zone de la checkbox native, incluant son libellé, est cliquable. EVENTHUD01.14-CLEAN01 retire les anciens `Button_Filter*`, leurs callbacks `OnClicked` et leur raccordement C++. Les trois `UCheckBox` sont désormais l'unique chemin d'interaction pour ces filtres ; aucun second modèle de filtres n'est créé.
 
-La migration visuelle des widgets dans `WBP_GridEventFeed` se fait dans Unreal Editor (pas par édition binaire de `.uasset`). L'apparence et les dimensions des cases sont configurées dans le style `UCheckBox` natif.
+La migration visuelle des widgets dans `WBP_GridEventFeed` est effectuée dans Unreal Editor (pas par édition binaire de `.uasset`). L'apparence et les dimensions des cases sont configurées dans le style `UCheckBox` natif.
 
 Exemple de disposition :
 

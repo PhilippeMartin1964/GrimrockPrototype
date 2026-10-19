@@ -232,18 +232,6 @@ void UGridEventFeedWidget::NativeConstruct()
 	{
 		Button_ResizeHandle->SetCursor(EMouseCursor::None);
 	}
-	if (Button_FilterEvents)
-	{
-		Button_FilterEvents->SetCursor(EMouseCursor::None);
-	}
-	if (Button_FilterCombat)
-	{
-		Button_FilterCombat->SetCursor(EMouseCursor::None);
-	}
-	if (Button_FilterDiscussion)
-	{
-		Button_FilterDiscussion->SetCursor(EMouseCursor::None);
-	}
 	if (CheckBox_FilterEvents)
 	{
 		CheckBox_FilterEvents->SetCursor(EMouseCursor::None);
@@ -327,34 +315,18 @@ void UGridEventFeedWidget::BindControls()
 	{
 		CheckBox_FilterEvents->OnCheckStateChanged.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterEventsCheckStateChanged);
 	}
-	else if (Button_FilterEvents)
-	{
-		Button_FilterEvents->OnClicked.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterEventsClicked);
-	}
 	if (CheckBox_FilterCombat)
 	{
 		CheckBox_FilterCombat->OnCheckStateChanged.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterCombatCheckStateChanged);
-	}
-	else if (Button_FilterCombat)
-	{
-		Button_FilterCombat->OnClicked.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterCombatClicked);
 	}
 	if (CheckBox_FilterDiscussion)
 	{
 		CheckBox_FilterDiscussion->OnCheckStateChanged.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterDiscussionCheckStateChanged);
 	}
-	else if (Button_FilterDiscussion)
-	{
-		Button_FilterDiscussion->OnClicked.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterDiscussionClicked);
-	}
 	if (Button_ResizeHandle)
 	{
 		Button_ResizeHandle->OnPressed.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleResizePressed);
 		Button_ResizeHandle->OnReleased.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleResizeReleased);
-	}
-	if (ScrollBox_Entries)
-	{
-		ScrollBox_Entries->OnUserScrolled.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleBlueprintUserScrolled);
 	}
 }
 
@@ -372,26 +344,10 @@ void UGridEventFeedWidget::UnbindControls()
 	{
 		CheckBox_FilterDiscussion->OnCheckStateChanged.RemoveDynamic(this, &UGridEventFeedWidget::HandleFilterDiscussionCheckStateChanged);
 	}
-	if (Button_FilterEvents)
-	{
-		Button_FilterEvents->OnClicked.RemoveDynamic(this, &UGridEventFeedWidget::HandleFilterEventsClicked);
-	}
-	if (Button_FilterCombat)
-	{
-		Button_FilterCombat->OnClicked.RemoveDynamic(this, &UGridEventFeedWidget::HandleFilterCombatClicked);
-	}
-	if (Button_FilterDiscussion)
-	{
-		Button_FilterDiscussion->OnClicked.RemoveDynamic(this, &UGridEventFeedWidget::HandleFilterDiscussionClicked);
-	}
 	if (Button_ResizeHandle)
 	{
 		Button_ResizeHandle->OnPressed.RemoveDynamic(this, &UGridEventFeedWidget::HandleResizePressed);
 		Button_ResizeHandle->OnReleased.RemoveDynamic(this, &UGridEventFeedWidget::HandleResizeReleased);
-	}
-	if (ScrollBox_Entries)
-	{
-		ScrollBox_Entries->OnUserScrolled.RemoveDynamic(this, &UGridEventFeedWidget::HandleBlueprintUserScrolled);
 	}
 }
 
@@ -505,16 +461,11 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 
 	if (bWasAtEnd)
 	{
-		bFollowNewestEntries = true;
 		ScrollPresentationToEnd();
 	}
-	else
+	else if (ScrollBox_Entries)
 	{
-		bFollowNewestEntries = false;
-		if (ScrollBox_Entries)
-		{
-			ScrollBox_Entries->SetScrollOffset(PreviousOffset);
-		}
+		ScrollBox_Entries->SetScrollOffset(PreviousOffset);
 	}
 }
 
@@ -665,21 +616,6 @@ void UGridEventFeedWidget::HandleFilterDiscussionCheckStateChanged(bool bIsCheck
 	SetCategoryEnabled(EGridHudEventCategory::Dialogue, bIsChecked);
 }
 
-void UGridEventFeedWidget::HandleFilterEventsClicked()
-{
-	ToggleCategory(EGridHudEventCategory::Dungeon);
-}
-
-void UGridEventFeedWidget::HandleFilterCombatClicked()
-{
-	ToggleCategory(EGridHudEventCategory::Combat);
-}
-
-void UGridEventFeedWidget::HandleFilterDiscussionClicked()
-{
-	ToggleCategory(EGridHudEventCategory::Dialogue);
-}
-
 void UGridEventFeedWidget::HandleResizePressed()
 {
 	BeginResizeFromCursor();
@@ -688,11 +624,6 @@ void UGridEventFeedWidget::HandleResizePressed()
 void UGridEventFeedWidget::HandleResizeReleased()
 {
 	EndResize();
-}
-
-void UGridEventFeedWidget::HandleBlueprintUserScrolled(float CurrentOffset)
-{
-	bFollowNewestEntries = IsScrollAtEnd(CurrentOffset, GetPresentationScrollEndOffset());
 }
 
 void UGridEventFeedWidget::HandleEventPublished(const FGridHudEventEntry& Entry)

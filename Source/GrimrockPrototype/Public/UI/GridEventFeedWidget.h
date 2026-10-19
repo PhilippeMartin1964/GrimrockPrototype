@@ -82,8 +82,8 @@ struct GRIMROCKPROTOTYPE_API FGridEventFeedSemanticPalette
 /**
  * EVENTHUD01.3 Event Feed interaction shell.
  *
- * Owns presentation-only filtering, generic text projection, follow-newest
- * scroll behaviour and vertical resizing. Gameplay authority and the bounded
+ * Owns presentation-only filtering, generic text projection, latest-event
+ * autoscroll and vertical resizing. Gameplay authority and the bounded
  * event history remain in UGridEventFeedSubsystem.
  */
 UCLASS(BlueprintType, Blueprintable)
@@ -214,7 +214,7 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
 	TObjectPtr<UButton> Button_ResizeHandle;
 
-	/** Native UMG checkboxes are the preferred filter controls. */
+	/** Native UMG checkboxes are the only filter controls. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
 	TObjectPtr<UCheckBox> CheckBox_FilterEvents;
 
@@ -223,16 +223,6 @@ public:
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
 	TObjectPtr<UCheckBox> CheckBox_FilterDiscussion;
-
-	/** Temporary compatibility while authored WBP buttons are replaced with UCheckBox. */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
-	TObjectPtr<UButton> Button_FilterEvents;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
-	TObjectPtr<UButton> Button_FilterCombat;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
-	TObjectPtr<UButton> Button_FilterDiscussion;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
 	TObjectPtr<UTextBlock> Text_FilterEvents;
@@ -265,24 +255,11 @@ private:
 	UFUNCTION()
 	void HandleFilterDiscussionCheckStateChanged(bool bIsChecked);
 
-	/** Legacy buttons remain supported until WBP_GridEventFeed is migrated. */
-	UFUNCTION()
-	void HandleFilterEventsClicked();
-
-	UFUNCTION()
-	void HandleFilterCombatClicked();
-
-	UFUNCTION()
-	void HandleFilterDiscussionClicked();
-
 	UFUNCTION()
 	void HandleResizePressed();
 
 	UFUNCTION()
 	void HandleResizeReleased();
-
-	UFUNCTION()
-	void HandleBlueprintUserScrolled(float CurrentOffset);
 
 	UFUNCTION()
 	void HandleEventPublished(const FGridHudEventEntry& Entry);
@@ -295,5 +272,4 @@ private:
 	float ResizeStartScreenY = 0.0f;
 	float ResizeStartHeight = 320.0f;
 	float ResizeViewportScale = 1.0f;
-	bool bFollowNewestEntries = true;
 };

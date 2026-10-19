@@ -131,8 +131,8 @@ bool FGridUIEventHUD013AutoScrollTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestTrue(TEXT("Exact end follows newest entries"), UGridEventFeedWidget::IsScrollAtEnd(120.0f, 120.0f));
-	TestTrue(TEXT("Small rounding gap still counts as the end"), UGridEventFeedWidget::IsScrollAtEnd(114.0f, 120.0f, 8.0f));
+	TestTrue(TEXT("Exact end is detected for filter rebuilds"), UGridEventFeedWidget::IsScrollAtEnd(120.0f, 120.0f));
+	TestTrue(TEXT("Small rounding gap still counts as the end during filter rebuild"), UGridEventFeedWidget::IsScrollAtEnd(114.0f, 120.0f, 8.0f));
 	TestFalse(TEXT("Older history is detected for non-publication rebuilds"), UGridEventFeedWidget::IsScrollAtEnd(80.0f, 120.0f, 8.0f));
 	TestTrue(TEXT("Empty scroll content is treated as already at the end"), UGridEventFeedWidget::IsScrollAtEnd(0.0f, 0.0f));
 	return true;
