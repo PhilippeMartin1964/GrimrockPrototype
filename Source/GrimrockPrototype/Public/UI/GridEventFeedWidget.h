@@ -7,6 +7,7 @@
 #include "GridEventFeedWidget.generated.h"
 
 class UButton;
+class UCheckBox;
 class UGridEventFeedSubsystem;
 class UGridNavigationTooltipWidget;
 class UFont;
@@ -213,6 +214,17 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
 	TObjectPtr<UButton> Button_ResizeHandle;
 
+	/** Native UMG checkboxes are the preferred filter controls. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
+	TObjectPtr<UCheckBox> CheckBox_FilterEvents;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
+	TObjectPtr<UCheckBox> CheckBox_FilterCombat;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
+	TObjectPtr<UCheckBox> CheckBox_FilterDiscussion;
+
+	/** Temporary compatibility while authored WBP buttons are replaced with UCheckBox. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Event Feed")
 	TObjectPtr<UButton> Button_FilterEvents;
 
@@ -244,6 +256,16 @@ private:
 	FText BuildFilterText(EGridHudEventCategory Category) const;
 	void BeginResizeFromCursor();
 
+	UFUNCTION()
+	void HandleFilterEventsCheckStateChanged(bool bIsChecked);
+
+	UFUNCTION()
+	void HandleFilterCombatCheckStateChanged(bool bIsChecked);
+
+	UFUNCTION()
+	void HandleFilterDiscussionCheckStateChanged(bool bIsChecked);
+
+	/** Legacy buttons remain supported until WBP_GridEventFeed is migrated. */
 	UFUNCTION()
 	void HandleFilterEventsClicked();
 

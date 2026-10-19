@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Components/CheckBox.h"
 #include "Components/TextBlock.h"
 #include "Runtime/GridEventFeedTypes.h"
 #include "UI/GridEventFeedWidget.h"
@@ -26,17 +27,29 @@ bool FGridUIEventHUD013FiltersTest::RunTest(const FString& Parameters)
 	Widget->Text_FilterEvents = NewObject<UTextBlock>(Widget);
 	Widget->Text_FilterCombat = NewObject<UTextBlock>(Widget);
 	Widget->Text_FilterDiscussion = NewObject<UTextBlock>(Widget);
+	Widget->CheckBox_FilterEvents = NewObject<UCheckBox>(Widget);
+	Widget->CheckBox_FilterCombat = NewObject<UCheckBox>(Widget);
+	Widget->CheckBox_FilterDiscussion = NewObject<UCheckBox>(Widget);
 	Widget->SynchronizeProperties();
-	TestTrue(TEXT("Events label uses a checked indicator"), Widget->Text_FilterEvents->GetText().ToString().Contains(TEXT("☑")));
-	TestTrue(TEXT("Combat label uses a checked indicator"), Widget->Text_FilterCombat->GetText().ToString().Contains(TEXT("☑")));
-	TestTrue(TEXT("Discussion label uses a checked indicator"), Widget->Text_FilterDiscussion->GetText().ToString().Contains(TEXT("☑")));
+
+	TestEqual(TEXT("Events filter uses plain text"), Widget->Text_FilterEvents->GetText().ToString(), FString(TEXT("Événements")));
+	TestEqual(TEXT("Combat filter uses plain text"), Widget->Text_FilterCombat->GetText().ToString(), FString(TEXT("Combat")));
+	TestEqual(TEXT("Discussion filter uses plain text"), Widget->Text_FilterDiscussion->GetText().ToString(), FString(TEXT("Discussion")));
+	TestTrue(TEXT("Native events checkbox starts checked"), Widget->CheckBox_FilterEvents->IsChecked());
+	TestTrue(TEXT("Native combat checkbox starts checked"), Widget->CheckBox_FilterCombat->IsChecked());
+	TestTrue(TEXT("Native discussion checkbox starts checked"), Widget->CheckBox_FilterDiscussion->IsChecked());
 
 	Widget->SetCategoryEnabled(EGridHudEventCategory::Combat, false);
-	TestTrue(TEXT("Disabled combat uses an empty checkbox"), Widget->Text_FilterCombat->GetText().ToString().Contains(TEXT("☐")));
-	TestTrue(TEXT("Other labels remain checked"), Widget->Text_FilterEvents->GetText().ToString().Contains(TEXT("☑")) &&
-		Widget->Text_FilterDiscussion->GetText().ToString().Contains(TEXT("☑")));
+	TestFalse(TEXT("Disabling combat unchecks its native checkbox"), Widget->CheckBox_FilterCombat->IsChecked());
+	TestTrue(TEXT("Other native checkboxes stay checked"), Widget->CheckBox_FilterEvents->IsChecked() &&
+		Widget->CheckBox_FilterDiscussion->IsChecked());
 	Widget->SetCategoryEnabled(EGridHudEventCategory::Combat, true);
-	TestTrue(TEXT("Re-enabled combat restores the checked indicator"), Widget->Text_FilterCombat->GetText().ToString().Contains(TEXT("☑")));
+	TestTrue(TEXT("Re-enabling combat checks its native checkbox"), Widget->CheckBox_FilterCombat->IsChecked());
+	// Exercise the same native delegate consumed by OnCheckStateChanged in PIE.
+	Widget->CheckBox_FilterCombat->OnCheckStateChanged.Broadcast(false);
+	TestFalse(TEXT("Native combat toggle updates the filter model"), Widget->IsCategoryEnabled(EGridHudEventCategory::Combat));
+	Widget->CheckBox_FilterCombat->OnCheckStateChanged.Broadcast(true);
+	TestTrue(TEXT("Native combat toggle can restore the filter model"), Widget->IsCategoryEnabled(EGridHudEventCategory::Combat));
 	Widget->SetCategoryEnabled(EGridHudEventCategory::Combat, false);
 	TestFalse(TEXT("Combat can be hidden independently"), Widget->IsCategoryEnabled(EGridHudEventCategory::Combat));
 	TestTrue(TEXT("Events remain enabled"), Widget->IsCategoryEnabled(EGridHudEventCategory::Dungeon));

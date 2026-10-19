@@ -4,6 +4,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Button.h"
+#include "Components/CheckBox.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/ScrollBox.h"
@@ -243,6 +244,18 @@ void UGridEventFeedWidget::NativeConstruct()
 	{
 		Button_FilterDiscussion->SetCursor(EMouseCursor::None);
 	}
+	if (CheckBox_FilterEvents)
+	{
+		CheckBox_FilterEvents->SetCursor(EMouseCursor::None);
+	}
+	if (CheckBox_FilterCombat)
+	{
+		CheckBox_FilterCombat->SetCursor(EMouseCursor::None);
+	}
+	if (CheckBox_FilterDiscussion)
+	{
+		CheckBox_FilterDiscussion->SetCursor(EMouseCursor::None);
+	}
 
 	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	BindControls();
@@ -282,6 +295,18 @@ void UGridEventFeedWidget::SynchronizeShell()
 	{
 		ScrollBox_Entries->SetVisibility(ESlateVisibility::Visible);
 	}
+	if (CheckBox_FilterEvents && CheckBox_FilterEvents->IsChecked() != bShowEvents)
+	{
+		CheckBox_FilterEvents->SetIsChecked(bShowEvents);
+	}
+	if (CheckBox_FilterCombat && CheckBox_FilterCombat->IsChecked() != bShowCombat)
+	{
+		CheckBox_FilterCombat->SetIsChecked(bShowCombat);
+	}
+	if (CheckBox_FilterDiscussion && CheckBox_FilterDiscussion->IsChecked() != bShowDiscussion)
+	{
+		CheckBox_FilterDiscussion->SetIsChecked(bShowDiscussion);
+	}
 	if (Text_FilterEvents)
 	{
 		Text_FilterEvents->SetText(BuildFilterText(EGridHudEventCategory::Dungeon));
@@ -298,15 +323,27 @@ void UGridEventFeedWidget::SynchronizeShell()
 
 void UGridEventFeedWidget::BindControls()
 {
-	if (Button_FilterEvents)
+	if (CheckBox_FilterEvents)
+	{
+		CheckBox_FilterEvents->OnCheckStateChanged.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterEventsCheckStateChanged);
+	}
+	else if (Button_FilterEvents)
 	{
 		Button_FilterEvents->OnClicked.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterEventsClicked);
 	}
-	if (Button_FilterCombat)
+	if (CheckBox_FilterCombat)
+	{
+		CheckBox_FilterCombat->OnCheckStateChanged.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterCombatCheckStateChanged);
+	}
+	else if (Button_FilterCombat)
 	{
 		Button_FilterCombat->OnClicked.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterCombatClicked);
 	}
-	if (Button_FilterDiscussion)
+	if (CheckBox_FilterDiscussion)
+	{
+		CheckBox_FilterDiscussion->OnCheckStateChanged.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterDiscussionCheckStateChanged);
+	}
+	else if (Button_FilterDiscussion)
 	{
 		Button_FilterDiscussion->OnClicked.AddUniqueDynamic(this, &UGridEventFeedWidget::HandleFilterDiscussionClicked);
 	}
@@ -323,6 +360,18 @@ void UGridEventFeedWidget::BindControls()
 
 void UGridEventFeedWidget::UnbindControls()
 {
+	if (CheckBox_FilterEvents)
+	{
+		CheckBox_FilterEvents->OnCheckStateChanged.RemoveDynamic(this, &UGridEventFeedWidget::HandleFilterEventsCheckStateChanged);
+	}
+	if (CheckBox_FilterCombat)
+	{
+		CheckBox_FilterCombat->OnCheckStateChanged.RemoveDynamic(this, &UGridEventFeedWidget::HandleFilterCombatCheckStateChanged);
+	}
+	if (CheckBox_FilterDiscussion)
+	{
+		CheckBox_FilterDiscussion->OnCheckStateChanged.RemoveDynamic(this, &UGridEventFeedWidget::HandleFilterDiscussionCheckStateChanged);
+	}
 	if (Button_FilterEvents)
 	{
 		Button_FilterEvents->OnClicked.RemoveDynamic(this, &UGridEventFeedWidget::HandleFilterEventsClicked);
@@ -575,16 +624,15 @@ FText UGridEventFeedWidget::BuildEntryTooltipText(const FGridHudEventEntry& Entr
 
 FText UGridEventFeedWidget::BuildFilterText(EGridHudEventCategory Category) const
 {
-	// Keep the authored buttons and replace ON/OFF text with a visual checkbox.
-	const FText CheckIndicator = FText::FromString(IsCategoryEnabled(Category) ? TEXT("☑") : TEXT("☐"));
+	// Native UCheckBox owns the checked/unchecked rendering; these are labels only.
 	switch (Category)
 	{
 		case EGridHudEventCategory::Dungeon:
-			return FText::Format(LOCTEXT("EventsFilterCheckboxFormat", "Événements {0}"), CheckIndicator);
+			return LOCTEXT("EventsFilterLabel", "Événements");
 		case EGridHudEventCategory::Combat:
-			return FText::Format(LOCTEXT("CombatFilterCheckboxFormat", "Combat {0}"), CheckIndicator);
+			return LOCTEXT("CombatFilterLabel", "Combat");
 		case EGridHudEventCategory::Dialogue:
-			return FText::Format(LOCTEXT("DiscussionFilterCheckboxFormat", "Discussion {0}"), CheckIndicator);
+			return LOCTEXT("DiscussionFilterLabel", "Discussion");
 		default:
 			return FText::GetEmpty();
 	}
@@ -600,6 +648,21 @@ void UGridEventFeedWidget::BeginResizeFromCursor()
 			static_cast<float>(FSlateApplication::Get().GetCursorPos().Y),
 			ViewportScale);
 	}
+}
+
+void UGridEventFeedWidget::HandleFilterEventsCheckStateChanged(bool bIsChecked)
+{
+	SetCategoryEnabled(EGridHudEventCategory::Dungeon, bIsChecked);
+}
+
+void UGridEventFeedWidget::HandleFilterCombatCheckStateChanged(bool bIsChecked)
+{
+	SetCategoryEnabled(EGridHudEventCategory::Combat, bIsChecked);
+}
+
+void UGridEventFeedWidget::HandleFilterDiscussionCheckStateChanged(bool bIsChecked)
+{
+	SetCategoryEnabled(EGridHudEventCategory::Dialogue, bIsChecked);
 }
 
 void UGridEventFeedWidget::HandleFilterEventsClicked()

@@ -35,9 +35,13 @@ Désactiver une catégorie :
 - n’empêche pas la collecte de nouveaux événements ;
 - conserve l’ordre chronologique.
 
-Les trois boutons sont placés **en bas du Flux** et restent visibles pendant le défilement.
+Les trois filtres sont placés **en bas du Flux** et restent visibles pendant le défilement.
 
-Leur état est indiqué par une case visuelle **☑** (filtre actif) ou **☐** (filtre inactif), à la place des suffixes textuels `[ON]` / `[OFF]`. Toute la surface du bouton reste cliquable ; les filtres et la structure UMG existants sont conservés. Le rendu des symboles doit être vérifié avec la police du projet en PIE.
+EVENTHUD01.14 utilise trois **`UCheckBox` natives UMG** (`CheckBox_FilterEvents`, `CheckBox_FilterCombat`, `CheckBox_FilterDiscussion`), chacune contenant son `TextBlock` (`Text_FilterEvents`, `Text_FilterCombat`, `Text_FilterDiscussion`). Le `Checked` natif signifie que la catégorie est visible ; `Unchecked` signifie qu'elle est masquée. Les textes de catégories ne contiennent plus de caractères Unicode pseudo-checkbox ni de suffixes `[ON]` / `[OFF]`.
+
+Le changement d'état natif `OnCheckStateChanged` réutilise `SetCategoryEnabled`. La zone de la checkbox native, incluant son libellé, est cliquable. Les anciens `UButton` conservent un raccordement de compatibilité tant que l'asset UMG n'a pas été modifié ; aucun second modèle de filtres n'est créé.
+
+La migration visuelle des widgets dans `WBP_GridEventFeed` se fait dans Unreal Editor (pas par édition binaire de `.uasset`). L'apparence et les dimensions des cases sont configurées dans le style `UCheckBox` natif.
 
 Exemple de disposition :
 
@@ -50,7 +54,7 @@ Exemple de disposition :
 │ discussion                    │
 │ événement récent              │
 ├───────────────────────────────┤
-│ Événements ☑ | Combat ☑ | Discussion ☑
+│ [x] Événements | [x] Combat | [x] Discussion
 └───────────────────────────────┘
 ████████ HOTBAR / NAVIGATION ████████
 ```
