@@ -35,7 +35,11 @@ Désactiver une catégorie :
 - n’empêche pas la collecte de nouveaux événements ;
 - conserve l’ordre chronologique.
 
-Les trois boutons sont placés **en bas du Flux** et restent visibles pendant le défilement :
+Les trois boutons sont placés **en bas du Flux** et restent visibles pendant le défilement.
+
+Leur état est indiqué par une case visuelle **☑** (filtre actif) ou **☐** (filtre inactif), à la place des suffixes textuels `[ON]` / `[OFF]`. Toute la surface du bouton reste cliquable ; les filtres et la structure UMG existants sont conservés. Le rendu des symboles doit être vérifié avec la police du projet en PIE.
+
+Exemple de disposition :
 
 ```text
 ┌───────────────────────────────┐
@@ -46,7 +50,7 @@ Les trois boutons sont placés **en bas du Flux** et restent visibles pendant le
 │ discussion                    │
 │ événement récent              │
 ├───────────────────────────────┤
-│ Événements | Combat | Discussion
+│ Événements ☑ | Combat ☑ | Discussion ☑
 └───────────────────────────────┘
 ████████ HOTBAR / NAVIGATION ████████
 ```

@@ -575,21 +575,16 @@ FText UGridEventFeedWidget::BuildEntryTooltipText(const FGridHudEventEntry& Entr
 
 FText UGridEventFeedWidget::BuildFilterText(EGridHudEventCategory Category) const
 {
-	const bool bEnabled = IsCategoryEnabled(Category);
+	// Keep the authored buttons and replace ON/OFF text with a visual checkbox.
+	const FText CheckIndicator = FText::FromString(IsCategoryEnabled(Category) ? TEXT("☑") : TEXT("☐"));
 	switch (Category)
 	{
 		case EGridHudEventCategory::Dungeon:
-			return FText::Format(
-				LOCTEXT("EventsFilterFormat", "Événements [{0}]"),
-				bEnabled ? LOCTEXT("FilterOnEvents", "ON") : LOCTEXT("FilterOffEvents", "OFF"));
+			return FText::Format(LOCTEXT("EventsFilterCheckboxFormat", "Événements {0}"), CheckIndicator);
 		case EGridHudEventCategory::Combat:
-			return FText::Format(
-				LOCTEXT("CombatFilterFormat", "Combat [{0}]"),
-				bEnabled ? LOCTEXT("FilterOnCombat", "ON") : LOCTEXT("FilterOffCombat", "OFF"));
+			return FText::Format(LOCTEXT("CombatFilterCheckboxFormat", "Combat {0}"), CheckIndicator);
 		case EGridHudEventCategory::Dialogue:
-			return FText::Format(
-				LOCTEXT("DiscussionFilterFormat", "Discussion [{0}]"),
-				bEnabled ? LOCTEXT("FilterOnDiscussion", "ON") : LOCTEXT("FilterOffDiscussion", "OFF"));
+			return FText::Format(LOCTEXT("DiscussionFilterCheckboxFormat", "Discussion {0}"), CheckIndicator);
 		default:
 			return FText::GetEmpty();
 	}

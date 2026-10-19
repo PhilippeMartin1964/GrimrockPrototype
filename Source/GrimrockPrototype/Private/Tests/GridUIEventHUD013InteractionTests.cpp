@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Components/TextBlock.h"
 #include "Runtime/GridEventFeedTypes.h"
 #include "UI/GridEventFeedWidget.h"
 
@@ -22,6 +23,20 @@ bool FGridUIEventHUD013FiltersTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Combat filter starts enabled"), Widget->IsCategoryEnabled(EGridHudEventCategory::Combat));
 	TestTrue(TEXT("Discussion filter starts enabled"), Widget->IsCategoryEnabled(EGridHudEventCategory::Dialogue));
 
+	Widget->Text_FilterEvents = NewObject<UTextBlock>(Widget);
+	Widget->Text_FilterCombat = NewObject<UTextBlock>(Widget);
+	Widget->Text_FilterDiscussion = NewObject<UTextBlock>(Widget);
+	Widget->SynchronizeProperties();
+	TestTrue(TEXT("Events label uses a checked indicator"), Widget->Text_FilterEvents->GetText().ToString().Contains(TEXT("☑")));
+	TestTrue(TEXT("Combat label uses a checked indicator"), Widget->Text_FilterCombat->GetText().ToString().Contains(TEXT("☑")));
+	TestTrue(TEXT("Discussion label uses a checked indicator"), Widget->Text_FilterDiscussion->GetText().ToString().Contains(TEXT("☑")));
+
+	Widget->SetCategoryEnabled(EGridHudEventCategory::Combat, false);
+	TestTrue(TEXT("Disabled combat uses an empty checkbox"), Widget->Text_FilterCombat->GetText().ToString().Contains(TEXT("☐")));
+	TestTrue(TEXT("Other labels remain checked"), Widget->Text_FilterEvents->GetText().ToString().Contains(TEXT("☑")) &&
+		Widget->Text_FilterDiscussion->GetText().ToString().Contains(TEXT("☑")));
+	Widget->SetCategoryEnabled(EGridHudEventCategory::Combat, true);
+	TestTrue(TEXT("Re-enabled combat restores the checked indicator"), Widget->Text_FilterCombat->GetText().ToString().Contains(TEXT("☑")));
 	Widget->SetCategoryEnabled(EGridHudEventCategory::Combat, false);
 	TestFalse(TEXT("Combat can be hidden independently"), Widget->IsCategoryEnabled(EGridHudEventCategory::Combat));
 	TestTrue(TEXT("Events remain enabled"), Widget->IsCategoryEnabled(EGridHudEventCategory::Dungeon));
