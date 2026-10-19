@@ -105,3 +105,11 @@ Le jalon d'**inventaire** sera valide lorsque l'utilisateur aura confirme
 `Grimrock.Editor.UIWBPAudit02` OK et partage les deux rapports.
 Le classement final `supprimable` demandera une seconde phase
 Reference Viewer, avant un ticket de nettoyage separe.
+
+## Correctif UI-WBP-AUDIT02.1 — scan Source/Config (2026-10-19)
+
+Le premier run vert des 46 WBP a releve **8 fichiers sources scannes**, en fait les seuls `Config/*.ini`. Dans `ScanSourceFiles`, les appels successifs a `FindFilesRecursive` reutilisaient le meme tableau et seul le dernier resultat restait disponible. Les colonnes `SourceConfigCount` du premier rapport etaient donc incompletes. Les donnees **AssetRegistry hard/soft restent independantes de cette erreur**.
+
+Le correctif collecte separement `*.cpp`, `*.h`, `*.cs` et `*.ini`, fusionne puis dedoublonne les chemins, et ajoute un garde-fou de **plus de 100 fichiers de production Source/** et au moins un fichier `Config/`. Le nombre de sources et de fichiers config est affiche explicitement dans le log et le rapport Markdown.
+
+**Il faut regénérer les deux rapports en relançant le meme filtre TD04.2**. Ne pas classer definitivement `WBP_ItemReadPanel` avant cette nouvelle verification et le test de la fonction Lire dans `WBP_InventoryBag`.

@@ -51,16 +51,31 @@ namespace UIWBPAudit02
 
     void ScanSourceFiles(TArray<FTextFile>& OutFiles)
     {
+        OutFiles.Reset();
         const FString Root = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
         TArray<FString> Files;
         for (const TCHAR* Pattern : { TEXT("*.cpp"), TEXT("*.h"), TEXT("*.cs") })
         {
+            // FindFilesRecursive replaces its output array on each call.
+            // Collect each extension separately, otherwise the final Config
+            // scan hides the production C++ sources from the audit entirely.
+            TArray<FString> Matches;
             IFileManager::Get().FindFilesRecursive(
-                Files, *FPaths::Combine(Root, TEXT("Source")), Pattern, true, false);
+                Matches, *FPaths::Combine(Root, TEXT("Source")), Pattern, true, false);
+            Files.Append(Matches);
         }
+        TArray<FString> ConfigMatches;
         IFileManager::Get().FindFilesRecursive(
-            Files, *FPaths::Combine(Root, TEXT("Config")), TEXT("*.ini"), true, false);
+            ConfigMatches, *FPaths::Combine(Root, TEXT("Config")), TEXT("*.ini"), true, false);
+        Files.Append(ConfigMatches);
         Files.Sort();
+        for (int32 I = Files.Num() - 1; I > 0; --I)
+        {
+            if (Files[I] == Files[I - 1])
+            {
+                Files.RemoveAt(I);
+            }
+        }
         for (const FString& Filename : Files)
         {
             FString Normalized = Filename;
@@ -143,6 +158,20 @@ bool FUIWBPAudit02Inventory::RunTest(const FString& Parameters)
 
     TArray<FTextFile> SourceFiles;
     ScanSourceFiles(SourceFiles);
+
+    int32 ProductionSourceCount = 0;
+    int32 ConfigFileCount = 0;
+    for (const FTextFile& File : SourceFiles)
+    {
+        if (File.Name.StartsWith(TEXT("Source/"), ESearchCase::IgnoreCase))
+        {
+            ++ProductionSourceCount;
+        }
+        else if (File.Name.StartsWith(TEXT("Config/"), ESearchCase::IgnoreCase))
+        {
+            ++ConfigFileCount;
+        }
+    }
 
     FString Csv = TEXT("Name,Package,Class,HardCount,SoftCount,OtherCount,HardReferencers,SoftReferencers,OtherReferencers,HardDependencies,SoftDependencies,SourceConfigCount,SourceConfigFiles,Decision,Reason\n");
     FString Md = TEXT("# UI-WBP-AUDIT02 — Rapport AssetRegistry UE5.5.4\n\n");
@@ -255,8 +284,8 @@ bool FUIWBPAudit02Inventory::RunTest(const FString& Parameters)
     }
 
     Md += FString::Printf(
-        TEXT("\nTotal %d / baseline %d. Referenced=%d; SourceOnly=%d; KnownRoots=%d; ZeroRefs=%d; Redirectors=%d; SourceFiles=%d.\n\n"),
-        Widgets.Num(), ExpectedCount, Referenced, SourceOnly, RootOnly, Zero, Redirectors, SourceFiles.Num());
+        TEXT("\nTotal %d / baseline %d. Referenced=%d; SourceOnly=%d; KnownRoots=%d; ZeroRefs=%d; Redirectors=%d; ProductionSourceFiles=%d; ConfigFiles=%d.\n\n"),
+        Widgets.Num(), ExpectedCount, Referenced, SourceOnly, RootOnly, Zero, Redirectors, ProductionSourceCount, ConfigFileCount);
     Md += TEXT("Zero references NEVER authorizes deletion. Check Reference Viewer (hard/soft), serialized Class Defaults and levels, runtime dynamic loading, then PIE. This report does not touch any uasset.\n\n");
     Md += TEXT("## Individual asset dependencies\n");
     Md += Detail;
@@ -269,15 +298,20 @@ bool FUIWBPAudit02Inventory::RunTest(const FString& Parameters)
         Csv, *CsvFile, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
     const bool bMdOK = FFileHelper::SaveStringToFile(
         Md, *MdFile, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
-    AddInfo(FString::Printf(TEXT("[UI-WBP-AUDIT02] Widgets=%d Referenced=%d SourceOnly=%d KnownRoots=%d ZeroRefs=%d Redirectors=%d"),
-        Widgets.Num(), Referenced, SourceOnly, RootOnly, Zero, Redirectors));
+    AddInfo(FString::Printf(TEXT("[UI-WBP-AUDIT02] Widgets=%d Referenced=%d SourceOnly=%d KnownRoots=%d ZeroRefs=%d Redirectors=%d ProductionSources=%d ConfigFiles=%d"),
+        Widgets.Num(), Referenced, SourceOnly, RootOnly, Zero, Redirectors, ProductionSourceCount, ConfigFileCount));
     AddInfo(FString::Printf(TEXT("[UI-WBP-AUDIT02] CSV: %s"), *CsvFile));
     AddInfo(FString::Printf(TEXT("[UI-WBP-AUDIT02] Markdown: %s"), *MdFile));
+    // A healthy C++ project contains far more than 100 production source files.
+    // Regression guard: a partial extension scan must never produce a green audit.
+    TestTrue(TEXT("Production Source scan includes over 100 non-test files"), ProductionSourceCount > 100);
+    TestTrue(TEXT("Config scan includes project ini files"), ConfigFileCount > 0);
     TestTrue(TEXT("Complete CSV report generated under Saved"), bCsvOK);
     TestTrue(TEXT("Complete Markdown report generated under Saved"), bMdOK);
     TestEqual(TEXT("Expected 46 UI Widget Blueprints"), Widgets.Num(), ExpectedCount);
     TestEqual(TEXT("No WBP redirectors are left in UI folder"), Redirectors, 0);
-    return bCsvOK && bMdOK && Widgets.Num() == ExpectedCount && Redirectors == 0;
+    return bCsvOK && bMdOK && ProductionSourceCount > 100 && ConfigFileCount > 0 &&
+        Widgets.Num() == ExpectedCount && Redirectors == 0;
 }
 
 #endif
