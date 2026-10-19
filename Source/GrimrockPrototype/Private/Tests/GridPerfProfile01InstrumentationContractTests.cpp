@@ -76,7 +76,8 @@ bool FGridPerfProfile01InstrumentationContractTest::RunTest(const FString& Param
             ++Verified;
         }
     }
-    TestEqual(TEXT("All PERF-PROFILE01 scopes remain wired"), Verified, UE_ARRAY_COUNT(Contracts));
+    TestEqual(TEXT("All PERF-PROFILE01 scopes remain wired"), Verified,
+        static_cast<int32>(UE_ARRAY_COUNT(Contracts)));
 
     FString Script;
     const FString ScriptPath = FPaths::Combine(FPaths::ProjectDir(),
