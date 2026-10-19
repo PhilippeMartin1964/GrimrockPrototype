@@ -294,19 +294,35 @@ bool AGridWallLockActor::CompleteUnlock(AGrimrockPartyPawn* PartyPawn, FName Mat
 
 	bIsUnlocked = true;
 	const FText Message = GetEffectiveUnlockSuccessMessage();
-	GridEventFeedPublisher::PublishDungeonEvent(
+	const FName SourceId = GridEventFeedPublisher::SourceIdFromGuid(ObjectId);
+	const bool bGroupStarted = GridEventFeedPublisher::BeginDungeonEventGroup(
 		this,
 		FName(TEXT("Dungeon.Lock.Unlocked")),
 		Message,
 		EGridHudEventSemantic::Locked,
 		EGridEventVisibility::Always,
 		true,
-		GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
+		SourceId);
+	if (!bGroupStarted)
+	{
+		GridEventFeedPublisher::PublishDungeonEvent(
+			this,
+			FName(TEXT("Dungeon.Lock.Unlocked")),
+			Message,
+			EGridHudEventSemantic::Locked,
+			EGridEventVisibility::Always,
+			true,
+			SourceId);
+	}
 
 	UE_LOG(LogGridWallLock, Log, TEXT("GridWallLock UnlockSuccess ObjectId=%s MatchingKeyId=%s Source=%s Message=%s"), *ObjectId.ToString(),
 		*MatchingKeyId.ToString(), Source, *Message.ToString());
 
 	const bool bLinkExecuted = PartyPawn->LevelRuntimeActor->ExecuteLinksFromRuntimeObject(ObjectId, EGridObjectEvent::Activated);
+	if (bGroupStarted)
+	{
+		GridEventFeedPublisher::EndDungeonEventGroup(this);
+	}
 	UE_LOG(LogGridWallLock, Log, TEXT("GridWallLock ActivatedEventEmitted ObjectId=%s MatchingKeyId=%s Source=%s LinkExecuted=%s"), *ObjectId.ToString(),
 		*MatchingKeyId.ToString(), Source, bLinkExecuted ? TEXT("true") : TEXT("false"));
 	return true;

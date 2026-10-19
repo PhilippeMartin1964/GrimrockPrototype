@@ -1,6 +1,7 @@
 #include "Runtime/GridActivationComponent.h"
 
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
@@ -720,6 +721,45 @@ bool UGridActivationComponent::SetTargetActiveState(const FGridWorldObjectInstan
 		UE_LOG(LogGridActivation, Log, TEXT("Grid object state changed by link command: Target=%s Type=%s PreviousActive=%s NewActive=%s Event=%s"),
 			*TargetObject.InstanceId.ToString(), *GridObjectTypeToString(TargetObject.Type), bWasActive ? TEXT("true") : TEXT("false"),
 			bActive ? TEXT("true") : TEXT("false"), *GridObjectEventToString(StateEvent));
+
+		FName ConsequenceCode = NAME_None;
+		FText ConsequenceText;
+		switch (TargetObject.Type)
+		{
+			case EGridLevelObjectType::Lever:
+				ConsequenceCode = bActive ? FName(TEXT("Dungeon.Lever.Activated")) : FName(TEXT("Dungeon.Lever.Deactivated"));
+				ConsequenceText = bActive
+					? NSLOCTEXT("GridEventFeed", "LinkedLeverActivated", "Un levier est activé.")
+					: NSLOCTEXT("GridEventFeed", "LinkedLeverDeactivated", "Un levier est désactivé.");
+				break;
+			case EGridLevelObjectType::PressurePlate:
+				ConsequenceCode = bActive ? FName(TEXT("Dungeon.PressurePlate.Pressed")) : FName(TEXT("Dungeon.PressurePlate.Released"));
+				ConsequenceText = bActive
+					? NSLOCTEXT("GridEventFeed", "LinkedPressurePlatePressed", "Une plaque de pression s'enfonce.")
+					: NSLOCTEXT("GridEventFeed", "LinkedPressurePlateReleased", "Une plaque de pression se relève.");
+				break;
+			case EGridLevelObjectType::Relocation:
+				ConsequenceCode = bActive ? FName(TEXT("Dungeon.Relocation.Activated")) : FName(TEXT("Dungeon.Relocation.Deactivated"));
+				ConsequenceText = bActive
+					? NSLOCTEXT("GridEventFeed", "LinkedRelocationActivated", "Un téléporteur s'active.")
+					: NSLOCTEXT("GridEventFeed", "LinkedRelocationDeactivated", "Un téléporteur se désactive.");
+				break;
+			default:
+				break;
+		}
+
+		if (!ConsequenceText.IsEmpty())
+		{
+			GridEventFeedPublisher::PublishPerceivedDungeonConsequenceAtCell(
+				RuntimeActor,
+				TargetObject.CellX,
+				TargetObject.CellY,
+				ConsequenceCode,
+				ConsequenceText,
+				EGridHudEventSemantic::Mechanism,
+				GridEventFeedPublisher::SourceIdFromGuid(TargetObject.InstanceId));
+		}
+
 		ExecuteLinksFromObjectForEvent(TargetObject.InstanceId, StateEvent);
 	}
 	return true;

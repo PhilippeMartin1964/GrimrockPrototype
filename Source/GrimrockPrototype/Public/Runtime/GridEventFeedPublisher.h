@@ -2,8 +2,19 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/GridEventFeedTypes.h"
+#include "Core/GridTypes.h"
 
 class UGridWorldObjectDefinitionAsset;
+class AGridLevelRuntimeActor;
+class AGrimrockPartyPawn;
+
+enum class EGridDungeonConsequencePerception : uint8
+{
+	Hidden,
+	VisibleNear,
+	VisibleDistant,
+	Audible
+};
 
 namespace GridEventFeedPublisher
 {
@@ -41,6 +52,46 @@ namespace GridEventFeedPublisher
 	/** Stable non-player-facing source identity for runtime object events. */
 	GRIMROCKPROTOTYPE_API FName SourceIdFromGuid(const FGuid& SourceGuid);
 
+	/** EVENTHUD01.12 player perception of a consequence at one dungeon cell. */
+	GRIMROCKPROTOTYPE_API EGridDungeonConsequencePerception ResolveCellConsequencePerception(
+		const AGridLevelRuntimeActor* RuntimeActor,
+		const AGrimrockPartyPawn* PartyPawn,
+		const FIntPoint& EventCell,
+		FName EventCode = NAME_None,
+		EGridEdge EventEdge = EGridEdge::None,
+		int32 VisualRangeCells = 6,
+		int32 HearingRangeCells = 6);
+
+	/** Converts a resolved consequence into non-omniscient player-facing wording. */
+	GRIMROCKPROTOTYPE_API FText ResolvePerceivedConsequenceText(
+		FName EventCode,
+		const FText& VisibleFallback,
+		EGridDungeonConsequencePerception Perception);
+
+	/** Opens one synchronous cause/consequence group. */
+	GRIMROCKPROTOTYPE_API bool BeginDungeonEventGroup(
+		const UObject* WorldContextObject,
+		FName EventCode,
+		const FText& RootMessage,
+		EGridHudEventSemantic Semantic,
+		EGridEventVisibility Visibility,
+		bool bRootObservableToPlayer,
+		FName SourceId = NAME_None);
+
+	GRIMROCKPROTOTYPE_API bool BeginDungeonEventGroupAtCell(
+		const UObject* WorldContextObject,
+		int32 CellX,
+		int32 CellY,
+		FName EventCode,
+		const FText& RootMessage,
+		EGridHudEventSemantic Semantic,
+		EGridEventVisibility Visibility = EGridEventVisibility::Observable,
+		FName SourceId = NAME_None,
+		int32 MaxManhattanDistance = 1);
+
+	GRIMROCKPROTOTYPE_API bool EndDungeonEventGroup(const UObject* WorldContextObject);
+	GRIMROCKPROTOTYPE_API void CancelDungeonEventGroup(const UObject* WorldContextObject);
+
 	/** Publishes one already-resolved dungeon event without imposing gameplay rules. */
 	GRIMROCKPROTOTYPE_API bool PublishDungeonEvent(
 		const UObject* WorldContextObject,
@@ -69,4 +120,17 @@ namespace GridEventFeedPublisher
 		EGridEventVisibility Visibility = EGridEventVisibility::Observable,
 		FName SourceId = NAME_None,
 		int32 MaxManhattanDistance = 1);
+
+	/** Spatially resolved consequence: visible, audible, or deliberately hidden. */
+	GRIMROCKPROTOTYPE_API bool PublishPerceivedDungeonConsequenceAtCell(
+		const AGridLevelRuntimeActor* RuntimeActor,
+		int32 CellX,
+		int32 CellY,
+		FName EventCode,
+		const FText& VisibleMessage,
+		EGridHudEventSemantic Semantic,
+		FName SourceId = NAME_None,
+		EGridEdge EventEdge = EGridEdge::None,
+		int32 VisualRangeCells = 6,
+		int32 HearingRangeCells = 6);
 }

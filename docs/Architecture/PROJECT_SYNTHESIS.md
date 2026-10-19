@@ -386,3 +386,10 @@ Ordre conseillé :
 9. `docs/Architecture/ARCHITECTURE_REBASELINE_2026_10_09.md`
 
 Les documents MIG/cleanup/audit datés restent des snapshots historiques.
+
+
+### EVENTHUD01.12 — Event Consequence Grouping
+
+Une action et ses conséquences synchrones perceptibles partagent une seule
+entrée Event Feed. La perception réutilise la vue et l'acoustique canoniques
+de grille ; aucun secret imperceptible n'est révélé.

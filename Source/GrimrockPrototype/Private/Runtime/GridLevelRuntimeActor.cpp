@@ -1364,16 +1364,15 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridPit gameplay state settled ObjectId=%s Cell=(%d,%d) Previous=%s New=%s"), *PitObjectId.ToString(),
 		PitObject->CellX, PitObject->CellY, bWasOpen ? TEXT("Open") : TEXT("Closed"), bIsOpen ? TEXT("Open") : TEXT("Closed"));
 
-	GridEventFeedPublisher::PublishDungeonEventAtCell(
+	GridEventFeedPublisher::PublishPerceivedDungeonConsequenceAtCell(
 		this,
 		PitObject->CellX,
 		PitObject->CellY,
 		bIsOpen ? FName(TEXT("Dungeon.Pit.Opened")) : FName(TEXT("Dungeon.Pit.Closed")),
 		bIsOpen
 			? NSLOCTEXT("GridEventFeed", "PitOpened", "Une trappe s'ouvre dans le sol.")
-			: NSLOCTEXT("GridEventFeed", "PitClosed", "La trappe se referme."),
+			: NSLOCTEXT("GridEventFeed", "PitClosed", "Une trappe se referme."),
 		bIsOpen ? EGridHudEventSemantic::Danger : EGridHudEventSemantic::Mechanism,
-		EGridEventVisibility::Observable,
 		GridEventFeedPublisher::SourceIdFromGuid(PitObjectId));
 
 	if (bIsOpen)

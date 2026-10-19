@@ -134,15 +134,18 @@ bool UGridDoorSystemComponent::OpenDoorOnEdge(int32 X, int32 Y, EGridEdge Edge)
 	if (!bWasTargetOpen)
 	{
 		const FGridWorldObjectInstance* Instance = FindDoorInstanceAtEdge(X, Y, Edge);
-		GridEventFeedPublisher::PublishDungeonEventAtCell(
+		const bool bSecretDoor = IsSecretDoorOnEdge(X, Y, Edge);
+		GridEventFeedPublisher::PublishPerceivedDungeonConsequenceAtCell(
 			RuntimeActor,
 			X,
 			Y,
-			IsSecretDoorOnEdge(X, Y, Edge) ? FName(TEXT("Dungeon.SecretDoor.Opened")) : FName(TEXT("Dungeon.Door.Opened")),
-			NSLOCTEXT("GridEventFeed", "DoorOpened", "La porte s'ouvre."),
-			IsSecretDoorOnEdge(X, Y, Edge) ? EGridHudEventSemantic::Secret : EGridHudEventSemantic::Mechanism,
-			EGridEventVisibility::Observable,
-			Instance ? GridEventFeedPublisher::SourceIdFromGuid(Instance->InstanceId) : NAME_None);
+			bSecretDoor ? FName(TEXT("Dungeon.SecretDoor.Opened")) : FName(TEXT("Dungeon.Door.Opened")),
+			bSecretDoor
+				? NSLOCTEXT("GridEventFeed", "SecretDoorOpenedVisible", "Une partie du mur se met en mouvement.")
+				: NSLOCTEXT("GridEventFeed", "DoorOpened", "Une porte s'ouvre."),
+			bSecretDoor ? EGridHudEventSemantic::Secret : EGridHudEventSemantic::Mechanism,
+			Instance ? GridEventFeedPublisher::SourceIdFromGuid(Instance->InstanceId) : NAME_None,
+			Edge);
 	}
 	return true;
 }
@@ -165,15 +168,18 @@ bool UGridDoorSystemComponent::CloseDoorOnEdge(int32 X, int32 Y, EGridEdge Edge)
 	if (bWasTargetOpen)
 	{
 		const FGridWorldObjectInstance* Instance = FindDoorInstanceAtEdge(X, Y, Edge);
-		GridEventFeedPublisher::PublishDungeonEventAtCell(
+		const bool bSecretDoor = IsSecretDoorOnEdge(X, Y, Edge);
+		GridEventFeedPublisher::PublishPerceivedDungeonConsequenceAtCell(
 			RuntimeActor,
 			X,
 			Y,
-			FName(TEXT("Dungeon.Door.Closed")),
-			NSLOCTEXT("GridEventFeed", "DoorClosed", "La porte se ferme."),
-			EGridHudEventSemantic::Mechanism,
-			EGridEventVisibility::Observable,
-			Instance ? GridEventFeedPublisher::SourceIdFromGuid(Instance->InstanceId) : NAME_None);
+			bSecretDoor ? FName(TEXT("Dungeon.SecretDoor.Closed")) : FName(TEXT("Dungeon.Door.Closed")),
+			bSecretDoor
+				? NSLOCTEXT("GridEventFeed", "SecretDoorClosedVisible", "Une partie du mur se met en mouvement.")
+				: NSLOCTEXT("GridEventFeed", "DoorClosed", "Une porte se ferme."),
+			bSecretDoor ? EGridHudEventSemantic::Secret : EGridHudEventSemantic::Mechanism,
+			Instance ? GridEventFeedPublisher::SourceIdFromGuid(Instance->InstanceId) : NAME_None,
+			Edge);
 	}
 	return true;
 }

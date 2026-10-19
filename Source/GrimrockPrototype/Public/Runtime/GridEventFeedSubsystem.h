@@ -47,10 +47,38 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grimrock|Event Feed")
 	void SetMaxEventCount(int32 InMaxEventCount);
 
+	// EVENTHUD01.12 — one immediate cause chain becomes one logical feed entry.
+	bool BeginDungeonEventGroup(const FGridHudEventEntry& RootEntry, bool bRootObservableToPlayer);
+	bool AppendDungeonEventGroupConsequence(
+		const FText& Consequence,
+		EGridHudEventSemantic Semantic = EGridHudEventSemantic::Default);
+	bool EndDungeonEventGroup();
+	void CancelDungeonEventGroup();
+	bool HasActiveDungeonEventGroup() const;
+
 	/** Broadcast only after an entry has passed visibility policy and entered the buffer. */
 	UPROPERTY(BlueprintAssignable, Category = "Grimrock|Event Feed")
 	FGridEventFeedPublishedSignature OnEventPublished;
 
 private:
+	struct FDungeonEventGroupState
+	{
+		bool bActive = false;
+		FGridHudEventEntry RootEntry;
+		bool bRootObservableToPlayer = false;
+		TArray<FText> Consequences;
+		TArray<EGridHudEventSemantic> ConsequenceSemantics;
+
+		void Reset()
+		{
+			bActive = false;
+			RootEntry = FGridHudEventEntry();
+			bRootObservableToPlayer = false;
+			Consequences.Reset();
+			ConsequenceSemantics.Reset();
+		}
+	};
+
 	FGridEventFeedBuffer Buffer;
+	FDungeonEventGroupState DungeonEventGroup;
 };

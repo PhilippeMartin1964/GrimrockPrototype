@@ -534,21 +534,38 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 	OutAcceptedItem.OwnerCharacterIndex = INDEX_NONE;
 	OutAcceptedItem.EquipmentSlot = EGridEquipmentSlot::None;
 
-	ExecuteInsertionLinks();
-
 	const FText InsertedItemName = !CursorItem.DisplayName.IsEmpty()
 		? CursorItem.DisplayName
 		: FText::FromString(CursorItem.ItemDefinitionId.ToString());
-	GridEventFeedPublisher::PublishDungeonEvent(
+	const FText InsertedMessage = FText::Format(
+		NSLOCTEXT("GridEventFeed", "ReceptacleItemInserted", "{0} est placé dans le réceptacle."),
+		InsertedItemName);
+	const FName InsertedSourceId = GridEventFeedPublisher::SourceIdFromGuid(ObjectId);
+	const bool bGroupStarted = GridEventFeedPublisher::BeginDungeonEventGroup(
 		this,
 		FName(TEXT("Dungeon.Receptacle.ItemInserted")),
-		FText::Format(
-			NSLOCTEXT("GridEventFeed", "ReceptacleItemInserted", "{0} est placé dans le réceptacle."),
-			InsertedItemName),
+		InsertedMessage,
 		EGridHudEventSemantic::Interaction,
 		EGridEventVisibility::Always,
 		true,
-		GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
+		InsertedSourceId);
+	if (!bGroupStarted)
+	{
+		GridEventFeedPublisher::PublishDungeonEvent(
+			this,
+			FName(TEXT("Dungeon.Receptacle.ItemInserted")),
+			InsertedMessage,
+			EGridHudEventSemantic::Interaction,
+			EGridEventVisibility::Always,
+			true,
+			InsertedSourceId);
+	}
+
+	ExecuteInsertionLinks();
+	if (bGroupStarted)
+	{
+		GridEventFeedPublisher::EndDungeonEventGroup(this);
+	}
 
 	UE_LOG(LogGridReceptacle, Verbose, TEXT("Receptacle accepted cursor item %s ObjectId=%s RuntimeId=%s Count=%d"), *CursorItem.ItemDefinitionId.ToString(),
 		*ObjectId.ToString(), *CursorItem.RuntimeObjectId.ToString(), ContainedItems.Num());
@@ -630,21 +647,39 @@ bool AGridReceptacleActor::TryTakeItemAtIndex(int32 ItemIndex, AGrimrockPartyPaw
 		return false;
 	}
 	OutRemovedItemDefinitionId = RemovedItem.ItemDefinitionId;
-	ExecuteRemovalLinks();
 
 	const FText RemovedItemName = !RemovedItem.DisplayName.IsEmpty()
 		? RemovedItem.DisplayName
 		: FText::FromString(RemovedItem.ItemDefinitionId.ToString());
-	GridEventFeedPublisher::PublishDungeonEvent(
+	const FText RemovedMessage = FText::Format(
+		NSLOCTEXT("GridEventFeed", "ReceptacleItemRemoved", "{0} est retiré du réceptacle."),
+		RemovedItemName);
+	const FName RemovedSourceId = GridEventFeedPublisher::SourceIdFromGuid(ObjectId);
+	const bool bGroupStarted = GridEventFeedPublisher::BeginDungeonEventGroup(
 		this,
 		FName(TEXT("Dungeon.Receptacle.ItemRemoved")),
-		FText::Format(
-			NSLOCTEXT("GridEventFeed", "ReceptacleItemRemoved", "{0} est retiré du réceptacle."),
-			RemovedItemName),
+		RemovedMessage,
 		EGridHudEventSemantic::Interaction,
 		EGridEventVisibility::Always,
 		true,
-		GridEventFeedPublisher::SourceIdFromGuid(ObjectId));
+		RemovedSourceId);
+	if (!bGroupStarted)
+	{
+		GridEventFeedPublisher::PublishDungeonEvent(
+			this,
+			FName(TEXT("Dungeon.Receptacle.ItemRemoved")),
+			RemovedMessage,
+			EGridHudEventSemantic::Interaction,
+			EGridEventVisibility::Always,
+			true,
+			RemovedSourceId);
+	}
+
+	ExecuteRemovalLinks();
+	if (bGroupStarted)
+	{
+		GridEventFeedPublisher::EndDungeonEventGroup(this);
+	}
 
 	UE_LOG(LogGridReceptacle, Verbose, TEXT("Receptacle returned item %s ObjectId=%s Count=%d"), *RemovedItem.ItemDefinitionId.ToString(), *ObjectId.ToString(),
 		ContainedItems.Num());

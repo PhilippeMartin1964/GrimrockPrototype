@@ -629,6 +629,10 @@ UI-EVENTHUD01 sera considéré valide lorsque :
 24. le Flux n’interfère pas avec les commandes du jeu ;
 25. aucun acteur métier ne dépend directement de `WBP_GridEventFeed`;
 26. aucune entrée du Flux n’est automatiquement copiée dans le Journal.
+27. une action et ses conséquences synchrones perceptibles occupent une seule entrée logique ;
+28. le séparateur `→` relie la cause à sa première conséquence et `·` sépare les conséquences supplémentaires ;
+29. une conséquence non visible mais audible utilise une formulation sensorielle sans révéler son identité cachée ;
+30. une conséquence ni visible ni audible n'est pas publiée dans le Flux.
 
 ## 25. Roadmap d’implémentation
 
@@ -646,6 +650,7 @@ UI-EVENTHUD01 sera considéré valide lorsque :
 | **EVENTHUD01.10 — Validation** | Buffer 200, filtres, resize, souris, secrets, scroll, changement de niveau, stress test | Jalon maître validé |
 | **EVENTHUD01.11 — Gameplay Timestamp** | Horloge de partie persistante et préfixe bicolore | Chronologie lisible dans les trois catégories |
 | **EVENTHUD01.11P — Gameplay/World Time Polish** | Format `[J X, HH:MM:SS]`, secondes et `WorldTimeScale = 6.0` | Horloge monde compacte et accélérée |
+| **EVENTHUD01.12 — Event Consequence Grouping** | Cause + conséquences immédiates, perception spatiale et anti-spoiler | Une chaîne logique = une entrée player-facing |
 
 ## 26. Extension ultérieure
 
@@ -716,3 +721,89 @@ Il n'utilise pas `GlobalTimeDilation` et n'accélère donc ni animations, ni
 portes, ni déplacements, ni combat. Le champ SaveGame v27 existant conserve
 les **secondes monde accumulées** ; aucun bump de schéma supplémentaire n'est
 nécessaire.
+
+
+## 30. EVENTHUD01.12 — Event Consequence Grouping
+
+### 30.1 Une chaîne logique, une entrée
+
+Une action player-facing et ses conséquences **synchrones et immédiates** sont
+publiées comme une seule `FGridHudEventEntry`, avec un seul `SequenceId` et
+un seul timestamp :
+
+```text
+[J 0, 00:02:36] Le levier est activé → Une porte s'ouvre au fond du couloir.
+```
+
+Plusieurs conséquences perceptibles utilisent le séparateur `·` :
+
+```text
+[J 0, 00:02:36] Le levier est activé → Une porte s'ouvre · Un téléporteur s'active.
+```
+
+Le widget peut naturellement replier le texte si sa largeur est insuffisante ;
+ce wrapping visuel ne crée jamais une deuxième entrée logique.
+
+Une conséquence réellement **asynchrone** — animation différée, timer, nouvelle
+condition, nouvel événement runtime — reste une nouvelle entrée avec son propre
+timestamp.
+
+### 30.2 Perception spatiale
+
+Le Flux ne décrit pas la connaissance omnisciente du moteur. Une conséquence
+cell-bound est projetée selon la perception du groupe :
+
+1. **Visible proche** : formulation spatiale proche, par exemple
+   `Une porte devant vous s'ouvre.`
+2. **Visible lointaine** : formulation non identifiante, par exemple
+   `Une porte s'ouvre au fond du couloir.`
+3. **Non visible mais audible** :
+   `Vous entendez une porte s'ouvrir au loin.`
+4. **Ni visible ni audible** : aucune conséquence player-facing.
+
+La vue réutilise la géométrie canonique de grille
+`FGridMonsterPerception::HasDirectionalLineOfSight()` et
+`AGridLevelRuntimeActor::CanMove()`. L'ouïe réutilise
+`FGridMonsterPerception::CanHearThroughGrid()` et
+`AGridLevelRuntimeActor::CanSoundTraverse()`.
+
+La portée initiale EVENTHUD01.12 est volontairement conservative :
+**6 cellules pour la vue et 6 cellules pour l'ouïe**. Ces valeurs sont des
+paramètres de projection et pourront être déplacées vers une politique
+data-driven si le tuning du donjon l'exige.
+
+### 30.3 Identité et anti-spoiler
+
+Le déterminant défini (`la porte`, `le mécanisme`) est réservé aux situations
+où l'identité est réellement établie par le contexte player-facing. Une
+conséquence distante emploie par défaut un déterminant indéfini.
+
+Une porte secrète non identifiée ne doit jamais produire :
+
+```text
+Une porte secrète s'ouvre.
+```
+
+Si son mouvement est visible, le Flux décrit seulement ce qui est perçu :
+
+```text
+Une partie du mur se met en mouvement.
+```
+
+Si elle est seulement audible :
+
+```text
+Vous entendez un mécanisme au loin.
+```
+
+Si elle n'est ni visible ni audible, elle reste silencieuse dans le Flux.
+
+### 30.4 Architecture
+
+Le regroupement appartient à `UGridEventFeedSubsystem`, pas au widget.
+Les producteurs ouvrent un groupe au début de l'action racine, exécutent leurs
+liens synchrones, puis ferment le groupe. Les publications Dungeon survenues
+pendant cette fenêtre deviennent des conséquences de l'entrée racine.
+
+Le widget continue donc à recevoir une `FGridHudEventEntry` normale et ne
+reconstruit aucune causalité a posteriori.

@@ -69,7 +69,7 @@ struct GRIMROCKPROTOTYPE_API FGridHudEventTextFragment
 	FName SemanticId = NAME_None;
 };
 
-/** One logical Event Feed entry. Multi-line combat detail still counts as one entry. */
+/** One logical Event Feed entry. Combat detail and grouped immediate consequences still count as one entry. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridHudEventEntry
 {
