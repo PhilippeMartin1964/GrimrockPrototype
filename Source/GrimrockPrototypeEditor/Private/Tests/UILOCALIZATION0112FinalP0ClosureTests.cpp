@@ -78,10 +78,8 @@ bool FUILOCALIZATION0112FinalP0ClosureTest::RunTest(const FString&)
 		};
 
 	FString PlayerControllerSource;
-	FString LevelUpSource;
 	FString ItemContextSource;
 	if (!LoadSource(PlayerControllerPath, PlayerControllerSource) ||
-		!LoadSource(LevelUpNotificationPath, LevelUpSource) ||
 		!LoadSource(ItemContextActionPath, ItemContextSource))
 	{
 		return false;
@@ -104,11 +102,8 @@ bool FUILOCALIZATION0112FinalP0ClosureTest::RunTest(const FString&)
 		PlayerControllerSource.Contains(TEXT("Combat.Targeting.Invalid.Default")));
 
 	TestFalse(
-		TEXT("Level-up toast no longer owns raw Personnage %d fallback"),
-		LevelUpSource.Contains(TEXT("Personnage %d")));
-	TestTrue(
-		TEXT("Level-up toast resolves character fallback through UI key"),
-		LevelUpSource.Contains(TEXT("Progression.LevelUp.CharacterFallback")));
+		TEXT("Obsolete Level-Up toast localization source has been retired"),
+		FPaths::FileExists(FPaths::Combine(FPaths::ProjectDir(), LevelUpNotificationPath)));
 
 	TestFalse(
 		TEXT("Item context action no longer owns a second ThrowTooHeavy NSLOCTEXT authority"),
