@@ -106,7 +106,7 @@ Principes :
 - C++ porte logique, calculs, invariants et read models ;
 - Blueprint/UMG porte composition, configuration et présentation ;
 - aucune compatibilité arrière Save/DataAsset/Blueprint exigée pendant le prototype ;
-- SaveGame courant : **v26 exact-match**.
+- SaveGame courant : **v27 exact-match**.
 
 ### Progression RPG courante
 

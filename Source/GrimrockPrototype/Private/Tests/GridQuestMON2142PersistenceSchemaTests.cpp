@@ -41,8 +41,8 @@ bool FGridQuestMON2142SaveSchemaTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestEqual(TEXT("Quest persistence opens exact-match SaveGame v26"),
-		UGrimrockPartySaveGame::CurrentSaveVersion, 26);
+	TestTrue(TEXT("Quest persistence remains part of every schema at or beyond v26"),
+		UGrimrockPartySaveGame::CurrentSaveVersion >= 26);
 
 	const FProperty* CampaignQuestStateProperty =
 		UGrimrockPartySaveGame::StaticClass()->FindPropertyByName(TEXT("CampaignQuestState"));

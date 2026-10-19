@@ -6,6 +6,8 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "GrimrockGameInstance.generated.h"
 
+class UWorld;
+
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGrimrockSaveSlotInfo
 {
@@ -126,9 +128,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Main Menu|Save")
 	void ClearPendingLoadSlot();
 
+	// EVENTHUD01.11 — persistent gameplay clock. Uses UWorld game time, so pause
+	// and time dilation are respected without introducing a permanent Tick.
+	void ResetGameplayClock();
+	void StartGameplayClock(const UObject* WorldContextObject);
+	void StopGameplayClock();
+	void RestoreGameplayElapsedSeconds(double InElapsedSeconds);
+
+	UFUNCTION(BlueprintPure, Category = "Runtime|Gameplay Time")
+	double GetGameplayElapsedSeconds() const;
+
+	UFUNCTION(BlueprintPure, Category = "Runtime|Gameplay Time")
+	int64 GetGameplayElapsedWholeSeconds() const;
+
+	UFUNCTION(BlueprintPure, Category = "Runtime|Gameplay Time")
+	bool IsGameplayClockRunning() const;
+
 private:
 	FGrimrockSaveSlotInfo MakeSaveSlotInfo(const FString& SlotName, int32 UserIndex, bool bIsDefaultSlot, int32 DisplayIndex) const;
 	void ResetPendingLoadSlot();
+	void CommitGameplayClock();
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Startup", meta = (AllowPrivateAccess = "true"))
@@ -166,4 +185,13 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Main Menu|Save", meta = (AllowPrivateAccess = "true"))
 	int32 PendingLoadSlotUserIndex = 0;
+
+	UPROPERTY(Transient)
+	double AccumulatedGameplaySeconds = 0.0;
+
+	UPROPERTY(Transient)
+	bool bGameplayClockRunning = false;
+
+	TWeakObjectPtr<UWorld> GameplayClockWorld;
+	double GameplayClockWorldStartSeconds = 0.0;
 };

@@ -5,6 +5,7 @@
 #include "Magic/GridPartySpellbookComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GrimrockGameInstance.h"
 #include "Save/GridCombatSavePolicy.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UI/GridCharacterSheetWidget.h"
@@ -96,6 +97,11 @@ bool AGrimrockPartyPawn::SaveCurrentGame(FText& OutError)
 	SaveGame->PartyCellX = CurrentCellX;
 	SaveGame->PartyCellY = CurrentCellY;
 	SaveGame->PartyFacing = Facing;
+	if (const UGrimrockGameInstance* GameInstance =
+		GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr)
+	{
+		SaveGame->GameplayElapsedSeconds = GameInstance->GetGameplayElapsedSeconds();
+	}
 
 	if (!UGameplayStatics::SaveGameToSlot(SaveGame, PartySaveSlotName, PartySaveUserIndex))
 	{
@@ -233,6 +239,11 @@ bool AGrimrockPartyPawn::LoadCurrentGameData(FText& OutError, bool bApplyDungeon
 	{
 		SpellbookComponent->OnSpellbookChanged.Broadcast();
 	}
+	if (UGrimrockGameInstance* GameInstance =
+		GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr)
+	{
+		GameInstance->RestoreGameplayElapsedSeconds(SaveGame->GameplayElapsedSeconds);
+	}
 	return true;
 }
 
@@ -270,6 +281,12 @@ bool AGrimrockPartyPawn::LoadCurrentGame(FText& OutError)
 	}
 	RefreshPersistentHudWidget();
 
+	if (UGrimrockGameInstance* GameInstance =
+		GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr)
+	{
+		GameInstance->StartGameplayClock(this);
+	}
+
 	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave Loaded Slot=%s PortraitOrder=%d"), *PartySaveSlotName,
 		PartyInventoryComponent ? PartyInventoryComponent->PartyPortraitOrder.Num() : 0);
 	return true;
@@ -292,6 +309,12 @@ bool AGrimrockPartyPawn::StartNewGame(FText& OutError)
 	}
 
 	PartyInventoryComponent->ResetPartyForNewGame();
+	if (UGrimrockGameInstance* GameInstance =
+		GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr)
+	{
+		GameInstance->StopGameplayClock();
+		GameInstance->ResetGameplayClock();
+	}
 
 	if (bInventoryWidgetVisible)
 	{

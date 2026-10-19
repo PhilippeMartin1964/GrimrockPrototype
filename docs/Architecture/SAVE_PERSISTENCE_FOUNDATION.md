@@ -2,7 +2,7 @@
 
 > **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
 >
-> `UGrimrockPartySaveGame::CurrentSaveVersion = 26`. Le prototype utilise un
+> `UGrimrockPartySaveGame::CurrentSaveVersion = 27`. Le prototype utilise un
 > contrat **exact-match** : aucune migration arrière n'est maintenue.
 
 ## 1. Principe
@@ -35,16 +35,17 @@ CurrentDungeonLevelId
 PartyCellX
 PartyCellY
 PartyFacing
+GameplayElapsedSeconds
 ```
 
 Contrat :
 
 ```text
-SaveVersion == 26
+SaveVersion == 27
     -> ValidateCurrentState()
     -> restore
 
-SaveVersion != 26
+SaveVersion != 27
     -> reject
 ```
 
@@ -181,7 +182,7 @@ Ils ne sont pas répétés ici comme contrat actif.
 La seule version courante est :
 
 ```text
-v26 exact-match
+v27 exact-match
 ```
 
 ## 11. Invariants
@@ -212,3 +213,11 @@ expose une API de capture/validation/restauration atomique.
 À ce stade, le Pawn Save/Load ne capture pas encore ce snapshot : l'intégration
 runtime complète reste MON21.4.4 après l'enregistrement dungeon-wide des
 définitions de MON21.4.3.
+
+
+### EVENTHUD01.11 — gameplay clock durable
+
+Le SaveGame v27 ajoute `GameplayElapsedSeconds`. L'autorité runtime vit dans
+`UGrimrockGameInstance`, traverse les changements de map et utilise le temps
+de monde uniquement comme delta pendant le gameplay actif. Le Flux d'événements
+reste transient : seules les secondes de campagne sont durables.

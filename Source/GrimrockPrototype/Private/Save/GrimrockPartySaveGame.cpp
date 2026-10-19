@@ -277,6 +277,11 @@ bool UGrimrockPartySaveGame::ValidateCurrentState(FText& OutError) const
 			FString::Printf(TEXT("Version de sauvegarde %d incompatible avec le schéma prototype courant %d."), SaveVersion, CurrentSaveVersion));
 		return false;
 	}
+	if (!FMath::IsFinite(GameplayElapsedSeconds) || GameplayElapsedSeconds < 0.0)
+	{
+		OutError = FText::FromString(TEXT("Le temps de jeu sauvegardé est invalide."));
+		return false;
+	}
 	if (!ValidateProgressionState(PartyInventoryState, OutError) || !ValidateSpellbooks(*this, OutError) || !ValidateSkills(*this, OutError) ||
 		!ValidateStatusEffects(*this, OutError) || !ValidateLevelVariables(*this, OutError) || !ValidateMapExploration(*this, OutError))
 	{

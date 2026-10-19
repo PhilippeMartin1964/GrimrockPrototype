@@ -144,6 +144,9 @@ public:
 	/** Converts platform-pixel mouse movement into UMG viewport logical units. */
 	static float ScreenDeltaToViewportDelta(float ScreenDelta, float ViewportScale);
 
+	/** EVENTHUD01.11 canonical player-facing timestamp: [Jour X, HH:MM]. */
+	static FText FormatGameplayTimestamp(int64 GameplayElapsedSeconds);
+
 	/** EVENTHUD01.8P compact visible projection. Combat details remain out of the main feed text. */
 	static FText BuildEntryText(const FGridHudEventEntry& Entry);
 
@@ -181,6 +184,10 @@ public:
 	/** Editable in WBP_GridEventFeed Class Defaults; no semantic icons are used. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
 	FGridEventFeedSemanticPalette SemanticPalette;
+
+	/** EVENTHUD01.11 timestamp colour, deliberately independent from event semantics. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Style")
+	FLinearColor TimestampColor = FLinearColor(0.62f, 0.70f, 0.74f, 1.0f);
 
 	/** Runtime presentation class inherited from WBP_GridPersistentHud. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Event Feed|Style")

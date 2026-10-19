@@ -313,6 +313,13 @@ bool FGridUIEventHUD0110PersistenceBoundaryTest::RunTest(const FString& Paramete
 	(void)Parameters;
 
 	TestFalse(TEXT("Party SaveGame contains no direct Event Feed entry state"), SaveClassContainsEventFeedState());
+	const FProperty* GameplayTimeProperty =
+		UGrimrockPartySaveGame::StaticClass()->FindPropertyByName(TEXT("GameplayElapsedSeconds"));
+	if (TestNotNull(TEXT("SaveGame persists the campaign gameplay clock"), GameplayTimeProperty))
+	{
+		TestTrue(TEXT("GameplayElapsedSeconds is SaveGame-persistent"),
+			GameplayTimeProperty->HasAnyPropertyFlags(CPF_SaveGame));
+	}
 
 	for (TFieldIterator<FProperty> It(FGridHudEventEntry::StaticStruct()); It; ++It)
 	{

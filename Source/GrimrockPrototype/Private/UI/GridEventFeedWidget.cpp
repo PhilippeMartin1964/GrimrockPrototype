@@ -4,6 +4,8 @@
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Button.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/ScrollBox.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
@@ -383,23 +385,51 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 		ScrollBox_Entries->ClearChildren();
 		for (const FGridHudEventEntry& Entry : VisibleEntries)
 		{
-			UTextBlock* Row = WidgetTree
+			UHorizontalBox* Row = WidgetTree
+				? WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass())
+				: NewObject<UHorizontalBox>(this);
+			UTextBlock* MessageText = WidgetTree
 				? WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass())
 				: NewObject<UTextBlock>(this);
-			if (!Row)
+			if (!Row || !MessageText)
 			{
 				continue;
 			}
-			Row->SetText(BuildEntryText(Entry));
-			Row->SetFont(EntryFont);
-			Row->SetColorAndOpacity(FSlateColor(GetSemanticColor(Entry.Semantic)));
-			Row->SetAutoWrapText(true);
+
+			if (Entry.bHasGameplayTimestamp)
+			{
+				UTextBlock* TimestampText = WidgetTree
+					? WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass())
+					: NewObject<UTextBlock>(this);
+				if (TimestampText)
+				{
+					TimestampText->SetText(FormatGameplayTimestamp(Entry.GameplayElapsedSeconds));
+					TimestampText->SetFont(EntryFont);
+					TimestampText->SetColorAndOpacity(FSlateColor(TimestampColor));
+					TimestampText->SetAutoWrapText(false);
+					TimestampText->SetVisibility(ESlateVisibility::HitTestInvisible);
+					if (UHorizontalBoxSlot* TimestampSlot = Row->AddChildToHorizontalBox(TimestampText))
+					{
+						TimestampSlot->SetPadding(FMargin(0.0f, 0.0f, 8.0f, 0.0f));
+						TimestampSlot->SetVerticalAlignment(VAlign_Top);
+					}
+				}
+			}
+
+			MessageText->SetText(BuildEntryText(Entry));
+			MessageText->SetFont(EntryFont);
+			MessageText->SetColorAndOpacity(FSlateColor(GetSemanticColor(Entry.Semantic)));
+			MessageText->SetAutoWrapText(true);
+			MessageText->SetVisibility(ESlateVisibility::HitTestInvisible);
+			if (UHorizontalBoxSlot* MessageSlot = Row->AddChildToHorizontalBox(MessageText))
+			{
+				MessageSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+				MessageSlot->SetVerticalAlignment(VAlign_Top);
+			}
 
 			const FText TooltipText = BuildEntryTooltipText(Entry);
 			if (Entry.Category == EGridHudEventCategory::Combat && !TooltipText.IsEmpty())
 			{
-				// EVENTHUD01.8P polish: reuse the exact authored tooltip presenter
-				// already owned by WBP_GridPersistentHud navigation/portrait surfaces.
 				if (SharedTooltipWidgetClass)
 				{
 					if (UGridNavigationTooltipWidget* TooltipWidget =
@@ -412,7 +442,6 @@ void UGridEventFeedWidget::RebuildEntryPresentation(bool bForceScrollToEnd)
 				}
 				else
 				{
-					// Defensive fallback for an incorrectly configured host HUD.
 					Row->SetToolTipText(TooltipText);
 				}
 				Row->SetVisibility(ESlateVisibility::Visible);
@@ -464,6 +493,21 @@ float UGridEventFeedWidget::GetPresentationScrollEndOffset() const
 		return ScrollBox_Entries->GetScrollOffsetOfEnd();
 	}
 	return 0.0f;
+}
+
+FText UGridEventFeedWidget::FormatGameplayTimestamp(int64 GameplayElapsedSeconds)
+{
+	const int64 SafeSeconds = FMath::Max<int64>(0, GameplayElapsedSeconds);
+	const int64 Day = SafeSeconds / 86400;
+	const int64 SecondsWithinDay = SafeSeconds % 86400;
+	const int64 Hour = SecondsWithinDay / 3600;
+	const int64 Minute = (SecondsWithinDay % 3600) / 60;
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Day"), FText::AsNumber(Day));
+	Args.Add(TEXT("Hour"), FText::FromString(FString::Printf(TEXT("%02lld"), static_cast<long long>(Hour))));
+	Args.Add(TEXT("Minute"), FText::FromString(FString::Printf(TEXT("%02lld"), static_cast<long long>(Minute))));
+	return FText::Format(LOCTEXT("GameplayTimestampFormat", "[Jour {Day}, {Hour}:{Minute}]"), Args);
 }
 
 FText UGridEventFeedWidget::BuildEntryText(const FGridHudEventEntry& Entry)

@@ -176,6 +176,7 @@ void UGrimrockStartupModeComponent::TryAdvanceNewGameRuntimeBuild()
 	{
 		PartyPawn->EnableInput(PlayerController);
 	}
+	GameInstance->StartGameplayClock(PartyPawn);
 }
 
 void UGrimrockStartupModeComponent::TryCompleteLoadedGameProgress()
@@ -202,6 +203,11 @@ void UGrimrockStartupModeComponent::TryCompleteLoadedGameProgress()
 	// A restored Level Up can pause the world on the next tick. Hiding the load
 	// overlay synchronously avoids freezing its delayed hide timer above the modal.
 	HideBuildProgress();
+	if (UGrimrockGameInstance* GameInstance =
+		GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr)
+	{
+		GameInstance->StartGameplayClock(PartyPawn);
+	}
 	UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode LoadProgress HiddenImmediately Pawn=%s Reason=LoadedGameReady"), *GetNameSafe(PartyPawn));
 }
 

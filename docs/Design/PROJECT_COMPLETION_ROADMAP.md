@@ -52,7 +52,7 @@ MON22 — 45–90 Minute Vertical Slice
 Les campagnes TD05, TD06 et TD07 sont closes. TD07.3 a atteint sa stop
 condition le 28 août ; il ne suspend plus MON21. Les références TD07 qui
 décrivent v19/v20/v22 restent des checkpoints historiques : le SaveGame courant
-est désormais **v26 exact-match**.
+est désormais **v27 exact-match**.
 
 ---
 

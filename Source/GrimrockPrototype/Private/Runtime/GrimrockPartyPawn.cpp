@@ -234,6 +234,26 @@ void AGrimrockPartyPawn::BeginPlay()
 	{
 		ShowInitialCharacterCreationWidget();
 	}
+
+	// Fresh PIE and non-frontend New Game have no startup build overlay to own
+	// the gameplay-clock handoff.
+	if (UGrimrockGameInstance* GameInstance =
+		GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr)
+	{
+		if (bFreshDungeonPlaytest)
+		{
+			if (!bLoadedSavedGame)
+			{
+				GameInstance->ResetGameplayClock();
+			}
+			GameInstance->StartGameplayClock(this);
+		}
+		else if (!bFreshDungeonPlaytest && !bFrontendDungeonBuildPending &&
+			PartyStartupMode == EGrimrockPartyStartupMode::NewGame)
+		{
+			GameInstance->StartGameplayClock(this);
+		}
+	}
 }
 
 void AGrimrockPartyPawn::EndPlay(const EEndPlayReason::Type EndPlayReason)

@@ -1,6 +1,7 @@
 #include "Runtime/GrimrockGameInstance.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "Engine/World.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UI/UILocalizationText.h"
 
@@ -55,6 +56,8 @@ void UGrimrockGameInstance::SetPendingStartupMode(EGrimrockPartyStartupMode NewM
 
 	if (PendingStartupMode == EGrimrockPartyStartupMode::NewGame)
 	{
+		StopGameplayClock();
+		ResetGameplayClock();
 		ResetPendingLoadSlot();
 		bPendingNewGameDungeonBuild = bHasPendingNewPartyState;
 	}
@@ -102,6 +105,7 @@ void UGrimrockGameInstance::RequestReturnToMainMenu(const UObject* WorldContextO
 	}
 
 	const UObject* EffectiveWorldContext = WorldContextObject ? WorldContextObject : this;
+	StopGameplayClock();
 	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance ReturnToMainMenu Level=%s"), *MainMenuLevelName.ToString());
 	UGameplayStatics::OpenLevel(EffectiveWorldContext, MainMenuLevelName, true);
 }
@@ -125,6 +129,9 @@ bool UGrimrockGameInstance::OpenDungeonLevel(const UObject* WorldContextObject)
 	}
 
 	const UObject* EffectiveWorldContext = WorldContextObject ? WorldContextObject : this;
+	// Freeze any previous gameplay world immediately before OpenLevel destroys it.
+	// New Game resets separately; Continue restores from the loaded SaveGame.
+	StopGameplayClock();
 	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance OpenDungeon Level=%s"), *DungeonLevelName.ToString());
 	UGameplayStatics::OpenLevel(EffectiveWorldContext, DungeonLevelName, true);
 	return true;
@@ -373,4 +380,97 @@ void UGrimrockGameInstance::ResetPendingLoadSlot()
 	bHasPendingLoadSlot = false;
 	PendingLoadSlotName.Empty();
 	PendingLoadSlotUserIndex = DefaultPartySaveUserIndex;
+}
+
+void UGrimrockGameInstance::ResetGameplayClock()
+{
+	AccumulatedGameplaySeconds = 0.0;
+	if (bGameplayClockRunning)
+	{
+		if (const UWorld* World = GameplayClockWorld.Get())
+		{
+			GameplayClockWorldStartSeconds = static_cast<double>(World->GetTimeSeconds());
+		}
+	}
+}
+
+void UGrimrockGameInstance::StartGameplayClock(const UObject* WorldContextObject)
+{
+	UWorld* World = WorldContextObject ? WorldContextObject->GetWorld() : GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	if (bGameplayClockRunning && GameplayClockWorld.Get() == World)
+	{
+		return;
+	}
+
+	CommitGameplayClock();
+	GameplayClockWorld = World;
+	GameplayClockWorldStartSeconds = static_cast<double>(World->GetTimeSeconds());
+	bGameplayClockRunning = true;
+}
+
+void UGrimrockGameInstance::StopGameplayClock()
+{
+	CommitGameplayClock();
+	bGameplayClockRunning = false;
+	GameplayClockWorld.Reset();
+	GameplayClockWorldStartSeconds = 0.0;
+}
+
+void UGrimrockGameInstance::RestoreGameplayElapsedSeconds(double InElapsedSeconds)
+{
+	AccumulatedGameplaySeconds = FMath::IsFinite(InElapsedSeconds)
+		? FMath::Max(0.0, InElapsedSeconds)
+		: 0.0;
+
+	if (bGameplayClockRunning)
+	{
+		if (const UWorld* World = GameplayClockWorld.Get())
+		{
+			GameplayClockWorldStartSeconds = static_cast<double>(World->GetTimeSeconds());
+		}
+	}
+}
+
+double UGrimrockGameInstance::GetGameplayElapsedSeconds() const
+{
+	double Elapsed = FMath::Max(0.0, AccumulatedGameplaySeconds);
+	if (bGameplayClockRunning)
+	{
+		if (const UWorld* World = GameplayClockWorld.Get())
+		{
+			const double CurrentWorldSeconds = static_cast<double>(World->GetTimeSeconds());
+			Elapsed += FMath::Max(0.0, CurrentWorldSeconds - GameplayClockWorldStartSeconds);
+		}
+	}
+	return Elapsed;
+}
+
+int64 UGrimrockGameInstance::GetGameplayElapsedWholeSeconds() const
+{
+	return static_cast<int64>(GetGameplayElapsedSeconds());
+}
+
+bool UGrimrockGameInstance::IsGameplayClockRunning() const
+{
+	return bGameplayClockRunning;
+}
+
+void UGrimrockGameInstance::CommitGameplayClock()
+{
+	if (!bGameplayClockRunning)
+	{
+		return;
+	}
+
+	if (const UWorld* World = GameplayClockWorld.Get())
+	{
+		const double CurrentWorldSeconds = static_cast<double>(World->GetTimeSeconds());
+		AccumulatedGameplaySeconds += FMath::Max(0.0, CurrentWorldSeconds - GameplayClockWorldStartSeconds);
+		GameplayClockWorldStartSeconds = CurrentWorldSeconds;
+	}
 }

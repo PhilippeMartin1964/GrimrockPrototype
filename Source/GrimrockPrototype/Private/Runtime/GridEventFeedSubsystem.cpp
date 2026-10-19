@@ -1,4 +1,7 @@
 #include "Runtime/GridEventFeedSubsystem.h"
+#include "Runtime/GrimrockGameInstance.h"
+
+#include "Engine/World.h"
 
 void UGridEventFeedSubsystem::Deinitialize()
 {
@@ -13,8 +16,23 @@ bool UGridEventFeedSubsystem::DoesSupportWorldType(EWorldType::Type WorldType) c
 
 bool UGridEventFeedSubsystem::PublishEvent(const FGridHudEventEntry& Entry, bool bIsObservableToPlayer)
 {
+	FGridHudEventEntry Candidate = Entry;
+	if (!Candidate.bHasGameplayTimestamp)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			if (const UGrimrockGameInstance* GameInstance =
+				World->GetGameInstance<UGrimrockGameInstance>())
+			{
+				Candidate.bHasGameplayTimestamp = true;
+				Candidate.GameplayElapsedSeconds =
+					FMath::Max<int64>(0, GameInstance->GetGameplayElapsedWholeSeconds());
+			}
+		}
+	}
+
 	FGridHudEventEntry PublishedEntry;
-	if (!Buffer.TryPublish(Entry, bIsObservableToPlayer, &PublishedEntry))
+	if (!Buffer.TryPublish(Candidate, bIsObservableToPlayer, &PublishedEntry))
 	{
 		return false;
 	}

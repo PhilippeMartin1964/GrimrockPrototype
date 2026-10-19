@@ -644,6 +644,7 @@ UI-EVENTHUD01 sera considéré valide lorsque :
 | **EVENTHUD01.8 — Combat Rendering** | Affichage des vrais jets et du calcul complet | Combat totalement explicable dans le Flux |
 | **EVENTHUD01.9 — Dialogue Feed** | Paroles PNJ et réponses réellement prononcées | Troisième catégorie alimentée |
 | **EVENTHUD01.10 — Validation** | Buffer 200, filtres, resize, souris, secrets, scroll, changement de niveau, stress test | Jalon maître validé |
+| **EVENTHUD01.11 — Gameplay Timestamp** | Horloge de partie persistante et préfixe bicolore `[Jour X, HH:MM]` | Chronologie lisible dans les trois catégories |
 
 ## 26. Extension ultérieure
 
@@ -666,3 +667,26 @@ Le présent contrat a été **accepté le 17 octobre 2026**.
 Il constitue la référence fonctionnelle pour l’implémentation de **UI-EVENTHUD01**.
 
 Les améliorations éventuelles seront décidées après utilisation en jeu, sans modifier rétroactivement les objectifs validés de la V1.
+
+
+## 28. EVENTHUD01.11 — Gameplay Timestamp
+
+Chaque événement accepté capture un timestamp immuable de **temps de jeu effectif** :
+
+```text
+[Jour 0, 02:34] Daniel attaque Rat géant — TOUCHÉ
+```
+
+Le timestamp :
+
+- utilise l'horloge gameplay persistante du `UGrimrockGameInstance` ;
+- ne dépend pas de `UWorld::GetTimeSeconds()` comme valeur absolue par niveau ;
+- progresse à partir du temps de monde actif, donc respecte la pause ;
+- ne compte pas le menu principal ni les chargements ;
+- est remis à zéro pour New Game ;
+- est restauré après Load Game ;
+- est sauvegardé dans `UGrimrockPartySaveGame::GameplayElapsedSeconds` ;
+- ouvre le schéma exact-match **v27** ;
+- ne rend jamais l'historique du Flux persistant.
+
+La présentation est bicolore : `TimestampColor` est indépendant de la couleur sémantique du message et reste éditable dans `WBP_GridEventFeed`.

@@ -312,13 +312,13 @@ UMG.
 
 ## 13. Save / Continue
 
-`UGrimrockPartySaveGame::CurrentSaveVersion = 26`.
+`UGrimrockPartySaveGame::CurrentSaveVersion = 27`.
 
 Contrat :
 
 ```text
-SaveVersion == 26 -> validate -> restore
-SaveVersion != 26 -> reject
+SaveVersion == 27 -> validate -> restore
+SaveVersion != 27 -> reject
 ```
 
 Enveloppe persistée :
@@ -328,7 +328,8 @@ Enveloppe persistée :
 - `CampaignQuestState` (champ durable v26 ; capture Pawn non encore branchée) ;
 - `DungeonRuntimeState` ;
 - `CurrentDungeonLevelId` ;
-- position/facing du groupe.
+- position/facing du groupe ;
+- `GameplayElapsedSeconds` (horloge gameplay durable v27).
 
 La MapExploration est incluse dans le runtime state. Le champ durable `CampaignQuestState` existe depuis MON21.4.2, mais le Pawn ne le capture/restaure pas encore : cette intégration reste MON21.4.4.
 
