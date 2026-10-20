@@ -38,7 +38,8 @@ function New-XlsxNamespace {
     param([System.Xml.XmlDocument]$Document)
     $Manager = [System.Xml.XmlNamespaceManager]::new($Document.NameTable)
     $Manager.AddNamespace('x', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main')
-    return $Manager
+    # XmlNamespaceManager is IEnumerable; prevent PowerShell from unrolling it.
+    return ,$Manager
 }
 
 function Get-WorksheetRows {
