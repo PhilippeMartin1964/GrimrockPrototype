@@ -7,7 +7,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
-#include "Misc/LexFromString.h"
+#include "Containers/UnrealString.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/SavePackage.h"
 
