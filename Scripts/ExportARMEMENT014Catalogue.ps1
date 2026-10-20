@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$WorkbookPath = 'docs\Design\ARMEMENT01_Catalogue_Armes_Boucliers_Niveaux_1_20_ARMEMENT01_2.xlsx',
     [string]$OutputPath = 'Saved\ARMEMENT01\ARMEMENT01_4_Profiles.csv'
 )
@@ -110,8 +110,21 @@ try {
         'Améliorations', 'Uniques', 'Paramètres', 'Implémentation UE5',
         'Affixes', 'Pénalités de niveau', 'Contrat synthèse'
     )
-    if ($Names.Count -ne 12 -or (Compare-Object $Names $ExpectedSheets)) {
-        throw 'La structure attendue du classeur de référence (12 onglets) a changé.'
+    # Exact sheet-order contract: report the actual names on any mismatch.
+    # This script is stored WITH a UTF-8 BOM for Windows PowerShell 5.1.
+    $ValidStructure = $Names.Count -eq $ExpectedSheets.Count
+    if ($ValidStructure) {
+        for ($I = 0; $I -lt $ExpectedSheets.Count; $I++) {
+            if (-not [string]::Equals($Names[$I], $ExpectedSheets[$I],
+                    [System.StringComparison]::Ordinal)) {
+                $ValidStructure = $false
+                break
+            }
+        }
+    }
+    if (-not $ValidStructure) {
+        throw ("Les 12 onglets attendus ne correspondent pas. Reels : " +
+            ($Names -join ' | ') + " ; Attendus : " + ($ExpectedSheets -join ' | '))
     }
 
     $StringsXml = Get-ZipXml $Zip 'xl/sharedStrings.xml'

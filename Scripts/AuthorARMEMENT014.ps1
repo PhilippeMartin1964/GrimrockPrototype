@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$EngineRoot = $env:UE_ROOT
 )
 
