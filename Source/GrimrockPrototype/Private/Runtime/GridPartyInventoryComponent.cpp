@@ -3,6 +3,7 @@
 
 #include "GridEquipmentSlotUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
