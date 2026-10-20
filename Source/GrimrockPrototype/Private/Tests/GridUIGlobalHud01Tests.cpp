@@ -65,6 +65,32 @@ namespace
 	{
 		return IsValid(Image) && Image->GetVisibility() == ESlateVisibility::HitTestInvisible;
 	}
+
+	/**
+	 * A native NewObject<UUserWidget> test presenter deliberately has no WidgetTree.
+	 * EVENTHUD01.5C requires an authored Event Feed in production, while CreateWidget
+	 * with that headless presenter as parent would trigger an engine-level UMG ensure.
+	 * Pre-materialize only the child fixture here; production CreateWidget remains tested
+	 * through the authored WBP contract and real runtime widget lifecycle.
+	 */
+	bool ConfigureHeadlessEventFeed(UGridPersistentHudWidget* Hud)
+	{
+		if (!IsValid(Hud))
+		{
+			return false;
+		}
+		UClass* AuthoredFeedClass = LoadClass<UGridEventFeedWidget>(
+			nullptr,
+			TEXT("/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridEventFeed.WBP_GridEventFeed_C"));
+		if (!UGridPersistentHudWidget::IsAuthoredEventFeedClass(AuthoredFeedClass))
+		{
+			return false;
+		}
+		Hud->EventFeedWidgetClass = AuthoredFeedClass;
+		Hud->EventFeedWidgetInstance = NewObject<UGridEventFeedWidget>(Hud, AuthoredFeedClass);
+		return IsValid(Hud->EventFeedWidgetInstance) &&
+			Hud->EventFeedWidgetInstance->GetClass() == AuthoredFeedClass;
+	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUICombatUnify01ContractsTest, "Grimrock.UI.CombatUnify01.Contracts",
@@ -188,6 +214,11 @@ bool FGridUIGlobalHud01NavigationSelectionTest::RunTest(const FString& Parameter
 	Hud->Image_NavMapSelectionFrame = NewObject<UImage>(Hud);
 	Hud->Image_NavJournalSelectionFrame = NewObject<UImage>(Hud);
 	Hud->Image_NavHelpSelectionFrame = NewObject<UImage>(Hud);
+	if (!TestTrue(TEXT("Headless navigation HUD has an authored Event Feed fixture"),
+		ConfigureHeadlessEventFeed(Hud)))
+	{
+		return false;
+	}
 	Hud->InitializePersistentHud(Party);
 
 	Party->bInventoryWorkspaceVisible = true;
@@ -235,15 +266,11 @@ bool FGridUIGlobalHud01CombatChromeSplitTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	// Headless C++ widget fixtures must supply the authored class now required by EVENTHUD01.5C.
-	UClass* EventFeedClass = LoadClass<UGridEventFeedWidget>(
-		nullptr,
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridEventFeed.WBP_GridEventFeed_C"));
-	if (!TestNotNull(TEXT("Production authored Event Feed is available"), EventFeedClass))
+	if (!TestTrue(TEXT("Headless combat HUD has an authored Event Feed fixture"),
+		ConfigureHeadlessEventFeed(PersistentHud)))
 	{
 		return false;
 	}
-	PersistentHud->EventFeedWidgetClass = EventFeedClass;
 	Party->PersistentHudWidgetInstance = PersistentHud;
 	Party->CombatHudWidgetInstance = CombatHud;
 
