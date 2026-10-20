@@ -14,9 +14,13 @@ public:
 	static FGridAttackResult ResolveAttack(
 		const FGridAttackSourceStats& Source, const FGridAttackTargetStats& Target, const FGridAttackDefinition& Attack, FRandomStream& RandomStream);
 
-	/** Explicit-roll overload used by deterministic automation tests. */
+	/** Legacy injected total; rejects real-dice profiles to avoid fabricated distributions. */
 	static FGridAttackResult ResolveAttackFromRolls(const FGridAttackSourceStats& Source, const FGridAttackTargetStats& Target,
 		const FGridAttackDefinition& Attack, int32 NaturalAttackRoll, int32 DamageRoll);
+
+	/** Deterministic injection of actual dice; every individual result is validated. */
+	static FGridAttackResult ResolveAttackFromDiceRolls(const FGridAttackSourceStats& Source, const FGridAttackTargetStats& Target,
+		const FGridAttackDefinition& Attack, int32 NaturalAttackRoll, const TArray<int32>& IndividualDamageRolls);
 
 	/**
      * Guaranteed direct damage path used by hazards and status effects.
@@ -28,6 +32,10 @@ public:
 
 	/** Shared mapping from the canonical resistance set to one damage type. */
 	static int32 GetResistancePercent(const FGridDamageResistanceSet& Resistances, EGridDamageType DamageType);
+
+private:
+	static FGridAttackResult ResolveAttackFromDamageTotal(const FGridAttackSourceStats& Source, const FGridAttackTargetStats& Target,
+		const FGridAttackDefinition& Attack, int32 NaturalAttackRoll, int32 DamageRoll);
 };
 
 /** Deterministic party target selection for grid monsters. */

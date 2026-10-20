@@ -59,12 +59,69 @@ FGridAttackResult FGridCombatResolver::ResolveAttack(
 	const FGridAttackSourceStats& Source, const FGridAttackTargetStats& Target, const FGridAttackDefinition& Attack, FRandomStream& RandomStream)
 {
 	const int32 NaturalAttackRoll = RandomStream.RandRange(1, 20);
+	if (Attack.IsValid() && Attack.DamageDice.bEnabled)
+	{
+		TArray<int32> IndividualRolls;
+		IndividualRolls.Reserve(Attack.DamageDice.DiceCount);
+		// Preserve d20-then-damage RNG consumption even on an attack miss.
+		for (int32 Index = 0; Index < Attack.DamageDice.DiceCount; ++Index)
+		{
+			IndividualRolls.Add(RandomStream.RandRange(1, Attack.DamageDice.DiceSides));
+		}
+		return ResolveAttackFromDiceRolls(Source, Target, Attack, NaturalAttackRoll, IndividualRolls);
+	}
 	const int32 DamageRoll = Attack.IsValid() ? RandomStream.RandRange(Attack.MinDamage, Attack.MaxDamage) : 0;
-
 	return ResolveAttackFromRolls(Source, Target, Attack, NaturalAttackRoll, DamageRoll);
 }
 
 FGridAttackResult FGridCombatResolver::ResolveAttackFromRolls(
+	const FGridAttackSourceStats& Source, const FGridAttackTargetStats& Target, const FGridAttackDefinition& Attack, int32 NaturalAttackRoll, int32 DamageRoll)
+{
+	if (Attack.DamageDice.bEnabled)
+	{
+		return FGridAttackResult(); // An arbitrary total is not a valid multi-die roll.
+	}
+	return ResolveAttackFromDamageTotal(Source, Target, Attack, NaturalAttackRoll, DamageRoll);
+}
+
+FGridAttackResult FGridCombatResolver::ResolveAttackFromDiceRolls(
+	const FGridAttackSourceStats& Source, const FGridAttackTargetStats& Target, const FGridAttackDefinition& Attack,
+	int32 NaturalAttackRoll, const TArray<int32>& IndividualDamageRolls)
+{
+	if (!Attack.IsValid() || !Attack.DamageDice.bEnabled ||
+		IndividualDamageRolls.Num() != Attack.DamageDice.DiceCount)
+	{
+		return FGridAttackResult();
+	}
+
+	int64 DamageTotal = Attack.DamageDice.FlatBonus;
+	for (const int32 Die : IndividualDamageRolls)
+	{
+		if (Die < 1 || Die > Attack.DamageDice.DiceSides)
+		{
+			return FGridAttackResult();
+		}
+		DamageTotal += Die;
+	}
+
+	FGridAttackResult Result = ResolveAttackFromDamageTotal(
+		Source, Target, Attack, NaturalAttackRoll, static_cast<int32>(DamageTotal));
+	FGridCombatRollTrace& Roll = Result.Trace.Damage.Roll;
+	Roll.Kind = EGridCombatRollTraceKind::Die;
+	Roll.DiceCount = Attack.DamageDice.DiceCount;
+	Roll.DiceSides = Attack.DamageDice.DiceSides;
+	Roll.DiceFlatBonus = Attack.DamageDice.FlatBonus;
+	Roll.Minimum = Attack.DamageDice.GetMinimumDamage();
+	Roll.Maximum = Attack.DamageDice.GetMaximumDamage();
+	if (Roll.bUsed)
+	{
+		Roll.IndividualRolls = IndividualDamageRolls;
+		Roll.FinalValue = static_cast<int32>(DamageTotal);
+	}
+	return Result;
+}
+
+FGridAttackResult FGridCombatResolver::ResolveAttackFromDamageTotal(
 	const FGridAttackSourceStats& Source, const FGridAttackTargetStats& Target, const FGridAttackDefinition& Attack, int32 NaturalAttackRoll, int32 DamageRoll)
 {
 	FGridAttackResult Result;

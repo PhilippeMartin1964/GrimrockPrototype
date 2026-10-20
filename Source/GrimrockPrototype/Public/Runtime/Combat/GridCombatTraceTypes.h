@@ -37,6 +37,10 @@ struct GRIMROCKPROTOTYPE_API FGridCombatRollTrace
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Trace|Roll")
 	int32 DiceSides = 0;
 
+	/** Constant K from NdM+K, applied by the resolver exactly once. */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Trace|Roll")
+	int32 DiceFlatBonus = 0;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Trace|Roll")
 	int32 Minimum = 0;
 

@@ -452,6 +452,53 @@ struct FGridAttackTargetStats
 	float DamageMultiplier = 1.0f;
 };
 
+/** ARMEMENT01.3: opt-in real NdM+K damage; legacy inclusive Min/Max is the default. */
+USTRUCT(BlueprintType)
+struct FGridDamageDiceProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Attack|Dice")
+	bool bEnabled = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Attack|Dice", meta = (EditCondition = "bEnabled", ClampMin = "1", ClampMax = "32"))
+	int32 DiceCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Attack|Dice", meta = (EditCondition = "bEnabled"))
+	int32 DiceSides = 6;
+
+	/** Included in the rolled total; never duplicated in a source/equipment damage bonus. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Attack|Dice", meta = (EditCondition = "bEnabled", ClampMin = "0"))
+	int32 FlatBonus = 0;
+
+	bool IsValid() const
+	{
+		if (!bEnabled)
+		{
+			return true;
+		}
+		const bool bAllowedSides = DiceSides == 4 || DiceSides == 6 || DiceSides == 8 ||
+			DiceSides == 10 || DiceSides == 12 || DiceSides == 20;
+		return DiceCount >= 1 && DiceCount <= 32 && bAllowedSides && FlatBonus >= 0 &&
+			static_cast<int64>(DiceCount) * DiceSides + FlatBonus <= MAX_int32;
+	}
+
+	int32 GetMinimumDamage() const
+	{
+		return static_cast<int32>(static_cast<int64>(DiceCount) + FlatBonus);
+	}
+
+	int32 GetMaximumDamage() const
+	{
+		return static_cast<int32>(static_cast<int64>(DiceCount) * DiceSides + FlatBonus);
+	}
+
+	double GetExpectedDamage() const
+	{
+		return static_cast<double>(DiceCount) * (DiceSides + 1) / 2.0 + FlatBonus;
+	}
+};
+
 USTRUCT(BlueprintType)
 struct FGridAttackDefinition
 {
@@ -469,6 +516,10 @@ struct FGridAttackDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Attack", meta = (ClampMin = "0"))
 	int32 MaxDamage = 0;
 
+	/** When enabled, Min/Max must equal the derived real-dice bounds for legacy consumers. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Attack|Dice")
+	FGridDamageDiceProfile DamageDice;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Attack")
 	int32 AccuracyBonus = 0;
 
@@ -482,7 +533,13 @@ struct FGridAttackDefinition
 
 	bool IsValid() const
 	{
-		return MinDamage >= 0 && MaxDamage >= MinDamage && (DamageType == EGridDamageType::Physical || PhysicalSubtype == EGridPhysicalDamageSubtype::None);
+		if (MinDamage < 0 || MaxDamage < MinDamage ||
+			(DamageType != EGridDamageType::Physical && PhysicalSubtype != EGridPhysicalDamageSubtype::None))
+		{
+			return false;
+		}
+		return !DamageDice.bEnabled || (DamageDice.IsValid() &&
+			MinDamage == DamageDice.GetMinimumDamage() && MaxDamage == DamageDice.GetMaximumDamage());
 	}
 };
 

@@ -67,7 +67,8 @@ namespace
 			Projection.bValid = true;
 			Projection.DiceCount = Roll.DiceCount;
 			Projection.DiceSides = Roll.DiceSides;
-			Projection.RolledValue = Roll.FinalValue;
+			Projection.RolledValue = Roll.FinalValue - Roll.DiceFlatBonus;
+			Projection.FlatOffset = Roll.DiceFlatBonus;
 			Projection.FinalValue = Roll.FinalValue;
 			Projection.IndividualRolls = Roll.IndividualRolls;
 			return Projection;
