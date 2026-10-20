@@ -209,6 +209,9 @@ bool FGridMON204PartyFullAtomicTest::RunTest(const FString& Parameters)
 	URPGStoryCompanionAsset* Companion = MakeCompanion();
 	URPGStoryCompanionRecruitmentWidget* Widget = MakeWidget(Inventory, Companion);
 
+	// The expected rejection stays logged at Warning, and the test checks exactly one occurrence.
+	AddExpectedMessagePlain(TEXT("[GridRecruitmentUI] Recruitment rejected Reason=8"),
+		ELogVerbosity::Warning, EAutomationExpectedMessageFlags::Contains, 1);
 	TestFalse(TEXT("Full party rejects active recruitment"), Widget->TryRecruit());
 	TestEqual(TEXT("Active party is unchanged"), Inventory->PartyInventoryState.ActiveCharacters.Num(), 1);
 	TestEqual(TEXT("Registered candidate remains in reserve"), Inventory->PartyInventoryState.CharacterPool.Num(), 1);
@@ -230,6 +233,9 @@ bool FGridMON204IdentityCollisionAtomicTest::RunTest(const FString& Parameters)
 	URPGStoryCompanionAsset* Companion = MakeCompanion();
 	Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId = Companion->CharacterId;
 
+	// Registration rejects this deliberate duplicate identity during MakeWidget.
+	AddExpectedMessagePlain(TEXT("[GridRecruitmentUI] Registration rejected Status=6"),
+		ELogVerbosity::Warning, EAutomationExpectedMessageFlags::Contains, 1);
 	URPGStoryCompanionRecruitmentWidget* Widget = MakeWidget(Inventory, Companion);
 	TestFalse(TEXT("Identity collision rejects recruitment"), Widget->TryRecruit());
 	TestEqual(TEXT("Active party is unchanged"), Inventory->PartyInventoryState.ActiveCharacters.Num(), 1);
