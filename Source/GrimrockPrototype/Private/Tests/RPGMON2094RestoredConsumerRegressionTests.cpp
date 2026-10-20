@@ -332,6 +332,8 @@ bool FRPGMON2094RestoreSkillsPageRankTest::RunTest(const FString& Parameters)
 	using namespace RPGMON2094Tests;
 	FRuntimeStateGuard Guard;
 	UGridPartyInventoryComponent* Party = MakeMON2094Party();
+	// A rank-4 Skill requires level 10+ under the canonical rank cap.
+	Party->PartyInventoryState.ActiveCharacters[0].Level = 10;
 	URPGSkillAsset* Skill = MakeMON2094Skill(Party);
 	const FGuid CharacterId = Party->PartyInventoryState.ActiveCharacters[0].CharacterId;
 	FString Error;
@@ -359,6 +361,8 @@ bool FRPGMON2094SelectedCharacterPageTest::RunTest(const FString& Parameters)
 	using namespace RPGMON2094Tests;
 	FRuntimeStateGuard Guard;
 	UGridPartyInventoryComponent* Party = MakeMON2094Party(2);
+	// A rank-3 Skill requires level 5+; the other party member stays unchanged.
+	Party->PartyInventoryState.ActiveCharacters[1].Level = 5;
 	URPGSkillAsset* Skill = MakeMON2094Skill(Party);
 	TestTrue(TEXT("Second character selection succeeds"), Party->SetSelectedCharacterIndex(1));
 	const FGuid CharacterId = Party->PartyInventoryState.ActiveCharacters[1].CharacterId;
