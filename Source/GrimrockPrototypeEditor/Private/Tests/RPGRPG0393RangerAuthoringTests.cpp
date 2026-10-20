@@ -244,6 +244,68 @@ bool FRPG0393MarkedStatusAuthoringTest::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0393FavoredEnemyCategoryTitleAuthorityTest,
+	"Grimrock.RPG.RPG03.9.3.Authoring.FavoredEnemyCategoryTitleAuthority",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0393FavoredEnemyCategoryTitleAuthorityTest::RunTest(const FString&)
+{
+	// Start from a materialized transient class and simulate old or hand-edited titles.
+	URPGClassAsset* Ranger = RPG0393Authoring::BuildRanger();
+	const FName GoblinId(TEXT("Talent_Ranger_Hunter_FavoredEnemy_Goblin"));
+	const FName VerminId(TEXT("Talent_Ranger_Hunter_FavoredEnemy_Vermin"));
+	const FName MarkPreyId(TEXT("Talent_Ranger_Hunter_MarkPrey"));
+	FRPGClassProgressionChoiceDefinition* Goblin = Ranger->ProgressionChoices.FindByPredicate(
+		[GoblinId](const FRPGClassProgressionChoiceDefinition& Choice) { return Choice.ChoiceId == GoblinId; });
+	FRPGClassProgressionChoiceDefinition* Vermin = Ranger->ProgressionChoices.FindByPredicate(
+		[VerminId](const FRPGClassProgressionChoiceDefinition& Choice) { return Choice.ChoiceId == VerminId; });
+	FRPGClassProgressionChoiceDefinition* MarkPrey = Ranger->ProgressionChoices.FindByPredicate(
+		[MarkPreyId](const FRPGClassProgressionChoiceDefinition& Choice) { return Choice.ChoiceId == MarkPreyId; });
+	FGridCombatActionDefinition* MarkAction = Ranger->CombatActions.FindByPredicate(
+		[](const FGridCombatActionDefinition& Action) { return Action.ActionId == TEXT("Action_Ranger_MarkPrey"); });
+	if (!TestTrue(TEXT("Ranger transient fixtures exist"), Goblin && Vermin && MarkPrey && MarkAction))
+	{
+		return false;
+	}
+
+	Goblin->DisplayName = FText::FromString(TEXT("Ancien nom : Goblin"));
+	Goblin->Description = FText::FromString(TEXT("Description Goblin personnalisée"));
+	Vermin->DisplayName = FText::FromString(TEXT("Ancien nom : Vermin"));
+	Vermin->Description = FText::FromString(TEXT("Description Vermin personnalisée"));
+	MarkPrey->DisplayName = FText::FromString(TEXT("Marque personnalisée"));
+	MarkAction->DisplayName = FText::FromString(TEXT("Action personnalisée"));
+
+	const TArray<FRPGRangerFavoredEnemyCategoryDefinition> UpdatedCategories = {
+		{ TEXT("Goblin"), FText::FromString(TEXT("Gobelins des cavernes")) },
+		{ TEXT("Vermin"), FText::FromString(TEXT("Vermine nocturne")) }
+	};
+	FRPGRangerAuthoring::ConfigureClass(*Ranger, UpdatedCategories);
+
+	const FRPGClassProgressionChoiceDefinition* UpdatedGoblin = Ranger->FindProgressionChoice(GoblinId);
+	const FRPGClassProgressionChoiceDefinition* UpdatedVermin = Ranger->FindProgressionChoice(VerminId);
+	const FRPGClassProgressionChoiceDefinition* UpdatedMarkPrey = Ranger->FindProgressionChoice(MarkPreyId);
+	const FGridCombatActionDefinition* UpdatedMarkAction = RPG0393Authoring::FindAction(Ranger, TEXT("Action_Ranger_MarkPrey"));
+	if (!TestTrue(TEXT("Rematerialized Ranger choices and actions exist"),
+		UpdatedGoblin && UpdatedVermin && UpdatedMarkPrey && UpdatedMarkAction))
+	{
+		return false;
+	}
+	TestEqual(TEXT("Goblin title follows category authority"),
+		UpdatedGoblin->DisplayName.ToString(), FString(TEXT("Ennemi juré — Gobelins des cavernes")));
+	TestEqual(TEXT("Vermin title follows category authority"),
+		UpdatedVermin->DisplayName.ToString(), FString(TEXT("Ennemi juré — Vermine nocturne")));
+	TestEqual(TEXT("Goblin description is preserved"),
+		UpdatedGoblin->Description.ToString(), FString(TEXT("Description Goblin personnalisée")));
+	TestEqual(TEXT("Vermin description is preserved"),
+		UpdatedVermin->Description.ToString(), FString(TEXT("Description Vermin personnalisée")));
+	TestEqual(TEXT("Unrelated talent title is preserved"),
+		UpdatedMarkPrey->DisplayName.ToString(), FString(TEXT("Marque personnalisée")));
+	TestEqual(TEXT("Unrelated action title is preserved"),
+		UpdatedMarkAction->DisplayName.ToString(), FString(TEXT("Action personnalisée")));
+	TestTrue(TEXT("Ranger stays valid"), Ranger->IsValidDefinition());
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0393ProductionAssetsTest, "Grimrock.RPG.RPG03.9.3.Authoring.ProductionAssets",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 

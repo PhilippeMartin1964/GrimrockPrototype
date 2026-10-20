@@ -34,5 +34,7 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGRangerAuthoring
 	/** Rebuilds one production monster category identity while preserving serialized DisplayName for the same CategoryId. */
 	static bool ConfigureMonsterCategory(UGridMonsterCategoryAsset& CategoryAsset, FName CategoryId);
 	static bool CollectProductionFavoredEnemyCategories(TArray<FRPGRangerFavoredEnemyCategoryDefinition>& OutCategories, FString& OutError);
+	/** Updates ONLY serialized Favored Enemy titles in DA_Class_Ranger, using the production bestiary as authority. */
+	static bool SyncProductionFavoredEnemyTitles(FString& OutError);
 	static bool AuthorProductionAssets(FString& OutError);
 };

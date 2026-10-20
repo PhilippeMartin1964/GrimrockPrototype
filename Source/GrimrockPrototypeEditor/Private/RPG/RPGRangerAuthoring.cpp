@@ -132,6 +132,45 @@ namespace RPGRangerAuthoring
 		return Result.IsEmpty() ? TEXT("Category") : Result;
 	}
 
+	/** The bestiary CategoryDefinition owns category names; class text preservation must not override these two derived labels. */
+	FText MakeFavoredEnemyTitle(const FText& CategoryDisplayName)
+	{
+		return FText::Format(
+			NSLOCTEXT("RPGRangerAuthoring", "FavoredEnemyTitle", "Ennemi juré — {0}"),
+			CategoryDisplayName);
+	}
+
+	FName FavoredEnemyChoiceId(FName CategoryId)
+	{
+		return FName(*FString::Printf(
+			TEXT("Talent_Ranger_Hunter_FavoredEnemy_%s"),
+			*SanitizeCategoryForChoiceId(CategoryId)));
+	}
+
+	void ApplyFavoredEnemyCategoryTitles(
+		URPGClassAsset& ClassAsset,
+		const TArray<FRPGRangerFavoredEnemyCategoryDefinition>& Categories)
+	{
+		for (const FRPGRangerFavoredEnemyCategoryDefinition& Category : Categories)
+		{
+			if (!Category.IsValid())
+			{
+				continue;
+			}
+			const FName ChoiceId = FavoredEnemyChoiceId(Category.CategoryId);
+			FRPGClassProgressionChoiceDefinition* Choice = ClassAsset.ProgressionChoices.FindByPredicate(
+				[ChoiceId](const FRPGClassProgressionChoiceDefinition& Candidate)
+				{
+					return Candidate.ChoiceId == ChoiceId;
+				});
+			if (Choice)
+			{
+				// Description, traits and all non-Favored-Enemy presentation remain untouched.
+				Choice->DisplayName = MakeFavoredEnemyTitle(Category.DisplayName);
+			}
+		}
+	}
+
 	bool SaveAuthoredAsset(UObject* Asset, FString& OutError)
 	{
 		if (!IsValid(Asset))
@@ -598,6 +637,10 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 		}
 		ClassAsset.ProgressionChoices.Add(Guide);
 	});
+
+	// RematerializePreservingChoiceAndActionText has finished restoring serialized text:
+	// category-dependent titles are the deliberate exception to that policy.
+	RPGRangerAuthoring::ApplyFavoredEnemyCategoryTitles(ClassAsset, FavoredEnemyCategories);
 }
 
 bool FRPGRangerAuthoring::ConfigureMarkedStatus(UGridStatusEffectDefinitionAsset& StatusAsset)
@@ -739,6 +782,81 @@ bool FRPGRangerAuthoring::CollectProductionFavoredEnemyCategories(
 		OutError = TEXT("No production monster category presentation found for Favored Enemy authoring.");
 		return false;
 	}
+	return true;
+}
+
+bool FRPGRangerAuthoring::SyncProductionFavoredEnemyTitles(FString& OutError)
+{
+	OutError.Reset();
+
+	TArray<FRPGRangerFavoredEnemyCategoryDefinition> Categories;
+	if (!CollectProductionFavoredEnemyCategories(Categories, OutError))
+	{
+		return false;
+	}
+
+	URPGClassAsset* Ranger = LoadObject<URPGClassAsset>(nullptr, RangerAssetPath());
+	if (!IsValid(Ranger) || Ranger->ClassId != RPGRangerAuthoring::RangerClassId)
+	{
+		OutError = TEXT("Production DA_Class_Ranger missing or has an unexpected ClassId.");
+		return false;
+	}
+
+	// Validate the complete category set before changing or saving the production asset.
+	for (const FRPGRangerFavoredEnemyCategoryDefinition& Category : Categories)
+	{
+		const FName ChoiceId = RPGRangerAuthoring::FavoredEnemyChoiceId(Category.CategoryId);
+		const FRPGClassProgressionChoiceDefinition* Choice = Ranger->FindProgressionChoice(ChoiceId);
+		if (!Choice || !Choice->CombatModifiers.ContainsByPredicate(
+			[&Category](const FGridCombatModifierProfile& Modifier)
+			{
+				return Modifier.AllowedTargetMonsterCategoryIds.Contains(Category.CategoryId);
+			}))
+		{
+			OutError = FString::Printf(
+				TEXT("Missing or mismatched production Favored Enemy choice '%s'."),
+				*ChoiceId.ToString());
+			return false;
+		}
+	}
+
+	bool bChanged = false;
+	for (const FRPGRangerFavoredEnemyCategoryDefinition& Category : Categories)
+	{
+		const FName ChoiceId = RPGRangerAuthoring::FavoredEnemyChoiceId(Category.CategoryId);
+		FRPGClassProgressionChoiceDefinition* Choice = Ranger->ProgressionChoices.FindByPredicate(
+			[ChoiceId](const FRPGClassProgressionChoiceDefinition& Candidate)
+			{
+				return Candidate.ChoiceId == ChoiceId;
+			});
+		const FText DesiredTitle = RPGRangerAuthoring::MakeFavoredEnemyTitle(Category.DisplayName);
+		if (!Choice->DisplayName.EqualTo(DesiredTitle))
+		{
+			if (!bChanged)
+			{
+				Ranger->Modify();
+			}
+			Choice->DisplayName = DesiredTitle;
+			bChanged = true;
+		}
+	}
+
+	if (!bChanged)
+	{
+		UE_LOG(LogTemp, Display, TEXT("[RPG03.9.3-FIX] Favored Enemy titles are already synchronized; no asset saved."));
+		return true;
+	}
+
+	if (!Ranger->IsValidDefinition())
+	{
+		OutError = TEXT("Production Ranger invalid after Favored Enemy title synchronization.");
+		return false;
+	}
+	if (!RPGRangerAuthoring::SaveAuthoredAsset(Ranger, OutError))
+	{
+		return false;
+	}
+	UE_LOG(LogTemp, Display, TEXT("[RPG03.9.3-FIX] Updated only DA_Class_Ranger Favored Enemy titles."));
 	return true;
 }
 

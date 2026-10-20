@@ -12,14 +12,18 @@ URPGRangerAuthoringCommandlet::URPGRangerAuthoringCommandlet()
 
 int32 URPGRangerAuthoringCommandlet::Main(const FString& Params)
 {
-	(void)Params;
+	const bool bTitlesOnly = Params.Contains(TEXT("-FavoredEnemyTitlesOnly"), ESearchCase::IgnoreCase);
 	FString Error;
-	if (!FRPGRangerAuthoring::AuthorProductionAssets(Error))
+	const bool bSuccess = bTitlesOnly
+		? FRPGRangerAuthoring::SyncProductionFavoredEnemyTitles(Error)
+		: FRPGRangerAuthoring::AuthorProductionAssets(Error);
+	if (!bSuccess)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[RPG03.9.3] Ranger authoring failed: %s"), *Error);
 		return 1;
 	}
 
-	UE_LOG(LogTemp, Display, TEXT("[RPG03.9.3] Ranger production assets authored successfully."));
+	UE_LOG(LogTemp, Display, TEXT("[RPG03.9.3] Ranger %s completed successfully."),
+		bTitlesOnly ? TEXT("Favored Enemy title synchronization") : TEXT("production authoring"));
 	return 0;
 }
