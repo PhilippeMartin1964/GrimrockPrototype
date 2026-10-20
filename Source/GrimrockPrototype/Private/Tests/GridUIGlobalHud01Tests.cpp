@@ -12,6 +12,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHudWidget.h"
+#include "UI/GridEventFeedWidget.h"
 #include "UI/GridMapWidget.h"
 #include "UI/GridNavigationTooltipWidget.h"
 #include "UI/GridSkillsWidget.h"
@@ -234,6 +235,15 @@ bool FGridUIGlobalHud01CombatChromeSplitTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	// Headless C++ widget fixtures must supply the authored class now required by EVENTHUD01.5C.
+	UClass* EventFeedClass = LoadClass<UGridEventFeedWidget>(
+		nullptr,
+		TEXT("/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridEventFeed.WBP_GridEventFeed_C"));
+	if (!TestNotNull(TEXT("Production authored Event Feed is available"), EventFeedClass))
+	{
+		return false;
+	}
+	PersistentHud->EventFeedWidgetClass = EventFeedClass;
 	Party->PersistentHudWidgetInstance = PersistentHud;
 	Party->CombatHudWidgetInstance = CombatHud;
 
