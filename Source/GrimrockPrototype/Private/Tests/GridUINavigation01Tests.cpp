@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridPersistentHudWidget.h"
+#include "UI/GridEventFeedWidget.h"
 #include "UI/GridCharacterSheetWidget.h"
 #include "UI/GridInventoryBagWidget.h"
 #include "UI/GridInventoryUiTypes.h"
@@ -69,6 +70,26 @@ bool FGridUINavigation01PersistentBarTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("HUD can be created"), Hud);
 	TestNotNull(TEXT("Navigation panel can be created"), NavigationPanel);
 	if (!Hud || !NavigationPanel)
+	{
+		return false;
+	}
+
+	// This is a headless NewObject<UUserWidget> fixture without a WidgetTree.
+	// Pre-materialize the authored Event Feed instead of calling CreateWidget
+	// with the native test presenter as parent (an Unreal UMG ensure).
+	UClass* AuthoredFeedClass = LoadClass<UGridEventFeedWidget>(
+		nullptr,
+		TEXT("/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridEventFeed.WBP_GridEventFeed_C"));
+	if (!TestTrue(TEXT("Persistent navigation HUD uses an authored Event Feed"),
+		UGridPersistentHudWidget::IsAuthoredEventFeedClass(AuthoredFeedClass)))
+	{
+		return false;
+	}
+	Hud->EventFeedWidgetClass = AuthoredFeedClass;
+	Hud->EventFeedWidgetInstance = NewObject<UGridEventFeedWidget>(Hud, AuthoredFeedClass);
+	if (!TestTrue(TEXT("Headless fixture pre-materializes the authored Event Feed"),
+		IsValid(Hud->EventFeedWidgetInstance) &&
+		Hud->EventFeedWidgetInstance->GetClass() == AuthoredFeedClass))
 	{
 		return false;
 	}
