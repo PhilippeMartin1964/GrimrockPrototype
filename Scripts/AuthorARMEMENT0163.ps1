@@ -73,22 +73,7 @@ $Changed = @(& git -C $RepoRoot diff --name-only)
 $Untracked = @(& git -C $RepoRoot ls-files --others --exclude-standard)
 $Files = @($Changed + $Untracked | Where-Object { $_ })
 $Unexpected = @($Files | Where-Object {
-    $_ -notmatch '^Content/GrimrockPrototype/(Core/DataAssets/Weapons|UI/Icons/Weapons|Meshes/Weapons)/(?:[^/]+/)*[^/]+\.uasset
-})
-if ($Unexpected.Count -gt 0) {
-    $Unexpected | ForEach-Object { Write-Host $_ }
-    throw 'Import refuse : modifications non prevues en dehors des repertoires pilotes.'
-}
-
-Write-Host '=== ARMEMENT01.6.3 — Tests des assets pilotes ==='
-& (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipBuild -AutomationFilter 'Grimrock.RPG.ARMEMENT01.6.Pilot'
-if (-not $?) { throw 'Tests du catalogue visuel pilote echoues.' }
-
-Write-Host '=== ARMEMENT01.6.3 — Etat Git (pas de commit automatique) ==='
-& git -C $RepoRoot status --short
-Write-Host '[OK] Trois icones, trois meshes et le catalogue UE crees et testes.'
-Write-Host 'Inspectez les visuels en UE avant de committer les .uasset (Git LFS).'
-
+    $_ -notmatch '^Content/GrimrockPrototype/(?:Core/DataAssets/Weapons|UI/Icons/Weapons|Meshes/Weapons)/(?:[^/]+/)*[^/]+\.uasset$'
 })
 if ($Unexpected.Count -gt 0) {
     $Unexpected | ForEach-Object { Write-Host $_ }
