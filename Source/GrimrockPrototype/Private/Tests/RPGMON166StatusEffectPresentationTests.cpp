@@ -8,6 +8,7 @@
 #include "Engine/World.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "RPG/RPGClassAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "RPG/StatusEffects/GridStatusEffectPresentation.h"
@@ -146,6 +147,17 @@ namespace
 			Party->SnapToCurrentCell();
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { MON166MakeCharacter(CharacterId) };
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment.SetNum(1);
+
+			// MON16.6 tests status-effect presentation, not classless RPG progression.
+			// Supply a valid empty class instead of generating requirement-projection warnings.
+			URPGClassAsset* TestClass = NewObject<URPGClassAsset>(Party);
+			TestClass->ClassId = TEXT("MON166_TestClass");
+			TestClass->DisplayName = FText::FromString(TEXT("MON16.6 Test Class"));
+			TestClass->HealthAtLevelOne = 10;
+			FGridCharacterInventoryState& TestCharacter =
+				Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0];
+			TestCharacter.ClassId = TestClass->ClassId;
+			TestCharacter.ClassDefinition = TestClass;
 
 			MonsterDefinition = NewObject<UGridMonsterDefinitionAsset>(Runtime);
 			MonsterDefinition->MonsterId = TEXT("MON166_Monster");
