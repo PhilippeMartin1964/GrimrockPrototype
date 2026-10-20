@@ -21,6 +21,7 @@ bool FUIRPG062BSkillEntryPresentationTest::RunTest(const FString& Parameters)
 	Lockpicking.GoverningAttribute = ERPGSkillGoverningAttribute::Dexterity;
 	Lockpicking.Rank = 0;
 	Lockpicking.MaxRank = 5;
+	Lockpicking.CurrentRankCap = 5; // Mandatory read-model invariant.
 	Lockpicking.bAllowUntrainedChecks = false;
 	Lockpicking.bTrained = false;
 
