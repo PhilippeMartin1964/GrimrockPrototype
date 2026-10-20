@@ -191,6 +191,19 @@ namespace
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment.SetNum(2);
 			Party->PartyInventoryComponent->PartyInventoryState.SelectedCharacterIndex = 0;
 
+			// Combat-only MON12 fixtures predate class progression. Give both actors a
+			// valid, empty test class so action-catalog prerequisite projection succeeds
+			// without fabricating acquired choices or new combat actions.
+			URPGClassAsset* TestClass = NewObject<URPGClassAsset>(Party);
+			TestClass->ClassId = TEXT("MON12_TestClass");
+			TestClass->DisplayName = FText::FromString(TEXT("MON12 Test Class"));
+			TestClass->HealthAtLevelOne = 20;
+			for (FGridCharacterInventoryState& Character : Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters)
+			{
+				Character.ClassId = TestClass->ClassId;
+				Character.ClassDefinition = TestClass;
+			}
+
 			FGridCharacterEquipmentState& EliasEquipment = Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0];
 			EliasEquipment.MainHand = MakeEquippedItem(FGuid(12, 2, 0, 1), TEXT("Shuriken"), TEXT("Shuriken"), 3, 0, EGridEquipmentSlot::MainHand);
 			EliasEquipment.OffHand = MakeEquippedItem(FGuid(12, 2, 0, 2), TEXT("Item_Torch"), TEXT("Torche"), 1, 0, EGridEquipmentSlot::OffHand);
