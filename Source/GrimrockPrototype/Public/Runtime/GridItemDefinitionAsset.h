@@ -12,6 +12,7 @@ class UMaterialInterface;
 class UStaticMesh;
 class UTexture2D;
 class UGridWeaponCatalogueAsset;
+class UGridWeaponVisualCatalogueAsset;
 struct FGridWeaponLevelProfile;
 
 UENUM(BlueprintType)
@@ -139,6 +140,14 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Offense|Presentation", meta = (EditCondition = "bProvidesAttackPresentation"))
 	FGridPlayerAttackPresentationProfile PlayerAttackPresentationProfile;
+
+	/** ARMEMENT01.6.1 visual opt-in. False keeps Icon/WorldMesh/EquippedMesh authoritative. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Weapon Catalogue")
+	bool bUseWeaponVisualCatalogue = false;
+
+	/** Authoring-only soft reference. The combat system never loads visual assets. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Weapon Catalogue", meta = (EditCondition = "bUseWeaponVisualCatalogue"))
+	TSoftObjectPtr<UGridWeaponVisualCatalogueAsset> WeaponVisualCatalogue;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
 	TSoftObjectPtr<UTexture2D> Icon;

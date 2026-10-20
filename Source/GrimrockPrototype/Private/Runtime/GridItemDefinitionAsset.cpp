@@ -1,5 +1,6 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
+#include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
 
 #include "Engine/StaticMesh.h"
 
@@ -83,6 +84,15 @@ bool UGridItemDefinitionAsset::IsValidDefinition() const
 		{
 			return false;
 		}
+	}
+
+	// Visual opt-in checks only authoring references. It never loads a texture,
+	// reads the combat catalogue, or alters a weapon's attack definition.
+	if (bUseWeaponVisualCatalogue &&
+		(!UGridWeaponVisualCatalogueAsset::IsCanonicalArchetypeId(WeaponArchetypeId) ||
+		 WeaponVisualCatalogue.IsNull()))
+	{
+		return false;
 	}
 
 	if (!FMath::IsFinite(WorldPhysicsInitialTiltDegrees) || WorldPhysicsInitialTiltDegrees < 0.0f || WorldPhysicsInitialTiltDegrees > 45.0f)
