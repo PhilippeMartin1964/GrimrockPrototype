@@ -117,6 +117,7 @@ bool FUIRPG044GenericNVariantSelectionTest::RunTest(const FString&)
 	Skills->View.CharacterIndex = 0;
 	Skills->View.CharacterId = FGuid::NewGuid();
 	Skills->View.ClassId = TEXT("Mage");
+	Skills->View.SkillRankCap = 2; // Canonical valid skills-page fixture.
 	Skills->View.TalentTree.ClassId = Skills->View.ClassId;
 
 	FGridTalentBranchView Branch;
@@ -166,6 +167,7 @@ bool FUIRPG044FlyoutConsultationSelectionTest::RunTest(const FString&)
 	Skills->View.CharacterIndex = 0;
 	Skills->View.CharacterId = FGuid::NewGuid();
 	Skills->View.ClassId = TEXT("Mage");
+	Skills->View.SkillRankCap = 2; // Canonical valid skills-page fixture.
 	Skills->View.TalentTree.ClassId = Skills->View.ClassId;
 
 	FGridTalentBranchView Branch;
@@ -232,6 +234,7 @@ bool FUIRPG044VariantTransactionTest::RunTest(const FString&)
 	Skills->View.CharacterIndex = 0;
 	Skills->View.CharacterId = Character.CharacterId;
 	Skills->View.ClassId = Character.ClassId;
+	Skills->View.SkillRankCap = 2; // Character level 2 => rank cap 2.
 	Skills->View.TalentTree.ClassId = Character.ClassId;
 
 	FGridTalentBranchView Branch;

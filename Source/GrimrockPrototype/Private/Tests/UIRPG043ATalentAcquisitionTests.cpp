@@ -119,6 +119,7 @@ bool FUIRPG043ASimpleCommitTest::RunTest(const FString&)
 	Skills->View.CharacterIndex = 0;
 	Skills->View.CharacterId = Character.CharacterId;
 	Skills->View.ClassId = Character.ClassId;
+	Skills->View.SkillRankCap = 2; // Match the validated level-2 character fixture.
 	Skills->View.TalentTree.ClassId = Character.ClassId;
 
 	FGridTalentBranchView Branch;

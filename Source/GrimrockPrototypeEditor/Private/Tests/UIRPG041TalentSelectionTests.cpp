@@ -15,6 +15,7 @@ namespace UIRPG041Tests
 		View.CharacterIndex = 0;
 		View.CharacterId = FGuid::NewGuid();
 		View.ClassId = TEXT("Warrior");
+		View.SkillRankCap = 2; // A valid read model is required by selection.
 		View.TalentTree.ClassId = View.ClassId;
 
 		FGridTalentBranchView Branch;
