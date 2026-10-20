@@ -68,6 +68,17 @@ foreach ($RelativePath in $Expected) {
     }
 }
 
+Write-Host '=== ARMEMENT01.6.3 — Creation et sauvegarde des materiaux ==='
+$MaterialEditorArgs = @(
+    $Project, '-run=GridWeaponPilotMaterialRepair',
+    "-SourceRoot=$SourceRoot",
+    '-Unattended', '-NoSplash', '-NoP4', '-NoSound', '-NullRHI', '-log'
+)
+& $Editor @MaterialEditorArgs
+if ($LASTEXITCODE -ne 0) {
+    throw "Creation des materiaux echouee avec le code $LASTEXITCODE."
+}
+
 Write-Host '=== ARMEMENT01.6.3 — Audit des fichiers generes ==='
 $Changed = @(& git -C $RepoRoot diff --name-only)
 $Untracked = @(& git -C $RepoRoot ls-files --others --exclude-standard)

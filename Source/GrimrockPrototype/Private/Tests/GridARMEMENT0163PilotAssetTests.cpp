@@ -6,6 +6,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/Texture2D.h"
+#include "Materials/MaterialInterface.h"
 
 namespace ARMEMENT0163
 {
@@ -119,6 +120,63 @@ bool FARMEMENT0163PassiveTest::RunTest(const FString&)
 	TestFalse(TEXT("Visual opt-in never switches on catalogue combat"), Definition->bUseWeaponCatalogue);
 	TestFalse(TEXT("Visual-only passive shield has no attack"), Definition->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
 	TestTrue(TEXT("No attack action is generated"), Definition->CombatActions.IsEmpty());
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0163MaterialDepsTest,
+	"Grimrock.RPG.ARMEMENT01.6.Pilot.MaterialDependencies",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENT0163MaterialDepsTest::RunTest(const FString&)
+{
+	const TCHAR* ExpectedMaterials[] =
+	{
+		TEXT("Steel_Dark"), TEXT("Steel_Bright"), TEXT("Bronze"),
+		TEXT("Leather"), TEXT("Azure_Gem"), TEXT("Yew_Wood"),
+		TEXT("Leather_Binding"), TEXT("Bronze_Tip"), TEXT("String"),
+		TEXT("Worn_Oak"), TEXT("Dark_Oak"), TEXT("Oxidized_Bronze"),
+		TEXT("Patinated_Iron"), TEXT("Brass_Studs")
+	};
+	for (const TCHAR* MaterialName : ExpectedMaterials)
+	{
+		const FString ObjectPath = FString::Printf(
+			TEXT("/Game/GrimrockPrototype/Meshes/Weapons/%s.%s"), MaterialName, MaterialName);
+		UMaterialInterface* Material = LoadObject<UMaterialInterface>(nullptr, *ObjectPath);
+		TestNotNull(*FString::Printf(TEXT("Material package %s exists and loads"), MaterialName), Material);
+	}
+
+	const TCHAR* PilotMeshes[] =
+	{
+		TEXT("SM_Weapon_Dagger_A"),
+		TEXT("SM_Weapon_ShortBow_A"),
+		TEXT("SM_Weapon_RoundShield_A")
+	};
+	for (const TCHAR* MeshName : PilotMeshes)
+	{
+		const FString ObjectPath = FString::Printf(
+			TEXT("/Game/GrimrockPrototype/Meshes/Weapons/%s.%s"), MeshName, MeshName);
+		UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, *ObjectPath);
+		if (!TestNotNull(*FString::Printf(TEXT("Pilot mesh %s loads"), MeshName), Mesh))
+		{
+			continue;
+		}
+		const TArray<FStaticMaterial>& Slots = Mesh->GetStaticMaterials();
+		TestTrue(*FString::Printf(TEXT("Pilot mesh %s has material slots"), MeshName), !Slots.IsEmpty());
+		for (const FStaticMaterial& Slot : Slots)
+		{
+			const FName Name = Slot.ImportedMaterialSlotName.IsNone()
+				? Slot.MaterialSlotName : Slot.ImportedMaterialSlotName;
+			UMaterialInterface* Material = Slot.MaterialInterface;
+			if (TestNotNull(*FString::Printf(
+				TEXT("Mesh %s material slot %s resolves"), MeshName, *Name.ToString()), Material))
+			{
+				TestTrue(TEXT("Material belongs to the approved pilot asset folder"),
+					Material->GetPathName().StartsWith(
+						TEXT("/Game/GrimrockPrototype/Meshes/Weapons/")));
+			}
+		}
+	}
 	return true;
 }
 
