@@ -1,0 +1,1641 @@
+ArchetypeId,ArchetypeName,ItemLevel,Family,DiceCount,DiceSides,DiceFlatBonus,DiceNotation,DamageMin,DamageMax,DamageMean,PhysicalArmor,MagicalArmor,ActionPointCost,RangeCells,WeightKg
+ARM001,Dague,1,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.4
+ARM001,Dague,2,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.4
+ARM001,Dague,3,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.4
+ARM001,Dague,4,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,0.4
+ARM001,Dague,5,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,0.4
+ARM001,Dague,6,Légères,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,0.4
+ARM001,Dague,7,Légères,1,6,3,1d6 + 3,4,9,6.5,0,0,2,1,0.4
+ARM001,Dague,8,Légères,1,6,4,1d6 + 4,5,10,7.5,0,0,2,1,0.4
+ARM001,Dague,9,Légères,2,4,4,2d4 + 4,6,12,9.0,0,0,2,1,0.4
+ARM001,Dague,10,Légères,2,4,5,2d4 + 5,7,13,10.0,0,0,2,1,0.4
+ARM001,Dague,11,Légères,3,4,3,3d4 + 3,6,15,10.5,0,0,2,1,0.4
+ARM001,Dague,12,Légères,3,4,5,3d4 + 5,8,17,12.5,0,0,2,1,0.4
+ARM001,Dague,13,Légères,3,4,6,3d4 + 6,9,18,13.5,0,0,2,1,0.4
+ARM001,Dague,14,Légères,2,6,8,2d6 + 8,10,20,15.0,0,0,2,1,0.4
+ARM001,Dague,15,Légères,4,4,7,4d4 + 7,11,23,17.0,0,0,2,1,0.4
+ARM001,Dague,16,Légères,4,4,9,4d4 + 9,13,25,19.0,0,0,2,1,0.4
+ARM001,Dague,17,Légères,2,8,11,2d8 + 11,13,27,20.0,0,0,2,1,0.4
+ARM001,Dague,18,Légères,3,6,12,3d6 + 12,15,30,22.5,0,0,2,1,0.4
+ARM001,Dague,19,Légères,2,10,13,2d10 + 13,15,33,24.0,0,0,2,1,0.4
+ARM001,Dague,20,Légères,2,10,16,2d10 + 16,18,36,27.0,0,0,2,1,0.4
+ARM002,Poignard d'assassin,1,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,2,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,3,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,4,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,5,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,6,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,7,Légères,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,8,Légères,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,9,Légères,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,10,Légères,1,4,6,1d4 + 6,7,10,8.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,11,Légères,1,4,6,1d4 + 6,7,10,8.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,12,Légères,1,4,8,1d4 + 8,9,12,10.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,13,Légères,1,6,8,1d6 + 8,9,14,11.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,14,Légères,1,6,9,1d6 + 9,10,15,12.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,15,Légères,2,4,9,2d4 + 9,11,17,14.0,0,0,2,1,0.3
+ARM002,Poignard d'assassin,16,Légères,2,4,11,2d4 + 11,13,19,16.0,0,0,2,1,0.3
+ARM002,Poignard d'assassin,17,Légères,1,8,13,1d8 + 13,14,21,17.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,18,Légères,1,8,14,1d8 + 14,15,22,18.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,19,Légères,3,4,12,3d4 + 12,15,24,19.5,0,0,2,1,0.3
+ARM002,Poignard d'assassin,20,Légères,3,4,15,3d4 + 15,18,27,22.5,0,0,2,1,0.3
+ARM003,Stylet,1,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.25
+ARM003,Stylet,2,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.25
+ARM003,Stylet,3,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.25
+ARM003,Stylet,4,Légères,1,6,0,1d6,1,6,3.5,0,0,2,1,0.25
+ARM003,Stylet,5,Légères,1,6,1,1d6 + 1,2,7,4.5,0,0,2,1,0.25
+ARM003,Stylet,6,Légères,2,4,0,2d4,2,8,5.0,0,0,2,1,0.25
+ARM003,Stylet,7,Légères,1,8,1,1d8 + 1,2,9,5.5,0,0,2,1,0.25
+ARM003,Stylet,8,Légères,1,8,2,1d8 + 2,3,10,6.5,0,0,2,1,0.25
+ARM003,Stylet,9,Légères,3,4,0,3d4,3,12,7.5,0,0,2,1,0.25
+ARM003,Stylet,10,Légères,2,6,1,2d6 + 1,3,13,8.0,0,0,2,1,0.25
+ARM003,Stylet,11,Légères,2,6,2,2d6 + 2,4,14,9.0,0,0,2,1,0.25
+ARM003,Stylet,12,Légères,2,8,1,2d8 + 1,3,17,10.0,0,0,2,1,0.25
+ARM003,Stylet,13,Légères,2,8,2,2d8 + 2,4,18,11.0,0,0,2,1,0.25
+ARM003,Stylet,14,Légères,3,6,2,3d6 + 2,5,20,12.5,0,0,2,1,0.25
+ARM003,Stylet,15,Légères,2,10,3,2d10 + 3,5,23,14.0,0,0,2,1,0.25
+ARM003,Stylet,16,Légères,2,10,4,2d10 + 4,6,24,15.0,0,0,2,1,0.25
+ARM003,Stylet,17,Légères,4,6,3,4d6 + 3,7,27,17.0,0,0,2,1,0.25
+ARM003,Stylet,18,Légères,3,8,5,3d8 + 5,8,29,18.5,0,0,2,1,0.25
+ARM003,Stylet,19,Légères,5,6,3,5d6 + 3,8,33,20.5,0,0,2,1,0.25
+ARM003,Stylet,20,Légères,3,10,5,3d10 + 5,8,35,21.5,0,0,2,1,0.25
+ARM004,Kriss,1,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.5
+ARM004,Kriss,2,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.5
+ARM004,Kriss,3,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.5
+ARM004,Kriss,4,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,0.5
+ARM004,Kriss,5,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,0.5
+ARM004,Kriss,6,Légères,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,0.5
+ARM004,Kriss,7,Légères,1,6,3,1d6 + 3,4,9,6.5,0,0,2,1,0.5
+ARM004,Kriss,8,Légères,1,6,4,1d6 + 4,5,10,7.5,0,0,2,1,0.5
+ARM004,Kriss,9,Légères,2,4,4,2d4 + 4,6,12,9.0,0,0,2,1,0.5
+ARM004,Kriss,10,Légères,2,4,5,2d4 + 5,7,13,10.0,0,0,2,1,0.5
+ARM004,Kriss,11,Légères,3,4,3,3d4 + 3,6,15,10.5,0,0,2,1,0.5
+ARM004,Kriss,12,Légères,3,4,5,3d4 + 5,8,17,12.5,0,0,2,1,0.5
+ARM004,Kriss,13,Légères,3,4,6,3d4 + 6,9,18,13.5,0,0,2,1,0.5
+ARM004,Kriss,14,Légères,2,6,8,2d6 + 8,10,20,15.0,0,0,2,1,0.5
+ARM004,Kriss,15,Légères,4,4,7,4d4 + 7,11,23,17.0,0,0,2,1,0.5
+ARM004,Kriss,16,Légères,4,4,9,4d4 + 9,13,25,19.0,0,0,2,1,0.5
+ARM004,Kriss,17,Légères,2,8,11,2d8 + 11,13,27,20.0,0,0,2,1,0.5
+ARM004,Kriss,18,Légères,3,6,12,3d6 + 12,15,30,22.5,0,0,2,1,0.5
+ARM004,Kriss,19,Légères,2,10,13,2d10 + 13,15,33,24.0,0,0,2,1,0.5
+ARM004,Kriss,20,Légères,2,10,16,2d10 + 16,18,36,27.0,0,0,2,1,0.5
+ARM005,Couteau de chasse,1,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,2,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,3,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,4,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,5,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,6,Légères,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,7,Légères,1,6,3,1d6 + 3,4,9,6.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,8,Légères,1,6,4,1d6 + 4,5,10,7.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,9,Légères,2,4,4,2d4 + 4,6,12,9.0,0,0,2,1,0.5
+ARM005,Couteau de chasse,10,Légères,2,4,5,2d4 + 5,7,13,10.0,0,0,2,1,0.5
+ARM005,Couteau de chasse,11,Légères,3,4,3,3d4 + 3,6,15,10.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,12,Légères,3,4,5,3d4 + 5,8,17,12.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,13,Légères,3,4,6,3d4 + 6,9,18,13.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,14,Légères,2,6,8,2d6 + 8,10,20,15.0,0,0,2,1,0.5
+ARM005,Couteau de chasse,15,Légères,4,4,7,4d4 + 7,11,23,17.0,0,0,2,1,0.5
+ARM005,Couteau de chasse,16,Légères,4,4,9,4d4 + 9,13,25,19.0,0,0,2,1,0.5
+ARM005,Couteau de chasse,17,Légères,2,8,11,2d8 + 11,13,27,20.0,0,0,2,1,0.5
+ARM005,Couteau de chasse,18,Légères,3,6,12,3d6 + 12,15,30,22.5,0,0,2,1,0.5
+ARM005,Couteau de chasse,19,Légères,2,10,13,2d10 + 13,15,33,24.0,0,0,2,1,0.5
+ARM005,Couteau de chasse,20,Légères,2,10,16,2d10 + 16,18,36,27.0,0,0,2,1,0.5
+ARM006,Épée courte,1,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,1
+ARM006,Épée courte,2,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1
+ARM006,Épée courte,3,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1
+ARM006,Épée courte,4,Légères,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,1
+ARM006,Épée courte,5,Légères,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1
+ARM006,Épée courte,6,Légères,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,1
+ARM006,Épée courte,7,Légères,1,4,6,1d4 + 6,7,10,8.5,0,0,2,1,1
+ARM006,Épée courte,8,Légères,1,6,7,1d6 + 7,8,13,10.5,0,0,2,1,1
+ARM006,Épée courte,9,Légères,2,4,7,2d4 + 7,9,15,12.0,0,0,2,1,1
+ARM006,Épée courte,10,Légères,2,4,8,2d4 + 8,10,16,13.0,0,0,2,1,1
+ARM006,Épée courte,11,Légères,3,4,8,3d4 + 8,11,20,15.5,0,0,2,1,1
+ARM006,Épée courte,12,Légères,3,4,9,3d4 + 9,12,21,16.5,0,0,2,1,1
+ARM006,Épée courte,13,Légères,3,4,11,3d4 + 11,14,23,18.5,0,0,2,1,1
+ARM006,Épée courte,14,Légères,2,6,13,2d6 + 13,15,25,20.0,0,0,2,1,1
+ARM006,Épée courte,15,Légères,2,6,16,2d6 + 16,18,28,23.0,0,0,2,1,1
+ARM006,Épée courte,16,Légères,4,4,15,4d4 + 15,19,31,25.0,0,0,2,1,1
+ARM006,Épée courte,17,Légères,2,8,18,2d8 + 18,20,34,27.0,0,0,2,1,1
+ARM006,Épée courte,18,Légères,3,6,19,3d6 + 19,22,37,29.5,0,0,2,1,1
+ARM006,Épée courte,19,Légères,2,10,21,2d10 + 21,23,41,32.0,0,0,2,1,1
+ARM006,Épée courte,20,Légères,2,10,24,2d10 + 24,26,44,35.0,0,0,2,1,1
+ARM007,Rapière,1,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,1
+ARM007,Rapière,2,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,1
+ARM007,Rapière,3,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1
+ARM007,Rapière,4,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1
+ARM007,Rapière,5,Légères,1,6,2,1d6 + 2,3,8,5.5,0,0,2,1,1
+ARM007,Rapière,6,Légères,2,4,2,2d4 + 2,4,10,7.0,0,0,2,1,1
+ARM007,Rapière,7,Légères,1,8,3,1d8 + 3,4,11,7.5,0,0,2,1,1
+ARM007,Rapière,8,Légères,3,4,1,3d4 + 1,4,13,8.5,0,0,2,1,1
+ARM007,Rapière,9,Légères,3,4,3,3d4 + 3,6,15,10.5,0,0,2,1,1
+ARM007,Rapière,10,Légères,3,4,4,3d4 + 4,7,16,11.5,0,0,2,1,1
+ARM007,Rapière,11,Légères,2,8,4,2d8 + 4,6,20,13,0,0,2,1,1
+ARM007,Rapière,12,Légères,2,8,5,2d8 + 5,7,21,14.0,0,0,2,1,1
+ARM007,Rapière,13,Légères,2,8,7,2d8 + 7,9,23,16.0,0,0,2,1,1
+ARM007,Rapière,14,Légères,3,6,8,3d6 + 8,11,26,18.5,0,0,2,1,1
+ARM007,Rapière,15,Légères,2,10,8,2d10 + 8,10,28,19.0,0,0,2,1,1
+ARM007,Rapière,16,Légères,2,10,11,2d10 + 11,13,31,22.0,0,0,2,1,1
+ARM007,Rapière,17,Légères,4,6,10,4d6 + 10,14,34,24.0,0,0,2,1,1
+ARM007,Rapière,18,Légères,3,8,12,3d8 + 12,15,36,25.5,0,0,2,1,1
+ARM007,Rapière,19,Légères,5,6,11,5d6 + 11,16,41,28.5,0,0,2,1,1
+ARM007,Rapière,20,Légères,3,10,14,3d10 + 14,17,44,30.5,0,0,2,1,1
+ARM008,Sabre léger,1,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,1.1
+ARM008,Sabre léger,2,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1.1
+ARM008,Sabre léger,3,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1.1
+ARM008,Sabre léger,4,Légères,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,1.1
+ARM008,Sabre léger,5,Légères,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1.1
+ARM008,Sabre léger,6,Légères,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,1.1
+ARM008,Sabre léger,7,Légères,1,4,6,1d4 + 6,7,10,8.5,0,0,2,1,1.1
+ARM008,Sabre léger,8,Légères,1,6,7,1d6 + 7,8,13,10.5,0,0,2,1,1.1
+ARM008,Sabre léger,9,Légères,2,4,7,2d4 + 7,9,15,12.0,0,0,2,1,1.1
+ARM008,Sabre léger,10,Légères,2,4,8,2d4 + 8,10,16,13.0,0,0,2,1,1.1
+ARM008,Sabre léger,11,Légères,3,4,8,3d4 + 8,11,20,15.5,0,0,2,1,1.1
+ARM008,Sabre léger,12,Légères,3,4,9,3d4 + 9,12,21,16.5,0,0,2,1,1.1
+ARM008,Sabre léger,13,Légères,3,4,11,3d4 + 11,14,23,18.5,0,0,2,1,1.1
+ARM008,Sabre léger,14,Légères,2,6,13,2d6 + 13,15,25,20.0,0,0,2,1,1.1
+ARM008,Sabre léger,15,Légères,2,6,16,2d6 + 16,18,28,23.0,0,0,2,1,1.1
+ARM008,Sabre léger,16,Légères,4,4,15,4d4 + 15,19,31,25.0,0,0,2,1,1.1
+ARM008,Sabre léger,17,Légères,2,8,18,2d8 + 18,20,34,27.0,0,0,2,1,1.1
+ARM008,Sabre léger,18,Légères,3,6,19,3d6 + 19,22,37,29.5,0,0,2,1,1.1
+ARM008,Sabre léger,19,Légères,2,10,21,2d10 + 21,23,41,32.0,0,0,2,1,1.1
+ARM008,Sabre léger,20,Légères,2,10,24,2d10 + 24,26,44,35.0,0,0,2,1,1.1
+ARM009,Cimeterre court,1,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,1.2
+ARM009,Cimeterre court,2,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1.2
+ARM009,Cimeterre court,3,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1.2
+ARM009,Cimeterre court,4,Légères,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,1.2
+ARM009,Cimeterre court,5,Légères,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1.2
+ARM009,Cimeterre court,6,Légères,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,1.2
+ARM009,Cimeterre court,7,Légères,1,4,6,1d4 + 6,7,10,8.5,0,0,2,1,1.2
+ARM009,Cimeterre court,8,Légères,1,6,7,1d6 + 7,8,13,10.5,0,0,2,1,1.2
+ARM009,Cimeterre court,9,Légères,2,4,7,2d4 + 7,9,15,12.0,0,0,2,1,1.2
+ARM009,Cimeterre court,10,Légères,2,4,8,2d4 + 8,10,16,13.0,0,0,2,1,1.2
+ARM009,Cimeterre court,11,Légères,3,4,8,3d4 + 8,11,20,15.5,0,0,2,1,1.2
+ARM009,Cimeterre court,12,Légères,3,4,9,3d4 + 9,12,21,16.5,0,0,2,1,1.2
+ARM009,Cimeterre court,13,Légères,3,4,11,3d4 + 11,14,23,18.5,0,0,2,1,1.2
+ARM009,Cimeterre court,14,Légères,2,6,13,2d6 + 13,15,25,20.0,0,0,2,1,1.2
+ARM009,Cimeterre court,15,Légères,2,6,16,2d6 + 16,18,28,23.0,0,0,2,1,1.2
+ARM009,Cimeterre court,16,Légères,4,4,15,4d4 + 15,19,31,25.0,0,0,2,1,1.2
+ARM009,Cimeterre court,17,Légères,2,8,18,2d8 + 18,20,34,27.0,0,0,2,1,1.2
+ARM009,Cimeterre court,18,Légères,3,6,19,3d6 + 19,22,37,29.5,0,0,2,1,1.2
+ARM009,Cimeterre court,19,Légères,2,10,21,2d10 + 21,23,41,32.0,0,0,2,1,1.2
+ARM009,Cimeterre court,20,Légères,2,10,24,2d10 + 24,26,44,35.0,0,0,2,1,1.2
+ARM010,Hachette,1,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,1.1
+ARM010,Hachette,2,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1.1
+ARM010,Hachette,3,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1.1
+ARM010,Hachette,4,Légères,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,1.1
+ARM010,Hachette,5,Légères,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1.1
+ARM010,Hachette,6,Légères,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,1.1
+ARM010,Hachette,7,Légères,1,4,6,1d4 + 6,7,10,8.5,0,0,2,1,1.1
+ARM010,Hachette,8,Légères,1,6,7,1d6 + 7,8,13,10.5,0,0,2,1,1.1
+ARM010,Hachette,9,Légères,2,4,7,2d4 + 7,9,15,12.0,0,0,2,1,1.1
+ARM010,Hachette,10,Légères,2,4,8,2d4 + 8,10,16,13.0,0,0,2,1,1.1
+ARM010,Hachette,11,Légères,3,4,8,3d4 + 8,11,20,15.5,0,0,2,1,1.1
+ARM010,Hachette,12,Légères,3,4,9,3d4 + 9,12,21,16.5,0,0,2,1,1.1
+ARM010,Hachette,13,Légères,3,4,11,3d4 + 11,14,23,18.5,0,0,2,1,1.1
+ARM010,Hachette,14,Légères,2,6,13,2d6 + 13,15,25,20.0,0,0,2,1,1.1
+ARM010,Hachette,15,Légères,2,6,16,2d6 + 16,18,28,23.0,0,0,2,1,1.1
+ARM010,Hachette,16,Légères,4,4,15,4d4 + 15,19,31,25.0,0,0,2,1,1.1
+ARM010,Hachette,17,Légères,2,8,18,2d8 + 18,20,34,27.0,0,0,2,1,1.1
+ARM010,Hachette,18,Légères,3,6,19,3d6 + 19,22,37,29.5,0,0,2,1,1.1
+ARM010,Hachette,19,Légères,2,10,21,2d10 + 21,23,41,32.0,0,0,2,1,1.1
+ARM010,Hachette,20,Légères,2,10,24,2d10 + 24,26,44,35.0,0,0,2,1,1.1
+ARM011,Serpe,1,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.7
+ARM011,Serpe,2,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.7
+ARM011,Serpe,3,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.7
+ARM011,Serpe,4,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,0.7
+ARM011,Serpe,5,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,0.7
+ARM011,Serpe,6,Légères,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,0.7
+ARM011,Serpe,7,Légères,1,6,3,1d6 + 3,4,9,6.5,0,0,2,1,0.7
+ARM011,Serpe,8,Légères,1,6,4,1d6 + 4,5,10,7.5,0,0,2,1,0.7
+ARM011,Serpe,9,Légères,2,4,4,2d4 + 4,6,12,9.0,0,0,2,1,0.7
+ARM011,Serpe,10,Légères,2,4,5,2d4 + 5,7,13,10.0,0,0,2,1,0.7
+ARM011,Serpe,11,Légères,3,4,3,3d4 + 3,6,15,10.5,0,0,2,1,0.7
+ARM011,Serpe,12,Légères,3,4,5,3d4 + 5,8,17,12.5,0,0,2,1,0.7
+ARM011,Serpe,13,Légères,3,4,6,3d4 + 6,9,18,13.5,0,0,2,1,0.7
+ARM011,Serpe,14,Légères,2,6,8,2d6 + 8,10,20,15.0,0,0,2,1,0.7
+ARM011,Serpe,15,Légères,4,4,7,4d4 + 7,11,23,17.0,0,0,2,1,0.7
+ARM011,Serpe,16,Légères,4,4,9,4d4 + 9,13,25,19.0,0,0,2,1,0.7
+ARM011,Serpe,17,Légères,2,8,11,2d8 + 11,13,27,20.0,0,0,2,1,0.7
+ARM011,Serpe,18,Légères,3,6,12,3d6 + 12,15,30,22.5,0,0,2,1,0.7
+ARM011,Serpe,19,Légères,2,10,13,2d10 + 13,15,33,24.0,0,0,2,1,0.7
+ARM011,Serpe,20,Légères,2,10,16,2d10 + 16,18,36,27.0,0,0,2,1,0.7
+ARM012,Gourdin léger,1,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.8
+ARM012,Gourdin léger,2,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.8
+ARM012,Gourdin léger,3,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.8
+ARM012,Gourdin léger,4,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,0.8
+ARM012,Gourdin léger,5,Légères,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,0.8
+ARM012,Gourdin léger,6,Légères,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,0.8
+ARM012,Gourdin léger,7,Légères,1,6,3,1d6 + 3,4,9,6.5,0,0,2,1,0.8
+ARM012,Gourdin léger,8,Légères,1,6,4,1d6 + 4,5,10,7.5,0,0,2,1,0.8
+ARM012,Gourdin léger,9,Légères,2,4,4,2d4 + 4,6,12,9.0,0,0,2,1,0.8
+ARM012,Gourdin léger,10,Légères,2,4,5,2d4 + 5,7,13,10.0,0,0,2,1,0.8
+ARM012,Gourdin léger,11,Légères,3,4,3,3d4 + 3,6,15,10.5,0,0,2,1,0.8
+ARM012,Gourdin léger,12,Légères,3,4,5,3d4 + 5,8,17,12.5,0,0,2,1,0.8
+ARM012,Gourdin léger,13,Légères,3,4,6,3d4 + 6,9,18,13.5,0,0,2,1,0.8
+ARM012,Gourdin léger,14,Légères,2,6,8,2d6 + 8,10,20,15.0,0,0,2,1,0.8
+ARM012,Gourdin léger,15,Légères,4,4,7,4d4 + 7,11,23,17.0,0,0,2,1,0.8
+ARM012,Gourdin léger,16,Légères,4,4,9,4d4 + 9,13,25,19.0,0,0,2,1,0.8
+ARM012,Gourdin léger,17,Légères,2,8,11,2d8 + 11,13,27,20.0,0,0,2,1,0.8
+ARM012,Gourdin léger,18,Légères,3,6,12,3d6 + 12,15,30,22.5,0,0,2,1,0.8
+ARM012,Gourdin léger,19,Légères,2,10,13,2d10 + 13,15,33,24.0,0,0,2,1,0.8
+ARM012,Gourdin léger,20,Légères,2,10,16,2d10 + 16,18,36,27.0,0,0,2,1,0.8
+ARM013,Main-gauche,1,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.45
+ARM013,Main-gauche,2,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.45
+ARM013,Main-gauche,3,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.45
+ARM013,Main-gauche,4,Légères,1,4,0,1d4,1,4,2.5,0,0,2,1,0.45
+ARM013,Main-gauche,5,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.45
+ARM013,Main-gauche,6,Légères,1,4,1,1d4 + 1,2,5,3.5,0,0,2,1,0.45
+ARM013,Main-gauche,7,Légères,1,6,1,1d6 + 1,2,7,4.5,0,0,2,1,0.45
+ARM013,Main-gauche,8,Légères,1,6,2,1d6 + 2,3,8,5.5,0,0,2,1,0.45
+ARM013,Main-gauche,9,Légères,2,4,1,2d4 + 1,3,9,6.0,0,0,2,1,0.45
+ARM013,Main-gauche,10,Légères,1,8,2,1d8 + 2,3,10,6.5,0,0,2,1,0.45
+ARM013,Main-gauche,11,Légères,1,8,3,1d8 + 3,4,11,7.5,0,0,2,1,0.45
+ARM013,Main-gauche,12,Légères,3,4,0,3d4,3,12,7.5,0,0,2,1,0.45
+ARM013,Main-gauche,13,Légères,3,4,2,3d4 + 2,5,14,9.5,0,0,2,1,0.45
+ARM013,Main-gauche,14,Légères,2,6,3,2d6 + 3,5,15,10.0,0,0,2,1,0.45
+ARM013,Main-gauche,15,Légères,2,6,4,2d6 + 4,6,16,11.0,0,0,2,1,0.45
+ARM013,Main-gauche,16,Légères,2,8,3,2d8 + 3,5,19,12.0,0,0,2,1,0.45
+ARM013,Main-gauche,17,Légères,2,8,5,2d8 + 5,7,21,14.0,0,0,2,1,0.45
+ARM013,Main-gauche,18,Légères,3,6,4,3d6 + 4,7,22,14.5,0,0,2,1,0.45
+ARM013,Main-gauche,19,Légères,3,6,5,3d6 + 5,8,23,15.5,0,0,2,1,0.45
+ARM013,Main-gauche,20,Légères,2,10,7,2d10 + 7,9,27,18.0,0,0,2,1,0.45
+ARM014,Épée droite,1,Une main,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1.4
+ARM014,Épée droite,2,Une main,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,1.4
+ARM014,Épée droite,3,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1.4
+ARM014,Épée droite,4,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,1.4
+ARM014,Épée droite,5,Une main,1,4,6,1d4 + 6,7,10,8.5,0,0,2,1,1.4
+ARM014,Épée droite,6,Une main,1,4,8,1d4 + 8,9,12,10.5,0,0,2,1,1.4
+ARM014,Épée droite,7,Une main,1,4,8,1d4 + 8,9,12,10.5,0,0,2,1,1.4
+ARM014,Épée droite,8,Une main,1,6,9,1d6 + 9,10,15,12.5,0,0,2,1,1.4
+ARM014,Épée droite,9,Une main,1,6,11,1d6 + 11,12,17,14.5,0,0,2,1,1.4
+ARM014,Épée droite,10,Une main,1,8,12,1d8 + 12,13,20,16.5,0,0,2,1,1.4
+ARM014,Épée droite,11,Une main,1,8,14,1d8 + 14,15,22,18.5,0,0,2,1,1.4
+ARM014,Épée droite,12,Une main,3,4,13,3d4 + 13,16,25,20.5,0,0,2,1,1.4
+ARM014,Épée droite,13,Une main,2,6,16,2d6 + 16,18,28,23.0,0,0,2,1,1.4
+ARM014,Épée droite,14,Une main,2,6,19,2d6 + 19,21,31,26.0,0,0,2,1,1.4
+ARM014,Épée droite,15,Une main,1,12,22,1d12 + 22,23,34,28.5,0,0,2,1,1.4
+ARM014,Épée droite,16,Une main,2,8,22,2d8 + 22,24,38,31.0,0,0,2,1,1.4
+ARM014,Épée droite,17,Une main,2,8,25,2d8 + 25,27,41,34.0,0,0,2,1,1.4
+ARM014,Épée droite,18,Une main,3,6,27,3d6 + 27,30,45,37.5,0,0,2,1,1.4
+ARM014,Épée droite,19,Une main,3,6,30,3d6 + 30,33,48,40.5,0,0,2,1,1.4
+ARM014,Épée droite,20,Une main,2,10,33,2d10 + 33,35,53,44.0,0,0,2,1,1.4
+ARM015,Épée longue,1,Une main,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,1.7
+ARM015,Épée longue,2,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1.7
+ARM015,Épée longue,3,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1.7
+ARM015,Épée longue,4,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,1.7
+ARM015,Épée longue,5,Une main,1,6,6,1d6 + 6,7,12,9.5,0,0,2,1,1.7
+ARM015,Épée longue,6,Une main,2,4,6,2d4 + 6,8,14,11.0,0,0,2,1,1.7
+ARM015,Épée longue,7,Une main,1,8,8,1d8 + 8,9,16,12.5,0,0,2,1,1.7
+ARM015,Épée longue,8,Une main,3,4,6,3d4 + 6,9,18,13.5,0,0,2,1,1.7
+ARM015,Épée longue,9,Une main,3,4,8,3d4 + 8,11,20,15.5,0,0,2,1,1.7
+ARM015,Épée longue,10,Une main,2,6,11,2d6 + 11,13,23,18.0,0,0,2,1,1.7
+ARM015,Épée longue,11,Une main,1,12,14,1d12 + 14,15,26,20.5,0,0,2,1,1.7
+ARM015,Épée longue,12,Une main,4,4,13,4d4 + 13,17,29,23.0,0,0,2,1,1.7
+ARM015,Épée longue,13,Une main,2,8,16,2d8 + 16,18,32,25.0,0,0,2,1,1.7
+ARM015,Épée longue,14,Une main,3,6,18,3d6 + 18,21,36,28.5,0,0,2,1,1.7
+ARM015,Épée longue,15,Une main,2,10,20,2d10 + 20,22,40,31.0,0,0,2,1,1.7
+ARM015,Épée longue,16,Une main,2,10,24,2d10 + 24,26,44,35.0,0,0,2,1,1.7
+ARM015,Épée longue,17,Une main,3,8,24,3d8 + 24,27,48,37.5,0,0,2,1,1.7
+ARM015,Épée longue,18,Une main,2,12,28,2d12 + 28,30,52,41.0,0,0,2,1,1.7
+ARM015,Épée longue,19,Une main,5,6,27,5d6 + 27,32,57,44.5,0,0,2,1,1.7
+ARM015,Épée longue,20,Une main,3,10,32,3d10 + 32,35,62,48.5,0,0,2,1,1.7
+ARM016,Épée bâtarde,1,Une main,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,2
+ARM016,Épée bâtarde,2,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,2
+ARM016,Épée bâtarde,3,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,2
+ARM016,Épée bâtarde,4,Une main,1,4,6,1d4 + 6,7,10,8.5,0,0,2,1,2
+ARM016,Épée bâtarde,5,Une main,1,4,8,1d4 + 8,9,12,10.5,0,0,2,1,2
+ARM016,Épée bâtarde,6,Une main,1,4,9,1d4 + 9,10,13,11.5,0,0,2,1,2
+ARM016,Épée bâtarde,7,Une main,1,6,10,1d6 + 10,11,16,13.5,0,0,2,1,2
+ARM016,Épée bâtarde,8,Une main,1,6,12,1d6 + 12,13,18,15.5,0,0,2,1,2
+ARM016,Épée bâtarde,9,Une main,1,6,14,1d6 + 14,15,20,17.5,0,0,2,1,2
+ARM016,Épée bâtarde,10,Une main,1,8,15,1d8 + 15,16,23,19.5,0,0,2,1,2
+ARM016,Épée bâtarde,11,Une main,1,8,18,1d8 + 18,19,26,22.5,0,0,2,1,2
+ARM016,Épée bâtarde,12,Une main,3,4,17,3d4 + 17,20,29,24.5,0,0,2,1,2
+ARM016,Épée bâtarde,13,Une main,3,4,20,3d4 + 20,23,32,27.5,0,0,2,1,2
+ARM016,Épée bâtarde,14,Une main,2,6,24,2d6 + 24,26,36,31.0,0,0,2,1,2
+ARM016,Épée bâtarde,15,Une main,4,4,24,4d4 + 24,28,40,34.0,0,0,2,1,2
+ARM016,Épée bâtarde,16,Une main,2,8,28,2d8 + 28,30,44,37.0,0,0,2,1,2
+ARM016,Épée bâtarde,17,Une main,2,8,32,2d8 + 32,34,48,41.0,0,0,2,1,2
+ARM016,Épée bâtarde,18,Une main,3,6,34,3d6 + 34,37,52,44.5,0,0,2,1,2
+ARM016,Épée bâtarde,19,Une main,3,6,38,3d6 + 38,41,56,48.5,0,0,2,1,2
+ARM016,Épée bâtarde,20,Une main,2,10,42,2d10 + 42,44,62,53.0,0,0,2,1,2
+ARM017,Falchion,1,Une main,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,1.6
+ARM017,Falchion,2,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1.6
+ARM017,Falchion,3,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1.6
+ARM017,Falchion,4,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,1.6
+ARM017,Falchion,5,Une main,1,6,6,1d6 + 6,7,12,9.5,0,0,2,1,1.6
+ARM017,Falchion,6,Une main,2,4,6,2d4 + 6,8,14,11.0,0,0,2,1,1.6
+ARM017,Falchion,7,Une main,1,8,8,1d8 + 8,9,16,12.5,0,0,2,1,1.6
+ARM017,Falchion,8,Une main,3,4,6,3d4 + 6,9,18,13.5,0,0,2,1,1.6
+ARM017,Falchion,9,Une main,3,4,8,3d4 + 8,11,20,15.5,0,0,2,1,1.6
+ARM017,Falchion,10,Une main,2,6,11,2d6 + 11,13,23,18.0,0,0,2,1,1.6
+ARM017,Falchion,11,Une main,1,12,14,1d12 + 14,15,26,20.5,0,0,2,1,1.6
+ARM017,Falchion,12,Une main,4,4,13,4d4 + 13,17,29,23.0,0,0,2,1,1.6
+ARM017,Falchion,13,Une main,2,8,16,2d8 + 16,18,32,25.0,0,0,2,1,1.6
+ARM017,Falchion,14,Une main,3,6,18,3d6 + 18,21,36,28.5,0,0,2,1,1.6
+ARM017,Falchion,15,Une main,2,10,20,2d10 + 20,22,40,31.0,0,0,2,1,1.6
+ARM017,Falchion,16,Une main,2,10,24,2d10 + 24,26,44,35.0,0,0,2,1,1.6
+ARM017,Falchion,17,Une main,3,8,24,3d8 + 24,27,48,37.5,0,0,2,1,1.6
+ARM017,Falchion,18,Une main,2,12,28,2d12 + 28,30,52,41.0,0,0,2,1,1.6
+ARM017,Falchion,19,Une main,5,6,27,5d6 + 27,32,57,44.5,0,0,2,1,1.6
+ARM017,Falchion,20,Une main,3,10,32,3d10 + 32,35,62,48.5,0,0,2,1,1.6
+ARM018,Hache de guerre,1,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,2.1
+ARM018,Hache de guerre,2,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,2.1
+ARM018,Hache de guerre,3,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,2.1
+ARM018,Hache de guerre,4,Une main,1,6,6,1d6 + 6,7,12,9.5,0,0,2,1,2.1
+ARM018,Hache de guerre,5,Une main,2,4,6,2d4 + 6,8,14,11.0,0,0,2,1,2.1
+ARM018,Hache de guerre,6,Une main,2,4,8,2d4 + 8,10,16,13.0,0,0,2,1,2.1
+ARM018,Hache de guerre,7,Une main,1,8,10,1d8 + 10,11,18,14.5,0,0,2,1,2.1
+ARM018,Hache de guerre,8,Une main,1,8,12,1d8 + 12,13,20,16.5,0,0,2,1,2.1
+ARM018,Hache de guerre,9,Une main,3,4,11,3d4 + 11,14,23,18.5,0,0,2,1,2.1
+ARM018,Hache de guerre,10,Une main,2,6,14,2d6 + 14,16,26,21.0,0,0,2,1,2.1
+ARM018,Hache de guerre,11,Une main,1,12,18,1d12 + 18,19,30,24.5,0,0,2,1,2.1
+ARM018,Hache de guerre,12,Une main,4,4,17,4d4 + 17,21,33,27.0,0,0,2,1,2.1
+ARM018,Hache de guerre,13,Une main,2,8,21,2d8 + 21,23,37,30.0,0,0,2,1,2.1
+ARM018,Hache de guerre,14,Une main,3,6,23,3d6 + 23,26,41,33.5,0,0,2,1,2.1
+ARM018,Hache de guerre,15,Une main,2,10,25,2d10 + 25,27,45,36.0,0,0,2,1,2.1
+ARM018,Hache de guerre,16,Une main,2,10,29,2d10 + 29,31,49,40.0,0,0,2,1,2.1
+ARM018,Hache de guerre,17,Une main,3,8,31,3d8 + 31,34,55,44.5,0,0,2,1,2.1
+ARM018,Hache de guerre,18,Une main,2,12,35,2d12 + 35,37,59,48.0,0,0,2,1,2.1
+ARM018,Hache de guerre,19,Une main,5,6,35,5d6 + 35,40,65,52.5,0,0,2,1,2.1
+ARM018,Hache de guerre,20,Une main,3,10,41,3d10 + 41,44,71,57.5,0,0,2,1,2.1
+ARM019,Hache barbue,1,Une main,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,2
+ARM019,Hache barbue,2,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,2
+ARM019,Hache barbue,3,Une main,1,6,4,1d6 + 4,5,10,7.5,0,0,2,1,2
+ARM019,Hache barbue,4,Une main,2,4,4,2d4 + 4,6,12,9.0,0,0,2,1,2
+ARM019,Hache barbue,5,Une main,1,8,6,1d8 + 6,7,14,10.5,0,0,2,1,2
+ARM019,Hache barbue,6,Une main,1,8,8,1d8 + 8,9,16,12.5,0,0,2,1,2
+ARM019,Hache barbue,7,Une main,1,10,8,1d10 + 8,9,18,13.5,0,0,2,1,2
+ARM019,Hache barbue,8,Une main,2,6,8,2d6 + 8,10,20,15.0,0,0,2,1,2
+ARM019,Hache barbue,9,Une main,1,12,11,1d12 + 11,12,23,17.5,0,0,2,1,2
+ARM019,Hache barbue,10,Une main,2,8,10,2d8 + 10,12,26,19.0,0,0,2,1,2
+ARM019,Hache barbue,11,Une main,3,6,12,3d6 + 12,15,30,22.5,0,0,2,1,2
+ARM019,Hache barbue,12,Une main,3,6,14,3d6 + 14,17,32,24.5,0,0,2,1,2
+ARM019,Hache barbue,13,Une main,2,10,16,2d10 + 16,18,36,27.0,0,0,2,1,2
+ARM019,Hache barbue,14,Une main,4,6,17,4d6 + 17,21,41,31.0,0,0,2,1,2
+ARM019,Hache barbue,15,Une main,2,12,21,2d12 + 21,23,45,34.0,0,0,2,1,2
+ARM019,Hache barbue,16,Une main,5,6,20,5d6 + 20,25,50,37.5,0,0,2,1,2
+ARM019,Hache barbue,17,Une main,4,8,23,4d8 + 23,27,55,41.0,0,0,2,1,2
+ARM019,Hache barbue,18,Une main,6,6,24,6d6 + 24,30,60,45.0,0,0,2,1,2
+ARM019,Hache barbue,19,Une main,3,12,29,3d12 + 29,32,65,48.5,0,0,2,1,2
+ARM019,Hache barbue,20,Une main,4,10,31,4d10 + 31,35,71,53.0,0,0,2,1,2
+ARM020,Masse d'armes,1,Une main,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,1.8
+ARM020,Masse d'armes,2,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1.8
+ARM020,Masse d'armes,3,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1.8
+ARM020,Masse d'armes,4,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,1.8
+ARM020,Masse d'armes,5,Une main,1,6,6,1d6 + 6,7,12,9.5,0,0,2,1,1.8
+ARM020,Masse d'armes,6,Une main,2,4,6,2d4 + 6,8,14,11.0,0,0,2,1,1.8
+ARM020,Masse d'armes,7,Une main,1,8,8,1d8 + 8,9,16,12.5,0,0,2,1,1.8
+ARM020,Masse d'armes,8,Une main,3,4,6,3d4 + 6,9,18,13.5,0,0,2,1,1.8
+ARM020,Masse d'armes,9,Une main,3,4,8,3d4 + 8,11,20,15.5,0,0,2,1,1.8
+ARM020,Masse d'armes,10,Une main,2,6,11,2d6 + 11,13,23,18.0,0,0,2,1,1.8
+ARM020,Masse d'armes,11,Une main,1,12,14,1d12 + 14,15,26,20.5,0,0,2,1,1.8
+ARM020,Masse d'armes,12,Une main,4,4,13,4d4 + 13,17,29,23.0,0,0,2,1,1.8
+ARM020,Masse d'armes,13,Une main,2,8,16,2d8 + 16,18,32,25.0,0,0,2,1,1.8
+ARM020,Masse d'armes,14,Une main,3,6,18,3d6 + 18,21,36,28.5,0,0,2,1,1.8
+ARM020,Masse d'armes,15,Une main,2,10,20,2d10 + 20,22,40,31.0,0,0,2,1,1.8
+ARM020,Masse d'armes,16,Une main,2,10,24,2d10 + 24,26,44,35.0,0,0,2,1,1.8
+ARM020,Masse d'armes,17,Une main,3,8,24,3d8 + 24,27,48,37.5,0,0,2,1,1.8
+ARM020,Masse d'armes,18,Une main,2,12,28,2d12 + 28,30,52,41.0,0,0,2,1,1.8
+ARM020,Masse d'armes,19,Une main,5,6,27,5d6 + 27,32,57,44.5,0,0,2,1,1.8
+ARM020,Masse d'armes,20,Une main,3,10,32,3d10 + 32,35,62,48.5,0,0,2,1,1.8
+ARM021,Masse à ailettes,1,Une main,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,2
+ARM021,Masse à ailettes,2,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,2
+ARM021,Masse à ailettes,3,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,2
+ARM021,Masse à ailettes,4,Une main,1,4,6,1d4 + 6,7,10,8.5,0,0,2,1,2
+ARM021,Masse à ailettes,5,Une main,1,4,8,1d4 + 8,9,12,10.5,0,0,2,1,2
+ARM021,Masse à ailettes,6,Une main,1,4,9,1d4 + 9,10,13,11.5,0,0,2,1,2
+ARM021,Masse à ailettes,7,Une main,1,6,10,1d6 + 10,11,16,13.5,0,0,2,1,2
+ARM021,Masse à ailettes,8,Une main,1,6,12,1d6 + 12,13,18,15.5,0,0,2,1,2
+ARM021,Masse à ailettes,9,Une main,1,6,14,1d6 + 14,15,20,17.5,0,0,2,1,2
+ARM021,Masse à ailettes,10,Une main,1,8,15,1d8 + 15,16,23,19.5,0,0,2,1,2
+ARM021,Masse à ailettes,11,Une main,1,8,18,1d8 + 18,19,26,22.5,0,0,2,1,2
+ARM021,Masse à ailettes,12,Une main,3,4,17,3d4 + 17,20,29,24.5,0,0,2,1,2
+ARM021,Masse à ailettes,13,Une main,3,4,20,3d4 + 20,23,32,27.5,0,0,2,1,2
+ARM021,Masse à ailettes,14,Une main,2,6,24,2d6 + 24,26,36,31.0,0,0,2,1,2
+ARM021,Masse à ailettes,15,Une main,4,4,24,4d4 + 24,28,40,34.0,0,0,2,1,2
+ARM021,Masse à ailettes,16,Une main,2,8,28,2d8 + 28,30,44,37.0,0,0,2,1,2
+ARM021,Masse à ailettes,17,Une main,2,8,32,2d8 + 32,34,48,41.0,0,0,2,1,2
+ARM021,Masse à ailettes,18,Une main,3,6,34,3d6 + 34,37,52,44.5,0,0,2,1,2
+ARM021,Masse à ailettes,19,Une main,3,6,38,3d6 + 38,41,56,48.5,0,0,2,1,2
+ARM021,Masse à ailettes,20,Une main,2,10,42,2d10 + 42,44,62,53.0,0,0,2,1,2
+ARM022,Marteau de guerre,1,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,2.2
+ARM022,Marteau de guerre,2,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,2.2
+ARM022,Marteau de guerre,3,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,2.2
+ARM022,Marteau de guerre,4,Une main,1,6,6,1d6 + 6,7,12,9.5,0,0,2,1,2.2
+ARM022,Marteau de guerre,5,Une main,2,4,6,2d4 + 6,8,14,11.0,0,0,2,1,2.2
+ARM022,Marteau de guerre,6,Une main,2,4,8,2d4 + 8,10,16,13.0,0,0,2,1,2.2
+ARM022,Marteau de guerre,7,Une main,1,8,10,1d8 + 10,11,18,14.5,0,0,2,1,2.2
+ARM022,Marteau de guerre,8,Une main,1,8,12,1d8 + 12,13,20,16.5,0,0,2,1,2.2
+ARM022,Marteau de guerre,9,Une main,3,4,11,3d4 + 11,14,23,18.5,0,0,2,1,2.2
+ARM022,Marteau de guerre,10,Une main,2,6,14,2d6 + 14,16,26,21.0,0,0,2,1,2.2
+ARM022,Marteau de guerre,11,Une main,1,12,18,1d12 + 18,19,30,24.5,0,0,2,1,2.2
+ARM022,Marteau de guerre,12,Une main,4,4,17,4d4 + 17,21,33,27.0,0,0,2,1,2.2
+ARM022,Marteau de guerre,13,Une main,2,8,21,2d8 + 21,23,37,30.0,0,0,2,1,2.2
+ARM022,Marteau de guerre,14,Une main,3,6,23,3d6 + 23,26,41,33.5,0,0,2,1,2.2
+ARM022,Marteau de guerre,15,Une main,2,10,25,2d10 + 25,27,45,36.0,0,0,2,1,2.2
+ARM022,Marteau de guerre,16,Une main,2,10,29,2d10 + 29,31,49,40.0,0,0,2,1,2.2
+ARM022,Marteau de guerre,17,Une main,3,8,31,3d8 + 31,34,55,44.5,0,0,2,1,2.2
+ARM022,Marteau de guerre,18,Une main,2,12,35,2d12 + 35,37,59,48.0,0,0,2,1,2.2
+ARM022,Marteau de guerre,19,Une main,5,6,35,5d6 + 35,40,65,52.5,0,0,2,1,2.2
+ARM022,Marteau de guerre,20,Une main,3,10,41,3d10 + 41,44,71,57.5,0,0,2,1,2.2
+ARM023,Fléau d'armes,1,Une main,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,2.5
+ARM023,Fléau d'armes,2,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,2.5
+ARM023,Fléau d'armes,3,Une main,1,6,4,1d6 + 4,5,10,7.5,0,0,2,1,2.5
+ARM023,Fléau d'armes,4,Une main,2,4,4,2d4 + 4,6,12,9.0,0,0,2,1,2.5
+ARM023,Fléau d'armes,5,Une main,1,8,6,1d8 + 6,7,14,10.5,0,0,2,1,2.5
+ARM023,Fléau d'armes,6,Une main,1,8,8,1d8 + 8,9,16,12.5,0,0,2,1,2.5
+ARM023,Fléau d'armes,7,Une main,1,10,8,1d10 + 8,9,18,13.5,0,0,2,1,2.5
+ARM023,Fléau d'armes,8,Une main,2,6,8,2d6 + 8,10,20,15.0,0,0,2,1,2.5
+ARM023,Fléau d'armes,9,Une main,1,12,11,1d12 + 11,12,23,17.5,0,0,2,1,2.5
+ARM023,Fléau d'armes,10,Une main,2,8,10,2d8 + 10,12,26,19.0,0,0,2,1,2.5
+ARM023,Fléau d'armes,11,Une main,3,6,12,3d6 + 12,15,30,22.5,0,0,2,1,2.5
+ARM023,Fléau d'armes,12,Une main,3,6,14,3d6 + 14,17,32,24.5,0,0,2,1,2.5
+ARM023,Fléau d'armes,13,Une main,2,10,16,2d10 + 16,18,36,27.0,0,0,2,1,2.5
+ARM023,Fléau d'armes,14,Une main,4,6,17,4d6 + 17,21,41,31.0,0,0,2,1,2.5
+ARM023,Fléau d'armes,15,Une main,2,12,21,2d12 + 21,23,45,34.0,0,0,2,1,2.5
+ARM023,Fléau d'armes,16,Une main,5,6,20,5d6 + 20,25,50,37.5,0,0,2,1,2.5
+ARM023,Fléau d'armes,17,Une main,4,8,23,4d8 + 23,27,55,41.0,0,0,2,1,2.5
+ARM023,Fléau d'armes,18,Une main,6,6,24,6d6 + 24,30,60,45.0,0,0,2,1,2.5
+ARM023,Fléau d'armes,19,Une main,3,12,29,3d12 + 29,32,65,48.5,0,0,2,1,2.5
+ARM023,Fléau d'armes,20,Une main,4,10,31,4d10 + 31,35,71,53.0,0,0,2,1,2.5
+ARM024,Étoile du matin,1,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,2.3
+ARM024,Étoile du matin,2,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,2.3
+ARM024,Étoile du matin,3,Une main,1,4,5,1d4 + 5,6,9,7.5,0,0,2,1,2.3
+ARM024,Étoile du matin,4,Une main,1,6,6,1d6 + 6,7,12,9.5,0,0,2,1,2.3
+ARM024,Étoile du matin,5,Une main,2,4,6,2d4 + 6,8,14,11.0,0,0,2,1,2.3
+ARM024,Étoile du matin,6,Une main,2,4,8,2d4 + 8,10,16,13.0,0,0,2,1,2.3
+ARM024,Étoile du matin,7,Une main,1,8,10,1d8 + 10,11,18,14.5,0,0,2,1,2.3
+ARM024,Étoile du matin,8,Une main,1,8,12,1d8 + 12,13,20,16.5,0,0,2,1,2.3
+ARM024,Étoile du matin,9,Une main,3,4,11,3d4 + 11,14,23,18.5,0,0,2,1,2.3
+ARM024,Étoile du matin,10,Une main,2,6,14,2d6 + 14,16,26,21.0,0,0,2,1,2.3
+ARM024,Étoile du matin,11,Une main,1,12,18,1d12 + 18,19,30,24.5,0,0,2,1,2.3
+ARM024,Étoile du matin,12,Une main,4,4,17,4d4 + 17,21,33,27.0,0,0,2,1,2.3
+ARM024,Étoile du matin,13,Une main,2,8,21,2d8 + 21,23,37,30.0,0,0,2,1,2.3
+ARM024,Étoile du matin,14,Une main,3,6,23,3d6 + 23,26,41,33.5,0,0,2,1,2.3
+ARM024,Étoile du matin,15,Une main,2,10,25,2d10 + 25,27,45,36.0,0,0,2,1,2.3
+ARM024,Étoile du matin,16,Une main,2,10,29,2d10 + 29,31,49,40.0,0,0,2,1,2.3
+ARM024,Étoile du matin,17,Une main,3,8,31,3d8 + 31,34,55,44.5,0,0,2,1,2.3
+ARM024,Étoile du matin,18,Une main,2,12,35,2d12 + 35,37,59,48.0,0,0,2,1,2.3
+ARM024,Étoile du matin,19,Une main,5,6,35,5d6 + 35,40,65,52.5,0,0,2,1,2.3
+ARM024,Étoile du matin,20,Une main,3,10,41,3d10 + 41,44,71,57.5,0,0,2,1,2.3
+ARM025,Pic de guerre,1,Une main,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,1.9
+ARM025,Pic de guerre,2,Une main,1,4,4,1d4 + 4,5,8,6.5,0,0,2,1,1.9
+ARM025,Pic de guerre,3,Une main,1,6,4,1d6 + 4,5,10,7.5,0,0,2,1,1.9
+ARM025,Pic de guerre,4,Une main,2,4,4,2d4 + 4,6,12,9.0,0,0,2,1,1.9
+ARM025,Pic de guerre,5,Une main,1,8,6,1d8 + 6,7,14,10.5,0,0,2,1,1.9
+ARM025,Pic de guerre,6,Une main,1,8,8,1d8 + 8,9,16,12.5,0,0,2,1,1.9
+ARM025,Pic de guerre,7,Une main,1,10,8,1d10 + 8,9,18,13.5,0,0,2,1,1.9
+ARM025,Pic de guerre,8,Une main,2,6,8,2d6 + 8,10,20,15.0,0,0,2,1,1.9
+ARM025,Pic de guerre,9,Une main,1,12,11,1d12 + 11,12,23,17.5,0,0,2,1,1.9
+ARM025,Pic de guerre,10,Une main,2,8,10,2d8 + 10,12,26,19.0,0,0,2,1,1.9
+ARM025,Pic de guerre,11,Une main,3,6,12,3d6 + 12,15,30,22.5,0,0,2,1,1.9
+ARM025,Pic de guerre,12,Une main,3,6,14,3d6 + 14,17,32,24.5,0,0,2,1,1.9
+ARM025,Pic de guerre,13,Une main,2,10,16,2d10 + 16,18,36,27.0,0,0,2,1,1.9
+ARM025,Pic de guerre,14,Une main,4,6,17,4d6 + 17,21,41,31.0,0,0,2,1,1.9
+ARM025,Pic de guerre,15,Une main,2,12,21,2d12 + 21,23,45,34.0,0,0,2,1,1.9
+ARM025,Pic de guerre,16,Une main,5,6,20,5d6 + 20,25,50,37.5,0,0,2,1,1.9
+ARM025,Pic de guerre,17,Une main,4,8,23,4d8 + 23,27,55,41.0,0,0,2,1,1.9
+ARM025,Pic de guerre,18,Une main,6,6,24,6d6 + 24,30,60,45.0,0,0,2,1,1.9
+ARM025,Pic de guerre,19,Une main,3,12,29,3d12 + 29,32,65,48.5,0,0,2,1,1.9
+ARM025,Pic de guerre,20,Une main,4,10,31,4d10 + 31,35,71,53.0,0,0,2,1,1.9
+ARM026,Sceptre de bataille,1,Une main,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1.3
+ARM026,Sceptre de bataille,2,Une main,1,4,2,1d4 + 2,3,6,4.5,0,0,2,1,1.3
+ARM026,Sceptre de bataille,3,Une main,1,4,3,1d4 + 3,4,7,5.5,0,0,2,1,1.3
+ARM026,Sceptre de bataille,4,Une main,1,6,3,1d6 + 3,4,9,6.5,0,0,2,1,1.3
+ARM026,Sceptre de bataille,5,Une main,1,6,4,1d6 + 4,5,10,7.5,0,0,2,1,1.3
+ARM026,Sceptre de bataille,6,Une main,2,4,4,2d4 + 4,6,12,9.0,0,0,2,1,1.3
+ARM026,Sceptre de bataille,7,Une main,2,4,5,2d4 + 5,7,13,10.0,0,0,2,1,1.3
+ARM026,Sceptre de bataille,8,Une main,1,8,7,1d8 + 7,8,15,11.5,0,0,2,1,1.3
+ARM026,Sceptre de bataille,9,Une main,3,4,5,3d4 + 5,8,17,12.5,0,0,2,1,1.3
+ARM026,Sceptre de bataille,10,Une main,2,6,8,2d6 + 8,10,20,15.0,0,0,2,1,1.3
+ARM026,Sceptre de bataille,11,Une main,1,12,10,1d12 + 10,11,22,16.5,0,0,2,1,1.3
+ARM026,Sceptre de bataille,12,Une main,2,8,9,2d8 + 9,11,25,18.0,0,0,2,1,1.3
+ARM026,Sceptre de bataille,13,Une main,2,8,12,2d8 + 12,14,28,21.0,0,0,2,1,1.3
+ARM026,Sceptre de bataille,14,Une main,3,6,12,3d6 + 12,15,30,22.5,0,0,2,1,1.3
+ARM026,Sceptre de bataille,15,Une main,2,10,14,2d10 + 14,16,34,25.0,0,0,2,1,1.3
+ARM026,Sceptre de bataille,16,Une main,2,10,17,2d10 + 17,19,37,28.0,0,0,2,1,1.3
+ARM026,Sceptre de bataille,17,Une main,4,6,17,4d6 + 17,21,41,31.0,0,0,2,1,1.3
+ARM026,Sceptre de bataille,18,Une main,2,12,20,2d12 + 20,22,44,33.0,0,0,2,1,1.3
+ARM026,Sceptre de bataille,19,Une main,5,6,19,5d6 + 19,24,49,36.5,0,0,2,1,1.3
+ARM026,Sceptre de bataille,20,Une main,3,10,24,3d10 + 24,27,54,40.5,0,0,2,1,1.3
+ARM027,Grande épée,1,Deux mains,1,6,5,1d6 + 5,6,11,8.5,0,0,3,1,3.6
+ARM027,Grande épée,2,Deux mains,1,6,6,1d6 + 6,7,12,9.5,0,0,3,1,3.6
+ARM027,Grande épée,3,Deux mains,1,6,8,1d6 + 8,9,14,11.5,0,0,3,1,3.6
+ARM027,Grande épée,4,Deux mains,1,6,9,1d6 + 9,10,15,12.5,0,0,3,1,3.6
+ARM027,Grande épée,5,Deux mains,1,8,11,1d8 + 11,12,19,15.5,0,0,3,1,3.6
+ARM027,Grande épée,6,Deux mains,1,8,13,1d8 + 13,14,21,17.5,0,0,3,1,3.6
+ARM027,Grande épée,7,Deux mains,1,10,15,1d10 + 15,16,25,20.5,0,0,3,1,3.6
+ARM027,Grande épée,8,Deux mains,2,6,16,2d6 + 16,18,28,23.0,0,0,3,1,3.6
+ARM027,Grande épée,9,Deux mains,1,12,19,1d12 + 19,20,31,25.5,0,0,3,1,3.6
+ARM027,Grande épée,10,Deux mains,2,8,20,2d8 + 20,22,36,29.0,0,0,3,1,3.6
+ARM027,Grande épée,11,Deux mains,3,6,23,3d6 + 23,26,41,33.5,0,0,3,1,3.6
+ARM027,Grande épée,12,Deux mains,2,10,26,2d10 + 26,28,46,37.0,0,0,3,1,3.6
+ARM027,Grande épée,13,Deux mains,2,10,30,2d10 + 30,32,50,41.0,0,0,3,1,3.6
+ARM027,Grande épée,14,Deux mains,4,6,32,4d6 + 32,36,56,46.0,0,0,3,1,3.6
+ARM027,Grande épée,15,Deux mains,2,12,38,2d12 + 38,40,62,51.0,0,0,3,1,3.6
+ARM027,Grande épée,16,Deux mains,5,6,39,5d6 + 39,44,69,56.5,0,0,3,1,3.6
+ARM027,Grande épée,17,Deux mains,3,10,45,3d10 + 45,48,75,61.5,0,0,3,1,3.6
+ARM027,Grande épée,18,Deux mains,6,6,46,6d6 + 46,52,82,67.0,0,0,3,1,3.6
+ARM027,Grande épée,19,Deux mains,3,12,54,3d12 + 54,57,90,73.5,0,0,3,1,3.6
+ARM027,Grande épée,20,Deux mains,4,10,58,4d10 + 58,62,98,80.0,0,0,3,1,3.6
+ARM028,Claymore,1,Deux mains,1,6,6,1d6 + 6,7,12,9.5,0,0,3,1,3.8
+ARM028,Claymore,2,Deux mains,1,6,8,1d6 + 8,9,14,11.5,0,0,3,1,3.8
+ARM028,Claymore,3,Deux mains,1,6,8,1d6 + 8,9,14,11.5,0,0,3,1,3.8
+ARM028,Claymore,4,Deux mains,1,8,9,1d8 + 9,10,17,13.5,0,0,3,1,3.8
+ARM028,Claymore,5,Deux mains,1,8,11,1d8 + 11,12,19,15.5,0,0,3,1,3.8
+ARM028,Claymore,6,Deux mains,1,10,13,1d10 + 13,14,23,18.5,0,0,3,1,3.8
+ARM028,Claymore,7,Deux mains,1,12,15,1d12 + 15,16,27,21.5,0,0,3,1,3.8
+ARM028,Claymore,8,Deux mains,2,8,16,2d8 + 16,18,32,25.0,0,0,3,1,3.8
+ARM028,Claymore,9,Deux mains,3,6,17,3d6 + 17,20,35,27.5,0,0,3,1,3.8
+ARM028,Claymore,10,Deux mains,3,6,20,3d6 + 20,23,38,30.5,0,0,3,1,3.8
+ARM028,Claymore,11,Deux mains,2,10,24,2d10 + 24,26,44,35.0,0,0,3,1,3.8
+ARM028,Claymore,12,Deux mains,3,8,26,3d8 + 26,29,50,39.5,0,0,3,1,3.8
+ARM028,Claymore,13,Deux mains,2,12,30,2d12 + 30,32,54,43.0,0,0,3,1,3.8
+ARM028,Claymore,14,Deux mains,3,10,32,3d10 + 32,35,62,48.5,0,0,3,1,3.8
+ARM028,Claymore,15,Deux mains,4,8,36,4d8 + 36,40,68,54.0,0,0,3,1,3.8
+ARM028,Claymore,16,Deux mains,6,6,38,6d6 + 38,44,74,59.0,0,0,3,1,3.8
+ARM028,Claymore,17,Deux mains,3,12,45,3d12 + 45,48,81,64.5,0,0,3,1,3.8
+ARM028,Claymore,18,Deux mains,2,20,50,2d20 + 50,52,90,71.0,0,0,3,1,3.8
+ARM028,Claymore,19,Deux mains,6,8,50,6d8 + 50,56,98,77.0,0,0,3,1,3.8
+ARM028,Claymore,20,Deux mains,4,12,58,4d12 + 58,62,106,84.0,0,0,3,1,3.8
+ARM029,Espadon,1,Deux mains,1,6,6,1d6 + 6,7,12,9.5,0,0,3,1,4.4
+ARM029,Espadon,2,Deux mains,1,6,8,1d6 + 8,9,14,11.5,0,0,3,1,4.4
+ARM029,Espadon,3,Deux mains,1,6,9,1d6 + 9,10,15,12.5,0,0,3,1,4.4
+ARM029,Espadon,4,Deux mains,1,6,11,1d6 + 11,12,17,14.5,0,0,3,1,4.4
+ARM029,Espadon,5,Deux mains,1,6,13,1d6 + 13,14,19,16.5,0,0,3,1,4.4
+ARM029,Espadon,6,Deux mains,1,8,15,1d8 + 15,16,23,19.5,0,0,3,1,4.4
+ARM029,Espadon,7,Deux mains,1,10,17,1d10 + 17,18,27,22.5,0,0,3,1,4.4
+ARM029,Espadon,8,Deux mains,1,12,19,1d12 + 19,20,31,25.5,0,0,3,1,4.4
+ARM029,Espadon,9,Deux mains,1,12,22,1d12 + 22,23,34,28.5,0,0,3,1,4.4
+ARM029,Espadon,10,Deux mains,2,8,24,2d8 + 24,26,40,33.0,0,0,3,1,4.4
+ARM029,Espadon,11,Deux mains,2,8,28,2d8 + 28,30,44,37.0,0,0,3,1,4.4
+ARM029,Espadon,12,Deux mains,2,10,30,2d10 + 30,32,50,41.0,0,0,3,1,4.4
+ARM029,Espadon,13,Deux mains,2,10,35,2d10 + 35,37,55,46.0,0,0,3,1,4.4
+ARM029,Espadon,14,Deux mains,3,8,38,3d8 + 38,41,62,51.5,0,0,3,1,4.4
+ARM029,Espadon,15,Deux mains,2,12,43,2d12 + 43,45,67,56.0,0,0,3,1,4.4
+ARM029,Espadon,16,Deux mains,5,6,45,5d6 + 45,50,75,62.5,0,0,3,1,4.4
+ARM029,Espadon,17,Deux mains,3,10,52,3d10 + 52,55,82,68.5,0,0,3,1,4.4
+ARM029,Espadon,18,Deux mains,6,6,54,6d6 + 54,60,90,75.0,0,0,3,1,4.4
+ARM029,Espadon,19,Deux mains,3,12,62,3d12 + 62,65,98,81.5,0,0,3,1,4.4
+ARM029,Espadon,20,Deux mains,5,8,66,5d8 + 66,71,106,88.5,0,0,3,1,4.4
+ARM030,Lame d'exécution,1,Deux mains,1,6,7,1d6 + 7,8,13,10.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,2,Deux mains,1,6,8,1d6 + 8,9,14,11.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,3,Deux mains,1,8,9,1d8 + 9,10,17,13.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,4,Deux mains,1,8,11,1d8 + 11,12,19,15.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,5,Deux mains,1,8,13,1d8 + 13,14,21,17.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,6,Deux mains,1,10,15,1d10 + 15,16,25,20.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,7,Deux mains,1,12,17,1d12 + 17,18,29,23.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,8,Deux mains,2,8,17,2d8 + 17,19,33,26.0,0,0,3,1,4.8
+ARM030,Lame d'exécution,9,Deux mains,3,6,20,3d6 + 20,23,38,30.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,10,Deux mains,1,20,24,1d20 + 24,25,44,34.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,11,Deux mains,1,20,28,1d20 + 28,29,48,38.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,12,Deux mains,1,20,33,1d20 + 33,34,53,43.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,13,Deux mains,2,12,35,2d12 + 35,37,59,48.0,0,0,3,1,4.8
+ARM030,Lame d'exécution,14,Deux mains,3,10,37,3d10 + 37,40,67,53.5,0,0,3,1,4.8
+ARM030,Lame d'exécution,15,Deux mains,4,8,41,4d8 + 41,45,73,59.0,0,0,3,1,4.8
+ARM030,Lame d'exécution,16,Deux mains,6,6,44,6d6 + 44,50,80,65.0,0,0,3,1,4.8
+ARM030,Lame d'exécution,17,Deux mains,2,20,51,2d20 + 51,53,91,72.0,0,0,3,1,4.8
+ARM030,Lame d'exécution,18,Deux mains,2,20,57,2d20 + 57,59,97,78.0,0,0,3,1,4.8
+ARM030,Lame d'exécution,19,Deux mains,2,20,64,2d20 + 64,66,104,85.0,0,0,3,1,4.8
+ARM030,Lame d'exécution,20,Deux mains,2,20,72,2d20 + 72,74,112,93.0,0,0,3,1,4.8
+ARM031,Grande hache,1,Deux mains,1,6,7,1d6 + 7,8,13,10.5,0,0,3,1,4.7
+ARM031,Grande hache,2,Deux mains,1,6,8,1d6 + 8,9,14,11.5,0,0,3,1,4.7
+ARM031,Grande hache,3,Deux mains,1,8,9,1d8 + 9,10,17,13.5,0,0,3,1,4.7
+ARM031,Grande hache,4,Deux mains,1,8,11,1d8 + 11,12,19,15.5,0,0,3,1,4.7
+ARM031,Grande hache,5,Deux mains,1,8,13,1d8 + 13,14,21,17.5,0,0,3,1,4.7
+ARM031,Grande hache,6,Deux mains,1,10,15,1d10 + 15,16,25,20.5,0,0,3,1,4.7
+ARM031,Grande hache,7,Deux mains,1,12,17,1d12 + 17,18,29,23.5,0,0,3,1,4.7
+ARM031,Grande hache,8,Deux mains,2,8,17,2d8 + 17,19,33,26.0,0,0,3,1,4.7
+ARM031,Grande hache,9,Deux mains,3,6,20,3d6 + 20,23,38,30.5,0,0,3,1,4.7
+ARM031,Grande hache,10,Deux mains,2,10,24,2d10 + 24,26,44,35.0,0,0,3,1,4.7
+ARM031,Grande hache,11,Deux mains,2,10,28,2d10 + 28,30,48,39.0,0,0,3,1,4.7
+ARM031,Grande hache,12,Deux mains,3,8,30,3d8 + 30,33,54,43.5,0,0,3,1,4.7
+ARM031,Grande hache,13,Deux mains,2,12,35,2d12 + 35,37,59,48.0,0,0,3,1,4.7
+ARM031,Grande hache,14,Deux mains,3,10,37,3d10 + 37,40,67,53.5,0,0,3,1,4.7
+ARM031,Grande hache,15,Deux mains,4,8,41,4d8 + 41,45,73,59.0,0,0,3,1,4.7
+ARM031,Grande hache,16,Deux mains,6,6,44,6d6 + 44,50,80,65.0,0,0,3,1,4.7
+ARM031,Grande hache,17,Deux mains,3,12,52,3d12 + 52,55,88,71.5,0,0,3,1,4.7
+ARM031,Grande hache,18,Deux mains,4,10,56,4d10 + 56,60,96,78.0,0,0,3,1,4.7
+ARM031,Grande hache,19,Deux mains,6,8,58,6d8 + 58,64,106,85.0,0,0,3,1,4.7
+ARM031,Grande hache,20,Deux mains,4,12,67,4d12 + 67,71,115,93.0,0,0,3,1,4.7
+ARM032,Hache double,1,Deux mains,1,8,6,1d8 + 6,7,14,10.5,0,0,3,1,5
+ARM032,Hache double,2,Deux mains,1,8,8,1d8 + 8,9,16,12.5,0,0,3,1,5
+ARM032,Hache double,3,Deux mains,1,10,8,1d10 + 8,9,18,13.5,0,0,3,1,5
+ARM032,Hache double,4,Deux mains,1,12,9,1d12 + 9,10,21,15.5,0,0,3,1,5
+ARM032,Hache double,5,Deux mains,1,12,11,1d12 + 11,12,23,17.5,0,0,3,1,5
+ARM032,Hache double,6,Deux mains,2,8,11,2d8 + 11,13,27,20.0,0,0,3,1,5
+ARM032,Hache double,7,Deux mains,3,6,13,3d6 + 13,16,31,23.5,0,0,3,1,5
+ARM032,Hache double,8,Deux mains,2,10,16,2d10 + 16,18,36,27.0,0,0,3,1,5
+ARM032,Hache double,9,Deux mains,3,8,17,3d8 + 17,20,41,30.5,0,0,3,1,5
+ARM032,Hache double,10,Deux mains,2,12,21,2d12 + 21,23,45,34.0,0,0,3,1,5
+ARM032,Hache double,11,Deux mains,3,10,22,3d10 + 22,25,52,38.5,0,0,3,1,5
+ARM032,Hache double,12,Deux mains,4,8,25,4d8 + 25,29,57,43.0,0,0,3,1,5
+ARM032,Hache double,13,Deux mains,3,12,29,3d12 + 29,32,65,48.5,0,0,3,1,5
+ARM032,Hache double,14,Deux mains,4,10,32,4d10 + 32,36,72,54.0,0,0,3,1,5
+ARM032,Hache double,15,Deux mains,2,20,38,2d20 + 38,40,78,59.0,0,0,3,1,5
+ARM032,Hache double,16,Deux mains,4,12,40,4d12 + 40,44,88,66.0,0,0,3,1,5
+ARM032,Hache double,17,Deux mains,5,10,44,5d10 + 44,49,94,71.5,0,0,3,1,5
+ARM032,Hache double,18,Deux mains,6,10,45,6d10 + 45,51,105,78.0,0,0,3,1,5
+ARM032,Hache double,19,Deux mains,3,20,54,3d20 + 54,57,114,85.5,0,0,3,1,5
+ARM032,Hache double,20,Deux mains,6,12,54,6d12 + 54,60,126,93.0,0,0,3,1,5
+ARM033,Bardiche,1,Deux mains,1,6,6,1d6 + 6,7,12,9.5,0,0,3,1,4.3
+ARM033,Bardiche,2,Deux mains,1,6,8,1d6 + 8,9,14,11.5,0,0,3,1,4.3
+ARM033,Bardiche,3,Deux mains,1,6,8,1d6 + 8,9,14,11.5,0,0,3,1,4.3
+ARM033,Bardiche,4,Deux mains,1,8,9,1d8 + 9,10,17,13.5,0,0,3,1,4.3
+ARM033,Bardiche,5,Deux mains,1,8,11,1d8 + 11,12,19,15.5,0,0,3,1,4.3
+ARM033,Bardiche,6,Deux mains,1,10,13,1d10 + 13,14,23,18.5,0,0,3,1,4.3
+ARM033,Bardiche,7,Deux mains,1,12,15,1d12 + 15,16,27,21.5,0,0,3,1,4.3
+ARM033,Bardiche,8,Deux mains,2,8,16,2d8 + 16,18,32,25.0,0,0,3,1,4.3
+ARM033,Bardiche,9,Deux mains,3,6,17,3d6 + 17,20,35,27.5,0,0,3,1,4.3
+ARM033,Bardiche,10,Deux mains,3,6,20,3d6 + 20,23,38,30.5,0,0,3,1,4.3
+ARM033,Bardiche,11,Deux mains,2,10,24,2d10 + 24,26,44,35.0,0,0,3,1,4.3
+ARM033,Bardiche,12,Deux mains,3,8,26,3d8 + 26,29,50,39.5,0,0,3,1,4.3
+ARM033,Bardiche,13,Deux mains,2,12,30,2d12 + 30,32,54,43.0,0,0,3,1,4.3
+ARM033,Bardiche,14,Deux mains,3,10,32,3d10 + 32,35,62,48.5,0,0,3,1,4.3
+ARM033,Bardiche,15,Deux mains,4,8,36,4d8 + 36,40,68,54.0,0,0,3,1,4.3
+ARM033,Bardiche,16,Deux mains,6,6,38,6d6 + 38,44,74,59.0,0,0,3,1,4.3
+ARM033,Bardiche,17,Deux mains,3,12,45,3d12 + 45,48,81,64.5,0,0,3,1,4.3
+ARM033,Bardiche,18,Deux mains,2,20,50,2d20 + 50,52,90,71.0,0,0,3,1,4.3
+ARM033,Bardiche,19,Deux mains,6,8,50,6d8 + 50,56,98,77.0,0,0,3,1,4.3
+ARM033,Bardiche,20,Deux mains,4,12,58,4d12 + 58,62,106,84.0,0,0,3,1,4.3
+ARM034,Marteau à deux mains,1,Deux mains,1,6,7,1d6 + 7,8,13,10.5,0,0,3,1,5.3
+ARM034,Marteau à deux mains,2,Deux mains,1,6,8,1d6 + 8,9,14,11.5,0,0,3,1,5.3
+ARM034,Marteau à deux mains,3,Deux mains,1,8,9,1d8 + 9,10,17,13.5,0,0,3,1,5.3
+ARM034,Marteau à deux mains,4,Deux mains,1,8,11,1d8 + 11,12,19,15.5,0,0,3,1,5.3
+ARM034,Marteau à deux mains,5,Deux mains,1,8,13,1d8 + 13,14,21,17.5,0,0,3,1,5.3
+ARM034,Marteau à deux mains,6,Deux mains,1,10,15,1d10 + 15,16,25,20.5,0,0,3,1,5.3
+ARM034,Marteau à deux mains,7,Deux mains,1,12,17,1d12 + 17,18,29,23.5,0,0,3,1,5.3
+ARM034,Marteau à deux mains,8,Deux mains,2,8,17,2d8 + 17,19,33,26.0,0,0,3,1,5.3
+ARM034,Marteau à deux mains,9,Deux mains,3,6,20,3d6 + 20,23,38,30.5,0,0,3,1,5.3
+ARM034,Marteau à deux mains,10,Deux mains,2,10,24,2d10 + 24,26,44,35.0,0,0,3,1,5.3
+ARM034,Marteau à deux mains,11,Deux mains,2,10,28,2d10 + 28,30,48,39.0,0,0,3,1,5.3
+ARM034,Marteau à deux mains,12,Deux mains,3,8,30,3d8 + 30,33,54,43.5,0,0,3,1,5.3
+ARM034,Marteau à deux mains,13,Deux mains,2,12,35,2d12 + 35,37,59,48.0,0,0,3,1,5.3
+ARM034,Marteau à deux mains,14,Deux mains,3,10,37,3d10 + 37,40,67,53.5,0,0,3,1,5.3
+ARM034,Marteau à deux mains,15,Deux mains,4,8,41,4d8 + 41,45,73,59.0,0,0,3,1,5.3
+ARM034,Marteau à deux mains,16,Deux mains,6,6,44,6d6 + 44,50,80,65.0,0,0,3,1,5.3
+ARM034,Marteau à deux mains,17,Deux mains,3,12,52,3d12 + 52,55,88,71.5,0,0,3,1,5.3
+ARM034,Marteau à deux mains,18,Deux mains,4,10,56,4d10 + 56,60,96,78.0,0,0,3,1,5.3
+ARM034,Marteau à deux mains,19,Deux mains,6,8,58,6d8 + 58,64,106,85.0,0,0,3,1,5.3
+ARM034,Marteau à deux mains,20,Deux mains,4,12,67,4d12 + 67,71,115,93.0,0,0,3,1,5.3
+ARM035,Masse lourde,1,Deux mains,1,6,6,1d6 + 6,7,12,9.5,0,0,3,1,5.5
+ARM035,Masse lourde,2,Deux mains,1,8,7,1d8 + 7,8,15,11.5,0,0,3,1,5.5
+ARM035,Masse lourde,3,Deux mains,1,8,8,1d8 + 8,9,16,12.5,0,0,3,1,5.5
+ARM035,Masse lourde,4,Deux mains,1,10,9,1d10 + 9,10,19,14.5,0,0,3,1,5.5
+ARM035,Masse lourde,5,Deux mains,2,6,10,2d6 + 10,12,22,17.0,0,0,3,1,5.5
+ARM035,Masse lourde,6,Deux mains,1,12,13,1d12 + 13,14,25,19.5,0,0,3,1,5.5
+ARM035,Masse lourde,7,Deux mains,2,8,13,2d8 + 13,15,29,22.0,0,0,3,1,5.5
+ARM035,Masse lourde,8,Deux mains,3,6,15,3d6 + 15,18,33,25.5,0,0,3,1,5.5
+ARM035,Masse lourde,9,Deux mains,2,10,18,2d10 + 18,20,38,29.0,0,0,3,1,5.5
+ARM035,Masse lourde,10,Deux mains,4,6,19,4d6 + 19,23,43,33.0,0,0,3,1,5.5
+ARM035,Masse lourde,11,Deux mains,2,12,24,2d12 + 24,26,48,37.0,0,0,3,1,5.5
+ARM035,Masse lourde,12,Deux mains,3,10,25,3d10 + 25,28,55,41.5,0,0,3,1,5.5
+ARM035,Masse lourde,13,Deux mains,4,8,28,4d8 + 28,32,60,46.0,0,0,3,1,5.5
+ARM035,Masse lourde,14,Deux mains,3,12,32,3d12 + 32,35,68,51.5,0,0,3,1,5.5
+ARM035,Masse lourde,15,Deux mains,3,12,37,3d12 + 37,40,73,56.5,0,0,3,1,5.5
+ARM035,Masse lourde,16,Deux mains,4,10,40,4d10 + 40,44,80,62.0,0,0,3,1,5.5
+ARM035,Masse lourde,17,Deux mains,6,8,41,6d8 + 41,47,89,68.0,0,0,3,1,5.5
+ARM035,Masse lourde,18,Deux mains,5,10,47,5d10 + 47,52,97,74.5,0,0,3,1,5.5
+ARM035,Masse lourde,19,Deux mains,5,10,54,5d10 + 54,59,104,81.5,0,0,3,1,5.5
+ARM035,Masse lourde,20,Deux mains,6,10,56,6d10 + 56,62,116,89.0,0,0,3,1,5.5
+ARM036,Maillet de guerre,1,Deux mains,1,6,8,1d6 + 8,9,14,11.5,0,0,3,1,6
+ARM036,Maillet de guerre,2,Deux mains,1,6,9,1d6 + 9,10,15,12.5,0,0,3,1,6
+ARM036,Maillet de guerre,3,Deux mains,1,6,11,1d6 + 11,12,17,14.5,0,0,3,1,6
+ARM036,Maillet de guerre,4,Deux mains,1,8,12,1d8 + 12,13,20,16.5,0,0,3,1,6
+ARM036,Maillet de guerre,5,Deux mains,1,10,14,1d10 + 14,15,24,19.5,0,0,3,1,6
+ARM036,Maillet de guerre,6,Deux mains,1,10,17,1d10 + 17,18,27,22.5,0,0,3,1,6
+ARM036,Maillet de guerre,7,Deux mains,1,12,19,1d12 + 19,20,31,25.5,0,0,3,1,6
+ARM036,Maillet de guerre,8,Deux mains,2,8,20,2d8 + 20,22,36,29.0,0,0,3,1,6
+ARM036,Maillet de guerre,9,Deux mains,3,6,23,3d6 + 23,26,41,33.5,0,0,3,1,6
+ARM036,Maillet de guerre,10,Deux mains,3,6,27,3d6 + 27,30,45,37.5,0,0,3,1,6
+ARM036,Maillet de guerre,11,Deux mains,2,10,32,2d10 + 32,34,52,43.0,0,0,3,1,6
+ARM036,Maillet de guerre,12,Deux mains,3,8,34,3d8 + 34,37,58,47.5,0,0,3,1,6
+ARM036,Maillet de guerre,13,Deux mains,2,12,40,2d12 + 40,42,64,53.0,0,0,3,1,6
+ARM036,Maillet de guerre,14,Deux mains,3,10,42,3d10 + 42,45,72,58.5,0,0,3,1,6
+ARM036,Maillet de guerre,15,Deux mains,4,8,47,4d8 + 47,51,79,65.0,0,0,3,1,6
+ARM036,Maillet de guerre,16,Deux mains,3,12,52,3d12 + 52,55,88,71.5,0,0,3,1,6
+ARM036,Maillet de guerre,17,Deux mains,3,12,59,3d12 + 59,62,95,78.5,0,0,3,1,6
+ARM036,Maillet de guerre,18,Deux mains,2,20,65,2d20 + 65,67,105,86.0,0,0,3,1,6
+ARM036,Maillet de guerre,19,Deux mains,6,8,66,6d8 + 66,72,114,93.0,0,0,3,1,6
+ARM036,Maillet de guerre,20,Deux mains,4,12,76,4d12 + 76,80,124,102.0,0,0,3,1,6
+ARM037,Faux de guerre,1,Deux mains,1,6,5,1d6 + 5,6,11,8.5,0,0,3,1,3.7
+ARM037,Faux de guerre,2,Deux mains,1,8,6,1d8 + 6,7,14,10.5,0,0,3,1,3.7
+ARM037,Faux de guerre,3,Deux mains,1,8,7,1d8 + 7,8,15,11.5,0,0,3,1,3.7
+ARM037,Faux de guerre,4,Deux mains,1,10,8,1d10 + 8,9,18,13.5,0,0,3,1,3.7
+ARM037,Faux de guerre,5,Deux mains,2,6,8,2d6 + 8,10,20,15.0,0,0,3,1,3.7
+ARM037,Faux de guerre,6,Deux mains,1,12,11,1d12 + 11,12,23,17.5,0,0,3,1,3.7
+ARM037,Faux de guerre,7,Deux mains,2,8,11,2d8 + 11,13,27,20.0,0,0,3,1,3.7
+ARM037,Faux de guerre,8,Deux mains,3,6,12,3d6 + 12,15,30,22.5,0,0,3,1,3.7
+ARM037,Faux de guerre,9,Deux mains,2,10,15,2d10 + 15,17,35,26.0,0,0,3,1,3.7
+ARM037,Faux de guerre,10,Deux mains,2,10,18,2d10 + 18,20,38,29.0,0,0,3,1,3.7
+ARM037,Faux de guerre,11,Deux mains,2,12,20,2d12 + 20,22,44,33.0,0,0,3,1,3.7
+ARM037,Faux de guerre,12,Deux mains,3,10,21,3d10 + 21,24,51,37.5,0,0,3,1,3.7
+ARM037,Faux de guerre,13,Deux mains,3,10,25,3d10 + 25,28,55,41.5,0,0,3,1,3.7
+ARM037,Faux de guerre,14,Deux mains,3,12,27,3d12 + 27,30,63,46.5,0,0,3,1,3.7
+ARM037,Faux de guerre,15,Deux mains,3,12,32,3d12 + 32,35,68,51.5,0,0,3,1,3.7
+ARM037,Faux de guerre,16,Deux mains,4,10,34,4d10 + 34,38,74,56.0,0,0,3,1,3.7
+ARM037,Faux de guerre,17,Deux mains,6,8,34,6d8 + 34,40,82,61.0,0,0,3,1,3.7
+ARM037,Faux de guerre,18,Deux mains,5,10,40,5d10 + 40,45,90,67.5,0,0,3,1,3.7
+ARM037,Faux de guerre,19,Deux mains,5,10,46,5d10 + 46,51,96,73.5,0,0,3,1,3.7
+ARM037,Faux de guerre,20,Deux mains,6,10,46,6d10 + 46,52,106,79.0,0,0,3,1,3.7
+ARM038,Lance courte,1,Armes d'hast,1,6,2,1d6 + 2,3,8,5.5,0,0,3,2,1.8
+ARM038,Lance courte,2,Armes d'hast,1,6,3,1d6 + 3,4,9,6.5,0,0,3,2,1.8
+ARM038,Lance courte,3,Armes d'hast,1,6,3,1d6 + 3,4,9,6.5,0,0,3,2,1.8
+ARM038,Lance courte,4,Armes d'hast,1,6,4,1d6 + 4,5,10,7.5,0,0,3,2,1.8
+ARM038,Lance courte,5,Armes d'hast,1,6,6,1d6 + 6,7,12,9.5,0,0,3,2,1.8
+ARM038,Lance courte,6,Armes d'hast,1,6,8,1d6 + 8,9,14,11.5,0,0,3,2,1.8
+ARM038,Lance courte,7,Armes d'hast,1,8,8,1d8 + 8,9,16,12.5,0,0,3,2,1.8
+ARM038,Lance courte,8,Armes d'hast,1,8,9,1d8 + 9,10,17,13.5,0,0,3,2,1.8
+ARM038,Lance courte,9,Armes d'hast,1,8,11,1d8 + 11,12,19,15.5,0,0,3,2,1.8
+ARM038,Lance courte,10,Armes d'hast,2,6,11,2d6 + 11,13,23,18.0,0,0,3,2,1.8
+ARM038,Lance courte,11,Armes d'hast,1,12,14,1d12 + 14,15,26,20.5,0,0,3,2,1.8
+ARM038,Lance courte,12,Armes d'hast,1,12,16,1d12 + 16,17,28,22.5,0,0,3,2,1.8
+ARM038,Lance courte,13,Armes d'hast,2,8,16,2d8 + 16,18,32,25.0,0,0,3,2,1.8
+ARM038,Lance courte,14,Armes d'hast,3,6,18,3d6 + 18,21,36,28.5,0,0,3,2,1.8
+ARM038,Lance courte,15,Armes d'hast,2,10,20,2d10 + 20,22,40,31.0,0,0,3,2,1.8
+ARM038,Lance courte,16,Armes d'hast,2,10,24,2d10 + 24,26,44,35.0,0,0,3,2,1.8
+ARM038,Lance courte,17,Armes d'hast,3,8,24,3d8 + 24,27,48,37.5,0,0,3,2,1.8
+ARM038,Lance courte,18,Armes d'hast,2,12,28,2d12 + 28,30,52,41.0,0,0,3,2,1.8
+ARM038,Lance courte,19,Armes d'hast,5,6,27,5d6 + 27,32,57,44.5,0,0,3,2,1.8
+ARM038,Lance courte,20,Armes d'hast,3,10,32,3d10 + 32,35,62,48.5,0,0,3,2,1.8
+ARM039,Lance longue,1,Armes d'hast,1,6,3,1d6 + 3,4,9,6.5,0,0,3,2,2.6
+ARM039,Lance longue,2,Armes d'hast,1,6,4,1d6 + 4,5,10,7.5,0,0,3,2,2.6
+ARM039,Lance longue,3,Armes d'hast,1,6,5,1d6 + 5,6,11,8.5,0,0,3,2,2.6
+ARM039,Lance longue,4,Armes d'hast,1,6,6,1d6 + 6,7,12,9.5,0,0,3,2,2.6
+ARM039,Lance longue,5,Armes d'hast,1,8,7,1d8 + 7,8,15,11.5,0,0,3,2,2.6
+ARM039,Lance longue,6,Armes d'hast,1,8,9,1d8 + 9,10,17,13.5,0,0,3,2,2.6
+ARM039,Lance longue,7,Armes d'hast,1,10,10,1d10 + 10,11,20,15.5,0,0,3,2,2.6
+ARM039,Lance longue,8,Armes d'hast,2,6,11,2d6 + 11,13,23,18.0,0,0,3,2,2.6
+ARM039,Lance longue,9,Armes d'hast,1,12,14,1d12 + 14,15,26,20.5,0,0,3,2,2.6
+ARM039,Lance longue,10,Armes d'hast,2,8,14,2d8 + 14,16,30,23.0,0,0,3,2,2.6
+ARM039,Lance longue,11,Armes d'hast,2,8,17,2d8 + 17,19,33,26.0,0,0,3,2,2.6
+ARM039,Lance longue,12,Armes d'hast,3,6,18,3d6 + 18,21,36,28.5,0,0,3,2,2.6
+ARM039,Lance longue,13,Armes d'hast,2,10,21,2d10 + 21,23,41,32.0,0,0,3,2,2.6
+ARM039,Lance longue,14,Armes d'hast,4,6,22,4d6 + 22,26,46,36.0,0,0,3,2,2.6
+ARM039,Lance longue,15,Armes d'hast,2,12,26,2d12 + 26,28,50,39.0,0,0,3,2,2.6
+ARM039,Lance longue,16,Armes d'hast,5,6,26,5d6 + 26,31,56,43.5,0,0,3,2,2.6
+ARM039,Lance longue,17,Armes d'hast,4,8,30,4d8 + 30,34,62,48.0,0,0,3,2,2.6
+ARM039,Lance longue,18,Armes d'hast,6,6,31,6d6 + 31,37,67,52.0,0,0,3,2,2.6
+ARM039,Lance longue,19,Armes d'hast,3,12,37,3d12 + 37,40,73,56.5,0,0,3,2,2.6
+ARM039,Lance longue,20,Armes d'hast,4,10,40,4d10 + 40,44,80,62.0,0,0,3,2,2.6
+ARM040,Pique,1,Armes d'hast,1,6,4,1d6 + 4,5,10,7.5,0,0,3,2,3.4
+ARM040,Pique,2,Armes d'hast,1,6,5,1d6 + 5,6,11,8.5,0,0,3,2,3.4
+ARM040,Pique,3,Armes d'hast,1,8,5,1d8 + 5,6,13,9.5,0,0,3,2,3.4
+ARM040,Pique,4,Armes d'hast,1,8,6,1d8 + 6,7,14,10.5,0,0,3,2,3.4
+ARM040,Pique,5,Armes d'hast,1,10,7,1d10 + 7,8,17,12.5,0,0,3,2,3.4
+ARM040,Pique,6,Armes d'hast,2,6,8,2d6 + 8,10,20,15.0,0,0,3,2,3.4
+ARM040,Pique,7,Armes d'hast,1,12,10,1d12 + 10,11,22,16.5,0,0,3,2,3.4
+ARM040,Pique,8,Armes d'hast,2,8,10,2d8 + 10,12,26,19.0,0,0,3,2,3.4
+ARM040,Pique,9,Armes d'hast,2,8,13,2d8 + 13,15,29,22.0,0,0,3,2,3.4
+ARM040,Pique,10,Armes d'hast,2,10,13,2d10 + 13,15,33,24.0,0,0,3,2,3.4
+ARM040,Pique,11,Armes d'hast,2,10,17,2d10 + 17,19,37,28.0,0,0,3,2,3.4
+ARM040,Pique,12,Armes d'hast,4,6,17,4d6 + 17,21,41,31.0,0,0,3,2,3.4
+ARM040,Pique,13,Armes d'hast,2,12,21,2d12 + 21,23,45,34.0,0,0,3,2,3.4
+ARM040,Pique,14,Armes d'hast,5,6,21,5d6 + 21,26,51,38.5,0,0,3,2,3.4
+ARM040,Pique,15,Armes d'hast,4,8,24,4d8 + 24,28,56,42.0,0,0,3,2,3.4
+ARM040,Pique,16,Armes d'hast,3,12,27,3d12 + 27,30,63,46.5,0,0,3,2,3.4
+ARM040,Pique,17,Armes d'hast,5,8,29,5d8 + 29,34,69,51.5,0,0,3,2,3.4
+ARM040,Pique,18,Armes d'hast,4,10,34,4d10 + 34,38,74,56.0,0,0,3,2,3.4
+ARM040,Pique,19,Armes d'hast,6,8,34,6d8 + 34,40,82,61.0,0,0,3,2,3.4
+ARM040,Pique,20,Armes d'hast,5,10,39,5d10 + 39,44,89,66.5,0,0,3,2,3.4
+ARM041,Hallebarde,1,Armes d'hast,1,6,6,1d6 + 6,7,12,9.5,0,0,3,2,4.7
+ARM041,Hallebarde,2,Armes d'hast,1,6,8,1d6 + 8,9,14,11.5,0,0,3,2,4.7
+ARM041,Hallebarde,3,Armes d'hast,1,6,8,1d6 + 8,9,14,11.5,0,0,3,2,4.7
+ARM041,Hallebarde,4,Armes d'hast,1,8,9,1d8 + 9,10,17,13.5,0,0,3,2,4.7
+ARM041,Hallebarde,5,Armes d'hast,1,8,11,1d8 + 11,12,19,15.5,0,0,3,2,4.7
+ARM041,Hallebarde,6,Armes d'hast,1,10,13,1d10 + 13,14,23,18.5,0,0,3,2,4.7
+ARM041,Hallebarde,7,Armes d'hast,1,12,15,1d12 + 15,16,27,21.5,0,0,3,2,4.7
+ARM041,Hallebarde,8,Armes d'hast,2,8,16,2d8 + 16,18,32,25.0,0,0,3,2,4.7
+ARM041,Hallebarde,9,Armes d'hast,3,6,17,3d6 + 17,20,35,27.5,0,0,3,2,4.7
+ARM041,Hallebarde,10,Armes d'hast,3,6,20,3d6 + 20,23,38,30.5,0,0,3,2,4.7
+ARM041,Hallebarde,11,Armes d'hast,2,10,24,2d10 + 24,26,44,35.0,0,0,3,2,4.7
+ARM041,Hallebarde,12,Armes d'hast,3,8,26,3d8 + 26,29,50,39.5,0,0,3,2,4.7
+ARM041,Hallebarde,13,Armes d'hast,2,12,30,2d12 + 30,32,54,43.0,0,0,3,2,4.7
+ARM041,Hallebarde,14,Armes d'hast,3,10,32,3d10 + 32,35,62,48.5,0,0,3,2,4.7
+ARM041,Hallebarde,15,Armes d'hast,4,8,36,4d8 + 36,40,68,54.0,0,0,3,2,4.7
+ARM041,Hallebarde,16,Armes d'hast,6,6,38,6d6 + 38,44,74,59.0,0,0,3,2,4.7
+ARM041,Hallebarde,17,Armes d'hast,3,12,45,3d12 + 45,48,81,64.5,0,0,3,2,4.7
+ARM041,Hallebarde,18,Armes d'hast,4,10,49,4d10 + 49,53,89,71.0,0,0,3,2,4.7
+ARM041,Hallebarde,19,Armes d'hast,6,8,50,6d8 + 50,56,98,77.0,0,0,3,2,4.7
+ARM041,Hallebarde,20,Armes d'hast,4,12,58,4d12 + 58,62,106,84.0,0,0,3,2,4.7
+ARM042,Vouge,1,Armes d'hast,1,6,5,1d6 + 5,6,11,8.5,0,0,3,2,3.7
+ARM042,Vouge,2,Armes d'hast,1,6,6,1d6 + 6,7,12,9.5,0,0,3,2,3.7
+ARM042,Vouge,3,Armes d'hast,1,6,8,1d6 + 8,9,14,11.5,0,0,3,2,3.7
+ARM042,Vouge,4,Armes d'hast,1,8,8,1d8 + 8,9,16,12.5,0,0,3,2,3.7
+ARM042,Vouge,5,Armes d'hast,1,10,9,1d10 + 9,10,19,14.5,0,0,3,2,3.7
+ARM042,Vouge,6,Armes d'hast,1,10,11,1d10 + 11,12,21,16.5,0,0,3,2,3.7
+ARM042,Vouge,7,Armes d'hast,1,12,12,1d12 + 12,13,24,18.5,0,0,3,2,3.7
+ARM042,Vouge,8,Armes d'hast,2,8,12,2d8 + 12,14,28,21.0,0,0,3,2,3.7
+ARM042,Vouge,9,Armes d'hast,3,6,14,3d6 + 14,17,32,24.5,0,0,3,2,3.7
+ARM042,Vouge,10,Armes d'hast,3,6,17,3d6 + 17,20,35,27.5,0,0,3,2,3.7
+ARM042,Vouge,11,Armes d'hast,2,10,20,2d10 + 20,22,40,31.0,0,0,3,2,3.7
+ARM042,Vouge,12,Armes d'hast,3,8,22,3d8 + 22,25,46,35.5,0,0,3,2,3.7
+ARM042,Vouge,13,Armes d'hast,2,12,26,2d12 + 26,28,50,39.0,0,0,3,2,3.7
+ARM042,Vouge,14,Armes d'hast,5,6,26,5d6 + 26,31,56,43.5,0,0,3,2,3.7
+ARM042,Vouge,15,Armes d'hast,4,8,30,4d8 + 30,34,62,48.0,0,0,3,2,3.7
+ARM042,Vouge,16,Armes d'hast,6,6,32,6d6 + 32,38,68,53.0,0,0,3,2,3.7
+ARM042,Vouge,17,Armes d'hast,3,12,38,3d12 + 38,41,74,57.5,0,0,3,2,3.7
+ARM042,Vouge,18,Armes d'hast,4,10,41,4d10 + 41,45,81,63.0,0,0,3,2,3.7
+ARM042,Vouge,19,Armes d'hast,6,8,42,6d8 + 42,48,90,69.0,0,0,3,2,3.7
+ARM042,Vouge,20,Armes d'hast,5,10,48,5d10 + 48,53,98,75.5,0,0,3,2,3.7
+ARM043,Glaive d'hast,1,Armes d'hast,1,6,5,1d6 + 5,6,11,8.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,2,Armes d'hast,1,6,6,1d6 + 6,7,12,9.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,3,Armes d'hast,1,6,8,1d6 + 8,9,14,11.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,4,Armes d'hast,1,8,8,1d8 + 8,9,16,12.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,5,Armes d'hast,1,10,9,1d10 + 9,10,19,14.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,6,Armes d'hast,1,10,11,1d10 + 11,12,21,16.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,7,Armes d'hast,1,12,12,1d12 + 12,13,24,18.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,8,Armes d'hast,2,8,12,2d8 + 12,14,28,21.0,0,0,3,2,3.8
+ARM043,Glaive d'hast,9,Armes d'hast,3,6,14,3d6 + 14,17,32,24.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,10,Armes d'hast,3,6,17,3d6 + 17,20,35,27.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,11,Armes d'hast,2,10,20,2d10 + 20,22,40,31.0,0,0,3,2,3.8
+ARM043,Glaive d'hast,12,Armes d'hast,3,8,22,3d8 + 22,25,46,35.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,13,Armes d'hast,2,12,26,2d12 + 26,28,50,39.0,0,0,3,2,3.8
+ARM043,Glaive d'hast,14,Armes d'hast,5,6,26,5d6 + 26,31,56,43.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,15,Armes d'hast,4,8,30,4d8 + 30,34,62,48.0,0,0,3,2,3.8
+ARM043,Glaive d'hast,16,Armes d'hast,6,6,32,6d6 + 32,38,68,53.0,0,0,3,2,3.8
+ARM043,Glaive d'hast,17,Armes d'hast,3,12,38,3d12 + 38,41,74,57.5,0,0,3,2,3.8
+ARM043,Glaive d'hast,18,Armes d'hast,4,10,41,4d10 + 41,45,81,63.0,0,0,3,2,3.8
+ARM043,Glaive d'hast,19,Armes d'hast,6,8,42,6d8 + 42,48,90,69.0,0,0,3,2,3.8
+ARM043,Glaive d'hast,20,Armes d'hast,5,10,48,5d10 + 48,53,98,75.5,0,0,3,2,3.8
+ARM044,Trident,1,Armes d'hast,1,6,3,1d6 + 3,4,9,6.5,0,0,3,2,2.9
+ARM044,Trident,2,Armes d'hast,1,6,4,1d6 + 4,5,10,7.5,0,0,3,2,2.9
+ARM044,Trident,3,Armes d'hast,1,6,5,1d6 + 5,6,11,8.5,0,0,3,2,2.9
+ARM044,Trident,4,Armes d'hast,1,6,6,1d6 + 6,7,12,9.5,0,0,3,2,2.9
+ARM044,Trident,5,Armes d'hast,1,8,7,1d8 + 7,8,15,11.5,0,0,3,2,2.9
+ARM044,Trident,6,Armes d'hast,1,8,9,1d8 + 9,10,17,13.5,0,0,3,2,2.9
+ARM044,Trident,7,Armes d'hast,1,10,10,1d10 + 10,11,20,15.5,0,0,3,2,2.9
+ARM044,Trident,8,Armes d'hast,2,6,11,2d6 + 11,13,23,18.0,0,0,3,2,2.9
+ARM044,Trident,9,Armes d'hast,1,12,14,1d12 + 14,15,26,20.5,0,0,3,2,2.9
+ARM044,Trident,10,Armes d'hast,2,8,14,2d8 + 14,16,30,23.0,0,0,3,2,2.9
+ARM044,Trident,11,Armes d'hast,2,8,17,2d8 + 17,19,33,26.0,0,0,3,2,2.9
+ARM044,Trident,12,Armes d'hast,3,6,18,3d6 + 18,21,36,28.5,0,0,3,2,2.9
+ARM044,Trident,13,Armes d'hast,2,10,21,2d10 + 21,23,41,32.0,0,0,3,2,2.9
+ARM044,Trident,14,Armes d'hast,4,6,22,4d6 + 22,26,46,36.0,0,0,3,2,2.9
+ARM044,Trident,15,Armes d'hast,2,12,26,2d12 + 26,28,50,39.0,0,0,3,2,2.9
+ARM044,Trident,16,Armes d'hast,5,6,26,5d6 + 26,31,56,43.5,0,0,3,2,2.9
+ARM044,Trident,17,Armes d'hast,4,8,30,4d8 + 30,34,62,48.0,0,0,3,2,2.9
+ARM044,Trident,18,Armes d'hast,6,6,31,6d6 + 31,37,67,52.0,0,0,3,2,2.9
+ARM044,Trident,19,Armes d'hast,3,12,37,3d12 + 37,40,73,56.5,0,0,3,2,2.9
+ARM044,Trident,20,Armes d'hast,4,10,40,4d10 + 40,44,80,62.0,0,0,3,2,2.9
+ARM045,Arc court,1,Distance,1,4,2,1d4 + 2,3,6,4.5,0,0,2,5,1
+ARM045,Arc court,2,Distance,1,4,3,1d4 + 3,4,7,5.5,0,0,2,5,1
+ARM045,Arc court,3,Distance,1,4,4,1d4 + 4,5,8,6.5,0,0,2,5,1
+ARM045,Arc court,4,Distance,1,4,5,1d4 + 5,6,9,7.5,0,0,2,5,1
+ARM045,Arc court,5,Distance,1,4,6,1d4 + 6,7,10,8.5,0,0,2,5,1
+ARM045,Arc court,6,Distance,1,4,8,1d4 + 8,9,12,10.5,0,0,2,5,1
+ARM045,Arc court,7,Distance,1,4,8,1d4 + 8,9,12,10.5,0,0,2,5,1
+ARM045,Arc court,8,Distance,1,6,9,1d6 + 9,10,15,12.5,0,0,2,5,1
+ARM045,Arc court,9,Distance,1,6,11,1d6 + 11,12,17,14.5,0,0,2,5,1
+ARM045,Arc court,10,Distance,1,8,12,1d8 + 12,13,20,16.5,0,0,2,5,1
+ARM045,Arc court,11,Distance,1,8,14,1d8 + 14,15,22,18.5,0,0,2,5,1
+ARM045,Arc court,12,Distance,3,4,13,3d4 + 13,16,25,20.5,0,0,2,5,1
+ARM045,Arc court,13,Distance,2,6,16,2d6 + 16,18,28,23.0,0,0,2,5,1
+ARM045,Arc court,14,Distance,2,6,19,2d6 + 19,21,31,26.0,0,0,2,5,1
+ARM045,Arc court,15,Distance,1,12,22,1d12 + 22,23,34,28.5,0,0,2,5,1
+ARM045,Arc court,16,Distance,2,8,22,2d8 + 22,24,38,31.0,0,0,2,5,1
+ARM045,Arc court,17,Distance,2,8,25,2d8 + 25,27,41,34.0,0,0,2,5,1
+ARM045,Arc court,18,Distance,3,6,27,3d6 + 27,30,45,37.5,0,0,2,5,1
+ARM045,Arc court,19,Distance,3,6,30,3d6 + 30,33,48,40.5,0,0,2,5,1
+ARM045,Arc court,20,Distance,2,10,33,2d10 + 33,35,53,44.0,0,0,2,5,1
+ARM046,Arc long,1,Distance,1,4,4,1d4 + 4,5,8,6.5,0,0,2,7,1.5
+ARM046,Arc long,2,Distance,1,4,5,1d4 + 5,6,9,7.5,0,0,2,7,1.5
+ARM046,Arc long,3,Distance,1,4,5,1d4 + 5,6,9,7.5,0,0,2,7,1.5
+ARM046,Arc long,4,Distance,1,6,6,1d6 + 6,7,12,9.5,0,0,2,7,1.5
+ARM046,Arc long,5,Distance,2,4,6,2d4 + 6,8,14,11.0,0,0,2,7,1.5
+ARM046,Arc long,6,Distance,2,4,8,2d4 + 8,10,16,13.0,0,0,2,7,1.5
+ARM046,Arc long,7,Distance,1,8,10,1d8 + 10,11,18,14.5,0,0,2,7,1.5
+ARM046,Arc long,8,Distance,1,8,12,1d8 + 12,13,20,16.5,0,0,2,7,1.5
+ARM046,Arc long,9,Distance,3,4,11,3d4 + 11,14,23,18.5,0,0,2,7,1.5
+ARM046,Arc long,10,Distance,2,6,14,2d6 + 14,16,26,21.0,0,0,2,7,1.5
+ARM046,Arc long,11,Distance,1,12,18,1d12 + 18,19,30,24.5,0,0,2,7,1.5
+ARM046,Arc long,12,Distance,4,4,17,4d4 + 17,21,33,27.0,0,0,2,7,1.5
+ARM046,Arc long,13,Distance,2,8,21,2d8 + 21,23,37,30.0,0,0,2,7,1.5
+ARM046,Arc long,14,Distance,3,6,23,3d6 + 23,26,41,33.5,0,0,2,7,1.5
+ARM046,Arc long,15,Distance,2,10,25,2d10 + 25,27,45,36.0,0,0,2,7,1.5
+ARM046,Arc long,16,Distance,2,10,29,2d10 + 29,31,49,40.0,0,0,2,7,1.5
+ARM046,Arc long,17,Distance,3,8,31,3d8 + 31,34,55,44.5,0,0,2,7,1.5
+ARM046,Arc long,18,Distance,2,12,35,2d12 + 35,37,59,48.0,0,0,2,7,1.5
+ARM046,Arc long,19,Distance,5,6,35,5d6 + 35,40,65,52.5,0,0,2,7,1.5
+ARM046,Arc long,20,Distance,3,10,41,3d10 + 41,44,71,57.5,0,0,2,7,1.5
+ARM047,Arc composite,1,Distance,1,4,4,1d4 + 4,5,8,6.5,0,0,2,6,1.8
+ARM047,Arc composite,2,Distance,1,4,5,1d4 + 5,6,9,7.5,0,0,2,6,1.8
+ARM047,Arc composite,3,Distance,1,6,5,1d6 + 5,6,11,8.5,0,0,2,6,1.8
+ARM047,Arc composite,4,Distance,2,4,5,2d4 + 5,7,13,10.0,0,0,2,6,1.8
+ARM047,Arc composite,5,Distance,1,8,7,1d8 + 7,8,15,11.5,0,0,2,6,1.8
+ARM047,Arc composite,6,Distance,1,8,9,1d8 + 9,10,17,13.5,0,0,2,6,1.8
+ARM047,Arc composite,7,Distance,1,10,10,1d10 + 10,11,20,15.5,0,0,2,6,1.8
+ARM047,Arc composite,8,Distance,2,6,11,2d6 + 11,13,23,18.0,0,0,2,6,1.8
+ARM047,Arc composite,9,Distance,1,12,14,1d12 + 14,15,26,20.5,0,0,2,6,1.8
+ARM047,Arc composite,10,Distance,2,8,14,2d8 + 14,16,30,23.0,0,0,2,6,1.8
+ARM047,Arc composite,11,Distance,2,8,17,2d8 + 17,19,33,26.0,0,0,2,6,1.8
+ARM047,Arc composite,12,Distance,3,6,18,3d6 + 18,21,36,28.5,0,0,2,6,1.8
+ARM047,Arc composite,13,Distance,2,10,21,2d10 + 21,23,41,32.0,0,0,2,6,1.8
+ARM047,Arc composite,14,Distance,4,6,22,4d6 + 22,26,46,36.0,0,0,2,6,1.8
+ARM047,Arc composite,15,Distance,2,12,26,2d12 + 26,28,50,39.0,0,0,2,6,1.8
+ARM047,Arc composite,16,Distance,5,6,26,5d6 + 26,31,56,43.5,0,0,2,6,1.8
+ARM047,Arc composite,17,Distance,4,8,30,4d8 + 30,34,62,48.0,0,0,2,6,1.8
+ARM047,Arc composite,18,Distance,6,6,31,6d6 + 31,37,67,52.0,0,0,2,6,1.8
+ARM047,Arc composite,19,Distance,3,12,37,3d12 + 37,40,73,56.5,0,0,2,6,1.8
+ARM047,Arc composite,20,Distance,4,10,40,4d10 + 40,44,80,62.0,0,0,2,6,1.8
+ARM048,Arc recourbé,1,Distance,1,4,3,1d4 + 3,4,7,5.5,0,0,2,5,1.4
+ARM048,Arc recourbé,2,Distance,1,4,4,1d4 + 4,5,8,6.5,0,0,2,5,1.4
+ARM048,Arc recourbé,3,Distance,1,6,4,1d6 + 4,5,10,7.5,0,0,2,5,1.4
+ARM048,Arc recourbé,4,Distance,2,4,4,2d4 + 4,6,12,9.0,0,0,2,5,1.4
+ARM048,Arc recourbé,5,Distance,1,8,6,1d8 + 6,7,14,10.5,0,0,2,5,1.4
+ARM048,Arc recourbé,6,Distance,1,8,8,1d8 + 8,9,16,12.5,0,0,2,5,1.4
+ARM048,Arc recourbé,7,Distance,1,10,8,1d10 + 8,9,18,13.5,0,0,2,5,1.4
+ARM048,Arc recourbé,8,Distance,2,6,8,2d6 + 8,10,20,15.0,0,0,2,5,1.4
+ARM048,Arc recourbé,9,Distance,1,12,11,1d12 + 11,12,23,17.5,0,0,2,5,1.4
+ARM048,Arc recourbé,10,Distance,2,8,10,2d8 + 10,12,26,19.0,0,0,2,5,1.4
+ARM048,Arc recourbé,11,Distance,3,6,12,3d6 + 12,15,30,22.5,0,0,2,5,1.4
+ARM048,Arc recourbé,12,Distance,3,6,14,3d6 + 14,17,32,24.5,0,0,2,5,1.4
+ARM048,Arc recourbé,13,Distance,2,10,16,2d10 + 16,18,36,27.0,0,0,2,5,1.4
+ARM048,Arc recourbé,14,Distance,4,6,17,4d6 + 17,21,41,31.0,0,0,2,5,1.4
+ARM048,Arc recourbé,15,Distance,2,12,21,2d12 + 21,23,45,34.0,0,0,2,5,1.4
+ARM048,Arc recourbé,16,Distance,5,6,20,5d6 + 20,25,50,37.5,0,0,2,5,1.4
+ARM048,Arc recourbé,17,Distance,4,8,23,4d8 + 23,27,55,41.0,0,0,2,5,1.4
+ARM048,Arc recourbé,18,Distance,6,6,24,6d6 + 24,30,60,45.0,0,0,2,5,1.4
+ARM048,Arc recourbé,19,Distance,3,12,29,3d12 + 29,32,65,48.5,0,0,2,5,1.4
+ARM048,Arc recourbé,20,Distance,4,10,31,4d10 + 31,35,71,53.0,0,0,2,5,1.4
+ARM049,Arbalète légère,1,Distance,1,4,4,1d4 + 4,5,8,6.5,0,0,2,5,2.3
+ARM049,Arbalète légère,2,Distance,1,4,5,1d4 + 5,6,9,7.5,0,0,2,5,2.3
+ARM049,Arbalète légère,3,Distance,1,4,5,1d4 + 5,6,9,7.5,0,0,2,5,2.3
+ARM049,Arbalète légère,4,Distance,1,6,6,1d6 + 6,7,12,9.5,0,0,2,5,2.3
+ARM049,Arbalète légère,5,Distance,2,4,6,2d4 + 6,8,14,11.0,0,0,2,5,2.3
+ARM049,Arbalète légère,6,Distance,2,4,8,2d4 + 8,10,16,13.0,0,0,2,5,2.3
+ARM049,Arbalète légère,7,Distance,1,8,10,1d8 + 10,11,18,14.5,0,0,2,5,2.3
+ARM049,Arbalète légère,8,Distance,1,8,12,1d8 + 12,13,20,16.5,0,0,2,5,2.3
+ARM049,Arbalète légère,9,Distance,3,4,11,3d4 + 11,14,23,18.5,0,0,2,5,2.3
+ARM049,Arbalète légère,10,Distance,2,6,14,2d6 + 14,16,26,21.0,0,0,2,5,2.3
+ARM049,Arbalète légère,11,Distance,1,12,18,1d12 + 18,19,30,24.5,0,0,2,5,2.3
+ARM049,Arbalète légère,12,Distance,4,4,17,4d4 + 17,21,33,27.0,0,0,2,5,2.3
+ARM049,Arbalète légère,13,Distance,2,8,21,2d8 + 21,23,37,30.0,0,0,2,5,2.3
+ARM049,Arbalète légère,14,Distance,3,6,23,3d6 + 23,26,41,33.5,0,0,2,5,2.3
+ARM049,Arbalète légère,15,Distance,2,10,25,2d10 + 25,27,45,36.0,0,0,2,5,2.3
+ARM049,Arbalète légère,16,Distance,2,10,29,2d10 + 29,31,49,40.0,0,0,2,5,2.3
+ARM049,Arbalète légère,17,Distance,3,8,31,3d8 + 31,34,55,44.5,0,0,2,5,2.3
+ARM049,Arbalète légère,18,Distance,2,12,35,2d12 + 35,37,59,48.0,0,0,2,5,2.3
+ARM049,Arbalète légère,19,Distance,5,6,35,5d6 + 35,40,65,52.5,0,0,2,5,2.3
+ARM049,Arbalète légère,20,Distance,3,10,41,3d10 + 41,44,71,57.5,0,0,2,5,2.3
+ARM050,Arbalète lourde,1,Distance,1,4,6,1d4 + 6,7,10,8.5,0,0,3,6,4
+ARM050,Arbalète lourde,2,Distance,1,4,8,1d4 + 8,9,12,10.5,0,0,3,6,4
+ARM050,Arbalète lourde,3,Distance,1,6,8,1d6 + 8,9,14,11.5,0,0,3,6,4
+ARM050,Arbalète lourde,4,Distance,2,4,8,2d4 + 8,10,16,13.0,0,0,3,6,4
+ARM050,Arbalète lourde,5,Distance,1,8,11,1d8 + 11,12,19,15.5,0,0,3,6,4
+ARM050,Arbalète lourde,6,Distance,1,8,13,1d8 + 13,14,21,17.5,0,0,3,6,4
+ARM050,Arbalète lourde,7,Distance,1,10,15,1d10 + 15,16,25,20.5,0,0,3,6,4
+ARM050,Arbalète lourde,8,Distance,2,6,16,2d6 + 16,18,28,23.0,0,0,3,6,4
+ARM050,Arbalète lourde,9,Distance,1,12,19,1d12 + 19,20,31,25.5,0,0,3,6,4
+ARM050,Arbalète lourde,10,Distance,2,8,20,2d8 + 20,22,36,29.0,0,0,3,6,4
+ARM050,Arbalète lourde,11,Distance,3,6,23,3d6 + 23,26,41,33.5,0,0,3,6,4
+ARM050,Arbalète lourde,12,Distance,2,10,26,2d10 + 26,28,46,37.0,0,0,3,6,4
+ARM050,Arbalète lourde,13,Distance,2,10,30,2d10 + 30,32,50,41.0,0,0,3,6,4
+ARM050,Arbalète lourde,14,Distance,4,6,32,4d6 + 32,36,56,46.0,0,0,3,6,4
+ARM050,Arbalète lourde,15,Distance,2,12,38,2d12 + 38,40,62,51.0,0,0,3,6,4
+ARM050,Arbalète lourde,16,Distance,5,6,39,5d6 + 39,44,69,56.5,0,0,3,6,4
+ARM050,Arbalète lourde,17,Distance,3,10,45,3d10 + 45,48,75,61.5,0,0,3,6,4
+ARM050,Arbalète lourde,18,Distance,6,6,46,6d6 + 46,52,82,67.0,0,0,3,6,4
+ARM050,Arbalète lourde,19,Distance,3,12,54,3d12 + 54,57,90,73.5,0,0,3,6,4
+ARM050,Arbalète lourde,20,Distance,4,10,58,4d10 + 58,62,98,80.0,0,0,3,6,4
+ARM051,Arbalète à répétition,1,Distance,1,4,1,1d4 + 1,2,5,3.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,2,Distance,1,4,2,1d4 + 2,3,6,4.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,3,Distance,1,4,2,1d4 + 2,3,6,4.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,4,Distance,1,4,3,1d4 + 3,4,7,5.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,5,Distance,1,4,4,1d4 + 4,5,8,6.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,6,Distance,1,4,5,1d4 + 5,6,9,7.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,7,Distance,1,4,6,1d4 + 6,7,10,8.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,8,Distance,1,6,7,1d6 + 7,8,13,10.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,9,Distance,2,4,7,2d4 + 7,9,15,12.0,0,0,2,5,3.8
+ARM051,Arbalète à répétition,10,Distance,2,4,8,2d4 + 8,10,16,13.0,0,0,2,5,3.8
+ARM051,Arbalète à répétition,11,Distance,3,4,8,3d4 + 8,11,20,15.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,12,Distance,3,4,9,3d4 + 9,12,21,16.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,13,Distance,3,4,11,3d4 + 11,14,23,18.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,14,Distance,1,12,14,1d12 + 14,15,26,20.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,15,Distance,1,12,16,1d12 + 16,17,28,22.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,16,Distance,4,4,15,4d4 + 15,19,31,25.0,0,0,2,5,3.8
+ARM051,Arbalète à répétition,17,Distance,2,8,18,2d8 + 18,20,34,27.0,0,0,2,5,3.8
+ARM051,Arbalète à répétition,18,Distance,3,6,19,3d6 + 19,22,37,29.5,0,0,2,5,3.8
+ARM051,Arbalète à répétition,19,Distance,2,10,21,2d10 + 21,23,41,32.0,0,0,2,5,3.8
+ARM051,Arbalète à répétition,20,Distance,2,10,24,2d10 + 24,26,44,35.0,0,0,2,5,3.8
+ARM052,Fronde,1,Distance,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.4
+ARM052,Fronde,2,Distance,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.4
+ARM052,Fronde,3,Distance,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.4
+ARM052,Fronde,4,Distance,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.4
+ARM052,Fronde,5,Distance,1,6,2,1d6 + 2,3,8,5.5,0,0,2,4,0.4
+ARM052,Fronde,6,Distance,2,4,2,2d4 + 2,4,10,7.0,0,0,2,4,0.4
+ARM052,Fronde,7,Distance,1,8,3,1d8 + 3,4,11,7.5,0,0,2,4,0.4
+ARM052,Fronde,8,Distance,3,4,1,3d4 + 1,4,13,8.5,0,0,2,4,0.4
+ARM052,Fronde,9,Distance,3,4,3,3d4 + 3,6,15,10.5,0,0,2,4,0.4
+ARM052,Fronde,10,Distance,3,4,4,3d4 + 4,7,16,11.5,0,0,2,4,0.4
+ARM052,Fronde,11,Distance,4,4,3,4d4 + 3,7,19,13.0,0,0,2,4,0.4
+ARM052,Fronde,12,Distance,2,8,5,2d8 + 5,7,21,14.0,0,0,2,4,0.4
+ARM052,Fronde,13,Distance,2,8,7,2d8 + 7,9,23,16.0,0,0,2,4,0.4
+ARM052,Fronde,14,Distance,3,6,8,3d6 + 8,11,26,18.5,0,0,2,4,0.4
+ARM052,Fronde,15,Distance,2,10,8,2d10 + 8,10,28,19.0,0,0,2,4,0.4
+ARM052,Fronde,16,Distance,2,10,11,2d10 + 11,13,31,22.0,0,0,2,4,0.4
+ARM052,Fronde,17,Distance,4,6,10,4d6 + 10,14,34,24.0,0,0,2,4,0.4
+ARM052,Fronde,18,Distance,2,12,13,2d12 + 13,15,37,26.0,0,0,2,4,0.4
+ARM052,Fronde,19,Distance,5,6,11,5d6 + 11,16,41,28.5,0,0,2,4,0.4
+ARM052,Fronde,20,Distance,3,10,14,3d10 + 14,17,44,30.5,0,0,2,4,0.4
+ARM053,Sarbacane,1,Distance,1,4,0,1d4,1,4,2.5,0,0,2,3,0.5
+ARM053,Sarbacane,2,Distance,1,4,0,1d4,1,4,2.5,0,0,2,3,0.5
+ARM053,Sarbacane,3,Distance,1,4,0,1d4,1,4,2.5,0,0,2,3,0.5
+ARM053,Sarbacane,4,Distance,1,4,0,1d4,1,4,2.5,0,0,2,3,0.5
+ARM053,Sarbacane,5,Distance,1,4,1,1d4 + 1,2,5,3.5,0,0,2,3,0.5
+ARM053,Sarbacane,6,Distance,1,4,1,1d4 + 1,2,5,3.5,0,0,2,3,0.5
+ARM053,Sarbacane,7,Distance,1,6,1,1d6 + 1,2,7,4.5,0,0,2,3,0.5
+ARM053,Sarbacane,8,Distance,1,6,2,1d6 + 2,3,8,5.5,0,0,2,3,0.5
+ARM053,Sarbacane,9,Distance,2,4,1,2d4 + 1,3,9,6.0,0,0,2,3,0.5
+ARM053,Sarbacane,10,Distance,1,8,2,1d8 + 2,3,10,6.5,0,0,2,3,0.5
+ARM053,Sarbacane,11,Distance,1,8,3,1d8 + 3,4,11,7.5,0,0,2,3,0.5
+ARM053,Sarbacane,12,Distance,3,4,0,3d4,3,12,7.5,0,0,2,3,0.5
+ARM053,Sarbacane,13,Distance,3,4,2,3d4 + 2,5,14,9.5,0,0,2,3,0.5
+ARM053,Sarbacane,14,Distance,2,6,3,2d6 + 3,5,15,10.0,0,0,2,3,0.5
+ARM053,Sarbacane,15,Distance,1,12,5,1d12 + 5,6,17,11.5,0,0,2,3,0.5
+ARM053,Sarbacane,16,Distance,2,8,3,2d8 + 3,5,19,12.0,0,0,2,3,0.5
+ARM053,Sarbacane,17,Distance,2,8,5,2d8 + 5,7,21,14.0,0,0,2,3,0.5
+ARM053,Sarbacane,18,Distance,3,6,4,3d6 + 4,7,22,14.5,0,0,2,3,0.5
+ARM053,Sarbacane,19,Distance,3,6,5,3d6 + 5,8,23,15.5,0,0,2,3,0.5
+ARM053,Sarbacane,20,Distance,2,10,7,2d10 + 7,9,27,18.0,0,0,2,3,0.5
+ARM054,Couteau de jet,1,Jet,1,4,0,1d4,1,4,2.5,0,0,2,4,0.2
+ARM054,Couteau de jet,2,Jet,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.2
+ARM054,Couteau de jet,3,Jet,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.2
+ARM054,Couteau de jet,4,Jet,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.2
+ARM054,Couteau de jet,5,Jet,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.2
+ARM054,Couteau de jet,6,Jet,1,4,3,1d4 + 3,4,7,5.5,0,0,2,4,0.2
+ARM054,Couteau de jet,7,Jet,1,6,3,1d6 + 3,4,9,6.5,0,0,2,4,0.2
+ARM054,Couteau de jet,8,Jet,1,6,4,1d6 + 4,5,10,7.5,0,0,2,4,0.2
+ARM054,Couteau de jet,9,Jet,2,4,4,2d4 + 4,6,12,9.0,0,0,2,4,0.2
+ARM054,Couteau de jet,10,Jet,2,4,5,2d4 + 5,7,13,10.0,0,0,2,4,0.2
+ARM054,Couteau de jet,11,Jet,3,4,3,3d4 + 3,6,15,10.5,0,0,2,4,0.2
+ARM054,Couteau de jet,12,Jet,3,4,5,3d4 + 5,8,17,12.5,0,0,2,4,0.2
+ARM054,Couteau de jet,13,Jet,3,4,6,3d4 + 6,9,18,13.5,0,0,2,4,0.2
+ARM054,Couteau de jet,14,Jet,2,6,8,2d6 + 8,10,20,15.0,0,0,2,4,0.2
+ARM054,Couteau de jet,15,Jet,4,4,7,4d4 + 7,11,23,17.0,0,0,2,4,0.2
+ARM054,Couteau de jet,16,Jet,4,4,9,4d4 + 9,13,25,19.0,0,0,2,4,0.2
+ARM054,Couteau de jet,17,Jet,2,8,11,2d8 + 11,13,27,20.0,0,0,2,4,0.2
+ARM054,Couteau de jet,18,Jet,3,6,12,3d6 + 12,15,30,22.5,0,0,2,4,0.2
+ARM054,Couteau de jet,19,Jet,6,4,9,6d4 + 9,15,33,24.0,0,0,2,4,0.2
+ARM054,Couteau de jet,20,Jet,6,4,11,6d4 + 11,17,35,26.0,0,0,2,4,0.2
+ARM055,Dague de jet,1,Jet,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.35
+ARM055,Dague de jet,2,Jet,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.35
+ARM055,Dague de jet,3,Jet,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.35
+ARM055,Dague de jet,4,Jet,1,4,3,1d4 + 3,4,7,5.5,0,0,2,4,0.35
+ARM055,Dague de jet,5,Jet,1,4,4,1d4 + 4,5,8,6.5,0,0,2,4,0.35
+ARM055,Dague de jet,6,Jet,1,4,5,1d4 + 5,6,9,7.5,0,0,2,4,0.35
+ARM055,Dague de jet,7,Jet,1,4,6,1d4 + 6,7,10,8.5,0,0,2,4,0.35
+ARM055,Dague de jet,8,Jet,1,6,7,1d6 + 7,8,13,10.5,0,0,2,4,0.35
+ARM055,Dague de jet,9,Jet,2,4,7,2d4 + 7,9,15,12.0,0,0,2,4,0.35
+ARM055,Dague de jet,10,Jet,2,4,8,2d4 + 8,10,16,13.0,0,0,2,4,0.35
+ARM055,Dague de jet,11,Jet,3,4,8,3d4 + 8,11,20,15.5,0,0,2,4,0.35
+ARM055,Dague de jet,12,Jet,3,4,9,3d4 + 9,12,21,16.5,0,0,2,4,0.35
+ARM055,Dague de jet,13,Jet,3,4,11,3d4 + 11,14,23,18.5,0,0,2,4,0.35
+ARM055,Dague de jet,14,Jet,2,6,13,2d6 + 13,15,25,20.0,0,0,2,4,0.35
+ARM055,Dague de jet,15,Jet,2,6,16,2d6 + 16,18,28,23.0,0,0,2,4,0.35
+ARM055,Dague de jet,16,Jet,4,4,15,4d4 + 15,19,31,25.0,0,0,2,4,0.35
+ARM055,Dague de jet,17,Jet,2,8,18,2d8 + 18,20,34,27.0,0,0,2,4,0.35
+ARM055,Dague de jet,18,Jet,3,6,19,3d6 + 19,22,37,29.5,0,0,2,4,0.35
+ARM055,Dague de jet,19,Jet,6,4,17,6d4 + 17,23,41,32.0,0,0,2,4,0.35
+ARM055,Dague de jet,20,Jet,6,4,20,6d4 + 20,26,44,35.0,0,0,2,4,0.35
+ARM056,Hache de jet,1,Jet,1,4,3,1d4 + 3,4,7,5.5,0,0,2,4,1.1
+ARM056,Hache de jet,2,Jet,1,4,4,1d4 + 4,5,8,6.5,0,0,2,4,1.1
+ARM056,Hache de jet,3,Jet,1,4,4,1d4 + 4,5,8,6.5,0,0,2,4,1.1
+ARM056,Hache de jet,4,Jet,1,4,5,1d4 + 5,6,9,7.5,0,0,2,4,1.1
+ARM056,Hache de jet,5,Jet,1,6,6,1d6 + 6,7,12,9.5,0,0,2,4,1.1
+ARM056,Hache de jet,6,Jet,2,4,6,2d4 + 6,8,14,11.0,0,0,2,4,1.1
+ARM056,Hache de jet,7,Jet,1,8,8,1d8 + 8,9,16,12.5,0,0,2,4,1.1
+ARM056,Hache de jet,8,Jet,3,4,6,3d4 + 6,9,18,13.5,0,0,2,4,1.1
+ARM056,Hache de jet,9,Jet,3,4,8,3d4 + 8,11,20,15.5,0,0,2,4,1.1
+ARM056,Hache de jet,10,Jet,2,6,11,2d6 + 11,13,23,18.0,0,0,2,4,1.1
+ARM056,Hache de jet,11,Jet,2,6,13,2d6 + 13,15,25,20.0,0,0,2,4,1.1
+ARM056,Hache de jet,12,Jet,4,4,13,4d4 + 13,17,29,23.0,0,0,2,4,1.1
+ARM056,Hache de jet,13,Jet,2,8,16,2d8 + 16,18,32,25.0,0,0,2,4,1.1
+ARM056,Hache de jet,14,Jet,3,6,18,3d6 + 18,21,36,28.5,0,0,2,4,1.1
+ARM056,Hache de jet,15,Jet,3,6,21,3d6 + 21,24,39,31.5,0,0,2,4,1.1
+ARM056,Hache de jet,16,Jet,4,6,20,4d6 + 20,24,44,34.0,0,0,2,4,1.1
+ARM056,Hache de jet,17,Jet,3,8,24,3d8 + 24,27,48,37.5,0,0,2,4,1.1
+ARM056,Hache de jet,18,Jet,3,8,27,3d8 + 27,30,51,40.5,0,0,2,4,1.1
+ARM056,Hache de jet,19,Jet,5,6,27,5d6 + 27,32,57,44.5,0,0,2,4,1.1
+ARM056,Hache de jet,20,Jet,4,8,30,4d8 + 30,34,62,48.0,0,0,2,4,1.1
+ARM057,Javelot,1,Jet,1,4,3,1d4 + 3,4,7,5.5,0,0,2,4,1.4
+ARM057,Javelot,2,Jet,1,4,4,1d4 + 4,5,8,6.5,0,0,2,4,1.4
+ARM057,Javelot,3,Jet,1,4,4,1d4 + 4,5,8,6.5,0,0,2,4,1.4
+ARM057,Javelot,4,Jet,1,4,5,1d4 + 5,6,9,7.5,0,0,2,4,1.4
+ARM057,Javelot,5,Jet,1,6,6,1d6 + 6,7,12,9.5,0,0,2,4,1.4
+ARM057,Javelot,6,Jet,2,4,6,2d4 + 6,8,14,11.0,0,0,2,4,1.4
+ARM057,Javelot,7,Jet,1,8,8,1d8 + 8,9,16,12.5,0,0,2,4,1.4
+ARM057,Javelot,8,Jet,3,4,6,3d4 + 6,9,18,13.5,0,0,2,4,1.4
+ARM057,Javelot,9,Jet,3,4,8,3d4 + 8,11,20,15.5,0,0,2,4,1.4
+ARM057,Javelot,10,Jet,2,6,11,2d6 + 11,13,23,18.0,0,0,2,4,1.4
+ARM057,Javelot,11,Jet,2,6,13,2d6 + 13,15,25,20.0,0,0,2,4,1.4
+ARM057,Javelot,12,Jet,4,4,13,4d4 + 13,17,29,23.0,0,0,2,4,1.4
+ARM057,Javelot,13,Jet,2,8,16,2d8 + 16,18,32,25.0,0,0,2,4,1.4
+ARM057,Javelot,14,Jet,3,6,18,3d6 + 18,21,36,28.5,0,0,2,4,1.4
+ARM057,Javelot,15,Jet,3,6,21,3d6 + 21,24,39,31.5,0,0,2,4,1.4
+ARM057,Javelot,16,Jet,4,6,20,4d6 + 20,24,44,34.0,0,0,2,4,1.4
+ARM057,Javelot,17,Jet,3,8,24,3d8 + 24,27,48,37.5,0,0,2,4,1.4
+ARM057,Javelot,18,Jet,3,8,27,3d8 + 27,30,51,40.5,0,0,2,4,1.4
+ARM057,Javelot,19,Jet,5,6,27,5d6 + 27,32,57,44.5,0,0,2,4,1.4
+ARM057,Javelot,20,Jet,4,8,30,4d8 + 30,34,62,48.0,0,0,2,4,1.4
+ARM058,Dard,1,Jet,1,4,0,1d4,1,4,2.5,0,0,2,4,0.1
+ARM058,Dard,2,Jet,1,4,0,1d4,1,4,2.5,0,0,2,4,0.1
+ARM058,Dard,3,Jet,1,4,0,1d4,1,4,2.5,0,0,2,4,0.1
+ARM058,Dard,4,Jet,1,4,0,1d4,1,4,2.5,0,0,2,4,0.1
+ARM058,Dard,5,Jet,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.1
+ARM058,Dard,6,Jet,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.1
+ARM058,Dard,7,Jet,1,6,1,1d6 + 1,2,7,4.5,0,0,2,4,0.1
+ARM058,Dard,8,Jet,1,6,2,1d6 + 2,3,8,5.5,0,0,2,4,0.1
+ARM058,Dard,9,Jet,2,4,1,2d4 + 1,3,9,6.0,0,0,2,4,0.1
+ARM058,Dard,10,Jet,1,8,2,1d8 + 2,3,10,6.5,0,0,2,4,0.1
+ARM058,Dard,11,Jet,1,8,3,1d8 + 3,4,11,7.5,0,0,2,4,0.1
+ARM058,Dard,12,Jet,3,4,0,3d4,3,12,7.5,0,0,2,4,0.1
+ARM058,Dard,13,Jet,3,4,2,3d4 + 2,5,14,9.5,0,0,2,4,0.1
+ARM058,Dard,14,Jet,2,6,3,2d6 + 3,5,15,10.0,0,0,2,4,0.1
+ARM058,Dard,15,Jet,2,6,4,2d6 + 4,6,16,11.0,0,0,2,4,0.1
+ARM058,Dard,16,Jet,2,8,3,2d8 + 3,5,19,12.0,0,0,2,4,0.1
+ARM058,Dard,17,Jet,2,8,5,2d8 + 5,7,21,14.0,0,0,2,4,0.1
+ARM058,Dard,18,Jet,3,6,4,3d6 + 4,7,22,14.5,0,0,2,4,0.1
+ARM058,Dard,19,Jet,3,6,5,3d6 + 5,8,23,15.5,0,0,2,4,0.1
+ARM058,Dard,20,Jet,6,4,3,6d4 + 3,9,27,18.0,0,0,2,4,0.1
+ARM059,Bolas,1,Jet,1,4,0,1d4,1,4,2.5,0,0,2,3,0.7
+ARM059,Bolas,2,Jet,1,4,0,1d4,1,4,2.5,0,0,2,3,0.7
+ARM059,Bolas,3,Jet,1,4,0,1d4,1,4,2.5,0,0,2,3,0.7
+ARM059,Bolas,4,Jet,1,4,0,1d4,1,4,2.5,0,0,2,3,0.7
+ARM059,Bolas,5,Jet,1,4,0,1d4,1,4,2.5,0,0,2,3,0.7
+ARM059,Bolas,6,Jet,1,4,0,1d4,1,4,2.5,0,0,2,3,0.7
+ARM059,Bolas,7,Jet,1,4,0,1d4,1,4,2.5,0,0,2,3,0.7
+ARM059,Bolas,8,Jet,1,4,1,1d4 + 1,2,5,3.5,0,0,2,3,0.7
+ARM059,Bolas,9,Jet,1,4,2,1d4 + 2,3,6,4.5,0,0,2,3,0.7
+ARM059,Bolas,10,Jet,1,4,2,1d4 + 2,3,6,4.5,0,0,2,3,0.7
+ARM059,Bolas,11,Jet,1,4,3,1d4 + 3,4,7,5.5,0,0,2,3,0.7
+ARM059,Bolas,12,Jet,1,4,3,1d4 + 3,4,7,5.5,0,0,2,3,0.7
+ARM059,Bolas,13,Jet,1,4,4,1d4 + 4,5,8,6.5,0,0,2,3,0.7
+ARM059,Bolas,14,Jet,1,6,4,1d6 + 4,5,10,7.5,0,0,2,3,0.7
+ARM059,Bolas,15,Jet,1,6,5,1d6 + 5,6,11,8.5,0,0,2,3,0.7
+ARM059,Bolas,16,Jet,1,8,5,1d8 + 5,6,13,9.5,0,0,2,3,0.7
+ARM059,Bolas,17,Jet,1,8,6,1d8 + 6,7,14,10.5,0,0,2,3,0.7
+ARM059,Bolas,18,Jet,3,4,3,3d4 + 3,6,15,10.5,0,0,2,3,0.7
+ARM059,Bolas,19,Jet,3,4,4,3d4 + 4,7,16,11.5,0,0,2,3,0.7
+ARM059,Bolas,20,Jet,3,4,6,3d4 + 6,9,18,13.5,0,0,2,3,0.7
+ARM060,Chakram,1,Jet,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.5
+ARM060,Chakram,2,Jet,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.5
+ARM060,Chakram,3,Jet,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.5
+ARM060,Chakram,4,Jet,1,4,3,1d4 + 3,4,7,5.5,0,0,2,4,0.5
+ARM060,Chakram,5,Jet,1,4,4,1d4 + 4,5,8,6.5,0,0,2,4,0.5
+ARM060,Chakram,6,Jet,1,4,5,1d4 + 5,6,9,7.5,0,0,2,4,0.5
+ARM060,Chakram,7,Jet,1,4,6,1d4 + 6,7,10,8.5,0,0,2,4,0.5
+ARM060,Chakram,8,Jet,1,6,7,1d6 + 7,8,13,10.5,0,0,2,4,0.5
+ARM060,Chakram,9,Jet,2,4,7,2d4 + 7,9,15,12.0,0,0,2,4,0.5
+ARM060,Chakram,10,Jet,2,4,8,2d4 + 8,10,16,13.0,0,0,2,4,0.5
+ARM060,Chakram,11,Jet,3,4,8,3d4 + 8,11,20,15.5,0,0,2,4,0.5
+ARM060,Chakram,12,Jet,3,4,9,3d4 + 9,12,21,16.5,0,0,2,4,0.5
+ARM060,Chakram,13,Jet,3,4,11,3d4 + 11,14,23,18.5,0,0,2,4,0.5
+ARM060,Chakram,14,Jet,2,6,13,2d6 + 13,15,25,20.0,0,0,2,4,0.5
+ARM060,Chakram,15,Jet,2,6,16,2d6 + 16,18,28,23.0,0,0,2,4,0.5
+ARM060,Chakram,16,Jet,4,4,15,4d4 + 15,19,31,25.0,0,0,2,4,0.5
+ARM060,Chakram,17,Jet,2,8,18,2d8 + 18,20,34,27.0,0,0,2,4,0.5
+ARM060,Chakram,18,Jet,3,6,19,3d6 + 19,22,37,29.5,0,0,2,4,0.5
+ARM060,Chakram,19,Jet,6,4,17,6d4 + 17,23,41,32.0,0,0,2,4,0.5
+ARM060,Chakram,20,Jet,6,4,20,6d4 + 20,26,44,35.0,0,0,2,4,0.5
+ARM061,Baguette arcanique,1,Focaliseurs,1,4,0,1d4,1,4,2.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,2,Focaliseurs,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,3,Focaliseurs,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,4,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,5,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,6,Focaliseurs,1,4,3,1d4 + 3,4,7,5.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,7,Focaliseurs,1,6,3,1d6 + 3,4,9,6.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,8,Focaliseurs,1,6,4,1d6 + 4,5,10,7.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,9,Focaliseurs,2,4,4,2d4 + 4,6,12,9.0,0,0,2,4,0.3
+ARM061,Baguette arcanique,10,Focaliseurs,2,4,5,2d4 + 5,7,13,10.0,0,0,2,4,0.3
+ARM061,Baguette arcanique,11,Focaliseurs,3,4,3,3d4 + 3,6,15,10.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,12,Focaliseurs,3,4,5,3d4 + 5,8,17,12.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,13,Focaliseurs,3,4,6,3d4 + 6,9,18,13.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,14,Focaliseurs,1,12,9,1d12 + 9,10,21,15.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,15,Focaliseurs,4,4,7,4d4 + 7,11,23,17.0,0,0,2,4,0.3
+ARM061,Baguette arcanique,16,Focaliseurs,4,4,9,4d4 + 9,13,25,19.0,0,0,2,4,0.3
+ARM061,Baguette arcanique,17,Focaliseurs,2,8,11,2d8 + 11,13,27,20.0,0,0,2,4,0.3
+ARM061,Baguette arcanique,18,Focaliseurs,3,6,12,3d6 + 12,15,30,22.5,0,0,2,4,0.3
+ARM061,Baguette arcanique,19,Focaliseurs,2,10,13,2d10 + 13,15,33,24.0,0,0,2,4,0.3
+ARM061,Baguette arcanique,20,Focaliseurs,2,10,16,2d10 + 16,18,36,27.0,0,0,2,4,0.3
+ARM062,Baguette de feu,1,Focaliseurs,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.3
+ARM062,Baguette de feu,2,Focaliseurs,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.3
+ARM062,Baguette de feu,3,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.3
+ARM062,Baguette de feu,4,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.3
+ARM062,Baguette de feu,5,Focaliseurs,1,6,2,1d6 + 2,3,8,5.5,0,0,2,4,0.3
+ARM062,Baguette de feu,6,Focaliseurs,2,4,2,2d4 + 2,4,10,7.0,0,0,2,4,0.3
+ARM062,Baguette de feu,7,Focaliseurs,1,8,3,1d8 + 3,4,11,7.5,0,0,2,4,0.3
+ARM062,Baguette de feu,8,Focaliseurs,3,4,1,3d4 + 1,4,13,8.5,0,0,2,4,0.3
+ARM062,Baguette de feu,9,Focaliseurs,3,4,3,3d4 + 3,6,15,10.5,0,0,2,4,0.3
+ARM062,Baguette de feu,10,Focaliseurs,3,4,4,3d4 + 4,7,16,11.5,0,0,2,4,0.3
+ARM062,Baguette de feu,11,Focaliseurs,4,4,3,4d4 + 3,7,19,13.0,0,0,2,4,0.3
+ARM062,Baguette de feu,12,Focaliseurs,2,8,5,2d8 + 5,7,21,14.0,0,0,2,4,0.3
+ARM062,Baguette de feu,13,Focaliseurs,2,8,7,2d8 + 7,9,23,16.0,0,0,2,4,0.3
+ARM062,Baguette de feu,14,Focaliseurs,3,6,8,3d6 + 8,11,26,18.5,0,0,2,4,0.3
+ARM062,Baguette de feu,15,Focaliseurs,1,20,9,1d20 + 9,10,29,19.5,0,0,2,4,0.3
+ARM062,Baguette de feu,16,Focaliseurs,1,20,11,1d20 + 11,12,31,21.5,0,0,2,4,0.3
+ARM062,Baguette de feu,17,Focaliseurs,1,20,13,1d20 + 13,14,33,23.5,0,0,2,4,0.3
+ARM062,Baguette de feu,18,Focaliseurs,1,20,16,1d20 + 16,17,36,26.5,0,0,2,4,0.3
+ARM062,Baguette de feu,19,Focaliseurs,1,20,18,1d20 + 18,19,38,28.5,0,0,2,4,0.3
+ARM062,Baguette de feu,20,Focaliseurs,1,20,20,1d20 + 20,21,40,30.5,0,0,2,4,0.3
+ARM063,Baguette de givre,1,Focaliseurs,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.3
+ARM063,Baguette de givre,2,Focaliseurs,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.3
+ARM063,Baguette de givre,3,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.3
+ARM063,Baguette de givre,4,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.3
+ARM063,Baguette de givre,5,Focaliseurs,1,6,2,1d6 + 2,3,8,5.5,0,0,2,4,0.3
+ARM063,Baguette de givre,6,Focaliseurs,2,4,2,2d4 + 2,4,10,7.0,0,0,2,4,0.3
+ARM063,Baguette de givre,7,Focaliseurs,1,8,3,1d8 + 3,4,11,7.5,0,0,2,4,0.3
+ARM063,Baguette de givre,8,Focaliseurs,3,4,1,3d4 + 1,4,13,8.5,0,0,2,4,0.3
+ARM063,Baguette de givre,9,Focaliseurs,3,4,3,3d4 + 3,6,15,10.5,0,0,2,4,0.3
+ARM063,Baguette de givre,10,Focaliseurs,3,4,4,3d4 + 4,7,16,11.5,0,0,2,4,0.3
+ARM063,Baguette de givre,11,Focaliseurs,4,4,3,4d4 + 3,7,19,13.0,0,0,2,4,0.3
+ARM063,Baguette de givre,12,Focaliseurs,2,8,5,2d8 + 5,7,21,14.0,0,0,2,4,0.3
+ARM063,Baguette de givre,13,Focaliseurs,2,8,7,2d8 + 7,9,23,16.0,0,0,2,4,0.3
+ARM063,Baguette de givre,14,Focaliseurs,3,6,8,3d6 + 8,11,26,18.5,0,0,2,4,0.3
+ARM063,Baguette de givre,15,Focaliseurs,2,10,8,2d10 + 8,10,28,19.0,0,0,2,4,0.3
+ARM063,Baguette de givre,16,Focaliseurs,2,10,11,2d10 + 11,13,31,22.0,0,0,2,4,0.3
+ARM063,Baguette de givre,17,Focaliseurs,4,6,10,4d6 + 10,14,34,24.0,0,0,2,4,0.3
+ARM063,Baguette de givre,18,Focaliseurs,2,12,13,2d12 + 13,15,37,26.0,0,0,2,4,0.3
+ARM063,Baguette de givre,19,Focaliseurs,5,6,11,5d6 + 11,16,41,28.5,0,0,2,4,0.3
+ARM063,Baguette de givre,20,Focaliseurs,3,10,14,3d10 + 14,17,44,30.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,1,Focaliseurs,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,2,Focaliseurs,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,3,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,4,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,5,Focaliseurs,1,6,2,1d6 + 2,3,8,5.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,6,Focaliseurs,2,4,2,2d4 + 2,4,10,7.0,0,0,2,4,0.3
+ARM064,Baguette de foudre,7,Focaliseurs,1,8,3,1d8 + 3,4,11,7.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,8,Focaliseurs,3,4,1,3d4 + 1,4,13,8.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,9,Focaliseurs,3,4,3,3d4 + 3,6,15,10.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,10,Focaliseurs,3,4,4,3d4 + 4,7,16,11.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,11,Focaliseurs,4,4,3,4d4 + 3,7,19,13.0,0,0,2,4,0.3
+ARM064,Baguette de foudre,12,Focaliseurs,2,8,5,2d8 + 5,7,21,14.0,0,0,2,4,0.3
+ARM064,Baguette de foudre,13,Focaliseurs,2,8,7,2d8 + 7,9,23,16.0,0,0,2,4,0.3
+ARM064,Baguette de foudre,14,Focaliseurs,3,6,8,3d6 + 8,11,26,18.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,15,Focaliseurs,2,10,8,2d10 + 8,10,28,19.0,0,0,2,4,0.3
+ARM064,Baguette de foudre,16,Focaliseurs,2,10,11,2d10 + 11,13,31,22.0,0,0,2,4,0.3
+ARM064,Baguette de foudre,17,Focaliseurs,4,6,10,4d6 + 10,14,34,24.0,0,0,2,4,0.3
+ARM064,Baguette de foudre,18,Focaliseurs,2,12,13,2d12 + 13,15,37,26.0,0,0,2,4,0.3
+ARM064,Baguette de foudre,19,Focaliseurs,5,6,11,5d6 + 11,16,41,28.5,0,0,2,4,0.3
+ARM064,Baguette de foudre,20,Focaliseurs,3,10,14,3d10 + 14,17,44,30.5,0,0,2,4,0.3
+ARM065,Baguette de venin,1,Focaliseurs,1,4,0,1d4,1,4,2.5,0,0,2,4,0.3
+ARM065,Baguette de venin,2,Focaliseurs,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.3
+ARM065,Baguette de venin,3,Focaliseurs,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,0.3
+ARM065,Baguette de venin,4,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.3
+ARM065,Baguette de venin,5,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,0.3
+ARM065,Baguette de venin,6,Focaliseurs,1,4,3,1d4 + 3,4,7,5.5,0,0,2,4,0.3
+ARM065,Baguette de venin,7,Focaliseurs,1,6,3,1d6 + 3,4,9,6.5,0,0,2,4,0.3
+ARM065,Baguette de venin,8,Focaliseurs,1,6,4,1d6 + 4,5,10,7.5,0,0,2,4,0.3
+ARM065,Baguette de venin,9,Focaliseurs,2,4,4,2d4 + 4,6,12,9.0,0,0,2,4,0.3
+ARM065,Baguette de venin,10,Focaliseurs,2,4,5,2d4 + 5,7,13,10.0,0,0,2,4,0.3
+ARM065,Baguette de venin,11,Focaliseurs,3,4,3,3d4 + 3,6,15,10.5,0,0,2,4,0.3
+ARM065,Baguette de venin,12,Focaliseurs,3,4,5,3d4 + 5,8,17,12.5,0,0,2,4,0.3
+ARM065,Baguette de venin,13,Focaliseurs,3,4,6,3d4 + 6,9,18,13.5,0,0,2,4,0.3
+ARM065,Baguette de venin,14,Focaliseurs,1,12,9,1d12 + 9,10,21,15.5,0,0,2,4,0.3
+ARM065,Baguette de venin,15,Focaliseurs,4,4,7,4d4 + 7,11,23,17.0,0,0,2,4,0.3
+ARM065,Baguette de venin,16,Focaliseurs,4,4,9,4d4 + 9,13,25,19.0,0,0,2,4,0.3
+ARM065,Baguette de venin,17,Focaliseurs,2,8,11,2d8 + 11,13,27,20.0,0,0,2,4,0.3
+ARM065,Baguette de venin,18,Focaliseurs,3,6,12,3d6 + 12,15,30,22.5,0,0,2,4,0.3
+ARM065,Baguette de venin,19,Focaliseurs,2,10,13,2d10 + 13,15,33,24.0,0,0,2,4,0.3
+ARM065,Baguette de venin,20,Focaliseurs,2,10,16,2d10 + 16,18,36,27.0,0,0,2,4,0.3
+ARM066,Bâton arcanique,1,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,1.6
+ARM066,Bâton arcanique,2,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,1.6
+ARM066,Bâton arcanique,3,Focaliseurs,1,4,3,1d4 + 3,4,7,5.5,0,0,2,4,1.6
+ARM066,Bâton arcanique,4,Focaliseurs,1,6,3,1d6 + 3,4,9,6.5,0,0,2,4,1.6
+ARM066,Bâton arcanique,5,Focaliseurs,1,6,4,1d6 + 4,5,10,7.5,0,0,2,4,1.6
+ARM066,Bâton arcanique,6,Focaliseurs,2,4,4,2d4 + 4,6,12,9.0,0,0,2,4,1.6
+ARM066,Bâton arcanique,7,Focaliseurs,2,4,5,2d4 + 5,7,13,10.0,0,0,2,4,1.6
+ARM066,Bâton arcanique,8,Focaliseurs,1,8,7,1d8 + 7,8,15,11.5,0,0,2,4,1.6
+ARM066,Bâton arcanique,9,Focaliseurs,3,4,5,3d4 + 5,8,17,12.5,0,0,2,4,1.6
+ARM066,Bâton arcanique,10,Focaliseurs,2,6,8,2d6 + 8,10,20,15.0,0,0,2,4,1.6
+ARM066,Bâton arcanique,11,Focaliseurs,1,12,10,1d12 + 10,11,22,16.5,0,0,2,4,1.6
+ARM066,Bâton arcanique,12,Focaliseurs,2,8,9,2d8 + 9,11,25,18.0,0,0,2,4,1.6
+ARM066,Bâton arcanique,13,Focaliseurs,2,8,12,2d8 + 12,14,28,21.0,0,0,2,4,1.6
+ARM066,Bâton arcanique,14,Focaliseurs,3,6,12,3d6 + 12,15,30,22.5,0,0,2,4,1.6
+ARM066,Bâton arcanique,15,Focaliseurs,2,10,14,2d10 + 14,16,34,25.0,0,0,2,4,1.6
+ARM066,Bâton arcanique,16,Focaliseurs,2,10,17,2d10 + 17,19,37,28.0,0,0,2,4,1.6
+ARM066,Bâton arcanique,17,Focaliseurs,4,6,17,4d6 + 17,21,41,31.0,0,0,2,4,1.6
+ARM066,Bâton arcanique,18,Focaliseurs,2,12,20,2d12 + 20,22,44,33.0,0,0,2,4,1.6
+ARM066,Bâton arcanique,19,Focaliseurs,5,6,19,5d6 + 19,24,49,36.5,0,0,2,4,1.6
+ARM066,Bâton arcanique,20,Focaliseurs,3,10,24,3d10 + 24,27,54,40.5,0,0,2,4,1.6
+ARM067,Bâton élémentaire,1,Focaliseurs,1,4,3,1d4 + 3,4,7,5.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,2,Focaliseurs,1,4,4,1d4 + 4,5,8,6.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,3,Focaliseurs,1,4,4,1d4 + 4,5,8,6.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,4,Focaliseurs,1,4,5,1d4 + 5,6,9,7.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,5,Focaliseurs,1,6,6,1d6 + 6,7,12,9.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,6,Focaliseurs,2,4,6,2d4 + 6,8,14,11.0,0,0,2,4,1.8
+ARM067,Bâton élémentaire,7,Focaliseurs,1,8,8,1d8 + 8,9,16,12.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,8,Focaliseurs,3,4,6,3d4 + 6,9,18,13.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,9,Focaliseurs,3,4,8,3d4 + 8,11,20,15.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,10,Focaliseurs,2,6,11,2d6 + 11,13,23,18.0,0,0,2,4,1.8
+ARM067,Bâton élémentaire,11,Focaliseurs,1,12,14,1d12 + 14,15,26,20.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,12,Focaliseurs,4,4,13,4d4 + 13,17,29,23.0,0,0,2,4,1.8
+ARM067,Bâton élémentaire,13,Focaliseurs,2,8,16,2d8 + 16,18,32,25.0,0,0,2,4,1.8
+ARM067,Bâton élémentaire,14,Focaliseurs,3,6,18,3d6 + 18,21,36,28.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,15,Focaliseurs,2,10,20,2d10 + 20,22,40,31.0,0,0,2,4,1.8
+ARM067,Bâton élémentaire,16,Focaliseurs,2,10,24,2d10 + 24,26,44,35.0,0,0,2,4,1.8
+ARM067,Bâton élémentaire,17,Focaliseurs,3,8,24,3d8 + 24,27,48,37.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,18,Focaliseurs,2,12,28,2d12 + 28,30,52,41.0,0,0,2,4,1.8
+ARM067,Bâton élémentaire,19,Focaliseurs,5,6,27,5d6 + 27,32,57,44.5,0,0,2,4,1.8
+ARM067,Bâton élémentaire,20,Focaliseurs,3,10,32,3d10 + 32,35,62,48.5,0,0,2,4,1.8
+ARM068,Bâton rituel,1,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,2
+ARM068,Bâton rituel,2,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,2
+ARM068,Bâton rituel,3,Focaliseurs,1,4,3,1d4 + 3,4,7,5.5,0,0,2,4,2
+ARM068,Bâton rituel,4,Focaliseurs,1,6,3,1d6 + 3,4,9,6.5,0,0,2,4,2
+ARM068,Bâton rituel,5,Focaliseurs,1,6,4,1d6 + 4,5,10,7.5,0,0,2,4,2
+ARM068,Bâton rituel,6,Focaliseurs,2,4,4,2d4 + 4,6,12,9.0,0,0,2,4,2
+ARM068,Bâton rituel,7,Focaliseurs,2,4,5,2d4 + 5,7,13,10.0,0,0,2,4,2
+ARM068,Bâton rituel,8,Focaliseurs,1,8,7,1d8 + 7,8,15,11.5,0,0,2,4,2
+ARM068,Bâton rituel,9,Focaliseurs,3,4,5,3d4 + 5,8,17,12.5,0,0,2,4,2
+ARM068,Bâton rituel,10,Focaliseurs,2,6,8,2d6 + 8,10,20,15.0,0,0,2,4,2
+ARM068,Bâton rituel,11,Focaliseurs,1,12,10,1d12 + 10,11,22,16.5,0,0,2,4,2
+ARM068,Bâton rituel,12,Focaliseurs,2,8,9,2d8 + 9,11,25,18.0,0,0,2,4,2
+ARM068,Bâton rituel,13,Focaliseurs,2,8,12,2d8 + 12,14,28,21.0,0,0,2,4,2
+ARM068,Bâton rituel,14,Focaliseurs,3,6,12,3d6 + 12,15,30,22.5,0,0,2,4,2
+ARM068,Bâton rituel,15,Focaliseurs,2,10,14,2d10 + 14,16,34,25.0,0,0,2,4,2
+ARM068,Bâton rituel,16,Focaliseurs,2,10,17,2d10 + 17,19,37,28.0,0,0,2,4,2
+ARM068,Bâton rituel,17,Focaliseurs,4,6,17,4d6 + 17,21,41,31.0,0,0,2,4,2
+ARM068,Bâton rituel,18,Focaliseurs,2,12,20,2d12 + 20,22,44,33.0,0,0,2,4,2
+ARM068,Bâton rituel,19,Focaliseurs,5,6,19,5d6 + 19,24,49,36.5,0,0,2,4,2
+ARM068,Bâton rituel,20,Focaliseurs,3,10,24,3d10 + 24,27,54,40.5,0,0,2,4,2
+ARM069,Sceptre sacré,1,Focaliseurs,1,4,1,1d4 + 1,2,5,3.5,0,0,2,4,1
+ARM069,Sceptre sacré,2,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,1
+ARM069,Sceptre sacré,3,Focaliseurs,1,4,2,1d4 + 2,3,6,4.5,0,0,2,4,1
+ARM069,Sceptre sacré,4,Focaliseurs,1,4,3,1d4 + 3,4,7,5.5,0,0,2,4,1
+ARM069,Sceptre sacré,5,Focaliseurs,1,4,4,1d4 + 4,5,8,6.5,0,0,2,4,1
+ARM069,Sceptre sacré,6,Focaliseurs,1,4,5,1d4 + 5,6,9,7.5,0,0,2,4,1
+ARM069,Sceptre sacré,7,Focaliseurs,1,4,6,1d4 + 6,7,10,8.5,0,0,2,4,1
+ARM069,Sceptre sacré,8,Focaliseurs,1,6,7,1d6 + 7,8,13,10.5,0,0,2,4,1
+ARM069,Sceptre sacré,9,Focaliseurs,2,4,7,2d4 + 7,9,15,12.0,0,0,2,4,1
+ARM069,Sceptre sacré,10,Focaliseurs,2,4,8,2d4 + 8,10,16,13.0,0,0,2,4,1
+ARM069,Sceptre sacré,11,Focaliseurs,3,4,8,3d4 + 8,11,20,15.5,0,0,2,4,1
+ARM069,Sceptre sacré,12,Focaliseurs,3,4,9,3d4 + 9,12,21,16.5,0,0,2,4,1
+ARM069,Sceptre sacré,13,Focaliseurs,3,4,11,3d4 + 11,14,23,18.5,0,0,2,4,1
+ARM069,Sceptre sacré,14,Focaliseurs,1,12,14,1d12 + 14,15,26,20.5,0,0,2,4,1
+ARM069,Sceptre sacré,15,Focaliseurs,1,12,16,1d12 + 16,17,28,22.5,0,0,2,4,1
+ARM069,Sceptre sacré,16,Focaliseurs,4,4,15,4d4 + 15,19,31,25.0,0,0,2,4,1
+ARM069,Sceptre sacré,17,Focaliseurs,2,8,18,2d8 + 18,20,34,27.0,0,0,2,4,1
+ARM069,Sceptre sacré,18,Focaliseurs,3,6,19,3d6 + 19,22,37,29.5,0,0,2,4,1
+ARM069,Sceptre sacré,19,Focaliseurs,2,10,21,2d10 + 21,23,41,32.0,0,0,2,4,1
+ARM069,Sceptre sacré,20,Focaliseurs,2,10,24,2d10 + 24,26,44,35.0,0,0,2,4,1
+ARM070,Orbe arcanique,1,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,2,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,3,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,4,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,5,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,6,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,7,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,8,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,9,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,10,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,11,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,12,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,13,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,14,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,15,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,16,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,17,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,18,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,19,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM070,Orbe arcanique,20,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,0.5
+ARM071,Grimoire focaliseur,1,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,2,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,3,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,4,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,5,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,6,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,7,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,8,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,9,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,10,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,11,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,12,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,13,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,14,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,15,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,16,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,17,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,18,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,19,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM071,Grimoire focaliseur,20,Focaliseurs,0,0,0,—,0,0,0,0,0,0,0,1.2
+ARM072,Rondache,1,Boucliers,0,0,0,—,0,0,0,2,0,0,0,1.1
+ARM072,Rondache,2,Boucliers,0,0,0,—,0,0,0,2,0,0,0,1.1
+ARM072,Rondache,3,Boucliers,0,0,0,—,0,0,0,2,0,0,0,1.1
+ARM072,Rondache,4,Boucliers,0,0,0,—,0,0,0,2,0,0,0,1.1
+ARM072,Rondache,5,Boucliers,0,0,0,—,0,0,0,3,0,0,0,1.1
+ARM072,Rondache,6,Boucliers,0,0,0,—,0,0,0,3,0,0,0,1.1
+ARM072,Rondache,7,Boucliers,0,0,0,—,0,0,0,3,0,0,0,1.1
+ARM072,Rondache,8,Boucliers,0,0,0,—,0,0,0,3,0,0,0,1.1
+ARM072,Rondache,9,Boucliers,0,0,0,—,0,0,0,3,0,0,0,1.1
+ARM072,Rondache,10,Boucliers,0,0,0,—,0,0,0,4,0,0,0,1.1
+ARM072,Rondache,11,Boucliers,0,0,0,—,0,0,0,4,0,0,0,1.1
+ARM072,Rondache,12,Boucliers,0,0,0,—,0,0,0,4,0,0,0,1.1
+ARM072,Rondache,13,Boucliers,0,0,0,—,0,0,0,4,0,0,0,1.1
+ARM072,Rondache,14,Boucliers,0,0,0,—,0,0,0,5,0,0,0,1.1
+ARM072,Rondache,15,Boucliers,0,0,0,—,0,0,0,5,0,0,0,1.1
+ARM072,Rondache,16,Boucliers,0,0,0,—,0,0,0,5,0,0,0,1.1
+ARM072,Rondache,17,Boucliers,0,0,0,—,0,0,0,5,0,0,0,1.1
+ARM072,Rondache,18,Boucliers,0,0,0,—,0,0,0,5,0,0,0,1.1
+ARM072,Rondache,19,Boucliers,0,0,0,—,0,0,0,6,0,0,0,1.1
+ARM072,Rondache,20,Boucliers,0,0,0,—,0,0,0,6,0,0,0,1.1
+ARM073,Targe,1,Boucliers,0,0,0,—,0,0,0,3,0,0,0,1.5
+ARM073,Targe,2,Boucliers,0,0,0,—,0,0,0,3,0,0,0,1.5
+ARM073,Targe,3,Boucliers,0,0,0,—,0,0,0,3,0,0,0,1.5
+ARM073,Targe,4,Boucliers,0,0,0,—,0,0,0,4,0,0,0,1.5
+ARM073,Targe,5,Boucliers,0,0,0,—,0,0,0,4,0,0,0,1.5
+ARM073,Targe,6,Boucliers,0,0,0,—,0,0,0,4,0,0,0,1.5
+ARM073,Targe,7,Boucliers,0,0,0,—,0,0,0,4,0,0,0,1.5
+ARM073,Targe,8,Boucliers,0,0,0,—,0,0,0,5,0,0,0,1.5
+ARM073,Targe,9,Boucliers,0,0,0,—,0,0,0,5,0,0,0,1.5
+ARM073,Targe,10,Boucliers,0,0,0,—,0,0,0,5,0,0,0,1.5
+ARM073,Targe,11,Boucliers,0,0,0,—,0,0,0,6,0,0,0,1.5
+ARM073,Targe,12,Boucliers,0,0,0,—,0,0,0,6,0,0,0,1.5
+ARM073,Targe,13,Boucliers,0,0,0,—,0,0,0,6,0,0,0,1.5
+ARM073,Targe,14,Boucliers,0,0,0,—,0,0,0,7,0,0,0,1.5
+ARM073,Targe,15,Boucliers,0,0,0,—,0,0,0,7,0,0,0,1.5
+ARM073,Targe,16,Boucliers,0,0,0,—,0,0,0,8,0,0,0,1.5
+ARM073,Targe,17,Boucliers,0,0,0,—,0,0,0,8,0,0,0,1.5
+ARM073,Targe,18,Boucliers,0,0,0,—,0,0,0,8,0,0,0,1.5
+ARM073,Targe,19,Boucliers,0,0,0,—,0,0,0,9,0,0,0,1.5
+ARM073,Targe,20,Boucliers,0,0,0,—,0,0,0,9,0,0,0,1.5
+ARM074,Bouclier de bois,1,Boucliers,0,0,0,—,0,0,0,4,0,0,0,2.6
+ARM074,Bouclier de bois,2,Boucliers,0,0,0,—,0,0,0,4,0,0,0,2.6
+ARM074,Bouclier de bois,3,Boucliers,0,0,0,—,0,0,0,5,0,0,0,2.6
+ARM074,Bouclier de bois,4,Boucliers,0,0,0,—,0,0,0,5,0,0,0,2.6
+ARM074,Bouclier de bois,5,Boucliers,0,0,0,—,0,0,0,5,0,0,0,2.6
+ARM074,Bouclier de bois,6,Boucliers,0,0,0,—,0,0,0,6,0,0,0,2.6
+ARM074,Bouclier de bois,7,Boucliers,0,0,0,—,0,0,0,6,0,0,0,2.6
+ARM074,Bouclier de bois,8,Boucliers,0,0,0,—,0,0,0,6,0,0,0,2.6
+ARM074,Bouclier de bois,9,Boucliers,0,0,0,—,0,0,0,7,0,0,0,2.6
+ARM074,Bouclier de bois,10,Boucliers,0,0,0,—,0,0,0,7,0,0,0,2.6
+ARM074,Bouclier de bois,11,Boucliers,0,0,0,—,0,0,0,8,0,0,0,2.6
+ARM074,Bouclier de bois,12,Boucliers,0,0,0,—,0,0,0,8,0,0,0,2.6
+ARM074,Bouclier de bois,13,Boucliers,0,0,0,—,0,0,0,9,0,0,0,2.6
+ARM074,Bouclier de bois,14,Boucliers,0,0,0,—,0,0,0,9,0,0,0,2.6
+ARM074,Bouclier de bois,15,Boucliers,0,0,0,—,0,0,0,10,0,0,0,2.6
+ARM074,Bouclier de bois,16,Boucliers,0,0,0,—,0,0,0,10,0,0,0,2.6
+ARM074,Bouclier de bois,17,Boucliers,0,0,0,—,0,0,0,10,0,0,0,2.6
+ARM074,Bouclier de bois,18,Boucliers,0,0,0,—,0,0,0,11,0,0,0,2.6
+ARM074,Bouclier de bois,19,Boucliers,0,0,0,—,0,0,0,11,0,0,0,2.6
+ARM074,Bouclier de bois,20,Boucliers,0,0,0,—,0,0,0,12,0,0,0,2.6
+ARM075,Bouclier rond,1,Boucliers,0,0,0,—,0,0,0,5,0,0,0,2.9
+ARM075,Bouclier rond,2,Boucliers,0,0,0,—,0,0,0,5,0,0,0,2.9
+ARM075,Bouclier rond,3,Boucliers,0,0,0,—,0,0,0,6,0,0,0,2.9
+ARM075,Bouclier rond,4,Boucliers,0,0,0,—,0,0,0,6,0,0,0,2.9
+ARM075,Bouclier rond,5,Boucliers,0,0,0,—,0,0,0,7,0,0,0,2.9
+ARM075,Bouclier rond,6,Boucliers,0,0,0,—,0,0,0,7,0,0,0,2.9
+ARM075,Bouclier rond,7,Boucliers,0,0,0,—,0,0,0,7,0,0,0,2.9
+ARM075,Bouclier rond,8,Boucliers,0,0,0,—,0,0,0,8,0,0,0,2.9
+ARM075,Bouclier rond,9,Boucliers,0,0,0,—,0,0,0,9,0,0,0,2.9
+ARM075,Bouclier rond,10,Boucliers,0,0,0,—,0,0,0,9,0,0,0,2.9
+ARM075,Bouclier rond,11,Boucliers,0,0,0,—,0,0,0,10,0,0,0,2.9
+ARM075,Bouclier rond,12,Boucliers,0,0,0,—,0,0,0,10,0,0,0,2.9
+ARM075,Bouclier rond,13,Boucliers,0,0,0,—,0,0,0,11,0,0,0,2.9
+ARM075,Bouclier rond,14,Boucliers,0,0,0,—,0,0,0,11,0,0,0,2.9
+ARM075,Bouclier rond,15,Boucliers,0,0,0,—,0,0,0,12,0,0,0,2.9
+ARM075,Bouclier rond,16,Boucliers,0,0,0,—,0,0,0,13,0,0,0,2.9
+ARM075,Bouclier rond,17,Boucliers,0,0,0,—,0,0,0,13,0,0,0,2.9
+ARM075,Bouclier rond,18,Boucliers,0,0,0,—,0,0,0,14,0,0,0,2.9
+ARM075,Bouclier rond,19,Boucliers,0,0,0,—,0,0,0,14,0,0,0,2.9
+ARM075,Bouclier rond,20,Boucliers,0,0,0,—,0,0,0,15,0,0,0,2.9
+ARM076,Écu triangulaire,1,Boucliers,0,0,0,—,0,0,0,6,0,0,0,3.4
+ARM076,Écu triangulaire,2,Boucliers,0,0,0,—,0,0,0,6,0,0,0,3.4
+ARM076,Écu triangulaire,3,Boucliers,0,0,0,—,0,0,0,7,0,0,0,3.4
+ARM076,Écu triangulaire,4,Boucliers,0,0,0,—,0,0,0,7,0,0,0,3.4
+ARM076,Écu triangulaire,5,Boucliers,0,0,0,—,0,0,0,8,0,0,0,3.4
+ARM076,Écu triangulaire,6,Boucliers,0,0,0,—,0,0,0,8,0,0,0,3.4
+ARM076,Écu triangulaire,7,Boucliers,0,0,0,—,0,0,0,9,0,0,0,3.4
+ARM076,Écu triangulaire,8,Boucliers,0,0,0,—,0,0,0,10,0,0,0,3.4
+ARM076,Écu triangulaire,9,Boucliers,0,0,0,—,0,0,0,10,0,0,0,3.4
+ARM076,Écu triangulaire,10,Boucliers,0,0,0,—,0,0,0,11,0,0,0,3.4
+ARM076,Écu triangulaire,11,Boucliers,0,0,0,—,0,0,0,12,0,0,0,3.4
+ARM076,Écu triangulaire,12,Boucliers,0,0,0,—,0,0,0,12,0,0,0,3.4
+ARM076,Écu triangulaire,13,Boucliers,0,0,0,—,0,0,0,13,0,0,0,3.4
+ARM076,Écu triangulaire,14,Boucliers,0,0,0,—,0,0,0,14,0,0,0,3.4
+ARM076,Écu triangulaire,15,Boucliers,0,0,0,—,0,0,0,14,0,0,0,3.4
+ARM076,Écu triangulaire,16,Boucliers,0,0,0,—,0,0,0,15,0,0,0,3.4
+ARM076,Écu triangulaire,17,Boucliers,0,0,0,—,0,0,0,16,0,0,0,3.4
+ARM076,Écu triangulaire,18,Boucliers,0,0,0,—,0,0,0,16,0,0,0,3.4
+ARM076,Écu triangulaire,19,Boucliers,0,0,0,—,0,0,0,17,0,0,0,3.4
+ARM076,Écu triangulaire,20,Boucliers,0,0,0,—,0,0,0,18,0,0,0,3.4
+ARM077,Bouclier cerf-volant,1,Boucliers,0,0,0,—,0,0,0,7,0,0,0,4
+ARM077,Bouclier cerf-volant,2,Boucliers,0,0,0,—,0,0,0,7,0,0,0,4
+ARM077,Bouclier cerf-volant,3,Boucliers,0,0,0,—,0,0,0,8,0,0,0,4
+ARM077,Bouclier cerf-volant,4,Boucliers,0,0,0,—,0,0,0,8,0,0,0,4
+ARM077,Bouclier cerf-volant,5,Boucliers,0,0,0,—,0,0,0,9,0,0,0,4
+ARM077,Bouclier cerf-volant,6,Boucliers,0,0,0,—,0,0,0,10,0,0,0,4
+ARM077,Bouclier cerf-volant,7,Boucliers,0,0,0,—,0,0,0,10,0,0,0,4
+ARM077,Bouclier cerf-volant,8,Boucliers,0,0,0,—,0,0,0,11,0,0,0,4
+ARM077,Bouclier cerf-volant,9,Boucliers,0,0,0,—,0,0,0,12,0,0,0,4
+ARM077,Bouclier cerf-volant,10,Boucliers,0,0,0,—,0,0,0,13,0,0,0,4
+ARM077,Bouclier cerf-volant,11,Boucliers,0,0,0,—,0,0,0,13,0,0,0,4
+ARM077,Bouclier cerf-volant,12,Boucliers,0,0,0,—,0,0,0,14,0,0,0,4
+ARM077,Bouclier cerf-volant,13,Boucliers,0,0,0,—,0,0,0,15,0,0,0,4
+ARM077,Bouclier cerf-volant,14,Boucliers,0,0,0,—,0,0,0,16,0,0,0,4
+ARM077,Bouclier cerf-volant,15,Boucliers,0,0,0,—,0,0,0,17,0,0,0,4
+ARM077,Bouclier cerf-volant,16,Boucliers,0,0,0,—,0,0,0,18,0,0,0,4
+ARM077,Bouclier cerf-volant,17,Boucliers,0,0,0,—,0,0,0,18,0,0,0,4
+ARM077,Bouclier cerf-volant,18,Boucliers,0,0,0,—,0,0,0,19,0,0,0,4
+ARM077,Bouclier cerf-volant,19,Boucliers,0,0,0,—,0,0,0,20,0,0,0,4
+ARM077,Bouclier cerf-volant,20,Boucliers,0,0,0,—,0,0,0,21,0,0,0,4
+ARM078,Bouclier d'acier,1,Boucliers,0,0,0,—,0,0,0,8,0,0,0,4.6
+ARM078,Bouclier d'acier,2,Boucliers,0,0,0,—,0,0,0,8,0,0,0,4.6
+ARM078,Bouclier d'acier,3,Boucliers,0,0,0,—,0,0,0,9,0,0,0,4.6
+ARM078,Bouclier d'acier,4,Boucliers,0,0,0,—,0,0,0,10,0,0,0,4.6
+ARM078,Bouclier d'acier,5,Boucliers,0,0,0,—,0,0,0,10,0,0,0,4.6
+ARM078,Bouclier d'acier,6,Boucliers,0,0,0,—,0,0,0,11,0,0,0,4.6
+ARM078,Bouclier d'acier,7,Boucliers,0,0,0,—,0,0,0,12,0,0,0,4.6
+ARM078,Bouclier d'acier,8,Boucliers,0,0,0,—,0,0,0,13,0,0,0,4.6
+ARM078,Bouclier d'acier,9,Boucliers,0,0,0,—,0,0,0,14,0,0,0,4.6
+ARM078,Bouclier d'acier,10,Boucliers,0,0,0,—,0,0,0,15,0,0,0,4.6
+ARM078,Bouclier d'acier,11,Boucliers,0,0,0,—,0,0,0,15,0,0,0,4.6
+ARM078,Bouclier d'acier,12,Boucliers,0,0,0,—,0,0,0,16,0,0,0,4.6
+ARM078,Bouclier d'acier,13,Boucliers,0,0,0,—,0,0,0,17,0,0,0,4.6
+ARM078,Bouclier d'acier,14,Boucliers,0,0,0,—,0,0,0,18,0,0,0,4.6
+ARM078,Bouclier d'acier,15,Boucliers,0,0,0,—,0,0,0,19,0,0,0,4.6
+ARM078,Bouclier d'acier,16,Boucliers,0,0,0,—,0,0,0,20,0,0,0,4.6
+ARM078,Bouclier d'acier,17,Boucliers,0,0,0,—,0,0,0,21,0,0,0,4.6
+ARM078,Bouclier d'acier,18,Boucliers,0,0,0,—,0,0,0,22,0,0,0,4.6
+ARM078,Bouclier d'acier,19,Boucliers,0,0,0,—,0,0,0,23,0,0,0,4.6
+ARM078,Bouclier d'acier,20,Boucliers,0,0,0,—,0,0,0,24,0,0,0,4.6
+ARM079,Pavois,1,Boucliers,0,0,0,—,0,0,0,9,0,0,0,6.3
+ARM079,Pavois,2,Boucliers,0,0,0,—,0,0,0,10,0,0,0,6.3
+ARM079,Pavois,3,Boucliers,0,0,0,—,0,0,0,10,0,0,0,6.3
+ARM079,Pavois,4,Boucliers,0,0,0,—,0,0,0,11,0,0,0,6.3
+ARM079,Pavois,5,Boucliers,0,0,0,—,0,0,0,12,0,0,0,6.3
+ARM079,Pavois,6,Boucliers,0,0,0,—,0,0,0,13,0,0,0,6.3
+ARM079,Pavois,7,Boucliers,0,0,0,—,0,0,0,13,0,0,0,6.3
+ARM079,Pavois,8,Boucliers,0,0,0,—,0,0,0,14,0,0,0,6.3
+ARM079,Pavois,9,Boucliers,0,0,0,—,0,0,0,15,0,0,0,6.3
+ARM079,Pavois,10,Boucliers,0,0,0,—,0,0,0,16,0,0,0,6.3
+ARM079,Pavois,11,Boucliers,0,0,0,—,0,0,0,17,0,0,0,6.3
+ARM079,Pavois,12,Boucliers,0,0,0,—,0,0,0,18,0,0,0,6.3
+ARM079,Pavois,13,Boucliers,0,0,0,—,0,0,0,19,0,0,0,6.3
+ARM079,Pavois,14,Boucliers,0,0,0,—,0,0,0,20,0,0,0,6.3
+ARM079,Pavois,15,Boucliers,0,0,0,—,0,0,0,21,0,0,0,6.3
+ARM079,Pavois,16,Boucliers,0,0,0,—,0,0,0,23,0,0,0,6.3
+ARM079,Pavois,17,Boucliers,0,0,0,—,0,0,0,24,0,0,0,6.3
+ARM079,Pavois,18,Boucliers,0,0,0,—,0,0,0,25,0,0,0,6.3
+ARM079,Pavois,19,Boucliers,0,0,0,—,0,0,0,26,0,0,0,6.3
+ARM079,Pavois,20,Boucliers,0,0,0,—,0,0,0,27,0,0,0,6.3
+ARM080,Bouclier-tour,1,Boucliers,0,0,0,—,0,0,0,11,0,0,0,7.8
+ARM080,Bouclier-tour,2,Boucliers,0,0,0,—,0,0,0,12,0,0,0,7.8
+ARM080,Bouclier-tour,3,Boucliers,0,0,0,—,0,0,0,12,0,0,0,7.8
+ARM080,Bouclier-tour,4,Boucliers,0,0,0,—,0,0,0,13,0,0,0,7.8
+ARM080,Bouclier-tour,5,Boucliers,0,0,0,—,0,0,0,14,0,0,0,7.8
+ARM080,Bouclier-tour,6,Boucliers,0,0,0,—,0,0,0,15,0,0,0,7.8
+ARM080,Bouclier-tour,7,Boucliers,0,0,0,—,0,0,0,16,0,0,0,7.8
+ARM080,Bouclier-tour,8,Boucliers,0,0,0,—,0,0,0,18,0,0,0,7.8
+ARM080,Bouclier-tour,9,Boucliers,0,0,0,—,0,0,0,19,0,0,0,7.8
+ARM080,Bouclier-tour,10,Boucliers,0,0,0,—,0,0,0,20,0,0,0,7.8
+ARM080,Bouclier-tour,11,Boucliers,0,0,0,—,0,0,0,21,0,0,0,7.8
+ARM080,Bouclier-tour,12,Boucliers,0,0,0,—,0,0,0,22,0,0,0,7.8
+ARM080,Bouclier-tour,13,Boucliers,0,0,0,—,0,0,0,24,0,0,0,7.8
+ARM080,Bouclier-tour,14,Boucliers,0,0,0,—,0,0,0,25,0,0,0,7.8
+ARM080,Bouclier-tour,15,Boucliers,0,0,0,—,0,0,0,26,0,0,0,7.8
+ARM080,Bouclier-tour,16,Boucliers,0,0,0,—,0,0,0,28,0,0,0,7.8
+ARM080,Bouclier-tour,17,Boucliers,0,0,0,—,0,0,0,29,0,0,0,7.8
+ARM080,Bouclier-tour,18,Boucliers,0,0,0,—,0,0,0,30,0,0,0,7.8
+ARM080,Bouclier-tour,19,Boucliers,0,0,0,—,0,0,0,31,0,0,0,7.8
+ARM080,Bouclier-tour,20,Boucliers,0,0,0,—,0,0,0,33,0,0,0,7.8
+ARM081,Égide sacrée,1,Boucliers,0,0,0,—,0,0,0,5,3,0,0,3.7
+ARM081,Égide sacrée,2,Boucliers,0,0,0,—,0,0,0,5,3,0,0,3.7
+ARM081,Égide sacrée,3,Boucliers,0,0,0,—,0,0,0,6,3,0,0,3.7
+ARM081,Égide sacrée,4,Boucliers,0,0,0,—,0,0,0,6,4,0,0,3.7
+ARM081,Égide sacrée,5,Boucliers,0,0,0,—,0,0,0,7,4,0,0,3.7
+ARM081,Égide sacrée,6,Boucliers,0,0,0,—,0,0,0,7,4,0,0,3.7
+ARM081,Égide sacrée,7,Boucliers,0,0,0,—,0,0,0,7,4,0,0,3.7
+ARM081,Égide sacrée,8,Boucliers,0,0,0,—,0,0,0,8,5,0,0,3.7
+ARM081,Égide sacrée,9,Boucliers,0,0,0,—,0,0,0,9,5,0,0,3.7
+ARM081,Égide sacrée,10,Boucliers,0,0,0,—,0,0,0,9,5,0,0,3.7
+ARM081,Égide sacrée,11,Boucliers,0,0,0,—,0,0,0,10,6,0,0,3.7
+ARM081,Égide sacrée,12,Boucliers,0,0,0,—,0,0,0,10,6,0,0,3.7
+ARM081,Égide sacrée,13,Boucliers,0,0,0,—,0,0,0,11,6,0,0,3.7
+ARM081,Égide sacrée,14,Boucliers,0,0,0,—,0,0,0,11,7,0,0,3.7
+ARM081,Égide sacrée,15,Boucliers,0,0,0,—,0,0,0,12,7,0,0,3.7
+ARM081,Égide sacrée,16,Boucliers,0,0,0,—,0,0,0,13,8,0,0,3.7
+ARM081,Égide sacrée,17,Boucliers,0,0,0,—,0,0,0,13,8,0,0,3.7
+ARM081,Égide sacrée,18,Boucliers,0,0,0,—,0,0,0,14,8,0,0,3.7
+ARM081,Égide sacrée,19,Boucliers,0,0,0,—,0,0,0,14,9,0,0,3.7
+ARM081,Égide sacrée,20,Boucliers,0,0,0,—,0,0,0,15,9,0,0,3.7
+ARM082,Bouclier runique,1,Boucliers,0,0,0,—,0,0,0,4,4,0,0,3.5
+ARM082,Bouclier runique,2,Boucliers,0,0,0,—,0,0,0,4,4,0,0,3.5
+ARM082,Bouclier runique,3,Boucliers,0,0,0,—,0,0,0,5,5,0,0,3.5
+ARM082,Bouclier runique,4,Boucliers,0,0,0,—,0,0,0,5,5,0,0,3.5
+ARM082,Bouclier runique,5,Boucliers,0,0,0,—,0,0,0,5,5,0,0,3.5
+ARM082,Bouclier runique,6,Boucliers,0,0,0,—,0,0,0,6,6,0,0,3.5
+ARM082,Bouclier runique,7,Boucliers,0,0,0,—,0,0,0,6,6,0,0,3.5
+ARM082,Bouclier runique,8,Boucliers,0,0,0,—,0,0,0,6,6,0,0,3.5
+ARM082,Bouclier runique,9,Boucliers,0,0,0,—,0,0,0,7,7,0,0,3.5
+ARM082,Bouclier runique,10,Boucliers,0,0,0,—,0,0,0,7,7,0,0,3.5
+ARM082,Bouclier runique,11,Boucliers,0,0,0,—,0,0,0,8,8,0,0,3.5
+ARM082,Bouclier runique,12,Boucliers,0,0,0,—,0,0,0,8,8,0,0,3.5
+ARM082,Bouclier runique,13,Boucliers,0,0,0,—,0,0,0,9,9,0,0,3.5
+ARM082,Bouclier runique,14,Boucliers,0,0,0,—,0,0,0,9,9,0,0,3.5
+ARM082,Bouclier runique,15,Boucliers,0,0,0,—,0,0,0,10,10,0,0,3.5
+ARM082,Bouclier runique,16,Boucliers,0,0,0,—,0,0,0,10,10,0,0,3.5
+ARM082,Bouclier runique,17,Boucliers,0,0,0,—,0,0,0,10,10,0,0,3.5
+ARM082,Bouclier runique,18,Boucliers,0,0,0,—,0,0,0,11,11,0,0,3.5
+ARM082,Bouclier runique,19,Boucliers,0,0,0,—,0,0,0,11,11,0,0,3.5
+ARM082,Bouclier runique,20,Boucliers,0,0,0,—,0,0,0,12,12,0,0,3.5
