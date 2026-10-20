@@ -82,6 +82,36 @@ namespace UIRPGCONTENTTEXT011
 		return false;
 	}
 
+
+	/** Favored Enemy names are derived from canonical bestiary categories, not preserved class choice copy. */
+	bool TryResolveFavoredEnemyCategoryTitle(FName ClassId, FName ChoiceId, FString& OutTitle)
+	{
+		OutTitle.Reset();
+		if (ClassId != TEXT("Ranger") ||
+			!ChoiceId.ToString().StartsWith(TEXT("Talent_Ranger_Hunter_FavoredEnemy_")))
+		{
+			return false;
+		}
+
+		TArray<FRPGRangerFavoredEnemyCategoryDefinition> Categories;
+		FString Error;
+		if (!FRPGRangerAuthoring::CollectProductionFavoredEnemyCategories(Categories, Error))
+		{
+			return false;
+		}
+		for (const FRPGRangerFavoredEnemyCategoryDefinition& Category : Categories)
+		{
+			const FName ExpectedId(*FString::Printf(
+				TEXT("Talent_Ranger_Hunter_FavoredEnemy_%s"), *Category.CategoryId.ToString()));
+			if (ChoiceId == ExpectedId)
+			{
+				OutTitle = FString::Printf(TEXT("Ennemi juré — %s"), *Category.DisplayName.ToString());
+				return true;
+			}
+		}
+		return false;
+	}
+
 	void LogSerializedText(const URPGClassAsset& ClassAsset)
 	{
 		UE_LOG(
@@ -402,7 +432,13 @@ bool FUIRPGCONTENTTEXT012ClassTextPreservationTest::RunTest(const FString&)
 				continue;
 			}
 
-			const FString ExpectedDisplayName = FString::Printf(TEXT("TEXT01.2 Choice Name %s"), *ChoiceId.ToString());
+			FString ExpectedDisplayName = FString::Printf(TEXT("TEXT01.2 Choice Name %s"), *ChoiceId.ToString());
+			FString CategoryTitle;
+			if (TryResolveFavoredEnemyCategoryTitle(Spec.ClassId, ChoiceId, CategoryTitle))
+			{
+				// The only choice whose name is canonically rebuilt during rematerialization.
+				ExpectedDisplayName = CategoryTitle;
+			}
 			const FString ExpectedDescription = FString::Printf(TEXT("TEXT01.2 Choice Description %s"), *ChoiceId.ToString());
 			TestEqual(
 				*FString::Printf(TEXT("%s/%s preserves Choice DisplayName"), *Spec.ClassId.ToString(), *ChoiceId.ToString()),
@@ -498,10 +534,13 @@ bool FUIRPGCONTENTTEXT013BootstrapOnlyTest::RunTest(const FString&)
 		for (const FRPGClassProgressionChoiceDefinition& Choice : Fresh->ProgressionChoices)
 		{
 			const FString StableId = Choice.ChoiceId.ToString();
+			FString CanonicalCategoryTitle;
+			const bool bCategoryOwned = TryResolveFavoredEnemyCategoryTitle(
+				Spec.ClassId, Choice.ChoiceId, CanonicalCategoryTitle);
 			TestEqual(
-				*FString::Printf(TEXT("%s/%s Choice bootstrap name is its stable id"), *Spec.ClassId.ToString(), *StableId),
+				*FString::Printf(TEXT("%s/%s Choice bootstrap name uses its correct text authority"), *Spec.ClassId.ToString(), *StableId),
 				Choice.DisplayName.ToString(),
-				StableId);
+				bCategoryOwned ? CanonicalCategoryTitle : StableId);
 			TestEqual(
 				*FString::Printf(TEXT("%s/%s Choice bootstrap description is technical only"), *Spec.ClassId.ToString(), *StableId),
 				Choice.Description.ToString(),
