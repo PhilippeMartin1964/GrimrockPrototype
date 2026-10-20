@@ -29,7 +29,8 @@ function Get-ZipXml {
         try {
             $Document = [System.Xml.XmlDocument]::new()
             $Document.LoadXml($Reader.ReadToEnd())
-            return $Document
+            # Preserve the XmlDocument as one object when returned through the pipeline.
+            return ,$Document
         } finally { $Reader.Dispose() }
     } finally { $Stream.Dispose() }
 }
