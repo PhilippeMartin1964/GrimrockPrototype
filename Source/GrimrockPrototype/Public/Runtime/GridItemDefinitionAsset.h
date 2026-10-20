@@ -11,6 +11,8 @@
 class UMaterialInterface;
 class UStaticMesh;
 class UTexture2D;
+class UGridWeaponCatalogueAsset;
+struct FGridWeaponLevelProfile;
 
 UENUM(BlueprintType)
 enum class EGridItemType : uint8
@@ -98,6 +100,22 @@ public:
 	/** Generic combat actions granted while this item is equipped. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Combat Actions")
 	TArray<FGridCombatActionDefinition> CombatActions;
+
+	/** ARMEMENT01.5 opt-in. Disabled for every existing Legacy item. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Weapon Catalogue")
+	bool bUseWeaponCatalogue = false;
+
+	/** Must match ARM001..ARM082 when catalogue lookup is enabled. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Weapon Catalogue", meta = (EditCondition = "bUseWeaponCatalogue"))
+	FName WeaponArchetypeId = NAME_None;
+
+	/** Applied once to newly created (ItemLevel=0) instances. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Weapon Catalogue", meta = (EditCondition = "bUseWeaponCatalogue", ClampMin = "1", ClampMax = "20"))
+	int32 DefaultWeaponItemLevel = 1;
+
+	/** Explicit catalogue reference; no unconditional runtime singleton or automatic migration. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Weapon Catalogue", meta = (EditCondition = "bUseWeaponCatalogue"))
+	TSoftObjectPtr<UGridWeaponCatalogueAsset> WeaponCatalogue;
 
 	/**
 	 * Enables one inventory-backed combat action. C7 deliberately uses explicit
@@ -255,6 +273,13 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Equipment|Combat Actions")
 	bool CanProvideAttackFromSlot(EGridEquipmentSlot Slot) const;
+
+	/** Resolve only this item's fixed-level catalogue profile; returns false for Legacy/passive/invalid references. */
+	bool TryGetWeaponCatalogueProfile(int32 ItemLevel, const FGridWeaponLevelProfile*& OutProfile) const;
+
+	/** Apply real-dice template on top of the authored action without changing action identity or costs. */
+	bool ResolveEquippedOffensiveProfile(const FGridItemInstance& Instance,
+		const FGridCombatActionDefinition& Action, FGridOffensiveEquipmentProfile& OutProfile) const;
 
 	UFUNCTION(BlueprintPure, Category = "Equipment|Combat Actions")
 	bool HasValidCombatActions() const;

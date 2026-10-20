@@ -292,6 +292,14 @@ struct FGridItemInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FName ItemDefinitionId = NAME_None;
 
+	/**
+	 * ARMEMENT01.5: immutable loot-template level (1..20); 0 means Legacy.
+	 * Serialized as part of FGridItemInstance in inventory, equipment,
+	 * cursor and SaveGame. Not derived from the character's RPG level.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Weapon Catalogue", meta = (ClampMin = "0", ClampMax = "20"))
+	int32 ItemLevel = 0;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FText DisplayName;
 
@@ -333,7 +341,8 @@ struct FGridItemInstance
 
 	bool IsValid() const
 	{
-		return RuntimeObjectId.IsValid() && ItemDefinitionId != NAME_None && Quantity > 0;
+		return RuntimeObjectId.IsValid() && ItemDefinitionId != NAME_None && Quantity > 0 &&
+			ItemLevel >= 0 && ItemLevel <= 20;
 	}
 };
 

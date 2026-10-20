@@ -826,7 +826,13 @@ bool UGridPartyInventoryComponent::CanAddItemToCharacterInventory(int32 Characte
 {
 	FGridItemInstance ItemToAdd = Item;
 	const int32 InitialQuantity = ItemToAdd.Quantity;
-	ApplyItemDefinitionToInstance(ItemToAdd);
+	const UGridItemDefinitionAsset* SourceDefinition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
+	if (!ApplyItemDefinitionToInstance(ItemToAdd) &&
+		SourceDefinition && SourceDefinition->bUseWeaponCatalogue)
+	{
+		// Never accept an unresolved linked item as a silently downgraded Legacy item.
+		return false;
+	}
 	ItemToAdd.Quantity = InitialQuantity;
 
 	if (!IsValidCharacterIndex(CharacterIndex) || !ItemToAdd.IsValid())
@@ -869,7 +875,13 @@ bool UGridPartyInventoryComponent::AddItemToCharacterInventory(int32 CharacterIn
 {
 	FGridItemInstance ItemToAdd = Item;
 	const int32 InitialQuantity = ItemToAdd.Quantity;
-	ApplyItemDefinitionToInstance(ItemToAdd);
+	const UGridItemDefinitionAsset* SourceDefinition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
+	if (!ApplyItemDefinitionToInstance(ItemToAdd) &&
+		SourceDefinition && SourceDefinition->bUseWeaponCatalogue)
+	{
+		// Never accept an unresolved linked item as a silently downgraded Legacy item.
+		return false;
+	}
 	ItemToAdd.Quantity = InitialQuantity;
 
 	if (!IsValidCharacterIndex(CharacterIndex) || !ItemToAdd.IsValid() || !CanAddItemToCharacterInventory(CharacterIndex, ItemToAdd))
@@ -1281,7 +1293,22 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
 		return false;
 	}
 
-	ItemInstance.Weight = Definition->Weight;
+	// Assign the catalogue level only once for a newly minted instance. Never
+	// overwrite a persisted level when moving/rehydrating an existing item.
+	float ResolvedWeight = Definition->Weight;
+	if (Definition->bUseWeaponCatalogue)
+	{
+		const int32 FixedLevel = ItemInstance.ItemLevel == 0
+			? Definition->DefaultWeaponItemLevel : ItemInstance.ItemLevel;
+		const FGridWeaponLevelProfile* LevelProfile = nullptr;
+		if (!Definition->TryGetWeaponCatalogueProfile(FixedLevel, LevelProfile))
+		{
+			return false;
+		}
+		ItemInstance.ItemLevel = FixedLevel;
+		ResolvedWeight = LevelProfile->WeightKg;
+	}
+	ItemInstance.Weight = ResolvedWeight;
 	if (ItemInstance.DisplayName.IsEmpty())
 	{
 		ItemInstance.DisplayName = Definition->DisplayName;

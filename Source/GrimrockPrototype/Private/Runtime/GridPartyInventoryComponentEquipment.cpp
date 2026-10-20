@@ -53,7 +53,16 @@ bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, cons
 	}
 
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
-	return Definition && Definition->CanEquipToSlot(TargetSlot);
+	if (!Definition || !Definition->CanEquipToSlot(TargetSlot))
+	{
+		return false;
+	}
+	if (Definition->bUseWeaponCatalogue)
+	{
+		const FGridWeaponLevelProfile* Profile = nullptr;
+		return Definition->TryGetWeaponCatalogueProfile(Item.ItemLevel, Profile);
+	}
+	return true;
 }
 
 bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterIndex, int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot)

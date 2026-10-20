@@ -38,7 +38,8 @@ namespace
 		return Profile;
 	}
 
-	bool ResolveMON12ItemAttackProfile(const UGridItemDefinitionAsset* Definition, FGridOffensiveEquipmentProfile& OutProfile)
+	bool ResolveMON12ItemAttackProfile(const UGridItemDefinitionAsset* Definition,
+		const FGridItemInstance& EquippedItem, FGridOffensiveEquipmentProfile& OutProfile)
 	{
 		OutProfile = FGridOffensiveEquipmentProfile();
 		if (!IsValid(Definition))
@@ -51,8 +52,7 @@ namespace
 			if (Action.IsValid() && Action.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
 				Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
 			{
-				OutProfile = Action.OffensiveProfile;
-				return true;
+				return Definition->ResolveEquippedOffensiveProfile(EquippedItem, Action, OutProfile);
 			}
 		}
 		return false;
@@ -992,7 +992,7 @@ bool UGridTurnManagerComponent::ResolveCombatActionWeaponProfile(const UGridPart
 		{
 			continue;
 		}
-		if (!ResolveMON12ItemAttackProfile(Definition, OutProfile) ||
+		if (!ResolveMON12ItemAttackProfile(Definition, EquippedItem, OutProfile) ||
 			!ActionDefinition.WeaponAttackProfile.ApplyToOffensiveProfile(ActionDefinition.ActionId, ActionDefinition.RangeCells, OutProfile))
 		{
 			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
@@ -1064,7 +1064,7 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyIn
 			return false;
 		}
 
-		if (!ResolveMON12ItemAttackProfile(Definition, OutProfile))
+		if (!ResolveMON12ItemAttackProfile(Definition, EquippedItem, OutProfile))
 		{
 			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
 			return false;
@@ -1100,7 +1100,7 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyIn
 			return false;
 		}
 
-		if (!ResolveMON12ItemAttackProfile(Definition, OutProfile))
+		if (!ResolveMON12ItemAttackProfile(Definition, EquippedItem, OutProfile))
 		{
 			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
 			return false;

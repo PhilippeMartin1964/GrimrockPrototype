@@ -62,7 +62,8 @@ namespace
 		return SourcePolicy == EGridCombatActionSourcePolicy::Ability || SourcePolicy == EGridCombatActionSourcePolicy::Spell;
 	}
 
-	bool ResolveEquippedAttackProfile(const UGridItemDefinitionAsset* Definition, FGridOffensiveEquipmentProfile& OutProfile)
+	bool ResolveEquippedAttackProfile(const UGridItemDefinitionAsset* Definition, const FGridItemInstance& Item,
+		FGridOffensiveEquipmentProfile& OutProfile)
 	{
 		OutProfile = FGridOffensiveEquipmentProfile();
 		if (!IsValid(Definition))
@@ -75,8 +76,7 @@ namespace
 			if (Action.IsValid() && Action.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
 				Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
 			{
-				OutProfile = Action.OffensiveProfile;
-				return true;
+				return Definition->ResolveEquippedOffensiveProfile(Item, Action, OutProfile);
 			}
 		}
 		return false;
@@ -301,6 +301,19 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 		for (const FGridCombatActionDefinition& SourceAction : ItemDefinition->CombatActions)
 		{
 			FGridCombatActionDefinition Definition = SourceAction;
+			if (ItemDefinition->bUseWeaponCatalogue &&
+				Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+				Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
+			{
+				FGridOffensiveEquipmentProfile ResolvedProfile;
+				if (!ItemDefinition->ResolveEquippedOffensiveProfile(EquippedItem, SourceAction, ResolvedProfile))
+				{
+					// An invalid catalogue level must not fall back to Legacy dice.
+					continue;
+				}
+				Definition.OffensiveProfile = ResolvedProfile;
+				Definition.RangeCells = ResolvedProfile.RangeCells;
+			}
 			for (const FName ItemTag : ItemDefinition->ItemTags)
 			{
 				if (!ItemTag.IsNone())
@@ -453,7 +466,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			{
 				Context.EquippedOffensiveSourceTagSets.Add(Definition->ItemTags);
 				FGridOffensiveEquipmentProfile EquippedProfile;
-				if (ResolveEquippedAttackProfile(Definition, EquippedProfile) && EquippedProfile.IsValid())
+				if (ResolveEquippedAttackProfile(Definition, *Item, EquippedProfile) && EquippedProfile.IsValid())
 				{
 					Context.EquippedOffensivePhysicalSubtypes.Add(
 						EquippedProfile.AttackDefinition.DamageType == EGridDamageType::Physical

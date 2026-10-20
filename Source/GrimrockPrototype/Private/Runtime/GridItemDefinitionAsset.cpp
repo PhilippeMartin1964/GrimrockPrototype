@@ -1,4 +1,5 @@
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 
 #include "Engine/StaticMesh.h"
 
@@ -62,6 +63,26 @@ bool UGridItemDefinitionAsset::IsValidDefinition() const
 	if (!HasValidCombatActions())
 	{
 		return false;
+	}
+
+	if (bUseWeaponCatalogue)
+	{
+		const FGridWeaponLevelProfile* DefaultProfile = nullptr;
+		if (bStackable || WeaponArchetypeId.IsNone() || DefaultWeaponItemLevel < 1 || DefaultWeaponItemLevel > 20 ||
+			!TryGetWeaponCatalogueProfile(DefaultWeaponItemLevel, DefaultProfile))
+		{
+			return false;
+		}
+		// Passive catalogue entries must not author an artificial equipped attack.
+		if (!DefaultProfile->DamageDice.bEnabled &&
+			CombatActions.ContainsByPredicate([](const FGridCombatActionDefinition& Action)
+			{
+				return Action.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+					Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+			}))
+		{
+			return false;
+		}
 	}
 
 	if (!FMath::IsFinite(WorldPhysicsInitialTiltDegrees) || WorldPhysicsInitialTiltDegrees < 0.0f || WorldPhysicsInitialTiltDegrees > 45.0f)
@@ -179,11 +200,75 @@ float UGridItemDefinitionAsset::GetThrowSpeedScaleForStrength(int32 Strength) co
 	return FMath::Clamp(StrengthFactor * WeightFactor, 0.5f, 1.5f);
 }
 
+bool UGridItemDefinitionAsset::TryGetWeaponCatalogueProfile(
+	int32 ItemLevel, const FGridWeaponLevelProfile*& OutProfile) const
+{
+	OutProfile = nullptr;
+	if (!bUseWeaponCatalogue || bStackable || WeaponArchetypeId.IsNone() || ItemLevel < 1 || ItemLevel > 20)
+	{
+		return false;
+	}
+	const UGridWeaponCatalogueAsset* Catalogue = WeaponCatalogue.LoadSynchronous();
+	if (!IsValid(Catalogue))
+	{
+		return false;
+	}
+	const FGridWeaponLevelProfile* Found = Catalogue->FindProfile(WeaponArchetypeId, ItemLevel);
+	if (!Found || !Found->IsValidProfile())
+	{
+		return false;
+	}
+	OutProfile = Found;
+	return true;
+}
+
+bool UGridItemDefinitionAsset::ResolveEquippedOffensiveProfile(
+	const FGridItemInstance& Instance, const FGridCombatActionDefinition& Action,
+	FGridOffensiveEquipmentProfile& OutProfile) const
+{
+	OutProfile = FGridOffensiveEquipmentProfile();
+	if (!Instance.IsValid() || Instance.ItemDefinitionId != ItemDefinitionId ||
+		!Action.IsValid() || Action.SourcePolicy != EGridCombatActionSourcePolicy::Equipment ||
+		Action.ResolutionProfile != EGridCombatActionResolutionProfile::Attack)
+	{
+		return false;
+	}
+	OutProfile = Action.OffensiveProfile;
+	if (!bUseWeaponCatalogue)
+	{
+		return OutProfile.IsValid();
+	}
+
+	const FGridWeaponLevelProfile* Profile = nullptr;
+	FGridAttackDefinition CatalogueAttack;
+	if (!TryGetWeaponCatalogueProfile(Instance.ItemLevel, Profile) ||
+		!Profile->TryBuildAttackDefinition(CatalogueAttack))
+	{
+		OutProfile = FGridOffensiveEquipmentProfile();
+		return false;
+	}
+
+	// Keep action ID and independent equipment flat modifiers, but never duplicate
+	// NdM+K: K belongs exclusively to CatalogueAttack.DamageDice.FlatBonus.
+	OutProfile.AttackDefinition = CatalogueAttack;
+	OutProfile.DamageScalingAttribute = Profile->ScalingAttribute;
+	OutProfile.RangeCells = Profile->RangeCells;
+	return OutProfile.IsValid();
+}
+
 bool UGridItemDefinitionAsset::CanProvideAttackFromSlot(EGridEquipmentSlot Slot) const
 {
 	if ((Slot != EGridEquipmentSlot::MainHand && Slot != EGridEquipmentSlot::OffHand) || !CompatibleEquipmentSlots.Contains(Slot))
 	{
 		return false;
+	}
+	if (bUseWeaponCatalogue)
+	{
+		const FGridWeaponLevelProfile* Profile = nullptr;
+		if (!TryGetWeaponCatalogueProfile(DefaultWeaponItemLevel, Profile) || !Profile->DamageDice.bEnabled)
+		{
+			return false;
+		}
 	}
 	return CombatActions.ContainsByPredicate(
 		[](const FGridCombatActionDefinition& Action)
