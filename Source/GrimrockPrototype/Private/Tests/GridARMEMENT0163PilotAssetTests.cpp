@@ -53,8 +53,11 @@ bool FARMEMENT0163MaterializedAssetTest::RunTest(const FString&)
 		{
 			continue;
 		}
-		TestEqual(TEXT("Pilot icon width 512px"), Icon->GetSizeX(), 512);
-		TestEqual(TEXT("Pilot icon height 512px"), Icon->GetSizeY(), 512);
+		// Check the imported source resolution, not platform/RHI texture dimensions.
+		// Under -NullRHI the latter may be 0 despite a valid PNG source.
+		const FIntPoint ImportedSize = Icon->GetImportedSize();
+		TestEqual(TEXT("Pilot imported icon width 512px"), ImportedSize.X, 512);
+		TestEqual(TEXT("Pilot imported icon height 512px"), ImportedSize.Y, 512);
 		TestTrue(TEXT("Pilot mesh has render geometry"), Mesh->GetNumLODs() > 0);
 		TestTrue(TEXT("Pilot mesh has nonzero bounds"), Mesh->GetBounds().SphereRadius > 1.0f);
 	}
