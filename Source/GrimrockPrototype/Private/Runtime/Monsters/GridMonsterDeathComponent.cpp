@@ -6,6 +6,7 @@
 #include "EngineUtils.h"
 #include "RPG/RPGExperienceRewardService.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -337,14 +338,32 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 		}
 
 		const FGridMonsterLootEntry& Entry = LootTable[Result.EntryIndex];
-		UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset;
+		UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset.Get();
+		if (!IsValid(ItemDefinition) && RuntimeActor)
+		{
+			ItemDefinition = RuntimeActor->ResolveRuntimeItemDefinition(Result.ItemDefinitionId);
+		}
+		int32 FixedItemLevel = 0;
+		if (!FGridMonsterLootResolver::TryResolveItemLevel(Entry, ItemDefinition, FixedItemLevel))
+		{
+			++FailedLootCount;
+			UE_LOG(LogGridMonsterLoot, Warning, TEXT("[GridMonsterLoot] InvalidFixedLevel Monster=%s Item=%s Level=%d"),
+				*GetNameSafe(OwnerMonster), *Result.ItemDefinitionId.ToString(), Entry.ItemLevel);
+			continue;
+		}
+		const FGridWeaponLevelProfile* LevelProfile = nullptr;
+		if (IsValid(ItemDefinition) && ItemDefinition->bUseWeaponCatalogue && FixedItemLevel > 0)
+		{
+			ItemDefinition->TryGetWeaponCatalogueProfile(FixedItemLevel, LevelProfile);
+		}
 
 		FGridItemInstance ItemInstance;
 		ItemInstance.RuntimeObjectId = FGuid::NewGuid();
 		ItemInstance.ItemDefinitionId = Result.ItemDefinitionId;
+		ItemInstance.ItemLevel = FixedItemLevel;
 		ItemInstance.DisplayName = ItemDefinition ? ItemDefinition->DisplayName : FText::FromName(Result.ItemDefinitionId);
 		ItemInstance.Quantity = Result.Quantity;
-		ItemInstance.Weight = ItemDefinition ? ItemDefinition->Weight : 0.0f;
+		ItemInstance.Weight = LevelProfile ? LevelProfile->WeightKg : (ItemDefinition ? ItemDefinition->Weight : 0.0f);
 		ItemInstance.OwnerType = EGridItemOwnerType::World;
 		ItemInstance.OwnerGuid = FGuid();
 		ItemInstance.OwnerCharacterIndex = INDEX_NONE;

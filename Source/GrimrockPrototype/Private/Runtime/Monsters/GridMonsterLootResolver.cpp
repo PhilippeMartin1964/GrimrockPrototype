@@ -1,4 +1,5 @@
 #include "Runtime/Monsters/GridMonsterLootResolver.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 
 namespace
 {
@@ -59,4 +60,32 @@ FGridMonsterLootRollResult FGridMonsterLootResolver::ResolveEntryFromRolls(
 		Result.Quantity = ResolveMON8Quantity(Entry, QuantityRoll);
 	}
 	return Result;
+}
+
+bool FGridMonsterLootResolver::TryResolveItemLevel(
+	const FGridMonsterLootEntry& Entry, const UGridItemDefinitionAsset* ItemDefinition, int32& OutItemLevel)
+{
+	OutItemLevel = 0;
+	if (!Entry.IsValidDefinition())
+	{
+		return false;
+	}
+	if (!IsValid(ItemDefinition))
+	{
+		// Legacy id-only loot can still use its ordinary unresolved path.
+		// A fixed catalogue level requires a definition to validate against.
+		return Entry.ItemLevel == 0;
+	}
+	if (!ItemDefinition->bUseWeaponCatalogue)
+	{
+		return Entry.ItemLevel == 0;
+	}
+	const int32 FixedLevel = Entry.ItemLevel == 0 ? ItemDefinition->DefaultWeaponItemLevel : Entry.ItemLevel;
+	const FGridWeaponLevelProfile* Profile = nullptr;
+	if (FixedLevel < 1 || FixedLevel > 20 || !ItemDefinition->TryGetWeaponCatalogueProfile(FixedLevel, Profile))
+	{
+		return false;
+	}
+	OutItemLevel = FixedLevel;
+	return true;
 }

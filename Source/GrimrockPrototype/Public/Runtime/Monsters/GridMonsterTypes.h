@@ -342,6 +342,10 @@ struct FGridMonsterLootEntry
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Loot", meta = (ClampMin = "1"))
 	int32 MaxQuantity = 1;
 
+	/** 0 uses the item's default level; 1..20 fixes the level of dropped weapon instances. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Loot", meta = (ClampMin = "0", ClampMax = "20", UIMin = "0", UIMax = "20"))
+	int32 ItemLevel = 0;
+
 	/** Optional direct definition used by MON8 world loot placement. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Loot")
 	TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;

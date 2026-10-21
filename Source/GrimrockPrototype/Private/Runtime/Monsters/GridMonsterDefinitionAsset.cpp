@@ -19,7 +19,7 @@ bool FGridMonsterLootEntry::IsValidDefinition() const
 	const FName ResolvedId = GetResolvedItemDefinitionId();
 	const bool bIdsAgree = !ItemDefinitionAsset || ItemDefinitionId.IsNone() || ItemDefinitionAsset->ItemDefinitionId == ItemDefinitionId;
 	return !ResolvedId.IsNone() && bIdsAgree && FMath::IsFinite(DropChance) && DropChance >= 0.0f && DropChance <= 1.0f && MinQuantity > 0 &&
-		MaxQuantity >= MinQuantity;
+		MaxQuantity >= MinQuantity && ItemLevel >= 0 && ItemLevel <= 20;
 }
 
 void UGridMonsterDefinitionAsset::PostLoad()
