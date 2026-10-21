@@ -235,17 +235,29 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	}
 	else if (Definition)
 	{
-		if (Definition->CanEquipToSlot(EGridEquipmentSlot::MainHand))
+		if (Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded &&
+			Definition->CanEquipToSlot(EGridEquipmentSlot::MainHand))
 		{
+			// ARMEMENT01.7.3: one action reserves both hands. The item remains
+			// physically owned by MainHand; don't offer two equivalent UI actions.
 			AddAction(OutActions, EGridItemActionType::Equip,
-				FText::Format(NSLOCTEXT("GridItemActions", "EquipSpecificSlot", "S'equiper : {0}"), GetEquipmentSlotActionLabel(EGridEquipmentSlot::MainHand)),
+				NSLOCTEXT("GridItemActions", "EquipTwoHands", "S'équiper : deux mains"),
 				nullptr, EGridEquipmentSlot::MainHand);
 		}
-		if (Definition->CanEquipToSlot(EGridEquipmentSlot::OffHand))
+		else
 		{
-			AddAction(OutActions, EGridItemActionType::Equip,
-				FText::Format(NSLOCTEXT("GridItemActions", "EquipSpecificSlot", "S'equiper : {0}"), GetEquipmentSlotActionLabel(EGridEquipmentSlot::OffHand)),
-				nullptr, EGridEquipmentSlot::OffHand);
+			if (Definition->CanEquipToSlot(EGridEquipmentSlot::MainHand))
+			{
+				AddAction(OutActions, EGridItemActionType::Equip,
+					FText::Format(NSLOCTEXT("GridItemActions", "EquipSpecificSlot", "S'equiper : {0}"), GetEquipmentSlotActionLabel(EGridEquipmentSlot::MainHand)),
+					nullptr, EGridEquipmentSlot::MainHand);
+			}
+			if (Definition->CanEquipToSlot(EGridEquipmentSlot::OffHand))
+			{
+				AddAction(OutActions, EGridItemActionType::Equip,
+					FText::Format(NSLOCTEXT("GridItemActions", "EquipSpecificSlot", "S'equiper : {0}"), GetEquipmentSlotActionLabel(EGridEquipmentSlot::OffHand)),
+					nullptr, EGridEquipmentSlot::OffHand);
+			}
 		}
 		for (const EGridEquipmentSlot CompatibleSlot : Definition->CompatibleEquipmentSlots)
 		{
