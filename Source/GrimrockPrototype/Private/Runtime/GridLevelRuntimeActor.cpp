@@ -2099,6 +2099,43 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 		AddPlacedItemActor(Instance);
 	}
 
+	// ARMEMENT01.8.2: ItemSpawns are authored generators, not a second item
+	// definition system. Materialize one stable pickup using the existing
+	// loose-item path, then let world-item persistence own its lifetime.
+	for (const FGridItemSpawnInstance& Spawn : LevelAsset->ItemSpawns)
+	{
+		if (!Spawn.bSpawnAtStart || !Spawn.SpawnId.IsValid() || !IsValid(Spawn.ItemDefinition.Get()) ||
+			!LevelAsset->IsValidCoord(Spawn.CellX, Spawn.CellY))
+		{
+			continue;
+		}
+		if (SavedLevelState && SavedLevelState->bHasBeenVisited)
+		{
+			if (const FGridRuntimeObjectPresenceState* Presence = SavedLevelState->ObjectPresence.Find(Spawn.SpawnId))
+			{
+				if (Presence->bRemovedFromInitialPlacement)
+				{
+					continue; // Already collected or destroyed in this dungeon.
+				}
+			}
+		}
+		if (SpawnedItemEntries.ContainsByPredicate([&Spawn](const FGridSpawnedItemRuntimeEntry& Entry)
+			{ return Entry.ObjectId == Spawn.SpawnId; }))
+		{
+			continue; // Rebuilds cannot generate a duplicate runtime object.
+		}
+
+		FGridLooseItemInstance Generated;
+		Generated.InstanceId = Spawn.SpawnId;
+		Generated.ItemDefinition = Spawn.ItemDefinition;
+		Generated.ItemLevel = Spawn.ItemLevel;
+		Generated.Quantity = Spawn.Quantity;
+		Generated.CellX = Spawn.CellX;
+		Generated.CellY = Spawn.CellY;
+		Generated.SurfaceSide = EGridEdge::None;
+		AddPlacedItemActor(Generated);
+	}
+
 	for (const FGridMonsterSpawnInstance& Spawn : LevelAsset->MonsterSpawns)
 	{
 		const FGridRuntimeMonsterPlacementState* PlacementState = SavedLevelState ? SavedLevelState->MonsterPlacements.Find(Spawn.SpawnId) : nullptr;

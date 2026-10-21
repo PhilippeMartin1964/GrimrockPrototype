@@ -79,25 +79,28 @@ bool AGridLevelEditorActor::SetSelectedObjectItemLevel(int32 NewItemLevel)
 	{
 		return false;
 	}
-	FGridLooseItemInstance* Item = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId);
-	if (!Item || !IsValid(Item->ItemDefinition.Get()) || !Item->ItemDefinition->bUseWeaponCatalogue)
+	FGridLooseItemInstance* Loose = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId);
+	FGridItemSpawnInstance* Spawn = Loose ? nullptr : LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId);
+	UGridItemDefinitionAsset* Definition = Loose ? Loose->ItemDefinition.Get() : (Spawn ? Spawn->ItemDefinition.Get() : nullptr);
+	if (!IsValid(Definition) || !Definition->bUseWeaponCatalogue)
 	{
 		return false;
 	}
 	if (NewItemLevel > 0)
 	{
 		const FGridWeaponLevelProfile* Profile = nullptr;
-		if (!Item->ItemDefinition->TryGetWeaponCatalogueProfile(NewItemLevel, Profile))
+		if (!Definition->TryGetWeaponCatalogueProfile(NewItemLevel, Profile))
 		{
 			return false;
 		}
 	}
-	if (Item->ItemLevel == NewItemLevel)
+	int32& AuthoredLevel = Loose ? Loose->ItemLevel : Spawn->ItemLevel;
+	if (AuthoredLevel == NewItemLevel)
 	{
 		return true;
 	}
 	LevelAsset->Modify();
-	Item->ItemLevel = NewItemLevel;
+	AuthoredLevel = NewItemLevel;
 	LevelAsset->MarkPackageDirty();
 	RebuildPreview();
 	return true;

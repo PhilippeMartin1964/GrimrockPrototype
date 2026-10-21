@@ -995,14 +995,14 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 	{
 		Root->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Assign an Item Definition asset."))).AutoWrapText(true)];
 	}
-	if (LooseItem && Definition && Definition->bUseWeaponCatalogue)
+	if ((LooseItem || ItemSpawn) && Definition && Definition->bUseWeaponCatalogue)
 	{
-		// ARMEMENT01.8.1: authored item level belongs to the placed instance,
-		// not the shared definition. Zero inherits the definition's default.
+		// ARMEMENT01.8.2: both a loose pickup and an item generator author an
+		// instance-specific level, without changing their shared definition.
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
 			FText::FromString(TEXT("Item Level (0 = default)")),
 			SNew(SSpinBox<int32>)
-				.Value(LooseItem->ItemLevel)
+				.Value(LooseItem ? LooseItem->ItemLevel : ItemSpawn->ItemLevel)
 				.MinValue(0).MaxValue(20)
 				.MinSliderValue(0).MaxSliderValue(20)
 				.Delta(1).MinDesiredWidth(90.f)

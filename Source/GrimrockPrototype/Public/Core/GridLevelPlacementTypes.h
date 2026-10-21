@@ -355,6 +355,10 @@ struct FGridItemSpawnInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "1"))
 	int32 Quantity = 1;
 
+	/** 0 inherits the definition default at first spawn; 1..20 keeps a fixed item level. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "0", ClampMax = "20", UIMin = "0", UIMax = "20"))
+	int32 ItemLevel = 0;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Placement")
 	int32 CellX = 0;
 

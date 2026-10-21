@@ -235,6 +235,19 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		PresenceState.bRemovedFromInitialPlacement = !ExistingPlacedItemObjectIds.Contains(Instance.InstanceId);
 		State->ObjectPresence.Add(Instance.InstanceId, PresenceState);
 	}
+	// An ItemSpawn's stable SpawnId is also the initial pickup's ObjectId.
+	// Persist collection/removal like a loose item, so it cannot regenerate.
+	for (const FGridItemSpawnInstance& Spawn : LevelAsset->ItemSpawns)
+	{
+		if (!Spawn.SpawnId.IsValid())
+		{
+			continue;
+		}
+		FGridRuntimeObjectPresenceState PresenceState;
+		PresenceState.ObjectId = Spawn.SpawnId;
+		PresenceState.bRemovedFromInitialPlacement = !ExistingPlacedItemObjectIds.Contains(Spawn.SpawnId);
+		State->ObjectPresence.Add(Spawn.SpawnId, PresenceState);
+	}
 
 	for (const TPair<FGuid, TObjectPtr<AGridRuntimeObjectActor>>& Pair : SpawnedRuntimeObjectActors)
 	{
