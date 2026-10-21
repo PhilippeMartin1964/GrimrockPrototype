@@ -103,7 +103,7 @@ bool FARMEMENT0165RuntimeMeshTest::RunTest(const FString&)
 		const FGuid OriginalId = FGuid::NewGuid();
 		Actor->InitializeFromItemDefinition(Definition, OriginalId);
 
-		TestEqual(TEXT("Runtime mesh is from the visual catalogue"), Actor->MeshComponent->GetStaticMesh(), ExpectedMesh);
+		TestEqual(TEXT("Runtime mesh is from the visual catalogue"), Actor->MeshComponent->GetStaticMesh().Get(), ExpectedMesh);
 		TestTrue(TEXT("Authored mesh-local transform matches the visual catalogue"),
 			Actor->MeshComponent->GetRelativeTransform().Equals(Profile->WorldVisualTransform));
 		TestEqual(TEXT("Runtime item identity remains unchanged"), Actor->GetRuntimeObjectId(), OriginalId);
@@ -125,7 +125,7 @@ bool FARMEMENT0165RuntimeMeshTest::RunTest(const FString&)
 	if (TestNotNull(TEXT("Legacy actor exists"), LegacyActor))
 	{
 		LegacyActor->InitializeFromItemDefinition(Legacy, FGuid::NewGuid());
-		TestEqual(TEXT("Legacy mesh remains unchanged"), LegacyActor->MeshComponent->GetStaticMesh(), LegacyMesh);
+		TestEqual(TEXT("Legacy mesh remains unchanged"), LegacyActor->MeshComponent->GetStaticMesh().Get(), LegacyMesh);
 		TestTrue(TEXT("Legacy mesh keeps its identity transform"),
 			LegacyActor->MeshComponent->GetRelativeTransform().Equals(FTransform::Identity));
 	}
@@ -177,9 +177,10 @@ bool FARMEMENT0165EditorPreviewTest::RunTest(const FString&)
 		Level->LooseItemInstances.Add(Placed);
 	}
 
-	if (!TestNotNull(TEXT("Existing preview component"), Runtime->EditorPreviewComponent)) { return false; }
-	Runtime->EditorPreviewComponent->Initialize(Runtime);
-	Runtime->EditorPreviewComponent->RebuildPreviewObjects();
+	UGridEditorPreviewComponent* PreviewComponent = Runtime->FindComponentByClass<UGridEditorPreviewComponent>();
+	if (!TestNotNull(TEXT("Existing preview component"), PreviewComponent)) { return false; }
+	PreviewComponent->Initialize(Runtime);
+	PreviewComponent->RebuildPreviewObjects();
 
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
@@ -198,14 +199,14 @@ bool FARMEMENT0165EditorPreviewTest::RunTest(const FString&)
 			}
 		}
 		if (!TestNotNull(TEXT("Loose item preview was created"), Preview)) { continue; }
-		TestEqual(TEXT("Editor preview uses exactly the runtime WorldMesh"), Preview->MeshComponent->GetStaticMesh(),
+		TestEqual(TEXT("Editor preview uses exactly the runtime WorldMesh"), Preview->MeshComponent->GetStaticMesh().Get(),
 			Profile->WorldMesh.LoadSynchronous());
 		TestTrue(TEXT("Editor and runtime use the identical local visual transform"),
 			Preview->MeshComponent->GetRelativeTransform().Equals(Profile->WorldVisualTransform));
 		TestEqual(TEXT("Preview has no collision"), Preview->MeshComponent->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
 		TestEqual(TEXT("Preview retains typed placement identity"), Preview->ObjectId, Placed.InstanceId);
 	}
-	Runtime->EditorPreviewComponent->ClearPreviewObjects();
+	PreviewComponent->ClearPreviewObjects();
 	return true;
 }
 
