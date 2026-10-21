@@ -51,6 +51,8 @@ UGridWeaponPilotPaletteAuthoringCommandlet::UGridWeaponPilotPaletteAuthoringComm
 int32 UGridWeaponPilotPaletteAuthoringCommandlet::Main(const FString& Params)
 {
     const bool bApply = FParse::Param(*Params, TEXT("Apply"));
+    // Explicit opt-in: no production asset repair in the ordinary authoring mode.
+    const bool bRepairIcons = FParse::Param(*Params, TEXT("RepairIcons"));
     UGridObjectPaletteAsset* Palette = LoadObject<UGridObjectPaletteAsset>(nullptr, ARMEMENT0171::PalettePath);
     if (!IsValid(Palette))
     {
@@ -77,14 +79,26 @@ int32 UGridWeaponPilotPaletteAuthoringCommandlet::Main(const FString& Params)
     // Make a complete candidate copy: no in-memory mutation of the production asset in dry-run.
     TArray<FGridObjectPaletteEntry> Proposed = Palette->Entries;
     int32 Added = 0;
+    int32 Repaired = 0;
     for (int32 Index = 0; Index < UE_ARRAY_COUNT(ARMEMENT0171::Pilots); ++Index)
     {
         const ARMEMENT0171::FPilot& Pilot = ARMEMENT0171::Pilots[Index];
         const FName EntryId(Pilot.EntryId);
-        const FGridObjectPaletteEntry* Existing = Proposed.FindByPredicate(
+        FGridObjectPaletteEntry* Existing = Proposed.FindByPredicate(
             [EntryId](const FGridObjectPaletteEntry& Entry) { return Entry.EntryId == EntryId; });
         if (Existing)
         {
+            // Repair only the three known pilot direct collectibles. Preserve
+            // their item, category, identity and every unrelated palette entry.
+            if (bRepairIcons && Existing->Icon &&
+                Existing->PaletteCategory == FName(TEXT("Items")) &&
+                Existing->DefaultItemDefinition.Get() == Items[Index] &&
+                Existing->DefaultWorldObjectDefinition == nullptr)
+            {
+                Existing->Icon = nullptr;
+                ++Repaired;
+                UE_LOG(LogTemp, Display, TEXT("[ARMEMENT01.7.1] READY ICON REPAIR %s"), Pilot.EntryId);
+            }
             if (!ARMEMENT0171::Matches(*Existing, Pilot, Items[Index]))
             {
                 UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.7.1] Conflicting entry; no overwrite: %s"), Pilot.EntryId);
@@ -113,14 +127,19 @@ int32 UGridWeaponPilotPaletteAuthoringCommandlet::Main(const FString& Params)
     if (!Candidate->ValidatePalette(Errors))
     {
         UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.7.1] Candidate palette invalid (%d messages); no writes"), Errors.Num());
+        for (const FGridWorldObjectDefinitionValidationMessage& Message : Errors)
+        {
+            UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.7.1] %s"), *Message.Message);
+        }
         return 1;
     }
     if (!bApply)
     {
-        UE_LOG(LogTemp, Display, TEXT("[ARMEMENT01.7.1] DRY RUN OK: +%d entries, zero writes"), Added);
+        UE_LOG(LogTemp, Display,
+            TEXT("[ARMEMENT01.7.1] DRY RUN OK: +%d entries, %d icon repairs, zero writes"), Added, Repaired);
         return 0;
     }
-    if (Added == 0)
+    if (Added == 0 && Repaired == 0)
     {
         UE_LOG(LogTemp, Display, TEXT("[ARMEMENT01.7.1] Already complete: no writes"));
         return 0;
@@ -146,6 +165,6 @@ int32 UGridWeaponPilotPaletteAuthoringCommandlet::Main(const FString& Params)
         UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.7.1] Save failed: %s"), *Filename);
         return 1;
     }
-    UE_LOG(LogTemp, Display, TEXT("[ARMEMENT01.7.1] SAVED palette: +%d entries, other entries preserved"), Added);
+    UE_LOG(LogTemp, Display, TEXT("[ARMEMENT01.7.1] SAVED palette: +%d entries, %d icon repairs; other entries preserved"), Added, Repaired);
     return 0;
 }
