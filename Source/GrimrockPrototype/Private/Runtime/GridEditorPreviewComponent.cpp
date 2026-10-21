@@ -2,6 +2,8 @@
 
 #include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
+#include "Components/StaticMeshComponent.h"
+#include "Runtime/Combat/GridWorldItemVisualResolver.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -121,8 +123,8 @@ void UGridEditorPreviewComponent::AddLooseItemPreview(const FGridLooseItemInstan
 	{
 		return;
 	}
-	UStaticMesh* ItemMesh = Instance.ItemDefinition->WorldMesh.LoadSynchronous();
-	if (!ItemMesh)
+	const FGridResolvedWorldItemMesh Visual = FGridWorldItemVisualResolver::Resolve(*Instance.ItemDefinition);
+	if (!Visual.Mesh)
 	{
 		return;
 	}
@@ -150,7 +152,11 @@ void UGridEditorPreviewComponent::AddLooseItemPreview(const FGridLooseItemInstan
 		return;
 	}
 
-	PreviewActor->InitializePreviewObject(Instance.InstanceId, EGridLevelObjectType::Item, ItemMesh);
+	PreviewActor->InitializePreviewObject(Instance.InstanceId, EGridLevelObjectType::Item, Visual.Mesh);
+	if (PreviewActor->MeshComponent)
+	{
+		PreviewActor->MeshComponent->SetRelativeTransform(Visual.RelativeTransform);
+	}
 	SpawnedPreviewObjects.Add(PreviewActor);
 }
 
@@ -271,7 +277,9 @@ bool UGridEditorPreviewComponent::IsPreviewableWorldObject(const FGridWorldObjec
 bool UGridEditorPreviewComponent::IsPreviewableLooseItem(const FGridLooseItemInstance& Instance) const
 {
 	return RuntimeActor && RuntimeActor->LevelAsset && RuntimeActor->LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY) &&
-		Instance.ItemDefinition && !Instance.ItemDefinition->WorldMesh.IsNull();
+		Instance.ItemDefinition &&
+		(!Instance.ItemDefinition->WorldMesh.IsNull() ||
+		 (Instance.ItemDefinition->bUseWeaponVisualCatalogue && !Instance.ItemDefinition->WeaponVisualCatalogue.IsNull()));
 }
 
 bool UGridEditorPreviewComponent::IsPreviewableMonsterSpawn(const FGridMonsterSpawnInstance& SpawnData) const

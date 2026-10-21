@@ -6,6 +6,7 @@
 #include "Materials/MaterialInterface.h"
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Combat/GridWorldItemVisualResolver.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridReadableContentAsset.h"
@@ -75,10 +76,9 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 
 	if (MeshComponent)
 	{
-		if (UStaticMesh* WorldMesh = InDefinition->WorldMesh.LoadSynchronous())
-		{
-			MeshComponent->SetStaticMesh(WorldMesh);
-		}
+		const FGridResolvedWorldItemMesh Visual = FGridWorldItemVisualResolver::Resolve(*InDefinition);
+		MeshComponent->SetStaticMesh(Visual.Mesh);
+		MeshComponent->SetRelativeTransform(Visual.RelativeTransform);
 	}
 	if (LightEmitterComponent)
 	{
