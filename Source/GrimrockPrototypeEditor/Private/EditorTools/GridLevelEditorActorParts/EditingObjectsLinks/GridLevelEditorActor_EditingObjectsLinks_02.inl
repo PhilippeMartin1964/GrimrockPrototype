@@ -83,7 +83,6 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 					}
 				}
 			}
-			}
 		}
 
 		FGridLooseItemInstance& LooseItemInstance = LevelAsset->LooseItemInstances.AddDefaulted_GetRef();

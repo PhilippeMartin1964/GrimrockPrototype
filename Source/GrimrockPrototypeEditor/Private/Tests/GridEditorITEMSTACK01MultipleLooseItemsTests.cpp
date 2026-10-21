@@ -270,7 +270,7 @@ bool FGridEditorITEMSTACK01PreviewSelectionTest::RunTest(const FString&)
         const FVector Expected = Runtime->GetCellCenterWorld(Item.CellX, Item.CellY, 12.f) + Item.LocalOffset;
         TestTrue(TEXT("Preview actor preserves authored per-item offset"),
             Preview->GetActorLocation().Equals(Expected, 0.01f));
-        TestNotNull(TEXT("Preview mesh exists"), Preview->MeshComponent->GetStaticMesh());
+        TestNotNull(TEXT("Preview mesh exists"), Preview->MeshComponent->GetStaticMesh().Get());
         TestTrue(TEXT("The correct item is independently hoverable"),
             Fixture.Editor->UpdateHoveredObjectFromWorldPoint(Preview->GetActorLocation()));
         TestEqual(TEXT("Hover selects the exact item GUID"), Fixture.Editor->HoveredObjectId, Item.InstanceId);
