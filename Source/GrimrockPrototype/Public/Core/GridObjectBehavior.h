@@ -89,6 +89,10 @@ struct FGridReceptacleInitialItemConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial Content", meta = (ClampMin = "1"))
 	int32 Quantity = 1;
+
+	/** 0 inherits default; 1..20 is a fixed catalogue level for initial content. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial Content", meta = (ClampMin = "0", ClampMax = "20", UIMin = "0", UIMax = "20"))
+	int32 ItemLevel = 0;
 };
 
 USTRUCT(BlueprintType)

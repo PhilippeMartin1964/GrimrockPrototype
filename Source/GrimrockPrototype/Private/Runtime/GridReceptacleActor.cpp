@@ -6,6 +6,7 @@
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/GridItemTransferService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -205,6 +206,7 @@ void AGridReceptacleActor::InitializeRuntimeWorldObject(
 		InitialItem.ItemDefinition = ConfigItem.ItemDefinition;
 		InitialItem.ItemDefinitionId = ConfigItem.ItemDefinition->ItemDefinitionId;
 		InitialItem.Quantity = FMath::Max(1, ConfigItem.Quantity);
+		InitialItem.ItemLevel = ConfigItem.ItemLevel;
 		if (!InitialItem.ItemDefinitionId.IsNone())
 		{
 			InitialContainedItems.Add(InitialItem);
@@ -506,7 +508,7 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 		}
 	}
 
-	const int32 NewIndex = AddContainedItem(CursorItem.ItemDefinitionId, ItemDefinition, nullptr, false, CursorItem.Quantity, CursorItem.RuntimeObjectId);
+	const int32 NewIndex = AddContainedItem(CursorItem.ItemDefinitionId, ItemDefinition, nullptr, false, CursorItem.Quantity, CursorItem.RuntimeObjectId, CursorItem.ItemLevel);
 
 	if (!ContainedItems.IsValidIndex(NewIndex))
 	{
@@ -609,6 +611,7 @@ bool AGridReceptacleActor::TryTakeItemAtIndex(int32 ItemIndex, AGrimrockPartyPaw
 	FGridItemInstance ItemInstance;
 	ItemInstance.RuntimeObjectId = Item.RuntimeObjectId.IsValid() ? Item.RuntimeObjectId : FGuid::NewGuid();
 	ItemInstance.ItemDefinitionId = Item.ItemDefinitionId;
+	ItemInstance.ItemLevel = Item.ItemLevel;
 	ItemInstance.Quantity = FMath::Max(1, Item.Quantity);
 	ItemInstance.Weight = Item.Weight;
 	ItemInstance.DisplayName = Item.DisplayName;
@@ -833,6 +836,8 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState(FGridRuntimeReceptacleS
 		FGridRuntimeItemState ItemState;
 		ItemState.ObjectId = Item.RuntimeObjectId.IsValid() ? Item.RuntimeObjectId : FGuid::NewGuid();
 		ItemState.ItemDefinitionId = ResolvedItemId;
+		ItemState.ItemLevel = Item.ItemLevel;
+		ItemState.Quantity = FMath::Max(1, Item.Quantity);
 		ItemState.bIsContainedInReceptacle = true;
 		ItemState.ReceptacleObjectId = ObjectId;
 		ItemState.bLightsEnabled = true;
@@ -896,7 +901,8 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem(const FGridRuntimeItemSta
 			*ObjectId.ToString(), *ItemState.ObjectId.ToString());
 		return false;
 	}
-	const int32 ItemIndex = AddContainedItem(ItemState.ItemDefinitionId, nullptr, ItemActor, false, 1, ItemState.ObjectId);
+	const int32 ItemIndex = AddContainedItem(ItemState.ItemDefinitionId, nullptr, ItemActor, false,
+		ItemState.Quantity, ItemState.ObjectId, ItemState.ItemLevel);
 
 	if (ItemIndex == INDEX_NONE)
 	{
@@ -904,6 +910,7 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem(const FGridRuntimeItemSta
 	}
 	FGridContainedReceptacleItem& Item = ContainedItems[ItemIndex];
 	Item.RuntimeObjectId = ItemState.ObjectId.IsValid() ? ItemState.ObjectId : FGuid::NewGuid();
+	Item.ItemLevel = ItemState.ItemLevel;
 	Item.bLightsEnabled = ItemState.bLightsEnabled;
 	Item.ReadableContentAsset = ItemState.ReadableContentAsset;
 	Item.ReadableContentId = ItemState.ReadableContentId;
@@ -1014,7 +1021,8 @@ FText AGridReceptacleActor::GetInteractionText_Implementation(UPrimitiveComponen
 }
 
 int32 AGridReceptacleActor::AddContainedItem(
-	FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity, FGuid RuntimeObjectId)
+	FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity,
+	FGuid RuntimeObjectId, int32 ItemLevel)
 {
 	AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor(GetWorld());
 	if (!ItemDefinition && RuntimeActor)
@@ -1031,6 +1039,22 @@ int32 AGridReceptacleActor::AddContainedItem(
 	{
 		return INDEX_NONE;
 	}
+	// Resolve catalogue default once. Reject invalid authored/transported levels
+	// before modifying logical contents or spawning a visual actor.
+	// Unknown definitions must not silently erase a previously fixed item level;
+	// catalogue definitions are validated and resolved to an explicit level.
+	int32 ResolvedLevel = ItemDefinition && !ItemDefinition->bUseWeaponCatalogue ? 0 : ItemLevel;
+	const FGridWeaponLevelProfile* Profile = nullptr;
+	if (ItemDefinition && ItemDefinition->bUseWeaponCatalogue)
+	{
+		ResolvedLevel = ItemLevel == 0 ? ItemDefinition->DefaultWeaponItemLevel : ItemLevel;
+		if (!ItemDefinition->TryGetWeaponCatalogueProfile(ResolvedLevel, Profile))
+		{
+			UE_LOG(LogGridReceptacle, Warning, TEXT("Receptacle rejected invalid ItemLevel=%d Item=%s"),
+				ResolvedLevel, *ItemDefinitionId.ToString());
+			return INDEX_NONE;
+		}
+	}
 	FGridContainedReceptacleItem NewItem;
 	NewItem.RuntimeObjectId = RuntimeObjectId.IsValid() ? RuntimeObjectId : FGuid::NewGuid();
 	NewItem.ItemDefinitionId = ItemDefinitionId;
@@ -1038,6 +1062,7 @@ int32 AGridReceptacleActor::AddContainedItem(
 	NewItem.ItemActor = ItemActor;
 	NewItem.bWasInitialItem = bWasInitialItem;
 	NewItem.Quantity = FMath::Max(1, Quantity);
+	NewItem.ItemLevel = ResolvedLevel;
 	if (IsValid(ItemActor))
 	{
 		NewItem.ReadableContentAsset = ItemActor->ReadableContentAsset;
@@ -1047,7 +1072,7 @@ int32 AGridReceptacleActor::AddContainedItem(
 	}
 	if (ItemDefinition)
 	{
-		NewItem.Weight = ItemDefinition->Weight;
+		NewItem.Weight = Profile ? Profile->WeightKg : ItemDefinition->Weight;
 		NewItem.DisplayName = ItemDefinition->DisplayName;
 		NewItem.bLightsEnabled = ItemDefinition->IsLightEnabledByDefault();
 	}
@@ -1099,6 +1124,7 @@ int32 AGridReceptacleActor::AddContainedItem(
 		FGridItemInstance PlacementItem;
 		PlacementItem.RuntimeObjectId = ContainedItems[NewIndex].RuntimeObjectId;
 		PlacementItem.ItemDefinitionId = ContainedItems[NewIndex].ItemDefinitionId;
+		PlacementItem.ItemLevel = ContainedItems[NewIndex].ItemLevel;
 		PlacementItem.Quantity = ContainedItems[NewIndex].Quantity;
 		ApplyVisualPlacement(ContainedItems[NewIndex].ItemActor.Get(), PlacementItem,
 			PendingPlacementHitResult.IsSet() ? &PendingPlacementHitResult.GetValue() : nullptr, NewIndex, bWasInitialItem);
@@ -1356,7 +1382,8 @@ void AGridReceptacleActor::InitializeInitialContainedItems()
 		{
 			continue;
 		}
-		AddContainedItem(ItemDefinitionId, InitialItem.ItemDefinition, nullptr, true, InitialItem.Quantity);
+		AddContainedItem(ItemDefinitionId, InitialItem.ItemDefinition, nullptr, true,
+			InitialItem.Quantity, FGuid(), InitialItem.ItemLevel);
 	}
 }
 

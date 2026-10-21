@@ -14,6 +14,7 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -1276,7 +1277,11 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 							{
 								if (Config.ReceptacleInitialContent.IsValidIndex(InitialIndex))
 								{
-									Config.ReceptacleInitialContent[InitialIndex].ItemDefinition = NewAsset;
+									if (Config.ReceptacleInitialContent[InitialIndex].ItemDefinition != NewAsset)
+									{
+										Config.ReceptacleInitialContent[InitialIndex].ItemDefinition = NewAsset;
+										Config.ReceptacleInitialContent[InitialIndex].ItemLevel = 0;
+									}
 								}
 							});
 						})]
@@ -1297,6 +1302,30 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 								}
 							});
 						})]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 4.f, 0.f)[
+					SNew(SSpinBox<int32>)
+						.IsEnabled(InitialItem.ItemDefinition && InitialItem.ItemDefinition->bUseWeaponCatalogue)
+						.Value(InitialItem.ItemLevel)
+							.MinValue(0).MaxValue(20)
+							.MinSliderValue(0).MaxSliderValue(20)
+							.Delta(1).MinDesiredWidth(82.f)
+							.ToolTipText(FText::FromString(TEXT("Item level: 0 = definition default; 1..20 = fixed level")))
+							.OnValueCommitted_Lambda([this, ObjectId, InitialIndex](int32 NewValue, ETextCommit::Type)
+							{
+							EditWorldObjectConfig(ObjectId, [InitialIndex, NewValue](FGridWorldObjectInstanceConfig& Config)
+							{
+								if (Config.ReceptacleInitialContent.IsValidIndex(InitialIndex))
+								{
+									const UGridItemDefinitionAsset* Definition = Config.ReceptacleInitialContent[InitialIndex].ItemDefinition.Get();
+									const FGridWeaponLevelProfile* Profile = nullptr;
+									if (Definition && (NewValue == 0 ||
+										Definition->TryGetWeaponCatalogueProfile(NewValue, Profile)))
+									{
+										Config.ReceptacleInitialContent[InitialIndex].ItemLevel = NewValue;
+									}
+								}
+							});
+							})]
 				+ SHorizontalBox::Slot().AutoWidth()[
 					SNew(SButton)
 						.Text(FText::FromString(TEXT("Remove")))

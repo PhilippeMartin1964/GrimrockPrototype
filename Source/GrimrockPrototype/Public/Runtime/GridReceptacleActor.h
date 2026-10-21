@@ -37,6 +37,10 @@ struct FGridInitialReceptacleItem
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "1"))
 	int32 Quantity = 1;
+
+	/** 0 = definition default; 1..20 = fixed RPG level. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "0", ClampMax = "20"))
+	int32 ItemLevel = 0;
 };
 
 /**
@@ -67,6 +71,10 @@ struct FGridContainedReceptacleItem
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
 	int32 Quantity = 1;
+
+	/** Actual level of the contained item instance. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+	int32 ItemLevel = 0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
 	float Weight = 0.0f;
@@ -342,7 +350,7 @@ protected:
 	// ============================================================
 
 	int32 AddContainedItem(FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity,
-		FGuid RuntimeObjectId = FGuid());
+		FGuid RuntimeObjectId = FGuid(), int32 ItemLevel = 0);
 
 	bool RemoveContainedItemAtIndex(int32 ItemIndex, FGridContainedReceptacleItem& OutRemovedItem);
 
