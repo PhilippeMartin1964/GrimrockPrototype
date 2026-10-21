@@ -20,8 +20,6 @@ public class GrimrockPrototypeEditor : ModuleRules
             "InputCore",
             "ApplicationCore",
             "AssetRegistry",
-            "AssetTools",
-            "MaterialEditor",
             "UnrealEd",
             "EditorFramework",
             "BlueprintGraph",
