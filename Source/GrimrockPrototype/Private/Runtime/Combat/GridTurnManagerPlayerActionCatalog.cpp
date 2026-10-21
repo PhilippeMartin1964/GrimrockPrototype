@@ -287,6 +287,12 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 		{
 			continue;
 		}
+		// The virtual OffHand display of a two-handed MainHand item is NOT
+		// a second attack source; enumerate only the physical owning slot.
+		if (EquippedItem.EquipmentSlot != HandSlot)
+		{
+			continue;
+		}
 
 		const UGridItemDefinitionAsset* ItemDefinition = Inventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
 		if (!IsValid(ItemDefinition))

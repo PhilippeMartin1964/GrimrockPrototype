@@ -1,6 +1,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "GridEquipmentSlotUtils.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
 
@@ -15,7 +16,7 @@ bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 		return false;
 	}
 
-	FGridItemInstance* EquippedItem = PartyInventoryState.ActiveEquipment[CharacterIndex].GetMutableSlot(SourceSlot);
+	FGridItemInstance* EquippedItem = PartyInventoryState.ActiveEquipment[CharacterIndex].GetMutableSlot(ResolveEquipmentSourceSlot(CharacterIndex, SourceSlot));
 	if (!EquippedItem || !EquippedItem->IsValid() || EquippedItem->ItemDefinitionId != ExpectedItemDefinitionId)
 	{
 		return false;
@@ -55,7 +56,14 @@ bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 Char
 		return false;
 	}
 
-	FGridItemInstance* EquippedItem = PartyInventoryState.ActiveEquipment[CharacterIndex].GetMutableSlot(TargetSlot);
+	const UGridItemDefinitionAsset* Definition = FindItemDefinition(WorldItem.ItemDefinitionId);
+	const bool bTwoHanded = Definition && Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
+	const EGridEquipmentSlot ActualTarget = bTwoHanded ? EGridEquipmentSlot::MainHand : TargetSlot;
+	if (bTwoHanded && PartyInventoryState.ActiveEquipment[CharacterIndex].OffHand.IsValid())
+	{
+		return false;
+	}
+	FGridItemInstance* EquippedItem = PartyInventoryState.ActiveEquipment[CharacterIndex].GetMutableSlot(ActualTarget);
 	if (!EquippedItem)
 	{
 		return false;
@@ -76,7 +84,7 @@ bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 Char
 		EquippedItem->OwnerType = EGridItemOwnerType::EquipmentSlot;
 		EquippedItem->OwnerGuid = CharacterState.CharacterId;
 		EquippedItem->OwnerCharacterIndex = CharacterIndex;
-		EquippedItem->EquipmentSlot = TargetSlot;
+		EquippedItem->EquipmentSlot = ActualTarget;
 	}
 	NotifyPartyInventoryChanged(CharacterIndex);
 

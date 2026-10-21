@@ -47,7 +47,7 @@ bool UGridPartyInventoryComponent::TryTakeEquipmentSlotToCursor(int32 CharacterI
 	}
 
 	FGridCharacterEquipmentState& EquipmentState = PartyInventoryState.ActiveEquipment[CharacterIndex];
-	FGridItemInstance* EquippedItem = EquipmentState.GetMutableSlot(SourceSlot);
+	FGridItemInstance* EquippedItem = EquipmentState.GetMutableSlot(ResolveEquipmentSourceSlot(CharacterIndex, SourceSlot));
 	if (!EquippedItem)
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=InvalidSlot"), CharacterIndex,
@@ -454,60 +454,90 @@ bool UGridPartyInventoryComponent::CanEquipCursorItemToCharacterSlot(int32 Chara
 bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot(int32 CharacterIndex, EGridEquipmentSlot TargetSlot)
 {
 	EnsureEquipmentCountMatchesActiveCharacters();
-
-	if (!CanEquipCursorItemToCharacterSlot(CharacterIndex, TargetSlot) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
+	if (!CanEquipCursorItemToCharacterSlot(CharacterIndex, TargetSlot) ||
+		!PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
-		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InvalidOrIncompatible"), CharacterIndex,
-			GridEquipmentSlotUtils::GetLogName(TargetSlot));
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InvalidOrIncompatible"),
+			CharacterIndex, GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
 
-	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
-	FGridCharacterEquipmentState& EquipmentState = PartyInventoryState.ActiveEquipment[CharacterIndex];
-	FGridItemInstance* TargetItem = EquipmentState.GetMutableSlot(TargetSlot);
+	FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
+	FGridCharacterEquipmentState& Equipment = PartyInventoryState.ActiveEquipment[CharacterIndex];
+	const UGridItemDefinitionAsset* Definition = FindItemDefinition(PartyInventoryState.CursorItem.ItemDefinitionId);
+	const bool bIncomingTwoHanded = Definition && GridEquipmentSlotUtils::IsHandSlot(TargetSlot) &&
+		Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
+	const bool bReleaseBoth = bIncomingTwoHanded ||
+		(GridEquipmentSlotUtils::IsHandSlot(TargetSlot) && IsTwoHandedEquipped(CharacterIndex));
+	const EGridEquipmentSlot ActualTarget = bIncomingTwoHanded ? EGridEquipmentSlot::MainHand : TargetSlot;
+	FGridItemInstance* TargetItem = Equipment.GetMutableSlot(ActualTarget);
 	if (!TargetItem)
 	{
-		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InvalidEquipmentSlot"), CharacterIndex,
-			GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
 
-	FGridItemInstance ItemToEquip = PartyInventoryState.CursorItem;
-	ItemToEquip.OwnerType = EGridItemOwnerType::EquipmentSlot;
-	ItemToEquip.OwnerGuid = CharacterState.CharacterId;
-	ItemToEquip.OwnerCharacterIndex = CharacterIndex;
-	ItemToEquip.EquipmentSlot = TargetSlot;
+	FGridItemInstance Equipped = PartyInventoryState.CursorItem;
+	Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
+	Equipped.OwnerGuid = Character.CharacterId;
+	Equipped.OwnerCharacterIndex = CharacterIndex;
+	Equipped.EquipmentSlot = ActualTarget;
 
-	FGridItemInstance PreviouslyEquippedItem = *TargetItem;
-	const bool bWasOccupied = PreviouslyEquippedItem.IsValid();
-	if (bWasOccupied)
+	if (!bReleaseBoth)
 	{
-		PreviouslyEquippedItem.OwnerType = EGridItemOwnerType::Cursor;
-		PreviouslyEquippedItem.OwnerGuid = FGuid();
-		PreviouslyEquippedItem.OwnerCharacterIndex = INDEX_NONE;
-		PreviouslyEquippedItem.EquipmentSlot = EGridEquipmentSlot::None;
-		PartyInventoryState.CursorItem = PreviouslyEquippedItem;
-	}
-	else
-	{
-		PartyInventoryState.CursorItem = FGridItemInstance();
-		PartyInventoryState.bHasCursorItem = false;
+		// Preserve the established one-slot cursor swap for ordinary equipment.
+		FGridItemInstance Previous = *TargetItem;
+		if (Previous.IsValid())
+		{
+			Previous.OwnerType = EGridItemOwnerType::Cursor;
+			Previous.OwnerGuid = FGuid();
+			Previous.OwnerCharacterIndex = INDEX_NONE;
+			Previous.EquipmentSlot = EGridEquipmentSlot::None;
+			PartyInventoryState.CursorItem = Previous;
+			PartyInventoryState.bHasCursorItem = true;
+		}
+		else
+		{
+			PartyInventoryState.CursorItem = FGridItemInstance();
+			PartyInventoryState.bHasCursorItem = false;
+		}
+		*TargetItem = Equipped;
+		NotifyPartyInventoryChanged(CharacterIndex);
+		return true;
 	}
 
-	*TargetItem = ItemToEquip;
+	// For a two-hand transaction all displaced items must fit in inventory.
+	TArray<FGridItemInstance> Displaced;
+	if (Equipment.MainHand.IsValid()) Displaced.Add(Equipment.MainHand);
+	if (Equipment.OffHand.IsValid()) Displaced.Add(Equipment.OffHand);
+	TArray<int32> Destinations;
+	for (int32 Index = 0; Index < Character.InventorySlots.Num() && Destinations.Num() < Displaced.Num(); ++Index)
+	{
+		if (Character.InventorySlots[Index].IsEmpty()) Destinations.Add(Index);
+	}
+	if (Destinations.Num() < Displaced.Num())
+	{
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InventoryFullForDisplacedItems Count=%d"),
+			CharacterIndex, GridEquipmentSlotUtils::GetLogName(TargetSlot), Displaced.Num());
+		return false;
+	}
+
+	Equipment.MainHand = FGridItemInstance();
+	Equipment.OffHand = FGridItemInstance();
+	for (int32 Index = 0; Index < Displaced.Num(); ++Index)
+	{
+		FGridItemInstance Item = Displaced[Index];
+		Item.OwnerType = EGridItemOwnerType::CharacterInventory;
+		Item.OwnerGuid = Character.CharacterId;
+		Item.OwnerCharacterIndex = CharacterIndex;
+		Item.EquipmentSlot = EGridEquipmentSlot::None;
+		FGridInventorySlot& Destination = Character.InventorySlots[Destinations[Index]];
+		Destination.bOccupied = true;
+		Destination.Item = Item;
+	}
+	*TargetItem = Equipped;
+	PartyInventoryState.CursorItem = FGridItemInstance();
+	PartyInventoryState.bHasCursorItem = false;
 	NotifyPartyInventoryChanged(CharacterIndex);
-
-	if (bWasOccupied)
-	{
-		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Cursor Equip Swap Character=%d Slot=%s NewItem=%s OldItem=%s Result=true"), CharacterIndex,
-			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *PreviouslyEquippedItem.ItemDefinitionId.ToString());
-	}
-	else
-	{
-		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Cursor Equip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
-			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *ItemToEquip.RuntimeObjectId.ToString());
-	}
-
 	return true;
 }
 

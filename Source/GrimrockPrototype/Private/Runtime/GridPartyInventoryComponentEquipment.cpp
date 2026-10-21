@@ -35,6 +35,23 @@ namespace
 	}
 }
 
+bool UGridPartyInventoryComponent::IsTwoHandedEquipped(int32 CharacterIndex) const
+{
+	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
+	{
+		return false;
+	}
+	const FGridItemInstance& Main = PartyInventoryState.ActiveEquipment[CharacterIndex].MainHand;
+	const UGridItemDefinitionAsset* Definition = Main.IsValid() ? FindItemDefinition(Main.ItemDefinitionId) : nullptr;
+	return Definition && Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
+}
+
+EGridEquipmentSlot UGridPartyInventoryComponent::ResolveEquipmentSourceSlot(int32 CharacterIndex, EGridEquipmentSlot RequestedSlot) const
+{
+	return RequestedSlot == EGridEquipmentSlot::OffHand && IsTwoHandedEquipped(CharacterIndex)
+		? EGridEquipmentSlot::MainHand : RequestedSlot;
+}
+
 bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, const FGridItemInstance& Item, EGridEquipmentSlot TargetSlot) const
 {
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
@@ -68,69 +85,95 @@ bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, cons
 bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterIndex, int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot)
 {
 	EnsureEquipmentCountMatchesActiveCharacters();
-
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
-		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=InvalidCharacter"), CharacterIndex,
-			GridEquipmentSlotUtils::GetLogName(TargetSlot));
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=InvalidCharacter"),
+			CharacterIndex, GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
 
-	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
-	if (!CharacterState.InventorySlots.IsValidIndex(InventorySlotIndex) || CharacterState.InventorySlots[InventorySlotIndex].IsEmpty())
+	FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
+	if (!Character.InventorySlots.IsValidIndex(InventorySlotIndex) || Character.InventorySlots[InventorySlotIndex].IsEmpty())
 	{
-		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=InvalidInventorySlot"), CharacterIndex,
-			GridEquipmentSlotUtils::GetLogName(TargetSlot));
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=InvalidInventorySlot"),
+			CharacterIndex, GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
 
-	FGridInventorySlot& InventorySlot = CharacterState.InventorySlots[InventorySlotIndex];
-	FGridItemInstance ItemToEquip = InventorySlot.Item;
-	if (!FindItemDefinition(ItemToEquip.ItemDefinitionId))
+	const FGridItemInstance Source = Character.InventorySlots[InventorySlotIndex].Item;
+	const UGridItemDefinitionAsset* Definition = FindItemDefinition(Source.ItemDefinitionId);
+	if (!Definition)
 	{
-		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=MissingDefinition Item=%s"), CharacterIndex,
-			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString());
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=MissingDefinition Item=%s"),
+			CharacterIndex, GridEquipmentSlotUtils::GetLogName(TargetSlot), *Source.ItemDefinitionId.ToString());
 		return false;
 	}
-	if (!CanEquipItemToSlot(CharacterIndex, ItemToEquip, TargetSlot))
+	if (!CanEquipItemToSlot(CharacterIndex, Source, TargetSlot))
 	{
-		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=UnsupportedSlot Item=%s"), CharacterIndex,
-			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString());
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=UnsupportedSlot Item=%s"),
+			CharacterIndex, GridEquipmentSlotUtils::GetLogName(TargetSlot), *Source.ItemDefinitionId.ToString());
 		return false;
 	}
 
-	FGridCharacterEquipmentState& EquipmentState = PartyInventoryState.ActiveEquipment[CharacterIndex];
-	FGridItemInstance* TargetItem = EquipmentState.GetMutableSlot(TargetSlot);
+	FGridCharacterEquipmentState& Equipment = PartyInventoryState.ActiveEquipment[CharacterIndex];
+	const bool bIncomingTwoHanded = GridEquipmentSlotUtils::IsHandSlot(TargetSlot) &&
+		Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
+	const bool bReleaseBoth = bIncomingTwoHanded || (GridEquipmentSlotUtils::IsHandSlot(TargetSlot) && IsTwoHandedEquipped(CharacterIndex));
+	const EGridEquipmentSlot ActualTarget = bIncomingTwoHanded ? EGridEquipmentSlot::MainHand : TargetSlot;
+	FGridItemInstance* TargetItem = Equipment.GetMutableSlot(ActualTarget);
 	if (!TargetItem)
 	{
 		return false;
 	}
 
-	FGridItemInstance PreviouslyEquippedItem = *TargetItem;
-	ItemToEquip.OwnerType = EGridItemOwnerType::EquipmentSlot;
-	ItemToEquip.OwnerGuid = CharacterState.CharacterId;
-	ItemToEquip.OwnerCharacterIndex = CharacterIndex;
-	ItemToEquip.EquipmentSlot = TargetSlot;
-
-	if (PreviouslyEquippedItem.IsValid())
+	// Verify all displaced items fit before changing ownership or clearing a slot.
+	TArray<FGridItemInstance> Displaced;
+	if (bReleaseBoth)
 	{
-		PreviouslyEquippedItem.OwnerType = EGridItemOwnerType::CharacterInventory;
-		PreviouslyEquippedItem.OwnerGuid = CharacterState.CharacterId;
-		PreviouslyEquippedItem.OwnerCharacterIndex = CharacterIndex;
-		PreviouslyEquippedItem.EquipmentSlot = EGridEquipmentSlot::None;
-		InventorySlot.Item = PreviouslyEquippedItem;
-		InventorySlot.bOccupied = true;
+		if (Equipment.MainHand.IsValid()) Displaced.Add(Equipment.MainHand);
+		if (Equipment.OffHand.IsValid()) Displaced.Add(Equipment.OffHand);
 	}
-	else
+	else if (TargetItem->IsValid())
 	{
-		InventorySlot = FGridInventorySlot();
+		Displaced.Add(*TargetItem);
+	}
+	TArray<int32> Destinations;
+	Destinations.Add(InventorySlotIndex); // The source inventory slot becomes available at commit.
+	for (int32 Index = 0; Index < Character.InventorySlots.Num() && Destinations.Num() < Displaced.Num(); ++Index)
+	{
+		if (Index != InventorySlotIndex && Character.InventorySlots[Index].IsEmpty()) Destinations.Add(Index);
+	}
+	if (Destinations.Num() < Displaced.Num())
+	{
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=InventoryFullForDisplacedItems Count=%d"),
+			CharacterIndex, GridEquipmentSlotUtils::GetLogName(TargetSlot), Displaced.Num());
+		return false;
 	}
 
-	*TargetItem = ItemToEquip;
+	Character.InventorySlots[InventorySlotIndex] = FGridInventorySlot();
+	if (bReleaseBoth)
+	{
+		Equipment.MainHand = FGridItemInstance();
+		Equipment.OffHand = FGridItemInstance();
+	}
+	for (int32 Index = 0; Index < Displaced.Num(); ++Index)
+	{
+		FGridItemInstance Item = Displaced[Index];
+		Item.OwnerType = EGridItemOwnerType::CharacterInventory;
+		Item.OwnerGuid = Character.CharacterId;
+		Item.OwnerCharacterIndex = CharacterIndex;
+		Item.EquipmentSlot = EGridEquipmentSlot::None;
+		FGridInventorySlot& Slot = Character.InventorySlots[Destinations[Index]];
+		Slot.bOccupied = true;
+		Slot.Item = Item;
+	}
+	FGridItemInstance Equipped = Source;
+	Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
+	Equipped.OwnerGuid = Character.CharacterId;
+	Equipped.OwnerCharacterIndex = CharacterIndex;
+	Equipped.EquipmentSlot = ActualTarget;
+	*TargetItem = Equipped;
 	NotifyPartyInventoryChanged(CharacterIndex);
-
-	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Equip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
-		GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *ItemToEquip.RuntimeObjectId.ToString());
 	return true;
 }
 
@@ -153,7 +196,7 @@ bool UGridPartyInventoryComponent::UnequipItemToInventory(int32 CharacterIndex, 
 	}
 
 	FGridCharacterEquipmentState& EquipmentState = PartyInventoryState.ActiveEquipment[CharacterIndex];
-	FGridItemInstance* EquippedItem = EquipmentState.GetMutableSlot(SourceSlot);
+	FGridItemInstance* EquippedItem = EquipmentState.GetMutableSlot(ResolveEquipmentSourceSlot(CharacterIndex, SourceSlot));
 	if (!EquippedItem || !EquippedItem->IsValid())
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=EmptySlot"), CharacterIndex,
@@ -194,7 +237,7 @@ bool UGridPartyInventoryComponent::GetEquippedItem(int32 CharacterIndex, EGridEq
 		return false;
 	}
 
-	const FGridItemInstance* Item = PartyInventoryState.ActiveEquipment[CharacterIndex].GetSlot(Slot);
+	const FGridItemInstance* Item = PartyInventoryState.ActiveEquipment[CharacterIndex].GetSlot(ResolveEquipmentSourceSlot(CharacterIndex, Slot));
 	if (!Item || !Item->IsValid())
 	{
 		return false;
@@ -211,7 +254,7 @@ bool UGridPartyInventoryComponent::IsEquipmentSlotOccupied(int32 CharacterIndex,
 		return false;
 	}
 
-	return PartyInventoryState.ActiveEquipment[CharacterIndex].IsSlotOccupied(Slot);
+	return PartyInventoryState.ActiveEquipment[CharacterIndex].IsSlotOccupied(ResolveEquipmentSourceSlot(CharacterIndex, Slot));
 }
 
 bool UGridPartyInventoryComponent::TryConsumeEquippedItemQuantityForCombatAction(

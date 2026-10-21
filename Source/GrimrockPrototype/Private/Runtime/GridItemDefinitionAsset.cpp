@@ -137,7 +137,8 @@ bool UGridItemDefinitionAsset::CanEquipToSlot(EGridEquipmentSlot Slot) const
 		return false;
 	}
 
-	if ((Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand) && GetEffectiveHandUsage() == EGridItemHandUsage::OneHanded)
+	if ((Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand) &&
+		(GetEffectiveHandUsage() == EGridItemHandUsage::OneHanded || GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded))
 	{
 		return true;
 	}

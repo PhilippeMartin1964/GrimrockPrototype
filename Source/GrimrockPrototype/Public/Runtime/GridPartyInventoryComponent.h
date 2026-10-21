@@ -225,6 +225,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Equipment")
 	bool CanEquipItemToSlot(int32 CharacterIndex, const FGridItemInstance& Item, EGridEquipmentSlot TargetSlot) const;
 
+	/** Two-handed items are stored once in MainHand. OffHand is reserved virtually. */
+	bool IsTwoHandedEquipped(int32 CharacterIndex) const;
+
+	/** Maps the occupied virtual OffHand to its one authoritative stored slot. */
+	EGridEquipmentSlot ResolveEquipmentSourceSlot(int32 CharacterIndex, EGridEquipmentSlot RequestedSlot) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Equipment")
 	bool EquipItemFromInventorySlot(int32 CharacterIndex, int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot);
 

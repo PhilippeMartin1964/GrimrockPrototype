@@ -117,7 +117,7 @@ FGridItemTransferResult UGridItemTransferService::TransferEquipmentSlotToRecepta
 	}
 
 	FGridCharacterEquipmentState& EquipmentState = Inventory->PartyInventoryState.ActiveEquipment[CharacterIndex];
-	FGridItemInstance* SourceItem = EquipmentState.GetMutableSlot(EquipmentSlot);
+	FGridItemInstance* SourceItem = EquipmentState.GetMutableSlot(Inventory->ResolveEquipmentSourceSlot(CharacterIndex, EquipmentSlot));
 	if (!SourceItem)
 	{
 		return LogTransferFailure(Operation, EGridItemTransferResult::InvalidSource, TEXT("Equipment slot source is invalid."));
