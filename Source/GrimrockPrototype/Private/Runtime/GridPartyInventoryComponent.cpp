@@ -10,6 +10,7 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGStartingEquipmentService.h"
+#include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/RPGAttributePointService.h"
 #include "RPG/RPGSkillPointService.h"
@@ -516,12 +517,30 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	NewPartyState.bHasCursorItem = false;
 	NewPartyState.CursorItem = FGridItemInstance();
 
-	// ARMEMENT01.9.1: build the selected class's default kit into the still
-	// uncommitted party. Failed or incompatible kits cannot create a partial hero.
+	// ARMEMENT01.9.2: source-controlled presets are provided only for the six
+	// real production class assets. Materialize on a transient duplicate:
+	// no cooked DataAsset is mutated and explicit user-authored kits win.
+	URPGClassAsset* StartingKitClass = CombatActionSourceClass;
+	if (FRPGStartingEquipmentPresetCatalog::IsProductionClassAsset(CombatActionSourceClass) &&
+		CombatActionSourceClass->StartingEquipmentKits.IsEmpty() &&
+		CombatActionSourceClass->DefaultStartingEquipmentKitId.IsNone())
+	{
+		StartingKitClass = DuplicateObject<URPGClassAsset>(CombatActionSourceClass, this);
+		FString PresetError;
+		if (!StartingKitClass ||
+			!FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(*StartingKitClass, PresetError))
+		{
+			OutError = FText::FromString(FString::Printf(TEXT("Équipement de départ indisponible : %s"), *PresetError));
+			return false;
+		}
+	}
+
+	// Build the selected class's default kit into the uncommitted party.
+	// Failed or incompatible kits cannot create a partially equipped hero.
 	TArray<UGridItemDefinitionAsset*> StartingDefinitions;
 	FString KitError;
 	if (!FRPGStartingEquipmentService::TryBuildKit(
-		CombatActionSourceClass, CombatActionSourceClass->DefaultStartingEquipmentKitId,
+		StartingKitClass, StartingKitClass->DefaultStartingEquipmentKitId,
 		NewPartyState.ActiveCharacters[0], NewPartyState.ActiveEquipment[0], StartingDefinitions, KitError))
 	{
 		OutError = FText::FromString(FString::Printf(TEXT("Équipement de départ invalide : %s"), *KitError));
