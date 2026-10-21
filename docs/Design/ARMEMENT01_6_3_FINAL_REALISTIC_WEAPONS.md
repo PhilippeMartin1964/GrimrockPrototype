@@ -1,6 +1,6 @@
 # ARMEMENT01.6.3-FINAL — Consolidation des trois armements réalistes
 
-**Date :** 21 octobre 2026. **Statut :** code prêt, validation UE5.5.4 et publication des packages locaux à confirmer. **Baseline :** TD04-20261020-204725, 1486 tests réussis, zéro avertissement, zéro échec.
+**Date :** 21 octobre 2026. **Statut :** C++ et tests validés localement ; revue visuelle et publication des 19 packages restant à réaliser. **Validation courante :** pilot TD04-20261021-110250 4/4, global TD04-20261021-110400 1486/1486, aucun avertissement, aucun échec, code de sortie 0.
 
 ## 1. Identifiants canoniques et nomenclature
 
@@ -59,7 +59,7 @@ Puis valider la campagne globale :
 
     .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock"
 
-**Cibles, pas résultats attestés :** Pilot 4/4 et Grimrock 1486/1486, aucun avertissement, aucun échec. Soumettre les logs TD04.2.
+**Résultats attestés le 21.10.2026 :** tests Pilot 4/4 (TD04-20261021-110250) et campagne Grimrock 1486/1486 (TD04-20261021-110400), sans avertissement ni échec. Les tests ne constituent pas une preuve de validation artistique.
 
 Si un matériau parent, un slot MI ou un réglage sRGB est incorrect, corriger manuellement dans UE avec capture : ne pas forcer le script. Les règles MATERIAL-OWNERSHIP01 s'appliquent : matériau principal dans les slots du StaticMesh.
 
@@ -74,6 +74,25 @@ Inspecter :
 - matériaux bien affectés dans les trois meshes ; pas de références manquantes ni de géométrie dégénérée.
 
 Les dimensions sont des **objectifs de design non mesurés automatiquement** dans les fichiers .uasset locaux.
+
+
+### Prépublication sécurisée (nouveau script)
+
+Le script `Scripts/StageARMEMENT0163Assets.ps1` prépare **exactement 19 packages** ; il exclut en toutes circonstances les six chemins Shuriken / ThrowingKnife et vérifie les attributs Git LFS de chacun des fichiers. Son mode par défaut est un audit qui ne modifie pas l'index.
+
+Après fermeture de l'éditeur, valider visuellement les trois armes (dimensions, pivots, matériaux et icônes) dans Unreal, puis lancer :
+
+    cd D:\Development\GrimrockPrototype
+    git pull --ff-only origin master
+    .\Scripts\StageARMEMENT0163Assets.ps1
+
+Si l'audit réussit et que les assets ont été approuvés :
+
+    .\Scripts\StageARMEMENT0163Assets.ps1 -Stage
+    git diff --cached --name-only
+    git lfs status
+
+Le script **ne fait ni commit ni push**. Les 19 fichiers doivent être les seuls indexés. Lors de la publication finale, ne pas faire de `git add .` ; vérifier les dépendances des trois instances de matériaux et exclure toutes les modifications Shuriken / ThrowingKnife.
 
 ## 6. Publication sélective ultérieure
 
