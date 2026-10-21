@@ -26,16 +26,12 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 	{
 		RemoveObjectsConflictingWithPlacementInternal(PaintObjectType, WorldObjectDefinitionId, bPlaceObjectOnEdge);
 	}
-	else
+	else if (PaintObjectType != EGridLevelObjectType::Item ||
+		PlacementPolicy == EGridEditorObjectPlacementPolicy::RemoveAllAtSlot)
 	{
-		if (PlacementPolicy == EGridEditorObjectPlacementPolicy::ReplaceSameSlotOnly)
-		{
-			RemoveObjectsAtSelectionInternal(true);
-		}
-		else
-		{
-			RemoveObjectsAtSelectionInternal(false);
-		}
+		// ITEMSTACK01: placing a loose collectible is additive by default.
+		// Keep the explicitly selected Remove All At Slot policy destructive.
+		RemoveObjectsAtSelectionInternal(PlacementPolicy == EGridEditorObjectPlacementPolicy::ReplaceSameSlotOnly);
 	}
 	LevelAsset->Modify();
 	const FGuid NewId = FGuid::NewGuid();
