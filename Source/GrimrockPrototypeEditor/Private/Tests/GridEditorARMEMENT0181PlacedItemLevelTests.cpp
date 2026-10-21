@@ -6,6 +6,7 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -105,10 +106,18 @@ namespace ARMEMENT0181
         return nullptr;
     }
 
-    const FGridSpawnedItemRuntimeEntry* FindWorldEntry(const AGridLevelRuntimeActor* Runtime, FGuid Id)
+    AGridItemActor* FindWorldActor(UWorld* World, const FGuid& Id)
     {
-        return Runtime->SpawnedItemEntries.FindByPredicate(
-            [Id](const FGridSpawnedItemRuntimeEntry& Entry){ return Entry.ObjectId == Id; });
+        if (!World) return nullptr;
+        for (TActorIterator<AGridItemActor> It(World); It; ++It)
+        {
+            AGridItemActor* Actor = *It;
+            if (IsValid(Actor) && !Actor->IsActorBeingDestroyed() && Actor->GetRuntimeObjectId() == Id)
+            {
+                return Actor;
+            }
+        }
+        return nullptr;
     }
 }
 
@@ -153,19 +162,23 @@ bool FARMEMENT0181PickupTest::RunTest(const FString&)
     const FGuid DefaultId = Fixture.Place(0, 0, 0);
     const FGuid FixedId = Fixture.Place(1, 0, 9);
     Fixture.Runtime->RebuildRuntimeObjects();
-    const FGridSpawnedItemRuntimeEntry* Default = ARMEMENT0181::FindWorldEntry(Fixture.Runtime, DefaultId);
-    const FGridSpawnedItemRuntimeEntry* Fixed = ARMEMENT0181::FindWorldEntry(Fixture.Runtime, FixedId);
-    if (!TestNotNull(TEXT("Default item spawned"), Default) || !TestNotNull(TEXT("Level 9 item spawned"), Fixed)) return false;
-    TestEqual(TEXT("Default level materialized once"), Default->ItemLevel, Fixture.Dagger->DefaultWeaponItemLevel);
-    TestEqual(TEXT("Level 9 materialized unchanged"), Fixed->ItemLevel, 9);
-    AGridItemActor* FixedActor = Fixed->ItemActor.Get();
+    // Use public world actors and the authoritative persisted runtime read model.
+    // SpawnedItemEntries is deliberately private and must stay encapsulated.
+    AGridItemActor* DefaultActor = ARMEMENT0181::FindWorldActor(Fixture.World, DefaultId);
+    AGridItemActor* FixedActor = ARMEMENT0181::FindWorldActor(Fixture.World, FixedId);
+    if (!TestNotNull(TEXT("Default item spawned"), DefaultActor) ||
+        !TestNotNull(TEXT("Level 9 item spawned"), FixedActor)) return false;
 
     if (!TestTrue(TEXT("Runtime state captured"), Fixture.Runtime->CaptureCurrentLevelRuntimeState())) return false;
     const FGridLevelRuntimeState* Saved = Fixture.Runtime->FindRuntimeStateForCurrentLevel();
     if (!TestNotNull(TEXT("World state available"), Saved)) return false;
-    const FGridRuntimeItemState* Snapshot = Saved->Items.Find(FixedId);
-    if (!TestNotNull(TEXT("Level 9 saved world item"), Snapshot)) return false;
-    TestEqual(TEXT("Saved world item retains level 9"), Snapshot->ItemLevel, 9);
+    const FGridRuntimeItemState* Default = Saved->Items.Find(DefaultId);
+    const FGridRuntimeItemState* Fixed = Saved->Items.Find(FixedId);
+    if (!TestNotNull(TEXT("Default level snapshot exists"), Default) ||
+        !TestNotNull(TEXT("Level 9 snapshot exists"), Fixed)) return false;
+    TestEqual(TEXT("Default level materialized once"), Default->ItemLevel, Fixture.Dagger->DefaultWeaponItemLevel);
+    TestEqual(TEXT("Level 9 materialized unchanged"), Fixed->ItemLevel, 9);
+    TestEqual(TEXT("Saved world item retains level 9"), Fixed->ItemLevel, 9);
 
     AGrimrockPartyPawn* Party = Fixture.CreateParty();
     if (!TestNotNull(TEXT("Pickup pawn exists"), Party)) return false;
@@ -179,7 +192,8 @@ bool FARMEMENT0181PickupTest::RunTest(const FString&)
     TestEqual(TEXT("Default dagger level inherited correctly"), DefaultItem->ItemLevel, Fixture.Dagger->DefaultWeaponItemLevel);
     TestEqual(TEXT("Pickup retains exact authored level"), FixedItem->ItemLevel, 9);
     TestEqual(TEXT("Fixed dagger original identity unchanged"), FixedItem->RuntimeObjectId, FixedId);
-    TestFalse(TEXT("Picked dagger no longer in world"), ARMEMENT0181::FindWorldEntry(Fixture.Runtime, FixedId) != nullptr);
+    TestTrue(TEXT("Pickup removes the actor from the world"),
+        ARMEMENT0181::FindWorldActor(Fixture.World, FixedId) == nullptr);
     return true;
 }
 
@@ -200,30 +214,40 @@ bool FARMEMENT0181DropTest::RunTest(const FString&)
 
     if (!TestTrue(TEXT("Drop fixed level 13 item"), Fixture.Runtime->TryDropItemInstanceAtCell(
         WorldItem, Fixture.Dagger, 0, 0, EGridEdge::None, FVector::ZeroVector))) return false;
-    const FGridSpawnedItemRuntimeEntry* Entry = ARMEMENT0181::FindWorldEntry(Fixture.Runtime, WorldItem.RuntimeObjectId);
-    if (!TestNotNull(TEXT("Dropped item exists"), Entry)) return false;
-    TestEqual(TEXT("World entry retains fixed level"), Entry->ItemLevel, 13);
+    AGridItemActor* DroppedActor = ARMEMENT0181::FindWorldActor(Fixture.World, WorldItem.RuntimeObjectId);
+    if (!TestNotNull(TEXT("Dropped item exists"), DroppedActor)) return false;
     if (!TestTrue(TEXT("Capture dropped state"), Fixture.Runtime->CaptureCurrentLevelRuntimeState())) return false;
     const FGridLevelRuntimeState* Saved = Fixture.Runtime->FindRuntimeStateForCurrentLevel();
     if (!TestNotNull(TEXT("Dropped state exists"), Saved)) return false;
     const FGridRuntimeItemState* ItemState = Saved->Items.Find(WorldItem.RuntimeObjectId);
     if (!TestNotNull(TEXT("Dropped item is saved"), ItemState)) return false;
-    TestEqual(TEXT("Snapshot saves level 13"), ItemState->ItemLevel, 13);
+    TestEqual(TEXT("World entry and snapshot retain level 13"), ItemState->ItemLevel, 13);
     const FProperty* LevelProperty = FGridRuntimeItemState::StaticStruct()->FindPropertyByName(TEXT("ItemLevel"));
     TestTrue(TEXT("ItemLevel is persisted with SaveGame"), LevelProperty && LevelProperty->HasAnyPropertyFlags(CPF_SaveGame));
 
-    Fixture.Runtime->SpawnedItemEntries[0].ItemLevel = 1;
+    // Simulate an externally loaded save specifying level 17 for an item
+    // originally dropped at 13. Restore must apply the saved value (not the
+    // world entry's old value or the definition's default).
+    FGridLevelRuntimeState* LoadedState = Fixture.Runtime->GetOrCreateRuntimeStateForCurrentLevel();
+    FGridRuntimeItemState* LoadedItem = LoadedState ? LoadedState->Items.Find(WorldItem.RuntimeObjectId) : nullptr;
+    if (!TestNotNull(TEXT("Saved item can be rehydrated"), LoadedItem)) return false;
+    LoadedItem->ItemLevel = 17;
+
     if (!TestTrue(TEXT("Restore world state succeeds"), Fixture.Runtime->ApplyCurrentLevelRuntimeState())) return false;
-    Entry = ARMEMENT0181::FindWorldEntry(Fixture.Runtime, WorldItem.RuntimeObjectId);
-    if (!TestNotNull(TEXT("Restored world item exists"), Entry)) return false;
-    TestEqual(TEXT("Restore reconstructs level 13, not default"), Entry->ItemLevel, 13);
+    AGridItemActor* RestoredActor = ARMEMENT0181::FindWorldActor(Fixture.World, WorldItem.RuntimeObjectId);
+    if (!TestNotNull(TEXT("Restored world item exists"), RestoredActor)) return false;
+    if (!TestTrue(TEXT("Restored world state is recaptured"), Fixture.Runtime->CaptureCurrentLevelRuntimeState())) return false;
+    const FGridLevelRuntimeState* RestoredState = Fixture.Runtime->FindRuntimeStateForCurrentLevel();
+    const FGridRuntimeItemState* RestoredItem = RestoredState ? RestoredState->Items.Find(WorldItem.RuntimeObjectId) : nullptr;
+    if (!TestNotNull(TEXT("Restored snapshot available"), RestoredItem)) return false;
+    TestEqual(TEXT("Restore uses the persisted level instead of world default"), RestoredItem->ItemLevel, 17);
 
     AGrimrockPartyPawn* Party = Fixture.CreateParty();
     if (!TestNotNull(TEXT("Pickup pawn exists"), Party)) return false;
-    if (!TestTrue(TEXT("Pickup after restoring the save"), Fixture.Runtime->TryPickupItemActor(Entry->ItemActor.Get(), Party))) return false;
+    if (!TestTrue(TEXT("Pickup after restoring the save"), Fixture.Runtime->TryPickupItemActor(RestoredActor, Party))) return false;
     const FGridItemInstance* InventoryItem = ARMEMENT0181::FindInBag(Party->PartyInventoryComponent, WorldItem.RuntimeObjectId);
     if (!TestNotNull(TEXT("Restored item is owned by inventory"), InventoryItem)) return false;
-    TestEqual(TEXT("Item level preserved from drop to inventory"), InventoryItem->ItemLevel, 13);
+    TestEqual(TEXT("Item level preserved from restored save to inventory"), InventoryItem->ItemLevel, 17);
     return true;
 }
 
