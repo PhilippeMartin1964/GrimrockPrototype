@@ -186,6 +186,21 @@ struct FGridItemTooltipView
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	FName ItemDefinitionId = NAME_None;
 
+	/** Same resolved image as the inventory slot; consumed by the existing tooltip WBP. */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
+	TObjectPtr<UTexture2D> Icon = nullptr;
+
+	/** Presentation-only visual identity; never persisted on an item. */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
+	FName VisualId = NAME_None;
+
+	/** Read exclusively from the real FGridItemInstance (0 = Legacy). */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
+	bool bHasItemLevel = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
+	int32 ItemLevel = 0;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	FText DisplayName;
 

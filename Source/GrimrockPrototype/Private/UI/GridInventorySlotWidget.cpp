@@ -7,6 +7,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
+#include "UI/GridWeaponVisualUiResolver.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridInventoryUI, Log, All);
@@ -277,15 +278,15 @@ void UGridInventorySlotWidget::SetItem(const FGridItemInstance& InItem)
 	CachedItem = InItem;
 	bHasItem = true;
 	CachedIconTexture = nullptr;
-	if (OwningInventoryWidget && OwningInventoryWidget->InventoryComponent)
+	CachedVisualId = NAME_None;
+	if (const UGridItemDefinitionAsset* Definition = GetItemDefinition())
 	{
-		if (const UGridItemDefinitionAsset* Definition = OwningInventoryWidget->InventoryComponent->FindItemDefinition(CachedItem.ItemDefinitionId))
+		const FGridResolvedWeaponVisual Visual = FGridWeaponVisualUiResolver::Resolve(*Definition, &CachedItem);
+		CachedVisualId = Visual.VisualId;
+		CachedIconTexture = Visual.Icon.Get();
+		if (!CachedIconTexture && !Visual.Icon.IsNull())
 		{
-			CachedIconTexture = Definition->Icon.Get();
-			if (!CachedIconTexture && !Definition->Icon.IsNull())
-			{
-				CachedIconTexture = Definition->Icon.LoadSynchronous();
-			}
+			CachedIconTexture = Visual.Icon.LoadSynchronous();
 		}
 	}
 
@@ -297,6 +298,7 @@ void UGridInventorySlotWidget::ClearItem()
 	CachedItem = FGridItemInstance();
 	bHasItem = false;
 	CachedIconTexture = nullptr;
+	CachedVisualId = NAME_None;
 	RefreshSlotVisual();
 }
 
@@ -364,6 +366,10 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
 	View.bValid = true;
 	View.ItemDefinitionId = CachedItem.ItemDefinitionId;
+	View.Icon = CachedIconTexture;
+	View.VisualId = CachedVisualId;
+	View.bHasItemLevel = CachedItem.ItemLevel >= 1 && CachedItem.ItemLevel <= 20;
+	View.ItemLevel = View.bHasItemLevel ? CachedItem.ItemLevel : 0;
 	View.DisplayName = GetItemDisplayName(CachedItem, Definition);
 	View.Description = Definition ? Definition->Description : FText::GetEmpty();
 	View.ItemType = Definition ? GetItemTypeDisplayName(Definition->ItemType) : NSLOCTEXT("GridInventoryTooltip", "ItemTypeUnknown", "Objet");

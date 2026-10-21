@@ -47,6 +47,9 @@ public:
 	UPROPERTY(Transient)
 	TObjectPtr<UTexture2D> CachedIconTexture = nullptr;
 
+	/** Transient visual identity accompanying the cached UMG icon. */
+	FName CachedVisualId = NAME_None;
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
 	void InitializeInventorySlot(EGridInventoryUiSlotType InSlotType, int32 InInventorySlotIndex);
 

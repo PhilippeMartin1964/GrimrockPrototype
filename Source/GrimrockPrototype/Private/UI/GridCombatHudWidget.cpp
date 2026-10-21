@@ -28,6 +28,7 @@
 #include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
+#include "UI/GridWeaponVisualUiResolver.h"
 #include "UI/GridPersistentHudWidget.h"
 #include "UI/UILocalizationText.h"
 
@@ -1250,8 +1251,12 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 			continue;
 		}
 
-		const UGridItemDefinitionAsset* ItemDefinition = IsValid(InventoryComponent) && !ActionView.Binding.SourceDefinitionId.IsNone()
-			? InventoryComponent->FindItemDefinition(ActionView.Binding.SourceDefinitionId)
+		// Slot 1 is the PrimaryAttack alias: its binding has no item definition.
+		// When armed, the resolved action carries the actual equipment source.
+		const FName SourceDefinitionId = ActionView.bResolved && !ActionView.Action.SourceDefinitionId.IsNone()
+			? ActionView.Action.SourceDefinitionId : ActionView.Binding.SourceDefinitionId;
+		const UGridItemDefinitionAsset* ItemDefinition = IsValid(InventoryComponent) && !SourceDefinitionId.IsNone()
+			? InventoryComponent->FindItemDefinition(SourceDefinitionId)
 			: nullptr;
 		if (IsValid(ItemDefinition))
 		{
@@ -1266,6 +1271,28 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 			if (ActionView.Action.Definition.Icon.IsNull())
 			{
 				ActionView.Action.Definition.Icon = ItemDefinition->Icon;
+			}
+
+			const EGridCombatActionSourcePolicy SourcePolicy = ActionView.bResolved
+				? ActionView.Action.Definition.SourcePolicy : ActionView.Binding.SourcePolicy;
+			if (SourcePolicy == EGridCombatActionSourcePolicy::Equipment ||
+				SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
+			{
+				FGridItemInstance EquippedItem;
+				const FGridItemInstance* SourceItem = nullptr;
+				if (SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+					IsValid(InventoryComponent) && View.ActiveCharacterIndex != INDEX_NONE &&
+					ActionView.Action.SourceEquipmentSlot != EGridEquipmentSlot::None &&
+					InventoryComponent->GetEquippedItem(View.ActiveCharacterIndex,
+						ActionView.Action.SourceEquipmentSlot, EquippedItem) &&
+					EquippedItem.IsValid() && EquippedItem.ItemDefinitionId == SourceDefinitionId &&
+					(!ActionView.Action.SourceRuntimeId.IsValid() ||
+						EquippedItem.RuntimeObjectId == ActionView.Action.SourceRuntimeId))
+				{
+					SourceItem = &EquippedItem;
+				}
+				FGridWeaponVisualUiResolver::ApplyCatalogueIcon(
+					ItemDefinition, SourceItem, ActionView.Action.Definition.Icon);
 			}
 		}
 
