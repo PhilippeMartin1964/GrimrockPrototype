@@ -253,6 +253,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 			ItemInstance.RuntimeObjectId = FGuid::NewGuid();
 		}
 		ItemInstance.ItemDefinitionId = ItemDefinitionId;
+		ItemInstance.ItemLevel = Entry.ItemLevel;
 		ItemInstance.Quantity = FMath::Max(1, Entry.Quantity);
 		ItemInstance.Weight = 0.0f;
 		ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled();
@@ -328,6 +329,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 			ItemInstance.RuntimeObjectId = FGuid::NewGuid();
 		}
 		ItemInstance.ItemDefinitionId = ItemDefinitionId;
+		ItemInstance.ItemLevel = Entry.ItemLevel;
 		ItemInstance.Quantity = FMath::Max(1, Entry.Quantity);
 		ItemInstance.Weight = 0.0f;
 		ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled();
@@ -445,6 +447,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	FGridRuntimeItemState ItemState;
 	ItemState.ObjectId = ItemInstance.RuntimeObjectId;
 	ItemState.ItemDefinitionId = ItemInstance.ItemDefinitionId;
+	ItemState.ItemLevel = ItemInstance.ItemLevel;
 	ItemState.Quantity = FMath::Max(1, ItemInstance.Quantity);
 	ItemState.CellX = Relocation.TargetCellX;
 	ItemState.CellY = Relocation.TargetCellY;
@@ -512,6 +515,7 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 		FGridItemInstance ItemInstance;
 		ItemInstance.RuntimeObjectId = RuntimeObjectId;
 		ItemInstance.ItemDefinitionId = ItemState.ItemDefinitionId;
+		ItemInstance.ItemLevel = ItemState.ItemLevel;
 		ItemInstance.Quantity = FMath::Max(1, ItemState.Quantity);
 		ItemInstance.bLightsEnabled = ItemState.bLightsEnabled;
 		ItemInstance.ReadableContentAsset = ItemState.ReadableContentAsset;
@@ -598,6 +602,7 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 			ItemInstance.RuntimeObjectId = FGuid::NewGuid();
 		}
 		ItemInstance.ItemDefinitionId = Definition->ItemDefinitionId;
+		ItemInstance.ItemLevel = Entry.ItemLevel;
 		ItemInstance.Quantity = FMath::Max(1, Entry.Quantity);
 		ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled();
 		ItemInstance.ReadableContentAsset = ItemActor->ReadableContentAsset;
@@ -673,12 +678,28 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 		return false;
 	}
 
+	// Resolve a newly minted fixed-level item once; never reroll on pickup.
+	int32 ResolvedItemLevel = 0;
+	if (ItemDefinition->bUseWeaponCatalogue)
+	{
+		ResolvedItemLevel = ItemInstance.ItemLevel == 0 ? ItemDefinition->DefaultWeaponItemLevel : ItemInstance.ItemLevel;
+		const FGridWeaponLevelProfile* Profile = nullptr;
+		if (!ItemDefinition->TryGetWeaponCatalogueProfile(ResolvedItemLevel, Profile))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridInventory WorldDrop Failed Item=%s InvalidItemLevel=%d"),
+				*ItemInstance.ItemDefinitionId.ToString(), ResolvedItemLevel);
+			return false;
+		}
+	}
+
 	if (Edge == EGridEdge::None)
 	{
 		FGridRelocationBehaviorParams PitRelocation;
 		if (FindOpenPitAtCell(CellX, CellY, PitRelocation))
 		{
-			return TryRouteWorldItemThroughOpenPit(ItemInstance, ItemDefinition, CellX, CellY, LocalOffset);
+			FGridItemInstance ResolvedInstance = ItemInstance;
+			ResolvedInstance.ItemLevel = ResolvedItemLevel;
+			return TryRouteWorldItemThroughOpenPit(ResolvedInstance, ItemDefinition, CellX, CellY, LocalOffset);
 		}
 	}
 
@@ -730,6 +751,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	Entry.ObjectId = RuntimeObjectId;
 	Entry.ItemDefinitionAsset = ItemDefinition;
 	Entry.ItemDefinitionId = ItemInstance.ItemDefinitionId;
+	Entry.ItemLevel = ResolvedItemLevel;
 	Entry.Quantity = FMath::Max(1, ItemInstance.Quantity);
 
 	SpawnedItemActors.Add(ItemActor);

@@ -73,6 +73,36 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset(UGridItemDefini
 	return true;
 }
 
+bool AGridLevelEditorActor::SetSelectedObjectItemLevel(int32 NewItemLevel)
+{
+	if (!LevelAsset || NewItemLevel < 0 || NewItemLevel > 20)
+	{
+		return false;
+	}
+	FGridLooseItemInstance* Item = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId);
+	if (!Item || !IsValid(Item->ItemDefinition.Get()) || !Item->ItemDefinition->bUseWeaponCatalogue)
+	{
+		return false;
+	}
+	if (NewItemLevel > 0)
+	{
+		const FGridWeaponLevelProfile* Profile = nullptr;
+		if (!Item->ItemDefinition->TryGetWeaponCatalogueProfile(NewItemLevel, Profile))
+		{
+			return false;
+		}
+	}
+	if (Item->ItemLevel == NewItemLevel)
+	{
+		return true;
+	}
+	LevelAsset->Modify();
+	Item->ItemLevel = NewItemLevel;
+	LevelAsset->MarkPackageDirty();
+	RebuildPreview();
+	return true;
+}
+
 bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefinitionId)
 {
 	// Compatibility authoring command: resolve a definition without storing a second identity.

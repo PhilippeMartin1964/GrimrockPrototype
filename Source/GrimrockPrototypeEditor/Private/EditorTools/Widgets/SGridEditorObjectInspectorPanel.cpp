@@ -995,6 +995,25 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 	{
 		Root->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Assign an Item Definition asset."))).AutoWrapText(true)];
 	}
+	if (LooseItem && Definition && Definition->bUseWeaponCatalogue)
+	{
+		// ARMEMENT01.8.1: authored item level belongs to the placed instance,
+		// not the shared definition. Zero inherits the definition's default.
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
+			FText::FromString(TEXT("Item Level (0 = default)")),
+			SNew(SSpinBox<int32>)
+				.Value(LooseItem->ItemLevel)
+				.MinValue(0).MaxValue(20)
+				.MinSliderValue(0).MaxSliderValue(20)
+				.Delta(1).MinDesiredWidth(90.f)
+				.OnValueCommitted_Lambda([this](int32 NewLevel, ETextCommit::Type)
+				{
+					if (AGridLevelEditorActor* Editor = GetEditorActor())
+					{
+						if (Editor->SetSelectedObjectItemLevel(NewLevel)) RequestRefresh();
+					}
+				}))];
+	}
 	if (LooseItem)
 	{
 		if (LooseItem->SurfaceSide == EGridEdge::None)

@@ -64,6 +64,10 @@ struct FGridSpawnedItemRuntimeEntry
 
 	UPROPERTY(Transient)
 	int32 Quantity = 1;
+
+	/** Fixed item level of this physical world instance (0 for Legacy items). */
+	UPROPERTY(Transient)
+	int32 ItemLevel = 0;
 };
 
 UCLASS()

@@ -1970,6 +1970,20 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 		return;
 	}
 	const FName ItemDefinitionId = ItemDefinition->ItemDefinitionId;
+	int32 ResolvedItemLevel = 0;
+	if (ItemDefinition->bUseWeaponCatalogue)
+	{
+		// Zero means the authored placement inherits the current default ONCE.
+		// Every materialized instance thereafter carries its resolved fixed level.
+		ResolvedItemLevel = ObjectData.ItemLevel == 0 ? ItemDefinition->DefaultWeaponItemLevel : ObjectData.ItemLevel;
+		const FGridWeaponLevelProfile* Profile = nullptr;
+		if (!ItemDefinition->TryGetWeaponCatalogueProfile(ResolvedItemLevel, Profile))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Placed item skipped: invalid authored ItemLevel=%d for %s."),
+				ResolvedItemLevel, *ItemDefinitionId.ToString());
+			return;
+		}
+	}
 	AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, ItemDefinitionId, this, nullptr);
 	if (!ItemActor)
 	{
@@ -2002,6 +2016,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	Entry.ItemDefinitionAsset = ItemDefinition;
 	Entry.ItemDefinitionId = ItemDefinitionId;
 	Entry.Quantity = FMath::Max(1, ObjectData.Quantity);
+	Entry.ItemLevel = ResolvedItemLevel;
 	SpawnedItemEntries.Add(Entry);
 	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Placed item spawned: %s at object %s. Runtime=%s RebuildGeneration=%d ActiveItemCount=%d"), *ItemDefinitionId.ToString(),
 		*ObjectData.InstanceId.ToString(), *GetName(), RuntimeObjectRebuildGeneration, SpawnedItemEntries.Num());

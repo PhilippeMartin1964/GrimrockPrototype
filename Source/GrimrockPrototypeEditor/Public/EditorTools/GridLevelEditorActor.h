@@ -417,6 +417,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
 	bool SetSelectedObjectItemDefinitionAsset(UGridItemDefinitionAsset* NewItemDefinitionAsset);
 
+	/** Changes only the selected loose item's authored fixed level; zero uses the asset default. */
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
+	bool SetSelectedObjectItemLevel(int32 NewItemLevel);
+
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
 	bool SetSelectedObjectItemDefinitionId(FName NewItemDefinitionId);
 

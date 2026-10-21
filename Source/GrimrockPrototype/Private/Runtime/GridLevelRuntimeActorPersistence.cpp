@@ -201,6 +201,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		FGridRuntimeItemState ItemState;
 		ItemState.ObjectId = Entry.ObjectId;
 		ItemState.ItemDefinitionId = PersistenceResolvePickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
+		ItemState.ItemLevel = Entry.ItemLevel;
 		ItemState.Quantity = FMath::Max(1, Entry.Quantity);
 		ItemState.CellX = Entry.Cell.X;
 		ItemState.CellY = Entry.Cell.Y;
@@ -491,6 +492,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				Entry.Cell = FIntPoint(ItemState.CellX, ItemState.CellY);
 				Entry.Edge = ItemState.Edge;
 				Entry.Quantity = FMath::Max(1, ItemState.Quantity);
+				Entry.ItemLevel = ItemState.ItemLevel;
 				bFoundExistingItem = true;
 			}
 			break;
@@ -525,6 +527,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				Entry.ObjectId = Pair.Key;
 				Entry.ItemDefinitionAsset = ItemDefinition;
 				Entry.ItemDefinitionId = RuntimeItemDefinitionId;
+				Entry.ItemLevel = ItemState.ItemLevel;
 				Entry.Quantity = FMath::Max(1, ItemState.Quantity);
 				SpawnedItemEntries.Add(Entry);
 			}

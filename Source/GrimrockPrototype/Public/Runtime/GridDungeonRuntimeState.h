@@ -84,6 +84,10 @@ struct FGridRuntimeItemState
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	int32 Quantity = 1;
 
+	/** Fixed item level persists across world drops, saves and inter-level transfers. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	int32 ItemLevel = 0;
+
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	int32 CellX = INDEX_NONE;
 
