@@ -1,6 +1,7 @@
 #include "RPG/RPGClassAsset.h"
 
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 
 FPrimaryAssetId URPGClassAsset::GetPrimaryAssetId() const
 {
@@ -260,6 +261,29 @@ bool URPGClassAsset::IsValidDefinition() const
 		return false;
 	}
 
+	// Opt-in starting kits: legacy classes with no kit stay valid and empty.
+	TSet<FName> SeenKitIds;
+	for (const FRPGStartingEquipmentKit& Kit : StartingEquipmentKits)
+	{
+		if (Kit.KitId.IsNone() || SeenKitIds.Contains(Kit.KitId) || Kit.Items.IsEmpty())
+		{
+			return false;
+		}
+		SeenKitIds.Add(Kit.KitId);
+		for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
+		{
+			if (!IsValid(Entry.ItemDefinition.Get()) || Entry.ItemLevel < 0 || Entry.ItemLevel > 20 || Entry.Quantity < 1 ||
+				(Entry.TargetSlot != EGridEquipmentSlot::None && Entry.Quantity != 1))
+			{
+				return false;
+			}
+		}
+	}
+	if (!DefaultStartingEquipmentKitId.IsNone() && !SeenKitIds.Contains(DefaultStartingEquipmentKitId))
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -274,5 +298,14 @@ const FRPGClassProgressionChoiceDefinition* URPGClassAsset::FindProgressionChoic
 		[ChoiceId](const FRPGClassProgressionChoiceDefinition& Choice)
 		{
 			return Choice.ChoiceId == ChoiceId;
+		});
+}
+
+const FRPGStartingEquipmentKit* URPGClassAsset::FindStartingEquipmentKit(FName KitId) const
+{
+	return KitId.IsNone() ? nullptr : StartingEquipmentKits.FindByPredicate(
+		[KitId](const FRPGStartingEquipmentKit& Kit)
+		{
+			return Kit.KitId == KitId;
 		});
 }

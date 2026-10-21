@@ -5,7 +5,10 @@
 #include "RPG/RPGCharacterTypes.h"
 #include "RPG/RPGSkillTypes.h"
 #include "Runtime/Combat/GridCombatTypes.h"
+#include "Runtime/GridInventoryTypes.h"
 #include "RPGClassAsset.generated.h"
+
+class UGridItemDefinitionAsset;
 
 /** Automatic class progression granted when a character reaches one level. */
 USTRUCT(BlueprintType)
@@ -150,6 +153,43 @@ struct FRPGClassProgressionChoiceDefinition
 	int32 FirstRoundInitiativeModifier = 0;
 };
 
+/** ARMEMENT01.9.1: one authored item for a class starting kit.
+ * TargetSlot=None sends it to the bag; equipped entries must have Quantity=1.
+ * Level 0 inherits the definition default only when the character is created.
+ */
+USTRUCT(BlueprintType)
+struct FRPGStartingEquipmentEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment")
+	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment", meta = (ClampMin = "0", ClampMax = "20"))
+	int32 ItemLevel = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment", meta = (ClampMin = "1"))
+	int32 Quantity = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment")
+	EGridEquipmentSlot TargetSlot = EGridEquipmentSlot::None;
+};
+
+USTRUCT(BlueprintType)
+struct FRPGStartingEquipmentKit
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment")
+	FName KitId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment")
+	FText DisplayName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment")
+	TArray<FRPGStartingEquipmentEntry> Items;
+};
+
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API URPGClassAsset : public UPrimaryDataAsset
 {
@@ -199,6 +239,16 @@ public:
 	/** Optional choices evaluated by MON15.4 and committed later by MON15.5. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression")
 	TArray<FRPGClassProgressionChoiceDefinition> ProgressionChoices;
+
+	/** Optional class-specific kits. Empty = legacy empty starting inventory. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment")
+	TArray<FRPGStartingEquipmentKit> StartingEquipmentKits;
+
+	/** If specified, this kit is granted atomically at initial character creation. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment")
+	FName DefaultStartingEquipmentKitId = NAME_None;
+
+	const FRPGStartingEquipmentKit* FindStartingEquipmentKit(FName KitId) const;
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Class")
 	bool IsValidDefinition() const;

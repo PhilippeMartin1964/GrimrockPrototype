@@ -377,6 +377,10 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	FName ClassId = NAME_None;
 
+	/** Durable class-kit selection; empty for legacy characters. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Starting Equipment")
+	FName StartingEquipmentKitId = NAME_None;
+
 	/** TD07.3.4.3 presentation cache reconstructed from ClassId. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Character")
 	FText ClassDisplayName;

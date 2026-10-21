@@ -9,6 +9,7 @@
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGStartingEquipmentService.h"
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/RPGAttributePointService.h"
 #include "RPG/RPGSkillPointService.h"
@@ -515,9 +516,41 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	NewPartyState.bHasCursorItem = false;
 	NewPartyState.CursorItem = FGridItemInstance();
 
+	// ARMEMENT01.9.1: build the selected class's default kit into the still
+	// uncommitted party. Failed or incompatible kits cannot create a partial hero.
+	TArray<UGridItemDefinitionAsset*> StartingDefinitions;
+	FString KitError;
+	if (!FRPGStartingEquipmentService::TryBuildKit(
+		CombatActionSourceClass, CombatActionSourceClass->DefaultStartingEquipmentKitId,
+		NewPartyState.ActiveCharacters[0], NewPartyState.ActiveEquipment[0], StartingDefinitions, KitError))
+	{
+		OutError = FText::FromString(FString::Printf(TEXT("Équipement de départ invalide : %s"), *KitError));
+		return false;
+	}
+	for (UGridItemDefinitionAsset* Definition : StartingDefinitions)
+	{
+		if (UGridItemDefinitionAsset* Existing = FindItemDefinition(Definition->ItemDefinitionId))
+		{
+			if (Existing != Definition)
+			{
+				OutError = FText::FromString(TEXT("Une définition d'objet du kit utilise déjà un autre asset enregistré."));
+				return false;
+			}
+		}
+	}
+
 	const FGridPartyInventoryState PreviousPartyState = PartyInventoryState;
 	const TArray<FGuid> PreviousPortraitOrder = PartyPortraitOrder;
 	PartyInventoryState = MoveTemp(NewPartyState);
+	TArray<FName> AddedDefinitionIds;
+	for (UGridItemDefinitionAsset* Definition : StartingDefinitions)
+	{
+		if (!RuntimeItemDefinitionsById.Contains(Definition->ItemDefinitionId))
+		{
+			RuntimeItemDefinitionsById.Add(Definition->ItemDefinitionId, Definition);
+			AddedDefinitionIds.Add(Definition->ItemDefinitionId);
+		}
+	}
 	NotifyPartyInventoryChanged(INDEX_NONE);
 
 	FString OwnershipError;
@@ -525,6 +558,10 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	{
 		PartyInventoryState = PreviousPartyState;
 		PartyPortraitOrder = PreviousPortraitOrder;
+		for (const FName DefinitionId : AddedDefinitionIds)
+		{
+			RuntimeItemDefinitionsById.Remove(DefinitionId);
+		}
 		NotifyPartyInventoryChanged(INDEX_NONE);
 		OutError = FText::FromString(FString::Printf(TEXT("La création du personnage a échoué lors de la validation de l'ownership : %s"), *OwnershipError));
 		return false;
