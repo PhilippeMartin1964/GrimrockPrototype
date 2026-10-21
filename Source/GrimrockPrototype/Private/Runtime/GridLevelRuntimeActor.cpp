@@ -1,3 +1,4 @@
+#include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 
 #include "Core/GridRelocationUtils.h"
@@ -1826,7 +1827,9 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition(F
 		}
 	}
 
-	return nullptr;
+	// A saved starting weapon may not appear anywhere in the active dungeon.
+	// ARMEMENT01.9.2 recipes are the authoritative source of these assets.
+	return FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(ItemDefinitionId);
 }
 
 AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId, AActor* OwnerActor,

@@ -115,6 +115,37 @@ namespace RPGStartingPresets
     }
 }
 
+UGridItemDefinitionAsset* FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(FName ItemDefinitionId)
+{
+    if (ItemDefinitionId.IsNone())
+    {
+        return nullptr;
+    }
+    // Only definitions explicitly referenced by a production kit can be
+    // loaded as a fallback. A save must never silently substitute another
+    // object with a mismatched ItemDefinitionId.
+    TSet<FString> AttemptedAssetNames;
+    for (const RPGStartingPresets::FKitSpec& Kit : RPGStartingPresets::Kits)
+    {
+        const RPGStartingPresets::FItemSpec Items[] = {Kit.First, Kit.Second};
+        for (const RPGStartingPresets::FItemSpec& Item : Items)
+        {
+            const FString AssetName(Item.AssetName);
+            if (AttemptedAssetNames.Contains(AssetName))
+            {
+                continue;
+            }
+            AttemptedAssetNames.Add(AssetName);
+            UGridItemDefinitionAsset* Definition = RPGStartingPresets::ResolveItem(Item.AssetName);
+            if (IsValid(Definition) && Definition->ItemDefinitionId == ItemDefinitionId)
+            {
+                return Definition;
+            }
+        }
+    }
+    return nullptr;
+}
+
 bool FRPGStartingEquipmentPresetCatalog::IsProductionClassAsset(const URPGClassAsset* ClassAsset)
 {
     if (!IsValid(ClassAsset) ||

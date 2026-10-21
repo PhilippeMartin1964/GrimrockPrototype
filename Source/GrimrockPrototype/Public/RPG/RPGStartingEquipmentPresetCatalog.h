@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 
 class URPGClassAsset;
+class UGridItemDefinitionAsset;
 
 /**
  * ARMEMENT01.9.2: deterministic, source-controlled starting-kit recipes for
@@ -14,6 +15,9 @@ class URPGClassAsset;
 class GRIMROCKPROTOTYPE_API FRPGStartingEquipmentPresetCatalog
 {
 public:
+    /** Recover starter item definitions independently of dungeon placement. */
+    static UGridItemDefinitionAsset* ResolveKnownStartingItemDefinition(FName ItemDefinitionId);
+
     static bool IsProductionClassAsset(const URPGClassAsset* ClassAsset);
 
     /** Populate an initially unconfigured transient class. Transactional. */
