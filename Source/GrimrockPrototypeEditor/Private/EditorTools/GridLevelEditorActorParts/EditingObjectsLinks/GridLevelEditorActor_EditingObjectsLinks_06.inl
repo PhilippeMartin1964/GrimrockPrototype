@@ -109,6 +109,13 @@ bool AGridLevelEditorActor::TryGetObjectWorldLocationById(FGuid ObjectId, FVecto
 	else if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(ObjectId))
 	{
 		bUsesEdge = LooseItemInstance->SurfaceSide != EGridEdge::None;
+		if (!bUsesEdge)
+		{
+			// ITEMSTACK01.2: picking/focusing must use the real editor placement,
+			// not the cell centre, or independently placed items cannot be selected.
+			OutWorldLocation = CellCenter + FVector(LooseItemInstance->LocalOffset.X, LooseItemInstance->LocalOffset.Y, 0.f);
+			return true;
+		}
 	}
 
 	if (bUsesEdge)

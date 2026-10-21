@@ -7,7 +7,12 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
+#include "Components/StaticMeshComponent.h"
+#include "Runtime/GridEditorPreviewComponent.h"
+#include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 
 namespace GridEditorITEMSTACK01
 {
@@ -124,13 +129,17 @@ bool FGridEditorITEMSTACK01AdditiveTest::RunTest(const FString&)
 
     TestTrue(TEXT("Bow shares the same cell"), Fixture.Place(TEXT("Weapon_ShortBow_01")));
     TestTrue(TEXT("Shield shares the same cell"), Fixture.Place(TEXT("Weapon_RoundShield_01")));
-    TestTrue(TEXT("Another dagger shares the same cell"), Fixture.Place(TEXT("Weapon_Dagger_01")));
+    // Even a legacy BP with RemoveAllAtSlot selected must not delete loose items.
+    Fixture.Editor->PlacementPolicy = EGridEditorObjectPlacementPolicy::RemoveAllAtSlot;
+    TestTrue(TEXT("Another dagger shares the same cell regardless of legacy policy"), Fixture.Place(TEXT("Weapon_Dagger_01")));
     if (!TestEqual(TEXT("Four collectibles preserved"), Fixture.Level->LooseItemInstances.Num(), 4))
     {
         return false;
     }
 
     TSet<FGuid> UniqueIds;
+    TArray<FVector2D> UsedPositions;
+    const FVector2D CellCenter((1.5f) * Fixture.Level->CellSize, (1.5f) * Fixture.Level->CellSize);
     for (const FGridLooseItemInstance& Item : Fixture.Level->LooseItemInstances)
     {
         TestEqual(TEXT("Cell X unchanged"), Item.CellX, 1);
@@ -139,6 +148,24 @@ bool FGridEditorITEMSTACK01AdditiveTest::RunTest(const FString&)
         TestNotNull(TEXT("Canonical definition retained"), Item.ItemDefinition.Get());
         TestTrue(TEXT("Unique persistent identity"), Item.InstanceId.IsValid() && !UniqueIds.Contains(Item.InstanceId));
         UniqueIds.Add(Item.InstanceId);
+        const FVector2D Offset(Item.LocalOffset.X, Item.LocalOffset.Y);
+        for (const FVector2D& PriorPosition : UsedPositions)
+        {
+            TestTrue(TEXT("Each collectible gets a distinct visible floor position"),
+                !Offset.Equals(PriorPosition, KINDA_SMALL_NUMBER));
+        }
+        UsedPositions.Add(Offset);
+        TestTrue(TEXT("Automatic floor position is kept inside the cell"),
+            FMath::Abs(Offset.X) <= Fixture.Level->CellSize * 0.25f &&
+            FMath::Abs(Offset.Y) <= Fixture.Level->CellSize * 0.25f);
+        FVector WorldLocation = FVector::ZeroVector;
+        if (TestTrue(TEXT("Individual collectible can be located by id"),
+            Fixture.Editor->TryGetObjectWorldLocationById(Item.InstanceId, WorldLocation)))
+        {
+            TestTrue(TEXT("Editor selection position agrees with authored floor offset"),
+                FVector2D::DistSquared(FVector2D(WorldLocation.X, WorldLocation.Y),
+                    CellCenter + Offset) < 0.01f);
+        }
     }
     TestEqual(TEXT("First dagger identity retained"), Fixture.Level->LooseItemInstances[0].InstanceId, DaggerId);
     TestNotNull(TEXT("Logical object is retained"), Fixture.Level->FindLogicObjectInstanceById(LogicId));
@@ -151,11 +178,11 @@ bool FGridEditorITEMSTACK01AdditiveTest::RunTest(const FString&)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorITEMSTACK01ReplaceTest,
-    "Grimrock.Editor.ITEMSTACK01.ExplicitRemoveAllStillWorks",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorITEMSTACK01ExplicitRemovalTest,
+    "Grimrock.Editor.ITEMSTACK01.ExplicitRemoveCommandStillWorks",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridEditorITEMSTACK01ReplaceTest::RunTest(const FString&)
+bool FGridEditorITEMSTACK01ExplicitRemovalTest::RunTest(const FString&)
 {
     GridEditorITEMSTACK01::FEditorFixture Fixture;
     if (!TestTrue(TEXT("Production palette and editor world exist"), Fixture.IsReady()))
@@ -177,24 +204,79 @@ bool FGridEditorITEMSTACK01ReplaceTest::RunTest(const FString&)
     {
         return false;
     }
+    if (!TestTrue(TEXT("Bow added to the same cell"), Fixture.Place(TEXT("Weapon_ShortBow_01"))))
+    {
+        return false;
+    }
     const FGuid OldTargetId = Fixture.Level->LooseItemInstances[1].InstanceId;
 
-    Fixture.Editor->PlacementPolicy = EGridEditorObjectPlacementPolicy::RemoveAllAtSlot;
-    TestTrue(TEXT("Select replacement bow"), Fixture.Editor->ApplyPaletteEntry(FName(TEXT("Weapon_ShortBow_01"))));
-    Fixture.Editor->PlaceSelectedObject();
-
-    TestEqual(TEXT("Only remote dagger and new bow remain"), Fixture.Level->LooseItemInstances.Num(), 2);
+    // Explicit Remove is the supported destructive action; painting never deletes loot.
+    Fixture.Editor->RemoveObjectsAtSelection();
+    TestEqual(TEXT("Only remote dagger remains"), Fixture.Level->LooseItemInstances.Num(), 1);
     TestNotNull(TEXT("Remote item retained"), Fixture.Level->FindLooseItemInstanceById(RemoteId));
-    TestTrue(TEXT("Old target item deliberately removed"), Fixture.Level->FindLooseItemInstanceById(OldTargetId) == nullptr);
-    TestEqual(TEXT("One target object remains"), Fixture.Level->GetTypedPlacementIdsAtCell(1, 1).Num(), 1);
+    TestTrue(TEXT("Target dagger removed"), Fixture.Level->FindLooseItemInstanceById(OldTargetId) == nullptr);
+    TestEqual(TEXT("No target items remain"), Fixture.Level->GetTypedPlacementIdsAtCell(1, 1).Num(), 0);
+    return true;
+}
 
-    const FGridLooseItemInstance* Replacement = Fixture.Level->LooseItemInstances.FindByPredicate(
-        [](const FGridLooseItemInstance& Item) { return Item.CellX == 1 && Item.CellY == 1; });
-    if (TestNotNull(TEXT("Bow replacement exists"), Replacement) &&
-        TestNotNull(TEXT("Replacement definition exists"), Replacement->ItemDefinition.Get()))
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorITEMSTACK01PreviewSelectionTest,
+    "Grimrock.Editor.ITEMSTACK01.WorldPreviewsAndIndividualSelection",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorITEMSTACK01PreviewSelectionTest::RunTest(const FString&)
+{
+    GridEditorITEMSTACK01::FEditorFixture Fixture;
+    if (!TestTrue(TEXT("Production palette and editor world exist"), Fixture.IsReady()))
     {
-        TestEqual(TEXT("Replacement identity"), Replacement->ItemDefinition->ItemDefinitionId, FName(TEXT("Weapon_ShortBow_01")));
+        return false;
     }
+    if (!TestTrue(TEXT("Dagger placed"), Fixture.Place(TEXT("Weapon_Dagger_01"))) ||
+        !TestTrue(TEXT("Bow placed"), Fixture.Place(TEXT("Weapon_ShortBow_01"))) ||
+        !TestTrue(TEXT("Shield placed"), Fixture.Place(TEXT("Weapon_RoundShield_01"))))
+    {
+        return false;
+    }
+
+    // Exercise the real runtime preview component on a separate test actor.
+    AGridLevelRuntimeActor* Runtime = Fixture.World->SpawnActor<AGridLevelRuntimeActor>();
+    if (!TestNotNull(TEXT("Preview runtime actor"), Runtime))
+    {
+        return false;
+    }
+    Runtime->LevelAsset = Fixture.Level;
+    UGridEditorPreviewComponent* PreviewComponent = Runtime->FindComponentByClass<UGridEditorPreviewComponent>();
+    if (!TestNotNull(TEXT("Preview component exists"), PreviewComponent))
+    {
+        return false;
+    }
+    PreviewComponent->Initialize(Runtime);
+    PreviewComponent->RebuildPreviewObjects();
+
+    for (const FGridLooseItemInstance& Item : Fixture.Level->LooseItemInstances)
+    {
+        AGridEditorPreviewObjectActor* Preview = nullptr;
+        for (TActorIterator<AGridEditorPreviewObjectActor> It(Fixture.World); It; ++It)
+        {
+            if ((*It)->ObjectId == Item.InstanceId)
+            {
+                Preview = *It;
+                break;
+            }
+        }
+        if (!TestNotNull(TEXT("Every placed item has its own world preview"), Preview))
+        {
+            continue;
+        }
+        const FVector Expected = Runtime->GetCellCenterWorld(Item.CellX, Item.CellY, 12.f) + Item.LocalOffset;
+        TestTrue(TEXT("Preview actor preserves authored per-item offset"),
+            Preview->GetActorLocation().Equals(Expected, 0.01f));
+        TestNotNull(TEXT("Preview mesh exists"), Preview->MeshComponent->GetStaticMesh());
+        TestTrue(TEXT("The correct item is independently hoverable"),
+            Fixture.Editor->UpdateHoveredObjectFromWorldPoint(Preview->GetActorLocation()));
+        TestEqual(TEXT("Hover selects the exact item GUID"), Fixture.Editor->HoveredObjectId, Item.InstanceId);
+    }
+
+    PreviewComponent->ClearPreviewObjects();
     return true;
 }
 
