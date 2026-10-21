@@ -173,7 +173,7 @@ bool FARMEMENT0163MaterialDepsTest::RunTest(const FString&)
 			nullptr, *ARMEMENT0163::MaterialPath(Pilot));
 		if (!TestNotNull(*FString::Printf(TEXT("PBR instance for %s"), Pilot.ArchetypeId),
 			Instance)) { continue; }
-		TestNotNull(TEXT("Material instance has a parent"), Instance->Parent);
+		TestNotNull(TEXT("Material instance has a parent"), Instance->Parent.Get());
 
 		const TCHAR* Suffixes[] = {TEXT("BC"), TEXT("N"), TEXT("ORM")};
 		for (const TCHAR* Suffix : Suffixes)
@@ -205,7 +205,7 @@ bool FARMEMENT0163MaterialDepsTest::RunTest(const FString&)
 		bool bUsesApprovedMaterial = false;
 		for (const FStaticMaterial& Slot : Slots)
 		{
-			if (TestNotNull(TEXT("Every Material Slot resolves"), Slot.MaterialInterface) &&
+			if (TestNotNull(TEXT("Every Material Slot resolves"), Slot.MaterialInterface.Get()) &&
 				Slot.MaterialInterface == Instance)
 			{
 				bUsesApprovedMaterial = true;
