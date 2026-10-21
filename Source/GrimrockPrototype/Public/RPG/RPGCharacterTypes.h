@@ -225,6 +225,10 @@ struct FRPGCharacterCreationRequest
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
 	TObjectPtr<URPGClassAsset> CombatActionSourceClassDefinition = nullptr;
 
+	/** ARMEMENT01.9.3: optional explicit kit selection; None retains default. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Starting Equipment")
+	FName StartingEquipmentKitId = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
 	ERPGCharacterPortraitGender PortraitGender = ERPGCharacterPortraitGender::Male;
 

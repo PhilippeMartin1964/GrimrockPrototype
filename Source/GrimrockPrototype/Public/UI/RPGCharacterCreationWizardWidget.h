@@ -2,9 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "UI/RPGCharacterCreationWidget.h"
+#include "RPG/RPGClassAsset.h"
 #include "RPGCharacterCreationWizardWidget.generated.h"
 
 class UButton;
+class UComboBoxString;
 class UImage;
 class UTextBlock;
 class UTexture2D;
@@ -123,6 +125,19 @@ public:
 	virtual float GetPreviewCarryWeight() const override;
 	virtual bool SubmitCharacterCreation() override;
 
+	/** Blueprint read model for the existing Class step (no UMG asset mutation). */
+	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation|Starting Equipment")
+	TArray<FRPGStartingEquipmentKit> GetAvailableStartingEquipmentKits() const;
+
+	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation|Starting Equipment")
+	FName GetSelectedStartingEquipmentKitId() const;
+
+	UFUNCTION(BlueprintCallable, Category = "RPG|Character Creation|Starting Equipment")
+	bool SelectStartingEquipmentKit(FName KitId);
+
+	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation|Starting Equipment")
+	FText GetSelectedStartingEquipmentKitDescription() const;
+
 	UFUNCTION(BlueprintCallable, Category = "RPG|Character Creation|Attributes")
 	void ResetAttributeAllocationToClassDefinition();
 
@@ -160,6 +175,10 @@ private:
 	void BindWizardButtons();
 	void BindWizardSubmitButton();
 	void RefreshWizardShell();
+	void RefreshStartingKitSelection();
+	void RefreshStartingKitWidgets();
+	FName GetStartingKitDefaultId() const;
+	FText GetStartingKitOptionLabel(const FRPGStartingEquipmentKit& Kit) const;
 	void RefreshSummaryStep();
 	void RefreshSummaryVisuals(bool bCanCreateCharacter);
 	void ApplyWizardStepToSwitcher();
@@ -181,7 +200,20 @@ private:
 	UFUNCTION()
 	void HandleWizardCreateCharacterClicked();
 
+	UFUNCTION()
+	void HandleStartingKitSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
+
 private:
+	/** Optional UMG widgets to add manually to the existing Class/Summary panels. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UComboBoxString> ComboBox_StartingKit;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_StartingKitDescription;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_SummaryStartingKit;
+
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_Previous;
 
@@ -301,6 +333,14 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> Image_SummaryCarryWeightIcon;
+
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Starting Equipment", meta = (AllowPrivateAccess = "true"))
+	FName SelectedStartingEquipmentKitId = NAME_None;
+
+	UPROPERTY(Transient)
+	TObjectPtr<URPGClassAsset> StartingKitSelectionClass = nullptr;
+
+	bool bUpdatingStartingKitCombo = false;
 
 	UPROPERTY(Transient)
 	FRPGAttributes AllocatedClassAttributes;

@@ -3,6 +3,7 @@
 #include "UI/UILocalizationText.h"
 
 #include "Components/Button.h"
+#include "Components/ComboBoxString.h"
 #include "Components/EditableText.h"
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
@@ -13,6 +14,8 @@
 #include "RPG/RPGCharacterPortraitSetAsset.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGStartingEquipmentPresetCatalog.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "RPG/RPGClassVisualAsset.h"
 #include "RPG/RPGCustomRecruitService.h"
 #include "RPG/RPGRaceAsset.h"
@@ -366,6 +369,11 @@ void URPGCharacterCreationWizardWidget::NativeConstruct()
 	CurrentWizardStep = InitialWizardStep;
 	BindWizardButtons();
 	BindWizardSubmitButton();
+	if (ComboBox_StartingKit)
+	{
+		ComboBox_StartingKit->OnSelectionChanged.RemoveDynamic(this, &URPGCharacterCreationWizardWidget::HandleStartingKitSelectionChanged);
+		ComboBox_StartingKit->OnSelectionChanged.AddDynamic(this, &URPGCharacterCreationWizardWidget::HandleStartingKitSelectionChanged);
+	}
 	if (Widget_StepAttributes)
 	{
 		Widget_StepAttributes->InitializeAttributesStep(this);
@@ -377,6 +385,176 @@ void URPGCharacterCreationWizardWidget::NativeConstruct()
 	ApplyWizardStepToSwitcher();
 	RefreshWizardShell();
 	RefreshPreview();
+}
+
+TArray<FRPGStartingEquipmentKit> URPGCharacterCreationWizardWidget::GetAvailableStartingEquipmentKits() const
+{
+    if (CreationContext == ERPGCharacterCreationContext::CustomRecruit ||
+        !IsValid(ClassDefinition.Get()) || !ClassDefinition->IsValidDefinition())
+    {
+        return {};
+    }
+
+    if (FRPGStartingEquipmentPresetCatalog::IsProductionClassAsset(ClassDefinition) &&
+        ClassDefinition->StartingEquipmentKits.IsEmpty() &&
+        ClassDefinition->DefaultStartingEquipmentKitId.IsNone())
+    {
+        // The production DataAsset is read-only. Recipes live on a transient
+        // class copy, exactly as in CreateInitialCharacter().
+        URPGClassAsset* PreviewClass = DuplicateObject<URPGClassAsset>(ClassDefinition, GetTransientPackage());
+        FString Error;
+        if (!PreviewClass || !FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(*PreviewClass, Error))
+        {
+            UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("Starting kit preview unavailable: %s"), *Error);
+            return {};
+        }
+        return PreviewClass->StartingEquipmentKits;
+    }
+    return ClassDefinition->StartingEquipmentKits;
+}
+
+FName URPGCharacterCreationWizardWidget::GetStartingKitDefaultId() const
+{
+    const TArray<FRPGStartingEquipmentKit> Kits = GetAvailableStartingEquipmentKits();
+    if (Kits.IsEmpty())
+    {
+        return NAME_None;
+    }
+    if (ClassDefinition && !ClassDefinition->DefaultStartingEquipmentKitId.IsNone())
+    {
+        return ClassDefinition->DefaultStartingEquipmentKitId;
+    }
+    // Source-controlled production presets always list their default first.
+    return Kits[0].KitId;
+}
+
+FName URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitId() const
+{
+    if (CreationContext == ERPGCharacterCreationContext::CustomRecruit)
+    {
+        return NAME_None;
+    }
+    return StartingKitSelectionClass == ClassDefinition
+        ? SelectedStartingEquipmentKitId : GetStartingKitDefaultId();
+}
+
+void URPGCharacterCreationWizardWidget::RefreshStartingKitSelection()
+{
+    if (StartingKitSelectionClass != ClassDefinition)
+    {
+        StartingKitSelectionClass = ClassDefinition;
+        SelectedStartingEquipmentKitId = GetStartingKitDefaultId();
+        return;
+    }
+    const TArray<FRPGStartingEquipmentKit> Kits = GetAvailableStartingEquipmentKits();
+    if (!Kits.ContainsByPredicate([this](const FRPGStartingEquipmentKit& Kit)
+        { return Kit.KitId == SelectedStartingEquipmentKitId; }))
+    {
+        SelectedStartingEquipmentKitId = GetStartingKitDefaultId();
+    }
+}
+
+bool URPGCharacterCreationWizardWidget::SelectStartingEquipmentKit(FName KitId)
+{
+    if (KitId.IsNone())
+    {
+        return false;
+    }
+    const TArray<FRPGStartingEquipmentKit> Kits = GetAvailableStartingEquipmentKits();
+    if (!Kits.ContainsByPredicate([KitId](const FRPGStartingEquipmentKit& Kit)
+        { return Kit.KitId == KitId; }))
+    {
+        return false;
+    }
+    StartingKitSelectionClass = ClassDefinition;
+    SelectedStartingEquipmentKitId = KitId;
+    SetValidationMessage(FText::GetEmpty(), false);
+    RefreshPreview();
+    return true;
+}
+
+FText URPGCharacterCreationWizardWidget::GetStartingKitOptionLabel(const FRPGStartingEquipmentKit& Kit) const
+{
+    return FText::FromString(FString::Printf(TEXT("%s [%s]"),
+        *(Kit.DisplayName.IsEmpty() ? Kit.KitId.ToString() : Kit.DisplayName.ToString()),
+        *Kit.KitId.ToString()));
+}
+
+FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescription() const
+{
+    const FName KitId = GetSelectedStartingEquipmentKitId();
+    for (const FRPGStartingEquipmentKit& Kit : GetAvailableStartingEquipmentKits())
+    {
+        if (Kit.KitId != KitId)
+        {
+            continue;
+        }
+        FString Description = Kit.DisplayName.IsEmpty() ? Kit.KitId.ToString() : Kit.DisplayName.ToString();
+        for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
+        {
+            const UGridItemDefinitionAsset* Item = Entry.ItemDefinition.Get();
+            if (!Item)
+            {
+                continue;
+            }
+            const FString ItemName = Item->DisplayName.IsEmpty() ? Item->ItemDefinitionId.ToString() : Item->DisplayName.ToString();
+            const FString Location = Entry.TargetSlot == EGridEquipmentSlot::None ? TEXT("Sac") :
+                StaticEnum<EGridEquipmentSlot>()->GetDisplayNameTextByValue(static_cast<int64>(Entry.TargetSlot)).ToString();
+            const int32 Level = Entry.ItemLevel == 0 && Item->bUseWeaponCatalogue
+                ? Item->DefaultWeaponItemLevel : Entry.ItemLevel;
+            Description += FString::Printf(TEXT("\n%d × %s — %s%s"),
+                Entry.Quantity, *ItemName, *Location,
+                Level > 0 ? *FString::Printf(TEXT(" (niv. %d)"), Level) : TEXT(""));
+        }
+        return FText::FromString(Description);
+    }
+    return FText::GetEmpty();
+}
+
+void URPGCharacterCreationWizardWidget::RefreshStartingKitWidgets()
+{
+    const TArray<FRPGStartingEquipmentKit> Kits = GetAvailableStartingEquipmentKits();
+    if (ComboBox_StartingKit)
+    {
+        bUpdatingStartingKitCombo = true;
+        ComboBox_StartingKit->ClearOptions();
+        const FName SelectedId = GetSelectedStartingEquipmentKitId();
+        FString SelectedOption;
+        for (const FRPGStartingEquipmentKit& Kit : Kits)
+        {
+            const FString Label = GetStartingKitOptionLabel(Kit).ToString();
+            ComboBox_StartingKit->AddOption(Label);
+            if (Kit.KitId == SelectedId)
+            {
+                SelectedOption = Label;
+            }
+        }
+        if (!SelectedOption.IsEmpty())
+        {
+            ComboBox_StartingKit->SetSelectedOption(SelectedOption);
+        }
+        ComboBox_StartingKit->SetIsEnabled(Kits.Num() > 1);
+        ComboBox_StartingKit->SetVisibility(GetVisibleWhen(!Kits.IsEmpty()));
+        bUpdatingStartingKitCombo = false;
+    }
+    SetWizardOptionalText(Text_StartingKitDescription, GetSelectedStartingEquipmentKitDescription());
+}
+
+void URPGCharacterCreationWizardWidget::HandleStartingKitSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
+{
+    (void)SelectionType;
+    if (bUpdatingStartingKitCombo)
+    {
+        return;
+    }
+    for (const FRPGStartingEquipmentKit& Kit : GetAvailableStartingEquipmentKits())
+    {
+        if (SelectedItem == GetStartingKitOptionLabel(Kit).ToString())
+        {
+            SelectStartingEquipmentKit(Kit.KitId);
+            return;
+        }
+    }
 }
 
 void URPGCharacterCreationWizardWidget::BindWizardButtons()
@@ -502,6 +680,7 @@ FText URPGCharacterCreationWizardWidget::GetCurrentWizardStepTitle() const
 
 void URPGCharacterCreationWizardWidget::RefreshPreview()
 {
+	RefreshStartingKitSelection();
 	EnsureAttributeAllocationInitialized();
 	Super::RefreshPreview();
 	if (Widget_StepAttributes)
@@ -513,7 +692,17 @@ void URPGCharacterCreationWizardWidget::RefreshPreview()
 
 bool URPGCharacterCreationWizardWidget::CanSubmitCharacterCreation() const
 {
-	return Super::CanSubmitCharacterCreation() && GetRemainingAttributePoints() == 0;
+	if (!Super::CanSubmitCharacterCreation() || GetRemainingAttributePoints() != 0)
+	{
+		return false;
+	}
+	const TArray<FRPGStartingEquipmentKit> Kits = GetAvailableStartingEquipmentKits();
+	if (Kits.IsEmpty())
+	{
+		return true;
+	}
+	const FName SelectedId = GetSelectedStartingEquipmentKitId();
+	return Kits.ContainsByPredicate([SelectedId](const FRPGStartingEquipmentKit& Kit) { return Kit.KitId == SelectedId; });
 }
 
 bool URPGCharacterCreationWizardWidget::GetPreviewAttributes(FRPGAttributes& OutAttributes) const
@@ -543,6 +732,7 @@ float URPGCharacterCreationWizardWidget::GetPreviewCarryWeight() const
 
 void URPGCharacterCreationWizardWidget::RefreshWizardShell()
 {
+	RefreshStartingKitWidgets();
 	if (Text_StepTitle)
 		Text_StepTitle->SetText(GetCurrentWizardStepTitle());
 	if (Text_StepCounter)
@@ -711,6 +901,7 @@ void URPGCharacterCreationWizardWidget::RefreshSummaryStep()
 	SetWizardOptionalText(Text_SummaryHealth, HealthLine);
 	SetWizardOptionalText(Text_SummaryMana, ManaLine);
 	SetWizardOptionalText(Text_SummaryCarryWeight, CarryLine);
+	SetWizardOptionalText(Text_SummaryStartingKit, GetSelectedStartingEquipmentKitDescription());
 	SetWizardOptionalText(Text_SummaryValidationState, State);
 
 	const bool bCanCreateCharacter = CanSubmitCharacterCreation();
@@ -947,6 +1138,17 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation()
 	Request.PortraitVariantId = SelectedPortraitVariantId;
 	Request.Portrait = DefaultPortrait;
 	Request.ClassIcon = ResolveWizardSelectedClassIcon();
+	if (CreationContext != ERPGCharacterCreationContext::CustomRecruit)
+	{
+		const TArray<FRPGStartingEquipmentKit> Kits = GetAvailableStartingEquipmentKits();
+		const FName KitId = GetSelectedStartingEquipmentKitId();
+		if (!Kits.IsEmpty() && !Kits.ContainsByPredicate([KitId](const FRPGStartingEquipmentKit& Kit) { return Kit.KitId == KitId; }))
+		{
+			SetValidationMessage(FText::FromString(TEXT("Veuillez choisir un équipement de départ valide.")), true);
+			return false;
+		}
+		Request.StartingEquipmentKitId = KitId;
+	}
 
 	const FRPGAttributes CreatedAttributes = GetAllocatedClassAttributesForPreview();
 

@@ -535,12 +535,17 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 		}
 	}
 
+	// Explicit wizard choice wins over the canonical default; invalid IDs
+	// fail inside the transactional kit builder, before touching live inventory.
+	const FName SelectedStartingKitId = Request.StartingEquipmentKitId.IsNone()
+		? StartingKitClass->DefaultStartingEquipmentKitId : Request.StartingEquipmentKitId;
+
 	// Build the selected class's default kit into the uncommitted party.
 	// Failed or incompatible kits cannot create a partially equipped hero.
 	TArray<UGridItemDefinitionAsset*> StartingDefinitions;
 	FString KitError;
 	if (!FRPGStartingEquipmentService::TryBuildKit(
-		StartingKitClass, StartingKitClass->DefaultStartingEquipmentKitId,
+		StartingKitClass, SelectedStartingKitId,
 		NewPartyState.ActiveCharacters[0], NewPartyState.ActiveEquipment[0], StartingDefinitions, KitError))
 	{
 		OutError = FText::FromString(FString::Printf(TEXT("Équipement de départ invalide : %s"), *KitError));
