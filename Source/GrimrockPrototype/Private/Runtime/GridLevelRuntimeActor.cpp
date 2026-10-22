@@ -1,5 +1,5 @@
-#include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "RPG/RPGStartingEquipmentPresetCatalog.h"
 
 #include "Core/GridRelocationUtils.h"
 #include "Runtime/GrimrockGameInstance.h"

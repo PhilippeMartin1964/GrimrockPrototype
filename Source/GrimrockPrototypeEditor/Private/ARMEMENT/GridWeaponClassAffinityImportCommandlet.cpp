@@ -41,7 +41,10 @@ namespace WeaponAffinityImport
         for (int32 Column = 0; Column < Header.Num(); ++Column)
         {
             FString Value(Rows[0][Column] ? Rows[0][Column] : TEXT(""));
-            if (Column == 0) Value.RemoveFromStart(FString(1, TCHAR(0xFEFF)));
+            if (Column == 0 && !Value.IsEmpty() && Value[0] == TCHAR(0xFEFF))
+            {
+                Value.RightChopInline(1);
+            }
             if (Value != Header[Column])
             {
                 OutError = FString::Printf(TEXT("Unexpected column %d in %s"), Column, *Path);
