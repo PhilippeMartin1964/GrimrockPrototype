@@ -88,7 +88,8 @@ bool FARMEMENT0171ProductionPaletteTest::RunTest(const FString&)
         const int32 Count = Palette->Entries.FilterByPredicate(
             [Id](const FGridObjectPaletteEntry& Candidate) { return Candidate.EntryId == Id; }).Num();
         TestEqual(TEXT("EntryId occurs once"), Count, 1);
-        TestEqual(TEXT("Category is Items"), Entry->PaletteCategory, FName(TEXT("Items")));
+        TestTrue(TEXT("Pilot retains legacy Items or migrated Weapon palette category"),
+            Entry->PaletteCategory == FName(TEXT("Items")) || Entry->PaletteCategory == FName(TEXT("Weapon")));
         TestEqual(TEXT("Entry stores the canonical item"), Entry->DefaultItemDefinition.Get(), Item);
         TestTrue(TEXT("No companion WorldObjectDefinition"), Entry->DefaultWorldObjectDefinition == nullptr);
         TestTrue(TEXT("No duplicate palette Icon"), Entry->Icon == nullptr);

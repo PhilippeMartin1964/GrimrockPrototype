@@ -82,20 +82,22 @@ namespace
 			return 3;
 		if (Category == FName(TEXT("Items")))
 			return 4;
-		if (Category == FName(TEXT("Logic")))
+		if (Category == FName(TEXT("Weapon")))
 			return 5;
-		if (Category == FName(TEXT("Readable")))
+		if (Category == FName(TEXT("Logic")))
 			return 6;
-		if (Category == FName(TEXT("Wall Decorations")))
+		if (Category == FName(TEXT("Readable")))
 			return 7;
-		if (Category == FName(TEXT("Floor Decorations")))
+		if (Category == FName(TEXT("Wall Decorations")))
 			return 8;
-		if (Category == FName(TEXT("Lights")))
+		if (Category == FName(TEXT("Floor Decorations")))
 			return 9;
-		if (Category == FName(TEXT("Spawns")))
+		if (Category == FName(TEXT("Lights")))
 			return 10;
-		if (Category == FName(TEXT("Uncategorized")))
+		if (Category == FName(TEXT("Spawns")))
 			return 11;
+		if (Category == FName(TEXT("Uncategorized")))
+			return 12;
 		return 100;
 	}
 }

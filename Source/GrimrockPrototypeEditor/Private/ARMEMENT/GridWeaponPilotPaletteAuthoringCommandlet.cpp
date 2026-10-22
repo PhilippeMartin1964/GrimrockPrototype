@@ -32,7 +32,7 @@ namespace ARMEMENT0171
         const UGridItemDefinitionAsset* Item)
     {
         return Entry.EntryId == FName(Pilot.EntryId)
-            && Entry.PaletteCategory == FName(TEXT("Items"))
+            && (Entry.PaletteCategory == FName(TEXT("Items")) || Entry.PaletteCategory == FName(TEXT("Weapon")))
             && Entry.DefaultItemDefinition.Get() == Item
             && Entry.DefaultWorldObjectDefinition == nullptr
             && Entry.Icon == nullptr
@@ -91,7 +91,7 @@ int32 UGridWeaponPilotPaletteAuthoringCommandlet::Main(const FString& Params)
             // Repair only the three known pilot direct collectibles. Preserve
             // their item, category, identity and every unrelated palette entry.
             if (bRepairIcons && Existing->Icon &&
-                Existing->PaletteCategory == FName(TEXT("Items")) &&
+                (Existing->PaletteCategory == FName(TEXT("Items")) || Existing->PaletteCategory == FName(TEXT("Weapon"))) &&
                 Existing->DefaultItemDefinition.Get() == Items[Index] &&
                 Existing->DefaultWorldObjectDefinition == nullptr)
             {
@@ -109,7 +109,7 @@ int32 UGridWeaponPilotPaletteAuthoringCommandlet::Main(const FString& Params)
         }
         FGridObjectPaletteEntry& Entry = Proposed.AddDefaulted_GetRef();
         Entry.EntryId = EntryId;
-        Entry.PaletteCategory = FName(TEXT("Items"));
+        Entry.PaletteCategory = FName(TEXT("Weapon"));
         Entry.DefaultItemDefinition = Items[Index];
         // Direct collectible contract: no icon duplication and no WorldObjectDefinition.
         if (!ARMEMENT0171::Matches(Entry, Pilot, Items[Index]))
