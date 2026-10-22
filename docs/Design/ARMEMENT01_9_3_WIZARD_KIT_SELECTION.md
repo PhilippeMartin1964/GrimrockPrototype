@@ -93,3 +93,70 @@ Cinq tests vérifient :
 
 L'interface UMG visuelle sera vérifiée par captures Unreal après tests C++.
 Aucune campagne globale n'est demandée.
+
+
+## Correctif ARMEMENT01.9.3 — Localisation des kits
+
+**Autorité :** `Localization/Source/UI.csv` est le seul fichier d'authoring
+textuel. Le runtime lit `/Game/Localization/StringTables/ST_UI` via
+`FUILocalizationText`. Le `.uasset` ne doit jamais être édité à la main.
+
+Le groupe de clés `CharacterCreation.StartingKit.*` contient 44 entrées :
+12 noms de kits, 20 noms d'emplacements, 12 formats/libellés/erreurs.
+Les kits intégrés conservent leurs identifiants immuables (`KitId`), mais
+leurs `DisplayName` proviennent de `ST_UI`. Les objets conservent leur
+`UGridItemDefinitionAsset::DisplayName` authoré : **ne pas dupliquer leurs
+noms dans la String Table UI**.
+
+- Étape Classe : la liste affiche uniquement le nom localisé ; les objets
+  sont présentés avec `ItemRow`, `ItemRowWithLevel`, les slots sont
+  localisés (notamment `MainHand → Main principale`) et la référence
+  technique est un format localisable.
+- Étape Résumé : `SummaryFormat` inclut le nom du kit et le détail,
+  sans dépendre de l'existence du ComboBox.
+- `Text_StartingKitTitle` est **statique** : lier directement sa propriété
+  `Text` à la clé `CharacterCreation.StartingKit.Title` dans `ST_UI`
+  depuis le Designer (Referenced Text / String Table / Key). Ne pas ajouter
+  de `SetText` C++ qui écrase la référence.
+- Les erreurs affichables à la création utilisent `Unavailable`,
+  `InvalidKit`, `ConflictingDefinition` ; le détail des échecs du service
+  reste dans les logs C++. Les chaînes diagnostiques `FString OutError`
+  des services ne sont **pas** des libellés d'interface et ne sont pas
+  injectées directement dans les widgets.
+
+### Matérialiser ST_UI avant les tests
+
+Le commit C++/CSV ne peut pas inclure la régénération locale du `.uasset`
+Unreal. Après `git pull --ff-only origin master` et après avoir fermé
+Unreal Editor :
+
+```powershell
+cd D:\Development\GrimrockPrototype
+
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipAutomation
+
+& "D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" `
+  "D:\Development\GrimrockPrototype\GrimrockPrototype.uproject" `
+  -run=UIStringTableAuthoring -unattended -nop4 -nosplash -nullrhi
+```
+
+Le premier import doit afficher `Changed=true`. Le deuxième, lancé
+à l'identique, doit afficher `Changed=false` (idempotence).
+
+Puis valider uniquement :
+
+```powershell
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 `
+  -AutomationFilter "Grimrock.RPG.ARMEMENT01.9.Localization"
+
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 `
+  -AutomationFilter "Grimrock.RPG.ARMEMENT01.9.WizardSelection"
+```
+
+Résultats attendus : **2/2** et **5/5**. Ne pas les déclarer validés
+avant les logs locaux. Une fois réussis, vérifier que seul
+`Content/Localization/StringTables/ST_UI.uasset` est modifié et le
+committer via Git LFS dans **un commit séparé sur master**.
+
+Ne pas lancer `RunLocalizationSmoke.ps1` pour cette migration étroite :
+le script smoke complet modifie d'autres artefacts de localisation.

@@ -10,6 +10,7 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGStartingEquipmentService.h"
+#include "UI/UILocalizationText.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/RPGAttributePointService.h"
@@ -530,7 +531,8 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 		if (!StartingKitClass ||
 			!FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(*StartingKitClass, PresetError))
 		{
-			OutError = FText::FromString(FString::Printf(TEXT("Équipement de départ indisponible : %s"), *PresetError));
+			UE_LOG(LogTemp, Warning, TEXT("StartingEquipment PresetUnavailable Reason=%s"), *PresetError);
+			OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Unavailable"));
 			return false;
 		}
 	}
@@ -548,7 +550,8 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 		StartingKitClass, SelectedStartingKitId,
 		NewPartyState.ActiveCharacters[0], NewPartyState.ActiveEquipment[0], StartingDefinitions, KitError))
 	{
-		OutError = FText::FromString(FString::Printf(TEXT("Équipement de départ invalide : %s"), *KitError));
+		UE_LOG(LogTemp, Warning, TEXT("StartingEquipment InvalidKit KitId=%s Reason=%s"), *SelectedStartingKitId.ToString(), *KitError);
+		OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.InvalidKit"));
 		return false;
 	}
 	for (UGridItemDefinitionAsset* Definition : StartingDefinitions)
@@ -557,7 +560,8 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 		{
 			if (Existing != Definition)
 			{
-				OutError = FText::FromString(TEXT("Une définition d'objet du kit utilise déjà un autre asset enregistré."));
+				UE_LOG(LogTemp, Warning, TEXT("StartingEquipment ConflictingDefinition ItemId=%s"), *Definition->ItemDefinitionId.ToString());
+				OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.ConflictingDefinition"));
 				return false;
 			}
 		}

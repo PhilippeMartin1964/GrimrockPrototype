@@ -29,6 +29,54 @@ DEFINE_LOG_CATEGORY_STATIC(LogGrimrockFrontendUI, Log, All);
 namespace
 {
 	constexpr int32 CharacterCreationWizardStepCount = 5;
+    FText ResolveLocalizedKitSlot(EGridEquipmentSlot Slot)
+    {
+        switch (Slot)
+        {
+        case EGridEquipmentSlot::None:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Bag"));
+        case EGridEquipmentSlot::MainHand:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.MainHand"));
+        case EGridEquipmentSlot::OffHand:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.OffHand"));
+        case EGridEquipmentSlot::Head:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Head"));
+        case EGridEquipmentSlot::Chest:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Chest"));
+        case EGridEquipmentSlot::Legs:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Legs"));
+        case EGridEquipmentSlot::Feet:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Feet"));
+        case EGridEquipmentSlot::Amulet:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Amulet"));
+        case EGridEquipmentSlot::Ring1:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Ring1"));
+        case EGridEquipmentSlot::Ring2:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Ring2"));
+        case EGridEquipmentSlot::Shoulders:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Shoulders"));
+        case EGridEquipmentSlot::Gloves:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Gloves"));
+        case EGridEquipmentSlot::Belt:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Belt"));
+        case EGridEquipmentSlot::Cloak:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Cloak"));
+        case EGridEquipmentSlot::Talisman:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Talisman"));
+        case EGridEquipmentSlot::QuickSlot1:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.QuickSlot1"));
+        case EGridEquipmentSlot::QuickSlot2:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.QuickSlot2"));
+        case EGridEquipmentSlot::Shirt:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Shirt"));
+        case EGridEquipmentSlot::Bracers:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Bracers"));
+        default:
+            return FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.Unknown"));
+        }
+    }
+
+
 	const FName AttributeStrength(TEXT("Strength"));
 	const FName AttributeDexterity(TEXT("Dexterity"));
 	const FName AttributeConstitution(TEXT("Constitution"));
@@ -475,8 +523,9 @@ bool URPGCharacterCreationWizardWidget::SelectStartingEquipmentKit(FName KitId)
 
 FText URPGCharacterCreationWizardWidget::GetStartingKitOptionLabel(const FRPGStartingEquipmentKit& Kit) const
 {
-    // Player-facing selection: never expose the internal FName as a suffix.
-    return Kit.DisplayName.IsEmpty() ? FText::FromName(Kit.KitId) : Kit.DisplayName;
+    // Content-authority FText: predefined kits use ST_UI, authored kits retain their FText.
+    return Kit.DisplayName.IsEmpty() ?
+        FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.UnknownName")) : Kit.DisplayName;
 }
 
 FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitSummary() const
@@ -486,9 +535,10 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitSummary(
     {
         if (Kit.KitId == SelectedId)
         {
-            const FString Name = GetStartingKitOptionLabel(Kit).ToString();
-            const FString Details = GetSelectedStartingEquipmentKitDescription().ToString();
-            return FText::FromString(Details.IsEmpty() ? Name : Name + TEXT("\n") + Details);
+            return FText::FormatNamed(
+                FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.SummaryFormat")),
+                TEXT("KitName"), GetStartingKitOptionLabel(Kit),
+                TEXT("Details"), GetSelectedStartingEquipmentKitDescription());
         }
     }
     return FText::GetEmpty();
@@ -503,9 +553,9 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescript
         {
             continue;
         }
-        // The selected kit name is already displayed in the ComboBox.
-        // Keep this text for the actual contents, followed by the technical ID.
-        FString Description;
+        // ComboBox owns the title. Localizable rows contain only items and
+        // the technical reference requested in the details area.
+        TArray<FText> Rows;
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
             const UGridItemDefinitionAsset* Item = Entry.ItemDefinition.Get();
@@ -513,25 +563,37 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescript
             {
                 continue;
             }
-            const FString ItemName = Item->DisplayName.IsEmpty() ? Item->ItemDefinitionId.ToString() : Item->DisplayName.ToString();
-            const FString Location = Entry.TargetSlot == EGridEquipmentSlot::None ? TEXT("Sac") :
-                StaticEnum<EGridEquipmentSlot>()->GetDisplayNameTextByValue(static_cast<int64>(Entry.TargetSlot)).ToString();
+            const FText ItemName = Item->DisplayName.IsEmpty() ?
+                FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.UnknownItem")) : Item->DisplayName;
+            const FText SlotName = ResolveLocalizedKitSlot(Entry.TargetSlot);
             const int32 Level = Entry.ItemLevel == 0 && Item->bUseWeaponCatalogue
                 ? Item->DefaultWeaponItemLevel : Entry.ItemLevel;
-            if (!Description.IsEmpty())
+            if (Level > 0)
             {
-                Description += TEXT("\n");
+                Rows.Add(FText::FormatNamed(
+                    FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.ItemRowWithLevel")),
+                    TEXT("Quantity"), FText::AsNumber(Entry.Quantity),
+                    TEXT("Item"), ItemName,
+                    TEXT("Slot"), SlotName,
+                    TEXT("Level"), FText::AsNumber(Level)));
             }
-            Description += FString::Printf(TEXT("%d × %s — %s%s"),
-                Entry.Quantity, *ItemName, *Location,
-                Level > 0 ? *FString::Printf(TEXT(" (niv. %d)"), Level) : TEXT(""));
+            else
+            {
+                Rows.Add(FText::FormatNamed(
+                    FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.ItemRow")),
+                    TEXT("Quantity"), FText::AsNumber(Entry.Quantity),
+                    TEXT("Item"), ItemName,
+                    TEXT("Slot"), SlotName));
+            }
         }
-        if (!Description.IsEmpty())
-        {
-            Description += TEXT("\n\n");
-        }
-        Description += FString::Printf(TEXT("Référence technique : %s"), *Kit.KitId.ToString());
-        return FText::FromString(Description);
+        const FText ItemsText = FText::Join(FText::FromString(TEXT("\n")), Rows);
+        const FText TechnicalReference = FText::FormatNamed(
+            FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.TechnicalReference")),
+            TEXT("KitId"), FText::FromName(Kit.KitId));
+        return FText::FormatNamed(
+            FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.DetailsFormat")),
+            TEXT("Items"), ItemsText,
+            TEXT("TechnicalReference"), TechnicalReference);
     }
     return FText::GetEmpty();
 }
@@ -1169,7 +1231,7 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation()
 		const FName KitId = GetSelectedStartingEquipmentKitId();
 		if (!Kits.IsEmpty() && !Kits.ContainsByPredicate([KitId](const FRPGStartingEquipmentKit& Kit) { return Kit.KitId == KitId; }))
 		{
-			SetValidationMessage(FText::FromString(TEXT("Veuillez choisir un équipement de départ valide.")), true);
+			SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.InvalidSelection")), true);
 			return false;
 		}
 		Request.StartingEquipmentKitId = KitId;

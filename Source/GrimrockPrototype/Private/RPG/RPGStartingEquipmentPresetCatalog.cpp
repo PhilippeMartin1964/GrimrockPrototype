@@ -2,6 +2,7 @@
 
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "UI/UILocalizationText.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace RPGStartingPresets
@@ -16,7 +17,7 @@ namespace RPGStartingPresets
     {
         const TCHAR* ClassId;
         const TCHAR* KitId;
-        const TCHAR* DisplayName;
+        const TCHAR* DisplayNameKey;
         FItemSpec First;
         FItemSpec Second;
         bool bDefault;
@@ -27,45 +28,45 @@ namespace RPGStartingPresets
     // All starting weapons inherit their definition's level-1 default.
     const FKitSpec Kits[] =
     {
-        { TEXT("Warrior"), TEXT("Warrior_Defender"), TEXT("Défenseur"),
+        { TEXT("Warrior"), TEXT("Warrior_Defender"), TEXT("CharacterCreation.StartingKit.Name.WarriorDefender"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand},
             {TEXT("DA_Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand}, true },
-        { TEXT("Warrior"), TEXT("Warrior_Skirmisher"), TEXT("Escarmoucheur"),
+        { TEXT("Warrior"), TEXT("Warrior_Skirmisher"), TEXT("CharacterCreation.StartingKit.Name.WarriorSkirmisher"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand},
             {TEXT("DA_Weapon_ThrowingKnife"), EGridEquipmentSlot::None}, false },
 
-        { TEXT("Rogue"), TEXT("Rogue_Shadow"), TEXT("Ombre"),
+        { TEXT("Rogue"), TEXT("Rogue_Shadow"), TEXT("CharacterCreation.StartingKit.Name.RogueShadow"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand},
             {TEXT("DA_Weapon_ThrowingKnife"), EGridEquipmentSlot::None}, true },
-        { TEXT("Rogue"), TEXT("Rogue_Explorer"), TEXT("Éclaireur"),
+        { TEXT("Rogue"), TEXT("Rogue_Explorer"), TEXT("CharacterCreation.StartingKit.Name.RogueExplorer"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand},
             {TEXT("DA_Item_Torch"), EGridEquipmentSlot::None}, false },
 
-        { TEXT("Ranger"), TEXT("Ranger_Archer"), TEXT("Archer"),
+        { TEXT("Ranger"), TEXT("Ranger_Archer"), TEXT("CharacterCreation.StartingKit.Name.RangerArcher"),
             {TEXT("DA_Weapon_ShortBow_01"), EGridEquipmentSlot::MainHand},
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None}, true },
-        { TEXT("Ranger"), TEXT("Ranger_Pathfinder"), TEXT("Pisteur"),
+        { TEXT("Ranger"), TEXT("Ranger_Pathfinder"), TEXT("CharacterCreation.StartingKit.Name.RangerPathfinder"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand},
             {TEXT("DA_Item_Torch"), EGridEquipmentSlot::None}, false },
 
-        { TEXT("Mage"), TEXT("Mage_Scholar"), TEXT("Érudit"),
+        { TEXT("Mage"), TEXT("Mage_Scholar"), TEXT("CharacterCreation.StartingKit.Name.MageScholar"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None},
             {TEXT("DA_Item_BlueGem"), EGridEquipmentSlot::None}, true },
-        { TEXT("Mage"), TEXT("Mage_Wanderer"), TEXT("Vagabond"),
+        { TEXT("Mage"), TEXT("Mage_Wanderer"), TEXT("CharacterCreation.StartingKit.Name.MageWanderer"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None},
             {TEXT("DA_Item_Torch"), EGridEquipmentSlot::None}, false },
 
-        { TEXT("Priest"), TEXT("Priest_Pilgrim"), TEXT("Pèlerin"),
+        { TEXT("Priest"), TEXT("Priest_Pilgrim"), TEXT("CharacterCreation.StartingKit.Name.PriestPilgrim"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand},
             {TEXT("DA_Item_Torch"), EGridEquipmentSlot::None}, true },
-        { TEXT("Priest"), TEXT("Priest_Protector"), TEXT("Protecteur"),
+        { TEXT("Priest"), TEXT("Priest_Protector"), TEXT("CharacterCreation.StartingKit.Name.PriestProtector"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand},
             {TEXT("DA_Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand}, false },
 
-        { TEXT("Alchemist"), TEXT("Alchemist_Apothecary"), TEXT("Apothicaire"),
+        { TEXT("Alchemist"), TEXT("Alchemist_Apothecary"), TEXT("CharacterCreation.StartingKit.Name.AlchemistApothecary"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None},
             {TEXT("DA_Item_EmptyVial"), EGridEquipmentSlot::None}, true },
-        { TEXT("Alchemist"), TEXT("Alchemist_Firestarter"), TEXT("Artificier"),
+        { TEXT("Alchemist"), TEXT("Alchemist_Firestarter"), TEXT("CharacterCreation.StartingKit.Name.AlchemistFirestarter"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None},
             {TEXT("DA_Item_Bomb_Fire"), EGridEquipmentSlot::None}, false }
     };
@@ -190,7 +191,7 @@ bool FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(
         }
         FRPGStartingEquipmentKit& Kit = Candidate.AddDefaulted_GetRef();
         Kit.KitId = FName(Spec.KitId);
-        Kit.DisplayName = FText::FromString(Spec.DisplayName);
+        Kit.DisplayName = FUILocalizationText::Get(Spec.DisplayNameKey);
         if (!RPGStartingPresets::AddItem(Kit, Spec.First, OutError) ||
             !RPGStartingPresets::AddItem(Kit, Spec.Second, OutError))
         {
