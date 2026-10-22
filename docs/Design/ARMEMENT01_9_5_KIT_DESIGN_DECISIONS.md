@@ -7,6 +7,87 @@ Ce jalon transforme l'audit technique **ARMEMENT01.9.4**, validé localement
 La matrice source est :
 `docs/Design/ARMEMENT01_9_5_KIT_DECISIONS.csv`.
 
+## Correctif d'autorité — ARMEMENT01.9.5.1 (22 octobre 2026)
+
+**Constat et priorité :** la première revue 01.9.4/01.9.5 a utilisé les affinités de compétences
+(`DA_RPGSkillPresentation`) et les talents, **mais a omis l'affinité d'ARMEMENT
+déjà spécifiée dans le classeur maître**. Les conclusions de kits ci-dessous sont des
+propositions provisoires ; aucune ne doit être approuvée comme conformité
+d'équipement N1 avant cette correction.
+
+**Source de vérité existante, pas une nouvelle matrice :**
+
+`docs/Design/ARMEMENT01_Catalogue_Armes_Boucliers_Niveaux_1_20_ARMEMENT01_2.xlsx`
+
+- Onglet **Classes** : six classes, 18 spécialités, armement prioritaire, exemples
+  emblématiques, alternatives, attributs dominants, synergies.
+- Onglet **Catalogue** : 82 archétypes, dont les champs **Classe principale** et
+  **Classes secondaires** (colonnes P et Q dans la source XLSX).
+- Onglet **Niveaux 1-20** : véritable profil N1 pour chaque archétype ; niveau
+  d'objet fixe, distinct du niveau du personnage.
+- **Autorité de conception explicite dans l'onglet Classes** : « Les préférences
+  guident les talents, l'équilibrage et les drops — aucune interdiction rigide
+  de classe proposée. » Il serait donc contraire à la source de transformer
+  l'affinité en `CanEquip` bloquant par classe.
+
+**Défaut d'intégration constaté :** `Scripts/ExportARMEMENT014Catalogue.ps1`
+lit déjà les lignes de l'onglet Catalogue et leurs profils N1–N20, mais
+l'export normalisé ne conserve que les 19 colonnes statistiques :
+les colonnes P/Q sont perdues à l'import. `FGridWeaponLevelProfile`
+ne contient aucune référence à la classe prioritaire ou secondaire.
+La génération des kits `FRPGStartingEquipmentPresetCatalog` ne consulte
+pas ces données : elle choisit dans les quelques `UGridItemDefinitionAsset`
+produits, et non selon l'affinité prévue dans le classeur.
+
+### Écarts concrets du kit N1 courant
+
+| Archétype documenté | Classe principale XLSX | Classes secondaires XLSX | Conséquence pour les kits |
+|---|---|---|---|
+| `ARM001` Dague | Voleur | Rôdeur, Alchimiste | Appropriée pour les deux kits Voleur ; secondaire pour Rôdeur/Alchimiste ; **pas l'arme privilégiée du Guerrier ou du Prêtre** ; simplement arme de secours pour le Mage selon l'onglet Classes |
+| `ARM045` Arc court | Rôdeur | Voleur, Alchimiste | Valide pour le Rôdeur Archer, dont le kit actuel utilise déjà le véritable profil N1 |
+| `ARM054` Couteau de jet | Rôdeur | Voleur, Alchimiste | **Non privilégié pour le Guerrier Escarmoucheur**, contrairement au choix actuel ; utilisable comme complément du Voleur |
+| `ARM075` Bouclier rond | Guerrier | Prêtre | Défenseur et Protecteur utilisent le bouclier en cohérence avec leur classe, même si leurs armes principales actuelles sont moins pertinentes |
+| `ARM061` Baguette arcanique | Mage | Prêtre, Alchimiste | Exemple de premier armement N1 à authorer pour le Mage, au lieu de qualifier une gemme sans comportement |
+| `ARM069` Sceptre sacré | Prêtre | Mage | Exemple d'armement N1 de Prêtre à authorer ; **aucun pouvoir particulier ne peut être présumé sans implémentation** |
+
+Les autres choix de kit utilitaires (torche, fiole, bombe, gemme)
+ne figurent **pas** dans cette classification d'armes à 82 archétypes ;
+ils requièrent leurs propres vérifications d'usage, sans affinité inventée.
+
+### Hiérarchie d'évaluation corrigée
+
+1. **XLSX onglet Classes + Catalogue** → pertinence d'armement **par classe**
+   (primaire / secondaire / non spécifié), **sans verrou d'équipement**.
+2. **XLSX onglet Niveaux 1-20** → profil immuable du **véritable objet N1**
+   à la création, sous réserve que l'asset UE existe et soit utilisable.
+3. **`DA_RPGSkillPresentation`** → affinité avec les **compétences** ; axe
+   séparé de l'affinité arme/classe.
+4. **`DA_Class_*` et mécanique RPG02** → talents réels, premier choix au
+   niveau 2 ; orientation future, jamais talent déjà acquis au départ.
+5. **Gameplay/production UE** → compatibilité du slot, actions et visuels,
+   capacité, sauvegarde, disponibilité réelle de l'objet.
+
+### Correctif technique nécessaire après cette rectification documentaire
+
+- Étendre le pipeline d'**export depuis le XLSX existant** afin de conserver
+  le mapping `ArchetypeId → classe principale / classes secondaires` et la
+  lecture de l'onglet Classes. Le résultat doit être **dérivé du XLSX**, pas
+  réécrit dans un deuxième tableau manuel.
+- Rendre les affinités accessibles à un **read model C++ de recommandation**
+  pour le New Game ; ne pas créer une règle de `CanEquip` par classe.
+- Évaluer les 12 kits à partir de leurs vrais `WeaponArchetypeId` et
+  `ItemLevel=1` ; signaler explicitement **asset N1 non authoré** plutôt
+  que remplacer silencieusement par la dague pilote.
+- Authorer prioritairement les objets N1 manquants en respectant
+  leurs statistiques **déjà fixées dans le XLSX** ; ajuster ensuite les
+  recettes de kit et leurs tests transactionnels.
+- Conserver la localisation via `Localization/Source/UI.csv → ST_UI`,
+  sans libellés d'armes ou de classes français codés en dur côté runtime.
+
+**Statut de cette section : correction documentaire de la source de vérité.
+Aucune donnée runtime n'est encore importée pour les affinités, aucun
+`.uasset` ni kit de départ n'est modifié ici.**
+
 ## Principe directeur
 
 Une classe propose des **orientations de départ**, pas des talents acquis.
