@@ -1,6 +1,6 @@
 # ARMEMENT01.9.6 — Définition des 18 kits N1
 
-**22 octobre 2026 — statut : VALIDÉ TECHNIQUEMENT 3/3, 0 avertissement, 0 échec, code 0** (`TD04-20261022-122937`, filtre `Grimrock.RPG.ARMEMENT01.9.KitDesign`). **Les 18 recettes restent des propositions de design** (`DesignProposal`) ; aucun des 18 kits n'est encore activé dans le runtime. La référence de nettoyage et de transition est [ARMEMENT01.9.6.1](ARMEMENT01_9_6_1_CLEANUP_CONSOLIDATION.md).
+**22 octobre 2026 — statut : VALIDÉ TECHNIQUEMENT 3/3, 0 avertissement, 0 échec, code 0** (`TD04-20261022-122937`, filtre `Grimrock.RPG.ARMEMENT01.9.KitDesign`). **Les 18 recettes sont désormais approuvées pour l'authoring** (`ApprovedDesign`) par le jalon [ARMEMENT01.9.7](ARMEMENT01_9_7_FINAL_KIT_APPROVAL.md), **sans être activées en runtime** ; les contraintes d'actions, slots et équipement restent à valider. La référence de nettoyage et de transition est [ARMEMENT01.9.6.1](ARMEMENT01_9_6_1_CLEANUP_CONSOLIDATION.md).
 
 ## Intention et hiérarchie des sources
 
@@ -24,12 +24,12 @@ Sources d'autorité, dans cet ordre :
 Manifest **de conception uniquement** :
 `docs/Design/ARMEMENT01_9_6_STARTER_KIT_RECIPES.csv`.
 
-Chaque ligne est une recette proposée, à relire et approuver avant production.
+Chaque ligne est une **recette de conception approuvée** pour la production d'assets (`ApprovedDesign`), mais pas un kit N1 déjà jouable.
 L'item `ARMxxx` désigne un **archétype de la source Excel**, pas un
 `UGridItemDefinitionAsset` déjà matérialisé dans le Content Browser.
 N1 signifie **ItemLevel=1**, non une limitation à une certaine branche de talents.
 
-## Les 18 recettes proposées
+## Les 18 recettes approuvées pour la production d'assets
 
 | Classe et orientation | Arme principale N1 | Arme / équipement secondaire N1 | Complément | Justification / prudence |
 |---|---|---|---|---|
@@ -48,13 +48,11 @@ N1 signifie **ItemLevel=1**, non une limitation à une certaine branche de talen
 | **Prêtre — Restauration** | `ARM069` Sceptre sacré (main) | — | **Potion/consommable de soin à authorer** | Le sceau sacré ne confère pas le talent de soin amélioré avant N2 |
 | **Prêtre — Protection** | `ARM020` Masse d'armes (main) | `ARM075` Bouclier rond (secondaire) | — | Masse et bouclier conformes au classeur ; Bénédiction N2 ne requiert pas de bouclier |
 | **Prêtre — Exorcisme** | `ARM069` Sceptre sacré (main) | `ARM081` Égide sacrée (secondaire) | — | Thématique sacrée ; ne donne pas Lumière sacrée au niveau 1 |
-| **Alchimiste — Grenadier** | `ARM058` Dard (main, à vérifier) | — | `Item_Bomb_Fire` ×1 | Arme de jet secondaire Alchimiste ; **bombe présente ≠ talent/recette Grenadier débloqué** |
+| **Alchimiste — Grenadier** | `ARM001` Dague (main) | `ARM058` Dard (sac) | `Item_Bomb_Fire` ×1 | Dague secondaire Alchimiste utilisable sans hypothèse sur le slot du dard ; **bombe présente ≠ talent/recette Grenadier débloqué** |
 | **Alchimiste — Apothicaire** | `ARM001` Dague (main) | — | **Potion positive ou composants réellement utilisables à authorer** | `EnhancedPotion` agit sur des potions utilisées après N2, pas sur une fiole vide |
 | **Alchimiste — Transmutateur** | `ARM001` Dague (main) | `ARM070` Orbe arcanique (secondaire) | **Composants d'huile/transmutation à authorer** | Affinité de classe secondaire ; vérifier que l'orbe peut être porté/utilisé et que l'alchimie N1 existe |
 
-**Important :** `ARM058` est une arme de jet à une main dans le classeur ;
-cela ne garantit pas que son `UGridItemDefinitionAsset` lui autorisera
-l'emplacement MainHand. Ce choix reste **conditionnel à un test runtime**.
+**Important :** `ARM058` est une arme de jet à une main dans le classeur, mais son usage comme arme tenue n'est pas prouvé. **ARMEMENT01.9.7 place le dard dans le sac** et la dague `ARM001` dans la main principale ; le lancer et la récupération restent à tester.
 De même, `ARM070` et `ARM081` sont des profils passifs :
 aucune attaque, aucun bonus spécial ou statut ne doit leur être inventé.
 
@@ -129,9 +127,7 @@ Ne pas lancer de commandlet d'authoring d'armes à ce stade.
 
 ## Jalons suivants — recommandés
 
-1. **ARMEMENT01.9.7 — Approbation et audit des 18 recettes** :
-   revue manuelle des choix de jeu et d'équilibrage, décision sur
-   les outils/consommables de base et les ambiguïtés des branches.
+1. **ARMEMENT01.9.7 — VALIDATION DE DESIGN** : 18 compositions approuvées pour l'authoring, lecture C++ conservatrice des affinités Excel qualifiées ; voir [rapport 01.9.7](ARMEMENT01_9_7_FINAL_KIT_APPROVAL.md).
 2. **ARMEMENT01.10 — Production des 22 archétypes N1 prioritaires** :
    des `UGridItemDefinitionAsset` vraiment utilisables, par lots atomiques ;
    référencer le profil N1 du même `DA_WeaponCatalogue`.

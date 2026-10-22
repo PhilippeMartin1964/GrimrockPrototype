@@ -1,6 +1,8 @@
 # ARMEMENT01.9.6.1 — Nettoyage documentaire et consolidation des 18 kits
 
 **Date : 22 octobre 2026 — STATUT : consolidation documentaire.**
+
+> **Mise à jour ARMEMENT01.9.7 (22.10.2026)** : cette consolidation précède l'approbation des 18 recettes pour la production des assets. Le statut `DesignProposal` cité ci-dessous était exact **au moment du jalon 01.9.6.1** ; il est remplacé par `ApprovedDesign` dans le manifeste courant. Voir [ARMEMENT01.9.7 — décisions finales et ambiguïtés](ARMEMENT01_9_7_FINAL_KIT_APPROVAL.md). Les 12 kits historiques demeurent actifs en runtime et la migration reste différée.
 **Périmètre : aucune modification C++, tests, .uasset, CSV de données, GamePlay, SaveGame ou UMG.**
 
 ## Décision de référence pour le futur

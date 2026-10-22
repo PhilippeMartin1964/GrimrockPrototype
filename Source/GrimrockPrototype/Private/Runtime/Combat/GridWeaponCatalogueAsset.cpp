@@ -220,6 +220,79 @@ EGridWeaponClassAffinity UGridWeaponCatalogueAsset::GetClassAffinity(FName Arche
         : EGridWeaponClassAffinity::Unspecified;
 }
 
+namespace WeaponClassAffinity
+{
+    // Translation of the six canonical class IDs back to the unchanged
+    // spreadsheet's column-Q labels. Not a second archetype-affinity table.
+    const TCHAR* GetWorkbookClassLabel(FName ClassId)
+    {
+        if (ClassId == TEXT("Warrior")) return TEXT("Guerrier");
+        if (ClassId == TEXT("Rogue")) return TEXT("Voleur");
+        if (ClassId == TEXT("Ranger")) return TEXT("Rôdeur");
+        if (ClassId == TEXT("Mage")) return TEXT("Mage");
+        if (ClassId == TEXT("Priest")) return TEXT("Prêtre");
+        if (ClassId == TEXT("Alchemist")) return TEXT("Alchimiste");
+        return nullptr;
+    }
+}
+
+EGridWeaponKitAffinity UGridWeaponCatalogueAsset::GetKitRecommendationAffinity(
+    FName ArchetypeId, FName ClassId) const
+{
+    const TCHAR* WorkbookClass = WeaponClassAffinity::GetWorkbookClassLabel(ClassId);
+    if (!WorkbookClass || ArchetypeId.IsNone())
+    {
+        return EGridWeaponKitAffinity::Unspecified;
+    }
+
+    const FGridWeaponArchetypeClassAffinity* Row = ClassAffinities.FindByPredicate(
+        [ArchetypeId](const FGridWeaponArchetypeClassAffinity& Candidate)
+        {
+            return Candidate.ArchetypeId == ArchetypeId;
+        });
+    if (!Row)
+    {
+        return EGridWeaponKitAffinity::Unspecified;
+    }
+    if (Row->PrimaryClassId == ClassId)
+    {
+        return EGridWeaponKitAffinity::Primary;
+    }
+    if (!Row->SecondaryClassIds.Contains(ClassId))
+    {
+        return EGridWeaponKitAffinity::Unspecified;
+    }
+
+    // The P/Q importer intentionally kept qualifiers such as
+    // "Prêtre (marteaux)" verbatim. Parse each slash-separated fragment,
+    // instead of marking every class on the row as conditional.
+    TArray<FString> Fragments;
+    Row->SecondarySourceLabel.ParseIntoArray(Fragments, TEXT("/"), true);
+    bool bFoundClass = false;
+    for (const FString& Fragment : Fragments)
+    {
+        const FString Trimmed = Fragment.TrimStartAndEnd();
+        const int32 Opening = Trimmed.Find(TEXT("("));
+        const FString ClassLabel = (Opening == INDEX_NONE
+            ? Trimmed : Trimmed.Left(Opening)).TrimStartAndEnd();
+
+        if (ClassLabel.Equals(WorkbookClass, ESearchCase::IgnoreCase))
+        {
+            if (bFoundClass || Opening != INDEX_NONE || Trimmed.Contains(TEXT(")")))
+            {
+                return EGridWeaponKitAffinity::NeedsReview;
+            }
+            bFoundClass = true;
+        }
+    }
+
+    // If the normalized IDs cannot be reconciled with source text, do not
+    // assume a positive recommendation. This does NOT restrict equipment.
+    return bFoundClass
+        ? EGridWeaponKitAffinity::Secondary
+        : EGridWeaponKitAffinity::NeedsReview;
+}
+
 const FGridWeaponClassPreference* UGridWeaponCatalogueAsset::FindClassPreference(FName ClassId) const
 {
     return ClassPreferences.FindByPredicate([ClassId](const FGridWeaponClassPreference& Row)

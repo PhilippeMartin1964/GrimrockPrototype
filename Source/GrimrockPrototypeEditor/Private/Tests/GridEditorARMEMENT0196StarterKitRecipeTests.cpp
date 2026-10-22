@@ -94,7 +94,7 @@ namespace ARMEMENT0196
                 Entry.KitId.IsEmpty() || Entry.Weapon1.IsNone() ||
                 Entry.Weapon1Slot != TEXT("MainHand") ||
                 Entry.Weapon1Level != 1 || Entry.Note.IsEmpty() ||
-                Entry.Approval != TEXT("DesignProposal") || Entry.Readiness.IsEmpty() ||
+                Entry.Approval != TEXT("ApprovedDesign") || Entry.Readiness.IsEmpty() ||
                 (Entry.Weapon2.IsNone() != (Entry.Weapon2Level == 0)) ||
                 (!Entry.Weapon2.IsNone() && Entry.Weapon2Level != 1) ||
                 (Entry.Weapon2.IsNone() != (Entry.Weapon2Slot == TEXT("None"))) ||
@@ -215,8 +215,11 @@ bool FARMEMENT0196Catalogue::RunTest(const FString&)
         const FName Class(*Recipe.ClassId);
         const FGridWeaponLevelProfile* Primary = Catalogue->FindProfile(Recipe.Weapon1, 1);
         if (!TestNotNull(TEXT("Proposed primary exists in authoritative N1 catalogue"), Primary)) return false;
-        TestTrue(TEXT("Primary weapon affinity must be Primary or Secondary"),
-            Catalogue->GetClassAffinity(Recipe.Weapon1, Class) != EGridWeaponClassAffinity::Unspecified);
+        const EGridWeaponKitAffinity ApprovedAffinity =
+            Catalogue->GetKitRecommendationAffinity(Recipe.Weapon1, Class);
+        TestTrue(TEXT("Primary weapon must have unqualified XLSX Primary or Secondary affinity"),
+            ApprovedAffinity == EGridWeaponKitAffinity::Primary ||
+            ApprovedAffinity == EGridWeaponKitAffinity::Secondary);
         TestTrue(TEXT("Proposed primary weapon must be hand-held"),
             Primary->HandUsage == TEXT("1 main") || Primary->HandUsage == TEXT("2 mains"));
         UniqueWeapons.Add(Recipe.Weapon1);
@@ -228,6 +231,11 @@ bool FARMEMENT0196Catalogue::RunTest(const FString&)
                 Second->HandUsage == TEXT("1 main") ||
                 Second->HandUsage == TEXT("2 mains") ||
                 Second->HandUsage == TEXT("Secondaire"));
+            const EGridWeaponKitAffinity SecondAffinity =
+                Catalogue->GetKitRecommendationAffinity(Recipe.Weapon2, Class);
+            TestTrue(TEXT("Secondary weapon should have unqualified workbook class affinity"),
+                SecondAffinity == EGridWeaponKitAffinity::Primary ||
+                SecondAffinity == EGridWeaponKitAffinity::Secondary);
             if (Recipe.Weapon2Slot == TEXT("OffHand"))
             {
                 TestTrue(TEXT("Two-handed primary cannot have equipped offhand"),
@@ -268,7 +276,7 @@ bool FARMEMENT0196Compatibility::RunTest(const FString&)
             Class->FindStartingEquipmentKit(FName(*Recipe.KitId)) != nullptr);
         if (!Recipe.SupportId.IsNone()) ++WithSupport;
         if (Recipe.SupportNeed != TEXT("None")) ++WithPendingSupport;
-        TestEqual(TEXT("All recipes are pending approval"), Recipe.Approval, FString(TEXT("DesignProposal")));
+        TestEqual(TEXT("Design recipes are approved, not activated"), Recipe.Approval, FString(TEXT("ApprovedDesign")));
     }
     TestEqual(TEXT("Existing supplemental item IDs listed in exactly two kits"), WithSupport, 2);
     TestEqual(TEXT("Five kits require a new functional support item or component"),

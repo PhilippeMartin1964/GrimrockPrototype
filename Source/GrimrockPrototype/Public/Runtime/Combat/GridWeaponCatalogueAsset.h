@@ -77,6 +77,19 @@ enum class EGridWeaponClassAffinity : uint8
     Primary
 };
 
+/** Strictly a kit-planning read model. Keeps the legacy affinity enum unchanged.
+ * NeedsReview means the original XLSX cell contains a qualifier or cannot
+ * be matched safely to a class; it never forbids equipping anything.
+ */
+UENUM(BlueprintType)
+enum class EGridWeaponKitAffinity : uint8
+{
+    Unspecified,
+    Secondary,
+    Primary,
+    NeedsReview
+};
+
 /** Exactly one entry per catalogue archetype; no duplicated level profiles. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridWeaponArchetypeClassAffinity
@@ -154,6 +167,14 @@ public:
     /** Advisory classification only. Unspecified never means forbidden. */
     UFUNCTION(BlueprintPure, Category="Weapon|Class Affinity")
     EGridWeaponClassAffinity GetClassAffinity(FName ArchetypeId, FName ClassId) const;
+
+    /** Kit authoring ONLY: examine the original source qualifier for this class.
+     * Do not use the lossy GetClassAffinity result to approve a starter kit.
+     * NeedsReview is not a restriction, and never influences CanEquip.
+     */
+    UFUNCTION(BlueprintPure, Category="Weapon|Class Affinity")
+    EGridWeaponKitAffinity GetKitRecommendationAffinity(FName ArchetypeId, FName ClassId) const;
+
 
     const FGridWeaponClassPreference* FindClassPreference(FName ClassId) const;
 
