@@ -475,9 +475,23 @@ bool URPGCharacterCreationWizardWidget::SelectStartingEquipmentKit(FName KitId)
 
 FText URPGCharacterCreationWizardWidget::GetStartingKitOptionLabel(const FRPGStartingEquipmentKit& Kit) const
 {
-    return FText::FromString(FString::Printf(TEXT("%s [%s]"),
-        *(Kit.DisplayName.IsEmpty() ? Kit.KitId.ToString() : Kit.DisplayName.ToString()),
-        *Kit.KitId.ToString()));
+    // Player-facing selection: never expose the internal FName as a suffix.
+    return Kit.DisplayName.IsEmpty() ? FText::FromName(Kit.KitId) : Kit.DisplayName;
+}
+
+FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitSummary() const
+{
+    const FName SelectedId = GetSelectedStartingEquipmentKitId();
+    for (const FRPGStartingEquipmentKit& Kit : GetAvailableStartingEquipmentKits())
+    {
+        if (Kit.KitId == SelectedId)
+        {
+            const FString Name = GetStartingKitOptionLabel(Kit).ToString();
+            const FString Details = GetSelectedStartingEquipmentKitDescription().ToString();
+            return FText::FromString(Details.IsEmpty() ? Name : Name + TEXT("\n") + Details);
+        }
+    }
+    return FText::GetEmpty();
 }
 
 FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescription() const
@@ -489,7 +503,9 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescript
         {
             continue;
         }
-        FString Description = Kit.DisplayName.IsEmpty() ? Kit.KitId.ToString() : Kit.DisplayName.ToString();
+        // The selected kit name is already displayed in the ComboBox.
+        // Keep this text for the actual contents, followed by the technical ID.
+        FString Description;
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
             const UGridItemDefinitionAsset* Item = Entry.ItemDefinition.Get();
@@ -502,10 +518,19 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescript
                 StaticEnum<EGridEquipmentSlot>()->GetDisplayNameTextByValue(static_cast<int64>(Entry.TargetSlot)).ToString();
             const int32 Level = Entry.ItemLevel == 0 && Item->bUseWeaponCatalogue
                 ? Item->DefaultWeaponItemLevel : Entry.ItemLevel;
-            Description += FString::Printf(TEXT("\n%d × %s — %s%s"),
+            if (!Description.IsEmpty())
+            {
+                Description += TEXT("\n");
+            }
+            Description += FString::Printf(TEXT("%d × %s — %s%s"),
                 Entry.Quantity, *ItemName, *Location,
                 Level > 0 ? *FString::Printf(TEXT(" (niv. %d)"), Level) : TEXT(""));
         }
+        if (!Description.IsEmpty())
+        {
+            Description += TEXT("\n\n");
+        }
+        Description += FString::Printf(TEXT("Référence technique : %s"), *Kit.KitId.ToString());
         return FText::FromString(Description);
     }
     return FText::GetEmpty();
@@ -901,7 +926,7 @@ void URPGCharacterCreationWizardWidget::RefreshSummaryStep()
 	SetWizardOptionalText(Text_SummaryHealth, HealthLine);
 	SetWizardOptionalText(Text_SummaryMana, ManaLine);
 	SetWizardOptionalText(Text_SummaryCarryWeight, CarryLine);
-	SetWizardOptionalText(Text_SummaryStartingKit, GetSelectedStartingEquipmentKitDescription());
+	SetWizardOptionalText(Text_SummaryStartingKit, GetSelectedStartingEquipmentKitSummary());
 	SetWizardOptionalText(Text_SummaryValidationState, State);
 
 	const bool bCanCreateCharacter = CanSubmitCharacterCreation();

@@ -138,6 +138,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation|Starting Equipment")
 	FText GetSelectedStartingEquipmentKitDescription() const;
 
+	/** Full text for the Summary step, where no ComboBox shows the kit title. */
+	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation|Starting Equipment")
+	FText GetSelectedStartingEquipmentKitSummary() const;
+
+	/** Player-facing label; the stable KitId is displayed only in details. */
+	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation|Starting Equipment")
+	FText GetStartingKitOptionLabel(const FRPGStartingEquipmentKit& Kit) const;
+
 	UFUNCTION(BlueprintCallable, Category = "RPG|Character Creation|Attributes")
 	void ResetAttributeAllocationToClassDefinition();
 
@@ -178,7 +186,7 @@ private:
 	void RefreshStartingKitSelection();
 	void RefreshStartingKitWidgets();
 	FName GetStartingKitDefaultId() const;
-	FText GetStartingKitOptionLabel(const FRPGStartingEquipmentKit& Kit) const;
+
 	void RefreshSummaryStep();
 	void RefreshSummaryVisuals(bool bCanCreateCharacter);
 	void ApplyWizardStepToSwitcher();

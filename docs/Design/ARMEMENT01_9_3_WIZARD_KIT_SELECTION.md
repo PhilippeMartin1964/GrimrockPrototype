@@ -58,10 +58,13 @@ Ouvrir :
    survient tant que ces composants n'ont pas été ajoutés. Leur remplissage et
    leurs événements sont raccordés automatiquement par le parent C++.
 
-Le champ `ComboBox_StartingKit` affiche les deux titres et IDs, est
-activé uniquement en `NewGameMainHero`, et change le choix de kit sans
-modifier les DataAssets. La description du kit choisi est rafraîchie avec la
-sélection et le résumé.
+Le champ `ComboBox_StartingKit` affiche uniquement le **nom lisible** des
+kits (sans suffixe entre crochets). `Text_StartingKitDescription` énumère les
+objets, leur emplacement et leur niveau **sans répéter le nom du kit**, puis
+indique la `Référence technique : KitId` en fin de texte. Sur la page
+`Résumé`, `Text_SummaryStartingKit` conserve le **nom du kit** suivi des
+détails, car la liste déroulante n'y figure pas. Le choix est limité au
+`NewGameMainHero` et ne modifie jamais les DataAssets.
 
 **Ne pas changer le WidgetSwitcher ni le nombre d'étapes CC7.**
 **Ne pas éditer de `.uasset` en dehors de l'éditeur Unreal.**
@@ -78,13 +81,15 @@ git pull --ff-only origin master
     -AutomationFilter "Grimrock.RPG.ARMEMENT01.9.WizardSelection"
 ```
 
-Quatre tests vérifient :
+Cinq tests vérifient :
 - options de rôdeur, sélection alternative, refus d'ID étranger et reset au
   changement de classe ;
 - création avec kit alternatif, propriété SaveGame de `PartyInventoryState`,
   attribution unique et ownership ;
 - refus atomique des IDs étrangers/inconnus ;
 - compatibilité du kit par défaut et non-régression de `CustomRecruit`.
+- libellés joueurs sans `KitId`, absence de répétition dans l'étape Classe,
+  référence technique reléguée au détail et nom maintenu dans le Résumé.
 
 L'interface UMG visuelle sera vérifiée par captures Unreal après tests C++.
 Aucune campagne globale n'est demandée.

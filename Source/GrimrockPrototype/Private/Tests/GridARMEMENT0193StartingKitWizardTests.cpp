@@ -213,4 +213,50 @@ bool FARMEMENT0193CompatibilityTest::RunTest(const FString&)
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0193KitPresentationTest,
+    "Grimrock.RPG.ARMEMENT01.9.WizardSelection.PlayerFacingKitLabels",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENT0193KitPresentationTest::RunTest(const FString&)
+{
+    URPGCharacterCreationWizardWidget* Wizard = NewObject<URPGCharacterCreationWizardWidget>();
+    Wizard->ClassDefinition = ARMEMENT0193::Class(TEXT("Warrior"));
+    if (!TestNotNull(TEXT("Production Warrior exists"), Wizard->ClassDefinition.Get()))
+    {
+        return false;
+    }
+
+    const TArray<FRPGStartingEquipmentKit> Kits = Wizard->GetAvailableStartingEquipmentKits();
+    if (!TestEqual(TEXT("Two starting kit labels"), Kits.Num(), 2))
+    {
+        return false;
+    }
+    for (const FRPGStartingEquipmentKit& Kit : Kits)
+    {
+        const FString Label = Wizard->GetStartingKitOptionLabel(Kit).ToString();
+        const FString ExpectedLabel = Kit.DisplayName.IsEmpty()
+            ? Kit.KitId.ToString() : Kit.DisplayName.ToString();
+        TestEqual(TEXT("ComboBox label is the display name only"), Label, ExpectedLabel);
+        TestFalse(TEXT("ComboBox does not append technical brackets"), Label.Contains(TEXT("[")));
+        TestFalse(TEXT("ComboBox does not expose technical ID"), Label.Contains(Kit.KitId.ToString()));
+    }
+
+    if (!TestTrue(TEXT("Select second Warrior kit"), Wizard->SelectStartingEquipmentKit(TEXT("Warrior_Skirmisher"))))
+    {
+        return false;
+    }
+    const FString Label = Wizard->GetStartingKitOptionLabel(Kits[1]).ToString();
+    const FString Details = Wizard->GetSelectedStartingEquipmentKitDescription().ToString();
+    const FString Summary = Wizard->GetSelectedStartingEquipmentKitSummary().ToString();
+
+    TestFalse(TEXT("Class description does not repeat the displayed title"), Details.StartsWith(Label));
+    TestTrue(TEXT("Class description starts with an item quantity"), Details.StartsWith(TEXT("1 × ")));
+    TestTrue(TEXT("Technical ID appears in the details rather than the ComboBox"),
+        Details.Contains(TEXT("Référence technique : Warrior_Skirmisher")));
+    TestTrue(TEXT("Details have both item rows"), Details.Contains(TEXT("\n1 × ")));
+    TestTrue(TEXT("Summary retains kit name without a ComboBox"), Summary.StartsWith(Label + TEXT("\n")));
+    TestTrue(TEXT("Summary retains technical reference"), Summary.Contains(TEXT("Warrior_Skirmisher")));
+    return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS
