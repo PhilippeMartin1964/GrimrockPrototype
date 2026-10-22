@@ -1,6 +1,6 @@
 # ARMEMENT01.9.6 — Définition des 18 kits N1
 
-**22 octobre 2026 — statut : spécification et tests publiés, validation locale UE5.5.4 attendue.**
+**22 octobre 2026 — statut : VALIDÉ TECHNIQUEMENT 3/3, 0 avertissement, 0 échec, code 0** (`TD04-20261022-122937`, filtre `Grimrock.RPG.ARMEMENT01.9.KitDesign`). **Les 18 recettes restent des propositions de design** (`DesignProposal`) ; aucun des 18 kits n'est encore activé dans le runtime. La référence de nettoyage et de transition est [ARMEMENT01.9.6.1](ARMEMENT01_9_6_1_CLEANUP_CONSOLIDATION.md).
 
 ## Intention et hiérarchie des sources
 
@@ -123,7 +123,7 @@ git pull --ff-only origin master
   -AutomationFilter "Grimrock.RPG.ARMEMENT01.9.KitDesign"
 ```
 
-**Attendu : 3/3 tests, 0 avertissement ; validation utilisateur obligatoire.**
+**Résultat local confirmé par le journal du 22.10.2026 : 3/3 tests, 0 avertissement, 0 échec, exit code 0.** La commande est conservée pour les futures régressions.
 Aucun `.uasset` n'est généré ni modifié par ce jalon.
 Ne pas lancer de commandlet d'authoring d'armes à ce stade.
 

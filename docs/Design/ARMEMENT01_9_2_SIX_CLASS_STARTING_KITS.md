@@ -1,5 +1,7 @@
 # ARMEMENT01.9.2 — Douze kits de départ pour les six classes
 
+> **Statut au 22.10.2026 — LEGACY RUNTIME MAINTENU.** Les 12 kits (deux par classe) décrivent toujours les recettes *effectivement distribuées* par `FRPGStartingEquipmentPresetCatalog`. Leur choix d'armes ne constitue **plus** la référence de conception pour le futur. Les 18 recettes orientées branches figurent dans [ARMEMENT01.9.6](ARMEMENT01_9_6_EIGHTEEN_STARTING_KITS.md), avec les règles de transition dans [ARMEMENT01.9.6.1](ARMEMENT01_9_6_1_CLEANUP_CONSOLIDATION.md). **Ne pas retirer les identifiants historiques ni les tests liés aux sauvegardes.**
+
 ## Portée
 
 Complète le socle transactionnel validé sous `Grimrock.RPG.ARMEMENT01.9.StartingKits` (4/4).

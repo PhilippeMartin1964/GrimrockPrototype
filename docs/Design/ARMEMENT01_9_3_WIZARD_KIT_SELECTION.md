@@ -1,5 +1,7 @@
 # ARMEMENT01.9.3 — Choix du kit de départ dans le wizard
 
+> **Statut au 22.10.2026 — IMPLÉMENTATION ACTIVE, CONTENU HISTORIQUE.** Le wizard et la sauvegarde utilisent encore les 12 kits ARMEMENT01.9.2 ; ce document reste la référence du **fonctionnement C++/UMG**. Les 12 noms et les assertions « deux kits » ne décrivent **pas** les 18 futures recettes. La migration et la nouvelle localisation sont différées à l'activation ; voir [ARMEMENT01.9.6.1](ARMEMENT01_9_6_1_CLEANUP_CONSOLIDATION.md). Ne pas supprimer les chaînes ou identifiants anciens.
+
 ## Portée et autorité
 
 Cette tranche ajoute **le choix explicite d'un kit** au wizard C++ existant,

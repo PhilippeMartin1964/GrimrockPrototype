@@ -1,6 +1,8 @@
 # ARMEMENT01.9.5.2 — Réintégration des affinités d’armement depuis Excel
 
-**22 octobre 2026 — statut : implémentation C++/PowerShell publiée sous réserve de validation locale UE5.5.4 et matérialisation de l'asset.**
+**22 octobre 2026 — statut : VALIDÉ ET MATÉRIALISÉ.** Le script local a confirmé l'export des 82 affinités / six préférences, la conservation des 1 640 profils, une non-régression ARMEMENT01.4 **5/5 sans avertissement**, et le second import **`Changed=false`** (commandlet sans erreur ni avertissement). La publication du `DA_WeaponCatalogue.uasset` sur `master` a été confirmée par l'utilisateur. Le bilan de tests d'affinité 3/3 n'a pas été reproduit dans l'extrait du journal reçu, même si le script de validation s'est terminé en succès. Le protocole ci-dessous est conservé pour reproduction.
+
+> **Suite active :** la définition des 18 kits se trouve dans [ARMEMENT01.9.6](ARMEMENT01_9_6_EIGHTEEN_STARTING_KITS.md) et les règles de compatibilité/nettoyage dans [ARMEMENT01.9.6.1](ARMEMENT01_9_6_1_CLEANUP_CONSOLIDATION.md). Le présent document reste l'autorité **technique de projection XLSX**, pas une matrice concurrente de kits.
 
 ## Autorité unique et contrat
 
