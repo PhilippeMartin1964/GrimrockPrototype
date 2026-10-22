@@ -122,6 +122,14 @@ bool FARMEMENT0193KitProjectionTest::RunTest(const FString&)
     TestTrue(TEXT("Main-hand vocabulary from String Table"),
         FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Slot.MainHand"))
             .EqualTo(FText::FromString(TEXT("Main principale"))));
+    const FString SummaryFormat = FUILocalizationText::Get(
+        TEXT("CharacterCreation.StartingKit.SummaryFormat")).ToString();
+    TestEqual(TEXT("Localized kit summary has an actual line break"),
+        SummaryFormat, FString(TEXT("{KitName}\n{Details}")));
+    const FString DetailsFormat = FUILocalizationText::Get(
+        TEXT("CharacterCreation.StartingKit.DetailsFormat")).ToString();
+    TestEqual(TEXT("Localized kit details have a blank line"),
+        DetailsFormat, FString(TEXT("{Items}\n\n{TechnicalReference}")));
 
     URPGClassAsset* Class = ARMEMENT0193Localization::LoadWarrior();
     if (!TestNotNull(TEXT("Production Warrior definition"), Class)) return false;
@@ -138,6 +146,11 @@ bool FARMEMENT0193KitProjectionTest::RunTest(const FString&)
     TestFalse(TEXT("No untranslated Main Hand enum appears"), Details.Contains(TEXT("Main Hand")));
     TestTrue(TEXT("Technical reference is translated"), Details.Contains(TEXT("Référence technique : Warrior_Skirmisher")));
     TestFalse(TEXT("Details do not repeat kit title"), Details.StartsWith(Name));
+    const FString Summary = Wizard->GetSelectedStartingEquipmentKitSummary().ToString();
+    TestTrue(TEXT("Localized summary retains name separated by real newline"),
+        Summary.StartsWith(Name + TEXT("\n")));
+    TestFalse(TEXT("The localized summary contains no literal escaped newlines"),
+        Summary.Contains(TEXT("\\n")));
     return true;
 }
 

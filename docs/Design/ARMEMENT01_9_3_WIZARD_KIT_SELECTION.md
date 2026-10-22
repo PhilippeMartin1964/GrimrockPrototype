@@ -160,3 +160,47 @@ committer via Git LFS dans **un commit séparé sur master**.
 
 Ne pas lancer `RunLocalizationSmoke.ps1` pour cette migration étroite :
 le script smoke complet modifie d'autres artefacts de localisation.
+
+
+## ARMEMENT01.9.3 — Correctif des retours à la ligne CSV/ST_UI
+
+Diagnostic du journal local du 22 octobre 2026 :
+- \`Grimrock.RPG.ARMEMENT01.9.Localization\` : 2/2 OK ;
+- \`Grimrock.RPG.ARMEMENT01.9.WizardSelection\` : un échec de
+  \`PlayerFacingKitLabels\` sur le préfixe du Résumé.
+
+Cause : \`FCsvParser\` conserve \`\\n\` comme deux caractères dans la valeur
+CSV ; l'importeur historique copiait cette séquence littéralement dans
+\`ST_UI\`. Or le contrat de LOCALIZATION01.3 requiert des échappements
+de style C pour les textes multilignes. Le rendu attend un saut de ligne
+réel entre le nom du kit et ses objets.
+
+Correction dans \`FUILocalizationCsvAuthoring::ParseAndValidateCsv\` :
+- décodage strict des échappements \`\\n\`, \`\\r\`, \`\\t\`, \`\\\\\` dans la
+  colonne \`SourceString\`, avant validation et projection ;
+- refus explicite des séquences inconnues et des antislashs finaux ;
+- mêmes invariants de projection et d'idempotence ;
+- aucun changement des clés ou du vocabulaire de \`UI.csv\`.
+
+Deux tests de régression renforcés : analyse CSV/projection via
+\`Game.UI.Localization.LOCALIZATION01.CsvValidationContract\` et
+\`Grimrock.RPG.ARMEMENT01.9.Localization.RuntimeStringTableProjection\`.
+Le test \`WizardSelection.PlayerFacingKitLabels\` reste strict sur la
+présence d'un **véritable** saut de ligne. Il n'est pas assoupli.
+
+**Important :** après avoir mis à jour et compilé le C++, régénérer
+\`Content/Localization/StringTables/ST_UI.uasset\` avec le commandlet
+\`UIStringTableAuthoring\`. Les deux formats \`SummaryFormat\` et
+\`DetailsFormat\`, ainsi que \`CharacterCreation.Summary.Full\` déjà
+présent, contiendront alors des retours à la ligne effectifs.
+Le binaire modifié est à valider et à committer via Git LFS **séparément**.
+
+Validation ciblée après régénération :
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Game.UI.Localization.LOCALIZATION01.CsvValidationContract"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.9.Localization"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.9.WizardSelection"
+~~~
+
+Ne pas considérer ces tests validés avant réception des résultats UE5.5.4.

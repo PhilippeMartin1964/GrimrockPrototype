@@ -90,6 +90,36 @@ bool FUILOCALIZATION014CsvValidationContractTest::RunTest(const FString&)
 	TestEqual(TEXT("First key is preserved"), Entries[0].Key, FString(TEXT("Interaction.Door.Open")));
 	TestEqual(TEXT("Named placeholder is preserved"), Entries[1].SourceString, FString(TEXT("Sauvegarde {Index}")));
 
+	// Regression ARMEMENT01.9.3: the source CSV stores C-style \n bytes,
+	// but ST_UI must contain actual line breaks for localized format strings.
+	const FString EscapedCsv =
+		TEXT("Key,SourceString,Comment\n")
+		TEXT("\"CharacterCreation.StartingKit.SummaryFormat\",\"{KitName}\\n{Details}\",\"Multiline format\"\n")
+		TEXT("\"CharacterCreation.StartingKit.DetailsFormat\",\"{Items}\\n\\n{TechnicalReference}\",\"Details\"\n");
+	TArray<FUILocalizationCsvEntry> EscapedEntries;
+	if (!ParseFixture(*this, EscapedCsv, EscapedEntries))
+	{
+		return false;
+	}
+	TestEqual(TEXT("Two multiline formats parsed"), EscapedEntries.Num(), 2);
+	TestEqual(TEXT("Escaped newlines become real newline characters"),
+		EscapedEntries[0].SourceString, FString(TEXT("{KitName}\n{Details}")));
+	TestEqual(TEXT("Two consecutive escaped newlines become two newline characters"),
+		EscapedEntries[1].SourceString, FString(TEXT("{Items}\n\n{TechnicalReference}")));
+	UStringTable* MultilineTable = NewObject<UStringTable>(GetTransientPackage());
+	FUILocalizationCsvAuthoring::ApplyEntries(*MultilineTable, EscapedEntries);
+	TestTrue(TEXT("Multiline String Table projection matches decoded CSV"),
+		FUILocalizationCsvAuthoring::MatchesEntries(*MultilineTable, EscapedEntries));
+	FString ProjectedSummary;
+	TestTrue(TEXT("Projected multiline key exists"), MultilineTable->GetStringTable()->GetSourceString(
+		FTextKey(TEXT("CharacterCreation.StartingKit.SummaryFormat")), ProjectedSummary));
+	TestEqual(TEXT("Multiline String Table actually contains newline"), ProjectedSummary,
+		FString(TEXT("{KitName}\n{Details}")));
+
+	RejectFixture(*this, TEXT("Unknown escape sequence rejected"),
+		TEXT("Key,SourceString,Comment\n")
+		TEXT("\"CharacterCreation.StartingKit.SummaryFormat\",\"{KitName}\\q{Details}\",\"Bad escape\"\n"));
+
 	RejectFixture(
 		*this,
 		TEXT("Duplicate keys are rejected"),

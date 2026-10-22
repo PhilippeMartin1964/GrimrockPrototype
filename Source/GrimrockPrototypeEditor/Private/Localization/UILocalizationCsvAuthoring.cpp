@@ -33,6 +33,37 @@ namespace UILocalizationCsvAuthoringPrivate
 		return true;
 	}
 
+	/** Decode the C-style escapes promised by the CSV authoring contract. */
+	bool DecodeSourceStringEscapes(const FString& Encoded, FString& OutDecoded, FString& OutError)
+	{
+		OutDecoded.Empty(Encoded.Len());
+		for (int32 Index = 0; Index < Encoded.Len(); ++Index)
+		{
+			const TCHAR Character = Encoded[Index];
+			if (Character != TCHAR('\\'))
+			{
+				OutDecoded.AppendChar(Character);
+				continue;
+			}
+			if (Index + 1 >= Encoded.Len())
+			{
+				OutError = TEXT("Trailing backslash in CSV source text.");
+				return false;
+			}
+			switch (Encoded[++Index])
+			{
+				case TCHAR('n'): OutDecoded.AppendChar(TCHAR('\n')); break;
+				case TCHAR('r'): OutDecoded.AppendChar(TCHAR('\r')); break;
+				case TCHAR('t'): OutDecoded.AppendChar(TCHAR('\t')); break;
+				case TCHAR('\\'): OutDecoded.AppendChar(TCHAR('\\')); break;
+				default:
+					OutError = TEXT("Unsupported CSV source escape (supported: \\n, \\r, \\t, \\\\).");
+					return false;
+			}
+		}
+		return true;
+	}
+
 	bool ContainsLegacyPrintfToken(const FString& SourceString)
 	{
 		static const FRegexPattern PrintfPattern(TEXT("%[-+0-9.*]*[diuoxXfFeEgGaAcsp]"));
@@ -192,8 +223,15 @@ bool FUILocalizationCsvAuthoring::ParseAndValidateCsv(
 
 		FUILocalizationCsvEntry Entry;
 		Entry.Key = Row[0] ? FString(Row[0]).TrimStartAndEnd() : FString();
-		Entry.SourceString = Row[1] ? FString(Row[1]) : FString();
+		const FString EncodedSourceString = Row[1] ? FString(Row[1]) : FString();
 		Entry.Comment = Row[2] ? FString(Row[2]) : FString();
+		FString DecodeError;
+		if (!UILocalizationCsvAuthoringPrivate::DecodeSourceStringEscapes(
+			EncodedSourceString, Entry.SourceString, DecodeError))
+		{
+			OutError = FString::Printf(TEXT("UI.csv row %d: %s"), RowIndex + 1, *DecodeError);
+			return false;
+		}
 
 		if (!UILocalizationCsvAuthoringPrivate::ValidateEntry(Entry, RowIndex + 1, OutError))
 		{
