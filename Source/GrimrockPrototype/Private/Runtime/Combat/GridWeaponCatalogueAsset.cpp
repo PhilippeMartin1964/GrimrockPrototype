@@ -136,3 +136,94 @@ bool UGridWeaponCatalogueAsset::TryBuildAttack(FName ArchetypeId, int32 ItemLeve
 	const FGridWeaponLevelProfile* Profile = FindProfile(ArchetypeId, ItemLevel);
 	return Profile && Profile->IsValidProfile() && Profile->TryBuildAttackDefinition(OutAttack);
 }
+
+namespace WeaponClassAffinity
+{
+    bool IsSupportedClass(FName ClassId)
+    {
+        return ClassId == TEXT("Warrior") || ClassId == TEXT("Rogue") ||
+            ClassId == TEXT("Ranger") || ClassId == TEXT("Mage") ||
+            ClassId == TEXT("Priest") || ClassId == TEXT("Alchemist");
+    }
+}
+
+bool UGridWeaponCatalogueAsset::IsValidClassAffinityData() const
+{
+    if (ClassAffinities.Num() != 82 || ClassPreferences.Num() != 6)
+    {
+        return false;
+    }
+    TSet<FName> SeenArchetypes;
+    for (const FGridWeaponArchetypeClassAffinity& Row : ClassAffinities)
+    {
+        if (!WeaponClassAffinity::IsSupportedClass(Row.PrimaryClassId) ||
+            Row.ArchetypeId.IsNone() || SeenArchetypes.Contains(Row.ArchetypeId))
+        {
+            return false;
+        }
+        SeenArchetypes.Add(Row.ArchetypeId);
+        TSet<FName> SeenSecondary;
+        for (FName OtherClass : Row.SecondaryClassIds)
+        {
+            if (!WeaponClassAffinity::IsSupportedClass(OtherClass) ||
+                OtherClass == Row.PrimaryClassId || SeenSecondary.Contains(OtherClass))
+            {
+                return false;
+            }
+            SeenSecondary.Add(OtherClass);
+        }
+    }
+    for (int32 Ordinal = 1; Ordinal <= 82; ++Ordinal)
+    {
+        if (!SeenArchetypes.Contains(FName(*FString::Printf(TEXT("ARM%03d"), Ordinal))))
+        {
+            return false;
+        }
+    }
+    TSet<FName> SeenClasses;
+    for (const FGridWeaponClassPreference& Preference : ClassPreferences)
+    {
+        if (!WeaponClassAffinity::IsSupportedClass(Preference.ClassId) ||
+            SeenClasses.Contains(Preference.ClassId) ||
+            Preference.CanonicalBranches.IsEmpty() || Preference.PriorityWeapons.IsEmpty() ||
+            Preference.EmblematicExamples.IsEmpty() || Preference.Alternatives.IsEmpty() ||
+            Preference.DominantAttributes.IsEmpty() || Preference.Synergies.IsEmpty())
+        {
+            return false;
+        }
+        SeenClasses.Add(Preference.ClassId);
+    }
+    return true;
+}
+
+EGridWeaponClassAffinity UGridWeaponCatalogueAsset::GetClassAffinity(FName ArchetypeId, FName ClassId) const
+{
+    if (ArchetypeId.IsNone() || !WeaponClassAffinity::IsSupportedClass(ClassId))
+    {
+        return EGridWeaponClassAffinity::Unspecified;
+    }
+    const FGridWeaponArchetypeClassAffinity* Row = ClassAffinities.FindByPredicate(
+        [ArchetypeId](const FGridWeaponArchetypeClassAffinity& Entry)
+        {
+            return Entry.ArchetypeId == ArchetypeId;
+        });
+    if (!Row)
+    {
+        return EGridWeaponClassAffinity::Unspecified;
+    }
+    if (Row->PrimaryClassId == ClassId)
+    {
+        return EGridWeaponClassAffinity::Primary;
+    }
+    return Row->SecondaryClassIds.Contains(ClassId)
+        ? EGridWeaponClassAffinity::Secondary
+        : EGridWeaponClassAffinity::Unspecified;
+}
+
+const FGridWeaponClassPreference* UGridWeaponCatalogueAsset::FindClassPreference(FName ClassId) const
+{
+    return ClassPreferences.FindByPredicate([ClassId](const FGridWeaponClassPreference& Row)
+    {
+        return Row.ClassId == ClassId;
+    });
+}
