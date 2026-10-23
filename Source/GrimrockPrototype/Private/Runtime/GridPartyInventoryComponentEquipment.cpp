@@ -287,6 +287,78 @@ bool UGridPartyInventoryComponent::TryConsumeEquippedItemQuantityForCombatAction
 	return true;
 }
 
+int32 UGridPartyInventoryComponent::GetEffectiveCurrentPhysicalArmor(int32 CharacterIndex) const
+{
+	if (!IsValidCharacterIndex(CharacterIndex)) return 0;
+
+	int64 Total = FMath::Max(0, PartyInventoryState.ActiveCharacters[CharacterIndex].Resources.CurrentPhysicalArmor);
+	if (!PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
+	{
+		return static_cast<int32>(FMath::Clamp<int64>(Total, 0, MAX_int32));
+	}
+	GridEquipmentSlotUtils::ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
+		[this, &Total](EGridEquipmentSlot, const FGridItemInstance& Item)
+		{
+			if (!Item.IsValid()) return;
+			const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
+			if (!Definition) return;
+			const int32 Bonus = Definition->EquipmentStatBonus.ArmorBonus;
+			Total += Bonus > 0 ? FMath::Max(0, Bonus - FMath::Max(0, Item.AbsorbedEquipmentPhysicalArmor)) : Bonus;
+		});
+	return static_cast<int32>(FMath::Clamp<int64>(Total, 0, MAX_int32));
+}
+
+int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterIndex, int32 Damage)
+{
+	if (Damage <= 0 || !IsValidCharacterIndex(CharacterIndex)) return 0;
+
+	int32 Remaining = FMath::Min(Damage, GetEffectiveCurrentPhysicalArmor(CharacterIndex));
+	const int32 Applied = Remaining;
+	FGridCharacterEquipmentState* Equipment = PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex)
+		? &PartyInventoryState.ActiveEquipment[CharacterIndex] : nullptr;
+	for (uint8 SlotValue = GridEquipmentSlotUtils::FirstSlotValue;
+		Equipment && SlotValue <= GridEquipmentSlotUtils::LastSlotValue && Remaining > 0; ++SlotValue)
+	{
+		FGridItemInstance* Item = Equipment->GetMutableSlot(static_cast<EGridEquipmentSlot>(SlotValue));
+		if (!Item || !Item->IsValid()) continue;
+		const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId);
+		const int32 Bonus = Definition ? FMath::Max(0, Definition->EquipmentStatBonus.ArmorBonus) : 0;
+		const int32 Available = FMath::Max(0, Bonus - FMath::Max(0, Item->AbsorbedEquipmentPhysicalArmor));
+		const int32 Used = FMath::Min(Remaining, Available);
+		Item->AbsorbedEquipmentPhysicalArmor += Used;
+		Remaining -= Used;
+	}
+	FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
+	Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor - Remaining);
+	if (Applied > 0) NotifyPartyInventoryChanged(CharacterIndex);
+	return Applied;
+}
+
+int32 UGridPartyInventoryComponent::RestorePhysicalArmor(int32 CharacterIndex, int32 Amount)
+{
+	if (Amount <= 0 || !IsValidCharacterIndex(CharacterIndex)) return 0;
+
+	int32 Remaining = Amount;
+	FGridCharacterEquipmentState* Equipment = PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex)
+		? &PartyInventoryState.ActiveEquipment[CharacterIndex] : nullptr;
+	for (uint8 SlotValue = GridEquipmentSlotUtils::FirstSlotValue;
+		Equipment && SlotValue <= GridEquipmentSlotUtils::LastSlotValue && Remaining > 0; ++SlotValue)
+	{
+		FGridItemInstance* Item = Equipment->GetMutableSlot(static_cast<EGridEquipmentSlot>(SlotValue));
+		if (!Item || !Item->IsValid()) continue;
+		const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId);
+		const int32 Bonus = Definition ? FMath::Max(0, Definition->EquipmentStatBonus.ArmorBonus) : 0;
+		const int32 Spent = FMath::Min(Bonus, FMath::Max(0, Item->AbsorbedEquipmentPhysicalArmor));
+		const int32 Restored = FMath::Min(Remaining, Spent);
+		Item->AbsorbedEquipmentPhysicalArmor -= Restored;
+		Remaining -= Restored;
+	}
+	FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
+	Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor + Remaining);
+	NotifyPartyInventoryChanged(CharacterIndex);
+	return Amount;
+}
+
 FGridEquipmentStatBonus UGridPartyInventoryComponent::ComputeCharacterEquipmentStatBonus(int32 CharacterIndex) const
 {
 	FGridEquipmentStatBonus TotalBonus;

@@ -436,9 +436,9 @@ void UGridTurnManagerComponent::ApplyIncomingPartyDamageInterception(int32 Targe
 			InOutResult.TargetHealthAfter = FMath::Max(0, TargetBefore.CurrentHealth - InOutResult.HealthDamage);
 
 			const int32 OwnerHealthBefore = Owner.Resources.CurrentHealth;
-			const int32 OwnerArmorDamage = FMath::Min(FMath::Max(0, Owner.Resources.CurrentPhysicalArmor), RedirectedDamage);
+			const int32 OwnerArmorDamage = FMath::Min(Inventory->GetEffectiveCurrentPhysicalArmor(OwnerIndex), RedirectedDamage);
 			const int32 OwnerHealthDamage = FMath::Max(0, RedirectedDamage - OwnerArmorDamage);
-			Owner.Resources.CurrentPhysicalArmor = FMath::Max(0, Owner.Resources.CurrentPhysicalArmor - OwnerArmorDamage);
+			Inventory->ApplyPhysicalArmorDamage(OwnerIndex, OwnerArmorDamage);
 			Owner.Resources.CurrentHealth = FMath::Max(0, Owner.Resources.CurrentHealth - OwnerHealthDamage);
 			Inventory->NotifyPartyInventoryChanged(OwnerIndex);
 			RefreshPlayerCharacterVitalState(OwnerIndex);

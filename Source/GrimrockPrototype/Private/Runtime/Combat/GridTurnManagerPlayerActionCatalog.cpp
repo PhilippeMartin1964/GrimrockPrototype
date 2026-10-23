@@ -706,7 +706,7 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 		FGridCombatArmorEffectResolver::ApplyRestoreEffects(Action.Definition.ArmorEffects, ArmorSnapshot, QuickItemModifiers, &ArmorSourceContext);
 		const int32 PhysicalRestored = FMath::Max(0, ArmorSnapshot.CurrentPhysicalArmor - PhysicalBefore);
 		const int32 MagicalRestored = FMath::Max(0, ArmorSnapshot.CurrentMagicalArmor - MagicalBefore);
-		Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor + PhysicalRestored);
+		Inventory->RestorePhysicalArmor(Action.CharacterIndex, PhysicalRestored);
 		Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor + MagicalRestored);
 		OutResult.PhysicalArmorAfter = ArmorSnapshot.CurrentPhysicalArmor;
 		OutResult.MagicalArmorAfter = ArmorSnapshot.CurrentMagicalArmor;
@@ -866,7 +866,7 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 		FGridCombatArmorEffectResolver::ApplyRestoreEffects(Action.Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &ArmorSourceContext);
 		const int32 PhysicalRestored = FMath::Max(0, ArmorSnapshot.CurrentPhysicalArmor - PhysicalBefore);
 		const int32 MagicalRestored = FMath::Max(0, ArmorSnapshot.CurrentMagicalArmor - MagicalBefore);
-		Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor + PhysicalRestored);
+		Inventory->RestorePhysicalArmor(Action.CharacterIndex, PhysicalRestored);
 		Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor + MagicalRestored);
 		OutResult.PhysicalArmorAfter = ArmorSnapshot.CurrentPhysicalArmor;
 		OutResult.MagicalArmorAfter = ArmorSnapshot.CurrentMagicalArmor;
@@ -1946,7 +1946,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				FGridAttackTargetStats FriendlyTarget;
 				FriendlyTarget.Evasion = FriendlySummary.DerivedStats.Evasion;
 				FriendlyTarget.CurrentHealth = FriendlyCharacter.Resources.CurrentHealth;
-				FriendlyTarget.PhysicalArmor = FriendlyCharacter.Resources.CurrentPhysicalArmor;
+				FriendlyTarget.PhysicalArmor = Inventory->GetEffectiveCurrentPhysicalArmor(TargetCharacterIndex);
 				FriendlyTarget.MagicalArmor = FriendlyCharacter.Resources.CurrentMagicalArmor;
 				FriendlyTarget.DamageMultiplier = 1.0f;
 				const FGridDamageResistanceSet BaseResistances =
@@ -1980,8 +1980,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 
 				if (FriendlyResult.bHit)
 				{
-					FriendlyCharacter.Resources.CurrentPhysicalArmor =
-						FMath::Max(0, FriendlyCharacter.Resources.CurrentPhysicalArmor - FriendlyResult.PhysicalArmorDamage);
+					Inventory->ApplyPhysicalArmorDamage(TargetCharacterIndex, FriendlyResult.PhysicalArmorDamage);
 					FriendlyCharacter.Resources.CurrentMagicalArmor =
 						FMath::Max(0, FriendlyCharacter.Resources.CurrentMagicalArmor - FriendlyResult.MagicalArmorDamage);
 					FriendlyCharacter.Resources.CurrentHealth =

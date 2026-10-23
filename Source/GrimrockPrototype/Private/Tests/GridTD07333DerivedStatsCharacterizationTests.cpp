@@ -170,13 +170,13 @@ bool FGridTD07333CombatConsumerBoundaryTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Monster combat source loads"),
 		LoadProjectSource(TEXT("Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterCombatComponent.cpp"), MonsterCombat));
 	TestTrue(TEXT("Incoming attacks currently read stored Evasion directly"), MonsterCombat.Contains(TEXT("Target.Evasion = Character.DerivedStats.Evasion;")));
-	TestTrue(TEXT("Incoming attacks currently read stored physical armor directly"),
-		MonsterCombat.Contains(TEXT("Target.PhysicalArmor = Character.Resources.CurrentPhysicalArmor;")));
+	TestTrue(TEXT("Incoming attacks use equipped armor reserve"),
+		MonsterCombat.Contains(TEXT("Target.PhysicalArmor = PartyPawn->PartyInventoryComponent->GetEffectiveCurrentPhysicalArmor(TargetCharacterIndex);")));
 	TestTrue(TEXT("Incoming attacks currently read stored magical armor directly"),
 		MonsterCombat.Contains(TEXT("Target.MagicalArmor = Character.Resources.CurrentMagicalArmor;")));
-	TestTrue(TEXT("Incoming attacks currently mutate stored physical armor directly"),
+	TestTrue(TEXT("Incoming attacks consume armor via centralized equipment-aware method"),
 		MonsterCombat.Contains(
-			TEXT("Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor - OutResult.PhysicalArmorDamage);")));
+			TEXT("PartyPawn->PartyInventoryComponent->ApplyPhysicalArmorDamage(TargetCharacterIndex, OutResult.PhysicalArmorDamage);")));
 	TestTrue(TEXT("Incoming attacks currently mutate stored current health directly"),
 		MonsterCombat.Contains(TEXT("Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - OutResult.HealthDamage);")));
 

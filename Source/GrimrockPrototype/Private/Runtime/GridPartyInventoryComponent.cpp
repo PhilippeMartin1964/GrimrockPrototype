@@ -694,7 +694,7 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.Resources.CurrentHealth = FMath::Clamp(OutSummary.Resources.CurrentHealth, 0, OutSummary.DerivedStats.MaxHealth);
 	OutSummary.DerivedStats.MaxMana = FMath::Max(0, OutSummary.DerivedStats.MaxMana + OutSummary.EquipmentStatBonus.MaxManaBonus);
 	OutSummary.Resources.CurrentMana = FMath::Clamp(OutSummary.Resources.CurrentMana, 0, OutSummary.DerivedStats.MaxMana);
-	OutSummary.Resources.CurrentPhysicalArmor = FMath::Max(0, OutSummary.Resources.CurrentPhysicalArmor + OutSummary.EquipmentStatBonus.ArmorBonus);
+	OutSummary.Resources.CurrentPhysicalArmor = GetEffectiveCurrentPhysicalArmor(CharacterIndex);
 	OutSummary.Portrait =
 		FRPGAuthoringIdentityResolver::ResolvePortraitVisual(CharacterState.RaceId, CharacterState.PortraitGender, CharacterState.PortraitVariantId);
 	OutSummary.UsedInventorySlots = CountOccupiedSlots(CharacterState);

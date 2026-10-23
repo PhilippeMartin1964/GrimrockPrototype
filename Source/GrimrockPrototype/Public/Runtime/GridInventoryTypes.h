@@ -300,6 +300,14 @@ struct FGridItemInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Weapon Catalogue", meta = (ClampMin = "0", ClampMax = "20"))
 	int32 ItemLevel = 0;
 
+	/**
+	 * ARMEMENT01.10.3.1: physical armor absorbed by this equipment instance.
+	 * Persisted with the item across inventory, cursor, equipment and SaveGame.
+	 * Unequipping and re-equipping must not regenerate depleted armor.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment|Armor", meta = (ClampMin = "0"))
+	int32 AbsorbedEquipmentPhysicalArmor = 0;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FText DisplayName;
 

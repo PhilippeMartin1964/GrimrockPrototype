@@ -821,7 +821,7 @@ void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicDamageToCharacter(
 
 		FGridAttackTargetStats Target;
 		Target.CurrentHealth = Character.Resources.CurrentHealth;
-		Target.PhysicalArmor = Character.Resources.CurrentPhysicalArmor;
+		Target.PhysicalArmor = Inventory->GetEffectiveCurrentPhysicalArmor(CharacterIndex);
 		Target.MagicalArmor = Character.Resources.CurrentMagicalArmor;
 		Target.ResistancePercent = FGridCombatResolver::GetResistancePercent(Resistances, State.DefinitionAsset->PeriodicDamage.DamageType);
 		Target.DamageMultiplier = 1.0f;
@@ -850,7 +850,7 @@ void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicDamageToCharacter(
 		const FGridAttackResult& Damage = Resolution.DamageResult;
 		if (Damage.bHit)
 		{
-			Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor - Damage.PhysicalArmorDamage);
+			Inventory->ApplyPhysicalArmorDamage(CharacterIndex, Damage.PhysicalArmorDamage);
 			Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor - Damage.MagicalArmorDamage);
 			Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - Damage.HealthDamage);
 		}

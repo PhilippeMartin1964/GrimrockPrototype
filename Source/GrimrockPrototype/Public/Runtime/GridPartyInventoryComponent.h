@@ -264,6 +264,15 @@ public:
 	bool TryConsumeEquippedItemQuantityForCombatAction(
 		int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ExpectedItemDefinitionId, const FGuid& ExpectedRuntimeObjectId, int32 Quantity);
 
+	/** Stored character reserve plus remaining armor on equipped instances. */
+	int32 GetEffectiveCurrentPhysicalArmor(int32 CharacterIndex) const;
+
+	/** Consume the equipped reserve first, then the character's base reserve. */
+	int32 ApplyPhysicalArmorDamage(int32 CharacterIndex, int32 Damage);
+
+	/** Refill depleted equipped reserve first, then stored reserve; caller enforces the RPG03.3 limit. */
+	int32 RestorePhysicalArmor(int32 CharacterIndex, int32 Amount);
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Equipment")
 	FGridEquipmentStatBonus ComputeCharacterEquipmentStatBonus(int32 CharacterIndex) const;
 
