@@ -5,6 +5,8 @@ Parent : `RPG_Talents_Mechanics_v0_1.md`
 Dépendance : **RPG03.2 validé 7/7**  
 Statut : **VALIDÉ — TD04.2 / Grimrock.RPG.RPG03.3 / 8 réussis / 0 warning / 0 échec / 5 octobre 2026**
 
+> **Addendum ARMEMENT01.10.3.2 (23.10.2026)** — Ce document conserve l'historique de RPG03.3. Pour l'autorité **courante** de l'armure d'équipement épuisable, consulter [le contrat des boucliers](../Rules/RPG_Shields_Protection_Contract_v0_1.md) et [ARMEMENT01.10.3.1](ARMEMENT01_10_3_1_EQUIPMENT_PHYSICAL_ARMOR.md). La régression `Grimrock.RPG.RPG03.3` a été rejouée le 23.10.2026 : **8/8**, sans avertissement ni échec. La projection historique sans consommation de bonus d'équipement n'est plus la règle complète en vigueur.
+
 ## Objectif
 
 RPG03.3 ajoute une primitive générique et data-driven pour modifier directement les pools `PhysicalArmor` et `MagicalArmor` déjà existants.
@@ -77,9 +79,9 @@ Magical reference =
 
 Puis les modificateurs C2 de référence sont appliqués.
 
-Le `CurrentPhysicalArmor` effectif utilisé en combat reste celui de `GetCharacterSummary()`, qui conserve le contrat historique où `ArmorBonus` est une projection et non une mutation durable. Une restauration C3 calcule uniquement le delta effectif restauré et ajoute ce delta à `Resources.CurrentPhysicalArmor`.
+**Autorité actuelle après ARMEMENT01.10.3.1 :** le pool de référence maximal conserve `EquipmentStatBonus.ArmorBonus`, tandis que le pool courant tient compte de la **protection déjà absorbée** par chaque objet. `GetCharacterSummary()` lit `GetEffectiveCurrentPhysicalArmor()`, utilisé aussi pour le combat. `ApplyPhysicalArmorDamage()` consomme d'abord les contributions restantes des équipements puis la réserve de base ; `RestorePhysicalArmor()` restaure prioritairement les réserves d'objets épuisées, dans la limite du montant permis par l'effet de restauration.
 
-Ainsi RPG03.3 n'introduit ni nouveau maximum durable, ni changement de SaveGame, ni refactor de TD07.3.3.3.
+La protection consommée est sérialisée dans `FGridItemInstance::AbsorbedEquipmentPhysicalArmor` ; cela ne crée **aucun maximum global d'armure supplémentaire**, mais étend bien l'état persisté des objets par rapport au texte historique de RPG03.3. Sa relecture effective depuis une sauvegarde disque reste à vérifier en PIE.
 
 Pour un monstre, la référence est directement :
 

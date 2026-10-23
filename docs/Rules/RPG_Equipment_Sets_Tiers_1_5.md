@@ -1,5 +1,7 @@
 # Sets d’équipement de classe et variantes raciales — Tiers 1 à 5
 
+> **Clarification ARMEMENT01.10.3.2 (23.10.2026)** — Les mentions `+1 Défense`, `+2 Défense` ou `+3 Défense` associées à des boucliers de set sont des **propositions de bonus distincts**, non des conversions de points d'armure physique. Elles ne sont pas automatiquement opérationnelles : elles demandent un authoring dédié, une source de modificateur et des tests. Un bouclier ordinaire n'accorde aucun bonus automatique de Défense. Voir [RPG_Shields_Protection_Contract_v0_1.md](RPG_Shields_Protection_Contract_v0_1.md).
+
 ## Statut du document
 
 - **Version** : proposition v0.3

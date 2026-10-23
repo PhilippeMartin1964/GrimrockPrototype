@@ -2,7 +2,9 @@
 
 **Date :** 20 octobre 2026  
 **Projet :** GrimrockPrototype — Unreal Engine 5.5.4  
-**Statut :** PROPOSITION DE CONCEPTION — à valider ; **aucune nouvelle mécanique de dés n'est déclarée implémentée**  
+**Statut :** PROPOSITION DE CONCEPTION — à valider ; **aucune nouvelle mécanique de dés n'est déclarée implémentée**
+
+> **Clarification ARMEMENT01.10.3.2 (23.10.2026)** — Ce document reste une proposition historique pour ses autres chantiers. Le rôle **actuel** des boucliers est désormais fixé dans [RPG_Shields_Protection_Contract_v0_1.md](../Rules/RPG_Shields_Protection_Contract_v0_1.md) : points d'armure physique consommables, sans blocage aléatoire ni `+Défense` automatique. Les bonus de Défense particuliers exigent une valeur distincte et un effet authoré. Le classeur de production actif est `docs/Design/ARMEMENT01_Catalogue_Armes_Boucliers_Niveaux_1_20_ARMEMENT01_2.xlsx`.  
 **Documents liés :** `ARMEMENT01_Catalogue_Armes_Boucliers_Niveaux_1_20_v0_3.xlsx` (classeur de conception détaillé en pièce jointe), `docs/Design/ARMEMENT01_Profils_Des_N1_N20_v0_3.xlsx` (classeur de consultation versionné) et `docs/Design/ARMEMENT01_Profils_Armes_N1_N20_v0_3.csv` (source de revue diffable).
 
 ## 1. Autorités et périmètre

@@ -1,6 +1,8 @@
 # ARMEMENT01.10.3.1 — Consommation réelle de l'armure physique des équipements
 
-**État : correctif C++ publié pour validation UE5.5.4, tests locaux et PIE NON ENCORE EXÉCUTÉS.**
+**État au 23.10.2026 : correctif C++ publié et validé localement.** Rapports TD04.2 transmis : ARMEMENT01.10.3.1 **3/3** (`TD04-20261023-161700`), ARMEMENT01.10 **14/14** (`TD04-20261023-163131`), TD07.3.3.3 **8/8** (`TD04-20261023-163146`), RPG03.3 **8/8** (`TD04-20261023-163201`). Capture PIE : `Armure : -4; PV Elias : 11 → 11` pour la morsure de 4 dégâts. La persistance SaveGame disque et toutes les transitions d'armure ne sont pas encore validées.
+
+**Décision RPG générale ARMEMENT01.10.3.2 :** [RPG_Shields_Protection_Contract_v0_1.md](../Rules/RPG_Shields_Protection_Contract_v0_1.md).
 
 ## Motif
 
@@ -10,7 +12,7 @@ Le moteur utilise deux étapes distinctes :
 1. Jet pour toucher : `Défense = 10 + Esquive` (inchangé par ce correctif).
 2. Si touche : absorption par armure physique/magique puis reliquat aux PV.
 
-Le document RPG_Core_Rules_v0_1 propose également un bonus éventuel de bouclier dans la Défense ; cette question d'équilibrage reste une décision explicite future. **Ce ticket n'invente pas un bonus d'esquive supplémentaire de +5.**
+**Décision désormais explicite :** un bouclier passif ne donne **aucun bonus automatique de Défense**. Un effet `+Défense` distinct peut être authoré (talent, set, posture), mais doit posséder sa propre valeur et ne découle pas de `PhysicalArmor`. Les 5 points d'armure physique ARM075 N1 ne sont jamais `+5 Défense`.
 
 ## Source autoritaire
 

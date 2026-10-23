@@ -4,6 +4,8 @@
 
 UI-INV2F ajoute un premier systeme minimal de bonus d'equipement pour le paper doll.
 
+> **Mise à jour ARMEMENT01.10.3.2 (23.10.2026)** — Depuis ARMEMENT01.10.3.1, la projection d'armure physique tient compte de l'absorption déjà subie par chaque équipement. Voir [le contrat des boucliers](../Rules/RPG_Shields_Protection_Contract_v0_1.md). Les autres bonus d'équipement restent inchangés.
+
 Les bonus sont portes par `UGridItemDefinitionAsset::EquipmentStatBonus` et sont additionnes depuis les items actuellement equipes sur le personnage affiche. Les DataAssets seront renseignes manuellement dans Unreal Editor lors des etapes de contenu suivantes.
 
 ## Stats de base et stats finales
@@ -15,14 +17,14 @@ Les stats de base du personnage restent stockees dans `FGridCharacterInventorySt
 - `MaxCarryWeight` ;
 - `CurrentWeight`.
 
-Les bonus d'equipement ne modifient pas ces valeurs de base. Ils sont appliques au resume calcule pour l'affichage inventaire via `FGridInventoryCharacterSummary`.
+Les bonus d'equipement ne modifient pas directement les valeurs de base. Le résumé `FGridInventoryCharacterSummary` expose les valeurs effectives. Pour l'armure physique, la quantité déjà absorbée est conservée sur `FGridItemInstance::AbsorbedEquipmentPhysicalArmor`, y compris après retrait et rééquipement.
 
 Le resume final inclut :
 
 - attributs finaux = attributs de base + bonus d'equipement ;
 - `MaxHealth` final = `DerivedStats.MaxHealth` + `MaxHealthBonus` ;
 - `MaxMana` final = `DerivedStats.MaxMana` + `MaxManaBonus` ;
-- `PhysicalArmor` final = `DerivedStats.PhysicalArmor` + `ArmorBonus` ;
+- `CurrentPhysicalArmor` effectif = `Resources.CurrentPhysicalArmor` durable + somme des contributions d'armure physique **encore disponibles** sur les objets équipés (`ArmorBonus - AbsorbedEquipmentPhysicalArmor` pour chaque bonus positif) ;
 - charge maximale finale = `MaxCarryWeight` + `CarryWeightBonus`.
 
 `CurrentHealth` et `CurrentMana` ne sont pas augmentes directement. Ils sont seulement limites au maximum final si necessaire.

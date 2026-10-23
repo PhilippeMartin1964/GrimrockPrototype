@@ -73,7 +73,7 @@ Regle de conception :
 
 | Contre-mesure | Fonction | Limite |
 |---|---|---|
-| Bouclier | Reduit ou annule une attaque venant de face ; excellent contre armes et projectiles physiques. | Peu efficace contre auras, gaz, surfaces, maledictions et attaques mentales, sauf bouclier enchante. |
+| Bouclier | Fournit une réserve d'armure physique absorbante ; parade ou blocage directionnel uniquement avec une capacité explicite. | Aucun bonus automatique à la Défense ni jet de blocage par défaut ; magie et états mentaux demandent un effet dédié. |
 | Armure physique | Reduit les degats physiques et bloque les etats physiques tant qu'elle tient. | Lourde ; sensible au contournement, a la perforation et a la corrosion si `Acide` est ajoute. |
 | Armure magique | Reduit les degats elementaires, toxiques, mystiques et mentaux ; bloque les etats magiques tant qu'elle tient. | Ne remplace pas une armure contre les coups reels. |
 | Esquive | Evite totalement une attaque ciblee. | Ne protege pas contre zone, surface ou aura deja active. |
@@ -82,15 +82,16 @@ Regle de conception :
 | Sort defensif | Barriere, benediction, purification, protection elementaire, contresort. | Cout en mana, cooldown ou temps d'incantation. |
 | Positionnement | Eviter une ligne de tir, sortir d'une surface, placer le guerrier devant. | Depend de la grille, de l'initiative et de l'espace disponible. |
 
-Ordre de resolution conseille :
+Ordre de résolution de référence pour une attaque standard :
 
-1. verifier l'immunite ou la vulnerabilite speciale ;
-2. verifier l'esquive, la parade ou le bouclier si l'attaque le permet ;
-3. appliquer l'armure ciblee, physique ou magique ;
-4. appliquer la resistance du type de degat ;
-5. appliquer les reductions temporaires, barrieres et sorts actifs ;
-6. retirer les PV restants ;
-7. tenter l'application des etats si les conditions sont remplies.
+1. vérifier l'attaque, sa cible et les règles d'immunité/vulnérabilité réellement implémentées ;
+2. résoudre le jet d'attaque contre `10 + Esquive effective` ; les parades exigent un effet explicite ;
+3. calculer les dégâts, multiplicateurs et résistances : **les résistances sont appliquées avant l'armure** dans le résolveur actuel ;
+4. consommer l'armure physique pour un coup physique, ou l'armure magique pour les autres types ;
+5. retirer les PV restants ;
+6. résoudre les éventuels effets d'état selon leurs conditions.
+
+Un bouclier passif ne crée pas d'étape additionnelle de blocage. Voir le [contrat RPG des boucliers](RPG_Shields_Protection_Contract_v0_1.md).
 
 ---
 
@@ -133,13 +134,17 @@ Regle recommandee : un etat dangereux ne devrait pas s'appliquer tant que la pro
 
 ### Boucliers
 
-Un bouclier doit etre excellent contre les attaques physiques venant de face :
+**Contrat actuellement implémenté :** le bouclier équipé apporte la protection physique définie dans son ItemDefinition, correspondant au profil de catalogue authoré ; cette protection est consommée par les coups physiques qui touchent, **sans orientation frontale automatique**. Aucun `PhysicalArmor` n'est converti en Esquive ou Défense.
 
-- `Tranchant` : blocage eleve ;
-- `Perforant` : blocage eleve, sauf tir precis, attaque de flanc ou capacite perce-bouclier ;
-- `Contondant` : blocage moyen a eleve, mais risque de recul ou d'etourdissement ;
-- degats elementaires : blocage faible, sauf bouclier enchante ;
-- degats mentaux et maledictions : aucun effet sans propriete speciale.
+**Intentions futures non implémentées par défaut :**
+
+- `Tranchant` : parade frontale efficace ;
+- `Perforant` : blocage des projectiles/lances sous conditions et contournement possible ;
+- `Contondant` : parade moins efficace et risque de déséquilibre ;
+- dégâts élémentaires : effets propres aux boucliers enchantés seulement ;
+- dégâts mentaux et malédictions : aucun blocage sans propriété spéciale.
+
+Les différences de styles de boucliers ci-dessous restent des **rôles de conception**, et non des valeurs automatiques du résolveur. Voir le [contrat RPG des boucliers](RPG_Shields_Protection_Contract_v0_1.md).
 
 | Bouclier | Role |
 |---|---|

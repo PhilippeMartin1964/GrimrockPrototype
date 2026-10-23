@@ -260,6 +260,8 @@ Cooldown = limitation principale des capacités actives.
 
 ### Armure physique et armure magique
 
+**Règle des boucliers :** voir [RPG_Shields_Protection_Contract_v0_1.md](RPG_Shields_Protection_Contract_v0_1.md). Un bouclier normal fournit des points d'armure physique **consommables**, pas un bonus automatique au jet de Défense. Une capacité explicitement définie peut accorder un bonus défensif supplémentaire, indépendamment de l'armure.
+
 Chaque personnage possède :
 
 - une armure physique ;
@@ -1011,7 +1013,7 @@ Jet d'attaque = D20 + précision + bonus arme + modificateur de caractéristique
 Contre :
 
 ```text
-Défense = 10 + esquive + bonus d'armure légère + bouclier éventuel
+Défense = 10 + Esquive effective (incluant seulement les modificateurs explicitement autorisés)
 ```
 
 Si l'attaque réussit :
@@ -1020,10 +1022,14 @@ Si l'attaque réussit :
 Dégâts = dégâts arme + modificateur de caractéristique + bonus
 ```
 
-Les dégâts sont ensuite appliqués à :
+La mention historique « bonus d'armure légère + bouclier éventuel » ne crée **aucun bonus automatique** à la Défense : un tel effet doit être authoré séparément (talent, set, posture ou propriété dédiée), indépendamment de `PhysicalArmor` et `EquipmentStatBonus.ArmorBonus`.
 
-1. armure physique ou magique ;
-2. points de vie.
+Après le calcul des modificateurs et résistances, les dégâts sont ensuite appliqués à :
+
+1. l'armure physique ou magique correspondante, jusqu'à son épuisement ;
+2. les points de vie, pour le reliquat seulement.
+
+Les blocages frontaux, parades actives et coups de bouclier sont des capacités **distinctes** ; ils ne sont pas accordés implicitement en équipant un bouclier. Le [contrat général des boucliers](RPG_Shields_Protection_Contract_v0_1.md) fait autorité pour les valeurs provenant du catalogue et pour les distinctions entre mécanismes implémentés et futurs.
 
 ### Équilibrage avec six personnages
 
