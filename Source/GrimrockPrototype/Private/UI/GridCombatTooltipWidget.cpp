@@ -102,11 +102,11 @@ void UGridCombatTooltipWidget::RefreshTooltip()
 				(Column == 2 ? ArmorTextColor : NormalTextColor)));
 			if (TableFont.Size > 0) Cell->SetFont(TableFont);
 			Cell->SetAutoWrapText(Column == 0);
-			if (UHorizontalBoxSlot* Slot = TableRow->AddChildToHorizontalBox(Cell))
+			if (UHorizontalBoxSlot* CellLayoutSlot = TableRow->AddChildToHorizontalBox(Cell))
 			{
-				Slot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-				Slot->SetPadding(FMargin(Column == 0 ? 0.f : 6.f, 2.f));
-				Slot->SetHorizontalAlignment(Column == 0 ? HAlign_Left : HAlign_Right);
+				CellLayoutSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+				CellLayoutSlot->SetPadding(FMargin(Column == 0 ? 0.f : 6.f, 2.f));
+				CellLayoutSlot->SetHorizontalAlignment(Column == 0 ? HAlign_Left : HAlign_Right);
 			}
 		}
 		VerticalBox_ArmorRows->AddChild(TableRow);
