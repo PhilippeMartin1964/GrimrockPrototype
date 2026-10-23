@@ -1,6 +1,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "GridEquipmentSlotUtils.h"
+#include "Runtime/Combat/GridCombatTraceTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
@@ -308,28 +309,57 @@ int32 UGridPartyInventoryComponent::GetEffectiveCurrentPhysicalArmor(int32 Chara
 	return static_cast<int32>(FMath::Clamp<int64>(Total, 0, MAX_int32));
 }
 
-int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterIndex, int32 Damage)
+int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterIndex, int32 Damage,
+	TArray<FGridArmorAbsorptionSourceTrace>* OutSources)
 {
-	if (Damage <= 0 || !IsValidCharacterIndex(CharacterIndex)) return 0;
+	if (OutSources) OutSources->Reset();
+	if (Damage < 0 || !IsValidCharacterIndex(CharacterIndex)) return 0;
 
 	int32 Remaining = FMath::Min(Damage, GetEffectiveCurrentPhysicalArmor(CharacterIndex));
 	const int32 Applied = Remaining;
 	FGridCharacterEquipmentState* Equipment = PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex)
 		? &PartyInventoryState.ActiveEquipment[CharacterIndex] : nullptr;
 	for (uint8 SlotValue = GridEquipmentSlotUtils::FirstSlotValue;
-		Equipment && SlotValue <= GridEquipmentSlotUtils::LastSlotValue && Remaining > 0; ++SlotValue)
+		Equipment && SlotValue <= GridEquipmentSlotUtils::LastSlotValue; ++SlotValue)
 	{
 		FGridItemInstance* Item = Equipment->GetMutableSlot(static_cast<EGridEquipmentSlot>(SlotValue));
 		if (!Item || !Item->IsValid()) continue;
 		const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId);
 		const int32 Bonus = Definition ? FMath::Max(0, Definition->EquipmentStatBonus.ArmorBonus) : 0;
-		const int32 Available = FMath::Max(0, Bonus - FMath::Max(0, Item->AbsorbedEquipmentPhysicalArmor));
-		const int32 Used = FMath::Min(Remaining, Available);
+		if (Bonus <= 0) continue;
+		const int32 Before = FMath::Max(0, Bonus - FMath::Max(0, Item->AbsorbedEquipmentPhysicalArmor));
+		const int32 Used = FMath::Min(Remaining, Before);
 		Item->AbsorbedEquipmentPhysicalArmor += Used;
 		Remaining -= Used;
+		if (OutSources)
+		{
+			FGridArmorAbsorptionSourceTrace& Source = OutSources->AddDefaulted_GetRef();
+			Source.ItemDefinitionId = Item->ItemDefinitionId;
+			Source.DisplayName = Definition && !Definition->DisplayName.IsEmpty()
+				? Definition->DisplayName : FText::FromName(Item->ItemDefinitionId);
+			Source.bEquipment = true;
+			Source.Maximum = Bonus;
+			Source.Before = Before;
+			Source.Absorbed = Used;
+			Source.After = Before - Used;
+			Source.bExhaustedByHit = Before > 0 && Source.After == 0 && Used > 0;
+		}
 	}
 	FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
-	Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor - Remaining);
+	const int32 BaseBefore = FMath::Max(0, Character.Resources.CurrentPhysicalArmor);
+	const int32 BaseUsed = FMath::Min(BaseBefore, Remaining);
+	Character.Resources.CurrentPhysicalArmor = BaseBefore - BaseUsed;
+	if (OutSources && BaseBefore > 0)
+	{
+		FGridArmorAbsorptionSourceTrace& Source = OutSources->AddDefaulted_GetRef();
+		Source.DisplayName = FText::FromString(TEXT("Armure du personnage"));
+		Source.bEquipment = false;
+		Source.Maximum = BaseBefore; // Base current resource, no invented max.
+		Source.Before = BaseBefore;
+		Source.Absorbed = BaseUsed;
+		Source.After = BaseBefore - BaseUsed;
+		Source.bExhaustedByHit = BaseBefore > 0 && Source.After == 0 && BaseUsed > 0;
+	}
 	if (Applied > 0) NotifyPartyInventoryChanged(CharacterIndex);
 	return Applied;
 }

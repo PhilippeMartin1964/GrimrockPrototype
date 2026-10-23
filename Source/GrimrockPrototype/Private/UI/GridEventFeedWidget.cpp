@@ -1,6 +1,7 @@
 #include "UI/GridEventFeedWidget.h"
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "UI/GridNavigationTooltipWidget.h"
+#include "UI/GridCombatTooltipWidget.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -432,19 +433,32 @@ bool UGridEventFeedWidget::AppendEntryPresentation(const FGridHudEventEntry& Ent
 	const FText TooltipText = BuildEntryTooltipText(Entry);
 	if (Entry.Category == EGridHudEventCategory::Combat && !TooltipText.IsEmpty())
 	{
-		if (SharedTooltipWidgetClass)
+		bool bStructured = false;
+		if (Entry.bHasCombatTooltipTrace && CombatTooltipWidgetClass)
 		{
-			if (UGridNavigationTooltipWidget* TooltipWidget =
-				CreateWidget<UGridNavigationTooltipWidget>(this, SharedTooltipWidgetClass))
+			if (UGridCombatTooltipWidget* CombatTooltip =
+				CreateWidget<UGridCombatTooltipWidget>(this, CombatTooltipWidgetClass))
 			{
-				TooltipWidget->InitializeTooltip(TooltipText);
-				TooltipWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
-				Row->SetToolTip(TooltipWidget);
+				CombatTooltip->InitializeCombatTooltip(Entry);
+				CombatTooltip->SetVisibility(ESlateVisibility::HitTestInvisible);
+				Row->SetToolTip(CombatTooltip);
+				bStructured = true;
 			}
 		}
-		else
+		if (!bStructured)
 		{
-			Row->SetToolTipText(TooltipText);
+			if (SharedTooltipWidgetClass)
+			{
+				if (UGridNavigationTooltipWidget* TooltipWidget =
+					CreateWidget<UGridNavigationTooltipWidget>(this, SharedTooltipWidgetClass))
+				{
+					TooltipWidget->InitializeTooltip(TooltipText);
+					TooltipWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+					Row->SetToolTip(TooltipWidget);
+				}
+				else Row->SetToolTipText(TooltipText);
+			}
+			else Row->SetToolTipText(TooltipText);
 		}
 		Row->SetVisibility(ESlateVisibility::Visible);
 	}

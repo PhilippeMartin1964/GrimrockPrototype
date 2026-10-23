@@ -109,6 +109,40 @@ struct GRIMROCKPROTOTYPE_API FGridCombatDefenseTrace
 };
 
 /**
+ * Snapshot of a single protection source during one impact.
+ * Presentation never queries live inventory for historical combat events.
+ */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridArmorAbsorptionSourceTrace
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Trace|Armor")
+	FName ItemDefinitionId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Trace|Armor")
+	FText DisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Trace|Armor")
+	bool bEquipment = false;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Trace|Armor")
+	int32 Maximum = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Trace|Armor")
+	int32 Before = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Trace|Armor")
+	int32 Absorbed = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Trace|Armor")
+	int32 After = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Trace|Armor")
+	bool bExhaustedByHit = false;
+};
+
+/**
  * Exact damage pipeline consumed by FGridCombatResolver.
  * Values are snapshots only: presentation must never recompute them.
  */
@@ -170,6 +204,10 @@ struct GRIMROCKPROTOTYPE_API FGridCombatDamageTrace
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Trace|Damage")
 	int32 PhysicalArmorDamage = 0;
+
+	/** Actual per-item absorption, recorded once at impact. */
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Trace|Damage")
+	TArray<FGridArmorAbsorptionSourceTrace> PhysicalArmorSources;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Trace|Damage")
 	int32 MagicalArmorDamage = 0;

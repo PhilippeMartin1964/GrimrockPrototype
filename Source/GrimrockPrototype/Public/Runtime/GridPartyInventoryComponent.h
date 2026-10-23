@@ -6,6 +6,8 @@
 #include "Runtime/GridPartyPortraitTypes.h"
 #include "GridPartyInventoryComponent.generated.h"
 
+struct FGridArmorAbsorptionSourceTrace;
+
 class UGridItemDefinitionAsset;
 class UTexture2D;
 
@@ -268,7 +270,8 @@ public:
 	int32 GetEffectiveCurrentPhysicalArmor(int32 CharacterIndex) const;
 
 	/** Consume the equipped reserve first, then the character's base reserve. */
-	int32 ApplyPhysicalArmorDamage(int32 CharacterIndex, int32 Damage);
+	int32 ApplyPhysicalArmorDamage(int32 CharacterIndex, int32 Damage,
+		TArray<FGridArmorAbsorptionSourceTrace>* OutSources = nullptr);
 
 	/** Refill depleted equipped reserve first, then stored reserve; caller enforces the RPG03.3 limit. */
 	int32 RestorePhysicalArmor(int32 CharacterIndex, int32 Amount);

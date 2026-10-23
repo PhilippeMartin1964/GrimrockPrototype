@@ -539,6 +539,10 @@ bool FGridCombatEventFeedFormatter::BuildEntry(
 			? ResolveDamageSemantic(Result.DamageType)
 			: EGridHudEventSemantic::Information;
 		OutEntry.Header = BuildAttackHeader(CombatEntry);
+		OutEntry.bHasCombatTooltipTrace = Result.Trace.bValid;
+		OutEntry.CombatAttacker = CombatEntry.SourceDisplayName;
+		OutEntry.CombatDefender = CombatEntry.TargetDisplayName;
+		OutEntry.CombatTooltipTrace = Result.Trace;
 
 		if (Result.Trace.bValid)
 		{
@@ -547,6 +551,13 @@ bool FGridCombatEventFeedFormatter::BuildEntry(
 			if (Result.bHit)
 			{
 				AddDamageDetails(Result.Trace.Damage, OutEntry.Details);
+				for (const FGridArmorAbsorptionSourceTrace& Source : Result.Trace.Damage.PhysicalArmorSources)
+				{
+					OutEntry.Details.Add(FText::FromString(FString::Printf(
+						TEXT("%s : %d → %d (absorbe %d)%s"),
+						*Source.DisplayName.ToString(), Source.Before, Source.After,
+						Source.Absorbed, Source.bExhaustedByHit ? TEXT(" — protection épuisée") : TEXT(""))));
+				}
 			}
 		}
 		else

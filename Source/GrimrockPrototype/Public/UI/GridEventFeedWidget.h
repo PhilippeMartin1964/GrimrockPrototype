@@ -10,6 +10,7 @@ class UButton;
 class UCheckBox;
 class UGridEventFeedSubsystem;
 class UGridNavigationTooltipWidget;
+class UGridCombatTooltipWidget;
 class UFont;
 class UScrollBox;
 class USizeBox;
@@ -153,6 +154,10 @@ public:
 
 	/** EVENTHUD01.8P detailed hover text; empty when an entry has no inspectable details. */
 	static FText BuildEntryTooltipText(const FGridHudEventEntry& Entry);
+
+	/** Optional authored WBP_GridCombatTooltip; falls back to the shared text tooltip. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|Event Feed|Combat Tooltip")
+	TSubclassOf<UGridCombatTooltipWidget> CombatTooltipWidgetClass;
 
 	/** Shares the authored Persistent HUD tooltip presenter with Combat entries. */
 	void SetSharedTooltipWidgetClass(TSubclassOf<UGridNavigationTooltipWidget> InTooltipWidgetClass);

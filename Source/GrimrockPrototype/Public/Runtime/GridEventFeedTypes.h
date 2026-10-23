@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Runtime/Combat/GridCombatTraceTypes.h"
 #include "GridEventFeedTypes.generated.h"
 
 /** High-level category used by the three Event Feed filters. */
@@ -109,6 +110,19 @@ struct GRIMROCKPROTOTYPE_API FGridHudEventEntry
 	/** Optional structured message fragments for later semantic rich-text rendering. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed")
 	TArray<FGridHudEventTextFragment> MessageFragments;
+
+	/** Snapshot used by the dedicated Combat Tooltip. Old events fall back to Details. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Event Feed|Combat Tooltip")
+	bool bHasCombatTooltipTrace = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Event Feed|Combat Tooltip")
+	FText CombatAttacker;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Event Feed|Combat Tooltip")
+	FText CombatDefender;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Event Feed|Combat Tooltip")
+	FGridCombatResolutionTrace CombatTooltipTrace;
 
 	/** Optional additional lines. Structured combat tracing is introduced by EVENTHUD01.7. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed")

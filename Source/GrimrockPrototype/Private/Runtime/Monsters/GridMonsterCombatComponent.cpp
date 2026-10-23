@@ -297,7 +297,9 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(int32 TargetCharact
 
 	if (OutResult.bHit)
 	{
-		PartyPawn->PartyInventoryComponent->ApplyPhysicalArmorDamage(TargetCharacterIndex, OutResult.PhysicalArmorDamage);
+		PartyPawn->PartyInventoryComponent->ApplyPhysicalArmorDamage(
+			TargetCharacterIndex, OutResult.PhysicalArmorDamage,
+			&OutResult.Trace.Damage.PhysicalArmorSources);
 		Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor - OutResult.MagicalArmorDamage);
 		Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - OutResult.HealthDamage);
 	}
