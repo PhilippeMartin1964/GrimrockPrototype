@@ -1420,3 +1420,15 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - MON21.4 est suspendu volontairement à la demande de l'utilisateur.
 - Aucun travail MON21.4.3/.4/.5 ne doit être engagé sans nouveau feu vert.
 - Le point de reprise autoritaire est MON21.4.3 — Dungeon-wide Quest Definition Registration.
+
+---
+
+## 2026-10-24 — ARMEMENT01.10.3.3.4 : frontière C++ / Designer UMG (rectification)
+
+- Décision **explicite** du développeur : **la logique de calcul ET le pilotage des widgets restent en C++** ; le **WBP Designer** est seul responsable de la hiérarchie, des TextBlocks et de leurs propriétés graphiques.
+- L'interprétation antérieure (« C++ = valeurs brutes seulement, toute logique d'interface dans les Graphs ») était **incorrecte et annulée**.
+- Le C++ lit les chaînes localisées `ST_UI`, calcule les valeurs, formatte les `FText` dynamiques, exécute `SetText` sur des composants authorés, masque/affiche les sections et crée les instances **d'un WBP de ligne complet** (jamais ses cellules individuellement).
+- Les propriétés visuelles (police, taille, couleur, marge, colonne et alignement) sont configurées et modifiables dans le Designer. Les Event Graphs doivent rester minimaux ; ils n'ont pas à réimplémenter du code natif.
+- Application concrète : `UGridCombatTooltipWidget` alimente `WBP_GridCombatTooltip`, et `UGridCombatArmorRowWidget` alimente les quatre TextBlocks de `WBP_GridCombatArmorRow`. Reparenting et suppression des Graphs historiques à réaliser dans UE Editor, sans édition binaire des `.uasset`.
+- Les anciennes infobulles textuelles restent le repli jusqu'à validation PIE. Tests C++ et capture UMG nécessaires avant clôture du jalon.
+- Référence permanente : `docs/UI_UMG_PRESENTATION_CONTRACT.md` ; localisation : `docs/UI_WBP_LOCALIZATION_WORKFLOW.md`.

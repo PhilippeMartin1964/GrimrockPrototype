@@ -5,9 +5,14 @@
 #include "Runtime/GridEventFeedTypes.h"
 #include "GridCombatTooltipWidget.generated.h"
 
+class UTextBlock;
+class UVerticalBox;
+class UWidget;
+class UGridCombatArmorRowWidget;
+
 /**
- * Numeric dice projection for the WBP. Formatting and signs belong to UMG,
- * but converting a Range roll into an equivalent virtual die is domain data.
+ * Numeric dice projection retained for compatibility and tests.
+ * The native presenter now formats dice and signs in C++, not Blueprint.
  */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridCombatTooltipDiceNumbers
@@ -34,9 +39,8 @@ struct GRIMROCKPROTOTYPE_API FGridCombatTooltipDiceNumbers
 };
 
 /**
- * Read-only data for WBP_GridCombatTooltip.
- * No Slate layout, fonts, widgets or localized presentation strings in C++.
- * Combat values remain the immutable snapshot of the historical event.
+ * Read-only, historical combat data. The native class formats this data into
+ * localized FText, then sets existing UMG TextBlocks without altering their style.
  */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridCombatTooltipViewData
@@ -52,11 +56,11 @@ struct GRIMROCKPROTOTYPE_API FGridCombatTooltipViewData
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FText Defender;
 
-	/** Raw attack, defense, damage and health figures for WBP formatting. */
+	/** Raw attack, defense, damage and health snapshot for C++ formatting. */
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FGridCombatResolutionTrace Trace;
 
-	/** Mechanical dice projection (no display text constructed in C++). */
+	/** Mechanical dice projection also used by regression tests. */
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FGridCombatTooltipDiceNumbers AttackDice;
 
@@ -77,10 +81,41 @@ struct GRIMROCKPROTOTYPE_API FGridCombatTooltipViewData
 	TArray<FGridArmorAbsorptionSourceTrace> AlreadyDepletedSources;
 };
 
+/** Fully localized display values: C++ owns content; Designer owns style. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridCombatTooltipDisplayTexts
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
+	FText Attacker;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
+	FText Defender;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
+	FText Attack;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
+	FText Defense;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
+	FText Damage;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
+	FText Health;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
+	FText Status;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
+	bool bShowStatus = false;
+};
+
 /**
- * ARMEMENT01.10.3.3 — C++ read-model ONLY.
- * WBP_GridCombatTooltip owns all text formatting, ST_UI, visibility and layout.
- * A missing Blueprint renderer reports false to keep the existing text tooltip.
+ * ARMEMENT01.10.3.3: native behavior and text assignment, designer-authored UMG.
+ * C++ supplies all values, localized formats, visibility decisions and row instances.
+ * WBP_GridCombatTooltip and WBP_GridCombatArmorRow own all layout and visual styling.
  */
 UCLASS(BlueprintType, Blueprintable)
 class GRIMROCKPROTOTYPE_API UGridCombatTooltipWidget : public UUserWidget
@@ -88,7 +123,7 @@ class GRIMROCKPROTOTYPE_API UGridCombatTooltipWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	/** False => presenter is not ready; the Event Feed must use its old tooltip. */
+	/** Return false to keep the legacy text tooltip when WBP setup is incomplete. */
 	UFUNCTION(BlueprintCallable, Category="Combat|Tooltip")
 	bool InitializeCombatTooltip(const FGridHudEventEntry& Entry);
 
@@ -98,20 +133,54 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FGridCombatTooltipViewData ViewData;
 
-	/** Pure read-model function, usable by automated tests without any UMG widget. */
 	static FGridCombatTooltipViewData BuildViewData(const FGridHudEventEntry& Entry);
-
-	/** Only positive, resolved physical absorption yields visible rows. */
+	static FGridCombatTooltipDisplayTexts BuildDisplayTexts(const FGridCombatTooltipViewData& Data);
 	static int32 CountAbsorbingSources(const FGridCombatDamageTrace& Damage);
 
 protected:
+	/** Set in WBP_GridCombatTooltip > Class Defaults, after reparenting the row WBP. */
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Tooltip")
+	TSubclassOf<UGridCombatArmorRowWidget> ArmorRowWidgetClass;
+
+	/** The eight designer-authored variable widgets; C++ only assigns text. */
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_Attacker;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_Defender;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_Attack;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_Defense;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_Damage;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_Health;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_Status;
+
+	/** Visible/Collapsed applies to the whole authored section, including spacers. */
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UWidget> VerticalBox_AbsorptionSection;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UVerticalBox> VerticalBox_ArmorRows;
+
 	/**
-	 * Implement in WBP_GridCombatTooltip: set texts from ST_UI, style, visibility,
-	 * and instantiate BP-authored WBP_GridCombatArmorRow for every VisibleArmorRows item.
-	 * Return true after presentation succeeds. Default false preserves old tooltip.
+	 * Legacy Blueprint override kept ONLY for Blueprint asset compatibility
+	 * while old Event Graph nodes are manually removed in Unreal Editor.
+	 * InitializeCombatTooltip no longer invokes this method.
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category="Combat|Tooltip")
 	bool PresentCombatTooltip(const FGridCombatTooltipViewData& Data);
 
 	virtual bool PresentCombatTooltip_Implementation(const FGridCombatTooltipViewData& Data);
+
+private:
+	bool PopulateDesignerWidgets(const FGridCombatTooltipViewData& Data);
 };

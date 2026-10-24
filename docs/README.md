@@ -49,10 +49,10 @@ Ce dossier regroupe la documentation transversale du projet. `docs/Design` porte
 
 ### F. Localisation et authoring WBP — obligatoire
 
-- [Contrat de séparation C++ / WBP / UMG](UI_UMG_PRESENTATION_CONTRACT.md) — **C++ = valeurs, read-model et flags** ; **WBP = texte, mise en page, couleurs, colonnes, visibilité et listes visuelles**.
+- [Contrat C++ comportemental / Designer UMG](UI_UMG_PRESENTATION_CONTRACT.md) — **C++ = logique, formatage localisé, affectation des textes et instanciation des WBP de ligne complets** ; **Designer = TextBlocks, polices, tailles, marges et disposition**. Aucun Event Graph complexe imposé.
 
 - [Workflow permanent : ajouter / modifier du texte dans un WBP](UI_WBP_LOCALIZATION_WORKFLOW.md) — contrôle de l'autorité du texte, matérialisation `UI.csv → ST_UI.uasset`, raccordement Designer, traductions `Game`, tests et versionnement.
-- [ARMEMENT01.10.3.3 — Infobulle de combat structurée](Design/ARMEMENT01_10_3_3_COMBAT_TOOLTIP_STRUCTURE.md) — exemple complet avec WBP, dossier exact et 14 clés `Combat.Tooltip.*`.
+- [ARMEMENT01.10.3.3 — Infobulle de combat structurée](Design/ARMEMENT01_10_3_3_COMBAT_TOOLTIP_STRUCTURE.md) — guide rectifié des deux WBP, reparenting et nettoyage des Graphs ; 33 clés existantes dans `ST_UI`.
 - **Ne jamais commencer un WBP avant d'avoir vérifié que les clés ST_UI requises existent dans l'asset ouvert sous Unreal.**
 
 ### G. Scripts et outils de développement

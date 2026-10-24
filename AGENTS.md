@@ -43,12 +43,14 @@
 - Faire des changements minimaux.
 - Ne pas mélanger correction C++, documentation et assets binaires dans un même changement sauf nécessité.
 
-## RÈGLE PERMANENTE — C++ = données / WBP = interface (CHECKLIST À CHAQUE JALON)
+## RÈGLE PERMANENTE — C++ comportemental / WBP Designer présentation
 
-- **APPLIQUER** `docs/UI_UMG_PRESENTATION_CONTRACT.md` pour toute nouvelle interface et refonte WBP. Le C++ doit exposer un `USTRUCT(BlueprintType)` / read-model de nombres, états, noms authorés, flags et listes ; le **WBP** seul possède mise en forme des textes, colonnes, polices, couleurs, espacements, visibilité et créations de lignes.
-- **INTERDIT dans les classes C++ de présentation des nouveaux WBP :** `WidgetTree->ConstructWidget`, `AddChildToGrid`, `SetColumnFill`, `SetFont`, `SetPadding`, réglages de layout ou `FText::Format` pour composer des libellés d'interface. Ces opérations appartiennent au Designer / Event Graph. Les générateurs de logs ou de texte de fallback ne sont pas refondus sans ticket explicite.
-- Pour les listes, fournir `TArray` + booléens métier et authorer un **WBP de ligne réutilisable** ; pas de table reconstruite cellule par cellule en C++. Prévoir un fallback si le Blueprint n'est pas encore prêt.
-- **TESTS :** valider C++ sur les valeurs et flags ; le layout doit être validé dans l'éditeur par le joueur et par capture PIE. Une compilation ne prouve jamais la qualité du WBP.
+- **Contrat autoritaire :** `docs/UI_UMG_PRESENTATION_CONTRACT.md`. Cette section **annule** l'interprétation antérieure qui imposait toute logique de formatage et de liste dans l'Event Graph.
+- **C++ gère le comportement** : calculs, collecte de données, messages localisés via `FUILocalizationText::Get` + `FText::Format`, remplissage via `SetText` des widgets `BindWidget` déjà créés dans le Designer, `SetVisibility` sur des sections existantes, `CreateWidget` **d'un WBP complet** et `AddChild` dans un conteneur WBP.
+- **WBP Designer gère l'apparence** : types de conteneurs, hiérarchie, TextBlocks, polices, tailles, couleurs, marges, colonnes, alignements, icônes, animations. **Aucun `WidgetTree->ConstructWidget<UTextBlock>`, GridPanel de cellules, SetFont/SetPadding/positionnement d'enfant en C++ pour une UI authorée.**
+- **Event Graph seulement si justifié**, sans recopier les boucles de rendu, `Format Text` et messages déjà gérés nativement. Refuser un Graph complexe lorsqu'un simple `SetText` natif sur TextBlock du Designer suffit.
+- **Listes dynamiques** : le C++ crée des **instances de WBP de ligne déjà conçus visuellement** et les ajoute à un conteneur WBP. Les dimensions et styles de la ligne restent modifiables exclusivement dans son Designer.
+- **Tests** : validation de la logique/formatage en C++, et captures PIE pour styles/layout. Le repli est obligatoire quand un WBP n'est pas prêt.
 
 ## Procédure obligatoire — Texte joueur dans les WBP (CHECKLIST À CHAQUE JALON)
 

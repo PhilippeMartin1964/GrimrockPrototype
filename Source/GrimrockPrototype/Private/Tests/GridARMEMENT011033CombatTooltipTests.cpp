@@ -167,6 +167,13 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 	TestEqual(TEXT("Raw after value remains 1"), TooltipData.VisibleArmorRows[0].After, 1);
 	TestTrue(TEXT("Before protection depletion there is no exhaustion notice"),
 		TooltipData.NewlyExhaustedSources.IsEmpty());
+	const FGridCombatTooltipDisplayTexts BeforeText =
+		UGridCombatTooltipWidget::BuildDisplayTexts(TooltipData);
+	TestTrue(TEXT("C++ prepares a localized attack string"), !BeforeText.Attack.IsEmpty());
+	TestTrue(TEXT("C++ prepares a localized defense string"), !BeforeText.Defense.IsEmpty());
+	TestTrue(TEXT("C++ prepares a localized damage string"), !BeforeText.Damage.IsEmpty());
+	TestTrue(TEXT("C++ prepares a localized health string"), !BeforeText.Health.IsEmpty());
+	TestFalse(TEXT("No warning before protection depletion"), BeforeText.bShowStatus);
 	// Numeric dice projection is data only; WBP owns the localized notation.
 	FGridHudEventEntry SyntheticDiceEntry = Feed;
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.bUsed = true;
@@ -188,6 +195,19 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 	TestEqual(TEXT("Virtual die width from non-1 range"), OffsetDiceView.AttackDice.Sides, 4);
 	TestEqual(TEXT("Virtual die result from non-1 range"), OffsetDiceView.AttackDice.Rolled, 3);
 	TestEqual(TEXT("Virtual die flat modifier"), OffsetDiceView.AttackDice.Offset, 2);
+	SyntheticDiceEntry.CombatTooltipTrace.Attack.FinalValue = 18;
+	SyntheticDiceEntry.CombatTooltipTrace.Defense.BaseValue = 10;
+	SyntheticDiceEntry.CombatTooltipTrace.Defense.EvasionModifier = 1;
+	SyntheticDiceEntry.CombatTooltipTrace.Defense.FinalValue = 11;
+	const FGridCombatTooltipDisplayTexts FormattedDice =
+		UGridCombatTooltipWidget::BuildDisplayTexts(
+			UGridCombatTooltipWidget::BuildViewData(SyntheticDiceEntry));
+	TestTrue(TEXT("C++ renders range roll including signed offset"),
+		FormattedDice.Attack.ToString().Contains(TEXT("1d4")));
+	TestTrue(TEXT("C++ includes final attack total instead of raw die total"),
+		FormattedDice.Attack.ToString().Contains(TEXT("18")));
+	TestTrue(TEXT("Defense is formatted in C++, not Blueprint"),
+		FormattedDice.Defense.ToString().Contains(TEXT("11")));
 	TestEqual(TEXT("Immutable source snapshot travels with the feed"),
 		Feed.CombatTooltipTrace.Damage.PhysicalArmorSources[0].Absorbed, 4);
 	TestTrue(TEXT("Text fallback states source explicitly"),
@@ -229,6 +249,16 @@ bool FGridARMEMENT011033DepletionSnapshot::RunTest(const FString&)
 	TestTrue(TEXT("Third hit has no visual armor rows"), ThirdView.VisibleArmorRows.IsEmpty());
 	TestTrue(TEXT("Third hit signals already depleted equipment"), ThirdView.AlreadyDepletedSources.Num() == 1);
 	TestTrue(TEXT("Third hit does not repeat new depletion"), ThirdView.NewlyExhaustedSources.IsEmpty());
+	const FGridCombatTooltipDisplayTexts SecondText =
+		UGridCombatTooltipWidget::BuildDisplayTexts(SecondView);
+	const FGridCombatTooltipDisplayTexts ThirdText =
+		UGridCombatTooltipWidget::BuildDisplayTexts(ThirdView);
+	TestTrue(TEXT("C++ creates new depletion notice"), SecondText.bShowStatus);
+	TestTrue(TEXT("Depletion notice names real equipped shield"),
+		SecondText.Status.ToString().Contains(ARMEMENT011033::Shield()->DisplayName.ToString()));
+	TestTrue(TEXT("C++ creates already-depleted notice"), ThirdText.bShowStatus);
+	TestFalse(TEXT("Different status messages for new and past depletion"),
+		SecondText.Status.EqualTo(ThirdText.Status));
 	FGridCombatDamageTrace NoArmorDamage;
 	NoArmorDamage.bResolved = true;
 	TestEqual(TEXT("Empty physical protection snapshot hides absorption section"),

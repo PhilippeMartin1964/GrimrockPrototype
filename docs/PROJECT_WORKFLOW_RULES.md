@@ -6,12 +6,12 @@ Si l’outil disponible ne permet pas un commit unique, l’assistant doit s’a
 Aucune branche ne doit être créée.
 Tout doit rester sur master.
 
-RÈGLE PERMANENTE C++ / WBP :
-Lire `docs/UI_UMG_PRESENTATION_CONTRACT.md` pour toute nouvelle UI / refonte :
-C++ = modèle de données métier (valeurs numériques, états, flags, listes ordonnées), sans construction de TextBlocks, sans gestion de mise en page, sans formatage d'un texte visible.
-WBP = mise en page, construction des lignes via Widget Blueprint, styles, textes et formats localisés, décisions visuelles de masquage.
-Les anciens journaux textuels et fallbacks sont des exceptions documentées, non une raison de créer de nouveaux layouts C++.
-Prévoir un repli si le WBP n'a pas encore implémenté son renderer.
+RÈGLE PERMANENTE C++ / WBP (RECTIFIÉE LE 24.10.2026) :
+Lire `docs/UI_UMG_PRESENTATION_CONTRACT.md` pour toute nouvelle UI / refonte.
+C++ = logique métier ET comportement de présentation : choix de contenus, formatage dynamique localisé via FUILocalizationText/FText::Format, SetText sur TextBlocks déjà authorés, visibilité des sections, CreateWidget d'un WBP complet de ligne et AddChild.
+WBP Designer = arbre visuel, police, taille, bordures, alignements, marges, couleur et colonnes éditables.
+Ne jamais construire des TextBlocks ou leur layout individuel en C++. Ne pas déplacer systématiquement le code dans les Event Graphs : éviter de recréer toute une logique en Blueprint. Graphs seulement pour les comportements qui s'y prêtent.
+Ancien PresentCombatTooltip = override temporairement conservé pour compatibilité, non appelé ; le nettoyer en UMG. Garder fallback en cas d'asset incomplet.
 
 RÈGLE PERMANENTE LOCALISATION WBP :
 Tout texte UI/WBP nouveau ou modifié déclenche la checklist `docs/UI_WBP_LOCALIZATION_WORKFLOW.md`.
