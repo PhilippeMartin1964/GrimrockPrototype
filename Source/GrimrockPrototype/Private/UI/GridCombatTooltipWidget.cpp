@@ -1,10 +1,11 @@
 #include "UI/GridCombatTooltipWidget.h"
 
 #include "Blueprint/WidgetTree.h"
-#include "Components/HorizontalBox.h"
-#include "Components/HorizontalBoxSlot.h"
+#include "Components/GridPanel.h"
+#include "Components/GridSlot.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "Runtime/Combat/GridCombatEventFeedFormatter.h"
 #include "UI/UILocalizationText.h"
 
@@ -45,6 +46,22 @@ void UGridCombatTooltipWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	RefreshTooltip();
+}
+
+int32 UGridCombatTooltipWidget::CountAbsorbingSources(const FGridCombatDamageTrace& Damage)
+{
+	int32 Count = 0;
+	if (Damage.bResolved)
+	{
+		for (const FGridArmorAbsorptionSourceTrace& Source : Damage.PhysicalArmorSources)
+		{
+			if (Source.Absorbed > 0)
+			{
+				++Count;
+			}
+		}
+	}
+	return Count;
 }
 
 void UGridCombatTooltipWidget::RefreshTooltip()
@@ -91,18 +108,114 @@ void UGridCombatTooltipWidget::RefreshTooltip()
 
 	TArray<FText> ExhaustedNames;
 	TArray<FText> AlreadyDepletedNames;
+	const bool bShowAbsorption = CountAbsorbingSources(Damage) > 0
+		&& VerticalBox_ArmorRows && WidgetTree;
+
+	// The legacy UMG header and all related padding are hidden together when
+	// the hit has no actual absorption. The new GridPanel owns BOTH headers and
+	// values, ensuring that there is one shared width per column.
+	if (WidgetTree)
+	{
+		const ESlateVisibility SectionVisibility = bShowAbsorption
+			? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed;
+		for (const FName WidgetName : { FName(TEXT("Text_SectionAbsorption")),
+			FName(TEXT("Spacer_AttackToArmor")),
+			FName(TEXT("Spacer_ArmorToConsequences")) })
+		{
+			if (UWidget* SectionWidget = WidgetTree->FindWidget(WidgetName))
+			{
+				SectionWidget->SetVisibility(SectionVisibility);
+			}
+		}
+		if (UWidget* LegacyHeader = WidgetTree->FindWidget(FName(TEXT("HorizontalBox_ArmorHeader"))))
+		{
+			LegacyHeader->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	const FName HeaderWidgetNames[4] = {
+		FName(TEXT("Text_HeaderSource")), FName(TEXT("Text_HeaderBefore")),
+		FName(TEXT("Text_HeaderAbsorbed")), FName(TEXT("Text_HeaderAfter"))
+	};
+	const TCHAR* HeaderKeys[4] = {
+		TEXT("Combat.Tooltip.Column.Source"), TEXT("Combat.Tooltip.Column.Before"),
+		TEXT("Combat.Tooltip.Column.Absorbed"), TEXT("Combat.Tooltip.Column.After")
+	};
+	const UTextBlock* HeaderTemplates[4] = { nullptr, nullptr, nullptr, nullptr };
+	if (WidgetTree)
+	{
+		for (int32 Column = 0; Column < 4; ++Column)
+		{
+			HeaderTemplates[Column] = Cast<UTextBlock>(WidgetTree->FindWidget(HeaderWidgetNames[Column]));
+		}
+	}
+
 	if (VerticalBox_ArmorRows)
 	{
 		VerticalBox_ArmorRows->ClearChildren();
+		VerticalBox_ArmorRows->SetVisibility(bShowAbsorption
+			? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 
-	// Dynamic TextBlocks must inherit an authored, valid font. The former
-	// uninitialized TableFont caused missing-glyph boxes in the armor table.
-	// Text_HeaderSource already exists as a static ST_UI header in the WBP.
-	const UTextBlock* HeaderFontSource = WidgetTree
-		? Cast<UTextBlock>(WidgetTree->FindWidget(FName(TEXT("Text_HeaderSource"))))
-		: nullptr;
+	UGridPanel* ArmorGrid = bShowAbsorption
+		? WidgetTree->ConstructWidget<UGridPanel>(UGridPanel::StaticClass()) : nullptr;
+	if (ArmorGrid)
+	{
+		ArmorGrid->SetColumnFill(0, 2.5f);
+		for (int32 Column = 1; Column < 4; ++Column)
+		{
+			ArmorGrid->SetColumnFill(Column, 1.0f);
+		}
+		if (UVerticalBoxSlot* GridPanelSlot = VerticalBox_ArmorRows->AddChildToVerticalBox(ArmorGrid))
+		{
+			GridPanelSlot->SetHorizontalAlignment(HAlign_Fill);
+		}
+	}
 
+	// Keep all four columns in the same UGridPanel across ALL data rows.
+	const auto AddGridCell = [this, ArmorGrid, &HeaderTemplates](
+		int32 RowIndex, int32 Column, const FText& Value, const FLinearColor& Color,
+		bool bHeader, bool bExhausted)
+	{
+		if (!ArmorGrid || !WidgetTree)
+		{
+			return;
+		}
+		UTextBlock* Cell = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		if (!Cell)
+		{
+			return;
+		}
+		Cell->SetText(Value);
+		if (HeaderTemplates[Column])
+		{
+			Cell->SetFont(HeaderTemplates[Column]->GetFont());
+		}
+		Cell->SetColorAndOpacity(bHeader && HeaderTemplates[Column]
+			? HeaderTemplates[Column]->GetColorAndOpacity()
+			: FSlateColor(bExhausted ? WarningTextColor : Color));
+		Cell->SetJustification(Column == 0 ? ETextJustify::Left : ETextJustify::Right);
+		Cell->SetAutoWrapText(Column == 0);
+		if (UGridSlot* GridCellSlot = ArmorGrid->AddChildToGrid(Cell, RowIndex, Column))
+		{
+			GridCellSlot->SetHorizontalAlignment(HAlign_Fill);
+			GridCellSlot->SetVerticalAlignment(VAlign_Center);
+			GridCellSlot->SetPadding(FMargin(Column == 0 ? 0.f : 8.f, bHeader ? 2.f : 3.f,
+				Column == 0 ? 8.f : 0.f, 3.f));
+		}
+	};
+
+	if (ArmorGrid)
+	{
+		for (int32 Column = 0; Column < 4; ++Column)
+		{
+			const FText Label = HeaderTemplates[Column]
+				? HeaderTemplates[Column]->GetText() : FUILocalizationText::Get(HeaderKeys[Column]);
+			AddGridCell(0, Column, Label, NormalTextColor, true, false);
+		}
+	}
+
+	int32 DisplayRowIndex = 1;
 	for (const FGridArmorAbsorptionSourceTrace& Armor : Damage.PhysicalArmorSources)
 	{
 		const FText SourceName = ArmorSourceName(Armor);
@@ -114,47 +227,22 @@ void UGridCombatTooltipWidget::RefreshTooltip()
 		{
 			AlreadyDepletedNames.Add(SourceName);
 		}
-		if (!VerticalBox_ArmorRows || !WidgetTree)
+		// A source with 0 absorbed damage is not a visual data row.
+		// If every source is zero the whole ABSORPTION section is collapsed.
+		if (!ArmorGrid || Armor.Absorbed <= 0)
 		{
 			continue;
 		}
-
-		UHorizontalBox* TableRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		if (!TableRow)
-		{
-			continue;
-		}
-		const FText Cells[4] = {
-			SourceName,
-			FText::AsNumber(Armor.Before),
-			FText::AsNumber(Armor.Absorbed),
-			FText::AsNumber(Armor.After)
+		const FText Values[4] = {
+			SourceName, FText::AsNumber(Armor.Before),
+			FText::AsNumber(Armor.Absorbed), FText::AsNumber(Armor.After)
 		};
 		for (int32 Column = 0; Column < 4; ++Column)
 		{
-			UTextBlock* Cell = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-			if (!Cell)
-			{
-				continue;
-			}
-			Cell->SetText(Cells[Column]);
-			Cell->SetColorAndOpacity(FSlateColor(Armor.bExhaustedByHit ? WarningTextColor :
-				(Column == 2 ? ArmorTextColor : NormalTextColor)));
-			if (HeaderFontSource)
-			{
-				Cell->SetFont(HeaderFontSource->GetFont());
-			}
-			Cell->SetAutoWrapText(Column == 0);
-			if (UHorizontalBoxSlot* CellLayoutSlot = TableRow->AddChildToHorizontalBox(Cell))
-			{
-				FSlateChildSize ColumnSize(ESlateSizeRule::Fill);
-				ColumnSize.Value = Column == 0 ? 2.5f : 1.0f;
-				CellLayoutSlot->SetSize(ColumnSize);
-				CellLayoutSlot->SetPadding(FMargin(Column == 0 ? 0.f : 6.f, 2.f));
-				CellLayoutSlot->SetHorizontalAlignment(Column == 0 ? HAlign_Left : HAlign_Right);
-			}
+			AddGridCell(DisplayRowIndex, Column, Values[Column],
+				Column == 2 ? ArmorTextColor : NormalTextColor, false, Armor.bExhaustedByHit);
 		}
-		VerticalBox_ArmorRows->AddChild(TableRow);
+		++DisplayRowIndex;
 	}
 
 	if (Text_Status)

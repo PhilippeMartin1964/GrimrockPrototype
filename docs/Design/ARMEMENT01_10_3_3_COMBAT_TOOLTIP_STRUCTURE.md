@@ -138,12 +138,14 @@ WBP_GridCombatTooltip                  (Parent = GridCombatTooltipWidget)
          │
          ├─ Spacer_AttackToArmor              [Spacer ; 10 px]
          ├─ Text_SectionAbsorption            [TextBlock : ST_UI Combat.Tooltip.Section.Absorption]
-         ├─ HorizontalBox_ArmorHeader         [HorizontalBox ; colonnes]
+         ├─ HorizontalBox_ArmorHeader         [HorizontalBox ; en-tête modèle ST_UI, masqué en PIE]
+
          │  ├─ Text_HeaderSource              [TextBlock : ST_UI Combat.Tooltip.Column.Source]
          │  ├─ Text_HeaderBefore              [TextBlock : ST_UI Combat.Tooltip.Column.Before]
          │  ├─ Text_HeaderAbsorbed            [TextBlock : ST_UI Combat.Tooltip.Column.Absorbed]
          │  └─ Text_HeaderAfter               [TextBlock : ST_UI Combat.Tooltip.Column.After]
          ├─ VerticalBox_ArmorRows             [VerticalBox : C++ DYNAMIQUE — VIDE au Designer]
+         │  └─ GridPanel créé en C++          [en-têtes et données dans les mêmes colonnes]
          │
          ├─ Spacer_ArmorToConsequences        [Spacer ; 10 px]
          ├─ Text_SectionConsequences          [TextBlock : ST_UI Combat.Tooltip.Section.Consequences]
@@ -181,7 +183,17 @@ Dans le `HorizontalBox_ArmorHeader`, sélectionner successivement ses quatre Tex
 | Absorbé | `Text_HeaderAbsorbed` | **1.0** | Right |
 | Après | `Text_HeaderAfter` | **1.0** | Right |
 
-Le C++ attribue **ces mêmes proportions 2.5 : 1 : 1 : 1** aux lignes qu'il insère dans `VerticalBox_ArmorRows`, afin d'aligner en-tête et données. **Ne pas créer de ligne d'armure à la main** ni un nouveau `WBP_ArmorRow` : le C++ gère le nombre de sources.
+**Correction ARMEMENT01.10.3.3.2 — colonnes UMG partagées et suppression du bruit (24.10.2026)** :
+
+- Le tableau ne doit plus être construit sous forme d'un `HorizontalBox` indépendant par item. Ce montage **n'assure pas les mêmes largeurs de colonnes** entre l'en-tête UMG et les lignes dynamiques, et provoquait les chiffres chevauchés de la capture.
+- Le C++ crée désormais **un unique `UGridPanel` enfant de `VerticalBox_ArmorRows`**, avec les **quatre en-têtes en ligne 0**, puis **une ligne par protection ayant réellement absorbé au moins 1 point**. `UGridPanel::SetColumnFill` applique les poids **2.5 : 1 : 1 : 1** à toutes les lignes simultanément. Le texte est aligné à gauche pour « Protection » et à droite pour les nombres ; les colonnes possèdent un padding interne.
+- **Conserver** `HorizontalBox_ArmorHeader` et ses quatre `Text_Header*` dans le Designer : ils servent de modèles de texte ST_UI, police et couleur. Le C++ les **masque automatiquement en runtime**, car l'en-tête visible est reconstruit dans **le même GridPanel que les données**. Vous n'avez **rien à recréer ni à déplacer dans le WBP**. Ne pas ajouter de second tableau ou d'en-tête dans `VerticalBox_ArmorRows`.
+- **Règle décidée : lorsque aucun équipement ni aucune réserve physique n'a absorbé de dégâts pendant ce coup**, masquer **la section ABSORPTION tout entière** : `Text_SectionAbsorption`, `HorizontalBox_ArmorHeader`, `VerticalBox_ArmorRows`, `Spacer_AttackToArmor` et `Spacer_ArmorToConsequences`. Aucune rangée `0 / 0 / 0` inutile. Les événements de type ÉCHEC masquent aussi cette section.
+- Si **une protection absorbe** et qu'une autre est **à zéro**, afficher uniquement les lignes dont `Absorbed > 0`. Le message de conséquence `Bouclier rond : aucune protection restante` peut rester sous **CONSÉQUENCES** pour expliquer la perte des PV, sans afficher un tableau vide.
+- Un coup qui fait passer le bouclier de `1 à 0` et absorbe 1 point **affiche bien sa ligne** `1 | 1 | 0` et l'alerte d'épuisement correspondante.
+- Aucune nouvelle clé `ST_UI`, aucun changement du WBP ou du système d'armure pour cette correction ; les 33 clés précédentes et le pipeline de localisation restent requis.
+
+**Ne pas créer de ligne d'armure à la main**, ni un `WBP_ArmorRow` supplémentaire : les cellules partagent maintenant leur grille et leur largeur, sous l'autorité du C++. La vérification finale se fait **en PIE**, sur la police et le tableau complet.
 
 **Correction de l'affichage des caractères « A » encadrés :** l'ancienne propriété C++ `TableFont` a été supprimée. Les `UTextBlock` de chaque ligne dynamique prennent désormais automatiquement la **police de `Text_HeaderSource`**, qui doit conserver une police UMG valide (par exemple Alegreya Sans). Aucun réglage `TableFont` dans Class Defaults n'est nécessaire. Dans le Designer, vérifier que `Text_HeaderSource` existe sous **ce nom exact**, affiche correctement « Protection » et utilise la police souhaitée ; s'il manque, la ligne utilise la police par défaut du widget. **Ne pas régler une police FontInfo vide dans le C++ ni dessiner des lignes de texte à la main.**
 
@@ -210,7 +222,7 @@ Bouclier rond ARM075 N1 : 5 points de protection au départ, aucune autre réser
 |---|---|---:|---:|---:|---|---|
 | 4 dégâts | Bouclier rond | 5 | 4 | 1 | 20 → 20 | Aucune |
 | 5 dégâts | Bouclier rond | 1 | 1 | 0 | 20 → 16 | Bouclier rond : protection épuisée ! |
-| 3 dégâts | Bouclier rond | 0 | 0 | 0 | 16 → 13 | Bouclier rond : aucune protection restante |
+| 3 dégâts | **Section ABSORPTION masquée** | — | — | — | 16 → 13 | Bouclier rond : aucune protection restante (dans CONSÉQUENCES) |
 
 Si deux points d'armure de base restent au personnage, une morsure de 6 absorbe d'abord 5 au bouclier, puis 1 aux ressources du personnage : **deux lignes distinctes**. Aucun bonus automatique de Défense, aucune réparation implicite, aucun nouvel effet de combat.
 
@@ -221,7 +233,8 @@ Si deux points d'armure de base restent au personnage, une morsure de 6 absorbe 
 - Suppression de `FormatSourceRow`, un utilitaire exposé seulement pour un test et inutilisé en présentation réelle ; adaptation du test.
 - Conservation **raisonnée** de `UGridNavigationTooltipWidget` : il n'est plus un concurrent mais un **fallback**. Le supprimer casserait d'autres tooltips HUD.
 - Meilleure sélection du widget structuré même si `Details` texte est vide.
-- Largeur dynamique des colonnes alignée avec l'en-tête.
+- Colonne partagée : `UGridPanel` C++ intégrant à la fois en-têtes et lignes de protection ; l'ancienne rangée d'en-têtes UMG est conservée comme **modèle**, mais masquée en jeu.
+- Affichage conditionnel : **section ABSORPTION masquée** si aucune source n'a effectivement absorbé de dégâts, ainsi que les deux spacers ; pas de rangée à zéro. Les tests couvrent `CountAbsorbingSources` (1 / 1 / 0 et multisource 2).
 - Message d'épuisement **avec nom d'équipement** et ligne d'alerte masquée quand sans objet.
 - **Aucun changement de RPG**, de dégâts, de catalogue, d'armure ou de fichier `.uasset` dans le correctif de glyphes.
 - **Audit des textes en C++ (24.10.2026) :** les nouveaux libellés `GridCombatTooltipWidget.cpp` (résultat des jets, absorption, PV, messages d'épuisement) passent par `FUILocalizationText::Get(`ST_UI`)`. Le nom de l'armure de base est résolu au niveau présentation depuis `bEquipment=false`, et non plus inscrit en français dans le composant d'inventaire. Les nouvelles chaînes compactes non localisables dans `GridCombatEventFeedFormatter.cpp` sont aussi remplacées par des patterns de `ST_UI`. **Les `LOCTEXT` plus anciens du formateur, des autres systèmes et leurs règles de traduction appartiennent à un audit transversal distinct** ; ils sont localisables par Unreal en principe, mais leur collecte effective doit être vérifiée. Il ne serait pas exact d'affirmer qu'il n'existe plus aucun mot français dans tout le C++ du projet.
@@ -246,6 +259,6 @@ if ($LASTEXITCODE -ne 0) { throw "Echec UIStringTableAuthoring: $LASTEXITCODE" }
 
 Attendus : **3 tests ciblés** et **17 tests cumulés** ARMEMENT01.10 si les 14 antérieurs subsistent. Les filtres UI et localisation restent à valider avec les logs réels.
 
-**Après matérialisation ST_UI et construction UMG**, vérifier en PIE : exactement un tooltip par ligne, les 8 champs renseignés, les colonnes alignées, la ventilation de plusieurs sources, les morsures historiques `5→1 / 1→0 / 0→0`, le message d'épuisement au bon moment, l'ancienne infobulle en mode repli et les autres boutons HUD. Envoyer une **capture de l'infobulle visible** : les tests commandlet ne prouvent pas son rendu.
+**Après matérialisation ST_UI et construction UMG**, vérifier en PIE : exactement un tooltip par ligne, les 8 champs renseignés, les colonnes alignées, la ventilation de plusieurs sources, les morsures historiques `5→1 / 1→0` puis **section ABSORPTION absente** au troisième coup (protection 0), le message d'épuisement au bon moment, l'ancienne infobulle en mode repli et les autres boutons HUD. Envoyer une **capture de l'infobulle visible** : les tests commandlet ne prouvent pas son rendu.
 
 **Ne pas modifier les fichiers `.uasset` directement.** La création du WBP et la matérialisation ST_UI sont deux étapes UE à valider visuellement.

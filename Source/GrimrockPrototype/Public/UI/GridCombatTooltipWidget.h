@@ -25,6 +25,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FGridHudEventEntry CombatEntry;
 
+	/** Count sources that absorbed strictly positive damage in this historical hit. */
+	static int32 CountAbsorbingSources(const FGridCombatDamageTrace& Damage);
+
 	/** Dynamic armor rows copy their font from the WBP's Text_HeaderSource. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combat|Tooltip|Style")
 	FLinearColor NormalTextColor = FLinearColor(0.88f, 0.83f, 0.72f, 1.0f);

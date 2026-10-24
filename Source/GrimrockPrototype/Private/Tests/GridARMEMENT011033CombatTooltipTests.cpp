@@ -6,6 +6,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridEventFeedWidget.h"
+#include "UI/GridCombatTooltipWidget.h"
 #include "UI/UILocalizationText.h"
 
 namespace ARMEMENT011033
@@ -121,6 +122,8 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 	if (!TestNotNull(TEXT("Equipped real shield"), Inventory)) return false;
 	const FGridAttackResult First = ARMEMENT011033::Apply(Inventory, 4);
 	TestEqual(TEXT("Four absorbed points"), First.PhysicalArmorDamage, 4);
+	TestEqual(TEXT("Visible armor rows match the physical protection consumed"),
+		UGridCombatTooltipWidget::CountAbsorbingSources(First.Trace.Damage), 1);
 	TestEqual(TEXT("One source recorded"), First.Trace.Damage.PhysicalArmorSources.Num(), 1);
 	if (!First.Trace.Damage.PhysicalArmorSources.IsValidIndex(0)) return false;
 	const FGridArmorAbsorptionSourceTrace& Source = First.Trace.Damage.PhysicalArmorSources[0];
@@ -163,6 +166,16 @@ bool FGridARMEMENT011033DepletionSnapshot::RunTest(const FString&)
 	const FGridAttackResult First = ARMEMENT011033::Apply(Inventory, 4);
 	const FGridAttackResult Second = ARMEMENT011033::Apply(Inventory, 5);
 	const FGridAttackResult Third = ARMEMENT011033::Apply(Inventory, 3);
+	TestEqual(TEXT("First hit has one visible absorption row"),
+		UGridCombatTooltipWidget::CountAbsorbingSources(First.Trace.Damage), 1);
+	TestEqual(TEXT("Hit that exhausts the shield still has a visible row"),
+		UGridCombatTooltipWidget::CountAbsorbingSources(Second.Trace.Damage), 1);
+	TestEqual(TEXT("Third hit with shield at zero hides all absorption rows"),
+		UGridCombatTooltipWidget::CountAbsorbingSources(Third.Trace.Damage), 0);
+	FGridCombatDamageTrace NoArmorDamage;
+	NoArmorDamage.bResolved = true;
+	TestEqual(TEXT("Empty physical protection snapshot hides absorption section"),
+		UGridCombatTooltipWidget::CountAbsorbingSources(NoArmorDamage), 0);
 	if (!TestTrue(TEXT("Every physical hit carries its one equipment source"),
 		First.Trace.Damage.PhysicalArmorSources.Num() == 1 &&
 		Second.Trace.Damage.PhysicalArmorSources.Num() == 1 &&
@@ -193,6 +206,8 @@ bool FGridARMEMENT011033MultipleSources::RunTest(const FString&)
 	const FGridAttackResult Hit = ARMEMENT011033::Apply(Inventory, 6);
 	const auto& Rows = Hit.Trace.Damage.PhysicalArmorSources;
 	TestEqual(TEXT("Exactly two physical armor sources"), Rows.Num(), 2);
+	TestEqual(TEXT("Both actual absorbers are shown in the shared grid"),
+		UGridCombatTooltipWidget::CountAbsorbingSources(Hit.Trace.Damage), 2);
 	if (Rows.Num() != 2) return false;
 	TestTrue(TEXT("First source is the equipped shield"), Rows[0].bEquipment);
 	TestEqual(TEXT("Shield absorbs its full five"), Rows[0].Absorbed, 5);
