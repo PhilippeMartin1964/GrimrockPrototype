@@ -21,7 +21,8 @@ Le succès des étapes **1** ou **2** ne prouve pas **3–5**. Ne jamais écrire
 ## 2. Choisir l'autorité du texte AVANT de coder
 
 - **Label/titre/bouton statique partagé** : vérifier les clés existantes dans `UI.csv` ; si nécessaire, ajouter une clé stable. Le WBP lie directement sa propriété `Text` à `ST_UI` dans le Designer. **Ne pas créer un relais C++ `SetText()` pour recopier ce même libellé.**
-- **Texte dynamique ou formaté** : la valeur vient de C++ / read-model ; wording via `FUILocalizationText::Get(Key)` et `FText::Format`, ou `LOCTEXT` si sa collecte Unreal est vérifiée. Le champ dynamique du WBP n'a pas de binding concurrent.
+- **Texte dynamique ou formaté dans un WBP neuf/refondu** : la valeur **brute** vient de C++ / read-model ; wording et mise en forme via une **variable de pattern FText de ST_UI**, puis les nœuds `Format Text` / `ToText(Int)` **dans le Blueprint**. Aucun `FText::Format` de présentation, `LOCTEXT` de libellé WBP ou `SetText` généré en C++. Le champ dynamique du WBP est renseigné à l'initialisation, pas par un binding Tick.
+  - **Exception existante** : les logs, chaînes de fallback et systèmes textuels **sans widget dédié** peuvent utiliser `FUILocalizationText::Get` / `LOCTEXT` depuis C++, sous contrat explicite de localisation. Voir [UI_UMG_PRESENTATION_CONTRACT.md](UI_UMG_PRESENTATION_CONTRACT.md).
 - **Nom ou description d'objet, talent, sort, bouclier** : préserver le `FText` du DataAsset du domaine. Pas de doublon de contenu authoré dans `ST_UI`.
 - **Notation mécanique** : calculée par C++ (`+1`, `1/5`, pourcentages).
 - **Texte réellement local à un écran** : peut rester un `FText` localisable dans le WBP si le choix est intentionnel et documenté (contrat UI-TEXT-DIRECT01) ; contrôler quand même sa culture cible.
@@ -29,6 +30,8 @@ Le succès des étapes **1** ou **2** ne prouve pas **3–5**. Ne jamais écrire
 **Une seule autorité par propriété FText.** En UE5.5, `UTextBlock::SetText()` remplace le contenu de la propriété et peut effacer son binding. Interdit de cumuler référence statique `ST_UI` du Designer et `SetText()` qui réécrit la même valeur.
 
 Les clés nouvelles doivent être uniques, stables et respecter l'interdiction du token `Grimrock` dans les identifiants de localisation (UI-LOCALIZATION01.3).
+
+**Séparation impérative :** `docs/UI_UMG_PRESENTATION_CONTRACT.md` fait autorité pour le partage entre C++ et WBP/UMG ; cette procédure fait autorité pour les clés et cultures de localisation. Appliquer **les deux** à chaque nouveau WBP.
 
 ## 3. Procédure de bout en bout — ordre de travail obligatoire
 
@@ -81,7 +84,7 @@ Les clés nouvelles doivent être uniques, stables et respecter l'interdiction d
 
 1. Créer le WBP dans son dossier exact et choisir le **bon parent C++** ; vérifier les noms/types `BindWidget` / `Is Variable`.
 2. Pour chaque label statique : `Details → Content → Text → Referenced Text / String Table → ST_UI → Key`. Ne pas recopier le français.
-3. Les champs de données dynamiques reçoivent un `FText` fourni par C++ / read-model. Ne pas leur donner un binding Blueprint concurrent.
+3. Les champs dynamiques reçoivent **nombres et valeurs brutes** du read-model C++. Le **WBP** assemble le `FText` final avec les patterns de `ST_UI` et les nœuds `Format Text` / `ToText` ; ne pas cumuler des bindings Blueprint et des `SetText` sur le même champ.
 4. Compiler/enregistrer le WBP ; tester en PIE, avec capture des valeurs et des infobulles.
 
 ### D. Gather / traduire / compiler (target Game)

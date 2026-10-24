@@ -45,6 +45,17 @@ namespace ARMEMENT011033
 		return Inventory;
 	}
 
+	FGridHudEventEntry MakeTooltipEntry(const FGridAttackResult& Hit)
+	{
+		FGridHudEventEntry Entry;
+		Entry.bHasCombatTooltipTrace = true;
+		Entry.CombatAttacker = FText::FromString(TEXT("Rat géant"));
+		Entry.CombatDefender = FText::FromString(TEXT("Elias"));
+		Entry.CombatTooltipTrace = Hit.Trace;
+		Entry.CombatTooltipTrace.bValid = true;
+		return Entry;
+	}
+
 	FGridAttackResult Apply(UGridPartyInventoryComponent* Inventory, int32 Damage)
 	{
 		FGridAttackTargetStats Target;
@@ -146,6 +157,37 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 	if (!TestTrue(TEXT("Formatter creates actual Event Feed entry"),
 		FGridCombatEventFeedFormatter::BuildEntry(Log, Feed))) return false;
 	TestTrue(TEXT("Structured hover enabled"), Feed.bHasCombatTooltipTrace);
+	const FGridCombatTooltipViewData TooltipData = UGridCombatTooltipWidget::BuildViewData(Feed);
+	TestTrue(TEXT("Pure read model is valid"), TooltipData.bValid);
+	TestTrue(TEXT("Tooltip exposes its raw combat trace"), TooltipData.Trace.bValid);
+	TestTrue(TEXT("Positive absorption displays the entire section"), TooltipData.bShowAbsorption);
+	TestEqual(TEXT("One visible row in authored Blueprint layout"), TooltipData.VisibleArmorRows.Num(), 1);
+	TestEqual(TEXT("Raw source value remains 5"), TooltipData.VisibleArmorRows[0].Before, 5);
+	TestEqual(TEXT("Raw absorbed value remains 4"), TooltipData.VisibleArmorRows[0].Absorbed, 4);
+	TestEqual(TEXT("Raw after value remains 1"), TooltipData.VisibleArmorRows[0].After, 1);
+	TestTrue(TEXT("Before protection depletion there is no exhaustion notice"),
+		TooltipData.NewlyExhaustedSources.IsEmpty());
+	// Numeric dice projection is data only; WBP owns the localized notation.
+	FGridHudEventEntry SyntheticDiceEntry = Feed;
+	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.bUsed = true;
+	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.Kind = EGridCombatRollTraceKind::Range;
+	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.Minimum = 1;
+	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.Maximum = 20;
+	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.FinalValue = 16;
+	const auto DiceView = UGridCombatTooltipWidget::BuildViewData(SyntheticDiceEntry);
+	TestTrue(TEXT("Resolved range roll is represented as dice"), DiceView.AttackDice.bHasDice);
+	TestEqual(TEXT("Dice count"), DiceView.AttackDice.Count, 1);
+	TestEqual(TEXT("Dice sides"), DiceView.AttackDice.Sides, 20);
+	TestEqual(TEXT("Rolled numeric value"), DiceView.AttackDice.Rolled, 16);
+	TestEqual(TEXT("Numeric offset"), DiceView.AttackDice.Offset, 0);
+
+	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.Minimum = 3;
+	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.Maximum = 6;
+	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.FinalValue = 5;
+	const auto OffsetDiceView = UGridCombatTooltipWidget::BuildViewData(SyntheticDiceEntry);
+	TestEqual(TEXT("Virtual die width from non-1 range"), OffsetDiceView.AttackDice.Sides, 4);
+	TestEqual(TEXT("Virtual die result from non-1 range"), OffsetDiceView.AttackDice.Rolled, 3);
+	TestEqual(TEXT("Virtual die flat modifier"), OffsetDiceView.AttackDice.Offset, 2);
 	TestEqual(TEXT("Immutable source snapshot travels with the feed"),
 		Feed.CombatTooltipTrace.Damage.PhysicalArmorSources[0].Absorbed, 4);
 	TestTrue(TEXT("Text fallback states source explicitly"),
@@ -172,6 +214,21 @@ bool FGridARMEMENT011033DepletionSnapshot::RunTest(const FString&)
 		UGridCombatTooltipWidget::CountAbsorbingSources(Second.Trace.Damage), 1);
 	TestEqual(TEXT("Third hit with shield at zero hides all absorption rows"),
 		UGridCombatTooltipWidget::CountAbsorbingSources(Third.Trace.Damage), 0);
+
+	const FGridCombatTooltipViewData FirstView = UGridCombatTooltipWidget::BuildViewData(
+		ARMEMENT011033::MakeTooltipEntry(First));
+	const FGridCombatTooltipViewData SecondView = UGridCombatTooltipWidget::BuildViewData(
+		ARMEMENT011033::MakeTooltipEntry(Second));
+	const FGridCombatTooltipViewData ThirdView = UGridCombatTooltipWidget::BuildViewData(
+		ARMEMENT011033::MakeTooltipEntry(Third));
+	TestTrue(TEXT("Historical first hit stays visible"), FirstView.bShowAbsorption);
+	TestEqual(TEXT("First view keeps its five points before"), FirstView.VisibleArmorRows[0].Before, 5);
+	TestTrue(TEXT("Last point consumed still yields visible row"), SecondView.bShowAbsorption);
+	TestEqual(TEXT("Second view has one exhausted source"), SecondView.NewlyExhaustedSources.Num(), 1);
+	TestFalse(TEXT("Third hit hides the entire absorption section"), ThirdView.bShowAbsorption);
+	TestTrue(TEXT("Third hit has no visual armor rows"), ThirdView.VisibleArmorRows.IsEmpty());
+	TestTrue(TEXT("Third hit signals already depleted equipment"), ThirdView.AlreadyDepletedSources.Num() == 1);
+	TestTrue(TEXT("Third hit does not repeat new depletion"), ThirdView.NewlyExhaustedSources.IsEmpty());
 	FGridCombatDamageTrace NoArmorDamage;
 	NoArmorDamage.bResolved = true;
 	TestEqual(TEXT("Empty physical protection snapshot hides absorption section"),
@@ -206,8 +263,12 @@ bool FGridARMEMENT011033MultipleSources::RunTest(const FString&)
 	const FGridAttackResult Hit = ARMEMENT011033::Apply(Inventory, 6);
 	const auto& Rows = Hit.Trace.Damage.PhysicalArmorSources;
 	TestEqual(TEXT("Exactly two physical armor sources"), Rows.Num(), 2);
-	TestEqual(TEXT("Both actual absorbers are shown in the shared grid"),
+	TestEqual(TEXT("Both actual absorbers are shown in the read model"),
 		UGridCombatTooltipWidget::CountAbsorbingSources(Hit.Trace.Damage), 2);
+	const FGridCombatTooltipViewData MultipleView = UGridCombatTooltipWidget::BuildViewData(
+		ARMEMENT011033::MakeTooltipEntry(Hit));
+	TestTrue(TEXT("Multiple sources show absorption section"), MultipleView.bShowAbsorption);
+	TestEqual(TEXT("Two sources flow to the authored WBP"), MultipleView.VisibleArmorRows.Num(), 2);
 	if (Rows.Num() != 2) return false;
 	TestTrue(TEXT("First source is the equipped shield"), Rows[0].bEquipment);
 	TestEqual(TEXT("Shield absorbs its full five"), Rows[0].Absorbed, 5);

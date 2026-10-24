@@ -1,264 +1,173 @@
-# ARMEMENT01.10.3.3 — Infobulle de combat structurée : implantation UE5.5.4
+# ARMEMENT01.10.3.3 — Combat Tooltip : modèle C++ minimal et présentation 100 % WBP
 
-**Mise à jour : 24 octobre 2026 — documentation précise, localisation, nettoyage C++.**  
-**État :** compilation UE5.5.4 confirmée par l'utilisateur après `d67a56de` ; tests automatisés, WBP et vérification PIE du nettoyage **non encore validés**. Aucun `.uasset` n'a été créé ni modifié par ce jalon de code.
+**Décision du 24 octobre 2026 — refonte ARMEMENT01.10.3.3.3.**  
+**Statut : code de read-model publié pour validation locale ; migration des WBP **à effectuer exclusivement dans Unreal Editor**. Le WBP existant ne sera PAS magiquement reconfiguré par ce commit. Jusqu'à l'authoring du Blueprint, le flux revient à son ancienne infobulle textuelle.**  
+**Contrat transversal obligatoire :** [UI_UMG_PRESENTATION_CONTRACT.md](../UI_UMG_PRESENTATION_CONTRACT.md). Localisation : [UI_WBP_LOCALIZATION_WORKFLOW.md](../UI_WBP_LOCALIZATION_WORKFLOW.md).
 
-## 1. Contrat : une seule infobulle, pas deux
+## 1. Pourquoi ce changement
 
-Survol d'une ligne de **Combat** dans le Flux d'événements : afficher un tableau de détail **Attaque / Absorption / Conséquences**, en conservant l'entrée du flux compacte.
+La création en C++ de `UGridPanel`, `UTextBlock`, colonnes, polices, espacements et alertes par `WidgetTree` avait atteint ~268 lignes et produit des chevauchements. **Toute cette construction est supprimée.**
 
-- **Nouveau chemin :** `UGridCombatTooltipWidget`, pour les événements munis d'une trace structurée et lorsque `CombatTooltipWidgetClass` est configuré.
-- **Repli ancien :** `UGridNavigationTooltipWidget`, déjà utilisé pour les tooltips du HUD persistant et pour les événements anciens ; le conserver. Il ne doit **jamais** s'afficher simultanément au nouveau.
-- **Dernier repli :** texte UMG natif si le widget de repli n'est pas disponible.
-- **Ne rien raccorder dans l'Event Graph** : `UGridEventFeedWidget` crée et attache déjà l'unique infobulle via `Row->SetToolTip(...)`. Ne pas ajouter de `OnMouseEnter`, `CreateWidget` ou autre `SetToolTip` dans le Blueprint.
-
-## 2. Localiser précisément les assets : chemins vérifiés dans le dépôt
-
-| Objet | Dossier Content Browser (`/Game`) | État |
-|---|---|---|
-| **Nouveau WBP** `WBP_GridCombatTooltip` | `/Game/GrimrockPrototype/Blueprints/UI/EventFeed/` | **À créer** |
-| Flux `WBP_GridEventFeed` | `/Game/GrimrockPrototype/Blueprints/UI/EventFeed/` | Existant, à configurer |
-| Ancienne infobulle `WBP_GridNavigationTooltip` | `/Game/GrimrockPrototype/Blueprints/UI/Inventory/` | Existante, à garder |
-| String Table `ST_UI` | `/Game/Localization/StringTables/` | Existante, à régénérer depuis CSV |
-
-Le chemin physique du nouveau Blueprint, **à enregistrer depuis UE**, est exactement :
-
-```text
-D:\Development\GrimrockPrototype\Content\GrimrockPrototype\Blueprints\UI\EventFeed\WBP_GridCombatTooltip.uasset
-```
-
-Le parent natif est `UGridCombatTooltipWidget` (nom affiché dans l'éditeur : `GridCombatTooltipWidget`). **Ne pas choisir** `UserWidget` standard ou `GridNavigationTooltipWidget` comme parent.
-
-## 3. Localiser aussi les textes : autorité ST_UI
-
-Les **14 clés statiques** ci-dessous sont déclarées dans `Localization/Source/UI.csv` et doivent être matérialisées dans `/Game/Localization/StringTables/ST_UI`. Il ne faut pas saisir les mots français directement dans les TextBlock du Designer.
-
-**Correctif des glyphes du 24.10.2026 :** le projet utilise aussi **19 clés de textes dynamiques et de résumé compact** sous `Combat.Tooltip.*` et `Combat.Feed.Compact.*`. Elles sont définies dans le même `UI.csv` (33 clés nouvelles au total depuis le début du jalon) ; elles **ne sont pas entrées dans les TextBlock** : elles sont lues au runtime par `FUILocalizationText` puis mises en forme avec `FText::Format`. Il faut donc **relancer `UIStringTableAuthoring` après le nouveau git pull**, même si vous l'avez déjà fait pour les 14 premières clés.
-
-| Texte affiché | Clé `ST_UI` |
+| Fonction | Autorité unique |
 |---|---|
-| DÉTAILS DU COMBAT | `Combat.Tooltip.Title` |
-| ATTAQUE | `Combat.Tooltip.Section.Attack` |
-| ABSORPTION | `Combat.Tooltip.Section.Absorption` |
-| CONSÉQUENCES | `Combat.Tooltip.Section.Consequences` |
-| Attaquant | `Combat.Tooltip.Label.Attacker` |
-| Défenseur | `Combat.Tooltip.Label.Defender` |
-| Jet d'attaque | `Combat.Tooltip.Label.Attack` |
-| Défense | `Combat.Tooltip.Label.Defense` |
-| Dégâts | `Combat.Tooltip.Label.Damage` |
-| Points de vie | `Combat.Tooltip.Label.Health` |
-| Protection | `Combat.Tooltip.Column.Source` |
-| Avant | `Combat.Tooltip.Column.Before` |
-| Absorbé | `Combat.Tooltip.Column.Absorbed` |
-| Après | `Combat.Tooltip.Column.After` |
+| Dés, coups, Défense, armure, PV, traces historiques | Résolveur/runtime **C++ existant**, inchangé |
+| Filtrage des sources : afficher uniquement celles qui ont absorbé plus de 0 | **C++ read-model** |
+| Signalement « épuisé maintenant » / « déjà à zéro » | **C++ read-model** (drapeaux et sources) |
+| Traduction des libellés, formatage des jets et des nombres | **WBP + ST_UI**, pas C++ |
+| Dimensions, en-têtes, disposition, couleurs, polices, alignements | **WBP Designer**, pas C++ |
+| Création et ajout des lignes au VerticalBox | **WBP Event Graph**, avec un **WBP de ligne** réutilisable |
 
-### 3.1 Matérialiser la String Table avant de créer le WBP
+La classe C++ `UGridCombatTooltipWidget` ne crée **aucun widget**, ne cherche **aucun TextBlock**, ne formate **aucun FText**, n'importe plus `WidgetTree`, `GridPanel` ou `VerticalBox`. La seule interface avec le Blueprint est un read-model + un appel au présentateur.
 
-Fermer Unreal Editor et exécuter le commandlet existant du projet :
+## 2. Chemins EXACTS
 
-```powershell
-cd D:\Development\GrimrockPrototype
-& "D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "D:\Development\GrimrockPrototype\GrimrockPrototype.uproject" -run=UIStringTableAuthoring -unattended -nop4 -nosplash -nullrhi
-```
-
-Ce commandlet fait évoluer **localement** le vrai asset UE `Content/Localization/StringTables/ST_UI.uasset`. Ne pas créer/modifier ce fichier binaire manuellement : l'inspecter dans l'éditeur avant tout commit de matérialisation ultérieur. Les traductions anglaises doivent encore être contrôlées dans le pipeline `Game` : l'ajout de clés françaises à `UI.csv` ne prouve **pas** la traduction automatique.
-
-Pour chaque libellé **statique** du WBP : dans **Details → Content → Text**, choisir **String Table**, sélectionner `ST_UI` et sa clé exacte. Ne pas créer de Text Binding Blueprint.
-
-Les champs **dynamiques** sont remplis par C++ avec des `FText` ; les nouveaux textes propres à cette infobulle utilisent désormais des **clés `ST_UI`** et non des littéraux français dans le C++. La traduction en anglais dépend toujours du pipeline de traduction `Game`, pas de la seule matérialisation. Ces champs ne doivent avoir **aucun binding Designer / Graph**.
-
-
-### 3.2 Workflow COMPLET et obligatoire pour ce WBP
-
-**Procédure transversale permanente :** [`docs/UI_WBP_LOCALIZATION_WORKFLOW.md`](../UI_WBP_LOCALIZATION_WORKFLOW.md). La procédure ne s'arrête pas à l'ajout de la clé dans le CSV : elle couvre sa matérialisation, la référence Designer, les traductions Game, les tests et les assets à versionner.
-
-**L'incident constaté sur `Combat.Tooltip.Title` est expliqué :** les 14 clés existent dans `Localization/Source/UI.csv` depuis le commit `47f4d077` ; il est **normal** qu'elles restent introuvables dans l'ancienne version de `ST_UI.uasset` tant que le commandlet n'a pas été exécuté localement. Aucun texte n'a à être recréé manuellement dans le WBP. Ce guide et sa modification Git **ne régénèrent pas le binaire ST_UI**.
-
-Effectuer ces étapes **dans l'ordre, sans passer à la suivante si une preuve manque** :
-
-1. **Vérifier la source CSV après `git pull`.** Sous PowerShell :
-   
-   ~~~powershell
-   Import-Csv .\Localization\Source\UI.csv | Where-Object Key -like 'Combat.Tooltip.*' | Select-Object Key,SourceString
-   ~~~
-   
-   Attendu : **14** clés `Combat.Tooltip.*`, notamment `Combat.Tooltip.Title` = « DÉTAILS DU COMBAT ».
-2. **Fermer Unreal Editor.** Exécuter la commande `-run=UIStringTableAuthoring` de la §3.1. Attendre le retour du processus et son code de sortie **0** ; chercher `[UI-LOCALIZATION01.4A] ST_UI materialization succeeded. Changed=true` dans le journal. `Changed=false` n'est acceptable que si les clés sont déjà présentes. Si le commandlet échoue, **STOP**.
-3. **Vérifier le disque ET l'asset Unreal.** Exécuter :
-   
-   ~~~powershell
-   Test-Path .\Content\Localization\StringTables\ST_UI.uasset
-   git status --short -- .\Content\Localization\StringTables\ST_UI.uasset
-   ~~~
-   
-   Rouvrir Unreal et inspecter `/Game/Localization/StringTables/ST_UI` ; rechercher manuellement `Combat.Tooltip.Title` et `Combat.Tooltip.Column.Absorbed`. **STOP si l'une manque**, même si le CSV et Git sont corrects.
-4. **Seule maintenant, créer le WBP** dans `/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatTooltip`, parent `GridCombatTooltipWidget`, arborescence §4.1. Lier **directement** chaque TextBlock **statique** à `ST_UI + clé` selon le tableau §3. Les champs **dynamiques C++** ne doivent pas être liés une seconde fois à la String Table ou à un Text Binding Blueprint.
-5. **Compiler / sauvegarder les WBP dans UE**, puis tester PIE. Vérifier la fiche sur une attaque du Rat géant, le tableau de protection et l'absence de double tooltip. Ne pas committer de `.uasset` WBP avant inspection et capture.
-6. **Traiter la traduction du jeu séparément :** le target `Game` (fr/en) requiert collecte des nouvelles entrées, export des PO, traduction anglaise réelle, importation, compilation et test anglais. La commande `UIStringTableAuthoring` **ne traduit pas**. Le script `RunLocalizationSmoke.ps1` valide la chaîne technique avec un **échantillon** anglais, pas les 14 libellés traduits. Les phrases C++ `LOCTEXT` doivent également être couvertes par le gather approprié. Voir le workflow transversal §3.D.
-7. **Tests et Git :** exécuter les filtres de la §7, inspecter `git status --short` et distinguer clairement `UI.csv` (source), `ST_UI.uasset` (projection), `WBP_GridCombatTooltip.uasset` (présentation), et PO/locres `Game` (traductions). Versionner les vrais assets produits **par Unreal** dans l'étape de matérialisation validée, en respectant un seul commit atomique par étape. Un commit Git ne contenant que les nouvelles clés CSV n'est pas une validation finale de l'UMG.
-
-**CHECKLIST DE SORTIE OBLIGATOIRE :** CSV à jour ✅, commandlet UE code 0, clés visibles dans ST_UI, WBP lié, PIE lisible, statut traduction fr/en explicite, assets binaires inspectés/versionnés, tests réussis. **Tant que ces vérifications ne sont pas attestées, le WBP et la localisation restent EN COURS.**
-
-## 4. Création du WBP dans Unreal Editor, pas à pas
-
-1. Après compilation puis matérialisation `ST_UI`, ouvrir UE5.5.4.
-2. Content Drawer → `Content/GrimrockPrototype/Blueprints/UI/EventFeed`.
-3. Clic droit → **User Interface → Widget Blueprint → All Classes** ; rechercher le parent **`GridCombatTooltipWidget`**.
-4. Nommer l'asset **`WBP_GridCombatTooltip`** (dans **EventFeed**, pas dans Inventory/Combat ni à la racine Content).
-5. Ouvrir le WBP → **Class Settings** → vérifier **Parent Class = GridCombatTooltipWidget**.
-6. Dans **Designer**, construire la hiérarchie exacte ci-après. Laisser **Graph vide**.
-
-### 4.1 Hiérarchie UMG complète (type et noms exacts)
-
-```text
-WBP_GridCombatTooltip                  (Parent = GridCombatTooltipWidget)
-└─ SizeBox_Root                       [SizeBox ; Width Override 480]
-   └─ Border_CombatTooltip            [Border ; Padding 12 ; fond brun/noir]
-      └─ VerticalBox_Content          [VerticalBox ; hauteur automatique]
-         ├─ Text_Title                        [TextBlock : ST_UI Combat.Tooltip.Title]
-         ├─ Spacer_Title                      [Spacer ; 8 px]
-         │
-         ├─ Text_SectionAttack                [TextBlock : ST_UI Combat.Tooltip.Section.Attack]
-         ├─ HorizontalBox_Actors              [HorizontalBox]
-         │  ├─ VerticalBox_Attacker           [VerticalBox ; Fill 1.0]
-         │  │  ├─ Text_LabelAttacker          [TextBlock : ST_UI Combat.Tooltip.Label.Attacker]
-         │  │  └─ Text_Attacker               [TextBlock : C++ DYNAMIQUE]
-         │  └─ VerticalBox_Defender           [VerticalBox ; Fill 1.0]
-         │     ├─ Text_LabelDefender          [TextBlock : ST_UI Combat.Tooltip.Label.Defender]
-         │     └─ Text_Defender               [TextBlock : C++ DYNAMIQUE]
-         ├─ HorizontalBox_Attack              [HorizontalBox]
-         │  ├─ Text_LabelAttack               [TextBlock : ST_UI Combat.Tooltip.Label.Attack]
-         │  └─ Text_Attack                    [TextBlock : C++ DYNAMIQUE]
-         ├─ HorizontalBox_Defense             [HorizontalBox]
-         │  ├─ Text_LabelDefense              [TextBlock : ST_UI Combat.Tooltip.Label.Defense]
-         │  └─ Text_Defense                   [TextBlock : C++ DYNAMIQUE]
-         ├─ HorizontalBox_Damage              [HorizontalBox]
-         │  ├─ Text_LabelDamage               [TextBlock : ST_UI Combat.Tooltip.Label.Damage]
-         │  └─ Text_Damage                    [TextBlock : C++ DYNAMIQUE]
-         │
-         ├─ Spacer_AttackToArmor              [Spacer ; 10 px]
-         ├─ Text_SectionAbsorption            [TextBlock : ST_UI Combat.Tooltip.Section.Absorption]
-         ├─ HorizontalBox_ArmorHeader         [HorizontalBox ; en-tête modèle ST_UI, masqué en PIE]
-
-         │  ├─ Text_HeaderSource              [TextBlock : ST_UI Combat.Tooltip.Column.Source]
-         │  ├─ Text_HeaderBefore              [TextBlock : ST_UI Combat.Tooltip.Column.Before]
-         │  ├─ Text_HeaderAbsorbed            [TextBlock : ST_UI Combat.Tooltip.Column.Absorbed]
-         │  └─ Text_HeaderAfter               [TextBlock : ST_UI Combat.Tooltip.Column.After]
-         ├─ VerticalBox_ArmorRows             [VerticalBox : C++ DYNAMIQUE — VIDE au Designer]
-         │  └─ GridPanel créé en C++          [en-têtes et données dans les mêmes colonnes]
-         │
-         ├─ Spacer_ArmorToConsequences        [Spacer ; 10 px]
-         ├─ Text_SectionConsequences          [TextBlock : ST_UI Combat.Tooltip.Section.Consequences]
-         ├─ HorizontalBox_Health              [HorizontalBox]
-         │  ├─ Text_LabelHealth               [TextBlock : ST_UI Combat.Tooltip.Label.Health]
-         │  └─ Text_Health                    [TextBlock : C++ DYNAMIQUE]
-         └─ Text_Status                       [TextBlock : C++ DYNAMIQUE ; alerte ambre]
-```
-
-### 4.2 Les 8 bindings C++ impératifs
-
-Ces champs sont déclarés dans `GridCombatTooltipWidget.h` en `BindWidgetOptional` : **une erreur de nom peut produire un champ vide sans erreur de compilation** ! Ils doivent porter exactement le nom ci-dessous, être du bon type, et avoir **Is Variable = coché** dans le Designer.
-
-| Nom | Type | Exemple de valeur injectée |
+| Asset | Content Browser UE | Dossier disque du projet |
 |---|---|---|
-| `Text_Attacker` | TextBlock | Rat géant |
-| `Text_Defender` | TextBlock | Elias |
-| `Text_Attack` | TextBlock | 1d20 (18) ; Total : 20 |
-| `Text_Defense` | TextBlock | 10 + 1 = 11 |
-| `Text_Damage` | TextBlock | 4 après modificateurs et résistances |
-| `VerticalBox_ArmorRows` | VerticalBox | Lignes source/avant/absorbé/après produites par le C++ |
-| `Text_Health` | TextBlock | 11 → 11 (−0 PV) |
-| `Text_Status` | TextBlock | Bouclier rond : protection épuisée !, uniquement si applicable |
+| **Principal existant, à adapter** : `WBP_GridCombatTooltip` | `/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatTooltip` | `Content/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatTooltip.uasset` |
+| **Ligne à créer** : `WBP_GridCombatArmorRow` | `/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatArmorRow` | `Content/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatArmorRow.uasset` |
+| **Flux existant, conserver** : `WBP_GridEventFeed` | `/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridEventFeed` | `Content/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridEventFeed.uasset` |
+| **Repli existant, conserver** : `WBP_GridNavigationTooltip` | `/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_GridNavigationTooltip` | `Content/GrimrockPrototype/Blueprints/UI/Inventory/WBP_GridNavigationTooltip.uasset` |
+| String Table | `/Game/Localization/StringTables/ST_UI` | `Content/Localization/StringTables/ST_UI.uasset` |
 
-Les TextBlock statiques (`Text_Title`, `Text_Section*`, `Text_Header*`, `Text_Label*`) **n'ont pas besoin de Is Variable** : leur texte provient directement de `ST_UI`.
+Le nouveau WBP de ligne est un **Widget Blueprint standard, parent `UserWidget`** (pas de classe C++ supplémentaire). Seul le WBP principal conserve comme parent natif `GridCombatTooltipWidget`.
 
-### 4.3 Réglages indispensables du tableau
+## 3. Contrat d'échange C++ → WBP
 
-Dans le `HorizontalBox_ArmorHeader`, sélectionner successivement ses quatre TextBlock enfants → **Details → Slot (Horizontal Box Slot) → Size → Fill**. Attribuer les poids suivants :
+`FGridCombatTooltipViewData` (`GridCombatTooltipWidget.h`), exposé en `BlueprintType`, contient :
 
-| Colonne | Nom enfant | Fill Weight | Alignement |
-|---|---|---:|---|
-| Source | `Text_HeaderSource` | **2.5** | Left |
-| Avant | `Text_HeaderBefore` | **1.0** | Right |
-| Absorbé | `Text_HeaderAbsorbed` | **1.0** | Right |
-| Après | `Text_HeaderAfter` | **1.0** | Right |
+| Propriété | Type | Usage dans le WBP |
+|---|---|---|
+| `bValid` | bool | Refuser une trace invalide |
+| `Attacker`, `Defender` | `FText` existants | Noms à afficher tels quels, sans nouvelle clé |
+| `Trace` | `FGridCombatResolutionTrace` | Nombres d'attaque, Défense, dégâts et PV issus du combat |
+| `AttackDice` | `FGridCombatTooltipDiceNumbers` | Nombres déjà calculés : `bHasDice`, `Count`, `Sides`, `Rolled`, `Offset`, `Total` |
+| `bShowAbsorption` | bool | Afficher/masquer **la section complète** |
+| `VisibleArmorRows` | `TArray<FGridArmorAbsorptionSourceTrace>` | Lignes dont `Absorbed > 0` (ordre réel) |
+| `NewlyExhaustedSources` | tableau de sources | Sources passées à zéro sur cette attaque |
+| `AlreadyDepletedSources` | tableau de sources | Équipements à zéro avant l'attaque |
 
-**Correction ARMEMENT01.10.3.3.2 — colonnes UMG partagées et suppression du bruit (24.10.2026)** :
+Chaque ligne de `VisibleArmorRows` contient `DisplayName`, `bEquipment`, `Before`, `Absorbed`, `After`, `bExhaustedByHit`. **Aucune chaîne préformatée.**
 
-- Le tableau ne doit plus être construit sous forme d'un `HorizontalBox` indépendant par item. Ce montage **n'assure pas les mêmes largeurs de colonnes** entre l'en-tête UMG et les lignes dynamiques, et provoquait les chiffres chevauchés de la capture.
-- Le C++ crée désormais **un unique `UGridPanel` enfant de `VerticalBox_ArmorRows`**, avec les **quatre en-têtes en ligne 0**, puis **une ligne par protection ayant réellement absorbé au moins 1 point**. `UGridPanel::SetColumnFill` applique les poids **2.5 : 1 : 1 : 1** à toutes les lignes simultanément. Le texte est aligné à gauche pour « Protection » et à droite pour les nombres ; les colonnes possèdent un padding interne.
-- **Conserver** `HorizontalBox_ArmorHeader` et ses quatre `Text_Header*` dans le Designer : ils servent de modèles de texte ST_UI, police et couleur. Le C++ les **masque automatiquement en runtime**, car l'en-tête visible est reconstruit dans **le même GridPanel que les données**. Vous n'avez **rien à recréer ni à déplacer dans le WBP**. Ne pas ajouter de second tableau ou d'en-tête dans `VerticalBox_ArmorRows`.
-- **Règle décidée : lorsque aucun équipement ni aucune réserve physique n'a absorbé de dégâts pendant ce coup**, masquer **la section ABSORPTION tout entière** : `Text_SectionAbsorption`, `HorizontalBox_ArmorHeader`, `VerticalBox_ArmorRows`, `Spacer_AttackToArmor` et `Spacer_ArmorToConsequences`. Aucune rangée `0 / 0 / 0` inutile. Les événements de type ÉCHEC masquent aussi cette section.
-- Si **une protection absorbe** et qu'une autre est **à zéro**, afficher uniquement les lignes dont `Absorbed > 0`. Le message de conséquence `Bouclier rond : aucune protection restante` peut rester sous **CONSÉQUENCES** pour expliquer la perte des PV, sans afficher un tableau vide.
-- Un coup qui fait passer le bouclier de `1 à 0` et absorbe 1 point **affiche bien sa ligne** `1 | 1 | 0` et l'alerte d'épuisement correspondante.
-- Aucune nouvelle clé `ST_UI`, aucun changement du WBP ou du système d'armure pour cette correction ; les 33 clés précédentes et le pipeline de localisation restent requis.
+Entrée de présentation **WBP** :
 
-**Ne pas créer de ligne d'armure à la main**, ni un `WBP_ArmorRow` supplémentaire : les cellules partagent maintenant leur grille et leur largeur, sous l'autorité du C++. La vérification finale se fait **en PIE**, sur la police et le tableau complet.
+```cpp
+// Dans UGridCombatTooltipWidget :
+bool InitializeCombatTooltip(const FGridHudEventEntry& Entry);
 
-**Correction de l'affichage des caractères « A » encadrés :** l'ancienne propriété C++ `TableFont` a été supprimée. Les `UTextBlock` de chaque ligne dynamique prennent désormais automatiquement la **police de `Text_HeaderSource`**, qui doit conserver une police UMG valide (par exemple Alegreya Sans). Aucun réglage `TableFont` dans Class Defaults n'est nécessaire. Dans le Designer, vérifier que `Text_HeaderSource` existe sous **ce nom exact**, affiche correctement « Protection » et utilise la police souhaitée ; s'il manque, la ligne utilise la police par défaut du widget. **Ne pas régler une police FontInfo vide dans le C++ ni dessiner des lignes de texte à la main.**
+// Surcharger dans WBP_GridCombatTooltip (Overrides) :
+bool PresentCombatTooltip(const FGridCombatTooltipViewData& Data);
+```
 
-**Espacement des lignes Attaque/Défense/Dégâts/PV :** dans chacun des `HorizontalBox_Attack`, `HorizontalBox_Defense`, `HorizontalBox_Damage` et `HorizontalBox_Health`, séparer le libellé et la valeur par un **Padding Right de 8 à 12** sur le slot du libellé, ou régler les slots `Text_Label*` en `Fill 1.0` et les valeurs en `Auto`. La capture du 24.10 montrait notamment `Jet d'attaque1d20` et `Défense10+1` sans espace, qui relèvent du **layout UMG**, pas de la localisation.
+Le WBP doit renseigner son interface puis **retourner True**. L'implémentation native retourne **False** par défaut ; `GridEventFeedWidget` affiche alors l'ancien tooltip au lieu d'un cadre vide. Pas de double infobulle.
 
-**Autres réglages** : `SizeBox_Root` 480 unités de largeur (ajustable jusqu'à 520), hauteur non forcée ; `Border_CombatTooltip` padding 12 ; `VerticalBox_Content` taille au contenu. Titres ~16 pt, valeurs ~14–16 pt Alegreya Sans ; couleur or désaturée pour les sections, vert doux pour l'absorption, ambre pour l'épuisement, sans surcharge. Le tooltip doit être **Hit Test Invisible** ; aucun CanvasPanel qui occupe l'écran entier, aucun suivi souris via Tick.
+## 4. Dans Unreal Editor : conserver et simplifier le WBP principal
 
-### 4.4 Activation dans le flux existant
+1. Ouvrir UE5.5.4 → Content Browser → `Content/GrimrockPrototype/Blueprints/UI/EventFeed/` → `WBP_GridCombatTooltip`.
+2. **Class Settings → Parent Class = GridCombatTooltipWidget**.
+3. Dans **Designer**, conserver `SizeBox_Root` (480 unités), `Border_CombatTooltip` (padding 12), `VerticalBox_Content` et les éléments `Text_Title`, `Text_Attacker`, `Text_Defender`, `Text_Attack`, `Text_Defense`, `Text_Damage`, `Text_Health` et `Text_Status`.
+4. Au lieu de laisser trois éléments d'absorption indépendants, **ajouter un `VerticalBox` nommé `VerticalBox_AbsorptionSection`**. Y déplacer les widgets UMG **existants**, dans cet ordre :
 
-1. Ouvrir `/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridEventFeed`.
-2. Cliquer **Class Defaults** de ce **WBP_GridEventFeed**.
-3. Rechercher **Combat Tooltip Widget Class** dans la catégorie `HUD | Event Feed | Combat Tooltip`.
-4. Choisir **WBP_GridCombatTooltip** ; compiler et enregistrer les **deux** WBP.
-5. **Ne pas remplacer** la classe `SharedTooltipWidgetClass` injectée par le HUD persistant ; elle sert au repli et aux autres boutons.
-6. Lancer `L_Dungeon` en PIE puis survoler une ligne d'attaque.
+   ```text
+   WBP_GridCombatTooltip  (parent GridCombatTooltipWidget)
+   └── SizeBox_Root [SizeBox : WidthOverride = 480]
+       └── Border_CombatTooltip [Border : Padding = 12]
+           └── VerticalBox_Content [VerticalBox]
+               ├── Text_Title [ST_UI: Combat.Tooltip.Title]
+               ├── Text_SectionAttack [ST_UI: Combat.Tooltip.Section.Attack]
+               ├── HorizontalBox_Actors [Text_Attacker, Text_Defender et leurs labels]
+               ├── HorizontalBox_Attack [Text_LabelAttack, Text_Attack]
+               ├── HorizontalBox_Defense [Text_LabelDefense, Text_Defense]
+               ├── HorizontalBox_Damage [Text_LabelDamage, Text_Damage]
+               │
+               ├── VerticalBox_AbsorptionSection [VerticalBox ; visibilité Blueprint]
+               │   ├── Spacer_AttackToArmor [Spacer]
+               │   ├── Text_SectionAbsorption [ST_UI: Combat.Tooltip.Section.Absorption]
+               │   ├── HorizontalBox_ArmorHeader [HorizontalBox, 4 colonnes FIXES]
+               │   │   ├── SizeBox_HeaderSource [Text_HeaderSource, largeur 204]
+               │   │   ├── SizeBox_HeaderBefore [Text_HeaderBefore, largeur 76]
+               │   │   ├── SizeBox_HeaderAbsorbed [Text_HeaderAbsorbed, largeur 92]
+               │   │   └── SizeBox_HeaderAfter [Text_HeaderAfter, largeur 84]
+               │   ├── VerticalBox_ArmorRows [VerticalBox ; enfant ajouté par BP]
+               │   └── Spacer_ArmorToConsequences [Spacer]
+               │
+               ├── Text_SectionConsequences [ST_UI: Combat.Tooltip.Section.Consequences]
+               ├── HorizontalBox_Health [Text_LabelHealth, Text_Health]
+               └── Text_Status [TextBlock ; visibilité BP]
+   ```
 
-Si le champ `Combat Tooltip Widget Class` est sur **None**, l'ancien tooltip textuel s'affiche **à la place du nouveau**, jamais en même temps. Ne rien ajouter dans Event Graph.
+5. Les largeurs 204 + 76 + 92 + 84 = **456**, soit les 480 unités du `SizeBox_Root` moins deux paddings de 12. Les TextBlocks numériques sont alignés à **droite** ; Source à gauche. L'UMG contrôle toutes les polices (Alegreya Sans), couleurs et marges.
+6. **Supprimer de la logique Blueprint existante** tout éventuel doublon de `SetToolTip`/`OnMouseEnter` dans ce WBP. Le C++ du flux choisit un seul tooltip.
 
-## 5. Données historiques et comportement attendu
+## 5. Nouveau WBP de ligne réutilisable (aucune classe C++ supplémentaire)
 
-Les instantanés sont capturés lors de la **vraie consommation d'armure** par `ApplyPhysicalArmorDamage` et transportés jusqu'au Flux. L'infobulle **ne relit pas l'équipement actuel**.
+1. Dans **le même dossier `EventFeed`**, clic droit → **User Interface → Widget Blueprint → UserWidget** → nom `WBP_GridCombatArmorRow`.
+2. Dans **Graph**, ajouter une variable **`ArmorRow`** de type `FGridArmorAbsorptionSourceTrace` ; activer **Instance Editable** et **Expose on Spawn**.
+3. Designer :
 
-Bouclier rond ARM075 N1 : 5 points de protection au départ, aucune autre réserve :
+   ```text
+   WBP_GridCombatArmorRow [UserWidget]
+   └── HorizontalBox_Row [HorizontalBox ; taille au contenu]
+       ├── SizeBox_Source [Width Override 204]
+       │   └── Text_Source [TextBlock ; Align Left ; AutoWrap]
+       ├── SizeBox_Before [Width Override 76]
+       │   └── Text_Before [TextBlock ; Align Right]
+       ├── SizeBox_Absorbed [Width Override 92]
+       │   └── Text_Absorbed [TextBlock ; Align Right]
+       └── SizeBox_After [Width Override 84]
+           └── Text_After [TextBlock ; Align Right]
+   ```
 
-| Attaque physique | Source | Avant | Absorbé | Après | PV si 20 au départ | Alerte |
-|---|---|---:|---:|---:|---|---|
-| 4 dégâts | Bouclier rond | 5 | 4 | 1 | 20 → 20 | Aucune |
-| 5 dégâts | Bouclier rond | 1 | 1 | 0 | 20 → 16 | Bouclier rond : protection épuisée ! |
-| 3 dégâts | **Section ABSORPTION masquée** | — | — | — | 16 → 13 | Bouclier rond : aucune protection restante (dans CONSÉQUENCES) |
+4. Dans **Event Construct** de ce WBP de ligne :
+   - `Get ArmorRow → Break FGridArmorAbsorptionSourceTrace`.
+   - `Text_Source.SetText(DisplayName)` si `DisplayName` non vide ; sinon afficher `ST_UI Combat.Tooltip.Fallback.Armor` si `bEquipment` est vrai, ou `Combat.Tooltip.Armor.Character` sinon.
+   - `Text_Before.SetText(ToText(Int Before))` ; `Text_Absorbed.SetText(ToText(Int Absorbed))` ; `Text_After.SetText(ToText(Int After))`.
+   - Couleurs et mise en valeur du dernier point consommé via `bExhaustedByHit` **dans CE WBP seulement**.
+5. Compilier/enregistrer. Pour modifier la présentation d'une ligne à l'avenir : **ouvrir ce seul WBP**, pas le C++.
 
-Si deux points d'armure de base restent au personnage, une morsure de 6 absorbe d'abord 5 au bouclier, puis 1 aux ressources du personnage : **deux lignes distinctes**. Aucun bonus automatique de Défense, aucune réparation implicite, aucun nouvel effet de combat.
+## 6. Event Graph du WBP principal : une fonction, pas de Tick
 
-**Portée actuelle :** la liste détaillée des équipements est renseignée sur les **attaques de monstres vers les personnages**. Les autres événements conservent leur trace habituelle : ne pas inventer des sources de bouclier quand la ventilation n'existe pas.
+1. Ouvrir `WBP_GridCombatTooltip → Overrides → PresentCombatTooltip`. Cette fonction est fournie par le parent C++. Entrée : `Data (FGridCombatTooltipViewData)` ; sortie : bool `Return Value`.
+2. `Break FGridCombatTooltipViewData`. Si `bValid` est faux, **Return False**.
+3. `SetText(Text_Attacker, Data.Attacker)` ; idem `Text_Defender`.
+4. `Break Data.Trace.Attack`, `Data.Trace.Defense`, `Data.Trace.Damage` et `Data.AttackDice` pour alimenter les TextBlock :
+   - `Text_Attack` : formatter dans Blueprint la notation **mécanique** `{Count}d{Sides} ({Rolled})` (et le décalage `Offset` s'il existe), puis le pattern localisé **ST_UI `Combat.Tooltip.Value.AttackRoll`** avec `Roll` et `Total = Trace.Attack.FinalValue`. Si `bHasDice=false`, afficher le nombre brut. Ne pas reconstituer les règles de combat : les six nombres proviennent déjà de C++.
+   - `Text_Defense` : pattern **ST_UI `Combat.Tooltip.Value.DefenseRoll`** avec `Base, Evasion, Total` pris directement de `Trace.Defense`.
+   - `Text_Damage` : si `Damage.bResolved`, pattern `Combat.Tooltip.Value.DamageResolved` avec `DamageAfterResistance` ; sinon `Combat.Tooltip.Value.NoDamage`.
+   - `Text_Health` : pattern `Combat.Tooltip.Value.HealthAfterAttack` avec `HealthBefore / HealthAfter / HealthDamage` ; sinon `Combat.Tooltip.Value.NoHealthChange`.
+5. **UN SEUL nœud `Set Visibility`** sur `VerticalBox_AbsorptionSection` : `Visible` si `bShowAbsorption=true`, sinon `Collapsed`. Le titre, l'en-tête, les lignes et les espacements disparaissent ensemble.
+6. `VerticalBox_ArmorRows → Clear Children`, puis `For Each Loop(Data.VisibleArmorRows)` :
+   - `Create Widget` : classe `WBP_GridCombatArmorRow`, renseigner l'entrée `ArmorRow = Array Element` (variable Expose on Spawn).
+   - `VerticalBox_ArmorRows → Add Child` : résultat de `Create Widget`.
+   - Cette boucle appartient **uniquement au Blueprint**. Aucune création de Widget ou colonne côté C++.
+7. Pour `Text_Status` : en présence de sources dans `NewlyExhaustedSources`, formater le message avec `Combat.Tooltip.Status.DepletedNamed` et le nom. Sinon, si `AlreadyDepletedSources` n'est pas vide, utiliser `Combat.Tooltip.Status.AlreadyDepletedNamed`. Masquer `Text_Status` quand il n'y a aucun message. Les sources sont fournies dans un tableau, de sorte qu'une présentation multi-messages peut être authorée plus tard sans changement du C++.
+8. **À la fin du graphe, Return True.** Cette valeur certifie au C++ que le WBP a pris en charge les données. **Tant que le graphe n'existe pas, la classe C++ retourne False** et le flux continue de montrer l'ancienne infobulle.
 
-## 6. Nettoyage de code effectué
+**Note sur Format Text et ST_UI :** créer dans le WBP des variables de type `Text` pour les **patterns déjà matérialisés** dans `ST_UI` (\`Combat.Tooltip.Value.*\`, \`Combat.Tooltip.Status.*\`). Brancher ces variables sur le pin `Format` du nœud Blueprint `Format Text` et y fournir les arguments. Pas de clés nouvelles, pas de texte français littéral.
 
-- Suppression de `FormatSourceRow`, un utilitaire exposé seulement pour un test et inutilisé en présentation réelle ; adaptation du test.
-- Conservation **raisonnée** de `UGridNavigationTooltipWidget` : il n'est plus un concurrent mais un **fallback**. Le supprimer casserait d'autres tooltips HUD.
-- Meilleure sélection du widget structuré même si `Details` texte est vide.
-- Colonne partagée : `UGridPanel` C++ intégrant à la fois en-têtes et lignes de protection ; l'ancienne rangée d'en-têtes UMG est conservée comme **modèle**, mais masquée en jeu.
-- Affichage conditionnel : **section ABSORPTION masquée** si aucune source n'a effectivement absorbé de dégâts, ainsi que les deux spacers ; pas de rangée à zéro. Les tests couvrent `CountAbsorbingSources` (1 / 1 / 0 et multisource 2).
-- Message d'épuisement **avec nom d'équipement** et ligne d'alerte masquée quand sans objet.
-- **Aucun changement de RPG**, de dégâts, de catalogue, d'armure ou de fichier `.uasset` dans le correctif de glyphes.
-- **Audit des textes en C++ (24.10.2026) :** les nouveaux libellés `GridCombatTooltipWidget.cpp` (résultat des jets, absorption, PV, messages d'épuisement) passent par `FUILocalizationText::Get(`ST_UI`)`. Le nom de l'armure de base est résolu au niveau présentation depuis `bEquipment=false`, et non plus inscrit en français dans le composant d'inventaire. Les nouvelles chaînes compactes non localisables dans `GridCombatEventFeedFormatter.cpp` sont aussi remplacées par des patterns de `ST_UI`. **Les `LOCTEXT` plus anciens du formateur, des autres systèmes et leurs règles de traduction appartiennent à un audit transversal distinct** ; ils sont localisables par Unreal en principe, mais leur collecte effective doit être vérifiée. Il ne serait pas exact d'affirmer qu'il n'existe plus aucun mot français dans tout le C++ du projet.
-- **Barrière anti-régression :** le test ciblé vérifie la présence des 33 clés dans le **vrai `ST_UI`** ; lancer le commandlet de matérialisation avant les tests après cette mise à jour.
+## 7. Contrats inchangés, recette et validation
 
-## 7. Validation exigée (non présumée réussie)
+**Règle :** si `VisibleArmorRows` est vide, **cacher ABSORPTION entièrement** (même quand un objet reste équipé à 0). Quand il y a plusieurs sources qui absorbent, une ligne par source. Un coup qui épuise un bouclier affiche la dernière absorption + le message. Un coup suivant sans protection n'affiche plus la table.
 
-**Compilateur UE5.5.4 :** réussite du correctif précédent déclarée par l'utilisateur ; le nouveau nettoyage doit être recompilé et testé.
+| Historique ARM075 N1 | VisibleArmorRows | bShowAbsorption | Conséquences |
+|---|---:|---|---|
+| 5 → 1 après 4 absorbés | 1 | True | PV inchangés |
+| 1 → 0 après 1 absorbé | 1 | True | Bouclier épuisé ; PV diminuent du surplus |
+| 0 → 0 après 0 absorbé | 0 | False | Bouclier déjà épuisé ; dégâts PV |
+| Bouclier 5 + armure de classe 2, coup de 6 | 2 | True | Protection totale 6, PV inchangés |
+
+**Le contenu reste historique, sans relire le bouclier équipé.** La Défense n'est pas modifiée.
+
+### Exécuter après `git pull --ff-only origin master`, UE fermé
 
 ```powershell
 cd D:\Development\GrimrockPrototype
 git status --short
 git pull --ff-only origin master
-# IMPORTANT : régénérer ST_UI (19 nouvelles clés C++ depuis la capture)
-& "D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "D:\Development\GrimrockPrototype\GrimrockPrototype.uproject" -run=UIStringTableAuthoring -unattended -nop4 -nosplash -nullrhi
-if ($LASTEXITCODE -ne 0) { throw "Echec UIStringTableAuthoring: $LASTEXITCODE" }
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.10.3.3"
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.10"
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.EventHUD01"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Game.UI.Localization.LOCALIZATION01"
 ```
 
-Attendus : **3 tests ciblés** et **17 tests cumulés** ARMEMENT01.10 si les 14 antérieurs subsistent. Les filtres UI et localisation restent à valider avec les logs réels.
+**Aucune clé ST_UI supplémentaire** dans ce jalon : conserver les **33 clés existantes**, déjà dans `UI.csv`, et vérifier qu'elles ont été matérialisées dans `ST_UI.uasset`. Ne jamais fabriquer ce binaire hors Unreal. Valider ensuite les deux WBP en PIE : infobulle unique, textes localisés, alignement des 4 colonnes, absence de section vide, régression des tooltips de navigation. Leurs `.uasset` seront enregistrés par Unreal puis inspectés/versionnés.
 
-**Après matérialisation ST_UI et construction UMG**, vérifier en PIE : exactement un tooltip par ligne, les 8 champs renseignés, les colonnes alignées, la ventilation de plusieurs sources, les morsures historiques `5→1 / 1→0` puis **section ABSORPTION absente** au troisième coup (protection 0), le message d'épuisement au bon moment, l'ancienne infobulle en mode repli et les autres boutons HUD. Envoyer une **capture de l'infobulle visible** : les tests commandlet ne prouvent pas son rendu.
-
-**Ne pas modifier les fichiers `.uasset` directement.** La création du WBP et la matérialisation ST_UI sont deux étapes UE à valider visuellement.
+**Statut « VALIDÉ » seulement après logs C++ et capture d'un WBP effectivement configuré.** Le repli textuel est attendu pendant la transition.

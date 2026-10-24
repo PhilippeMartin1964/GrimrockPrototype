@@ -439,10 +439,14 @@ bool UGridEventFeedWidget::AppendEntryPresentation(const FGridHudEventEntry& Ent
 			if (UGridCombatTooltipWidget* CombatTooltip =
 				CreateWidget<UGridCombatTooltipWidget>(this, CombatTooltipWidgetClass))
 			{
-				CombatTooltip->InitializeCombatTooltip(Entry);
-				CombatTooltip->SetVisibility(ESlateVisibility::HitTestInvisible);
-				Row->SetToolTip(CombatTooltip);
-				bStructured = true;
+				if (CombatTooltip->InitializeCombatTooltip(Entry))
+				{
+					CombatTooltip->SetVisibility(ESlateVisibility::HitTestInvisible);
+					Row->SetToolTip(CombatTooltip);
+					bStructured = true;
+				}
+				// When the WBP has not implemented its presenter yet, preserve
+				// the existing localized text tooltip instead of showing an empty one.
 			}
 		}
 		if (!bStructured)

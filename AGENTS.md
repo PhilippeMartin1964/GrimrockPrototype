@@ -43,6 +43,13 @@
 - Faire des changements minimaux.
 - Ne pas mélanger correction C++, documentation et assets binaires dans un même changement sauf nécessité.
 
+## RÈGLE PERMANENTE — C++ = données / WBP = interface (CHECKLIST À CHAQUE JALON)
+
+- **APPLIQUER** `docs/UI_UMG_PRESENTATION_CONTRACT.md` pour toute nouvelle interface et refonte WBP. Le C++ doit exposer un `USTRUCT(BlueprintType)` / read-model de nombres, états, noms authorés, flags et listes ; le **WBP** seul possède mise en forme des textes, colonnes, polices, couleurs, espacements, visibilité et créations de lignes.
+- **INTERDIT dans les classes C++ de présentation des nouveaux WBP :** `WidgetTree->ConstructWidget`, `AddChildToGrid`, `SetColumnFill`, `SetFont`, `SetPadding`, réglages de layout ou `FText::Format` pour composer des libellés d'interface. Ces opérations appartiennent au Designer / Event Graph. Les générateurs de logs ou de texte de fallback ne sont pas refondus sans ticket explicite.
+- Pour les listes, fournir `TArray` + booléens métier et authorer un **WBP de ligne réutilisable** ; pas de table reconstruite cellule par cellule en C++. Prévoir un fallback si le Blueprint n'est pas encore prêt.
+- **TESTS :** valider C++ sur les valeurs et flags ; le layout doit être validé dans l'éditeur par le joueur et par capture PIE. Une compilation ne prouve jamais la qualité du WBP.
+
 ## Procédure obligatoire — Texte joueur dans les WBP (CHECKLIST À CHAQUE JALON)
 
 - **DÉCLENCHEUR PERMANENT :** dès qu'une tâche ajoute, change, supprime ou présente du texte visible dans un WBP, une infobulle, le HUD ou une interface native, **ouvrir et appliquer** `docs/UI_WBP_LOCALIZATION_WORKFLOW.md` **avant tout authoring UMG**. Inclure ce contrôle dans la définition de « terminé » du ticket et dans le compte rendu.
