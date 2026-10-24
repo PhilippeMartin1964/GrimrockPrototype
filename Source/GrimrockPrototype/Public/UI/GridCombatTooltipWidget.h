@@ -62,7 +62,6 @@ struct GRIMROCKPROTOTYPE_API FGridCombatTooltipDisplayTexts
 	FText Defender;
 
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
-	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FText Health;
 
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
