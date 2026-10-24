@@ -34,12 +34,6 @@ void UGridCombatTooltipWidget::NativeConstruct()
 	RefreshTooltip();
 }
 
-FText UGridCombatTooltipWidget::FormatSourceRow(const FGridArmorAbsorptionSourceTrace& Source)
-{
-	return FText::FromString(FString::Printf(TEXT("%s | %d | -%d | %d"),
-		*Source.DisplayName.ToString(), Source.Before, Source.Absorbed, Source.After));
-}
-
 void UGridCombatTooltipWidget::RefreshTooltip()
 {
 	if (!CombatEntry.bHasCombatTooltipTrace || !CombatEntry.CombatTooltipTrace.bValid)
