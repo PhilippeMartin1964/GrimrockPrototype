@@ -72,16 +72,22 @@ void UGridCombatTooltipWidget::RefreshTooltip()
 			FText::AsNumber(Damage.HealthBefore), FText::AsNumber(Damage.HealthAfter), FText::AsNumber(Damage.HealthDamage))
 		: LOCTEXT("NoHealthChange", "PV inchangés"));
 
-	bool bExhausted = false;
-	bool bAlreadyDepleted = false;
+	TArray<FText> ExhaustedNames;
+	TArray<FText> AlreadyDepletedNames;
 	if (VerticalBox_ArmorRows)
 	{
 		VerticalBox_ArmorRows->ClearChildren();
 	}
 	for (const FGridArmorAbsorptionSourceTrace& Armor : Damage.PhysicalArmorSources)
 	{
-		bExhausted |= Armor.bExhaustedByHit;
-		bAlreadyDepleted |= Armor.bEquipment && Armor.Before == 0;
+		if (Armor.bEquipment && Armor.bExhaustedByHit)
+		{
+			ExhaustedNames.Add(SafeName(Armor.DisplayName, LOCTEXT("ArmorFallbackStatus", "Équipement")));
+		}
+		else if (Armor.bEquipment && Armor.Before == 0)
+		{
+			AlreadyDepletedNames.Add(SafeName(Armor.DisplayName, LOCTEXT("ArmorFallbackDepleted", "Équipement")));
+		}
 		if (!VerticalBox_ArmorRows || !WidgetTree) continue;
 
 		UHorizontalBox* TableRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
@@ -104,7 +110,9 @@ void UGridCombatTooltipWidget::RefreshTooltip()
 			Cell->SetAutoWrapText(Column == 0);
 			if (UHorizontalBoxSlot* CellLayoutSlot = TableRow->AddChildToHorizontalBox(Cell))
 			{
-				CellLayoutSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+				FSlateChildSize ColumnSize(ESlateSizeRule::Fill);
+				ColumnSize.Value = Column == 0 ? 2.5f : 1.0f;
+				CellLayoutSlot->SetSize(ColumnSize);
 				CellLayoutSlot->SetPadding(FMargin(Column == 0 ? 0.f : 6.f, 2.f));
 				CellLayoutSlot->SetHorizontalAlignment(Column == 0 ? HAlign_Left : HAlign_Right);
 			}
@@ -113,10 +121,19 @@ void UGridCombatTooltipWidget::RefreshTooltip()
 	}
 	if (Text_Status)
 	{
-		Text_Status->SetText(bExhausted
-			? LOCTEXT("ArmorDepleted", "Protection épuisée !")
-			: bAlreadyDepleted ? LOCTEXT("ArmorAlreadyDepleted", "Équipement sans protection restante")
-			: FText::GetEmpty());
+		FText Status;
+		if (!ExhaustedNames.IsEmpty())
+		{
+			Status = FText::Format(LOCTEXT("ArmorDepletedNamed", "{0} : protection épuisée !"),
+				FText::Join(LOCTEXT("ArmorNameSeparator", ", "), ExhaustedNames));
+		}
+		else if (!AlreadyDepletedNames.IsEmpty())
+		{
+			Status = FText::Format(LOCTEXT("ArmorAlreadyDepletedNamed", "{0} : aucune protection restante"),
+				FText::Join(LOCTEXT("ArmorNameSeparatorExisting", ", "), AlreadyDepletedNames));
+		}
+		Text_Status->SetText(Status);
+		Text_Status->SetVisibility(Status.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
 		Text_Status->SetColorAndOpacity(FSlateColor(WarningTextColor));
 	}
 }

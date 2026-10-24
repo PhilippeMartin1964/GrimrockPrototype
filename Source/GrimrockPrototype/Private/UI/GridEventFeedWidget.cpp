@@ -431,7 +431,7 @@ bool UGridEventFeedWidget::AppendEntryPresentation(const FGridHudEventEntry& Ent
 	}
 
 	const FText TooltipText = BuildEntryTooltipText(Entry);
-	if (Entry.Category == EGridHudEventCategory::Combat && !TooltipText.IsEmpty())
+	if (Entry.Category == EGridHudEventCategory::Combat && (Entry.bHasCombatTooltipTrace || !TooltipText.IsEmpty()))
 	{
 		bool bStructured = false;
 		if (Entry.bHasCombatTooltipTrace && CombatTooltipWidgetClass)

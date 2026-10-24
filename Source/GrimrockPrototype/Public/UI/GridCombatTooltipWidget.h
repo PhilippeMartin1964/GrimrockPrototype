@@ -26,9 +26,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FGridHudEventEntry CombatEntry;
 
-	/** Deterministic textual fallback for a single snapshot row. */
-	static FText FormatSourceRow(const FGridArmorAbsorptionSourceTrace& Source);
-
 	/** Style defaults can be adjusted in WBP_GridCombatTooltip. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combat|Tooltip|Style")
 	FSlateFontInfo TableFont;

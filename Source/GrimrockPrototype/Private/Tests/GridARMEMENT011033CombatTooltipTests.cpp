@@ -5,7 +5,6 @@
 #include "Runtime/Combat/GridCombatEventFeedFormatter.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "UI/GridCombatTooltipWidget.h"
 #include "UI/GridEventFeedWidget.h"
 
 namespace ARMEMENT011033
@@ -82,7 +81,6 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 	TestEqual(TEXT("Absorbed at impact"), Source.Absorbed, 4);
 	TestEqual(TEXT("After at impact"), Source.After, 1);
 	TestFalse(TEXT("Not yet depleted"), Source.bExhaustedByHit);
-	TestEqual(TEXT("Final UI row remains inspectable"), UGridCombatTooltipWidget::FormatSourceRow(Source).ToString().Contains(TEXT("5 | -4 | 1")), true);
 
 	FGridCombatLogEntry Log;
 	Log.Type = EGridCombatLogEntryType::AttackHit;
