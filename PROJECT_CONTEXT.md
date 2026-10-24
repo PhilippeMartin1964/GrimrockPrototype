@@ -306,6 +306,9 @@ Bugs ou limites connues.
 
 ## 8. Next Tasks
 Liste courte et priorisée.
+
+- [ ] **ARMEMENT01.10.3.3 / LOCALISATION :** exécuter localement `UIStringTableAuthoring`, confirmer les 14 clés `Combat.Tooltip.*` (en particulier `Combat.Tooltip.Title`) dans `/Game/Localization/StringTables/ST_UI`, inspecter/versionner le `ST_UI.uasset` matérialisé, puis créer et valider `WBP_GridCombatTooltip` dans UE5.5.4. **CSV Git déjà modifié ≠ asset ST_UI prêt.**
+- [ ] **TO-DO PERMANENT POUR TOUS LES FUTURS WBP :** avant d'ajouter un texte, appliquer `docs/UI_WBP_LOCALIZATION_WORKFLOW.md` : inventaire des textes → `UI.csv` / DataAsset / C++ → matérialisation `ST_UI` → vérification dans Unreal → binding WBP → traductions Game fr/en → tests/PIE → versionnement. Reporter ce contrôle dans chaque jalon ; ne jamais considérer une simple modification CSV comme terminée.
 - [ ] Validation de l'architecture
 - [ ] Implémenter toutes les mécaniques fondamentales de Legend of Grimrock 2
 - [ ] Inventaire de tous les objets possibles et leur utilisation ou non utlisation (éléments de décor ou d'ambiance)

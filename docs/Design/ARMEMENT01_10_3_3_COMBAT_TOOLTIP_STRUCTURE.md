@@ -65,6 +65,38 @@ Pour chaque libellé **statique** du WBP : dans **Details → Content → Text**
 
 Les champs **dynamiques** sont remplis par C++ avec des `FText` (noms de contenu et formules locales via `LOCTEXT`). Ils ne doivent avoir **aucun binding Designer / Graph** ; leur traduction hors français dépend de la collecte UE et reste à vérifier.
 
+
+### 3.2 Workflow COMPLET et obligatoire pour ce WBP
+
+**Procédure transversale permanente :** [`docs/UI_WBP_LOCALIZATION_WORKFLOW.md`](../UI_WBP_LOCALIZATION_WORKFLOW.md). La procédure ne s'arrête pas à l'ajout de la clé dans le CSV : elle couvre sa matérialisation, la référence Designer, les traductions Game, les tests et les assets à versionner.
+
+**L'incident constaté sur `Combat.Tooltip.Title` est expliqué :** les 14 clés existent dans `Localization/Source/UI.csv` depuis le commit `47f4d077` ; il est **normal** qu'elles restent introuvables dans l'ancienne version de `ST_UI.uasset` tant que le commandlet n'a pas été exécuté localement. Aucun texte n'a à être recréé manuellement dans le WBP. Ce guide et sa modification Git **ne régénèrent pas le binaire ST_UI**.
+
+Effectuer ces étapes **dans l'ordre, sans passer à la suivante si une preuve manque** :
+
+1. **Vérifier la source CSV après `git pull`.** Sous PowerShell :
+   
+   ~~~powershell
+   Import-Csv .\Localization\Source\UI.csv | Where-Object Key -like 'Combat.Tooltip.*' | Select-Object Key,SourceString
+   ~~~
+   
+   Attendu : **14** clés `Combat.Tooltip.*`, notamment `Combat.Tooltip.Title` = « DÉTAILS DU COMBAT ».
+2. **Fermer Unreal Editor.** Exécuter la commande `-run=UIStringTableAuthoring` de la §3.1. Attendre le retour du processus et son code de sortie **0** ; chercher `[UI-LOCALIZATION01.4A] ST_UI materialization succeeded. Changed=true` dans le journal. `Changed=false` n'est acceptable que si les clés sont déjà présentes. Si le commandlet échoue, **STOP**.
+3. **Vérifier le disque ET l'asset Unreal.** Exécuter :
+   
+   ~~~powershell
+   Test-Path .\Content\Localization\StringTables\ST_UI.uasset
+   git status --short -- .\Content\Localization\StringTables\ST_UI.uasset
+   ~~~
+   
+   Rouvrir Unreal et inspecter `/Game/Localization/StringTables/ST_UI` ; rechercher manuellement `Combat.Tooltip.Title` et `Combat.Tooltip.Column.Absorbed`. **STOP si l'une manque**, même si le CSV et Git sont corrects.
+4. **Seule maintenant, créer le WBP** dans `/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatTooltip`, parent `GridCombatTooltipWidget`, arborescence §4.1. Lier **directement** chaque TextBlock **statique** à `ST_UI + clé` selon le tableau §3. Les champs **dynamiques C++** ne doivent pas être liés une seconde fois à la String Table ou à un Text Binding Blueprint.
+5. **Compiler / sauvegarder les WBP dans UE**, puis tester PIE. Vérifier la fiche sur une attaque du Rat géant, le tableau de protection et l'absence de double tooltip. Ne pas committer de `.uasset` WBP avant inspection et capture.
+6. **Traiter la traduction du jeu séparément :** le target `Game` (fr/en) requiert collecte des nouvelles entrées, export des PO, traduction anglaise réelle, importation, compilation et test anglais. La commande `UIStringTableAuthoring` **ne traduit pas**. Le script `RunLocalizationSmoke.ps1` valide la chaîne technique avec un **échantillon** anglais, pas les 14 libellés traduits. Les phrases C++ `LOCTEXT` doivent également être couvertes par le gather approprié. Voir le workflow transversal §3.D.
+7. **Tests et Git :** exécuter les filtres de la §7, inspecter `git status --short` et distinguer clairement `UI.csv` (source), `ST_UI.uasset` (projection), `WBP_GridCombatTooltip.uasset` (présentation), et PO/locres `Game` (traductions). Versionner les vrais assets produits **par Unreal** dans l'étape de matérialisation validée, en respectant un seul commit atomique par étape. Un commit Git ne contenant que les nouvelles clés CSV n'est pas une validation finale de l'UMG.
+
+**CHECKLIST DE SORTIE OBLIGATOIRE :** CSV à jour ✅, commandlet UE code 0, clés visibles dans ST_UI, WBP lié, PIE lisible, statut traduction fr/en explicite, assets binaires inspectés/versionnés, tests réussis. **Tant que ces vérifications ne sont pas attestées, le WBP et la localisation restent EN COURS.**
+
 ## 4. Création du WBP dans Unreal Editor, pas à pas
 
 1. Après compilation puis matérialisation `ST_UI`, ouvrir UE5.5.4.

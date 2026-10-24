@@ -47,7 +47,13 @@ Ce dossier regroupe la documentation transversale du projet. `docs/Design` porte
 
 - `docs/FONT_LICENCES.md`
 
-### F. Scripts et outils de développement
+### F. Localisation et authoring WBP — obligatoire
+
+- [Workflow permanent : ajouter / modifier du texte dans un WBP](UI_WBP_LOCALIZATION_WORKFLOW.md) — contrôle de l'autorité du texte, matérialisation `UI.csv → ST_UI.uasset`, raccordement Designer, traductions `Game`, tests et versionnement.
+- [ARMEMENT01.10.3.3 — Infobulle de combat structurée](Design/ARMEMENT01_10_3_3_COMBAT_TOOLTIP_STRUCTURE.md) — exemple complet avec WBP, dossier exact et 14 clés `Combat.Tooltip.*`.
+- **Ne jamais commencer un WBP avant d'avoir vérifié que les clés ST_UI requises existent dans l'asset ouvert sous Unreal.**
+
+### G. Scripts et outils de développement
 
 - [Référence complète des scripts PowerShell](SCRIPTS_REFERENCE.md) — paramètres, commandes, résultats, dépannage et statut des outils historiques.
 - [Index du dossier Scripts](../Scripts/README.md) — choix rapide du script adapté.
