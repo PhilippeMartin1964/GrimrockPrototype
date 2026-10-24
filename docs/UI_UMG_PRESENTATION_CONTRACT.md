@@ -34,12 +34,12 @@
 
 ## 2. Patron de référence : Combat Tooltip
 
-1. **WBP_GridCombatTooltip**, parent C++ `UGridCombatTooltipWidget` : le Designer possède la structure des sections et les huit champs texte ; les **quatre colonnes** sont visuelles, pas assemblées dans le C++.
+1. **WBP_GridCombatTooltip**, parent C++ `UGridCombatTooltipWidget` : le Designer possède la hiérarchie et les **neuf TextBlocks Attaque/Défense indépendants**, plus les champs acteurs/dégâts/PV/statut. Les quatre colonnes ABSORPTION restent entièrement visuelles, pas assemblées dans le C++.
 2. **WBP_GridCombatArmorRow**, parent C++ `UGridCombatArmorRowWidget` : le Designer contient `Text_Source`, `Text_Before`, `Text_Absorbed`, `Text_After` dans ses quatre `SizeBox`. Le C++ alimente ces champs via `SetArmorData`.
 3. Le C++ principal calcule le contenu (jet, Défense, dégâts, PV et statuts), affecte `SetText` aux TextBlocks du Designer, gère une seule visibilité pour la section ABSORPTION et **instancie le WBP de ligne** pour chaque source réelle qui a absorbé des dégâts.
 4. Ni `GridPanel`, ni `TextBlock`, ni font, ni largeur, ni marge ne sont créés ou modifiés par le C++.
 5. **Event Graphs non nécessaires** pour ce jalon. Les Graphs historiques d'ARMEMENT01.10.3.3 doivent être supprimés depuis Unreal Editor après recompilation/reparenting.
-6. L'ancien `PresentCombatTooltip` est conservé temporairement **seulement pour compatibilité de sérialisation** des WBP existants ; le présentateur natif ne l'appelle plus.
+6. **ARMEMENT01.10.3.3.9 :** suppression du code natif obsolète `PresentCombatTooltip`, des anciennes variables `Text_Attack/Text_Defense`, et de la branche de repli UMG multiligne. Dans Unreal Editor, supprimer l'override/les TextBlocks et sauvegarder le WBP **avant** de récupérer le C++ nettoyé ; le repli générique de l'Event Feed reste autorisé si l'infobulle structurée est mal configurée.
 
 ## 3. Localisation : règle complémentaire, non concurrente
 

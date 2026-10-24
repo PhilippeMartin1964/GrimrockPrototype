@@ -1467,3 +1467,15 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - **Compatibilité** : conserver les deux vieux champs `Text_Attack` et `Text_Defense` comme fallback tant que les neuf nouvelles liaisons ne sont pas présentes, sans double rendu. Préserver les .uasset locaux et le travail utilisateur sur `UI.csv`.
 - Aucun widget individuel construit en C++, pas de paramétrage typographique natif, pas de Graph obligatoire et pas de nouvelle clé ST_UI. Test de non-régression additionnel, **7/7 attendus** sur le filtre.
 - Référence : `docs/Design/ARMEMENT01_10_3_3_COMBAT_TOOLTIP_STRUCTURE.md` §4.3.
+
+
+---
+
+## 2026-10-24 — ARMEMENT01.10.3.3.9 : suppression des fallbacks graphiques historiques
+
+- L'utilisateur confirme 7/7 tests et une présentation UMG opérationnelle avec les neuf champs indépendants. Nouveau commit utilisateur `92c1d234` enregistre les deux WBP et ST_UI.uasset sur master.
+- Décision : plus aucun champ legacy `Text_Attack/Text_Defense` ni doublon `PresentCombatTooltip` ; supprimer également la projection historique `AttackDice` et le texte multiligne recomposé pour le fallback UMG.
+- Les 9 champs Attaque/Défense du Designer deviennent le contrat exclusif. Une classe WBP incomplète provoque le repli **générique de l'Event Feed**, sans conserver une deuxième UI graphique.
+- Migration sûre en deux étapes : supprimer d'abord les champs et l'override du WBP dans Unreal avec les anciennes fonctions C++ disponibles, sauvegarder, **puis** tirer le C++ nettoyé. Un .uasset ne se modifie pas dans le connecteur GitHub.
+- Test de contrat natif additionnel, 8 tests ciblés attendus, puis les régressions ARMEMENT01.10 et UI.EventHUD01 ; le jalon n'est clos qu'après les logs, recette PIE et versionnement sélectif des assets.
+- Contrat : `docs/UI_UMG_PRESENTATION_CONTRACT.md` et `docs/Design/ARMEMENT01_10_3_3_COMBAT_TOOLTIP_STRUCTURE.md` §4.4.

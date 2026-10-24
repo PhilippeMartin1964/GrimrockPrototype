@@ -187,45 +187,42 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 		TooltipData.NewlyExhaustedSources.IsEmpty());
 	const FGridCombatTooltipDisplayTexts BeforeText =
 		UGridCombatTooltipWidget::BuildDisplayTexts(TooltipData);
-	TestTrue(TEXT("C++ prepares a localized attack string"), !BeforeText.Attack.IsEmpty());
-	TestTrue(TEXT("C++ prepares a localized defense string"), !BeforeText.Defense.IsEmpty());
+	const FGridCombatTooltipDetailTexts BeforeDetail =
+		UGridCombatTooltipWidget::BuildDetailTexts(TooltipData);
+	TestTrue(TEXT("C++ provides the attack field"), !BeforeDetail.AttackDice.IsEmpty());
+	TestTrue(TEXT("C++ provides the defense field"), !BeforeDetail.DefenseBase.IsEmpty());
 	TestTrue(TEXT("C++ prepares a localized damage string"), !BeforeText.Damage.IsEmpty());
 	TestTrue(TEXT("C++ prepares a localized health string"), !BeforeText.Health.IsEmpty());
 	TestFalse(TEXT("No warning before protection depletion"), BeforeText.bShowStatus);
-	// Compatibility projection remains tested; the native presenter now formats the localized dice text.
+	// The old Blueprint numeric-dice projection has been removed. Check the
+	// authoritative formatted roll exposed to the nine separate Designer fields.
 	FGridHudEventEntry SyntheticDiceEntry = Feed;
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.bUsed = true;
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.Kind = EGridCombatRollTraceKind::Range;
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.Minimum = 1;
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.Maximum = 20;
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.FinalValue = 16;
-	const auto DiceView = UGridCombatTooltipWidget::BuildViewData(SyntheticDiceEntry);
-	TestTrue(TEXT("Resolved range roll is represented as dice"), DiceView.AttackDice.bHasDice);
-	TestEqual(TEXT("Dice count"), DiceView.AttackDice.Count, 1);
-	TestEqual(TEXT("Dice sides"), DiceView.AttackDice.Sides, 20);
-	TestEqual(TEXT("Rolled numeric value"), DiceView.AttackDice.Rolled, 16);
-	TestEqual(TEXT("Numeric offset"), DiceView.AttackDice.Offset, 0);
-
+	const FGridCombatTooltipDetailTexts DiceFields =
+		UGridCombatTooltipWidget::BuildDetailTexts(
+			UGridCombatTooltipWidget::BuildViewData(SyntheticDiceEntry));
+	TestTrue(TEXT("Range d20 has a labeled die field"),
+		DiceFields.AttackDice.ToString().Contains(TEXT("1d20")));
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.Minimum = 3;
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.Maximum = 6;
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.FinalValue = 5;
-	const auto OffsetDiceView = UGridCombatTooltipWidget::BuildViewData(SyntheticDiceEntry);
-	TestEqual(TEXT("Virtual die width from non-1 range"), OffsetDiceView.AttackDice.Sides, 4);
-	TestEqual(TEXT("Virtual die result from non-1 range"), OffsetDiceView.AttackDice.Rolled, 3);
-	TestEqual(TEXT("Virtual die flat modifier"), OffsetDiceView.AttackDice.Offset, 2);
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.FinalValue = 18;
 	SyntheticDiceEntry.CombatTooltipTrace.Defense.BaseValue = 10;
 	SyntheticDiceEntry.CombatTooltipTrace.Defense.EvasionModifier = 1;
 	SyntheticDiceEntry.CombatTooltipTrace.Defense.FinalValue = 11;
-	const FGridCombatTooltipDisplayTexts FormattedDice =
-		UGridCombatTooltipWidget::BuildDisplayTexts(
+	const FGridCombatTooltipDetailTexts OffsetDiceFields =
+		UGridCombatTooltipWidget::BuildDetailTexts(
 			UGridCombatTooltipWidget::BuildViewData(SyntheticDiceEntry));
-	TestTrue(TEXT("C++ renders range roll including signed offset"),
-		FormattedDice.Attack.ToString().Contains(TEXT("1d4")));
-	TestTrue(TEXT("C++ includes final attack total instead of raw die total"),
-		FormattedDice.Attack.ToString().Contains(TEXT("18")));
-	TestTrue(TEXT("Defense is formatted in C++, not Blueprint"),
-		FormattedDice.Defense.ToString().Contains(TEXT("11")));
+	TestTrue(TEXT("Range roll with offset remains visible"),
+		OffsetDiceFields.AttackDice.ToString().Contains(TEXT("1d4")));
+	TestTrue(TEXT("Final total does not become die result"),
+		OffsetDiceFields.AttackTotal.ToString().Contains(TEXT("18")));
+	TestTrue(TEXT("Defense total is formatted independently"),
+		OffsetDiceFields.DefenseTotal.ToString().Contains(TEXT("11")));
 	TestEqual(TEXT("Immutable source snapshot travels with the feed"),
 		Feed.CombatTooltipTrace.Damage.PhysicalArmorSources[0].Absorbed, 4);
 	TestTrue(TEXT("Text fallback states source explicitly"),
@@ -358,15 +355,15 @@ bool FGridARMEMENT011033AttackBreakdown::RunTest(const FString&)
 	const FText Terms = FGridCombatEventFeedFormatter::FormatAttackTerms(Attack);
 	TestEqual(TEXT("The displayed expression includes source accuracy rather than jumping 3 to 5"),
 		Terms.ToString(), FString(TEXT("1d20 (3) + 2")));
-	const FGridCombatTooltipDisplayTexts Display =
-		UGridCombatTooltipWidget::BuildDisplayTexts(View);
-	TestTrue(TEXT("Combat tooltip labels source accuracy instead of repeating the compact feed"),
-		Display.Attack.ToString().Contains(TEXT("Précision de l'attaquant")) &&
-		Display.Attack.ToString().Contains(TEXT("+2")));
-	TestFalse(TEXT("Combat tooltip is not the compact attack formula"),
-		Display.Attack.ToString().Contains(TEXT("1d20 (3) + 2 ;")));
-	TestTrue(TEXT("Combat tooltip still contains the resolved attack total"),
-		Display.Attack.ToString().Contains(TEXT("Total de l'attaque : 5")));
+	const FGridCombatTooltipDetailTexts Display =
+		UGridCombatTooltipWidget::BuildDetailTexts(View);
+	TestTrue(TEXT("Named source accuracy is independent from the die"),
+		Display.AttackSourceAccuracy.ToString().Contains(TEXT("Précision de l'attaquant")) &&
+		Display.AttackSourceAccuracy.ToString().Contains(TEXT("+2")));
+	TestFalse(TEXT("Die field does not duplicate the compact event feed"),
+		Display.AttackDice.ToString().Contains(TEXT(" + 2 ;")));
+	TestTrue(TEXT("Final attack total is its own field"),
+		Display.AttackTotal.ToString().Contains(TEXT("Total de l'attaque : 5")));
 
 	// The two accuracy contributions must stay distinct (including penalties),
 	// not be silently merged into an unexplained delta.
@@ -387,7 +384,7 @@ bool FGridARMEMENT011033AttackBreakdown::RunTest(const FString&)
 		FGridCombatEventFeedFormatter::FormatAttackTerms(Attack).ToString(),
 		FString(TEXT("1d20 (3) + 2 - 1 + 3")));
 	TestTrue(TEXT("Attack display includes the mechanically resolved total"),
-		UGridCombatTooltipWidget::BuildDisplayTexts(View).Attack.ToString().Contains(TEXT("7")));
+		UGridCombatTooltipWidget::BuildDetailTexts(View).AttackTotal.ToString().Contains(TEXT("7")));
 
 	Attack.Roll.DiceFlatBonus = 0;
 	Attack.Roll.FinalValue = 3;
@@ -426,28 +423,25 @@ bool FGridARMEMENT0110337LabeledComponents::RunTest(const FString&)
 	TestEqual(TEXT("Action accuracy recorded"), Miss.Trace.Attack.AttackAccuracyBonus, 1);
 	TestEqual(TEXT("Final hit test recorded"), Miss.Trace.Attack.FinalValue, 7);
 
-	const FGridCombatTooltipDisplayTexts MissText =
-		UGridCombatTooltipWidget::BuildDisplayTexts(
+	const FGridCombatTooltipDetailTexts MissText =
+		UGridCombatTooltipWidget::BuildDetailTexts(
 			UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Miss)));
-	const FString AttackBreakdown = MissText.Attack.ToString();
-	const FString DefenseBreakdown = MissText.Defense.ToString();
-	TestTrue(TEXT("Natural dice is labeled explicitly"), AttackBreakdown.Contains(TEXT("Jet de dé"))
-		&& AttackBreakdown.Contains(TEXT("1d20 (5)")));
-	TestTrue(TEXT("The first +1 is labeled attacker accuracy"),
-		AttackBreakdown.Contains(TEXT("Précision de l'attaquant : +1")));
-	TestTrue(TEXT("The second +1 is labeled action accuracy, not assumed weapon accuracy"),
-		AttackBreakdown.Contains(TEXT("Modificateur de l'attaque : +1")));
-	TestTrue(TEXT("Resolved total is distinctly labeled"),
-		AttackBreakdown.Contains(TEXT("Total de l'attaque : 7")));
-	TestFalse(TEXT("Detailed tooltip does not repeat the compact +1 +1 expression"),
-		AttackBreakdown.Contains(TEXT("1d20 (5) + 1 + 1")));
-	TestTrue(TEXT("Defense clearly identifies base and evasion"),
-		DefenseBreakdown.Contains(TEXT("Défense de base : 10"))
-		&& DefenseBreakdown.Contains(TEXT("Esquive du défenseur : +1"))
-		&& DefenseBreakdown.Contains(TEXT("Défense totale : 11")));
-	TestTrue(TEXT("Miss is explained by total lower than defense"),
-		DefenseBreakdown.Contains(TEXT("ÉCHEC"))
-		&& DefenseBreakdown.Contains(TEXT("7 < 11")));
+	TestTrue(TEXT("Natural dice is independently labeled"),
+		MissText.AttackDice.ToString().Contains(TEXT("Jet de dé")) &&
+		MissText.AttackDice.ToString().Contains(TEXT("1d20 (5)")));
+	TestTrue(TEXT("First +1 is source accuracy"),
+		MissText.AttackSourceAccuracy.ToString().Contains(TEXT("Précision de l'attaquant : +1")));
+	TestTrue(TEXT("Second +1 is specific attack accuracy"),
+		MissText.AttackActionAccuracy.ToString().Contains(TEXT("Modificateur de l'attaque : +1")));
+	TestTrue(TEXT("Final attack total is separately stylable"),
+		MissText.AttackTotal.ToString().Contains(TEXT("Total de l'attaque : 7")));
+	TestTrue(TEXT("Defense has its own labeled fields"),
+		MissText.DefenseBase.ToString().Contains(TEXT("Défense de base : 10"))
+		&& MissText.DefenseEvasion.ToString().Contains(TEXT("Esquive du défenseur : +1"))
+		&& MissText.DefenseTotal.ToString().Contains(TEXT("Défense totale : 11")));
+	TestTrue(TEXT("Miss outcome explains the comparison"),
+		MissText.AttackOutcome.ToString().Contains(TEXT("ÉCHEC"))
+		&& MissText.AttackOutcome.ToString().Contains(TEXT("7 < 11")));
 	TestFalse(TEXT("Miss produces no damage"),
 		Miss.Trace.Damage.bResolved);
 
@@ -456,34 +450,32 @@ bool FGridARMEMENT0110337LabeledComponents::RunTest(const FString&)
 	Action.AccuracyBonus = -2;
 	const FGridAttackResult Modified =
 		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 5, 2);
-	const FString ModifierBreakdown = UGridCombatTooltipWidget::BuildDisplayTexts(
-		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Modified)))
-			.Attack.ToString();
+	const FGridCombatTooltipDetailTexts ModifierBreakdown =
+		UGridCombatTooltipWidget::BuildDetailTexts(
+			UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Modified)));
 	TestTrue(TEXT("Source accuracy +4 remains identifiable"),
-		ModifierBreakdown.Contains(TEXT("Précision de l'attaquant : +4")));
+		ModifierBreakdown.AttackSourceAccuracy.ToString().Contains(TEXT("Précision de l'attaquant : +4")));
 	TestTrue(TEXT("Negative action modifier remains identifiable"),
-		ModifierBreakdown.Contains(TEXT("Modificateur de l'attaque"))
-		&& ModifierBreakdown.Contains(TEXT("2")));
+		ModifierBreakdown.AttackActionAccuracy.ToString().Contains(TEXT("Modificateur de l'attaque"))
+		&& ModifierBreakdown.AttackActionAccuracy.ToString().Contains(TEXT("2")));
 	TestEqual(TEXT("Mechanical attack total remains authoritative"), Modified.Trace.Attack.FinalValue, 7);
 
 	Source.Accuracy = 0;
 	Action.AccuracyBonus = 0;
 	const FGridAttackResult Bare =
 		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 5, 2);
-	const FString BareText = UGridCombatTooltipWidget::BuildDisplayTexts(
-		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Bare)))
-			.Attack.ToString();
-	TestFalse(TEXT("Zero attacker accuracy does not pollute tooltip"),
-		BareText.Contains(TEXT("Précision de l'attaquant")));
-	TestFalse(TEXT("Zero action accuracy does not pollute tooltip"),
-		BareText.Contains(TEXT("Modificateur de l'attaque")));
+	const FGridCombatTooltipDetailTexts BareText =
+		UGridCombatTooltipWidget::BuildDetailTexts(
+			UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Bare)));
+	TestTrue(TEXT("Zero attacker accuracy collapses its own field"), BareText.AttackSourceAccuracy.IsEmpty());
+	TestTrue(TEXT("Zero action accuracy collapses its own field"), BareText.AttackActionAccuracy.IsEmpty());
 
 	const FGridAttackResult Hit =
 		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 13, 2);
 	TestTrue(TEXT("Hit mechanically resolves"), Hit.bHit);
-	const FString HitOutcome = UGridCombatTooltipWidget::BuildDisplayTexts(
+	const FString HitOutcome = UGridCombatTooltipWidget::BuildDetailTexts(
 		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Hit)))
-			.Defense.ToString();
+			.AttackOutcome.ToString();
 	TestTrue(TEXT("Successful numerical comparison is explained"), HitOutcome.Contains(TEXT("TOUCHÉ"))
 		&& HitOutcome.Contains(TEXT("13")) && HitOutcome.Contains(TEXT("11")));
 	return true;
@@ -507,9 +499,9 @@ bool FGridARMEMENT0110337ExceptionalOutcomes::RunTest(const FString&)
 	const FGridAttackResult NaturalMiss =
 		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 1, 2);
 	TestFalse(TEXT("Natural 1 loses even with huge accuracy"), NaturalMiss.bHit);
-	const FString NaturalMissText = UGridCombatTooltipWidget::BuildDisplayTexts(
-		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(NaturalMiss)))
-			.Defense.ToString();
+	const FGridCombatTooltipDetailTexts NaturalMissTextFields = UGridCombatTooltipWidget::BuildDetailTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(NaturalMiss)));
+	const FString NaturalMissText = NaturalMissTextFields.AttackOutcome.ToString();
 	TestTrue(TEXT("Natural 1 is described as an automatic miss"),
 		NaturalMissText.Contains(TEXT("ÉCHEC automatique"))
 		&& NaturalMissText.Contains(TEXT("1 naturel")));
@@ -520,9 +512,9 @@ bool FGridARMEMENT0110337ExceptionalOutcomes::RunTest(const FString&)
 		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 20, 2);
 	TestTrue(TEXT("Natural 20 hits despite low total"), NaturalHit.bHit);
 	TestTrue(TEXT("Critical chance 5 percent accepts natural 20"), NaturalHit.bCriticalHit);
-	const FString CriticalText = UGridCombatTooltipWidget::BuildDisplayTexts(
-		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(NaturalHit)))
-			.Defense.ToString();
+	const FGridCombatTooltipDetailTexts CriticalTextFields = UGridCombatTooltipWidget::BuildDetailTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(NaturalHit)));
+	const FString CriticalText = CriticalTextFields.AttackOutcome.ToString() + TEXT(" ") + CriticalTextFields.AttackCritical.ToString();
 	TestTrue(TEXT("Natural 20 explicitly overrides numeric comparison"),
 		CriticalText.Contains(TEXT("TOUCHÉ automatiquement")));
 	TestTrue(TEXT("Critical hit is explained by natural roll and threshold"),
@@ -533,21 +525,21 @@ bool FGridARMEMENT0110337ExceptionalOutcomes::RunTest(const FString&)
 	const FGridAttackResult GuaranteedHit =
 		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 1, 2);
 	TestTrue(TEXT("Guaranteed hit takes priority over natural 1"), GuaranteedHit.bHit);
-	const FString GuaranteedText = UGridCombatTooltipWidget::BuildDisplayTexts(
-		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(GuaranteedHit)))
-			.Defense.ToString();
+	const FGridCombatTooltipDetailTexts GuaranteedTextFields = UGridCombatTooltipWidget::BuildDetailTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(GuaranteedHit)));
+	const FString GuaranteedText = GuaranteedTextFields.AttackOutcome.ToString();
 	TestTrue(TEXT("Guaranteed hit explicitly identified"),
 		GuaranteedText.Contains(TEXT("toucher garanti")));
 
 	const FGridAttackResult Direct =
 		FGridCombatResolver::ResolveDirectDamage(Target, EGridDamageType::Physical, 3);
 	TestTrue(TEXT("Direct damage resolves without an attack roll"), Direct.bHit);
-	const FGridCombatTooltipDisplayTexts DirectText = UGridCombatTooltipWidget::BuildDisplayTexts(
+	const FGridCombatTooltipDetailTexts DirectText = UGridCombatTooltipWidget::BuildDetailTexts(
 		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Direct)));
 	TestTrue(TEXT("Direct damage does not invent a natural d20"),
-		DirectText.Attack.ToString().Contains(TEXT("aucun jet d'attaque")));
+		DirectText.AttackDice.ToString().Contains(TEXT("aucun jet d'attaque")));
 	TestTrue(TEXT("Direct damage does not invent a defense comparison"),
-		DirectText.Defense.ToString().Contains(TEXT("Sans jet de défense")));
+		DirectText.DefenseBase.ToString().Contains(TEXT("Sans jet de défense")));
 	return true;
 }
 
@@ -594,14 +586,14 @@ bool FGridARMEMENT0110338DesignerSeparatedLines::RunTest(const FString&)
 	TestTrue(TEXT("Non-critical hits have no critical line"),
 		Fields.AttackCritical.IsEmpty());
 
-	// No structural or localizable text changes may affect legacy WBP output.
-	const FGridCombatTooltipDisplayTexts Legacy =
+	// Structured values come solely from independent designer-bound fields.
+	// No legacy multiline presentation is built or asserted.
+	const FGridCombatTooltipDisplayTexts NonDetail =
 		UGridCombatTooltipWidget::BuildDisplayTexts(Data);
-	TestTrue(TEXT("Legacy multiline fallback still explains both bonuses"),
-		Legacy.Attack.ToString().Contains(Fields.AttackSourceAccuracy.ToString())
-		&& Legacy.Attack.ToString().Contains(Fields.AttackActionAccuracy.ToString()));
-	TestTrue(TEXT("Legacy multiline fallback still includes the same outcome"),
-		Legacy.Defense.ToString().Contains(Fields.AttackOutcome.ToString()));
+	TestTrue(TEXT("Remaining damage text still has its independent field"),
+		!NonDetail.Damage.IsEmpty());
+	TestTrue(TEXT("Remaining health text still has its independent field"),
+		!NonDetail.Health.IsEmpty());
 
 	Source.Accuracy = 0;
 	Attack.AccuracyBonus = 0;
@@ -634,6 +626,39 @@ bool FGridARMEMENT0110338DesignerSeparatedLines::RunTest(const FString&)
 		FGridCombatTooltipViewData{});
 	TestTrue(TEXT("Invalid snapshots do not fabricate UI lines"),
 		Empty.AttackDice.IsEmpty() && Empty.AttackOutcome.IsEmpty());
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT0110339NoLegacyBindings,
+	"Grimrock.RPG.ARMEMENT01.10.3.3.9.NoLegacyBindings",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridARMEMENT0110339NoLegacyBindings::RunTest(const FString&)
+{
+	const UClass* TooltipClass = UGridCombatTooltipWidget::StaticClass();
+	TestTrue(TEXT("Old combined Text_Attack widget binding was removed"),
+		TooltipClass->FindPropertyByName(TEXT("Text_Attack")) == nullptr);
+	TestTrue(TEXT("Old combined Text_Defense widget binding was removed"),
+		TooltipClass->FindPropertyByName(TEXT("Text_Defense")) == nullptr);
+	TestTrue(TEXT("Obsolete PresentCombatTooltip BlueprintNativeEvent was removed"),
+		TooltipClass->FindFunctionByName(TEXT("PresentCombatTooltip")) == nullptr);
+
+	// Each component must be independently bindable from the UMG Designer.
+	static const TCHAR* RequiredFields[] = {
+		TEXT("Text_AttackDice"), TEXT("Text_AttackSourceAccuracy"),
+		TEXT("Text_AttackActionAccuracy"), TEXT("Text_AttackTotal"),
+		TEXT("Text_DefenseBase"), TEXT("Text_DefenseEvasion"),
+		TEXT("Text_DefenseTotal"), TEXT("Text_AttackOutcome"),
+		TEXT("Text_AttackCritical"), TEXT("Text_Damage"),
+		TEXT("Text_Health"), TEXT("Text_Status"),
+		TEXT("VerticalBox_AbsorptionSection"), TEXT("VerticalBox_ArmorRows")
+	};
+	for (const TCHAR* Field : RequiredFields)
+	{
+		const FString Message = FString::Printf(TEXT("UMG contract still has %s"), Field);
+		TestTrue(*Message, TooltipClass->FindPropertyByName(FName(Field)) != nullptr);
+	}
 	return true;
 }
 

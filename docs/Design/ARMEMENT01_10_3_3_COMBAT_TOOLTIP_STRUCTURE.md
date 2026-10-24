@@ -1,5 +1,7 @@
 # ARMEMENT01.10.3.3 — Combat Tooltip structuré : C++ logique, Designer UMG présentation
 
+**RECTIFICATIF DE CLÔTURE ARMEMENT01.10.3.3.9 (24.10.2026) :** le nettoyage natif supprime définitivement `Text_Attack`, `Text_Defense`, `PresentCombatTooltip`, la projection `FGridCombatTooltipDiceNumbers` et le fallback multiligne associé. **Les sections historiques 3 et 4.3 conservent l'ordre des anciennes migrations ; pour toute intervention actuelle, appliquer UNIQUEMENT la procédure §4.4 ci-dessous.** Le journal d'événements dispose toujours d'un fallback textuel indépendant, qui n'est pas un ancien WBP à conserver. **8 tests attendus** après compilation du correctif ; aucune modification de `UI.csv` ou d'asset binaire dans ce commit C++.
+
 **Rectification d'architecture (24 octobre 2026) — ARMEMENT01.10.3.3.4.**  
 **Statut au 24.10.2026 :** **compilation et tests C++ de ARMEMENT01.10.3.3.4 VALIDÉS localement : 3/3, 0 erreur, 0 avertissement**, rapport `Saved/Automation/TD04/TD04-20261024-152922`. L'utilisateur indique avoir affecté `Armor Row Widget Class = WBP_GridCombatArmorRow` et que l'interface semble fonctionner en PIE. **Clôture graphique non encore démontrée par une capture complète ; nettoyages UMG et versionnement des deux WBP encore à confirmer.**  
 **Règle permanente :** [UI_UMG_PRESENTATION_CONTRACT.md](../UI_UMG_PRESENTATION_CONTRACT.md). Localisation : [UI_WBP_LOCALIZATION_WORKFLOW.md](../UI_WBP_LOCALIZATION_WORKFLOW.md).
@@ -305,6 +307,86 @@ git pull --ff-only origin master
 **Attendu : 7/7 tests** (six tests précédents déjà validés plus `Grimrock.RPG.ARMEMENT01.10.3.3.8.IndependentDesignerTexts`). Vérifier ensuite le WBP sous UE et une capture PIE. Pas de validation des neuf bindings UMG par le seul filtre de tests C++ ; ce sont des assets binaires **locaux**.
 
 **À ne pas faire :** supprimer les deux vieux TextBlocks, restaurer les .uasset depuis Git, appliquer le stash `UI.csv` sans comparer, ni modifier manuellement le C++ pour un changement de police ou de colonnes. Le CSV et le contenu local sont sous la responsabilité du développeur, qui récupère ses changements indépendamment.
+
+## 4.4 — ARMEMENT01.10.3.3.9 : nettoyage définitif sans fallback UI obsolète
+
+**Prérequis confirmé par l'utilisateur :** les neuf nouvelles lignes de la tooltip fonctionnent en PIE ; test `Grimrock.RPG.ARMEMENT01.10.3.3` **7/7 réussis** dans `Saved/Automation/TD04/TD04-20261024-200621`, zéro avertissement/échec. Les deux WBP et `ST_UI.uasset` sont versionnés dans le commit utilisateur `92c1d234 ARMEMENT tooltip closure`. Ce nettoyage ne change ni les règles RPG, ni les statistiques ni les textes du CSV.
+
+### Règle de suppression
+
+| Élément | Action |
+|---|---|
+| `WBP_GridCombatTooltip → Text_Attack` | **SUPPRIMER** du Designer |
+| `WBP_GridCombatTooltip → Text_Defense` | **SUPPRIMER** du Designer |
+| `PresentCombatTooltip` (ancien override/Graph) | **SUPPRIMER** dans My Blueprint / Overrides |
+| Variables BP `Fmt_*` inutilisées | **SUPPRIMER** des variables Blueprint |
+| Anciens `Event Construct` et `SetText` dans `WBP_GridCombatArmorRow` | **SUPPRIMER** si présents |
+| `Text_AttackDice`, `Text_AttackSourceAccuracy`, `Text_AttackActionAccuracy`, `Text_AttackTotal`, `Text_DefenseBase`, `Text_DefenseEvasion`, `Text_DefenseTotal`, `Text_AttackOutcome`, `Text_AttackCritical` | **CONSERVER impérativement** avec `Is Variable` |
+| `Text_Damage`, `Text_Health`, `Text_Status`, personnages et sections ABSORPTION | **CONSERVER impérativement** |
+| Titres statiques « Jet d'attaque », « Défense » dans le Designer | **CONSERVER ou réorganiser librement** ; supprimer uniquement les anciens contenus dynamiques redondants |
+| `WBP_GridEventFeed → Combat Tooltip Widget Class` | **CONSERVER** la référence au WBP principal |
+| Les deux WBP et `ST_UI.uasset` | **CONSERVER** les fichiers binaires et leurs styles, ne pas les recréer |
+
+Le C++ est désormais l'autorité **exclusive** des neuf TextBlocks. Les anciens noms C++ et la fonction native obsolète sont supprimés ; il n'y a plus de branche « neuf champs → sinon deux anciens blocs ». L'ancienne projection virtuelle de dés `AttackDice` n'était utilisée que par le vieux Graph : elle est supprimée et les tests vérifient directement le format final du résolveur.
+
+**Important :** le repli **générique de l'Event Feed**, déjà indépendant de cette infobulle, est conservé en cas de classe Blueprint absente ou mal configurée : il évite un tooltip vide. Ce mécanisme n'est PAS le fallback `Text_Attack/Text_Defense` supprimé.
+
+### Ordre d'opérations — NE PAS inverser
+
+**A. Sauvegarde des fichiers binaires avec UE fermé**, avant de toucher au Designer :
+
+~~~powershell
+cd D:\Development\GrimrockPrototype
+$source = "Content\GrimrockPrototype\Blueprints\UI\EventFeed"
+$backup = "Saved\Backups\ARMEMENT0110339_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+New-Item -ItemType Directory -Force -Path $backup | Out-Null
+Copy-Item "$source\WBP_GridCombatTooltip.uasset" $backup
+Copy-Item "$source\WBP_GridCombatArmorRow.uasset" $backup
+git status --short
+~~~
+
+**B. AVANT de récupérer la version C++ nettoyée**, ouvrir le projet dans **Unreal Editor avec le C++ ancien** : l'ancien `PresentCombatTooltip` existe encore et peut être retiré proprement de l'asset Blueprint. Modifier seulement :
+
+- `/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatTooltip` : supprimer `Text_Attack` et `Text_Defense` du Designer, sans supprimer les titres statiques si on souhaite les conserver. Si les conteneurs `HorizontalBox_Attack` / `HorizontalBox_Defense` deviennent vides, les réagencer dans le Designer.
+- Supprimer l'override `PresentCombatTooltip` de **My Blueprint → Functions** (Remove Override / suppression selon version), ainsi que les variables `Fmt_*` inutilisées.
+- `WBP_GridCombatArmorRow` : retirer uniquement les restes du Graph/variable `ArmorRow` s'ils existent.
+- Vérifier chaque `TextBlock` requis (les neuf nouveaux + `Text_Damage`, `Text_Health`, `Text_Status`), leurs noms exacts et `Is Variable`.
+- **Compile → Save** les deux WBP. Fermer ensuite Unreal Editor. Ne pas tester le PIE entre B et C : le C++ ancien demande encore ses vieux TextBlocks à l'exécution.
+
+**C. Mise à jour C++ sur master, les assets locaux restent protégés :**
+
+~~~powershell
+cd D:\Development\GrimrockPrototype
+git status --short
+git pull --ff-only origin master
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.10.3.3"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.10"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.EventHUD01"
+~~~
+
+Attendu pour le filtre ciblé : **8/8 tests**, dont le nouveau `Grimrock.RPG.ARMEMENT01.10.3.3.9.NoLegacyBindings` qui vérifie l'absence de membres natifs obsolètes et la présence des 14 propriétés UMG nécessaires. Les deux autres filtres sont des **régressions** et leur nombre exact de tests dépend de la suite actuelle.
+
+**D. Ouvrir UE, compiler les WBP, tester en PIE** : résultats séparés du dé, précision et défense, coup normal, coup manqué, bouclier 5→1 puis 1→0 et 0→0 ; section d'armure invisible à zéro ; aucun ancien texte double ni Graph résiduel. Captures à conserver.
+
+**E. Versionnement sélectif des binaires nettoyés**, après sauvegarde sous UE et validation PIE :
+
+~~~powershell
+git status --short
+git add -- "Content/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatTooltip.uasset" "Content/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatArmorRow.uasset"
+git diff --cached --name-only
+git commit -m "ARMEMENT01.10.3.3.9: remove obsolete combat tooltip WBP graph and fields"
+git push origin master
+~~~
+
+Ne pas lancer `git add .` ni `git restore` sur les assets d'autres fonctionnalités. Les binaires restent gérés par **Git LFS**. Si un WBP ne s'est pas modifié, ne pas l'ajouter artificiellement ; vérifier ce qui a réellement été sauvegardé.
+
+### Critères de clôture
+
+- C++ compile, test ciblé **8/8**, régressions ARMEMENT01.10 et EventHUD01 réussies.
+- Aucun `Text_Attack`, `Text_Defense`, `Fmt_*` ou override `PresentCombatTooltip` résiduel dans le WBP.
+- Les neuf champs du Designer restent indépendamment stylables, sans police/marge forcée depuis C++.
+- PIE : données exactes, statuts de bouclier, sections masquées sans bruit.
+- Les deux WBP nettoyés sont sauvegardés dans UE et versionnés sélectivement. **Ne pas déclarer le nettoyage intégral achevé avant ces preuves.**
 
 ## 5. Nettoyage final sûr — **sans casser le WBP qui fonctionne**
 

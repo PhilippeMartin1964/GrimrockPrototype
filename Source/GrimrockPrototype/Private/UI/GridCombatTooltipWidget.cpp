@@ -147,18 +147,6 @@ namespace
 		return Lines;
 	}
 
-	FText JoinPresentLines(const TArray<FText>& Candidates)
-	{
-		TArray<FText> NonEmptyLines;
-		for (const FText& Candidate : Candidates)
-		{
-			if (!Candidate.IsEmpty())
-			{
-				NonEmptyLines.Add(Candidate);
-			}
-		}
-		return FText::Join(FText::FromString(TEXT("\n")), NonEmptyLines);
-	}
 
 	void SetDesignerLine(UTextBlock* TextBlock, const FText& Text)
 	{
@@ -184,28 +172,6 @@ FGridCombatTooltipViewData UGridCombatTooltipWidget::BuildViewData(const FGridHu
 	Data.Attacker = Entry.CombatAttacker;
 	Data.Defender = Entry.CombatDefender;
 	Data.Trace = Entry.CombatTooltipTrace;
-
-	const FGridCombatRollTrace& Roll = Data.Trace.Attack.Roll;
-	FGridCombatTooltipDiceNumbers& Dice = Data.AttackDice;
-	Dice.Total = Roll.FinalValue;
-	if (Roll.bUsed && Roll.Kind == EGridCombatRollTraceKind::Die
-		&& Roll.DiceCount > 0 && Roll.DiceSides > 0)
-	{
-		Dice.bHasDice = true;
-		Dice.Count = Roll.DiceCount;
-		Dice.Sides = Roll.DiceSides;
-		Dice.Offset = Roll.DiceFlatBonus;
-		Dice.Rolled = Roll.FinalValue - Roll.DiceFlatBonus;
-	}
-	else if (Roll.bUsed && Roll.Kind == EGridCombatRollTraceKind::Range
-		&& Roll.Maximum >= Roll.Minimum)
-	{
-		Dice.bHasDice = true;
-		Dice.Count = 1;
-		Dice.Sides = Roll.Maximum - Roll.Minimum + 1;
-		Dice.Offset = Roll.Minimum - 1;
-		Dice.Rolled = Roll.FinalValue - Dice.Offset;
-	}
 
 	const FGridCombatDamageTrace& Damage = Data.Trace.Damage;
 	if (!Damage.bResolved)
@@ -269,24 +235,6 @@ FGridCombatTooltipDisplayTexts UGridCombatTooltipWidget::BuildDisplayTexts(
 	Texts.Defender = Data.Defender.IsEmpty()
 		? FUILocalizationText::Get(TEXT("Combat.Tooltip.Label.Defender")) : Data.Defender;
 
-	// The same named lines supply both the legacy multiline presentation
-	// and the individually stylable .8 Designer TextBlocks.
-	const FGridCombatTooltipDetailTexts Detail = BuildDetailTexts(Data);
-	TArray<FText> AttackLines;
-	AttackLines.Add(Detail.AttackDice);
-	AttackLines.Add(Detail.AttackSourceAccuracy);
-	AttackLines.Add(Detail.AttackActionAccuracy);
-	AttackLines.Add(Detail.AttackTotal);
-	Texts.Attack = JoinPresentLines(AttackLines);
-
-	TArray<FText> DefenseLines;
-	DefenseLines.Add(Detail.DefenseBase);
-	DefenseLines.Add(Detail.DefenseEvasion);
-	DefenseLines.Add(Detail.DefenseTotal);
-	DefenseLines.Add(Detail.AttackOutcome);
-	DefenseLines.Add(Detail.AttackCritical);
-	Texts.Defense = JoinPresentLines(DefenseLines);
-
 	const FGridCombatDamageTrace& Damage = Data.Trace.Damage;
 	if (Damage.bResolved)
 	{
@@ -336,7 +284,13 @@ bool UGridCombatTooltipWidget::PopulateDesignerWidgets(
 {
 	// Only bind to existing Designer components. Never create or position cells,
 	// set fonts, colors, padding or any other graphic property from C++.
-	if (!Text_Attacker || !Text_Defender || !Text_Attack || !Text_Defense
+	// All nine separate Designer fields are required (no legacy multiline UI).
+	// The Event Feed still provides a generic text tooltip if this WBP is incomplete.
+	if (!Text_Attacker || !Text_Defender
+		|| !Text_AttackDice || !Text_AttackSourceAccuracy
+		|| !Text_AttackActionAccuracy || !Text_AttackTotal
+		|| !Text_DefenseBase || !Text_DefenseEvasion
+		|| !Text_DefenseTotal || !Text_AttackOutcome || !Text_AttackCritical
 		|| !Text_Damage || !Text_Health || !Text_Status
 		|| !VerticalBox_AbsorptionSection || !VerticalBox_ArmorRows
 		|| (Data.bShowAbsorption && !ArmorRowWidgetClass))
@@ -347,42 +301,16 @@ bool UGridCombatTooltipWidget::PopulateDesignerWidgets(
 	const FGridCombatTooltipDisplayTexts Texts = BuildDisplayTexts(Data);
 	Text_Attacker->SetText(Texts.Attacker);
 	Text_Defender->SetText(Texts.Defender);
-	// Atomic migration: every one of the nine .8 fields must exist. Until
-	// then the two old combined TextBlocks remain the fully working fallback.
-	const bool bHasCompleteDetailLayout =
-		Text_AttackDice && Text_AttackSourceAccuracy && Text_AttackActionAccuracy
-		&& Text_AttackTotal && Text_DefenseBase && Text_DefenseEvasion
-		&& Text_DefenseTotal && Text_AttackOutcome && Text_AttackCritical;
-	if (bHasCompleteDetailLayout)
-	{
-		const FGridCombatTooltipDetailTexts Detail = BuildDetailTexts(Data);
-		SetDesignerLine(Text_AttackDice, Detail.AttackDice);
-		SetDesignerLine(Text_AttackSourceAccuracy, Detail.AttackSourceAccuracy);
-		SetDesignerLine(Text_AttackActionAccuracy, Detail.AttackActionAccuracy);
-		SetDesignerLine(Text_AttackTotal, Detail.AttackTotal);
-		SetDesignerLine(Text_DefenseBase, Detail.DefenseBase);
-		SetDesignerLine(Text_DefenseEvasion, Detail.DefenseEvasion);
-		SetDesignerLine(Text_DefenseTotal, Detail.DefenseTotal);
-		SetDesignerLine(Text_AttackOutcome, Detail.AttackOutcome);
-		SetDesignerLine(Text_AttackCritical, Detail.AttackCritical);
-		Text_Attack->SetVisibility(ESlateVisibility::Collapsed);
-		Text_Defense->SetVisibility(ESlateVisibility::Collapsed);
-	}
-	else
-	{
-		// A partially updated WBP must NEVER show duplicated descriptions.
-		SetDesignerLine(Text_Attack, Texts.Attack);
-		SetDesignerLine(Text_Defense, Texts.Defense);
-		SetDesignerLine(Text_AttackDice, FText::GetEmpty());
-		SetDesignerLine(Text_AttackSourceAccuracy, FText::GetEmpty());
-		SetDesignerLine(Text_AttackActionAccuracy, FText::GetEmpty());
-		SetDesignerLine(Text_AttackTotal, FText::GetEmpty());
-		SetDesignerLine(Text_DefenseBase, FText::GetEmpty());
-		SetDesignerLine(Text_DefenseEvasion, FText::GetEmpty());
-		SetDesignerLine(Text_DefenseTotal, FText::GetEmpty());
-		SetDesignerLine(Text_AttackOutcome, FText::GetEmpty());
-		SetDesignerLine(Text_AttackCritical, FText::GetEmpty());
-	}
+	const FGridCombatTooltipDetailTexts Detail = BuildDetailTexts(Data);
+	SetDesignerLine(Text_AttackDice, Detail.AttackDice);
+	SetDesignerLine(Text_AttackSourceAccuracy, Detail.AttackSourceAccuracy);
+	SetDesignerLine(Text_AttackActionAccuracy, Detail.AttackActionAccuracy);
+	SetDesignerLine(Text_AttackTotal, Detail.AttackTotal);
+	SetDesignerLine(Text_DefenseBase, Detail.DefenseBase);
+	SetDesignerLine(Text_DefenseEvasion, Detail.DefenseEvasion);
+	SetDesignerLine(Text_DefenseTotal, Detail.DefenseTotal);
+	SetDesignerLine(Text_AttackOutcome, Detail.AttackOutcome);
+	SetDesignerLine(Text_AttackCritical, Detail.AttackCritical);
 	Text_Damage->SetText(Texts.Damage);
 	Text_Health->SetText(Texts.Health);
 	Text_Status->SetText(Texts.Status);
@@ -411,10 +339,3 @@ bool UGridCombatTooltipWidget::PopulateDesignerWidgets(
 	return true;
 }
 
-bool UGridCombatTooltipWidget::PresentCombatTooltip_Implementation(
-	const FGridCombatTooltipViewData& /*Data*/)
-{
-	// Kept temporarily for Blueprint serialization/backward compatibility.
-	// The native presenter above never calls this obsolete Blueprint graph.
-	return false;
-}

@@ -11,7 +11,7 @@ Lire `docs/UI_UMG_PRESENTATION_CONTRACT.md` pour toute nouvelle UI / refonte.
 C++ = logique métier ET comportement de présentation : choix de contenus, formatage dynamique localisé via FUILocalizationText/FText::Format, SetText sur TextBlocks déjà authorés, visibilité des sections, CreateWidget d'un WBP complet de ligne et AddChild.
 WBP Designer = arbre visuel, police, taille, bordures, alignements, marges, couleur et colonnes éditables.
 Ne jamais construire des TextBlocks ou leur layout individuel en C++. Ne pas déplacer systématiquement le code dans les Event Graphs : éviter de recréer toute une logique en Blueprint. Graphs seulement pour les comportements qui s'y prêtent.
-Ancien PresentCombatTooltip = override temporairement conservé pour compatibilité, non appelé ; le nettoyer en UMG. Garder fallback en cas d'asset incomplet.
+ARMEMENT01.10.3.3.9 : les anciens Text_Attack/Text_Defense, la projection AttackDice et PresentCombatTooltip sont supprimés du C++. Supprimer d'abord l'override et les variables/widget obsolètes **dans Unreal Editor**, compiler/sauvegarder les WBP puis installer le C++ nettoyé. Conserver uniquement le fallback textuel GÉNÉRIQUE de l'Event Feed si le WBP structuré manque, pas les anciennes lignes graphiques.
 
 RÈGLE PERMANENTE LOCALISATION WBP :
 Tout texte UI/WBP nouveau ou modifié déclenche la checklist `docs/UI_WBP_LOCALIZATION_WORKFLOW.md`.

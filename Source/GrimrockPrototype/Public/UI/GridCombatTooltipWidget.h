@@ -11,34 +11,6 @@ class UWidget;
 class UGridCombatArmorRowWidget;
 
 /**
- * Numeric dice projection retained for compatibility and tests.
- * The native presenter now formats dice and signs in C++, not Blueprint.
- */
-USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCombatTooltipDiceNumbers
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip|Dice")
-	bool bHasDice = false;
-
-	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip|Dice")
-	int32 Count = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip|Dice")
-	int32 Sides = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip|Dice")
-	int32 Rolled = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip|Dice")
-	int32 Offset = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip|Dice")
-	int32 Total = 0;
-};
-
-/**
  * Read-only, historical combat data. The native class formats this data into
  * localized FText, then sets existing UMG TextBlocks without altering their style.
  */
@@ -59,10 +31,6 @@ struct GRIMROCKPROTOTYPE_API FGridCombatTooltipViewData
 	/** Raw attack, defense, damage and health snapshot for C++ formatting. */
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FGridCombatResolutionTrace Trace;
-
-	/** Legacy Blueprint-compatible dice projection, retained until WBP cleanup. */
-	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
-	FGridCombatTooltipDiceNumbers AttackDice;
 
 	/** Entire ABSORPTION section is hidden when this is false. */
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
@@ -92,12 +60,6 @@ struct GRIMROCKPROTOTYPE_API FGridCombatTooltipDisplayTexts
 
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FText Defender;
-
-	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
-	FText Attack;
-
-	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
-	FText Defense;
 
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FText Damage;
@@ -141,7 +103,7 @@ class GRIMROCKPROTOTYPE_API UGridCombatTooltipWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	/** Return false to keep the legacy text tooltip when WBP setup is incomplete. */
+	/** Return false to use the Event Feed's generic text tooltip if a WBP is incomplete. */
 	UFUNCTION(BlueprintCallable, Category="Combat|Tooltip")
 	bool InitializeCombatTooltip(const FGridHudEventEntry& Entry);
 
@@ -161,24 +123,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Combat|Tooltip")
 	TSubclassOf<UGridCombatArmorRowWidget> ArmorRowWidgetClass;
 
-	/** Seven dynamic TextBlocks authored in the Designer; C++ assigns their content only. */
+	/** Main content is authored in UMG; C++ supplies localized values only. */
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_Attacker;
 
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_Defender;
 
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_Attack;
-
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_Defense;
-
-	/**
-	 * Optional ARMEMENT01.10.3.3.8 Designer fields. The nine fields form one
-	 * complete presentation contract; a partial WBP falls back to the two
-	 * existing legacy text blocks, never a half-rendered mixture.
-	 */
+	/** Nine required, independently editable Designer fields. */
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_AttackDice;
 
@@ -221,16 +173,6 @@ protected:
 
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VerticalBox_ArmorRows;
-
-	/**
-	 * Legacy Blueprint override kept ONLY for Blueprint asset compatibility
-	 * while old Event Graph nodes are manually removed in Unreal Editor.
-	 * InitializeCombatTooltip no longer invokes this method.
-	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Combat|Tooltip")
-	bool PresentCombatTooltip(const FGridCombatTooltipViewData& Data);
-
-	virtual bool PresentCombatTooltip_Implementation(const FGridCombatTooltipViewData& Data);
 
 private:
 	bool PopulateDesignerWidgets(const FGridCombatTooltipViewData& Data);
