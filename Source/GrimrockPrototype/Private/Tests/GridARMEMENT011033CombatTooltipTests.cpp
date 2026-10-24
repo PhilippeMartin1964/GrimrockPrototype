@@ -161,7 +161,7 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 	TestTrue(TEXT("Pure read model is valid"), TooltipData.bValid);
 	TestTrue(TEXT("Tooltip exposes its raw combat trace"), TooltipData.Trace.bValid);
 	TestTrue(TEXT("Positive absorption displays the entire section"), TooltipData.bShowAbsorption);
-	TestEqual(TEXT("One visible row in authored Blueprint layout"), TooltipData.VisibleArmorRows.Num(), 1);
+	TestEqual(TEXT("One absorbed source passed to native row presenter"), TooltipData.VisibleArmorRows.Num(), 1);
 	TestEqual(TEXT("Raw source value remains 5"), TooltipData.VisibleArmorRows[0].Before, 5);
 	TestEqual(TEXT("Raw absorbed value remains 4"), TooltipData.VisibleArmorRows[0].Absorbed, 4);
 	TestEqual(TEXT("Raw after value remains 1"), TooltipData.VisibleArmorRows[0].After, 1);
@@ -174,7 +174,7 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 	TestTrue(TEXT("C++ prepares a localized damage string"), !BeforeText.Damage.IsEmpty());
 	TestTrue(TEXT("C++ prepares a localized health string"), !BeforeText.Health.IsEmpty());
 	TestFalse(TEXT("No warning before protection depletion"), BeforeText.bShowStatus);
-	// Numeric dice projection is data only; WBP owns the localized notation.
+	// Compatibility projection remains tested; the native presenter now formats the localized dice text.
 	FGridHudEventEntry SyntheticDiceEntry = Feed;
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.bUsed = true;
 	SyntheticDiceEntry.CombatTooltipTrace.Attack.Roll.Kind = EGridCombatRollTraceKind::Range;
@@ -298,7 +298,7 @@ bool FGridARMEMENT011033MultipleSources::RunTest(const FString&)
 	const FGridCombatTooltipViewData MultipleView = UGridCombatTooltipWidget::BuildViewData(
 		ARMEMENT011033::MakeTooltipEntry(Hit));
 	TestTrue(TEXT("Multiple sources show absorption section"), MultipleView.bShowAbsorption);
-	TestEqual(TEXT("Two sources flow to the authored WBP"), MultipleView.VisibleArmorRows.Num(), 2);
+	TestEqual(TEXT("Two sources supplied to native WBP-row instantiation"), MultipleView.VisibleArmorRows.Num(), 2);
 	if (Rows.Num() != 2) return false;
 	TestTrue(TEXT("First source is the equipped shield"), Rows[0].bEquipment);
 	TestEqual(TEXT("Shield absorbs its full five"), Rows[0].Absorbed, 5);

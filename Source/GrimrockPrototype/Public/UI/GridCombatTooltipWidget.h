@@ -60,7 +60,7 @@ struct GRIMROCKPROTOTYPE_API FGridCombatTooltipViewData
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FGridCombatResolutionTrace Trace;
 
-	/** Mechanical dice projection also used by regression tests. */
+	/** Legacy Blueprint-compatible dice projection, retained until WBP cleanup. */
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FGridCombatTooltipDiceNumbers AttackDice;
 
@@ -142,7 +142,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Combat|Tooltip")
 	TSubclassOf<UGridCombatArmorRowWidget> ArmorRowWidgetClass;
 
-	/** The eight designer-authored variable widgets; C++ only assigns text. */
+	/** Seven dynamic TextBlocks authored in the Designer; C++ assigns their content only. */
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_Attacker;
 

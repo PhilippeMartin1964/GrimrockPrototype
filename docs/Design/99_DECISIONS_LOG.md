@@ -1432,3 +1432,14 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Application concrète : `UGridCombatTooltipWidget` alimente `WBP_GridCombatTooltip`, et `UGridCombatArmorRowWidget` alimente les quatre TextBlocks de `WBP_GridCombatArmorRow`. Reparenting et suppression des Graphs historiques à réaliser dans UE Editor, sans édition binaire des `.uasset`.
 - Les anciennes infobulles textuelles restent le repli jusqu'à validation PIE. Tests C++ et capture UMG nécessaires avant clôture du jalon.
 - Référence permanente : `docs/UI_UMG_PRESENTATION_CONTRACT.md` ; localisation : `docs/UI_WBP_LOCALIZATION_WORKFLOW.md`.
+
+---
+
+## 2026-10-24 — ARMEMENT01.10.3.3.4 : validation C++ et clôture restante
+
+- Les tests ciblés sur le présentateur C++ ont **réussi 3/3**, 0 avertissement, 0 échec, code de sortie 0 : rapport utilisateur `Saved/Automation/TD04/TD04-20261024-152922`.
+- L'utilisateur a indiqué avoir réglé la propriété `Armor Row Widget Class` du WBP principal, avec un résultat paraissant fonctionnel. **Aucune preuve complète de PIE ni de nettoyage des Graphs n'a encore été fournie.**
+- Audit distant : les deux `WBP_GridCombatTooltip.uasset` et `WBP_GridCombatArmorRow.uasset` **ne sont pas encore présents dans `master`** sous `Content/GrimrockPrototype/Blueprints/UI/EventFeed/`. Il faut les enregistrer dans Unreal puis les versionner via Git LFS, dans un seul commit spécifique après la recette.
+- **Ne pas retirer `PresentCombatTooltip` du C++ avant la suppression de son override dans le WBP et la publication des assets nettoyés**. Conserver temporairement la compatibilité malgré le code inutilisé pour éviter des références Blueprint cassées.
+- Prochaine étape : nettoyage des Graphs en UE, tests `ARMEMENT01.10` et `EventHUD01`, capture PIE et commit des assets ; seulement ensuite supprimer le code de compatibilité, dans un jalon distinct.
+

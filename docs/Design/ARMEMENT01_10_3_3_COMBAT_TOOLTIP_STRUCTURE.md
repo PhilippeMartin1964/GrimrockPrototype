@@ -1,7 +1,7 @@
 # ARMEMENT01.10.3.3 — Combat Tooltip structuré : C++ logique, Designer UMG présentation
 
 **Rectification d'architecture (24 octobre 2026) — ARMEMENT01.10.3.3.4.**  
-**Statut :** code C++ préparé pour validation locale ; **WBP à adapter dans UE5.5.4 et rendu PIE non encore validé**. Les tests ARMEMENT01.10.3.3 avaient réussi **3/3 sur la version précédente** ; le correctif présent doit être revalidé.  
+**Statut au 24.10.2026 :** **compilation et tests C++ de ARMEMENT01.10.3.3.4 VALIDÉS localement : 3/3, 0 erreur, 0 avertissement**, rapport `Saved/Automation/TD04/TD04-20261024-152922`. L'utilisateur indique avoir affecté `Armor Row Widget Class = WBP_GridCombatArmorRow` et que l'interface semble fonctionner en PIE. **Clôture graphique non encore démontrée par une capture complète ; nettoyages UMG et versionnement des deux WBP encore à confirmer.**  
 **Règle permanente :** [UI_UMG_PRESENTATION_CONTRACT.md](../UI_UMG_PRESENTATION_CONTRACT.md). Localisation : [UI_WBP_LOCALIZATION_WORKFLOW.md](../UI_WBP_LOCALIZATION_WORKFLOW.md).
 
 ## 1. Ce que l'utilisateur a demandé (et ce qu'il n'a PAS demandé)
@@ -33,7 +33,7 @@ D:\Development\GrimrockPrototype\Content\GrimrockPrototype\Blueprints\UI\EventFe
   WBP_GridCombatArmorRow.uasset
 ```
 
-**Attention :** vous avez **déjà créé** `WBP_GridCombatArmorRow` avec les quatre `SizeBox` et `TextBlock`. **Ne pas le supprimer ni le recréer.** Il faut changer sa **Parent Class** depuis Unreal Editor.
+**Attention :** vous avez **déjà créé** `WBP_GridCombatArmorRow` avec les quatre `SizeBox` et `TextBlock`. **Ne pas le supprimer ni le recréer.** Son parent doit être `GridCombatArmorRowWidget` : vérifier ce point dans UE avant nettoyage. **Audit GitHub du 24.10.2026 : ces deux WBP ne sont pas encore suivis sous ces chemins dans `master`**, bien que `WBP_GridEventFeed.uasset` s'y trouve. La configuration locale ne sera pas reproductible tant qu'ils ne seront pas versionnés.
 
 ## 3. Petite intervention MANUELLE dans UE après validation C++
 
@@ -125,9 +125,43 @@ D:\Development\GrimrockPrototype\Content\GrimrockPrototype\Blueprints\UI\EventFe
 - Si le WBP est incomplet (TextBlocks manquants ou classe de ligne non renseignée), `InitializeCombatTooltip` retourne `false`, et `GridEventFeedWidget` conserve **une seule infobulle de repli** ; il n'affiche pas de cadre vide.
 - Pour faciliter le nettoyage des Blueprints déjà sauvegardés, l'ancienne fonction `PresentCombatTooltip` est **temporairement conservée dans la classe C++ mais n'est plus jamais appelée**. C'est un contrat de compatibilité transitoire, pas une logique secondaire.
 
-## 5. Recette / validation après publication
+## 5. Nettoyage final sûr — **sans casser le WBP qui fonctionne**
 
-**Ne pas déclarer le jalon validé sur la simple présence d'un commit GitHub.**
+**Ne pas entreprendre un nouveau refactor C++ pour « nettoyer » :** les structures historiques `FGridCombatTooltipDiceNumbers` et `FGridCombatTooltipViewData` et la fonction native `PresentCombatTooltip` subsistent temporairement pour la compatibilité avec l'asset Blueprint existant. `InitializeCombatTooltip` **n'appelle plus** `PresentCombatTooltip`. Supprimer aujourd'hui la déclaration C++ de cette fonction, sans vérifier d'abord sa suppression dans le WBP et la sauvegarde de l'asset, peut casser l'override sérialisé et le chargement du Blueprint.
+
+À effectuer **dans Unreal Editor, sans créer de nouvelle classe ni modifier le Designer** :
+
+1. **WBP_GridCombatArmorRow** : vérifier `Class Settings → Parent Class = GridCombatArmorRowWidget`. Garder les quatre SizeBox/TextBlock et tous leurs styles. Dans le **Graph**, supprimer les anciens `Event Construct`, `SetText`, `Break Grid Armor Absorption Source Trace` ; supprimer la variable Blueprint `ArmorRow` si plus utilisée. Compiler, enregistrer.
+2. **WBP_GridCombatTooltip** : garder le layout UMG ; retirer dans **My Blueprint → Functions → PresentCombatTooltip** l'**override** de formatage de l'ancienne approche (menu `Remove Override` / supprimer l'override suivant UE). Supprimer les variables `Fmt_*` qui ne sont plus référencées. Ne pas supprimer `Text_Status` ni `VerticalBox_ArmorRows` ! Compiler, enregistrer.
+3. **Class Defaults** du WBP principal : vérifier `Combat | Tooltip → Armor Row Widget Class = WBP_GridCombatArmorRow`. Le développeur a indiqué l'avoir déjà fait ; pas besoin de recommencer si la valeur est toujours bonne.
+4. Refaire un **PIE** (voir §6 ci-dessous) après la suppression des Graphs, afin de prouver que toute la logique passe exclusivement par C++.
+5. **Quitter Unreal Editor** une fois les deux WBP enregistrés. Contrôler les deux assets locaux (PowerShell) :
+
+   ~~~powershell
+   cd D:\Development\GrimrockPrototype
+   $dir = 'Content\GrimrockPrototype\Blueprints\UI\EventFeed'
+   Test-Path "$dir\WBP_GridCombatTooltip.uasset"
+   Test-Path "$dir\WBP_GridCombatArmorRow.uasset"
+   git status --short -- "$dir\WBP_GridCombatTooltip.uasset" "$dir\WBP_GridCombatArmorRow.uasset"
+   ~~~
+
+   Les deux `Test-Path` doivent retourner `True`. Ils sont suivis par **Git LFS** selon `.gitattributes` ; il faudra inclure leur contenu dans le dépôt, pas seulement les laisser dans `Content/` en local.
+6. **Après revue du statut Git**, et uniquement pour les deux WBP ci-dessus, versionner les assets Unreal sauvegardés dans un **seul commit atomique dédié** (ne pas inclure tous les changements locaux accidentellement) :
+
+   ~~~powershell
+   git add -- "Content/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatTooltip.uasset" "Content/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatArmorRow.uasset"
+   git diff --cached --name-only
+   git commit -m "ARMEMENT01.10.3.3.5: save authored combat tooltip WBP assets"
+   git push origin master
+   ~~~
+
+   **Ne pas lancer le commit avant** le rendu PIE concluant, la compilation/sauvegarde des deux WBP et la revue des modifications. En cas de changements locaux inattendus ou de push non fast-forward, ne pas forcer la publication.
+
+7. **Retrait définitif du vieux code C++** `PresentCombatTooltip` et, éventuellement, de la projection de dés `AttackDice` : **jalon de nettoyage distinct**, uniquement **après** vérification que les deux assets WBP propres, sans override ni ancienne variable, sont réellement versionnés. Ne pas supprimer un symbole qui peut encore être référencé par un asset non committé.
+
+## 6. Recette / validation après publication
+
+**Tests natifs : validés 3/3 le 24.10.2026** (rapport ci-dessus). Le filtre ciblé ne prouve pas le fonctionnement visuel des WBP ; les régressions et la validation PIE restent nécessaires pour la clôture intégrale.
 
 ```powershell
 cd D:\Development\GrimrockPrototype
@@ -149,4 +183,4 @@ Vérification PIE obligatoire :
 - cas d'attaque manquée, repli texte si les WBP sont incomplets et tooltips des boutons HUD inchangés ;
 - capture PIE et vérification des modifications `.uasset` créées **dans Unreal Editor**, puis versionnement atomique séparé de la matérialisation.
 
-**État final :** code C++ à compiler ; Blueprints à reparent/nettoyer/configurer dans UE ; tests et capture PIE à obtenir. Le travail est incomplet tant que ces preuves manquent.
+**État au 24.10.2026 :** C++ validé 3/3 ; réglage `Armor Row Widget Class` déclaré effectué et interface jugée fonctionnelle par l'utilisateur. Restent **l'inspection/nettoyage des Graphs**, **les régressions ARMEMENT01.10 et EventHUD01**, **la preuve de rendu PIE**, **le commit Git LFS des deux WBP**, puis **le retrait ultérieur du symbole C++ obsolète après publication des assets nettoyés**. Le jalon n'est pas encore totalement clos.
