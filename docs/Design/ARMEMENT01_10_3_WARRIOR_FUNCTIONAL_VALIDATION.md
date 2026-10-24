@@ -1,6 +1,6 @@
 # ARMEMENT01.10.3 — Validation fonctionnelle des quatre armes du premier lot Guerrier
 
-**Statut : tests ajoutés, exécution locale et campagne PIE EN ATTENTE.** Aucun résultat n'est déclaré PASS avant le rapport TD04.2 et les observations du testeur.
+**Mise à jour 24.10.2026 :** la suite complète `Grimrock.RPG.ARMEMENT01.10` est **validée localement 22/22**, zéro avertissement/échec/non-exécuté, rapport `TD04-20261024-204357`. Les cinq tests de ce lot appartiennent au filtre. **La campagne PIE P1–P7 reste NON TESTÉE** et ne doit pas être présentée comme validée. Procédure actualisée : [ARMEMENT01.10.3.4 — Recette PIE des quatre armes Guerrier N1](ARMEMENT01_10_3_4_WARRIOR_PIE_ACCEPTANCE.md).
 
 ## Périmètre et autorités
 
