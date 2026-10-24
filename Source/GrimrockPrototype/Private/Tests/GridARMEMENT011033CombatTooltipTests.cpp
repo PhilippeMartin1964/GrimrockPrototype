@@ -6,6 +6,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridEventFeedWidget.h"
+#include "UI/UILocalizationText.h"
 
 namespace ARMEMENT011033
 {
@@ -65,6 +66,54 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT011033ImpactSnapshot,
 
 bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 {
+	// The authored CSV alone is insufficient: all UI keys must exist in the
+	// actual ST_UI asset before the Combat Tooltip can be considered functional.
+	const TCHAR* RequiredLocalizationKeys[] = {
+		TEXT("Combat.Tooltip.Title"),
+		TEXT("Combat.Tooltip.Section.Attack"),
+		TEXT("Combat.Tooltip.Section.Absorption"),
+		TEXT("Combat.Tooltip.Section.Consequences"),
+		TEXT("Combat.Tooltip.Label.Attacker"),
+		TEXT("Combat.Tooltip.Label.Defender"),
+		TEXT("Combat.Tooltip.Label.Attack"),
+		TEXT("Combat.Tooltip.Label.Defense"),
+		TEXT("Combat.Tooltip.Label.Damage"),
+		TEXT("Combat.Tooltip.Label.Health"),
+		TEXT("Combat.Tooltip.Column.Source"),
+		TEXT("Combat.Tooltip.Column.Before"),
+		TEXT("Combat.Tooltip.Column.Absorbed"),
+		TEXT("Combat.Tooltip.Column.After"),
+		TEXT("Combat.Tooltip.Armor.Character"),
+		TEXT("Combat.Tooltip.Armor.DepletedSuffix"),
+		TEXT("Combat.Tooltip.Armor.DetailFormat"),
+		TEXT("Combat.Tooltip.Fallback.Armor"),
+		TEXT("Combat.Tooltip.Status.AlreadyDepletedNamed"),
+		TEXT("Combat.Tooltip.Status.DepletedNamed"),
+		TEXT("Combat.Tooltip.Value.AttackRoll"),
+		TEXT("Combat.Tooltip.Value.DefenseRoll"),
+		TEXT("Combat.Tooltip.Value.DamageResolved"),
+		TEXT("Combat.Tooltip.Value.HealthAfterAttack"),
+		TEXT("Combat.Tooltip.Value.NoDamage"),
+		TEXT("Combat.Tooltip.Value.NoHealthChange"),
+		TEXT("Combat.Feed.Compact.AttackDefense"),
+		TEXT("Combat.Feed.Compact.ArmorAbsorbed"),
+		TEXT("Combat.Feed.Compact.DamageLine"),
+		TEXT("Combat.Feed.Compact.HealthShort"),
+		TEXT("Combat.Feed.Compact.HealthTarget"),
+		TEXT("Combat.Feed.Compact.HealthTransition"),
+		TEXT("Combat.Feed.Compact.ResistanceStage")
+	};
+	bool bAllKeysMaterialized = true;
+	for (const TCHAR* Key : RequiredLocalizationKeys)
+	{
+		if (FUILocalizationText::Get(Key).IsEmpty())
+		{
+			AddError(FString::Printf(TEXT("ST_UI is missing a Combat Tooltip localization key: %s"), Key));
+			bAllKeysMaterialized = false;
+		}
+	}
+	if (!bAllKeysMaterialized) return false;
+
 	UGridItemDefinitionAsset* Definition = ARMEMENT011033::Shield();
 	if (!TestNotNull(TEXT("Real N1 round shield"), Definition)) return false;
 	TestEqual(TEXT("Canonical shield physical armor"), Definition->EquipmentStatBonus.ArmorBonus, 5);

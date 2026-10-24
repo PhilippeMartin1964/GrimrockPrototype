@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Fonts/SlateFontInfo.h"
 #include "Runtime/GridEventFeedTypes.h"
 #include "GridCombatTooltipWidget.generated.h"
 
@@ -26,10 +25,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FGridHudEventEntry CombatEntry;
 
-	/** Style defaults can be adjusted in WBP_GridCombatTooltip. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combat|Tooltip|Style")
-	FSlateFontInfo TableFont;
-
+	/** Dynamic armor rows copy their font from the WBP's Text_HeaderSource. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combat|Tooltip|Style")
 	FLinearColor NormalTextColor = FLinearColor(0.88f, 0.83f, 0.72f, 1.0f);
 

@@ -352,7 +352,8 @@ int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterInde
 	if (OutSources && BaseBefore > 0)
 	{
 		FGridArmorAbsorptionSourceTrace& Source = OutSources->AddDefaulted_GetRef();
-		Source.DisplayName = FText::FromString(TEXT("Armure du personnage"));
+		// The UI localizes the name of the character's base protection from bEquipment=false.
+		Source.DisplayName = FText::GetEmpty();
 		Source.bEquipment = false;
 		Source.Maximum = BaseBefore; // Base current resource, no invented max.
 		Source.Before = BaseBefore;

@@ -33,6 +33,8 @@ Le parent natif est `UGridCombatTooltipWidget` (nom affiché dans l'éditeur : `
 
 Les **14 clés statiques** ci-dessous sont déclarées dans `Localization/Source/UI.csv` et doivent être matérialisées dans `/Game/Localization/StringTables/ST_UI`. Il ne faut pas saisir les mots français directement dans les TextBlock du Designer.
 
+**Correctif des glyphes du 24.10.2026 :** le projet utilise aussi **19 clés de textes dynamiques et de résumé compact** sous `Combat.Tooltip.*` et `Combat.Feed.Compact.*`. Elles sont définies dans le même `UI.csv` (33 clés nouvelles au total depuis le début du jalon) ; elles **ne sont pas entrées dans les TextBlock** : elles sont lues au runtime par `FUILocalizationText` puis mises en forme avec `FText::Format`. Il faut donc **relancer `UIStringTableAuthoring` après le nouveau git pull**, même si vous l'avez déjà fait pour les 14 premières clés.
+
 | Texte affiché | Clé `ST_UI` |
 |---|---|
 | DÉTAILS DU COMBAT | `Combat.Tooltip.Title` |
@@ -63,7 +65,7 @@ Ce commandlet fait évoluer **localement** le vrai asset UE `Content/Localizatio
 
 Pour chaque libellé **statique** du WBP : dans **Details → Content → Text**, choisir **String Table**, sélectionner `ST_UI` et sa clé exacte. Ne pas créer de Text Binding Blueprint.
 
-Les champs **dynamiques** sont remplis par C++ avec des `FText` (noms de contenu et formules locales via `LOCTEXT`). Ils ne doivent avoir **aucun binding Designer / Graph** ; leur traduction hors français dépend de la collecte UE et reste à vérifier.
+Les champs **dynamiques** sont remplis par C++ avec des `FText` ; les nouveaux textes propres à cette infobulle utilisent désormais des **clés `ST_UI`** et non des littéraux français dans le C++. La traduction en anglais dépend toujours du pipeline de traduction `Game`, pas de la seule matérialisation. Ces champs ne doivent avoir **aucun binding Designer / Graph**.
 
 
 ### 3.2 Workflow COMPLET et obligatoire pour ce WBP
@@ -181,6 +183,10 @@ Dans le `HorizontalBox_ArmorHeader`, sélectionner successivement ses quatre Tex
 
 Le C++ attribue **ces mêmes proportions 2.5 : 1 : 1 : 1** aux lignes qu'il insère dans `VerticalBox_ArmorRows`, afin d'aligner en-tête et données. **Ne pas créer de ligne d'armure à la main** ni un nouveau `WBP_ArmorRow` : le C++ gère le nombre de sources.
 
+**Correction de l'affichage des caractères « A » encadrés :** l'ancienne propriété C++ `TableFont` a été supprimée. Les `UTextBlock` de chaque ligne dynamique prennent désormais automatiquement la **police de `Text_HeaderSource`**, qui doit conserver une police UMG valide (par exemple Alegreya Sans). Aucun réglage `TableFont` dans Class Defaults n'est nécessaire. Dans le Designer, vérifier que `Text_HeaderSource` existe sous **ce nom exact**, affiche correctement « Protection » et utilise la police souhaitée ; s'il manque, la ligne utilise la police par défaut du widget. **Ne pas régler une police FontInfo vide dans le C++ ni dessiner des lignes de texte à la main.**
+
+**Espacement des lignes Attaque/Défense/Dégâts/PV :** dans chacun des `HorizontalBox_Attack`, `HorizontalBox_Defense`, `HorizontalBox_Damage` et `HorizontalBox_Health`, séparer le libellé et la valeur par un **Padding Right de 8 à 12** sur le slot du libellé, ou régler les slots `Text_Label*` en `Fill 1.0` et les valeurs en `Auto`. La capture du 24.10 montrait notamment `Jet d'attaque1d20` et `Défense10+1` sans espace, qui relèvent du **layout UMG**, pas de la localisation.
+
 **Autres réglages** : `SizeBox_Root` 480 unités de largeur (ajustable jusqu'à 520), hauteur non forcée ; `Border_CombatTooltip` padding 12 ; `VerticalBox_Content` taille au contenu. Titres ~16 pt, valeurs ~14–16 pt Alegreya Sans ; couleur or désaturée pour les sections, vert doux pour l'absorption, ambre pour l'épuisement, sans surcharge. Le tooltip doit être **Hit Test Invisible** ; aucun CanvasPanel qui occupe l'écran entier, aucun suivi souris via Tick.
 
 ### 4.4 Activation dans le flux existant
@@ -217,7 +223,9 @@ Si deux points d'armure de base restent au personnage, une morsure de 6 absorbe 
 - Meilleure sélection du widget structuré même si `Details` texte est vide.
 - Largeur dynamique des colonnes alignée avec l'en-tête.
 - Message d'épuisement **avec nom d'équipement** et ligne d'alerte masquée quand sans objet.
-- **Aucun changement de RPG**, de dégâts, de catalogue, d'armure, de fichier `.uasset` ou d'entrée permanente du Flux.
+- **Aucun changement de RPG**, de dégâts, de catalogue, d'armure ou de fichier `.uasset` dans le correctif de glyphes.
+- **Audit des textes en C++ (24.10.2026) :** les nouveaux libellés `GridCombatTooltipWidget.cpp` (résultat des jets, absorption, PV, messages d'épuisement) passent par `FUILocalizationText::Get(`ST_UI`)`. Le nom de l'armure de base est résolu au niveau présentation depuis `bEquipment=false`, et non plus inscrit en français dans le composant d'inventaire. Les nouvelles chaînes compactes non localisables dans `GridCombatEventFeedFormatter.cpp` sont aussi remplacées par des patterns de `ST_UI`. **Les `LOCTEXT` plus anciens du formateur, des autres systèmes et leurs règles de traduction appartiennent à un audit transversal distinct** ; ils sont localisables par Unreal en principe, mais leur collecte effective doit être vérifiée. Il ne serait pas exact d'affirmer qu'il n'existe plus aucun mot français dans tout le C++ du projet.
+- **Barrière anti-régression :** le test ciblé vérifie la présence des 33 clés dans le **vrai `ST_UI`** ; lancer le commandlet de matérialisation avant les tests après cette mise à jour.
 
 ## 7. Validation exigée (non présumée réussie)
 
@@ -227,6 +235,9 @@ Si deux points d'armure de base restent au personnage, une morsure de 6 absorbe 
 cd D:\Development\GrimrockPrototype
 git status --short
 git pull --ff-only origin master
+# IMPORTANT : régénérer ST_UI (19 nouvelles clés C++ depuis la capture)
+& "D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "D:\Development\GrimrockPrototype\GrimrockPrototype.uproject" -run=UIStringTableAuthoring -unattended -nop4 -nosplash -nullrhi
+if ($LASTEXITCODE -ne 0) { throw "Echec UIStringTableAuthoring: $LASTEXITCODE" }
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.10.3.3"
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.10"
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.EventHUD01"

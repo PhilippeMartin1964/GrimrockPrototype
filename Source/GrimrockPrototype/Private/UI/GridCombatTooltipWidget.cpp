@@ -6,19 +6,32 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Runtime/Combat/GridCombatEventFeedFormatter.h"
-
-#define LOCTEXT_NAMESPACE "GridCombatTooltipWidget"
+#include "UI/UILocalizationText.h"
 
 namespace
 {
 	void SetIfPresent(UTextBlock* Target, const FText& Text)
 	{
-		if (Target) Target->SetText(Text);
+		if (Target)
+		{
+			Target->SetText(Text);
+		}
 	}
 
 	FText SafeName(const FText& Text, const FText& Fallback)
 	{
 		return Text.IsEmpty() ? Fallback : Text;
+	}
+
+	FText ArmorSourceName(const FGridArmorAbsorptionSourceTrace& Armor)
+	{
+		if (!Armor.DisplayName.IsEmpty())
+		{
+			return Armor.DisplayName;
+		}
+		return FUILocalizationText::Get(Armor.bEquipment
+			? TEXT("Combat.Tooltip.Fallback.Armor")
+			: TEXT("Combat.Tooltip.Armor.Character"));
 	}
 }
 
@@ -40,31 +53,41 @@ void UGridCombatTooltipWidget::RefreshTooltip()
 	{
 		return;
 	}
+
 	const FGridCombatResolutionTrace& Trace = CombatEntry.CombatTooltipTrace;
 	const FGridCombatDamageTrace& Damage = Trace.Damage;
-	SetIfPresent(Text_Attacker, SafeName(CombatEntry.CombatAttacker, LOCTEXT("UnknownAttacker", "Attaquant")));
-	SetIfPresent(Text_Defender, SafeName(CombatEntry.CombatDefender, LOCTEXT("UnknownDefender", "Défenseur")));
+	SetIfPresent(Text_Attacker, SafeName(CombatEntry.CombatAttacker,
+		FUILocalizationText::Get(TEXT("Combat.Tooltip.Label.Attacker"))));
+	SetIfPresent(Text_Defender, SafeName(CombatEntry.CombatDefender,
+		FUILocalizationText::Get(TEXT("Combat.Tooltip.Label.Defender"))));
 
 	const FGridCombatAttackTrace& Attack = Trace.Attack;
-	const FText Roll = FGridCombatEventFeedFormatter::FormatRollAsDice(Attack.Roll);
+	FFormatNamedArguments AttackArgs;
+	AttackArgs.Add(TEXT("Roll"), FGridCombatEventFeedFormatter::FormatRollAsDice(Attack.Roll));
+	AttackArgs.Add(TEXT("Total"), FText::AsNumber(Attack.FinalValue));
 	SetIfPresent(Text_Attack, FText::Format(
-		LOCTEXT("AttackRoll", "{0} ; Total : {1}"),
-		Roll, FText::AsNumber(Attack.FinalValue)));
+		FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.AttackRoll")), AttackArgs));
+
+	FFormatNamedArguments DefenseArgs;
+	DefenseArgs.Add(TEXT("Base"), FText::AsNumber(Trace.Defense.BaseValue));
+	DefenseArgs.Add(TEXT("Evasion"), FText::AsNumber(Trace.Defense.EvasionModifier));
+	DefenseArgs.Add(TEXT("Total"), FText::AsNumber(Trace.Defense.FinalValue));
 	SetIfPresent(Text_Defense, FText::Format(
-		LOCTEXT("DefenseRoll", "{0} + {1} = {2}"),
-		FText::AsNumber(Trace.Defense.BaseValue),
-		FText::AsNumber(Trace.Defense.EvasionModifier),
-		FText::AsNumber(Trace.Defense.FinalValue)));
+		FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.DefenseRoll")), DefenseArgs));
 
+	FFormatNamedArguments DamageArgs;
+	DamageArgs.Add(TEXT("Damage"), FText::AsNumber(Damage.DamageAfterResistance));
 	SetIfPresent(Text_Damage, Damage.bResolved
-		? FText::Format(LOCTEXT("DamageResolved", "{0} après modificateurs et résistances"),
-			FText::AsNumber(Damage.DamageAfterResistance))
-		: LOCTEXT("NoDamage", "Aucun dégât résolu"));
+		? FText::Format(FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.DamageResolved")), DamageArgs)
+		: FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.NoDamage")));
 
+	FFormatNamedArguments HealthArgs;
+	HealthArgs.Add(TEXT("Before"), FText::AsNumber(Damage.HealthBefore));
+	HealthArgs.Add(TEXT("After"), FText::AsNumber(Damage.HealthAfter));
+	HealthArgs.Add(TEXT("Lost"), FText::AsNumber(Damage.HealthDamage));
 	SetIfPresent(Text_Health, Damage.bResolved
-		? FText::Format(LOCTEXT("HealthAfterAttack", "{0} → {1} (−{2} PV)"),
-			FText::AsNumber(Damage.HealthBefore), FText::AsNumber(Damage.HealthAfter), FText::AsNumber(Damage.HealthDamage))
-		: LOCTEXT("NoHealthChange", "PV inchangés"));
+		? FText::Format(FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.HealthAfterAttack")), HealthArgs)
+		: FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.NoHealthChange")));
 
 	TArray<FText> ExhaustedNames;
 	TArray<FText> AlreadyDepletedNames;
@@ -72,23 +95,37 @@ void UGridCombatTooltipWidget::RefreshTooltip()
 	{
 		VerticalBox_ArmorRows->ClearChildren();
 	}
+
+	// Dynamic TextBlocks must inherit an authored, valid font. The former
+	// uninitialized TableFont caused missing-glyph boxes in the armor table.
+	// Text_HeaderSource already exists as a static ST_UI header in the WBP.
+	const UTextBlock* HeaderFontSource = WidgetTree
+		? Cast<UTextBlock>(WidgetTree->FindWidget(FName(TEXT("Text_HeaderSource"))))
+		: nullptr;
+
 	for (const FGridArmorAbsorptionSourceTrace& Armor : Damage.PhysicalArmorSources)
 	{
+		const FText SourceName = ArmorSourceName(Armor);
 		if (Armor.bEquipment && Armor.bExhaustedByHit)
 		{
-			ExhaustedNames.Add(SafeName(Armor.DisplayName, LOCTEXT("ArmorFallbackStatus", "Équipement")));
+			ExhaustedNames.Add(SourceName);
 		}
 		else if (Armor.bEquipment && Armor.Before == 0)
 		{
-			AlreadyDepletedNames.Add(SafeName(Armor.DisplayName, LOCTEXT("ArmorFallbackDepleted", "Équipement")));
+			AlreadyDepletedNames.Add(SourceName);
 		}
-		if (!VerticalBox_ArmorRows || !WidgetTree) continue;
+		if (!VerticalBox_ArmorRows || !WidgetTree)
+		{
+			continue;
+		}
 
 		UHorizontalBox* TableRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		if (!TableRow) continue;
-		// Four dynamically generated cells under the UMG-authored header.
+		if (!TableRow)
+		{
+			continue;
+		}
 		const FText Cells[4] = {
-			SafeName(Armor.DisplayName, LOCTEXT("ArmorFallback", "Armure")),
+			SourceName,
 			FText::AsNumber(Armor.Before),
 			FText::AsNumber(Armor.Absorbed),
 			FText::AsNumber(Armor.After)
@@ -96,11 +133,17 @@ void UGridCombatTooltipWidget::RefreshTooltip()
 		for (int32 Column = 0; Column < 4; ++Column)
 		{
 			UTextBlock* Cell = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-			if (!Cell) continue;
+			if (!Cell)
+			{
+				continue;
+			}
 			Cell->SetText(Cells[Column]);
 			Cell->SetColorAndOpacity(FSlateColor(Armor.bExhaustedByHit ? WarningTextColor :
 				(Column == 2 ? ArmorTextColor : NormalTextColor)));
-			if (TableFont.Size > 0) Cell->SetFont(TableFont);
+			if (HeaderFontSource)
+			{
+				Cell->SetFont(HeaderFontSource->GetFont());
+			}
 			Cell->SetAutoWrapText(Column == 0);
 			if (UHorizontalBoxSlot* CellLayoutSlot = TableRow->AddChildToHorizontalBox(Cell))
 			{
@@ -113,23 +156,24 @@ void UGridCombatTooltipWidget::RefreshTooltip()
 		}
 		VerticalBox_ArmorRows->AddChild(TableRow);
 	}
+
 	if (Text_Status)
 	{
 		FText Status;
 		if (!ExhaustedNames.IsEmpty())
 		{
-			Status = FText::Format(LOCTEXT("ArmorDepletedNamed", "{0} : protection épuisée !"),
-				FText::Join(LOCTEXT("ArmorNameSeparator", ", "), ExhaustedNames));
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Name"), FText::Join(FText::FromString(TEXT(", ")), ExhaustedNames));
+			Status = FText::Format(FUILocalizationText::Get(TEXT("Combat.Tooltip.Status.DepletedNamed")), Args);
 		}
 		else if (!AlreadyDepletedNames.IsEmpty())
 		{
-			Status = FText::Format(LOCTEXT("ArmorAlreadyDepletedNamed", "{0} : aucune protection restante"),
-				FText::Join(LOCTEXT("ArmorNameSeparatorExisting", ", "), AlreadyDepletedNames));
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Name"), FText::Join(FText::FromString(TEXT(", ")), AlreadyDepletedNames));
+			Status = FText::Format(FUILocalizationText::Get(TEXT("Combat.Tooltip.Status.AlreadyDepletedNamed")), Args);
 		}
 		Text_Status->SetText(Status);
 		Text_Status->SetVisibility(Status.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
 		Text_Status->SetColorAndOpacity(FSlateColor(WarningTextColor));
 	}
 }
-
-#undef LOCTEXT_NAMESPACE

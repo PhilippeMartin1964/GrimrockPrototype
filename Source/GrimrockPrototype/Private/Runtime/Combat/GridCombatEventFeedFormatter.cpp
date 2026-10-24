@@ -1,4 +1,5 @@
 #include "Runtime/Combat/GridCombatEventFeedFormatter.h"
+#include "UI/UILocalizationText.h"
 
 #define LOCTEXT_NAMESPACE "GridCombatEventFeed"
 
@@ -174,10 +175,10 @@ namespace
 		AppendSignedTerm(DefenseExpression, Defense.EvasionModifier);
 		DefenseExpression += FString::Printf(TEXT(" = %d"), Defense.FinalValue);
 
-		return FText::FromString(FString::Printf(
-			TEXT("Attaque : %s; Défense : %s"),
-			*AttackExpression,
-			*DefenseExpression));
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Attack"), FText::FromString(AttackExpression));
+		Args.Add(TEXT("Defense"), FText::FromString(DefenseExpression));
+		return FText::Format(FUILocalizationText::Get(TEXT("Combat.Feed.Compact.AttackDefense")), Args);
 	}
 
 	FText BuildCompactDamageLine(
@@ -268,30 +269,42 @@ namespace
 			}
 		}
 
+		FText ExpressionText = FText::FromString(DamageExpression);
 		if (Damage.ResistancePercent != 0)
 		{
-			DamageExpression += FString::Printf(
-				TEXT("; Résistance %d %% → %d"),
-				Damage.ResistancePercent,
-				Damage.DamageAfterResistance);
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Expression"), ExpressionText);
+			Args.Add(TEXT("Percent"), FText::AsNumber(Damage.ResistancePercent));
+			Args.Add(TEXT("Result"), FText::AsNumber(Damage.DamageAfterResistance));
+			ExpressionText = FText::Format(FUILocalizationText::Get(TEXT("Combat.Feed.Compact.ResistanceStage")), Args);
 		}
 
 		const int32 ArmorAbsorbed = Damage.PhysicalArmorDamage + Damage.MagicalArmorDamage;
 		if (ArmorAbsorbed > 0)
 		{
-			DamageExpression += FString::Printf(TEXT("; Armure : -%d"), ArmorAbsorbed);
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Expression"), ExpressionText);
+			Args.Add(TEXT("Absorbed"), FText::AsNumber(ArmorAbsorbed));
+			ExpressionText = FText::Format(FUILocalizationText::Get(TEXT("Combat.Feed.Compact.ArmorAbsorbed")), Args);
 		}
 
-		const FString TargetLabel = TargetDisplayName.IsEmpty()
-			? FString(TEXT("PV"))
-			: FString::Printf(TEXT("PV %s"), *TargetDisplayName.ToString());
-		DamageExpression += FString::Printf(
-			TEXT("; %s : %d → %d"),
-			*TargetLabel,
-			Damage.HealthBefore,
-			Damage.HealthAfter);
+		FText TargetLabel = FUILocalizationText::Get(TEXT("Combat.Feed.Compact.HealthShort"));
+		if (!TargetDisplayName.IsEmpty())
+		{
+			FFormatNamedArguments TargetArgs;
+			TargetArgs.Add(TEXT("Name"), TargetDisplayName);
+			TargetLabel = FText::Format(FUILocalizationText::Get(TEXT("Combat.Feed.Compact.HealthTarget")), TargetArgs);
+		}
+		FFormatNamedArguments HealthArgs;
+		HealthArgs.Add(TEXT("Expression"), ExpressionText);
+		HealthArgs.Add(TEXT("Target"), TargetLabel);
+		HealthArgs.Add(TEXT("Before"), FText::AsNumber(Damage.HealthBefore));
+		HealthArgs.Add(TEXT("After"), FText::AsNumber(Damage.HealthAfter));
+		ExpressionText = FText::Format(FUILocalizationText::Get(TEXT("Combat.Feed.Compact.HealthTransition")), HealthArgs);
 
-		return FText::FromString(FString::Printf(TEXT("Dégâts : %s"), *DamageExpression));
+		FFormatNamedArguments DamageArgs;
+		DamageArgs.Add(TEXT("Expression"), ExpressionText);
+		return FText::Format(FUILocalizationText::Get(TEXT("Combat.Feed.Compact.DamageLine")), DamageArgs);
 	}
 
 	FText BuildCompactAttackMessage(const FGridCombatLogEntry& Entry)
@@ -553,10 +566,20 @@ bool FGridCombatEventFeedFormatter::BuildEntry(
 				AddDamageDetails(Result.Trace.Damage, OutEntry.Details);
 				for (const FGridArmorAbsorptionSourceTrace& Source : Result.Trace.Damage.PhysicalArmorSources)
 				{
-					OutEntry.Details.Add(FText::FromString(FString::Printf(
-						TEXT("%s : %d → %d (absorbe %d)%s"),
-						*Source.DisplayName.ToString(), Source.Before, Source.After,
-						Source.Absorbed, Source.bExhaustedByHit ? TEXT(" — protection épuisée") : TEXT(""))));
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("Name"), Source.DisplayName.IsEmpty()
+						? FUILocalizationText::Get(Source.bEquipment
+							? TEXT("Combat.Tooltip.Fallback.Armor")
+							: TEXT("Combat.Tooltip.Armor.Character"))
+						: Source.DisplayName);
+					Args.Add(TEXT("Before"), FText::AsNumber(Source.Before));
+					Args.Add(TEXT("After"), FText::AsNumber(Source.After));
+					Args.Add(TEXT("Absorbed"), FText::AsNumber(Source.Absorbed));
+					Args.Add(TEXT("Suffix"), Source.bExhaustedByHit
+						? FUILocalizationText::Get(TEXT("Combat.Tooltip.Armor.DepletedSuffix"))
+						: FText::GetEmpty());
+					OutEntry.Details.Add(FText::Format(
+						FUILocalizationText::Get(TEXT("Combat.Tooltip.Armor.DetailFormat")), Args));
 				}
 			}
 		}
