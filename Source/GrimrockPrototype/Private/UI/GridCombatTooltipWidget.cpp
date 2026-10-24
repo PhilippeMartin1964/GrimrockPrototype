@@ -28,6 +28,137 @@ namespace
 		}
 		return FText::Join(FText::FromString(TEXT(", ")), Names);
 	}
+
+	FText FormatLocalizedLine(const TCHAR* Key, const FFormatNamedArguments& Args)
+	{
+		return FText::Format(FUILocalizationText::Get(Key), Args);
+	}
+
+	FText FormatSignedAccuracy(int32 Value)
+	{
+		if (Value > 0)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Value"), FText::AsNumber(Value));
+			return FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.PositiveValue"), Args);
+		}
+		return FText::AsNumber(Value);
+	}
+
+	FText FormatDetailedAttack(const FGridCombatResolutionTrace& Trace)
+	{
+		const FGridCombatAttackTrace& Attack = Trace.Attack;
+		TArray<FText> Lines;
+		if (Attack.Roll.bUsed)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Roll"), FGridCombatEventFeedFormatter::FormatRollAsDice(Attack.Roll));
+			Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.Dice"), Args));
+		}
+		else if (Trace.Damage.bDirectDamage)
+		{
+			Lines.Add(FUILocalizationText::Get(TEXT("Combat.Tooltip.Attack.DirectDamage")));
+			return FText::Join(FText::FromString(TEXT("\n")), Lines);
+		}
+		else
+		{
+			Lines.Add(FUILocalizationText::Get(TEXT("Combat.Tooltip.Attack.NoRoll")));
+			return FText::Join(FText::FromString(TEXT("\n")), Lines);
+		}
+
+		if (Attack.SourceAccuracy != 0)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Value"), FormatSignedAccuracy(Attack.SourceAccuracy));
+			Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.SourceAccuracy"), Args));
+		}
+		if (Attack.AttackAccuracyBonus != 0)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Value"), FormatSignedAccuracy(Attack.AttackAccuracyBonus));
+			Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.ActionAccuracy"), Args));
+		}
+
+		FFormatNamedArguments TotalArgs;
+		TotalArgs.Add(TEXT("Total"), FText::AsNumber(Attack.FinalValue));
+		Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.Total"), TotalArgs));
+		return FText::Join(FText::FromString(TEXT("\n")), Lines);
+	}
+
+	FText FormatDetailedDefense(const FGridCombatResolutionTrace& Trace)
+	{
+		if (!Trace.Attack.Roll.bUsed && Trace.Damage.bDirectDamage)
+		{
+			return FUILocalizationText::Get(TEXT("Combat.Tooltip.Defense.DirectDamage"));
+		}
+		if (!Trace.Attack.Roll.bUsed)
+		{
+			return FUILocalizationText::Get(TEXT("Combat.Tooltip.Defense.NoRoll"));
+		}
+
+		const FGridCombatAttackTrace& Attack = Trace.Attack;
+		const FGridCombatDefenseTrace& Defense = Trace.Defense;
+		TArray<FText> Lines;
+
+		FFormatNamedArguments BaseArgs;
+		BaseArgs.Add(TEXT("Base"), FText::AsNumber(Defense.BaseValue));
+		Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Defense.Base"), BaseArgs));
+
+		if (Defense.EvasionModifier != 0)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Value"), FormatSignedAccuracy(Defense.EvasionModifier));
+			Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Defense.Evasion"), Args));
+		}
+
+		FFormatNamedArguments TotalArgs;
+		TotalArgs.Add(TEXT("Total"), FText::AsNumber(Defense.FinalValue));
+		Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Defense.Total"), TotalArgs));
+
+		const bool bHit = Attack.bAlwaysHits
+			|| (!Attack.bNaturalAutoMiss && (Attack.bNaturalAutoHit
+				|| Attack.FinalValue >= Defense.FinalValue));
+		const TCHAR* OutcomeKey = nullptr;
+		if (Attack.bAlwaysHits)
+		{
+			OutcomeKey = TEXT("Combat.Tooltip.Outcome.AlwaysHit");
+		}
+		else if (Attack.bNaturalAutoMiss)
+		{
+			OutcomeKey = TEXT("Combat.Tooltip.Outcome.NaturalMiss");
+		}
+		else if (Attack.bNaturalAutoHit)
+		{
+			OutcomeKey = TEXT("Combat.Tooltip.Outcome.NaturalHit");
+		}
+		else
+		{
+			OutcomeKey = bHit
+				? TEXT("Combat.Tooltip.Outcome.Hit")
+				: TEXT("Combat.Tooltip.Outcome.Miss");
+		}
+		FFormatNamedArguments OutcomeArgs;
+		OutcomeArgs.Add(TEXT("Attack"), FText::AsNumber(Attack.FinalValue));
+		OutcomeArgs.Add(TEXT("Defense"), FText::AsNumber(Defense.FinalValue));
+		Lines.Add(FormatLocalizedLine(OutcomeKey, OutcomeArgs));
+
+		// The trace does not contain a separately named item-level accuracy
+		// provenance. Do not invent one: SourceAccuracy already aggregates it.
+		if (bHit && Attack.bCanCriticalHit && Attack.CriticalChancePercent > 0
+			&& Attack.CriticalMinimumRoll <= 20
+			&& Attack.Roll.Kind == EGridCombatRollTraceKind::Die
+			&& Attack.Roll.DiceCount == 1
+			&& Attack.Roll.IndividualRolls.Num() == 1
+			&& Attack.Roll.IndividualRolls[0] >= Attack.CriticalMinimumRoll)
+		{
+			FFormatNamedArguments CriticalArgs;
+			CriticalArgs.Add(TEXT("Roll"), FText::AsNumber(Attack.Roll.IndividualRolls[0]));
+			CriticalArgs.Add(TEXT("Threshold"), FText::AsNumber(Attack.CriticalMinimumRoll));
+			Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Outcome.CriticalHit"), CriticalArgs));
+		}
+
+		return FText::Join(FText::FromString(TEXT("\n")), Lines);
+	}
 }
 
 FGridCombatTooltipViewData UGridCombatTooltipWidget::BuildViewData(const FGridHudEventEntry& Entry)
@@ -121,19 +252,10 @@ FGridCombatTooltipDisplayTexts UGridCombatTooltipWidget::BuildDisplayTexts(
 	Texts.Defender = Data.Defender.IsEmpty()
 		? FUILocalizationText::Get(TEXT("Combat.Tooltip.Label.Defender")) : Data.Defender;
 
-	const FGridCombatAttackTrace& Attack = Data.Trace.Attack;
-	FFormatNamedArguments AttackArgs;
-	AttackArgs.Add(TEXT("Roll"), FGridCombatEventFeedFormatter::FormatAttackTerms(Attack));
-	AttackArgs.Add(TEXT("Total"), FText::AsNumber(Attack.FinalValue));
-	Texts.Attack = FText::Format(
-		FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.AttackRoll")), AttackArgs);
-
-	FFormatNamedArguments DefenseArgs;
-	DefenseArgs.Add(TEXT("Base"), FText::AsNumber(Data.Trace.Defense.BaseValue));
-	DefenseArgs.Add(TEXT("Evasion"), FText::AsNumber(Data.Trace.Defense.EvasionModifier));
-	DefenseArgs.Add(TEXT("Total"), FText::AsNumber(Data.Trace.Defense.FinalValue));
-	Texts.Defense = FText::Format(
-		FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.DefenseRoll")), DefenseArgs);
+	// Detailed explanation, not a duplicate of the compact Event Feed.
+	// C++ owns content; both authored TextBlocks keep their UMG Designer style.
+	Texts.Attack = FormatDetailedAttack(Data.Trace);
+	Texts.Defense = FormatDetailedDefense(Data.Trace);
 
 	const FGridCombatDamageTrace& Damage = Data.Trace.Damage;
 	if (Damage.bResolved)

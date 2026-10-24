@@ -141,6 +141,75 @@ D:\Development\GrimrockPrototype\Content\GrimrockPrototype\Blueprints\UI\EventFe
 
 **Validation attendue :** filtre `Grimrock.RPG.ARMEMENT01.10.3.3` passe désormais de **3 à 4 tests**. Après validation locale, refaire un combat PIE et vérifier que `Text_Attack` affiche explicitement les termes expliquant le total, aussi bien en cas d'échec qu'en cas de touche. La **Défense** et le tableau ABSORPTION ne changent pas.
 
+## 4.2 — ARMEMENT01.10.3.3.7 : infobulle explicative et décision de toucher
+
+**Incident confirmé du 24 octobre 2026 :** le journal indiquait `1d20 (5) + 1 + 1 = 7` ; la tooltip répétait les mêmes nombres sans identifier les deux +1. Cela contredisait sa fonction explicative.
+
+### Provenance exacte des valeurs du résolveur
+
+| Trace C++ | Signification autoritaire | Texte affiché |
+|---|---|---|
+| `Attack.Roll` | Jet réellement consommé (y compris NdM+K) | Jet de dé |
+| `Attack.SourceAccuracy` | `FGridAttackSourceStats::Accuracy` : précision globale déjà agrégée de l'attaquant | Précision de l'attaquant |
+| `Attack.AttackAccuracyBonus` | `FGridAttackDefinition::AccuracyBonus` : modificateur de l'attaque exécutée | Modificateur de l'attaque |
+| `Attack.FinalValue` | Total calculé par le résolveur | Total de l'attaque |
+| `Defense.BaseValue` | Base du seuil de défense | Défense de base |
+| `Defense.EvasionModifier` | `FGridAttackTargetStats::Evasion` | Esquive du défenseur |
+| `Defense.FinalValue` | Seuil calculé | Défense totale |
+| `bNaturalAutoMiss`, `bNaturalAutoHit` et `bAlwaysHits` | Exceptions de toucher enregistrées | Explication de la réussite / de l'échec |
+| `CriticalMinimumRoll` et tirage naturel | Seuil autoritaire de coup critique | Coup critique, si réellement atteint |
+
+**Limite honnête :** `SourceAccuracy` est une valeur globale agrégée, et la trace ne dit PAS quels sous-bonus viennent d'une arme, compétence ou caractéristique. Il serait incorrect d'attribuer arbitrairement le +1 à la dague. L'éventuelle ventilation par équipement nécessitera une évolution distincte du résolveur et des traces.
+
+### Affichage attendu, d'après la capture fournie
+
+    ATTAQUE
+    Attaquant : Elias                  Défenseur : Rat géant
+
+    Jet de dé : 1d20 (5)
+    Précision de l'attaquant : +1
+    Modificateur de l'attaque : +1
+    Total de l'attaque : 7
+
+    Défense de base : 10
+    Esquive du défenseur : +1
+    Défense totale : 11
+    Résultat : ÉCHEC (7 < 11)
+
+    Dégâts : Aucun dégât résolu
+
+    CONSÉQUENCES
+    Points de vie : PV inchangés
+
+**Pas de nouvelle interface à créer.** Le C++ prépare les `FText` descriptifs et les affecte aux TextBlocks **existants** `Text_Attack` et `Text_Defense` ; la police, les espacements et le layout restent contrôlés par le Designer du `WBP_GridCombatTooltip`. L'Event Feed compact reste inchangé.
+
+### Autres situations couvertes
+
+- Omission des bonus à zéro, mais affichage des bonus négatifs avec leur signe.
+- Gestion de `NdM+K` sans double comptage.
+- Comparaison `Attack.FinalValue >= Defense.FinalValue`, l'égalité étant une touche.
+- `1 naturel` : échec automatique, même si le score dépasse la défense.
+- `20 naturel` : touche automatique, même si le score est inférieur à la défense.
+- `bAlwaysHits` : toucher garanti prioritaire sur le 1 naturel.
+- Coup critique expliqué lorsque le jet naturel atteint le seuil réel.
+- Dégâts directs sans jet : aucun faux dé ni comparaison fictive.
+
+### Localisation et tests obligatoires
+
+- **18 nouvelles clés** dans `Localization/Source/UI.csv`, sous `Combat.Tooltip.Attack.*`, `Combat.Tooltip.Defense.*` et `Combat.Tooltip.Outcome.*`. L'automate contrôle désormais **51 clés** (33 anciennes + 18 nouvelles).
+- **2 nouveaux tests** fondés sur le résolveur réel : `Grimrock.RPG.ARMEMENT01.10.3.3.7.LabeledAccuracyAndMissExplanation` et `Grimrock.RPG.ARMEMENT01.10.3.3.7.AutomaticHitMissCriticalAndDirectDamage`.
+- Test antérieur `TransparentAttackTotal` mis à jour pour vérifier que la tooltip ne reprend pas la formule compacte.
+- **6 tests attendus** sur le filtre `Grimrock.RPG.ARMEMENT01.10.3.3`, non validés tant que les logs locaux ne sont pas disponibles.
+- **Un CSV Git ne crée PAS la String Table Unreal** ; matérialiser `ST_UI.uasset` avec l'outil Unreal avant la validation. Ne pas fabriquer de binaire Unreal hors UE.
+
+Commandes PowerShell (UE fermé, à partir de `D:\Development\GrimrockPrototype`) :
+
+1. `git status --short` puis `git pull --ff-only origin master`.
+2. `& "D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "D:\Development\GrimrockPrototype\GrimrockPrototype.uproject" -run=UIStringTableAuthoring -unattended -nop4 -nosplash -nullrhi`. Vérifier le code de sortie 0.
+3. `.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.10.3.3"`.
+4. Ouvrir `/Game/Localization/StringTables/ST_UI` et vérifier les 18 nouvelles clés ; contrôler le rendu en PIE et préserver le binaire généré via Git LFS.
+5. Faire les régressions `Grimrock.RPG.ARMEMENT01.10`, `Grimrock.UI.EventHUD01` et le smoke localisation. Les traductions anglaises Game sont à compléter indépendamment du CSV français.
+
 ## 5. Nettoyage final sûr — **sans casser le WBP qui fonctionne**
 
 **Ne pas entreprendre un nouveau refactor C++ pour « nettoyer » :** les structures historiques `FGridCombatTooltipDiceNumbers` et `FGridCombatTooltipViewData` et la fonction native `PresentCombatTooltip` subsistent temporairement pour la compatibilité avec l'asset Blueprint existant. `InitializeCombatTooltip` **n'appelle plus** `PresentCombatTooltip`. Supprimer aujourd'hui la déclaration C++ de cette fonction, sans vérifier d'abord sa suppression dans le WBP et la sauvegarde de l'asset, peut casser l'override sérialisé et le chargement du Blueprint.

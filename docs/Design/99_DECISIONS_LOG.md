@@ -1443,3 +1443,15 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - **Ne pas retirer `PresentCombatTooltip` du C++ avant la suppression de son override dans le WBP et la publication des assets nettoyés**. Conserver temporairement la compatibilité malgré le code inutilisé pour éviter des références Blueprint cassées.
 - Prochaine étape : nettoyage des Graphs en UE, tests `ARMEMENT01.10` et `EventHUD01`, capture PIE et commit des assets ; seulement ensuite supprimer le code de compatibilité, dans un jalon distinct.
 
+---
+
+## 2026-10-24 — ARMEMENT01.10.3.3.7 : tooltip combat réellement explicatif
+
+- L'Event Feed conserve son calcul compact. La tooltip ne le recopie plus : elle nomme séparément le jet, `SourceAccuracy` (précision globale de l'attaquant) et `AttackAccuracyBonus` (modificateur de l'attaque), puis le total.
+- La Défense explique la base, l'esquive du défenseur, le total et le **pourquoi du résultat** (comparaison, 1 ou 20 naturel, attaque garantie et critique effectif).
+- Pas d'attribution fictive de la précision globale à un item, une caractéristique ou une compétence : cette granularité n'est pas dans la trace actuelle.
+- Les coups directs sans jet et les bonus/malus zéro/négatifs sont pris en charge. La logique, la localisation dynamique et les `SetText` restent en C++; les styles et le layout restent dans les WBP.
+- 18 nouvelles clés `Combat.Tooltip.Attack.*`, `Defense.*` et `Outcome.*` dans `UI.csv`. **Matérialisation de `ST_UI` requise** sur le poste Unreal avant validation.
+- Deux nouveaux tests d'automation, **6 tests attendus** pour le filtre ARMEMENT01.10.3.3, non validés tant que les logs utilisateurs et la capture PIE ne sont pas fournis.
+- Référence : `docs/Design/ARMEMENT01_10_3_3_COMBAT_TOOLTIP_STRUCTURE.md` §4.2.
+

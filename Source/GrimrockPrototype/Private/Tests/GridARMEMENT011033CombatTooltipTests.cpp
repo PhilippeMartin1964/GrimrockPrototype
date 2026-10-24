@@ -113,7 +113,25 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 		TEXT("Combat.Feed.Compact.HealthShort"),
 		TEXT("Combat.Feed.Compact.HealthTarget"),
 		TEXT("Combat.Feed.Compact.HealthTransition"),
-		TEXT("Combat.Feed.Compact.ResistanceStage")
+		TEXT("Combat.Feed.Compact.ResistanceStage"),
+		TEXT("Combat.Tooltip.Attack.PositiveValue"),
+		TEXT("Combat.Tooltip.Attack.Dice"),
+		TEXT("Combat.Tooltip.Attack.SourceAccuracy"),
+		TEXT("Combat.Tooltip.Attack.ActionAccuracy"),
+		TEXT("Combat.Tooltip.Attack.Total"),
+		TEXT("Combat.Tooltip.Attack.DirectDamage"),
+		TEXT("Combat.Tooltip.Attack.NoRoll"),
+		TEXT("Combat.Tooltip.Defense.Base"),
+		TEXT("Combat.Tooltip.Defense.Evasion"),
+		TEXT("Combat.Tooltip.Defense.Total"),
+		TEXT("Combat.Tooltip.Defense.DirectDamage"),
+		TEXT("Combat.Tooltip.Defense.NoRoll"),
+		TEXT("Combat.Tooltip.Outcome.Miss"),
+		TEXT("Combat.Tooltip.Outcome.Hit"),
+		TEXT("Combat.Tooltip.Outcome.NaturalMiss"),
+		TEXT("Combat.Tooltip.Outcome.NaturalHit"),
+		TEXT("Combat.Tooltip.Outcome.AlwaysHit"),
+		TEXT("Combat.Tooltip.Outcome.CriticalHit")
 	};
 	bool bAllKeysMaterialized = true;
 	for (const TCHAR* Key : RequiredLocalizationKeys)
@@ -342,10 +360,13 @@ bool FGridARMEMENT011033AttackBreakdown::RunTest(const FString&)
 		Terms.ToString(), FString(TEXT("1d20 (3) + 2")));
 	const FGridCombatTooltipDisplayTexts Display =
 		UGridCombatTooltipWidget::BuildDisplayTexts(View);
-	TestTrue(TEXT("Combat tooltip contains the explicit plus-two"),
-		Display.Attack.ToString().Contains(TEXT("1d20 (3) + 2")));
+	TestTrue(TEXT("Combat tooltip labels source accuracy instead of repeating the compact feed"),
+		Display.Attack.ToString().Contains(TEXT("Précision de l'attaquant")) &&
+		Display.Attack.ToString().Contains(TEXT("+2")));
+	TestFalse(TEXT("Combat tooltip is not the compact attack formula"),
+		Display.Attack.ToString().Contains(TEXT("1d20 (3) + 2 ;")));
 	TestTrue(TEXT("Combat tooltip still contains the resolved attack total"),
-		Display.Attack.ToString().Contains(TEXT("5")));
+		Display.Attack.ToString().Contains(TEXT("Total de l'attaque : 5")));
 
 	// The two accuracy contributions must stay distinct (including penalties),
 	// not be silently merged into an unexplained delta.
@@ -376,6 +397,157 @@ bool FGridARMEMENT011033AttackBreakdown::RunTest(const FString&)
 	TestEqual(TEXT("No invented +0 in an unmodified attack"),
 		FGridCombatEventFeedFormatter::FormatAttackTerms(Attack).ToString(),
 		FString(TEXT("1d20 (3)")));
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT0110337LabeledComponents,
+	"Grimrock.RPG.ARMEMENT01.10.3.3.7.LabeledAccuracyAndMissExplanation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridARMEMENT0110337LabeledComponents::RunTest(const FString&)
+{
+	FGridAttackSourceStats Source;
+	Source.Accuracy = 1;
+	FGridAttackTargetStats Target;
+	Target.CurrentHealth = 20;
+	Target.Evasion = 1;
+	FGridAttackDefinition Action;
+	Action.MinDamage = 1;
+	Action.MaxDamage = 4;
+	Action.AccuracyBonus = 1;
+
+	// Actual authoritative resolver, not a hand-crafted tooltip trace.
+	const FGridAttackResult Miss =
+		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 5, 2);
+	TestFalse(TEXT("Natural 5 plus two modifiers misses defense 11"), Miss.bHit);
+	TestEqual(TEXT("Natural roll recorded"), Miss.Trace.Attack.Roll.FinalValue, 5);
+	TestEqual(TEXT("Attacker accuracy recorded"), Miss.Trace.Attack.SourceAccuracy, 1);
+	TestEqual(TEXT("Action accuracy recorded"), Miss.Trace.Attack.AttackAccuracyBonus, 1);
+	TestEqual(TEXT("Final hit test recorded"), Miss.Trace.Attack.FinalValue, 7);
+
+	const FGridCombatTooltipDisplayTexts MissText =
+		UGridCombatTooltipWidget::BuildDisplayTexts(
+			UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Miss)));
+	const FString AttackBreakdown = MissText.Attack.ToString();
+	const FString DefenseBreakdown = MissText.Defense.ToString();
+	TestTrue(TEXT("Natural dice is labeled explicitly"), AttackBreakdown.Contains(TEXT("Jet de dé"))
+		&& AttackBreakdown.Contains(TEXT("1d20 (5)")));
+	TestTrue(TEXT("The first +1 is labeled attacker accuracy"),
+		AttackBreakdown.Contains(TEXT("Précision de l'attaquant : +1")));
+	TestTrue(TEXT("The second +1 is labeled action accuracy, not assumed weapon accuracy"),
+		AttackBreakdown.Contains(TEXT("Modificateur de l'attaque : +1")));
+	TestTrue(TEXT("Resolved total is distinctly labeled"),
+		AttackBreakdown.Contains(TEXT("Total de l'attaque : 7")));
+	TestFalse(TEXT("Detailed tooltip does not repeat the compact +1 +1 expression"),
+		AttackBreakdown.Contains(TEXT("1d20 (5) + 1 + 1")));
+	TestTrue(TEXT("Defense clearly identifies base and evasion"),
+		DefenseBreakdown.Contains(TEXT("Défense de base : 10"))
+		&& DefenseBreakdown.Contains(TEXT("Esquive du défenseur : +1"))
+		&& DefenseBreakdown.Contains(TEXT("Défense totale : 11")));
+	TestTrue(TEXT("Miss is explained by total lower than defense"),
+		DefenseBreakdown.Contains(TEXT("ÉCHEC"))
+		&& DefenseBreakdown.Contains(TEXT("7 < 11")));
+	TestFalse(TEXT("Miss produces no damage"),
+		Miss.Trace.Damage.bResolved);
+
+	// No cosmetic zero-value rows, and display both positive and negative modifiers.
+	Source.Accuracy = 4;
+	Action.AccuracyBonus = -2;
+	const FGridAttackResult Modified =
+		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 5, 2);
+	const FString ModifierBreakdown = UGridCombatTooltipWidget::BuildDisplayTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Modified)))
+			.Attack.ToString();
+	TestTrue(TEXT("Source accuracy +4 remains identifiable"),
+		ModifierBreakdown.Contains(TEXT("Précision de l'attaquant : +4")));
+	TestTrue(TEXT("Negative action modifier remains identifiable"),
+		ModifierBreakdown.Contains(TEXT("Modificateur de l'attaque"))
+		&& ModifierBreakdown.Contains(TEXT("2")));
+	TestEqual(TEXT("Mechanical attack total remains authoritative"), Modified.Trace.Attack.FinalValue, 7);
+
+	Source.Accuracy = 0;
+	Action.AccuracyBonus = 0;
+	const FGridAttackResult Bare =
+		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 5, 2);
+	const FString BareText = UGridCombatTooltipWidget::BuildDisplayTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Bare)))
+			.Attack.ToString();
+	TestFalse(TEXT("Zero attacker accuracy does not pollute tooltip"),
+		BareText.Contains(TEXT("Précision de l'attaquant")));
+	TestFalse(TEXT("Zero action accuracy does not pollute tooltip"),
+		BareText.Contains(TEXT("Modificateur de l'attaque")));
+
+	const FGridAttackResult Hit =
+		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 13, 2);
+	TestTrue(TEXT("Hit mechanically resolves"), Hit.bHit);
+	const FString HitOutcome = UGridCombatTooltipWidget::BuildDisplayTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Hit)))
+			.Defense.ToString();
+	TestTrue(TEXT("Successful numerical comparison is explained"), HitOutcome.Contains(TEXT("TOUCHÉ"))
+		&& HitOutcome.Contains(TEXT("13")) && HitOutcome.Contains(TEXT("11")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT0110337ExceptionalOutcomes,
+	"Grimrock.RPG.ARMEMENT01.10.3.3.7.AutomaticHitMissCriticalAndDirectDamage",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridARMEMENT0110337ExceptionalOutcomes::RunTest(const FString&)
+{
+	FGridAttackSourceStats Source;
+	Source.Accuracy = 30;
+	FGridAttackTargetStats Target;
+	Target.CurrentHealth = 20;
+	Target.Evasion = 1;
+	FGridAttackDefinition Action;
+	Action.MinDamage = 1;
+	Action.MaxDamage = 4;
+
+	const FGridAttackResult NaturalMiss =
+		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 1, 2);
+	TestFalse(TEXT("Natural 1 loses even with huge accuracy"), NaturalMiss.bHit);
+	const FString NaturalMissText = UGridCombatTooltipWidget::BuildDisplayTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(NaturalMiss)))
+			.Defense.ToString();
+	TestTrue(TEXT("Natural 1 is described as an automatic miss"),
+		NaturalMissText.Contains(TEXT("ÉCHEC automatique"))
+		&& NaturalMissText.Contains(TEXT("1 naturel")));
+
+	Source.Accuracy = -30;
+	Source.CriticalChancePercent = 5;
+	const FGridAttackResult NaturalHit =
+		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 20, 2);
+	TestTrue(TEXT("Natural 20 hits despite low total"), NaturalHit.bHit);
+	TestTrue(TEXT("Critical chance 5 percent accepts natural 20"), NaturalHit.bCriticalHit);
+	const FString CriticalText = UGridCombatTooltipWidget::BuildDisplayTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(NaturalHit)))
+			.Defense.ToString();
+	TestTrue(TEXT("Natural 20 explicitly overrides numeric comparison"),
+		CriticalText.Contains(TEXT("TOUCHÉ automatiquement")));
+	TestTrue(TEXT("Critical hit is explained by natural roll and threshold"),
+		CriticalText.Contains(TEXT("Coup critique"))
+		&& CriticalText.Contains(TEXT("seuil 20")));
+
+	Action.bAlwaysHits = true;
+	const FGridAttackResult GuaranteedHit =
+		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Action, 1, 2);
+	TestTrue(TEXT("Guaranteed hit takes priority over natural 1"), GuaranteedHit.bHit);
+	const FString GuaranteedText = UGridCombatTooltipWidget::BuildDisplayTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(GuaranteedHit)))
+			.Defense.ToString();
+	TestTrue(TEXT("Guaranteed hit explicitly identified"),
+		GuaranteedText.Contains(TEXT("toucher garanti")));
+
+	const FGridAttackResult Direct =
+		FGridCombatResolver::ResolveDirectDamage(Target, EGridDamageType::Physical, 3);
+	TestTrue(TEXT("Direct damage resolves without an attack roll"), Direct.bHit);
+	const FGridCombatTooltipDisplayTexts DirectText = UGridCombatTooltipWidget::BuildDisplayTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Direct)));
+	TestTrue(TEXT("Direct damage does not invent a natural d20"),
+		DirectText.Attack.ToString().Contains(TEXT("aucun jet d'attaque")));
+	TestTrue(TEXT("Direct damage does not invent a defense comparison"),
+		DirectText.Defense.ToString().Contains(TEXT("Sans jet de défense")));
 	return true;
 }
 
