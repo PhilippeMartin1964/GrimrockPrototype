@@ -62,8 +62,6 @@ struct GRIMROCKPROTOTYPE_API FGridCombatTooltipDisplayTexts
 	FText Defender;
 
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
-	FText Damage;
-
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FText Health;
 
@@ -93,6 +91,27 @@ struct GRIMROCKPROTOTYPE_API FGridCombatTooltipDetailTexts
 };
 
 /**
+ * ARMEMENT01.10.3.3.10: independent damage-pipeline snapshots for WBP
+ * TextBlocks. No gameplay recomputation, widget creation or styling.
+ * Empty text means the corresponding row is inapplicable and collapses.
+ */
+struct GRIMROCKPROTOTYPE_API FGridCombatTooltipDamageTexts
+{
+	FText DamageRoll;
+	FText DamageSourceBonus;
+	FText DamageBase;
+	FText DamageRawPercent;
+	FText DamageScaledBase;
+	FText DamageCriticalPercent;
+	FText DamageAfterCritical;
+	FText DamageSourceMultiplier;
+	FText DamageTargetMultiplier;
+	FText DamageAfterMultipliers;
+	FText DamageResistance;
+	FText DamageTotal;
+};
+
+/**
  * ARMEMENT01.10.3.3: native behavior and text assignment, designer-authored UMG.
  * C++ supplies all values, localized formats, visibility decisions and row instances.
  * WBP_GridCombatTooltip and WBP_GridCombatArmorRow own all layout and visual styling.
@@ -116,6 +135,7 @@ public:
 	static FGridCombatTooltipViewData BuildViewData(const FGridHudEventEntry& Entry);
 	static FGridCombatTooltipDisplayTexts BuildDisplayTexts(const FGridCombatTooltipViewData& Data);
 	static FGridCombatTooltipDetailTexts BuildDetailTexts(const FGridCombatTooltipViewData& Data);
+	static FGridCombatTooltipDamageTexts BuildDamageTexts(const FGridCombatTooltipViewData& Data);
 	static int32 CountAbsorbingSources(const FGridCombatDamageTrace& Damage);
 
 protected:
@@ -158,8 +178,42 @@ protected:
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_AttackCritical;
 
+	/** Twelve required, separately editable damage pipeline rows in UMG. */
 	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_Damage;
+	TObjectPtr<UTextBlock> Text_DamageRoll;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DamageSourceBonus;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DamageBase;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DamageRawPercent;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DamageScaledBase;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DamageCriticalPercent;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DamageAfterCritical;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DamageSourceMultiplier;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DamageTargetMultiplier;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DamageAfterMultipliers;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DamageResistance;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DamageTotal;
 
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_Health;

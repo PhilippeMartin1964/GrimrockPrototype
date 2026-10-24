@@ -131,7 +131,21 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 		TEXT("Combat.Tooltip.Outcome.NaturalMiss"),
 		TEXT("Combat.Tooltip.Outcome.NaturalHit"),
 		TEXT("Combat.Tooltip.Outcome.AlwaysHit"),
-		TEXT("Combat.Tooltip.Outcome.CriticalHit")
+		TEXT("Combat.Tooltip.Outcome.CriticalHit"),
+		TEXT("Combat.Tooltip.Damage.Roll"),
+		TEXT("Combat.Tooltip.Damage.Direct"),
+		TEXT("Combat.Tooltip.Damage.SourceBonus"),
+		TEXT("Combat.Tooltip.Damage.Base"),
+		TEXT("Combat.Tooltip.Damage.RawPercent"),
+		TEXT("Combat.Tooltip.Damage.ScaledBase"),
+		TEXT("Combat.Tooltip.Damage.CriticalPercent"),
+		TEXT("Combat.Tooltip.Damage.AfterCritical"),
+		TEXT("Combat.Tooltip.Damage.SourceMultiplier"),
+		TEXT("Combat.Tooltip.Damage.TargetMultiplier"),
+		TEXT("Combat.Tooltip.Damage.AfterMultipliers"),
+		TEXT("Combat.Tooltip.Damage.Resistance"),
+		TEXT("Combat.Tooltip.Damage.TotalBeforeArmor"),
+		TEXT("Combat.Tooltip.Damage.PositiveValue")
 	};
 	bool bAllKeysMaterialized = true;
 	for (const TCHAR* Key : RequiredLocalizationKeys)
@@ -191,7 +205,8 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 		UGridCombatTooltipWidget::BuildDetailTexts(TooltipData);
 	TestTrue(TEXT("C++ provides the attack field"), !BeforeDetail.AttackDice.IsEmpty());
 	TestTrue(TEXT("C++ provides the defense field"), !BeforeDetail.DefenseBase.IsEmpty());
-	TestTrue(TEXT("C++ prepares a localized damage string"), !BeforeText.Damage.IsEmpty());
+	const FGridCombatTooltipDamageTexts BeforeDamage = UGridCombatTooltipWidget::BuildDamageTexts(TooltipData);
+	TestTrue(TEXT("C++ prepares authoritative damage before absorption"), !BeforeDamage.DamageTotal.IsEmpty());
 	TestTrue(TEXT("C++ prepares a localized health string"), !BeforeText.Health.IsEmpty());
 	TestFalse(TEXT("No warning before protection depletion"), BeforeText.bShowStatus);
 	// The old Blueprint numeric-dice projection has been removed. Check the
@@ -590,8 +605,8 @@ bool FGridARMEMENT0110338DesignerSeparatedLines::RunTest(const FString&)
 	// No legacy multiline presentation is built or asserted.
 	const FGridCombatTooltipDisplayTexts NonDetail =
 		UGridCombatTooltipWidget::BuildDisplayTexts(Data);
-	TestTrue(TEXT("Remaining damage text still has its independent field"),
-		!NonDetail.Damage.IsEmpty());
+	TestTrue(TEXT("Dedicated damage presenter exposes the outcome"),
+		!UGridCombatTooltipWidget::BuildDamageTexts(Data).DamageTotal.IsEmpty());
 	TestTrue(TEXT("Remaining health text still has its independent field"),
 		!NonDetail.Health.IsEmpty());
 
@@ -641,6 +656,8 @@ bool FGridARMEMENT0110339NoLegacyBindings::RunTest(const FString&)
 		TooltipClass->FindPropertyByName(TEXT("Text_Attack")) == nullptr);
 	TestTrue(TEXT("Old combined Text_Defense widget binding was removed"),
 		TooltipClass->FindPropertyByName(TEXT("Text_Defense")) == nullptr);
+	TestTrue(TEXT("Old combined Text_Damage widget binding was removed"),
+		TooltipClass->FindPropertyByName(TEXT("Text_Damage")) == nullptr);
 	TestTrue(TEXT("Obsolete PresentCombatTooltip BlueprintNativeEvent was removed"),
 		TooltipClass->FindFunctionByName(TEXT("PresentCombatTooltip")) == nullptr);
 
@@ -650,7 +667,13 @@ bool FGridARMEMENT0110339NoLegacyBindings::RunTest(const FString&)
 		TEXT("Text_AttackActionAccuracy"), TEXT("Text_AttackTotal"),
 		TEXT("Text_DefenseBase"), TEXT("Text_DefenseEvasion"),
 		TEXT("Text_DefenseTotal"), TEXT("Text_AttackOutcome"),
-		TEXT("Text_AttackCritical"), TEXT("Text_Damage"),
+		TEXT("Text_AttackCritical"),
+		TEXT("Text_DamageRoll"), TEXT("Text_DamageSourceBonus"),
+		TEXT("Text_DamageBase"), TEXT("Text_DamageRawPercent"),
+		TEXT("Text_DamageScaledBase"), TEXT("Text_DamageCriticalPercent"),
+		TEXT("Text_DamageAfterCritical"), TEXT("Text_DamageSourceMultiplier"),
+		TEXT("Text_DamageTargetMultiplier"), TEXT("Text_DamageAfterMultipliers"),
+		TEXT("Text_DamageResistance"), TEXT("Text_DamageTotal"),
 		TEXT("Text_Health"), TEXT("Text_Status"),
 		TEXT("VerticalBox_AbsorptionSection"), TEXT("VerticalBox_ArmorRows")
 	};
@@ -659,6 +682,153 @@ bool FGridARMEMENT0110339NoLegacyBindings::RunTest(const FString&)
 		const FString Message = FString::Printf(TEXT("UMG contract still has %s"), Field);
 		TestTrue(*Message, TooltipClass->FindPropertyByName(FName(Field)) != nullptr);
 	}
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT01103310DamageMultiDiePipeline,
+	"Grimrock.RPG.ARMEMENT01.10.3.3.10.MultiDieAndResistanceSnapshots",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridARMEMENT01103310DamageMultiDiePipeline::RunTest(const FString&)
+{
+	FGridAttackSourceStats Source;
+	Source.DamageBonus = 2;
+	Source.RawDamagePercent = 150;
+	Source.DamageMultiplier = 1.5f;
+	Source.CriticalChancePercent = 0;
+	FGridAttackTargetStats Target;
+	Target.CurrentHealth = 40;
+	Target.PhysicalArmor = 3;
+	Target.ResistancePercent = 20;
+	Target.DamageMultiplier = 0.5f;
+	FGridAttackDefinition Attack;
+	Attack.DamageDice.bEnabled = true;
+	Attack.DamageDice.DiceCount = 2;
+	Attack.DamageDice.DiceSides = 6;
+	Attack.DamageDice.FlatBonus = 1;
+	Attack.MinDamage = Attack.DamageDice.GetMinimumDamage();
+	Attack.MaxDamage = Attack.DamageDice.GetMaximumDamage();
+
+	const FGridAttackResult Hit = FGridCombatResolver::ResolveAttackFromDiceRolls(
+		Source, Target, Attack, 14, TArray<int32>{4, 5});
+	if (!TestTrue(TEXT("Deterministic multidie hit"), Hit.bHit)) return false;
+	const FGridCombatDamageTrace& Trace = Hit.Trace.Damage;
+	TestEqual(TEXT("Recorded roll includes flat K once"), Trace.Roll.FinalValue, 10);
+	TestEqual(TEXT("Recorded damage includes source bonus once"), Trace.BaseDamage, 12);
+	TestEqual(TEXT("Recorded raw coefficient result"), Trace.ScaledBaseDamage, 18);
+	TestEqual(TEXT("Combined source and target multiplier actual value"), Trace.DamageAfterMultiplier, 14);
+	TestEqual(TEXT("Resistance stage rounded by resolver"), Trace.DamageAfterResistance, 11);
+	TestEqual(TEXT("Armor absorption not misreported as damage calculation"), Trace.PhysicalArmorDamage, 3);
+	TestEqual(TEXT("Health damage after absorption"), Trace.HealthDamage, 8);
+
+	const FGridCombatTooltipDamageTexts Lines = UGridCombatTooltipWidget::BuildDamageTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Hit)));
+	TestTrue(TEXT("Individual dice and K are visible"),
+		Lines.DamageRoll.ToString().Contains(TEXT("2d6")) &&
+		Lines.DamageRoll.ToString().Contains(TEXT("4 + 5")) &&
+		Lines.DamageRoll.ToString().Contains(TEXT("+ 1")));
+	TestTrue(TEXT("Aggregate source damage bonus is labeled"), Lines.DamageSourceBonus.ToString().Contains(TEXT("+2")));
+	TestTrue(TEXT("Base damage field is independent"), Lines.DamageBase.ToString().Contains(TEXT("12")));
+	TestTrue(TEXT("150 percent damage coefficient is shown"), Lines.DamageRawPercent.ToString().Contains(TEXT("150")));
+	TestTrue(TEXT("Scaled base damage is the resolver's stage"), Lines.DamageScaledBase.ToString().Contains(TEXT("18")));
+	TestTrue(TEXT("Multipliers have independent rows"),
+		Lines.DamageSourceMultiplier.ToString().Contains(TEXT("1,5")) ||
+		Lines.DamageSourceMultiplier.ToString().Contains(TEXT("1.5")));
+	TestTrue(TEXT("Target multiplier is independent"),
+		Lines.DamageTargetMultiplier.ToString().Contains(TEXT("0,5")) ||
+		Lines.DamageTargetMultiplier.ToString().Contains(TEXT("0.5")));
+	TestTrue(TEXT("After multipliers shows actual rounding"), Lines.DamageAfterMultipliers.ToString().Contains(TEXT("14")));
+	TestTrue(TEXT("Resistance is labeled"), Lines.DamageResistance.ToString().Contains(TEXT("20")));
+	TestTrue(TEXT("Damage total before armor is exact 11"), Lines.DamageTotal.ToString().Contains(TEXT("11")));
+	TestFalse(TEXT("Do not invent a critical when there is none"), !Lines.DamageCriticalPercent.IsEmpty());
+	TestFalse(TEXT("Do not invent a critical subtotal"), !Lines.DamageAfterCritical.IsEmpty());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT01103310CriticalPipeline,
+	"Grimrock.RPG.ARMEMENT01.10.3.3.10.CriticalAndHiddenNoOpStages",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridARMEMENT01103310CriticalPipeline::RunTest(const FString&)
+{
+	FGridAttackSourceStats Source;
+	Source.CriticalChancePercent = 5;
+	Source.CriticalDamagePercent = 200;
+	FGridAttackTargetStats Target;
+	Target.CurrentHealth = 40;
+	FGridAttackDefinition Attack;
+	Attack.DamageDice.bEnabled = true;
+	Attack.DamageDice.DiceCount = 2;
+	Attack.DamageDice.DiceSides = 6;
+	Attack.DamageDice.FlatBonus = 1;
+	Attack.MinDamage = Attack.DamageDice.GetMinimumDamage();
+	Attack.MaxDamage = Attack.DamageDice.GetMaximumDamage();
+
+	const FGridAttackResult Critical = FGridCombatResolver::ResolveAttackFromDiceRolls(
+		Source, Target, Attack, 20, TArray<int32>{3, 4});
+	TestTrue(TEXT("Natural 20 critical"), Critical.bCriticalHit);
+	TestEqual(TEXT("Critical damage actually doubled"), Critical.Trace.Damage.RawDamage, 16);
+	const FGridCombatTooltipDamageTexts Lines = UGridCombatTooltipWidget::BuildDamageTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Critical)));
+	TestTrue(TEXT("Dice total is visible"), Lines.DamageRoll.ToString().Contains(TEXT("2d6")));
+	TestTrue(TEXT("Critical coefficient is independent"), Lines.DamageCriticalPercent.ToString().Contains(TEXT("200")));
+	TestTrue(TEXT("Critical subtotal uses recorded raw damage"), Lines.DamageAfterCritical.ToString().Contains(TEXT("16")));
+	TestTrue(TEXT("Final before armor uses recorded total"), Lines.DamageTotal.ToString().Contains(TEXT("16")));
+	TestTrue(TEXT("Zero source bonus collapses"), Lines.DamageSourceBonus.IsEmpty());
+	TestTrue(TEXT("No-op raw coefficient collapses"), Lines.DamageRawPercent.IsEmpty() && Lines.DamageScaledBase.IsEmpty());
+	TestTrue(TEXT("No-op multipliers collapse"),
+		Lines.DamageSourceMultiplier.IsEmpty() && Lines.DamageTargetMultiplier.IsEmpty()
+		&& Lines.DamageAfterMultipliers.IsEmpty());
+	TestTrue(TEXT("Zero resistance collapses"), Lines.DamageResistance.IsEmpty());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT01103310DirectAndMiss,
+	"Grimrock.RPG.ARMEMENT01.10.3.3.10.DirectDamageAndMissNoFiction",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridARMEMENT01103310DirectAndMiss::RunTest(const FString&)
+{
+	FGridAttackTargetStats Target;
+	Target.CurrentHealth = 30;
+	Target.PhysicalArmor = 2;
+	Target.ResistancePercent = -25;
+	Target.DamageMultiplier = 0.5f;
+	const FGridAttackResult Direct = FGridCombatResolver::ResolveDirectDamage(
+		Target, EGridDamageType::Physical, 7);
+	const FGridCombatTooltipDamageTexts DirectLines = UGridCombatTooltipWidget::BuildDamageTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Direct)));
+	TestTrue(TEXT("Direct damage has no invented dice"), DirectLines.DamageRoll.ToString().Contains(TEXT("7"))
+		&& DirectLines.DamageRoll.ToString().Contains(TEXT("direct")));
+	TestTrue(TEXT("No base attack or bonus invented for direct damage"),
+		DirectLines.DamageSourceBonus.IsEmpty() && DirectLines.DamageBase.IsEmpty());
+	TestTrue(TEXT("Target multiplier affects direct damage"),
+		!DirectLines.DamageTargetMultiplier.IsEmpty());
+	TestTrue(TEXT("Vulnerability is visibly negative"),
+		DirectLines.DamageResistance.ToString().Contains(TEXT("-25")));
+	TestTrue(TEXT("Direct damage has a recorded pre-armor total"),
+		!DirectLines.DamageTotal.IsEmpty());
+	TestEqual(TEXT("Direct trace and tooltip use same value"), Direct.Trace.Damage.DamageAfterResistance,
+		Direct.DamageAfterModifiers);
+
+	FGridAttackSourceStats Source;
+	FGridAttackDefinition Attack;
+	Attack.MinDamage = 1;
+	Attack.MaxDamage = 6;
+	const FGridAttackResult Miss = FGridCombatResolver::ResolveAttackFromRolls(
+		Source, Target, Attack, 1, 4);
+	TestFalse(TEXT("Natural one misses"), Miss.bHit);
+	TestFalse(TEXT("No damage was actually resolved"), Miss.Trace.Damage.bResolved);
+	const FGridCombatTooltipDamageTexts MissLines = UGridCombatTooltipWidget::BuildDamageTexts(
+		UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Miss)));
+	TestTrue(TEXT("A miss tells the user no damage was resolved"), !MissLines.DamageRoll.IsEmpty());
+	TestTrue(TEXT("A miss does not fabricate totals, critical or resistance"),
+		MissLines.DamageBase.IsEmpty() && MissLines.DamageCriticalPercent.IsEmpty()
+		&& MissLines.DamageResistance.IsEmpty() && MissLines.DamageTotal.IsEmpty());
+	const FGridCombatTooltipDamageTexts Invalid = UGridCombatTooltipWidget::BuildDamageTexts(
+		FGridCombatTooltipViewData{});
+	TestTrue(TEXT("Invalid event has no damage detail"), Invalid.DamageRoll.IsEmpty() && Invalid.DamageTotal.IsEmpty());
 	return true;
 }
 

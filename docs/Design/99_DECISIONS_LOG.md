@@ -1479,3 +1479,14 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Migration sûre en deux étapes : supprimer d'abord les champs et l'override du WBP dans Unreal avec les anciennes fonctions C++ disponibles, sauvegarder, **puis** tirer le C++ nettoyé. Un .uasset ne se modifie pas dans le connecteur GitHub.
 - Test de contrat natif additionnel, 8 tests ciblés attendus, puis les régressions ARMEMENT01.10 et UI.EventHUD01 ; le jalon n'est clos qu'après les logs, recette PIE et versionnement sélectif des assets.
 - Contrat : `docs/UI_UMG_PRESENTATION_CONTRACT.md` et `docs/Design/ARMEMENT01_10_3_3_COMBAT_TOOLTIP_STRUCTURE.md` §4.4.
+
+---
+
+## 2026-10-24 — ARMEMENT01.10.3.3.10 : rendre visibles les étapes réelles des dégâts
+
+- Retours PIE du Guerrier : 4 armes testées, dégâts selon Excel, équipement et SaveGame opérationnels. La rubrique DÉGÂTS ne montrait qu'un résultat « après modificateurs et résistances » ; le problème relève de la **présentation**, pas du résolveur.
+- Autorité : `FGridCombatDamageTrace` et ses étapes réellement enregistrées à l'impact ; ne pas inférer une origine d'attribut à partir de `SourceDamageBonus` agrégé, ne pas mélanger pré-armure et perte PV.
+- Décision : 12 TextBlocks de dégâts éditables indépendamment dans le Designer, propriétés visuelles jamais définies en C++ ; l'ancien `Text_Damage` est retiré, sans fallback graphique.
+- 14 clés localisées `UI.csv → ST_UI` ; 3 tests automatisés additionnels attendus = filtre ciblé 11/11 ; aucun changement du resolver, du catalogue Excel, des armes, des contraintes de mains, du WBP ABSORPTION ou des SaveGames.
+- Le code et CSV peuvent être publiés sur master ; les nouveaux composants WBP et `ST_UI.uasset` doivent **être créés/sauvegardés dans UE5.5.4**, puis validés localement et committés sélectivement.
+- Guide : `docs/Design/ARMEMENT01_10_3_3_10_DAMAGE_TOOLTIP_DETAILS.md`.

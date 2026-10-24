@@ -148,6 +148,126 @@ namespace
 	}
 
 
+
+	FText FormatSignedDamage(int32 Value)
+	{
+		if (Value > 0)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Value"), FText::AsNumber(Value));
+			return FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.PositiveValue"), Args);
+		}
+		return FText::AsNumber(Value);
+	}
+
+	FText FormatDamageMultiplier(float Value)
+	{
+		FNumberFormattingOptions Options;
+		Options.MinimumFractionalDigits = 0;
+		Options.MaximumFractionalDigits = 6;
+		return FText::AsNumber(static_cast<double>(Value), &Options);
+	}
+
+	FGridCombatTooltipDamageTexts FormatDamageDetailLines(const FGridCombatDamageTrace& Damage)
+	{
+		FGridCombatTooltipDamageTexts Lines;
+		if (!Damage.bResolved)
+		{
+			Lines.DamageRoll = FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.NoDamage"));
+			return Lines;
+		}
+
+		if (Damage.bDirectDamage)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Damage"), FText::AsNumber(Damage.RawDamage));
+			Lines.DamageRoll = FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.Direct"), Args);
+		}
+		else
+		{
+			if (Damage.Roll.bUsed)
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("Roll"), FGridCombatEventFeedFormatter::FormatRollAsDice(Damage.Roll));
+				Lines.DamageRoll = FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.Roll"), Args);
+			}
+			if (Damage.SourceDamageBonus != 0)
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("Value"), FormatSignedDamage(Damage.SourceDamageBonus));
+				Lines.DamageSourceBonus =
+					FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.SourceBonus"), Args);
+			}
+			FFormatNamedArguments BaseArgs;
+			BaseArgs.Add(TEXT("Damage"), FText::AsNumber(Damage.BaseDamage));
+			Lines.DamageBase = FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.Base"), BaseArgs);
+
+			if (Damage.RawDamagePercent != 100)
+			{
+				FFormatNamedArguments PercentArgs;
+				PercentArgs.Add(TEXT("Percent"), FText::AsNumber(Damage.RawDamagePercent));
+				Lines.DamageRawPercent =
+					FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.RawPercent"), PercentArgs);
+				FFormatNamedArguments ScaledArgs;
+				ScaledArgs.Add(TEXT("Damage"), FText::AsNumber(Damage.ScaledBaseDamage));
+				Lines.DamageScaledBase =
+					FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.ScaledBase"), ScaledArgs);
+			}
+			if (Damage.CriticalDamagePercent != 100)
+			{
+				FFormatNamedArguments CritArgs;
+				CritArgs.Add(TEXT("Percent"), FText::AsNumber(Damage.CriticalDamagePercent));
+				Lines.DamageCriticalPercent =
+					FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.CriticalPercent"), CritArgs);
+				FFormatNamedArguments AfterCritArgs;
+				AfterCritArgs.Add(TEXT("Damage"), FText::AsNumber(Damage.RawDamage));
+				Lines.DamageAfterCritical =
+					FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.AfterCritical"), AfterCritArgs);
+			}
+		}
+
+		const bool bSourceMultiplier = !FMath::IsNearlyEqual(Damage.SourceDamageMultiplier, 1.0f);
+		const bool bTargetMultiplier = !FMath::IsNearlyEqual(Damage.TargetDamageMultiplier, 1.0f);
+		if (bSourceMultiplier)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Value"), FormatDamageMultiplier(Damage.SourceDamageMultiplier));
+			Lines.DamageSourceMultiplier =
+				FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.SourceMultiplier"), Args);
+		}
+		if (bTargetMultiplier)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Value"), FormatDamageMultiplier(Damage.TargetDamageMultiplier));
+			Lines.DamageTargetMultiplier =
+				FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.TargetMultiplier"), Args);
+		}
+		if (bSourceMultiplier || bTargetMultiplier)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Damage"), FText::AsNumber(Damage.DamageAfterMultiplier));
+			Lines.DamageAfterMultipliers =
+				FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.AfterMultipliers"), Args);
+		}
+
+		if (Damage.ResistancePercent != 0)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Percent"), FText::AsNumber(Damage.ResistancePercent));
+			Lines.DamageResistance =
+				FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.Resistance"), Args);
+		}
+
+		// This is the authoritative result before physical/magical armor,
+		// NOT health damage and NOT a re-evaluation of the original roll.
+		FFormatNamedArguments TotalArgs;
+		TotalArgs.Add(TEXT("Damage"), FText::AsNumber(Damage.DamageAfterResistance));
+		Lines.DamageTotal =
+			FormatLocalizedLine(TEXT("Combat.Tooltip.Damage.TotalBeforeArmor"), TotalArgs);
+		return Lines;
+	}
+
+
 	void SetDesignerLine(UTextBlock* TextBlock, const FText& Text)
 	{
 		if (TextBlock)
@@ -221,6 +341,12 @@ FGridCombatTooltipDetailTexts UGridCombatTooltipWidget::BuildDetailTexts(
 	return Data.bValid ? FormatCombatDetailLines(Data.Trace) : FGridCombatTooltipDetailTexts{};
 }
 
+FGridCombatTooltipDamageTexts UGridCombatTooltipWidget::BuildDamageTexts(
+	const FGridCombatTooltipViewData& Data)
+{
+	return Data.bValid ? FormatDamageDetailLines(Data.Trace.Damage) : FGridCombatTooltipDamageTexts{};
+}
+
 FGridCombatTooltipDisplayTexts UGridCombatTooltipWidget::BuildDisplayTexts(
 	const FGridCombatTooltipViewData& Data)
 {
@@ -238,11 +364,6 @@ FGridCombatTooltipDisplayTexts UGridCombatTooltipWidget::BuildDisplayTexts(
 	const FGridCombatDamageTrace& Damage = Data.Trace.Damage;
 	if (Damage.bResolved)
 	{
-		FFormatNamedArguments DamageArgs;
-		DamageArgs.Add(TEXT("Damage"), FText::AsNumber(Damage.DamageAfterResistance));
-		Texts.Damage = FText::Format(
-			FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.DamageResolved")), DamageArgs);
-
 		FFormatNamedArguments HealthArgs;
 		HealthArgs.Add(TEXT("Before"), FText::AsNumber(Damage.HealthBefore));
 		HealthArgs.Add(TEXT("After"), FText::AsNumber(Damage.HealthAfter));
@@ -252,7 +373,6 @@ FGridCombatTooltipDisplayTexts UGridCombatTooltipWidget::BuildDisplayTexts(
 	}
 	else
 	{
-		Texts.Damage = FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.NoDamage"));
 		Texts.Health = FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.NoHealthChange"));
 	}
 
@@ -291,7 +411,12 @@ bool UGridCombatTooltipWidget::PopulateDesignerWidgets(
 		|| !Text_AttackActionAccuracy || !Text_AttackTotal
 		|| !Text_DefenseBase || !Text_DefenseEvasion
 		|| !Text_DefenseTotal || !Text_AttackOutcome || !Text_AttackCritical
-		|| !Text_Damage || !Text_Health || !Text_Status
+		|| !Text_DamageRoll || !Text_DamageSourceBonus || !Text_DamageBase
+		|| !Text_DamageRawPercent || !Text_DamageScaledBase
+		|| !Text_DamageCriticalPercent || !Text_DamageAfterCritical
+		|| !Text_DamageSourceMultiplier || !Text_DamageTargetMultiplier
+		|| !Text_DamageAfterMultipliers || !Text_DamageResistance || !Text_DamageTotal
+		|| !Text_Health || !Text_Status
 		|| !VerticalBox_AbsorptionSection || !VerticalBox_ArmorRows
 		|| (Data.bShowAbsorption && !ArmorRowWidgetClass))
 	{
@@ -311,7 +436,19 @@ bool UGridCombatTooltipWidget::PopulateDesignerWidgets(
 	SetDesignerLine(Text_DefenseTotal, Detail.DefenseTotal);
 	SetDesignerLine(Text_AttackOutcome, Detail.AttackOutcome);
 	SetDesignerLine(Text_AttackCritical, Detail.AttackCritical);
-	Text_Damage->SetText(Texts.Damage);
+	const FGridCombatTooltipDamageTexts DamageDetail = BuildDamageTexts(Data);
+	SetDesignerLine(Text_DamageRoll, DamageDetail.DamageRoll);
+	SetDesignerLine(Text_DamageSourceBonus, DamageDetail.DamageSourceBonus);
+	SetDesignerLine(Text_DamageBase, DamageDetail.DamageBase);
+	SetDesignerLine(Text_DamageRawPercent, DamageDetail.DamageRawPercent);
+	SetDesignerLine(Text_DamageScaledBase, DamageDetail.DamageScaledBase);
+	SetDesignerLine(Text_DamageCriticalPercent, DamageDetail.DamageCriticalPercent);
+	SetDesignerLine(Text_DamageAfterCritical, DamageDetail.DamageAfterCritical);
+	SetDesignerLine(Text_DamageSourceMultiplier, DamageDetail.DamageSourceMultiplier);
+	SetDesignerLine(Text_DamageTargetMultiplier, DamageDetail.DamageTargetMultiplier);
+	SetDesignerLine(Text_DamageAfterMultipliers, DamageDetail.DamageAfterMultipliers);
+	SetDesignerLine(Text_DamageResistance, DamageDetail.DamageResistance);
+	SetDesignerLine(Text_DamageTotal, DamageDetail.DamageTotal);
 	Text_Health->SetText(Texts.Health);
 	Text_Status->SetText(Texts.Status);
 	Text_Status->SetVisibility(Texts.bShowStatus

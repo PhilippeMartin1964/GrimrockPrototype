@@ -1,5 +1,7 @@
 # ARMEMENT01.10.3.3 — Combat Tooltip structuré : C++ logique, Designer UMG présentation
 
+**Nouvelle évolution ARMEMENT01.10.3.3.10 (24.10.2026) :** après la clôture du nettoyage .9 (8/8), la rubrique DÉGÂTS est désormais répartie en 12 TextBlocks indépendants. L'ancien `Text_Damage` est retiré du C++. **Pour la procédure actuelle, consulter [ARMEMENT01.10.3.3.10 — Dégâts détaillés](ARMEMENT01_10_3_3_10_DAMAGE_TOOLTIP_DETAILS.md)** et non les anciennes sections de migration ci-dessous. 14 nouvelles clés ST_UI doivent être matérialisées dans Unreal. Résultat attendu de la suite : 11/11 tests, non encore validé localement.
+
 **RECTIFICATIF DE CLÔTURE ARMEMENT01.10.3.3.9 (24.10.2026) :** le nettoyage natif supprime définitivement `Text_Attack`, `Text_Defense`, `PresentCombatTooltip`, la projection `FGridCombatTooltipDiceNumbers` et le fallback multiligne associé. **Les sections historiques 3 et 4.3 conservent l'ordre des anciennes migrations ; pour toute intervention actuelle, appliquer UNIQUEMENT la procédure §4.4 ci-dessous.** Le journal d'événements dispose toujours d'un fallback textuel indépendant, qui n'est pas un ancien WBP à conserver. **8 tests attendus** après compilation du correctif ; aucune modification de `UI.csv` ou d'asset binaire dans ce commit C++.
 
 **Rectification d'architecture (24 octobre 2026) — ARMEMENT01.10.3.3.4.**  

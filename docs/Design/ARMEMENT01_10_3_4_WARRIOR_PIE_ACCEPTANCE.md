@@ -73,6 +73,8 @@ Codes : `OK` vérifié réellement en PIE ; `KO` avec preuve ; `BLOQUÉ` impossi
 - Capture d'écran + entrée du journal d'événements, log si disponible
 - Sauvegarde de test si le problème survient au rechargement
 
+**Retour utilisateur du 24.10.2026 :** ARM014/ARM015/ARM025/ARM031 testées en jeu avec succès, objets récupérés dans l'inventaire, dégâts conformes au catalogue Excel, et sauvegarde / rechargement sans perte. Les scénarios particuliers non décrits expressément (notamment refus sac plein, PA insuffisants et hors portée) ne sont pas automatiquement déclarés PASS. La rubrique DÉGÂTS de l'infobulle a révélé un manque de détail ; correctif ciblé lancé sous [ARMEMENT01.10.3.3.10](ARMEMENT01_10_3_3_10_DAMAGE_TOOLTIP_DETAILS.md), sans remettre en cause les dégâts des armes.
+
 ## 6. Critères de clôture et jalon suivant
 
 - **Technique :** suite globale ARMEMENT01.10 et EventHUD01 validées (acquis le 24.10.2026).
