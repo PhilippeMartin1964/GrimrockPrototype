@@ -45,75 +45,61 @@ namespace
 		return FText::AsNumber(Value);
 	}
 
-	FText FormatDetailedAttack(const FGridCombatResolutionTrace& Trace)
+	FGridCombatTooltipDetailTexts FormatCombatDetailLines(const FGridCombatResolutionTrace& Trace)
 	{
+		FGridCombatTooltipDetailTexts Lines;
 		const FGridCombatAttackTrace& Attack = Trace.Attack;
-		TArray<FText> Lines;
-		if (Attack.Roll.bUsed)
+		if (!Attack.Roll.bUsed)
 		{
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("Roll"), FGridCombatEventFeedFormatter::FormatRollAsDice(Attack.Roll));
-			Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.Dice"), Args));
+			Lines.AttackDice = FUILocalizationText::Get(Trace.Damage.bDirectDamage
+				? TEXT("Combat.Tooltip.Attack.DirectDamage")
+				: TEXT("Combat.Tooltip.Attack.NoRoll"));
+			Lines.DefenseBase = FUILocalizationText::Get(Trace.Damage.bDirectDamage
+				? TEXT("Combat.Tooltip.Defense.DirectDamage")
+				: TEXT("Combat.Tooltip.Defense.NoRoll"));
+			return Lines;
 		}
-		else if (Trace.Damage.bDirectDamage)
-		{
-			Lines.Add(FUILocalizationText::Get(TEXT("Combat.Tooltip.Attack.DirectDamage")));
-			return FText::Join(FText::FromString(TEXT("\n")), Lines);
-		}
-		else
-		{
-			Lines.Add(FUILocalizationText::Get(TEXT("Combat.Tooltip.Attack.NoRoll")));
-			return FText::Join(FText::FromString(TEXT("\n")), Lines);
-		}
+
+		FFormatNamedArguments DiceArgs;
+		DiceArgs.Add(TEXT("Roll"), FGridCombatEventFeedFormatter::FormatRollAsDice(Attack.Roll));
+		Lines.AttackDice = FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.Dice"), DiceArgs);
 
 		if (Attack.SourceAccuracy != 0)
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("Value"), FormatSignedAccuracy(Attack.SourceAccuracy));
-			Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.SourceAccuracy"), Args));
+			Lines.AttackSourceAccuracy =
+				FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.SourceAccuracy"), Args);
 		}
 		if (Attack.AttackAccuracyBonus != 0)
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("Value"), FormatSignedAccuracy(Attack.AttackAccuracyBonus));
-			Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.ActionAccuracy"), Args));
+			Lines.AttackActionAccuracy =
+				FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.ActionAccuracy"), Args);
 		}
 
-		FFormatNamedArguments TotalArgs;
-		TotalArgs.Add(TEXT("Total"), FText::AsNumber(Attack.FinalValue));
-		Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.Total"), TotalArgs));
-		return FText::Join(FText::FromString(TEXT("\n")), Lines);
-	}
+		FFormatNamedArguments AttackTotalArgs;
+		AttackTotalArgs.Add(TEXT("Total"), FText::AsNumber(Attack.FinalValue));
+		Lines.AttackTotal = FormatLocalizedLine(TEXT("Combat.Tooltip.Attack.Total"), AttackTotalArgs);
 
-	FText FormatDetailedDefense(const FGridCombatResolutionTrace& Trace)
-	{
-		if (!Trace.Attack.Roll.bUsed && Trace.Damage.bDirectDamage)
-		{
-			return FUILocalizationText::Get(TEXT("Combat.Tooltip.Defense.DirectDamage"));
-		}
-		if (!Trace.Attack.Roll.bUsed)
-		{
-			return FUILocalizationText::Get(TEXT("Combat.Tooltip.Defense.NoRoll"));
-		}
-
-		const FGridCombatAttackTrace& Attack = Trace.Attack;
 		const FGridCombatDefenseTrace& Defense = Trace.Defense;
-		TArray<FText> Lines;
-
 		FFormatNamedArguments BaseArgs;
 		BaseArgs.Add(TEXT("Base"), FText::AsNumber(Defense.BaseValue));
-		Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Defense.Base"), BaseArgs));
+		Lines.DefenseBase = FormatLocalizedLine(TEXT("Combat.Tooltip.Defense.Base"), BaseArgs);
 
 		if (Defense.EvasionModifier != 0)
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("Value"), FormatSignedAccuracy(Defense.EvasionModifier));
-			Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Defense.Evasion"), Args));
+			Lines.DefenseEvasion =
+				FormatLocalizedLine(TEXT("Combat.Tooltip.Defense.Evasion"), Args);
 		}
 
-		FFormatNamedArguments TotalArgs;
-		TotalArgs.Add(TEXT("Total"), FText::AsNumber(Defense.FinalValue));
-		Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Defense.Total"), TotalArgs));
+		FFormatNamedArguments DefenseTotalArgs;
+		DefenseTotalArgs.Add(TEXT("Total"), FText::AsNumber(Defense.FinalValue));
+		Lines.DefenseTotal =
+			FormatLocalizedLine(TEXT("Combat.Tooltip.Defense.Total"), DefenseTotalArgs);
 
 		const bool bHit = Attack.bAlwaysHits
 			|| (!Attack.bNaturalAutoMiss && (Attack.bNaturalAutoHit
@@ -140,10 +126,10 @@ namespace
 		FFormatNamedArguments OutcomeArgs;
 		OutcomeArgs.Add(TEXT("Attack"), FText::AsNumber(Attack.FinalValue));
 		OutcomeArgs.Add(TEXT("Defense"), FText::AsNumber(Defense.FinalValue));
-		Lines.Add(FormatLocalizedLine(OutcomeKey, OutcomeArgs));
+		Lines.AttackOutcome = FormatLocalizedLine(OutcomeKey, OutcomeArgs);
 
-		// The trace does not contain a separately named item-level accuracy
-		// provenance. Do not invent one: SourceAccuracy already aggregates it.
+		// Preserve the existing critical condition; do not invent item-level
+		// sources for an aggregated attack accuracy contribution.
 		if (bHit && Attack.bCanCriticalHit && Attack.CriticalChancePercent > 0
 			&& Attack.CriticalMinimumRoll <= 20
 			&& Attack.Roll.Kind == EGridCombatRollTraceKind::Die
@@ -154,11 +140,36 @@ namespace
 			FFormatNamedArguments CriticalArgs;
 			CriticalArgs.Add(TEXT("Roll"), FText::AsNumber(Attack.Roll.IndividualRolls[0]));
 			CriticalArgs.Add(TEXT("Threshold"), FText::AsNumber(Attack.CriticalMinimumRoll));
-			Lines.Add(FormatLocalizedLine(TEXT("Combat.Tooltip.Outcome.CriticalHit"), CriticalArgs));
+			Lines.AttackCritical =
+				FormatLocalizedLine(TEXT("Combat.Tooltip.Outcome.CriticalHit"), CriticalArgs);
 		}
 
-		return FText::Join(FText::FromString(TEXT("\n")), Lines);
+		return Lines;
 	}
+
+	FText JoinPresentLines(const TArray<FText>& Candidates)
+	{
+		TArray<FText> NonEmptyLines;
+		for (const FText& Candidate : Candidates)
+		{
+			if (!Candidate.IsEmpty())
+			{
+				NonEmptyLines.Add(Candidate);
+			}
+		}
+		return FText::Join(FText::FromString(TEXT("\n")), NonEmptyLines);
+	}
+
+	void SetDesignerLine(UTextBlock* TextBlock, const FText& Text)
+	{
+		if (TextBlock)
+		{
+			TextBlock->SetText(Text);
+			TextBlock->SetVisibility(Text.IsEmpty()
+				? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+		}
+	}
+
 }
 
 FGridCombatTooltipViewData UGridCombatTooltipWidget::BuildViewData(const FGridHudEventEntry& Entry)
@@ -238,6 +249,12 @@ int32 UGridCombatTooltipWidget::CountAbsorbingSources(const FGridCombatDamageTra
 	return Count;
 }
 
+FGridCombatTooltipDetailTexts UGridCombatTooltipWidget::BuildDetailTexts(
+	const FGridCombatTooltipViewData& Data)
+{
+	return Data.bValid ? FormatCombatDetailLines(Data.Trace) : FGridCombatTooltipDetailTexts{};
+}
+
 FGridCombatTooltipDisplayTexts UGridCombatTooltipWidget::BuildDisplayTexts(
 	const FGridCombatTooltipViewData& Data)
 {
@@ -252,10 +269,23 @@ FGridCombatTooltipDisplayTexts UGridCombatTooltipWidget::BuildDisplayTexts(
 	Texts.Defender = Data.Defender.IsEmpty()
 		? FUILocalizationText::Get(TEXT("Combat.Tooltip.Label.Defender")) : Data.Defender;
 
-	// Detailed explanation, not a duplicate of the compact Event Feed.
-	// C++ owns content; both authored TextBlocks keep their UMG Designer style.
-	Texts.Attack = FormatDetailedAttack(Data.Trace);
-	Texts.Defense = FormatDetailedDefense(Data.Trace);
+	// The same named lines supply both the legacy multiline presentation
+	// and the individually stylable .8 Designer TextBlocks.
+	const FGridCombatTooltipDetailTexts Detail = BuildDetailTexts(Data);
+	TArray<FText> AttackLines;
+	AttackLines.Add(Detail.AttackDice);
+	AttackLines.Add(Detail.AttackSourceAccuracy);
+	AttackLines.Add(Detail.AttackActionAccuracy);
+	AttackLines.Add(Detail.AttackTotal);
+	Texts.Attack = JoinPresentLines(AttackLines);
+
+	TArray<FText> DefenseLines;
+	DefenseLines.Add(Detail.DefenseBase);
+	DefenseLines.Add(Detail.DefenseEvasion);
+	DefenseLines.Add(Detail.DefenseTotal);
+	DefenseLines.Add(Detail.AttackOutcome);
+	DefenseLines.Add(Detail.AttackCritical);
+	Texts.Defense = JoinPresentLines(DefenseLines);
 
 	const FGridCombatDamageTrace& Damage = Data.Trace.Damage;
 	if (Damage.bResolved)
@@ -317,8 +347,42 @@ bool UGridCombatTooltipWidget::PopulateDesignerWidgets(
 	const FGridCombatTooltipDisplayTexts Texts = BuildDisplayTexts(Data);
 	Text_Attacker->SetText(Texts.Attacker);
 	Text_Defender->SetText(Texts.Defender);
-	Text_Attack->SetText(Texts.Attack);
-	Text_Defense->SetText(Texts.Defense);
+	// Atomic migration: every one of the nine .8 fields must exist. Until
+	// then the two old combined TextBlocks remain the fully working fallback.
+	const bool bHasCompleteDetailLayout =
+		Text_AttackDice && Text_AttackSourceAccuracy && Text_AttackActionAccuracy
+		&& Text_AttackTotal && Text_DefenseBase && Text_DefenseEvasion
+		&& Text_DefenseTotal && Text_AttackOutcome && Text_AttackCritical;
+	if (bHasCompleteDetailLayout)
+	{
+		const FGridCombatTooltipDetailTexts Detail = BuildDetailTexts(Data);
+		SetDesignerLine(Text_AttackDice, Detail.AttackDice);
+		SetDesignerLine(Text_AttackSourceAccuracy, Detail.AttackSourceAccuracy);
+		SetDesignerLine(Text_AttackActionAccuracy, Detail.AttackActionAccuracy);
+		SetDesignerLine(Text_AttackTotal, Detail.AttackTotal);
+		SetDesignerLine(Text_DefenseBase, Detail.DefenseBase);
+		SetDesignerLine(Text_DefenseEvasion, Detail.DefenseEvasion);
+		SetDesignerLine(Text_DefenseTotal, Detail.DefenseTotal);
+		SetDesignerLine(Text_AttackOutcome, Detail.AttackOutcome);
+		SetDesignerLine(Text_AttackCritical, Detail.AttackCritical);
+		Text_Attack->SetVisibility(ESlateVisibility::Collapsed);
+		Text_Defense->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	else
+	{
+		// A partially updated WBP must NEVER show duplicated descriptions.
+		SetDesignerLine(Text_Attack, Texts.Attack);
+		SetDesignerLine(Text_Defense, Texts.Defense);
+		SetDesignerLine(Text_AttackDice, FText::GetEmpty());
+		SetDesignerLine(Text_AttackSourceAccuracy, FText::GetEmpty());
+		SetDesignerLine(Text_AttackActionAccuracy, FText::GetEmpty());
+		SetDesignerLine(Text_AttackTotal, FText::GetEmpty());
+		SetDesignerLine(Text_DefenseBase, FText::GetEmpty());
+		SetDesignerLine(Text_DefenseEvasion, FText::GetEmpty());
+		SetDesignerLine(Text_DefenseTotal, FText::GetEmpty());
+		SetDesignerLine(Text_AttackOutcome, FText::GetEmpty());
+		SetDesignerLine(Text_AttackCritical, FText::GetEmpty());
+	}
 	Text_Damage->SetText(Texts.Damage);
 	Text_Health->SetText(Texts.Health);
 	Text_Status->SetText(Texts.Status);

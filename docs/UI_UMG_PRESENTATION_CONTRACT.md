@@ -54,6 +54,8 @@ Voir [UI_WBP_LOCALIZATION_WORKFLOW.md](UI_WBP_LOCALIZATION_WORKFLOW.md).
 
 - [ ] Le C++ gère effectivement tous les calculs et textes dynamiques.
 - [ ] Les TextBlocks et conteneurs visuels sont déclarés dans le Designer, avec leur police, taille, marge et alignement modifiables.
+- [ ] **Une information visuelle que l'on doit styliser/repositionner indépendamment = un TextBlock distinct dans le Designer**. Ne pas concaténer de multiples champs sémantiques dans un seul FText multiligne si l'utilisateur veut modifier séparément ces lignes (exemple ARMEMENT01.10.3.3.8 Attaque/Défense).
+- [ ] Les textes dynamiques sont localisés et alimentés par C++ par composant ; ne pas créer d'Event Graph pour recréer cette ventilation.
 - [ ] Aucune création de cellule / colonne / police / padding par C++.
 - [ ] Pour chaque liste, la classe native instancie **un WBP de ligne authoré** ; elle ne crée pas de TextBlocks individuels.
 - [ ] Le C++ peut changer **le contenu** et **la visibilité d'une section** sans imposer sa géométrie.

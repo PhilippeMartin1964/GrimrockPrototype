@@ -33,7 +33,7 @@ D:\Development\GrimrockPrototype\Content\GrimrockPrototype\Blueprints\UI\EventFe
   WBP_GridCombatArmorRow.uasset
 ```
 
-**Attention :** vous avez **déjà créé** `WBP_GridCombatArmorRow` avec les quatre `SizeBox` et `TextBlock`. **Ne pas le supprimer ni le recréer.** Son parent doit être `GridCombatArmorRowWidget` : vérifier ce point dans UE avant nettoyage. **Audit GitHub du 24.10.2026 : ces deux WBP ne sont pas encore suivis sous ces chemins dans `master`**, bien que `WBP_GridEventFeed.uasset` s'y trouve. La configuration locale ne sera pas reproductible tant qu'ils ne seront pas versionnés.
+**Attention :** vous avez **déjà créé** `WBP_GridCombatArmorRow` avec les quatre `SizeBox` et `TextBlock`. **Ne pas le supprimer ni le recréer.** Son parent doit être `GridCombatArmorRowWidget` : vérifier ce point dans UE avant nettoyage. **Mise à jour :** le commit utilisateur [`f858351b`](https://github.com/PhilippeMartin1964/GrimrockPrototype/commit/f858351b9a7a5dbb6f2a1bceed1d4fc41aaea0b4) (« ARMEMENT : hand implementation ») a depuis ajouté les deux WBP dans `master`, ainsi que `ST_UI.uasset` et les changements de localisation. Il faut toujours les modifier **uniquement dans Unreal Editor** ; ne pas écraser leur version.
 
 ## 3. Petite intervention MANUELLE dans UE après validation C++
 
@@ -209,6 +209,102 @@ Commandes PowerShell (UE fermé, à partir de `D:\Development\GrimrockPrototype`
 3. `.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.10.3.3"`.
 4. Ouvrir `/Game/Localization/StringTables/ST_UI` et vérifier les 18 nouvelles clés ; contrôler le rendu en PIE et préserver le binaire généré via Git LFS.
 5. Faire les régressions `Grimrock.RPG.ARMEMENT01.10`, `Grimrock.UI.EventHUD01` et le smoke localisation. Les traductions anglaises Game sont à compléter indépendamment du CSV français.
+
+## 4.3 — ARMEMENT01.10.3.3.8 : édition INDIVIDUELLE des lignes dans UMG
+
+**Décision corrigée du 24.10.2026 :** la version .7 produisait 2 blocs multilignes `Text_Attack` et `Text_Defense`. Les lignes étaient justes mais leur couleur, police, largeur, marges et disposition n'étaient PAS réglables individuellement. Cela ne répondait pas au contrat Designer. La version **.8** livre des données indépendantes en C++ et demande **neuf TextBlocks existants dans le Designer**. Il n'y a **aucun Graph à refaire**, ni « Create Widget » des cellules en C++.
+
+### 1. État et sauvegarde préalable
+
+Les deux assets graphiques sont maintenant **versionnés sur `master`** depuis le commit utilisateur `f858351b` et peuvent être récupérés par Git LFS. Ils contiennent déjà son travail graphique : **ne pas les remplacer ni les recréer**. Avant d'éditer, fermer UE puis effectuer une copie de sécurité des deux `.uasset` dans `Saved/Backups/ARMEMENT0110338/`. Les enregistrer ensuite normalement depuis Unreal Editor.
+
+Le présentateur natif reste **compatible avec les WBP existants** : si les neuf nouveaux champs ne sont pas encore tous présents, il affiche les anciens `Text_Attack` / `Text_Defense` complets, et masque les éventuels champs .8 déjà ajoutés. Quand les **neuf champs** sont prêts, le C++ remplit séparément chaque champ .8 et masque les deux anciens blocs. On peut donc progresser dans le Designer **sans casser le jeu**.
+
+**Attention :** tout changement de disposition, de police, de couleur ou de taille est manuel dans UE (les binaires .uasset ne se modifient pas par le connecteur GitHub) ; ce commit n'installe que la couche C++ compatible, les tests et la documentation.
+
+### 2. Chemin WBP principal à ouvrir
+
+Content Browser :
+`/Game/GrimrockPrototype/Blueprints/UI/EventFeed/WBP_GridCombatTooltip`
+
+Fichier local :
+`D:\Development\GrimrockPrototype\Content\GrimrockPrototype\Blueprints\UI\EventFeed\WBP_GridCombatTooltip.uasset`
+
+**Parent C++ inchangé :** `GridCombatTooltipWidget`.
+
+### 3. Hiérarchie UMG demandée dans ce WBP
+
+Ne modifier **aucun** widget de la section ABSORPTION ni du WBP `WBP_GridCombatArmorRow`.
+
+```text
+WBP_GridCombatTooltip  [Parent: GridCombatTooltipWidget]
+└─ SizeBox_Root
+   └─ Border_CombatTooltip
+      └─ VerticalBox_Content
+         ├─ ... titre + section ATTAQUE + HorizontalBox_Actors (inchangés)
+         │
+         ├─ HorizontalBox_Attack               [EXISTANT, conservé]
+         │  ├─ Text_LabelAttack                [titre existant, nom exact à vérifier]
+         │  └─ Text_Attack                     [EXISTANT, fallback C++]
+         │
+         ├─ VerticalBox_AttackDetails          [NOUVEAU conteneur UMG]
+         │  ├─ Text_AttackDice                 [NOUVEAU / TextBlock / Is Variable]
+         │  ├─ Text_AttackSourceAccuracy       [NOUVEAU / TextBlock / Is Variable]
+         │  ├─ Text_AttackActionAccuracy       [NOUVEAU / TextBlock / Is Variable]
+         │  └─ Text_AttackTotal                [NOUVEAU / TextBlock / Is Variable]
+         │
+         ├─ HorizontalBox_Defense              [EXISTANT, conservé]
+         │  ├─ Text_LabelDefense               [titre existant, nom exact à vérifier]
+         │  └─ Text_Defense                    [EXISTANT, fallback C++]
+         │
+         ├─ VerticalBox_DefenseDetails         [NOUVEAU conteneur UMG]
+         │  ├─ Text_DefenseBase                [NOUVEAU / TextBlock / Is Variable]
+         │  ├─ Text_DefenseEvasion             [NOUVEAU / TextBlock / Is Variable]
+         │  ├─ Text_DefenseTotal               [NOUVEAU / TextBlock / Is Variable]
+         │  ├─ Text_AttackOutcome              [NOUVEAU / TextBlock / Is Variable]
+         │  └─ Text_AttackCritical             [NOUVEAU / TextBlock / Is Variable]
+         │
+         ├─ HorizontalBox_Damage               [EXISTANT, inchangé]
+         ├─ VerticalBox_AbsorptionSection      [EXISTANT, inchangé]
+         └─ ... section CONSÉQUENCES, PV et statut (inchangés)
+```
+
+**Note sur Text_LabelAttack/Text_LabelDefense :** noms indicatifs des titres **déjà présents** : leur nom réel dans votre UMG peut différer. Les seuls noms devant impérativement être identiques aux déclarations `BindWidgetOptional` C++ sont les **neuf TextBlocks nouveaux** listés exactement ci-dessus, ainsi que les anciens `Text_Attack` et `Text_Defense` conservés.
+
+### 4. Procédure dans le Designer UE5.5.4
+
+1. Ouvrir `WBP_GridCombatTooltip` → onglet **Designer**, afficher **Hierarchy**.
+2. Cliquer sur `VerticalBox_Content`. Insérer un **Vertical Box** entre `HorizontalBox_Attack` et `HorizontalBox_Defense` et le nommer exactement `VerticalBox_AttackDetails`. Aucun `Is Variable` nécessaire pour ce conteneur.
+3. Dans ce Vertical Box, déposer quatre **Text** (TextBlocks), leur donner **exactement** les noms `Text_AttackDice`, `Text_AttackSourceAccuracy`, `Text_AttackActionAccuracy`, `Text_AttackTotal` et activer **Is Variable** pour chacun.
+4. Insérer un deuxième **Vertical Box** entre `HorizontalBox_Defense` et `HorizontalBox_Damage`, nommé `VerticalBox_DefenseDetails`.
+5. Y placer cinq TextBlocks : `Text_DefenseBase`, `Text_DefenseEvasion`, `Text_DefenseTotal`, `Text_AttackOutcome`, `Text_AttackCritical`, tous **Is Variable**.
+6. Sélectionner chaque nouveau TextBlock et choisir librement dans **Details** sa police (ex. Alegreya Sans), taille, couleur, ombre, wrapping, justification, min desired width, etc. Régler ses **Slot/Vertical Box Slot → Padding, Horizontal Alignment, Vertical Alignment** dans le Designer. Aucun `SetFont/SetPadding` n'existe dans cette logique C++.
+7. Conserver `Text_Attack`, `Text_Defense` et leurs lignes/titres existants **pour le fallback** ; quand les neuf nouveaux widgets sont détectés, le C++ masque uniquement ces deux blocs anciens mais les titres statiques peuvent servir de **rubriques graphiques** « Jet d'attaque » et « Défense ». Renommer, repositionner ou restyler les titres selon vos préférences ; ne pas les dupliquer.
+8. **Aucun Event Graph, Format Text, binding ou SetText Blueprint n'est nécessaire.** Les nouvelles valeurs affichées dans le Designer avant PIE ne sont que des placeholders ; elles seront remplacées par les `FText` localisés du C++.
+9. **Compile → Save**, puis tester PIE. Si la disposition actuelle semble conservée sans les neuf champs, c'est le **fallback**, pas un échec. Si les neuf champs existent, les nouvelles lignes se stylisent de manière indépendante.
+
+### 5. Comportement C++ et particularités
+
+- `UGridCombatTooltipWidget::BuildDetailTexts` retourne **neuf textes indépendants**, sans positions ni styles. `BuildDisplayTexts` reconstruit les deux lignes multilignes de fallback **à partir des mêmes données**, évitant deux logiques concurrentes.
+- Le C++ remplit `Text_AttackDice` (ou « pas de jet »), `Text_AttackSourceAccuracy`, `Text_AttackActionAccuracy`, `Text_AttackTotal`, `Text_DefenseBase`, `Text_DefenseEvasion`, `Text_DefenseTotal`, `Text_AttackOutcome`, `Text_AttackCritical`.
+- Un bonus `0` ou une ligne « coup critique » non applicable fournit un FText vide ; le C++ la met en `Collapsed`, donc **pas de ligne inutile**.
+- Une attaque sans jet masque les valeurs qui n'existent pas et affiche seulement les indications de non-jet.
+- Migration **atomique** : tant que les neuf widgets de détails ne sont pas présents, les anciens blocs restent visibles et les nouveaux sont masqués. Pas de rendu double ni de texte partiel.
+- Les libellés et leurs variables de substitution sont **localisés en ST_UI** ; l'utilisateur gère `UI.csv` séparément. **AUCUNE clé ajoutée dans ce commit**.
+- Le C++ ne crée pas de TextBlocks, ne modifie aucune police et ne calcule aucune position. Toutes les valeurs graphiques des neuf lignes sont dans le Designer. Les noms des clés/localisation peuvent être modifiés via le CSV ; les propriétés visuelles via UMG.
+
+### 6. Test après intégration
+
+```powershell
+cd D:\Development\GrimrockPrototype
+git status --short
+git pull --ff-only origin master
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.10.3.3"
+```
+
+**Attendu : 7/7 tests** (six tests précédents déjà validés plus `Grimrock.RPG.ARMEMENT01.10.3.3.8.IndependentDesignerTexts`). Vérifier ensuite le WBP sous UE et une capture PIE. Pas de validation des neuf bindings UMG par le seul filtre de tests C++ ; ce sont des assets binaires **locaux**.
+
+**À ne pas faire :** supprimer les deux vieux TextBlocks, restaurer les .uasset depuis Git, appliquer le stash `UI.csv` sans comparer, ni modifier manuellement le C++ pour un changement de police ou de colonnes. Le CSV et le contenu local sont sous la responsabilité du développeur, qui récupère ses changements indépendamment.
 
 ## 5. Nettoyage final sûr — **sans casser le WBP qui fonctionne**
 

@@ -551,4 +551,90 @@ bool FGridARMEMENT0110337ExceptionalOutcomes::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT0110338DesignerSeparatedLines,
+	"Grimrock.RPG.ARMEMENT01.10.3.3.8.IndependentDesignerTexts",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridARMEMENT0110338DesignerSeparatedLines::RunTest(const FString&)
+{
+	FGridAttackSourceStats Source;
+	Source.Accuracy = 1;
+	FGridAttackTargetStats Target;
+	Target.CurrentHealth = 20;
+	Target.Evasion = 1;
+	FGridAttackDefinition Attack;
+	Attack.MinDamage = 1;
+	Attack.MaxDamage = 4;
+	Attack.AccuracyBonus = 1;
+
+	const FGridAttackResult Hit =
+		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Attack, 11, 2);
+	const FGridCombatTooltipViewData Data = UGridCombatTooltipWidget::BuildViewData(
+		ARMEMENT011033::MakeTooltipEntry(Hit));
+	const FGridCombatTooltipDetailTexts Fields =
+		UGridCombatTooltipWidget::BuildDetailTexts(Data);
+
+	TestTrue(TEXT("Dice is a separately localizable and stylable field"),
+		Fields.AttackDice.ToString().Contains(TEXT("1d20 (11)")));
+	TestTrue(TEXT("Attacker precision can be styled without restyling dice"),
+		Fields.AttackSourceAccuracy.ToString().Contains(TEXT("+1")));
+	TestTrue(TEXT("Action accuracy can be styled independently"),
+		Fields.AttackActionAccuracy.ToString().Contains(TEXT("+1")));
+	TestTrue(TEXT("Attack total is its own stylable text"),
+		Fields.AttackTotal.ToString().Contains(TEXT("13")));
+	TestTrue(TEXT("Defense base is its own stylable text"),
+		Fields.DefenseBase.ToString().Contains(TEXT("10")));
+	TestTrue(TEXT("Defender evasion is its own stylable text"),
+		Fields.DefenseEvasion.ToString().Contains(TEXT("+1")));
+	TestTrue(TEXT("Defense total is its own stylable text"),
+		Fields.DefenseTotal.ToString().Contains(TEXT("11")));
+	TestTrue(TEXT("Hit decision is its own stylable text"),
+		Fields.AttackOutcome.ToString().Contains(TEXT("TOUCHÉ")));
+	TestTrue(TEXT("Non-critical hits have no critical line"),
+		Fields.AttackCritical.IsEmpty());
+
+	// No structural or localizable text changes may affect legacy WBP output.
+	const FGridCombatTooltipDisplayTexts Legacy =
+		UGridCombatTooltipWidget::BuildDisplayTexts(Data);
+	TestTrue(TEXT("Legacy multiline fallback still explains both bonuses"),
+		Legacy.Attack.ToString().Contains(Fields.AttackSourceAccuracy.ToString())
+		&& Legacy.Attack.ToString().Contains(Fields.AttackActionAccuracy.ToString()));
+	TestTrue(TEXT("Legacy multiline fallback still includes the same outcome"),
+		Legacy.Defense.ToString().Contains(Fields.AttackOutcome.ToString()));
+
+	Source.Accuracy = 0;
+	Attack.AccuracyBonus = 0;
+	Target.Evasion = 0;
+	const FGridAttackResult Bare =
+		FGridCombatResolver::ResolveAttackFromRolls(Source, Target, Attack, 5, 2);
+	const FGridCombatTooltipDetailTexts BareFields =
+		UGridCombatTooltipWidget::BuildDetailTexts(
+			UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Bare)));
+	TestTrue(TEXT("Zero-valued accuracy rows collapse without blank noise"),
+		BareFields.AttackSourceAccuracy.IsEmpty() && BareFields.AttackActionAccuracy.IsEmpty());
+	TestTrue(TEXT("Zero-valued evasion row collapses without blank noise"),
+		BareFields.DefenseEvasion.IsEmpty());
+	TestTrue(TEXT("Remaining attack and defense totals stay visible"),
+		!BareFields.AttackTotal.IsEmpty() && !BareFields.DefenseTotal.IsEmpty());
+
+	const FGridAttackResult Direct =
+		FGridCombatResolver::ResolveDirectDamage(Target, EGridDamageType::Physical, 3);
+	const FGridCombatTooltipDetailTexts DirectFields =
+		UGridCombatTooltipWidget::BuildDetailTexts(
+			UGridCombatTooltipWidget::BuildViewData(ARMEMENT011033::MakeTooltipEntry(Direct)));
+	TestTrue(TEXT("Direct damage uses only dedicated no-roll explanation fields"),
+		DirectFields.AttackDice.ToString().Contains(TEXT("aucun jet"))
+		&& DirectFields.DefenseBase.ToString().Contains(TEXT("Sans jet")));
+	TestTrue(TEXT("Direct damage does not create fictional totals or a hit test"),
+		DirectFields.AttackTotal.IsEmpty() && DirectFields.DefenseTotal.IsEmpty()
+		&& DirectFields.AttackOutcome.IsEmpty());
+
+	const FGridCombatTooltipDetailTexts Empty = UGridCombatTooltipWidget::BuildDetailTexts(
+		FGridCombatTooltipViewData{});
+	TestTrue(TEXT("Invalid snapshots do not fabricate UI lines"),
+		Empty.AttackDice.IsEmpty() && Empty.AttackOutcome.IsEmpty());
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

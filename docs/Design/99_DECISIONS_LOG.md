@@ -1455,3 +1455,15 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Deux nouveaux tests d'automation, **6 tests attendus** pour le filtre ARMEMENT01.10.3.3, non validés tant que les logs utilisateurs et la capture PIE ne sont pas fournis.
 - Référence : `docs/Design/ARMEMENT01_10_3_3_COMBAT_TOOLTIP_STRUCTURE.md` §4.2.
 
+
+
+---
+
+## 2026-10-24 — ARMEMENT01.10.3.3.8 : une ligne modifiable = un composant Designer
+
+- Validation .7 **6/6**, ST_UI matérialisée et affichage PIE confirmé ; problème restant : `Text_Attack` et `Text_Defense` imposent des blocs multilignes uniformes.
+- Demande : pouvoir modifier **individuellement** chaque composante de Jet d'attaque et Défense via les propriétés des TextBlocks dans l'éditeur UMG, sans déplacer la logique en Blueprint.
+- Décision : neuf nouveaux TextBlocks dans le **Designer WBP existant** (jet, précision source, précision action, total attaque ; base défense, esquive, total défense, issue, critique). C++ fournit leurs FText localisés, la visibilité et les conditions.
+- **Compatibilité** : conserver les deux vieux champs `Text_Attack` et `Text_Defense` comme fallback tant que les neuf nouvelles liaisons ne sont pas présentes, sans double rendu. Préserver les .uasset locaux et le travail utilisateur sur `UI.csv`.
+- Aucun widget individuel construit en C++, pas de paramétrage typographique natif, pas de Graph obligatoire et pas de nouvelle clé ST_UI. Test de non-régression additionnel, **7/7 attendus** sur le filtre.
+- Référence : `docs/Design/ARMEMENT01_10_3_3_COMBAT_TOOLTIP_STRUCTURE.md` §4.3.

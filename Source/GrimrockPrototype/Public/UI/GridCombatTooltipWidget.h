@@ -113,6 +113,24 @@ struct GRIMROCKPROTOTYPE_API FGridCombatTooltipDisplayTexts
 };
 
 /**
+ * ARMEMENT01.10.3.3.8: independent, localized lines for designer-authored
+ * TextBlocks. Empty lines are collapsed by the native presenter.
+ * No layout, styling or widget construction is represented here.
+ */
+struct GRIMROCKPROTOTYPE_API FGridCombatTooltipDetailTexts
+{
+	FText AttackDice;
+	FText AttackSourceAccuracy;
+	FText AttackActionAccuracy;
+	FText AttackTotal;
+	FText DefenseBase;
+	FText DefenseEvasion;
+	FText DefenseTotal;
+	FText AttackOutcome;
+	FText AttackCritical;
+};
+
+/**
  * ARMEMENT01.10.3.3: native behavior and text assignment, designer-authored UMG.
  * C++ supplies all values, localized formats, visibility decisions and row instances.
  * WBP_GridCombatTooltip and WBP_GridCombatArmorRow own all layout and visual styling.
@@ -135,6 +153,7 @@ public:
 
 	static FGridCombatTooltipViewData BuildViewData(const FGridHudEventEntry& Entry);
 	static FGridCombatTooltipDisplayTexts BuildDisplayTexts(const FGridCombatTooltipViewData& Data);
+	static FGridCombatTooltipDetailTexts BuildDetailTexts(const FGridCombatTooltipViewData& Data);
 	static int32 CountAbsorbingSources(const FGridCombatDamageTrace& Damage);
 
 protected:
@@ -154,6 +173,38 @@ protected:
 
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_Defense;
+
+	/**
+	 * Optional ARMEMENT01.10.3.3.8 Designer fields. The nine fields form one
+	 * complete presentation contract; a partial WBP falls back to the two
+	 * existing legacy text blocks, never a half-rendered mixture.
+	 */
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_AttackDice;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_AttackSourceAccuracy;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_AttackActionAccuracy;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_AttackTotal;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DefenseBase;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DefenseEvasion;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DefenseTotal;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_AttackOutcome;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_AttackCritical;
 
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_Damage;
