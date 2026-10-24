@@ -313,4 +313,70 @@ bool FGridARMEMENT011033MultipleSources::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT011033AttackBreakdown,
+	"Grimrock.RPG.ARMEMENT01.10.3.3.TransparentAttackTotal",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridARMEMENT011033AttackBreakdown::RunTest(const FString&)
+{
+	// Reproduces the PIE screenshot: the natural d20 roll is 3, but the
+	// defender sees an attack total of 5 because source accuracy adds 2.
+	FGridCombatTooltipViewData View;
+	View.bValid = true;
+	FGridCombatAttackTrace& Attack = View.Trace.Attack;
+	Attack.Roll.bUsed = true;
+	Attack.Roll.Kind = EGridCombatRollTraceKind::Die;
+	Attack.Roll.DiceCount = 1;
+	Attack.Roll.DiceSides = 20;
+	Attack.Roll.Minimum = 1;
+	Attack.Roll.Maximum = 20;
+	Attack.Roll.FinalValue = 3;
+	Attack.Roll.IndividualRolls = {3};
+	Attack.SourceAccuracy = 2;
+	Attack.AttackAccuracyBonus = 0;
+	Attack.FinalValue = 5;
+
+	const FText Terms = FGridCombatEventFeedFormatter::FormatAttackTerms(Attack);
+	TestEqual(TEXT("The displayed expression includes source accuracy rather than jumping 3 to 5"),
+		Terms.ToString(), FString(TEXT("1d20 (3) + 2")));
+	const FGridCombatTooltipDisplayTexts Display =
+		UGridCombatTooltipWidget::BuildDisplayTexts(View);
+	TestTrue(TEXT("Combat tooltip contains the explicit plus-two"),
+		Display.Attack.ToString().Contains(TEXT("1d20 (3) + 2")));
+	TestTrue(TEXT("Combat tooltip still contains the resolved attack total"),
+		Display.Attack.ToString().Contains(TEXT("5")));
+
+	// The two accuracy contributions must stay distinct (including penalties),
+	// not be silently merged into an unexplained delta.
+	Attack.SourceAccuracy = 4;
+	Attack.AttackAccuracyBonus = -2;
+	Attack.FinalValue = 5;
+	TestEqual(TEXT("Positive accuracy and negative action modifier both visible"),
+		FGridCombatEventFeedFormatter::FormatAttackTerms(Attack).ToString(),
+		FString(TEXT("1d20 (3) + 4 - 2")));
+
+	// NdM+K must be shown once and remain independent from source accuracy.
+	Attack.Roll.DiceFlatBonus = 2;
+	Attack.Roll.FinalValue = 5;
+	Attack.SourceAccuracy = -1;
+	Attack.AttackAccuracyBonus = 3;
+	Attack.FinalValue = 7;
+	TestEqual(TEXT("Roll flat bonus and signed accuracy terms are displayed exactly once"),
+		FGridCombatEventFeedFormatter::FormatAttackTerms(Attack).ToString(),
+		FString(TEXT("1d20 (3) + 2 - 1 + 3")));
+	TestTrue(TEXT("Attack display includes the mechanically resolved total"),
+		UGridCombatTooltipWidget::BuildDisplayTexts(View).Attack.ToString().Contains(TEXT("7")));
+
+	Attack.Roll.DiceFlatBonus = 0;
+	Attack.Roll.FinalValue = 3;
+	Attack.SourceAccuracy = 0;
+	Attack.AttackAccuracyBonus = 0;
+	Attack.FinalValue = 3;
+	TestEqual(TEXT("No invented +0 in an unmodified attack"),
+		FGridCombatEventFeedFormatter::FormatAttackTerms(Attack).ToString(),
+		FString(TEXT("1d20 (3)")));
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

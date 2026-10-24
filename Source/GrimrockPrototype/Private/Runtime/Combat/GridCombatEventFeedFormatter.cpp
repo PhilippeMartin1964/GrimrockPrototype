@@ -158,17 +158,26 @@ namespace
 		return FText::Format(LOCTEXT("AttackHeader", "{Source} attaque {Target} — {Outcome}"), Args);
 	}
 
+	// Shared by compact combat feed and the structured tooltip. Keep each
+	// accuracy contribution explicit, including negative bonuses and the
+	// roll's own NdM+K offset; never show a jump from die to attack total.
+	FString BuildAttackTermsString(const FGridCombatAttackTrace& Attack)
+	{
+		FString Terms = FormatRollAsDiceString(Attack.Roll, false);
+		if (Terms.IsEmpty())
+		{
+			Terms = FString::FromInt(Attack.Roll.FinalValue);
+		}
+		AppendSignedTerm(Terms, Attack.SourceAccuracy);
+		AppendSignedTerm(Terms, Attack.AttackAccuracyBonus);
+		return Terms;
+	}
+
 	FText BuildCompactAttackDefenseLine(
 		const FGridCombatAttackTrace& Attack,
 		const FGridCombatDefenseTrace& Defense)
 	{
-		FString AttackExpression = FormatRollAsDiceString(Attack.Roll, false);
-		if (AttackExpression.IsEmpty())
-		{
-			AttackExpression = FString::FromInt(Attack.Roll.FinalValue);
-		}
-		AppendSignedTerm(AttackExpression, Attack.SourceAccuracy);
-		AppendSignedTerm(AttackExpression, Attack.AttackAccuracyBonus);
+		FString AttackExpression = BuildAttackTermsString(Attack);
 		AttackExpression += FString::Printf(TEXT(" = %d"), Attack.FinalValue);
 
 		FString DefenseExpression = FString::FromInt(Defense.BaseValue);
@@ -499,6 +508,11 @@ namespace
 FText FGridCombatEventFeedFormatter::FormatRollAsDice(const FGridCombatRollTrace& Roll)
 {
 	return FText::FromString(FormatRollAsDiceString(Roll, true));
+}
+
+FText FGridCombatEventFeedFormatter::FormatAttackTerms(const FGridCombatAttackTrace& Attack)
+{
+	return FText::FromString(BuildAttackTermsString(Attack));
 }
 
 EGridHudEventSemantic FGridCombatEventFeedFormatter::ResolveDamageSemantic(EGridDamageType DamageType)

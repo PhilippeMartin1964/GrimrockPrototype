@@ -122,13 +122,8 @@ FGridCombatTooltipDisplayTexts UGridCombatTooltipWidget::BuildDisplayTexts(
 		? FUILocalizationText::Get(TEXT("Combat.Tooltip.Label.Defender")) : Data.Defender;
 
 	const FGridCombatAttackTrace& Attack = Data.Trace.Attack;
-	FText DiceText = FGridCombatEventFeedFormatter::FormatRollAsDice(Attack.Roll);
-	if (DiceText.IsEmpty())
-	{
-		DiceText = FText::AsNumber(Attack.Roll.FinalValue);
-	}
 	FFormatNamedArguments AttackArgs;
-	AttackArgs.Add(TEXT("Roll"), DiceText);
+	AttackArgs.Add(TEXT("Roll"), FGridCombatEventFeedFormatter::FormatAttackTerms(Attack));
 	AttackArgs.Add(TEXT("Total"), FText::AsNumber(Attack.FinalValue));
 	Texts.Attack = FText::Format(
 		FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.AttackRoll")), AttackArgs);

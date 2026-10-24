@@ -125,6 +125,22 @@ D:\Development\GrimrockPrototype\Content\GrimrockPrototype\Blueprints\UI\EventFe
 - Si le WBP est incomplet (TextBlocks manquants ou classe de ligne non renseignée), `InitializeCombatTooltip` retourne `false`, et `GridEventFeedWidget` conserve **une seule infobulle de repli** ; il n'affiche pas de cadre vide.
 - Pour faciliter le nettoyage des Blueprints déjà sauvegardés, l'ancienne fonction `PresentCombatTooltip` est **temporairement conservée dans la classe C++ mais n'est plus jamais appelée**. C'est un contrat de compatibilité transitoire, pas une logique secondaire.
 
+## 4.1 — Correctif de lisibilité du jet d'attaque (ARMEMENT01.10.3.3.6)
+
+**Incident du 24.10.2026, capture du combat contre le Rat géant :** l'infobulle affichait « Jet d'attaque : 1d20 (3) ; Total : 5 ». Le dé **n'a pas donné 5** : il a donné **3**. La trace du résolveur contient aussi le bonus `Attack.SourceAccuracy` (ici **+2**) et `Attack.AttackAccuracyBonus` (bonus/malus de l'action, ici **0**). La première version de `BuildDisplayTexts` n'affichait pas ces termes et sautait donc directement au total.
+
+**Correction limitée à la présentation :**
+
+- `FGridCombatEventFeedFormatter::FormatAttackTerms(Attack)` fournit la **notation exacte des termes**, sans total : dé naturel, bonus fixe éventuel de `NdM+K`, puis `SourceAccuracy` et `AttackAccuracyBonus` **séparément avec leurs signes**. Les termes à zéro n'ajoutent pas de « +0 ».
+- `UGridCombatTooltipWidget::BuildDisplayTexts` utilise cette fonction pour l'argument `Roll` du pattern ST_UI **existant** `Combat.Tooltip.Value.AttackRoll` ; l'argument `Total` reste `Attack.FinalValue` issu du résolveur.
+- Le journal compact et l'infobulle **partagent maintenant le même formateur de termes**, évitant deux logiques divergentes.
+- Exemple reproduit : `Jet d'attaque : 1d20 (3) + 2 ; Total : 5`. Si deux modificateurs sont présents : `1d20 (3) + 4 - 2 ; Total : 5`.
+- Si le dé porte un bonus intrinsèque (`NdM+K`), le formateur l'ajoute **une seule fois** avant les bonus de précision.
+- **Aucune nouvelle clé ST_UI, aucun nouveau TextBlock, aucune modification du Designer ou des règles de combat.** Les textes dynamiques restent produits par C++ et insérés dans `Text_Attack`.
+- Nouveau test `Grimrock.RPG.ARMEMENT01.10.3.3.TransparentAttackTotal` : dé 3 / précision +2 / total 5, plusieurs bonus/malus, offset et absence de +0.
+
+**Validation attendue :** filtre `Grimrock.RPG.ARMEMENT01.10.3.3` passe désormais de **3 à 4 tests**. Après validation locale, refaire un combat PIE et vérifier que `Text_Attack` affiche explicitement les termes expliquant le total, aussi bien en cas d'échec qu'en cas de touche. La **Défense** et le tableau ABSORPTION ne changent pas.
+
 ## 5. Nettoyage final sûr — **sans casser le WBP qui fonctionne**
 
 **Ne pas entreprendre un nouveau refactor C++ pour « nettoyer » :** les structures historiques `FGridCombatTooltipDiceNumbers` et `FGridCombatTooltipViewData` et la fonction native `PresentCombatTooltip` subsistent temporairement pour la compatibilité avec l'asset Blueprint existant. `InitializeCombatTooltip` **n'appelle plus** `PresentCombatTooltip`. Supprimer aujourd'hui la déclaration C++ de cette fonction, sans vérifier d'abord sa suppression dans le WBP et la sauvegarde de l'asset, peut casser l'override sérialisé et le chargement du Blueprint.
