@@ -175,6 +175,56 @@ struct FGridItemTooltipEquipmentComparison
 	TArray<FGridItemTooltipStatLine> StatLines;
 };
 
+/** One localized, catalogue-derived fact, not an equipment bonus. */
+USTRUCT(BlueprintType)
+struct FGridWeaponTooltipFact
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    FName StatId = NAME_None;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    FText Label;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    FText ValueText;
+};
+
+/** INDUS04.1 fixed-level, read-only weapon profile presentation. */
+USTRUCT(BlueprintType)
+struct FGridWeaponTooltipPresentation
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    bool bHasProfile = false;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    bool bPassive = false;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    FName ArchetypeId = NAME_None;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    int32 ItemLevel = 0;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    FText FamilyText;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    FText DiceText;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    FText DamageTypeText;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    FText ScalingAttributeText;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Tooltip")
+    TArray<FGridWeaponTooltipFact> Facts;
+};
+
 USTRUCT(BlueprintType)
 struct FGridItemTooltipView
 {
@@ -253,6 +303,10 @@ struct FGridItemTooltipView
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	TArray<FGridItemTooltipEquipmentComparison> EquipmentComparisons;
+
+    /** Real N1-N20 weapon stats, separate from definition-only bonuses. */
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Tooltip")
+    FGridWeaponTooltipPresentation WeaponProfile;
 };
 
 UENUM(BlueprintType)

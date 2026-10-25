@@ -8,6 +8,7 @@
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridWeaponVisualUiResolver.h"
+#include "UI/GridWeaponTooltipProjection.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridInventoryUI, Log, All);
@@ -394,6 +395,8 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		return View;
 	}
 
+	// INDUS04.1: use the real instance ItemLevel, never the authored N1 action.
+	FGridWeaponTooltipProjection::Build(Definition, CachedItem, View.WeaponProfile);
 	View.bEquippable = Definition->CompatibleEquipmentSlots.Num() > 0;
 	View.bReadable = UGridItemContextActionLibrary::IsItemReadable(CachedItem, Definition);
 	View.bProvidesLight = Definition->HasLightEmitter();
@@ -495,6 +498,23 @@ FText UGridInventorySlotWidget::GetTooltipText() const
 	{
 		Sections.Add(FString::Join(Facts, TEXT("\n")));
 	}
+    if (View.WeaponProfile.bHasProfile)
+    {
+        FFormatNamedArguments HeadingArguments;
+        HeadingArguments.Add(TEXT("Level"), View.WeaponProfile.ItemLevel);
+        TArray<FString> WeaponLines = {
+            FText::Format(
+                NSLOCTEXT("GridInventoryTooltip", "WeaponLevelHeader",
+                    "Profil d'armement — niveau {Level}"),
+                HeadingArguments).ToString()
+        };
+        for (const FGridWeaponTooltipFact& Fact : View.WeaponProfile.Facts)
+        {
+            WeaponLines.Add(FString::Printf(TEXT("%s : %s"),
+                *Fact.Label.ToString(), *Fact.ValueText.ToString()));
+        }
+        Sections.Add(FString::Join(WeaponLines, TEXT("\n")));
+    }
 	const FText StatSummary = BuildStatSummary(View.StatLines, false);
 	if (!StatSummary.IsEmpty())
 	{

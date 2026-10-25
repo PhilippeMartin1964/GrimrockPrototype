@@ -265,6 +265,62 @@ Aucune commande \`-Apply\` pour ce jalon narratif.
 
 ---
 
+
+## INDUS04.1 — Projection des profils d'armes dans les infobulles (C++)
+
+**Statut : code source publié, validation UE5.5.4 locale requise.**
+L'export INDUS03.2 du classeur a été confirmé localement : 82/82
+descriptions, 1640 profils, 260 passifs ; tous les textes restent
+DRAFT, et le XLSX canonique est encore modifié localement jusqu'à
+son commit séparé.
+
+### Frontière de responsabilité
+
+- \`UGridItemDefinitionAsset::TryGetWeaponCatalogueProfile(ItemLevel, Profile)\`
+  demeure l'autorité des données RPG. On utilise **le niveau réel de
+  \`FGridItemInstance\`**, pas le niveau par défaut ni l'action N1 authorée.
+- \`FGridWeaponTooltipProjection::Build\` est un calcul de présentation
+  **en lecture seule** ; ne crée aucune attaque, ne calcule pas de dégâts
+  futurs et n'applique aucun bonus de personnage.
+- \`FGridItemTooltipView::WeaponProfile\` est un sous-modèle indépendant :
+  \`ArchetypeId\`, \`ItemLevel\`, \`bPassive\`, \`DiceText\`,
+  \`DamageTypeText\`, \`ScalingAttributeText\`, \`FamilyText\` et
+  \`Facts\` (chaque \`FGridWeaponTooltipFact\` contient un \`StatId\` stable,
+  \`Label\` et \`ValueText\`).
+- Les faits offensifs affichent le vrai NdM+K, les dégâts min/max dérivés
+  des dés, la précision, le coût PA, la portée, le type de dégâts et
+  l'attribut de scaling. Les passifs n'affichent **ni dés fictifs,
+  ni portée, ni PA**. L'armure N1–N20 des boucliers utilise le niveau
+  de l'instance.
+- Les bonus \`EquipmentStatBonus\` historiques restent inchangés et
+  indépendants des faits du profil. **Ne pas sommer** leur armure avec
+  l'armure du profil dans l'UI. Les comparaisons offensives N1–N20
+  restent un travail ultérieur : attention au sens du delta PA (moins
+  est mieux).
+- \`GetTooltipText()\` inclut les faits comme fallback texte. Le WBP
+  structuré \`WBP_ItemTooltip\` / \`WBP_ItemTooltipStatLine\` n'est
+  **pas édité** par ce jalon. Son branchement aux champs \`WeaponProfile\`
+  devra être effectué manuellement dans UE5, avec captures pour
+  contrôle visuel.
+- L'export narratif du classeur reste indépendant. Aucun texte
+  \`DRAFT\` n'est copié dans \`UGridItemDefinitionAsset::Description\`
+  ni affiché comme capacité réellement disponible.
+
+### Recette locale (Unreal Editor fermé)
+
+    cd D:\Development\GrimrockPrototype
+    git pull --ff-only origin master
+    .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter 'Grimrock.UI.WeaponTooltip04'
+    .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter 'Grimrock.UI.Item01'
+    git status --short
+
+Attendu : build Development Editor OK, **3/3** tests WeaponTooltip04,
+régression Item01 inchangée, aucune modification de .uasset, .umap
+ou WBP. Le classeur XLSX encore modifié localement est un changement
+indépendant attendu. Ne pas annoncer le WBP terminé avant son
+raccordement UMG et sa validation PIE.
+
+
 ## 7. Calendrier de consolidation
 
 1. INDUS02.1 : commande générique Visual/Item et validation des huit armes **validées localement**.
