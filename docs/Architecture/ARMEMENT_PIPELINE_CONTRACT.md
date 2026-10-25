@@ -1,6 +1,6 @@
 # ARMEMENT_PIPELINE_CONTRACT — Contrat vivant d'industrialisation (INDUS01)
 
-**Version de conception : v0.1, 25 octobre 2026.** Ce document définit la cible technique, **non encore implémentée**. Aucune commande d'exemple ci-dessous n'existe aujourd'hui sous le nom WeaponPipeline.ps1.
+**Version de conception : v0.2, 25 octobre 2026.** INDUS02 introduit une première implémentation du script WeaponPipeline.ps1 et du commandlet générique : Audit / Plan / Validate / Build avec étapes Visual et Item ; compiler et valider localement avant tout Apply. La migration automatique des palettes, niveaux, armes de lancer historiques et infobulles reste hors scope de cette première version. Voir ARMEMENT_PIPELINE_GUIDE.md pour les commandes exactes.
 
 ## A. Principes non négociables
 
@@ -39,12 +39,13 @@ Ne pas recopier WeightKg, DamageDice, PA, Range ou Accuracy dans ce manifeste ; 
 
 ## D. Interface d'orchestration envisagée
 
-Exemples non implémentés, pour cadrer INDUS02 :
+Contrat cible (les modes Audit / Plan / Build / Validate existent désormais ; en version initiale Build -Apply exige en plus -Stage=Visual ou -Stage=Item) :
 
     .\Scripts\WeaponPipeline.ps1 -Action Audit -All
     .\Scripts\WeaponPipeline.ps1 -Action Plan -Archetype ARM003
     .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003
-    .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003 -Apply
+    .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003 -Stage Visual -Apply
+    .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003 -Stage Item -Apply
     .\Scripts\WeaponPipeline.ps1 -Action Validate -Archetypes ARM002,ARM003,ARM013,ARM020
 
 - Audit : inventaire complet et cohérence des référencements, sans mutation.
