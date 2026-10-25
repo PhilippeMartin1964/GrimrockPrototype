@@ -48,46 +48,46 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category="Inventory|Tooltip|Designer")
     TSubclassOf<UGridItemTooltipEquipmentComparisonWidget> ComparisonRowWidgetClass;
 
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UTextBlock> Text_ItemName;
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UTextBlock> Text_ItemType;
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UTextBlock> Text_Description;
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UTextBlock> Text_Quantity;
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UTextBlock> Text_Weight;
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UTextBlock> Text_Equipment;
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UTextBlock> Text_Light;
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UTextBlock> Text_ItemLevel;
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UImage> Image_ItemIcon;
 
     /** Text_WeaponTitle remains STATIC and references ST_UI directly in Designer. */
     /** Reuse the existing legacy stat and per-slot comparison containers. */
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UVerticalBox> VerticalBox_StatLines;
 
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UVerticalBox> VerticalBox_Comparisons;
 
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UWidget> VerticalBox_StatsSection;
 
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UWidget> VerticalBox_ComparisonSection;
 
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UWidget> VerticalBox_WeaponSection;
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UVerticalBox> VerticalBox_WeaponFacts;
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UWidget> VerticalBox_WeaponComparisonSection;
-    UPROPERTY(meta=(BindWidgetOptional))
+    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UVerticalBox> VerticalBox_WeaponComparisons;
 
 private:
