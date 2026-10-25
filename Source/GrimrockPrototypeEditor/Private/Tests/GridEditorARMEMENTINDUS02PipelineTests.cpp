@@ -168,6 +168,20 @@ bool FWeaponPipelineExistingContracts::RunTest(const FString&)
         TestEqual(TEXT("No item duplicates for active archetype"), Matches, 1);
         TestEqual(TEXT("Same item identity"), Item->ItemDefinitionId, FName(Row.ItemDefinitionId));
         TestEqual(TEXT("Same archetype"), Item->WeaponArchetypeId, FName(Row.ArchetypeId));
+        if (Row.IsPassive())
+        {
+            TestTrue(TEXT("Passive item has no attack identity"), Row.AttackId.IsEmpty() &&
+                Item->CombatActions.IsEmpty());
+        }
+        else
+        {
+            TestEqual(TEXT("One authored combat action"), Item->CombatActions.Num(), 1);
+            if (Item->CombatActions.Num() == 1)
+            {
+                TestEqual(*FString::Printf(TEXT("Canonical authored attack ID %s"),
+                    *Row.ArchetypeId), Item->CombatActions[0].ActionId, FName(Row.AttackId));
+            }
+        }
         TestTrue(TEXT("Authored item definition remains valid"), Item->IsValidDefinition());
         TestTrue(TEXT("Existing catalogues retained"),
             Item->bUseWeaponCatalogue && Item->bUseWeaponVisualCatalogue &&

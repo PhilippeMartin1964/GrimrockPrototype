@@ -51,6 +51,14 @@ namespace WeaponPipeline
 
     bool LoadArt(const FGridWeaponPipelineRow& Spec, FString& Detail)
     {
+        // Skip missing planned assets before LoadObject: no UE missing-package warnings.
+        if (!PackageFileExists(Spec.IconPath) ||
+            !PackageFileExists(Spec.MeshPath) ||
+            !PackageFileExists(Spec.MaterialPath))
+        {
+            Detail = TEXT("MissingIconMeshOrMaterial");
+            return false;
+        }
         UTexture2D* Icon = LoadObject<UTexture2D>(nullptr, *Spec.IconPath);
         UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, *Spec.MeshPath);
         UMaterialInstance* Material =
@@ -103,6 +111,11 @@ namespace WeaponPipeline
         };
         for (int32 Index = 0; Index < 3; ++Index)
         {
+            if (!PackageFileExists(TexturePaths[Index]))
+            {
+                Detail = FString::Printf(TEXT("MissingPBR%d"), Index);
+                return false;
+            }
             UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *TexturePaths[Index]);
             if (!IsValid(Texture))
             {
@@ -254,68 +267,102 @@ namespace WeaponPipeline
                 : Item->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
     }
 
+    // Non-destructive comparison against the already validated definitions.
+    // On mismatch, return the first exact field, never an undifferentiated conflict.
     bool ItemMatches(const FGridWeaponPipelineRow& Spec,
         const UGridItemDefinitionAsset& Existing,
         const UGridWeaponCatalogueAsset& Rpg,
-        const UGridWeaponVisualCatalogueAsset& Visuals)
+        const UGridWeaponVisualCatalogueAsset& Visuals,
+        FString& Failure)
     {
+        Failure.Reset();
+        auto Fail = [&Failure](const TCHAR* Field) -> bool
+        {
+            Failure = Field;
+            return false;
+        };
         const FGridWeaponLevelProfile* N1 =
             Rpg.FindProfile(FName(Spec.ArchetypeId), 1);
-        if (!N1) return false;
-        if (Existing.GetPathName() != Spec.ItemPath ||
-            Existing.ItemDefinitionId != FName(Spec.ItemDefinitionId) ||
-            Existing.WeaponArchetypeId != FName(Spec.ArchetypeId) ||
-            Existing.DefaultWeaponItemLevel != 1 || Existing.bStackable ||
-            !Existing.IsValidDefinition() ||
-            !Existing.bUseWeaponCatalogue || !Existing.bUseWeaponVisualCatalogue ||
-            Existing.WeaponCatalogue.LoadSynchronous() != &Rpg ||
-            Existing.WeaponVisualCatalogue.LoadSynchronous() != &Visuals ||
-            !FMath::IsNearlyEqual(Existing.Weight, N1->WeightKg, 0.0001f) ||
-            Existing.HandUsage != Usage(Spec) ||
-            Existing.Icon.ToSoftObjectPath() != FSoftObjectPath(Spec.IconPath) ||
-            Existing.WorldMesh.ToSoftObjectPath() != FSoftObjectPath(Spec.MeshPath) ||
-            Existing.CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::MainHand) !=
+        if (!N1) return Fail(TEXT("MissingN1Profile"));
+        if (Existing.GetPathName() != Spec.ItemPath)
+            return Fail(TEXT("ItemPathMismatch"));
+        if (Existing.ItemDefinitionId != FName(Spec.ItemDefinitionId))
+            return Fail(TEXT("ItemDefinitionIdMismatch"));
+        if (Existing.WeaponArchetypeId != FName(Spec.ArchetypeId))
+            return Fail(TEXT("WeaponArchetypeIdMismatch"));
+        if (Existing.DefaultWeaponItemLevel != 1)
+            return Fail(TEXT("DefaultWeaponItemLevelMismatch"));
+        if (Existing.bStackable || !Existing.IsValidDefinition())
+            return Fail(TEXT("ItemDefinitionInvalid"));
+        if (!Existing.bUseWeaponCatalogue || !Existing.bUseWeaponVisualCatalogue)
+            return Fail(TEXT("CatalogueOptInMismatch"));
+        if (Existing.WeaponCatalogue.LoadSynchronous() != &Rpg ||
+            Existing.WeaponVisualCatalogue.LoadSynchronous() != &Visuals)
+            return Fail(TEXT("CatalogueReferenceMismatch"));
+        if (!FMath::IsNearlyEqual(Existing.Weight, N1->WeightKg, 0.0001f))
+            return Fail(TEXT("WeightKgMismatch"));
+        if (Existing.HandUsage != Usage(Spec))
+            return Fail(TEXT("HandUsageMismatch"));
+        if (Existing.Icon.ToSoftObjectPath() != FSoftObjectPath(Spec.IconPath) ||
+            Existing.WorldMesh.ToSoftObjectPath() != FSoftObjectPath(Spec.MeshPath))
+            return Fail(TEXT("IconOrMeshReferenceMismatch"));
+        if (Existing.CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::MainHand) !=
                 AllowsSlot(Spec, EGridEquipmentSlot::MainHand) ||
             Existing.CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::OffHand) !=
                 AllowsSlot(Spec, EGridEquipmentSlot::OffHand))
-        {
-            return false;
-        }
+            return Fail(TEXT("EquipmentSlotMismatch"));
+
         if (Spec.IsPassive())
         {
-            return Existing.ItemType == EGridItemType::Shield &&
-                Existing.CombatActions.IsEmpty() &&
-                FMath::IsNearlyEqual(Existing.EquipmentStatBonus.ArmorBonus,
-                    N1->PhysicalArmor, 0.001f);
+            if (Existing.ItemType != EGridItemType::Shield ||
+                !Existing.CombatActions.IsEmpty() ||
+                !FMath::IsNearlyEqual(Existing.EquipmentStatBonus.ArmorBonus,
+                    N1->PhysicalArmor, 0.001f))
+                return Fail(TEXT("PassiveShieldMismatch"));
+            return true;
         }
-        if (Existing.ItemType != EGridItemType::Weapon ||
-            Existing.CombatActions.Num() != 1)
+
+        if (Existing.ItemType != EGridItemType::Weapon)
+            return Fail(TEXT("ItemTypeMismatch"));
+        if (Existing.CombatActions.Num() != 1)
+            return Fail(TEXT("CombatActionCountMismatch"));
+        const FGridCombatActionDefinition& A = Existing.CombatActions[0];
+        if (!A.IsValid())
+            return Fail(TEXT("CombatActionInvalid"));
+        if (A.ActionId != FName(Spec.AttackId))
         {
+            Failure = FString::Printf(TEXT("AttackIdMismatch(Expected=%s,Actual=%s)"),
+                *Spec.AttackId, *A.ActionId.ToString());
             return false;
         }
-        const FGridCombatActionDefinition& A = Existing.CombatActions[0];
+        if (A.ActionType != (Spec.BuildKind == TEXT("Ranged")
+                ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack))
+            return Fail(TEXT("CombatActionTypeMismatch"));
+        if (A.SourcePolicy != EGridCombatActionSourcePolicy::Equipment)
+            return Fail(TEXT("ActionSourcePolicyMismatch"));
+        if (A.ActionPointCost != N1->ActionPointCost || A.RangeCells != N1->RangeCells)
+            return Fail(TEXT("ActionPointCostOrRangeMismatch"));
+        if (A.bRequiresLineOfSight != (Spec.BuildKind == TEXT("Ranged")))
+            return Fail(TEXT("ActionLineOfSightMismatch"));
+
         FGridAttackDefinition Expected;
         if (!N1->TryBuildAttackDefinition(Expected))
-            return false;
+            return Fail(TEXT("CanonicalAttackUnavailable"));
         const FGridAttackDefinition& Actual = A.OffensiveProfile.AttackDefinition;
-        return A.IsValid() && A.ActionId == FName(Spec.AttackId) &&
-            A.ActionType == (Spec.BuildKind == TEXT("Ranged")
-                ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack) &&
-            A.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-            A.ActionPointCost == N1->ActionPointCost &&
-            A.RangeCells == N1->RangeCells &&
-            A.bRequiresLineOfSight == (Spec.BuildKind == TEXT("Ranged")) &&
-            Actual.DamageType == Expected.DamageType &&
-            Actual.PhysicalSubtype == Expected.PhysicalSubtype &&
-            Actual.AccuracyBonus == Expected.AccuracyBonus &&
-            Actual.MinDamage == Expected.MinDamage &&
-            Actual.MaxDamage == Expected.MaxDamage &&
-            Actual.DamageDice.bEnabled == Expected.DamageDice.bEnabled &&
-            Actual.DamageDice.DiceCount == Expected.DamageDice.DiceCount &&
-            Actual.DamageDice.DiceSides == Expected.DamageDice.DiceSides &&
-            Actual.DamageDice.FlatBonus == Expected.DamageDice.FlatBonus &&
-            A.OffensiveProfile.DamageScalingAttribute == N1->ScalingAttribute &&
-            Existing.CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand);
+        if (Actual.DamageType != Expected.DamageType ||
+            Actual.PhysicalSubtype != Expected.PhysicalSubtype ||
+            Actual.AccuracyBonus != Expected.AccuracyBonus ||
+            Actual.MinDamage != Expected.MinDamage || Actual.MaxDamage != Expected.MaxDamage ||
+            Actual.DamageDice.bEnabled != Expected.DamageDice.bEnabled ||
+            Actual.DamageDice.DiceCount != Expected.DamageDice.DiceCount ||
+            Actual.DamageDice.DiceSides != Expected.DamageDice.DiceSides ||
+            Actual.DamageDice.FlatBonus != Expected.DamageDice.FlatBonus)
+            return Fail(TEXT("AttackDamageOrDiceMismatch"));
+        if (A.OffensiveProfile.DamageScalingAttribute != N1->ScalingAttribute)
+            return Fail(TEXT("AttackScalingAttributeMismatch"));
+        if (!Existing.CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand))
+            return Fail(TEXT("MainHandAttackUnavailable"));
+        return true;
     }
 
     FState Inspect(const FGridWeaponPipelineRow& Spec,
@@ -381,12 +428,16 @@ namespace WeaponPipeline
                 Found = Item;
             }
         }
-        if (ItemCount > 1 || (Found && !ItemMatches(Spec, *Found, Rpg, Visuals)) ||
+        FString ItemFailure;
+        const bool bExistingMatches = !Found ||
+            ItemMatches(Spec, *Found, Rpg, Visuals, ItemFailure);
+        if (ItemCount > 1 || !bExistingMatches ||
             (!Found && PackageFileExists(Spec.ItemPath)))
         {
             S.Item = TEXT("CONFLICT");
             S.Summary = TEXT("CONFLICT");
-            S.Detail = TEXT("ExistingItemOrPathDiffers");
+            S.Detail = ItemCount > 1 ? TEXT("DuplicateItemDefinitions") :
+                !bExistingMatches ? ItemFailure : TEXT("OccupiedItemPackage");
             return S;
         }
         if (Found)
