@@ -8,6 +8,7 @@
 class UTextBlock;
 class UImage;
 class UTexture2D;
+class USizeBox;
 
 /**
  * One Designer-authored weapon fact/comparison line.
@@ -33,6 +34,10 @@ protected:
     TMap<FName, TObjectPtr<UTexture2D>> StatIconTextures;
 
     /** Optional 48x48 icon, dimensions controlled only by the Designer. */
+    /** The 48x48 slot is collapsed when no icon exists, keeping text-only rows compact. */
+    UPROPERTY(meta=(BindWidgetOptional))
+    TObjectPtr<USizeBox> SizeBox_StatIcon;
+
     UPROPERTY(meta=(BindWidgetOptional))
     TObjectPtr<UImage> Image_StatIcon;
 

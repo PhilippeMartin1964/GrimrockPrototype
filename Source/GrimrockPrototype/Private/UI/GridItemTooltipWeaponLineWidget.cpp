@@ -2,6 +2,7 @@
 
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
+#include "Components/SizeBox.h"
 #include "Engine/Texture2D.h"
 
 namespace
@@ -25,20 +26,27 @@ EGridItemTooltipDeltaState UGridItemTooltipWeaponLineWidget::VisibleDeltaState(
 
 void UGridItemTooltipWeaponLineWidget::PresentIcon(FName StatId)
 {
+    const TObjectPtr<UTexture2D>* Texture = StatIconTextures.Find(StatId);
+    const bool bHasIcon = Image_StatIcon && Texture && IsValid(Texture->Get());
+    // Collapse the enclosing 48x48 slot, not just the image; otherwise
+    // text-only weapon facts stretch the tooltip to many screen heights.
+    if (SizeBox_StatIcon)
+    {
+        SizeBox_StatIcon->SetVisibility(bHasIcon
+            ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+    }
     if (!Image_StatIcon)
     {
         return;
     }
-    const TObjectPtr<UTexture2D>* Texture = StatIconTextures.Find(StatId);
-    if (Texture && IsValid(Texture->Get()))
+    if (bHasIcon)
     {
         Image_StatIcon->SetBrushFromTexture(Texture->Get(), false);
         Image_StatIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
     }
     else
     {
-        // Preserve the authored SizeBox geometry if this row has no icon.
-        Image_StatIcon->SetVisibility(ESlateVisibility::Hidden);
+        Image_StatIcon->SetVisibility(ESlateVisibility::Collapsed);
     }
 }
 
