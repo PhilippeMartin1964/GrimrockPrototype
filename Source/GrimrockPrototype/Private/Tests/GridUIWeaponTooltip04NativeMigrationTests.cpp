@@ -156,6 +156,10 @@ bool FGridWeaponTooltip04ShieldNoDuplicateTest::RunTest(const FString&)
 
     // A reparented WBP lacking its Designer children must never blank a valid tooltip.
     UGridItemTooltipWidget* Presenter = NewObject<UGridItemTooltipWidget>();
+    // Intentionally missing Designer bindings must still emit an error in PIE.
+    // The error is expected in THIS negative Automation fixture.
+    AddExpectedError(TEXT("Tooltip presenter refused for GridItemTooltipWidget: missing"),
+        EAutomationExpectedErrorFlags::Contains, 1);
     TestFalse(TEXT("Presenter refuses incomplete UMG rather than displaying partial stats"),
         Presenter->PresentTooltipView(Candidate));
     return true;

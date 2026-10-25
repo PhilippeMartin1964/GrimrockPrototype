@@ -48,6 +48,10 @@ bool FGridNativeItemTooltipLocalization04::RunTest(const FString&)
     UGridItemTooltipWidget* BarePresenter = NewObject<UGridItemTooltipWidget>();
     TestNotNull(TEXT("Native presenter can be allocated"), BarePresenter);
     FGridItemTooltipView InvalidView;
+    // The warning is intentional: this is a deliberately invalid view.
+    // Match it instead of weakening the diagnostic for actual UMG users.
+    AddExpectedError(TEXT("Tooltip presentation refused: invalid item view"),
+        EAutomationExpectedErrorFlags::Contains, 1);
     TestFalse(TEXT("Invalid tooltip refuses rendering"),
         BarePresenter->PresentTooltipView(InvalidView));
 
