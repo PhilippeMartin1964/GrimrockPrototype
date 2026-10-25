@@ -512,18 +512,18 @@ FText UGridInventorySlotWidget::GetTooltipText() const
 	TArray<FString> Facts;
 	if (View.Quantity > 1)
 	{
-		FFormatNamedArguments Args;
-        Args.Add(TEXT("Quantity"), FText::AsNumber(View.Quantity));
-        Facts.Add(TooltipFormat(TEXT("Inventory.Tooltip.Fallback.Quantity"), Args).ToString());
+		FFormatNamedArguments QuantityArgs;
+		QuantityArgs.Add(TEXT("Quantity"), FText::AsNumber(View.Quantity));
+		Facts.Add(TooltipFormat(TEXT("Inventory.Tooltip.Fallback.Quantity"), QuantityArgs).ToString());
 	}
-	FFormatNamedArguments Args;
-        Args.Add(TEXT("Weight"), View.WeightText);
-        Facts.Add(TooltipFormat(TEXT("Inventory.Tooltip.Fallback.Weight"), Args).ToString());
+	FFormatNamedArguments WeightArgs;
+	WeightArgs.Add(TEXT("Weight"), View.WeightText);
+	Facts.Add(TooltipFormat(TEXT("Inventory.Tooltip.Fallback.Weight"), WeightArgs).ToString());
 	if (!View.CompatibleSlotsText.IsEmpty())
 	{
-		FFormatNamedArguments Args;
-        Args.Add(TEXT("Slots"), View.CompatibleSlotsText);
-        Facts.Add(TooltipFormat(TEXT("Inventory.Tooltip.Fallback.Equipment"), Args).ToString());
+		FFormatNamedArguments EquipmentArgs;
+		EquipmentArgs.Add(TEXT("Slots"), View.CompatibleSlotsText);
+		Facts.Add(TooltipFormat(TEXT("Inventory.Tooltip.Fallback.Equipment"), EquipmentArgs).ToString());
 	}
 	const FText UsageSummary = BuildUsageSummary(View);
 	if (!UsageSummary.IsEmpty())
@@ -545,11 +545,11 @@ FText UGridInventorySlotWidget::GetTooltipText() const
         };
         for (const FGridWeaponTooltipFact& Fact : View.WeaponProfile.Facts)
         {
-            FFormatNamedArguments Args;
-            Args.Add(TEXT("Label"), Fact.Label);
-            Args.Add(TEXT("Value"), Fact.ValueText);
+            FFormatNamedArguments WeaponFactArgs;
+            WeaponFactArgs.Add(TEXT("Label"), Fact.Label);
+            WeaponFactArgs.Add(TEXT("Value"), Fact.ValueText);
             WeaponLines.Add(TooltipFormat(
-                TEXT("Inventory.Tooltip.Fallback.WeaponFact"), Args).ToString());
+                TEXT("Inventory.Tooltip.Fallback.WeaponFact"), WeaponFactArgs).ToString());
         }
         Sections.Add(FString::Join(WeaponLines, TEXT("\n")));
     }
