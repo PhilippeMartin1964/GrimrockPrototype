@@ -22,7 +22,7 @@ class GRIMROCKPROTOTYPE_API UGridItemTooltipWeaponLineWidget : public UUserWidge
 public:
     bool PresentFact(const FGridWeaponTooltipFact& Fact);
     /** Legacy stat/resistance with semantic delta and Designer-owned icon. */
-    bool PresentLegacyStat(const FGridItemTooltipStatLine& Stat);
+    bool PresentLegacyStat(const FGridItemTooltipStatLine& Stat, bool bShowBeforeValue = false);
     bool PresentComparison(const FGridWeaponTooltipComparisonFact& Fact, const FText& SlotLabel);
 
     /** Native, purely semantic decision: no runtime tint overrides. */

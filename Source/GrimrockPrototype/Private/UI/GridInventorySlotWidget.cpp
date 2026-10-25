@@ -9,6 +9,7 @@
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridWeaponVisualUiResolver.h"
 #include "UI/GridWeaponTooltipProjection.h"
+#include "UI/GridEquipmentTooltipGlobalProjection.h"
 #include "UI/UILocalizationText.h"
 
 
@@ -90,10 +91,12 @@ namespace
 			return FText::GetEmpty();
 		}
 
-		TArray<FString> SlotLabels;
-		for (const EGridEquipmentSlot CompatibleSlot : Definition->CompatibleEquipmentSlots)
-		{
-			const FText SlotLabel = GetEquipmentSlotDisplayName(CompatibleSlot);
+        TArray<FString> SlotLabels;
+        TArray<EGridEquipmentSlot> EffectiveSlots;
+        FGridEquipmentTooltipGlobalProjection::GatherAllowedSlots(Definition, EffectiveSlots);
+        for (const EGridEquipmentSlot CompatibleSlot : EffectiveSlots)
+        {
+            const FText SlotLabel = GetEquipmentSlotDisplayName(CompatibleSlot);
 			if (!SlotLabel.IsEmpty())
 			{
 				SlotLabels.Add(SlotLabel.ToString());
@@ -447,6 +450,38 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	}
 
 	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
+
+    // 04.3B: the preview must refer to the ACTUAL bag item, not merely a
+    // matching definition or a visual copy in an equipment/cursor slot.
+    // Old synthetic/legacy test widgets retain their existing projection.
+    const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
+    const bool bSourceBacked =
+        SlotType == EGridInventoryUiSlotType::Inventory &&
+        State.ActiveCharacters.IsValidIndex(CharacterIndex) &&
+        State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex(InventorySlotIndex) &&
+        !State.ActiveCharacters[CharacterIndex].InventorySlots[InventorySlotIndex].IsEmpty() &&
+        State.ActiveCharacters[CharacterIndex].InventorySlots[InventorySlotIndex].Item.RuntimeObjectId ==
+            CachedItem.RuntimeObjectId;
+
+    if (bSourceBacked)
+    {
+        TArray<EGridEquipmentSlot> AllowedSlots;
+        FGridEquipmentTooltipGlobalProjection::GatherAllowedSlots(Definition, AllowedSlots);
+        for (const EGridEquipmentSlot TargetSlot : AllowedSlots)
+        {
+            FGridItemTooltipEquipmentComparison Scenario;
+            if (FGridEquipmentTooltipGlobalProjection::BuildScenario(
+                InventoryComponent, CharacterIndex, InventorySlotIndex,
+                TargetSlot, Definition, CachedItem, Scenario))
+            {
+                View.EquipmentComparisons.Add(MoveTemp(Scenario));
+            }
+        }
+        // An equipped/cursor item cannot use a bag-backed preview; do not
+        // present misleading hypothetical deltas for another source slot.
+        return View;
+    }
+
 	TSet<EGridEquipmentSlot> ComparedSlots;
 	for (const EGridEquipmentSlot TargetSlot : Definition->CompatibleEquipmentSlots)
 	{

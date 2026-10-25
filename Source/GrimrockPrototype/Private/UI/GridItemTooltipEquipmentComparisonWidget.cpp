@@ -67,7 +67,7 @@ bool UGridItemTooltipEquipmentComparisonWidget::PresentComparison(
                 CreateWidget<UGridItemTooltipWeaponLineWidget>(this, LineClass);
             if (!Line) return false;
             VerticalBox_ComparisonStats->AddChildToVerticalBox(Line);
-            if (!Line->PresentLegacyStat(Stat)) return false;
+            if (!Line->PresentLegacyStat(Stat, Data.bGlobalEquipmentScenario)) return false;
         }
     }
     if (bShowWeapon)

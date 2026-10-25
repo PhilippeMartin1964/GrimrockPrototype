@@ -115,7 +115,7 @@ bool UGridItemTooltipWeaponLineWidget::PresentComparison(
 }
 
 bool UGridItemTooltipWeaponLineWidget::PresentLegacyStat(
-    const FGridItemTooltipStatLine& Stat)
+    const FGridItemTooltipStatLine& Stat, bool bShowBeforeValue)
 {
     if (!Text_Label || !Text_Value ||
         !Text_DeltaPositive || !Text_DeltaNegative || !Text_DeltaNeutral)
@@ -123,8 +123,14 @@ bool UGridItemTooltipWeaponLineWidget::PresentLegacyStat(
         return false;
     }
     SetOptional(Text_Label, Stat.Label);
-    SetOptional(Text_Value, Stat.ValueText);
     HideComparisons();
+    SetOptional(Text_Value, Stat.ValueText);
+    // Only global before/after scenarios use the Equipped column for the
+    // character's BEFORE value. Legacy single-item rows remain unchanged.
+    if (bShowBeforeValue && Stat.bHasComparison)
+    {
+        SetOptional(Text_Equipped, FText::AsNumber(Stat.EquippedValue));
+    }
     PresentIcon(Stat.StatId);
     PresentDelta(Stat.bHasComparison, Stat.DeltaState, Stat.DeltaDisplayText);
     return true;

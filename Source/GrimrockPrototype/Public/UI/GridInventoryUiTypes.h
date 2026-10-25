@@ -206,6 +206,11 @@ struct FGridItemTooltipEquipmentComparison
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	TArray<FGridItemTooltipStatLine> StatLines;
 
+    /** 04.3B: these rows compare the character AFTER versus BEFORE,
+     * not an item bonus against the individually equipped item. */
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Tooltip")
+    bool bGlobalEquipmentScenario = false;
+
     /** N1-N20 comparison, independent of generic equipment deltas. */
     UPROPERTY(BlueprintReadOnly, Category="Inventory|Tooltip")
     TArray<FGridWeaponTooltipComparisonFact> WeaponFacts;
