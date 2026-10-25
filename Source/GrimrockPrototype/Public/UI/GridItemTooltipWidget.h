@@ -25,7 +25,7 @@ class GRIMROCKPROTOTYPE_API UGridItemTooltipWidget : public UUserWidget
 public:
     /** Different name from legacy BP InitFromInventorySlot; safe during transition. */
     UFUNCTION(BlueprintCallable, Category="Inventory|Tooltip")
-    bool PresentFromInventorySlot(UGridInventorySlotWidget* Slot);
+    bool PresentFromInventorySlot(UGridInventorySlotWidget* InInventorySlot);
 
     UFUNCTION(BlueprintCallable, Category="Inventory|Tooltip")
     bool PresentTooltipView(const FGridItemTooltipView& View);

@@ -42,9 +42,9 @@ FText UGridItemTooltipWidget::FormatItemLevel(int32 Level)
         FUILocalizationText::Get(TEXT("Inventory.Tooltip.ItemLevelFormat")), Args);
 }
 
-bool UGridItemTooltipWidget::PresentFromInventorySlot(UGridInventorySlotWidget* Slot)
+bool UGridItemTooltipWidget::PresentFromInventorySlot(UGridInventorySlotWidget* InInventorySlot)
 {
-    return IsValid(Slot) && PresentTooltipView(Slot->GetTooltipView());
+    return IsValid(InInventorySlot) && PresentTooltipView(InInventorySlot->GetTooltipView());
 }
 
 bool UGridItemTooltipWidget::HasWeaponComparisons(const FGridItemTooltipView& View)
