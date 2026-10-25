@@ -246,6 +246,16 @@ namespace
 				Section += TEXT("\n");
 				Section += Stats.ToString();
 			}
+            for (const FGridWeaponTooltipComparisonFact& Fact : Comparison.WeaponFacts)
+            {
+                Section += FString::Printf(TEXT("\n%s : %s | équipé : %s"),
+                    *Fact.Label.ToString(), *Fact.CandidateText.ToString(),
+                    *Fact.EquippedText.ToString());
+                if (Fact.bHasDelta)
+                {
+                    Section += FString::Printf(TEXT(" (Δ %s)"), *Fact.DeltaText.ToString());
+                }
+            }
 			Sections.Add(MoveTemp(Section));
 		}
 		return Sections.Num() > 0 ? FText::FromString(FString::Join(Sections, TEXT("\n\n"))) : FText::GetEmpty();
@@ -456,6 +466,12 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 			Comparison.EquippedItemDisplayText = NSLOCTEXT("GridInventoryTooltip", "EmptyEquipment", "vide");
 		}
 		AppendDefinitionStats(Definition, EquippedDefinition, true, Comparison.StatLines);
+        if (bHasEquippedItem && EquippedDefinition)
+        {
+            FGridWeaponTooltipProjection::BuildComparison(
+                Definition, CachedItem, EquippedDefinition, EquippedItem,
+                Comparison.WeaponFacts);
+        }
 	}
 	return View;
 }

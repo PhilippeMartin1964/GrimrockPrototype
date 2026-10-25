@@ -147,3 +147,124 @@ bool FGridWeaponTooltipProjection::Build(
     }
     return true;
 }
+
+
+namespace
+{
+    /** Generic text comparison: damage formulas/types are informational, not numerical benefits. */
+    void AddTextComparison(TArray<FGridWeaponTooltipComparisonFact>& Out,
+        FName Id, const FText& Label, const FText& Candidate, const FText& Equipped)
+    {
+        FGridWeaponTooltipComparisonFact& Fact = Out.AddDefaulted_GetRef();
+        Fact.StatId = Id;
+        Fact.Label = Label;
+        Fact.CandidateText = Candidate;
+        Fact.EquippedText = Equipped;
+    }
+
+    void AddNumberComparison(TArray<FGridWeaponTooltipComparisonFact>& Out,
+        FName Id, const FText& Label, int32 Candidate, int32 Equipped,
+        bool bLowerIsBetter = false, bool bComparable = true, bool bSigned = false)
+    {
+        FGridWeaponTooltipComparisonFact& Fact = Out.AddDefaulted_GetRef();
+        Fact.StatId = Id;
+        Fact.Label = Label;
+        Fact.CandidateText = FText::FromString(bSigned
+            ? FString::Printf(TEXT("%+d"), Candidate) : FString::FromInt(Candidate));
+        Fact.EquippedText = FText::FromString(bSigned
+            ? FString::Printf(TEXT("%+d"), Equipped) : FString::FromInt(Equipped));
+        if (!bComparable)
+        {
+            return; // Different damage type/scaling: show values, no misleading delta.
+        }
+        Fact.bHasDelta = true;
+        Fact.Delta = static_cast<float>(Candidate - Equipped);
+        const int32 Diff = Candidate - Equipped;
+        const FString DisplayDelta = Diff == 0 ? FString(TEXT("±0"))
+            : FString::Printf(TEXT("%+d"), Diff);
+        Fact.DeltaText = FText::FromString(DisplayDelta);
+        if (Diff != 0)
+        {
+            const bool bImprovement = bLowerIsBetter ? Diff < 0 : Diff > 0;
+            Fact.DeltaState = bImprovement
+                ? EGridItemTooltipDeltaState::Positive
+                : EGridItemTooltipDeltaState::Negative;
+        }
+    }
+}
+
+bool FGridWeaponTooltipProjection::BuildComparison(
+    const UGridItemDefinitionAsset* CandidateDefinition,
+    const FGridItemInstance& Candidate,
+    const UGridItemDefinitionAsset* EquippedDefinition,
+    const FGridItemInstance& Equipped,
+    TArray<FGridWeaponTooltipComparisonFact>& OutFacts)
+{
+    OutFacts.Reset();
+    if (!IsValid(CandidateDefinition) || !IsValid(EquippedDefinition) ||
+        !Candidate.IsValid() || !Equipped.IsValid() ||
+        Candidate.ItemDefinitionId != CandidateDefinition->ItemDefinitionId ||
+        Equipped.ItemDefinitionId != EquippedDefinition->ItemDefinitionId)
+    {
+        return false;
+    }
+    const FGridWeaponLevelProfile* C = nullptr;
+    const FGridWeaponLevelProfile* E = nullptr;
+    if (!CandidateDefinition->TryGetWeaponCatalogueProfile(Candidate.ItemLevel, C) ||
+        !EquippedDefinition->TryGetWeaponCatalogueProfile(Equipped.ItemLevel, E) ||
+        !C || !E || !C->IsValidProfile() || !E->IsValidProfile())
+    {
+        return false;
+    }
+    const bool bCandidatePassive = !C->DamageDice.bEnabled;
+    const bool bEquippedPassive = !E->DamageDice.bEnabled;
+    if (bCandidatePassive != bEquippedPassive)
+    {
+        return false; // No fabricated melee-vs-shield comparison.
+    }
+
+    if (bCandidatePassive)
+    {
+        AddNumberComparison(OutFacts, TEXT("WeaponPhysicalArmor"),
+            NSLOCTEXT("GridWeaponTooltip", "ArmorPhysical", "Armure physique"),
+            C->PhysicalArmor, E->PhysicalArmor);
+        AddNumberComparison(OutFacts, TEXT("WeaponMagicalArmor"),
+            NSLOCTEXT("GridWeaponTooltip", "ArmorMagical", "Armure magique"),
+            C->MagicalArmor, E->MagicalArmor);
+        return true;
+    }
+
+    const bool bSameDamageSemantics =
+        C->DamageType == E->DamageType &&
+        C->PhysicalSubtype == E->PhysicalSubtype &&
+        C->ScalingAttribute == E->ScalingAttribute;
+    AddTextComparison(OutFacts, TEXT("WeaponDice"),
+        NSLOCTEXT("GridWeaponTooltip", "Dice", "Dégâts (dés)"),
+        FormatDice(C->DamageDice), FormatDice(E->DamageDice));
+    AddNumberComparison(OutFacts, TEXT("WeaponMinDamage"),
+        NSLOCTEXT("GridWeaponTooltip", "MinDamage", "Dégâts min."),
+        C->DamageDice.GetMinimumDamage(), E->DamageDice.GetMinimumDamage(),
+        false, bSameDamageSemantics);
+    AddNumberComparison(OutFacts, TEXT("WeaponMaxDamage"),
+        NSLOCTEXT("GridWeaponTooltip", "MaxDamage", "Dégâts max."),
+        C->DamageDice.GetMaximumDamage(), E->DamageDice.GetMaximumDamage(),
+        false, bSameDamageSemantics);
+    AddNumberComparison(OutFacts, TEXT("WeaponAccuracy"),
+        NSLOCTEXT("GridWeaponTooltip", "Accuracy", "Précision"),
+        C->AccuracyBonus, E->AccuracyBonus, false, true, true);
+    AddNumberComparison(OutFacts, TEXT("WeaponAP"),
+        NSLOCTEXT("GridWeaponTooltip", "AP", "Coût en PA"),
+        C->ActionPointCost, E->ActionPointCost, true);
+    AddNumberComparison(OutFacts, TEXT("WeaponRange"),
+        NSLOCTEXT("GridWeaponTooltip", "Range", "Portée (cases)"),
+        C->RangeCells, E->RangeCells);
+    AddTextComparison(OutFacts, TEXT("WeaponDamageType"),
+        NSLOCTEXT("GridWeaponTooltip", "DamageType", "Type de dégâts"),
+        TypeLabel(C->DamageType, C->PhysicalSubtype),
+        TypeLabel(E->DamageType, E->PhysicalSubtype));
+    AddTextComparison(OutFacts, TEXT("WeaponScaling"),
+        NSLOCTEXT("GridWeaponTooltip", "Scaling", "Attribut"),
+        AttributeLabel(C->ScalingAttribute),
+        AttributeLabel(E->ScalingAttribute));
+    return true;
+}

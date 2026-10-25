@@ -182,6 +182,12 @@ bool FWeaponTooltipSlotIntegrationTest::RunTest(const FString&)
     FGridItemInstance Item = WeaponTooltipTests::MakeItem(Dagger, 9);
     Slot->SetItem(Item);
 
+    // Attach a genuinely equipped N1 to exercise the existing inventory comparison route.
+    FGridItemInstance Equipped = WeaponTooltipTests::MakeItem(Dagger, 1);
+    Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    Equipped.EquipmentSlot = EGridEquipmentSlot::MainHand;
+    Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Equipped;
+
     const FGridItemTooltipView View = Slot->GetTooltipView();
     TestTrue(TEXT("Existing tooltip remains valid"), View.bValid);
     TestTrue(TEXT("Actual N9 reaches WBP-facing read model"), View.WeaponProfile.bHasProfile);
@@ -192,6 +198,171 @@ bool FWeaponTooltipSlotIntegrationTest::RunTest(const FString&)
         return false;
     TestTrue(TEXT("Fallback tooltip contains real dice"),
         Slot->GetTooltipText().ToString().Contains(Dice->ValueText.ToString()));
+    const FGridItemTooltipEquipmentComparison* WeaponComp =
+        View.EquipmentComparisons.FindByPredicate(
+            [](const FGridItemTooltipEquipmentComparison& Comparison)
+            {
+                return Comparison.EquipmentSlot == EGridEquipmentSlot::MainHand;
+            });
+    if (TestNotNull(TEXT("Equipment comparison exists for MainHand"), WeaponComp))
+    {
+        const FGridWeaponTooltipComparisonFact* WeaponDice =
+            WeaponComp->WeaponFacts.FindByPredicate(
+                [](const FGridWeaponTooltipComparisonFact& Fact)
+                {
+                    return Fact.StatId == FName(TEXT("WeaponDice"));
+                });
+        if (TestNotNull(TEXT("New weapon comparison reaches WBP read model"), WeaponDice))
+        {
+            TestFalse(TEXT("Dice remain purely textual"), WeaponDice->bHasDelta);
+            TestTrue(TEXT("Fallback comparison shows equipped dice"),
+                Slot->GetTooltipText().ToString().Contains(
+                    WeaponDice->EquippedText.ToString()));
+        }
+    }
+    return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponTooltipRealComparisonTest,
+    "Grimrock.UI.WeaponTooltip04.RealWeaponComparison",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FWeaponTooltipRealComparisonTest::RunTest(const FString&)
+{
+    UGridWeaponCatalogueAsset* Catalogue =
+        LoadObject<UGridWeaponCatalogueAsset>(nullptr, WeaponTooltipTests::CataloguePath);
+    UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_AssassinDagger_01.DA_Weapon_AssassinDagger_01"));
+    UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
+    if (!TestNotNull(TEXT("Production catalogue"), Catalogue) ||
+        !TestNotNull(TEXT("ARM002"), Dagger) ||
+        !TestNotNull(TEXT("ARM075"), Shield))
+        return false;
+    const bool bBeforeCatalogue = Catalogue->GetOutermost()->IsDirty();
+    TArray<FGridWeaponTooltipComparisonFact> Facts;
+    const FGridItemInstance N9 = WeaponTooltipTests::MakeItem(Dagger, 9);
+    const FGridItemInstance N1 = WeaponTooltipTests::MakeItem(Dagger, 1);
+    if (!TestTrue(TEXT("Two real weapon levels comparable"),
+        FGridWeaponTooltipProjection::BuildComparison(Dagger, N9, Dagger, N1, Facts)))
+        return false;
+    const FGridWeaponLevelProfile* P9 = Catalogue->FindProfile(TEXT("ARM002"), 9);
+    const FGridWeaponLevelProfile* P1 = Catalogue->FindProfile(TEXT("ARM002"), 1);
+    if (!TestNotNull(TEXT("Source profile N9"), P9) ||
+        !TestNotNull(TEXT("Source profile N1"), P1))
+        return false;
+    const auto* Min = Facts.FindByPredicate([](const FGridWeaponTooltipComparisonFact& F)
+    {
+        return F.StatId == TEXT("WeaponMinDamage");
+    });
+    const auto* Dice = Facts.FindByPredicate([](const FGridWeaponTooltipComparisonFact& F)
+    {
+        return F.StatId == TEXT("WeaponDice");
+    });
+    if (!TestNotNull(TEXT("Numeric min damage comparison"), Min) ||
+        !TestNotNull(TEXT("Text-only NdM+K comparison"), Dice))
+        return false;
+    TestTrue(TEXT("Same damage semantics permit numeric delta"), Min->bHasDelta);
+    TestEqual(TEXT("Minimum damage from the exact two levels"), Min->Delta,
+        static_cast<float>(P9->DamageDice.GetMinimumDamage() -
+            P1->DamageDice.GetMinimumDamage()));
+    TestFalse(TEXT("Dice formulas are not arithmetic deltas"), Dice->bHasDelta);
+
+    TArray<FGridWeaponTooltipComparisonFact> Incompatible;
+    TestFalse(TEXT("Cannot claim weapon and shield have comparable attacks"),
+        FGridWeaponTooltipProjection::BuildComparison(
+            Dagger, N9, Shield, WeaponTooltipTests::MakeItem(Shield, 12), Incompatible));
+    TestEqual(TEXT("Incompatible roles leave no partial comparison"), Incompatible.Num(), 0);
+
+    TArray<FGridWeaponTooltipComparisonFact> ShieldFacts;
+    if (!TestTrue(TEXT("Two passive shield levels comparable"),
+        FGridWeaponTooltipProjection::BuildComparison(
+            Shield, WeaponTooltipTests::MakeItem(Shield, 12),
+            Shield, WeaponTooltipTests::MakeItem(Shield, 1), ShieldFacts)))
+        return false;
+    TestTrue(TEXT("No fictitious shield dice"), ShieldFacts.FindByPredicate(
+        [](const FGridWeaponTooltipComparisonFact& F) { return F.StatId == TEXT("WeaponDice"); }) == nullptr);
+    const auto* Armor = ShieldFacts.FindByPredicate(
+        [](const FGridWeaponTooltipComparisonFact& F)
+        { return F.StatId == TEXT("WeaponPhysicalArmor"); });
+    const FGridWeaponLevelProfile* S12 = Catalogue->FindProfile(TEXT("ARM075"), 12);
+    const FGridWeaponLevelProfile* S1 = Catalogue->FindProfile(TEXT("ARM075"), 1);
+    if (!TestNotNull(TEXT("Shield N12"), S12) ||
+        !TestNotNull(TEXT("Shield N1"), S1) ||
+        !TestNotNull(TEXT("Shield armor comparison"), Armor))
+        return false;
+    TestEqual(TEXT("Shield delta from canonical N12 and N1"), Armor->Delta,
+        static_cast<float>(S12->PhysicalArmor - S1->PhysicalArmor));
+    TestEqual(TEXT("Catalogue not mutated"), Catalogue->GetOutermost()->IsDirty(), bBeforeCatalogue);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponTooltipPAValenceTest,
+    "Grimrock.UI.WeaponTooltip04.ActionPointDeltaSemantics",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FWeaponTooltipPAValenceTest::RunTest(const FString&)
+{
+    UGridWeaponCatalogueAsset* Production =
+        LoadObject<UGridWeaponCatalogueAsset>(nullptr, WeaponTooltipTests::CataloguePath);
+    if (!TestNotNull(TEXT("Production catalogue"), Production))
+        return false;
+    const FGridWeaponLevelProfile* Real1 = Production->FindProfile(TEXT("ARM002"), 1);
+    const FGridWeaponLevelProfile* Real9 = Production->FindProfile(TEXT("ARM002"), 9);
+    if (!TestNotNull(TEXT("Real N1 profile"), Real1) ||
+        !TestNotNull(TEXT("Real N9 profile"), Real9))
+        return false;
+
+    // Synthetic fixture on transient objects only; no production .uasset mutation.
+    UGridWeaponCatalogueAsset* Sim = NewObject<UGridWeaponCatalogueAsset>();
+    FGridWeaponLevelProfile EquipProfile = *Real1;
+    FGridWeaponLevelProfile CandidateProfile = *Real9;
+    EquipProfile.ActionPointCost = 3;
+    CandidateProfile.ActionPointCost = 2;
+    Sim->Profiles.Add(EquipProfile);
+    Sim->Profiles.Add(CandidateProfile);
+
+    UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>();
+    Item->ItemDefinitionId = TEXT("Weapon_TooltipPAFixture");
+    Item->bUseWeaponCatalogue = true;
+    Item->WeaponArchetypeId = TEXT("ARM002");
+    Item->WeaponCatalogue = Sim;
+    TArray<FGridWeaponTooltipComparisonFact> Facts;
+    if (!TestTrue(TEXT("PA fixture resolves both levels"),
+        FGridWeaponTooltipProjection::BuildComparison(
+            Item, WeaponTooltipTests::MakeItem(Item, 9),
+            Item, WeaponTooltipTests::MakeItem(Item, 1), Facts)))
+        return false;
+    const auto* AP = Facts.FindByPredicate([](const FGridWeaponTooltipComparisonFact& F)
+    {
+        return F.StatId == TEXT("WeaponAP");
+    });
+    if (!TestNotNull(TEXT("PA comparison fact"), AP))
+        return false;
+    TestEqual(TEXT("Candidate 2 PA minus equipped 3 PA"), AP->Delta, -1.f);
+    TestTrue(TEXT("Lower AP is a green beneficial delta"),
+        AP->DeltaState == EGridItemTooltipDeltaState::Positive);
+    TestEqual(TEXT("Display signed PA delta"), AP->DeltaText.ToString(), FString(TEXT("-1")));
+
+    // A different damage element is NOT an automatic green numeric damage gain.
+    Sim->Profiles[1].DamageType = EGridDamageType::Fire;
+    Sim->Profiles[1].PhysicalSubtype = EGridPhysicalDamageSubtype::None;
+    Facts.Reset();
+    if (TestTrue(TEXT("Different damage types still show both sets of facts"),
+        FGridWeaponTooltipProjection::BuildComparison(
+            Item, WeaponTooltipTests::MakeItem(Item, 9),
+            Item, WeaponTooltipTests::MakeItem(Item, 1), Facts)))
+    {
+        const auto* Minimum = Facts.FindByPredicate(
+            [](const FGridWeaponTooltipComparisonFact& F)
+            { return F.StatId == TEXT("WeaponMinDamage"); });
+        if (TestNotNull(TEXT("Damage bounds remain readable"), Minimum))
+        {
+            TestFalse(TEXT("Different damage semantics suppress misleading delta"),
+                Minimum->bHasDelta);
+        }
+    }
     return true;
 }
 

@@ -15,4 +15,12 @@ public:
         const UGridItemDefinitionAsset* Definition,
         const FGridItemInstance& Instance,
         FGridWeaponTooltipPresentation& Out);
+
+    /** Only compares like-for-like catalogued roles; never invents bare-hand damage. */
+    static bool BuildComparison(
+        const UGridItemDefinitionAsset* CandidateDefinition,
+        const FGridItemInstance& Candidate,
+        const UGridItemDefinitionAsset* EquippedDefinition,
+        const FGridItemInstance& Equipped,
+        TArray<FGridWeaponTooltipComparisonFact>& OutFacts);
 };

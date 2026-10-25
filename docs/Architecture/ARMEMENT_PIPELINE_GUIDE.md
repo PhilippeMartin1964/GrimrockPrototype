@@ -321,6 +321,95 @@ indépendant attendu. Ne pas annoncer le WBP terminé avant son
 raccordement UMG et sa validation PIE.
 
 
+## INDUS04.2 — Comparaisons d'armement à niveau fixe et contrat UMG
+
+**Statut : C++ source publié ; validation locale et câblage manuel UMG en attente.**
+INDUS04.1 : trois tests WeaponTooltip04 et cinq tests Item01 réussis
+le 25 octobre 2026, sans warnings (rapports TD04-20261025-133531
+et TD04-20261025-133607).
+
+### Nouveaux champs du modèle partagé
+
+\`FGridItemTooltipEquipmentComparison::WeaponFacts\` est une liste séparée
+de \`StatLines\`, précisément pour éviter de mélanger les anciens bonus
+\`EquipmentStatBonus\` avec les profils d'armes N1–N20.
+Chaque \`FGridWeaponTooltipComparisonFact\` expose :
+\`StatId\`, \`Label\`, \`CandidateText\`, \`EquippedText\`, \`Delta\`,
+\`bHasDelta\`, \`DeltaState\`, \`DeltaText\`.
+
+\`FGridWeaponTooltipProjection::BuildComparison\` utilise deux
+\`FGridItemInstance\` réelles avec leurs propres \`ItemLevel\`.
+C'est une **projection en lecture seule**, sans ajout de dégâts.
+Elle compare les vrais \`NdM+K\` comme formules textuelles,
+les bornes de dégâts min/max, la précision, les PA, la portée,
+les types de dégâts et les attributs.
+Les dés, types et attributs sont textuels : **aucun delta numérique**.
+Les bornes de dégâts min/max ne reçoivent un delta colorable que
+si type, sous-type physique et attribut de scaling sont identiques.
+Les autres différences de sémantique restent visibles sans verdict
+trompeur. Pour \`WeaponAP\`, **un delta négatif est favorable** :
+par exemple 2 PA contre 3 PA => \`Delta=-1\` et \`DeltaState=Positive\`.
+Le vert/rouge doit être fondé sur \`DeltaState\`, jamais seulement sur
+le signe du chiffre. Un delta nul reste neutre.
+
+Les boucliers passifs ne comparent que l'armure physique et magique du
+niveau réel ; jamais de dés ou PA fictifs. Les paires de rôle offensif
+contre rôle passif sont incomparables. Une main vide n'invente pas une
+attaque sans arme : la comparaison offensive reste absente, mais
+la comparaison générique des bonus et le libellé de slot vide restent.
+Aucun champ du gameplay ou de la sauvegarde n'est modifié.
+
+### Exécuter les tests avant toute modification WBP
+
+    cd D:\Development\GrimrockPrototype
+    git pull --ff-only origin master
+    .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter 'Grimrock.UI.WeaponTooltip04'
+    .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter 'Grimrock.UI.Item01'
+    git status --short
+
+**Attendu : 5/5 tests WeaponTooltip04, 5/5 tests Item01, zéro
+avertissement, zéro échec, aucun .uasset changé.**
+Le XLSX canonique est volontairement modifié par INDUS03.2 ; le
+committer dans son **propre ticket/commit**, sans l'inclure dans le commit
+de l'infobulle ni le remplacer ou le réinitialiser.
+
+### Raccordement UMG Designer (manuel, après les tests)
+
+Ne **pas** modifier directement le binaire WBP depuis des scripts ou C++.
+Avant édition, prendre une capture du Designer et une du Graph de
+\`WBP_ItemTooltip\`, en montrant la construction des sections et des lignes
+de comparaison. L'UI préexistante utilise
+\`WBP_ItemTooltipStatLine\` (bonus génériques) et
+\`WBP_ItemTooltipComparisonRow\` (slots) ; leurs noms sont connus du
+dépôt mais l'implémentation de leurs graphes Blueprint n'est pas
+observable en texte Git.
+
+Conserver les zones actuelles titre/icône/description/poids/bonus.
+Ajouter une section affichée si \`TooltipView.WeaponProfile.bHasProfile\`
+et une liste répétée sur \`TooltipView.WeaponProfile.Facts\`, avec
+\`StatId\` comme clé stable pour les icônes, \`Label\` et \`ValueText\`
+fournis par C++. Dans la section de comparaison par slot existante,
+itérer \`EquipmentComparisons[].WeaponFacts\`. Présenter
+\`CandidateText\` et \`EquippedText\` ; afficher \`DeltaText\`
+seulement lorsque \`bHasDelta\` est vrai, appliquer la teinte favorable/
+défavorable d'après \`DeltaState\`. Ne **pas** remettre de delta
+sur les dés ni considérer \`WeaponAP=-1\` comme un malus.
+
+Pour les boucliers, veiller à ne pas imprimer deux fois l'armure
+du profil et le bonus statique ARM075 : le \`WeaponProfile\` au niveau
+réel est l'autorité de l'armure N1–N20, et les \`StatLines\`
+historiques doivent être conservées pour les équipements sans catalogue.
+Ce point requiert une décision de présentation à partir du Graph
+réel de \`WBP_ItemTooltip\`, pas une suppression aveugle d'un champ C++.
+
+**Validation PIE visuelle requise** : ARM002 N1 puis N9, remplacement
+N1 par N9, ARM075 N1/N12, slot vide, comparaison avec une arme de
+type de dégâts différent, puis objet legacy sans catalogue.
+Captures avant/après et jeu en cours sont nécessaires avant de
+déclarer INDUS04.2 complet côté WBP.
+
+---
+
 ## 7. Calendrier de consolidation
 
 1. INDUS02.1 : commande générique Visual/Item et validation des huit armes **validées localement**.

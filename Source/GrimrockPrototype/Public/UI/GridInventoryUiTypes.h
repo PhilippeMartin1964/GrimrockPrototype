@@ -150,6 +150,38 @@ struct FGridItemTooltipStatLine
 	FName StatId = NAME_None;
 };
 
+/** Weapon-specific comparison, separate from equipment bonuses and dice arithmetic. */
+USTRUCT(BlueprintType)
+struct FGridWeaponTooltipComparisonFact
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Comparison")
+    FName StatId = NAME_None;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Comparison")
+    FText Label;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Comparison")
+    FText CandidateText;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Comparison")
+    FText EquippedText;
+
+    /** Candidate minus equipped; for PA a negative delta is beneficial. */
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Comparison")
+    float Delta = 0.0f;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Comparison")
+    bool bHasDelta = false;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Comparison")
+    EGridItemTooltipDeltaState DeltaState = EGridItemTooltipDeltaState::Neutral;
+
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Weapon Comparison")
+    FText DeltaText;
+};
+
 USTRUCT(BlueprintType)
 struct FGridItemTooltipEquipmentComparison
 {
@@ -173,6 +205,10 @@ struct FGridItemTooltipEquipmentComparison
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	TArray<FGridItemTooltipStatLine> StatLines;
+
+    /** N1-N20 comparison, independent of generic equipment deltas. */
+    UPROPERTY(BlueprintReadOnly, Category="Inventory|Tooltip")
+    TArray<FGridWeaponTooltipComparisonFact> WeaponFacts;
 };
 
 /** One localized, catalogue-derived fact, not an equipment bonus. */
