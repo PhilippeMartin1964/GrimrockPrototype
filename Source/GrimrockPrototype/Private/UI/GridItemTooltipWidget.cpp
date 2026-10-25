@@ -9,6 +9,8 @@
 #include "UI/GridItemTooltipEquipmentComparisonWidget.h"
 #include "UI/UILocalizationText.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridItemTooltip, Log, All);
+
 namespace
 {
     void SetDynamicText(UTextBlock* TextBlock, const FText& Text)
@@ -45,7 +47,14 @@ FText UGridItemTooltipWidget::FormatItemLevel(int32 Level)
 
 bool UGridItemTooltipWidget::PresentFromInventorySlot(UGridInventorySlotWidget* InInventorySlot)
 {
-    return IsValid(InInventorySlot) && PresentTooltipView(InInventorySlot->GetTooltipView());
+    if (!IsValid(InInventorySlot))
+    {
+        UE_LOG(LogGridItemTooltip, Warning,
+            TEXT("PresentFromInventorySlot failed: inventory slot is null/invalid (widget=%s)."),
+            *GetNameSafe(this));
+        return false;
+    }
+    return PresentTooltipView(InInventorySlot->GetTooltipView());
 }
 
 bool UGridItemTooltipWidget::ShouldOmitLegacyArmor(
@@ -66,8 +75,15 @@ bool UGridItemTooltipWidget::ShouldOmitLegacyArmor(
 
 bool UGridItemTooltipWidget::PresentTooltipView(const FGridItemTooltipView& View)
 {
-    // Fail closed before changing Designer properties if a required authored
-    // section/class is missing. Never silently lose the old bonus rows.
+    // A missing optional UMG binding used to cause a completely empty
+    // frame with no actionable error after reparenting WBP_ItemTooltip.
+    if (!View.bValid)
+    {
+        UE_LOG(LogGridItemTooltip, Warning,
+            TEXT("Tooltip presentation refused: invalid item view (WBP class=%s)."),
+            *GetNameSafe(GetClass()));
+        return false;
+    }
     const bool bLegacy = View.StatLines.ContainsByPredicate(
         [&View](const FGridItemTooltipStatLine& Stat)
         {
@@ -76,14 +92,33 @@ bool UGridItemTooltipWidget::PresentTooltipView(const FGridItemTooltipView& View
     const bool bWeapons = View.WeaponProfile.bHasProfile &&
         !View.WeaponProfile.Facts.IsEmpty();
     const bool bComparisons = !View.EquipmentComparisons.IsEmpty();
-    if (!View.bValid || !Text_ItemName || !Text_ItemType || !Text_Description ||
-        !Text_Quantity || !Text_Weight || !Text_Equipment || !Image_ItemIcon ||
-        (bLegacy && (!VerticalBox_StatLines || !WeaponLineWidgetClass)) ||
-        (bWeapons && (!VerticalBox_WeaponSection ||
-            !VerticalBox_WeaponFacts || !WeaponLineWidgetClass)) ||
-        (bComparisons && (!VerticalBox_Comparisons ||
-            !ComparisonRowWidgetClass || !WeaponLineWidgetClass)))
+
+    TArray<FString> Missing;
+    if (!Text_ItemName) Missing.Add(TEXT("Text_ItemName"));
+    if (!Text_ItemType) Missing.Add(TEXT("Text_ItemType"));
+    if (!Text_Description) Missing.Add(TEXT("Text_Description"));
+    if (!Text_Quantity) Missing.Add(TEXT("Text_Quantity"));
+    if (!Text_Weight) Missing.Add(TEXT("Text_Weight"));
+    if (!Text_Equipment) Missing.Add(TEXT("Text_Equipment"));
+    if (!Image_ItemIcon) Missing.Add(TEXT("Image_ItemIcon"));
+    if (bLegacy && !VerticalBox_StatLines)
+        Missing.Add(TEXT("VerticalBox_StatLines"));
+    if (bWeapons && !VerticalBox_WeaponSection)
+        Missing.Add(TEXT("VerticalBox_WeaponSection"));
+    if (bWeapons && !VerticalBox_WeaponFacts)
+        Missing.Add(TEXT("VerticalBox_WeaponFacts"));
+    if (bComparisons && !VerticalBox_Comparisons)
+        Missing.Add(TEXT("VerticalBox_Comparisons"));
+    if ((bLegacy || bWeapons || bComparisons) && !WeaponLineWidgetClass)
+        Missing.Add(TEXT("Class Defaults > WeaponLineWidgetClass"));
+    if (bComparisons && !ComparisonRowWidgetClass)
+        Missing.Add(TEXT("Class Defaults > ComparisonRowWidgetClass"));
+    if (!Missing.IsEmpty())
     {
+        UE_LOG(LogGridItemTooltip, Error,
+            TEXT("Tooltip presenter refused for %s: missing [%s]. View: legacy=%d, weapon=%d, comparisons=%d. Check Is Variable, widget names, and Class Defaults."),
+            *GetNameSafe(GetClass()), *FString::Join(Missing, TEXT(", ")),
+            bLegacy ? 1 : 0, bWeapons ? 1 : 0, bComparisons ? 1 : 0);
         return false;
     }
     SetDynamicText(Text_ItemName, View.DisplayName);
@@ -104,9 +139,25 @@ bool UGridItemTooltipWidget::PresentTooltipView(const FGridItemTooltipView& View
     {
         Image_ItemIcon->SetVisibility(ESlateVisibility::Collapsed);
     }
-    if (!PopulateLegacyStats(View) ||
-        !PopulateWeaponFacts(View) || !PopulateEquipmentComparisons(View))
+    if (!PopulateLegacyStats(View))
     {
+        UE_LOG(LogGridItemTooltip, Error,
+            TEXT("Tooltip row creation failed at PopulateLegacyStats (WBP=%s). Check Text_Label/Text_Value/Delta TextBlocks and Is Variable on WBP_ItemTooltipNativeLine."),
+            *GetNameSafe(GetClass()));
+        return false;
+    }
+    if (!PopulateWeaponFacts(View))
+    {
+        UE_LOG(LogGridItemTooltip, Error,
+            TEXT("Tooltip row creation failed at PopulateWeaponFacts (WBP=%s). Check WeaponLineWidgetClass and the native line widget bindings."),
+            *GetNameSafe(GetClass()));
+        return false;
+    }
+    if (!PopulateEquipmentComparisons(View))
+    {
+        UE_LOG(LogGridItemTooltip, Error,
+            TEXT("Tooltip row creation failed at PopulateEquipmentComparisons (WBP=%s). Check WBP_ItemTooltipNativeComparison bindings/parent and nested line widget."),
+            *GetNameSafe(GetClass()));
         return false;
     }
     return true;
