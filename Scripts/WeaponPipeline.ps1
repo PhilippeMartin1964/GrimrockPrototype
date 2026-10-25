@@ -6,7 +6,7 @@ param(
     [string]$Archetype,
     [string[]]$Archetypes = @(),
     [switch]$All,
-    [ValidateSet('Visual','Item')]
+    [ValidateSet('Visual','Item','Palette')]
     [string]$Stage,
     [switch]$Apply
 )
@@ -31,15 +31,16 @@ if ($Action -eq 'Build' -and (-not $Archetype -or $All -or $Archetypes.Count -gt
     throw 'Build requires one -Archetype.'
 }
 if ($Apply -and ($Action -ne 'Build' -or -not $Stage)) {
-    throw 'Apply requires Build and Stage Visual|Item.'
+    throw 'Apply requires Build and Stage Visual|Item|Palette.'
 }
 if ($Stage -and $Action -ne 'Build') { throw 'Stage only applies to Build.' }
 
 $Before = @(& git -C $Repo status --porcelain=v1 --untracked-files=all)
 if ($LASTEXITCODE -ne 0) { throw 'git status failed' }
-if ($Apply -and $Stage -eq 'Visual') {
-    $DirtyVisual = @(& git -C $Repo status --porcelain=v1 -- $VisualCatalogue)
-    if ($DirtyVisual.Count -gt 0) { throw 'Visual catalogue has local changes; refusing write.' }
+if ($Apply -and ($Stage -eq 'Visual' -or $Stage -eq 'Palette')) {
+    $TargetPackage = if ($Stage -eq 'Visual') { $VisualCatalogue } else { $Palette }
+    $DirtyTarget = @(& git -C $Repo status --porcelain=v1 -- $TargetPackage)
+    if ($DirtyTarget.Count -gt 0) { throw "Target catalogue has local changes; refusing write: $TargetPackage" }
 }
 
 function Get-Fingerprint([string]$Relative) {
@@ -97,7 +98,7 @@ foreach ($Target in $Targets) {
     }
     if ($Apply) {
         $Applied = @($Lines | Where-Object {
-            $_ -match '\[INDUS02\] (SAVED|PRESENT_SAME) (Visual|Item) for '
+            $_ -match '\[INDUS02\] (SAVED|PRESENT_SAME) (Visual|Item|Palette) for '
         })
         if ($Applied.Count -ne 1) { throw 'Apply was not explicitly confirmed.' }
     }
@@ -116,7 +117,8 @@ if ($Action -eq 'Validate' -or $Apply) {
 }
 
 foreach ($Path in @($RpgCatalogue, $VisualCatalogue, $Palette)) {
-    $Allowed = $Apply -and $Stage -eq 'Visual' -and $Path -eq $VisualCatalogue
+    $Allowed = $Apply -and (($Stage -eq 'Visual' -and $Path -eq $VisualCatalogue) -or
+        ($Stage -eq 'Palette' -and $Path -eq $Palette))
     if (-not $Allowed -and (Get-Fingerprint $Path) -ne $BeforeHashes[$Path]) {
         throw "Unexpected package change: $Path"
     }
@@ -127,6 +129,8 @@ $New = @($After | Where-Object { $_ -notin $Before })
 if ($Apply) {
     if ($Stage -eq 'Visual') {
         $Expected = $VisualCatalogue
+    } elseif ($Stage -eq 'Palette') {
+        $Expected = $Palette
     } else {
         $Rows = @(Import-Csv -LiteralPath $Manifest | Where-Object { $_.ArchetypeId -eq $Archetype })
         if ($Rows.Count -ne 1) { throw "Manifest ID ambiguous: $Archetype" }

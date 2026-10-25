@@ -1,5 +1,8 @@
 #include "ARMEMENT/GridWeaponPipelineCommandlet.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
+#include "ARMEMENT/GridWeaponPipelinePalette.h"
+
+#include "Core/GridObjectPaletteAsset.h"
 
 #include "AssetRegistry/AssetData.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -27,12 +30,15 @@ namespace WeaponPipeline
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue");
     const TCHAR* const ItemFolder =
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons");
+    const TCHAR* const PalettePath =
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.DA_ObjectPalette_Default");
 
     struct FState
     {
         FString Art = TEXT("BLOCKED");
         FString Visual = TEXT("MISSING");
         FString Item = TEXT("MISSING");
+        FString Palette = TEXT("MISSING");
         FString Summary = TEXT("BLOCKED");
         FString Detail = TEXT("None");
     };
@@ -365,9 +371,17 @@ namespace WeaponPipeline
         return true;
     }
 
+    bool AllowsLegacyCategory(const FGridWeaponPipelineRow& Spec)
+    {
+        return Spec.ArchetypeId == TEXT("ARM001") ||
+            Spec.ArchetypeId == TEXT("ARM045") ||
+            Spec.ArchetypeId == TEXT("ARM075");
+    }
+
     FState Inspect(const FGridWeaponPipelineRow& Spec,
         UGridWeaponCatalogueAsset& Rpg,
         UGridWeaponVisualCatalogueAsset& Visuals,
+        UGridObjectPaletteAsset& Palette,
         const TArray<FAssetData>& AllItems)
     {
         FState S;
@@ -443,6 +457,26 @@ namespace WeaponPipeline
         if (Found)
         {
             S.Item = TEXT("PRESENT_SAME");
+            FString PaletteDetail;
+            const EGridWeaponPipelinePaletteState PaletteState =
+                FGridWeaponPipelinePalette::Inspect(Palette, FName(Spec.ItemDefinitionId),
+                    Found, AllowsLegacyCategory(Spec), PaletteDetail);
+            if (PaletteState == EGridWeaponPipelinePaletteState::Conflict)
+            {
+                S.Palette = TEXT("CONFLICT");
+                S.Summary = TEXT("CONFLICT");
+                S.Detail = PaletteDetail;
+                return S;
+            }
+            S.Palette = PaletteState == EGridWeaponPipelinePaletteState::PresentSame
+                ? TEXT("PRESENT_SAME") : TEXT("MISSING");
+        }
+        else if (Palette.FindEntryById(FName(Spec.ItemDefinitionId)))
+        {
+            S.Palette = TEXT("CONFLICT");
+            S.Summary = TEXT("CONFLICT");
+            S.Detail = TEXT("PaletteEntryExistsWithoutMatchingItem");
+            return S;
         }
 
         if (S.Art != TEXT("READY"))
@@ -459,6 +493,11 @@ namespace WeaponPipeline
         {
             S.Summary = TEXT("ITEM_MISSING");
             S.Detail = TEXT("ItemCanBeAuthored");
+        }
+        else if (S.Palette == TEXT("MISSING"))
+        {
+            S.Summary = TEXT("PALETTE_MISSING");
+            S.Detail = TEXT("DirectItemPaletteEntryCanBeAdded");
         }
         else
         {
@@ -536,6 +575,40 @@ namespace WeaponPipeline
         return UPackage::SavePackage(P, Item, *Filename, Args);
     }
 
+    bool SavePalette(const FGridWeaponPipelineRow& Spec,
+        UGridObjectPaletteAsset& Palette)
+    {
+        if (Palette.GetOutermost()->IsDirty())
+            return false;
+        UGridItemDefinitionAsset* Item = LoadObject<UGridItemDefinitionAsset>(
+            nullptr, *Spec.ItemPath);
+        if (!IsValid(Item) || Item->ItemDefinitionId != FName(Spec.ItemDefinitionId) ||
+            Item->WeaponArchetypeId != FName(Spec.ArchetypeId) ||
+            !Item->IsValidDefinition())
+            return false;
+
+        TArray<FGridObjectPaletteEntry> Proposed;
+        bool bAdded = false;
+        FString Reason;
+        if (!FGridWeaponPipelinePalette::Propose(Palette, FName(Spec.ItemDefinitionId),
+                Item, AllowsLegacyCategory(Spec), Proposed, bAdded, Reason) || !bAdded)
+            return false;
+
+        // No change to any existing entry, order, level, or unrelated asset.
+        UPackage* P = Palette.GetOutermost();
+        if (!IsValid(P))
+            return false;
+        Palette.Modify();
+        Palette.Entries = MoveTemp(Proposed);
+        P->MarkPackageDirty();
+        const FString Filename = FPackageName::LongPackageNameToFilename(
+            P->GetName(), FPackageName::GetAssetPackageExtension());
+        FSavePackageArgs Args;
+        Args.TopLevelFlags = RF_Public | RF_Standalone;
+        Args.SaveFlags = SAVE_NoError;
+        return UPackage::SavePackage(P, &Palette, *Filename, Args);
+    }
+
     FString Csv(const FString& Value)
     {
         FString Escaped = Value.Replace(TEXT("\""), TEXT("\"\""));
@@ -575,12 +648,12 @@ int32 UGridWeaponPipelineCommandlet::Main(const FString& Params)
         return 1;
     }
     if ((bApply && (Action != TEXT("Build") ||
-            (Stage != TEXT("Visual") && Stage != TEXT("Item")))) ||
+            (Stage != TEXT("Visual") && Stage != TEXT("Item") && Stage != TEXT("Palette")))) ||
         (Action == TEXT("Build") && Requested.IsEmpty()) ||
         ((Action != TEXT("Build")) && bApply))
     {
         UE_LOG(LogTemp, Error,
-            TEXT("[INDUS02] Build requires one Archetype; -Apply requires -Action=Build and -Stage=Visual|Item"));
+            TEXT("[INDUS02] Build requires one Archetype; -Apply requires -Action=Build and -Stage=Visual|Item|Palette"));
         return 1;
     }
     if (ManifestFile.IsEmpty())
@@ -604,7 +677,9 @@ int32 UGridWeaponPipelineCommandlet::Main(const FString& Params)
     UGridWeaponCatalogueAsset* Rpg = LoadObject<UGridWeaponCatalogueAsset>(nullptr, RpgPath);
     UGridWeaponVisualCatalogueAsset* Visuals =
         LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr, VisualsPath);
-    if (!IsValid(Rpg) || !IsValid(Visuals) ||
+    UGridObjectPaletteAsset* Palette =
+        LoadObject<UGridObjectPaletteAsset>(nullptr, PalettePath);
+    if (!IsValid(Rpg) || !IsValid(Visuals) || !IsValid(Palette) ||
         !Rpg->IsValidCatalogue() || !Rpg->IsValidClassAffinityData() ||
         !Visuals->IsValidCatalogue())
     {
@@ -613,6 +688,17 @@ int32 UGridWeaponPipelineCommandlet::Main(const FString& Params)
     }
     const bool bRpgDirty = Rpg->GetOutermost()->IsDirty();
     const bool bVisualDirty = Visuals->GetOutermost()->IsDirty();
+    const bool bPaletteDirty = Palette->GetOutermost()->IsDirty();
+    TArray<FGridWorldObjectDefinitionValidationMessage> PaletteMessages;
+    if (!Palette->ValidatePalette(PaletteMessages))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[INDUS02] Existing palette invalid; no writes"));
+        for (const auto& Message : PaletteMessages)
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS02] PALETTE_INVALID: %s"), *Message.Message);
+        }
+        return 1;
+    }
     IAssetRegistry& Registry =
         FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
     TArray<FString> ScanPaths = { FString(ItemFolder) };
@@ -622,7 +708,7 @@ int32 UGridWeaponPipelineCommandlet::Main(const FString& Params)
 
     TArray<FString> ReportLines =
     {
-        TEXT("ArchetypeId,ProductionState,BuildKind,Art,Visual,Item,Status,Detail")
+        TEXT("ArchetypeId,ProductionState,BuildKind,Art,Visual,Item,Palette,Status,Detail")
     };
     int32 Checked = 0, Complete = 0, Blocked = 0, Conflicts = 0, Planned = 0;
     int32 Changes = 0;
@@ -632,18 +718,18 @@ int32 UGridWeaponPipelineCommandlet::Main(const FString& Params)
         if (!Requested.IsEmpty() && Requested != Row.ArchetypeId)
             continue;
         ++Checked;
-        FState S = Inspect(Row, *Rpg, *Visuals, AllItems);
+        FState S = Inspect(Row, *Rpg, *Visuals, *Palette, AllItems);
         if (S.Summary == TEXT("CONFLICT")) ++Conflicts;
         else if (S.Summary == TEXT("COMPLETE")) ++Complete;
         else if (Row.ProductionState == TEXT("Planned")) ++Planned;
         else ++Blocked;
 
         UE_LOG(LogTemp, Display,
-            TEXT("[INDUS02] RESULT Archetype=%s Status=%s Art=%s Visual=%s Item=%s Detail=%s"),
-            *Row.ArchetypeId, *S.Summary, *S.Art, *S.Visual, *S.Item, *S.Detail);
+            TEXT("[INDUS02] RESULT Archetype=%s Status=%s Art=%s Visual=%s Item=%s Palette=%s Detail=%s"),
+            *Row.ArchetypeId, *S.Summary, *S.Art, *S.Visual, *S.Item, *S.Palette, *S.Detail);
         TArray<FString> Columns = {
             Csv(Row.ArchetypeId), Csv(Row.ProductionState), Csv(Row.BuildKind),
-            Csv(S.Art), Csv(S.Visual), Csv(S.Item), Csv(S.Summary), Csv(S.Detail)
+            Csv(S.Art), Csv(S.Visual), Csv(S.Item), Csv(S.Palette), Csv(S.Summary), Csv(S.Detail)
         };
         ReportLines.Add(FString::Join(Columns, TEXT(",")));
 
@@ -674,6 +760,34 @@ int32 UGridWeaponPipelineCommandlet::Main(const FString& Params)
                 else
                 {
                     UE_LOG(LogTemp, Error, TEXT("[INDUS02] Visual registration failed"));
+                    WriteReport(Report, ReportLines);
+                    return 2;
+                }
+            }
+            else if (Stage == TEXT("Palette"))
+            {
+                if (S.Item != TEXT("PRESENT_SAME"))
+                {
+                    UE_LOG(LogTemp, Error, TEXT("[INDUS02] Palette registration requires validated item"));
+                    WriteReport(Report, ReportLines);
+                    return 2;
+                }
+                if (S.Palette == TEXT("PRESENT_SAME"))
+                {
+                    UE_LOG(LogTemp, Display,
+                        TEXT("[INDUS02] PRESENT_SAME Palette for %s; no package saved"),
+                        *Row.ArchetypeId);
+                }
+                else if (S.Palette == TEXT("MISSING") && SavePalette(Row, *Palette))
+                {
+                    ++Changes;
+                    UE_LOG(LogTemp, Display,
+                        TEXT("[INDUS02] SAVED Palette for %s; one palette package"),
+                        *Row.ArchetypeId);
+                }
+                else
+                {
+                    UE_LOG(LogTemp, Error, TEXT("[INDUS02] Palette registration failed"));
                     WriteReport(Report, ReportLines);
                     return 2;
                 }
@@ -714,7 +828,8 @@ int32 UGridWeaponPipelineCommandlet::Main(const FString& Params)
         return 1;
     }
     if (!bApply && (Rpg->GetOutermost()->IsDirty() != bRpgDirty ||
-                    Visuals->GetOutermost()->IsDirty() != bVisualDirty))
+                    Visuals->GetOutermost()->IsDirty() != bVisualDirty ||
+                    Palette->GetOutermost()->IsDirty() != bPaletteDirty))
     {
         UE_LOG(LogTemp, Error, TEXT("[INDUS02] Read-only operation dirtied a catalogue"));
         return 1;

@@ -6,7 +6,7 @@
 
 /**
  * ARMEMENT-INDUS02: single manifest-driven armament commandlet.
- * Audit/Plan/Validate are read-only. Build -Apply -Step=Visual|Item
+ * Audit/Plan/Validate are read-only. Build -Apply -Stage=Visual|Item|Palette
  * saves at most one asset package per invocation.
  */
 UCLASS()

@@ -2,6 +2,8 @@
 
 #include "Misc/AutomationTest.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
+#include "ARMEMENT/GridWeaponPipelinePalette.h"
+#include "Core/GridObjectPaletteAsset.h"
 #include "AssetRegistry/AssetData.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -17,6 +19,14 @@ namespace WeaponPipelineTests
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue");
     constexpr const TCHAR* VisualsPath =
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue");
+    constexpr const TCHAR* PalettePath =
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.DA_ObjectPalette_Default");
+
+    bool LegacyCategory(const FString& Archetype)
+    {
+        return Archetype == TEXT("ARM001") || Archetype == TEXT("ARM045") ||
+            Archetype == TEXT("ARM075");
+    }
 
     bool Read(TArray<FGridWeaponPipelineRow>& Rows, FAutomationTestBase& Test)
     {
@@ -130,12 +140,18 @@ bool FWeaponPipelineExistingContracts::RunTest(const FString&)
         LoadObject<UGridWeaponCatalogueAsset>(nullptr, WeaponPipelineTests::RpgPath);
     UGridWeaponVisualCatalogueAsset* Visuals =
         LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr, WeaponPipelineTests::VisualsPath);
+    UGridObjectPaletteAsset* Palette =
+        LoadObject<UGridObjectPaletteAsset>(nullptr, WeaponPipelineTests::PalettePath);
     if (!TestNotNull(TEXT("RPG catalogue"), Rpg) ||
-        !TestNotNull(TEXT("Visual catalogue"), Visuals))
+        !TestNotNull(TEXT("Visual catalogue"), Visuals) ||
+        !TestNotNull(TEXT("Production palette"), Palette))
         return false;
     const bool BeforeRpg = Rpg->GetOutermost()->IsDirty();
     const bool BeforeVisuals = Visuals->GetOutermost()->IsDirty();
+    const bool BeforePalette = Palette->GetOutermost()->IsDirty();
     TestTrue(TEXT("Existing visual catalogue valid"), Visuals->IsValidCatalogue());
+    TArray<FGridWorldObjectDefinitionValidationMessage> ValidationMessages;
+    TestTrue(TEXT("Production palette valid"), Palette->ValidatePalette(ValidationMessages));
 
     TArray<FGridWeaponPipelineRow> Rows;
     if (!WeaponPipelineTests::Read(Rows, *this))
@@ -183,6 +199,13 @@ bool FWeaponPipelineExistingContracts::RunTest(const FString&)
             }
         }
         TestTrue(TEXT("Authored item definition remains valid"), Item->IsValidDefinition());
+        FString PaletteReason;
+        const EGridWeaponPipelinePaletteState PaletteState =
+            FGridWeaponPipelinePalette::Inspect(*Palette, FName(Row.ItemDefinitionId), Item,
+                WeaponPipelineTests::LegacyCategory(Row.ArchetypeId), PaletteReason);
+        TestTrue(*FString::Printf(TEXT("Existing palette entry unchanged %s (%s)"),
+            *Row.ArchetypeId, *PaletteReason),
+            PaletteState == EGridWeaponPipelinePaletteState::PresentSame);
         TestTrue(TEXT("Existing catalogues retained"),
             Item->bUseWeaponCatalogue && Item->bUseWeaponVisualCatalogue &&
             Item->WeaponCatalogue.LoadSynchronous() == Rpg &&
@@ -212,6 +235,110 @@ bool FWeaponPipelineExistingContracts::RunTest(const FString&)
     TestEqual(TEXT("RPG catalogue never mutated"), Rpg->GetOutermost()->IsDirty(), BeforeRpg);
     TestEqual(TEXT("Visual catalogue never mutated"),
         Visuals->GetOutermost()->IsDirty(), BeforeVisuals);
+    TestEqual(TEXT("Palette package never mutated"),
+        Palette->GetOutermost()->IsDirty(), BeforePalette);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponPipelinePalettePlanSafety,
+    "Grimrock.RPG.ARMEMENT.Industrial.PalettePlanIdempotenceAndConflicts",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
+{
+    UGridObjectPaletteAsset* Production =
+        LoadObject<UGridObjectPaletteAsset>(nullptr, WeaponPipelineTests::PalettePath);
+    UGridItemDefinitionAsset* Item = LoadObject<UGridItemDefinitionAsset>(
+        nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_AssassinDagger_01.DA_Weapon_AssassinDagger_01"));
+    if (!TestNotNull(TEXT("Real production palette"), Production) ||
+        !TestNotNull(TEXT("Real ARM002 definition"), Item))
+        return false;
+    const bool bBeforeDirty = Production->GetOutermost()->IsDirty();
+    const FName EntryId(TEXT("Weapon_AssassinDagger_01"));
+    const int32 OriginalCount = Production->Entries.Num();
+
+    // Present item: idempotence, zero added entries, no production package write.
+    TArray<FGridObjectPaletteEntry> Proposed;
+    bool bAdded = false;
+    FString Error;
+    TestTrue(TEXT("Already-registered item can be proposed unchanged"),
+        FGridWeaponPipelinePalette::Propose(*Production, EntryId, Item, false,
+            Proposed, bAdded, Error));
+    TestFalse(TEXT("Idempotence: no entry appended"), bAdded);
+    TestEqual(TEXT("Idempotence: array size unchanged"), Proposed.Num(), OriginalCount);
+
+    // Simulate an absent entry in a transient copy. No production data is changed.
+    UGridObjectPaletteAsset* Missing = NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
+    Missing->Entries = Production->Entries;
+    Missing->Entries.RemoveAll([EntryId](const FGridObjectPaletteEntry& Entry)
+    {
+        return Entry.EntryId == EntryId;
+    });
+    TestEqual(TEXT("Test fixture removed one entry"), Missing->Entries.Num(), OriginalCount - 1);
+    Proposed.Reset();
+    bAdded = false;
+    Error.Reset();
+    if (TestTrue(TEXT("Can propose one absent entry"),
+        FGridWeaponPipelinePalette::Propose(*Missing, EntryId, Item, false,
+            Proposed, bAdded, Error)))
+    {
+        TestTrue(TEXT("Exactly one proposal added"), bAdded);
+        TestEqual(TEXT("Proposed entry count restored"), Proposed.Num(), OriginalCount);
+        UGridObjectPaletteAsset* Candidate = NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
+        Candidate->Entries = Proposed;
+        FString Detail;
+        TestTrue(TEXT("Proposed entry is compatible"),
+            FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Item, false, Detail) ==
+                EGridWeaponPipelinePaletteState::PresentSame);
+        TArray<FGridObjectPaletteEntry> SecondPass;
+        bool bSecondAdded = true;
+        FString SecondError;
+        TestTrue(TEXT("Second pass succeeds"),
+            FGridWeaponPipelinePalette::Propose(*Candidate, EntryId, Item, false,
+                SecondPass, bSecondAdded, SecondError));
+        TestFalse(TEXT("Second pass does not duplicate item"), bSecondAdded);
+        TestEqual(TEXT("Second pass preserves all entries"), SecondPass.Num(), OriginalCount);
+
+        const FGridObjectPaletteEntry Duplicate = *Candidate->FindEntryById(EntryId);
+        Candidate->Entries.Add(Duplicate);
+        Detail.Reset();
+        TestTrue(TEXT("Duplicate entry rejected"),
+            FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Item, false, Detail) ==
+                EGridWeaponPipelinePaletteState::Conflict);
+
+        Candidate->Entries.Pop();
+        FGridObjectPaletteEntry* TargetEntry =
+            Candidate->Entries.FindByPredicate([EntryId](const FGridObjectPaletteEntry& Entry)
+            {
+                return Entry.EntryId == EntryId;
+            });
+        if (TargetEntry)
+        {
+            TargetEntry->PaletteCategory = FName(TEXT("Misc"));
+            TestTrue(TEXT("Unexpected category rejected"),
+                FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Item, false, Detail) ==
+                    EGridWeaponPipelinePaletteState::Conflict);
+            TargetEntry->PaletteCategory = FName(TEXT("Weapon"));
+            TargetEntry->EntryId = FName(TEXT("Weapon_AlternateAlias_TestOnly"));
+            TestTrue(TEXT("Same item registered under another EntryId rejected"),
+                FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Item, false, Detail) ==
+                    EGridWeaponPipelinePaletteState::Conflict);
+            TargetEntry->EntryId = EntryId;
+            UGridItemDefinitionAsset* Other = LoadObject<UGridItemDefinitionAsset>(
+                nullptr,
+                TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
+            if (TestNotNull(TEXT("Second real item for collision fixture"), Other))
+            {
+                TargetEntry->DefaultItemDefinition = Other;
+                TestTrue(TEXT("Palette entry pointing to a different item rejected"),
+                    FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Item, false, Detail) ==
+                        EGridWeaponPipelinePaletteState::Conflict);
+            }
+        }
+    }
+    TestEqual(TEXT("Production array preserved"), Production->Entries.Num(), OriginalCount);
+    TestEqual(TEXT("Production package stays clean"), Production->GetOutermost()->IsDirty(), bBeforeDirty);
     return true;
 }
 

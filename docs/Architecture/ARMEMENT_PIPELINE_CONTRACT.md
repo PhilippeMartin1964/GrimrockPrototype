@@ -1,6 +1,6 @@
 # ARMEMENT_PIPELINE_CONTRACT — Contrat vivant d'industrialisation (INDUS01)
 
-**Version de conception : v0.2, 25 octobre 2026.** INDUS02 introduit une première implémentation du script WeaponPipeline.ps1 et du commandlet générique : Audit / Plan / Validate / Build avec étapes Visual et Item ; compiler et valider localement avant tout Apply. La migration automatique des palettes, niveaux, armes de lancer historiques et infobulles reste hors scope de cette première version. Voir ARMEMENT_PIPELINE_GUIDE.md pour les commandes exactes.
+**Version de conception : v0.3, 25 octobre 2026.** INDUS02.1 a été validé localement (8 COMPLETE, 0 conflit, 3 tests réussis, 0 package écrit). INDUS02.2 étend le même pipeline aux étapes Visual, Item et Palette, avec tests de propositions idempotentes et de conflits sur des copies transitoires ; validation locale INDUS02.2 à effectuer avant -Apply. Les niveaux, armes de lancer historiques, infobulles et narrations demeurent hors périmètre de cette étape. Voir ARMEMENT_PIPELINE_GUIDE.md.
 
 ## A. Principes non négociables
 
@@ -39,19 +39,20 @@ Ne pas recopier WeightKg, DamageDice, PA, Range ou Accuracy dans ce manifeste ; 
 
 ## D. Interface d'orchestration envisagée
 
-Contrat cible (les modes Audit / Plan / Build / Validate existent désormais ; en version initiale Build -Apply exige en plus -Stage=Visual ou -Stage=Item) :
+Contrat cible (Audit / Plan / Build / Validate ; Build -Apply nécessite une étape explicite Visual, Item ou Palette ; jamais plusieurs packages dans la même invocation) :
 
     .\Scripts\WeaponPipeline.ps1 -Action Audit -All
     .\Scripts\WeaponPipeline.ps1 -Action Plan -Archetype ARM003
     .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003
     .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003 -Stage Visual -Apply
     .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003 -Stage Item -Apply
+    .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003 -Stage Palette -Apply
     .\Scripts\WeaponPipeline.ps1 -Action Validate -Archetypes ARM002,ARM003,ARM013,ARM020
 
 - Audit : inventaire complet et cohérence des référencements, sans mutation.
 - Plan : différences proposées, explicites et vérifiées avant écriture ; aucune mutation.
 - Build sans -Apply : préflight complet et simulation des changements.
-- Build -Apply : création/raccordement **au maximum d'un archétype par transaction au premier déploiement** ; rejeter les doublons, ressources manquantes, conflits ou asset existant non conforme.
+- Build -Apply : création/raccordement **d'une seule étape sur un seul archétype à la fois** ; rejeter les doublons, ressources manquantes, conflits ou asset existant non conforme. Visual et Palette sont des packages partagés, dont aucune entrée étrangère ne doit être modifiée.
 - Validate : tests de contrat ciblés et un rapport consolidé. Les tests PIE manuels gardent leur propre statut.
 - -All et -Archetypes multiples : autorisés pour Audit/Plan/Validate ; au départ, interdits pour Build -Apply tant qu'une transaction multi-asset vraiment atomique n'a pas été démontrée.
 - Toutes les commandes écrivent uniquement journaux et rapports **sous Saved/** ; mode dry-run doit conserver les hashes et le git status des fichiers métier.
@@ -80,6 +81,24 @@ Suite envisagée Grimrock.RPG.ARMEMENT.Industrial :
 
 Les tests de fichiers peuvent passer sans que l'arme soit jouable. Les tests PIE conservent sept cas : visuel, pickup, tooltip d'inventaire, équipement, drop/reprise, combat, sauvegarde/rechargement. Cas particuliers pour deux mains, distance, projectiles et capacités spéciales. **Ne jamais valider une spécialité du fait de sa simple mention dans le classeur.**
 
+
+### Compatibilité des palettes (INDUS02.2)
+
+L'étape Palette ne place rien dans la grille ; elle peut seulement créer une entrée
+\`FGridObjectPaletteEntry\` dans \`DA_ObjectPalette_Default\` en copiant d'abord le
+tableau original. Une nouvelle entrée doit contenir exclusivement :
+\`EntryId=ItemDefinitionId\`, \`PaletteCategory=Weapon\` et
+\`DefaultItemDefinition=<Item validé>\`. Aucun \`Icon\` de palette ni
+\`DefaultWorldObjectDefinition\` n'est autorisé pour un objet ramassable.
+Les entrées déjà identiques ne sont pas réécrites.
+
+Le contrôle refuse les doublons d'EntryId, les alias où la même définition est
+enregistrée sous un autre ID, les pointeurs d'item divergents et les catégories
+non approuvées. \`Items\` reste toléré sur les pilotes historiques ARM001/045/075,
+sans « réparation » automatique. Le test de sécurité emploie des palettes
+**transitoires** ; le contenu de production est seulement lu. Une validation
+technique réussie ne remplace pas la recette PIE.
+
 ## G. Tooltip et narratif : responsabilités
 
 - Créer une **projection en lecture seule** des propriétés de FGridWeaponLevelProfile pour chaque item au niveau réel de l'instance : nom, famille, dés NdM+K, accuracy, PA, range, poids, type/sous-type de dégâts, scaling et statistiques défensives pertinentes.
@@ -92,12 +111,13 @@ Les tests de fichiers peuvent passer sans que l'arme soit jouable. Les tests PIE
 ## H. Stratégie de migration et documentation allégée
 
 - INDUS01 : audit + présent contrat (lecture seule des assets), livré par un seul commit documentation.
-- INDUS02 : adapter **d'abord un profil existant en dry-run**, sans le réécrire. Prouver compatibilité de ARM002, ARM031, ARM075, ARM045 et legacy. Ensuite créer une nouvelle arme par la même commande.
+- INDUS02.1 : audit en lecture seule des huit assets standard et 3/3 tests, validés localement le 25.10.2026.
+- INDUS02.2 : ajout de Palette avec validation et copie en mémoire, contrôle d'alias et d'EntryId, 4 tests, aucun changement direct de niveau. Validation UE locale de la nouvelle phase en attente. Ne pas lancer -Apply avant résultats.
 - INDUS03 : enrichissement XLSX versionné et texte narratif ; ne pas changer les statistiques sans ticket explicite.
 - INDUS04 : infobulles d'inventaire basées sur profil réel, tests de localisation et comparaisons.
 - INDUS05 : retirer les anciennes commandes du chemin de production seulement après équivalence prouvée ; conserver historique par index d'archives, éviter des dizaines de nouveaux documents.
 
-Documentation **vivante** : ce contrat, un guide utilisateur unique du pipeline (à créer INDUS02), un registre de production/rapport machine (à générer par pipeline). Les 37 docs historiques restent traçables mais ne dictent plus une procédure d'arme à arme.
+Documentation **vivante** : ce contrat, docs/Architecture/ARMEMENT_PIPELINE_GUIDE.md, un registre de production/rapport machine généré par pipeline. Les 37 docs historiques restent traçables mais ne dictent plus une procédure d'arme à arme.
 
 ## I. Git, revue et bavardage minimal
 

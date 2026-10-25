@@ -1,6 +1,6 @@
 # ARMEMENT-INDUS02 — Guide opérationnel du pipeline d'armement
 
-**Statut : première version publiée en code source. Compilation UE5.5.4, rapports locaux et tests TD04.2 À EXÉCUTER SUR LE POSTE DE DÉVELOPPEMENT.**
+**Statut : INDUS02.1 validé localement le 25 octobre 2026 (8/8 armes reconnues, 3/3 tests Industrial, 0 conflit, aucune écriture). INDUS02.2 ajoute Palette, proposition idempotente et tests ; compilation/validation locale INDUS02.2 EN ATTENTE.**
 Références : docs/Architecture/ARMEMENT_PIPELINE_CONTRACT.md (contrat cible), docs/Design/ARMEMENT_INDUS01_AUDIT.md (état de référence).
 
 ## 1. Objectif
@@ -42,21 +42,21 @@ sous Saved/ARMEMENT-INDUS. Les hashes SHA256 de DA_WeaponCatalogue,
 DA_WeaponVisualCatalogue et DA_ObjectPalette_Default sont contrôlés avant/après.
 
 Build -Apply exige :
-- exactement **un** ArchetypeId et une étape **Visual ou Item** ;
+- exactement **un** ArchetypeId et une étape **Visual, Item ou Palette** ;
 - un profil existant et valide dans le catalogue, art réelle validée (icône,
   mesh, MI sur slot, parent MI, BC sRGB ON, N/ORM sRGB OFF) ;
 - aucune collision d'identité, de chemin ou de mapping ; aucune substitution de
   visuel et aucun écrasement d'un DataAsset existant ;
 - Stage Visual : sauvegarde au maximum du seul DA_WeaponVisualCatalogue ;
 - Stage Item : sauvegarde au maximum d'un seul nouveau DataAsset ;
+- Stage Palette : sauvegarde au maximum du seul DA_ObjectPalette_Default, après une définition validée et un contrôle de collision d'EntryId et d'alias ;
 - deuxième passage identique : PRESENT_SAME, aucune réécriture.
 
-La séparation des deux écritures est intentionnelle : tant qu'une vraie transaction
-multi-package sûre n'est pas démontrée, on ne présente pas un couple de SavePackage
+La séparation des **trois** écritures est intentionnelle : tant qu'une vraie transaction
+multi-package sûre n'est pas démontrée, on ne présente pas un ensemble de SavePackage
 comme atomique. Le script bloque tout changement Git supplémentaire non prévu.
 
-**Non couvert par cette première implémentation :** création/édition automatique
-de DA_ObjectPalette_Default, placement dans DA_GridLevel_00, sauvegarde UE des
+**Non couvert par INDUS02.2 :** placement dans DA_GridLevel_00, sauvegarde UE des
 matériaux et meshes, art 3D, mécanique spéciale, descriptions narratives,
 infobulle offensive N1–N20. Leur production reste sous leurs contrats existants,
 ou sera abordée dans les jalons ultérieurs sans toucher au runtime par surprise.
@@ -81,14 +81,14 @@ Rapports :
 - Saved/ARMEMENT-INDUS/INDUS02_Audit_All.log
 
 L'audit signale par arme COMPLETE, ART_MISSING, VISUAL_MISSING,
-ITEM_MISSING ou CONFLICT, puis LEGACY_UNMANAGED dans le log le cas échéant.
+ITEM_MISSING, PALETTE_MISSING ou CONFLICT, puis LEGACY_UNMANAGED dans le log le cas échéant. La nouvelle colonne Palette distingue MISSING, PRESENT_SAME et CONFLICT.
 Un Planned ARM003 manquant est un état attendu ; il n'est pas une arme jouable.
 
 Ensuite lancer la validation des contrats communs :
 
     .\Scripts\WeaponPipeline.ps1 -EngineRoot D:\UE_5.5 -Action Validate -All
 
-Tests ciblés : Grimrock.RPG.ARMEMENT.Industrial (3 tests initiaux).
+Tests ciblés : Grimrock.RPG.ARMEMENT.Industrial (**4 tests**, dont palette en lecture seule, idempotence et conflits simulés en mémoire).
 **Ne pas publier d'assets générés tant que ces tests n'ont pas réussi.**
 Les tests vérifient le manifeste, l'autorité des profils N1 et les objets
 déjà produits, sans PIE réel.
@@ -122,7 +122,19 @@ Chaque Apply déclenche la suite de tests génériques. Aucun -Apply n'est
 autorisé pour plusieurs armes. Un état CONFLICT ne peut jamais être
 « réparé » en remplaçant arbitrairement l'asset existant.
 
-Compléter ensuite la palette et le placement avec le procédé Unreal
+Après Item, si le rapport indique PALETTE_MISSING, contrôler le plan puis
+enregistrer **une seule nouvelle entrée**, sans modifier les entrées déjà
+présentes :
+
+    .\Scripts\WeaponPipeline.ps1 -Action Plan -Archetype ARM003
+    .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003 -Stage Palette -Apply
+
+Les pilotes historiques ARM001/ARM045/ARM075 peuvent conserver leur
+catégorie préexistante Items, mais toute nouvelle entrée est catégorisée
+Weapon. Les doublons d'identifiant ou les entrées pointant vers un autre item
+sont refusés. L'étape n'effectue **aucun placement dans le donjon**.
+
+Compléter ensuite le placement dans l'éditeur Unreal avec le procédé
 existant, et la recette PIE réelle : mesh/matériau, pickup unique,
 infobulle, MainHand/OffHand, dépôt/récupération, combat PA/dégâts/portée,
 sauvegarde/rechargement.
@@ -131,7 +143,7 @@ sauvegarde/rechargement.
 
 ### Validation locale
 
-- Build Development Editor OK ; 3 tests Industrial sans avertissement ni échec.
+- Build Development Editor OK ; **4 tests Industrial** sans avertissement ni échec.
 - Audit des huit lignes Active ; chaque CONFLICT/ART_MISSING documenté,
   jamais remplacé en silence.
 - ARM003 Planned n'est pas interprété comme objet produit.
@@ -146,12 +158,39 @@ jamais de branche/PR, jamais de git add . pour masquer un conflit.
 Ne pas publier de données Unreal produites à la place d'un rapport de
 validation local. Les tests automatiques ne remplacent pas le contrôle PIE.
 
+
+### Garde-fous spécifiques à la palette (INDUS02.2)
+
+La palette est partagée par toutes les catégories d'objets. Le contrôleur
+prend une **copie en mémoire** des entrées, y ajoute au maximum une entrée
+\`EntryId=ItemDefinitionId, PaletteCategory=Weapon, DefaultItemDefinition=Item\`
+et rejette les candidats invalides via \`ValidatePalette\` avant \`SavePackage\`.
+Il **ne modifie jamais** les entrées préexistantes, même pour réparer une
+catégorie : ce serait un autre ticket. Une catégorie \`Items\` préexistante
+n'est admise que pour ARM001, ARM045 et ARM075, conformément à leurs
+tests pilotes historiques. Les entrées déjà identiques produisent
+\`PRESENT_SAME\` sans sauvegarde.
+
+**Ne pas lancer -Apply avant réussite des quatre tests et du contrôle des
+champs Palette dans les huit lignes actives.** Exemple de premier test local :
+
+    .\Scripts\WeaponPipeline.ps1 -EngineRoot D:\UE_5.5 -Action Validate -All
+    git status --short
+
+Résultat attendu : huit COMPLETE ; un Planned ARM003 ART_MISSING ;
+zéro CONFLICT ; zéro SavedPackages ; **4/4** tests Industrial réussis ;
+aucune modification Git. En cas d'écart, communiquer uniquement RESULT
+non COMPLETE, SUMMARY et Automation summary. L'action Validate
+**ne tente aucune écriture sur la palette**.
+
+Pour les futures modifications binaires, inspecter la palette sous UE5
+avant le commit ; un commit de code ne constitue pas une validation de
+contenu.
+
 ## 7. Calendrier de consolidation
 
-1. INDUS02 (actuel) : commande générique, manifeste et contrats pour le
-   pipeline de lecture et d'authoring Visual/Item, **tests locaux en attente**.
-2. Poursuite INDUS02 : audit des écarts éventuels sur les huit assets réels,
-   extension contrôlée de la palette/placements si nécessaire, baseline stable.
+1. INDUS02.1 : commande générique Visual/Item et validation des huit armes **validées localement**.
+2. INDUS02.2 : création idempotente d'entrées dans la palette et quatre tests génériques, **validation locale en attente**. Aucun placement automatique dans un niveau.
 3. INDUS03 : enrichissement narratif du classeur (schéma compatible et versionné).
 4. INDUS04 : infobulle d'inventaire fondée sur le ItemLevel réel.
 5. INDUS05 : archiver les scripts/commandlets spécifiques après preuves
