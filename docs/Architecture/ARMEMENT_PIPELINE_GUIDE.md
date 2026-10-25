@@ -187,6 +187,16 @@ Pour les futures modifications binaires, inspecter la palette sous UE5
 avant le commit ; un commit de code ne constitue pas une validation de
 contenu.
 
+## INDUS03.2 — Propositions éditoriales des 82 archétypes (DRAFT)
+
+Les 82 textes de `DescriptionCourteFR` et `LoreFR` ont été rédigés en un seul lot de relecture, en prenant pour référence les 82 lignes de l'onglet historique `Catalogue` (noms, familles et colonne Particularité). Source versionnée : `docs/Design/ARMEMENT_INDUS03_2_Narratif_DRAFT.csv`.
+
+**Toutes les lignes restent DRAFT**. Les récits proposés sont des ajouts créatifs au lore du jeu, pas des faits déjà adoptés dans la fiction du projet. Les mécanismes spéciaux ne sont jamais marqués IMPLEMENTED par supposition. Les valeurs de combat, le XLSX canonique, les DataAssets, le runtime et la palette ne sont pas modifiés dans ce commit.
+
+Pour intégrer ces propositions après relecture : ouvrir le XLSX canonique, puis coller les sept colonnes A:G du CSV proposé dans l'onglet `Narratif` (A1:G83), sans créer d'onglet supplémentaire. Fermer Excel et lancer `WeaponPipeline.ps1 -Action Narrative`. Attendre `Archetypes=82 WithDescription=82 Approved=0` jusqu'à approbation éditoriale. Ne pas passer un élément à APPROVED sans relecture.
+
+---
+
 ## INDUS03 — Enrichissement narratif sans duplication des statistiques
 
 La source éditoriale reste
