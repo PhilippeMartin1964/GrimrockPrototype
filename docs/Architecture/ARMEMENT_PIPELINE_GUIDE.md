@@ -520,6 +520,143 @@ des familles devra être décidée sans inventer de valeur affichée.
 
 ---
 
+## ARMEMENT-INDUS04.2B.1 — Lignes legacy et comparaisons intégrées en C++
+
+**État : code source publié sur master ; build + tests UE5.5.4 à confirmer sur le poste local.**
+ARMEMENT-INDUS04.2A (script de localisation et 6/6 WeaponTooltip04 + 5/5
+Item01) a été validé localement le 25 octobre 2026. Les sept changements
+binaires/Excel conservés localement ont été poussés séparément ensuite ;
+HEAD de départ de B.1 : \`5d5da76c16ea89e472855c90c57dba1aeb592bfb\`.
+
+### Pourquoi compléter le natif AVANT de supprimer les nœuds BP
+
+L'ancien \`WBP_ItemTooltip\` affiche 18 bonus/résistances au moyen de
+\`FGridItemTooltipStatLine\`, puis des comparaisons par \`EquipmentSlot\`.
+04.2A ne projetait que \`WeaponProfile.Facts\` et les comparaisons
+\`WeaponFacts\` séparées, donc reparent/suppression du Graph à ce stade
+aurait fait **disparaître les anciennes informations**.
+
+B.1 ajoute les fonctionnalités en C++ sans changer de WBP :
+- \`UGridItemTooltipWeaponLineWidget::PresentLegacyStat\` : affiche label,
+  valeur, delta déjà formaté et couleur **sémantique par choix d'un des
+  trois Text Blocks du Designer**. Pas de formatage BP.
+- \`UGridItemTooltipWeaponLineWidget::PresentFact/PresentComparison\` :
+  conserve les informations N1–N20 de 04.2A et les deltas PA inversés.
+  Chaque ligne peut afficher un \`Image_StatIcon\` piloté par
+  \`StatId\` et une \`StatIconTextures\` Map dans les Class Defaults
+  du *WBP enfant*, sans forcer de style, couleur ou dimension dans C++.
+  L'icône absente est \`Hidden\` pour préserver la taille authored, pas
+  un placeholder blanc. Conserver 48×48 dans \`SizeBox_StatIcon\`.
+- \`UGridItemTooltipEquipmentComparisonWidget\` : construit les lignes
+  classiques ET \`WeaponFacts\` **dans le même groupe par emplacement**.
+  Les objets sans profil, les mains vides et les slots équipés conservent
+  leurs états et deltas existants.
+- \`UGridItemTooltipWidget\` : exploite les conteneurs existants
+  \`VerticalBox_StatLines\` et \`VerticalBox_Comparisons\`, et le
+  \`VerticalBox_WeaponFacts\` ajouté en Designer. Plus de \`ForEach\`,
+  \`CreateWidget\`, \`SetText\` ou \`Branch\` de présentation dans le Graph.
+  Les éventuels anciens conteneurs de comparaison d'armes séparés restent
+  masqués pour éviter de répéter les mêmes lignes.
+- Les boucliers passifs dont le profil réel contient
+  \`WeaponPhysicalArmor\` n'affichent pas une seconde ligne
+  \`Armor\` issue des anciens bonus statiques. Les autres lignes et
+  les équipements sans catalogue sont conservés.
+- Les méthodes renvoient \`false\` lorsque les conteneurs/variables
+  indispensables du Designer manquent ; **ne pas** supprimer le vieux
+  Graph tant que le nouveau chemin n'est pas effectivement fonctionnel.
+  Aucun asset ni gameplay n'est écrit par les présentateurs.
+
+### Recette C++ préalable au reparentage
+
+UE fermé :
+
+    cd D:\Development\GrimrockPrototype
+    git pull --ff-only origin master
+    .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.WeaponTooltip04"
+    .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.UI.Item01"
+    git status --short
+
+Attendu **8/8** pour \`WeaponTooltip04\` (6 existants + 2 tests
+\`NativeLegacyStatsPreserved\`, \`NativeShieldArmorSingleAuthority\`) et
+**5/5** pour \`Item01\`, zéro échec et avertissement nouveau.
+Les tests C++ ne remplacent **pas** le test PIE des WBP.
+
+### ARMEMENT-INDUS04.2B.2 — Passage UMG MANUEL, pas de binaire via GitHub
+
+**GATE : après les tests, ouvrir UE et vérifier les variables. Une capture
+du Designer et du Graph existants est nécessaire avant la suppression
+des boucles. Sauvegarder le WBP dans un commit distinct après PIE.**
+
+1. Créer le WBP \`WBP_ItemTooltipNativeLine\` (parent C++ :
+   \`GridItemTooltipWeaponLineWidget\`). Préparer dans le Designer les
+   \`Text_Label\`, \`Text_Value\`, \`Text_Equipped\`, \`Text_Slot\`,
+   \`Text_DeltaPositive\`, \`Text_DeltaNegative\`,
+   \`Text_DeltaNeutral\` et \`Image_StatIcon\` (facultatif).
+   Tous les noms sont EXACTS, \`Is Variable\` coché.
+   \`Image_StatIcon\` dans un SizeBox 48×48, \`Hidden\` si icône inconnue.
+   Régler les trois couleurs distinctes et les fonts uniquement ici.
+   Dans **Class Defaults > StatIconTextures**, recopier les 18 paires
+   \`StatId : Texture2D\` définies auparavant dans
+   \`WBP_ItemTooltipStatLine::StatIcons\` (sans déplacer ni supprimer
+   l'ancien WBP). Laisser les contenus Text dynamiques vides pour
+   éviter \`TextBlockDefaultValue\` au Gather.
+2. Créer \`WBP_ItemTooltipNativeComparison\` (parent C++ :
+   \`GridItemTooltipEquipmentComparisonWidget\`), avec
+   \`Text_EquipmentSlot\`, \`Text_EquippedItem\`,
+   \`VerticalBox_ComparisonStats\` et
+   \`VerticalBox_ComparisonWeaponFacts\`. Optionnel :
+   \`VerticalBox_ComparisonWeaponSection\` enveloppant le
+   titre localisé \`ST_UI: Inventory.Tooltip.Weapon.ComparisonTitle\`
+   et les weapon facts. Réglages dans Designer seulement.
+3. **Ouvrir l'asset existant**
+   \`/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip\`.
+   Dans *Class Settings > Parent Class*, sélectionner
+   \`GridItemTooltipWidget\` ; ne pas créer un deuxième tooltip racine.
+   Contrôler les noms et types des champs dynamiques :
+   \`Text_ItemName\`, \`Text_ItemType\`, \`Text_Description\`,
+   \`Text_Quantity\`, \`Text_Weight\`, \`Text_Equipment\`,
+   \`Text_Light\`, \`Text_ItemLevel\`, \`Image_ItemIcon\`.
+   Certains sont nécessaires même si leur visibilité est \`Collapsed\`.
+   Éviter tout binding de texte BP concurrent au \`SetText\` natif.
+4. Conserver le Designer et les conteneurs préexistants
+   \`VerticalBox_StatLines\` et \`VerticalBox_Comparisons\`.
+   Ajouter si absents \`VerticalBox_WeaponSection\` avec
+   \`VerticalBox_WeaponFacts\`. Le titre statique
+   \`Text_WeaponTitle\` pointe directement sur la clé
+   \`ST_UI: Inventory.Tooltip.Weapon.Title\`. Les wrappers
+   \`VerticalBox_StatsSection\`, \`VerticalBox_ComparisonSection\`
+   sont optionnels mais recommandés pour masquer les sections vides.
+   Ne pas recréer le panneau de comparaison N1–N20 à la racine :
+   les lignes se trouvent déjà dans chaque groupe par équipement.
+5. Dans \`WBP_ItemTooltip > Class Defaults\` :
+   \`WeaponLineWidgetClass = WBP_ItemTooltipNativeLine\` ;
+   \`ComparisonRowWidgetClass = WBP_ItemTooltipNativeComparison\`.
+6. **Conserver la fonction Blueprint publique EXISTANTE**
+   \`InitFromInventorySlot\` et sa signature pour ses appelants.
+   Dans son corps, remplacer les anciennes constructions par
+   **un seul appel** à \`PresentFromInventorySlot(InInventorySlot)\`
+   (le paramètre d'entrée est celui de la fonction BP).
+   Ce n'est pas une nouvelle boucle ni un Tick : tout le Graph de
+   projection devient une simple délégation native. Si la compilation
+   expose une variable BP incompatible, arrêter et inspecter le
+   graph au lieu de supprimer/renommer des éléments au hasard.
+7. Compiler et enregistrer les trois WBP. PIE : survol d'un item
+   legacy (bonus et 18 icônes), puis ARM002 N1 et N9, comparaison
+   équipée puis main vide, ARM075 N1 et N12 (armure une seule fois),
+   objet sans catalogue et différences de type de dégâts. Vérifier
+   les couleurs PA (delta -1 => vert), les dés textuels, l'affichage
+   français/anglais, les bordures, la taille 48×48 et la réouverture
+   répétée sans accumulation de lignes. Après contrôle visuel,
+   enregistrer seulement les WBP volontairement modifiés et
+   recueillir un journal de tests. Ne pas sauvegarder des assets
+   potentiellement cassés en bloc.
+
+**État 04.2B** : C++ B.1 versionnable et vérifiable localement ;
+la migration des \`.uasset\` B.2 et la recette PIE doivent être faites dans
+Unreal par l'utilisateur. Les tests automatiques seuls ne la clôturent pas.
+
+---
+
 ## 7. Calendrier de consolidation
 
 1. INDUS02.1 : commande générique Visual/Item et validation des huit armes **validées localement**.

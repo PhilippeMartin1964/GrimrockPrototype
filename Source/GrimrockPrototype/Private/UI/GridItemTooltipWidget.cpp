@@ -6,6 +6,7 @@
 #include "Components/Widget.h"
 #include "UI/GridInventorySlotWidget.h"
 #include "UI/GridItemTooltipWeaponLineWidget.h"
+#include "UI/GridItemTooltipEquipmentComparisonWidget.h"
 #include "UI/UILocalizationText.h"
 
 namespace
@@ -47,28 +48,41 @@ bool UGridItemTooltipWidget::PresentFromInventorySlot(UGridInventorySlotWidget* 
     return IsValid(InInventorySlot) && PresentTooltipView(InInventorySlot->GetTooltipView());
 }
 
-bool UGridItemTooltipWidget::HasWeaponComparisons(const FGridItemTooltipView& View)
+bool UGridItemTooltipWidget::ShouldOmitLegacyArmor(
+    const FGridItemTooltipView& View,
+    const FGridItemTooltipStatLine& Stat)
 {
-    for (const FGridItemTooltipEquipmentComparison& Comp : View.EquipmentComparisons)
+    if (Stat.StatId != TEXT("Armor") ||
+        !View.WeaponProfile.bHasProfile || !View.WeaponProfile.bPassive)
     {
-        if (!Comp.WeaponFacts.IsEmpty())
-        {
-            return true;
-        }
+        return false;
     }
-    return false;
+    return View.WeaponProfile.Facts.ContainsByPredicate(
+        [](const FGridWeaponTooltipFact& Fact)
+        {
+            return Fact.StatId == TEXT("WeaponPhysicalArmor");
+        });
 }
 
 bool UGridItemTooltipWidget::PresentTooltipView(const FGridItemTooltipView& View)
 {
-    // Do not partially draw a UI which cannot show its catalogue values.
+    // Fail closed before changing Designer properties if a required authored
+    // section/class is missing. Never silently lose the old bonus rows.
+    const bool bLegacy = View.StatLines.ContainsByPredicate(
+        [&View](const FGridItemTooltipStatLine& Stat)
+        {
+            return !ShouldOmitLegacyArmor(View, Stat);
+        });
+    const bool bWeapons = View.WeaponProfile.bHasProfile &&
+        !View.WeaponProfile.Facts.IsEmpty();
+    const bool bComparisons = !View.EquipmentComparisons.IsEmpty();
     if (!View.bValid || !Text_ItemName || !Text_ItemType || !Text_Description ||
         !Text_Quantity || !Text_Weight || !Text_Equipment || !Image_ItemIcon ||
-        (View.WeaponProfile.bHasProfile && !View.WeaponProfile.Facts.IsEmpty() &&
-            (!VerticalBox_WeaponSection || !VerticalBox_WeaponFacts || !WeaponLineWidgetClass)) ||
-        (HasWeaponComparisons(View) &&
-            (!VerticalBox_WeaponComparisonSection || !VerticalBox_WeaponComparisons ||
-                !WeaponLineWidgetClass)))
+        (bLegacy && (!VerticalBox_StatLines || !WeaponLineWidgetClass)) ||
+        (bWeapons && (!VerticalBox_WeaponSection ||
+            !VerticalBox_WeaponFacts || !WeaponLineWidgetClass)) ||
+        (bComparisons && (!VerticalBox_Comparisons ||
+            !ComparisonRowWidgetClass || !WeaponLineWidgetClass)))
     {
         return false;
     }
@@ -90,11 +104,40 @@ bool UGridItemTooltipWidget::PresentTooltipView(const FGridItemTooltipView& View
     {
         Image_ItemIcon->SetVisibility(ESlateVisibility::Collapsed);
     }
-    // The current legacy StatLines/Comparison BP presentation is NOT removed in 04.2A.
-    // 04.2B will remove those BP loops only after the native replacements work in PIE.
-    if (!PopulateWeaponFacts(View) || !PopulateWeaponComparisons(View))
+    if (!PopulateLegacyStats(View) ||
+        !PopulateWeaponFacts(View) || !PopulateEquipmentComparisons(View))
     {
         return false;
+    }
+    return true;
+}
+
+bool UGridItemTooltipWidget::PopulateLegacyStats(const FGridItemTooltipView& View)
+{
+    const bool bShow = View.StatLines.ContainsByPredicate(
+        [&View](const FGridItemTooltipStatLine& Stat)
+        {
+            return !ShouldOmitLegacyArmor(View, Stat);
+        });
+    SetSection(VerticalBox_StatsSection, bShow);
+    if (!VerticalBox_StatLines)
+    {
+        return !bShow;
+    }
+    VerticalBox_StatLines->ClearChildren();
+    if (!bShow) return true;
+
+    for (const FGridItemTooltipStatLine& Stat : View.StatLines)
+    {
+        if (ShouldOmitLegacyArmor(View, Stat))
+        {
+            continue;
+        }
+        UGridItemTooltipWeaponLineWidget* Line =
+            CreateWidget<UGridItemTooltipWeaponLineWidget>(this, WeaponLineWidgetClass);
+        if (!Line) return false;
+        VerticalBox_StatLines->AddChildToVerticalBox(Line);
+        if (!Line->PresentLegacyStat(Stat)) return false;
     }
     return true;
 }
@@ -123,27 +166,33 @@ bool UGridItemTooltipWidget::PopulateWeaponFacts(const FGridItemTooltipView& Vie
     return true;
 }
 
-bool UGridItemTooltipWidget::PopulateWeaponComparisons(const FGridItemTooltipView& View)
+bool UGridItemTooltipWidget::PopulateEquipmentComparisons(
+    const FGridItemTooltipView& View)
 {
-    const bool bShow = HasWeaponComparisons(View);
-    SetSection(VerticalBox_WeaponComparisonSection, bShow);
-    if (!VerticalBox_WeaponComparisons)
+    const bool bShow = !View.EquipmentComparisons.IsEmpty();
+    SetSection(VerticalBox_ComparisonSection, bShow);
+    // 04.2B replaces the detached weapon-comparison root with one group per
+    // equipped slot. Never present the same profile twice.
+    SetSection(VerticalBox_WeaponComparisonSection, false);
+    if (VerticalBox_WeaponComparisons)
+    {
+        VerticalBox_WeaponComparisons->ClearChildren();
+    }
+    if (!VerticalBox_Comparisons)
     {
         return !bShow;
     }
-    VerticalBox_WeaponComparisons->ClearChildren();
+    VerticalBox_Comparisons->ClearChildren();
     if (!bShow) return true;
 
     for (const FGridItemTooltipEquipmentComparison& Comparison : View.EquipmentComparisons)
     {
-        for (const FGridWeaponTooltipComparisonFact& Fact : Comparison.WeaponFacts)
-        {
-            UGridItemTooltipWeaponLineWidget* Line =
-                CreateWidget<UGridItemTooltipWeaponLineWidget>(this, WeaponLineWidgetClass);
-            if (!Line) return false;
-            VerticalBox_WeaponComparisons->AddChildToVerticalBox(Line);
-            if (!Line->PresentComparison(Fact, Comparison.SlotLabel)) return false;
-        }
+        UGridItemTooltipEquipmentComparisonWidget* Group =
+            CreateWidget<UGridItemTooltipEquipmentComparisonWidget>(
+                this, ComparisonRowWidgetClass);
+        if (!Group) return false;
+        VerticalBox_Comparisons->AddChildToVerticalBox(Group);
+        if (!Group->PresentComparison(Comparison, WeaponLineWidgetClass)) return false;
     }
     return true;
 }

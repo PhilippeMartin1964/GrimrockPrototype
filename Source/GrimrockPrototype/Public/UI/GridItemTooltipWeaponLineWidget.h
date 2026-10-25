@@ -6,6 +6,8 @@
 #include "GridItemTooltipWeaponLineWidget.generated.h"
 
 class UTextBlock;
+class UImage;
+class UTexture2D;
 
 /**
  * One Designer-authored weapon fact/comparison line.
@@ -18,12 +20,22 @@ class GRIMROCKPROTOTYPE_API UGridItemTooltipWeaponLineWidget : public UUserWidge
 
 public:
     bool PresentFact(const FGridWeaponTooltipFact& Fact);
+    /** Legacy stat/resistance with semantic delta and Designer-owned icon. */
+    bool PresentLegacyStat(const FGridItemTooltipStatLine& Stat);
     bool PresentComparison(const FGridWeaponTooltipComparisonFact& Fact, const FText& SlotLabel);
 
     /** Native, purely semantic decision: no runtime tint overrides. */
     static EGridItemTooltipDeltaState VisibleDeltaState(const FGridWeaponTooltipComparisonFact& Fact);
 
 protected:
+    /** Stable StatId -> texture mapping, edited in the line WBP's Class Defaults. */
+    UPROPERTY(EditDefaultsOnly, Category="Inventory|Tooltip|Designer")
+    TMap<FName, TObjectPtr<UTexture2D>> StatIconTextures;
+
+    /** Optional 48x48 icon, dimensions controlled only by the Designer. */
+    UPROPERTY(meta=(BindWidgetOptional))
+    TObjectPtr<UImage> Image_StatIcon;
+
     UPROPERTY(meta=(BindWidgetOptional))
     TObjectPtr<UTextBlock> Text_Label;
 
@@ -48,4 +60,6 @@ protected:
 
 private:
     void HideComparisons();
+    void PresentIcon(FName StatId);
+    void PresentDelta(bool bHasDelta, EGridItemTooltipDeltaState State, const FText& Text);
 };

@@ -7,6 +7,7 @@
 
 class UGridInventorySlotWidget;
 class UGridItemTooltipWeaponLineWidget;
+class UGridItemTooltipEquipmentComparisonWidget;
 class UImage;
 class UTextBlock;
 class UVerticalBox;
@@ -33,10 +34,19 @@ public:
     /** Stable localization format; the source of truth is UI.csv -> ST_UI. */
     static FText FormatItemLevel(int32 Level);
 
+    /** A catalogued shield's true level armor wins over authored generic ArmorBonus. */
+    static bool ShouldOmitLegacyArmor(
+        const FGridItemTooltipView& View,
+        const FGridItemTooltipStatLine& Stat);
+
 protected:
     /** Assign a Designer-authored child WBP class after the reparent in 04.2B. */
     UPROPERTY(EditDefaultsOnly, Category="Inventory|Tooltip|Designer")
     TSubclassOf<UGridItemTooltipWeaponLineWidget> WeaponLineWidgetClass;
+
+    /** Designer-authored per-equipment-slot comparison group. */
+    UPROPERTY(EditDefaultsOnly, Category="Inventory|Tooltip|Designer")
+    TSubclassOf<UGridItemTooltipEquipmentComparisonWidget> ComparisonRowWidgetClass;
 
     UPROPERTY(meta=(BindWidgetOptional))
     TObjectPtr<UTextBlock> Text_ItemName;
@@ -58,6 +68,19 @@ protected:
     TObjectPtr<UImage> Image_ItemIcon;
 
     /** Text_WeaponTitle remains STATIC and references ST_UI directly in Designer. */
+    /** Reuse the existing legacy stat and per-slot comparison containers. */
+    UPROPERTY(meta=(BindWidgetOptional))
+    TObjectPtr<UVerticalBox> VerticalBox_StatLines;
+
+    UPROPERTY(meta=(BindWidgetOptional))
+    TObjectPtr<UVerticalBox> VerticalBox_Comparisons;
+
+    UPROPERTY(meta=(BindWidgetOptional))
+    TObjectPtr<UWidget> VerticalBox_StatsSection;
+
+    UPROPERTY(meta=(BindWidgetOptional))
+    TObjectPtr<UWidget> VerticalBox_ComparisonSection;
+
     UPROPERTY(meta=(BindWidgetOptional))
     TObjectPtr<UWidget> VerticalBox_WeaponSection;
     UPROPERTY(meta=(BindWidgetOptional))
@@ -68,7 +91,7 @@ protected:
     TObjectPtr<UVerticalBox> VerticalBox_WeaponComparisons;
 
 private:
-    static bool HasWeaponComparisons(const FGridItemTooltipView& View);
+    bool PopulateLegacyStats(const FGridItemTooltipView& View);
     bool PopulateWeaponFacts(const FGridItemTooltipView& View);
-    bool PopulateWeaponComparisons(const FGridItemTooltipView& View);
+    bool PopulateEquipmentComparisons(const FGridItemTooltipView& View);
 };
