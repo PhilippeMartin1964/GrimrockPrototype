@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/GridEquipmentPreviewTypes.h"
 #include "Runtime/GridPartyPortraitTypes.h"
 #include "GridPartyInventoryComponent.generated.h"
 
@@ -235,6 +236,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Equipment")
 	bool EquipItemFromInventorySlot(int32 CharacterIndex, int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot);
+
+    /**
+     * INDUS04.3A: read-only mirror of EquipItemFromInventorySlot, including
+     * two-hand displacement, free inventory capacity and effective armor.
+     * Returns true if a projection was computed, including InventoryFull.
+     */
+    UFUNCTION(BlueprintCallable, Category="Inventory|Equipment|Preview")
+    bool PreviewEquipFromInventorySlot(
+        int32 CharacterIndex, int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot,
+        FGridEquipmentPreviewResult& OutPreview) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Equipment")
 	bool UnequipItemToInventory(int32 CharacterIndex, EGridEquipmentSlot SourceSlot);
