@@ -1,6 +1,8 @@
 ﻿param(
     [string]$WorkbookPath = 'docs\Design\ARMEMENT01_Catalogue_Armes_Boucliers_Niveaux_1_20_ARMEMENT01_2.xlsx',
-    [string]$OutputPath = 'Saved\ARMEMENT01\ARMEMENT01_4_Profiles.csv'
+    [string]$OutputPath = 'Saved\ARMEMENT01\ARMEMENT01_4_Profiles.csv',
+    [string]$NarrativeOutputPath = 'Saved\ARMEMENT-INDUS\INDUS03_Narrative.csv',
+    [switch]$RequireNarrative
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,6 +16,9 @@ if (-not [System.IO.Path]::IsPathRooted($WorkbookPath)) {
 }
 if (-not [System.IO.Path]::IsPathRooted($OutputPath)) {
     $OutputPath = Join-Path $RepoRoot $OutputPath
+}
+if (-not [System.IO.Path]::IsPathRooted($NarrativeOutputPath)) {
+    $NarrativeOutputPath = Join-Path $RepoRoot $NarrativeOutputPath
 }
 if (-not (Test-Path -LiteralPath $WorkbookPath -PathType Leaf)) {
     throw "ARMEMENT01.4 : fichier de référence introuvable : $WorkbookPath"
@@ -100,11 +105,14 @@ function Assert-Int {
 }
 
 $Export = [System.Collections.Generic.List[object]]::new()
+$NarrativeExport = [System.Collections.Generic.List[object]]::new()
+$NarrativeSheetPresent = $false
 $Zip = [System.IO.Compression.ZipFile]::OpenRead($WorkbookPath)
 try {
     $Workbook = Get-ZipXml $Zip 'xl/workbook.xml'
     $WorkbookNs = New-XlsxNamespace $Workbook
-    $Names = @($Workbook.SelectNodes('//x:sheets/x:sheet', $WorkbookNs) | ForEach-Object { $_.GetAttribute('name') })
+    $SheetNodes = @($Workbook.SelectNodes('//x:sheets/x:sheet', $WorkbookNs))
+    $Names = @($SheetNodes | ForEach-Object { $_.GetAttribute('name') })
     $ExpectedSheets = @(
         'Lisez-moi', 'Catalogue', 'Niveaux 1-20', 'Raretés', 'Classes',
         'Améliorations', 'Uniques', 'Paramètres', 'Implémentation UE5',
@@ -112,7 +120,7 @@ try {
     )
     # Exact sheet-order contract: report the actual names on any mismatch.
     # This script is stored WITH a UTF-8 BOM for Windows PowerShell 5.1.
-    $ValidStructure = $Names.Count -eq $ExpectedSheets.Count
+    $ValidStructure = $Names.Count -eq 12 -or $Names.Count -eq 13
     if ($ValidStructure) {
         for ($I = 0; $I -lt $ExpectedSheets.Count; $I++) {
             if (-not [string]::Equals($Names[$I], $ExpectedSheets[$I],
@@ -122,9 +130,17 @@ try {
             }
         }
     }
+    # Version V1: legacy 12 tabs, or exactly those 12 plus a final Narratif.
+    if ($ValidStructure -and $Names.Count -eq 13 -and $Names[12] -cne 'Narratif') {
+        $ValidStructure = $false
+    }
     if (-not $ValidStructure) {
-        throw ("Les 12 onglets attendus ne correspondent pas. Reels : " +
-            ($Names -join ' | ') + " ; Attendus : " + ($ExpectedSheets -join ' | '))
+        throw ("Classeur invalide : 12 onglets canoniques, ou 12 + Narratif en derniere position. Reels : " +
+            ($Names -join ' | '))
+    }
+    $NarrativeSheetPresent = $Names.Count -eq 13
+    if ($RequireNarrative -and -not $NarrativeSheetPresent) {
+        throw 'INDUS03 : onglet Narratif requis mais absent.'
     }
 
     $StringsXml = Get-ZipXml $Zip 'xl/sharedStrings.xml'
@@ -212,6 +228,97 @@ try {
     if (@($Keys | Select-Object -Unique).Count -ne 1640) {
         throw 'Doublon(s) dans les couples (ArchetypeId, ItemLevel).'
     }
+
+    # NarrativeV1: one row per archetype, no changes to the 19 combat columns.
+    if ($NarrativeSheetPresent) {
+        $Rid = $SheetNodes[12].GetAttribute('id',
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships')
+        $Rels = Get-ZipXml $Zip 'xl/_rels/workbook.xml.rels'
+        $Rns = [System.Xml.XmlNamespaceManager]::new($Rels.NameTable)
+        $Rns.AddNamespace('r', 'http://schemas.openxmlformats.org/package/2006/relationships')
+        $Target = $null
+        foreach ($Rel in $Rels.SelectNodes('/r:Relationships/r:Relationship', $Rns)) {
+            if ($Rel.GetAttribute('Id') -eq $Rid) {
+                $Target = $Rel.GetAttribute('Target')
+                break
+            }
+        }
+        if ([string]::IsNullOrWhiteSpace($Target) -or $Target.Contains('..') -or $Target.Contains('\')) {
+            throw 'INDUS03 : chemin de feuille Narratif invalide.'
+        }
+        $SheetPath = if ($Target.StartsWith('/')) {
+            $Target.TrimStart('/')
+        } elseif ($Target.StartsWith('xl/')) {
+            $Target
+        } else { 'xl/' + $Target }
+        if (-not $SheetPath.StartsWith('xl/worksheets/')) {
+            throw 'INDUS03 : la relation ne pointe pas sur une feuille de calcul.'
+        }
+        $AllNarrativeRows = @(Get-WorksheetRows $Zip $SheetPath $Shared)
+        $HeaderRow = @($AllNarrativeRows | Where-Object { $_.Number -eq 1 })
+        if ($HeaderRow.Count -ne 1) { throw 'INDUS03 : en-tete Narratif absent.' }
+        $ExpectedColumns = @('ArchetypeId', 'DescriptionCourteFR', 'LoreFR',
+            'ParticulariteFR', 'EtatParticularite', 'NotesConception', 'EtatValidation')
+        $ColumnKeys = @('A','B','C','D','E','F','G')
+        for ($Index = 0; $Index -lt $ColumnKeys.Count; $Index++) {
+            if ([string]$HeaderRow[0].Cells[$ColumnKeys[$Index]] -cne $ExpectedColumns[$Index]) {
+                throw "INDUS03 : en-tete Narratif invalide en $($ColumnKeys[$Index]) ; attendu $($ExpectedColumns[$Index])."
+            }
+        }
+        $ExtraRows = @($AllNarrativeRows | Where-Object {
+            $_.Number -gt 83 -and -not [string]::IsNullOrWhiteSpace([string]$_.Cells['A'])
+        })
+        if ($ExtraRows.Count -gt 0) {
+            throw 'INDUS03 : ligne ArchetypeId inattendue apres la ligne 83.'
+        }
+        $RowsNarratif = @($AllNarrativeRows |
+            Where-Object { $_.Number -ge 2 -and $_.Number -le 83 })
+        if ($RowsNarratif.Count -ne 82) {
+            throw "INDUS03 : Narratif contient $($RowsNarratif.Count) lignes, 82 attendues."
+        }
+        $SeenNarratif = @{}
+        foreach ($R in $RowsNarratif) {
+            $C = $R.Cells
+            $Id = Get-RequiredCell $C 'A' "Narratif:$($R.Number)"
+            if (-not $MetaById.ContainsKey($Id) -or $SeenNarratif.ContainsKey($Id)) {
+                throw "INDUS03 : ID inconnu ou duplique : $Id"
+            }
+            $SeenNarratif[$Id] = $true
+            $Short = [string]$C['B']
+            $Lore = [string]$C['C']
+            $Feature = [string]$C['D']
+            $FeatureState = Get-RequiredCell $C 'E' "Narratif:$Id"
+            $Notes = [string]$C['F']
+            $Review = Get-RequiredCell $C 'G' "Narratif:$Id"
+            if ($FeatureState -notin @('UNDOCUMENTED','PLANNED','IMPLEMENTED','NOT_APPLICABLE') -or
+                $Review -notin @('DRAFT','NEEDS_REVIEW','APPROVED')) {
+                throw "INDUS03 : etat narratif invalide pour $Id."
+            }
+            if ($Short.Length -gt 300 -or $Lore.Length -gt 4000 -or
+                $Feature.Length -gt 300 -or $Notes.Length -gt 2000) {
+                throw "INDUS03 : longueur narrative invalide pour $Id."
+            }
+            if ($Review -eq 'APPROVED' -and [string]::IsNullOrWhiteSpace($Short)) {
+                throw "INDUS03 : $Id APPROVED sans DescriptionCourteFR."
+            }
+            if ($FeatureState -eq 'IMPLEMENTED' -and [string]::IsNullOrWhiteSpace($Feature)) {
+                throw "INDUS03 : $Id IMPLEMENTED sans ParticulariteFR."
+            }
+            $NarrativeExport.Add([PSCustomObject][ordered]@{
+                SchemaVersion = 'NarrativeV1'
+                ArchetypeId = $Id
+                DescriptionCourteFR = $Short
+                LoreFR = $Lore
+                ParticulariteFR = $Feature
+                EtatParticularite = $FeatureState
+                NotesConception = $Notes
+                EtatValidation = $Review
+            })
+        }
+        if ($SeenNarratif.Count -ne $MetaById.Count) {
+            throw "INDUS03 : couverture incomplete : $($SeenNarratif.Count)/$($MetaById.Count)."
+        }
+    }
 } finally { $Zip.Dispose() }
 
 $Directory = Split-Path -Parent $OutputPath
@@ -220,3 +327,12 @@ $Export.ToArray() | Export-Csv -LiteralPath $OutputPath -NoTypeInformation -Deli
 Write-Host "[ARMEMENT01.4] Export validé : 82 archétypes, 1640 profils, 260 sans attaque."
 Write-Host "Source : $WorkbookPath"
 Write-Host "CSV    : $OutputPath"
+
+if ($NarrativeSheetPresent) {
+    [System.IO.Directory]::CreateDirectory((Split-Path -Parent $NarrativeOutputPath)) | Out-Null
+    $NarrativeExport.ToArray() | Export-Csv -LiteralPath $NarrativeOutputPath -NoTypeInformation -Delimiter ',' -Encoding UTF8
+    Write-Host "[ARMEMENT-INDUS03] NarrativeV1 valide : 82 archétypes, 0 statistique de combat modifiée."
+    Write-Host "Narratif : $NarrativeOutputPath"
+} else {
+    Write-Host '[ARMEMENT-INDUS03] Classeur legacy 12 onglets valide ; narratif non encore present.'
+}

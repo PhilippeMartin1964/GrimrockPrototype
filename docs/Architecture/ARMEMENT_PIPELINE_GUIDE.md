@@ -1,6 +1,6 @@
 # ARMEMENT-INDUS02 — Guide opérationnel du pipeline d'armement
 
-**Statut : INDUS02.1 validé localement le 25 octobre 2026 (8/8 armes reconnues, 3/3 tests Industrial, 0 conflit, aucune écriture). INDUS02.2 ajoute Palette, proposition idempotente et tests ; compilation/validation locale INDUS02.2 EN ATTENTE.**
+**Statut : INDUS02.2 validé localement le 25 octobre 2026 : 8/8 COMPLETE, 0 conflit, 4/4 tests Industrial, aucune écriture et git propre (TD04-20261025-102213). INDUS03 introduit un contrat narratif Excel V1 et son exporteur en lecture seule ; sa validation locale reste à réaliser.**
 Références : docs/Architecture/ARMEMENT_PIPELINE_CONTRACT.md (contrat cible), docs/Design/ARMEMENT_INDUS01_AUDIT.md (état de référence).
 
 ## 1. Objectif
@@ -186,6 +186,74 @@ non COMPLETE, SUMMARY et Automation summary. L'action Validate
 Pour les futures modifications binaires, inspecter la palette sous UE5
 avant le commit ; un commit de code ne constitue pas une validation de
 contenu.
+
+## INDUS03 — Enrichissement narratif sans duplication des statistiques
+
+La source éditoriale reste
+\`docs/Design/ARMEMENT01_Catalogue_Armes_Boucliers_Niveaux_1_20_ARMEMENT01_2.xlsx\`.
+Elle doit contenir soit les **12 onglets historiques**, soit ces douze onglets
+**inchangés et dans le même ordre**, suivis de \`Narratif\` en treizième.
+Les 19 colonnes de statistiques et les 1 640 lignes N1–N20 ne changent pas.
+
+Un modèle d'onglet Narratif prêt à copier est livré à l'utilisateur et un
+modèle CSV conservé sous
+\`docs/Design/ARMEMENT_INDUS03_Narratif_Modele.csv\` comme **exemple de
+schéma non autoritatif**. Il ne doit pas être chargé directement par le jeu.
+Pour rester fidèle à la source unique, copier l'onglet Narratif du modèle
+dans le **classeur canonique**, en dernière position, puis enregistrer.
+
+### Colonnes exactes de la feuille Narratif
+
+| Colonne | Nom | Règle |
+|---|---|---|
+| A | ArchetypeId | 82 lignes ARM001..ARM082, sans doublons ; ordre libre |
+| B | DescriptionCourteFR | Pour l'infobulle de l'inventaire ; facultatif en DRAFT, maximum 300 caractères |
+| C | LoreFR | Pour l'écran d'examen futur, facultatif, max. 4 000 caractères |
+| D | ParticulariteFR | Narration uniquement, max. 300 caractères ; ne déclenche jamais une mécanique |
+| E | EtatParticularite | UNDOCUMENTED, PLANNED, IMPLEMENTED, NOT_APPLICABLE |
+| F | NotesConception | Notes auteur non exposées, max. 2 000 caractères |
+| G | EtatValidation | DRAFT, NEEDS_REVIEW ou APPROVED |
+
+La première ligne contient les en-têtes, les lignes 2..83 les données.
+**APPROVED** nécessite une description courte non vide. **IMPLEMENTED**
+nécessite un texte de particularité et, **séparément**, une validation
+effective du comportement en jeu ; l'exporteur ne peut pas prouver celle-ci.
+
+Ce sont des **textes éditoriaux indépendants des statistiques**. Le nom
+affiché n'est pas dupliqué : il reste dans la colonne B de Catalogue.
+Aucune description n'a été inventée ni automatiquement approuvée.
+
+### Exécution du nouvel export en lecture seule
+
+Sur un dépôt propre, après avoir enregistré le 13e onglet dans le XLSX
+canonique et fermé Excel :
+
+    .\Scripts\WeaponPipeline.ps1 -EngineRoot D:\UE_5.5 -Action Narrative
+    git status --short
+
+Le script existant \`ExportARMEMENT014Catalogue.ps1\` est réutilisé.
+Il produit le CSV historique de 19 colonnes
+\`Saved/ARMEMENT01/ARMEMENT01_4_Profiles.csv\`, toujours 1640 profils,
+**et** le nouveau
+\`Saved/ARMEMENT-INDUS/INDUS03_Narrative.csv\`, 82 lignes au schéma
+\`NarrativeV1\`. Le mode \`-Action Narrative\` exige le 13e onglet :
+il ne transforme pas en silence l'ancienne version à 12 onglets.
+
+Le CSV exporté contient \`SchemaVersion\`, \`ArchetypeId\`,
+\`DescriptionCourteFR\`, \`LoreFR\`, \`ParticulariteFR\`,
+\`EtatParticularite\`, \`NotesConception\`, \`EtatValidation\`.
+Seules les données de la feuille Excel font foi. Pour l'instant,
+**aucun runtime asset n'est modifié** : la projection vers
+\`UGridItemDefinitionAsset::Description\`, puis vers le modèle commun
+\`FGridItemTooltipView\`, appartient aux jalons suivants.
+
+**Preuves attendues** : export de l'ancien classeur 12 onglets inchangé ;
+export NarrativeV1 (82/82) avec 13 onglets ; 1 640 profils et
+260 profils passifs conservés ; \`git status\` reflétant seulement la
+modification volontaire du XLSX, pas une altération des .uasset.
+Aucune commande \`-Apply\` pour ce jalon narratif.
+
+---
 
 ## 7. Calendrier de consolidation
 

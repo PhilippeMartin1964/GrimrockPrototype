@@ -1,6 +1,6 @@
 # ARMEMENT_PIPELINE_CONTRACT — Contrat vivant d'industrialisation (INDUS01)
 
-**Version de conception : v0.3, 25 octobre 2026.** INDUS02.1 a été validé localement (8 COMPLETE, 0 conflit, 3 tests réussis, 0 package écrit). INDUS02.2 étend le même pipeline aux étapes Visual, Item et Palette, avec tests de propositions idempotentes et de conflits sur des copies transitoires ; validation locale INDUS02.2 à effectuer avant -Apply. Les niveaux, armes de lancer historiques, infobulles et narrations demeurent hors périmètre de cette étape. Voir ARMEMENT_PIPELINE_GUIDE.md.
+**Version de conception : v0.4, 25 octobre 2026.** INDUS02.2 a été validé localement (8 COMPLETE, 0 conflit, 4/4 tests, 0 asset modifié). INDUS03 introduit en parallèle de la production Visual/Item/Palette une évolution NarrativeV1 du classeur canonique, compatible avec ses 12 anciens onglets. L'export narratif est en lecture seule et ne modifie pas les DataAssets. Sa validation locale demeure requise. Voir ARMEMENT_PIPELINE_GUIDE.md.
 
 ## A. Principes non négociables
 
@@ -23,6 +23,32 @@
 | Localization/Source/UI.csv | Labels statiques et patterns de UI partagés | ST_UI.uasset après authoring réel, puis WBP |
 
 **Important :** le système actuel exige 12 onglets XLSX et 19 champs CSV ; ne pas ajouter un onglet/une colonne directement à l'import existant. INDUS03 doit déclarer SchemaVersion et tester v1 en compatibilité avant d'étendre à v2. Les formules du XLSX doivent être recalculées par l'outil de production avant export ; le pipeline rejette des caches absents plutôt que de deviner des valeurs.
+
+### INDUS03 : schéma narratif versionné
+
+La source éditoriale continue d'être le **même XLSX**. Le format historique
+à douze feuilles reste accepté par ExportARMEMENT014Catalogue.ps1 ; le format
+enrichi ajoute seulement la feuille \`Narratif\` en position 13, avec A1:G83
+(82 identifiants ARM001..ARM082, un par ligne).
+
+Contrat NarrativeV1 :
+- ArchetypeId : correspondance stricte et unique avec \`Catalogue\`.
+- DescriptionCourteFR : texte d'infobulle d'inventaire, maximum 300 caractères.
+- LoreFR : texte long pour \`PresentItemExamination\` futur, max. 4000.
+- ParticulariteFR : information non exécutable, maximum 300.
+- EtatParticularite : UNDOCUMENTED | PLANNED | IMPLEMENTED | NOT_APPLICABLE.
+- NotesConception : interne et non destiné à l'UI, maximum 2000.
+- EtatValidation : DRAFT | NEEDS_REVIEW | APPROVED (APPROVED impose description).
+
+L'exporteur générique produit un CSV \`NarrativeV1\` **séparé** des
+1 640 profils ; ne jamais mélanger ces chaînes éditoriales aux calculs des
+dés, PA, portée ou poids. \`IMPLEMENTED\` est un statut de suivi : le jeu
+**ne déduit jamais une capacité spéciale de ce texte**. Les 82 lignes du
+modèle initial sont DRAFT/UNDOCUMENTED et ne représentent aucune
+narration approuvée. Le placement de textes approuvés dans les DataAssets
+et le modèle FGridItemTooltipView appartient aux étapes ultérieures.
+La conversion des textes en FText localisables devra conserver les
+identifiants culture/internationalisation sans dupliquer ST_UI.
 
 ## C. Enregistrement technique explicite proposé
 

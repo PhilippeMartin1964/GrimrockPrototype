@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$EngineRoot = 'D:\UE_5.5',
-    [ValidateSet('Audit','Plan','Build','Validate')]
+    [ValidateSet('Audit','Plan','Build','Validate','Narrative')]
     [string]$Action = 'Audit',
     [string]$Archetype,
     [string[]]$Archetypes = @(),
@@ -34,6 +34,10 @@ if ($Apply -and ($Action -ne 'Build' -or -not $Stage)) {
     throw 'Apply requires Build and Stage Visual|Item|Palette.'
 }
 if ($Stage -and $Action -ne 'Build') { throw 'Stage only applies to Build.' }
+if ($Action -eq 'Narrative' -and ($Archetype -or $Archetypes.Count -gt 0 -or $Apply -or $Stage)) {
+    throw 'Narrative is a whole-workbook read-only export; no individual archtypes and no -Apply.'
+}
+
 
 $Before = @(& git -C $Repo status --porcelain=v1 --untracked-files=all)
 if ($LASTEXITCODE -ne 0) { throw 'git status failed' }
@@ -53,6 +57,35 @@ function Get-Fingerprint([string]$Relative) {
 $BeforeHashes = @{}
 foreach ($Path in @($RpgCatalogue, $VisualCatalogue, $Palette)) {
     $BeforeHashes[$Path] = Get-Fingerprint $Path
+}
+
+# INDUS03: exported from the single canonical XLSX, without launching Unreal.
+# The legacy 19-column profile export remains backward-compatible (12 or 13 tabs).
+if ($Action -eq 'Narrative') {
+    $Export = Join-Path $PSScriptRoot 'ExportARMEMENT014Catalogue.ps1'
+    & $Export -RequireNarrative
+    if (-not $?) { throw 'NarrativeV1 export failed.' }
+    $NarrativeCsv = Join-Path $ReportDir 'INDUS03_Narrative.csv'
+    if (-not (Test-Path -LiteralPath $NarrativeCsv -PathType Leaf)) {
+        throw "INDUS03 export missing: $NarrativeCsv"
+    }
+    $Records = @(Import-Csv -LiteralPath $NarrativeCsv)
+    if ($Records.Count -ne 82 -or @($Records | Where-Object {
+        $_.SchemaVersion -ne 'NarrativeV1'
+    }).Count -ne 0) {
+        throw 'INDUS03 narrative CSV is not 82 NarrativeV1 records.'
+    }
+    $Approved = @($Records | Where-Object { $_.EtatValidation -eq 'APPROVED' }).Count
+    $Described = @($Records | Where-Object {
+        -not [string]::IsNullOrWhiteSpace($_.DescriptionCourteFR)
+    }).Count
+    $AfterNarrative = @(& git -C $Repo status --porcelain=v1 --untracked-files=all)
+    if ($LASTEXITCODE -ne 0 -or @($AfterNarrative | Where-Object { $_ -notin $Before }).Count -ne 0) {
+        throw 'Narrative export modified versioned/untracked project files outside Saved/.'
+    }
+    Write-Host "[INDUS03] SUMMARY Schema=NarrativeV1 Archetypes=82 WithDescription=$Described Approved=$Approved ContentPackagesSaved=0"
+    Write-Host "CSV : $NarrativeCsv"
+    return
 }
 
 Write-Host '=== INDUS02: editor build ==='
