@@ -51,15 +51,42 @@ Write-Host "Detailed Unreal log: $LogFile"
 & $Editor @Arguments *> $LogFile
 $CommandletExit = $LASTEXITCODE
 
-$Messages = @(Select-String -LiteralPath $LogFile -Pattern '\[ARMEMENT01\.10\.2\.1\]' -ErrorAction SilentlyContinue)
-$Messages | ForEach-Object { Write-Host $_.Line }
+$Messages = @(Select-String -LiteralPath $LogFile -Pattern '\[ARMEMENT01\.11\.2\.1\]' -ErrorAction SilentlyContinue)
+$MessageLines = @($Messages | ForEach-Object { $_.Line })
+$MessageLines | ForEach-Object { Write-Host $_ }
+
 if ($CommandletExit -ne 0) {
     Get-Content -LiteralPath $LogFile -Tail 25
     throw "Visual registration refused (code $CommandletExit). No silent substitutions."
 }
 
+if ($MessageLines.Count -eq 0) {
+    throw 'No ARMEMENT01.11.2.1 diagnostics found in the Unreal log; cannot establish READY/BLOCKED/REGISTERED.'
+}
 if ($Apply) {
-    Write-Host '=== ARMEMENT01.10 targeted regression after one visual registration ==='
+    $AppliedOrAlreadyRegistered = @($MessageLines | Where-Object {
+        $_ -match '\[ARMEMENT01\.11\.2\.1\] (SAVED|REGISTERED) ARM002'
+    })
+    $ApplySummary = @($MessageLines | Where-Object {
+        $_ -match '\[ARMEMENT01\.11\.2\.1\] APPLY complete:'
+    })
+    if ($AppliedOrAlreadyRegistered.Count -eq 0 -or $ApplySummary.Count -eq 0) {
+        throw 'ARM002 visual registration was not confirmed by commandlet diagnostics.'
+    }
+} else {
+    $ReadOnlySummary = @($MessageLines | Where-Object {
+        $_ -match '\[ARMEMENT01\.11\.2\.1\] READ-ONLY PREFLIGHT:'
+    })
+    $PreflightStatus = @($MessageLines | Where-Object {
+        $_ -match '\[ARMEMENT01\.11\.2\.1\] (READY|BLOCKED|REGISTERED) ARM002'
+    })
+    if ($ReadOnlySummary.Count -eq 0 -or $PreflightStatus.Count -eq 0) {
+        throw 'ARM002 read-only preflight did not report a complete readiness verdict.'
+    }
+}
+
+if ($Apply) {
+    Write-Host '=== ARMEMENT01.11.2 targeted regression after visual registration ==='
     & (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipBuild -AutomationFilter 'Grimrock.RPG.ARMEMENT01.11.2'
     if ($LASTEXITCODE -ne 0) {
         throw 'Targeted tests failed; do not publish changed content.'
@@ -86,5 +113,11 @@ Write-Host '=== Git status (no auto-stage / commit / push) ==='
 if ($Apply) {
     Write-Host '[OK] Single visual registration applied or already present. Manual art and PIE reviews still required.'
 } else {
-    Write-Host '[OK] Read-only visual preflight complete. BLOCKED items require genuine imported UE art.'
+    if (@($MessageLines | Where-Object {
+        $_ -match '\[ARMEMENT01\.11\.2\.1\] BLOCKED ARM002'
+    }).Count -gt 0) {
+        Write-Host '[BLOCKED] ARM002 is not ready for -Apply. Resolve the reported asset issue.'
+    } else {
+        Write-Host '[OK] ARM002 preflight completed with READY or REGISTERED; review art before -Apply.'
+    }
 }
