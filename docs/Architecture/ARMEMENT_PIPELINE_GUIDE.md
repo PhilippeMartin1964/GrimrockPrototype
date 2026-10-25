@@ -344,10 +344,15 @@ Elle compare les vrais \`NdM+K\` comme formules textuelles,
 les bornes de dégâts min/max, la précision, les PA, la portée,
 les types de dégâts et les attributs.
 Les dés, types et attributs sont textuels : **aucun delta numérique**.
-Les bornes de dégâts min/max ne reçoivent un delta colorable que
-si type, sous-type physique et attribut de scaling sont identiques.
-Les autres différences de sémantique restent visibles sans verdict
-trompeur. Pour \`WeaponAP\`, **un delta négatif est favorable** :
+Les bornes de dégâts min/max reçoivent un delta colorable lorsque
+le type de dégâts et, dans le cas physique, le sous-type sont identiques.
+**L'attribut de progression peut différer**, car min/max comparent les
+dés bruts \`NdM+K\`, avant application de Force/Dextérité du personnage.
+Ainsi \`1d4+3\` (Force, perforant) contre \`1d4\` (Dextérité,
+perforant) produit \`+3\` favorable aux bornes min/max. Ce delta
+n'est PAS une estimation des dégâts réels finaux.
+Les dégâts de nature différente restent lisibles mais sans delta
+chiffré trompeur. Pour \`WeaponAP\`, **un delta négatif est favorable** :
 par exemple 2 PA contre 3 PA => \`Delta=-1\` et \`DeltaState=Positive\`.
 Le vert/rouge doit être fondé sur \`DeltaState\`, jamais seulement sur
 le signe du chiffre. Un delta nul reste neutre.
@@ -654,6 +659,37 @@ des boucles. Sauvegarder le WBP dans un commit distinct après PIE.**
 **État 04.2B** : C++ B.1 versionnable et vérifiable localement ;
 la migration des \`.uasset\` B.2 et la recette PIE doivent être faites dans
 Unreal par l'utilisateur. Les tests automatiques seuls ne la clôturent pas.
+
+---
+
+### ARMEMENT-INDUS04.2C.1 — Deltas positifs et comparaisons par main
+
+La capture PIE du 25 octobre 2026 confirme le rendu des lignes.
+Le delta positif était absent pour pic de guerre ARM025
+(Force, perforant, 1d4+3) contre poignard d'assassin ARM002
+(Dextérité, perforant, 1d4), car le filtre des dégâts bruts exigeait
+abusivement le même attribut de progression. Le correctif permet
+un delta vert +3 pour les bornes min/max, mais conserve les vérifications
+de nature des dégâts. Un test Automation positif +3 et le test
+d'incompatibilité de type restent prévus. La teinte appartient au
+\`Text_DeltaPositive\` du Designer.
+
+La sélection des **comparaisons d'emplacements** parcourt
+\`UGridItemDefinitionAsset::CompatibleEquipmentSlots\`, pas la seule
+classification « une main ». Le manifeste canonique
+\`Config/Armement/WeaponProductionManifest.csv\` indique :
+- \`ARM001\` dague : \`MainHand;OffHand\` : peut remplacer le bouclier
+  en main secondaire ;
+- \`ARM025\` pic de guerre : \`MainHand\` seulement : le bouclier
+  d'\`OffHand\` reste équipé ;
+- \`ARM075\` bouclier rond : \`OffHand\`.
+
+N'ajouter pas arbitrairement \`OffHand\` au pic pour rendre visible
+une comparaison ; cela constitue un changement des règles d'équipement,
+des DataAssets et du combat, hors de cette correction de tooltip.
+
+**Statut : source modifiée, compilation et tests UE5.5.4 à confirmer.**
+Aucun DataAsset ou WBP n'est édité dans ce correctif.
 
 ---
 

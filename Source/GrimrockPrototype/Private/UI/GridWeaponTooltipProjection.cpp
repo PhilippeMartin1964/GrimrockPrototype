@@ -252,21 +252,24 @@ bool FGridWeaponTooltipProjection::BuildComparison(
         return true;
     }
 
-    const bool bSameDamageSemantics =
+    // These two facts are the RAW extrema of NdM+K, before character
+    // attributes are applied. Strength vs Dexterity does not alter these
+    // particular values; damage type/subtype still must agree.
+    const bool bComparableRawDamage =
         C->DamageType == E->DamageType &&
-        C->PhysicalSubtype == E->PhysicalSubtype &&
-        C->ScalingAttribute == E->ScalingAttribute;
+        (C->DamageType != EGridDamageType::Physical ||
+            C->PhysicalSubtype == E->PhysicalSubtype);
     AddTextComparison(OutFacts, TEXT("WeaponDice"),
         FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.Dice")),
         FormatDice(C->DamageDice), FormatDice(E->DamageDice));
     AddNumberComparison(OutFacts, TEXT("WeaponMinDamage"),
         FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.MinDamage")),
         C->DamageDice.GetMinimumDamage(), E->DamageDice.GetMinimumDamage(),
-        false, bSameDamageSemantics);
+        false, bComparableRawDamage);
     AddNumberComparison(OutFacts, TEXT("WeaponMaxDamage"),
         FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.MaxDamage")),
         C->DamageDice.GetMaximumDamage(), E->DamageDice.GetMaximumDamage(),
-        false, bSameDamageSemantics);
+        false, bComparableRawDamage);
     AddNumberComparison(OutFacts, TEXT("WeaponAccuracy"),
         FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.Accuracy")),
         C->AccuracyBonus, E->AccuracyBonus, false, true, true);

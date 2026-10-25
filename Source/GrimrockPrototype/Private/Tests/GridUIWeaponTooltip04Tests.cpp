@@ -345,6 +345,40 @@ bool FWeaponTooltipPAValenceTest::RunTest(const FString&)
         AP->DeltaState == EGridItemTooltipDeltaState::Positive);
     TestEqual(TEXT("Display signed PA delta"), AP->DeltaText.ToString(), FString(TEXT("-1")));
 
+    // Raw damage dice are comparable despite different attribute scaling.
+    // Pic de guerre (Force) vs poignard d'assassin (Dexterite):
+    // their 1d4+3 versus 1d4 base rolls should generate two green +3s.
+    Sim->Profiles[1].DamageDice = Real1->DamageDice;
+    Sim->Profiles[1].DamageDice.FlatBonus += 3;
+    Sim->Profiles[1].DamageType = Real1->DamageType;
+    Sim->Profiles[1].PhysicalSubtype = Real1->PhysicalSubtype;
+    Sim->Profiles[1].ScalingAttribute =
+        Real1->ScalingAttribute == EGridAttackScalingAttribute::Strength
+            ? EGridAttackScalingAttribute::Dexterity
+            : EGridAttackScalingAttribute::Strength;
+    Facts.Reset();
+    if (TestTrue(TEXT("Different scaling attributes preserve comparable raw dice"),
+        FGridWeaponTooltipProjection::BuildComparison(
+            Item, WeaponTooltipTests::MakeItem(Item, 9),
+            Item, WeaponTooltipTests::MakeItem(Item, 1), Facts)))
+    {
+        for (const FName StatId : { FName(TEXT("WeaponMinDamage")), FName(TEXT("WeaponMaxDamage")) })
+        {
+            const auto* RawFact = Facts.FindByPredicate(
+                [StatId](const FGridWeaponTooltipComparisonFact& F)
+                { return F.StatId == StatId; });
+            if (TestNotNull(TEXT("Raw damage fact is projected"), RawFact))
+            {
+                TestTrue(TEXT("Different scaling permits raw dice delta"), RawFact->bHasDelta);
+                TestEqual(TEXT("Raw damage bonus is +3"), RawFact->Delta, 3.f);
+                TestTrue(TEXT("Raw damage improvement is positive (green)"),
+                    RawFact->DeltaState == EGridItemTooltipDeltaState::Positive);
+                TestEqual(TEXT("Signed positive display value"),
+                    RawFact->DeltaText.ToString(), FString(TEXT("+3")));
+            }
+        }
+    }
+
     // A different damage element is NOT an automatic green numeric damage gain.
     Sim->Profiles[1].DamageType = EGridDamageType::Fire;
     Sim->Profiles[1].PhysicalSubtype = EGridPhysicalDamageSubtype::None;
