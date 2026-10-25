@@ -9,11 +9,17 @@
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridWeaponVisualUiResolver.h"
 #include "UI/GridWeaponTooltipProjection.h"
+#include "UI/UILocalizationText.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridInventoryUI, Log, All);
 namespace
 {
+    FText TooltipFormat(const TCHAR* Key, const FFormatNamedArguments& Args)
+    {
+        return FText::Format(FUILocalizationText::Get(Key), Args);
+    }
+
 	FText GetEquipmentSlotDisplayName(EGridEquipmentSlot Slot)
 	{
 		switch (Slot)
@@ -238,7 +244,7 @@ namespace
 		TArray<FString> Sections;
 		for (const FGridItemTooltipEquipmentComparison& Comparison : Comparisons)
 		{
-			const FString EquippedLabel = Comparison.bHasEquippedItem ? Comparison.EquippedItemName.ToString() : TEXT("vide");
+			const FString EquippedLabel = Comparison.EquippedItemDisplayText.ToString();
 			FString Section = FString::Printf(TEXT("%s — %s"), *Comparison.SlotLabel.ToString(), *EquippedLabel);
 			const FText Stats = BuildStatSummary(Comparison.StatLines, true);
 			if (!Stats.IsEmpty())
@@ -248,13 +254,21 @@ namespace
 			}
             for (const FGridWeaponTooltipComparisonFact& Fact : Comparison.WeaponFacts)
             {
-                Section += FString::Printf(TEXT("\n%s : %s | équipé : %s"),
-                    *Fact.Label.ToString(), *Fact.CandidateText.ToString(),
-                    *Fact.EquippedText.ToString());
+                FFormatNamedArguments Args;
+                Args.Add(TEXT("Label"), Fact.Label);
+                Args.Add(TEXT("Candidate"), Fact.CandidateText);
+                Args.Add(TEXT("Equipped"), Fact.EquippedText);
+                FText Line = TooltipFormat(
+                    TEXT("Inventory.Tooltip.Fallback.ComparisonFact"), Args);
                 if (Fact.bHasDelta)
                 {
-                    Section += FString::Printf(TEXT(" (Δ %s)"), *Fact.DeltaText.ToString());
+                    FFormatNamedArguments DeltaArgs;
+                    DeltaArgs.Add(TEXT("Line"), Line);
+                    DeltaArgs.Add(TEXT("Delta"), Fact.DeltaText);
+                    Line = TooltipFormat(
+                        TEXT("Inventory.Tooltip.Fallback.ComparisonDelta"), DeltaArgs);
                 }
+                Section += TEXT("\n") + Line.ToString();
             }
 			Sections.Add(MoveTemp(Section));
 		}
@@ -498,12 +512,18 @@ FText UGridInventorySlotWidget::GetTooltipText() const
 	TArray<FString> Facts;
 	if (View.Quantity > 1)
 	{
-		Facts.Add(FString::Printf(TEXT("Quantité : %d"), View.Quantity));
+		FFormatNamedArguments Args;
+        Args.Add(TEXT("Quantity"), FText::AsNumber(View.Quantity));
+        Facts.Add(TooltipFormat(TEXT("Inventory.Tooltip.Fallback.Quantity"), Args).ToString());
 	}
-	Facts.Add(FString::Printf(TEXT("Poids : %s"), *View.WeightText.ToString()));
+	FFormatNamedArguments Args;
+        Args.Add(TEXT("Weight"), View.WeightText);
+        Facts.Add(TooltipFormat(TEXT("Inventory.Tooltip.Fallback.Weight"), Args).ToString());
 	if (!View.CompatibleSlotsText.IsEmpty())
 	{
-		Facts.Add(FString::Printf(TEXT("Équipement : %s"), *View.CompatibleSlotsText.ToString()));
+		FFormatNamedArguments Args;
+        Args.Add(TEXT("Slots"), View.CompatibleSlotsText);
+        Facts.Add(TooltipFormat(TEXT("Inventory.Tooltip.Fallback.Equipment"), Args).ToString());
 	}
 	const FText UsageSummary = BuildUsageSummary(View);
 	if (!UsageSummary.IsEmpty())
@@ -520,14 +540,16 @@ FText UGridInventorySlotWidget::GetTooltipText() const
         HeadingArguments.Add(TEXT("Level"), View.WeaponProfile.ItemLevel);
         TArray<FString> WeaponLines = {
             FText::Format(
-                NSLOCTEXT("GridInventoryTooltip", "WeaponLevelHeader",
-                    "Profil d'armement — niveau {Level}"),
+                FUILocalizationText::Get(TEXT("Inventory.Tooltip.Fallback.WeaponLevel")),
                 HeadingArguments).ToString()
         };
         for (const FGridWeaponTooltipFact& Fact : View.WeaponProfile.Facts)
         {
-            WeaponLines.Add(FString::Printf(TEXT("%s : %s"),
-                *Fact.Label.ToString(), *Fact.ValueText.ToString()));
+            FFormatNamedArguments Args;
+            Args.Add(TEXT("Label"), Fact.Label);
+            Args.Add(TEXT("Value"), Fact.ValueText);
+            WeaponLines.Add(TooltipFormat(
+                TEXT("Inventory.Tooltip.Fallback.WeaponFact"), Args).ToString());
         }
         Sections.Add(FString::Join(WeaponLines, TEXT("\n")));
     }

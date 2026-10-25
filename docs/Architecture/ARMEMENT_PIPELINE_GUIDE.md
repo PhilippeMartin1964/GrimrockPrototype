@@ -410,6 +410,116 @@ déclarer INDUS04.2 complet côté WBP.
 
 ---
 
+## ARMEMENT-INDUS04.2A — Présentateur natif + localisation centrale
+
+**Statut : source C++/CSV publiée ; compilation, matérialisation ST_UI et Automation LOCALES EN ATTENTE.**
+INDUS04.2A prépare le remplacement de l'ancien Event Graph, sans toucher
+aux .uasset existants, au classeur XLSX narratif, aux DataAssets ou au gameplay.
+
+### Autorités, sans doublons
+
+- **Vocabulaire générique et formats partagés** : \`Localization/Source/UI.csv\`
+  reste la source de vérité. \`FUILocalizationText::Get\` utilise le vrai
+  \`/Game/Localization/StringTables/ST_UI\` matérialisé par Unreal.
+  Les clés \`Inventory.Tooltip.Weapon.*\` et \`Inventory.Tooltip.Fallback.*\`
+  contiennent les libellés de dégâts/précision/PA/armure, les catégories
+  élémentaires explicites, le titre des sections et les formats de secours.
+  Les attributs existants réutilisent \`CharacterCreation.Attribute.*\`.
+- **Nom/description de l'objet** : \`FText\` du DataAsset. Les 82 descriptions
+  narratives \`DRAFT\` ne sont pas encore publiées dans les assets.
+- **N1–N20 et comparaison** : \`GetTooltipView\` /
+  \`FGridWeaponTooltipProjection\`. Aucune lecture du niveau 1 comme
+  substitut au niveau réel de l'instance ; aucun calcul du gameplay dans UMG.
+- **Présentation native** : \`UGridItemTooltipWidget\` dérive de \`UUserWidget\`.
+  \`PresentFromInventorySlot\` (nouveau nom distinct de la fonction BP
+  \`InitFromInventorySlot\`) lit une seule fois le modèle C++ ; \`PresentTooltipView\`
+  alimente les TextBlocks dynamiques et gère les sections/lignes.
+  \`UGridItemTooltipWeaponLineWidget\` fournit \`PresentFact\` et
+  \`PresentComparison\`. Les champs textuels et les comparaisons utilisent
+  \`FText\` et les modèles existants, pas des nouveaux calculs.
+- **Designer** : les futurs WBP resteront propriétaires du layout, des
+  icônes, polices, marges et couleurs. Il y a trois TextBlocks distincts
+  \`Text_DeltaPositive\`, \`Text_DeltaNegative\`, \`Text_DeltaNeutral\`,
+  chacun stylé indépendamment. Le C++ n'applique pas de teinte ;
+  il choisit la visibilité selon \`DeltaState\`.
+- **Graph** : l'ancien \`InitFromInventorySlot\` et ses appelants ne sont
+  **pas modifiés ici**. Le remplacement du Graph après reparentage,
+  et la migration de ses anciennes lignes de stats/comparaison qui
+  conservent aujourd'hui une gestion d'icônes, appartiennent à 04.2B.
+  Ne pas supprimer les boucles BP ni les assets de ligne à cette étape.
+
+### Nouveau contrat Designer (pour 04.2B, PAS à faire maintenant)
+
+Parent futur du WBP actuel : \`UGridItemTooltipWidget\`.
+Bindings natifs optionnels correspondant aux composants actuels :
+\`Text_ItemName\`, \`Text_ItemType\`, \`Text_Description\`,
+\`Text_Quantity\`, \`Text_Weight\`, \`Text_Equipment\`, \`Text_Light\`,
+\`Text_ItemLevel\`, \`Image_ItemIcon\`.
+
+Les deux sections supplémentaires seront créées dans le Designer :
+\`VerticalBox_WeaponSection\` avec \`VerticalBox_WeaponFacts\` ;
+\`VerticalBox_WeaponComparisonSection\` avec \`VerticalBox_WeaponComparisons\`.
+Un titre \`Text_WeaponTitle\` pourra référencer DIRECTEMENT
+\`ST_UI: Inventory.Tooltip.Weapon.Title\` : il est statique,
+**ne jamais le passer aussi dans un SetText() C++**.
+
+Un WBP de ligne, parent \`UGridItemTooltipWeaponLineWidget\`, contiendra
+\`Text_Label\`, \`Text_Value\`, \`Text_Equipped\`, \`Text_Slot\`,
+\`Text_DeltaPositive\`, \`Text_DeltaNegative\`, \`Text_DeltaNeutral\`.
+Une classe unique est fournie à \`WeaponLineWidgetClass\` dans les
+Class Defaults du futur WBP parent. Le code natif crée **la ligne complète
+pré-définie dans le Designer**, sans fabriquer de TextBlock.
+Pour les lignes de bonus historiques, conserver l'affichage et les
+icônes actuels jusqu'à migration vérifiée ; ne pas faire disparaître
+les icônes 48×48, les deltas et les comparaisons actuelles.
+Éviter une double ligne d'armure pour les boucliers passifs.
+
+### Ordre STRICT de validation locale 04.2A
+
+1. Fermer Unreal Editor. Le fichier XLSX canonique modifié localement
+   pour INDUS03.2 reste hors de ce ticket ; ne pas \`checkout\`, \`restore\`
+   ni \`reset\` ce fichier.
+2. Récupérer le commit source par \`git pull --ff-only origin master\`.
+3. **Matérialiser et tester la localisation** :
+
+       .\Scripts\Localization\RunLocalizationSmoke.ps1 -EngineRoot D:\UE_5.5
+
+   Ce workflow réutilise le commandlet \`UIStringTableAuthoring\`,
+   le target \`Game\`, ses PO/locres et le smoke fr/en existants.
+   Ne JAMAIS référencer dans un WBP une nouvelle clé seulement présente
+   dans le CSV. Ouvrir \`ST_UI.uasset\` dans Unreal et confirmer la présence
+   des clés avant tout changement de Designer.
+   Le smoke anglais ne traduit pas automatiquement les nouvelles clés :
+   vérifier les traductions éditoriales séparément.
+4. **Tester le C++ après matérialisation** :
+
+       .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.WeaponTooltip04"
+       .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.UI.Item01"
+       git status --short
+
+   Attendu : **6/6 tests WeaponTooltip04**, **5/5 Item01**, 0 warning/échec.
+   Le nouveau test \`NativePresenterAndLocalization\` vérifie des clés
+   du véritable ST_UI, la présentation de niveau et la polarité de delta.
+   La commande de localisation peut produire un changement volontaire
+   de \`ST_UI.uasset\` : **ne pas le restaurer** avant les tests et ne pas
+   mélanger le commit du binaire avec le XLSX non publié.
+5. Les C++ et les tests validés ne démontrent PAS un rendu WBP. Celui-ci
+   ne sera revendiqué qu'après reparentage et captures PIE dans 04.2B.
+
+### Textes non encore convertis
+
+\`GridInventorySlotWidget::GetTooltipText\` compose désormais les
+lignes \`Quantité\`, \`Poids\`, \`Équipement\`, le profil et les
+comparaisons par des clés de format \`Inventory.Tooltip.Fallback.*\`.
+Les anciennes valeurs \`WeightText\` produites par les règles d'inventaire
+et certaines chaînes de compatibilité d'emplacements restent inchangées :
+pas de changement d'arrondi ou de locale numérique silencieux dans
+le même ticket. \`FamilyText\` n'affiche plus directement le libellé
+interne (non localisé) du tableur : l'autorité d'une future traduction
+des familles devra être décidée sans inventer de valeur affichée.
+
+---
+
 ## 7. Calendrier de consolidation
 
 1. INDUS02.1 : commande générique Visual/Item et validation des huit armes **validées localement**.

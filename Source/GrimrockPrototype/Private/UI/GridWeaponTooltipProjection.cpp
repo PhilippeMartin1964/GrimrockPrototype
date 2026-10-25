@@ -2,6 +2,7 @@
 
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
+#include "UI/UILocalizationText.h"
 
 namespace
 {
@@ -21,18 +22,33 @@ namespace
             switch (Subtype)
             {
                 case EGridPhysicalDamageSubtype::Slashing:
-                    return NSLOCTEXT("GridWeaponTooltip", "Slashing", "Physiques — tranchants");
+                    return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Damage.Slashing"));
                 case EGridPhysicalDamageSubtype::Piercing:
-                    return NSLOCTEXT("GridWeaponTooltip", "Piercing", "Physiques — perforants");
+                    return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Damage.Piercing"));
                 case EGridPhysicalDamageSubtype::Bludgeoning:
-                    return NSLOCTEXT("GridWeaponTooltip", "Bludgeoning", "Physiques — contondants");
+                    return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Damage.Bludgeoning"));
                 default:
-                    return NSLOCTEXT("GridWeaponTooltip", "Physical", "Physiques");
+                    return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Damage.Physical"));
             }
         }
-        const UEnum* Enum = StaticEnum<EGridDamageType>();
-        return Enum ? Enum->GetDisplayNameTextByValue(static_cast<int64>(DamageType))
-            : FText::GetEmpty();
+        switch (DamageType)
+        {
+            case EGridDamageType::Fire:
+                return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Damage.Fire"));
+            case EGridDamageType::Ice:
+                return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Damage.Ice"));
+            case EGridDamageType::Lightning:
+                return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Damage.Lightning"));
+            case EGridDamageType::Poison:
+                return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Damage.Poison"));
+            case EGridDamageType::Holy:
+                return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Damage.Holy"));
+            case EGridDamageType::Necrotic:
+                return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Damage.Necrotic"));
+            case EGridDamageType::Arcane:
+                return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Damage.Arcane"));
+            default: return FText::GetEmpty();
+        }
     }
 
     FText AttributeLabel(EGridAttackScalingAttribute Attribute)
@@ -40,17 +56,17 @@ namespace
         switch (Attribute)
         {
             case EGridAttackScalingAttribute::Strength:
-                return NSLOCTEXT("GridWeaponTooltip", "Strength", "Force");
+                return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Strength"));
             case EGridAttackScalingAttribute::Dexterity:
-                return NSLOCTEXT("GridWeaponTooltip", "Dexterity", "Dextérité");
+                return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Dexterity"));
             case EGridAttackScalingAttribute::Constitution:
-                return NSLOCTEXT("GridWeaponTooltip", "Constitution", "Constitution");
+                return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Constitution"));
             case EGridAttackScalingAttribute::Intelligence:
-                return NSLOCTEXT("GridWeaponTooltip", "Intelligence", "Intelligence");
+                return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Intelligence"));
             case EGridAttackScalingAttribute::Wisdom:
-                return NSLOCTEXT("GridWeaponTooltip", "Wisdom", "Sagesse");
+                return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Wisdom"));
             case EGridAttackScalingAttribute::Charisma:
-                return NSLOCTEXT("GridWeaponTooltip", "Charisma", "Charisme");
+                return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Charisma"));
             default: return FText::GetEmpty();
         }
     }
@@ -96,7 +112,9 @@ bool FGridWeaponTooltipProjection::Build(
     Out.bPassive = !Profile->DamageDice.bEnabled;
     Out.ArchetypeId = Profile->ArchetypeId;
     Out.ItemLevel = Profile->ItemLevel;
-    Out.FamilyText = FText::FromString(Profile->Family);
+    // Internal workbook family is not a localized player-facing category.
+    // Keep it empty until a canonical family-id mapping is approved.
+    Out.FamilyText = FText::GetEmpty();
     Out.ScalingAttributeText = AttributeLabel(Profile->ScalingAttribute);
     Out.DamageTypeText = Out.bPassive
         ? FText::GetEmpty() : TypeLabel(Profile->DamageType, Profile->PhysicalSubtype);
@@ -106,29 +124,29 @@ bool FGridWeaponTooltipProjection::Build(
     if (!Out.bPassive)
     {
         Add(Out.Facts, TEXT("WeaponDice"),
-            NSLOCTEXT("GridWeaponTooltip", "Dice", "Dégâts (dés)"), Out.DiceText);
+            FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.Dice")), Out.DiceText);
         AddInteger(Out.Facts, TEXT("WeaponMinDamage"),
-            NSLOCTEXT("GridWeaponTooltip", "MinDamage", "Dégâts min."),
+            FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.MinDamage")),
             Profile->DamageDice.GetMinimumDamage());
         AddInteger(Out.Facts, TEXT("WeaponMaxDamage"),
-            NSLOCTEXT("GridWeaponTooltip", "MaxDamage", "Dégâts max."),
+            FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.MaxDamage")),
             Profile->DamageDice.GetMaximumDamage());
         AddInteger(Out.Facts, TEXT("WeaponAccuracy"),
-            NSLOCTEXT("GridWeaponTooltip", "Accuracy", "Précision"),
+            FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.Accuracy")),
             Profile->AccuracyBonus, true);
         AddInteger(Out.Facts, TEXT("WeaponAP"),
-            NSLOCTEXT("GridWeaponTooltip", "AP", "Coût en PA"),
+            FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.AP")),
             Profile->ActionPointCost);
         AddInteger(Out.Facts, TEXT("WeaponRange"),
-            NSLOCTEXT("GridWeaponTooltip", "Range", "Portée (cases)"),
+            FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.Range")),
             Profile->RangeCells);
         Add(Out.Facts, TEXT("WeaponDamageType"),
-            NSLOCTEXT("GridWeaponTooltip", "DamageType", "Type de dégâts"),
+            FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.DamageType")),
             Out.DamageTypeText);
         if (!Out.ScalingAttributeText.IsEmpty())
         {
             Add(Out.Facts, TEXT("WeaponScaling"),
-                NSLOCTEXT("GridWeaponTooltip", "Scaling", "Attribut"),
+                FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.Scaling")),
                 Out.ScalingAttributeText);
         }
     }
@@ -136,13 +154,13 @@ bool FGridWeaponTooltipProjection::Build(
     if (Profile->PhysicalArmor > 0)
     {
         AddInteger(Out.Facts, TEXT("WeaponPhysicalArmor"),
-            NSLOCTEXT("GridWeaponTooltip", "ArmorPhysical", "Armure physique"),
+            FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.ArmorPhysical")),
             Profile->PhysicalArmor);
     }
     if (Profile->MagicalArmor > 0)
     {
         AddInteger(Out.Facts, TEXT("WeaponMagicalArmor"),
-            NSLOCTEXT("GridWeaponTooltip", "ArmorMagical", "Armure magique"),
+            FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.ArmorMagical")),
             Profile->MagicalArmor);
     }
     return true;
@@ -226,10 +244,10 @@ bool FGridWeaponTooltipProjection::BuildComparison(
     if (bCandidatePassive)
     {
         AddNumberComparison(OutFacts, TEXT("WeaponPhysicalArmor"),
-            NSLOCTEXT("GridWeaponTooltip", "ArmorPhysical", "Armure physique"),
+            FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.ArmorPhysical")),
             C->PhysicalArmor, E->PhysicalArmor);
         AddNumberComparison(OutFacts, TEXT("WeaponMagicalArmor"),
-            NSLOCTEXT("GridWeaponTooltip", "ArmorMagical", "Armure magique"),
+            FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.ArmorMagical")),
             C->MagicalArmor, E->MagicalArmor);
         return true;
     }
@@ -239,31 +257,31 @@ bool FGridWeaponTooltipProjection::BuildComparison(
         C->PhysicalSubtype == E->PhysicalSubtype &&
         C->ScalingAttribute == E->ScalingAttribute;
     AddTextComparison(OutFacts, TEXT("WeaponDice"),
-        NSLOCTEXT("GridWeaponTooltip", "Dice", "Dégâts (dés)"),
+        FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.Dice")),
         FormatDice(C->DamageDice), FormatDice(E->DamageDice));
     AddNumberComparison(OutFacts, TEXT("WeaponMinDamage"),
-        NSLOCTEXT("GridWeaponTooltip", "MinDamage", "Dégâts min."),
+        FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.MinDamage")),
         C->DamageDice.GetMinimumDamage(), E->DamageDice.GetMinimumDamage(),
         false, bSameDamageSemantics);
     AddNumberComparison(OutFacts, TEXT("WeaponMaxDamage"),
-        NSLOCTEXT("GridWeaponTooltip", "MaxDamage", "Dégâts max."),
+        FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.MaxDamage")),
         C->DamageDice.GetMaximumDamage(), E->DamageDice.GetMaximumDamage(),
         false, bSameDamageSemantics);
     AddNumberComparison(OutFacts, TEXT("WeaponAccuracy"),
-        NSLOCTEXT("GridWeaponTooltip", "Accuracy", "Précision"),
+        FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.Accuracy")),
         C->AccuracyBonus, E->AccuracyBonus, false, true, true);
     AddNumberComparison(OutFacts, TEXT("WeaponAP"),
-        NSLOCTEXT("GridWeaponTooltip", "AP", "Coût en PA"),
+        FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.AP")),
         C->ActionPointCost, E->ActionPointCost, true);
     AddNumberComparison(OutFacts, TEXT("WeaponRange"),
-        NSLOCTEXT("GridWeaponTooltip", "Range", "Portée (cases)"),
+        FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.Range")),
         C->RangeCells, E->RangeCells);
     AddTextComparison(OutFacts, TEXT("WeaponDamageType"),
-        NSLOCTEXT("GridWeaponTooltip", "DamageType", "Type de dégâts"),
+        FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.DamageType")),
         TypeLabel(C->DamageType, C->PhysicalSubtype),
         TypeLabel(E->DamageType, E->PhysicalSubtype));
     AddTextComparison(OutFacts, TEXT("WeaponScaling"),
-        NSLOCTEXT("GridWeaponTooltip", "Scaling", "Attribut"),
+        FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.Scaling")),
         AttributeLabel(C->ScalingAttribute),
         AttributeLabel(E->ScalingAttribute));
     return true;
