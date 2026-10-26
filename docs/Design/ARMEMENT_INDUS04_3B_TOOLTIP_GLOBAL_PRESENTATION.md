@@ -20,7 +20,10 @@ Le moteur \`PreviewEquipFromInventorySlot\` (04.3A) reste **l'autorité**.
 - Dans la comparaison, les colonnes sont **Après / Avant / Delta**,
   et non « objet candidat / équipement local seulement ». Les écarts
   numériques non nuls des attributs effectifs, PV/Mana max, capacité
-  de charge, résistances et **armure restante effective** sont affichés,
+  de charge, résistances et **armure restante effective** sont affichés.
+  Les deltas neutres (±0) restent visibles si l'équipement apporte
+  déjà un bonus à cette caractéristique avant ou après la simulation,
+  sans ajouter de lignes pour toutes les statistiques de base inchangées,
   en réutilisant les couleurs sémantiques de \`Text_DeltaPositive\`,
   \`Text_DeltaNegative\`, \`Text_DeltaNeutral\`.
   Pour éviter le double comptage, \`ArmorBonus\` nominal n'est pas
@@ -68,7 +71,7 @@ Après smoke :
     .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.UI.WeaponTooltip04"
     .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.UI.Item01"
 
-Attendu **3/3 + 4/4 + 8/8 + 5/5 = 20/20** et zéro avertissement,
+Attendu **4/4 + 4/4 + 8/8 + 5/5 = 21/21** et zéro avertissement,
 avant validation visuelle en PIE.
 
 Tests 04.3B :
@@ -79,6 +82,9 @@ Tests 04.3B :
   OffHand montre -5 armure lorsque le bouclier est remplacé ;
 - \`FullBagWarning\` : le tooltip montre une simulation bloquée avec
   avertissement localisé, sans effectuer l'équipement.
+- NeutralAndAbsorbedShield : changement à bonus Force identiques (±0),
+  perte de 2 armure effective pour un bouclier ayant absorbé 3/5 points,
+  perte de résistance feu et omission des autres neutres inutiles.
 
 La présentation réelle doit être vérifiée **dans les WBP existants**
 après ces tests. Le style, les colonnes, polices, 48x48 et bordures

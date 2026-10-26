@@ -43,6 +43,35 @@ namespace
         return FText::Format(FUILocalizationText::Get(Key), Args);
     }
 
+    // Preserve meaningful neutral deltas for equipment bonuses without
+    // flooding the tooltip with every unchanged base character attribute.
+    bool IsRelevantNeutralStat(const FGridEquipmentPreviewResult& Preview, FName Id)
+    {
+        const FGridEquipmentStatBonus& Before = Preview.BeforeBonuses;
+        const FGridEquipmentStatBonus& After = Preview.AfterBonuses;
+        const FGridDamageResistanceSet& BeforeR = Preview.BeforeResistances;
+        const FGridDamageResistanceSet& AfterR = Preview.AfterResistances;
+        if (Id == TEXT("Strength")) return Before.StrengthBonus != 0 || After.StrengthBonus != 0;
+        if (Id == TEXT("Dexterity")) return Before.DexterityBonus != 0 || After.DexterityBonus != 0;
+        if (Id == TEXT("Constitution")) return Before.ConstitutionBonus != 0 || After.ConstitutionBonus != 0;
+        if (Id == TEXT("Intelligence")) return Before.IntelligenceBonus != 0 || After.IntelligenceBonus != 0;
+        if (Id == TEXT("Wisdom")) return Before.WisdomBonus != 0 || After.WisdomBonus != 0;
+        if (Id == TEXT("Charisma")) return Before.CharismaBonus != 0 || After.CharismaBonus != 0;
+        if (Id == TEXT("MaxHealth")) return Before.MaxHealthBonus != 0 || After.MaxHealthBonus != 0;
+        if (Id == TEXT("MaxMana")) return Before.MaxManaBonus != 0 || After.MaxManaBonus != 0;
+        if (Id == TEXT("CarryWeight")) return !FMath::IsNearlyZero(Before.CarryWeightBonus) || !FMath::IsNearlyZero(After.CarryWeightBonus);
+        if (Id == TEXT("CurrentPhysicalArmor")) return Before.ArmorBonus != 0 || After.ArmorBonus != 0;
+        if (Id == TEXT("PhysicalResistance")) return BeforeR.PhysicalResistance != 0 || AfterR.PhysicalResistance != 0;
+        if (Id == TEXT("FireResistance")) return BeforeR.FireResistance != 0 || AfterR.FireResistance != 0;
+        if (Id == TEXT("IceResistance")) return BeforeR.IceResistance != 0 || AfterR.IceResistance != 0;
+        if (Id == TEXT("LightningResistance")) return BeforeR.LightningResistance != 0 || AfterR.LightningResistance != 0;
+        if (Id == TEXT("PoisonResistance")) return BeforeR.PoisonResistance != 0 || AfterR.PoisonResistance != 0;
+        if (Id == TEXT("HolyResistance")) return BeforeR.HolyResistance != 0 || AfterR.HolyResistance != 0;
+        if (Id == TEXT("NecroticResistance")) return BeforeR.NecroticResistance != 0 || AfterR.NecroticResistance != 0;
+        if (Id == TEXT("ArcaneResistance")) return BeforeR.ArcaneResistance != 0 || AfterR.ArcaneResistance != 0;
+        return false;
+    }
+
     void AddNumericChanges(const FGridEquipmentPreviewResult& Preview,
         TArray<FGridItemTooltipStatLine>& Out)
     {
@@ -52,7 +81,8 @@ namespace
             // EffectiveCurrentPhysicalArmor is the armor authority: never also
             // display ArmorBonus (nominal), which would count the same shield twice.
             const TCHAR* Key = LabelKey(Numeric.StatId);
-            if (!Key || FMath::IsNearlyZero(Numeric.Delta))
+            if (!Key || (FMath::IsNearlyZero(Numeric.Delta) &&
+                !IsRelevantNeutralStat(Preview, Numeric.StatId)))
             {
                 continue;
             }
@@ -64,14 +94,23 @@ namespace
             Line.EquippedValue = Numeric.Before;
             Line.Delta = Numeric.Delta;
             Line.bHasComparison = true;
-            Line.DeltaState = Numeric.Delta > 0.f
-                ? EGridItemTooltipDeltaState::Positive : EGridItemTooltipDeltaState::Negative;
+            const bool bNeutral = FMath::IsNearlyZero(Numeric.Delta);
+            Line.DeltaState = bNeutral ? EGridItemTooltipDeltaState::Neutral :
+                (Numeric.Delta > 0.f ? EGridItemTooltipDeltaState::Positive :
+                    EGridItemTooltipDeltaState::Negative);
             Line.ValueText = FText::AsNumber(Numeric.After);
-            FFormatNamedArguments Args;
-            Args.Add(TEXT("Value"), FText::AsNumber(FMath::Abs(Numeric.Delta)));
-            Line.DeltaText = FormatGlobal(Numeric.Delta > 0.f
-                ? TEXT("Inventory.Tooltip.Global.PositiveDelta")
-                : TEXT("Inventory.Tooltip.Global.NegativeDelta"), Args);
+            if (bNeutral)
+            {
+                Line.DeltaText = FUILocalizationText::Get(TEXT("Inventory.Tooltip.Global.NeutralDelta"));
+            }
+            else
+            {
+                FFormatNamedArguments Args;
+                Args.Add(TEXT("Value"), FText::AsNumber(FMath::Abs(Numeric.Delta)));
+                Line.DeltaText = FormatGlobal(Numeric.Delta > 0.f
+                    ? TEXT("Inventory.Tooltip.Global.PositiveDelta")
+                    : TEXT("Inventory.Tooltip.Global.NegativeDelta"), Args);
+            }
             Line.DeltaDisplayText = Line.DeltaText;
         }
     }

@@ -180,4 +180,56 @@ bool FGlobalTooltip043BFullBagTest::RunTest(const FString&)
         Inv->PartyInventoryState.ActiveEquipment[0].OffHand.IsValid());
     return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGlobalTooltip043BNeutralAbsorbedTest,
+    "Grimrock.UI.EquipmentTooltip043B.NeutralAndAbsorbedShield",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGlobalTooltip043BNeutralAbsorbedTest::RunTest(const FString&)
+{
+    using namespace GlobalTooltip043B;
+    auto* Inv = Inventory();
+    auto* Sword = Define(Inv, TEXT("PreviewB_NeutralSword"),
+        EGridItemHandUsage::OneHanded, EGridEquipmentSlot::MainHand);
+    auto* Shield = Define(Inv, TEXT("PreviewB_AbsorbedShield"),
+        EGridItemHandUsage::OneHanded, EGridEquipmentSlot::OffHand);
+    auto* Axe = Define(Inv, TEXT("PreviewB_NeutralGreatAxe"),
+        EGridItemHandUsage::TwoHanded, EGridEquipmentSlot::MainHand);
+    if (!Sword || !Shield || !Axe) return false;
+    Sword->EquipmentStatBonus.StrengthBonus = 2;
+    Axe->EquipmentStatBonus.StrengthBonus = 2;
+    Shield->EquipmentStatBonus.ArmorBonus = 5;
+    Shield->EquipmentResistanceBonus.FireResistance = 3;
+    if (!Equip(Inv, Item(Sword), EGridEquipmentSlot::MainHand) ||
+        !Equip(Inv, Item(Shield), EGridEquipmentSlot::OffHand)) return false;
+    Inv->PartyInventoryState.ActiveEquipment[0].OffHand.AbsorbedEquipmentPhysicalArmor = 3;
+    const FGridItemInstance Candidate = Item(Axe);
+    if (!Inv->AddItemToCharacterInventory(0, Candidate)) return false;
+
+    const FGridItemTooltipView View = Hover(Inv, Candidate);
+    if (!TestEqual(TEXT("One two-hand scenario"), View.EquipmentComparisons.Num(), 1))
+        return false;
+    const auto& Scenario = View.EquipmentComparisons[0];
+    const auto* Strength = Stat(Scenario, TEXT("Strength"));
+    const auto* Armor = Stat(Scenario, TEXT("CurrentPhysicalArmor"));
+    const auto* Fire = Stat(Scenario, TEXT("FireResistance"));
+    if (!TestNotNull(TEXT("Relevant neutral Strength row"), Strength) ||
+        !TestNotNull(TEXT("Effective armor row"), Armor) ||
+        !TestNotNull(TEXT("Fire resistance row"), Fire)) return false;
+    TestEqual(TEXT("Strength +2 replaced by Strength +2"), Strength->Delta, 0.f);
+    TestTrue(TEXT("Unchanged Strength uses neutral state"),
+        Strength->DeltaState == EGridItemTooltipDeltaState::Neutral);
+    TestEqual(TEXT("Neutral display is localized"),
+        Strength->DeltaDisplayText.ToString(),
+        FUILocalizationText::Get(TEXT("Inventory.Tooltip.Global.NeutralDelta")).ToString());
+    TestEqual(TEXT("Shield contributes only 2 remaining armor"), Armor->Delta, -2.f);
+    TestEqual(TEXT("Shield fire resistance is lost"), Fire->Delta, -3.f);
+    TestTrue(TEXT("Irrelevant neutral Dexterity is omitted"),
+        Stat(Scenario, TEXT("Dexterity")) == nullptr);
+    TestEqual(TEXT("Shield absorbed armor unchanged in actual equipment"),
+        Inv->PartyInventoryState.ActiveEquipment[0].OffHand.AbsorbedEquipmentPhysicalArmor, 3);
+    TestEqual(TEXT("Preview has not removed the shield"),
+        Inv->PartyInventoryState.ActiveEquipment[0].OffHand.ItemDefinitionId,
+        FName(TEXT("PreviewB_AbsorbedShield")));
+    return true;
+}
 #endif // WITH_DEV_AUTOMATION_TESTS

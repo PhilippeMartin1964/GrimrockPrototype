@@ -577,6 +577,7 @@ Key,SourceString,Comment
 "Inventory.Tooltip.Global.DisplacedAndWarning","{Displaced} — {Warning}","Objets retirés et blocage de capacité"
 "Inventory.Tooltip.Global.PositiveDelta","+{Value}","Écart positif des caractéristiques du personnage"
 "Inventory.Tooltip.Global.NegativeDelta","−{Value}","Écart négatif des caractéristiques du personnage"
+"Inventory.Tooltip.Global.NeutralDelta","±0","Écart nul, mais statistique concernée par les bonus d'équipement"
 "Inventory.Tooltip.Global.Stat.Strength","Force","Force effective du personnage"
 "Inventory.Tooltip.Global.Stat.Dexterity","Dextérité","Dextérité effective du personnage"
 "Inventory.Tooltip.Global.Stat.Constitution","Constitution","Constitution effective du personnage"
