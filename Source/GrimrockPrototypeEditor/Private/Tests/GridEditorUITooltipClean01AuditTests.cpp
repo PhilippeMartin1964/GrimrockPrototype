@@ -21,11 +21,14 @@ namespace UITooltipClean01
 
     // Exact package names: no binary deletion or mutation from the audit.
     static const FCandidate Candidates[] = {
-        { TEXT("WBP_ItemTooltip"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltip"), false },
+        { TEXT("WBP_ItemTooltip"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip"), false },
         { TEXT("WBP_ItemTooltipNativeLine"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipNativeLine"), false },
         { TEXT("WBP_ItemTooltipNativeComparison"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipNativeComparison"), false },
-        { TEXT("WBP_ItemTooltipComparisonRow"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltipComparisonRow"), true },
-        { TEXT("WBP_ItemTooltipStatLine"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltipStatLine"), true }
+        { TEXT("WBP_ItemTooltipComparisonRow"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipComparisonRow"), true },
+        { TEXT("WBP_ItemTooltipStatLine"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipStatLine"), true },
+        // The pre-migration package paths must remain absent as well.
+        { TEXT("WBP_ItemTooltipComparisonRow_OldPath"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltipComparisonRow"), true },
+        { TEXT("WBP_ItemTooltipStatLine_OldPath"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltipStatLine"), true }
     };
 
     FString Escape(FString Value)
@@ -79,10 +82,21 @@ bool FEditorUITooltipClean01ReferenceAudit::RunTest(const FString&)
         const bool bDepQuery = bExists && Registry.GetDependencies(
             PackageName, Dependencies, UE::AssetRegistry::EDependencyCategory::All,
             UE::AssetRegistry::FDependencyQuery());
-        const FString Decision = !Candidate.bLegacy ? TEXT("KEEP_ACTIVE") :
-            !bExists ? TEXT("ALREADY_ABSENT") :
-            !bRefQuery ? TEXT("REVIEW_QUERY_FAILURE") :
-            Referencers.IsEmpty() ? TEXT("ZERO_REFERENCER_REVIEW") : TEXT("KEEP_REFERENCED");
+        // CLEAN02.2 is a permanent regression guard, not an invitation to
+        // repeat obsolete WBP reference audits.
+        if (Candidate.bLegacy)
+        {
+            TestFalse(*FString::Printf(TEXT("Deleted tooltip WBP stays absent: %s"),
+                Candidate.Package), bExists);
+        }
+        else
+        {
+            TestTrue(*FString::Printf(TEXT("Active tooltip WBP remains present: %s"),
+                Candidate.Package), bExists);
+        }
+        const FString Decision = Candidate.bLegacy
+            ? (bExists ? TEXT("REGRESSION_REINTRODUCED") : TEXT("REMOVED"))
+            : (bExists ? TEXT("KEEP_ACTIVE") : TEXT("MISSING_ACTIVE"));
         AddInfo(FString::Printf(
             TEXT("[UI-TOOLTIP-CLEAN01] %s Exists=%s Referencers=%d Dependencies=%d Decision=%s"),
             Candidate.Name, bExists ? TEXT("true") : TEXT("false"),
@@ -110,7 +124,7 @@ bool FEditorUITooltipClean01ReferenceAudit::RunTest(const FString&)
         FFileHelper::SaveStringArrayToFile(Report, *Filename)))
         return false;
     AddInfo(FString::Printf(TEXT("[UI-TOOLTIP-CLEAN01] Report=%s"), *Filename));
-    AddInfo(TEXT("[UI-TOOLTIP-CLEAN01] ZERO_REFERENCER_REVIEW is not deletion authorization. Check actual UMG Class Defaults, Reference Viewer and PIE."));
+    AddInfo(TEXT("[UI-TOOLTIP-CLEAN02.2] Deleted WBPs must remain absent; native tooltip root and children must remain present."));
     return true;
 }
 

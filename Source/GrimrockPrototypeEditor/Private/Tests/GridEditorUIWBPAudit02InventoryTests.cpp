@@ -13,7 +13,7 @@
 namespace UIWBPAudit02
 {
     const TCHAR* UiRoot = TEXT("/Game/GrimrockPrototype/Blueprints/UI");
-    constexpr int32 ExpectedCount = 46;
+    constexpr int32 ExpectedCount = 44; // Two obsolete tooltip widgets deleted in UI-TOOLTIP-CLEAN01.
 
     struct FTextFile
     {
@@ -308,7 +308,7 @@ bool FUIWBPAudit02Inventory::RunTest(const FString& Parameters)
     TestTrue(TEXT("Config scan includes project ini files"), ConfigFileCount > 0);
     TestTrue(TEXT("Complete CSV report generated under Saved"), bCsvOK);
     TestTrue(TEXT("Complete Markdown report generated under Saved"), bMdOK);
-    TestEqual(TEXT("Expected 46 UI Widget Blueprints"), Widgets.Num(), ExpectedCount);
+    TestEqual(TEXT("Expected 44 UI Widget Blueprints after removal of two obsolete tooltip widgets"), Widgets.Num(), ExpectedCount);
     TestEqual(TEXT("No WBP redirectors are left in UI folder"), Redirectors, 0);
     return bCsvOK && bMdOK && ProductionSourceCount > 100 && ConfigFileCount > 0 &&
         Widgets.Num() == ExpectedCount && Redirectors == 0;

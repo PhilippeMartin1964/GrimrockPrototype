@@ -25,8 +25,6 @@ namespace GridEditorUIAssetOrg01Private
 		{ TEXT("ItemActionButton"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemActionButton"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemActionButton") },
 		{ TEXT("ItemReadPanel"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemReadPanel"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemReadPanel") },
 		{ TEXT("ItemTooltip"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltip"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip") },
-		{ TEXT("ItemTooltipComparisonRow"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltipComparisonRow"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipComparisonRow") },
-		{ TEXT("ItemTooltipStatLine"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltipStatLine"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipStatLine") },
 		{ TEXT("GrimrockMenu"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_GrimrockMenu"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GrimrockMenu") },
 		{ TEXT("GridSkills"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_GridSkills"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills") },
 		{ TEXT("GridSpellbook"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_GridSpellbook"), TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GridSpellbook") },
