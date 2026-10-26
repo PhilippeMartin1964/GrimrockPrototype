@@ -29,7 +29,8 @@ FName UGridItemTooltipWeaponLineWidget::GetFallbackIconStatId(FName StatId)
     // The global preview reports effective remaining armor rather than the
     // historical nominal Armor stat. Both use the same physical-armor icon.
     if (StatId == TEXT("CurrentPhysicalArmor") ||
-        StatId == TEXT("WeaponPhysicalArmor"))
+        StatId == TEXT("WeaponPhysicalArmor") ||
+        StatId == TEXT("WeaponPhysicalArmorRemaining"))
     {
         return TEXT("Armor");
     }

@@ -153,9 +153,20 @@ bool FGridWeaponTooltipProjection::Build(
 
     if (Profile->PhysicalArmor > 0)
     {
+        // The catalogue always reports the shield's NOMINAL maximum (N1 = 5).
+        // The item instance records consumed points until normal victory/rest.
+        // These are complementary values, not two additive armor bonuses.
         AddInteger(Out.Facts, TEXT("WeaponPhysicalArmor"),
             FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.ArmorPhysical")),
             Profile->PhysicalArmor);
+        if (Out.bPassive)
+        {
+            const int32 Remaining = FMath::Max(0,
+                Profile->PhysicalArmor - FMath::Max(0, Instance.AbsorbedEquipmentPhysicalArmor));
+            Add(Out.Facts, TEXT("WeaponPhysicalArmorRemaining"),
+                FUILocalizationText::Get(TEXT("Inventory.Tooltip.Global.Stat.CurrentPhysicalArmor")),
+                FText::FromString(FString::Printf(TEXT("%d/%d"), Remaining, Profile->PhysicalArmor)));
+        }
     }
     if (Profile->MagicalArmor > 0)
     {
