@@ -287,6 +287,12 @@ public:
 	/** Refill depleted equipped reserve first, then stored reserve; caller enforces the RPG03.3 limit. */
 	int32 RestorePhysicalArmor(int32 CharacterIndex, int32 Amount);
 
+	/** RPG-SHIELD02.2: refill both armor pools after an authoritative normal Victory.
+	 *  Includes equipment, bag and party cursor items; no HP/MP restore or repair.
+	 *  Must not be called for Defeat, AbortCombat or diagnostic ForceVictory.
+	 *  Returns the number of living characters whose armor or items changed. */
+	int32 RefillArmorReservesAfterVictory();
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Equipment")
 	FGridEquipmentStatBonus ComputeCharacterEquipmentStatBonus(int32 CharacterIndex) const;
 

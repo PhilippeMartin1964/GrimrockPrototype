@@ -656,6 +656,100 @@ bool UGridPartyInventoryComponent::HasUnspentCharacterProgressionPoints(int32 Ch
 		HasUnspentPartyPortraitProgressionPoints(PartyInventoryState.ActiveCharacters[CharacterIndex]);
 }
 
+
+int32 UGridPartyInventoryComponent::RefillArmorReservesAfterVictory()
+{
+	// Authoritative caller: TurnManager::FinishCombat(Victory) only.
+	// No refill on load, Tick, combat start, abort or equipment transfer.
+	int32 ChangedCharacters = 0;
+	bool bAnyLivingCharacter = false;
+	TSet<FGuid> VisitedItems;
+
+	auto RefillItem = [&VisitedItems](FGridItemInstance& Item) -> bool
+	{
+		if (!Item.IsValid() || VisitedItems.Contains(Item.RuntimeObjectId))
+		{
+			return false;
+		}
+		VisitedItems.Add(Item.RuntimeObjectId);
+		if (Item.AbsorbedEquipmentPhysicalArmor <= 0)
+		{
+			return false;
+		}
+		Item.AbsorbedEquipmentPhysicalArmor = 0;
+		return true;
+	};
+
+	for (int32 Index = 0; Index < PartyInventoryState.ActiveCharacters.Num(); ++Index)
+	{
+		FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[Index];
+		if (Character.Resources.CurrentHealth <= 0)
+		{
+			continue;
+		}
+		bAnyLivingCharacter = true;
+		if (!ResolvePartyPortraitClassDefinition(Character))
+		{
+			UE_LOG(LogGridInventory, Warning,
+				TEXT("[RPG-SHIELD02.2] Victory refill skipped Character=%d ClassId=%s Reason=UnresolvedClass"),
+				Index, *Character.ClassId.ToString());
+			continue;
+		}
+
+		FGridInventoryCharacterSummary Summary;
+		if (!GetCharacterSummary(Index, Summary))
+		{
+			continue;
+		}
+		int32 PhysicalReference = 0;
+		int32 MagicalReference = 0;
+		ResolvePartyPortraitArmorReferences(Character, Summary, PhysicalReference, MagicalReference);
+
+		// The effective armor read model separately adds equipped protection.
+		// Only the remainder belongs in the character's stored base reserve.
+		const int32 BaseReference = static_cast<int32>(FMath::Clamp<int64>(
+			static_cast<int64>(PhysicalReference) -
+				static_cast<int64>(Summary.EquipmentStatBonus.ArmorBonus), 0, MAX_int32));
+		bool bChanged = Character.Resources.CurrentPhysicalArmor != BaseReference ||
+			Character.Resources.CurrentMagicalArmor != MagicalReference;
+		Character.Resources.CurrentPhysicalArmor = BaseReference;
+		Character.Resources.CurrentMagicalArmor = MagicalReference;
+
+		if (PartyInventoryState.ActiveEquipment.IsValidIndex(Index))
+		{
+			FGridCharacterEquipmentState& Equipment = PartyInventoryState.ActiveEquipment[Index];
+			for (uint8 SlotValue = GridEquipmentSlotUtils::FirstSlotValue;
+				SlotValue <= GridEquipmentSlotUtils::LastSlotValue; ++SlotValue)
+			{
+				if (FGridItemInstance* Item = Equipment.GetMutableSlot(static_cast<EGridEquipmentSlot>(SlotValue)))
+				{
+					bChanged |= RefillItem(*Item);
+				}
+			}
+		}
+		for (FGridInventorySlot& Slot : Character.InventorySlots)
+		{
+			if (!Slot.IsEmpty())
+			{
+				bChanged |= RefillItem(Slot.Item);
+			}
+		}
+		if (bChanged)
+		{
+			++ChangedCharacters;
+			NotifyPartyInventoryChanged(Index);
+		}
+	}
+
+	// Cursor has party ownership (OwnerCharacterIndex == INDEX_NONE).
+	if (bAnyLivingCharacter && PartyInventoryState.bHasCursorItem &&
+		RefillItem(PartyInventoryState.CursorItem))
+	{
+		NotifyPartyInventoryChanged(INDEX_NONE);
+	}
+	return ChangedCharacters;
+}
+
 bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGridInventoryCharacterSummary& OutSummary) const
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_RPG_CharacterSummary);

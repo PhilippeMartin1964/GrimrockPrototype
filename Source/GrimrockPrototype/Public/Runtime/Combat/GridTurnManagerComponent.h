@@ -744,7 +744,7 @@ private:
 	void CompleteActiveAction(bool bSucceeded);
 	void FinishCurrentMonsterTurn();
 	void FinishEnemyPhase();
-	void FinishCombat(EGridCombatPhase ResultPhase);
+	void FinishCombat(EGridCombatPhase ResultPhase, bool bDiagnosticVictory = false);
 
 	void ProcessPartyCharacterReactionEvent(
 		int32 CharacterIndex, const FGridCombatReactionEvent& Event, FGridResolvedCombatModifiers* OutSurfaceReactionModifiers = nullptr);

@@ -349,7 +349,8 @@ void UGridTurnManagerComponent::AbortCombat()
 
 void UGridTurnManagerComponent::ForceVictory()
 {
-	FinishCombat(EGridCombatPhase::Victory);
+	// Debug shortcut must not grant a free armor refill.
+	FinishCombat(EGridCombatPhase::Victory, true);
 }
 
 void UGridTurnManagerComponent::ForceDefeat()

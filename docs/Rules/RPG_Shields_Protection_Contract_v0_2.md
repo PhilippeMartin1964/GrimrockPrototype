@@ -2,7 +2,7 @@
 
 **Décision de conception :** 26 octobre 2026 ; inspiration explicite *Divinity: Original Sin 2* (DOS2).  
 **Portée :** armures physiques et magiques, boucliers, personnages, capacités de restauration, fin de combat, repos et état sauvegardé.  
-**État : CONTRAT CONSOLIDÉ, NON ENCORE IMPLÉMENTÉ.** Le C++ Unreal actuel conserve les règles historiques v0.1 jusqu'aux jalons d'implémentation et à leurs tests. Cette v0.2 **remplace la politique de récupération de v0.1**, sans modifier silencieusement les autres mécaniques déjà validées.
+**État : CONTRAT CONSOLIDÉ.** RPG-SHIELD02.2 publie le code C++ de recharge sur victoire normale, mais **la compilation, les tests UE5.5.4 et la recette PIE restent à valider par les logs utilisateur**. La recharge au repos et la correction des chemins de dégâts/restauration ne sont pas encore implémentées. Cette v0.2 **remplace la politique de récupération de v0.1**, sans modifier silencieusement les autres mécaniques déjà validées.
 
 ## 1. Inspiration DOS2 vérifiée, frontières
 
@@ -85,6 +85,8 @@ Une référence magique de 0 signifie 0/0 après recharge, sauf source magique a
 - **Aucun gameplay, test C++, WBP, DataAsset ni Excel modifié** ; ne pas déclarer les réserves rechargeables déjà opérationnelles.
 
 ### RPG-SHIELD02.2 — Runtime : fin normale de combat
+
+**Code publié sur master, validation locale en attente.** `RefillArmorReservesAfterVictory()` est invoqué dans `FinishCombat(Victory)` avant `OnCombatEnded`. `ForceVictory()` de diagnostic passe un marqueur explicite empêchant la recharge. `GetPartyPortraitViews()` et la nouvelle opération partagent les mêmes références. Voir [RPG_SHIELD02_2_VICTORY_REFILL.md](../Design/RPG_SHIELD02_2_VICTORY_REFILL.md).
 
 Un commit C++ atomique sur `master` :
 - rétablir physique et magique à leur référence pour les vivants après une victoire ;

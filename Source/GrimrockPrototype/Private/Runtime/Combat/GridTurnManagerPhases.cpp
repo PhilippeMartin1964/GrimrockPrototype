@@ -720,7 +720,7 @@ void UGridTurnManagerComponent::FinishEnemyPhase()
 	OnRoundStarted.Broadcast(RoundNumber);
 }
 
-void UGridTurnManagerComponent::FinishCombat(EGridCombatPhase ResultPhase)
+void UGridTurnManagerComponent::FinishCombat(EGridCombatPhase ResultPhase, bool bDiagnosticVictory)
 {
 	if (!bCombatActive || !PhaseState.FinishCombat(ResultPhase))
 	{
@@ -778,6 +778,14 @@ void UGridTurnManagerComponent::FinishCombat(EGridCombatPhase ResultPhase)
 	ResultEntry.Type = ResultPhase == EGridCombatPhase::Victory ? EGridCombatLogEntryType::Victory : EGridCombatLogEntryType::Defeat;
 	ResultEntry.Message = FGridCombatLogFormatter::FormatCombatEnded(ResultPhase);
 	AppendCombatLogEntry(ResultEntry);
+
+	// RPG-SHIELD02.2: one authoritative refill after committed Victory,
+	// before the observers of OnCombatEnded read the restored state.
+	if (ResultPhase == EGridCombatPhase::Victory && !bDiagnosticVictory &&
+		IsValid(PartyPawn) && IsValid(PartyPawn->PartyInventoryComponent))
+	{
+		PartyPawn->PartyInventoryComponent->RefillArmorReservesAfterVictory();
+	}
 
 	SetPhase(PhaseState.GetPhase());
 	SetPartyInputLocked(false);
