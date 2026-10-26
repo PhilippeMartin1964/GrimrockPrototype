@@ -1,5 +1,6 @@
 #include "ARMEMENT/GridWeaponPipelineCommandlet.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
+#include "ARMEMENT/GridWeaponNarrativeImport.h"
 #include "ARMEMENT/GridWeaponPipelinePalette.h"
 
 #include "Core/GridObjectPaletteAsset.h"
@@ -633,13 +634,120 @@ UGridWeaponPipelineCommandlet::UGridWeaponPipelineCommandlet()
 int32 UGridWeaponPipelineCommandlet::Main(const FString& Params)
 {
     using namespace WeaponPipeline;
-    FString Action = TEXT("Audit"), Stage, Requested, ManifestFile, Report;
+    FString Action = TEXT("Audit"), Stage, Requested, ManifestFile, Report, NarrativeFile;
     FParse::Value(*Params, TEXT("Action="), Action);
+    FParse::Value(*Params, TEXT("Narrative="), NarrativeFile);
     FParse::Value(*Params, TEXT("Stage="), Stage);
     FParse::Value(*Params, TEXT("Archetype="), Requested);
     FParse::Value(*Params, TEXT("Manifest="), ManifestFile);
     FParse::Value(*Params, TEXT("Report="), Report);
     const bool bApply = FParse::Param(*Params, TEXT("Apply"));
+
+    // INDUS04.4: controlled one-item publication of previously APPROVED editorial text.
+    // Runs before gameplay catalogue/palette inspection: narrative never changes stats.
+    if (Action == TEXT("NarrativeItem"))
+    {
+        if (Requested.IsEmpty() || !Stage.IsEmpty() || NarrativeFile.IsEmpty())
+        {
+            UE_LOG(LogTemp, Error,
+                TEXT("[INDUS04.4] Refused: require one Archetype and exported NarrativeV1 CSV; Stage is not supported"));
+            return 1;
+        }
+        if (ManifestFile.IsEmpty())
+            ManifestFile = FGridWeaponPipelineManifest::DefaultFile();
+        if (Report.IsEmpty())
+            Report = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ARMEMENT-INDUS/INDUS04_4_NarrativeItem.csv"));
+
+        TArray<FGridWeaponPipelineRow> ManifestRows;
+        TArray<FGridWeaponNarrativeRow> NarrativeRows;
+        FString Error;
+        if (!FGridWeaponPipelineManifest::Load(ManifestFile, ManifestRows, Error) ||
+            !FGridWeaponNarrativeImport::Load(NarrativeFile, NarrativeRows, Error))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS04.4] Invalid input: %s"), *Error);
+            return 1;
+        }
+        const FGridWeaponPipelineRow* Spec =
+            FGridWeaponPipelineManifest::Find(ManifestRows, Requested);
+        const FGridWeaponNarrativeRow* Narrative = NarrativeRows.FindByPredicate(
+            [&Requested](const FGridWeaponNarrativeRow& Row)
+            {
+                return Row.ArchetypeId == Requested;
+            });
+        if (!Spec || !Narrative || !PackageFileExists(Spec->ItemPath))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS04.4] No produced item/manifest/NarrativeV1 row for %s"), *Requested);
+            return 2;
+        }
+        UGridItemDefinitionAsset* Item = LoadObject<UGridItemDefinitionAsset>(nullptr, *Spec->ItemPath);
+        if (!IsValid(Item) || Item->GetPathName() != Spec->ItemPath ||
+            Item->ItemDefinitionId != FName(Spec->ItemDefinitionId) ||
+            Item->WeaponArchetypeId != FName(Spec->ArchetypeId) ||
+            !Item->bUseWeaponCatalogue || !Item->IsValidDefinition())
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS04.4] Refused item identity/catalogue mismatch for %s"), *Requested);
+            return 2;
+        }
+
+        const EGridWeaponNarrativeDecision Decision =
+            FGridWeaponNarrativeImport::Decide(*Narrative, Item->Description.ToString());
+        const TCHAR* Status = Decision == EGridWeaponNarrativeDecision::Ready ? TEXT("READY") :
+            Decision == EGridWeaponNarrativeDecision::PresentSame ? TEXT("PRESENT_SAME") :
+            Decision == EGridWeaponNarrativeDecision::Conflict ? TEXT("CONFLICT") : TEXT("BLOCKED_REVIEW");
+        if (!WriteReport(Report, {
+                TEXT("ArchetypeId,Review,Status,ItemPath,DescriptionCourteFR"),
+                FString::Join(TArray<FString>{
+                    Csv(Requested), Csv(Narrative->ValidationState), Csv(Status),
+                    Csv(Spec->ItemPath), Csv(Narrative->ShortDescriptionFR)
+                }, TEXT(","))
+            }))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS04.4] Could not write report"));
+            return 1;
+        }
+
+        UE_LOG(LogTemp, Display, TEXT("[INDUS04.4] RESULT Archetype=%s Review=%s Status=%s Apply=%d SavedPackages=0"),
+            *Requested, *Narrative->ValidationState, Status, bApply ? 1 : 0);
+        if (!bApply)
+        {
+            return 0; // Read-only audit; BLOCKED is a valid review status.
+        }
+        if (Decision != EGridWeaponNarrativeDecision::Ready &&
+            Decision != EGridWeaponNarrativeDecision::PresentSame)
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS04.4] Apply rejected: not APPROVED or existing different description"));
+            return 2;
+        }
+        if (Decision == EGridWeaponNarrativeDecision::PresentSame)
+        {
+            UE_LOG(LogTemp, Display, TEXT("[INDUS04.4] PRESENT_SAME NarrativeItem for %s; no package saved"), *Requested);
+            return 0;
+        }
+
+        UPackage* Package = Item->GetOutermost();
+        if (!IsValid(Package) || Package->IsDirty())
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS04.4] Package dirty before Apply; refusing write"));
+            return 2;
+        }
+        // The only content mutation: short French description for the one
+        // APPROVED row. LoreFR/ParticulariteFR are not game capabilities.
+        Item->Modify();
+        Item->Description = FText::FromString(Narrative->ShortDescriptionFR);
+        Package->MarkPackageDirty();
+        const FString Filename = FPackageName::LongPackageNameToFilename(
+            Package->GetName(), FPackageName::GetAssetPackageExtension());
+        FSavePackageArgs SaveArgs;
+        SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+        SaveArgs.SaveFlags = SAVE_NoError;
+        if (!UPackage::SavePackage(Package, Item, *Filename, SaveArgs))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS04.4] SavePackage failed; inspect asset manually"));
+            return 2;
+        }
+        UE_LOG(LogTemp, Display, TEXT("[INDUS04.4] SAVED NarrativeItem for %s; SavedPackages=1"), *Requested);
+        return 0;
+    }
 
     if (Action != TEXT("Audit") && Action != TEXT("Plan") &&
         Action != TEXT("Build") && Action != TEXT("Validate"))

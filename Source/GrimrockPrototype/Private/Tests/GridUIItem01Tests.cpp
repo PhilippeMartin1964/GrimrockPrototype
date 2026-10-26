@@ -84,6 +84,10 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	const FGridItemTooltipView View = SlotWidget->GetTooltipView();
 	TestTrue(TEXT("Tooltip view is valid"), View.bValid);
 	TestEqual(TEXT("Tooltip name comes from item definition"), View.DisplayName.ToString(), FString(TEXT("Ceinture du voyageur")));
+	// INDUS04.4: the native read model already exposes authored narrative
+	// Description, without mixing it into weapon stat lines or comparison.
+	TestEqual(TEXT("Tooltip narrative comes from authorable ItemDefinition.Description"),
+		View.Description.ToString(), FString(TEXT("Un objet de test pour le tooltip.")));
 	TestEqual(TEXT("Tooltip type covers jewelry"), View.ItemType.ToString(), FString(TEXT("Bijou")));
 	TestEqual(TEXT("Tooltip quantity is projected"), View.Quantity, 2);
 	TestEqual(TEXT("Tooltip quantity presentation is projected"), View.QuantityText.ToString(), FString(TEXT("(2x)")));

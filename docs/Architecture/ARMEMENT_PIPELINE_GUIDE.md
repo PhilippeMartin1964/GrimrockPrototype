@@ -705,3 +705,15 @@ Aucun DataAsset ou WBP n'est édité dans ce correctif.
 
 Ce guide remplace les recettes ad hoc pour une nouvelle arme de types supportés.
 Les documents ARMEMENT01 anciens restent des archives techniques.
+
+---
+
+## ARMEMENT-INDUS04.4 — Publication narrative contrôlée (26 octobre 2026)
+
+Le présent jalon **ne valide pas automatiquement** les 82 descriptions proposées en DRAFT dans INDUS03.2. La source éditoriale demeure la feuille `Narratif` du XLSX unique ; `EtatValidation=APPROVED` est obligatoire avant toute publication.
+
+Le chemin UI est déjà raccordé : `UGridItemDefinitionAsset::Description` → `UGridInventorySlotWidget::GetTooltipView().Description` → `UGridItemTooltipWidget::Text_Description`. Un texte manquant est dû à un DataAsset dont le champ `Description` est vide, pas à une statistique de catalogue manquante.
+
+Nouveau workflow `Scripts/WeaponNarrativeApply.ps1` : importer **un seul texte `DescriptionCourteFR` approuvé** pour **un seul archétype** avec `-Archetype ARM031 [-Apply]` ; sans `-Apply` lecture seule, avec `-Apply` un seul package d'ItemDefinition modifié. Aucune mutation de `LoreFR`, mécanique, Excel, catalogue N1–N20, ST_UI ou WBP. La publication dans Git reste une intervention locale explicite après recette PIE.
+
+Voir [ARMEMENT_INDUS04_4_NARRATIVE_TOOLTIP.md](../Design/ARMEMENT_INDUS04_4_NARRATIVE_TOOLTIP.md) pour les préconditions, le refus DRAFT, les commandes, tests et recette de la Grande Hache ARM031.
