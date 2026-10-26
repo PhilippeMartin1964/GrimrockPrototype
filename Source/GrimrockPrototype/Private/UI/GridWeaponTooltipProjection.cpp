@@ -193,7 +193,7 @@ namespace
             ? FString::Printf(TEXT("%+d"), Equipped) : FString::FromInt(Equipped));
         if (!bComparable)
         {
-            return; // Different damage type/scaling: show values, no misleading delta.
+            return; // Different primary damage types: show values without a misleading delta.
         }
         Fact.bHasDelta = true;
         Fact.Delta = static_cast<float>(Candidate - Equipped);
@@ -252,13 +252,10 @@ bool FGridWeaponTooltipProjection::BuildComparison(
         return true;
     }
 
-    // These two facts are the RAW extrema of NdM+K, before character
-    // attributes are applied. Strength vs Dexterity does not alter these
-    // particular values; damage type/subtype still must agree.
-    const bool bComparableRawDamage =
-        C->DamageType == E->DamageType &&
-        (C->DamageType != EGridDamageType::Physical ||
-            C->PhysicalSubtype == E->PhysicalSubtype);
+    // RAW NdM+K extrema are independent of character scaling attributes.
+    // Slashing, piercing and bludgeoning share comparable physical raw points;
+    // distinct primary damage types retain their separate resistance semantics.
+    const bool bComparableRawDamage = C->DamageType == E->DamageType;
     AddTextComparison(OutFacts, TEXT("WeaponDice"),
         FUILocalizationText::Get(TEXT("Inventory.Tooltip.Weapon.Stat.Dice")),
         FormatDice(C->DamageDice), FormatDice(E->DamageDice));

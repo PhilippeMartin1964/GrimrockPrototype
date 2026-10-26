@@ -400,4 +400,77 @@ bool FWeaponTooltipPAValenceTest::RunTest(const FString&)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponTooltipPhysicalSubtypeRawDamageTest,
+    "Grimrock.UI.WeaponTooltip04.PhysicalSubtypeRawDamage",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FWeaponTooltipPhysicalSubtypeRawDamageTest::RunTest(const FString&)
+{
+    // Real N1 assets from the PIE screenshot: war pick (piercing) versus
+    // equipped dagger (slashing), without altering either DataAsset.
+    UGridItemDefinitionAsset* Pick = LoadObject<UGridItemDefinitionAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_WarPick_01.DA_Weapon_WarPick_01"));
+    UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
+    if (!TestNotNull(TEXT("Production ARM025 war pick"), Pick) ||
+        !TestNotNull(TEXT("Production ARM001 dagger"), Dagger))
+        return false;
+
+    const bool bPickDirty = Pick->GetOutermost()->IsDirty();
+    const bool bDaggerDirty = Dagger->GetOutermost()->IsDirty();
+    const FGridWeaponLevelProfile* PickN1 = nullptr;
+    const FGridWeaponLevelProfile* DaggerN1 = nullptr;
+    if (!TestTrue(TEXT("War pick N1 resolves"), Pick->TryGetWeaponCatalogueProfile(1, PickN1)) ||
+        !TestTrue(TEXT("Dagger N1 resolves"), Dagger->TryGetWeaponCatalogueProfile(1, DaggerN1)) ||
+        !TestNotNull(TEXT("War pick N1 data"), PickN1) ||
+        !TestNotNull(TEXT("Dagger N1 data"), DaggerN1))
+        return false;
+
+    TestTrue(TEXT("Both damage types are physical"),
+        PickN1->DamageType == EGridDamageType::Physical &&
+        DaggerN1->DamageType == EGridDamageType::Physical);
+    TestTrue(TEXT("Piercing versus slashing are different physical subtypes"),
+        PickN1->PhysicalSubtype == EGridPhysicalDamageSubtype::Piercing &&
+        DaggerN1->PhysicalSubtype == EGridPhysicalDamageSubtype::Slashing);
+
+    TArray<FGridWeaponTooltipComparisonFact> Facts;
+    if (!TestTrue(TEXT("Real war pick / dagger comparison built"),
+        FGridWeaponTooltipProjection::BuildComparison(
+            Pick, WeaponTooltipTests::MakeItem(Pick, 1),
+            Dagger, WeaponTooltipTests::MakeItem(Dagger, 1), Facts)))
+        return false;
+
+    for (const FName StatId : { FName(TEXT("WeaponMinDamage")), FName(TEXT("WeaponMaxDamage")) })
+    {
+        const auto* Damage = Facts.FindByPredicate(
+            [StatId](const FGridWeaponTooltipComparisonFact& Fact)
+            { return Fact.StatId == StatId; });
+        if (!TestNotNull(TEXT("Real physical raw damage row exists"), Damage))
+            return false;
+        TestTrue(TEXT("Different physical subtypes allow raw numeric delta"), Damage->bHasDelta);
+        TestEqual(TEXT("War pick gains three raw damage points"), Damage->Delta, 3.f);
+        TestEqual(TEXT("Delta is signed +3"), Damage->DeltaText.ToString(), FString(TEXT("+3")));
+        TestTrue(TEXT("Raw damage increase is beneficial"), Damage->DeltaState ==
+            EGridItemTooltipDeltaState::Positive);
+    }
+
+    const auto* DamageType = Facts.FindByPredicate(
+        [](const FGridWeaponTooltipComparisonFact& Fact)
+        { return Fact.StatId == TEXT("WeaponDamageType"); });
+    const auto* Dice = Facts.FindByPredicate(
+        [](const FGridWeaponTooltipComparisonFact& Fact)
+        { return Fact.StatId == TEXT("WeaponDice"); });
+    if (!TestNotNull(TEXT("Both physical subtypes remain visible"), DamageType) ||
+        !TestNotNull(TEXT("Dice remain visible"), Dice))
+        return false;
+    TestFalse(TEXT("Damage type has no arithmetic delta"), DamageType->bHasDelta);
+    TestFalse(TEXT("Dice formula has no arithmetic delta"), Dice->bHasDelta);
+    TestFalse(TEXT("Different physical subtype labels remain distinct"),
+        DamageType->CandidateText.EqualTo(DamageType->EquippedText));
+    TestEqual(TEXT("Pick asset remains clean"), Pick->GetOutermost()->IsDirty(), bPickDirty);
+    TestEqual(TEXT("Dagger asset remains clean"), Dagger->GetOutermost()->IsDirty(), bDaggerDirty);
+    return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS
