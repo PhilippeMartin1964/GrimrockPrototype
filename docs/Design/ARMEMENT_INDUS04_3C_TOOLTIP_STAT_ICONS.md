@@ -4,7 +4,7 @@
 
 ## Contrat
 
-Le widget `WBP_ItemTooltipNativeLine` (parent C++ `UGridItemTooltipWeaponLineWidget`) utilise deja `StatIconTextures`, une Map **Name -> Texture2D** configuree dans ses **Class Defaults**. `Image_StatIcon` et `SizeBox_StatIcon` existent ; `PresentIcon` met le SizeBox en `Collapsed` quand la texture n'est pas valide. Il n'y a pas de logique a recreer dans le Graph.
+Le widget `WBP_ItemTooltipNativeLine` (parent C++ `UGridItemTooltipWeaponLineWidget`) utilise deja `StatIconTextures`, une Map **Name -> Texture2D** configuree dans ses **Class Defaults**. `Image_StatIcon` et `SizeBox_StatIcon` existent ; `PresentIcon` conserve le SizeBox et met seulement `Image_StatIcon` en `Collapsed` quand la texture n'est pas valide. Il n'y a pas de logique a recreer dans le Graph.
 
 La presentation des comparaisons, la taille Designer (48x48), les fontes, le cadre, les couleurs, la hauteur du tooltip et ses futures descriptions narratives **ne sont pas modifies**. Chaque ligne reutilise exactement la meme classe native, qu'elle provienne du bloc arme ou d'une simulation avant/apres.
 
@@ -45,13 +45,30 @@ Les attributs se trouvent dans `Content/GrimrockPrototype/UI/Portraits/Attribute
 
 Ne pas assigner une icone de portee ou de precision arbitraire : `WeaponDice`, `WeaponMinDamage`, `WeaponMaxDamage`, `WeaponAccuracy`, `WeaponRange`, `WeaponDamageType`, `WeaponScaling` peuvent rester sans texture, auquel cas ils conservent une hauteur compacte. Ne pas creer un nouveau WBP, ni modifier `WBP_ItemTooltipStatLine` historique.
 
+## Alignement horizontal des icones (04.3C.2)
+
+La presence d'une icone ne doit pas decaler le libelle de cette seule ligne. Auparavant, le C++ mettait tout `SizeBox_StatIcon` en `Collapsed` lorsqu'une texture manquait : sa colonne disparaissait.
+
+**Dans le Designer de `WBP_ItemTooltipNativeLine` :**
+
+1. Selectionner `SizeBox_StatIcon` (parent direct de `Image_StatIcon`).
+2. Activer **Width Override** et renseigner **48** : meme sans icone, la colonne garde cette largeur.
+3. **Desactiver Height Override** : ne pas imposer 48 px de hauteur a toutes les lignes.
+4. Conserver `Image_StatIcon` comme enfant du SizeBox ; le C++ masque seulement l'image si la Map ne contient aucune texture valide.
+5. Gerer la taille et le ratio carre de l'image dans le Designer ; ne pas changer sa hauteur par code.
+6. Verifier le slot `SizeBox_StatIcon` dans `HorizontalBox_Line` : **Size Auto**, padding constant, aucun decalage propre aux lignes avec icone.
+
+Le C++ garde desormais `SizeBox_StatIcon` visible en `HitTestInvisible`. L'image seule passe en `Collapsed` si elle manque ; le **Width Override** garantit la largeur reservee tandis que la hauteur du parent, sans override, suit le contenu de la ligne. Aucun Graph, WBP, element fictif ni texture suppletive n'est ajoute par le code.
+
+Recette PIE : les libelles de **Precision** (sans icone) et **Cout en PA** (icone) doivent commencer a la meme abscisse, et les lignes sans icone ne doivent pas etre artificiellement hautes. L'ajustement de hauteur global du tooltip reste reporte au jalon narratif.
+
 ## Test et recette
 
 1. Avec Unreal ferme, pull `master` puis executer `ValidateUE.ps1` sur `Grimrock.UI.EquipmentTooltip043C` : **1/1** attendu.
 2. Relancer `Grimrock.UI.WeaponTooltip04` : **9/9** ; `Grimrock.UI.EquipmentTooltip043B` : **4/4** ; `Grimrock.UI.Item01` : **5/5**.
 3. Ouvrir Unreal, renseigner la Map dans `WBP_ItemTooltipNativeLine`, compiler et sauvegarder cet unique WBP.
 4. En PIE : equiper Dague + Bouclier, survoler Grande Hache puis Pic de guerre, verifier le bon icone sur les lignes d'armure restante ainsi que les resistances et deltas. Le deltas Pic contre Dague restent **+3/+3**, sans nouvelle modification de calcul.
-5. Verifier les lignes **sans** icone : le `SizeBox_StatIcon` doit rester `Collapsed` et ne pas laisser de trou/rectangle blanc. Si une icone force une hauteur inacceptable, laisser sa cle non affectee et documenter le cas : la refonte globale de hauteur est reservee au jalon narratif.
+5. Verifier les lignes **sans** icone : `SizeBox_StatIcon` conserve sa largeur, mais `Image_StatIcon` passe en `Collapsed` sans rectangle blanc. L'icone ne doit augmenter que la hauteur de sa ligne. La refonte globale de hauteur est reservee au jalon narratif.
 
 ### Versionnement local
 

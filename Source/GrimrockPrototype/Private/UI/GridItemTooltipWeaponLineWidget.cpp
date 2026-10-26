@@ -48,12 +48,12 @@ void UGridItemTooltipWeaponLineWidget::PresentIcon(FName StatId)
         }
     }
     const bool bHasIcon = Image_StatIcon && Texture && IsValid(Texture->Get());
-    // Collapse the enclosing 48x48 slot, not just the image; otherwise
-    // text-only weapon facts stretch the tooltip to many screen heights.
+    // Reserve the icon COLUMN even when no texture is assigned.
+    // Designer owns the SizeBox Width Override (e.g. 48); leave Height Override
+    // unset. Collapsing only the child Image keeps text-only rows compact.
     if (SizeBox_StatIcon)
     {
-        SizeBox_StatIcon->SetVisibility(bHasIcon
-            ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+        SizeBox_StatIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
     }
     if (!Image_StatIcon)
     {
