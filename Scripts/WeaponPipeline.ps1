@@ -30,12 +30,13 @@ if ($All -and ($Archetype -or $Archetypes.Count -gt 0)) { throw 'All conflicts w
 if ($Action -eq 'Build' -and (-not $Archetype -or $All -or $Archetypes.Count -gt 0)) {
     throw 'Build requires one -Archetype.'
 }
-if ($Apply -and ($Action -ne 'Build' -or -not $Stage)) {
-    throw 'Apply requires Build and Stage Visual|Item|Palette.'
+if ($Apply -and -not (($Action -eq 'Build' -and $Stage) -or $Action -eq 'Narrative')) {
+    throw 'Apply requires Build with Stage Visual|Item|Palette, or Narrative.'
 }
 if ($Stage -and $Action -ne 'Build') { throw 'Stage only applies to Build.' }
-if ($Action -eq 'Narrative' -and ($Archetype -or $Archetypes.Count -gt 0 -or $Apply -or $Stage)) {
-    throw 'Narrative is a whole-workbook read-only export; no individual archtypes and no -Apply.'
+if ($Action -eq 'Narrative' -and $Apply -and
+    ($Archetypes.Count -gt 0 -or (-not $Archetype -and -not $All))) {
+    throw 'Narrative -Apply requires exactly one -Archetype or -All; lists are read-only.'
 }
 
 
@@ -59,32 +60,173 @@ foreach ($Path in @($RpgCatalogue, $VisualCatalogue, $Palette)) {
     $BeforeHashes[$Path] = Get-Fingerprint $Path
 }
 
-# INDUS03: exported from the single canonical XLSX, without launching Unreal.
-# The legacy 19-column profile export remains backward-compatible (12 or 13 tabs).
+# INDUS05.2: one supported public entry point for the canonical narrative.
+# -Action Narrative alone exports the XLSX (read-only, backward compatible).
+# -Archetype ARMxxx audits or applies a single existing DataAsset.
+# -All audits/applies active rows one at a time, keeping each package guarded.
 if ($Action -eq 'Narrative') {
     $Export = Join-Path $PSScriptRoot 'ExportARMEMENT014Catalogue.ps1'
     & $Export -RequireNarrative
-    if (-not $?) { throw 'NarrativeV1 export failed.' }
+    if ($LASTEXITCODE -ne 0) { throw 'NarrativeV1 export failed.' }
     $NarrativeCsv = Join-Path $ReportDir 'INDUS03_Narrative.csv'
     if (-not (Test-Path -LiteralPath $NarrativeCsv -PathType Leaf)) {
-        throw "INDUS03 export missing: $NarrativeCsv"
+        throw "NarrativeV1 export missing: $NarrativeCsv"
     }
-    $Records = @(Import-Csv -LiteralPath $NarrativeCsv)
-    if ($Records.Count -ne 82 -or @($Records | Where-Object {
+    $Rows = @(Import-Csv -LiteralPath $NarrativeCsv)
+    if ($Rows.Count -ne 82 -or @($Rows | Where-Object {
         $_.SchemaVersion -ne 'NarrativeV1'
-    }).Count -ne 0) {
-        throw 'INDUS03 narrative CSV is not 82 NarrativeV1 records.'
-    }
-    $Approved = @($Records | Where-Object { $_.EtatValidation -eq 'APPROVED' }).Count
-    $Described = @($Records | Where-Object {
+    }).Count -ne 0) { throw 'NarrativeV1 requires 82 rows.' }
+    $Approved = @($Rows | Where-Object {
+        $_.EtatValidation -eq 'APPROVED' -and
         -not [string]::IsNullOrWhiteSpace($_.DescriptionCourteFR)
     }).Count
-    $AfterNarrative = @(& git -C $Repo status --porcelain=v1 --untracked-files=all)
-    if ($LASTEXITCODE -ne 0 -or @($AfterNarrative | Where-Object { $_ -notin $Before }).Count -ne 0) {
-        throw 'Narrative export modified versioned/untracked project files outside Saved/.'
+    if ($Apply -and $Approved -ne 82) {
+        throw "Narrative -Apply requires 82/82 APPROVED, found $Approved."
     }
-    Write-Host "[INDUS03] SUMMARY Schema=NarrativeV1 Archetypes=82 WithDescription=$Described Approved=$Approved ContentPackagesSaved=0"
-    Write-Host "CSV : $NarrativeCsv"
+    Write-Host "[INDUS05] NARRATIVE Schema=NarrativeV1 Rows=82 Approved=$Approved/82 Apply=$Apply"
+
+    # Historical read-only export remains possible without an archetype selector.
+    if (-not $All -and -not $Archetype -and $Archetypes.Count -eq 0) {
+        $AfterNarrative = @(& git -C $Repo status --porcelain=v1 --untracked-files=all)
+        if ($LASTEXITCODE -ne 0 -or
+            @($AfterNarrative | Where-Object { $_ -notin $Before }).Count -ne 0) {
+            throw 'Read-only Narrative export unexpectedly changed project files.'
+        }
+        Write-Host "CSV: $NarrativeCsv"
+        return
+    }
+
+    $ManifestRows = @(Import-Csv -LiteralPath $Manifest)
+    $TargetsNarrative = @()
+    if ($All) {
+        $TargetsNarrative = @($ManifestRows | Where-Object {
+            $_.ProductionState -eq 'Active'
+        } | Sort-Object ArchetypeId)
+    } else {
+        $Ids = @()
+        if ($Archetype) { $Ids = @($Archetype) }
+        else { $Ids = @($Archetypes | Select-Object -Unique) }
+        foreach ($Id in $Ids) {
+            $MatchesRow = @($ManifestRows | Where-Object { $_.ArchetypeId -eq $Id })
+            if ($MatchesRow.Count -ne 1) { throw "Archetype not uniquely declared in manifest: $Id" }
+            $TargetsNarrative += $MatchesRow[0]
+        }
+    }
+    if ($TargetsNarrative.Count -eq 0) { throw 'No declared active archetypes to process.' }
+    if ($Apply -and $TargetsNarrative.Count -gt 1 -and -not $All) {
+        throw 'Narrative multi-item mutation requires explicit -All.'
+    }
+
+    # A single Editor build for this invocation, not one build per weapon.
+    & (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipAutomation
+    if ($LASTEXITCODE -ne 0) { throw 'Development Editor build failed.' }
+    New-Item -ItemType Directory -Force -Path $ReportDir | Out-Null
+    $BatchResults = [System.Collections.Generic.List[object]]::new()
+    $AllowedChangedItems = [System.Collections.Generic.List[string]]::new()
+    foreach ($Spec in $TargetsNarrative) {
+        $Id = [string]$Spec.ArchetypeId
+        $ObjectPath = [string]$Spec.ItemPath
+        $Match = [regex]::Match($ObjectPath, '^(/Game/[A-Za-z0-9_/]+)\.([A-Za-z0-9_]+)$')
+        if (-not $Match.Success -or
+            -not $Match.Groups[1].Value.StartsWith('/Game/GrimrockPrototype/') -or
+            -not $Match.Groups[1].Value.EndsWith('/' + $Match.Groups[2].Value)) {
+            throw "Invalid production ItemPath for $Id."
+        }
+        $RelativeItem = 'Content/' + $Match.Groups[1].Value.Substring('/Game/'.Length) + '.uasset'
+        $ItemFile = Join-Path $Repo ($RelativeItem.Replace('/', '\'))
+        $NarrativeEntry = @($Rows | Where-Object { $_.ArchetypeId -eq $Id })
+        if ($NarrativeEntry.Count -ne 1) { throw "Missing NarrativeV1 entry for $Id" }
+        $Review = [string]$NarrativeEntry[0].EtatValidation
+        $Status = 'UNKNOWN'
+        $Detail = ''
+        if ($Spec.ProductionState -ne 'Active') {
+            $Status = 'SKIPPED_PLANNED'
+        } elseif (-not (Test-Path -LiteralPath $ItemFile -PathType Leaf)) {
+            $Status = 'SKIPPED_NOT_CREATED'
+        } elseif (@(& git -C $Repo status --porcelain=v1 -- $RelativeItem).Count -gt 0) {
+            $Status = 'SKIPPED_DIRTY'
+            $Detail = 'Preexisting local changes preserved'
+        } else {
+            $SingleReport = Join-Path $ReportDir ("INDUS05_Narrative_$Id.csv")
+            $Log = Join-Path $ReportDir ("INDUS05_Narrative_$Id.log")
+            $ArgsEditor = @(
+                $Project, '-run=GridWeaponPipeline', '-Action=NarrativeItem',
+                "-Archetype=$Id", "-Manifest=$Manifest",
+                "-Narrative=$NarrativeCsv", "-Report=$SingleReport",
+                '-Unattended', '-NoSplash', '-NoP4', '-NoSound', '-NullRHI', '-log'
+            )
+            if ($Apply) { $ArgsEditor += '-Apply' }
+            & $Editor @ArgsEditor *> $Log
+            $ExitCode = $LASTEXITCODE
+            $Messages = @(Select-String -LiteralPath $Log -Pattern '\[INDUS04\.4\]' |
+                ForEach-Object { $_.Line })
+            if ($ExitCode -ne 0) {
+                $Status = 'FAILED'
+                $Detail = "Commandlet returned $ExitCode"
+            } elseif (@($Messages | Where-Object {
+                $_ -match '\[INDUS04\.4\] RESULT Archetype='
+            }).Count -ne 1 -or -not (Test-Path -LiteralPath $SingleReport)) {
+                $Status = 'FAILED'
+                $Detail = 'Missing authoritative report/diagnostics'
+            } else {
+                $ItemReportRows = @(Import-Csv -LiteralPath $SingleReport)
+                if ($ItemReportRows.Count -ne 1) {
+                    $Status = 'FAILED'
+                    $Detail = 'Expected exactly one item result'
+                } else {
+                    $Status = [string]$ItemReportRows[0].Status
+                    if ($Apply) {
+                        $Saves = @($Messages | Where-Object {
+                            $_ -match '\[INDUS04\.4\] SAVED NarrativeItem'
+                        })
+                        $Unchanged = @($Messages | Where-Object {
+                            $_ -match '\[INDUS04\.4\] PRESENT_SAME NarrativeItem'
+                        })
+                        if ($Saves.Count -eq 1 -and $Unchanged.Count -eq 0) {
+                            $Status = 'SAVED'
+                            $AllowedChangedItems.Add($RelativeItem)
+                        } elseif ($Unchanged.Count -eq 1 -and $Saves.Count -eq 0) {
+                            $Status = 'PRESENT_SAME'
+                        } else {
+                            $Status = 'FAILED'
+                            $Detail = 'Apply not confirmed as SAVED or PRESENT_SAME'
+                        }
+                    }
+                }
+            }
+        }
+        $BatchResults.Add([pscustomobject]@{
+            ArchetypeId=$Id; ProductionState=$Spec.ProductionState
+            Review=$Review; Status=$Status; ItemPath=$RelativeItem; Detail=$Detail
+        })
+        Write-Host "[INDUS05] NARRATIVE RESULT Archetype=$Id Status=$Status Review=$Review $Detail"
+    }
+    $BatchReport = Join-Path $ReportDir 'INDUS05_Narrative_All.csv'
+    $BatchResults | Export-Csv -LiteralPath $BatchReport -NoTypeInformation -Encoding UTF8
+    $BatchJson = [IO.Path]::ChangeExtension($BatchReport, '.json')
+    $BatchResults | ConvertTo-Json -Depth 5 |
+        Set-Content -LiteralPath $BatchJson -Encoding UTF8
+    $AfterNarrative = @(& git -C $Repo status --porcelain=v1 --untracked-files=all)
+    if ($LASTEXITCODE -ne 0) { throw 'Post-Narrative git status failed.' }
+    $NewChanges = @($AfterNarrative | Where-Object { $_ -notin $Before })
+    $Unexpected = @($NewChanges | Where-Object {
+        $_.Length -lt 4 -or $_.Substring(3).Replace('\','/') -notin $AllowedChangedItems
+    })
+    if ($Unexpected.Count -ne 0) {
+        $Unexpected | ForEach-Object { Write-Host $_ }
+        throw 'Unexpected changes outside the selected Narrative Item DataAssets.'
+    }
+    $Failures = @($BatchResults | Where-Object { $_.Status -eq 'FAILED' })
+    if ($Apply -and $Failures.Count -eq 0) {
+        & (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipBuild -AutomationFilter 'Grimrock.RPG.ARMEMENT.Industrial'
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Industrial regression after Narrative apply failed; inspect modified assets.'
+        }
+    }
+    Write-Host "[INDUS05] NARRATIVE SUMMARY Approved=$Approved/82 Targets=$($BatchResults.Count) Saved=$(@($BatchResults | Where-Object { $_.Status -eq 'SAVED' }).Count) Failed=$($Failures.Count)"
+    Write-Host "Report: $BatchReport"
+    & git -C $Repo status --short
+    if ($Failures.Count -gt 0) { throw "$($Failures.Count) narrative item(s) failed: inspect the report." }
     return
 }
 
