@@ -1,5 +1,7 @@
 # ARMEMENT-INDUS04.4B — Approbation narrative globale pour le prototype
 
+> **ARCHIVE HISTORIQUE — INDUS05.4 (26.10.2026).** Les commandes `WeaponNarrativeApply.ps1` et `WeaponNarrativePrototypeBatch.ps1` citées ci-dessous ont été retirées. La procédure actuelle et unique est [ARMEMENT_PIPELINE_GUIDE.md](../Architecture/ARMEMENT_PIPELINE_GUIDE.md) avec `Scripts/WeaponPipeline.ps1 -Action Narrative` (puis `-Archetype ... -Apply` ou `-All -Apply`). Cette page documente le jalon d'origine mais ne doit plus être utilisée comme recette.
+
 **Décision utilisateur, 26 octobre 2026 :** l'ensemble des 82 descriptions narratives proposées est considéré **APPROVED**, à titre **provisoire pour le prototype**, pour accélérer l'intégration. Ce statut ne certifie ni un lore final, ni l'implémentation des mécaniques marquées `PLANNED`. Les règles de combat et les niveaux N1–N20 restent inchangés.
 
 **Implémentation :** `Scripts/WeaponNarrativePrototypeBatch.ps1`. Aucun changement de C++, UMG, StringTable, DataAsset ou XLSX n'est réalisé par ce commit : la mise à jour du classeur et des `.uasset` est effectuée **localement**, à la demande explicite de l'utilisateur.

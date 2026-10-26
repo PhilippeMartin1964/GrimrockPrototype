@@ -1,6 +1,6 @@
-# ARMEMENT_PIPELINE_CONTRACT — Contrat vivant d'industrialisation (INDUS01)
+# ARMEMENT_PIPELINE_CONTRACT — Contrat du pipeline d'armement (INDUS01–INDUS05)
 
-**Version de conception : v0.4, 25 octobre 2026.** INDUS02.2 a été validé localement (8 COMPLETE, 0 conflit, 4/4 tests, 0 asset modifié). INDUS03 introduit en parallèle de la production Visual/Item/Palette une évolution NarrativeV1 du classeur canonique, compatible avec ses 12 anciens onglets. L'export narratif est en lecture seule et ne modifie pas les DataAssets. Sa validation locale demeure requise. Voir ARMEMENT_PIPELINE_GUIDE.md.
+**Contrat actif v0.5 — 26 octobre 2026.** INDUS01–INDUS04 sont validés par l'utilisateur. INDUS05.1–05.4 sont implémentés sur master ; compilation UE5.5.4, suites Industrial05 et recette pipeline locales encore attendues. Le présent document définit les limites de sécurité ; **la seule procédure opérationnelle à suivre est [ARMEMENT_PIPELINE_GUIDE.md](ARMEMENT_PIPELINE_GUIDE.md)**. Les exemples historiques ci-dessous sont maintenus lorsqu'ils restent valides et qualifiés sinon.
 
 ## A. Principes non négociables
 
@@ -17,12 +17,12 @@
 | Source | Autorité et clés | Diffusion |
 |---|---|---|
 | XLSX Catalogue + Niveaux 1-20 | ArchetypeId, ItemLevel, nom, famille, usage, NdM+K, accuracy, armure, PA, range, WeightKg, classes | DA_WeaponCatalogue (immutable runtime profiles) |
-| Extension narrative XLSX (INDUS03) | ArchetypeId, NomCourtFR, DescriptionCourteFR, LoreFR, ParticulariteFR, EtatFonctionnel | FText de domaine/projection narrative vers DataAsset, jamais bonus non codé |
-| Manifeste de production (INDUS02) | ArchetypeId, ItemDefinitionId, VisualId, asset names, exact icon/mesh/MI/PBR paths, Category, BuildKind, palette EntryId, SpecialBehaviorKey | Pipeline Editor et audit ; pas d'autorité des dégâts |
+| Extension narrative XLSX (INDUS03) | ArchetypeId, DescriptionCourteFR, LoreFR, ParticulariteFR, EtatParticularite, NotesConception, EtatValidation | FText Description du DataAsset pour les textes APPROVED ; jamais bonus non codé |
+| Manifeste de production (INDUS02) | 16 champs d'identité, ProductionState, BuildKind, Item/Visual IDs, chemins exacts icon/mesh/MI/PBR, ClassId et EquipmentSlots | Pipeline Editor et audit ; pas d'autorité des dégâts |
 | UE DataAssets | Références runtime, compatibilité, équipement et identité sauvegardée | Inventaire, combat, monde et UI |
 | Localization/Source/UI.csv | Labels statiques et patterns de UI partagés | ST_UI.uasset après authoring réel, puis WBP |
 
-**Important :** le système actuel exige 12 onglets XLSX et 19 champs CSV ; ne pas ajouter un onglet/une colonne directement à l'import existant. INDUS03 doit déclarer SchemaVersion et tester v1 en compatibilité avant d'étendre à v2. Les formules du XLSX doivent être recalculées par l'outil de production avant export ; le pipeline rejette des caches absents plutôt que de deviner des valeurs.
+**Contrat en vigueur :** le XLSX canonique contient 13 onglets, dont la feuille narrative `Narratif`. Les **19 colonnes CSV de combat** sont conservées et **les 8 colonnes NarrativeV1** sont exportées séparément. Les formules du XLSX doivent être recalculées avant export, sans deviner des caches manquants. Aucune statistique de combat ne provient de `DescriptionCourteFR`.
 
 ### INDUS03 : schéma narratif versionné
 
@@ -43,16 +43,18 @@ Contrat NarrativeV1 :
 L'exporteur générique produit un CSV \`NarrativeV1\` **séparé** des
 1 640 profils ; ne jamais mélanger ces chaînes éditoriales aux calculs des
 dés, PA, portée ou poids. \`IMPLEMENTED\` est un statut de suivi : le jeu
-**ne déduit jamais une capacité spéciale de ce texte**. Les 82 lignes du
-modèle initial sont DRAFT/UNDOCUMENTED et ne représentent aucune
-narration approuvée. Le placement de textes approuvés dans les DataAssets
-et le modèle FGridItemTooltipView appartient aux étapes ultérieures.
-La conversion des textes en FText localisables devra conserver les
-identifiants culture/internationalisation sans dupliquer ST_UI.
+**ne déduit jamais une capacité spéciale de ce texte**. Les 82 lignes **initiales** étaient DRAFT ; par décision éditoriale explicite
+du 26 octobre 2026, **les 82 descriptions du prototype sont APPROVED**.
+INDUS04.4 a publié `DescriptionCourteFR` dans les 8 DataAssets actifs,
+et le modèle `FGridItemTooltipView` transmet leur `Description`.
+Cela n'approuve pas les pouvoirs `PLANNED` ; `LoreFR` demeure réservé
+à un futur examen détaillé. Toute évolution de la localisation éditoriale
+doit conserver les identifiants culture/internationalisation sans
+dupliquer ST_UI.
 
-## C. Enregistrement technique explicite proposé
+## C. Enregistrement technique explicite — manifeste en production
 
-Colonnes du manifeste INDUS02 (noms indicatifs, à geler dans ce jalon) :
+Le manifeste est versionné, lu par `FGridWeaponPipelineManifest`, avec **16 colonnes strictes**. Les variantes `Throwing` et `LegacyCustom` ci-dessous sont des **extensions futures non prises en charge par le Build standard** :
 
 - ArchetypeId et ItemDefinitionId : identités de gameplay stables.
 - VisualId, ItemAssetPath, WorldMeshPath, IconPath, MaterialInstancePath : chemins UE complets, sans nom déduit.
@@ -63,9 +65,9 @@ Colonnes du manifeste INDUS02 (noms indicatifs, à geler dans ce jalon) :
 
 Ne pas recopier WeightKg, DamageDice, PA, Range ou Accuracy dans ce manifeste ; ils sont dans DA_WeaponCatalogue. Le manifeste doit référencer un profil N1 existant avant de créer une définition.
 
-## D. Interface d'orchestration envisagée
+## D. Interface d'orchestration opérationnelle
 
-Contrat cible (Audit / Plan / Build / Validate ; Build -Apply nécessite une étape explicite Visual, Item ou Palette ; jamais plusieurs packages dans la même invocation) :
+Point d'entrée unique `Scripts/WeaponPipeline.ps1` : Build -Apply exige Visual, Item ou Palette, un seul package par étape. L'action `Narrative` peut exporter, auditer, et appliquer les textes APPROVED à un DataAsset ou séquentiellement aux actifs par `-All` :
 
     .\Scripts\WeaponPipeline.ps1 -Action Audit -All
     .\Scripts\WeaponPipeline.ps1 -Action Plan -Archetype ARM003
@@ -73,14 +75,17 @@ Contrat cible (Audit / Plan / Build / Validate ; Build -Apply nécessite une ét
     .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003 -Stage Visual -Apply
     .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003 -Stage Item -Apply
     .\Scripts\WeaponPipeline.ps1 -Action Build -Archetype ARM003 -Stage Palette -Apply
-    .\Scripts\WeaponPipeline.ps1 -Action Validate -Archetypes ARM002,ARM003,ARM013,ARM020
+    .\Scripts\WeaponPipeline.ps1 -Action Validate -All
+    .\Scripts\WeaponPipeline.ps1 -Action Narrative
+    .\Scripts\WeaponPipeline.ps1 -Action Narrative -Archetype ARM031 -Apply
+    .\Scripts\WeaponPipeline.ps1 -Action Narrative -All -Apply
 
 - Audit : inventaire complet et cohérence des référencements, sans mutation.
 - Plan : différences proposées, explicites et vérifiées avant écriture ; aucune mutation.
 - Build sans -Apply : préflight complet et simulation des changements.
 - Build -Apply : création/raccordement **d'une seule étape sur un seul archétype à la fois** ; rejeter les doublons, ressources manquantes, conflits ou asset existant non conforme. Visual et Palette sont des packages partagés, dont aucune entrée étrangère ne doit être modifiée.
 - Validate : tests de contrat ciblés et un rapport consolidé. Les tests PIE manuels gardent leur propre statut.
-- -All et -Archetypes multiples : autorisés pour Audit/Plan/Validate ; au départ, interdits pour Build -Apply tant qu'une transaction multi-asset vraiment atomique n'a pas été démontrée.
+- `-All` et `-Archetypes` multiples : autorisés pour Audit/Plan/Validate et **Narrative en audit** ; `Build -Apply` ne traite qu'un archetype et une étape. `Narrative -All -Apply` est une **suite de commits disque indépendants d'un package chacun, non une transaction multi-asset atomique** ; les fichiers préalablement modifiés sont préservés et les éventuels conflits rapportés.
 - Toutes les commandes écrivent uniquement journaux et rapports **sous Saved/** ; mode dry-run doit conserver les hashes et le git status des fichiers métier.
 
 ## E. Machine d'états et codes de sortie
@@ -141,7 +146,7 @@ technique réussie ne remplace pas la recette PIE.
 - INDUS02.2 : ajout de Palette avec validation et copie en mémoire, contrôle d'alias et d'EntryId, 4 tests, aucun changement direct de niveau. Validation UE locale de la nouvelle phase en attente. Ne pas lancer -Apply avant résultats.
 - INDUS03 : enrichissement XLSX versionné et texte narratif ; ne pas changer les statistiques sans ticket explicite.
 - INDUS04 : infobulles d'inventaire basées sur profil réel, tests de localisation et comparaisons.
-- INDUS05 : retirer les anciennes commandes du chemin de production seulement après équivalence prouvée ; conserver historique par index d'archives, éviter des dizaines de nouveaux documents.
+- INDUS05 : les quatre anciens commandlets spécifiques Guerrier/Assassin, leurs quatre wrappers PS et les deux wrappers narratifs ont été retirés. La suite `Grimrock.RPG.ARMEMENT.Industrial05` et le guide unifié complètent cette migration ; **leur validation locale UE est attendue**. Les specs encore consommées par les tests historiques ne sont pas supprimées à l'aveugle.
 
 Documentation **vivante** : ce contrat, docs/Architecture/ARMEMENT_PIPELINE_GUIDE.md, un registre de production/rapport machine généré par pipeline. Les 37 docs historiques restent traçables mais ne dictent plus une procédure d'arme à arme.
 
