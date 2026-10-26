@@ -36,8 +36,8 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category="Inventory|Tooltip|Designer")
     TMap<FName, TObjectPtr<UTexture2D>> StatIconTextures;
 
-    /** Optional reserved-width icon column, width configured in Designer. */
-    /** Leave SizeBox height unset; collapse only its child Image when absent. */
+    /** Optional Designer-owned icon column; dimensions are never set by C++. */
+    /** Missing icon Image is Hidden to preserve its layout footprint. */
     UPROPERTY(meta=(BindWidgetOptional))
     TObjectPtr<USizeBox> SizeBox_StatIcon;
 

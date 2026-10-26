@@ -48,9 +48,9 @@ void UGridItemTooltipWeaponLineWidget::PresentIcon(FName StatId)
         }
     }
     const bool bHasIcon = Image_StatIcon && Texture && IsValid(Texture->Get());
-    // Reserve the icon COLUMN even when no texture is assigned.
-    // Designer owns the SizeBox Width Override (e.g. 48); leave Height Override
-    // unset. Collapsing only the child Image keeps text-only rows compact.
+    // Keep the Designer-chosen icon footprint on every row, even when
+    // no texture is assigned. Hidden preserves the Image's layout size;
+    // Collapsed would remove it and shift the text. No fixed pixels in C++.
     if (SizeBox_StatIcon)
     {
         SizeBox_StatIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -66,7 +66,7 @@ void UGridItemTooltipWeaponLineWidget::PresentIcon(FName StatId)
     }
     else
     {
-        Image_StatIcon->SetVisibility(ESlateVisibility::Collapsed);
+        Image_StatIcon->SetVisibility(ESlateVisibility::Hidden);
     }
 }
 
