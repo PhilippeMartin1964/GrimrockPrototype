@@ -2,7 +2,7 @@
 
 **Décision de conception :** 26 octobre 2026 ; inspiration explicite *Divinity: Original Sin 2* (DOS2).  
 **Portée :** armures physiques et magiques, boucliers, personnages, capacités de restauration, fin de combat, repos et état sauvegardé.  
-**État : CONTRAT CONSOLIDÉ.** RPG-SHIELD02.2 est **validé par l'utilisateur (13/13 tests + PIE)**. RPG-SHIELD02.3 est **validé par l'utilisateur (15/15 tests UE5.5.4)** ; la recette PIE de repos n'est pas encore documentée. RPG-SHIELD02.4A est **validé par l'utilisateur (26/26 tests UE5.5.4)**. RPG-SHIELD02.4B publie le correctif des restaurations C3 ciblées/multi-cibles, **validation UE locale en attente**. Cette v0.2 **remplace la politique de récupération de v0.1**, sans modifier silencieusement les autres mécaniques déjà validées.
+**État : CONTRAT CONSOLIDÉ.** RPG-SHIELD02.2 est **validé par l'utilisateur (13/13 tests + PIE)**. RPG-SHIELD02.3 est **validé par l'utilisateur (15/15 tests UE5.5.4)** ; la recette PIE de repos n'est pas encore documentée. RPG-SHIELD02.4A est **validé par l'utilisateur (26/26 tests UE5.5.4)**. RPG-SHIELD02.4B est **validé par l'utilisateur (25/25 tests UE5.5.4)**. RPG-SHIELD02.5 publie des tests réels de persistance sur disque, **compilation/tests UE et recette PIE en attente**. Cette v0.2 **remplace la politique de récupération de v0.1**, sans modifier silencieusement les autres mécaniques déjà validées.
 
 ## 1. Inspiration DOS2 vérifiée, frontières
 
@@ -71,10 +71,10 @@ Une référence magique de 0 signifie 0/0 après recharge, sauf source magique a
 | `FGridCombatArmorEffectResolver::ApplyRestoreEffects` | Évalue les restaurations C3 sous leurs plafonds | Préserver les effets ciblés et le mana/PA, ne pas y mettre la recharge automatique |
 | `GridTurnManagerPlayerActionCatalog.cpp` (multi-cibles) | Historique : ajoutait directement du physique à `Resources.CurrentPhysicalArmor` | RPG-SHIELD02.4B publié : les restaurations ciblées passent par `RestorePhysicalArmor`, en conservant les plafonds C3 ; tests locaux en attente |
 | `GridTurnManagerSurfaces.cpp` | Historique v0.1 : enlevait directement les dégâts physiques de la base | RPG-SHIELD02.4A publié : lecture de l'armure physique effective et consommation par instance via `ApplyPhysicalArmorDamage` ; validation UE locale en attente |
-| SaveGame / `FGridItemInstance` | Déplétion portée par l'instance ; tests de copie du modèle réussis | Vérifier Save/Load sur disque au combat, hors combat et après recharge |
+| SaveGame / `FGridItemInstance` | Déplétion et réserves déjà persistées via `PartyInventoryState` en version 27 | RPG-SHIELD02.5 ajoute des tests disque : exploration, checkpoint précombat, victoire et repos ; validation UE attendue. Aucun Save en plein combat (MON18.9.1) |
 | ARM075 N1 | +5 physiques réellement authorés | Les N2-N20 et magie d'autres boucliers doivent être audités avant de les déclarer couverts |
 
-**Ne pas masquer les anomalies :** RPG-SHIELD02.4A traite le débit physique des surfaces dans le code, sans validation UE locale à ce stade. Les restaurations C3 ciblées sont corrigées en code dans RPG-SHIELD02.4B, mais restent à valider sous UE. La persistance sur disque reste RPG-SHIELD02.5.
+**État contrôlé au 26 octobre 2026 :** RPG-SHIELD02.4A (26/26) et RPG-SHIELD02.4B (25/25) sont validés par logs UE5.5.4 utilisateur. RPG-SHIELD02.5 couvre maintenant la persistance par tests sur disque publiés ; leur validation UE locale reste attendue. La politique interdisant les sauvegardes en combat MON18.9.1 reste inchangée.
 
 ## 5. Décomposition technique et critères de validation
 
@@ -112,7 +112,11 @@ La validation finale devra couvrir physique/magique, résistance, résidu PV, ar
 
 ### RPG-SHIELD02.5 — Persistance et recette intégrée
 
-Vérifier par **sauvegarde disque** l'épuisement pendant combat, le nouveau combat après victoire, le repos et les chargements en plein combat si supportés. Ne pas regonfler des réserves simplement lors d'un chargement. Relancer suites `Grimrock.RPG.ARMEMENT01.10.3.1`, `Grimrock.RPG.RPG03.3`, compétences, MON16, tooltip et smoke de combat, et vérifier l'absence de changements non désirés sur `.uasset`.
+**Tests disque publiés, résultats locaux en attente.** Le SaveGame de production est déjà en version 27 et persiste les ressources physiques/magiques ainsi que `FGridItemInstance::AbsorbedEquipmentPhysicalArmor` avec identité et emplacement des objets. Trois tests vérifient la sauvegarde et le chargement via le Pawn, les objets équipés/sac/curseur, le refus d'une écriture pendant combat avec checkpoint `_AutoCombat`, puis les recharges après repos et victoire. **Le chargement ne restaure jamais gratuitement les pools.**
+
+**Précision importante :** MON18.9.1 interdit les sauvegardes normales en cours de combat. Les anciennes mentions de « sauvegarde/chargement en plein combat si supporté » deviennent donc **tests de refus de sauvegarde et intégrité du checkpoint précombat**, sans évolution du format de sauvegarde. Voir [RPG_SHIELD02_5_SAVE_PERSISTENCE.md](../Design/RPG_SHIELD02_5_SAVE_PERSISTENCE.md).
+
+Régressions : `Grimrock.Save.MON18.9.1`, `Grimrock.Save.SAVEFIX.2`, `Grimrock.RPG.ARMEMENT01.9.SaveRehydrate`, RPG-SHIELD02.2/.3/.4A/.4B, puis recette PIE sur un vrai donjon.
 
 ## 6. Périmètre explicitement exclu
 
