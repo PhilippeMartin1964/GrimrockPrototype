@@ -67,7 +67,7 @@ Les trois étapes sont publiées en commits atomiques sur `master` :
 
 ## Correctif CLEAN02.2.1 — Inventaire AssetRegistry (26 octobre 2026)
 
-**Logs TD04-20261026-143012 :** le filtre `Grimrock.Editor.UIWBPAudit02.Inventory` a trouvé **48 assets WBP**, tandis que la baseline **44**, calculée par soustraction arithmétique depuis une ancienne liste de 46, était incorrecte. L'échec relevé (48 ≠ 44) était **uniquement l'assertion de cardinalité** ; les autres tests du ticket sont passés (25/26).
+**Logs TD04-20261026-143012 :** le filtre `Grimrock.Editor.UIWBPAudit02.Inventory` a trouvé **48 assets WBP**, tandis que la baseline **44**, calculée par soustraction arithmétique depuis une ancienne liste de 46, était incorrecte. L'échec relevé (48 ≠ 44) était **uniquement l'assertion de cardinalité** ; les autres tests du ticket sont passés (24/25).
 
 Le test UI-WBP-AUDIT02 ne bloque donc plus sur un total global fixe. Il **consigne 48 comme dernière observation**, à titre informatif, et impose désormais :
 - l'existence des **trois WBP actifs** `Inventory/WBP_ItemTooltip`, `Inventory/WBP_ItemTooltipNativeLine` et `Inventory/WBP_ItemTooltipNativeComparison` ;
@@ -76,4 +76,4 @@ Le test UI-WBP-AUDIT02 ne bloque donc plus sur un total global fixe. Il **consig
 
 La variation du nombre total de widgets n'est **pas une preuve de régression** : de nouveaux WBP peuvent être ajoutés au projet. Les règles spécifiques priment sur une valeur historique. Cela corrige l'assertion sans restaurer ni modifier un ancien widget et sans toucher au système de protection du bouclier.
 
-**Validation locale attendue :** `Grimrock.Editor.UIWBPAudit02` après récupération du commit correctif. Les 25 autres tests ont déjà été validés par l'utilisateur et ne sont pas modifiés.
+**Validation locale attendue :** `Grimrock.Editor.UIWBPAudit02` après récupération du commit correctif. Les 24 autres tests ont déjà été validés par l'utilisateur et ne sont pas modifiés.
