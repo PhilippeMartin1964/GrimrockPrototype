@@ -187,6 +187,31 @@ namespace
 		return true;
 	}
 
+	// RPG-SHIELD02.4B: common commit for self and targeted/party C3 restores.
+	// The pure armor resolver has already capped the delta to its reference.
+	// Physical points must refill depleted item instances BEFORE the base pool.
+	void CommitRPG033PartyArmorRestoration(UGridPartyInventoryComponent* Inventory, int32 CharacterIndex,
+		const FGridCombatArmorPoolSnapshot& Before, const FGridCombatArmorPoolSnapshot& After)
+	{
+		if (!IsValid(Inventory) || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
+		{
+			return;
+		}
+		const int32 PhysicalRestored = FMath::Max(0, After.CurrentPhysicalArmor - Before.CurrentPhysicalArmor);
+		const int32 MagicalRestored = FMath::Max(0, After.CurrentMagicalArmor - Before.CurrentMagicalArmor);
+		if (PhysicalRestored > 0)
+		{
+			Inventory->RestorePhysicalArmor(CharacterIndex, PhysicalRestored);
+		}
+		if (MagicalRestored > 0)
+		{
+			FGridCharacterInventoryState& Target = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+			const int64 Proposed = static_cast<int64>(FMath::Max(0, Target.Resources.CurrentMagicalArmor)) + MagicalRestored;
+			Target.Resources.CurrentMagicalArmor = static_cast<int32>(FMath::Clamp<int64>(
+				Proposed, 0, FMath::Max(0, After.ReferenceMagicalArmor)));
+		}
+	}
+
 	bool ResolveRPG033CharacterArmorModifiers(const FGridCharacterInventoryState& Character, const FGridAvailableCombatAction& Action,
 		FGridResolvedCombatModifiers& OutModifiers)
 	{
@@ -861,13 +886,9 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 	Character.Resources.CurrentMana = OutResult.ManaAfter;
 	if (bHasArmorSnapshot && !Action.Definition.ArmorEffects.IsEmpty())
 	{
-		const int32 PhysicalBefore = ArmorSnapshot.CurrentPhysicalArmor;
-		const int32 MagicalBefore = ArmorSnapshot.CurrentMagicalArmor;
+		const FGridCombatArmorPoolSnapshot BeforeRestore = ArmorSnapshot;
 		FGridCombatArmorEffectResolver::ApplyRestoreEffects(Action.Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &ArmorSourceContext);
-		const int32 PhysicalRestored = FMath::Max(0, ArmorSnapshot.CurrentPhysicalArmor - PhysicalBefore);
-		const int32 MagicalRestored = FMath::Max(0, ArmorSnapshot.CurrentMagicalArmor - MagicalBefore);
-		Inventory->RestorePhysicalArmor(Action.CharacterIndex, PhysicalRestored);
-		Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor + MagicalRestored);
+		CommitRPG033PartyArmorRestoration(Inventory, Action.CharacterIndex, BeforeRestore, ArmorSnapshot);
 		OutResult.PhysicalArmorAfter = ArmorSnapshot.CurrentPhysicalArmor;
 		OutResult.MagicalArmorAfter = ArmorSnapshot.CurrentMagicalArmor;
 		SelfTargetBefore.PhysicalArmor = ArmorSnapshot.CurrentPhysicalArmor;
@@ -1087,7 +1108,7 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 
 		FGridAttackTargetStats TargetBefore;
 		TargetBefore.CurrentHealth = TargetCharacter.Resources.CurrentHealth;
-		TargetBefore.PhysicalArmor = TargetCharacter.Resources.CurrentPhysicalArmor;
+		TargetBefore.PhysicalArmor = Inventory->GetEffectiveCurrentPhysicalArmor(TargetIndex);
 		TargetBefore.MagicalArmor = TargetCharacter.Resources.CurrentMagicalArmor;
 		if (FGridCombatStatusApplicationResolver::WouldAnyMutate(
 				StatusApplications, SourceCharacter.CharacterId, TargetBefore, nullptr, TargetCharacter.StatusEffects))
@@ -1190,7 +1211,7 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 
 		FGridAttackTargetStats TargetBefore;
 		TargetBefore.CurrentHealth = TargetCharacter.Resources.CurrentHealth;
-		TargetBefore.PhysicalArmor = TargetCharacter.Resources.CurrentPhysicalArmor;
+		TargetBefore.PhysicalArmor = Inventory->GetEffectiveCurrentPhysicalArmor(TargetIndex);
 		TargetBefore.MagicalArmor = TargetCharacter.Resources.CurrentMagicalArmor;
 
 		FGridCombatArmorPoolSnapshot ArmorSnapshot;
@@ -1205,14 +1226,10 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 			}
 			TargetModifiers.PositiveEffectPercentModifier = SourceModifiers.PositiveEffectPercentModifier;
 			FGridCombatArmorEffectResolver::ApplyReferenceModifiers(ArmorSnapshot, TargetModifiers);
-			const int32 PhysicalBefore = ArmorSnapshot.CurrentPhysicalArmor;
-			const int32 MagicalBefore = ArmorSnapshot.CurrentMagicalArmor;
+			const FGridCombatArmorPoolSnapshot BeforeRestore = ArmorSnapshot;
 			FGridCombatArmorEffectResolver::ApplyRestoreEffects(
 				ArmorEffects, ArmorSnapshot, TargetModifiers, &ArmorSourceContext);
-			TargetCharacter.Resources.CurrentPhysicalArmor =
-				FMath::Max(0, TargetCharacter.Resources.CurrentPhysicalArmor + FMath::Max(0, ArmorSnapshot.CurrentPhysicalArmor - PhysicalBefore));
-			TargetCharacter.Resources.CurrentMagicalArmor =
-				FMath::Max(0, TargetCharacter.Resources.CurrentMagicalArmor + FMath::Max(0, ArmorSnapshot.CurrentMagicalArmor - MagicalBefore));
+			CommitRPG033PartyArmorRestoration(Inventory, TargetIndex, BeforeRestore, ArmorSnapshot);
 			TargetBefore.PhysicalArmor = ArmorSnapshot.CurrentPhysicalArmor;
 			TargetBefore.MagicalArmor = ArmorSnapshot.CurrentMagicalArmor;
 		}

@@ -2,7 +2,7 @@
 
 **Décision de conception :** 26 octobre 2026 ; inspiration explicite *Divinity: Original Sin 2* (DOS2).  
 **Portée :** armures physiques et magiques, boucliers, personnages, capacités de restauration, fin de combat, repos et état sauvegardé.  
-**État : CONTRAT CONSOLIDÉ.** RPG-SHIELD02.2 est **validé par l'utilisateur (13/13 tests + PIE)**. RPG-SHIELD02.3 est **validé par l'utilisateur (15/15 tests UE5.5.4)** ; la recette PIE de repos n'est pas encore documentée. RPG-SHIELD02.4A publie le correctif C++ des dégâts de surface, **tests et PIE en attente**. RPG-SHIELD02.4B (restaurations C3 ciblées) reste à faire. Cette v0.2 **remplace la politique de récupération de v0.1**, sans modifier silencieusement les autres mécaniques déjà validées.
+**État : CONTRAT CONSOLIDÉ.** RPG-SHIELD02.2 est **validé par l'utilisateur (13/13 tests + PIE)**. RPG-SHIELD02.3 est **validé par l'utilisateur (15/15 tests UE5.5.4)** ; la recette PIE de repos n'est pas encore documentée. RPG-SHIELD02.4A est **validé par l'utilisateur (26/26 tests UE5.5.4)**. RPG-SHIELD02.4B publie le correctif des restaurations C3 ciblées/multi-cibles, **validation UE locale en attente**. Cette v0.2 **remplace la politique de récupération de v0.1**, sans modifier silencieusement les autres mécaniques déjà validées.
 
 ## 1. Inspiration DOS2 vérifiée, frontières
 
@@ -69,12 +69,12 @@ Une référence magique de 0 signifie 0/0 après recharge, sauf source magique a
 | `FinishCombat` / `OnCombatEnded` dans `GridTurnManagerPhases.cpp` | Transition autoritaire et événement déjà présents | Point d'entrée futur ; recharger avant l'événement, seulement sur fin normale |
 | `IsPartyAtRest()` | Groupe immobile et aligné sur la cellule, non action de sommeil | **Ne pas** s'en servir comme événement de repos |
 | `FGridCombatArmorEffectResolver::ApplyRestoreEffects` | Évalue les restaurations C3 sous leurs plafonds | Préserver les effets ciblés et le mana/PA, ne pas y mettre la recharge automatique |
-| `GridTurnManagerPlayerActionCatalog.cpp` (multi-cibles) | Ajoute directement du physique à `Resources.CurrentPhysicalArmor` | Risque de contourner la réserve d'item : corriger par l'autorité de restauration |
+| `GridTurnManagerPlayerActionCatalog.cpp` (multi-cibles) | Historique : ajoutait directement du physique à `Resources.CurrentPhysicalArmor` | RPG-SHIELD02.4B publié : les restaurations ciblées passent par `RestorePhysicalArmor`, en conservant les plafonds C3 ; tests locaux en attente |
 | `GridTurnManagerSurfaces.cpp` | Historique v0.1 : enlevait directement les dégâts physiques de la base | RPG-SHIELD02.4A publié : lecture de l'armure physique effective et consommation par instance via `ApplyPhysicalArmorDamage` ; validation UE locale en attente |
 | SaveGame / `FGridItemInstance` | Déplétion portée par l'instance ; tests de copie du modèle réussis | Vérifier Save/Load sur disque au combat, hors combat et après recharge |
 | ARM075 N1 | +5 physiques réellement authorés | Les N2-N20 et magie d'autres boucliers doivent être audités avant de les déclarer couverts |
 
-**Ne pas masquer les anomalies :** RPG-SHIELD02.4A traite le débit physique des surfaces dans le code, sans validation UE locale à ce stade. Les restaurations C3 ciblées restent à corriger dans RPG-SHIELD02.4B. La persistance sur disque reste RPG-SHIELD02.5.
+**Ne pas masquer les anomalies :** RPG-SHIELD02.4A traite le débit physique des surfaces dans le code, sans validation UE locale à ce stade. Les restaurations C3 ciblées sont corrigées en code dans RPG-SHIELD02.4B, mais restent à valider sous UE. La persistance sur disque reste RPG-SHIELD02.5.
 
 ## 5. Décomposition technique et critères de validation
 
@@ -106,7 +106,7 @@ Tests de refus pendant combat, idempotence et deux réserves ajoutés au filtre 
 
 **RPG-SHIELD02.4A — Surfaces physiques (code publié, validation locale attendue).** Le chemin du TurnManager calcule `TargetBefore.PhysicalArmor` avec `Inventory->GetEffectiveCurrentPhysicalArmor()`, puis consomme `Damage.PhysicalArmorDamage` via `Inventory->ApplyPhysicalArmorDamage()` en alimentant la trace des sources. L'absorption magique existante, la résolution des résistances et les armor gates C1 restent inchangées. Trois tests sur de véritables ticks de surface et le bouclier rond N1 sont ajoutés. Voir [RPG_SHIELD02_4A_SURFACE_ARMOR_DAMAGE.md](../Design/RPG_SHIELD02_4A_SURFACE_ARMOR_DAMAGE.md).
 
-**RPG-SHIELD02.4B — Restaurations C3 ciblées et multi-cibles (reste à faire).** Corriger les chemins écrivant directement la réserve physique de base, en préservant les plafonds de référence et les règles des objets équipés.
+**RPG-SHIELD02.4B — Restaurations C3 ciblées et multi-cibles (code publié ; tests locaux en attente).** Le chemin Self et les chemins Ally/Party partagent désormais une application des deltas C3 via `RestorePhysicalArmor` pour la partie physique, la réserve magique étant plafonnée. Le statut C1 des cibles utilise l'armure physique effective. Deux tests d'intégration testent le vrai bouclier rond N1, une capacité de groupe et une capacité Ally. Voir [RPG_SHIELD02_4B_TARGETED_ARMOR_RESTORATION.md](../Design/RPG_SHIELD02_4B_TARGETED_ARMOR_RESTORATION.md).
 
 La validation finale devra couvrir physique/magique, résistance, résidu PV, armor gates/CC, effets de statut, talents, monstres, niveau d'objet et sauvegarde. Les tests UE5.5.4 et le SaveGame sur disque restent les autorités de recette.
 
