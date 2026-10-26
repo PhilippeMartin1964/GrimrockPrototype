@@ -138,9 +138,6 @@ struct FGridItemTooltipStatLine
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	FText ValueText;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
-	FText DeltaText;
-
 	/** Complete localized delta presentation, ready for direct UMG display. */
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	FText DeltaDisplayText;
@@ -192,12 +189,6 @@ struct FGridItemTooltipEquipmentComparison
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	FText SlotLabel;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
-	bool bHasEquippedItem = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
-	FText EquippedItemName;
 
 	/** Occupied item name or the localized empty-slot presentation. */
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")

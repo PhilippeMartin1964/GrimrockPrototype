@@ -167,12 +167,12 @@ namespace
 		Line.ValueText = FText::FromString(FormatTooltipNumber(ItemValue, bInteger));
 		if (bHasComparison)
 		{
-			Line.DeltaText = FMath::IsNearlyZero(Line.Delta)
+			const FText DeltaValueText = FMath::IsNearlyZero(Line.Delta)
 				? FText::FromString(TEXT("±0"))
 				: FText::FromString(FormatTooltipNumber(Line.Delta, bInteger));
 
 			FFormatNamedArguments DeltaArguments;
-			DeltaArguments.Add(TEXT("Delta"), Line.DeltaText);
+			DeltaArguments.Add(TEXT("Delta"), DeltaValueText);
 			Line.DeltaDisplayText = FText::Format(
 				NSLOCTEXT("GridInventoryTooltip", "DeltaDisplayFormat", "(Δ {Delta})"),
 				DeltaArguments);
@@ -240,7 +240,9 @@ namespace
 		{
 			if (bIncludeDelta && Line.bHasComparison)
 			{
-				Parts.Add(FString::Printf(TEXT("%s %s (Δ %s)"), *Line.Label.ToString(), *Line.ValueText.ToString(), *Line.DeltaText.ToString()));
+				// The same localized delta is used by the native tooltip and Examine.
+				Parts.Add(FString::Printf(TEXT("%s %s %s"),
+					*Line.Label.ToString(), *Line.ValueText.ToString(), *Line.DeltaDisplayText.ToString()));
 			}
 			else
 			{
@@ -509,14 +511,12 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		FGridItemTooltipEquipmentComparison& Comparison = View.EquipmentComparisons.AddDefaulted_GetRef();
 		Comparison.EquipmentSlot = TargetSlot;
 		Comparison.SlotLabel = GetEquipmentSlotDisplayName(TargetSlot);
-		Comparison.bHasEquippedItem = bHasEquippedItem;
 
 		const UGridItemDefinitionAsset* EquippedDefinition = nullptr;
 		if (bHasEquippedItem)
 		{
 			EquippedDefinition = InventoryComponent->FindItemDefinition(EquippedItem.ItemDefinitionId);
-			Comparison.EquippedItemName = GetItemDisplayName(EquippedItem, EquippedDefinition);
-			Comparison.EquippedItemDisplayText = Comparison.EquippedItemName;
+			Comparison.EquippedItemDisplayText = GetItemDisplayName(EquippedItem, EquippedDefinition);
 		}
 		else
 		{

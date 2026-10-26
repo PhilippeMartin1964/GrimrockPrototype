@@ -101,17 +101,16 @@ namespace
             Line.ValueText = FText::AsNumber(Numeric.After);
             if (bNeutral)
             {
-                Line.DeltaText = FUILocalizationText::Get(TEXT("Inventory.Tooltip.Global.NeutralDelta"));
+                Line.DeltaDisplayText = FUILocalizationText::Get(TEXT("Inventory.Tooltip.Global.NeutralDelta"));
             }
             else
             {
                 FFormatNamedArguments Args;
                 Args.Add(TEXT("Value"), FText::AsNumber(FMath::Abs(Numeric.Delta)));
-                Line.DeltaText = FormatGlobal(Numeric.Delta > 0.f
+                Line.DeltaDisplayText = FormatGlobal(Numeric.Delta > 0.f
                     ? TEXT("Inventory.Tooltip.Global.PositiveDelta")
                     : TEXT("Inventory.Tooltip.Global.NegativeDelta"), Args);
             }
-            Line.DeltaDisplayText = Line.DeltaText;
         }
     }
 
@@ -195,7 +194,6 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
 
     OutScenario.bGlobalEquipmentScenario = true;
     OutScenario.EquipmentSlot = Preview.ActualTargetSlot;
-    OutScenario.bHasEquippedItem = !Preview.DisplacedItems.IsEmpty();
 
     if (Preview.bCandidateUsesTwoHands)
     {

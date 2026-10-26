@@ -52,3 +52,14 @@ Filtre initial conseillé pour les tickets : `Grimrock.UI.WeaponTooltip04`, `Gri
 **Bilan :** 2 propriétés mortes de présentation + leur code de nettoyage, 2 champs USTRUCT redondants sous réserve d'accès BP, 1 texte intermédiaire optionnel, 2 tests historiquement faux après les suppressions, 2 audits historiques à actualiser. **Aucune classe native entière à supprimer.**
 
 **Risque restant :** l'Editor local connaît les suppressions binaires, mais la version `master` inspectée ne les contient pas nécessairement. Ne jamais exécuter de nettoyage de `.uasset` par GitHub ni modifier les quatre fichiers locaux UI sans intervention de l'utilisateur.
+
+
+## UI-TOOLTIP-CPP-CLEAN02 — Mise en œuvre autorisée après publication des suppressions WBP
+
+Les trois étapes sont publiées en commits atomiques sur `master` :
+
+1. **CLEAN02.1** : les deux champs `VerticalBox_WeaponComparisonSection` et `VerticalBox_WeaponComparisons` et leurs seules opérations de vidage/masquage ont été supprimés de `GridItemTooltipWidget`. Un test de réflexion natif contrôle leur absence et la présence du conteneur actif.
+2. **CLEAN02.2** : l'audit de migration ne réclame plus les deux WBP supprimés ; `UI-WBP-AUDIT02` a un référentiel de 44 widgets ; l'audit tooltip vérifie maintenant l'absence des anciens chemins source **et** Inventory, et la présence des trois WBP actifs dont la racine réside dans `UI/Inventory`.
+3. **CLEAN02.3** : le read-model retire `bHasEquippedItem`, `EquippedItemName` et `FGridItemTooltipStatLine::DeltaText`. Les productions C++ et les tests sont alignés ; le chemin **Examine** réutilise `DeltaDisplayText`, déjà utilisé par les widgets natifs. `FGridWeaponTooltipComparisonFact::DeltaText` reste intact, car les faits d'armes possèdent leur propre contrat. Un test éditeur compile les trois Blueprints actifs.
+
+**Attention :** UE5.5.4 Windows / PIE doivent encore confirmer le build et la compilation réelle des Blueprints après retrait des `UPROPERTY`. Ces propriétés étaient exposées aux Blueprints, même si aucun lecteur C++ de production ne les consommait. Pas de modification d'assets binaires au travers de GitHub, ni de changement des mécanismes de protection/recharge du Bouclier rond.

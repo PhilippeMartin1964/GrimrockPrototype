@@ -48,8 +48,16 @@ bool FGridUIItem01Clean01NoLegacyTooltipProjectionTest::RunTest(const FString& P
 
 	TestNotNull(TEXT("Structured StatLines remain"), FindFProperty<FProperty>(ViewStruct, TEXT("StatLines")));
 	TestNotNull(TEXT("Structured EquipmentComparisons remain"), FindFProperty<FProperty>(ViewStruct, TEXT("EquipmentComparisons")));
-	TestNotNull(TEXT("Current WBP compatibility flag remains until comparison-row graph migration"),
+	TestNull(TEXT("Old WBP equipped-item flag removed"),
 		FindFProperty<FProperty>(ComparisonStruct, TEXT("bHasEquippedItem")));
+	TestNull(TEXT("Duplicate equipped name removed"),
+		FindFProperty<FProperty>(ComparisonStruct, TEXT("EquippedItemName")));
+	TestNotNull(TEXT("Canonical equipped label remains"),
+		FindFProperty<FProperty>(ComparisonStruct, TEXT("EquippedItemDisplayText")));
+	TestNull(TEXT("Duplicated, preformat delta intermediate removed"),
+		FindFProperty<FProperty>(StatLineStruct, TEXT("DeltaText")));
+	TestNotNull(TEXT("Shared native/Examine delta text remains"),
+		FindFProperty<FProperty>(StatLineStruct, TEXT("DeltaDisplayText")));
 
 	return true;
 }

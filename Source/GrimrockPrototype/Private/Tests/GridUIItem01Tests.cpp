@@ -170,8 +170,6 @@ bool FGridUIItem01EmptyEquipmentComparisonTest::RunTest(const FString& Parameter
 	}
 
 	const FGridItemTooltipEquipmentComparison& Comparison = View.EquipmentComparisons[0];
-	TestFalse(TEXT("Empty-slot comparison reports no equipped item"), Comparison.bHasEquippedItem);
-	TestTrue(TEXT("Empty-slot comparison keeps an empty equipped-item name"), Comparison.EquippedItemName.IsEmpty());
 	TestEqual(TEXT("Empty-slot presentation is projected"), Comparison.EquippedItemDisplayText.ToString(), FString(TEXT("vide")));
 	TestEqual(TEXT("Empty-slot comparison identifies the Belt slot"), Comparison.EquipmentSlot, EGridEquipmentSlot::Belt);
 
@@ -245,8 +243,6 @@ bool FGridUIItem01EquipmentComparisonTest::RunTest(const FString& Parameters)
 	}
 
 	const FGridItemTooltipEquipmentComparison& Comparison = View.EquipmentComparisons[0];
-	TestTrue(TEXT("Compared slot is occupied"), Comparison.bHasEquippedItem);
-	TestEqual(TEXT("Compared item name is projected"), Comparison.EquippedItemName.ToString(), FString(TEXT("Ancienne ceinture")));
 	TestEqual(TEXT("Compared item display text reuses the item name"), Comparison.EquippedItemDisplayText.ToString(), FString(TEXT("Ancienne ceinture")));
 
 	const FGridItemTooltipStatLine* Strength = FindLine(Comparison.StatLines, TEXT("Strength"));
@@ -371,7 +367,10 @@ bool FGridUIItem01Icon01StatIdentifiersTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	TestTrue(TEXT("Equipped reference remains occupied"), PlainView.EquipmentComparisons[0].bHasEquippedItem);
+	TestFalse(TEXT("Equipped reference is displayed rather than an empty slot"),
+		PlainView.EquipmentComparisons[0].EquippedItemDisplayText.IsEmpty());
+	TestTrue(TEXT("Equipped reference is not the empty slot label"),
+		PlainView.EquipmentComparisons[0].EquippedItemDisplayText.ToString() != TEXT("vide"));
 	TestEqual(TEXT("All equipped-only stats retain a comparison row"), PlainView.EquipmentComparisons[0].StatLines.Num(), 18);
 	for (int32 Index = 0; Index < UE_ARRAY_COUNT(ExpectedIds); ++Index)
 	{
