@@ -2,7 +2,7 @@
 
 **Décision de conception :** 26 octobre 2026 ; inspiration explicite *Divinity: Original Sin 2* (DOS2).  
 **Portée :** armures physiques et magiques, boucliers, personnages, capacités de restauration, fin de combat, repos et état sauvegardé.  
-**État : CONTRAT CONSOLIDÉ.** RPG-SHIELD02.2 publie le code C++ de recharge sur victoire normale, mais **la compilation, les tests UE5.5.4 et la recette PIE restent à valider par les logs utilisateur**. La recharge au repos et la correction des chemins de dégâts/restauration ne sont pas encore implémentées. Cette v0.2 **remplace la politique de récupération de v0.1**, sans modifier silencieusement les autres mécaniques déjà validées.
+**État : CONTRAT CONSOLIDÉ.** RPG-SHIELD02.2 est **validé par l'utilisateur (13/13 tests + PIE)**. RPG-SHIELD02.3 publie l'action explicite de repos et sa recharge, **compilation/automatisation et recette PIE en attente**. Les chemins de dégâts/restaurations à unifier restent RPG-SHIELD02.4. Cette v0.2 **remplace la politique de récupération de v0.1**, sans modifier silencieusement les autres mécaniques déjà validées.
 
 ## 1. Inspiration DOS2 vérifiée, frontières
 
@@ -98,7 +98,9 @@ Un commit C++ atomique sur `master` :
 
 ### RPG-SHIELD02.3 — Repos explicite
 
-Créer ou brancher un véritable événement de repos **hors combat** (pas `IsPartyAtRest`), avec contraintes métier définies et tests de refus pendant combat, idempotence, deux réserves et aucun soin PV/mana implicite. Un autre commit et validation PIE.
+**C++ publié, validation locale UE et PIE en attente.** `TryRestParty()` est une action explicite du TurnManager, uniquement hors combat, immobile et avec membres vivants. Le PlayerController expose `RequestPartyRest()` (BlueprintCallable) et la commande de console `GrimrockRest` pour la recette PIE, **sans nouvelle touche ni WBP**. `OnPartyRested` notifie les présentations. La recharge appelle le même service interne que la victoire, sans soin PV/mana. Voir [RPG_SHIELD02_3_EXPLICIT_REST.md](../Design/RPG_SHIELD02_3_EXPLICIT_REST.md).
+
+Tests de refus pendant combat, idempotence et deux réserves ajoutés au filtre `Grimrock.RPG.SHIELD02.3`. La création d'un vrai WBP de repos, le campement, des conditions de sécurité avancées et animations ne font pas partie de ce jalon.
 
 ### RPG-SHIELD02.4 — Unification des chemins de dégâts / restauration
 

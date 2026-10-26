@@ -793,6 +793,31 @@ void UGridTurnManagerComponent::FinishCombat(EGridCombatPhase ResultPhase, bool 
 	RefreshTickEnabled();
 }
 
+bool UGridTurnManagerComponent::TryRestParty()
+{
+	// The mere absence of movement must never trigger a rest on its own.
+	// Only this explicitly requested action can do so.
+	if (!bInitialized || bCombatActive ||
+		(CurrentPhase != EGridCombatPhase::Exploration && CurrentPhase != EGridCombatPhase::Victory) ||
+		bPartyInputLocked || bWaitingForCombatStart || bHasActiveAction ||
+		!IsValid(RuntimeActor) || !IsValid(PartyPawn) ||
+		PartyPawn->LevelRuntimeActor != RuntimeActor ||
+		!IsValid(PartyPawn->PartyInventoryComponent) ||
+		PartyPawn->IsPitFalling() || PartyPawn->IsCharacterCreationModalActive() ||
+		!IsPartyAtRest() || !HasLivingPartyCharacter())
+	{
+		return false;
+	}
+
+	// Restoring the pools is idempotent and shares the same reference authority
+	// as Victory. An accepted rest with full armor still succeeds.
+	PartyPawn->PartyInventoryComponent->RefillArmorReservesAfterRest();
+	OnPartyRested.Broadcast();
+	UE_LOG(LogGridTurnManager, Log, TEXT("[RPG-SHIELD02.3] PartyRest Accepted=true Phase=%s"),
+		*UEnum::GetValueAsString(CurrentPhase));
+	return true;
+}
+
 bool UGridTurnManagerComponent::IsPartyAtRest() const
 {
 	if (!IsValid(PartyPawn) || !IsValid(RuntimeActor) || PendingPartyMotionType != EGridPendingPartyMotionType::None)

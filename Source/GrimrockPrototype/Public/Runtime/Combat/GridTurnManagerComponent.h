@@ -125,6 +125,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridCombatEndedSignature, EGridCombatPhase, ResultPhase);
 
+/** Emitted only for a successfully authorized player-requested rest. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGridPartyRestedSignature);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridCombatLogEntryAddedSignature, FGridCombatLogEntry, Entry);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridPlayerAttackRequestedSignature, FGridPlayerAttackRequest, Request);
@@ -341,6 +344,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Combat|Turn Manager")
 	FGridCombatEndedSignature OnCombatEnded;
 
+	/** Presentation hook: party explicitly rested outside combat. */
+	UPROPERTY(BlueprintAssignable, Category = "RPG|Rest")
+	FGridPartyRestedSignature OnPartyRested;
+
 	UPROPERTY(BlueprintAssignable, Category = "Combat|Feedback")
 	FGridCombatLogEntryAddedSignature OnCombatLogEntryAdded;
 
@@ -546,6 +553,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Combat|Initiative")
 	bool IsActivePlayerCharacter(int32 CharacterIndex) const;
+
+	/** RPG-SHIELD02.3: explicit rest, not the positional IsPartyAtRest() predicate.
+	 *  Refuses combat/defeat, missing or defeated party, movement, falling or modal creation.
+	 *  Restores armor only; does not heal HP/MP or change active combat state. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Rest")
+	bool TryRestParty();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat|Turn Manager")
 	void AbortCombat();

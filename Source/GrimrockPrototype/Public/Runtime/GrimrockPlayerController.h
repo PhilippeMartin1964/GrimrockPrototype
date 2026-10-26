@@ -35,6 +35,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
 	void RequestGlobalEscape();
 
+	/** Explicit RPG-SHIELD02.3 rest action; can be called by a future rest UI. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Rest")
+	bool RequestPartyRest();
+
+	/** PIE console command: GrimrockRest. No implicit key mapping. */
+	UFUNCTION(Exec)
+	void GrimrockRest();
+
 	/** Starts the exploration/puzzle MainHand throw targeting mode. */
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	bool BeginPhysicalThrowAiming();

@@ -659,8 +659,18 @@ bool UGridPartyInventoryComponent::HasUnspentCharacterProgressionPoints(int32 Ch
 
 int32 UGridPartyInventoryComponent::RefillArmorReservesAfterVictory()
 {
-	// Authoritative caller: TurnManager::FinishCombat(Victory) only.
-	// No refill on load, Tick, combat start, abort or equipment transfer.
+	return RefillArmorReservesForRecovery();
+}
+
+int32 UGridPartyInventoryComponent::RefillArmorReservesAfterRest()
+{
+	return RefillArmorReservesForRecovery();
+}
+
+int32 UGridPartyInventoryComponent::RefillArmorReservesForRecovery()
+{
+	// Two authoritative callers: committed normal Victory and accepted explicit Rest.
+	// Never refill on load, Tick, combat start, abort or equipment transfer.
 	int32 ChangedCharacters = 0;
 	bool bAnyLivingCharacter = false;
 	TSet<FGuid> VisitedItems;

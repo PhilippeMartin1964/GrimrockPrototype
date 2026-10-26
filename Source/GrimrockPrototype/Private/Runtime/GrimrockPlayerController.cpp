@@ -276,6 +276,31 @@ void AGrimrockPlayerController::SetupInputComponent()
 #endif
 }
 
+bool AGrimrockPlayerController::RequestPartyRest()
+{
+	AGrimrockPartyPawn* Party = Cast<AGrimrockPartyPawn>(GetPawn());
+	if (!IsValid(Party) || !IsValid(Party->LevelRuntimeActor))
+	{
+		return false;
+	}
+	UGridTurnManagerComponent* TurnManager =
+		Party->LevelRuntimeActor->FindComponentByClass<UGridTurnManagerComponent>();
+	return IsValid(TurnManager) && TurnManager->TryRestParty();
+}
+
+void AGrimrockPlayerController::GrimrockRest()
+{
+	const bool bAccepted = RequestPartyRest();
+	UE_LOG(LogGridTurnManagerInput, Log, TEXT("[RPG-SHIELD02.3] GrimrockRest Accepted=%s"),
+		bAccepted ? TEXT("true") : TEXT("false"));
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(INDEX_NONE, 3.0f, bAccepted ? FColor::Green : FColor::Red,
+			bAccepted ? TEXT("[RPG-SHIELD02.3] Repos : armures rechargees.")
+				: TEXT("[RPG-SHIELD02.3] Repos impossible dans cet etat."));
+	}
+}
+
 bool AGrimrockPlayerController::BeginPhysicalThrowAiming()
 {
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());

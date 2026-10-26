@@ -293,6 +293,9 @@ public:
 	 *  Returns the number of living characters whose armor or items changed. */
 	int32 RefillArmorReservesAfterVictory();
 
+	/** RPG-SHIELD02.3: same idempotent refill, only after TryRestParty authorizes explicit rest. */
+	int32 RefillArmorReservesAfterRest();
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Equipment")
 	FGridEquipmentStatBonus ComputeCharacterEquipmentStatBonus(int32 CharacterIndex) const;
 
@@ -374,6 +377,9 @@ public:
 	bool ValidateInventoryOwnership(UPARAM(ref) FString& OutError) const;
 
 private:
+	/** Shared bounded refill for the two authoritative entry points: Victory and explicit Rest. */
+	int32 RefillArmorReservesForRecovery();
+
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<UGridItemDefinitionAsset>> RuntimeItemDefinitionsById;
 
