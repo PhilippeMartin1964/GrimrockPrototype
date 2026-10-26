@@ -1490,3 +1490,13 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - 14 clés localisées `UI.csv → ST_UI` ; 3 tests automatisés additionnels attendus = filtre ciblé 11/11 ; aucun changement du resolver, du catalogue Excel, des armes, des contraintes de mains, du WBP ABSORPTION ou des SaveGames.
 - Le code et CSV peuvent être publiés sur master ; les nouveaux composants WBP et `ST_UI.uasset` doivent **être créés/sauvegardés dans UE5.5.4**, puis validés localement et committés sélectivement.
 - Guide : `docs/Design/ARMEMENT01_10_3_3_10_DAMAGE_TOOLTIP_DETAILS.md`.
+
+---
+
+## 2026-10-26 — RPG-SHIELD02.1 : armures physique/magique rechargeables (contrat)
+
+- Référence contrôlée : manuel officiel DOS2 — deux réserves physiques/magiques absorbantes qui bloquent dégâts et statuts appropriés, **réinitialisées en fin de combat** ; récupération pendant combat par actions autorisées et repos hors combat.
+- Décision de gameplay : recharger intégralement les deux armures après **victoire normale** ou **repos explicite** ; conserver le d20, les résistances, la déplétion pendant combat, les références propres aux équipements et la protection des statuts. Aucun soin automatique PV/mana, aucune destruction/« réparation obligatoire » du bouclier.
+- État du code : `FinishCombat(Victory)` existe, mais la recharge n'y est pas encore ; `IsPartyAtRest` n'est **pas** du repos. La sauvegarde disque et les chemins de dégâts de surfaces/restauration d'alliés requièrent revue.
+- Ce commit ne change **aucun gameplay** et ne valide aucun test Unreal. Les phases d'exécution seront RPG-SHIELD02.2 (fin de combat), .3 (repos), .4 (chemins de dégâts/restauration), .5 (persistance).
+- Source de vérité : [RPG_Shields_Protection_Contract_v0_2.md](../Rules/RPG_Shields_Protection_Contract_v0_2.md) ; v0.1 conservée avec renvoi historique.

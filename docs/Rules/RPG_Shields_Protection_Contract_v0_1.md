@@ -4,6 +4,8 @@
 **Portée :** tous les boucliers, tous archétypes et niveaux d'objet (N1 à N20)  
 **Statut :** règle RPG de référence ; distinguer systématiquement fonctionnalités en place et intentions futures. Ce jalon est **documentaire** : aucun gameplay, asset ou catalogue modifié.
 
+**Historique :** depuis RPG-SHIELD02.1 (26 octobre 2026), la politique de récupération de v0.1 est remplacée par [le contrat v0.2 rechargeable](RPG_Shields_Protection_Contract_v0_2.md). **Le moteur C++ applique encore v0.1 tant que la migration RPG-SHIELD02.2+ n'est pas validée localement.**
+
 ## 1. Trois rôles à distinguer
 
 Un bouclier est un **équipement défensif passif** qui apporte principalement une réserve d'**armure physique absorbante**. Il n'accorde **ni bonus automatique au jet de Défense, ni jet de blocage, ni attaque gratuite**.
