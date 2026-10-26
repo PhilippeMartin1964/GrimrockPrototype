@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "UObject/UnrealType.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventorySlotWidget.h"
@@ -162,6 +163,25 @@ bool FGridWeaponTooltip04ShieldNoDuplicateTest::RunTest(const FString&)
         EAutomationExpectedErrorFlags::Contains, 1);
     TestFalse(TEXT("Presenter refuses incomplete UMG rather than displaying partial stats"),
         Presenter->PresentTooltipView(Candidate));
+    return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUITooltipClean021RemovedDetachedContainers,
+    "Grimrock.UI.TooltipCppClean02.1.RemovedDetachedComparisonBindings",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUITooltipClean021RemovedDetachedContainers::RunTest(const FString&)
+{
+    const UClass* NativeClass = UGridItemTooltipWidget::StaticClass();
+    TestNull(TEXT("Obsolete detached weapon comparison section binding removed"),
+        FindFProperty<FProperty>(NativeClass, TEXT("VerticalBox_WeaponComparisonSection")));
+    TestNull(TEXT("Obsolete detached weapon comparison container binding removed"),
+        FindFProperty<FProperty>(NativeClass, TEXT("VerticalBox_WeaponComparisons")));
+    TestNotNull(TEXT("Canonical comparison container remains"),
+        FindFProperty<FProperty>(NativeClass, TEXT("VerticalBox_Comparisons")));
+    TestNotNull(TEXT("Canonical weapon fact container remains"),
+        FindFProperty<FProperty>(NativeClass, TEXT("VerticalBox_WeaponFacts")));
     return true;
 }
 

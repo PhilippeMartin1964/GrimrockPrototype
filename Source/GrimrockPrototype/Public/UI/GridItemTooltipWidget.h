@@ -68,7 +68,7 @@ protected:
     TObjectPtr<UImage> Image_ItemIcon;
 
     /** Text_WeaponTitle remains STATIC and references ST_UI directly in Designer. */
-    /** Reuse the existing legacy stat and per-slot comparison containers. */
+    /** Structured stat and per-slot comparison containers still used by native rows. */
     UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UVerticalBox> VerticalBox_StatLines;
 
@@ -85,10 +85,6 @@ protected:
     TObjectPtr<UWidget> VerticalBox_WeaponSection;
     UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
     TObjectPtr<UVerticalBox> VerticalBox_WeaponFacts;
-    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
-    TObjectPtr<UWidget> VerticalBox_WeaponComparisonSection;
-    UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inventory|Tooltip|Designer")
-    TObjectPtr<UVerticalBox> VerticalBox_WeaponComparisons;
 
 private:
     bool PopulateLegacyStats(const FGridItemTooltipView& View);

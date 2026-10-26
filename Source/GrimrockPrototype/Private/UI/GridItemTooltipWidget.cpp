@@ -222,13 +222,6 @@ bool UGridItemTooltipWidget::PopulateEquipmentComparisons(
 {
     const bool bShow = !View.EquipmentComparisons.IsEmpty();
     SetSection(VerticalBox_ComparisonSection, bShow);
-    // 04.2B replaces the detached weapon-comparison root with one group per
-    // equipped slot. Never present the same profile twice.
-    SetSection(VerticalBox_WeaponComparisonSection, false);
-    if (VerticalBox_WeaponComparisons)
-    {
-        VerticalBox_WeaponComparisons->ClearChildren();
-    }
     if (!VerticalBox_Comparisons)
     {
         return !bShow;
