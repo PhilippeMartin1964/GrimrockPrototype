@@ -13,7 +13,9 @@
 namespace UIWBPAudit02
 {
     const TCHAR* UiRoot = TEXT("/Game/GrimrockPrototype/Blueprints/UI");
-    constexpr int32 ExpectedCount = 44; // Two obsolete tooltip widgets deleted in UI-TOOLTIP-CLEAN01.
+    // Diagnostic snapshot, NOT a pass/fail condition: unrelated widgets can be
+    // legitimately added or retired without changing the tooltip contract.
+    constexpr int32 LastObservedWidgetCount = 48; // TD04-20261026-143012
 
     struct FTextFile
     {
@@ -156,6 +158,40 @@ bool FUIWBPAudit02Inventory::RunTest(const FString& Parameters)
         return A.PackageName.ToString() < B.PackageName.ToString();
     });
 
+    // Assert semantic assets rather than an ever-changing aggregate count.
+    const auto HasWidgetPackage = [&Widgets](const TCHAR* PackagePath)
+    {
+        const FName ExpectedPackage(PackagePath);
+        return Widgets.ContainsByPredicate([ExpectedPackage](const FAssetData& Data)
+        {
+            return Data.PackageName == ExpectedPackage;
+        });
+    };
+    const TCHAR* const RequiredTooltipPackages[] = {
+        TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip"),
+        TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipNativeLine"),
+        TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipNativeComparison")
+    };
+    const TCHAR* const DeletedTooltipPackages[] = {
+        TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipComparisonRow"),
+        TEXT("/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipStatLine"),
+        TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltipComparisonRow"),
+        TEXT("/Game/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltipStatLine")
+    };
+    bool bTooltipContractOK = true;
+    for (const TCHAR* Path : RequiredTooltipPackages)
+    {
+        const bool bExists = HasWidgetPackage(Path);
+        TestTrue(*FString::Printf(TEXT("Native tooltip widget still exists: %s"), Path), bExists);
+        bTooltipContractOK &= bExists;
+    }
+    for (const TCHAR* Path : DeletedTooltipPackages)
+    {
+        const bool bExists = HasWidgetPackage(Path);
+        TestFalse(*FString::Printf(TEXT("Obsolete tooltip widget remains deleted: %s"), Path), bExists);
+        bTooltipContractOK &= !bExists;
+    }
+
     TArray<FTextFile> SourceFiles;
     ScanSourceFiles(SourceFiles);
 
@@ -284,8 +320,8 @@ bool FUIWBPAudit02Inventory::RunTest(const FString& Parameters)
     }
 
     Md += FString::Printf(
-        TEXT("\nTotal %d / baseline %d. Referenced=%d; SourceOnly=%d; KnownRoots=%d; ZeroRefs=%d; Redirectors=%d; ProductionSourceFiles=%d; ConfigFiles=%d.\n\n"),
-        Widgets.Num(), ExpectedCount, Referenced, SourceOnly, RootOnly, Zero, Redirectors, ProductionSourceCount, ConfigFileCount);
+        TEXT("\nTotal %d (last observed %d, informational only). Referenced=%d; SourceOnly=%d; KnownRoots=%d; ZeroRefs=%d; Redirectors=%d; ProductionSourceFiles=%d; ConfigFiles=%d.\n\n"),
+        Widgets.Num(), LastObservedWidgetCount, Referenced, SourceOnly, RootOnly, Zero, Redirectors, ProductionSourceCount, ConfigFileCount);
     Md += TEXT("Zero references NEVER authorizes deletion. Check Reference Viewer (hard/soft), serialized Class Defaults and levels, runtime dynamic loading, then PIE. This report does not touch any uasset.\n\n");
     Md += TEXT("## Individual asset dependencies\n");
     Md += Detail;
@@ -308,10 +344,11 @@ bool FUIWBPAudit02Inventory::RunTest(const FString& Parameters)
     TestTrue(TEXT("Config scan includes project ini files"), ConfigFileCount > 0);
     TestTrue(TEXT("Complete CSV report generated under Saved"), bCsvOK);
     TestTrue(TEXT("Complete Markdown report generated under Saved"), bMdOK);
-    TestEqual(TEXT("Expected 44 UI Widget Blueprints after removal of two obsolete tooltip widgets"), Widgets.Num(), ExpectedCount);
+    // Adding a legitimate WBP must not invalidate this inventory audit.
+    // Its regression guards are the required/removed tooltip packages above.
     TestEqual(TEXT("No WBP redirectors are left in UI folder"), Redirectors, 0);
     return bCsvOK && bMdOK && ProductionSourceCount > 100 && ConfigFileCount > 0 &&
-        Widgets.Num() == ExpectedCount && Redirectors == 0;
+        bTooltipContractOK && Redirectors == 0;
 }
 
 #endif

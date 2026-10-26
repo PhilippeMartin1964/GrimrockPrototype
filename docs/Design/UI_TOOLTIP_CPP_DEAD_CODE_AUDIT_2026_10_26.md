@@ -63,3 +63,17 @@ Les trois étapes sont publiées en commits atomiques sur `master` :
 3. **CLEAN02.3** : le read-model retire `bHasEquippedItem`, `EquippedItemName` et `FGridItemTooltipStatLine::DeltaText`. Les productions C++ et les tests sont alignés ; le chemin **Examine** réutilise `DeltaDisplayText`, déjà utilisé par les widgets natifs. `FGridWeaponTooltipComparisonFact::DeltaText` reste intact, car les faits d'armes possèdent leur propre contrat. Un test éditeur compile les trois Blueprints actifs.
 
 **Attention :** UE5.5.4 Windows / PIE doivent encore confirmer le build et la compilation réelle des Blueprints après retrait des `UPROPERTY`. Ces propriétés étaient exposées aux Blueprints, même si aucun lecteur C++ de production ne les consommait. Pas de modification d'assets binaires au travers de GitHub, ni de changement des mécanismes de protection/recharge du Bouclier rond.
+
+
+## Correctif CLEAN02.2.1 — Inventaire AssetRegistry (26 octobre 2026)
+
+**Logs TD04-20261026-143012 :** le filtre `Grimrock.Editor.UIWBPAudit02.Inventory` a trouvé **48 assets WBP**, tandis que la baseline **44**, calculée par soustraction arithmétique depuis une ancienne liste de 46, était incorrecte. L'échec relevé (48 ≠ 44) était **uniquement l'assertion de cardinalité** ; les autres tests du ticket sont passés (25/26).
+
+Le test UI-WBP-AUDIT02 ne bloque donc plus sur un total global fixe. Il **consigne 48 comme dernière observation**, à titre informatif, et impose désormais :
+- l'existence des **trois WBP actifs** `Inventory/WBP_ItemTooltip`, `Inventory/WBP_ItemTooltipNativeLine` et `Inventory/WBP_ItemTooltipNativeComparison` ;
+- l'**absence** de `WBP_ItemTooltipComparisonRow` et `WBP_ItemTooltipStatLine`, tant dans `UI/Inventory` que dans les anciens chemins `UI` ;
+- l'absence de redirectors WBP, la génération des deux rapports d'audit et l'inventaire Source/Config fonctionnel.
+
+La variation du nombre total de widgets n'est **pas une preuve de régression** : de nouveaux WBP peuvent être ajoutés au projet. Les règles spécifiques priment sur une valeur historique. Cela corrige l'assertion sans restaurer ni modifier un ancien widget et sans toucher au système de protection du bouclier.
+
+**Validation locale attendue :** `Grimrock.Editor.UIWBPAudit02` après récupération du commit correctif. Les 25 autres tests ont déjà été validés par l'utilisateur et ne sont pas modifiés.
