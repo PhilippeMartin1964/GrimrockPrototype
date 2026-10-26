@@ -20,7 +20,7 @@ bool FGridEquipmentTooltip043CIconAliasTest::RunTest(const FString&)
 
     // Existing icon mappings, resistances and weapon rows remain direct keys:
     // no invented texture for numeric damage, AP or unrelated stats.
-    for (const FName DirectId : {
+    const FName DirectIds[] = {
         FName(TEXT("Armor")), FName(TEXT("Strength")), FName(TEXT("Dexterity")),
         FName(TEXT("Constitution")), FName(TEXT("Intelligence")), FName(TEXT("Wisdom")),
         FName(TEXT("Charisma")), FName(TEXT("MaxHealth")), FName(TEXT("MaxMana")),
@@ -30,7 +30,9 @@ bool FGridEquipmentTooltip043CIconAliasTest::RunTest(const FString&)
         FName(TEXT("HolyResistance")), FName(TEXT("NecroticResistance")),
         FName(TEXT("ArcaneResistance")), FName(TEXT("WeaponAP")),
         FName(TEXT("WeaponMinDamage")), FName(TEXT("WeaponMaxDamage")),
-        FName(TEXT("WeaponDamageType")), NAME_None })
+        FName(TEXT("WeaponDamageType")), FName() // Explicit empty name, not EName.
+    };
+    for (const FName& DirectId : DirectIds)
     {
         TestTrue(TEXT("No fallback for a direct/unmapped stat id"),
             FLine::GetFallbackIconStatId(DirectId).IsNone());
