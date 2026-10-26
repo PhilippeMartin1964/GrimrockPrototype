@@ -54,7 +54,8 @@ void UGridTurnManagerComponent::ResolveCombatSurfaceRound()
 
 				FGridAttackTargetStats TargetBefore;
 				TargetBefore.CurrentHealth = Character.Resources.CurrentHealth;
-				TargetBefore.PhysicalArmor = Character.Resources.CurrentPhysicalArmor;
+				// Physical armor includes remaining protection carried by equipped item instances.
+				TargetBefore.PhysicalArmor = Inventory->GetEffectiveCurrentPhysicalArmor(CharacterIndex);
 				TargetBefore.MagicalArmor = Character.Resources.CurrentMagicalArmor;
 				TargetBefore.DamageMultiplier = 1.0f;
 				const FGridDamageResistanceSet Resistances = Inventory->ComputeCharacterEquipmentResistances(CharacterIndex);
@@ -73,8 +74,11 @@ void UGridTurnManagerComponent::ResolveCombatSurfaceRound()
 					FGridCombatResolver::ResolveDirectDamage(TargetBefore, Surface->PeriodicDamageType, Surface->PeriodicDamagePerRound);
 				if (Damage.bHit)
 				{
-					Character.Resources.CurrentPhysicalArmor =
-						FMath::Max(0, Character.Resources.CurrentPhysicalArmor - Damage.PhysicalArmorDamage);
+					// Match the canonical monster-attack damage commitment: deplete
+					// equipped armor instances before the base physical pool.
+					// Preserve the equipment-source trace for future feedback.
+					Inventory->ApplyPhysicalArmorDamage(
+						CharacterIndex, Damage.PhysicalArmorDamage, &Damage.Trace.Damage.PhysicalArmorSources);
 					Character.Resources.CurrentMagicalArmor =
 						FMath::Max(0, Character.Resources.CurrentMagicalArmor - Damage.MagicalArmorDamage);
 					Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - Damage.HealthDamage);

@@ -777,6 +777,11 @@ private:
 	/** RPG03.6 applies periodic cell surfaces once at each new-round boundary, then decrements duration. */
 	void ResolveCombatSurfaceRound();
 
+	// RPG-SHIELD02.4A: test the real surface-round commitment without exposing it as a player API.
+	friend class FGridShield024APhysicalEquipmentSurfaceTest;
+	friend class FGridShield024AMagicalSurfaceTest;
+	friend class FGridShield024AZeroArmorSurfaceTest;
+
 	void ResetActiveAttackState();
 	void SetPhase(EGridCombatPhase NewPhase);
 
