@@ -24,9 +24,29 @@ EGridItemTooltipDeltaState UGridItemTooltipWeaponLineWidget::VisibleDeltaState(
     return Fact.bHasDelta ? Fact.DeltaState : EGridItemTooltipDeltaState::Neutral;
 }
 
+FName UGridItemTooltipWeaponLineWidget::GetFallbackIconStatId(FName StatId)
+{
+    // The global preview reports effective remaining armor rather than the
+    // historical nominal Armor stat. Both use the same physical-armor icon.
+    if (StatId == TEXT("CurrentPhysicalArmor") ||
+        StatId == TEXT("WeaponPhysicalArmor"))
+    {
+        return TEXT("Armor");
+    }
+    return NAME_None;
+}
+
 void UGridItemTooltipWeaponLineWidget::PresentIcon(FName StatId)
 {
     const TObjectPtr<UTexture2D>* Texture = StatIconTextures.Find(StatId);
+    if (!Texture || !IsValid(Texture->Get()))
+    {
+        const FName FallbackId = GetFallbackIconStatId(StatId);
+        if (!FallbackId.IsNone())
+        {
+            Texture = StatIconTextures.Find(FallbackId);
+        }
+    }
     const bool bHasIcon = Image_StatIcon && Texture && IsValid(Texture->Get());
     // Collapse the enclosing 48x48 slot, not just the image; otherwise
     // text-only weapon facts stretch the tooltip to many screen heights.

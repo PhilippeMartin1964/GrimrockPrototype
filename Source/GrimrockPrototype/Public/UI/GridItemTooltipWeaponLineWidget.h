@@ -28,6 +28,9 @@ public:
     /** Native, purely semantic decision: no runtime tint overrides. */
     static EGridItemTooltipDeltaState VisibleDeltaState(const FGridWeaponTooltipComparisonFact& Fact);
 
+    /** Optional legacy icon-map alias. Exact StatIconTextures key always takes priority. */
+    static FName GetFallbackIconStatId(FName StatId);
+
 protected:
     /** Stable StatId -> texture mapping, edited in the line WBP's Class Defaults. */
     UPROPERTY(EditDefaultsOnly, Category="Inventory|Tooltip|Designer")
