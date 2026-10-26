@@ -561,6 +561,7 @@ Key,SourceString,Comment
 "Inventory.Tooltip.Weapon.Damage.Arcane","Arcane","Dégâts arcaniques"
 "Inventory.Tooltip.Fallback.Quantity","Quantité : {Quantity}","Résumé texte de secours de l'inventaire"
 "Inventory.Tooltip.Fallback.Weight","Poids : {Weight}","Résumé texte de secours de l'inventaire"
+"Inventory.Tooltip.Equipment.TwoHands","Deux mains","Mode de maniement d'une arme à deux mains dans le tooltip d'inventaire"
 "Inventory.Tooltip.Fallback.Equipment","Équipement : {Slots}","Résumé texte de secours de l'inventaire"
 "Inventory.Tooltip.Fallback.WeaponLevel","Profil d'armement — niveau {Level}","Titre du profil dans le repli textuel"
 "Inventory.Tooltip.Fallback.WeaponFact","{Label} : {Value}","Une ligne de statistiques dans le repli textuel"

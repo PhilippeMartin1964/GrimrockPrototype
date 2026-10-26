@@ -91,6 +91,14 @@ namespace
 			return FText::GetEmpty();
 		}
 
+        // A two-handed item is installed in MainHand internally, but it
+        // occupies both hands. The tooltip describes usage, not storage.
+        if (Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded &&
+            Definition->CanEquipToSlot(EGridEquipmentSlot::MainHand))
+        {
+            return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Equipment.TwoHands"));
+        }
+
         TArray<FString> SlotLabels;
         TArray<EGridEquipmentSlot> EffectiveSlots;
         FGridEquipmentTooltipGlobalProjection::GatherAllowedSlots(Definition, EffectiveSlots);
