@@ -80,8 +80,8 @@ bool FWeaponPipelineManifestContracts::RunTest(const FString&)
         FGridWeaponPipelineManifest::Find(Rows, TEXT("ARM003"));
     if (Stiletto)
     {
-        TestEqual(TEXT("Prospective Stiletto not declared produced"), Stiletto->ProductionState,
-            FString(TEXT("Planned")));
+        TestEqual(TEXT("Produced Stiletto declared active"), Stiletto->ProductionState,
+            FString(TEXT("Active")));
     }
     return true;
 }
