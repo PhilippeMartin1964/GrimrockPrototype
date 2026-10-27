@@ -195,3 +195,12 @@ Pour ARM003 seulement, les noms et références **déjà inscrits au manifeste**
 - Aucun `Build -Apply` lancé, aucune arme supplémentaire produite ; les contrôles ne valent pas recette PIE.
 
 **Art préparatoire hors dépôt :** trois modèles GLB candidats du lot (géométrie vérifiée à la réouverture, textures BC/Normal/ORM, aperçus techniques). La qualité visuelle, les unités Blender/FBX, l'affectation des MI, les icônes finales et l'import dans UE5.5.4 ne sont pas encore validés. Ne pas confondre ces fichiers de travail avec des packages UE de production. Aucun `.uasset` et aucun identifiant ARM013/ARM020 n'ont été publiés par cette opération.
+
+### ARMEMENT-LOT01.1 — déclaration non destructive des trois armes (27 octobre 2026)
+
+- Les six ressources artistiques attendues par arme (mesh, Material Instance, textures BC/N/ORM, icône) ont été annoncées comme créées dans le projet Unreal local. Leur existence dans le dépôt GitHub et leurs paramètres UE n'ont pas encore été vérifiés : `git status --short` montrait ces fichiers comme non suivis, avec les textures regroupées par dossier.
+- `ARM003` conserve son entrée `Planned` et ses identifiants d'origine. `ARM013` et `ARM020` sont désormais **déclarées `Planned`**, avec des chemins correspondant à la nomenclature utilisée pour les nouveaux assets locaux ; cela ne les rend ni `Active`, ni jouables.
+- Identités proposées à auditer localement : `ARM013` = `Weapon_MainGauche_01` / `Attack_MainGauche_01` / `VIS_MainGauche_01`, famille `Light`, `Rogue`, compatibilité `MainHand;OffHand` (kit Shadow équipé en `OffHand`) ; `ARM020` = `Weapon_Mace_01` / `Attack_Mace_01` / `VIS_Mace_01`, famille `Blunt`, `Priest`, `MainHand` (kit Protection avec ARM075 OffHand). Les effets spéciaux de parade restent `PLANNED`.
+- Ne pas ajouter `L_MainMenu.umap` au commit d'art : le fichier était déjà modifié localement en dehors de ce lot.
+- Prochaine validation non destructive sur le PC : `git status --short --untracked-files=all`, `WeaponPipeline.ps1 -Action Audit -All`, puis `-Action Plan -Archetypes ARM003,ARM013,ARM020` et `-Action Build -Archetype ARMxxx` (sans `-Apply`). Vérifier `Art=READY` pour les trois et zéro `CONFLICT` ; toute erreur de taille d'icône, de matériau sur le mesh, de sRGB ou de PBR est bloquante.
+- Passer de `Planned` à `Active` **seulement dans l'étape suivante**, après le préflight local et l'ajustement du test historique qui fige encore ARM003 à `Planned`. Les phases Visual → Item → Palette → Narrative → Validate → PIE restent distinctes.
