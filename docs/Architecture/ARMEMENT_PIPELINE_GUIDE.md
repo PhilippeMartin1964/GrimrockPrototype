@@ -2,7 +2,7 @@
 
 **Procédure active — version 1.0 du 26 octobre 2026.** Tous les comptes rendus `docs/Design/ARMEMENT01_*.md` et les anciennes sections détaillées de ce guide sont **historiques**, non des commandes à exécuter aujourd'hui. L'ancienne version de ce guide reste accessible dans l'historique Git. **Ce guide est le point de vérité opérationnel.**
 
-**État du chantier :** INDUS01/02/03/04 validés par l'utilisateur ; INDUS05.1–05.4 implémentés sur `master`, validation locale UE5.5.4 et recette de clôture INDUS05 **attendues**. Ne pas transformer publication Git en PASS Unreal.
+**État du chantier :** INDUS01/02/03/04 validés par l'utilisateur ; INDUS05.1–05.4 implémentés sur `master`, **compilation locale UE5.5.4 et suite industrielle 7/7 validées le 27 octobre 2026** ; recette complète de clôture INDUS05 encore partiellement attendue. Ne pas transformer publication Git en PASS Unreal.
 
 ## 1. La réponse à la demande initiale
 
@@ -113,7 +113,7 @@ Trois tests supplémentaires communs `Grimrock.RPG.ARMEMENT.Industrial05` :
 2. `LegacyThrowingItemsPreserved` : contrôle la présence non altérée de Shuriken et ThrowingKnife, volontairement hors manifeste standard.
 3. `SinglePublicPipeline` : exige le point d'entrée générique et vérifie que six anciens scripts (quatre recettes par arme + deux scripts narratifs) ont disparu.
 
-**Total attendu : sept tests** sous le préfixe `Grimrock.RPG.ARMEMENT.Industrial`, puis les suites de non-régression UI et RPG. La compilation/l'automatisation sur le poste local n'a **pas encore été validée** pour INDUS05.
+**Total attendu : sept tests** sous le préfixe `Grimrock.RPG.ARMEMENT.Industrial`, puis les suites de non-régression UI et RPG. **Validation locale apportée par l'utilisateur le 27 octobre 2026 : compilation Development Editor OK et suite Industrial 7/7 PASS, sans avertissement, échec ni test non exécuté (rapport `TD04-20261027-073433`).** Les autres contrôles de clôture, notamment les suites UI/RPG et la recette Narrative -All, restent séparés.
 
 ```powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT.Industrial"
@@ -186,3 +186,12 @@ Pour ARM003 seulement, les noms et références **déjà inscrits au manifeste**
 5. Contrôler `git status --short`, sélectionner uniquement les packages voulus, effectuer **un commit atomique maximum** par étape validée, puis pousser `master`. Les 18 nouveaux kits ne sont pas activés automatiquement par ce lot.
 
 **Verdict de cet audit distant :** 0/3 armes fabriquées dans les répertoires canoniques ; aucune phase `-Apply` ni validation UE5.5.4/PIE effectuée par cet audit. Le classeur XLSX et les contenus binaires des catalogues doivent être inspectés par le pipeline local pour confirmer les valeurs et textes réellement projetés.
+
+### Résultats locaux fournis le 27 octobre 2026 — ARMEMENT-LOT01
+
+- `WeaponPipeline.ps1 -Action Audit -All` : build Development Editor à jour, `Checked=9`, `Complete=8`, `Planned=1`, `Conflicts=0`, `SavedPackages=0` ; ARM003 = `ART_MISSING`, détails `MissingIconMeshOrMaterial` ; ARM013 et ARM020 encore absents du manifeste. Pas de modification Git affichée.
+- `ValidateUE.ps1 -AutomationFilter "Grimrock.RPG.ARMEMENT01.11.1"` : **2/2 PASS**, 0 warning, 0 failed, exit 0 ; rapport `Saved/Automation/TD04/TD04-20261027-073418/`.
+- `ValidateUE.ps1 -SkipBuild -AutomationFilter "Grimrock.RPG.ARMEMENT.Industrial"` : **7/7 PASS**, 0 warning, 0 failed, exit 0 ; rapport `Saved/Automation/TD04/TD04-20261027-073433/`.
+- Aucun `Build -Apply` lancé, aucune arme supplémentaire produite ; les contrôles ne valent pas recette PIE.
+
+**Art préparatoire hors dépôt :** trois modèles GLB candidats du lot (géométrie vérifiée à la réouverture, textures BC/Normal/ORM, aperçus techniques). La qualité visuelle, les unités Blender/FBX, l'affectation des MI, les icônes finales et l'import dans UE5.5.4 ne sont pas encore validés. Ne pas confondre ces fichiers de travail avec des packages UE de production. Aucun `.uasset` et aucun identifiant ARM013/ARM020 n'ont été publiés par cette opération.
