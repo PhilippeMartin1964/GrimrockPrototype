@@ -153,3 +153,36 @@ INDUS05 sera **validé et clôturé** uniquement lorsque vous aurez fourni :
 5. `git status --short` conforme (aucun changement inopiné).
 
 Ne pas confondre **INDUS05 validé** et **82 armes jouables**. INDUS05 signifie que le **processus** pour en créer est uniforme, robuste et documenté.
+## 9. ARMEMENT-LOT01 — état de préparation des armes de mêlée N1 (27 octobre 2026)
+
+**Périmètre strict :** ARM003 (Stylet, Rogue/Saboteur, MainHand), ARM013 (Main-gauche, Rogue/Shadow, OffHand), ARM020 (Masse d'armes, Priest/Protection, MainHand). Ces trois placements N1 figurent dans les recettes `ARMEMENT01_9_6_STARTER_KIT_RECIPES.csv` avec `ApprovedDesign`. Les chiffres N1–N20 et les descriptions FR demeurent exclusivement dans le XLSX canonique, sans duplication ci-dessous.
+
+**Audit du dépôt `master` à `30944215d2e8` (inspection des chemins versionnés, pas exécution UE) :**
+
+| ID | Manifeste | Item produit | Mesh / icône / MI / textures PBR de production | Décision |
+| --- | --- | --- | --- | --- |
+| ARM003 | `Planned`, `MeleeOneHand`, `Rogue`, `MainHand` | Aucun | Aucun des 6 packages artistiques du manifeste présent | `ART_MISSING` attendu ; ne pas appliquer |
+| ARM013 | Non déclaré | Aucun | Aucun asset identifié dans les dossiers canoniques Weapons | Compléter le manifeste uniquement après validation des véritables chemins artistiques et du contrat de slot |
+| ARM020 | Non déclaré | Aucun | Aucun asset identifié dans les dossiers canoniques Weapons | Compléter le manifeste uniquement après validation des véritables chemins artistiques |
+
+Pour ARM003 seulement, les noms et références **déjà inscrits au manifeste** sont : `Weapon_Stiletto_01`, `Attack_Stiletto_01`, `VIS_Stiletto_01`, `DA_Weapon_Stiletto_01`, `SM_Weapon_Stiletto_01`, `T_Weapon_Stiletto_01`, `MI_Stiletto`, ainsi que `T_Stiletto_01_BC`, `T_Stiletto_01_N` et `T_Stiletto_01_ORM` dans `Art/Textures/Final/Weapons/Stiletto/`. Ces **références Planned ne prouvent pas l'existence des packages**. Ne pas attribuer d'identifiants ou de chemins devinés à ARM013 et ARM020.
+
+**Cahier technique commun pour Blender et Unreal, directement imposé par `GridWeaponPipelineCommandlet::LoadArt` :**
+
+- Véritable `UStaticMesh` importé, au moins un LOD, bounds finis et demi-étendue maximale d'au moins 5 cm ; matériau non vide dans les Static Material Slots.
+- Véritable `UMaterialInstance` avec parent valide et **affectée à un slot du mesh** (un nom de MI dans le manifeste ne suffit pas).
+- Véritable icône `UTexture2D` carrée, dimension importée d'au moins 256 × 256 ; inspection du rendu à 48 × 48 dans l'interface.
+- Trois textures `UTexture2D` PBR réellement importées : Base Color (`sRGB=true`), Normal (`sRGB=false`), ORM (`sRGB=false`) ; dimensions valides et chemins explicites dans le manifeste.
+- Art à distinguer visuellement : lame d'estoc étroite pour ARM003, arme secondaire avec silhouette de garde identifiable pour ARM013, tête contondante sur manche pour ARM020. **Ces indications sont uniquement des intentions graphiques, non de nouvelles statistiques ni actions de combat.** Ajuster échelle, pivot, tenue en main et matériaux par inspection des pilotes validés, puis valider dans Unreal.
+
+**ARM013 — vérifications techniques impératives :** le parseur actuel accepte une arme offensive déclarée `MainHand;OffHand`, mais pas un champ `OffHand` seul ; ne pas choisir les compatibilités sans confirmation du contrat de l'arme. `CanEquipToSlot()` autorise généralement une arme à une main dans les deux mains, tandis que `CanProvideAttackFromSlot()` exige le slot dans `CompatibleEquipmentSlots` et une action offensive valide. Vérifier l'attaque réelle depuis `OffHand` via le catalogue d'actions et le combat en PIE. La particularité narrative « Parade en main secondaire » est `PLANNED`, **jamais** une action automatique ou un talent N2 de départ.
+
+**Ordre de production sans substitution :**
+
+1. Faire l'inventaire local non destructif : `WeaponPipeline.ps1 -Action Audit -All` ; exécuter la suite existante `Grimrock.RPG.ARMEMENT01.11.1` (elle couvre les trois armes, y compris OffHand et les identités N1).
+2. Produire/importer l'art authentique par arme dans Blender/Unreal, puis vérifier ses ressources et l'éventuelle occupation de packages avant toute écriture. ARM013/ARM020 nécessitent ensuite leurs lignes `Planned` dans le manifeste avec chemins réellement approuvés. Ne basculer à `Active` qu'après préflight et revue du contenu.
+3. Réutiliser exclusivement `WeaponPipeline.ps1` : `Plan`, `Build` sans `-Apply`, puis `Build -Stage Visual|Item|Palette -Apply` séparément, en n'exécutant chaque étape que lorsque son préflight est `READY`. Appliquer `Narrative -Archetype ARMxxx -Apply` sur le DataAsset réellement créé, uniquement depuis `NarrativeV1 APPROVED` du XLSX.
+4. Vérifier `Validate -All`, la suite générique `Grimrock.RPG.ARMEMENT.Industrial`, les tests `Grimrock.RPG.ARMEMENT01.11.1`, les tests UI comparatifs et SaveGame existants, puis PIE : attaque/PA, comparaison avec arme équipée/main vide, infobulle FR, ramassage/équipement/dépôt, sauvegarde et rechargement. Pour ARM020, tester conjointement ARM075 ; pour ARM013, tester explicitement OffHand. Ne pas attribuer de talent de niveau 2.
+5. Contrôler `git status --short`, sélectionner uniquement les packages voulus, effectuer **un commit atomique maximum** par étape validée, puis pousser `master`. Les 18 nouveaux kits ne sont pas activés automatiquement par ce lot.
+
+**Verdict de cet audit distant :** 0/3 armes fabriquées dans les répertoires canoniques ; aucune phase `-Apply` ni validation UE5.5.4/PIE effectuée par cet audit. Le classeur XLSX et les contenus binaires des catalogues doivent être inspectés par le pipeline local pour confirmer les valeurs et textes réellement projetés.
