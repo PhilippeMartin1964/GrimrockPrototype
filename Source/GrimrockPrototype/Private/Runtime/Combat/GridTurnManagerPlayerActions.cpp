@@ -5,6 +5,7 @@
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
+#include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
@@ -603,6 +604,16 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		SourceItemQuantityCost = 1;
 	}
 
+	// Preflight ammunition before reserving PA; no charge on an invalid
+	// target, an unaccepted attack, or a character with no matching ammo.
+	if (IsValid(SourceItemDefinition) &&
+		!FGridRangedAmmunitionPolicy::HasRequiredAmmunition(
+			*Inventory, AttackerCharacterIndex, *SourceItemDefinition))
+	{
+		return RejectPlayerAttack(AttackerCharacterIndex,
+			EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
+	}
+
 	FGridItemInstance EquippedSourceItem;
 	if (Attacker.Resources.CurrentMana < ManaCost ||
 		(SourcePolicy == EGridCombatActionSourcePolicy::QuickItem &&
@@ -663,6 +674,15 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		{
 			bSourceCommitted = Inventory->RemoveItemDefinitionFromCharacterInventory(AttackerCharacterIndex, OffensiveItemDefinitionId, SourceItemQuantityCost);
 		}
+	}
+
+	// A catalogue-authorized ranged weapon has no other consumable source
+	// cost. Consume exactly one ammunition unit only after action acceptance,
+	// never on a refused target or failed throw.
+	if (bSourceCommitted && IsValid(SourceItemDefinition))
+	{
+		bSourceCommitted = FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(
+			*Inventory, AttackerCharacterIndex, *SourceItemDefinition);
 	}
 
 	if (!bSourceCommitted)

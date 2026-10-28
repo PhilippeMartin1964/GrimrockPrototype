@@ -16,6 +16,7 @@
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
+#include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
@@ -544,6 +545,25 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			Action.bEnabled = false;
 			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::MissingRequirement;
 			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.StatusBlocksSpells"));
+		}
+		// The shared execution gate is authoritative even if an action gets
+		// invoked without this UI read-model. Here we disable empty-ammo
+		// equipped attacks so the hotbar accurately describes the refusal.
+		if (Action.bEnabled &&
+			Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+			Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
+		{
+			const UGridItemDefinitionAsset* Weapon =
+				Inventory->FindItemDefinition(Action.SourceDefinitionId);
+			if (IsValid(Weapon) &&
+				!FGridRangedAmmunitionPolicy::HasRequiredAmmunition(
+					*Inventory, CharacterIndex, *Weapon))
+			{
+				Action.bEnabled = false;
+				Action.AvailabilityReason = EGridCombatActionAvailabilityReason::InsufficientSourceItems;
+				Action.DisabledReason =
+					FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.NoInventoryCopies"));
+			}
 		}
 		ResolveSuggestedCombatActionTarget(Action);
 	}

@@ -74,6 +74,21 @@ bool UGridItemDefinitionAsset::IsValidDefinition() const
 		{
 			return false;
 		}
+		// Ranged ammunition is strictly opt-in. Never charge a throwing weapon,
+		// a passive item, a melee strike or an unrelated quick-item action.
+		if (!RequiredAmmunitionItemDefinitionId.IsNone() &&
+			(RequiredAmmunitionItemDefinitionId == ItemDefinitionId ||
+			 bCombatThrowWeapon || DefaultProfile->RangeCells <= 1 ||
+			 !DefaultProfile->DamageDice.bEnabled ||
+			 CombatActions.ContainsByPredicate([](const FGridCombatActionDefinition& Action)
+			 {
+				 return Action.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+					 Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+					 Action.ResourceCosts.SourceItemQuantityCost != 0;
+			 })))
+		{
+			return false;
+		}
 		// Passive catalogue entries must not author an artificial equipped attack.
 		if (!DefaultProfile->DamageDice.bEnabled &&
 			CombatActions.ContainsByPredicate([](const FGridCombatActionDefinition& Action)
@@ -84,6 +99,11 @@ bool UGridItemDefinitionAsset::IsValidDefinition() const
 		{
 			return false;
 		}
+	}
+
+	if (!bUseWeaponCatalogue && !RequiredAmmunitionItemDefinitionId.IsNone())
+	{
+		return false;
 	}
 
 	// Visual opt-in checks only authoring references. It never loads a texture,

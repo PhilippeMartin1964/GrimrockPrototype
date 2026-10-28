@@ -110,6 +110,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Weapon Catalogue", meta = (EditCondition = "bUseWeaponCatalogue"))
 	FName WeaponArchetypeId = NAME_None;
 
+	/**
+	 * LOT02.4: optional ammunition authority for an equipped ranged weapon.
+	 * NAME_None preserves all existing weapon behaviour. When specified,
+	 * one matching inventory unit is consumed on each accepted attack.
+	 * This is an ItemDefinitionId, NOT an action source or weapon level.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Weapon Catalogue",
+		meta = (EditCondition = "bUseWeaponCatalogue"))
+	FName RequiredAmmunitionItemDefinitionId = NAME_None;
+
 	/** Applied once to newly created (ItemLevel=0) instances. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Weapon Catalogue", meta = (EditCondition = "bUseWeaponCatalogue", ClampMin = "1", ClampMax = "20"))
 	int32 DefaultWeaponItemLevel = 1;
