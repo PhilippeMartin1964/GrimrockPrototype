@@ -177,6 +177,7 @@ namespace ARMEMENTLOT02
         UGridItemDefinitionAsset* Main,
         UGridItemDefinitionAsset* Second,
         UGridItemDefinitionAsset* Support,
+        UGridItemDefinitionAsset* Ammunition,
         FString& Error)
     {
         const FString ClassPath = FString::Printf(
@@ -212,6 +213,10 @@ namespace ARMEMENTLOT02
             AddEntry(Kit, Support, EGridEquipmentSlot::None, 0,
                 Recipe.SupportQuantity);
         }
+        if (Ammunition)
+        {
+            AddEntry(Kit, Ammunition, EGridEquipmentSlot::None, 0, 12);
+        }
 
         FGridCharacterInventoryState Character;
         Character.CharacterId = FGuid::NewGuid();
@@ -236,7 +241,19 @@ namespace ARMEMENTLOT02
             Error = TEXT("GRANTED_OFFHAND_MISMATCH");
             return false;
         }
-        const int32 ExpectedDefinitions = 1 + (Second ? 1 : 0) + (Support ? 1 : 0);
+        if (Ammunition &&
+            !Character.InventorySlots.ContainsByPredicate([Ammunition](const FGridInventorySlot& Slot)
+            {
+                return !Slot.IsEmpty() &&
+                    Slot.Item.ItemDefinitionId == Ammunition->ItemDefinitionId &&
+                    Slot.Item.Quantity == 12;
+            }))
+        {
+            Error = TEXT("STARTER_AMMUNITION_NOT_GRANTED");
+            return false;
+        }
+        const int32 ExpectedDefinitions = 1 + (Second ? 1 : 0) + (Support ? 1 : 0) +
+            (Ammunition ? 1 : 0);
         if (Definitions.Num() != ExpectedDefinitions)
         {
             Error = TEXT("GRANTED_DEFINITION_COUNT_MISMATCH");
@@ -285,13 +302,24 @@ bool FARMEMENTLOT02Readiness::RunTest(const FString&)
         FResolved Second = Recipe.SecondArchetype.IsNone()
             ? FResolved() : ResolveWeapon(Recipe.SecondArchetype, SecondSlot, Manifest);
         UGridItemDefinitionAsset* Support = nullptr;
+        UGridItemDefinitionAsset* Ammunition = nullptr;
         FString Reason;
         if (!Main.Item) Reason = Main.Reason;
         else if (!Recipe.SecondArchetype.IsNone() && !Second.Item) Reason = Second.Reason;
         else if (Recipe.PendingSupport != TEXT("None"))
             Reason = TEXT("PENDING_SUPPORT:") + Recipe.PendingSupport;
         else if (Recipe.DesignNote == TEXT("AmmoSupplyMustBeVerified"))
-            Reason = TEXT("AMMO_NOT_VERIFIED");
+        {
+            Ammunition = FRPGStartingEquipmentPresetCatalog::
+                ResolveKnownStartingItemDefinition(TEXT("Item_Arrows_01"));
+            if (!IsValid(Ammunition) || !Ammunition->IsValidDefinition() ||
+                !Ammunition->bStackable || Ammunition->MaxStackSize < 12 ||
+                !IsValid(Main.Item) ||
+                Main.Item->RequiredAmmunitionItemDefinitionId != Ammunition->ItemDefinitionId)
+            {
+                Reason = TEXT("AMMO_NOT_VERIFIED");
+            }
+        }
         else if (!Recipe.SupportId.IsNone())
         {
             Support = FRPGStartingEquipmentPresetCatalog::
@@ -300,7 +328,7 @@ bool FARMEMENTLOT02Readiness::RunTest(const FString&)
                 Reason = TEXT("SUPPORT_ITEM_UNAVAILABLE:") + Recipe.SupportId.ToString();
         }
         if (Reason.IsEmpty() &&
-            !SimulateKit(Recipe, Main.Item, Second.Item, Support, Reason))
+            !SimulateKit(Recipe, Main.Item, Second.Item, Support, Ammunition, Reason))
         {
             Reason = TEXT("TRANSACTION_REJECTED:") + Reason;
         }
@@ -328,13 +356,14 @@ bool FARMEMENTLOT02Readiness::RunTest(const FString&)
             *Recipe.KitId, *Status, *Reason));
     }
 
-    // Five fully authored kits of the approved 18 can be simulated now.
+    // LOT02.5: five pre-existing candidates plus Marksman with real arrows.
     const TCHAR* ExpectedCandidates[] = {
         TEXT("Kit_Warrior_Guardian"),
         TEXT("Kit_Warrior_Breaker"),
         TEXT("Kit_Warrior_WeaponMaster"),
         TEXT("Kit_Rogue_Shadow"),
-        TEXT("Kit_Priest_Protection")
+        TEXT("Kit_Priest_Protection"),
+        TEXT("Kit_Ranger_Marksman")
     };
     for (const TCHAR* Id : ExpectedCandidates)
     {
@@ -343,8 +372,9 @@ bool FARMEMENTLOT02Readiness::RunTest(const FString&)
     }
     TestFalse(TEXT("Saboteur cannot silently omit its planned disarming tool"),
         Candidates.Contains(TEXT("Kit_Rogue_Saboteur")));
-    TestFalse(TEXT("Marksman ammunition cannot be silently assumed"),
+    TestTrue(TEXT("Marksman ammo package and bow link explicitly verified"),
         Candidates.Contains(TEXT("Kit_Ranger_Marksman")));
+    TestEqual(TEXT("Exactly six approved playable-kit candidates"), Candidates.Num(), 6);
 
     const FString Folder = FPaths::Combine(
         FPaths::ProjectSavedDir(), TEXT("ARMEMENT-LOT02"));

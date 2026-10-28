@@ -120,10 +120,15 @@ foreach ($Recipe in $Recipes) {
         if (-not (Test-Content $SupportRel)) { $Reasons.Add('SUPPORT_PACKAGE_MISSING:' + $Recipe.KnownSupportItemId) }
         $NonWeapon.Add([pscustomobject]@{KitId=$Recipe.KitId;Dependency=$Recipe.KnownSupportItemId;Kind='KNOWN_ITEM';Status=$(if(Test-Content $SupportRel){'PACKAGE_PRESENT'}else{'PACKAGE_MISSING'})})
     }
-    # Do not infer an ammunition contract from having a bow DataAsset.
+    # LOT02.5: presence only permits an Unreal verification, not a
+    # silent assertion that the bow correctly consumes the authored arrow.
     if ($Recipe.DesignNoteCode -eq 'AmmoSupplyMustBeVerified') {
-        $Reasons.Add('AMMO_NOT_VERIFIED')
-        $NonWeapon.Add([pscustomobject]@{KitId=$Recipe.KitId;Dependency='BowAmmoAndConsumption';Kind='GAMEPLAY_CONTRACT';Status='NOT_VERIFIED'})
+        $ArrowRel = 'Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.uasset'
+        if (-not (Test-Content $ArrowRel)) { $Reasons.Add('AMMO_PACKAGE_MISSING') }
+        $NonWeapon.Add([pscustomobject]@{
+            KitId=$Recipe.KitId;Dependency='BowAmmoAndConsumption';Kind='GAMEPLAY_CONTRACT'
+            Status=$(if (Test-Content $ArrowRel) { 'PACKAGE_PRESENT_REQUIRES_UE_TEST' } else { 'NOT_VERIFIED' })
+        })
     }
     $KitMatrix.Add([pscustomobject]@{
         ClassId=$Recipe.ClassId; BranchId=$Recipe.BranchId; KitId=$Recipe.KitId

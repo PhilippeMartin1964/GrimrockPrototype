@@ -122,6 +122,15 @@ UGridItemDefinitionAsset* FRPGStartingEquipmentPresetCatalog::ResolveKnownStarti
     {
         return nullptr;
     }
+    // LOT02.5: exact, approved Marksman starter ammunition identity.
+    // Never resolve arbitrary unknown save IDs or substitute another item.
+    if (ItemDefinitionId == FName(TEXT("Item_Arrows_01")))
+    {
+        UGridItemDefinitionAsset* Arrows = LoadObject<UGridItemDefinitionAsset>(
+            nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
+        return IsValid(Arrows) && Arrows->ItemDefinitionId == ItemDefinitionId &&
+            Arrows->IsValidDefinition() ? Arrows : nullptr;
+    }
     // Only definitions explicitly referenced by a production kit can be
     // loaded as a fallback. A save must never silently substitute another
     // object with a mismatched ItemDefinitionId.
