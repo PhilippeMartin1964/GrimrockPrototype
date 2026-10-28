@@ -234,6 +234,10 @@ namespace WeaponPipeline
         Item->WorldMesh = Look->WorldMesh;
         Item->EquippedMesh = Look->EquippedMesh.IsNull() ? Look->WorldMesh : Look->EquippedMesh;
         Item->bCombatThrowWeapon = Spec.IsThrowable();
+        // LOT02.13.1: explicit authoring for the approved arrow-fed recurve bow.
+        // Never grant infinite ammunition through a generic Ranged default.
+        if (Spec.ArchetypeId == TEXT("ARM048") && Spec.BuildKind == TEXT("Ranged"))
+            Item->RequiredAmmunitionItemDefinitionId = TEXT("Item_Arrows_01");
         Item->bProvidesQuickItemCombatAction = false;
 
         if (Spec.IsPassive())
@@ -312,6 +316,11 @@ namespace WeaponPipeline
             return Fail(TEXT("HandUsageMismatch"));
         if (Existing.bCombatThrowWeapon != Spec.IsThrowable())
             return Fail(TEXT("CombatThrowableMismatch"));
+        // ARM048 must keep the same arrow link after future rebuild/audit.
+        // ARM045 is intentionally handled by the established Marksman workflow.
+        if (Spec.ArchetypeId == TEXT("ARM048") &&
+            Existing.RequiredAmmunitionItemDefinitionId != FName(TEXT("Item_Arrows_01")))
+            return Fail(TEXT("RecurveBowAmmunitionLinkMismatch"));
         if (Existing.Icon.ToSoftObjectPath() != FSoftObjectPath(Spec.IconPath) ||
             Existing.WorldMesh.ToSoftObjectPath() != FSoftObjectPath(Spec.MeshPath))
             return Fail(TEXT("IconOrMeshReferenceMismatch"));

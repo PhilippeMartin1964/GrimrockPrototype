@@ -52,6 +52,88 @@ namespace MarksmanAmmo
         Item->MarkPackageDirty();
         return UPackage::SavePackage(Package, Item, *Filename, Args);
     }
+
+    // LOT02.13.1: reuse the existing authored arrow resource and commandlet.
+    // Unlike ARM045 initial authoring, ARM048 already has a committed package.
+    // This migration only changes its opt-in ammunition identity.
+    int32 LinkRecurveBowArrows(bool bApply)
+    {
+        static constexpr const TCHAR* RecurveObject =
+            TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RecurveBow_01.DA_Weapon_RecurveBow_01");
+        const FString ArrowFile = FPackageName::LongPackageNameToFilename(
+            ArrowPackage, FPackageName::GetAssetPackageExtension());
+        if (!FPaths::FileExists(ArrowFile))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[LOT02.13.1] MISSING authored Item_Arrows_01 package"));
+            return 1;
+        }
+        UGridItemDefinitionAsset* Arrows = LoadObject<UGridItemDefinitionAsset>(nullptr, ArrowObject);
+        UGridItemDefinitionAsset* Bow = LoadObject<UGridItemDefinitionAsset>(nullptr, RecurveObject);
+        if (!IsValid(Arrows) || !IsExpectedArrow(*Arrows) ||
+            !IsValid(Bow) || Bow->GetPathName() != RecurveObject ||
+            Bow->ItemDefinitionId != FName(TEXT("Weapon_RecurveBow_01")) ||
+            Bow->WeaponArchetypeId != FName(TEXT("ARM048")) ||
+            !Bow->bUseWeaponCatalogue || !Bow->bUseWeaponVisualCatalogue ||
+            Bow->bCombatThrowWeapon || Bow->CombatActions.Num() != 1 ||
+            Bow->GetEffectiveHandUsage() != EGridItemHandUsage::TwoHanded ||
+            !Bow->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand) ||
+            !Bow->IsValidDefinition())
+        {
+            UE_LOG(LogTemp, Error, TEXT("[LOT02.13.1] CONFLICT: noncanonical recurve bow or arrows"));
+            return 1;
+        }
+        const FGridWeaponLevelProfile* N1 = nullptr;
+        const FGridCombatActionDefinition& Action = Bow->CombatActions[0];
+        if (!Bow->TryGetWeaponCatalogueProfile(1, N1) || !N1 ||
+            !N1->IsValidProfile() || N1->RangeCells <= 1 ||
+            !Action.IsValid() || Action.ActionType != EGridCombatActionType::RangedAttack ||
+            Action.SourcePolicy != EGridCombatActionSourcePolicy::Equipment ||
+            !Action.bRequiresLineOfSight ||
+            Action.ResourceCosts.SourceItemQuantityCost != 0)
+        {
+            UE_LOG(LogTemp, Error, TEXT("[LOT02.13.1] CONFLICT: invalid ranged combat contract"));
+            return 1;
+        }
+        if (Bow->RequiredAmmunitionItemDefinitionId == FName(ArrowId))
+        {
+            UE_LOG(LogTemp, Display, TEXT("[LOT02.13.1] PRESENT_SAME ARM048 Ammo=Item_Arrows_01"));
+            return 0;
+        }
+        if (!Bow->RequiredAmmunitionItemDefinitionId.IsNone() ||
+            Bow->GetOutermost()->IsDirty())
+        {
+            UE_LOG(LogTemp, Error, TEXT("[LOT02.13.1] CONFLICT: existing ammo link or dirty bow package"));
+            return 1;
+        }
+        UGridItemDefinitionAsset* Candidate =
+            DuplicateObject<UGridItemDefinitionAsset>(Bow, GetTransientPackage());
+        if (!IsValid(Candidate))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[LOT02.13.1] Cannot preview bow mutation"));
+            return 1;
+        }
+        Candidate->RequiredAmmunitionItemDefinitionId = FName(ArrowId);
+        if (!Candidate->IsValidDefinition())
+        {
+            UE_LOG(LogTemp, Error, TEXT("[LOT02.13.1] CONFLICT: proposed bow fails definition validation"));
+            return 1;
+        }
+        UE_LOG(LogTemp, Display, TEXT("[LOT02.13.1] READY ARM048 Ammo=Item_Arrows_01 ChangedFields=1"));
+        if (!bApply)
+        {
+            UE_LOG(LogTemp, Display, TEXT("[LOT02.13.1] DRY_RUN no package written"));
+            return 0;
+        }
+        Bow->Modify();
+        Bow->RequiredAmmunitionItemDefinitionId = FName(ArrowId);
+        if (!Bow->IsValidDefinition() || !Save(Bow))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[LOT02.13.1] SAVE_FAILED ARM048 inspect local package; no rollback"));
+            return 1;
+        }
+        UE_LOG(LogTemp, Display, TEXT("[LOT02.13.1] SAVED ARM048 Ammo=Item_Arrows_01 Packages=1"));
+        return 0;
+    }
 }
 
 UGridMarksmanAmmunitionAuthoringCommandlet::UGridMarksmanAmmunitionAuthoringCommandlet()
@@ -65,6 +147,17 @@ UGridMarksmanAmmunitionAuthoringCommandlet::UGridMarksmanAmmunitionAuthoringComm
 int32 UGridMarksmanAmmunitionAuthoringCommandlet::Main(const FString& Params)
 {
     const bool bApply = FParse::Param(*Params, TEXT("Apply"));
+    FString Archetype;
+    FParse::Value(*Params, TEXT("Archetype="), Archetype);
+    if (!Archetype.IsEmpty())
+    {
+        if (Archetype != TEXT("ARM048"))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[LOT02.13.1] Unsupported ammunition migration target: %s"), *Archetype);
+            return 1;
+        }
+        return MarksmanAmmo::LinkRecurveBowArrows(bApply);
+    }
     UGridItemDefinitionAsset* Bow =
         LoadObject<UGridItemDefinitionAsset>(nullptr, MarksmanAmmo::BowObject);
     if (!IsValid(Bow) || !Bow->IsValidDefinition() ||
