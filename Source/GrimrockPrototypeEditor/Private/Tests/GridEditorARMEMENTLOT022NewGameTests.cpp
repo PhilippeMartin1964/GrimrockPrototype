@@ -49,20 +49,33 @@ namespace ARMEMENTLOT022
         {
             const auto& Cells = Rows[Index];
             if (Cells.Num() != 15 || FString(Cells[2]) != KitId) continue;
+            // The canonical CSV uses literal "None" and level 0 when a
+            // kit has no second weapon (e.g. the two-handed Breaker).
+            // "None" is not an empty CSV field and must not imply N1.
+            const bool bHasSecondary =
+                FCString::Strcmp(Cells[6], TEXT("None")) != 0 &&
+                Cells[6][0] != 0;
+            const bool bSecondaryValid = bHasSecondary
+                ? (FCString::Atoi(Cells[7]) == 1 &&
+                   (FCString::Strcmp(Cells[8], TEXT("Bag")) == 0 ||
+                    FCString::Strcmp(Cells[8], TEXT("OffHand")) == 0))
+                : (FCString::Atoi(Cells[7]) == 0 &&
+                   FCString::Strcmp(Cells[8], TEXT("None")) == 0);
             if (FCString::Strcmp(Cells[13], TEXT("ApprovedDesign")) != 0 ||
                 FCString::Strcmp(Cells[5], TEXT("MainHand")) != 0 ||
                 FCString::Atoi(Cells[4]) != 1 ||
-                (Cells[6][0] != 0 && FCString::Atoi(Cells[7]) != 1) ||
+                !bSecondaryValid ||
                 FCString::Strcmp(Cells[9], TEXT("None")) != 0 ||
                 FCString::Strcmp(Cells[11], TEXT("None")) != 0)
             {
-                Error = TEXT("Candidate recipe is incomplete or not approved");
+                Error = FString::Printf(
+                    TEXT("Candidate recipe %s is incomplete or not approved"), *KitId);
                 return false;
             }
             Out.ClassId = Cells[0];
             Out.KitId = Cells[2];
             Out.Primary = FName(Cells[3]);
-            Out.Secondary = Cells[6][0] != 0 ? FName(Cells[6]) : NAME_None;
+            Out.Secondary = bHasSecondary ? FName(Cells[6]) : NAME_None;
             Out.SecondarySlot = Cells[8];
             ++Matches;
         }
