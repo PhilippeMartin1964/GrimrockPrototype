@@ -23,10 +23,11 @@ struct FGridWeaponPipelineRow
     FString EquipmentSlots;
 
     bool IsPassive() const { return BuildKind == TEXT("ShieldPassive"); }
+    bool IsThrowable() const { return BuildKind == TEXT("ThrowingOneHand"); }
     bool IsSupportedBuildKind() const
     {
         return BuildKind == TEXT("MeleeOneHand") || BuildKind == TEXT("MeleeTwoHand") ||
-            BuildKind == TEXT("Ranged") || IsPassive();
+            BuildKind == TEXT("Ranged") || IsThrowable() || IsPassive();
     }
 };
 

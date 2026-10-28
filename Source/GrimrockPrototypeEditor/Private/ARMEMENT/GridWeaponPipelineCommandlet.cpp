@@ -235,7 +235,7 @@ namespace WeaponPipeline
         Item->Icon = Look->BaseIcon;
         Item->WorldMesh = Look->WorldMesh;
         Item->EquippedMesh = Look->EquippedMesh.IsNull() ? Look->WorldMesh : Look->EquippedMesh;
-        Item->bCombatThrowWeapon = false;
+        Item->bCombatThrowWeapon = Spec.IsThrowable();
         Item->bProvidesQuickItemCombatAction = false;
 
         if (Spec.IsPassive())
@@ -251,7 +251,7 @@ namespace WeaponPipeline
             Action.ActionId = FName(Spec.AttackId);
             Action.DisplayName = N1->DisplayName;
             Action.Icon = Look->BaseIcon;
-            Action.ActionType = Spec.BuildKind == TEXT("Ranged")
+            Action.ActionType = (Spec.BuildKind == TEXT("Ranged") || Spec.IsThrowable())
                 ? EGridCombatActionType::RangedAttack
                 : EGridCombatActionType::MeleeAttack;
             Action.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
@@ -259,7 +259,8 @@ namespace WeaponPipeline
             Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
             Action.ActionPointCost = N1->ActionPointCost;
             Action.RangeCells = N1->RangeCells;
-            Action.bRequiresLineOfSight = Spec.BuildKind == TEXT("Ranged");
+            Action.bRequiresLineOfSight = Spec.BuildKind == TEXT("Ranged") || Spec.IsThrowable();
+            Action.ResourceCosts.SourceItemQuantityCost = Spec.IsThrowable() ? 1 : 0;
             Action.OffensiveProfile.AttackId = Action.ActionId;
             Action.OffensiveProfile.AttackDefinition = Attack;
             Action.OffensiveProfile.DamageScalingAttribute = N1->ScalingAttribute;
@@ -310,6 +311,8 @@ namespace WeaponPipeline
             return Fail(TEXT("WeightKgMismatch"));
         if (Existing.HandUsage != Usage(Spec))
             return Fail(TEXT("HandUsageMismatch"));
+        if (Existing.bCombatThrowWeapon != Spec.IsThrowable())
+            return Fail(TEXT("CombatThrowableMismatch"));
         if (Existing.Icon.ToSoftObjectPath() != FSoftObjectPath(Spec.IconPath) ||
             Existing.WorldMesh.ToSoftObjectPath() != FSoftObjectPath(Spec.MeshPath))
             return Fail(TEXT("IconOrMeshReferenceMismatch"));
@@ -342,15 +345,17 @@ namespace WeaponPipeline
                 *Spec.AttackId, *A.ActionId.ToString());
             return false;
         }
-        if (A.ActionType != (Spec.BuildKind == TEXT("Ranged")
+        if (A.ActionType != ((Spec.BuildKind == TEXT("Ranged") || Spec.IsThrowable())
                 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack))
             return Fail(TEXT("CombatActionTypeMismatch"));
         if (A.SourcePolicy != EGridCombatActionSourcePolicy::Equipment)
             return Fail(TEXT("ActionSourcePolicyMismatch"));
         if (A.ActionPointCost != N1->ActionPointCost || A.RangeCells != N1->RangeCells)
             return Fail(TEXT("ActionPointCostOrRangeMismatch"));
-        if (A.bRequiresLineOfSight != (Spec.BuildKind == TEXT("Ranged")))
+        if (A.bRequiresLineOfSight != (Spec.BuildKind == TEXT("Ranged") || Spec.IsThrowable()))
             return Fail(TEXT("ActionLineOfSightMismatch"));
+        if (A.ResourceCosts.SourceItemQuantityCost != (Spec.IsThrowable() ? 1 : 0))
+            return Fail(TEXT("ThrowingQuantityCostMismatch"));
 
         FGridAttackDefinition Expected;
         if (!N1->TryBuildAttackDefinition(Expected))

@@ -1,0 +1,12 @@
+ArchetypeId,Wave,ProposedMode,PipelineSupported,Review
+ARM038,Ranger,TwoHandedSpear,No,Confirm spear reach and weapon action against canonical N1
+ARM048,Ranger,Ranged,Yes,Real bow art and arrows required
+ARM054,Throwing,ThrowingOneHand,Yes,Knife physical projectile and recovery
+ARM057,Throwing,ThrowingOneHand,Yes,Javelin physical projectile and recovery
+ARM058,Throwing,ThrowingOneHand,Yes,Dart poison effect remains planned
+ARM061,Magic,MagicWand,No,Magic projectile not a melee action
+ARM062,Magic,MagicWand,No,Fire magic effect requires review
+ARM067,Magic,ElementalStaff,No,Elemental magic behavior requires review
+ARM069,Magic,SacredScepter,No,Healing and support behavior requires review
+ARM070,Focus,OffhandFocusPassive,No,Focus bonuses not covered by shield builder
+ARM081,Shield,ShieldPassive,Yes,Real art and N1 passive stats review
