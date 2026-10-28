@@ -107,3 +107,66 @@ bool FGridWeaponPipelinePalette::Propose(
     }
     return true;
 }
+
+bool FGridWeaponPipelinePalette::ProposeDirectItem(
+    const UGridObjectPaletteAsset& Palette, UGridItemDefinitionAsset* Item,
+    FName Category, TArray<FGridObjectPaletteEntry>& Out, bool& bAdded,
+    FString& Error)
+{
+    Out.Reset();
+    bAdded = false;
+    TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
+    if (!IsValid(Item) || !Item->IsValidDefinition() ||
+        Item->ItemDefinitionId.IsNone() || Category.IsNone() ||
+        !Palette.ValidatePalette(Messages))
+    {
+        Error = TEXT("InvalidItemOrOriginalPalette");
+        return false;
+    }
+    int32 Count = 0;
+    int32 Aliases = 0;
+    const FGridObjectPaletteEntry* Existing = nullptr;
+    for (const FGridObjectPaletteEntry& Entry : Palette.Entries)
+    {
+        if (Entry.EntryId == Item->ItemDefinitionId)
+        {
+            ++Count;
+            Existing = &Entry;
+        }
+        if (Entry.DefaultItemDefinition.Get() == Item &&
+            Entry.EntryId != Item->ItemDefinitionId)
+            ++Aliases;
+    }
+    if (Count > 1 || Aliases > 0 || (Existing &&
+        (Existing->PaletteCategory != Category ||
+         Existing->DefaultItemDefinition.Get() != Item ||
+         Existing->Icon != nullptr ||
+         Existing->DefaultWorldObjectDefinition != nullptr ||
+         Existing->DefaultMonsterDefinition != nullptr ||
+         Existing->DefaultStoryCompanionDefinition != nullptr ||
+         !Existing->IsValidEntry())))
+    {
+        Error = TEXT("DuplicateAliasOrConflictingExistingItem");
+        return false;
+    }
+    Out = Palette.Entries;
+    if (!Existing)
+    {
+        FGridObjectPaletteEntry& Entry = Out.AddDefaulted_GetRef();
+        Entry.EntryId = Item->ItemDefinitionId;
+        Entry.PaletteCategory = Category;
+        Entry.DefaultItemDefinition = Item;
+        bAdded = true;
+    }
+    UGridObjectPaletteAsset* Candidate =
+        NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
+    Candidate->Entries = Out;
+    if (!Candidate->ValidatePalette(Messages))
+    {
+        Error = TEXT("InvalidProposedPalette");
+        Out.Reset();
+        bAdded = false;
+        return false;
+    }
+    return true;
+}

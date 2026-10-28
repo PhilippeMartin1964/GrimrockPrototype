@@ -649,14 +649,86 @@ UGridWeaponPipelineCommandlet::UGridWeaponPipelineCommandlet()
 int32 UGridWeaponPipelineCommandlet::Main(const FString& Params)
 {
     using namespace WeaponPipeline;
-    FString Action = TEXT("Audit"), Stage, Requested, ManifestFile, Report, NarrativeFile;
+    FString Action = TEXT("Audit"), Stage, Requested, ManifestFile, Report, NarrativeFile, DirectItemPath, PaletteCategory;
     FParse::Value(*Params, TEXT("Action="), Action);
+    FParse::Value(*Params, TEXT("ItemPath="), DirectItemPath);
+    FParse::Value(*Params, TEXT("PaletteCategory="), PaletteCategory);
     FParse::Value(*Params, TEXT("Narrative="), NarrativeFile);
     FParse::Value(*Params, TEXT("Stage="), Stage);
     FParse::Value(*Params, TEXT("Archetype="), Requested);
     FParse::Value(*Params, TEXT("Manifest="), ManifestFile);
     FParse::Value(*Params, TEXT("Report="), Report);
     const bool bApply = FParse::Param(*Params, TEXT("Apply"));
+
+
+    // Generic direct-item palette registration, beyond ARMxxx weapons.
+    if (Action == TEXT("PaletteItem"))
+    {
+        const FString Prefix = TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_");
+        const FString PackageName = FPackageName::ObjectPathToPackageName(DirectItemPath);
+        const FString AssetName = FPackageName::GetLongPackageAssetName(PackageName);
+        if (!Requested.IsEmpty() || !Stage.IsEmpty() ||
+            !DirectItemPath.StartsWith(Prefix) ||
+            DirectItemPath != PackageName + TEXT(".") + AssetName ||
+            PaletteCategory != TEXT("Items"))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS02] PALETTE_ITEM BLOCKED InvalidSelection"));
+            return 1;
+        }
+        UGridObjectPaletteAsset* Palette =
+            LoadObject<UGridObjectPaletteAsset>(nullptr, PalettePath);
+        UGridItemDefinitionAsset* Item =
+            LoadObject<UGridItemDefinitionAsset>(nullptr, *DirectItemPath);
+        if (!IsValid(Palette) || !IsValid(Item) || !Item->IsValidDefinition())
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS02] PALETTE_ITEM BLOCKED InvalidSource"));
+            return 2;
+        }
+        TArray<FGridObjectPaletteEntry> Proposed;
+        bool bAdded = false;
+        FString Error;
+        if (!FGridWeaponPipelinePalette::ProposeDirectItem(
+                *Palette, Item, FName(*PaletteCategory), Proposed, bAdded, Error))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS02] PALETTE_ITEM CONFLICT %s"), *Error);
+            return 3;
+        }
+        if (!bAdded)
+        {
+            UE_LOG(LogTemp, Display, TEXT("[INDUS02] PALETTE_ITEM PRESENT_SAME Id=%s"),
+                *Item->ItemDefinitionId.ToString());
+            return 0;
+        }
+        UE_LOG(LogTemp, Display, TEXT("[INDUS02] PALETTE_ITEM READY Id=%s Add=1"),
+            *Item->ItemDefinitionId.ToString());
+        if (!bApply)
+        {
+            UE_LOG(LogTemp, Display, TEXT("[INDUS02] PALETTE_ITEM DRY_RUN NoPackagesWritten"));
+            return 0;
+        }
+        UPackage* Package = Palette->GetOutermost();
+        if (!IsValid(Package) || Package->IsDirty() || Item->GetOutermost()->IsDirty())
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS02] PALETTE_ITEM BLOCKED DirtyPackage"));
+            return 4;
+        }
+        Palette->Modify();
+        Palette->Entries = MoveTemp(Proposed);
+        Package->MarkPackageDirty();
+        const FString File = FPackageName::LongPackageNameToFilename(
+            Package->GetName(), FPackageName::GetAssetPackageExtension());
+        FSavePackageArgs Args;
+        Args.TopLevelFlags = RF_Public | RF_Standalone;
+        Args.SaveFlags = SAVE_NoError;
+        if (!UPackage::SavePackage(Package, Palette, *File, Args))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[INDUS02] PALETTE_ITEM SAVE_FAILED"));
+            return 5;
+        }
+        UE_LOG(LogTemp, Display, TEXT("[INDUS02] PALETTE_ITEM SAVED Id=%s Packages=1"),
+            *Item->ItemDefinitionId.ToString());
+        return 0;
+    }
 
     // INDUS04.4: controlled one-item publication of previously APPROVED editorial text.
     // Runs before gameplay catalogue/palette inspection: narrative never changes stats.

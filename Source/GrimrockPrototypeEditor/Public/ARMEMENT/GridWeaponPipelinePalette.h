@@ -21,6 +21,11 @@ public:
         const UGridItemDefinitionAsset* Item, bool bAllowLegacyItems,
         FString& Detail);
 
+    static bool ProposeDirectItem(
+        const UGridObjectPaletteAsset& Palette, UGridItemDefinitionAsset* Item,
+        FName Category, TArray<FGridObjectPaletteEntry>& Out, bool& bAdded,
+        FString& Error);
+
     static bool Propose(
         const UGridObjectPaletteAsset& Palette, FName EntryId,
         UGridItemDefinitionAsset* Item, bool bAllowLegacyItems,
