@@ -96,7 +96,7 @@ bool FARMLot02132RealWorld::RunTest(const FString&)
     Runtime->LevelAsset = Level;
     AGrimrockPartyPawn* Party = Fixture.World->SpawnActor<AGrimrockPartyPawn>();
     if (!TestNotNull(TEXT("Test party pawn"), Party) ||
-        !TestNotNull(TEXT("Party inventory component"), Party->PartyInventoryComponent)) return false;
+        !TestNotNull(TEXT("Party inventory component"), Party->PartyInventoryComponent.Get())) return false;
     Party->LevelRuntimeActor = Runtime;
     Party->CurrentCellX = 1; Party->CurrentCellY = 1;
     Party->Facing = EGridEdge::North;
