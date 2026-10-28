@@ -19,8 +19,15 @@ bool FARMEMENTLOT026Throwing::RunTest(const FString&)
     TestFalse(TEXT("Throwing is not passive"), Kind.IsPassive());
     Kind.BuildKind = TEXT("MeleeOneHand");
     TestFalse(TEXT("Melee cannot become thrown silently"), Kind.IsThrowable());
+    // LOT02.8 supersedes the old LOT02.6 rejection: passive magical focuses
+    // are now a supported OffHand category, without attacks or projectiles.
     Kind.BuildKind = TEXT("FocusPassive");
-    TestFalse(TEXT("Unimplemented focus cannot enter standard pipeline"), Kind.IsSupportedBuildKind());
+    Kind.EquipmentSlots = TEXT("OffHand");
+    TestTrue(TEXT("Focus is supported by the production pipeline"), Kind.IsSupportedBuildKind());
+    TestTrue(TEXT("Focus is classified as passive equipment"), Kind.IsPassive() && Kind.IsFocus());
+    TestFalse(TEXT("Focus is not a physical shield"), Kind.IsShield());
+    TestFalse(TEXT("Focus provides no ranged or throwing attack"), Kind.UsesRangedAction() || Kind.IsThrowable());
+    TestFalse(TEXT("Focus is not a two-handed item"), Kind.IsTwoHanded());
     Kind.BuildKind = TEXT("MagicOneHand");
     TestTrue(TEXT("Magical one-hand mode supported"), Kind.IsSupportedBuildKind());
     TestTrue(TEXT("Magic uses a direct attack, not an unlocked spell"), Kind.UsesRangedAction());
