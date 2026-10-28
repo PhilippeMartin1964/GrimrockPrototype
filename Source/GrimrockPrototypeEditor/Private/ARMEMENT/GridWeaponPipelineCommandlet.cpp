@@ -169,9 +169,7 @@ namespace WeaponPipeline
             return !N1.DamageDice.bEnabled && N1.ActionPointCost == 0 &&
                 N1.RangeCells == 0;
         }
-        const bool bTwoHands = Spec.BuildKind == TEXT("MeleeTwoHand") ||
-            Spec.BuildKind == TEXT("Ranged");
-        if (N1.HandUsage != (bTwoHands ? TEXT("2 mains") : TEXT("1 main")))
+        if (N1.HandUsage != (Spec.IsTwoHanded() ? TEXT("2 mains") : TEXT("1 main")))
         {
             return false;
         }
@@ -183,7 +181,7 @@ namespace WeaponPipeline
     EGridItemHandUsage Usage(const FGridWeaponPipelineRow& Spec)
     {
         if (Spec.IsPassive()) return EGridItemHandUsage::NotHandHeld;
-        if (Spec.BuildKind == TEXT("MeleeTwoHand") || Spec.BuildKind == TEXT("Ranged"))
+        if (Spec.IsTwoHanded())
             return EGridItemHandUsage::TwoHanded;
         return EGridItemHandUsage::OneHanded;
     }
@@ -251,7 +249,7 @@ namespace WeaponPipeline
             Action.ActionId = FName(Spec.AttackId);
             Action.DisplayName = N1->DisplayName;
             Action.Icon = Look->BaseIcon;
-            Action.ActionType = (Spec.BuildKind == TEXT("Ranged") || Spec.IsThrowable())
+            Action.ActionType = Spec.UsesRangedAction()
                 ? EGridCombatActionType::RangedAttack
                 : EGridCombatActionType::MeleeAttack;
             Action.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
@@ -259,7 +257,7 @@ namespace WeaponPipeline
             Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
             Action.ActionPointCost = N1->ActionPointCost;
             Action.RangeCells = N1->RangeCells;
-            Action.bRequiresLineOfSight = Spec.BuildKind == TEXT("Ranged") || Spec.IsThrowable();
+            Action.bRequiresLineOfSight = Spec.UsesRangedAction();
             Action.ResourceCosts.SourceItemQuantityCost = Spec.IsThrowable() ? 1 : 0;
             Action.OffensiveProfile.AttackId = Action.ActionId;
             Action.OffensiveProfile.AttackDefinition = Attack;
@@ -345,14 +343,14 @@ namespace WeaponPipeline
                 *Spec.AttackId, *A.ActionId.ToString());
             return false;
         }
-        if (A.ActionType != ((Spec.BuildKind == TEXT("Ranged") || Spec.IsThrowable())
+        if (A.ActionType != (Spec.UsesRangedAction()
                 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack))
             return Fail(TEXT("CombatActionTypeMismatch"));
         if (A.SourcePolicy != EGridCombatActionSourcePolicy::Equipment)
             return Fail(TEXT("ActionSourcePolicyMismatch"));
         if (A.ActionPointCost != N1->ActionPointCost || A.RangeCells != N1->RangeCells)
             return Fail(TEXT("ActionPointCostOrRangeMismatch"));
-        if (A.bRequiresLineOfSight != (Spec.BuildKind == TEXT("Ranged") || Spec.IsThrowable()))
+        if (A.bRequiresLineOfSight != Spec.UsesRangedAction())
             return Fail(TEXT("ActionLineOfSightMismatch"));
         if (A.ResourceCosts.SourceItemQuantityCost != (Spec.IsThrowable() ? 1 : 0))
             return Fail(TEXT("ThrowingQuantityCostMismatch"));

@@ -121,7 +121,7 @@ bool FWeaponPipelineWorkbookContracts::RunTest(const FString&)
             TestTrue(*FString::Printf(TEXT("Real offensive definition %s"),
                 *Row.ArchetypeId), N1->TryBuildAttackDefinition(Attack));
             TestEqual(TEXT("One/two hand contract from workbook"), N1->HandUsage,
-                (Row.BuildKind == TEXT("MeleeOneHand") || Row.IsThrowable())
+                (!Row.IsTwoHanded())
                     ? FString(TEXT("1 main")) : FString(TEXT("2 mains")));
         }
     }

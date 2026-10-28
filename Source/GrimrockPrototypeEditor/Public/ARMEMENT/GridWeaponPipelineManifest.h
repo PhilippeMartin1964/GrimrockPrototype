@@ -24,10 +24,23 @@ struct FGridWeaponPipelineRow
 
     bool IsPassive() const { return BuildKind == TEXT("ShieldPassive"); }
     bool IsThrowable() const { return BuildKind == TEXT("ThrowingOneHand"); }
+    bool IsMagicAttack() const
+    {
+        return BuildKind == TEXT("MagicOneHand") || BuildKind == TEXT("MagicTwoHand");
+    }
+    bool IsTwoHanded() const
+    {
+        return BuildKind == TEXT("MeleeTwoHand") || BuildKind == TEXT("Ranged") ||
+            BuildKind == TEXT("MagicTwoHand");
+    }
+    bool UsesRangedAction() const
+    {
+        return BuildKind == TEXT("Ranged") || IsThrowable() || IsMagicAttack();
+    }
     bool IsSupportedBuildKind() const
     {
         return BuildKind == TEXT("MeleeOneHand") || BuildKind == TEXT("MeleeTwoHand") ||
-            BuildKind == TEXT("Ranged") || IsThrowable() || IsPassive();
+            BuildKind == TEXT("Ranged") || IsThrowable() || IsMagicAttack() || IsPassive();
     }
 };
 

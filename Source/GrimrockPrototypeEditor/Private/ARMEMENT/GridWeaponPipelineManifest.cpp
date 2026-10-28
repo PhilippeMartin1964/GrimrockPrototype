@@ -133,7 +133,7 @@ bool FGridWeaponPipelineManifest::Load(const FString& File,
         }
         if ((Row.IsPassive() && Row.EquipmentSlots != TEXT("OffHand")) ||
             (!Row.IsPassive() && !Row.EquipmentSlots.StartsWith(TEXT("MainHand"))) ||
-            (Row.BuildKind == TEXT("MeleeTwoHand") && Row.EquipmentSlots != TEXT("MainHand")))
+            (Row.IsTwoHanded() && Row.EquipmentSlots != TEXT("MainHand")))
         {
             Error = FString::Printf(TEXT("EquipmentSlots incompatible with BuildKind at row %d"),
                 Line + 1);

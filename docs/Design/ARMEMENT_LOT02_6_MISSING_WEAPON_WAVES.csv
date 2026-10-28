@@ -1,12 +1,12 @@
 ArchetypeId,Wave,ProposedMode,PipelineSupported,Review
-ARM038,Ranger,TwoHandedSpear,No,Confirm spear reach and weapon action against canonical N1
+ARM038,Ranger,MeleeTwoHand,Yes,Canonical spear reach N1 and two-hand restriction preserved
 ARM048,Ranger,Ranged,Yes,Real bow art and arrows required
 ARM054,Throwing,ThrowingOneHand,Yes,Knife physical projectile and recovery
 ARM057,Throwing,ThrowingOneHand,Yes,Javelin physical projectile and recovery
 ARM058,Throwing,ThrowingOneHand,Yes,Dart poison effect remains planned
-ARM061,Magic,MagicWand,No,Magic projectile not a melee action
-ARM062,Magic,MagicWand,No,Fire magic effect requires review
-ARM067,Magic,ElementalStaff,No,Elemental magic behavior requires review
-ARM069,Magic,SacredScepter,No,Healing and support behavior requires review
+ARM061,Magic,MagicOneHand,Yes,Direct N1 arcane attack only; no free spell
+ARM062,Magic,MagicOneHand,Yes,Direct N1 damage; no automatic fire status
+ARM067,Magic,MagicTwoHand,Yes,Direct N1 attack; no automatic surface
+ARM069,Magic,MagicOneHand,Yes,Direct N1 attack; no automatic healing
 ARM070,Focus,OffhandFocusPassive,No,Focus bonuses not covered by shield builder
 ARM081,Shield,ShieldPassive,Yes,Real art and N1 passive stats review

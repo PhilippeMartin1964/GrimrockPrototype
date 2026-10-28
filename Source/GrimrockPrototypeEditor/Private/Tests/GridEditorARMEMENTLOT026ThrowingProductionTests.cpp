@@ -21,6 +21,13 @@ bool FARMEMENTLOT026Throwing::RunTest(const FString&)
     TestFalse(TEXT("Melee cannot become thrown silently"), Kind.IsThrowable());
     Kind.BuildKind = TEXT("FocusPassive");
     TestFalse(TEXT("Unimplemented focus cannot enter standard pipeline"), Kind.IsSupportedBuildKind());
+    Kind.BuildKind = TEXT("MagicOneHand");
+    TestTrue(TEXT("Magical one-hand mode supported"), Kind.IsSupportedBuildKind());
+    TestTrue(TEXT("Magic uses a direct attack, not an unlocked spell"), Kind.UsesRangedAction());
+    TestFalse(TEXT("Magic weapon is never consumed"), Kind.IsThrowable());
+    Kind.BuildKind = TEXT("MagicTwoHand");
+    TestTrue(TEXT("Magical staff mode supported"), Kind.IsSupportedBuildKind());
+    TestTrue(TEXT("Magical staff is two-handed"), Kind.IsTwoHanded());
 
     UGridWeaponCatalogueAsset* Catalog = LoadObject<UGridWeaponCatalogueAsset>(nullptr,
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue"));
