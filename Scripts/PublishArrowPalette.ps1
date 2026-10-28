@@ -19,10 +19,10 @@ if (-not (Test-Path -LiteralPath $Editor -PathType Leaf)) { throw "Missing $Edit
 if (@(& git -C $Repo diff --cached --name-only).Count -gt 0) {
     throw 'Git staging must be empty.'
 }
-if (@(& git -C $Repo status --porcelain=v1 -- @($Palette + $Protected)).Count -gt 0) {
+if (@(& git -C $Repo status --porcelain=v1 -- (@($Palette) + $Protected)).Count -gt 0) {
     throw 'Palette, arrows or bows are already locally modified.'
 }
-foreach ($RelativePath in @($Palette + $Protected)) {
+foreach ($RelativePath in (@($Palette) + $Protected)) {
     if (-not (Test-Path -LiteralPath (Join-Path $Repo $RelativePath) -PathType Leaf)) {
         throw "Missing required package: $RelativePath"
     }
