@@ -33,6 +33,7 @@ namespace
 		InOutTotal.MaxManaBonus += Bonus.MaxManaBonus;
 		InOutTotal.CarryWeightBonus += Bonus.CarryWeightBonus;
 		InOutTotal.ArmorBonus += Bonus.ArmorBonus;
+		InOutTotal.MagicalArmorBonus += Bonus.MagicalArmorBonus;
 	}
 }
 
@@ -307,6 +308,79 @@ int32 UGridPartyInventoryComponent::GetEffectiveCurrentPhysicalArmor(int32 Chara
 			Total += Bonus > 0 ? FMath::Max(0, Bonus - FMath::Max(0, Item.AbsorbedEquipmentPhysicalArmor)) : Bonus;
 		});
 	return static_cast<int32>(FMath::Clamp<int64>(Total, 0, MAX_int32));
+}
+
+int32 UGridPartyInventoryComponent::GetEffectiveCurrentMagicalArmor(int32 CharacterIndex) const
+{
+	if (!IsValidCharacterIndex(CharacterIndex)) return 0;
+	int64 Total = FMath::Max(0, PartyInventoryState.ActiveCharacters[CharacterIndex].Resources.CurrentMagicalArmor);
+	if (PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
+	{
+		GridEquipmentSlotUtils::ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
+			[this, &Total](EGridEquipmentSlot, const FGridItemInstance& Item)
+			{
+				if (!Item.IsValid()) return;
+				const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
+				if (!Definition) return;
+				const int32 Bonus = Definition->EquipmentStatBonus.MagicalArmorBonus;
+				Total += Bonus > 0
+					? FMath::Max(0, Bonus - FMath::Max(0, Item.AbsorbedEquipmentMagicalArmor))
+					: Bonus;
+			});
+	}
+	return static_cast<int32>(FMath::Clamp<int64>(Total, 0, MAX_int32));
+}
+
+int32 UGridPartyInventoryComponent::ApplyMagicalArmorDamage(int32 CharacterIndex, int32 Damage)
+{
+	if (Damage < 0 || !IsValidCharacterIndex(CharacterIndex)) return 0;
+	int32 Remaining = FMath::Min(Damage, GetEffectiveCurrentMagicalArmor(CharacterIndex));
+	const int32 Applied = Remaining;
+	FGridCharacterEquipmentState* Equipment = PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex)
+		? &PartyInventoryState.ActiveEquipment[CharacterIndex] : nullptr;
+	for (uint8 SlotValue = GridEquipmentSlotUtils::FirstSlotValue;
+		Equipment && SlotValue <= GridEquipmentSlotUtils::LastSlotValue && Remaining > 0; ++SlotValue)
+	{
+		FGridItemInstance* Item = Equipment->GetMutableSlot(static_cast<EGridEquipmentSlot>(SlotValue));
+		if (!Item || !Item->IsValid()) continue;
+		const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId);
+		const int32 Bonus = Definition ? FMath::Max(0, Definition->EquipmentStatBonus.MagicalArmorBonus) : 0;
+		if (Bonus <= 0) continue;
+		const int32 Available = FMath::Max(0, Bonus - FMath::Max(0, Item->AbsorbedEquipmentMagicalArmor));
+		const int32 Used = FMath::Min(Remaining, Available);
+		Item->AbsorbedEquipmentMagicalArmor += Used;
+		Remaining -= Used;
+	}
+	FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
+	const int32 BaseUsed = FMath::Min(FMath::Max(0, Character.Resources.CurrentMagicalArmor), Remaining);
+	Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor - BaseUsed);
+	if (Applied > 0) NotifyPartyInventoryChanged(CharacterIndex);
+	return Applied;
+}
+
+int32 UGridPartyInventoryComponent::RestoreMagicalArmor(int32 CharacterIndex, int32 Amount)
+{
+	if (Amount <= 0 || !IsValidCharacterIndex(CharacterIndex)) return 0;
+	int32 Remaining = Amount;
+	FGridCharacterEquipmentState* Equipment = PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex)
+		? &PartyInventoryState.ActiveEquipment[CharacterIndex] : nullptr;
+	for (uint8 SlotValue = GridEquipmentSlotUtils::FirstSlotValue;
+		Equipment && SlotValue <= GridEquipmentSlotUtils::LastSlotValue && Remaining > 0; ++SlotValue)
+	{
+		FGridItemInstance* Item = Equipment->GetMutableSlot(static_cast<EGridEquipmentSlot>(SlotValue));
+		if (!Item || !Item->IsValid()) continue;
+		const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId);
+		const int32 Bonus = Definition ? FMath::Max(0, Definition->EquipmentStatBonus.MagicalArmorBonus) : 0;
+		const int32 Spent = FMath::Min(Bonus, FMath::Max(0, Item->AbsorbedEquipmentMagicalArmor));
+		const int32 Restored = FMath::Min(Remaining, Spent);
+		Item->AbsorbedEquipmentMagicalArmor -= Restored;
+		Remaining -= Restored;
+	}
+	FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
+	Character.Resources.CurrentMagicalArmor = static_cast<int32>(FMath::Clamp<int64>(
+		static_cast<int64>(FMath::Max(0, Character.Resources.CurrentMagicalArmor)) + Remaining, 0, MAX_int32));
+	NotifyPartyInventoryChanged(CharacterIndex);
+	return Amount;
 }
 
 int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterIndex, int32 Damage,

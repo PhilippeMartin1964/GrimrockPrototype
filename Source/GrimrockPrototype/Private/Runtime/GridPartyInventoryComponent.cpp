@@ -117,7 +117,9 @@ namespace
 		FGridCombatArmorPoolSnapshot Snapshot;
 		Snapshot.ReferencePhysicalArmor =
 			FMath::Max(0, ClassDefinition->BasePhysicalArmor + Summary.EquipmentStatBonus.ArmorBonus);
-		Snapshot.ReferenceMagicalArmor = FMath::Max(0, ClassDefinition->BaseMagicalArmor);
+		Snapshot.ReferenceMagicalArmor = static_cast<int32>(FMath::Clamp<int64>(
+			static_cast<int64>(ClassDefinition->BaseMagicalArmor) +
+			Summary.EquipmentStatBonus.MagicalArmorBonus, 0, MAX_int32));
 
 		// Identity caches are normally rehydrated before UI projection. Keep this
 		// helper robust when only ClassId can resolve the canonical class asset.
@@ -682,11 +684,13 @@ int32 UGridPartyInventoryComponent::RefillArmorReservesForRecovery()
 			return false;
 		}
 		VisitedItems.Add(Item.RuntimeObjectId);
-		if (Item.AbsorbedEquipmentPhysicalArmor <= 0)
+		if (Item.AbsorbedEquipmentPhysicalArmor <= 0 &&
+			Item.AbsorbedEquipmentMagicalArmor <= 0)
 		{
 			return false;
 		}
 		Item.AbsorbedEquipmentPhysicalArmor = 0;
+		Item.AbsorbedEquipmentMagicalArmor = 0;
 		return true;
 	};
 
@@ -720,10 +724,13 @@ int32 UGridPartyInventoryComponent::RefillArmorReservesForRecovery()
 		const int32 BaseReference = static_cast<int32>(FMath::Clamp<int64>(
 			static_cast<int64>(PhysicalReference) -
 				static_cast<int64>(Summary.EquipmentStatBonus.ArmorBonus), 0, MAX_int32));
+		const int32 BaseMagicalReference = static_cast<int32>(FMath::Clamp<int64>(
+			static_cast<int64>(MagicalReference) -
+				static_cast<int64>(Summary.EquipmentStatBonus.MagicalArmorBonus), 0, MAX_int32));
 		bool bChanged = Character.Resources.CurrentPhysicalArmor != BaseReference ||
-			Character.Resources.CurrentMagicalArmor != MagicalReference;
+			Character.Resources.CurrentMagicalArmor != BaseMagicalReference;
 		Character.Resources.CurrentPhysicalArmor = BaseReference;
-		Character.Resources.CurrentMagicalArmor = MagicalReference;
+		Character.Resources.CurrentMagicalArmor = BaseMagicalReference;
 
 		if (PartyInventoryState.ActiveEquipment.IsValidIndex(Index))
 		{
@@ -799,6 +806,7 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.DerivedStats.MaxMana = FMath::Max(0, OutSummary.DerivedStats.MaxMana + OutSummary.EquipmentStatBonus.MaxManaBonus);
 	OutSummary.Resources.CurrentMana = FMath::Clamp(OutSummary.Resources.CurrentMana, 0, OutSummary.DerivedStats.MaxMana);
 	OutSummary.Resources.CurrentPhysicalArmor = GetEffectiveCurrentPhysicalArmor(CharacterIndex);
+	OutSummary.Resources.CurrentMagicalArmor = GetEffectiveCurrentMagicalArmor(CharacterIndex);
 	OutSummary.Portrait =
 		FRPGAuthoringIdentityResolver::ResolvePortraitVisual(CharacterState.RaceId, CharacterState.PortraitGender, CharacterState.PortraitVariantId);
 	OutSummary.UsedInventorySlots = CountOccupiedSlots(CharacterState);

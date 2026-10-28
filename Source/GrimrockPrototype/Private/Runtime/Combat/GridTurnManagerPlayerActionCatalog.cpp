@@ -184,7 +184,9 @@ namespace
 		OutSnapshot.CurrentMagicalArmor = FMath::Max(0, Summary.Resources.CurrentMagicalArmor);
 		OutSnapshot.ReferencePhysicalArmor =
 			FMath::Max(0, ClassDefinition->BasePhysicalArmor + Summary.EquipmentStatBonus.ArmorBonus);
-		OutSnapshot.ReferenceMagicalArmor = FMath::Max(0, ClassDefinition->BaseMagicalArmor);
+		OutSnapshot.ReferenceMagicalArmor = static_cast<int32>(FMath::Clamp<int64>(
+			static_cast<int64>(ClassDefinition->BaseMagicalArmor) +
+			Summary.EquipmentStatBonus.MagicalArmorBonus, 0, MAX_int32));
 		return true;
 	}
 
@@ -206,10 +208,7 @@ namespace
 		}
 		if (MagicalRestored > 0)
 		{
-			FGridCharacterInventoryState& Target = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
-			const int64 Proposed = static_cast<int64>(FMath::Max(0, Target.Resources.CurrentMagicalArmor)) + MagicalRestored;
-			Target.Resources.CurrentMagicalArmor = static_cast<int32>(FMath::Clamp<int64>(
-				Proposed, 0, FMath::Max(0, After.ReferenceMagicalArmor)));
+			Inventory->RestoreMagicalArmor(CharacterIndex, MagicalRestored);
 		}
 	}
 
@@ -707,7 +706,8 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 	FGridAttackTargetStats SelfTargetBefore;
 	SelfTargetBefore.CurrentHealth = OutResult.HealthBefore;
 	SelfTargetBefore.PhysicalArmor = bHasArmorSnapshot ? ArmorSnapshot.CurrentPhysicalArmor : Character.Resources.CurrentPhysicalArmor;
-	SelfTargetBefore.MagicalArmor = bHasArmorSnapshot ? ArmorSnapshot.CurrentMagicalArmor : Character.Resources.CurrentMagicalArmor;
+	SelfTargetBefore.MagicalArmor = bHasArmorSnapshot ? ArmorSnapshot.CurrentMagicalArmor :
+		Inventory->GetEffectiveCurrentMagicalArmor(Action.CharacterIndex);
 	const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
 		Action.Definition.StatusApplications, Character.CharacterId, SelfTargetBefore, nullptr, Character.StatusEffects);
 	TArray<FName> StatusRemovalIds;
@@ -752,7 +752,7 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 		const int32 PhysicalRestored = FMath::Max(0, ArmorSnapshot.CurrentPhysicalArmor - PhysicalBefore);
 		const int32 MagicalRestored = FMath::Max(0, ArmorSnapshot.CurrentMagicalArmor - MagicalBefore);
 		Inventory->RestorePhysicalArmor(Action.CharacterIndex, PhysicalRestored);
-		Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor + MagicalRestored);
+		Inventory->RestoreMagicalArmor(Action.CharacterIndex, MagicalRestored);
 		OutResult.PhysicalArmorAfter = ArmorSnapshot.CurrentPhysicalArmor;
 		OutResult.MagicalArmorAfter = ArmorSnapshot.CurrentMagicalArmor;
 		SelfTargetBefore.PhysicalArmor = ArmorSnapshot.CurrentPhysicalArmor;
@@ -859,7 +859,8 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 	FGridAttackTargetStats SelfTargetBefore;
 	SelfTargetBefore.CurrentHealth = OutResult.HealthBefore;
 	SelfTargetBefore.PhysicalArmor = bHasArmorSnapshot ? ArmorSnapshot.CurrentPhysicalArmor : Character.Resources.CurrentPhysicalArmor;
-	SelfTargetBefore.MagicalArmor = bHasArmorSnapshot ? ArmorSnapshot.CurrentMagicalArmor : Character.Resources.CurrentMagicalArmor;
+	SelfTargetBefore.MagicalArmor = bHasArmorSnapshot ? ArmorSnapshot.CurrentMagicalArmor :
+		Inventory->GetEffectiveCurrentMagicalArmor(Action.CharacterIndex);
 	const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
 		Action.Definition.StatusApplications, Character.CharacterId, SelfTargetBefore, nullptr, Character.StatusEffects);
 	TArray<FName> StatusRemovalIds;
@@ -1129,7 +1130,7 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 		FGridAttackTargetStats TargetBefore;
 		TargetBefore.CurrentHealth = TargetCharacter.Resources.CurrentHealth;
 		TargetBefore.PhysicalArmor = Inventory->GetEffectiveCurrentPhysicalArmor(TargetIndex);
-		TargetBefore.MagicalArmor = TargetCharacter.Resources.CurrentMagicalArmor;
+		TargetBefore.MagicalArmor = Inventory->GetEffectiveCurrentMagicalArmor(TargetIndex);
 		if (FGridCombatStatusApplicationResolver::WouldAnyMutate(
 				StatusApplications, SourceCharacter.CharacterId, TargetBefore, nullptr, TargetCharacter.StatusEffects))
 		{
@@ -1232,7 +1233,7 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 		FGridAttackTargetStats TargetBefore;
 		TargetBefore.CurrentHealth = TargetCharacter.Resources.CurrentHealth;
 		TargetBefore.PhysicalArmor = Inventory->GetEffectiveCurrentPhysicalArmor(TargetIndex);
-		TargetBefore.MagicalArmor = TargetCharacter.Resources.CurrentMagicalArmor;
+		TargetBefore.MagicalArmor = Inventory->GetEffectiveCurrentMagicalArmor(TargetIndex);
 
 		FGridCombatArmorPoolSnapshot ArmorSnapshot;
 		if (BuildRPG033PartyArmorSnapshot(Inventory, TargetIndex, ArmorSnapshot) && !ArmorEffects.IsEmpty())
@@ -1984,7 +1985,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				FriendlyTarget.Evasion = FriendlySummary.DerivedStats.Evasion;
 				FriendlyTarget.CurrentHealth = FriendlyCharacter.Resources.CurrentHealth;
 				FriendlyTarget.PhysicalArmor = Inventory->GetEffectiveCurrentPhysicalArmor(TargetCharacterIndex);
-				FriendlyTarget.MagicalArmor = FriendlyCharacter.Resources.CurrentMagicalArmor;
+				FriendlyTarget.MagicalArmor = Inventory->GetEffectiveCurrentMagicalArmor(TargetCharacterIndex);
 				FriendlyTarget.DamageMultiplier = 1.0f;
 				const FGridDamageResistanceSet BaseResistances =
 					Inventory->ComputeCharacterEquipmentResistances(TargetCharacterIndex);
@@ -2018,8 +2019,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				if (FriendlyResult.bHit)
 				{
 					Inventory->ApplyPhysicalArmorDamage(TargetCharacterIndex, FriendlyResult.PhysicalArmorDamage);
-					FriendlyCharacter.Resources.CurrentMagicalArmor =
-						FMath::Max(0, FriendlyCharacter.Resources.CurrentMagicalArmor - FriendlyResult.MagicalArmorDamage);
+					Inventory->ApplyMagicalArmorDamage(TargetCharacterIndex, FriendlyResult.MagicalArmorDamage);
 					FriendlyCharacter.Resources.CurrentHealth =
 						FMath::Max(0, FriendlyCharacter.Resources.CurrentHealth - FriendlyResult.HealthDamage);
 				}

@@ -214,7 +214,7 @@ namespace WeaponPipeline
 
         Item->ItemDefinitionId = FName(Spec.ItemDefinitionId);
         Item->DisplayName = N1->DisplayName;
-        Item->ItemType = Spec.IsPassive() ? EGridItemType::Shield : EGridItemType::Weapon;
+        Item->ItemType = Spec.IsShield() ? EGridItemType::Shield : EGridItemType::Weapon;
         Item->Weight = N1->WeightKg;
         Item->bStackable = false;
         Item->MaxStackSize = 1;
@@ -239,6 +239,7 @@ namespace WeaponPipeline
         if (Spec.IsPassive())
         {
             Item->EquipmentStatBonus.ArmorBonus = N1->PhysicalArmor;
+            Item->EquipmentStatBonus.MagicalArmorBonus = Spec.IsFocus() ? N1->MagicalArmor : 0;
         }
         else
         {
@@ -322,10 +323,12 @@ namespace WeaponPipeline
 
         if (Spec.IsPassive())
         {
-            if (Existing.ItemType != EGridItemType::Shield ||
+            if (Existing.ItemType != (Spec.IsShield() ? EGridItemType::Shield : EGridItemType::Weapon) ||
                 !Existing.CombatActions.IsEmpty() ||
                 !FMath::IsNearlyEqual(Existing.EquipmentStatBonus.ArmorBonus,
-                    N1->PhysicalArmor, 0.001f))
+                    N1->PhysicalArmor, 0.001f) ||
+                !FMath::IsNearlyEqual(Existing.EquipmentStatBonus.MagicalArmorBonus,
+                    Spec.IsFocus() ? N1->MagicalArmor : 0, 0.001f))
                 return Fail(TEXT("PassiveShieldMismatch"));
             return true;
         }

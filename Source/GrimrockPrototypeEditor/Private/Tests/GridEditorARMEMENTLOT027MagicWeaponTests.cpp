@@ -92,7 +92,9 @@ bool FARMEMENTLOT027MagicAndSpear::RunTest(const FString&)
     }
     FGridWeaponPipelineRow Unsupported;
     Unsupported.BuildKind = TEXT("FocusPassive");
-    TestFalse(TEXT("Offhand focus remains blocked"), Unsupported.IsSupportedBuildKind());
+    TestTrue(TEXT("Offhand focus is now a passive production kind"), Unsupported.IsSupportedBuildKind());
+    TestTrue(TEXT("Focus has no attack action"), Unsupported.IsPassive() && Unsupported.IsFocus() &&
+        !Unsupported.UsesRangedAction());
     TestEqual(TEXT("Catalogue remains unchanged"), Catalogue->GetOutermost()->IsDirty(), bDirty);
     return true;
 }

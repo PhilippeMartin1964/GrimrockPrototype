@@ -221,10 +221,14 @@ struct FGridEquipmentStatBonus
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
 	int32 ArmorBonus = 0;
 
+	/** Magical armor provided by equipped items, separate from physical armor. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
+	int32 MagicalArmorBonus = 0;
+
 	bool HasAnyBonus() const
 	{
 		return StrengthBonus != 0 || DexterityBonus != 0 || ConstitutionBonus != 0 || IntelligenceBonus != 0 || WisdomBonus != 0 || CharismaBonus != 0 ||
-			MaxHealthBonus != 0 || MaxManaBonus != 0 || !FMath::IsNearlyZero(CarryWeightBonus) || ArmorBonus != 0;
+			MaxHealthBonus != 0 || MaxManaBonus != 0 || !FMath::IsNearlyZero(CarryWeightBonus) || ArmorBonus != 0 || MagicalArmorBonus != 0;
 	}
 };
 
@@ -307,6 +311,10 @@ struct FGridItemInstance
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment|Armor", meta = (ClampMin = "0"))
 	int32 AbsorbedEquipmentPhysicalArmor = 0;
+
+	/** LOT02.8: magic reserve spent by THIS item; survives equip/bag/SaveGame. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment|Armor", meta = (ClampMin = "0"))
+	int32 AbsorbedEquipmentMagicalArmor = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FText DisplayName;

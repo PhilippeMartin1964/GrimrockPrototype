@@ -8,5 +8,5 @@ ARM061,Magic,MagicOneHand,Yes,Direct N1 arcane attack only; no free spell
 ARM062,Magic,MagicOneHand,Yes,Direct N1 damage; no automatic fire status
 ARM067,Magic,MagicTwoHand,Yes,Direct N1 attack; no automatic surface
 ARM069,Magic,MagicOneHand,Yes,Direct N1 attack; no automatic healing
-ARM070,Focus,OffhandFocusPassive,No,Focus bonuses not covered by shield builder
+ARM070,Focus,FocusPassive,Yes,Magical reserve and equipment persistence tested before art
 ARM081,Shield,ShieldPassive,Yes,Real art and N1 passive stats review

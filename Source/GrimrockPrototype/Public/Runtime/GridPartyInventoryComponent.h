@@ -280,6 +280,15 @@ public:
 	/** Stored character reserve plus remaining armor on equipped instances. */
 	int32 GetEffectiveCurrentPhysicalArmor(int32 CharacterIndex) const;
 
+	/** Magic reserve includes the remaining charge on equipped items. */
+	int32 GetEffectiveCurrentMagicalArmor(int32 CharacterIndex) const;
+
+	/** Magic damage depletes equipped protection before the base pool. */
+	int32 ApplyMagicalArmorDamage(int32 CharacterIndex, int32 Damage);
+
+	/** Restore spent equipment reserve first; caller enforces the cap. */
+	int32 RestoreMagicalArmor(int32 CharacterIndex, int32 Amount);
+
 	/** Consume the equipped reserve first, then the character's base reserve. */
 	int32 ApplyPhysicalArmorDamage(int32 CharacterIndex, int32 Damage,
 		TArray<FGridArmorAbsorptionSourceTrace>* OutSources = nullptr);

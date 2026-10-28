@@ -22,7 +22,9 @@ struct FGridWeaponPipelineRow
     FString ClassId;
     FString EquipmentSlots;
 
-    bool IsPassive() const { return BuildKind == TEXT("ShieldPassive"); }
+    bool IsShield() const { return BuildKind == TEXT("ShieldPassive"); }
+    bool IsFocus() const { return BuildKind == TEXT("FocusPassive"); }
+    bool IsPassive() const { return IsShield() || IsFocus(); }
     bool IsThrowable() const { return BuildKind == TEXT("ThrowingOneHand"); }
     bool IsMagicAttack() const
     {
