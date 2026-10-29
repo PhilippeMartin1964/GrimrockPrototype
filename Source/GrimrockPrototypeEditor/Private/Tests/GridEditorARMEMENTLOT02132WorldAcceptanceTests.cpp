@@ -137,7 +137,7 @@ bool FARMLot02132RealWorld::RunTest(const FString&)
         if (!TestNotNull(*FString::Printf(TEXT("%s row"), *Id), Row)) continue;
         UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *Row->ItemPath);
         if (!TestNotNull(*FString::Printf(TEXT("%s package"), *Id), Definition)) continue;
-        Check(TEXT("remains Planned"), Row->ProductionState == TEXT("Planned"));
+        Check(TEXT("production weapon is Active"), Row->ProductionState == TEXT("Active"));
         Check(TEXT("real definition registered"), Inv->RegisterItemDefinition(Definition));
         FGridItemInstance Item;
         Item.RuntimeObjectId = FGuid::NewGuid();

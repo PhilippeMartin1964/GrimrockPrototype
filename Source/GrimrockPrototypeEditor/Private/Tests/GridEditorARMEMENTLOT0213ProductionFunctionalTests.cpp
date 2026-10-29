@@ -77,7 +77,7 @@ bool FARMEMENTLOT0213ProductionMatrix::RunTest(const FString&)
         {
             bOkay &= TestTrue(*FString::Printf(TEXT("%s %s"), *Id, Label), Pass);
         };
-        Check(TEXT("must remain Planned"), Row->ProductionState == TEXT("Planned"));
+        Check(TEXT("production weapon is Active"), Row->ProductionState == TEXT("Active"));
         Check(TEXT("BuildKind"), Row->BuildKind == Case.Kind);
         Check(TEXT("passive/throw/two-hand/ranged modes"),
             Row->IsPassive() == Case.bPassive && Row->IsThrowable() == Case.bThrow &&
