@@ -33,3 +33,27 @@ seule flèche apparaît au sol à sa disparition. Save/Load d'une flèche
 fichée non couvert par ce jalon.
 
 Aucune modification `.uasset` ni des dommages ou PA.
+
+## ARMEMENT-LOT02.13.6A.1 — Suivi du corps animé (régression en cellule adjacente)
+Une recette PIE a révélé une flèche parfois suspendue dans le vide pendant
+l'animation du monstre, notamment pour une cible à une case, puis libérée lors
+du dissolve. La cause plausible est un ancrage trop permissif sur l'os racine
+ou une mise à jour de la pose non suivie. La cause précise reste à confirmer
+par PIE ; aucun journal d'os fautif n'était disponible.
+
+Renforcement ciblé :
+- Sur les rigs à plusieurs os, choisir l'os **non racine** le plus proche
+  de la pointe plutôt que permettre l'os racine statique.
+- Conserver la transformation monde de la flèche relative à cet os, et la
+  réappliquer si nécessaire après la mise à jour de la pose du squelette.
+- Établir une dépendance d'ordre de tick avec le SkeletalMesh ; tolérer
+  l'absence de squelette dans les tests en s'attachant au composant.
+- Lors de la disparition d'un os (réinitialisation du mesh), replier vers
+  le composant pour préserver l'objet, puis garder la libération sans
+  duplication et la conservation du GUID comme dans 13.6A.
+- Test transitoire : une cible à une case dont le composant visuel change
+  de position indépendamment de l'acteur doit déplacer la flèche fichée.
+
+Le détail du mouvement et la vérification des montages de mort animés
+nécessitent une recette PIE ; le test automation sans SkeletalMesh importé
+ne prouve pas encore un suivi exact de chaque os de WereRat ou autre monstre.

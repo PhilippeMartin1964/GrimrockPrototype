@@ -95,6 +95,16 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
             Monster->AddActorWorldOffset(FVector(32.0f, 0, 0));
             TestTrue(TEXT("Attached arrow follows moving monster"),
                 Projectile->GetActorLocation().Equals(InitialTip + FVector(32.0f, 0, 0), 0.1f));
+            // Adjacent-cell regression: the animated visual can translate or
+            // lean relative to the monster actor during a Hurt/Death montage.
+            // Attachment to actor root alone would leave the arrow floating.
+            const FVector BeforeVisualMove = Projectile->GetActorLocation();
+            const FVector SkeletalOffset = Monster->SkeletalMeshComponent->GetRelativeLocation();
+            Monster->SkeletalMeshComponent->SetRelativeLocation(SkeletalOffset + FVector(0, 0, 28.0f));
+            Projectile->Tick(0.016f);
+            TestTrue(TEXT("Arrow follows relative skeletal-body translation"),
+                Projectile->GetActorLocation().Equals(BeforeVisualMove + FVector(0, 0, 28.0f), 0.2f));
+            TestEqual(TEXT("Arrow remains embedded after body translation"), Projectile->IsEmbeddedInMonster(), true);
             Monster->SkeletalMeshComponent->SetVisibility(false, true);
             Projectile->Tick(0.016f);
             TestTrue(TEXT("Hidden corpse releases embedded item"), Projectile->HasCompletedImpactConversion());

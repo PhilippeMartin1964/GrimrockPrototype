@@ -62,7 +62,8 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 		return;
 	}
 
-	// Interim non-loss fallback. Natural fall and save/restore are 13.6C.
+	// While visible, the shaft must follow the animated bone rather than
+	// remaining at the original world impact point. Natural fall/save is 13.6C.
 	if (bEmbeddedInMonster)
 	{
 		const AGridMonsterActor* Monster = EmbeddedMonster.Get();
@@ -70,6 +71,10 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 			!Monster->SkeletalMeshComponent->IsVisible())
 		{
 			ReleaseEmbeddedArrowToPickup();
+		}
+		else
+		{
+			KeepEmbeddedArrowOnAnimatedBone();
 		}
 		return;
 	}
@@ -341,6 +346,78 @@ bool AGridThrownItemActor::ConfigureRangedMissDeflection(const FVector& TargetCe
 	return true;
 }
 
+FName AGridThrownItemActor::FindNearestAnimatedBone(USkeletalMeshComponent* Skeletal, const FVector& WorldTip)
+{
+	if (!IsValid(Skeletal) || !Skeletal->GetSkeletalMeshAsset())
+	{
+		return NAME_None;
+	}
+
+	// FindClosestBone may choose index 0 (root): for animated deaths, the
+	// root can remain at the standing location while the body falls.
+	// Prefer an actual pose bone when one exists; this also supports rigs
+	// without physics assets, and avoids hard-coded skeleton-specific names.
+	const int32 NumBones = Skeletal->GetNumBones();
+	if (NumBones <= 1)
+	{
+		return NumBones == 1 ? Skeletal->GetBoneName(0) : NAME_None;
+	}
+
+	FName BestBone = NAME_None;
+	float BestDistanceSquared = TNumericLimits<float>::Max();
+	for (int32 Index = 1; Index < NumBones; ++Index)
+	{
+		const FName Bone = Skeletal->GetBoneName(Index);
+		const FVector BoneWorld = Skeletal->GetBoneLocation(Bone);
+		if (Bone.IsNone() || BoneWorld.ContainsNaN())
+		{
+			continue;
+		}
+		const float DistanceSquared = FVector::DistSquared(WorldTip, BoneWorld);
+		if (DistanceSquared < BestDistanceSquared)
+		{
+			BestBone = Bone;
+			BestDistanceSquared = DistanceSquared;
+		}
+	}
+	return BestBone.IsNone() ? Skeletal->GetBoneName(0) : BestBone;
+}
+
+void AGridThrownItemActor::KeepEmbeddedArrowOnAnimatedBone()
+{
+	AGridMonsterActor* Monster = EmbeddedMonster.Get();
+	USkeletalMeshComponent* Skeletal = IsValid(Monster) ? Monster->SkeletalMeshComponent.Get() : nullptr;
+	if (!IsValid(Skeletal))
+	{
+		return;
+	}
+	// A skeletal asset may be refreshed during runtime. Preserve the last
+	// world position and re-anchor to the component if the bone disappears.
+	if (!EmbeddedBone.IsNone() && Skeletal->GetBoneIndex(EmbeddedBone) == INDEX_NONE)
+	{
+		const FTransform WorldTransform = GetActorTransform();
+		DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		EmbeddedBone = NAME_None;
+		AttachToComponent(Skeletal, FAttachmentTransformRules::KeepWorldTransform);
+		EmbeddedLocalBoneTransform = WorldTransform.GetRelativeTransform(Skeletal->GetComponentTransform());
+		UE_LOG(LogGridThrownItem, Warning, TEXT("[GridProjectile] EmbeddedBoneMissing Item=%s Monster=%s Fallback=MeshComponent"),
+			*ThrownItemInstance.ItemDefinitionId.ToString(), *GetNameSafe(Monster));
+	}
+	const FTransform Anchor = EmbeddedBone.IsNone()
+		? Skeletal->GetComponentTransform() : Skeletal->GetSocketTransform(EmbeddedBone, RTS_World);
+	const FTransform ExpectedWorld = EmbeddedLocalBoneTransform * Anchor;
+	if (!GetActorTransform().Equals(ExpectedWorld, 0.1f))
+	{
+		const float Correction = FVector::Dist(GetActorLocation(), ExpectedWorld.GetLocation());
+		SetActorTransform(ExpectedWorld, false, nullptr, ETeleportType::TeleportPhysics);
+		if (Correction > 5.0f)
+		{
+			UE_LOG(LogGridThrownItem, Verbose, TEXT("[GridProjectile] EmbeddedFollowCorrection Item=%s Monster=%s Bone=%s DistanceCm=%.1f"),
+				*ThrownItemInstance.ItemDefinitionId.ToString(), *GetNameSafe(Monster), *EmbeddedBone.ToString(), Correction);
+		}
+	}
+}
+
 bool AGridThrownItemActor::TryEmbedInMonster()
 {
 	if (!bRangedAmmunitionProjectile || bConversionAttempted || bEmbeddedInMonster)
@@ -379,17 +456,18 @@ bool AGridThrownItemActor::TryEmbedInMonster()
 		SideAxis * HorizontalFactor * Extent.GetMin() * 0.20f +
 		UpAxis * VerticalFactor * Extent.Z * 0.18f;
 
-	FName Bone = NAME_None;
-	if (Skeletal->GetSkeletalMeshAsset())
-	{
-		Bone = Skeletal->FindClosestBone(TipLocation);
-	}
+	const FName Bone = FindNearestAnimatedBone(Skeletal, TipLocation);
 	SetActorLocationAndRotation(TipLocation, FlightDirection.Rotation(), false, nullptr, ETeleportType::TeleportPhysics);
 	if (!AttachToComponent(Skeletal, FAttachmentTransformRules::KeepWorldTransform, Bone))
 	{
 		return false;
 	}
 
+	EmbeddedBone = Bone;
+	EmbeddedLocalBoneTransform = GetActorTransform().GetRelativeTransform(
+		Bone.IsNone() ? Skeletal->GetComponentTransform() : Skeletal->GetSocketTransform(Bone, RTS_World));
+	// The monster's visual pose must update before the embedded projectile.
+	AddTickPrerequisiteComponent(Skeletal);
 	bEmbeddedInMonster = true;
 	EmbeddedMonster = Monster;
 	PendingHitMonster = nullptr;
@@ -406,6 +484,7 @@ bool AGridThrownItemActor::TryEmbedInMonster()
 	GetWorldTimerManager().ClearTimer(ExpirationTimerHandle);
 	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
 	SetActorTickEnabled(true);
+	KeepEmbeddedArrowOnAnimatedBone();
 	UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] Embedded Item=%s RuntimeId=%s Monster=%s Bone=%s Tip=%s"),
 		*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(),
 		*GetNameSafe(Monster), *Bone.ToString(), *TipLocation.ToCompactString());
@@ -419,9 +498,18 @@ void AGridThrownItemActor::ReleaseEmbeddedArrowToPickup()
 		return;
 	}
 	const FVector LastWorldTip = GetActorLocation();
+	if (AGridMonsterActor* Monster = EmbeddedMonster.Get())
+	{
+		if (IsValid(Monster->SkeletalMeshComponent))
+		{
+			RemoveTickPrerequisiteComponent(Monster->SkeletalMeshComponent);
+		}
+	}
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	bEmbeddedInMonster = false;
 	EmbeddedMonster = nullptr;
+	EmbeddedBone = NAME_None;
+	EmbeddedLocalBoneTransform = FTransform::Identity;
 	FHitResult ReleaseHit;
 	ReleaseHit.Location = LastWorldTip;
 	ReleaseHit.ImpactPoint = LastWorldTip;

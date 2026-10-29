@@ -7,6 +7,7 @@
 
 class AGridLevelRuntimeActor;
 class AGridMonsterActor;
+class USkeletalMeshComponent;
 class UGridItemDefinitionAsset;
 enum class EGridProjectileForwardAxis : uint8;
 class UProjectileMovementComponent;
@@ -113,6 +114,8 @@ private:
 	void ConvertToWorldPickupAtImpact(const FHitResult& Hit);
 	bool TryEmbedInMonster();
 	void ReleaseEmbeddedArrowToPickup();
+	void KeepEmbeddedArrowOnAnimatedBone();
+	static FName FindNearestAnimatedBone(USkeletalMeshComponent* Skeletal, const FVector& WorldTip);
 
 	bool bConversionAttempted = false;
 	bool bEmbeddedInMonster = false;
@@ -123,6 +126,8 @@ private:
 	FVector RangedMissForward = FVector::ZeroVector;
 	TWeakObjectPtr<AGridMonsterActor> PendingHitMonster;
 	TWeakObjectPtr<AGridMonsterActor> EmbeddedMonster;
+	FName EmbeddedBone = NAME_None;
+	FTransform EmbeddedLocalBoneTransform = FTransform::Identity;
 	float ImpactDropOffset = 12.0f;
 	FVector InitialFlightWorldLocation = FVector::ZeroVector;
 	FVector PreviousPresentationLocation = FVector::ZeroVector;
