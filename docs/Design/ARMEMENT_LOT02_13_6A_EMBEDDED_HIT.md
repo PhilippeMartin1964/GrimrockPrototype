@@ -97,3 +97,11 @@ du monstre (collision shapes animées). Ne pas modifier le mesh de flèche.
 Ce jalon ne change pas les tirs manqués, dégâts, dégâts mortels,
 shurikens ou conversion en pickup après disparition. Gravité et
 persistance restent 13.6C.
+
+### Ajustements de revue statique 13.6A.2.1
+- Suppression du membre `EmbeddedBone` : il était écrit, jamais lu.
+- Les logs `LogicalCenter` contiennent désormais les coordonnées réelles
+  de la boîte logique, pas le nom de son composant.
+- Dispersion déterministe légère (±6 cm en latéral et vertical) du point
+  d'approche pour conserver les flèches multiples visibles ; la surface
+  physique/osseuse reste l'autorité pour le point final.

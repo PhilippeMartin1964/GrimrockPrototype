@@ -126,7 +126,6 @@ private:
 	FVector RangedMissForward = FVector::ZeroVector;
 	TWeakObjectPtr<AGridMonsterActor> PendingHitMonster;
 	TWeakObjectPtr<AGridMonsterActor> EmbeddedMonster;
-	FName EmbeddedBone = NAME_None;
 	float ImpactDropOffset = 12.0f;
 	FVector InitialFlightWorldLocation = FVector::ZeroVector;
 	FVector PreviousPresentationLocation = FVector::ZeroVector;

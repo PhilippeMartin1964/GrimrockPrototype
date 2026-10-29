@@ -402,7 +402,15 @@ bool AGridThrownItemActor::TryEmbedInMonster()
 	const FVector Extent = bHasMeshBounds ? BodyBounds.BoxExtent : FVector::ZeroVector;
 	const float NearFace = FMath::Abs(FlightDirection.X) * Extent.X +
 		FMath::Abs(FlightDirection.Y) * Extent.Y + FMath::Abs(FlightDirection.Z) * Extent.Z;
-	const FVector Approach = BodyCenter - FlightDirection * NearFace;
+	// Small deterministic variation prevents identical arrows stacking in
+	// precisely the same visible spot. It never alters the combat outcome.
+	const uint32 Seed = GetTypeHash(ThrownItemInstance.RuntimeObjectId);
+	const float SideJitter = (static_cast<int32>(Seed % 7u) - 3) * 2.0f;
+	const float UpJitter = (static_cast<int32>((Seed / 7u) % 7u) - 3) * 2.0f;
+	const FVector Side = FVector::CrossProduct(FlightDirection, FVector::UpVector).GetSafeNormal();
+	const FVector Up = FVector::CrossProduct(Side, FlightDirection).GetSafeNormal();
+	const FVector Approach = BodyCenter - FlightDirection * NearFace +
+		Side * SideJitter + Up * UpJitter;
 
 	// Physics Asset bodies follow the current animated pose even though
 	// SkeletalMeshComponent is NoCollision for normal dungeon interaction.
@@ -451,7 +459,6 @@ bool AGridThrownItemActor::TryEmbedInMonster()
 	{
 		return false;
 	}
-	EmbeddedBone = Bone;
 	bEmbeddedInMonster = true;
 	EmbeddedMonster = Monster;
 	PendingHitMonster = nullptr;
@@ -468,13 +475,15 @@ bool AGridThrownItemActor::TryEmbedInMonster()
 	GetWorldTimerManager().ClearTimer(ExpirationTimerHandle);
 	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
 	SetActorTickEnabled(true);
+	const FVector LogicalCenter = IsValid(Monster->CollisionComponent)
+		? Monster->CollisionComponent->Bounds.Origin : Monster->GetActorLocation();
 	UE_LOG(LogGridThrownItem, Log,
 		TEXT("[GridProjectile] Embedded Item=%s RuntimeId=%s Monster=%s Bone=%s Contact=%s Distance=%.1f Tip=%s MeshCenter=%s LogicalCenter=%s"),
 		*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(),
 		*GetNameSafe(Monster), *Bone.ToString(),
 		bPhysicsContact ? TEXT("PhysicsAsset") : TEXT("Fallback"), SurfaceDistance,
 		*TipLocation.ToCompactString(), *BodyCenter.ToCompactString(),
-		*GetNameSafe(Monster->CollisionComponent));
+		*LogicalCenter.ToCompactString());
 	return true;
 }
 
@@ -488,7 +497,6 @@ void AGridThrownItemActor::ReleaseEmbeddedArrowToPickup()
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	bEmbeddedInMonster = false;
 	EmbeddedMonster = nullptr;
-	EmbeddedBone = NAME_None;
 	FHitResult ReleaseHit;
 	ReleaseHit.Location = LastWorldTip;
 	ReleaseHit.ImpactPoint = LastWorldTip;
