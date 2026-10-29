@@ -79,6 +79,10 @@ Build/*
 # --- Engine crash / profiling / local data ---
 *.dmp
 
+# --- Microsoft Excel temporary owner/lock files ---
+# An open workbook creates an untracked ~$*.xlsx file; this is not source data.
+~$*.xlsx
+
 # --- OS files ---
 .DS_Store
 Thumbs.db
