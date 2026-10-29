@@ -119,7 +119,11 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 		}
 
 		const float PickupReach = FMath::Max(0.0f, WorldItemPickupReach);
-		const float DistanceSquared = FVector::DistSquared2D(PartyPawn->GetActorLocation(), ItemActor->GetActorLocation());
+		// Chaos moves the rigid-body mesh, not the scene-root actor. Hand reach
+		// must be measured to the visible arrow at its actual resting place.
+		const FVector PickupWorldLocation = IsValid(ItemActor->MeshComponent)
+			? ItemActor->MeshComponent->GetComponentLocation() : ItemActor->GetActorLocation();
+		const float DistanceSquared = FVector::DistSquared2D(PartyPawn->GetActorLocation(), PickupWorldLocation);
 		if (DistanceSquared > FMath::Square(PickupReach))
 		{
 			if (bLogRejection)
@@ -266,7 +270,8 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 		ItemInstance.ReadableContentId = ItemActor->ReadableContentId;
 		ItemInstance.ReadTitleOverride = ItemActor->ReadTitleOverride;
 		ItemInstance.ReadTextOverride = ItemActor->ReadTextOverride;
-		ItemInstance.LastWorldTransform = ItemActor->GetActorTransform();
+		ItemInstance.LastWorldTransform = IsValid(ItemActor->MeshComponent)
+			? ItemActor->MeshComponent->GetComponentTransform() : ItemActor->GetActorTransform();
 
 		if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory(ItemInstance))
 		{
@@ -343,7 +348,8 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 		ItemInstance.ReadableContentId = ItemActor->ReadableContentId;
 		ItemInstance.ReadTitleOverride = ItemActor->ReadTitleOverride;
 		ItemInstance.ReadTextOverride = ItemActor->ReadTextOverride;
-		ItemInstance.LastWorldTransform = ItemActor->GetActorTransform();
+		ItemInstance.LastWorldTransform = IsValid(ItemActor->MeshComponent)
+			? ItemActor->MeshComponent->GetComponentTransform() : ItemActor->GetActorTransform();
 
 		if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory(ItemInstance))
 		{
@@ -615,7 +621,8 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 		ItemInstance.ReadableContentId = ItemActor->ReadableContentId;
 		ItemInstance.ReadTitleOverride = ItemActor->ReadTitleOverride;
 		ItemInstance.ReadTextOverride = ItemActor->ReadTextOverride;
-		ItemInstance.LastWorldTransform = ItemActor->GetActorTransform();
+		ItemInstance.LastWorldTransform = IsValid(ItemActor->MeshComponent)
+			? ItemActor->MeshComponent->GetComponentTransform() : ItemActor->GetActorTransform();
 
 		FVector LocalOffset = ItemActor->GetActorLocation() - GetCellCenterWorld(CellX, CellY, 12.0f);
 		LocalOffset.Z = 0.0f;
@@ -952,7 +959,23 @@ float AGridLevelRuntimeActor::GetWorldItemWeightAtCell(int32 CellX, int32 CellY,
 
 	for (const FGridSpawnedItemRuntimeEntry& Entry : SpawnedItemEntries)
 	{
-		if (Entry.Cell != TargetCell || (!bIncludeEdgeItems && Entry.Edge != EGridEdge::None) || !IsValid(Entry.ItemActor.Get()))
+		if ((!bIncludeEdgeItems && Entry.Edge != EGridEdge::None) || !IsValid(Entry.ItemActor.Get()))
+		{
+			continue;
+		}
+		FIntPoint ActualCell = Entry.Cell;
+		if (Entry.Edge == EGridEdge::None && IsValid(Entry.ItemActor->MeshComponent) &&
+			Entry.ItemActor->MeshComponent->IsSimulatingPhysics())
+		{
+			int32 X = INDEX_NONE, Y = INDEX_NONE;
+			FVector Offset;
+			if (TryResolveWorldCellFromImpactPoint(
+				Entry.ItemActor->MeshComponent->GetComponentLocation(), X, Y, Offset))
+			{
+				ActualCell = FIntPoint(X, Y);
+			}
+		}
+		if (ActualCell != TargetCell)
 		{
 			continue;
 		}

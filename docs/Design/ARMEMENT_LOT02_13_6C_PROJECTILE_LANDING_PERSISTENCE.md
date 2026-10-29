@@ -27,3 +27,11 @@ sous forme de pickup. Le monstre n'est pas dupliqué, pas de nouveau dégât.
 
 ## 13.6C.2c — Restauration
 Le chargeur détruit les projectiles actifs préexistants pour éviter les GUID doublons. Les flèches fichées ne sont pas chargées avec les pickups normaux, mais après restauration des monstres. Pour un monstre encore vivant, la flèche retrouve os et transform relatif. Pour un monstre mort ou manquant, l'unique GUID est converti en pickup physique à la dernière pose connue. L'ancien mécanisme de ramassage et les effets de combat ne sont pas modifiés.
+
+## 13.6C.3 — Ramassage à la vraie position
+Le contrôle de portée pour un pickup libre utilise le MeshComponent (transform
+Chaos) et non plus l'acteur racine, immobile pendant la simulation.
+`LastWorldTransform` transmis à l'inventaire vient aussi du mesh.
+`GetWorldItemWeightAtCell` détermine dynamiquement la cellule physique
+du mesh quand il simule, sans attendre un Refresh ; l'interaction et
+la capture de sauvegarde réconcilient les entrées.
