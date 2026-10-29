@@ -23,8 +23,8 @@ public:
     /** Populate an initially unconfigured transient class. Transactional. */
     static bool TryPopulateTransientClass(URPGClassAsset& TransientClass, FString& OutError);
 
-    /** ARMEMENT01.13: prepare three approved N1 orientations on a transient class.
-     * Not used by New Game until localized ST_UI and regression tests are validated.
+    /** ARMEMENT01.13.2: active New Game path, three approved N1 kits per class.
+     * Called by the wizard preview and CreateInitialCharacter on transient copies.
      * Missing future support items are never fabricated.
      */
     static bool TryPopulateApprovedTransientClass(URPGClassAsset& TransientClass, FString& OutError);

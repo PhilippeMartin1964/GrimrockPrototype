@@ -55,3 +55,19 @@ Le basculement des nouveaux kits dans le wizard (13.2) est **bloqué** tant que 
 2. Exécuter Scripts/ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.13.ApprovedKits".
 3. Exécuter les filtres historiques Grimrock.RPG.ARMEMENT01.9.SixClassKits, Grimrock.RPG.ARMEMENT01.9.WizardSelection et Grimrock.RPG.ARMEMENT01.9.Localization.
 4. Vérifier en PIE les 18 orientations et le cycle sauvegarde/Continue avant clôture.
+
+## Validation locale ARMEMENT01.13.2 — 29.10.2026
+
+- UE 5.5.4 Development Editor : compilation validée.
+- Suite `Grimrock.RPG.ARMEMENT01.13.ApprovedKits` : 2 réussites, 1 avec avertissement, 0 échec, sortie 0.
+- Suite `Grimrock.RPG.ARMEMENT01.9` : 30 réussites, 2 avec avertissements, 0 échec, sortie 0.
+- Ces résultats valident le code de sélection/attribution et la non-régression automatisée. La validation PIE et le cycle Save → Quitter → Continue sur disque restent distincts.
+- Les 18 kits approuvés sont l'unique référence de création de nouveaux personnages. Les 12 recettes historiques ne doivent pas déterminer le gameplay futur ; leur sort (suppression ou maintien minimal pour anciennes sauvegardes) n'est pas encore décidé.
+- L'asset `Content/Localization/StringTables/ST_UI.uasset` a été régénéré en local lors de ARMEMENT01.13.1 ; sa modification binaire locale reste à publier, sans l'écraser depuis GitHub.
+
+## ARMEMENT01.14.1 — Contrat réel des munitions initiales des deux Rôdeurs
+
+- Nouveau test : `Grimrock.RPG.ARMEMENT01.14.RangerStarterAmmunition`.
+- Instancie les véritables classes Ranger/Marksman et Ranger/Scout avec `CreateInitialCharacter` ; vérifie l'arc équipé, la liaison explicite `RequiredAmmunitionItemDefinitionId`, les 12 flèches, le débit unitaire jusqu'à zéro, le refus de surconsommer, l'identité des objets et les invariants de propriété.
+- Ce test vérifie le **contrat d'inventaire/munitions** avec les assets de production ; les projectiles visibles, collisions, dégâts, portée et PA exigent toujours le PIE combat.
+- Les cinq compléments non-armement (désamorçage, catalyseur, soin, Apothicaire, transmutation) restent des développements distincts ; leurs comportements doivent être définis avant création des assets, sans inventer des compétences niveau 2.
