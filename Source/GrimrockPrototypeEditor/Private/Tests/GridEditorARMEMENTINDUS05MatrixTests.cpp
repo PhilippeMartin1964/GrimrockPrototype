@@ -10,6 +10,12 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "UI/GridWeaponTooltipProjection.h"
+#include "RPG/RPGClassAsset.h"
+#include "RPG/RPGStartingEquipmentPresetCatalog.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "AssetRegistry/IAssetRegistry.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectGlobals.h"
 
 /**
  * INDUS05.3: manifest-driven, cross-archetype matrix. One test for all
@@ -154,7 +160,7 @@ bool FWeaponIndustrial05LegacyExceptions::RunTest(const FString&)
     for (const TCHAR* Path : LegacyPaths)
     {
         UGridItemDefinitionAsset* Legacy = LoadObject<UGridItemDefinitionAsset>(nullptr, Path);
-        if (!TestNotNull(TEXT("Existing throwing-item asset retained"), Legacy)) continue;
+        if (!TestNotNull(TEXT("Existing throwing-item asset retained pending deletion audit"), Legacy)) continue;
         const bool bDirtyBefore = Legacy->GetOutermost()->IsDirty();
         const FGridWeaponPipelineRow* Migrated = Rows.FindByPredicate([Path](const FGridWeaponPipelineRow& Row)
         {
@@ -164,6 +170,167 @@ bool FWeaponIndustrial05LegacyExceptions::RunTest(const FString&)
         TestEqual(TEXT("Legacy item untouched by industrial checks"),
             Legacy->GetOutermost()->IsDirty(), bDirtyBefore);
     }
+
+    // LOT02.14: migrate the two runtime starter presets in one logical batch.
+    // The replacement exists but its Planned -> Active transition is a
+    // separate, PIE-gated decision. No production class asset is modified.
+    const FGridWeaponPipelineRow* CanonicalRow = FGridWeaponPipelineManifest::Find(
+        Rows, TEXT("ARM054"));
+    if (!TestNotNull(TEXT("ARM054 canonical production row exists"), CanonicalRow))
+    {
+        return false;
+    }
+    UGridItemDefinitionAsset* Canonical = LoadObject<UGridItemDefinitionAsset>(
+        nullptr, *CanonicalRow->ItemPath);
+    if (!TestNotNull(TEXT("ARM054 real ItemDefinition loads"), Canonical))
+    {
+        return false;
+    }
+    const bool bCanonicalDirty = Canonical->GetOutermost()->IsDirty();
+    TestEqual(TEXT("ARM054 canonical definition ID"),
+        Canonical->ItemDefinitionId, FName(CanonicalRow->ItemDefinitionId));
+    TestEqual(TEXT("ARM054 canonical archetype ID"),
+        Canonical->WeaponArchetypeId, FName(TEXT("ARM054")));
+    TestTrue(TEXT("ARM054 definition is valid"), Canonical->IsValidDefinition());
+    TestTrue(TEXT("ARM054 is still a physical throwing weapon"),
+        Canonical->bCombatThrowWeapon && Canonical->IsPhysicallyThrowable());
+    TestTrue(TEXT("ARM054 can rehydrate the same saved definition ID"),
+        FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(
+            Canonical->ItemDefinitionId) == Canonical);
+
+    struct FKitToMigrate
+    {
+        const TCHAR* ClassId;
+        const TCHAR* KitId;
+        const TCHAR* ExpectedMainAsset;
+    };
+    static const FKitToMigrate Migrations[] =
+    {
+        { TEXT("Warrior"), TEXT("Warrior_Skirmisher"), TEXT("DA_Weapon_Dagger_01") },
+        { TEXT("Rogue"), TEXT("Rogue_Shadow"), TEXT("DA_Weapon_Dagger_01") }
+    };
+    for (const FKitToMigrate& Migration : Migrations)
+    {
+        const FString ClassPath = FString::Printf(
+            TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_%s.DA_Class_%s"),
+            Migration.ClassId, Migration.ClassId);
+        URPGClassAsset* Production = LoadObject<URPGClassAsset>(nullptr, *ClassPath);
+        if (!TestNotNull(TEXT("Real starter class loads for migration audit"), Production))
+        {
+            continue;
+        }
+        const bool bProductionDirty = Production->GetOutermost()->IsDirty();
+        URPGClassAsset* Temporary = DuplicateObject<URPGClassAsset>(
+            Production, GetTransientPackage());
+        if (!TestNotNull(TEXT("Temporary class copy exists"), Temporary))
+        {
+            continue;
+        }
+        FString PopulateError;
+        if (!TestTrue(TEXT("Transient starter kit materializes"),
+            FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(*Temporary, PopulateError)))
+        {
+            AddError(FString::Printf(TEXT("[LOT02.14] Class=%s Error=%s"),
+                Migration.ClassId, *PopulateError));
+            continue;
+        }
+        const FRPGStartingEquipmentKit* Kit = Temporary->StartingEquipmentKits.FindByPredicate(
+            [&Migration](const FRPGStartingEquipmentKit& Candidate)
+            {
+                return Candidate.KitId == FName(Migration.KitId);
+            });
+        if (!TestNotNull(TEXT("Migrated starter kit exists"), Kit))
+        {
+            continue;
+        }
+        TestEqual(TEXT("Migrated kit still contains exactly two items"), Kit->Items.Num(), 2);
+        if (Kit->Items.Num() == 2)
+        {
+            const FRPGStartingEquipmentEntry& Main = Kit->Items[0];
+            const FRPGStartingEquipmentEntry& Throw = Kit->Items[1];
+            TestEqual(TEXT("Original starting dagger remains equipped"),
+                Main.ItemDefinition->GetName(), FString(Migration.ExpectedMainAsset));
+            TestEqual(TEXT("Original dagger remains in MainHand"),
+                Main.TargetSlot, EGridEquipmentSlot::MainHand);
+            TestTrue(TEXT("Starter throwing knife is exact ARM054 DataAsset"),
+                Throw.ItemDefinition.Get() == Canonical);
+            TestEqual(TEXT("Starter throwing knife remains in the bag"),
+                Throw.TargetSlot, EGridEquipmentSlot::None);
+            TestEqual(TEXT("Starter throwing knife is one unit"),
+                Throw.Quantity, 1);
+        }
+        TestEqual(TEXT("Production starter class not dirtied"),
+            Production->GetOutermost()->IsDirty(), bProductionDirty);
+    }
+    TestEqual(TEXT("Canonical ARM054 asset not dirtied"),
+        Canonical->GetOutermost()->IsDirty(), bCanonicalDirty);
+
+    // Read-only snapshot of actual binary Unreal references. GitHub search
+    // cannot see these (.uasset files are LFS objects). This deliberately
+    // does not delete anything, or assume that zero references is proven.
+    IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(
+        TEXT("AssetRegistry")).Get();
+    Registry.SearchAllAssets(true);
+    struct FLegacyPackage
+    {
+        const TCHAR* Label;
+        const TCHAR* Path;
+    };
+    static const FLegacyPackage Candidates[] =
+    {
+        { TEXT("LegacyItem"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ThrowingKnife") },
+        { TEXT("LegacyMesh"), TEXT("/Game/GrimrockPrototype/Meshes/Weapons/SM_ThrowingKnife") },
+        { TEXT("LegacyIcon"), TEXT("/Game/GrimrockPrototype/UI/Icons/Weapons/T_Weapon_ThrowingKnife") },
+        { TEXT("LegacyMaterial"), TEXT("/Game/GrimrockPrototype/Art/Materials/Instances/Weapons/MI_ThrowingKnife") },
+        { TEXT("LegacyBC"), TEXT("/Game/GrimrockPrototype/Art/Textures/Final/Weapons/ThrowingKnife/T_ThrowingKnife_01_BC") },
+        { TEXT("LegacyN"), TEXT("/Game/GrimrockPrototype/Art/Textures/Final/Weapons/ThrowingKnife/T_ThrowingKnife_01_N") },
+        { TEXT("LegacyORM"), TEXT("/Game/GrimrockPrototype/Art/Textures/Final/Weapons/ThrowingKnife/T_ThrowingKnife_01_ORM") }
+    };
+    TArray<FString> Audit = {
+        TEXT("Label,Package,Exists,RegistryQuery,ReferencerCount,Referencers,Decision")
+    };
+    for (const FLegacyPackage& Candidate : Candidates)
+    {
+        const FName Package(Candidate.Path);
+        TArray<FAssetData> Assets;
+        const bool bExists = Registry.GetAssetsByPackageName(
+            Package, Assets, true, false) && !Assets.IsEmpty();
+        TArray<FName> Referencers;
+        const bool bQueried = bExists && Registry.GetReferencers(
+            Package, Referencers, UE::AssetRegistry::EDependencyCategory::All,
+            UE::AssetRegistry::FDependencyQuery());
+        Referencers.Sort([](const FName& A, const FName& B)
+        {
+            return A.ToString() < B.ToString();
+        });
+        TArray<FString> Names;
+        for (const FName Name : Referencers)
+        {
+            Names.Add(Name.ToString());
+            AddInfo(FString::Printf(TEXT("[LOT02.14] Asset=%s Referencer=%s"),
+                Candidate.Label, *Name.ToString()));
+        }
+        const FString Decision = !bExists ? TEXT("NOT_FOUND") :
+            !bQueried ? TEXT("QUERY_UNCONFIRMED") :
+            !Referencers.IsEmpty() ? TEXT("BLOCKED_REFERENCERS") :
+            TEXT("REGISTRY_CANDIDATE_CONFIRM_IN_EDITOR");
+        Audit.Add(FString::Printf(TEXT("%s,%s,%d,%d,%d,%s,%s"),
+            Candidate.Label, Candidate.Path, bExists ? 1 : 0, bQueried ? 1 : 0,
+            Referencers.Num(), *FString::Join(Names, TEXT("|")), *Decision));
+        AddInfo(FString::Printf(
+            TEXT("[LOT02.14] Asset=%s Exists=%d RefQuery=%d Referencers=%d Decision=%s"),
+            Candidate.Label, bExists ? 1 : 0, bQueried ? 1 : 0,
+            Referencers.Num(), *Decision));
+    }
+    const FString ReportDir = FPaths::Combine(
+        FPaths::ProjectSavedDir(), TEXT("ARMEMENT-LOT02"));
+    IFileManager::Get().MakeDirectory(*ReportDir, true);
+    const FString Report = FPaths::Combine(
+        ReportDir, TEXT("LOT02_14_LegacyThrowingKnifeReferences.csv"));
+    TestTrue(TEXT("Persist read-only binary reference audit under Saved"),
+        FFileHelper::SaveStringArrayToFile(Audit, *Report));
+    AddInfo(FString::Printf(TEXT("[LOT02.14] Report=%s OriginalLegacyAssetRetained=1"),
+        *Report));
     return true;
 }
 

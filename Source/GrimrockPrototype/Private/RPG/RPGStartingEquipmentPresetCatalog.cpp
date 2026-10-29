@@ -23,8 +23,9 @@ namespace RPGStartingPresets
         bool bDefault;
     };
 
-    // ARMEMENT01.9.2: only tracked production items. Other class weapons
-    // (staves, swords, holy symbols, etc.) require future production assets.
+    // ARMEMENT-LOT02.14: production starter kits consume canonical ARM054,
+    // not the obsolete unversioned ThrowingKnife item. Transient kits only.
+    // Other class weapons require their own validated production assets.
     // All starting weapons inherit their definition's level-1 default.
     const FKitSpec Kits[] =
     {
@@ -33,11 +34,11 @@ namespace RPGStartingPresets
             {TEXT("DA_Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand}, true },
         { TEXT("Warrior"), TEXT("Warrior_Skirmisher"), TEXT("CharacterCreation.StartingKit.Name.WarriorSkirmisher"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand},
-            {TEXT("DA_Weapon_ThrowingKnife"), EGridEquipmentSlot::None}, false },
+            {TEXT("DA_Weapon_ThrowingKnife_01"), EGridEquipmentSlot::None}, false },
 
         { TEXT("Rogue"), TEXT("Rogue_Shadow"), TEXT("CharacterCreation.StartingKit.Name.RogueShadow"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand},
-            {TEXT("DA_Weapon_ThrowingKnife"), EGridEquipmentSlot::None}, true },
+            {TEXT("DA_Weapon_ThrowingKnife_01"), EGridEquipmentSlot::None}, true },
         { TEXT("Rogue"), TEXT("Rogue_Explorer"), TEXT("CharacterCreation.StartingKit.Name.RogueExplorer"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand},
             {TEXT("DA_Item_Torch"), EGridEquipmentSlot::None}, false },
