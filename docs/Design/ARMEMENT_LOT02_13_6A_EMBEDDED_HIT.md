@@ -105,3 +105,30 @@ persistance restent 13.6C.
 - Dispersion déterministe légère (±6 cm en latéral et vertical) du point
   d'approche pour conserver les flèches multiples visibles ; la surface
   physique/osseuse reste l'autorité pour le point final.
+
+## ARMEMENT-LOT02.13.6A.3 — Correction de l'assertion de récupération (29.10.2026)
+Le test `EmbeddedRangedArrowHit` a échoué en local (13/14) sur
+`Recovered in target cell`, tandis que MON11 est resté à 8/8.
+Il ne s'agit pas d'un échec de compilation : la version précédente
+avait rendu le test contradictoire avec le comportement attendu.
+
+La régression décale volontairement le mesh visuel de +130 cm par rapport
+au centre logique du monstre, puis déplace l'acteur de +32 cm sur X.
+Sur une grille de 200 cm, la pointe passe ainsi de la cellule de combat
+(1,2) à la cellule (2,2). `ReleaseEmbeddedArrowToPickup` utilise
+le véritable point de libération pour déterminer la cellule enregistrée.
+
+L'ancien test supposait à tort que l'objet devait rester dans (1,2).
+Il vérifie maintenant :
+- la cellule réellement résolue depuis `GetActorLocation()` juste avant
+  disparition du mesh, avec assertion explicite (2,2) ;
+- la présence du pickup enregistré dans cette cellule, pas dans (1,2) ;
+- l'absence de pickup fantôme dans l'ancienne cellule ;
+- une et une seule instance portant le même GUID et ItemDefinitionId,
+  dont `RuntimeCellX/Y` correspondent à la cellule de libération.
+
+Aucun changement de physique/gameplay n'est nécessaire pour ce défaut.
+La chute Chaos, la transform exacte au sol et la persistance restent à
+livrer dans LOT02.13.6C. Les tests automation avec monstre sans véritable
+Skeletal Mesh animé **ne suffisent pas à valider** la disparition du
+défaut visuel de flèche suspendue : contrôle PIE toujours indispensable.

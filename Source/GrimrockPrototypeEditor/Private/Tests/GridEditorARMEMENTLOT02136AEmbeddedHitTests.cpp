@@ -111,10 +111,27 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
             TestTrue(TEXT("Arrow follows relative skeletal-body translation"),
                 Projectile->GetActorLocation().Equals(BeforeVisualMove + FVector(0, 0, 28.0f), 0.2f));
             TestEqual(TEXT("Arrow remains embedded after body translation"), Projectile->IsEmbeddedInMonster(), true);
+            // The visual mesh is offset +130 cm and the monster moves +32 cm.
+            // With 200 cm cells, the attached arrow is now physically in
+            // cell (2,2), not in the original combat cell (1,2).
+            // Recover where the arrow actually was when the body vanished.
+            int32 ReleaseCellX = INDEX_NONE;
+            int32 ReleaseCellY = INDEX_NONE;
+            FVector ReleaseLocalOffset = FVector::ZeroVector;
+            const FVector ReleaseWorldLocation = Projectile->GetActorLocation();
+            const bool bReleaseCellResolved = Runtime->TryResolveWorldCellFromImpactPoint(
+                ReleaseWorldLocation, ReleaseCellX, ReleaseCellY, ReleaseLocalOffset);
+            TestTrue(TEXT("Embedded arrow release location resolves to a walkable cell"), bReleaseCellResolved);
+            TestEqual(TEXT("Moved visual puts arrow in next cell X"), ReleaseCellX, 2);
+            TestEqual(TEXT("Moved visual keeps arrow in same row Y"), ReleaseCellY, 2);
+
             Monster->SkeletalMeshComponent->SetVisibility(false, true);
             Projectile->Tick(0.016f);
             TestTrue(TEXT("Hidden corpse releases embedded item"), Projectile->HasCompletedImpactConversion());
-            TestTrue(TEXT("Recovered in target cell"), Runtime->GetWorldItemWeightAtCell(1, 2) >= Arrow->Weight);
+            TestTrue(TEXT("Pickup registered in arrow release cell"),
+                bReleaseCellResolved && Runtime->GetWorldItemWeightAtCell(ReleaseCellX, ReleaseCellY) >= Arrow->Weight);
+            TestEqual(TEXT("Original combat cell has no phantom pickup"),
+                Runtime->GetWorldItemWeightAtCell(1, 2), 0.0f);
             int32 MatchingPickups = 0;
             for (TActorIterator<AGridItemActor> It(World); It; ++It)
             {
@@ -123,6 +140,9 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
                     Item->GetRuntimeObjectId() == Unit.RuntimeObjectId)
                 {
                     ++MatchingPickups;
+                    TestEqual(TEXT("GUID pickup is registered at the release cell X"), Item->RuntimeCellX, ReleaseCellX);
+                    TestEqual(TEXT("GUID pickup is registered at the release cell Y"), Item->RuntimeCellY, ReleaseCellY);
+                    TestEqual(TEXT("GUID pickup preserves item definition"), Item->GetItemDefinitionId(), Arrow->ItemDefinitionId);
                 }
             }
             TestEqual(TEXT("Exactly one pickup, original GUID"), MatchingPickups, 1);
