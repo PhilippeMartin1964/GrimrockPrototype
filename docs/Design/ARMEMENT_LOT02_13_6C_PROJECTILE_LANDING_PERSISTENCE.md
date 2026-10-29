@@ -35,3 +35,11 @@ Chaos) et non plus l'acteur racine, immobile pendant la simulation.
 `GetWorldItemWeightAtCell` détermine dynamiquement la cellule physique
 du mesh quand il simule, sans attendre un Refresh ; l'interaction et
 la capture de sauvegarde réconcilient les entrées.
+
+## Test Save/Restore étendu
+Le test `EmbeddedRangedArrowHit` conserve son nom mais couvre aussi
+une capture du runtime avec flèche fichée (GUID, id persistant du monstre,
+pose du mesh) et une restauration de son attachement via le nouveau
+`RestoreEmbeddedAttachment`. Il vérifie l'absence de nouveau calcul de
+combat par ce chemin de présentation. Les véritables animations et les
+séquences Save/Continue avec assets devront encore être testées en PIE.

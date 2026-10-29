@@ -112,6 +112,41 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
             TestTrue(TEXT("Arrow follows relative skeletal-body translation"),
                 Projectile->GetActorLocation().Equals(BeforeVisualMove + FVector(0, 0, 28.0f), 0.2f));
             TestEqual(TEXT("Arrow remains embedded after body translation"), Projectile->IsEmbeddedInMonster(), true);
+
+            // SaveGame regression: an embedded arrow is NOT a ground pickup.
+            // One GUID maps to the monster persistence id and the native
+            // skeletal attachment's relative pose.
+            Monster->PersistentMonsterId = FGuid::NewGuid();
+            TestTrue(TEXT("Embedded arrow is capturable by runtime SaveGame"),
+                Runtime->CaptureCurrentLevelRuntimeState());
+            const FGridLevelRuntimeState* CapturedLevel = Runtime->FindRuntimeStateForCurrentLevel();
+            const FGridRuntimeItemState* EmbeddedState = CapturedLevel
+                ? CapturedLevel->Items.Find(Unit.RuntimeObjectId) : nullptr;
+            if (TestNotNull(TEXT("One saved entry for embedded ammo GUID"), EmbeddedState))
+            {
+                TestTrue(TEXT("Embedded state remains attached rather than ground pickup"),
+                    EmbeddedState->bEmbeddedProjectile);
+                TestEqual(TEXT("Saved embedded monster identity"),
+                    EmbeddedState->EmbeddedMonsterPersistenceId, Monster->PersistentMonsterId);
+                TestTrue(TEXT("Saved arrow preserves its rendered mesh pose"),
+                    EmbeddedState->WorldMeshTransform.GetLocation().Equals(
+                        Projectile->MeshComponent->GetComponentLocation(), 0.1f));
+                AGridThrownItemActor* Restored = Runtime->SpawnThrownItemProjectile(
+                    Unit, Arrow, EmbeddedState->WorldMeshTransform.GetLocation(),
+                    FVector(0, 1400, 0), 1, 2, true);
+                if (TestNotNull(TEXT("Embeddable save round-trip projectile"), Restored))
+                {
+                    TestTrue(TEXT("Restore attachment without rerolling combat"),
+                        Restored->RestoreEmbeddedAttachment(Monster, EmbeddedState->EmbeddedBone,
+                            EmbeddedState->EmbeddedBoneRelativeTransform));
+                    TestTrue(TEXT("Restored arrow is attached to same skeletal mesh"),
+                        Restored->GetRootComponent() &&
+                        Restored->GetRootComponent()->GetAttachParent() == Monster->SkeletalMeshComponent);
+                    TestEqual(TEXT("Restored projectile retains saved GUID"),
+                        Restored->ThrownItemInstance.RuntimeObjectId, Unit.RuntimeObjectId);
+                    Restored->Destroy();
+                }
+            }
             // Rotate the visual offset with the monster's facing. Here the
             // monster is North (yaw 90), so its +130 LOCAL X is WORLD +Y.
             // A previous test wrongly assumed local +X was world +X.
