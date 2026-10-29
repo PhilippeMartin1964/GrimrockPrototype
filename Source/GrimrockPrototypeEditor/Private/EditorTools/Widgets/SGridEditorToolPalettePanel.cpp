@@ -1,5 +1,4 @@
 #include "EditorTools/Widgets/SGridEditorToolPalettePanel.h"
-#include "Core/GridRelocationUtils.h"
 
 #if WITH_EDITOR
 
@@ -391,9 +390,9 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 
 	const FGridObjectPaletteEntry* StairsUpEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Stairs_Up")));
 	const FGridObjectPaletteEntry* StairsDownEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Stairs_Down")));
-	if (!StairsUpEntry || !StairsUpEntry->DefaultWorldObjectDefinition || !StairsDownEntry || !StairsDownEntry->DefaultWorldObjectDefinition ||
-		!GridRelocation::IsConfigured(StairsUpEntry->DefaultWorldObjectDefinition->DefaultBehavior.Relocation) ||
-		!GridRelocation::IsConfigured(StairsDownEntry->DefaultWorldObjectDefinition->DefaultBehavior.Relocation))
+	// An unset destination is intentional on a definition; destinations belong to placements.
+	// Only provision when a palette entry or its definition is actually missing.
+	if (!StairsUpEntry || !StairsUpEntry->DefaultWorldObjectDefinition || !StairsDownEntry || !StairsDownEntry->DefaultWorldObjectDefinition)
 	{
 		FString Error;
 		if (!CurrentEditorActor->EnsureStairsRelocationDefinitions(Error))

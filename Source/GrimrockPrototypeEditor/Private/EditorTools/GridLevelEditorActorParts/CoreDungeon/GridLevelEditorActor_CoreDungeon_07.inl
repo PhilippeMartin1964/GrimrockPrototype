@@ -33,14 +33,16 @@ bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 		return false;
 	}
 
-	const auto ConfigureTargetStairsRelocationDefinition = [](UGridWorldObjectDefinitionAsset& Definition, FName WorldObjectDefinitionId, const TCHAR* DisplayName,
-		UStaticMesh* Mesh, bool bHideCellFloor)
+	// Provision missing assets only. Existing definitions are authored data:
+	// rewriting FText::FromString on each palette refresh generates new localization keys.
+	const auto InitializeNewStairsDefinition = [](UGridWorldObjectDefinitionAsset& Definition, FName WorldObjectDefinitionId,
+		const FText& DisplayName, const FText& Description, UStaticMesh* Mesh, bool bHideCellFloor)
 	{
 		Definition.Modify();
 		Definition.DefinitionId = WorldObjectDefinitionId;
-		Definition.DisplayName = FText::FromString(DisplayName);
+		Definition.DisplayName = DisplayName;
 		Definition.SupportedType = EGridLevelObjectType::Relocation;
-		Definition.Description = FText::FromString(TEXT("Dungeon relocation stair for automatic party navigation."));
+		Definition.Description = Description;
 		Definition.DefaultBehavior = FGridObjectBehaviorParams();
 		Definition.PlacementSurface = EGridObjectPlacementKind::Floor;
 		Definition.DefaultLocalPosition = FGridSurfaceLocalPosition();
@@ -57,35 +59,58 @@ bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 		Definition.MarkPackageDirty();
 	};
 
-	ConfigureTargetStairsRelocationDefinition(*StairsUpDefinition, FName(TEXT("Stairs_Up")), TEXT("Stairs Up"), StairsUpMesh, false);
-	ConfigureTargetStairsRelocationDefinition(*StairsDownDefinition, FName(TEXT("Stairs_Down")), TEXT("Stairs Down"), StairsDownMesh, true);
-
-	ObjectPalette->Modify();
-
-	const auto AddOrUpdatePaletteEntry = [this](FName EntryId, UGridWorldObjectDefinitionAsset* Definition)
+	if (bCreatedUp)
 	{
-		FGridObjectPaletteEntry* ExistingEntry = ObjectPalette->Entries.FindByPredicate(
-			[EntryId](const FGridObjectPaletteEntry& Entry)
-			{
-				return Entry.EntryId == EntryId;
-			});
+		InitializeNewStairsDefinition(*StairsUpDefinition, FName(TEXT("Stairs_Up")),
+			NSLOCTEXT("Grimrock.WorldObjects", "StairsUp.DisplayName", "Stairs Up"),
+			NSLOCTEXT("Grimrock.WorldObjects", "StairsUp.Description", "Dungeon relocation stair for automatic party navigation."),
+			StairsUpMesh, false);
+	}
+	if (bCreatedDown)
+	{
+		InitializeNewStairsDefinition(*StairsDownDefinition, FName(TEXT("Stairs_Down")),
+			NSLOCTEXT("Grimrock.WorldObjects", "StairsDown.DisplayName", "Stairs Down"),
+			NSLOCTEXT("Grimrock.WorldObjects", "StairsDown.Description", "Dungeon relocation stair for automatic party navigation."),
+			StairsDownMesh, true);
+	}
 
-		if (!ExistingEntry)
+	bool bPaletteChanged = false;
+	const auto AddOrUpdatePaletteEntry = [this, &bPaletteChanged](FName EntryId, UGridWorldObjectDefinitionAsset* Definition)
+	{
+		FGridObjectPaletteEntry* Entry = ObjectPalette->Entries.FindByPredicate(
+			[EntryId](const FGridObjectPaletteEntry& Candidate) { return Candidate.EntryId == EntryId; });
+
+		const FName NavigationCategory(TEXT("Navigation"));
+		if (Entry && Entry->PaletteCategory == NavigationCategory && Entry->DefaultWorldObjectDefinition == Definition)
 		{
-			ExistingEntry = &ObjectPalette->Entries.AddDefaulted_GetRef();
+			return;
 		}
 
-		ExistingEntry->EntryId = EntryId;
-		ExistingEntry->PaletteCategory = FName(TEXT("Navigation"));
-		ExistingEntry->DefaultWorldObjectDefinition = Definition;
+		if (!bPaletteChanged)
+		{
+			ObjectPalette->Modify();
+			bPaletteChanged = true;
+		}
+		if (!Entry)
+		{
+			Entry = &ObjectPalette->Entries.AddDefaulted_GetRef();
+			Entry->EntryId = EntryId;
+		}
+		Entry->PaletteCategory = NavigationCategory;
+		Entry->DefaultWorldObjectDefinition = Definition;
 	};
 
 	AddOrUpdatePaletteEntry(FName(TEXT("Stairs_Up")), StairsUpDefinition);
 	AddOrUpdatePaletteEntry(FName(TEXT("Stairs_Down")), StairsDownDefinition);
-	ObjectPalette->MarkPackageDirty();
+	if (bPaletteChanged)
+	{
+		ObjectPalette->MarkPackageDirty();
+	}
 
 	ResolvePreviewRuntimeActor();
-	if (PreviewRuntimeActor)
+	if (PreviewRuntimeActor &&
+		(!PreviewRuntimeActor->WorldObjectDefinitions.Contains(StairsUpDefinition) ||
+		 !PreviewRuntimeActor->WorldObjectDefinitions.Contains(StairsDownDefinition)))
 	{
 		PreviewRuntimeActor->Modify();
 		PreviewRuntimeActor->WorldObjectDefinitions.AddUnique(StairsUpDefinition);
@@ -93,14 +118,17 @@ bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 	}
 
 	TArray<UPackage*> PackagesToSave;
-	PackagesToSave.AddUnique(StairsUpDefinition->GetOutermost());
-	PackagesToSave.AddUnique(StairsDownDefinition->GetOutermost());
-	PackagesToSave.AddUnique(ObjectPalette->GetOutermost());
-	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
+	if (bCreatedUp) PackagesToSave.AddUnique(StairsUpDefinition->GetOutermost());
+	if (bCreatedDown) PackagesToSave.AddUnique(StairsDownDefinition->GetOutermost());
+	if (bPaletteChanged) PackagesToSave.AddUnique(ObjectPalette->GetOutermost());
+	if (!PackagesToSave.IsEmpty())
+	{
+		UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
+	}
 
-	UE_LOG(LogGridEditor, Verbose, TEXT("Stairs relocation definitions ensured from target visual composition: Stairs_Up=%s Stairs_Down=%s Palette=%s CreatedUp=%s CreatedDown=%s."),
+	UE_LOG(LogGridEditor, Verbose, TEXT("Stairs relocation definitions ensured: Stairs_Up=%s Stairs_Down=%s Palette=%s CreatedUp=%s CreatedDown=%s PaletteChanged=%s."),
 		*StairsUpDefinition->GetPathName(), *StairsDownDefinition->GetPathName(), *ObjectPalette->GetPathName(), bCreatedUp ? TEXT("true") : TEXT("false"),
-		bCreatedDown ? TEXT("true") : TEXT("false"));
+		bCreatedDown ? TEXT("true") : TEXT("false"), bPaletteChanged ? TEXT("true") : TEXT("false"));
 
 	return true;
 #else
