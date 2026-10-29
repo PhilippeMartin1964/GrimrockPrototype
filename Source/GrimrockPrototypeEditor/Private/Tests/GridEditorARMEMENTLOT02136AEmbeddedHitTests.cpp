@@ -11,6 +11,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMLOT02136AEmbeddedHit,
     "Grimrock.RPG.ARMEMENT.LOT02.EmbeddedRangedArrowHit",
@@ -74,6 +75,22 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
     AGridMonsterActor* Monster = World->SpawnActor<AGridMonsterActor>();
     if (TestNotNull(TEXT("Monster exists"), Monster))
     {
+        // Capturing the level also captures every monster. The test monster
+        // must satisfy the SAME persistence requirements as production
+        // monsters, or CaptureRuntimeMonsterState logs a genuine Error.
+        // Use the minimal transient definition pattern from MON17.8.
+        UGridMonsterDefinitionAsset* MonsterDefinition = NewObject<UGridMonsterDefinitionAsset>(Runtime);
+        MonsterDefinition->MonsterId = TEXT("ARMLOT02136C_PersistenceMonster");
+        MonsterDefinition->DisplayName = FText::FromString(TEXT("ARMEMENT saved embedded target"));
+        MonsterDefinition->CategoryId = TEXT("Test");
+        MonsterDefinition->MaxHealth = 10;
+        MonsterDefinition->ActionPointsPerTurn = 2;
+        MonsterDefinition->DeathExpectedDuration = 1.0f;
+        Monster->MonsterDefinition = MonsterDefinition;
+        TestTrue(TEXT("Transient target definition is valid for persistence"),
+            MonsterDefinition->IsValidDefinition());
+        TestTrue(TEXT("Transient target initializes combat stats before capture"),
+            Monster->EnsureInitialCombatState());
         Monster->CurrentCell = FIntPoint(1, 2);
         Monster->SetActorLocation(Target - FVector(0,0,45));
         // Regression: a visual mesh displaced in MONSTER LOCAL coordinates
@@ -122,6 +139,15 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
             const FGridLevelRuntimeState* CapturedLevel = Runtime->FindRuntimeStateForCurrentLevel();
             const FGridRuntimeItemState* EmbeddedState = CapturedLevel
                 ? CapturedLevel->Items.Find(Unit.RuntimeObjectId) : nullptr;
+            const FGridRuntimeMonsterState* CapturedMonster = CapturedLevel
+                ? CapturedLevel->Monsters.Find(Monster->PersistentMonsterId) : nullptr;
+            if (TestNotNull(TEXT("Target monster was validly captured"), CapturedMonster))
+            {
+                TestEqual(TEXT("Persisted monster definition ID"),
+                    CapturedMonster->MonsterDefinitionId, MonsterDefinition->MonsterId);
+                TestEqual(TEXT("Persisted monster combat health"),
+                    CapturedMonster->CurrentHealth, MonsterDefinition->MaxHealth);
+            }
             if (TestNotNull(TEXT("One saved entry for embedded ammo GUID"), EmbeddedState))
             {
                 TestTrue(TEXT("Embedded state remains attached rather than ground pickup"),

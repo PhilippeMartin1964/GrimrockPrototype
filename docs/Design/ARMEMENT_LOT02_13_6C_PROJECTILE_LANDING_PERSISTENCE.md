@@ -49,3 +49,21 @@ Le dépôt physique distingue un pickup local d'un objet transféré par
 `TryRouteWorldItemThroughOpenPit`. Si la fosse est ouverte, le transfert
 réussi du GUID ne nécessite pas d'acteur local et ne doit jamais lancer
 une seconde tentative de dépôt. Le jalon PIT02 reste à retester en local.
+
+## 13.6C.6 — Correction du test de capture de niveau (29.10.2026)
+La validation locale de `Grimrock.RPG.ARMEMENT.LOT02` donnait 13/14.
+L'unique erreur n'était pas une perte de flèche :
+`[GridMonsterState] Capture skipped ... Reason=InvalidDefinition`
+sur le monstre éphémère du test `EmbeddedRangedArrowHit`.
+
+Le test avait étendu sa couverture à `CaptureCurrentLevelRuntimeState()`,
+qui persiste aussi **tous les monstres**. Il créait pourtant un acteur
+`AGridMonsterActor` sans `MonsterDefinition` ni combat initialisé.
+La correction respecte le contrat de production au lieu de le contourner :
+elle attribue un `UGridMonsterDefinitionAsset` temporaire minimal,
+valide ce dernier, initialise explicitement les statistiques via
+`EnsureInitialCombatState()`, puis vérifie le snapshot de monstre
+persisté (identité de définition et points de vie). La flèche conserve
+tous ses contrôles de GUID, attachement, transformation et libération.
+Aucun changement de runtime ; compilation UE, automation et PIE locaux
+restent nécessaires pour accepter ce jalon.
