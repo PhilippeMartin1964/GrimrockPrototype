@@ -24,14 +24,28 @@ bool FARMEMENTLOT021322Arrows::RunTest(const FString&)
     const bool WasPaletteDirty = Palette->GetOutermost()->IsDirty();
     const bool WasArrowDirty = Arrows->GetOutermost()->IsDirty();
     TArray<FGridWorldObjectDefinitionValidationMessage> Validation;
-    TestTrue(TEXT("Whole production palette valid"), Palette->ValidatePalette(Validation));
+    const bool bPaletteValid = Palette->ValidatePalette(Validation);
+    if (!bPaletteValid)
+    {
+        // Keep the authoritative palette contract strict, but expose the
+        // actual invalid entries rather than only a generic test failure.
+        for (const FGridWorldObjectDefinitionValidationMessage& Message : Validation)
+        {
+            if (Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error)
+            {
+                AddInfo(FString::Printf(TEXT("[LOT02.13.4.1] Palette validation: %s"), *Message.Message));
+            }
+        }
+    }
+    TestTrue(TEXT("Whole production palette valid"), bPaletteValid);
     const FName ArrowId(TEXT("Item_Arrows_01"));
     const FGridObjectPaletteEntry* Entry = Palette->FindEntryById(ArrowId);
     if (!TestNotNull(TEXT("Arrow is available in editor palette"), Entry)) return false;
     TestEqual(TEXT("Canonical item definition"), Entry->DefaultItemDefinition.Get(), Arrows);
     TestEqual(TEXT("Category Items"), Entry->PaletteCategory, FName(TEXT("Items")));
-    TestTrue(TEXT("Only direct-item binding, no duplicate icon"), Entry->IsValidEntry() &&
-        Entry->DefaultWorldObjectDefinition == nullptr && Entry->Icon == nullptr);
+    TestNull(TEXT("Direct arrow entry must not duplicate the item icon"), Entry->Icon.Get());
+    TestNull(TEXT("Direct arrow entry must not define a world object"), Entry->DefaultWorldObjectDefinition.Get());
+    TestTrue(TEXT("Arrow direct-item entry is valid"), Entry->IsValidEntry());
     int32 Count = 0;
     for (const FGridObjectPaletteEntry& Candidate : Palette->Entries)
         if (Candidate.EntryId == ArrowId) ++Count;
@@ -89,7 +103,7 @@ bool FARMEMENTLOT021322Arrows::RunTest(const FString&)
         Palette->GetOutermost()->IsDirty(), WasPaletteDirty);
     TestEqual(TEXT("Arrow asset not modified by test"),
         Arrows->GetOutermost()->IsDirty(), WasArrowDirty);
-    AddInfo(TEXT("[LOT02.13.2.2] Direct arrow entry and editor placement verified. Arrow icon and world mesh ART_PENDING; mouse pickup PIE not verified."));
+    AddInfo(TEXT("[LOT02.13.4.1] Direct arrow entry/placement verified against canonical ItemDefinition; PIE acceptance is separate."));
     return true;
 }
 #endif

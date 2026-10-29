@@ -96,6 +96,7 @@ bool FARMLot02134RangedArrow::RunTest(const FString&)
             {
                 ++PickupCount;
                 TestEqual(TEXT("Recovered item identity"), Item->GetItemDefinitionId(), Arrow->ItemDefinitionId);
+                TestTrue(TEXT("Recovered item keeps original definition pointer"), Item->GetItemDefinitionAsset() == Arrow);
                 TestEqual(TEXT("Recovered in monster cell X"), Item->RuntimeCellX, 1);
                 TestEqual(TEXT("Recovered in monster cell Y"), Item->RuntimeCellY, 2);
             }

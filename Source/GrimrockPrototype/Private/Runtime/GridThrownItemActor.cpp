@@ -254,6 +254,10 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
+	// The projectile already carries the canonical item definition. Reuse it
+	// at conversion instead of asking runtime registries to rediscover an
+	// item that may exist only in a transient level or inventory.
+	UGridItemDefinitionAsset* ImpactItemDefinition = GetItemDefinitionAsset();
 	int32 ImpactCellX = INDEX_NONE;
 	int32 ImpactCellY = INDEX_NONE;
 	FVector ImpactLocalOffset = FVector::ZeroVector;
@@ -265,17 +269,17 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 		RuntimeActor->IsWalkableCell(PreferredImpactCell.X, PreferredImpactCell.Y))
 	{
 		bDropped = RuntimeActor->TryDropItemInstanceAtCell(
-			ThrownItemInstance, PreferredImpactCell.X, PreferredImpactCell.Y, EGridEdge::None, FVector::ZeroVector);
+			ThrownItemInstance, ImpactItemDefinition, PreferredImpactCell.X, PreferredImpactCell.Y, EGridEdge::None, FVector::ZeroVector);
 	}
 	if (!bDropped)
 	{
 		bDropped = RuntimeActor && RuntimeActor->TryResolveWorldCellFromImpactPoint(ResolvePoint, ImpactCellX, ImpactCellY, ImpactLocalOffset) &&
-			RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactCellX, ImpactCellY, EGridEdge::None, ImpactLocalOffset);
+			RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactItemDefinition, ImpactCellX, ImpactCellY, EGridEdge::None, ImpactLocalOffset);
 	}
 
 	if (!bDropped && RuntimeActor && RuntimeActor->IsWalkableCell(SourceCellX, SourceCellY))
 	{
-		bDropped = RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, SourceCellX, SourceCellY, EGridEdge::None, FVector::ZeroVector);
+		bDropped = RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactItemDefinition, SourceCellX, SourceCellY, EGridEdge::None, FVector::ZeroVector);
 	}
 
 	if (!bDropped)
