@@ -22,6 +22,14 @@ bool FLOT024AmmunitionInventory::RunTest(const FString&)
 		FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inventory, 0, *Weapon));
 	TestFalse(TEXT("Cannot consume absent ammo"),
 		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inventory, 0, *Weapon));
+	TestTrue(TEXT("Non-ranged action never requires an arrow"),
+		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, false));
+	TestTrue(TEXT("Non-ranged action with no ammo is a no-op"),
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, false));
+	TestFalse(TEXT("Actual ranged attack still requires ammunition"),
+		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, true));
+	TestFalse(TEXT("Actual ranged attack cannot consume absent ammunition"),
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, true));
 	const FGuid HeroId = Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
 	FGridCharacterInventoryState& Hero = Inventory->PartyInventoryState.ActiveCharacters[0];
 	FGridInventorySlot& Slot = Hero.InventorySlots[0];
@@ -37,8 +45,13 @@ bool FLOT024AmmunitionInventory::RunTest(const FString&)
 
 	TestTrue(TEXT("Three arrows are available"),
 		FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inventory, 0, *Weapon));
-	TestTrue(TEXT("First arrow consumed"),
-		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inventory, 0, *Weapon));
+	TestTrue(TEXT("Non-ranged attack is still usable with arrows in the bag"),
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, false));
+	TestEqual(TEXT("Non-ranged action cannot deduct an arrow"), Slot.Item.Quantity, 3);
+	TestTrue(TEXT("Ranged action can see real arrows"),
+		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, true));
+	TestTrue(TEXT("First ranged arrow consumed"),
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, true));
 	TestEqual(TEXT("Quantity reduced to two"), Slot.Item.Quantity, 2);
 	TestEqual(TEXT("Stack GUID retained on partial consumption"),
 		Slot.Item.RuntimeObjectId, StackId);

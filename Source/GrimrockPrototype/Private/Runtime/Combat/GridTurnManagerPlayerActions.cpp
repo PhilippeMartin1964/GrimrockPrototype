@@ -608,8 +608,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	// Preflight ammunition before reserving PA; no charge on an invalid
 	// target, an unaccepted attack, or a character with no matching ammo.
 	if (IsValid(SourceItemDefinition) &&
-		!FGridRangedAmmunitionPolicy::HasRequiredAmmunition(
-			*Inventory, AttackerCharacterIndex, *SourceItemDefinition))
+		!FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
+			*Inventory, AttackerCharacterIndex, *SourceItemDefinition, bResolvedRangedAttack))
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex,
 			EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
@@ -719,8 +719,8 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 	// never on a refused target or failed throw.
 	if (bSourceCommitted && IsValid(SourceItemDefinition))
 	{
-		bSourceCommitted = FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(
-			*Inventory, AttackerCharacterIndex, *SourceItemDefinition);
+		bSourceCommitted = FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(
+			*Inventory, AttackerCharacterIndex, *SourceItemDefinition, bResolvedRangedAttack);
 	}
 
 	if (!bSourceCommitted)

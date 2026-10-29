@@ -71,3 +71,17 @@ Le basculement des nouveaux kits dans le wizard (13.2) est **bloqué** tant que 
 - Instancie les véritables classes Ranger/Marksman et Ranger/Scout avec `CreateInitialCharacter` ; vérifie l'arc équipé, la liaison explicite `RequiredAmmunitionItemDefinitionId`, les 12 flèches, le débit unitaire jusqu'à zéro, le refus de surconsommer, l'identité des objets et les invariants de propriété.
 - Ce test vérifie le **contrat d'inventaire/munitions** avec les assets de production ; les projectiles visibles, collisions, dégâts, portée et PA exigent toujours le PIE combat.
 - Les cinq compléments non-armement (désamorçage, catalyseur, soin, Apothicaire, transmutation) restent des développements distincts ; leurs comportements doivent être définis avant création des assets, sans inventer des compétences niveau 2.
+
+
+## ARMEMENT01.14.1 — Validation locale du contrat de munitions (29 octobre 2026)
+
+- Filtre `Grimrock.RPG.ARMEMENT01.14.RangerStarterAmmunition` : **1 test réussi**, zéro avertissement, zéro échec, zéro non exécuté, code de sortie 0.
+- Le test couvre les arcs de départ `Kit_Ranger_Marksman` et `Kit_Ranger_Scout`, la dotation et consommation des 12 flèches, et l'intégrité de l'inventaire ; il ne prétend pas valider à lui seul le tir visible ou les dégâts en PIE.
+
+## ARMEMENT01.14.2 — Munitions limitées aux actions de tir
+
+- `FGridRangedAmmunitionPolicy` expose un contrôle contextuel de disponibilité et de consommation, avec `bRangedAttack` explicite.
+- Les deux chemins de l'exécution (`TryPlayerAttack`) et la disponibilité dans le catalogue d'actions appliquent cette même condition : une action **non distante** depuis une arme requérant des flèches ne doit ni être désactivée, ni consommer de flèche.
+- Les attaques distantes continuent à exiger et consommer exactement une flèche après validation de l'action ; les attaques refusées ne décomptent pas de munition ni de PA.
+- Le test existant `Grimrock.RPG.ARMEMENT.LOT02.AmmunitionInventoryContract` est étendu pour contrôler la non-consommation des attaques non distantes et la consommation explicite des attaques distantes.
+- **Validation locale UE/Automation attendue** : `Scripts/ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT.LOT02.AmmunitionInventoryContract"`, puis vérification PIE de l'attaque équipée réelle.

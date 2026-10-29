@@ -555,8 +555,9 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			const UGridItemDefinitionAsset* Weapon =
 				Inventory->FindItemDefinition(Action.SourceDefinitionId);
 			if (IsValid(Weapon) &&
-				!FGridRangedAmmunitionPolicy::HasRequiredAmmunition(
-					*Inventory, CharacterIndex, *Weapon))
+				!FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
+					*Inventory, CharacterIndex, *Weapon,
+					Action.Definition.ActionType == EGridCombatActionType::RangedAttack))
 			{
 				Action.bEnabled = false;
 				Action.AvailabilityReason = EGridCombatActionAvailabilityReason::InsufficientSourceItems;
