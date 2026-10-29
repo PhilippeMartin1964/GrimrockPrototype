@@ -45,3 +45,30 @@ Tests d'orientation : 6 axes x 4 orientations, dans
 `Grimrock.Monsters.MON17.3.2.ProjectileTrajectory`.
 Validations locales additionnelles : filtres
 `Grimrock.Monsters.MON17.3.2` et `Grimrock.Magic.MON18.6`.
+
+## PROJECTILE-FRAME03 — Régression porte secrète derrière le groupe (29.10.2026)
+Recette réelle : groupe (28,22) vers le Nord, monstre (28,26), porte secrète
+sur (28,22) Edge Sud. Impact journalisé sur
+`BP_GridSecretDoor_C_3` dès `(5700,4500.1,93.43)`, après seulement 9,7 cm.
+La cellule (28,22) a son centre à `(5700,4500)` : collision intempestive
+dans la cellule de départ, **sans rapport avec l'orientation visuelle du mesh**.
+
+`FGridProjectileGeometry::IsRearBoundaryDoor` identifie précisément
+la porte située sur la frontière arrière du tireur, que celle-ci soit
+définie sur sa cellule ou sur la cellule voisine. Cette porte est ajoutée
+au `MoveIgnoreActors` du projectile avant sa première mise à jour physique.
+La vérification est partagée par tous les projectiles physiques d'items :
+flèches et armes jetées. Les projectiles des monstres et des sorts sont
+déjà visuels sans collision et ne sont pas concernés par ce filtrage.
+La collision avec une porte **devant le tir** n'est pas désactivée.
+
+Journal attendu lors du tir décrit :
+`[GridProjectile] IgnoreRearDoor Item=Item_Arrows_01 Door=BP_GridSecretDoor_C_3 SourceCell=(28,22) DoorCell=(28,22) DoorEdge=South Heading=North`
+(les valeurs d'arête numériques sont affichées dans le journal).
+`[GridProjectile] Hit` ne doit plus désigner cette porte à 9,7 cm.
+La porte elle-même et sa collision 3D ne sont pas modifiées.
+
+Tests : quatre directions × deux conventions de propriété de frontière,
+et régression explicite (28,22 Nord / arête Sud). Filtre LOT02 existant.
+Observer en PIE que les portes réellement placées devant bloquent
+encore les flèches, y compris les portes secrètes fermées.

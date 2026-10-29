@@ -70,6 +70,43 @@ bool FARMLot02134RangedArrow::RunTest(const FString&)
     Unit.Weight = Arrow->Weight;
     Unit.OwnerType = EGridItemOwnerType::World;
     Unit.OwnerCharacterIndex = INDEX_NONE;
+    struct FRearDoorCase
+    {
+        FVector Direction;
+        EGridEdge Rear;
+        EGridEdge Forward;
+        int32 RearDX;
+        int32 RearDY;
+    };
+    const FRearDoorCase CardinalCases[] = {
+        { FVector(0, 1, 0), EGridEdge::South, EGridEdge::North, 0, -1 },
+        { FVector(1, 0, 0), EGridEdge::West, EGridEdge::East, -1, 0 },
+        { FVector(0, -1, 0), EGridEdge::North, EGridEdge::South, 0, 1 },
+        { FVector(-1, 0, 0), EGridEdge::East, EGridEdge::West, 1, 0 }
+    };
+    for (const FRearDoorCase& Case : CardinalCases)
+    {
+        TestTrue(TEXT("Source-cell rear door ignored"),
+            FGridProjectileGeometry::IsRearBoundaryDoor(28, 22, Case.Direction, 28, 22, Case.Rear));
+        TestTrue(TEXT("Neighbor-owned rear door ignored"),
+            FGridProjectileGeometry::IsRearBoundaryDoor(28, 22, Case.Direction,
+                28 + Case.RearDX, 22 + Case.RearDY, Case.Forward));
+        TestFalse(TEXT("Forward boundary door remains solid"),
+            FGridProjectileGeometry::IsRearBoundaryDoor(28, 22, Case.Direction, 28, 22, Case.Forward));
+        TestFalse(TEXT("Same rear-facing edge on unrelated cell remains solid"),
+            FGridProjectileGeometry::IsRearBoundaryDoor(28, 22, Case.Direction,
+                28 - Case.RearDX, 22 - Case.RearDY, Case.Rear));
+    }
+    TestTrue(TEXT("Exact PIE regression: 28,22 North, secret door South ignored"),
+        FGridProjectileGeometry::IsRearBoundaryDoor(28, 22, FVector(0, 1, 0),
+            28, 22, EGridEdge::South));
+    TestFalse(TEXT("Exact PIE regression: 28,22 North, door North still blocks"),
+        FGridProjectileGeometry::IsRearBoundaryDoor(28, 22, FVector(0, 1, 0),
+            28, 22, EGridEdge::North));
+    TestFalse(TEXT("Stationary projectile cannot ignore any door"),
+        FGridProjectileGeometry::IsRearBoundaryDoor(28, 22, FVector::ZeroVector,
+            28, 22, EGridEdge::South));
+
     const FVector Start = Runtime->GetCellCenterWorld(1, 1, 140.0f);
     const FVector Target = Runtime->GetCellCenterWorld(1, 2, 140.0f);
     const FVector Velocity = (Target - Start).GetSafeNormal() * 1800.0f;

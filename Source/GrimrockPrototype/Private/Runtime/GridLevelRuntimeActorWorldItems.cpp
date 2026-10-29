@@ -2,10 +2,12 @@
 #include "Runtime/GridPlacementTransformResolver.h"
 
 #include "Core/GridDirectionUtils.h"
+#include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Components/SphereComponent.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridActivationComponent.h"
+#include "Runtime/GridDoorActor.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridThrownItemActor.h"
@@ -814,6 +816,24 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 	ThrownActor->InitializeThrownItem(this, ItemInstance, ItemDefinition, LaunchVelocity, SourceCellX, SourceCellY);
 	ThrownActor->ConfigureLaunchSourceActor(LaunchSourceActor ? LaunchSourceActor :
 		const_cast<AGrimrockPartyPawn*>(ResolveWorldItemInteractionParty(this)));
+
+	// A collision volume may extend beyond the actual door plane. A door on
+	// the *rear* launch-cell boundary is not crossed by this shot. Filter it
+	// before first movement; never ignore the forward door or the maze walls.
+	for (TActorIterator<AGridDoorActor> It(World); It; ++It)
+	{
+		AGridDoorActor* Door = *It;
+		if (IsValid(Door) && FGridProjectileGeometry::IsRearBoundaryDoor(
+			SourceCellX, SourceCellY, LaunchVelocity, Door->CellX, Door->CellY, Door->Edge))
+		{
+			ThrownActor->CollisionComponent->IgnoreActorWhenMoving(Door, true);
+			UE_LOG(LogGridLevelRuntime, Log,
+				TEXT("[GridProjectile] IgnoreRearDoor Item=%s Door=%s SourceCell=(%d,%d) DoorCell=(%d,%d) DoorEdge=%d Heading=%d"),
+				*ItemInstance.ItemDefinitionId.ToString(), *GetNameSafe(Door), SourceCellX, SourceCellY,
+				Door->CellX, Door->CellY, static_cast<int32>(Door->Edge),
+				static_cast<int32>(FGridProjectileGeometry::FlightCardinalEdge(LaunchVelocity)));
+		}
+	}
 	if (bRangedAmmunitionProjectile)
 	{
 		ThrownActor->ConfigureAsRangedAmmunition();
