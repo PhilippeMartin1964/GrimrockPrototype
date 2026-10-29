@@ -52,6 +52,18 @@ enum class EGridThrowVisualMode : uint8
 	Spin UMETA(DisplayName = "Spin")
 };
 
+/** Direction of the tip in the IMPORTED Unreal mesh's local axes. */
+UENUM(BlueprintType)
+enum class EGridProjectileForwardAxis : uint8
+{
+	PositiveX UMETA(DisplayName = "+X (Unreal forward)"),
+	NegativeX UMETA(DisplayName = "-X"),
+	PositiveY UMETA(DisplayName = "+Y (World North)"),
+	NegativeY UMETA(DisplayName = "-Y"),
+	PositiveZ UMETA(DisplayName = "+Z"),
+	NegativeZ UMETA(DisplayName = "-Z")
+};
+
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridItemDefinitionAsset : public UPrimaryDataAsset
 {
@@ -239,7 +251,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual")
 	FVector ThrowVisualRelativeScale = FVector(1.5f);
 
-	/** Stable = no extra rotation, Tumble = slow multi-axis rotation, Spin = fast roll. */
+	/**
+	 * Imported mesh local axis pointing toward the tip. A directional projectile
+	 * ALWAYS flies along actor +X; only its mesh-local correction varies.
+	 * Does not affect the item placed on the dungeon floor.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual",
+		meta = (ToolTip = "Pointing axis in the Unreal Static Mesh editor, not the Blender axes."))
+	EGridProjectileForwardAxis ProjectileMeshForwardAxis = EGridProjectileForwardAxis::PositiveX;
+
+	/** Stable directional flight, or legacy Tumble / Spin. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual")
 	EGridThrowVisualMode ThrowVisualMode = EGridThrowVisualMode::Tumble;
 

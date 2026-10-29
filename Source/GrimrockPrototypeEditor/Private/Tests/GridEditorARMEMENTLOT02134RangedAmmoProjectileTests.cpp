@@ -83,6 +83,24 @@ bool FARMLot02134RangedArrow::RunTest(const FString&)
         TestEqual(TEXT("Only one arrow transported"), Projectile->ThrownItemInstance.Quantity, 1);
         TestEqual(TEXT("Ranged arrow does not spin"), Projectile->AppliedThrowVisualAngularVelocityDegreesPerSecond, FVector::ZeroVector);
         TestEqual(TEXT("Ranged arrow has no gravity"), Projectile->ProjectileMovementComponent->ProjectileGravityScale, 0.0f);
+        // A +Y imported arrow must always point along velocity regardless
+        // of which cardinal grid direction the party is facing.
+        Arrow->ProjectileMeshForwardAxis = EGridProjectileForwardAxis::PositiveY;
+        for (const FVector& Direction : { FVector(1,0,0), FVector(-1,0,0), FVector(0,1,0), FVector(0,-1,0) })
+        {
+            FGridItemInstance Directional = Unit;
+            Directional.RuntimeObjectId = FGuid::NewGuid();
+            AGridThrownItemActor* FacingProjectile = Runtime->SpawnThrownItemProjectile(
+                Directional, Arrow, Start, Direction * 1800.0f, 1, 1, true);
+            if (TestNotNull(TEXT("Cardinal projectile spawned"), FacingProjectile))
+            {
+                const FVector WorldTip = FacingProjectile->MeshComponent->GetComponentTransform().TransformVectorNoScale(
+                    AGridThrownItemActor::ResolveMeshForwardAxis(Arrow->ProjectileMeshForwardAxis)).GetSafeNormal();
+                TestTrue(TEXT("Imported +Y mesh tip faces velocity in cardinal direction"),
+                    FVector::DotProduct(WorldTip, Direction) > 0.999f);
+                FacingProjectile->Destroy();
+            }
+        }
         Projectile->ConfigureCombatPresentationTarget(true, Target, 24.0f, FIntPoint(1, 2));
         Projectile->SetActorLocation(Target);
         Projectile->Tick(0.016f); // Simulate target arrival, not a complete PIE shot.

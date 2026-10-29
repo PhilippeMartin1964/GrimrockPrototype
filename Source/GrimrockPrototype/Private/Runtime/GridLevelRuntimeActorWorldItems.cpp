@@ -2,6 +2,7 @@
 #include "Runtime/GridPlacementTransformResolver.h"
 
 #include "Core/GridDirectionUtils.h"
+#include "Components/SphereComponent.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridActivationComponent.h"
@@ -770,11 +771,13 @@ bool AGridLevelRuntimeActor::TrySpawnThrownItemProjectile(
 	const FGridItemInstance& ItemInstance, const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY)
 {
 	UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId);
-	return SpawnThrownItemProjectile(ItemInstance, ItemDefinition, StartWorldLocation, LaunchVelocity, SourceCellX, SourceCellY) != nullptr;
+	return SpawnThrownItemProjectile(ItemInstance, ItemDefinition, StartWorldLocation, LaunchVelocity, SourceCellX, SourceCellY,
+		false, const_cast<AGrimrockPartyPawn*>(ResolveWorldItemInteractionParty(this))) != nullptr;
 }
 
 AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinition,
-	const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY, bool bRangedAmmunitionProjectile)
+	const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY, bool bRangedAmmunitionProjectile,
+	AActor* LaunchSourceActor)
 {
 	// Ordinary hand throws remain unchanged. Only the authoritative ranged
 	// attack may opt into a non-handheld, stackable ammunition projectile.
@@ -809,9 +812,21 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 	}
 
 	ThrownActor->InitializeThrownItem(this, ItemInstance, ItemDefinition, LaunchVelocity, SourceCellX, SourceCellY);
+	ThrownActor->ConfigureLaunchSourceActor(LaunchSourceActor ? LaunchSourceActor :
+		const_cast<AGrimrockPartyPawn*>(ResolveWorldItemInteractionParty(this)));
 	if (bRangedAmmunitionProjectile)
 	{
 		ThrownActor->ConfigureAsRangedAmmunition();
+		// A loose pickup cannot be a physical blocker for a bow projectile.
+		// Preserve blocking WorldStatic and dynamic doors/monsters.
+		for (TActorIterator<AGridItemActor> It(World); It; ++It)
+		{
+			AGridItemActor* Item = *It;
+			if (IsValid(Item) && Item != ThrownActor && !Item->IsA<AGridThrownItemActor>())
+			{
+				ThrownActor->CollisionComponent->IgnoreActorWhenMoving(Item, true);
+			}
+		}
 	}
 
 	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridInventory Throw Spawn Item=%s RuntimeId=%s SourceCell=(%d,%d) Speed=%.2f Result=true"),

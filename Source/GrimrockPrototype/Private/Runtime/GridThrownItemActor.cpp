@@ -1,6 +1,7 @@
 #include "Runtime/GridThrownItemActor.h"
 
 #include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -69,6 +70,17 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 	}
 
 	const FVector CurrentLocation = GetActorLocation();
+	if (IsValid(RuntimeActor))
+	{
+		int32 CellX = INDEX_NONE;
+		int32 CellY = INDEX_NONE;
+		FVector LocalOffset = FVector::ZeroVector;
+		if (RuntimeActor->TryResolveWorldCellFromImpactPoint(CurrentLocation, CellX, CellY, LocalOffset))
+		{
+			LastWalkableFlightCell = FIntPoint(CellX, CellY);
+			LastWalkableFlightOffset = LocalOffset;
+		}
+	}
 	const FVector Segment = CurrentLocation - PreviousPresentationLocation;
 	const float SegmentLengthSquared = Segment.SizeSquared();
 	FVector ClosestPoint = CurrentLocation;
@@ -121,6 +133,7 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	ConfigureAsAttachedItem();
 	SetItemLightsEnabled(InItemInstance.bLightsEnabled);
 
+	InitialFlightWorldLocation = GetActorLocation();
 	const FRotator VisualRotation = InDefinition ? InDefinition->ThrowVisualRelativeRotation : FRotator(-90.0f, 0.0f, 0.0f);
 	FVector VisualScale = InDefinition ? InDefinition->ThrowVisualRelativeScale : FVector(1.5f);
 	if (VisualScale.ContainsNaN())
@@ -164,6 +177,10 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		MeshComponent->SetHiddenInGame(false, true);
 		MeshComponent->UpdateBounds();
 	}
+	if (VisualMode == EGridThrowVisualMode::Stable)
+	{
+		AlignMeshForwardToFlight();
+	}
 	SetActorHiddenInGame(false);
 	SetActorTickEnabled(true);
 
@@ -184,8 +201,41 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	GetWorldTimerManager().SetTimer(ExpirationTimerHandle, this, &AGridThrownItemActor::HandleProjectileExpired, LifeSeconds, false);
 }
 
+FVector AGridThrownItemActor::ResolveMeshForwardAxis(EGridProjectileForwardAxis Axis)
+{
+	switch (Axis)
+	{
+		case EGridProjectileForwardAxis::NegativeX: return -FVector::ForwardVector;
+		case EGridProjectileForwardAxis::PositiveY: return FVector::RightVector;
+		case EGridProjectileForwardAxis::NegativeY: return -FVector::RightVector;
+		case EGridProjectileForwardAxis::PositiveZ: return FVector::UpVector;
+		case EGridProjectileForwardAxis::NegativeZ: return -FVector::UpVector;
+		default: return FVector::ForwardVector;
+	}
+}
+
+void AGridThrownItemActor::AlignMeshForwardToFlight()
+{
+	const UGridItemDefinitionAsset* Definition = GetItemDefinitionAsset();
+	if (Definition && MeshComponent)
+	{
+		const FVector LocalTipAxis = ResolveMeshForwardAxis(Definition->ProjectileMeshForwardAxis);
+		MeshComponent->SetRelativeRotation(FQuat::FindBetweenNormals(LocalTipAxis, FVector::ForwardVector));
+	}
+}
+
+void AGridThrownItemActor::ConfigureLaunchSourceActor(AActor* SourceActor)
+{
+	LaunchSourceActor = SourceActor;
+	if (IsValid(SourceActor) && CollisionComponent)
+	{
+		CollisionComponent->IgnoreActorWhenMoving(SourceActor, true);
+	}
+}
+
 void AGridThrownItemActor::ConfigureAsRangedAmmunition()
 {
+	AlignMeshForwardToFlight();
 	bRangedAmmunitionProjectile = true;
 	// Fly aligned to velocity, never with the shuriken's spin or tumble.
 	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
@@ -211,9 +261,11 @@ void AGridThrownItemActor::HandleProjectileImpact(
 	UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	(void)HitComponent;
-	(void)OtherActor;
 	(void)OtherComp;
 	(void)NormalImpulse;
+	UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] Hit Item=%s Other=%s Point=%s TravelCm=%.1f"),
+		*ThrownItemInstance.ItemDefinitionId.ToString(), *GetNameSafe(OtherActor), *Hit.ImpactPoint.ToCompactString(),
+		FVector::Dist(InitialFlightWorldLocation, Hit.ImpactPoint));
 	ConvertToWorldPickupAtImpact(Hit);
 }
 
@@ -277,9 +329,19 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 			RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactItemDefinition, ImpactCellX, ImpactCellY, EGridEdge::None, ImpactLocalOffset);
 	}
 
+	// Prefer the last actual traversed floor cell to teleporting back to the party.
+	if (!bDropped && RuntimeActor && RuntimeActor->IsWalkableCell(LastWalkableFlightCell.X, LastWalkableFlightCell.Y))
+	{
+		bDropped = RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactItemDefinition,
+			LastWalkableFlightCell.X, LastWalkableFlightCell.Y, EGridEdge::None, LastWalkableFlightOffset);
+	}
 	if (!bDropped && RuntimeActor && RuntimeActor->IsWalkableCell(SourceCellX, SourceCellY))
 	{
-		bDropped = RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactItemDefinition, SourceCellX, SourceCellY, EGridEdge::None, FVector::ZeroVector);
+		UE_LOG(LogGridThrownItem, Warning, TEXT("[GridProjectile] SourceFallback Item=%s Point=%s Source=(%d,%d) Last=(%d,%d)"),
+			*ThrownItemInstance.ItemDefinitionId.ToString(), *Hit.ImpactPoint.ToCompactString(),
+			SourceCellX, SourceCellY, LastWalkableFlightCell.X, LastWalkableFlightCell.Y);
+		bDropped = RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactItemDefinition,
+			SourceCellX, SourceCellY, EGridEdge::None, FVector::ZeroVector);
 	}
 
 	if (!bDropped)
@@ -288,5 +350,8 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 			*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(), SourceCellX, SourceCellY);
 	}
 
+	UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] Landed Item=%s Success=%d Impact=%s Distance=%.1f"),
+		*ThrownItemInstance.ItemDefinitionId.ToString(), bDropped ? 1 : 0,
+		*Hit.ImpactPoint.ToCompactString(), FVector::Dist(InitialFlightWorldLocation, Hit.ImpactPoint));
 	Destroy();
 }

@@ -7,6 +7,7 @@
 
 class AGridLevelRuntimeActor;
 class UGridItemDefinitionAsset;
+enum class EGridProjectileForwardAxis : uint8;
 class UProjectileMovementComponent;
 class USphereComponent;
 
@@ -53,6 +54,12 @@ public:
 	/** Stable flight and recoverable landing for a consumed ranged ammo unit. */
 	void ConfigureAsRangedAmmunition();
 
+	/** Shared source-collision policy for all launched items. */
+	void ConfigureLaunchSourceActor(AActor* SourceActor);
+
+	/** Unreal-local axis of the tip, before the visual flight correction. */
+	static FVector ResolveMeshForwardAxis(EGridProjectileForwardAxis Axis);
+
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Projectile|Ammunition")
 	bool bRangedAmmunitionProjectile = false;
 
@@ -90,7 +97,12 @@ private:
 
 	bool bConversionAttempted = false;
 	float ImpactDropOffset = 12.0f;
+	FVector InitialFlightWorldLocation = FVector::ZeroVector;
 	FVector PreviousPresentationLocation = FVector::ZeroVector;
+	FIntPoint LastWalkableFlightCell = FIntPoint(INDEX_NONE, INDEX_NONE);
+	FVector LastWalkableFlightOffset = FVector::ZeroVector;
+	TWeakObjectPtr<AActor> LaunchSourceActor;
+	void AlignMeshForwardToFlight();
 	FIntPoint PreferredImpactCell = FIntPoint(INDEX_NONE, INDEX_NONE);
 	FTimerHandle ExpirationTimerHandle;
 };
