@@ -60,7 +60,8 @@ bool UGridSpellPresentationComponent::PresentSpell(const FGridSpellPresentationP
 					World->SpawnActor<AGridCombatProjectileActor>(AGridCombatProjectileActor::StaticClass(), Plan.SourceWorldLocation, FRotator::ZeroRotator);
 				if (Projectile &&
 					Projectile->InitializeProjectilePresentation(Mesh, Plan.SourceWorldLocation, Plan.TargetWorldLocation,
-						Profile.Projectile.TravelDurationSeconds, Profile.Projectile.VisualScale, Profile.Projectile.RotationOffset))
+						Profile.Projectile.TravelDurationSeconds, Profile.Projectile.VisualScale,
+						Profile.Projectile.RotationOffset, Profile.Projectile.MeshForwardAxis))
 				{
 					ActiveProjectile = Projectile;
 				}

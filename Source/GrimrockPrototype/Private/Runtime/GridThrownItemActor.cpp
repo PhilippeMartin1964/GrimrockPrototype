@@ -3,6 +3,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "TimerManager.h"
@@ -203,15 +204,7 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 
 FVector AGridThrownItemActor::ResolveMeshForwardAxis(EGridProjectileForwardAxis Axis)
 {
-	switch (Axis)
-	{
-		case EGridProjectileForwardAxis::NegativeX: return -FVector::ForwardVector;
-		case EGridProjectileForwardAxis::PositiveY: return FVector::RightVector;
-		case EGridProjectileForwardAxis::NegativeY: return -FVector::RightVector;
-		case EGridProjectileForwardAxis::PositiveZ: return FVector::UpVector;
-		case EGridProjectileForwardAxis::NegativeZ: return -FVector::UpVector;
-		default: return FVector::ForwardVector;
-	}
+	return FGridProjectileGeometry::MeshTipAxis(Axis);
 }
 
 void AGridThrownItemActor::AlignMeshForwardToFlight()
@@ -219,8 +212,7 @@ void AGridThrownItemActor::AlignMeshForwardToFlight()
 	const UGridItemDefinitionAsset* Definition = GetItemDefinitionAsset();
 	if (Definition && MeshComponent)
 	{
-		const FVector LocalTipAxis = ResolveMeshForwardAxis(Definition->ProjectileMeshForwardAxis);
-		MeshComponent->SetRelativeRotation(FQuat::FindBetweenNormals(LocalTipAxis, FVector::ForwardVector));
+		MeshComponent->SetRelativeRotation(FGridProjectileGeometry::MeshToFlightRotation(Definition->ProjectileMeshForwardAxis));
 	}
 }
 

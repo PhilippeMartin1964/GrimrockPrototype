@@ -54,7 +54,8 @@ namespace
 
 	void LaunchMonsterProjectilePresentation(TWeakObjectPtr<UGridMonsterCombatComponent> WeakCombatComponent, TWeakObjectPtr<AGridMonsterActor> WeakMonster,
 		TWeakObjectPtr<AGrimrockPartyPawn> WeakPartyPawn, TSoftObjectPtr<UStaticMesh> ProjectileVisualMesh, FVector ProjectileVisualScale,
-		FRotator ProjectileRotationOffset, FName ProjectileSourceSocketName, FVector ProjectileSourceOffset, float ProjectileTravelDuration, FName AttackId)
+		FRotator ProjectileRotationOffset, EGridProjectileForwardAxis ProjectileMeshForwardAxis, FName ProjectileSourceSocketName,
+		FVector ProjectileSourceOffset, float ProjectileTravelDuration, FName AttackId)
 	{
 		UGridMonsterCombatComponent* CombatComponent = WeakCombatComponent.Get();
 		AGridMonsterActor* Monster = WeakMonster.Get();
@@ -96,7 +97,8 @@ namespace
 		}
 
 		if (!Projectile->InitializeProjectilePresentation(
-				ProjectileMesh, SourceWorldLocation, TargetWorldLocation, ProjectileTravelDuration, ProjectileVisualScale, ProjectileRotationOffset))
+				ProjectileMesh, SourceWorldLocation, TargetWorldLocation, ProjectileTravelDuration,
+				ProjectileVisualScale, ProjectileRotationOffset, ProjectileMeshForwardAxis))
 		{
 			Projectile->Destroy();
 			UE_LOG(LogGridMonsterCombat, Warning, TEXT("[GridMonsterProjectile] Presentation skipped Monster=%s Attack=%s Reason=InitializationFailed"),
@@ -377,6 +379,7 @@ bool UGridMonsterCombatComponent::StartAttackPresentation(const FGridCombatActio
 		const TSoftObjectPtr<UStaticMesh> ProjectileVisualMesh = Attack.ProjectileVisualMesh;
 		const FVector ProjectileVisualScale = Attack.ProjectileVisualScale;
 		const FRotator ProjectileRotationOffset = Attack.ProjectileRotationOffset;
+		const EGridProjectileForwardAxis ProjectileMeshForwardAxis = Attack.ProjectileMeshForwardAxis;
 		const FName ProjectileSourceSocketName = Attack.ProjectileSourceSocketName;
 		const FVector ProjectileSourceOffset = Attack.ProjectileSourceOffset;
 		const float ProjectileTravelDuration = Attack.ProjectileTravelDuration;
@@ -384,11 +387,13 @@ bool UGridMonsterCombatComponent::StartAttackPresentation(const FGridCombatActio
 
 		FTimerDelegate LaunchDelegate;
 		LaunchDelegate.BindLambda(
-			[WeakCombatComponent, WeakMonster, WeakPartyPawn, ProjectileVisualMesh, ProjectileVisualScale, ProjectileRotationOffset, ProjectileSourceSocketName,
+			[WeakCombatComponent, WeakMonster, WeakPartyPawn, ProjectileVisualMesh, ProjectileVisualScale,
+				ProjectileRotationOffset, ProjectileMeshForwardAxis, ProjectileSourceSocketName,
 				ProjectileSourceOffset, ProjectileTravelDuration, ProjectileAttackId]()
 			{
 				LaunchMonsterProjectilePresentation(WeakCombatComponent, WeakMonster, WeakPartyPawn, ProjectileVisualMesh, ProjectileVisualScale,
-					ProjectileRotationOffset, ProjectileSourceSocketName, ProjectileSourceOffset, ProjectileTravelDuration, ProjectileAttackId);
+					ProjectileRotationOffset, ProjectileMeshForwardAxis, ProjectileSourceSocketName, ProjectileSourceOffset,
+					ProjectileTravelDuration, ProjectileAttackId);
 			});
 
 		if (LaunchDelay <= KINDA_SMALL_NUMBER)

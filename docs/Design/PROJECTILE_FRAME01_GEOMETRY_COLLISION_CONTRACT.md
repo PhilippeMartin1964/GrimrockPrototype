@@ -29,3 +29,19 @@ git pull --ff-only origin master
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter 'Grimrock.Monsters.MON11.Presentation'
 ```
 Le test automatisé teste l'orientation dans quatre directions, mais **la physique en PIE doit encore être observée** : lire les lignes `[GridProjectile] Hit` et `SourceFallback` pour identifier un obstacle éventuel, et tester les tirs manqués, le ramassage, les sauvegardes.
+
+## PROJECTILE-FRAME02 — Monstres et sorts
+Un repère commun `GridProjectileGeometry.h` définit les six axes du mesh
+importé dans Unreal et les aligne sur le +X de l'acteur projectile.
+`AGridThrownItemActor` (flèches / items physiques) et
+`AGridCombatProjectileActor` (monstres et sorts visuels) utilisent
+exactement la même fonction. Aucun calcul de dégâts ni collision de gameplay
+n'est transféré aux projectiles visuels.
+Propriétés d'authoring : `ProjectileMeshForwardAxis` dans les définitions
+d'items et d'attaques monstres, `MeshForwardAxis` dans les profils de sorts.
+Les anciennes valeurs par défaut +X maintiennent la compatibilité. Les
+offsets de rotation historiques restent appliqués.
+Tests d'orientation : 6 axes x 4 orientations, dans
+`Grimrock.Monsters.MON17.3.2.ProjectileTrajectory`.
+Validations locales additionnelles : filtres
+`Grimrock.Monsters.MON17.3.2` et `Grimrock.Magic.MON18.6`.

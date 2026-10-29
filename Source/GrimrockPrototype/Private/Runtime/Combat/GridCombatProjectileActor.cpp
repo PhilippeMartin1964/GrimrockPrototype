@@ -47,6 +47,14 @@ void AGridCombatProjectileActor::Tick(float DeltaSeconds)
 bool AGridCombatProjectileActor::InitializeProjectilePresentation(UStaticMesh* InMesh, const FVector& InSourceWorldLocation,
 	const FVector& InTargetWorldLocation, float InTravelDuration, const FVector& InVisualScale, const FRotator& InVisualRotationOffset)
 {
+	return InitializeProjectilePresentation(InMesh, InSourceWorldLocation, InTargetWorldLocation, InTravelDuration,
+		InVisualScale, InVisualRotationOffset, EGridProjectileForwardAxis::PositiveX);
+}
+
+bool AGridCombatProjectileActor::InitializeProjectilePresentation(UStaticMesh* InMesh, const FVector& InSourceWorldLocation,
+	const FVector& InTargetWorldLocation, float InTravelDuration, const FVector& InVisualScale, const FRotator& InVisualRotationOffset,
+	EGridProjectileForwardAxis InMeshForwardAxis)
+{
 	if (!IsValid(InMesh) || InSourceWorldLocation.ContainsNaN() || InTargetWorldLocation.ContainsNaN() || !FMath::IsFinite(InTravelDuration) ||
 		InTravelDuration <= 0.0f || InVisualScale.ContainsNaN() || InVisualScale.X <= 0.0f || InVisualScale.Y <= 0.0f || InVisualScale.Z <= 0.0f)
 	{
@@ -60,7 +68,10 @@ bool AGridCombatProjectileActor::InitializeProjectilePresentation(UStaticMesh* I
 
 	ProjectileMeshComponent->SetStaticMesh(InMesh);
 	ProjectileMeshComponent->SetRelativeScale3D(InVisualScale);
-	ProjectileMeshComponent->SetRelativeRotation(InVisualRotationOffset);
+	// Root +X faces travel direction. Keep any authored rotation offset
+	// while correcting the imported mesh tip axis only once.
+	ProjectileMeshComponent->SetRelativeRotation(
+		InVisualRotationOffset.Quaternion() * FGridProjectileGeometry::MeshToFlightRotation(InMeshForwardAxis));
 
 	SetActorLocation(SourceWorldLocation);
 	const FVector FlightDirection = TargetWorldLocation - SourceWorldLocation;

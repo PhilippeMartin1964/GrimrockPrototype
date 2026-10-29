@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Runtime/Combat/GridCombatTypes.h"
+#include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "Runtime/GridLightEmitterTypes.h"
@@ -50,18 +51,6 @@ enum class EGridThrowVisualMode : uint8
 	Stable UMETA(DisplayName = "Stable"),
 	Tumble UMETA(DisplayName = "Tumble"),
 	Spin UMETA(DisplayName = "Spin")
-};
-
-/** Direction of the tip in the IMPORTED Unreal mesh's local axes. */
-UENUM(BlueprintType)
-enum class EGridProjectileForwardAxis : uint8
-{
-	PositiveX UMETA(DisplayName = "+X (Unreal forward)"),
-	NegativeX UMETA(DisplayName = "-X"),
-	PositiveY UMETA(DisplayName = "+Y (World North)"),
-	NegativeY UMETA(DisplayName = "-Y"),
-	PositiveZ UMETA(DisplayName = "+Z"),
-	NegativeZ UMETA(DisplayName = "-Z")
 };
 
 UCLASS(BlueprintType)

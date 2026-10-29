@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Magic/GridSpellTargeting.h"
+#include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "GridSpellPresentation.generated.h"
 
@@ -39,6 +40,10 @@ struct FGridSpellProjectilePresentationProfile
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spell|Presentation|Projectile")
 	FRotator RotationOffset = FRotator::ZeroRotator;
+
+	/** Tip direction in the imported Unreal mesh. Defaults +X for legacy. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spell|Presentation|Projectile")
+	EGridProjectileForwardAxis MeshForwardAxis = EGridProjectileForwardAxis::PositiveX;
 
 	bool IsValid() const
 	{

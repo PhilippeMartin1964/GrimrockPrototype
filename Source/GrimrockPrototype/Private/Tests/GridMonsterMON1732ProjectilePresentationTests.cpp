@@ -38,6 +38,18 @@ bool FGridMonsterMON1732ProjectileTrajectoryTest::RunTest(const FString& Paramet
 	TestEqual(
 		TEXT("Half travel is a linear midpoint"), AGridCombatProjectileActor::EvaluateTrajectoryLocation(Source, Target, 0.5f), FVector(60.0f, 40.0f, 40.0f));
 
+	for (const FVector& Flight : { FVector(1,0,0), FVector(-1,0,0), FVector(0,1,0), FVector(0,-1,0) })
+	{
+		for (EGridProjectileForwardAxis Axis : { EGridProjectileForwardAxis::PositiveX, EGridProjectileForwardAxis::NegativeX,
+			EGridProjectileForwardAxis::PositiveY, EGridProjectileForwardAxis::NegativeY,
+			EGridProjectileForwardAxis::PositiveZ, EGridProjectileForwardAxis::NegativeZ })
+		{
+			const FVector TipWorld = Flight.ToOrientationQuat().RotateVector(
+				FGridProjectileGeometry::MeshToFlightRotation(Axis).RotateVector(FGridProjectileGeometry::MeshTipAxis(Axis)));
+			TestTrue(TEXT("Shared geometry: 6 axes * 4 grid directions"), FVector::DotProduct(TipWorld, Flight) > 0.999f);
+		}
+	}
+
 	TestEqual(TEXT("Negative alpha clamps to source"), AGridCombatProjectileActor::EvaluateTrajectoryLocation(Source, Target, -2.0f), Source);
 
 	TestEqual(TEXT("Alpha above one clamps to target"), AGridCombatProjectileActor::EvaluateTrajectoryLocation(Source, Target, 3.0f), Target);

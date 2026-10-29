@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Runtime/Combat/GridProjectileGeometry.h"
 #include "GridCombatProjectileActor.generated.h"
 
 class USceneComponent;
@@ -44,6 +45,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|Projectile")
 	bool InitializeProjectilePresentation(UStaticMesh* InMesh, const FVector& InSourceWorldLocation, const FVector& InTargetWorldLocation,
 		float InTravelDuration, const FVector& InVisualScale, const FRotator& InVisualRotationOffset);
+
+	/** Explicit imported mesh axis for monster or spell projectiles. */
+	bool InitializeProjectilePresentation(UStaticMesh* InMesh, const FVector& InSourceWorldLocation, const FVector& InTargetWorldLocation,
+		float InTravelDuration, const FVector& InVisualScale, const FRotator& InVisualRotationOffset,
+		EGridProjectileForwardAxis InMeshForwardAxis);
 
 	/** Delay from attack start that makes the projectile arrive at authored impact time. */
 	static float CalculateLaunchDelay(float ImpactTimeSeconds, float ProjectileTravelDuration);

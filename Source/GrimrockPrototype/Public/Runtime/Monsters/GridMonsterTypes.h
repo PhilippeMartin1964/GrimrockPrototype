@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/Combat/GridCombatTypes.h"
+#include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/Monsters/GridMonsterAudioTypes.h"
 #include "Runtime/Monsters/GridMonsterVFXTypes.h"
 #include "GridMonsterTypes.generated.h"
@@ -172,6 +173,10 @@ struct FGridMonsterAttackDefinition
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Projectile")
 	FRotator ProjectileRotationOffset = FRotator::ZeroRotator;
+
+	/** Tip direction in the imported Unreal mesh; never a grid-facing override. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Projectile")
+	EGridProjectileForwardAxis ProjectileMeshForwardAxis = EGridProjectileForwardAxis::PositiveX;
 
 	/** Optional skeletal socket used as the projectile presentation origin. None preserves the bounds-center fallback. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Projectile")
