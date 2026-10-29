@@ -6,6 +6,7 @@
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Components/StaticMeshComponent.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridPitTrapdoorActor.h"
@@ -132,6 +133,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 	State->ObjectPresence.Reset();
 	State->Items.Reset();
 	State->Receptacles.Reset();
+	RefreshWorldItemPhysicsCells();
 	State->Monsters.Reset();
 	State->bHasBeenVisited = true;
 
@@ -215,6 +217,11 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		}
 		ItemState.Transform = ItemActor->GetActorTransform();
 		ItemState.bIsSimulatingPhysics = ItemActor->MeshComponent ? ItemActor->MeshComponent->IsSimulatingPhysics() : false;
+		if (IsValid(ItemActor->MeshComponent) && ItemState.bIsSimulatingPhysics)
+		{
+			ItemState.bHasWorldMeshTransform = true;
+			ItemState.WorldMeshTransform = ItemActor->MeshComponent->GetComponentTransform();
+		}
 		ItemState.bIsContainedInReceptacle = false;
 		ItemState.bLightsEnabled = ItemActor->AreItemLightsEnabled();
 		ItemState.ReadableContentAsset = ItemActor->ReadableContentAsset;
@@ -497,6 +504,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			if (AGridItemActor* ItemActor = Entry.ItemActor.Get())
 			{
 				ItemActor->SetActorTransform(ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
+				if (ItemState.bHasWorldMeshTransform && IsValid(ItemActor->MeshComponent))
+				{
+					ItemActor->MeshComponent->SetWorldTransform(ItemState.WorldMeshTransform,
+						false, nullptr, ETeleportType::TeleportPhysics);
+				}
 				ItemActor->SetRuntimeObjectId(Pair.Key);
 				ItemActor->SetRuntimeCell(ItemState.CellX, ItemState.CellY);
 				ItemActor->SetItemLightsEnabled(ItemState.bLightsEnabled);
@@ -524,9 +536,19 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				const EGridEdge RuntimeEdge = ItemPlacement ? ItemPlacement->SurfaceSide : ItemState.Edge;
 
 				ItemActor->SetActorTransform(ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
+				if (ItemState.bHasWorldMeshTransform && IsValid(ItemActor->MeshComponent))
+				{
+					ItemActor->MeshComponent->SetWorldTransform(ItemState.WorldMeshTransform,
+						false, nullptr, ETeleportType::TeleportPhysics);
+				}
 				ItemActor->SetRuntimeObjectId(Pair.Key);
 				ItemActor->SetRuntimeCell(RuntimeCell.X, RuntimeCell.Y);
 				ItemActor->ConfigureAsWorldPickup();
+				if (ItemState.bHasWorldMeshTransform && IsValid(ItemActor->MeshComponent))
+				{
+					ItemActor->MeshComponent->SetWorldTransform(ItemState.WorldMeshTransform,
+						false, nullptr, ETeleportType::TeleportPhysics);
+				}
 				ItemActor->OnPlacedInWorld();
 				ItemActor->SetItemLightsEnabled(ItemState.bLightsEnabled);
 				ItemActor->InitializeReadableContent(

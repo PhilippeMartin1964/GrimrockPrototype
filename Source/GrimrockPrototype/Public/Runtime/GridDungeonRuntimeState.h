@@ -103,6 +103,13 @@ struct FGridRuntimeItemState
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	bool bIsSimulatingPhysics = false;
 
+	/** Real Chaos mesh pose: actor root does not move with simulation. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bHasWorldMeshTransform = false;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FTransform WorldMeshTransform = FTransform::Identity;
+
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	bool bIsContainedInReceptacle = false;
 

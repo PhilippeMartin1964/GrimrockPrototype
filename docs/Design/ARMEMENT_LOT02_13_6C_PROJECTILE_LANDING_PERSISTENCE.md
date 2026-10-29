@@ -10,3 +10,10 @@
 
 ## 13.6C.2 — Sauvegarde
 Le runtime doit enregistrer le transform réel du MeshComponent simulé, distinct de l'acteur racine. Les flèches fichées doivent enregistrer le GUID de leur monstre, l'os et leur transform relatif ; un monstre absent ou mort au chargement doit déclencher une récupération comme pickup, sans duplication.
+
+## 13.6C.2a — Physics Save/Load
+Le mesh simulé Chaos, non l'acteur SceneRoot, détient le transform réel.
+`FGridRuntimeItemState` sauvegarde désormais facultativement
+`WorldMeshTransform` et `bHasWorldMeshTransform`, après synchronisation
+des cellules. À la restauration des pickups, ce transform est appliqué
+au MeshComponent. Les anciens états conservent leur comportement.
