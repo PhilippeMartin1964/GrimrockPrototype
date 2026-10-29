@@ -8,15 +8,15 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "Internationalization/TextInspector.h"
+#include "Internationalization/Text.h"
 #include "UObject/Package.h"
 
 namespace
 {
 	FString GetLocalizationKey(const FText& Text)
 	{
-		const FString* Key = FTextInspector::GetKey(Text);
-		return Key ? *Key : FString();
+		const TOptional<FString> Key = FTextInspector::GetKey(Text);
+		return Key.IsSet() ? Key.GetValue() : FString();
 	}
 }
 
