@@ -112,18 +112,24 @@ Le test `EmbeddedRangedArrowHit` a échoué en local (13/14) sur
 Il ne s'agit pas d'un échec de compilation : la version précédente
 avait rendu le test contradictoire avec le comportement attendu.
 
-La régression décale volontairement le mesh visuel de +130 cm par rapport
-au centre logique du monstre, puis déplace l'acteur de +32 cm sur X.
-Sur une grille de 200 cm, la pointe passe ainsi de la cellule de combat
-(1,2) à la cellule (2,2). `ReleaseEmbeddedArrowToPickup` utilise
-le véritable point de libération pour déterminer la cellule enregistrée.
+La régression décale volontairement le Skeletal Mesh de +130 cm **dans le
+repère local du monstre**, puis déplace l'acteur de +32 cm en monde sur X.
+Le monstre fait face au nord (yaw 90°) : la translation locale X+130
+devient une translation **monde Y+130**. Sur la grille de 200 cm du test,
+le point de libération est observé en (1,3), et non en (2,2) comme
+l'affirmait à tort la révision 13.6A.3.
 
-L'ancien test supposait à tort que l'objet devait rester dans (1,2).
+Le test corrigé ne code plus aucune cellule de libération arbitraire.
 Il vérifie maintenant :
-- la cellule réellement résolue depuis `GetActorLocation()` juste avant
-  disparition du mesh, avec assertion explicite (2,2) ;
-- la présence du pickup enregistré dans cette cellule, pas dans (1,2) ;
-- l'absence de pickup fantôme dans l'ancienne cellule ;
+- que la position monde du Skeletal Mesh correspond à l'application de
+  l'intégralité du transform de l'acteur à son offset local ;
+- que la pointe fichée demeure proche de ce mesh, avant disparition ;
+- que les **cellules résolues indépendamment** depuis la pointe et depuis
+  le mesh correspondent ;
+- qu'un décalage suffisamment important traverse bien une frontière de
+  cellule dans ce scénario ;
+- la présence du pickup enregistré dans la cellule de la pointe ;
+- l'absence de pickup fantôme dans l'ancienne cellule si différente ;
 - une et une seule instance portant le même GUID et ItemDefinitionId,
   dont `RuntimeCellX/Y` correspondent à la cellule de libération.
 
@@ -132,3 +138,14 @@ La chute Chaos, la transform exacte au sol et la persistance restent à
 livrer dans LOT02.13.6C. Les tests automation avec monstre sans véritable
 Skeletal Mesh animé **ne suffisent pas à valider** la disparition du
 défaut visuel de flèche suspendue : contrôle PIE toujours indispensable.
+
+## ARMEMENT-LOT02.13.6A.4 — Régression du repère local/monde
+Le deuxième échec (13/14), après correction 13.6A.3, était causé par les
+assertions X=2, Y=2 inventées malgré le yaw=90° du monstre. En réalité,
+`SkeletalMesh.SetRelativeLocation(130,0,0)` signifie +X dans le repère
+local du monstre ; pour un monstre orienté nord, cette direction est +Y
+monde. L'automation a observé (1,3), ce qui est cohérent. Le test emploie
+maintenant `GetActorTransform().TransformPosition(GetRelativeLocation())`,
+compare la cellule indépendante du mesh à celle de la pointe et contrôle
+l'unicité et le GUID du pickup. Aucun changement runtime. PIE avec un vrai
+mesh/Physics Asset reste indispensable pour le problème de flèche suspendue.

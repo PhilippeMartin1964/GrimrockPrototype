@@ -76,8 +76,9 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
     {
         Monster->CurrentCell = FIntPoint(1, 2);
         Monster->SetActorLocation(Target - FVector(0,0,45));
-        // Regression: the animated visual may be offset from the logical
-        // collision box (especially during a one-cell death animation).
+        // Regression: a visual mesh displaced in MONSTER LOCAL coordinates
+        // may cross into another world cell after Facing=North (Yaw=90).
+        // The true world location must not be inferred from local X directly.
         Monster->SkeletalMeshComponent->SetRelativeLocation(FVector(130,0,0));
         AGridThrownItemActor* Projectile = Runtime->SpawnThrownItemProjectile(
             Unit, Arrow, Start, (Target - Start).GetSafeNormal() * Arrow->ThrowSpeed, 1, 1, true);
@@ -111,27 +112,55 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
             TestTrue(TEXT("Arrow follows relative skeletal-body translation"),
                 Projectile->GetActorLocation().Equals(BeforeVisualMove + FVector(0, 0, 28.0f), 0.2f));
             TestEqual(TEXT("Arrow remains embedded after body translation"), Projectile->IsEmbeddedInMonster(), true);
-            // The visual mesh is offset +130 cm and the monster moves +32 cm.
-            // With 200 cm cells, the attached arrow is now physically in
-            // cell (2,2), not in the original combat cell (1,2).
-            // Recover where the arrow actually was when the body vanished.
+            // Rotate the visual offset with the monster's facing. Here the
+            // monster is North (yaw 90), so its +130 LOCAL X is WORLD +Y.
+            // A previous test wrongly assumed local +X was world +X.
+            const FVector MeshWorldFromLocal = Monster->GetActorTransform().TransformPosition(
+                Monster->SkeletalMeshComponent->GetRelativeLocation());
+            const FVector MeshWorld = Monster->SkeletalMeshComponent->GetComponentLocation();
+            TestTrue(TEXT("Monster local visual offset transforms into world space"),
+                MeshWorld.Equals(MeshWorldFromLocal, 0.1f));
+            const FVector ReleaseWorldLocation = Projectile->GetActorLocation();
+            TestTrue(TEXT("Embedded tip remains close to the displaced visual mesh"),
+                FVector::Dist(ReleaseWorldLocation, MeshWorld) <= 30.0f);
+
             int32 ReleaseCellX = INDEX_NONE;
             int32 ReleaseCellY = INDEX_NONE;
             FVector ReleaseLocalOffset = FVector::ZeroVector;
-            const FVector ReleaseWorldLocation = Projectile->GetActorLocation();
             const bool bReleaseCellResolved = Runtime->TryResolveWorldCellFromImpactPoint(
                 ReleaseWorldLocation, ReleaseCellX, ReleaseCellY, ReleaseLocalOffset);
             TestTrue(TEXT("Embedded arrow release location resolves to a walkable cell"), bReleaseCellResolved);
-            TestEqual(TEXT("Moved visual puts arrow in next cell X"), ReleaseCellX, 2);
-            TestEqual(TEXT("Moved visual keeps arrow in same row Y"), ReleaseCellY, 2);
+            // Resolve a second independent world point: the visual component.
+            // Both points are near one another; the test rig intentionally
+            // positions them well inside a different cell from (1,2).
+            int32 VisualCellX = INDEX_NONE;
+            int32 VisualCellY = INDEX_NONE;
+            FVector VisualLocalOffset = FVector::ZeroVector;
+            const bool bVisualCellResolved = Runtime->TryResolveWorldCellFromImpactPoint(
+                MeshWorld, VisualCellX, VisualCellY, VisualLocalOffset);
+            TestTrue(TEXT("Displaced monster visual is in a walkable cell"), bVisualCellResolved);
+            if (bReleaseCellResolved && bVisualCellResolved)
+            {
+                TestEqual(TEXT("Arrow release cell matches visual mesh cell X"), ReleaseCellX, VisualCellX);
+                TestEqual(TEXT("Arrow release cell matches visual mesh cell Y"), ReleaseCellY, VisualCellY);
+                TestTrue(TEXT("Visual offset crosses the original target-cell boundary"),
+                    ReleaseCellX != Monster->CurrentCell.X || ReleaseCellY != Monster->CurrentCell.Y);
+            }
+            AddInfo(FString::Printf(TEXT("Embedded release: monster facing=%d visual=%s tip=%s cell=(%d,%d)"),
+                static_cast<int32>(Monster->Facing), *MeshWorld.ToCompactString(),
+                *ReleaseWorldLocation.ToCompactString(), ReleaseCellX, ReleaseCellY));
 
             Monster->SkeletalMeshComponent->SetVisibility(false, true);
             Projectile->Tick(0.016f);
             TestTrue(TEXT("Hidden corpse releases embedded item"), Projectile->HasCompletedImpactConversion());
             TestTrue(TEXT("Pickup registered in arrow release cell"),
                 bReleaseCellResolved && Runtime->GetWorldItemWeightAtCell(ReleaseCellX, ReleaseCellY) >= Arrow->Weight);
-            TestEqual(TEXT("Original combat cell has no phantom pickup"),
-                Runtime->GetWorldItemWeightAtCell(1, 2), 0.0f);
+            if (bReleaseCellResolved &&
+                (ReleaseCellX != Monster->CurrentCell.X || ReleaseCellY != Monster->CurrentCell.Y))
+            {
+                TestEqual(TEXT("Original combat cell has no phantom pickup"),
+                    Runtime->GetWorldItemWeightAtCell(Monster->CurrentCell.X, Monster->CurrentCell.Y), 0.0f);
+            }
             int32 MatchingPickups = 0;
             for (TActorIterator<AGridItemActor> It(World); It; ++It)
             {
