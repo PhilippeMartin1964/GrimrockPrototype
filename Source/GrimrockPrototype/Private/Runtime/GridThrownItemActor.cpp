@@ -368,7 +368,7 @@ FName AGridThrownItemActor::FindNearestAnimatedBone(USkeletalMeshComponent* Skel
 	for (int32 Index = 1; Index < NumBones; ++Index)
 	{
 		const FName Bone = Skeletal->GetBoneName(Index);
-		const FVector BoneWorld = Skeletal->GetBoneLocation(Bone);
+		const FVector BoneWorld = Skeletal->GetBoneLocation(Bone, EBoneSpaces::WorldSpace);
 		if (Bone.IsNone() || BoneWorld.ContainsNaN())
 		{
 			continue;
