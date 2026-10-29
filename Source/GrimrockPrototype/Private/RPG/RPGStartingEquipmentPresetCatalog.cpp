@@ -380,7 +380,7 @@ bool FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
         }
         FRPGStartingEquipmentKit& Kit = Candidate.AddDefaulted_GetRef();
         Kit.KitId = FName(*FString::Printf(TEXT("Kit_%s_%s"), Spec.ClassId, Spec.BranchId));
-        const FString LabelKey = FString::Printf(TEXT("CharacterCreation.StartingKit.Name.%s"), *Kit.KitId.ToString());
+        const FString LabelKey = FString::Printf(TEXT("CharacterCreation.StartingKit.Name.Kit.%s.%s"), Spec.ClassId, Spec.BranchId);
         Kit.DisplayName = FUILocalizationText::Get(*LabelKey);
         if (Kit.DisplayName.IsEmpty() ||
             !RPGStartingPresets::AddApprovedItem(Kit, Spec.First, OutError) ||
