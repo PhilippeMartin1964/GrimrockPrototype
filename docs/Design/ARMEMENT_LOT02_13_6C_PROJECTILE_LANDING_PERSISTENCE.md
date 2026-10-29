@@ -17,3 +17,10 @@ Le mesh simulé Chaos, non l'acteur SceneRoot, détient le transform réel.
 `WorldMeshTransform` et `bHasWorldMeshTransform`, après synchronisation
 des cellules. À la restauration des pickups, ce transform est appliqué
 au MeshComponent. Les anciens états conservent leur comportement.
+
+## 13.6C.2b — Flèches fichées et en vol sauvegardées
+Les flèches consommées mais encore physiques sont capturées directement
+par `TActorIterator<AGridThrownItemActor>` et leur GUID unique. Une flèche
+fichée enregistre l'ID persistant du monstre, l'os et sa pose relative ;
+une flèche en vol enregistre la dernière pose de mesh pour rechargement
+sous forme de pickup. Le monstre n'est pas dupliqué, pas de nouveau dégât.

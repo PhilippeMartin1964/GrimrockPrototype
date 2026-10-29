@@ -371,6 +371,64 @@ FName AGridThrownItemActor::FindNearestVisualBone(USkeletalMeshComponent* Skelet
 	return Best;
 }
 
+bool AGridThrownItemActor::CaptureEmbeddedAttachment(FGuid& OutMonsterId, FName& OutBone,
+	FTransform& OutRelativeTransform) const
+{
+	const AGridMonsterActor* Monster = EmbeddedMonster.Get();
+	if (!bEmbeddedInMonster || !IsValid(Monster) || !IsValid(GetRootComponent()) ||
+		GetRootComponent()->GetAttachParent() != Monster->SkeletalMeshComponent)
+	{
+		return false;
+	}
+	OutMonsterId = Monster->ResolvePersistenceId();
+	OutBone = GetRootComponent()->GetAttachSocketName();
+	OutRelativeTransform = GetRootComponent()->GetRelativeTransform();
+	return OutMonsterId.IsValid();
+}
+
+bool AGridThrownItemActor::RestoreEmbeddedAttachment(AGridMonsterActor* Monster,
+	FName Bone, const FTransform& RelativeTransform)
+{
+	if (!bRangedAmmunitionProjectile || bConversionAttempted || bEmbeddedInMonster ||
+		!IsValid(Monster) || Monster->IsDead() ||
+		!IsValid(Monster->SkeletalMeshComponent) || !Monster->SkeletalMeshComponent->IsVisible() ||
+		RelativeTransform.ContainsNaN())
+	{
+		return false;
+	}
+	USkeletalMeshComponent* Skeletal = Monster->SkeletalMeshComponent;
+	if (!Bone.IsNone() && Skeletal->GetBoneIndex(Bone) == INDEX_NONE)
+	{
+		UE_LOG(LogGridThrownItem, Warning, TEXT("[GridProjectile] RestoreEmbeddedMissingBone Monster=%s Bone=%s"),
+			*GetNameSafe(Monster), *Bone.ToString());
+		return false;
+	}
+	if (!AttachToComponent(Skeletal, FAttachmentTransformRules::KeepWorldTransform, Bone))
+	{
+		return false;
+	}
+	SetActorRelativeTransform(RelativeTransform, false, nullptr, ETeleportType::TeleportPhysics);
+	bEmbeddedInMonster = true;
+	EmbeddedMonster = Monster;
+	PendingHitMonster = nullptr;
+	bStopsAtCombatPresentationTarget = false;
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->StopMovementImmediately();
+		ProjectileMovementComponent->Deactivate();
+	}
+	if (CollisionComponent)
+	{
+		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	GetWorldTimerManager().ClearTimer(ExpirationTimerHandle);
+	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
+	SetActorTickEnabled(true);
+	UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] RestoreEmbedded Id=%s Monster=%s Bone=%s"),
+		*ThrownItemInstance.RuntimeObjectId.ToString(), *GetNameSafe(Monster), *Bone.ToString());
+	return true;
+}
+
 bool AGridThrownItemActor::TryEmbedInMonster()
 {
 	if (!bRangedAmmunitionProjectile || bConversionAttempted || bEmbeddedInMonster)

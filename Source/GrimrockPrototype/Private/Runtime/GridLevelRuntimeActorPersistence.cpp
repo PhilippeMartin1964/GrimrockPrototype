@@ -6,6 +6,7 @@
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridThrownItemActor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
@@ -230,6 +231,54 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		ItemState.ReadTextOverride = ItemActor->ReadTextOverride;
 		State->Items.Add(Entry.ObjectId, ItemState);
 	}
+	// Flying and embedded arrows are already consumed from inventory, but
+	// are not yet in SpawnedItemEntries. Capture by their single GUID before
+	// materializing any pickup. In-flight shots reload as recoverable items.
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<AGridThrownItemActor> It(World); It; ++It)
+		{
+			const AGridThrownItemActor* Arrow = *It;
+			if (!IsValid(Arrow) || Arrow->RuntimeActor != this ||
+				Arrow->HasCompletedImpactConversion() || !Arrow->bRangedAmmunitionProjectile ||
+				!Arrow->ThrownItemInstance.RuntimeObjectId.IsValid())
+			{
+				continue;
+			}
+			const FGuid Guid = Arrow->ThrownItemInstance.RuntimeObjectId;
+			if (State->Items.Contains(Guid))
+			{
+				UE_LOG(LogGridLevelRuntime, Warning,
+					TEXT("[GridProjectile] CaptureDuplicateGuid Id=%s"), *Guid.ToString());
+				continue;
+			}
+			FGridRuntimeItemState Item;
+			Item.ObjectId = Guid;
+			Item.ItemDefinitionId = Arrow->ThrownItemInstance.ItemDefinitionId;
+			Item.ItemLevel = Arrow->ThrownItemInstance.ItemLevel;
+			Item.Quantity = 1;
+			Item.Transform = Arrow->GetActorTransform();
+			Item.bHasWorldMeshTransform = IsValid(Arrow->MeshComponent);
+			Item.WorldMeshTransform = Item.bHasWorldMeshTransform
+				? Arrow->MeshComponent->GetComponentTransform() : Item.Transform;
+			Item.ProjectileDefinitionAsset = Arrow->GetItemDefinitionAsset();
+			Item.bLightsEnabled = Arrow->ThrownItemInstance.bLightsEnabled;
+			int32 X = INDEX_NONE, Y = INDEX_NONE;
+			FVector Offset;
+			if (!TryResolveWorldCellFromImpactPoint(Item.WorldMeshTransform.GetLocation(), X, Y, Offset))
+			{
+				X = Arrow->SourceCellX;
+				Y = Arrow->SourceCellY;
+			}
+			Item.CellX = X;
+			Item.CellY = Y;
+			Item.bEmbeddedProjectile = Arrow->CaptureEmbeddedAttachment(
+				Item.EmbeddedMonsterPersistenceId, Item.EmbeddedBone,
+				Item.EmbeddedBoneRelativeTransform);
+			State->Items.Add(Guid, Item);
+		}
+	}
+
 	for (const FGridLooseItemInstance& Instance : LevelAsset->LooseItemInstances)
 	{
 		if (!Instance.InstanceId.IsValid())

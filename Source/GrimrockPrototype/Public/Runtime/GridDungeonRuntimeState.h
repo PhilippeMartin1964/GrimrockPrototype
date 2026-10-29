@@ -110,6 +110,23 @@ struct FGridRuntimeItemState
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	FTransform WorldMeshTransform = FTransform::Identity;
 
+	/** Consumed arrow still attached to a living monster. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bEmbeddedProjectile = false;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid EmbeddedMonsterPersistenceId;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FName EmbeddedBone = NAME_None;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FTransform EmbeddedBoneRelativeTransform = FTransform::Identity;
+
+	/** Resolve dynamically spawned ammunition even if not referenced by the level. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TObjectPtr<UGridItemDefinitionAsset> ProjectileDefinitionAsset = nullptr;
+
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	bool bIsContainedInReceptacle = false;
 

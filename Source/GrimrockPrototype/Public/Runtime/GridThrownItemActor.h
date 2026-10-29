@@ -67,6 +67,14 @@ public:
 
 	bool IsEmbeddedInMonster() const { return bEmbeddedInMonster; }
 
+	/** Save the attachment owned by this one canonical ammunition GUID. */
+	bool CaptureEmbeddedAttachment(FGuid& OutMonsterId, FName& OutBone,
+		FTransform& OutRelativeTransform) const;
+
+	/** Reconnect a saved arrow after the monster has been restored. */
+	bool RestoreEmbeddedAttachment(AGridMonsterActor* Monster, FName Bone,
+		const FTransform& RelativeTransform);
+
 	bool IsRangedMissDeflected() const { return bRangedMissDeflected; }
 	bool HasRangedMissGravityStarted() const { return bRangedMissGravityStarted; }
 	int32 GetRangedMissSideSign() const { return RangedMissSideSign; }
