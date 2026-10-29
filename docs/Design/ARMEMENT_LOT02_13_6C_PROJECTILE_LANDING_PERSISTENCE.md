@@ -43,3 +43,9 @@ pose du mesh) et une restauration de son attachement via le nouveau
 `RestoreEmbeddedAttachment`. Il vérifie l'absence de nouveau calcul de
 combat par ce chemin de présentation. Les véritables animations et les
 séquences Save/Continue avec assets devront encore être testées en PIE.
+
+## 13.6C.5 — Fosse ouverte, anti-duplication
+Le dépôt physique distingue un pickup local d'un objet transféré par
+`TryRouteWorldItemThroughOpenPit`. Si la fosse est ouverte, le transfert
+réussi du GUID ne nécessite pas d'acteur local et ne doit jamais lancer
+une seconde tentative de dépôt. Le jalon PIT02 reste à retester en local.

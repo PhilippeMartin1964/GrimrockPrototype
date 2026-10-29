@@ -680,10 +680,21 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtWorldTransform(
 	}
 	int32 CellX = INDEX_NONE, CellY = INDEX_NONE;
 	FVector LocalOffset = FVector::ZeroVector;
-	if (!TryResolveWorldCellFromImpactPoint(WorldMeshTransform.GetLocation(), CellX, CellY, LocalOffset) ||
-		!TryDropItemInstanceAtCell(ItemInstance, ItemDefinition, CellX, CellY, EGridEdge::None, LocalOffset))
+	if (!TryResolveWorldCellFromImpactPoint(WorldMeshTransform.GetLocation(), CellX, CellY, LocalOffset))
 	{
 		return false;
+	}
+	FGridRelocationBehaviorParams PitRelocation;
+	const bool bOpenPit = FindOpenPitAtCell(CellX, CellY, PitRelocation);
+	if (!TryDropItemInstanceAtCell(ItemInstance, ItemDefinition, CellX, CellY, EGridEdge::None, LocalOffset))
+	{
+		return false;
+	}
+	// An open pit routes the same GUID to the lower level instead of spawning
+	// a local actor. That is SUCCESS, not a reason to drop the arrow again.
+	if (bOpenPit)
+	{
+		return true;
 	}
 
 	const FGuid Id = ItemInstance.RuntimeObjectId;
