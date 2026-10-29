@@ -6,6 +6,7 @@
 #include "GridThrownItemActor.generated.h"
 
 class AGridLevelRuntimeActor;
+class AGridMonsterActor;
 class UGridItemDefinitionAsset;
 enum class EGridProjectileForwardAxis : uint8;
 class UProjectileMovementComponent;
@@ -54,6 +55,12 @@ public:
 	/** Stable flight and recoverable landing for a consumed ranged ammo unit. */
 	void ConfigureAsRangedAmmunition();
 
+	/** Only authoritative ranged hits may visually embed the actual ammo. */
+	void ConfigureRangedHitEmbedding(AGridMonsterActor* HitMonster);
+
+	bool IsEmbeddedInMonster() const { return bEmbeddedInMonster; }
+	AGridMonsterActor* GetEmbeddedMonster() const { return EmbeddedMonster.Get(); }
+
 	/** Shared source-collision policy for all launched items. */
 	void ConfigureLaunchSourceActor(AActor* SourceActor);
 
@@ -94,8 +101,13 @@ protected:
 private:
 	void HandleProjectileExpired();
 	void ConvertToWorldPickupAtImpact(const FHitResult& Hit);
+	bool TryEmbedInMonster();
+	void ReleaseEmbeddedArrowToPickup();
 
 	bool bConversionAttempted = false;
+	bool bEmbeddedInMonster = false;
+	TWeakObjectPtr<AGridMonsterActor> PendingHitMonster;
+	TWeakObjectPtr<AGridMonsterActor> EmbeddedMonster;
 	float ImpactDropOffset = 12.0f;
 	FVector InitialFlightWorldLocation = FVector::ZeroVector;
 	FVector PreviousPresentationLocation = FVector::ZeroVector;

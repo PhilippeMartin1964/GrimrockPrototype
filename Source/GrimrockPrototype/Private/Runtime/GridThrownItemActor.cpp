@@ -1,11 +1,14 @@
 #include "Runtime/GridThrownItemActor.h"
 
 #include "Components/SphereComponent.h"
+#include "Components/BoxComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/Monsters/GridMonsterActor.h"
 #include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY(LogGridThrownItem);
@@ -59,6 +62,18 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 		return;
 	}
 
+	// Interim non-loss fallback. Natural fall and save/restore are 13.6C.
+	if (bEmbeddedInMonster)
+	{
+		const AGridMonsterActor* Monster = EmbeddedMonster.Get();
+		if (!IsValid(Monster) || !IsValid(Monster->SkeletalMeshComponent) ||
+			!Monster->SkeletalMeshComponent->IsVisible())
+		{
+			ReleaseEmbeddedArrowToPickup();
+		}
+		return;
+	}
+
 	if (MeshComponent && !AppliedThrowVisualAngularVelocityDegreesPerSecond.IsNearlyZero())
 	{
 		const FVector Angular = AppliedThrowVisualAngularVelocityDegreesPerSecond * DeltaSeconds;
@@ -101,7 +116,10 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 		TargetHit.ImpactPoint = CombatPresentationTargetLocation;
 		TargetHit.Location = CombatPresentationTargetLocation;
 		TargetHit.ImpactNormal = (-Segment).GetSafeNormal(SMALL_NUMBER, FVector::UpVector);
-		ConvertToWorldPickupAtImpact(TargetHit);
+		if (!TryEmbedInMonster())
+		{
+			ConvertToWorldPickupAtImpact(TargetHit);
+		}
 		return;
 	}
 
@@ -249,6 +267,103 @@ void AGridThrownItemActor::ConfigureCombatPresentationTarget(bool bStopAtTarget,
 	SetActorTickEnabled(!bConversionAttempted);
 }
 
+
+void AGridThrownItemActor::ConfigureRangedHitEmbedding(AGridMonsterActor* HitMonster)
+{
+	PendingHitMonster = bRangedAmmunitionProjectile && IsValid(HitMonster) ? HitMonster : nullptr;
+}
+
+bool AGridThrownItemActor::TryEmbedInMonster()
+{
+	if (!bRangedAmmunitionProjectile || bConversionAttempted || bEmbeddedInMonster)
+	{
+		return false;
+	}
+	AGridMonsterActor* Monster = PendingHitMonster.Get();
+	if (!IsValid(Monster) || !IsValid(Monster->SkeletalMeshComponent) ||
+		!Monster->SkeletalMeshComponent->IsVisible())
+	{
+		return false;
+	}
+
+	USkeletalMeshComponent* Skeletal = Monster->SkeletalMeshComponent;
+	const FVector FlightDirection = (ProjectileMovementComponent && !ProjectileMovementComponent->Velocity.IsNearlyZero()
+		? ProjectileMovementComponent->Velocity : GetActorForwardVector()).GetSafeNormal();
+	if (FlightDirection.IsNearlyZero())
+	{
+		return false;
+	}
+
+	// Estimate the near face from the monster's gameplay collision box.
+	// The visual tip sinks 8 cm inside, without relying on a physics asset.
+	const FVector Center = IsValid(Monster->CollisionComponent)
+		? Monster->CollisionComponent->Bounds.Origin : Monster->GetActorLocation();
+	const FVector Extent = IsValid(Monster->CollisionComponent)
+		? Monster->CollisionComponent->Bounds.BoxExtent : FVector(35.0f);
+	const float NearFace = FMath::Abs(FlightDirection.X) * Extent.X +
+		FMath::Abs(FlightDirection.Y) * Extent.Y + FMath::Abs(FlightDirection.Z) * Extent.Z;
+	const uint32 Seed = GetTypeHash(ThrownItemInstance.RuntimeObjectId);
+	const float HorizontalFactor = (static_cast<float>(Seed % 101u) / 100.0f) * 2.0f - 1.0f;
+	const float VerticalFactor = (static_cast<float>((Seed / 101u) % 101u) / 100.0f) * 2.0f - 1.0f;
+	const FVector SideAxis = FVector::CrossProduct(FVector::UpVector, FlightDirection).GetSafeNormal();
+	const FVector UpAxis = FVector::CrossProduct(FlightDirection, SideAxis).GetSafeNormal();
+	const FVector TipLocation = Center - FlightDirection * FMath::Max(0.0f, NearFace - 8.0f) +
+		SideAxis * HorizontalFactor * Extent.GetMin() * 0.20f +
+		UpAxis * VerticalFactor * Extent.Z * 0.18f;
+
+	FName Bone = NAME_None;
+	if (Skeletal->GetSkeletalMeshAsset())
+	{
+		Bone = Skeletal->FindClosestBone(TipLocation);
+	}
+	SetActorLocationAndRotation(TipLocation, FlightDirection.Rotation(), false, nullptr, ETeleportType::TeleportPhysics);
+	if (!AttachToComponent(Skeletal, FAttachmentTransformRules::KeepWorldTransform, Bone))
+	{
+		return false;
+	}
+
+	bEmbeddedInMonster = true;
+	EmbeddedMonster = Monster;
+	PendingHitMonster = nullptr;
+	bStopsAtCombatPresentationTarget = false;
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->StopMovementImmediately();
+		ProjectileMovementComponent->Deactivate();
+	}
+	if (CollisionComponent)
+	{
+		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	GetWorldTimerManager().ClearTimer(ExpirationTimerHandle);
+	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
+	SetActorTickEnabled(true);
+	UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] Embedded Item=%s RuntimeId=%s Monster=%s Bone=%s Tip=%s"),
+		*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(),
+		*GetNameSafe(Monster), *Bone.ToString(), *TipLocation.ToCompactString());
+	return true;
+}
+
+void AGridThrownItemActor::ReleaseEmbeddedArrowToPickup()
+{
+	if (!bEmbeddedInMonster || bConversionAttempted)
+	{
+		return;
+	}
+	const FVector LastWorldTip = GetActorLocation();
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	bEmbeddedInMonster = false;
+	EmbeddedMonster = nullptr;
+	FHitResult ReleaseHit;
+	ReleaseHit.Location = LastWorldTip;
+	ReleaseHit.ImpactPoint = LastWorldTip;
+	ReleaseHit.ImpactNormal = FVector::UpVector;
+	UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] EmbeddedRelease Item=%s RuntimeId=%s Tip=%s Reason=MonsterMeshHidden"),
+		*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(),
+		*LastWorldTip.ToCompactString());
+	ConvertToWorldPickupAtImpact(ReleaseHit);
+}
+
 void AGridThrownItemActor::HandleProjectileImpact(
 	UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
@@ -258,16 +373,26 @@ void AGridThrownItemActor::HandleProjectileImpact(
 	UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] Hit Item=%s Other=%s Point=%s TravelCm=%.1f"),
 		*ThrownItemInstance.ItemDefinitionId.ToString(), *GetNameSafe(OtherActor), *Hit.ImpactPoint.ToCompactString(),
 		FVector::Dist(InitialFlightWorldLocation, Hit.ImpactPoint));
-	ConvertToWorldPickupAtImpact(Hit);
+	if (!bEmbeddedInMonster)
+	{
+		ConvertToWorldPickupAtImpact(Hit);
+	}
 }
 
 void AGridThrownItemActor::HandleProjectileStopped(const FHitResult& Hit)
 {
-	ConvertToWorldPickupAtImpact(Hit);
+	if (!bEmbeddedInMonster)
+	{
+		ConvertToWorldPickupAtImpact(Hit);
+	}
 }
 
 void AGridThrownItemActor::HandleProjectileExpired()
 {
+	if (bEmbeddedInMonster)
+	{
+		return;
+	}
 	FHitResult ExpirationHit;
 	ExpirationHit.ImpactPoint = GetActorLocation();
 	ExpirationHit.Location = GetActorLocation();

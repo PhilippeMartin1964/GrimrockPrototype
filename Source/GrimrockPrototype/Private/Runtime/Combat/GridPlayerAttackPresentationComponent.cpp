@@ -560,6 +560,11 @@ void UGridPlayerAttackPresentationComponent::ConfigureThrownItemOutcome(
 	}
 	ThrownItem->ConfigureCombatPresentationTarget(Result.bHit && IsValid(TargetMonster), TargetLocation, AcceptanceRadius,
 		IsValid(TargetMonster) ? TargetMonster->CurrentCell : FIntPoint(INDEX_NONE, INDEX_NONE));
+	if (ThrownItem->bRangedAmmunitionProjectile)
+	{
+		// Damage/hit has already been committed; this is presentation only.
+		ThrownItem->ConfigureRangedHitEmbedding(Result.bHit ? TargetMonster : nullptr);
+	}
 }
 
 void UGridPlayerAttackPresentationComponent::RestoreHeldItemMotion()
