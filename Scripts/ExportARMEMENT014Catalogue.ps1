@@ -118,9 +118,10 @@ try {
         'Améliorations', 'Uniques', 'Paramètres', 'Implémentation UE5',
         'Affixes', 'Pénalités de niveau', 'Contrat synthèse'
     )
-    # Exact sheet-order contract: report the actual names on any mismatch.
+    # Exact sheet-order contract: preserve the twelve authoritative sheets,
+    # then allow Narratif and the optional, non-authoritative Dimensions 3D tab.
     # This script is stored WITH a UTF-8 BOM for Windows PowerShell 5.1.
-    $ValidStructure = $Names.Count -eq 12 -or $Names.Count -eq 13
+    $ValidStructure = $Names.Count -in @(12, 13, 14)
     if ($ValidStructure) {
         for ($I = 0; $I -lt $ExpectedSheets.Count; $I++) {
             if (-not [string]::Equals($Names[$I], $ExpectedSheets[$I],
@@ -130,15 +131,19 @@ try {
             }
         }
     }
-    # Version V1: legacy 12 tabs, or exactly those 12 plus a final Narratif.
-    if ($ValidStructure -and $Names.Count -eq 13 -and $Names[12] -cne 'Narratif') {
+    # Only these ordered variants are accepted:
+    # 12 canonical; 12 + Narratif; 12 + Narratif + Dimensions 3D.
+    if ($ValidStructure -and $Names.Count -ge 13 -and $Names[12] -cne 'Narratif') {
+        $ValidStructure = $false
+    }
+    if ($ValidStructure -and $Names.Count -eq 14 -and $Names[13] -cne 'Dimensions 3D') {
         $ValidStructure = $false
     }
     if (-not $ValidStructure) {
-        throw ("Classeur invalide : 12 onglets canoniques, ou 12 + Narratif en derniere position. Reels : " +
+        throw ("Classeur invalide : 12 onglets canoniques, 12 + Narratif, ou 12 + Narratif + Dimensions 3D (ordre strict). Reels : " +
             ($Names -join ' | '))
     }
-    $NarrativeSheetPresent = $Names.Count -eq 13
+    $NarrativeSheetPresent = $Names.Count -ge 13
     if ($RequireNarrative -and -not $NarrativeSheetPresent) {
         throw 'INDUS03 : onglet Narratif requis mais absent.'
     }
