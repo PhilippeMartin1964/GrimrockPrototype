@@ -1,4 +1,6 @@
 Key,SourceString,Comment
+"Item.StartingPotion.Healing01.Description","Restaure 20 points de vie. Ne peut pas être utilisée à pleine santé.","Description de la potion de soin N1"
+"Item.StartingPotion.Healing01.Name","Potion de soin","Nom de la potion de soin N1"
 "CharacterCreation.Attribute.Charisma","Charisme","Nom de caractéristique"
 "CharacterCreation.Attribute.Constitution","Constitution","Nom de caractéristique"
 "CharacterCreation.Attribute.Dexterity","Dextérité","Nom de caractéristique"

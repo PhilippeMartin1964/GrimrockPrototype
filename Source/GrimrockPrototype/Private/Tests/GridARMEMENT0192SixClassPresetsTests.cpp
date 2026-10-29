@@ -26,7 +26,7 @@ namespace ARMEMENT0192
         {TEXT("Ranger"), TEXT("Ranger_Archer"), TEXT("Kit_Ranger_Marksman"), 3},
         {TEXT("Mage"), TEXT("Mage_Scholar"), TEXT("Kit_Mage_Arcanist"), 2},
         {TEXT("Priest"), TEXT("Priest_Pilgrim"), TEXT("Kit_Priest_Protection"), 2},
-        {TEXT("Alchemist"), TEXT("Alchemist_Apothecary"), TEXT("Kit_Alchemist_Apothecary"), 1}
+        {TEXT("Alchemist"), TEXT("Alchemist_Apothecary"), TEXT("Kit_Alchemist_Apothecary"), 2}
     };
 
     URPGClassAsset* LoadClass(const TCHAR* ClassName)
