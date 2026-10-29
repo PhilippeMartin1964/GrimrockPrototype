@@ -58,7 +58,17 @@ public:
 	/** Only authoritative ranged hits may visually embed the actual ammo. */
 	void ConfigureRangedHitEmbedding(AGridMonsterActor* HitMonster);
 
+	/**
+	 * A ranged Miss follows one side of the target (T-shaped aiming plane),
+	 * then gravity resumes after passing the monster. No combat side effects.
+	 */
+	bool ConfigureRangedMissDeflection(const FVector& TargetCenter, const FVector& TargetBoxExtent);
+
 	bool IsEmbeddedInMonster() const { return bEmbeddedInMonster; }
+
+	bool IsRangedMissDeflected() const { return bRangedMissDeflected; }
+	bool HasRangedMissGravityStarted() const { return bRangedMissGravityStarted; }
+	int32 GetRangedMissSideSign() const { return RangedMissSideSign; }
 	AGridMonsterActor* GetEmbeddedMonster() const { return EmbeddedMonster.Get(); }
 
 	/** Shared source-collision policy for all launched items. */
@@ -106,6 +116,11 @@ private:
 
 	bool bConversionAttempted = false;
 	bool bEmbeddedInMonster = false;
+	bool bRangedMissDeflected = false;
+	bool bRangedMissGravityStarted = false;
+	int32 RangedMissSideSign = 0;
+	FVector RangedMissTargetLocation = FVector::ZeroVector;
+	FVector RangedMissForward = FVector::ZeroVector;
 	TWeakObjectPtr<AGridMonsterActor> PendingHitMonster;
 	TWeakObjectPtr<AGridMonsterActor> EmbeddedMonster;
 	float ImpactDropOffset = 12.0f;

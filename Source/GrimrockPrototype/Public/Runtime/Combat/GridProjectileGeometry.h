@@ -37,6 +37,40 @@ struct GRIMROCKPROTOTYPE_API FGridProjectileGeometry
 		return FQuat::FindBetweenNormals(MeshTipAxis(Axis), FVector::ForwardVector);
 	}
 
+	/**
+	 * A combat Miss uses a T-shaped aiming plane: Forward from shooter to
+	 * target, Right perpendicular to it, and a left/right miss waypoint beyond
+	 * the monster's collision bounds. The moving projectile heads for that
+	 * waypoint without teleportation; geometry still blocks it normally.
+	 */
+	static bool CalculateMissDeflection(const FVector& Source, const FVector& Target,
+		const FVector& TargetBoxExtent, float ProjectileRadius, float SafetyMargin,
+		int32 SideSign, FVector& OutDirection, FVector& OutAimPoint)
+	{
+		OutDirection = FVector::ZeroVector;
+		OutAimPoint = FVector::ZeroVector;
+		if (Source.ContainsNaN() || Target.ContainsNaN() || TargetBoxExtent.ContainsNaN() ||
+			!FMath::IsFinite(ProjectileRadius) || !FMath::IsFinite(SafetyMargin) ||
+			(SideSign != -1 && SideSign != 1))
+		{
+			return false;
+		}
+		FVector Forward = Target - Source;
+		Forward.Z = 0.0f;
+		if (!Forward.Normalize())
+		{
+			return false;
+		}
+		const FVector Right = FVector::CrossProduct(Forward, FVector::UpVector);
+		const FVector Extent(FMath::Abs(TargetBoxExtent.X), FMath::Abs(TargetBoxExtent.Y),
+			FMath::Abs(TargetBoxExtent.Z));
+		const float HalfWidth = FMath::Abs(Right.X) * Extent.X + FMath::Abs(Right.Y) * Extent.Y;
+		const float Clearance = HalfWidth + FMath::Max(0.0f, ProjectileRadius) + FMath::Max(0.0f, SafetyMargin);
+		OutAimPoint = Target + Right * (static_cast<float>(SideSign) * Clearance);
+		OutDirection = (OutAimPoint - Source).GetSafeNormal();
+		return !OutDirection.IsNearlyZero();
+	}
+
 	/** Select the cardinal grid heading of a projectile's horizontal velocity. */
 	static EGridEdge FlightCardinalEdge(const FVector& WorldVelocity)
 	{

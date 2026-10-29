@@ -80,12 +80,9 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 		MeshComponent->AddLocalRotation(FRotator(Angular.X, Angular.Y, Angular.Z));
 	}
 
-	if (!bStopsAtCombatPresentationTarget)
-	{
-		return;
-	}
-
 	const FVector CurrentLocation = GetActorLocation();
+	// Remember actual transit cells on both hit and miss trajectories. If
+	// collision happens on the boundary, never arbitrarily return to source.
 	if (IsValid(RuntimeActor))
 	{
 		int32 CellX = INDEX_NONE;
@@ -96,6 +93,26 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 			LastWalkableFlightCell = FIntPoint(CellX, CellY);
 			LastWalkableFlightOffset = LocalOffset;
 		}
+	}
+
+	if (bRangedMissDeflected && !bRangedMissGravityStarted &&
+		FVector::DotProduct(CurrentLocation - RangedMissTargetLocation, RangedMissForward) >= 25.0f)
+	{
+		// After clearing the target plane, allow the missed arrow to fall under
+		// Chaos / projectile gravity, or terminate sooner on a real wall.
+		bRangedMissGravityStarted = true;
+		if (ProjectileMovementComponent)
+		{
+			ProjectileMovementComponent->ProjectileGravityScale = 1.0f;
+		}
+		UE_LOG(LogGridThrownItem, Log,
+			TEXT("[GridProjectile] MissGravity Item=%s RuntimeId=%s Location=%s"),
+			*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(),
+			*CurrentLocation.ToCompactString());
+	}
+	if (!bStopsAtCombatPresentationTarget)
+	{
+		return;
 	}
 	const FVector Segment = CurrentLocation - PreviousPresentationLocation;
 	const float SegmentLengthSquared = Segment.SizeSquared();
@@ -271,6 +288,57 @@ void AGridThrownItemActor::ConfigureCombatPresentationTarget(bool bStopAtTarget,
 void AGridThrownItemActor::ConfigureRangedHitEmbedding(AGridMonsterActor* HitMonster)
 {
 	PendingHitMonster = bRangedAmmunitionProjectile && IsValid(HitMonster) ? HitMonster : nullptr;
+}
+
+bool AGridThrownItemActor::ConfigureRangedMissDeflection(const FVector& TargetCenter, const FVector& TargetBoxExtent)
+{
+	if (!bRangedAmmunitionProjectile || bConversionAttempted || bEmbeddedInMonster ||
+		bRangedMissDeflected || !IsValid(ProjectileMovementComponent))
+	{
+		return false;
+	}
+
+	const FVector CurrentLocation = GetActorLocation();
+	const int32 SideSign = (GetTypeHash(ThrownItemInstance.RuntimeObjectId) & 1u) == 0u ? 1 : -1;
+	FVector DeflectedDirection;
+	FVector AimPoint;
+	const float SphereRadius = CollisionComponent ? CollisionComponent->GetScaledSphereRadius() : 12.0f;
+	if (!FGridProjectileGeometry::CalculateMissDeflection(CurrentLocation, TargetCenter, TargetBoxExtent,
+		SphereRadius, 12.0f, SideSign, DeflectedDirection, AimPoint))
+	{
+		return false;
+	}
+	FVector Forward = TargetCenter - CurrentLocation;
+	Forward.Z = 0.0f;
+	if (!Forward.Normalize())
+	{
+		return false;
+	}
+	const float ExistingSpeed = ProjectileMovementComponent->Velocity.Size();
+	if (ExistingSpeed <= KINDA_SMALL_NUMBER)
+	{
+		return false;
+	}
+
+	bRangedMissDeflected = true;
+	RangedMissSideSign = SideSign;
+	RangedMissTargetLocation = TargetCenter;
+	RangedMissForward = Forward;
+	bRangedMissGravityStarted = false;
+	bStopsAtCombatPresentationTarget = false;
+	PendingHitMonster = nullptr;
+	// Change heading, not position or speed. ProjectileMovement sweeps
+	// normally, and the root/mesh axes continue to follow the velocity.
+	ProjectileMovementComponent->Velocity = DeflectedDirection * ExistingSpeed;
+	ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
+	SetActorRotation(DeflectedDirection.Rotation());
+	SetActorTickEnabled(true);
+	UE_LOG(LogGridThrownItem, Log,
+		TEXT("[GridProjectile] MissDeflect Item=%s RuntimeId=%s Side=%s Aim=%s Source=%s Velocity=%s"),
+		*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(),
+		SideSign > 0 ? TEXT("Right") : TEXT("Left"), *AimPoint.ToCompactString(),
+		*CurrentLocation.ToCompactString(), *ProjectileMovementComponent->Velocity.ToCompactString());
+	return true;
 }
 
 bool AGridThrownItemActor::TryEmbedInMonster()

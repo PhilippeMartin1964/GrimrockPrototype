@@ -564,6 +564,12 @@ void UGridPlayerAttackPresentationComponent::ConfigureThrownItemOutcome(
 	{
 		// Damage/hit has already been committed; this is presentation only.
 		ThrownItem->ConfigureRangedHitEmbedding(Result.bHit ? TargetMonster : nullptr);
+		if (!Result.bHit && IsValid(TargetMonster))
+		{
+			const FVector TargetExtent = IsValid(TargetMonster->CollisionComponent)
+				? TargetMonster->CollisionComponent->Bounds.BoxExtent : FVector(45.0f);
+			ThrownItem->ConfigureRangedMissDeflection(TargetLocation, TargetExtent);
+		}
 	}
 }
 
