@@ -780,6 +780,7 @@ private:
 	// RPG-SHIELD02.4A: test the real surface-round commitment without exposing it as a player API.
 	friend class FGridShield024APhysicalEquipmentSurfaceTest;
 	friend class FGridShield024AMagicalSurfaceTest;
+	friend class FGridShield024AMagicalEquipmentSurfaceTest;
 	friend class FGridShield024AZeroArmorSurfaceTest;
 
 	void ResetActiveAttackState();
