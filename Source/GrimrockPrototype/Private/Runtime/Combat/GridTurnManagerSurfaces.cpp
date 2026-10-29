@@ -56,7 +56,7 @@ void UGridTurnManagerComponent::ResolveCombatSurfaceRound()
 				TargetBefore.CurrentHealth = Character.Resources.CurrentHealth;
 				// Physical armor includes remaining protection carried by equipped item instances.
 				TargetBefore.PhysicalArmor = Inventory->GetEffectiveCurrentPhysicalArmor(CharacterIndex);
-				TargetBefore.MagicalArmor = Character.Resources.CurrentMagicalArmor;
+				TargetBefore.MagicalArmor = Inventory->GetEffectiveCurrentMagicalArmor(CharacterIndex);
 				TargetBefore.DamageMultiplier = 1.0f;
 				const FGridDamageResistanceSet Resistances = Inventory->ComputeCharacterEquipmentResistances(CharacterIndex);
 				TargetBefore.ResistancePercent =
@@ -79,8 +79,7 @@ void UGridTurnManagerComponent::ResolveCombatSurfaceRound()
 					// Preserve the equipment-source trace for future feedback.
 					Inventory->ApplyPhysicalArmorDamage(
 						CharacterIndex, Damage.PhysicalArmorDamage, &Damage.Trace.Damage.PhysicalArmorSources);
-					Character.Resources.CurrentMagicalArmor =
-						FMath::Max(0, Character.Resources.CurrentMagicalArmor - Damage.MagicalArmorDamage);
+					Inventory->ApplyMagicalArmorDamage(CharacterIndex, Damage.MagicalArmorDamage);
 					Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - Damage.HealthDamage);
 				}
 

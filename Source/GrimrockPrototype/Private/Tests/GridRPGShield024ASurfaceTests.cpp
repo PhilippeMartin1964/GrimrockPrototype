@@ -226,6 +226,63 @@ bool FGridShield024AMagicalSurfaceTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridShield024AMagicalEquipmentSurfaceTest,
+	"Grimrock.RPG.SHIELD02.4A.MagicalSurfaceConsumesEquippedMagicBeforeBase",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridShield024AMagicalEquipmentSurfaceTest::RunTest(const FString&)
+{
+	Shield024A::FFixture Fixture;
+	if (!TestTrue(TEXT("Surface runtime with no physical shield"), Fixture.Initialize(2, 3, false)))
+		return false;
+
+	UGridItemDefinitionAsset* Focus = NewObject<UGridItemDefinitionAsset>(Fixture.Inventory);
+	Focus->ItemDefinitionId = TEXT("SHIELD024A_TestMagicFocus");
+	Focus->DisplayName = FText::FromString(TEXT("Magic Focus"));
+	Focus->ItemType = EGridItemType::Weapon;
+	Focus->HandUsage = EGridItemHandUsage::NotHandHeld;
+	Focus->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::OffHand);
+	Focus->EquipmentStatBonus.MagicalArmorBonus = 5;
+	if (!TestTrue(TEXT("Register independent magic focus definition"),
+		Fixture.Inventory->RegisterItemDefinition(Focus)))
+		return false;
+
+	FGridItemInstance FocusItem;
+	FocusItem.RuntimeObjectId = FGuid::NewGuid();
+	FocusItem.ItemDefinitionId = Focus->ItemDefinitionId;
+	FocusItem.Quantity = 1;
+	FocusItem.OwnerType = EGridItemOwnerType::EquipmentSlot;
+	FocusItem.OwnerCharacterIndex = 0;
+	FocusItem.EquipmentSlot = EGridEquipmentSlot::OffHand;
+	Fixture.Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FocusItem;
+	auto& Character = Fixture.Inventory->PartyInventoryState.ActiveCharacters[0];
+	auto& Equipped = Fixture.Inventory->PartyInventoryState.ActiveEquipment[0].OffHand;
+	const FGuid StableId = Equipped.RuntimeObjectId;
+
+	TestEqual(TEXT("Initial magical reserve includes focus and base"), Fixture.Inventory->GetEffectiveCurrentMagicalArmor(0), 8);
+	if (!TestTrue(TEXT("First fire surface placed"),
+		Fixture.AddSurface(EGridCombatSurfaceType::Fire, EGridDamageType::Fire, 4)))
+		return false;
+	Fixture.TurnManager->ResolveCombatSurfaceRound();
+	TestEqual(TEXT("First tick depletes four from focus"), Equipped.AbsorbedEquipmentMagicalArmor, 4);
+	TestEqual(TEXT("First tick preserves base magical armor"), Character.Resources.CurrentMagicalArmor, 3);
+	TestEqual(TEXT("First tick preserves HP"), Character.Resources.CurrentHealth, 20);
+	TestEqual(TEXT("First tick leaves four effective magical armor"), Fixture.Inventory->GetEffectiveCurrentMagicalArmor(0), 4);
+
+	if (!TestTrue(TEXT("Second fire surface placed"),
+		Fixture.AddSurface(EGridCombatSurfaceType::Fire, EGridDamageType::Fire, 6)))
+		return false;
+	Fixture.TurnManager->ResolveCombatSurfaceRound();
+	TestEqual(TEXT("Second tick exhausts equipped magic"), Equipped.AbsorbedEquipmentMagicalArmor, 5);
+	TestEqual(TEXT("Second tick exhausts base magic"), Character.Resources.CurrentMagicalArmor, 0);
+	TestEqual(TEXT("Second tick only two excess damage reaches HP"), Character.Resources.CurrentHealth, 18);
+	TestEqual(TEXT("Physical armor unaffected"), Character.Resources.CurrentPhysicalArmor, 2);
+	TestEqual(TEXT("Equipment GUID stable after both hits"), Equipped.RuntimeObjectId, StableId);
+	TestEqual(TEXT("No magic left"), Fixture.Inventory->GetEffectiveCurrentMagicalArmor(0), 0);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridShield024AZeroArmorSurfaceTest,
 	"Grimrock.RPG.SHIELD02.4A.ZeroArmorAndOffCellDoNotInventProtection",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

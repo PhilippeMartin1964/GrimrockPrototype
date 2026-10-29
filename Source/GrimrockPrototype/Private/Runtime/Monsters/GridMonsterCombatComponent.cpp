@@ -262,7 +262,7 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(int32 TargetCharact
 	Target.Evasion = Character.DerivedStats.Evasion;
 	Target.CurrentHealth = Character.Resources.CurrentHealth;
 	Target.PhysicalArmor = PartyPawn->PartyInventoryComponent->GetEffectiveCurrentPhysicalArmor(TargetCharacterIndex);
-	Target.MagicalArmor = Character.Resources.CurrentMagicalArmor;
+	Target.MagicalArmor = PartyPawn->PartyInventoryComponent->GetEffectiveCurrentMagicalArmor(TargetCharacterIndex);
 	Target.ResistancePercent = GetResistancePercent(Resistances, Attack.DamageType);
 	Target.DamageMultiplier = 1.0f;
 	if (Attack.IsRangedAttack() && IsValid(BoundTurnManager) && IsValid(BoundTurnManager->RuntimeActor) &&
@@ -302,7 +302,7 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(int32 TargetCharact
 		PartyPawn->PartyInventoryComponent->ApplyPhysicalArmorDamage(
 			TargetCharacterIndex, OutResult.PhysicalArmorDamage,
 			&OutResult.Trace.Damage.PhysicalArmorSources);
-		Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor - OutResult.MagicalArmorDamage);
+		PartyPawn->PartyInventoryComponent->ApplyMagicalArmorDamage(TargetCharacterIndex, OutResult.MagicalArmorDamage);
 		Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - OutResult.HealthDamage);
 	}
 

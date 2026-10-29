@@ -172,11 +172,15 @@ bool FGridTD07333CombatConsumerBoundaryTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Incoming attacks currently read stored Evasion directly"), MonsterCombat.Contains(TEXT("Target.Evasion = Character.DerivedStats.Evasion;")));
 	TestTrue(TEXT("Incoming attacks use equipped armor reserve"),
 		MonsterCombat.Contains(TEXT("Target.PhysicalArmor = PartyPawn->PartyInventoryComponent->GetEffectiveCurrentPhysicalArmor(TargetCharacterIndex);")));
-	TestTrue(TEXT("Incoming attacks currently read stored magical armor directly"),
-		MonsterCombat.Contains(TEXT("Target.MagicalArmor = Character.Resources.CurrentMagicalArmor;")));
-	TestTrue(TEXT("Incoming attacks consume armor via centralized equipment-aware method"),
-		MonsterCombat.Contains(
-			TEXT("PartyPawn->PartyInventoryComponent->ApplyPhysicalArmorDamage(TargetCharacterIndex, OutResult.PhysicalArmorDamage);")));
+	TestTrue(TEXT("Incoming attacks use equipped magical armor reserve"),
+		MonsterCombat.Contains(TEXT("GetEffectiveCurrentMagicalArmor(TargetCharacterIndex)")));
+	TestTrue(TEXT("Incoming physical damage uses centralized equipment-aware method and trace"),
+		MonsterCombat.Contains(TEXT("ApplyPhysicalArmorDamage(")) &&
+		MonsterCombat.Contains(TEXT("&OutResult.Trace.Damage.PhysicalArmorSources")));
+	TestTrue(TEXT("Incoming magical damage uses centralized equipment-aware method"),
+		MonsterCombat.Contains(TEXT("ApplyMagicalArmorDamage(TargetCharacterIndex, OutResult.MagicalArmorDamage)")));
+	TestFalse(TEXT("Incoming attacks must not bypass equipped magical armor"),
+		MonsterCombat.Contains(TEXT("Character.Resources.CurrentMagicalArmor - OutResult.MagicalArmorDamage")));
 	TestTrue(TEXT("Incoming attacks currently mutate stored current health directly"),
 		MonsterCombat.Contains(TEXT("Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - OutResult.HealthDamage);")));
 
@@ -185,6 +189,29 @@ bool FGridTD07333CombatConsumerBoundaryTest::RunTest(const FString& Parameters)
 		TEXT("Initiative source loads"), LoadProjectSource(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerInitiative.cpp"), Initiative));
 	TestTrue(TEXT("Party initiative remains a calculated DerivedStats consumer"),
 		Initiative.Contains(TEXT("Entry.InitiativeBase = 10 + Character.DerivedStats.Initiative;")));
+
+	// Behavioral regression: source formatting and method signatures may evolve,
+	// but equipment reserves must remain independent of base resources.
+	UGridPartyInventoryComponent* Inventory = MakeParty();
+	UGridItemDefinitionAsset* Equipped = EquipProjectionItem(Inventory);
+	Equipped->EquipmentStatBonus.MagicalArmorBonus = 4;
+	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
+	FGridItemInstance& Amulet = Inventory->PartyInventoryState.ActiveEquipment[0].Amulet;
+	TestEqual(TEXT("Magic pool includes base one plus equipped four"),
+		Inventory->GetEffectiveCurrentMagicalArmor(0), 5);
+	TestEqual(TEXT("Physical armor consumer spends three from equipped five"),
+		Inventory->ApplyPhysicalArmorDamage(0, 3), 3);
+	TestEqual(TEXT("Physical base remains untouched"), Character.Resources.CurrentPhysicalArmor, 2);
+	TestEqual(TEXT("Physical depletion belongs to item instance"), Amulet.AbsorbedEquipmentPhysicalArmor, 3);
+	TestEqual(TEXT("Magic consumer spends three from equipment first"),
+		Inventory->ApplyMagicalArmorDamage(0, 3), 3);
+	TestEqual(TEXT("Magic base remains untouched"), Character.Resources.CurrentMagicalArmor, 1);
+	TestEqual(TEXT("Magic depletion belongs to item instance"), Amulet.AbsorbedEquipmentMagicalArmor, 3);
+	TestEqual(TEXT("Second magic hit uses remaining equipment and base only"),
+		Inventory->ApplyMagicalArmorDamage(0, 3), 2);
+	TestEqual(TEXT("Magic equipment exhausted"), Amulet.AbsorbedEquipmentMagicalArmor, 4);
+	TestEqual(TEXT("Magic base exhausted"), Character.Resources.CurrentMagicalArmor, 0);
+	TestEqual(TEXT("Effective magic pool exhausted"), Inventory->GetEffectiveCurrentMagicalArmor(0), 0);
 	return true;
 }
 

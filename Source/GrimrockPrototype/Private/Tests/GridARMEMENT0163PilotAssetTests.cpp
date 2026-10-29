@@ -72,10 +72,31 @@ bool FARMEMENT0163MaterializedAssetTest::RunTest(const FString&)
 		LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr, ARMEMENT0163::CataloguePath);
 	if (!TestNotNull(TEXT("Realistic visual catalogue exists"), Catalogue)) { return false; }
 	TestTrue(TEXT("Final catalogue is structurally valid"), Catalogue->IsValidCatalogue());
-	TestEqual(TEXT("Exactly three approved visual profiles"), Catalogue->VisualProfiles.Num(), 3);
-	TestEqual(TEXT("Exactly three approved archetype bindings"), Catalogue->ArchetypeBindings.Num(), 3);
+	// The pilot set stays immutable, but the production visual catalogue grows.
+	TestTrue(TEXT("Production catalogue contains at least the three pilots"),
+		Catalogue->VisualProfiles.Num() >= UE_ARRAY_COUNT(ARMEMENT0163::Pilots) &&
+		Catalogue->ArchetypeBindings.Num() >= UE_ARRAY_COUNT(ARMEMENT0163::Pilots));
 	for (const ARMEMENT0163::FFinalPilot& Pilot : ARMEMENT0163::Pilots)
 	{
+		int32 PilotBindingCount = 0;
+		int32 PilotProfileCount = 0;
+		for (const FGridWeaponVisualArchetypeBinding& Binding : Catalogue->ArchetypeBindings)
+		{
+			if (Binding.ArchetypeId == FName(Pilot.ArchetypeId))
+			{
+				++PilotBindingCount;
+				TestEqual(TEXT("Pilot binding still points to its original visual"), Binding.VisualId, FName(Pilot.VisualId));
+			}
+		}
+		for (const FGridWeaponVisualProfile& Visual : Catalogue->VisualProfiles)
+		{
+			if (Visual.VisualId == FName(Pilot.VisualId))
+			{
+				++PilotProfileCount;
+			}
+		}
+		TestEqual(TEXT("Pilot archetype binding occurs exactly once"), PilotBindingCount, 1);
+		TestEqual(TEXT("Pilot visual profile occurs exactly once"), PilotProfileCount, 1);
 		const FGridWeaponVisualProfile* Profile =
 			Catalogue->FindProfileForArchetype(FName(Pilot.ArchetypeId));
 		if (!TestNotNull(*FString::Printf(TEXT("Profile %s"), Pilot.ArchetypeId), Profile)) { continue; }
