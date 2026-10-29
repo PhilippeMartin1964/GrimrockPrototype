@@ -24,3 +24,6 @@ par `TActorIterator<AGridThrownItemActor>` et leur GUID unique. Une flèche
 fichée enregistre l'ID persistant du monstre, l'os et sa pose relative ;
 une flèche en vol enregistre la dernière pose de mesh pour rechargement
 sous forme de pickup. Le monstre n'est pas dupliqué, pas de nouveau dégât.
+
+## 13.6C.2c — Restauration
+Le chargeur détruit les projectiles actifs préexistants pour éviter les GUID doublons. Les flèches fichées ne sont pas chargées avec les pickups normaux, mais après restauration des monstres. Pour un monstre encore vivant, la flèche retrouve os et transform relatif. Pour un monstre mort ou manquant, l'unique GUID est converti en pickup physique à la dernière pose connue. L'ancien mécanisme de ramassage et les effets de combat ne sont pas modifiés.

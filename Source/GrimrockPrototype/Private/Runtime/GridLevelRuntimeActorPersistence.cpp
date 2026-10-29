@@ -534,10 +534,31 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		}
 	}
 
+	// A loaded world may still have live projectile presentation actors.
+	// Saved GUIDs are authoritative: remove previous actors first.
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<AGridThrownItemActor> It(World); It; ++It)
+		{
+			AGridThrownItemActor* Arrow = *It;
+			if (IsValid(Arrow) && Arrow->RuntimeActor == this)
+			{
+				Arrow->Destroy();
+			}
+		}
+	}
+	for (int32 Index = SpawnedItemEntries.Num() - 1; Index >= 0; --Index)
+	{
+		const FGridRuntimeItemState* Saved = State->Items.Find(SpawnedItemEntries[Index].ObjectId);
+		if (Saved && Saved->bEmbeddedProjectile)
+		{
+			RemoveSpawnedItemEntry(Index);
+		}
+	}
 	for (const TPair<FGuid, FGridRuntimeItemState>& Pair : State->Items)
 	{
 		const FGridRuntimeItemState& ItemState = Pair.Value;
-		if (ItemState.bIsContainedInReceptacle)
+		if (ItemState.bIsContainedInReceptacle || ItemState.bEmbeddedProjectile)
 		{
 			continue;
 		}
@@ -575,7 +596,8 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		const FName RuntimeItemDefinitionId = ItemState.ItemDefinitionId;
 		if (!bFoundExistingItem && !RuntimeItemDefinitionId.IsNone())
 		{
-			UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition(RuntimeItemDefinitionId);
+			UGridItemDefinitionAsset* ItemDefinition = IsValid(ItemState.ProjectileDefinitionAsset)
+				? ItemState.ProjectileDefinitionAsset.Get() : ResolveRuntimeItemDefinition(RuntimeItemDefinitionId);
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, RuntimeItemDefinitionId, this, nullptr);
 			if (ItemActor)
 			{
@@ -739,6 +761,59 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 
 		Monster->EnsureInitialCombatState();
 		SetMonsterRuntimeLevelActive(Monster, true);
+	}
+
+	// Restore attached ammunition only after monsters have been restored.
+	for (const TPair<FGuid, FGridRuntimeItemState>& Pair : State->Items)
+	{
+		const FGridRuntimeItemState& Item = Pair.Value;
+		if (!Item.bEmbeddedProjectile || Item.ItemDefinitionId.IsNone())
+		{
+			continue;
+		}
+		UGridItemDefinitionAsset* Definition = IsValid(Item.ProjectileDefinitionAsset)
+			? Item.ProjectileDefinitionAsset.Get() : ResolveRuntimeItemDefinition(Item.ItemDefinitionId);
+		FGridItemInstance Unit;
+		Unit.RuntimeObjectId = Pair.Key;
+		Unit.ItemDefinitionId = Item.ItemDefinitionId;
+		Unit.ItemLevel = Item.ItemLevel;
+		Unit.Quantity = 1;
+		Unit.Weight = IsValid(Definition) ? Definition->Weight : 0.0f;
+		Unit.OwnerType = EGridItemOwnerType::World;
+		Unit.OwnerCharacterIndex = INDEX_NONE;
+		Unit.bLightsEnabled = Item.bLightsEnabled;
+		const FTransform SavedMesh = Item.bHasWorldMeshTransform ? Item.WorldMeshTransform : Item.Transform;
+		bool bSuccess = false;
+		bool bAttached = false;
+		if (const TArray<AGridMonsterActor*>* Matches =
+			MonstersByPersistenceId.Find(Item.EmbeddedMonsterPersistenceId))
+		{
+			if (Matches->Num() == 1 && IsValid((*Matches)[0]) &&
+				!(*Matches)[0]->IsDead() && IsValid(Definition))
+			{
+				AGridThrownItemActor* Arrow = SpawnThrownItemProjectile(Unit, Definition,
+					SavedMesh.GetLocation(), SavedMesh.GetRotation().GetForwardVector() * 1200.0f,
+					Item.CellX, Item.CellY, true);
+				if (IsValid(Arrow))
+				{
+					bAttached = Arrow->RestoreEmbeddedAttachment((*Matches)[0],
+						Item.EmbeddedBone, Item.EmbeddedBoneRelativeTransform);
+					bSuccess = bAttached;
+					if (!bAttached)
+					{
+						Arrow->Destroy();
+					}
+				}
+			}
+		}
+		if (!bSuccess)
+		{
+			bSuccess = TryDropItemInstanceAtWorldTransform(Unit, Definition, SavedMesh);
+		}
+		UE_LOG(LogGridLevelRuntime, Log,
+			TEXT("[GridProjectile] LoadArrow Id=%s Reattached=%d Success=%d MonsterId=%s"),
+			*Pair.Key.ToString(), bAttached ? 1 : 0, bSuccess ? 1 : 0,
+			*Item.EmbeddedMonsterPersistenceId.ToString());
 	}
 
 	for (AGridMonsterActor* Monster : CurrentLevelMonsters)
