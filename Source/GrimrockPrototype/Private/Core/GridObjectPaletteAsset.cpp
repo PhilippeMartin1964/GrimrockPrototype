@@ -3,6 +3,10 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "RPG/RPGStoryCompanionAsset.h"
 
+#if WITH_EDITOR
+#include "UObject/UnrealType.h"
+#endif
+
 bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridWorldObjectDefinitionValidationMessage>& OutMessages) const
 {
 	OutMessages.Reset();
@@ -120,3 +124,27 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridWorldObjectDefinitionV
 
 	return true;
 }
+
+#if WITH_EDITOR
+void UGridObjectPaletteAsset::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	// Only normalize the entry being edited. A collectible must never retain
+	// a palette-level icon that is hidden by EditConditionHides.
+	const bool bNewItemDefinition =
+		PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FGridObjectPaletteEntry, DefaultItemDefinition);
+	const bool bArrayEntryAddedOrDuplicated =
+		PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayAdd ||
+		PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate;
+	if ((bNewItemDefinition || bArrayEntryAddedOrDuplicated) &&
+		PropertyChangedEvent.GetMemberPropertyName() == GET_MEMBER_NAME_CHECKED(UGridObjectPaletteAsset, Entries))
+	{
+		const int32 EditedEntryIndex = PropertyChangedEvent.GetArrayIndex(TEXT("Entries"));
+		if (Entries.IsValidIndex(EditedEntryIndex))
+		{
+			Entries[EditedEntryIndex].ClearRedundantIconForDirectItem();
+		}
+	}
+
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+}
+#endif // WITH_EDITOR

@@ -25,7 +25,8 @@ struct FGridObjectPaletteEntry
 	FName PaletteCategory = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
-		meta = (ToolTip = "Palette icon for world-object entries. Direct collectible entries use DefaultItemDefinition.Icon and must leave this unset."))
+		meta = (ToolTip = "Palette icon for world-object entries only. Direct collectibles use DefaultItemDefinition.Icon.",
+			EditCondition = "DefaultItemDefinition == nullptr", EditConditionHides))
 	TObjectPtr<UTexture2D> Icon = nullptr;
 
 	/** World-object definition for non-collectible entries. Collectible items use DefaultItemDefinition directly. */
@@ -48,6 +49,19 @@ struct FGridObjectPaletteEntry
 	{
 		return DefaultItemDefinition != nullptr;
 	}
+
+#if WITH_EDITOR
+	/** Prevent a hidden icon override from surviving a switch to a direct collectible. */
+	bool ClearRedundantIconForDirectItem()
+	{
+		if (!IsDirectItemEntry() || !Icon)
+		{
+			return false;
+		}
+		Icon = nullptr;
+		return true;
+	}
+#endif
 
 	FName GetEffectiveWorldObjectDefinitionId() const
 	{
@@ -121,4 +135,8 @@ public:
 	}
 
 	bool ValidatePalette(TArray<FGridWorldObjectDefinitionValidationMessage>& OutMessages) const;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+#endif
 };
