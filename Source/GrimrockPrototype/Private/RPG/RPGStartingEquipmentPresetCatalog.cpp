@@ -11,6 +11,7 @@ namespace RPGStartingPresets
     {
         const TCHAR* AssetName;
         EGridEquipmentSlot Slot;
+        int32 Quantity = 1;
     };
 
     struct FKitSpec
@@ -71,6 +72,103 @@ namespace RPGStartingPresets
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None},
             {TEXT("DA_Item_Bomb_Fire"), EGridEquipmentSlot::None}, false }
     };
+
+
+    // ARMEMENT01.13: the eighteen approved N1 orientations. These are
+    // source-controlled recipes, not talent grants or equipment restrictions.
+    // Missing future support items are not silently created.
+    struct FApprovedKitSpec
+    {
+        const TCHAR* ClassId;
+        const TCHAR* BranchId;
+        FItemSpec First;
+        FItemSpec Second;
+        FItemSpec Third;
+        FItemSpec Fourth;
+    };
+
+    const FApprovedKitSpec ApprovedKits[] =
+    {
+        {TEXT("Warrior"), TEXT("Guardian"),
+            {TEXT("DA_Weapon_StraightSword_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Warrior"), TEXT("Breaker"),
+            {TEXT("DA_Weapon_GreatAxe_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Warrior"), TEXT("WeaponMaster"),
+            {TEXT("DA_Weapon_LongSword_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_WarPick_01"), EGridEquipmentSlot::None},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Rogue"), TEXT("Shadow"),
+            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_MainGauche_01"), EGridEquipmentSlot::OffHand},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Rogue"), TEXT("Assassin"),
+            {TEXT("DA_Weapon_AssassinDagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_ThrowingKnife_01"), EGridEquipmentSlot::None},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Rogue"), TEXT("Saboteur"),
+            {TEXT("DA_Weapon_Stiletto_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Ranger"), TEXT("Marksman"),
+            {TEXT("DA_Weapon_ShortBow_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None},
+            {TEXT("DA_Item_Arrows_01"), EGridEquipmentSlot::None, 12}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Ranger"), TEXT("Hunter"),
+            {TEXT("DA_Weapon_ShortSpear_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_Javelin_01"), EGridEquipmentSlot::None},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Ranger"), TEXT("Scout"),
+            {TEXT("DA_Weapon_RecurveBow_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None},
+            {TEXT("DA_Item_Torch"), EGridEquipmentSlot::None}, {TEXT("DA_Item_Arrows_01"), EGridEquipmentSlot::None, 12} },
+        {TEXT("Mage"), TEXT("Arcanist"),
+            {TEXT("DA_Weapon_ArcaneWand_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_ArcaneOrb_01"), EGridEquipmentSlot::OffHand},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Mage"), TEXT("Evoker"),
+            {TEXT("DA_Weapon_FireWand_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Mage"), TEXT("SurfaceWeaver"),
+            {TEXT("DA_Weapon_ElementalStaff_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Priest"), TEXT("Protection"),
+            {TEXT("DA_Weapon_Mace_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Priest"), TEXT("Restoration"),
+            {TEXT("DA_Weapon_HolyScepter_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Priest"), TEXT("Exorcism"),
+            {TEXT("DA_Weapon_HolyScepter_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_HolyAegis_01"), EGridEquipmentSlot::OffHand},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Alchemist"), TEXT("Apothecary"),
+            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Alchemist"), TEXT("Grenadier"),
+            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_Dart_01"), EGridEquipmentSlot::None},
+            {TEXT("DA_Item_Bomb_Fire"), EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        {TEXT("Alchemist"), TEXT("Transmuter"),
+            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_ArcaneOrb_01"), EGridEquipmentSlot::OffHand},
+            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} }
+    };
+
+    bool AddItem(FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec, FString& OutError);
+
+    bool AddApprovedItem(FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec, FString& OutError)
+    {
+        if (!Spec.AssetName)
+        {
+            return true;
+        }
+        if (Spec.Quantity < 1 || !AddItem(Kit, Spec, OutError))
+        {
+            return false;
+        }
+        FRPGStartingEquipmentEntry& Entry = Kit.Items.Last();
+        UGridItemDefinitionAsset* Definition = Entry.ItemDefinition.Get();
+        if ((Spec.Quantity > 1 && (!Definition->bStackable || Spec.Quantity > Definition->MaxStackSize)) ||
+            (Spec.Quantity > 1 && Spec.Slot != EGridEquipmentSlot::None))
+        {
+            OutError = FString::Printf(TEXT("Invalid approved starter quantity: %s"), Spec.AssetName);
+            Kit.Items.Pop();
+            return false;
+        }
+        Entry.Quantity = Spec.Quantity;
+        return true;
+    }
 
     bool IsSupportedClass(FName ClassId)
     {
@@ -141,6 +239,29 @@ UGridItemDefinitionAsset* FRPGStartingEquipmentPresetCatalog::ResolveKnownStarti
         const RPGStartingPresets::FItemSpec Items[] = {Kit.First, Kit.Second};
         for (const RPGStartingPresets::FItemSpec& Item : Items)
         {
+            const FString AssetName(Item.AssetName);
+            if (AttemptedAssetNames.Contains(AssetName))
+            {
+                continue;
+            }
+            AttemptedAssetNames.Add(AssetName);
+            UGridItemDefinitionAsset* Definition = RPGStartingPresets::ResolveItem(Item.AssetName);
+            if (IsValid(Definition) && Definition->ItemDefinitionId == ItemDefinitionId)
+            {
+                return Definition;
+            }
+        }
+    }
+    // New-game orientation items also need exact-identity SaveGame rehydration.
+    for (const RPGStartingPresets::FApprovedKitSpec& Kit : RPGStartingPresets::ApprovedKits)
+    {
+        const RPGStartingPresets::FItemSpec Items[] = {Kit.First, Kit.Second, Kit.Third, Kit.Fourth};
+        for (const RPGStartingPresets::FItemSpec& Item : Items)
+        {
+            if (!Item.AssetName)
+            {
+                continue;
+            }
             const FString AssetName(Item.AssetName);
             if (AttemptedAssetNames.Contains(AssetName))
             {
@@ -227,6 +348,71 @@ bool FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(
         TransientClass.StartingEquipmentKits.Reset();
         TransientClass.DefaultStartingEquipmentKitId = NAME_None;
         OutError = TEXT("Generated starting kits failed class validation.");
+        return false;
+    }
+    return true;
+}
+
+bool FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+    URPGClassAsset& TransientClass, FString& OutError)
+{
+    OutError.Reset();
+    if (!RPGStartingPresets::IsSupportedClass(TransientClass.ClassId))
+    {
+        OutError = TEXT("Unsupported production class for approved starter kits.");
+        return false;
+    }
+    // Production classes are never modified; only an unconfigured transient
+    // copy may be materialized. Explicitly authored kits have precedence.
+    if (!TransientClass.StartingEquipmentKits.IsEmpty() ||
+        !TransientClass.DefaultStartingEquipmentKitId.IsNone())
+    {
+        return TransientClass.IsValidDefinition();
+    }
+
+    TArray<FRPGStartingEquipmentKit> Candidate;
+    FName DefaultId = NAME_None;
+    for (const RPGStartingPresets::FApprovedKitSpec& Spec : RPGStartingPresets::ApprovedKits)
+    {
+        if (TransientClass.ClassId != FName(Spec.ClassId))
+        {
+            continue;
+        }
+        FRPGStartingEquipmentKit& Kit = Candidate.AddDefaulted_GetRef();
+        Kit.KitId = FName(*FString::Printf(TEXT("Kit_%s_%s"), Spec.ClassId, Spec.BranchId));
+        const FString LabelKey = FString::Printf(TEXT("CharacterCreation.StartingKit.Name.%s"), *Kit.KitId.ToString());
+        Kit.DisplayName = FUILocalizationText::Get(*LabelKey);
+        if (Kit.DisplayName.IsEmpty() ||
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.First, OutError) ||
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Second, OutError) ||
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Third, OutError) ||
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Fourth, OutError))
+        {
+            if (OutError.IsEmpty())
+            {
+                OutError = FString::Printf(TEXT("Missing localized name for %s"), *Kit.KitId.ToString());
+            }
+            return false;
+        }
+        if (DefaultId.IsNone())
+        {
+            // The approved list is ordered with one preferred orientation first.
+            DefaultId = Kit.KitId;
+        }
+    }
+    if (Candidate.Num() != 3 || DefaultId.IsNone())
+    {
+        OutError = TEXT("Class approved starter kit catalogue is incomplete.");
+        return false;
+    }
+
+    TransientClass.StartingEquipmentKits = MoveTemp(Candidate);
+    TransientClass.DefaultStartingEquipmentKitId = DefaultId;
+    if (!TransientClass.IsValidDefinition())
+    {
+        TransientClass.StartingEquipmentKits.Reset();
+        TransientClass.DefaultStartingEquipmentKitId = NAME_None;
+        OutError = TEXT("Approved starter kits failed class validation.");
         return false;
     }
     return true;
