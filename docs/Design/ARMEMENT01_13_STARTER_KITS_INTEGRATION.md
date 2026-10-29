@@ -36,3 +36,22 @@ Le basculement des nouveaux kits dans le wizard (13.2) est **bloqué** tant que 
 - 12 anciens identifiants sauvegardés toujours résolus sans migration silencieuse ;
 - aucune mutation des six classes production, aucun équipement fabriqué pour les compléments manquants ;
 - campagne de tests C++ complète et vérification PIE du wizard.
+
+
+## 13.2 — Activation des 18 kits et tests de régression (29 octobre 2026)
+
+**Statut : intégration C++ préparée sur GitHub ; validation locale UE 5.5.4 et PIE nécessaire avant clôture.**
+
+- Le wizard et CreateInitialCharacter génèrent les trois kits approuvés de chaque classe dans une copie transitoire ; aucune mutation des six DA_Class_*.
+- La nouvelle identité de kit est Kit_<ClassId>_<BranchId>, sans conversion implicite des anciens identifiants.
+- Les tests de création et de wizard ARMEMENT01.9 ont été adaptés. Le test SixClassKits.CatalogueAndOverride conserve la validation autonome des 12 kits historiques.
+- La suite Grimrock.RPG.ARMEMENT01.13.ApprovedKits couvre les 18 créations réelles, le choix du wizard, les quantités, les slots, les GUID, l'unicité de propriété et le snapshot de sauvegarde.
+- Les anciennes définitions d'objets sont toujours résolues par leur ID exact pour réhydrater les sauvegardes, sans substitution.
+- Le package binaire ST_UI.uasset généré sur le poste local doit être ajouté à un commit distinct après validation ; il ne figure pas dans le commit distant de code.
+
+### Vérification locale
+
+1. Préserver la modification locale ST_UI.uasset et synchroniser master.
+2. Exécuter Scripts/ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.13.ApprovedKits".
+3. Exécuter les filtres historiques Grimrock.RPG.ARMEMENT01.9.SixClassKits, Grimrock.RPG.ARMEMENT01.9.WizardSelection et Grimrock.RPG.ARMEMENT01.9.Localization.
+4. Vérifier en PIE les 18 orientations et le cycle sauvegarde/Continue avant clôture.

@@ -15,16 +15,18 @@ namespace ARMEMENT0192
     {
         const TCHAR* Name;
         const TCHAR* DefaultKit;
+        const TCHAR* ApprovedDefaultKit;
+        int32 ApprovedItemCount;
     };
 
     const FClassSpec Classes[] =
     {
-        {TEXT("Warrior"), TEXT("Warrior_Defender")},
-        {TEXT("Rogue"), TEXT("Rogue_Shadow")},
-        {TEXT("Ranger"), TEXT("Ranger_Archer")},
-        {TEXT("Mage"), TEXT("Mage_Scholar")},
-        {TEXT("Priest"), TEXT("Priest_Pilgrim")},
-        {TEXT("Alchemist"), TEXT("Alchemist_Apothecary")}
+        {TEXT("Warrior"), TEXT("Warrior_Defender"), TEXT("Kit_Warrior_Guardian"), 2},
+        {TEXT("Rogue"), TEXT("Rogue_Shadow"), TEXT("Kit_Rogue_Shadow"), 2},
+        {TEXT("Ranger"), TEXT("Ranger_Archer"), TEXT("Kit_Ranger_Marksman"), 3},
+        {TEXT("Mage"), TEXT("Mage_Scholar"), TEXT("Kit_Mage_Arcanist"), 2},
+        {TEXT("Priest"), TEXT("Priest_Pilgrim"), TEXT("Kit_Priest_Protection"), 2},
+        {TEXT("Alchemist"), TEXT("Alchemist_Apothecary"), TEXT("Kit_Alchemist_Apothecary"), 1}
     };
 
     URPGClassAsset* LoadClass(const TCHAR* ClassName)
@@ -159,9 +161,9 @@ bool FARMEMENT0192SixClassCreationTest::RunTest(const FString&)
             Inventory->CreateInitialCharacter(Request, Error))) return false;
         TestTrue(TEXT("Initial creation marked complete"), Inventory->HasCompletedInitialCharacterCreation());
         TestEqual(FString::Printf(TEXT("%s kit id persisted"), Spec.Name),
-            Inventory->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId, FName(Spec.DefaultKit));
-        TestEqual(FString::Printf(TEXT("%s owns two starter instances"), Spec.Name),
-            ARMEMENT0192::CountOwnedItems(Inventory), 2);
+            Inventory->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId, FName(Spec.ApprovedDefaultKit));
+        TestEqual(FString::Printf(TEXT("%s owns approved starter instances"), Spec.Name),
+            ARMEMENT0192::CountOwnedItems(Inventory), Spec.ApprovedItemCount);
         FString OwnershipError;
         TestTrue(TEXT("Exclusive ownership retained"), Inventory->ValidateInventoryOwnership(OwnershipError));
     }
@@ -194,14 +196,14 @@ bool FARMEMENT0192RangerTest::RunTest(const FString&)
     TestEqual(TEXT("Bow is the production ARM045 item"), Main->ItemDefinitionId, FName(TEXT("Weapon_ShortBow_01")));
     TestTrue(TEXT("MainHand owns the item instance"), Main->IsValid());
     TestTrue(TEXT("Physical offhand remains empty"), Off && !Off->IsValid());
-    TestEqual(TEXT("No duplicated virtual bow"), ARMEMENT0192::CountOwnedItems(Inventory), 2);
+    TestEqual(TEXT("No duplicated virtual bow"), ARMEMENT0192::CountOwnedItems(Inventory), 3);
 
     URPGClassAsset* Preview = ARMEMENT0192::DuplicateForPresets(Ranger);
     FString Failure;
     if (!TestTrue(TEXT("Ranger alternate kits available"),
-        Preview && FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(*Preview, Failure))) return false;
-    const FRPGStartingEquipmentKit* Trail = Preview->FindStartingEquipmentKit(TEXT("Ranger_Pathfinder"));
-    if (!TestNotNull(TEXT("Second ranger kit can be selected later in wizard"), Trail)) return false;
+        Preview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*Preview, Failure))) return false;
+    const FRPGStartingEquipmentKit* Trail = Preview->FindStartingEquipmentKit(TEXT("Kit_Ranger_Hunter"));
+    if (!TestNotNull(TEXT("Approved Hunter kit can be selected in wizard"), Trail)) return false;
 
     FGridCharacterInventoryState Candidate;
     Candidate.CharacterId = FGuid::NewGuid();

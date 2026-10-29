@@ -131,20 +131,23 @@ bool FARMEMENT0193KitProjectionTest::RunTest(const FString&)
     TestEqual(TEXT("Localized kit details have a blank line"),
         DetailsFormat, FString(TEXT("{Items}\n\n{TechnicalReference}")));
 
+    TestTrue(TEXT("Approved Guardian label materialized in ST_UI"),
+        FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Name.Kit.Warrior.Guardian"))
+            .EqualTo(FText::FromString(TEXT("Gardien"))));
     URPGClassAsset* Class = ARMEMENT0193Localization::LoadWarrior();
     if (!TestNotNull(TEXT("Production Warrior definition"), Class)) return false;
     URPGCharacterCreationWizardWidget* Wizard = NewObject<URPGCharacterCreationWizardWidget>();
     Wizard->ClassDefinition = Class;
-    if (!TestTrue(TEXT("Select alternative kit"), Wizard->SelectStartingEquipmentKit(TEXT("Warrior_Skirmisher"))))
+    if (!TestTrue(TEXT("Select alternative kit"), Wizard->SelectStartingEquipmentKit(TEXT("Kit_Warrior_WeaponMaster"))))
     {
         return false;
     }
-    const FString Name = Wizard->GetAvailableStartingEquipmentKits()[1].DisplayName.ToString();
+    const FString Name = Wizard->GetAvailableStartingEquipmentKits()[2].DisplayName.ToString();
     const FString Details = Wizard->GetSelectedStartingEquipmentKitDescription().ToString();
-    TestEqual(TEXT("Player-facing name from string table"), Name, FString(TEXT("Escarmoucheur")));
+    TestEqual(TEXT("Player-facing name from string table"), Name, FString(TEXT("Maître d’armes")));
     TestTrue(TEXT("Slot is in French"), Details.Contains(TEXT("Main principale")));
     TestFalse(TEXT("No untranslated Main Hand enum appears"), Details.Contains(TEXT("Main Hand")));
-    TestTrue(TEXT("Technical reference is translated"), Details.Contains(TEXT("Référence technique : Warrior_Skirmisher")));
+    TestTrue(TEXT("Technical reference is translated"), Details.Contains(TEXT("Référence technique : Kit_Warrior_WeaponMaster")));
     TestFalse(TEXT("Details do not repeat kit title"), Details.StartsWith(Name));
     const FString Summary = Wizard->GetSelectedStartingEquipmentKitSummary().ToString();
     TestTrue(TEXT("Localized summary retains name separated by real newline"),

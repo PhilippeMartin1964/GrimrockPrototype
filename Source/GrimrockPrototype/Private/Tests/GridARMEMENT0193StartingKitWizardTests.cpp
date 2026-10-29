@@ -86,22 +86,22 @@ bool FARMEMENT0193WizardReadModelTest::RunTest(const FString&)
 
     Wizard->ClassDefinition = Ranger;
     const TArray<FRPGStartingEquipmentKit> Kits = Wizard->GetAvailableStartingEquipmentKits();
-    if (!TestEqual(TEXT("Ranger presents two starting kits"), Kits.Num(), 2)) return false;
+    if (!TestEqual(TEXT("Ranger presents three approved starting kits"), Kits.Num(), 3)) return false;
     TestEqual(TEXT("Ranger default kit selected"), Wizard->GetSelectedStartingEquipmentKitId(),
-        FName(TEXT("Ranger_Archer")));
+        FName(TEXT("Kit_Ranger_Marksman")));
     TestFalse(TEXT("Unknown ID refused without selecting"),
-        Wizard->SelectStartingEquipmentKit(TEXT("Warrior_Defender")));
+        Wizard->SelectStartingEquipmentKit(TEXT("Kit_Warrior_Guardian")));
     TestEqual(TEXT("Rejected ID does not change default"), Wizard->GetSelectedStartingEquipmentKitId(),
-        FName(TEXT("Ranger_Archer")));
+        FName(TEXT("Kit_Ranger_Marksman")));
     if (!TestTrue(TEXT("Ranger alternative can be selected"),
-        Wizard->SelectStartingEquipmentKit(TEXT("Ranger_Pathfinder")))) return false;
+        Wizard->SelectStartingEquipmentKit(TEXT("Kit_Ranger_Hunter")))) return false;
     TestEqual(TEXT("Ranger alternative selection is retained"), Wizard->GetSelectedStartingEquipmentKitId(),
-        FName(TEXT("Ranger_Pathfinder")));
+        FName(TEXT("Kit_Ranger_Hunter")));
     const FRPGStartingEquipmentKit* Pathfinder = Kits.FindByPredicate(
-        [](const FRPGStartingEquipmentKit& Kit) { return Kit.KitId == FName(TEXT("Ranger_Pathfinder")); });
+        [](const FRPGStartingEquipmentKit& Kit) { return Kit.KitId == FName(TEXT("Kit_Ranger_Hunter")); });
     if (!TestNotNull(TEXT("Pathfinder kit exists"), Pathfinder)) return false;
     const UGridItemDefinitionAsset* Pilot = Pathfinder->Items[0].ItemDefinition.Get();
-    if (!TestNotNull(TEXT("Pathfinder item exists"), Pilot)) return false;
+    if (!TestNotNull(TEXT("Hunter item exists"), Pilot)) return false;
     const FString PilotName = Pilot->DisplayName.IsEmpty() ? Pilot->ItemDefinitionId.ToString() : Pilot->DisplayName.ToString();
     TestTrue(TEXT("Selection description includes authored display name"),
         Wizard->GetSelectedStartingEquipmentKitDescription().ToString().Contains(PilotName));
@@ -109,10 +109,10 @@ bool FARMEMENT0193WizardReadModelTest::RunTest(const FString&)
     Wizard->ClassDefinition = Warrior;
     Wizard->RefreshPreview();
     TestEqual(TEXT("Switching class resets to Warrior default"), Wizard->GetSelectedStartingEquipmentKitId(),
-        FName(TEXT("Warrior_Defender")));
+        FName(TEXT("Kit_Warrior_Guardian")));
     TestFalse(TEXT("Old Ranger kit cannot be selected for Warrior"),
-        Wizard->SelectStartingEquipmentKit(TEXT("Ranger_Pathfinder")));
-    TestEqual(TEXT("Two Warrior options are offered"), Wizard->GetAvailableStartingEquipmentKits().Num(), 2);
+        Wizard->SelectStartingEquipmentKit(TEXT("Kit_Ranger_Hunter")));
+    TestEqual(TEXT("Three Warrior options are offered"), Wizard->GetAvailableStartingEquipmentKits().Num(), 3);
     return true;
 }
 
@@ -127,17 +127,17 @@ bool FARMEMENT0193RequestTest::RunTest(const FString&)
     UGridPartyInventoryComponent* Party = ARMEMENT0193::NewParty();
     FText Error;
     const FRPGCharacterCreationRequest NewGame =
-        ARMEMENT0193::Request(Ranger, TEXT("Ranger_Pathfinder"));
+        ARMEMENT0193::Request(Ranger, TEXT("Kit_Ranger_Hunter"));
     if (!TestTrue(TEXT("Explicit alternative kit accepted"),
         Party->CreateInitialCharacter(NewGame, Error))) return false;
     TestEqual(TEXT("Alternative kit ID retained on character"),
         Party->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId,
-        FName(TEXT("Ranger_Pathfinder")));
+        FName(TEXT("Kit_Ranger_Hunter")));
     TestEqual(TEXT("Alternative kit grants exactly two physical objects"),
         ARMEMENT0193::CountPhysicalObjects(Party), 2);
     const FGridItemInstance& Main = Party->PartyInventoryState.ActiveEquipment[0].MainHand;
-    TestEqual(TEXT("Pathfinder equips the dagger"), Main.ItemDefinitionId,
-        FName(TEXT("Weapon_Dagger_01")));
+    TestEqual(TEXT("Hunter equips the short spear"), Main.ItemDefinitionId,
+        FName(TEXT("Weapon_ShortSpear_01")));
     TestFalse(TEXT("Alternative kit leaves OffHand available"),
         Party->PartyInventoryState.ActiveEquipment[0].OffHand.IsValid());
     FString OwnershipError;
@@ -147,7 +147,7 @@ bool FARMEMENT0193RequestTest::RunTest(const FString&)
     Save->PartyInventoryState = Party->PartyInventoryState;
     TestEqual(TEXT("Kit selection is in the SaveGame party snapshot"),
         Save->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId,
-        FName(TEXT("Ranger_Pathfinder")));
+        FName(TEXT("Kit_Ranger_Hunter")));
     const FProperty* SavedState = UGrimrockPartySaveGame::StaticClass()->FindPropertyByName(TEXT("PartyInventoryState"));
     TestTrue(TEXT("Inventory snapshot property has SaveGame flag"),
         SavedState && SavedState->HasAnyPropertyFlags(CPF_SaveGame));
@@ -166,7 +166,7 @@ bool FARMEMENT0193InvalidSelectionTest::RunTest(const FString&)
     const FGuid PreviousId = Party->PartyInventoryState.ActiveCharacters[0].CharacterId;
     FText Error;
     const FRPGCharacterCreationRequest WrongClass =
-        ARMEMENT0193::Request(Ranger, TEXT("Warrior_Defender"));
+        ARMEMENT0193::Request(Ranger, TEXT("Kit_Warrior_Guardian"));
     TestFalse(TEXT("Kit belonging to another class cannot be created"),
         Party->CreateInitialCharacter(WrongClass, Error));
     TestFalse(TEXT("Failure includes an error"), Error.IsEmpty());
@@ -197,9 +197,9 @@ bool FARMEMENT0193CompatibilityTest::RunTest(const FString&)
     FText Error;
     if (!TestTrue(TEXT("Omitting the kit selection preserves default New Game"),
         Party->CreateInitialCharacter(ARMEMENT0193::Request(Warrior, NAME_None), Error))) return false;
-    TestEqual(TEXT("Warrior default kit is unchanged"),
+    TestEqual(TEXT("Warrior default is now Guardian"),
         Party->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId,
-        FName(TEXT("Warrior_Defender")));
+        FName(TEXT("Kit_Warrior_Guardian")));
 
     URPGCharacterCreationWizardWidget* Recruit = NewObject<URPGCharacterCreationWizardWidget>();
     Recruit->ClassDefinition = Warrior;
@@ -209,7 +209,7 @@ bool FARMEMENT0193CompatibilityTest::RunTest(const FString&)
     TestTrue(TEXT("Recruitment has no selected starting kit"),
         Recruit->GetSelectedStartingEquipmentKitId().IsNone());
     TestFalse(TEXT("Recruitment cannot choose an initial-hero kit"),
-        Recruit->SelectStartingEquipmentKit(TEXT("Warrior_Defender")));
+        Recruit->SelectStartingEquipmentKit(TEXT("Kit_Warrior_Guardian")));
     return true;
 }
 
@@ -227,7 +227,7 @@ bool FARMEMENT0193KitPresentationTest::RunTest(const FString&)
     }
 
     const TArray<FRPGStartingEquipmentKit> Kits = Wizard->GetAvailableStartingEquipmentKits();
-    if (!TestEqual(TEXT("Two starting kit labels"), Kits.Num(), 2))
+    if (!TestEqual(TEXT("Three approved kit labels"), Kits.Num(), 3))
     {
         return false;
     }
@@ -241,21 +241,21 @@ bool FARMEMENT0193KitPresentationTest::RunTest(const FString&)
         TestFalse(TEXT("ComboBox does not expose technical ID"), Label.Contains(Kit.KitId.ToString()));
     }
 
-    if (!TestTrue(TEXT("Select second Warrior kit"), Wizard->SelectStartingEquipmentKit(TEXT("Warrior_Skirmisher"))))
+    if (!TestTrue(TEXT("Select third Warrior kit"), Wizard->SelectStartingEquipmentKit(TEXT("Kit_Warrior_WeaponMaster"))))
     {
         return false;
     }
-    const FString Label = Wizard->GetStartingKitOptionLabel(Kits[1]).ToString();
+    const FString Label = Wizard->GetStartingKitOptionLabel(Kits[2]).ToString();
     const FString Details = Wizard->GetSelectedStartingEquipmentKitDescription().ToString();
     const FString Summary = Wizard->GetSelectedStartingEquipmentKitSummary().ToString();
 
     TestFalse(TEXT("Class description does not repeat the displayed title"), Details.StartsWith(Label));
     TestTrue(TEXT("Class description starts with an item quantity"), Details.StartsWith(TEXT("1 × ")));
     TestTrue(TEXT("Technical ID appears in the details rather than the ComboBox"),
-        Details.Contains(TEXT("Référence technique : Warrior_Skirmisher")));
+        Details.Contains(TEXT("Référence technique : Kit_Warrior_WeaponMaster")));
     TestTrue(TEXT("Details have both item rows"), Details.Contains(TEXT("\n1 × ")));
     TestTrue(TEXT("Summary retains kit name without a ComboBox"), Summary.StartsWith(Label + TEXT("\n")));
-    TestTrue(TEXT("Summary retains technical reference"), Summary.Contains(TEXT("Warrior_Skirmisher")));
+    TestTrue(TEXT("Summary retains technical reference"), Summary.Contains(TEXT("Kit_Warrior_WeaponMaster")));
     return true;
 }
 

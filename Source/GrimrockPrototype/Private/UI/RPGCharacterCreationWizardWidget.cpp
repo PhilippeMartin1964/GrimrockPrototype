@@ -451,7 +451,7 @@ TArray<FRPGStartingEquipmentKit> URPGCharacterCreationWizardWidget::GetAvailable
         // class copy, exactly as in CreateInitialCharacter().
         URPGClassAsset* PreviewClass = DuplicateObject<URPGClassAsset>(ClassDefinition, GetTransientPackage());
         FString Error;
-        if (!PreviewClass || !FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(*PreviewClass, Error))
+        if (!PreviewClass || !FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*PreviewClass, Error))
         {
             UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("Starting kit preview unavailable: %s"), *Error);
             return {};
