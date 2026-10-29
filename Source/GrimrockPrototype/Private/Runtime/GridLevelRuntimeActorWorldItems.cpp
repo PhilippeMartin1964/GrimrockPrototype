@@ -4,6 +4,7 @@
 #include "Core/GridDirectionUtils.h"
 #include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridActivationComponent.h"
@@ -206,6 +207,7 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemActor(const AGridItemActor* ItemA
 
 bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn)
 {
+	RefreshWorldItemPhysicsCells();
 	if (!PartyPawn)
 	{
 		return false;
@@ -300,6 +302,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 
 bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrimrockPartyPawn* PartyPawn)
 {
+	RefreshWorldItemPhysicsCells();
 	if (!IsValid(ItemActor) || !PartyPawn)
 	{
 		return false;
@@ -639,6 +642,69 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 
 	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridPit opened under WorldItems Cell=(%d,%d) Dropped=%d"), CellX, CellY, DroppedCount);
 	return DroppedCount;
+}
+
+void AGridLevelRuntimeActor::RefreshWorldItemPhysicsCells()
+{
+	for (FGridSpawnedItemRuntimeEntry& Entry : SpawnedItemEntries)
+	{
+		AGridItemActor* Item = Entry.ItemActor.Get();
+		if (!IsValid(Item) || !IsValid(Item->MeshComponent) || !Item->MeshComponent->IsSimulatingPhysics())
+		{
+			continue;
+		}
+		int32 X = INDEX_NONE, Y = INDEX_NONE;
+		FVector LocalOffset;
+		if (TryResolveWorldCellFromImpactPoint(Item->MeshComponent->GetComponentLocation(), X, Y, LocalOffset) &&
+			Entry.Cell != FIntPoint(X,Y))
+		{
+			Entry.Cell = FIntPoint(X,Y);
+			Item->SetRuntimeCell(X,Y);
+		}
+	}
+}
+
+bool AGridLevelRuntimeActor::TryDropItemInstanceAtWorldTransform(
+	const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinition, const FTransform& WorldMeshTransform)
+{
+	if (WorldMeshTransform.ContainsNaN())
+	{
+		return false;
+	}
+	int32 CellX = INDEX_NONE, CellY = INDEX_NONE;
+	FVector LocalOffset = FVector::ZeroVector;
+	if (!TryResolveWorldCellFromImpactPoint(WorldMeshTransform.GetLocation(), CellX, CellY, LocalOffset) ||
+		!TryDropItemInstanceAtCell(ItemInstance, ItemDefinition, CellX, CellY, EGridEdge::None, LocalOffset))
+	{
+		return false;
+	}
+
+	const FGuid Id = ItemInstance.RuntimeObjectId;
+	for (FGridSpawnedItemRuntimeEntry& Entry : SpawnedItemEntries)
+	{
+		if (Entry.ObjectId != Id)
+		{
+			continue;
+		}
+		AGridItemActor* Item = Entry.ItemActor.Get();
+		if (IsValid(Item) && IsValid(Item->MeshComponent))
+		{
+			// The mesh owns the Chaos rigid body; the scene-root actor transform
+			// does not follow simulated physics. Preserve the real impact mesh
+			// rotation and location while keeping the pickup mesh's authored scale.
+			Item->MeshComponent->SetWorldLocationAndRotation(WorldMeshTransform.GetLocation(),
+				WorldMeshTransform.GetRotation(), false, nullptr, ETeleportType::TeleportPhysics);
+			Item->MeshComponent->WakeRigidBody();
+			UE_LOG(LogGridLevelRuntime, Log,
+				TEXT("[GridProjectile] PhysicalRelease Item=%s RuntimeId=%s Cell=(%d,%d) Mesh=%s Physics=%d"),
+				*ItemInstance.ItemDefinitionId.ToString(), *Id.ToString(), CellX, CellY,
+				*Item->MeshComponent->GetComponentLocation().ToCompactString(),
+				Item->MeshComponent->IsSimulatingPhysics() ? 1 : 0);
+			return true;
+		}
+		return false;
+	}
+	return false;
 }
 
 bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(

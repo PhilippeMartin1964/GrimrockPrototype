@@ -505,6 +505,8 @@ void AGridThrownItemActor::ReleaseEmbeddedArrowToPickup()
 		return;
 	}
 	const FVector LastWorldTip = GetActorLocation();
+	const FTransform LastWorldMeshTransform = IsValid(MeshComponent)
+		? MeshComponent->GetComponentTransform() : GetActorTransform();
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	bEmbeddedInMonster = false;
 	EmbeddedMonster = nullptr;
@@ -515,6 +517,23 @@ void AGridThrownItemActor::ReleaseEmbeddedArrowToPickup()
 	UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] EmbeddedRelease Item=%s RuntimeId=%s Tip=%s Reason=MonsterMeshHidden"),
 		*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(),
 		*LastWorldTip.ToCompactString());
+	// A dissolved monster no longer owns the arrow. Spawn a real physical
+	// pickup at the exact visible mesh pose, not at a cell center with yaw 0.
+	// Other impacts continue using the legacy generic item drop path.
+	if (!bConversionAttempted && IsValid(RuntimeActor) &&
+		RuntimeActor->TryDropItemInstanceAtWorldTransform(ThrownItemInstance,
+			GetItemDefinitionAsset(), LastWorldMeshTransform))
+	{
+		bConversionAttempted = true;
+		SetActorTickEnabled(false);
+		GetWorldTimerManager().ClearTimer(ExpirationTimerHandle);
+		UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] EmbeddedPhysicalRelease Item=%s RuntimeId=%s Tip=%s"),
+			*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(),
+			*LastWorldTip.ToCompactString());
+		Destroy();
+		return;
+	}
+	// Safety fallback for pits, unavailable definitions or invalid cells.
 	ConvertToWorldPickupAtImpact(ReleaseHit);
 }
 
@@ -586,9 +605,18 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 	FVector ImpactLocalOffset = FVector::ZeroVector;
 	const FVector ResolvePoint = Hit.ImpactPoint + Hit.ImpactNormal.GetSafeNormal() * ImpactDropOffset;
 	bool bDropped = false;
+	// For physical ammunition, preserve the actual shaft's yaw and position
+	// for misses and wall impacts as well as monster releases.
+	if (bRangedAmmunitionProjectile && RuntimeActor && IsValid(MeshComponent))
+	{
+		FTransform DropVisual = MeshComponent->GetComponentTransform();
+		DropVisual.SetLocation(ResolvePoint);
+		bDropped = RuntimeActor->TryDropItemInstanceAtWorldTransform(ThrownItemInstance,
+			ImpactItemDefinition, DropVisual);
+	}
 	// On a hit, the arrow is recoverable in the monster's cell, including
 	// after death. Do not teleport a projectile stopped by an earlier wall.
-	if (bRangedAmmunitionProjectile && bNearIntendedTarget && RuntimeActor &&
+	if (!bDropped && bRangedAmmunitionProjectile && bNearIntendedTarget && RuntimeActor &&
 		RuntimeActor->IsWalkableCell(PreferredImpactCell.X, PreferredImpactCell.Y))
 	{
 		bDropped = RuntimeActor->TryDropItemInstanceAtCell(

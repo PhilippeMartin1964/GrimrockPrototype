@@ -335,6 +335,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	bool TryResolveWorldCellFromImpactPoint(const FVector& WorldPoint, int32& OutCellX, int32& OutCellY, FVector& OutLocalOffset) const;
 
+	/**
+	 * Spawn a recovering projectile pickup at its actual airborne mesh pose.
+	 * Chaos then owns its fall; never snap it to cell center or reset its yaw.
+	 */
+	bool TryDropItemInstanceAtWorldTransform(const FGridItemInstance& ItemInstance,
+		UGridItemDefinitionAsset* ItemDefinition, const FTransform& WorldMeshTransform);
+
+	/** Reconcile physics-driven mesh locations with pickup grid registration. */
+	void RefreshWorldItemPhysicsCells();
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|World")
 	float GetWorldItemWeightAtCell(int32 CellX, int32 CellY, bool bIncludeEdgeItems = false) const;
 

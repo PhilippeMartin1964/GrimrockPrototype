@@ -150,6 +150,10 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
                 static_cast<int32>(Monster->Facing), *MeshWorld.ToCompactString(),
                 *ReleaseWorldLocation.ToCompactString(), ReleaseCellX, ReleaseCellY));
 
+            // Physical release must use the actual projectile mesh pose,
+            // including the yaw from its flight orientation.
+            const FVector MeshImpactLocation = Projectile->MeshComponent->GetComponentLocation();
+            const FQuat MeshImpactRotation = Projectile->MeshComponent->GetComponentQuat();
             Monster->SkeletalMeshComponent->SetVisibility(false, true);
             Projectile->Tick(0.016f);
             TestTrue(TEXT("Hidden corpse releases embedded item"), Projectile->HasCompletedImpactConversion());
@@ -169,6 +173,10 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
                     Item->GetRuntimeObjectId() == Unit.RuntimeObjectId)
                 {
                     ++MatchingPickups;
+                    TestTrue(TEXT("Released pickup preserves 3D impact mesh position"),
+                        Item->MeshComponent->GetComponentLocation().Equals(MeshImpactLocation, 0.1f));
+                    TestTrue(TEXT("Released pickup preserves 3D impact mesh orientation"),
+                        Item->MeshComponent->GetComponentQuat().Equals(MeshImpactRotation, 0.001f));
                     TestEqual(TEXT("GUID pickup is registered at the release cell X"), Item->RuntimeCellX, ReleaseCellX);
                     TestEqual(TEXT("GUID pickup is registered at the release cell Y"), Item->RuntimeCellY, ReleaseCellY);
                     TestEqual(TEXT("GUID pickup preserves item definition"), Item->GetItemDefinitionId(), Arrow->ItemDefinitionId);
