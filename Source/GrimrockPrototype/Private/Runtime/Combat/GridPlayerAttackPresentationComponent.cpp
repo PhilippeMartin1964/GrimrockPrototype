@@ -2,6 +2,7 @@
 
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
@@ -210,7 +211,7 @@ void UGridPlayerAttackPresentationComponent::HandlePlayerAttackRequested(FGridPl
 	Pending.TargetMonster = TargetMonster;
 	PendingPresentations.Add(Request.RequestId, Pending);
 	EmitPresentation(EGridPlayerAttackPresentationEvent::Attack, Request, nullptr, TargetMonster, Profile);
-	if (Profile.MotionStyle == EGridPlayerAttackMotionStyle::Throw)
+	if (Profile.MotionStyle == EGridPlayerAttackMotionStyle::Throw || IsValid(Request.PreparedThrownItemActor.Get()))
 	{
 		if (FPendingPresentation* StoredPending = PendingPresentations.Find(Request.RequestId))
 		{
@@ -483,7 +484,11 @@ AGridThrownItemActor* UGridPlayerAttackPresentationComponent::StartThrownItemLau
 	const bool bEquippedSource =
 		Request.OffensiveEquipmentSlot == EGridEquipmentSlot::MainHand || Request.OffensiveEquipmentSlot == EGridEquipmentSlot::OffHand;
 	const bool bInventorySource = Request.OffensiveEquipmentSlot == EGridEquipmentSlot::None;
-	if (Profile.MotionStyle != EGridPlayerAttackMotionStyle::Throw || Request.OffensiveItemDefinitionId.IsNone() || (!bEquippedSource && !bInventorySource))
+	if (Request.OffensiveItemDefinitionId.IsNone() || (!bEquippedSource && !bInventorySource))
+	{
+		return nullptr;
+	}
+	if (Profile.MotionStyle != EGridPlayerAttackMotionStyle::Throw && !IsValid(Request.PreparedThrownItemActor.Get()))
 	{
 		return nullptr;
 	}
@@ -548,7 +553,13 @@ void UGridPlayerAttackPresentationComponent::ConfigureThrownItemOutcome(
 			AcceptanceRadius = FMath::Clamp(TargetMonster->CollisionComponent->GetScaledBoxExtent().GetMin() * 0.75f, 12.0f, 75.0f);
 		}
 	}
-	ThrownItem->ConfigureCombatPresentationTarget(Result.bHit && IsValid(TargetMonster), TargetLocation, AcceptanceRadius);
+	// A combat miss must not leave an arrow sticking in a monster that was missed.
+	if (ThrownItem->bRangedAmmunitionProjectile && !Result.bHit && IsValid(TargetMonster) && IsValid(ThrownItem->CollisionComponent))
+	{
+		ThrownItem->CollisionComponent->IgnoreActorWhenMoving(TargetMonster, true);
+	}
+	ThrownItem->ConfigureCombatPresentationTarget(Result.bHit && IsValid(TargetMonster), TargetLocation, AcceptanceRadius,
+		IsValid(TargetMonster) ? TargetMonster->CurrentCell : FIntPoint(INDEX_NONE, INDEX_NONE));
 }
 
 void UGridPlayerAttackPresentationComponent::RestoreHeldItemMotion()

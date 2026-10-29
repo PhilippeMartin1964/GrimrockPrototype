@@ -47,7 +47,14 @@ public:
      * Presentation-only target interception. It decides where the recoverable
      * item stops, never whether the combat attack hits and never applies damage.
      */
-	void ConfigureCombatPresentationTarget(bool bStopAtTarget, const FVector& TargetWorldLocation, float AcceptanceRadius);
+	void ConfigureCombatPresentationTarget(bool bStopAtTarget, const FVector& TargetWorldLocation, float AcceptanceRadius,
+		FIntPoint PreferredTargetCell = FIntPoint(INDEX_NONE, INDEX_NONE));
+
+	/** Stable flight and recoverable landing for a consumed ranged ammo unit. */
+	void ConfigureAsRangedAmmunition();
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Projectile|Ammunition")
+	bool bRangedAmmunitionProjectile = false;
 
 	bool HasCompletedImpactConversion() const
 	{
@@ -84,5 +91,6 @@ private:
 	bool bConversionAttempted = false;
 	float ImpactDropOffset = 12.0f;
 	FVector PreviousPresentationLocation = FVector::ZeroVector;
+	FIntPoint PreferredImpactCell = FIntPoint(INDEX_NONE, INDEX_NONE);
 	FTimerHandle ExpirationTimerHandle;
 };

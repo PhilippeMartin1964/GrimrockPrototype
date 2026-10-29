@@ -774,10 +774,15 @@ bool AGridLevelRuntimeActor::TrySpawnThrownItemProjectile(
 }
 
 AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinition,
-	const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY)
+	const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY, bool bRangedAmmunitionProjectile)
 {
+	// Ordinary hand throws remain unchanged. Only the authoritative ranged
+	// attack may opt into a non-handheld, stackable ammunition projectile.
+	const bool bValidProjectileSource = bRangedAmmunitionProjectile
+		? ItemDefinition && ItemDefinition->bStackable && ItemInstance.Quantity == 1 && !ItemDefinition->IsCombatThrowable()
+		: ItemDefinition && ItemDefinition->IsPhysicallyThrowable();
 	if (!ItemInstance.IsValid() || !ItemDefinition || ItemDefinition->ItemDefinitionId != ItemInstance.ItemDefinitionId ||
-		!ItemDefinition->IsPhysicallyThrowable() || LaunchVelocity.IsNearlyZero() || !IsWalkableCell(SourceCellX, SourceCellY))
+		!bValidProjectileSource || LaunchVelocity.IsNearlyZero() || !IsWalkableCell(SourceCellX, SourceCellY))
 	{
 		return nullptr;
 	}
@@ -804,6 +809,10 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 	}
 
 	ThrownActor->InitializeThrownItem(this, ItemInstance, ItemDefinition, LaunchVelocity, SourceCellX, SourceCellY);
+	if (bRangedAmmunitionProjectile)
+	{
+		ThrownActor->ConfigureAsRangedAmmunition();
+	}
 
 	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridInventory Throw Spawn Item=%s RuntimeId=%s SourceCell=(%d,%d) Speed=%.2f Result=true"),
 		*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), SourceCellX, SourceCellY, LaunchVelocity.Size());

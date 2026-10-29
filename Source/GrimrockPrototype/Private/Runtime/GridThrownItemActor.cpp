@@ -80,7 +80,7 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 	}
 
 	const bool bReachedTarget = FVector::DistSquared(ClosestPoint, CombatPresentationTargetLocation) <= FMath::Square(CombatPresentationTargetAcceptanceRadius);
-	const bool bPassedTarget =
+	const bool bPassedTarget = SegmentLengthSquared > KINDA_SMALL_NUMBER &&
 		FVector::DotProduct(CombatPresentationTargetLocation - PreviousPresentationLocation, CombatPresentationTargetLocation - CurrentLocation) <= 0.0f;
 	if (bReachedTarget || bPassedTarget)
 	{
@@ -184,11 +184,25 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	GetWorldTimerManager().SetTimer(ExpirationTimerHandle, this, &AGridThrownItemActor::HandleProjectileExpired, LifeSeconds, false);
 }
 
-void AGridThrownItemActor::ConfigureCombatPresentationTarget(bool bStopAtTarget, const FVector& TargetWorldLocation, float AcceptanceRadius)
+void AGridThrownItemActor::ConfigureAsRangedAmmunition()
+{
+	bRangedAmmunitionProjectile = true;
+	// Fly aligned to velocity, never with the shuriken's spin or tumble.
+	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
+	}
+}
+
+void AGridThrownItemActor::ConfigureCombatPresentationTarget(bool bStopAtTarget, const FVector& TargetWorldLocation, float AcceptanceRadius,
+	FIntPoint PreferredTargetCell)
 {
 	bStopsAtCombatPresentationTarget = bStopAtTarget && !TargetWorldLocation.ContainsNaN();
 	CombatPresentationTargetLocation = TargetWorldLocation;
 	CombatPresentationTargetAcceptanceRadius = FMath::Clamp(AcceptanceRadius, 1.0f, 100.0f);
+	PreferredImpactCell = bRangedAmmunitionProjectile && bStopsAtCombatPresentationTarget
+		? PreferredTargetCell : FIntPoint(INDEX_NONE, INDEX_NONE);
 	PreviousPresentationLocation = GetActorLocation();
 	SetActorTickEnabled(!bConversionAttempted);
 }
@@ -224,6 +238,8 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 		return;
 	}
 	bConversionAttempted = true;
+	const bool bNearIntendedTarget = bStopsAtCombatPresentationTarget &&
+		FVector::DistSquared(Hit.ImpactPoint, CombatPresentationTargetLocation) <= FMath::Square(150.0f);
 	bStopsAtCombatPresentationTarget = false;
 	SetActorTickEnabled(false);
 	GetWorldTimerManager().ClearTimer(ExpirationTimerHandle);
@@ -242,8 +258,20 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 	int32 ImpactCellY = INDEX_NONE;
 	FVector ImpactLocalOffset = FVector::ZeroVector;
 	const FVector ResolvePoint = Hit.ImpactPoint + Hit.ImpactNormal.GetSafeNormal() * ImpactDropOffset;
-	bool bDropped = RuntimeActor && RuntimeActor->TryResolveWorldCellFromImpactPoint(ResolvePoint, ImpactCellX, ImpactCellY, ImpactLocalOffset) &&
-		RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactCellX, ImpactCellY, EGridEdge::None, ImpactLocalOffset);
+	bool bDropped = false;
+	// On a hit, the arrow is recoverable in the monster's cell, including
+	// after death. Do not teleport a projectile stopped by an earlier wall.
+	if (bRangedAmmunitionProjectile && bNearIntendedTarget && RuntimeActor &&
+		RuntimeActor->IsWalkableCell(PreferredImpactCell.X, PreferredImpactCell.Y))
+	{
+		bDropped = RuntimeActor->TryDropItemInstanceAtCell(
+			ThrownItemInstance, PreferredImpactCell.X, PreferredImpactCell.Y, EGridEdge::None, FVector::ZeroVector);
+	}
+	if (!bDropped)
+	{
+		bDropped = RuntimeActor && RuntimeActor->TryResolveWorldCellFromImpactPoint(ResolvePoint, ImpactCellX, ImpactCellY, ImpactLocalOffset) &&
+			RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactCellX, ImpactCellY, EGridEdge::None, ImpactLocalOffset);
+	}
 
 	if (!bDropped && RuntimeActor && RuntimeActor->IsWalkableCell(SourceCellX, SourceCellY))
 	{

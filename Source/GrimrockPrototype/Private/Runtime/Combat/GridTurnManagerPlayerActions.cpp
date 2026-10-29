@@ -1,4 +1,5 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Camera/CameraComponent.h"
 
 #include "Core/GridDirectionUtils.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
@@ -646,9 +647,46 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		}
 	};
 
-	AGridThrownItemActor* PreparedThrownItem = nullptr;
+AGridThrownItemActor* PreparedThrownItem = nullptr;
+	AGridThrownItemActor* PreparedAmmunitionItem = nullptr;
 	bool bSourceCommitted = true;
-	if (SourcePolicy == EGridCombatActionSourcePolicy::Equipment && SourceItemQuantityCost > 0)
+	// A consumed ranged ammunition unit is represented by a recoverable world
+	// projectile. Prepare it before inventory mutation, avoiding lost arrows
+	// when spawning fails; gameplay still resolves damage exactly once.
+	if (bResolvedRangedAttack && IsValid(SourceItemDefinition) &&
+		!SourceItemDefinition->RequiredAmmunitionItemDefinitionId.IsNone())
+	{
+		const FName AmmunitionId = SourceItemDefinition->RequiredAmmunitionItemDefinitionId;
+		UGridItemDefinitionAsset* AmmunitionDefinition = Inventory->FindItemDefinition(AmmunitionId);
+		bSourceCommitted = IsValid(AmmunitionDefinition) && IsValid(RuntimeActor);
+		if (bSourceCommitted)
+		{
+			FGridItemInstance ProjectileItem;
+			ProjectileItem.RuntimeObjectId = FGuid::NewGuid();
+			ProjectileItem.ItemDefinitionId = AmmunitionId;
+			ProjectileItem.ItemLevel = 0;
+			ProjectileItem.Quantity = 1;
+			ProjectileItem.Weight = AmmunitionDefinition->Weight;
+			ProjectileItem.OwnerType = EGridItemOwnerType::World;
+			ProjectileItem.OwnerCharacterIndex = INDEX_NONE;
+			ProjectileItem.EquipmentSlot = EGridEquipmentSlot::None;
+			const FVector ViewOrigin = PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : PartyPawn->GetActorLocation();
+			const FVector TargetLocation = TargetMonster->GetComponentsBoundingBox().GetCenter();
+			const FVector InitialDirection = (TargetLocation - ViewOrigin).GetSafeNormal();
+			const FVector StartLocation = ViewOrigin + InitialDirection * 60.0f - FVector::UpVector * 12.0f;
+			const FVector LaunchDirection = (TargetLocation - StartLocation).GetSafeNormal();
+			const float LaunchSpeed = FMath::Clamp(AmmunitionDefinition->ThrowSpeed, 400.0f, 4800.0f);
+			PreparedAmmunitionItem = RuntimeActor->SpawnThrownItemProjectile(
+				ProjectileItem, AmmunitionDefinition, StartLocation, LaunchDirection * LaunchSpeed, PartyCell.X, PartyCell.Y, true);
+			bSourceCommitted = IsValid(PreparedAmmunitionItem);
+			if (!bSourceCommitted)
+			{
+				UE_LOG(LogGridTurnManager, Warning, TEXT("[GridRangedAmmo] LaunchFailed Weapon=%s Ammo=%s Character=%d"),
+					*SourceItemDefinition->ItemDefinitionId.ToString(), *AmmunitionId.ToString(), AttackerCharacterIndex);
+			}
+		}
+	}
+	if (bSourceCommitted && SourcePolicy == EGridCombatActionSourcePolicy::Equipment && SourceItemQuantityCost > 0)
 	{
 		if (IsValid(SourceItemDefinition) && SourceItemDefinition->IsCombatThrowable())
 		{
@@ -662,7 +700,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 				OffensiveItemDefinitionId, CombatActionOverride ? CombatActionOverride->SourceRuntimeId : FGuid(), SourceItemQuantityCost);
 		}
 	}
-	else if (SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
+	else if (bSourceCommitted && SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
 	{
 		if (IsValid(SourceItemDefinition) && SourceItemDefinition->IsCombatThrowable())
 		{
@@ -687,6 +725,10 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 
 	if (!bSourceCommitted)
 	{
+		if (IsValid(PreparedAmmunitionItem))
+		{
+			PreparedAmmunitionItem->Destroy();
+		}
 		if (IsValid(PreparedThrownItem))
 		{
 			PreparedThrownItem->Destroy();
@@ -696,7 +738,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	}
 
 	Attacker.Resources.CurrentMana = FMath::Max(0, Attacker.Resources.CurrentMana - ManaCost);
-	Request.PreparedThrownItemActor = PreparedThrownItem;
+	Request.PreparedThrownItemActor = IsValid(PreparedAmmunitionItem) ? PreparedAmmunitionItem : PreparedThrownItem;
 	const bool bCooldownStarted = CombatActionOverride && CombatActionOverride->Definition.CooldownRounds > 0;
 	if (CombatActionOverride)
 	{

@@ -329,7 +329,8 @@ public:
 
 	/** C++ path used by combat presentation when the definition is already resolved. */
 	AGridThrownItemActor* SpawnThrownItemProjectile(const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinition,
-		const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY);
+		const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY,
+		bool bRangedAmmunitionProjectile = false);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	bool TryResolveWorldCellFromImpactPoint(const FVector& WorldPoint, int32& OutCellX, int32& OutCellY, FVector& OutLocalOffset) const;
