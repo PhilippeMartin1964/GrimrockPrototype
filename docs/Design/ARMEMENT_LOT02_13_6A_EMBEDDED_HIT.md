@@ -57,3 +57,43 @@ Renforcement ciblé :
 Le détail du mouvement et la vérification des montages de mort animés
 nécessitent une recette PIE ; le test automation sans SkeletalMesh importé
 ne prouve pas encore un suivi exact de chaque os de WereRat ou autre monstre.
+
+## ARMEMENT-LOT02.13.6A.2 — Audit critique et correction du vrai contact (29.10.2026)
+
+La suite UE5 locale 14/14 et MON11 8/8 ne détectait pas un bug PIE :
+sur une cellule adjacente, une flèche pouvait rester suspendue alors que
+le monstre effectuait une animation de mort. Le test ancien instancie un
+`AGridMonsterActor` **sans mesh/squelette réel ni animation**, et ne
+vérifie que l'attachement et la translation du composant. Il n'est pas
+probant sur la pose du monstre en jeu.
+
+**Défaut trouvé :** `TryEmbedInMonster` plaçait la pointe sur la face
+avant du `CollisionComponent` logique (boîte 45 cm), alors que la
+géométrie réelle est un `SkeletalMeshComponent` pouvant avoir scale,
+offset, rotation, pose `Hurt/Death` très différents. Une flèche attachée
+à un os correct pouvait être placée *hors du corps* dès son arrivée.
+Le correctif précédent (13.6A.1) avait empilé un recalcul de transform
+après un `AttachToComponent` et ajouté ~75 lignes non justifiées. **Ce
+suivi manuel a été retiré** : Unreal assure le suivi via les sockets/os.
+
+La position est dorénavant calculée depuis la pose visuelle actuelle :
+1. point d'approche depuis les bounds du Skeletal Mesh vers le tireur ;
+2. `K2_GetClosestPointOnPhysicsAsset` d'UE5.5 : surface animée et os
+   associé, **sans activer la collision du mesh** ;
+3. pénétration visuelle de 5 cm dans le sens du tir, puis
+   `AttachToComponent(... KeepWorldTransform, Bone)` ;
+4. repli explicite si pas de Physics Asset : os non racine le plus proche
+   dans la pose courante (ou origine visuelle si pas de skeleton), avec
+   message `[GridProjectile] EmbeddedNoPhysicsSurface`.
+
+Une nouvelle assertion dans le test 13.6A force un décalage de 130 cm
+entre squelette et boîte logique : cela échouait avec le code précédent.
+Le test ne simule toujours pas le cas exact d'un montage de mort; la
+validation PIE réelle est indispensable.
+
+**Surveiller :** `[GridProjectile] Embedded ... Contact=PhysicsAsset`
+est le chemin nominal. Si `Contact=Fallback`, inspecter le Physics Asset
+du monstre (collision shapes animées). Ne pas modifier le mesh de flèche.
+Ce jalon ne change pas les tirs manqués, dégâts, dégâts mortels,
+shurikens ou conversion en pickup après disparition. Gravité et
+persistance restent 13.6C.

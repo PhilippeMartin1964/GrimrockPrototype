@@ -114,8 +114,8 @@ private:
 	void ConvertToWorldPickupAtImpact(const FHitResult& Hit);
 	bool TryEmbedInMonster();
 	void ReleaseEmbeddedArrowToPickup();
-	void KeepEmbeddedArrowOnAnimatedBone();
-	static FName FindNearestAnimatedBone(USkeletalMeshComponent* Skeletal, const FVector& WorldTip);
+	/** Fallback only when no usable Physics Asset is present. */
+	static FName FindNearestVisualBone(USkeletalMeshComponent* Skeletal, const FVector& WorldPoint);
 
 	bool bConversionAttempted = false;
 	bool bEmbeddedInMonster = false;
@@ -127,7 +127,6 @@ private:
 	TWeakObjectPtr<AGridMonsterActor> PendingHitMonster;
 	TWeakObjectPtr<AGridMonsterActor> EmbeddedMonster;
 	FName EmbeddedBone = NAME_None;
-	FTransform EmbeddedLocalBoneTransform = FTransform::Identity;
 	float ImpactDropOffset = 12.0f;
 	FVector InitialFlightWorldLocation = FVector::ZeroVector;
 	FVector PreviousPresentationLocation = FVector::ZeroVector;

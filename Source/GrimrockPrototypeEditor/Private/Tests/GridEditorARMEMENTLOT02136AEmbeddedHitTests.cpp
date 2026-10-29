@@ -76,6 +76,9 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
     {
         Monster->CurrentCell = FIntPoint(1, 2);
         Monster->SetActorLocation(Target - FVector(0,0,45));
+        // Regression: the animated visual may be offset from the logical
+        // collision box (especially during a one-cell death animation).
+        Monster->SkeletalMeshComponent->SetRelativeLocation(FVector(130,0,0));
         AGridThrownItemActor* Projectile = Runtime->SpawnThrownItemProjectile(
             Unit, Arrow, Start, (Target - Start).GetSafeNormal() * Arrow->ThrowSpeed, 1, 1, true);
         if (TestNotNull(TEXT("Physical arrow projectile exists"), Projectile))
@@ -85,6 +88,9 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
             Projectile->SetActorLocation(Target);
             Projectile->Tick(0.016f);
             TestTrue(TEXT("Successful hit embeds arrow"), Projectile->IsEmbeddedInMonster());
+            TestTrue(TEXT("Contact uses visual rather than logical collision box"),
+                FMath::Abs(Projectile->GetActorLocation().X -
+                    Monster->SkeletalMeshComponent->GetComponentLocation().X) < 30.0f);
             TestFalse(TEXT("Embedded arrow was not converted immediately"), Projectile->HasCompletedImpactConversion());
             TestTrue(TEXT("Embedded arrow tracks target"), Projectile->GetEmbeddedMonster() == Monster);
             TestTrue(TEXT("Arrow attaches to the skeletal mesh"),

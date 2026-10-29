@@ -62,8 +62,8 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 		return;
 	}
 
-	// While visible, the shaft must follow the animated bone rather than
-	// remaining at the original world impact point. Natural fall/save is 13.6C.
+	// Unreal's bone attachment owns the transform. Never recalculate it
+	// from a second cached space; this was redundant and could drift.
 	if (bEmbeddedInMonster)
 	{
 		const AGridMonsterActor* Monster = EmbeddedMonster.Get();
@@ -71,10 +71,6 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 			!Monster->SkeletalMeshComponent->IsVisible())
 		{
 			ReleaseEmbeddedArrowToPickup();
-		}
-		else
-		{
-			KeepEmbeddedArrowOnAnimatedBone();
 		}
 		return;
 	}
@@ -346,76 +342,33 @@ bool AGridThrownItemActor::ConfigureRangedMissDeflection(const FVector& TargetCe
 	return true;
 }
 
-FName AGridThrownItemActor::FindNearestAnimatedBone(USkeletalMeshComponent* Skeletal, const FVector& WorldTip)
+FName AGridThrownItemActor::FindNearestVisualBone(USkeletalMeshComponent* Skeletal, const FVector& WorldPoint)
 {
 	if (!IsValid(Skeletal) || !Skeletal->GetSkeletalMeshAsset())
 	{
 		return NAME_None;
 	}
 
-	// FindClosestBone may choose index 0 (root): for animated deaths, the
-	// root can remain at the standing location while the body falls.
-	// Prefer an actual pose bone when one exists; this also supports rigs
-	// without physics assets, and avoids hard-coded skeleton-specific names.
-	const int32 NumBones = Skeletal->GetNumBones();
-	if (NumBones <= 1)
-	{
-		return NumBones == 1 ? Skeletal->GetBoneName(0) : NAME_None;
-	}
-
-	FName BestBone = NAME_None;
+	// Prefer the closest non-root bone in the CURRENT animation pose.
+	// No static skeleton-bone names and no independent transform tracker.
+	FName Best = NAME_None;
 	float BestDistanceSquared = TNumericLimits<float>::Max();
-	for (int32 Index = 1; Index < NumBones; ++Index)
+	for (int32 Index = 1; Index < Skeletal->GetNumBones(); ++Index)
 	{
-		const FName Bone = Skeletal->GetBoneName(Index);
-		const FVector BoneWorld = Skeletal->GetBoneLocation(Bone, EBoneSpaces::WorldSpace);
-		if (Bone.IsNone() || BoneWorld.ContainsNaN())
+		const FName Name = Skeletal->GetBoneName(Index);
+		if (Name.IsNone())
 		{
 			continue;
 		}
-		const float DistanceSquared = FVector::DistSquared(WorldTip, BoneWorld);
-		if (DistanceSquared < BestDistanceSquared)
+		const FVector Location = Skeletal->GetBoneLocation(Name, EBoneSpaces::WorldSpace);
+		const float DistanceSquared = FVector::DistSquared(WorldPoint, Location);
+		if (!Location.ContainsNaN() && DistanceSquared < BestDistanceSquared)
 		{
-			BestBone = Bone;
+			Best = Name;
 			BestDistanceSquared = DistanceSquared;
 		}
 	}
-	return BestBone.IsNone() ? Skeletal->GetBoneName(0) : BestBone;
-}
-
-void AGridThrownItemActor::KeepEmbeddedArrowOnAnimatedBone()
-{
-	AGridMonsterActor* Monster = EmbeddedMonster.Get();
-	USkeletalMeshComponent* Skeletal = IsValid(Monster) ? Monster->SkeletalMeshComponent.Get() : nullptr;
-	if (!IsValid(Skeletal))
-	{
-		return;
-	}
-	// A skeletal asset may be refreshed during runtime. Preserve the last
-	// world position and re-anchor to the component if the bone disappears.
-	if (!EmbeddedBone.IsNone() && Skeletal->GetBoneIndex(EmbeddedBone) == INDEX_NONE)
-	{
-		const FTransform WorldTransform = GetActorTransform();
-		DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		EmbeddedBone = NAME_None;
-		AttachToComponent(Skeletal, FAttachmentTransformRules::KeepWorldTransform);
-		EmbeddedLocalBoneTransform = WorldTransform.GetRelativeTransform(Skeletal->GetComponentTransform());
-		UE_LOG(LogGridThrownItem, Warning, TEXT("[GridProjectile] EmbeddedBoneMissing Item=%s Monster=%s Fallback=MeshComponent"),
-			*ThrownItemInstance.ItemDefinitionId.ToString(), *GetNameSafe(Monster));
-	}
-	const FTransform Anchor = EmbeddedBone.IsNone()
-		? Skeletal->GetComponentTransform() : Skeletal->GetSocketTransform(EmbeddedBone, RTS_World);
-	const FTransform ExpectedWorld = EmbeddedLocalBoneTransform * Anchor;
-	if (!GetActorTransform().Equals(ExpectedWorld, 0.1f))
-	{
-		const float Correction = FVector::Dist(GetActorLocation(), ExpectedWorld.GetLocation());
-		SetActorTransform(ExpectedWorld, false, nullptr, ETeleportType::TeleportPhysics);
-		if (Correction > 5.0f)
-		{
-			UE_LOG(LogGridThrownItem, Verbose, TEXT("[GridProjectile] EmbeddedFollowCorrection Item=%s Monster=%s Bone=%s DistanceCm=%.1f"),
-				*ThrownItemInstance.ItemDefinitionId.ToString(), *GetNameSafe(Monster), *EmbeddedBone.ToString(), Correction);
-		}
-	}
+	return Best;
 }
 
 bool AGridThrownItemActor::TryEmbedInMonster()
@@ -439,35 +392,66 @@ bool AGridThrownItemActor::TryEmbedInMonster()
 		return false;
 	}
 
-	// Estimate the near face from the monster's gameplay collision box.
-	// The visual tip sinks 8 cm inside, without relying on a physics asset.
-	const FVector Center = IsValid(Monster->CollisionComponent)
-		? Monster->CollisionComponent->Bounds.Origin : Monster->GetActorLocation();
-	const FVector Extent = IsValid(Monster->CollisionComponent)
-		? Monster->CollisionComponent->Bounds.BoxExtent : FVector(35.0f);
+	// The logical monster collision box is for grid gameplay and remains
+	// upright during a death montage. Its front face is NOT the animated
+	// body's surface. Resolve contact using the actual posed skeletal mesh.
+	const FBoxSphereBounds BodyBounds = Skeletal->Bounds;
+	const bool bHasMeshBounds = Skeletal->GetSkeletalMeshAsset() &&
+		BodyBounds.SphereRadius > KINDA_SMALL_NUMBER;
+	const FVector BodyCenter = bHasMeshBounds ? BodyBounds.Origin : Skeletal->GetComponentLocation();
+	const FVector Extent = bHasMeshBounds ? BodyBounds.BoxExtent : FVector::ZeroVector;
 	const float NearFace = FMath::Abs(FlightDirection.X) * Extent.X +
 		FMath::Abs(FlightDirection.Y) * Extent.Y + FMath::Abs(FlightDirection.Z) * Extent.Z;
-	const uint32 Seed = GetTypeHash(ThrownItemInstance.RuntimeObjectId);
-	const float HorizontalFactor = (static_cast<float>(Seed % 101u) / 100.0f) * 2.0f - 1.0f;
-	const float VerticalFactor = (static_cast<float>((Seed / 101u) % 101u) / 100.0f) * 2.0f - 1.0f;
-	const FVector SideAxis = FVector::CrossProduct(FVector::UpVector, FlightDirection).GetSafeNormal();
-	const FVector UpAxis = FVector::CrossProduct(FlightDirection, SideAxis).GetSafeNormal();
-	const FVector TipLocation = Center - FlightDirection * FMath::Max(0.0f, NearFace - 8.0f) +
-		SideAxis * HorizontalFactor * Extent.GetMin() * 0.20f +
-		UpAxis * VerticalFactor * Extent.Z * 0.18f;
+	const FVector Approach = BodyCenter - FlightDirection * NearFace;
 
-	const FName Bone = FindNearestAnimatedBone(Skeletal, TipLocation);
+	// Physics Asset bodies follow the current animated pose even though
+	// SkeletalMeshComponent is NoCollision for normal dungeon interaction.
+	// UE5.5 returns the nearest actual physics body surface AND its bone.
+	FVector Surface = FVector::ZeroVector;
+	FVector SurfaceNormal = FVector::ZeroVector;
+	FName Bone = NAME_None;
+	float SurfaceDistance = 0.0f;
+	const bool bPhysicsContact = Skeletal->GetSkeletalMeshAsset() &&
+		Skeletal->K2_GetClosestPointOnPhysicsAsset(
+			Approach, Surface, SurfaceNormal, Bone, SurfaceDistance) &&
+		!Surface.ContainsNaN() && Skeletal->GetBoneIndex(Bone) != INDEX_NONE;
+
+	FVector TipLocation = FVector::ZeroVector;
+	if (bPhysicsContact)
+	{
+		// The pivot of the arrow is its tip. Sink that tip just 5 cm into
+		// the physical body, preserving the shot's forward orientation.
+		TipLocation = Surface + FlightDirection * 5.0f;
+	}
+	else
+	{
+		// No physics asset (or no collidable bodies): prefer a posed torso/
+		// limb bone to an imaginary point in the logical collision box.
+		Bone = FindNearestVisualBone(Skeletal, Approach);
+		if (!Bone.IsNone())
+		{
+			TipLocation = Skeletal->GetBoneLocation(Bone, EBoneSpaces::WorldSpace) -
+				FlightDirection * 12.0f;
+		}
+		else
+		{
+			// Non-animated test actors can still embed on their visual origin.
+			TipLocation = Approach + FlightDirection * 5.0f;
+		}
+		UE_LOG(LogGridThrownItem, Warning,
+			TEXT("[GridProjectile] EmbeddedNoPhysicsSurface Item=%s Monster=%s HasMesh=%d Bone=%s Approach=%s"),
+			*ThrownItemInstance.ItemDefinitionId.ToString(), *GetNameSafe(Monster),
+			Skeletal->GetSkeletalMeshAsset() ? 1 : 0, *Bone.ToString(), *Approach.ToCompactString());
+	}
+
+	// Use the Unreal attachment to the actual animated bone; a second
+	// manual world-transform update is both unnecessary and error-prone.
 	SetActorLocationAndRotation(TipLocation, FlightDirection.Rotation(), false, nullptr, ETeleportType::TeleportPhysics);
 	if (!AttachToComponent(Skeletal, FAttachmentTransformRules::KeepWorldTransform, Bone))
 	{
 		return false;
 	}
-
 	EmbeddedBone = Bone;
-	EmbeddedLocalBoneTransform = GetActorTransform().GetRelativeTransform(
-		Bone.IsNone() ? Skeletal->GetComponentTransform() : Skeletal->GetSocketTransform(Bone, RTS_World));
-	// The monster's visual pose must update before the embedded projectile.
-	AddTickPrerequisiteComponent(Skeletal);
 	bEmbeddedInMonster = true;
 	EmbeddedMonster = Monster;
 	PendingHitMonster = nullptr;
@@ -484,10 +468,13 @@ bool AGridThrownItemActor::TryEmbedInMonster()
 	GetWorldTimerManager().ClearTimer(ExpirationTimerHandle);
 	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
 	SetActorTickEnabled(true);
-	KeepEmbeddedArrowOnAnimatedBone();
-	UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] Embedded Item=%s RuntimeId=%s Monster=%s Bone=%s Tip=%s"),
+	UE_LOG(LogGridThrownItem, Log,
+		TEXT("[GridProjectile] Embedded Item=%s RuntimeId=%s Monster=%s Bone=%s Contact=%s Distance=%.1f Tip=%s MeshCenter=%s LogicalCenter=%s"),
 		*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(),
-		*GetNameSafe(Monster), *Bone.ToString(), *TipLocation.ToCompactString());
+		*GetNameSafe(Monster), *Bone.ToString(),
+		bPhysicsContact ? TEXT("PhysicsAsset") : TEXT("Fallback"), SurfaceDistance,
+		*TipLocation.ToCompactString(), *BodyCenter.ToCompactString(),
+		*GetNameSafe(Monster->CollisionComponent));
 	return true;
 }
 
@@ -498,18 +485,10 @@ void AGridThrownItemActor::ReleaseEmbeddedArrowToPickup()
 		return;
 	}
 	const FVector LastWorldTip = GetActorLocation();
-	if (AGridMonsterActor* Monster = EmbeddedMonster.Get())
-	{
-		if (IsValid(Monster->SkeletalMeshComponent))
-		{
-			RemoveTickPrerequisiteComponent(Monster->SkeletalMeshComponent);
-		}
-	}
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	bEmbeddedInMonster = false;
 	EmbeddedMonster = nullptr;
 	EmbeddedBone = NAME_None;
-	EmbeddedLocalBoneTransform = FTransform::Identity;
 	FHitResult ReleaseHit;
 	ReleaseHit.Location = LastWorldTip;
 	ReleaseHit.ImpactPoint = LastWorldTip;
