@@ -446,10 +446,21 @@ bool AGridThrownItemActor::TryEmbedInMonster()
 			// Non-animated test actors can still embed on their visual origin.
 			TipLocation = Approach + FlightDirection * 5.0f;
 		}
-		UE_LOG(LogGridThrownItem, Warning,
-			TEXT("[GridProjectile] EmbeddedNoPhysicsSurface Item=%s Monster=%s HasMesh=%d Bone=%s Approach=%s"),
-			*ThrownItemInstance.ItemDefinitionId.ToString(), *GetNameSafe(Monster),
-			Skeletal->GetSkeletalMeshAsset() ? 1 : 0, *Bone.ToString(), *Approach.ToCompactString());
+		if (Skeletal->GetSkeletalMeshAsset())
+		{
+			// Real art asset without a usable Physics Asset: actionable PIE warning.
+			UE_LOG(LogGridThrownItem, Warning,
+				TEXT("[GridProjectile] EmbeddedNoPhysicsSurface Item=%s Monster=%s Bone=%s Approach=%s"),
+				*ThrownItemInstance.ItemDefinitionId.ToString(), *GetNameSafe(Monster),
+				*Bone.ToString(), *Approach.ToCompactString());
+		}
+		else
+		{
+			// Automation intentionally uses transient monsters without mesh art.
+			UE_LOG(LogGridThrownItem, Verbose,
+				TEXT("[GridProjectile] EmbeddedNoMeshTestFallback Item=%s Monster=%s"),
+				*ThrownItemInstance.ItemDefinitionId.ToString(), *GetNameSafe(Monster));
+		}
 	}
 
 	// Use the Unreal attachment to the actual animated bone; a second
