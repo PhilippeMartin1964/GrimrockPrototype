@@ -140,3 +140,29 @@ Validation UE locale :
 Puis PIE avec un Prêtre/Restauration blessé. Les deux binaires locaux
 ST_UI.uasset et DA_Item_Potion_Healing_01.uasset sont préservés ;
 ils ne sont ni réinitialisés ni publiés par ce commit GitHub.
+
+
+## ARMEMENT01.15.1 — Contrôle PIE accepté (30.10.2026)
+
+- Le Prêtre/Restauration consomme correctement sa potion par clic droit, restaure les PV, retire l'objet du sac et bloque à pleine santé.
+- Les références Icon et WorldMesh de la potion ont été installées et vérifiées en jeu par le développeur ; leurs packages binaires restent locaux, non encore publiés.
+- Le filtre Grimrock.RPG.ARMEMENT01.15.SelfConsume : **2 tests réussis, 0 avertissement, 0 échec** ; build UE 5.5.4 OK.
+
+## ARMEMENT01.15.2 — Self-QuickItem de la hotbar en exploration
+
+**Diagnostic :** GridCombatHudWidget interrogeait GetAvailableCombatActions lorsque bCombatActive=false. Le catalogue de combat déclare alors les actions indisponibles (CombatInactive). RequestHotbarSlot ne disposait d'aucun chemin d'exécution pour une potion pendant l'exploration ; l'icône et la quantité pouvaient s'afficher, mais le bouton n'exécutait rien.
+
+**Correction :** en exploration uniquement, GridCombatHudWidget projette les QuickItems Potion/Food dont la définition est Self/Effect avec restauration personnelle simple, sans statut, piège, zone ou mouvement. Il conserve la correspondance stricte ActionId/SourceDefinitionId avec la liaison hotbar et une quantité issue de l'inventaire. Une action avec effet utile devient disponible, à pleine santé elle est grisée avec NoApplicableEffect et un motif localisé. Une action de combat/attaque conserve son comportement historique. Les projectiles physiques conservent leur propre routage.
+
+Au clic, la hotbar d'exploration récupère un objet physique appartenant au personnage sélectionné, puis appelle l'autorité d'inventaire TryConsumeSelfRestorativeQuickItem (ARMEMENT01.15.1) avec son GUID. Le traitement partage le gain de PV/PM, le décrément, la désactivation de raccourci et l'actualisation de l'interface. Aucun PA fictif n'est dépensé. Quand bCombatActive=true, les actions restent résolues et exécutées par le TurnManager, sans changement.
+
+**Test :** Grimrock.RPG.ARMEMENT01.15.ExplorationHotbar.PriestAndApothecary : génération des personnages avec les deux kits de production, hotbar persistante hors combat, potion désactivée à pleine santé, activation blessé, soin, retrait d'une unité, suppression du raccourci épuisé et impossibilité de double emploi.
+
+**Validation locale :**
+
+    git pull --ff-only origin master
+    .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.15.ExplorationHotbar"
+
+Terminer par PIE depuis une partie hors combat, après fermeture de l'inventaire ; contrôler clic hotbar et raccourci clavier. La politique existante IsCombatHotbarExecutionBlocked bloque intentionnellement la hotbar lorsque l'inventaire modal est ouvert : ce jalon ne change pas ce contrat UI.
+
+**État :** code publié sur master, build/Automation/PIE locaux en attente. ARMEMENT01.15.3 visuels déjà matérialisés en local ; publication des assets en attente de validation finale.

@@ -148,6 +148,90 @@ namespace
 		return Action;
 	}
 
+
+    /** ARMEMENT01.15.2: combat catalogue intentionally disables every action
+     * during exploration. Project only supported self restorative QuickItems
+     * into the persistent hotbar without opening a synthetic combat turn.
+     */
+    bool BuildExplorationSelfRestoration(
+        const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex,
+        const FGridCombatHotbarBinding& Binding, FGridAvailableCombatAction& OutAction)
+    {
+        if (!IsValid(Inventory) || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex) ||
+            Binding.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem ||
+            Binding.IsPhysicalThrowItemBinding())
+        {
+            return false;
+        }
+
+        const UGridItemDefinitionAsset* Definition = Inventory->FindItemDefinition(Binding.SourceDefinitionId);
+        FGridCombatActionDefinition QuickItem;
+        if (!IsValid(Definition) ||
+            (Definition->ItemType != EGridItemType::Potion && Definition->ItemType != EGridItemType::Food) ||
+            !Definition->BuildQuickItemCombatActionDefinition(QuickItem) ||
+            QuickItem.ActionId != Binding.ActionId ||
+            QuickItem.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
+            QuickItem.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
+            QuickItem.ResourceCosts.SourceItemQuantityCost != 1 ||
+            QuickItem.ResourceCosts.ManaCost != 0 ||
+            !QuickItem.EffectProfile.IsValid() ||
+            !QuickItem.StatusApplications.IsEmpty() || !QuickItem.StatusRemovals.IsEmpty() ||
+            !QuickItem.ArmorEffects.IsEmpty() || !QuickItem.MovementEffects.IsEmpty() ||
+            !QuickItem.SurfaceEffects.IsEmpty() || !QuickItem.SurfaceConversions.IsEmpty() ||
+            QuickItem.TrapEffect.bPlaceTrap)
+        {
+            return false;
+        }
+
+        const FGridCharacterInventoryState& Character =
+            Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+        OutAction = FGridAvailableCombatAction();
+        OutAction.Definition = QuickItem;
+        OutAction.CharacterIndex = CharacterIndex;
+        OutAction.CharacterId = Character.CharacterId;
+        OutAction.SourceDefinitionId = Binding.SourceDefinitionId;
+        OutAction.SourceEquipmentSlot = EGridEquipmentSlot::None;
+        OutAction.CurrentActionPointCost = 0; // Exploration does not spend combat AP.
+        OutAction.CurrentSourceItemQuantityCost = 1;
+        OutAction.CurrentSourceItemQuantity = Inventory->CountItemDefinitionInCharacterInventory(
+            CharacterIndex, Binding.SourceDefinitionId);
+
+        if (OutAction.CurrentSourceItemQuantity == 0)
+        {
+            OutAction.AvailabilityReason = EGridCombatActionAvailabilityReason::InsufficientSourceItems;
+            OutAction.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.NoInventoryCopies"));
+            return true;
+        }
+
+        FGridInventoryCharacterSummary Summary;
+        if (!Inventory->GetCharacterSummary(CharacterIndex, Summary) ||
+            Summary.Resources.CurrentHealth <= 0)
+        {
+            OutAction.AvailabilityReason = EGridCombatActionAvailabilityReason::CharacterDefeated;
+            OutAction.DisabledReason = NSLOCTEXT("GridHotbar", "SelfPotionCharacterUnavailable",
+                "Ce personnage ne peut pas utiliser cet objet.");
+            return true;
+        }
+
+        const bool bUsefulHealth = QuickItem.EffectProfile.ResolveHealthRestore(
+            Summary.DerivedStats.MaxHealth) > 0 &&
+            Summary.Resources.CurrentHealth < Summary.DerivedStats.MaxHealth;
+        const bool bUsefulMana = QuickItem.EffectProfile.ResolveManaRestore(
+            Summary.DerivedStats.MaxMana) > 0 &&
+            Summary.Resources.CurrentMana < Summary.DerivedStats.MaxMana;
+        if (!bUsefulHealth && !bUsefulMana)
+        {
+            OutAction.AvailabilityReason = EGridCombatActionAvailabilityReason::NoApplicableEffect;
+            OutAction.DisabledReason = NSLOCTEXT("GridHotbar", "SelfPotionNoEffect",
+                "Les ressources du personnage sont déjà au maximum.");
+            return true;
+        }
+
+        OutAction.bEnabled = true;
+        OutAction.AvailabilityReason = EGridCombatActionAvailabilityReason::None;
+        return true;
+    }
+
 	void ApplyPrimaryAttackProjection(const TArray<FGridAvailableCombatAction>& AvailableActions, TArray<FGridCombatHudActionView>& ActionViews)
 	{
 		if (!ActionViews.IsValidIndex(FGridCombatHotbarBinding::PrimaryAttackSlotIndex))
@@ -832,6 +916,26 @@ void UGridCombatHudWidget::RefreshFromSources()
 			AvailableActions.Add(BuildPhysicalThrowInventoryAction(PartyPawn, InventoryComponent, View.ActiveCharacterIndex, Binding));
 		}
 	}
+	// In exploration, overlay only the supported self restorative actions.
+	// Preserve the combat catalogue, other action types, and physical throws.
+	if (!View.bCombatActive && IsValid(InventoryComponent) && View.ActiveCharacterIndex != INDEX_NONE)
+	{
+		for (const FGridCombatHotbarBinding& Binding : HotbarBindings)
+		{
+			FGridAvailableCombatAction Exploration;
+			if (!BuildExplorationSelfRestoration(InventoryComponent, View.ActiveCharacterIndex, Binding, Exploration))
+			{
+				continue;
+			}
+			AvailableActions.RemoveAll([&Exploration](const FGridAvailableCombatAction& Candidate)
+			{
+				return Candidate.MatchesSource(
+					Exploration.Definition.ActionId, Exploration.Definition.SourcePolicy,
+					Exploration.SourceDefinitionId, Exploration.SourceEquipmentSlot);
+			});
+			AvailableActions.Add(MoveTemp(Exploration));
+		}
+	}
 	FGridCombatHudViewModelBuilder::BuildHotbarActions(HotbarBindings, AvailableActions, View.Actions);
 	ApplyPrimaryAttackProjection(AvailableActions, View.Actions);
 	for (FGridCombatHudActionView& ActionView : View.Actions)
@@ -933,6 +1037,43 @@ bool UGridCombatHudWidget::RequestHotbarSlot(int32 SlotIndex, FGridCombatActionR
 	}
 
 	const FGridCombatHudActionView ActionView = View.Actions[SlotIndex];
+	if (!View.bCombatActive && ActionView.bHasBinding &&
+		ActionView.Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem &&
+		!ActionView.Binding.IsPhysicalThrowItemBinding())
+	{
+		// Use the already validated inventory authority from ARMEMENT01.15.1.
+		// Never enter the combat action catalogue or spend turn AP while exploring.
+		if (!ActionView.bResolved || !ActionView.Action.bEnabled ||
+			!IsValid(InventoryComponent) ||
+			!InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(View.ActiveCharacterIndex))
+		{
+			return false;
+		}
+		const FGridCharacterInventoryState& Character =
+			InventoryComponent->PartyInventoryState.ActiveCharacters[View.ActiveCharacterIndex];
+		const FGridInventorySlot* Source = Character.InventorySlots.FindByPredicate(
+			[&ActionView](const FGridInventorySlot& Slot)
+			{
+				return !Slot.IsEmpty() &&
+					Slot.Item.ItemDefinitionId == ActionView.Binding.SourceDefinitionId;
+			});
+		if (!Source)
+		{
+			return false;
+		}
+		FText Error;
+		const bool bAccepted = InventoryComponent->TryConsumeSelfRestorativeQuickItem(
+			View.ActiveCharacterIndex, Source->Item.RuntimeObjectId, Error);
+		OutResult.Action = ActionView.Action;
+		OutResult.bAccepted = bAccepted;
+		OutResult.RejectReason = bAccepted ? EGridCombatActionRequestRejectReason::None :
+			EGridCombatActionRequestRejectReason::QuickItemRejected;
+		UE_LOG(LogTemp, Log, TEXT("[ARMEMENT01.15.2] HotbarSelfConsume Accepted=%s Character=%d Item=%s Reason=%s"),
+			bAccepted ? TEXT("true") : TEXT("false"), View.ActiveCharacterIndex,
+			*ActionView.Binding.SourceDefinitionId.ToString(), *Error.ToString());
+		RefreshFromSources();
+		return bAccepted;
+	}
 	if (ActionView.Binding.IsPhysicalThrowItemBinding())
 	{
 		OutResult.Action = ActionView.Action;
