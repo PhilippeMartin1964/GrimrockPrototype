@@ -1052,10 +1052,10 @@ bool UGridCombatHudWidget::RequestHotbarSlot(int32 SlotIndex, FGridCombatActionR
 		const FGridCharacterInventoryState& Character =
 			InventoryComponent->PartyInventoryState.ActiveCharacters[View.ActiveCharacterIndex];
 		const FGridInventorySlot* Source = Character.InventorySlots.FindByPredicate(
-			[&ActionView](const FGridInventorySlot& Slot)
+			[&ActionView](const FGridInventorySlot& InventoryEntry)
 			{
-				return !Slot.IsEmpty() &&
-					Slot.Item.ItemDefinitionId == ActionView.Binding.SourceDefinitionId;
+				return !InventoryEntry.IsEmpty() &&
+					InventoryEntry.Item.ItemDefinitionId == ActionView.Binding.SourceDefinitionId;
 			});
 		if (!Source)
 		{
