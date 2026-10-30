@@ -6,6 +6,7 @@
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
+#include "Runtime/Combat/GridQuickItemResolver.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
@@ -1346,6 +1347,116 @@ bool UGridPartyInventoryComponent::RemoveItemDefinitionFromCharacterInventory(in
 bool UGridPartyInventoryComponent::RemoveItemDefinitionFromSelectedCharacterInventory(FName ItemDefinitionId, int32 Quantity)
 {
 	return RemoveItemDefinitionFromCharacterInventory(PartyInventoryState.SelectedCharacterIndex, ItemDefinitionId, Quantity);
+}
+
+
+bool UGridPartyInventoryComponent::TryConsumeSelfRestorativeQuickItem(
+    int32 CharacterIndex, FGuid SourceRuntimeObjectId, FText& OutError)
+{
+    OutError = FText::GetEmpty();
+
+    if (!IsValidCharacterIndex(CharacterIndex) || !SourceRuntimeObjectId.IsValid())
+    {
+        OutError = NSLOCTEXT("GridItemActions", "ConsumeInvalidSource", "Objet ou personnage indisponible.");
+        return false;
+    }
+
+    FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
+    FGridInventorySlot* SourceSlot = Character.InventorySlots.FindByPredicate(
+        [SourceRuntimeObjectId](const FGridInventorySlot& Slot)
+        {
+            return !Slot.IsEmpty() && Slot.Item.RuntimeObjectId == SourceRuntimeObjectId;
+        });
+    if (!SourceSlot || SourceSlot->Item.OwnerType != EGridItemOwnerType::CharacterInventory ||
+        SourceSlot->Item.OwnerCharacterIndex != CharacterIndex ||
+        SourceSlot->Item.OwnerGuid != Character.CharacterId ||
+        Character.Resources.CurrentHealth <= 0)
+    {
+        OutError = NSLOCTEXT("GridItemActions", "ConsumeInvalidOwnership",
+            "Objet non détenu ou personnage incapable d'agir.");
+        return false;
+    }
+
+    const FName ItemId = SourceSlot->Item.ItemDefinitionId;
+    const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemId);
+    FGridCombatActionDefinition Action;
+    if (!IsValid(Definition) ||
+        (Definition->ItemType != EGridItemType::Potion && Definition->ItemType != EGridItemType::Food) ||
+        !Definition->BuildQuickItemCombatActionDefinition(Action) ||
+        Action.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem ||
+        Action.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
+        Action.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
+        Action.ResourceCosts.SourceItemQuantityCost != 1 ||
+        Action.ResourceCosts.ManaCost != 0 ||
+        !Action.StatusApplications.IsEmpty() || !Action.StatusRemovals.IsEmpty() ||
+        !Action.ArmorEffects.IsEmpty() || !Action.MovementEffects.IsEmpty() ||
+        !Action.SurfaceEffects.IsEmpty() || !Action.SurfaceConversions.IsEmpty() ||
+        Action.TrapEffect.bPlaceTrap || !Action.EffectProfile.IsValid())
+    {
+        OutError = NSLOCTEXT("GridItemActions", "ConsumeUnsupportedEffect",
+            "Cet objet ne dispose pas d'un effet personnel consommable hors combat.");
+        return false;
+    }
+
+    FGridInventoryCharacterSummary Summary;
+    if (!GetCharacterSummary(CharacterIndex, Summary))
+    {
+        OutError = NSLOCTEXT("GridItemActions", "ConsumeMissingStats",
+            "Statistiques du personnage indisponibles.");
+        return false;
+    }
+
+    // Share the combat QuickItem effect projection. No action points are spent
+    // while exploring. Complex status, armor and target effects require the
+    // TurnManager and are deliberately not partly executed here.
+    FGridResolvedCombatModifiers Modifiers;
+    FGridCombatActionEffectProfile EffectiveEffect;
+    if (!FGridQuickItemResolver::ResolveEffectProfile(Action, Character.SkillRanks, Modifiers, EffectiveEffect))
+    {
+        OutError = NSLOCTEXT("GridItemActions", "ConsumeInvalidEffect", "Effet de consommation invalide.");
+        return false;
+    }
+
+    const int32 MaxHealth = FMath::Max(1, Summary.DerivedStats.MaxHealth);
+    const int32 MaxMana = FMath::Max(0, Summary.DerivedStats.MaxMana);
+    const int32 HealthBefore = Character.Resources.CurrentHealth;
+    const int32 ManaBefore = Character.Resources.CurrentMana;
+    const int32 HealthAfter = FMath::Clamp(
+        HealthBefore + EffectiveEffect.ResolveHealthRestore(MaxHealth), 0, MaxHealth);
+    const int32 ManaAfter = FMath::Clamp(
+        ManaBefore + EffectiveEffect.ResolveManaRestore(MaxMana), 0, MaxMana);
+    if (HealthAfter <= HealthBefore && ManaAfter <= ManaBefore)
+    {
+        OutError = NSLOCTEXT("GridItemActions", "ConsumeNoUsefulEffect",
+            "Aucun effet utile : les ressources du personnage sont déjà au maximum.");
+        return false;
+    }
+
+    // Commit against the exact clicked physical item (GUID), not an arbitrary
+    // earlier stack of the same definition. This is a single state transition:
+    // no mutation or notification occurs for any failed precondition.
+    const int32 Remaining = SourceSlot->Item.Quantity - 1;
+    if (Remaining > 0)
+    {
+        SourceSlot->Item.Quantity = Remaining;
+    }
+    else
+    {
+        *SourceSlot = FGridInventorySlot();
+        if (!CharacterHasInventoryItemDefinition(Character, ItemId))
+        {
+            ClearQuickItemHotbarBindings(Character, ItemId);
+        }
+    }
+    Character.Resources.CurrentHealth = HealthAfter;
+    Character.Resources.CurrentMana = ManaAfter;
+    NotifyPartyInventoryChanged(CharacterIndex);
+
+    UE_LOG(LogGridInventory, Log,
+        TEXT("[ARMEMENT01.15.1] ConsumeSelf Character=%d Item=%s Health=%d->%d Mana=%d->%d Quantity=%d"),
+        CharacterIndex, *ItemId.ToString(), HealthBefore, HealthAfter, ManaBefore, ManaAfter,
+        CountItemDefinitionInCharacterInventory(CharacterIndex, ItemId));
+    return true;
 }
 
 bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAsset* Definition)

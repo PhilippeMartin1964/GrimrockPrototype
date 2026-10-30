@@ -94,3 +94,49 @@ doivent être committés depuis la machine Windows après acceptation PIE.
 
 Code C++ / configuration auteur / tests enregistrés sur `master` ;
 **compilation et génération du package UE locales en attente**.
+
+
+## ARMEMENT01.15.1 — Exécution consommable personnel (30.10.2026)
+
+**Incident PIE :** le menu proposait « Consommer » sans exécution réelle.
+Diagnostic dans GridInventoryWidget.cpp : absence de branche Consume dans
+ExecuteResolvedInventoryContextAction. Les logs FacingTarget=None relèvent
+d'une recherche indépendante d'objet face au groupe, pas de l'échec.
+
+**Correction C++ :**
+
+- Le menu Consume appelle désormais un chemin réel d'exécution.
+- Hors combat, TryConsumeSelfRestorativeQuickItem est une opération d'inventaire
+  à cible Self. Elle valide le GUID physique de la pile choisie, propriétaire,
+  définition QuickItem, effet utile Health/Mana, puis modifie les ressources et
+  retire exactement 1 unité de cette pile ; invalidation de la hotbar sur
+  disparition du dernier item de cette définition et notification UI.
+- En combat, le menu appelle RequestCharacterCombatAction sur le TurnManager
+  avec SourcePolicy=QuickItem et TargetingPolicy=Self : PA, initiative et
+  validation/consommation restent contrôlés par le moteur de combat.
+- Un objet sans effet personnel exécutable ne présente pas Consume actif.
+  À pleine santé, le menu expose une action désactivée et sa raison.
+- Aucun effet complexe (statut, piège, zone, armure, mouvement, cible monde)
+  n'est partiellement simulé par l'exécution d'exploration.
+
+**Tests Automation :**
+
+- Grimrock.RPG.ARMEMENT01.15.SelfConsume.ExplorationPotionTransaction :
+  véritable kit Restauration, refus à pleine santé, GUID invalide,
+  gain de PV, unique décrément, impossibilité d'un double usage et snapshot.
+- Grimrock.RPG.ARMEMENT01.15.SelfConsume.ContextMenuByIndex :
+  création monde/Pawn/widget, action du menu à pleine santé puis blessé,
+  sélection par index et vérification de la consommation réelle.
+
+**Périmètre volontaire :** hotbar hors combat = ARMEMENT01.15.2,
+iconographie/mesh = ARMEMENT01.15.3, audit industriel = lot ultérieur.
+Aucun changement au soin initial de 20 PV.
+
+Validation UE locale :
+
+    git pull --ff-only origin master
+    .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.15.SelfConsume"
+
+Puis PIE avec un Prêtre/Restauration blessé. Les deux binaires locaux
+ST_UI.uasset et DA_Item_Potion_Healing_01.uasset sont préservés ;
+ils ne sont ni réinitialisés ni publiés par ce commit GitHub.

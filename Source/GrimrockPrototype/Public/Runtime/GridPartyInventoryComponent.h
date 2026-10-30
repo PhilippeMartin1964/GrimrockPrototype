@@ -210,6 +210,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
 	bool RemoveItemDefinitionFromSelectedCharacterInventory(FName ItemDefinitionId, int32 Quantity);
 
+	/** ARMEMENT01.15.1: exploration-only, self-targeted restorative QuickItem.
+	 * Validates the exact source GUID and a useful effect before consuming once.
+	 * Combat callers must use the TurnManager so AP/initiative are authoritative.
+	 */
+	bool TryConsumeSelfRestorativeQuickItem(int32 CharacterIndex, FGuid SourceRuntimeObjectId, FText& OutError);
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
 	bool RegisterItemDefinition(UGridItemDefinitionAsset* Definition);
 

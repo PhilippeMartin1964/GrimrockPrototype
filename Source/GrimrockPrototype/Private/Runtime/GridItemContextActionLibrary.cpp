@@ -279,7 +279,37 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 
 	if (Definition && (Definition->ItemType == EGridItemType::Potion || Definition->ItemType == EGridItemType::Food))
 	{
-		AddAction(OutActions, EGridItemActionType::Consume, NSLOCTEXT("GridItemActions", "Consume", "Consommer"));
+		FGridCombatActionDefinition QuickItemAction;
+		const bool bSelfRestoration =
+			ItemContext.InventorySlotIndex != INDEX_NONE &&
+			Definition->BuildQuickItemCombatActionDefinition(QuickItemAction) &&
+			QuickItemAction.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
+			QuickItemAction.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+			QuickItemAction.EffectProfile.IsValid();
+		bool bUsefulEffect = bSelfRestoration;
+		FText DisabledReason = NSLOCTEXT("GridItemActions", "ConsumeUnsupported",
+			"Cet objet n'a pas d'effet personnel consommable.");
+		if (bSelfRestoration && ItemContext.PartyPawn->PartyInventoryComponent)
+		{
+			FGridInventoryCharacterSummary Summary;
+			if (ItemContext.PartyPawn->PartyInventoryComponent->GetCharacterSummary(ItemContext.CharacterIndex, Summary))
+			{
+				bUsefulEffect = Summary.Resources.CurrentHealth > 0 &&
+					((QuickItemAction.EffectProfile.ResolveHealthRestore(Summary.DerivedStats.MaxHealth) > 0 &&
+						Summary.Resources.CurrentHealth < Summary.DerivedStats.MaxHealth) ||
+					 (QuickItemAction.EffectProfile.ResolveManaRestore(Summary.DerivedStats.MaxMana) > 0 &&
+						Summary.Resources.CurrentMana < Summary.DerivedStats.MaxMana));
+				if (!bUsefulEffect)
+				{
+					DisabledReason = NSLOCTEXT("GridItemActions", "ConsumeNoUsefulEffect",
+						"Les ressources du personnage sont déjà au maximum.");
+				}
+			}
+		}
+		AddAction(OutActions, EGridItemActionType::Consume,
+			NSLOCTEXT("GridItemActions", "Consume", "Consommer"), nullptr,
+			EGridEquipmentSlot::None, bUsefulEffect,
+			bUsefulEffect ? FText::GetEmpty() : DisabledReason);
 	}
 
 	if (UGridItemContextActionLibrary::IsItemReadable(ItemContext.Item, Definition))

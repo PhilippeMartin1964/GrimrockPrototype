@@ -8,6 +8,7 @@
 #include "Components/UniformGridSlot.h"
 #include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 #include "Runtime/GridItemContextActionLibrary.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemTransferService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -1658,6 +1659,80 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			bExecuted = true;
 			break;
 		}
+
+
+        case EGridItemActionType::Consume:
+        {
+            // A self potion never needs the wall-facing trace. Combat remains
+            // TurnManager-authoritative (AP, turn, skill and quantity costs).
+            // Exploration uses the same inventory-owned source GUID, with
+            // no fabricated turn or action point expenditure.
+            if (SourceSlotType != EGridInventoryUiSlotType::Inventory ||
+                !IsValid(InventoryComponent) || !IsValid(OwningPartyPawn) ||
+                !InventoryComponent->IsValidCharacterIndex(CharacterIndex))
+            {
+                UE_LOG(LogGridInventoryUI, Warning,
+                    TEXT("[ARMEMENT01.15.1] Consume Failed Reason=InvalidInventorySource"));
+                break;
+            }
+
+            const UGridItemDefinitionAsset* Definition =
+                InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId);
+            FGridCombatActionDefinition QuickItemAction;
+            if (!IsValid(Definition) ||
+                !Definition->BuildQuickItemCombatActionDefinition(QuickItemAction) ||
+                (Definition->ItemType != EGridItemType::Potion && Definition->ItemType != EGridItemType::Food) ||
+                QuickItemAction.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
+                QuickItemAction.ResolutionProfile != EGridCombatActionResolutionProfile::Effect)
+            {
+                UE_LOG(LogGridInventoryUI, Warning,
+                    TEXT("[ARMEMENT01.15.1] Consume Failed Item=%s Reason=UnsupportedSelfAction"),
+                    *LastContextItem.ItemDefinitionId.ToString());
+                break;
+            }
+
+            UGridTurnManagerComponent* TurnManager =
+                IsValid(OwningPartyPawn->LevelRuntimeActor)
+                ? OwningPartyPawn->LevelRuntimeActor->FindComponentByClass<UGridTurnManagerComponent>()
+                : nullptr;
+            if (IsValid(TurnManager) && TurnManager->bCombatActive)
+            {
+                FGridCombatActionRequestResult CombatResult;
+                bExecuted = TurnManager->RequestCharacterCombatAction(
+                    CharacterIndex, QuickItemAction.ActionId,
+                    EGridCombatActionSourcePolicy::QuickItem,
+                    LastContextItem.ItemDefinitionId, EGridEquipmentSlot::None, CombatResult);
+                if (!bExecuted)
+                {
+                    UE_LOG(LogGridInventoryUI, Warning,
+                        TEXT("[ARMEMENT01.15.1] Consume CombatRejected Item=%s Reason=%s"),
+                        *LastContextItem.ItemDefinitionId.ToString(),
+                        *UEnum::GetValueAsString(CombatResult.RejectReason));
+                }
+            }
+            else
+            {
+                FText Failure;
+                bExecuted = InventoryComponent->TryConsumeSelfRestorativeQuickItem(
+                    CharacterIndex, LastContextItem.RuntimeObjectId, Failure);
+                if (!bExecuted)
+                {
+                    UE_LOG(LogGridInventoryUI, Log,
+                        TEXT("[ARMEMENT01.15.1] Consume ExplorationRejected Item=%s Reason=%s"),
+                        *LastContextItem.ItemDefinitionId.ToString(), *Failure.ToString());
+                }
+            }
+
+            if (bExecuted)
+            {
+                UE_LOG(LogGridInventoryUI, Log,
+                    TEXT("[ARMEMENT01.15.1] Consume Accepted Item=%s Character=%d Combat=%s"),
+                    *LastContextItem.ItemDefinitionId.ToString(), CharacterIndex,
+                    IsValid(TurnManager) && TurnManager->bCombatActive ? TEXT("true") : TEXT("false"));
+                CloseItemActionMenu(TEXT("Consume"));
+            }
+            break;
+        }
 
 		case EGridItemActionType::Equip:
 		{
