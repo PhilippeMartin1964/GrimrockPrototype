@@ -78,7 +78,7 @@ bool FARMEMENT01152ExplorationHotbar::RunTest(const FString&)
         if (!TestNotNull(TEXT("Production class available"), Class)) return false;
 
         FRPGCharacterCreationRequest Request;
-        Request.DisplayName = FText::FromString(TEXT("Exploration Potion Hotbar"));
+        Request.DisplayName = FText::FromString(TEXT("Potion Hotbar"));
         Request.RaceDefinition = Human;
         Request.ClassDefinition = Class;
         Request.CombatActionSourceClassDefinition = Class;
