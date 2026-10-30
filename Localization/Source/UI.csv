@@ -1,4 +1,6 @@
 Key,SourceString,Comment
+"Item.StartingTool.Disarm01.Description","Petits instruments de précision destinés au désamorçage des pièges mécaniques.","Description de l’outil de désamorçage N1"
+"Item.StartingTool.Disarm01.Name","Outils de désamorçage","Nom de l’outil du Saboteur N1"
 "Item.StartingPotion.Healing01.Description","Restaure 20 points de vie. Ne peut pas être utilisée à pleine santé.","Description de la potion de soin N1"
 "Item.StartingPotion.Healing01.Name","Potion de soin","Nom de la potion de soin N1"
 "CharacterCreation.Attribute.Charisma","Charisme","Nom de caractéristique"

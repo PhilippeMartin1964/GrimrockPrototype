@@ -1,6 +1,8 @@
 param(
     [string]$EngineRoot = $env:UE_ROOT,
-    [switch]$SkipAutomation
+    [switch]$SkipAutomation,
+    [switch]$StartingDisarmTool,
+    [switch]$Apply
 )
 
 $ErrorActionPreference = 'Stop'
@@ -29,6 +31,34 @@ Write-Host "Engine     : $EngineRoot"
 $Branch = (& git -C $RepoRoot branch --show-current).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Impossible de lire la branche Git courante.' }
 if ($Branch -ne 'master') { throw "RPG03.9.2 doit être authoré sur master. Branche courante : $Branch" }
+
+# ARMEMENT01.16.1: isolated production of the Saboteur physical tool.
+# No change to Rogue statuses, kits, or other item packages.
+if ($StartingDisarmTool)
+{
+    if (-not $Apply) { throw 'StartingDisarmTool requires explicit -Apply.' }
+    Write-Host '=== ARMEMENT01.16.1 - N1 Saboteur physical disarm tool ==='
+    & (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipAutomation
+    if ($LASTEXITCODE -ne 0 -or -not $?) { throw 'Editor build failed.' }
+
+    $Shared = @($ProjectFile, '-Unattended', '-NoSplash', '-NoP4', '-NoSound', '-NullRHI', '-log')
+    & $EditorCmd @Shared '-run=UIStringTableAuthoring'
+    if ($LASTEXITCODE -ne 0) { throw 'ST_UI synchronization failed.' }
+
+    & $EditorCmd @Shared '-run=RPGRogueAuthoring' '-StartingDisarmTool' '-Apply'
+    if ($LASTEXITCODE -ne 0) { throw 'N1 disarm tool authoring failed.' }
+
+    if (-not $SkipAutomation)
+    {
+        & (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipBuild `
+            -AutomationFilter 'Grimrock.RPG.ARMEMENT01.16.DisarmTool'
+        if ($LASTEXITCODE -ne 0 -or -not $?) { throw 'Disarm tool contract validation failed.' }
+    }
+    Write-Host '[OK] Physical tool authored; gameplay disarm and kit grant are intentionally NOT enabled.'
+    & git -C $RepoRoot status --short
+    return
+}
+if ($Apply) { throw '-Apply is only valid with -StartingDisarmTool.' }
 
 $GitStatusBefore = @(& git -C $RepoRoot status --short)
 if ($LASTEXITCODE -ne 0) { throw 'Impossible de lire git status.' }
