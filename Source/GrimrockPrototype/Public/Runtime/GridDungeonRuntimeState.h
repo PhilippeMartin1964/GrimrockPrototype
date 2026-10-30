@@ -348,6 +348,12 @@ struct FGridLevelRuntimeState
 	UPROPERTY(SaveGame)
 	TMap<FIntPoint, FGridCombatTrapState> CombatTraps;
 
+    /** ARMEMENT01.16.2A: successfully disarmed authored dungeon Trigger
+     * objects. Stable instance GUIDs; persists independently from combat traps. */
+    UPROPERTY(SaveGame, BlueprintReadWrite)
+    TSet<FGuid> DisarmedTriggerTrapIds;
+
+
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TMap<FGuid, FGridRuntimeMonsterState> Monsters;
 

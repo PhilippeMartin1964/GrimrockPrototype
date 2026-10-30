@@ -127,7 +127,9 @@ enum class EGridObjectEvent : uint8
 	MonsterTeleported UMETA(DisplayName = "Monster Teleported"),
 	EncounterWaveStarted UMETA(DisplayName = "Encounter Wave Started"),
 	EncounterCompleted UMETA(DisplayName = "Encounter Completed"),
-	Sabotaged UMETA(DisplayName = "Sabotaged")
+	Sabotaged UMETA(DisplayName = "Sabotaged"),
+    /** Emitted only after an accepted disarm Skill_Traps check succeeds. */
+    Disarmed UMETA(DisplayName = "Disarmed")
 };
 
 USTRUCT(BlueprintType)

@@ -515,6 +515,14 @@ bool UGridActivationComponent::ProcessTriggerEvent(const FGridWorldObjectInstanc
 	}
 
 	const TCHAR* EventLabel = bEntering ? TEXT("Enter") : TEXT("Exit");
+    // Disarmed dungeon traps must never execute their previous Activated or
+    // Deactivated links again, including after a Save/Continue round-trip.
+    if (RuntimeActor && RuntimeActor->IsTriggerTrapDisarmed(TriggerData.InstanceId))
+    {
+        return false;
+    }
+
+
 	const EGridObjectEvent SourceEvent = bEntering ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated;
 	UE_LOG(LogGridActivation, Log, TEXT("Grid trigger detected: Id=%s Cell=(%d,%d) Event=%s SourceEvent=%s"), *TriggerData.InstanceId.ToString(),
 		TriggerData.CellX, TriggerData.CellY, EventLabel, *GridObjectEventToString(SourceEvent));

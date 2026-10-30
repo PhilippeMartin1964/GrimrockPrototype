@@ -79,6 +79,13 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 	OutMessages.Reset();
 
 	if (DefinitionId.IsNone()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("DefinitionId is not set."));
+    if (bCanBeDisarmed && (SupportedType != EGridLevelObjectType::Trigger ||
+        DisarmDifficulty < 1 || DisarmDifficulty > 40))
+    {
+        AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+            TEXT("Disarmable dungeon traps must use Trigger gameplay type and difficulty 1..40."));
+    }
+
 	if (SupportedType == EGridLevelObjectType::None) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("SupportedType must not be None."));
 	if (DefaultBehavior.Item.ItemDefinitionAsset || !DefaultBehavior.Item.ItemDefinitionId.IsNone())
 	{

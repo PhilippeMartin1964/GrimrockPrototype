@@ -29,8 +29,10 @@ namespace GridEditorLinkPolicy
 
 			case EGridLevelObjectType::Lever:
 			case EGridLevelObjectType::PressurePlate:
-			case EGridLevelObjectType::Trigger:
 				return { EGridObjectEvent::Activated, EGridObjectEvent::Deactivated };
+
+			case EGridLevelObjectType::Trigger:
+				return { EGridObjectEvent::Activated, EGridObjectEvent::Deactivated, EGridObjectEvent::Disarmed };
 
 			case EGridLevelObjectType::Receptacle:
 				return { EGridObjectEvent::ItemInserted, EGridObjectEvent::ItemRemoved, EGridObjectEvent::ItemChanged };

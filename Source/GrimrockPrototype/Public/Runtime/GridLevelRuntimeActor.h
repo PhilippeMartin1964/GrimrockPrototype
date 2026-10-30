@@ -408,6 +408,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction|Sabotage")
 	bool ExecuteRuntimeObjectSabotage(FGuid ObjectId);
 
+    /** Authored Trigger trap state; never confuses combat-cell traps with dungeon triggers. */
+    bool GetTriggerTrapDisarmDifficulty(FGuid TrapObjectId, int32& OutDifficulty) const;
+    bool IsTriggerTrapDisarmed(FGuid TrapObjectId) const;
+
+    /** Resolve the selected living character's Skill_Traps with a genuine
+     * carried Tool.Disarm; on success persist the disarmed GUID and emit Disarmed.
+     * Returns true if an actual skill check was resolved, including failure.
+     * Rejected requests do not roll, mutate state, or consume the tool.
+     */
+    bool TryDisarmTriggerTrap(AGrimrockPartyPawn* PartyPawn, FGuid TrapObjectId,
+        int32 CharacterIndex, const class URPGSkillAsset* SkillDefinition,
+        FRandomStream& RandomStream, FRPGSkillCheckResult& OutResult);
+
+
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction")
 	void HandlePartyCellChanged(int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
 

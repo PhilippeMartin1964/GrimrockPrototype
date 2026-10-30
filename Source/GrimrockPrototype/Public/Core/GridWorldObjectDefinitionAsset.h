@@ -185,6 +185,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Sabotage",
 		meta = (ClampMin = "1", ClampMax = "40", EditCondition = "bCanBeSabotaged", EditConditionHides))
 	int32 SabotageDifficulty = 10;
+    
+    /** ARMEMENT01.16.2A: opt-in for a real floor Trigger used as a mechanical
+     * dungeon trap. Disabled on all existing world definitions by default. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Trap",
+        meta = (DisplayName = "Can Be Disarmed", ToolTip = "Only valid for floor Trigger objects."))
+    bool bCanBeDisarmed = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Trap",
+        meta = (ClampMin = "1", ClampMax = "40", EditCondition = "bCanBeDisarmed", EditConditionHides))
+    int32 DisarmDifficulty = 10;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction",
 		meta = (DisplayName = "Runtime Readable",

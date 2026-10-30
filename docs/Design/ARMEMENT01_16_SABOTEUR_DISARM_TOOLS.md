@@ -116,3 +116,34 @@ no character, no scene, no lettering, no magic effects, no extra props.
 
 Le rendu 3D Meshy et l'icône doivent être approuvés dans Unreal, puis
 committés ensemble depuis Windows. Ne pas attribuer ce kit prématurément.
+
+## ARMEMENT01.16.2A — Fondations C++ des pièges Trigger (30.10.2026)
+
+Statut : code préparé pour validation UE locale. L'usage par l'interface joueur et l'attribution au kit restent hors périmètre.
+
+### Modèle
+
+- Définition UGridWorldObjectDefinitionAsset : bCanBeDisarmed=false par défaut et DisarmDifficulty (1..40). Opt-in uniquement sur les Trigger ; les Trigger historiques sont inchangés.
+- Identité par InstanceId stable sur un FGridWorldObjectInstance de type Trigger. Aucun détournement des CombatTraps temporaires indexés par cellule.
+- Le désamorçage réussi persiste le GUID dans FGridLevelRuntimeState::DisarmedTriggerTrapIds (SaveGame). Les événements Activated et Deactivated du Trigger sont alors neutralisés.
+- Un événement EGridObjectEvent::Disarmed ajouté en fin d'énumération permet les liens SourceEvent -> TargetCommand et reste émis une seule fois après succès. L'éditeur de liens autorise Disarmed pour Trigger.
+
+### Résolution d'une demande
+
+AGridLevelRuntimeActor::TryDisarmTriggerTrap vérifie : cible existante et autorisée, acteur et niveau, case sous les pieds ou en face immédiatement accessible (CanMove), personnage vivant, possession réelle d'un Item_DisarmTools_01 marqué Tool.Disarm et compétence Skill_Traps. Le jet déterministe est résolu par FRPGSkillCheckService, sans bonus de talent acquis avant le niveau 2.
+
+Un refus n'avance pas le générateur aléatoire et ne retire pas l'outil. Un jet échoué laisse le Trigger armé. Une réussite conserve l'outil, persiste l'état et émet Disarmed ; aucune seconde tentative n'est possible. Les Trigger non concernés restent inchangés.
+
+### Validation locale
+
+    cd D:\Development\GrimrockPrototype
+    git pull --ff-only origin master
+    .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.16.TrapCore"
+
+Tests : DefinitionOptIn (opt-in/règles de type) et SkillAndPersistentState (absence d'outil, refus sans jet, échec, succès, outil conservé, état sauvegardé/repris via snapshot runtime).
+
+Attention : la sérialisation SaveGame complète, la sélection et l'interaction souris, les messages UI et l'attribution du kit n'ont pas encore été testés. Ce sont les objectifs de ARMEMENT01.16.2B ; aucune validation PIE n'est revendiquée pour 2A.
+
+### Publication indépendante des ressources ARMEMENT01.16.1
+
+Le journal utilisateur du 30.10.2026 valide déjà 2/2 tests de 16.1 et la création locale de DA_Item_DisarmTools_01. Publier depuis Windows ce package et ST_UI.uasset, indépendamment du commit C++ de 16.2A. Ne pas attribuer l'outil à Kit_Rogue_Saboteur avant fonctionnement en PIE.
