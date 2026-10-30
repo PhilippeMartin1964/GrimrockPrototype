@@ -166,3 +166,114 @@ Au clic, la hotbar d'exploration récupère un objet physique appartenant au per
 Terminer par PIE depuis une partie hors combat, après fermeture de l'inventaire ; contrôler clic hotbar et raccourci clavier. La politique existante IsCombatHotbarExecutionBlocked bloque intentionnellement la hotbar lorsque l'inventaire modal est ouvert : ce jalon ne change pas ce contrat UI.
 
 **État :** code publié sur master, build/Automation/PIE locaux en attente. ARMEMENT01.15.3 visuels déjà matérialisés en local ; publication des assets en attente de validation finale.
+
+
+## ARMEMENT01.15.3 / .15.4 — Clôture gameplay, visuels et audit d'items (30.10.2026)
+
+### État de validation établi
+
+- ARMEMENT01.15.1 : **2/2 Automation réussis, 0 warning/échec**. Contrôle PIE
+  accepté : « Consommer » soigne, retire la potion et refuse les PV maximaux.
+- ARMEMENT01.15.2 : **1/1 Automation réussi, 0 warning/échec**.
+  Contrôle PIE accepté : le raccourci clavier consomme la potion,
+  puis retire son icône de la hotbar lorsque la quantité atteint zéro.
+- ARMEMENT01.15.3 (local) : l'utilisateur a créé les ressources de potion et
+  confirmé en PIE l'icône d'inventaire et le mesh déposé au sol.
+  **Création et test PIE ne valent pas publication Git** : les binaires
+  restent locaux tant qu'aucun commit/push Windows n'est réalisé.
+- ARMEMENT01.15.4 : un **audit générique des définitions d'items** est
+  ajouté au module Editor ; compilation et exécution en attente.
+
+### Contrat de l'audit ARMEMENT01.15.4
+
+Test : Grimrock.RPG.ARMEMENT01.15.Closure.ActiveItemAudit.
+
+- Découverte par AssetRegistry, récursive sous
+  /Game/GrimrockPrototype/Core/DataAssets, de **tous les**
+  UGridItemDefinitionAsset réels, indépendamment du préfixe DA_Item_
+  ou DA_Weapon_.
+- Pour chaque asset : validité de la définition, doublon
+  ItemDefinitionId, icône effectivement chargeable, mesh monde chargeable
+  par le **résolveur de production**, déclaration/validité QuickItem
+  et prise en charge de la consommation personnelle en exploration.
+- Les objets à action ciblée/zone/hostile sont signalés « à revoir »,
+  pas qualifiés à tort d'inexécutables.
+- EquippedMesh est **optionnel**. Un item qui utilise le catalogue de
+  visuels est contrôlé via son résolveur, pas exclusivement via les
+  champs directs Icon/WorldMesh.
+- Rapport de tous les objets, y compris incomplets :
+  Saved/Automation/ARMEMENT01/ARMEMENT01_15_ActiveItemAudit.csv.
+- Les définitions historiques incomplètes sont **signalées sans faire
+  échouer le test**. Elles nécessitent leurs propres tickets, et
+  aucune migration automatique n'est effectuée.
+- **Seule la potion de soin N1 est bloquante pour cette clôture** :
+  exactement un ItemDefinitionId, DataAsset canonique compatible
+  avec la recette, icône et mesh chargés, QuickItem exécutable,
+  consommation personnelle prise en charge.
+- Si la palette référence la potion, l'entrée doit suivre MIG10 :
+  DefaultItemDefinition directe, aucun DefaultWorldObjectDefinition
+  ni Icon d'override sur l'entrée. Pour un starter item d'inventaire,
+  aucune entrée de palette n'est obligatoire.
+- L'audit est **en lecture seule** ; aucune sauvegarde ni création
+  d'asset. Il vérifie que les packages chargés ne deviennent pas dirty
+  du fait de son exécution.
+
+Validation locale unique (compilation et audit uniquement) :
+
+    cd D:\Development\GrimrockPrototype
+    git pull --ff-only origin master
+    .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.15.Closure"
+
+### Publication des binaires Unreal — opération locale distincte
+
+Les binaires se trouvent **sur le disque Windows** et ne peuvent
+pas être poussés par le connecteur GitHub distant. Les sauver depuis
+Unreal (« Save All »), puis les ajouter via Git **après audit validé**.
+
+Fichiers signalés dans le dernier git status utilisateur :
+
+- Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01.uasset
+- Content/GrimrockPrototype/Meshes/Items/
+- Content/GrimrockPrototype/UI/Icons/Items/
+- Content/GrimrockPrototype/Art/Textures/Final/Items/
+- Content/GrimrockPrototype/Art/Materials/Instances/Items/
+- Content/Localization/StringTables/ST_UI.uasset
+- **À contrôler séparément** :
+  Content/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.uasset
+
+La palette est **partagée**. L'audit vérifie la validité d'une éventuelle
+entrée potion, mais ne peut pas déterminer si ses autres différences
+binaires sont liées à ce ticket. Ne la publier qu'après vérification
+visuelle des autres entrées dans l'éditeur.
+
+### Séquence Git ciblée après validation
+
+    cd D:\Development\GrimrockPrototype
+    git status --short
+    git add -- Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01.uasset
+    git add -- Content/GrimrockPrototype/Meshes/Items/
+    git add -- Content/GrimrockPrototype/UI/Icons/Items/
+    git add -- Content/GrimrockPrototype/Art/Textures/Final/Items/
+    git add -- Content/GrimrockPrototype/Art/Materials/Instances/Items/
+    git add -- Content/Localization/StringTables/ST_UI.uasset
+
+    # SEULEMENT après vérification des autres entrées :
+    # git add -- Content/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.uasset
+
+    git diff --cached --name-status
+    git diff --cached --check
+    git commit -m "ARMEMENT01.15.3: publish approved N1 potion visual and localization assets"
+    git push origin master
+    git status --short
+
+Si les dossiers Items/ contiennent des modifications personnelles non
+liées à la potion, sélectionner les fichiers concernés individuellement :
+un git add sur tout le dossier ne distingue pas leur intention.
+
+### Clôture
+
+- Gameplay : **terminé et validé en PIE**.
+- Visuels : **validés en PIE, publication Git locale en attente**.
+- Audit : **source publié, validation locale en attente**.
+- Clôture totale après succès de l'audit et publication des packages
+  approuvés ; inutile de relancer les tests ARMEMENT01.15.1/.15.2.
