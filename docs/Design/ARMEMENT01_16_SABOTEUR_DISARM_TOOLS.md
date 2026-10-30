@@ -147,3 +147,83 @@ Attention : la sérialisation SaveGame complète, la sélection et l'interaction
 ### Publication indépendante des ressources ARMEMENT01.16.1
 
 Le journal utilisateur du 30.10.2026 valide déjà 2/2 tests de 16.1 et la création locale de DA_Item_DisarmTools_01. Publier depuis Windows ce package et ST_UI.uasset, indépendamment du commit C++ de 16.2A. Ne pas attribuer l'outil à Kit_Rogue_Saboteur avant fonctionnement en PIE.
+
+
+## ARMEMENT01.16.2B — Action d'inventaire « Désamorcer le piège »
+
+Date : 30 octobre 2026. Statut : code préparé, compilation et PIE à valider.
+
+### Parcours joueur
+
+Dans le donjon, sur un personnage ayant physiquement les outils
+`Item_DisarmTools_01`, clic droit sur l'objet dans l'inventaire :
+le menu C++ offre « Désamorcer le piège » lorsque l'autorité grille
+résout un et un seul Trigger désamorçable dans la case courante ou
+la case directement devant le groupe, accessible sans mur/porte fermée.
+Ces Trigger sont des objets de données et peuvent ne pas posséder
+de mesh ou de collider ; il serait incorrect de se fier exclusivement
+au line trace des objets visibles.
+
+Les autres items conservent leurs actions existantes.
+La sélection du groupe, le slot d'inventaire et le GUID de la cible
+sont revérifiés à l'exécution. Le mode combat refuse cette action
+d'exploration, sans coût en PA et sans QuickItem artificiel.
+
+L'action charge la compétence de production
+`/Game/GrimrockPrototype/Core/DataAssets/RPG/Skills/DA_Skill_Traps`
+et passe par le résolveur autoritaire ARMEMENT01.16.2A.
+**Important :** le catalogue officiel déclare
+`Skill_Traps` gouvernée par **Intelligence**, sans jet non entraîné.
+Le personnage doit donc investir au moins un rang de Pièges ;
+l'outil ne remplace pas cette formation et ne confère pas ExpertDisarm.
+
+Résultats dans le journal d'événements du donjon :
+- succès : « Le piège est désamorcé. » et événement Disarmed ;
+- jet échoué : « Le désamorçage a échoué. » ; le piège reste armé ;
+- absence de formation / rejet : message localisé, sans consommation ;
+- après réussite : l'action disparaît du menu du même outil pour ce piège.
+
+### Contrôles automatiques
+
+Filtre :
+`Grimrock.RPG.ARMEMENT01.16.TrapInteraction`.
+
+Le test ContextAndTargeting crée un runtime et un pion réels dans un
+monde de test, une définition Trigger opt-in et un outil typé ; il
+vérifie la découverte par GUID même sans acteur physique, l'action
+du menu, le mur bloquant, l'ambiguïté de deux pièges dans une case
+et la disparition de l'action après désamorçage.
+
+Commande locale :
+
+    cd D:\Development\GrimrockPrototype
+    git pull --ff-only origin master
+    .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.16.TrapInteraction"
+
+Ce test ne prouve **pas** encore à lui seul que la création d'un
+Trigger et de ses liens dans l'éditeur ainsi que Save/Continue
+fonctionnent en PIE ; ces vérifications manuelles restent exigées.
+
+### Plan de vérification PIE
+
+1. Créer ou choisir une définition de type Trigger (Floor), cocher
+   Can Be Disarmed et fixer Disarm Difficulty (p. ex. 10).
+   Placer une instance dans une cellule accessible devant le groupe.
+2. Ajouter un lien Disarmed vers une commande observable
+   (p. ex. ouverture d'une porte), et un lien Activated distinct.
+3. Donner les outils au personnage et lui accorder un rang réel de
+   Pièges dans la création ou progression. Clic droit sur les outils
+   dans le sac : Désamorcer le piège.
+4. Vérifier en cas d'échec l'absence d'événement Disarmed et la
+   conservation de l'outil ; en cas de succès le lien de porte,
+   l'absence de réactivation du piège, le message et la disparition
+   de l'action.
+5. Sauvegarder et charger la partie : le Trigger doit rester désarmé.
+   Vérifier aussi un second Trigger et l'absence de régression des
+   mécanismes non désamorçables.
+6. Réessayer sans rang de Pièges, sans outils, derrière un mur, en
+   combat et avec une cible déjà désarmée.
+
+**Le kit de départ Saboteur n'est pas modifié dans 2B.**
+La décision de le remplir sera prise après validation PIE et création
+ou approbation de son icône/mesh (référence ARMEMENT01.9.7).

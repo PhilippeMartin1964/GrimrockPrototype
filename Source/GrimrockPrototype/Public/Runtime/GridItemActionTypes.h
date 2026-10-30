@@ -28,7 +28,8 @@ enum class EGridItemActionType : uint8
 	Combine,
 	SplitStack,
 	ToggleLight,
-	AddToHotbar
+	AddToHotbar,
+	DisarmTrap // ARMEMENT01.16.2B: explicit exploration-only action
 };
 
 UENUM(BlueprintType)
@@ -40,7 +41,8 @@ enum class EGridFacingTargetType : uint8
 	TorchHolder,
 	Readable,
 	Door,
-	Mechanism
+	Mechanism,
+	DungeonTrap // Authored disarmable Trigger object
 };
 
 USTRUCT(BlueprintType)

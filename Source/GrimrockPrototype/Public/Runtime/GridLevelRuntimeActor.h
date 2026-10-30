@@ -412,6 +412,12 @@ public:
     bool GetTriggerTrapDisarmDifficulty(FGuid TrapObjectId, int32& OutDifficulty) const;
     bool IsTriggerTrapDisarmed(FGuid TrapObjectId) const;
 
+    /** Selects exactly one disarmable dungeon Trigger in the party cell or the
+     * traversable cell directly in front. Ambiguous targets fail closed. */
+    bool FindDisarmableTriggerTrapForParty(const AGrimrockPartyPawn* PartyPawn,
+        FGuid& OutTrapObjectId) const;
+
+
     /** Resolve the selected living character's Skill_Traps with a genuine
      * carried Tool.Disarm; on success persist the disarmed GUID and emit Disarmed.
      * Returns true if an actual skill check was resolved, including failure.

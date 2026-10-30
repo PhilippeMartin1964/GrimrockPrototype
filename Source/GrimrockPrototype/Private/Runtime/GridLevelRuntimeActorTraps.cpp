@@ -105,6 +105,62 @@ bool AGridLevelRuntimeActor::IsTriggerTrapDisarmed(FGuid TrapObjectId) const
         State->DisarmedTriggerTrapIds.Contains(TrapObjectId);
 }
 
+bool AGridLevelRuntimeActor::FindDisarmableTriggerTrapForParty(
+    const AGrimrockPartyPawn* PartyPawn, FGuid& OutTrapObjectId) const
+{
+    OutTrapObjectId.Invalidate();
+    if (!IsValid(PartyPawn) || PartyPawn->LevelRuntimeActor != this || !IsValid(LevelAsset))
+    {
+        return false;
+    }
+
+    const FIntPoint PartyCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+    FIntPoint FrontCell(INDEX_NONE, INDEX_NONE);
+    int32 FrontX = INDEX_NONE;
+    int32 FrontY = INDEX_NONE;
+    if (TryGetNeighborCell(PartyCell.X, PartyCell.Y, PartyPawn->Facing, FrontX, FrontY) &&
+        CanMove(PartyCell.X, PartyCell.Y, PartyPawn->Facing))
+    {
+        FrontCell = FIntPoint(FrontX, FrontY);
+    }
+
+    // Prefer the trigger in the party cell, then the next traversable cell.
+    // Two targets in the same cell are ambiguous: never choose randomly.
+    for (const FIntPoint CandidateCell : { PartyCell, FrontCell })
+    {
+        if (CandidateCell.X == INDEX_NONE)
+        {
+            continue;
+        }
+        FGuid Candidate;
+        for (const FGridWorldObjectInstance& Object : LevelAsset->WorldObjectInstances)
+        {
+            if (Object.Type != EGridLevelObjectType::Trigger ||
+                Object.CellX != CandidateCell.X || Object.CellY != CandidateCell.Y)
+            {
+                continue;
+            }
+            int32 Difficulty = 0;
+            if (!GetTriggerTrapDisarmDifficulty(Object.InstanceId, Difficulty))
+            {
+                continue;
+            }
+            if (Candidate.IsValid())
+            {
+                OutTrapObjectId.Invalidate();
+                return false;
+            }
+            Candidate = Object.InstanceId;
+        }
+        if (Candidate.IsValid())
+        {
+            OutTrapObjectId = Candidate;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool AGridLevelRuntimeActor::GetTriggerTrapDisarmDifficulty(
     FGuid TrapObjectId, int32& OutDifficulty) const
 {

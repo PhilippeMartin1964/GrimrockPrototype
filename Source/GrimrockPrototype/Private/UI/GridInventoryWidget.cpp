@@ -8,6 +8,8 @@
 #include "Components/UniformGridSlot.h"
 #include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 #include "Runtime/GridItemContextActionLibrary.h"
+#include "RPG/RPGSkillAsset.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemTransferService.h"
@@ -149,6 +151,8 @@ namespace
 				return TEXT("ToggleLight");
 			case EGridItemActionType::AddToHotbar:
 				return TEXT("AddToHotbar");
+			case EGridItemActionType::DisarmTrap:
+				return TEXT("DisarmTrap");
 			case EGridItemActionType::None:
 			default:
 				return TEXT("None");
@@ -1731,6 +1735,98 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
                     IsValid(TurnManager) && TurnManager->bCombatActive ? TEXT("true") : TEXT("false"));
                 CloseItemActionMenu(TEXT("Consume"));
             }
+            break;
+        }
+
+        case EGridItemActionType::DisarmTrap:
+        {
+            if (SourceSlotType != EGridInventoryUiSlotType::Inventory ||
+                !IsValid(InventoryComponent) || !IsValid(OwningPartyPawn) ||
+                !IsValid(OwningPartyPawn->LevelRuntimeActor) ||
+                FacingTarget.TargetType != EGridFacingTargetType::DungeonTrap ||
+                !FacingTarget.TargetObjectId.IsValid() ||
+                Action.TargetObjectId != FacingTarget.TargetObjectId)
+            {
+                break;
+            }
+
+            const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
+            if (!State.ActiveCharacters.IsValidIndex(CharacterIndex) ||
+                !State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex(SourceSlotIndex) ||
+                State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex].IsEmpty() ||
+                State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex].Item.RuntimeObjectId !=
+                    LastContextItem.RuntimeObjectId ||
+                LastContextItem.ItemDefinitionId != FName(TEXT("Item_DisarmTools_01")))
+            {
+                UE_LOG(LogGridInventoryUI, Warning,
+                    TEXT("[ARMEMENT01.16.2B] Disarm rejected: stale source slot"));
+                break;
+            }
+
+            AGridLevelRuntimeActor* Runtime = OwningPartyPawn->LevelRuntimeActor;
+            UGridTurnManagerComponent* TurnManager = Runtime->FindComponentByClass<UGridTurnManagerComponent>();
+            if (IsValid(TurnManager) && TurnManager->bCombatActive)
+            {
+                UE_LOG(LogGridInventoryUI, Log,
+                    TEXT("[ARMEMENT01.16.2B] Disarm rejected during combat"));
+                break;
+            }
+
+            // The production skill catalog is the authority for attribute,
+            // training restrictions and ranks; no transient fake skill.
+            const URPGSkillAsset* Skill = LoadObject<URPGSkillAsset>(nullptr,
+                TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/Skills/DA_Skill_Traps.DA_Skill_Traps"));
+            if (!IsValid(Skill))
+            {
+                UE_LOG(LogGridInventoryUI, Warning,
+                    TEXT("[ARMEMENT01.16.2B] Canonical Skill_Traps DataAsset unavailable"));
+                break;
+            }
+
+            FRandomStream RandomStream(FMath::Rand());
+            FRPGSkillCheckResult Check;
+            bExecuted = Runtime->TryDisarmTriggerTrap(
+                OwningPartyPawn, Action.TargetObjectId, CharacterIndex, Skill, RandomStream, Check);
+            if (!bExecuted)
+            {
+                UE_LOG(LogGridInventoryUI, Log,
+                    TEXT("[ARMEMENT01.16.2B] Disarm rejected Target=%s Reason=%s"),
+                    *Action.TargetObjectId.ToString(),
+                    *UEnum::GetValueAsString(Check.RejectReason));
+                const FText RejectMessage =
+                    Check.RejectReason == ERPGSkillCheckRejectReason::UntrainedNotAllowed
+                    ? NSLOCTEXT("GridItemActions", "DisarmTrainingRequired",
+                        "Un rang de compétence Pièges est nécessaire pour désamorcer ce piège.")
+                    : NSLOCTEXT("GridItemActions", "DisarmRejected",
+                        "Impossible de désamorcer ce piège.");
+                GridEventFeedPublisher::PublishDungeonEvent(
+                    Runtime, FName(TEXT("Dungeon.Trap.DisarmRejected")), RejectMessage,
+                    EGridHudEventSemantic::Mechanism,
+                    EGridEventVisibility::Always, true,
+                    GridEventFeedPublisher::SourceIdFromGuid(Action.TargetObjectId));
+                break;
+            }
+
+            const FGridWorldObjectInstance* Trap =
+                Runtime->LevelAsset ? Runtime->LevelAsset->FindWorldObjectInstanceById(Action.TargetObjectId) : nullptr;
+            const FText Message = Check.bSuccess
+                ? NSLOCTEXT("GridItemActions", "DisarmSucceeded", "Le piège est désamorcé.")
+                : NSLOCTEXT("GridItemActions", "DisarmFailed", "Le désamorçage a échoué.");
+            if (Trap)
+            {
+                GridEventFeedPublisher::PublishDungeonEventAtCell(
+                    Runtime, Trap->CellX, Trap->CellY,
+                    Check.bSuccess ? FName(TEXT("Dungeon.Trap.Disarmed"))
+                                   : FName(TEXT("Dungeon.Trap.DisarmFailed")),
+                    Message, EGridHudEventSemantic::Mechanism,
+                    EGridEventVisibility::Observable,
+                    GridEventFeedPublisher::SourceIdFromGuid(Action.TargetObjectId));
+            }
+            UE_LOG(LogGridInventoryUI, Log,
+                TEXT("[ARMEMENT01.16.2B] Disarm %s Target=%s Roll=%d Total=%d DC=%d"),
+                Check.bSuccess ? TEXT("Success") : TEXT("Failure"),
+                *Action.TargetObjectId.ToString(), Check.Roll, Check.Total, Check.Difficulty);
+            CloseItemActionMenu(TEXT("DisarmTrap"));
             break;
         }
 

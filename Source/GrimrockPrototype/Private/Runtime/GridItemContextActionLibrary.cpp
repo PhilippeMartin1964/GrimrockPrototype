@@ -7,6 +7,7 @@
 #include "Runtime/GridInteractableInterface.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/UILocalizationText.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -53,6 +54,8 @@ namespace
 				return TEXT("ToggleLight");
 			case EGridItemActionType::AddToHotbar:
 				return TEXT("AddToHotbar");
+			case EGridItemActionType::DisarmTrap:
+				return TEXT("DisarmTrap");
 			case EGridItemActionType::None:
 			default:
 				return TEXT("None");
@@ -75,6 +78,8 @@ namespace
 				return TEXT("Door");
 			case EGridFacingTargetType::Mechanism:
 				return TEXT("Mechanism");
+			case EGridFacingTargetType::DungeonTrap:
+				return TEXT("DungeonTrap");
 			case EGridFacingTargetType::None:
 			default:
 				return TEXT("None");
@@ -318,6 +323,26 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	}
 
 	const bool bIsInventorySlotSource = ItemContext.InventorySlotIndex != INDEX_NONE && ItemContext.EquipmentSlot == EGridEquipmentSlot::None;
+    if (bIsInventorySlotSource && Definition &&
+        ItemContext.Item.ItemDefinitionId == FName(TEXT("Item_DisarmTools_01")) &&
+        HasItemTag(Definition, TEXT("Tool.Disarm")) &&
+        OutFacingTarget.bIsValid &&
+        OutFacingTarget.TargetType == EGridFacingTargetType::DungeonTrap &&
+        OutFacingTarget.bAcceptsCurrentItem &&
+        OutFacingTarget.TargetObjectId.IsValid())
+    {
+        UGridTurnManagerComponent* TurnManager =
+            ItemContext.PartyPawn->LevelRuntimeActor
+                ? ItemContext.PartyPawn->LevelRuntimeActor->FindComponentByClass<UGridTurnManagerComponent>()
+                : nullptr;
+        const bool bInCombat = IsValid(TurnManager) && TurnManager->bCombatActive;
+        AddAction(OutActions, EGridItemActionType::DisarmTrap,
+            NSLOCTEXT("GridItemActions", "DisarmTrap", "Désamorcer le piège"),
+            &OutFacingTarget, EGridEquipmentSlot::None, !bInCombat,
+            bInCombat ? NSLOCTEXT("GridItemActions", "DisarmOnlyInExploration",
+                "Désamorçage indisponible en combat.") : FText::GetEmpty());
+    }
+
 	const bool bIsEquipmentSlotSource = ItemContext.EquipmentSlot != EGridEquipmentSlot::None;
 	const EGridEquipmentSlot EffectiveEquipmentSlot =
 		ItemContext.EquipmentSlot != EGridEquipmentSlot::None ? ItemContext.EquipmentSlot : ItemContext.Item.EquipmentSlot;
@@ -443,6 +468,28 @@ bool UGridItemContextActionLibrary::ResolveFacingTarget(AGrimrockPartyPawn* Part
 	{
 		return false;
 	}
+
+    // Authored dungeon Triggers are data-only: unlike doors/locks they need
+    // not own a spawned mesh/actor, so a camera trace cannot select them.
+    // Resolve the single adjacent candidate through the grid authority first.
+    if (IsValid(ItemDefinition) &&
+        CurrentItem.ItemDefinitionId == FName(TEXT("Item_DisarmTools_01")) &&
+        HasItemTag(ItemDefinition, TEXT("Tool.Disarm")) &&
+        IsValid(PartyPawn->LevelRuntimeActor))
+    {
+        FGuid TrapId;
+        if (PartyPawn->LevelRuntimeActor->FindDisarmableTriggerTrapForParty(PartyPawn, TrapId))
+        {
+            OutFacingTarget.bIsValid = true;
+            OutFacingTarget.bAcceptsCurrentItem = true;
+            OutFacingTarget.TargetObjectId = TrapId;
+            OutFacingTarget.LevelObjectType = EGridLevelObjectType::Trigger;
+            OutFacingTarget.TargetType = EGridFacingTargetType::DungeonTrap;
+            return true;
+        }
+        // Tools cannot claim an ordinary world object as a disarmable trap.
+        return false;
+    }
 
 	const FVector TraceStart = PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : PartyPawn->GetActorLocation();
 	const FVector TraceEnd = TraceStart + PartyPawn->GetActorForwardVector() * FMath::Max(0.f, TraceDistance);
