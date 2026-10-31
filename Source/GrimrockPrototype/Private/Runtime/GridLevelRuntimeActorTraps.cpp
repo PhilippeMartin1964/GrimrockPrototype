@@ -178,9 +178,8 @@ bool AGridLevelRuntimeActor::TryRecordDungeonTrapDetection(FGuid TrapObjectId)
 
 void AGridLevelRuntimeActor::RefreshDungeonTrapRevealVisual(FGuid TrapObjectId)
 {
-    if (GetDungeonTrapState(TrapObjectId) == EGridDungeonTrapState::Hidden ||
-        GetDungeonTrapState(TrapObjectId) == EGridDungeonTrapState::Unknown ||
-        !IsValid(LevelAsset))
+    const EGridDungeonTrapState TrapState = GetDungeonTrapState(TrapObjectId);
+    if (TrapState == EGridDungeonTrapState::Unknown || !IsValid(LevelAsset))
     {
         return;
     }
@@ -194,7 +193,8 @@ void AGridLevelRuntimeActor::RefreshDungeonTrapRevealVisual(FGuid TrapObjectId)
     }
 
     AGridRuntimeObjectActor* Visual = FindRuntimeObjectActor<AGridRuntimeObjectActor>(TrapObjectId);
-    if (!IsValid(Visual) && Definition->RuntimeActorClass)
+    const bool bRevealed = TrapState != EGridDungeonTrapState::Hidden;
+    if (!IsValid(Visual) && bRevealed && Definition->RuntimeActorClass)
     {
         // This is the same normal world-object visual pipeline; its GUID
         // remains the original level instance. No secondary gameplay actor.
@@ -205,23 +205,26 @@ void AGridLevelRuntimeActor::RefreshDungeonTrapRevealVisual(FGuid TrapObjectId)
     {
         return; // No visual authored yet: gameplay discovery still persists.
     }
-    Visual->SetActorHiddenInGame(false);
+    Visual->SetActorHiddenInGame(!bRevealed);
     if (UStaticMeshComponent* Mesh = Visual->MeshComponent)
     {
         // Revealed visuals have mouse query collision only; the actor still
         // never blocks party movement. No collision exists for hidden traps.
         if (Visual->GetClass()->ImplementsInterface(UGridInteractableInterface::StaticClass()))
         {
-            Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+            Mesh->SetCollisionEnabled(bRevealed ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
             Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
             Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
         }
-        Mesh->SetRenderCustomDepth(true);
-        Mesh->SetCustomDepthStencilValue(252); // Explicit trap reveal stencil.
-        if (Definition->DungeonTrap.RevealedOverlayMaterial)
-        {
-            Mesh->SetOverlayMaterial(Definition->DungeonTrap.RevealedOverlayMaterial);
-        }
+        const FGridDungeonTrapDefinitionParams& Presentation = Definition->DungeonTrap;
+        const bool bDangerous = TrapState == EGridDungeonTrapState::Detected ||
+            (TrapState == EGridDungeonTrapState::Triggered && !Presentation.bOneShot);
+        const bool bHighlight = bDangerous && Presentation.bEnableDangerHighlight;
+        const bool bCustomDepth = bHighlight && Presentation.bUseDangerCustomDepth;
+        // Assign both active and inactive values: refresh must also remove old effects.
+        Mesh->SetOverlayMaterial(bHighlight ? Presentation.RevealedOverlayMaterial.Get() : nullptr);
+        Mesh->SetRenderCustomDepth(bCustomDepth);
+        Mesh->SetCustomDepthStencilValue(bCustomDepth ? FMath::Clamp(Presentation.DangerStencilValue, 3, 255) : 0);
     }
 }
 
@@ -233,8 +236,7 @@ void AGridLevelRuntimeActor::RestoreDungeonTrapRevealVisuals()
     }
     for (const FGridWorldObjectInstance& Object : LevelAsset->WorldObjectInstances)
     {
-        if (GetDungeonTrapState(Object.InstanceId) != EGridDungeonTrapState::Hidden &&
-            GetDungeonTrapState(Object.InstanceId) != EGridDungeonTrapState::Unknown)
+        if (GetDungeonTrapState(Object.InstanceId) != EGridDungeonTrapState::Unknown)
         {
             RefreshDungeonTrapRevealVisual(Object.InstanceId);
         }

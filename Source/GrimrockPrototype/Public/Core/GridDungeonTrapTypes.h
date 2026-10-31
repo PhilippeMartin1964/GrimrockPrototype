@@ -102,13 +102,27 @@ struct GRIMROCKPROTOTYPE_API FGridDungeonTrapDefinitionParams
         meta = (EditCondition = "bIsDungeonTrap", EditConditionHides))
     FName RequiredToolTag = TEXT("Tool.Disarm");
 
-    /** Presentation-only overlay on the spawned trap mesh after detection or
-     * activation. Supply a translucent red material in the asset, not C++.
-     * If unset, the discovered mesh remains visible with its base materials.
-     */
+    /** Presentation only: never changes detection, damage, collision or interaction. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dungeon Trap|Reveal",
         meta = (EditCondition = "bIsDungeonTrap", EditConditionHides))
+    bool bEnableDangerHighlight = true;
+
+    /** Optional danger overlay. Author color/intensity/opacity in a Material Instance.
+     * If unset, base materials remain; CustomDepth can still drive an authored postprocess.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dungeon Trap|Reveal",
+        meta = (EditCondition = "bIsDungeonTrap && bEnableDangerHighlight", EditConditionHides))
     TObjectPtr<UMaterialInterface> RevealedOverlayMaterial = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dungeon Trap|Reveal",
+        meta = (EditCondition = "bIsDungeonTrap && bEnableDangerHighlight", EditConditionHides))
+    bool bUseDangerCustomDepth = true;
+
+    /** 0 is unmarked; 1/2 are editor hover/selection. Runtime clamps to 3..255. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dungeon Trap|Reveal",
+        meta = (ClampMin = "3", ClampMax = "255",
+            EditCondition = "bIsDungeonTrap && bEnableDangerHighlight && bUseDangerCustomDepth", EditConditionHides))
+    int32 DangerStencilValue = 252;
 
     bool IsValidContract() const
     {

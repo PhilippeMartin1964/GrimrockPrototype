@@ -3,6 +3,11 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Engine/StaticMesh.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/Material.h"
+#include "MaterialDomain.h"
+#include "Runtime/GridGenericObjectActor.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "RPG/RPGSkillAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -37,6 +42,7 @@ bool FTRAP014BestMember::RunTest(const FString&)
         if (GEngine) GEngine->DestroyWorldContext(World);
     };
 
+    World->InitializeActorsForPlay(FURL());
     AGridLevelRuntimeActor* Runtime = World->SpawnActor<AGridLevelRuntimeActor>();
     AGrimrockPartyPawn* Party = World->SpawnActor<AGrimrockPartyPawn>();
     if (!TestNotNull(TEXT("Runtime"), Runtime) ||
@@ -61,6 +67,9 @@ bool FTRAP014BestMember::RunTest(const FString&)
     Def->SupportedType = EGridLevelObjectType::Trigger;
     Def->DungeonTrap.bIsDungeonTrap = true;
     Def->bCanBeDisarmed = true;
+    Def->RuntimeActorClass = AGridGenericObjectActor::StaticClass();
+    Def->StaticPart.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+    Def->DungeonTrap.RevealedOverlayMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
     Def->DisarmDifficulty = 40; // Impossible at the test party's level.
     Runtime->WorldObjectDefinitions.Add(Def);
 
@@ -73,6 +82,15 @@ bool FTRAP014BestMember::RunTest(const FString&)
     Level->WorldObjectInstances.Add(Trap);
     TestTrue(TEXT("Explicitly detected before any attempt"),
         Runtime->TryRecordDungeonTrapDetection(Trap.InstanceId));
+
+    AGridRuntimeObjectActor* Visual = Runtime->FindRuntimeObjectActor<AGridRuntimeObjectActor>(Trap.InstanceId);
+    if (!TestNotNull(TEXT("Detected trap visual"), Visual) || !TestNotNull(TEXT("Trap mesh"), Visual->MeshComponent.Get()))
+    {
+        Cleanup();
+        return false;
+    }
+    TestTrue(TEXT("Armed trap starts highlighted"), Visual->MeshComponent->bRenderCustomDepth);
+    TestTrue(TEXT("Armed trap starts with overlay"), Visual->MeshComponent->GetOverlayMaterial() != nullptr);
 
     UGridPartyInventoryComponent* Inventory = Party->PartyInventoryComponent;
     Inventory->PartyInventoryState.ActiveCharacters.SetNum(4);
@@ -223,6 +241,13 @@ bool FTRAP014BestMember::RunTest(const FString&)
         Runtime->TryDisarmTriggerTrap(Party, Trap.InstanceId, 0, Skill,
             SuccessRoll, Check, &UsedCharacter));
     TestTrue(TEXT("Easy disarm succeeds"), Check.bSuccess);
+    TestFalse(TEXT("Successful disarm immediately removes CustomDepth"), Visual->MeshComponent->bRenderCustomDepth);
+    TestNull(TEXT("Successful disarm immediately removes overlay"), Visual->MeshComponent->GetOverlayMaterial());
+    TestEqual(TEXT("Successful disarm clears stencil"), Visual->MeshComponent->CustomDepthStencilValue, 0);
+    TestFalse(TEXT("Disarmed model stays visible"), Visual->IsHidden());
+    TestEqual(TEXT("Disarmed mesh keeps mouse collision"), Visual->MeshComponent->GetCollisionEnabled(), ECollisionEnabled::QueryOnly);
+    TestTrue(TEXT("Disarmed mechanism remains clickable for status"),
+        IGridInteractableInterface::Execute_CanInteract(Visual, Party, Visual->MeshComponent));
     TestEqual(TEXT("Success still belongs to best character"), UsedCharacter, 1);
     TestTrue(TEXT("Success persists under trap GUID"),
         Runtime->IsTriggerTrapDisarmed(Trap.InstanceId));
