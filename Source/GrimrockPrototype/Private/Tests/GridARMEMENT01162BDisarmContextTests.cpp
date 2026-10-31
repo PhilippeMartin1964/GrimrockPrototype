@@ -155,8 +155,30 @@ bool FARMEMENT01162BDisarmContext::RunTest(const FString&)
     FGridWorldObjectInstance Duplicate = Trap;
     Duplicate.InstanceId = FGuid::NewGuid();
     Level->WorldObjectInstances.Add(Duplicate);
-    TestFalse(TEXT("Two traps in one cell are ambiguous and fail closed"),
+
+    // TRAP01.1: an undiscovered overlapping trap must never become an
+    // interactive candidate merely because another trap in the cell is known.
+    // The first target stays actionable; knowledge of the second is not leaked.
+    TestFalse(TEXT("Overlapping undiscovered trap remains hidden"),
+        Runtime->IsTriggerTrapDetected(Duplicate.InstanceId));
+    TestTrue(TEXT("Only the detected trap remains selectable"),
         Runtime->FindDisarmableTriggerTrapForParty(Party, Target));
+    TestEqual(TEXT("Hidden duplicate cannot replace the known target"),
+        Target, Trap.InstanceId);
+
+    TestTrue(TEXT("Second trap can be explicitly discovered"),
+        Runtime->TryRecordDungeonTrapDetection(Duplicate.InstanceId));
+    TestFalse(TEXT("Two detected traps in one cell are ambiguous and fail closed"),
+        Runtime->FindDisarmableTriggerTrapForParty(Party, Target));
+    TestFalse(TEXT("Ambiguity invalidates the selected GUID"), Target.IsValid());
+    UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, Facing, Actions);
+    TestFalse(TEXT("Ambiguous discovered traps offer no disarm action"),
+        Actions.ContainsByPredicate([](const FGridItemContextAction& A)
+        {
+            return A.ActionType == EGridItemActionType::DisarmTrap;
+        }));
+
+    DiscoveredState->DetectedTriggerTrapIds.Remove(Duplicate.InstanceId);
     Level->WorldObjectInstances.Pop();
 
     FGridLevelRuntimeState* State = Runtime->GetOrCreateRuntimeStateForCurrentLevel();

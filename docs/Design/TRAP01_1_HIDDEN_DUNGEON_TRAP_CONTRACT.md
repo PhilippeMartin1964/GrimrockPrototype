@@ -136,3 +136,23 @@ Et regressions précédentes :
 Ces filtres doivent être validés localement avant de commencer TRAP01.2.
 Aucun fichier binaire `.uasset`, objet de palette ou map `L_Dungeon`
 n'est modifié automatiquement par ce jalon.
+
+## 7. Correctif de régression du 31.10.2026
+
+La validation locale de `Grimrock.TRAP01.1` a réussi (2/2, 0 avertissement).
+Le filtre `Grimrock.RPG.ARMEMENT01.16.Trap` a échoué dans
+`ContextAndTargeting` : le test d'ambiguïté ajoutait un second piège dans
+la même case sans enregistrer sa découverte. Avec le verrou de confidentialité
+introduit dans ARMEMENT01.16.2A/2B, **un piège inconnu ne fait pas partie des
+cibles interactives**. Le runtime sélectionnait correctement le seul piège connu.
+
+Le test corrigé couvre désormais explicitement les deux situations :
+
+- Un piège détecté et un piège caché dans la même case : seul le piège
+  détecté est sélectionnable ; le second reste inconnu.
+- Deux pièges **détectés** dans la même case : la sélection est ambiguë,
+  l'identifiant de cible est invalidé et l'action de désamorçage n'est pas proposée.
+
+Aucune logique de runtime ni aucune règle de gameplay n'est modifiée par
+ce correctif ; seul le test de régression est adapté au contrat approuvé.
+Relancer les filtres ARMEMENT01.16.Trap sans recompiler les assets.
