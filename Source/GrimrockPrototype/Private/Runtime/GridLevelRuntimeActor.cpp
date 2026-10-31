@@ -8,6 +8,7 @@
 #include "Core/GridTypes.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
+#include "Core/GridDungeonTrapPitUtils.h"
 #include "Runtime/GridPlacementTransformResolver.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridActivationComponent.h"
@@ -382,6 +383,39 @@ bool AGridLevelRuntimeActor::ShouldSuppressStandardWallForEdge(int32 X, int32 Y,
 	return false;
 }
 
+bool AGridLevelRuntimeActor::IsPitConcealedByFloorTrap(const FGridWorldObjectInstance& Pit) const
+{
+	if (!LevelAsset || !IsEffectivePitObject(Pit)) return false;
+	const FGridWorldObjectInstance* Trap = GridDungeonTrapPit::FindUsingTrap(*LevelAsset, Pit);
+	if (!Trap) return false;
+	const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(Trap->WorldObjectDefinitionId);
+	const UGridWorldObjectDefinitionAsset* PitDefinition = FindWorldObjectDefinition(Pit.WorldObjectDefinitionId);
+	return PitDefinition && PitDefinition->HasCompletePitTrapdoorCover() &&
+		Definition && Definition->DungeonTrap.bIsDungeonTrap &&
+		Definition->PlacementSurface == EGridObjectPlacementKind::Floor;
+}
+
+void AGridLevelRuntimeActor::RefreshConcealedPitCellFloor(const FGridWorldObjectInstance& Pit)
+{
+	if (!FloorISM || !LevelAsset || !IsPitConcealedByFloorTrap(Pit)) return;
+	const float Size = LevelAsset->CellSize;
+	const FVector Expected = CellToWorld(Pit.CellX, Pit.CellY, 0.f) + FVector(Size * 0.5f, Size * 0.5f, 0.f);
+	int32 ExistingIndex = INDEX_NONE;
+	for (int32 Index = 0; Index < FloorISM->GetInstanceCount(); ++Index)
+	{
+		FTransform Transform;
+		if (FloorISM->GetInstanceTransform(Index, Transform, false) &&
+			Transform.GetLocation().Equals(Expected, 0.1f))
+		{
+			ExistingIndex = Index;
+			break;
+		}
+	}
+	const bool bShouldHaveFloor = !ShouldHideCellFloor(Pit.CellX, Pit.CellY);
+	if (!bShouldHaveFloor && ExistingIndex != INDEX_NONE) FloorISM->RemoveInstance(ExistingIndex);
+	else if (bShouldHaveFloor && ExistingIndex == INDEX_NONE) AddFloor(Pit.CellX, Pit.CellY, Size);
+}
+
 bool AGridLevelRuntimeActor::ShouldHideCellFloor(int32 CellX, int32 CellY) const
 {
 	if (!LevelAsset)
@@ -399,6 +433,14 @@ bool AGridLevelRuntimeActor::ShouldHideCellFloor(int32 CellX, int32 CellY) const
 		const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(ObjectData.WorldObjectDefinitionId);
 		if (Definition && Definition->bHideCellFloor)
 		{
+			// A closed trap-associated Pit must be indistinguishable from
+			// an ordinary floor: leave its FloorISM tile in place.
+			if (IsEffectivePitObject(ObjectData) &&
+				IsPitConcealedByFloorTrap(ObjectData) &&
+				!IsPitOpenForLevel(CurrentDungeonLevelId, ObjectData))
+			{
+				continue;
+			}
 			return true;
 		}
 	}
@@ -1393,6 +1435,8 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 		return;
 	}
 
+	RefreshConcealedPitCellFloor(*PitObject);
+
 	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridPit gameplay state settled ObjectId=%s Cell=(%d,%d) Previous=%s New=%s"), *PitObjectId.ToString(),
 		PitObject->CellX, PitObject->CellY, bWasOpen ? TEXT("Open") : TEXT("Closed"), bIsOpen ? TEXT("Open") : TEXT("Closed"));
 
@@ -2098,6 +2142,7 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridWorldObjectInstanc
 	{
 		PitActor->OnPitAnimationFinished.AddUObject(this, &AGridLevelRuntimeActor::HandlePitTrapdoorAnimationFinished);
 		PitActor->SnapPitOpenState(IsPitOpenForLevel(CurrentDungeonLevelId, ObjectData));
+		PitActor->SetConcealedByFloorTrap(IsPitConcealedByFloorTrap(ObjectData));
 	}
 	if (ActivationComponent)
 	{

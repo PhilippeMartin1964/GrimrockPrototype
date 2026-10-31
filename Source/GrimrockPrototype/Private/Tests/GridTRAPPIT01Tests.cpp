@@ -129,6 +129,7 @@ bool FGridTRAPPIT01Runtime::RunTest(const FString&)
     PitDef->DefinitionId = TEXT("TRAPPIT_Covered");
     PitDef->SupportedType = EGridLevelObjectType::Pit;
     PitDef->PlacementSurface = EGridObjectPlacementKind::Floor;
+    PitDef->bHideCellFloor = true;
     PitDef->MovingParts.SetNum(2);
     PitDef->MovingParts[0].Mesh = NewObject<UStaticMesh>(Runtime);
     PitDef->MovingParts[1].Mesh = NewObject<UStaticMesh>(Runtime);
@@ -168,9 +169,11 @@ bool FGridTRAPPIT01Runtime::RunTest(const FString&)
 
     FRandomStream Dice(91);
     TestFalse(TEXT("Pit starts closed"), Runtime->IsPitOpen(PitId));
+    TestFalse(TEXT("Hidden closed Pit preserves regular floor"), Runtime->ShouldHideCellFloor(2, 2));
     TestEqual(TEXT("Floor trap activates once"),
         Runtime->TriggerDungeonTrapsOnPartyEnterCell(Party, 2, 2, Dice), 1);
     TestTrue(TEXT("Floor trap opened colocated PIT03"), Runtime->IsPitOpen(PitId));
+    TestTrue(TEXT("Opened Pit removes ordinary floor"), Runtime->ShouldHideCellFloor(2, 2));
     TestEqual(TEXT("Trap triggered state retained"), Runtime->GetDungeonTrapState(TrapId),
         EGridDungeonTrapState::Triggered);
     TestEqual(TEXT("Damage applied before Pit opens"),
@@ -195,6 +198,7 @@ bool FGridTRAPPIT01Runtime::RunTest(const FString&)
         Restored->WorldObjectDefinitions.Add(PitDef);
         Restored->DungeonRuntimeState = SavedState;
         TestTrue(TEXT("Open Pit survives runtime state restoration"), Restored->IsPitOpen(PitId));
+        TestTrue(TEXT("Restored opened Pit removes ordinary floor"), Restored->ShouldHideCellFloor(2, 2));
         TestEqual(TEXT("Triggered trap survives runtime state restoration"),
             Restored->GetDungeonTrapState(TrapId), EGridDungeonTrapState::Triggered);
     }

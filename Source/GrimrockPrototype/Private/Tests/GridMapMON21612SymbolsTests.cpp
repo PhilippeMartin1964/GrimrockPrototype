@@ -178,29 +178,49 @@ bool FGridMapTRAPMap01Test::RunTest(const FString& Parameters)
 	UGridLevelAsset* Level = MakeOpenLevel(GetTransientPackage());
 	UGridWorldObjectDefinitionAsset* Def = MakeDefinition(Level, TEXT("MapTrap"), EGridLevelObjectType::Trigger);
 	Def->DungeonTrap.bIsDungeonTrap = true;
-	const FGridWorldObjectInstance Known =
+	FGridWorldObjectInstance Known =
 		MakeObject(Def->DefinitionId, EGridLevelObjectType::Trigger, FIntPoint(8, 8));
+	Known.InstanceConfig.DungeonTrap.bOpenPitOnTrigger = true;
+	Def->PlacementSurface = EGridObjectPlacementKind::Floor;
+	UGridWorldObjectDefinitionAsset* PitDef =
+		MakeDefinition(Level, TEXT("ConcealedPit"), EGridLevelObjectType::Pit, EGridMapSymbolStyle::Pit);
+	FGridWorldObjectInstance Pit =
+		MakeObject(PitDef->DefinitionId, EGridLevelObjectType::Pit, FIntPoint(8, 8));
+	Pit.InstanceConfig.Pit.bInitiallyOpen = false;
 	const FGridWorldObjectInstance Unexplored =
 		MakeObject(Def->DefinitionId, EGridLevelObjectType::Trigger, FIntPoint(9, 9));
 	Level->WorldObjectInstances.Add(Known);
 	Level->WorldObjectInstances.Add(Unexplored);
+	Level->WorldObjectInstances.Add(Pit);
 	FGridLevelRuntimeState State;
 	State.LevelId = TEXT("TrapMap");
 	bool bNew = false;
 	State.MapExploration.TryMarkExplored(FIntPoint(8, 8), bNew);
-	const TArray<TObjectPtr<UGridWorldObjectDefinitionAsset>> Defs = { Def };
+	const TArray<TObjectPtr<UGridWorldObjectDefinitionAsset>> Defs = { Def, PitDef };
 	FGridMapTileView View;
 	TestTrue(TEXT("Unknown map builds"), FGridMapReadModelBuilder::BuildTileView(State.LevelId, *Level, State, Defs, nullptr, View));
 	TestFalse(TEXT("Exploration cannot disclose hidden traps"), HasTileSymbol(View, FIntPoint(8, 8), EGridMapSymbolKind::Trap));
+	TestFalse(TEXT("Hidden associated Pit must not appear on map"),
+		HasTileSymbol(View, FIntPoint(8, 8), EGridMapSymbolKind::Pit));
 	State.DetectedTriggerTrapIds.Add(Known.InstanceId);
 	State.TriggeredTriggerTrapIds.Add(Unexplored.InstanceId);
 	TestTrue(TEXT("Known map builds"), FGridMapReadModelBuilder::BuildTileView(State.LevelId, *Level, State, Defs, nullptr, View));
 	TestTrue(TEXT("Detected trap is mapped"), HasTileSymbol(View, FIntPoint(8, 8), EGridMapSymbolKind::Trap));
+	TestFalse(TEXT("Detected trap does not expose still-closed Pit"),
+		HasTileSymbol(View, FIntPoint(8, 8), EGridMapSymbolKind::Pit));
 	TestFalse(TEXT("Unexplored triggered trap stays hidden"), HasTileSymbol(View, FIntPoint(9, 9), EGridMapSymbolKind::Trap));
 	State.DetectedTriggerTrapIds.Remove(Known.InstanceId);
 	State.DisarmedTriggerTrapIds.Add(Known.InstanceId);
 	TestTrue(TEXT("Disarmed map builds"), FGridMapReadModelBuilder::BuildTileView(State.LevelId, *Level, State, Defs, nullptr, View));
 	TestTrue(TEXT("Disarmed trap stays mapped"), HasTileSymbol(View, FIntPoint(8, 8), EGridMapSymbolKind::Trap));
+	FGridRuntimePitState& PitState = State.Pits.FindOrAdd(Pit.InstanceId);
+	PitState.ObjectId = Pit.InstanceId;
+	PitState.bIsOpen = true;
+	TestTrue(TEXT("Opened Pit map builds"), FGridMapReadModelBuilder::BuildTileView(State.LevelId, *Level, State, Defs, nullptr, View));
+	TestTrue(TEXT("Opened associated Pit replaces hidden trap symbol"),
+		HasTileSymbol(View, FIntPoint(8, 8), EGridMapSymbolKind::Pit));
+	TestFalse(TEXT("No double marker after Pit opens"),
+		HasTileSymbol(View, FIntPoint(8, 8), EGridMapSymbolKind::Trap));
 	return true;
 }
 

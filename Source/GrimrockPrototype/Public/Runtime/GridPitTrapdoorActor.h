@@ -39,6 +39,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Pit")
 	void SnapPitOpenState(bool bOpen);
 
+	/** Visual-only concealment for a PIT03 bound to a hidden floor trap. */
+	void SetConcealedByFloorTrap(bool bEnabled);
+
 	UFUNCTION(BlueprintPure, Category = "Pit")
 	bool IsPitOpenVisualState() const { return bIsOpen; }
 
@@ -95,11 +98,13 @@ protected:
 	void UpdateAnimation(float DeltaSeconds);
 	void ApplyOpenAlpha(float Alpha);
 	void RefreshTrapdoorCollision();
+	void RefreshConcealedFloorTrapVisuals();
 	void RefreshTickEnabled();
 	void StartPitMotionSound(bool bOpening, float StartTimeSeconds, bool bEnableNativePlayback);
 	void StopPitMotionSound();
 
 private:
+	bool bConcealedByFloorTrap = false;
 	float MoveStartAlpha = 1.0f;
 	float MoveTargetAlpha = 1.0f;
 	float MoveElapsed = 0.0f;

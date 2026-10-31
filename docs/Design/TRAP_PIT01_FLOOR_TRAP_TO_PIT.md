@@ -65,3 +65,47 @@ la compilation et ces vérifications.
 
 Note : le read-model de la carte garde les symboles Pit et Trap distincts ;
 la priorité visuelle de superposition reste à traiter avec le retour PIE.
+
+## TRAP-PIT01.1 — Camouflage en PIE et sélection des objets superposés
+
+Le TRAP-PIT01 initial était difficile à éditer et rendait visible une fosse
+qui devrait être secrète. **Correctif :** lorsqu'un piège au sol placé porte
+`Ouvrir une fosse au déclenchement`, une fosse PIT03 contrôlée (deux volets)
+associée sur sa case est **visuellement dissimulée tant qu'elle est fermée**.
+
+### Configuration dans le Grid Editor
+
+1. Posez un piège de type **sol** et une seule fosse PIT03 à deux volets
+   **sur la même case**. Ne remplacez pas la case par une `CellType::Pit`
+   statique.
+2. Dans **Overview Map → Selected Cell → Objects on Cell**, les deux objets
+   disposent chacun d'un bouton **Select**. Le clic dans le viewport
+   privilégie maintenant le piège de sol lorsqu'il est superposé à une fosse.
+3. Sélectionnez le piège, puis activez **Ouvrir une fosse au déclenchement**.
+   Utilisez le nouveau bouton **Configurer la fosse associée** pour accéder
+   aux réglages de la fosse. Un bouton inverse permet de revenir au piège.
+4. Sur la fosse : **Open at Start = false**, **Use Same Cell Coordinates =
+   true** si chute verticale, et **Relocation → Destination Level** vers
+   le niveau inférieur (ou `None` pour l'étage inférieur automatique).
+5. Enregistrez le LevelAsset. En PIE, une case encore armée conserve son
+   **sol normal** ; le cadre et les deux volets PIT03 restent cachés.
+   Après déclenchement, le sol se retire, la fosse apparaît puis le groupe
+   chute par PIT01. Une fosse normale non associée n'est pas modifiée.
+
+Sur la carte explorée, la fosse secrète n'apparaît pas tant qu'elle est
+fermée, y compris après découverte d'un piège détecté. Après ouverture,
+le marqueur de fosse remplace celui du piège au lieu de se superposer.
+
+L'architecture conserve deux placements typés (Trigger + Pit) dans la même
+case, mais leur navigation est explicite et l'apparence de la fosse est
+gérée comme un élément du piège. Les réglages restent **propres à chaque
+placement**, sans modification du DataAsset partagé.
+
+### Tests de régression
+
+`Grimrock.TRAP_PIT01` : secret de la fosse, suppression du sol à l'ouverture,
+déclenchement et restauration des états ; `Grimrock.Map.TRAP_MAP01` :
+non-divulgation, découverte et priorité Pit ; `Grimrock.Pit.PIT03` :
+aucune altération d'une fosse ordinaire.
+
+**Compilation UE5.5.4 et recette PIE obligatoires avant validation.**

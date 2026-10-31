@@ -267,6 +267,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Rendering")
 	bool ShouldHideCellFloor(int32 CellX, int32 CellY) const;
 
+	/** A linked, still-closed floor trap hides its PIT03, not the normal floor. */
+	bool IsPitConcealedByFloorTrap(const FGridWorldObjectInstance& Pit) const;
+	void RefreshConcealedPitCellFloor(const FGridWorldObjectInstance& Pit);
+
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Rendering")
 	bool ShouldHideCellCeiling(int32 CellX, int32 CellY) const;
 

@@ -99,6 +99,21 @@ FVector AGridPitTrapdoorActor::GetRightHingeLocation() const
 	return GetMovingPartMotion(1).Pivot;
 }
 
+void AGridPitTrapdoorActor::SetConcealedByFloorTrap(bool bEnabled)
+{
+	bConcealedByFloorTrap = bEnabled;
+	RefreshConcealedFloorTrapVisuals();
+	RefreshTrapdoorCollision();
+}
+
+void AGridPitTrapdoorActor::RefreshConcealedFloorTrapVisuals()
+{
+	const bool bVisible = !bConcealedByFloorTrap || bIsOpen || bTargetOpen || bIsAnimating;
+	if (FixedMeshComponent) FixedMeshComponent->SetVisibility(bVisible, true);
+	if (MovingMeshComponent) MovingMeshComponent->SetVisibility(bVisible, true);
+	if (RightLeafMeshComponent) RightLeafMeshComponent->SetVisibility(bVisible, true);
+}
+
 void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 {
 	if (!HasCompleteTrapdoorCover())
@@ -118,6 +133,7 @@ void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 	}
 
 	bTargetOpen = bOpen;
+	RefreshConcealedFloorTrapVisuals();
 	const float DirectionDuration = FMath::Max(0.0f,
 		FMath::Max(GetMovingPartMotion(0).GetDuration(!bOpen), GetMovingPartMotion(1).GetDuration(!bOpen)));
 	if (DirectionDuration <= KINDA_SMALL_NUMBER)
@@ -183,6 +199,7 @@ void AGridPitTrapdoorActor::SnapPitOpenState(bool bOpen)
 	CurrentMoveDuration = 0.0f;
 
 	ApplyOpenAlpha(CurrentOpenAlpha);
+	RefreshConcealedFloorTrapVisuals();
 	RefreshTrapdoorCollision();
 	RefreshTickEnabled();
 }
@@ -217,6 +234,7 @@ void AGridPitTrapdoorActor::UpdateAnimation(float DeltaSeconds)
 	CurrentMoveDuration = 0.0f;
 
 	ApplyOpenAlpha(CurrentOpenAlpha);
+	RefreshConcealedFloorTrapVisuals();
 	RefreshTrapdoorCollision();
 	RefreshTickEnabled();
 
@@ -235,7 +253,7 @@ void AGridPitTrapdoorActor::ApplyOpenAlpha(float Alpha)
 
 void AGridPitTrapdoorActor::RefreshTrapdoorCollision()
 {
-	const bool bEnableCollision = !bIsOpen && !bIsAnimating && HasCompleteTrapdoorCover();
+	const bool bEnableCollision = !bConcealedByFloorTrap && !bIsOpen && !bIsAnimating && HasCompleteTrapdoorCover();
 	const ECollisionEnabled::Type CollisionMode = bEnableCollision ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision;
 
 	if (MovingMeshComponent)

@@ -26,5 +26,25 @@ namespace GridDungeonTrapPit
             OutPitId = Candidate.InstanceId;
         }
         return OutPitId.IsValid();
+    }    /** Returns one configured trigger whose floor-Pit relation is unambiguous. */
+    inline const FGridWorldObjectInstance* FindUsingTrap(
+        const UGridLevelAsset& Level, const FGridWorldObjectInstance& Pit)
+    {
+        if (Pit.Type != EGridLevelObjectType::Pit || !Pit.InstanceId.IsValid())
+            return nullptr;
+        const FGridWorldObjectInstance* Owner = nullptr;
+        for (const FGridWorldObjectInstance& Candidate : Level.WorldObjectInstances)
+        {
+            if (Candidate.Type != EGridLevelObjectType::Trigger ||
+                !Candidate.InstanceConfig.DungeonTrap.bOpenPitOnTrigger)
+                continue;
+            FGuid LinkedPitId;
+            if (!FindUniqueSameCellPit(Level, Candidate, LinkedPitId) ||
+                LinkedPitId != Pit.InstanceId)
+                continue;
+            if (Owner) return nullptr;
+            Owner = &Candidate;
+        }
+        return Owner;
     }
 }

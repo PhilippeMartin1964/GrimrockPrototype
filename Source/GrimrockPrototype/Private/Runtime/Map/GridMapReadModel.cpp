@@ -3,6 +3,7 @@
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridDungeonTrapPitUtils.h"
 #include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridDoorActor.h"
@@ -502,7 +503,17 @@ bool FGridMapReadModelBuilder::BuildTileView(
 				LevelState.DisabledTriggerTrapIds.Contains(Instance.InstanceId);
 			if (bKnown)
 			{
-				AddSymbolUnique(OutView.Symbols, Cell, EGridMapSymbolKind::Trap);
+				// An open trap-associated Pit supersedes the trap symbol.
+				FGuid PitId;
+				const bool bLinked = (*TrapDef)->PlacementSurface == EGridObjectPlacementKind::Floor &&
+					Instance.InstanceConfig.DungeonTrap.bOpenPitOnTrigger &&
+					GridDungeonTrapPit::FindUniqueSameCellPit(LevelAsset, Instance, PitId);
+				const FGridRuntimePitState* PitState = bLinked ? LevelState.Pits.Find(PitId) : nullptr;
+				const FGridWorldObjectInstance* Pit = bLinked ? LevelAsset.FindWorldObjectInstanceById(PitId) : nullptr;
+				const bool bPitOpen = PitState ? PitState->bIsOpen :
+					Pit && Pit->InstanceConfig.Pit.bInitiallyOpen;
+				if (!bPitOpen)
+					AddSymbolUnique(OutView.Symbols, Cell, EGridMapSymbolKind::Trap);
 			}
 			continue;
 		}
@@ -525,6 +536,19 @@ bool FGridMapReadModelBuilder::BuildTileView(
 		{
 			if (ResolveGameplayType(Instance, DefinitionById) == EGridLevelObjectType::Pit)
 			{
+				// A concealed floor-trigger/PIT03 pairing must not be exposed by
+				// the cartography merely because the cell was explored.
+				if (const FGridWorldObjectInstance* Trap = GridDungeonTrapPit::FindUsingTrap(LevelAsset, Instance))
+				{
+					const UGridWorldObjectDefinitionAsset* const* Def = DefinitionById.Find(Trap->WorldObjectDefinitionId);
+					if (Def && *Def && (*Def)->DungeonTrap.bIsDungeonTrap &&
+						(*Def)->PlacementSurface == EGridObjectPlacementKind::Floor)
+					{
+						const FGridRuntimePitState* PitState = LevelState.Pits.Find(Instance.InstanceId);
+						const bool bPitOpen = PitState ? PitState->bIsOpen : Instance.InstanceConfig.Pit.bInitiallyOpen;
+						if (!bPitOpen) continue;
+					}
+				}
 				AddSymbolUnique(OutView.Symbols, Cell, EGridMapSymbolKind::Pit);
 			}
 			continue;

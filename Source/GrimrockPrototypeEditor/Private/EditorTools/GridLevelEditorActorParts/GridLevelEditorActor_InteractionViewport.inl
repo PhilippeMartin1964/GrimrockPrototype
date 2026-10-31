@@ -1,3 +1,5 @@
+#include "Core/GridDungeonTrapPitUtils.h"
+
 bool AGridLevelEditorActor::HasAnyObjectInSelectedCell() const
 {
 	if (!HasValidLevelAsset() || !IsValidSelectedCell())
@@ -107,6 +109,23 @@ bool AGridLevelEditorActor::UpdateHoveredObjectFromWorldPoint(const FVector& Wor
 
 	for (const FGridWorldObjectInstance& Instance : LevelAsset->WorldObjectInstances)
 	{
+		// In a paired floor trap the Pit is an implementation detail.
+		// Prefer the Trap on viewport click; the Pit remains selectable from
+		// the Selected Cell list or from the trap inspector shortcut.
+		if (Instance.Type == EGridLevelObjectType::Pit)
+		{
+			const bool bSharesFloorTrap = LevelAsset->WorldObjectInstances.ContainsByPredicate(
+				[this, &Instance](const FGridWorldObjectInstance& Other)
+				{
+					if (Other.Type != EGridLevelObjectType::Trigger ||
+						Other.CellX != Instance.CellX || Other.CellY != Instance.CellY) return false;
+					const UGridWorldObjectDefinitionAsset* Definition =
+						FindWorldObjectDefinitionById(Other.WorldObjectDefinitionId);
+					return Definition && Definition->DungeonTrap.bIsDungeonTrap &&
+						Definition->PlacementSurface == EGridObjectPlacementKind::Floor;
+				});
+			if (bSharesFloorTrap) continue;
+		}
 		ConsiderObject(Instance.InstanceId);
 	}
 	for (const FGridLooseItemInstance& Instance : LevelAsset->LooseItemInstances)
