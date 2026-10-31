@@ -9,6 +9,7 @@
 #include "EditorTools/Widgets/SGridEditorPressurePlateInstancePanel.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridDungeonTrapInstanceUtils.h"
 #include "Core/GridObjectBehavior.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
@@ -372,138 +373,148 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Interactable")), GetBoolText(Definition->bIsInteractable))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Readable")), GetBoolText(Definition->bIsReadable))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Light Source")), GetBoolText(Definition->bIsLightSource))];
+
 		if (Definition->DungeonTrap.bIsDungeonTrap)
 		{
-			const FGridDungeonTrapDefinitionParams& Trap = Definition->DungeonTrap;
-			Root->AddSlot().AutoHeight()[SNew(STextBlock)
-				.Text(NSLOCTEXT("TrapEditor", "SharedDefinition", "Piège — modification du DataAsset partagé (toutes ses instances)"))
-				.AutoWrapText(true)];
-			auto Apply = [this, Obj](TFunction<void(UGridWorldObjectDefinitionAsset&)> Set)
+			// All edits affect the selected placed object, NOT the shared Definition.
+			const FGridWorldObjectInstance* Instance = GetWorldObjectInstance(CurrentEditorActor, Obj);
+			if (Instance)
 			{
-				AGridLevelEditorActor* Editor = GetEditorActor();
-				if (!Editor || !Editor->LevelAsset || Editor->LastSelectedObjectId != Obj) return;
-				const UGridWorldObjectDefinitionAsset* Def = GetWorldObjectDefinition(Editor, Obj);
-				if (!Def || !Def->DungeonTrap.bIsDungeonTrap) return;
-				UGridWorldObjectDefinitionAsset* Mutable = const_cast<UGridWorldObjectDefinitionAsset*>(Def);
-				const FScopedTransaction Tx(NSLOCTEXT("TrapEditor", "ChangeTrap", "Modifier la définition du piège"));
-				Mutable->Modify();
-				Set(*Mutable);
-				Mutable->MarkPackageDirty();
-				Editor->RebuildPreview();
-				RequestRefresh();
-			};
-			auto AddNumber = [&Root, Apply](const FText& Label, int32 Value, int32 Min, int32 Max,
-				TFunction<void(UGridWorldObjectDefinitionAsset&, int32)> Set)
-			{
-				Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
-					Label, SNew(SSpinBox<int32>)
-					.Value(Value).MinValue(Min).MaxValue(Max)
-					.MinSliderValue(Min).MaxSliderValue(Max).Delta(1)
-					.OnValueCommitted_Lambda([Apply, Set](int32 V, ETextCommit::Type)
+				const FGridDungeonTrapDefinitionParams Trap = GridDungeonTrapInstance::Resolve(*Instance, *Definition);
+				const int32 DisarmDC = GridDungeonTrapInstance::ResolveDisarmDifficulty(*Instance, *Definition);
+				Root->AddSlot().AutoHeight()[SNew(STextBlock).AutoWrapText(true)
+					.Text(NSLOCTEXT("TrapEditor", "LocalInstance", "Piège placé — réglages individuels (LevelAsset)"))];
+				auto Apply = [this, Obj](TFunction<void(FGridDungeonTrapInstanceOverrides&)> Setter)
+				{
+					const FScopedTransaction Transaction(NSLOCTEXT("TrapEditor", "SetInstance", "Modifier le piège placé"));
+					EditWorldObjectConfig(Obj, [Setter](FGridWorldObjectInstanceConfig& Config)
 					{
-						Apply([Set, V](UGridWorldObjectDefinitionAsset& D) { Set(D, V); });
-					}))];
-			};
-			AddNumber(NSLOCTEXT("TrapEditor", "DetectDC", "Difficulté de détection"),
-				Trap.DetectionDifficulty, 1, 40,
-				[](UGridWorldObjectDefinitionAsset& D, int32 V) { D.DungeonTrap.DetectionDifficulty = V; });
-			AddNumber(NSLOCTEXT("TrapEditor", "DetectRange", "Portée maximale de détection (cases)"),
-				Trap.MaxDetectionRangeCells, 1, 4,
-				[](UGridWorldObjectDefinitionAsset& D, int32 V) { D.DungeonTrap.MaxDetectionRangeCells = V; });
-			AddNumber(NSLOCTEXT("TrapEditor", "DisarmDC", "Difficulté de désamorçage"),
-				Definition->DisarmDifficulty, 1, 40,
-				[](UGridWorldObjectDefinitionAsset& D, int32 V) { D.DisarmDifficulty = V; });
-			AddNumber(NSLOCTEXT("TrapEditor", "MinDamage", "Dégâts minimum"),
-				Trap.MinimumDamage, 0, 9999,
-				[](UGridWorldObjectDefinitionAsset& D, int32 V)
+						Setter(Config.DungeonTrap);
+					});
+				};
+				auto AddNumber = [&Root, Apply](
+					const FText& Label, int32 Value, int32 Min, int32 Max,
+					TFunction<void(FGridDungeonTrapInstanceOverrides&, int32)> Setter)
 				{
-					D.DungeonTrap.MinimumDamage = V;
-					D.DungeonTrap.MaximumDamage = FMath::Max(V, D.DungeonTrap.MaximumDamage);
-				});
-			AddNumber(NSLOCTEXT("TrapEditor", "MaxDamage", "Dégâts maximum"),
-				Trap.MaximumDamage, 0, 9999,
-				[](UGridWorldObjectDefinitionAsset& D, int32 V)
-				{
-					D.DungeonTrap.MaximumDamage = V;
-					D.DungeonTrap.MinimumDamage = FMath::Min(V, D.DungeonTrap.MinimumDamage);
-			});
-			const auto DamageLabel = [](EGridDamageType T) -> FText
-			{
-				switch (T)
-				{
-					case EGridDamageType::Physical: return NSLOCTEXT("TrapEditor", "Physical", "Physiques");
-					case EGridDamageType::Fire: return NSLOCTEXT("TrapEditor", "Fire", "Feu");
-					case EGridDamageType::Ice: return NSLOCTEXT("TrapEditor", "Ice", "Glace");
-					case EGridDamageType::Lightning: return NSLOCTEXT("TrapEditor", "Lightning", "Électricité");
-					case EGridDamageType::Poison: return NSLOCTEXT("TrapEditor", "Poison", "Poison");
-					case EGridDamageType::Holy: return NSLOCTEXT("TrapEditor", "Holy", "Sacrés");
-					case EGridDamageType::Necrotic: return NSLOCTEXT("TrapEditor", "Necrotic", "Nécrotiques");
-					case EGridDamageType::Arcane: return NSLOCTEXT("TrapEditor", "Arcane", "Arcaniques");
-					default: return FText::GetEmpty();
-				}
-			};
-			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
-				NSLOCTEXT("TrapEditor", "DamageType", "Type de dégâts"),
-				SNew(SComboButton)
-				.OnGetMenuContent_Lambda([Apply, DamageLabel]()
-				{
-					FMenuBuilder Menu(true, nullptr);
-					for (EGridDamageType Type : { EGridDamageType::Physical, EGridDamageType::Fire,
-						EGridDamageType::Ice, EGridDamageType::Lightning, EGridDamageType::Poison,
-						EGridDamageType::Holy, EGridDamageType::Necrotic, EGridDamageType::Arcane })
+					Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
+						Label, SNew(SSpinBox<int32>)
+						.Value(Value).MinValue(Min).MaxValue(Max)
+						.MinSliderValue(Min).MaxSliderValue(Max).Delta(1)
+						.OnValueCommitted_Lambda([Apply, Setter](int32 V, ETextCommit::Type)
+						{
+							Apply([Setter, V](FGridDungeonTrapInstanceOverrides& O) { Setter(O, V); });
+						}))];
+				};
+				AddNumber(NSLOCTEXT("TrapEditor", "DetectDC", "Difficulté de détection"),
+					Trap.DetectionDifficulty, 1, 40,
+					[](FGridDungeonTrapInstanceOverrides& O, int32 V)
+					{ O.bOverrideDetectionDifficulty = true; O.DetectionDifficulty = V; });
+				AddNumber(NSLOCTEXT("TrapEditor", "DetectRange", "Portée de détection (cases)"),
+					Trap.MaxDetectionRangeCells, 1, 4,
+					[](FGridDungeonTrapInstanceOverrides& O, int32 V)
+					{ O.bOverrideMaxDetectionRangeCells = true; O.MaxDetectionRangeCells = V; });
+				AddNumber(NSLOCTEXT("TrapEditor", "DisarmDC", "Difficulté de désamorçage"),
+					DisarmDC, 1, 40,
+					[](FGridDungeonTrapInstanceOverrides& O, int32 V)
+					{ O.bOverrideDisarmDifficulty = true; O.DisarmDifficulty = V; });
+				AddNumber(NSLOCTEXT("TrapEditor", "MinDamage", "Dégâts minimum"),
+					Trap.MinimumDamage, 0, 9999,
+					[MaxDamage = Trap.MaximumDamage](FGridDungeonTrapInstanceOverrides& O, int32 V)
 					{
-						Menu.AddMenuEntry(DamageLabel(Type), FText::GetEmpty(), FSlateIcon(),
-							FUIAction(FExecuteAction::CreateLambda([Apply, Type]()
-							{
-								Apply([Type](UGridWorldObjectDefinitionAsset& D)
-								{
-									D.DungeonTrap.DamageType = Type;
-									D.DungeonTrap.PhysicalSubtype = Type == EGridDamageType::Physical
-										? EGridPhysicalDamageSubtype::Piercing : EGridPhysicalDamageSubtype::None;
-								});
-							})));
-					}
-					return Menu.MakeWidget();
-				})
-				.ButtonContent()[SNew(STextBlock).Text(DamageLabel(Trap.DamageType))])];
-			if (Trap.DamageType == EGridDamageType::Physical)
-			{
-				const auto SubtypeLabel = [](EGridPhysicalDamageSubtype T) -> FText
-				{
-					switch (T)
+						O.bOverrideMinimumDamage = true; O.MinimumDamage = V;
+						if (V > MaxDamage) { O.bOverrideMaximumDamage = true; O.MaximumDamage = V; }
+					});
+				AddNumber(NSLOCTEXT("TrapEditor", "MaxDamage", "Dégâts maximum"),
+					Trap.MaximumDamage, 0, 9999,
+					[MinDamage = Trap.MinimumDamage](FGridDungeonTrapInstanceOverrides& O, int32 V)
 					{
-						case EGridPhysicalDamageSubtype::Slashing: return NSLOCTEXT("TrapEditor", "Slashing", "Tranchants");
-						case EGridPhysicalDamageSubtype::Piercing: return NSLOCTEXT("TrapEditor", "Piercing", "Perforants");
-						case EGridPhysicalDamageSubtype::Bludgeoning: return NSLOCTEXT("TrapEditor", "Bludgeoning", "Contondants");
-						default: return NSLOCTEXT("TrapEditor", "None", "Aucun");
+						O.bOverrideMaximumDamage = true; O.MaximumDamage = V;
+						if (V < MinDamage) { O.bOverrideMinimumDamage = true; O.MinimumDamage = V; }
+					});
+				const auto DamageText = [](EGridDamageType Type) -> FText
+				{
+					switch (Type)
+					{
+						case EGridDamageType::Physical: return NSLOCTEXT("TrapEditor", "Physical", "Physiques");
+						case EGridDamageType::Fire: return NSLOCTEXT("TrapEditor", "Fire", "Feu");
+						case EGridDamageType::Ice: return NSLOCTEXT("TrapEditor", "Ice", "Glace");
+						case EGridDamageType::Lightning: return NSLOCTEXT("TrapEditor", "Lightning", "Électricité");
+						case EGridDamageType::Poison: return NSLOCTEXT("TrapEditor", "Poison", "Poison");
+						case EGridDamageType::Holy: return NSLOCTEXT("TrapEditor", "Holy", "Sacrés");
+						case EGridDamageType::Necrotic: return NSLOCTEXT("TrapEditor", "Necrotic", "Nécrotiques");
+						case EGridDamageType::Arcane: return NSLOCTEXT("TrapEditor", "Arcane", "Arcaniques");
+						default: return FText::GetEmpty();
 					}
 				};
 				Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
-					NSLOCTEXT("TrapEditor", "Subtype", "Sous-type physique"),
+					NSLOCTEXT("TrapEditor", "DamageType", "Type de dégâts"),
 					SNew(SComboButton)
-					.OnGetMenuContent_Lambda([Apply, SubtypeLabel]()
+					.OnGetMenuContent_Lambda([Apply, DamageText]()
 					{
 						FMenuBuilder Menu(true, nullptr);
-						for (EGridPhysicalDamageSubtype T : { EGridPhysicalDamageSubtype::None,
-							EGridPhysicalDamageSubtype::Slashing, EGridPhysicalDamageSubtype::Piercing,
-							EGridPhysicalDamageSubtype::Bludgeoning })
+						for (EGridDamageType Type : { EGridDamageType::Physical, EGridDamageType::Fire,
+							EGridDamageType::Ice, EGridDamageType::Lightning, EGridDamageType::Poison,
+							EGridDamageType::Holy, EGridDamageType::Necrotic, EGridDamageType::Arcane })
 						{
-							Menu.AddMenuEntry(SubtypeLabel(T), FText::GetEmpty(), FSlateIcon(),
-								FUIAction(FExecuteAction::CreateLambda([Apply, T]()
+							Menu.AddMenuEntry(DamageText(Type), FText::GetEmpty(), FSlateIcon(),
+								FUIAction(FExecuteAction::CreateLambda([Apply, Type]()
 								{
-									Apply([T](UGridWorldObjectDefinitionAsset& D) { D.DungeonTrap.PhysicalSubtype = T; });
+									Apply([Type](FGridDungeonTrapInstanceOverrides& O)
+									{
+										O.bOverrideDamageType = true; O.DamageType = Type;
+										O.bOverridePhysicalSubtype = true;
+										O.PhysicalSubtype = Type == EGridDamageType::Physical
+											? EGridPhysicalDamageSubtype::Piercing : EGridPhysicalDamageSubtype::None;
+									});
 								})));
 						}
 						return Menu.MakeWidget();
 					})
-					.ButtonContent()[SNew(STextBlock).Text(SubtypeLabel(Trap.PhysicalSubtype))])];
+					.ButtonContent()[SNew(STextBlock).Text(DamageText(Trap.DamageType))])];
+				if (Trap.DamageType == EGridDamageType::Physical)
+				{
+					const auto SubtypeText = [](EGridPhysicalDamageSubtype Type) -> FText
+					{
+						switch (Type)
+						{
+							case EGridPhysicalDamageSubtype::Slashing: return NSLOCTEXT("TrapEditor", "Slashing", "Tranchants");
+							case EGridPhysicalDamageSubtype::Piercing: return NSLOCTEXT("TrapEditor", "Piercing", "Perforants");
+							case EGridPhysicalDamageSubtype::Bludgeoning: return NSLOCTEXT("TrapEditor", "Bludgeoning", "Contondants");
+							default: return NSLOCTEXT("TrapEditor", "None", "Aucun");
+						}
+					};
+					Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
+						NSLOCTEXT("TrapEditor", "PhysicalSubtype", "Sous-type physique"),
+						SNew(SComboButton)
+						.OnGetMenuContent_Lambda([Apply, SubtypeText]()
+						{
+							FMenuBuilder Menu(true, nullptr);
+							for (EGridPhysicalDamageSubtype Type : { EGridPhysicalDamageSubtype::None,
+								EGridPhysicalDamageSubtype::Slashing, EGridPhysicalDamageSubtype::Piercing,
+								EGridPhysicalDamageSubtype::Bludgeoning })
+							{
+								Menu.AddMenuEntry(SubtypeText(Type), FText::GetEmpty(), FSlateIcon(),
+									FUIAction(FExecuteAction::CreateLambda([Apply, Type]()
+									{
+										Apply([Type](FGridDungeonTrapInstanceOverrides& O)
+										{ O.bOverridePhysicalSubtype = true; O.PhysicalSubtype = Type; });
+									})));
+							}
+							return Menu.MakeWidget();
+						})
+						.ButtonContent()[SNew(STextBlock).Text(SubtypeText(Trap.PhysicalSubtype))])];
+				}
+				Root->AddSlot().AutoHeight()[SNew(SButton)
+					.Text(NSLOCTEXT("TrapEditor", "Reset", "Rétablir les valeurs du DataAsset pour ce piège"))
+					.OnClicked_Lambda([Apply]()
+					{
+						Apply([](FGridDungeonTrapInstanceOverrides& O) { O = FGridDungeonTrapInstanceOverrides(); });
+						return FReply::Handled();
+					})];
+				Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+					NSLOCTEXT("TrapEditor", "Activation", "Déclenchement"),
+					NSLOCTEXT("TrapEditor", "OnEnterCell", "Entrée dans la case (seul mode fonctionnel)"))];
 			}
-			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-				NSLOCTEXT("TrapEditor", "ActivationPolicy", "Déclenchement"),
-				NSLOCTEXT("TrapEditor", "OnEnterCell", "Entrée dans la case (seul mode fonctionnel)"))];
-			Root->AddSlot().AutoHeight()[SNew(STextBlock).AutoWrapText(true)
-				.Text(NSLOCTEXT("TrapEditor", "FixedRules",
-					"Les trois définitions standard sont à usage unique et affectent tout le groupe ; chaque personnage résout ses propres protections et résistances."))];
 
 		}
 

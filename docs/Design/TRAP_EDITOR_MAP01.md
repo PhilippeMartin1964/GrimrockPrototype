@@ -1,6 +1,10 @@
 # TRAP-EDITOR-MAP01 — Pièges configurables et symbole sur la carte
 
-**Statut : code publié, validation UE5.5.4 locale et PIE en attente.**
+**Statut : historique TRAP-EDITOR-MAP01, corrigé par TRAP-INSTANCE01.**
+
+> **Correction TRAP-INSTANCE01 :** l'ancienne édition du DataAsset depuis l'inspecteur a été remplacée. Les paramètres de gameplay sont maintenant des **overrides par objet placé**, enregistrés dans le LevelAsset. Voir [TRAP-INSTANCE01](TRAP_INSTANCE01_PER_PLACEMENT.md). Les descriptions ci-dessous du fonctionnement antérieur sont conservées uniquement comme historique.
+
+
 
 ## Inspecteur Grid Editor
 

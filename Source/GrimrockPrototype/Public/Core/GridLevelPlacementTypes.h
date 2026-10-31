@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Core/GridTypes.h"
+#include "Core/GridDungeonTrapTypes.h"
 #include "GridLevelPlacementTypes.generated.h"
 
 class URPGStoryCompanionAsset;
@@ -156,6 +157,10 @@ struct FGridWorldObjectInstanceConfig
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Interaction")
 	FGridWorldObjectInteractionOverrides InteractionOverrides;
+
+	/** Per-placement gameplay customization of traps (not the shared definition). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Trap")
+	FGridDungeonTrapInstanceOverrides DungeonTrap;
 
 	/** Sparse visual exceptions. Shared geometry/motion remains authored on the Definition. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Parts")

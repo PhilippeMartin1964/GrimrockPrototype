@@ -122,11 +122,6 @@ public:
 	UPROPERTY(Transient)
 	FGridDungeonRuntimeState DungeonRuntimeState;
 
-    /** TRAP01.5.1: neutral summary after every exploration scan, even if no
-     * hidden trap exists. It must never confirm an undiscovered hazard. */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime|Traps|Feedback")
-    bool bShowPassivePerceptionFeedback = true;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Meshes")
 	TObjectPtr<UStaticMesh> FloorMesh;
 

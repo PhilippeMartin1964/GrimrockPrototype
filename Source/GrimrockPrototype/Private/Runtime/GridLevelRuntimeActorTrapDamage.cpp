@@ -1,6 +1,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 
 #include "Core/GridLevelAsset.h"
+#include "Core/GridDungeonTrapInstanceUtils.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
@@ -124,8 +125,9 @@ int32 AGridLevelRuntimeActor::TriggerDungeonTrapsOnPartyEnterCell(
         {
             continue;
         }
-        const FGridDungeonTrapDefinitionParams& Params = Definition->DungeonTrap;
-        if (Params.ActivationPolicy != EGridDungeonTrapActivationPolicy::OnEnterCell)
+        const FGridDungeonTrapDefinitionParams Params = GridDungeonTrapInstance::Resolve(Object, *Definition);
+        if (!Params.IsValidContract() ||
+            Params.ActivationPolicy != EGridDungeonTrapActivationPolicy::OnEnterCell)
         {
             continue; // OnCrossBoundary and OnInteract belong to later milestones.
         }

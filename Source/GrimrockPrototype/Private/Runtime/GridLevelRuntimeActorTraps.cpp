@@ -1,4 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Core/GridDungeonTrapInstanceUtils.h"
 
 #include "RPG/RPGSkillAsset.h"
 #include "RPG/RPGExperienceRewardService.h"
@@ -133,7 +134,8 @@ EGridDungeonTrapState AGridLevelRuntimeActor::GetDungeonTrapState(FGuid TrapObje
         ? FindWorldObjectDefinition(Trap->WorldObjectDefinitionId) : nullptr;
     if (!Trap || Trap->Type != EGridLevelObjectType::Trigger ||
         !IsValid(Definition) || Definition->SupportedType != EGridLevelObjectType::Trigger ||
-        !Definition->DungeonTrap.bIsDungeonTrap || !Definition->DungeonTrap.IsValidContract())
+        !Definition->DungeonTrap.bIsDungeonTrap ||
+        !GridDungeonTrapInstance::Resolve(*Trap, *Definition).IsValidContract())
     {
         return EGridDungeonTrapState::Unknown;
     }
@@ -523,18 +525,21 @@ bool AGridLevelRuntimeActor::GetTriggerTrapDisarmDifficulty(
     const UGridWorldObjectDefinitionAsset* Definition = Trap
         ? FindWorldObjectDefinition(Trap->WorldObjectDefinitionId) : nullptr;
 
+    const int32 EffectiveDifficulty = Trap && IsValid(Definition)
+        ? GridDungeonTrapInstance::ResolveDisarmDifficulty(*Trap, *Definition) : 0;
     if (!Trap || Trap->Type != EGridLevelObjectType::Trigger ||
         !IsValid(Definition) || !Definition->bCanBeDisarmed ||
         Definition->SupportedType != EGridLevelObjectType::Trigger ||
-        !Definition->DungeonTrap.bIsDungeonTrap || !Definition->DungeonTrap.IsValidContract() ||
-        Definition->DisarmDifficulty < 1 || Definition->DisarmDifficulty > 40 ||
+        !Definition->DungeonTrap.bIsDungeonTrap ||
+        !GridDungeonTrapInstance::Resolve(*Trap, *Definition).IsValidContract() ||
+        EffectiveDifficulty < 1 || EffectiveDifficulty > 40 ||
         GetDungeonTrapState(TrapObjectId) == EGridDungeonTrapState::Disabled ||
         (Definition->DungeonTrap.bOneShot &&
          GetDungeonTrapState(TrapObjectId) == EGridDungeonTrapState::Triggered))
     {
         return false;
     }
-    OutDifficulty = Definition->DisarmDifficulty;
+    OutDifficulty = EffectiveDifficulty;
     return true;
 }
 

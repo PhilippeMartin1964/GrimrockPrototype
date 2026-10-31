@@ -135,3 +135,38 @@ struct GRIMROCKPROTOTYPE_API FGridDungeonTrapDefinitionParams
               PhysicalSubtype == EGridPhysicalDamageSubtype::None));
     }
 };
+
+/** Local authoring values: a placement inherits its definition unless a field is overridden. */
+USTRUCT(BlueprintType)
+struct FGridDungeonTrapInstanceOverrides
+{
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Perception")
+    bool bOverrideDetectionDifficulty = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Perception", meta=(ClampMin="1",ClampMax="40"))
+    int32 DetectionDifficulty = 10;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Perception")
+    bool bOverrideMaxDetectionRangeCells = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Perception", meta=(ClampMin="1",ClampMax="4"))
+    int32 MaxDetectionRangeCells = 4;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Disarm")
+    bool bOverrideDisarmDifficulty = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Disarm", meta=(ClampMin="1",ClampMax="40"))
+    int32 DisarmDifficulty = 10;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Damage")
+    bool bOverrideDamageType = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Damage")
+    EGridDamageType DamageType = EGridDamageType::Physical;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Damage")
+    bool bOverridePhysicalSubtype = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Damage")
+    EGridPhysicalDamageSubtype PhysicalSubtype = EGridPhysicalDamageSubtype::Piercing;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Damage")
+    bool bOverrideMinimumDamage = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Damage", meta=(ClampMin="0"))
+    int32 MinimumDamage = 4;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Damage")
+    bool bOverrideMaximumDamage = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Damage", meta=(ClampMin="0"))
+    int32 MaximumDamage = 8;
+};
