@@ -74,6 +74,22 @@ bool FGridTRAP0171ClassGroupBreakdownTest::RunTest(const FString&)
     Party.ActiveCharacters.Add(MakeMember(Guide.ChoiceId, 10, 0));
     Party.ActiveCharacters.Add(MakeMember(Guide.ChoiceId, 10, 0));
 
+    // Read-only preview must select the SAME member and project the SAME
+    // personal and party modifiers, but may never roll any dice.
+    FRPGSkillCheckResult Preview;
+    int32 PreviewIndex = INDEX_NONE;
+    TestTrue(TEXT("Readonly skill preview selects a member"),
+        FRPGSkillCheckService::TryPreviewBestPartySkillCheck(
+            Party, Skill, 14, Preview, PreviewIndex));
+    TestEqual(TEXT("Readonly preview selects highest valid personal bonus"),
+        PreviewIndex, 0);
+    TestEqual(TEXT("Readonly preview has no die face"), Preview.Roll, 0);
+    TestFalse(TEXT("Readonly preview is not a resolved skill check"), Preview.bResolved);
+    TestEqual(TEXT("Preview class +2"), Preview.ClassModifier, 2);
+    TestEqual(TEXT("Preview group +2 (nonstacking)"), Preview.GroupModifier, 2);
+    TestEqual(TEXT("Preview static total includes no d20"),
+        Preview.Total, Preview.Rank + Preview.AttributeModifier + 4);
+
     FRandomStream Random(1711);
     FRPGSkillCheckResult Result;
     int32 ActorIndex = INDEX_NONE;
@@ -81,6 +97,10 @@ bool FGridTRAP0171ClassGroupBreakdownTest::RunTest(const FString&)
         FRPGSkillCheckService::TryResolveBestPartySkillCheck(
             Party, Skill, 14, Random, Result, ActorIndex))) return false;
     TestEqual(TEXT("Trained actor selected"), ActorIndex, 0);
+    TestEqual(TEXT("Resolved and readonly previews select the same hero"),
+        ActorIndex, PreviewIndex);
+    TestEqual(TEXT("The resolved result adds exactly one d20 to preview"),
+        Result.Total, Preview.Total + Result.Roll);
     TestEqual(TEXT("Character class grants +2"), Result.ClassModifier, 2);
     TestEqual(TEXT("Two same-group talents confer only +2"), Result.GroupModifier, 2);
     TestEqual(TEXT("Legacy progression equals combined modifiers"), Result.ProgressionModifier, 4);

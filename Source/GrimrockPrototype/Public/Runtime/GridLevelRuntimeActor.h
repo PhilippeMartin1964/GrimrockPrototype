@@ -419,6 +419,14 @@ public:
      * Hidden/unknown/neutralized traps never disclose the number.
      */
     FText GetDungeonTrapDisarmHint(FGuid TrapObjectId) const;
+
+    /** TRAP01.9.1: readonly, RNG-free estimate using the current party.
+     * Available for a known, disarmable trap when an actual specialist with
+     * their own tools exists. No position or combat-state promises.
+     */
+    bool TryGetDungeonTrapDisarmOdds(
+        const AGrimrockPartyPawn* PartyPawn, FGuid TrapObjectId,
+        struct FGridDungeonTrapDisarmOdds& OutOdds) const;
     bool IsTriggerTrapDisarmed(FGuid TrapObjectId) const;
     /** Returns only already-known trap instance IDs (TRAP01.2 will author detection). */
     bool IsTriggerTrapDetected(FGuid TrapObjectId) const;

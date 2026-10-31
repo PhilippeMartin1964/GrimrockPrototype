@@ -7,6 +7,10 @@
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GridDungeonTrapDisarmOdds.h"
+#include "Runtime/GridPartyInventoryComponent.h"
+#include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/UILocalizationText.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridRuntimeObject, Log, All);
@@ -295,9 +299,41 @@ FText AGridGenericObjectActor::GetInteractionText_Implementation(UPrimitiveCompo
 			case EGridDungeonTrapState::Detected:
 				if (bCanAttemptDisarm)
 				{
+					// Re-evaluated at every hover: level-ups, talent choices, tools,
+					// deaths and the once-only safe failure can all change the odds.
+					const AGrimrockPartyPawn* Party = GetWorld()
+						? Cast<AGrimrockPartyPawn>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0))
+						: nullptr;
+					// Transient automation worlds have an unpossessed party pawn.
+					if ((!IsValid(Party) || Party->LevelRuntimeActor != TrapRuntime) && GetWorld())
+					{
+						for (TActorIterator<AGrimrockPartyPawn> It(GetWorld()); It; ++It)
+						{
+							if (It->LevelRuntimeActor == TrapRuntime)
+							{
+								Party = *It;
+								break;
+							}
+						}
+					}
+					FGridDungeonTrapDisarmOdds Odds;
+					if (TrapRuntime && TrapRuntime->TryGetDungeonTrapDisarmOdds(Party, ObjectId, Odds))
+					{
+						const UGridPartyInventoryComponent* Inventory = Party->PartyInventoryComponent;
+						const TArray<FGridCharacterInventoryState>& Characters =
+							Inventory->PartyInventoryState.ActiveCharacters;
+						const FText Who = Characters.IsValidIndex(Odds.BestCharacterIndex)
+							? Characters[Odds.BestCharacterIndex].DisplayName
+							: FText::GetEmpty();
+						return FText::Format(
+							NSLOCTEXT("TRAP0191", "TrapDetectedHoverOdds",
+								"Piège détecté\n{0}\nMeilleur désamorceur : {1}\nRéussite : {2} % | Échec sûr : {3} % | Déclenchement : {4} %\nClic gauche pour tenter de le désamorcer (Pièges + outils)."),
+							DisarmHint, Who, FText::AsNumber(Odds.SuccessPercent),
+							FText::AsNumber(Odds.SafeFailurePercent), FText::AsNumber(Odds.TriggerPercent));
+					}
 					return FText::Format(
-						NSLOCTEXT("TRAP019", "TrapDetectedHoverWithDC",
-							"Piège détecté\n{0}\nClic gauche pour tenter de le désamorcer (Pièges + outils)."),
+						NSLOCTEXT("TRAP0191", "TrapDetectedHoverUnavailable",
+							"Piège détecté\n{0}\nÉvaluation indisponible : aucun désamorceur ne possède les compétences et outils nécessaires."),
 						DisarmHint);
 				}
 				if (!DisarmHint.IsEmpty())

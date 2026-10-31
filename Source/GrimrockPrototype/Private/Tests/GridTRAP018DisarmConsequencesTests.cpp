@@ -10,6 +10,7 @@
 #include "RPG/RPGSkillAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridDungeonTrapDisarmOdds.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -148,6 +149,9 @@ bool FTRAP018SafeFailure::RunTest(const FString&)
     const FGridWorldObjectInstance Trap =
         TRAP018::MakeTrapPlacement(Def, 1, 1, false, false);
     Level->WorldObjectInstances.Add(Trap);
+    FGridDungeonTrapDisarmOdds HiddenOdds;
+    TestFalse(TEXT("Hidden trap must not disclose odds"),
+        Runtime->TryGetDungeonTrapDisarmOdds(Party, Trap.InstanceId, HiddenOdds));
     if (!TestTrue(TEXT("Trap revealed before disarm"),
         Runtime->TryRecordDungeonTrapDetection(Trap.InstanceId))) return false;
 
@@ -175,6 +179,37 @@ bool FTRAP018SafeFailure::RunTest(const FString&)
     FRandomStream Reference(1801);
     const int32 ExpectedRoll = Reference.RandRange(1, 20);
     Def->DisarmDifficulty = ExpectedRoll + 1 + 2 + 1; // Exactly one point short.
+
+    FGridDungeonTrapDisarmOdds Before;
+    TestTrue(TEXT("A trained member with their own tools can preview odds"),
+        Runtime->TryGetDungeonTrapDisarmOdds(Party, Trap.InstanceId, Before));
+    TestEqual(TEXT("Readonly odds select the real operator"), Before.BestCharacterIndex, 0);
+    TestEqual(TEXT("Readonly odds include rank, DEX and expert class bonus"),
+        Before.StaticBonus, 3);
+    TestEqual(TEXT("Odds partition the d20 space"), Before.SuccessPercent +
+        Before.SafeFailurePercent + Before.TriggerPercent, 100);
+    TestTrue(TEXT("Unspent expert margin protects some outcomes"),
+        Before.SafeFailurePercent > 0);
+
+    // Going away and returning after earning one rank really improves odds.
+    UGridPartyInventoryComponent* LiveInventory = Party->PartyInventoryComponent;
+    LiveInventory->PartyInventoryState.ActiveCharacters[0].SkillRanks[0].Rank = 2;
+    FGridDungeonTrapDisarmOdds Improved;
+    TestTrue(TEXT("New rank immediately refreshes preview"),
+        Runtime->TryGetDungeonTrapDisarmOdds(Party, Trap.InstanceId, Improved));
+    TestEqual(TEXT("One rank raises successful d20 outcomes by five points"),
+        Improved.SuccessPercent, Before.SuccessPercent + 5);
+    LiveInventory->PartyInventoryState.ActiveCharacters[0].SkillRanks[0].Rank = 1;
+
+    // No tools means there is no legal operator: never show misleading 0%.
+    FGridInventorySlot& OriginalSlot = LiveInventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0];
+    const bool bOccupied = OriginalSlot.bOccupied;
+    OriginalSlot.bOccupied = false;
+    FGridDungeonTrapDisarmOdds WithoutTools;
+    TestFalse(TEXT("Readonly preview requires actual tools"),
+        Runtime->TryGetDungeonTrapDisarmOdds(Party, Trap.InstanceId, WithoutTools));
+    OriginalSlot.bOccupied = bOccupied;
+
     FRandomStream Dice(1801);
     FRPGSkillCheckResult Result;
     bool bTriggered = true;
@@ -188,6 +223,15 @@ bool FTRAP018SafeFailure::RunTest(const FString&)
         Runtime->GetDungeonTrapState(Trap.InstanceId), EGridDungeonTrapState::Detected);
     TestEqual(TEXT("Safe failure never damages hero"),
         Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth, 30);
+    FGridDungeonTrapDisarmOdds AfterSafe;
+    TestTrue(TEXT("Odds remain available after the protected miss"),
+        Runtime->TryGetDungeonTrapDisarmOdds(Party, Trap.InstanceId, AfterSafe));
+    TestEqual(TEXT("Once spent, the protection covers no outcomes"),
+        AfterSafe.SafeFailurePercent, 0);
+    TestEqual(TEXT("The success chance is unaffected by spending protection"),
+        AfterSafe.SuccessPercent, Before.SuccessPercent);
+    TestEqual(TEXT("All former safe outcomes now risk activation"),
+        AfterSafe.TriggerPercent, Before.TriggerPercent + Before.SafeFailurePercent);
     const FGridLevelRuntimeState* SavedLevel = Runtime->FindRuntimeStateForCurrentLevel();
     TestTrue(TEXT("Safe failure consumed once per trap GUID"),
         SavedLevel && SavedLevel->SafeDisarmFailureUsedTrapIds.Contains(Trap.InstanceId));
@@ -202,6 +246,11 @@ bool FTRAP018SafeFailure::RunTest(const FString&)
     TestTrue(TEXT("Safe failure was persisted across Continue"),
         Restored->FindRuntimeStateForCurrentLevel() &&
         Restored->FindRuntimeStateForCurrentLevel()->SafeDisarmFailureUsedTrapIds.Contains(Trap.InstanceId));
+    FGridDungeonTrapDisarmOdds RestoredOdds;
+    TestTrue(TEXT("Readonly preview works after Continue"),
+        Restored->TryGetDungeonTrapDisarmOdds(Party, Trap.InstanceId, RestoredOdds));
+    TestEqual(TEXT("Continue never recharges a safe failure"),
+        RestoredOdds.SafeFailurePercent, 0);
 
     FRandomStream Repeat(1801);
     bTriggered = false;

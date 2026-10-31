@@ -23,6 +23,17 @@ struct GRIMROCKPROTOTYPE_API FRPGSkillCheckService
 		FRandomStream& RandomStream, FRPGSkillCheckResult& OutResult, int32& OutCharacterIndex,
 		const FRPGSkillCheckContext* Context = nullptr);
 
+	/** TRAP01.9.1: inspect the best eligible member without rolling dice.
+	 * OutStaticResult holds rank/attribute/class/group/safe margin and Total
+	 * equal to the fixed bonus (Roll=0, bResolved=false).
+	 * OverrideAttribute is for gameplay contexts such as Dexterity disarm.
+	 */
+	static bool TryPreviewBestPartySkillCheck(
+		const FGridPartyInventoryState& PartyState, const URPGSkillAsset* SkillDefinition,
+		int32 Difficulty, FRPGSkillCheckResult& OutStaticResult, int32& OutCharacterIndex,
+		ERPGSkillGoverningAttribute OverrideAttribute = ERPGSkillGoverningAttribute::None,
+		const FRPGSkillCheckContext* Context = nullptr);
+
 	/** Returns the raw character attribute selected by the skill definition. */
 	static int32 GetGoverningAttributeValue(const FRPGAttributes& Attributes, ERPGSkillGoverningAttribute GoverningAttribute);
 };

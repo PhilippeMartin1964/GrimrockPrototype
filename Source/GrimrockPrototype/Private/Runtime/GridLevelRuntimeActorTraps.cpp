@@ -1,5 +1,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridDungeonTrapDisarmFeedback.h"
+#include "Runtime/GridDungeonTrapDisarmOdds.h"
 #include "Core/GridDungeonTrapInstanceUtils.h"
 
 #include "RPG/RPGSkillAsset.h"
@@ -503,6 +504,68 @@ bool AGridLevelRuntimeActor::FindDisarmableTriggerTrapForParty(
         }
     }
     return false;
+}
+
+bool AGridLevelRuntimeActor::TryGetDungeonTrapDisarmOdds(
+    const AGrimrockPartyPawn* PartyPawn, FGuid TrapObjectId,
+    FGridDungeonTrapDisarmOdds& OutOdds) const
+{
+    OutOdds = FGridDungeonTrapDisarmOdds();
+    int32 Difficulty = 0;
+    if (!GetTriggerTrapDisarmDifficulty(TrapObjectId, Difficulty) ||
+        !IsValid(PartyPawn) || PartyPawn->LevelRuntimeActor != this ||
+        !IsValid(PartyPawn->PartyInventoryComponent))
+    {
+        return false;
+    }
+
+    const UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
+    const FGridWorldObjectInstance* Trap = LevelAsset->FindWorldObjectInstanceById(TrapObjectId);
+    const UGridWorldObjectDefinitionAsset* Definition = Trap
+        ? FindWorldObjectDefinition(Trap->WorldObjectDefinitionId) : nullptr;
+    if (!IsValid(Definition) || Definition->DungeonTrap.RequiredToolTag.IsNone())
+    {
+        return false;
+    }
+
+    const FName ToolId(TEXT("Item_DisarmTools_01"));
+    const UGridItemDefinitionAsset* Tool = Inventory->FindItemDefinition(ToolId);
+    if (!IsValid(Tool) || Tool->ItemDefinitionId != ToolId ||
+        !Tool->ItemTags.Contains(Definition->DungeonTrap.RequiredToolTag))
+    {
+        return false;
+    }
+    const URPGSkillAsset* Skill = LoadObject<URPGSkillAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/Skills/DA_Skill_Traps.DA_Skill_Traps"));
+    if (!IsValid(Skill) || !Skill->IsValidDefinition())
+    {
+        return false;
+    }
+
+    // Match the real disarm function's eligible-party snapshot exactly:
+    // no borrowing tools and no group bonuses from excluded members.
+    FGridPartyInventoryState Eligible = Inventory->PartyInventoryState;
+    for (int32 Index = 0; Index < Eligible.ActiveCharacters.Num(); ++Index)
+    {
+        if (Inventory->CountItemDefinitionInCharacterInventory(Index, ToolId) < 1)
+        {
+            Eligible.ActiveCharacters[Index].Resources.CurrentHealth = 0;
+        }
+    }
+    FRPGSkillCheckResult Preview;
+    int32 BestIndex = INDEX_NONE;
+    if (!FRPGSkillCheckService::TryPreviewBestPartySkillCheck(
+        Eligible, Skill, Difficulty, Preview, BestIndex,
+        ERPGSkillGoverningAttribute::Dexterity))
+    {
+        return false;
+    }
+    const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel();
+    const bool bSafeUsed = State && State->SafeDisarmFailureUsedTrapIds.Contains(TrapObjectId);
+    OutOdds = FGridDungeonTrapDisarmOdds::Calculate(
+        Difficulty, Preview.Total, Preview.SafeFailureMargin, bSafeUsed);
+    OutOdds.BestCharacterIndex = BestIndex;
+    return true;
 }
 
 FText AGridLevelRuntimeActor::GetDungeonTrapDisarmHint(FGuid TrapObjectId) const
