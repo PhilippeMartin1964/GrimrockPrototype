@@ -187,6 +187,18 @@ bool AGridGenericObjectActor::CanInteract_Implementation(APawn* InstigatorPawn, 
 		return false;
 	}
 
+	// TRAP01.5.1: revealed traps have a real mouse hit target, but keep
+	// their gameplay authority in the level asset and runtime state.
+	const AGrimrockPartyPawn* TrapParty = GridInteractionUtils::ResolvePartyPawn(InstigatorPawn);
+	AGridLevelRuntimeActor* TrapRuntime = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
+	if (SourceWorldObjectDefinition && SourceWorldObjectDefinition->DungeonTrap.bIsDungeonTrap)
+	{
+		const EGridDungeonTrapState State = TrapRuntime
+			? TrapRuntime->GetDungeonTrapState(ObjectId) : EGridDungeonTrapState::Unknown;
+		return TrapParty && TrapRuntime && State != EGridDungeonTrapState::Unknown &&
+			State != EGridDungeonTrapState::Hidden;
+	}
+
 	if (!HasReadableText())
 	{
 		return false;
@@ -219,6 +231,14 @@ void AGridGenericObjectActor::Interact_Implementation(APawn* InstigatorPawn, UPr
 	{
 		return;
 	}
+	if (SourceWorldObjectDefinition && SourceWorldObjectDefinition->DungeonTrap.bIsDungeonTrap)
+	{
+		if (AGridLevelRuntimeActor* Runtime = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this))
+		{
+			Runtime->TryInteractWithRevealedDungeonTrap(PartyPawn, ObjectId);
+		}
+		return;
+	}
 
 	AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
 	if (RuntimeActor && (Edge == EGridEdge::None || RuntimeActor->CanPartyInteractWithEdgeObject(CellX, CellY, Edge, PartyPawn)))
@@ -229,6 +249,11 @@ void AGridGenericObjectActor::Interact_Implementation(APawn* InstigatorPawn, UPr
 
 EGridInteractionCursor AGridGenericObjectActor::GetInteractionCursor_Implementation(UPrimitiveComponent* HitComponent) const
 {
+	if (HitComponent == MeshComponent && SourceWorldObjectDefinition &&
+		SourceWorldObjectDefinition->DungeonTrap.bIsDungeonTrap)
+	{
+		return EGridInteractionCursor::Use;
+	}
 	if (HitComponent == MeshComponent && HasReadableText() && !(bRuntimeReadableOnlyOnce && bRuntimeHasBeenRead))
 	{
 		return EGridInteractionCursor::Read;
@@ -239,6 +264,11 @@ EGridInteractionCursor AGridGenericObjectActor::GetInteractionCursor_Implementat
 
 FText AGridGenericObjectActor::GetInteractionText_Implementation(UPrimitiveComponent* HitComponent) const
 {
+	if (HitComponent == MeshComponent && SourceWorldObjectDefinition &&
+		SourceWorldObjectDefinition->DungeonTrap.bIsDungeonTrap)
+	{
+		return NSLOCTEXT("TRAP01", "TrapInspectInteraction", "Examiner le mécanisme");
+	}
 	if (HitComponent == MeshComponent && HasReadableText())
 	{
 		return FUILocalizationText::Get(TEXT("Interaction.Readable.Read"));

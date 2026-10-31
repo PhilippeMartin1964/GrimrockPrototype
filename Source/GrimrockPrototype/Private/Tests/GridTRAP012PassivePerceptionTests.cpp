@@ -9,6 +9,9 @@
 #include "Runtime/GridDungeonTrapPerceptionService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
+#include "Runtime/GridGenericObjectActor.h"
+#include "Runtime/GridInteractableInterface.h"
+#include "Runtime/GridEventFeedSubsystem.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -141,7 +144,7 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
     Def->DungeonTrap.DetectionSense = EGridDungeonTrapDetectionSense::Audible;
     Def->DungeonTrap.MaxDetectionRangeCells = 4;
     Def->bCanBeDisarmed = true;
-    Def->RuntimeActorClass = AGridRuntimeObjectActor::StaticClass();
+    Def->RuntimeActorClass = AGridGenericObjectActor::StaticClass();
     Def->StaticPart.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
     if (!TestNotNull(TEXT("Existing engine test mesh"), Def->StaticPart.Mesh.Get()))
     {
@@ -188,6 +191,17 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
     }
     TestFalse(TEXT("Blocked path does not spend a distance attempt"),
         State->TrapPerceptionAttemptedRangeMask.Contains(Trap.InstanceId));
+    const UGridEventFeedSubsystem* Feed = World->GetSubsystem<UGridEventFeedSubsystem>();
+    TestNotNull(TEXT("Perception feedback uses existing feed"), Feed);
+    if (Feed)
+    {
+        TestTrue(TEXT("Blocked observation gives neutral feedback without identifying hidden trap"),
+            Feed->GetEntries().ContainsByPredicate([](const FGridHudEventEntry& E)
+            {
+                return E.EventCode == FName(TEXT("Dungeon.Trap.PerceptionScan")) &&
+                    !E.Message.ToString().Contains(TEXT("piège"));
+            }));
+    }
     Level->GetCellMutable(3, 2).NorthWall = EGridWallType::None;
 
     FRandomStream Roll(12);
@@ -204,6 +218,16 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
         TestEqual(TEXT("Dedicated trap reveal stencil"),
             Revealed->MeshComponent->CustomDepthStencilValue, 252);
         TestFalse(TEXT("Revealed model is not hidden"), Revealed->IsHidden());
+        TestEqual(TEXT("Revealed mechanism has mouse query collision without world physics"),
+            Revealed->MeshComponent->GetCollisionEnabled(), ECollisionEnabled::QueryOnly);
+        TestEqual(TEXT("Revealed mechanism can receive visibility mouse ray"),
+            Revealed->MeshComponent->GetCollisionResponseToChannel(ECC_Visibility), ECR_Block);
+        TestTrue(TEXT("Revealed mechanism can be clicked by the party"),
+            IGridInteractableInterface::Execute_CanInteract(
+                Revealed, Party, Revealed->MeshComponent));
+        TestEqual(TEXT("Hover advertises use cursor"),
+            IGridInteractableInterface::Execute_GetInteractionCursor(
+                Revealed, Revealed->MeshComponent), EGridInteractionCursor::Use);
     }
     TestEqual(TEXT("Distance-two attempt bit recorded"),
         State->TrapPerceptionAttemptedRangeMask.FindRef(Trap.InstanceId), static_cast<uint8>(0x02));
@@ -227,6 +251,10 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
         Runtime->GetDungeonTrapState(Surprise.InstanceId), EGridDungeonTrapState::Triggered);
     TestTrue(TEXT("Triggered GUID enters the known-trap set"),
         State->DetectedTriggerTrapIds.Contains(Surprise.InstanceId));
+    TestTrue(TEXT("Clicking already triggered one-shot is handled without disarm tools"),
+        Runtime->TryInteractWithRevealedDungeonTrap(Party, Surprise.InstanceId));
+    TestEqual(TEXT("Spent trap remains triggered after click"),
+        Runtime->GetDungeonTrapState(Surprise.InstanceId), EGridDungeonTrapState::Triggered);
     TestFalse(TEXT("One-shot activation does not trigger twice"),
         Runtime->TryRecordDungeonTrapTriggered(Surprise.InstanceId, Party));
 

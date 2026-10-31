@@ -4,10 +4,13 @@
 #include "RPG/RPGExperienceRewardService.h"
 #include "Runtime/GridDungeonTrapRewardRules.h"
 #include "RPG/RPGSkillCheckService.h"
+#include "RPG/RPGSkillService.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridRuntimeObjectActor.h"
+#include "Runtime/GridInteractableInterface.h"
+#include "Runtime/GridTurnManagerComponent.h"
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridDungeonTrapPerceptionService.h"
 #include "Components/StaticMeshComponent.h"
@@ -205,6 +208,14 @@ void AGridLevelRuntimeActor::RefreshDungeonTrapRevealVisual(FGuid TrapObjectId)
     Visual->SetActorHiddenInGame(false);
     if (UStaticMeshComponent* Mesh = Visual->MeshComponent)
     {
+        // Revealed visuals have mouse query collision only; the actor still
+        // never blocks party movement. No collision exists for hidden traps.
+        if (Visual->GetClass()->ImplementsInterface(UGridInteractableInterface::StaticClass()))
+        {
+            Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+            Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+            Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+        }
         Mesh->SetRenderCustomDepth(true);
         Mesh->SetCustomDepthStencilValue(252); // Explicit trap reveal stencil.
         if (Definition->DungeonTrap.RevealedOverlayMaterial)
@@ -278,6 +289,164 @@ bool AGridLevelRuntimeActor::TryRecordDungeonTrapTriggered(
             EGridHudEventSemantic::Mechanism, EGridEventVisibility::Always,
             true, GridEventFeedPublisher::SourceIdFromGuid(TrapObjectId));
     }
+    return true;
+}
+
+bool AGridLevelRuntimeActor::TryInteractWithRevealedDungeonTrap(
+    AGrimrockPartyPawn* PartyPawn, FGuid TrapObjectId)
+{
+    if (!IsValid(PartyPawn) || PartyPawn->LevelRuntimeActor != this)
+    {
+        return false;
+    }
+    const EGridDungeonTrapState TrapState = GetDungeonTrapState(TrapObjectId);
+    if (TrapState == EGridDungeonTrapState::Hidden ||
+        TrapState == EGridDungeonTrapState::Unknown)
+    {
+        return false; // No spoiler, no menu, no interaction.
+    }
+
+    auto Report = [this, TrapObjectId](FName EventCode, const FText& Message)
+    {
+        GridEventFeedPublisher::PublishDungeonEvent(
+            this, EventCode, Message, EGridHudEventSemantic::Mechanism,
+            EGridEventVisibility::Always, true,
+            GridEventFeedPublisher::SourceIdFromGuid(TrapObjectId));
+    };
+
+    if (TrapState == EGridDungeonTrapState::Disarmed)
+    {
+        Report(FName(TEXT("Dungeon.Trap.AlreadyDisarmed")),
+            NSLOCTEXT("TRAP01", "AlreadyDisarmed", "Ce piège est déjà désamorcé."));
+        return true;
+    }
+    if (TrapState == EGridDungeonTrapState::Disabled)
+    {
+        Report(FName(TEXT("Dungeon.Trap.AlreadyDisabled")),
+            NSLOCTEXT("TRAP01", "AlreadyDisabled", "Ce mécanisme est déjà désactivé."));
+        return true;
+    }
+
+    const FGridWorldObjectInstance* Instance =
+        LevelAsset->FindWorldObjectInstanceById(TrapObjectId);
+    const UGridWorldObjectDefinitionAsset* Def = Instance
+        ? FindWorldObjectDefinition(Instance->WorldObjectDefinitionId) : nullptr;
+    if (!IsValid(Def))
+    {
+        return false;
+    }
+    if (TrapState == EGridDungeonTrapState::Triggered && Def->DungeonTrap.bOneShot)
+    {
+        Report(FName(TEXT("Dungeon.Trap.Spent")),
+            NSLOCTEXT("TRAP01", "AlreadyTriggeredOneShot",
+                "Ce piège s'est déjà déclenché : il est inactif et ne nécessite aucun désamorçage."));
+        return true;
+    }
+    if (!Def->bCanBeDisarmed)
+    {
+        Report(FName(TEXT("Dungeon.Trap.NotDisarmable")),
+            NSLOCTEXT("TRAP01", "TrapNotDisarmable",
+                "Ce mécanisme ne peut pas être désamorcé manuellement."));
+        return true;
+    }
+
+    FGuid ReachableId;
+    if (!FindDisarmableTriggerTrapForParty(PartyPawn, ReachableId) ||
+        ReachableId != TrapObjectId)
+    {
+        Report(FName(TEXT("Dungeon.Trap.OutOfReach")),
+            NSLOCTEXT("TRAP01", "DisarmOutOfReach",
+                "Approchez-vous du piège et faites-lui face pour le désamorcer."));
+        return true;
+    }
+
+    const UGridTurnManagerComponent* TurnManager =
+        FindComponentByClass<UGridTurnManagerComponent>();
+    if (IsValid(TurnManager) && TurnManager->bCombatActive)
+    {
+        Report(FName(TEXT("Dungeon.Trap.DisarmInCombat")),
+            NSLOCTEXT("TRAP01", "DisarmRequiresExploration",
+                "Le désamorçage n'est pas disponible pendant un combat."));
+        return true;
+    }
+
+    UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
+    if (!IsValid(Inventory))
+    {
+        return true;
+    }
+    const URPGSkillAsset* Skill = LoadObject<URPGSkillAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/Skills/DA_Skill_Traps.DA_Skill_Traps"));
+    if (!IsValid(Skill) || !Skill->IsValidDefinition())
+    {
+        Report(FName(TEXT("Dungeon.Trap.SkillMissing")),
+            NSLOCTEXT("TRAP01", "DisarmSkillMissing",
+                "La définition de la compétence Pièges est indisponible."));
+        return true;
+    }
+
+    const FName ToolId(TEXT("Item_DisarmTools_01"));
+    const UGridItemDefinitionAsset* Tool = Inventory->FindItemDefinition(ToolId);
+    int32 ToolSourceIndex = INDEX_NONE;
+    bool bTrainedWithTools = false;
+    for (int32 i = 0; i < Inventory->PartyInventoryState.ActiveCharacters.Num(); ++i)
+    {
+        const FGridCharacterInventoryState& Character =
+            Inventory->PartyInventoryState.ActiveCharacters[i];
+        if (Character.Resources.CurrentHealth <= 0 ||
+            Inventory->CountItemDefinitionInCharacterInventory(i, ToolId) < 1)
+        {
+            continue;
+        }
+        ToolSourceIndex = i;
+        if (FRPGSkillService::GetSkillRank(Character, Skill->SkillId) > 0)
+        {
+            bTrainedWithTools = true;
+        }
+    }
+    if (ToolSourceIndex == INDEX_NONE || !IsValid(Tool) ||
+        !Tool->ItemTags.Contains(Def->DungeonTrap.RequiredToolTag))
+    {
+        Report(FName(TEXT("Dungeon.Trap.ToolsMissing")),
+            NSLOCTEXT("TRAP01", "DisarmNeedsTools",
+                "Aucun membre du groupe ne possède une trousse de désamorçage utilisable."));
+        return true;
+    }
+    if (!bTrainedWithTools && !Skill->bAllowUntrainedChecks)
+    {
+        Report(FName(TEXT("Dungeon.Trap.TrainingMissing")),
+            NSLOCTEXT("TRAP01", "DisarmNeedsTraining",
+                "Un personnage vivant doit avoir appris la compétence Pièges et posséder ses outils."));
+        return true;
+    }
+
+    FRandomStream RandomStream(FMath::Rand());
+    FRPGSkillCheckResult Result;
+    int32 DisarmerIndex = INDEX_NONE;
+    const bool bResolved = TryDisarmTriggerTrap(
+        PartyPawn, TrapObjectId, ToolSourceIndex, Skill, RandomStream,
+        Result, &DisarmerIndex);
+    if (!bResolved)
+    {
+        Report(FName(TEXT("Dungeon.Trap.DisarmRejected")),
+            NSLOCTEXT("TRAP01", "DisarmRejectedWorld",
+                "Le désamorçage a été refusé. Vérifiez la position, la compétence et les outils."));
+        return true;
+    }
+
+    const FText Name = Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(DisarmerIndex)
+        ? Inventory->PartyInventoryState.ActiveCharacters[DisarmerIndex].DisplayName
+        : NSLOCTEXT("TRAP01", "DisarmerFallback", "Un membre du groupe");
+    const FText Message = FText::Format(
+        Result.bSuccess
+            ? NSLOCTEXT("TRAP01", "DisarmWorldSuccess",
+                "{0} désamorce le piège (d20 : {1}, total : {2}, difficulté : {3}).")
+            : NSLOCTEXT("TRAP01", "DisarmWorldFailure",
+                "{0} échoue à désamorcer le piège (d20 : {1}, total : {2}, difficulté : {3})."),
+        Name, FText::AsNumber(Result.Roll), FText::AsNumber(Result.Total),
+        FText::AsNumber(Result.Difficulty));
+    Report(Result.bSuccess ? FName(TEXT("Dungeon.Trap.Disarmed"))
+                           : FName(TEXT("Dungeon.Trap.DisarmFailed")), Message);
     return true;
 }
 

@@ -265,6 +265,31 @@ bool FTRAP014BestMember::RunTest(const FString&)
         Party->LevelRuntimeActor = Runtime;
     }
 
+    // TRAP01.5.1: with the tools still in the inventory, clicking another
+    // revealed mechanism must disarm it directly without dragging the kit.
+    // The same party-best Dexterity resolver and once-only XP guard apply.
+    FGridWorldObjectInstance ClickedTrap = Trap;
+    ClickedTrap.InstanceId = FGuid::NewGuid();
+    Level->WorldObjectInstances.Add(ClickedTrap);
+    TestTrue(TEXT("Second world-click trap can be explicitly discovered"),
+        Runtime->TryRecordDungeonTrapDetection(ClickedTrap.InstanceId));
+    const int32 PreviousXP0 =
+        Inventory->PartyInventoryState.ActiveCharacters[0].Experience;
+    const int32 PreviousXP1 =
+        Inventory->PartyInventoryState.ActiveCharacters[1].Experience;
+    TestTrue(TEXT("Direct interaction handles a revealed armed trap"),
+        Runtime->TryInteractWithRevealedDungeonTrap(Party, ClickedTrap.InstanceId));
+    TestEqual(TEXT("World click uses the same durable disarm state"),
+        Runtime->GetDungeonTrapState(ClickedTrap.InstanceId), EGridDungeonTrapState::Disarmed);
+    TestEqual(TEXT("World click awards the first active member once"),
+        Inventory->PartyInventoryState.ActiveCharacters[0].Experience, PreviousXP0 + 1);
+    TestEqual(TEXT("World click awards the next active member once"),
+        Inventory->PartyInventoryState.ActiveCharacters[1].Experience, PreviousXP1 + 1);
+    TestTrue(TEXT("Clicking a disarmed mechanism shows its status rather than rerolling"),
+        Runtime->TryInteractWithRevealedDungeonTrap(Party, ClickedTrap.InstanceId));
+    TestEqual(TEXT("Repeated click does not award another XP"),
+        Inventory->PartyInventoryState.ActiveCharacters[0].Experience, PreviousXP0 + 1);
+
     Cleanup();
     return true;
 }

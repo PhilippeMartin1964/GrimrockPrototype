@@ -130,8 +130,11 @@ int32 AGridLevelRuntimeActor::EvaluatePassiveDungeonTrapPerception(
         const FText Where = FGridDungeonTrapPerceptionService::FormatRelativeLocation(
             PartyPawn->Facing, Direction, Distance, Definition->PlacementSurface);
         const FText Message = FText::Format(
-            NSLOCTEXT("TRAP01", "TrapDetectedEvent", "{0} repère un piège {1}."),
-            ObserverName, Where);
+            NSLOCTEXT("TRAP01", "TrapDetectedRoll",
+                "{0} repère un piège {1} (Perception : d20 {2}, total {3}, difficulté {4})."),
+            ObserverName, Where,
+            FText::AsNumber(Result.Roll), FText::AsNumber(Result.Total),
+            FText::AsNumber(EffectiveDifficulty));
         GridEventFeedPublisher::PublishDungeonEvent(
             this, FName(TEXT("Dungeon.Trap.Detected")), Message,
             EGridHudEventSemantic::Mechanism, EGridEventVisibility::Always,
@@ -140,6 +143,31 @@ int32 AGridLevelRuntimeActor::EvaluatePassiveDungeonTrapPerception(
             TEXT("[TRAP01.2] Discovered %s by character %d at (%d,%d), distance=%d, roll=%d total=%d DC=%d"),
             *Instance.InstanceId.ToString(), ObserverIndex, Instance.CellX, Instance.CellY,
             Distance, Result.Roll, Result.Total, EffectiveDifficulty);
+    }
+    // Important: a failure event emitted ONLY when a hidden trap exists
+    // would reveal its presence. Publish a neutral observation message on
+    // every evaluated scan, even if the level has no trap nearby. This is
+    // deliberately optional to avoid clutter in large maps.
+    if (bShowPassivePerceptionFeedback && Discoveries == 0)
+    {
+        const FGridCharacterInventoryState& Observer = Characters[ObserverIndex];
+        const FText ObserverName = Observer.DisplayName.IsEmpty()
+            ? NSLOCTEXT("TRAP01", "ObserverNeutral", "Un membre du groupe")
+            : Observer.DisplayName;
+        const int32 Range = FGridDungeonTrapPerceptionService::GetMaxRangeCells(
+            ObserverScore, bHasLight, EGridDungeonTrapDetectionSense::Visual, 4);
+        const FText Message = FText::Format(
+            NSLOCTEXT("TRAP01", "PerceptionNeutralScan",
+                "{0} observe les alentours : aucun danger repéré (Perception passive, portée visuelle {1} {2}, {3}). Les jets sont aléatoires et une tentative par distance est mémorisée."),
+            ObserverName, FText::AsNumber(Range),
+            Range == 1 ? NSLOCTEXT("TRAP01", "CellSingle", "case") :
+                NSLOCTEXT("TRAP01", "CellsPlural", "cases"),
+            bHasLight ? NSLOCTEXT("TRAP01", "WithLighting", "avec lumière") :
+                NSLOCTEXT("TRAP01", "WithoutLighting", "sans lumière"));
+        GridEventFeedPublisher::PublishDungeonEvent(
+            this, FName(TEXT("Dungeon.Trap.PerceptionScan")), Message,
+            EGridHudEventSemantic::Default, EGridEventVisibility::Always,
+            true);
     }
     return Discoveries;
 }

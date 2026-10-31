@@ -122,6 +122,11 @@ public:
 	UPROPERTY(Transient)
 	FGridDungeonRuntimeState DungeonRuntimeState;
 
+    /** TRAP01.5.1: neutral summary after every exploration scan, even if no
+     * hidden trap exists. It must never confirm an undiscovered hazard. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime|Traps|Feedback")
+    bool bShowPassivePerceptionFeedback = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Meshes")
 	TObjectPtr<UStaticMesh> FloorMesh;
 
@@ -438,6 +443,15 @@ public:
     /** TRAP01.3 will call when the actual damage/activation commits.
      * TRAP01.2 publishes the reveal and position, not damage. */
     bool TryRecordDungeonTrapTriggered(FGuid TrapObjectId, AGrimrockPartyPawn* PartyPawn);
+
+    /** TRAP01.5.1: clickable revealed trap, using carried tools and the
+     * party-best Dexterity specialist. Returns true when interaction was
+     * handled, including an informative refusal (spent/blocked/no tools).
+     * Hidden traps never expose an interactable actor or an event.
+     */
+    bool TryInteractWithRevealedDungeonTrap(
+        AGrimrockPartyPawn* PartyPawn, FGuid TrapObjectId);
+
 
     /** TRAP01.3: commit the OnEnterCell hazards authored in one cell.
      * One shared damage roll per hazard, then individual character defenses.
