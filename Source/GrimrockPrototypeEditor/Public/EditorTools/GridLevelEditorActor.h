@@ -271,6 +271,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Editor|Palette")
 	bool EnsurePitTrapdoorDefinition(FString& OutError);
 
+    /** TRAP01.5: provision three editable floor/wall/ceiling dungeon hazards
+     * without overwriting an existing authored trap definition. */
+    UFUNCTION(BlueprintCallable, Category = "Editor|Palette")
+    bool EnsureDungeonTrapDefinitions(FString& OutError);
+
+
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
 	void LogEditorRuntimeAssetConsistency() const;
 

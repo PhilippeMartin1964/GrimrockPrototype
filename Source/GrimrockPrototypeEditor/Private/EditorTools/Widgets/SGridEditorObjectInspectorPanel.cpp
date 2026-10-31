@@ -370,6 +370,35 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Interactable")), GetBoolText(Definition->bIsInteractable))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Readable")), GetBoolText(Definition->bIsReadable))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Light Source")), GetBoolText(Definition->bIsLightSource))];
+		if (Definition->DungeonTrap.bIsDungeonTrap)
+		{
+			// DataAsset is the single editable authority. This compact inspector
+			// surfaces its effective values without copying them to placement state.
+			Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[
+				GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+					FText::FromString(TEXT("Dungeon Hazard")),
+					FText::FromString(TEXT("Hidden until detected / triggered")))];
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+				FText::FromString(TEXT("Detection DC")),
+				FText::AsNumber(Definition->DungeonTrap.DetectionDifficulty))];
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+				FText::FromString(TEXT("Disarm DC")),
+				FText::AsNumber(Definition->DisarmDifficulty))];
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+				FText::FromString(TEXT("Successful Disarm XP (group)")),
+				FText::AsNumber(Definition->DisarmDifficulty * 2))];
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+				FText::FromString(TEXT("Damage Range")),
+				FText::FromString(FString::Printf(TEXT("%d - %d"),
+					Definition->DungeonTrap.MinimumDamage,
+					Definition->DungeonTrap.MaximumDamage)))];
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+				FText::FromString(TEXT("Damage Type")),
+				GridEditorWidgetHelpers::GetGridEnumDisplayText(
+					StaticEnum<EGridDamageType>(),
+					static_cast<int64>(Definition->DungeonTrap.DamageType)))];
+		}
+
 	}
 
 	if (bIsSpawn)

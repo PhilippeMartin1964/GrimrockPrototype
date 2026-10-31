@@ -8,5 +8,6 @@
 #include "CoreDungeon/GridLevelEditorActor_CoreDungeon_05.inl"
 #include "CoreDungeon/GridLevelEditorActor_CoreDungeon_06.inl"
 #include "CoreDungeon/GridLevelEditorActor_CoreDungeon_07.inl"
+#include "CoreDungeon/GridLevelEditorActor_CoreDungeon_TRAP015.inl"
 #include "CoreDungeon/GridLevelEditorActor_CoreDungeon_08.inl"
 #include "CoreDungeon/GridLevelEditorActor_CoreDungeon_09.inl"

@@ -741,7 +741,14 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 
 	for (const FGridWorldObjectInstance& Obj : LevelAsset->WorldObjectInstances)
 	{
-		if (Obj.Type == EGridLevelObjectType::Trigger && !OutgoingLinkCountBySourceId.Contains(Obj.InstanceId))
+		// Dungeon hazards can damage the party without outgoing puzzle links.
+		// Ordinary logic Triggers still require an authored link.
+		const UGridWorldObjectDefinitionAsset* TrapDefinition =
+			Obj.Type == EGridLevelObjectType::Trigger
+				? FindWorldObjectDefinitionById(Obj.WorldObjectDefinitionId) : nullptr;
+		const bool bIsDungeonHazard = TrapDefinition && TrapDefinition->DungeonTrap.bIsDungeonTrap;
+		if (Obj.Type == EGridLevelObjectType::Trigger && !bIsDungeonHazard &&
+			!OutgoingLinkCountBySourceId.Contains(Obj.InstanceId))
 		{
 			AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Trigger has no outgoing links."), Obj.InstanceId);
 		}

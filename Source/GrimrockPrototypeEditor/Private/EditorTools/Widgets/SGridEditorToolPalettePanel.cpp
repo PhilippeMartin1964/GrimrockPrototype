@@ -79,6 +79,8 @@ namespace
 			return 2;
 		if (Category == FName(TEXT("Navigation")))
 			return 3;
+		if (Category == FName(TEXT("Hazards")))
+			return 4;
 		if (Category == FName(TEXT("Items")))
 			return 4;
 		if (Category == FName(TEXT("Weapon")))
@@ -410,6 +412,34 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 		if (!CurrentEditorActor->EnsurePitTrapdoorDefinition(Error))
 		{
 			UE_LOG(LogGridEditor, Warning, TEXT("Pit trapdoor palette provisioning failed: %s"), *Error);
+		}
+	}
+
+	// TRAP01.5: expose starter traps as ordinary editable palette entries.
+	// Provision only if an entry or its definition is absent. Existing authored
+	// DataAssets are never rewritten by repainting/refreshing this panel.
+	const FName TrapEntryIds[] = {
+		FName(TEXT("Trap_Floor_Spikes_01")),
+		FName(TEXT("Trap_Wall_Darts_01")),
+		FName(TEXT("Trap_Ceiling_Fire_01"))
+	};
+	bool bMissingTrapEntry = false;
+	for (const FName EntryId : TrapEntryIds)
+	{
+		const FGridObjectPaletteEntry* TrapEntry =
+			CurrentEditorActor->ObjectPalette->FindEntryById(EntryId);
+		if (!TrapEntry || !TrapEntry->DefaultWorldObjectDefinition)
+		{
+			bMissingTrapEntry = true;
+			break;
+		}
+	}
+	if (bMissingTrapEntry)
+	{
+		FString Error;
+		if (!CurrentEditorActor->EnsureDungeonTrapDefinitions(Error))
+		{
+			UE_LOG(LogGridEditor, Warning, TEXT("TRAP01.5 starter hazards: %s"), *Error);
 		}
 	}
 
