@@ -1,35 +1,115 @@
-# GrimrockPrototype — Tâches Codex
+# GrimrockPrototype — Stratégie d'utilisation de Codex et tâches historiques
 
-Statut : prompts historiques / modèles de tâches Codex. À utiliser comme référence de méthode, pas comme backlog actuel.
+**Document actif pour la stratégie ; exemples de tâches ci-dessous historiques.**
+La présente stratégie complète `AGENTS.md` et `docs/PROJECT_WORKFLOW_RULES.md`.
+En cas de contradiction avec un ancien prompt ou une ancienne « branche recommandée », **les règles actuelles prévalent : `master` exclusivement, un seul commit final maximum par étape, aucun commit intermédiaire**.
 
-## Objectif
+## 1. Pourquoi réserver Codex
 
-Ce document contient des prompts prêts à donner à Codex.
+Le projet utilise Unreal Engine 5.5.4 sous Windows, à l'emplacement local
+`D:\Development\GrimrockPrototype` (moteur : `D:\UE_5.5`).
+Une session Codex peut consommer rapidement le quota d'utilisation inclus dans
+l'abonnement, surtout avec des audits ouverts, des parcours de dépôt étendus et
+des compilations/tests répétés. **Ne pas présumer qu'un nombre fixe de messages
+ou de crédits sera disponible** : consulter les limites affichées par le
+produit au moment de l'utilisation.
 
-Principe : Codex doit recevoir des tâches courtes, fermées, avec fichiers autorisés et contraintes explicites.
+Codex n'est **plus l'outil obligatoire pour chaque jalon**. Il sert surtout
+quand un agent disposant de l'ordinateur local doit itérer de façon autonome
+sur une difficulté qui requiert l'exécution réelle du projet.
 
-Ne pas demander à Codex de refactoriser tout le système d’un coup.
+## 2. Répartition recommandée
 
----
+| Travail | Responsable / environnement |
+| --- | --- |
+| Cahier des charges, conception, revue de règles et documentation | ChatGPT dans le projet |
+| Lecture du dépôt, audit statique, architecture, correctif ciblé et patch | ChatGPT + GitHub |
+| Validation avant publication : compilation UBT, Automation, PIE et assets binaires | Installation UE locale, avec l'utilisateur |
+| Commit final atomique / push / vérification de `origin/master` | Git local après validation ; assistance GitHub selon les outils disponibles |
+| Blocage multi-fichiers complexe, diagnostic dépendant d'UHT, du runtime ou de Windows, reproduction autonome | Codex local, exceptionnellement |
 
-## Règles d’utilisation de Codex
+Depuis une conversation ChatGPT sans accès à `D:\UE_5.5`, **ne jamais
+annoncer une compilation UE, une recette PIE ni une matérialisation de
+DataAsset comme effectuée**. Préparer un patch, le faire valider localement,
+puis publier. Ne pas utiliser GitHub pour pousser plusieurs corrections
+spéculatives successives.
 
-Pour chaque tâche :
+Le choix du modèle Codex est proportionnel à la difficulté : utiliser un
+modèle/effort plus économique pour une tâche fermée ; réserver les modèles à
+fort raisonnement aux enquêtes complexes. Les noms, disponibilités et quotas
+des modèles évoluent : les vérifier dans l'interface plutôt que figer ici
+une recommandation commerciale.
 
-1. créer une branche Git dédiée ;
-2. donner le contexte ;
-3. limiter les fichiers autorisés ;
-4. demander un diff minimal ;
-5. compiler localement ;
-6. tester dans UE5 ;
-7. committer ;
-8. mettre à jour `99_DECISIONS_LOG.md`.
+## 3. Quand déclencher Codex
+
+**Utiliser ChatGPT + validation locale** pour :
+- les changements documentaires, les réglages de DataAssets et de Material
+  Instances, les ajustements C++ localisés et les tests ciblés ;
+- les tâches où un diff relisible peut être appliqué puis compilé en une fois.
+
+**Utiliser Codex** pour :
+- un défaut qui persiste après une première investigation raisonnable ;
+- un problème où le comportement runtime, le code généré ou les dépendances
+  de plusieurs modules doivent être vérifiés sur la machine ;
+- une investigation dont la conclusion exige plusieurs compilations ou tests
+  locaux que l'utilisateur ne devrait pas orchestrer à répétition.
+
+**Exemple vérifié — TRAP01.5** : les méthodes C++ directes de l'interaction
+réussissaient mais `IGridInteractableInterface::Execute_*` échouait. La cause
+était un monde transitoire de test dont les acteurs n'étaient pas correctement
+initialisés : `ProcessEvent` n'exécutait pas l'événement comme en jeu.
+La correction a porté sur le fixture du test, pas sur les règles du piège.
+**Toujours auditer la validité du test et son monde UE avant de conclure
+à un défaut de gameplay ou de réflexion Unreal.**
+
+## 4. Contrat d'une tâche Codex économique et vérifiable
+
+1. Relever `git status --short`, `git branch --show-current` et le HEAD de
+   `origin/master` ; préserver tous les changements préexistants.
+2. Délimiter **un seul objectif**, des chemins/fichiers précis et les
+   comportements interdits ; éviter « nettoie le dépôt » ou « corrige tout ».
+3. Exiger une hypothèse et une preuve de la cause racine avant de refactoriser.
+   Lire les journaux antérieurs pour éviter les mêmes compilations inutiles.
+4. Imposer un diff minimal, des tests de régression ciblés, et le respect de
+   `AGENTS.md`, des DataAssets, de la localisation et des WBP.
+5. Compiler une seule fois après stabilisation du patch ; exécuter ensuite
+   plusieurs filtres Automation avec `-SkipBuild` lorsque possible.
+6. **Aucun commit tant que compilation/tests requis ne sont pas réussis.**
+   Après succès : un commit atomique final sur `master`, push et preuve du SHA ;
+   si PIE reste nécessaire, l'indiquer explicitement comme non validé.
+7. Exiger un bilan court : cause, fichiers, tests réellement exécutés,
+   rapports, SHA et recette manuelle restante. Ne pas relancer l'agent
+   pour de simples reformulations du compte rendu.
+
+Commandes de base depuis le poste de développement :
+
+```powershell
+cd D:\Development\GrimrockPrototype
+git status --short
+git branch --show-current
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TRAP01.2"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.TRAP01.4"
+git diff --check
+```
+
+Les filtres ci-dessus sont des **exemples**, pas une matrice universelle :
+choisir ceux qui correspondent au jalon en cours. Ne jamais écraser les
+changements utilisateur, réinitialiser `master` ou modifier des fichiers
+`.uasset` hors des outils Unreal.
+
+## 5. Anciens prompts conservés pour mémoire
+
+Les exemples qui suivent reflètent une ancienne organisation du dépôt :
+leurs noms de classes, chemins `Docs/` et propositions de branches
+`feature/*` **ne sont pas des consignes applicables aujourd'hui**.
+Les adapter à l'architecture réelle avant utilisation ; ne jamais créer
+de branche pour les exécuter.
 
 ---
 
 ## Tâche Codex 01 — Ajouter Events et Commands
 
-### Branche recommandée
+### Branche historique — ne pas créer
 
 ```text
 feature/grid-events-commands
@@ -69,7 +149,7 @@ Livrable attendu :
 
 ## Tâche Codex 02 — Ajouter FGridObjectLink
 
-### Branche recommandée
+### Branche historique — ne pas créer
 
 ```text
 feature/grid-object-links
@@ -107,7 +187,7 @@ Livrable attendu :
 
 ## Tâche Codex 03 — Exposer Events / Commands dans les archétypes
 
-### Branche recommandée
+### Branche historique — ne pas créer
 
 ```text
 feature/archetype-events-commands
@@ -153,7 +233,7 @@ Livrable attendu :
 
 ## Tâche Codex 04 — Préparer le dispatcher runtime
 
-### Branche recommandée
+### Branche historique — ne pas créer
 
 ```text
 feature/runtime-event-dispatcher
@@ -203,7 +283,7 @@ Livrable attendu :
 
 ## Tâche Codex 05 — Brancher Button et Door
 
-### Branche recommandée
+### Branche historique — ne pas créer
 
 ```text
 feature/button-door-event-command
@@ -244,7 +324,7 @@ Livrable attendu :
 
 ## Tâche Codex 06 — Brancher Lever et PressurePlate
 
-### Branche recommandée
+### Branche historique — ne pas créer
 
 ```text
 feature/lever-pressureplate-events
@@ -281,7 +361,7 @@ Livrable attendu :
 
 ## Tâche Codex 07 — Créer / consolider AGridReceptacleActor
 
-### Branche recommandée
+### Branche historique — ne pas créer
 
 ```text
 feature/receptacle-base
@@ -335,7 +415,7 @@ Livrable attendu :
 
 ## Tâche Codex 08 — Éditeur : afficher Events / Commands / ActorClass
 
-### Branche recommandée
+### Branche historique — ne pas créer
 
 ```text
 feature/editor-object-inspector-events
@@ -378,7 +458,7 @@ Livrable attendu :
 
 ## Tâche Codex 09 — Éditeur : création de liens
 
-### Branche recommandée
+### Branche historique — ne pas créer
 
 ```text
 feature/editor-object-link-creation
@@ -416,7 +496,7 @@ Livrable attendu :
 
 ## Tâche Codex 10 — Nettoyage final
 
-### Branche recommandée
+### Branche historique — ne pas créer
 
 ```text
 feature/cleanup-legacy-activation
