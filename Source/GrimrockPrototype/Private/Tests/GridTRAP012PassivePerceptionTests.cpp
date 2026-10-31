@@ -201,11 +201,10 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
     TestNotNull(TEXT("Perception feedback uses existing feed"), Feed);
     if (Feed)
     {
-        TestTrue(TEXT("Blocked observation gives neutral feedback without identifying hidden trap"),
+        TestFalse(TEXT("Blocked passive scan publishes no neutral perception event"),
             Feed->GetEntries().ContainsByPredicate([](const FGridHudEventEntry& E)
             {
-                return E.EventCode == FName(TEXT("Dungeon.Trap.PerceptionScan")) &&
-                    !E.Message.ToString().Contains(TEXT("piège"));
+                return E.EventCode == FName(TEXT("Dungeon.Trap.PerceptionScan"));
             }));
     }
     Level->GetCellMutable(3, 2).NorthWall = EGridWallType::None;
@@ -215,6 +214,19 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
         Runtime->EvaluatePassiveDungeonTrapPerception(Party, Roll), 1);
     TestEqual(TEXT("Discovery state persisted"), Runtime->GetDungeonTrapState(Trap.InstanceId),
         EGridDungeonTrapState::Detected);
+    if (Feed)
+    {
+        TestTrue(TEXT("Successful discovery still publishes a positive detection event"),
+            Feed->GetEntries().ContainsByPredicate([](const FGridHudEventEntry& E)
+            {
+                return E.EventCode == FName(TEXT("Dungeon.Trap.Detected"));
+            }));
+        TestFalse(TEXT("Successful discovery never emits the removed neutral scan event"),
+            Feed->GetEntries().ContainsByPredicate([](const FGridHudEventEntry& E)
+            {
+                return E.EventCode == FName(TEXT("Dungeon.Trap.PerceptionScan"));
+            }));
+    }
     AGridRuntimeObjectActor* Revealed = Runtime->FindRuntimeObjectActor<AGridRuntimeObjectActor>(Trap.InstanceId);
     TestNotNull(TEXT("Detection materializes the 3D model"), Revealed);
     if (Revealed && Revealed->MeshComponent)

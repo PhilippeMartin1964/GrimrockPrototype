@@ -73,30 +73,23 @@ Une réussite réelle annonce désormais la localisation ET le calcul :
 « Elias repère un piège au sol, à 2 cases, devant vous
 (Perception : d20 12, total 17, difficulté 14). »
 
-Un **échec isolé** ne peut PAS publier « jet raté contre ce piège » :
-un tel message trahirait l'existence d'un piège invisible.
-À la place, sur **tous** les scans passifs où aucun danger n'est
-nouvellement repéré, même si aucune définition de piège n'existe
-à proximité, le flux publie une phrase neutre :
+Un **échec isolé** ne doit pas publier « jet raté contre ce piège » :
+cela trahirait l'existence d'un piège invisible.
 
-« Elias observe les alentours : aucun danger repéré
-(Perception passive, portée visuelle 2 cases, sans lumière).
-Les jets sont aléatoires et une tentative par distance est mémorisée. »
-
-Ce message **ne signifie pas que la zone est sûre**. Le meilleur
-observateur n'est pas omniscient ; un piège peut être caché,
-hors de portée, masqué par un mur ou avoir échappé au jet.
-
-La propriété `bShowPassivePerceptionFeedback` dans l'acteur
-`AGridLevelRuntimeActor` est activée par défaut pour les essais
-PIE et peut être désactivée pour éviter de saturer le flux en
-exploration. Un seul résumé est envoyé par scan sans découverte,
-indépendamment du nombre de pièges échoués.
+**Contrat actuel (TRAP-INSTANCE01) :** tous les scans passifs sans nouvelle
+découverte sont silencieux, qu'un piège soit absent, hors de portée, masqué
+par un mur ou simplement non repéré. Le journal ne confirme jamais qu'une
+zone est sûre. Une **réussite réelle** conserve son annonce explicative.
+Le réglage historique `bShowPassivePerceptionFeedback` et sa phrase neutre
+« aucun danger repéré » ont été supprimés, à la demande de l'utilisateur.
+Une éventuelle commande manuelle « Examiner les alentours » est un
+jalon distinct, non implémenté ici.
 
 ## Tests automatiques / conservation des invariants
 
 La suite `Grimrock.TRAP01.2` vérifie désormais aussi :
-- notification neutre sans fuite d'information après un scan bloqué ;
+- **absence de notification** après un scan bloqué, sans fuite d'information ;
+- conservation du message positif lorsqu'un piège est réellement découvert ;
 - acteur générique révélé interactif, collision QueryOnly ;
 - `Visibility=Block`, curseur `Use`, réponse au clic ;
 - piège à usage unique déjà déclenché : clic informatif.
