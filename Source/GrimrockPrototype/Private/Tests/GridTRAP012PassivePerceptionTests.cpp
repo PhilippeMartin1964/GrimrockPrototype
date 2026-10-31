@@ -222,6 +222,25 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
             Revealed->MeshComponent->GetCollisionEnabled(), ECollisionEnabled::QueryOnly);
         TestEqual(TEXT("Revealed mechanism can receive visibility mouse ray"),
             Revealed->MeshComponent->GetCollisionResponseToChannel(ECC_Visibility), ECR_Block);
+        // TRAP01.5.3: distinguish bad visual identity/owner/state from
+        // an interface event-dispatch issue. Keep the actual public API checks.
+        TestTrue(TEXT("Revealed visual is the generic interactive actor"),
+            Revealed->IsA<AGridGenericObjectActor>());
+        TestTrue(TEXT("Revealed actor implements the interaction interface"),
+            Revealed->GetClass()->ImplementsInterface(UGridInteractableInterface::StaticClass()));
+        TestTrue(TEXT("Revealed visual preserves the authored trap GUID"),
+            Revealed->ObjectId == Trap.InstanceId);
+        TestTrue(TEXT("Revealed visual is owned by its level runtime actor"),
+            Revealed->GetOwner() == Runtime);
+        TestEqual(TEXT("Revealed GUID resolves to detected trap state"),
+            Runtime->GetDungeonTrapState(Revealed->ObjectId), EGridDungeonTrapState::Detected);
+        if (const AGridGenericObjectActor* GenericVisual = Cast<AGridGenericObjectActor>(Revealed))
+        {
+            TestTrue(TEXT("Direct generic actor can interact with revealed trap"),
+                GenericVisual->CanInteract_Implementation(Party, Revealed->MeshComponent));
+            TestEqual(TEXT("Direct generic actor returns use cursor"),
+                GenericVisual->GetInteractionCursor_Implementation(Revealed->MeshComponent), EGridInteractionCursor::Use);
+        }
         TestTrue(TEXT("Revealed mechanism can be clicked by the party"),
             IGridInteractableInterface::Execute_CanInteract(
                 Revealed, Party, Revealed->MeshComponent));
