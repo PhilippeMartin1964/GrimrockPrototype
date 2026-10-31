@@ -353,6 +353,12 @@ struct FGridLevelRuntimeState
     UPROPERTY(SaveGame, BlueprintReadWrite)
     TSet<FGuid> DisarmedTriggerTrapIds;
 
+    /** TRAP01.8: one safe skill failure per authored trap (Saboteur Expert
+     * Disarm). SaveGame guard prevents infinite protected re-rolls.
+     */
+    UPROPERTY(SaveGame, BlueprintReadWrite)
+    TSet<FGuid> SafeDisarmFailureUsedTrapIds;
+
     /** ARMEMENT01.16 hardening: only these explicitly discovered instance GUIDs
      * may be offered to a disarm action. No discovery is inferred from proximity.
      * TRAP01.2 will own the automatic perception writer. */

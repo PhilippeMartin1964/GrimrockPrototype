@@ -9,7 +9,8 @@
  */
 namespace GridDungeonTrapDisarmFeedback
 {
-    inline FText Format(const FText& Disarmer, const FRPGSkillCheckResult& Check)
+    inline FText Format(const FText& Disarmer, const FRPGSkillCheckResult& Check,
+        bool bTriggeredOnFailure = false)
     {
         if (!Check.bResolved)
         {
@@ -29,8 +30,17 @@ namespace GridDungeonTrapDisarmFeedback
         const FText Outcome = Check.bSuccess
             ? FText::Format(NSLOCTEXT("TRAP0171", "DisarmSuccessDifficulty",
                   "Difficulté : {0} — Réussite !"), FText::AsNumber(Check.Difficulty))
-            : FText::Format(NSLOCTEXT("TRAP0171", "DisarmFailureDifficulty",
-                  "Difficulté : {0} — Échec !"), FText::AsNumber(Check.Difficulty));
+            : Check.bSafeFailure
+                ? FText::Format(NSLOCTEXT("TRAP018", "DisarmSafeFailure",
+                      "Difficulté : {0} — Échec sûr ! Le piège reste armé."),
+                      FText::AsNumber(Check.Difficulty))
+                : bTriggeredOnFailure
+                    ? FText::Format(NSLOCTEXT("TRAP018", "DisarmTriggeredFailure",
+                          "Difficulté : {0} — Échec ! Le piège se déclenche !"),
+                          FText::AsNumber(Check.Difficulty))
+                    : FText::Format(NSLOCTEXT("TRAP0171", "DisarmFailureDifficulty",
+                          "Difficulté : {0} — Échec !"),
+                          FText::AsNumber(Check.Difficulty));
 
         const FText& Pattern = Check.bSuccess
             ? NSLOCTEXT("TRAP0171", "DisarmSuccessThreeLines",

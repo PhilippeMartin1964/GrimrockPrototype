@@ -71,6 +71,8 @@ bool FTRAP014BestMember::RunTest(const FString&)
     Def->StaticPart.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
     Def->DungeonTrap.RevealedOverlayMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
     Def->DisarmDifficulty = 40; // Impossible at the test party's level.
+    // Legacy multi-attempt selection test: repeatable, harmless by design.
+    Def->DungeonTrap.bOneShot = false;
     Runtime->WorldObjectDefinitions.Add(Def);
 
     FGridWorldObjectInstance Trap;
@@ -79,6 +81,7 @@ bool FTRAP014BestMember::RunTest(const FString&)
     Trap.WorldObjectDefinitionId = Def->DefinitionId;
     Trap.CellX = 1;
     Trap.CellY = 1;
+    Trap.InstanceConfig.DungeonTrap.bNoDamage = true;
     Level->WorldObjectInstances.Add(Trap);
     TestTrue(TEXT("Explicitly detected before any attempt"),
         Runtime->TryRecordDungeonTrapDetection(Trap.InstanceId));
@@ -198,8 +201,10 @@ bool FTRAP014BestMember::RunTest(const FString&)
         Check.GoverningAttribute, ERPGSkillGoverningAttribute::Dexterity);
     TestEqual(TEXT("Low Dex is used instead of high Intelligence"),
         Check.AttributeValue, 10);
-    TestFalse(TEXT("Very difficult trap stays armed"),
+    TestFalse(TEXT("Very difficult trap is not disarmed"),
         Runtime->IsTriggerTrapDisarmed(Trap.InstanceId));
+    TestEqual(TEXT("Unsafe failure fires repeatable trap"),
+        Runtime->GetDungeonTrapState(Trap.InstanceId), EGridDungeonTrapState::Triggered);
 
     // Add a second real tool to the trained, dexterous member.
     Tools.RuntimeObjectId = FGuid::NewGuid();

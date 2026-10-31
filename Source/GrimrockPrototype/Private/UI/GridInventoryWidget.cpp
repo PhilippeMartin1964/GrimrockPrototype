@@ -1787,9 +1787,10 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
             FRandomStream RandomStream(FMath::Rand());
             FRPGSkillCheckResult Check;
             int32 DisarmerIndex = INDEX_NONE;
+            bool bTriggeredOnFailure = false;
             bExecuted = Runtime->TryDisarmTriggerTrap(
                 OwningPartyPawn, Action.TargetObjectId, CharacterIndex, Skill,
-                RandomStream, Check, &DisarmerIndex);
+                RandomStream, Check, &DisarmerIndex, &bTriggeredOnFailure);
             if (!bExecuted)
             {
                 UE_LOG(LogGridInventoryUI, Log,
@@ -1817,7 +1818,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
                 !State.ActiveCharacters[DisarmerIndex].DisplayName.IsEmpty()
                 ? State.ActiveCharacters[DisarmerIndex].DisplayName
                 : NSLOCTEXT("GridItemActions", "DisarmOperatorFallback", "Un membre du groupe");
-            const FText Message = GridDungeonTrapDisarmFeedback::Format(DisarmerName, Check);
+            const FText Message = GridDungeonTrapDisarmFeedback::Format(DisarmerName, Check, bTriggeredOnFailure);
             if (Trap)
             {
                 GridEventFeedPublisher::PublishDungeonEventAtCell(

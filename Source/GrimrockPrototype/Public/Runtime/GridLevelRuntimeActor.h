@@ -482,7 +482,8 @@ public:
     bool TryDisarmTriggerTrap(AGrimrockPartyPawn* PartyPawn, FGuid TrapObjectId,
         int32 CharacterIndex, const class URPGSkillAsset* SkillDefinition,
         FRandomStream& RandomStream, FRPGSkillCheckResult& OutResult,
-        int32* OutDisarmerCharacterIndex = nullptr);
+        int32* OutDisarmerCharacterIndex = nullptr,
+        bool* OutTriggeredOnFailure = nullptr);
 
 
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction")
@@ -609,6 +610,12 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+    /** Shared hazard activation. Only validated entry or disarm-failure callers
+     * may invoke this internal path; no direct player-facing GUID activation.
+     */
+    bool TryActivateDungeonTrap(
+        AGrimrockPartyPawn* PartyPawn, FGuid TrapObjectId, FRandomStream& RandomStream);
+
 	friend class UGridMonsterEncounterComponent;
 
 	void GetEdgeTransform(int32 X, int32 Y, EGridEdge Edge, float CellSize, FVector& OutWorldLocation, FRotator& OutWorldRotation) const;

@@ -105,6 +105,7 @@ bool FARMEMENT01162ARuntime::RunTest(const FString&)
     Def->DungeonTrap.bIsDungeonTrap = true;
     Def->bCanBeDisarmed = true;
     Def->DisarmDifficulty = 40;
+    Def->DungeonTrap.bOneShot = false; // Legacy two-attempt regression.
     Runtime->WorldObjectDefinitions.Add(Def);
 
     FGridWorldObjectInstance Trap;
@@ -113,6 +114,7 @@ bool FARMEMENT01162ARuntime::RunTest(const FString&)
     Trap.Type = EGridLevelObjectType::Trigger;
     Trap.CellX = 0;
     Trap.CellY = 0;
+    Trap.InstanceConfig.DungeonTrap.bNoDamage = true;
     Level->WorldObjectInstances.Add(Trap);
 
     Party->LevelRuntimeActor = Runtime;
@@ -200,7 +202,9 @@ bool FARMEMENT01162ARuntime::RunTest(const FString&)
         Runtime->TryDisarmTriggerTrap(Party, Trap.InstanceId, 0, Skill, Stream, Check));
     TestTrue(TEXT("Skill check was resolved"), Check.bResolved);
     TestFalse(TEXT("Difficulty 40 cannot be beaten at N1"), Check.bSuccess);
-    TestFalse(TEXT("Failed check leaves trigger armed"), Runtime->IsTriggerTrapDisarmed(Trap.InstanceId));
+    TestFalse(TEXT("Failed check does not disarm trigger"), Runtime->IsTriggerTrapDisarmed(Trap.InstanceId));
+    TestEqual(TEXT("Unsafe failure fires repeatable trap"),
+        Runtime->GetDungeonTrapState(Trap.InstanceId), EGridDungeonTrapState::Triggered);
     TestEqual(TEXT("Reusable tool not consumed on failure"),
         Inventory->CountItemDefinitionInCharacterInventory(0, Tool->ItemDefinitionId), 1);
 

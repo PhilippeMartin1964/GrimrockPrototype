@@ -119,189 +119,222 @@ int32 AGridLevelRuntimeActor::TriggerDungeonTrapsOnPartyEnterCell(
         {
             break; // A previous puzzle link changed the active level/cell.
         }
-        const UGridWorldObjectDefinitionAsset* Definition =
-            FindWorldObjectDefinition(Object.WorldObjectDefinitionId);
-        if (!IsValid(Definition) ||
-            Definition->SupportedType != EGridLevelObjectType::Trigger ||
-            !Definition->DungeonTrap.bIsDungeonTrap ||
-            !Definition->DungeonTrap.IsValidContract())
+        if (TryActivateDungeonTrap(PartyPawn, Object.InstanceId, RandomStream))
         {
-            continue;
+            ++Fired;
         }
-        const FGridDungeonTrapDefinitionParams Params = GridDungeonTrapInstance::Resolve(Object, *Definition);
-        if (!Params.IsValidContract() ||
-            Params.ActivationPolicy != EGridDungeonTrapActivationPolicy::OnEnterCell)
-        {
-            continue; // OnCrossBoundary and OnInteract belong to later milestones.
-        }
-
-        // A previous trap in this same cell may have incapacitated everybody.
-        // Do not consume a second hazard when there is no living victim left.
-        if (!Inventory->PartyInventoryState.ActiveCharacters.ContainsByPredicate(
-            [](const FGridCharacterInventoryState& Character)
-            {
-                return Character.Resources.CurrentHealth > 0;
-            }))
-        {
-            break;
-        }
-
-        const EGridDungeonTrapState CurrentState = GetDungeonTrapState(Object.InstanceId);
-        if (CurrentState == EGridDungeonTrapState::Unknown ||
-            CurrentState == EGridDungeonTrapState::Disarmed ||
-            CurrentState == EGridDungeonTrapState::Disabled ||
-            (Params.bOneShot && CurrentState == EGridDungeonTrapState::Triggered))
-        {
-            continue;
-        }
-
-        // Build a complete transaction before any RNG/state changes.
-        // A broken/empty party cannot consume the trap.
-        const int32 SingleVictim = Params.bAffectsEntireParty
-            ? INDEX_NONE : GridDungeonTrapDamage::ChooseSingleVictim(*Inventory);
-        if (!Params.bAffectsEntireParty && SingleVictim == INDEX_NONE)
-        {
-            continue;
-        }
-
-        // One shared roll for this trap instance, never separate damage rolls
-        // per character. Individual resistances and armor are applied below.
-        const bool bDealsDamage = GridDungeonTrapInstance::DealsDamage(Object);
-        const int32 RawDamage = !bDealsDamage ? 0 :
-            (Params.MinimumDamage == Params.MaximumDamage
-                ? Params.MinimumDamage
-                : RandomStream.RandRange(Params.MinimumDamage, Params.MaximumDamage));
-
-        if (!TryRecordDungeonTrapTriggered(Object.InstanceId, PartyPawn))
-        {
-            continue; // No damage without a committed trigger state.
-        }
-
-        ++Fired;
-        if (bDealsDamage)
-        {
-        const FGridCombatModifierContext IncomingContext =
-            GridDungeonTrapDamage::MakeIncomingContext(Params);
-        for (int32 CharacterIndex = 0;
-             CharacterIndex < Inventory->PartyInventoryState.ActiveCharacters.Num();
-             ++CharacterIndex)
-        {
-            FGridCharacterInventoryState& Character =
-                Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
-            if (Character.Resources.CurrentHealth <= 0 ||
-                (!Params.bAffectsEntireParty && CharacterIndex != SingleVictim))
-            {
-                continue;
-            }
-
-            FGridAttackTargetStats Target;
-            Target.CurrentHealth = Character.Resources.CurrentHealth;
-            Target.PhysicalArmor = Inventory->GetEffectiveCurrentPhysicalArmor(CharacterIndex);
-            Target.MagicalArmor = Inventory->GetEffectiveCurrentMagicalArmor(CharacterIndex);
-            Target.DamageMultiplier = 1.0f;
-            Target.ResistancePercent = FGridCombatResolver::GetResistancePercent(
-                Inventory->ComputeCharacterEquipmentResistances(CharacterIndex),
-                Params.DamageType);
-
-            // Reuse the same defensive modifier authority as combat surfaces:
-            // class progression and status effects can protect against traps.
-            TArray<FGridCombatModifierProfile> DefensiveProfiles;
-            if (FGridCombatModifierResolver::CollectCharacterModifiers(
-                Character, DefensiveProfiles))
-            {
-                FGridResolvedCombatModifiers DefensiveModifiers;
-                FGridCombatModifierResolver::Resolve(
-                    DefensiveProfiles, IncomingContext, DefensiveModifiers);
-                FGridCombatModifierResolver::ApplyIncomingAttackModifiers(
-                    Target, Params.DamageType, DefensiveModifiers);
-            }
-
-            FGridAttackResult Result =
-                FGridCombatResolver::ResolveDirectDamage(
-                    Target, Params.DamageType, RawDamage, Params.PhysicalSubtype);
-            if (Result.bHit)
-            {
-                // The canonical inventory API depletes equipped armor before
-                // base armor pools, preserving equipment-source provenance.
-                Inventory->ApplyPhysicalArmorDamage(
-                    CharacterIndex, Result.PhysicalArmorDamage,
-                    &Result.Trace.Damage.PhysicalArmorSources);
-                Inventory->ApplyMagicalArmorDamage(
-                    CharacterIndex, Result.MagicalArmorDamage);
-                Character.Resources.CurrentHealth = FMath::Max(
-                    0, Character.Resources.CurrentHealth - Result.HealthDamage);
-            }
-            Inventory->NotifyPartyInventoryChanged(CharacterIndex);
-
-            const FText Name = Character.DisplayName.IsEmpty()
-                ? FText::Format(NSLOCTEXT("TRAP01", "TrapCharacterFallback",
-                    "Personnage {0}"), FText::AsNumber(CharacterIndex + 1))
-                : Character.DisplayName;
-            const FText DamageLabel = GridDungeonTrapDamage::LocalizedDamageType(
-                Params.DamageType, Params.PhysicalSubtype);
-            const FText Feedback = FText::Format(
-                NSLOCTEXT("TRAP01", "TrapDamageMember",
-                    "{0} : {1} dégâts ({2}) aux PV, {3} à l'armure physique, {4} à l'armure magique."),
-                Name, FText::AsNumber(Result.HealthDamage), DamageLabel,
-                FText::AsNumber(Result.PhysicalArmorDamage),
-                FText::AsNumber(Result.MagicalArmorDamage));
-
-            GridEventFeedPublisher::PublishDungeonEvent(
-                this, FName(TEXT("Dungeon.Trap.Damage")), Feedback,
-                EGridHudEventSemantic::Mechanism, EGridEventVisibility::Always,
-                true, GridEventFeedPublisher::SourceIdFromGuid(Object.InstanceId));
-
-            UE_LOG(LogGridDungeonTrapDamage, Log,
-                TEXT("[TRAP01.3] Instance=%s Member=%d Type=%s Subtype=%s Raw=%d Resistance=%d ArmorP=%d ArmorM=%d HP=%d->%d"),
-                *Object.InstanceId.ToString(), CharacterIndex,
-                *UEnum::GetValueAsString(Params.DamageType),
-                *UEnum::GetValueAsString(Params.PhysicalSubtype),
-                RawDamage, Result.ResistancePercent,
-                Result.PhysicalArmorDamage, Result.MagicalArmorDamage,
-                Result.TargetHealthBefore, Result.TargetHealthAfter);
-        }
-        } // No-damage traps skip combat resolution and damage feedback.
-
-        // A successful, committed activation can now drive the authored puzzle
-        // links. Only one-shot traps suppress future activations; non-one-shot
-        // traps may fire again on another genuine cell entry.
-        // PIT03 opening is independent of optional direct damage.
-        if (Definition->PlacementSurface == EGridObjectPlacementKind::Floor &&
-            Object.InstanceConfig.DungeonTrap.bOpenPitOnTrigger)
-        {
-            FGuid PitId;
-            const bool bUnique = GridDungeonTrapPit::FindUniqueSameCellPit(*EnteredLevel, Object, PitId);
-            const FGridWorldObjectInstance* Pit = bUnique ? EnteredLevel->FindWorldObjectInstanceById(PitId) : nullptr;
-            const UGridWorldObjectDefinitionAsset* PitDefinition =
-                Pit ? FindWorldObjectDefinition(Pit->WorldObjectDefinitionId) : nullptr;
-            const FGridDungeonLevelEntry* ExplicitTarget =
-                DungeonAsset && Pit && !Pit->InstanceConfig.Relocation.TargetLevelId.IsNone()
-                ? DungeonAsset->FindLevelEntry(Pit->InstanceConfig.Relocation.TargetLevelId) : nullptr;
-            const FGridDungeonLevelEntry* SourceLevel =
-                DungeonAsset ? DungeonAsset->FindLevelEntry(CurrentDungeonLevelId) : nullptr;
-            const bool bTargetReady = Pit && SourceLevel && DungeonAsset &&
-                (Pit->InstanceConfig.Relocation.TargetLevelId.IsNone()
-                    ? DungeonAsset->FindLevelBelow(CurrentDungeonLevelId) != nullptr
-                    : ExplicitTarget && ExplicitTarget->bEnabled && ExplicitTarget->LevelAsset &&
-                        ExplicitTarget->LevelId != CurrentDungeonLevelId &&
-                        ExplicitTarget->LogicalPosition.Z < SourceLevel->LogicalPosition.Z);
-            if (!bUnique || !IsValid(PitDefinition) || !PitDefinition->HasCompletePitTrapdoorCover() ||
-                IsPitOpen(PitId) || !bTargetReady)
-            {
-                UE_LOG(LogGridDungeonTrapDamage, Warning,
-                    TEXT("[TRAP-PIT01] Trap %s at (%d,%d): missing, ambiguous or invalid closed PIT03/lower level."),
-                    *Object.InstanceId.ToString(), CellX, CellY);
-            }
-            else if (SetPitOpen(PitId, true) && !PartyPawn->IsPitFalling() &&
-                PartyPawn->LevelRuntimeActor == this)
-            {
-                // PIT03 already tries via the player controller. This fallback
-                // also supports an unpossessed test pawn; duplicate falls are guarded.
-                TryBeginPitFallAtCell(CellX, CellY, PartyPawn);
-            }
-        }
-        ExecuteLinksFromRuntimeObject(Object.InstanceId, EGridObjectEvent::Activated);
     }
 
     return Fired;
+}
+
+
+// TRAP01.8: one authoritative trap activation for real cell entry AND
+// an unsafe disarm failure. Callers validate their own spatial authorization.
+// This path owns state, one shared damage roll, PIT03 and Activated links.
+bool AGridLevelRuntimeActor::TryActivateDungeonTrap(
+    AGrimrockPartyPawn* PartyPawn, FGuid TrapObjectId, FRandomStream& RandomStream)
+{
+    if (!IsValid(LevelAsset) || !TrapObjectId.IsValid() ||
+        !IsValid(PartyPawn) || PartyPawn->LevelRuntimeActor != this ||
+        PartyPawn->IsPitFalling() || !IsValid(PartyPawn->PartyInventoryComponent))
+    {
+        return false;
+    }
+
+    UGridLevelAsset* EnteredLevel = LevelAsset.Get();
+    const FGridWorldObjectInstance* Found = EnteredLevel->FindWorldObjectInstanceById(TrapObjectId);
+    if (!Found || Found->Type != EGridLevelObjectType::Trigger ||
+        !EnteredLevel->IsValidCoord(Found->CellX, Found->CellY))
+    {
+        return false;
+    }
+    const FGridWorldObjectInstance Object = *Found;
+    const int32 CellX = Object.CellX;
+    const int32 CellY = Object.CellY;
+    UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
+    const UGridWorldObjectDefinitionAsset* Definition =
+        FindWorldObjectDefinition(Object.WorldObjectDefinitionId);
+    if (!IsValid(Definition) ||
+        Definition->SupportedType != EGridLevelObjectType::Trigger ||
+        !Definition->DungeonTrap.bIsDungeonTrap ||
+        !Definition->DungeonTrap.IsValidContract())
+    {
+        return false;
+    }
+    const FGridDungeonTrapDefinitionParams Params = GridDungeonTrapInstance::Resolve(Object, *Definition);
+    if (!Params.IsValidContract() ||
+        Params.ActivationPolicy != EGridDungeonTrapActivationPolicy::OnEnterCell)
+    {
+        return false; // OnCrossBoundary and OnInteract belong to later milestones.
+    }
+
+    // A previous trap in this same cell may have incapacitated everybody.
+    // Do not consume a second hazard when there is no living victim left.
+    if (!Inventory->PartyInventoryState.ActiveCharacters.ContainsByPredicate(
+        [](const FGridCharacterInventoryState& Character)
+        {
+            return Character.Resources.CurrentHealth > 0;
+        }))
+    {
+        return false;
+    }
+
+    const EGridDungeonTrapState CurrentState = GetDungeonTrapState(Object.InstanceId);
+    if (CurrentState == EGridDungeonTrapState::Unknown ||
+        CurrentState == EGridDungeonTrapState::Disarmed ||
+        CurrentState == EGridDungeonTrapState::Disabled ||
+        (Params.bOneShot && CurrentState == EGridDungeonTrapState::Triggered))
+    {
+        return false;
+    }
+
+    // Build a complete transaction before any RNG/state changes.
+    // A broken/empty party cannot consume the trap.
+    const int32 SingleVictim = Params.bAffectsEntireParty
+        ? INDEX_NONE : GridDungeonTrapDamage::ChooseSingleVictim(*Inventory);
+    if (!Params.bAffectsEntireParty && SingleVictim == INDEX_NONE)
+    {
+        return false;
+    }
+
+    // One shared roll for this trap instance, never separate damage rolls
+    // per character. Individual resistances and armor are applied below.
+    const bool bDealsDamage = GridDungeonTrapInstance::DealsDamage(Object);
+    const int32 RawDamage = !bDealsDamage ? 0 :
+        (Params.MinimumDamage == Params.MaximumDamage
+            ? Params.MinimumDamage
+            : RandomStream.RandRange(Params.MinimumDamage, Params.MaximumDamage));
+
+    if (!TryRecordDungeonTrapTriggered(Object.InstanceId, PartyPawn))
+    {
+        return false; // No damage without a committed trigger state.
+    }
+
+    if (bDealsDamage)
+    {
+    const FGridCombatModifierContext IncomingContext =
+        GridDungeonTrapDamage::MakeIncomingContext(Params);
+    for (int32 CharacterIndex = 0;
+         CharacterIndex < Inventory->PartyInventoryState.ActiveCharacters.Num();
+         ++CharacterIndex)
+    {
+        FGridCharacterInventoryState& Character =
+            Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+        if (Character.Resources.CurrentHealth <= 0 ||
+            (!Params.bAffectsEntireParty && CharacterIndex != SingleVictim))
+        {
+            continue;
+        }
+
+        FGridAttackTargetStats Target;
+        Target.CurrentHealth = Character.Resources.CurrentHealth;
+        Target.PhysicalArmor = Inventory->GetEffectiveCurrentPhysicalArmor(CharacterIndex);
+        Target.MagicalArmor = Inventory->GetEffectiveCurrentMagicalArmor(CharacterIndex);
+        Target.DamageMultiplier = 1.0f;
+        Target.ResistancePercent = FGridCombatResolver::GetResistancePercent(
+            Inventory->ComputeCharacterEquipmentResistances(CharacterIndex),
+            Params.DamageType);
+
+        // Reuse the same defensive modifier authority as combat surfaces:
+        // class progression and status effects can protect against traps.
+        TArray<FGridCombatModifierProfile> DefensiveProfiles;
+        if (FGridCombatModifierResolver::CollectCharacterModifiers(
+            Character, DefensiveProfiles))
+        {
+            FGridResolvedCombatModifiers DefensiveModifiers;
+            FGridCombatModifierResolver::Resolve(
+                DefensiveProfiles, IncomingContext, DefensiveModifiers);
+            FGridCombatModifierResolver::ApplyIncomingAttackModifiers(
+                Target, Params.DamageType, DefensiveModifiers);
+        }
+
+        FGridAttackResult Result =
+            FGridCombatResolver::ResolveDirectDamage(
+                Target, Params.DamageType, RawDamage, Params.PhysicalSubtype);
+        if (Result.bHit)
+        {
+            // The canonical inventory API depletes equipped armor before
+            // base armor pools, preserving equipment-source provenance.
+            Inventory->ApplyPhysicalArmorDamage(
+                CharacterIndex, Result.PhysicalArmorDamage,
+                &Result.Trace.Damage.PhysicalArmorSources);
+            Inventory->ApplyMagicalArmorDamage(
+                CharacterIndex, Result.MagicalArmorDamage);
+            Character.Resources.CurrentHealth = FMath::Max(
+                0, Character.Resources.CurrentHealth - Result.HealthDamage);
+        }
+        Inventory->NotifyPartyInventoryChanged(CharacterIndex);
+
+        const FText Name = Character.DisplayName.IsEmpty()
+            ? FText::Format(NSLOCTEXT("TRAP01", "TrapCharacterFallback",
+                "Personnage {0}"), FText::AsNumber(CharacterIndex + 1))
+            : Character.DisplayName;
+        const FText DamageLabel = GridDungeonTrapDamage::LocalizedDamageType(
+            Params.DamageType, Params.PhysicalSubtype);
+        const FText Feedback = FText::Format(
+            NSLOCTEXT("TRAP01", "TrapDamageMember",
+                "{0} : {1} dégâts ({2}) aux PV, {3} à l'armure physique, {4} à l'armure magique."),
+            Name, FText::AsNumber(Result.HealthDamage), DamageLabel,
+            FText::AsNumber(Result.PhysicalArmorDamage),
+            FText::AsNumber(Result.MagicalArmorDamage));
+
+        GridEventFeedPublisher::PublishDungeonEvent(
+            this, FName(TEXT("Dungeon.Trap.Damage")), Feedback,
+            EGridHudEventSemantic::Mechanism, EGridEventVisibility::Always,
+            true, GridEventFeedPublisher::SourceIdFromGuid(Object.InstanceId));
+
+        UE_LOG(LogGridDungeonTrapDamage, Log,
+            TEXT("[TRAP01.3] Instance=%s Member=%d Type=%s Subtype=%s Raw=%d Resistance=%d ArmorP=%d ArmorM=%d HP=%d->%d"),
+            *Object.InstanceId.ToString(), CharacterIndex,
+            *UEnum::GetValueAsString(Params.DamageType),
+            *UEnum::GetValueAsString(Params.PhysicalSubtype),
+            RawDamage, Result.ResistancePercent,
+            Result.PhysicalArmorDamage, Result.MagicalArmorDamage,
+            Result.TargetHealthBefore, Result.TargetHealthAfter);
+    }
+    } // No-damage traps skip combat resolution and damage feedback.
+
+    // A successful, committed activation can now drive the authored puzzle
+    // links. Only one-shot traps suppress future activations; non-one-shot
+    // traps may fire again on another genuine cell entry.
+    // PIT03 opening is independent of optional direct damage.
+    if (Definition->PlacementSurface == EGridObjectPlacementKind::Floor &&
+        Object.InstanceConfig.DungeonTrap.bOpenPitOnTrigger)
+    {
+        FGuid PitId;
+        const bool bUnique = GridDungeonTrapPit::FindUniqueSameCellPit(*EnteredLevel, Object, PitId);
+        const FGridWorldObjectInstance* Pit = bUnique ? EnteredLevel->FindWorldObjectInstanceById(PitId) : nullptr;
+        const UGridWorldObjectDefinitionAsset* PitDefinition =
+            Pit ? FindWorldObjectDefinition(Pit->WorldObjectDefinitionId) : nullptr;
+        const FGridDungeonLevelEntry* ExplicitTarget =
+            DungeonAsset && Pit && !Pit->InstanceConfig.Relocation.TargetLevelId.IsNone()
+            ? DungeonAsset->FindLevelEntry(Pit->InstanceConfig.Relocation.TargetLevelId) : nullptr;
+        const FGridDungeonLevelEntry* SourceLevel =
+            DungeonAsset ? DungeonAsset->FindLevelEntry(CurrentDungeonLevelId) : nullptr;
+        const bool bTargetReady = Pit && SourceLevel && DungeonAsset &&
+            (Pit->InstanceConfig.Relocation.TargetLevelId.IsNone()
+                ? DungeonAsset->FindLevelBelow(CurrentDungeonLevelId) != nullptr
+                : ExplicitTarget && ExplicitTarget->bEnabled && ExplicitTarget->LevelAsset &&
+                    ExplicitTarget->LevelId != CurrentDungeonLevelId &&
+                    ExplicitTarget->LogicalPosition.Z < SourceLevel->LogicalPosition.Z);
+        if (!bUnique || !IsValid(PitDefinition) || !PitDefinition->HasCompletePitTrapdoorCover() ||
+            IsPitOpen(PitId) || !bTargetReady)
+        {
+            UE_LOG(LogGridDungeonTrapDamage, Warning,
+                TEXT("[TRAP-PIT01] Trap %s at (%d,%d): missing, ambiguous or invalid closed PIT03/lower level."),
+                *Object.InstanceId.ToString(), CellX, CellY);
+        }
+        else if (SetPitOpen(PitId, true) && !PartyPawn->IsPitFalling() &&
+            PartyPawn->LevelRuntimeActor == this &&
+            PartyPawn->CurrentCellX == CellX && PartyPawn->CurrentCellY == CellY)
+        {
+            // PIT03 already tries via the player controller. This fallback
+            // also supports an unpossessed test pawn; duplicate falls are guarded.
+            TryBeginPitFallAtCell(CellX, CellY, PartyPawn);
+        }
+    }
+    ExecuteLinksFromRuntimeObject(Object.InstanceId, EGridObjectEvent::Activated);
+
+    return true;
 }

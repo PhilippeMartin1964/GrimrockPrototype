@@ -428,9 +428,10 @@ bool AGridLevelRuntimeActor::TryInteractWithRevealedDungeonTrap(
     FRandomStream RandomStream(FMath::Rand());
     FRPGSkillCheckResult Result;
     int32 DisarmerIndex = INDEX_NONE;
+    bool bTriggeredOnFailure = false;
     const bool bResolved = TryDisarmTriggerTrap(
         PartyPawn, TrapObjectId, ToolSourceIndex, Skill, RandomStream,
-        Result, &DisarmerIndex);
+        Result, &DisarmerIndex, &bTriggeredOnFailure);
     if (!bResolved)
     {
         Report(FName(TEXT("Dungeon.Trap.DisarmRejected")),
@@ -442,7 +443,7 @@ bool AGridLevelRuntimeActor::TryInteractWithRevealedDungeonTrap(
     const FText Name = Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(DisarmerIndex)
         ? Inventory->PartyInventoryState.ActiveCharacters[DisarmerIndex].DisplayName
         : NSLOCTEXT("TRAP01", "DisarmerFallback", "Un membre du groupe");
-    const FText Message = GridDungeonTrapDisarmFeedback::Format(Name, Result);
+    const FText Message = GridDungeonTrapDisarmFeedback::Format(Name, Result, bTriggeredOnFailure);
     Report(Result.bSuccess ? FName(TEXT("Dungeon.Trap.Disarmed"))
                            : FName(TEXT("Dungeon.Trap.DisarmFailed")), Message);
     return true;
@@ -541,8 +542,12 @@ bool AGridLevelRuntimeActor::TryDisarmTriggerTrap(
     AGrimrockPartyPawn* PartyPawn, FGuid TrapObjectId,
     int32 CharacterIndex, const URPGSkillAsset* SkillDefinition,
     FRandomStream& RandomStream, FRPGSkillCheckResult& OutResult,
-    int32* OutDisarmerCharacterIndex)
+    int32* OutDisarmerCharacterIndex, bool* OutTriggeredOnFailure)
 {
+    if (OutTriggeredOnFailure)
+    {
+        *OutTriggeredOnFailure = false;
+    }
     if (OutDisarmerCharacterIndex)
     {
         *OutDisarmerCharacterIndex = INDEX_NONE;
@@ -647,10 +652,37 @@ bool AGridLevelRuntimeActor::TryDisarmTriggerTrap(
     }
     if (!OutResult.bSuccess)
     {
+        // Expert Disarm protects only the FIRST near miss on this exact trap.
+        // The durable guard is keyed by the level-owned GUID, never by a shared
+        // DataAsset or the performing party member.
+        if (OutResult.bSafeFailure)
+        {
+            FGridLevelRuntimeState* State = GetOrCreateRuntimeStateForCurrentLevel();
+            if (State && !State->SafeDisarmFailureUsedTrapIds.Contains(TrapObjectId))
+            {
+                State->SafeDisarmFailureUsedTrapIds.Add(TrapObjectId);
+                UE_LOG(LogGridCombatTrapRuntime, Log,
+                    TEXT("[TRAP01.8] Safe disarm failure (single use) Trap=%s Margin=%d"),
+                    *TrapObjectId.ToString(), OutResult.FailureMargin);
+                return true; // Resolved safe failure: stays armed, no activation.
+            }
+            // The once-per-trap protection has already been spent.
+            OutResult.bSafeFailure = false;
+        }
+
+        // Unsafe failure springs the authored hazard via exactly the same
+        // damage/PIT03/Activated path as stepping on the cell. An adjacent
+        // party can trigger the floor ahead without being teleported into it.
+        const bool bTriggered = TryActivateDungeonTrap(PartyPawn, TrapObjectId, RandomStream);
+        if (OutTriggeredOnFailure)
+        {
+            *OutTriggeredOnFailure = bTriggered;
+        }
         UE_LOG(LogGridCombatTrapRuntime, Log,
-            TEXT("[ARMEMENT01.16.2A] TrapDisarm FAILED Target=%s SkillTotal=%d DC=%d"),
-            *TrapObjectId.ToString(), OutResult.Total, Difficulty);
-        return true; // Resolved check, not a successful disarm.
+            TEXT("[TRAP01.8] Unsafe disarm failure Trap=%s Total=%d DC=%d Triggered=%s"),
+            *TrapObjectId.ToString(), OutResult.Total, Difficulty,
+            bTriggered ? TEXT("true") : TEXT("false"));
+        return true;
     }
 
     FGridLevelRuntimeState* State = GetOrCreateRuntimeStateForCurrentLevel();

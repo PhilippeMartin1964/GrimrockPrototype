@@ -54,6 +54,20 @@ bool FGridTRAP017DisarmFeedbackTest::RunTest(const FString&)
     TestTrue(TEXT("Failure verdict reports true difficulty"),
         Failure.Contains(TEXT("Difficulté : 20 — Échec !")));
 
+    Check.bSafeFailure = true;
+    const FString Safe = GridDungeonTrapDisarmFeedback::Format(Operator, Check).ToString();
+    TestTrue(TEXT("Safe failure announces surviving armed trap"),
+        Safe.Contains(TEXT("Échec sûr ! Le piège reste armé.")));
+    Check.bSafeFailure = false;
+    const FString Hazard = GridDungeonTrapDisarmFeedback::Format(Operator, Check, true).ToString();
+    TestTrue(TEXT("Unsafe failure acknowledges actual activation"),
+        Hazard.Contains(TEXT("Échec ! Le piège se déclenche !")));
+    const FString NoActivation = GridDungeonTrapDisarmFeedback::Format(Operator, Check, false).ToString();
+    TestTrue(TEXT("Failure without committed trigger never lies about activation"),
+        NoActivation.Contains(TEXT("Difficulté : 20 — Échec !")));
+    TestFalse(TEXT("Failure without committed trigger has no activation claim"),
+        NoActivation.Contains(TEXT("se déclenche")));
+
     // Keep the formatting contract even for standalone zero-bonus checks.
     Check.ClassModifier = 0;
     Check.GroupModifier = 0;
