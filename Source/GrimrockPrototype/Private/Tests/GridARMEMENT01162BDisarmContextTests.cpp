@@ -102,7 +102,24 @@ bool FARMEMENT01162BDisarmContext::RunTest(const FString&)
     ItemContext.InventorySlotIndex = 0;
 
     FGuid Target;
-    TestTrue(TEXT("One accessible front-cell trap is selected"),
+    TestFalse(TEXT("Hidden trap never shows as a selectable target"),
+        Runtime->FindDisarmableTriggerTrapForParty(Party, Target));
+    FGridFacingTargetContext HiddenFacing;
+    TArray<FGridItemContextAction> HiddenActions;
+    UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, HiddenFacing, HiddenActions);
+    TestFalse(TEXT("Right click on tools never leaks an undiscovered trap"),
+        HiddenActions.ContainsByPredicate([](const FGridItemContextAction& A)
+        {
+            return A.ActionType == EGridItemActionType::DisarmTrap;
+        }));
+    FGridLevelRuntimeState* DiscoveredState = Runtime->GetOrCreateRuntimeStateForCurrentLevel();
+    if (!TestNotNull(TEXT("Per-level knowledge is available"), DiscoveredState))
+    {
+        DestroyWorld();
+        return false;
+    }
+    DiscoveredState->DetectedTriggerTrapIds.Add(Trap.InstanceId);
+    TestTrue(TEXT("Only after detection can the front-cell trap be selected"),
         Runtime->FindDisarmableTriggerTrapForParty(Party, Target));
     TestEqual(TEXT("Target is stable authored instance ID"), Target, Trap.InstanceId);
 

@@ -411,6 +411,8 @@ public:
     /** Authored Trigger trap state; never confuses combat-cell traps with dungeon triggers. */
     bool GetTriggerTrapDisarmDifficulty(FGuid TrapObjectId, int32& OutDifficulty) const;
     bool IsTriggerTrapDisarmed(FGuid TrapObjectId) const;
+    /** Returns only already-known trap instance IDs (TRAP01.2 will author detection). */
+    bool IsTriggerTrapDetected(FGuid TrapObjectId) const;
 
     /** Selects exactly one disarmable dungeon Trigger in the party cell or the
      * traversable cell directly in front. Ambiguous targets fail closed. */

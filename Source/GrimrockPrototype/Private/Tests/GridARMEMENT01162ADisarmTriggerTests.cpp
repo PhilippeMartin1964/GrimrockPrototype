@@ -146,8 +146,21 @@ bool FARMEMENT01162ARuntime::RunTest(const FString&)
     Skill->bAllowUntrainedChecks = true;
     Skill->MaxRank = 5;
 
+    // Not even a caller holding a guessed GUID may query or disarm a
+    // previously unseen trap; only explicit knowledge unlocks the action.
     int32 Difficulty = 0;
-    TestTrue(TEXT("Fresh authored Trigger offers disarm difficulty"),
+    FRandomStream HiddenRandomStream(162);
+    FRPGSkillCheckResult HiddenResult;
+    const int32 HiddenSeed = HiddenRandomStream.GetCurrentSeed();
+    TestFalse(TEXT("Hidden trap difficulty does not leak"),
+        Runtime->GetTriggerTrapDisarmDifficulty(Trap.InstanceId, Difficulty));
+    TestFalse(TEXT("Hidden trap rejects a direct disarm API call"),
+        Runtime->TryDisarmTriggerTrap(Party, Trap.InstanceId, 0, Skill, HiddenRandomStream, HiddenResult));
+    TestEqual(TEXT("No RNG consumed while hidden"), HiddenRandomStream.GetCurrentSeed(), HiddenSeed);
+    FGridLevelRuntimeState* DetectedState = Runtime->GetOrCreateRuntimeStateForCurrentLevel();
+    if (!TestNotNull(TEXT("Per-level trap knowledge state"), DetectedState)) return false;
+    DetectedState->DetectedTriggerTrapIds.Add(Trap.InstanceId); // Simulates TRAP01.2 discovery, never menu proximity.
+    TestTrue(TEXT("Fresh authored Trigger offers disarm difficulty after detection"),
         Runtime->GetTriggerTrapDisarmDifficulty(Trap.InstanceId, Difficulty));
     TestEqual(TEXT("Explicit difficulty projects"), Difficulty, 40);
     TestFalse(TEXT("Fresh trap is armed"), Runtime->IsTriggerTrapDisarmed(Trap.InstanceId));

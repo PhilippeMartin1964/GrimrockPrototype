@@ -105,6 +105,13 @@ bool AGridLevelRuntimeActor::IsTriggerTrapDisarmed(FGuid TrapObjectId) const
         State->DisarmedTriggerTrapIds.Contains(TrapObjectId);
 }
 
+bool AGridLevelRuntimeActor::IsTriggerTrapDetected(FGuid TrapObjectId) const
+{
+    const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel();
+    return TrapObjectId.IsValid() && State &&
+        State->DetectedTriggerTrapIds.Contains(TrapObjectId);
+}
+
 bool AGridLevelRuntimeActor::FindDisarmableTriggerTrapForParty(
     const AGrimrockPartyPawn* PartyPawn, FGuid& OutTrapObjectId) const
 {
@@ -166,7 +173,7 @@ bool AGridLevelRuntimeActor::GetTriggerTrapDisarmDifficulty(
 {
     OutDifficulty = 0;
     if (!TrapObjectId.IsValid() || !IsValid(LevelAsset) ||
-        IsTriggerTrapDisarmed(TrapObjectId))
+        !IsTriggerTrapDetected(TrapObjectId) || IsTriggerTrapDisarmed(TrapObjectId))
     {
         return false;
     }

@@ -353,6 +353,12 @@ struct FGridLevelRuntimeState
     UPROPERTY(SaveGame, BlueprintReadWrite)
     TSet<FGuid> DisarmedTriggerTrapIds;
 
+    /** ARMEMENT01.16 hardening: only these explicitly discovered instance GUIDs
+     * may be offered to a disarm action. No discovery is inferred from proximity.
+     * TRAP01.2 will own the automatic perception writer. */
+    UPROPERTY(SaveGame, BlueprintReadWrite)
+    TSet<FGuid> DetectedTriggerTrapIds;
+
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TMap<FGuid, FGridRuntimeMonsterState> Monsters;
