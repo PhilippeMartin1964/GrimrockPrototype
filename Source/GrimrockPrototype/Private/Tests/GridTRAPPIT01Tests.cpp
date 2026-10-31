@@ -146,6 +146,7 @@ bool FGridTRAPPIT01Runtime::RunTest(const FString&)
     Trap.CellX = 2;
     Trap.CellY = 2;
     Trap.InstanceConfig.DungeonTrap.bOpenPitOnTrigger = true;
+    Trap.InstanceConfig.DungeonTrap.bNoDamage = true;
     FGridWorldObjectInstance Pit;
     Pit.InstanceId = FGuid::NewGuid();
     Pit.Type = EGridLevelObjectType::Pit;
@@ -176,8 +177,8 @@ bool FGridTRAPPIT01Runtime::RunTest(const FString&)
     TestTrue(TEXT("Opened Pit removes ordinary floor"), Runtime->ShouldHideCellFloor(2, 2));
     TestEqual(TEXT("Trap triggered state retained"), Runtime->GetDungeonTrapState(TrapId),
         EGridDungeonTrapState::Triggered);
-    TestEqual(TEXT("Damage applied before Pit opens"),
-        Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth, 28);
+    TestEqual(TEXT("Aucun: floor trap opens pit without direct damage"),
+        Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth, 30);
     TestTrue(TEXT("Opened Pit is fall-through"),
         Party->IsPitFalling());
     const FGridLevelRuntimeState* State = Runtime->FindRuntimeStateForCurrentLevel();

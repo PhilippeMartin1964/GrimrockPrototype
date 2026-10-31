@@ -109,3 +109,20 @@ non-divulgation, découverte et priorité Pit ; `Grimrock.Pit.PIT03` :
 aucune altération d'une fosse ordinaire.
 
 **Compilation UE5.5.4 et recette PIE obligatoires avant validation.**
+
+## TRAP-PIT01.2 — Aucun dégât direct sur une instance de piège
+
+L'option **Type de dégâts → Aucun** est disponible uniquement dans
+l'inspecteur des pièges placés, stockée dans `FGridDungeonTrapInstanceOverrides::bNoDamage`
+du `LevelAsset`. Elle ne modifie ni les DataAssets partagés, ni l'énumération
+globale `EGridDamageType` des combats. Type, sous-type et plage de dégâts
+restent mémorisés et réapparaissent en rechoisissant un type de dégâts.
+
+Le piège sans dégâts continue de se déclencher, ouvrir sa fosse PIT03,
+activer les liens logiques et conserver son état persistant. Il ne lance
+pas de jet de dégâts, n'altère pas PV ou armure et ne publie pas
+`Dungeon.Trap.Damage`. Les conséquences de la chute PIT01 sont distinctes.
+
+À valider dans UE5.5.4 : `Grimrock.TRAP_PIT01`,
+`Grimrock.TRAP_INSTANCE01`, `Grimrock.TRAP01`, puis PIE avec les choix
+Aucun / Physiques / Feu et plusieurs pièges partageant le même DataAsset.

@@ -170,6 +170,10 @@ struct FGridDungeonTrapInstanceOverrides
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Damage", meta=(ClampMin="0"))
     int32 MaximumDamage = 8;
 
+    /** Per-placement "Aucun" damage mode; type and range remain stored for reactivation. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Damage")
+    bool bNoDamage = false;
+
     /** Per-placement floor trap option: open the unique closed PIT03 on this cell. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Trap|Pit")
     bool bOpenPitOnTrigger = false;

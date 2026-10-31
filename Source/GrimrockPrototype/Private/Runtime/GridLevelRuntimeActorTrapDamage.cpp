@@ -166,9 +166,11 @@ int32 AGridLevelRuntimeActor::TriggerDungeonTrapsOnPartyEnterCell(
 
         // One shared roll for this trap instance, never separate damage rolls
         // per character. Individual resistances and armor are applied below.
-        const int32 RawDamage = Params.MinimumDamage == Params.MaximumDamage
-            ? Params.MinimumDamage
-            : RandomStream.RandRange(Params.MinimumDamage, Params.MaximumDamage);
+        const bool bDealsDamage = GridDungeonTrapInstance::DealsDamage(Object);
+        const int32 RawDamage = !bDealsDamage ? 0 :
+            (Params.MinimumDamage == Params.MaximumDamage
+                ? Params.MinimumDamage
+                : RandomStream.RandRange(Params.MinimumDamage, Params.MaximumDamage));
 
         if (!TryRecordDungeonTrapTriggered(Object.InstanceId, PartyPawn))
         {
@@ -176,6 +178,8 @@ int32 AGridLevelRuntimeActor::TriggerDungeonTrapsOnPartyEnterCell(
         }
 
         ++Fired;
+        if (bDealsDamage)
+        {
         const FGridCombatModifierContext IncomingContext =
             GridDungeonTrapDamage::MakeIncomingContext(Params);
         for (int32 CharacterIndex = 0;
@@ -256,12 +260,12 @@ int32 AGridLevelRuntimeActor::TriggerDungeonTrapsOnPartyEnterCell(
                 Result.PhysicalArmorDamage, Result.MagicalArmorDamage,
                 Result.TargetHealthBefore, Result.TargetHealthAfter);
         }
+        } // No-damage traps skip combat resolution and damage feedback.
 
         // A successful, committed activation can now drive the authored puzzle
         // links. Only one-shot traps suppress future activations; non-one-shot
         // traps may fire again on another genuine cell entry.
-        // A floor trap can open its colocated PIT03. The raw trap damage was
-        // already applied; invalid pit authoring never changes that outcome.
+        // PIT03 opening is independent of optional direct damage.
         if (Definition->PlacementSurface == EGridObjectPlacementKind::Floor &&
             Object.InstanceConfig.DungeonTrap.bOpenPitOnTrigger)
         {

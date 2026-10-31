@@ -24,6 +24,7 @@ bool FTRAPInstance01::RunTest(const FString&)
     First.WorldObjectDefinitionId = TEXT("SharedTrap");
     Second.WorldObjectDefinitionId = TEXT("SharedTrap");
     FGridDungeonTrapInstanceOverrides& Local = First.InstanceConfig.DungeonTrap;
+    Local.bNoDamage = true;
     Local.bOverrideDetectionDifficulty = true;
     Local.DetectionDifficulty = 18;
     Local.bOverrideMaxDetectionRangeCells = true;
@@ -41,6 +42,8 @@ bool FTRAPInstance01::RunTest(const FString&)
     const FGridDungeonTrapDefinitionParams A = GridDungeonTrapInstance::Resolve(First, *Definition);
     const FGridDungeonTrapDefinitionParams B = GridDungeonTrapInstance::Resolve(Second, *Definition);
     TestTrue(TEXT("First trap contract remains valid"), A.IsValidContract());
+    TestFalse(TEXT("No direct damage on first placed instance"), GridDungeonTrapInstance::DealsDamage(First));
+    TestTrue(TEXT("Other instance retains inherited direct damage"), GridDungeonTrapInstance::DealsDamage(Second));
     TestEqual(TEXT("Instance A detection"), A.DetectionDifficulty, 18);
     TestEqual(TEXT("Instance A range"), A.MaxDetectionRangeCells, 2);
     TestEqual(TEXT("Instance A damage type"), A.DamageType, EGridDamageType::Fire);
@@ -54,6 +57,7 @@ bool FTRAPInstance01::RunTest(const FString&)
     TestEqual(TEXT("Shared definition unchanged"), Definition->DungeonTrap.DetectionDifficulty, 10);
     TestEqual(TEXT("Shared disarm definition unchanged"), Definition->DisarmDifficulty, 10);
     Local = FGridDungeonTrapInstanceOverrides();
+    TestTrue(TEXT("Reset restores direct damage"), GridDungeonTrapInstance::DealsDamage(First));
     TestEqual(TEXT("Reset inherits defaults"), GridDungeonTrapInstance::Resolve(First, *Definition).DetectionDifficulty, 10);
     const FProperty* InstanceProp = FGridWorldObjectInstanceConfig::StaticStruct()->FindPropertyByName(TEXT("DungeonTrap"));
     TestNotNull(TEXT("Trap values are serialized on the level instance"), InstanceProp);

@@ -6,6 +6,11 @@
 /** Effective trap configuration. Both editor and runtime use this single authority. */
 namespace GridDungeonTrapInstance
 {
+    inline bool DealsDamage(const FGridWorldObjectInstance& Instance)
+    {
+        return !Instance.InstanceConfig.DungeonTrap.bNoDamage;
+    }
+
     inline FGridDungeonTrapDefinitionParams Resolve(
         const FGridWorldObjectInstance& Instance, const UGridWorldObjectDefinitionAsset& Definition)
     {

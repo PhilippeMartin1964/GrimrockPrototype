@@ -436,6 +436,8 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 					DisarmDC, 1, 40,
 					[](FGridDungeonTrapInstanceOverrides& O, int32 V)
 					{ O.bOverrideDisarmDifficulty = true; O.DisarmDifficulty = V; });
+				if (!Instance->InstanceConfig.DungeonTrap.bNoDamage)
+				{
 				AddNumber(NSLOCTEXT("TrapEditor", "MinDamage", "Dégâts minimum"),
 					Trap.MinimumDamage, 0, 9999,
 					[MaxDamage = Trap.MaximumDamage](FGridDungeonTrapInstanceOverrides& O, int32 V)
@@ -450,6 +452,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 						O.bOverrideMaximumDamage = true; O.MaximumDamage = V;
 						if (V < MinDamage) { O.bOverrideMinimumDamage = true; O.MinimumDamage = V; }
 					});
+				}
 				const auto DamageText = [](EGridDamageType Type) -> FText
 				{
 					switch (Type)
@@ -471,6 +474,13 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 					.OnGetMenuContent_Lambda([Apply, DamageText]()
 					{
 						FMenuBuilder Menu(true, nullptr);
+						Menu.AddMenuEntry(NSLOCTEXT("TrapEditor", "NoDirectDamage", "Aucun"),
+							NSLOCTEXT("TrapEditor", "NoDirectDamageHint", "Déclenche sans dégâts directs."),
+							FSlateIcon(), FUIAction(FExecuteAction::CreateLambda([Apply]()
+							{
+							Apply([](FGridDungeonTrapInstanceOverrides& O) { O.bNoDamage = true; });
+						})));
+						Menu.AddMenuSeparator();
 						for (EGridDamageType Type : { EGridDamageType::Physical, EGridDamageType::Fire,
 							EGridDamageType::Ice, EGridDamageType::Lightning, EGridDamageType::Poison,
 							EGridDamageType::Holy, EGridDamageType::Necrotic, EGridDamageType::Arcane })
@@ -480,6 +490,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 								{
 									Apply([Type](FGridDungeonTrapInstanceOverrides& O)
 									{
+										O.bNoDamage = false;
 										O.bOverrideDamageType = true; O.DamageType = Type;
 										O.bOverridePhysicalSubtype = true;
 										O.PhysicalSubtype = Type == EGridDamageType::Physical
@@ -489,8 +500,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 						}
 						return Menu.MakeWidget();
 					})
-					.ButtonContent()[SNew(STextBlock).Text(DamageText(Trap.DamageType))])];
-				if (Trap.DamageType == EGridDamageType::Physical)
+					.ButtonContent()[SNew(STextBlock).Text(Instance->InstanceConfig.DungeonTrap.bNoDamage
+						? NSLOCTEXT("TrapEditor", "NoDirectDamageSelected", "Aucun")
+						: DamageText(Trap.DamageType))])];
+				if (!Instance->InstanceConfig.DungeonTrap.bNoDamage && Trap.DamageType == EGridDamageType::Physical)
 				{
 					const auto SubtypeText = [](EGridPhysicalDamageSubtype Type) -> FText
 					{
