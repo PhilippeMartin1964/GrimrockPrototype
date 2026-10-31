@@ -71,6 +71,7 @@ bool FARMEMENT01162BDisarmContext::RunTest(const FString&)
     UGridWorldObjectDefinitionAsset* Def = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
     Def->DefinitionId = TEXT("Disarmable_Trap");
     Def->SupportedType = EGridLevelObjectType::Trigger;
+    Def->DungeonTrap.bIsDungeonTrap = true;
     Def->bCanBeDisarmed = true;
     Def->DisarmDifficulty = 12;
     Runtime->WorldObjectDefinitions.Add(Def);

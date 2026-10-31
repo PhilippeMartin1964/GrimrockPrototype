@@ -1949,6 +1949,12 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject(const FGridWorldObjectInst
 		return false;
 	}
 	const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(Instance.WorldObjectDefinitionId);
+    // TRAP01.1: a concealed dungeon hazard must never spawn its model before
+    // activation. Ordinary Trigger objects retain their historical behavior.
+    if (Definition && Definition->DungeonTrap.bIsDungeonTrap && Definition->DungeonTrap.bInitiallyHidden)
+    {
+        return false;
+    }
 	return Definition && Definition->RuntimeActorClass && (Definition->PlacementSurface != EGridObjectPlacementKind::Wall || Instance.WallSide != EGridEdge::None);
 }
 
@@ -2088,6 +2094,10 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 		if (!IsRuntimeSpawnableObject(Instance))
 		{
 			const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(Instance.WorldObjectDefinitionId);
+            if (Definition && Definition->DungeonTrap.bIsDungeonTrap && Definition->DungeonTrap.bInitiallyHidden)
+            {
+                continue; // Intentional concealed gameplay object, not a missing visual.
+            }
 			if (Definition && !Definition->RuntimeActorClass)
 			{
 				UE_LOG(LogGridLevelRuntime, Warning, TEXT("Runtime object skipped: definition %s has no RuntimeActorClass."), *Instance.WorldObjectDefinitionId.ToString());

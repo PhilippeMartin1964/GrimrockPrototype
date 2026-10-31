@@ -112,6 +112,60 @@ bool AGridLevelRuntimeActor::IsTriggerTrapDetected(FGuid TrapObjectId) const
         State->DetectedTriggerTrapIds.Contains(TrapObjectId);
 }
 
+EGridDungeonTrapState AGridLevelRuntimeActor::GetDungeonTrapState(FGuid TrapObjectId) const
+{
+    if (!TrapObjectId.IsValid() || !IsValid(LevelAsset))
+    {
+        return EGridDungeonTrapState::Unknown;
+    }
+    const FGridWorldObjectInstance* Trap =
+        LevelAsset->FindWorldObjectInstanceById(TrapObjectId);
+    const UGridWorldObjectDefinitionAsset* Definition = Trap
+        ? FindWorldObjectDefinition(Trap->WorldObjectDefinitionId) : nullptr;
+    if (!Trap || Trap->Type != EGridLevelObjectType::Trigger ||
+        !IsValid(Definition) || Definition->SupportedType != EGridLevelObjectType::Trigger ||
+        !Definition->DungeonTrap.bIsDungeonTrap || !Definition->DungeonTrap.IsValidContract())
+    {
+        return EGridDungeonTrapState::Unknown;
+    }
+
+    const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel();
+    if (!State)
+    {
+        return EGridDungeonTrapState::Hidden;
+    }
+    if (State->DisabledTriggerTrapIds.Contains(TrapObjectId))
+    {
+        return EGridDungeonTrapState::Disabled;
+    }
+    if (State->DisarmedTriggerTrapIds.Contains(TrapObjectId))
+    {
+        return EGridDungeonTrapState::Disarmed;
+    }
+    if (State->TriggeredTriggerTrapIds.Contains(TrapObjectId))
+    {
+        return EGridDungeonTrapState::Triggered;
+    }
+    return State->DetectedTriggerTrapIds.Contains(TrapObjectId)
+        ? EGridDungeonTrapState::Detected : EGridDungeonTrapState::Hidden;
+}
+
+bool AGridLevelRuntimeActor::TryRecordDungeonTrapDetection(FGuid TrapObjectId)
+{
+    const EGridDungeonTrapState CurrentState = GetDungeonTrapState(TrapObjectId);
+    if (CurrentState != EGridDungeonTrapState::Hidden)
+    {
+        return false;
+    }
+    FGridLevelRuntimeState* State = GetOrCreateRuntimeStateForCurrentLevel();
+    if (!State)
+    {
+        return false;
+    }
+    State->DetectedTriggerTrapIds.Add(TrapObjectId);
+    return true;
+}
+
 bool AGridLevelRuntimeActor::FindDisarmableTriggerTrapForParty(
     const AGrimrockPartyPawn* PartyPawn, FGuid& OutTrapObjectId) const
 {
@@ -186,7 +240,11 @@ bool AGridLevelRuntimeActor::GetTriggerTrapDisarmDifficulty(
     if (!Trap || Trap->Type != EGridLevelObjectType::Trigger ||
         !IsValid(Definition) || !Definition->bCanBeDisarmed ||
         Definition->SupportedType != EGridLevelObjectType::Trigger ||
-        Definition->DisarmDifficulty < 1 || Definition->DisarmDifficulty > 40)
+        !Definition->DungeonTrap.bIsDungeonTrap || !Definition->DungeonTrap.IsValidContract() ||
+        Definition->DisarmDifficulty < 1 || Definition->DisarmDifficulty > 40 ||
+        GetDungeonTrapState(TrapObjectId) == EGridDungeonTrapState::Disabled ||
+        (Definition->DungeonTrap.bOneShot &&
+         GetDungeonTrapState(TrapObjectId) == EGridDungeonTrapState::Triggered))
     {
         return false;
     }
@@ -242,10 +300,17 @@ bool AGridLevelRuntimeActor::TryDisarmTriggerTrap(
         return false;
     }
 
+    const FGridWorldObjectInstance* TrapInstance = LevelAsset->FindWorldObjectInstanceById(TrapObjectId);
+    const UGridWorldObjectDefinitionAsset* TrapDefinition = TrapInstance
+        ? FindWorldObjectDefinition(TrapInstance->WorldObjectDefinitionId) : nullptr;
+    if (!IsValid(TrapDefinition) || TrapDefinition->DungeonTrap.RequiredToolTag.IsNone())
+    {
+        return false;
+    }
     const FName ToolId(TEXT("Item_DisarmTools_01"));
     UGridItemDefinitionAsset* Tool = Inventory->FindItemDefinition(ToolId);
     if (!IsValid(Tool) || Tool->ItemDefinitionId != ToolId ||
-        !Tool->ItemTags.Contains(TEXT("Tool.Disarm")) ||
+        !Tool->ItemTags.Contains(TrapDefinition->DungeonTrap.RequiredToolTag) ||
         Inventory->CountItemDefinitionInCharacterInventory(CharacterIndex, ToolId) < 1)
     {
         return false;

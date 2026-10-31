@@ -1,7 +1,7 @@
 # ARMEMENT01.16 — Outils de désamorçage du Voleur/Saboteur
 
 Date : 30 octobre 2026
-Statut : **ARMEMENT01.16.1 : définition physique autorée en C++ ; génération locale et tests en attente. Pas encore de désamorçage fonctionnel.**
+Statut au 31.10.2026 : **ARMEMENT01.16.1, 16.2A et 16.2B compilés et tests validés localement ; verrou de découverte explicite publié, TRAP01.1 en cours de validation.** L'action réelle n'est pas utilisable sans découverte, et la perception passive reste à implémenter.
 
 ## Source d'autorité et objectif
 
@@ -227,3 +227,9 @@ fonctionnent en PIE ; ces vérifications manuelles restent exigées.
 **Le kit de départ Saboteur n'est pas modifié dans 2B.**
 La décision de le remplir sera prise après validation PIE et création
 ou approbation de son icône/mesh (référence ARMEMENT01.9.7).
+
+## TRAP01.1 — Changement de contrat validé le 31.10.2026
+
+Les pièges du donjon sont **cachés par définition**. La proximité d'un Trigger ne donne ni son identifiant exploitable ni une action de désamorçage au joueur. ARMEMENT01.16.2A/2B requiert désormais une découverte persistée dans `DetectedTriggerTrapIds`. Le nouveau `DungeonTrap.bIsDungeonTrap` doit être actif sur une définition de type `Trigger` pour que l'API de désamorçage accepte l'instance. Les tests historiques injectent explicitement la découverte pour isoler l'exécution de la compétence. La découverte automatique relève de `TRAP01.2`, non d'ARMEMENT01.16.2A/2B.
+
+Le kit Saboteur ne doit pas être attribué automatiquement à ce stade. Le choix de basculer `Skill_Traps` d'Intelligence à Dextérité concerne `TRAP01.4`, après audit de progression et compatibilité RPG. Voir `docs/Design/TRAP01_1_HIDDEN_DUNGEON_TRAP_CONTRACT.md` pour les données, états SaveGame et limitations.

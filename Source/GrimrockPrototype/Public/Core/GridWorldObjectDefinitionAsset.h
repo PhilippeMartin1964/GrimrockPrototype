@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GridTypes.h"
+#include "Core/GridDungeonTrapTypes.h"
 #include "GridObjectAudio.h"
 #include "GridObjectBehavior.h"
 #include "GridWorldObjectVisual.h"
@@ -195,6 +196,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Trap",
         meta = (ClampMin = "1", ClampMax = "40", EditCondition = "bCanBeDisarmed", EditConditionHides))
     int32 DisarmDifficulty = 10;
+
+    /** TRAP01.1: one reusable invisible hazard contract for Floor/Wall/Ceiling
+     * placement (PlacementSurface remains the existing authority).
+     * Ordinary Trigger definitions keep bIsDungeonTrap=false and are unchanged. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Trap")
+    FGridDungeonTrapDefinitionParams DungeonTrap;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction",

@@ -414,6 +414,16 @@ public:
     /** Returns only already-known trap instance IDs (TRAP01.2 will author detection). */
     bool IsTriggerTrapDetected(FGuid TrapObjectId) const;
 
+    /** TRAP01.1 authoritative state query for one authored dungeon trap. */
+    EGridDungeonTrapState GetDungeonTrapState(FGuid TrapObjectId) const;
+
+    /** Explicitly records the first successful perception discovery.
+     * Proximity alone is NEVER a discovery. TRAP01.2 will call this.
+     * Does not reveal a physical mesh or consume the trap.
+     */
+    bool TryRecordDungeonTrapDetection(FGuid TrapObjectId);
+
+
     /** Selects exactly one disarmable dungeon Trigger in the party cell or the
      * traversable cell directly in front. Ambiguous targets fail closed. */
     bool FindDisarmableTriggerTrapForParty(const AGrimrockPartyPawn* PartyPawn,

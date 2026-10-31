@@ -53,6 +53,7 @@ bool FARMEMENT01162AOptIn::RunTest(const FString&)
         NewObject<UGridWorldObjectDefinitionAsset>(GetTransientPackage());
     Definition->DefinitionId = TEXT("Test_Mechanical_Trigger_Trap");
     Definition->SupportedType = EGridLevelObjectType::Trigger;
+    Definition->DungeonTrap.bIsDungeonTrap = true;
     TestFalse(TEXT("Legacy triggers are never disarmable by default"),
         Definition->bCanBeDisarmed);
 
@@ -101,6 +102,7 @@ bool FARMEMENT01162ARuntime::RunTest(const FString&)
         NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
     Def->DefinitionId = TEXT("Test_Dungeon_Disarmable_Trigger");
     Def->SupportedType = EGridLevelObjectType::Trigger;
+    Def->DungeonTrap.bIsDungeonTrap = true;
     Def->bCanBeDisarmed = true;
     Def->DisarmDifficulty = 40;
     Runtime->WorldObjectDefinitions.Add(Def);

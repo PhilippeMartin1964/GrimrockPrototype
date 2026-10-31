@@ -359,6 +359,21 @@ struct FGridLevelRuntimeState
     UPROPERTY(SaveGame, BlueprintReadWrite)
     TSet<FGuid> DetectedTriggerTrapIds;
 
+    /** TRAP01.1: the trap has fired at least once. One-shot activation is
+     * enforced when TRAP01.3 connects the trigger to damage resolution. */
+    UPROPERTY(SaveGame, BlueprintReadWrite)
+    TSet<FGuid> TriggeredTriggerTrapIds;
+
+    /** TRAP01.1: deactivated by a puzzle/link rather than disarmed by a skill. */
+    UPROPERTY(SaveGame, BlueprintReadWrite)
+    TSet<FGuid> DisabledTriggerTrapIds;
+
+    /** A bit per observation distance (1..4); TRAP01.2 will use this
+     * to prevent unlimited d20 rerolls by stepping back and forth. */
+    UPROPERTY(SaveGame)
+    TMap<FGuid, uint8> TrapPerceptionAttemptedRangeMask;
+
+
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TMap<FGuid, FGridRuntimeMonsterState> Monsters;

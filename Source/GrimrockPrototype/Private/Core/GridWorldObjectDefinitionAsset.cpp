@@ -79,11 +79,29 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 	OutMessages.Reset();
 
 	if (DefinitionId.IsNone()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("DefinitionId is not set."));
-    if (bCanBeDisarmed && (SupportedType != EGridLevelObjectType::Trigger ||
+    if (bCanBeDisarmed && (!DungeonTrap.bIsDungeonTrap || SupportedType != EGridLevelObjectType::Trigger ||
         DisarmDifficulty < 1 || DisarmDifficulty > 40))
     {
         AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
-            TEXT("Disarmable dungeon traps must use Trigger gameplay type and difficulty 1..40."));
+            TEXT("Disarmable dungeon traps must use Trigger gameplay type, explicit DungeonTrap opt-in and difficulty 1..40."));
+    }
+    if (DungeonTrap.bIsDungeonTrap)
+    {
+        if (SupportedType != EGridLevelObjectType::Trigger)
+        {
+            AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+                TEXT("Dungeon trap gameplay requires a Trigger world-object definition."));
+        }
+        if (!DungeonTrap.IsValidContract())
+        {
+            AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+                TEXT("Dungeon trap contract invalid: hidden by default, detection DC 1..40, range 1..4, valid damage type and amount required."));
+        }
+        if (bCanBeDisarmed && DungeonTrap.RequiredToolTag.IsNone())
+        {
+            AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+                TEXT("Dungeon trap requires a nonempty tool tag when disarmable."));
+        }
     }
 
 	if (SupportedType == EGridLevelObjectType::None) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("SupportedType must not be None."));
