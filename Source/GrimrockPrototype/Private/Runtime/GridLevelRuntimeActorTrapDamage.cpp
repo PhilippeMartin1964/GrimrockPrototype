@@ -207,7 +207,7 @@ int32 AGridLevelRuntimeActor::TriggerDungeonTrapsOnPartyEnterCell(
                     Target, Params.DamageType, DefensiveModifiers);
             }
 
-            const FGridAttackResult Result =
+            FGridAttackResult Result =
                 FGridCombatResolver::ResolveDirectDamage(
                     Target, Params.DamageType, RawDamage, Params.PhysicalSubtype);
             if (Result.bHit)
