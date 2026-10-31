@@ -98,6 +98,7 @@ bool FRPGSkillCheckService::TryResolveSkillCheck(const FGridCharacterInventorySt
 				{
 					continue;
 				}
+				OutResult.ClassModifier += Modifier.CheckModifier;
 				OutResult.ProgressionModifier += Modifier.CheckModifier;
 				OutResult.SafeFailureMargin = FMath::Max(OutResult.SafeFailureMargin, Modifier.SafeFailureMargin);
 			}
@@ -187,6 +188,7 @@ bool FRPGSkillCheckService::TryResolveBestPartySkillCheck(const FGridPartyInvent
 	}
 
 	const int32 PartyModifier = FRPGPartyProgressionResolver::ResolveGroupSkillCheckModifier(PartyState, SkillDefinition->SkillId);
+	OutResult.GroupModifier = PartyModifier;
 	OutResult.ProgressionModifier += PartyModifier;
 	OutResult.Total += PartyModifier;
 	OutResult.bSuccess = OutResult.Total >= OutResult.Difficulty;

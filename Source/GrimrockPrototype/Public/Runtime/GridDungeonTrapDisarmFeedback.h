@@ -3,31 +3,40 @@
 #include "CoreMinimal.h"
 #include "RPG/RPGSkillTypes.h"
 
-/** TRAP01.7: one localized, result-only description for both disarm input paths.
- * Never call this on an unrevealed trap or before a resolved check.
- * ProgressionModifier already includes character and group modifiers.
+/** TRAP01.7.1: presentation only. The canonical resolver owns every component
+ * (d20, rank, attribute, class and group). Never roll or derive new bonuses here.
+ * Both disarm input paths pass the same resolved result to this function.
  */
 namespace GridDungeonTrapDisarmFeedback
 {
-    inline FText Signed(int32 Value)
-    {
-        return FText::FromString(FString::Printf(TEXT("%+d"), Value));
-    }
-
-    inline FText Format(FText Disarmer, const FRPGSkillCheckResult& Check)
+    inline FText Format(const FText& Disarmer, const FRPGSkillCheckResult& Check)
     {
         if (!Check.bResolved)
         {
             return FText::GetEmpty();
         }
+
+        const FText Breakdown = FText::Format(
+            NSLOCTEXT("TRAP0171", "DisarmBreakdown",
+                "(1d20)={0} + (Piège / désamorçage)={1} + (DEX)={2} + (Classe)={3} + (Groupe)={4} = {5}"),
+            FText::AsNumber(Check.Roll),
+            FText::AsNumber(Check.Rank),
+            FText::AsNumber(Check.AttributeModifier),
+            FText::AsNumber(Check.ClassModifier),
+            FText::AsNumber(Check.GroupModifier),
+            FText::AsNumber(Check.Total));
+
+        const FText Outcome = Check.bSuccess
+            ? FText::Format(NSLOCTEXT("TRAP0171", "DisarmSuccessDifficulty",
+                  "Difficulté : {0} — Réussite !"), FText::AsNumber(Check.Difficulty))
+            : FText::Format(NSLOCTEXT("TRAP0171", "DisarmFailureDifficulty",
+                  "Difficulté : {0} — Échec !"), FText::AsNumber(Check.Difficulty));
+
         const FText& Pattern = Check.bSuccess
-            ? NSLOCTEXT("TRAP017", "DisarmSuccessBreakdown",
-                "{0} désamorce le piège. Pièges : d20 {1} + rang {2} + DEX {3} + progression {4} = {5} (difficulté {6}).")
-            : NSLOCTEXT("TRAP017", "DisarmFailureBreakdown",
-                "{0} échoue à désamorcer le piège. Pièges : d20 {1} + rang {2} + DEX {3} + progression {4} = {5} (difficulté {6}).");
-        return FText::Format(Pattern, Disarmer,
-            FText::AsNumber(Check.Roll), FText::AsNumber(Check.Rank),
-            Signed(Check.AttributeModifier), Signed(Check.ProgressionModifier),
-            FText::AsNumber(Check.Total), FText::AsNumber(Check.Difficulty));
+            ? NSLOCTEXT("TRAP0171", "DisarmSuccessThreeLines",
+                "{0} désamorce le piège.\n{1}\n{2}")
+            : NSLOCTEXT("TRAP0171", "DisarmFailureThreeLines",
+                "{0} échoue à désamorcer le piège.\n{1}\n{2}");
+        return FText::Format(Pattern, Disarmer, Breakdown, Outcome);
     }
 }

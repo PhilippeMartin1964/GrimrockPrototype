@@ -78,6 +78,10 @@ bool FRPGMON2063FormulaTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Dexterity value is projected"), Result.AttributeValue, 14);
 	TestEqual(TEXT("Dexterity modifier is +2"), Result.AttributeModifier, 2);
 	TestEqual(TEXT("Total is d20 + rank + attribute modifier"), Result.Total, Result.Roll + 5);
+	TestEqual(TEXT("No chosen class bonus is zero"), Result.ClassModifier, 0);
+	TestEqual(TEXT("No party bonus in solo check is zero"), Result.GroupModifier, 0);
+	TestEqual(TEXT("Legacy progression equals class plus group"),
+		Result.ProgressionModifier, Result.ClassModifier + Result.GroupModifier);
 	TestTrue(TEXT("Resolved flag is set"), Result.bResolved);
 	return true;
 }

@@ -9,10 +9,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTRAP017DisarmFeedbackTest,
 
 bool FGridTRAP017DisarmFeedbackTest::RunTest(const FString&)
 {
+    const FText Operator = FText::FromString(TEXT("Elias"));
     FRPGSkillCheckResult Check;
-    TestTrue(TEXT("Rejected/unresolved check has no feedback"),
-        GridDungeonTrapDisarmFeedback::Format(FText::FromString(TEXT("Elias")), Check).IsEmpty());
+    TestTrue(TEXT("Rejected or unresolved check has no feedback"),
+        GridDungeonTrapDisarmFeedback::Format(Operator, Check).IsEmpty());
 
+    // Exactly the player-approved example: 12 + 3 + 2 + 0 + 0 = 17.
     Check.bResolved = true;
     Check.bSuccess = true;
     Check.GoverningAttribute = ERPGSkillGoverningAttribute::Dexterity;
@@ -20,27 +22,46 @@ bool FGridTRAP017DisarmFeedbackTest::RunTest(const FString&)
     Check.Roll = 12;
     Check.Rank = 3;
     Check.AttributeModifier = 2;
-    Check.ProgressionModifier = -1;
-    Check.Total = 16;
+    Check.ClassModifier = 0;
+    Check.GroupModifier = 0;
+    Check.ProgressionModifier = 0;
+    Check.Total = 17;
     Check.Difficulty = 14;
 
-    const FString Successful = GridDungeonTrapDisarmFeedback::Format(
-        FText::FromString(TEXT("Elias")), Check).ToString();
-    TestTrue(TEXT("Success identifies actual operator"), Successful.Contains(TEXT("Elias")));
-    TestTrue(TEXT("Success explains that the trap was disarmed"), Successful.Contains(TEXT("désamorce")));
-    TestTrue(TEXT("Success reports d20"), Successful.Contains(TEXT("d20")));
-    TestTrue(TEXT("Success reports rank"), Successful.Contains(TEXT("rang")));
-    TestTrue(TEXT("Success reports governing Dexterity"), Successful.Contains(TEXT("DEX")));
-    TestTrue(TEXT("Success reports signed progression adjustment"), Successful.Contains(TEXT("-1")));
-    TestTrue(TEXT("Success reports difficulty"), Successful.Contains(TEXT("difficulté")));
-    TestTrue(TEXT("Success reports total"), Successful.Contains(TEXT("16")));
+    const FString Success = GridDungeonTrapDisarmFeedback::Format(Operator, Check).ToString();
+    TestTrue(TEXT("First line identifies the disarmer"),
+        Success.StartsWith(TEXT("Elias désamorce le piège.")));
+    TestTrue(TEXT("Five visible components include class and group zeros"),
+        Success.Contains(TEXT("(1d20)=12 + (Piège / désamorçage)=3 + (DEX)=2 + (Classe)=0 + (Groupe)=0 = 17")));
+    TestTrue(TEXT("Final line reports actual difficulty and success"),
+        Success.Contains(TEXT("Difficulté : 14 — Réussite !")));
+    TArray<FString> Lines;
+    Success.ParseIntoArrayLines(Lines);
+    TestEqual(TEXT("One event message contains exactly three lines"), Lines.Num(), 3);
 
+    // Nonzero positive and negative modifiers are displayed, not recomputed.
     Check.bSuccess = false;
-    const FString Failed = GridDungeonTrapDisarmFeedback::Format(
-        FText::FromString(TEXT("Elias")), Check).ToString();
-    TestTrue(TEXT("Failure reports failure rather than success"), Failed.Contains(TEXT("échoue")));
-    TestTrue(TEXT("Failure keeps transparent breakdown"), Failed.Contains(TEXT("d20")));
-    TestTrue(TEXT("Both outcomes use the actual same difficulty"), Failed.Contains(TEXT("14")));
+    Check.ClassModifier = 2;
+    Check.GroupModifier = -1;
+    Check.ProgressionModifier = 1;
+    Check.Total = 18;
+    Check.Difficulty = 20;
+    const FString Failure = GridDungeonTrapDisarmFeedback::Format(Operator, Check).ToString();
+    TestTrue(TEXT("Failure identifies actor and outcome"),
+        Failure.StartsWith(TEXT("Elias échoue à désamorcer le piège.")));
+    TestTrue(TEXT("Class and negative group contribution remain separate"),
+        Failure.Contains(TEXT("(Classe)=2 + (Groupe)=-1 = 18")));
+    TestTrue(TEXT("Failure verdict reports true difficulty"),
+        Failure.Contains(TEXT("Difficulté : 20 — Échec !")));
+
+    // Keep the formatting contract even for standalone zero-bonus checks.
+    Check.ClassModifier = 0;
+    Check.GroupModifier = 0;
+    Check.ProgressionModifier = 0;
+    Check.Total = 17;
+    const FString ZeroBonus = GridDungeonTrapDisarmFeedback::Format(Operator, Check).ToString();
+    TestTrue(TEXT("Both zero bonuses are always rendered"),
+        ZeroBonus.Contains(TEXT("(Classe)=0 + (Groupe)=0 = 17")));
     return true;
 }
 #endif

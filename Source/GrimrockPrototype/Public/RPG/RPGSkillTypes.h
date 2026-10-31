@@ -136,8 +136,17 @@ struct FRPGSkillCheckResult
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Check")
 	int32 AttributeModifier = 0;
 
+	/** Backward-compatible sum: ClassModifier + GroupModifier. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Check")
 	int32 ProgressionModifier = 0;
+
+	/** Selected character's applicable class/talent bonuses to this check. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Check")
+	int32 ClassModifier = 0;
+
+	/** Applicable party-wide modifiers, resolved with non-stacking groups. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Check")
+	int32 GroupModifier = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Check")
 	int32 SafeFailureMargin = 0;

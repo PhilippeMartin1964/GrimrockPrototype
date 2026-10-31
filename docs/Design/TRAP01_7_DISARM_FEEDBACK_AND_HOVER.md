@@ -15,6 +15,11 @@ réussite le désamorce et déclenche les liens `Disarmed` comme avant.
 
 ## Retour joueur unifié
 
+**Mise à jour TRAP01.7.1 :** l'exemple ci-dessous décrit la première version.
+Le format canonique à trois lignes, avec **Classe** et **Groupe** séparés,
+est décrit dans `TRAP01_7_1_SKILL_ROLL_BREAKDOWN.md`.
+
+
 Les deux actions (clic gauche sur le piège révélé, ou clic droit sur le kit
 de désamorçage dans l'inventaire) utilisent la **même fonction de formatage**
 `GridDungeonTrapDisarmFeedback::Format`, uniquement après un jet résolu.
