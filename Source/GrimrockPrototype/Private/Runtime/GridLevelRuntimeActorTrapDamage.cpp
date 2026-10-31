@@ -2,6 +2,8 @@
 
 #include "Core/GridLevelAsset.h"
 #include "Core/GridDungeonTrapInstanceUtils.h"
+#include "Core/GridDungeonTrapPitUtils.h"
+#include "Core/GridDungeonAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
@@ -112,6 +114,7 @@ int32 AGridLevelRuntimeActor::TriggerDungeonTrapsOnPartyEnterCell(
     for (const FGridWorldObjectInstance& Object : Candidates)
     {
         if (LevelAsset.Get() != EnteredLevel || PartyPawn->LevelRuntimeActor != this ||
+            PartyPawn->IsPitFalling() ||
             PartyPawn->CurrentCellX != CellX || PartyPawn->CurrentCellY != CellY)
         {
             break; // A previous puzzle link changed the active level/cell.
@@ -257,6 +260,42 @@ int32 AGridLevelRuntimeActor::TriggerDungeonTrapsOnPartyEnterCell(
         // A successful, committed activation can now drive the authored puzzle
         // links. Only one-shot traps suppress future activations; non-one-shot
         // traps may fire again on another genuine cell entry.
+        // A floor trap can open its colocated PIT03. The raw trap damage was
+        // already applied; invalid pit authoring never changes that outcome.
+        if (Definition->PlacementSurface == EGridObjectPlacementKind::Floor &&
+            Object.InstanceConfig.DungeonTrap.bOpenPitOnTrigger)
+        {
+            FGuid PitId;
+            const bool bUnique = GridDungeonTrapPit::FindUniqueSameCellPit(*EnteredLevel, Object, PitId);
+            const FGridWorldObjectInstance* Pit = bUnique ? EnteredLevel->FindWorldObjectInstanceById(PitId) : nullptr;
+            const UGridWorldObjectDefinitionAsset* PitDefinition =
+                Pit ? FindWorldObjectDefinition(Pit->WorldObjectDefinitionId) : nullptr;
+            const FGridDungeonLevelEntry* ExplicitTarget =
+                DungeonAsset && Pit && !Pit->InstanceConfig.Relocation.TargetLevelId.IsNone()
+                ? DungeonAsset->FindLevelEntry(Pit->InstanceConfig.Relocation.TargetLevelId) : nullptr;
+            const FGridDungeonLevelEntry* SourceLevel =
+                DungeonAsset ? DungeonAsset->FindLevelEntry(CurrentDungeonLevelId) : nullptr;
+            const bool bTargetReady = Pit && SourceLevel && DungeonAsset &&
+                (Pit->InstanceConfig.Relocation.TargetLevelId.IsNone()
+                    ? DungeonAsset->FindLevelBelow(CurrentDungeonLevelId) != nullptr
+                    : ExplicitTarget && ExplicitTarget->bEnabled && ExplicitTarget->LevelAsset &&
+                        ExplicitTarget->LevelId != CurrentDungeonLevelId &&
+                        ExplicitTarget->LogicalPosition.Z < SourceLevel->LogicalPosition.Z);
+            if (!bUnique || !IsValid(PitDefinition) || !PitDefinition->HasCompletePitTrapdoorCover() ||
+                IsPitOpen(PitId) || !bTargetReady)
+            {
+                UE_LOG(LogGridDungeonTrapDamage, Warning,
+                    TEXT("[TRAP-PIT01] Trap %s at (%d,%d): missing, ambiguous or invalid closed PIT03/lower level."),
+                    *Object.InstanceId.ToString(), CellX, CellY);
+            }
+            else if (SetPitOpen(PitId, true) && !PartyPawn->IsPitFalling() &&
+                PartyPawn->LevelRuntimeActor == this)
+            {
+                // PIT03 already tries via the player controller. This fallback
+                // also supports an unpossessed test pawn; duplicate falls are guarded.
+                TryBeginPitFallAtCell(CellX, CellY, PartyPawn);
+            }
+        }
         ExecuteLinksFromRuntimeObject(Object.InstanceId, EGridObjectEvent::Activated);
     }
 

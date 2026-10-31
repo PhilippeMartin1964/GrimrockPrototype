@@ -1056,6 +1056,11 @@ void AGridLevelRuntimeActor::HandlePartyCellChanged(int32 OldCellX, int32 OldCel
                     if (OldCellX != NewCellX || OldCellY != NewCellY)
                     {
                         TriggerDungeonTrapsOnPartyEnterCell(Party, NewCellX, NewCellY, RandomStream);
+                         if (Party->IsPitFalling())
+                         {
+                             RevealMapAroundCell(NewCellX, NewCellY);
+                             return;
+                         }
                     }
                     EvaluatePassiveDungeonTrapPerception(Party, RandomStream);
                     break;

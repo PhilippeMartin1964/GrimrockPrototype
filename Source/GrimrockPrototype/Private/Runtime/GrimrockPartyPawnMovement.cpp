@@ -745,6 +745,12 @@ void AGrimrockPartyPawn::UpdateMove(float DeltaSeconds)
 			}
 
 			LevelRuntimeActor->HandlePartyCellChanged(MoveStartCellX, MoveStartCellY, CurrentCellX, CurrentCellY);
+			// A triggered trap may have opened a PIT03 and started a fall.
+			if (IsPitFalling())
+			{
+				ClearBufferedCommand();
+				return;
+			}
 			if (UGridTurnManagerComponent* TurnManager = FindTurnManager())
 			{
 				FGridCombatantInitiativeEntry ActiveBefore;

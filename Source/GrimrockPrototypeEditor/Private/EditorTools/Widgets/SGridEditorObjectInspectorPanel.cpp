@@ -10,6 +10,7 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridDungeonTrapInstanceUtils.h"
+#include "Core/GridDungeonTrapPitUtils.h"
 #include "Core/GridObjectBehavior.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
@@ -503,6 +504,29 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 							return Menu.MakeWidget();
 						})
 						.ButtonContent()[SNew(STextBlock).Text(SubtypeText(Trap.PhysicalSubtype))])];
+				}
+				if (Definition->PlacementSurface == EGridObjectPlacementKind::Floor)
+				{
+					FGuid PitId;
+					const bool bUniquePit = GridDungeonTrapPit::FindUniqueSameCellPit(Level, *Instance, PitId);
+					const FGridWorldObjectInstance* Pit = bUniquePit ? Level.FindWorldObjectInstanceById(PitId) : nullptr;
+					const UGridWorldObjectDefinitionAsset* PitDef = Pit
+						? CurrentEditorActor->FindWorldObjectDefinitionById(Pit->WorldObjectDefinitionId) : nullptr;
+					const bool bReady = Pit && PitDef && PitDef->HasCompletePitTrapdoorCover() &&
+						!Pit->InstanceConfig.Pit.bInitiallyOpen;
+					Root->AddSlot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)[SNew(SCheckBox)
+						.IsChecked(Instance->InstanceConfig.DungeonTrap.bOpenPitOnTrigger
+							? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+						.OnCheckStateChanged_Lambda([Apply](ECheckBoxState State)
+						{
+							Apply([State](FGridDungeonTrapInstanceOverrides& O)
+							{ O.bOpenPitOnTrigger = State == ECheckBoxState::Checked; });
+						})
+						[SNew(STextBlock).Text(NSLOCTEXT("TrapEditor", "OpenPit", "Ouvrir une fosse au déclenchement"))]];
+					Root->AddSlot().AutoHeight()[SNew(STextBlock).AutoWrapText(true)
+						.Text(bReady
+							? NSLOCTEXT("TrapEditor", "PitReady", "Fosse PIT03 fermée détectée sur cette case ; destination réglée sur la fosse.")
+							: NSLOCTEXT("TrapEditor", "PitMissing", "Placer une seule fosse PIT03 à deux volets, fermée au départ, sur cette case et définir le niveau inférieur."))];
 				}
 				Root->AddSlot().AutoHeight()[SNew(SButton)
 					.Text(NSLOCTEXT("TrapEditor", "Reset", "Rétablir les valeurs du DataAsset pour ce piège"))
