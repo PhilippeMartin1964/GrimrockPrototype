@@ -116,7 +116,7 @@ void FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(TArray<FRPGCanonicalSkil
 	AddDefinition(OutDefinitions, TEXT("Skill_Survival"), ERPGSkillGoverningAttribute::Wisdom, true);
 	AddDefinition(OutDefinitions, TEXT("Skill_Stealth"), ERPGSkillGoverningAttribute::Dexterity, true);
 	AddDefinition(OutDefinitions, TEXT("Skill_Lockpicking"), ERPGSkillGoverningAttribute::Dexterity, false);
-	AddDefinition(OutDefinitions, TEXT("Skill_Traps"), ERPGSkillGoverningAttribute::Intelligence, false);
+	AddDefinition(OutDefinitions, TEXT("Skill_Traps"), ERPGSkillGoverningAttribute::Dexterity, false);
 	AddDefinition(OutDefinitions, TEXT("Skill_Mechanics"), ERPGSkillGoverningAttribute::Intelligence, true);
 	AddDefinition(OutDefinitions, TEXT("Skill_Crafting"), ERPGSkillGoverningAttribute::Intelligence, true);
 	AddDefinition(OutDefinitions, TEXT("Skill_Alchemy"), ERPGSkillGoverningAttribute::Intelligence, false);

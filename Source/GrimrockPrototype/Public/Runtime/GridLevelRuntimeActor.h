@@ -459,14 +459,17 @@ public:
         FGuid& OutTrapObjectId) const;
 
 
-    /** Resolve the selected living character's Skill_Traps with a genuine
-     * carried Tool.Disarm; on success persist the disarmed GUID and emit Disarmed.
-     * Returns true if an actual skill check was resolved, including failure.
-     * Rejected requests do not roll, mutate state, or consume the tool.
+    /** TRAP01.4: CharacterIndex is the inventory tool's SOURCE owner, not
+     * necessarily the performer. Select the strongest eligible living member
+     * with their own Tool.Disarm and trained Skill_Traps; use Dexterity.
+     * OutDisarmerCharacterIndex receives the real performer after a resolved
+     * check, even on skill failure. The tool is never consumed.
+     * Returns true for a resolved roll; rejects without RNG/state mutation.
      */
     bool TryDisarmTriggerTrap(AGrimrockPartyPawn* PartyPawn, FGuid TrapObjectId,
         int32 CharacterIndex, const class URPGSkillAsset* SkillDefinition,
-        FRandomStream& RandomStream, FRPGSkillCheckResult& OutResult);
+        FRandomStream& RandomStream, FRPGSkillCheckResult& OutResult,
+        int32* OutDisarmerCharacterIndex = nullptr);
 
 
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction")

@@ -1785,8 +1785,10 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 
             FRandomStream RandomStream(FMath::Rand());
             FRPGSkillCheckResult Check;
+            int32 DisarmerIndex = INDEX_NONE;
             bExecuted = Runtime->TryDisarmTriggerTrap(
-                OwningPartyPawn, Action.TargetObjectId, CharacterIndex, Skill, RandomStream, Check);
+                OwningPartyPawn, Action.TargetObjectId, CharacterIndex, Skill,
+                RandomStream, Check, &DisarmerIndex);
             if (!bExecuted)
             {
                 UE_LOG(LogGridInventoryUI, Log,
@@ -1809,9 +1811,16 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 
             const FGridWorldObjectInstance* Trap =
                 Runtime->LevelAsset ? Runtime->LevelAsset->FindWorldObjectInstanceById(Action.TargetObjectId) : nullptr;
+            const FText DisarmerName =
+                State.ActiveCharacters.IsValidIndex(DisarmerIndex) &&
+                !State.ActiveCharacters[DisarmerIndex].DisplayName.IsEmpty()
+                ? State.ActiveCharacters[DisarmerIndex].DisplayName
+                : NSLOCTEXT("GridItemActions", "DisarmOperatorFallback", "Un membre du groupe");
             const FText Message = Check.bSuccess
-                ? NSLOCTEXT("GridItemActions", "DisarmSucceeded", "Le piège est désamorcé.")
-                : NSLOCTEXT("GridItemActions", "DisarmFailed", "Le désamorçage a échoué.");
+                ? FText::Format(NSLOCTEXT("GridItemActions", "DisarmSucceededBy",
+                      "{0} désamorce le piège."), DisarmerName)
+                : FText::Format(NSLOCTEXT("GridItemActions", "DisarmFailedBy",
+                      "{0} échoue à désamorcer le piège."), DisarmerName);
             if (Trap)
             {
                 GridEventFeedPublisher::PublishDungeonEventAtCell(
