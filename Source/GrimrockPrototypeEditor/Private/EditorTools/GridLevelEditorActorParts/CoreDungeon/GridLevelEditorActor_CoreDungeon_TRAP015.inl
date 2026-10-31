@@ -68,7 +68,7 @@ bool AGridLevelEditorActor::EnsureDungeonTrapDefinitions(FString& OutError)
 
         bool bCreated = false;
         UGridWorldObjectDefinitionAsset* Definition =
-            LoadOrCreateWorldObjectDefinitionAsset(PackagePath, AssetName, bCreated);
+            LoadOrCreateWorldObjectDefinitionAsset(*PackagePath, *AssetName, bCreated);
         if (!Definition)
         {
             OutError = FString::Printf(TEXT("Failed to provision trap definition %s."),
