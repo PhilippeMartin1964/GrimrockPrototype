@@ -282,13 +282,32 @@ FText AGridGenericObjectActor::GetInteractionText_Implementation(UPrimitiveCompo
 	if (HitComponent == MeshComponent && TrapState != EGridDungeonTrapState::Unknown &&
 		TrapState != EGridDungeonTrapState::Hidden)
 	{
-		// World hover does not expose Difficulty, tool modifiers, or hidden traps.
-		// It only reflects the trap state already known to the party.
+		// The already-detected trap may reveal its effective disarm DC.
+		// Neither hidden traps nor discovery difficulty are exposed here.
+		const AGridLevelRuntimeActor* TrapRuntime = Cast<AGridLevelRuntimeActor>(GetOwner());
+		const FText DisarmHint = TrapRuntime
+			? TrapRuntime->GetDungeonTrapDisarmHint(ObjectId) : FText::GetEmpty();
+		int32 DisarmDifficulty = 0;
+		const bool bCanAttemptDisarm = TrapRuntime &&
+			TrapRuntime->GetTriggerTrapDisarmDifficulty(ObjectId, DisarmDifficulty);
 		switch (TrapState)
 		{
 			case EGridDungeonTrapState::Detected:
+				if (bCanAttemptDisarm)
+				{
+					return FText::Format(
+						NSLOCTEXT("TRAP019", "TrapDetectedHoverWithDC",
+							"Piège détecté\n{0}\nClic gauche pour tenter de le désamorcer (Pièges + outils)."),
+						DisarmHint);
+				}
+				if (!DisarmHint.IsEmpty())
+				{
+					return FText::Format(
+						NSLOCTEXT("TRAP019", "TrapDetectedNotDisarmableHover",
+							"Piège détecté\n{0}"), DisarmHint);
+				}
 				return NSLOCTEXT("TRAP017", "TrapDetectedHover",
-					"Piège détecté — clic gauche pour tenter de le désamorcer (Pièges + outils).");
+					"Piège détecté — clic gauche pour examiner le mécanisme.");
 			case EGridDungeonTrapState::Triggered:
 				return NSLOCTEXT("TRAP017", "TrapTriggeredHover",
 					"Piège déclenché — clic gauche pour examiner son état.");

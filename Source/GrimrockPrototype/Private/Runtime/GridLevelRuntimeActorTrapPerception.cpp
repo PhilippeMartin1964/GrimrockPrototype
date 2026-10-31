@@ -131,12 +131,15 @@ int32 AGridLevelRuntimeActor::EvaluatePassiveDungeonTrapPerception(
             : Characters[ObserverIndex].DisplayName;
         const FText Where = FGridDungeonTrapPerceptionService::FormatRelativeLocation(
             PartyPawn->Facing, Direction, Distance, Definition->PlacementSurface);
+        // Detection and disarming are two independent checks. Reveal only
+        // the effective per-placement disarm DC after a confirmed discovery.
+        const FText DisarmHint = GetDungeonTrapDisarmHint(Instance.InstanceId);
         const FText Message = FText::Format(
-            NSLOCTEXT("TRAP01", "TrapDetectedRoll",
-                "{0} repère un piège {1} (Perception : d20 {2}, total {3}, difficulté {4})."),
+            NSLOCTEXT("TRAP019", "TrapDetectedWithDisarmDifficulty",
+                "{0} repère un piège {1} (Perception : d20 {2}, total {3}, difficulté de détection {4}).\n{5}"),
             ObserverName, Where,
             FText::AsNumber(Result.Roll), FText::AsNumber(Result.Total),
-            FText::AsNumber(EffectiveDifficulty));
+            FText::AsNumber(EffectiveDifficulty), DisarmHint);
         GridEventFeedPublisher::PublishDungeonEvent(
             this, FName(TEXT("Dungeon.Trap.Detected")), Message,
             EGridHudEventSemantic::Mechanism, EGridEventVisibility::Always,

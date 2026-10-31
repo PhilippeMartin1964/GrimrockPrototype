@@ -150,6 +150,7 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
     Def->DungeonTrap.DetectionSense = EGridDungeonTrapDetectionSense::Audible;
     Def->DungeonTrap.MaxDetectionRangeCells = 4;
     Def->bCanBeDisarmed = true;
+    Def->DisarmDifficulty = 18; // Shared default; this placement must override it.
     Def->RuntimeActorClass = AGridGenericObjectActor::StaticClass();
     Def->StaticPart.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
     if (!TestNotNull(TEXT("Existing engine test mesh"), Def->StaticPart.Mesh.Get()))
@@ -166,6 +167,8 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
     Trap.WorldObjectDefinitionId = Def->DefinitionId;
     Trap.CellX = 3;
     Trap.CellY = 3;
+    Trap.InstanceConfig.DungeonTrap.bOverrideDisarmDifficulty = true;
+    Trap.InstanceConfig.DungeonTrap.DisarmDifficulty = 29;
     Level->WorldObjectInstances.Add(Trap);
 
     FGridCharacterInventoryState Hero;
@@ -183,6 +186,12 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
         Runtime->FindRuntimeObjectActor<AGridRuntimeObjectActor>(Trap.InstanceId));
     TestEqual(TEXT("Trap starts hidden"), Runtime->GetDungeonTrapState(Trap.InstanceId),
         EGridDungeonTrapState::Hidden);
+    TestTrue(TEXT("Hidden trap must not reveal disarm DC"),
+        Runtime->GetDungeonTrapDisarmHint(Trap.InstanceId).IsEmpty());
+    int32 HiddenDC = -1;
+    TestFalse(TEXT("Hidden trap denies disarm DC API"),
+        Runtime->GetTriggerTrapDisarmDifficulty(Trap.InstanceId, HiddenDC));
+    TestEqual(TEXT("Denied request zeros output difficulty"), HiddenDC, 0);
     Level->GetCellMutable(3, 2).NorthWall = EGridWallType::Solid;
     FRandomStream BlockedRandom(12);
     const int32 SeedBefore = BlockedRandom.GetCurrentSeed();
@@ -220,6 +229,14 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
             Feed->GetEntries().ContainsByPredicate([](const FGridHudEventEntry& E)
             {
                 return E.EventCode == FName(TEXT("Dungeon.Trap.Detected"));
+            }));
+        TestTrue(TEXT("Discovery event includes placed-instance disarm DC, not its shared default"),
+            Feed->GetEntries().ContainsByPredicate([](const FGridHudEventEntry& E)
+            {
+                return E.EventCode == FName(TEXT("Dungeon.Trap.Detected")) &&
+                    E.Message.ToString().Contains(TEXT("Difficulté de désamorçage : 29")) &&
+                    !E.Message.ToString().Contains(TEXT("Difficulté de désamorçage : 18")) &&
+                    E.Message.ToString().Contains(TEXT("difficulté de détection"));
             }));
         TestFalse(TEXT("Successful discovery never emits the removed neutral scan event"),
             Feed->GetEntries().ContainsByPredicate([](const FGridHudEventEntry& E)
@@ -261,7 +278,18 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
             const FString Hover = GenericVisual->GetInteractionText_Implementation(Revealed->MeshComponent).ToString();
             TestTrue(TEXT("Detected trap hover explains its interaction"), Hover.Contains(TEXT("Piège détecté")));
             TestTrue(TEXT("Detected trap hover mentions the required tools"), Hover.Contains(TEXT("outils")));
-            TestFalse(TEXT("Hover does not reveal disarm difficulty"), Hover.Contains(TEXT("difficulté")));
+            TestTrue(TEXT("Discovered trap hover gives effective disarm difficulty"),
+                Hover.Contains(TEXT("Difficulté de désamorçage : 29")));
+            TestFalse(TEXT("Discovered trap never uses shared default when overridden"),
+                Hover.Contains(TEXT("Difficulté de désamorçage : 18")));
+            Def->bCanBeDisarmed = false;
+            const FString Impossible = GenericVisual->GetInteractionText_Implementation(Revealed->MeshComponent).ToString();
+            TestTrue(TEXT("Non-disarmable trap announces impossibility"), Impossible.Contains(TEXT("Désamorçage impossible")));
+            TestFalse(TEXT("Non-disarmable trap does not suggest unsafe action"),
+                Impossible.Contains(TEXT("tenter de le désamorcer")));
+            TestFalse(TEXT("Non-disarmable trap must not expose numeric DC"),
+                Impossible.Contains(TEXT("29")));
+            Def->bCanBeDisarmed = true;
         }
         TestTrue(TEXT("Revealed actor is native, without a Blueprint override"),
             Revealed->GetClass() == AGridGenericObjectActor::StaticClass());
@@ -342,6 +370,9 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
         Reloaded->DungeonRuntimeState = Saved;
         TestEqual(TEXT("Discovered trap persists after snapshot restore"),
             Reloaded->GetDungeonTrapState(Trap.InstanceId), EGridDungeonTrapState::Detected);
+        TestTrue(TEXT("After Continue, discovered trap still exposes its effective disarm DC"),
+            Reloaded->GetDungeonTrapDisarmHint(Trap.InstanceId).ToString()
+                .Contains(TEXT("Difficulté de désamorçage : 29")));
         Reloaded->RestoreDungeonTrapRevealVisuals();
         TestNotNull(TEXT("Save/Continue restores the known 3D trap"),
             Reloaded->FindRuntimeObjectActor<AGridRuntimeObjectActor>(Trap.InstanceId));

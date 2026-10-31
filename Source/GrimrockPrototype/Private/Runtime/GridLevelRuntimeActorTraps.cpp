@@ -505,6 +505,40 @@ bool AGridLevelRuntimeActor::FindDisarmableTriggerTrapForParty(
     return false;
 }
 
+FText AGridLevelRuntimeActor::GetDungeonTrapDisarmHint(FGuid TrapObjectId) const
+{
+    // Only identified traps may disclose an authored disarm difficulty.
+    const EGridDungeonTrapState State = GetDungeonTrapState(TrapObjectId);
+    if (State != EGridDungeonTrapState::Detected &&
+        State != EGridDungeonTrapState::Triggered)
+    {
+        return FText::GetEmpty();
+    }
+
+    int32 Difficulty = 0;
+    if (GetTriggerTrapDisarmDifficulty(TrapObjectId, Difficulty))
+    {
+        return FText::Format(
+            NSLOCTEXT("TRAP019", "DisarmDifficultyHint",
+                "Difficulté de désamorçage : {0}"),
+            FText::AsNumber(Difficulty));
+    }
+
+    // A genuinely non-disarmable authored trap needs an honest warning,
+    // not a fictitious DC. A spent one-shot trap gives no DC hint.
+    const FGridWorldObjectInstance* Trap = IsValid(LevelAsset)
+        ? LevelAsset->FindWorldObjectInstanceById(TrapObjectId) : nullptr;
+    const UGridWorldObjectDefinitionAsset* Definition = Trap
+        ? FindWorldObjectDefinition(Trap->WorldObjectDefinitionId) : nullptr;
+    if (IsValid(Definition) && Definition->DungeonTrap.bIsDungeonTrap &&
+        !Definition->bCanBeDisarmed)
+    {
+        return NSLOCTEXT("TRAP019", "DisarmImpossibleHint",
+            "Désamorçage impossible");
+    }
+    return FText::GetEmpty();
+}
+
 bool AGridLevelRuntimeActor::GetTriggerTrapDisarmDifficulty(
     FGuid TrapObjectId, int32& OutDifficulty) const
 {

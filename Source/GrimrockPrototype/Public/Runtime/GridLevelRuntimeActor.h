@@ -414,6 +414,11 @@ public:
 
     /** Authored Trigger trap state; never confuses combat-cell traps with dungeon triggers. */
     bool GetTriggerTrapDisarmDifficulty(FGuid TrapObjectId, int32& OutDifficulty) const;
+
+    /** TRAP01.9: discovered-trap hint using this placement's effective DC.
+     * Hidden/unknown/neutralized traps never disclose the number.
+     */
+    FText GetDungeonTrapDisarmHint(FGuid TrapObjectId) const;
     bool IsTriggerTrapDisarmed(FGuid TrapObjectId) const;
     /** Returns only already-known trap instance IDs (TRAP01.2 will author detection). */
     bool IsTriggerTrapDetected(FGuid TrapObjectId) const;
