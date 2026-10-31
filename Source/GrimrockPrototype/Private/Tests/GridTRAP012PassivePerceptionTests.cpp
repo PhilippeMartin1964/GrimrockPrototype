@@ -14,6 +14,7 @@
 #include "Runtime/GridEventFeedSubsystem.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "UObject/Class.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -115,6 +116,11 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
         World->DestroyWorld(false);
         if (GEngine) GEngine->DestroyWorldContext(World);
     };
+
+    // AActor::ProcessEvent rejects even native events until actors are initialized.
+    // CreateWorld alone is insufficient; use the normal game-world lifecycle.
+    World->InitializeActorsForPlay(FURL());
+    TestTrue(TEXT("World permits actor ProcessEvent dispatch"), World->AreActorsInitialized());
 
     AGridLevelRuntimeActor* Runtime = World->SpawnActor<AGridLevelRuntimeActor>();
     AGrimrockPartyPawn* Party = World->SpawnActor<AGrimrockPartyPawn>();
@@ -241,12 +247,46 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
             TestEqual(TEXT("Direct generic actor returns use cursor"),
                 GenericVisual->GetInteractionCursor_Implementation(Revealed->MeshComponent), EGridInteractionCursor::Use);
         }
+        TestTrue(TEXT("Revealed actor is native, without a Blueprint override"),
+            Revealed->GetClass() == AGridGenericObjectActor::StaticClass());
+        for (const FName EventName : {FName(TEXT("CanInteract")), FName(TEXT("GetInteractionCursor")),
+                 FName(TEXT("InteractWithHit"))})
+        {
+            const UFunction* Function = Revealed->FindFunction(EventName);
+            AddInfo(FString::Printf(TEXT("Interface resolution: %s -> %s"),
+                *EventName.ToString(), *GetPathNameSafe(Function)));
+            if (TestNotNull(TEXT("Interface event resolves through reflection"), Function))
+            {
+                TestTrue(TEXT("Resolved event belongs to the native interface"),
+                    Function->GetOwnerClass() == UGridInteractableInterface::StaticClass());
+                TestTrue(TEXT("Resolved event has a native thunk"), Function->HasAnyFunctionFlags(FUNC_Native));
+                TestTrue(TEXT("Resolved event has no Blueprint bytecode"), Function->Script.IsEmpty());
+            }
+        }
         TestTrue(TEXT("Revealed mechanism can be clicked by the party"),
             IGridInteractableInterface::Execute_CanInteract(
                 Revealed, Party, Revealed->MeshComponent));
         TestEqual(TEXT("Hover advertises use cursor"),
             IGridInteractableInterface::Execute_GetInteractionCursor(
                 Revealed, Revealed->MeshComponent), EGridInteractionCursor::Use);
+        if (Feed)
+        {
+            auto HasOutOfReachFeedback = [Feed]()
+            {
+                return Feed->GetEntries().ContainsByPredicate([](const FGridHudEventEntry& Entry)
+                {
+                    return Entry.EventCode == FName(TEXT("Dungeon.Trap.OutOfReach"));
+                });
+            };
+            TestFalse(TEXT("No click feedback before interaction"), HasOutOfReachFeedback());
+            // Same interface entry point as the mouse controller. The trap is two
+            // cells away: reaching gameplay must report range, without disarming.
+            IGridInteractableInterface::Execute_InteractWithHit(
+                Revealed, Party, Revealed->MeshComponent, FHitResult());
+            TestTrue(TEXT("Mouse click interface reaches runtime range feedback"), HasOutOfReachFeedback());
+            TestEqual(TEXT("Out-of-reach click preserves detected state"),
+                Runtime->GetDungeonTrapState(Trap.InstanceId), EGridDungeonTrapState::Detected);
+        }
     }
     TestEqual(TEXT("Distance-two attempt bit recorded"),
         State->TrapPerceptionAttemptedRangeMask.FindRef(Trap.InstanceId), static_cast<uint8>(0x02));
