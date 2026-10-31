@@ -266,7 +266,14 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 			break;
 		}
 		case EGridLevelObjectType::Trigger:
-			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Trigger Placement Surface must be Floor."));
+			// TRAP01.5: legacy logic Trigger stays Floor-only. A real dungeon
+			// hazard is explicitly opted in and uses the generic Floor/Wall/
+			// Ceiling surface authority validated earlier in this function.
+			if (!DungeonTrap.bIsDungeonTrap && !IsFloorPlacement(PlacementSurface))
+			{
+				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+					TEXT("Ordinary Trigger Placement Surface must be Floor."));
+			}
 			break;
 		case EGridLevelObjectType::Decoration:
 		{

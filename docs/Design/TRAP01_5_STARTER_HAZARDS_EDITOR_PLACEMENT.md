@@ -139,3 +139,13 @@ les dégâts et le désamorçage avec outils. OnCrossBoundary,
 OnInteract, commande distante de neutralisation, animations 3D,
 VFX d'activation et effets de statut restent des jalons suivants.
 Le mesh provisoire n'est pas l'objet final de la direction artistique.
+
+## Compatibilité du validateur Trigger
+
+Le validateur historique `UGridWorldObjectDefinitionAsset::ValidateDefinition`
+imposait toujours `PlacementSurface=Floor` aux `Trigger`. TRAP01.5
+autorise explicitement Wall/Ceiling **uniquement lorsque**
+`DungeonTrap.bIsDungeonTrap=true`, tout en conservant la restriction
+Floor-only pour les triggers ordinaires. Le test Editor vérifie les
+nouveaux profils sur les trois surfaces et le refus du Trigger classique
+placé sur un mur.

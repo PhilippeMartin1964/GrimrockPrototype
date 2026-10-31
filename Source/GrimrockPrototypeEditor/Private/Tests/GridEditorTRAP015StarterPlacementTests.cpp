@@ -150,6 +150,25 @@ bool FTRAP015StarterPaletteAndPlacement::RunTest(const FString&)
             Instance.WallSide, Expected[i].Edge);
     }
 
+    // Explicit regression: the old Trigger floor-only rule remains valid for
+    // ordinary puzzle logic, but not for the TRAP01.5 hazard opt-in.
+    UGridWorldObjectDefinitionAsset* LegacyTrigger =
+        NewObject<UGridWorldObjectDefinitionAsset>(Editor);
+    LegacyTrigger->DefinitionId = TEXT("TRAP015_LegacyLogicTrigger");
+    LegacyTrigger->SupportedType = EGridLevelObjectType::Trigger;
+    LegacyTrigger->PlacementSurface = EGridObjectPlacementKind::Wall;
+    TArray<FGridWorldObjectDefinitionValidationMessage> LegacyValidation;
+    TestFalse(TEXT("Ordinary logical Trigger cannot be placed on a wall"),
+        LegacyTrigger->ValidateDefinition(LegacyValidation));
+    TestTrue(TEXT("Legacy floor-only validation is explicit"),
+        LegacyValidation.ContainsByPredicate(
+            [](const FGridWorldObjectDefinitionValidationMessage& Message)
+            {
+                return Message.Severity ==
+                        EGridWorldObjectDefinitionValidationSeverity::Error &&
+                    Message.Message.Contains(TEXT("Ordinary Trigger Placement Surface"));
+            }));
+
     // Editor preview must show all hazards, even though runtime hides them.
     AGridLevelRuntimeActor* Preview = Fixture.World->SpawnActor<AGridLevelRuntimeActor>();
     if (TestNotNull(TEXT("Runtime preview actor"), Preview))
