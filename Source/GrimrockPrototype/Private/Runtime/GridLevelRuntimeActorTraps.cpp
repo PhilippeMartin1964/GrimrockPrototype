@@ -10,7 +10,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridInteractableInterface.h"
-#include "Runtime/GridTurnManagerComponent.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridDungeonTrapPerceptionService.h"
 #include "Components/StaticMeshComponent.h"
