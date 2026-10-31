@@ -1050,6 +1050,13 @@ void AGridLevelRuntimeActor::HandlePartyCellChanged(int32 OldCellX, int32 OldCel
                     Party->CurrentCellX == NewCellX && Party->CurrentCellY == NewCellY)
                 {
                     FRandomStream RandomStream(FMath::Rand());
+                    // Only an actual completed translation can activate an
+                    // OnEnterCell dungeon trap. The stable startup call to
+                    // HandlePartyCellChanged(C,C,C,C) remains harmless.
+                    if (OldCellX != NewCellX || OldCellY != NewCellY)
+                    {
+                        TriggerDungeonTrapsOnPartyEnterCell(Party, NewCellX, NewCellY, RandomStream);
+                    }
                     EvaluatePassiveDungeonTrapPerception(Party, RandomStream);
                     break;
                 }

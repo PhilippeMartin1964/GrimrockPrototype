@@ -439,6 +439,18 @@ public:
      * TRAP01.2 publishes the reveal and position, not damage. */
     bool TryRecordDungeonTrapTriggered(FGuid TrapObjectId, AGrimrockPartyPawn* PartyPawn);
 
+    /** TRAP01.3: commit the OnEnterCell hazards authored in one cell.
+     * One shared damage roll per hazard, then individual character defenses.
+     * The caller supplies the RNG for deterministic UE automation. This call
+     * requires the group to actually stand in the target cell and never runs
+     * for a stable-cell initialization (caller enforces movement boundary).
+     * Returns the number of hazard instances that fired.
+     */
+    int32 TriggerDungeonTrapsOnPartyEnterCell(
+        AGrimrockPartyPawn* PartyPawn, int32 CellX, int32 CellY,
+        FRandomStream& RandomStream);
+
+
 
 
     /** Selects exactly one disarmable dungeon Trigger in the party cell or the
