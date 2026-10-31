@@ -24,7 +24,8 @@ enum class EGridMapSymbolKind : uint8
 	StairsDown UMETA(DisplayName = "Stairs Down"),
 	Relocation UMETA(DisplayName = "Relocation"),
 	Pit UMETA(DisplayName = "Pit"),
-	PointOfInterest UMETA(DisplayName = "Point of Interest")
+	PointOfInterest UMETA(DisplayName = "Point of Interest"),
+	Trap UMETA(DisplayName = "Piège")
 };
 
 /** One explored cell intentionally exposed to the Map presentation layer. */

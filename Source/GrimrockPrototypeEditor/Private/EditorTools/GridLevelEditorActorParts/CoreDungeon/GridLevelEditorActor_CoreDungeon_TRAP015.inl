@@ -29,17 +29,17 @@ bool AGridLevelEditorActor::EnsureDungeonTrapDefinitions(FString& OutError)
     };
     static const FStarterTrap StarterTraps[] = {
         { TEXT("Trap_Floor_Spikes_01"), TEXT("DA_Trap_Floor_Spikes_01"),
-          TEXT("SM_Trap_FloorDisarmable_01"), TEXT("Pointes dissimulees (sol)"),
+          TEXT("SM_Trap_FloorDisarmable_01"), TEXT("Pointes dissimulées (sol)"),
           EGridObjectPlacementKind::Floor, EGridDamageType::Physical,
           EGridPhysicalDamageSubtype::Piercing, EGridDungeonTrapDetectionSense::Visual,
           10, 10, 6, 12, FVector(1.3f, 1.3f, 0.12f) },
         { TEXT("Trap_Wall_Darts_01"), TEXT("DA_Trap_Wall_Darts_01"),
-          TEXT("SM_Trap_WallDarts_01"), TEXT("Dards dissimules (mur)"),
+          TEXT("SM_Trap_WallDarts_01"), TEXT("Dards dissimulés (mur)"),
           EGridObjectPlacementKind::Wall, EGridDamageType::Physical,
           EGridPhysicalDamageSubtype::Piercing, EGridDungeonTrapDetectionSense::Visual,
           14, 15, 8, 14, FVector(1.2f, 0.12f, 0.65f) },
         { TEXT("Trap_Ceiling_Fire_01"), TEXT("DA_Trap_Ceiling_Fire_01"),
-          TEXT("SM_Trap_CeilingFlame_01"), TEXT("Flammes dissimulees (plafond)"),
+          TEXT("SM_Trap_CeilingFlame_01"), TEXT("Flammes dissimulées (plafond)"),
           EGridObjectPlacementKind::Ceiling, EGridDamageType::Fire,
           EGridPhysicalDamageSubtype::None, EGridDungeonTrapDetectionSense::Audible,
           18, 20, 12, 20, FVector(1.2f, 1.2f, 0.12f) }

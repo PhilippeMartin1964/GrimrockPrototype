@@ -491,6 +491,21 @@ bool FGridMapReadModelBuilder::BuildTileView(
 			continue;
 		}
 
+
+		// Explored is not discovered: trap GUID runtime knowledge is authoritative.
+		const UGridWorldObjectDefinitionAsset* const* TrapDef = DefinitionById.Find(Instance.WorldObjectDefinitionId);
+		if (TrapDef && *TrapDef && Instance.Type == EGridLevelObjectType::Trigger && (*TrapDef)->DungeonTrap.bIsDungeonTrap)
+		{
+			const bool bKnown = LevelState.DetectedTriggerTrapIds.Contains(Instance.InstanceId) ||
+				LevelState.TriggeredTriggerTrapIds.Contains(Instance.InstanceId) ||
+				LevelState.DisarmedTriggerTrapIds.Contains(Instance.InstanceId) ||
+				LevelState.DisabledTriggerTrapIds.Contains(Instance.InstanceId);
+			if (bKnown)
+			{
+				AddSymbolUnique(OutView.Symbols, Cell, EGridMapSymbolKind::Trap);
+			}
+			continue;
+		}
 		EGridMapSymbolKind ExplicitKind = EGridMapSymbolKind::Relocation;
 		if (!TryResolveExplicitMapSymbol(Instance, DefinitionById, ExplicitKind))
 		{

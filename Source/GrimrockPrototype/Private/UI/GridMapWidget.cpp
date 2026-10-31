@@ -861,7 +861,8 @@ namespace GridMapWidgetPrivate
 		const FVector2f Center = Metrics.CellCenter(Symbol.MapCell);
 		const float R = Metrics.CellSize * 0.30f * FMath::Clamp(SymbolScale, 0.4f, 1.0f);
 		const float T = FMath::Max(0.75f, StrokeThickness);
-		const FLinearColor& Color = Symbol.Kind == EGridMapSymbolKind::Pit ? HazardColor : NavigationColor;
+		const FLinearColor& Color = (Symbol.Kind == EGridMapSymbolKind::Pit || Symbol.Kind == EGridMapSymbolKind::Trap)
+			? HazardColor : NavigationColor;
 		const int32 SafeVariantCount = FMath::Clamp(SymbolVariantCount, 1, 5);
 		const int32 Variant = UGridMapWidget::ComputeDeterministicSymbolVariant(Symbol.MapCell, Symbol.Kind, SafeVariantCount);
 		const float VariantBias = SafeVariantCount > 1
@@ -1011,6 +1012,20 @@ namespace GridMapWidgetPrivate
 					const FVector2f End = FMath::Lerp(ITR, IBR, FMath::Clamp(DepthT + VariantBias * 0.10f, 0.0f, 1.0f));
 					Ink(Start, End, 740 + Index * 7, 0.42f, 0.48f);
 				}
+				break;
+			}
+
+
+			case EGridMapSymbolKind::Trap:
+			{
+				const FVector2f L = Center + FVector2f(-R, R * 0.85f);
+				const FVector2f H = Center + FVector2f(0.f, -R);
+				const FVector2f Q = Center + FVector2f(R, R * 0.85f);
+				Ink(L, H, 760);
+				Ink(H, Q, 761);
+				Ink(Q, L, 762);
+				Ink(Center + FVector2f(-R * 0.4f, R * 0.5f), Center + FVector2f(-R * 0.4f, -R * 0.1f), 763);
+				Ink(Center + FVector2f(R * 0.4f, R * 0.5f), Center + FVector2f(R * 0.4f, -R * 0.1f), 764);
 				break;
 			}
 
