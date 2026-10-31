@@ -282,7 +282,25 @@ FText AGridGenericObjectActor::GetInteractionText_Implementation(UPrimitiveCompo
 	if (HitComponent == MeshComponent && TrapState != EGridDungeonTrapState::Unknown &&
 		TrapState != EGridDungeonTrapState::Hidden)
 	{
-		return NSLOCTEXT("TRAP01", "TrapInspectInteraction", "Examiner le mécanisme");
+		// World hover does not expose Difficulty, tool modifiers, or hidden traps.
+		// It only reflects the trap state already known to the party.
+		switch (TrapState)
+		{
+			case EGridDungeonTrapState::Detected:
+				return NSLOCTEXT("TRAP017", "TrapDetectedHover",
+					"Piège détecté — clic gauche pour tenter de le désamorcer (Pièges + outils).");
+			case EGridDungeonTrapState::Triggered:
+				return NSLOCTEXT("TRAP017", "TrapTriggeredHover",
+					"Piège déclenché — clic gauche pour examiner son état.");
+			case EGridDungeonTrapState::Disarmed:
+				return NSLOCTEXT("TRAP017", "TrapDisarmedHover",
+					"Piège désamorcé.");
+			case EGridDungeonTrapState::Disabled:
+				return NSLOCTEXT("TRAP017", "TrapDisabledHover",
+					"Mécanisme désactivé.");
+			default:
+				return FText::GetEmpty();
+		}
 	}
 	if (HitComponent == MeshComponent && HasReadableText())
 	{

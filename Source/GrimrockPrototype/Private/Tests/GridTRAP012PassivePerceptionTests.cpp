@@ -258,6 +258,10 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
                 GenericVisual->CanInteract_Implementation(Party, Revealed->MeshComponent));
             TestEqual(TEXT("Direct generic actor returns use cursor"),
                 GenericVisual->GetInteractionCursor_Implementation(Revealed->MeshComponent), EGridInteractionCursor::Use);
+            const FString Hover = GenericVisual->GetInteractionText_Implementation(Revealed->MeshComponent).ToString();
+            TestTrue(TEXT("Detected trap hover explains its interaction"), Hover.Contains(TEXT("Piège détecté")));
+            TestTrue(TEXT("Detected trap hover mentions the required tools"), Hover.Contains(TEXT("outils")));
+            TestFalse(TEXT("Hover does not reveal disarm difficulty"), Hover.Contains(TEXT("difficulté")));
         }
         TestTrue(TEXT("Revealed actor is native, without a Blueprint override"),
             Revealed->GetClass() == AGridGenericObjectActor::StaticClass());

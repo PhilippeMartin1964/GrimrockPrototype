@@ -1,4 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridDungeonTrapDisarmFeedback.h"
 #include "Core/GridDungeonTrapInstanceUtils.h"
 
 #include "RPG/RPGSkillAsset.h"
@@ -441,14 +442,7 @@ bool AGridLevelRuntimeActor::TryInteractWithRevealedDungeonTrap(
     const FText Name = Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(DisarmerIndex)
         ? Inventory->PartyInventoryState.ActiveCharacters[DisarmerIndex].DisplayName
         : NSLOCTEXT("TRAP01", "DisarmerFallback", "Un membre du groupe");
-    const FText Message = FText::Format(
-        Result.bSuccess
-            ? NSLOCTEXT("TRAP01", "DisarmWorldSuccess",
-                "{0} désamorce le piège (d20 : {1}, total : {2}, difficulté : {3}).")
-            : NSLOCTEXT("TRAP01", "DisarmWorldFailure",
-                "{0} échoue à désamorcer le piège (d20 : {1}, total : {2}, difficulté : {3})."),
-        Name, FText::AsNumber(Result.Roll), FText::AsNumber(Result.Total),
-        FText::AsNumber(Result.Difficulty));
+    const FText Message = GridDungeonTrapDisarmFeedback::Format(Name, Result);
     Report(Result.bSuccess ? FName(TEXT("Dungeon.Trap.Disarmed"))
                            : FName(TEXT("Dungeon.Trap.DisarmFailed")), Message);
     return true;

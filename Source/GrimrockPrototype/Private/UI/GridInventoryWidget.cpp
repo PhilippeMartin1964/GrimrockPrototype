@@ -1,4 +1,5 @@
 #include "UI/GridInventoryWidget.h"
+#include "Runtime/GridDungeonTrapDisarmFeedback.h"
 
 #include "Components/Border.h"
 #include "Components/Image.h"
@@ -1816,11 +1817,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
                 !State.ActiveCharacters[DisarmerIndex].DisplayName.IsEmpty()
                 ? State.ActiveCharacters[DisarmerIndex].DisplayName
                 : NSLOCTEXT("GridItemActions", "DisarmOperatorFallback", "Un membre du groupe");
-            const FText Message = Check.bSuccess
-                ? FText::Format(NSLOCTEXT("GridItemActions", "DisarmSucceededBy",
-                      "{0} désamorce le piège."), DisarmerName)
-                : FText::Format(NSLOCTEXT("GridItemActions", "DisarmFailedBy",
-                      "{0} échoue à désamorcer le piège."), DisarmerName);
+            const FText Message = GridDungeonTrapDisarmFeedback::Format(DisarmerName, Check);
             if (Trap)
             {
                 GridEventFeedPublisher::PublishDungeonEventAtCell(
