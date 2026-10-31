@@ -514,6 +514,16 @@ bool UGridActivationComponent::ProcessTriggerEvent(const FGridWorldObjectInstanc
 		return false;
 	}
 
+    // TRAP01.2 is discovery only. A dungeon trap must not execute generic
+    // Activated links before TRAP01.3 commits its real damage/trigger pipeline.
+    // Ordinary historical Trigger logic remains unchanged.
+    const UGridWorldObjectDefinitionAsset* TrapDefinition = RuntimeActor
+        ? RuntimeActor->FindWorldObjectDefinition(TriggerData.WorldObjectDefinitionId) : nullptr;
+    if (IsValid(TrapDefinition) && TrapDefinition->DungeonTrap.bIsDungeonTrap)
+    {
+        return false;
+    }
+
 	const TCHAR* EventLabel = bEntering ? TEXT("Enter") : TEXT("Exit");
     // Disarmed dungeon traps must never execute their previous Activated or
     // Deactivated links again, including after a Save/Continue round-trip.

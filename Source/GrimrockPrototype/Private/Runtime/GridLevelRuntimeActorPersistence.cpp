@@ -845,5 +845,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		State->InteractiveObjects.Num(), State->Monsters.Num(), DeadMonsterCount);
 
 	ApplyPendingInboundItemsForCurrentLevel();
+    RestoreDungeonTrapRevealVisuals(); // Save/Continue: restore materialized known traps.
 	return true;
 }

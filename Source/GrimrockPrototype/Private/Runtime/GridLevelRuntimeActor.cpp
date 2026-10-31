@@ -1037,6 +1037,25 @@ void AGridLevelRuntimeActor::HandlePartyCellChanged(int32 OldCellX, int32 OldCel
 	{
 		ActivationComponent->HandlePartyCellChanged(OldCellX, OldCellY, NewCellX, NewCellY);
 	}
+    // TRAP01.2: evaluate only at a completed grid move / initial stable cell,
+    // never on Tick. The existing activation/enter events run first.
+    if (UWorld* World = GetWorld())
+    {
+        if (World->IsGameWorld())
+        {
+            for (TActorIterator<AGrimrockPartyPawn> It(World); It; ++It)
+            {
+                AGrimrockPartyPawn* Party = *It;
+                if (IsValid(Party) && Party->LevelRuntimeActor == this &&
+                    Party->CurrentCellX == NewCellX && Party->CurrentCellY == NewCellY)
+                {
+                    FRandomStream RandomStream(FMath::Rand());
+                    EvaluatePassiveDungeonTrapPerception(Party, RandomStream);
+                    break;
+                }
+            }
+        }
+    }
 	RevealMapAroundCell(NewCellX, NewCellY);
 }
 
@@ -2159,4 +2178,5 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 			++RuntimeMonsterSpawnFailureCount;
 		}
 	}
+    RestoreDungeonTrapRevealVisuals(); // Save/Continue and runtime rebuild re-materialize only known traps.
 }

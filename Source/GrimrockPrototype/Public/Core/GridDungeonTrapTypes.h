@@ -5,6 +5,8 @@
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "GridDungeonTrapTypes.generated.h"
 
+class UMaterialInterface;
+
 /** TRAP01.1: authored dungeon hazards are opt-in Trigger definitions.
  * They are not RPG03.9 temporary combat traps or visible pickup actors.
  */
@@ -99,6 +101,14 @@ struct GRIMROCKPROTOTYPE_API FGridDungeonTrapDefinitionParams
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dungeon Trap|Disarm",
         meta = (EditCondition = "bIsDungeonTrap", EditConditionHides))
     FName RequiredToolTag = TEXT("Tool.Disarm");
+
+    /** Presentation-only overlay on the spawned trap mesh after detection or
+     * activation. Supply a translucent red material in the asset, not C++.
+     * If unset, the discovered mesh remains visible with its base materials.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dungeon Trap|Reveal",
+        meta = (EditCondition = "bIsDungeonTrap", EditConditionHides))
+    TObjectPtr<UMaterialInterface> RevealedOverlayMaterial = nullptr;
 
     bool IsValidContract() const
     {

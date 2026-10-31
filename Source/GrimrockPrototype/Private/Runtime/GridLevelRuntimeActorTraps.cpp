@@ -5,6 +5,10 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GridRuntimeObjectActor.h"
+#include "Runtime/GridEventFeedPublisher.h"
+#include "Runtime/GridDungeonTrapPerceptionService.h"
+#include "Components/StaticMeshComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridCombatTrapRuntime, Log, All);
 
@@ -163,6 +167,115 @@ bool AGridLevelRuntimeActor::TryRecordDungeonTrapDetection(FGuid TrapObjectId)
         return false;
     }
     State->DetectedTriggerTrapIds.Add(TrapObjectId);
+    RefreshDungeonTrapRevealVisual(TrapObjectId);
+    return true;
+}
+
+void AGridLevelRuntimeActor::RefreshDungeonTrapRevealVisual(FGuid TrapObjectId)
+{
+    if (GetDungeonTrapState(TrapObjectId) == EGridDungeonTrapState::Hidden ||
+        GetDungeonTrapState(TrapObjectId) == EGridDungeonTrapState::Unknown ||
+        !IsValid(LevelAsset))
+    {
+        return;
+    }
+    const FGridWorldObjectInstance* Instance =
+        LevelAsset->FindWorldObjectInstanceById(TrapObjectId);
+    const UGridWorldObjectDefinitionAsset* Definition = Instance
+        ? FindWorldObjectDefinition(Instance->WorldObjectDefinitionId) : nullptr;
+    if (!IsValid(Definition))
+    {
+        return;
+    }
+
+    AGridRuntimeObjectActor* Visual = FindRuntimeObjectActor<AGridRuntimeObjectActor>(TrapObjectId);
+    if (!IsValid(Visual) && Definition->RuntimeActorClass)
+    {
+        // This is the same normal world-object visual pipeline; its GUID
+        // remains the original level instance. No secondary gameplay actor.
+        AddRuntimeObjectActor(*Instance);
+        Visual = FindRuntimeObjectActor<AGridRuntimeObjectActor>(TrapObjectId);
+    }
+    if (!IsValid(Visual))
+    {
+        return; // No visual authored yet: gameplay discovery still persists.
+    }
+    Visual->SetActorHiddenInGame(false);
+    if (UStaticMeshComponent* Mesh = Visual->MeshComponent)
+    {
+        Mesh->SetRenderCustomDepth(true);
+        Mesh->SetCustomDepthStencilValue(252); // Explicit trap reveal stencil.
+        if (Definition->DungeonTrap.RevealedOverlayMaterial)
+        {
+            Mesh->SetOverlayMaterial(Definition->DungeonTrap.RevealedOverlayMaterial);
+        }
+    }
+}
+
+void AGridLevelRuntimeActor::RestoreDungeonTrapRevealVisuals()
+{
+    if (!IsValid(LevelAsset))
+    {
+        return;
+    }
+    for (const FGridWorldObjectInstance& Object : LevelAsset->WorldObjectInstances)
+    {
+        if (GetDungeonTrapState(Object.InstanceId) != EGridDungeonTrapState::Hidden &&
+            GetDungeonTrapState(Object.InstanceId) != EGridDungeonTrapState::Unknown)
+        {
+            RefreshDungeonTrapRevealVisual(Object.InstanceId);
+        }
+    }
+}
+
+bool AGridLevelRuntimeActor::TryRecordDungeonTrapTriggered(
+    FGuid TrapObjectId, AGrimrockPartyPawn* PartyPawn)
+{
+    const EGridDungeonTrapState CurrentState = GetDungeonTrapState(TrapObjectId);
+    if (CurrentState != EGridDungeonTrapState::Hidden &&
+        CurrentState != EGridDungeonTrapState::Detected &&
+        CurrentState != EGridDungeonTrapState::Triggered)
+    {
+        return false;
+    }
+    const FGridWorldObjectInstance* Instance =
+        LevelAsset->FindWorldObjectInstanceById(TrapObjectId);
+    const UGridWorldObjectDefinitionAsset* Definition = Instance
+        ? FindWorldObjectDefinition(Instance->WorldObjectDefinitionId) : nullptr;
+    if (!IsValid(Definition) ||
+        (CurrentState == EGridDungeonTrapState::Triggered && Definition->DungeonTrap.bOneShot))
+    {
+        return false;
+    }
+    FGridLevelRuntimeState* State = GetOrCreateRuntimeStateForCurrentLevel();
+    if (!State)
+    {
+        return false;
+    }
+    const bool bFirstTrigger = !State->TriggeredTriggerTrapIds.Contains(TrapObjectId);
+    State->TriggeredTriggerTrapIds.Add(TrapObjectId);
+    State->DetectedTriggerTrapIds.Add(TrapObjectId);
+    RefreshDungeonTrapRevealVisual(TrapObjectId);
+    if (bFirstTrigger && IsValid(PartyPawn) && PartyPawn->LevelRuntimeActor == this)
+    {
+        const int32 Dx = Instance->CellX - PartyPawn->CurrentCellX;
+        const int32 Dy = Instance->CellY - PartyPawn->CurrentCellY;
+        const int32 Distance = FMath::Abs(Dx) + FMath::Abs(Dy);
+        EGridEdge Direction = EGridEdge::None;
+        int32 CardinalDistance = 0;
+        FGridDungeonTrapPerceptionService::GetCardinalDirectionAndDistance(
+            FIntPoint(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY),
+            FIntPoint(Instance->CellX, Instance->CellY), Direction, CardinalDistance);
+        const FText Where = Distance == 0
+            ? NSLOCTEXT("TRAP01", "TrapUnderParty", "sous le groupe")
+            : FGridDungeonTrapPerceptionService::FormatRelativeLocation(
+                PartyPawn->Facing, Direction, Distance, Definition->PlacementSurface);
+        GridEventFeedPublisher::PublishDungeonEvent(
+            this, FName(TEXT("Dungeon.Trap.Triggered")),
+            FText::Format(NSLOCTEXT("TRAP01", "TrapTriggeredEvent", "Un piège se déclenche {0} !"), Where),
+            EGridHudEventSemantic::Mechanism, EGridEventVisibility::Always,
+            true, GridEventFeedPublisher::SourceIdFromGuid(TrapObjectId));
+    }
     return true;
 }
 
@@ -338,6 +451,7 @@ bool AGridLevelRuntimeActor::TryDisarmTriggerTrap(
         return false;
     }
     State->DisarmedTriggerTrapIds.Add(TrapObjectId);
+    RefreshDungeonTrapRevealVisual(TrapObjectId);
 
     // Trigger's normal Activated/Deactivated links are suppressed by the
     // activation component; Disarmed is emitted once for puzzle links.

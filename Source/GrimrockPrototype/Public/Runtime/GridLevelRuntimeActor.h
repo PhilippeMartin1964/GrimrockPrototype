@@ -423,6 +423,23 @@ public:
      */
     bool TryRecordDungeonTrapDetection(FGuid TrapObjectId);
 
+    /** TRAP01.2 one event-driven scan, with caller-owned deterministic RNG.
+     * Looks only on cardinal sight lines, up to 4 cells, honoring walls/doors.
+     * Returns number of genuinely new trap discoveries.
+     */
+    int32 EvaluatePassiveDungeonTrapPerception(AGrimrockPartyPawn* PartyPawn,
+        FRandomStream& RandomStream);
+
+    /** Data-owned trap reveal; creates optional runtime visual only for
+     * detected/triggered/disarmed states and reapplies it after Save/Continue. */
+    void RefreshDungeonTrapRevealVisual(FGuid TrapObjectId);
+    void RestoreDungeonTrapRevealVisuals();
+
+    /** TRAP01.3 will call when the actual damage/activation commits.
+     * TRAP01.2 publishes the reveal and position, not damage. */
+    bool TryRecordDungeonTrapTriggered(FGuid TrapObjectId, AGrimrockPartyPawn* PartyPawn);
+
+
 
     /** Selects exactly one disarmable dungeon Trigger in the party cell or the
      * traversable cell directly in front. Ambiguous targets fail closed. */
