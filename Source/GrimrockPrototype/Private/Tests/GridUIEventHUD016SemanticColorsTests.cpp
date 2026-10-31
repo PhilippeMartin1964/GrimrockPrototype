@@ -11,6 +11,11 @@ bool FGridUIEventHUD016SemanticPaletteTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
+	// New enums must append rather than renumber existing Blueprint semantics.
+	TestEqual(TEXT("Existing Necrotic enum ordinal stays stable"),
+		static_cast<uint8>(EGridHudEventSemantic::Necrotic), static_cast<uint8>(18));
+	TestEqual(TEXT("Experience appends after legacy semantics"),
+		static_cast<uint8>(EGridHudEventSemantic::Experience), static_cast<uint8>(19));
 	FGridEventFeedSemanticPalette Palette;
 	Palette.Default = FLinearColor(0.01f, 0.02f, 0.03f, 1.0f);
 	Palette.Information = FLinearColor(0.11f, 0.12f, 0.13f, 1.0f);

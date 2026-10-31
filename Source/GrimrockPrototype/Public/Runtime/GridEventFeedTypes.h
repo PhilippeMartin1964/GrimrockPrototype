@@ -31,12 +31,12 @@ enum class EGridHudEventSemantic : uint8
 	Poison UMETA(DisplayName = "Poison"),
 	Arcane UMETA(DisplayName = "Arcane"),
 	Healing UMETA(DisplayName = "Healing"),
-	Experience UMETA(DisplayName = "Experience"),
 	Buff UMETA(DisplayName = "Buff"),
 	Debuff UMETA(DisplayName = "Debuff"),
 	Dialogue UMETA(DisplayName = "Dialogue"),
 	Holy UMETA(DisplayName = "Holy"),
-	Necrotic UMETA(DisplayName = "Necrotic")
+	Necrotic UMETA(DisplayName = "Necrotic"),
+	Experience UMETA(DisplayName = "Experience")
 };
 
 /** Controls whether a runtime event is eligible for the player-facing feed. */
