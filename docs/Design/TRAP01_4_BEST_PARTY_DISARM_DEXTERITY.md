@@ -55,3 +55,17 @@ Puis, sans recompiler : filtres `Grimrock.RPG.ARMEMENT01.16.Trap`, `Grimrock.TRA
 Le système graphique de sélection sur le mesh révélé et les boutons distants seront détaillés dans TRAP01.5/6, sans permettre de désamorcer les pièges encore cachés.
 Le menu contextuel apparaît tant que l'outil et un piège détecté sont présents ; en l'absence de spécialiste éligible, l'exécution sera rejetée avec une explication. Désactiver préventivement le bouton du menu lorsqu'il n'existe aucun spécialiste sera une amélioration de présentation ultérieure.
 Les jets non concluants peuvent être retentés pour l'instant, sans modifier ce contrat. Une règle de risque/détérioration à l'échec nécessiterait une spécification distincte.
+## Correctif de validation locale (31 octobre 2026)
+
+Première exécution du filtre `Grimrock.TRAP01.4` : 1 test réussi,
+1 échoué (`BestEligibleMemberAndDexterity`). Cause confirmée dans le
+fixture : le test renseignait `InventorySlots[0].Item` directement,
+sans activer `FGridInventorySlot::bOccupied` ; le contrat d'inventaire
+`IsEmpty()` le traitait donc comme vide. Aucun jet ne pouvait être résolu,
+car `CountItemDefinitionInCharacterInventory` renvoyait 0.
+
+Correctif minimal : le fixture utilise désormais
+`UGridPartyInventoryComponent::AddItemToCharacterInventory` pour chaque
+personnage, en vérifiant l'insertion, la présence et l'occupation des slots.
+Le runtime de désamorçage, le contrat de sélection et le DataAsset de
+production ne sont pas modifiés. Relancer la compilation et le filtre TRAP01.4.

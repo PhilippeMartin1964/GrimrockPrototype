@@ -152,7 +152,14 @@ bool FTRAP014BestMember::RunTest(const FString&)
         Random.GetCurrentSeed(), SeedBefore);
 
     // Only the UI source member has the tool; the others cannot 'borrow' it.
-    Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item = Tools;
+    if (!TestTrue(TEXT("Source tools inserted through authoritative inventory API"),
+        Inventory->AddItemToCharacterInventory(0, Tools)))
+    {
+        Cleanup();
+        return false;
+    }
+    TestTrue(TEXT("Source slot is genuinely occupied"),
+        Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].bOccupied);
     // Training is an eligibility condition, not merely a negative bonus.
     Inventory->PartyInventoryState.ActiveCharacters[0].SkillRanks.Reset();
     const int32 SeedBeforeUntrained = Random.GetCurrentSeed();
@@ -178,7 +185,14 @@ bool FTRAP014BestMember::RunTest(const FString&)
 
     // Add a second real tool to the trained, dexterous member.
     Tools.RuntimeObjectId = FGuid::NewGuid();
-    Inventory->PartyInventoryState.ActiveCharacters[1].InventorySlots[0].Item = Tools;
+    if (!TestTrue(TEXT("Second specialist tools inserted through authoritative inventory API"),
+        Inventory->AddItemToCharacterInventory(1, Tools)))
+    {
+        Cleanup();
+        return false;
+    }
+    TestTrue(TEXT("Specialist slot is genuinely occupied"),
+        Inventory->PartyInventoryState.ActiveCharacters[1].InventorySlots[0].bOccupied);
     FRandomStream SecondRoll(1402);
     TestTrue(TEXT("Best trained Dexterity candidate performs the action"),
         Runtime->TryDisarmTriggerTrap(Party, Trap.InstanceId, 0, Skill,
