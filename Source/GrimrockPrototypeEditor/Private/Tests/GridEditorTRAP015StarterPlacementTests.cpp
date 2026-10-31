@@ -69,6 +69,22 @@ bool FTRAP015StarterPaletteAndPlacement::RunTest(const FString&)
         return false;
     }
     const int32 EntriesAfterFirstProvision = Palette->Entries.Num();
+    // Existing DataAssets are user-authored: re-provisioning must preserve their
+    // damage configuration, not require the starter defaults forever.
+    TMap<FName, EGridDamageType> AuthoredDamageTypes;
+    for (const TCHAR* TrapId : {
+        TEXT("Trap_Floor_Spikes_01"),
+        TEXT("Trap_Wall_Darts_01"),
+        TEXT("Trap_Ceiling_Fire_01") })
+    {
+        if (const FGridObjectPaletteEntry* ExistingEntry = Palette->FindEntryById(FName(TrapId)))
+        {
+            if (const UGridWorldObjectDefinitionAsset* ExistingDef = ExistingEntry->DefaultWorldObjectDefinition)
+            {
+                AuthoredDamageTypes.Add(FName(TrapId), ExistingDef->DungeonTrap.DamageType);
+            }
+        }
+    }
     TestTrue(TEXT("Provisioning twice never creates duplicate entries"),
         Editor->EnsureDungeonTrapDefinitions(Error));
     TestEqual(TEXT("Palette entry count remains stable"), Palette->Entries.Num(),
@@ -116,7 +132,11 @@ bool FTRAP015StarterPaletteAndPlacement::RunTest(const FString&)
             EGridLevelObjectType::Trigger);
         TestEqual(TEXT("Definition ID remains stable"), Definition->DefinitionId, Id);
         TestEqual(TEXT("Placement surface"), Definition->PlacementSurface, Spec.Surface);
-        TestEqual(TEXT("Damage type"), Definition->DungeonTrap.DamageType, Spec.Damage);
+        if (const EGridDamageType* AuthoredDamage = AuthoredDamageTypes.Find(Id))
+        {
+            TestEqual(TEXT("Re-provisioning preserves authored damage type"),
+                Definition->DungeonTrap.DamageType, *AuthoredDamage);
+        }
         TestTrue(TEXT("Dungeon trap opt-in"), Definition->DungeonTrap.bIsDungeonTrap);
         TestTrue(TEXT("Hidden by default"), Definition->DungeonTrap.bInitiallyHidden);
         TestTrue(TEXT("Disarmable"), Definition->bCanBeDisarmed);
