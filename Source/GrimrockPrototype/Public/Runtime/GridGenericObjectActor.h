@@ -63,10 +63,31 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid|Readable")
 	void MarkAsRead();
 
+	// TRAP01.5.4: register concrete BlueprintNativeEvent entry points so
+	// ProcessEvent/Execute_* can reach this class's native implementations.
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grid Interaction")
+	bool CanInteract(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const;
 	virtual bool CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grid Interaction")
+	void Interact(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent);
 	virtual void Interact_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grid Interaction")
+	EGridInteractionCursor GetInteractionCursor(UPrimitiveComponent* HitComponent) const;
 	virtual EGridInteractionCursor GetInteractionCursor_Implementation(UPrimitiveComponent* HitComponent) const override;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grid Interaction")
+	FText GetInteractionText(UPrimitiveComponent* HitComponent) const;
 	virtual FText GetInteractionText_Implementation(UPrimitiveComponent* HitComponent) const override;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grid Interaction")
+	void InteractWithHit(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult);
+	virtual void InteractWithHit_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult) override
+	{
+		(void)HitResult;
+		Interact_Implementation(InstigatorPawn, HitComponent);
+	}
 
 protected:
 	void ApplyDefinitionOptions(const UGridWorldObjectDefinitionAsset* Definition);
