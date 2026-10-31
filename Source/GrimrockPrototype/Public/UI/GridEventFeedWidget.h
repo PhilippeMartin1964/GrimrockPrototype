@@ -64,6 +64,10 @@ struct GRIMROCKPROTOTYPE_API FGridEventFeedSemanticPalette
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
 	FLinearColor Healing = FLinearColor(0.52f, 1.00f, 0.58f, 1.0f);
 
+	/** EVENTHUD01.XP01 distinct vivid green (#72FF42), not poison or healing. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
+	FLinearColor Experience = FLinearColor::FromSRGBColor(FColor(0x72, 0xFF, 0x42));
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event Feed|Semantic Colors")
 	FLinearColor Buff = FLinearColor(0.48f, 0.90f, 0.52f, 1.0f);
 

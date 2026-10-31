@@ -3,6 +3,7 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGLevelUpService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridEventFeedPublisher.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridExperience, Log, All);
 
@@ -118,6 +119,22 @@ int32 FRPGExperienceRewardService::AwardToActiveParty(UGridPartyInventoryCompone
 
 		UE_LOG(LogGridExperience, Log, TEXT("[GridExperience] Character=%d Requested=%d Applied=%d Previous=%d New=%d LevelStored=%d"), Pending.CharacterIndex,
 			Pending.RequestedExperience, Pending.AppliedExperience, Pending.PreviousExperience, Pending.NewExperience, Character.Level);
+	}
+
+	// EVENTHUD01.XP01: publish exactly once for this successful XP transaction,
+	// AFTER all character mutations. Monster deaths and trap disarms both use
+	// this service; callers must not emit another XP message.
+	if (TotalAppliedExperience > 0 && !PendingAwards.IsEmpty())
+	{
+		const int32 FirstShare = PendingAwards[0].AppliedExperience;
+		const bool bEqualShares = PendingAwards.ContainsByPredicate(
+			[FirstShare](const FRPGPendingExperienceAward& Pending)
+			{
+				return Pending.AppliedExperience != FirstShare;
+			}) == false;
+		GridEventFeedPublisher::PublishPartyExperienceAward(
+			PartyInventoryComponent, TotalAppliedExperience, PendingAwards.Num(),
+			bEqualShares ? FirstShare : 0);
 	}
 
 	UE_LOG(LogGridExperience, Log, TEXT("[GridExperience] Reward=%d Eligible=%d Applied=%d Unapplied=%d"), TotalExperienceReward, EligibleCount,

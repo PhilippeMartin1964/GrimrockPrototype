@@ -167,6 +167,7 @@ FLinearColor UGridEventFeedWidget::ResolveSemanticColor(
 		case EGridHudEventSemantic::Poison: return Palette.Poison;
 		case EGridHudEventSemantic::Arcane: return Palette.Arcane;
 		case EGridHudEventSemantic::Healing: return Palette.Healing;
+		case EGridHudEventSemantic::Experience: return Palette.Experience;
 		case EGridHudEventSemantic::Buff: return Palette.Buff;
 		case EGridHudEventSemantic::Debuff: return Palette.Debuff;
 		case EGridHudEventSemantic::Dialogue: return Palette.Dialogue;

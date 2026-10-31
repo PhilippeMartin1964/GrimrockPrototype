@@ -26,6 +26,7 @@ bool FGridUIEventHUD016SemanticPaletteTest::RunTest(const FString& Parameters)
 	Palette.Poison = FLinearColor(0.31f, 0.92f, 0.33f, 1.0f);
 	Palette.Arcane = FLinearColor(0.71f, 0.22f, 0.83f, 1.0f);
 	Palette.Healing = FLinearColor(0.21f, 0.92f, 0.53f, 1.0f);
+	Palette.Experience = FLinearColor(0.71f, 1.0f, 0.13f, 1.0f);
 	Palette.Buff = FLinearColor(0.41f, 0.82f, 0.43f, 1.0f);
 	Palette.Debuff = FLinearColor(0.91f, 0.32f, 0.33f, 1.0f);
 	Palette.Dialogue = FLinearColor(0.61f, 0.72f, 0.83f, 1.0f);
@@ -53,6 +54,7 @@ bool FGridUIEventHUD016SemanticPaletteTest::RunTest(const FString& Parameters)
 		{ EGridHudEventSemantic::Poison, Palette.Poison },
 		{ EGridHudEventSemantic::Arcane, Palette.Arcane },
 		{ EGridHudEventSemantic::Healing, Palette.Healing },
+		{ EGridHudEventSemantic::Experience, Palette.Experience },
 		{ EGridHudEventSemantic::Buff, Palette.Buff },
 		{ EGridHudEventSemantic::Debuff, Palette.Debuff },
 		{ EGridHudEventSemantic::Dialogue, Palette.Dialogue },
@@ -94,6 +96,16 @@ bool FGridUIEventHUD016SemanticDefaultsTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Fire differs from ice"),
 		Widget->GetSemanticColor(EGridHudEventSemantic::Fire).Equals(
 			Widget->GetSemanticColor(EGridHudEventSemantic::Ice)));
+	TestTrue(TEXT("Experience is a distinct vivid green"),
+		Widget->GetSemanticColor(EGridHudEventSemantic::Experience).G > 0.95f &&
+		Widget->GetSemanticColor(EGridHudEventSemantic::Experience).R > 0.15f &&
+		Widget->GetSemanticColor(EGridHudEventSemantic::Experience).B < 0.07f);
+	TestFalse(TEXT("XP green is not the healing colour"),
+		Widget->GetSemanticColor(EGridHudEventSemantic::Experience).Equals(
+			Widget->GetSemanticColor(EGridHudEventSemantic::Healing)));
+	TestFalse(TEXT("XP green is not poison colour"),
+		Widget->GetSemanticColor(EGridHudEventSemantic::Experience).Equals(
+			Widget->GetSemanticColor(EGridHudEventSemantic::Poison)));
 	TestFalse(TEXT("Healing differs from debuff"),
 		Widget->GetSemanticColor(EGridHudEventSemantic::Healing).Equals(
 			Widget->GetSemanticColor(EGridHudEventSemantic::Debuff)));

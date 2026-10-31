@@ -24,6 +24,15 @@ namespace GridEventFeedPublisher
 		const FGridHudEventEntry& Entry,
 		bool bIsObservableToPlayer = true);
 
+	/** EVENTHUD01.XP01: one independent bright-green event per committed
+	 * XP reward transaction, regardless of the XP source (monster, trap, etc).
+	 * UniformShare > 0 only if every beneficiary received the same amount.
+	 * Never merges into an active dungeon consequence group.
+	 */
+	GRIMROCKPROTOTYPE_API bool PublishPartyExperienceAward(
+		const UObject* WorldContextObject, int32 AppliedXP,
+		int32 RecipientCount, int32 UniformShare);
+
 	/**
 	 * EVENTHUD01.9 — publishes one NPC line that has actually been spoken.
 	 * Proposed/unselected dialogue choices must never call this API.

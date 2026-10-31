@@ -31,6 +31,7 @@ enum class EGridHudEventSemantic : uint8
 	Poison UMETA(DisplayName = "Poison"),
 	Arcane UMETA(DisplayName = "Arcane"),
 	Healing UMETA(DisplayName = "Healing"),
+	Experience UMETA(DisplayName = "Experience"),
 	Buff UMETA(DisplayName = "Buff"),
 	Debuff UMETA(DisplayName = "Debuff"),
 	Dialogue UMETA(DisplayName = "Dialogue"),

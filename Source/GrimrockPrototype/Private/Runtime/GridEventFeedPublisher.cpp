@@ -22,6 +22,40 @@ namespace GridEventFeedPublisher
 		return EventFeed ? EventFeed->PublishEvent(Entry, bIsObservableToPlayer) : false;
 	}
 
+
+	bool PublishPartyExperienceAward(
+		const UObject* WorldContextObject, int32 AppliedXP,
+		int32 RecipientCount, int32 UniformShare)
+	{
+		if (!WorldContextObject || AppliedXP <= 0 || RecipientCount <= 0)
+		{
+			return false; // Never show fictitious or zero-XP gains.
+		}
+		FGridHudEventEntry Entry;
+		Entry.Category = EGridHudEventCategory::Dungeon;
+		Entry.Semantic = EGridHudEventSemantic::Experience;
+		Entry.Visibility = EGridEventVisibility::Always;
+		Entry.EventCode = FName(TEXT("RPG.Experience.Awarded"));
+		if (UniformShare > 0 && static_cast<int64>(UniformShare) * RecipientCount == AppliedXP)
+		{
+			Entry.Message = FText::Format(
+				NSLOCTEXT("EventHUD01XP", "EqualPartyShare",
+					"+{0} XP pour le groupe (+{1} XP par personnage)."),
+				FText::AsNumber(AppliedXP), FText::AsNumber(UniformShare));
+		}
+		else
+		{
+			Entry.Message = FText::Format(
+				NSLOCTEXT("EventHUD01XP", "UnequalPartyShare",
+					"+{0} XP pour le groupe (répartis entre {1} personnages)."),
+				FText::AsNumber(AppliedXP), FText::AsNumber(RecipientCount));
+		}
+		// PublishEvent deliberately bypasses PublishDungeonEvent: the latter
+		// absorbs its text into an active mechanism/door consequence group and
+		// would lose the dedicated XP semantic colour.
+		return PublishEvent(WorldContextObject, Entry, true);
+	}
+
 	bool PublishNpcSpokenLine(
 		const UObject* WorldContextObject,
 		const FText& SpeakerDisplayName,
