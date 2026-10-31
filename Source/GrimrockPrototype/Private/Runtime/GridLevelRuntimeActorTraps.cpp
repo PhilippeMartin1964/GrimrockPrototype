@@ -1,6 +1,8 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 
 #include "RPG/RPGSkillAsset.h"
+#include "RPG/RPGExperienceRewardService.h"
+#include "Runtime/GridDungeonTrapRewardRules.h"
 #include "RPG/RPGSkillCheckService.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -488,6 +490,13 @@ bool AGridLevelRuntimeActor::TryDisarmTriggerTrap(
         return false;
     }
     State->DisarmedTriggerTrapIds.Add(TrapObjectId);
+    // TRAP01.4.1: the durable GUID guard is committed BEFORE external XP or
+    // puzzle callbacks. A replay (including Save/Continue) cannot pay again.
+    const int32 RequestedXP = FGridDungeonTrapRewardRules::GetDisarmExperience(Difficulty);
+    const int32 AppliedXP = FRPGExperienceRewardService::AwardToActiveParty(Inventory, RequestedXP);
+    UE_LOG(LogGridCombatTrapRuntime, Log,
+        TEXT("[TRAP01.4.1] DisarmXP Target=%s DC=%d Requested=%d Applied=%d"),
+        *TrapObjectId.ToString(), Difficulty, RequestedXP, AppliedXP);
     RefreshDungeonTrapRevealVisual(TrapObjectId);
 
     // Trigger's normal Activated/Deactivated links are suppressed by the

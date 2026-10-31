@@ -212,6 +212,11 @@ bool FTRAP014BestMember::RunTest(const FString&)
     TestEqual(TEXT("Performer's tool still present"),
         Inventory->CountItemDefinitionInCharacterInventory(1, Tool->ItemDefinitionId), 1);
 
+    // TRAP01.4.1: failure and rejection must not award any group XP.
+    for (const FGridCharacterInventoryState& Hero : Inventory->PartyInventoryState.ActiveCharacters)
+    {
+        TestEqual(TEXT("No XP for failed/untrained/unavailable attempts"), Hero.Experience, 0);
+    }
     Def->DisarmDifficulty = 1;
     FRandomStream SuccessRoll(1403);
     TestTrue(TEXT("Best party disarmer resolves easy trap"),
@@ -221,12 +226,44 @@ bool FTRAP014BestMember::RunTest(const FString&)
     TestEqual(TEXT("Success still belongs to best character"), UsedCharacter, 1);
     TestTrue(TEXT("Success persists under trap GUID"),
         Runtime->IsTriggerTrapDisarmed(Trap.InstanceId));
+    TestEqual(TEXT("Reward pool DC1 is two points for active party"),
+        Inventory->PartyInventoryState.ActiveCharacters[0].Experience, 1);
+    TestEqual(TEXT("Second active receives deterministic remainder"),
+        Inventory->PartyInventoryState.ActiveCharacters[1].Experience, 1);
+    TestEqual(TEXT("Third active receives zero share"), 
+        Inventory->PartyInventoryState.ActiveCharacters[2].Experience, 0);
+    TestEqual(TEXT("Fourth active receives zero share"),
+        Inventory->PartyInventoryState.ActiveCharacters[3].Experience, 0);
     const int32 SeedAfter = SuccessRoll.GetCurrentSeed();
     TestFalse(TEXT("Disarmed hazard never rolls again"),
         Runtime->TryDisarmTriggerTrap(Party, Trap.InstanceId, 0, Skill,
             SuccessRoll, Check, &UsedCharacter));
     TestEqual(TEXT("No new roll on disarmed hazard"),
         SuccessRoll.GetCurrentSeed(), SeedAfter);
+    TestEqual(TEXT("No duplicate XP on replay"),
+        Inventory->PartyInventoryState.ActiveCharacters[0].Experience, 1);
+
+    const FGridDungeonRuntimeState SavedDungeon = Runtime->DungeonRuntimeState;
+    const FGridPartyInventoryState SavedParty = Inventory->PartyInventoryState;
+    AGridLevelRuntimeActor* RestoredRuntime = World->SpawnActor<AGridLevelRuntimeActor>();
+    if (TestNotNull(TEXT("Restored dungeon runtime actor"), RestoredRuntime))
+    {
+        RestoredRuntime->LevelAsset = Level;
+        RestoredRuntime->WorldObjectDefinitions.Add(Def);
+        RestoredRuntime->DungeonRuntimeState = SavedDungeon;
+        Inventory->PartyInventoryState = SavedParty;
+        Party->LevelRuntimeActor = RestoredRuntime;
+        TestTrue(TEXT("Save snapshot remembers disarmed GUID"),
+            RestoredRuntime->IsTriggerTrapDisarmed(Trap.InstanceId));
+        TestFalse(TEXT("Continue cannot disarm already awarded trap"),
+            RestoredRuntime->TryDisarmTriggerTrap(Party, Trap.InstanceId, 0, Skill,
+                SuccessRoll, Check, &UsedCharacter));
+        TestEqual(TEXT("No additional roll after Continue"),
+            SuccessRoll.GetCurrentSeed(), SeedAfter);
+        TestEqual(TEXT("No additional XP after Continue"),
+            Inventory->PartyInventoryState.ActiveCharacters[0].Experience, 1);
+        Party->LevelRuntimeActor = Runtime;
+    }
 
     Cleanup();
     return true;
