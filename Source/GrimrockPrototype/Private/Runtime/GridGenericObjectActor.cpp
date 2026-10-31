@@ -11,6 +11,20 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridRuntimeObject, Log, All);
 
+// An authored trap's identity and visibility live in level runtime state.
+// Do not use the visual actor's cached definition to decide interactivity.
+namespace
+{
+EGridDungeonTrapState GetAuthoredTrapState(const AGridGenericObjectActor* Visual)
+{
+	const AGridLevelRuntimeActor* RuntimeActor = Visual
+		? Cast<AGridLevelRuntimeActor>(Visual->GetOwner()) : nullptr;
+	return RuntimeActor
+		? RuntimeActor->GetDungeonTrapState(Visual->ObjectId)
+		: EGridDungeonTrapState::Unknown;
+}
+}
+
 AGridGenericObjectActor::AGridGenericObjectActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -187,16 +201,15 @@ bool AGridGenericObjectActor::CanInteract_Implementation(APawn* InstigatorPawn, 
 		return false;
 	}
 
-	// TRAP01.5.1: revealed traps have a real mouse hit target, but keep
-	// their gameplay authority in the level asset and runtime state.
-	const AGrimrockPartyPawn* TrapParty = GridInteractionUtils::ResolvePartyPawn(InstigatorPawn);
-	AGridLevelRuntimeActor* TrapRuntime = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
-	if (SourceWorldObjectDefinition && SourceWorldObjectDefinition->DungeonTrap.bIsDungeonTrap)
+	// TRAP01.5.2: the runtime asset/state is authoritative even if a
+	// spawned visual does not retain its definition pointer.
+	const EGridDungeonTrapState TrapState = GetAuthoredTrapState(this);
+	if (TrapState != EGridDungeonTrapState::Unknown)
 	{
-		const EGridDungeonTrapState State = TrapRuntime
-			? TrapRuntime->GetDungeonTrapState(ObjectId) : EGridDungeonTrapState::Unknown;
-		return TrapParty && TrapRuntime && State != EGridDungeonTrapState::Unknown &&
-			State != EGridDungeonTrapState::Hidden;
+		const AGrimrockPartyPawn* TrapParty = GridInteractionUtils::ResolvePartyPawn(InstigatorPawn);
+		AGridLevelRuntimeActor* TrapRuntime = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
+		return TrapParty && TrapRuntime == GetOwner() &&
+			TrapState != EGridDungeonTrapState::Hidden;
 	}
 
 	if (!HasReadableText())
@@ -231,7 +244,7 @@ void AGridGenericObjectActor::Interact_Implementation(APawn* InstigatorPawn, UPr
 	{
 		return;
 	}
-	if (SourceWorldObjectDefinition && SourceWorldObjectDefinition->DungeonTrap.bIsDungeonTrap)
+	if (GetAuthoredTrapState(this) != EGridDungeonTrapState::Unknown)
 	{
 		if (AGridLevelRuntimeActor* Runtime = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this))
 		{
@@ -249,8 +262,9 @@ void AGridGenericObjectActor::Interact_Implementation(APawn* InstigatorPawn, UPr
 
 EGridInteractionCursor AGridGenericObjectActor::GetInteractionCursor_Implementation(UPrimitiveComponent* HitComponent) const
 {
-	if (HitComponent == MeshComponent && SourceWorldObjectDefinition &&
-		SourceWorldObjectDefinition->DungeonTrap.bIsDungeonTrap)
+	const EGridDungeonTrapState TrapState = GetAuthoredTrapState(this);
+	if (HitComponent == MeshComponent && TrapState != EGridDungeonTrapState::Unknown &&
+		TrapState != EGridDungeonTrapState::Hidden)
 	{
 		return EGridInteractionCursor::Use;
 	}
@@ -264,8 +278,9 @@ EGridInteractionCursor AGridGenericObjectActor::GetInteractionCursor_Implementat
 
 FText AGridGenericObjectActor::GetInteractionText_Implementation(UPrimitiveComponent* HitComponent) const
 {
-	if (HitComponent == MeshComponent && SourceWorldObjectDefinition &&
-		SourceWorldObjectDefinition->DungeonTrap.bIsDungeonTrap)
+	const EGridDungeonTrapState TrapState = GetAuthoredTrapState(this);
+	if (HitComponent == MeshComponent && TrapState != EGridDungeonTrapState::Unknown &&
+		TrapState != EGridDungeonTrapState::Hidden)
 	{
 		return NSLOCTEXT("TRAP01", "TrapInspectInteraction", "Examiner le mécanisme");
 	}
