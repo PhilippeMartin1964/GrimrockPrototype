@@ -7,7 +7,10 @@
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "Components/StaticMeshComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridGenericObjectActor.h"
+#include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -125,6 +128,13 @@ bool FGridTRAPPIT01Runtime::RunTest(const FString&)
     TrapDef->DungeonTrap.MinimumDamage = 2;
     TrapDef->DungeonTrap.MaximumDamage = 2;
     TrapDef->DungeonTrap.bOneShot = true;
+    TrapDef->RuntimeActorClass = AGridGenericObjectActor::StaticClass();
+    TrapDef->StaticPart.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+    if (!TestNotNull(TEXT("Existing test trap mesh"), TrapDef->StaticPart.Mesh.Get()))
+    {
+        Cleanup();
+        return false;
+    }
     UGridWorldObjectDefinitionAsset* PitDef = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
     PitDef->DefinitionId = TEXT("TRAPPIT_Covered");
     PitDef->SupportedType = EGridLevelObjectType::Pit;
@@ -156,7 +166,18 @@ bool FGridTRAPPIT01Runtime::RunTest(const FString&)
     Pit.InstanceConfig.Pit.bInitiallyOpen = false;
     Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;
     Pit.InstanceConfig.Relocation.TargetLevelId = LowerId;
-    Upper->WorldObjectInstances = { Trap, Pit };
+    // Ordinary traps and unpaired Pit triggers must never be hidden.
+    FGridWorldObjectInstance Ordinary = Trap;
+    Ordinary.InstanceId = FGuid::NewGuid();
+    Ordinary.CellX = 4;
+    Ordinary.CellY = 4;
+    Ordinary.InstanceConfig.DungeonTrap.bOpenPitOnTrigger = false;
+    FGridWorldObjectInstance Unpaired = Trap;
+    Unpaired.InstanceId = FGuid::NewGuid();
+    Unpaired.CellX = 5;
+    Unpaired.CellY = 5;
+
+    Upper->WorldObjectInstances = { Trap, Pit, Ordinary, Unpaired };
     const FGuid TrapId = Trap.InstanceId;
     const FGuid PitId = Pit.InstanceId;
 
@@ -168,6 +189,21 @@ bool FGridTRAPPIT01Runtime::RunTest(const FString&)
     Character.CharacterId = FGuid::NewGuid();
     Character.Resources.CurrentHealth = 30;
 
+    // A detected, still-closed floor trap retains its normal mouse hit.
+    TestTrue(TEXT("Detected trap can materialize before opening the Pit"),
+        Runtime->TryRecordDungeonTrapDetection(TrapId));
+    AGridRuntimeObjectActor* TrapVisual =
+        Runtime->FindRuntimeObjectActor<AGridRuntimeObjectActor>(TrapId);
+    if (!TestNotNull(TEXT("Runtime floor trap visual"), TrapVisual) ||
+        !TestNotNull(TEXT("Runtime trap mesh"), TrapVisual ? TrapVisual->MeshComponent.Get() : nullptr))
+    {
+        Cleanup();
+        return false;
+    }
+    TestFalse(TEXT("Detected trap remains visible while Pit is closed"), TrapVisual->IsHidden());
+    TestEqual(TEXT("Detected trap accepts mouse hit while Pit is closed"),
+        TrapVisual->MeshComponent->GetCollisionEnabled(), ECollisionEnabled::QueryOnly);
+
     FRandomStream Dice(91);
     TestFalse(TEXT("Pit starts closed"), Runtime->IsPitOpen(PitId));
     TestFalse(TEXT("Hidden closed Pit preserves regular floor"), Runtime->ShouldHideCellFloor(2, 2));
@@ -177,6 +213,11 @@ bool FGridTRAPPIT01Runtime::RunTest(const FString&)
     TestTrue(TEXT("Opened Pit removes ordinary floor"), Runtime->ShouldHideCellFloor(2, 2));
     TestEqual(TEXT("Trap triggered state retained"), Runtime->GetDungeonTrapState(TrapId),
         EGridDungeonTrapState::Triggered);
+    TestTrue(TEXT("Opened associated Pit hides the triggered trap mesh"), TrapVisual->IsHidden());
+    TestEqual(TEXT("Hidden trigger trap cannot intercept mouse on top of open Pit"),
+        TrapVisual->MeshComponent->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+    TestFalse(TEXT("Hidden trap removes obsolete danger outline"),
+        TrapVisual->MeshComponent->bRenderCustomDepth);
     TestEqual(TEXT("Aucun: floor trap opens pit without direct damage"),
         Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth, 30);
     TestTrue(TEXT("Opened Pit is fall-through"),
@@ -202,6 +243,41 @@ bool FGridTRAPPIT01Runtime::RunTest(const FString&)
         TestTrue(TEXT("Restored opened Pit removes ordinary floor"), Restored->ShouldHideCellFloor(2, 2));
         TestEqual(TEXT("Triggered trap survives runtime state restoration"),
             Restored->GetDungeonTrapState(TrapId), EGridDungeonTrapState::Triggered);
+
+        Restored->RestoreDungeonTrapRevealVisuals();
+        AGridRuntimeObjectActor* RestoredTrapVisual =
+            Restored->FindRuntimeObjectActor<AGridRuntimeObjectActor>(TrapId);
+        if (TestNotNull(TEXT("Triggered trap visual reconstituted after restore"), RestoredTrapVisual) &&
+            TestNotNull(TEXT("Restored triggered trap mesh"), RestoredTrapVisual ? RestoredTrapVisual->MeshComponent.Get() : nullptr))
+        {
+            TestTrue(TEXT("Save/Continue keeps trap mesh hidden above opened Pit"), RestoredTrapVisual->IsHidden());
+            TestEqual(TEXT("Save/Continue keeps trap mouse collision disabled"),
+                RestoredTrapVisual->MeshComponent->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+
+            TestTrue(TEXT("Closing Pit restores the triggered trap visual"), Restored->SetPitOpen(PitId, false));
+            TestFalse(TEXT("Trap appears again when associated Pit is closed"), RestoredTrapVisual->IsHidden());
+            TestEqual(TEXT("Trap regains mouse query after Pit closes"),
+                RestoredTrapVisual->MeshComponent->GetCollisionEnabled(), ECollisionEnabled::QueryOnly);
+
+            TestTrue(TEXT("Reopening Pit hides the same trap again"), Restored->SetPitOpen(PitId, true));
+            TestTrue(TEXT("Trap hides again when Pit opens via normal API"), RestoredTrapVisual->IsHidden());
+            TestEqual(TEXT("Reopening Pit removes mouse collision again"),
+                RestoredTrapVisual->MeshComponent->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+        }
+
+        for (const FGuid OtherTrapId : { Ordinary.InstanceId, Unpaired.InstanceId })
+        {
+            TestTrue(TEXT("Other trap can be triggered independently"), Restored->TryRecordDungeonTrapTriggered(OtherTrapId, nullptr));
+            AGridRuntimeObjectActor* OtherVisual =
+                Restored->FindRuntimeObjectActor<AGridRuntimeObjectActor>(OtherTrapId);
+            if (TestNotNull(TEXT("Other trap keeps a materialized visual"), OtherVisual) &&
+                TestNotNull(TEXT("Other trap keeps its mesh"), OtherVisual ? OtherVisual->MeshComponent.Get() : nullptr))
+            {
+                TestFalse(TEXT("Ordinary / unpaired triggered trap remains visible"), OtherVisual->IsHidden());
+                TestEqual(TEXT("Ordinary / unpaired trap remains mouse-queryable"),
+                    OtherVisual->MeshComponent->GetCollisionEnabled(), ECollisionEnabled::QueryOnly);
+            }
+        }
     }
 
     Cleanup();

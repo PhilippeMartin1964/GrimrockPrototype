@@ -2,6 +2,7 @@
 #include "Runtime/GridDungeonTrapDisarmFeedback.h"
 #include "Runtime/GridDungeonTrapDisarmOdds.h"
 #include "Core/GridDungeonTrapInstanceUtils.h"
+#include "Core/GridDungeonTrapPitUtils.h"
 
 #include "RPG/RPGSkillAsset.h"
 #include "RPG/RPGExperienceRewardService.h"
@@ -198,6 +199,26 @@ void AGridLevelRuntimeActor::RefreshDungeonTrapRevealVisual(FGuid TrapObjectId)
 
     AGridRuntimeObjectActor* Visual = FindRuntimeObjectActor<AGridRuntimeObjectActor>(TrapObjectId);
     const bool bRevealed = TrapState != EGridDungeonTrapState::Hidden;
+
+    // TRAP-PIT01.3: the opened, associated PIT03 takes over the cell's
+    // presentation once this floor trap has triggered. Keep the trap actor,
+    // GUID and persistent state intact; hide only its visual and mouse hit.
+    // In particular, a missing/ambiguous Pit or a failed opening must never
+    // make an ordinary triggered trap disappear.
+    bool bCoveredByOpenedPit = false;
+    if (TrapState == EGridDungeonTrapState::Triggered &&
+        Definition->PlacementSurface == EGridObjectPlacementKind::Floor &&
+        Instance->InstanceConfig.DungeonTrap.bOpenPitOnTrigger)
+    {
+        FGuid PitId;
+        if (GridDungeonTrapPit::FindUniqueSameCellPit(*LevelAsset, *Instance, PitId))
+        {
+            const FGridWorldObjectInstance* Pit = LevelAsset->FindWorldObjectInstanceById(PitId);
+            bCoveredByOpenedPit = Pit && IsPitConcealedByFloorTrap(*Pit) &&
+                IsPitOpenForLevel(CurrentDungeonLevelId, *Pit);
+        }
+    }
+    const bool bShowVisual = bRevealed && !bCoveredByOpenedPit;
     if (!IsValid(Visual) && bRevealed && Definition->RuntimeActorClass)
     {
         // This is the same normal world-object visual pipeline; its GUID
@@ -209,20 +230,20 @@ void AGridLevelRuntimeActor::RefreshDungeonTrapRevealVisual(FGuid TrapObjectId)
     {
         return; // No visual authored yet: gameplay discovery still persists.
     }
-    Visual->SetActorHiddenInGame(!bRevealed);
+    Visual->SetActorHiddenInGame(!bShowVisual);
     if (UStaticMeshComponent* Mesh = Visual->MeshComponent)
     {
         // Revealed visuals have mouse query collision only; the actor still
         // never blocks party movement. No collision exists for hidden traps.
         if (Visual->GetClass()->ImplementsInterface(UGridInteractableInterface::StaticClass()))
         {
-            Mesh->SetCollisionEnabled(bRevealed ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+            Mesh->SetCollisionEnabled(bShowVisual ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
             Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
             Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
         }
         const FGridDungeonTrapDefinitionParams& Presentation = Definition->DungeonTrap;
-        const bool bDangerous = TrapState == EGridDungeonTrapState::Detected ||
-            (TrapState == EGridDungeonTrapState::Triggered && !Presentation.bOneShot);
+        const bool bDangerous = bShowVisual && (TrapState == EGridDungeonTrapState::Detected ||
+            (TrapState == EGridDungeonTrapState::Triggered && !Presentation.bOneShot));
         const bool bHighlight = bDangerous && Presentation.bEnableDangerHighlight;
         const bool bCustomDepth = bHighlight && Presentation.bUseDangerCustomDepth;
         // Assign both active and inactive values: refresh must also remove old effects.

@@ -1437,6 +1437,17 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 
 	RefreshConcealedPitCellFloor(*PitObject);
 
+	// When a trap has actually opened its associated PIT03, let the Pit
+	// completely replace the trap mesh; restore it if the Pit later closes.
+	// This also covers opens/closes requested through existing puzzle links.
+	if (IsPitConcealedByFloorTrap(*PitObject))
+	{
+		if (const FGridWorldObjectInstance* Trap = GridDungeonTrapPit::FindUsingTrap(*LevelAsset, *PitObject))
+		{
+			RefreshDungeonTrapRevealVisual(Trap->InstanceId);
+		}
+	}
+
 	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridPit gameplay state settled ObjectId=%s Cell=(%d,%d) Previous=%s New=%s"), *PitObjectId.ToString(),
 		PitObject->CellX, PitObject->CellY, bWasOpen ? TEXT("Open") : TEXT("Closed"), bIsOpen ? TEXT("Open") : TEXT("Closed"));
 
