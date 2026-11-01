@@ -142,9 +142,11 @@ namespace RPGStartingPresets
         {TEXT("Alchemist"), TEXT("Grenadier"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_Dart_01"), EGridEquipmentSlot::None},
             {TEXT("DA_Item_Bomb_Fire"), EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        // ARMEMENT01.17.1: one finished Oil flask is a usable N1
+        // QuickItem; it is not a crafting recipe or a granted N2 talent.
         {TEXT("Alchemist"), TEXT("Transmuter"),
             {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_ArcaneOrb_01"), EGridEquipmentSlot::OffHand},
-            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} }
+            {TEXT("DA_Item_Flask_Oil"), EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} }
     };
 
     bool AddItem(FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec, FString& OutError);
