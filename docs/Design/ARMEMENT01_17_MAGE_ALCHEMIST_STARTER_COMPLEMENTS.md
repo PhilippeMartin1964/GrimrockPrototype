@@ -68,3 +68,31 @@ git pull --ff-only origin master
 Le **Mage/Tisseur de surfaces** reste à traiter, car le « catalyseur de surfaces » n'a encore aucune définition d'objet. Il faudra décider s'il s'agit d'un QuickItem consommé fournissant une interaction de surface N1, d'un outil réutilisable qui agit sur des surfaces préexistantes, ou d'un autre objet doté d'un véritable effet ; il ne doit pas conférer les actions de talents N2. Les composants de transmutation attendront un moteur de crafting autoritaire pour ne pas devenir de faux loot.
 
 **Ne pas clôturer ARMEMENT01.17 au seul vu des tests du Transmutateur.**
+
+
+## ARMEMENT01.17.1.1 — Adaptation de la régression KitDesign (1er novembre 2026)
+
+**Résultats locaux avant correctif :** `Grimrock.RPG.ARMEMENT01.17.1` 2/2,
+`Grimrock.RPG.RPG03.9.6` 28/28, `ApprovedKits` 2 réussis + 1 avertissement,
+`Grimrock.RPG.ARMEMENT01.9.Kit` 5 réussis + 1 échec historique.
+
+`NoLegacyKitOrSaveMutation` supposait encore deux `KnownSupportItemId`
+dans les 18 recettes éditoriales. Le Transmutateur possède désormais la
+troisième entrée réelle : `Item_Flask_Oil` ×1. Le test affirme à présent
+les identités et quantités exactes par kit : Éclaireur/torche,
+Grenadier/bombe et Transmutateur/flasque d'huile, et exige `None` pour les
+15 autres. Les cinq besoins de support encore déclarés dans ce CSV
+restent à **5** : la flasque terminée n'est pas la fabrication de composants
+de transmutation, toujours bloquée par l'absence de crafting.
+
+Aucune modification de gameplay, DataAsset, format de sauvegarde ou
+localisation. Le test corrigé reste à compiler et valider sous UE5.5.4 :
+
+```powershell
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.ARMEMENT01.9.Kit"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.RPG.ARMEMENT01.17.1"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.RPG.ARMEMENT01.13.ApprovedKits"
+```
+
+Le jalon ARMEMENT01.17.1 exige en outre la recette PIE de la flasque
+(ciblage, coût 2 PA, consommation, surface et Save/Continue) avant clôture.

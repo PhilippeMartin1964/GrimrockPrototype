@@ -266,6 +266,14 @@ bool FARMEMENT0196Compatibility::RunTest(const FString&)
         AddInfo(Error);
         return false;
     }
+    // The editorial manifest now records three real N1 support items:
+    // Scout torch, Grenadier bomb and ARMEMENT01.17.1 Transmuter oil flask.
+    // Check exact kit/quantity rather than preserving the obsolete count.
+    const TMap<FString, FName> ExpectedSupport = {
+        {TEXT("Kit_Ranger_Scout"), FName(TEXT("Item_Torch"))},
+        {TEXT("Kit_Alchemist_Grenadier"), FName(TEXT("Item_Bomb_Fire"))},
+        {TEXT("Kit_Alchemist_Transmuter"), FName(TEXT("Item_Flask_Oil"))}
+    };
     int32 WithSupport = 0;
     int32 WithPendingSupport = 0;
     for (const auto& Recipe : Recipes)
@@ -274,12 +282,26 @@ bool FARMEMENT0196Compatibility::RunTest(const FString&)
         if (!TestNotNull(TEXT("Class asset"), Class)) return false;
         TestFalse(TEXT("Design-only namespaced kit must not already be a runtime kit"),
             Class->FindStartingEquipmentKit(FName(*Recipe.KitId)) != nullptr);
-        if (!Recipe.SupportId.IsNone()) ++WithSupport;
+
+        const FName* ExpectedItemId = ExpectedSupport.Find(Recipe.KitId);
+        if (ExpectedItemId)
+        {
+            ++WithSupport;
+            TestEqual(TEXT("Approved kit has exactly the expected known support item"),
+                Recipe.SupportId, *ExpectedItemId);
+            TestEqual(TEXT("Approved starter support is a single item"),
+                Recipe.SupportQuantity, 1);
+        }
+        else
+        {
+            TestTrue(TEXT("Other kits do not invent a known support item"), Recipe.SupportId.IsNone());
+            TestEqual(TEXT("Other kits have no known support quantity"), Recipe.SupportQuantity, 0);
+        }
         if (Recipe.SupportNeed != TEXT("None")) ++WithPendingSupport;
         TestEqual(TEXT("Design recipes are approved, not activated"), Recipe.Approval, FString(TEXT("ApprovedDesign")));
     }
-    TestEqual(TEXT("Existing supplemental item IDs listed in exactly two kits"), WithSupport, 2);
-    TestEqual(TEXT("Five kits require a new functional support item or component"),
+    TestEqual(TEXT("Known support item coverage follows the three approved kits"), WithSupport, ExpectedSupport.Num());
+    TestEqual(TEXT("Five kits still declare a pending support need or component"),
         WithPendingSupport, 5);
     return true;
 }
