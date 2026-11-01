@@ -23,6 +23,7 @@
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridNavigationTooltipWidget.h"
+#include "UI/GridWorldTooltipPlacement.h"
 #include "UI/GridPersistentHudWidget.h"
 #include "UI/UILocalizationText.h"
 #include "Sound/SoundBase.h"
@@ -1511,10 +1512,12 @@ void AGrimrockPlayerController::UpdateWorldInteractionTooltip(const FText& Hover
 	const float Scale = FMath::Max(0.01f, UWidgetLayoutLibrary::GetViewportScale(this));
 	const FVector2D Viewport = UWidgetLayoutLibrary::GetViewportSize(this) / Scale;
 	const FVector2D TooltipSize = WorldInteractionTooltipWidget->GetDesiredSize();
-	FVector2D Position = Mouse + FVector2D(24.f, 24.f);
-	Position.X = FMath::Clamp(Position.X, 0.f, FMath::Max(0.f, Viewport.X - TooltipSize.X));
-	Position.Y = FMath::Clamp(Position.Y, 0.f, FMath::Max(0.f, Viewport.Y - TooltipSize.Y));
-	WorldInteractionTooltipWidget->SetPositionInViewport(Position, false);
+	// Prefer the tooltip above-left so the mouse appears at its bottom-right.
+	// Reuse logical viewport coordinates; GetMousePositionOnViewport and
+	// SetPositionInViewport(..., false) already use the same DPI-aware space.
+	const FGridWorldTooltipPlacement Placement =
+		FGridWorldTooltipPlacement::Resolve(Mouse, TooltipSize, Viewport);
+	WorldInteractionTooltipWidget->SetPositionInViewport(Placement.Position, false);
 }
 
 void AGrimrockPlayerController::InitializeCustomCursor()
