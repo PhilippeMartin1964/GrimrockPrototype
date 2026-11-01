@@ -447,6 +447,14 @@ public:
     int32 EvaluatePassiveDungeonTrapPerception(AGrimrockPartyPawn* PartyPawn,
         FRandomStream& RandomStream);
 
+    /** TRAP-SEARCH01.1: an explicit, separately persisted one-roll-per-distance
+     * search of nearby authored traps. Never called from movement or Tick;
+     * caller owns the RNG and the next milestone owns input/UI arbitration.
+     * Returns discoveries, not number of candidates or attempted checks.
+     */
+    int32 EvaluateActiveDungeonTrapSearch(AGrimrockPartyPawn* PartyPawn,
+        FRandomStream& RandomStream);
+
     /** Data-owned trap reveal; creates optional runtime visual only for
      * detected/triggered/disarmed states and reapplies it after Save/Continue. */
     void RefreshDungeonTrapRevealVisual(FGuid TrapObjectId);
@@ -623,6 +631,10 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+    /** One topology/discovery pipeline for passive and active scanning. */
+    int32 EvaluateDungeonTrapPerception(
+        AGrimrockPartyPawn* PartyPawn, FRandomStream& RandomStream, bool bActiveSearch);
+
     /** Shared hazard activation. Only validated entry or disarm-failure callers
      * may invoke this internal path; no direct player-facing GUID activation.
      */

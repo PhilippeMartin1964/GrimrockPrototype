@@ -3,6 +3,7 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGSkillAsset.h"
 #include "RPG/RPGSkillService.h"
+#include "RPG/RPGSkillTypes.h"
 #include "Runtime/GridInventoryTypes.h"
 
 int32 FGridDungeonTrapPerceptionService::SelectBestObserver(
@@ -46,6 +47,19 @@ int32 FGridDungeonTrapPerceptionService::SelectBestObserver(
         OutEffectiveScore = WinnerScore;
     }
     return Winner;
+}
+
+void FGridDungeonTrapPerceptionService::ApplyActiveSearchBonus(FRPGSkillCheckResult& Result)
+{
+    if (!Result.bResolved)
+    {
+        return;
+    }
+    Result.Total += ActiveSearchCheckBonus;
+    Result.bSuccess = Result.Total >= Result.Difficulty;
+    Result.FailureMargin = Result.bSuccess ? 0 : Result.Difficulty - Result.Total;
+    Result.bSafeFailure = !Result.bSuccess && Result.SafeFailureMargin > 0 &&
+        Result.FailureMargin <= Result.SafeFailureMargin;
 }
 
 int32 FGridDungeonTrapPerceptionService::GetMaxRangeCells(

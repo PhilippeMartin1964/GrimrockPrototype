@@ -6,6 +6,7 @@
 #include "RPG/RPGSkillAsset.h"
 #include "RPG/RPGSkillCheckService.h"
 #include "Runtime/GridDoorSystemComponent.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridDungeonTrapPerceptionService.h"
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridPartyIlluminationComponent.h"
@@ -18,11 +19,40 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridDungeonTrapPerception, Log, All);
 int32 AGridLevelRuntimeActor::EvaluatePassiveDungeonTrapPerception(
     AGrimrockPartyPawn* PartyPawn, FRandomStream& RandomStream)
 {
+    return EvaluateDungeonTrapPerception(PartyPawn, RandomStream, false);
+}
+
+int32 AGridLevelRuntimeActor::EvaluateActiveDungeonTrapSearch(
+    AGrimrockPartyPawn* PartyPawn, FRandomStream& RandomStream)
+{
+    return EvaluateDungeonTrapPerception(PartyPawn, RandomStream, true);
+}
+
+int32 AGridLevelRuntimeActor::EvaluateDungeonTrapPerception(
+    AGrimrockPartyPawn* PartyPawn, FRandomStream& RandomStream, bool bActiveSearch)
+{
     if (!IsValid(PartyPawn) || PartyPawn->LevelRuntimeActor != this ||
         !IsValid(LevelAsset) || !IsValid(PartyPawn->PartyInventoryComponent))
     {
         return 0;
     }
+
+    // TRAP-SEARCH01.1 is a deliberate exploration action, not a combat or
+    // relocation exploit. The later input milestone handles UI modal focus.
+    if (bActiveSearch)
+    {
+        if (bIsExecutingRelocation || PartyPawn->IsPitFalling())
+        {
+            return 0;
+        }
+        const UGridTurnManagerComponent* TurnManager =
+            FindComponentByClass<UGridTurnManagerComponent>();
+        if (IsValid(TurnManager) && TurnManager->bCombatActive)
+        {
+            return 0;
+        }
+    }
+
     const URPGSkillAsset* Skill = LoadObject<URPGSkillAsset>(nullptr,
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/Skills/DA_Skill_Perception.DA_Skill_Perception"));
     const TArray<FGridCharacterInventoryState>& Characters =
@@ -66,8 +96,10 @@ int32 AGridLevelRuntimeActor::EvaluatePassiveDungeonTrapPerception(
         }
         const FGridDungeonTrapDefinitionParams TrapParams = GridDungeonTrapInstance::Resolve(Instance, *Definition);
         if (!TrapParams.IsValidContract()) continue;
-        const int32 Range = FGridDungeonTrapPerceptionService::GetMaxRangeCells(
-            ObserverScore, bHasLight, TrapParams.DetectionSense, TrapParams.MaxDetectionRangeCells);
+        const int32 Range = bActiveSearch
+            ? FMath::Min(2, TrapParams.MaxDetectionRangeCells)
+            : FGridDungeonTrapPerceptionService::GetMaxRangeCells(
+                ObserverScore, bHasLight, TrapParams.DetectionSense, TrapParams.MaxDetectionRangeCells);
         if (Distance > Range || Distance > 4)
         {
             continue;
@@ -101,12 +133,15 @@ int32 AGridLevelRuntimeActor::EvaluatePassiveDungeonTrapPerception(
         }
 
         const uint8 AttemptBit = static_cast<uint8>(1u << (Distance - 1));
-        uint8& AttemptMask = State->TrapPerceptionAttemptedRangeMask.FindOrAdd(Instance.InstanceId);
+        TMap<FGuid, uint8>& Attempts = bActiveSearch
+            ? State->TrapActiveSearchAttemptedRangeMask
+            : State->TrapPerceptionAttemptedRangeMask;
+        uint8& AttemptMask = Attempts.FindOrAdd(Instance.InstanceId);
         if ((AttemptMask & AttemptBit) != 0)
         {
             continue;
         }
-        AttemptMask |= AttemptBit; // Persist before any d20: no save-scumming per distance.
+        AttemptMask |= AttemptBit; // Commit before d20, independent from passive attempts.
 
         const int32 DarknessPenalty =
             !bHasLight && TrapParams.DetectionSense == EGridDungeonTrapDetectionSense::Visual ? 2 : 0;
@@ -119,6 +154,10 @@ int32 AGridLevelRuntimeActor::EvaluatePassiveDungeonTrapPerception(
                 TEXT("[TRAP01.2] Perception check rejected: %s"),
                 *UEnum::GetValueAsString(Result.RejectReason));
             continue;
+        }
+        if (bActiveSearch)
+        {
+            FGridDungeonTrapPerceptionService::ApplyActiveSearchBonus(Result);
         }
         if (!Result.bSuccess || !TryRecordDungeonTrapDetection(Instance.InstanceId))
         {
@@ -145,7 +184,8 @@ int32 AGridLevelRuntimeActor::EvaluatePassiveDungeonTrapPerception(
             EGridHudEventSemantic::Mechanism, EGridEventVisibility::Always,
             true, GridEventFeedPublisher::SourceIdFromGuid(Instance.InstanceId));
         UE_LOG(LogGridDungeonTrapPerception, Log,
-            TEXT("[TRAP01.2] Discovered %s by character %d at (%d,%d), distance=%d, roll=%d total=%d DC=%d"),
+            TEXT("[%s] Discovered %s by character %d at (%d,%d), distance=%d, roll=%d total=%d DC=%d"),
+            bActiveSearch ? TEXT("TRAP-SEARCH01.1") : TEXT("TRAP01.2"),
             *Instance.InstanceId.ToString(), ObserverIndex, Instance.CellX, Instance.CellY,
             Distance, Result.Roll, Result.Total, EffectiveDifficulty);
     }

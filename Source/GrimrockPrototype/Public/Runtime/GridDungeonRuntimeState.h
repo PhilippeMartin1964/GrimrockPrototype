@@ -379,6 +379,12 @@ struct FGridLevelRuntimeState
     UPROPERTY(SaveGame)
     TMap<FGuid, uint8> TrapPerceptionAttemptedRangeMask;
 
+    /** TRAP-SEARCH01.1: independent saved search attempts, bit 0=distance 1,
+     * bit 1=distance 2. Never reset by turning or another active search.
+     */
+    UPROPERTY(SaveGame)
+    TMap<FGuid, uint8> TrapActiveSearchAttemptedRangeMask;
+
 
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)

@@ -1,6 +1,6 @@
 # TRAP-SEARCH01.0 — Contrat de recherche active de pièges
 
-**État : proposition de contrat architectural publiée. Aucun gameplay TRAP-SEARCH01 n'est encore implémenté.**
+**État : TRAP-SEARCH01.1 (service runtime et masque SaveGame) publié sur `master`, compilation UE 5.5.4 et tests locaux à confirmer. TRAP-SEARCH01.2 (commande utilisateur / présentation) non implémenté.**
 
 Date : 1er novembre 2026.
 
@@ -56,7 +56,7 @@ Un appel sans piège, avec des pièges déjà connus, hors portée ou masqués n
 
 ## Architecture / découpages
 
-### TRAP-SEARCH01.1 — Service C++ et état (premier jalon d'implémentation)
+### TRAP-SEARCH01.1 — Service C++ et état (implémentation publiée)
 1. `FGridDungeonTrapPerceptionService` : garder les règles communes de sélection de l'observateur, topologie et DC.
 2. `AGridLevelRuntimeActor` : introduire une API explicite de recherche active, avec `FRandomStream&` injecté pour des tests déterministes.
 3. `FGridLevelRuntimeState` : nouveau masque SaveGame distinct, sans modification de l'asset de niveau et sans conséquence sur les probabilités de désamorçage.
@@ -97,4 +97,7 @@ Placer des pièges de sol, mur et plafond à une et deux cases, ainsi qu'un piè
 
 ## Livraison
 
-Le présent document est un **contrat de proposition**, pas une implémentation testée. Le jalon TRAP-SEARCH01 n'est pas clôturé tant que le code, les validations UE5.5.4 et la recette PIE ne sont pas réalisés.
+TRAP-SEARCH01.1 ajoute une API C++ sans entrée joueur : `EvaluateActiveDungeonTrapSearch(PartyPawn, RandomStream)`.
+Elle réutilise le balayage cardinal et la notification de découverte TRAP01.2, mais conserve des tentatives indépendantes, applique +2 au total du résultat RPG et limite la portée active à deux cases (bornée par l'instance).
+Le test `Grimrock.TRAP_SEARCH01.1` couvre les règles, refus, sauvegarde et mutations. Il faut le compiler/valider localement avant de déclarer .1 achevé.
+TRAP-SEARCH01.2 doit créer l'interface volontaire et arbitrer l'UI ; aucun raccourci n'est créé dans .1.

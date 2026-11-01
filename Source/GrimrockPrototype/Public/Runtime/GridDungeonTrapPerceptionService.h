@@ -6,6 +6,7 @@
 #include "Core/GridDungeonTrapTypes.h"
 
 struct FGridCharacterInventoryState;
+struct FRPGSkillCheckResult;
 class URPGSkillAsset;
 
 /** TRAP01.2 pure rules, no Tick, world mutation or player input. */
@@ -18,6 +19,16 @@ struct GRIMROCKPROTOTYPE_API FGridDungeonTrapPerceptionService
     static int32 SelectBestObserver(
         const TArray<FGridCharacterInventoryState>& Characters,
         const URPGSkillAsset* PerceptionSkill, int32& OutEffectiveScore);
+
+    /** TRAP-SEARCH01.1: an explicit, fixed situational bonus only for active
+     * Perception. It does not enter class/group progression modifiers.
+     */
+    static constexpr int32 ActiveSearchCheckBonus = 2;
+
+    /** Adjust one already-resolved RPG skill result, preserving its d20,
+     * class modifier, rank, attribute and reported original difficulty.
+     */
+    static void ApplyActiveSearchBonus(FRPGSkillCheckResult& Result);
 
     static int32 GetMaxRangeCells(int32 EffectiveScore, bool bPartyHasLight,
         EGridDungeonTrapDetectionSense Sense, int32 DefinitionRangeCap);
