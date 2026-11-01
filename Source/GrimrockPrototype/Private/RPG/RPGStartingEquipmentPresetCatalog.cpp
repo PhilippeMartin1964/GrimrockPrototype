@@ -104,8 +104,10 @@ namespace RPGStartingPresets
         {TEXT("Rogue"), TEXT("Assassin"),
             {TEXT("DA_Weapon_AssassinDagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_ThrowingKnife_01"), EGridEquipmentSlot::None},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        // ARMEMENT01.16.3: real reusable N1 tools in the bag. No automatic
+        // Skill_Traps rank or level-2 talent is granted by a starter kit.
         {TEXT("Rogue"), TEXT("Saboteur"),
-            {TEXT("DA_Weapon_Stiletto_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
+            {TEXT("DA_Weapon_Stiletto_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Item_DisarmTools_01"), EGridEquipmentSlot::None},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Ranger"), TEXT("Marksman"),
             {TEXT("DA_Weapon_ShortBow_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None},

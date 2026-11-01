@@ -233,3 +233,27 @@ ou approbation de son icône/mesh (référence ARMEMENT01.9.7).
 Les pièges du donjon sont **cachés par définition**. La proximité d'un Trigger ne donne ni son identifiant exploitable ni une action de désamorçage au joueur. ARMEMENT01.16.2A/2B requiert désormais une découverte persistée dans `DetectedTriggerTrapIds`. Le nouveau `DungeonTrap.bIsDungeonTrap` doit être actif sur une définition de type `Trigger` pour que l'API de désamorçage accepte l'instance. Les tests historiques injectent explicitement la découverte pour isoler l'exécution de la compétence. La découverte automatique relève de `TRAP01.2`, non d'ARMEMENT01.16.2A/2B.
 
 Le kit Saboteur ne doit pas être attribué automatiquement à ce stade. Le choix de basculer `Skill_Traps` d'Intelligence à Dextérité concerne `TRAP01.4`, après audit de progression et compatibilité RPG. Voir `docs/Design/TRAP01_1_HIDDEN_DUNGEON_TRAP_CONTRACT.md` pour les données, états SaveGame et limitations.
+
+
+## ARMEMENT01.16.3 — Attribution définitive de la trousse au kit N1 (1er novembre 2026)
+
+**État : code et tests publiés sur master ; compilation/PIE UE5.5.4 à confirmer.**
+
+Les mécaniques de pièges TRAP01 et TRAP-SEARCH01 sont validées. L'asset réel
+`DA_Item_DisarmTools_01` et ses ressources sont présents dans le dépôt.
+Le kit canonique `Kit_Rogue_Saboteur` reçoit désormais
+`DA_Weapon_Stiletto_01` (MainHand) **et** `DA_Item_DisarmTools_01` ×1
+(sac) par la transaction d'équipement de départ existante.
+
+La classe de production et ses talents restent inchangés. Le héros dispose
+des **4 Skill Points N1 normaux**, mais doit acquérir lui-même au moins
+un rang `Skill_Traps` pour utiliser les outils ; aucun talent N2 ni
+rang gratuit n'est attribué.
+
+Deux tests `Grimrock.RPG.ARMEMENT01.16.3` vérifient le kit limité au
+Saboteur, le vrai New Game, le refus sans formation, l'achat d'un rang N1,
+le désamorçage, l'outil réutilisable et le SaveGame binaire/restauration.
+Voir `docs/Design/ARMEMENT01_16_3_SABOTEUR_STARTER_KIT.md` pour la recette
+locale. Cette section est la référence la plus récente pour la
+**composition du kit** et remplace les notes historiques « attribution
+en attente » ci-dessus ; elle ne modifie aucune règle TRAP01.
