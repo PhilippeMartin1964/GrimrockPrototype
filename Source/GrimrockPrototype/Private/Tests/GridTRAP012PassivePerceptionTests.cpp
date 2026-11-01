@@ -277,6 +277,12 @@ bool FTRAP012RuntimeDetection::RunTest(const FString&)
                 GenericVisual->GetInteractionCursor_Implementation(Revealed->MeshComponent), EGridInteractionCursor::Use);
             const FString Hover = GenericVisual->GetInteractionText_Implementation(Revealed->MeshComponent).ToString();
             TestTrue(TEXT("Detected trap hover explains its interaction"), Hover.Contains(TEXT("Piège détecté")));
+            const FString RoutedHover = IGridInteractableInterface::Execute_GetInteractionText(
+                Revealed, Revealed->MeshComponent).ToString();
+            TestTrue(TEXT("Interface dispatch exposes detected trap hover text"),
+                RoutedHover.Contains(TEXT("Piège détecté")));
+            TestTrue(TEXT("Interface dispatch exposes authored disarm difficulty"),
+                RoutedHover.Contains(TEXT("Difficulté de désamorçage : 29")));
             TestTrue(TEXT("Detected trap hover mentions the required tools"), Hover.Contains(TEXT("outils")));
             TestTrue(TEXT("Discovered trap hover gives effective disarm difficulty"),
                 Hover.Contains(TEXT("Difficulté de désamorçage : 29")));

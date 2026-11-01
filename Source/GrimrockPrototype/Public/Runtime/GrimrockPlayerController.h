@@ -8,6 +8,7 @@
 
 class UPrimitiveComponent;
 class UUserWidget;
+class UGridNavigationTooltipWidget;
 class AGridReceptacleActor;
 class AGridWallLockActor;
 class AGrimrockPartyPawn;
@@ -22,6 +23,7 @@ public:
 	AGrimrockPlayerController();
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PlayerTick(float DeltaTime) override;
 	virtual void SetupInputComponent() override;
 
@@ -97,6 +99,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
 	EGridInteractionCursor CurrentGridInteractionCursor = EGridInteractionCursor::Default;
 
+	/** Optional override; otherwise reuse the Persistent HUD's compact tooltip class. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Grid Interaction|Tooltip")
+	TSubclassOf<UGridNavigationTooltipWidget> WorldInteractionTooltipWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGridNavigationTooltipWidget> WorldInteractionTooltipWidget;
+
+	bool bWorldInteractionTooltipClassWarningLogged = false;
+
 	enum class EGridMouseInteractionIntent : uint8
 	{
 		DismissReadableMessage,
@@ -144,6 +155,8 @@ protected:
 	EGridInteractionCursor ResolvePhysicalThrowTargetCursor(const AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult) const;
 	bool IsWithinHandPlacementReach(const AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult) const;
 	void UpdateHoveredInteractable();
+	void UpdateWorldInteractionTooltip(const FText& HoverText);
+	void HideWorldInteractionTooltip();
 	bool UpdateCombatTargeting();
 	bool HandleCombatTargetingClick();
 	bool TryResolveCombatTargetCellUnderCursor(FIntPoint& OutTargetCell) const;

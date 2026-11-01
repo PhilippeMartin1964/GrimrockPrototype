@@ -1,6 +1,7 @@
 #include "Runtime/GrimrockPlayerController.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/PrimitiveComponent.h"
@@ -21,6 +22,8 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridCombatHudWidget.h"
+#include "UI/GridNavigationTooltipWidget.h"
+#include "UI/GridPersistentHudWidget.h"
 #include "UI/UILocalizationText.h"
 #include "Sound/SoundBase.h"
 
@@ -210,18 +213,31 @@ void AGrimrockPlayerController::BeginPlay()
 	InitializeCustomCursor();
 }
 
+void AGrimrockPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (WorldInteractionTooltipWidget)
+	{
+		WorldInteractionTooltipWidget->RemoveFromParent();
+		WorldInteractionTooltipWidget = nullptr;
+	}
+	Super::EndPlay(EndPlayReason);
+}
+
 void AGrimrockPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
 	if (UpdatePhysicalThrowAiming())
 	{
+		HideWorldInteractionTooltip();
 		return;
 	}
-	if (!UpdateCombatTargeting())
+	if (UpdateCombatTargeting())
 	{
-		UpdateHoveredInteractable();
+		HideWorldInteractionTooltip();
+		return;
 	}
+	UpdateHoveredInteractable();
 }
 
 void AGrimrockPlayerController::SetupInputComponent()
@@ -1297,12 +1313,14 @@ void AGrimrockPlayerController::UpdateHoveredInteractable()
 	const bool bHasCursorItem = PartyPawn && PartyPawn->GetCursorItem(CursorItem);
 	if (ShouldBlockWorldInteractionForInventoryUi(PartyPawn, bHasCursorItem))
 	{
+		HideWorldInteractionTooltip();
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverModalInventoryUiOpen"));
 		return;
 	}
 
 	if (bHasCursorItem)
 	{
+		HideWorldInteractionTooltip();
 		const FGridMouseInteractionResolution MouseResolution = ResolveLeftMouseInteraction();
 		EGridInteractionCursor HoverCursor = EGridInteractionCursor::Default;
 		const TCHAR* HoverReason = TEXT("HoverCursorItemCannotPlace");
@@ -1321,12 +1339,14 @@ void AGrimrockPlayerController::UpdateHoveredInteractable()
 	AActor* InteractableActor = nullptr;
 	if (!TryGetInteractableUnderCursor(HitResult, InteractableActor))
 	{
+		HideWorldInteractionTooltip();
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverNoInteractable"));
 		return;
 	}
 
 	if (!IsHitWithinInteractionDistance(HitResult))
 	{
+		HideWorldInteractionTooltip();
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverOutOfRange"));
 		return;
 	}
@@ -1335,18 +1355,21 @@ void AGrimrockPlayerController::UpdateHoveredInteractable()
 	UPrimitiveComponent* HitComponent = HitResult.GetComponent();
 	if (!ControlledPawn || !HitComponent)
 	{
+		HideWorldInteractionTooltip();
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverInvalidPawnOrComponent"));
 		return;
 	}
 
 	if (!IGridInteractableInterface::Execute_CanInteract(InteractableActor, ControlledPawn, HitComponent))
 	{
+		HideWorldInteractionTooltip();
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverCanInteractRejected"));
 		return;
 	}
 
 	const EGridInteractionCursor InteractionCursor = IGridInteractableInterface::Execute_GetInteractionCursor(InteractableActor, HitComponent);
 	SetGridInteractionCursor(InteractionCursor, TEXT("HoverInteractable"));
+	UpdateWorldInteractionTooltip(IGridInteractableInterface::Execute_GetInteractionText(InteractableActor, HitComponent));
 }
 
 bool AGrimrockPlayerController::ResolveCursorItemHoverCursor(
@@ -1421,6 +1444,77 @@ bool AGrimrockPlayerController::ResolveCursorItemHoverCursor(
 			OutReason = TEXT("HoverCursorItemCannotPlace");
 			return true;
 	}
+}
+
+void AGrimrockPlayerController::HideWorldInteractionTooltip()
+{
+	if (WorldInteractionTooltipWidget && WorldInteractionTooltipWidget->GetVisibility() != ESlateVisibility::Collapsed)
+	{
+		WorldInteractionTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void AGrimrockPlayerController::UpdateWorldInteractionTooltip(const FText& HoverText)
+{
+	if (HoverText.IsEmpty())
+	{
+		HideWorldInteractionTooltip();
+		return;
+	}
+
+	if (!WorldInteractionTooltipWidget)
+	{
+		TSubclassOf<UGridNavigationTooltipWidget> TooltipClass = WorldInteractionTooltipWidgetClass;
+		if (!TooltipClass)
+		{
+			const AGrimrockPartyPawn* Party = Cast<AGrimrockPartyPawn>(GetPawn());
+			if (Party && Party->PersistentHudWidgetInstance)
+			{
+				TooltipClass = Party->PersistentHudWidgetInstance->NavigationTooltipWidgetClass;
+			}
+		}
+		if (!TooltipClass)
+		{
+			if (!bWorldInteractionTooltipClassWarningLogged)
+			{
+				UE_LOG(LogGridMouse, Warning, TEXT("TRAP01.9.2: no tooltip class; configure WorldInteractionTooltipWidgetClass on the PlayerController or NavigationTooltipWidgetClass on the Persistent HUD."));
+				bWorldInteractionTooltipClassWarningLogged = true;
+			}
+			return;
+		}
+		WorldInteractionTooltipWidget = CreateWidget<UGridNavigationTooltipWidget>(this, TooltipClass);
+		if (!WorldInteractionTooltipWidget)
+		{
+			if (!bWorldInteractionTooltipClassWarningLogged)
+			{
+				UE_LOG(LogGridMouse, Warning, TEXT("TRAP01.9.2: failed to create the world interaction tooltip widget."));
+				bWorldInteractionTooltipClassWarningLogged = true;
+			}
+			return;
+		}
+		WorldInteractionTooltipWidget->AddToViewport(9998);
+		WorldInteractionTooltipWidget->SetAlignmentInViewport(FVector2D::ZeroVector);
+		WorldInteractionTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (!WorldInteractionTooltipWidget->NavigationTooltipText.EqualTo(HoverText))
+	{
+		WorldInteractionTooltipWidget->InitializeTooltip(HoverText);
+	}
+	if (WorldInteractionTooltipWidget->GetVisibility() != ESlateVisibility::HitTestInvisible)
+	{
+		WorldInteractionTooltipWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+
+	WorldInteractionTooltipWidget->ForceLayoutPrepass();
+	const FVector2D Mouse = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
+	const float Scale = FMath::Max(0.01f, UWidgetLayoutLibrary::GetViewportScale(this));
+	const FVector2D Viewport = UWidgetLayoutLibrary::GetViewportSize(this) / Scale;
+	const FVector2D TooltipSize = WorldInteractionTooltipWidget->GetDesiredSize();
+	FVector2D Position = Mouse + FVector2D(24.f, 24.f);
+	Position.X = FMath::Clamp(Position.X, 0.f, FMath::Max(0.f, Viewport.X - TooltipSize.X));
+	Position.Y = FMath::Clamp(Position.Y, 0.f, FMath::Max(0.f, Viewport.Y - TooltipSize.Y));
+	WorldInteractionTooltipWidget->SetPositionInViewport(Position, false);
 }
 
 void AGrimrockPlayerController::InitializeCustomCursor()
