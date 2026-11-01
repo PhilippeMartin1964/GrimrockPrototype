@@ -435,6 +435,7 @@ void UGridPersistentHudWidget::ApplyNavigationTooltips()
 	AssignTooltip(Button_NavMap, TEXT("Navigation.Tooltip.Map"));
 	AssignTooltip(Button_NavJournal, TEXT("Navigation.Tooltip.Journal"));
 	AssignTooltip(Button_NavHelp, TEXT("Navigation.Tooltip.Help"));
+	AssignTooltip(Button_SearchSurroundings, TEXT("Navigation.Tooltip.SearchSurroundings"));
 }
 
 void UGridPersistentHudWidget::BindNavigationButtons()
@@ -467,6 +468,10 @@ void UGridPersistentHudWidget::BindNavigationButtons()
 	{
 		Button_NavHelp->OnClicked.AddUniqueDynamic(this, &UGridPersistentHudWidget::HandleNavHelpClicked);
 	}
+	if (Button_SearchSurroundings)
+	{
+		Button_SearchSurroundings->OnClicked.AddUniqueDynamic(this, &UGridPersistentHudWidget::HandleSearchSurroundingsClicked);
+	}
 }
 
 void UGridPersistentHudWidget::UnbindNavigationButtons()
@@ -498,6 +503,10 @@ void UGridPersistentHudWidget::UnbindNavigationButtons()
 	if (Button_NavHelp)
 	{
 		Button_NavHelp->OnClicked.RemoveDynamic(this, &UGridPersistentHudWidget::HandleNavHelpClicked);
+	}
+	if (Button_SearchSurroundings)
+	{
+		Button_SearchSurroundings->OnClicked.RemoveDynamic(this, &UGridPersistentHudWidget::HandleSearchSurroundingsClicked);
 	}
 }
 
@@ -781,5 +790,18 @@ void UGridPersistentHudWidget::HandleNavHelpClicked()
 	{
 		PartyPawn->ToggleHelpWidget();
 		RefreshFromSources();
+	}
+}
+
+void UGridPersistentHudWidget::HandleSearchSurroundingsClicked()
+{
+	if (!IsValid(PartyPawn))
+	{
+		return;
+	}
+	if (AGrimrockPlayerController* Controller =
+		Cast<AGrimrockPlayerController>(PartyPawn->GetController()))
+	{
+		Controller->RequestActiveTrapSearch();
 	}
 }

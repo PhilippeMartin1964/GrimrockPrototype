@@ -635,3 +635,5 @@ Key,SourceString,Comment
 "Inventory.Tooltip.Global.Slot.QuickSlot2","Raccourci II","Emplacement QuickSlot2 de la simulation globale"
 "Inventory.Tooltip.Global.Slot.Shirt","Chemise","Emplacement Shirt de la simulation globale"
 "Inventory.Tooltip.Global.Slot.Bracers","Brassards","Emplacement Bracers de la simulation globale"
+"Navigation.Tooltip.SearchSurroundings","Examiner les alentours (F)","Infobulle du bouton de recherche active des pièges dans le HUD permanent"
+"Exploration.Search.Performed","Le groupe examine attentivement les alentours.","Accusé neutre de recherche active, indépendant de la présence et du résultat des pièges"

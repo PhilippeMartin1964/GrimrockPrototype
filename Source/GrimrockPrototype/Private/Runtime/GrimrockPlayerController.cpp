@@ -15,6 +15,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -251,6 +252,11 @@ void AGrimrockPlayerController::SetupInputComponent()
 	}
 
 	InputComponent->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &AGrimrockPlayerController::HandleLeftMousePressed);
+	// TRAP-SEARCH01.2: F = Fouiller, separate from persistent hotbar 1-9/0.
+	FInputKeyBinding& SearchBinding =
+		InputComponent->BindKey(EKeys::F, IE_Pressed, this, &AGrimrockPlayerController::HandleActiveTrapSearchPressed);
+	SearchBinding.bConsumeInput = true;
+	SearchBinding.bExecuteWhenPaused = false;
 	FInputKeyBinding& GlobalEscapeBinding =
 		InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AGrimrockPlayerController::RequestGlobalEscape);
 	GlobalEscapeBinding.bConsumeInput = true;
@@ -291,6 +297,60 @@ void AGrimrockPlayerController::SetupInputComponent()
 	UE_LOG(LogGridTurnManagerInput, Log, TEXT("[GridTurnManagerInput] Bound NumPad 1-7 PlayerController=%s InputComponent=%s"), *GetNameSafe(this),
 		*GetNameSafe(InputComponent));
 #endif
+}
+
+void AGrimrockPlayerController::HandleActiveTrapSearchPressed()
+{
+	RequestActiveTrapSearch();
+}
+
+bool AGrimrockPlayerController::CanRequestActiveTrapSearch() const
+{
+	const AGrimrockPartyPawn* Party = Cast<AGrimrockPartyPawn>(GetPawn());
+	if (!IsValid(Party) || !IsValid(Party->LevelRuntimeActor) ||
+		!IsValid(Party->LevelRuntimeActor->LevelAsset) ||
+		!IsValid(GetWorld()) || GetWorld()->IsPaused() ||
+		Party->IsCombatHotbarExecutionBlocked() || Party->HasCursorItem() ||
+		Party->IsSkillsWidgetVisible() || Party->IsMapWidgetVisible() ||
+		IsPhysicalThrowAimingActive() || bInventoryUiOpen ||
+		Party->LevelRuntimeActor->HasActiveReadableMessage() ||
+		Party->LevelRuntimeActor->bIsExecutingRelocation)
+	{
+		return false;
+	}
+	const UGridCombatHudWidget* Hud = Party->CombatHudWidgetInstance.Get();
+	if (IsValid(Hud) && Hud->IsCombatActionTargetingActive())
+	{
+		return false;
+	}
+	const UGridTurnManagerComponent* Turns =
+		Party->LevelRuntimeActor->FindComponentByClass<UGridTurnManagerComponent>();
+	return !IsValid(Turns) || !Turns->bCombatActive;
+}
+
+bool AGrimrockPlayerController::RequestActiveTrapSearch()
+{
+	if (!CanRequestActiveTrapSearch())
+	{
+		return false;
+	}
+	AGrimrockPartyPawn* Party = Cast<AGrimrockPartyPawn>(GetPawn());
+	AGridLevelRuntimeActor* Runtime = Party->LevelRuntimeActor;
+	// The same neutral acknowledgement is emitted regardless of whether
+	// a trap is present, attempted, missed or already known. No spoiler.
+	const FText Acknowledgement = FUILocalizationText::Get(TEXT("Exploration.Search.Performed"));
+	if (!Acknowledgement.IsEmpty())
+	{
+		GridEventFeedPublisher::PublishDungeonEvent(
+			Runtime, FName(TEXT("Dungeon.Trap.ActiveSearch")), Acknowledgement,
+			EGridHudEventSemantic::Information, EGridEventVisibility::Always,
+			true);
+	}
+	// Fresh seed for each user command. Runtime masks ensure that this
+	// cannot reroll a previously attempted GUID/distance.
+	FRandomStream RandomStream(FMath::Rand());
+	Runtime->EvaluateActiveDungeonTrapSearch(Party, RandomStream);
+	return true;
 }
 
 bool AGrimrockPlayerController::RequestPartyRest()

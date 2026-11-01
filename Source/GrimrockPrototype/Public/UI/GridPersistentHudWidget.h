@@ -124,6 +124,10 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Persistent|Navigation")
 	TObjectPtr<UButton> Button_NavHelp;
 
+	/** TRAP-SEARCH01.2 optional authored exploration button outside the fixed hotbar. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Persistent|Exploration")
+	TObjectPtr<UButton> Button_SearchSurroundings;
+
 	/** Optional golden selection frames, authored with the same brush/pattern as WBP_InventoryBag filter frames. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Persistent|Navigation")
 	TObjectPtr<UImage> Image_NavEscapeSelectionFrame;
@@ -233,4 +237,7 @@ private:
 
 	UFUNCTION()
 	void HandleNavHelpClicked();
+
+	UFUNCTION()
+	void HandleSearchSurroundingsClicked();
 };

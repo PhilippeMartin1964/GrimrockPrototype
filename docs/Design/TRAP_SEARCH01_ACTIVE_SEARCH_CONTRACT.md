@@ -1,6 +1,6 @@
 # TRAP-SEARCH01.0 — Contrat de recherche active de pièges
 
-**État : TRAP-SEARCH01.1 (service runtime et masque SaveGame) publié sur `master`, compilation UE 5.5.4 et tests locaux à confirmer. TRAP-SEARCH01.2 (commande utilisateur / présentation) non implémenté.**
+**État : TRAP-SEARCH01.1 (service runtime et masque SaveGame) publié sur `master`, compilation UE 5.5.4 et tests locaux à confirmer. TRAP-SEARCH01.2 (commande clavier et HUD facultatif) publié en C++, en attente de matérialisation locale ST_UI, raccordement WBP et recette PIE.**
 
 Date : 1er novembre 2026.
 
@@ -63,7 +63,7 @@ Un appel sans piège, avec des pièges déjà connus, hors portée ou masqués n
 4. Éviter deux copies divergentes du parcours de visibilité et de construction de l'événement de découverte : extraire la partie commune si elle reste courte et contrôlée.
 5. Tester jets, refus, masques, succès, murs, portes, lumière, bonus et restauration.
 
-### TRAP-SEARCH01.2 — Commande utilisateur / présentation
+### TRAP-SEARCH01.2 — Commande utilisateur / présentation (code publié, WBP et localisation locale à valider)
 1. Exposer la commande au joueur **sans choisir arbitrairement une touche déjà employée**, en auditant `DefaultMappingContext`, les raccourcis Pawn et la barre d'actions persistante.
 2. Réutiliser le système de commandes existant ; l'exécution demeure en C++.
 3. Fournir une confirmation neutre de l'action si nécessaire, sans négation de présence des pièges et sans texte de localisation non matérialisé.
@@ -100,4 +100,4 @@ Placer des pièges de sol, mur et plafond à une et deux cases, ainsi qu'un piè
 TRAP-SEARCH01.1 ajoute une API C++ sans entrée joueur : `EvaluateActiveDungeonTrapSearch(PartyPawn, RandomStream)`.
 Elle réutilise le balayage cardinal et la notification de découverte TRAP01.2, mais conserve des tentatives indépendantes, applique +2 au total du résultat RPG et limite la portée active à deux cases (bornée par l'instance).
 Le test `Grimrock.TRAP_SEARCH01.1` couvre les règles, refus, sauvegarde et mutations. Il faut le compiler/valider localement avant de déclarer .1 achevé.
-TRAP-SEARCH01.2 doit créer l'interface volontaire et arbitrer l'UI ; aucun raccourci n'est créé dans .1.
+TRAP-SEARCH01.2 : F dans le PlayerController appelle `RequestActiveTrapSearch`, comme l'option `Button_SearchSurroundings` dans le HUD permanent (après ajout local dans le Designer). Rejet silencieux sur UI modale/combat/chute/visée/items tenus. Un événement neutre `Dungeon.Trap.ActiveSearch` précède le scan accepté, sans fuite de présence ou de nombre de pièges. Les clés CSV `Navigation.Tooltip.SearchSurroundings` et `Exploration.Search.Performed` restent à matérialiser réellement en ST_UI avant finalisation UI et traduction fr/en.

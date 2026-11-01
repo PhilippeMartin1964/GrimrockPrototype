@@ -41,6 +41,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Rest")
 	bool RequestPartyRest();
 
+	/** TRAP-SEARCH01.2: true if the current world/input state permits an active search. */
+	UFUNCTION(BlueprintPure, Category = "Dungeon|Trap Search")
+	bool CanRequestActiveTrapSearch() const;
+
+	/** Shared keyboard and optional persistent-HUD action; true when the search command is accepted,
+	 * independently of how many traps were discovered. No negative trap-location feedback.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Dungeon|Trap Search")
+	bool RequestActiveTrapSearch();
+
 	/** PIE console command: GrimrockRest. No implicit key mapping. */
 	UFUNCTION(Exec)
 	void GrimrockRest();
@@ -147,6 +157,7 @@ protected:
 		FVector DropLocalOffset = FVector::ZeroVector;
 	};
 
+	void HandleActiveTrapSearchPressed();
 	void HandleLeftMousePressed();
 	// Shared aiming lifecycle: inventory targets support placement; equipped MainHand targeting remains throw-only.
 	bool UpdatePhysicalThrowAiming();
