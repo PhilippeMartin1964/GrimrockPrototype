@@ -40,11 +40,11 @@ bool FARMEMENT01161DisarmToolAuthoring::RunTest(const FString&)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01161SaboteurIsolation,
-    "Grimrock.RPG.ARMEMENT01.16.DisarmTool.NoPrematureKitGrant",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01161SaboteurApprovedGrant,
+    "Grimrock.RPG.ARMEMENT01.16.DisarmTool.ApprovedKitGrant",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FARMEMENT01161SaboteurIsolation::RunTest(const FString&)
+bool FARMEMENT01161SaboteurApprovedGrant::RunTest(const FString&)
 {
     URPGClassAsset* Rogue = LoadObject<URPGClassAsset>(nullptr,
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Rogue.DA_Class_Rogue"));
@@ -77,10 +77,23 @@ bool FARMEMENT01161SaboteurIsolation::RunTest(const FString&)
     TestEqual(TEXT("Existing N1 Stiletto remains equipped"),
         Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.ItemDefinitionId,
         FName(TEXT("Weapon_Stiletto_01")));
-    TestEqual(TEXT("Unimplemented disarm tool is not prematurely granted"),
-        Inventory->CountItemDefinitionInCharacterInventory(0, ARMEMENT01161Test::ToolId), 0);
-    TestFalse(TEXT("Not-yet-implemented tool cannot be resolved as a starter item"),
+    // ARMEMENT01.16.3: the once-pending starter grant is now approved.
+    // Keep the authoring contract strict while verifying real New Game delivery.
+    TestEqual(TEXT("Approved Saboteur receives exactly one reusable tool"),
+        Inventory->CountItemDefinitionInCharacterInventory(0, ARMEMENT01161Test::ToolId), 1);
+    TestTrue(TEXT("Canonical tool can be resolved from Saboteur's starting bag"),
         Inventory->HasItemDefinitionInCharacterInventory(0, ARMEMENT01161Test::ToolId));
+    const UGridItemDefinitionAsset* ProductionTool = LoadObject<UGridItemDefinitionAsset>(
+        nullptr, ARMEMENT01161Test::ToolPath);
+    TestTrue(TEXT("Starting tool resolves to the approved production DataAsset"),
+        ProductionTool && Inventory->FindItemDefinition(ARMEMENT01161Test::ToolId) == ProductionTool);
+    const FGridCharacterEquipmentState& Equipment = Inventory->PartyInventoryState.ActiveEquipment[0];
+    TestFalse(TEXT("Reusable tools are not equipped into the off hand"),
+        Equipment.OffHand.ItemDefinitionId == ARMEMENT01161Test::ToolId);
+    TestFalse(TEXT("Reusable tools are not equipped into the main hand"),
+        Equipment.MainHand.ItemDefinitionId == ARMEMENT01161Test::ToolId);
+    TestTrue(TEXT("Approved tool remains non-consuming and non-stackable"),
+        ProductionTool && !ProductionTool->bStackable && ProductionTool->MaxStackSize == 1);
 
     FString OwnershipError;
     TestTrue(TEXT("No inventory ownership corruption"), Inventory->ValidateInventoryOwnership(OwnershipError));

@@ -1,6 +1,6 @@
 # ARMEMENT01.16.3 — Finalisation du kit Voleur/Saboteur (niveau 1)
 
-**État : code et tests publiés sur `master`, compilation Unreal Engine 5.5.4 et recette PIE locale attendues.**
+**État : compilation et 2/2 tests ARMEMENT01.16.3 validés localement le 01.11.2026 ; régression ARMEMENT01.16 en cours de remise en conformité, recette PIE complète à confirmer.**
 
 ## Contexte
 
@@ -91,3 +91,35 @@ Les libellés existants et les traductions Game/fr/en ne sont pas altérés.
 Les contrôles globaux de traduction anglais/français restent ceux du projet.
 
 Ne clore le jalon qu'après build, tests et recette PIE utilisateur.
+
+
+## ARMEMENT01.16.3.1 — Adaptation des tests historiques après validation locale (01.11.2026)
+
+Le journal local confirme :
+- `Grimrock.RPG.ARMEMENT01.16.3` : **2/2 réussis**.
+- `Grimrock.RPG.ARMEMENT01.13.ApprovedKits` : **2 réussis, 1 warning** ; zéro échec.
+- `Grimrock.TRAP01` : **17/17 réussis**.
+- `Grimrock.TRAP_SEARCH01` : **4/4 réussis**.
+- `Grimrock.RPG.ARMEMENT01.16` : **5 réussis, 2 échecs historiques** à adapter.
+
+Causes des deux échecs :
+1. Le test Editor `NoPrematureKitGrant` affirmait que la trousse ne
+   devait pas être donnée au Saboteur. Cette règle a été explicitement
+   remplacée par ARMEMENT01.16.3. Le test devient `ApprovedKitGrant` :
+   il exige la trousse réelle, non équipée, tout en vérifiant le stylet
+   et l'absence de corruption d'ownership.
+2. Le test runtime `TrapCore.SkillAndPersistentState` sélectionnait le
+   Saboteur, puis postulait un inventaire sans trousse. Il sélectionne
+   désormais `Kit_Rogue_Shadow`, sans trousse, pour vérifier le refus
+   **sans d20**, puis ajoute le `DA_Item_DisarmTools_01` réel pour
+   vérifier l'échec, la réussite et la persistance du désamorçage.
+
+**Pas de changement du gameplay du kit ni des DataAssets.**
+Le test spécifique ARMEMENT01.16.3 continue d'assurer le scénario
+New Game du Saboteur entraîné au niveau 1 et le SaveGame binaire.
+
+Réexécuter après pull et build : `Grimrock.RPG.ARMEMENT01.16`,
+`Grimrock.RPG.ARMEMENT01.16.3`,
+`Grimrock.RPG.ARMEMENT01.13.ApprovedKits`.
+Le warning du groupe `ApprovedKits` n'a pas été modifié ; ne pas
+annoncer sa disparition sans preuve de validation locale.

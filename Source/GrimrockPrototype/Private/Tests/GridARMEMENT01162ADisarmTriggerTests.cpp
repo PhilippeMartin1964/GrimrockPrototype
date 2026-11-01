@@ -134,15 +134,21 @@ bool FARMEMENT01162ARuntime::RunTest(const FString&)
     Hero.ClassDefinition = Rogue;
     Hero.CombatActionSourceClassDefinition = Rogue;
     Hero.RaceDefinition = Human;
-    Hero.StartingEquipmentKitId = TEXT("Kit_Rogue_Saboteur");
+    // This legacy core test needs a genuine *no-tool* starting inventory.
+    // ARMEMENT01.16.3 intentionally gives the Saboteur a real tool now:
+    // use the other approved Rogue orientation to keep refusal meaningful.
+    Hero.StartingEquipmentKitId = TEXT("Kit_Rogue_Shadow");
     FText Error;
     UGridPartyInventoryComponent* Inventory = Party->PartyInventoryComponent;
-    if (!TestTrue(TEXT("Playable N1 Saboteur"),
+    if (!TestTrue(TEXT("Playable N1 Rogue Shadow without disarm tools"),
         Inventory->CreateInitialCharacter(Hero, Error)))
     {
         AddError(Error.ToString());
         return false;
     }
+
+    TestEqual(TEXT("Approved Rogue Shadow kit has no disarm tool"),
+        Inventory->CountItemDefinitionInCharacterInventory(0, FName(TEXT("Item_DisarmTools_01"))), 0);
 
     URPGSkillAsset* Skill = NewObject<URPGSkillAsset>(Runtime);
     Skill->SkillId = TEXT("Skill_Traps");
@@ -177,15 +183,11 @@ bool FARMEMENT01162ARuntime::RunTest(const FString&)
     TestEqual(TEXT("Rejected attempt preserves RNG"),
         Stream.GetCurrentSeed(), SeedBeforeReject);
 
-    UGridItemDefinitionAsset* Tool = NewObject<UGridItemDefinitionAsset>(Runtime);
-    Tool->ItemDefinitionId = TEXT("Item_DisarmTools_01");
-    Tool->DisplayName = FText::FromString(TEXT("Disarm Tools"));
-    Tool->Description = FText::FromString(TEXT("Real mechanical tools"));
-    Tool->ItemType = EGridItemType::Misc;
-    Tool->Weight = 0.5f;
-    Tool->HandUsage = EGridItemHandUsage::NotHandHeld;
-    Tool->ItemTags = { TEXT("Tool.Disarm") };
-    if (!TestTrue(TEXT("Transient tool registered"), Inventory->RegisterItemDefinition(Tool)))
+    UGridItemDefinitionAsset* Tool = LoadObject<UGridItemDefinitionAsset>(
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DisarmTools_01.DA_Item_DisarmTools_01"));
+    if (!TestNotNull(TEXT("Production disarm tool exists"), Tool) ||
+        !TestTrue(TEXT("Published tool is registered by its exact identity"),
+            Inventory->RegisterItemDefinition(Tool)))
         return false;
 
     FGridItemInstance ToolItem;

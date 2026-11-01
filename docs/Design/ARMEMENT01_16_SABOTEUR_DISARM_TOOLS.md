@@ -257,3 +257,15 @@ Voir `docs/Design/ARMEMENT01_16_3_SABOTEUR_STARTER_KIT.md` pour la recette
 locale. Cette section est la référence la plus récente pour la
 **composition du kit** et remplace les notes historiques « attribution
 en attente » ci-dessus ; elle ne modifie aucune règle TRAP01.
+
+
+## ARMEMENT01.16.3.1 — Mise à jour des tests de régression historiques (01.11.2026)
+
+Les suites ARMEMENT01.16.3, TRAP01 et TRAP_SEARCH01 ont réussi sur UE5.5.4,
+mais deux anciens tests ARMEMENT01.16 supposaient encore que le Saboteur
+n'avait pas d'outil au démarrage. Ils sont ajustés conformément à la
+nouvelle règle : `DisarmTool.ApprovedKitGrant` exige la trousse,
+et `TrapCore.SkillAndPersistentState` utilise un Rogue/Ombre sans trousse
+pour valider le refus sans d20, avant de fournir l'asset réel et de tester
+l'utilisation et la persistance. Aucun mécanisme de piège n'est modifié.
+Voir `docs/Design/ARMEMENT01_16_3_SABOTEUR_STARTER_KIT.md`.
