@@ -6,6 +6,7 @@
 #include "Misc/AutomationTest.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridPartyIlluminationComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -156,7 +157,7 @@ bool FGridPartyLIGHT01EquipmentDrivenIlluminationTest::RunTest(const FString& Pa
 	TestTrue(TEXT("Source radius is transmitted to the party proxy"), FMath::IsNearlyEqual(PartyLight->RuntimeConfig.LightRadius, 625.0f));
 	TestTrue(TEXT("Physical item point-light offset is not copied to the party proxy"), PartyLight->RuntimeConfig.PointLightRelativeLocation.IsNearlyZero());
 	TestTrue(TEXT("Physical item point-light rotation is not copied to the party proxy"), PartyLight->RuntimeConfig.PointLightRelativeRotation.IsNearlyZero());
-	TestTrue(TEXT("Party illumination never owns source Niagara"), PartyLight->RuntimeConfig.NiagaraSystem.IsNull());
+	TestTrue(TEXT("Party illumination owns point-light data only"), PartyLight->RuntimeConfig.bUsePointLight);
 	TestTrue(TEXT("Configured Cast Shadows propagates to the runtime light"), PartyLight->GetPointLightCastShadows());
 
 	UPointLightComponent* RuntimePointLight = PartyPawn->FindComponentByClass<UPointLightComponent>();
@@ -183,7 +184,7 @@ bool FGridPartyLIGHT01EquipmentDrivenIlluminationTest::RunTest(const FString& Pa
 	if (PartyPawn->HeldItemActor && PartyPawn->HeldItemActor->LightEmitterComponent)
 	{
 		TestTrue(TEXT("Held item remains logically lit"), PartyPawn->HeldItemActor->AreItemLightsEnabled());
-		TestTrue(TEXT("Held item keeps its Niagara presentation channel"), PartyPawn->HeldItemActor->LightEmitterComponent->IsNiagaraPresentationEnabled());
+		TestNotNull(TEXT("Held item retains independent visual effects component"), PartyPawn->HeldItemActor->VisualEffectsComponent.Get());
 		TestFalse(TEXT("Held item delegates its local PointLight to party illumination"), PartyPawn->HeldItemActor->LightEmitterComponent->IsPointLightPresentationEnabled());
 	}
 	TestEqual(TEXT("Stronger party source wins independently of selected character"), PartyLight->ActiveSourceId, GridPartyLIGHT01Tests::StrongLightId);

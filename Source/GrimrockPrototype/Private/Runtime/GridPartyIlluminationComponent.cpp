@@ -19,14 +19,12 @@ namespace
 
 UGridPartyIlluminationComponent::UGridPartyIlluminationComponent()
 {
-	SetEmitterChannelsEnabled(false, true);
 	SetPointLightCastShadows(true);
 }
 
 void UGridPartyIlluminationComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	SetEmitterChannelsEnabled(false, true);
 	SetPointLightCastShadows(bCastShadows);
 }
 
@@ -34,12 +32,7 @@ FGridLightEmitterConfig UGridPartyIlluminationComponent::BuildPartyConfig(const 
 {
 	FGridLightEmitterConfig PartyConfig = SourceConfig;
 
-	// The item's flame remains on the held item. The party proxy owns only the
-	// world illumination and therefore never spawns the source Niagara system.
-	PartyConfig.NiagaraSystem.Reset();
-	PartyConfig.NiagaraRelativeLocation = FVector::ZeroVector;
-	PartyConfig.NiagaraRelativeRotation = FRotator::ZeroRotator;
-
+	// VisualEffects remains on the item. This config only contains PointLight data.
 	// Placement is controlled by this component's transform under the camera,
 	// not by the source item's physical point-light offset.
 	PartyConfig.PointLightRelativeLocation = FVector::ZeroVector;
@@ -67,7 +60,6 @@ void UGridPartyIlluminationComponent::ApplyIlluminationSource(const FGridLightEm
 	}
 
 	ActiveSourceId = SourceId;
-	SetEmitterChannelsEnabled(false, true);
 	SetPointLightCastShadows(bCastShadows);
 	ApplyConfig(BuildPartyConfig(SourceConfig));
 	SetLightEnabled(true);
@@ -78,7 +70,6 @@ void UGridPartyIlluminationComponent::ClearIlluminationSource()
 	ActiveSourceId = NAME_None;
 	SetLightEnabled(false);
 	ApplyConfig(FGridLightEmitterConfig());
-	SetEmitterChannelsEnabled(false, true);
 	SetPointLightCastShadows(bCastShadows);
 }
 

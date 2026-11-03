@@ -27,7 +27,7 @@ bool FGridItemLIGHT03PhysicsMeshEmitterAttachmentTest::RunTest(const FString& Pa
 		return false;
 	}
 
-	TestTrue(TEXT("Light emitter is attached directly to the physics mesh so world-item motion carries the flame and point light"),
+	TestTrue(TEXT("Light emitter is attached directly to the physics mesh so world-item motion carries the point light"),
 		ItemCDO->LightEmitterComponent->GetAttachParent() == ItemCDO->MeshComponent.Get());
 
 	return true;

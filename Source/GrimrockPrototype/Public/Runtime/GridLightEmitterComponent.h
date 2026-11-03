@@ -5,7 +5,6 @@
 #include "Runtime/GridLightEmitterTypes.h"
 #include "GridLightEmitterComponent.generated.h"
 
-class UNiagaraComponent;
 class UPointLightComponent;
 
 /**
@@ -29,15 +28,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Light")
 	void SetLightEnabled(bool bEnabled);
 
-	/**
-	 * Runtime presentation mask. The authored light state remains enabled while a
-	 * context (for example a first-person held item) delegates one channel to a proxy.
+	/** Hide a held item's PointLight while a party proxy renders the illumination.
+	 * The authored item light state and independent VisualEffects are unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Light|Presentation")
-	void SetEmitterChannelsEnabled(bool bEnableNiagara, bool bEnablePointLight);
-
-	UFUNCTION(BlueprintPure, Category = "Light|Presentation")
-	bool IsNiagaraPresentationEnabled() const { return bNiagaraPresentationEnabled; }
+	void SetPointLightPresentationEnabled(bool bEnabled);
 
 	UFUNCTION(BlueprintPure, Category = "Light|Presentation")
 	bool IsPointLightPresentationEnabled() const { return bPointLightPresentationEnabled; }
@@ -64,13 +59,9 @@ protected:
 
 private:
 	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraComponent> NiagaraComponent;
-
-	UPROPERTY(Transient)
 	TObjectPtr<UPointLightComponent> PointLightComponent;
 
 	bool bLightEnabled = false;
-	bool bNiagaraPresentationEnabled = true;
 	bool bPointLightPresentationEnabled = true;
 	bool bPointLightCastShadows = true;
 	float FlickerPhase = 0.f;

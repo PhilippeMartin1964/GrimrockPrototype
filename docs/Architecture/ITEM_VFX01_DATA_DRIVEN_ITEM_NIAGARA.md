@@ -1,241 +1,142 @@
-# ITEM-VFX01 — Effets Niagara indépendants des lumières
+# ITEM-VFX01 — Effets Niagara indépendants de l'éclairage
 
-> ITEM-VFX01.1 — validé. ITEM-VFX01.2 et ITEM-VFX01.3 — migrés, testés et publiés. ITEM-VFX01.4A — audit des références héritées et correction de la politique LiquidSparkle en cours.
+> Architecture courante depuis ITEM-VFX01.4B (3 novembre 2026).
+> Jalon .1 validé ; .2 et .3 migrés et publiés ;
+> .4A audité (47 assets, 17 tests et validation Git LFS) ;
+> .4B = retrait définitif du canal Niagara historique.
 
-## Périmètre
+## 1. Contrat de données
 
-Les données `UGridItemDefinitionAsset::VisualEffects` définissent zéro, un ou plusieurs
-systèmes Niagara. Le premier jalon ajoute l'infrastructure générique et ses tests,
-sans migrer les DataAssets de potions, de flasques ou de torches.
+`UGridItemDefinitionAsset` possède deux blocs orthogonaux :
 
-## Sources de vérité
+- `VisualEffects : FGridItemVisualEffectsConfig` gère **zéro à N** effets
+  `FGridItemNiagaraEffectConfig` (ID, référence `NiagaraSystem`,
+  `RelativeTransform`, `ActivationMode`).
+- `LightEmitter : FGridLightEmitterConfig` définit **uniquement** le
+  PointLight, ses offsets, sa couleur, son rayon, son intensité, son
+  flicker et `bDefaultEnabled`.
 
-- `UGridItemDefinitionAsset::VisualEffects` : tableau de `FGridItemNiagaraEffectConfig`
-  avec `EffectId` unique si renseigné, `NiagaraSystem`, `RelativeTransform`
-  et `ActivationMode`.
-- `UGridItemDefinitionAsset::LightEmitter` : source de vérité lumineuse historique,
-  conservée sans changement à ce jalon.
-- `FGridItemInstance::bLightsEnabled` : état gameplay, conservé dans le circuit
-  existant inventaire, réceptacle et sauvegarde.
-- `UGridItemVisualEffectsComponent` : composant de présentation transitoire,
-  sans persistance de `UNiagaraComponent` dans les sauvegardes.
+L'état gameplay `FGridItemInstance::bLightsEnabled` reste dans
+l'instance, et survit aux transferts d'inventaire et à la sauvegarde.
+Aucun `UNiagaraComponent` n'est enregistré dans les sauvegardes.
 
-Modes d'activation :
+Les modes Niagara sont :
+- `Always` : actif tant que l'acteur est présenté, indépendamment
+  de `bLightsEnabled` ;
+- `WhenLightEnabled` : actif seulement si l'instance est allumée
+  et si le visuel de l'acteur est présenté.
 
-1. `Always` : actif tant que l'acteur est visuellement présent, même sans lumière.
-2. `WhenLightEnabled` : dépend de `AGridItemActor::SetItemLightsEnabled()`.
-
-## Hiérarchie runtime
+## 2. Hiérarchie runtime
 
 ```text
 AGridItemActor
   SceneRoot
-    MeshComponent                   <- simulation Chaos
-      LightEmitterComponent        <- existant, inchangé
-      VisualEffectsComponent       <- nouveau, aucun Tick C++
-        UNiagaraComponent[0..N]    <- transform relatif défini par asset
+    MeshComponent (physique / Chaos)
+      UGridLightEmitterComponent  -> UPointLightComponent (0 ou 1)
+      UGridItemVisualEffectsComponent
+        -> UNiagaraComponent[0..N]
 ```
 
-La hiérarchie suit le mesh physique, pas l'actor root. Le paramètre
-`Local Space` des émetteurs Niagara doit être vérifié pour que les particules
-déjà émises suivent aussi la rotation du contenant : l'attachement seul ne suffit pas.
+Les offsets de Niagara sont des transforms relatifs au composant
+`VisualEffects` attaché au mesh. Le paramètre Niagara `Local Space`
+est indépendant de la hiérarchie d'attachement UE : vérifier le rendu
+des particules en mouvement pour les systèmes nécessitant de suivre
+une rotation déjà émise.
 
-## Cycle de vie
+`UGridLightEmitterComponent` ne possède **aucun**
+`UNiagaraComponent` ni champ `NiagaraSystem` :
+- `SetLightEnabled()` contrôle exclusivement le PointLight ;
+- `SetPointLightPresentationEnabled()` masque le PointLight local
+  sans changer le flag gameplay ni les effets visuels ;
+- `SetPointLightCastShadows()` conserve la politique d'ombres ;
+- le Tick C++ ne sert qu'aux variations de PointLight (flicker).
 
-- `InitializeFromItemDefinition()` : applique la configuration Niagara et initialise
-  l'état lumineux désactivé, sans désactiver les effets `Always`.
-- `SetItemLightsEnabled()` : synchronise l'ancien composant lumineux et les nouveaux
-  effets conditionnels. Les effets permanents ne dépendent pas de ce booléen.
-- `InitializeFromItemDefinitionId()` : retire les effets d'une définition précédente.
-- `OnRemovedFromWorld()` : désactive la présentation Niagara.
-- `OnPlacedInWorld()` : réactive la présentation Niagara.
-- `ApplyConfig()` : réutilise les composants lorsque possible, et détruit les
-  composants devenus superflus pour éviter les doublons.
-- `UGridPartyIlluminationComponent` : aucune modification.
+`UGridItemVisualEffectsComponent` :
+- `ApplyConfig()` réutilise les effets et supprime les composants
+  devenus inutiles ;
+- `SetItemLightState()` met à jour les effets conditionnels ;
+- `SetPresentationEnabled()` masque les effets lors de la disparition
+  de l'acteur ;
+- aucune Tick C++ propre, et aucune source alternative d'authoring.
 
-## Vérifications
+## 3. Assets canoniques après migrations
 
-Tests ajoutés :
+| Item | VisualEffects | PointLight |
+|---|---|---|
+| `DA_Item_Potion_Healing_01` | `LiquidSparkle` (`NS_LiquideSparkle`, `Always`) | selon définition |
+| `DA_Item_Flask_Oil` | aucun `LiquidSparkle` | selon définition |
+| `DA_Item_Flask_Acid` | aucun `LiquidSparkle` | selon définition |
+| `DA_Item_Flask_CorrosiveCloud` | aucun `LiquidSparkle` | selon définition |
+| `DA_Item_Torch` | `TorchFlame` (`NS_Flame_8_Torch`, `WhenLightEnabled`) | actif quand `bLightsEnabled` |
 
-- `Grimrock.Items.VFX01_1.Configuration` : configuration vide, Niagara sans lumière,
-  asset manquant et unicité des identifiants.
-- `Grimrock.Items.VFX01_1.RuntimeLifecycle` : modes `Always` et
-  `WhenLightEnabled`, attachement au mesh, rotation, réinitialisation,
-  suppression/recréation de présentation, absence de doublons.
+Les autres effets éventuellement définis sur les flasques restent
+autorisés ; seule l'affectation de `LiquidSparkle` à la potion de soin
+est exclusive pour le moment.
 
-Régressions prioritaires :
+## 4. Torche équipée et éclairage du groupe
 
-- `Grimrock.Items.LIGHT01.DataDrivenEmitter`
-- `Grimrock.Items.LIGHT02.CanonicalItemLightState`
-- `Grimrock.Items.LIGHT03.PhysicsMeshEmitterAttachment`
-- `Grimrock.Party.LIGHT01.EquipmentDrivenIllumination`
+```text
+HeldItemActor
+  VisualEffects = flamme conditionnelle sur mesh tenu
+  LightEmitter.PointLight = masqué (SetPointLightPresentationEnabled(false))
 
-Validation sur Windows :
+UGridPartyIlluminationComponent
+  PointLight = lumière de groupe, alimentée par item équipé
+```
+
+`UGridPartyIlluminationComponent` réutilise le seul
+`FGridLightEmitterConfig` sans copier le transform physique du
+PointLight de l'item. Les effets Niagara restent sur les items ;
+aucune seconde flamme n'est créée par le proxy.
+
+## 5. Historique clos
+
+- **ITEM-VFX01.1** : infrastructure générique
+  `VisualEffects` / `UGridItemVisualEffectsComponent` et tests.
+- **ITEM-VFX01.2** : migration des potions et flasques, publiées via
+  Git LFS au commit `b5ad10c6` ; restriction ultérieure du sparkle
+  à la potion de soin.
+- **ITEM-VFX01.3** : migration torche
+  `WhenLightEnabled` avec offsets préservés, publiée via
+  Git LFS au commit `4cb17902`.
+- **ITEM-VFX01.4A** : normalisation des flasques et audit de 47
+  définitions (`legacy=0, invalidSparkle=0, loadFailure=0`),
+  publiée au commit `f19ab6ea`.
+- **ITEM-VFX01.4B** : les migrations d'assets étant achevées,
+  suppression des propriétés Niagara historiques, du composant
+  Niagara de l'exécuteur lumineux et des anciens scripts/commandlets
+  editor-only. Les tests de migration ponctuels sont remplacés
+  par des tests permanents de données.
+
+Les anciens scripts `ItemVFX012-MigrateLiquidAssets.ps1`,
+`ItemVFX013-MigrateTorchAsset.ps1` et
+`ItemVFX014-AuditAndNormalize.ps1` sont volontairement retirés :
+les relancer après retrait des propriétés héritées serait invalide.
+
+## 6. Validation de l'architecture
+
+Sous UE 5.5.4 :
 
 ```powershell
 cd D:\Development\GrimrockPrototype
 git pull --ff-only origin master
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_1"
-```
 
-## Hors périmètre de ITEM-VFX01.1
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_4B"
 
-Migration des `.uasset` existants, changement de l'empilement de potions,
-retrait de la partie Niagara de `FGridLightEmitterConfig`, et couverture complète
-des transferts inventaire/réceptacle/lancer/sauvegarde. Ces points relèvent
-des jalons ITEM-VFX01.2 à ITEM-VFX01.4.
-
-**Statut :** modifications poussées sur GitHub à la demande du propriétaire ;
-résultats de build et d'automatisation Unreal à obtenir sur Windows.
-
-## ITEM-VFX01.2 — Liquides (potions et flasques)
-
-Le code de migration editor-only est livré dans `UGridItemLiquidVfxMigrationCommandlet`.
-Les quatre DataAssets binaires `.uasset` sont suivis par Git LFS ; leur
-conversion en vrai format Unreal doit être exécutée par UE 5.5.4 sur la
-machine Windows disposant des assets complets.
-
-Assets strictement ciblés : `DA_Item_Potion_Healing_01`,
-`DA_Item_Flask_Oil`, `DA_Item_Flask_Acid` et
-`DA_Item_Flask_CorrosiveCloud`. L'outil crée une entrée
-`VisualEffects.Effects` `LiquidSparkle` pointant vers
-`/Game/GrimrockPrototype/Effects/Alchimie/NS_LiquideSparkle` avec le
-mode `Always`. Si le système existait dans `LightEmitter.NiagaraSystem`,
-le transform local est conservé et la référence historique retirée.
-Les propriétés PointLight demeurent inchangées. Une référence Niagara
-différente de celle attendue provoque un refus explicite.
-
-L'outil vérifie les quatre assets avant toute écriture, ne touche jamais
-les torches et peut être réexécuté sans dupliquer les effets ni
-réenregistrer les assets déjà conformes.
-
-### Procédure locale (Editor fermé)
-
-```powershell
-cd D:\Development\GrimrockPrototype
-git pull --ff-only origin master
-
-# Compilation et vérification préalable
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_1"
-
-# Dry-run sans aucune écriture
-.\Scripts\ItemVFX012-MigrateLiquidAssets.ps1
-
-# Sauvegarde effective des 4 .uasset via Unreal
-.\Scripts\ItemVFX012-MigrateLiquidAssets.ps1 -Apply
-
-# Validation du jalon
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_1" -SkipBuild
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_2" -SkipBuild
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.LIGHT0" -SkipBuild
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Party.LIGHT01" -SkipBuild
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_4" -SkipBuild
-
-# Après réussite uniquement : publication Git LFS ciblée des .uasset
-.\Scripts\ItemVFX012-MigrateLiquidAssets.ps1 -Publish
-```
-
-Tests : `MigrationRecipe`, `ProductionPreflight`,
-`MigratedProductionAssets` (attend que -Apply ait été exécuté) et
-`StackTransferAndWorldRehydration` sous le préfixe
-`Grimrock.Items.VFX01_2`.
-
-Le comportement Niagara n'est pas stocké dans l'instance d'inventaire.
-La même définition présente un effet `Always` après empilement, séparation,
-dépôt, attachement à un réceptacle ou recréation d'acteur, même si la
-valeur conservée de `bLightsEnabled` est `false`. Le code de sauvegarde
-ne nécessite pas de changement du format de `FGridItemInstance`.
-
-**ITEM-VFX01.2 clôturé :** validation locale réussie (10/10 tests) et les quatre
-assets `.uasset` migrés poussés par Git LFS dans le commit `b5ad10c6`.
-Les instructions précédentes sont conservées pour la reproductibilité.
-
-## ITEM-VFX01.3 — Flamme conditionnelle de torche
-
-Le seul asset de production modifié par ce jalon est :
-
-`/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch`
-
-Le Niagara de flamme existant est :
-
-`/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch`
-
-L'outil `UGridItemTorchVfxMigrationCommandlet` transfère uniquement
-`LightEmitter.NiagaraSystem` vers une entrée
-`VisualEffects.Effects` avec :
-
-- `EffectId = TorchFlame` ;
-- `NiagaraSystem = NS_Flame_8_Torch` ;
-- `ActivationMode = WhenLightEnabled` ;
-- `RelativeTransform` conservant exactement les offsets de la flamme
-  anciennement renseignés dans `LightEmitter`.
-
-**Invariant essentiel :** `LightEmitter.bDefaultEnabled`,
-`bUsePointLight`, les transformations du PointLight, la couleur,
-l'intensité, le rayon, les flickers et
-`FGridItemInstance::bLightsEnabled` restent inchangés.
-La torche est initialement éteinte pendant la création de son
-`AGridItemActor` et la flamme n'apparaît qu'après l'application de
-l'état de l'instance. La flamme s'éteint/revient lorsque
-`SetItemLightsEnabled(false/true)` est appelé. La lumière du groupe
-continue d'être fournie par `UGridPartyIlluminationComponent`,
-tandis que la flamme de première personne reste attachée au mesh
-de la torche, sans PointLight concurrent.
-
-L'outil est strictement limité au DataAsset de torche, effectue un
-dry-run par défaut, refuse les Niagara inattendus et ne synthétise
-pas de transform s'il n'existe plus de flamme héritée.
-L'opération `-Apply` est idempotente. Aucun fichier de niveau,
-réceptacle, Blueprint ou autre DataAsset n'est modifié.
-
-### Procédure sur Windows (UE Editor fermé)
-
-```powershell
-cd D:\Development\GrimrockPrototype
-git pull --ff-only origin master
-
-# Construire l'éditeur + régression de base
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_1"
-
-# Préflight sans écriture
-.\Scripts\ItemVFX013-MigrateTorchAsset.ps1
-
-# Sauvegarde effective de DA_Item_Torch.uasset
-.\Scripts\ItemVFX013-MigrateTorchAsset.ps1 -Apply
-
-# Migration, données de production et runtime (4 tests)
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_3" -SkipBuild
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_4A" -SkipBuild
 
-# Régressions pertinentes
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.LIGHT0" -SkipBuild
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.LIGHT_CONFIG02" -SkipBuild
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Party.LIGHT01" -SkipBuild
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_2" -SkipBuild
-
-# Seulement après toutes les validations : commit et push LFS ciblé
-.\Scripts\ItemVFX013-MigrateTorchAsset.ps1 -Publish
 ```
 
-Le test `Grimrock.Items.VFX01_3.MigratedProductionAsset` est prévu
-**après** `-Apply` et échouera volontairement avant la migration.
-Le commit des sources C++ ne prouve pas la migration du `.uasset` LFS.
-Le jalon n'est clôturé qu'une fois la compilation, les tests et le
-push du DataAsset réalisés.
+Les tests de production chargent les vrais DataAssets depuis Unreal ;
+une inspection des pointeurs Git LFS seuls ne suffit pas à attester
+leur configuration. Vérifier aussi la flamme en PIE (torche au sol,
+prise en main, extinction, allumage, réceptacle, lancer).
 
-## ITEM-VFX01.4A — Clarification des flasques et audit obligatoire
-
-Depuis le 3 novembre 2026, `NS_LiquideSparkle` est réservé à la potion de
-soin. L'utilisateur a retiré manuellement les particules de la flasque
-d'huile. L'ancien outil `ITEM-VFX01.2` a donc été limité à la potion
-de soin pour éviter de recréer cet effet sur les flasques.
-
-Les flasques d'huile, d'acide et de nuage corrosif ne doivent plus
-référencer `LiquidSparkle`, mais conservent leurs autres éventuels
-effets Niagara et tous leurs paramètres lumineux.
-
-La procédure de vérification globale et de normalisation ciblée
-se trouve dans
-[ITEM_VFX014A_LEGACY_AUDIT_AND_SPARKLE_POLICY.md](ITEM_VFX014A_LEGACY_AUDIT_AND_SPARKLE_POLICY.md).
-
-La suppression des anciennes propriétés `LightEmitter.Niagara*`
-est **reportée au jalon ITEM-VFX01.4B**, après inspection des
-DataAssets binaires par Unreal et publication Git LFS de la correction.
+Voir `ITEM_VFX014B_REMOVE_LEGACY_LIGHT_NIAGARA.md` pour le périmètre
+et les critères d'acceptation de la dernière phase.

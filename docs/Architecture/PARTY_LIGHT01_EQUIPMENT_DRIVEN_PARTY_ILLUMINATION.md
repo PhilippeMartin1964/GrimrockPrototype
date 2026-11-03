@@ -1,6 +1,6 @@
 # PARTY-LIGHT01 — Equipment-Driven Party Illumination
 
-> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Le proxy d'illumination du groupe reste distinct de la présentation physique de l'item tenu.
+> **ITEM-VFX01.4B — architecture actuelle (3 novembre 2026).** La flamme provient exclusivement de `VisualEffects`, et l'éclairage du groupe est un PointLight distinct.
 
 Statut : implémenté en C++, validation UE locale réussie le 16.09.2026.
 
@@ -13,12 +13,12 @@ La définition d'un item lumineux reste inchangée : `UGridItemDefinitionAsset::
 ```text
 Item dans le monde / réceptacle
   -> AGridItemActor
-      -> Niagara de l'item
-      -> PointLight local de l'item
+      -> VisualEffectsComponent (Niagara)
+      -> LightEmitterComponent (PointLight local)
 
 Item lumineux équipé en MainHand / OffHand
   -> AGridItemActor tenu
-      -> Niagara de l'item uniquement
+      -> VisualEffectsComponent (Niagara uniquement)
   -> UGridPartyIlluminationComponent
       -> PointLight ergonomique du groupe
 ```
@@ -51,15 +51,17 @@ Le flicker module ces valeurs via ses amplitudes ; il ne possède plus ses propr
 
 Le composant du groupe copie uniquement les paramètres utiles au PointLight : intensité, rayon, couleur et flicker.
 
-Il ne copie volontairement pas :
+Il remet uniquement les offsets physiques du PointLight à zéro :
 
 ```text
-NiagaraSystem
-NiagaraRelativeLocation / Rotation
 PointLightRelativeLocation / Rotation
 ```
 
-Ces transforms appartiennent à la présentation physique de l'item. Le proxy du groupe possède son propre transform relativement à la caméra.
+Les propriétés `NiagaraSystem` et `NiagaraRelativeLocation / Rotation`
+ont été supprimées de `FGridLightEmitterConfig`.
+Les transforms de la flamme appartiennent désormais à
+`DA_Item_Torch.VisualEffects`. Le proxy du groupe possède son propre
+transform relativement à la caméra.
 
 ## 3. Composant du groupe
 
@@ -97,8 +99,8 @@ GridPartyIllumination.Location / Rotation
 HeldItemRoot + HeldItemRelativeLocation / Rotation / Scale
   -> place le mesh de l'item tenu
 
-DA_Item_Torch.LightEmitter.NiagaraRelativeLocation / Rotation
-  -> place la flamme Niagara relativement à l'item tenu
+DA_Item_Torch.VisualEffects.Effects[TorchFlame].RelativeTransform
+  -> place la flamme Niagara relativement au mesh de l'item tenu
 ```
 
 Déplacer `GridPartyIllumination` ne doit donc **jamais déplacer la torche visible ni sa flamme**. Pour déplacer la torche tenue, régler `HeldItemRoot` et/ou `HeldItemRelativeLocation`. Pour recaler uniquement la flamme sur le mesh, régler les transforms Niagara de `DA_Item_Torch`.
@@ -151,16 +153,19 @@ Ainsi, équiper ou retirer une torche sur un compagnon modifie bien l'éclairage
 
 ## 5. Item tenu
 
-Le `HeldItemActor` reste logiquement allumé, mais son exécuteur lumineux reçoit un masque de présentation :
+Le `HeldItemActor` reste logiquement allumé, mais le composant lumineux
+appelle `SetPointLightPresentationEnabled(false)`. L'exécuteur
+`UGridItemVisualEffectsComponent` reste indépendant et continue
+d'afficher la flamme `WhenLightEnabled` si l'instance est allumée.
 
 ```text
-Niagara    = ON
-PointLight = OFF
+HeldItemActor.VisualEffectsComponent = ON
+HeldItemActor.LightEmitterComponent.PointLight = OFF
+UGridPartyIlluminationComponent.PointLight = ON
 ```
 
-La flamme reste donc visuellement attachée à la torche tenue, tandis que l'éclairage du donjon provient du groupe.
-
-Les items dans le monde, les réceptacles et les projectiles conservent les deux canaux par défaut.
+La torche posée, les réceptacles et les projectiles conservent leur
+PointLight local et leur composant `VisualEffects` sans masque particulier.
 
 ## 6. Extension magie
 
@@ -192,12 +197,12 @@ Ils vérifient notamment :
 - une source portée par un personnage non sélectionné éclaire le groupe ;
 - les paramètres intensité/rayon sont transmis ;
 - les offsets physiques de l'item ne sont pas transmis ;
-- le proxy ne crée aucun Niagara ;
+- le proxy n'a plus d'exécuteur Niagara : seul `VisualEffects` crée les particules ;
 - `PARTY-LIGHT03` impose `bCastShadows = true` par défaut et initialise la politique runtime d'ombres à `true` ;
 - le PointLight runtime est `Movable` ;
 - les ombres de géométrie statique et dynamique sont autorisées quand `Cast Shadows` est actif ;
 - le commutateur d'ombres peut être désactivé/réactivé à l'exécution ;
-- le HeldItem garde le canal Niagara mais délègue son PointLight ;
+- le HeldItem garde son composant `VisualEffects` et délègue seulement son PointLight ;
 - la source la plus forte gagne selon `LightIntensity` ;
 - le retrait d'une source sélectionne la suivante ;
 - le retrait de la dernière source éteint le groupe ;

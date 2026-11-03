@@ -68,9 +68,9 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 	}
 	if (HeldItemActor->LightEmitterComponent)
 	{
-		// A held item keeps its flame/Niagara presentation, but its physical
+		// Independent VisualEffects stay on the held mesh; its local
 		// PointLight is delegated to the party illumination proxy.
-		HeldItemActor->LightEmitterComponent->SetEmitterChannelsEnabled(true, false);
+		HeldItemActor->LightEmitterComponent->SetPointLightPresentationEnabled(false);
 	}
 	HeldItemActor->ConfigureAsAttachedItem();
 	HeldItemActor->AttachToComponent(AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);

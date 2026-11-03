@@ -3,8 +3,6 @@
 #include "CoreMinimal.h"
 #include "GridLightEmitterTypes.generated.h"
 
-class UNiagaraSystem;
-
 /**
  * ITEM-LIGHT01: reusable authored presentation for any item that can emit light.
  * LIGHT-CONFIG02: LightIntensity/LightRadius/LightColor are the single point-light base authorities.
@@ -19,16 +17,7 @@ struct GRIMROCKPROTOTYPE_API FGridLightEmitterConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light")
 	bool bDefaultEnabled = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Niagara")
-	TSoftObjectPtr<UNiagaraSystem> NiagaraSystem;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Niagara")
-	FVector NiagaraRelativeLocation = FVector::ZeroVector;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Niagara")
-	FRotator NiagaraRelativeRotation = FRotator::ZeroRotator;
-
-	/** Point-light-only emitters are valid even without a Niagara system. */
+	/** Point-light authoring only; Niagara is configured independently in Item.VisualEffects. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Point Light")
 	bool bUsePointLight = false;
 
@@ -94,7 +83,7 @@ struct GRIMROCKPROTOTYPE_API FGridLightEmitterConfig
 
 	bool HasEmitter() const
 	{
-		return bUsePointLight || !NiagaraSystem.IsNull();
+		return bUsePointLight;
 	}
 
 	bool RequiresRuntimeTick() const

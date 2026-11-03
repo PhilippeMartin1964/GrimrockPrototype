@@ -1,8 +1,6 @@
 #include "Runtime/GridLightEmitterComponent.h"
 
 #include "Components/PointLightComponent.h"
-#include "NiagaraComponent.h"
-#include "NiagaraSystem.h"
 
 UGridLightEmitterComponent::UGridLightEmitterComponent()
 {
@@ -22,11 +20,6 @@ void UGridLightEmitterComponent::ApplyConfig(const FGridLightEmitterConfig& InCo
 	const bool bRestoreEnabled = bLightEnabled;
 	SetLightEnabled(false);
 	RuntimeConfig = InConfig;
-
-	if (NiagaraComponent)
-	{
-		NiagaraComponent->SetAsset(RuntimeConfig.NiagaraSystem.IsNull() ? nullptr : RuntimeConfig.NiagaraSystem.LoadSynchronous());
-	}
 
 	RefreshEmitterTransforms();
 	if (bRestoreEnabled)
@@ -57,40 +50,6 @@ void UGridLightEmitterComponent::TickComponent(float DeltaTime, ELevelTick TickT
 void UGridLightEmitterComponent::SetLightEnabled(bool bEnabled)
 {
 	bLightEnabled = bEnabled && RuntimeConfig.HasEmitter();
-
-	if (bLightEnabled && bNiagaraPresentationEnabled && !RuntimeConfig.NiagaraSystem.IsNull())
-	{
-		UNiagaraSystem* DesiredSystem = RuntimeConfig.NiagaraSystem.LoadSynchronous();
-		if (DesiredSystem && !NiagaraComponent)
-		{
-			NiagaraComponent = NewObject<UNiagaraComponent>(GetOwner(), TEXT("GridItemNiagara"));
-			if (NiagaraComponent)
-			{
-				NiagaraComponent->SetupAttachment(this);
-				NiagaraComponent->SetAsset(DesiredSystem);
-				NiagaraComponent->RegisterComponent();
-			}
-		}
-		else if (NiagaraComponent && NiagaraComponent->GetAsset() != DesiredSystem)
-		{
-			NiagaraComponent->SetAsset(DesiredSystem);
-		}
-	}
-
-	if (NiagaraComponent)
-	{
-		RefreshEmitterTransforms();
-		const bool bShowNiagara = bLightEnabled && bNiagaraPresentationEnabled && !RuntimeConfig.NiagaraSystem.IsNull();
-		NiagaraComponent->SetVisibility(bShowNiagara, true);
-		if (bShowNiagara)
-		{
-			NiagaraComponent->Activate(true);
-		}
-		else
-		{
-			NiagaraComponent->Deactivate();
-		}
-	}
 
 	if (bLightEnabled && bPointLightPresentationEnabled && RuntimeConfig.bUsePointLight && !PointLightComponent)
 	{
@@ -125,22 +84,15 @@ void UGridLightEmitterComponent::SetLightEnabled(bool bEnabled)
 	RefreshTickState();
 }
 
-void UGridLightEmitterComponent::SetEmitterChannelsEnabled(bool bEnableNiagara, bool bEnablePointLight)
+void UGridLightEmitterComponent::SetPointLightPresentationEnabled(bool bEnabled)
 {
-	bNiagaraPresentationEnabled = bEnableNiagara;
-	bPointLightPresentationEnabled = bEnablePointLight;
-
+	bPointLightPresentationEnabled = bEnabled;
 	if (bLightEnabled)
 	{
 		SetLightEnabled(true);
 	}
 	else
 	{
-		if (NiagaraComponent)
-		{
-			NiagaraComponent->SetVisibility(false, true);
-			NiagaraComponent->Deactivate();
-		}
 		if (PointLightComponent)
 		{
 			PointLightComponent->SetVisibility(false);
@@ -160,12 +112,6 @@ void UGridLightEmitterComponent::SetPointLightCastShadows(bool bInCastShadows)
 
 void UGridLightEmitterComponent::RefreshEmitterTransforms()
 {
-	if (NiagaraComponent)
-	{
-		NiagaraComponent->SetRelativeLocation(RuntimeConfig.NiagaraRelativeLocation);
-		NiagaraComponent->SetRelativeRotation(RuntimeConfig.NiagaraRelativeRotation);
-	}
-
 	if (PointLightComponent)
 	{
 		PointLightComponent->SetRelativeLocation(RuntimeConfig.PointLightRelativeLocation);

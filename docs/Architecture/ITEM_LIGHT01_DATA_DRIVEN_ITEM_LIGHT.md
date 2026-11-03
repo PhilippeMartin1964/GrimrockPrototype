@@ -1,6 +1,6 @@
 # ITEM-LIGHT01 — Data-Driven Item Light Emitter
 
-> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Lumière Item data-driven inchangée ; les valeurs PointLight de base restent uniques.
+> **ITEM-VFX01.4B — architecture actuelle (3 novembre 2026).** Le système d'éclairage d'item ne possède plus de canal Niagara. Les particules sont exclusivement configurées dans `VisualEffects`.
 
 Statut : implémenté et validé localement sous UE 5.5.4.  
 Portée : items ramassables, monde, réceptacles, équipement/visuel tenu et projectiles récupérables.
@@ -15,9 +15,13 @@ DA_Item_XXX
       -> FGridLightEmitterConfig
           -> AGridItemActor
               -> UGridLightEmitterComponent
-                  -> Niagara
                   -> PointLight
                   -> Flicker
+
+DA_Item_XXX
+  -> UGridItemDefinitionAsset::VisualEffects
+      -> UGridItemVisualEffectsComponent
+          -> Niagara[0..N]
 ```
 
 `UGridLightEmitterComponent` est un exécuteur runtime. Il ne constitue plus une seconde source d'authoring.
@@ -28,8 +32,6 @@ Le bloc `Light Emitter` de `UGridItemDefinitionAsset` contient notamment :
 
 ```text
 bDefaultEnabled
-NiagaraSystem
-NiagaraRelativeLocation / Rotation
 bUsePointLight
 PointLightRelativeLocation / Rotation
 LightIntensity
@@ -107,7 +109,7 @@ Lors de `InitializeFromItemDefinition()` :
 1. la configuration `LightEmitter` est copiée dans le composant runtime ;
 2. le composant reste éteint tant que l'état de l'instance n'a pas été appliqué ;
 3. `SetItemLightsEnabled()` applique l'état logique de l'instance ;
-4. le contexte de présentation peut ensuite masquer indépendamment Niagara ou PointLight sans modifier cet état logique.
+4. le contexte de présentation peut masquer son PointLight sans modifier cet état logique ni les effets Niagara indépendants.
 
 Aucun `BP_Item_Torch` n'est nécessaire comme autorité runtime pour une torche tenue en main.
 
@@ -134,8 +136,8 @@ Depuis `PARTY-LIGHT01`, un item lumineux tenu ne produit plus son PointLight dir
 
 ```text
 HeldItemActor
-  Niagara    = ON
-  PointLight = OFF
+  VisualEffectsComponent = ON (flamme si item allumé)
+  LightEmitterComponent.PointLight = OFF
 
 UGridPartyIlluminationComponent
   PointLight = paramètres transmis depuis ItemDefinition.LightEmitter
@@ -185,39 +187,22 @@ Le composant n'effectue aucun tick lorsque :
 
 Le tick n'est activé que si une variation runtime du PointLight effectivement présenté est nécessaire : intensité/rayon, position ou couleur.
 
-## 8. Migration de `DA_Item_Torch`
+## 8. Torche de production après ITEM-VFX01.4B
 
-Le `.uasset` a été migré dans Unreal Editor vers `LightEmitter`.
+`DA_Item_Torch` reste le seul asset d'authoring de la torche :
+- `LightEmitter` contient uniquement le PointLight, ses offsets, son
+  état par défaut, son rayon, son intensité, sa couleur et son flicker ;
+- `VisualEffects.Effects[TorchFlame]` référence
+  `NS_Flame_8_Torch`, `WhenLightEnabled` et son transform ;
+- aucun Niagara ou transform de flamme n'est stocké dans
+  `FGridLightEmitterConfig`.
 
-Jusqu'à ITEM-VFX01.2, la flamme et le PointLight partageaient le même bloc.
-**ITEM-VFX01.3 sépare désormais leur authoring** : après exécution de la migration
-du DataAsset, la configuration attendue est :
-
-```text
-DA_Item_Torch.LightEmitter
-  bDefaultEnabled = true
-  NiagaraSystem   = None                 (champ historique vidé)
-  bUsePointLight  = true
-  LightIntensity  > 0
-  LightRadius     > 0
-  LightColor      = couleur de base voulue
-  Flicker         = réglages conservés
-
-DA_Item_Torch.VisualEffects.Effects
-  TorchFlame
-    NiagaraSystem   = NS_Flame_8_Torch
-    ActivationMode  = WhenLightEnabled
-    RelativeTransform = offsets de flamme historiques
-```
-
-Ce document décrit l'architecture `ITEM-LIGHT01` historique ; les sections
-qui mentionnent l'ancien Niagara embarqué dans `LightEmitter` sont à lire
-comme des comportements antérieurs à la migration `ITEM-VFX01.3`.
-Voir `ITEM_VFX01_DATA_DRIVEN_ITEM_NIAGARA.md` pour la procédure et le cycle de vie.
-
-`LIGHT-CONFIG02` ne réécrit aucun `.uasset` binaire et n'introduit aucun fallback automatique vers les anciennes bases supprimées. Le test `Grimrock.Items.LIGHT_CONFIG02.SinglePointLightAuthority` charge donc explicitement `DA_Item_Torch` et exige que ses trois valeurs canoniques soient utilisables.
-
-Ne pas conserver une seconde configuration équivalente dans `BP_Item_Torch` pour la torche item. Le DataAsset est l'autorité.
+Les champs historiques `NiagaraSystem`,
+`NiagaraRelativeLocation`, `NiagaraRelativeRotation` ont été
+retirés du C++ **après l'audit de 47 DataAssets (legacy=0)**.
+L'ancienne procédure de migration binaire a été clôturée et
+ses outils supprimés. Ne pas recréer une configuration dans
+`BP_Item_Torch`. Le DataAsset reste l'autorité.
 
 ## 9. Tests
 
@@ -238,7 +223,8 @@ Ils vérifient notamment :
 - absence de tick pour une lumière fixe ;
 - activation du tick pour le flicker ;
 - extinction complète et arrêt du tick ;
-- absence des anciens champs `BaseLightIntensity`, `BaseAttenuationRadius`, `BaseLightColor` dans la réflexion ;
+- absence des anciennes bases `BaseLightIntensity`, `BaseAttenuationRadius`, `BaseLightColor` dans la réflexion ;
+- absence des champs Niagara historiques et du runtime Niagara dans `UGridLightEmitterComponent` ;
 - présence des valeurs canoniques sur `DA_Item_Torch`.
 
 Régressions associées :
