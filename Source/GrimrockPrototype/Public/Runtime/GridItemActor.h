@@ -6,6 +6,7 @@
 #include "GridItemActor.generated.h"
 
 class UGridLightEmitterComponent;
+class UGridItemVisualEffectsComponent;
 class UMaterialInstanceDynamic;
 class UStaticMeshComponent;
 class UGridItemDefinitionAsset;
@@ -32,6 +33,10 @@ public:
 	/** ITEM-LIGHT01 generic runtime light/flame executor configured exclusively from ItemDefinitionAsset. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UGridLightEmitterComponent> LightEmitterComponent;
+
+	/** ITEM-VFX01.1 independent Niagara effects attached to the item physics mesh. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UGridItemVisualEffectsComponent> VisualEffectsComponent;
 
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|World Sparkle")
 	TObjectPtr<UMaterialInstanceDynamic> WorldSparkleMaterialInstance = nullptr;

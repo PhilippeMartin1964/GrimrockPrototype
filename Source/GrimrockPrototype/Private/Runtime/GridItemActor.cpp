@@ -9,6 +9,7 @@
 #include "Runtime/Combat/GridWorldItemVisualResolver.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
+#include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -37,16 +38,27 @@ AGridItemActor::AGridItemActor()
 	// ITEM-LIGHT03: world physics is simulated by MeshComponent, so the emitter
 	// must share that transform instead of remaining behind on the actor root.
 	LightEmitterComponent->SetupAttachment(MeshComponent);
+
+	VisualEffectsComponent = CreateDefaultSubobject<UGridItemVisualEffectsComponent>(TEXT("VisualEffects"));
+	VisualEffectsComponent->SetupAttachment(MeshComponent);
 }
 
 void AGridItemActor::OnPlacedInWorld()
 {
-	// Light state is instance-owned and applied explicitly by the world/receptacle/equipment path.
+	// Presentation visibility is transient and never overwrites the instance light state.
+	if (VisualEffectsComponent)
+	{
+		VisualEffectsComponent->SetPresentationEnabled(true);
+	}
 }
 
 void AGridItemActor::OnRemovedFromWorld()
 {
 	SetItemLightsEnabled(false);
+	if (VisualEffectsComponent)
+	{
+		VisualEffectsComponent->SetPresentationEnabled(false);
+	}
 	SetWorldSparkleEnabled(false);
 }
 
@@ -55,6 +67,10 @@ void AGridItemActor::SetItemLightsEnabled(bool bEnabled)
 	if (LightEmitterComponent)
 	{
 		LightEmitterComponent->SetLightEnabled(bEnabled);
+	}
+	if (VisualEffectsComponent)
+	{
+		VisualEffectsComponent->SetItemLightState(bEnabled);
 	}
 }
 
@@ -85,6 +101,11 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 		LightEmitterComponent->ApplyConfig(InDefinition->LightEmitter);
 		LightEmitterComponent->SetLightEnabled(false);
 	}
+	if (VisualEffectsComponent)
+	{
+		VisualEffectsComponent->SetItemLightState(false);
+		VisualEffectsComponent->ApplyConfig(InDefinition->VisualEffects);
+	}
 	RefreshWorldSparklePresentation();
 }
 
@@ -107,6 +128,11 @@ void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, co
 	{
 		LightEmitterComponent->ApplyConfig(FGridLightEmitterConfig());
 		LightEmitterComponent->SetLightEnabled(false);
+	}
+	if (VisualEffectsComponent)
+	{
+		VisualEffectsComponent->SetItemLightState(false);
+		VisualEffectsComponent->ApplyConfig(FGridItemVisualEffectsConfig());
 	}
 }
 

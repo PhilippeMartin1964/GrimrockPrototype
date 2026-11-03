@@ -133,7 +133,7 @@ bool UGridItemDefinitionAsset::IsValidDefinition() const
 		return false;
 	}
 
-	if (!LightEmitter.IsValid())
+	if (!LightEmitter.IsValid() || !VisualEffects.IsValid())
 	{
 		return false;
 	}

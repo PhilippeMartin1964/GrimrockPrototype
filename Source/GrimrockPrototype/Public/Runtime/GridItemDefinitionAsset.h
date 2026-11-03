@@ -7,6 +7,7 @@
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "Runtime/GridLightEmitterTypes.h"
+#include "Runtime/GridItemVisualEffectsTypes.h"
 #include "GridItemDefinitionAsset.generated.h"
 
 class UMaterialInterface;
@@ -262,9 +263,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual", meta = (ClampMin = "0.0"))
 	float ThrowVisualSpinDegreesPerSecond = 1080.0f;
 
-	/** ITEM-LIGHT01: single authored authority for Niagara, point light and flicker presentation. */
+	/** ITEM-LIGHT01: legacy light/flame executor; torch Niagara remains here until ITEM-VFX01.3. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Light Emitter", meta = (ShowOnlyInnerProperties))
 	FGridLightEmitterConfig LightEmitter;
+
+	/** ITEM-VFX01.1 Niagara effects independent from item lighting. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Niagara")
+	FGridItemVisualEffectsConfig VisualEffects;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tags")
 	TArray<FName> ItemTags;
