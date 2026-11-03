@@ -38,6 +38,16 @@ void FRPGStartingHealthPotionAuthoring::Configure(UGridItemDefinitionAsset& Item
     Item.MaxStackSize = 10;
     Item.HandUsage = EGridItemHandUsage::NotHandHeld;
     Item.ItemTags = { TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") };
+
+    // ITEM-VFX01.2: future regenerated healing potions author the liquid
+    // sparkle directly, without requiring the legacy light component.
+    Item.VisualEffects.Effects.Reset();
+    FGridItemNiagaraEffectConfig LiquidSparkle;
+    LiquidSparkle.EffectId = TEXT("LiquidSparkle");
+    LiquidSparkle.NiagaraSystem = TSoftObjectPtr<UNiagaraSystem>(
+        FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Effects/Alchimie/NS_LiquideSparkle.NS_LiquideSparkle")));
+    LiquidSparkle.ActivationMode = EGridItemVfxActivationMode::Always;
+    Item.VisualEffects.Effects.Add(LiquidSparkle);
     Item.bProvidesQuickItemCombatAction = true;
     Item.QuickItemActionIdOverride = NAME_None;
 

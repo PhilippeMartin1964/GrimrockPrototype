@@ -1,6 +1,6 @@
 # ITEM-VFX01 — Effets Niagara indépendants des lumières
 
-> ITEM-VFX01.1 — code C++ et tests intégrés à GitHub, **compilation et tests UE 5.5.4 locaux non exécutés**.
+> ITEM-VFX01.1 — validé sur UE 5.5.4 (6/6 tests). ITEM-VFX01.2 — outil de migration des assets Git LFS et tests à valider sur Windows.
 
 ## Périmètre
 
@@ -87,3 +87,64 @@ des jalons ITEM-VFX01.2 à ITEM-VFX01.4.
 
 **Statut :** modifications poussées sur GitHub à la demande du propriétaire ;
 résultats de build et d'automatisation Unreal à obtenir sur Windows.
+
+## ITEM-VFX01.2 — Liquides (potions et flasques)
+
+Le code de migration editor-only est livré dans `UGridItemLiquidVfxMigrationCommandlet`.
+Les quatre DataAssets binaires `.uasset` sont suivis par Git LFS ; leur
+conversion en vrai format Unreal doit être exécutée par UE 5.5.4 sur la
+machine Windows disposant des assets complets.
+
+Assets strictement ciblés : `DA_Item_Potion_Healing_01`,
+`DA_Item_Flask_Oil`, `DA_Item_Flask_Acid` et
+`DA_Item_Flask_CorrosiveCloud`. L'outil crée une entrée
+`VisualEffects.Effects` `LiquidSparkle` pointant vers
+`/Game/GrimrockPrototype/Effects/Alchimie/NS_LiquideSparkle` avec le
+mode `Always`. Si le système existait dans `LightEmitter.NiagaraSystem`,
+le transform local est conservé et la référence historique retirée.
+Les propriétés PointLight demeurent inchangées. Une référence Niagara
+différente de celle attendue provoque un refus explicite.
+
+L'outil vérifie les quatre assets avant toute écriture, ne touche jamais
+les torches et peut être réexécuté sans dupliquer les effets ni
+réenregistrer les assets déjà conformes.
+
+### Procédure locale (Editor fermé)
+
+```powershell
+cd D:\Development\GrimrockPrototype
+git pull --ff-only origin master
+
+# Compilation et vérification préalable
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_1"
+
+# Dry-run sans aucune écriture
+.\Scripts\ItemVFX012-MigrateLiquidAssets.ps1
+
+# Sauvegarde effective des 4 .uasset via Unreal
+.\Scripts\ItemVFX012-MigrateLiquidAssets.ps1 -Apply
+
+# Validation du jalon
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_2" -SkipBuild
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.LIGHT0" -SkipBuild
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Party.LIGHT01" -SkipBuild
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_4" -SkipBuild
+
+# Après réussite uniquement : publication Git LFS ciblée des .uasset
+.\Scripts\ItemVFX012-MigrateLiquidAssets.ps1 -Publish
+```
+
+Tests : `MigrationRecipe`, `ProductionPreflight`,
+`MigratedProductionAssets` (attend que -Apply ait été exécuté) et
+`StackTransferAndWorldRehydration` sous le préfixe
+`Grimrock.Items.VFX01_2`.
+
+Le comportement Niagara n'est pas stocké dans l'instance d'inventaire.
+La même définition présente un effet `Always` après empilement, séparation,
+dépôt, attachement à un réceptacle ou recréation d'acteur, même si la
+valeur conservée de `bLightsEnabled` est `false`. Le code de sauvegarde
+ne nécessite pas de changement du format de `FGridItemInstance`.
+
+La validation locale et le commit Git LFS des assets sont requis pour
+considérer ITEM-VFX01.2 totalement clôturé. La livraison initiale de
+sources n'est pas une preuve de migration binaire.
