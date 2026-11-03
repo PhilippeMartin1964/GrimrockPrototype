@@ -9,6 +9,7 @@
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridWeaponVisualUiResolver.h"
 #include "UI/GridWeaponTooltipProjection.h"
+#include "UI/GridQuickItemSurfaceTooltipText.h"
 #include "UI/GridEquipmentTooltipGlobalProjection.h"
 #include "UI/UILocalizationText.h"
 
@@ -410,6 +411,20 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.ItemLevel = View.bHasItemLevel ? CachedItem.ItemLevel : 0;
 	View.DisplayName = GetItemDisplayName(CachedItem, Definition);
 	View.Description = Definition ? Definition->Description : FText::GetEmpty();
+	if (Definition)
+	{
+		FGridCombatActionDefinition QuickItemAction;
+		if (Definition->BuildQuickItemCombatActionDefinition(QuickItemAction))
+		{
+			const FText SurfaceUsage = FGridQuickItemSurfaceTooltipText::Build(QuickItemAction);
+			if (!SurfaceUsage.IsEmpty())
+			{
+				View.Description = View.Description.IsEmpty()
+					? SurfaceUsage
+					: FText::Join(FText::FromString(TEXT("\n\n")), TArray<FText>{ View.Description, SurfaceUsage });
+			}
+		}
+	}
 	View.ItemType = Definition ? GetItemTypeDisplayName(Definition->ItemType) : NSLOCTEXT("GridInventoryTooltip", "ItemTypeUnknown", "Objet");
 	View.Quantity = FMath::Max(1, CachedItem.Quantity);
 	if (View.Quantity > 1)

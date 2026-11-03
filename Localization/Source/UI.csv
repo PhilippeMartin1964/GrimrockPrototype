@@ -209,6 +209,7 @@ Key,SourceString,Comment
 "Combat.Hotbar.Tooltip.KeepsItem","L’objet reste dans l’inventaire ou équipé.","Instruction de suppression de raccourci"
 "Combat.Hotbar.Tooltip.RemoveShortcut","Clic droit : retirer le raccourci.","Instruction de suppression de raccourci"
 "Combat.Hotbar.Tooltip.Unavailable","Indisponible : {Reason}","Ligne d'indisponibilité du tooltip de raccourci"
+"Combat.QuickItem.Surface.OilUsage","Répand de l’huile sur une zone (portée : {Range} cases, rayon : {Radius} case(s)). La surface dure {Duration} rounds et augmente le coût de déplacement de {TraversalCost}. Coût : {ActionPoints} PA et {Quantity} flasque(s) consommée(s).","Mécanique dérivée des données de la flasque d’huile dans les infobulles inventaire et hotbar"
 "Combat.Initiative.Round","MANCHE {Round}","Séparateur de manche dans l'initiative"
 "Combat.Resource.ActionPoints","PA {Current} / {Maximum}","Affichage des points d'action d'un membre"
 "Combat.Resource.Health","PV {Current} / {Maximum}","Affichage des points de vie dans l'initiative"

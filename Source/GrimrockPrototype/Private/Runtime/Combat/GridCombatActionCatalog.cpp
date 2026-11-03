@@ -211,8 +211,16 @@ namespace
 				{
 					return EGridCombatActionAvailabilityReason::InsufficientMobilityActionPoints;
 				}
+				// Targeted QuickItems which create/convert terrain have a real
+				// world effect, even when the caster's vitals are unchanged.
+				// The cell preview checks target-specific utility before any cost.
+				const bool bTargetedWorldEffect =
+					(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell ||
+						Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area) &&
+					(!Definition.SurfaceEffects.IsEmpty() || !Definition.SurfaceConversions.IsEmpty() ||
+						Definition.SurfaceInteraction != EGridCombatSurfaceInteraction::None);
 				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate &&
-					!bStatusRemovalWouldMutate && !bArmorWouldMutate && !bHasSupportedMovement)
+					!bStatusRemovalWouldMutate && !bArmorWouldMutate && !bHasSupportedMovement && !bTargetedWorldEffect)
 				{
 					return EGridCombatActionAvailabilityReason::NoApplicableEffect;
 				}

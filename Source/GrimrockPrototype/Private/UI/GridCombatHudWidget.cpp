@@ -29,6 +29,7 @@
 #include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridWeaponVisualUiResolver.h"
+#include "UI/GridQuickItemSurfaceTooltipText.h"
 #include "UI/GridPersistentHudWidget.h"
 #include "UI/UILocalizationText.h"
 
@@ -349,6 +350,11 @@ namespace
 		if (!Definition.Description.IsEmpty())
 		{
 			Sections.Add(Definition.Description);
+		}
+		const FText SurfaceUsage = FGridQuickItemSurfaceTooltipText::Build(Definition);
+		if (!SurfaceUsage.IsEmpty())
+		{
+			Sections.Add(SurfaceUsage);
 		}
 		if (!ActionView.bResolved || !ActionView.Action.bEnabled)
 		{
