@@ -17,13 +17,10 @@ namespace ItemVFX012
     constexpr TCHAR SparklePath[] =
         TEXT("/Game/GrimrockPrototype/Effects/Alchimie/NS_LiquideSparkle.NS_LiquideSparkle");
 
-    // Strict allowlist: do not migrate torches, gems or unrelated gameplay items.
+    // Canonical 2026 policy: only the healing potion owns LiquidSparkle.
     constexpr const TCHAR* ItemPaths[] =
     {
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01.DA_Item_Potion_Healing_01"),
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.DA_Item_Flask_Oil"),
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Acid.DA_Item_Flask_Acid"),
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_CorrosiveCloud.DA_Item_Flask_CorrosiveCloud")
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01.DA_Item_Potion_Healing_01")
     };
     const FName SparkleId(TEXT("LiquidSparkle"));
 

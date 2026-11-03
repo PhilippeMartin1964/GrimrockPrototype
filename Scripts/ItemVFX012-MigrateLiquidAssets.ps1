@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
-    ITEM-VFX01.2 — migrate four potion/flask Niagara DataAssets in UE 5.5.4.
+    ITEM-VFX01.2 — legacy helper, now restricted to the healing potion only.
 .DESCRIPTION
-    The default mode is dry-run (read-only). -Apply writes four whitelisted .uasset
+    The default mode is dry-run (read-only). -Apply writes the healing potion .uasset
     packages. -Publish stages and pushes ONLY those four LFS-tracked assets,
     after the user has validated the editor automation tests.
 #>
@@ -17,12 +17,7 @@ $ErrorActionPreference = "Stop"
 $Repo = Split-Path -Parent $PSScriptRoot
 $Project = Join-Path $Repo "GrimrockPrototype.uproject"
 $EditorCmd = Join-Path $EngineRoot "Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
-$Assets = @(
-    "Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01.uasset",
-    "Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.uasset",
-    "Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Acid.uasset",
-    "Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_CorrosiveCloud.uasset"
-)
+$Assets = @("Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01.uasset")
 
 Push-Location $Repo
 try {

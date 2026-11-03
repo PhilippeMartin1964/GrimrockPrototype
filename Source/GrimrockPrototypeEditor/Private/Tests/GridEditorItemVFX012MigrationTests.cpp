@@ -93,26 +93,26 @@ bool FGridItemVFX012MigrationRecipeTest::RunTest(const FString& Parameters)
     TestFalse(TEXT("Reapplying migration is idempotent"), bWouldChange);
     TestEqual(TEXT("Reapplying migration does not duplicate effect"), Visuals.Effects.Num(), 1);
 
-    UGridItemDefinitionAsset* FreshFlask = NewObject<UGridItemDefinitionAsset>();
-    FreshFlask->ItemDefinitionId = TEXT("VFX012_FreshFlask");
-    FreshFlask->ItemType = EGridItemType::Potion;
-    if (!TestTrue(TEXT("Existing flask without legacy Niagara obtains permanent bubbles"),
+    UGridItemDefinitionAsset* FreshHealingPotion = NewObject<UGridItemDefinitionAsset>();
+    FreshHealingPotion->ItemDefinitionId = TEXT("VFX012_FreshHealingPotion");
+    FreshHealingPotion->ItemType = EGridItemType::Potion;
+    if (!TestTrue(TEXT("A newly authored healing potion without legacy Niagara obtains permanent bubbles"),
         FGridItemLiquidVfxMigration::BuildTarget(
-            *FreshFlask, Sparkle, Visuals, Light, bWouldChange, Error)))
+            *FreshHealingPotion, Sparkle, Visuals, Light, bWouldChange, Error)))
     {
         AddError(Error);
         return false;
     }
-    TestTrue(TEXT("Fresh flask needs an authored effect"), bWouldChange);
-    TestEqual(TEXT("Fresh flask has one effect"), Visuals.Effects.Num(), 1);
-    TestTrue(TEXT("Fresh flask has no light emitter"), !Light.HasEmitter());
+    TestTrue(TEXT("Fresh healing potion needs an authored effect"), bWouldChange);
+    TestEqual(TEXT("Fresh healing potion has one effect"), Visuals.Effects.Num(), 1);
+    TestTrue(TEXT("Fresh healing potion has no light emitter"), !Light.HasEmitter());
 
     // A different system in the legacy light slot must not be silently replaced.
     UNiagaraSystem* Unrelated = NewObject<UNiagaraSystem>(GetTransientPackage());
-    FreshFlask->LightEmitter.NiagaraSystem = Unrelated;
+    FreshHealingPotion->LightEmitter.NiagaraSystem = Unrelated;
     TestFalse(TEXT("Unrelated Niagara systems must be reviewed manually"),
         FGridItemLiquidVfxMigration::BuildTarget(
-            *FreshFlask, Sparkle, Visuals, Light, bWouldChange, Error));
+            *FreshHealingPotion, Sparkle, Visuals, Light, bWouldChange, Error));
     TestFalse(TEXT("Refusal explains the problem"), Error.IsEmpty());
     return true;
 }
@@ -125,7 +125,7 @@ bool FGridItemVFX012ProductionPreflightTest::RunTest(const FString& Parameters)
 {
     (void)Parameters;
     FString Error;
-    if (!TestTrue(TEXT("All four production items can be migrated without writing assets"),
+    if (!TestTrue(TEXT("Only the healing potion is in the canonical migration allowlist"),
         FGridItemLiquidVfxMigration::Run(false, Error)))
     {
         AddError(Error);
@@ -145,10 +145,7 @@ bool FGridItemVFX012MigratedProductionTest::RunTest(const FString& Parameters)
 
     const TCHAR* Paths[] =
     {
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01.DA_Item_Potion_Healing_01"),
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.DA_Item_Flask_Oil"),
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Acid.DA_Item_Flask_Acid"),
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_CorrosiveCloud.DA_Item_Flask_CorrosiveCloud")
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01.DA_Item_Potion_Healing_01")
     };
 
     const FSoftObjectPath ExpectedSparkle(

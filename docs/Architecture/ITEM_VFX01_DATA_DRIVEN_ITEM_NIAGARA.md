@@ -1,6 +1,6 @@
 # ITEM-VFX01 — Effets Niagara indépendants des lumières
 
-> ITEM-VFX01.1 — validé (6/6). ITEM-VFX01.2 — validé (10/10), quatre DataAssets Git LFS publiés sur master (commit b5ad10c6). ITEM-VFX01.3 — préparation de la migration des flammes de torches.
+> ITEM-VFX01.1 — validé. ITEM-VFX01.2 et ITEM-VFX01.3 — migrés, testés et publiés. ITEM-VFX01.4A — audit des références héritées et correction de la politique LiquidSparkle en cours.
 
 ## Périmètre
 
@@ -220,3 +220,22 @@ Le test `Grimrock.Items.VFX01_3.MigratedProductionAsset` est prévu
 Le commit des sources C++ ne prouve pas la migration du `.uasset` LFS.
 Le jalon n'est clôturé qu'une fois la compilation, les tests et le
 push du DataAsset réalisés.
+
+## ITEM-VFX01.4A — Clarification des flasques et audit obligatoire
+
+Depuis le 3 novembre 2026, `NS_LiquideSparkle` est réservé à la potion de
+soin. L'utilisateur a retiré manuellement les particules de la flasque
+d'huile. L'ancien outil `ITEM-VFX01.2` a donc été limité à la potion
+de soin pour éviter de recréer cet effet sur les flasques.
+
+Les flasques d'huile, d'acide et de nuage corrosif ne doivent plus
+référencer `LiquidSparkle`, mais conservent leurs autres éventuels
+effets Niagara et tous leurs paramètres lumineux.
+
+La procédure de vérification globale et de normalisation ciblée
+se trouve dans
+[ITEM_VFX014A_LEGACY_AUDIT_AND_SPARKLE_POLICY.md](ITEM_VFX014A_LEGACY_AUDIT_AND_SPARKLE_POLICY.md).
+
+La suppression des anciennes propriétés `LightEmitter.Niagara*`
+est **reportée au jalon ITEM-VFX01.4B**, après inspection des
+DataAssets binaires par Unreal et publication Git LFS de la correction.
