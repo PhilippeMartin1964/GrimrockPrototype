@@ -1,6 +1,6 @@
 # ITEM-VFX01 — Effets Niagara indépendants des lumières
 
-> ITEM-VFX01.1 — validé sur UE 5.5.4 (6/6 tests). ITEM-VFX01.2 — outil de migration des assets Git LFS et tests à valider sur Windows.
+> ITEM-VFX01.1 — validé (6/6). ITEM-VFX01.2 — validé (10/10), quatre DataAssets Git LFS publiés sur master (commit b5ad10c6). ITEM-VFX01.3 — préparation de la migration des flammes de torches.
 
 ## Périmètre
 
@@ -145,6 +145,78 @@ dépôt, attachement à un réceptacle ou recréation d'acteur, même si la
 valeur conservée de `bLightsEnabled` est `false`. Le code de sauvegarde
 ne nécessite pas de changement du format de `FGridItemInstance`.
 
-La validation locale et le commit Git LFS des assets sont requis pour
-considérer ITEM-VFX01.2 totalement clôturé. La livraison initiale de
-sources n'est pas une preuve de migration binaire.
+**ITEM-VFX01.2 clôturé :** validation locale réussie (10/10 tests) et les quatre
+assets `.uasset` migrés poussés par Git LFS dans le commit `b5ad10c6`.
+Les instructions précédentes sont conservées pour la reproductibilité.
+
+## ITEM-VFX01.3 — Flamme conditionnelle de torche
+
+Le seul asset de production modifié par ce jalon est :
+
+`/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch`
+
+Le Niagara de flamme existant est :
+
+`/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch`
+
+L'outil `UGridItemTorchVfxMigrationCommandlet` transfère uniquement
+`LightEmitter.NiagaraSystem` vers une entrée
+`VisualEffects.Effects` avec :
+
+- `EffectId = TorchFlame` ;
+- `NiagaraSystem = NS_Flame_8_Torch` ;
+- `ActivationMode = WhenLightEnabled` ;
+- `RelativeTransform` conservant exactement les offsets de la flamme
+  anciennement renseignés dans `LightEmitter`.
+
+**Invariant essentiel :** `LightEmitter.bDefaultEnabled`,
+`bUsePointLight`, les transformations du PointLight, la couleur,
+l'intensité, le rayon, les flickers et
+`FGridItemInstance::bLightsEnabled` restent inchangés.
+La torche est initialement éteinte pendant la création de son
+`AGridItemActor` et la flamme n'apparaît qu'après l'application de
+l'état de l'instance. La flamme s'éteint/revient lorsque
+`SetItemLightsEnabled(false/true)` est appelé. La lumière du groupe
+continue d'être fournie par `UGridPartyIlluminationComponent`,
+tandis que la flamme de première personne reste attachée au mesh
+de la torche, sans PointLight concurrent.
+
+L'outil est strictement limité au DataAsset de torche, effectue un
+dry-run par défaut, refuse les Niagara inattendus et ne synthétise
+pas de transform s'il n'existe plus de flamme héritée.
+L'opération `-Apply` est idempotente. Aucun fichier de niveau,
+réceptacle, Blueprint ou autre DataAsset n'est modifié.
+
+### Procédure sur Windows (UE Editor fermé)
+
+```powershell
+cd D:\Development\GrimrockPrototype
+git pull --ff-only origin master
+
+# Construire l'éditeur + régression de base
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_1"
+
+# Préflight sans écriture
+.\Scripts\ItemVFX013-MigrateTorchAsset.ps1
+
+# Sauvegarde effective de DA_Item_Torch.uasset
+.\Scripts\ItemVFX013-MigrateTorchAsset.ps1 -Apply
+
+# Migration, données de production et runtime (4 tests)
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_3" -SkipBuild
+
+# Régressions pertinentes
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.LIGHT0" -SkipBuild
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.LIGHT_CONFIG02" -SkipBuild
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Party.LIGHT01" -SkipBuild
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items.VFX01_2" -SkipBuild
+
+# Seulement après toutes les validations : commit et push LFS ciblé
+.\Scripts\ItemVFX013-MigrateTorchAsset.ps1 -Publish
+```
+
+Le test `Grimrock.Items.VFX01_3.MigratedProductionAsset` est prévu
+**après** `-Apply` et échouera volontairement avant la migration.
+Le commit des sources C++ ne prouve pas la migration du `.uasset` LFS.
+Le jalon n'est clôturé qu'une fois la compilation, les tests et le
+push du DataAsset réalisés.

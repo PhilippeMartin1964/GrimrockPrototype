@@ -189,16 +189,31 @@ Le tick n'est activé que si une variation runtime du PointLight effectivement p
 
 Le `.uasset` a été migré dans Unreal Editor vers `LightEmitter`.
 
-La configuration de production doit continuer à renseigner au minimum :
+Jusqu'à ITEM-VFX01.2, la flamme et le PointLight partageaient le même bloc.
+**ITEM-VFX01.3 sépare désormais leur authoring** : après exécution de la migration
+du DataAsset, la configuration attendue est :
 
 ```text
-bDefaultEnabled = true
-NiagaraSystem   = NS_Flame_8_Torch
-bUsePointLight  = true
-LightIntensity  > 0
-LightRadius     > 0
-LightColor      = couleur de base voulue
+DA_Item_Torch.LightEmitter
+  bDefaultEnabled = true
+  NiagaraSystem   = None                 (champ historique vidé)
+  bUsePointLight  = true
+  LightIntensity  > 0
+  LightRadius     > 0
+  LightColor      = couleur de base voulue
+  Flicker         = réglages conservés
+
+DA_Item_Torch.VisualEffects.Effects
+  TorchFlame
+    NiagaraSystem   = NS_Flame_8_Torch
+    ActivationMode  = WhenLightEnabled
+    RelativeTransform = offsets de flamme historiques
 ```
+
+Ce document décrit l'architecture `ITEM-LIGHT01` historique ; les sections
+qui mentionnent l'ancien Niagara embarqué dans `LightEmitter` sont à lire
+comme des comportements antérieurs à la migration `ITEM-VFX01.3`.
+Voir `ITEM_VFX01_DATA_DRIVEN_ITEM_NIAGARA.md` pour la procédure et le cycle de vie.
 
 `LIGHT-CONFIG02` ne réécrit aucun `.uasset` binaire et n'introduit aucun fallback automatique vers les anciennes bases supprimées. Le test `Grimrock.Items.LIGHT_CONFIG02.SinglePointLightAuthority` charge donc explicitement `DA_Item_Torch` et exige que ses trois valeurs canoniques soient utilisables.
 
