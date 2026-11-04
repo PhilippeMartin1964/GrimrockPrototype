@@ -32,9 +32,13 @@ class UGridEditorPreviewComponent;
 class UGridPlayerAttackPresentationComponent;
 class UDecalComponent;
 class UStaticMeshComponent;
+class UPointLightComponent;
 class UReadableMessageWidget;
 class UUserWidget;
 struct FGridResolvedCombatModifiers;
+
+/** Visual variant; authoritative RPG03.6 surface outcomes stay unchanged. */
+enum class EGridSurfaceCatalystVfxKind : uint8 { Fizzle, OilIgnition, PoisonBurst, IceMelt };
 
 UENUM()
 enum class EGridRuntimeRebuildMode : uint8
@@ -159,6 +163,37 @@ public:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> ActiveOilSplashSpatterMaterials;
+
+
+	/** ARMEMENT01.17.2C: presentation-only components, never serialized. */
+	UPROPERTY(Transient)
+	TObjectPtr<UDecalComponent> ActiveCatalystPulse;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> ActiveCatalystPulseMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UPointLightComponent> ActiveCatalystLight;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> ActiveCatalystSparks;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> ActiveFireSurfaceFlames;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UPointLightComponent>> ActiveFireSurfaceLights;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Surface|Catalyst|VFX",
+		meta=(ClampMin="0.3", ClampMax="2.0"))
+	float CatalystPulseDurationSeconds = 0.95f;
+
+	FTimerHandle CatalystVisualTimer;
+	float CatalystVisualElapsedSeconds = 0.f;
+	FVector CatalystVisualCenter = FVector::ZeroVector;
+	float CatalystVisualCellSize = 200.f;
+	EGridSurfaceCatalystVfxKind CatalystVisualKind = EGridSurfaceCatalystVfxKind::Fizzle;
+	int32 CatalystPresentationCount = 0;
 
 	FTimerHandle OilSplashTimer;
 	float OilSplashElapsedSeconds = 0.f;
@@ -612,6 +647,20 @@ public:
 	void PlayCombatOilSplashAtCell(int32 CellX, int32 CellY);
 	void UpdateCombatOilSplash();
 	void ClearCombatOilSplash();
+
+	static EGridSurfaceCatalystVfxKind ResolveCatalystVfxKind(
+		EGridCombatSurfaceType InputType, const FGridCombatSurfaceReactionResult& Reaction);
+	void PlaySurfaceCatalystReactionAtCell(int32 CellX, int32 CellY,
+		EGridCombatSurfaceType InputType, const FGridCombatSurfaceReactionResult& Reaction);
+	void UpdateCatalystReactionVfx();
+	void ClearCatalystReactionVfx();
+	void RefreshFireSurfaceVisuals();
+	void ClearFireSurfaceVisuals();
+	int32 GetCatalystPresentationCount() const { return CatalystPresentationCount; }
+	int32 GetActiveCatalystSparkCount() const { return ActiveCatalystSparks.Num(); }
+	int32 GetActiveFireSurfaceFlameCount() const { return ActiveFireSurfaceFlames.Num(); }
+	EGridSurfaceCatalystVfxKind GetCatalystVisualKind() const { return CatalystVisualKind; }
+
 	int32 GetOilSplashPresentationCount() const { return OilSplashPresentationCount; }
 	int32 GetActiveOilSplashCount() const { return ActiveOilSplashDecal.Get() ? 1 : 0; }
 	int32 GetActiveOilSplashDropletCount() const { return ActiveOilSplashDroplets.Num(); }

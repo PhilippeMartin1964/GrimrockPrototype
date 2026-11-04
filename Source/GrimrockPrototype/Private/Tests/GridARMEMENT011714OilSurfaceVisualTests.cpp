@@ -324,4 +324,48 @@ bool FOilSplashLifetime::RunTest(const FString&)
 	TestNotNull(TEXT("Huile persistante toujours autoritaire"), Runtime->FindCombatSurfaceAtCell(1, 1));
 	return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCatalystVfxClassification,
+	"Grimrock.RPG.ARMEMENT01.17.2C.CanonicalVfxClassification",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FCatalystVfxClassification::RunTest(const FString&)
+{
+	using K=EGridSurfaceCatalystVfxKind;
+	FGridCombatSurfaceReactionResult R;
+	TestTrue(TEXT("Invalid results fizzle"), AGridLevelRuntimeActor::ResolveCatalystVfxKind(EGridCombatSurfaceType::Water,R)==K::Fizzle);
+	R.bReacted=true; R.OutputSurfaceType=EGridCombatSurfaceType::Fire;
+	TestTrue(TEXT("Oil is flame"),AGridLevelRuntimeActor::ResolveCatalystVfxKind(EGridCombatSurfaceType::Oil,R)==K::OilIgnition);
+	R.bExplosive=true;
+	TestTrue(TEXT("Poison is burst"),AGridLevelRuntimeActor::ResolveCatalystVfxKind(EGridCombatSurfaceType::Poison,R)==K::PoisonBurst);
+	TestTrue(TEXT("PoisonCloud is burst"),AGridLevelRuntimeActor::ResolveCatalystVfxKind(EGridCombatSurfaceType::PoisonCloud,R)==K::PoisonBurst);
+	R.bExplosive=false; R.OutputSurfaceType=EGridCombatSurfaceType::Water;
+	TestTrue(TEXT("Ice is melt"),AGridLevelRuntimeActor::ResolveCatalystVfxKind(EGridCombatSurfaceType::Ice,R)==K::IceMelt);
+	TestTrue(TEXT("No invented Water ignition"),AGridLevelRuntimeActor::ResolveCatalystVfxKind(EGridCombatSurfaceType::Water,R)==K::Fizzle);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCatalystVfxLifecycle,
+	"Grimrock.RPG.ARMEMENT01.17.2C.TransientReactionLifecycle",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FCatalystVfxLifecycle::RunTest(const FString&)
+{
+	ARMEMENT011714::FWorld F;
+	auto* Runtime=ARMEMENT011714::MakeRuntime(F);
+	if(!TestNotNull(TEXT("Runtime"),Runtime)) return false;
+	if(!TestTrue(TEXT("Oil"),ARMEMENT011714::Apply(Runtime,1,1,EGridCombatSurfaceType::Oil,2))) return false;
+	FGridCombatSurfaceReactionResult R;
+	if(!TestTrue(TEXT("Canonical Fire"),Runtime->InteractCombatSurfaceAtCell(1,1,
+		EGridCombatSurfaceInteraction::Fire,FGridResolvedCombatModifiers(),R))) return false;
+	TestEqual(TEXT("Oil decal removed"),Runtime->GetActiveOilDecalCount(),0);
+	Runtime->PlaySurfaceCatalystReactionAtCell(1,1,EGridCombatSurfaceType::Oil,R);
+	TestEqual(TEXT("One presentation"),Runtime->GetCatalystPresentationCount(),1);
+	TestTrue(TEXT("Correct VFX"),Runtime->GetCatalystVisualKind()==EGridSurfaceCatalystVfxKind::OilIgnition);
+	for(int32 I=0;I<40;++I) Runtime->UpdateCatalystReactionVfx();
+	TestEqual(TEXT("Transient particles cleaned"),Runtime->GetActiveCatalystSparkCount(),0);
+	TestNotNull(TEXT("Fire still in canonical state"),Runtime->FindCombatSurfaceAtCell(1,1));
+	TestEqual(TEXT("One round remains"),Runtime->AdvanceCombatSurfaceRound(),0);
+	TestEqual(TEXT("Fire expires"),Runtime->AdvanceCombatSurfaceRound(),1);
+	TestEqual(TEXT("Fire VFX cleaned on expiry"),Runtime->GetActiveFireSurfaceFlameCount(),0);
+	return true;
+}
 #endif // WITH_DEV_AUTOMATION_TESTS

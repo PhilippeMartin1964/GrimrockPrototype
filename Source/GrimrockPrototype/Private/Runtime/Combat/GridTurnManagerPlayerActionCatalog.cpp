@@ -2292,8 +2292,15 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 						ReactionResponse.SurfaceReactionAreaRadiusModifier,
 					-8, 8);
 
-				return RuntimeActor->InteractCombatSurfaceAtCell(
+				const EGridCombatSurfaceType Before = ExistingSurface->SurfaceType;
+				const bool bApplied = RuntimeActor->InteractCombatSurfaceAtCell(
 					Cell.X, Cell.Y, Interaction, InteractionModifiers, OutAppliedReaction);
+				if (bApplied && Action.Definition.ActionId == FName(TEXT("Action_Mage_SurfaceCatalyst_01")) &&
+					Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
+				{
+					RuntimeActor->PlaySurfaceCatalystReactionAtCell(Cell.X, Cell.Y, Before, OutAppliedReaction);
+				}
+				return bApplied;
 			};
 
 		for (const FIntPoint& Cell : Preview.AffectedCells)

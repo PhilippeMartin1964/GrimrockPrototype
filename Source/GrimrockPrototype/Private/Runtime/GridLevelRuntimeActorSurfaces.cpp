@@ -5,6 +5,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
@@ -15,6 +16,24 @@ namespace
 {
 	constexpr float OilSplashUpdateIntervalSeconds = 1.f / 30.f;
 	constexpr int32 OilSplashDropletCount = 8;
+	constexpr float CatalystVisualTickInterval = 1.f / 30.f;
+	constexpr int32 MaxFireCells = 48;
+	constexpr int32 MaxFireLights = 8;
+	FVector CatalystDirection(int32 Index, int32 Count)
+	{
+		const float Angle = (2.f * PI * Index) / FMath::Max(1, Count);
+		return FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.f);
+	}
+	FLinearColor CatalystTint(EGridSurfaceCatalystVfxKind Kind)
+	{
+		switch (Kind)
+		{
+		case EGridSurfaceCatalystVfxKind::PoisonBurst: return FLinearColor(.48f,1.f,.09f);
+		case EGridSurfaceCatalystVfxKind::IceMelt: return FLinearColor(.35f,.82f,1.f);
+		case EGridSurfaceCatalystVfxKind::Fizzle: return FLinearColor(.36f,.23f,.15f);
+		default: return FLinearColor(1.f,.34f,.025f);
+		}
+	}
 	const FName OilSplashOpacityParameter(TEXT("OilOpacity"));
 	const FName OilSplashTintParameter(TEXT("OilTint"));
 
@@ -396,6 +415,232 @@ void AGridLevelRuntimeActor::PlayCombatOilSplashAtCell(int32 CellX, int32 CellY)
 		OilSplashUpdateIntervalSeconds, true);
 }
 
+
+EGridSurfaceCatalystVfxKind AGridLevelRuntimeActor::ResolveCatalystVfxKind(
+	EGridCombatSurfaceType InputType, const FGridCombatSurfaceReactionResult& Reaction)
+{
+	if (!Reaction.bReacted) return EGridSurfaceCatalystVfxKind::Fizzle;
+	if (InputType == EGridCombatSurfaceType::Ice &&
+		Reaction.OutputSurfaceType == EGridCombatSurfaceType::Water)
+		return EGridSurfaceCatalystVfxKind::IceMelt;
+	if ((InputType == EGridCombatSurfaceType::Poison ||
+		InputType == EGridCombatSurfaceType::PoisonCloud) &&
+		Reaction.OutputSurfaceType == EGridCombatSurfaceType::Fire && Reaction.bExplosive)
+		return EGridSurfaceCatalystVfxKind::PoisonBurst;
+	if (InputType == EGridCombatSurfaceType::Oil &&
+		Reaction.OutputSurfaceType == EGridCombatSurfaceType::Fire)
+		return EGridSurfaceCatalystVfxKind::OilIgnition;
+	return EGridSurfaceCatalystVfxKind::Fizzle;
+}
+
+void AGridLevelRuntimeActor::ClearCatalystReactionVfx()
+{
+	if (UWorld* World = GetWorld())
+		World->GetTimerManager().ClearTimer(CatalystVisualTimer);
+	if (IsValid(ActiveCatalystPulse)) ActiveCatalystPulse->DestroyComponent();
+	ActiveCatalystPulse = nullptr;
+	ActiveCatalystPulseMaterial = nullptr;
+	if (IsValid(ActiveCatalystLight)) ActiveCatalystLight->DestroyComponent();
+	ActiveCatalystLight = nullptr;
+	for (UStaticMeshComponent* Spark : ActiveCatalystSparks)
+		if (IsValid(Spark)) Spark->DestroyComponent();
+	ActiveCatalystSparks.Reset();
+	CatalystVisualElapsedSeconds = 0.f;
+}
+
+void AGridLevelRuntimeActor::PlaySurfaceCatalystReactionAtCell(
+	int32 CellX, int32 CellY, EGridCombatSurfaceType InputType,
+	const FGridCombatSurfaceReactionResult& Reaction)
+{
+	UWorld* World = GetWorld();
+	if (!World || !World->IsGameWorld() || !LevelAsset ||
+		!IsValidCell(CellX,CellY) || ShouldHideCellFloor(CellX,CellY)) return;
+	ClearCatalystReactionVfx();
+	CatalystVisualKind = ResolveCatalystVfxKind(InputType,Reaction);
+	const bool bPoison = CatalystVisualKind == EGridSurfaceCatalystVfxKind::PoisonBurst;
+	const bool bIce = CatalystVisualKind == EGridSurfaceCatalystVfxKind::IceMelt;
+	const bool bFizzle = CatalystVisualKind == EGridSurfaceCatalystVfxKind::Fizzle;
+	const FLinearColor Color = CatalystTint(CatalystVisualKind);
+	CatalystVisualCellSize = LevelAsset->CellSize;
+	CatalystVisualCenter = CellToWorld(CellX,CellY,0.f) +
+		FVector(CatalystVisualCellSize*.5f,CatalystVisualCellSize*.5f,0.f);
+	UMaterialInterface* Ring = LoadObject<UMaterialInterface>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_RunePulse.M_SurfaceCatalyst_RunePulse"));
+	if (IsValid(Ring))
+	{
+		UDecalComponent* Pulse = NewObject<UDecalComponent>(this);
+		Pulse->SetupAttachment(SceneRoot);
+		Pulse->SetMobility(EComponentMobility::Movable);
+		Pulse->DecalSize = FVector(48.f,CatalystVisualCellSize,CatalystVisualCellSize);
+		Pulse->SetRelativeLocation(CatalystVisualCenter);
+		Pulse->SetRelativeRotation(FQuat::FindBetweenNormals(-FVector::ForwardVector,-FVector::UpVector));
+		Pulse->SetDecalMaterial(Ring);
+		Pulse->SetSortOrder(5);
+		Pulse->SetFadeScreenSize(0.f);
+		Pulse->RegisterComponent();
+		ActiveCatalystPulse = Pulse;
+		ActiveCatalystPulseMaterial = Pulse->CreateDynamicMaterialInstance();
+		if (IsValid(ActiveCatalystPulseMaterial))
+		{
+			ActiveCatalystPulseMaterial->SetVectorParameterValue(TEXT("CatalystGlowColor"),Color);
+			ActiveCatalystPulseMaterial->SetScalarParameterValue(TEXT("CatalystOpacity"),bFizzle?.35f:1.f);
+		}
+		Pulse->SetRelativeScale3D(FVector(1.f,.12f,.12f));
+	}
+	UPointLightComponent* Light = NewObject<UPointLightComponent>(this);
+	Light->SetupAttachment(SceneRoot);
+	Light->SetMobility(EComponentMobility::Movable);
+	Light->SetRelativeLocation(CatalystVisualCenter+FVector(0.f,0.f,38.f));
+	Light->SetLightColor(Color);
+	Light->SetIntensity(bFizzle?420.f:(bPoison?5200.f:2900.f));
+	Light->SetAttenuationRadius(CatalystVisualCellSize*(bPoison?2.2f:1.5f));
+	Light->SetCastShadows(false);
+	Light->RegisterComponent();
+	ActiveCatalystLight = Light;
+	UStaticMesh* Sphere = LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	UMaterialInterface* Glow = LoadObject<UMaterialInterface>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
+	if (IsValid(Sphere) && IsValid(Glow))
+	{
+		const int32 Count = bPoison?14:(bIce?10:(bFizzle?2:9));
+		for (int32 I=0;I<Count;++I)
+		{
+			UStaticMeshComponent* Spark = NewObject<UStaticMeshComponent>(this);
+			Spark->SetupAttachment(SceneRoot);
+			Spark->SetMobility(EComponentMobility::Movable);
+			Spark->SetStaticMesh(Sphere);
+			Spark->SetMaterial(0,Glow);
+			Spark->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Spark->SetGenerateOverlapEvents(false);
+			Spark->SetCastShadow(false);
+			Spark->SetRelativeLocation(CatalystVisualCenter+FVector(0.f,0.f,16.f));
+			Spark->SetRelativeScale3D(FVector(.045f));
+			Spark->RegisterComponent();
+			if (UMaterialInstanceDynamic* Dyn = Spark->CreateDynamicMaterialInstance(0))
+			{
+				Dyn->SetVectorParameterValue(TEXT("CatalystGlowColor"),
+					bPoison && I%3==0 ? FLinearColor(1.f,.23f,.018f) : Color);
+				Dyn->SetScalarParameterValue(TEXT("CatalystGlowStrength"),bFizzle?.8f:3.8f);
+			}
+			ActiveCatalystSparks.Add(Spark);
+		}
+	}
+	CatalystVisualElapsedSeconds = 0.f;
+	++CatalystPresentationCount;
+	World->GetTimerManager().SetTimer(CatalystVisualTimer,this,
+		&AGridLevelRuntimeActor::UpdateCatalystReactionVfx,CatalystVisualTickInterval,true);
+}
+
+void AGridLevelRuntimeActor::UpdateCatalystReactionVfx()
+{
+	CatalystVisualElapsedSeconds += CatalystVisualTickInterval;
+	const float T = FMath::Clamp(CatalystVisualElapsedSeconds/FMath::Max(.3f,CatalystPulseDurationSeconds),0.f,1.f);
+	if (T >= 1.f) { ClearCatalystReactionVfx(); return; }
+	const float Ease = 1.f-FMath::Pow(1.f-T,3.f);
+	const bool bPoison = CatalystVisualKind == EGridSurfaceCatalystVfxKind::PoisonBurst;
+	const bool bIce = CatalystVisualKind == EGridSurfaceCatalystVfxKind::IceMelt;
+	const bool bFizzle = CatalystVisualKind == EGridSurfaceCatalystVfxKind::Fizzle;
+	if (IsValid(ActiveCatalystPulse))
+	{
+		const float S=FMath::Lerp(.12f,bPoison?1.5f:.95f,Ease);
+		ActiveCatalystPulse->SetRelativeScale3D(FVector(1.f,S,S));
+	}
+	if (IsValid(ActiveCatalystPulseMaterial))
+		ActiveCatalystPulseMaterial->SetScalarParameterValue(TEXT("CatalystOpacity"),
+			(bFizzle?.35f:1.f)*FMath::Square(1.f-T));
+	if (IsValid(ActiveCatalystLight))
+		ActiveCatalystLight->SetIntensity((bFizzle?420.f:(bPoison?5200.f:2900.f))*FMath::Square(1.f-T));
+	const int32 Count=ActiveCatalystSparks.Num();
+	for (int32 I=0;I<Count;++I)
+	{
+		UStaticMeshComponent* Spark=ActiveCatalystSparks[I];
+		if (!IsValid(Spark)) continue;
+		const float Delay=.018f*(I%4);
+		const float Progress=FMath::Clamp((T-Delay)/(1.f-Delay),0.f,1.f);
+		const float Radius=CatalystVisualCellSize*(bPoison?.65f:(bIce?.26f:.38f));
+		const float Arc=4.f*Progress*(1.f-Progress);
+		Spark->SetRelativeLocation(CatalystVisualCenter+
+			CatalystDirection(I,Count)*Radius*Progress+
+			FVector(0.f,0.f,16.f+(bIce?36.f:(bPoison?115.f:75.f))*Arc));
+		const float Shrink=Progress>.7f?FMath::Clamp((1.f-Progress)/.3f,0.f,1.f):1.f;
+		const float S=(bPoison?.055f:.042f)*Shrink;
+		Spark->SetRelativeScale3D(FVector(S,S,S*(bIce?.65f:1.4f)));
+	}
+}
+
+void AGridLevelRuntimeActor::ClearFireSurfaceVisuals()
+{
+	for (UStaticMeshComponent* Flame : ActiveFireSurfaceFlames)
+		if (IsValid(Flame)) Flame->DestroyComponent();
+	ActiveFireSurfaceFlames.Reset();
+	for (UPointLightComponent* Light : ActiveFireSurfaceLights)
+		if (IsValid(Light)) Light->DestroyComponent();
+	ActiveFireSurfaceLights.Reset();
+}
+
+void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
+{
+	ClearFireSurfaceVisuals();
+	UWorld* World=GetWorld();
+	const FGridLevelRuntimeState* State=FindRuntimeStateForCurrentLevel();
+	if (!World || !World->IsGameWorld() || !State || !LevelAsset) return;
+	UStaticMesh* Sphere=LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	UMaterialInterface* Glow=LoadObject<UMaterialInterface>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
+	if (!IsValid(Sphere) || !IsValid(Glow)) return;
+	TArray<FIntPoint> Cells;
+	for (const TPair<FIntPoint,FGridCombatSurfaceState>& Entry : State->Surfaces)
+	{
+		if (Entry.Value.IsValid() && Entry.Value.SurfaceType==EGridCombatSurfaceType::Fire &&
+			IsWalkableCell(Entry.Key.X,Entry.Key.Y) && !ShouldHideCellFloor(Entry.Key.X,Entry.Key.Y))
+			Cells.Add(Entry.Key);
+	}
+	Cells.Sort([](const FIntPoint& A,const FIntPoint& B){
+		return A.Y==B.Y ? A.X<B.X : A.Y<B.Y;
+	});
+	const float Size=LevelAsset->CellSize;
+	for(int32 I=0;I<FMath::Min(Cells.Num(),MaxFireCells);++I)
+	{
+		const FIntPoint Cell=Cells[I];
+		const FVector Center=CellToWorld(Cell.X,Cell.Y,0.f)+FVector(Size*.5f,Size*.5f,0.f);
+		for(int32 J=0;J<3;++J)
+		{
+			UStaticMeshComponent* Flame=NewObject<UStaticMeshComponent>(this);
+			Flame->SetupAttachment(SceneRoot);
+			Flame->SetMobility(EComponentMobility::Movable);
+			Flame->SetStaticMesh(Sphere);
+			Flame->SetMaterial(0,Glow);
+			Flame->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Flame->SetGenerateOverlapEvents(false);
+			Flame->SetCastShadow(false);
+			Flame->SetRelativeLocation(Center+CatalystDirection(J,3)*Size*.19f+
+				FVector(0.f,0.f,22.f+J*5.f));
+			Flame->SetRelativeScale3D(FVector(.15f,.10f,.42f+J*.09f));
+			Flame->RegisterComponent();
+			if (UMaterialInstanceDynamic* Dyn=Flame->CreateDynamicMaterialInstance(0))
+			{
+				Dyn->SetVectorParameterValue(TEXT("CatalystGlowColor"),
+					J==0?FLinearColor(1.f,.25f,.015f):FLinearColor(1.f,.48f,.07f));
+				Dyn->SetScalarParameterValue(TEXT("CatalystGlowStrength"),2.8f);
+			}
+			ActiveFireSurfaceFlames.Add(Flame);
+		}
+		if (I<MaxFireLights)
+		{
+			UPointLightComponent* Light=NewObject<UPointLightComponent>(this);
+			Light->SetupAttachment(SceneRoot);
+			Light->SetMobility(EComponentMobility::Movable);
+			Light->SetRelativeLocation(Center+FVector(0.f,0.f,45.f));
+			Light->SetLightColor(FLinearColor(1.f,.3f,.06f));
+			Light->SetIntensity(650.f);
+			Light->SetAttenuationRadius(Size*1.2f);
+			Light->SetCastShadows(false);
+			Light->RegisterComponent();
+			ActiveFireSurfaceLights.Add(Light);
+		}
+	}
+}
+
 void AGridLevelRuntimeActor::ClearCombatOilSurfaceVisuals()
 {
 	for (UDecalComponent* Decal : ActiveOilDecals)
@@ -412,7 +657,8 @@ void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 {
 	// Le vieillissement dépend de l'état, non du matériau de décalque.
 	RefreshExplorationOilTimer();
-	// Recréer uniquement la présentation depuis RPG03.6, sans modifier l'état de combat.
+	// Oil decals and permanent Fire tongues are presentation derived from RPG03.6.
+	RefreshFireSurfaceVisuals();
 	ClearCombatOilSurfaceVisuals();
 	if (!LevelAsset || !GetWorld() || !GetWorld()->IsGameWorld())
 	{
