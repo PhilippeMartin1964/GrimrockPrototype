@@ -353,7 +353,7 @@ try {
             if ([IO.Path]::GetFullPath($ActualRoot).TrimEnd('\') -ine $WorktreePath.TrimEnd('\')) {
                 throw "Worktree d'origine differente : $ActualRoot"
             }
-            $Dirty = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'status', '--porcelain', '--untracked-files=normal'))
+            $Dirty = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'status', '--porcelain', '--untracked-files=all'))
 
             # ARMEMENT01.17.2C: a failed native commandlet may leave a partial
             # asset batch. Recover ONLY its five known new binaries and the one
