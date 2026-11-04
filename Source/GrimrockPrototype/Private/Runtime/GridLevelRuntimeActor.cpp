@@ -293,6 +293,7 @@ void AGridLevelRuntimeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	ClearCatalystReactionVfx();
 	ClearCombatOilSurfaceVisuals();
 	ClearFireSurfaceVisuals();
+	ClearWaterSurfaceVisuals();
 	HideCombatFeedback();
 	Super::EndPlay(EndPlayReason);
 }
@@ -308,6 +309,7 @@ void AGridLevelRuntimeActor::ClearVisuals(EGridRuntimeRebuildMode RebuildMode)
 	ClearCatalystReactionVfx();
 	ClearCombatOilSurfaceVisuals();
 	ClearFireSurfaceVisuals();
+	ClearWaterSurfaceVisuals();
 	if (CeilingISM)
 	{
 		CeilingISM->ClearInstances();

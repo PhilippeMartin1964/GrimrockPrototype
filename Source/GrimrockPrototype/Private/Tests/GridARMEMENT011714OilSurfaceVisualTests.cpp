@@ -368,4 +368,26 @@ bool FCatalystVfxLifecycle::RunTest(const FString&)
 	TestEqual(TEXT("Fire VFX cleaned on expiry"),Runtime->GetActiveFireSurfaceFlameCount(),0);
 	return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCatalystWetSurface,
+	"Grimrock.RPG.ARMEMENT01.17.2C.IceMeltWaterProjection",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FCatalystWetSurface::RunTest(const FString&)
+{
+	ARMEMENT011714::FWorld F;
+	auto* Runtime=ARMEMENT011714::MakeRuntime(F);
+	if(!TestNotNull(TEXT("Runtime"),Runtime)) return false;
+	if(!TestTrue(TEXT("Ice is created"),ARMEMENT011714::Apply(Runtime,1,1,EGridCombatSurfaceType::Ice,2))) return false;
+	FGridCombatSurfaceReactionResult R;
+	if(!TestTrue(TEXT("Ice reacts with Fire"),Runtime->InteractCombatSurfaceAtCell(
+		1,1,EGridCombatSurfaceInteraction::Fire,FGridResolvedCombatModifiers(),R))) return false;
+	TestTrue(TEXT("Water remains canonical"),Runtime->FindCombatSurfaceAtCell(1,1)->SurfaceType==EGridCombatSurfaceType::Water);
+	TestTrue(TEXT("Ice melt variation"),AGridLevelRuntimeActor::ResolveCatalystVfxKind(
+		EGridCombatSurfaceType::Ice,R)==EGridSurfaceCatalystVfxKind::IceMelt);
+	TestTrue(TEXT("Wet floor projected onto real stone"),Runtime->GetActiveWaterSurfaceDecalCount()>0);
+	Runtime->AdvanceCombatSurfaceRound();
+	Runtime->AdvanceCombatSurfaceRound();
+	TestEqual(TEXT("Wet decal removed at surface expiration"),Runtime->GetActiveWaterSurfaceDecalCount(),0);
+	return true;
+}
 #endif // WITH_DEV_AUTOMATION_TESTS

@@ -33,6 +33,7 @@ class UGridPlayerAttackPresentationComponent;
 class UDecalComponent;
 class UStaticMeshComponent;
 class UPointLightComponent;
+class UNiagaraComponent;
 class UReadableMessageWidget;
 class UUserWidget;
 struct FGridResolvedCombatModifiers;
@@ -183,6 +184,17 @@ public:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UPointLightComponent>> ActiveFireSurfaceLights;
+
+	/** Use the existing native torch flame Niagara for persistent fire, not round bubbles. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UNiagaraComponent>> ActiveFireNiagaraComponents;
+
+	/** Wet floor after a canonical Ice->Water reaction; presentation only. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UDecalComponent>> ActiveWaterSurfaceDecals;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> ActiveWaterSurfaceMaterials;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Surface|Catalyst|VFX",
 		meta=(ClampMin="0.3", ClampMax="2.0"))
@@ -656,6 +668,10 @@ public:
 	void ClearCatalystReactionVfx();
 	void RefreshFireSurfaceVisuals();
 	void ClearFireSurfaceVisuals();
+	void RefreshWaterSurfaceVisuals();
+	void ClearWaterSurfaceVisuals();
+	int32 GetActiveFireNiagaraCount() const { return ActiveFireNiagaraComponents.Num(); }
+	int32 GetActiveWaterSurfaceDecalCount() const { return ActiveWaterSurfaceDecals.Num(); }
 	int32 GetCatalystPresentationCount() const { return CatalystPresentationCount; }
 	int32 GetActiveCatalystSparkCount() const { return ActiveCatalystSparks.Num(); }
 	int32 GetActiveFireSurfaceFlameCount() const { return ActiveFireSurfaceFlames.Num(); }

@@ -6,6 +6,8 @@
 #include "Components/DecalComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
@@ -570,6 +572,15 @@ void AGridLevelRuntimeActor::UpdateCatalystReactionVfx()
 
 void AGridLevelRuntimeActor::ClearFireSurfaceVisuals()
 {
+	for (UNiagaraComponent* FlameFx : ActiveFireNiagaraComponents)
+	{
+		if (IsValid(FlameFx))
+		{
+			FlameFx->DeactivateImmediate();
+			FlameFx->DestroyComponent();
+		}
+	}
+	ActiveFireNiagaraComponents.Reset();
 	for (UStaticMeshComponent* Flame : ActiveFireSurfaceFlames)
 		if (IsValid(Flame)) Flame->DestroyComponent();
 	ActiveFireSurfaceFlames.Reset();
@@ -587,7 +598,9 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 	UStaticMesh* Sphere=LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	UMaterialInterface* Glow=LoadObject<UMaterialInterface>(nullptr,
 		TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
-	if (!IsValid(Sphere) || !IsValid(Glow)) return;
+	UNiagaraSystem* FlameSystem=LoadObject<UNiagaraSystem>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch.NS_Flame_8_Torch"));
+	if (!IsValid(FlameSystem) && (!IsValid(Sphere) || !IsValid(Glow))) return;
 	TArray<FIntPoint> Cells;
 	for (const TPair<FIntPoint,FGridCombatSurfaceState>& Entry : State->Surfaces)
 	{
@@ -603,7 +616,19 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 	{
 		const FIntPoint Cell=Cells[I];
 		const FVector Center=CellToWorld(Cell.X,Cell.Y,0.f)+FVector(Size*.5f,Size*.5f,0.f);
-		for(int32 J=0;J<3;++J)
+		if (IsValid(FlameSystem))
+		{
+			UNiagaraComponent* FlameFx=NewObject<UNiagaraComponent>(this);
+			FlameFx->SetAutoActivate(false);
+			FlameFx->SetupAttachment(SceneRoot);
+			FlameFx->SetAsset(FlameSystem);
+			FlameFx->SetRelativeLocation(Center+FVector(0.f,0.f,4.f));
+			FlameFx->SetRelativeScale3D(FVector(.38f));
+			FlameFx->RegisterComponent();
+			FlameFx->Activate(true);
+			ActiveFireNiagaraComponents.Add(FlameFx);
+		}
+		else for(int32 J=0;J<3;++J)
 		{
 			UStaticMeshComponent* Flame=NewObject<UStaticMeshComponent>(this);
 			Flame->SetupAttachment(SceneRoot);
@@ -641,6 +666,61 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 	}
 }
 
+
+void AGridLevelRuntimeActor::ClearWaterSurfaceVisuals()
+{
+	for (UDecalComponent* Decal : ActiveWaterSurfaceDecals)
+		if (IsValid(Decal)) Decal->DestroyComponent();
+	ActiveWaterSurfaceDecals.Reset();
+	ActiveWaterSurfaceMaterials.Reset();
+}
+
+void AGridLevelRuntimeActor::RefreshWaterSurfaceVisuals()
+{
+	ClearWaterSurfaceVisuals();
+	UWorld* World=GetWorld();
+	const FGridLevelRuntimeState* State=FindRuntimeStateForCurrentLevel();
+	if (!World || !World->IsGameWorld() || !State || !LevelAsset) return;
+	UMaterialInterface* Wet=LoadObject<UMaterialInterface>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.MI_Surface_Oil"));
+	if (!IsValid(Wet)) Wet=OilSurfaceMaterial.LoadSynchronous();
+	if (!IsValid(Wet)) return;
+	TArray<FIntPoint> Cells;
+	for (const TPair<FIntPoint,FGridCombatSurfaceState>& E : State->Surfaces)
+	{
+		if (E.Value.IsValid() && E.Value.SurfaceType==EGridCombatSurfaceType::Water &&
+			IsWalkableCell(E.Key.X,E.Key.Y) && !ShouldHideCellFloor(E.Key.X,E.Key.Y))
+			Cells.Add(E.Key);
+	}
+	Cells.Sort([](const FIntPoint& A,const FIntPoint& B) {
+		return A.Y==B.Y ? A.X<B.X : A.Y<B.Y;
+	});
+	const float Size=LevelAsset->CellSize;
+	const FQuat Rot=FQuat::FindBetweenNormals(-FVector::ForwardVector,-FVector::UpVector);
+	for(int32 I=0;I<FMath::Min(Cells.Num(),48);++I)
+	{
+		const FIntPoint Cell=Cells[I];
+		UDecalComponent* Decal=NewObject<UDecalComponent>(this);
+		Decal->SetupAttachment(SceneRoot);
+		Decal->SetMobility(EComponentMobility::Movable);
+		Decal->DecalSize=FVector(48.f,Size*.96f,Size*.96f);
+		Decal->SetRelativeLocation(CellToWorld(Cell.X,Cell.Y,0.f)+FVector(Size*.5f,Size*.5f,0.f));
+		Decal->SetRelativeRotation(Rot);
+		Decal->SetDecalMaterial(Wet);
+		Decal->SetFadeScreenSize(0.f);
+		Decal->SetSortOrder(2);
+		Decal->RegisterComponent();
+		if (UMaterialInstanceDynamic* MID=Decal->CreateDynamicMaterialInstance())
+		{
+			MID->SetVectorParameterValue(TEXT("OilTint"),FLinearColor(.025f,.10f,.16f));
+			MID->SetScalarParameterValue(TEXT("OilOpacity"),.45f);
+			MID->SetScalarParameterValue(TEXT("OilRoughness"),.08f);
+			ActiveWaterSurfaceMaterials.Add(MID);
+		}
+		ActiveWaterSurfaceDecals.Add(Decal);
+	}
+}
+
 void AGridLevelRuntimeActor::ClearCombatOilSurfaceVisuals()
 {
 	for (UDecalComponent* Decal : ActiveOilDecals)
@@ -659,6 +739,7 @@ void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 	RefreshExplorationOilTimer();
 	// Oil decals and permanent Fire tongues are presentation derived from RPG03.6.
 	RefreshFireSurfaceVisuals();
+	RefreshWaterSurfaceVisuals();
 	ClearCombatOilSurfaceVisuals();
 	if (!LevelAsset || !GetWorld() || !GetWorld()->IsGameWorld())
 	{
