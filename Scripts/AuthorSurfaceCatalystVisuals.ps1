@@ -59,7 +59,34 @@ $Err=Join-Path $RunDir 'CatalystVisualsCommandlet.stderr.log'
 $Args='"'+$Project+'" -run=RPGAlchemistAuthoring -SurfaceCatalystVisuals -Apply -Unattended -NoSplash -NoP4 -NullRHI'
 Stage 'COMMANDLET_STARTED'
 $Process=Start-Process -FilePath $Exe -ArgumentList $Args -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Output -RedirectStandardError $Err -PassThru -Wait -ErrorAction Stop
-if($Process.ExitCode -ne 0) { Stage 'COMMANDLET_FAILED'; throw 'Unreal commandlet failed; see private logs.' }
+if($Process.ExitCode -ne 0) {
+    # Publish only a fixed, bounded failure code; raw commandlet logs stay private.
+    $SafeCode='COMMANDLET_FAILED'
+    $TailText=''
+    if(Test-Path -LiteralPath $Output -PathType Leaf) {
+        $TailText=(@(Get-Content -LiteralPath $Output -Tail 500 -ErrorAction SilentlyContinue)-join [Environment]::NewLine)
+    }
+    foreach($Rule in @(
+        @('Material graph 0 failed','FAIL_GRAPH_FLASK'),
+        @('Material graph 1 failed','FAIL_GRAPH_EMBER'),
+        @('Material graph 2 failed','FAIL_GRAPH_RUNE'),
+        @('SaveMaterial 0 failed','FAIL_SAVE_FLASK'),
+        @('SaveMaterial 1 failed','FAIL_SAVE_EMBER'),
+        @('SaveMaterial 2 failed','FAIL_SAVE_RUNE'),
+        @('DuplicateMesh failed','FAIL_DUPLICATE_MESH'),
+        @('SaveMesh failed','FAIL_SAVE_MESH'),
+        @('CreateIcon failed','FAIL_CREATE_ICON'),
+        @('SaveIcon failed','FAIL_SAVE_ICON'),
+        @('Final visual asset validation failed','FAIL_FINAL_CONTRACT'),
+        @('Native Catalyst visual contract is incomplete','FAIL_FINAL_CONTRACT'),
+        @('Unexpected partial','FAIL_PARTIAL_ASSETS'),
+        @('Missing approved item','FAIL_SOURCE_ITEM')
+    )) {
+        if($TailText.Contains([string]$Rule[0])) { $SafeCode=[string]$Rule[1]; break }
+    }
+    Stage $SafeCode
+    throw 'Unreal commandlet failed; see private logs.'
+}
 Stage 'COMMANDLET_COMPLETED'
 $Changes=@(Invoke-Git -GitArgs @('status','--porcelain','--untracked-files=all'))
 if($Changes.Count -ne ($New.Count+1)) { Stage 'FILESET'; throw 'Incorrect number of files.' }

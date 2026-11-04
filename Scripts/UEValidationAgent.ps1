@@ -218,7 +218,11 @@ function Get-PublicSafeDiagnostics {
         $VStage = [string](Get-Content -LiteralPath $VisualStagePath -TotalCount 1 -ErrorAction SilentlyContinue)
         if ($VStage -in @('PREFLIGHT','SOURCE_READY','REPORT','REPORT_ACCEPTED',
             'COMMANDLET_STARTED','COMMANDLET_FAILED','COMMANDLET_COMPLETED',
-            'FILESET','ASSETS_VERIFIED','COMMIT_CREATED','SUCCESS')) {
+            'FAIL_GRAPH_FLASK','FAIL_GRAPH_EMBER','FAIL_GRAPH_RUNE',
+            'FAIL_SAVE_FLASK','FAIL_SAVE_EMBER','FAIL_SAVE_RUNE',
+            'FAIL_DUPLICATE_MESH','FAIL_SAVE_MESH','FAIL_CREATE_ICON',
+            'FAIL_SAVE_ICON','FAIL_FINAL_CONTRACT','FAIL_PARTIAL_ASSETS',
+            'FAIL_SOURCE_ITEM','FILESET','ASSETS_VERIFIED','COMMIT_CREATED','SUCCESS')) {
             $Safe.Add('Catalyseur VFX : phase ' + $VStage)
         }
     }
@@ -350,6 +354,273 @@ try {
                 throw "Worktree d'origine differente : $ActualRoot"
             }
             $Dirty = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'status', '--porcelain', '--untracked-files=normal'))
+
+            # ARMEMENT01.17.2C: a failed native commandlet may leave a partial
+            # asset batch. Recover ONLY its five known new binaries and the one
+            # dedicated catalyst item, in the isolated validation worktree.
+            # Create SHA256-verified private backups BEFORE restoring/deleting.
+            $CatalystItem = 'Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_SurfaceCatalyst_01.uasset'
+            $CatalystNew = @(
+                'Content/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Flask.uasset',
+                'Content/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.uasset',
+                'Content/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_RunePulse.uasset',
+                'Content/GrimrockPrototype/Art/Meshes/Catalyst/SM_SurfaceCatalyst_01.uasset',
+                'Content/GrimrockPrototype/Art/Textures/Catalyst/T_UI_Item_SurfaceCatalyst_01.uasset'
+            )
+            if ($Dirty.Count -gt 0) {
+                $OnlyCatalystArtifacts = $true
+                foreach ($Entry in $Dirty) {
+                    if ($Entry.Length -lt 4) { $OnlyCatalystArtifacts = $false; break }
+                    $Path = $Entry.Substring(3)
+                    if (-not (($Entry.StartsWith('?? ') -and $Path -cin $CatalystNew) -or
+                              ($Entry.StartsWith(' M ') -and $Path -ceq $CatalystItem))) {
+                        $OnlyCatalystArtifacts = $false; break
+                    }
+                }
+                if ($OnlyCatalystArtifacts) {
+                    $OldHead = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'rev-parse', 'HEAD'))[0].Trim()
+                    if ($OldHead -notmatch '^[a-f0-9]{40}
+                # Récupération spécifique : un commandlet précédent peut avoir
+                # réécrit M_Surface_Oil avant que son commit n'ait été accepté.
+                # Ne JAMAIS restaurer un fichier inattendu ou non sauvegardé.
+                $AllowedOilAssets = @(
+                    'Content/GrimrockPrototype/Art/Materials/Surfaces/M_Surface_Oil.uasset',
+                    'Content/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.uasset'
+                )
+                $DirtyOilPaths = @()
+                foreach ($Entry in $Dirty) {
+                    if (-not $Entry.StartsWith(' M ') -or $Entry.Length -le 3) {
+                        throw 'Worktree de validation modifie (index ou statut non autorise) : protection active.'
+                    }
+                    $Path = $Entry.Substring(3)
+                    if ($Path -notin $AllowedOilAssets) {
+                        throw 'Worktree de validation modifie (fichier hors liste blanche) : protection active.'
+                    }
+                    $DirtyOilPaths += $Path
+                }
+                if ($DirtyOilPaths.Count -lt 1 -or $DirtyOilPaths.Count -gt 2) {
+                    throw 'Worktree de validation modifie : nombre de fichiers inattendu.'
+                }
+                $OldHead = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'rev-parse', 'HEAD'))[0].Trim()
+                if ($OldHead -notmatch '^[0-9a-f]{40}$') {
+                    throw 'Revision du worktree invalide : sauvegarde non tentee.'
+                }
+                $BackupRoot = Join-Path $StateRoot ('Recovery\Oil-' + $OldHead.Substring(0,12) + '-' + (Get-Date -Format 'yyyyMMddHHmmssfff'))
+                New-Item -ItemType Directory -Path $BackupRoot -Force | Out-Null
+                foreach ($OilPath in $DirtyOilPaths) {
+                    $Source = Join-Path $WorktreePath $OilPath
+                    $Destination = Join-Path $BackupRoot ([IO.Path]::GetFileName($OilPath))
+                    if (-not (Test-Path -LiteralPath $Source -PathType Leaf)) {
+                        throw 'Asset d huile absent : restauration refusee.'
+                    }
+                    Copy-Item -LiteralPath $Source -Destination $Destination -ErrorAction Stop
+                    $SourceHash = (Get-FileHash -LiteralPath $Source -Algorithm SHA256).Hash
+                    $BackupHash = (Get-FileHash -LiteralPath $Destination -Algorithm SHA256).Hash
+                    if ($SourceHash -ne $BackupHash) {
+                        throw 'Sauvegarde huile non integre : restauration refusee.'
+                    }
+                }
+                # Restore est limite AUX DEUX assets autorises, dans le seul
+                # worktree temporaire. Les copies exactes demeurent privées.
+                Invoke-Checked -Executable 'git' -Arguments (@('-C', $WorktreePath,
+                    'restore', '--source=HEAD', '--worktree', '--') + $DirtyOilPaths) | Out-Null
+                $AfterRestore = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath,
+                    'status', '--porcelain', '--untracked-files=normal'))
+                if ($AfterRestore.Count -gt 0) {
+                    throw 'Worktree toujours modifie apres sauvegarde des assets huile ; abandon.'
+                }
+                Write-Host '[VALIDATION-AUTO01] Assets d huile preserves dans Recovery, worktree restaure pour la prochaine validation.'
+            }
+            Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'checkout', '--detach', $Sha) | Out-Null
+        }
+        else {
+            # Evite un telechargement massif en double : Git LFS est restaure ensuite.
+            $env:GIT_LFS_SKIP_SMUDGE = '1'
+            try {
+                Invoke-Checked -Executable 'git' -Arguments @('-C', $RepositoryRoot, 'worktree', 'add', '--detach', $WorktreePath, $Sha) | Out-Null
+            }
+            finally { Remove-Item Env:\GIT_LFS_SKIP_SMUDGE -ErrorAction SilentlyContinue }
+        }
+        # ThirdParty/Lua54 est un sous-module Git (pas Git LFS).
+        # Un nouveau worktree est cree avec les sous-modules non initialises :
+        # sans cette etape, Lua54.cpp ne trouve pas onelua.c (MSVC C1083)
+        # et GridLuaVm.cpp ne trouve pas lua.h (MSVC C1083).
+        # Limiter l'initialisation au sous-module officiel declare dans .gitmodules.
+        Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'submodule', 'update', '--init', '--', 'ThirdParty/Lua54') | Out-Null
+        foreach ($LuaRequired in @('onelua.c', 'lua.h', 'lauxlib.h', 'lualib.h')) {
+            $LuaPath = Join-Path $WorktreePath ('ThirdParty\Lua54\' + $LuaRequired)
+            if (-not (Test-Path -LiteralPath $LuaPath -PathType Leaf)) {
+                throw "Sous-module Lua54 incomplet : fichier absent $LuaRequired"
+            }
+        }
+        # Les assets volumineux .uasset/.umap sont geres separement par Git LFS.
+        Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'lfs', 'pull') | Out-Null
+        $ValidatePath = Join-Path $WorktreePath 'Scripts\ValidateUE.ps1'
+        if (-not (Test-Path -LiteralPath $ValidatePath -PathType Leaf)) { throw "Harness UE introuvable : $ValidatePath" }
+        Write-Host "[VALIDATION-AUTO01] Validation $Sha : $AutomationFilter"
+        # Processus PowerShell distinct pour eviter que exit / stderr natif du harness
+        # ne perturbent le code de sortie ou le processus de surveillance Windows PS 5.1.
+        $Phase = 'testing'
+        $PsExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        if (-not (Test-Path -LiteralPath $PsExe -PathType Leaf)) { throw "PowerShell.exe introuvable : $PsExe" }
+        foreach ($Value in @($ValidatePath, $EngineRoot, $AutomationFilter, $ReportRoot)) {
+            if ($Value.Contains('"')) { throw 'Guillemet interdit dans les arguments du harness.' }
+        }
+        $ValidateArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $ValidatePath +
+            '" -EngineRoot "' + $EngineRoot + '" -AutomationFilter "' + $AutomationFilter + '" -ReportRoot "' + $ReportRoot + '"'
+        if ($UseRHI) { $ValidateArguments += ' -UseRHI' }
+        $RunStderrLog = Join-Path $RunDir 'Agent.stderr.log'
+        $Process = Start-Process -FilePath $PsExe -ArgumentList $ValidateArguments -WorkingDirectory $WorktreePath `
+            -RedirectStandardOutput $RunLog -RedirectStandardError $RunStderrLog -WindowStyle Hidden -Wait -PassThru -ErrorAction Stop
+        $ExitCode = $Process.ExitCode
+        $Result = 'failure'
+        if ($ExitCode -ne 0) { throw "ValidateUE.ps1 a retourne le code $ExitCode. Voir $RunLog et $RunStderrLog." }
+        $Phase = 'publication'
+        Publish-CommitStatus -Sha $Sha -State 'success' -Description "Build + Automation OK ($AutomationFilter)"
+        $Result = 'success'
+        Write-Host "[VALIDATION-AUTO01] SUCCES $Sha. Journaux : $RunDir"
+    }
+    catch {
+        $RunError = $_.Exception.Message
+        if ($Phase -eq 'publication') { $Result = 'infrastructure_error' }
+        Write-Warning "[VALIDATION-AUTO01] ECHEC ($Phase) $Sha : $RunError"
+        $PublicCause = if ($Phase -eq 'setup') { Get-PublicSetupCode -Message $RunError } else { 'TESTS' }
+        try { Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec $Phase/$PublicCause ($AutomationFilter)." }
+        catch { Write-Warning "Impossible de publier le statut d'echec : $($_.Exception.Message)" }
+        # Les incidents de recuperation Git/LFS restent reessayables au cycle suivant.
+        # Une erreur de compilation/test est definitive pour ce SHA, sans issues multiples.
+        if ($Result -eq 'failure') {
+            # One-shot, explicitly allowlisted Skill_Traps repair. This helper
+            # publishes only the single canonical .uasset if the sole failed
+            # test is Skills.ProductionCatalog and master has not moved.
+            $RepairHelper = Join-Path $WorktreePath 'Scripts\RepairCanonicalSkillTraps.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $RepairHelper -PathType Leaf)) {
+                try {
+                    $RepairOut = Join-Path $RunDir 'SkillTrapsRepair.stdout.log'
+                    $RepairErr = Join-Path $RunDir 'SkillTrapsRepair.stderr.log'
+                    $RepairArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $RepairHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $RepairProcess = Start-Process -FilePath $PsExe -ArgumentList $RepairArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $RepairOut -RedirectStandardError $RepairErr -PassThru -Wait -ErrorAction Stop
+                    if ($RepairProcess.ExitCode -eq 0) {
+                        Write-Host '[VALIDATION-AUTO01.7] Repair published: next commit will receive normal full UE validation.'
+                    }
+                    elseif ($RepairProcess.ExitCode -ne 2) {
+                        Write-Warning "Targeted asset repair not completed (code $($RepairProcess.ExitCode)); see private logs."
+                    }
+                }
+                catch { Write-Warning 'Targeted asset repair failed; private logs only.' }
+            }
+            # ARMEMENT01.17.1.4 : authoring des materiaux natifs Unreal, controle par le resultat Automation.
+            $OilHelper = Join-Path $WorktreePath 'Scripts\AuthorOilSurfaceMaterial.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $OilHelper -PathType Leaf)) {
+                try {
+                    $OilOut = Join-Path $RunDir 'OilMaterialAuthoring.stdout.log'
+                    $OilErr = Join-Path $RunDir 'OilMaterialAuthoring.stderr.log'
+                    $OilArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $OilHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $OilProcess = Start-Process -FilePath $PsExe -ArgumentList $OilArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $OilOut -RedirectStandardError $OilErr -PassThru -Wait -ErrorAction Stop
+                    if ($OilProcess.ExitCode -eq 0) {
+                        Write-Host '[ARMEMENT01.17.1.4] Materiaux natifs publies : validation du nouveau commit au prochain cycle.'
+                    }
+                    elseif ($OilProcess.ExitCode -ne 2) {
+                        Write-Warning "Authoring d'huile non termine (code $($OilProcess.ExitCode)). Journaux locaux uniquement."
+                    }
+                }
+                catch { Write-Warning "Authoring automatique d'huile indisponible ; journaux locaux uniquement." }
+            }
+
+            # ARMEMENT01.17.2A: only when the unique failing Automation test
+            # explicitly requires the native starter catalyst DataAsset.
+            $CatalystHelper = Join-Path $WorktreePath 'Scripts\AuthorStartingSurfaceCatalyst.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $CatalystHelper -PathType Leaf)) {
+                try {
+                    $CatalystOut = Join-Path $RunDir 'CatalystAuthoring.stdout.log'
+                    $CatalystErr = Join-Path $RunDir 'CatalystAuthoring.stderr.log'
+                    $CatalystArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $CatalystHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $CatalystProcess = Start-Process -FilePath $PsExe -ArgumentList $CatalystArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $CatalystOut -RedirectStandardError $CatalystErr -PassThru -Wait -ErrorAction Stop
+                    if ($CatalystProcess.ExitCode -eq 0) {
+                        Write-Host '[ARMEMENT01.17.2] Catalyst native asset published: next commit receives full validation.'
+                    }
+                    elseif ($CatalystProcess.ExitCode -ne 2) {
+                        Write-Warning 'Catalyst native asset authoring incomplete; private logs only.'
+                    }
+                }
+                catch { Write-Warning 'Catalyst authoring unavailable; private logs only.' }
+            }
+            # ARMEMENT01.17.2C.2: protected one-shot binary Unreal authoring.
+            $VfxHelper = Join-Path $WorktreePath 'Scripts\AuthorSurfaceCatalystVisuals.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $VfxHelper -PathType Leaf)) {
+                try {
+                    $VfxStdout = Join-Path $RunDir 'CatalystVisualsAuthoring.stdout.log'
+                    $VfxStderr = Join-Path $RunDir 'CatalystVisualsAuthoring.stderr.log'
+                    $VfxArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $VfxHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $VfxProcess = Start-Process -FilePath $PsExe -ArgumentList $VfxArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $VfxStdout -RedirectStandardError $VfxStderr -PassThru -Wait -ErrorAction Stop
+                    if ($VfxProcess.ExitCode -eq 0) {
+                        Write-Host '[ARMEMENT01.17.2C] New native visual files published; validate their commit.'
+                    }
+                    elseif ($VfxProcess.ExitCode -ne 2) {
+                        Write-Warning 'Catalyst visual authoring incomplete; diagnostics are private.'
+                    }
+                }
+                catch { Write-Warning 'Catalyst visual authoring unavailable; private logs only.' }
+            }
+            try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
+            catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
+        }
+    }
+    finally {
+        Save-JsonAtomic -Path $StatePath -Value @{
+            sha = $Sha; result = $Result; phase = $Phase; exit_code = $ExitCode; automation_filter = $AutomationFilter
+            timestamp = (Get-Date).ToString('o'); run_directory = $RunDir; error = $RunError
+        }
+    }
+    if ($Result -ne 'success') { throw "Validation automatique $Sha en echec. $RunError" }
+}
+finally {
+    if ($TranscriptStarted) {
+        try { Stop-Transcript | Out-Null } catch { Write-Warning "Arret du transcript impossible : $($_.Exception.Message)" }
+    }
+    if ($HasMutex) { $Mutex.ReleaseMutex() }
+    $Mutex.Dispose()
+}) { throw 'Catalyst recovery: invalid old head.' }
+                    $BackupRoot = Join-Path $StateRoot ('Recovery\Catalyst-' + $OldHead.Substring(0,12) +
+                        '-' + (Get-Date -Format 'yyyyMMddHHmmssfff'))
+                    New-Item -ItemType Directory -Path $BackupRoot -Force | Out-Null
+                    foreach ($Entry in $Dirty) {
+                        $Path = $Entry.Substring(3)
+                        $Original = Join-Path $WorktreePath $Path
+                        $Backup = Join-Path $BackupRoot ([IO.Path]::GetFileName($Path))
+                        if (-not (Test-Path -LiteralPath $Original -PathType Leaf)) {
+                            throw 'Catalyst recovery: expected file missing.'
+                        }
+                        Copy-Item -LiteralPath $Original -Destination $Backup -ErrorAction Stop
+                        if ((Get-FileHash -LiteralPath $Original -Algorithm SHA256).Hash -ne
+                            (Get-FileHash -LiteralPath $Backup -Algorithm SHA256).Hash) {
+                            throw 'Catalyst recovery: backup integrity failed.'
+                        }
+                    }
+                    foreach ($Entry in $Dirty) {
+                        $Path = $Entry.Substring(3)
+                        if ($Entry.StartsWith('?? ')) {
+                            Remove-Item -LiteralPath (Join-Path $WorktreePath $Path) -Force -ErrorAction Stop
+                        }
+                        else {
+                            Invoke-Checked -Executable 'git' -Arguments @(
+                                '-C', $WorktreePath, 'restore', '--source=HEAD', '--worktree', '--', $CatalystItem) | Out-Null
+                        }
+                    }
+                    $Dirty = @(Invoke-Checked -Executable 'git' -Arguments @(
+                        '-C', $WorktreePath, 'status', '--porcelain', '--untracked-files=normal'))
+                    if ($Dirty.Count -gt 0) { throw 'Catalyst recovery: unexpected residual modifications.' }
+                    Write-Host '[VALIDATION-AUTO01] Catalyst native partial assets preserved in Recovery and worktree restored.'
+                }
+            }
             if ($Dirty.Count -gt 0) {
                 # Récupération spécifique : un commandlet précédent peut avoir
                 # réécrit M_Surface_Oil avant que son commit n'ait été accepté.
