@@ -98,3 +98,8 @@ Après acceptation d'ARMEMENT01.17.1.4 : **ARMEMENT01.17.2** (catalyseur Mage/Ti
 ### Ajustements de compatibilité UE 5.5.4
 
 Le premier cycle automatisé a confirmé trois détails de compilation propres à l'environnement du projet : les valeurs `MD_Surface` sont déclarées dans `MaterialDomain.h`, la définition complète de `FGridResolvedCombatModifiers` exige `GridCombatModifierResolver.h`, et `UMaterialEditingLibrary::RecompileMaterial` retourne `void` dans cette version de l'Engine. Les inclusions et appels ont été corrigés sans modifier la logique RPG03.6 ni les assets existants.
+
+
+### Diagnostic automatique de la création des matériaux
+
+Le premier passage après correction des erreurs C++ a réussi les quatre tests de logique, mais le test `ProductionMaterial` reste en échec tant que les deux assets natifs ne sont pas versionnés. Le journal de l'agent sera dorénavant assorti d'une **étape de matérialisation** strictement contrôlée : vérification initiale, rapport accepté, commandlet lancé, commandlet terminé, assets vérifiés, commit créé, puis publication réussie. Seul le nom de cette étape est ajouté à l'issue GitHub ; les messages Unreal et les chemins privés restent sur Windows. Cela permet de diagnostiquer automatiquement une erreur de création sans vous demander de copier de fichiers ou de journaux.

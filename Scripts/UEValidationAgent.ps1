@@ -136,6 +136,31 @@ function Get-PublicSafeDiagnostics {
             }
         }
     }
+    # Suivi de la création des deux seuls matériaux Unreal autorisés.
+    # Ne publie qu'une phase issue d'une liste blanche fixe, jamais un journal brut.
+    $OilRunDir = Split-Path -Parent $RunLogPath
+    $OilStagePath = Join-Path $OilRunDir 'OilMaterial.stage'
+    if (Test-Path -LiteralPath $OilStagePath -PathType Leaf) {
+        $OilStage = [string](Get-Content -LiteralPath $OilStagePath -TotalCount 1 -ErrorAction SilentlyContinue)
+        $KnownOilStages = @('PREFLIGHT', 'REPORT_ACCEPTED', 'COMMANDLET_STARTED',
+            'COMMANDLET_COMPLETED', 'ASSETS_VERIFIED', 'COMMIT_CREATED', 'SUCCESS')
+        if ($OilStage -in $KnownOilStages) {
+            $Safe.Add('Materiau huile : phase ' + $OilStage)
+        }
+        else {
+            $Safe.Add('Materiau huile : phase inconnue')
+        }
+        $OilCommandletLog = Join-Path $OilRunDir 'OilMaterialCommandlet.stdout.log'
+        if (Test-Path -LiteralPath $OilCommandletLog -PathType Leaf) {
+            $Relevant = @(
+                Get-Content -LiteralPath $OilCommandletLog -Tail 500 -ErrorAction SilentlyContinue |
+                Where-Object { $_ -match '\[ARMEMENT01\.17\.1\.4\]' -and $_ -match '(?i)error|erreur|impossible|incompatible|Échec' }
+            )
+            if ($Relevant.Count -gt 0) {
+                $Safe.Add('Materiau huile : le commandlet signale une erreur dans ses journaux locaux')
+            }
+        }
+    }
     if ($Safe.Count -eq 0) {
         $Safe.Add('Pas de diagnostic public fiable ; seuls les journaux locaux sont exhaustifs.')
     }

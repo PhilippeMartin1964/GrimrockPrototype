@@ -12,6 +12,12 @@ Set-StrictMode -Version Latest
 $Material = 'Content/GrimrockPrototype/Art/Materials/Surfaces/M_Surface_Oil.uasset'
 $Instance = 'Content/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.uasset'
 $TestName = 'Grimrock.RPG.ARMEMENT01.17.1.4.ProductionMaterial'
+$StageFile = Join-Path (Split-Path -Parent $ReportRoot) 'OilMaterial.stage'
+function Stage {
+    param([string]$Name)
+    Set-Content -LiteralPath $StageFile -Value $Name -Encoding ASCII
+}
+Stage -Name 'PREFLIGHT'
 function GitChecked {
     param([string[]]$Arguments)
     $Lines = @(& git -C $WorktreePath @Arguments)
@@ -41,6 +47,7 @@ if ([int]$Report.failed -ne 1 -or $Failed.Count -ne 1 -or [string]$Failed[0].ful
     Write-Host 'Erreur non exclusivement liee au materiau, aucune ecriture.'
     exit 2
 }
+Stage -Name 'REPORT_ACCEPTED'
 $Editor = Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
 $Project = Join-Path $WorktreePath 'GrimrockPrototype.uproject'
 if (-not (Test-Path -LiteralPath $Editor -PathType Leaf) -or -not (Test-Path -LiteralPath $Project -PathType Leaf)) {
@@ -50,8 +57,10 @@ $LogDir = Split-Path -Parent $ReportRoot
 $Output = Join-Path $LogDir 'OilMaterialCommandlet.stdout.log'
 $Errors = Join-Path $LogDir 'OilMaterialCommandlet.stderr.log'
 $Args = '"' + $Project + '" -run=GridOilSurfaceMaterialAuthoring -Unattended -NoSplash -NoP4 -NullRHI'
+Stage -Name 'COMMANDLET_STARTED'
 $Process = Start-Process -FilePath $Editor -ArgumentList $Args -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Output -RedirectStandardError $Errors -PassThru -Wait -ErrorAction Stop
 if ($Process.ExitCode -ne 0) { throw "Commandlet Unreal en echec ($($Process.ExitCode)). Logs prives." }
+Stage -Name 'COMMANDLET_COMPLETED'
 $Changes = @(Changes)
 if ($Changes.Count -ne 2) { throw 'Nombre de fichiers modifies inattendu. Aucun commit.' }
 foreach ($Change in $Changes) {
@@ -66,6 +75,7 @@ foreach ($Target in @($Material, $Instance)) {
         throw 'Asset Unreal absent ou trop petit. Aucun commit.'
     }
 }
+Stage -Name 'ASSETS_VERIFIED'
 GitChecked -Arguments @('fetch', '--no-tags', 'origin', 'master') | Out-Null
 $Remote = @(GitChecked -Arguments @('rev-parse', 'refs/remotes/origin/master'))[0].Trim()
 if ($Remote -ne $ExpectedHead) { throw 'master a change ; aucun commit.' }
@@ -78,6 +88,8 @@ GitChecked -Arguments @('-c', 'user.name=Grimrock UE Automation',
     '-c', 'user.email=grimrock-ue-automation@users.noreply.github.com',
     'commit', '-m', 'ARMEMENT01.17.1.4B: materialiser les deux assets huile') | Out-Null
 $Published = @(GitChecked -Arguments @('rev-parse', 'HEAD'))[0].Trim()
+Stage -Name 'COMMIT_CREATED'
 GitChecked -Arguments @('push', 'origin', 'HEAD:refs/heads/master') | Out-Null
+Stage -Name 'SUCCESS'
 Write-Host "[ARMEMENT01.17.1.4] Materiaux M/MI publies sur master : $Published"
 exit 0
