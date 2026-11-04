@@ -174,10 +174,27 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor()
 	if (Plane.Succeeded())
 	{
 		SurfaceOverlayMesh = Plane.Object;
+		// Lier immédiatement le plan au composant hérité par le Blueprint.
+		// Les instances restent absentes jusqu'à la création d'huile en jeu.
+		OilSurfaceISM->SetStaticMesh(Plane.Object);
 	}
-	// Référence souple sérialisée sur le CDO ; la création de l'asset est automatisée côté Editor.
-	OilSurfaceMaterial = TSoftObjectPtr<UMaterialInterface>(
-		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.MI_Surface_Oil")));
+
+	// Liaison native permanente : visible dans les détails du composant
+	// CombatOilSurfaceISM, prise en compte par le cooker et contrôlée par
+	// le test de production. Ne jamais affecter le matériau à FloorISM.
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OilMaterialAsset(
+		TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.MI_Surface_Oil"));
+	if (OilMaterialAsset.Succeeded())
+	{
+		OilSurfaceMaterial = OilMaterialAsset.Object;
+		OilSurfaceISM->SetMaterial(0, OilMaterialAsset.Object);
+	}
+	else
+	{
+		// Repli sûr pour les environnements où l'asset est encore en cours de création.
+		OilSurfaceMaterial = TSoftObjectPtr<UMaterialInterface>(
+			FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.MI_Surface_Oil")));
+	}
 
 	ActivationComponent = CreateDefaultSubobject<UGridActivationComponent>(TEXT("ActivationComponent"));
 

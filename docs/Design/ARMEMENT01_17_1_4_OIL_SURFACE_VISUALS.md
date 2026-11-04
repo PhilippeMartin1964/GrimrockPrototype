@@ -117,3 +117,12 @@ Le script effectue maintenant jusqu'à **trois tentatives de push du même commi
 L'agent Windows confirme `UE5.5.4/LocalAuto = success` sur le commit `26e4741e19c5b6cee0e42b65282758ed75b9aed2`, après la création native des deux nouveaux assets `M_Surface_Oil.uasset` et `MI_Surface_Oil.uasset`. Les cinq tests ARMEMENT01.17.1.4 ont été exécutés et réussis : projection, réactions/conversions, expiration, sauvegarde/reconstruction et matériau de production. Le commit des matériaux ne contient que ces deux fichiers Git LFS.
 
 **L'apparence réelle en PIE/RHI reste à confirmer.** Les contrôles actuellement exécutés avec `-NullRHI` valident la logique, les instances et le chargement des matériaux, mais pas leurs pixels à l'écran ni les reflets sous les torches. Cette étape devra être automatisée sans intervention manuelle.
+
+
+## ARMEMENT01.17.1.4D — Liaison explicite au mesh (4 novembre 2026)
+
+Le contrôle de production initial prouvait que les deux matériaux Unreal existaient et qu'une projection pouvait être instanciée en jeu, mais **ne vérifiait pas que le matériau était réellement assigné à un composant de mesh dans le Blueprint**. Le composant `CombatOilSurfaceISM` était créé sans mesh ni matériau par défaut ; leur affectation n'intervenait que pendant la présence d'une surface d'huile. C'est pourquoi `MI_Surface_Oil` semblait inutilisé dans l'éditeur.
+
+Le constructeur C++ affecte maintenant directement le plan Engine `/Engine/BasicShapes/Plane` à `CombatOilSurfaceISM` et charge de manière explicite `MI_Surface_Oil` dans son **slot de matériau 0**. Cette configuration est héritée par `BP_GridLevelRuntimeActor`, sans ouverture ni modification manuelle du Blueprint. Le matériau du sol `FloorISM` reste inchangé ; la flaque est une géométrie superposée indépendante. Le composant ne possède aucune instance au repos et ne devient visible qu'après l'application d'huile au runtime.
+
+Le test `ProductionMaterial` a été renforcé : il vérifie désormais **les associations mesh et matériau sur le CDO natif et sur le Blueprint de production**, et l'absence de collision et d'instances statiques. Le test `OilCellProjection` vérifie aussi le mesh, le matériau et la visibilité pendant l'effet ; `Expiration` vérifie que la flaque est masquée à sa disparition. Toutes ces vérifications doivent être confirmées sur la machine UE 5.5.4 par la suite Automation complète.

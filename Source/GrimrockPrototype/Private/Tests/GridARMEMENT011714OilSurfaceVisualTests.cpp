@@ -96,6 +96,9 @@ bool FOilVisCells::RunTest(const FString&)
 	TestFalse(TEXT("Hors grille"), ARMEMENT011714::Apply(Runtime, 4, 4, EGridCombatSurfaceType::Oil));
 	TestEqual(TEXT("Deux instances, pas trois"), ARMEMENT011714::Count(Runtime), 2);
 	const UInstancedStaticMeshComponent* Visual = Runtime->GetCombatOilSurfaceVisualComponent();
+	TestTrue(TEXT("Le mesh du plan est réellement affecté"), Visual && Visual->GetStaticMesh() == Runtime->SurfaceOverlayMesh);
+	TestTrue(TEXT("Le matériau de test est lié au slot 0"), Visual && Visual->GetMaterial(0) == UMaterial::GetDefaultMaterial(MD_Surface));
+	TestTrue(TEXT("Composant visible en présence d'huile"), Visual && Visual->IsVisible());
 	TSet<FIntPoint> Cells;
 	for (int32 I = 0; Visual && I < Visual->GetInstanceCount(); ++I)
 	{
@@ -155,6 +158,8 @@ bool FOilVisExpiry::RunTest(const FString&)
 	TestEqual(TEXT("Second round"), Runtime->AdvanceCombatSurfaceRound(), 1);
 	TestNull(TEXT("Surface expirée"), Runtime->FindCombatSurfaceAtCell(2, 2));
 	TestEqual(TEXT("Aucune instance orpheline"), ARMEMENT011714::Count(Runtime), 0);
+	const UInstancedStaticMeshComponent* Visual = Runtime->GetCombatOilSurfaceVisualComponent();
+	TestFalse(TEXT("Composant masqué après disparition de l'huile"), Visual && Visual->IsVisible());
 	return true;
 }
 
