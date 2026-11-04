@@ -36,7 +36,7 @@ bool FGridOilMaterialProductionTest::RunTest(const FString&)
 	{
 		return false;
 	}
-	TestNotNull(TEXT("Plan superposé lié au composant natif"), NativeOil->GetStaticMesh());
+	TestTrue(TEXT("Plan superposé lié au composant natif"), NativeOil->GetStaticMesh() != nullptr);
 	TestTrue(TEXT("MI_Surface_Oil affecté au matériau du mesh, slot 0"),
 		NativeOil->GetMaterial(0) == Instance);
 
@@ -55,7 +55,7 @@ bool FGridOilMaterialProductionTest::RunTest(const FString&)
 	{
 		return false;
 	}
-	TestNotNull(TEXT("Plan superposé présent dans le Blueprint"), BlueprintOil->GetStaticMesh());
+	TestTrue(TEXT("Plan superposé présent dans le Blueprint"), BlueprintOil->GetStaticMesh() != nullptr);
 	TestTrue(TEXT("MI_Surface_Oil lié au slot 0 du Blueprint"), BlueprintOil->GetMaterial(0) == Instance);
 	TestTrue(TEXT("Huile sans collision"), BlueprintOil->GetCollisionEnabled() == ECollisionEnabled::NoCollision);
 	TestEqual(TEXT("Aucune flaque permanente au repos"), BlueprintOil->GetInstanceCount(), 0);
