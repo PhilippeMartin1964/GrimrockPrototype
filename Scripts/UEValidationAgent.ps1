@@ -201,9 +201,10 @@ function Get-PublicSafeDiagnostics {
     $CatalystStagePath = Join-Path $CatalystRunDir 'CatalystAuthoring.stage'
     if (Test-Path -LiteralPath $CatalystStagePath -PathType Leaf) {
         $CatalystStage = [string](Get-Content -LiteralPath $CatalystStagePath -TotalCount 1 -ErrorAction SilentlyContinue)
-        $KnownCatalystStages = @('PREFLIGHT','REPORT_ACCEPTED','COMMANDLET_STARTED',
-            'COMMANDLET_FAILED','COMMANDLET_COMPLETED','FILESET','ASSET_VERIFIED',
-            'COMMIT_CREATED','SUCCESS')
+        $KnownCatalystStages = @('PREFLIGHT','WORKTREE','CLEAN','HEAD','REMOTE',
+            'TARGET_ABSENT','LFS','REPORT_FILE','REPORT_PARSE','REPORT_FILTER',
+            'REPORT_ACCEPTED','COMMANDLET_STARTED','COMMANDLET_FAILED',
+            'COMMANDLET_COMPLETED','FILESET','ASSET_VERIFIED','COMMIT_CREATED','SUCCESS')
         if ($CatalystStage -in $KnownCatalystStages) {
             $Safe.Add('Catalyseur : phase ' + $CatalystStage)
         }
