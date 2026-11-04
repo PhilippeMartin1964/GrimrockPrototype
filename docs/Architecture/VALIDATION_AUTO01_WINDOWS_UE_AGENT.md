@@ -1,6 +1,6 @@
 # VALIDATION-AUTO01 — Agent de validation locale UE 5.5.4
 
-**Statut : VALIDATION-AUTO01.2 — validation Windows initiale declenchee ; execution silencieuse des futures taches integree. Build UE 5.5.4 / Automation non encore confirms.**
+**Statut : VALIDATION-AUTO01.3 — execution silencieuse et diagnostics structures publics limites. Build UE / Automation a verifier sur Windows.**
 
 ## Pourquoi un agent local plutot qu'un GitHub Actions runner ?
 
@@ -17,7 +17,7 @@ L'agent est une **tache planifiee Windows**, tournant sous le compte de l'utilis
 - Recuperation des vrais assets Git LFS avec `git lfs pull` pour le worktree ; la premiere execution peut etre longue/volumineuse.
 - Compilation et Automation : reemploi de `Scripts/ValidateUE.ps1` dans le worktree, EngineRoot `D:\UE_5.5`, filtre par defaut `Grimrock` (suite complete).
 - Rapports locaux (jamais commits) : `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Runs\...` ; journal de demarrage `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Agent.latest.log` (PowerShell Transcript) et stderr du harness conserve dans `Agent.stderr.log`. Le harness `ValidateUE.ps1` est execute dans un **second processus PowerShell invisible** (`-WindowStyle Hidden`), avec code de sortie fiable. Le processus agent planifie est egalement lance avec `-WindowStyle Hidden` : pas de fenetre PowerShell persistante lors des prochaines executions.
-- Etat GitHub par commit : `UE5.5.4/LocalAuto` (`pending`, `success`, `failure`) via GitHub CLI authentifie. Sur echec des tests, issue GitHub automatique **sans extraits des logs locaux** pour proteger les chemins et informations privees du poste. Le journal complet reste local.
+- Etat GitHub par commit : `UE5.5.4/LocalAuto` (`pending`, `success`, `failure`) via GitHub CLI authentifie. Sur echec des tests, issue GitHub automatique avec **uniquement des diagnostics structures limites** (noms de fichiers sources, lignes, codes compilateur et chemins de tests Grimrock strictement valides), jamais des lignes brutes ou chemins absolus. Le journal complet reste local.
 - L'agent traite un SHA une seule fois en cas de succes ou d'echec de compilation/Automation ; une panne d'infrastructure Git, LFS ou de publication est **reessayee** au cycle suivant. Un changement de filtre redemarre aussi la validation.
 - Une seule execution simultanee : verrou Windows + tache `IgnoreNew`.
 - Aucune modification de traduction anglaise, de DataAsset ou de contenu utilisateur.
@@ -92,7 +92,7 @@ References :
 
 ## Correctif VALIDATION-AUTO01.2 : deux fenetres PowerShell (4 novembre 2026)
 
-La premiere version lan`cait `powershell.exe` depuis le Planificateur dans la session interactive, puis `Start-Process powershell.exe` pour le harness. Windows pouvait donc afficher deux consoles, dont l'une pouvait rester vide pendant un long build Unreal. Ce comportement n'indiquait pas necessairement un blocage.
+La premiere version lancait `powershell.exe` depuis le Planificateur dans la session interactive, puis `Start-Process powershell.exe` pour le harness. Windows pouvait donc afficher deux consoles, dont l'une pouvait rester vide pendant un long build Unreal. Ce comportement n'indiquait pas necessairement un blocage.
 
 - Tache planifiee : `powershell.exe -WindowStyle Hidden -NoProfile -NonInteractive ...`.
 - Harness : `Start-Process -WindowStyle Hidden -RedirectStandardOutput ... -RedirectStandardError ... -Wait -PassThru`.
@@ -103,3 +103,12 @@ La premiere version lan`cait `powershell.exe` depuis le Planificateur dans la se
 Mise a jour de la tache : `git pull --ff-only origin master` depuis le checkout propre, puis `.\Scripts\InstallUEValidationAgent.ps1 -EngineRoot D:\UE_5.5`. Cette operation ne touche ni aux assets ni au worktree. Si une validation reste active, laisser cette execution terminer ; les prochains lancements seront invisibles.
 
 **Limitations :** le demarrage de binaires natifs Windows peut produire un tres bref flash sur certaines configurations ; cela ne doit jamais laisser deux consoles persistantes. Seul le poste Windows peut verifier ce comportement.
+
+
+## Correctif VALIDATION-AUTO01.3 : diagnostic automatique des echecs (4 novembre 2026)
+
+Le premier run du commit a57a7eaa a echoue (code UE 1), et son issue publique #9 ne contient pas de detail technique. Pour eviter toute copie manuelle recurrente, les futurs echecs remontent maintenant un bilan structure minimal en provenance du journal de validation et, si present, du rapport Automation JSON.
+
+Seuls sont publies les fichiers sources de type cpp/h/cs/inl avec leur numero de ligne et un code compilateur reconnu, un compte d'echecs et les identifiants de tests de la forme Grimrock.x.y. Toute ligne libre, message brut, chemin absolu et donnee personnelle sont exclus de l'issue publique. Si le format du log ne permet pas un extrait fiable, le bilan mentionne explicitement ses limites. Les rapports complets restent locaux. Cette modification ne peut pas modifier retroactivement l'issue du premier run, qui precede ce correctif.
+
+L'agent et le planificateur restent independants du checkout de developpement. Pour passer le planificateur en mode cache, mettre a jour master puis relancer une fois InstallUEValidationAgent.ps1.

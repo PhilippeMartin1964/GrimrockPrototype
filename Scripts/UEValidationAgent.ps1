@@ -1,4 +1,4 @@
-# VALIDATION-AUTO01.2 — Agent Windows sans runner GitHub Actions.
+# VALIDATION-AUTO01.3 — Agent Windows sans runner GitHub Actions.
 # Ne touche jamais au checkout de developpement; le worktree dedie est la seule cible build.
 [CmdletBinding()]
 param(
@@ -38,22 +38,89 @@ function Publish-CommitStatus {
     if ($LASTEXITCODE -ne 0) { throw "Publication du statut GitHub impossible (code $LASTEXITCODE)." }
 }
 
+function Get-PublicSafeDiagnostics {
+    param([string]$RunLogPath, [string]$ReportRoot)
+    # A public issue may contain ONLY whitelisted, structured records.
+    # Never include raw log lines, absolute paths, arbitrary error text or secrets.
+    $Safe = New-Object 'System.Collections.Generic.List[string]'
+    $Logs = @($RunLogPath, (Join-Path (Split-Path -Parent $RunLogPath) 'Agent.stderr.log'))
+    foreach ($Log in $Logs) {
+        if (-not (Test-Path -LiteralPath $Log -PathType Leaf)) { continue }
+        foreach ($RawLine in @(Get-Content -LiteralPath $Log -Tail 2500 -ErrorAction SilentlyContinue)) {
+            $Line = [string]$RawLine
+            $Location = [regex]::Match($Line,
+                '(?i)(?<file>[A-Za-z_][A-Za-z0-9_.-]{0,95}\.(?:cpp|h|cs|inl))\((?<line>\d{1,7})(?:,\d{1,7})?\)\s*:\s*(?:fatal\s+)?error(?:\s+(?<code>C\d{4}|CS\d{4}|MSB\d{4}))?\b')
+            if ($Location.Success) {
+                $Code = $Location.Groups['code'].Value
+                if ([string]::IsNullOrEmpty($Code)) { $Code = 'sans-code' }
+                $Record = 'Compilation : ' + $Location.Groups['file'].Value + ':' +
+                    $Location.Groups['line'].Value + ' / ' + $Code
+                if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
+                continue
+            }
+            if ($Line -match '(?i)\berror\s+(?<code>C\d{4}|CS\d{4}|MSB\d{4})\b') {
+                $Record = 'Compilateur : ' + $Matches['code']
+                if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
+            }
+            if ($Line -match '^\s*Failed\s*:\s*(\d{1,5})\s*$') {
+                $Record = 'Tests Automation en echec : ' + $Matches[1]
+                if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
+            }
+        }
+    }
+    if (Test-Path -LiteralPath $ReportRoot -PathType Container) {
+        $Indexes = @(Get-ChildItem -LiteralPath $ReportRoot -Filter 'index.json' -File -Recurse -ErrorAction SilentlyContinue |
+            Select-Object -Last 2)
+        foreach ($Index in $Indexes) {
+            try {
+                $Report = Get-Content -LiteralPath $Index.FullName -Raw -ErrorAction Stop |
+                    ConvertFrom-Json -ErrorAction Stop
+                if ($null -ne $Report.failed -and [int]$Report.failed -gt 0) {
+                    $Record = 'Rapport UE : ' + [int]$Report.failed + ' test(s) en echec'
+                    if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
+                }
+                if ($Report.PSObject.Properties['tests']) {
+                    foreach ($Test in @($Report.tests)) {
+                        if ($null -eq $Test) { continue }
+                        $State = [string]$Test.state
+                        $TestPath = [string]$Test.fullTestPath
+                        if ($State -match '^(?i:fail|failed|error)$' -and
+                            $TestPath -cmatch '^Grimrock\.[A-Za-z0-9_.]{1,180}$') {
+                            $Record = 'Test : ' + $TestPath
+                            if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
+                        }
+                    }
+                }
+            } catch {
+                if (-not $Safe.Contains('Rapport UE illisible')) { $Safe.Add('Rapport UE illisible') }
+            }
+        }
+    }
+    if ($Safe.Count -eq 0) {
+        $Safe.Add('Pas de diagnostic public fiable ; seuls les journaux locaux sont exhaustifs.')
+    }
+    return @($Safe | Select-Object -First 20)
+}
+
 function Publish-FailureIssue {
-    param([string]$Sha, [int]$ValidationExitCode)
+    param([string]$Sha, [int]$ValidationExitCode, [string]$RunLogPath, [string]$ReportRoot)
     $ShortSha = $Sha.Substring(0, 12)
     $Title = "[UEValidation] Echec du commit $ShortSha"
-    # Depot public : aucune ligne de log privee ni chemin utilisateur dans une issue.
+    $SafeDetails = @(Get-PublicSafeDiagnostics -RunLogPath $RunLogPath -ReportRoot $ReportRoot)
+    $SafeMarkdown = ($SafeDetails | ForEach-Object { '- ' + $_ }) -join [Environment]::NewLine
     $Body = @"
 ## Validation automatique UE 5.5.4
 
 - Commit : $Sha
-- Suite : ``$AutomationFilter``
-- Etat : **ECHEC**
+- Suite : $AutomationFilter
+- Etat : ECHEC
 - Code de sortie UE : $ValidationExitCode
-- Diagnostic : echec build ou Automation ; consulter les rapports locaux.
 - Les journaux complets restent prives sur la machine Windows.
 
-Ce ticket est emis automatiquement par ``Scripts/UEValidationAgent.ps1``.
+### Diagnostics publics structures (liste blanche)
+$SafeMarkdown
+
+Aucune ligne brute des journaux, aucun chemin absolu ni message libre ne sont publies.
 "@
     $BodyPath = Join-Path $StateRoot "failure-$ShortSha.md"
     Set-Content -LiteralPath $BodyPath -Value $Body -Encoding UTF8
@@ -199,7 +266,7 @@ try {
         # Les incidents de recuperation Git/LFS restent reessayables au cycle suivant.
         # Une erreur de compilation/test est definitive pour ce SHA, sans issues multiples.
         if ($Result -eq 'failure') {
-            try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode }
+            try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
             catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
         }
     }
