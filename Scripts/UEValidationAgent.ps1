@@ -212,6 +212,16 @@ function Get-PublicSafeDiagnostics {
             $Safe.Add('Catalyseur : phase inconnue')
         }
     }
+    # Dedicated catalyst VFX assets: only bounded stage labels are public.
+    $VisualStagePath = Join-Path (Split-Path -Parent $RunLogPath) 'CatalystVisuals.stage'
+    if (Test-Path -LiteralPath $VisualStagePath -PathType Leaf) {
+        $VStage = [string](Get-Content -LiteralPath $VisualStagePath -TotalCount 1 -ErrorAction SilentlyContinue)
+        if ($VStage -in @('PREFLIGHT','SOURCE_READY','REPORT','REPORT_ACCEPTED',
+            'COMMANDLET_STARTED','COMMANDLET_FAILED','COMMANDLET_COMPLETED',
+            'FILESET','ASSETS_VERIFIED','COMMIT_CREATED','SUCCESS')) {
+            $Safe.Add('Catalyseur VFX : phase ' + $VStage)
+        }
+    }
     if ($Safe.Count -eq 0) {
         $Safe.Add('Pas de diagnostic public fiable ; seuls les journaux locaux sont exhaustifs.')
     }
@@ -511,6 +521,25 @@ try {
                     }
                 }
                 catch { Write-Warning 'Catalyst authoring unavailable; private logs only.' }
+            }
+            # ARMEMENT01.17.2C.2: protected one-shot binary Unreal authoring.
+            $VfxHelper = Join-Path $WorktreePath 'Scripts\AuthorSurfaceCatalystVisuals.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $VfxHelper -PathType Leaf)) {
+                try {
+                    $VfxStdout = Join-Path $RunDir 'CatalystVisualsAuthoring.stdout.log'
+                    $VfxStderr = Join-Path $RunDir 'CatalystVisualsAuthoring.stderr.log'
+                    $VfxArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $VfxHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $VfxProcess = Start-Process -FilePath $PsExe -ArgumentList $VfxArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $VfxStdout -RedirectStandardError $VfxStderr -PassThru -Wait -ErrorAction Stop
+                    if ($VfxProcess.ExitCode -eq 0) {
+                        Write-Host '[ARMEMENT01.17.2C] New native visual files published; validate their commit.'
+                    }
+                    elseif ($VfxProcess.ExitCode -ne 2) {
+                        Write-Warning 'Catalyst visual authoring incomplete; diagnostics are private.'
+                    }
+                }
+                catch { Write-Warning 'Catalyst visual authoring unavailable; private logs only.' }
             }
             try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
             catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }

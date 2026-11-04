@@ -172,3 +172,40 @@ Revue PIE/GPU et traduction anglaise de `NSLOCTEXT` à vérifier
 séparément ; l'icône et le mesh du catalyseur réutilisent
 provisoirement ceux d'une flasque existante. Aucun texte WBP
 ni ST_UI ajouté dans ce jalon.
+
+
+## ARMEMENT01.17.2C.2 — Identité visuelle native du catalyseur
+
+Création par commandlet Unreal Editor (worktree Windows dédié) de six
+ressources de production :
+
+- `T_UI_Item_SurfaceCatalyst_01.uasset` : icône 256×256 RGBA,
+  dessin procédural de fiole ambrée, armature bronze et rune centrale,
+  propriété `UGridItemDefinitionAsset::Icon`. Le contenu est original.
+- `SM_SurfaceCatalyst_01.uasset` : variante de la géométrie **déjà
+  validée** de la flasque d'huile, avec au moins son premier slot
+  de matériau remplacé ; **pas** de sculpture inédite fidèle à la
+  planche conceptuelle dans ce jalon.
+- `M_SurfaceCatalyst_Flask.uasset` : surface bronze/lueur orangée.
+- `M_SurfaceCatalyst_Ember.uasset` : surfaces lumineuses d'étincelles
+  et langues de feu 3D ; paramètres CatalystGlowColor / Strength.
+- `M_SurfaceCatalyst_RunePulse.uasset` : décalque de rune-annulaire
+  opaque au centre, translucide ailleurs, opacité CatalystOpacity.
+- Modification limitée à `DA_Item_SurfaceCatalyst_01.uasset` pour
+  affecter le mesh/texture ; **aucune mutation mécanique de QuickItem**.
+
+Le même matériau Ember est utilisé par les projections temporaires
+et les flammes tant que la surface RPG03.6 Fire existe. L'icône est
+indépendante de celle de l'huile ; le mesh reste une variante provisoire.
+D'autres assets (Niagara complexes, sons) ne sont **pas** prétendus
+produits dans ce jalon et pourront constituer une passe artistique.
+
+Test `Grimrock.RPG.ARMEMENT01.17.2C.ProductionVisualAssets` : asset natif,
+texture 256², mesh et références d'item, domaines/blends. La fabrication
+automatique est autorisée **uniquement si ce test est le seul échec**
+du harness complet. Le helper publie cinq nouveaux .uasset et le
+DataAsset modifié, tous explicitement allowlistés, sur master via Git LFS.
+
+Contrôle final : `UE5.5.4/LocalAuto=success` du nouveau commit contenant
+les assets, suivi de la recette PIE/GPU des effets 3D et du contraste
+entre deux consommables de la hotbar.
