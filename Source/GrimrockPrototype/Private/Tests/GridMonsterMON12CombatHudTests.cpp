@@ -4,6 +4,7 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Components/CanvasPanel.h"
 #include "Components/HorizontalBox.h"
 #include "Components/InputComponent.h"
@@ -1762,6 +1763,81 @@ bool FGridHOTBAR011ShortcutQuantityBadgeTest::RunTest(const FString& Parameters)
 	View.Action.CurrentSourceItemQuantityCost = 0;
 	Widget->InitializeAction(nullptr, View);
 	TestEqual(TEXT("Non-consumable sources do not display a stock badge"), Widget->Text_Quantity->GetVisibility(), ESlateVisibility::Collapsed);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011714OilQuickItemRealPipeline,
+	"Grimrock.RPG.ARMEMENT01.17.1.4.QuickItemToWorldProjection",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
+{
+	// Réutiliser la vraie fixture de combat avec action ciblée, personnage,
+	// inventaire, hotbar, occupant du donjon et TurnManager initialisé.
+	FGridCombatHudFixture Fixture;
+	if (!TestTrue(TEXT("La scène de combat et son gestionnaire sont prêts"), Fixture.IsReady()))
+	{
+		return false;
+	}
+
+	UGridItemDefinitionAsset* OilFlask = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.DA_Item_Flask_Oil"));
+	if (!TestNotNull(TEXT("Véritable DataAsset de la flasque d'huile"), OilFlask))
+	{
+		return false;
+	}
+	FGridCombatActionDefinition RealAction;
+	if (!TestTrue(TEXT("La flasque définit une action QuickItem réelle"),
+			OilFlask->BuildQuickItemCombatActionDefinition(RealAction)))
+	{
+		return false;
+	}
+	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent.Get();
+	if (!TestTrue(TEXT("Définition réelle enregistrée dans l'inventaire"),
+			Inventory->RegisterItemDefinition(OilFlask))) return false;
+
+	FGridItemInstance Flask;
+	Flask.RuntimeObjectId = FGuid::NewGuid();
+	Flask.ItemDefinitionId = OilFlask->ItemDefinitionId;
+	Flask.DisplayName = OilFlask->DisplayName;
+	Flask.Quantity = 2;
+	Flask.OwnerType = EGridItemOwnerType::World;
+	if (!TestTrue(TEXT("Deux flasques ajoutées au sac du personnage"),
+			Inventory->AddItemToCharacterInventory(0, Flask))) return false;
+	TestEqual(TEXT("Stock avant utilisation"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 2);
+
+	FGridAvailableCombatAction Catalogued;
+	if (!TestTrue(TEXT("La vraie action d'huile apparaît dans le catalogue de combat"),
+			FindCatalogAction(Fixture.TurnManager, 0, RealAction.ActionId, Catalogued)))
+	{
+		return false;
+	}
+	if (!TestTrue(TEXT("L'action de flasque est autorisée durant ce tour"), Catalogued.bEnabled))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Action de surface et non attaque physique"),
+		!Catalogued.Definition.SurfaceEffects.IsEmpty() &&
+		Catalogued.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area);
+
+	FGridCombatActionRequestResult Result;
+	const FIntPoint TargetCell(1, 2);
+	if (!TestTrue(TEXT("La requête ciblée au TurnManager est acceptée"),
+			Fixture.TurnManager->RequestCharacterCombatActionAtCell(
+				0, Catalogued.Definition.ActionId, Catalogued.Definition.SourcePolicy,
+				Catalogued.SourceDefinitionId, Catalogued.SourceEquipmentSlot, TargetCell, Result)))
+	{
+		return false;
+	}
+	const FGridCombatSurfaceState* Oil = Fixture.Runtime->FindCombatSurfaceAtCell(TargetCell.X, TargetCell.Y);
+	TestTrue(TEXT("L'effet d'huile RPG03.6 est présent sur la cellule visée"),
+		Oil && Oil->IsValid() && Oil->SurfaceType == EGridCombatSurfaceType::Oil);
+	const UInstancedStaticMeshComponent* Overlay = Fixture.Runtime->GetCombatOilSurfaceVisualComponent();
+	TestTrue(TEXT("Un vrai mesh de flaque est matérialisé après l'action ciblée"),
+		Overlay && Overlay->GetInstanceCount() > 0 && Overlay->IsVisible());
+	TestEqual(TEXT("Une flasque a été consommée"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 1);
 	return true;
 }
 

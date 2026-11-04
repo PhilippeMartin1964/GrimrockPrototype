@@ -146,3 +146,10 @@ Le rendu calcule désormais l'altitude du plan de flaque à partir de la face su
 Le contrôle de production teste également les connexions **BaseColor / Opacity / Roughness** du graphe de `M_Surface_Oil` et examine le matériau du mesh de sol défini par le Blueprint, lorsqu'il y en a un. Ainsi, un matériau vide ou un plancher affecté au matériau de secours UE ne pourra pas être interprété silencieusement comme un rendu satisfaisant.
 
 **Reste ouvert :** l'essai de la flasque depuis la hotbar et l'observation réelle des pixels par une capture PIE avec RHI. Les tests de logique en `-NullRHI` ne suffisent pas à certifier l'apparence de la flaque.
+
+
+### Validation de la chaîne réelle de combat
+
+Le test `Grimrock.RPG.ARMEMENT01.17.1.4.QuickItemToWorldProjection` utilise le **DataAsset de production `DA_Item_Flask_Oil`**, la fixture existante d'un combat avec personnage, inventaire et monstre, et la véritable requête ciblée du `UGridTurnManagerComponent`. Il vérifie simultanément l'autorisation de l'action de flasque, la consommation d'une unité, la création de la surface `Oil` au niveau RPG03.6 et la présence d'un mesh de flaque visible. Ce test vise précisément le défaut de couverture des anciens tests, qui appelaient directement `ApplyCombatSurfaceAtCell()` sans utilisation d'objet.
+
+Les tests doivent réussir sous UE 5.5.4 avant toute conclusion de conformité. Une capture PIE/RHI reste nécessaire pour juger l'apparence, le relief et les reflets réels.
