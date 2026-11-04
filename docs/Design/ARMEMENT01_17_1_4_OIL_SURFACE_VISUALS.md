@@ -182,3 +182,14 @@ Le matériau maître doit porter l'option **« Used with Instanced Static Meshes
 Un nouveau test de production **en lecture seule**, `Grimrock.RPG.ARMEMENT01.17.1.4.InstancedMaterialUsage`, vérifie cette option dans l'asset binaire. Si ce test est l'unique échec, le bootstrap Windows lance automatiquement une réparation ciblée via `-run=GridOilSurfaceMaterialAuthoring -FixInstancedUsage`, vérifie le worktree et n'autorise la publication que de `M_Surface_Oil.uasset` sous Git LFS. L'instance `MI_Surface_Oil`, les sols et les données de gameplay restent inchangés. Un nouveau cycle de validation UE s'exécute sur le commit d'asset corrigé.
 
 L'acceptation artistique en PIE/RHI reste distincte des tests `-NullRHI`.
+
+
+### Validation finale du shader pour meshes instanciés — 4 novembre 2026
+
+Le résultat de l'agent Windows confirme que le test `Grimrock.RPG.ARMEMENT01.17.1.4.InstancedMaterialUsage` était **le seul échec** du commit `c6f347d281c6e40208bba416caa3febcfa1638ad`. La permutation shader **Used with Instanced Static Meshes** manquait dans le matériau maître de production.
+
+Le commandlet Unreal a corrigé **uniquement** `M_Surface_Oil.uasset` et publié le commit `0500c5492c715497bb5e61f9ce2949fa5ce539de`. Ce dernier a obtenu **`Build + Automation OK (Grimrock)`** sous UE 5.5.4, incluant le nouveau test du matériau et les tests de la flasque dans la hotbar.
+
+Cette absence de permutation explique le risque de matériau gris quadrillé de secours sur les plans instanciés, malgré une association correcte avec `MI_Surface_Oil`. Le matériau du plancher normal demeure indépendant et n'a pas été modifié.
+
+**Réserve :** la validation utilise `-NullRHI` ; elle confirme la correction matérielle, pas encore les pixels du jeu en PIE/RHI. La copie de développement `D:\Development\GrimrockPrototype` n'est pas actualisée automatiquement par le worktree de validation, et un éditeur local ouvert sur l'ancienne version peut continuer à montrer l'ancien shader jusqu'à synchronisation/rechargement. Les données locales non sauvegardées doivent rester protégées.
