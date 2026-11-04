@@ -51,8 +51,9 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest(const FString& Parameters)
 		ContainsExactly(GridEditorLinkPolicy::GetSupportedEventsForSource(Lever), { EGridObjectEvent::Activated, EGridObjectEvent::Deactivated }));
 	TestTrue(TEXT("PressurePlate emits exactly Activated and Deactivated"),
 		ContainsExactly(GridEditorLinkPolicy::GetSupportedEventsForSource(PressurePlate), { EGridObjectEvent::Activated, EGridObjectEvent::Deactivated }));
-	TestTrue(TEXT("Trigger emits exactly Activated and Deactivated"),
-		ContainsExactly(GridEditorLinkPolicy::GetSupportedEventsForSource(Trigger), { EGridObjectEvent::Activated, EGridObjectEvent::Deactivated }));
+	TestTrue(TEXT("Trigger emits Activated, Deactivated and Disarmed"),
+		ContainsExactly(GridEditorLinkPolicy::GetSupportedEventsForSource(Trigger),
+			{ EGridObjectEvent::Activated, EGridObjectEvent::Deactivated, EGridObjectEvent::Disarmed }));
 	TestTrue(TEXT("Receptacle emits exactly its three item events"),
 		ContainsExactly(GridEditorLinkPolicy::GetSupportedEventsForSource(Receptacle),
 			{ EGridObjectEvent::ItemInserted, EGridObjectEvent::ItemRemoved, EGridObjectEvent::ItemChanged }));

@@ -149,3 +149,15 @@ Il controle ensuite la presence de `onelua.c`, `lua.h`, `lauxlib.h` et `lualib.h
 La version de l'agent est prise automatiquement depuis `origin/master` par `UEValidationBootstrap.ps1`. **Aucun nouveau `git pull` ni reinstallation du Planificateur ne sont requis** pour cette correction de l'agent. Il faut simplement laisser la tache automatique effectuer son prochain cycle sur la machine Windows allumee, session utilisateur ouverte.
 
 Suivi : [GitHub issue #10](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/10).
+
+
+## VALIDATION-AUTO01.6 — assainissement de la baseline des tests et diagnostics Skills
+
+Le premier run complet apres restauration du sous-module Lua (commit e40620b4) a execute Automation et remonte trois tests en echec dans l'issue GitHub #11. L'audit de la source a identifie deux attentes historiques devenues fausses :
+
+- `Grimrock.MON19.2.Editor.LinkPolicyMatrix` attendait deux evenements du Trigger alors que le runtime actuel expose aussi `Disarmed`.
+- `Grimrock.RPG.ARMEMENT.LOT02.ApprovedKitsProductionGate` imposait exactement six candidats, une photographie de LOT02.5. Le catalogue a evolue et l'acceptation porte desormais sur les six kits historiques **au minimum**, sans masquer les autres recettes bloquees.
+
+Le test `Grimrock.UI.RPG06.Skills.ProductionCatalog` reste strict (les 25 DataAssets doivent correspondre au contrat canonique). L'agent sait desormais extraire, uniquement pour ce test et a partir du rapport JSON, les SkillIds d'une **liste blanche fixe** et la categorie statique d'assertion (ASSET_LOAD / CANONICAL_FIELDS / DISPLAY_NAME / STRUCTURE). Aucun message brut d'erreur n'est publie dans l'issue publique.
+
+Ces modifications C++ ne changent aucun comportement gameplay et aucun .uasset. Le resultat reel reste soumis a la nouvelle execution automatique UE5.5.4, non anticipee.
