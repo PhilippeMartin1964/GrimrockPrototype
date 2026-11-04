@@ -110,7 +110,10 @@ namespace OilDecalAuthoring
 			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:Z_POSITION]"));
 			return false;
 		}
-		if (!Wire(Position, Noise, TEXT("Position")))
+		// L'éditeur n'expose pas le pin Position de Noise à la recherche par nom
+		// de MaterialEditingLibrary. Relier directement son FExpressionInput.
+		Noise->Position.Connect(0, Position);
+		if (!Noise->Position.IsConnected())
 		{
 			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:NOISE_POSITION]"));
 			return false;
