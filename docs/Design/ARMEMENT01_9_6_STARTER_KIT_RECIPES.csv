@@ -10,7 +10,7 @@ Ranger,Hunter,Kit_Ranger_Hunter,ARM038,1,MainHand,ARM057,1,Bag,None,0,None,Requi
 Ranger,Scout,Kit_Ranger_Scout,ARM048,1,MainHand,ARM001,1,Bag,Item_Torch,1,None,RequiresWeaponItemAuthoring,ApprovedDesign,ExplorationToolAlreadyKnown
 Mage,Evoker,Kit_Mage_Evoker,ARM062,1,MainHand,None,0,None,None,0,None,RequiresWeaponItemAuthoring,ApprovedDesign,FireWandIsAnOrientationNotTalentLock
 Mage,Arcanist,Kit_Mage_Arcanist,ARM061,1,MainHand,ARM070,1,OffHand,None,0,None,RequiresWeaponItemAuthoring,ApprovedDesign,OffhandFocusPassiveMustBeVerified
-Mage,SurfaceWeaver,Kit_Mage_SurfaceWeaver,ARM067,1,MainHand,None,0,None,None,0,SurfaceCatalystToAuthor,RequiresWeaponItemAuthoring,ApprovedDesign,SurfaceCatalystToAuthor
+Mage,SurfaceWeaver,Kit_Mage_SurfaceWeaver,ARM067,1,MainHand,None,0,None,Item_SurfaceCatalyst_01,1,None,ReadySurfaceCatalyst,ApprovedDesign,CatalystN1NoTalent
 Priest,Restoration,Kit_Priest_Restoration,ARM069,1,MainHand,None,0,None,None,0,PositiveHealingConsumableToAuthor,RequiresWeaponItemAuthoring,ApprovedDesign,PositiveHealingConsumableToAuthor
 Priest,Protection,Kit_Priest_Protection,ARM020,1,MainHand,ARM075,1,OffHand,None,0,None,RequiresWeaponItemAuthoring,ApprovedDesign,ShieldUsefulNotBlessingPrerequisite
 Priest,Exorcism,Kit_Priest_Exorcism,ARM069,1,MainHand,ARM081,1,OffHand,None,0,None,RequiresWeaponItemAuthoring,ApprovedDesign,SacredAegisDoesNotGrantHolyLight

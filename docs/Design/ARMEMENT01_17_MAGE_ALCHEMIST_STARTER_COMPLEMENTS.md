@@ -134,3 +134,41 @@ dans le kit Mage/Tisseur (une fiole), usage en combat via le pipeline
 QuickItem et vérification de l'usage lors de l'exploration, tests
 New Game/Save→Continue/PIE ; aucune attribution dans les sauvegardes
 déjà créées. Le vrai item n'est pas déclaré opérationnel avant cette étape.
+
+
+## ARMEMENT01.17.2B — Dotation N1 et exécution réelle du catalyseur
+
+Après fabrication par Unreal du DataAsset natif, `Kit_Mage_SurfaceWeaver`
+contient exactement un `DA_Item_SurfaceCatalyst_01` dans le sac,
+en plus de son bâton élémentaire deux mains. Le Mage conserve son
+niveau 1 et ses premiers talents au niveau 2 : aucune affinité N2
+ni `ElementalConversion` N6 n'est accordée.
+
+Le manifeste éditorial reflète `Item_SurfaceCatalyst_01` ×1,
+et le nombre de recettes ayant un support encore à produire passe de
+cinq à quatre. Les 17 autres kits et les anciennes sauvegardes ne
+sont pas rétroactivement modifiés.
+
+Pipeline de combat : l'item s'assigne à la hotbar QuickItem.
+Un clic active le ciblage Cell R4/LOS, et la confirmation déclenche
+`SurfaceInteraction=Fire` par C6 sur une surface préexistante.
+Consommation de 1 item et 2 PA **seulement en cas de cible acceptée**.
+Pas d'huile nouvelle créée ; pas de pouvoir de talent conféré.
+Les interactions non canoniques refusent le ciblage.
+
+Nouveaux tests :
+- `Grimrock.RPG.ARMEMENT01.17.2B.SurfaceWeaverNewGameSaveContinue` :
+  trois kits Mage, équipement, bag/GUID, save binaire et restore.
+- `Grimrock.RPG.ARMEMENT01.17.2B.CatalystCombatHotbar` :
+  cible invalide, coût réel, réaction Oil→Fire et refus sur Water.
+
+La hotbar hors combat ne réimplémente pas ici le catalyseur :
+seule l'huile est actuellement compatible exploration. Avant de
+déclencher Fire hors combat, il faudra définir la durée temporelle
+de toutes les surfaces persistantes, et pas seulement Oil. Il s'agit
+d'une réserve de gameplay explicite, non d'un déblocage implicite.
+
+Revue PIE/GPU et traduction anglaise de `NSLOCTEXT` à vérifier
+séparément ; l'icône et le mesh du catalyseur réutilisent
+provisoirement ceux d'une flasque existante. Aucun texte WBP
+ni ST_UI ajouté dans ce jalon.

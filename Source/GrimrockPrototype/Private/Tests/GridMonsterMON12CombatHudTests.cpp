@@ -2014,4 +2014,92 @@ bool FARMEMENT011717OilExplorationRealPipeline::RunTest(const FString&)
 }
 
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01172BCombatCatalyst,
+	"Grimrock.RPG.ARMEMENT01.17.2B.CatalystCombatHotbar",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
+{
+	FGridCombatHudFixture Fixture;
+	if (!TestTrue(TEXT("Real combat fixture ready"), Fixture.IsReady())) return false;
+	UGridItemDefinitionAsset* Catalyst = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_SurfaceCatalyst_01.DA_Item_SurfaceCatalyst_01"));
+	if (!TestNotNull(TEXT("Native N1 Catalyst"), Catalyst)) return false;
+	FGridCombatActionDefinition Definition;
+	if (!TestTrue(TEXT("Catalyst QuickItem action exists"), Catalyst->BuildQuickItemCombatActionDefinition(Definition))) return false;
+	TestEqual(TEXT("Fire reaction action"), Definition.SurfaceInteraction, EGridCombatSurfaceInteraction::Fire);
+
+	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent.Get();
+	if (!TestTrue(TEXT("Register exact catalyst definition"), Inventory->RegisterItemDefinition(Catalyst))) return false;
+	FGridItemInstance Item;
+	Item.RuntimeObjectId = FGuid::NewGuid();
+	Item.ItemDefinitionId = Catalyst->ItemDefinitionId;
+	Item.DisplayName = Catalyst->DisplayName;
+	Item.OwnerType = EGridItemOwnerType::World;
+	Item.Quantity = 2;
+	if (!TestTrue(TEXT("Two catalyst units in inventory"), Inventory->AddItemToCharacterInventory(0, Item))) return false;
+	if (!TestTrue(TEXT("Bind catalyst to hotbar"), Inventory->SetCharacterCombatHotbarBindingFromItem(
+		0, 1, Item, EGridEquipmentSlot::None))) return false;
+	Fixture.Hud->RefreshFromSources();
+
+	const FIntPoint Target(1, 2);
+	FGridCombatSurfaceEffectProfile Oil;
+	Oil.SurfaceType = EGridCombatSurfaceType::Oil;
+	Oil.DurationRounds = 4;
+	Oil.TraversalCostModifier = 1;
+	const FGridResolvedCombatModifiers Modifiers;
+	if (!TestTrue(TEXT("Prepare existing RPG03.6 oil for catalyst"),
+		Fixture.Runtime->ApplyCombatSurfaceAtCell(Target.X, Target.Y, Oil, Fixture.CharacterIds[0],
+			FName(TEXT("Action_Alchemist_OilSlick")), Modifiers))) return false;
+
+	if (!TestTrue(TEXT("Combat hotbar catalyst action resolves"), Fixture.Hud->View.Actions.IsValidIndex(1) &&
+		Fixture.Hud->View.Actions[1].bResolved && Fixture.Hud->View.Actions[1].Action.bEnabled))
+		return false;
+	TestEqual(TEXT("Combat catalyst costs two AP"), Fixture.Hud->View.Actions[1].Action.CurrentActionPointCost, 2);
+	const int32 ActionPointsBefore = Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints;
+	FGridCombatActionRequestResult Aim;
+	if (!TestTrue(TEXT("Click enters canonical targeting"), Fixture.Hud->RequestHotbarSlot(1, Aim))) return false;
+	TestEqual(TEXT("Aiming does not spend item"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 2);
+	FGridCombatActionRequestResult Invalid;
+	TestFalse(TEXT("Invalid target rejected"), Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(100,100), Invalid));
+	TestEqual(TEXT("Rejection spends nothing"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 2);
+
+	FGridCombatActionRequestResult Confirmed;
+	if (!TestTrue(TEXT("Apply canonical Fire reaction at valid cell"),
+		Fixture.Hud->ConfirmCombatActionTarget(Target, Confirmed))) return false;
+	TestTrue(TEXT("Combat action accepted"), Confirmed.bAccepted);
+	const FGridCombatSurfaceState* Surface = Fixture.Runtime->FindCombatSurfaceAtCell(Target.X, Target.Y);
+	TestTrue(TEXT("Oil changed to canonical Fire, no new surface type invented"),
+		Surface && Surface->SurfaceType == EGridCombatSurfaceType::Fire);
+	TestEqual(TEXT("Exactly one catalyst spent"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 1);
+	TestEqual(TEXT("Exactly two AP spent"),
+		Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, ActionPointsBefore - 2);
+	TestEqual(TEXT("No oil flask splash for catalyst"), Fixture.Runtime->GetOilSplashPresentationCount(), 0);
+	TestFalse(TEXT("Catalyst doesn't grant N2+ talent"), Definition.Requirements.Num() > 0);
+
+	// Once the surface is Water there is no Fire reaction: reject before paying.
+	FGridCombatSurfaceEffectProfile Water;
+	Water.SurfaceType = EGridCombatSurfaceType::Water;
+	Water.DurationRounds = 3;
+	if (!TestTrue(TEXT("Prepare non-reactive water"),
+		Fixture.Runtime->ApplyCombatSurfaceAtCell(Target.X, Target.Y, Water, Fixture.CharacterIds[0],
+			FName(TEXT("WaterTest")), Modifiers))) return false;
+	FGridCombatActionRequestResult Aim2;
+	if (TestTrue(TEXT("Remaining unit can enter targeting"), Fixture.Hud->RequestHotbarSlot(1, Aim2)))
+	{
+		FGridCombatActionRequestResult WaterResult;
+		TestFalse(TEXT("Water cannot be ignited"), Fixture.Hud->ConfirmCombatActionTarget(Target, WaterResult));
+		TestEqual(TEXT("No consumption on impossible Fire reaction"),
+			Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 1);
+		TestEqual(TEXT("No extra AP on impossible reaction"),
+			Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, ActionPointsBefore - 2);
+		Fixture.Hud->CancelCombatActionTargeting();
+	}
+	FString Ownership;
+	TestTrue(TEXT("No orphan inventory item"), Inventory->ValidateInventoryOwnership(Ownership));
+	return true;
+}
+
 #endif

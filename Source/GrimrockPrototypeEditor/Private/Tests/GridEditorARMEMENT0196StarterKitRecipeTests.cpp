@@ -266,11 +266,12 @@ bool FARMEMENT0196Compatibility::RunTest(const FString&)
         AddInfo(Error);
         return false;
     }
-    // The editorial manifest now records three real N1 support items:
-    // Scout torch, Grenadier bomb and ARMEMENT01.17.1 Transmuter oil flask.
+    // Four production N1 support items now exist: Scout torch,
+    // Grenadier bomb, Transmuter oil and Mage SurfaceWeaver catalyst.
     // Check exact kit/quantity rather than preserving the obsolete count.
     const TMap<FString, FName> ExpectedSupport = {
         {TEXT("Kit_Ranger_Scout"), FName(TEXT("Item_Torch"))},
+        {TEXT("Kit_Mage_SurfaceWeaver"), FName(TEXT("Item_SurfaceCatalyst_01"))},
         {TEXT("Kit_Alchemist_Grenadier"), FName(TEXT("Item_Bomb_Fire"))},
         {TEXT("Kit_Alchemist_Transmuter"), FName(TEXT("Item_Flask_Oil"))}
     };
@@ -300,9 +301,9 @@ bool FARMEMENT0196Compatibility::RunTest(const FString&)
         if (Recipe.SupportNeed != TEXT("None")) ++WithPendingSupport;
         TestEqual(TEXT("Design recipes are approved, not activated"), Recipe.Approval, FString(TEXT("ApprovedDesign")));
     }
-    TestEqual(TEXT("Known support item coverage follows the three approved kits"), WithSupport, ExpectedSupport.Num());
-    TestEqual(TEXT("Five kits still declare a pending support need or component"),
-        WithPendingSupport, 5);
+    TestEqual(TEXT("Known support item coverage follows the four approved kits"), WithSupport, ExpectedSupport.Num());
+    TestEqual(TEXT("Four kits still declare a pending support need or component"),
+        WithPendingSupport, 4);
     return true;
 }
 

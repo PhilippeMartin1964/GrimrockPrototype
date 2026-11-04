@@ -124,9 +124,11 @@ namespace RPGStartingPresets
         {TEXT("Mage"), TEXT("Evoker"),
             {TEXT("DA_Weapon_FireWand_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+        // ARMEMENT01.17.2B: exactly one finished N1 consumable catalyst,
+        // distinct from the N2+ Mage SurfaceWeaver talent abilities.
         {TEXT("Mage"), TEXT("SurfaceWeaver"),
             {TEXT("DA_Weapon_ElementalStaff_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
-            {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+            {TEXT("DA_Item_SurfaceCatalyst_01"), EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Priest"), TEXT("Protection"),
             {TEXT("DA_Weapon_Mace_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
