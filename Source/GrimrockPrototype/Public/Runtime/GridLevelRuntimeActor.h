@@ -581,7 +581,7 @@ public:
 	void UpdateCombatOilSplash();
 	void ClearCombatOilSplash();
 	int32 GetOilSplashPresentationCount() const { return OilSplashPresentationCount; }
-	int32 GetActiveOilSplashCount() const { return IsValid(ActiveOilSplashDecal) ? 1 : 0; }
+	int32 GetActiveOilSplashCount() const { return ActiveOilSplashDecal.Get() ? 1 : 0; }
 	static float GetOilSplashSpreadScale(float NormalizedProgress);
 	int32 GetActiveOilDecalCount() const { return ActiveOilDecals.Num(); }
 	const UDecalComponent* GetActiveOilDecal(int32 Index) const
