@@ -4,6 +4,8 @@
 #include "Materials/Material.h"
 #include "MaterialDomain.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "MaterialEditingLibrary.h"
+#include "Engine/StaticMesh.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 
@@ -26,6 +28,15 @@ bool FGridOilMaterialProductionTest::RunTest(const FString&)
 	TestTrue(TEXT("Éclairage direct par pixel et reflets locaux"),
 		Master->TranslucencyLightingMode == TLM_SurfacePerPixelLighting);
 	TestTrue(TEXT("L'instance appartient au matériau canonique"), Instance->GetMaterial() == Master);
+
+	// Deux assets valides peuvent encore porter un graphe de matériau vide.
+	// Un tel shader donne l'impression du matériau générique Unreal en PIE.
+	TestTrue(TEXT("Graphe : couleur reliée à BaseColor"),
+		UMaterialEditingLibrary::GetMaterialPropertyInputNode(Master, MP_BaseColor) != nullptr);
+	TestTrue(TEXT("Graphe : transparence reliée à Opacity"),
+		UMaterialEditingLibrary::GetMaterialPropertyInputNode(Master, MP_Opacity) != nullptr);
+	TestTrue(TEXT("Graphe : rugosité reliée à Roughness"),
+		UMaterialEditingLibrary::GetMaterialPropertyInputNode(Master, MP_Roughness) != nullptr);
 
 	// La présence du matériau seul ne suffit pas : il doit être réellement
 	// affecté au slot 0 d'un composant possédant un mesh dans le CDO natif.
@@ -59,6 +70,22 @@ bool FGridOilMaterialProductionTest::RunTest(const FString&)
 	TestTrue(TEXT("MI_Surface_Oil lié au slot 0 du Blueprint"), BlueprintOil->GetMaterial(0) == Instance);
 	TestTrue(TEXT("Huile sans collision"), BlueprintOil->GetCollisionEnabled() == ECollisionEnabled::NoCollision);
 	TestEqual(TEXT("Aucune flaque permanente au repos"), BlueprintOil->GetInstanceCount(), 0);
+
+	// Contrôle de diagnostic : le matériau de la pierre est normalement
+	// porté par le StaticMesh ; il ne doit pas être celui de secours UE.
+	if (UStaticMesh* ShippedFloor = BlueprintDefaults->FloorMesh)
+	{
+		const UMaterialInterface* FloorMaterial = ShippedFloor->GetMaterial(0);
+		TestTrue(TEXT("Le plancher de production n'utilise pas la grille UE"),
+			FloorMaterial != nullptr &&
+			FloorMaterial != UMaterial::GetDefaultMaterial(MD_Surface) &&
+			!FloorMaterial->GetPathName().Contains(TEXT("WorldGridMaterial")) &&
+			!FloorMaterial->GetPathName().Contains(TEXT("DefaultMaterial")));
+	}
+	else
+	{
+		AddInfo(TEXT("Le mesh du sol n'est pas défini sur le CDO Blueprint : il peut être configuré sur l'acteur dans la carte."));
+	}
 	return true;
 }
 

@@ -135,3 +135,14 @@ L'association se trouve dans le Blueprint `BP_GridLevelRuntimeActor`, dans le co
 Le **Reference Viewer** d'un asset n'affiche pas nécessairement les liaisons natives établies par du code C++ ; c'est le composant hérité et son test de production qui établissent cette association. Le worktree de validation est indépendant de la copie de développement : les nouvelles propriétés ne peuvent apparaître dans un éditeur Unreal local chargé d'un ancien commit tant que ses sources n'ont pas été mises à jour. Aucun changement manuel de Blueprint n'est requis.
 
 **Réserve inchangée :** la validation UE/Automation confirme la liaison réelle et la mécanique des instances, mais pas encore l'apparence des flaques dans une capture PIE/RHI sous éclairage.
+
+
+## ARMEMENT01.17.1.4E — Diagnostic de l'absence de flaque visible
+
+Le retour du joueur concerne le **rendu absent** (et un sol visuellement générique UE), et non la seule liaison du matériau au composant. Les précédents tests vérifiaient le nombre d'instances, mais pas leur profondeur par rapport au mesh de pierre réel ni les connexions du matériau généré.
+
+Le rendu calcule désormais l'altitude du plan de flaque à partir de la face supérieure `FloorMesh->GetBoundingBox().Max.Z` du mesh utilisé par `FloorISM`, plus le décalage positif configurable `OilSurfaceHeightOffset`. Cela évite qu'une flaque située à une hauteur fixe de 2 cm soit enfouie dans un mesh de pierre importé et épais. Le test `OverlayAboveFloorThickness` construit un cas de plancher épais avec le cube Engine et confirme la position exacte de la nappe. Les cellules autoritaires, réactions et sauvegardes sont inchangées.
+
+Le contrôle de production teste également les connexions **BaseColor / Opacity / Roughness** du graphe de `M_Surface_Oil` et examine le matériau du mesh de sol défini par le Blueprint, lorsqu'il y en a un. Ainsi, un matériau vide ou un plancher affecté au matériau de secours UE ne pourra pas être interprété silencieusement comme un rendu satisfaisant.
+
+**Reste ouvert :** l'essai de la flasque depuis la hotbar et l'observation réelle des pixels par une capture PIE avec RHI. Les tests de logique en `-NullRHI` ne suffisent pas à certifier l'apparence de la flaque.

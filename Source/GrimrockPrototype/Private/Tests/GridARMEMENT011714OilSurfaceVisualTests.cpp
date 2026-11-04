@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/Material.h"
+#include "Engine/StaticMesh.h"
 #include "MaterialDomain.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatTypes.h"
@@ -111,6 +112,31 @@ bool FOilVisCells::RunTest(const FString&)
 	TestTrue(TEXT("Case 1,1"), Cells.Contains(FIntPoint(1, 1)));
 	TestTrue(TEXT("Case 2,1"), Cells.Contains(FIntPoint(2, 1)));
 	TestFalse(TEXT("Pas d'huile sur l'eau"), Cells.Contains(FIntPoint(0, 0)));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOilVisFloorThickness,
+	"Grimrock.RPG.ARMEMENT01.17.1.4.OverlayAboveFloorThickness",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FOilVisFloorThickness::RunTest(const FString&)
+{
+	ARMEMENT011714::FWorld World;
+	AGridLevelRuntimeActor* Runtime = ARMEMENT011714::MakeRuntime(World);
+	if (!TestNotNull(TEXT("Acteur runtime"), Runtime)) return false;
+	UStaticMesh* ThickFloor = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	if (!TestNotNull(TEXT("Sol de référence épais"), ThickFloor)) return false;
+	Runtime->FloorMesh = ThickFloor;
+	const float Top = ThickFloor->GetBoundingBox().Max.Z;
+	TestTrue(TEXT("Sol de test plus épais que le décalage historique"), Top > Runtime->OilSurfaceHeightOffset + 1.f);
+	if (!TestTrue(TEXT("Surface d'huile autoritaire"), ARMEMENT011714::Apply(Runtime, 1, 2, EGridCombatSurfaceType::Oil))) return false;
+	const UInstancedStaticMeshComponent* Oil = Runtime->GetCombatOilSurfaceVisualComponent();
+	if (!TestTrue(TEXT("Une instance créée"), Oil && Oil->GetInstanceCount() == 1)) return false;
+	FTransform Local;
+	if (!TestTrue(TEXT("Transform locale disponible"), Oil->GetInstanceTransform(0, Local, false))) return false;
+	const float LocalZ = Local.GetLocation().Z - Runtime->GridOrigin.Z;
+	TestTrue(TEXT("La flaque est au-dessus de la face haute du plancher"), LocalZ > Top);
+	TestTrue(TEXT("La hauteur du plancher et la marge d'huile sont respectées"),
+		FMath::IsNearlyEqual(LocalZ, Top + Runtime->OilSurfaceHeightOffset, 0.1f));
 	return true;
 }
 

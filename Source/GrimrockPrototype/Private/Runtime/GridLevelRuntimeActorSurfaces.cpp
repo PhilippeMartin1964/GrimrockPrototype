@@ -2,6 +2,7 @@
 
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
+#include "Engine/StaticMesh.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridSurfaceRuntime, Log, All);
 
@@ -51,6 +52,13 @@ void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 	OilSurfaceISM->SetMaterial(0, Material);
 	const float CellSize = LevelAsset->CellSize;
 	const float Scale = (CellSize / 100.f) * 0.98f;
+
+	// Un mesh de pierre peut avoir plusieurs centimètres d'épaisseur.
+	// FloorISM est placé à Z=0, échelle 1, sans décalage vertical ;
+	// une nappe à Z=2 cm pouvait donc se retrouver SOUS le plancher.
+	// Placer la projection au-dessus du sommet du mesh actuellement utilisé.
+	const float FloorTopZ = IsValid(FloorMesh) ? FloorMesh->GetBoundingBox().Max.Z : 0.f;
+	const float OverlayZ = FloorTopZ + FMath::Max(0.5f, OilSurfaceHeightOffset);
 	OilCells.Sort([](const FIntPoint& A, const FIntPoint& B)
 	{
 		return A.Y == B.Y ? A.X < B.X : A.Y < B.Y;
@@ -59,7 +67,7 @@ void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 	for (const FIntPoint& Cell : OilCells)
 	{
 		// Transformations RELATIVES à SceneRoot : comme FloorISM, aussi avec acteur transformé.
-		const FVector Center = CellToWorld(Cell.X, Cell.Y, OilSurfaceHeightOffset) +
+		const FVector Center = CellToWorld(Cell.X, Cell.Y, OverlayZ) +
 			FVector(CellSize * .5f, CellSize * .5f, 0.f);
 		const FTransform Overlay(FRotator::ZeroRotator, Center, FVector(Scale, Scale, 1.f));
 		if (IsSafeRuntimeRenderTransform(Overlay))
