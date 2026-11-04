@@ -143,7 +143,9 @@ function Get-PublicSafeDiagnostics {
     if (Test-Path -LiteralPath $OilStagePath -PathType Leaf) {
         $OilStage = [string](Get-Content -LiteralPath $OilStagePath -TotalCount 1 -ErrorAction SilentlyContinue)
         $KnownOilStages = @('PREFLIGHT', 'REPORT_ACCEPTED', 'COMMANDLET_STARTED',
-            'COMMANDLET_COMPLETED', 'COMMANDLET_FAILED', 'ASSETS_VERIFIED', 'COMMIT_CREATED', 'SUCCESS')
+            'COMMANDLET_COMPLETED', 'COMMANDLET_FAILED', 'FILESET_STATUS',
+            'FILESET_OUTSIDE_ALLOWLIST', 'FILESET_MISSING_MASTER',
+            'FILESET_CREATION', 'ASSETS_VERIFIED', 'COMMIT_CREATED', 'SUCCESS')
         if ($OilStage -in $KnownOilStages) {
             $Safe.Add('Materiau huile : phase ' + $OilStage)
         }

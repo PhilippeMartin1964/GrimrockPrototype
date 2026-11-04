@@ -69,16 +69,31 @@ if ($Process.ExitCode -ne 0) {
 }
 Stage -Name 'COMMANDLET_COMPLETED'
 $Changes = @(Changes)
-$ExpectedPaths = if ($Convert) { @($Material) } else { @($Material, $Instance) }
-if ($Changes.Count -ne $ExpectedPaths.Count) {
-    throw 'Nombre de fichiers modifiés inattendu. Aucun commit.'
-}
+# Lors d'une conversion de domaine, UE peut réenregistrer l'instance parente.
+# Autoriser exclusivement M_Surface_Oil et MI_Surface_Oil, sans aucun autre asset.
+$ExpectedPaths = @()
+$AllowedPaths = @($Material, $Instance)
+$ValidStatusPrefix = if ($Convert) { ' M ' } else { '?? ' }
 foreach ($Change in $Changes) {
-    $Path = $Change.Substring(3)
-    $ValidStatus = if ($Convert) { $Change.StartsWith(' M ') } else { $Change.StartsWith('?? ') }
-    if ($Path -notin $ExpectedPaths -or -not $ValidStatus) {
-        throw 'Fichier inattendu dans le worktree. Aucun commit.'
+    if ($Change.Length -lt 4 -or -not $Change.StartsWith($ValidStatusPrefix)) {
+        Stage -Name 'FILESET_STATUS'
+        throw 'Statut Git différent de celui attendu ; aucun commit.'
     }
+    $ChangedPath = $Change.Substring(3)
+    if ($ChangedPath -notin $AllowedPaths) {
+        Stage -Name 'FILESET_OUTSIDE_ALLOWLIST'
+        throw 'Fichier hors liste blanche ; aucun commit.'
+    }
+    $ExpectedPaths += $ChangedPath
+}
+if ($Convert) {
+    if ($ExpectedPaths.Count -lt 1 -or $ExpectedPaths.Count -gt 2 -or $Material -notin $ExpectedPaths) {
+        Stage -Name 'FILESET_MISSING_MASTER'
+        throw 'Le matériau maître ne présente pas la modification attendue.'
+    }
+} elseif ($ExpectedPaths.Count -ne 2 -or $Material -notin $ExpectedPaths -or $Instance -notin $ExpectedPaths) {
+    Stage -Name 'FILESET_CREATION'
+    throw 'Fichiers créés différents de la paire autorisée.'
 }
 foreach ($Target in @($Material, $Instance)) {
     $Path = Join-Path $WorktreePath $Target
