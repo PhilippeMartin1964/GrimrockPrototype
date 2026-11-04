@@ -188,4 +188,78 @@ bool FOilDecalSave::RunTest(const FString&)
 	TestTrue(TEXT("Durée conservée"), Oil && Oil->RemainingRounds == 4);
 	return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOilExplorationExpiry,
+	"Grimrock.RPG.ARMEMENT01.17.1.6.ExplorationTime",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FOilExplorationExpiry::RunTest(const FString&)
+{
+	ARMEMENT011714::FWorld F;
+	auto* Runtime = ARMEMENT011714::MakeRuntime(F);
+	if (!TestNotNull(TEXT("Runtime"), Runtime)) return false;
+	TestTrue(TEXT("Huile 2 rounds"), ARMEMENT011714::Apply(Runtime, 1, 1, EGridCombatSurfaceType::Oil, 2));
+	TestTrue(TEXT("Eau 2 rounds"), ARMEMENT011714::Apply(Runtime, 2, 2, EGridCombatSurfaceType::Water, 2));
+	const FGridCombatSurfaceState* Oil = Runtime->FindCombatSurfaceAtCell(1, 1);
+	TestTrue(TEXT("12 secondes initiales"), Oil && FMath::IsNearlyEqual(Oil->RemainingOilSeconds, 12.f));
+	TestEqual(TEXT("5 secondes d'exploration"), Runtime->AdvanceExplorationOilTime(5.f), 0);
+	Oil = Runtime->FindCombatSurfaceAtCell(1, 1);
+	TestTrue(TEXT("7 secondes restantes"), Oil && FMath::IsNearlyEqual(Oil->RemainingOilSeconds, 7.f));
+	TestTrue(TEXT("Eau inchangée hors combat"),
+		Runtime->FindCombatSurfaceAtCell(2, 2) && Runtime->FindCombatSurfaceAtCell(2, 2)->RemainingRounds == 2);
+	TestEqual(TEXT("1 round supplémentaire"), Runtime->AdvanceCombatSurfaceRound(), 0);
+	Oil = Runtime->FindCombatSurfaceAtCell(1, 1);
+	TestTrue(TEXT("1 seconde restante"), Oil && Oil->RemainingRounds == 1 &&
+		FMath::IsNearlyEqual(Oil->RemainingOilSeconds, 1.f));
+	TestEqual(TEXT("Expiration exploration"), Runtime->AdvanceExplorationOilTime(1.f), 1);
+	TestNull(TEXT("Etat d'huile effacé"), Runtime->FindCombatSurfaceAtCell(1, 1));
+	TestEqual(TEXT("Décalque effacé"), Runtime->GetActiveOilDecalCount(), 0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOilExplorationSave,
+	"Grimrock.RPG.ARMEMENT01.17.1.6.SaveLoad",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FOilExplorationSave::RunTest(const FString&)
+{
+	ARMEMENT011714::FWorld F;
+	auto* Runtime = ARMEMENT011714::MakeRuntime(F);
+	if (!TestNotNull(TEXT("Runtime"), Runtime)) return false;
+	TestTrue(TEXT("Huile 4 rounds"), ARMEMENT011714::Apply(Runtime, 0, 0, EGridCombatSurfaceType::Oil, 4));
+	TestEqual(TEXT("Décompte partiel"), Runtime->AdvanceExplorationOilTime(1.5f), 0);
+	TestTrue(TEXT("Capture"), Runtime->CaptureCurrentLevelRuntimeState());
+	auto* Save = NewObject<UGrimrockPartySaveGame>();
+	Save->DungeonRuntimeState = Runtime->DungeonRuntimeState;
+	TArray<uint8> Bytes;
+	if (!TestTrue(TEXT("Sérialisation"), UGameplayStatics::SaveGameToMemory(Save, Bytes))) return false;
+	auto* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromMemory(Bytes));
+	if (!TestNotNull(TEXT("Désérialisation"), Loaded)) return false;
+	Runtime->DungeonRuntimeState = Loaded->DungeonRuntimeState;
+	Runtime->RefreshCombatOilSurfaceVisuals();
+	const FGridCombatSurfaceState* Oil = Runtime->FindCombatSurfaceAtCell(0, 0);
+	TestTrue(TEXT("22.5 secondes conservées"),
+		Oil && Oil->RemainingRounds == 4 && FMath::IsNearlyEqual(Oil->RemainingOilSeconds, 22.5f));
+	TestEqual(TEXT("Expiration précise après rechargement"), Runtime->AdvanceExplorationOilTime(22.5f), 1);
+	TestNull(TEXT("Pas d'huile résiduelle"), Runtime->FindCombatSurfaceAtCell(0, 0));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOilExplorationLegacy,
+	"Grimrock.RPG.ARMEMENT01.17.1.6.LegacySave",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FOilExplorationLegacy::RunTest(const FString&)
+{
+	ARMEMENT011714::FWorld F;
+	auto* Runtime = ARMEMENT011714::MakeRuntime(F);
+	if (!TestNotNull(TEXT("Runtime"), Runtime)) return false;
+	TestTrue(TEXT("Huile ancienne"), ARMEMENT011714::Apply(Runtime, 1, 1, EGridCombatSurfaceType::Oil, 2));
+	auto* State = Runtime->GetOrCreateRuntimeStateForCurrentLevel();
+	if (!TestNotNull(TEXT("Etat runtime"), State)) return false;
+	auto* OldOil = State->Surfaces.Find(FIntPoint(1, 1));
+	if (!TestNotNull(TEXT("Surface"), OldOil)) return false;
+	OldOil->RemainingOilSeconds = 0.f;
+	TestEqual(TEXT("Ancien SaveGame migré"), Runtime->AdvanceExplorationOilTime(6.f), 0);
+	const FGridCombatSurfaceState* Oil = Runtime->FindCombatSurfaceAtCell(1, 1);
+	TestTrue(TEXT("6 secondes restantes"), Oil && Oil->RemainingRounds == 1 &&
+		FMath::IsNearlyEqual(Oil->RemainingOilSeconds, 6.f));
+	return true;
+}
 #endif // WITH_DEV_AUTOMATION_TESTS

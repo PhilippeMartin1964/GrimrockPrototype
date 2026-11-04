@@ -1565,6 +1565,10 @@ struct FGridCombatSurfaceState
 	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
 	int32 RemainingRounds = 0;
 
+	/** ARMEMENT01.17.1.6 : zéro signifie une ancienne sauvegarde à migrer. */
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
+	float RemainingOilSeconds = 0.f;
+
 	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
 	FGuid SourceCombatantId;
 

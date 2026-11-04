@@ -153,6 +153,14 @@ public:
 	float OilSplashElapsedSeconds = 0.f;
 	int32 OilSplashPresentationCount = 0;
 
+	/** Temps de gameplay équivalent à un round, réglable avant la partie. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Oil",
+		meta = (ClampMin = "0.1", UIMin = "1.0", UIMax = "30.0"))
+	float OilExplorationSecondsPerRound = 6.f;
+
+	FTimerHandle OilExplorationTimer;
+	double LastOilExplorationUpdateTime = 0.0;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
 	TObjectPtr<UMaterialInterface> CeilingEditorMaterial;
 
@@ -572,6 +580,12 @@ public:
 	void GetCurrentCombatSurfaceSnapshot(TMap<FIntPoint, FGridCombatSurfaceState>& OutSurfaces) const;
 
 	int32 AdvanceCombatSurfaceRound(TArray<FIntPoint>* OutExpiredCells = nullptr);
+
+	/** Avance le temps d'exploration de l'huile (sans Tick permanent). */
+	int32 AdvanceExplorationOilTime(float ElapsedSeconds, TArray<FIntPoint>* OutExpiredCells = nullptr);
+	void RefreshExplorationOilTimer();
+	void UpdateExplorationOilTimer();
+	void ClearExplorationOilTimer();
 
 	/** Projette l'huile sur la géométrie réelle du sol (Z=0), sans plan superposé. */
 	void RefreshCombatOilSurfaceVisuals();

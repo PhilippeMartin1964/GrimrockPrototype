@@ -62,3 +62,20 @@ Le test d'intégration `Grimrock.RPG.ARMEMENT01.17.1.4.QuickItemToWorldProjectio
 Le commit `b40d5a3c` a obtenu **`UE5.5.4/LocalAuto = success`** (compilation et suite complète `Grimrock`). L'animation transitoire de 0,42 seconde et l'entrée unique du flux d'événements sont donc validées sur leurs contrats C++ et Automation. Une vérification visuelle avec rendu GPU reste séparée.
 
 Le contrat final confirme qu'**aucune animation et aucun événement ne sont émis pendant le simple ciblage** : le splash ne démarre qu'après l'utilisation réellement réussie de la flasque. Le flux de la catégorie `Combat` emploie un message français distinct au singulier et au pluriel. Les quatre rounds de combat et la portée de quatre cases sont inchangés ; **l'écoulement du temps hors combat reste à définir**, sans inventer un nombre de secondes par round.
+
+
+## ARMEMENT01.17.1.6 — Durée d'huile hors combat
+
+**Règle provisoire et configurable :** 1 round = 6 secondes de jeu en exploration. Une flasque de quatre rounds reste donc 24 secondes si aucun combat ne commence. `OilExplorationSecondsPerRound` est une propriété de l'acteur runtime ; RPG02 ne fixe pas ce rapport, qui doit être validé avant publication.
+
+- Une seule autorité : `FGridLevelRuntimeState::Surfaces` ; le champ SaveGame `RemainingOilSeconds` conserve les fractions de durée. Les anciennes sauvegardes à zéro reprennent `RemainingRounds × seconds/round`.
+- En combat, seule la fin du round décrémente le temps de gameplay de l'huile ; en exploration, un timer de 0,25 seconde actif seulement si de l'huile existe débite le temps de jeu. Aucune double décrémentation.
+- Les surfaces autres que l'huile et l'animation splash ARMEMENT01.17.1.5 restent inchangées. L'expiration supprime aussi le décalque de sol.
+- L'horloge s'appuie sur `GetTimeSeconds()` (pauses exclues). Les niveaux inactifs ne consomment pas de durée.
+- Éviter de changer le ratio en cours de sauvegarde : il fait partie des règles d'une partie.
+
+Tests supplémentaires : `Grimrock.RPG.ARMEMENT01.17.1.6.ExplorationTime`,
+`Grimrock.RPG.ARMEMENT01.17.1.6.SaveLoad`,
+`Grimrock.RPG.ARMEMENT01.17.1.6.LegacySave`.
+
+**À valider :** build Windows UE5.5.4, toute la suite `Grimrock`, contrôle PIE/GPU du splash et de l'expiration en sortie de combat. Aucun test visuel GPU n'a été réalisé ici.
