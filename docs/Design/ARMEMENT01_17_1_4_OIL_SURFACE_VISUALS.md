@@ -79,3 +79,39 @@ Tests supplémentaires : `Grimrock.RPG.ARMEMENT01.17.1.6.ExplorationTime`,
 `Grimrock.RPG.ARMEMENT01.17.1.6.LegacySave`.
 
 **À valider :** build Windows UE5.5.4, toute la suite `Grimrock`, contrôle PIE/GPU du splash et de l'expiration en sortie de combat. Aucun test visuel GPU n'a été réalisé ici.
+
+
+## ARMEMENT01.17.1.5C — Splash tridimensionnel perceptible
+
+**Pourquoi :** le décalque précédent (0,42 s) utilisait exactement la même
+apparence que la flaque persistante. L'effet était imperceptible en PIE malgré
+la validation technique du déclenchement et du flux d'événements.
+
+Nouvelle présentation (uniquement C++, sans nouveau `.uasset` nécessaire) :
+
+- **Impact central** : décalque de `MI_Surface_Oil`, teinte légèrement
+  réchauffée, expansion accélérée et durée par défaut de **0,78 s**.
+- **Huit éclaboussures de sol** : décalques secondaires mobiles, projetés sur
+  la pierre, s'écartant de l'impact et disparaissant progressivement.
+- **Huit gouttes réellement 3D** : sphères Engine de faible taille avec
+  le matériau **déjà présent** `M_Flask_Oil.uasset`, décrivant une trajectoire
+  en arc au-dessus du sol puis rétrécissant. Pas de Niagara ni d'asset généré
+  artificiellement ; pas de collision, pas d'ombre, pas d'effet mécanique.
+- **Durée configurable** dans `OilSplashDurationSeconds` sur le RuntimeActor.
+  Actualisation temporaire à 30 Hz, aucune simulation permanente.
+- **Nettoyage** lors de la fin, du nouvel impact, d'un rebuild ou d'un EndPlay.
+  Conservation des surfaces RPG03.6, du décompte d'exploration et des
+  messages `Combat.Surface.OilSpread` existants.
+- Si la sphère Engine ou le matériau de flasque sont absents, un warning
+  technique est journalisé ; les décalques de sol restent disponibles.
+
+Tests `Grimrock.RPG.ARMEMENT01.17.1.5C.VisibleBurst` et
+`Grimrock.RPG.ARMEMENT01.17.1.5C.Lifecycle` : composants 3D et projetés
+présents, mouvement mesuré, une animation par utilisation, relancement
+sans accumulation, nettoyage et flaque durable intacte.
+
+**Critère PIE/GPU :** en vue subjective, voir des gouttelettes sombres
+jaillir au-dessus de la pierre, avec des taches radiales qui s'étalent.
+La validation Windows via `UE5.5.4/LocalAuto` confirme la compilation et
+les assertions, pas la perception visuelle réelle : la recette PIE reste
+requise pour l'acceptation artistique.

@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Components/DecalComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -260,6 +261,67 @@ bool FOilExplorationLegacy::RunTest(const FString&)
 	const FGridCombatSurfaceState* Oil = Runtime->FindCombatSurfaceAtCell(1, 1);
 	TestTrue(TEXT("6 secondes restantes"), Oil && Oil->RemainingRounds == 1 &&
 		FMath::IsNearlyEqual(Oil->RemainingOilSeconds, 6.f));
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOilSplashVisibleBurst,
+	"Grimrock.RPG.ARMEMENT01.17.1.5C.VisibleBurst",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FOilSplashVisibleBurst::RunTest(const FString&)
+{
+	ARMEMENT011714::FWorld F;
+	auto* Runtime = ARMEMENT011714::MakeRuntime(F);
+	if (!TestNotNull(TEXT("Runtime"), Runtime)) return false;
+	TestTrue(TEXT("Flaque persistante"), ARMEMENT011714::Apply(Runtime, 1, 1, EGridCombatSurfaceType::Oil, 4));
+	TestEqual(TEXT("Pas de splash au repos"), Runtime->GetActiveOilSplashCount(), 0);
+
+	Runtime->PlayCombatOilSplashAtCell(1, 1);
+	TestEqual(TEXT("Un seul événement de présentation"), Runtime->GetOilSplashPresentationCount(), 1);
+	TestEqual(TEXT("Impact central visible"), Runtime->GetActiveOilSplashCount(), 1);
+	TestEqual(TEXT("Huit gouttes 3D"), Runtime->GetActiveOilSplashDropletCount(), 8);
+	TestEqual(TEXT("Huit projections satellites"), Runtime->GetActiveOilSplashSpatterCount(), 8);
+	const UStaticMeshComponent* FirstDrop = Runtime->GetOilSplashDroplet(0);
+	if (!TestNotNull(TEXT("Goutte 3D"), FirstDrop)) return false;
+	const FVector Initial = FirstDrop->GetRelativeLocation();
+	for (int32 Index = 0; Index < 5; ++Index)
+	{
+		Runtime->UpdateCombatOilSplash();
+	}
+	FirstDrop = Runtime->GetOilSplashDroplet(0);
+	TestTrue(TEXT("Goutte réellement animée dans l'espace"),
+		FirstDrop && FVector::DistSquared(FirstDrop->GetRelativeLocation(), Initial) > 100.f);
+	TestTrue(TEXT("La flaque RPG03.6 reste intacte"),
+		Runtime->FindCombatSurfaceAtCell(1, 1) != nullptr &&
+		Runtime->FindCombatSurfaceAtCell(1, 1)->RemainingRounds == 4);
+	Runtime->ClearCombatOilSplash();
+	TestEqual(TEXT("Gouttes nettoyées"), Runtime->GetActiveOilSplashDropletCount(), 0);
+	TestEqual(TEXT("Projections nettoyées"), Runtime->GetActiveOilSplashSpatterCount(), 0);
+	TestEqual(TEXT("Flaque durable conservée"), Runtime->GetActiveOilDecalCount(), 1);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOilSplashLifetime,
+	"Grimrock.RPG.ARMEMENT01.17.1.5C.Lifecycle",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FOilSplashLifetime::RunTest(const FString&)
+{
+	ARMEMENT011714::FWorld F;
+	auto* Runtime = ARMEMENT011714::MakeRuntime(F);
+	if (!TestNotNull(TEXT("Runtime"), Runtime)) return false;
+	TestTrue(TEXT("Flaque initiale"), ARMEMENT011714::Apply(Runtime, 1, 1, EGridCombatSurfaceType::Oil));
+	Runtime->PlayCombatOilSplashAtCell(1, 1);
+	TestEqual(TEXT("Premier impact"), Runtime->GetOilSplashPresentationCount(), 1);
+	Runtime->PlayCombatOilSplashAtCell(1, 1);
+	TestEqual(TEXT("Second impact sans accumulation"), Runtime->GetOilSplashPresentationCount(), 2);
+	TestEqual(TEXT("Huit gouttes et pas seize"), Runtime->GetActiveOilSplashDropletCount(), 8);
+	TestEqual(TEXT("Huit projections et pas seize"), Runtime->GetActiveOilSplashSpatterCount(), 8);
+	for (int32 Index = 0; Index < 45; ++Index)
+	{
+		Runtime->UpdateCombatOilSplash();
+	}
+	TestEqual(TEXT("Impact central terminé"), Runtime->GetActiveOilSplashCount(), 0);
+	TestEqual(TEXT("Toutes les gouttes retirées"), Runtime->GetActiveOilSplashDropletCount(), 0);
+	TestEqual(TEXT("Toutes les satellites retirées"), Runtime->GetActiveOilSplashSpatterCount(), 0);
+	TestNotNull(TEXT("Huile persistante toujours autoritaire"), Runtime->FindCombatSurfaceAtCell(1, 1));
 	return true;
 }
 #endif // WITH_DEV_AUTOMATION_TESTS

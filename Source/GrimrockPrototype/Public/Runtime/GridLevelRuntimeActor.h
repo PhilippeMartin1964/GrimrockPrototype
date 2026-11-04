@@ -31,6 +31,7 @@ class UGridDoorSystemComponent;
 class UGridEditorPreviewComponent;
 class UGridPlayerAttackPresentationComponent;
 class UDecalComponent;
+class UStaticMeshComponent;
 class UReadableMessageWidget;
 class UUserWidget;
 struct FGridResolvedCombatModifiers;
@@ -149,9 +150,26 @@ public:
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> ActiveOilSplashMaterial;
 
+	/** ARMEMENT01.17.1.5C: real 3D droplets and satellite decal spatters. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> ActiveOilSplashDroplets;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UDecalComponent>> ActiveOilSplashSpatters;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> ActiveOilSplashSpatterMaterials;
+
 	FTimerHandle OilSplashTimer;
 	float OilSplashElapsedSeconds = 0.f;
 	int32 OilSplashPresentationCount = 0;
+	FVector OilSplashImpactCenter = FVector::ZeroVector;
+	float OilSplashImpactCellSize = 200.f;
+
+	/** The splash is presentation only; does not modify RPG03.6 surfaces. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Oil|Splash",
+		meta = (ClampMin = "0.4", ClampMax = "2.0"))
+	float OilSplashDurationSeconds = 0.78f;
 
 	/** Temps de gameplay équivalent à un round, réglable avant la partie. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Oil",
@@ -596,6 +614,12 @@ public:
 	void ClearCombatOilSplash();
 	int32 GetOilSplashPresentationCount() const { return OilSplashPresentationCount; }
 	int32 GetActiveOilSplashCount() const { return ActiveOilSplashDecal.Get() ? 1 : 0; }
+	int32 GetActiveOilSplashDropletCount() const { return ActiveOilSplashDroplets.Num(); }
+	int32 GetActiveOilSplashSpatterCount() const { return ActiveOilSplashSpatters.Num(); }
+	const UStaticMeshComponent* GetOilSplashDroplet(int32 Index) const
+	{
+		return ActiveOilSplashDroplets.IsValidIndex(Index) ? ActiveOilSplashDroplets[Index].Get() : nullptr;
+	}
 	static float GetOilSplashSpreadScale(float NormalizedProgress);
 	int32 GetActiveOilDecalCount() const { return ActiveOilDecals.Num(); }
 	const UDecalComponent* GetActiveOilDecal(int32 Index) const

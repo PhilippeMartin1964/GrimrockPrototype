@@ -4,6 +4,8 @@
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Components/DecalComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
 
@@ -11,9 +13,18 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridSurfaceRuntime, Log, All);
 
 namespace
 {
-	constexpr float OilSplashDurationSeconds = 0.42f;
 	constexpr float OilSplashUpdateIntervalSeconds = 1.f / 30.f;
+	constexpr int32 OilSplashDropletCount = 8;
 	const FName OilSplashOpacityParameter(TEXT("OilOpacity"));
+	const FName OilSplashTintParameter(TEXT("OilTint"));
+
+	FVector OilSplashDirection(int32 Index)
+	{
+		// Fixed, non-random pattern: stable gameplay capture and reproducible tests.
+		const float Angle = 2.f * PI * (static_cast<float>(Index) + 0.12f * (Index % 3)) /
+			static_cast<float>(OilSplashDropletCount);
+		return FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.f);
+	}
 	constexpr float OilExplorationTimerInterval = 0.25f;
 }
 
@@ -165,7 +176,28 @@ void AGridLevelRuntimeActor::ClearCombatOilSplash()
 	}
 	ActiveOilSplashDecal = nullptr;
 	ActiveOilSplashMaterial = nullptr;
+
+	for (UStaticMeshComponent* Drop : ActiveOilSplashDroplets)
+	{
+		if (IsValid(Drop))
+		{
+			Drop->DestroyComponent();
+		}
+	}
+	ActiveOilSplashDroplets.Reset();
+
+	for (UDecalComponent* Spatter : ActiveOilSplashSpatters)
+	{
+		if (IsValid(Spatter))
+		{
+			Spatter->DestroyComponent();
+		}
+	}
+	ActiveOilSplashSpatters.Reset();
+	ActiveOilSplashSpatterMaterials.Reset();
+
 	OilSplashElapsedSeconds = 0.f;
+	OilSplashImpactCenter = FVector::ZeroVector;
 }
 
 void AGridLevelRuntimeActor::UpdateCombatOilSplash()
@@ -175,19 +207,68 @@ void AGridLevelRuntimeActor::UpdateCombatOilSplash()
 		ClearCombatOilSplash();
 		return;
 	}
+
 	OilSplashElapsedSeconds += OilSplashUpdateIntervalSeconds;
-	const float Alpha = FMath::Clamp(OilSplashElapsedSeconds / OilSplashDurationSeconds, 0.f, 1.f);
+	const float Alpha = FMath::Clamp(OilSplashElapsedSeconds /
+		FMath::Max(0.4f, OilSplashDurationSeconds), 0.f, 1.f);
 	if (Alpha >= 1.f)
 	{
 		ClearCombatOilSplash();
 		return;
 	}
-	// Expansion brève sur les pierres, avec atténuation progressive ; aucune
-	// géométrie superposée et aucune modification du décalque persistant.
+
+	// Main expanding footprint, but not the same static appearance as the
+	// underlying persistent oil: warm specular tint and stronger initial opacity.
 	const float Spread = GetOilSplashSpreadScale(Alpha);
-	ActiveOilSplashDecal->SetRelativeScale3D(FVector(1.f, Spread, Spread));
+	ActiveOilSplashDecal->SetRelativeScale3D(FVector(1.f, Spread * 1.15f, Spread * 1.15f));
 	ActiveOilSplashMaterial->SetScalarParameterValue(
-		OilSplashOpacityParameter, 0.52f * FMath::Square(1.f - Alpha));
+		OilSplashOpacityParameter, FMath::Lerp(1.f, 0.06f, Alpha));
+
+	// Satellite stains visibly travel away from the point of impact.
+	const float Flow = FMath::Clamp((Alpha - 0.04f) / 0.76f, 0.f, 1.f);
+	const float Ease = 1.f - FMath::Pow(1.f - Flow, 3.f);
+	for (int32 Index = 0; Index < ActiveOilSplashSpatters.Num(); ++Index)
+	{
+		UDecalComponent* Spatter = ActiveOilSplashSpatters[Index];
+		if (!IsValid(Spatter))
+		{
+			continue;
+		}
+		const FVector Direction = OilSplashDirection(Index);
+		const float Travel = OilSplashImpactCellSize * (0.25f + 0.055f * (Index % 3)) * Ease;
+		Spatter->SetRelativeLocation(OilSplashImpactCenter + Direction * Travel);
+		const float Size = FMath::Lerp(0.12f, 0.72f, Ease);
+		Spatter->SetRelativeScale3D(FVector(1.f, Size, Size));
+		if (ActiveOilSplashSpatterMaterials.IsValidIndex(Index) &&
+			IsValid(ActiveOilSplashSpatterMaterials[Index]))
+		{
+			ActiveOilSplashSpatterMaterials[Index]->SetScalarParameterValue(
+				OilSplashOpacityParameter, 0.97f * FMath::Square(1.f - Flow));
+		}
+	}
+
+	// Actual airborne drops make the action perceptible in first-person,
+	// independent of the ground decal and the camera angle.
+	for (int32 Index = 0; Index < ActiveOilSplashDroplets.Num(); ++Index)
+	{
+		UStaticMeshComponent* Drop = ActiveOilSplashDroplets[Index];
+		if (!IsValid(Drop))
+		{
+			continue;
+		}
+		const float Delay = 0.012f * Index;
+		const float TravelAlpha = FMath::Clamp((Alpha - Delay) / (0.82f - Delay), 0.f, 1.f);
+		const float DropEase = 1.f - FMath::Pow(1.f - TravelAlpha, 3.f);
+		const float Travel = OilSplashImpactCellSize * (0.37f + 0.09f * (Index % 3));
+		const float Arc = 4.f * TravelAlpha * (1.f - TravelAlpha);
+		const FVector Offset = OilSplashDirection(Index) * Travel * DropEase;
+		Drop->SetRelativeLocation(OilSplashImpactCenter + Offset + FVector(0.f, 0.f,
+			15.f + (42.f + 15.f * (Index % 3)) * Arc));
+		const float Shrink = TravelAlpha > 0.67f
+			? FMath::Clamp((1.f - TravelAlpha) / 0.33f, 0.f, 1.f) : 1.f;
+		const float Size = (0.085f + 0.017f * (Index % 3)) * Shrink;
+		Drop->SetRelativeScale3D(FVector(Size));
+	}
 }
 
 void AGridLevelRuntimeActor::PlayCombatOilSplashAtCell(int32 CellX, int32 CellY)
@@ -198,12 +279,21 @@ void AGridLevelRuntimeActor::PlayCombatOilSplashAtCell(int32 CellX, int32 CellY)
 	{
 		return;
 	}
+
 	UMaterialInterface* Material = OilSurfaceMaterial.LoadSynchronous();
 	if (!IsValid(Material))
 	{
-		return; // Le VFX n'a jamais le droit d'invalider l'action de combat.
+		return; // Visual effects must never invalidate the already resolved action.
 	}
+
 	ClearCombatOilSplash();
+	const float CellSize = LevelAsset->CellSize;
+	OilSplashImpactCellSize = CellSize;
+	OilSplashImpactCenter = CellToWorld(CellX, CellY, 0.f) +
+		FVector(CellSize * .5f, CellSize * .5f, 0.f);
+	const FQuat ProjectionRotation = FQuat::FindBetweenNormals(
+		-FVector::ForwardVector, -FVector::UpVector);
+
 	UDecalComponent* Splash = NewObject<UDecalComponent>(this);
 	if (!IsValid(Splash))
 	{
@@ -211,12 +301,9 @@ void AGridLevelRuntimeActor::PlayCombatOilSplashAtCell(int32 CellX, int32 CellY)
 	}
 	Splash->SetupAttachment(SceneRoot);
 	Splash->SetMobility(EComponentMobility::Movable);
-	const float CellSize = LevelAsset->CellSize;
-	Splash->DecalSize = FVector(48.f, CellSize * 1.55f, CellSize * 1.55f);
-	Splash->SetRelativeLocation(CellToWorld(CellX, CellY, 0.f) +
-		FVector(CellSize * .5f, CellSize * .5f, 0.f));
-	Splash->SetRelativeRotation(FQuat::FindBetweenNormals(
-		-FVector::ForwardVector, -FVector::UpVector));
+	Splash->DecalSize = FVector(48.f, CellSize * 1.40f, CellSize * 1.40f);
+	Splash->SetRelativeLocation(OilSplashImpactCenter);
+	Splash->SetRelativeRotation(ProjectionRotation);
 	Splash->SetDecalMaterial(Material);
 	Splash->SetFadeScreenSize(0.f);
 	Splash->SetSortOrder(2);
@@ -230,15 +317,85 @@ void AGridLevelRuntimeActor::PlayCombatOilSplashAtCell(int32 CellX, int32 CellY)
 	}
 	ActiveOilSplashDecal = Splash;
 	ActiveOilSplashMaterial = Dynamic;
-	OilSplashElapsedSeconds = 0.f;
 	Splash->SetRelativeScale3D(FVector(1.f, GetOilSplashSpreadScale(0.f), GetOilSplashSpreadScale(0.f)));
-	Dynamic->SetScalarParameterValue(OilSplashOpacityParameter, 0.52f);
+	Dynamic->SetScalarParameterValue(OilSplashOpacityParameter, 1.f);
+	Dynamic->SetVectorParameterValue(OilSplashTintParameter, FLinearColor(0.11f, 0.075f, 0.035f, 1.f));
+
+	// Eight short-lived satellite stains projected onto the real floor.
+	for (int32 Index = 0; Index < OilSplashDropletCount; ++Index)
+	{
+		UDecalComponent* Spatter = NewObject<UDecalComponent>(this);
+		if (!IsValid(Spatter))
+		{
+			continue;
+		}
+		Spatter->SetupAttachment(SceneRoot);
+		Spatter->SetMobility(EComponentMobility::Movable);
+		Spatter->DecalSize = FVector(48.f, CellSize * 0.45f, CellSize * 0.45f);
+		Spatter->SetRelativeLocation(OilSplashImpactCenter);
+		Spatter->SetRelativeRotation(ProjectionRotation);
+		Spatter->SetDecalMaterial(Material);
+		Spatter->SetFadeScreenSize(0.f);
+		Spatter->SetSortOrder(3);
+		Spatter->RegisterComponent();
+		UMaterialInstanceDynamic* SpatterMaterial = Spatter->CreateDynamicMaterialInstance();
+		if (!IsValid(SpatterMaterial))
+		{
+			Spatter->DestroyComponent();
+			continue;
+		}
+		Spatter->SetRelativeScale3D(FVector(1.f, 0.12f, 0.12f));
+		SpatterMaterial->SetScalarParameterValue(OilSplashOpacityParameter, 0.97f);
+		SpatterMaterial->SetVectorParameterValue(OilSplashTintParameter, FLinearColor(0.10f, 0.066f, 0.032f, 1.f));
+		ActiveOilSplashSpatters.Add(Spatter);
+		ActiveOilSplashSpatterMaterials.Add(SpatterMaterial);
+	}
+
+	// The already-shipped oil flask material is a Surface material and works
+	// on actual meshes; a Deferred Decal material must NOT be applied to them.
+	UStaticMesh* SphereMesh = LoadObject<UStaticMesh>(nullptr,
+		TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	UMaterialInterface* DropMaterial = LoadObject<UMaterialInterface>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Art/Materials/Item_Materials/M_Flask_Oil.M_Flask_Oil"));
+	if (IsValid(SphereMesh) && IsValid(DropMaterial) &&
+		DropMaterial->GetMaterialDomain() == MD_Surface)
+	{
+		for (int32 Index = 0; Index < OilSplashDropletCount; ++Index)
+		{
+			UStaticMeshComponent* Drop = NewObject<UStaticMeshComponent>(this);
+			if (!IsValid(Drop))
+			{
+				continue;
+			}
+			Drop->SetupAttachment(SceneRoot);
+			Drop->SetMobility(EComponentMobility::Movable);
+			Drop->SetStaticMesh(SphereMesh);
+			Drop->SetMaterial(0, DropMaterial);
+			Drop->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Drop->SetGenerateOverlapEvents(false);
+			Drop->SetCastShadow(false);
+			Drop->SetRelativeLocation(OilSplashImpactCenter + FVector(0.f, 0.f, 15.f));
+			Drop->SetRelativeScale3D(FVector(0.085f));
+			Drop->RegisterComponent();
+			ActiveOilSplashDroplets.Add(Drop);
+		}
+	}
+	else
+	{
+		UE_LOG(LogGridSurfaceRuntime, Warning,
+			TEXT("[ARMEMENT01.17.1.5C] Missing 3D droplet mesh/material; ground spatter remains active."));
+	}
+
+	OilSplashElapsedSeconds = 0.f;
 	++OilSplashPresentationCount;
+	UE_LOG(LogGridSurfaceRuntime, Verbose,
+		TEXT("[ARMEMENT01.17.1.5C] OilSplash Cell=(%d,%d) Drops=%d Spatters=%d Duration=%.2f"),
+		CellX, CellY, ActiveOilSplashDroplets.Num(), ActiveOilSplashSpatters.Num(),
+		FMath::Max(0.4f, OilSplashDurationSeconds));
 	World->GetTimerManager().SetTimer(
 		OilSplashTimer, this, &AGridLevelRuntimeActor::UpdateCombatOilSplash,
 		OilSplashUpdateIntervalSeconds, true);
 }
-
 
 void AGridLevelRuntimeActor::ClearCombatOilSurfaceVisuals()
 {
