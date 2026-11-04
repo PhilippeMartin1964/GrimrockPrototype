@@ -50,7 +50,7 @@ void FRPGStartingSurfaceCatalystAuthoring::Configure(UGridItemDefinitionAsset& I
 	Item.MaxStackSize = 10;
 	Item.HandUsage = EGridItemHandUsage::NotHandHeld;
 	Item.ItemTags = { TEXT("QuickItem.Flask"), TEXT("QuickItem.SurfaceCatalyst") };
-	CopyExistingPresentation(Item);
+	ARMEMENT01172::CopyExistingPresentation(Item);
 	Item.bProvidesQuickItemCombatAction = true;
 	Item.QuickItemActionIdOverride = ARMEMENT01172::ActionId;
 
