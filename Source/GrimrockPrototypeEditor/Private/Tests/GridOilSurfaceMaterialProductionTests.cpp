@@ -20,6 +20,8 @@ bool FGridOilMaterialProductionTest::RunTest(const FString&)
 	if (!Master || !Instance) return false;
 	TestEqual(TEXT("Domaine Surface"), Master->MaterialDomain, TEnumAsByte<EMaterialDomain>(MD_Surface));
 	TestEqual(TEXT("Mélange translucide"), Master->BlendMode, TEnumAsByte<EBlendMode>(BLEND_Translucent));
+	TestTrue(TEXT("Éclairage direct par pixel et reflets locaux"),
+		Master->TranslucencyLightingMode == TLM_SurfacePerPixelLighting);
 	TestTrue(TEXT("L'instance appartient au matériau canonique"), Instance->GetMaterial() == Master);
 	return true;
 }

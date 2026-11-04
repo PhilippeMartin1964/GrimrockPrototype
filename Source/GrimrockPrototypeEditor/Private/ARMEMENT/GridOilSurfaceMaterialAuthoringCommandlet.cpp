@@ -1,6 +1,7 @@
 #include "ARMEMENT/GridOilSurfaceMaterialAuthoringCommandlet.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Engine/EngineTypes.h"
 #include "HAL/FileManager.h"
 #include "MaterialEditingLibrary.h"
 #include "Materials/Material.h"
@@ -62,6 +63,8 @@ namespace OilMaterialAuthoring
 	{
 		Material.MaterialDomain = MD_Surface;
 		Material.BlendMode = BLEND_Translucent;
+		// Reflets locaux des torches, indispensables à l'aspect huileux.
+		Material.TranslucencyLightingMode = TLM_SurfacePerPixelLighting;
 		Material.TwoSided = true; // Le plan /Engine/BasicShapes/Plane est visible des deux côtés.
 
 		auto* Tint = Add<UMaterialExpressionVectorParameter>(&Material, -700, -450);

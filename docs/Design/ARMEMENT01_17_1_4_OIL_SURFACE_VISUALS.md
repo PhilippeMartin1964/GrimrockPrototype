@@ -43,7 +43,7 @@ Content/GrimrockPrototype/Art/Materials/Surfaces/
   MI_Surface_Oil.uasset
 ```
 
-`M_Surface_Oil` utilise un matériau `Surface / Translucent / Default Lit` et un graphe simple créé par `UMaterialEditingLibrary` :
+`M_Surface_Oil` utilise un matériau `Surface / Translucent / Default Lit / Surface ForwardShading` et un graphe simple créé par `UMaterialEditingLibrary` :
 
 - `OilTint` : teinte brun-noir, pour assombrir la pierre tout en la laissant identifiable ;
 - `OilRoughness` : 0,09, pour obtenir des reflets peu diffus ;
