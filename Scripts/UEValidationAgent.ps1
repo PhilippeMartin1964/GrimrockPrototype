@@ -217,6 +217,7 @@ function Get-PublicSafeDiagnostics {
     if (Test-Path -LiteralPath $VisualStagePath -PathType Leaf) {
         $VStage = [string](Get-Content -LiteralPath $VisualStagePath -TotalCount 1 -ErrorAction SilentlyContinue)
         if ($VStage -in @('PREFLIGHT','SOURCE_READY','REPORT','REPORT_ACCEPTED',
+            'HELPER_ABSENT','HELPER_STARTING','HELPER_EXIT_NONZERO','HELPER_EXCEPTION',
             'COMMANDLET_STARTED','COMMANDLET_FAILED','COMMANDLET_COMPLETED',
             'FAIL_GRAPH_FLASK','FAIL_GRAPH_EMBER','FAIL_GRAPH_RUNE',
             'FAIL_SAVE_FLASK','FAIL_SAVE_EMBER','FAIL_SAVE_RUNE',
@@ -584,10 +585,17 @@ try {
                 }
                 catch { Write-Warning 'Catalyst authoring unavailable; private logs only.' }
             }
-            # ARMEMENT01.17.2C.2: protected one-shot binary Unreal authoring.
+            # ARMEMENT01.17.2C: always report a bounded VFX stage, including
+            # launch/PowerShell failures that happen before the helper can write it.
             $VfxHelper = Join-Path $WorktreePath 'Scripts\AuthorSurfaceCatalystVisuals.ps1'
-            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $VfxHelper -PathType Leaf)) {
+            $VfxStageFile = Join-Path $RunDir 'CatalystVisuals.stage'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0) {
+                if (-not (Test-Path -LiteralPath $VfxHelper -PathType Leaf)) {
+                    Set-Content -LiteralPath $VfxStageFile -Value 'HELPER_ABSENT' -Encoding ASCII
+                }
+                else {
                 try {
+                    Set-Content -LiteralPath $VfxStageFile -Value 'HELPER_STARTING' -Encoding ASCII
                     $VfxStdout = Join-Path $RunDir 'CatalystVisualsAuthoring.stdout.log'
                     $VfxStderr = Join-Path $RunDir 'CatalystVisualsAuthoring.stderr.log'
                     $VfxArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $VfxHelper +
@@ -600,8 +608,17 @@ try {
                     elseif ($VfxProcess.ExitCode -ne 2) {
                         Write-Warning 'Catalyst visual authoring incomplete; diagnostics are private.'
                     }
+                    if ((Get-Content -LiteralPath $VfxStageFile -TotalCount 1) -eq 'HELPER_STARTING') {
+                        Set-Content -LiteralPath $VfxStageFile -Value 'HELPER_EXIT_NONZERO' -Encoding ASCII
+                    }
                 }
-                catch { Write-Warning 'Catalyst visual authoring unavailable; private logs only.' }
+                catch {
+                    if ((Get-Content -LiteralPath $VfxStageFile -TotalCount 1 -ErrorAction SilentlyContinue) -eq 'HELPER_STARTING') {
+                        Set-Content -LiteralPath $VfxStageFile -Value 'HELPER_EXCEPTION' -Encoding ASCII
+                    }
+                    Write-Warning 'Catalyst visual authoring unavailable; private logs only.'
+                }
+                }
             }
             try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
             catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
