@@ -474,6 +474,27 @@ try {
                 }
                 catch { Write-Warning "Authoring automatique d'huile indisponible ; journaux locaux uniquement." }
             }
+
+            # ARMEMENT01.17.2A: only when the unique failing Automation test
+            # explicitly requires the native starter catalyst DataAsset.
+            $CatalystHelper = Join-Path $WorktreePath 'Scripts\AuthorStartingSurfaceCatalyst.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $CatalystHelper -PathType Leaf)) {
+                try {
+                    $CatalystOut = Join-Path $RunDir 'CatalystAuthoring.stdout.log'
+                    $CatalystErr = Join-Path $RunDir 'CatalystAuthoring.stderr.log'
+                    $CatalystArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $CatalystHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $CatalystProcess = Start-Process -FilePath $PsExe -ArgumentList $CatalystArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $CatalystOut -RedirectStandardError $CatalystErr -PassThru -Wait -ErrorAction Stop
+                    if ($CatalystProcess.ExitCode -eq 0) {
+                        Write-Host '[ARMEMENT01.17.2] Catalyst native asset published: next commit receives full validation.'
+                    }
+                    elseif ($CatalystProcess.ExitCode -ne 2) {
+                        Write-Warning 'Catalyst native asset authoring incomplete; private logs only.'
+                    }
+                }
+                catch { Write-Warning 'Catalyst authoring unavailable; private logs only.' }
+            }
             try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
             catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
         }

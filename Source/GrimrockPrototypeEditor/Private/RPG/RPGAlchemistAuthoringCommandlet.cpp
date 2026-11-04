@@ -2,6 +2,7 @@
 
 #include "RPG/RPGAlchemistAuthoring.h"
 #include "RPG/RPGStartingHealthPotionAuthoring.h"
+#include "RPG/RPGStartingSurfaceCatalystAuthoring.h"
 #include "Misc/Parse.h"
 
 URPGAlchemistAuthoringCommandlet::URPGAlchemistAuthoringCommandlet()
@@ -21,6 +22,17 @@ int32 URPGAlchemistAuthoringCommandlet::Main(const FString& Params)
 		if (!FRPGStartingHealthPotionAuthoring::Run(bApply, Error))
 		{
 			UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.15] Starting health potion authoring failed: %s"), *Error);
+			return 1;
+		}
+		return 0;
+	}
+
+	if (FParse::Param(*Params, TEXT("StartingSurfaceCatalyst")))
+	{
+		const bool bApply = FParse::Param(*Params, TEXT("Apply"));
+		if (!FRPGStartingSurfaceCatalystAuthoring::Run(bApply, Error))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.17.2] Surface catalyst authoring failed: %s"), *Error);
 			return 1;
 		}
 		return 0;

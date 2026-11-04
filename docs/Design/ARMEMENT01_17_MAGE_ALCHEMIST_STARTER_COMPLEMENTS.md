@@ -96,3 +96,41 @@ localisation. Le test corrigé reste à compiler et valider sous UE5.5.4 :
 
 Le jalon ARMEMENT01.17.1 exige en outre la recette PIE de la flasque
 (ciblage, coût 2 PA, consommation, surface et Save/Continue) avant clôture.
+
+
+## ARMEMENT01.17.2A — Catalyseur de surfaces, contrat N1 et fabrication (4 novembre 2026)
+
+**Choix limité N1 :** une fiole consommable `Item_SurfaceCatalyst_01` dans
+`Kit_Mage_SurfaceWeaver`, plus tard, avec un seul effet : appliquer
+`SurfaceInteraction=Fire` à **une cellule déjà dotée d'une surface
+canonique compatible**, portée 4 avec ligne de vue, coût **2 PA en combat**,
+une fiole consommée à la résolution. La validation canonique refuse l'eau
+et les cellules neutres ; Oil→Fire, Ice→Water, Poison→Fire, etc. sont
+résolus par C6 sans inventer de nouveaux dégâts.
+Il ne crée aucune surface à partir d'une cellule vide, ne possède
+aucun `OwnerVariant`, aucune affinité, aucun bonus de talent et n'attribue
+ni Imprégnation N2 ni Conversion élémentaire N6. Différent du
+`Action_Alchemist_Catalyst` N14 (`AnyCanonical`).
+
+**Identités :** `DA_Item_SurfaceCatalyst_01`,
+`Item_SurfaceCatalyst_01`, `Action_Mage_SurfaceCatalyst_01`.
+Présentation de l'objet en `FText NSLOCTEXT` (autorité du DataAsset,
+pas d'ajout de clé WBP). Les références visuelles de la flasque d'huile
+existante sont réutilisées provisoirement pour l'icône et le mesh ;
+la différenciation iconographique et la traduction EN restent à réaliser.
+
+**Séquence protégée :** authoring par
+`FRPGStartingSurfaceCatalystAuthoring` dans le véritable Unreal Editor.
+Un test `Grimrock.RPG.ARMEMENT01.17.2.ProductionCatalyst` exige le
+`.uasset` réel. L'agent Windows n'est autorisé à exécuter
+`AuthorStartingSurfaceCatalyst.ps1` que si ce test est le **seul**
+échec de la suite complète et que le worktree est propre. Le script
+ne crée et ne publie que ce `.uasset` via Git LFS et refuse tout autre
+fichier modifié, origin ou master inattendu. Le nouveau commit est ensuite
+validé normalement.
+
+**ARMEMENT01.17.2B (à suivre après asset validé) :** distribution réelle
+dans le kit Mage/Tisseur (une fiole), usage en combat via le pipeline
+QuickItem et vérification de l'usage lors de l'exploration, tests
+New Game/Save→Continue/PIE ; aucune attribution dans les sauvegardes
+déjà créées. Le vrai item n'est pas déclaré opérationnel avant cette étape.
