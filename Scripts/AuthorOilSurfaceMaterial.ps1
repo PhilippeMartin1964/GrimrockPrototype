@@ -63,7 +63,10 @@ $Mode = if ($Convert) { ' -ConvertToDecal' } else { '' }
 $Args = '"' + $Project + '" -run=GridOilSurfaceMaterialAuthoring' + $Mode + ' -Unattended -NoSplash -NoP4 -NullRHI'
 Stage -Name 'COMMANDLET_STARTED'
 $Process = Start-Process -FilePath $Editor -ArgumentList $Args -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Output -RedirectStandardError $Errors -PassThru -Wait -ErrorAction Stop
-if ($Process.ExitCode -ne 0) { throw "Commandlet Unreal en echec ($($Process.ExitCode)). Logs prives." }
+if ($Process.ExitCode -ne 0) {
+    Stage -Name 'COMMANDLET_FAILED'
+    throw "Commandlet Unreal en échec (code $($Process.ExitCode)). Journaux privés."
+}
 Stage -Name 'COMMANDLET_COMPLETED'
 $Changes = @(Changes)
 $ExpectedPaths = if ($Convert) { @($Material) } else { @($Material, $Instance) }

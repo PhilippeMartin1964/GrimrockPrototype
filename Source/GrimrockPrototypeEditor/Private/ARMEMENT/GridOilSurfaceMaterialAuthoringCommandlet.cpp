@@ -100,21 +100,82 @@ namespace OilDecalAuthoring
 		Noise->OutputMin = -1.f;
 		Noise->OutputMax = 1.f;
 		Mask->HardnessPercent = 35.f;
-		return Wire(UV, Position, TEXT("A")) &&
-			Wire(Zero, Position, TEXT("B")) &&
-			Wire(Position, Noise, TEXT("Position")) &&
-			Wire(Noise, Warp, TEXT("A")) &&
-			Wire(Amplitude, Warp, TEXT("B")) &&
-			Wire(Warp, Radius, TEXT("A")) &&
-			Wire(BaseRadius, Radius, TEXT("B")) &&
-			Wire(UV, Mask, TEXT("A")) &&
-			Wire(Center, Mask, TEXT("B")) &&
-			Wire(Radius, Mask, TEXT("Radius")) &&
-			Wire(Mask, Alpha, TEXT("A")) &&
-			Wire(Opacity, Alpha, TEXT("B")) &&
-			Output(Tint, MP_BaseColor) &&
-			Output(Rough, MP_Roughness) &&
-			Output(Alpha, MP_Opacity);
+		if (!Wire(UV, Position, TEXT("A")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:UV_POSITION]"));
+			return false;
+		}
+		if (!Wire(Zero, Position, TEXT("B")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:Z_POSITION]"));
+			return false;
+		}
+		if (!Wire(Position, Noise, TEXT("Position")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:NOISE_POSITION]"));
+			return false;
+		}
+		if (!Wire(Noise, Warp, TEXT("A")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:NOISE_AMPLITUDE]"));
+			return false;
+		}
+		if (!Wire(Amplitude, Warp, TEXT("B")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:WARP_AMPLITUDE]"));
+			return false;
+		}
+		if (!Wire(Warp, Radius, TEXT("A")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:WARP_RADIUS]"));
+			return false;
+		}
+		if (!Wire(BaseRadius, Radius, TEXT("B")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:RADIUS_BASE]"));
+			return false;
+		}
+		if (!Wire(UV, Mask, TEXT("A")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:UV_MASK]"));
+			return false;
+		}
+		if (!Wire(Center, Mask, TEXT("B")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:CENTER_MASK]"));
+			return false;
+		}
+		if (!Wire(Radius, Mask, TEXT("Radius")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:RADIUS_MASK]"));
+			return false;
+		}
+		if (!Wire(Mask, Alpha, TEXT("A")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:MASK_ALPHA]"));
+			return false;
+		}
+		if (!Wire(Opacity, Alpha, TEXT("B")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:OPACITY_ALPHA]"));
+			return false;
+		}
+		if (!Output(Tint, MP_BaseColor))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:BASECOLOR_OUTPUT]"));
+			return false;
+		}
+		if (!Output(Rough, MP_Roughness))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:ROUGHNESS_OUTPUT]"));
+			return false;
+		}
+		if (!Output(Alpha, MP_Opacity))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OIL_DECAL_GRAPH:OPACITY_OUTPUT]"));
+			return false;
+		}
+		return true;
 	}
 }
 

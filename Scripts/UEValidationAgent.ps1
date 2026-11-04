@@ -143,7 +143,7 @@ function Get-PublicSafeDiagnostics {
     if (Test-Path -LiteralPath $OilStagePath -PathType Leaf) {
         $OilStage = [string](Get-Content -LiteralPath $OilStagePath -TotalCount 1 -ErrorAction SilentlyContinue)
         $KnownOilStages = @('PREFLIGHT', 'REPORT_ACCEPTED', 'COMMANDLET_STARTED',
-            'COMMANDLET_COMPLETED', 'ASSETS_VERIFIED', 'COMMIT_CREATED', 'SUCCESS')
+            'COMMANDLET_COMPLETED', 'COMMANDLET_FAILED', 'ASSETS_VERIFIED', 'COMMIT_CREATED', 'SUCCESS')
         if ($OilStage -in $KnownOilStages) {
             $Safe.Add('Materiau huile : phase ' + $OilStage)
         }
@@ -163,6 +163,24 @@ function Get-PublicSafeDiagnostics {
                 elseif ($TailText -match '(?i)timed out|timeout|connection|could not resolve|network|EOF') { $FailureClass = 'NETWORK' }
             }
             $Safe.Add('Materiau huile : push ' + $FailureClass)
+        }
+        if ($OilStage -eq 'COMMANDLET_FAILED') {
+            $AllowedGraphStages = @(
+                'UV_POSITION','Z_POSITION','NOISE_POSITION','NOISE_AMPLITUDE',
+                'WARP_AMPLITUDE','WARP_RADIUS','RADIUS_BASE','UV_MASK',
+                'CENTER_MASK','RADIUS_MASK','MASK_ALPHA','OPACITY_ALPHA',
+                'BASECOLOR_OUTPUT','ROUGHNESS_OUTPUT','OPACITY_OUTPUT'
+            )
+            $OilStdOut = Join-Path $OilRunDir 'OilMaterialCommandlet.stdout.log'
+            if (Test-Path -LiteralPath $OilStdOut -PathType Leaf) {
+                $OilLog = (@(Get-Content -LiteralPath $OilStdOut -Tail 1000 -ErrorAction SilentlyContinue) -join [Environment]::NewLine)
+                foreach ($GraphStage in $AllowedGraphStages) {
+                    if ($OilLog.Contains('[OIL_DECAL_GRAPH:' + $GraphStage + ']')) {
+                        $Safe.Add('Décalque huile : connexion ' + $GraphStage)
+                        break
+                    }
+                }
+            }
         }
         $OilCommandletLog = Join-Path $OilRunDir 'OilMaterialCommandlet.stdout.log'
         if (Test-Path -LiteralPath $OilCommandletLog -PathType Leaf) {
