@@ -178,7 +178,8 @@ bool FRPGSurfaceCatalystVisualAuthoring::MatchesProductionAssets(FString* OutPro
 		IsValid(Ember)&&IsValid(Ring)&&Item->IsValidDefinition() &&
 		Item->Icon.ToSoftObjectPath().ToString()==Path(IconRoot,IconName) &&
 		Item->WorldMesh.ToSoftObjectPath().ToString()==Path(MeshRoot,MeshName) &&
-		Icon->GetSizeX()==256 && Icon->GetSizeY()==256 &&
+		// Source dimensions, not platform/GPU-derived dimensions: authoring runs with -NullRHI.
+		Icon->Source.IsValid() && Icon->Source.GetSizeX()==256 && Icon->Source.GetSizeY()==256 &&
 		Mesh->GetStaticMaterials().Num()>0 && Mesh->GetMaterial(0)==Flask &&
 		Flask->MaterialDomain==MD_Surface && Ember->MaterialDomain==MD_Surface &&
 		Ring->MaterialDomain==MD_DeferredDecal &&
@@ -276,6 +277,8 @@ bool FRPGSurfaceCatalystVisualAuthoring::Run(bool bApply,FString& OutError)
 	for(int32 Y=0;Y<256;++Y)
 		for(int32 X=0;X<256;++X)
 			Pixels[Y*256+X]=Pixel(X,Y);
+	// Follow the editor texture source change lifecycle before PostEditChange/SavePackage.
+	Icon->PreEditChange(nullptr);
 	Icon->Source.Init(256,256,1,1,TSF_BGRA8,(const uint8*)Pixels.GetData());
 	Icon->SRGB=true;
 	Icon->CompressionSettings=TC_Default;
