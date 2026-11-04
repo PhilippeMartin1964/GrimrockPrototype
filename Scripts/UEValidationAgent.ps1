@@ -1,4 +1,4 @@
-# VALIDATION-AUTO01.7 — Agent Windows sans runner GitHub Actions.
+# VALIDATION-AUTO01.8 — Agent Windows sans runner GitHub Actions.
 # Ne touche jamais au checkout de developpement; le worktree dedie est la seule cible build.
 [CmdletBinding()]
 param(
@@ -344,6 +344,25 @@ try {
                     }
                 }
                 catch { Write-Warning 'Targeted asset repair failed; private logs only.' }
+            }
+            # ARMEMENT01.17.1.4 : authoring des materiaux natifs Unreal, controle par le resultat Automation.
+            $OilHelper = Join-Path $WorktreePath 'Scripts\AuthorOilSurfaceMaterial.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $OilHelper -PathType Leaf)) {
+                try {
+                    $OilOut = Join-Path $RunDir 'OilMaterialAuthoring.stdout.log'
+                    $OilErr = Join-Path $RunDir 'OilMaterialAuthoring.stderr.log'
+                    $OilArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $OilHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $OilProcess = Start-Process -FilePath $PsExe -ArgumentList $OilArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $OilOut -RedirectStandardError $OilErr -PassThru -Wait -ErrorAction Stop
+                    if ($OilProcess.ExitCode -eq 0) {
+                        Write-Host '[ARMEMENT01.17.1.4] Materiaux natifs publies : validation du nouveau commit au prochain cycle.'
+                    }
+                    elseif ($OilProcess.ExitCode -ne 2) {
+                        Write-Warning "Authoring d'huile non termine (code $($OilProcess.ExitCode)). Journaux locaux uniquement."
+                    }
+                }
+                catch { Write-Warning "Authoring automatique d'huile indisponible ; journaux locaux uniquement." }
             }
             try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
             catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }

@@ -91,6 +91,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UInstancedStaticMeshComponent* CeilingISM;
 
+	/** Projection visuelle des cellules d'huile ; aucune autorité de gameplay. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UInstancedStaticMeshComponent> OilSurfaceISM;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UGridActivationComponent> ActivationComponent;
 
@@ -130,6 +134,17 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Meshes")
 	TObjectPtr<UStaticMesh> CeilingMesh;
+
+	/** Plan XY Engine 100 x 100 cm ; échelle adaptée à la taille de la case. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surfaces|Visuel")
+	TObjectPtr<UStaticMesh> SurfaceOverlayMesh;
+
+	/** Instance native MI_Surface_Oil, chargée sans affectation manuelle du Blueprint. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surfaces|Visuel")
+	TSoftObjectPtr<UMaterialInterface> OilSurfaceMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surfaces|Visuel", meta = (ClampMin = "0.5", ClampMax = "10.0"))
+	float OilSurfaceHeightOffset = 2.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
 	TObjectPtr<UMaterialInterface> CeilingEditorMaterial;
@@ -550,6 +565,10 @@ public:
 	void GetCurrentCombatSurfaceSnapshot(TMap<FIntPoint, FGridCombatSurfaceState>& OutSurfaces) const;
 
 	int32 AdvanceCombatSurfaceRound(TArray<FIntPoint>* OutExpiredCells = nullptr);
+
+	/** Recalcule les instances graphiques depuis les surfaces RPG03.6 du niveau courant. */
+	void RefreshCombatOilSurfaceVisuals();
+	const UInstancedStaticMeshComponent* GetCombatOilSurfaceVisualComponent() const { return OilSurfaceISM.Get(); }
 
 	/** RPG03.9 generic temporary combat trap authority. */
 	bool ApplyCombatTrapAtCell(int32 CellX, int32 CellY, const FGridCombatTrapEffectProfile& Profile,

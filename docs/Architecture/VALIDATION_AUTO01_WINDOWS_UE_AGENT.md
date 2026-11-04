@@ -1,174 +1,115 @@
-# VALIDATION-AUTO01 — Agent de validation locale UE 5.5.4
+# VALIDATION-AUTO01 — Validation locale automatisée UE 5.5.4
 
-**Statut : VALIDATION-AUTO01.5 — sous-module Lua54 automatiquement initialise avant validation UE ; validation Windows du correctif a confirmer.**
+**État au 4 novembre 2026 : opérationnel.** Le commit `32d2a305` a obtenu le statut GitHub **success — Build + Automation OK (Grimrock)**. La suite complète a été exécutée dans le worktree Windows, y compris la dépendance Lua 5.4.8. Cet état ne dispense pas de valider les futurs jalons individuellement.
 
-## Pourquoi un agent local plutot qu'un GitHub Actions runner ?
+## Objectif et principes
 
-`GrimrockPrototype` est un depot **public**. GitHub deconseille les runners auto-heberges persistants pour les depots publics : du code non fiable provenant de PR peut compromettre la machine. Nous ne connectons **pas** le poste Windows comme un runner Actions.
+Ce dispositif exécute, sans intervention manuelle quotidienne, la compilation Unreal Engine 5.5.4 et les tests Automation du projet. Le dépôt est public ; nous n'utilisons **pas** de runner GitHub Actions auto-hébergé sur votre ordinateur personnel.
 
-L'agent est une **tache planifiee Windows**, tournant sous le compte de l'utilisateur, qui effectue uniquement des sorties HTTPS vers GitHub (Git / gh CLI). Il surveille **`origin/master` exclusivement**, puis compile et execute les tests. Il n'accepte pas de commandes entrantes de GitHub Actions et ne declenche pas de workflow issu d'une PR. Les commits publies sur master restent des programmes executes localement : conserver un controle strict sur les droits d'ecriture de master.
+L'exécuteur est une **tâche planifiée Windows**, sous votre compte habituel. Il contacte seulement `origin/master` et GitHub par les outils `git` et `gh`. Il n'accepte aucune instruction entrante provenant d'une pull request.
 
-## Architecture et garanties
+Les engagements sont les suivants :
 
-- Point de depart utilisateur : `D:\Development\GrimrockPrototype` (jamais `pull`, `checkout`, `reset`, `clean`, `stash`, `add`, `commit` sur ce checkout).
-- Lecture distante : `git fetch --no-tags origin master` puis lecture de `origin/master`. `git fetch` modifie les references de `.git`, pas les fichiers utilisateur du checkout.
-- Source des tests : un **worktree Git dedie** `D:\Development\GrimrockPrototype_UEValidation`, cree a part. Ne pas y travailler manuellement.
-- Au prochain commit, l'agent **refuse** tout checkout si ce worktree possede des modifications non committees ou fichiers non suivis. Aucun `git reset --hard`, `git clean` ou suppression automatises.
-- Recuperation des vrais assets Git LFS avec `git lfs pull` pour le worktree ; la premiere execution peut etre longue/volumineuse.
-- Compilation et Automation : reemploi de `Scripts/ValidateUE.ps1` dans le worktree, EngineRoot `D:\UE_5.5`, filtre par defaut `Grimrock` (suite complete).
-- Rapports locaux (jamais commits) : `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Runs\...` ; journal de demarrage `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Agent.latest.log` (PowerShell Transcript) et stderr du harness conserve dans `Agent.stderr.log`. Le harness `ValidateUE.ps1` est execute dans un **second processus PowerShell invisible** (`-WindowStyle Hidden`), avec code de sortie fiable. Le processus agent planifie est egalement lance avec `-WindowStyle Hidden` : pas de fenetre PowerShell persistante lors des prochaines executions.
-- Etat GitHub par commit : `UE5.5.4/LocalAuto` (`pending`, `success`, `failure`) via GitHub CLI authentifie. Sur echec des tests, issue GitHub automatique avec **uniquement des diagnostics structures limites** (noms de fichiers sources, lignes, codes compilateur et chemins de tests Grimrock strictement valides), jamais des lignes brutes ou chemins absolus. Le journal complet reste local.
-- L'agent traite un SHA une seule fois en cas de succes ou d'echec de compilation/Automation ; une panne d'infrastructure Git, LFS ou de publication est **reessayee** au cycle suivant. Un changement de filtre redemarre aussi la validation.
-- Une seule execution simultanee : verrou Windows + tache `IgnoreNew`.
-- Aucune modification de traduction anglaise, de DataAsset ou de contenu utilisateur.
+- **Une seule branche de développement :** `master`.
+- **Sources de jeu en C++ ;** Unreal et les assets constituent la présentation et les données de production.
+- **Aucune modification de votre copie de développement** `D:\Development\GrimrockPrototype` par l'agent, hormis les références Git mises à jour par `fetch`.
+- **Worktree de validation indépendant :** `D:\Development\GrimrockPrototype_UEValidation`.
+- **Pas de commande destructive** `git reset --hard` ou `git clean` ; refus des worktrees contenant des modifications imprévues.
+- **Résultats publiés sur GitHub :** statut `UE5.5.4/LocalAuto` pour chaque commit testé et issue en cas d'échec.
+- **Confidentialité :** journaux complets conservés localement. Les issues du dépôt public ne reçoivent que des informations techniques extraites d'une liste blanche.
 
-## Prerequis (une fois)
+## Fonctionnement automatique
 
-1. Windows 11 + UE 5.5.4 deja installe dans `D:\UE_5.5`, outils Visual Studio C++ pour Unreal.
-2. `git`, Git LFS et **GitHub CLI** (`gh`) disponibles dans le PATH **de votre session Windows**.
-3. Authentification initiale GitHub CLI (une fois) : `gh auth login -h github.com` ; il faut des droits de creation des statuts de commit et des issues sur le depot. Le token de compte ne doit jamais etre copie dans le projet.
-4. La session Windows du proprietaire de la tache doit etre ouverte, et l'ordinateur allume. La tache s'execute sous le compte utilisateur interactif, sans privilege administrateur demande.
-5. Assez d'espace disque pour le worktree de validation, les assets LFS, Intermediate, Binaries et rapports.
+1. Le Planificateur de tâches déclenche `Scripts/UEValidationBootstrap.ps1` environ toutes les trois minutes, tant que l'ordinateur est allumé et que votre session est ouverte.
+2. Le bootstrap vérifie le dépôt d'origine, exécute `git fetch --no-tags origin master`, extrait `UEValidationAgent.ps1` depuis **le SHA exact de `master`**, puis contrôle sa syntaxe avant de l'exécuter.
+3. L'agent protège le worktree, récupère le commit demandé et initialise `ThirdParty/Lua54` par `git submodule update --init`.
+4. Il vérifie la présence des sources Lua `onelua.c`, `lua.h`, `lauxlib.h` et `lualib.h`, puis récupère les assets Git LFS.
+5. Il lance `Scripts/ValidateUE.ps1` dans un processus PowerShell distinct, **sans fenêtre persistante**, pour compiler l'éditeur puis exécuter les tests `Grimrock`.
+6. Il publie `pending`, puis `success` ou `failure` sur GitHub, avec un rapport limité en cas d'échec.
+7. Un même commit déjà validé n'est pas relancé inutilement. Les erreurs d'infrastructure transitoires sont réessayées au prochain cycle.
 
-## Activation (intervention unique sur Windows)
+**Important :** l'agent applique automatiquement les nouvelles versions de `UEValidationAgent.ps1`. La mise à jour du bootstrap lui-même ou des paramètres de la tâche peut exceptionnellement nécessiter une réinstallation.
 
-Dans PowerShell :
+## Prérequis
+
+- Windows 11, Unreal Engine **5.5.4** sous `D:\UE_5.5`, outils C++ Visual Studio et Windows SDK adéquats.
+- `git`, Git LFS et GitHub CLI (`gh`) accessibles depuis la session Windows exécutant la tâche.
+- Authentification GitHub CLI avec les autorisations nécessaires aux statuts, issues et commits explicitement autorisés.
+- Espace disque suffisant pour les assets Git LFS, les binaires, les données intermédiaires et les rapports.
+- Ordinateur allumé et session Windows ouverte ; pas de privilège SYSTEM.
+
+### Installation initiale — déjà réalisée
 
 ```powershell
 cd D:\Development\GrimrockPrototype
-# Ne pas ecraser les modifications locales : inspection avant mise a jour.
 git status --short
-git fetch origin master
-# Mettre a disposition les nouveaux Scripts par fast-forward seulement, apres
-# avoir protege les changements locaux si necessaire.
 git pull --ff-only origin master
 .\Scripts\InstallUEValidationAgent.ps1 -EngineRoot D:\UE_5.5
 ```
 
-L'installateur effectue une verification des outils, du parseur PowerShell 5.1 et de `gh auth`, installe une tache planifiee toutes les **3 minutes** et declenche la premiere verification en tache de fond invisible. Lors de la reinstallation, si une validation est deja en cours, il conserve cette execution et ne declenche pas une seconde validation. Il est **idempotent** et refuse de remplacer une tache de meme nom qui ne correspond pas a cet agent. Aucune intervention n'est necessaire pour les commits suivants. Le correctif .1 n'utilise plus les parametres invalides `-DisallowStartIfOnBatteries`/`-StopIfGoingOnBatteries` : les options disponibles sont detectees avant appel, et le mode batterie est degrade avec avertissement si une option est absente. Il ne telecharge pas de binaire opaque et ne modifie pas les comptes ou droits Windows.
+L'installateur contrôle les prérequis, la syntaxe PowerShell et l'appartenance de la tâche, puis l'enregistre de manière idempotente. Il détecte les options réellement disponibles de `New-ScheduledTaskSettingsSet` et n'utilise plus les paramètres de batterie incorrects. Le bootstrap s'exécute en arrière-plan.
 
-Preflight optionnel, sans ecriture de tache :
+Cette procédure n'est **pas** à répéter lors de chaque nouveau commit.
 
-```powershell
-.\Scripts\InstallUEValidationAgent.ps1 -EngineRoot D:\UE_5.5 -CheckOnly
-```
-
-Verifier l'installation et la premiere execution (le fichier `state.json` n'apparait qu'apres qu'un commit a ete traite) :
+### Consulter le dispositif
 
 ```powershell
 Get-ScheduledTask -TaskName 'GrimrockPrototype-UEValidation' | Get-ScheduledTaskInfo
+Get-Content "$env:LOCALAPPDATA\GrimrockPrototype\UEValidationAgent\Bootstrap.latest.log" -Tail 40
 Get-Content "$env:LOCALAPPDATA\GrimrockPrototype\UEValidationAgent\Agent.latest.log" -Tail 70
-Get-Content "$env:LOCALAPPDATA\GrimrockPrototype\UEValidationAgent\state.json" -ErrorAction SilentlyContinue
 ```
 
-Si `gh` n'est pas present, installer la CLI GitHub depuis l'installateur officiel (`winget install --id GitHub.cli --exact --source winget`) puis lancer `gh auth login -h github.com`. Le navigateur peut demander une autorisation initiale, jamais a chaque commit. Si PowerShell n'autorise pas `Register-ScheduledTask` pour le compte actuel, effectuer l'installation une fois dans une session adaptee ; ne pas passer la tache en SYSTEM.
+Les fichiers des sessions sont dans `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Runs`. Les journaux comprennent les erreurs du compilateur, de l'éditeur Unreal et des tests Automation. Le tableau de bord GitHub affiche `UE5.5.4/LocalAuto`, accompagné d'une issue `[UEValidation]` lorsqu'un commit échoue.
 
-## Exploitation / incidents
+## Diagnostics et sécurité
 
-- **Travail utilisateur modifie** : le checkout `D:\Development\GrimrockPrototype` n'est jamais reinitialise et les modifications `*.uasset`, `*.umap`, etc. restent intactes.
-- **Agent en echec au demarrage** : consulter `Agent.latest.log`, puis le `LastTaskResult` du Planificateur. Si Git/LFS est indisponible, l'agent retente au prochain cycle. Si la compilation/Automation echoue, consulter l'issue `[UEValidation] Echec du commit ...` (sans secrets/logs) et les fichiers locaux sous `Runs/`. Une correction publiee declenche une nouvelle validation.
-- **Plusieurs commits pendant une execution** : `origin/master` sera relu au prochain cycle ; l'agent valide le dernier etat (pas chaque commit intermediaire).
-- **Machine eteinte** : aucune execution tant que le poste est eteint ; elle reprend lors de la prochaine ouverture de session.
-- **Verrouillage** : une validation en cours est terminee avant d'en declencher une nouvelle.
-- **Nettoyage** : desactiver la tache avec `Disable-ScheduledTask -TaskName GrimrockPrototype-UEValidation` ou desinstaller via `Scripts/UninstallUEValidationAgent.ps1`. Aucun dossier ni rapport n'est supprime automatiquement.
-- **Validation PIE visuelle** : le build et l'Automation sont automatiques, mais **la verification visuelle humaine** ne peut pas etre declaree reussie sans capture/test approprie. `-UseRHI` peut activer la RHI pour des tests concus a cet effet, mais ne garantit pas une recette PIE visuelle.
+En cas d'erreur de compilation, l'issue publique peut afficher **le nom de fichier source, le numéro de ligne et un code MSVC**. Pour Automation, seuls des noms de tests `Grimrock.*` contrôlés et des compteurs d'échecs sont autorisés. Le diagnostic de la compétence `Skill_Traps` utilise une liste blanche des identifiants de compétences et des catégories de contrôles.
 
-## Correctifs VALIDATION-AUTO01.1 (4 novembre 2026)
+Les chemins personnels, noms de répertoire utilisateur, extraits bruts de journaux, messages libres et secrets **ne sont pas publiés**. Les codes d'erreurs de préparation distinguent notamment `WORKTREE_REGISTRATION`, `WORKTREE_DIRTY`, `LFS`, `GITHUB_AUTH`, `GIT` et `OTHER`.
 
-- Remplacement de la mauvaise API du Planificateur (`-DisallowStartIfOnBatteries`, `-StopIfGoingOnBatteries`) par detection de `-AllowStartIfOnBatteries` et `-DontStopIfGoingOnBatteries`. References : documentation Microsoft `New-ScheduledTaskSettingsSet`.
-- Choix explicite de Windows PowerShell 5.1 dans la tache planifiee, y compris si l'installation a ete lancee sous PowerShell 7.
-- Test de parsing natif des scripts avant inscription, `-CheckOnly`, installation repetable et refus de remplacer une tache homonyme etrangere.
-- Transcript local pour diagnostiquer les erreurs de preflight, validation dans un processus distinct, vrais codes de sortie, retry des erreurs d'infrastructure.
-- Verifications du chemin et de l'appartenance du worktree a ce depot. Aucun `reset --hard`, `clean` ni suppression.
-- Aucune validation Windows/UE declaree tant que la premiere execution n'a pas termine avec succes.
+L'agent refuse un checkout si le worktree n'appartient pas au bon dépôt ou présente des changements inattendus. Un échec d'authentification ou de réseau n'autorise pas à supprimer les données pour réessayer.
 
-## Regle de publication
+**Attention :** le bootstrap exécute les fichiers PowerShell présents sur `master`. Les droits d'écriture de cette branche doivent donc rester strictement protégés. Aucune PR non fiable ne doit être exécutée.
 
-`VALIDATION-AUTO01` est un **jalon d'infrastructure autonome**, sans modification du moteur de combat. Son commit installe les scripts et la documentation ; aucune verification UE ne peut encore etre declaree reussie tant que la tache Windows n'a pas tourne. Ne pas qualifier ARMEMENT01.17.1.4 de valide avant son propre build, les tests et sa recette visuelle.
+## Matérialisation contrôlée des assets Unreal
 
-References :
-- [GitHub : Ajouter un runner auto-heberge](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners)
-- [GitHub : Securiser GitHub Actions](https://docs.github.com/en/actions/reference/security/secure-use)
+Deux exceptions explicitement limitées peuvent produire des **commits d'assets natifs** depuis le worktree de validation, après vérification des tests :
 
-## Correctif VALIDATION-AUTO01.2 : deux fenetres PowerShell (4 novembre 2026)
+- **VALIDATION-AUTO01.7 / Compétences :** `RepairCanonicalSkillTraps.ps1` a rétabli uniquement `DA_Skill_Traps.uasset`. L'asset a été publié automatiquement au commit `32d2a305`, suivi d'une validation complète réussie.
+- **ARMEMENT01.17.1.4 / Huile au sol :** `AuthorOilSurfaceMaterial.ps1` n'agit que si le seul échec est `Grimrock.RPG.ARMEMENT01.17.1.4.ProductionMaterial`. Il génère, par un commandlet UE, uniquement `M_Surface_Oil.uasset` et `MI_Surface_Oil.uasset`, vérifie Git LFS, le SHA, la liste exacte des fichiers modifiés et la possibilité d'un push non forcé. Le résultat doit ensuite repasser l'intégralité des tests.
 
-La premiere version lancait `powershell.exe` depuis le Planificateur dans la session interactive, puis `Start-Process powershell.exe` pour le harness. Windows pouvait donc afficher deux consoles, dont l'une pouvait rester vide pendant un long build Unreal. Ce comportement n'indiquait pas necessairement un blocage.
+Ces réparations ne constituent pas une permission générale d'écrire des assets. Elles n'agissent jamais sur le checkout principal et n'utilisent jamais `git add -A`. Un fichier imprévu provoque l'arrêt de la publication.
 
-- Tache planifiee : `powershell.exe -WindowStyle Hidden -NoProfile -NonInteractive ...`.
-- Harness : `Start-Process -WindowStyle Hidden -RedirectStandardOutput ... -RedirectStandardError ... -Wait -PassThru`.
-- Aucune redirection des logs n'est perdue ; suivre `Agent.latest.log` et `Runs/.../Agent.log`, ainsi que le contexte GitHub `UE5.5.4/LocalAuto`.
-- L'installation est reentrante : elle ne declenche pas une nouvelle validation si la tache tourne deja.
-- Une execution deja lancee avec la version .1 reste visible jusqu'a sa fin, car les parametres de lancement d'un processus existant ne peuvent pas etre modifies retroactivement.
+## Historique des correctifs du 4 novembre 2026
 
-Mise a jour de la tache : `git pull --ff-only origin master` depuis le checkout propre, puis `.\Scripts\InstallUEValidationAgent.ps1 -EngineRoot D:\UE_5.5`. Cette operation ne touche ni aux assets ni au worktree. Si une validation reste active, laisser cette execution terminer ; les prochains lancements seront invisibles.
+| Jalon | Problème résolu |
+|---|---|
+| VALIDATION-AUTO01.1 | Paramètres de batterie incorrects ; installation idempotente, contrôle syntaxique et journalisation. |
+| VALIDATION-AUTO01.2 | Suppression des deux fenêtres PowerShell persistantes. |
+| VALIDATION-AUTO01.3 | Publication de diagnostics techniques filtrés, sans fuite des journaux. |
+| VALIDATION-AUTO01.4 | Normalisation des chemins Git Windows et bootstrap de mise à jour automatique. |
+| VALIDATION-AUTO01.5 | Initialisation automatique du sous-module Lua 5.4.8 avant compilation. |
+| VALIDATION-AUTO01.6 / .6A | Réalignement de deux tests historiques et correction du script de diagnostic des compétences. |
+| VALIDATION-AUTO01.7 | Réparation ciblée du DataAsset `Skill_Traps`, puis retour à une validation UE complète réussie. |
+| ARMEMENT01.17.1.4 | Projection des surfaces d'huile et génération automatique du matériau ; validation propre au jalon encore nécessaire. |
 
-**Limitations :** le demarrage de binaires natifs Windows peut produire un tres bref flash sur certaines configurations ; cela ne doit jamais laisser deux consoles persistantes. Seul le poste Windows peut verifier ce comportement.
+## Limites de la validation
 
+Une compilation et des tests Automation réussis prouvent le respect des assertions exécutées, **pas** l'apparence finale d'un effet graphique. Le test visuel de l'huile nécessite soit une capture automatisée avec RHI, soit une recette PIE représentative. La vue 3D, l'éclairage des torches, les reliefs du sol et les lisières doivent encore être examinés avant de déclarer l'apparence artistique définitive.
 
-## Correctif VALIDATION-AUTO01.3 : diagnostic automatique des echecs (4 novembre 2026)
+L'agent ne doit ni lancer automatiquement une traduction anglaise ni réécrire des matériaux existants sans jalon explicite.
 
-Le premier run du commit a57a7eaa a echoue (code UE 1), et son issue publique #9 ne contient pas de detail technique. Pour eviter toute copie manuelle recurrente, les futurs echecs remontent maintenant un bilan structure minimal en provenance du journal de validation et, si present, du rapport Automation JSON.
-
-Seuls sont publies les fichiers sources de type cpp/h/cs/inl avec leur numero de ligne et un code compilateur reconnu, un compte d'echecs et les identifiants de tests de la forme Grimrock.x.y. Toute ligne libre, message brut, chemin absolu et donnee personnelle sont exclus de l'issue publique. Si le format du log ne permet pas un extrait fiable, le bilan mentionne explicitement ses limites. Les rapports complets restent locaux. Cette modification ne peut pas modifier retroactivement l'issue du premier run, qui precede ce correctif.
-
-L'agent et le planificateur restent independants du checkout de developpement. Pour passer le planificateur en mode cache, mettre a jour master puis relancer une fois InstallUEValidationAgent.ps1.
-
-
-## Correctif VALIDATION-AUTO01.4 : bootstrap auto-actualise et chemin Git Windows
-
-Les essais du commit 705d02b0 ont retourne plusieurs erreurs `setup` avant l'execution UE. Une cause possible est le controle du worktree par comparaison de chemins : Git for Windows utilise parfois `D:/...`, Windows `D:\...`. Les chemins sont maintenant normalises en chemins Windows absolus avant comparaison.
-
-Le planificateur execute maintenant `Scripts/UEValidationBootstrap.ps1`, un petit lanceur stable qui verifie le depot `origin`, effectue `git fetch --no-tags origin master`, extrait la version de `Scripts/UEValidationAgent.ps1` associee au SHA exact du commit dans `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\AgentVersions`, verifie sa syntaxe et l'execute.
-
-Le bootstrap ne fait jamais `git pull`, `git reset`, `git clean` ou `checkout` sur la copie de developpement ; seuls les objets et references Git sont mis a jour par fetch. Les fichiers de travail et assets locaux restent proteges. Les futures corrections ordinaires de `UEValidationAgent.ps1` sur `master` sont prises automatiquement, sans reinstaller la tache. En revanche, un changement du bootstrap ou de sa configuration planifiee necessiterait une mise a jour explicite.
-
-Le statut GitHub d'un echec en phase `setup` inclut un code borne : WORKTREE_REGISTRATION, WORKTREE_DIRTY, WORKTREE_LOCATION, LFS, GITHUB_AUTH, GIT, HARNESS_MISSING ou OTHER ; jamais le texte libre d'une erreur Windows. Les journaux complets restent uniquement locaux : Bootstrap.latest.log, Agent.latest.log et Runs/.
-
-**Mise en route de la nouvelle tache (une seule fois) :**
-```powershell
-cd D:\Development\GrimrockPrototype
-git pull --ff-only origin master
-.\Scripts\InstallUEValidationAgent.ps1 -EngineRoot D:\UE_5.5
-```
-
-**Securite :** le bootstrap execute volontairement le code versionne de `master` sur votre poste. Proteger strictement les droits d'ecriture de master, car tout code malveillant pousse sur cette branche pourrait aussi s'executer sous votre compte Windows.
-
-
-## Correctif VALIDATION-AUTO01.5 — sous-module Lua54 obligatoire
-
-La premiere compilation reellement lancee par l'agent sur le commit `b7b9e5a6` a echoue avec le code MSVC `C1083` : `Lua54.cpp` (include `onelua.c`) et `GridLuaVm.cpp` (include `lua.h`). Le depot contient `ThirdParty/Lua54` comme **sous-module Git** vers `https://github.com/lua/lua.git`, epingle au commit `6e22fedb74cf0c9b6656e9fce8b7331db847c605`. Un `git worktree add` n'initialise pas automatiquement ce sous-module ; `git lfs pull` ne le restaure pas non plus.
-
-L'agent execute desormais, sur **le seul worktree de validation**, avant `git lfs pull` et avant la compilation :
+## Arrêt et désinstallation
 
 ```powershell
-git -C D:\Development\GrimrockPrototype_UEValidation submodule update --init -- ThirdParty/Lua54
+Disable-ScheduledTask -TaskName 'GrimrockPrototype-UEValidation'
+.\Scripts\UninstallUEValidationAgent.ps1
 ```
 
-Il controle ensuite la presence de `onelua.c`, `lua.h`, `lauxlib.h` et `lualib.h`. Cette etape est repetable sur les prochains commits. Une panne reseau Git/submodule laisse un echec d'infrastructure reessayable ; aucun reset, clean ou changement de la copie de developpement n'est effectue.
+Les journaux et données de travail ne sont pas effacés automatiquement.
 
-La version de l'agent est prise automatiquement depuis `origin/master` par `UEValidationBootstrap.ps1`. **Aucun nouveau `git pull` ni reinstallation du Planificateur ne sont requis** pour cette correction de l'agent. Il faut simplement laisser la tache automatique effectuer son prochain cycle sur la machine Windows allumee, session utilisateur ouverte.
+## Références
 
-Suivi : [GitHub issue #10](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/10).
-
-
-## VALIDATION-AUTO01.6 — assainissement de la baseline des tests et diagnostics Skills
-
-Le premier run complet apres restauration du sous-module Lua (commit e40620b4) a execute Automation et remonte trois tests en echec dans l'issue GitHub #11. L'audit de la source a identifie deux attentes historiques devenues fausses :
-
-- `Grimrock.MON19.2.Editor.LinkPolicyMatrix` attendait deux evenements du Trigger alors que le runtime actuel expose aussi `Disarmed`.
-- `Grimrock.RPG.ARMEMENT.LOT02.ApprovedKitsProductionGate` imposait exactement six candidats, une photographie de LOT02.5. Le catalogue a evolue et l'acceptation porte desormais sur les six kits historiques **au minimum**, sans masquer les autres recettes bloquees.
-
-Le test `Grimrock.UI.RPG06.Skills.ProductionCatalog` reste strict (les 25 DataAssets doivent correspondre au contrat canonique). L'agent sait desormais extraire, uniquement pour ce test et a partir du rapport JSON, les SkillIds d'une **liste blanche fixe** et la categorie statique d'assertion (ASSET_LOAD / CANONICAL_FIELDS / DISPLAY_NAME / STRUCTURE). Aucun message brut d'erreur n'est publie dans l'issue publique.
-
-Ces modifications C++ ne changent aucun comportement gameplay et aucun .uasset. Le resultat reel reste soumis a la nouvelle execution automatique UE5.5.4, non anticipee.
-
-
-## VALIDATION-AUTO01.7 — restauration automatisee de Skill_Traps
-
-Le premier run suivant les corrections de tests historiques a isole un unique echec : `Grimrock.UI.RPG06.Skills.ProductionCatalog`, `Skill_Traps / CANONICAL_FIELDS`. Le C++ canonique exige `Skill_Traps` (Dexterity, entrainement obligatoire, MaxRank 5) mais son DataAsset serialise est divergent. Il faut corriger **le binaire** et non supprimer le test.
-
-Le commandlet existant `RPGSkillCatalogAuthoring` accepte maintenant l'argument `-SkillId=Skill_Traps`, qui limite la reserialisation au **seul** DataAsset selectionne, tout en preservant `DisplayName`, `Description` et `RequirementGrants`.
-
-Pour ne pas imposer une manipulation a l'utilisateur, `Scripts/RepairCanonicalSkillTraps.ps1` est lance automatiquement **uniquement lorsque** la suite UE a echoue sur le seul test Skills ProductionCatalog. Il exige un worktree propre, une origine GitHub exacte, l'attribut Git LFS, un rapport prouvant un echec unique et le SHA encore courant de `master`. Il appelle le commandlet de maniere invisible, controle qu'**uniquement** `Content/GrimrockPrototype/Core/DataAssets/RPG/Skills/DA_Skill_Traps.uasset` est modifie, puis cree un commit exact et effectue un push normal (jamais force). Toute situation inattendue interrompra la publication. Le prochain cycle validera le commit de l'asset genere.
-
-Il n'y a ni `git reset --hard`, ni `git clean`, ni commit de masse, ni mutation du checkout de developpement. Les traces restent dans le repertoire prive `Runs`. Le premier commit source de ce jalon peut etre rouge avant la publication ciblee du DataAsset ; seul le run final sur le nouvel asset pourra etablir une baseline verte.
+- [Configuration des runners GitHub](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners).
+- [Sécurisation de GitHub Actions](https://docs.github.com/en/actions/reference/security/secure-use).
+- `Scripts/ValidateUE.ps1` et `Scripts/README.md` — référence opérationnelle du projet.

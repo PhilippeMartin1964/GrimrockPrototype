@@ -5,6 +5,71 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridSurfaceRuntime, Log, All);
 
+void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
+{
+	if (!OilSurfaceISM)
+	{
+		return;
+	}
+
+	// Pure présentation : aucune mutation de FGridLevelRuntimeState / SaveGame.
+	OilSurfaceISM->ClearInstances();
+	OilSurfaceISM->SetVisibility(false);
+	if (!LevelAsset || !GetWorld() || !GetWorld()->IsGameWorld() || !IsValid(SurfaceOverlayMesh))
+	{
+		return;
+	}
+
+	const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel();
+	if (!State)
+	{
+		return;
+	}
+
+	TArray<FIntPoint> OilCells;
+	for (const TPair<FIntPoint, FGridCombatSurfaceState>& Pair : State->Surfaces)
+	{
+		const FIntPoint Cell = Pair.Key;
+		if (Pair.Value.IsValid() && Pair.Value.SurfaceType == EGridCombatSurfaceType::Oil &&
+			IsWalkableCell(Cell.X, Cell.Y) && !ShouldHideCellFloor(Cell.X, Cell.Y))
+		{
+			OilCells.Add(Cell);
+		}
+	}
+	if (OilCells.IsEmpty())
+	{
+		return;
+	}
+
+	UMaterialInterface* Material = OilSurfaceMaterial.LoadSynchronous();
+	if (!IsValid(Material))
+	{
+		UE_LOG(LogGridSurfaceRuntime, Warning, TEXT("[ARMEMENT01.17.1.4] MI_Surface_Oil indisponible ; rendu d'huile masqué."));
+		return;
+	}
+	OilSurfaceISM->SetStaticMesh(SurfaceOverlayMesh);
+	OilSurfaceISM->SetMaterial(0, Material);
+	const float CellSize = LevelAsset->CellSize;
+	const float Scale = (CellSize / 100.f) * 0.98f;
+	OilCells.Sort([](const FIntPoint& A, const FIntPoint& B)
+	{
+		return A.Y == B.Y ? A.X < B.X : A.Y < B.Y;
+	});
+
+	for (const FIntPoint& Cell : OilCells)
+	{
+		// Transformations RELATIVES à SceneRoot : comme FloorISM, aussi avec acteur transformé.
+		const FVector Center = CellToWorld(Cell.X, Cell.Y, OilSurfaceHeightOffset) +
+			FVector(CellSize * .5f, CellSize * .5f, 0.f);
+		const FTransform Overlay(FRotator::ZeroRotator, Center, FVector(Scale, Scale, 1.f));
+		if (IsSafeRuntimeRenderTransform(Overlay))
+		{
+			OilSurfaceISM->AddInstance(Overlay);
+		}
+	}
+	OilSurfaceISM->SetVisibility(OilSurfaceISM->GetInstanceCount() > 0);
+}
+
 bool AGridLevelRuntimeActor::ApplyCombatSurfaceAtCell(int32 CellX, int32 CellY, const FGridCombatSurfaceEffectProfile& Profile,
 	const FGuid& SourceCombatantId, FName SourceActionId, const FGridResolvedCombatModifiers& SourceModifiers)
 {
@@ -31,6 +96,7 @@ bool AGridLevelRuntimeActor::ApplyCombatSurfaceAtCell(int32 CellX, int32 CellY, 
 		CellX, CellY, *UEnum::GetValueAsString(State.SurfaceType), State.RemainingRounds,
 		*State.SourceCombatantId.ToString(EGuidFormats::Digits), *State.SourceActionId.ToString(), State.PeriodicDamagePerRound,
 		*UEnum::GetValueAsString(State.PeriodicDamageType));
+	RefreshCombatOilSurfaceVisuals();
 	return true;
 }
 
@@ -62,6 +128,7 @@ bool AGridLevelRuntimeActor::InteractCombatSurfaceAtCell(int32 CellX, int32 Cell
 		CellX, CellY, *UEnum::GetValueAsString(Interaction), *UEnum::GetValueAsString(OutReaction.OutputSurfaceType),
 		OutReaction.bExplosive ? TEXT("true") : TEXT("false"), OutReaction.ExplosionDamagePercentModifier,
 		OutReaction.ExplosionAreaRadiusModifier);
+	RefreshCombatOilSurfaceVisuals();
 	return true;
 }
 
@@ -92,6 +159,7 @@ bool AGridLevelRuntimeActor::ConvertCombatSurfaceAtCell(int32 CellX, int32 CellY
 		TEXT("[RPG03.9.4F1] SurfaceConverted Cell=(%d,%d) Output=%s Rounds=%d Source=%s Action=%s"),
 		CellX, CellY, *UEnum::GetValueAsString(Converted.SurfaceType), Converted.RemainingRounds,
 		*Converted.SourceCombatantId.ToString(EGuidFormats::Digits), *Converted.SourceActionId.ToString());
+	RefreshCombatOilSurfaceVisuals();
 	return true;
 }
 
@@ -155,6 +223,10 @@ int32 AGridLevelRuntimeActor::AdvanceCombatSurfaceRound(TArray<FIntPoint>* OutEx
 		}
 		RuntimeState->Surfaces.Remove(Cell);
 		++ExpiredCount;
+	}
+	if (ExpiredCount > 0)
+	{
+		RefreshCombatOilSurfaceVisuals();
 	}
 	return ExpiredCount;
 }

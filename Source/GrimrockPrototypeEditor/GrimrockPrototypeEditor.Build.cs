@@ -24,6 +24,7 @@ public class GrimrockPrototypeEditor : ModuleRules
             "UnrealEd",
             "EditorFramework",
             "BlueprintGraph",
+            "MaterialEditor",
             "PropertyEditor",
             "Slate",
             "SlateCore",

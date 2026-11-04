@@ -1,5 +1,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
+#include "UObject/ConstructorHelpers.h"
 
 #include "Core/GridRelocationUtils.h"
 #include "Runtime/GrimrockGameInstance.h"
@@ -161,6 +162,23 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor()
 	CeilingISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("CeilingISM"));
 	CeilingISM->SetupAttachment(SceneRoot);
 
+	OilSurfaceISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("CombatOilSurfaceISM"));
+	OilSurfaceISM->SetupAttachment(SceneRoot);
+	OilSurfaceISM->SetMobility(EComponentMobility::Movable);
+	OilSurfaceISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	OilSurfaceISM->SetGenerateOverlapEvents(false);
+	OilSurfaceISM->SetCastShadow(false);
+	OilSurfaceISM->SetVisibility(false);
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> Plane(TEXT("/Engine/BasicShapes/Plane.Plane"));
+	if (Plane.Succeeded())
+	{
+		SurfaceOverlayMesh = Plane.Object;
+	}
+	// Référence souple sérialisée sur le CDO ; la création de l'asset est automatisée côté Editor.
+	OilSurfaceMaterial = TSoftObjectPtr<UMaterialInterface>(
+		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.MI_Surface_Oil")));
+
 	ActivationComponent = CreateDefaultSubobject<UGridActivationComponent>(TEXT("ActivationComponent"));
 
 	MonsterEncounterComponent = CreateDefaultSubobject<UGridMonsterEncounterComponent>(TEXT("MonsterEncounterComponent"));
@@ -292,6 +310,8 @@ void AGridLevelRuntimeActor::ClearVisuals(EGridRuntimeRebuildMode RebuildMode)
 		FloorISM->ClearInstances();
 	if (WallISM)
 		WallISM->ClearInstances();
+	if (OilSurfaceISM)
+		OilSurfaceISM->ClearInstances();
 	if (CeilingISM)
 	{
 		CeilingISM->ClearInstances();
@@ -635,6 +655,7 @@ void AGridLevelRuntimeActor::RebuildLevel(EGridRuntimeRebuildMode RebuildMode)
 			RebuildRuntimeObjects();
 		}
 	}
+	RefreshCombatOilSurfaceVisuals();
 	if (bEnableRuntimeDebugLog)
 	{
 		LogRuntimeDebugSummary();
