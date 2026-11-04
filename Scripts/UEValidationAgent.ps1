@@ -323,7 +323,58 @@ try {
                 throw "Worktree d'origine differente : $ActualRoot"
             }
             $Dirty = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'status', '--porcelain', '--untracked-files=normal'))
-            if ($Dirty.Count -gt 0) { throw 'Worktree de validation modifie. Refus de supprimer ou ecraser des fichiers.' }
+            if ($Dirty.Count -gt 0) {
+                # Récupération spécifique : un commandlet précédent peut avoir
+                # réécrit M_Surface_Oil avant que son commit n'ait été accepté.
+                # Ne JAMAIS restaurer un fichier inattendu ou non sauvegardé.
+                $AllowedOilAssets = @(
+                    'Content/GrimrockPrototype/Art/Materials/Surfaces/M_Surface_Oil.uasset',
+                    'Content/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.uasset'
+                )
+                $DirtyOilPaths = @()
+                foreach ($Entry in $Dirty) {
+                    if (-not $Entry.StartsWith(' M ') -or $Entry.Length -le 3) {
+                        throw 'Worktree de validation modifie (index ou statut non autorise) : protection active.'
+                    }
+                    $Path = $Entry.Substring(3)
+                    if ($Path -notin $AllowedOilAssets) {
+                        throw 'Worktree de validation modifie (fichier hors liste blanche) : protection active.'
+                    }
+                    $DirtyOilPaths += $Path
+                }
+                if ($DirtyOilPaths.Count -lt 1 -or $DirtyOilPaths.Count -gt 2) {
+                    throw 'Worktree de validation modifie : nombre de fichiers inattendu.'
+                }
+                $OldHead = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'rev-parse', 'HEAD'))[0].Trim()
+                if ($OldHead -notmatch '^[0-9a-f]{40}$') {
+                    throw 'Revision du worktree invalide : sauvegarde non tentee.'
+                }
+                $BackupRoot = Join-Path $StateRoot ('Recovery\Oil-' + $OldHead.Substring(0,12) + '-' + (Get-Date -Format 'yyyyMMddHHmmssfff'))
+                New-Item -ItemType Directory -Path $BackupRoot -Force | Out-Null
+                foreach ($OilPath in $DirtyOilPaths) {
+                    $Source = Join-Path $WorktreePath $OilPath
+                    $Destination = Join-Path $BackupRoot ([IO.Path]::GetFileName($OilPath))
+                    if (-not (Test-Path -LiteralPath $Source -PathType Leaf)) {
+                        throw 'Asset d huile absent : restauration refusee.'
+                    }
+                    Copy-Item -LiteralPath $Source -Destination $Destination -ErrorAction Stop
+                    $SourceHash = (Get-FileHash -LiteralPath $Source -Algorithm SHA256).Hash
+                    $BackupHash = (Get-FileHash -LiteralPath $Destination -Algorithm SHA256).Hash
+                    if ($SourceHash -ne $BackupHash) {
+                        throw 'Sauvegarde huile non integre : restauration refusee.'
+                    }
+                }
+                # Restore est limite AUX DEUX assets autorises, dans le seul
+                # worktree temporaire. Les copies exactes demeurent privées.
+                Invoke-Checked -Executable 'git' -Arguments (@('-C', $WorktreePath,
+                    'restore', '--source=HEAD', '--worktree', '--') + $DirtyOilPaths) | Out-Null
+                $AfterRestore = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath,
+                    'status', '--porcelain', '--untracked-files=normal'))
+                if ($AfterRestore.Count -gt 0) {
+                    throw 'Worktree toujours modifie apres sauvegarde des assets huile ; abandon.'
+                }
+                Write-Host '[VALIDATION-AUTO01] Assets d huile preserves dans Recovery, worktree restaure pour la prochaine validation.'
+            }
             Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'checkout', '--detach', $Sha) | Out-Null
         }
         else {

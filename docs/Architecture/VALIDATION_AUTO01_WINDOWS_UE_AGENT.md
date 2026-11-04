@@ -120,3 +120,12 @@ Les journaux et données de travail ne sont pas effacés automatiquement.
 Le commit `26e4741e19c5b6cee0e42b65282758ed75b9aed2` affiche **`Build + Automation OK (Grimrock)`**, après la génération et le push Git LFS automatiques des deux matériaux Unreal natifs. Tous les cinq tests ARMEMENT01.17.1.4 sont inclus dans cette validation complète, sans aucun autre asset modifié.
 
 Le résultat ne constitue **pas** une acceptation de l'apparence réelle dans une scène PIE avec RHI. Les tests utilisent `-NullRHI` : une capture de l'huile sous éclairage est encore nécessaire pour la validation artistique, qui doit être automatisée conformément aux règles du projet.
+
+
+## Récupération protégée d’un asset Unreal dans le worktree de validation
+
+Un commandlet d’authoring peut terminer normalement, puis voir sa publication Git LFS refusée par un contrôle trop strict. Dans ce cas, **le worktree de validation demeure modifié** et l’agent doit refuser le checkout suivant. Le commit `a73d3253` a rencontré précisément le code `WORKTREE_DIRTY` après une précédente tentative de conversion d’huile.
+
+L’agent dispose désormais d’une récupération **strictement limitée** : si tous les fichiers modifiés sont exclusivement `M_Surface_Oil.uasset` et éventuellement `MI_Surface_Oil.uasset`, non indexés, il en crée des copies privées dans `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Recovery`, calcule et compare leurs empreintes SHA-256, puis restaure uniquement ces chemins dans le **worktree de validation** via `git restore --source=HEAD --worktree`. Il vérifie ensuite que le worktree est propre avant le checkout du commit courant.
+
+**Aucun `git reset --hard`, aucun `git clean`, aucun fichier de `D:\Development\GrimrockPrototype` n’est modifié**. Une modification inattendue, un fichier indexé ou une erreur de sauvegarde interrompent le processus. Les copies de sécurité ne sont jamais publiées sur GitHub. Une validation et une conversion ciblée peuvent alors recommencer depuis un état propre.
