@@ -6,7 +6,8 @@ Set-StrictMode -Version Latest
 $Task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if (-not $Task) { Write-Host "Tache absente : $TaskName"; return }
 $Agent = Join-Path $PSScriptRoot 'UEValidationAgent.ps1'
-$Owned = @($Task.Actions | Where-Object { $_.Arguments -and $_.Arguments.Contains(('"' + $Agent + '"')) })
+$Bootstrap = Join-Path $PSScriptRoot 'UEValidationBootstrap.ps1'
+$Owned = @($Task.Actions | Where-Object { $_.Arguments -and $_.Arguments.Contains(('"' + $Agent + '"')) -or $_.Arguments.Contains(('"' + $Bootstrap + '"')) })
 if ($Owned.Count -eq 0) { throw "Refus de supprimer une tache etrangere : $TaskName" }
 Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction Stop

@@ -1,4 +1,4 @@
-# VALIDATION-AUTO01.3 — Agent Windows sans runner GitHub Actions.
+# VALIDATION-AUTO01.4 — Agent Windows sans runner GitHub Actions.
 # Ne touche jamais au checkout de developpement; le worktree dedie est la seule cible build.
 [CmdletBinding()]
 param(
@@ -36,6 +36,18 @@ function Publish-CommitStatus {
     $Description = $Description.Substring(0, [Math]::Min(135, $Description.Length))
     & gh api -X POST "repos/$GitHubRepository/statuses/$Sha" -f "state=$State" -f 'context=UE5.5.4/LocalAuto' -f "description=$Description" --silent
     if ($LASTEXITCODE -ne 0) { throw "Publication du statut GitHub impossible (code $LASTEXITCODE)." }
+}
+
+function Get-PublicSetupCode {
+    param([string]$Message)
+    if ($Message -match '(?i)worktrees de ce depot') { return 'WORKTREE_REGISTRATION' }
+    if ($Message -match '(?i)Worktree de validation modifie') { return 'WORKTREE_DIRTY' }
+    if ($Message -match '(?i)Repertoire de validation non vide|Worktree d.origine differente') { return 'WORKTREE_LOCATION' }
+    if ($Message -match '(?i)\blfs\b') { return 'LFS' }
+    if ($Message -match '(?i)\bgh\b|authentifie') { return 'GITHUB_AUTH' }
+    if ($Message -match '(?i)\bgit\b|checkout|fetch') { return 'GIT' }
+    if ($Message -match '(?i)Harness UE introuvable') { return 'HARNESS_MISSING' }
+    return 'OTHER'
 }
 
 function Get-PublicSafeDiagnostics {
@@ -211,7 +223,11 @@ try {
             }
             # Verifier l'appartenance au depot de depart, pas seulement le chemin.
             $RegisteredWorktrees = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $RepositoryRoot, 'worktree', 'list', '--porcelain') |
-                Where-Object { $_ -like 'worktree *' } | ForEach-Object { $_.Substring(9).TrimEnd('\') })
+                Where-Object { $_ -like 'worktree *' } | ForEach-Object {
+                    $GitPath = $_.Substring(9).Trim()
+                    # Sous Windows, git peut ecrire D:/... alors que GetFullPath donne D:\...
+                    [IO.Path]::GetFullPath($GitPath.Replace('/', '\')).TrimEnd('\')
+                })
             if (@($RegisteredWorktrees | Where-Object { $_ -ieq $ValidationRoot }).Count -ne 1) {
                 throw 'Le dossier existe mais ne fait pas partie des worktrees de ce depot. Aucune modification.'
             }
@@ -261,7 +277,8 @@ try {
         $RunError = $_.Exception.Message
         if ($Phase -eq 'publication') { $Result = 'infrastructure_error' }
         Write-Warning "[VALIDATION-AUTO01] ECHEC ($Phase) $Sha : $RunError"
-        try { Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec validation $Phase ($AutomationFilter)." }
+        $PublicCause = if ($Phase -eq 'setup') { Get-PublicSetupCode -Message $RunError } else { 'TESTS' }
+        try { Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec $Phase/$PublicCause ($AutomationFilter)." }
         catch { Write-Warning "Impossible de publier le statut d'echec : $($_.Exception.Message)" }
         # Les incidents de recuperation Git/LFS restent reessayables au cycle suivant.
         # Une erreur de compilation/test est definitive pour ce SHA, sans issues multiples.

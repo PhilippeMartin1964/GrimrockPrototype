@@ -1,6 +1,6 @@
 # VALIDATION-AUTO01 — Agent de validation locale UE 5.5.4
 
-**Statut : VALIDATION-AUTO01.3 — execution silencieuse et diagnostics structures publics limites. Build UE / Automation a verifier sur Windows.**
+**Statut : VALIDATION-AUTO01.4 — bootstrap Windows versionne, chargement automatique des scripts agent sur master. Validation UE locale a confirmer.**
 
 ## Pourquoi un agent local plutot qu'un GitHub Actions runner ?
 
@@ -112,3 +112,23 @@ Le premier run du commit a57a7eaa a echoue (code UE 1), et son issue publique #9
 Seuls sont publies les fichiers sources de type cpp/h/cs/inl avec leur numero de ligne et un code compilateur reconnu, un compte d'echecs et les identifiants de tests de la forme Grimrock.x.y. Toute ligne libre, message brut, chemin absolu et donnee personnelle sont exclus de l'issue publique. Si le format du log ne permet pas un extrait fiable, le bilan mentionne explicitement ses limites. Les rapports complets restent locaux. Cette modification ne peut pas modifier retroactivement l'issue du premier run, qui precede ce correctif.
 
 L'agent et le planificateur restent independants du checkout de developpement. Pour passer le planificateur en mode cache, mettre a jour master puis relancer une fois InstallUEValidationAgent.ps1.
+
+
+## Correctif VALIDATION-AUTO01.4 : bootstrap auto-actualise et chemin Git Windows
+
+Les essais du commit 705d02b0 ont retourne plusieurs erreurs `setup` avant l'execution UE. Une cause possible est le controle du worktree par comparaison de chemins : Git for Windows utilise parfois `D:/...`, Windows `D:\...`. Les chemins sont maintenant normalises en chemins Windows absolus avant comparaison.
+
+Le planificateur execute maintenant `Scripts/UEValidationBootstrap.ps1`, un petit lanceur stable qui verifie le depot `origin`, effectue `git fetch --no-tags origin master`, extrait la version de `Scripts/UEValidationAgent.ps1` associee au SHA exact du commit dans `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\AgentVersions`, verifie sa syntaxe et l'execute.
+
+Le bootstrap ne fait jamais `git pull`, `git reset`, `git clean` ou `checkout` sur la copie de developpement ; seuls les objets et references Git sont mis a jour par fetch. Les fichiers de travail et assets locaux restent proteges. Les futures corrections ordinaires de `UEValidationAgent.ps1` sur `master` sont prises automatiquement, sans reinstaller la tache. En revanche, un changement du bootstrap ou de sa configuration planifiee necessiterait une mise a jour explicite.
+
+Le statut GitHub d'un echec en phase `setup` inclut un code borne : WORKTREE_REGISTRATION, WORKTREE_DIRTY, WORKTREE_LOCATION, LFS, GITHUB_AUTH, GIT, HARNESS_MISSING ou OTHER ; jamais le texte libre d'une erreur Windows. Les journaux complets restent uniquement locaux : Bootstrap.latest.log, Agent.latest.log et Runs/.
+
+**Mise en route de la nouvelle tache (une seule fois) :**
+```powershell
+cd D:\Development\GrimrockPrototype
+git pull --ff-only origin master
+.\Scripts\InstallUEValidationAgent.ps1 -EngineRoot D:\UE_5.5
+```
+
+**Securite :** le bootstrap execute volontairement le code versionne de `master` sur votre poste. Proteger strictement les droits d'ecriture de master, car tout code malveillant pousse sur cette branche pourrait aussi s'executer sous votre compte Windows.
