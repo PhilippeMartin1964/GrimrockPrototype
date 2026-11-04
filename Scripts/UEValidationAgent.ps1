@@ -1,4 +1,4 @@
-# VALIDATION-AUTO01 — Agent Windows sans runner GitHub Actions.
+# VALIDATION-AUTO01.2 — Agent Windows sans runner GitHub Actions.
 # Ne touche jamais au checkout de developpement; le worktree dedie est la seule cible build.
 [CmdletBinding()]
 param(
@@ -181,7 +181,7 @@ try {
         if ($UseRHI) { $ValidateArguments += ' -UseRHI' }
         $RunStderrLog = Join-Path $RunDir 'Agent.stderr.log'
         $Process = Start-Process -FilePath $PsExe -ArgumentList $ValidateArguments -WorkingDirectory $WorktreePath `
-            -RedirectStandardOutput $RunLog -RedirectStandardError $RunStderrLog -Wait -PassThru -ErrorAction Stop
+            -RedirectStandardOutput $RunLog -RedirectStandardError $RunStderrLog -WindowStyle Hidden -Wait -PassThru -ErrorAction Stop
         $ExitCode = $Process.ExitCode
         $Result = 'failure'
         if ($ExitCode -ne 0) { throw "ValidateUE.ps1 a retourne le code $ExitCode. Voir $RunLog et $RunStderrLog." }

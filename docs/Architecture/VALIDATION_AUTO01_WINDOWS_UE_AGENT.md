@@ -1,6 +1,6 @@
 # VALIDATION-AUTO01 — Agent de validation locale UE 5.5.4
 
-**Statut : VALIDATION-AUTO01.1 — correctif du planificateur Windows publie ; activation et premiere validation UE Windows encore necessaires.**
+**Statut : VALIDATION-AUTO01.2 — validation Windows initiale declenchee ; execution silencieuse des futures taches integree. Build UE 5.5.4 / Automation non encore confirms.**
 
 ## Pourquoi un agent local plutot qu'un GitHub Actions runner ?
 
@@ -16,7 +16,7 @@ L'agent est une **tache planifiee Windows**, tournant sous le compte de l'utilis
 - Au prochain commit, l'agent **refuse** tout checkout si ce worktree possede des modifications non committees ou fichiers non suivis. Aucun `git reset --hard`, `git clean` ou suppression automatises.
 - Recuperation des vrais assets Git LFS avec `git lfs pull` pour le worktree ; la premiere execution peut etre longue/volumineuse.
 - Compilation et Automation : reemploi de `Scripts/ValidateUE.ps1` dans le worktree, EngineRoot `D:\UE_5.5`, filtre par defaut `Grimrock` (suite complete).
-- Rapports locaux (jamais commits) : `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Runs\...` ; journal de demarrage `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Agent.latest.log` (PowerShell Transcript) et stderr du harness conserve dans `Agent.stderr.log`. Le harness `ValidateUE.ps1` est execute dans un **second processus PowerShell**, avec code de sortie fiable.
+- Rapports locaux (jamais commits) : `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Runs\...` ; journal de demarrage `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Agent.latest.log` (PowerShell Transcript) et stderr du harness conserve dans `Agent.stderr.log`. Le harness `ValidateUE.ps1` est execute dans un **second processus PowerShell invisible** (`-WindowStyle Hidden`), avec code de sortie fiable. Le processus agent planifie est egalement lance avec `-WindowStyle Hidden` : pas de fenetre PowerShell persistante lors des prochaines executions.
 - Etat GitHub par commit : `UE5.5.4/LocalAuto` (`pending`, `success`, `failure`) via GitHub CLI authentifie. Sur echec des tests, issue GitHub automatique **sans extraits des logs locaux** pour proteger les chemins et informations privees du poste. Le journal complet reste local.
 - L'agent traite un SHA une seule fois en cas de succes ou d'echec de compilation/Automation ; une panne d'infrastructure Git, LFS ou de publication est **reessayee** au cycle suivant. Un changement de filtre redemarre aussi la validation.
 - Une seule execution simultanee : verrou Windows + tache `IgnoreNew`.
@@ -45,7 +45,7 @@ git pull --ff-only origin master
 .\Scripts\InstallUEValidationAgent.ps1 -EngineRoot D:\UE_5.5
 ```
 
-L'installateur effectue une verification des outils, du parseur PowerShell 5.1 et de `gh auth`, installe une tache planifiee toutes les **3 minutes** et declenche la premiere verification. Il est **idempotent** et refuse de remplacer une tache de meme nom qui ne correspond pas a cet agent. Aucune intervention n'est necessaire pour les commits suivants. Le correctif .1 n'utilise plus les parametres invalides `-DisallowStartIfOnBatteries`/`-StopIfGoingOnBatteries` : les options disponibles sont detectees avant appel, et le mode batterie est degrade avec avertissement si une option est absente. Il ne telecharge pas de binaire opaque et ne modifie pas les comptes ou droits Windows.
+L'installateur effectue une verification des outils, du parseur PowerShell 5.1 et de `gh auth`, installe une tache planifiee toutes les **3 minutes** et declenche la premiere verification en tache de fond invisible. Lors de la reinstallation, si une validation est deja en cours, il conserve cette execution et ne declenche pas une seconde validation. Il est **idempotent** et refuse de remplacer une tache de meme nom qui ne correspond pas a cet agent. Aucune intervention n'est necessaire pour les commits suivants. Le correctif .1 n'utilise plus les parametres invalides `-DisallowStartIfOnBatteries`/`-StopIfGoingOnBatteries` : les options disponibles sont detectees avant appel, et le mode batterie est degrade avec avertissement si une option est absente. Il ne telecharge pas de binaire opaque et ne modifie pas les comptes ou droits Windows.
 
 Preflight optionnel, sans ecriture de tache :
 
@@ -89,3 +89,17 @@ Si `gh` n'est pas present, installer la CLI GitHub depuis l'installateur officie
 References :
 - [GitHub : Ajouter un runner auto-heberge](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners)
 - [GitHub : Securiser GitHub Actions](https://docs.github.com/en/actions/reference/security/secure-use)
+
+## Correctif VALIDATION-AUTO01.2 : deux fenetres PowerShell (4 novembre 2026)
+
+La premiere version lan`cait `powershell.exe` depuis le Planificateur dans la session interactive, puis `Start-Process powershell.exe` pour le harness. Windows pouvait donc afficher deux consoles, dont l'une pouvait rester vide pendant un long build Unreal. Ce comportement n'indiquait pas necessairement un blocage.
+
+- Tache planifiee : `powershell.exe -WindowStyle Hidden -NoProfile -NonInteractive ...`.
+- Harness : `Start-Process -WindowStyle Hidden -RedirectStandardOutput ... -RedirectStandardError ... -Wait -PassThru`.
+- Aucune redirection des logs n'est perdue ; suivre `Agent.latest.log` et `Runs/.../Agent.log`, ainsi que le contexte GitHub `UE5.5.4/LocalAuto`.
+- L'installation est reentrante : elle ne declenche pas une nouvelle validation si la tache tourne deja.
+- Une execution deja lancee avec la version .1 reste visible jusqu'a sa fin, car les parametres de lancement d'un processus existant ne peuvent pas etre modifies retroactivement.
+
+Mise a jour de la tache : `git pull --ff-only origin master` depuis le checkout propre, puis `.\Scripts\InstallUEValidationAgent.ps1 -EngineRoot D:\UE_5.5`. Cette operation ne touche ni aux assets ni au worktree. Si une validation reste active, laisser cette execution terminer ; les prochains lancements seront invisibles.
+
+**Limitations :** le demarrage de binaires natifs Windows peut produire un tres bref flash sur certaines configurations ; cela ne doit jamais laisser deux consoles persistantes. Seul le poste Windows peut verifier ce comportement.

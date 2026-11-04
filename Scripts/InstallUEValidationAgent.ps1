@@ -1,4 +1,4 @@
-# VALIDATION-AUTO01.1 — Installation idempotente de l'agent Windows de validation UE.
+# VALIDATION-AUTO01.2 — Installation idempotente de l'agent Windows de validation UE.
 # Installation dans la session interactive normale, sans tache SYSTEM ni runner GitHub Actions.
 [CmdletBinding()]
 param(
@@ -53,7 +53,7 @@ foreach ($ScriptToCheck in @($PSCommandPath, $Agent)) {
 $PsExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 if (-not (Test-Path -LiteralPath $PsExe -PathType Leaf)) { throw "Windows PowerShell.exe introuvable : $PsExe" }
 $PsArguments = @(
-    '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-NoLogo', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass',
     '-File', (Quote-AgentArgument $Agent), '-RepositoryRoot', (Quote-AgentArgument $RepoRoot),
     '-EngineRoot', (Quote-AgentArgument $EngineRoot), '-WorktreePath', (Quote-AgentArgument $WorktreePath),
     '-StateRoot', (Quote-AgentArgument $StateRoot), '-AutomationFilter', (Quote-AgentArgument $AutomationFilter)
@@ -94,14 +94,14 @@ if ($Existing) {
     if ($OwnAction.Count -eq 0) { throw "Tache existante non reconnue : $TaskName. Aucun remplacement effectue." }
 }
 
-Write-Host "[VALIDATION-AUTO01.1] Preflight OK : $Identity"
+Write-Host "[VALIDATION-AUTO01.2] Preflight OK : $Identity"
 Write-Host "Agent       : $Agent"
 Write-Host "Engine      : $EngineRoot"
 Write-Host "Worktree    : $WorktreePath"
 Write-Host "Etat/Logs   : $StateRoot"
 Write-Host "Intervalle  : $IntervalMinutes minute(s) ; filtre=$AutomationFilter"
 if ($CheckOnly) {
-    Write-Host '[VALIDATION-AUTO01.1] CheckOnly : aucune tache creee ou modifiee.'
+    Write-Host '[VALIDATION-AUTO01.2] CheckOnly : aucune tache creee ou modifiee.'
     return
 }
 
@@ -109,10 +109,18 @@ New-Item -ItemType Directory -Force -Path $StateRoot | Out-Null
 Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principal -Description 'Validation automatique UE 5.5.4 de origin/master dans un worktree dedie.' -Force | Out-Null
 $Registered = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
 if (-not $Registered) { throw "Echec de verification de l'inscription de la tache $TaskName." }
-Write-Host "[VALIDATION-AUTO01.1] Tache installee : $TaskName"
+Write-Host "[VALIDATION-AUTO01.2] Tache installee : $TaskName"
 if (-not $SkipInitialRun) {
-    try { Start-ScheduledTask -TaskName $TaskName -ErrorAction Stop; Write-Host '[VALIDATION-AUTO01.1] Premiere validation declenchee.' }
-    catch { Write-Warning "Tache installee mais demarrage refuse : $($_.Exception.Message). Elle sera reessayee au prochain declenchement." }
+    # La reinstallation pendant un build UE ne doit pas lancer une seconde validation.
+    $CurrentTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
+    if ($CurrentTask.State -eq 'Running') {
+        Write-Host '[VALIDATION-AUTO01.2] Validation deja en cours. Instance existante conservee ; prochaines executions invisibles.'
+    } else {
+        try { Start-ScheduledTask -TaskName $TaskName -ErrorAction Stop; Write-Host '[VALIDATION-AUTO01.2] Verification automatique declenchee.' }
+        catch { Write-Warning "Tache installee mais demarrage refuse : $($_.Exception.Message). Elle sera reessayee au prochain declenchement." }
+    }
 }
 Write-Host "Verification : Get-ScheduledTask -TaskName '$TaskName' | Get-ScheduledTaskInfo"
 Write-Host "Journal agent : $StateRoot\Agent.latest.log"
+Write-Host '[VALIDATION-AUTO01.2] Mode silencieux : PowerShell -WindowStyle Hidden (agent et harness).'
+Write-Host 'Une instance deja demarree avant ce correctif peut rester visible jusqu a sa fin.'
