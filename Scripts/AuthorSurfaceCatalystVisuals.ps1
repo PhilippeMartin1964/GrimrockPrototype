@@ -45,93 +45,20 @@ foreach($Name in @($New)+@($Item)) {
     $Attr=@(Invoke-Git -GitArgs @('check-attr','filter','--',$Name))
     if($Attr.Count -ne 1 -or $Attr[0] -notmatch ': filter: lfs$') { throw 'Missing LFS filter.' }
 }
+# Automated and direct modes share the same protected asset and Git publication path.
 if($ManualValidatedBuild) {
-    # Explicit local runner; no synthetic Automation report is accepted.
     $Proof=Join-Path $RunDir 'CatalystBuildVerified.sha'
-    if(-not (Test-Path -LiteralPath $Proof -PathType Leaf)) { throw 'Missing local UE build proof.' }
+    if(-not (Test-Path -LiteralPath $Proof -PathType Leaf)) { throw 'Missing UE build proof.' }
     $BuiltSha=([string](Get-Content -LiteralPath $Proof -TotalCount 1)).Trim()
-    if($BuiltSha -cne $ExpectedHead) { throw 'UE build proof and HEAD differ.' }
+    if($BuiltSha -cne $ExpectedHead) { throw 'UE build proof does not match HEAD.' }
     Stage 'MANUAL_BUILD_VERIFIED'
 }
 else {
-    # Automatic agent requires the production asset test to be the sole failure.
     Stage 'REPORT'
     $Index=@(Get-ChildItem -LiteralPath $ReportRoot -Recurse -File -Filter index.json -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)
     if($Index.Count -ne 1) { exit 2 }
     $Report=Get-Content -LiteralPath $Index[0].FullName -Raw | ConvertFrom-Json
-    $Failed=@($Report.tests | Where-Object { [string]$_.state -match '^(?i:fail|failed|error)
-$Exe=Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
-$Project=Join-Path $WorktreePath 'GrimrockPrototype.uproject'
-if(-not (Test-Path -LiteralPath $Exe -PathType Leaf) -or -not (Test-Path -LiteralPath $Project -PathType Leaf)) { throw 'UE unavailable.' }
-$Output=Join-Path $RunDir 'CatalystVisualsCommandlet.stdout.log'
-$Err=Join-Path $RunDir 'CatalystVisualsCommandlet.stderr.log'
-$Args='"'+$Project+'" -run=RPGAlchemistAuthoring -SurfaceCatalystVisuals -Apply -Unattended -NoSplash -NoP4 -NullRHI -stdout -FullStdOutLogOutput'
-Stage 'COMMANDLET_STARTED'
-$Process=Start-Process -FilePath $Exe -ArgumentList $Args -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Output -RedirectStandardError $Err -PassThru -Wait -ErrorAction Stop
-if($Process.ExitCode -ne 0) {
-    # Publish only a fixed, bounded failure code; raw commandlet logs stay private.
-    $SafeCode='COMMANDLET_FAILED'
-    $TailText=''
-    if(Test-Path -LiteralPath $Output -PathType Leaf) {
-        $TailText=(@(Get-Content -LiteralPath $Output -Tail 500 -ErrorAction SilentlyContinue)-join [Environment]::NewLine)
-    }
-    if(Test-Path -LiteralPath $Err -PathType Leaf) {
-        $TailText+=([Environment]::NewLine+(@(Get-Content -LiteralPath $Err -Tail 200 -ErrorAction SilentlyContinue)-join [Environment]::NewLine))
-    }
-    foreach($Rule in @(
-        @('Material graph 0 failed','FAIL_GRAPH_FLASK'),
-        @('Material graph 1 failed','FAIL_GRAPH_EMBER'),
-        @('Material graph 2 failed','FAIL_GRAPH_RUNE'),
-        @('SaveMaterial 0 failed','FAIL_SAVE_FLASK'),
-        @('SaveMaterial 1 failed','FAIL_SAVE_EMBER'),
-        @('SaveMaterial 2 failed','FAIL_SAVE_RUNE'),
-        @('DuplicateMesh failed','FAIL_DUPLICATE_MESH'),
-        @('SaveMesh failed','FAIL_SAVE_MESH'),
-        @('CreateIcon failed','FAIL_CREATE_ICON'),
-        @('SaveIcon failed','FAIL_SAVE_ICON'),
-        @('Final visual asset validation failed','FAIL_FINAL_CONTRACT'),
-        @('Native Catalyst visual contract is incomplete','FAIL_FINAL_CONTRACT'),
-        @('Unexpected partial','FAIL_PARTIAL_ASSETS'),
-        @('Missing approved item','FAIL_SOURCE_ITEM')
-    )) {
-        if($TailText.Contains([string]$Rule[0])) { $SafeCode=[string]$Rule[1]; break }
-    }
-    Stage $SafeCode
-    throw 'Unreal commandlet failed; see private logs.'
-}
-Stage 'COMMANDLET_COMPLETED'
-$Changes=@(Invoke-Git -GitArgs @('status','--porcelain','--untracked-files=all'))
-if($Changes.Count -ne ($New.Count+1)) { Stage 'FILESET'; throw 'Incorrect number of files.' }
-$Expected=@($New | ForEach-Object {'?? '+$_})+@(' M '+$Item)
-if(@($Changes | Where-Object { $_ -cnotin $Expected }).Count -ne 0) {
-    Stage 'FILESET'; throw 'Unexpected changed file.'
-}
-foreach($Name in $New) {
-    $Full=Join-Path $WorktreePath $Name
-    if(-not (Test-Path -LiteralPath $Full -PathType Leaf) -or (Get-Item -LiteralPath $Full).Length -lt 1024) {
-        throw 'Invalid Unreal binary asset.'
-    }
-}
-Stage 'ASSETS_VERIFIED'
-Invoke-Git -GitArgs @('fetch','--no-tags','origin','master') | Out-Null
-if(@(Invoke-Git -GitArgs @('rev-parse','refs/remotes/origin/master'))[0].Trim() -cne $ExpectedHead) {
-    throw 'master moved.'
-}
-Invoke-Git -GitArgs (@('add','--')+@($New)+@($Item)) | Out-Null
-$Staged=@(Invoke-Git -GitArgs @('diff','--cached','--name-only','--diff-filter=ACMR'))
-if($Staged.Count -ne ($New.Count+1) -or @($Staged | Where-Object { $_ -cnotin (@($New)+@($Item)) }).Count -ne 0) {
-    throw 'Index outside allowlist.'
-}
-Invoke-Git -GitArgs @('-c','user.name=Grimrock UE Automation',
-    '-c','user.email=grimrock-ue-automation@users.noreply.github.com',
-    'commit','-m','ARMEMENT01.17.2C.2: materialize native catalyst mesh/icon/VFX materials') | Out-Null
-Stage 'COMMIT_CREATED'
-# One push only: the Windows agent must not retry or sleep.
-& git -C $WorktreePath push origin 'HEAD:refs/heads/master' | Out-Null
-if($LASTEXITCODE -ne 0) { throw 'Push failed; local commit retained for recovery.' }
-Stage 'SUCCESS'
-exit 0
- })
+    $Failed=@($Report.tests | Where-Object { [string]$_.state -match '^(?i:fail|failed|error)$' })
     if([int]$Report.failed -ne 1 -or $Failed.Count -ne 1 -or [string]$Failed[0].fullTestPath -cne $Only) { exit 2 }
     Stage 'REPORT_ACCEPTED'
 }
