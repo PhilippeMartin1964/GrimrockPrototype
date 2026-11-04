@@ -194,7 +194,12 @@ bool FRPGSurfaceCatalystVisualAuthoring::Run(bool bApply,FString& OutError)
 	if (MatchesProductionAssets()) return true;
 	UGridItemDefinitionAsset* Item=LoadObject<UGridItemDefinitionAsset>(nullptr,ItemPath);
 	const UGridItemDefinitionAsset* Oil=LoadObject<UGridItemDefinitionAsset>(nullptr,FlaskItemPath);
-	UStaticMesh* SourceMesh=Oil ? Oil->WorldMesh.LoadSynchronous() : nullptr;
+	// The legacy oil DataAsset may have no world mesh. The approved starter
+	// catalyst was authored with an oil-then-fire-bomb fallback; reuse the
+	// exact already-resolved production mesh rather than assuming oil owns one.
+	UStaticMesh* SourceMesh=IsValid(Item) ? Item->WorldMesh.LoadSynchronous() : nullptr;
+	if (!IsValid(SourceMesh) && IsValid(Oil))
+		SourceMesh=Oil->WorldMesh.LoadSynchronous();
 	if (!IsValid(Item) || !IsValid(Oil) || !IsValid(SourceMesh))
 	{
 		OutError=TEXT("Missing approved item or original visual source.");
