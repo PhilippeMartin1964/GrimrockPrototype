@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Materials/Material.h"
+#include "MaterialDomain.h"
 #include "Materials/MaterialInstanceConstant.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridOilMaterialProductionTest,
@@ -18,7 +19,7 @@ bool FGridOilMaterialProductionTest::RunTest(const FString&)
 	TestNotNull(TEXT("Matériau huile natif de production"), Master);
 	TestNotNull(TEXT("Instance huile native de production"), Instance);
 	if (!Master || !Instance) return false;
-	TestEqual(TEXT("Domaine Surface"), Master->MaterialDomain, TEnumAsByte<EMaterialDomain>(MD_Surface));
+	TestTrue(TEXT("Domaine Surface"), Master->MaterialDomain == MD_Surface);
 	TestEqual(TEXT("Mélange translucide"), Master->BlendMode, TEnumAsByte<EBlendMode>(BLEND_Translucent));
 	TestTrue(TEXT("Éclairage direct par pixel et reflets locaux"),
 		Master->TranslucencyLightingMode == TLM_SurfacePerPixelLighting);

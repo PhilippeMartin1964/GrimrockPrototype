@@ -4,6 +4,7 @@
 #include "Engine/EngineTypes.h"
 #include "HAL/FileManager.h"
 #include "MaterialEditingLibrary.h"
+#include "MaterialDomain.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialExpressionConstant2Vector.h"
 #include "Materials/MaterialExpressionMultiply.h"
@@ -148,12 +149,10 @@ int32 UGridOilSurfaceMaterialAuthoringCommandlet::Main(const FString& Params)
 		}
 		FAssetRegistryModule::AssetCreated(Master);
 		Master->PostEditChange();
-		const TArray<FString> Errors = UMaterialEditingLibrary::RecompileMaterial(Master);
-		if (!Errors.IsEmpty())
-		{
-			UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.17.1.4] Erreurs du graphe de matériau : %d."), Errors.Num());
-			return 1;
-		}
+		// Dans UE 5.5.4, RecompileMaterial() retourne void ; les diagnostics
+		// de compilation sont consignés par Unreal, et le test de production
+		// vérifie la structure de l'asset généré.
+		UMaterialEditingLibrary::RecompileMaterial(Master);
 		if (!SaveAsset(Master))
 		{
 			UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.17.1.4] Échec de sauvegarde du matériau."));

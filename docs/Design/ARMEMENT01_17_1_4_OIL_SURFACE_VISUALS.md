@@ -93,3 +93,8 @@ Le joueur commence en Alchimiste/Transmutateur au niveau 1, avec sa flasque exis
 ## Jalons suivants
 
 Après acceptation d'ARMEMENT01.17.1.4 : **ARMEMENT01.17.2** (catalyseur Mage/Tisseur niveau 1), **ARMEMENT01.17.3** (composants de transmutation, selon l'état réel du craft), puis **ARMEMENT01.18** (acceptation des 18 kits).
+
+
+### Ajustements de compatibilité UE 5.5.4
+
+Le premier cycle automatisé a confirmé trois détails de compilation propres à l'environnement du projet : les valeurs `MD_Surface` sont déclarées dans `MaterialDomain.h`, la définition complète de `FGridResolvedCombatModifiers` exige `GridCombatModifierResolver.h`, et `UMaterialEditingLibrary::RecompileMaterial` retourne `void` dans cette version de l'Engine. Les inclusions et appels ont été corrigés sans modifier la logique RPG03.6 ni les assets existants.

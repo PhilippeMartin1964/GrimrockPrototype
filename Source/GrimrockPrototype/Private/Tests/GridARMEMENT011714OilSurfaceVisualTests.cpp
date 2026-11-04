@@ -7,6 +7,8 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/Material.h"
+#include "MaterialDomain.h"
+#include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Save/GrimrockPartySaveGame.h"
