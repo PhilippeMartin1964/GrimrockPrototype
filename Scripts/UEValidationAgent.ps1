@@ -38,46 +38,22 @@ function Publish-CommitStatus {
     if ($LASTEXITCODE -ne 0) { throw "Publication du statut GitHub impossible (code $LASTEXITCODE)." }
 }
 
-function Get-SafeDiagnosticLines {
-    param([string]$LogPath)
-    if (-not (Test-Path -LiteralPath $LogPath -PathType Leaf)) { return @() }
-    $Tail = @(Get-Content -LiteralPath $LogPath -Tail 1500 -ErrorAction SilentlyContinue)
-    $Matches = @($Tail | Where-Object {
-        $_ -match '(?i)(error\s+[A-Z]+\d+|fatal error|LogAutomationController: Error:|\*\*\*\* TEST COMPLETE\. EXIT CODE:|exception|\[ERROR\])'
-    } | Select-Object -Last 18)
-    $Clean = foreach ($Line in $Matches) {
-        $Value = [string]$Line
-        $Value = $Value -replace '(?i)[A-Z]:\\Users\\[^\\]+', '<PROFIL_UTILISATEUR>'
-        $Value = $Value -replace '(?i)(github_pat_|ghp_|gho_)[A-Za-z0-9_]+', '<SECRET>'
-        $Value = $Value -replace '(?i)(token|password|authorization)\s*[:=]\s*\S+', '$1=<SECRET>'
-        if ($Value.Length -gt 240) { $Value = $Value.Substring(0, 240) }
-        $Value
-    }
-    return @($Clean)
-}
-
 function Publish-FailureIssue {
-    param([string]$Sha, [string]$ErrorText, [string]$RunLogPath, [string]$ReportPath)
+    param([string]$Sha, [int]$ValidationExitCode)
     $ShortSha = $Sha.Substring(0, 12)
     $Title = "[UEValidation] Echec du commit $ShortSha"
-    $SafeErrors = @(Get-SafeDiagnosticLines -LogPath $RunLogPath)
-    $Details = if ($SafeErrors.Count -gt 0) { ($SafeErrors | ForEach-Object { "- $_" }) -join "`n" } else { '- Aucun diagnostic filtre. Voir les journaux locaux.' }
-    $Sanitized = $ErrorText -replace '(?i)[A-Z]:\\Users\\[^\\]+', '<PROFIL_UTILISATEUR>'
-    $Sanitized = $Sanitized -replace '(?i)(github_pat_|ghp_|gho_)[A-Za-z0-9_]+', '<SECRET>'
-    if ($Sanitized.Length -gt 500) { $Sanitized = $Sanitized.Substring(0, 500) }
+    # Depot public : aucune ligne de log privee ni chemin utilisateur dans une issue.
     $Body = @"
 ## Validation automatique UE 5.5.4
 
 - Commit : $Sha
 - Suite : ``$AutomationFilter``
 - Etat : **ECHEC**
-- Diagnostic general : $Sanitized
-- Les journaux complets restent sur la machine Windows et ne sont pas publies dans ce depot public.
+- Code de sortie UE : $ValidationExitCode
+- Diagnostic : echec build ou Automation ; consulter les rapports locaux.
+- Les journaux complets restent prives sur la machine Windows.
 
-### Extraits de diagnostics (filtres et tronques)
-$Details
-
-Ce ticket est emis automatiquement par ``Scripts/UEValidationAgent.ps1``. Aucun fichier utilisateur n'a ete modifie par l'agent.
+Ce ticket est emis automatiquement par ``Scripts/UEValidationAgent.ps1``.
 "@
     $BodyPath = Join-Path $StateRoot "failure-$ShortSha.md"
     Set-Content -LiteralPath $BodyPath -Value $Body -Encoding UTF8
@@ -88,6 +64,7 @@ Ce ticket est emis automatiquement par ``Scripts/UEValidationAgent.ps1``. Aucun 
 
 $Mutex = [System.Threading.Mutex]::new($false, 'Local\GrimrockPrototypeUEValidationAgent')
 $HasMutex = $false
+$TranscriptStarted = $false
 try {
     try { $HasMutex = $Mutex.WaitOne(0) }
     catch [System.Threading.AbandonedMutexException] { $HasMutex = $true }
@@ -96,13 +73,23 @@ try {
         return
     }
 
+    # Transcript de l'agent des le preflight, meme si git/gh/UE echoue avant les tests.
+    New-Item -ItemType Directory -Force -Path $StateRoot | Out-Null
+    try {
+        Start-Transcript -Path (Join-Path $StateRoot 'Agent.latest.log') -Force -ErrorAction Stop | Out-Null
+        $TranscriptStarted = $true
+    }
+    catch { Write-Warning "Transcript indisponible : $($_.Exception.Message)" }
+
     $RepositoryRoot = (Resolve-Path -LiteralPath $RepositoryRoot).Path
     if ([string]::IsNullOrWhiteSpace($WorktreePath)) {
         $WorktreePath = Join-Path (Split-Path -Parent $RepositoryRoot) 'GrimrockPrototype_UEValidation'
     }
     $WorktreePath = [IO.Path]::GetFullPath($WorktreePath)
-    if ($WorktreePath.TrimEnd('\') -ieq $RepositoryRoot.TrimEnd('\')) {
-        throw 'Le worktree de validation ne doit pas correspondre au checkout utilisateur.'
+    $UserRoot = $RepositoryRoot.TrimEnd('\')
+    $ValidationRoot = $WorktreePath.TrimEnd('\')
+    if ($ValidationRoot -ieq $UserRoot -or $ValidationRoot.StartsWith($UserRoot + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Le worktree de validation doit etre hors du checkout utilisateur.'
     }
     if (-not (Test-Path -LiteralPath (Join-Path $RepositoryRoot '.git'))) {
         throw "Ce repertoire n'est pas le checkout Git de GrimrockPrototype : $RepositoryRoot"
@@ -114,7 +101,7 @@ try {
         if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) { throw "Commande obligatoire absente : $Command" }
     }
     Invoke-Checked -Executable 'git' -Arguments @('lfs', 'version') | Out-Null
-    & gh auth status -h github.com *> $null
+    & gh auth status -h github.com | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'GitHub CLI n est pas authentifie. Executer gh auth login (une seule fois).' }
 
     # Refuse de valider accidentellement un autre depot.
@@ -132,7 +119,8 @@ try {
     Invoke-Checked -Executable 'git' -Arguments @('-C', $RepositoryRoot, 'fetch', '--no-tags', 'origin', 'master') | Out-Null
     $Sha = (Invoke-Checked -Executable 'git' -Arguments @('-C', $RepositoryRoot, 'rev-parse', 'refs/remotes/origin/master') | Select-Object -First 1).ToString().Trim()
     if ($Sha -notmatch '^[0-9a-f]{40}$') { throw "SHA Git invalide : $Sha" }
-    if ($Previous -and $Previous.sha -eq $Sha) {
+    if ($Previous -and $Previous.sha -eq $Sha -and $Previous.automation_filter -eq $AutomationFilter -and
+        $Previous.result -in @('success', 'failure')) {
         Write-Host "[VALIDATION-AUTO01] Commit deja traite : $Sha ($($Previous.result))."
         return
     }
@@ -142,7 +130,8 @@ try {
     New-Item -ItemType Directory -Force -Path $RunDir | Out-Null
     $RunLog = Join-Path $RunDir 'Agent.log'
     $RunError = $null
-    $Result = 'failure'
+    $Result = 'infrastructure_error'
+    $Phase = 'setup'
     $ExitCode = -1
     $ReportRoot = Join-Path $RunDir 'Automation'
 
@@ -152,6 +141,12 @@ try {
         if (Test-Path -LiteralPath $WorktreePath) {
             if (-not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git'))) {
                 throw "Repertoire de validation non vide / non gere : $WorktreePath. Aucune suppression automatique."
+            }
+            # Verifier l'appartenance au depot de depart, pas seulement le chemin.
+            $RegisteredWorktrees = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $RepositoryRoot, 'worktree', 'list', '--porcelain') |
+                Where-Object { $_ -like 'worktree *' } | ForEach-Object { $_.Substring(9).TrimEnd('\') })
+            if (@($RegisteredWorktrees | Where-Object { $_ -ieq $ValidationRoot }).Count -ne 1) {
+                throw 'Le dossier existe mais ne fait pas partie des worktrees de ce depot. Aucune modification.'
             }
             $ActualRoot = (Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'rev-parse', '--show-toplevel') | Select-Object -First 1).ToString().Trim()
             if ([IO.Path]::GetFullPath($ActualRoot).TrimEnd('\') -ine $WorktreePath.TrimEnd('\')) {
@@ -173,33 +168,53 @@ try {
         $ValidatePath = Join-Path $WorktreePath 'Scripts\ValidateUE.ps1'
         if (-not (Test-Path -LiteralPath $ValidatePath -PathType Leaf)) { throw "Harness UE introuvable : $ValidatePath" }
         Write-Host "[VALIDATION-AUTO01] Validation $Sha : $AutomationFilter"
-        # $RunLog est conserve localement. Ce script ne pousse aucun asset / resultat build.
-        $Args = @{ EngineRoot = $EngineRoot; AutomationFilter = $AutomationFilter; ReportRoot = $ReportRoot }
-        if ($UseRHI) { $Args.UseRHI = $true }
-        & $ValidatePath @Args *> $RunLog
-        $ExitCode = $LASTEXITCODE
-        if ($ExitCode -ne 0) { throw "ValidateUE.ps1 a retourne le code $ExitCode." }
+        # Processus PowerShell distinct pour eviter que exit / stderr natif du harness
+        # ne perturbent le code de sortie ou le processus de surveillance Windows PS 5.1.
+        $Phase = 'testing'
+        $PsExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        if (-not (Test-Path -LiteralPath $PsExe -PathType Leaf)) { throw "PowerShell.exe introuvable : $PsExe" }
+        foreach ($Value in @($ValidatePath, $EngineRoot, $AutomationFilter, $ReportRoot)) {
+            if ($Value.Contains('"')) { throw 'Guillemet interdit dans les arguments du harness.' }
+        }
+        $ValidateArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $ValidatePath +
+            '" -EngineRoot "' + $EngineRoot + '" -AutomationFilter "' + $AutomationFilter + '" -ReportRoot "' + $ReportRoot + '"'
+        if ($UseRHI) { $ValidateArguments += ' -UseRHI' }
+        $RunStderrLog = Join-Path $RunDir 'Agent.stderr.log'
+        $Process = Start-Process -FilePath $PsExe -ArgumentList $ValidateArguments -WorkingDirectory $WorktreePath `
+            -RedirectStandardOutput $RunLog -RedirectStandardError $RunStderrLog -Wait -PassThru -ErrorAction Stop
+        $ExitCode = $Process.ExitCode
+        $Result = 'failure'
+        if ($ExitCode -ne 0) { throw "ValidateUE.ps1 a retourne le code $ExitCode. Voir $RunLog et $RunStderrLog." }
+        $Phase = 'publication'
         Publish-CommitStatus -Sha $Sha -State 'success' -Description "Build + Automation OK ($AutomationFilter)"
         $Result = 'success'
         Write-Host "[VALIDATION-AUTO01] SUCCES $Sha. Journaux : $RunDir"
     }
     catch {
         $RunError = $_.Exception.Message
-        Write-Warning "[VALIDATION-AUTO01] ECHEC $Sha : $RunError"
-        try { Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec UE ($AutomationFilter). Voir issue automatique." }
+        if ($Phase -eq 'publication') { $Result = 'infrastructure_error' }
+        Write-Warning "[VALIDATION-AUTO01] ECHEC ($Phase) $Sha : $RunError"
+        try { Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec validation $Phase ($AutomationFilter)." }
         catch { Write-Warning "Impossible de publier le statut d'echec : $($_.Exception.Message)" }
-        try { Publish-FailureIssue -Sha $Sha -ErrorText $RunError -RunLogPath $RunLog -ReportPath $ReportRoot }
-        catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
+        # Les incidents de recuperation Git/LFS restent reessayables au cycle suivant.
+        # Une erreur de compilation/test est definitive pour ce SHA, sans issues multiples.
+        if ($Result -eq 'failure') {
+            try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode }
+            catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
+        }
     }
     finally {
         Save-JsonAtomic -Path $StatePath -Value @{
-            sha = $Sha; result = $Result; exit_code = $ExitCode; automation_filter = $AutomationFilter
+            sha = $Sha; result = $Result; phase = $Phase; exit_code = $ExitCode; automation_filter = $AutomationFilter
             timestamp = (Get-Date).ToString('o'); run_directory = $RunDir; error = $RunError
         }
     }
     if ($Result -ne 'success') { throw "Validation automatique $Sha en echec. $RunError" }
 }
 finally {
+    if ($TranscriptStarted) {
+        try { Stop-Transcript | Out-Null } catch { Write-Warning "Arret du transcript impossible : $($_.Exception.Message)" }
+    }
     if ($HasMutex) { $Mutex.ReleaseMutex() }
     $Mutex.Dispose()
 }
