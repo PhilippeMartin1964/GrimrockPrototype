@@ -1,6 +1,6 @@
 # ARMEMENT01.17.1.4 — Huile réellement visible au sol
 
-**Date : 4 novembre 2026. Statut : code, tests et authoring automatique préparés pour GitHub ; validation UE 5.5.4 et rendu visuel réel à confirmer.**
+**Date : 4 novembre 2026. Statut : compilation UE 5.5.4 et suite Automation `Grimrock` VALIDÉES sur `26e4741e` ; acceptation artistique par capture PIE/RHI encore ouverte.**
 
 ## Objectif
 
@@ -110,3 +110,10 @@ Le premier passage après correction des erreurs C++ a réussi les quatre tests 
 Le cycle du commit `0dbd7722` a prouvé que le commandlet avait généré les deux assets natifs, vérifié les fichiers puis créé un commit local. Le diagnostic public a indiqué **`COMMIT_CREATED`** : l'envoi de ce commit vers `master` n'a pas abouti. Les modifications du donjon et les tests de logique n'étaient pas en cause.
 
 Le script effectue maintenant jusqu'à **trois tentatives de push du même commit**, toujours sans `--force`. En cas de nouvel échec, l'agent publie uniquement une catégorie technique autorisée : problème d'authentification, de quota LFS, de transfert LFS, de réseau, de divergence de référence ou catégorie inconnue. Il ne publie aucun extrait brut des journaux Git ni information personnelle. Si la publication reste impossible, les données et les objets Git du worktree ne sont pas supprimés automatiquement.
+
+
+## Validation automatique finale — 4 novembre 2026
+
+L'agent Windows confirme `UE5.5.4/LocalAuto = success` sur le commit `26e4741e19c5b6cee0e42b65282758ed75b9aed2`, après la création native des deux nouveaux assets `M_Surface_Oil.uasset` et `MI_Surface_Oil.uasset`. Les cinq tests ARMEMENT01.17.1.4 ont été exécutés et réussis : projection, réactions/conversions, expiration, sauvegarde/reconstruction et matériau de production. Le commit des matériaux ne contient que ces deux fichiers Git LFS.
+
+**L'apparence réelle en PIE/RHI reste à confirmer.** Les contrôles actuellement exécutés avec `-NullRHI` valident la logique, les instances et le chargement des matériaux, mais pas leurs pixels à l'écran ni les reflets sous les torches. Cette étape devra être automatisée sans intervention manuelle.

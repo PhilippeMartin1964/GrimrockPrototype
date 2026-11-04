@@ -91,7 +91,7 @@ Ces réparations ne constituent pas une permission générale d'écrire des asse
 | VALIDATION-AUTO01.5 | Initialisation automatique du sous-module Lua 5.4.8 avant compilation. |
 | VALIDATION-AUTO01.6 / .6A | Réalignement de deux tests historiques et correction du script de diagnostic des compétences. |
 | VALIDATION-AUTO01.7 | Réparation ciblée du DataAsset `Skill_Traps`, puis retour à une validation UE complète réussie. |
-| ARMEMENT01.17.1.4 | Projection des surfaces d'huile et génération automatique du matériau ; validation propre au jalon encore nécessaire. |
+| ARMEMENT01.17.1.4 | Projection de l'huile et génération des deux matériaux Unreal ; **validation UE/Automation réussie** sur `26e4741e` ; acceptation visuelle RHI encore ouverte. |
 
 ## Limites de la validation
 
@@ -113,3 +113,10 @@ Les journaux et données de travail ne sont pas effacés automatiquement.
 - [Configuration des runners GitHub](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners).
 - [Sécurisation de GitHub Actions](https://docs.github.com/en/actions/reference/security/secure-use).
 - `Scripts/ValidateUE.ps1` et `Scripts/README.md` — référence opérationnelle du projet.
+
+
+## Résultat de validation du rendu d'huile — 4 novembre 2026
+
+Le commit `26e4741e19c5b6cee0e42b65282758ed75b9aed2` affiche **`Build + Automation OK (Grimrock)`**, après la génération et le push Git LFS automatiques des deux matériaux Unreal natifs. Tous les cinq tests ARMEMENT01.17.1.4 sont inclus dans cette validation complète, sans aucun autre asset modifié.
+
+Le résultat ne constitue **pas** une acceptation de l'apparence réelle dans une scène PIE avec RHI. Les tests utilisent `-NullRHI` : une capture de l'huile sous éclairage est encore nécessaire pour la validation artistique, qui doit être automatisée conformément aux règles du projet.
