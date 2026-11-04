@@ -55,3 +55,10 @@ Le profil actuel reste **4 rounds**, coût **2 PA + 1 flasque**, portée **4 cas
 ### Vérifications
 
 Le test d'intégration `Grimrock.RPG.ARMEMENT01.17.1.4.QuickItemToWorldProjection` contrôle maintenant, en plus du ciblage et de la consommation : l'unicité du déclenchement du splash, l'entrée unique dans le flux Combat, son contenu, la destruction du décalque transitoire et la conservation de la flaque durable. La compilation UE 5.5.4 et la suite Automation doivent confirmer ces nouvelles assertions avant validation technique définitive.
+
+
+### Validation du splash — 4 novembre 2026
+
+Le commit `b40d5a3c` a obtenu **`UE5.5.4/LocalAuto = success`** (compilation et suite complète `Grimrock`). L'animation transitoire de 0,42 seconde et l'entrée unique du flux d'événements sont donc validées sur leurs contrats C++ et Automation. Une vérification visuelle avec rendu GPU reste séparée.
+
+Le contrat final confirme qu'**aucune animation et aucun événement ne sont émis pendant le simple ciblage** : le splash ne démarre qu'après l'utilisation réellement réussie de la flasque. Le flux de la catégorie `Combat` emploie un message français distinct au singulier et au pluriel. Les quatre rounds de combat et la portée de quatre cases sont inchangés ; **l'écoulement du temps hors combat reste à définir**, sans inventer un nombre de secondes par round.

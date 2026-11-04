@@ -2208,10 +2208,13 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		OilEvent.Visibility = EGridEventVisibility::Always;
 		OilEvent.EventCode = TEXT("Combat.Surface.OilSpread");
 		OilEvent.SourceId = Action.Definition.ActionId;
-		OilEvent.Message = FText::Format(
-			NSLOCTEXT("GrimrockOil", "OilSpillEvent",
-				"Une flasque d’huile se brise : l’huile se répand sur {0} cases."),
-			FText::AsNumber(OilFlaskAppliedCells));
+		OilEvent.Message = OilFlaskAppliedCells == 1
+			? NSLOCTEXT("GrimrockOil", "OilSpillEventSingular",
+				"Une flasque d’huile se brise : l’huile se répand sur une case.")
+			: FText::Format(
+				NSLOCTEXT("GrimrockOil", "OilSpillEventPlural",
+					"Une flasque d’huile se brise : l’huile se répand sur {0} cases."),
+				FText::AsNumber(OilFlaskAppliedCells));
 		GridEventFeedPublisher::PublishEvent(this, OilEvent);
 	}
 	if (bTrapResolution && IsValid(RuntimeActor))

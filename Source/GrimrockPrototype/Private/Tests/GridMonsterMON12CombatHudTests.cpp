@@ -1850,11 +1850,23 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 
 	const FIntPoint TargetCell(1, 2);
 	FGridCombatActionRequestResult AimResult;
+	UGridEventFeedSubsystem* FeedBefore = Fixture.TestWorld.World
+		? Fixture.TestWorld.World->GetSubsystem<UGridEventFeedSubsystem>() : nullptr;
+	if (!TestNotNull(TEXT("Flux d'événements disponible avant ciblage"), FeedBefore)) return false;
 	if (!TestTrue(TEXT("Le clic sur le raccourci active le ciblage"),
 			Fixture.Hud->RequestHotbarSlot(1, AimResult)))
 	{
 		return false;
 	}
+	TestEqual(TEXT("Aucun splash pendant le ciblage"), Fixture.Runtime->GetOilSplashPresentationCount(), 0);
+	TestFalse(TEXT("Aucun événement d'huile pendant le ciblage"),
+		FeedBefore->GetEntries().ContainsByPredicate([](const FGridHudEventEntry& Entry)
+		{
+			return Entry.EventCode == FName(TEXT("Combat.Surface.OilSpread"));
+		}));
+	TestTrue(TEXT("L'étalement du splash est compris entre son rayon initial et final"),
+		AGridLevelRuntimeActor::GetOilSplashSpreadScale(.5f) > .18f &&
+		AGridLevelRuntimeActor::GetOilSplashSpreadScale(.5f) < 1.f);
 	FGridCombatActionRequestResult Result;
 	if (!TestTrue(TEXT("Le clic de confirmation déclenche la vraie action de flasque"),
 			Fixture.Hud->ConfirmCombatActionTarget(TargetCell, Result)))
