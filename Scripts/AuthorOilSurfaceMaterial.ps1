@@ -1,4 +1,4 @@
-# ARMEMENT01.17.1.4 — Creation automatique de deux assets Unreal (M et MI d'huile).
+# ARMEMENT01.17.1.4 — Création ou conversion contrôlée du matériau d'huile en décalque.
 # Le seul declencheur autorise est un echec exclusif du test ProductionMaterial.
 [CmdletBinding()]
 param(
@@ -32,8 +32,11 @@ if ($Head -ne $ExpectedHead) { throw 'Revision du worktree differente de celle t
 $Origin = @(GitChecked -Arguments @('remote', 'get-url', 'origin'))[0].Trim()
 if ($Origin -notmatch '(?i)github\.com[:/]PhilippeMartin1964/GrimrockPrototype(\.git)?$') { throw 'Origin GitHub inattendu.' }
 if (@(Changes).Count -ne 0) { throw 'Worktree deja modifie : aucune ecriture autorisee.' }
+$HasMaster = Test-Path -LiteralPath (Join-Path $WorktreePath $Material) -PathType Leaf
+$HasInstance = Test-Path -LiteralPath (Join-Path $WorktreePath $Instance) -PathType Leaf
+if ($HasMaster -ne $HasInstance) { throw 'Assets incohérents : aucune conversion autorisée.' }
+$Convert = $HasMaster -and $HasInstance
 foreach ($Target in @($Material, $Instance)) {
-    if (Test-Path -LiteralPath (Join-Path $WorktreePath $Target) -PathType Leaf) { exit 2 }
     $Attribute = @(GitChecked -Arguments @('check-attr', 'filter', '--', $Target))
     if ($Attribute.Count -ne 1 -or $Attribute[0] -notmatch ': filter: lfs$') {
         throw 'Attribut Git LFS manquant pour un asset.'
@@ -56,16 +59,21 @@ if (-not (Test-Path -LiteralPath $Editor -PathType Leaf) -or -not (Test-Path -Li
 $LogDir = Split-Path -Parent $ReportRoot
 $Output = Join-Path $LogDir 'OilMaterialCommandlet.stdout.log'
 $Errors = Join-Path $LogDir 'OilMaterialCommandlet.stderr.log'
-$Args = '"' + $Project + '" -run=GridOilSurfaceMaterialAuthoring -Unattended -NoSplash -NoP4 -NullRHI'
+$Mode = if ($Convert) { ' -ConvertToDecal' } else { '' }
+$Args = '"' + $Project + '" -run=GridOilSurfaceMaterialAuthoring' + $Mode + ' -Unattended -NoSplash -NoP4 -NullRHI'
 Stage -Name 'COMMANDLET_STARTED'
 $Process = Start-Process -FilePath $Editor -ArgumentList $Args -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Output -RedirectStandardError $Errors -PassThru -Wait -ErrorAction Stop
 if ($Process.ExitCode -ne 0) { throw "Commandlet Unreal en echec ($($Process.ExitCode)). Logs prives." }
 Stage -Name 'COMMANDLET_COMPLETED'
 $Changes = @(Changes)
-if ($Changes.Count -ne 2) { throw 'Nombre de fichiers modifies inattendu. Aucun commit.' }
+$ExpectedPaths = if ($Convert) { @($Material) } else { @($Material, $Instance) }
+if ($Changes.Count -ne $ExpectedPaths.Count) {
+    throw 'Nombre de fichiers modifiés inattendu. Aucun commit.'
+}
 foreach ($Change in $Changes) {
     $Path = $Change.Substring(3)
-    if ($Path -notin @($Material, $Instance) -or -not $Change.StartsWith('?? ')) {
+    $ValidStatus = if ($Convert) { $Change.StartsWith(' M ') } else { $Change.StartsWith('?? ') }
+    if ($Path -notin $ExpectedPaths -or -not $ValidStatus) {
         throw 'Fichier inattendu dans le worktree. Aucun commit.'
     }
 }
@@ -79,14 +87,14 @@ Stage -Name 'ASSETS_VERIFIED'
 GitChecked -Arguments @('fetch', '--no-tags', 'origin', 'master') | Out-Null
 $Remote = @(GitChecked -Arguments @('rev-parse', 'refs/remotes/origin/master'))[0].Trim()
 if ($Remote -ne $ExpectedHead) { throw 'master a change ; aucun commit.' }
-GitChecked -Arguments @('add', '--', $Material, $Instance) | Out-Null
+GitChecked -Arguments (@('add', '--') + $ExpectedPaths) | Out-Null
 $Staged = @(GitChecked -Arguments @('diff', '--cached', '--name-only', '--diff-filter=ACMR'))
-if ($Staged.Count -ne 2 -or @($Staged | Where-Object { $_ -notin @($Material, $Instance) }).Count -gt 0) {
+if ($Staged.Count -ne $ExpectedPaths.Count -or @($Staged | Where-Object { $_ -notin $ExpectedPaths }).Count -gt 0) {
     throw 'Index Git inattendu : publication refusee.'
 }
 GitChecked -Arguments @('-c', 'user.name=Grimrock UE Automation',
     '-c', 'user.email=grimrock-ue-automation@users.noreply.github.com',
-    'commit', '-m', 'ARMEMENT01.17.1.4B: materialiser les deux assets huile') | Out-Null
+    'commit', '-m', 'ARMEMENT01.17.1.4DECAL: projetter huile sur sol sans mesh flottant') | Out-Null
 $Published = @(GitChecked -Arguments @('rev-parse', 'HEAD'))[0].Trim()
 Stage -Name 'COMMIT_CREATED'
 # Un transfert Git LFS peut rencontrer un incident reseau temporaire.
@@ -107,5 +115,5 @@ if (-not $PublishedOk) {
     throw "Echec definitif du push des materiaux apres trois tentatives. Journaux prives uniquement."
 }
 Stage -Name 'SUCCESS'
-Write-Host "[ARMEMENT01.17.1.4] Materiaux M/MI publies sur master : $Published"
+Write-Host "[ARMEMENT01.17.1.4] Matériau de décalque publié sur master : $Published"
 exit 0

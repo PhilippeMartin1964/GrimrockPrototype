@@ -403,26 +403,6 @@ try {
                 }
                 catch { Write-Warning "Authoring automatique d'huile indisponible ; journaux locaux uniquement." }
             }
-            # Réparer uniquement la permutation du matériau ISM, lorsque
-            # l'assertion de production correspondante est l'unique échec.
-            $ISMHelper = Join-Path $WorktreePath 'Scripts\RepairOilInstancedMaterialUsage.ps1'
-            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $ISMHelper -PathType Leaf)) {
-                try {
-                    $ISMOut = Join-Path $RunDir 'OilISMRepair.stdout.log'
-                    $ISMErr = Join-Path $RunDir 'OilISMRepair.stderr.log'
-                    $ISMArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $ISMHelper +
-                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
-                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
-                    $ISMProcess = Start-Process -FilePath $PsExe -ArgumentList $ISMArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $ISMOut -RedirectStandardError $ISMErr -PassThru -Wait -ErrorAction Stop
-                    if ($ISMProcess.ExitCode -eq 0) {
-                        Write-Host '[ARMEMENT01.17.1.4] Correction du shader ISM publiée. Prochain commit à valider.'
-                    }
-                    elseif ($ISMProcess.ExitCode -ne 2) {
-                        Write-Warning "Correction ISM non terminée (code $($ISMProcess.ExitCode)). Journaux locaux."
-                    }
-                }
-                catch { Write-Warning 'Correction ISM impossible ; consulter les journaux locaux.' }
-            }
             try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
             catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
         }

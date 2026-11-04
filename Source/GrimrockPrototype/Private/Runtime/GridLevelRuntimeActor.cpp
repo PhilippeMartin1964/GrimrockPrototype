@@ -162,39 +162,10 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor()
 	CeilingISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("CeilingISM"));
 	CeilingISM->SetupAttachment(SceneRoot);
 
-	OilSurfaceISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("CombatOilSurfaceISM"));
-	OilSurfaceISM->SetupAttachment(SceneRoot);
-	OilSurfaceISM->SetMobility(EComponentMobility::Movable);
-	OilSurfaceISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	OilSurfaceISM->SetGenerateOverlapEvents(false);
-	OilSurfaceISM->SetCastShadow(false);
-	OilSurfaceISM->SetVisibility(false);
-
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> Plane(TEXT("/Engine/BasicShapes/Plane.Plane"));
-	if (Plane.Succeeded())
-	{
-		SurfaceOverlayMesh = Plane.Object;
-		// Lier immédiatement le plan au composant hérité par le Blueprint.
-		// Les instances restent absentes jusqu'à la création d'huile en jeu.
-		OilSurfaceISM->SetStaticMesh(Plane.Object);
-	}
-
-	// Liaison native permanente : visible dans les détails du composant
-	// CombatOilSurfaceISM, prise en compte par le cooker et contrôlée par
-	// le test de production. Ne jamais affecter le matériau à FloorISM.
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OilMaterialAsset(
-		TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.MI_Surface_Oil"));
-	if (OilMaterialAsset.Succeeded())
-	{
-		OilSurfaceMaterial = OilMaterialAsset.Object;
-		OilSurfaceISM->SetMaterial(0, OilMaterialAsset.Object);
-	}
-	else
-	{
-		// Repli sûr pour les environnements où l'asset est encore en cours de création.
-		OilSurfaceMaterial = TSoftObjectPtr<UMaterialInterface>(
-			FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.MI_Surface_Oil")));
-	}
+	// Aucun mesh ajouté : la flaque sera projetée par UDecalComponent sur le sol.
+	// Référence native, utilisable dans le build sans assignation manuelle.
+	OilSurfaceMaterial = TSoftObjectPtr<UMaterialInterface>(
+		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.MI_Surface_Oil")));
 
 	ActivationComponent = CreateDefaultSubobject<UGridActivationComponent>(TEXT("ActivationComponent"));
 
@@ -317,6 +288,7 @@ const FGridLevelRuntimeState* AGridLevelRuntimeActor::FindRuntimeStateForCurrent
 
 void AGridLevelRuntimeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	ClearCombatOilSurfaceVisuals();
 	HideCombatFeedback();
 	Super::EndPlay(EndPlayReason);
 }
@@ -327,8 +299,7 @@ void AGridLevelRuntimeActor::ClearVisuals(EGridRuntimeRebuildMode RebuildMode)
 		FloorISM->ClearInstances();
 	if (WallISM)
 		WallISM->ClearInstances();
-	if (OilSurfaceISM)
-		OilSurfaceISM->ClearInstances();
+	ClearCombatOilSurfaceVisuals();
 	if (CeilingISM)
 	{
 		CeilingISM->ClearInstances();
@@ -598,6 +569,7 @@ void AGridLevelRuntimeActor::RebuildLevel(EGridRuntimeRebuildMode RebuildMode)
 		EditorPreviewComponent->Initialize(this);
 	}
 	FloorISM->SetStaticMesh(FloorMesh);
+	FloorISM->SetReceivesDecals(true);
 	WallISM->SetStaticMesh(WallMesh);
 	CeilingISM->SetStaticMesh(CeilingMesh);
 

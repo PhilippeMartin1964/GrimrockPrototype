@@ -1863,9 +1863,9 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 	const FGridCombatSurfaceState* Oil = Fixture.Runtime->FindCombatSurfaceAtCell(TargetCell.X, TargetCell.Y);
 	TestTrue(TEXT("L'effet d'huile RPG03.6 est présent sur la cellule visée"),
 		Oil && Oil->IsValid() && Oil->SurfaceType == EGridCombatSurfaceType::Oil);
-	const UInstancedStaticMeshComponent* Overlay = Fixture.Runtime->GetCombatOilSurfaceVisualComponent();
-	TestTrue(TEXT("Un vrai mesh de flaque est matérialisé après l'action ciblée"),
-		Overlay && Overlay->GetInstanceCount() > 0 && Overlay->IsVisible());
+	TestTrue(TEXT("La flasque produit un décalque sur le vrai sol après le ciblage"),
+		Fixture.Runtime->GetActiveOilDecalCount() > 0 &&
+		Fixture.Runtime->GetActiveOilDecal(0) != nullptr);
 	TestEqual(TEXT("Une flasque a été consommée"),
 		Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 1);
 	return true;

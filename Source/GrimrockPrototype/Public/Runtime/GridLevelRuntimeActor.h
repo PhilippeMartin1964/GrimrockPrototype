@@ -28,6 +28,7 @@ class UGridMonsterEncounterComponent;
 class UGridDoorSystemComponent;
 class UGridEditorPreviewComponent;
 class UGridPlayerAttackPresentationComponent;
+class UDecalComponent;
 class UReadableMessageWidget;
 class UUserWidget;
 struct FGridResolvedCombatModifiers;
@@ -91,10 +92,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UInstancedStaticMeshComponent* CeilingISM;
 
-	/** Projection visuelle des cellules d'huile ; aucune autorité de gameplay. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UInstancedStaticMeshComponent> OilSurfaceISM;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UGridActivationComponent> ActivationComponent;
 
@@ -135,16 +132,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Meshes")
 	TObjectPtr<UStaticMesh> CeilingMesh;
 
-	/** Plan XY Engine 100 x 100 cm ; échelle adaptée à la taille de la case. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surfaces|Visuel")
-	TObjectPtr<UStaticMesh> SurfaceOverlayMesh;
-
-	/** Instance native MI_Surface_Oil, chargée sans affectation manuelle du Blueprint. */
+	/** Matériau de décalque projeté sur la vraie surface du sol à Z=0. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surfaces|Visuel")
 	TSoftObjectPtr<UMaterialInterface> OilSurfaceMaterial;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surfaces|Visuel", meta = (ClampMin = "0.5", ClampMax = "10.0"))
-	float OilSurfaceHeightOffset = 2.0f;
+	/** Décalques transitoires : aucune géométrie flottante ni sauvegarde visuelle. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UDecalComponent>> ActiveOilDecals;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
 	TObjectPtr<UMaterialInterface> CeilingEditorMaterial;
@@ -566,9 +560,14 @@ public:
 
 	int32 AdvanceCombatSurfaceRound(TArray<FIntPoint>* OutExpiredCells = nullptr);
 
-	/** Recalcule les instances graphiques depuis les surfaces RPG03.6 du niveau courant. */
+	/** Projette l'huile sur la géométrie réelle du sol (Z=0), sans plan superposé. */
 	void RefreshCombatOilSurfaceVisuals();
-	const UInstancedStaticMeshComponent* GetCombatOilSurfaceVisualComponent() const { return OilSurfaceISM.Get(); }
+	void ClearCombatOilSurfaceVisuals();
+	int32 GetActiveOilDecalCount() const { return ActiveOilDecals.Num(); }
+	const UDecalComponent* GetActiveOilDecal(int32 Index) const
+	{
+		return ActiveOilDecals.IsValidIndex(Index) ? ActiveOilDecals[Index].Get() : nullptr;
+	}
 
 	/** RPG03.9 generic temporary combat trap authority. */
 	bool ApplyCombatTrapAtCell(int32 CellX, int32 CellY, const FGridCombatTrapEffectProfile& Profile,

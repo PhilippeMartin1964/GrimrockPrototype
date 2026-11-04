@@ -2,21 +2,27 @@
 
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
-#include "Engine/StaticMesh.h"
+#include "Components/DecalComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridSurfaceRuntime, Log, All);
 
+void AGridLevelRuntimeActor::ClearCombatOilSurfaceVisuals()
+{
+	for (UDecalComponent* Decal : ActiveOilDecals)
+	{
+		if (IsValid(Decal))
+		{
+			Decal->DestroyComponent();
+		}
+	}
+	ActiveOilDecals.Reset();
+}
+
 void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 {
-	if (!OilSurfaceISM)
-	{
-		return;
-	}
-
-	// Pure présentation : aucune mutation de FGridLevelRuntimeState / SaveGame.
-	OilSurfaceISM->ClearInstances();
-	OilSurfaceISM->SetVisibility(false);
-	if (!LevelAsset || !GetWorld() || !GetWorld()->IsGameWorld() || !IsValid(SurfaceOverlayMesh))
+	// Recréer uniquement la présentation depuis RPG03.6, sans modifier l'état de combat.
+	ClearCombatOilSurfaceVisuals();
+	if (!LevelAsset || !GetWorld() || !GetWorld()->IsGameWorld())
 	{
 		return;
 	}
@@ -26,18 +32,17 @@ void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 	{
 		return;
 	}
-
-	TArray<FIntPoint> OilCells;
-	for (const TPair<FIntPoint, FGridCombatSurfaceState>& Pair : State->Surfaces)
+	TSet<FIntPoint> Pending;
+	for (const TPair<FIntPoint, FGridCombatSurfaceState>& Entry : State->Surfaces)
 	{
-		const FIntPoint Cell = Pair.Key;
-		if (Pair.Value.IsValid() && Pair.Value.SurfaceType == EGridCombatSurfaceType::Oil &&
+		const FIntPoint Cell = Entry.Key;
+		if (Entry.Value.IsValid() && Entry.Value.SurfaceType == EGridCombatSurfaceType::Oil &&
 			IsWalkableCell(Cell.X, Cell.Y) && !ShouldHideCellFloor(Cell.X, Cell.Y))
 		{
-			OilCells.Add(Cell);
+			Pending.Add(Cell);
 		}
 	}
-	if (OilCells.IsEmpty())
+	if (Pending.IsEmpty())
 	{
 		return;
 	}
@@ -45,37 +50,76 @@ void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 	UMaterialInterface* Material = OilSurfaceMaterial.LoadSynchronous();
 	if (!IsValid(Material))
 	{
-		UE_LOG(LogGridSurfaceRuntime, Warning, TEXT("[ARMEMENT01.17.1.4] MI_Surface_Oil indisponible ; rendu d'huile masqué."));
+		UE_LOG(LogGridSurfaceRuntime, Warning,
+			TEXT("[ARMEMENT01.17.1.4] Matériau de décalque d'huile introuvable."));
 		return;
 	}
-	OilSurfaceISM->SetStaticMesh(SurfaceOverlayMesh);
-	OilSurfaceISM->SetMaterial(0, Material);
-	const float CellSize = LevelAsset->CellSize;
-	const float Scale = (CellSize / 100.f) * 0.98f;
 
-	// Un mesh de pierre peut avoir plusieurs centimètres d'épaisseur.
-	// FloorISM est placé à Z=0, échelle 1, sans décalage vertical ;
-	// une nappe à Z=2 cm pouvait donc se retrouver SOUS le plancher.
-	// Placer la projection au-dessus du sommet du mesh actuellement utilisé.
-	const float FloorTopZ = IsValid(FloorMesh) ? FloorMesh->GetBoundingBox().Max.Z : 0.f;
-	const float OverlayZ = FloorTopZ + FMath::Max(0.5f, OilSurfaceHeightOffset);
-	OilCells.Sort([](const FIntPoint& A, const FIntPoint& B)
+	const float Size = LevelAsset->CellSize;
+	// La flaque est une projection dans un volume traversant Z=0, pas un
+	// plan à Z+2 ou au sommet supposé de la bounding box du mesh.
+	const FQuat ProjectionRotation = FQuat::FindBetweenNormals(
+		-FVector::ForwardVector, -FVector::UpVector);
+	while (!Pending.IsEmpty())
 	{
-		return A.Y == B.Y ? A.X < B.X : A.Y < B.Y;
-	});
-
-	for (const FIntPoint& Cell : OilCells)
-	{
-		// Transformations RELATIVES à SceneRoot : comme FloorISM, aussi avec acteur transformé.
-		const FVector Center = CellToWorld(Cell.X, Cell.Y, OverlayZ) +
-			FVector(CellSize * .5f, CellSize * .5f, 0.f);
-		const FTransform Overlay(FRotator::ZeroRotator, Center, FVector(Scale, Scale, 1.f));
-		if (IsSafeRuntimeRenderTransform(Overlay))
+		// Partition déterministe en rectangles ne contenant QUE des cases d'huile.
+		FIntPoint First = *Pending.CreateConstIterator();
+		for (const FIntPoint& Cell : Pending)
 		{
-			OilSurfaceISM->AddInstance(Overlay);
+			if (Cell.Y < First.Y || (Cell.Y == First.Y && Cell.X < First.X))
+			{
+				First = Cell;
+			}
 		}
+		int32 Width = 1;
+		while (Pending.Contains(FIntPoint(First.X + Width, First.Y)))
+		{
+			++Width;
+		}
+		int32 Height = 1;
+		bool bCanExtend = true;
+		while (bCanExtend)
+		{
+			for (int32 X = 0; X < Width; ++X)
+			{
+				if (!Pending.Contains(FIntPoint(First.X + X, First.Y + Height)))
+				{
+					bCanExtend = false;
+					break;
+				}
+			}
+			if (bCanExtend)
+			{
+				++Height;
+			}
+		}
+		for (int32 Y = 0; Y < Height; ++Y)
+		{
+			for (int32 X = 0; X < Width; ++X)
+			{
+				Pending.Remove(FIntPoint(First.X + X, First.Y + Y));
+			}
+		}
+
+		UDecalComponent* Decal = NewObject<UDecalComponent>(this);
+		if (!IsValid(Decal))
+		{
+			continue;
+		}
+		Decal->SetupAttachment(SceneRoot);
+		Decal->SetMobility(EComponentMobility::Movable);
+		// Axe local X = profondeur. Rotation vers le bas ; XY suit le carrelage.
+		Decal->DecalSize = FVector(48.f, Height * Size * 1.08f, Width * Size * 1.08f);
+		Decal->SetRelativeLocation(
+			CellToWorld(First.X, First.Y, 0.f) +
+			FVector(Width * Size * 0.5f, Height * Size * 0.5f, 0.f));
+		Decal->SetRelativeRotation(ProjectionRotation);
+		Decal->SetDecalMaterial(Material);
+		Decal->SetFadeScreenSize(0.f);
+		Decal->SetSortOrder(1);
+		Decal->RegisterComponent();
+		ActiveOilDecals.Add(Decal);
 	}
-	OilSurfaceISM->SetVisibility(OilSurfaceISM->GetInstanceCount() > 0);
 }
 
 bool AGridLevelRuntimeActor::ApplyCombatSurfaceAtCell(int32 CellX, int32 CellY, const FGridCombatSurfaceEffectProfile& Profile,
