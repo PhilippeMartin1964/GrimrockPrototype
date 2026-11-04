@@ -194,13 +194,16 @@ bool FRPGSurfaceCatalystVisualAuthoring::Run(bool bApply,FString& OutError)
 	if (MatchesProductionAssets()) return true;
 	UGridItemDefinitionAsset* Item=LoadObject<UGridItemDefinitionAsset>(nullptr,ItemPath);
 	const UGridItemDefinitionAsset* Oil=LoadObject<UGridItemDefinitionAsset>(nullptr,FlaskItemPath);
-	// The legacy oil DataAsset may have no world mesh. The approved starter
-	// catalyst was authored with an oil-then-fire-bomb fallback; reuse the
-	// exact already-resolved production mesh rather than assuming oil owns one.
+	const UGridItemDefinitionAsset* FireBomb=LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Bomb_Fire.DA_Item_Bomb_Fire"));
+	// Match the original approved oil-then-fire-bomb visual fallback.
+	// Do not require Oil when the catalyst already resolves its own world mesh.
 	UStaticMesh* SourceMesh=IsValid(Item) ? Item->WorldMesh.LoadSynchronous() : nullptr;
 	if (!IsValid(SourceMesh) && IsValid(Oil))
 		SourceMesh=Oil->WorldMesh.LoadSynchronous();
-	if (!IsValid(Item) || !IsValid(Oil) || !IsValid(SourceMesh))
+	if (!IsValid(SourceMesh) && IsValid(FireBomb))
+		SourceMesh=FireBomb->WorldMesh.LoadSynchronous();
+	if (!IsValid(Item) || !IsValid(SourceMesh))
 	{
 		OutError=TEXT("Missing approved item or original visual source.");
 		return false;

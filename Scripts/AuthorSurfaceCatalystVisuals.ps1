@@ -56,7 +56,7 @@ $Project=Join-Path $WorktreePath 'GrimrockPrototype.uproject'
 if(-not (Test-Path -LiteralPath $Exe -PathType Leaf) -or -not (Test-Path -LiteralPath $Project -PathType Leaf)) { throw 'UE unavailable.' }
 $Output=Join-Path $RunDir 'CatalystVisualsCommandlet.stdout.log'
 $Err=Join-Path $RunDir 'CatalystVisualsCommandlet.stderr.log'
-$Args='"'+$Project+'" -run=RPGAlchemistAuthoring -SurfaceCatalystVisuals -Apply -Unattended -NoSplash -NoP4 -NullRHI'
+$Args='"'+$Project+'" -run=RPGAlchemistAuthoring -SurfaceCatalystVisuals -Apply -Unattended -NoSplash -NoP4 -NullRHI -stdout -FullStdOutLogOutput'
 Stage 'COMMANDLET_STARTED'
 $Process=Start-Process -FilePath $Exe -ArgumentList $Args -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Output -RedirectStandardError $Err -PassThru -Wait -ErrorAction Stop
 if($Process.ExitCode -ne 0) {
@@ -65,6 +65,9 @@ if($Process.ExitCode -ne 0) {
     $TailText=''
     if(Test-Path -LiteralPath $Output -PathType Leaf) {
         $TailText=(@(Get-Content -LiteralPath $Output -Tail 500 -ErrorAction SilentlyContinue)-join [Environment]::NewLine)
+    }
+    if(Test-Path -LiteralPath $Err -PathType Leaf) {
+        $TailText+=([Environment]::NewLine+(@(Get-Content -LiteralPath $Err -Tail 200 -ErrorAction SilentlyContinue)-join [Environment]::NewLine))
     }
     foreach($Rule in @(
         @('Material graph 0 failed','FAIL_GRAPH_FLASK'),
@@ -114,12 +117,8 @@ Invoke-Git -GitArgs @('-c','user.name=Grimrock UE Automation',
     '-c','user.email=grimrock-ue-automation@users.noreply.github.com',
     'commit','-m','ARMEMENT01.17.2C.2: materialize native catalyst mesh/icon/VFX materials') | Out-Null
 Stage 'COMMIT_CREATED'
-$Pushed=$false
-for($Try=0;$Try -lt 3;$Try++) {
-    & git -C $WorktreePath push origin 'HEAD:refs/heads/master' | Out-Null
-    if($LASTEXITCODE -eq 0) { $Pushed=$true; break }
-    Start-Sleep -Seconds 2
-}
-if(-not $Pushed) { throw 'Push failed; local commit retained for recovery.' }
+# One push only: the Windows agent must not retry or sleep.
+& git -C $WorktreePath push origin 'HEAD:refs/heads/master' | Out-Null
+if($LASTEXITCODE -ne 0) { throw 'Push failed; local commit retained for recovery.' }
 Stage 'SUCCESS'
 exit 0
