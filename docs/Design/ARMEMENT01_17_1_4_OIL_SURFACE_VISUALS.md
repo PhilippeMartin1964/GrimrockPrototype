@@ -103,3 +103,10 @@ Le premier cycle automatisé a confirmé trois détails de compilation propres �
 ### Diagnostic automatique de la création des matériaux
 
 Le premier passage après correction des erreurs C++ a réussi les quatre tests de logique, mais le test `ProductionMaterial` reste en échec tant que les deux assets natifs ne sont pas versionnés. Le journal de l'agent sera dorénavant assorti d'une **étape de matérialisation** strictement contrôlée : vérification initiale, rapport accepté, commandlet lancé, commandlet terminé, assets vérifiés, commit créé, puis publication réussie. Seul le nom de cette étape est ajouté à l'issue GitHub ; les messages Unreal et les chemins privés restent sur Windows. Cela permet de diagnostiquer automatiquement une erreur de création sans vous demander de copier de fichiers ou de journaux.
+
+
+### Envoi Git LFS après création des matériaux
+
+Le cycle du commit `0dbd7722` a prouvé que le commandlet avait généré les deux assets natifs, vérifié les fichiers puis créé un commit local. Le diagnostic public a indiqué **`COMMIT_CREATED`** : l'envoi de ce commit vers `master` n'a pas abouti. Les modifications du donjon et les tests de logique n'étaient pas en cause.
+
+Le script effectue maintenant jusqu'à **trois tentatives de push du même commit**, toujours sans `--force`. En cas de nouvel échec, l'agent publie uniquement une catégorie technique autorisée : problème d'authentification, de quota LFS, de transfert LFS, de réseau, de divergence de référence ou catégorie inconnue. Il ne publie aucun extrait brut des journaux Git ni information personnelle. Si la publication reste impossible, les données et les objets Git du worktree ne sont pas supprimés automatiquement.

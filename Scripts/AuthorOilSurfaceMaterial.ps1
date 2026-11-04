@@ -89,7 +89,23 @@ GitChecked -Arguments @('-c', 'user.name=Grimrock UE Automation',
     'commit', '-m', 'ARMEMENT01.17.1.4B: materialiser les deux assets huile') | Out-Null
 $Published = @(GitChecked -Arguments @('rev-parse', 'HEAD'))[0].Trim()
 Stage -Name 'COMMIT_CREATED'
-GitChecked -Arguments @('push', 'origin', 'HEAD:refs/heads/master') | Out-Null
+# Un transfert Git LFS peut rencontrer un incident reseau temporaire.
+# Repousser exactement le meme commit, sans jamais forcer master.
+$PublishedOk = $false
+for ($Attempt = 1; $Attempt -le 3; ++$Attempt) {
+    & git -C $WorktreePath push origin 'HEAD:refs/heads/master' | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        $PublishedOk = $true
+        break
+    }
+    Write-Warning ("Push des materiaux non confirme (tentative " + $Attempt + "/3).")
+    if ($Attempt -lt 3) {
+        Start-Sleep -Seconds (2 * $Attempt)
+    }
+}
+if (-not $PublishedOk) {
+    throw "Echec definitif du push des materiaux apres trois tentatives. Journaux prives uniquement."
+}
 Stage -Name 'SUCCESS'
 Write-Host "[ARMEMENT01.17.1.4] Materiaux M/MI publies sur master : $Published"
 exit 0

@@ -150,6 +150,20 @@ function Get-PublicSafeDiagnostics {
         else {
             $Safe.Add('Materiau huile : phase inconnue')
         }
+        # Le message Git brut reste prive : seul un code borne est publie.
+        if ($OilStage -eq 'COMMIT_CREATED') {
+            $GitPushLog = Join-Path $OilRunDir 'OilMaterialAuthoring.stderr.log'
+            $FailureClass = 'PUSH_UNKNOWN'
+            if (Test-Path -LiteralPath $GitPushLog -PathType Leaf) {
+                $TailText = (@(Get-Content -LiteralPath $GitPushLog -Tail 140 -ErrorAction SilentlyContinue) -join [Environment]::NewLine)
+                if ($TailText -match '(?i)bandwidth|quota|storage limit') { $FailureClass = 'LFS_QUOTA' }
+                elseif ($TailText -match '(?i)non-fast-forward|fetch first|rejected|stale info') { $FailureClass = 'REF_DIVERGENCE' }
+                elseif ($TailText -match '(?i)403|401|permission denied|authentication failed|access denied') { $FailureClass = 'AUTHORIZATION' }
+                elseif ($TailText -match '(?i)git-lfs|git lfs|lfs|batch response') { $FailureClass = 'LFS_TRANSFER' }
+                elseif ($TailText -match '(?i)timed out|timeout|connection|could not resolve|network|EOF') { $FailureClass = 'NETWORK' }
+            }
+            $Safe.Add('Materiau huile : push ' + $FailureClass)
+        }
         $OilCommandletLog = Join-Path $OilRunDir 'OilMaterialCommandlet.stdout.log'
         if (Test-Path -LiteralPath $OilCommandletLog -PathType Leaf) {
             $Relevant = @(
