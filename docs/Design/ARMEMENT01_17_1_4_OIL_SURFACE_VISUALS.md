@@ -158,3 +158,18 @@ Les tests doivent réussir sous UE 5.5.4 avant toute conclusion de conformité. 
 ### Vérification supplémentaire du raccourci utilisateur
 
 Le test d'intégration `QuickItemToWorldProjection` traverse désormais également **l'assignation du consommable à la hotbar**, contrôle que la flasque n'est pas interprétée comme un objet lancé physiquement, puis utilise `UGridCombatHudWidget::RequestHotbarSlot()` et `ConfirmCombatActionTarget()` pour reproduire le clic et la confirmation de cible. L'absence de surface ou de mesh après un parcours de l'interface provoque un échec de la suite Automation. La validation du rendu lumineux en PIE/RHI reste distincte.
+
+
+## Diagnostic de visibilité — bilan validé le 4 novembre 2026
+
+Les trois commits suivants ont passé **la compilation UE 5.5.4 et toute la suite Automation `Grimrock`** :
+
+- `20a4af41` : correction du plan d'huile enfoui sous un sol ayant une épaisseur ; test avec plancher épais et contrôles du graphe du matériau de production et du matériau du plancher du Blueprint.
+- `345bb1cd` : validation du **véritable DataAsset de la flasque d'huile** par une action ciblée du gestionnaire de combat, consommation d'une unité, création des surfaces RPG03.6 et d'instances de flaque.
+- `5367f1f9` : validation du **parcours de l'utilisateur dans la hotbar**, avec attribution de la flasque, vérification du routage QuickItem (et non lancer physique), activation du ciblage HUD et confirmation de la case. L'instance devient visible d'après les propriétés du composant.
+
+**Conclusion technique :** la flaque n'est plus placée à une hauteur fixe susceptible de l'enfouir sous la pierre. Le vrai chemin hotbar → action ciblée → surface Oil → instance de mesh est couvert par des tests réussis. Le mesh du sol du Blueprint n'utilise pas le matériau de secours Unreal et les entrées principales du shader d'huile sont connectées.
+
+**Conclusion visuelle : non encore acquise.** L'Automation exécutée en `-NullRHI` ne vérifie aucun pixel et ne reproduit pas la scène du donjon réellement éclairée. Le matériau actuel ne dispose pas de texture PBR ni de variation irrégulière de contour : ce n'est qu'un masque circulaire brun-noir et brillant. Une capture en PIE avec rendu GPU reste requise pour juger la lisibilité, les reflets, le relief et le caractère naturel des flaques.
+
+Le contrôle UE utilise `D:\Development\GrimrockPrototype_UEValidation`, **pas** l'éditeur lancé depuis `D:\Development\GrimrockPrototype`. Par conséquent, un éditeur resté ouvert sur un ancien commit ne reflète pas les derniers correctifs tant que sa copie de développement n'a pas été synchronisée puis recompilée ; il ne faut ni écraser les modifications locales ni supprimer les assets de l'utilisateur pour forcer cette mise à jour.
