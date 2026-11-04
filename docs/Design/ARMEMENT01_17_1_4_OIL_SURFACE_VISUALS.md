@@ -173,3 +173,12 @@ Les trois commits suivants ont passé **la compilation UE 5.5.4 et toute la suit
 **Conclusion visuelle : non encore acquise.** L'Automation exécutée en `-NullRHI` ne vérifie aucun pixel et ne reproduit pas la scène du donjon réellement éclairée. Le matériau actuel ne dispose pas de texture PBR ni de variation irrégulière de contour : ce n'est qu'un masque circulaire brun-noir et brillant. Une capture en PIE avec rendu GPU reste requise pour juger la lisibilité, les reflets, le relief et le caractère naturel des flaques.
 
 Le contrôle UE utilise `D:\Development\GrimrockPrototype_UEValidation`, **pas** l'éditeur lancé depuis `D:\Development\GrimrockPrototype`. Par conséquent, un éditeur resté ouvert sur un ancien commit ne reflète pas les derniers correctifs tant que sa copie de développement n'a pas été synchronisée puis recompilée ; il ne faut ni écraser les modifications locales ni supprimer les assets de l'utilisateur pour forcer cette mise à jour.
+
+
+## ARMEMENT01.17.1.4ISM — Shader pour meshes instanciés
+
+Le matériau maître doit porter l'option **« Used with Instanced Static Meshes »** pour afficher correctement une flaque sur le composant `CombatOilSurfaceISM`. Le seul fait d'avoir affecté `MI_Surface_Oil` au composant et connecté les entrées du graphe ne garantissait pas que cette permutation de shader ait été compilée. En cas d'absence, Unreal peut substituer son matériau de secours gris.
+
+Un nouveau test de production **en lecture seule**, `Grimrock.RPG.ARMEMENT01.17.1.4.InstancedMaterialUsage`, vérifie cette option dans l'asset binaire. Si ce test est l'unique échec, le bootstrap Windows lance automatiquement une réparation ciblée via `-run=GridOilSurfaceMaterialAuthoring -FixInstancedUsage`, vérifie le worktree et n'autorise la publication que de `M_Surface_Oil.uasset` sous Git LFS. L'instance `MI_Surface_Oil`, les sols et les données de gameplay restent inchangés. Un nouveau cycle de validation UE s'exécute sur le commit d'asset corrigé.
+
+L'acceptation artistique en PIE/RHI reste distincte des tests `-NullRHI`.

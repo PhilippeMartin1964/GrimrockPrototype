@@ -15,6 +15,7 @@
 #include "Materials/MaterialInstanceConstant.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
+#include "Misc/Parse.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
 
@@ -67,6 +68,8 @@ namespace OilMaterialAuthoring
 		// Reflets locaux des torches, indispensables à l'aspect huileux.
 		Material.TranslucencyLightingMode = TLM_SurfacePerPixelLighting;
 		Material.TwoSided = true; // Le plan /Engine/BasicShapes/Plane est visible des deux côtés.
+		// Sans permutation de shader ISM, Unreal peut afficher son matériau générique.
+		Material.bUsedWithInstancedStaticMeshes = true;
 
 		auto* Tint = Add<UMaterialExpressionVectorParameter>(&Material, -700, -450);
 		auto* Roughness = Add<UMaterialExpressionScalarParameter>(&Material, -700, -200);
@@ -124,7 +127,7 @@ UGridOilSurfaceMaterialAuthoringCommandlet::UGridOilSurfaceMaterialAuthoringComm
 
 int32 UGridOilSurfaceMaterialAuthoringCommandlet::Main(const FString& Params)
 {
-	(void)Params;
+	const bool bFixInstancedUsage = FParse::Param(*Params, TEXT("FixInstancedUsage"));
 	using namespace OilMaterialAuthoring;
 
 	const FString MasterPackage = FString(Folder) / MasterName;
@@ -133,6 +136,36 @@ int32 UGridOilSurfaceMaterialAuthoringCommandlet::Main(const FString& Params)
 	const FString InstancePath = InstancePackage + TEXT(".") + InstanceName;
 
 	UMaterial* Master = LoadObject<UMaterial>(nullptr, *MasterPath);
+	if (bFixInstancedUsage)
+	{
+		// Réparer uniquement le matériau maître existant, sans altérer son graphe.
+		if (!IsValid(Master))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.17.1.4] Matériau maître introuvable."));
+			return 1;
+		}
+		if (Master->bUsedWithInstancedStaticMeshes)
+		{
+			UE_LOG(LogTemp, Display, TEXT("[ARMEMENT01.17.1.4] Usage ISM déjà configuré."));
+			return 0;
+		}
+		Master->Modify();
+		Master->bUsedWithInstancedStaticMeshes = true;
+		Master->PostEditChange();
+		if (!Master->CheckMaterialUsage(MATUSAGE_InstancedStaticMeshes))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.17.1.4] Usage ISM refusé par Unreal."));
+			return 1;
+		}
+		UMaterialEditingLibrary::RecompileMaterial(Master);
+		if (!SaveAsset(Master))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.17.1.4] Échec d'enregistrement du matériau."));
+			return 1;
+		}
+		UE_LOG(LogTemp, Display, TEXT("[ARMEMENT01.17.1.4] Matériau d'huile compilé pour ISM et enregistré."));
+		return 0;
+	}
 	if (!IsValid(Master))
 	{
 		if (FPackageName::DoesPackageExist(MasterPackage))

@@ -89,4 +89,23 @@ bool FGridOilMaterialProductionTest::RunTest(const FString&)
 	return true;
 }
 
+
+// Vérification en lecture seule du binaire présent dans Git LFS.
+// Ne jamais appeler CheckMaterialUsage ici : il modifierait l'asset.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOilInstancedMaterialUsage,
+	"Grimrock.RPG.ARMEMENT01.17.1.4.InstancedMaterialUsage",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FOilInstancedMaterialUsage::RunTest(const FString&)
+{
+	const UMaterial* Master = LoadObject<UMaterial>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/M_Surface_Oil.M_Surface_Oil"));
+	if (!TestNotNull(TEXT("Matériau natif d'huile"), Master))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Permutation compilable pour les Instanced Static Meshes"),
+		Master->bUsedWithInstancedStaticMeshes != 0);
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS
