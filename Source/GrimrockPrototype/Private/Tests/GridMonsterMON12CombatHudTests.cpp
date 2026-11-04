@@ -1807,6 +1807,32 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 	TestEqual(TEXT("Stock avant utilisation"),
 		Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 2);
 
+	// Tester le vrai raccourci utilisateur, et pas seulement le TurnManager :
+	// une flasque utilitaire ne doit pas être redirigée vers le jet physique.
+	if (!TestTrue(TEXT("La flasque s'assigne au raccourci 2"),
+			Inventory->SetCharacterCombatHotbarBindingFromItem(0, 1, Flask, EGridEquipmentSlot::None)))
+	{
+		return false;
+	}
+	FGridCombatHotbarBinding Binding;
+	if (!TestTrue(TEXT("Le raccourci d'huile peut être relu"),
+			Inventory->GetCharacterCombatHotbarBinding(0, 1, Binding)))
+	{
+		return false;
+	}
+	TestFalse(TEXT("La flasque utilise une action de surface, pas le jet physique"),
+		Binding.IsPhysicalThrowItemBinding());
+	TestEqual(TEXT("L'identité de l'action reste celle du DataAsset"),
+		Binding.ActionId, RealAction.ActionId);
+	Fixture.Hud->RefreshFromSources();
+	if (!TestTrue(TEXT("Le raccourci HUD est visible et activé"),
+			Fixture.Hud->View.Actions.IsValidIndex(1) &&
+			Fixture.Hud->View.Actions[1].bResolved &&
+			Fixture.Hud->View.Actions[1].Action.bEnabled))
+	{
+		return false;
+	}
+
 	FGridAvailableCombatAction Catalogued;
 	if (!TestTrue(TEXT("La vraie action d'huile apparaît dans le catalogue de combat"),
 			FindCatalogAction(Fixture.TurnManager, 0, RealAction.ActionId, Catalogued)))
@@ -1821,12 +1847,16 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 		!Catalogued.Definition.SurfaceEffects.IsEmpty() &&
 		Catalogued.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area);
 
-	FGridCombatActionRequestResult Result;
 	const FIntPoint TargetCell(1, 2);
-	if (!TestTrue(TEXT("La requête ciblée au TurnManager est acceptée"),
-			Fixture.TurnManager->RequestCharacterCombatActionAtCell(
-				0, Catalogued.Definition.ActionId, Catalogued.Definition.SourcePolicy,
-				Catalogued.SourceDefinitionId, Catalogued.SourceEquipmentSlot, TargetCell, Result)))
+	FGridCombatActionRequestResult AimResult;
+	if (!TestTrue(TEXT("Le clic sur le raccourci active le ciblage"),
+			Fixture.Hud->RequestHotbarSlot(1, AimResult)))
+	{
+		return false;
+	}
+	FGridCombatActionRequestResult Result;
+	if (!TestTrue(TEXT("Le clic de confirmation déclenche la vraie action de flasque"),
+			Fixture.Hud->ConfirmCombatActionTarget(TargetCell, Result)))
 	{
 		return false;
 	}
