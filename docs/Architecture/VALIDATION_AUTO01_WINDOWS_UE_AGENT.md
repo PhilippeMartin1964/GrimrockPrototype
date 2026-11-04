@@ -161,3 +161,14 @@ Le premier run complet apres restauration du sous-module Lua (commit e40620b4) a
 Le test `Grimrock.UI.RPG06.Skills.ProductionCatalog` reste strict (les 25 DataAssets doivent correspondre au contrat canonique). L'agent sait desormais extraire, uniquement pour ce test et a partir du rapport JSON, les SkillIds d'une **liste blanche fixe** et la categorie statique d'assertion (ASSET_LOAD / CANONICAL_FIELDS / DISPLAY_NAME / STRUCTURE). Aucun message brut d'erreur n'est publie dans l'issue publique.
 
 Ces modifications C++ ne changent aucun comportement gameplay et aucun .uasset. Le resultat reel reste soumis a la nouvelle execution automatique UE5.5.4, non anticipee.
+
+
+## VALIDATION-AUTO01.7 — restauration automatisee de Skill_Traps
+
+Le premier run suivant les corrections de tests historiques a isole un unique echec : `Grimrock.UI.RPG06.Skills.ProductionCatalog`, `Skill_Traps / CANONICAL_FIELDS`. Le C++ canonique exige `Skill_Traps` (Dexterity, entrainement obligatoire, MaxRank 5) mais son DataAsset serialise est divergent. Il faut corriger **le binaire** et non supprimer le test.
+
+Le commandlet existant `RPGSkillCatalogAuthoring` accepte maintenant l'argument `-SkillId=Skill_Traps`, qui limite la reserialisation au **seul** DataAsset selectionne, tout en preservant `DisplayName`, `Description` et `RequirementGrants`.
+
+Pour ne pas imposer une manipulation a l'utilisateur, `Scripts/RepairCanonicalSkillTraps.ps1` est lance automatiquement **uniquement lorsque** la suite UE a echoue sur le seul test Skills ProductionCatalog. Il exige un worktree propre, une origine GitHub exacte, l'attribut Git LFS, un rapport prouvant un echec unique et le SHA encore courant de `master`. Il appelle le commandlet de maniere invisible, controle qu'**uniquement** `Content/GrimrockPrototype/Core/DataAssets/RPG/Skills/DA_Skill_Traps.uasset` est modifie, puis cree un commit exact et effectue un push normal (jamais force). Toute situation inattendue interrompra la publication. Le prochain cycle validera le commit de l'asset genere.
+
+Il n'y a ni `git reset --hard`, ni `git clean`, ni commit de masse, ni mutation du checkout de developpement. Les traces restent dans le repertoire prive `Runs`. Le premier commit source de ce jalon peut etre rouge avant la publication ciblee du DataAsset ; seul le run final sur le nouvel asset pourra etablir une baseline verte.

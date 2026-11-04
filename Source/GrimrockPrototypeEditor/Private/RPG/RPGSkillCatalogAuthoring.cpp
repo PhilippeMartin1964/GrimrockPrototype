@@ -221,18 +221,31 @@ bool FRPGSkillCatalogAuthoring::IsCanonicalSkill(
 		SkillAsset.bAllowUntrainedChecks == Definition.bAllowUntrainedChecks;
 }
 
-bool FRPGSkillCatalogAuthoring::AuthorProductionAssets(FString& OutError)
+bool FRPGSkillCatalogAuthoring::AuthorProductionAssets(FString& OutError, FName OnlySkillId)
 {
 	OutError.Reset();
 	if (!ValidateCanonicalCatalog(OutError))
 	{
 		return false;
 	}
+	if (!OnlySkillId.IsNone())
+	{
+		FRPGCanonicalSkillDefinition Expected;
+		if (!TryGetCanonicalDefinition(OnlySkillId, Expected))
+		{
+			OutError = FString::Printf(TEXT("SkillId non canonique : %s"), *OnlySkillId.ToString());
+			return false;
+		}
+	}
 
 	TArray<FRPGCanonicalSkillDefinition> Definitions;
 	GetCanonicalDefinitions(Definitions);
 	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
 	{
+		if (!OnlySkillId.IsNone() && Definition.SkillId != OnlySkillId)
+		{
+			continue;
+		}
 		URPGSkillAsset* SkillAsset = RPGSkillCatalogAuthoringPrivate::FindOrCreateSkillAsset(Definition, OutError);
 		if (!IsValid(SkillAsset))
 		{

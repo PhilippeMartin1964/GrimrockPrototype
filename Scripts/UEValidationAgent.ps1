@@ -1,4 +1,4 @@
-# VALIDATION-AUTO01.6 — Agent Windows sans runner GitHub Actions.
+# VALIDATION-AUTO01.7 — Agent Windows sans runner GitHub Actions.
 # Ne touche jamais au checkout de developpement; le worktree dedie est la seule cible build.
 [CmdletBinding()]
 param(
@@ -324,6 +324,27 @@ try {
         # Les incidents de recuperation Git/LFS restent reessayables au cycle suivant.
         # Une erreur de compilation/test est definitive pour ce SHA, sans issues multiples.
         if ($Result -eq 'failure') {
+            # One-shot, explicitly allowlisted Skill_Traps repair. This helper
+            # publishes only the single canonical .uasset if the sole failed
+            # test is Skills.ProductionCatalog and master has not moved.
+            $RepairHelper = Join-Path $WorktreePath 'Scripts\RepairCanonicalSkillTraps.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $RepairHelper -PathType Leaf)) {
+                try {
+                    $RepairOut = Join-Path $RunDir 'SkillTrapsRepair.stdout.log'
+                    $RepairErr = Join-Path $RunDir 'SkillTrapsRepair.stderr.log'
+                    $RepairArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $RepairHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $RepairProcess = Start-Process -FilePath $PsExe -ArgumentList $RepairArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $RepairOut -RedirectStandardError $RepairErr -PassThru -Wait -ErrorAction Stop
+                    if ($RepairProcess.ExitCode -eq 0) {
+                        Write-Host '[VALIDATION-AUTO01.7] Repair published: next commit will receive normal full UE validation.'
+                    }
+                    elseif ($RepairProcess.ExitCode -ne 2) {
+                        Write-Warning "Targeted asset repair not completed (code $($RepairProcess.ExitCode)); see private logs."
+                    }
+                }
+                catch { Write-Warning 'Targeted asset repair failed; private logs only.' }
+            }
             try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
             catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
         }

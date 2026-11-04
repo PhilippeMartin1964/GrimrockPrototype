@@ -40,6 +40,6 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGSkillCatalogAuthoring
 	/** Vérifie uniquement l'identité et les champs mécaniques canoniques, jamais le texte authored. */
 	static bool IsCanonicalSkill(const URPGSkillAsset& SkillAsset, const FRPGCanonicalSkillDefinition& Definition);
 
-	/** Crée/met à jour puis sauvegarde les 25 DataAssets de production. */
-	static bool AuthorProductionAssets(FString& OutError);
+	/** Cree/actualise les Skills canoniques. OnlySkillId limite l'ecriture a un seul DataAsset. */
+	static bool AuthorProductionAssets(FString& OutError, FName OnlySkillId = NAME_None);
 };
