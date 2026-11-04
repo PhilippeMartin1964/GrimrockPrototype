@@ -115,3 +115,37 @@ jaillir au-dessus de la pierre, avec des taches radiales qui s'étalent.
 La validation Windows via `UE5.5.4/LocalAuto` confirme la compilation et
 les assertions, pas la perception visuelle réelle : la recette PIE reste
 requise pour l'acceptation artistique.
+
+
+## ARMEMENT01.17.1.7 — Flasque d'huile en exploration
+
+- La hotbar personnelle projette **uniquement** l'action QuickItem authorée
+  `Action_Alchemist_OilSlick` pendant l'exploration (pas de déverrouillage
+  général des autres actions de combat). La potion personnelle conserve son
+  traitement distinct et les jets physiques restent inchangés.
+- Le même ciblage par curseur/confirmation du combat est utilisé, ainsi que
+  le calcul autoritaire de portée 4, LOS éventuelle et zone Manhattan rayon 1
+  par `UGridTurnManagerComponent::BuildTargetingPreviewForAction`.
+- Prévisualisation / annulation / hors portée / cellules invalides : aucune
+  consommation, aucun splash et aucun événement.
+- Lors de la confirmation, relecture du DataAsset, vérification du stock et
+  du personnage vivant, du résultat de ciblage et du profil C6 ; seulement
+  ensuite consommation d'une flasque par l'inventaire existant. Les surfaces
+  sont appliquées par `AGridLevelRuntimeActor::ApplyCombatSurfaceAtCell`,
+  avec les mêmes modificateurs d'action et les mêmes durées persistées
+  en exploration depuis ARMEMENT01.17.1.6.
+- Pas de tour ni de PA fictifs en exploration ; combat existant inchangé.
+  Une seule présentation splash et une seule entrée
+  `Combat.Surface.OilSpread` par flasque consommée.
+- Aucun nouveau WBP, aucune nouvelle clé `ST_UI` : messages d'événements
+  et raisons de ciblage existants réemployés (les traductions Game/fr/en
+  n'ont pas été modifiées). Pipeline `UI.csv → ST_UI → WBP → Game/fr/en` :
+  **inchangé** pour ce jalon.
+- Test de bout en bout :
+  `Grimrock.RPG.ARMEMENT01.17.1.7.ExplorationOilHotbar`
+  couvre hotbar, ciblage, annulation, refus, consommation, surface,
+  événement, splash et absence de dépense de PA ; la suite `Grimrock`
+  doit également valider la non-régression combat/potions.
+
+La compilation Windows UE5.5.4, les tests Automation complets et la
+recette PIE/GPU restent des critères de livraison indépendants.

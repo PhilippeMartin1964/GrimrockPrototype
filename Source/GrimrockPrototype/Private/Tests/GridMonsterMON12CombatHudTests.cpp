@@ -1908,4 +1908,110 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011717OilExplorationRealPipeline,
+	"Grimrock.RPG.ARMEMENT01.17.1.7.ExplorationOilHotbar",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENT011717OilExplorationRealPipeline::RunTest(const FString&)
+{
+	FGridCombatHudFixture Fixture;
+	if (!TestTrue(TEXT("Real dungeon, party, inventory, HUD and TurnManager"), Fixture.IsReady()))
+	{
+		return false;
+	}
+	UGridItemDefinitionAsset* OilItem = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.DA_Item_Flask_Oil"));
+	if (!TestNotNull(TEXT("Authored oil flask"), OilItem)) return false;
+	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent.Get();
+	if (!TestTrue(TEXT("Register real oil definition"), Inventory->RegisterItemDefinition(OilItem))) return false;
+	FGridCombatActionDefinition Definition;
+	if (!TestTrue(TEXT("Real oil action"), OilItem->BuildQuickItemCombatActionDefinition(Definition))) return false;
+	TestTrue(TEXT("Only the authored oil action is admitted"), UGridTurnManagerComponent::IsExplorationOilSlickAction(Definition));
+	FGridCombatActionDefinition Altered = Definition;
+	Altered.SurfaceEffects.Reset();
+	TestFalse(TEXT("A different surface payload is never admitted"),
+		UGridTurnManagerComponent::IsExplorationOilSlickAction(Altered));
+
+	FGridItemInstance Flask;
+	Flask.RuntimeObjectId = FGuid::NewGuid();
+	Flask.ItemDefinitionId = OilItem->ItemDefinitionId;
+	Flask.DisplayName = OilItem->DisplayName;
+	Flask.Quantity = 2;
+	Flask.OwnerType = EGridItemOwnerType::World;
+	if (!TestTrue(TEXT("Add two flasks"), Inventory->AddItemToCharacterInventory(0, Flask))) return false;
+	if (!TestTrue(TEXT("Bind oil to hotbar"), Inventory->SetCharacterCombatHotbarBindingFromItem(
+		0, 1, Flask, EGridEquipmentSlot::None))) return false;
+
+	Fixture.TurnManager->bCombatActive = false;
+	Fixture.TurnManager->CurrentPhase = EGridCombatPhase::Exploration;
+	const int32 RoundBefore = Fixture.TurnManager->RoundNumber;
+	const int32 ActionPointsBefore = Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints;
+	Fixture.Hud->RefreshFromSources();
+	if (!TestTrue(TEXT("Oil hotbar resolves and enables outside combat"),
+		Fixture.Hud->View.Actions.IsValidIndex(1) && Fixture.Hud->View.Actions[1].bResolved &&
+		Fixture.Hud->View.Actions[1].Action.bEnabled)) return false;
+	TestEqual(TEXT("No exploration AP cost"), Fixture.Hud->View.Actions[1].Action.CurrentActionPointCost, 0);
+	TestEqual(TEXT("Correct authored action identity"), Fixture.Hud->View.Actions[1].Action.Definition.ActionId,
+		FName(TEXT("Action_Alchemist_OilSlick")));
+	FGridCombatActionRequestResult Aim;
+	if (!TestTrue(TEXT("Enter existing cursor targeting"), Fixture.Hud->RequestHotbarSlot(1, Aim))) return false;
+	TestTrue(TEXT("Targeting pending"), Fixture.Hud->IsCombatActionTargetingActive());
+	TestEqual(TEXT("Aiming does not consume"), Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 2);
+	TestEqual(TEXT("Aiming does not play splash"), Fixture.Runtime->GetOilSplashPresentationCount(), 0);
+
+	FGridCombatActionRequestResult Invalid;
+	TestFalse(TEXT("Out-of-grid target rejected"), Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(100, 100), Invalid));
+	TestEqual(TEXT("Invalid target is free"), Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 2);
+	TestTrue(TEXT("Invalid target keeps targeting"), Fixture.Hud->IsCombatActionTargetingActive());
+
+	const FIntPoint Target(1, 2);
+	if (!TestTrue(TEXT("Preview for existing area succeeds"),
+		Fixture.Hud->UpdateCombatActionTargetingPreview(Target))) return false;
+	TestTrue(TEXT("Preview marked valid"), Fixture.Hud->TargetingPreview.bValid);
+	TestEqual(TEXT("Three walkable cells in radius-one area"), Fixture.Hud->TargetingPreview.AffectedCells.Num(), 4);
+	FGridCombatActionRequestResult Confirmed;
+	if (!TestTrue(TEXT("Oil use resolves outside combat"),
+		Fixture.Hud->ConfirmCombatActionTarget(Target, Confirmed))) return false;
+	TestTrue(TEXT("Accepted result"), Confirmed.bAccepted);
+	TestFalse(TEXT("Cursor targeting closes"), Fixture.Hud->IsCombatActionTargetingActive());
+	TestEqual(TEXT("Exactly one flask spent"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 1);
+	TestEqual(TEXT("No combat turn started"), Fixture.TurnManager->bCombatActive, false);
+	TestEqual(TEXT("Round unaffected"), Fixture.TurnManager->RoundNumber, RoundBefore);
+	TestEqual(TEXT("AP unaffected"),
+		Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, ActionPointsBefore);
+	const FGridCombatSurfaceState* Applied = Fixture.Runtime->FindCombatSurfaceAtCell(Target.X, Target.Y);
+	TestTrue(TEXT("RPG03.6 authoritative oil surface present"),
+		Applied && Applied->SurfaceType == EGridCombatSurfaceType::Oil && Applied->RemainingRounds == 4);
+	TestEqual(TEXT("One visible splash"), Fixture.Runtime->GetOilSplashPresentationCount(), 1);
+	TestTrue(TEXT("Oil decals on ground"), Fixture.Runtime->GetActiveOilDecalCount() > 0);
+
+	UGridEventFeedSubsystem* Feed = Fixture.TestWorld.World->GetSubsystem<UGridEventFeedSubsystem>();
+	if (!TestNotNull(TEXT("Event feed"), Feed)) return false;
+	int32 Events = 0;
+	for (const FGridHudEventEntry& Entry : Feed->GetEntries())
+	{
+		if (Entry.EventCode == FName(TEXT("Combat.Surface.OilSpread"))) ++Events;
+	}
+	TestEqual(TEXT("One event on confirmation"), Events, 1);
+	FString OwnershipError;
+	TestTrue(TEXT("Item ownership invariant"), Inventory->ValidateInventoryOwnership(OwnershipError));
+
+	// Cancellation and a second target prove that no hidden combat turn is needed.
+	FGridCombatActionRequestResult SecondAim;
+	TestTrue(TEXT("Second flask can be aimed"), Fixture.Hud->RequestHotbarSlot(1, SecondAim));
+	Fixture.Hud->CancelCombatActionTargeting();
+	TestEqual(TEXT("Cancellation consumes nothing"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 1);
+	Fixture.Hud->RequestHotbarSlot(1, SecondAim);
+	FGridCombatActionRequestResult SecondUse;
+	TestTrue(TEXT("Second flask can be used"), Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(1, 2), SecondUse));
+	TestEqual(TEXT("Last flask spent"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 0);
+	TestFalse(TEXT("Empty stack removes its hotbar shortcut"),
+		Fixture.Hud->View.Actions[1].bHasBinding);
+	return true;
+}
+
+
 #endif

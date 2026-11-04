@@ -233,6 +233,56 @@ namespace
         return true;
     }
 
+
+	/** ARMEMENT01.17.1.7: area-targeted oil is usable outside combat.
+	 * Only the existing authored oil action is accepted; no general combat bypass.
+	 */
+	bool BuildExplorationOilSlick(
+		const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex,
+		const FGridCombatHotbarBinding& Binding, FGridAvailableCombatAction& OutAction)
+	{
+		if (!IsValid(Inventory) || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex) ||
+			Binding.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem || Binding.IsPhysicalThrowItemBinding())
+		{
+			return false;
+		}
+		const UGridItemDefinitionAsset* Item = Inventory->FindItemDefinition(Binding.SourceDefinitionId);
+		FGridCombatActionDefinition Definition;
+		if (!IsValid(Item) || !Item->BuildQuickItemCombatActionDefinition(Definition) ||
+			Definition.ActionId != Binding.ActionId ||
+			!UGridTurnManagerComponent::IsExplorationOilSlickAction(Definition))
+		{
+			return false;
+		}
+		const FGridCharacterInventoryState& Character =
+			Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+		OutAction = FGridAvailableCombatAction();
+		OutAction.Definition = Definition;
+		OutAction.CharacterIndex = CharacterIndex;
+		OutAction.CharacterId = Character.CharacterId;
+		OutAction.SourceDefinitionId = Binding.SourceDefinitionId;
+		OutAction.SourceEquipmentSlot = EGridEquipmentSlot::None;
+		OutAction.CurrentActionPointCost = 0;
+		OutAction.CurrentSourceItemQuantityCost = 1;
+		OutAction.CurrentSourceItemQuantity =
+			Inventory->CountItemDefinitionInCharacterInventory(CharacterIndex, Binding.SourceDefinitionId);
+		if (OutAction.CurrentSourceItemQuantity < 1)
+		{
+			OutAction.AvailabilityReason = EGridCombatActionAvailabilityReason::InsufficientSourceItems;
+			OutAction.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.NoInventoryCopies"));
+		}
+		else if (Character.Resources.CurrentHealth <= 0)
+		{
+			OutAction.AvailabilityReason = EGridCombatActionAvailabilityReason::CharacterDefeated;
+			OutAction.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Targeting.Invalid.ActionUnavailable"));
+		}
+		else
+		{
+			OutAction.bEnabled = true;
+			OutAction.AvailabilityReason = EGridCombatActionAvailabilityReason::None;
+		}
+		return true;
+	}
 	void ApplyPrimaryAttackProjection(const TArray<FGridAvailableCombatAction>& AvailableActions, TArray<FGridCombatHudActionView>& ActionViews)
 	{
 		if (!ActionViews.IsValidIndex(FGridCombatHotbarBinding::PrimaryAttackSlotIndex))
@@ -922,14 +972,15 @@ void UGridCombatHudWidget::RefreshFromSources()
 			AvailableActions.Add(BuildPhysicalThrowInventoryAction(PartyPawn, InventoryComponent, View.ActiveCharacterIndex, Binding));
 		}
 	}
-	// In exploration, overlay only the supported self restorative actions.
-	// Preserve the combat catalogue, other action types, and physical throws.
+	// Exploration supports the established self-restoratives and the approved
+	// oil surface QuickItem; all other combat-only actions remain disabled.
 	if (!View.bCombatActive && IsValid(InventoryComponent) && View.ActiveCharacterIndex != INDEX_NONE)
 	{
 		for (const FGridCombatHotbarBinding& Binding : HotbarBindings)
 		{
 			FGridAvailableCombatAction Exploration;
-			if (!BuildExplorationSelfRestoration(InventoryComponent, View.ActiveCharacterIndex, Binding, Exploration))
+			if (!BuildExplorationSelfRestoration(InventoryComponent, View.ActiveCharacterIndex, Binding, Exploration) &&
+				!BuildExplorationOilSlick(InventoryComponent, View.ActiveCharacterIndex, Binding, Exploration))
 			{
 				continue;
 			}
@@ -1067,6 +1118,13 @@ bool UGridCombatHudWidget::RequestHotbarSlot(int32 SlotIndex, FGridCombatActionR
 		{
 			return false;
 		}
+		// Oil is area-targeted: enter the same cursor/preview flow rather than
+		// attempting to consume it as a self-healing potion.
+		if (UGridTurnManagerComponent::IsExplorationOilSlickAction(ActionView.Action.Definition))
+		{
+			OutResult.Action = ActionView.Action;
+			return BeginCombatActionTargeting(ActionView);
+		}
 		FText Error;
 		const bool bAccepted = InventoryComponent->TryConsumeSelfRestorativeQuickItem(
 			View.ActiveCharacterIndex, Source->Item.RuntimeObjectId, Error);
@@ -1128,8 +1186,11 @@ bool UGridCombatHudWidget::UpdateCombatActionTargetingPreview(FIntPoint TargetCe
 	}
 
 	const FGridAvailableCombatAction& Action = PendingTargetingActionView.Action;
-	const bool bValid = TurnManagerComponent->BuildCombatActionTargetingPreview(Action.CharacterIndex, Action.Definition.ActionId,
-		Action.Definition.SourcePolicy, Action.SourceDefinitionId, Action.SourceEquipmentSlot, TargetCell, TargetingPreview);
+	const bool bValid = !View.bCombatActive &&
+		UGridTurnManagerComponent::IsExplorationOilSlickAction(Action.Definition)
+		? TurnManagerComponent->BuildExplorationOilTargetingPreview(Action, TargetCell, TargetingPreview)
+		: TurnManagerComponent->BuildCombatActionTargetingPreview(Action.CharacterIndex, Action.Definition.ActionId,
+			Action.Definition.SourcePolicy, Action.SourceDefinitionId, Action.SourceEquipmentSlot, TargetCell, TargetingPreview);
 	return bValid;
 }
 
@@ -1144,8 +1205,11 @@ bool UGridCombatHudWidget::ConfirmCombatActionTarget(FIntPoint TargetCell, FGrid
 	}
 
 	const FGridAvailableCombatAction Action = TargetingPreview.Action;
-	const bool bAccepted = TurnManagerComponent->RequestCharacterCombatActionAtCell(Action.CharacterIndex, Action.Definition.ActionId,
-		Action.Definition.SourcePolicy, Action.SourceDefinitionId, Action.SourceEquipmentSlot, TargetCell, OutResult);
+	const bool bAccepted = !View.bCombatActive &&
+		UGridTurnManagerComponent::IsExplorationOilSlickAction(Action.Definition)
+		? TurnManagerComponent->RequestExplorationOilActionAtCell(Action, TargetCell, OutResult)
+		: TurnManagerComponent->RequestCharacterCombatActionAtCell(Action.CharacterIndex, Action.Definition.ActionId,
+			Action.Definition.SourcePolicy, Action.SourceDefinitionId, Action.SourceEquipmentSlot, TargetCell, OutResult);
 	if (bAccepted)
 	{
 		bCombatActionTargetingActive = false;

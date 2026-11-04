@@ -497,6 +497,13 @@ public:
 	bool BuildCombatActionTargetingPreview(int32 CharacterIndex, FName ActionId, EGridCombatActionSourcePolicy SourcePolicy, FName SourceDefinitionId,
 		EGridEquipmentSlot SourceEquipmentSlot, FIntPoint TargetCell, FGridCombatActionTargetingPreview& OutPreview) const;
 
+	/** ARMEMENT01.17.1.7: narrowly allow the existing oil QuickItem in exploration. */
+	static bool IsExplorationOilSlickAction(const FGridCombatActionDefinition& Definition);
+	bool BuildExplorationOilTargetingPreview(const FGridAvailableCombatAction& Action, FIntPoint TargetCell,
+		FGridCombatActionTargetingPreview& OutPreview) const;
+	bool RequestExplorationOilActionAtCell(const FGridAvailableCombatAction& Action, FIntPoint TargetCell,
+		FGridCombatActionRequestResult& OutResult);
+
 	/** Executes a previously previewed Cell/Area action at the selected cell. */
 	UFUNCTION(BlueprintCallable, Category = "Combat|Action Targeting")
 	bool RequestCharacterCombatActionAtCell(int32 CharacterIndex, FName ActionId, EGridCombatActionSourcePolicy SourcePolicy, FName SourceDefinitionId,
