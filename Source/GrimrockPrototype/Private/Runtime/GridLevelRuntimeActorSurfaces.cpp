@@ -351,14 +351,13 @@ void AGridLevelRuntimeActor::PlayCombatOilSplashAtCell(int32 CellX, int32 CellY)
 		ActiveOilSplashSpatterMaterials.Add(SpatterMaterial);
 	}
 
-	// The already-shipped oil flask material is a Surface material and works
-	// on actual meshes; a Deferred Decal material must NOT be applied to them.
+	// Use the shipped surface material on real geometry, not the decal material.
+	// UMaterialInterface does not expose GetMaterialDomain() in UE 5.5.4.
 	UStaticMesh* SphereMesh = LoadObject<UStaticMesh>(nullptr,
 		TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	UMaterialInterface* DropMaterial = LoadObject<UMaterialInterface>(nullptr,
 		TEXT("/Game/GrimrockPrototype/Art/Materials/Item_Materials/M_Flask_Oil.M_Flask_Oil"));
-	if (IsValid(SphereMesh) && IsValid(DropMaterial) &&
-		DropMaterial->GetMaterialDomain() == MD_Surface)
+	if (IsValid(SphereMesh) && IsValid(DropMaterial))
 	{
 		for (int32 Index = 0; Index < OilSplashDropletCount; ++Index)
 		{
