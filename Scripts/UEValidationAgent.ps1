@@ -195,6 +195,22 @@ function Get-PublicSafeDiagnostics {
             }
         }
     }
+    # ARMEMENT01.17.2A: allowlisted catalyst phase only, never private
+    # commandlet stdout/stderr, user paths or unrestricted exception messages.
+    $CatalystRunDir = Split-Path -Parent $RunLogPath
+    $CatalystStagePath = Join-Path $CatalystRunDir 'CatalystAuthoring.stage'
+    if (Test-Path -LiteralPath $CatalystStagePath -PathType Leaf) {
+        $CatalystStage = [string](Get-Content -LiteralPath $CatalystStagePath -TotalCount 1 -ErrorAction SilentlyContinue)
+        $KnownCatalystStages = @('PREFLIGHT','REPORT_ACCEPTED','COMMANDLET_STARTED',
+            'COMMANDLET_FAILED','COMMANDLET_COMPLETED','FILESET','ASSET_VERIFIED',
+            'COMMIT_CREATED','SUCCESS')
+        if ($CatalystStage -in $KnownCatalystStages) {
+            $Safe.Add('Catalyseur : phase ' + $CatalystStage)
+        }
+        else {
+            $Safe.Add('Catalyseur : phase inconnue')
+        }
+    }
     if ($Safe.Count -eq 0) {
         $Safe.Add('Pas de diagnostic public fiable ; seuls les journaux locaux sont exhaustifs.')
     }
