@@ -1,6 +1,6 @@
 # VALIDATION-AUTO01 — Agent de validation locale UE 5.5.4
 
-**Statut : VALIDATION-AUTO01.4 — bootstrap Windows versionne, chargement automatique des scripts agent sur master. Validation UE locale a confirmer.**
+**Statut : VALIDATION-AUTO01.5 — sous-module Lua54 automatiquement initialise avant validation UE ; validation Windows du correctif a confirmer.**
 
 ## Pourquoi un agent local plutot qu'un GitHub Actions runner ?
 
@@ -132,3 +132,20 @@ git pull --ff-only origin master
 ```
 
 **Securite :** le bootstrap execute volontairement le code versionne de `master` sur votre poste. Proteger strictement les droits d'ecriture de master, car tout code malveillant pousse sur cette branche pourrait aussi s'executer sous votre compte Windows.
+
+
+## Correctif VALIDATION-AUTO01.5 — sous-module Lua54 obligatoire
+
+La premiere compilation reellement lancee par l'agent sur le commit `b7b9e5a6` a echoue avec le code MSVC `C1083` : `Lua54.cpp` (include `onelua.c`) et `GridLuaVm.cpp` (include `lua.h`). Le depot contient `ThirdParty/Lua54` comme **sous-module Git** vers `https://github.com/lua/lua.git`, epingle au commit `6e22fedb74cf0c9b6656e9fce8b7331db847c605`. Un `git worktree add` n'initialise pas automatiquement ce sous-module ; `git lfs pull` ne le restaure pas non plus.
+
+L'agent execute desormais, sur **le seul worktree de validation**, avant `git lfs pull` et avant la compilation :
+
+```powershell
+git -C D:\Development\GrimrockPrototype_UEValidation submodule update --init -- ThirdParty/Lua54
+```
+
+Il controle ensuite la presence de `onelua.c`, `lua.h`, `lauxlib.h` et `lualib.h`. Cette etape est repetable sur les prochains commits. Une panne reseau Git/submodule laisse un echec d'infrastructure reessayable ; aucun reset, clean ou changement de la copie de developpement n'est effectue.
+
+La version de l'agent est prise automatiquement depuis `origin/master` par `UEValidationBootstrap.ps1`. **Aucun nouveau `git pull` ni reinstallation du Planificateur ne sont requis** pour cette correction de l'agent. Il faut simplement laisser la tache automatique effectuer son prochain cycle sur la machine Windows allumee, session utilisateur ouverte.
+
+Suivi : [GitHub issue #10](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/10).

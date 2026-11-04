@@ -1,4 +1,4 @@
-# VALIDATION-AUTO01.4 — Agent Windows sans runner GitHub Actions.
+# VALIDATION-AUTO01.5 — Agent Windows sans runner GitHub Actions.
 # Ne touche jamais au checkout de developpement; le worktree dedie est la seule cible build.
 [CmdletBinding()]
 param(
@@ -247,6 +247,19 @@ try {
             }
             finally { Remove-Item Env:\GIT_LFS_SKIP_SMUDGE -ErrorAction SilentlyContinue }
         }
+        # ThirdParty/Lua54 est un sous-module Git (pas Git LFS).
+        # Un nouveau worktree est cree avec les sous-modules non initialises :
+        # sans cette etape, Lua54.cpp ne trouve pas onelua.c (MSVC C1083)
+        # et GridLuaVm.cpp ne trouve pas lua.h (MSVC C1083).
+        # Limiter l'initialisation au sous-module officiel declare dans .gitmodules.
+        Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'submodule', 'update', '--init', '--', 'ThirdParty/Lua54') | Out-Null
+        foreach ($LuaRequired in @('onelua.c', 'lua.h', 'lauxlib.h', 'lualib.h')) {
+            $LuaPath = Join-Path $WorktreePath ('ThirdParty\Lua54\' + $LuaRequired)
+            if (-not (Test-Path -LiteralPath $LuaPath -PathType Leaf)) {
+                throw "Sous-module Lua54 incomplet : fichier absent $LuaRequired"
+            }
+        }
+        # Les assets volumineux .uasset/.umap sont geres separement par Git LFS.
         Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'lfs', 'pull') | Out-Null
         $ValidatePath = Join-Path $WorktreePath 'Scripts\ValidateUE.ps1'
         if (-not (Test-Path -LiteralPath $ValidatePath -PathType Leaf)) { throw "Harness UE introuvable : $ValidatePath" }
