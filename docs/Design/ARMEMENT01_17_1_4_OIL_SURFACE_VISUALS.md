@@ -40,3 +40,18 @@ L’ancien script de réparation `RepairOilInstancedMaterialUsage.ps1` et le con
 - Intégration combat/hotbar : utilisation réelle de la flasque jusqu’à l’existence d’une projection.
 
 **L’acceptation visuelle exige une scène rendue avec GPU/RHI**. Les tests `-NullRHI` ne certifient ni les couleurs ni les reflets ni la qualité des contours. Après validation technique, il faudra obtenir une capture du vrai donjon sous les torches et examiner l’absence de surfaces blanches, de flottement et de joints de cellules.
+
+
+## ARMEMENT01.17.1.5 — Splash et événement de flasque (4 novembre 2026)
+
+Une flasque d'huile effectivement consommée déclenche désormais une **projection animée temporaire**, indépendante du décalque durable déjà validé. Un décalque éphémère centré sur la cellule visée grandit rapidement et s'estompe sur **0,42 seconde**, en utilisant le matériau d'huile existant avec un paramètre dynamique `OilOpacity`. Le volume de projection reste à **Z = 0**, suit les reliefs du sol, n'ajoute aucun mesh, n'a ni collision ni effet mécanique, et est détruit à la fin. La mise à jour utilise un timer temporaire de 30 Hz, **pas de Tick permanent**. Aucune création ou affectation d'asset Niagara n'est nécessaire pour cette première animation de type *splash*.
+
+Le flux d'événements publie **une seule entrée** dans la catégorie **Combat**, code stable `Combat.Surface.OilSpread` : « Une flasque d’huile se brise : l’huile se répand sur N cases. » La publication a lieu **après validation et exécution de la vraie action `Action_Alchemist_OilSlick`**, jamais pendant le survol ou le choix de cellule, et n'est pas répétée pour chaque case. L'animation n'est pas réémise lors d'un chargement ou d'une reconstruction des flaques.
+
+### Durée : anomalie hors combat, décision mécanique séparée
+
+Le profil actuel reste **4 rounds**, coût **2 PA + 1 flasque**, portée **4 cases** et rayon de **1 case** autour de la cellule choisie. Le décompte se produit uniquement pendant la résolution des rounds de combat. **Hors combat, aucune expiration temporelle n'est actuellement prévue** pour ces surfaces. Ce décalage n'est pas corrigé silencieusement dans le jalon d'animation : la définition d'un équivalent de quatre rounds en exploration (actions de grille ou secondes de jeu) et la sauvegarde de ce nouveau temps doivent être tranchées comme une règle de gameplay distincte.
+
+### Vérifications
+
+Le test d'intégration `Grimrock.RPG.ARMEMENT01.17.1.4.QuickItemToWorldProjection` contrôle maintenant, en plus du ciblage et de la consommation : l'unicité du déclenchement du splash, l'entrée unique dans le flux Combat, son contenu, la destruction du décalque transitoire et la conservation de la flaque durable. La compilation UE 5.5.4 et la suite Automation doivent confirmer ces nouvelles assertions avant validation technique définitive.

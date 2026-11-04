@@ -288,6 +288,7 @@ const FGridLevelRuntimeState* AGridLevelRuntimeActor::FindRuntimeStateForCurrent
 
 void AGridLevelRuntimeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	ClearCombatOilSplash();
 	ClearCombatOilSurfaceVisuals();
 	HideCombatFeedback();
 	Super::EndPlay(EndPlayReason);
@@ -299,6 +300,7 @@ void AGridLevelRuntimeActor::ClearVisuals(EGridRuntimeRebuildMode RebuildMode)
 		FloorISM->ClearInstances();
 	if (WallISM)
 		WallISM->ClearInstances();
+	ClearCombatOilSplash();
 	ClearCombatOilSurfaceVisuals();
 	if (CeilingISM)
 	{

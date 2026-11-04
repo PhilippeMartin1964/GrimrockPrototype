@@ -26,6 +26,7 @@
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -2066,6 +2067,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		}
 	}
 
+	int32 OilFlaskAppliedCells = 0;
 	if (bSurfaceResolution && IsValid(RuntimeActor))
 	{
 		auto ResolveSurfaceReactionAtCell =
@@ -2182,11 +2184,35 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				// that canonical output instead of blindly overwriting it.
 				if (!bResolvedIncomingReaction || IncomingReaction.OutputSurfaceType == SurfaceProfile.SurfaceType)
 				{
-					RuntimeActor->ApplyCombatSurfaceAtCell(
-						Cell.X, Cell.Y, SurfaceProfile, Character.CharacterId, Action.Definition.ActionId, ResolvedModifiers);
+					if (RuntimeActor->ApplyCombatSurfaceAtCell(
+							Cell.X, Cell.Y, SurfaceProfile, Character.CharacterId, Action.Definition.ActionId, ResolvedModifiers) &&
+						Action.Definition.ActionId == FName(TEXT("Action_Alchemist_OilSlick")) &&
+						Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem &&
+						SurfaceProfile.SurfaceType == EGridCombatSurfaceType::Oil)
+					{
+						++OilFlaskAppliedCells;
+					}
 				}
 			}
 		}
+	}
+	// Un seul splash et une seule entrée Combat du flux d'événements par
+	// flasque effectivement consommée. Pas d'événement lors du ciblage ni
+	// lors de la restauration d'un niveau, ni une entrée par cellule.
+	if (OilFlaskAppliedCells > 0 && IsValid(RuntimeActor))
+	{
+		RuntimeActor->PlayCombatOilSplashAtCell(Preview.TargetCell.X, Preview.TargetCell.Y);
+		FGridHudEventEntry OilEvent;
+		OilEvent.Category = EGridHudEventCategory::Combat;
+		OilEvent.Semantic = EGridHudEventSemantic::Interaction;
+		OilEvent.Visibility = EGridEventVisibility::Always;
+		OilEvent.EventCode = TEXT("Combat.Surface.OilSpread");
+		OilEvent.SourceId = Action.Definition.ActionId;
+		OilEvent.Message = FText::Format(
+			NSLOCTEXT("GrimrockOil", "OilSpillEvent",
+				"Une flasque d’huile se brise : l’huile se répand sur {0} cases."),
+			FText::AsNumber(OilFlaskAppliedCells));
+		GridEventFeedPublisher::PublishEvent(this, OilEvent);
 	}
 	if (bTrapResolution && IsValid(RuntimeActor))
 	{

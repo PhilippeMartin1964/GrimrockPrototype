@@ -20,6 +20,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridEventFeedSubsystem.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -1868,6 +1869,30 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 		Fixture.Runtime->GetActiveOilDecal(0) != nullptr);
 	TestEqual(TEXT("Une flasque a été consommée"),
 		Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 1);
+	TestEqual(TEXT("Une seule animation splash pour l'action confirmée"),
+		Fixture.Runtime->GetOilSplashPresentationCount(), 1);
+	TestEqual(TEXT("Splash temporaire actif immédiatement après l'impact"),
+		Fixture.Runtime->GetActiveOilSplashCount(), 1);
+
+	UGridEventFeedSubsystem* Feed = Fixture.TestWorld.World
+		? Fixture.TestWorld.World->GetSubsystem<UGridEventFeedSubsystem>() : nullptr;
+	if (!TestNotNull(TEXT("Flux d'événements du monde"), Feed)) return false;
+	int32 OilEntries = 0;
+	for (const FGridHudEventEntry& Event : Feed->GetEntries())
+	{
+		if (Event.EventCode == FName(TEXT("Combat.Surface.OilSpread")))
+		{
+			++OilEntries;
+			TestEqual(TEXT("Une entrée dans le filtre Combat"), Event.Category, EGridHudEventCategory::Combat);
+			TestFalse(TEXT("Message d'huile non vide"), Event.Message.IsEmpty());
+		}
+	}
+	TestEqual(TEXT("Une seule entrée par flasque, non une entrée par cellule"), OilEntries, 1);
+	Fixture.Runtime->ClearCombatOilSplash();
+	TestEqual(TEXT("Splash nettoyé sans supprimer la flaque persistante"),
+		Fixture.Runtime->GetActiveOilSplashCount(), 0);
+	TestTrue(TEXT("Le décalque durable reste présent après le splash"),
+		Fixture.Runtime->GetActiveOilDecalCount() > 0);
 	return true;
 }
 

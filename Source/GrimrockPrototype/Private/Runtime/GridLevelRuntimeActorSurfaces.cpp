@@ -3,8 +3,111 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
 #include "Components/DecalComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridSurfaceRuntime, Log, All);
+
+namespace
+{
+	constexpr float OilSplashDurationSeconds = 0.42f;
+	constexpr float OilSplashUpdateIntervalSeconds = 1.f / 30.f;
+	const FName OilSplashOpacityParameter(TEXT("OilOpacity"));
+}
+
+float AGridLevelRuntimeActor::GetOilSplashSpreadScale(float NormalizedProgress)
+{
+	const float Alpha = FMath::Clamp(NormalizedProgress, 0.f, 1.f);
+	const float EaseOut = 1.f - FMath::Pow(1.f - Alpha, 3.f);
+	return FMath::Lerp(0.18f, 1.f, EaseOut);
+}
+
+void AGridLevelRuntimeActor::ClearCombatOilSplash()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(OilSplashTimer);
+	}
+	if (IsValid(ActiveOilSplashDecal))
+	{
+		ActiveOilSplashDecal->DestroyComponent();
+	}
+	ActiveOilSplashDecal = nullptr;
+	ActiveOilSplashMaterial = nullptr;
+	OilSplashElapsedSeconds = 0.f;
+}
+
+void AGridLevelRuntimeActor::UpdateCombatOilSplash()
+{
+	if (!IsValid(ActiveOilSplashDecal) || !IsValid(ActiveOilSplashMaterial))
+	{
+		ClearCombatOilSplash();
+		return;
+	}
+	OilSplashElapsedSeconds += OilSplashUpdateIntervalSeconds;
+	const float Alpha = FMath::Clamp(OilSplashElapsedSeconds / OilSplashDurationSeconds, 0.f, 1.f);
+	if (Alpha >= 1.f)
+	{
+		ClearCombatOilSplash();
+		return;
+	}
+	// Expansion brève sur les pierres, avec atténuation progressive ; aucune
+	// géométrie superposée et aucune modification du décalque persistant.
+	const float Spread = GetOilSplashSpreadScale(Alpha);
+	ActiveOilSplashDecal->SetRelativeScale3D(FVector(1.f, Spread, Spread));
+	ActiveOilSplashMaterial->SetScalarParameterValue(
+		OilSplashOpacityParameter, 0.52f * FMath::Square(1.f - Alpha));
+}
+
+void AGridLevelRuntimeActor::PlayCombatOilSplashAtCell(int32 CellX, int32 CellY)
+{
+	UWorld* World = GetWorld();
+	if (!World || !World->IsGameWorld() || !LevelAsset ||
+		!IsValidCell(CellX, CellY) || ShouldHideCellFloor(CellX, CellY))
+	{
+		return;
+	}
+	UMaterialInterface* Material = OilSurfaceMaterial.LoadSynchronous();
+	if (!IsValid(Material))
+	{
+		return; // Le VFX n'a jamais le droit d'invalider l'action de combat.
+	}
+	ClearCombatOilSplash();
+	UDecalComponent* Splash = NewObject<UDecalComponent>(this);
+	if (!IsValid(Splash))
+	{
+		return;
+	}
+	Splash->SetupAttachment(SceneRoot);
+	Splash->SetMobility(EComponentMobility::Movable);
+	const float CellSize = LevelAsset->CellSize;
+	Splash->DecalSize = FVector(48.f, CellSize * 1.55f, CellSize * 1.55f);
+	Splash->SetRelativeLocation(CellToWorld(CellX, CellY, 0.f) +
+		FVector(CellSize * .5f, CellSize * .5f, 0.f));
+	Splash->SetRelativeRotation(FQuat::FindBetweenNormals(
+		-FVector::ForwardVector, -FVector::UpVector));
+	Splash->SetDecalMaterial(Material);
+	Splash->SetFadeScreenSize(0.f);
+	Splash->SetSortOrder(2);
+	Splash->RegisterComponent();
+
+	UMaterialInstanceDynamic* Dynamic = Splash->CreateDynamicMaterialInstance();
+	if (!IsValid(Dynamic))
+	{
+		Splash->DestroyComponent();
+		return;
+	}
+	ActiveOilSplashDecal = Splash;
+	ActiveOilSplashMaterial = Dynamic;
+	OilSplashElapsedSeconds = 0.f;
+	Splash->SetRelativeScale3D(FVector(1.f, GetOilSplashSpreadScale(0.f), GetOilSplashSpreadScale(0.f)));
+	Dynamic->SetScalarParameterValue(OilSplashOpacityParameter, 0.52f);
+	++OilSplashPresentationCount;
+	World->GetTimerManager().SetTimer(
+		OilSplashTimer, this, &AGridLevelRuntimeActor::UpdateCombatOilSplash,
+		OilSplashUpdateIntervalSeconds, true);
+}
+
 
 void AGridLevelRuntimeActor::ClearCombatOilSurfaceVisuals()
 {

@@ -7,6 +7,7 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "TimerManager.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
@@ -14,6 +15,7 @@
 #include "GridLevelRuntimeActor.generated.h"
 
 class AGridEditorPreviewObjectActor;
+class UMaterialInstanceDynamic;
 class UGridItemDefinitionAsset;
 class AGridRuntimeObjectActor;
 class AGridItemActor;
@@ -139,6 +141,17 @@ public:
 	/** Décalques transitoires : aucune géométrie flottante ni sauvegarde visuelle. */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UDecalComponent>> ActiveOilDecals;
+
+	/** Brève projection animée au point d'impact, indépendante des flaques durables. */
+	UPROPERTY(Transient)
+	TObjectPtr<UDecalComponent> ActiveOilSplashDecal;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> ActiveOilSplashMaterial;
+
+	FTimerHandle OilSplashTimer;
+	float OilSplashElapsedSeconds = 0.f;
+	int32 OilSplashPresentationCount = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
 	TObjectPtr<UMaterialInterface> CeilingEditorMaterial;
@@ -563,6 +576,13 @@ public:
 	/** Projette l'huile sur la géométrie réelle du sol (Z=0), sans plan superposé. */
 	void RefreshCombatOilSurfaceVisuals();
 	void ClearCombatOilSurfaceVisuals();
+	/** Présentation facultative après résolution d'une vraie action de flasque. */
+	void PlayCombatOilSplashAtCell(int32 CellX, int32 CellY);
+	void UpdateCombatOilSplash();
+	void ClearCombatOilSplash();
+	int32 GetOilSplashPresentationCount() const { return OilSplashPresentationCount; }
+	int32 GetActiveOilSplashCount() const { return IsValid(ActiveOilSplashDecal) ? 1 : 0; }
+	static float GetOilSplashSpreadScale(float NormalizedProgress);
 	int32 GetActiveOilDecalCount() const { return ActiveOilDecals.Num(); }
 	const UDecalComponent* GetActiveOilDecal(int32 Index) const
 	{
