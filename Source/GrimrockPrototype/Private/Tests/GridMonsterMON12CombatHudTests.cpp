@@ -17,6 +17,7 @@
 #include "InputCoreTypes.h"
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
+#include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
