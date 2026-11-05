@@ -120,7 +120,7 @@ void UGridTurnManagerComponent::ApplyCatalystBurstDamage(
 			if (Damage.bHit)
 			{
 				Inventory->ApplyPhysicalArmorDamage(
-					CharacterIndex, Damage.PhysicalArmorDamage, &Damage.Trace.Damage.PhysicalArmorSources);
+					CharacterIndex, Damage.PhysicalArmorDamage);
 				Inventory->ApplyMagicalArmorDamage(CharacterIndex, Damage.MagicalArmorDamage);
 				Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - Damage.HealthDamage);
 			}

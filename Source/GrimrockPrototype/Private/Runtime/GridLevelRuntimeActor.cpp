@@ -166,6 +166,14 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor()
 	// Référence native, utilisable dans le build sans assignation manuelle.
 	OilSurfaceMaterial = TSoftObjectPtr<UMaterialInterface>(
 		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.MI_Surface_Oil")));
+	// Hard references are avoided, while CDO soft references remain visible to
+	// the asset cooker and replaceable in the RuntimeActor Details panel.
+	CatalystProjectileMesh = TSoftObjectPtr<UStaticMesh>(
+		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Meshes/Items/SM_Catalyst_01.SM_Catalyst_01")));
+	CatalystRunePulseMaterial = TSoftObjectPtr<UMaterialInterface>(
+		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_RunePulse.M_SurfaceCatalyst_RunePulse")));
+	CatalystEmberMaterial = TSoftObjectPtr<UMaterialInterface>(
+		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember")));
 
 	ActivationComponent = CreateDefaultSubobject<UGridActivationComponent>(TEXT("ActivationComponent"));
 

@@ -41,6 +41,16 @@ struct FGridResolvedCombatModifiers;
 /** Visual variant; authoritative RPG03.6 surface outcomes stay unchanged. */
 enum class EGridSurfaceCatalystVfxKind : uint8 { Fizzle, OilIgnition, PoisonBurst, IceMelt };
 
+/** Visual metadata only; all authoritative C6 outcomes are committed separately. */
+struct FGridCatalystVisualCell
+{
+	FVector Center = FVector::ZeroVector;
+	EGridSurfaceCatalystVfxKind Kind = EGridSurfaceCatalystVfxKind::Fizzle;
+	float WaveDelay = 0.f;
+	int32 FirstSpark = 0;
+	int32 SparkCount = 0;
+};
+
 UENUM()
 enum class EGridRuntimeRebuildMode : uint8
 {
@@ -179,6 +189,33 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UStaticMeshComponent>> ActiveCatalystSparks;
 
+	/** 17.3C: one moving bottle, with independent transient components per affected cell. */
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> ActiveCatalystProjectile;
+
+	/** Moving ember trail on the same 30Hz timer as the physical bottle. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> ActiveCatalystTrailSparks;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UDecalComponent>> ActiveCatalystCellPulses;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> ActiveCatalystCellPulseMaterials;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UPointLightComponent>> ActiveCatalystCellLights;
+
+	/** Replaceable in editor. Fallback references preserve shipped assets. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|VFX")
+	TSoftObjectPtr<UStaticMesh> CatalystProjectileMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|VFX")
+	TSoftObjectPtr<UMaterialInterface> CatalystRunePulseMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|VFX")
+	TSoftObjectPtr<UMaterialInterface> CatalystEmberMaterial;
+
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UStaticMeshComponent>> ActiveFireSurfaceFlames;
 
@@ -202,10 +239,26 @@ public:
 
 	FTimerHandle CatalystVisualTimer;
 	float CatalystVisualElapsedSeconds = 0.f;
+	float CatalystImpactElapsedStart = 0.f;
 	FVector CatalystVisualCenter = FVector::ZeroVector;
 	float CatalystVisualCellSize = 200.f;
 	EGridSurfaceCatalystVfxKind CatalystVisualKind = EGridSurfaceCatalystVfxKind::Fizzle;
 	int32 CatalystPresentationCount = 0;
+	int32 CatalystImpactCount = 0;
+	bool bCatalystVisualsDeferred = false;
+	bool bCatalystImpactStarted = false;
+	FVector CatalystFlightStart = FVector::ZeroVector;
+	FVector CatalystFlightEnd = FVector::ZeroVector;
+	TArray<FGridCatalystVisualCell> ActiveCatalystVisualCells;
+
+	/** Launch arc, then cell wave. Neither changes gameplay or resource costs. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|VFX",
+		meta = (ClampMin = "0.1", ClampMax = "1.5"))
+	float CatalystFlightDurationSeconds = 0.42f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|VFX",
+		meta = (ClampMin = "0.0", ClampMax = "0.3"))
+	float CatalystWaveDelayPerCellSeconds = 0.085f;
 
 	FTimerHandle OilSplashTimer;
 	float OilSplashElapsedSeconds = 0.f;
@@ -681,6 +734,14 @@ public:
 		EGridCombatSurfaceType InputType, const FGridCombatSurfaceReactionResult& Reaction);
 	void PlaySurfaceCatalystReactionAtCell(int32 CellX, int32 CellY,
 		EGridCombatSurfaceType InputType, const FGridCombatSurfaceReactionResult& Reaction);
+
+	/** Defers only visual refresh during the single logical gameplay transaction. */
+	void BeginCatalystSurfaceVisualBatch();
+	void CancelCatalystSurfaceVisualBatch();
+	/** One bottle/flight, then independent Oil/Poison/Ice/Fizzle effects in the area. */
+	void PlaySurfaceCatalystArea(FIntPoint LaunchCell, FIntPoint ImpactCell,
+		const TArray<struct FGridCatalystCellOutcome>& Outcomes);
+	void BeginCatalystImpactVfx();
 	void UpdateCatalystReactionVfx();
 	void ClearCatalystReactionVfx();
 	void RefreshFireSurfaceVisuals();
@@ -690,6 +751,10 @@ public:
 	int32 GetActiveFireNiagaraCount() const { return ActiveFireNiagaraComponents.Num(); }
 	int32 GetActiveWaterSurfaceDecalCount() const { return ActiveWaterSurfaceDecals.Num(); }
 	int32 GetCatalystPresentationCount() const { return CatalystPresentationCount; }
+	int32 GetCatalystImpactCount() const { return CatalystImpactCount; }
+	int32 GetActiveCatalystProjectileCount() const { return IsValid(ActiveCatalystProjectile.Get()) ? 1 : 0; }
+	int32 GetActiveCatalystTrailCount() const { return ActiveCatalystTrailSparks.Num(); }
+	int32 GetActiveCatalystCellPulseCount() const { return ActiveCatalystCellPulses.Num(); }
 	int32 GetActiveCatalystSparkCount() const { return ActiveCatalystSparks.Num(); }
 	int32 GetActiveFireSurfaceFlameCount() const { return ActiveFireSurfaceFlames.Num(); }
 	EGridSurfaceCatalystVfxKind GetCatalystVisualKind() const { return CatalystVisualKind; }

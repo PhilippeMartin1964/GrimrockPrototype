@@ -111,7 +111,7 @@ void AGridLevelRuntimeActor::UpdateExplorationOilTimer()
 	const float DeltaSeconds = static_cast<float>(FMath::Max(0.0, Now - LastOilExplorationUpdateTime));
 	LastOilExplorationUpdateTime = Now;
 	// Un combat actif utilise exclusivement le décompte de fin de round.
-	if (const UGridTurnManagerComponent* Turns = FindComponentByClass<UGridTurnManagerComponent>())
+	if (UGridTurnManagerComponent* Turns = FindComponentByClass<UGridTurnManagerComponent>())
 	{
 		if (Turns->bCombatActive)
 		{
@@ -455,135 +455,403 @@ EGridSurfaceCatalystVfxKind AGridLevelRuntimeActor::ResolveCatalystVfxKind(
 void AGridLevelRuntimeActor::ClearCatalystReactionVfx()
 {
 	if (UWorld* World = GetWorld())
+	{
 		World->GetTimerManager().ClearTimer(CatalystVisualTimer);
-	if (IsValid(ActiveCatalystPulse)) ActiveCatalystPulse->DestroyComponent();
+	}
+	if (IsValid(ActiveCatalystProjectile))
+	{
+		ActiveCatalystProjectile->DestroyComponent();
+	}
+	ActiveCatalystProjectile = nullptr;
+	for (UStaticMeshComponent* Trail : ActiveCatalystTrailSparks)
+	{
+		if (IsValid(Trail)) Trail->DestroyComponent();
+	}
+	ActiveCatalystTrailSparks.Reset();
+	for (UDecalComponent* Pulse : ActiveCatalystCellPulses)
+	{
+		if (IsValid(Pulse)) Pulse->DestroyComponent();
+	}
+	for (UPointLightComponent* Light : ActiveCatalystCellLights)
+	{
+		if (IsValid(Light)) Light->DestroyComponent();
+	}
+	for (UStaticMeshComponent* Spark : ActiveCatalystSparks)
+	{
+		if (IsValid(Spark)) Spark->DestroyComponent();
+	}
+	ActiveCatalystCellPulses.Reset();
+	ActiveCatalystCellPulseMaterials.Reset();
+	ActiveCatalystCellLights.Reset();
+	ActiveCatalystSparks.Reset();
+	ActiveCatalystVisualCells.Reset();
 	ActiveCatalystPulse = nullptr;
 	ActiveCatalystPulseMaterial = nullptr;
-	if (IsValid(ActiveCatalystLight)) ActiveCatalystLight->DestroyComponent();
 	ActiveCatalystLight = nullptr;
-	for (UStaticMeshComponent* Spark : ActiveCatalystSparks)
-		if (IsValid(Spark)) Spark->DestroyComponent();
-	ActiveCatalystSparks.Reset();
 	CatalystVisualElapsedSeconds = 0.f;
+	CatalystImpactElapsedStart = 0.f;
+	bCatalystImpactStarted = false;
+	if (bCatalystVisualsDeferred)
+	{
+		// Explicit cancel/unload: never leave permanent surfaces invisible.
+		bCatalystVisualsDeferred = false;
+		RefreshCombatOilSurfaceVisuals();
+	}
+}
+
+void AGridLevelRuntimeActor::BeginCatalystSurfaceVisualBatch()
+{
+	// A later throw supersedes only transient graphics, never existing RPG03.6.
+	ClearCatalystReactionVfx();
+	bCatalystVisualsDeferred = true;
+}
+
+void AGridLevelRuntimeActor::CancelCatalystSurfaceVisualBatch()
+{
+	ClearCatalystReactionVfx();
 }
 
 void AGridLevelRuntimeActor::PlaySurfaceCatalystReactionAtCell(
 	int32 CellX, int32 CellY, EGridCombatSurfaceType InputType,
 	const FGridCombatSurfaceReactionResult& Reaction)
 {
+	// Backward-compatible one-cell presentation used by older C6 tests/callers.
+	FGridCatalystCellOutcome Cell;
+	Cell.Cell = FIntPoint(CellX, CellY);
+	Cell.InputType = InputType;
+	Cell.Reaction = Reaction;
+	TArray<FGridCatalystCellOutcome> Area;
+	Area.Add(Cell);
+	PlaySurfaceCatalystArea(Cell.Cell, Cell.Cell, Area);
+}
+
+void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
+	FIntPoint LaunchCell, FIntPoint ImpactCell,
+	const TArray<FGridCatalystCellOutcome>& Outcomes)
+{
+	// When called from a gameplay transaction BeginCatalystSurfaceVisualBatch
+	// has already cleared the previous effect. Do not flush that batch early.
+	if (!bCatalystVisualsDeferred)
+	{
+		ClearCatalystReactionVfx();
+	}
 	UWorld* World = GetWorld();
 	if (!World || !World->IsGameWorld() || !LevelAsset ||
-		!IsValidCell(CellX,CellY) || ShouldHideCellFloor(CellX,CellY)) return;
-	ClearCatalystReactionVfx();
-	CatalystVisualKind = ResolveCatalystVfxKind(InputType,Reaction);
-	const bool bPoison = CatalystVisualKind == EGridSurfaceCatalystVfxKind::PoisonBurst;
-	const bool bIce = CatalystVisualKind == EGridSurfaceCatalystVfxKind::IceMelt;
-	const bool bFizzle = CatalystVisualKind == EGridSurfaceCatalystVfxKind::Fizzle;
-	const FLinearColor Color = CatalystTint(CatalystVisualKind);
-	CatalystVisualCellSize = LevelAsset->CellSize;
-	CatalystVisualCenter = CellToWorld(CellX,CellY,0.f) +
-		FVector(CatalystVisualCellSize*.5f,CatalystVisualCellSize*.5f,0.f);
-	UMaterialInterface* Ring = LoadObject<UMaterialInterface>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_RunePulse.M_SurfaceCatalyst_RunePulse"));
-	if (IsValid(Ring))
+		!IsWalkableCell(ImpactCell.X, ImpactCell.Y) || Outcomes.IsEmpty())
 	{
-		UDecalComponent* Pulse = NewObject<UDecalComponent>(this);
-		Pulse->SetupAttachment(SceneRoot);
-		Pulse->SetMobility(EComponentMobility::Movable);
-		Pulse->DecalSize = FVector(48.f,CatalystVisualCellSize,CatalystVisualCellSize);
-		Pulse->SetRelativeLocation(CatalystVisualCenter);
-		Pulse->SetRelativeRotation(FQuat::FindBetweenNormals(-FVector::ForwardVector,-FVector::UpVector));
-		Pulse->SetDecalMaterial(Ring);
-		Pulse->SetSortOrder(5);
-		Pulse->SetFadeScreenSize(0.f);
-		Pulse->RegisterComponent();
-		ActiveCatalystPulse = Pulse;
-		ActiveCatalystPulseMaterial = Pulse->CreateDynamicMaterialInstance();
-		if (IsValid(ActiveCatalystPulseMaterial))
-		{
-			ActiveCatalystPulseMaterial->SetVectorParameterValue(TEXT("CatalystGlowColor"),Color);
-			ActiveCatalystPulseMaterial->SetScalarParameterValue(TEXT("CatalystOpacity"),bFizzle?.35f:1.f);
-		}
-		Pulse->SetRelativeScale3D(FVector(1.f,.12f,.12f));
-	}
-	UPointLightComponent* Light = NewObject<UPointLightComponent>(this);
-	Light->SetupAttachment(SceneRoot);
-	Light->SetMobility(EComponentMobility::Movable);
-	Light->SetRelativeLocation(CatalystVisualCenter+FVector(0.f,0.f,38.f));
-	Light->SetLightColor(Color);
-	Light->SetIntensity(bFizzle?420.f:(bPoison?5200.f:2900.f));
-	Light->SetAttenuationRadius(CatalystVisualCellSize*(bPoison?2.2f:1.5f));
-	Light->SetCastShadows(false);
-	Light->RegisterComponent();
-	ActiveCatalystLight = Light;
-	UStaticMesh* Sphere = LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"));
-	UMaterialInterface* Glow = LoadObject<UMaterialInterface>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
-	if (IsValid(Sphere) && IsValid(Glow))
-	{
-		const int32 Count = bPoison?14:(bIce?10:(bFizzle?2:9));
-		for (int32 I=0;I<Count;++I)
-		{
-			UStaticMeshComponent* Spark = NewObject<UStaticMeshComponent>(this);
-			Spark->SetupAttachment(SceneRoot);
-			Spark->SetMobility(EComponentMobility::Movable);
-			Spark->SetStaticMesh(Sphere);
-			Spark->SetMaterial(0,Glow);
-			Spark->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			Spark->SetGenerateOverlapEvents(false);
-			Spark->SetCastShadow(false);
-			Spark->SetRelativeLocation(CatalystVisualCenter+FVector(0.f,0.f,16.f));
-			Spark->SetRelativeScale3D(FVector(.045f));
-			Spark->RegisterComponent();
-			if (UMaterialInstanceDynamic* Dyn = Spark->CreateDynamicMaterialInstance(0))
-			{
-				Dyn->SetVectorParameterValue(TEXT("CatalystGlowColor"),
-					bPoison && I%3==0 ? FLinearColor(1.f,.23f,.018f) : Color);
-				Dyn->SetScalarParameterValue(TEXT("CatalystGlowStrength"),bFizzle?.8f:3.8f);
-			}
-			ActiveCatalystSparks.Add(Spark);
-		}
+		CancelCatalystSurfaceVisualBatch();
+		return;
 	}
 	CatalystVisualElapsedSeconds = 0.f;
+	CatalystVisualCellSize = LevelAsset->CellSize;
+	CatalystVisualCenter = CellToWorld(ImpactCell.X, ImpactCell.Y, 0.f) +
+		FVector(CatalystVisualCellSize * .5f, CatalystVisualCellSize * .5f, 0.f);
+	CatalystFlightStart = CellToWorld(LaunchCell.X, LaunchCell.Y, 0.f) +
+		FVector(CatalystVisualCellSize * .5f, CatalystVisualCellSize * .5f, 110.f);
+	CatalystFlightEnd = CatalystVisualCenter + FVector(0.f, 0.f, 14.f);
+	CatalystVisualKind = EGridSurfaceCatalystVfxKind::Fizzle;
+	ActiveCatalystVisualCells.Reserve(FMath::Min(Outcomes.Num(), 9));
+	TSet<FIntPoint> Seen;
+	for (const FGridCatalystCellOutcome& Result : Outcomes)
+	{
+		if (ActiveCatalystVisualCells.Num() >= 9) break;
+		if (!IsWalkableCell(Result.Cell.X, Result.Cell.Y) ||
+			ShouldHideCellFloor(Result.Cell.X, Result.Cell.Y) ||
+			Seen.Contains(Result.Cell))
+		{
+			continue;
+		}
+		Seen.Add(Result.Cell);
+		FGridCatalystVisualCell& Visual = ActiveCatalystVisualCells.AddDefaulted_GetRef();
+		Visual.Center = CellToWorld(Result.Cell.X, Result.Cell.Y, 0.f) +
+			FVector(CatalystVisualCellSize * .5f, CatalystVisualCellSize * .5f, 0.f);
+		Visual.Kind = ResolveCatalystVfxKind(Result.InputType, Result.Reaction);
+		const int32 Distance = FMath::Max(
+			FMath::Abs(Result.Cell.X - ImpactCell.X),
+			FMath::Abs(Result.Cell.Y - ImpactCell.Y));
+		Visual.WaveDelay = Distance * FMath::Clamp(CatalystWaveDelayPerCellSeconds, 0.f, .3f);
+		// Prefer the strongest variant when preserving the legacy single-kind accessor.
+		if (Visual.Kind == EGridSurfaceCatalystVfxKind::PoisonBurst ||
+			(CatalystVisualKind == EGridSurfaceCatalystVfxKind::Fizzle &&
+			 Visual.Kind != EGridSurfaceCatalystVfxKind::Fizzle))
+		{
+			CatalystVisualKind = Visual.Kind;
+		}
+	}
+	if (ActiveCatalystVisualCells.IsEmpty())
+	{
+		CancelCatalystSurfaceVisualBatch();
+		return;
+	}
 	++CatalystPresentationCount;
-	World->GetTimerManager().SetTimer(CatalystVisualTimer,this,
-		&AGridLevelRuntimeActor::UpdateCatalystReactionVfx,CatalystVisualTickInterval,true);
+
+	// A real artist-authored mesh is the projectile; its embedded material
+	// remains MI_Catalyst. No temporary procedural duplicate is generated.
+	UStaticMesh* BottleMesh = CatalystProjectileMesh.LoadSynchronous();
+	if (!IsValid(BottleMesh))
+	{
+		BottleMesh = LoadObject<UStaticMesh>(nullptr,
+			TEXT("/Game/GrimrockPrototype/Meshes/Items/SM_Catalyst_01.SM_Catalyst_01"));
+	}
+	if (LaunchCell != ImpactCell && IsValid(BottleMesh))
+	{
+		UStaticMeshComponent* Bottle = NewObject<UStaticMeshComponent>(this);
+		Bottle->SetupAttachment(SceneRoot);
+		Bottle->SetMobility(EComponentMobility::Movable);
+		Bottle->SetStaticMesh(BottleMesh);
+		Bottle->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Bottle->SetGenerateOverlapEvents(false);
+		Bottle->SetCastShadow(true);
+		Bottle->SetRelativeLocation(CatalystFlightStart);
+		const float MaxExtent = BottleMesh->GetBounds().BoxExtent.GetMax();
+		const float Scale = FMath::Clamp(18.f / FMath::Max(1.f, MaxExtent), .005f, 3.f);
+		Bottle->SetRelativeScale3D(FVector(Scale));
+		Bottle->RegisterComponent();
+		ActiveCatalystProjectile = Bottle;
+		UStaticMesh* TrailSphere = LoadObject<UStaticMesh>(nullptr,
+			TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+		UMaterialInterface* TrailMaterial = CatalystEmberMaterial.LoadSynchronous();
+		if (!IsValid(TrailMaterial))
+		{
+			TrailMaterial = LoadObject<UMaterialInterface>(nullptr,
+				TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
+		}
+		if (IsValid(TrailSphere) && IsValid(TrailMaterial))
+		{
+			for (int32 Index = 0; Index < 6; ++Index)
+			{
+				UStaticMeshComponent* Trail = NewObject<UStaticMeshComponent>(this);
+				Trail->SetupAttachment(SceneRoot);
+				Trail->SetMobility(EComponentMobility::Movable);
+				Trail->SetStaticMesh(TrailSphere);
+				Trail->SetMaterial(0, TrailMaterial);
+				Trail->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				Trail->SetGenerateOverlapEvents(false);
+				Trail->SetCastShadow(false);
+				Trail->SetRelativeLocation(CatalystFlightStart);
+				Trail->SetRelativeScale3D(FVector::ZeroVector);
+				Trail->RegisterComponent();
+				if (UMaterialInstanceDynamic* Dyn = Trail->CreateDynamicMaterialInstance(0))
+				{
+					Dyn->SetVectorParameterValue(TEXT("CatalystGlowColor"),
+						FLinearColor(1.f, .33f, .024f));
+					Dyn->SetScalarParameterValue(TEXT("CatalystGlowStrength"), 3.5f);
+				}
+				ActiveCatalystTrailSparks.Add(Trail);
+			}
+		}
+	}
+	// If the visual mesh was removed, never leave the surface refresh locked.
+	if (!IsValid(ActiveCatalystProjectile))
+	{
+		BeginCatalystImpactVfx();
+	}
+	World->GetTimerManager().SetTimer(CatalystVisualTimer, this,
+		&AGridLevelRuntimeActor::UpdateCatalystReactionVfx,
+		CatalystVisualTickInterval, true);
+}
+
+void AGridLevelRuntimeActor::BeginCatalystImpactVfx()
+{
+	if (bCatalystImpactStarted) return;
+	bCatalystImpactStarted = true;
+	CatalystImpactElapsedStart = CatalystVisualElapsedSeconds;
+	++CatalystImpactCount;
+	if (IsValid(ActiveCatalystProjectile))
+	{
+		ActiveCatalystProjectile->DestroyComponent();
+	}
+	ActiveCatalystProjectile = nullptr;
+	for (UStaticMeshComponent* Trail : ActiveCatalystTrailSparks)
+	{
+		if (IsValid(Trail)) Trail->DestroyComponent();
+	}
+	ActiveCatalystTrailSparks.Reset();
+	if (bCatalystVisualsDeferred)
+	{
+		bCatalystVisualsDeferred = false;
+		// One rebuild of the complete final state, at the moment of impact.
+		RefreshCombatOilSurfaceVisuals();
+	}
+
+	UMaterialInterface* Ring = CatalystRunePulseMaterial.LoadSynchronous();
+	if (!IsValid(Ring))
+	{
+		Ring = LoadObject<UMaterialInterface>(nullptr,
+			TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_RunePulse.M_SurfaceCatalyst_RunePulse"));
+	}
+	UMaterialInterface* Glow = CatalystEmberMaterial.LoadSynchronous();
+	if (!IsValid(Glow))
+	{
+		Glow = LoadObject<UMaterialInterface>(nullptr,
+			TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
+	}
+	UStaticMesh* Sphere = LoadObject<UStaticMesh>(nullptr,
+		TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	const FQuat Projection = FQuat::FindBetweenNormals(
+		-FVector::ForwardVector, -FVector::UpVector);
+	for (int32 Index = 0; Index < ActiveCatalystVisualCells.Num(); ++Index)
+	{
+		FGridCatalystVisualCell& Cell = ActiveCatalystVisualCells[Index];
+		const bool bPoison = Cell.Kind == EGridSurfaceCatalystVfxKind::PoisonBurst;
+		const bool bIce = Cell.Kind == EGridSurfaceCatalystVfxKind::IceMelt;
+		const bool bFizzle = Cell.Kind == EGridSurfaceCatalystVfxKind::Fizzle;
+		const FLinearColor Color = CatalystTint(Cell.Kind);
+		UDecalComponent* Pulse = nullptr;
+		UMaterialInstanceDynamic* PulseMID = nullptr;
+		if (IsValid(Ring))
+		{
+			Pulse = NewObject<UDecalComponent>(this);
+			Pulse->SetupAttachment(SceneRoot);
+			Pulse->SetMobility(EComponentMobility::Movable);
+			Pulse->DecalSize = FVector(48.f, CatalystVisualCellSize, CatalystVisualCellSize);
+			Pulse->SetRelativeLocation(Cell.Center);
+			Pulse->SetRelativeRotation(Projection);
+			Pulse->SetDecalMaterial(Ring);
+			Pulse->SetSortOrder(5);
+			Pulse->SetFadeScreenSize(0.f);
+			Pulse->RegisterComponent();
+			PulseMID = Pulse->CreateDynamicMaterialInstance();
+			if (IsValid(PulseMID))
+			{
+				PulseMID->SetVectorParameterValue(TEXT("CatalystGlowColor"), Color);
+				PulseMID->SetScalarParameterValue(TEXT("CatalystOpacity"), 0.f);
+			}
+			Pulse->SetRelativeScale3D(FVector(1.f, .05f, .05f));
+		}
+		ActiveCatalystCellPulses.Add(Pulse);
+		ActiveCatalystCellPulseMaterials.Add(PulseMID);
+		UPointLightComponent* Light = NewObject<UPointLightComponent>(this);
+		Light->SetupAttachment(SceneRoot);
+		Light->SetMobility(EComponentMobility::Movable);
+		Light->SetRelativeLocation(Cell.Center + FVector(0.f, 0.f, 38.f));
+		Light->SetLightColor(Color);
+		Light->SetIntensity(0.f);
+		Light->SetAttenuationRadius(CatalystVisualCellSize * (bPoison ? 2.2f : 1.35f));
+		Light->SetCastShadows(false);
+		Light->RegisterComponent();
+		ActiveCatalystCellLights.Add(Light);
+
+		Cell.FirstSpark = ActiveCatalystSparks.Num();
+		const int32 Count = bPoison ? 14 : (bIce ? 8 : (bFizzle ? 2 : 7));
+		if (IsValid(Sphere) && IsValid(Glow))
+		{
+			for (int32 SparkIndex = 0; SparkIndex < Count; ++SparkIndex)
+			{
+				UStaticMeshComponent* Spark = NewObject<UStaticMeshComponent>(this);
+				Spark->SetupAttachment(SceneRoot);
+				Spark->SetMobility(EComponentMobility::Movable);
+				Spark->SetStaticMesh(Sphere);
+				Spark->SetMaterial(0, Glow);
+				Spark->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				Spark->SetGenerateOverlapEvents(false);
+				Spark->SetCastShadow(false);
+				Spark->SetRelativeLocation(Cell.Center + FVector(0.f, 0.f, 16.f));
+				Spark->SetRelativeScale3D(FVector::ZeroVector);
+				Spark->RegisterComponent();
+				if (UMaterialInstanceDynamic* Dyn = Spark->CreateDynamicMaterialInstance(0))
+				{
+					Dyn->SetVectorParameterValue(TEXT("CatalystGlowColor"),
+						bPoison && SparkIndex % 3 == 0 ? FLinearColor(1.f, .24f, .016f) : Color);
+					Dyn->SetScalarParameterValue(TEXT("CatalystGlowStrength"), bFizzle ? .8f : 3.8f);
+				}
+				ActiveCatalystSparks.Add(Spark);
+			}
+		}
+		Cell.SparkCount = ActiveCatalystSparks.Num() - Cell.FirstSpark;
+	}
+	ActiveCatalystPulse = ActiveCatalystCellPulses.IsValidIndex(0) ?
+		ActiveCatalystCellPulses[0] : nullptr;
+	ActiveCatalystPulseMaterial = ActiveCatalystCellPulseMaterials.IsValidIndex(0) ?
+		ActiveCatalystCellPulseMaterials[0] : nullptr;
+	ActiveCatalystLight = ActiveCatalystCellLights.IsValidIndex(0) ?
+		ActiveCatalystCellLights[0] : nullptr;
+	UE_LOG(LogGridSurfaceRuntime, Verbose,
+		TEXT("[ARMEMENT01.17.3C] CatalystImpact Cells=%d Sparks=%d"),
+		ActiveCatalystVisualCells.Num(), ActiveCatalystSparks.Num());
 }
 
 void AGridLevelRuntimeActor::UpdateCatalystReactionVfx()
 {
 	CatalystVisualElapsedSeconds += CatalystVisualTickInterval;
-	const float T = FMath::Clamp(CatalystVisualElapsedSeconds/FMath::Max(.3f,CatalystPulseDurationSeconds),0.f,1.f);
-	if (T >= 1.f) { ClearCatalystReactionVfx(); return; }
-	const float Ease = 1.f-FMath::Pow(1.f-T,3.f);
-	const bool bPoison = CatalystVisualKind == EGridSurfaceCatalystVfxKind::PoisonBurst;
-	const bool bIce = CatalystVisualKind == EGridSurfaceCatalystVfxKind::IceMelt;
-	const bool bFizzle = CatalystVisualKind == EGridSurfaceCatalystVfxKind::Fizzle;
-	if (IsValid(ActiveCatalystPulse))
+	const float Flight = FMath::Max(.1f, CatalystFlightDurationSeconds);
+	if (!bCatalystImpactStarted)
 	{
-		const float S=FMath::Lerp(.12f,bPoison?1.5f:.95f,Ease);
-		ActiveCatalystPulse->SetRelativeScale3D(FVector(1.f,S,S));
+		if (IsValid(ActiveCatalystProjectile) && CatalystVisualElapsedSeconds < Flight)
+		{
+			const float Alpha = FMath::Clamp(CatalystVisualElapsedSeconds / Flight, 0.f, 1.f);
+			FVector Position = FMath::Lerp(CatalystFlightStart, CatalystFlightEnd, Alpha);
+			Position.Z += FMath::Sin(Alpha * PI) * 82.f;
+			ActiveCatalystProjectile->SetRelativeLocation(Position);
+			ActiveCatalystProjectile->SetRelativeRotation(
+				FRotator(Alpha * 380.f, Alpha * 470.f, Alpha * 250.f));
+			for (int32 Index = 0; Index < ActiveCatalystTrailSparks.Num(); ++Index)
+			{
+				UStaticMeshComponent* Trail = ActiveCatalystTrailSparks[Index];
+				if (!IsValid(Trail)) continue;
+				const float TrailAlpha = FMath::Max(0.f, Alpha - .045f * (Index + 1));
+				FVector TrailPos = FMath::Lerp(CatalystFlightStart, CatalystFlightEnd, TrailAlpha);
+				TrailPos.Z += FMath::Sin(TrailAlpha * PI) * 82.f;
+				Trail->SetRelativeLocation(TrailPos);
+				const float Scale = .038f * (1.f - static_cast<float>(Index) / 7.f) *
+					FMath::Clamp(Alpha * 5.f, 0.f, 1.f);
+				Trail->SetRelativeScale3D(FVector(Scale));
+			}
+			return;
+		}
+		BeginCatalystImpactVfx();
 	}
-	if (IsValid(ActiveCatalystPulseMaterial))
-		ActiveCatalystPulseMaterial->SetScalarParameterValue(TEXT("CatalystOpacity"),
-			(bFizzle?.35f:1.f)*FMath::Square(1.f-T));
-	if (IsValid(ActiveCatalystLight))
-		ActiveCatalystLight->SetIntensity((bFizzle?420.f:(bPoison?5200.f:2900.f))*FMath::Square(1.f-T));
-	const int32 Count=ActiveCatalystSparks.Num();
-	for (int32 I=0;I<Count;++I)
+	const float ImpactElapsed = FMath::Max(0.f,
+		CatalystVisualElapsedSeconds - CatalystImpactElapsedStart);
+	const float Duration = FMath::Max(.3f, CatalystPulseDurationSeconds);
+	const float MaxWave = FMath::Clamp(CatalystWaveDelayPerCellSeconds, 0.f, .3f);
+	if (ImpactElapsed >= Duration + MaxWave)
 	{
-		UStaticMeshComponent* Spark=ActiveCatalystSparks[I];
-		if (!IsValid(Spark)) continue;
-		const float Delay=.018f*(I%4);
-		const float Progress=FMath::Clamp((T-Delay)/(1.f-Delay),0.f,1.f);
-		const float Radius=CatalystVisualCellSize*(bPoison?.65f:(bIce?.26f:.38f));
-		const float Arc=4.f*Progress*(1.f-Progress);
-		Spark->SetRelativeLocation(CatalystVisualCenter+
-			CatalystDirection(I,Count)*Radius*Progress+
-			FVector(0.f,0.f,16.f+(bIce?36.f:(bPoison?115.f:75.f))*Arc));
-		const float Shrink=Progress>.7f?FMath::Clamp((1.f-Progress)/.3f,0.f,1.f):1.f;
-		const float S=(bPoison?.055f:.042f)*Shrink;
-		Spark->SetRelativeScale3D(FVector(S,S,S*(bIce?.65f:1.4f)));
+		ClearCatalystReactionVfx();
+		return;
+	}
+	for (int32 Index = 0; Index < ActiveCatalystVisualCells.Num(); ++Index)
+	{
+		const FGridCatalystVisualCell& Cell = ActiveCatalystVisualCells[Index];
+		const float Progress = FMath::Clamp((ImpactElapsed - Cell.WaveDelay) / Duration, 0.f, 1.f);
+		const float Ease = 1.f - FMath::Pow(1.f - Progress, 3.f);
+		const bool bPoison = Cell.Kind == EGridSurfaceCatalystVfxKind::PoisonBurst;
+		const bool bIce = Cell.Kind == EGridSurfaceCatalystVfxKind::IceMelt;
+		const bool bFizzle = Cell.Kind == EGridSurfaceCatalystVfxKind::Fizzle;
+		if (ActiveCatalystCellPulses.IsValidIndex(Index) &&
+			IsValid(ActiveCatalystCellPulses[Index]))
+		{
+			const float Scale = FMath::Lerp(.05f, bPoison ? 1.38f : .92f, Ease);
+			ActiveCatalystCellPulses[Index]->SetRelativeScale3D(FVector(1.f, Scale, Scale));
+		}
+		if (ActiveCatalystCellPulseMaterials.IsValidIndex(Index) &&
+			IsValid(ActiveCatalystCellPulseMaterials[Index]))
+		{
+			ActiveCatalystCellPulseMaterials[Index]->SetScalarParameterValue(
+				TEXT("CatalystOpacity"), (bFizzle ? .26f : 1.f) * FMath::Square(1.f - Progress));
+		}
+		if (ActiveCatalystCellLights.IsValidIndex(Index) &&
+			IsValid(ActiveCatalystCellLights[Index]))
+		{
+			ActiveCatalystCellLights[Index]->SetIntensity(
+				(bFizzle ? 350.f : (bPoison ? 5800.f : 2900.f)) *
+				FMath::Square(1.f - Progress));
+		}
+		for (int32 SparkIndex = 0; SparkIndex < Cell.SparkCount; ++SparkIndex)
+		{
+			UStaticMeshComponent* Spark = ActiveCatalystSparks[Cell.FirstSpark + SparkIndex];
+			if (!IsValid(Spark)) continue;
+			const float Delay = .018f * (SparkIndex % 4);
+			const float T = FMath::Clamp((Progress - Delay) / (1.f - Delay), 0.f, 1.f);
+			const float Radius = CatalystVisualCellSize * (bPoison ? .66f : (bIce ? .25f : .39f));
+			const float Arc = 4.f * T * (1.f - T);
+			Spark->SetRelativeLocation(Cell.Center +
+				CatalystDirection(SparkIndex, Cell.SparkCount) * Radius * T +
+				FVector(0.f, 0.f, 15.f + (bIce ? 31.f : (bPoison ? 120.f : 75.f)) * Arc));
+			const float Shrink = T > .7f ? FMath::Clamp((1.f - T) / .3f, 0.f, 1.f) : 1.f;
+			const float Scale = (bPoison ? .06f : .042f) * Shrink;
+			Spark->SetRelativeScale3D(FVector(Scale, Scale, Scale * (bIce ? .7f : 1.4f)));
+		}
 	}
 }
 
@@ -754,6 +1022,12 @@ void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 {
 	// Le vieillissement dépend de l'état, non du matériau de décalque.
 	RefreshExplorationOilTimer();
+	// A catalyst throw commits its C6 data once, but the player sees surfaces
+	// switch only at the bottle impact. Other gameplay readers see committed data.
+	if (bCatalystVisualsDeferred)
+	{
+		return;
+	}
 	// Oil decals and permanent Fire tongues are presentation derived from RPG03.6.
 	RefreshFireSurfaceVisuals();
 	RefreshWaterSurfaceVisuals();

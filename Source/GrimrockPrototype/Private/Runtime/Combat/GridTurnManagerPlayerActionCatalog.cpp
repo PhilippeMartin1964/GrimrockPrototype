@@ -1740,11 +1740,13 @@ bool UGridTurnManagerComponent::RequestExplorationCatalystActionAtCell(
 		OutResult.RejectReason = EGridCombatActionRequestRejectReason::QuickItemRejected;
 		return false;
 	}
+	RuntimeActor->BeginCatalystSurfaceVisualBatch();
 	const bool bCommitted = RuntimeActor->CommitCatalystAreaPlan(
 		Snapshot, Plan, Character.CharacterId, FreshDefinition.ActionId);
 	ensureMsgf(bCommitted, TEXT("Catalyst: a prevalidated game-thread area plan must commit."));
 	if (!bCommitted)
 	{
+		RuntimeActor->CancelCatalystSurfaceVisualBatch();
 		Inventory->PartyInventoryState = InventoryBefore;
 		Inventory->NotifyPartyInventoryChanged(Action.CharacterIndex);
 		OutResult.RejectReason = EGridCombatActionRequestRejectReason::InvalidTarget;
@@ -1752,18 +1754,9 @@ bool UGridTurnManagerComponent::RequestExplorationCatalystActionAtCell(
 	}
 
 	ApplyCatalystBurstDamage(Plan);
-	EGridCombatSurfaceType DisplayInput = EGridCombatSurfaceType::None;
-	FGridCombatSurfaceReactionResult DisplayReaction;
-	for (const FGridCatalystCellOutcome& Cell : Plan)
-	{
-		if (Cell.Reaction.bReacted)
-		{
-			DisplayInput = Cell.InputType;
-			DisplayReaction = Cell.Reaction;
-			break;
-		}
-	}
-	RuntimeActor->PlaySurfaceCatalystReactionAtCell(TargetCell.X, TargetCell.Y, DisplayInput, DisplayReaction);
+	// One flight, one impact and independent per-cell visual wave.
+	RuntimeActor->PlaySurfaceCatalystArea(
+		FIntPoint(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY), TargetCell, Plan);
 	FGridHudEventEntry Event;
 	Event.Category = EGridHudEventCategory::Combat;
 	Event.Semantic = EGridHudEventSemantic::Interaction;
@@ -2461,14 +2454,15 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	}
 
 	int32 OilFlaskAppliedCells = 0;
-	bool bCatalystReacted = false;
-	EGridCombatSurfaceType CatalystFirstInput = EGridCombatSurfaceType::None;
-	FGridCombatSurfaceReactionResult CatalystFirstReaction;
 	if (bSurfaceResolution && IsValid(RuntimeActor))
 	{
+		if (bCatalystArea)
+		{
+			RuntimeActor->BeginCatalystSurfaceVisualBatch();
+		}
 		auto ResolveSurfaceReactionAtCell =
 			[this, &Action, &Character, &ReactionActionInstanceId, &ResolvedModifiers,
-			 &bCatalystArea, &bCatalystReacted, &CatalystFirstInput, &CatalystFirstReaction, &CatalystPlan](
+			 &bCatalystArea, &CatalystPlan](
 				const FIntPoint& Cell,
 				EGridCombatSurfaceInteraction Interaction,
 				FGridCombatSurfaceReactionResult& OutAppliedReaction) -> bool
@@ -2510,7 +2504,6 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 						ReactionResponse.SurfaceReactionAreaRadiusModifier,
 					-8, 8);
 
-				const EGridCombatSurfaceType Before = ExistingSurface->SurfaceType;
 				const bool bApplied = RuntimeActor->InteractCombatSurfaceAtCell(
 					Cell.X, Cell.Y, Interaction, InteractionModifiers, OutAppliedReaction);
 				if (bApplied && bCatalystArea)
@@ -2526,12 +2519,6 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 					{
 						RuntimeActor->ConfigureCatalystFireAtCell(
 							Cell.X, Cell.Y, Character.CharacterId, Action.Definition.ActionId);
-					}
-					if (!bCatalystReacted)
-					{
-						bCatalystReacted = true;
-						CatalystFirstInput = Before;
-						CatalystFirstReaction = OutAppliedReaction;
 					}
 				}
 				return bApplied;
@@ -2634,11 +2621,12 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	{
 		ApplyCatalystBurstDamage(CatalystPlan);
 	}
-	// 17.3C will provide per-cell visual simultaneity and projectile impact.
+	// Resolve C6 and resource costs once; defer only its visuals until the
+	// authored projectile hits the target cell. Outcomes include dry Fizzle.
 	if (bCatalystArea && IsValid(RuntimeActor))
 	{
-		RuntimeActor->PlaySurfaceCatalystReactionAtCell(
-			Preview.TargetCell.X, Preview.TargetCell.Y, CatalystFirstInput, CatalystFirstReaction);
+		RuntimeActor->PlaySurfaceCatalystArea(
+			PartyCell, Preview.TargetCell, CatalystPlan);
 	}
 	// Un seul splash et une seule entrée Combat du flux d'événements par
 	// flasque effectivement consommée. Pas d'événement lors du ciblage ni

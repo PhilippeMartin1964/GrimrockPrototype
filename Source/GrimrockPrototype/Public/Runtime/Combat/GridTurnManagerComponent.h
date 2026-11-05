@@ -799,6 +799,7 @@ private:
 	void ResolveCombatSurfaceRound();
 
 	// RPG-SHIELD02.4A: test the real surface-round commitment without exposing it as a player API.
+	friend class FARMEMENT01172BCombatCatalyst;
 	friend class FGridShield024APhysicalEquipmentSurfaceTest;
 	friend class FGridShield024AMagicalSurfaceTest;
 	friend class FGridShield024AMagicalEquipmentSurfaceTest;

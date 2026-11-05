@@ -11,6 +11,7 @@
 #include "MaterialDomain.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatTypes.h"
+#include "Runtime/Combat/GridCatalystAreaResolver.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Save/GrimrockPartySaveGame.h"
 
@@ -395,4 +396,97 @@ bool FCatalystWetSurface::RunTest(const FString&)
 	TestEqual(TEXT("Wet decal removed at surface expiration"),Runtime->GetActiveWaterSurfaceDecalCount(),0);
 	return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCatalystAreaVfxWave,
+	"Grimrock.RPG.ARMEMENT01.17.3C.AreaFlightImpactAndCleanup",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FCatalystAreaVfxWave::RunTest(const FString&)
+{
+	ARMEMENT011714::FWorld Fixture;
+	AGridLevelRuntimeActor* Runtime = ARMEMENT011714::MakeRuntime(Fixture);
+	if (!TestNotNull(TEXT("Runtime ready"), Runtime)) return false;
+	if (!TestTrue(TEXT("Real oil surface"), ARMEMENT011714::Apply(
+		Runtime, 1, 1, EGridCombatSurfaceType::Oil, 3))) return false;
+	const int32 OilDecalBefore = Runtime->GetActiveOilDecalCount();
+	const int32 FirstImpactCount = Runtime->GetCatalystImpactCount();
+
+	TArray<FGridCatalystCellOutcome> Cells;
+	for (int32 Index = 0; Index < 4; ++Index)
+	{
+		FGridCatalystCellOutcome& Cell = Cells.AddDefaulted_GetRef();
+		Cell.Cell = Index == 0 ? FIntPoint(1, 1) :
+			(Index == 1 ? FIntPoint(2, 1) :
+				(Index == 2 ? FIntPoint(1, 2) : FIntPoint(0, 2)));
+		Cell.InputType = Index == 0 ? EGridCombatSurfaceType::Oil :
+			(Index == 1 ? EGridCombatSurfaceType::Poison :
+				(Index == 2 ? EGridCombatSurfaceType::Ice : EGridCombatSurfaceType::None));
+		Cell.Reaction.bReacted = Index < 3;
+		Cell.Reaction.bExplosive = Index == 1;
+		Cell.Reaction.OutputSurfaceType = Index == 2 ?
+			EGridCombatSurfaceType::Water : EGridCombatSurfaceType::Fire;
+	}
+	Runtime->BeginCatalystSurfaceVisualBatch();
+	FGridCombatSurfaceReactionResult Applied;
+	if (!TestTrue(TEXT("Logical Oil -> Fire accepted"), Runtime->InteractCombatSurfaceAtCell(
+			1, 1, EGridCombatSurfaceInteraction::Fire,
+			FGridResolvedCombatModifiers(), Applied)))
+	{
+		Runtime->CancelCatalystSurfaceVisualBatch();
+		return false;
+	}
+	TestEqual(TEXT("Old oil decal is held until impact"), Runtime->GetActiveOilDecalCount(), OilDecalBefore);
+	TestTrue(TEXT("Gameplay already committed once"),
+		Runtime->FindCombatSurfaceAtCell(1, 1) &&
+		Runtime->FindCombatSurfaceAtCell(1, 1)->SurfaceType == EGridCombatSurfaceType::Fire);
+	Runtime->PlaySurfaceCatalystArea(FIntPoint(0, 1), FIntPoint(1, 1), Cells);
+	TestEqual(TEXT("One bottle presentation for four distinct cells"),
+		Runtime->GetCatalystPresentationCount(), 1);
+	if (!TestEqual(TEXT("Artist-authored bottle visible in flight"),
+		Runtime->GetActiveCatalystProjectileCount(), 1)) return false;
+	TestTrue(TEXT("Fiery trail accompanies the bottle"),
+		Runtime->GetActiveCatalystTrailCount() > 0);
+	TestEqual(TEXT("No impact before arc is finished"),
+		Runtime->GetCatalystImpactCount(), FirstImpactCount);
+	TestEqual(TEXT("No local pulses before impact"), Runtime->GetActiveCatalystCellPulseCount(), 0);
+	for (int32 I = 0; I < 14; ++I) Runtime->UpdateCatalystReactionVfx();
+	TestEqual(TEXT("Exactly one impact"), Runtime->GetCatalystImpactCount(), FirstImpactCount + 1);
+	TestEqual(TEXT("Projectile disappears at the floor"), Runtime->GetActiveCatalystProjectileCount(), 0);
+	TestEqual(TEXT("Trail is removed at impact"), Runtime->GetActiveCatalystTrailCount(), 0);
+	TestEqual(TEXT("Four independent cell pulses include fizzle"), Runtime->GetActiveCatalystCellPulseCount(), 4);
+	TestTrue(TEXT("Local sparks are spawned"), Runtime->GetActiveCatalystSparkCount() > 10);
+	TestEqual(TEXT("Oil decal replaced after impact"), Runtime->GetActiveOilDecalCount(), 0);
+	TestTrue(TEXT("Fire C6 state is not changed by visual wave"),
+		Runtime->FindCombatSurfaceAtCell(1, 1) &&
+		Runtime->FindCombatSurfaceAtCell(1, 1)->SurfaceType == EGridCombatSurfaceType::Fire);
+	for (int32 I = 0; I < 45; ++I) Runtime->UpdateCatalystReactionVfx();
+	TestEqual(TEXT("All transient local pulse decals cleaned"), Runtime->GetActiveCatalystCellPulseCount(), 0);
+	TestEqual(TEXT("No temporary spark leaked"), Runtime->GetActiveCatalystSparkCount(), 0);
+	TestEqual(TEXT("No bottle mesh leaked"), Runtime->GetActiveCatalystProjectileCount(), 0);
+	TestNotNull(TEXT("Permanent Fire survives transient effect"), Runtime->FindCombatSurfaceAtCell(1, 1));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCatalystAreaVfxCancel,
+	"Grimrock.RPG.ARMEMENT01.17.3C.CancelPendingVisualBatch",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FCatalystAreaVfxCancel::RunTest(const FString&)
+{
+	ARMEMENT011714::FWorld Fixture;
+	AGridLevelRuntimeActor* Runtime = ARMEMENT011714::MakeRuntime(Fixture);
+	if (!TestNotNull(TEXT("Runtime ready"), Runtime)) return false;
+	if (!TestTrue(TEXT("Oil"), ARMEMENT011714::Apply(
+			Runtime, 1, 1, EGridCombatSurfaceType::Oil, 3))) return false;
+	Runtime->BeginCatalystSurfaceVisualBatch();
+	FGridCombatSurfaceReactionResult Reaction;
+	if (!TestTrue(TEXT("Reaction committed"), Runtime->InteractCombatSurfaceAtCell(
+			1, 1, EGridCombatSurfaceInteraction::Fire, FGridResolvedCombatModifiers(), Reaction)))
+		return false;
+	TestEqual(TEXT("Deferred old oil visual"), Runtime->GetActiveOilDecalCount(), 1);
+	Runtime->CancelCatalystSurfaceVisualBatch();
+	TestEqual(TEXT("Cancel restores current surface rendering"), Runtime->GetActiveOilDecalCount(), 0);
+	TestNotNull(TEXT("Cancel never undoes authoritative gameplay"), Runtime->FindCombatSurfaceAtCell(1, 1));
+	TestEqual(TEXT("No abandoned projectile"), Runtime->GetActiveCatalystProjectileCount(), 0);
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS
