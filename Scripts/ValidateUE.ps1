@@ -17,6 +17,26 @@ $EditorTarget = 'GrimrockPrototypeEditor'
 $Platform = 'Win64'
 $Configuration = 'Development'
 
+# VALIDATION-AUTO01.12: a private session stage with a fixed, public-safe
+# vocabulary. The stage file contains no paths, errors, or environment values.
+function Set-GrimrockValidationStage
+{
+    param(
+        [ValidateSet('PREFLIGHT', 'BUILD_STARTED', 'BUILD_FAILED', 'BUILD_OK',
+            'AUTOMATION_STARTED', 'AUTOMATION_PROCESS_EXITED',
+            'AUTOMATION_REPORT_MISSING', 'AUTOMATION_REPORT_READING',
+            'AUTOMATION_REPORT_OK', 'AUTOMATION_NO_TESTS',
+            'AUTOMATION_TESTS_FAILED', 'AUTOMATION_EXIT_NONZERO', 'SUCCESS')]
+        [string]$Stage
+    )
+    if ([string]::IsNullOrWhiteSpace($ReportRoot)) { return }
+    if (-not (Test-Path -LiteralPath $ReportRoot -PathType Container))
+    {
+        New-Item -ItemType Directory -Force -Path $ReportRoot | Out-Null
+    }
+    Set-Content -LiteralPath (Join-Path $ReportRoot 'Validation.stage') -Value $Stage -Encoding ASCII
+}
+
 function Resolve-GrimrockEngineRoot
 {
     param([string]$RequestedRoot)
@@ -64,6 +84,7 @@ function Invoke-GrimrockNativeStep
     $ExitCode = $LASTEXITCODE
     if ($ExitCode -ne 0)
     {
+        Set-GrimrockValidationStage -Stage 'BUILD_FAILED'
         throw "$Label a echoue avec le code $ExitCode."
     }
 }
@@ -151,6 +172,7 @@ if ($SkipBuild -and $SkipAutomation)
     throw 'Rien a valider : -SkipBuild et -SkipAutomation ne peuvent pas etre utilises ensemble.'
 }
 
+Set-GrimrockValidationStage -Stage 'PREFLIGHT'
 Assert-FileExists -Path $ProjectFile -Description 'Projet Unreal'
 
 $ResolvedEngineRoot = Resolve-GrimrockEngineRoot -RequestedRoot $EngineRoot
@@ -176,7 +198,9 @@ if (-not $SkipBuild)
         '-NoHotReloadFromIDE'
     )
 
+    Set-GrimrockValidationStage -Stage 'BUILD_STARTED'
     Invoke-GrimrockNativeStep -Label 'UE5.5.4 Development Editor build' -Executable $BuildBatch -Arguments $BuildArguments
+    Set-GrimrockValidationStage -Stage 'BUILD_OK'
     Write-Host '[OK] Development Editor build.'
 }
 
@@ -220,6 +244,7 @@ if (-not $SkipAutomation)
     }
 
     Write-Host ''
+    Set-GrimrockValidationStage -Stage 'AUTOMATION_STARTED'
     Write-Host '=== UE5.5.4 Automation ==='
     Write-Host "Filter      : $AutomationFilter"
     Write-Host "Report      : $SessionReportPath"
@@ -241,10 +266,19 @@ if (-not $SkipAutomation)
         $ConsoleLogForSummary = $AutomationConsolePath
     }
     $AutomationExitCode = $LASTEXITCODE
+    # Numerical and bounded Editor-Cmd exit code; no raw exception strings.
+    if (-not [string]::IsNullOrWhiteSpace($ReportRoot) -and
+        $AutomationExitCode -ge -2147483648 -and $AutomationExitCode -le 2147483647)
+    {
+        Set-Content -LiteralPath (Join-Path $ReportRoot 'Automation.exitcode') `
+            -Value ([string]$AutomationExitCode) -Encoding ASCII
+    }
+    Set-GrimrockValidationStage -Stage 'AUTOMATION_PROCESS_EXITED'
 
     $IndexJsonPath = Join-Path $SessionReportPath 'index.json'
     if (-not (Test-Path -LiteralPath $IndexJsonPath -PathType Leaf))
     {
+        Set-GrimrockValidationStage -Stage 'AUTOMATION_REPORT_MISSING'
         $FallbackLines = @(
             '=== Automation summary ===',
             "Filter                 : $AutomationFilter",
@@ -261,7 +295,9 @@ if (-not $SkipAutomation)
         throw "Rapport Automation index.json introuvable. Consultez : $AutomationSummaryPath"
     }
 
+    Set-GrimrockValidationStage -Stage 'AUTOMATION_REPORT_READING'
     $Report = Get-Content -LiteralPath $IndexJsonPath -Raw | ConvertFrom-Json
+    Set-GrimrockValidationStage -Stage 'AUTOMATION_REPORT_OK'
     $Succeeded = [int]$Report.succeeded
     $SucceededWithWarnings = [int]$Report.succeededWithWarnings
     $Failed = [int]$Report.failed
@@ -282,18 +318,21 @@ if (-not $SkipAutomation)
 
     if ($Executed -le 0)
     {
+        Set-GrimrockValidationStage -Stage 'AUTOMATION_NO_TESTS'
         Write-Error "Aucun test Automation n'a ete execute pour le filtre : $AutomationFilter. Resume : $AutomationSummaryPath"
         exit 2
     }
 
     if ($Failed -gt 0)
     {
+        Set-GrimrockValidationStage -Stage 'AUTOMATION_TESTS_FAILED'
         Write-Error "$Failed test(s) Automation en echec. Resume : $AutomationSummaryPath"
         exit 3
     }
 
     if ($AutomationExitCode -ne 0)
     {
+        Set-GrimrockValidationStage -Stage 'AUTOMATION_EXIT_NONZERO'
         Write-Error "UE5.5.4 Automation a retourne le code $AutomationExitCode sans test marque en echec. Resume : $AutomationSummaryPath"
         exit 4
     }
@@ -303,4 +342,5 @@ if (-not $SkipAutomation)
 
 Write-Host ''
 Write-Host 'TD04.2 validation completed successfully.'
+Set-GrimrockValidationStage -Stage 'SUCCESS'
 exit 0

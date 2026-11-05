@@ -172,3 +172,61 @@ la migration sans supprimer l'ancienne action.
 du Planificateur et son auto-test, pas une observation visuelle du bureau.
 L'instance déjà en cours lors du changement peut continuer avec l'ancien
 contexte. `UE5.5.4/LocalAuto` prouve séparément compilation + Automation.
+
+
+## VALIDATION-AUTO01.12 — Diagnostics déterministes des échecs UE (5 novembre 2026)
+
+Le commit `b24e80d8` de `ARMEMENT01.17.3C` a publié une issue de
+validation (code 1) **sans erreur C++ ni test identifié**. Cela ne
+prouve ni que les tests ont échoué ni que l’éditeur Unreal a démarré :
+les anciens diagnostics ne couvraient pas le linker, les phases
+pré-rapport ou les retours non nuls sans index Automation.
+
+Le harness `ValidateUE.ps1` consigne désormais dans le seul dossier
+privé de session `Automation/Validation.stage` une phase appartenant à
+une liste blanche : `PREFLIGHT`, `BUILD_STARTED`, `BUILD_OK`,
+`AUTOMATION_STARTED`, `AUTOMATION_PROCESS_EXITED`,
+`AUTOMATION_REPORT_MISSING`, `AUTOMATION_REPORT_READING`,
+`AUTOMATION_REPORT_OK`, `AUTOMATION_NO_TESTS`,
+`AUTOMATION_TESTS_FAILED`, `AUTOMATION_EXIT_NONZERO` ou `SUCCESS`.
+
+L’agent reporte exclusivement cette étiquette dans l’issue GitHub
+et reconnaît les codes linker `LNKxxxx`, les diagnostics C++ habituels,
+la catégorie `UHT_ERROR` et la catégorie `CRASH_OR_UNHANDLED_EXCEPTION`.
+Les journaux natifs, messages complets, chemins privés et traces mémoire
+ne quittent **jamais** le PC. Aucune application Unreal ni fenêtre
+supplémentaire n’est lancée.
+
+Une tentative de publication `failure` peut auparavant laisser le
+statut `LocalAuto` bloqué sur `pending` malgré une issue enregistrée.
+L’agent réalise désormais au maximum deux nouvelles tentatives de
+publication du **même statut**, après l’issue, sans réexécuter la suite.
+
+C’est une étape instrumentale : elle n’assimile pas le code 1 à un échec
+métiers, ne désactive aucun test et n’affecte aucun asset artistique.
+Le nouvel état doit être relu sur le SHA exact après exécution automatique.
+
+
+Le marqueur `BUILD_FAILED` est explicite lorsque Build.bat retourne un
+code non nul. Le processus `UnrealEditor-Cmd` enregistre également
+son code de sortie entier dans `Automation.exitcode`, conservé en local ;
+l'issue ne peut publier que la valeur numérique validée. Le statut
+`UE5.5.4/LocalAuto` distingue maintenant `BUILD` et `AUTOMATION`
+plutôt que de qualifier indistinctement toutes les erreurs de « TESTS ».
+
+
+### Rapport Automation absent : suivi contrôlé dans les logs
+
+Lorsque `UnrealEditor-Cmd.exe` termine sans `index.json`, l'agent
+recherche dans le journal privé les marqueurs officiels `Test Started`,
+`Test Completed` et `TEST COMPLETE. EXIT CODE`. Il publie, si
+présents, **uniquement** le dernier chemin de test correspondant à
+`Grimrock.[A-Za-z0-9_.]`, un état borné (SUCCESS/FAILED/ERROR/PASSED/ABORTED)
+et le code numérique de fin de suite. Il signale aussi les catégories
+`FATAL_OR_ASSERTION` et `ENSURE_CONDITION_FAILED`, mais jamais les
+lignes réelles, traces, messages d'exception ou chemins personnels.
+Cette collecte distingue un crash pendant un test d'un arrêt avant les
+tests. Elle ne réinterprète pas arbitrairement un retour 3 comme un
+échec de test.
+
+Documentation officielle : https://dev.epicgames.com/documentation/unreal-engine/review-test-results-in-unreal-engine

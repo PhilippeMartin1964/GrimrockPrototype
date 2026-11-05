@@ -70,14 +70,53 @@ function Get-PublicSafeDiagnostics {
                 if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
                 continue
             }
-            if ($Line -match '(?i)\berror\s+(?<code>C\d{4}|CS\d{4}|MSB\d{4})\b') {
-                $Record = 'Compilateur : ' + $Matches['code']
+            # Linker/UHT may fail without producing file(line) : error Cxxxx.
+            # Only known tool error codes and static categories may leave Windows.
+            if ($Line -match '(?i)\b(?:fatal\s+)?error\s+(?<code>C\d{4}|CS\d{4}|MSB\d{4}|LNK\d{4})\b') {
+                $Record = 'Compilateur : ' + $Matches['code'].ToUpperInvariant()
                 if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
+            }
+            if ($Line -match '(?i)\bUnrealHeaderTool\b' -and $Line -match '(?i)\berror\b') {
+                if (-not $Safe.Contains('Compilation : UHT_ERROR')) { $Safe.Add('Compilation : UHT_ERROR') }
+            }
+            if ($Line -match '(?i)EXCEPTION_ACCESS_VIOLATION|Unhandled Exception: EXCEPTION|Unhandled Exception: System.OutOfMemoryException') {
+                if (-not $Safe.Contains('Processus Unreal : CRASH_OR_UNHANDLED_EXCEPTION')) {
+                    $Safe.Add('Processus Unreal : CRASH_OR_UNHANDLED_EXCEPTION')
+                }
             }
             if ($Line -match '^\s*Failed\s*:\s*(\d{1,5})\s*$') {
                 $Record = 'Tests Automation en echec : ' + $Matches[1]
                 if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
             }
+        }
+    }
+    # Stage emitted by the exact same ValidateUE.ps1 invocation. Only the
+    # fixed allowlist is published; never expose the private stage file path.
+    $ValidationStage = Join-Path $ReportRoot 'Validation.stage'
+    if (Test-Path -LiteralPath $ValidationStage -PathType Leaf) {
+        $Stage = ([string](Get-Content -LiteralPath $ValidationStage -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
+        $KnownStages = @('PREFLIGHT','BUILD_STARTED','BUILD_FAILED','BUILD_OK',
+            'AUTOMATION_STARTED','AUTOMATION_PROCESS_EXITED',
+            'AUTOMATION_REPORT_MISSING','AUTOMATION_REPORT_READING',
+            'AUTOMATION_REPORT_OK','AUTOMATION_NO_TESTS',
+            'AUTOMATION_TESTS_FAILED','AUTOMATION_EXIT_NONZERO','SUCCESS')
+        if ($Stage -cin $KnownStages) {
+            $Safe.Add('Validation : phase ' + $Stage)
+        }
+        else {
+            $Safe.Add('Validation : phase UNKNOWN')
+        }
+    }
+    else {
+        $Safe.Add('Validation : phase NOT_RECORDED')
+    }
+    # An exact integer exit code is safe and distinguishes a missing report
+    # from a native Editor-Cmd termination. Reject any free-form contents.
+    $EditorExitCodePath = Join-Path $ReportRoot 'Automation.exitcode'
+    if (Test-Path -LiteralPath $EditorExitCodePath -PathType Leaf) {
+        $EditorExit = ([string](Get-Content -LiteralPath $EditorExitCodePath -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
+        if ($EditorExit -match '^-?\d{1,10}$') {
+            $Safe.Add('UnrealEditor-Cmd : sortie ' + $EditorExit)
         }
     }
     if (Test-Path -LiteralPath $ReportRoot -PathType Container) {
@@ -134,6 +173,58 @@ function Get-PublicSafeDiagnostics {
             } catch {
                 if (-not $Safe.Contains('Rapport UE illisible')) { $Safe.Add('Rapport UE illisible') }
             }
+        }
+    }
+    # UE can terminate without index.json (crash, abrupt Quit, worker abort).
+    # Read private editor logs but export ONLY whitelisted test paths and
+    # fixed state/categories, never raw text or local file paths.
+    if (Test-Path -LiteralPath $ReportRoot -PathType Container) {
+        $AutomationLogs = @(
+            Get-ChildItem -LiteralPath $ReportRoot -Filter 'Automation.log' -File -Recurse -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTimeUtc | Select-Object -Last 1
+        )
+        if ($AutomationLogs.Count -eq 0) {
+            $AutomationLogs = @(
+                Get-ChildItem -LiteralPath $ReportRoot -Filter 'Automation.console.log' -File -Recurse -ErrorAction SilentlyContinue |
+                    Sort-Object LastWriteTimeUtc | Select-Object -Last 1
+            )
+        }
+        if ($AutomationLogs.Count -gt 0) {
+            $Safe.Add('Automation : journal présent')
+            $LastStarted = ''
+            $LastFinished = ''
+            $LastFinishState = ''
+            $TestCompleteCode = ''
+            $bFatal = $false
+            $bUnrealEnsure = $false
+            $bAutomationCommandSeen = $false
+            foreach ($RawLine in @(Get-Content -LiteralPath $AutomationLogs[-1].FullName -Tail 12000 -ErrorAction SilentlyContinue)) {
+                $Line = [string]$RawLine
+                if ($Line -match '(?i)Automation RunTest') { $bAutomationCommandSeen = $true }
+                if ($Line -match '(?i)Fatal error:|Assertion failed:|Critical error:|EXCEPTION_ACCESS_VIOLATION|Unhandled Exception') {
+                    $bFatal = $true
+                }
+                if ($Line -match '(?i)Ensure condition failed:') { $bUnrealEnsure = $true }
+                $Started = [regex]::Match($Line, 'Test Started\.\s*Name=\{[^}]{1,128}\}\s*Path=\{(?<test>Grimrock\.[A-Za-z0-9_.]{1,180})\}')
+                if ($Started.Success) { $LastStarted = $Started.Groups['test'].Value }
+                $Finished = [regex]::Match($Line,
+                    'Test Completed\.\s*Result=\{(?<state>Success|Failed|Fail|Error|Passed|Aborted)\}.*?Path=\{(?<test>Grimrock\.[A-Za-z0-9_.]{1,180})\}')
+                if ($Finished.Success) {
+                    $LastFinished = $Finished.Groups['test'].Value
+                    $LastFinishState = $Finished.Groups['state'].Value.ToUpperInvariant()
+                }
+                $Completed = [regex]::Match($Line, '\*\*\*\* TEST COMPLETE\. EXIT CODE:\s*(?<code>\d{1,4})')
+                if ($Completed.Success) { $TestCompleteCode = $Completed.Groups['code'].Value }
+            }
+            if ($bAutomationCommandSeen) { $Safe.Add('Automation : commande détectée') }
+            if ($LastStarted) { $Safe.Add('Automation : dernier test démarré ' + $LastStarted) }
+            if ($LastFinished) { $Safe.Add('Automation : dernier test terminé ' + $LastFinished + ' / ' + $LastFinishState) }
+            if ($TestCompleteCode) { $Safe.Add('Automation : fin de suite code ' + $TestCompleteCode) }
+            if ($bFatal) { $Safe.Add('Unreal : FATAL_OR_ASSERTION') }
+            if ($bUnrealEnsure) { $Safe.Add('Unreal : ENSURE_CONDITION_FAILED') }
+        }
+        else {
+            $Safe.Add('Automation : journal absent')
         }
     }
     # Suivi de la création des deux seuls matériaux Unreal autorisés.
@@ -375,6 +466,7 @@ try {
     $Result = 'infrastructure_error'
     $Phase = 'setup'
     $ExitCode = -1
+    $FailureStatusPublished = $false
     $ReportRoot = Join-Path $RunDir 'Automation'
 
     try {
@@ -562,8 +654,21 @@ try {
         $RunError = $_.Exception.Message
         if ($Phase -eq 'publication') { $Result = 'infrastructure_error' }
         Write-Warning "[VALIDATION-AUTO01] ECHEC ($Phase) $Sha : $RunError"
-        $PublicCause = if ($Phase -eq 'setup') { Get-PublicSetupCode -Message $RunError } else { 'TESTS' }
-        try { Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec $Phase/$PublicCause ($AutomationFilter)." }
+        $PublicCause = if ($Phase -eq 'setup') {
+            Get-PublicSetupCode -Message $RunError
+        } else {
+            $StageFile = Join-Path $ReportRoot 'Validation.stage'
+            $StageCode = if (Test-Path -LiteralPath $StageFile -PathType Leaf) {
+                ([string](Get-Content -LiteralPath $StageFile -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
+            } else { '' }
+            if ($StageCode -in @('BUILD_STARTED','BUILD_FAILED')) { 'BUILD' }
+            elseif ($StageCode -like 'AUTOMATION_*') { 'AUTOMATION' }
+            else { 'TESTS' }
+        }
+        try {
+            Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec $Phase/$PublicCause ($AutomationFilter)."
+            $FailureStatusPublished = $true
+        }
         catch { Write-Warning "Impossible de publier le statut d'echec : $($_.Exception.Message)" }
         # Les incidents de recuperation Git/LFS restent reessayables au cycle suivant.
         # Une erreur de compilation/test est definitive pour ce SHA, sans issues multiples.
@@ -666,6 +771,22 @@ try {
             }
             try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
             catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
+        }
+        # A failure issue can succeed even when the first commit-status POST
+        # failed transiently. Retry the *same failure result* after reporting.
+        # No new worktree actions, builds or duplicate issues are triggered.
+        if ($Result -eq 'failure' -and -not $FailureStatusPublished) {
+            for ($Retry = 0; $Retry -lt 2; $Retry++) {
+                Start-Sleep -Seconds 2
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec $Phase/$PublicCause ($AutomationFilter)."
+                    $FailureStatusPublished = $true
+                    break
+                }
+                catch {
+                    Write-Warning '[VALIDATION-AUTO01.12] GitHub failure status retry failed.'
+                }
+            }
         }
     }
     finally {
