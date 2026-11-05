@@ -318,6 +318,16 @@ function Get-PublicSafeDiagnostics {
             $Safe.Add('Catalyseur VFX : phase ' + $VStage)
         }
     }
+    # 17.3D diagnostics: bounded stage tokens, no private log content.
+    $NativeStagePath = Join-Path (Split-Path -Parent $RunLogPath) 'CatalystNative.stage'
+    if (Test-Path -LiteralPath $NativeStagePath -PathType Leaf) {
+        $NativeStage = ([string](Get-Content -LiteralPath $NativeStagePath -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
+        if ($NativeStage -cin @('PREFLIGHT','REPORT_REJECTED','REPORT_ACCEPTED','BACKUP_VERIFIED',
+            'COMMANDLET_STARTED','COMMANDLET_FAILED','COMMANDLET_COMPLETED',
+            'FILESET','ASSET_VERIFIED','MASTER_MOVED','COMMIT_CREATED','SUCCESS')) {
+            $Safe.Add('Catalyseur DataAsset : phase ' + $NativeStage)
+        }
+    }
     if ($Safe.Count -eq 0) {
         $Safe.Add('Pas de diagnostic public fiable ; seuls les journaux locaux sont exhaustifs.')
     }
@@ -768,6 +778,28 @@ try {
                     Write-Warning 'Catalyst visual authoring unavailable; private logs only.'
                 }
                 }
+            }
+
+            # ARMEMENT01.17.3D: migrate only one existing artist DataAsset when
+            # the serialized-contract test specifically fails (strict helper).
+            $NativeHelper = Join-Path $WorktreePath 'Scripts\MigrateSurfaceCatalystNativeData.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and
+                (Test-Path -LiteralPath $NativeHelper -PathType Leaf)) {
+                try {
+                    $NativeOut = Join-Path $RunDir 'CatalystNativeMigration.stdout.log'
+                    $NativeErr = Join-Path $RunDir 'CatalystNativeMigration.stderr.log'
+                    $NativeArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $NativeHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $NativeProcess = Start-Process -FilePath $PsExe -ArgumentList $NativeArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $NativeOut -RedirectStandardError $NativeErr -PassThru -Wait -ErrorAction Stop
+                    if ($NativeProcess.ExitCode -eq 0) {
+                        Write-Host '[ARMEMENT01.17.3D] Native catalyst migrated; next commit receives full validation.'
+                    }
+                    elseif ($NativeProcess.ExitCode -ne 2) {
+                        Write-Warning '[ARMEMENT01.17.3D] Native migration stopped; private logs only.'
+                    }
+                }
+                catch { Write-Warning '[ARMEMENT01.17.3D] Native helper unavailable; private logs only.' }
             }
             try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
             catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }

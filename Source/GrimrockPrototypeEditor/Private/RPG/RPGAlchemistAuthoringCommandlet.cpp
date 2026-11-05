@@ -39,6 +39,17 @@ int32 URPGAlchemistAuthoringCommandlet::Main(const FString& Params)
 		return 0;
 	}
 
+	if (FParse::Param(*Params, TEXT("UpgradeSurfaceCatalystNative")))
+	{
+		if (!FRPGStartingSurfaceCatalystAuthoring::UpgradeExistingProduction(
+			FParse::Param(*Params, TEXT("Apply")), Error))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.17.3D] DataAsset migration failed: %s"), *Error);
+			return 1;
+		}
+		return 0;
+	}
+
 	if (FParse::Param(*Params, TEXT("SurfaceCatalystVisuals")))
 	{
 		if (!FRPGSurfaceCatalystVisualAuthoring::Run(FParse::Param(*Params, TEXT("Apply")), Error))

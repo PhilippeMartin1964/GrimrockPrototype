@@ -59,4 +59,19 @@ bool FARMEMENT01172CatalystProductionAsset::RunTest(const FString&)
 	return TestTrue(TEXT("Native DataAsset matches the approved N1 catalyst"),
 		FRPGStartingSurfaceCatalystAuthoring::Matches(*Item));
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01173DSerializedCatalyst,
+	"Grimrock.RPG.ARMEMENT01.17.3D.SerializedCatalystContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FARMEMENT01173DSerializedCatalyst::RunTest(const FString&)
+{
+	const UGridItemDefinitionAsset* Item = LoadObject<UGridItemDefinitionAsset>(
+		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_SurfaceCatalyst_01.DA_Item_SurfaceCatalyst_01"));
+	if (!TestNotNull(TEXT("Approved artist catalyst exists"), Item))
+	{
+		return false;
+	}
+	return TestTrue(TEXT("Native serialized C6 square-area action, artist mesh/icon and exclusive LiquidSparkle policy"),
+		FRPGStartingSurfaceCatalystAuthoring::MatchesSerializedProduction(*Item));
+}
+
 #endif

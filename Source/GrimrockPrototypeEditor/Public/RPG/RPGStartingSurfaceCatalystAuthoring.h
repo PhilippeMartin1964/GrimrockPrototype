@@ -16,5 +16,9 @@ public:
 
 	static void Configure(UGridItemDefinitionAsset& Item);
 	static bool Matches(const UGridItemDefinitionAsset& Item);
+	/** Raw production fields must match without depending on the runtime projection bridge. */
+	static bool MatchesSerializedProduction(const UGridItemDefinitionAsset& Item);
+	/** Idempotent, narrowly scoped migration of an existing artist-owned DataAsset. */
+	static bool UpgradeExistingProduction(bool bApply, FString& OutError);
 	static bool Run(bool bApply, FString& OutError);
 };
