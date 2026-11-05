@@ -88,7 +88,9 @@ bool FARMEMENT01173AMixedSurfaceSnapshot::RunTest(const FString&)
 	TestTrue(TEXT("Last oil is independently ignited"), Results[8].Reaction.bReacted);
 	TestEqual(TEXT("Original snapshots were not mutated"), Source[0].Surface.SurfaceType, EGridCombatSurfaceType::Oil);
 
-	Source.Add(Source[0]);
+	// Copy before Add: TArray forbids aliasing an element of its own storage.
+	const FGridCatalystCellSnapshot Duplicate = Source[0];
+	Source.Add(Duplicate);
 	TestFalse(TEXT("Duplicate cell causes failure before item consumption"),
 		FGridCatalystAreaResolver::ResolveSnapshot(
 			Source, EGridCombatSurfaceInteraction::Fire, Modifiers, Results));

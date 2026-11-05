@@ -49,3 +49,13 @@ Base : d7b8fdc0 (assets artistiques approuvés). Aucun asset binaire modifié.
 
 Validation : UE5.5.4/LocalAuto sur le SHA exact, suite complète Grimrock.
 Le statut headless -NullRHI ne valide pas le rendu graphique en PIE.
+
+## ARMEMENT01.17.3A.1 — Correction d'assertion du test (5 novembre 2026)
+
+- Base : `4f62792a`, incident de validation UE5.5.4 [#43](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/43).
+- Le test `MixedSurfaceSnapshot` ajoutait `Source[0]` directement à `Source`,
+  ce qui viole la règle `TArray::CheckAddress` et peut interrompre l'éditeur.
+- Copie du snapshot dans une variable locale avant `Add` ; le test conserve
+  sa vérification de rejet des cellules dupliquées et de sortie vide.
+- Aucun changement aux règles C6, au runtime, aux assets ni aux sauvegardes.
+- Validation requise : `UE5.5.4/LocalAuto` sur le nouveau SHA puis recette PIE/RHI séparée.
