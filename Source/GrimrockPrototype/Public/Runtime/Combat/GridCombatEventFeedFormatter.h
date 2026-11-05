@@ -11,6 +11,13 @@ public:
 	/** Returns false for combat-log entries intentionally excluded from the Event Feed. */
 	static bool BuildEntry(const FGridCombatLogEntry& CombatEntry, FGridHudEventEntry& OutEntry);
 
+	/** A single player-visible event after one successful catalyst consumption. */
+	static FGridHudEventEntry MakeCatalystLaunch(const FText& CharacterName, int32 AffectedCellCount);
+
+	/** Pure projection of actually applied fire damage (HP/armor), no fabricated dice. */
+	static bool BuildSurfaceDamage(const FText& TargetName, const FGridAttackResult& Damage,
+		FName SourceActionId, bool bPoisonBurst, FGridHudEventEntry& OutEntry);
+
 	/** One-to-one semantic mapping for every runtime damage type. */
 	static EGridHudEventSemantic ResolveDamageSemantic(EGridDamageType DamageType);
 

@@ -883,8 +883,12 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 	UStaticMesh* Sphere=LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	UMaterialInterface* Glow=LoadObject<UMaterialInterface>(nullptr,
 		TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
-	UNiagaraSystem* FlameSystem=LoadObject<UNiagaraSystem>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch.NS_Flame_8_Torch"));
+	UNiagaraSystem* FlameSystem = FireSurfaceNiagaraSystem.LoadSynchronous();
+	if (!IsValid(FlameSystem))
+	{
+		FlameSystem = LoadObject<UNiagaraSystem>(nullptr,
+			TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch.NS_Flame_8_Torch"));
+	}
 	if (!IsValid(FlameSystem) && (!IsValid(Sphere) || !IsValid(Glow))) return;
 	TArray<FIntPoint> Cells;
 	for (const TPair<FIntPoint,FGridCombatSurfaceState>& Entry : State->Surfaces)
@@ -908,7 +912,7 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 			FlameFx->SetupAttachment(SceneRoot);
 			FlameFx->SetAsset(FlameSystem);
 			FlameFx->SetRelativeLocation(Center+FVector(0.f,0.f,4.f));
-			FlameFx->SetRelativeScale3D(FVector(.38f));
+			FlameFx->SetRelativeScale3D(FVector(FMath::Clamp(FireSurfaceNiagaraScale, .01f, 5.f)));
 			FlameFx->RegisterComponent();
 			FlameFx->Activate(true);
 			ActiveFireNiagaraComponents.Add(FlameFx);
@@ -942,7 +946,7 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 			Light->SetMobility(EComponentMobility::Movable);
 			Light->SetRelativeLocation(Center+FVector(0.f,0.f,45.f));
 			Light->SetLightColor(FLinearColor(1.f,.3f,.06f));
-			Light->SetIntensity(650.f);
+			Light->SetIntensity(FMath::Clamp(FireSurfaceLightIntensity, 0.f, 50000.f));
 			Light->SetAttenuationRadius(Size*1.2f);
 			Light->SetCastShadows(false);
 			Light->RegisterComponent();

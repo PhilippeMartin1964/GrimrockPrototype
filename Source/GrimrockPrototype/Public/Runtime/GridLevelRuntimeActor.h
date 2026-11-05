@@ -34,6 +34,7 @@ class UDecalComponent;
 class UStaticMeshComponent;
 class UPointLightComponent;
 class UNiagaraComponent;
+class UNiagaraSystem;
 class UReadableMessageWidget;
 class UUserWidget;
 struct FGridResolvedCombatModifiers;
@@ -222,7 +223,20 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UPointLightComponent>> ActiveFireSurfaceLights;
 
-	/** Use the existing native torch flame Niagara for persistent fire, not round bubbles. */
+	/** Editor-selectable persistent floor fire. Unset retains the legacy torch fallback. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Fire|VFX")
+	TSoftObjectPtr<UNiagaraSystem> FireSurfaceNiagaraSystem;
+
+	/** World-scale multiplier for an authored full-cell Niagara fire system. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Fire|VFX",
+		meta=(ClampMin="0.01", ClampMax="5.0"))
+	float FireSurfaceNiagaraScale = 0.38f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Fire|VFX",
+		meta=(ClampMin="0.0", ClampMax="50000.0"))
+	float FireSurfaceLightIntensity = 650.f;
+
+	/** Legacy torch fallback is used only when no dedicated floor Niagara was selected. */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UNiagaraComponent>> ActiveFireNiagaraComponents;
 

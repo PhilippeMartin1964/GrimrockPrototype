@@ -22,6 +22,7 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatMovementResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridCombatEventFeedFormatter.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
 #include "Runtime/Combat/GridCatalystAreaResolver.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
@@ -1757,15 +1758,9 @@ bool UGridTurnManagerComponent::RequestExplorationCatalystActionAtCell(
 	// One flight, one impact and independent per-cell visual wave.
 	RuntimeActor->PlaySurfaceCatalystArea(
 		FIntPoint(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY), TargetCell, Plan);
-	FGridHudEventEntry Event;
-	Event.Category = EGridHudEventCategory::Combat;
-	Event.Semantic = EGridHudEventSemantic::Interaction;
-	Event.Visibility = EGridEventVisibility::Always;
-	Event.EventCode = TEXT("Combat.Surface.CatalystZone");
-	Event.SourceId = FreshDefinition.ActionId;
-	Event.Message = NSLOCTEXT("GrimrockCatalyst", "CatalystZoneExploration",
-		"Le catalyseur de surface se brise et déclenche une impulsion alchimique.");
-	GridEventFeedPublisher::PublishEvent(this, Event);
+	GridEventFeedPublisher::PublishEvent(this,
+		FGridCombatEventFeedFormatter::MakeCatalystLaunch(
+			ResolveCharacterDisplayName(Action.CharacterIndex), Plan.Num()));
 
 	OutResult.bAccepted = true;
 	OutResult.RejectReason = EGridCombatActionRequestRejectReason::None;
@@ -2627,6 +2622,14 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	{
 		RuntimeActor->PlaySurfaceCatalystArea(
 			PartyCell, Preview.TargetCell, CatalystPlan);
+	}
+	// Combat/exploration share the same catalyst event; a combat throw gets exactly
+	// one entry after the cost and C6 reaction are committed (never during targeting).
+	if (bCatalystArea)
+	{
+		GridEventFeedPublisher::PublishEvent(this,
+			FGridCombatEventFeedFormatter::MakeCatalystLaunch(
+				ResolveCharacterDisplayName(Action.CharacterIndex), CatalystPlan.Num()));
 	}
 	// Un seul splash et une seule entrée Combat du flux d'événements par
 	// flasque effectivement consommée. Pas d'événement lors du ciblage ni

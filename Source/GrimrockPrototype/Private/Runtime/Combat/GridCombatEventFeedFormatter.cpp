@@ -622,4 +622,62 @@ bool FGridCombatEventFeedFormatter::BuildEntry(
 	return !OutEntry.EventCode.IsNone();
 }
 
+
+FGridHudEventEntry FGridCombatEventFeedFormatter::MakeCatalystLaunch(
+	const FText& CharacterName, int32 AffectedCellCount)
+{
+	FGridHudEventEntry Entry;
+	Entry.Category = EGridHudEventCategory::Combat;
+	Entry.Semantic = EGridHudEventSemantic::Interaction;
+	Entry.Visibility = EGridEventVisibility::Always;
+	Entry.EventCode = TEXT("Combat.Surface.CatalystZone");
+	Entry.SourceId = TEXT("Action_Mage_SurfaceCatalyst_01");
+	const FText Pattern = AffectedCellCount == 1
+		? LOCTEXT("CatalystLaunchOne", "{0} lance un catalyseur de surface : une onde alchimique parcourt une case.")
+		: LOCTEXT("CatalystLaunchMany", "{0} lance un catalyseur de surface : une onde alchimique parcourt {1} cases.");
+	Entry.Message = FText::Format(
+		Pattern, CharacterName, FText::AsNumber(FMath::Max(0, AffectedCellCount)));
+	return Entry;
+}
+
+bool FGridCombatEventFeedFormatter::BuildSurfaceDamage(
+	const FText& TargetName, const FGridAttackResult& Damage,
+	FName SourceActionId, bool bPoisonBurst, FGridHudEventEntry& OutEntry)
+{
+	OutEntry = FGridHudEventEntry();
+	const int32 TotalAbsorbed = Damage.PhysicalArmorDamage + Damage.MagicalArmorDamage;
+	if (!Damage.bHit || (Damage.HealthDamage <= 0 && TotalAbsorbed <= 0))
+	{
+		return false; // No invented damage, even for a visual explosion or zero-damage fire.
+	}
+	OutEntry.Category = EGridHudEventCategory::Combat;
+	OutEntry.Semantic = EGridHudEventSemantic::Fire;
+	OutEntry.Visibility = EGridEventVisibility::Always;
+	OutEntry.EventCode = bPoisonBurst
+		? FName(TEXT("Combat.Surface.CatalystBurstDamage"))
+		: FName(TEXT("Combat.Surface.FireDamage"));
+	OutEntry.SourceId = SourceActionId;
+	OutEntry.Header = bPoisonBurst
+		? FText::Format(LOCTEXT("CatalystBurstHeader", "Explosion alchimique : {0}"), TargetName)
+		: FText::Format(LOCTEXT("SurfaceFireHeader", "Feu au sol : {0}"), TargetName);
+	OutEntry.Message = FText::Format(
+		LOCTEXT("SurfaceFireHit", "{0} dégâts aux PV ; PV : {1} → {2}."),
+		FText::AsNumber(Damage.HealthDamage),
+		FText::AsNumber(Damage.TargetHealthBefore),
+		FText::AsNumber(Damage.TargetHealthAfter));
+	if (Damage.MagicalArmorDamage > 0)
+	{
+		OutEntry.Details.Add(FText::Format(
+			LOCTEXT("SurfaceMagicArmor", "Armure magique absorbée : {0}"),
+			FText::AsNumber(Damage.MagicalArmorDamage)));
+	}
+	if (Damage.PhysicalArmorDamage > 0)
+	{
+		OutEntry.Details.Add(FText::Format(
+			LOCTEXT("SurfacePhysicalArmor", "Armure physique absorbée : {0}"),
+			FText::AsNumber(Damage.PhysicalArmorDamage)));
+	}
+	return true;
+}
+
 #undef LOCTEXT_NAMESPACE

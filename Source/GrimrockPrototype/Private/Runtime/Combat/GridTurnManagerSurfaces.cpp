@@ -3,9 +3,11 @@
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridCombatEventFeedFormatter.h"
 #include "Runtime/Combat/GridCatalystAreaResolver.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -78,6 +80,13 @@ void UGridTurnManagerComponent::ApplyCatalystBurstDamage(
 				const FGridAttackResult Damage = FGridCombatResolver::ResolveDirectDamage(
 					TargetBefore, EGridDamageType::Fire, Raw);
 				Monster->ApplyAttackResult(Damage);
+				FGridHudEventEntry BurstEvent;
+				if (FGridCombatEventFeedFormatter::BuildSurfaceDamage(
+					ResolveMonsterDisplayName(Monster), Damage,
+					FName(TEXT("Action_Mage_SurfaceCatalyst_01")), true, BurstEvent))
+				{
+					GridEventFeedPublisher::PublishEvent(this, BurstEvent);
+				}
 				UE_LOG(LogGridTurnManager, Log,
 					TEXT("[ARMEMENT01.17.3B] PoisonBurst Monster=%s Cell=(%d,%d) Raw=%d HP=%d->%d"),
 					*GetNameSafe(Monster), Outcome.Cell.X, Outcome.Cell.Y,
@@ -125,6 +134,13 @@ void UGridTurnManagerComponent::ApplyCatalystBurstDamage(
 				Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - Damage.HealthDamage);
 			}
 			Inventory->NotifyPartyInventoryChanged(CharacterIndex);
+			FGridHudEventEntry BurstEvent;
+			if (FGridCombatEventFeedFormatter::BuildSurfaceDamage(
+					ResolveCharacterDisplayName(CharacterIndex), Damage,
+					FName(TEXT("Action_Mage_SurfaceCatalyst_01")), true, BurstEvent))
+			{
+				GridEventFeedPublisher::PublishEvent(this, BurstEvent);
+			}
 		}
 	}
 }
@@ -199,6 +215,16 @@ void UGridTurnManagerComponent::ResolveSurfaceDamageTick()
 						Surface->SourceCombatantId, TargetBefore, &Damage);
 				}
 				Inventory->NotifyPartyInventoryChanged(CharacterIndex);
+				if (Surface->SurfaceType == EGridCombatSurfaceType::Fire)
+				{
+					FGridHudEventEntry FireEvent;
+					if (FGridCombatEventFeedFormatter::BuildSurfaceDamage(
+						ResolveCharacterDisplayName(CharacterIndex), Damage,
+						Surface->SourceActionId, false, FireEvent))
+					{
+						GridEventFeedPublisher::PublishEvent(this, FireEvent);
+					}
+				}
 				UE_LOG(LogGridTurnManager, Log,
 					TEXT("[RPG03.6] SurfaceTick Target=Party Character=%d Cell=(%d,%d) Type=%s Raw=%d HP=%d->%d"),
 					CharacterIndex, PartyCell.X, PartyCell.Y, *UEnum::GetValueAsString(Surface->SurfaceType),
@@ -258,6 +284,16 @@ void UGridTurnManagerComponent::ResolveSurfaceDamageTick()
 		FGridAttackResult Damage =
 			FGridCombatResolver::ResolveDirectDamage(TargetBefore, Surface->PeriodicDamageType, Surface->PeriodicDamagePerRound);
 		Monster->ApplyAttackResult(Damage);
+		if (Surface->SurfaceType == EGridCombatSurfaceType::Fire)
+		{
+			FGridHudEventEntry FireEvent;
+			if (FGridCombatEventFeedFormatter::BuildSurfaceDamage(
+					ResolveMonsterDisplayName(Monster), Damage,
+					Surface->SourceActionId, false, FireEvent))
+			{
+				GridEventFeedPublisher::PublishEvent(this, FireEvent);
+			}
+		}
 		if (StatusLifecycle && !Surface->PeriodicStatusApplications.IsEmpty() && !Monster->IsDead())
 		{
 			StatusLifecycle->ApplyCombatStatusApplicationsToMonster(
