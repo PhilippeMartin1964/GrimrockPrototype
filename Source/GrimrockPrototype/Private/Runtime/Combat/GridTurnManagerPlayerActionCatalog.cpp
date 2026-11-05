@@ -1618,6 +1618,176 @@ bool UGridTurnManagerComponent::BuildCombatActionTargetingPreview(int32 Characte
 }
 
 
+bool UGridTurnManagerComponent::IsExplorationCatalystAction(const FGridCombatActionDefinition& Definition)
+{
+	return FGridCatalystAreaResolver::IsApprovedAction(Definition) &&
+		Definition.bUsableDuringExploration &&
+		Definition.ResourceCosts.SourceItemQuantityCost == 1 &&
+		Definition.ResourceCosts.ManaCost == 0 &&
+		Definition.SurfaceEffects.IsEmpty() && Definition.SurfaceConversions.IsEmpty() &&
+		Definition.StatusApplications.IsEmpty() && Definition.StatusRemovals.IsEmpty() &&
+		Definition.ArmorEffects.IsEmpty() && Definition.MovementEffects.IsEmpty() &&
+		!Definition.TrapEffect.bPlaceTrap && !Definition.bRelocatePartyToTargetCell;
+}
+
+bool UGridTurnManagerComponent::BuildExplorationCatalystTargetingPreview(
+	const FGridAvailableCombatAction& Action, FIntPoint TargetCell,
+	FGridCombatActionTargetingPreview& OutPreview) const
+{
+	OutPreview = FGridCombatActionTargetingPreview();
+	OutPreview.TargetCell = TargetCell;
+	OutPreview.Action = Action;
+	if (bCombatActive || !IsValid(RuntimeActor) || !IsValid(PartyPawn) ||
+		!IsExplorationCatalystAction(Action.Definition) || !Action.bEnabled || !Action.IsValid() ||
+		!IsValid(PartyPawn->PartyInventoryComponent) ||
+		!PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex) ||
+		PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[Action.CharacterIndex].CharacterId != Action.CharacterId)
+	{
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.ActionUnavailable"));
+		return false;
+	}
+	return BuildTargetingPreviewForAction(Action, TargetCell, OutPreview);
+}
+
+bool UGridTurnManagerComponent::RequestExplorationCatalystActionAtCell(
+	const FGridAvailableCombatAction& Action, FIntPoint TargetCell,
+	FGridCombatActionRequestResult& OutResult)
+{
+	OutResult = FGridCombatActionRequestResult();
+	OutResult.Action = Action;
+	UGridPartyInventoryComponent* Inventory = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
+	if (bCombatActive || !IsValid(RuntimeActor) || !IsValid(Inventory) ||
+		!Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex) ||
+		!FGridCatalystAreaResolver::IsApprovedItem(Action.SourceDefinitionId, Action.Definition.ActionId) ||
+		!IsExplorationCatalystAction(Action.Definition))
+	{
+		OutResult.RejectReason = EGridCombatActionRequestRejectReason::ActionUnavailable;
+		return false;
+	}
+
+	// Re-read the EXACT owned item; never trust the HUD's cached definition.
+	const UGridItemDefinitionAsset* Item = Inventory->FindItemDefinition(Action.SourceDefinitionId);
+	FGridCombatActionDefinition FreshDefinition;
+	const FGridCharacterInventoryState& Character =
+		Inventory->PartyInventoryState.ActiveCharacters[Action.CharacterIndex];
+	if (!IsValid(Item) || !Item->BuildQuickItemCombatActionDefinition(FreshDefinition) ||
+		!FGridCatalystAreaResolver::IsApprovedItem(Action.SourceDefinitionId, FreshDefinition.ActionId) ||
+		!IsExplorationCatalystAction(FreshDefinition) ||
+		FreshDefinition.ActionId != Action.Definition.ActionId ||
+		Character.CharacterId != Action.CharacterId || Character.Resources.CurrentHealth <= 0)
+	{
+		OutResult.RejectReason = EGridCombatActionRequestRejectReason::QuickItemRejected;
+		return false;
+	}
+	const int32 QuantityBefore =
+		Inventory->CountItemDefinitionInCharacterInventory(Action.CharacterIndex, Action.SourceDefinitionId);
+	if (QuantityBefore < 1)
+	{
+		OutResult.RejectReason = EGridCombatActionRequestRejectReason::QuickItemRejected;
+		return false;
+	}
+
+	FGridAvailableCombatAction FreshAction = Action;
+	FreshAction.Definition = FreshDefinition;
+	FreshAction.CurrentActionPointCost = 0;
+	FreshAction.CurrentManaCost = 0;
+	FreshAction.CurrentSourceItemQuantityCost = 1;
+	FreshAction.CurrentSourceItemQuantity = QuantityBefore;
+	FreshAction.bEnabled = true;
+	FreshAction.AvailabilityReason = EGridCombatActionAvailabilityReason::None;
+	OutResult.Action = FreshAction;
+	FGridCombatActionTargetingPreview Checked;
+	if (!BuildExplorationCatalystTargetingPreview(FreshAction, TargetCell, Checked) ||
+		Checked.AffectedCells.IsEmpty() || !RuntimeActor->GetOrCreateRuntimeStateForCurrentLevel())
+	{
+		OutResult.RejectReason = EGridCombatActionRequestRejectReason::InvalidTarget;
+		return false;
+	}
+
+	TArray<FGridCombatModifierProfile> Profiles;
+	FGridResolvedCombatModifiers Modifiers;
+	if (FGridCombatModifierResolver::CollectCharacterModifiers(Character, Profiles))
+	{
+		FGridCombatModifierResolver::Resolve(Profiles,
+			FGridCombatModifierResolver::MakeActionContext(FreshDefinition, Action.SourceDefinitionId), Modifiers);
+	}
+	TArray<FGridCatalystCellSnapshot> Snapshot;
+	Snapshot.Reserve(Checked.AffectedCells.Num());
+	for (const FIntPoint& Cell : Checked.AffectedCells)
+	{
+		FGridCatalystCellSnapshot& Entry = Snapshot.AddDefaulted_GetRef();
+		Entry.Cell = Cell;
+		if (const FGridCombatSurfaceState* Existing = RuntimeActor->FindCombatSurfaceAtCell(Cell.X, Cell.Y))
+		{
+			Entry.Surface = *Existing;
+			Entry.bHasSurface = Existing->IsValid();
+		}
+	}
+	TArray<FGridCatalystCellOutcome> Plan;
+	if (!FGridCatalystAreaResolver::ResolveSnapshot(
+			Snapshot, FreshDefinition.SurfaceInteraction, Modifiers, Plan))
+	{
+		OutResult.RejectReason = EGridCombatActionRequestRejectReason::UnsupportedResolution;
+		return false;
+	}
+
+	// Defensive inventory snapshot: failed commit restores the exact item,
+	// stack and hotbar ownership state, without inventing a new item GUID.
+	const FGridPartyInventoryState InventoryBefore = Inventory->PartyInventoryState;
+	if (!Inventory->RemoveItemDefinitionFromCharacterInventory(
+			Action.CharacterIndex, Action.SourceDefinitionId, 1))
+	{
+		OutResult.RejectReason = EGridCombatActionRequestRejectReason::QuickItemRejected;
+		return false;
+	}
+	const bool bCommitted = RuntimeActor->CommitCatalystAreaPlan(
+		Snapshot, Plan, Character.CharacterId, FreshDefinition.ActionId);
+	ensureMsgf(bCommitted, TEXT("Catalyst: a prevalidated game-thread area plan must commit."));
+	if (!bCommitted)
+	{
+		Inventory->PartyInventoryState = InventoryBefore;
+		Inventory->NotifyPartyInventoryChanged(Action.CharacterIndex);
+		OutResult.RejectReason = EGridCombatActionRequestRejectReason::InvalidTarget;
+		return false;
+	}
+
+	ApplyCatalystBurstDamage(Plan);
+	EGridCombatSurfaceType DisplayInput = EGridCombatSurfaceType::None;
+	FGridCombatSurfaceReactionResult DisplayReaction;
+	for (const FGridCatalystCellOutcome& Cell : Plan)
+	{
+		if (Cell.Reaction.bReacted)
+		{
+			DisplayInput = Cell.InputType;
+			DisplayReaction = Cell.Reaction;
+			break;
+		}
+	}
+	RuntimeActor->PlaySurfaceCatalystReactionAtCell(TargetCell.X, TargetCell.Y, DisplayInput, DisplayReaction);
+	FGridHudEventEntry Event;
+	Event.Category = EGridHudEventCategory::Combat;
+	Event.Semantic = EGridHudEventSemantic::Interaction;
+	Event.Visibility = EGridEventVisibility::Always;
+	Event.EventCode = TEXT("Combat.Surface.CatalystZone");
+	Event.SourceId = FreshDefinition.ActionId;
+	Event.Message = NSLOCTEXT("GrimrockCatalyst", "CatalystZoneExploration",
+		"Le catalyseur de surface se brise et déclenche une impulsion alchimique.");
+	GridEventFeedPublisher::PublishEvent(this, Event);
+
+	OutResult.bAccepted = true;
+	OutResult.RejectReason = EGridCombatActionRequestRejectReason::None;
+	OutResult.TargetedActionResult.TargetCell = TargetCell;
+	OutResult.TargetedActionResult.AffectedCells = Checked.AffectedCells;
+	OutResult.QuickItemResult.SourceQuantityBefore = QuantityBefore;
+	OutResult.QuickItemResult.SourceQuantityAfter =
+		Inventory->CountItemDefinitionInCharacterInventory(Action.CharacterIndex, Action.SourceDefinitionId);
+	UE_LOG(LogGridTurnManager, Log,
+		TEXT("[ARMEMENT01.17.3B] ExplorationCatalyst Character=%d Cell=(%d,%d) Cells=%d Items=%d->%d"),
+		Action.CharacterIndex, TargetCell.X, TargetCell.Y, Checked.AffectedCells.Num(),
+		QuantityBefore, OutResult.QuickItemResult.SourceQuantityAfter);
+	return true;
+}
+
 bool UGridTurnManagerComponent::IsExplorationOilSlickAction(const FGridCombatActionDefinition& Definition)
 {
 	return Definition.ActionId == FName(TEXT("Action_Alchemist_OilSlick")) &&
@@ -2298,7 +2468,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	{
 		auto ResolveSurfaceReactionAtCell =
 			[this, &Action, &Character, &ReactionActionInstanceId, &ResolvedModifiers,
-			 &bCatalystArea, &bCatalystReacted, &CatalystFirstInput, &CatalystFirstReaction](
+			 &bCatalystArea, &bCatalystReacted, &CatalystFirstInput, &CatalystFirstReaction, &CatalystPlan](
 				const FIntPoint& Cell,
 				EGridCombatSurfaceInteraction Interaction,
 				FGridCombatSurfaceReactionResult& OutAppliedReaction) -> bool
@@ -2343,11 +2513,26 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				const EGridCombatSurfaceType Before = ExistingSurface->SurfaceType;
 				const bool bApplied = RuntimeActor->InteractCombatSurfaceAtCell(
 					Cell.X, Cell.Y, Interaction, InteractionModifiers, OutAppliedReaction);
-				if (bApplied && bCatalystArea && !bCatalystReacted)
+				if (bApplied && bCatalystArea)
 				{
-					bCatalystReacted = true;
-					CatalystFirstInput = Before;
-					CatalystFirstReaction = OutAppliedReaction;
+					if (FGridCatalystCellOutcome* Planned = CatalystPlan.FindByPredicate(
+						[Cell](const FGridCatalystCellOutcome& Result) { return Result.Cell == Cell; }))
+					{
+						// Preserve the actual combat reaction modifiers, not only
+						// the unmodified preflight classification.
+						Planned->Reaction = OutAppliedReaction;
+					}
+					if (OutAppliedReaction.OutputSurfaceType == EGridCombatSurfaceType::Fire)
+					{
+						RuntimeActor->ConfigureCatalystFireAtCell(
+							Cell.X, Cell.Y, Character.CharacterId, Action.Definition.ActionId);
+					}
+					if (!bCatalystReacted)
+					{
+						bCatalystReacted = true;
+						CatalystFirstInput = Before;
+						CatalystFirstReaction = OutAppliedReaction;
+					}
 				}
 				return bApplied;
 			};
@@ -2443,8 +2628,13 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			}
 		}
 	}
-	// 17.3A: one central pulse per flask. The independently classified cell
-	// animations are deferred to 17.3C; do not clear/restart one VFX per cell.
+	// 17.3B: apply one poisonous burst per occupied cell; Fire then
+	// persists with the configured periodic damage profile.
+	if (bCatalystArea)
+	{
+		ApplyCatalystBurstDamage(CatalystPlan);
+	}
+	// 17.3C will provide per-cell visual simultaneity and projectile impact.
 	if (bCatalystArea && IsValid(RuntimeActor))
 	{
 		RuntimeActor->PlaySurfaceCatalystReactionAtCell(

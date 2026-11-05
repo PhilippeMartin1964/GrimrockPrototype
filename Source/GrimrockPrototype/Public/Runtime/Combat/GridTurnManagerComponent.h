@@ -504,6 +504,20 @@ public:
 	bool RequestExplorationOilActionAtCell(const FGridAvailableCombatAction& Action, FIntPoint TargetCell,
 		FGridCombatActionRequestResult& OutResult);
 
+	/** ARMEMENT01.17.3B: narrowly approved catalyst QuickItem in exploration. */
+	static bool IsExplorationCatalystAction(const FGridCombatActionDefinition& Definition);
+	bool BuildExplorationCatalystTargetingPreview(const FGridAvailableCombatAction& Action, FIntPoint TargetCell,
+		FGridCombatActionTargetingPreview& OutPreview) const;
+	bool RequestExplorationCatalystActionAtCell(const FGridAvailableCombatAction& Action, FIntPoint TargetCell,
+		FGridCombatActionRequestResult& OutResult);
+	/** One immediate Fire burst per occupant in poisonous cells, in or out of combat. */
+	void ApplyCatalystBurstDamage(const TArray<struct FGridCatalystCellOutcome>& Outcomes);
+	/** Damage authority common to round boundary and exploration clock. */
+	void ResolveSurfaceDamageTick();
+	void ResolveExplorationSurfaceDamage(float ElapsedSeconds);
+	float ExplorationSurfaceTickElapsedSeconds = 0.f;
+	void ResetExplorationSurfaceDamageClock() { ExplorationSurfaceTickElapsedSeconds = 0.f; }
+
 	/** Executes a previously previewed Cell/Area action at the selected cell. */
 	UFUNCTION(BlueprintCallable, Category = "Combat|Action Targeting")
 	bool RequestCharacterCombatActionAtCell(int32 CharacterIndex, FName ActionId, EGridCombatActionSourcePolicy SourcePolicy, FName SourceDefinitionId,

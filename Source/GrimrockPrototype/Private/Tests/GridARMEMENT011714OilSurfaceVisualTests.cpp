@@ -204,14 +204,17 @@ bool FOilExplorationExpiry::RunTest(const FString&)
 	TestEqual(TEXT("5 secondes d'exploration"), Runtime->AdvanceExplorationOilTime(5.f), 0);
 	Oil = Runtime->FindCombatSurfaceAtCell(1, 1);
 	TestTrue(TEXT("7 secondes restantes"), Oil && FMath::IsNearlyEqual(Oil->RemainingOilSeconds, 7.f));
-	TestTrue(TEXT("Eau inchangée hors combat"),
-		Runtime->FindCombatSurfaceAtCell(2, 2) && Runtime->FindCombatSurfaceAtCell(2, 2)->RemainingRounds == 2);
+	TestTrue(TEXT("Eau vieillit en secondes hors combat"),
+		Runtime->FindCombatSurfaceAtCell(2, 2) &&
+		Runtime->FindCombatSurfaceAtCell(2, 2)->RemainingRounds == 2 &&
+		FMath::IsNearlyEqual(Runtime->FindCombatSurfaceAtCell(2, 2)->RemainingSurfaceSeconds, 7.f));
 	TestEqual(TEXT("1 round supplémentaire"), Runtime->AdvanceCombatSurfaceRound(), 0);
 	Oil = Runtime->FindCombatSurfaceAtCell(1, 1);
 	TestTrue(TEXT("1 seconde restante"), Oil && Oil->RemainingRounds == 1 &&
 		FMath::IsNearlyEqual(Oil->RemainingOilSeconds, 1.f));
-	TestEqual(TEXT("Expiration exploration"), Runtime->AdvanceExplorationOilTime(1.f), 1);
+	TestEqual(TEXT("Expiration synchronisée huile + eau"), Runtime->AdvanceExplorationOilTime(1.f), 2);
 	TestNull(TEXT("Etat d'huile effacé"), Runtime->FindCombatSurfaceAtCell(1, 1));
+	TestNull(TEXT("Eau temporaire expirée"), Runtime->FindCombatSurfaceAtCell(2, 2));
 	TestEqual(TEXT("Décalque effacé"), Runtime->GetActiveOilDecalCount(), 0);
 	return true;
 }
@@ -237,7 +240,8 @@ bool FOilExplorationSave::RunTest(const FString&)
 	Runtime->RefreshCombatOilSurfaceVisuals();
 	const FGridCombatSurfaceState* Oil = Runtime->FindCombatSurfaceAtCell(0, 0);
 	TestTrue(TEXT("22.5 secondes conservées"),
-		Oil && Oil->RemainingRounds == 4 && FMath::IsNearlyEqual(Oil->RemainingOilSeconds, 22.5f));
+		Oil && Oil->RemainingRounds == 4 && FMath::IsNearlyEqual(Oil->RemainingOilSeconds, 22.5f) &&
+		FMath::IsNearlyEqual(Oil->RemainingSurfaceSeconds, 22.5f));
 	TestEqual(TEXT("Expiration précise après rechargement"), Runtime->AdvanceExplorationOilTime(22.5f), 1);
 	TestNull(TEXT("Pas d'huile résiduelle"), Runtime->FindCombatSurfaceAtCell(0, 0));
 	return true;
@@ -257,6 +261,7 @@ bool FOilExplorationLegacy::RunTest(const FString&)
 	auto* OldOil = State->Surfaces.Find(FIntPoint(1, 1));
 	if (!TestNotNull(TEXT("Surface"), OldOil)) return false;
 	OldOil->RemainingOilSeconds = 0.f;
+	OldOil->RemainingSurfaceSeconds = 0.f;
 	TestEqual(TEXT("Ancien SaveGame migré"), Runtime->AdvanceExplorationOilTime(6.f), 0);
 	const FGridCombatSurfaceState* Oil = Runtime->FindCombatSurfaceAtCell(1, 1);
 	TestTrue(TEXT("6 secondes restantes"), Oil && Oil->RemainingRounds == 1 &&

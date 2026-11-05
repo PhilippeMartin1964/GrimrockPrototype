@@ -2,6 +2,7 @@
 
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
+#include "Runtime/Combat/GridCatalystAreaResolver.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -56,6 +57,10 @@ void AGridLevelRuntimeActor::ClearExplorationOilTimer()
 		World->GetTimerManager().ClearTimer(OilExplorationTimer);
 	}
 	LastOilExplorationUpdateTime = 0.0;
+	if (UGridTurnManagerComponent* Turns = FindComponentByClass<UGridTurnManagerComponent>())
+	{
+		Turns->ResetExplorationSurfaceDamageClock();
+	}
 }
 
 void AGridLevelRuntimeActor::RefreshExplorationOilTimer()
@@ -65,22 +70,22 @@ void AGridLevelRuntimeActor::RefreshExplorationOilTimer()
 	{
 		return;
 	}
-	bool bHasOil = false;
+	bool bHasSurfaces = false;
 	if (LevelAsset)
 	{
 		if (const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel())
 		{
 			for (const TPair<FIntPoint, FGridCombatSurfaceState>& Pair : State->Surfaces)
 			{
-				if (Pair.Value.IsValid() && Pair.Value.SurfaceType == EGridCombatSurfaceType::Oil)
+				if (Pair.Value.IsValid())
 				{
-					bHasOil = true;
+					bHasSurfaces = true;
 					break;
 				}
 			}
 		}
 	}
-	if (!bHasOil)
+	if (!bHasSurfaces)
 	{
 		ClearExplorationOilTimer();
 		return;
@@ -110,8 +115,15 @@ void AGridLevelRuntimeActor::UpdateExplorationOilTimer()
 	{
 		if (Turns->bCombatActive)
 		{
+			Turns->ResetExplorationSurfaceDamageClock();
 			return;
 		}
+	}
+	// Apply periodic occupant damage while the surfaces are still present.
+	// Combat rounds have their own independent tick and duration authority.
+	if (UGridTurnManagerComponent* Turns = FindComponentByClass<UGridTurnManagerComponent>())
+	{
+		Turns->ResolveExplorationSurfaceDamage(DeltaSeconds);
 	}
 	AdvanceExplorationOilTime(DeltaSeconds);
 }
@@ -150,13 +162,14 @@ int32 AGridLevelRuntimeActor::AdvanceExplorationOilTime(
 	for (const FIntPoint& Cell : Cells)
 	{
 		FGridCombatSurfaceState* Surface = State->Surfaces.Find(Cell);
-		if (!Surface || !Surface->IsValid() || Surface->SurfaceType != EGridCombatSurfaceType::Oil)
+		if (!Surface || !Surface->IsValid())
 		{
 			continue;
 		}
-		const float Before = Surface->RemainingOilSeconds > 0.f
-			? Surface->RemainingOilSeconds
-			: Surface->RemainingRounds * SecondsPerRound;
+		const float Before = Surface->RemainingSurfaceSeconds > 0.f
+			? Surface->RemainingSurfaceSeconds
+			: (Surface->SurfaceType == EGridCombatSurfaceType::Oil && Surface->RemainingOilSeconds > 0.f
+				? Surface->RemainingOilSeconds : Surface->RemainingRounds * SecondsPerRound);
 		const float Remaining = FMath::Max(0.f, Before - ElapsedSeconds);
 		if (Remaining <= KINDA_SMALL_NUMBER)
 		{
@@ -168,7 +181,11 @@ int32 AGridLevelRuntimeActor::AdvanceExplorationOilTime(
 			++Expired;
 			continue;
 		}
-		Surface->RemainingOilSeconds = Remaining;
+		Surface->RemainingSurfaceSeconds = Remaining;
+		if (Surface->SurfaceType == EGridCombatSurfaceType::Oil)
+		{
+			Surface->RemainingOilSeconds = Remaining;
+		}
 		Surface->RemainingRounds = FMath::Clamp(FMath::CeilToInt(Remaining / SecondsPerRound), 1, 6);
 	}
 	if (Expired > 0)
@@ -841,6 +858,104 @@ void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 	}
 }
 
+
+bool AGridLevelRuntimeActor::ConfigureCatalystFireAtCell(int32 CellX, int32 CellY,
+	const FGuid& SourceCombatantId, FName SourceActionId)
+{
+	FGridLevelRuntimeState* State = GetOrCreateRuntimeStateForCurrentLevel();
+	FGridCombatSurfaceState* Surface = State ? State->Surfaces.Find(FIntPoint(CellX, CellY)) : nullptr;
+	if (!Surface || !Surface->IsValid() || Surface->SurfaceType != EGridCombatSurfaceType::Fire)
+	{
+		return false;
+	}
+	Surface->SourceCombatantId = SourceCombatantId;
+	Surface->SourceActionId = SourceActionId;
+	Surface->PeriodicDamageType = EGridDamageType::Fire;
+	Surface->PeriodicDamagePerRound = FMath::Clamp(CatalystFireDamagePerRound, 0, 1000);
+	return true;
+}
+
+bool AGridLevelRuntimeActor::CommitCatalystAreaPlan(
+	const TArray<FGridCatalystCellSnapshot>& Snapshot,
+	const TArray<FGridCatalystCellOutcome>& Outcomes,
+	const FGuid& SourceCombatantId, FName SourceActionId)
+{
+	if (Snapshot.IsEmpty() || Snapshot.Num() != Outcomes.Num() ||
+		!SourceCombatantId.IsValid() || SourceActionId.IsNone())
+	{
+		return false;
+	}
+	FGridLevelRuntimeState* State = GetOrCreateRuntimeStateForCurrentLevel();
+	if (!LevelAsset || !State)
+	{
+		return false;
+	}
+	// Validate ALL original surface states and build replacements without writes.
+	TMap<FIntPoint, FGridCombatSurfaceState> Updates;
+	const float SecondsPerRound = FMath::Max(0.1f, OilExplorationSecondsPerRound);
+	for (int32 Index = 0; Index < Snapshot.Num(); ++Index)
+	{
+		const FGridCatalystCellSnapshot& Initial = Snapshot[Index];
+		const FGridCatalystCellOutcome& Planned = Outcomes[Index];
+		if (Initial.Cell != Planned.Cell || !IsWalkableCell(Initial.Cell.X, Initial.Cell.Y) ||
+			Updates.Contains(Initial.Cell))
+		{
+			return false;
+		}
+		const FGridCombatSurfaceState* Current = State->Surfaces.Find(Initial.Cell);
+		if (Initial.bHasSurface != (Current && Current->IsValid()) ||
+			(Initial.bHasSurface && (!Current ||
+				Current->SurfaceType != Initial.Surface.SurfaceType ||
+				Current->RemainingRounds != Initial.Surface.RemainingRounds)))
+		{
+			return false;
+		}
+		if (!Planned.Reaction.bReacted)
+		{
+			continue;
+		}
+		if (!Current || !Current->IsValid())
+		{
+			return false;
+		}
+		FGridCombatSurfaceState Updated = *Current;
+		const float Duration = Updated.RemainingSurfaceSeconds > 0.f ? Updated.RemainingSurfaceSeconds
+			: (Updated.SurfaceType == EGridCombatSurfaceType::Oil && Updated.RemainingOilSeconds > 0.f
+				? Updated.RemainingOilSeconds : Updated.RemainingRounds * SecondsPerRound);
+		FGridCombatSurfaceResolver::ApplyReactionToState(Planned.Reaction, Updated);
+		if (Updated.IsValid())
+		{
+			Updated.SourceCombatantId = SourceCombatantId;
+			Updated.SourceActionId = SourceActionId;
+			Updated.RemainingSurfaceSeconds = Duration;
+			Updated.RemainingOilSeconds = Updated.SurfaceType == EGridCombatSurfaceType::Oil ? Duration : 0.f;
+			if (Updated.SurfaceType == EGridCombatSurfaceType::Fire)
+			{
+				Updated.PeriodicDamageType = EGridDamageType::Fire;
+				Updated.PeriodicDamagePerRound = FMath::Clamp(CatalystFireDamagePerRound, 0, 1000);
+			}
+		}
+		Updates.Add(Initial.Cell, Updated);
+	}
+	// No failure path after this point. A nonreactive plan has zero mutations.
+	for (const TPair<FIntPoint, FGridCombatSurfaceState>& Entry : Updates)
+	{
+		if (Entry.Value.IsValid())
+		{
+			State->Surfaces.Add(Entry.Key, Entry.Value);
+		}
+		else
+		{
+			State->Surfaces.Remove(Entry.Key);
+		}
+	}
+	if (!Updates.IsEmpty())
+	{
+		RefreshCombatOilSurfaceVisuals();
+	}
+	return true;
+}
+
 bool AGridLevelRuntimeActor::ApplyCombatSurfaceAtCell(int32 CellX, int32 CellY, const FGridCombatSurfaceEffectProfile& Profile,
 	const FGuid& SourceCombatantId, FName SourceActionId, const FGridResolvedCombatModifiers& SourceModifiers)
 {
@@ -860,9 +975,10 @@ bool AGridLevelRuntimeActor::ApplyCombatSurfaceAtCell(int32 CellX, int32 CellY, 
 	{
 		return false;
 	}
+	State.RemainingSurfaceSeconds = State.RemainingRounds * FMath::Max(0.1f, OilExplorationSecondsPerRound);
 	if (State.SurfaceType == EGridCombatSurfaceType::Oil)
 	{
-		State.RemainingOilSeconds = State.RemainingRounds * FMath::Max(0.1f, OilExplorationSecondsPerRound);
+		State.RemainingOilSeconds = State.RemainingSurfaceSeconds;
 	}
 	RuntimeState->Surfaces.Add(FIntPoint(CellX, CellY), State);
 	UE_LOG(LogGridSurfaceRuntime, Log,
@@ -891,7 +1007,20 @@ bool AGridLevelRuntimeActor::InteractCombatSurfaceAtCell(int32 CellX, int32 Cell
 		return false;
 	}
 
+	const float SecondsPerRound = FMath::Max(0.1f, OilExplorationSecondsPerRound);
+	const float Remaining = Existing->RemainingSurfaceSeconds > 0.f
+		? Existing->RemainingSurfaceSeconds
+		: (Existing->SurfaceType == EGridCombatSurfaceType::Oil && Existing->RemainingOilSeconds > 0.f
+			? Existing->RemainingOilSeconds : Existing->RemainingRounds * SecondsPerRound);
 	FGridCombatSurfaceResolver::ApplyReactionToState(OutReaction, *Existing);
+	if (Existing->IsValid())
+	{
+		Existing->RemainingSurfaceSeconds = Remaining;
+		if (Existing->SurfaceType != EGridCombatSurfaceType::Oil)
+		{
+			Existing->RemainingOilSeconds = 0.f;
+		}
+	}
 	if (!Existing->IsValid())
 	{
 		RuntimeState->Surfaces.Remove(Cell);
@@ -928,9 +1057,10 @@ bool AGridLevelRuntimeActor::ConvertCombatSurfaceAtCell(int32 CellX, int32 CellY
 		return false;
 	}
 
+	Converted.RemainingSurfaceSeconds = Converted.RemainingRounds * FMath::Max(0.1f, OilExplorationSecondsPerRound);
 	if (Converted.SurfaceType == EGridCombatSurfaceType::Oil)
 	{
-		Converted.RemainingOilSeconds = Converted.RemainingRounds * FMath::Max(0.1f, OilExplorationSecondsPerRound);
+		Converted.RemainingOilSeconds = Converted.RemainingSurfaceSeconds;
 	}
 	RuntimeState->Surfaces.Add(Cell, Converted);
 	UE_LOG(LogGridSurfaceRuntime, Log,
@@ -990,20 +1120,18 @@ int32 AGridLevelRuntimeActor::AdvanceCombatSurfaceRound(TArray<FIntPoint>* OutEx
 		{
 			continue;
 		}
+		const float SecondsPerRound = FMath::Max(0.1f, OilExplorationSecondsPerRound);
+		const float Before = Surface->RemainingSurfaceSeconds > 0.f ? Surface->RemainingSurfaceSeconds
+			: (Surface->SurfaceType == EGridCombatSurfaceType::Oil && Surface->RemainingOilSeconds > 0.f
+				? Surface->RemainingOilSeconds : Surface->RemainingRounds * SecondsPerRound);
+		const float Remaining = FMath::Max(0.f, Before - SecondsPerRound);
+		Surface->RemainingSurfaceSeconds = Remaining;
 		if (Surface->SurfaceType == EGridCombatSurfaceType::Oil)
 		{
-			const float SecondsPerRound = FMath::Max(0.1f, OilExplorationSecondsPerRound);
-			const float Before = Surface->RemainingOilSeconds > 0.f
-				? Surface->RemainingOilSeconds
-				: Surface->RemainingRounds * SecondsPerRound;
-			Surface->RemainingOilSeconds = FMath::Max(0.f, Before - SecondsPerRound);
-			Surface->RemainingRounds = Surface->RemainingOilSeconds <= KINDA_SMALL_NUMBER
-				? 0 : FMath::Clamp(FMath::CeilToInt(Surface->RemainingOilSeconds / SecondsPerRound), 1, 6);
+			Surface->RemainingOilSeconds = Remaining;
 		}
-		else
-		{
-			Surface->RemainingRounds = FMath::Max(0, Surface->RemainingRounds - 1);
-		}
+		Surface->RemainingRounds = Remaining <= KINDA_SMALL_NUMBER
+			? 0 : FMath::Clamp(FMath::CeilToInt(Remaining / SecondsPerRound), 1, 6);
 		if (Surface->RemainingRounds > 0)
 		{
 			continue;

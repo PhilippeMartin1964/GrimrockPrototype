@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Core/GridTypes.h"
 #include "Runtime/Combat/GridCombatTypes.h"
+#include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Templates/Function.h"
 
 /** Immutable source state of one cell, read before catalyst mutations. */

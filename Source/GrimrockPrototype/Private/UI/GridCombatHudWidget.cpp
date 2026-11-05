@@ -237,7 +237,7 @@ namespace
 	/** ARMEMENT01.17.1.7: area-targeted oil is usable outside combat.
 	 * Only the existing authored oil action is accepted; no general combat bypass.
 	 */
-	bool BuildExplorationOilSlick(
+	bool BuildExplorationSurfaceQuickItem(
 		const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex,
 		const FGridCombatHotbarBinding& Binding, FGridAvailableCombatAction& OutAction)
 	{
@@ -250,7 +250,9 @@ namespace
 		FGridCombatActionDefinition Definition;
 		if (!IsValid(Item) || !Item->BuildQuickItemCombatActionDefinition(Definition) ||
 			Definition.ActionId != Binding.ActionId ||
-			!UGridTurnManagerComponent::IsExplorationOilSlickAction(Definition))
+			!(UGridTurnManagerComponent::IsExplorationOilSlickAction(Definition) ||
+				(UGridTurnManagerComponent::IsExplorationCatalystAction(Definition) &&
+					Binding.SourceDefinitionId == FName(TEXT("Item_SurfaceCatalyst_01")))))
 		{
 			return false;
 		}
@@ -980,7 +982,7 @@ void UGridCombatHudWidget::RefreshFromSources()
 		{
 			FGridAvailableCombatAction Exploration;
 			if (!BuildExplorationSelfRestoration(InventoryComponent, View.ActiveCharacterIndex, Binding, Exploration) &&
-				!BuildExplorationOilSlick(InventoryComponent, View.ActiveCharacterIndex, Binding, Exploration))
+				!BuildExplorationSurfaceQuickItem(InventoryComponent, View.ActiveCharacterIndex, Binding, Exploration))
 			{
 				continue;
 			}
@@ -1120,7 +1122,8 @@ bool UGridCombatHudWidget::RequestHotbarSlot(int32 SlotIndex, FGridCombatActionR
 		}
 		// Oil is area-targeted: enter the same cursor/preview flow rather than
 		// attempting to consume it as a self-healing potion.
-		if (UGridTurnManagerComponent::IsExplorationOilSlickAction(ActionView.Action.Definition))
+		if (UGridTurnManagerComponent::IsExplorationOilSlickAction(ActionView.Action.Definition) ||
+			UGridTurnManagerComponent::IsExplorationCatalystAction(ActionView.Action.Definition))
 		{
 			OutResult.Action = ActionView.Action;
 			return BeginCombatActionTargeting(ActionView);
@@ -1186,11 +1189,21 @@ bool UGridCombatHudWidget::UpdateCombatActionTargetingPreview(FIntPoint TargetCe
 	}
 
 	const FGridAvailableCombatAction& Action = PendingTargetingActionView.Action;
-	const bool bValid = !View.bCombatActive &&
-		UGridTurnManagerComponent::IsExplorationOilSlickAction(Action.Definition)
-		? TurnManagerComponent->BuildExplorationOilTargetingPreview(Action, TargetCell, TargetingPreview)
-		: TurnManagerComponent->BuildCombatActionTargetingPreview(Action.CharacterIndex, Action.Definition.ActionId,
-			Action.Definition.SourcePolicy, Action.SourceDefinitionId, Action.SourceEquipmentSlot, TargetCell, TargetingPreview);
+	bool bValid = false;
+	if (!View.bCombatActive && UGridTurnManagerComponent::IsExplorationOilSlickAction(Action.Definition))
+	{
+		bValid = TurnManagerComponent->BuildExplorationOilTargetingPreview(Action, TargetCell, TargetingPreview);
+	}
+	else if (!View.bCombatActive && UGridTurnManagerComponent::IsExplorationCatalystAction(Action.Definition))
+	{
+		bValid = TurnManagerComponent->BuildExplorationCatalystTargetingPreview(Action, TargetCell, TargetingPreview);
+	}
+	else
+	{
+		bValid = TurnManagerComponent->BuildCombatActionTargetingPreview(
+			Action.CharacterIndex, Action.Definition.ActionId, Action.Definition.SourcePolicy,
+			Action.SourceDefinitionId, Action.SourceEquipmentSlot, TargetCell, TargetingPreview);
+	}
 	return bValid;
 }
 
@@ -1205,11 +1218,21 @@ bool UGridCombatHudWidget::ConfirmCombatActionTarget(FIntPoint TargetCell, FGrid
 	}
 
 	const FGridAvailableCombatAction Action = TargetingPreview.Action;
-	const bool bAccepted = !View.bCombatActive &&
-		UGridTurnManagerComponent::IsExplorationOilSlickAction(Action.Definition)
-		? TurnManagerComponent->RequestExplorationOilActionAtCell(Action, TargetCell, OutResult)
-		: TurnManagerComponent->RequestCharacterCombatActionAtCell(Action.CharacterIndex, Action.Definition.ActionId,
-			Action.Definition.SourcePolicy, Action.SourceDefinitionId, Action.SourceEquipmentSlot, TargetCell, OutResult);
+	bool bAccepted = false;
+	if (!View.bCombatActive && UGridTurnManagerComponent::IsExplorationOilSlickAction(Action.Definition))
+	{
+		bAccepted = TurnManagerComponent->RequestExplorationOilActionAtCell(Action, TargetCell, OutResult);
+	}
+	else if (!View.bCombatActive && UGridTurnManagerComponent::IsExplorationCatalystAction(Action.Definition))
+	{
+		bAccepted = TurnManagerComponent->RequestExplorationCatalystActionAtCell(Action, TargetCell, OutResult);
+	}
+	else
+	{
+		bAccepted = TurnManagerComponent->RequestCharacterCombatActionAtCell(
+			Action.CharacterIndex, Action.Definition.ActionId, Action.Definition.SourcePolicy,
+			Action.SourceDefinitionId, Action.SourceEquipmentSlot, TargetCell, OutResult);
+	}
 	if (bAccepted)
 	{
 		bCombatActionTargetingActive = false;

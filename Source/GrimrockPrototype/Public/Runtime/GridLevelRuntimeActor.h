@@ -223,6 +223,13 @@ public:
 		meta = (ClampMin = "0.1", UIMin = "1.0", UIMax = "30.0"))
 	float OilExplorationSecondsPerRound = 6.f;
 
+	/** ARMEMENT01.17.3B — configurable, specific to catalysed Fire (other RPG03.6 reactions stay untouched). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|Balance", meta = (ClampMin = "0", ClampMax = "1000"))
+	int32 CatalystFireDamagePerRound = 2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|Balance", meta = (ClampMin = "0", ClampMax = "1000"))
+	int32 CatalystPoisonBurstDamage = 6;
+
 	FTimerHandle OilExplorationTimer;
 	double LastOilExplorationUpdateTime = 0.0;
 
@@ -646,7 +653,17 @@ public:
 
 	int32 AdvanceCombatSurfaceRound(TArray<FIntPoint>* OutExpiredCells = nullptr);
 
-	/** Avance le temps d'exploration de l'huile (sans Tick permanent). */
+	/** Atomic, prevalidated multi-cell catalyst commit; no partial mutation or visual resets. */
+	bool CommitCatalystAreaPlan(
+		const TArray<struct FGridCatalystCellSnapshot>& Snapshot,
+		const TArray<struct FGridCatalystCellOutcome>& Outcomes,
+		const FGuid& SourceCombatantId, FName SourceActionId);
+
+	/** Applies the catalyst's authored periodic Fire overlay after a combat C6 reaction. */
+	bool ConfigureCatalystFireAtCell(int32 CellX, int32 CellY,
+		const FGuid& SourceCombatantId, FName SourceActionId);
+
+	/** Advances all temporary RPG03.6 surfaces outside combat (legacy name kept for compatibility). */
 	int32 AdvanceExplorationOilTime(float ElapsedSeconds, TArray<FIntPoint>* OutExpiredCells = nullptr);
 	void RefreshExplorationOilTimer();
 	void UpdateExplorationOilTimer();

@@ -2102,6 +2102,12 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 		IceOutput && IceOutput->SurfaceType == EGridCombatSurfaceType::Water);
 	TestNull(TEXT("Dry part of catalyst area stays dry"),
 		Fixture.Runtime->FindCombatSurfaceAtCell(0, 1));
+	TestEqual(TEXT("Catalysed Fire has two periodic Fire damage per round"),
+		Surface ? Surface->PeriodicDamagePerRound : -1, 2);
+	const int32 MonsterHealthBeforeFireTick = Fixture.Monster->CurrentHealth;
+	Fixture.TurnManager->ResolveCombatSurfaceRound();
+	TestTrue(TEXT("Monster standing in ignited oil takes real periodic damage"),
+		Fixture.Monster->CurrentHealth < MonsterHealthBeforeFireTick);
 	TestEqual(TEXT("Exactly one catalyst spent"),
 		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 1);
 	TestEqual(TEXT("Exactly two AP spent"),
@@ -2132,6 +2138,96 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 	}
 	FString Ownership;
 	TestTrue(TEXT("No orphan inventory item"), Inventory->ValidateInventoryOwnership(Ownership));
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01173BExplorationCatalyst,
+	"Grimrock.RPG.ARMEMENT01.17.3B.ExplorationCatalyst",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FARMEMENT01173BExplorationCatalyst::RunTest(const FString&)
+{
+	FGridCombatHudFixture Fixture;
+	if (!TestTrue(TEXT("Real-world exploration fixture"), Fixture.IsReady())) return false;
+	UGridItemDefinitionAsset* Catalyst = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_SurfaceCatalyst_01.DA_Item_SurfaceCatalyst_01"));
+	if (!TestNotNull(TEXT("Artist-owned N1 catalyst"), Catalyst)) return false;
+	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent.Get();
+	if (!TestTrue(TEXT("Register catalyst"), Inventory->RegisterItemDefinition(Catalyst))) return false;
+	FGridItemInstance Item;
+	Item.RuntimeObjectId = FGuid::NewGuid();
+	Item.ItemDefinitionId = Catalyst->ItemDefinitionId;
+	Item.DisplayName = Catalyst->DisplayName;
+	Item.OwnerType = EGridItemOwnerType::World;
+	Item.Quantity = 2;
+	if (!TestTrue(TEXT("Own exactly two bottles"), Inventory->AddItemToCharacterInventory(0, Item)) ||
+		!TestTrue(TEXT("Bind exploration catalyst"), Inventory->SetCharacterCombatHotbarBindingFromItem(
+			0, 1, Item, EGridEquipmentSlot::None))) return false;
+
+	// All authority executes without combat rounds or action points.
+	Fixture.TurnManager->bCombatActive = false;
+	FGridCombatSurfaceEffectProfile Poison;
+	Poison.SurfaceType = EGridCombatSurfaceType::Poison;
+	Poison.DurationRounds = 4;
+	FGridCombatSurfaceEffectProfile Ice;
+	Ice.SurfaceType = EGridCombatSurfaceType::Ice;
+	Ice.DurationRounds = 3;
+	const FGridResolvedCombatModifiers NoModifiers;
+	if (!TestTrue(TEXT("Poison under monster"), Fixture.Runtime->ApplyCombatSurfaceAtCell(
+			1, 2, Poison, Fixture.CharacterIds[0], TEXT("PoisonTest"), NoModifiers)) ||
+		!TestTrue(TEXT("Ice inside catalyst area"), Fixture.Runtime->ApplyCombatSurfaceAtCell(
+			2, 2, Ice, Fixture.CharacterIds[0], TEXT("IceTest"), NoModifiers))) return false;
+	Fixture.Hud->RefreshFromSources();
+	if (!TestTrue(TEXT("Exploration action available"), Fixture.Hud->View.Actions.IsValidIndex(1) &&
+			Fixture.Hud->View.Actions[1].bResolved && Fixture.Hud->View.Actions[1].Action.bEnabled)) return false;
+	TestEqual(TEXT("No AP exploration cost"), Fixture.Hud->View.Actions[1].Action.CurrentActionPointCost, 0);
+	const int32 BeforeAP = Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints;
+	const int32 MonsterBefore = Fixture.Monster->CurrentHealth;
+	FGridCombatActionRequestResult Begin;
+	if (!TestTrue(TEXT("Click begins exploration targeting"), Fixture.Hud->RequestHotbarSlot(1, Begin))) return false;
+	FGridCombatActionRequestResult Rejected;
+	TestFalse(TEXT("Out of bounds rejected"), Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(80, 80), Rejected));
+	TestEqual(TEXT("Invalid preview does not consume bottle"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 2);
+
+	FGridCombatActionRequestResult Applied;
+	if (!TestTrue(TEXT("Catalyst reacts outside combat"), Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(1, 2), Applied))) return false;
+	TestTrue(TEXT("Exploration result accepted"), Applied.bAccepted);
+	TestEqual(TEXT("Exactly one bottle consumed"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 1);
+	TestEqual(TEXT("Exploration spends no AP"),
+		Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, BeforeAP);
+	const FGridCombatSurfaceState* Fire = Fixture.Runtime->FindCombatSurfaceAtCell(1, 2);
+	const FGridCombatSurfaceState* Water = Fixture.Runtime->FindCombatSurfaceAtCell(2, 2);
+	TestTrue(TEXT("Poison became damaging Fire"), Fire &&
+		Fire->SurfaceType == EGridCombatSurfaceType::Fire && Fire->PeriodicDamagePerRound == 2);
+	TestTrue(TEXT("Ice melted into Water"), Water && Water->SurfaceType == EGridCombatSurfaceType::Water);
+	TestTrue(TEXT("Monster took immediate poisonous explosion damage"),
+		Fixture.Monster->CurrentHealth < MonsterBefore);
+	TestTrue(TEXT("Fire has exploration seconds"), Fire && FMath::IsNearlyEqual(Fire->RemainingSurfaceSeconds, 24.f));
+
+	// A six-second exploration interval advances Fire and Water, without AP.
+	TestEqual(TEXT("No surface expired after six seconds"), Fixture.Runtime->AdvanceExplorationOilTime(6.f), 0);
+	Fire = Fixture.Runtime->FindCombatSurfaceAtCell(1, 2);
+	TestTrue(TEXT("Fire has three rounds and 18 seconds"), Fire &&
+		Fire->RemainingRounds == 3 && FMath::IsNearlyEqual(Fire->RemainingSurfaceSeconds, 18.f));
+	Water = Fixture.Runtime->FindCombatSurfaceAtCell(2, 2);
+	TestTrue(TEXT("Water also ages out of combat"), Water && Water->RemainingRounds == 2);
+
+	Fixture.Hud->RefreshFromSources();
+	FGridCombatActionRequestResult BeginFizzle;
+	if (!TestTrue(TEXT("Second bottle can be aimed at nonreactive terrain"),
+		Fixture.Hud->RequestHotbarSlot(1, BeginFizzle))) return false;
+	FGridCombatActionRequestResult Fizzle;
+	if (!TestTrue(TEXT("Fizzle is still a successful use"),
+		Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(1, 2), Fizzle))) return false;
+	TestTrue(TEXT("Second result accepted"), Fizzle.bAccepted);
+	TestEqual(TEXT("Fizzle consumes final bottle"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 0);
+	TestEqual(TEXT("Fizzle consumes zero exploration AP"),
+		Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, BeforeAP);
+	FString Ownership;
+	TestTrue(TEXT("No orphan after exploration uses"), Inventory->ValidateInventoryOwnership(Ownership));
 	return true;
 }
 

@@ -1573,9 +1573,13 @@ struct FGridCombatSurfaceState
 	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
 	int32 RemainingRounds = 0;
 
-	/** ARMEMENT01.17.1.6 : zéro signifie une ancienne sauvegarde à migrer. */
+	/** Legacy oil-only duration retained for existing SaveGame snapshots. */
 	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
 	float RemainingOilSeconds = 0.f;
+
+	/** ARMEMENT01.17.3B: all temporary surfaces share an exploration clock. Zero migrates legacy saves. */
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
+	float RemainingSurfaceSeconds = 0.f;
 
 	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
 	FGuid SourceCombatantId;
