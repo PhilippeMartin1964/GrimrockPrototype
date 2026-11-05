@@ -20,9 +20,11 @@ bool FARMEMENT01172CatalystContract::RunTest(const FString&)
 	TestEqual(TEXT("Uses one physical item"), Action.ResourceCosts.SourceItemQuantityCost, 1);
 	TestEqual(TEXT("Costs 2 AP in combat"), Action.ActionPointCost, 2);
 	TestEqual(TEXT("Range 4"), Action.RangeCells, 4);
-	TestTrue(TEXT("Cell only / no area / requires LOS"),
-		Action.TargetingPolicy == EGridCombatTargetingPolicy::Cell &&
-		Action.AreaRadiusCells == 0 && Action.bRequiresLineOfSight);
+	TestTrue(TEXT("Square Area1 radius with neutral-cell acceptance and LOS"),
+		Action.TargetingPolicy == EGridCombatTargetingPolicy::Area &&
+		Action.AreaRadiusCells == 1 && Action.AreaShape == EGridCombatAreaShape::Square &&
+		Action.bAllowNoSurfaceReaction && Action.bUsableDuringExploration &&
+		Action.bRequiresLineOfSight);
 	TestTrue(TEXT("Fire interaction, no surface generation or talent action"),
 		Action.SurfaceInteraction == EGridCombatSurfaceInteraction::Fire &&
 		Action.SurfaceEffects.IsEmpty() && Action.SurfaceConversions.IsEmpty() &&

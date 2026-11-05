@@ -23,6 +23,7 @@
 #include "Runtime/Combat/GridCombatMovementResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
+#include "Runtime/Combat/GridCatalystAreaResolver.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -1430,6 +1431,15 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 	{
 		OutPreview.AffectedCells.Add(TargetCell);
 	}
+	else if (Action.Definition.AreaShape == EGridCombatAreaShape::Square)
+	{
+		FGridCatalystAreaResolver::BuildReachableSquare(
+			TargetCell, Action.Definition.AreaRadiusCells,
+			[this](FIntPoint Cell) { return RuntimeActor->IsWalkableCell(Cell.X, Cell.Y); },
+			[this](FIntPoint From, EGridEdge Direction) {
+				return RuntimeActor->CanMove(From.X, From.Y, Direction);
+			}, OutPreview.AffectedCells);
+	}
 	else
 	{
 		const int32 Radius = Action.Definition.AreaRadiusCells;
@@ -1463,7 +1473,12 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		Action.Definition.SurfaceInteraction != EGridCombatSurfaceInteraction::None &&
 		Action.Definition.SurfaceEffects.IsEmpty() && Action.Definition.SurfaceConversions.IsEmpty() &&
 		!Action.Definition.TrapEffect.bPlaceTrap && !Action.Definition.bRelocatePartyToTargetCell;
-	if (bInteractionOnlyEffect)
+	if (OutPreview.AffectedCells.IsEmpty())
+	{
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.CellOutsideLevel"));
+		return false;
+	}
+	if (bInteractionOnlyEffect && !Action.Definition.bAllowNoSurfaceReaction)
 	{
 		bool bHasCanonicalReaction = false;
 		const FGridResolvedCombatModifiers NoModifiers;
@@ -1838,6 +1853,35 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				Action.Definition, Action.SourceDefinitionId, EffectiveOffensiveProfile, EffectiveOffensiveSourceTags)
 			: FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId);
 		FGridCombatModifierResolver::Resolve(ChoiceModifiers, ModifierContext, ResolvedModifiers);
+	}
+
+	// ARMEMENT01.17.3A: snapshot every catalyst cell before spending AP/items.
+	// Both exploration and combat can later consume the same pure C6 plan.
+	const bool bCatalystArea = FGridCatalystAreaResolver::IsApprovedAction(Action.Definition);
+	TArray<FGridCatalystCellOutcome> CatalystPlan;
+	if (bCatalystArea)
+	{
+		if (!IsValid(RuntimeActor) || Preview.AffectedCells.IsEmpty())
+		{
+			return false;
+		}
+		TArray<FGridCatalystCellSnapshot> Snapshot;
+		Snapshot.Reserve(Preview.AffectedCells.Num());
+		for (const FIntPoint& Cell : Preview.AffectedCells)
+		{
+			FGridCatalystCellSnapshot& Entry = Snapshot.AddDefaulted_GetRef();
+			Entry.Cell = Cell;
+			if (const FGridCombatSurfaceState* Existing = RuntimeActor->FindCombatSurfaceAtCell(Cell.X, Cell.Y))
+			{
+				Entry.Surface = *Existing;
+				Entry.bHasSurface = Existing->IsValid();
+			}
+		}
+		if (!FGridCatalystAreaResolver::ResolveSnapshot(
+			Snapshot, Action.Definition.SurfaceInteraction, ResolvedModifiers, CatalystPlan))
+		{
+			return false;
+		}
 	}
 
 	TArray<AGridMonsterActor*> TargetMonsters;
@@ -2247,10 +2291,14 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	}
 
 	int32 OilFlaskAppliedCells = 0;
+	bool bCatalystReacted = false;
+	EGridCombatSurfaceType CatalystFirstInput = EGridCombatSurfaceType::None;
+	FGridCombatSurfaceReactionResult CatalystFirstReaction;
 	if (bSurfaceResolution && IsValid(RuntimeActor))
 	{
 		auto ResolveSurfaceReactionAtCell =
-			[this, &Action, &Character, &ReactionActionInstanceId, &ResolvedModifiers](
+			[this, &Action, &Character, &ReactionActionInstanceId, &ResolvedModifiers,
+			 &bCatalystArea, &bCatalystReacted, &CatalystFirstInput, &CatalystFirstReaction](
 				const FIntPoint& Cell,
 				EGridCombatSurfaceInteraction Interaction,
 				FGridCombatSurfaceReactionResult& OutAppliedReaction) -> bool
@@ -2295,10 +2343,11 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				const EGridCombatSurfaceType Before = ExistingSurface->SurfaceType;
 				const bool bApplied = RuntimeActor->InteractCombatSurfaceAtCell(
 					Cell.X, Cell.Y, Interaction, InteractionModifiers, OutAppliedReaction);
-				if (bApplied && Action.Definition.ActionId == FName(TEXT("Action_Mage_SurfaceCatalyst_01")) &&
-					Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
+				if (bApplied && bCatalystArea && !bCatalystReacted)
 				{
-					RuntimeActor->PlaySurfaceCatalystReactionAtCell(Cell.X, Cell.Y, Before, OutAppliedReaction);
+					bCatalystReacted = true;
+					CatalystFirstInput = Before;
+					CatalystFirstReaction = OutAppliedReaction;
 				}
 				return bApplied;
 			};
@@ -2307,8 +2356,20 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		{
 			if (Action.Definition.SurfaceInteraction != EGridCombatSurfaceInteraction::None)
 			{
-				FGridCombatSurfaceReactionResult AppliedReaction;
-				ResolveSurfaceReactionAtCell(Cell, Action.Definition.SurfaceInteraction, AppliedReaction);
+				bool bShouldAttempt = true;
+				if (bCatalystArea)
+				{
+					// Never reinterpret a cell after earlier cells have mutated;
+					// only a successful original-snapshot reaction may commit.
+					const FGridCatalystCellOutcome* Planned = CatalystPlan.FindByPredicate(
+						[Cell](const FGridCatalystCellOutcome& Outcome) { return Outcome.Cell == Cell; });
+					bShouldAttempt = Planned && Planned->Reaction.bReacted;
+				}
+				if (bShouldAttempt)
+				{
+					FGridCombatSurfaceReactionResult AppliedReaction;
+					ResolveSurfaceReactionAtCell(Cell, Action.Definition.SurfaceInteraction, AppliedReaction);
+				}
 			}
 
 			// Invalid conversion for the current cell is a canonical no-op, not an action failure.
@@ -2381,6 +2442,13 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				}
 			}
 		}
+	}
+	// 17.3A: one central pulse per flask. The independently classified cell
+	// animations are deferred to 17.3C; do not clear/restart one VFX per cell.
+	if (bCatalystArea && IsValid(RuntimeActor))
+	{
+		RuntimeActor->PlaySurfaceCatalystReactionAtCell(
+			Preview.TargetCell.X, Preview.TargetCell.Y, CatalystFirstInput, CatalystFirstReaction);
 	}
 	// Un seul splash et une seule entrée Combat du flux d'événements par
 	// flasque effectivement consommée. Pas d'événement lors du ciblage ni

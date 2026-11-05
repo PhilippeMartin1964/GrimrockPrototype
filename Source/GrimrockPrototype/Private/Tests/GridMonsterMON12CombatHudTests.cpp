@@ -2028,6 +2028,9 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 	FGridCombatActionDefinition Definition;
 	if (!TestTrue(TEXT("Catalyst QuickItem action exists"), Catalyst->BuildQuickItemCombatActionDefinition(Definition))) return false;
 	TestEqual(TEXT("Fire reaction action"), Definition.SurfaceInteraction, EGridCombatSurfaceInteraction::Fire);
+	TestEqual(TEXT("Square-area targeting"), Definition.TargetingPolicy, EGridCombatTargetingPolicy::Area);
+	TestEqual(TEXT("Square radius one"), Definition.AreaRadiusCells, 1);
+	TestTrue(TEXT("No-reaction targeting is an approved outcome"), Definition.bAllowNoSurfaceReaction);
 
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent.Get();
 	if (!TestTrue(TEXT("Register exact catalyst definition"), Inventory->RegisterItemDefinition(Catalyst))) return false;
@@ -2051,6 +2054,18 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 	if (!TestTrue(TEXT("Prepare existing RPG03.6 oil for catalyst"),
 		Fixture.Runtime->ApplyCombatSurfaceAtCell(Target.X, Target.Y, Oil, Fixture.CharacterIds[0],
 			FName(TEXT("Action_Alchemist_OilSlick")), Modifiers))) return false;
+	FGridCombatSurfaceEffectProfile Poison;
+	Poison.SurfaceType = EGridCombatSurfaceType::Poison;
+	Poison.DurationRounds = 4;
+	if (!TestTrue(TEXT("Prepare poison inside catalyst area"),
+		Fixture.Runtime->ApplyCombatSurfaceAtCell(2, 2, Poison, Fixture.CharacterIds[0],
+			FName(TEXT("PoisonTest")), Modifiers))) return false;
+	FGridCombatSurfaceEffectProfile Ice;
+	Ice.SurfaceType = EGridCombatSurfaceType::Ice;
+	Ice.DurationRounds = 3;
+	if (!TestTrue(TEXT("Prepare ice inside catalyst area"),
+		Fixture.Runtime->ApplyCombatSurfaceAtCell(0, 2, Ice, Fixture.CharacterIds[0],
+			FName(TEXT("IceTest")), Modifiers))) return false;
 
 	if (!TestTrue(TEXT("Combat hotbar catalyst action resolves"), Fixture.Hud->View.Actions.IsValidIndex(1) &&
 		Fixture.Hud->View.Actions[1].bResolved && Fixture.Hud->View.Actions[1].Action.bEnabled))
@@ -2066,6 +2081,12 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 	TestEqual(TEXT("Rejection spends nothing"),
 		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 2);
 
+	FGridCombatActionTargetingPreview ZonePreview;
+	if (!TestTrue(TEXT("Preview area around edge cell"),
+		Fixture.TurnManager->BuildCombatActionTargetingPreview(0, Definition.ActionId,
+			EGridCombatActionSourcePolicy::QuickItem, Catalyst->ItemDefinitionId, EGridEquipmentSlot::None,
+			Target, ZonePreview))) return false;
+	TestEqual(TEXT("Edge-clipped 3x3 has six traversable cells"), ZonePreview.AffectedCells.Num(), 6);
 	FGridCombatActionRequestResult Confirmed;
 	if (!TestTrue(TEXT("Apply canonical Fire reaction at valid cell"),
 		Fixture.Hud->ConfirmCombatActionTarget(Target, Confirmed))) return false;
@@ -2073,6 +2094,14 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 	const FGridCombatSurfaceState* Surface = Fixture.Runtime->FindCombatSurfaceAtCell(Target.X, Target.Y);
 	TestTrue(TEXT("Oil changed to canonical Fire, no new surface type invented"),
 		Surface && Surface->SurfaceType == EGridCombatSurfaceType::Fire);
+	const FGridCombatSurfaceState* PoisonOutput = Fixture.Runtime->FindCombatSurfaceAtCell(2, 2);
+	TestTrue(TEXT("Poison reacted within same catalyst throw"),
+		PoisonOutput && PoisonOutput->SurfaceType == EGridCombatSurfaceType::Fire);
+	const FGridCombatSurfaceState* IceOutput = Fixture.Runtime->FindCombatSurfaceAtCell(0, 2);
+	TestTrue(TEXT("Ice melted within same catalyst throw"),
+		IceOutput && IceOutput->SurfaceType == EGridCombatSurfaceType::Water);
+	TestNull(TEXT("Dry part of catalyst area stays dry"),
+		Fixture.Runtime->FindCombatSurfaceAtCell(0, 1));
 	TestEqual(TEXT("Exactly one catalyst spent"),
 		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 1);
 	TestEqual(TEXT("Exactly two AP spent"),
@@ -2080,7 +2109,7 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 	TestEqual(TEXT("No oil flask splash for catalyst"), Fixture.Runtime->GetOilSplashPresentationCount(), 0);
 	TestFalse(TEXT("Catalyst doesn't grant N2+ talent"), Definition.Requirements.Num() > 0);
 
-	// Once the surface is Water there is no Fire reaction: reject before paying.
+	// No eligible reaction remains in the second clipped area: valid Fizzle, still paid.
 	FGridCombatSurfaceEffectProfile Water;
 	Water.SurfaceType = EGridCombatSurfaceType::Water;
 	Water.DurationRounds = 3;
@@ -2091,11 +2120,14 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 	if (TestTrue(TEXT("Remaining unit can enter targeting"), Fixture.Hud->RequestHotbarSlot(1, Aim2)))
 	{
 		FGridCombatActionRequestResult WaterResult;
-		TestFalse(TEXT("Water cannot be ignited"), Fixture.Hud->ConfirmCombatActionTarget(Target, WaterResult));
-		TestEqual(TEXT("No consumption on impossible Fire reaction"),
-			Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 1);
-		TestEqual(TEXT("No extra AP on impossible reaction"),
-			Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, ActionPointsBefore - 2);
+		TestTrue(TEXT("Non-reactive water and dry ground still accept catalyst"), Fixture.Hud->ConfirmCombatActionTarget(Target, WaterResult));
+		TestEqual(TEXT("One catalyst consumed even when no cell reacts"),
+			Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 0);
+		TestEqual(TEXT("Two AP consumed for valid Fizzle"),
+			Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, ActionPointsBefore - 4);
+		TestTrue(TEXT("Water remains Water"),
+			Fixture.Runtime->FindCombatSurfaceAtCell(Target.X, Target.Y) &&
+			Fixture.Runtime->FindCombatSurfaceAtCell(Target.X, Target.Y)->SurfaceType == EGridCombatSurfaceType::Water);
 		Fixture.Hud->CancelCombatActionTargeting();
 	}
 	FString Ownership;

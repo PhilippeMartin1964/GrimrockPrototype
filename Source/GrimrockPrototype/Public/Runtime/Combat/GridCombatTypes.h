@@ -61,6 +61,14 @@ enum class EGridCombatTargetingPolicy : uint8
 	AllyOrHostile UMETA(DisplayName = "Ally Or Hostile")
 };
 
+/** Spatial metric for an Area action; Manhattan remains backward-compatible. */
+UENUM(BlueprintType)
+enum class EGridCombatAreaShape : uint8
+{
+	Manhattan UMETA(DisplayName = "Manhattan"),
+	Square UMETA(DisplayName = "Square")
+};
+
 UENUM(BlueprintType)
 enum class EGridCombatActionResolutionProfile : uint8
 {
@@ -2543,9 +2551,21 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution", meta = (ClampMin = "-20", ClampMax = "20"))
 	int32 SubsequentResolutionAccuracyModifier = 0;
 
-	/** Manhattan radius around the selected cell when TargetingPolicy is Area. */
+	/** Radius around the selected cell when TargetingPolicy is Area. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting", meta = (ClampMin = "0", ClampMax = "8"))
 	int32 AreaRadiusCells = 0;
+
+	/** Existing actions retain their Manhattan shape; Square is opt-in only. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting")
+	EGridCombatAreaShape AreaShape = EGridCombatAreaShape::Manhattan;
+
+	/** Opt-in: interaction-only action may finish with zero canonical reactions. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Surface")
+	bool bAllowNoSurfaceReaction = false;
+
+	/** Declarative contract for the later exploration milestone; no HUD bypass yet. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting")
+	bool bUsableDuringExploration = false;
 
 	/** Generic party-centered Area action: runtime ignores the requested cell and uses the party cell as center. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting")

@@ -30,6 +30,12 @@ function Invoke-Git {
     return @($Value)
 }
 Stage 'PREFLIGHT'
+# d7b8fdc0: respect user-authored production art. Never recreate retired
+# SM_SurfaceCatalyst_01 / T_UI_Item_SurfaceCatalyst_01 alongside newer assets.
+if (Test-Path -LiteralPath (Join-Path $WorktreePath 'Content/GrimrockPrototype/Meshes/Items/SM_Catalyst_01.uasset')) {
+    Stage 'ARTIST_ASSETS_PROTECTED'
+    exit 2
+}
 if($ExpectedHead -notmatch '^[a-f0-9]{40}$') { throw 'Invalid SHA.' }
 if(-not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git'))) { throw 'Missing worktree.' }
 if(@(Invoke-Git -GitArgs @('status','--porcelain','--untracked-files=all')).Count -ne 0) { throw 'Worktree not clean.' }

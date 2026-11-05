@@ -167,25 +167,30 @@ namespace SurfaceCatalystArt
 
 bool FRPGSurfaceCatalystVisualAuthoring::MatchesProductionAssets(FString* OutProblem)
 {
-	using namespace SurfaceCatalystArt;
-	const UGridItemDefinitionAsset* Item=LoadObject<UGridItemDefinitionAsset>(nullptr,ItemPath);
-	UTexture2D* Icon=LoadObject<UTexture2D>(nullptr,*Path(IconRoot,IconName));
-	UStaticMesh* Mesh=LoadObject<UStaticMesh>(nullptr,*Path(MeshRoot,MeshName));
-	UMaterial* Flask=LoadObject<UMaterial>(nullptr,*Path(Root,Names[0]));
-	UMaterial* Ember=LoadObject<UMaterial>(nullptr,*Path(Root,Names[1]));
-	UMaterial* Ring=LoadObject<UMaterial>(nullptr,*Path(Root,Names[2]));
-	const bool Valid=IsValid(Item)&&IsValid(Icon)&&IsValid(Mesh)&&IsValid(Flask)&&
-		IsValid(Ember)&&IsValid(Ring)&&Item->IsValidDefinition() &&
-		Item->Icon.ToSoftObjectPath().ToString()==Path(IconRoot,IconName) &&
-		Item->WorldMesh.ToSoftObjectPath().ToString()==Path(MeshRoot,MeshName) &&
-		// Source dimensions, not platform/GPU-derived dimensions: authoring runs with -NullRHI.
-		Icon->Source.IsValid() && Icon->Source.GetSizeX()==256 && Icon->Source.GetSizeY()==256 &&
-		Mesh->GetStaticMaterials().Num()>0 && Mesh->GetMaterial(0)==Flask &&
-		Flask->MaterialDomain==MD_Surface && Ember->MaterialDomain==MD_Surface &&
-		Ring->MaterialDomain==MD_DeferredDecal &&
-		Ember->BlendMode==BLEND_Translucent && Ring->BlendMode==BLEND_Translucent;
-	if (OutProblem) *OutProblem=Valid?TEXT(""):TEXT("Native Catalyst visual contract is incomplete.");
-	return Valid;
+	// ARMEMENT01.17.3A: the artist approved new mesh/icon names on d7b8fdc0.
+	// These assets are authoritative: never regenerate the retired variants.
+	const UGridItemDefinitionAsset* Item = LoadObject<UGridItemDefinitionAsset>(nullptr, SurfaceCatalystArt::ItemPath);
+	const TCHAR* MeshPath = TEXT("/Game/GrimrockPrototype/Meshes/Items/SM_Catalyst_01.SM_Catalyst_01");
+	const TCHAR* IconPath = TEXT("/Game/GrimrockPrototype/UI/Icons/Items/T_Catalyst_Icon.T_Catalyst_Icon");
+	UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, MeshPath);
+	UTexture2D* Icon = LoadObject<UTexture2D>(nullptr, IconPath);
+	UMaterial* Ember = LoadObject<UMaterial>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
+	UMaterial* Ring = LoadObject<UMaterial>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_RunePulse.M_SurfaceCatalyst_RunePulse"));
+	const bool bValid = IsValid(Item) && IsValid(Mesh) && IsValid(Icon) &&
+		IsValid(Ember) && IsValid(Ring) && Item->IsValidDefinition() &&
+		Item->WorldMesh.ToSoftObjectPath().ToString() == FString(MeshPath) &&
+		Item->Icon.ToSoftObjectPath().ToString() == FString(IconPath) &&
+		Mesh->GetStaticMaterials().Num() > 0 && IsValid(Mesh->GetMaterial(0)) &&
+		Ember->MaterialDomain == MD_Surface && Ring->MaterialDomain == MD_DeferredDecal &&
+		Ember->BlendMode == BLEND_Translucent && Ring->BlendMode == BLEND_Translucent;
+	if (OutProblem)
+	{
+		*OutProblem = bValid ? TEXT("") :
+			TEXT("Approved artist catalyst mesh/icon or reaction VFX materials missing.");
+	}
+	return bValid;
 }
 
 bool FRPGSurfaceCatalystVisualAuthoring::Run(bool bApply,FString& OutError)
@@ -193,6 +198,13 @@ bool FRPGSurfaceCatalystVisualAuthoring::Run(bool bApply,FString& OutError)
 	using namespace SurfaceCatalystArt;
 	OutError.Reset();
 	if (MatchesProductionAssets()) return true;
+	// Artist-authored replacement exists: old one-shot procedural creation is
+	// prohibited even when the item's association needs repair.
+	if (FPackageName::DoesPackageExist(TEXT("/Game/GrimrockPrototype/Meshes/Items/SM_Catalyst_01")))
+	{
+		OutError = TEXT("Artist-owned Catalyst asset present; legacy authoring disabled.");
+		return false;
+	}
 	UGridItemDefinitionAsset* Item=LoadObject<UGridItemDefinitionAsset>(nullptr,ItemPath);
 	const UGridItemDefinitionAsset* Oil=LoadObject<UGridItemDefinitionAsset>(nullptr,FlaskItemPath);
 	const UGridItemDefinitionAsset* FireBomb=LoadObject<UGridItemDefinitionAsset>(nullptr,

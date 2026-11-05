@@ -12,7 +12,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01172CProductionVisuals,
 bool FARMEMENT01172CProductionVisuals::RunTest(const FString&)
 {
 	FString Problem;
-	return TestTrue(TEXT("Native catalyst icon, mesh, 3 working materials and item references"),
+	return TestTrue(TEXT("Approved artist catalyst icon/mesh and native reaction materials"),
 		FRPGSurfaceCatalystVisualAuthoring::MatchesProductionAssets(&Problem));
 }
 #endif

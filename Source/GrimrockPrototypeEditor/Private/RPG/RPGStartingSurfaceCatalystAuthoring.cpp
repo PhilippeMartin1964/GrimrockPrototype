@@ -43,7 +43,7 @@ void FRPGStartingSurfaceCatalystAuthoring::Configure(UGridItemDefinitionAsset& I
 	Item.ItemDefinitionId = ARMEMENT01172::ItemId;
 	Item.DisplayName = NSLOCTEXT("ARMEMENT01172", "SurfaceCatalystName", "Catalyseur de surface");
 	Item.Description = NSLOCTEXT("ARMEMENT01172", "SurfaceCatalystDescription",
-		"Réactif à usage unique. Déclenche une réaction de feu sur une surface compatible existante. Ne crée aucune surface.");
+		"Réactif à usage unique. Une impulsion agit sur les surfaces d'une zone, même sur un sol neutre.");
 	Item.ItemType = EGridItemType::Misc;
 	Item.Weight = 0.2f;
 	Item.bStackable = true;
@@ -60,7 +60,11 @@ void FRPGStartingSurfaceCatalystAuthoring::Configure(UGridItemDefinitionAsset& I
 	Action.Description = Item.Description;
 	Action.ActionType = EGridCombatActionType::Ability;
 	Action.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-	Action.TargetingPolicy = EGridCombatTargetingPolicy::Cell;
+	Action.TargetingPolicy = EGridCombatTargetingPolicy::Area;
+	Action.AreaRadiusCells = 1;
+	Action.AreaShape = EGridCombatAreaShape::Square;
+	Action.bAllowNoSurfaceReaction = true;
+	Action.bUsableDuringExploration = true;
 	Action.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
 	Action.ActionPointCost = ActionPoints;
 	Action.RangeCells = Range;
@@ -92,7 +96,9 @@ bool FRPGStartingSurfaceCatalystAuthoring::Matches(const UGridItemDefinitionAsse
 	}
 	return A.ActionId == FName(ARMEMENT01172::ActionId) &&
 		A.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem &&
-		A.TargetingPolicy == EGridCombatTargetingPolicy::Cell &&
+		A.TargetingPolicy == EGridCombatTargetingPolicy::Area &&
+		A.AreaRadiusCells == 1 && A.AreaShape == EGridCombatAreaShape::Square &&
+		A.bAllowNoSurfaceReaction && A.bUsableDuringExploration &&
 		A.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 		A.ActionPointCost == ActionPoints && A.RangeCells == Range &&
 		A.bRequiresLineOfSight && A.ResourceCosts.ManaCost == 0 &&
