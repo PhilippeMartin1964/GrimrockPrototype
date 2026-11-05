@@ -303,31 +303,6 @@ function Get-PublicSafeDiagnostics {
             $Safe.Add('Catalyseur : phase inconnue')
         }
     }
-    # Dedicated catalyst VFX assets: only bounded stage labels are public.
-    $VisualStagePath = Join-Path (Split-Path -Parent $RunLogPath) 'CatalystVisuals.stage'
-    if (Test-Path -LiteralPath $VisualStagePath -PathType Leaf) {
-        $VStage = [string](Get-Content -LiteralPath $VisualStagePath -TotalCount 1 -ErrorAction SilentlyContinue)
-        if ($VStage -in @('PREFLIGHT','SOURCE_READY','REPORT','REPORT_ACCEPTED',
-            'HELPER_ABSENT','HELPER_STARTING','HELPER_EXIT_NONZERO','HELPER_EXCEPTION',
-            'COMMANDLET_STARTED','COMMANDLET_FAILED','COMMANDLET_COMPLETED',
-            'FAIL_GRAPH_FLASK','FAIL_GRAPH_EMBER','FAIL_GRAPH_RUNE',
-            'FAIL_SAVE_FLASK','FAIL_SAVE_EMBER','FAIL_SAVE_RUNE',
-            'FAIL_DUPLICATE_MESH','FAIL_SAVE_MESH','FAIL_CREATE_ICON',
-            'FAIL_SAVE_ICON','FAIL_FINAL_CONTRACT','FAIL_PARTIAL_ASSETS',
-            'FAIL_SOURCE_ITEM','FILESET','ASSETS_VERIFIED','COMMIT_CREATED','SUCCESS')) {
-            $Safe.Add('Catalyseur VFX : phase ' + $VStage)
-        }
-    }
-    # 17.3D diagnostics: bounded stage tokens, no private log content.
-    $NativeStagePath = Join-Path (Split-Path -Parent $RunLogPath) 'CatalystNative.stage'
-    if (Test-Path -LiteralPath $NativeStagePath -PathType Leaf) {
-        $NativeStage = ([string](Get-Content -LiteralPath $NativeStagePath -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
-        if ($NativeStage -cin @('PREFLIGHT','REPORT_REJECTED','REPORT_ACCEPTED','BACKUP_VERIFIED',
-            'COMMANDLET_STARTED','COMMANDLET_FAILED','COMMANDLET_COMPLETED',
-            'FILESET','ASSET_VERIFIED','MASTER_MOVED','COMMIT_CREATED','SUCCESS')) {
-            $Safe.Add('Catalyseur DataAsset : phase ' + $NativeStage)
-        }
-    }
     if ($Safe.Count -eq 0) {
         $Safe.Add('Pas de diagnostic public fiable ; seuls les journaux locaux sont exhaustifs.')
     }
@@ -743,63 +718,6 @@ try {
                     }
                 }
                 catch { Write-Warning 'Catalyst authoring unavailable; private logs only.' }
-            }
-            # ARMEMENT01.17.2C: always report a bounded VFX stage, including
-            # launch/PowerShell failures that happen before the helper can write it.
-            $VfxHelper = Join-Path $WorktreePath 'Scripts\AuthorSurfaceCatalystVisuals.ps1'
-            $VfxStageFile = Join-Path $RunDir 'CatalystVisuals.stage'
-            if ($Phase -eq 'testing' -and $ExitCode -ne 0) {
-                if (-not (Test-Path -LiteralPath $VfxHelper -PathType Leaf)) {
-                    Set-Content -LiteralPath $VfxStageFile -Value 'HELPER_ABSENT' -Encoding ASCII
-                }
-                else {
-                try {
-                    Set-Content -LiteralPath $VfxStageFile -Value 'HELPER_STARTING' -Encoding ASCII
-                    $VfxStdout = Join-Path $RunDir 'CatalystVisualsAuthoring.stdout.log'
-                    $VfxStderr = Join-Path $RunDir 'CatalystVisualsAuthoring.stderr.log'
-                    $VfxArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $VfxHelper +
-                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
-                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
-                    $VfxProcess = Start-Process -FilePath $PsExe -ArgumentList $VfxArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $VfxStdout -RedirectStandardError $VfxStderr -PassThru -Wait -ErrorAction Stop
-                    if ($VfxProcess.ExitCode -eq 0) {
-                        Write-Host '[ARMEMENT01.17.2C] New native visual files published; validate their commit.'
-                    }
-                    elseif ($VfxProcess.ExitCode -ne 2) {
-                        Write-Warning 'Catalyst visual authoring incomplete; diagnostics are private.'
-                    }
-                    if ((Get-Content -LiteralPath $VfxStageFile -TotalCount 1) -eq 'HELPER_STARTING') {
-                        Set-Content -LiteralPath $VfxStageFile -Value 'HELPER_EXIT_NONZERO' -Encoding ASCII
-                    }
-                }
-                catch {
-                    if ((Get-Content -LiteralPath $VfxStageFile -TotalCount 1 -ErrorAction SilentlyContinue) -eq 'HELPER_STARTING') {
-                        Set-Content -LiteralPath $VfxStageFile -Value 'HELPER_EXCEPTION' -Encoding ASCII
-                    }
-                    Write-Warning 'Catalyst visual authoring unavailable; private logs only.'
-                }
-                }
-            }
-
-            # ARMEMENT01.17.3D: migrate only one existing artist DataAsset when
-            # the serialized-contract test specifically fails (strict helper).
-            $NativeHelper = Join-Path $WorktreePath 'Scripts\MigrateSurfaceCatalystNativeData.ps1'
-            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and
-                (Test-Path -LiteralPath $NativeHelper -PathType Leaf)) {
-                try {
-                    $NativeOut = Join-Path $RunDir 'CatalystNativeMigration.stdout.log'
-                    $NativeErr = Join-Path $RunDir 'CatalystNativeMigration.stderr.log'
-                    $NativeArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $NativeHelper +
-                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
-                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
-                    $NativeProcess = Start-Process -FilePath $PsExe -ArgumentList $NativeArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $NativeOut -RedirectStandardError $NativeErr -PassThru -Wait -ErrorAction Stop
-                    if ($NativeProcess.ExitCode -eq 0) {
-                        Write-Host '[ARMEMENT01.17.3D] Native catalyst migrated; next commit receives full validation.'
-                    }
-                    elseif ($NativeProcess.ExitCode -ne 2) {
-                        Write-Warning '[ARMEMENT01.17.3D] Native migration stopped; private logs only.'
-                    }
-                }
-                catch { Write-Warning '[ARMEMENT01.17.3D] Native helper unavailable; private logs only.' }
             }
             try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
             catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
