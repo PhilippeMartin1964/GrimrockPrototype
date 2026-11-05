@@ -129,3 +129,46 @@ Un commandlet d’authoring peut terminer normalement, puis voir sa publication 
 L’agent dispose désormais d’une récupération **strictement limitée** : si tous les fichiers modifiés sont exclusivement `M_Surface_Oil.uasset` et éventuellement `MI_Surface_Oil.uasset`, non indexés, il en crée des copies privées dans `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Recovery`, calcule et compare leurs empreintes SHA-256, puis restaure uniquement ces chemins dans le **worktree de validation** via `git restore --source=HEAD --worktree`. Il vérifie ensuite que le worktree est propre avant le checkout du commit courant.
 
 **Aucun `git reset --hard`, aucun `git clean`, aucun fichier de `D:\Development\GrimrockPrototype` n’est modifié**. Une modification inattendue, un fichier indexé ou une erreur de sauvegarde interrompent le processus. Les copies de sécurité ne sont jamais publiées sur GitHub. Une validation et une conversion ciblée peuvent alors recommencer depuis un état propre.
+
+
+## VALIDATION-AUTO01.11 — Exécution Windows sans fenêtre console (5 novembre 2026)
+
+La tâche planifiée `GrimrockPrototype-UEValidation` ne doit plus lancer directement
+`powershell.exe` : `-WindowStyle Hidden` peut faire apparaître brièvement une console.
+Son action est remplacée par `%SystemRoot%\System32\wscript.exe //B //Nologo`,
+qui exécute `UEValidationSilentLauncher.vbs` **sans fenêtre** depuis
+`%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent`.
+
+Le lanceur passe l'ancien appel PowerShell **inchangé** à
+`WScript.Shell.Run(Command, 0, True)` : `0` masque la fenêtre et `True`
+attend la fin du bootstrap/compilation/tests. Cela conserve
+`MultipleInstances=IgnoreNew` et propage le code de retour à la tâche.
+
+**Migration automatique :** au prochain déclenchement de l'ancien
+PowerShell, le bootstrap stable récupère sur `master` la version de l'agent
+associée au SHA courant. L'agent extrait également
+`Scripts/UEValidationSilentTask.ps1` de **ce même SHA**, vérifie sa
+syntaxe PowerShell, puis :
+
+1. identifie la tâche **racine exacte** et son action PowerShell existante ;
+2. vérifie qu'elle lance bien le bootstrap de ce dépôt ;
+3. crée le lanceur dans son propre répertoire local et exécute un
+   `--self-test` WSH/PowerShell **avant** de changer l'action ;
+4. remplace **uniquement l'action** via `Set-ScheduledTask -Action`, sans
+   toucher au déclencheur de trois minutes, au compte, aux autres paramètres
+   ni au checkout de développement ; relit et vérifie la nouvelle action ;
+5. tente de rétablir l'ancienne action en cas d'échec de la migration ;
+6. publie le statut GitHub indépendant `UE5.5.4/SilentTask` sur le SHA
+   traité : `success` = action `wscript` installée et relue ;
+   `failure` = migration non confirmée. Les journaux restent privés.
+
+La migration ne demande **ni `git pull` ni réinstallation manuelle**.
+Lors d'une future installation explicite, `InstallUEValidationAgent.ps1`
+utilise directement le même helper ; `-CheckOnly` ne crée aucun lanceur.
+Si Windows Script Host est désactivé par stratégie, le self-test bloque
+la migration sans supprimer l'ancienne action.
+
+**Limite de la preuve :** un `UE5.5.4/SilentTask=success` confirme l'action
+du Planificateur et son auto-test, pas une observation visuelle du bureau.
+L'instance déjà en cours lors du changement peut continuer avec l'ancien
+contexte. `UE5.5.4/LocalAuto` prouve séparément compilation + Automation.

@@ -6,6 +6,7 @@ Le [guide complet en français](../docs/SCRIPTS_REFERENCE.md) décrit les prére
 | --- | --- | --- |
 | Vérifier les plugins déclarés | [CheckProjectDependencies.ps1](CheckProjectDependencies.ps1) | Contrôle sans modification |
 | Compiler l’éditeur et/ou lancer des tests Automation | [ValidateUE.ps1](ValidateUE.ps1) | Compilation et rapports sous `Saved/` |
+| Installer et maintenir la tâche Windows sans console | [UEValidationSilentTask.ps1](UEValidationSilentTask.ps1) | Migration automatique vers `wscript.exe`, auto-test, contrôle et retour arrière de l'action précédente |
 | Valider automatiquement chaque nouveau commit `master` sous Windows | [InstallUEValidationAgent.ps1](InstallUEValidationAgent.ps1), [UEValidationBootstrap.ps1](UEValidationBootstrap.ps1) et [UEValidationAgent.ps1](UEValidationAgent.ps1) | Tâche planifiée invisible, agent mis à jour automatiquement, compilation UE, tests Automation et diagnostics sur GitHub ; [guide français](../docs/Architecture/VALIDATION_AUTO01_WINDOWS_UE_AGENT.md) |
 | Capturer des mesures CPU Unreal Insights | [CapturePerfProfile01.ps1](CapturePerfProfile01.ps1) | Lancement standalone, fichier `.utrace` et métadonnées sous `Saved/Profiling/PERF-PROFILE01/` |
 | Valider la chaîne UI-RPG-VISUAL01.4 et ses Data Assets sérialisés | [ValidateUIRPGVisual.ps1](ValidateUIRPGVisual.ps1) | Lance la suite ciblée Visual/Assets/Blueprints/DESC01 sans modifier les `.uasset` |

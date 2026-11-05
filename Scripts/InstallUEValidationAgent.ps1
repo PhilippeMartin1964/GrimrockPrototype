@@ -23,6 +23,7 @@ function Quote-AgentArgument {
 $RepoRoot = (Resolve-Path -LiteralPath (Split-Path -Parent $PSScriptRoot)).Path
 $Agent = Join-Path $PSScriptRoot 'UEValidationAgent.ps1'
 $Bootstrap = Join-Path $PSScriptRoot 'UEValidationBootstrap.ps1'
+$SilentHelper = Join-Path $PSScriptRoot 'UEValidationSilentTask.ps1'
 $WorktreePath = Join-Path (Split-Path -Parent $RepoRoot) 'GrimrockPrototype_UEValidation'
 if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) { throw 'LOCALAPPDATA indisponible pour le compte Windows courant.' }
 $StateRoot = Join-Path $env:LOCALAPPDATA 'GrimrockPrototype\UEValidationAgent'
@@ -43,7 +44,7 @@ if ($LASTEXITCODE -ne 0) { throw 'GitHub CLI non authentifie. Executer gh auth l
 
 Import-Module ScheduledTasks -ErrorAction Stop
 # Parsing reel PowerShell 5.1, avant toute inscription de tache.
-foreach ($ScriptToCheck in @($PSCommandPath, $Agent, $Bootstrap)) {
+foreach ($ScriptToCheck in @($PSCommandPath, $Agent, $Bootstrap, $SilentHelper)) {
     $Tokens = $null
     $ParseErrors = $null
     [void][System.Management.Automation.Language.Parser]::ParseFile($ScriptToCheck, [ref]$Tokens, [ref]$ParseErrors)
@@ -60,7 +61,10 @@ $PsArguments = @(
     '-StateRoot', (Quote-AgentArgument $StateRoot), '-AutomationFilter', (Quote-AgentArgument $AutomationFilter)
 )
 if ($UseRHI) { $PsArguments += '-UseRHI' }
-$Action = New-ScheduledTaskAction -Execute $PsExe -Argument ($PsArguments -join ' ') -WorkingDirectory $RepoRoot
+# The task action is prepared only AFTER -CheckOnly; the helper writes the
+# invisible WSH launcher to the private StateRoot, never to the checkout.
+$WscriptExe = Join-Path $env:SystemRoot 'System32\wscript.exe'
+$LauncherPath = Join-Path $StateRoot 'UEValidationSilentLauncher.vbs'
 $Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes $IntervalMinutes) -RepetitionDuration (New-TimeSpan -Days 3650)
 $Identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 $Principal = New-ScheduledTaskPrincipal -UserId $Identity -LogonType Interactive -RunLevel Limited
@@ -90,7 +94,9 @@ $Settings = New-ScheduledTaskSettingsSet @SettingsArguments
 $Existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($Existing) {
     $OwnAction = @($Existing.Actions | Where-Object {
-        $_.Execute -ieq $PsExe -and ($_.Arguments.Contains((Quote-AgentArgument $Agent)) -or $_.Arguments.Contains((Quote-AgentArgument $Bootstrap)))
+        ($_.Execute -ieq $PsExe -and $_.Arguments.Contains((Quote-AgentArgument $Bootstrap))) -or
+        ($_.Execute -ieq $WscriptExe -and $_.Arguments -ceq ('//B //Nologo "' + $LauncherPath + '"') -and
+            $_.WorkingDirectory -ieq $RepoRoot)
     })
     if ($OwnAction.Count -eq 0) { throw "Tache existante non reconnue : $TaskName. Aucun remplacement effectue." }
 }
@@ -108,9 +114,13 @@ if ($CheckOnly) {
 }
 
 New-Item -ItemType Directory -Force -Path $StateRoot | Out-Null
+. $SilentHelper
+$Action = New-UEValidationSilentAction -RepositoryRoot $RepoRoot -StateRoot $StateRoot -PowerShellArguments ($PsArguments -join ' ')
 Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principal -Description 'Validation automatique UE 5.5.4 de origin/master dans un worktree dedie.' -Force | Out-Null
 $Registered = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
 if (-not $Registered) { throw "Echec de verification de l'inscription de la tache $TaskName." }
+if (@($Registered.Actions).Count -ne 1) { throw 'VALIDATION-AUTO01.11: incorrect task action count.' }
+Assert-UEValidationSilentAction -Action $Registered.Actions[0] -RepositoryRoot $RepoRoot -StateRoot $StateRoot
 Write-Host "[VALIDATION-AUTO01.4] Tache installee : $TaskName"
 if (-not $SkipInitialRun) {
     # La reinstallation pendant un build UE ne doit pas lancer une seconde validation.
@@ -125,5 +135,5 @@ if (-not $SkipInitialRun) {
 Write-Host "Verification : Get-ScheduledTask -TaskName '$TaskName' | Get-ScheduledTaskInfo"
 Write-Host "Journal agent : $StateRoot\Agent.latest.log"
 Write-Host "Journal bootstrap : $StateRoot\Bootstrap.latest.log"
-Write-Host '[VALIDATION-AUTO01.4] Mode silencieux : PowerShell -WindowStyle Hidden (agent et harness).'
-Write-Host 'Une instance deja demarree avant ce correctif peut rester visible jusqu a sa fin.'
+Write-Host '[VALIDATION-AUTO01.11] Lanceur wscript.exe sans console (mode 0 et attente du processus enfant).'
+Write-Host 'Une instance PowerShell deja en cours peut conserver son comportement jusqu a sa fin.'

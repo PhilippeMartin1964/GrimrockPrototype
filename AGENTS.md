@@ -84,3 +84,14 @@
 - Le rendu GPU/PIE et la qualité artistique ne sont pas prouvés par `-NullRHI`. Les distinguer explicitement de la compilation et de la suite Automation ; demander une intervention visuelle seulement si aucune capture automatisée exploitable n'est disponible.
 - Documentation de référence : `docs/Architecture/VALIDATION_AUTO01_WINDOWS_UE_AGENT.md`, `Scripts/UEValidationAgent.ps1`, `Scripts/InstallUEValidationAgent.ps1`.
 - **Compte rendu de fin de jalon obligatoire :** SHA publié, statut exact `UE5.5.4/LocalAuto`, résultat ou blocage, tests concernés, reste à vérifier visuellement. Aucun lancement manuel récurrent à transférer à l'utilisateur.
+
+## VALIDATION-AUTO01.11 — tâche Windows réellement silencieuse
+
+- L'action de la tâche planifiée doit être `wscript.exe //B //Nologo`,
+  pas un lancement direct de `powershell.exe`.
+- L'agent migre automatiquement son ancienne action par
+  `Scripts/UEValidationSilentTask.ps1`, sans réclamer `git pull`
+  ni une réinstallation de la tâche à l'utilisateur.
+- Contrôler **deux statuts distincts** sur le SHA : `UE5.5.4/SilentTask`
+  (action silencieuse installée et vérifiée) et `UE5.5.4/LocalAuto`
+  (compilation + suite `Grimrock`). Ne pas les confondre.

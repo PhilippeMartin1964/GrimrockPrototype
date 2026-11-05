@@ -32,9 +32,9 @@ function Save-JsonAtomic {
 }
 
 function Publish-CommitStatus {
-    param([string]$Sha, [string]$State, [string]$Description)
+    param([string]$Sha, [string]$State, [string]$Description, [string]$Context = 'UE5.5.4/LocalAuto')
     $Description = $Description.Substring(0, [Math]::Min(135, $Description.Length))
-    & gh api -X POST "repos/$GitHubRepository/statuses/$Sha" -f "state=$State" -f 'context=UE5.5.4/LocalAuto' -f "description=$Description" --silent
+    & gh api -X POST "repos/$GitHubRepository/statuses/$Sha" -f "state=$State" -f "context=$Context" -f "description=$Description" --silent
     if ($LASTEXITCODE -ne 0) { throw "Publication du statut GitHub impossible (code $LASTEXITCODE)." }
 }
 
@@ -317,6 +317,50 @@ try {
     Invoke-Checked -Executable 'git' -Arguments @('-C', $RepositoryRoot, 'fetch', '--no-tags', 'origin', 'master') | Out-Null
     $Sha = (Invoke-Checked -Executable 'git' -Arguments @('-C', $RepositoryRoot, 'rev-parse', 'refs/remotes/origin/master') | Select-Object -First 1).ToString().Trim()
     if ($Sha -notmatch '^[0-9a-f]{40}$') { throw "SHA Git invalide : $Sha" }
+    # VALIDATION-AUTO01.11: the already-scheduled agent migrates its OWN task.
+    # Fetch the helper from this exact remote SHA; never require a local git pull.
+    # Run before the cached-commit fast path so a failed migration can recover.
+    $SilentReceipt = Join-Path $StateRoot 'SilentTaskVerified.sha'
+    try {
+        $SilentHelper = Join-Path $StateRoot 'UEValidationSilentTask.ps1'
+        $SilentTemp = $SilentHelper + '.tmp'
+        try {
+            $VersionedHelper = $Sha + ':Scripts/UEValidationSilentTask.ps1'
+            Invoke-Checked -Executable 'git' -Arguments @('-C', $RepositoryRoot, 'show', $VersionedHelper) |
+                Set-Content -LiteralPath $SilentTemp -Encoding UTF8 -ErrorAction Stop
+            $HelperTokens = $null
+            $HelperErrors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+                $SilentTemp, [ref]$HelperTokens, [ref]$HelperErrors)
+            if ($null -ne $HelperErrors -and $HelperErrors.Count -gt 0) {
+                throw 'SilentTask helper syntax invalid.'
+            }
+            Move-Item -LiteralPath $SilentTemp -Destination $SilentHelper -Force -ErrorAction Stop
+        }
+        finally {
+            Remove-Item -LiteralPath $SilentTemp -Force -ErrorAction SilentlyContinue
+        }
+        . $SilentHelper
+        $SilentResult = Set-UEValidationSilentTask -RepositoryRoot $RepositoryRoot -StateRoot $StateRoot
+        $ReportedSha = if (Test-Path -LiteralPath $SilentReceipt -PathType Leaf) {
+            ([string](Get-Content -LiteralPath $SilentReceipt -TotalCount 1)).Trim()
+        } else { '' }
+        if ($SilentResult -eq 'MIGRATED' -or $ReportedSha -cne $Sha) {
+            Publish-CommitStatus -Sha $Sha -State 'success' -Context 'UE5.5.4/SilentTask' `
+                -Description 'Action wscript silencieuse installee et verifiee'
+            Set-Content -LiteralPath $SilentReceipt -Value $Sha -Encoding ASCII
+        }
+        Write-Host "[VALIDATION-AUTO01.11] Silent task: $SilentResult"
+    }
+    catch {
+        Write-Warning ('[VALIDATION-AUTO01.11] Migration non confirmee: ' + $_.Exception.Message)
+        try {
+            Publish-CommitStatus -Sha $Sha -State 'failure' -Context 'UE5.5.4/SilentTask' `
+                -Description 'Migration du lanceur silencieux non confirmee'
+        }
+        catch { Write-Warning '[VALIDATION-AUTO01.11] Publication du statut impossible.' }
+    }
+
     if ($Previous -and $Previous.sha -eq $Sha -and $Previous.automation_filter -eq $AutomationFilter -and
         $Previous.result -in @('success', 'failure')) {
         Write-Host "[VALIDATION-AUTO01] Commit deja traite : $Sha ($($Previous.result))."
