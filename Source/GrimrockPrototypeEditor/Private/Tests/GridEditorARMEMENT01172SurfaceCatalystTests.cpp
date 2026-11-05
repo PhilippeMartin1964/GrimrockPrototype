@@ -74,4 +74,34 @@ bool FARMEMENT01173DSerializedCatalyst::RunTest(const FString&)
 		FRPGStartingSurfaceCatalystAuthoring::MatchesSerializedProduction(*Item));
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01173DNativeActionRuntime,
+	"Grimrock.RPG.ARMEMENT01.17.3D.NativeActionWithoutBridge",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FARMEMENT01173DNativeActionRuntime::RunTest(const FString&)
+{
+	const UGridItemDefinitionAsset* Item = LoadObject<UGridItemDefinitionAsset>(
+		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_SurfaceCatalyst_01.DA_Item_SurfaceCatalyst_01"));
+	if (!TestNotNull(TEXT("Exact native catalyst DataAsset"), Item) ||
+		!TestTrue(TEXT("Native fields exist without action projection"),
+			FRPGStartingSurfaceCatalystAuthoring::MatchesSerializedProduction(*Item)))
+	{
+		return false;
+	}
+	FGridCombatActionDefinition Resolved;
+	if (!TestTrue(TEXT("Runtime reads the native catalyst action"),
+		Item->BuildQuickItemCombatActionDefinition(Resolved))) return false;
+	const FGridCombatActionDefinition& Raw = Item->QuickItemCombatAction;
+	TestEqual(TEXT("Targeting policy unchanged"), Resolved.TargetingPolicy, Raw.TargetingPolicy);
+	TestEqual(TEXT("Square shape unchanged"), Resolved.AreaShape, Raw.AreaShape);
+	TestEqual(TEXT("Radius unchanged"), Resolved.AreaRadiusCells, Raw.AreaRadiusCells);
+	TestEqual(TEXT("No reaction flag unchanged"), Resolved.bAllowNoSurfaceReaction, Raw.bAllowNoSurfaceReaction);
+	TestEqual(TEXT("Exploration flag unchanged"), Resolved.bUsableDuringExploration, Raw.bUsableDuringExploration);
+	TestEqual(TEXT("AP cost unchanged"), Resolved.ActionPointCost, Raw.ActionPointCost);
+	TestEqual(TEXT("Line of sight unchanged"), Resolved.bRequiresLineOfSight, Raw.bRequiresLineOfSight);
+	TestEqual(TEXT("Fire interaction unchanged"), Resolved.SurfaceInteraction, Raw.SurfaceInteraction);
+	TestEqual(TEXT("Item cost unchanged"), Resolved.ResourceCosts.SourceItemQuantityCost,
+		Raw.ResourceCosts.SourceItemQuantityCost);
+	return true;
+}
+
 #endif

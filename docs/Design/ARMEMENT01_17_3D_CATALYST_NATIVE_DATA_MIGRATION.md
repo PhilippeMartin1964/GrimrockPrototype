@@ -41,3 +41,17 @@ il n'est pas correct de présumer qu'elle provient uniquement du catalyseur.
 5. Rendu PIE/GPU et packaging indépendants de -NullRHI.
 
 Aucun asset artiste (mesh, icône, PBR) n'est créé, supprimé ou remplacé.
+
+## ARMEMENT01.17.3D.3 — Suppression du pont C++ (5 novembre 2026)
+
+- Preuve de précondition : commit b4d1c92a, validation Windows UE5.5.4/LocalAuto SUCCESS.
+- Suppression de ProjectApprovedAction dans FGridCatalystAreaResolver et de
+  l'appel artificiel depuis UGridItemDefinitionAsset::BuildQuickItemCombatActionDefinition.
+- Les actions QuickItem utilisent désormais les champs autoritaires du DataAsset,
+  sans exception codée en dur pour le Mage/Tisseur de surfaces.
+- Le test SquareArea formule explicitement son contrat C6 sans passage par
+  une fonction de conversion transitoire.
+- Nouveau test NativeActionWithoutBridge : compare l'action résolue aux
+  propriétés brutes (shape, radius, ciblage, exploration, PA, LOS et coût item).
+- Aucun uasset, umap, mesh, icône, matériau, traduction ou SaveGame modifié.
+- Exiger à nouveau UE5.5.4/LocalAuto=SUCCESS sur le SHA de 17.3D.3.

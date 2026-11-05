@@ -1,7 +1,6 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
-#include "Runtime/Combat/GridCatalystAreaResolver.h"
 
 #include "Engine/StaticMesh.h"
 
@@ -339,12 +338,6 @@ bool UGridItemDefinitionAsset::BuildQuickItemCombatActionDefinition(FGridCombatA
 	OutDefinition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 	OutDefinition.ResourceCosts.SourceItemQuantityCost = FMath::Max(1, OutDefinition.ResourceCosts.SourceItemQuantityCost);
 	NormalizeQuickItemSourceTags(ItemTags, OutDefinition);
-	// Approved N1 data migration bridge: keep the artist-owned DataAsset, mesh
-	// and icon untouched while its binary gameplay fields are reauthored.
-	if (FGridCatalystAreaResolver::IsApprovedItem(ItemDefinitionId, OutDefinition.ActionId))
-	{
-		FGridCatalystAreaResolver::ProjectApprovedAction(OutDefinition);
-	}
 	ApplySerializedItemPresentationFallback(*this, OutDefinition);
 
 	if (!OutDefinition.IsValid())

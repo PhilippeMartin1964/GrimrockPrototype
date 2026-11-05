@@ -20,17 +20,6 @@ bool FGridCatalystAreaResolver::IsApprovedAction(const FGridCombatActionDefiniti
 		Action.bAllowNoSurfaceReaction;
 }
 
-void FGridCatalystAreaResolver::ProjectApprovedAction(FGridCombatActionDefinition& Action)
-{
-	// Called only for the one approved N1 item/action identity.
-	Action.TargetingPolicy = EGridCombatTargetingPolicy::Area;
-	Action.AreaRadiusCells = 1;
-	Action.AreaShape = EGridCombatAreaShape::Square;
-	Action.bAllowNoSurfaceReaction = true;
-	Action.bUsableDuringExploration = true;
-	// No N2/N6 spell or talent is granted.
-}
-
 void FGridCatalystAreaResolver::BuildReachableSquare(
 	FIntPoint Center, int32 Radius,
 	TFunctionRef<bool(FIntPoint)> IsWalkable,

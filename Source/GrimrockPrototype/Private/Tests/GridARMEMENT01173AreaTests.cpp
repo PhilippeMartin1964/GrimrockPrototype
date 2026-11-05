@@ -13,16 +13,21 @@ bool FARMEMENT01173ASquareArea::RunTest(const FString&)
 	Action.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 	Action.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
 	Action.SurfaceInteraction = EGridCombatSurfaceInteraction::Fire;
-	FGridCatalystAreaResolver::ProjectApprovedAction(Action);
+	// Explicit native action contract: no runtime mutation bridge.
+	Action.TargetingPolicy = EGridCombatTargetingPolicy::Area;
+	Action.AreaRadiusCells = 1;
+	Action.AreaShape = EGridCombatAreaShape::Square;
+	Action.bAllowNoSurfaceReaction = true;
+	Action.bUsableDuringExploration = true;
 	TestTrue(TEXT("Exactly approved item/action pair is recognized"),
 		FGridCatalystAreaResolver::IsApprovedItem(TEXT("Item_SurfaceCatalyst_01"), Action.ActionId));
 	TestFalse(TEXT("Similar item cannot acquire catalyst abilities"),
 		FGridCatalystAreaResolver::IsApprovedItem(TEXT("Item_Flask_Oil"), Action.ActionId));
 	TestEqual(TEXT("Default unrelated area shape remains Manhattan"),
 		FGridCombatActionDefinition().AreaShape, EGridCombatAreaShape::Manhattan);
-	TestEqual(TEXT("Projected catalyst shape is Square"), Action.AreaShape, EGridCombatAreaShape::Square);
-	TestEqual(TEXT("Projected catalyst radius one"), Action.AreaRadiusCells, 1);
-	TestTrue(TEXT("Projected C6 action is approved"), FGridCatalystAreaResolver::IsApprovedAction(Action));
+	TestEqual(TEXT("Authored catalyst shape is Square"), Action.AreaShape, EGridCombatAreaShape::Square);
+	TestEqual(TEXT("Authored catalyst radius one"), Action.AreaRadiusCells, 1);
+	TestTrue(TEXT("Native C6 action is approved"), FGridCatalystAreaResolver::IsApprovedAction(Action));
 
 	TArray<FIntPoint> Cells;
 	auto Walkable = [](FIntPoint Cell)

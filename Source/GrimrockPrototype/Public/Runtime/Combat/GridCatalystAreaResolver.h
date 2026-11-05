@@ -28,7 +28,6 @@ class FGridCatalystAreaResolver
 public:
 	static bool IsApprovedItem(FName ItemId, FName ActionId);
 	static bool IsApprovedAction(const FGridCombatActionDefinition& Action);
-	static void ProjectApprovedAction(FGridCombatActionDefinition& Action);
 
 	/** Flood inside square; walls/closed doors stop propagation. */
 	static void BuildReachableSquare(
