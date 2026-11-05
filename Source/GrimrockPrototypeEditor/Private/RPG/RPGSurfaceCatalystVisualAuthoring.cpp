@@ -2,6 +2,7 @@
 
 #include "Engine/StaticMesh.h"
 #include "Engine/Texture2D.h"
+#include "MaterialDomain.h"
 #include "Materials/Material.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
