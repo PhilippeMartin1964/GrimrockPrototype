@@ -1,5 +1,12 @@
 # EFFECTS-ORG01.2A — Dépendances confirmées et ordre de migration
 
+**Mise à jour EFFECTS-ORG01.2C :** la migration de potion annoncée
+ci-dessous a été **réalisée** au commit `325b72aa` (suite UE5.5.4
+validée). L'ancien nom est supprimé. Voir
+`docs/Architecture/EFFECTS_ORG01_2B_AUTOMATED_POTION_RENAME.md`.
+Les paragraphes ci-dessous décrivent l'état de préparation antérieur
+à la migration, à valeur historique uniquement.
+
 **Base :** rapport Asset Registry Unreal 5.5.4, [issue #50](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/50), généré automatiquement après validation réussie du commit `a2254618`.
 
 **Statut de cette étape :** protection des dépendances et préparation de migration. Aucun `.uasset` déplacé, aucun renommage effectué.

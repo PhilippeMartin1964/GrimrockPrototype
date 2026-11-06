@@ -252,7 +252,7 @@ bool FGridEditorEffectsOrg011InventoryTest::RunTest(const FString&)
 		bPotionOld ? TEXT("yes") : TEXT("no")));
 	Summary.Add(FString::Printf(TEXT("Potion spark target M_Potion_Spark exists: %s"),
 		bPotionTarget ? TEXT("yes") : TEXT("no")));
-	Summary.Add(TEXT("Decision: M_Teleporter_Spark_02 IS the healing potion bubble material; rename later in Unreal, keep in Alchimie."));
+	Summary.Add(TEXT("Canonical potion bubble material: M_Potion_Spark in Alchimie; old name forbidden."));
 	Summary.Add(TEXT("No asset renaming, deletion, save, redirector fix-up or vendor content publication was performed."));
 
 	const FString Directory = FPaths::Combine(
@@ -274,10 +274,10 @@ bool FGridEditorEffectsOrg011InventoryTest::RunTest(const FString&)
 		HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Effects/Teleporter/NS_Teleporter_Blue")));
 	TestTrue(TEXT("Canonical torch Niagara"),
 		HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch")));
-	TestTrue(TEXT("Potion bubble material remains in Alchimie before/after rename"),
-		bPotionOld || bPotionTarget);
-	TestFalse(TEXT("Do not retain old and renamed potion material simultaneously"),
-		bPotionOld && bPotionTarget);
+	TestTrue(TEXT("Canonical potion bubbles material exists in Alchimie"),
+		bPotionTarget);
+	TestFalse(TEXT("Obsolete potion material name is forbidden"),
+		bPotionOld);
 
 	for (const FString& Line : Summary)
 	{
@@ -289,8 +289,8 @@ bool FGridEditorEffectsOrg011InventoryTest::RunTest(const FString&)
 
 
 // EFFECTS-ORG01.2A: regression guard for the concrete, UE-verified graph.
-// It accepts the approved potion-material rename only when all dependencies
-// remain connected. No backward-compatibility alias is created in runtime.
+// Requires the canonical post-migration material and its serialized dependency.
+// No backward-compatibility alias or old-name fallback is accepted.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorEffectsOrg012ADependencyContractTest,
     "Grimrock.Editor.EffectsOrg01.DependencyContract",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -303,15 +303,14 @@ bool FGridEditorEffectsOrg012ADependencyContractTest::RunTest(const FString&)
     Registry.SearchAllAssets(true);
 
     const FName PotionNiagara(TEXT("/Game/GrimrockPrototype/Effects/Alchimie/NS_LiquideSparkle"));
-    const FName OldPotionMaterial(TEXT("/Game/GrimrockPrototype/Effects/Alchimie/M_Teleporter_Spark_02"));
     const FName NewPotionMaterial(TEXT("/Game/GrimrockPrototype/Effects/Alchimie/M_Potion_Spark"));
-    const bool bOldMaterial = HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Effects/Alchimie/M_Teleporter_Spark_02"));
-    const bool bNewMaterial = HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Effects/Alchimie/M_Potion_Spark"));
-    if (!TestTrue(TEXT("Exactly one potion material name exists"), bOldMaterial != bNewMaterial))
+    if (!TestTrue(TEXT("Renamed potion material is required"),
+        HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Effects/Alchimie/M_Potion_Spark"))) ||
+        !TestFalse(TEXT("Obsolete potion material package must be absent"),
+        HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Effects/Alchimie/M_Teleporter_Spark_02"))))
     {
         return false;
     }
-    const FName CurrentPotionMaterial = bNewMaterial ? NewPotionMaterial : OldPotionMaterial;
 
     bool bAllDependenciesValid = true;
     auto HasDependency = [&Registry, &bAllDependenciesValid, this](FName Source, FName Dependency, const TCHAR* Label)
@@ -327,7 +326,7 @@ bool FGridEditorEffectsOrg012ADependencyContractTest::RunTest(const FString&)
             Dependencies.Contains(Dependency));
     };
 
-    HasDependency(PotionNiagara, CurrentPotionMaterial,
+    HasDependency(PotionNiagara, NewPotionMaterial,
         TEXT("Potion bubble material is used by NS_LiquideSparkle"));
     HasDependency(
         FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01")),

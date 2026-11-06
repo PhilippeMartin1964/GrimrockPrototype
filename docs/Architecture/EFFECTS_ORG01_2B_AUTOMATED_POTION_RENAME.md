@@ -1,71 +1,57 @@
-# EFFECTS-ORG01.2B — Renommage Unreal natif des bulles de potion
+# EFFECTS-ORG01.2B — Renommage des bulles de potion : bilan final
 
-## Objectif
+## Résultat acquis
 
-Renommer exclusivement le matériau `M_Teleporter_Spark_02` en
-`M_Potion_Spark` **dans le même dossier Effects/Alchimie**, selon
-la fonction réelle confirmée par l'auteur et le graphe Asset Registry
-[issue #50](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/50).
+Le commit natif Unreal [325b72aa](https://github.com/PhilippeMartin1964/GrimrockPrototype/commit/325b72aac43d536ef479d46bd1ff772589aa70fc)
+a été publié depuis le worktree Windows contrôlé. Le commit touche
+**exactement trois assets du projet** :
 
-Chaîne canonique à préserver :
+- suppression de `Effects/Alchimie/M_Teleporter_Spark_02.uasset` ;
+- création de `Effects/Alchimie/M_Potion_Spark.uasset` ;
+- resauvegarde de `Effects/Alchimie/NS_LiquideSparkle.uasset`.
+
+Le nouveau matériau reste dans **Alchimie** : il représente les bulles
+de la potion de soin, et non le téléporteur. Aucun asset FireFX ni
+effet de téléportation n'a été déplacé.
+
+La validation UE5.5.4 complète du commit d'assets **325b72aa** porte
+le statut GitHub `UE5.5.4/LocalAuto = success`. Le contrat de
+dépendances vérifie la chaîne sérialisée :
+
 `DA_Item_Potion_Healing_01 → NS_LiquideSparkle → M_Potion_Spark`.
 
-Aucun effet du téléporteur n'est déplacé ou renommé. Aucune
-compatibilité arrière n'est ajoutée.
+## Nettoyage post-migration : EFFECTS-ORG01.2C
 
-## Automatisation en deux commits
+L'outil de migration est à usage unique. Après la validation du nouvel
+asset, les sources suivantes n'ont plus de rôle :
 
-1. Le commit d'outillage EFFECTS-ORG01.2B ajoute le commandlet
-   `GridEffectsOrgPotionRename`, son script de sécurité
-   `Scripts/MigrateEffectsOrgPotion.ps1` et son hook limité dans
-   `UEValidationAgent.ps1`. En l'absence de `-Apply`, le commandlet
-   est strictement un audit en lecture seule.
-2. L'agent Windows attend la **réussite complète** du build et des tests
-   pour ce commit, puis démarre le commandlet sous UE5.5.4 dans son
-   **worktree isolé**. Le script vérifie que `master` n'a pas bougé,
-   que Git LFS a matérialisé les assets, qu'il n'existe aucun fichier
-   modifié, et conserve une sauvegarde SHA-256 des deux sources.
-3. Le commandlet vérifie qu'un seul référent Unreal utilise le matériau
-   (NS_LiquideSparkle), et que la potion référence toujours ce système.
-   Il utilise `IAssetTools::RenameAssets` pour renommer, corrige
-   uniquement les redirectors du paquet renommé, et sauvegarde
-   matériel/consommateur avec l'API Unreal.
-4. Le script exige exactement **trois changements** :
-   - disparition de `M_Teleporter_Spark_02.uasset` ;
-   - apparition de `M_Potion_Spark.uasset` binaire natif ;
-   - resauvegarde de `NS_LiquideSparkle.uasset`.
-   Si d'autres fichiers sont touchés, **aucun push** n'a lieu.
-5. Sur réussite, le script crée un second commit depuis le worktree
-   isolé et pousse en fast-forward sur `master`, sans `force`.
-   Le cycle suivant de l'agent recompilera et **revalidera toute la
-   suite Grimrock** sur ce nouveau commit contenant les assets.
-6. Si la migration échoue sans commit, le script récupère seulement
-   les trois chemins connus, après sauvegarde privée. Il refuse tout
-   nettoyage global d'un worktree contenant des changements inattendus.
-   Les journaux restent localement dans le répertoire de l'agent.
+- `Scripts/MigrateEffectsOrgPotion.ps1` ;
+- `GridEffectsOrgPotionRenameCommandlet.cpp/.h` ;
+- le déclencheur `UE5.5.4/EffectsOrgMigration` dans
+  `UEValidationAgent.ps1`.
 
-L'état est publié séparément sur le commit de démarrage :
+Elles sont supprimées par EFFECTS-ORG01.2C, et les tests de
+`Grimrock.Editor.EffectsOrg01` exigent désormais **uniquement**
+`M_Potion_Spark`. Aucun alias, fallback ni redirector ancien n'est
+conservé. Les anciens statuts de migration en échec proviennent
+notamment de tentatives répétées **après** la publication du
+renommage ; le succès du commit binaire et son contenu Git sont les
+preuves à retenir.
 
-- `UE5.5.4/LocalAuto` : compilation + suite UE de l'outillage.
-- `UE5.5.4/EffectsOrgMigration` : résultat de la migration de l'asset.
-- Le commit d'asset produit ensuite son **propre** `LocalAuto`.
+## Limite des tests
 
-**Aucune migration n'est déclarée terminée tant que ce dernier
-`LocalAuto` n'est pas `success`.**
+L'audit Asset Registry et la validation automatisée -NullRHI vérifient
+les références, la classe et le chargement de ressources ; ils ne
+démontrent pas la qualité de l'animation de bulles en rendu temps réel.
+Un contrôle PIE restera nécessaire pour cette seule propriété visuelle,
+sans bloquer le nettoyage architectural ni provoquer de nouvelles
+modifications d'assets.
 
-Le code et le script sont limités à la potion de soin et sont **à
-usage ponctuel**. Après migration validée, le test de contrat doit être
-resserré sur le seul nom `M_Potion_Spark` et l'outillage de migration
-devenu inutile doit être **supprimé**, sans alias de compatibilité.
+## Périmètre du jalon suivant
 
-## Protection des dossiers privés
-
-Les dossiers `Content/FireFX/` et
-`Content/GrimrockPrototype/Effects/Fire/Local/` sont exclus de Git.
-Cette migration ne les consulte ni ne les écrit.
-
-## Contrôle visuel
-
-La suite -NullRHI vérifie la sérialisation et les liens Niagara, pas
-les bulles animées. Le comportement visuel de `NS_LiquideSparkle`
-dans le jeu doit être vérifié en PIE après la migration binaire.
+La migration de la torche `NS_Flame_8_Torch` vers
+`Effects/Fire/Torch` sera réalisée dans un jalon distinct, avec
+prise en compte de la définition d'item `DA_Item_Torch` et de ses
+matériaux `MI_Distortion_1` et `MI_Flame_8`. Les
+matériaux de l'huile ne seront pas déplacés tant que
+le générateur/validateur d'assets n'est pas adapté.
