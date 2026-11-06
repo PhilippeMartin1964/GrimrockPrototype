@@ -120,6 +120,25 @@ l'asset : il peut être chargé dynamiquement en C++, par script ou outil.
 Un graphe de dépendances introuvable est marqué
 REGISTRY_QUERY_INCOMPLETE et ne justifie aucune action irréversible.
 
+## Execution autonome de l'agent Windows
+
+Le test d'inventaire est lance **automatiquement** par la suite Grimrock
+lorsque l'agent Windows valide un commit sur master. Il ne faut pas
+demander a l'utilisateur de lancer manuellement ValidateUE.ps1.
+
+Une fois la suite complete validee, UEValidationAgent.ps1 lit le CSV
+local en lecture seule et cree une issue GitHub
+[EFFECTS-ORG01.1] Inventaire AssetRegistry <SHA> contenant seulement
+des noms de packages **premiere partie** sous
+/Game/GrimrockPrototype/ ainsi que leurs liens vers d'autres packages
+de meme perimetre. Il ne publie **jamais** de chemins Windows,
+d'identifiants du poste ou de noms d'assets proprietaires FireFX.
+Le CSV exhaustif demeure sur la machine Windows.
+
+La publication du rapport est non bloquante : si elle echoue, le
+build et les tests UE conservent leur statut veridique, sans
+modifier le depot. L'agent ne lance aucune migration d'assets.
+
 ## Portes avant EFFECTS-ORG01.2 — migration contrôlée
 
 1. Récupérer les rapports du test sur le **vrai dossier de développement local**.

@@ -198,13 +198,23 @@ bool FGridEditorEffectsOrg011InventoryTest::RunTest(const FString&)
 
 		// Zero registry referrers DOES NOT prove the asset unused:
 		// C++ LoadObject, soft references and authoring scripts may rely on it.
-		const FString Attention = !bRefsOk || !bDepsOk
-			? TEXT("REGISTRY_QUERY_INCOMPLETE")
-			: (References.IsEmpty()
-				? TEXT("ZERO_REGISTRY_REFERENCERS_NOT_PROOF_OF_DEAD_ASSET")
-				: (bVendorLink
-					? TEXT("PRIVATE_VENDOR_DEPENDENCY_CHECK_PACKAGE")
-					: (bCrossFolder ? TEXT("CROSS_FOLDER_DEPENDENCIES_REVIEW") : TEXT("REVIEW")));
+		FString Attention = TEXT("REVIEW");
+		if (!bRefsOk || !bDepsOk)
+		{
+			Attention = TEXT("REGISTRY_QUERY_INCOMPLETE");
+		}
+		else if (References.IsEmpty())
+		{
+			Attention = TEXT("ZERO_REGISTRY_REFERENCERS_NOT_PROOF_OF_DEAD_ASSET");
+		}
+		else if (bVendorLink)
+		{
+			Attention = TEXT("PRIVATE_VENDOR_DEPENDENCY_CHECK_PACKAGE");
+		}
+		else if (bCrossFolder)
+		{
+			Attention = TEXT("CROSS_FOLDER_DEPENDENCIES_REVIEW");
+		}
 
 		const TArray<FString> Columns =
 		{
