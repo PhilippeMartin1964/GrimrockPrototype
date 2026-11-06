@@ -1,0 +1,157 @@
+# EFFECTS-ORG01.2B: strictly scoped, Unreal-native migration in agent worktree.
+[CmdletBinding()]
+param(
+ [Parameter(Mandatory=$true)][string]$WorktreePath,
+ [Parameter(Mandatory=$true)][string]$EngineRoot,
+ [Parameter(Mandatory=$true)][string]$ExpectedHead,
+ [Parameter(Mandatory=$true)][string]$StateRoot
+)
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+$Old = 'Content/GrimrockPrototype/Effects/Alchimie/M_Teleporter_Spark_02.uasset'
+$New = 'Content/GrimrockPrototype/Effects/Alchimie/M_Potion_Spark.uasset'
+$Niagara = 'Content/GrimrockPrototype/Effects/Alchimie/NS_LiquideSparkle.uasset'
+$Allowed = @($Old, $New, $Niagara)
+$Prepared = $false
+$Committed = $false
+$Phase = 'PREFLIGHT'
+$Private = Join-Path $StateRoot ('EffectsOrg\Potion-' + $ExpectedHead.Substring(0,12))
+
+function GitLines {
+ param([string[]]$Args)
+ $Values = @(& git -C $WorktreePath @Args)
+ if ($LASTEXITCODE -ne 0) { throw ('GIT_' + $Args[0]) }
+ return @($Values)
+}
+function GitOne {
+ param([string[]]$Args)
+ $Values = @(GitLines -Args $Args)
+ if ($Values.Count -ne 1) { throw 'GIT_OUTPUT_UNEXPECTED' }
+ return ([string]$Values[0]).Trim()
+}
+function RecoverKnown {
+ # Never touch the developer checkout. No broad git clean/restore.
+ $Changes = @(GitLines -Args @('status','--porcelain','--untracked-files=all'))
+ foreach ($Entry in $Changes) {
+  if ($Entry.Length -lt 4 -or $Entry.Substring(3) -cnotin $Allowed) {
+   Write-Warning 'UNEXPECTED_WORKTREE_CHANGES_NO_AUTORECOVERY'
+   return
+  }
+ }
+ $NewFile = Join-Path $WorktreePath $New
+ if (Test-Path -LiteralPath $NewFile -PathType Leaf) {
+  $Backup = Join-Path $Private 'M_Potion_Spark.generated.uasset'
+  Copy-Item -LiteralPath $NewFile -Destination $Backup -Force
+  if ((Get-FileHash -LiteralPath $NewFile -Algorithm SHA256).Hash -ne
+      (Get-FileHash -LiteralPath $Backup -Algorithm SHA256).Hash) {
+    throw 'BACKUP_HASH_MISMATCH'
+  }
+ }
+ [void](GitLines -Args @('reset','--quiet','HEAD','--',$New))
+ [void](GitLines -Args @('restore','--source=HEAD','--staged','--worktree','--',$Old,$Niagara))
+ if (Test-Path -LiteralPath $NewFile -PathType Leaf) {
+  Remove-Item -LiteralPath $NewFile -Force
+ }
+ if (@(GitLines -Args @('status','--porcelain','--untracked-files=all')).Count -ne 0) {
+  throw 'RECOVERY_NOT_CLEAN'
+ }
+}
+
+try {
+ if ($ExpectedHead -notmatch '^[a-f0-9]{40}$') { throw 'INVALID_SHA' }
+ if (-not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git'))) { throw 'WORKTREE_ABSENT' }
+ if ((GitOne -Args @('rev-parse','HEAD')) -cne $ExpectedHead) { throw 'HEAD_MISMATCH' }
+ $Subject = GitOne -Args @('log','-1','--format=%s')
+ if ($Subject -cnotmatch '^EFFECTS-ORG01[.]2B:') { exit 2 }
+ if ((GitOne -Args @('remote','get-url','origin')) -notmatch '(?i)github\.com[:/]PhilippeMartin1964/GrimrockPrototype(\.git)?$') {
+  throw 'ORIGIN_MISMATCH'
+ }
+ if (@(GitLines -Args @('status','--porcelain','--untracked-files=all')).Count -ne 0) {
+  throw 'WORKTREE_DIRTY'
+ }
+ foreach ($Path in @($Old,$Niagara)) {
+  $File = Join-Path $WorktreePath $Path
+  if (-not (Test-Path -LiteralPath $File -PathType Leaf) -or
+      (Get-Item -LiteralPath $File).Length -le 1024) { throw 'LFS_SOURCE_MISSING' }
+ }
+ if (Test-Path -LiteralPath (Join-Path $WorktreePath $New)) { throw 'TARGET_EXISTS' }
+ foreach ($Path in $Allowed) {
+  if ((GitOne -Args @('check-attr','filter','--',$Path)) -notmatch ': filter: lfs$') {
+   throw 'GIT_LFS_ATTRIBUTE_MISSING'
+  }
+ }
+ [void](GitLines -Args @('fetch','--no-tags','origin','master'))
+ if ((GitOne -Args @('rev-parse','refs/remotes/origin/master')) -cne $ExpectedHead) {
+  throw 'REMOTE_MOVED'
+ }
+ New-Item -Path $Private -ItemType Directory -Force | Out-Null
+ foreach ($Path in @($Old,$Niagara)) {
+  $Source = Join-Path $WorktreePath $Path
+  $Backup = Join-Path $Private ([IO.Path]::GetFileName($Path) + '.before')
+  Copy-Item -LiteralPath $Source -Destination $Backup -Force
+  if ((Get-FileHash -LiteralPath $Source -Algorithm SHA256).Hash -ne
+      (Get-FileHash -LiteralPath $Backup -Algorithm SHA256).Hash) {
+   throw 'BACKUP_HASH_MISMATCH'
+  }
+ }
+ $Prepared = $true
+ $Editor = Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
+ $Project = Join-Path $WorktreePath 'GrimrockPrototype.uproject'
+ if (-not (Test-Path -LiteralPath $Editor -PathType Leaf) -or
+     -not (Test-Path -LiteralPath $Project -PathType Leaf)) { throw 'UE_MISSING' }
+ $Arguments = '"' + $Project + '" -run=GridEffectsOrgPotionRename -Apply -Unattended -NoSplash -NoP4 -NullRHI'
+ $Phase = 'COMMANDLET'
+ $Process = Start-Process -FilePath $Editor -ArgumentList $Arguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput (Join-Path $Private 'Rename.stdout.log') -RedirectStandardError (Join-Path $Private 'Rename.stderr.log') -PassThru
+ if (-not $Process.WaitForExit(180000)) {
+  try { $Process.Kill() } catch {}
+  throw 'COMMANDLET_TIMEOUT'
+ }
+ if ($Process.ExitCode -ne 0) { throw ('COMMANDLET_FAILED_' + $Process.ExitCode) }
+ $Phase = 'VERIFY'
+ $Changes = @(GitLines -Args @('status','--porcelain','--untracked-files=all'))
+ $ExpectedStatus = @((" D " + $Old), ("?? " + $New), (" M " + $Niagara))
+ if ($Changes.Count -ne 3 -or
+     @($Changes | Where-Object { $_ -cnotin $ExpectedStatus }).Count -ne 0) {
+  throw 'FILESET_UNEXPECTED'
+ }
+ if ((Test-Path -LiteralPath (Join-Path $WorktreePath $Old)) -or
+     -not (Test-Path -LiteralPath (Join-Path $WorktreePath $New))) {
+  throw 'OLD_REDIRECTOR_OR_NEW_MISSING'
+ }
+ if ((Get-Item -LiteralPath (Join-Path $WorktreePath $New)).Length -le 1024) {
+  throw 'NEW_ASSET_LFS_POINTER'
+ }
+ [void](GitLines -Args @('fetch','--no-tags','origin','master'))
+ if ((GitOne -Args @('rev-parse','refs/remotes/origin/master')) -cne $ExpectedHead) {
+  throw 'REMOTE_MOVED'
+ }
+ $Phase = 'COMMIT'
+ [void](GitLines -Args (@('add','--') + $Allowed))
+ $Staged = @(GitLines -Args @('diff','--cached','--name-only'))
+ if ($Staged.Count -ne 3 -or @($Staged | Where-Object { $_ -cnotin $Allowed }).Count -ne 0) {
+  throw 'STAGED_FILESET_UNEXPECTED'
+ }
+ [void](GitLines -Args @('-c','user.name=Grimrock UE Automation',
+  '-c','user.email=grimrock-ue-automation@users.noreply.github.com',
+  'commit','-m','EFFECTS-ORG01.2B: rename potion material and its Niagara dependency'))
+ $Committed = $true
+ $NewHead = GitOne -Args @('rev-parse','HEAD')
+ $Phase = 'PUSH'
+ $Published = $false
+ for ($Attempt=1;$Attempt -le 3;++$Attempt) {
+  & git -C $WorktreePath push origin 'HEAD:refs/heads/master' | Out-Null
+  if ($LASTEXITCODE -eq 0) { $Published=$true; break }
+  if ($Attempt -lt 3) { Start-Sleep -Seconds (2*$Attempt) }
+ }
+ if (-not $Published) { throw 'GIT_PUSH_FAILED' }
+ Write-Host ('[EFFECTS-ORG01.2B] New commit pushed: ' + $NewHead)
+ exit 0
+}
+catch {
+ Write-Warning ('[EFFECTS-ORG01.2B] Failed phase ' + $Phase)
+ if ($Prepared -and -not $Committed) {
+  try { RecoverKnown }
+  catch { Write-Warning '[EFFECTS-ORG01.2B] Private backups retained; worktree requires review.' }
+ }
+ exit 1
+}

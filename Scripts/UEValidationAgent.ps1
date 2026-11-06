@@ -713,6 +713,43 @@ try {
         catch {
             Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
         }
+        # EFFECTS-ORG01.2B: the normal full Grimrock suite must pass BEFORE
+        # attempting a narrowly scoped Unreal-native .uasset migration.
+        # This helper changes only the isolated validation worktree, validates
+        # the exact three-file list and pushes a new commit for the NEXT UE run.
+        $MigrationSubject = @(& git -C $WorktreePath log -1 '--format=%s')
+        if ($LASTEXITCODE -eq 0 -and $MigrationSubject.Count -eq 1 -and
+            $MigrationSubject[0] -match '^EFFECTS-ORG01[.]2B:') {
+            $MigrationHelper = Join-Path $WorktreePath 'Scripts\MigrateEffectsOrgPotion.ps1'
+            if (Test-Path -LiteralPath $MigrationHelper -PathType Leaf) {
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'pending' -Context 'UE5.5.4/EffectsOrgMigration' -Description 'Guarded Unreal-native potion asset migration started'
+                    foreach ($Arg in @($MigrationHelper, $WorktreePath, $EngineRoot, $Sha, $StateRoot)) {
+                        if ($Arg.Contains('"')) { throw 'Unsafe quotation mark in migration path.' }
+                    }
+                    $MigrationArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                        $MigrationHelper + '" -WorktreePath "' + $WorktreePath +
+                        '" -EngineRoot "' + $EngineRoot + '" -ExpectedHead "' + $Sha +
+                        '" -StateRoot "' + $StateRoot + '"'
+                    $MigrationProcess = Start-Process -FilePath $PsExe -ArgumentList $MigrationArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput (Join-Path $RunDir 'EffectsMigration.stdout.log') -RedirectStandardError (Join-Path $RunDir 'EffectsMigration.stderr.log') -PassThru
+                    if (-not $MigrationProcess.WaitForExit(300000)) {
+                        try { $MigrationProcess.Kill() } catch {}
+                        throw 'Migration helper exceeded allowed run time.'
+                    }
+                    if ($MigrationProcess.ExitCode -ne 0) {
+                        throw 'Migration helper failed a safety check.'
+                    }
+                    Publish-CommitStatus -Sha $Sha -State 'success' -Context 'UE5.5.4/EffectsOrgMigration' -Description 'Potions renamed in new commit; new HEAD requires full UE validation'
+                }
+                catch {
+                    try {
+                        Publish-CommitStatus -Sha $Sha -State 'failure' -Context 'UE5.5.4/EffectsOrgMigration' -Description 'Guarded asset rename not published; private diagnostic retained'
+                    }
+                    catch { Write-Warning '[EFFECTS-ORG01.2B] Migration status unavailable.' }
+                    Write-Warning '[EFFECTS-ORG01.2B] Migration incomplete. Normal UE validation remains valid.'
+                }
+            }
+        }
         $Result = 'success'
         Write-Host "[VALIDATION-AUTO01] SUCCES $Sha. Journaux : $RunDir"
     }
