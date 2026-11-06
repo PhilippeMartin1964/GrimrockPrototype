@@ -58,29 +58,49 @@ Ce chemin est une **indication d'asset à sélectionner dans UE**,
 pas une dépendance ajoutée en C++ ou GitHub. Le pack commercial n'a
 pas été ouvert, analysé ou testé par le connecteur GitHub.
 
-1. Dans l'éditeur UE5, créer un Data Asset de classe
-   UGridSurfaceVfxProfileAsset sous
-   Content/GrimrockPrototype/LocalVFX/DA_FireFX_GroundFire.
-2. Configurer Settings.GroundFireSystem avec NS_FFX_Ground_Fire.
-   Adapter GroundFireScale / GroundFireCoverage (~0.9 par défaut).
-   Vérifier les User Parameters réels du système Niagara ;
-   configurer leurs noms/tags seulement si les types correspondent.
-3. Assigner DA_FireFX_GroundFire dans FireVfxProfile du
-   BP_GridLevelRuntimeActor **local**.
-4. Créer un Data Asset UGridCatalystVfxProfileAsset, éventuellement
-   sous LocalVFX/DA_Catalyst_Default. Choisir les assets internes du
-   projet SM_Catalyst_01, M_SurfaceCatalyst_RunePulse,
-   M_SurfaceCatalyst_Ember et un SparkMesh simple (ex. Engine Sphere).
-   Réglages initiaux 0.42 s de vol, 0.95 s de pulse, 0.085 s/case,
-   arc 82 cm. L'affecter à CatalystVfxProfile.
-5. Tester en PIE l'huile, l'inflammation au catalyseur, l'explosion
-   de poison, la fermeture/extinction, un changement de niveau et
-   les dégâts dans le flux d'événements.
+1. Dans l'éditeur UE 5.5.4, créer un Data Asset de classe
+   `GridSurfaceVfxProfileAsset` sous
+   `Content/GrimrockPrototype/Effects/Fire/Local/DA_GroundFire`.
+   **Ce dossier entier est ignoré par Git**, parce que les profils
+   qui y résident peuvent référencer le pack FireFX commercial.
+2. Dans `Settings`, affecter `NS_FFX_Ground_Fire` à
+   `GroundFireSystem`. Les valeurs initiales du code sont :
+   `GroundFireScale=1`, `GroundFireCoverage=0.9`,
+   `FlameHeightCm=75`, `FlameDensity=1`,
+   `bEnableSmoke=true`, `SmokeDensity=0.5`,
+   `MaxFireCells=48`, `MaxFireLights=8`,
+   `FireLightIntensity=650`. Ce sont des valeurs de départ,
+   non des réglages universellement adaptés à FireFX.
+   Laisser les paramètres utilisateur Niagara sur `None` tant que
+   les noms **et les types** réellement exposés par le système n'ont
+   pas été vérifiés dans son panneau User Parameters.
+3. Renseigner `FireVfxProfile = DA_GroundFire` dans les
+   Class Defaults de `BP_GridLevelRuntimeActor` **pour un essai local**.
+   Attention : ce Blueprint est versionné dans Git. Ne pas
+   committer/pousser sa référence vers un Data Asset ignoré :
+   cela rendrait le projet cloné dépendant du pack commercial
+   absent de GitHub.
+4. Créer séparément un Data Asset `GridCatalystVfxProfileAsset`
+   sous `Content/GrimrockPrototype/Effects/Alchimie/Catalyst/`,
+   par exemple `DA_Catalyst_Default`. Il peut être versionné
+   **si toutes ses références sont des assets autorisés du projet**.
+   Affecter `SM_Catalyst_01` dans `ProjectileMesh`,
+   `M_SurfaceCatalyst_RunePulse` dans `RunePulseMaterial`,
+   `M_SurfaceCatalyst_Ember` dans `EmberMaterial`. Le
+   `SparkMesh` est facultatif. Les valeurs initiales sont :
+   0.42 s de vol, 0.95 s d'onde, 0.085 s/case, arc de 82 cm.
+   Assigner le profil dans `CatalystVfxProfile` du runtime actor.
+5. Tester en PIE le feu au sol, les réactions du catalyseur,
+   l'huile, le poison, les effets d'impact et leur extinction.
+   Vérifier indépendamment les dégâts gameplay et le rendu.
 
-ATTENTION : ne pas publier de BP, DataAsset ou niveau versionné qui
-sérialise une référence vers FireFX ou LocalVFX absent de GitHub.
-La protection Git sur les dossiers tiers ne supprime pas les
-références stockées par d'autres uasset.
+ATTENTION : un dossier ignoré par Git ne protège pas un
+`.uasset` versionné qui sérialise une référence vers ce dossier.
+Ne pas publier de BP, DataAsset ou niveau traînant des références
+à `FireFX` ou à `Effects/Fire/Local` non distribués.
+L'ancienne exclusion `LocalVFX` dans `.gitignore` reste
+uniquement une précaution pour d'éventuels fichiers locaux
+historiques : **ce n'est plus l'emplacement canonique**.
 
 ## Objets placés dans le Dungeon Editor
 
