@@ -59,3 +59,38 @@ L'inspecteur du Dungeon Editor possède déjà des *instance overrides*
 pour les mécanismes. L'extension suivante ajoutera un override Niagara
 fin aux objets génériques placés, sans copier tous les paramètres du
 profil ni modifier les définitions de tous les objets.
+
+## ARMEMENT01.17.4C.2 — Exception Niagara sur l'objet placé
+
+Un objet générique placé dans le Dungeon Editor hérite de son
+UGridWorldObjectDefinitionAsset (StaticPart.ActiveNiagaraSystem et
+ActiveNiagaraLocalTransform). Dans l'inspecteur **Visual Effects — Placed
+Object**, les exceptions sont **facultatives**, selon les cases cochées :
+
+- **Override active Niagara system** : choisir un effet Niagara de l'instance,
+  ou laisser vide pour désactiver l'effet uniquement sur cet exemplaire.
+- **Override Niagara scale multiplier** : multiplier l'échelle de la
+  définition (0.01 à 5), sans muter l'asset partagé.
+- **Override local offset** : ajouter X, Y, Z en centimètres dans le repère de
+  l'objet, sans altérer la définition ou les autres exemplaires.
+
+Les valeurs sont sérialisées sur FGridWorldObjectInstanceConfig.NiagaraOverrides,
+puis transférées dans FGridRuntimeWorldObjectData. Une résolution pure dans
+GridWorldObjectInstanceVisual applique uniquement les champs cochés.
+Le runtime AGridGenericObjectActor utilise le résultat sans ajouter de
+référence obligatoire au fournisseur FireFX. Les règles de jeu et les états
+actif/inactif existants sont conservés.
+
+**Portée initiale** : objets du type RuntimeActorClass dérivé de
+AGridGenericObjectActor. Les mécanismes spécialisés et les objets ramassables
+FGridLooseItemInstance utilisent d'autres chaînes de présentation ; ne pas
+leur attribuer d'override tant que leurs chemins runtime n'ont pas été
+explicitement adaptés et testés.
+
+Une référence vers Content/FireFX sur un exemplaire du niveau ou vers
+LocalVFX dans un asset suivi par Git reste une **référence locale**. Si
+l'asset du niveau est suivi par Git, contrôler les dépendances avant push ;
+un simple .gitignore sur le dossier FireFX ne supprime pas les références
+sérialisées dans le .uasset du niveau.
+
+Test ajouté : Grimrock.RPG.ARMEMENT01.17.4C.PlacedObjectNiagaraOverrides.

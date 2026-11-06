@@ -6,6 +6,7 @@
 #include "GridLevelPlacementTypes.generated.h"
 
 class URPGStoryCompanionAsset;
+class UNiagaraSystem;
 
 /** WORLDOBJ-MIG07 target placement buckets. */
 UENUM(BlueprintType)
@@ -128,6 +129,37 @@ struct FGridWorldObjectInteractionOverrides
 	FGridLockAcceptedKeyInstanceRuleValues AcceptedKeys;
 };
 
+/** Per-placement Niagara overrides. A shared Definition stays authoritative by default. */
+USTRUCT(BlueprintType)
+struct FGridWorldObjectNiagaraInstanceOverride
+{
+	GENERATED_BODY()
+
+	/** When true, replace the shared Niagara system; an empty asset disables it for this copy. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Instance|Visual Effects")
+	bool bOverrideSystem = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Instance|Visual Effects",
+		meta=(EditCondition="bOverrideSystem", EditConditionHides))
+	TSoftObjectPtr<UNiagaraSystem> NiagaraSystem;
+
+	/** Additional position offset in object-local centimeters. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Instance|Visual Effects")
+	bool bOverrideOffset = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Instance|Visual Effects",
+		meta=(EditCondition="bOverrideOffset", EditConditionHides))
+	FVector LocalOffsetCm = FVector::ZeroVector;
+
+	/** Additional uniform scale multiplier on top of the Definition Niagara scale. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Instance|Visual Effects")
+	bool bOverrideScale = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Instance|Visual Effects",
+		meta=(EditCondition="bOverrideScale", EditConditionHides, ClampMin="0.01", ClampMax="5.0"))
+	float ScaleMultiplier = 1.f;
+};
+
 /** Minimal per-instance state/configuration for one placed world object. */
 USTRUCT(BlueprintType)
 struct FGridWorldObjectInstanceConfig
@@ -165,6 +197,10 @@ struct FGridWorldObjectInstanceConfig
 	/** Sparse visual exceptions. Shared geometry/motion remains authored on the Definition. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Parts")
 	TArray<FGridWorldObjectMovingPartInstanceOverride> MovingPartOverrides;
+
+	/** Optional, instance-only Niagara tweaks for generic placed objects. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Visual Effects")
+	FGridWorldObjectNiagaraInstanceOverride NiagaraOverrides;
 
 	/**
 	 * Sparse door-chain enablement override.

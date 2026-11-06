@@ -16,6 +16,8 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridGenericObjectActor.h"
+#include "NiagaraSystem.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GridWallLockActor.h"
@@ -313,6 +315,119 @@ void SGridEditorObjectInspectorPanel::EditWorldObjectConfig(FGuid ObjectId, TFun
 	RequestRefresh();
 }
 
+
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildNiagaraInstanceOverridesSection(FGuid Obj)
+{
+	const AGridLevelEditorActor* Editor = GetEditorActor();
+	const FGridWorldObjectInstance* Instance = GetWorldObjectInstance(Editor, Obj);
+	if (!Instance) return SNullWidget::NullWidget;
+	const FGridWorldObjectNiagaraInstanceOverride& Vfx = Instance->InstanceConfig.NiagaraOverrides;
+	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
+
+	// All mutations go through the existing transaction / LevelAsset boundary.
+	auto Apply = [this, Obj](TFunctionRef<void(FGridWorldObjectNiagaraInstanceOverride&)> Setter)
+	{
+		const FScopedTransaction Transaction(
+			NSLOCTEXT("GridVFX", "PlacedNiagaraEdit", "Edit placed object Niagara"));
+		EditWorldObjectConfig(Obj, [&Setter](FGridWorldObjectInstanceConfig& Config)
+		{
+			Setter(Config.NiagaraOverrides);
+		});
+	};
+
+	Root->AddSlot().AutoHeight().Padding(0.f, 3.f)[
+		SNew(STextBlock).AutoWrapText(true)
+		.Text(NSLOCTEXT("GridVFX", "SparseInfo",
+			"VFX of the selected copy only. Unchecked values inherit the shared object Definition."))];
+
+	Root->AddSlot().AutoHeight().Padding(0.f, 3.f)[
+		SNew(SCheckBox)
+		.IsChecked(Vfx.bOverrideSystem ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+		.OnCheckStateChanged_Lambda([Apply](ECheckBoxState State)
+		{
+			Apply([State](FGridWorldObjectNiagaraInstanceOverride& O)
+			{ O.bOverrideSystem = (State == ECheckBoxState::Checked); });
+		})
+		[SNew(STextBlock).Text(NSLOCTEXT("GridVFX", "OverrideSystem", "Override active Niagara system"))]];
+
+	Root->AddSlot().AutoHeight().Padding(0.f, 3.f)[
+		SNew(SObjectPropertyEntryBox)
+		.AllowedClass(UNiagaraSystem::StaticClass())
+		.ObjectPath(Vfx.NiagaraSystem.ToSoftObjectPath().ToString())
+		.IsEnabled(Vfx.bOverrideSystem)
+		.OnObjectChanged_Lambda([Apply](const FAssetData& Asset)
+		{
+			Apply([System = Cast<UNiagaraSystem>(Asset.GetAsset())](FGridWorldObjectNiagaraInstanceOverride& O)
+			{
+				O.bOverrideSystem = true;
+				O.NiagaraSystem = System;
+			});
+		})];
+
+	Root->AddSlot().AutoHeight().Padding(0.f, 3.f)[
+		SNew(SCheckBox)
+		.IsChecked(Vfx.bOverrideScale ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+		.OnCheckStateChanged_Lambda([Apply](ECheckBoxState State)
+		{
+			Apply([State](FGridWorldObjectNiagaraInstanceOverride& O)
+			{ O.bOverrideScale = (State == ECheckBoxState::Checked); });
+		})
+		[SNew(STextBlock).Text(NSLOCTEXT("GridVFX", "OverrideScale", "Override Niagara scale multiplier"))]];
+
+	Root->AddSlot().AutoHeight().Padding(0.f, 2.f)[
+		SNew(SSpinBox<float>)
+		.MinValue(.01f).MaxValue(5.f)
+		.Value(Vfx.ScaleMultiplier)
+		.IsEnabled(Vfx.bOverrideScale)
+		.OnValueCommitted_Lambda([Apply](float Value, ETextCommit::Type)
+		{
+			Apply([Value](FGridWorldObjectNiagaraInstanceOverride& O)
+			{
+				O.bOverrideScale = true;
+				O.ScaleMultiplier = FMath::Clamp(Value, .01f, 5.f);
+			});
+		})];
+
+	Root->AddSlot().AutoHeight().Padding(0.f, 3.f)[
+		SNew(SCheckBox)
+		.IsChecked(Vfx.bOverrideOffset ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+		.OnCheckStateChanged_Lambda([Apply](ECheckBoxState State)
+		{
+			Apply([State](FGridWorldObjectNiagaraInstanceOverride& O)
+			{ O.bOverrideOffset = (State == ECheckBoxState::Checked); });
+		})
+		[SNew(STextBlock).Text(NSLOCTEXT("GridVFX", "OverrideOffset", "Override local offset (cm)"))]];
+
+	const auto AddAxis = [&Root, &Vfx, Apply](const TCHAR* Label, int32 AxisIndex)
+	{
+		const float Value = AxisIndex == 0 ? Vfx.LocalOffsetCm.X
+			: (AxisIndex == 1 ? Vfx.LocalOffsetCm.Y : Vfx.LocalOffsetCm.Z);
+		Root->AddSlot().AutoHeight().Padding(0.f, 2.f)[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 6.f, 0.f)[
+				SNew(STextBlock).Text(FText::FromString(Label))]
+			+ SHorizontalBox::Slot().FillWidth(1.f)[
+				SNew(SSpinBox<float>)
+				.MinValue(-1000.f).MaxValue(1000.f)
+				.Value(Value).IsEnabled(Vfx.bOverrideOffset)
+				.OnValueCommitted_Lambda([Apply, AxisIndex](float NewValue, ETextCommit::Type)
+				{
+					Apply([AxisIndex, NewValue](FGridWorldObjectNiagaraInstanceOverride& O)
+					{
+						O.bOverrideOffset = true;
+						if (AxisIndex == 0) O.LocalOffsetCm.X = NewValue;
+						else if (AxisIndex == 1) O.LocalOffsetCm.Y = NewValue;
+						else O.LocalOffsetCm.Z = NewValue;
+					});
+				})]];
+	};
+	AddAxis(TEXT("X"), 0);
+	AddAxis(TEXT("Y"), 1);
+	AddAxis(TEXT("Z"), 2);
+	return GridEditorWidgetHelpers::BuildGridPanelSection(
+		NSLOCTEXT("GridVFX", "InstanceVFX", "Visual Effects — Placed Object"), Root);
+}
+
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildOrientationWidget(FGuid ObjectId)
 {
 	const AGridLevelEditorActor* Editor = GetEditorActor();
@@ -355,6 +470,8 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard(FGu
 	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(CurrentEditorActor, Obj);
 	const FText TitleText = Definition && !Definition->DisplayName.IsEmpty() ? Definition->DisplayName : TypeText;
 	const bool bShowRelocationSection = WorldObjectInstance && (Type == EGridLevelObjectType::Pit || Type == EGridLevelObjectType::Relocation);
+	const bool bShowNiagaraInstanceSection = WorldObjectInstance && Definition &&
+		Definition->RuntimeActorClass && Definition->RuntimeActorClass->IsChildOf(AGridGenericObjectActor::StaticClass());
 	return SNew(SBorder).Padding(8.f).BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))[SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 12.f, 0.f)[SNew(SBox).WidthOverride(88.f).HeightOverride(72.f)[
@@ -367,6 +484,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard(FGu
 					.ColorAndOpacity(FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f, 1.f)))]]]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildGameObjectSection(Obj)]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildContextualComponentSection(Obj)]
+		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[bShowNiagaraInstanceSection ? BuildNiagaraInstanceOverridesSection(Obj) : SNullWidget::NullWidget]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[bShowRelocationSection ? BuildRelocationDetailsSection(Obj) : SNullWidget::NullWidget]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildAdvancedDebugSection(Obj)]];
 }

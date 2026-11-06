@@ -42,4 +42,37 @@ namespace GridWorldObjectInstanceVisual
 
 		return Resolved;
 	}
+	/** Sparse instance overrides only; does not mutate the shared Definition. */
+	inline FGridWorldObjectStaticPart ResolveStaticPart(
+		const FGridWorldObjectStaticPart& Definition,
+		const FGridWorldObjectNiagaraInstanceOverride& Overrides)
+	{
+		FGridWorldObjectStaticPart Resolved = Definition;
+		if (Overrides.bOverrideSystem)
+		{
+			// Empty reference is a deliberate "disable for this instance".
+			Resolved.ActiveNiagaraSystem = Overrides.NiagaraSystem.LoadSynchronous();
+		}
+		FTransform Transform = Resolved.ActiveNiagaraLocalTransform;
+		if (Overrides.bOverrideOffset)
+		{
+			const FVector Offset = Overrides.LocalOffsetCm;
+			if (!Offset.ContainsNaN() &&
+				FMath::Abs(Offset.X) <= 10000.f &&
+				FMath::Abs(Offset.Y) <= 10000.f &&
+				FMath::Abs(Offset.Z) <= 10000.f)
+			{
+				Transform.AddToTranslation(Offset);
+			}
+		}
+		if (Overrides.bOverrideScale)
+		{
+			const float Multiplier = FMath::IsFinite(Overrides.ScaleMultiplier)
+				? FMath::Clamp(Overrides.ScaleMultiplier, .01f, 5.f) : 1.f;
+			Transform.SetScale3D(Transform.GetScale3D() * Multiplier);
+		}
+		Resolved.ActiveNiagaraLocalTransform = Transform;
+		return Resolved;
+	}
+
 }

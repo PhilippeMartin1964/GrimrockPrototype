@@ -1,6 +1,7 @@
 #include "Runtime/GridGenericObjectActor.h"
 
 #include "Core/GridWorldObjectDefinitionAsset.h"
+#include "Core/GridWorldObjectInstanceVisual.h"
 #include "Components/PointLightComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "NiagaraComponent.h"
@@ -64,7 +65,10 @@ void AGridGenericObjectActor::InitializeRuntimeGenericObject(
 		ActiveNiagaraComponent->SetAsset(nullptr);
 	}
 
-	if (Definition && Definition->StaticPart.ActiveNiagaraSystem)
+	const FGridWorldObjectStaticPart ResolvedVfx = GridWorldObjectInstanceVisual::ResolveStaticPart(
+		Definition ? Definition->StaticPart : FGridWorldObjectStaticPart(),
+		ObjectData.NiagaraOverrides);
+	if (ResolvedVfx.ActiveNiagaraSystem)
 	{
 		if (!ActiveNiagaraComponent)
 		{
@@ -75,8 +79,8 @@ void AGridGenericObjectActor::InitializeRuntimeGenericObject(
 			ActiveNiagaraComponent->RegisterComponent();
 		}
 
-		ActiveNiagaraComponent->SetAsset(Definition->StaticPart.ActiveNiagaraSystem);
-		ActiveNiagaraComponent->SetRelativeTransform(Definition->StaticPart.ActiveNiagaraLocalTransform);
+		ActiveNiagaraComponent->SetAsset(ResolvedVfx.ActiveNiagaraSystem);
+		ActiveNiagaraComponent->SetRelativeTransform(ResolvedVfx.ActiveNiagaraLocalTransform);
 	}
 
 	const bool bInitiallyActive = ObjectData.Type != EGridLevelObjectType::Relocation || ObjectData.bRelocationInitiallyEnabled;

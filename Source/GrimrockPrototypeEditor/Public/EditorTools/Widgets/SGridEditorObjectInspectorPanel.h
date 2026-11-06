@@ -35,6 +35,7 @@ private:
 	TSharedRef<SWidget> BuildSelectedObjectCard(FGuid ObjectId);
 	TSharedRef<SWidget> BuildGameObjectSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildContextualComponentSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildNiagaraInstanceOverridesSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildOrientationWidget(FGuid ObjectId);
 	TSharedRef<SWidget> BuildAdvancedDebugSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildDoorDetailsSection(FGuid ObjectId);

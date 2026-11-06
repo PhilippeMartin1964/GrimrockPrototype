@@ -22,6 +22,7 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 	FText OverrideReadableText;
 	FGridObjectBehaviorParams Behavior;
 	TArray<FGridWorldObjectMovingPartInstanceOverride> MovingPartOverrides;
+	FGridWorldObjectNiagaraInstanceOverride NiagaraOverrides;
 	FGridWorldObjectInteractionOverrides InteractionOverrides;
 	EGridDoorChainMode DoorChainMode = EGridDoorChainMode::Inherit;
 	bool bOverrideChainPullDuration = false;
@@ -46,6 +47,7 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 		Behavior.Receptacle.InitialContent = Source.InstanceConfig.ReceptacleInitialContent;
 		Behavior.Lock.bStartsUnlocked = Source.InstanceConfig.bStartsUnlocked;
 		MovingPartOverrides = Source.InstanceConfig.MovingPartOverrides;
+		NiagaraOverrides = Source.InstanceConfig.NiagaraOverrides;
 		InteractionOverrides = Source.InstanceConfig.InteractionOverrides;
 		DoorChainMode = Source.InstanceConfig.DoorChainMode;
 		bOverrideChainPullDuration = Source.InstanceConfig.bOverrideChainPullDuration;
