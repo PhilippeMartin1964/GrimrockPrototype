@@ -2,6 +2,7 @@
 
 #include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridWorldObjectVisual.h"
+#include "NiagaraSystem.h" // Complete type required by TSoftObjectPtr::LoadSynchronous() in this inline resolver.
 
 /**
  * Resolves sparse per-instance visual overrides without mutating the shared definition.
