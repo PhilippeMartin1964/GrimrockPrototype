@@ -14,9 +14,9 @@ namespace GridItemVFX013AuthoringTests
     {
         constexpr TCHAR NewPackage[] =
             TEXT("/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch");
-        constexpr TCHAR NewObject[] =
+        static constexpr TCHAR NewObject[] =
             TEXT("/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch.NS_Flame_8_Torch");
-        constexpr TCHAR OldObject[] =
+        static constexpr TCHAR OldObject[] =
             TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch.NS_Flame_8_Torch");
         return FPackageName::DoesPackageExist(NewPackage) ? NewObject : OldObject;
     }
