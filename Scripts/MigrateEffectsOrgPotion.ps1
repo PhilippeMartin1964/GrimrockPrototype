@@ -99,14 +99,41 @@ try {
  $Project = Join-Path $WorktreePath 'GrimrockPrototype.uproject'
  if (-not (Test-Path -LiteralPath $Editor -PathType Leaf) -or
      -not (Test-Path -LiteralPath $Project -PathType Leaf)) { throw 'UE_MISSING' }
- $Arguments = '"' + $Project + '" -run=GridEffectsOrgPotionRename -Apply -Unattended -NoSplash -NoP4 -NullRHI'
+ $Arguments = '"' + $Project + '" -run=GridEffectsOrgPotionRename -Apply -Unattended -NoSplash -NoP4 -NullRHI -log'
  $Phase = 'COMMANDLET'
  $Process = Start-Process -FilePath $Editor -ArgumentList $Arguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput (Join-Path $Private 'Rename.stdout.log') -RedirectStandardError (Join-Path $Private 'Rename.stderr.log') -PassThru
  if (-not $Process.WaitForExit(180000)) {
   try { $Process.Kill() } catch {}
   throw 'COMMANDLET_TIMEOUT'
  }
- if ($Process.ExitCode -ne 0) { throw ('COMMANDLET_FAILED_' + $Process.ExitCode) }
+ if ($Process.ExitCode -ne 0) {
+  # Only fixed, project-owned diagnostic markers are permitted in a GitHub status.
+  # No raw UE log line, Windows path or vendor data is ever emitted.
+  $Markers = @(
+   @('Exactly one old potion material', 'PREFLIGHT_NAMES'),
+   @('Potion material referencers differ', 'PREFLIGHT_REFERENCERS'),
+   @('NS_LiquideSparkle no longer depends', 'PREFLIGHT_NIAGARA'),
+   @('Healing potion no longer references', 'PREFLIGHT_POTION'),
+   @('Required Unreal packages could not be loaded', 'ASSET_LOAD'),
+   @('AssetTools failed to rename', 'RENAME'),
+   @('Saving the renamed material', 'SAVE'),
+   @('Postflight failed', 'REDIRECTOR'),
+   @('Failed to find commandlet', 'COMMANDLET_ENTRYPOINT'),
+   @('EXCEPTION_ACCESS_VIOLATION', 'CRASH'),
+   @('Fatal error', 'FATAL')
+  )
+  $LogsToScan = @((Join-Path $Private 'Rename.stdout.log'), (Join-Path $Private 'Rename.stderr.log'))
+  foreach ($Log in $LogsToScan) {
+   if (-not (Test-Path -LiteralPath $Log -PathType Leaf)) { continue }
+   $Lines = @(Get-Content -LiteralPath $Log -Tail 1500 -ErrorAction SilentlyContinue)
+   foreach ($Pair in $Markers) {
+    if (@($Lines | Where-Object { ([string]$_).Contains([string]$Pair[0]) }).Count -gt 0) {
+     throw ('COMMANDLET_REASON_' + [string]$Pair[1])
+    }
+   }
+  }
+  throw ('COMMANDLET_FAILED_' + $Process.ExitCode)
+ }
  $Phase = 'VERIFY'
  $Changes = @(GitLines -Arguments @('status','--porcelain','--untracked-files=all'))
  $ExpectedStatus = @((" D " + $Old), ("?? " + $New), (" M " + $Niagara))
@@ -162,14 +189,13 @@ catch {
  if ($ErrorText -cin $AllowedCauses) {
   $Cause = $ErrorText
  }
- elseif ($ErrorText -match '^COMMANDLET_FAILED_([0-9]{1,3})$') {
-  $Exit = [int]$Matches[1]
-  if ($Exit -in @(1,3,11,12,13,14,15,20,21,22,25,255)) {
-   $Cause = 'UE_EXIT_' + [string]$Exit
-  }
-  else {
-   $Cause = 'UE_EXIT_OTHER'
-  }
+ elseif ($ErrorText -match '^COMMANDLET_REASON_([A-Z0-9_]{1,35})$') {
+  $Cause = 'UE_REASON_' + $Matches[1]
+ }
+ elseif ($ErrorText -match '^COMMANDLET_FAILED_(-?[0-9]{1,12})$') {
+  $Exit = [long]$Matches[1]
+  $SafeNumber = ([string]$Exit).Replace('-', 'NEG')
+  $Cause = 'UE_EXIT_' + $SafeNumber
  }
  elseif ($ErrorText -like 'COMMANDLET_FAILED_*') {
   $Cause = 'UE_EXIT_OTHER'
