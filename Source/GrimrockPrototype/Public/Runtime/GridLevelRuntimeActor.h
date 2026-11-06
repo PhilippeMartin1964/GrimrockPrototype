@@ -240,6 +240,9 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UNiagaraComponent>> ActiveFireNiagaraComponents;
 
+	/** Resolves the active level's single-asset VFX profile, retaining 17.4A legacy defaults when disabled. */
+	FGridLevelSurfaceVfxSettings ResolveSurfaceVfxSettings() const;
+
 	/** Wet floor after a canonical Ice->Water reaction; presentation only. */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UDecalComponent>> ActiveWaterSurfaceDecals;
