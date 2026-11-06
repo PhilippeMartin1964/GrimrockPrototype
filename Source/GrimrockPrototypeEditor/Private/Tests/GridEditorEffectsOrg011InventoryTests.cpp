@@ -272,8 +272,12 @@ bool FGridEditorEffectsOrg011InventoryTest::RunTest(const FString&)
 		HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Effects/Alchimie/NS_LiquideSparkle")));
 	TestTrue(TEXT("Canonical teleporter Niagara"),
 		HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Effects/Teleporter/NS_Teleporter_Blue")));
-	TestTrue(TEXT("Canonical torch Niagara"),
-		HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch")));
+	const bool bOldTorch = HasPackage(Registry,
+		TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch"));
+	const bool bNewTorch = HasPackage(Registry,
+		TEXT("/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch"));
+	TestTrue(TEXT("Exactly one torch Niagara during AssetTools migration"),
+		bOldTorch != bNewTorch);
 	TestTrue(TEXT("Canonical potion bubbles material exists in Alchimie"),
 		bPotionTarget);
 	TestFalse(TEXT("Obsolete potion material name is forbidden"),
@@ -346,7 +350,15 @@ bool FGridEditorEffectsOrg012ADependencyContractTest::RunTest(const FString&)
         FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Teleporter")),
         TeleporterNiagara, TEXT("Teleporter archetype uses its Niagara"));
 
-    const FName TorchNiagara(TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch"));
+    const FName OldTorchNiagara(TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch"));
+    const FName NewTorchNiagara(TEXT("/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch"));
+    const bool bOldTorch = HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch"));
+    const bool bNewTorch = HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch"));
+    if (!TestTrue(TEXT("One torch Niagara before/after AssetTools rename"), bOldTorch != bNewTorch))
+    {
+        return false;
+    }
+    const FName TorchNiagara = bNewTorch ? NewTorchNiagara : OldTorchNiagara;
     HasDependency(
         FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch")),
         TorchNiagara, TEXT("Torch item keeps its Niagara"));

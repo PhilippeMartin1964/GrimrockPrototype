@@ -121,7 +121,12 @@ bool FGridItemVFX014BRuntimeTest::RunTest(const FString& Parameters)
 {
     (void)Parameters;
     UNiagaraSystem* FlameSystem = LoadObject<UNiagaraSystem>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch.NS_Flame_8_Torch"));
+        TEXT("/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch.NS_Flame_8_Torch"));
+    if (!IsValid(FlameSystem))
+    {
+        FlameSystem = LoadObject<UNiagaraSystem>(nullptr,
+            TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch.NS_Flame_8_Torch"));
+    }
     if (!TestNotNull(TEXT("Torch flame Niagara loads"), FlameSystem))
     {
         return false;

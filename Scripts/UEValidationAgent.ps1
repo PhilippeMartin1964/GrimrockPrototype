@@ -713,6 +713,192 @@ try {
         catch {
             Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
         }
+        # EFFECTS-ORG01.2D: the normal full Grimrock suite must pass BEFORE
+        # attempting a narrowly scoped Unreal-native .uasset migration.
+        # This helper changes only the isolated validation worktree, validates
+        # the exact three-file list and pushes a new commit for the NEXT UE run.
+        $MigrationSubject = @(& git -C $WorktreePath log -1 '--format=%s')
+        if ($LASTEXITCODE -eq 0 -and $MigrationSubject.Count -eq 1 -and
+            $MigrationSubject[0] -match '^EFFECTS-ORG01[.]2D-PREP:') {
+            $MigrationHelper = Join-Path $WorktreePath 'Scripts\MigrateEffectsOrgTorch.ps1'
+            if (Test-Path -LiteralPath $MigrationHelper -PathType Leaf) {
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'pending' -Context 'UE5.5.4/EffectsOrgTorchMigration' -Description 'Guarded Unreal-native torch Niagara migration started'
+                    foreach ($Arg in @($MigrationHelper, $WorktreePath, $EngineRoot, $Sha, $StateRoot)) {
+                        if ($Arg.Contains('"')) { throw 'Unsafe quotation mark in migration path.' }
+                    }
+                    $MigrationArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                        $MigrationHelper + '" -WorktreePath "' + $WorktreePath +
+                        '" -EngineRoot "' + $EngineRoot + '" -ExpectedHead "' + $Sha +
+                        '" -StateRoot "' + $StateRoot + '"'
+                    $MigrationProcess = Start-Process -FilePath $PsExe -ArgumentList $MigrationArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput (Join-Path $RunDir 'EffectsMigration.stdout.log') -RedirectStandardError (Join-Path $RunDir 'EffectsMigration.stderr.log') -PassThru -Wait
+                    if ($MigrationProcess.ExitCode -ne 0) {
+                        throw 'Migration helper failed a safety check.'
+                    }
+                    Publish-CommitStatus -Sha $Sha -State 'success' -Context 'UE5.5.4/EffectsOrgTorchMigration' -Description 'Torch Niagara relocated in new commit; new HEAD requires UE validation'
+                }
+                catch {
+                    # Only phase identifiers and allowlisted error codes. No raw logs or paths.
+                    $MigrationCode = 'NOT_RECORDED'
+                    # If the child fails before it can emit its private phase file,
+                    # classify a tiny allowlist of PowerShell bootstrap errors.
+                    # Never forward arbitrary log text or local paths.
+                    $MigrationStderr = Join-Path $RunDir 'EffectsMigration.stderr.log'
+                    if (Test-Path -LiteralPath $MigrationStderr -PathType Leaf) {
+                        $MigrationStderrTail = @(
+                            Get-Content -LiteralPath $MigrationStderr -Tail 200 -ErrorAction SilentlyContinue)
+                        if (@($MigrationStderrTail | Where-Object {
+                            $_ -match 'ParserError|Unexpected token|Missing closing|TerminatorExpected'
+                        }).Count -gt 0) { $MigrationCode = 'BOOTSTRAP_PARSER' }
+                        elseif (@($MigrationStderrTail | Where-Object {
+                            $_ -match 'cannot be loaded|FileNotFound|file specified does not exist'
+                        }).Count -gt 0) { $MigrationCode = 'BOOTSTRAP_FILE' }
+                        elseif (@($MigrationStderrTail | Where-Object {
+                            $_ -match 'ParameterBindingException|A parameter cannot be found'
+                        }).Count -gt 0) { $MigrationCode = 'BOOTSTRAP_ARGUMENTS' }
+                        elseif (@($MigrationStderrTail | Where-Object {
+                            $_ -match 'PSSecurityException|running scripts is disabled'
+                        }).Count -gt 0) { $MigrationCode = 'BOOTSTRAP_POLICY' }
+                        elseif ($MigrationStderrTail.Count -gt 0) {
+                            $MigrationCode = 'BOOTSTRAP_STDERR_OTHER'
+                        }
+                    }
+                    $MigrationStageFile = Join-Path $StateRoot ('EffectsOrg\Migration-' + $Sha.Substring(0,12) + '.stage')
+                    if (Test-Path -LiteralPath $MigrationStageFile -PathType Leaf) {
+                        $Reported = ([string](Get-Content -LiteralPath $MigrationStageFile -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
+                        if ($Reported -cmatch '^(PREFLIGHT|COMMANDLET|VERIFY|COMMIT|PUSH)\|([A-Z0-9_]{1,40})
+        Write-Host "[VALIDATION-AUTO01] SUCCES $Sha. Journaux : $RunDir"
+    }
+    catch {
+        $RunError = $_.Exception.Message
+        if ($Phase -eq 'publication') { $Result = 'infrastructure_error' }
+        Write-Warning "[VALIDATION-AUTO01] ECHEC ($Phase) $Sha : $RunError"
+        $PublicCause = if ($Phase -eq 'setup') {
+            Get-PublicSetupCode -Message $RunError
+        } else {
+            $StageFile = Join-Path $ReportRoot 'Validation.stage'
+            $StageCode = if (Test-Path -LiteralPath $StageFile -PathType Leaf) {
+                ([string](Get-Content -LiteralPath $StageFile -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
+            } else { '' }
+            if ($StageCode -in @('BUILD_STARTED','BUILD_FAILED')) { 'BUILD' }
+            elseif ($StageCode -like 'AUTOMATION_*') { 'AUTOMATION' }
+            else { 'TESTS' }
+        }
+        try {
+            Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec $Phase/$PublicCause ($AutomationFilter)."
+            $FailureStatusPublished = $true
+        }
+        catch { Write-Warning "Impossible de publier le statut d'echec : $($_.Exception.Message)" }
+        # Les incidents de recuperation Git/LFS restent reessayables au cycle suivant.
+        # Une erreur de compilation/test est definitive pour ce SHA, sans issues multiples.
+        if ($Result -eq 'failure') {
+            # One-shot, explicitly allowlisted Skill_Traps repair. This helper
+            # publishes only the single canonical .uasset if the sole failed
+            # test is Skills.ProductionCatalog and master has not moved.
+            $RepairHelper = Join-Path $WorktreePath 'Scripts\RepairCanonicalSkillTraps.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $RepairHelper -PathType Leaf)) {
+                try {
+                    $RepairOut = Join-Path $RunDir 'SkillTrapsRepair.stdout.log'
+                    $RepairErr = Join-Path $RunDir 'SkillTrapsRepair.stderr.log'
+                    $RepairArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $RepairHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $RepairProcess = Start-Process -FilePath $PsExe -ArgumentList $RepairArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $RepairOut -RedirectStandardError $RepairErr -PassThru -Wait -ErrorAction Stop
+                    if ($RepairProcess.ExitCode -eq 0) {
+                        Write-Host '[VALIDATION-AUTO01.7] Repair published: next commit will receive normal full UE validation.'
+                    }
+                    elseif ($RepairProcess.ExitCode -ne 2) {
+                        Write-Warning "Targeted asset repair not completed (code $($RepairProcess.ExitCode)); see private logs."
+                    }
+                }
+                catch { Write-Warning 'Targeted asset repair failed; private logs only.' }
+            }
+            # ARMEMENT01.17.1.4 : authoring des materiaux natifs Unreal, controle par le resultat Automation.
+            $OilHelper = Join-Path $WorktreePath 'Scripts\AuthorOilSurfaceMaterial.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $OilHelper -PathType Leaf)) {
+                try {
+                    $OilOut = Join-Path $RunDir 'OilMaterialAuthoring.stdout.log'
+                    $OilErr = Join-Path $RunDir 'OilMaterialAuthoring.stderr.log'
+                    $OilArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $OilHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $OilProcess = Start-Process -FilePath $PsExe -ArgumentList $OilArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $OilOut -RedirectStandardError $OilErr -PassThru -Wait -ErrorAction Stop
+                    if ($OilProcess.ExitCode -eq 0) {
+                        Write-Host '[ARMEMENT01.17.1.4] Materiaux natifs publies : validation du nouveau commit au prochain cycle.'
+                    }
+                    elseif ($OilProcess.ExitCode -ne 2) {
+                        Write-Warning "Authoring d'huile non termine (code $($OilProcess.ExitCode)). Journaux locaux uniquement."
+                    }
+                }
+                catch { Write-Warning "Authoring automatique d'huile indisponible ; journaux locaux uniquement." }
+            }
+
+            # ARMEMENT01.17.2A: only when the unique failing Automation test
+            # explicitly requires the native starter catalyst DataAsset.
+            $CatalystHelper = Join-Path $WorktreePath 'Scripts\AuthorStartingSurfaceCatalyst.ps1'
+            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $CatalystHelper -PathType Leaf)) {
+                try {
+                    $CatalystOut = Join-Path $RunDir 'CatalystAuthoring.stdout.log'
+                    $CatalystErr = Join-Path $RunDir 'CatalystAuthoring.stderr.log'
+                    $CatalystArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $CatalystHelper +
+                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
+                    $CatalystProcess = Start-Process -FilePath $PsExe -ArgumentList $CatalystArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $CatalystOut -RedirectStandardError $CatalystErr -PassThru -Wait -ErrorAction Stop
+                    if ($CatalystProcess.ExitCode -eq 0) {
+                        Write-Host '[ARMEMENT01.17.2] Catalyst native asset published: next commit receives full validation.'
+                    }
+                    elseif ($CatalystProcess.ExitCode -ne 2) {
+                        Write-Warning 'Catalyst native asset authoring incomplete; private logs only.'
+                    }
+                }
+                catch { Write-Warning 'Catalyst authoring unavailable; private logs only.' }
+            }
+            try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
+            catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
+        }
+        # A failure issue can succeed even when the first commit-status POST
+        # failed transiently. Retry the *same failure result* after reporting.
+        # No new worktree actions, builds or duplicate issues are triggered.
+        if ($Result -eq 'failure' -and -not $FailureStatusPublished) {
+            for ($Retry = 0; $Retry -lt 2; $Retry++) {
+                Start-Sleep -Seconds 2
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec $Phase/$PublicCause ($AutomationFilter)."
+                    $FailureStatusPublished = $true
+                    break
+                }
+                catch {
+                    Write-Warning '[VALIDATION-AUTO01.12] GitHub failure status retry failed.'
+                }
+            }
+        }
+    }
+    finally {
+        Save-JsonAtomic -Path $StatePath -Value @{
+            sha = $Sha; result = $Result; phase = $Phase; exit_code = $ExitCode; automation_filter = $AutomationFilter
+            timestamp = (Get-Date).ToString('o'); run_directory = $RunDir; error = $RunError
+        }
+    }
+    if ($Result -ne 'success') { throw "Validation automatique $Sha en echec. $RunError" }
+}
+finally {
+    if ($TranscriptStarted) {
+        try { Stop-Transcript | Out-Null } catch { Write-Warning "Arret du transcript impossible : $($_.Exception.Message)" }
+    }
+    if ($HasMutex) { $Mutex.ReleaseMutex() }
+    $Mutex.Dispose()
+}) {
+                            $MigrationCode = $Matches[1] + '_' + $Matches[2]
+                        }
+                    }
+                    try {
+                        Publish-CommitStatus -Sha $Sha -State 'failure' -Context 'UE5.5.4/EffectsOrgTorchMigration' -Description ('Migration not published: ' + $MigrationCode)
+                    }
+                    catch { Write-Warning '[EFFECTS-ORG01.2D] Migration status unavailable.' }
+                    Write-Warning '[EFFECTS-ORG01.2D] Migration incomplete. Normal UE validation remains valid.'
+                }
+            }
+        }
         $Result = 'success'
         Write-Host "[VALIDATION-AUTO01] SUCCES $Sha. Journaux : $RunDir"
     }

@@ -3,13 +3,23 @@
 #include "Misc/AutomationTest.h"
 #include "NiagaraSystem.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Misc/PackageName.h"
 
 namespace GridItemVFX013AuthoringTests
 {
     constexpr TCHAR TorchPath[] =
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch.DA_Item_Torch");
-    constexpr TCHAR FlamePath[] =
-        TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch.NS_Flame_8_Torch");
+    /** Temporary 2D staging selector; removed after Unreal renames the .uasset. */
+    const TCHAR* ResolveFlamePath()
+    {
+        constexpr TCHAR NewPackage[] =
+            TEXT("/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch");
+        constexpr TCHAR NewObject[] =
+            TEXT("/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch.NS_Flame_8_Torch");
+        constexpr TCHAR OldObject[] =
+            TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch.NS_Flame_8_Torch");
+        return FPackageName::DoesPackageExist(NewPackage) ? NewObject : OldObject;
+    }
     const FName FlameId(TEXT("TorchFlame"));
 
     const FGridItemNiagaraEffectConfig* FindFlame(const UGridItemDefinitionAsset& Torch)
@@ -30,7 +40,7 @@ bool FGridItemVFX013TorchAuthoringTest::RunTest(const FString& Parameters)
 {
     (void)Parameters;
     UNiagaraSystem* FlameSystem = LoadObject<UNiagaraSystem>(
-        nullptr, GridItemVFX013AuthoringTests::FlamePath);
+        nullptr, GridItemVFX013AuthoringTests::ResolveFlamePath());
     if (!TestNotNull(TEXT("Canonical torch Niagara system loads"), FlameSystem))
     {
         return false;
