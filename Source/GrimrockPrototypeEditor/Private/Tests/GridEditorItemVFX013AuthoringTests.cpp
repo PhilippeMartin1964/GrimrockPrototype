@@ -133,7 +133,7 @@ bool FGridItemVFX013MigratedProductionTest::RunTest(const FString& Parameters)
 
     TestTrue(TEXT("Production Niagara system is the canonical torch flame"),
         Flame->NiagaraSystem.ToSoftObjectPath() ==
-        FSoftObjectPath(GridItemVFX013AuthoringTests::FlamePath));
+        FSoftObjectPath(GridItemVFX013AuthoringTests::ResolveFlamePath()));
     TestTrue(TEXT("Flame visibility is conditional on item light state"),
         Flame->ActivationMode == EGridItemVfxActivationMode::WhenLightEnabled);
     TestFalse(TEXT("Flame local transform is valid"),
