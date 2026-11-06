@@ -287,4 +287,78 @@ bool FGridEditorEffectsOrg011InventoryTest::RunTest(const FString&)
 	return bCsvSaved && bSummarySaved;
 }
 
+
+// EFFECTS-ORG01.2A: regression guard for the concrete, UE-verified graph.
+// It accepts the approved potion-material rename only when all dependencies
+// remain connected. No backward-compatibility alias is created in runtime.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorEffectsOrg012ADependencyContractTest,
+    "Grimrock.Editor.EffectsOrg01.DependencyContract",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorEffectsOrg012ADependencyContractTest::RunTest(const FString&)
+{
+    using namespace EffectsOrg011;
+    IAssetRegistry& Registry =
+        FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
+    Registry.SearchAllAssets(true);
+
+    const FName PotionNiagara(TEXT("/Game/GrimrockPrototype/Effects/Alchimie/NS_LiquideSparkle"));
+    const FName OldPotionMaterial(TEXT("/Game/GrimrockPrototype/Effects/Alchimie/M_Teleporter_Spark_02"));
+    const FName NewPotionMaterial(TEXT("/Game/GrimrockPrototype/Effects/Alchimie/M_Potion_Spark"));
+    const bool bOldMaterial = HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Effects/Alchimie/M_Teleporter_Spark_02"));
+    const bool bNewMaterial = HasPackage(Registry, TEXT("/Game/GrimrockPrototype/Effects/Alchimie/M_Potion_Spark"));
+    if (!TestTrue(TEXT("Exactly one potion material name exists"), bOldMaterial != bNewMaterial))
+    {
+        return false;
+    }
+    const FName CurrentPotionMaterial = bNewMaterial ? NewPotionMaterial : OldPotionMaterial;
+
+    bool bAllDependenciesValid = true;
+    auto HasDependency = [&Registry, &bAllDependenciesValid, this](FName Source, FName Dependency, const TCHAR* Label)
+    {
+        TArray<FName> Dependencies;
+        const bool bQueried = Registry.GetDependencies(Source, Dependencies,
+            UE::AssetRegistry::EDependencyCategory::All,
+            UE::AssetRegistry::FDependencyQuery());
+        bAllDependenciesValid &= TestTrue(
+            *FString::Printf(TEXT("%s: source is queryable"), Label), bQueried);
+        bAllDependenciesValid &= TestTrue(
+            *FString::Printf(TEXT("%s: expected dependency"), Label),
+            Dependencies.Contains(Dependency));
+    };
+
+    HasDependency(PotionNiagara, CurrentPotionMaterial,
+        TEXT("Potion bubble material is used by NS_LiquideSparkle"));
+    HasDependency(
+        FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01")),
+        PotionNiagara, TEXT("Healing potion uses NS_LiquideSparkle"));
+
+    const FName TeleporterNiagara(TEXT("/Game/GrimrockPrototype/Effects/Teleporter/NS_Teleporter_Blue"));
+    for (const TCHAR* MaterialPath : {
+        TEXT("/Game/GrimrockPrototype/Effects/Teleporter/M_Teleporter_Spark"),
+        TEXT("/Game/GrimrockPrototype/Effects/Teleporter/M_Teleporter_Volume"),
+        TEXT("/Game/GrimrockPrototype/Effects/Teleporter/M_Teleporter_Wisp")
+    })
+    {
+        HasDependency(TeleporterNiagara, FName(MaterialPath),
+            TEXT("Teleporter Niagara material"));
+    }
+    HasDependency(
+        FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Teleporter")),
+        TeleporterNiagara, TEXT("Teleporter archetype uses its Niagara"));
+
+    const FName TorchNiagara(TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch"));
+    HasDependency(
+        FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch")),
+        TorchNiagara, TEXT("Torch item keeps its Niagara"));
+    HasDependency(TorchNiagara,
+        FName(TEXT("/Game/GrimrockPrototype/Art/Materials/Instances/Flame/MI_Flame_8")),
+        TEXT("Torch uses its Flame 8 material"));
+    HasDependency(TorchNiagara,
+        FName(TEXT("/Game/GrimrockPrototype/Art/Materials/Instances/Flame/MI_Distortion_1")),
+        TEXT("Torch uses its distortion material"));
+
+    return bAllDependenciesValid;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS
