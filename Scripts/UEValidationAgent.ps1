@@ -744,6 +744,29 @@ try {
                 catch {
                     # Only phase identifiers and allowlisted error codes. No raw logs or paths.
                     $MigrationCode = 'NOT_RECORDED'
+                    # If the child fails before it can emit its private phase file,
+                    # classify a tiny allowlist of PowerShell bootstrap errors.
+                    # Never forward arbitrary log text or local paths.
+                    $MigrationStderr = Join-Path $RunDir 'EffectsMigration.stderr.log'
+                    if (Test-Path -LiteralPath $MigrationStderr -PathType Leaf) {
+                        $MigrationStderrTail = @(
+                            Get-Content -LiteralPath $MigrationStderr -Tail 200 -ErrorAction SilentlyContinue)
+                        if (@($MigrationStderrTail | Where-Object {
+                            $_ -match 'ParserError|Unexpected token|Missing closing|TerminatorExpected'
+                        }).Count -gt 0) { $MigrationCode = 'BOOTSTRAP_PARSER' }
+                        elseif (@($MigrationStderrTail | Where-Object {
+                            $_ -match 'cannot be loaded|FileNotFound|file specified does not exist'
+                        }).Count -gt 0) { $MigrationCode = 'BOOTSTRAP_FILE' }
+                        elseif (@($MigrationStderrTail | Where-Object {
+                            $_ -match 'ParameterBindingException|A parameter cannot be found'
+                        }).Count -gt 0) { $MigrationCode = 'BOOTSTRAP_ARGUMENTS' }
+                        elseif (@($MigrationStderrTail | Where-Object {
+                            $_ -match 'PSSecurityException|running scripts is disabled'
+                        }).Count -gt 0) { $MigrationCode = 'BOOTSTRAP_POLICY' }
+                        elseif ($MigrationStderrTail.Count -gt 0) {
+                            $MigrationCode = 'BOOTSTRAP_STDERR_OTHER'
+                        }
+                    }
                     $MigrationStageFile = Join-Path $StateRoot ('EffectsOrg\Migration-' + $Sha.Substring(0,12) + '.stage')
                     if (Test-Path -LiteralPath $MigrationStageFile -PathType Leaf) {
                         $Reported = ([string](Get-Content -LiteralPath $MigrationStageFile -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
