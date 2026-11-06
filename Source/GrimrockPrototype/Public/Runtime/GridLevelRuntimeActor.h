@@ -35,6 +35,7 @@ class UStaticMeshComponent;
 class UPointLightComponent;
 class UNiagaraComponent;
 class UNiagaraSystem;
+class UGridSurfaceVfxProfileAsset;
 class UReadableMessageWidget;
 class UUserWidget;
 struct FGridResolvedCombatModifiers;
@@ -223,7 +224,11 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UPointLightComponent>> ActiveFireSurfaceLights;
 
-	/** Editor-selectable persistent floor fire. Unset retains the legacy torch fallback. */
+	/** Shared default profile for every level, with optional per-level profile selection. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|VFX")
+	TSoftObjectPtr<UGridSurfaceVfxProfileAsset> DefaultSurfaceVfxProfile;
+
+	/** Older actor-level Niagara selection, retained when no profile has been assigned. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Fire|VFX")
 	TSoftObjectPtr<UNiagaraSystem> FireSurfaceNiagaraSystem;
 

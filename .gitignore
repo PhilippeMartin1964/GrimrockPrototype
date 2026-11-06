@@ -7,6 +7,10 @@
 /Meshes/
 /Textures/
 /Content/Fab/
+# Licensed third-party Niagara assets: intentionally local-only.
+/Content/FireFX/
+# Local profiles can safely reference licensed content absent from GitHub.
+/Content/GrimrockPrototype/LocalVFX/
 /Content/F_FreeFlameFx_Pack/
 /Content/GrimrockPrototype/Dev
 /Content/Goblin_Bomber

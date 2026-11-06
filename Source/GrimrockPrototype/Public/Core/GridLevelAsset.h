@@ -10,6 +10,7 @@
 
 class UGridQuestDefinitionAsset;
 class UNiagaraSystem;
+class UGridSurfaceVfxProfileAsset;
 
 /**
  * ARMEMENT01.17.4B: presentation-only settings authored IN the one UGridLevelAsset.
@@ -125,8 +126,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
 	TArray<FGridLevelCellData> Cells;
 
-	/** One-level editor-facing visual profile; disabled by default for backward compatibility. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Level|Surface VFX", meta=(ShowOnlyInnerProperties))
+	/** Optional explicit visual profile for this level. Normal levels inherit the shared default. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Level|Surface VFX")
+	TSoftObjectPtr<UGridSurfaceVfxProfileAsset> SurfaceVfxProfile;
+
+	/** ARMEMENT01.17.4B compatibility: old inline settings, no longer preferred for authoring. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Level|Surface VFX|Legacy", meta=(ShowOnlyInnerProperties, AdvancedDisplay))
 	FGridLevelSurfaceVfxSettings SurfaceVfxSettings;
 
 	// --- Gameplay ---

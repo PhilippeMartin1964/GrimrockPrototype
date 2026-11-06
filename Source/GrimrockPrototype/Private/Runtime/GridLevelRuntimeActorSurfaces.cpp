@@ -1,5 +1,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 
+#include "Core/GridSurfaceVfxProfileAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
 #include "Runtime/Combat/GridCatalystAreaResolver.h"
@@ -51,12 +52,26 @@ namespace
 
 FGridLevelSurfaceVfxSettings AGridLevelRuntimeActor::ResolveSurfaceVfxSettings() const
 {
-	if (IsValid(LevelAsset) && LevelAsset->SurfaceVfxSettings.bOverrideRuntimeVisuals)
+	// The explicit level profile selects an exception, never the default tuning.
+	if (IsValid(LevelAsset))
 	{
-		return LevelAsset->SurfaceVfxSettings.Sanitized();
+		if (const UGridSurfaceVfxProfileAsset* LevelProfile =
+			LevelAsset->SurfaceVfxProfile.LoadSynchronous())
+		{
+			return LevelProfile->GetRuntimeSettings();
+		}
+		// Keep 17.4B DataAssets binary-compatible and visually unchanged.
+		if (LevelAsset->SurfaceVfxSettings.bOverrideRuntimeVisuals)
+		{
+			return LevelAsset->SurfaceVfxSettings.Sanitized();
+		}
+	}
+	if (const UGridSurfaceVfxProfileAsset* SharedProfile = DefaultSurfaceVfxProfile.LoadSynchronous())
+	{
+		return SharedProfile->GetRuntimeSettings();
 	}
 
-	// Old maps and tests must render exactly as before until a level opts in.
+	// Zero authoring migration required: existing actor settings still work.
 	FGridLevelSurfaceVfxSettings Legacy;
 	Legacy.bOverrideRuntimeVisuals = false;
 	Legacy.GroundFireSystem = FireSurfaceNiagaraSystem;
