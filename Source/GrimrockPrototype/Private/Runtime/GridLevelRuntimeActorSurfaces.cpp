@@ -1,6 +1,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 
 #include "Core/GridSurfaceVfxProfileAsset.h"
+#include "Core/GridCatalystVfxProfileAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
 #include "Runtime/Combat/GridCatalystAreaResolver.h"
@@ -50,37 +51,16 @@ namespace
 }
 
 
-FGridLevelSurfaceVfxSettings AGridLevelRuntimeActor::ResolveSurfaceVfxSettings() const
+FGridFireVfxSettings AGridLevelRuntimeActor::ResolveFireVfxSettings() const
 {
-	// The explicit level profile selects an exception, never the default tuning.
-	if (IsValid(LevelAsset))
-	{
-		if (const UGridSurfaceVfxProfileAsset* LevelProfile =
-			LevelAsset->SurfaceVfxProfile.LoadSynchronous())
-		{
-			return LevelProfile->GetRuntimeSettings();
-		}
-		// Keep 17.4B DataAssets binary-compatible and visually unchanged.
-		if (LevelAsset->SurfaceVfxSettings.bOverrideRuntimeVisuals)
-		{
-			return LevelAsset->SurfaceVfxSettings.Sanitized();
-		}
-	}
-	if (const UGridSurfaceVfxProfileAsset* SharedProfile = DefaultSurfaceVfxProfile.LoadSynchronous())
-	{
-		return SharedProfile->GetRuntimeSettings();
-	}
+	const UGridSurfaceVfxProfileAsset* Profile = FireVfxProfile.LoadSynchronous();
+	return IsValid(Profile) ? Profile->GetSettings() : FGridFireVfxSettings().Sanitized();
+}
 
-	// Zero authoring migration required: existing actor settings still work.
-	FGridLevelSurfaceVfxSettings Legacy;
-	Legacy.bOverrideRuntimeVisuals = false;
-	Legacy.GroundFireSystem = FireSurfaceNiagaraSystem;
-	Legacy.GroundFireScale = FireSurfaceNiagaraScale;
-	Legacy.FireLightIntensity = FireSurfaceLightIntensity;
-	Legacy.CatalystFlightDurationSeconds = CatalystFlightDurationSeconds;
-	Legacy.CatalystPulseDurationSeconds = CatalystPulseDurationSeconds;
-	Legacy.CatalystWaveDelayPerCellSeconds = CatalystWaveDelayPerCellSeconds;
-	return Legacy.Sanitized();
+FGridCatalystVfxSettings AGridLevelRuntimeActor::ResolveCatalystVfxSettings() const
+{
+	const UGridCatalystVfxProfileAsset* Profile = CatalystVfxProfile.LoadSynchronous();
+	return IsValid(Profile) ? Profile->GetSettings() : FGridCatalystVfxSettings().Sanitized();
 }
 
 void AGridLevelRuntimeActor::ClearExplorationOilTimer()
@@ -602,7 +582,7 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 		const int32 Distance = FMath::Max(
 			FMath::Abs(Result.Cell.X - ImpactCell.X),
 			FMath::Abs(Result.Cell.Y - ImpactCell.Y));
-		Visual.WaveDelay = Distance * ResolveSurfaceVfxSettings().CatalystWaveDelayPerCellSeconds;
+		Visual.WaveDelay = Distance * ResolveCatalystVfxSettings().WaveDelayPerCellSeconds;
 		// Prefer the strongest variant when preserving the legacy single-kind accessor.
 		if (Visual.Kind == EGridSurfaceCatalystVfxKind::PoisonBurst ||
 			(CatalystVisualKind == EGridSurfaceCatalystVfxKind::Fizzle &&
@@ -620,12 +600,7 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 
 	// A real artist-authored mesh is the projectile; its embedded material
 	// remains MI_Catalyst. No temporary procedural duplicate is generated.
-	UStaticMesh* BottleMesh = CatalystProjectileMesh.LoadSynchronous();
-	if (!IsValid(BottleMesh))
-	{
-		BottleMesh = LoadObject<UStaticMesh>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Meshes/Items/SM_Catalyst_01.SM_Catalyst_01"));
-	}
+	UStaticMesh* BottleMesh = ResolveCatalystVfxSettings().ProjectileMesh.LoadSynchronous();
 	if (LaunchCell != ImpactCell && IsValid(BottleMesh))
 	{
 		UStaticMeshComponent* Bottle = NewObject<UStaticMeshComponent>(this);
@@ -641,14 +616,9 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 		Bottle->SetRelativeScale3D(FVector(Scale));
 		Bottle->RegisterComponent();
 		ActiveCatalystProjectile = Bottle;
-		UStaticMesh* TrailSphere = LoadObject<UStaticMesh>(nullptr,
-			TEXT("/Engine/BasicShapes/Sphere.Sphere"));
-		UMaterialInterface* TrailMaterial = CatalystEmberMaterial.LoadSynchronous();
-		if (!IsValid(TrailMaterial))
-		{
-			TrailMaterial = LoadObject<UMaterialInterface>(nullptr,
-				TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
-		}
+		const FGridCatalystVfxSettings Vfx = ResolveCatalystVfxSettings();
+		UStaticMesh* TrailSphere = Vfx.SparkMesh.LoadSynchronous();
+		UMaterialInterface* TrailMaterial = Vfx.EmberMaterial.LoadSynchronous();
 		if (IsValid(TrailSphere) && IsValid(TrailMaterial))
 		{
 			for (int32 Index = 0; Index < 6; ++Index)
@@ -707,20 +677,10 @@ void AGridLevelRuntimeActor::BeginCatalystImpactVfx()
 		RefreshCombatOilSurfaceVisuals();
 	}
 
-	UMaterialInterface* Ring = CatalystRunePulseMaterial.LoadSynchronous();
-	if (!IsValid(Ring))
-	{
-		Ring = LoadObject<UMaterialInterface>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_RunePulse.M_SurfaceCatalyst_RunePulse"));
-	}
-	UMaterialInterface* Glow = CatalystEmberMaterial.LoadSynchronous();
-	if (!IsValid(Glow))
-	{
-		Glow = LoadObject<UMaterialInterface>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
-	}
-	UStaticMesh* Sphere = LoadObject<UStaticMesh>(nullptr,
-		TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	const FGridCatalystVfxSettings Vfx = ResolveCatalystVfxSettings();
+	UMaterialInterface* Ring = Vfx.RunePulseMaterial.LoadSynchronous();
+	UMaterialInterface* Glow = Vfx.EmberMaterial.LoadSynchronous();
+	UStaticMesh* Sphere = Vfx.SparkMesh.LoadSynchronous();
 	const FQuat Projection = FQuat::FindBetweenNormals(
 		-FVector::ForwardVector, -FVector::UpVector);
 	for (int32 Index = 0; Index < ActiveCatalystVisualCells.Num(); ++Index)
@@ -807,14 +767,15 @@ void AGridLevelRuntimeActor::BeginCatalystImpactVfx()
 void AGridLevelRuntimeActor::UpdateCatalystReactionVfx()
 {
 	CatalystVisualElapsedSeconds += CatalystVisualTickInterval;
-	const float Flight = ResolveSurfaceVfxSettings().CatalystFlightDurationSeconds;
+	const FGridCatalystVfxSettings Vfx = ResolveCatalystVfxSettings();
+	const float Flight = Vfx.FlightDurationSeconds;
 	if (!bCatalystImpactStarted)
 	{
 		if (IsValid(ActiveCatalystProjectile) && CatalystVisualElapsedSeconds < Flight)
 		{
 			const float Alpha = FMath::Clamp(CatalystVisualElapsedSeconds / Flight, 0.f, 1.f);
 			FVector Position = FMath::Lerp(CatalystFlightStart, CatalystFlightEnd, Alpha);
-			Position.Z += FMath::Sin(Alpha * PI) * 82.f;
+			Position.Z += FMath::Sin(Alpha * PI) * Vfx.FlightArcHeightCm;
 			ActiveCatalystProjectile->SetRelativeLocation(Position);
 			ActiveCatalystProjectile->SetRelativeRotation(
 				FRotator(Alpha * 380.f, Alpha * 470.f, Alpha * 250.f));
@@ -824,7 +785,7 @@ void AGridLevelRuntimeActor::UpdateCatalystReactionVfx()
 				if (!IsValid(Trail)) continue;
 				const float TrailAlpha = FMath::Max(0.f, Alpha - .045f * (Index + 1));
 				FVector TrailPos = FMath::Lerp(CatalystFlightStart, CatalystFlightEnd, TrailAlpha);
-				TrailPos.Z += FMath::Sin(TrailAlpha * PI) * 82.f;
+				TrailPos.Z += FMath::Sin(TrailAlpha * PI) * Vfx.FlightArcHeightCm;
 				Trail->SetRelativeLocation(TrailPos);
 				const float Scale = .038f * (1.f - static_cast<float>(Index) / 7.f) *
 					FMath::Clamp(Alpha * 5.f, 0.f, 1.f);
@@ -836,9 +797,8 @@ void AGridLevelRuntimeActor::UpdateCatalystReactionVfx()
 	}
 	const float ImpactElapsed = FMath::Max(0.f,
 		CatalystVisualElapsedSeconds - CatalystImpactElapsedStart);
-	const FGridLevelSurfaceVfxSettings Settings = ResolveSurfaceVfxSettings();
-	const float Duration = Settings.CatalystPulseDurationSeconds;
-	const float MaxWave = Settings.CatalystWaveDelayPerCellSeconds;
+	const float Duration = Vfx.PulseDurationSeconds;
+	const float MaxWave = Vfx.WaveDelayPerCellSeconds;
 	if (ImpactElapsed >= Duration + MaxWave)
 	{
 		ClearCatalystReactionVfx();
@@ -900,128 +860,113 @@ void AGridLevelRuntimeActor::ClearFireSurfaceVisuals()
 		}
 	}
 	ActiveFireNiagaraComponents.Reset();
-	for (UStaticMeshComponent* Flame : ActiveFireSurfaceFlames)
-		if (IsValid(Flame)) Flame->DestroyComponent();
-	ActiveFireSurfaceFlames.Reset();
 	for (UPointLightComponent* Light : ActiveFireSurfaceLights)
-		if (IsValid(Light)) Light->DestroyComponent();
+	{
+		if (IsValid(Light))
+		{
+			Light->DestroyComponent();
+		}
+	}
 	ActiveFireSurfaceLights.Reset();
 }
 
 void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 {
 	ClearFireSurfaceVisuals();
-	UWorld* World=GetWorld();
-	const FGridLevelRuntimeState* State=FindRuntimeStateForCurrentLevel();
-	if (!World || !World->IsGameWorld() || !State || !LevelAsset) return;
-	const FGridLevelSurfaceVfxSettings Settings = ResolveSurfaceVfxSettings();
-	if (!Settings.bShowGroundFire || Settings.MaxFireCells <= 0) return; // presentation-only toggle
-	UStaticMesh* Sphere=LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"));
-	UMaterialInterface* Glow=LoadObject<UMaterialInterface>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
-	UNiagaraSystem* FlameSystem = Settings.GroundFireSystem.LoadSynchronous();
-	const bool bDedicatedGroundFire = IsValid(FlameSystem);
+	UWorld* World = GetWorld();
+	const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel();
+	if (!World || !World->IsGameWorld() || !State || !LevelAsset)
+	{
+		return;
+	}
+
+	const FGridFireVfxSettings Vfx = ResolveFireVfxSettings();
+	if (Vfx.MaxFireCells <= 0)
+	{
+		return;
+	}
+	// No torch fallback, procedural spheres or vendor-specific hardcoded paths.
+	// A selected, reusable visual profile owns the Niagara asset.
+	UNiagaraSystem* FlameSystem = Vfx.GroundFireSystem.LoadSynchronous();
 	if (!IsValid(FlameSystem))
 	{
-		FlameSystem = LoadObject<UNiagaraSystem>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch.NS_Flame_8_Torch"));
+		return;
 	}
-	if (!IsValid(FlameSystem) && (!IsValid(Sphere) || !IsValid(Glow))) return;
+
 	TArray<FIntPoint> Cells;
-	for (const TPair<FIntPoint,FGridCombatSurfaceState>& Entry : State->Surfaces)
+	for (const TPair<FIntPoint, FGridCombatSurfaceState>& Entry : State->Surfaces)
 	{
-		if (Entry.Value.IsValid() && Entry.Value.SurfaceType==EGridCombatSurfaceType::Fire &&
-			IsWalkableCell(Entry.Key.X,Entry.Key.Y) && !ShouldHideCellFloor(Entry.Key.X,Entry.Key.Y))
+		if (Entry.Value.IsValid() && Entry.Value.SurfaceType == EGridCombatSurfaceType::Fire &&
+			IsWalkableCell(Entry.Key.X, Entry.Key.Y) && !ShouldHideCellFloor(Entry.Key.X, Entry.Key.Y))
+		{
 			Cells.Add(Entry.Key);
+		}
 	}
-	Cells.Sort([](const FIntPoint& A,const FIntPoint& B){
-		return A.Y==B.Y ? A.X<B.X : A.Y<B.Y;
-	});
-	const float Size=LevelAsset->CellSize;
-	for(int32 I=0;I<FMath::Min(Cells.Num(),Settings.MaxFireCells);++I)
+	Cells.Sort([](const FIntPoint& A, const FIntPoint& B)
 	{
-		const FIntPoint Cell=Cells[I];
-		const FVector Center=CellToWorld(Cell.X,Cell.Y,0.f)+FVector(Size*.5f,Size*.5f,0.f);
-		if (IsValid(FlameSystem))
+		return A.Y == B.Y ? A.X < B.X : A.Y < B.Y;
+	});
+
+	const float CellSize = FMath::Max(1.f, LevelAsset->CellSize);
+	const float Scale = Vfx.GroundFireScale;
+	const int32 VisibleCount = FMath::Min(Cells.Num(), Vfx.MaxFireCells);
+
+	for (int32 Index = 0; Index < VisibleCount; ++Index)
+	{
+		const FIntPoint Cell = Cells[Index];
+		const FVector Center = CellToWorld(Cell.X, Cell.Y, 0.f) +
+			FVector(CellSize * .5f, CellSize * .5f, 0.f);
+		UNiagaraComponent* FlameFx = NewObject<UNiagaraComponent>(this);
+		FlameFx->SetAutoActivate(false);
+		FlameFx->SetupAttachment(SceneRoot);
+		FlameFx->SetAsset(FlameSystem);
+		FlameFx->SetRelativeLocation(Center + FVector(0.f, 0.f, 4.f));
+		FlameFx->SetRelativeScale3D(FVector(Scale));
+		FlameFx->RegisterComponent();
+
+		// Names and types must match actual User Parameters on the selected Niagara.
+		// Empty names preserve the asset's own authored values.
+		if (!Vfx.SpawnAreaParameter.IsNone())
 		{
-			UNiagaraComponent* FlameFx=NewObject<UNiagaraComponent>(this);
-			FlameFx->SetAutoActivate(false);
-			FlameFx->SetupAttachment(SceneRoot);
-			FlameFx->SetAsset(FlameSystem);
-			FlameFx->SetRelativeLocation(Center+FVector(0.f,0.f,4.f));
-			const float Scale = bDedicatedGroundFire ? Settings.GroundFireScale
-				: (Settings.bOverrideRuntimeVisuals ? .38f : Settings.GroundFireScale);
-			FlameFx->SetRelativeScale3D(FVector(Scale));
-			FlameFx->RegisterComponent();
-			if (bDedicatedGroundFire && Settings.bOverrideRuntimeVisuals)
-			{
-				// The imported Niagara system owns the parameter names/types.
-				// None means no override and preserves the vendor's default.
-				if (!Settings.SpawnAreaParameter.IsNone())
-				{
-					const float WidthCm = Size * Settings.GroundFireCoverage / Scale;
-					FlameFx->SetVariableVec3(Settings.SpawnAreaParameter,
-						FVector(WidthCm, WidthCm, Settings.FlameHeightCm / Scale));
-				}
-				if (!Settings.FlameHeightParameter.IsNone())
-				{
-					FlameFx->SetVariableFloat(Settings.FlameHeightParameter, Settings.FlameHeightCm / Scale);
-				}
-				if (!Settings.FlameDensityParameter.IsNone())
-				{
-					FlameFx->SetVariableFloat(Settings.FlameDensityParameter, Settings.FlameDensity);
-				}
-				if (!Settings.SmokeDensityParameter.IsNone())
-				{
-					FlameFx->SetVariableFloat(Settings.SmokeDensityParameter,
-						Settings.bEnableSmoke ? Settings.SmokeDensity : 0.f);
-				}
-				if (!Settings.FireTintParameter.IsNone())
-				{
-					FlameFx->SetVariableLinearColor(Settings.FireTintParameter, Settings.FireTint);
-				}
-			}
-			FlameFx->Activate(true);
-			ActiveFireNiagaraComponents.Add(FlameFx);
+			const float Width = CellSize * Vfx.GroundFireCoverage / Scale;
+			FlameFx->SetVariableVec3(Vfx.SpawnAreaParameter,
+				FVector(Width, Width, Vfx.FlameHeightCm / Scale));
 		}
-		else for(int32 J=0;J<3;++J)
+		if (!Vfx.FlameHeightParameter.IsNone())
 		{
-			UStaticMeshComponent* Flame=NewObject<UStaticMeshComponent>(this);
-			Flame->SetupAttachment(SceneRoot);
-			Flame->SetMobility(EComponentMobility::Movable);
-			Flame->SetStaticMesh(Sphere);
-			Flame->SetMaterial(0,Glow);
-			Flame->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			Flame->SetGenerateOverlapEvents(false);
-			Flame->SetCastShadow(false);
-			Flame->SetRelativeLocation(Center+CatalystDirection(J,3)*Size*.19f+
-				FVector(0.f,0.f,22.f+J*5.f));
-			Flame->SetRelativeScale3D(FVector(.15f,.10f,.42f+J*.09f));
-			Flame->RegisterComponent();
-			if (UMaterialInstanceDynamic* Dyn=Flame->CreateDynamicMaterialInstance(0))
-			{
-				Dyn->SetVectorParameterValue(TEXT("CatalystGlowColor"),
-					J==0?FLinearColor(1.f,.25f,.015f):FLinearColor(1.f,.48f,.07f));
-				Dyn->SetScalarParameterValue(TEXT("CatalystGlowStrength"),2.8f);
-			}
-			ActiveFireSurfaceFlames.Add(Flame);
+			FlameFx->SetVariableFloat(Vfx.FlameHeightParameter, Vfx.FlameHeightCm / Scale);
 		}
-		if (I<Settings.MaxFireLights && Settings.FireLightIntensity > 0.f)
+		if (!Vfx.FlameDensityParameter.IsNone())
 		{
-			UPointLightComponent* Light=NewObject<UPointLightComponent>(this);
+			FlameFx->SetVariableFloat(Vfx.FlameDensityParameter, Vfx.FlameDensity);
+		}
+		if (!Vfx.SmokeDensityParameter.IsNone())
+		{
+			FlameFx->SetVariableFloat(Vfx.SmokeDensityParameter,
+				Vfx.bEnableSmoke ? Vfx.SmokeDensity : 0.f);
+		}
+		if (!Vfx.FireTintParameter.IsNone())
+		{
+			FlameFx->SetVariableLinearColor(Vfx.FireTintParameter, Vfx.FireTint);
+		}
+		FlameFx->Activate(true);
+		ActiveFireNiagaraComponents.Add(FlameFx);
+
+		if (Index < Vfx.MaxFireLights && Vfx.FireLightIntensity > 0.f)
+		{
+			UPointLightComponent* Light = NewObject<UPointLightComponent>(this);
 			Light->SetupAttachment(SceneRoot);
 			Light->SetMobility(EComponentMobility::Movable);
-			Light->SetRelativeLocation(Center+FVector(0.f,0.f,45.f));
-			Light->SetLightColor(Settings.FireLightColor);
-			Light->SetIntensity(Settings.FireLightIntensity);
-			Light->SetAttenuationRadius(Size*Settings.FireLightRadiusCells);
+			Light->SetRelativeLocation(Center + FVector(0.f, 0.f, 45.f));
+			Light->SetLightColor(Vfx.FireLightColor);
+			Light->SetIntensity(Vfx.FireLightIntensity);
+			Light->SetAttenuationRadius(CellSize * Vfx.FireLightRadiusCells);
 			Light->SetCastShadows(false);
 			Light->RegisterComponent();
 			ActiveFireSurfaceLights.Add(Light);
 		}
 	}
 }
-
 
 void AGridLevelRuntimeActor::ClearWaterSurfaceVisuals()
 {

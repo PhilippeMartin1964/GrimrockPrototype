@@ -19,16 +19,11 @@ Date : 5 novembre 2026. Base : 4ed239eb. Tests UE locaux indispensables.
 
 ## Présentation du feu au sol
 
-- Dans AGridLevelRuntimeActor, FireSurfaceNiagaraSystem permet de sélectionner
-  un effet Niagara dédié au sol. Tant qu'il est vide, NS_Flame_8_Torch
-  reste le fallback visuel existant et n'est jamais modifié.
-- FireSurfaceNiagaraScale (0.38 par défaut) et FireSurfaceLightIntensity
-  (650 par défaut) sont éditables sur l'instance/BP du runtime actor.
-- Le nouvel asset Niagara doit émettre sur 200 x 200 cm (180 x 180 cm utiles)
-  et disposer de ses propres paramètres utilisateur de densité, hauteur,
-  vitesse, luminosité et fumée. Aucun asset tiers n'est inclus par ce commit.
-- Une personnalisation propre au niveau passera ensuite par un profil
-  référencé par UGridLevelAsset pour conserver l'autorité des données uniques.
+Depuis ARMEMENT01.17.4D, le feu persistant est présenté exclusivement
+par UGridSurfaceVfxProfileAsset, indépendant de UGridLevelAsset.
+Le catalyseur a son propre UGridCatalystVfxProfileAsset. Le runtime ne charge
+aucun effet de torche en fallback et n'a plus de champs de réglages Niagara
+dupliqués. Voir docs/Architecture/SURFACE_AND_CATALYST_VFX_PROFILES.md.
 
 ## Tests
 

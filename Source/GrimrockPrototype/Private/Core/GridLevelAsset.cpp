@@ -62,30 +62,6 @@ namespace
 }
 
 
-FGridLevelSurfaceVfxSettings FGridLevelSurfaceVfxSettings::Sanitized() const
-{
-	FGridLevelSurfaceVfxSettings Out = *this;
-	const auto Safe = [](float Value, float Default, float Minimum, float Maximum)
-	{
-		return FMath::Clamp(FMath::IsFinite(Value) ? Value : Default, Minimum, Maximum);
-	};
-	Out.GroundFireScale = Safe(GroundFireScale, 1.f, .01f, 5.f);
-	Out.GroundFireCoverage = Safe(GroundFireCoverage, .9f, .1f, 1.f);
-	Out.FlameHeightCm = Safe(FlameHeightCm, 75.f, 5.f, 300.f);
-	Out.FlameDensity = Safe(FlameDensity, 1.f, 0.f, 4.f);
-	Out.SmokeDensity = Safe(SmokeDensity, .5f, 0.f, 4.f);
-	Out.MaxFireCells = FMath::Clamp(MaxFireCells, 0, 128);
-	Out.MaxFireLights = FMath::Clamp(MaxFireLights, 0, 32);
-	Out.FireLightIntensity = Safe(FireLightIntensity, 650.f, 0.f, 50000.f);
-	Out.FireLightRadiusCells = Safe(FireLightRadiusCells, 1.2f, .1f, 5.f);
-	Out.CatalystFlightDurationSeconds = Safe(CatalystFlightDurationSeconds, .42f, .1f, 1.5f);
-	Out.CatalystPulseDurationSeconds = Safe(CatalystPulseDurationSeconds, .95f, .3f, 2.f);
-	Out.CatalystWaveDelayPerCellSeconds = Safe(CatalystWaveDelayPerCellSeconds, .085f, 0.f, .3f);
-	Out.FireTint = FireTint.GetClamped(0.f, 8.f);
-	Out.FireLightColor = FireLightColor.GetClamped(0.f, 8.f);
-	return Out;
-}
-
 void UGridLevelAsset::EnsureCellCount()
 {
 	const int32 Expected = FMath::Max(1, Width) * FMath::Max(1, Height);

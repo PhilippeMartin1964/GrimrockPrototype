@@ -4,6 +4,7 @@
 #include "Components/DecalComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridCatalystVfxProfileAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
@@ -63,6 +64,17 @@ namespace ARMEMENT011714
 		Runtime->LevelAsset = Level;
 		Runtime->CurrentDungeonLevelId = TEXT("DecalOilTest");
 		Runtime->OilSurfaceMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+		// Explicit test authoring: no visual asset paths embedded in production runtime.
+		UGridCatalystVfxProfileAsset* CatalystVfx = NewObject<UGridCatalystVfxProfileAsset>(Runtime);
+		CatalystVfx->Settings.ProjectileMesh = LoadObject<UStaticMesh>(nullptr,
+			TEXT("/Game/GrimrockPrototype/Meshes/Items/SM_Catalyst_01.SM_Catalyst_01"));
+		CatalystVfx->Settings.RunePulseMaterial = LoadObject<UMaterialInterface>(nullptr,
+			TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_RunePulse.M_SurfaceCatalyst_RunePulse"));
+		CatalystVfx->Settings.EmberMaterial = LoadObject<UMaterialInterface>(nullptr,
+			TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.M_SurfaceCatalyst_Ember"));
+		CatalystVfx->Settings.SparkMesh = LoadObject<UStaticMesh>(nullptr,
+			TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+		Runtime->CatalystVfxProfile = CatalystVfx;
 		return Runtime;
 	}
 
@@ -371,7 +383,7 @@ bool FCatalystVfxLifecycle::RunTest(const FString&)
 	TestNotNull(TEXT("Fire still in canonical state"),Runtime->FindCombatSurfaceAtCell(1,1));
 	TestEqual(TEXT("One round remains"),Runtime->AdvanceCombatSurfaceRound(),0);
 	TestEqual(TEXT("Fire expires"),Runtime->AdvanceCombatSurfaceRound(),1);
-	TestEqual(TEXT("Fire VFX cleaned on expiry"),Runtime->GetActiveFireSurfaceFlameCount(),0);
+	TestEqual(TEXT("Fire VFX cleaned on expiry"),Runtime->GetActiveFireNiagaraCount(),0);
 	return true;
 }
 

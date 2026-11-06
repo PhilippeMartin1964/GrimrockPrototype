@@ -2,28 +2,18 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "Core/GridLevelAsset.h"
+#include "Core/GridVfxProfileTypes.h"
 #include "GridSurfaceVfxProfileAsset.generated.h"
 
-/**
- * ARMEMENT01.17.4C reusable data-driven surface presentation.
- * Never stores authoritative RPG03.6 damage or duration.
- */
+/** Reusable data-only presentation of persistent ground fire; no gameplay authority. */
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridSurfaceVfxProfileAsset : public UDataAsset
 {
 	GENERATED_BODY()
 
 public:
-	/** Niagara selection, user-parameter bindings, lights and catalyst visuals. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Surface VFX", meta=(ShowOnlyInnerProperties))
-	FGridLevelSurfaceVfxSettings Settings;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ground Fire", meta=(ShowOnlyInnerProperties))
+	FGridFireVfxSettings Settings;
 
-	/** A selected profile always overrides old actor-level presentation defaults. */
-	FGridLevelSurfaceVfxSettings GetRuntimeSettings() const
-	{
-		FGridLevelSurfaceVfxSettings Effective = Settings.Sanitized();
-		Effective.bOverrideRuntimeVisuals = true;
-		return Effective;
-	}
+	FGridFireVfxSettings GetSettings() const { return Settings.Sanitized(); }
 };

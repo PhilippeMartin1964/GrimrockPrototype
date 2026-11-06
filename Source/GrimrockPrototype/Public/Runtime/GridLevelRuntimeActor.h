@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridVfxProfileTypes.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -34,8 +35,8 @@ class UDecalComponent;
 class UStaticMeshComponent;
 class UPointLightComponent;
 class UNiagaraComponent;
-class UNiagaraSystem;
 class UGridSurfaceVfxProfileAsset;
+class UGridCatalystVfxProfileAsset;
 class UReadableMessageWidget;
 class UUserWidget;
 struct FGridResolvedCombatModifiers;
@@ -208,45 +209,23 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UPointLightComponent>> ActiveCatalystCellLights;
 
-	/** Replaceable in editor. Fallback references preserve shipped assets. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|VFX")
-	TSoftObjectPtr<UStaticMesh> CatalystProjectileMesh;
+	/** One shared fire profile; never read visual presentation from the level DataAsset. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Fire")
+	TSoftObjectPtr<UGridSurfaceVfxProfileAsset> FireVfxProfile;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|VFX")
-	TSoftObjectPtr<UMaterialInterface> CatalystRunePulseMaterial;
+	/** One independent, reusable presentation profile for catalyst effects. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Catalyst")
+	TSoftObjectPtr<UGridCatalystVfxProfileAsset> CatalystVfxProfile;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|VFX")
-	TSoftObjectPtr<UMaterialInterface> CatalystEmberMaterial;
+	/** Preview-only settings from the assigned profile (no gameplay authority). */
+	FGridFireVfxSettings ResolveFireVfxSettings() const;
+	FGridCatalystVfxSettings ResolveCatalystVfxSettings() const;
 
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UStaticMeshComponent>> ActiveFireSurfaceFlames;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UPointLightComponent>> ActiveFireSurfaceLights;
-
-	/** Shared default profile for every level, with optional per-level profile selection. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|VFX")
-	TSoftObjectPtr<UGridSurfaceVfxProfileAsset> DefaultSurfaceVfxProfile;
-
-	/** Older actor-level Niagara selection, retained when no profile has been assigned. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Fire|VFX")
-	TSoftObjectPtr<UNiagaraSystem> FireSurfaceNiagaraSystem;
-
-	/** World-scale multiplier for an authored full-cell Niagara fire system. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Fire|VFX",
-		meta=(ClampMin="0.01", ClampMax="5.0"))
-	float FireSurfaceNiagaraScale = 0.38f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Fire|VFX",
-		meta=(ClampMin="0.0", ClampMax="50000.0"))
-	float FireSurfaceLightIntensity = 650.f;
-
-	/** Legacy torch fallback is used only when no dedicated floor Niagara was selected. */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UNiagaraComponent>> ActiveFireNiagaraComponents;
 
-	/** Resolves the active level's single-asset VFX profile, retaining 17.4A legacy defaults when disabled. */
-	FGridLevelSurfaceVfxSettings ResolveSurfaceVfxSettings() const;
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UPointLightComponent>> ActiveFireSurfaceLights;
 
 	/** Wet floor after a canonical Ice->Water reaction; presentation only. */
 	UPROPERTY(Transient)
@@ -254,10 +233,6 @@ public:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> ActiveWaterSurfaceMaterials;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Surface|Catalyst|VFX",
-		meta=(ClampMin="0.3", ClampMax="2.0"))
-	float CatalystPulseDurationSeconds = 0.95f;
 
 	FTimerHandle CatalystVisualTimer;
 	float CatalystVisualElapsedSeconds = 0.f;
@@ -272,15 +247,6 @@ public:
 	FVector CatalystFlightStart = FVector::ZeroVector;
 	FVector CatalystFlightEnd = FVector::ZeroVector;
 	TArray<FGridCatalystVisualCell> ActiveCatalystVisualCells;
-
-	/** Launch arc, then cell wave. Neither changes gameplay or resource costs. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|VFX",
-		meta = (ClampMin = "0.1", ClampMax = "1.5"))
-	float CatalystFlightDurationSeconds = 0.42f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Surface|Catalyst|VFX",
-		meta = (ClampMin = "0.0", ClampMax = "0.3"))
-	float CatalystWaveDelayPerCellSeconds = 0.085f;
 
 	FTimerHandle OilSplashTimer;
 	float OilSplashElapsedSeconds = 0.f;
@@ -778,7 +744,6 @@ public:
 	int32 GetActiveCatalystTrailCount() const { return ActiveCatalystTrailSparks.Num(); }
 	int32 GetActiveCatalystCellPulseCount() const { return ActiveCatalystCellPulses.Num(); }
 	int32 GetActiveCatalystSparkCount() const { return ActiveCatalystSparks.Num(); }
-	int32 GetActiveFireSurfaceFlameCount() const { return ActiveFireSurfaceFlames.Num(); }
 	EGridSurfaceCatalystVfxKind GetCatalystVisualKind() const { return CatalystVisualKind; }
 
 	int32 GetOilSplashPresentationCount() const { return OilSplashPresentationCount; }

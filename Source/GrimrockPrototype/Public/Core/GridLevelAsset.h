@@ -9,102 +9,6 @@
 #include "GridLevelAsset.generated.h"
 
 class UGridQuestDefinitionAsset;
-class UNiagaraSystem;
-class UGridSurfaceVfxProfileAsset;
-
-/**
- * ARMEMENT01.17.4B: presentation-only settings authored IN the one UGridLevelAsset.
- * When bOverrideRuntimeVisuals is false, existing runtime actor values are authoritative.
- * Gameplay surfaces, duration, damage and saving are never derived from this struct.
- */
-USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridLevelSurfaceVfxSettings
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX")
-	bool bOverrideRuntimeVisuals = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire")
-	bool bShowGroundFire = true;
-
-	/** Choose any compatible Niagara system, e.g. licensed FireFX Ground Fire. Empty = legacy torch fallback. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire")
-	TSoftObjectPtr<UNiagaraSystem> GroundFireSystem;
-
-	/** Artist-system world scaling, not a replacement for a Niagara spawn-area parameter. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire", meta=(ClampMin="0.01", ClampMax="5.0"))
-	float GroundFireScale = 1.0f;
-
-	/** Fraction of CellSize: 0.90 is a 180cm footprint on a 200cm cell. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire", meta=(ClampMin="0.1", ClampMax="1.0"))
-	float GroundFireCoverage = 0.90f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire", meta=(ClampMin="5.0", ClampMax="300.0"))
-	float FlameHeightCm = 75.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire", meta=(ClampMin="0.0", ClampMax="4.0"))
-	float FlameDensity = 1.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire")
-	bool bEnableSmoke = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire", meta=(ClampMin="0.0", ClampMax="4.0"))
-	float SmokeDensity = .5f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire")
-	FLinearColor FireTint = FLinearColor(1.f, .43f, .08f);
-
-	/** Cap the presentation cost on the 32x32 grid. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire", meta=(ClampMin="0", ClampMax="128"))
-	int32 MaxFireCells = 48;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire", meta=(ClampMin="0", ClampMax="32"))
-	int32 MaxFireLights = 8;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire", meta=(ClampMin="0.0", ClampMax="50000.0"))
-	float FireLightIntensity = 650.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire", meta=(ClampMin="0.1", ClampMax="5.0"))
-	float FireLightRadiusCells = 1.2f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Fire")
-	FLinearColor FireLightColor = FLinearColor(1.f, .3f, .06f);
-
-	/**
-	 * Optional Niagara USER parameters. Match actual exposed names from the imported
-	 * system's Parameters panel (including "User." prefix). None leaves that setting alone.
-	 * SpawnArea takes Vector3 full-size cm (X,Y,Z=height); other sizes are floats.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Niagara Binding")
-	FName SpawnAreaParameter = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Niagara Binding")
-	FName FlameHeightParameter = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Niagara Binding")
-	FName FlameDensityParameter = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Niagara Binding")
-	FName SmokeDensityParameter = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Niagara Binding")
-	FName FireTintParameter = NAME_None;
-
-	/** Catalyst's existing ground pulse is retained, merely authored per level. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Catalyst", meta=(ClampMin="0.1", ClampMax="1.5"))
-	float CatalystFlightDurationSeconds = .42f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Catalyst", meta=(ClampMin="0.3", ClampMax="2.0"))
-	float CatalystPulseDurationSeconds = .95f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Surface VFX|Catalyst", meta=(ClampMin="0.0", ClampMax="0.3"))
-	float CatalystWaveDelayPerCellSeconds = .085f;
-
-	/** Defensive sanitization for programmatically authored assets and malformed data. */
-	FGridLevelSurfaceVfxSettings Sanitized() const;
-};
-
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridLevelAsset : public UDataAsset
 {
@@ -125,14 +29,6 @@ public:
 	// --- Grid data ---
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
 	TArray<FGridLevelCellData> Cells;
-
-	/** Optional explicit visual profile for this level. Normal levels inherit the shared default. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Level|Surface VFX")
-	TSoftObjectPtr<UGridSurfaceVfxProfileAsset> SurfaceVfxProfile;
-
-	/** ARMEMENT01.17.4B compatibility: old inline settings, no longer preferred for authoring. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Level|Surface VFX|Legacy", meta=(ShowOnlyInnerProperties, AdvancedDisplay))
-	FGridLevelSurfaceVfxSettings SurfaceVfxSettings;
 
 	// --- Gameplay ---
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Start")
