@@ -32,10 +32,20 @@ sous `Art/Materials` et `Art/Textures` restent à leur place.
   l'ancien emplacement.
 - Aucun asset acheté FireFX, aucune carte `L_Dungeon`, aucun
   autre objet du donjon ne doit être modifié.
-- Le commit de préparation `EFFECTS-ORG01.2D-PREP:` déclenche
-  le commandlet via `UEValidationAgent.ps1` **une seule fois**.
-  Le commit d'assets produit porte le préfixe
-  `EFFECTS-ORG01.2D-ASSET:` et ne déclenche pas l'outil de nouveau.
+- **Infrastructure de validation figée :** le script
+  `UEValidationAgent.ps1` est conservé octet pour octet au blob Git
+  `b87446812fca8b82cf87fdb975f6196c7f6691bb` validé dans
+  `b1b232a5` et confirmé dans `2345eb50`.
+  **Il ne déclenche PAS le script de migration de torche** et ne doit pas
+  être modifié pour intégrer une tâche de migration à usage unique.
+- Le script autonome `Scripts/MigrateEffectsOrgTorch.ps1` est préparé
+  mais nécessite un contexte Windows Unreal explicitement capable
+  d'exécuter cette commande, **distinct de l'agent de validation**.
+  Aucun dépôt GitHub, test `-NullRHI` ou statut vert ne constitue une
+  preuve de renommage des .uasset.
+- Le commit d'assets, lorsqu'il aura été effectivement créé par Unreal,
+  portera le préfixe `EFFECTS-ORG01.2D-ASSET:` et devra ensuite passer
+  toute la suite de validation Windows, indépendamment de l'outil de migration.
 - Une fois le commit d'assets validé par l'agent UE5.5.4,
   les chemins de tests temporaires (ancien ou nouveau) sont
   remplacés par le chemin canonique uniquement. Le script,
@@ -45,6 +55,10 @@ sous `Art/Materials` et `Art/Textures` restent à leur place.
 
 - `Grimrock.Editor.EffectsOrg01.Inventory`
 - `Grimrock.Editor.EffectsOrg01.DependencyContract`
+- `Grimrock.Editor.EffectsOrg01.TorchMigrationPreflight` : appelle le
+  **véritable commandlet** sans `-Apply` avant migration, vérifie l'absence
+  de mutation; après migration, vérifie les nouvelles dépendances.
+  Ce test de transition sera supprimé avec l'outillage provisoire.
 - `Grimrock.Items.VFX01_3.*` et `Grimrock.Items.VFX01_4B.*`
 - Compilation et suite complète `Grimrock` dans UE5.5.4.
 - Vérification visuelle PIE de la torche allumée/éteinte
@@ -57,3 +71,15 @@ Les autres matériaux (en particulier ceux de l'huile, couplés
 aux scripts de réparation et aux tests de production) feront
 l'objet de migrations séparées. Les profils VFX FireFX
 restent des assets privés locaux non versionnés.
+
+## État vérifié du travail (6 novembre 2026)
+
+- `master` au commit `2345eb50` : compilation UE5.5.4 + suite Grimrock **vertes**.
+- Le Niagara se trouve encore sous `Art/FX`. Aucune migration binaire
+  de la torche n'est attestée, contrairement au renommage déjà terminé
+  de la potion.
+- Aucun accès interactif à la station Windows ou canal de commande
+  distinct n'est actuellement exposé au connecteur GitHub. Le job Windows
+  existant valide uniquement les commits ; il ne constitue pas un exécuteur
+  général de scripts. Il est interdit de contourner cette séparation en
+  ajoutant du code de migration mutatif dans un test automatique de build.
