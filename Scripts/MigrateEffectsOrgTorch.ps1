@@ -62,7 +62,10 @@ try {
  if (-not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git'))) { throw 'WORKTREE_ABSENT' }
  if ((GitOne -Arguments @('rev-parse','HEAD')) -cne $ExpectedHead) { throw 'HEAD_MISMATCH' }
  $Subject = GitOne -Arguments @('log','-1','--format=%s')
- if ($Subject -cnotmatch '^EFFECTS-ORG01[.]2D-PREP:') { exit 2 }
+ # Accept the latest validated, independently prepared 2D milestone;
+ # the exact 40-digit HEAD, clean worktree and remote are checked above/below.
+ # An asset commit never matches, so the migration cannot repeat.
+ if ($Subject -cnotmatch '^EFFECTS-ORG01[.]2D-(PREP|PREFLIGHT|RUNNER):') { throw 'MIGRATION_HEAD_NOT_ALLOWED' }
  if ((GitOne -Arguments @('remote','get-url','origin')) -notmatch '(?i)github\.com[:/]PhilippeMartin1964/GrimrockPrototype(\.git)?$') {
   throw 'ORIGIN_MISMATCH'
  }
@@ -114,7 +117,7 @@ try {
    @('Expected exactly one old torch Niagara', 'PREFLIGHT_NAMES'),
    @('Torch Niagara referencers differ', 'PREFLIGHT_REFERENCERS'),
    @('Torch Niagara material dependency contract changed', 'PREFLIGHT_NIAGARA'),
-   @('Torch item does not reference source Niagara', 'PREFLIGHT_POTION'),
+   @('Torch item does not reference source Niagara', 'PREFLIGHT_ITEM'),
    @('Torch or item Unreal packages could not be loaded', 'ASSET_LOAD'),
    @('AssetTools failed to relocate torch Niagara', 'RENAME'),
    @('Saving relocated torch Niagara', 'SAVE'),
@@ -185,7 +188,7 @@ catch {
  $ErrorText = [string]$_.Exception.Message
  $AllowedCauses = @(
   'INVALID_SHA','WORKTREE_ABSENT','HEAD_MISMATCH','ORIGIN_MISMATCH',
-  'WORKTREE_DIRTY','LFS_SOURCE_MISSING','TARGET_EXISTS',
+  'WORKTREE_DIRTY','LFS_SOURCE_MISSING','TARGET_EXISTS','MIGRATION_HEAD_NOT_ALLOWED',
   'GIT_LFS_ATTRIBUTE_MISSING','REMOTE_MOVED','BACKUP_HASH_MISMATCH',
   'UE_MISSING','COMMANDLET_TIMEOUT','COMMANDLET_EXITCODE_UNAVAILABLE','FILESET_UNEXPECTED',
   'OLD_REDIRECTOR_OR_NEW_MISSING','NEW_ASSET_LFS_POINTER',

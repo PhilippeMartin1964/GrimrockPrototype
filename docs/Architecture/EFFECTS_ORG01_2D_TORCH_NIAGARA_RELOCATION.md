@@ -83,3 +83,61 @@ restent des assets privés locaux non versionnés.
   existant valide uniquement les commits ; il ne constitue pas un exécuteur
   général de scripts. Il est interdit de contourner cette séparation en
   ajoutant du code de migration mutatif dans un test automatique de build.
+
+
+## Exécuteur Windows indépendant — EFFECTS-ORG01.2D-RUNNER
+
+Le script \`Scripts/RunEffectsOrgTorchStandalone.ps1\` contient l'exécution complète **hors agent de validation**. Son comportement par défaut est en lecture seule ; l'argument explicite \`-Apply\` est nécessaire pour agir.
+
+L'exécution crée exclusivement un **worktree détaché distinct** sous
+\`D:\Development\GrimrockPrototype_EffectsOrgTorch\`, sans modifier ni
+le checkout \`D:\Development\GrimrockPrototype\` ni celui de l'agent
+\`GrimrockPrototype_UEValidation\`.
+
+Elle hydrate Git LFS, compile UE Editor et exécute
+\`Grimrock.Editor.EffectsOrg01.TorchMigrationPreflight\` dans son propre
+projet, vérifie qu'aucun fichier n'a été modifié, puis appelle le
+commandlet natif Unreal avec \`-Apply\`. Le script de migration vérifie
+un ensemble strict de **trois** changements, produit les sauvegardes
+privées SHA-256 et pousse un commit fast-forward de la branche master.
+
+L'agent Windows existant valide ensuite automatiquement ce nouveau
+commit d'assets avec la **suite complète Grimrock**. Cet agent reste
+intégralement inchangé.
+
+**Contrat de lancement :** le nouveau HEAD Git doit être un jalon
+\`EFFECTS-ORG01.2D-PREP:\`, \`EFFECTS-ORG01.2D-PREFLIGHT:\` ou
+\`EFFECTS-ORG01.2D-RUNNER:\`; tout autre jalon est refusé. Un commit
+contenant déjà la migration ne correspond pas à ces préfixes :
+aucune réexécution intempestive n'est autorisée.
+
+Commande destinée à un **exécuteur Windows explicitement autorisé**
+(même utilisateur que la tâche Unreal, avec UE5.5.4 et Git LFS) :
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\Development\GrimrockPrototype\Scripts\RunEffectsOrgTorchStandalone.ps1" -Apply
+
+Le script effectue son propre \`git fetch\` et ne nécessite pas de
+\`git pull\` dans le checkout utilisateur. Il refuse un ancien worktree
+indépendant existant et n'efface jamais automatiquement les sauvegardes.
+
+**Important :** le connecteur GitHub disponible dans cette conversation
+ne peut pas démarrer un processus Windows sur le PC. La validation
+automatique GitHub/UE ne déclenche donc **pas** le script autonome. Il
+faut un véritable exécuteur Windows indépendant pour effectuer la
+migration réelle ; le simple commit du script n'a aucun effet sur les
+assets. Il est interdit de contourner cette séparation en réinjectant
+un hook de migration dans \`UEValidationAgent.ps1\`.
+
+## Contrôle de syntaxe PowerShell dans la suite Grimrock
+
+Le test \`Grimrock.Editor.EffectsOrg01.TorchMigrationScriptsSyntax\`
+appelle \`Scripts/CheckEffectsOrgMigrationScripts.ps1\`, qui utilise
+**uniquement le parser Windows PowerShell 5.1** pour contrôler les
+deux scripts indépendants. Ni \`-Apply\`, ni \`git commit\`, ni
+\`AssetTools::RenameAssets\` ne sont lancés par ce test.
+
+La réussite des tests de syntaxe et du précontrôle ne vaut jamais
+preuve de migration : il faut également constater le commit des
+assets et son statut \`UE5.5.4/LocalAuto = success\`, puis supprimer
+les outils provisoires et verrouiller les nouveaux chemins dans les
+contrats de test.
