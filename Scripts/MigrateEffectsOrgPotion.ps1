@@ -162,8 +162,17 @@ catch {
  if ($ErrorText -cin $AllowedCauses) {
   $Cause = $ErrorText
  }
+ elseif ($ErrorText -match '^COMMANDLET_FAILED_([0-9]{1,3})$') {
+  $Exit = [int]$Matches[1]
+  if ($Exit -in @(1,3,11,12,13,14,15,20,21,22,25,255)) {
+   $Cause = 'UE_EXIT_' + [string]$Exit
+  }
+  else {
+   $Cause = 'UE_EXIT_OTHER'
+  }
+ }
  elseif ($ErrorText -like 'COMMANDLET_FAILED_*') {
-  $Cause = 'COMMANDLET_FAILED'
+  $Cause = 'UE_EXIT_OTHER'
  }
  elseif ($ErrorText -like 'GIT_*') {
   $Cause = 'GIT_OPERATION'
