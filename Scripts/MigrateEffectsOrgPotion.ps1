@@ -148,7 +148,31 @@ try {
  exit 0
 }
 catch {
- Write-Warning ('[EFFECTS-ORG01.2B] Failed phase ' + $Phase)
+ # Only allowlisted stages and error codes may leave the Windows workstation.
+ $ErrorText = [string]$_.Exception.Message
+ $AllowedCauses = @(
+  'INVALID_SHA','WORKTREE_ABSENT','HEAD_MISMATCH','ORIGIN_MISMATCH',
+  'WORKTREE_DIRTY','LFS_SOURCE_MISSING','TARGET_EXISTS',
+  'GIT_LFS_ATTRIBUTE_MISSING','REMOTE_MOVED','BACKUP_HASH_MISMATCH',
+  'UE_MISSING','COMMANDLET_TIMEOUT','FILESET_UNEXPECTED',
+  'OLD_REDIRECTOR_OR_NEW_MISSING','NEW_ASSET_LFS_POINTER',
+  'STAGED_FILESET_UNEXPECTED','GIT_PUSH_FAILED'
+ )
+ $Cause = 'OTHER'
+ if ($ErrorText -cin $AllowedCauses) {
+  $Cause = $ErrorText
+ }
+ elseif ($ErrorText -like 'COMMANDLET_FAILED_*') {
+  $Cause = 'COMMANDLET_FAILED'
+ }
+ elseif ($ErrorText -like 'GIT_*') {
+  $Cause = 'GIT_OPERATION'
+ }
+ $StageDir = Join-Path $StateRoot 'EffectsOrg'
+ New-Item -ItemType Directory -Force -Path $StageDir | Out-Null
+ $StagePath = Join-Path $StageDir ('Migration-' + $ExpectedHead.Substring(0,12) + '.stage')
+ Set-Content -LiteralPath $StagePath -Value ($Phase + '|' + $Cause) -Encoding ASCII
+ Write-Warning ('[EFFECTS-ORG01.2B] Failed ' + $Phase + '/' + $Cause)
  if ($Prepared -and -not $Committed) {
   try { RecoverKnown }
   catch { Write-Warning '[EFFECTS-ORG01.2B] Private backups retained; worktree requires review.' }

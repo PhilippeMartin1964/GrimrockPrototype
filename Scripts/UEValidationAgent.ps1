@@ -742,8 +742,17 @@ try {
                     Publish-CommitStatus -Sha $Sha -State 'success' -Context 'UE5.5.4/EffectsOrgMigration' -Description 'Potions renamed in new commit; new HEAD requires full UE validation'
                 }
                 catch {
+                    # Only phase identifiers and allowlisted error codes. No raw logs or paths.
+                    $MigrationCode = 'NOT_RECORDED'
+                    $MigrationStageFile = Join-Path $StateRoot ('EffectsOrg\Migration-' + $Sha.Substring(0,12) + '.stage')
+                    if (Test-Path -LiteralPath $MigrationStageFile -PathType Leaf) {
+                        $Reported = ([string](Get-Content -LiteralPath $MigrationStageFile -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
+                        if ($Reported -cmatch '^(PREFLIGHT|COMMANDLET|VERIFY|COMMIT|PUSH)\|([A-Z0-9_]{1,40})$') {
+                            $MigrationCode = $Matches[1] + '_' + $Matches[2]
+                        }
+                    }
                     try {
-                        Publish-CommitStatus -Sha $Sha -State 'failure' -Context 'UE5.5.4/EffectsOrgMigration' -Description 'Guarded asset rename not published; private diagnostic retained'
+                        Publish-CommitStatus -Sha $Sha -State 'failure' -Context 'UE5.5.4/EffectsOrgMigration' -Description ('Migration not published: ' + $MigrationCode)
                     }
                     catch { Write-Warning '[EFFECTS-ORG01.2B] Migration status unavailable.' }
                     Write-Warning '[EFFECTS-ORG01.2B] Migration incomplete. Normal UE validation remains valid.'
