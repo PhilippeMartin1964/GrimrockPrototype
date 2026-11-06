@@ -101,12 +101,10 @@ try {
      -not (Test-Path -LiteralPath $Project -PathType Leaf)) { throw 'UE_MISSING' }
  $Arguments = '"' + $Project + '" -run=GridEffectsOrgPotionRename -Apply -Unattended -NoSplash -NoP4 -NullRHI -stdout -FullStdOutLogOutput -log'
  $Phase = 'COMMANDLET'
- $Process = Start-Process -FilePath $Editor -ArgumentList $Arguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput (Join-Path $Private 'Rename.stdout.log') -RedirectStandardError (Join-Path $Private 'Rename.stderr.log') -PassThru
- if (-not $Process.WaitForExit(180000)) {
-  try { $Process.Kill() } catch {}
-  throw 'COMMANDLET_TIMEOUT'
- }
- $Process.Refresh()
+ # Windows PowerShell 5.1 does not reliably populate ExitCode after a
+ # timed WaitForExit() on a Start-Process -PassThru wrapper. The known-working
+ # engine authoring scripts use -Wait -PassThru (same UE executable).
+ $Process = Start-Process -FilePath $Editor -ArgumentList $Arguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput (Join-Path $Private 'Rename.stdout.log') -RedirectStandardError (Join-Path $Private 'Rename.stderr.log') -PassThru -Wait
  $Exit = $Process.ExitCode
  if ($null -eq $Exit) { throw 'COMMANDLET_EXITCODE_UNAVAILABLE' }
  if ([int]$Exit -ne 0) {
