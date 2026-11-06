@@ -11,6 +11,8 @@
 /Content/FireFX/
 # Local profiles can safely reference licensed content absent from GitHub.
 /Content/GrimrockPrototype/LocalVFX/
+# EFFECTS-ORG01: private fire profiles reference the licensed FireFX pack.
+/Content/GrimrockPrototype/Effects/Fire/Local/
 /Content/F_FreeFlameFx_Pack/
 /Content/GrimrockPrototype/Dev
 /Content/Goblin_Bomber
