@@ -5,7 +5,7 @@
 #include "AssetRegistry/IAssetRegistry.h"
 #include "AssetToolsModule.h"
 #include "IAssetTools.h"
-#include "EditorLoadingAndSavingUtils.h"
+#include "FileHelpers.h"
 #include "Materials/MaterialInterface.h"
 #include "Misc/AssetRegistryInterface.h"
 #include "Misc/CommandLine.h"

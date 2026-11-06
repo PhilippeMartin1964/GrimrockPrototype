@@ -18,20 +18,20 @@ $Phase = 'PREFLIGHT'
 $Private = Join-Path $StateRoot ('EffectsOrg\Potion-' + $ExpectedHead.Substring(0,12))
 
 function GitLines {
- param([string[]]$Args)
- $Values = @(& git -C $WorktreePath @Args)
- if ($LASTEXITCODE -ne 0) { throw ('GIT_' + $Args[0]) }
+ param([string[]]$Arguments)
+ $Values = @(& git -C $WorktreePath @Arguments)
+ if ($LASTEXITCODE -ne 0) { throw ('GIT_' + $Arguments[0]) }
  return @($Values)
 }
 function GitOne {
- param([string[]]$Args)
- $Values = @(GitLines -Args $Args)
+ param([string[]]$Arguments)
+ $Values = @(GitLines -Arguments $Arguments)
  if ($Values.Count -ne 1) { throw 'GIT_OUTPUT_UNEXPECTED' }
  return ([string]$Values[0]).Trim()
 }
 function RecoverKnown {
  # Never touch the developer checkout. No broad git clean/restore.
- $Changes = @(GitLines -Args @('status','--porcelain','--untracked-files=all'))
+ $Changes = @(GitLines -Arguments @('status','--porcelain','--untracked-files=all'))
  foreach ($Entry in $Changes) {
   if ($Entry.Length -lt 4 -or $Entry.Substring(3) -cnotin $Allowed) {
    Write-Warning 'UNEXPECTED_WORKTREE_CHANGES_NO_AUTORECOVERY'
@@ -47,12 +47,12 @@ function RecoverKnown {
     throw 'BACKUP_HASH_MISMATCH'
   }
  }
- [void](GitLines -Args @('reset','--quiet','HEAD','--',$New))
- [void](GitLines -Args @('restore','--source=HEAD','--staged','--worktree','--',$Old,$Niagara))
+ [void](GitLines -Arguments @('reset','--quiet','HEAD','--',$New))
+ [void](GitLines -Arguments @('restore','--source=HEAD','--staged','--worktree','--',$Old,$Niagara))
  if (Test-Path -LiteralPath $NewFile -PathType Leaf) {
   Remove-Item -LiteralPath $NewFile -Force
  }
- if (@(GitLines -Args @('status','--porcelain','--untracked-files=all')).Count -ne 0) {
+ if (@(GitLines -Arguments @('status','--porcelain','--untracked-files=all')).Count -ne 0) {
   throw 'RECOVERY_NOT_CLEAN'
  }
 }
@@ -60,13 +60,13 @@ function RecoverKnown {
 try {
  if ($ExpectedHead -notmatch '^[a-f0-9]{40}$') { throw 'INVALID_SHA' }
  if (-not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git'))) { throw 'WORKTREE_ABSENT' }
- if ((GitOne -Args @('rev-parse','HEAD')) -cne $ExpectedHead) { throw 'HEAD_MISMATCH' }
- $Subject = GitOne -Args @('log','-1','--format=%s')
+ if ((GitOne -Arguments @('rev-parse','HEAD')) -cne $ExpectedHead) { throw 'HEAD_MISMATCH' }
+ $Subject = GitOne -Arguments @('log','-1','--format=%s')
  if ($Subject -cnotmatch '^EFFECTS-ORG01[.]2B:') { exit 2 }
- if ((GitOne -Args @('remote','get-url','origin')) -notmatch '(?i)github\.com[:/]PhilippeMartin1964/GrimrockPrototype(\.git)?$') {
+ if ((GitOne -Arguments @('remote','get-url','origin')) -notmatch '(?i)github\.com[:/]PhilippeMartin1964/GrimrockPrototype(\.git)?$') {
   throw 'ORIGIN_MISMATCH'
  }
- if (@(GitLines -Args @('status','--porcelain','--untracked-files=all')).Count -ne 0) {
+ if (@(GitLines -Arguments @('status','--porcelain','--untracked-files=all')).Count -ne 0) {
   throw 'WORKTREE_DIRTY'
  }
  foreach ($Path in @($Old,$Niagara)) {
@@ -76,12 +76,12 @@ try {
  }
  if (Test-Path -LiteralPath (Join-Path $WorktreePath $New)) { throw 'TARGET_EXISTS' }
  foreach ($Path in $Allowed) {
-  if ((GitOne -Args @('check-attr','filter','--',$Path)) -notmatch ': filter: lfs$') {
+  if ((GitOne -Arguments @('check-attr','filter','--',$Path)) -notmatch ': filter: lfs$') {
    throw 'GIT_LFS_ATTRIBUTE_MISSING'
   }
  }
- [void](GitLines -Args @('fetch','--no-tags','origin','master'))
- if ((GitOne -Args @('rev-parse','refs/remotes/origin/master')) -cne $ExpectedHead) {
+ [void](GitLines -Arguments @('fetch','--no-tags','origin','master'))
+ if ((GitOne -Arguments @('rev-parse','refs/remotes/origin/master')) -cne $ExpectedHead) {
   throw 'REMOTE_MOVED'
  }
  New-Item -Path $Private -ItemType Directory -Force | Out-Null
@@ -108,7 +108,7 @@ try {
  }
  if ($Process.ExitCode -ne 0) { throw ('COMMANDLET_FAILED_' + $Process.ExitCode) }
  $Phase = 'VERIFY'
- $Changes = @(GitLines -Args @('status','--porcelain','--untracked-files=all'))
+ $Changes = @(GitLines -Arguments @('status','--porcelain','--untracked-files=all'))
  $ExpectedStatus = @((" D " + $Old), ("?? " + $New), (" M " + $Niagara))
  if ($Changes.Count -ne 3 -or
      @($Changes | Where-Object { $_ -cnotin $ExpectedStatus }).Count -ne 0) {
@@ -121,21 +121,21 @@ try {
  if ((Get-Item -LiteralPath (Join-Path $WorktreePath $New)).Length -le 1024) {
   throw 'NEW_ASSET_LFS_POINTER'
  }
- [void](GitLines -Args @('fetch','--no-tags','origin','master'))
- if ((GitOne -Args @('rev-parse','refs/remotes/origin/master')) -cne $ExpectedHead) {
+ [void](GitLines -Arguments @('fetch','--no-tags','origin','master'))
+ if ((GitOne -Arguments @('rev-parse','refs/remotes/origin/master')) -cne $ExpectedHead) {
   throw 'REMOTE_MOVED'
  }
  $Phase = 'COMMIT'
- [void](GitLines -Args (@('add','--') + $Allowed))
- $Staged = @(GitLines -Args @('diff','--cached','--name-only'))
+ [void](GitLines -Arguments (@('add','--') + $Allowed))
+ $Staged = @(GitLines -Arguments @('diff','--cached','--name-only'))
  if ($Staged.Count -ne 3 -or @($Staged | Where-Object { $_ -cnotin $Allowed }).Count -ne 0) {
   throw 'STAGED_FILESET_UNEXPECTED'
  }
- [void](GitLines -Args @('-c','user.name=Grimrock UE Automation',
+ [void](GitLines -Arguments @('-c','user.name=Grimrock UE Automation',
   '-c','user.email=grimrock-ue-automation@users.noreply.github.com',
   'commit','-m','EFFECTS-ORG01.2B: rename potion material and its Niagara dependency'))
  $Committed = $true
- $NewHead = GitOne -Args @('rev-parse','HEAD')
+ $NewHead = GitOne -Arguments @('rev-parse','HEAD')
  $Phase = 'PUSH'
  $Published = $false
  for ($Attempt=1;$Attempt -le 3;++$Attempt) {
