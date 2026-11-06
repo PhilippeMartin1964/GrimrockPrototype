@@ -99,14 +99,17 @@ try {
  $Project = Join-Path $WorktreePath 'GrimrockPrototype.uproject'
  if (-not (Test-Path -LiteralPath $Editor -PathType Leaf) -or
      -not (Test-Path -LiteralPath $Project -PathType Leaf)) { throw 'UE_MISSING' }
- $Arguments = '"' + $Project + '" -run=GridEffectsOrgPotionRename -Apply -Unattended -NoSplash -NoP4 -NullRHI -log'
+ $Arguments = '"' + $Project + '" -run=GridEffectsOrgPotionRename -Apply -Unattended -NoSplash -NoP4 -NullRHI -stdout -FullStdOutLogOutput -log'
  $Phase = 'COMMANDLET'
  $Process = Start-Process -FilePath $Editor -ArgumentList $Arguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput (Join-Path $Private 'Rename.stdout.log') -RedirectStandardError (Join-Path $Private 'Rename.stderr.log') -PassThru
  if (-not $Process.WaitForExit(180000)) {
   try { $Process.Kill() } catch {}
   throw 'COMMANDLET_TIMEOUT'
  }
- if ($Process.ExitCode -ne 0) {
+ $Process.Refresh()
+ $Exit = $Process.ExitCode
+ if ($null -eq $Exit) { throw 'COMMANDLET_EXITCODE_UNAVAILABLE' }
+ if ([int]$Exit -ne 0) {
   # Only fixed, project-owned diagnostic markers are permitted in a GitHub status.
   # No raw UE log line, Windows path or vendor data is ever emitted.
   $Markers = @(
@@ -119,10 +122,15 @@ try {
    @('Saving the renamed material', 'SAVE'),
    @('Postflight failed', 'REDIRECTOR'),
    @('Failed to find commandlet', 'COMMANDLET_ENTRYPOINT'),
+   @('Looked for a commandlet named', 'COMMANDLET_ENTRYPOINT'),
+   @('Could not find a commandlet', 'COMMANDLET_ENTRYPOINT'),
+   @('Missing cached shader map', 'SHADER_SETUP'),
+   @('Failed to load package', 'ASSET_LOAD'),
    @('EXCEPTION_ACCESS_VIOLATION', 'CRASH'),
    @('Fatal error', 'FATAL')
   )
-  $LogsToScan = @((Join-Path $Private 'Rename.stdout.log'), (Join-Path $Private 'Rename.stderr.log'))
+  $LogsToScan = @((Join-Path $Private 'Rename.stdout.log'), (Join-Path $Private 'Rename.stderr.log'),
+    (Join-Path $WorktreePath 'Saved\Logs\GrimrockPrototype.log'))
   foreach ($Log in $LogsToScan) {
    if (-not (Test-Path -LiteralPath $Log -PathType Leaf)) { continue }
    $Lines = @(Get-Content -LiteralPath $Log -Tail 1500 -ErrorAction SilentlyContinue)
@@ -132,7 +140,7 @@ try {
     }
    }
   }
-  throw ('COMMANDLET_FAILED_' + $Process.ExitCode)
+  throw ('COMMANDLET_FAILED_' + ([string][int]$Exit))
  }
  $Phase = 'VERIFY'
  $Changes = @(GitLines -Arguments @('status','--porcelain','--untracked-files=all'))
@@ -181,7 +189,7 @@ catch {
   'INVALID_SHA','WORKTREE_ABSENT','HEAD_MISMATCH','ORIGIN_MISMATCH',
   'WORKTREE_DIRTY','LFS_SOURCE_MISSING','TARGET_EXISTS',
   'GIT_LFS_ATTRIBUTE_MISSING','REMOTE_MOVED','BACKUP_HASH_MISMATCH',
-  'UE_MISSING','COMMANDLET_TIMEOUT','FILESET_UNEXPECTED',
+  'UE_MISSING','COMMANDLET_TIMEOUT','COMMANDLET_EXITCODE_UNAVAILABLE','FILESET_UNEXPECTED',
   'OLD_REDIRECTOR_OR_NEW_MISSING','NEW_ASSET_LFS_POINTER',
   'STAGED_FILESET_UNEXPECTED','GIT_PUSH_FAILED'
  )
