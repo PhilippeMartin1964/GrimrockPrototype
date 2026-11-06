@@ -96,7 +96,9 @@ void AGridGenericObjectActor::SetRuntimeActivePresentation(bool bActive)
 {
 	if (ActiveNiagaraComponent)
 	{
-		if (bActive)
+		// A per-instance empty Niagara override deliberately disables this copy.
+		// Never activate an existing component after its asset was cleared.
+		if (bActive && IsValid(ActiveNiagaraComponent->GetAsset()))
 		{
 			ActiveNiagaraComponent->Activate(true);
 		}
