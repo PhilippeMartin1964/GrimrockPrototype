@@ -1882,9 +1882,18 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 		Fixture.Runtime->GetActiveOilDecal(0) != nullptr);
 	TestEqual(TEXT("Une flasque a été consommée"),
 		Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 1);
-	TestEqual(TEXT("Une seule animation splash pour l'action confirmée"),
+	// FLASK01: in-flight bottle defers the transient splash until physical impact.
+	if (Fixture.Runtime->GetActiveOilFlaskProjectileCount() > 0)
+	{
+		TestEqual(TEXT("Pas de splash avant impact"), Fixture.Runtime->GetOilSplashPresentationCount(), 0);
+		for (int32 Step = 0; Step < 180 && Fixture.Runtime->GetActiveOilFlaskProjectileCount() > 0; ++Step)
+		{
+			Fixture.Runtime->UpdateOilFlaskFlight();
+		}
+	}
+	TestEqual(TEXT("Une seule animation splash après impact"),
 		Fixture.Runtime->GetOilSplashPresentationCount(), 1);
-	TestEqual(TEXT("Splash temporaire actif immédiatement après l'impact"),
+	TestEqual(TEXT("Splash temporaire actif après impact"),
 		Fixture.Runtime->GetActiveOilSplashCount(), 1);
 
 	UGridEventFeedSubsystem* Feed = Fixture.TestWorld.World
@@ -1984,7 +1993,15 @@ bool FARMEMENT011717OilExplorationRealPipeline::RunTest(const FString&)
 	const FGridCombatSurfaceState* Applied = Fixture.Runtime->FindCombatSurfaceAtCell(Target.X, Target.Y);
 	TestTrue(TEXT("RPG03.6 authoritative oil surface present"),
 		Applied && Applied->SurfaceType == EGridCombatSurfaceType::Oil && Applied->RemainingRounds == 4);
-	TestEqual(TEXT("One visible splash"), Fixture.Runtime->GetOilSplashPresentationCount(), 1);
+	if (Fixture.Runtime->GetActiveOilFlaskProjectileCount() > 0)
+	{
+		TestEqual(TEXT("No splash in flight"), Fixture.Runtime->GetOilSplashPresentationCount(), 0);
+		for (int32 Step = 0; Step < 180 && Fixture.Runtime->GetActiveOilFlaskProjectileCount() > 0; ++Step)
+		{
+			Fixture.Runtime->UpdateOilFlaskFlight();
+		}
+	}
+	TestEqual(TEXT("One visible splash after impact"), Fixture.Runtime->GetOilSplashPresentationCount(), 1);
 	TestTrue(TEXT("Oil decals on ground"), Fixture.Runtime->GetActiveOilDecalCount() > 0);
 
 	UGridEventFeedSubsystem* Feed = Fixture.TestWorld.World->GetSubsystem<UGridEventFeedSubsystem>();

@@ -216,8 +216,93 @@ float AGridLevelRuntimeActor::GetOilSplashSpreadScale(float NormalizedProgress)
 	return FMath::Lerp(0.18f, 1.f, EaseOut);
 }
 
+void AGridLevelRuntimeActor::ClearOilFlaskFlight()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(OilFlaskFlightTimer);
+	}
+	if (IsValid(ActiveOilFlaskProjectile))
+	{
+		ActiveOilFlaskProjectile->DestroyComponent();
+	}
+	ActiveOilFlaskProjectile = nullptr;
+	OilFlaskFlightElapsed = 0.f;
+	OilFlaskFlightDuration = 0.f;
+}
+
+void AGridLevelRuntimeActor::PlayOilFlaskThrowAtCell(
+	FIntPoint LaunchCell, FIntPoint ImpactCell, UStaticMesh* FlaskMesh)
+{
+	ClearCombatOilSplash();
+	UWorld* World = GetWorld();
+	if (!World || !World->IsGameWorld() || !LevelAsset ||
+		!IsValid(FlaskMesh) || LaunchCell == ImpactCell)
+	{
+		// Without a usable visual mesh, retain the existing gameplay and splash.
+		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
+		return;
+	}
+	const float CellSize = LevelAsset->CellSize;
+	const FVector Start = CellToWorld(LaunchCell.X, LaunchCell.Y, 0.f) +
+		FVector(CellSize * .5f, CellSize * .5f, 110.f);
+	const FVector End = CellToWorld(ImpactCell.X, ImpactCell.Y, 0.f) +
+		FVector(CellSize * .5f, CellSize * .5f, 14.f);
+	FGridFlaskBallistics Flight;
+	if (!FGridFlaskBallistics::Solve(Start, End,
+		FMath::Clamp(OilFlaskLaunchSpeedCmPerSec, 100.f, 5000.f),
+		FMath::Abs(World->GetGravityZ()), Flight))
+	{
+		UE_LOG(LogGridSurfaceRuntime, Warning, TEXT("FLASK01: oil visual trajectory unavailable."));
+		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
+		return;
+	}
+	UStaticMeshComponent* Bottle = NewObject<UStaticMeshComponent>(this);
+	Bottle->SetupAttachment(SceneRoot);
+	Bottle->SetMobility(EComponentMobility::Movable);
+	Bottle->SetStaticMesh(FlaskMesh);
+	Bottle->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Bottle->SetGenerateOverlapEvents(false);
+	Bottle->SetCastShadow(true);
+	Bottle->SetRelativeLocation(Start);
+	const float Extent = FlaskMesh->GetBounds().BoxExtent.GetMax();
+	Bottle->SetRelativeScale3D(FVector(FMath::Clamp(18.f / FMath::Max(1.f, Extent), .005f, 3.f)));
+	Bottle->RegisterComponent();
+	ActiveOilFlaskProjectile = Bottle;
+	OilFlaskFlightStart = Flight.Start;
+	OilFlaskFlightVelocity = Flight.Velocity;
+	OilFlaskFlightGravity = Flight.GravityCmPerSec2;
+	OilFlaskFlightDuration = Flight.DurationSeconds;
+	OilFlaskImpactCell = ImpactCell;
+	OilFlaskFlightElapsed = 0.f;
+	World->GetTimerManager().SetTimer(OilFlaskFlightTimer, this,
+		&AGridLevelRuntimeActor::UpdateOilFlaskFlight, 1.f / 60.f, true);
+}
+
+void AGridLevelRuntimeActor::UpdateOilFlaskFlight()
+{
+	if (!IsValid(ActiveOilFlaskProjectile) || OilFlaskFlightDuration <= 0.f)
+	{
+		ClearOilFlaskFlight();
+		return;
+	}
+	OilFlaskFlightElapsed = FMath::Min(OilFlaskFlightDuration,
+		OilFlaskFlightElapsed + 1.f / 60.f);
+	const float T = OilFlaskFlightElapsed;
+	ActiveOilFlaskProjectile->SetRelativeLocation(OilFlaskFlightStart +
+		OilFlaskFlightVelocity * T - FVector(0.f, 0.f, .5f * OilFlaskFlightGravity * T * T));
+	ActiveOilFlaskProjectile->SetRelativeRotation(FRotator(T * 360.f, T * 440.f, T * 220.f));
+	if (T >= OilFlaskFlightDuration)
+	{
+		const FIntPoint ImpactCell = OilFlaskImpactCell;
+		ClearOilFlaskFlight();
+		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
+	}
+}
+
 void AGridLevelRuntimeActor::ClearCombatOilSplash()
 {
+	ClearOilFlaskFlight();
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(OilSplashTimer);

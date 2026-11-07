@@ -251,6 +251,20 @@ public:
 	float CatalystBallisticGravityCmPerSec2 = 980.f;
 	TArray<FGridCatalystVisualCell> ActiveCatalystVisualCells;
 
+	/** FLASK01: oil bottle in flight, separate from the existing impact splash. */
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> ActiveOilFlaskProjectile;
+	FTimerHandle OilFlaskFlightTimer;
+	float OilFlaskFlightElapsed = 0.f;
+	float OilFlaskFlightDuration = 0.f;
+	FVector OilFlaskFlightStart = FVector::ZeroVector;
+	FVector OilFlaskFlightVelocity = FVector::ZeroVector;
+	float OilFlaskFlightGravity = 980.f;
+	FIntPoint OilFlaskImpactCell = FIntPoint::ZeroValue;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask", meta=(ClampMin="100.0", ClampMax="5000.0"))
+	float OilFlaskLaunchSpeedCmPerSec = 1300.f;
+
 	FTimerHandle OilSplashTimer;
 	float OilSplashElapsedSeconds = 0.f;
 	int32 OilSplashPresentationCount = 0;
@@ -717,6 +731,10 @@ public:
 	void RefreshCombatOilSurfaceVisuals();
 	void ClearCombatOilSurfaceVisuals();
 	/** Présentation facultative après résolution d'une vraie action de flasque. */
+	/** Start a physically simulated visual throw. RPG03.6 has already committed. */
+	void PlayOilFlaskThrowAtCell(FIntPoint LaunchCell, FIntPoint ImpactCell, UStaticMesh* FlaskMesh);
+	void UpdateOilFlaskFlight();
+	void ClearOilFlaskFlight();
 	void PlayCombatOilSplashAtCell(int32 CellX, int32 CellY);
 	void UpdateCombatOilSplash();
 	void ClearCombatOilSplash();
@@ -749,6 +767,7 @@ public:
 	int32 GetActiveCatalystSparkCount() const { return ActiveCatalystSparks.Num(); }
 	EGridSurfaceCatalystVfxKind GetCatalystVisualKind() const { return CatalystVisualKind; }
 
+	int32 GetActiveOilFlaskProjectileCount() const { return IsValid(ActiveOilFlaskProjectile.Get()) ? 1 : 0; }
 	int32 GetOilSplashPresentationCount() const { return OilSplashPresentationCount; }
 	int32 GetActiveOilSplashCount() const { return ActiveOilSplashDecal.Get() ? 1 : 0; }
 	int32 GetActiveOilSplashDropletCount() const { return ActiveOilSplashDroplets.Num(); }

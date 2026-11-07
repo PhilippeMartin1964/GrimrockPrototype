@@ -1922,7 +1922,9 @@ bool UGridTurnManagerComponent::RequestExplorationOilActionAtCell(
 	ensureMsgf(AppliedCells == ValidCells.Num(), TEXT("Exploration oil: prevalidated surfaces must all apply."));
 	if (AppliedCells > 0)
 	{
-		RuntimeActor->PlayCombatOilSplashAtCell(TargetCell.X, TargetCell.Y);
+		RuntimeActor->PlayOilFlaskThrowAtCell(
+			FIntPoint(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY), TargetCell,
+			ItemDefinition->WorldMesh.LoadSynchronous());
 		FGridHudEventEntry OilEvent;
 		OilEvent.Category = EGridHudEventCategory::Combat;
 		OilEvent.Semantic = EGridHudEventSemantic::Interaction;
@@ -2636,7 +2638,9 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	// lors de la restauration d'un niveau, ni une entrée par cellule.
 	if (OilFlaskAppliedCells > 0 && IsValid(RuntimeActor))
 	{
-		RuntimeActor->PlayCombatOilSplashAtCell(Preview.TargetCell.X, Preview.TargetCell.Y);
+		const UGridItemDefinitionAsset* OilDefinition = Inventory->FindItemDefinition(Action.SourceDefinitionId);
+		RuntimeActor->PlayOilFlaskThrowAtCell(PartyCell, Preview.TargetCell,
+			IsValid(OilDefinition) ? OilDefinition->WorldMesh.LoadSynchronous() : nullptr);
 		FGridHudEventEntry OilEvent;
 		OilEvent.Category = EGridHudEventCategory::Combat;
 		OilEvent.Semantic = EGridHudEventSemantic::Interaction;
