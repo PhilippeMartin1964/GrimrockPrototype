@@ -13,8 +13,9 @@ noms `User.*` présents et correspondances avec les champs du profil.
 Un profil absent signale une erreur **visible**, même sans Niagara installé.
 Si aucun dialogue ne s'ouvre, vérifier que l'on est dans la bonne instance
 de l'acteur, hors PIE, et que le C++ actualisé a été compilé dans l'éditeur.
-Le test de réflexion vérifie la présence de `FUNC_CallInEditor`, pas une
-interaction souris automatisée.
+Le test de réflexion vérifie que la fonction est bien exposée via
+`FUNC_BlueprintCallable`. `CallInEditor` est un spécificateur d'éditeur
+et **non** un drapeau de `EFunctionFlags` ; le test ne simule pas un clic.
 
 ## Calibrer 200 × 200 cm
 
