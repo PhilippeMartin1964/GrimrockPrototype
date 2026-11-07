@@ -5,6 +5,7 @@
 #include "Core/GridSurfaceVfxProfileAsset.h"
 #include "Core/GridCatalystVfxProfileAsset.h"
 #include "Core/GridFireNiagaraGeometry.h"
+#include "Core/GridFireNiagaraBindings.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -216,6 +217,9 @@ bool FGridFireNiagaraGeometryControlsTest::RunTest(const FString&)
 	const FVector Narrow = FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f);
 	TestTrue(TEXT("Half coverage changes XY only"), FMath::IsNearlyEqual(Narrow.X, .5f));
 	TestTrue(TEXT("Coverage preserves Z"), FMath::IsNearlyEqual(Narrow.Z, Tall.Z));
+	TestTrue(TEXT("Typed SpawnBox controls XY and avoids a second transform"),
+		FMath::IsNearlyEqual(
+			FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f, true).X, 1.f));
 	Settings.GroundFireScale = 1.5f;
 	const FVector Bigger = FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f);
 	TestTrue(TEXT("General size multiplies every axis"),
@@ -223,6 +227,17 @@ bool FGridFireNiagaraGeometryControlsTest::RunTest(const FString&)
 	Settings.NiagaraReferenceHeightCm = 0.f;
 	TestTrue(TEXT("Missing calibration cannot divide by zero"),
 		FMath::IsFinite(FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f).Z));
+	TestEqual(TEXT("User namespace is removed consistently"),
+		FGridFireNiagaraBindings::ShortName(FName(TEXT("User.SpawnBox"))),
+		FString(TEXT("SpawnBox")));
+	TestEqual(TEXT("Qualified user name generated"),
+		FGridFireNiagaraBindings::QualifiedName(FName(TEXT("SpawnBox"))),
+		FName(TEXT("User.SpawnBox")));
+	TestTrue(TEXT("Native flame rate preserved at density one"),
+		FMath::IsNearlyEqual(FGridFireNiagaraBindings::ScaledRate(84.f, 1.f), 84.f));
+	TestTrue(TEXT("Flame rate scales without clobbering the native base"),
+		FMath::IsNearlyEqual(FGridFireNiagaraBindings::ScaledRate(84.f, .5f), 42.f));
+	TestEqual(TEXT("Smoke disabled means no rate"), FGridFireNiagaraBindings::ScaledRate(84.f, 0.f), 0.f);
 	return true;
 }
 

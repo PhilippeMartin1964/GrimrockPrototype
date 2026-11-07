@@ -79,6 +79,13 @@ struct GRIMROCKPROTOTYPE_API FGridFireVfxSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Audio", meta=(ClampMin="0.0", ClampMax="2.0"))
 	float FireCrackleVolume = .65f;
 
+	/** Recognized FireFX User parameters (SpawnBox, FlameRate, SmokeRate, Tint)
+	 * can be bound automatically by exact name + Niagara type. No package path is hardcoded.
+	 * The native spawn/rate defaults are preserved and reused as references.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters")
+	bool bAutoBindKnownFireControls = true;
+
 	/** Optional names of actual Niagara User Parameters (including User. prefix). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters")
 	FName SpawnAreaParameter = NAME_None;

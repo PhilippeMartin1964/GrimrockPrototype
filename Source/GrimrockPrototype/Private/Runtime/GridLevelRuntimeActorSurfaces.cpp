@@ -4,6 +4,7 @@
 #include "Core/GridFlaskBallistics.h"
 #include "Core/GridFireAudioClusters.h"
 #include "Core/GridFireNiagaraGeometry.h"
+#include "Core/GridFireNiagaraBindings.h"
 #include "Core/GridCatalystVfxProfileAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
@@ -1105,7 +1106,10 @@ void AGridLevelRuntimeActor::LogGroundFireNiagaraBindings()
 		const FGridFireVfxSettings Vfx = Profile->GetSettings();
 		UNiagaraSystem* System = Vfx.GroundFireSystem.LoadSynchronous();
 		const float CellSize = LevelAsset ? FMath::Max(1.f, LevelAsset->CellSize) : 200.f;
-		const FVector Scale = FGridFireNiagaraGeometry::ComponentScale(Vfx, CellSize);
+		const FGridFireNiagaraBindings FireBindings =
+			FGridFireNiagaraBindings::Resolve(System, Vfx);
+		const FVector Scale =
+			FGridFireNiagaraGeometry::ComponentScale(Vfx, CellSize, FireBindings.bSpawnBox);
 		Report += FString::Printf(
 			TEXT("Niagara : %s\nCase : %.0f cm\nCouverture demandee : %.0f x %.0f cm\n")
 			TEXT("Scale XYZ : (%.3f, %.3f, %.3f)\n")
@@ -1124,12 +1128,23 @@ void AGridLevelRuntimeActor::LogGroundFireNiagaraBindings()
 			TArray<FString> Names;
 			for (const FNiagaraVariable& Parameter : Parameters)
 			{
-				Names.Add(Parameter.GetName().ToString());
+				FString Line = FString::Printf(TEXT("%s : %s"),
+					*Parameter.GetName().ToString(), *Parameter.GetType().GetName());
+				if (Parameter.GetType() == FNiagaraTypeDefinition::GetFloatDef())
+				{
+					if (const uint8* Bytes = System->GetExposedParameters().GetParameterData(Parameter))
+					{
+						float NativeValue = 0.f;
+						FMemory::Memcpy(&NativeValue, Bytes, sizeof(float));
+						Line += FString::Printf(TEXT(" (valeur native: %.3f)"), NativeValue);
+					}
+				}
+				Names.Add(Line);
 			}
 			Names.Sort();
 			Report += FString::Printf(TEXT("User Parameters exposes (%d) :\n"), Names.Num());
 			Report += Names.IsEmpty() ? TEXT("  (aucun)\n") : FString(TEXT("  ")) + FString::Join(Names, TEXT("\n  ")) + TEXT("\n");
-			const auto CheckBinding = [&Report, &Names](const TCHAR* Label, FName Binding)
+			const auto CheckBinding = [&Report, &Parameters](const TCHAR* Label, FName Binding)
 			{
 				if (Binding.IsNone())
 				{
@@ -1139,7 +1154,11 @@ void AGridLevelRuntimeActor::LogGroundFireNiagaraBindings()
 				{
 					Report += FString::Printf(TEXT("%s : %s [%s]\n"),
 						Label, *Binding.ToString(),
-						Names.Contains(Binding.ToString()) ? TEXT("present") : TEXT("ABSENT"));
+						Parameters.ContainsByPredicate([Binding](const FNiagaraVariable& Var)
+						{
+							return FGridFireNiagaraBindings::ShortName(Var.GetName()).Equals(
+								FGridFireNiagaraBindings::ShortName(Binding), ESearchCase::IgnoreCase);
+						}) ? TEXT("present") : TEXT("ABSENT"));
 				}
 			};
 			CheckBinding(TEXT("SpawnArea"), Vfx.SpawnAreaParameter);
@@ -1147,6 +1166,13 @@ void AGridLevelRuntimeActor::LogGroundFireNiagaraBindings()
 			CheckBinding(TEXT("FlameDensity"), Vfx.FlameDensityParameter);
 			CheckBinding(TEXT("SmokeDensity"), Vfx.SmokeDensityParameter);
 			CheckBinding(TEXT("FireTint"), Vfx.FireTintParameter);
+			Report += FString::Printf(
+				TEXT("AUTO ADAPTER : SpawnBox=%s, FlameRate=%s (natif %.2f), ")
+				TEXT("SmokeRate=%s (natif %.2f), Tint=%s\n"),
+				FireBindings.bSpawnBox ? TEXT("compatible") : TEXT("non"),
+				FireBindings.bFlameRate ? TEXT("compatible") : TEXT("non"), FireBindings.NativeFlameRate,
+				FireBindings.bSmokeRate ? TEXT("compatible") : TEXT("non"), FireBindings.NativeSmokeRate,
+				(FireBindings.bTintColor || FireBindings.bTintVec3 || FireBindings.bTintVec4) ? TEXT("compatible") : TEXT("non"));
 		}
 		Report += TEXT("NOTE : des emitters en World Space peuvent ignorer l'echelle du composant.\n");
 	}
@@ -1279,8 +1305,11 @@ void AGridLevelRuntimeActor::UpdateFireSurfacePresentationSettings()
 		return;
 	}
 	const FGridFireVfxSettings Vfx = ResolveFireVfxSettings();
-	const FVector Scale = FGridFireNiagaraGeometry::ComponentScale(Vfx, LevelAsset->CellSize);
 	UNiagaraSystem* SelectedSystem = Vfx.GroundFireSystem.LoadSynchronous();
+	const FGridFireNiagaraBindings FireBindings =
+		FGridFireNiagaraBindings::Resolve(SelectedSystem, Vfx);
+	const FVector Scale =
+		FGridFireNiagaraGeometry::ComponentScale(Vfx, LevelAsset->CellSize, FireBindings.bSpawnBox);
 	if (!IsValid(SelectedSystem) || !IsValid(ActiveFireNiagaraComponents[0]) ||
 		ActiveFireNiagaraComponents[0]->GetAsset() != SelectedSystem ||
 		ActiveFireNiagaraComponents.Num() > Vfx.MaxFireCells)
@@ -1296,8 +1325,9 @@ void AGridLevelRuntimeActor::UpdateFireSurfacePresentationSettings()
 		{
 			FlameFx->SetRelativeScale3D(Scale);
 		}
-		// Optional Niagara User.* controls are still supported for compatible packs.
-		if (!Vfx.SpawnAreaParameter.IsNone())
+		FireBindings.Apply(FlameFx, Vfx, LevelAsset->CellSize, Scale);
+		// Explicit overrides still supported for other vendor profiles.
+		if (!FireBindings.bSpawnBox && !Vfx.SpawnAreaParameter.IsNone())
 		{
 			FlameFx->SetVariableVec3(Vfx.SpawnAreaParameter,
 				FVector(LevelAsset->CellSize * Vfx.GroundFireCoverage / Scale.X,
@@ -1306,12 +1336,13 @@ void AGridLevelRuntimeActor::UpdateFireSurfacePresentationSettings()
 		}
 		if (!Vfx.FlameHeightParameter.IsNone())
 			FlameFx->SetVariableFloat(Vfx.FlameHeightParameter, Vfx.FlameHeightCm / Scale.Z);
-		if (!Vfx.FlameDensityParameter.IsNone())
+		if (!FireBindings.bFlameRate && !Vfx.FlameDensityParameter.IsNone())
 			FlameFx->SetVariableFloat(Vfx.FlameDensityParameter, Vfx.FlameDensity);
-		if (!Vfx.SmokeDensityParameter.IsNone())
+		if (!FireBindings.bSmokeRate && !Vfx.SmokeDensityParameter.IsNone())
 			FlameFx->SetVariableFloat(Vfx.SmokeDensityParameter,
 				Vfx.bEnableSmoke ? Vfx.SmokeDensity : 0.f);
-		if (!Vfx.FireTintParameter.IsNone())
+		if (!(FireBindings.bTintColor || FireBindings.bTintVec3 || FireBindings.bTintVec4)
+			&& !Vfx.FireTintParameter.IsNone())
 			FlameFx->SetVariableLinearColor(Vfx.FireTintParameter, Vfx.FireTint);
 	}
 	for (int32 Index = 0; Index < ActiveFireSurfaceLights.Num(); ++Index)
@@ -1362,7 +1393,10 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 	if (!IsValid(FlameSystem)) return;
 
 	const float CellSize = FMath::Max(1.f, LevelAsset->CellSize);
-	const FVector RelativeFireScale = FGridFireNiagaraGeometry::ComponentScale(Vfx, CellSize);
+	const FGridFireNiagaraBindings FireBindings =
+		FGridFireNiagaraBindings::Resolve(FlameSystem, Vfx);
+	const FVector RelativeFireScale =
+		FGridFireNiagaraGeometry::ComponentScale(Vfx, CellSize, FireBindings.bSpawnBox);
 	const int32 VisibleCount = FMath::Min(Cells.Num(), Vfx.MaxFireCells);
 
 	for (int32 Index = 0; Index < VisibleCount; ++Index)
@@ -1380,9 +1414,10 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 		FlameFx->SetRelativeScale3D(RelativeFireScale);
 		FlameFx->RegisterComponent();
 
-		// Names and types must match actual User Parameters on the selected Niagara.
-		// Empty names preserve the asset's own authored values.
-		if (!Vfx.SpawnAreaParameter.IsNone())
+		// First apply only real, type-matched user variables, then optional manual
+		// bindings for alternative Niagara systems.
+		FireBindings.Apply(FlameFx, Vfx, CellSize, RelativeFireScale);
+		if (!FireBindings.bSpawnBox && !Vfx.SpawnAreaParameter.IsNone())
 		{
 			// Optional vendor control. Compensate for the game-owned component transform
 			// to avoid applying the same coverage/height twice when both are configured.
@@ -1398,16 +1433,17 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 			FlameFx->SetVariableFloat(Vfx.FlameHeightParameter,
 				Vfx.FlameHeightCm / RelativeFireScale.Z);
 		}
-		if (!Vfx.FlameDensityParameter.IsNone())
+		if (!FireBindings.bFlameRate && !Vfx.FlameDensityParameter.IsNone())
 		{
 			FlameFx->SetVariableFloat(Vfx.FlameDensityParameter, Vfx.FlameDensity);
 		}
-		if (!Vfx.SmokeDensityParameter.IsNone())
+		if (!FireBindings.bSmokeRate && !Vfx.SmokeDensityParameter.IsNone())
 		{
 			FlameFx->SetVariableFloat(Vfx.SmokeDensityParameter,
 				Vfx.bEnableSmoke ? Vfx.SmokeDensity : 0.f);
 		}
-		if (!Vfx.FireTintParameter.IsNone())
+		if (!(FireBindings.bTintColor || FireBindings.bTintVec3 || FireBindings.bTintVec4)
+			&& !Vfx.FireTintParameter.IsNone())
 		{
 			FlameFx->SetVariableLinearColor(Vfx.FireTintParameter, Vfx.FireTint);
 		}

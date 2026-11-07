@@ -9,11 +9,14 @@
  */
 struct FGridFireNiagaraGeometry
 {
-	static FVector ComponentScale(const FGridFireVfxSettings& RawSettings, float CellSizeCm)
+	static FVector ComponentScale(const FGridFireVfxSettings& RawSettings, float CellSizeCm, bool bSpawnBoxIsAuthoritative = false)
 	{
 		const FGridFireVfxSettings Vfx = RawSettings.Sanitized();
 		const float CellSize = FMath::Max(1.f, CellSizeCm);
-		const float XY = Vfx.GroundFireScale *
+		// If Niagara exposes a writable SpawnBox, that parameter defines XY in cm.
+		// Avoid applying GroundFireCoverage twice through transform + SpawnBox.
+		const float XY = bSpawnBoxIsAuthoritative ? Vfx.GroundFireScale :
+			Vfx.GroundFireScale *
 			(CellSize * Vfx.GroundFireCoverage / Vfx.NiagaraReferenceWidthCm);
 		const float Z = Vfx.GroundFireScale *
 			(Vfx.FlameHeightCm / Vfx.NiagaraReferenceHeightCm);
