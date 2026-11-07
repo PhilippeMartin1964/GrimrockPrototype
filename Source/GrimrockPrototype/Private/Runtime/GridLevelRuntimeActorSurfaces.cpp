@@ -809,6 +809,31 @@ void AGridLevelRuntimeActor::BeginCatalystImpactVfx()
 		RefreshCombatOilSurfaceVisuals();
 	}
 
+	// FIREFX04: one ignition burst per successful catalyst throw, not per surface cell.
+	// A Fizzle or IceMelt never ignites; C6 gameplay has already been committed.
+	const bool bIgnited = ActiveCatalystVisualCells.ContainsByPredicate(
+		[](const FGridCatalystVisualCell& Cell)
+		{
+			return Cell.Kind == EGridSurfaceCatalystVfxKind::OilIgnition ||
+				Cell.Kind == EGridSurfaceCatalystVfxKind::PoisonBurst;
+		});
+	if (bIgnited)
+	{
+		++FireIgnitionPresentationCount;
+		PlayFlaskAudioAt(FireIgnitionSound, CatalystVisualCenter);
+		if (UNiagaraSystem* Burst = FireIgnitionBurstVfx.LoadSynchronous())
+		{
+			if (UWorld* World = GetWorld())
+			{
+				UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, Burst,
+					GetActorTransform().TransformPosition(CatalystVisualCenter),
+					FRotator::ZeroRotator,
+					FVector(FMath::Clamp(FireIgnitionBurstScale, .01f, 5.f)),
+					true, true);
+			}
+		}
+	}
+
 	const FGridCatalystVfxSettings Vfx = ResolveCatalystVfxSettings();
 	UMaterialInterface* Ring = Vfx.RunePulseMaterial.LoadSynchronous();
 	UMaterialInterface* Glow = Vfx.EmberMaterial.LoadSynchronous();

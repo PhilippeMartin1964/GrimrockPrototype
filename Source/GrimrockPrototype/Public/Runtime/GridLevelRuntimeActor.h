@@ -253,6 +253,21 @@ public:
 	float CatalystBallisticGravityCmPerSec2 = 980.f;
 	TArray<FGridCatalystVisualCell> ActiveCatalystVisualCells;
 
+	/** FIREFX04: optional commercial/local burst and ignition sound.
+	 * Leave empty in the committed Blueprint; assign only on a local runtime instance.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Fire|Ignition")
+	TSoftObjectPtr<UNiagaraSystem> FireIgnitionBurstVfx;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Fire|Ignition", meta=(ClampMin="0.01", ClampMax="5.0"))
+	float FireIgnitionBurstScale = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Fire|Ignition")
+	TSoftObjectPtr<USoundBase> FireIgnitionSound;
+
+	/** Observability for the one-shot ignition presentation, not a gameplay event. */
+	int32 FireIgnitionPresentationCount = 0;
+
 	/** FLASK03: soft references; no committed audio asset dependency. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Audio")
 	TSoftObjectPtr<USoundBase> OilFlaskThrowSound;
@@ -787,6 +802,7 @@ public:
 	int32 GetActiveWaterSurfaceDecalCount() const { return ActiveWaterSurfaceDecals.Num(); }
 	int32 GetCatalystPresentationCount() const { return CatalystPresentationCount; }
 	int32 GetCatalystImpactCount() const { return CatalystImpactCount; }
+	int32 GetFireIgnitionPresentationCount() const { return FireIgnitionPresentationCount; }
 	int32 GetActiveCatalystProjectileCount() const { return IsValid(ActiveCatalystProjectile.Get()) ? 1 : 0; }
 	int32 GetActiveCatalystTrailCount() const { return ActiveCatalystTrailSparks.Num(); }
 	int32 GetActiveCatalystCellPulseCount() const { return ActiveCatalystCellPulses.Num(); }
