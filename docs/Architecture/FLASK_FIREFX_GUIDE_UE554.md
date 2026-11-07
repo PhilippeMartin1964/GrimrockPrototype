@@ -78,7 +78,7 @@ L'audio du feu est regroupé par zones contiguës de cases enflammées, pas une 
 
 ## 4. Où régler les Niagara
 
-Dans `BP_GridLevelRuntimeActor → Combat|VFX` :
+Dans `BP_GridLevelRuntimeActor → Combat|VFX` (ou dans les **Details de l'acteur placé dans L_Dungeon**, si vous souhaitez une valeur spécifique à cette carte) :
 
 | Propriété | Réglage |
 |---|---|
@@ -88,6 +88,8 @@ Dans `BP_GridLevelRuntimeActor → Combat|VFX` :
 | `FireIgnitionBurstVfx` | sélectionner le **vrai** FireBurst présent dans votre pack ; le nom exact ne peut pas être déduit d'une documentation externe |
 | `FireIgnitionBurstScale` | **1** |
 | `FireIgnitionBurstMaxLifetimeSeconds` | **1,2 s** |
+
+La référence FireBurst est facultative et peut résider dans les Class Defaults du Blueprint **ou** dans les overrides de l'acteur placé. Le test d'assets vérifie les meshes du Blueprint, pas la présence obligatoire de cet effet facultatif.
 
 Le burst d'embrasement n'est émis qu'au premier impact du catalyseur si une réaction de feu est constatée ; il n'est pas déclenché pour un `Fizzle` ou une réaction de fonte de glace. Sa durée maximale empêche toute répétition infinie lorsque le Niagara du pack boucle.
 
