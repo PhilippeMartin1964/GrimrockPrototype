@@ -16,6 +16,9 @@
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 #include "NiagaraUserRedirectionParameterStore.h"
+#if WITH_EDITOR
+#include "Misc/MessageDialog.h"
+#endif
 #include "NiagaraFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
@@ -1085,52 +1088,80 @@ void AGridLevelRuntimeActor::UpdateCatalystReactionVfx()
 }
 
 
-void AGridLevelRuntimeActor::LogGroundFireNiagaraBindings() const
+void AGridLevelRuntimeActor::LogGroundFireNiagaraBindings()
 {
-	const FGridFireVfxSettings Vfx = ResolveFireVfxSettings();
-	UNiagaraSystem* System = Vfx.GroundFireSystem.LoadSynchronous();
-	if (!IsValid(System))
+	// CallInEditor must provide visible feedback even when Output Log is filtered,
+	// the instance overrides its Blueprint CDO, or the target Niagara is missing.
+	const UGridSurfaceVfxProfileAsset* Profile = FireVfxProfile.LoadSynchronous();
+	FString Report = FString::Printf(
+		TEXT("FIREFX06 - Diagnostic Niagara\nActeur : %s\nProfil : %s\n"),
+		*GetPathName(), IsValid(Profile) ? *Profile->GetPathName() : TEXT("<aucun>"));
+	if (!IsValid(Profile))
 	{
-		UE_LOG(LogGridSurfaceRuntime, Warning,
-			TEXT("[FIREFX06] No loadable GroundFireSystem in the selected FireVfxProfile."));
-		return;
+		Report += TEXT("ERREUR : FireVfxProfile non renseigne ou introuvable sur cet acteur.\n");
 	}
-	TArray<FNiagaraVariable> Parameters;
-	System->GetExposedParameters().GetUserParameters(Parameters);
-	TArray<FString> Names;
-	for (const FNiagaraVariable& Parameter : Parameters)
+	else
 	{
-		Names.Add(Parameter.GetName().ToString());
-	}
-	Names.Sort();
-	UE_LOG(LogGridSurfaceRuntime, Display,
-		TEXT("[FIREFX06] Niagara=%s | Exposed User Parameters (%d): %s"),
-		*System->GetPathName(), Names.Num(),
-		Names.IsEmpty() ? TEXT("<none>") : *FString::Join(Names, TEXT(", ")));
-	const auto Report = [&Names](const TCHAR* Label, FName Binding)
-	{
-		if (Binding.IsNone())
+		const FGridFireVfxSettings Vfx = Profile->GetSettings();
+		UNiagaraSystem* System = Vfx.GroundFireSystem.LoadSynchronous();
+		const float CellSize = LevelAsset ? FMath::Max(1.f, LevelAsset->CellSize) : 200.f;
+		const FVector Scale = FGridFireNiagaraGeometry::ComponentScale(Vfx, CellSize);
+		Report += FString::Printf(
+			TEXT("Niagara : %s\nCase : %.0f cm\nCouverture demandee : %.0f x %.0f cm\n")
+			TEXT("Scale XYZ : (%.3f, %.3f, %.3f)\n")
+			TEXT("Calibration : largeur=%.0f cm, hauteur=%.0f cm\n"),
+			IsValid(System) ? *System->GetPathName() : TEXT("<introuvable>"),
+			CellSize, CellSize * Vfx.GroundFireCoverage, CellSize * Vfx.GroundFireCoverage,
+			Scale.X, Scale.Y, Scale.Z, Vfx.NiagaraReferenceWidthCm, Vfx.NiagaraReferenceHeightCm);
+		if (!IsValid(System))
 		{
-			UE_LOG(LogGridSurfaceRuntime, Display,
-				TEXT("[FIREFX06] %s = None; no vendor parameter binding."), Label);
-			return;
+			Report += TEXT("ERREUR : GroundFireSystem est vide ou son package FAB est absent.\n");
 		}
-		UE_LOG(LogGridSurfaceRuntime, Warning,
-			TEXT("[FIREFX06] %s = %s | Present in Niagara exposed parameters: %s"),
-			Label, *Binding.ToString(),
-			Names.Contains(Binding.ToString()) ? TEXT("YES") : TEXT("NO"));
-	};
-	Report(TEXT("SpawnAreaParameter"), Vfx.SpawnAreaParameter);
-	Report(TEXT("FlameHeightParameter"), Vfx.FlameHeightParameter);
-	Report(TEXT("FlameDensityParameter"), Vfx.FlameDensityParameter);
-	Report(TEXT("SmokeDensityParameter"), Vfx.SmokeDensityParameter);
-	Report(TEXT("FireTintParameter"), Vfx.FireTintParameter);
-	UE_LOG(LogGridSurfaceRuntime, Display,
-		TEXT("[FIREFX06] FlameHeightCm=%.1f | Coverage=%.2f | NiagaraReferenceHeightCm=%.1f | NiagaraReferenceWidthCm=%.1f."),
-		Vfx.FlameHeightCm, Vfx.GroundFireCoverage,
-		Vfx.NiagaraReferenceHeightCm, Vfx.NiagaraReferenceWidthCm);
-	UE_LOG(LogGridSurfaceRuntime, Warning,
-		TEXT("[FIREFX06] Component transforms may NOT scale simulated particles in world-space emitters. Inspect each emitter's Local Space and renderer bindings in the Niagara editor."));
+		else
+		{
+			TArray<FNiagaraVariable> Parameters;
+			System->GetExposedParameters().GetUserParameters(Parameters);
+			TArray<FString> Names;
+			for (const FNiagaraVariable& Parameter : Parameters)
+			{
+				Names.Add(Parameter.GetName().ToString());
+			}
+			Names.Sort();
+			Report += FString::Printf(TEXT("User Parameters exposes (%d) :\n"), Names.Num());
+			Report += Names.IsEmpty() ? TEXT("  (aucun)\n") : FString(TEXT("  ")) + FString::Join(Names, TEXT("\n  ")) + TEXT("\n");
+			const auto CheckBinding = [&Report, &Names](const TCHAR* Label, FName Binding)
+			{
+				if (Binding.IsNone())
+				{
+					Report += FString::Printf(TEXT("%s : None (non connecte)\n"), Label);
+				}
+				else
+				{
+					Report += FString::Printf(TEXT("%s : %s [%s]\n"),
+						Label, *Binding.ToString(),
+						Names.Contains(Binding.ToString()) ? TEXT("present") : TEXT("ABSENT"));
+				}
+			};
+			CheckBinding(TEXT("SpawnArea"), Vfx.SpawnAreaParameter);
+			CheckBinding(TEXT("FlameHeight"), Vfx.FlameHeightParameter);
+			CheckBinding(TEXT("FlameDensity"), Vfx.FlameDensityParameter);
+			CheckBinding(TEXT("SmokeDensity"), Vfx.SmokeDensityParameter);
+			CheckBinding(TEXT("FireTint"), Vfx.FireTintParameter);
+		}
+		Report += TEXT("NOTE : des emitters en World Space peuvent ignorer l'echelle du composant.\n");
+	}
+	UE_LOG(LogGridSurfaceRuntime, Warning, TEXT("[FIREFX06] %s"), *Report);
+	// The standard LogTemp category makes the message visible even when the
+	// custom LogGridSurfaceRuntime category has been hidden in Output Log.
+	UE_LOG(LogTemp, Warning, TEXT("[FIREFX06] Diagnostic execute sur %s."), *GetName());
+#if WITH_EDITOR
+	if (!IsRunningCommandlet())
+	{
+		// An explicitly clicked editor diagnostic is allowed to show a dialog;
+		// a silent Output Log never leaves the user wondering whether it ran.
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Report));
+	}
+#endif
 }
 
 void AGridLevelRuntimeActor::ClearFireCrackleAudio()
