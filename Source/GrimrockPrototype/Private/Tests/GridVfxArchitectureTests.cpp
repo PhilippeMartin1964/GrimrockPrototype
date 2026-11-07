@@ -99,6 +99,9 @@ bool FGridVfxArchitectureProfileSanitization::RunTest(const FString&)
 	TestTrue(TEXT("No FireFX dependency by default"), Fire->Settings.GroundFireSystem.IsNull());
 	TestEqual(TEXT("Fire cell default budget"), Fire->GetSettings().MaxFireCells, 48);
 	TestEqual(TEXT("Fire light default budget"), Fire->GetSettings().MaxFireLights, 8);
+	TestEqual(TEXT("One fire audio voice per region, budget four by default"),
+		Fire->GetSettings().MaxFireCrackleSources, 4);
+	TestTrue(TEXT("No sound dependency by default"), Fire->GetSettings().FireCrackleLoopSound.IsNull());
 	TestTrue(TEXT("Default coverage 90 percent"),
 		FMath::IsNearlyEqual(Fire->GetSettings().GroundFireCoverage, .9f));
 
@@ -108,6 +111,8 @@ bool FGridVfxArchitectureProfileSanitization::RunTest(const FString&)
 	Fire->Settings.MaxFireLights = -10;
 	Fire->Settings.FireLightIntensity = -1.f;
 	Fire->Settings.SmokeDensity = 50.f;
+	Fire->Settings.MaxFireCrackleSources = 100;
+	Fire->Settings.FireCrackleVolume = -1.f;
 	const FGridFireVfxSettings SafeFire = Fire->GetSettings();
 	TestTrue(TEXT("Positive Niagara scale"), SafeFire.GroundFireScale >= .01f);
 	TestEqual(TEXT("No coverage outside cell"), SafeFire.GroundFireCoverage, 1.f);
@@ -115,6 +120,8 @@ bool FGridVfxArchitectureProfileSanitization::RunTest(const FString&)
 	TestEqual(TEXT("Negative light count disabled"), SafeFire.MaxFireLights, 0);
 	TestEqual(TEXT("Negative light intensity disabled"), SafeFire.FireLightIntensity, 0.f);
 	TestEqual(TEXT("Smoke density constrained"), SafeFire.SmokeDensity, 4.f);
+	TestEqual(TEXT("Crackle audio budget capped"), SafeFire.MaxFireCrackleSources, 8);
+	TestEqual(TEXT("Negative audio volume silenced"), SafeFire.FireCrackleVolume, 0.f);
 	TestEqual(TEXT("Authoring data not silently mutated"), Fire->Settings.MaxFireCells, 500);
 
 	Catalyst->Settings.FlightDurationSeconds = 0.f;

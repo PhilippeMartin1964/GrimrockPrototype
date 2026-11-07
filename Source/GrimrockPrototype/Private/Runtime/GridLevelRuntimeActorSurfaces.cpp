@@ -91,7 +91,7 @@ FGridFireVfxSettings AGridLevelRuntimeActor::ResolveFireVfxSettings() const
 	const UGridSurfaceVfxProfileAsset* Profile = FireVfxProfile.LoadSynchronous();
 #if WITH_EDITOR
 	// Committed Blueprint reference wins; a private local profile is editor-only.
-	if (!IsValid(Profile))
+	if (!IsValid(Profile) && GetWorld() && GetWorld()->WorldType == EWorldType::PIE)
 	{
 		Profile = LoadPrivateVfxProfile<UGridSurfaceVfxProfileAsset>(TEXT("FireVfxProfile"));
 	}
@@ -103,7 +103,7 @@ FGridCatalystVfxSettings AGridLevelRuntimeActor::ResolveCatalystVfxSettings() co
 {
 	const UGridCatalystVfxProfileAsset* Profile = CatalystVfxProfile.LoadSynchronous();
 #if WITH_EDITOR
-	if (!IsValid(Profile))
+	if (!IsValid(Profile) && GetWorld() && GetWorld()->WorldType == EWorldType::PIE)
 	{
 		Profile = LoadPrivateVfxProfile<UGridCatalystVfxProfileAsset>(TEXT("CatalystVfxProfile"));
 	}
