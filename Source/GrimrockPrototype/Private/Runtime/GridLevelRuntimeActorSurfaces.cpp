@@ -1,6 +1,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 
 #include "Core/GridSurfaceVfxProfileAsset.h"
+#include "Core/GridFlaskBallistics.h"
 #include "Core/GridCatalystVfxProfileAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
@@ -503,6 +504,8 @@ void AGridLevelRuntimeActor::ClearCatalystReactionVfx()
 	ActiveCatalystLight = nullptr;
 	CatalystVisualElapsedSeconds = 0.f;
 	CatalystImpactElapsedStart = 0.f;
+	CatalystBallisticFlightSeconds = 0.f;
+	CatalystFlightInitialVelocity = FVector::ZeroVector;
 	bCatalystImpactStarted = false;
 	if (bCatalystVisualsDeferred)
 	{
@@ -562,6 +565,13 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 	CatalystFlightStart = CellToWorld(LaunchCell.X, LaunchCell.Y, 0.f) +
 		FVector(CatalystVisualCellSize * .5f, CatalystVisualCellSize * .5f, 110.f);
 	CatalystFlightEnd = CatalystVisualCenter + FVector(0.f, 0.f, 14.f);
+	FGridFlaskBallistics Flight;
+	const bool bBallisticReachable = FGridFlaskBallistics::Solve(CatalystFlightStart,
+		CatalystFlightEnd, ResolveCatalystVfxSettings().LaunchSpeedCmPerSec,
+		FMath::Abs(World->GetGravityZ()), Flight);
+	CatalystFlightInitialVelocity = bBallisticReachable ? Flight.Velocity : FVector::ZeroVector;
+	CatalystBallisticGravityCmPerSec2 = bBallisticReachable ? Flight.GravityCmPerSec2 : 980.f;
+	CatalystBallisticFlightSeconds = bBallisticReachable ? Flight.DurationSeconds : 0.f;
 	CatalystVisualKind = EGridSurfaceCatalystVfxKind::Fizzle;
 	ActiveCatalystVisualCells.Reserve(FMath::Min(Outcomes.Num(), 9));
 	TSet<FIntPoint> Seen;
@@ -601,7 +611,7 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 	// A real artist-authored mesh is the projectile; its embedded material
 	// remains MI_Catalyst. No temporary procedural duplicate is generated.
 	UStaticMesh* BottleMesh = ResolveCatalystVfxSettings().ProjectileMesh.LoadSynchronous();
-	if (LaunchCell != ImpactCell && IsValid(BottleMesh))
+	if (LaunchCell != ImpactCell && bBallisticReachable && IsValid(BottleMesh))
 	{
 		UStaticMeshComponent* Bottle = NewObject<UStaticMeshComponent>(this);
 		Bottle->SetupAttachment(SceneRoot);
@@ -768,14 +778,15 @@ void AGridLevelRuntimeActor::UpdateCatalystReactionVfx()
 {
 	CatalystVisualElapsedSeconds += CatalystVisualTickInterval;
 	const FGridCatalystVfxSettings Vfx = ResolveCatalystVfxSettings();
-	const float Flight = Vfx.FlightDurationSeconds;
+	const float Flight = CatalystBallisticFlightSeconds;
 	if (!bCatalystImpactStarted)
 	{
-		if (IsValid(ActiveCatalystProjectile) && CatalystVisualElapsedSeconds < Flight)
+		if (IsValid(ActiveCatalystProjectile) && Flight > 0.f && CatalystVisualElapsedSeconds < Flight)
 		{
 			const float Alpha = FMath::Clamp(CatalystVisualElapsedSeconds / Flight, 0.f, 1.f);
-			FVector Position = FMath::Lerp(CatalystFlightStart, CatalystFlightEnd, Alpha);
-			Position.Z += FMath::Sin(Alpha * PI) * Vfx.FlightArcHeightCm;
+			const float Time = CatalystVisualElapsedSeconds;
+			const FVector Position = CatalystFlightStart + CatalystFlightInitialVelocity * Time +
+				FVector(0.f, 0.f, .5f * -CatalystBallisticGravityCmPerSec2 * Time * Time);
 			ActiveCatalystProjectile->SetRelativeLocation(Position);
 			ActiveCatalystProjectile->SetRelativeRotation(
 				FRotator(Alpha * 380.f, Alpha * 470.f, Alpha * 250.f));
@@ -784,8 +795,9 @@ void AGridLevelRuntimeActor::UpdateCatalystReactionVfx()
 				UStaticMeshComponent* Trail = ActiveCatalystTrailSparks[Index];
 				if (!IsValid(Trail)) continue;
 				const float TrailAlpha = FMath::Max(0.f, Alpha - .045f * (Index + 1));
-				FVector TrailPos = FMath::Lerp(CatalystFlightStart, CatalystFlightEnd, TrailAlpha);
-				TrailPos.Z += FMath::Sin(TrailAlpha * PI) * Vfx.FlightArcHeightCm;
+				const float TrailTime = TrailAlpha * Flight;
+				const FVector TrailPos = CatalystFlightStart + CatalystFlightInitialVelocity * TrailTime +
+					FVector(0.f, 0.f, .5f * -CatalystBallisticGravityCmPerSec2 * TrailTime * TrailTime);
 				Trail->SetRelativeLocation(TrailPos);
 				const float Scale = .038f * (1.f - static_cast<float>(Index) / 7.f) *
 					FMath::Clamp(Alpha * 5.f, 0.f, 1.f);

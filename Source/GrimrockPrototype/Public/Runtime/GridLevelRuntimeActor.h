@@ -246,6 +246,9 @@ public:
 	bool bCatalystImpactStarted = false;
 	FVector CatalystFlightStart = FVector::ZeroVector;
 	FVector CatalystFlightEnd = FVector::ZeroVector;
+	FVector CatalystFlightInitialVelocity = FVector::ZeroVector;
+	float CatalystBallisticFlightSeconds = 0.f;
+	float CatalystBallisticGravityCmPerSec2 = 980.f;
 	TArray<FGridCatalystVisualCell> ActiveCatalystVisualCells;
 
 	FTimerHandle OilSplashTimer;
