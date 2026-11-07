@@ -112,15 +112,24 @@ struct FGridFireNiagaraBindings
 		if (Settings.FireTintParameter.IsNone() ||
 			ShortName(Settings.FireTintParameter).Equals(TEXT("Tint"), ESearchCase::IgnoreCase))
 		{
-			if (const FNiagaraVariable* Var = Find(TEXT("Tint"),
+			if (const FNiagaraVariable* ColorVar = Find(TEXT("Tint"),
 				FNiagaraTypeDefinition::GetColorDef()))
-				Plan.bTintColor = true, Plan.TintName = QualifiedName(Var->GetName());
-			else if (const FNiagaraVariable* Var = Find(TEXT("Tint"),
+			{
+				Plan.bTintColor = true;
+				Plan.TintName = QualifiedName(ColorVar->GetName());
+			}
+			else if (const FNiagaraVariable* Vector3Var = Find(TEXT("Tint"),
 				FNiagaraTypeDefinition::GetVec3Def()))
-				Plan.bTintVec3 = true, Plan.TintName = QualifiedName(Var->GetName());
-			else if (const FNiagaraVariable* Var = Find(TEXT("Tint"),
+			{
+				Plan.bTintVec3 = true;
+				Plan.TintName = QualifiedName(Vector3Var->GetName());
+			}
+			else if (const FNiagaraVariable* Vector4Var = Find(TEXT("Tint"),
 				FNiagaraTypeDefinition::GetVec4Def()))
-				Plan.bTintVec4 = true, Plan.TintName = QualifiedName(Var->GetName());
+			{
+				Plan.bTintVec4 = true;
+				Plan.TintName = QualifiedName(Vector4Var->GetName());
+			}
 		}
 		return Plan;
 	}
