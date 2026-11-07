@@ -270,6 +270,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Fire|Ignition", meta=(ClampMin="0.01", ClampMax="5.0"))
 	float FireIgnitionBurstScale = 1.f;
 
+	/** Stop even looping third-party bursts after this time (seconds). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Fire|Ignition", meta=(ClampMin="0.1", ClampMax="5.0"))
+	float FireIgnitionBurstMaxLifetimeSeconds = 1.2f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Fire|Ignition")
 	TSoftObjectPtr<USoundBase> FireIgnitionSound;
 
@@ -298,6 +302,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact")
 	float FlaskGlassBreakScale = 1.f;
 
+	/** Prevent an accidental looping glass-break Niagara from persisting. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact", meta=(ClampMin="0.1", ClampMax="5.0"))
+	float FlaskGlassBreakMaxLifetimeSeconds = 1.f;
+
+	void SpawnFiniteImpactNiagara(UNiagaraSystem* System, const FVector& LocalCenter,
+		float Scale, float MaxLifetimeSeconds);
 	void PlayFlaskGlassBreakAt(const FVector& LocalImpactCenter);
 
 	/** FLASK01: oil bottle in flight, separate from the existing impact splash. */

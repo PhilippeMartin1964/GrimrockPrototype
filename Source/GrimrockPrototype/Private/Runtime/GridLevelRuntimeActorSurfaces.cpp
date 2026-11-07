@@ -230,13 +230,37 @@ void AGridLevelRuntimeActor::PlayFlaskAudioAt(
 		GetActorTransform().TransformPosition(LocalPosition));
 }
 
+void AGridLevelRuntimeActor::SpawnFiniteImpactNiagara(
+	UNiagaraSystem* System, const FVector& LocalCenter,
+	float Scale, float MaxLifetimeSeconds)
+{
+	UWorld* World = GetWorld();
+	if (!IsValid(System) || !World || !World->IsGameWorld()) return;
+	UNiagaraComponent* Component = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		World, System, GetActorTransform().TransformPosition(LocalCenter),
+		FRotator::ZeroRotator, FVector(FMath::Clamp(Scale, .01f, 5.f)),
+		false, true);
+	if (!IsValid(Component)) return;
+
+	// Some FireFX "one-shot style" systems repeat according to their LoopTime.
+	// Their lifecycle must be bounded even if an emitter never completes naturally.
+	const TWeakObjectPtr<UNiagaraComponent> WeakFx(Component);
+	FTimerHandle StopTimer;
+	World->GetTimerManager().SetTimer(StopTimer, FTimerDelegate::CreateLambda(
+		[WeakFx]()
+		{
+			if (UNiagaraComponent* Fx = WeakFx.Get())
+			{
+				Fx->DeactivateImmediate();
+				Fx->DestroyComponent();
+			}
+		}), FMath::Clamp(MaxLifetimeSeconds, .1f, 5.f), false);
+}
+
 void AGridLevelRuntimeActor::PlayFlaskGlassBreakAt(const FVector& LocalImpactCenter)
 {
-	UNiagaraSystem* System = FlaskGlassBreakVfx.LoadSynchronous();
-	if (!IsValid(System) || !GetWorld() || !GetWorld()->IsGameWorld()) return;
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), System,
-		GetActorTransform().TransformPosition(LocalImpactCenter), FRotator::ZeroRotator,
-		FVector(FMath::Clamp(FlaskGlassBreakScale, 0.01f, 5.f)), true, true);
+	SpawnFiniteImpactNiagara(FlaskGlassBreakVfx.LoadSynchronous(),
+		LocalImpactCenter, FlaskGlassBreakScale, FlaskGlassBreakMaxLifetimeSeconds);
 }
 
 void AGridLevelRuntimeActor::ClearOilFlaskFlight()
@@ -823,18 +847,8 @@ void AGridLevelRuntimeActor::BeginCatalystImpactVfx()
 	{
 		++FireIgnitionPresentationCount;
 		PlayFlaskAudioAt(FireIgnitionSound, CatalystVisualCenter);
-		UNiagaraSystem* Burst = FireIgnitionBurstVfx.LoadSynchronous();
-		if (IsValid(Burst))
-		{
-			if (UWorld* World = GetWorld())
-			{
-				UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, Burst,
-					GetActorTransform().TransformPosition(CatalystVisualCenter),
-					FRotator::ZeroRotator,
-					FVector(FMath::Clamp(FireIgnitionBurstScale, .01f, 5.f)),
-					true, true);
-			}
-		}
+		SpawnFiniteImpactNiagara(FireIgnitionBurstVfx.LoadSynchronous(),
+			CatalystVisualCenter, FireIgnitionBurstScale, FireIgnitionBurstMaxLifetimeSeconds);
 	}
 
 	const FGridCatalystVfxSettings Vfx = ResolveCatalystVfxSettings();

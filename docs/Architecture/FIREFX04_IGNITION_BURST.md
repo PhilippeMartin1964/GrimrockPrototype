@@ -26,3 +26,16 @@ La présence d'un Niagara `NS_FFX_FireBurst`, sa taille, son orientation, le ren
 5. Aucun burst de feu ne doit être joué lorsque le catalyseur n'enflamme rien.
 
 La validation `-NullRHI` ne prouve pas l'apparence de l'effet Niagara ni la qualité audio.
+
+## FIREFX05.2 — Durées bornées des effets transitoires
+
+Le `README.txt` du pack décrit des bursts susceptibles de se répéter
+à chaque `LoopTime`. Un burst ne doit donc **pas** dépendre uniquement
+de l'auto-destruction des emitters Niagara.
+
+- `FireIgnitionBurstMaxLifetimeSeconds` : valeur initiale 1,2 s.
+- `FlaskGlassBreakMaxLifetimeSeconds` : valeur initiale 1,0 s.
+- `SpawnFiniteImpactNiagara` démarre le Niagara puis le désactive et
+  détruit au plus tard à la durée choisie, même si le système boucle.
+- Ces temps sont uniquement visuels ; aucune action, surface ni dégât C6
+  n'est déclenché par les timers.
