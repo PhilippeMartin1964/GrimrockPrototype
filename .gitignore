@@ -7,8 +7,7 @@
 /Meshes/
 /Textures/
 /Content/Fab/
-# Licensed third-party Niagara assets: intentionally local-only.
-/Content/FireFX/
+# Licensed third-party Niagara pack: exclude only source assets, not game-owned profiles.
 /Content/F_FreeFlameFx_Pack/
 /Content/GrimrockPrototype/Dev
 /Content/Goblin_Bomber

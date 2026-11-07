@@ -6,15 +6,15 @@
 - `AGridLevelRuntimeActor::BeginCatalystImpactVfx` joue **un seul** événement visuel et sonore si au moins une case réagit en `OilIgnition` ou `PoisonBurst`.
 - Les cas `Fizzle` et `IceMelt` n'émettent pas de son d'embrasement.
 - Les références `FireIgnitionBurstVfx` et `FireIgnitionSound` sont facultatives : aucun chemin `/Game/FireFX` n'est codé dans le C++.
-- Le système Niagara voulu est `/Game/FireFX/FX/NS_FFX_FireBurst`, **à vérifier localement** dans le Content Browser. Ne pas enregistrer sa référence dans un Blueprint Git partagé.
-- Le son « wouf » doit être assigné localement à `FireIgnitionSound`, avec une attenuation spatiale authorée dans l'asset audio.
+- Choisir le vrai système FireBurst présent sous `Content/F_FreeFlameFx_Pack/` dans le Content Browser. La référence souple dans `BP_GridLevelRuntimeActor` est **versionnée**, pas le Niagara du pack.
+- Le son « wouf » doit être assigné à `FireIgnitionSound` dans le Blueprint, avec une atténuation spatiale configurée. Les sons créés pour Grimrock sont versionnés.
 - `FireIgnitionBurstScale` commence à 1 et peut être ajusté après PIE avec le pack réel.
 - Le crépitement persistant est une autre responsabilité : il accompagnera les cellules de feu dans FIREFX01 et sera nettoyé avec elles.
 
 ## Vérifications demandées à l'agent Windows
 
 Compiler UE5.5.4 et exécuter la suite `Grimrock` sur le commit.
-Aucun asset FireFX commercial ni son propriétaire n'est requis pour ces contrôles.
+Aucun asset du pack tiers n'est versionné ; les références souples doivent être conservées et rester inspectables sans charger le pack.
 La présence d'un Niagara `NS_FFX_FireBurst`, sa taille, son orientation, le rendu et la synchronisation audible nécessitent ensuite une recette PIE/GPU locale.
 
 ## Séquence attendue

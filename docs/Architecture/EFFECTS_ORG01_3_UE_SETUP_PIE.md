@@ -1,5 +1,12 @@
 # EFFECTS-ORG01.3 — Configuration UE 5.5.4 et vérifications PIE
 
+> **Actualisation FIREFX05 — 7 novembre 2026.** `DA_GroundFire` et
+> `BP_GridLevelRuntimeActor` sont versionnés dans Git, le Blueprint
+> référence directement le profil. Seul `Content/F_FreeFlameFx_Pack/`
+> est exclu en tant que pack tiers. La configuration locale par
+> `Saved/Config/GrimrockLocalVfx.ini` a été supprimée.
+> Voir `FIREFX05_VERSIONED_ASSETS.md` pour la règle canonique.
+
 Cette fiche est le **passage de relais à l'éditeur Unreal**, après
 migration et validation effective des assets par l'agent Windows.
 
@@ -22,15 +29,14 @@ puis la suppression des chemins d'assets historiques dans le code/tests.
 - \`Effects/Fire/Torch/NS_Flame_8_Torch\` : **chemin cible** de la
   torche. Vérifier que la migration a réellement eu lieu : aucune
   copie ni redirector dans \`Art/FX/\` avant d'appliquer cette étape.
-- \`Effects/Fire/Local/\` : profils locaux référencant le pack commercial.
-  Répertoire exclu de Git, pas un nouvel emplacement à versionner.
+- `Effects/Fire/Local/DA_GroundFire` : **profil Grimrock versionné** ; le nom historique `Local` ne signifie plus « ignoré ».
 - \`Effects/Alchimie/Catalyst/\` : profils et présentations du
   catalyseur, à créer/configurer dans l'éditeur.
 - \`Art/Materials\` et \`Art/Textures\` : matériaux maîtres, instances
   et textures partagés. Ne pas les déplacer pour le simple aspect
   esthétique d'une arborescence.
 
-Le pack \`Content/FireFX/\` reste à sa place, privé et exclu de Git.
+Le pack tiers est installé dans `Content/F_FreeFlameFx_Pack/`, qui est exclu de Git.
 
 ## 2. Créer le profil local de feu au sol
 
@@ -71,8 +77,7 @@ valeurs numériques ne fabriquent pas de paramètres dans FireFX.
   \`WaveDelayPerCellSeconds=0.085\`,
   \`FlightArcHeightCm=82\`.
 
-Ce profil peut être versionné si aucune référence à un asset commercial
-local n'y est ajoutée. L'aspect du flacon dans le mesh ne doit pas être
+Ce profil Grimrock doit être versionné, même si une référence souple pointe vers le pack tiers. L'aspect du flacon dans le mesh ne doit pas être
 confondu avec le projectile visuel Catalyst.
 
 ## 4. Assigner les profils au runtime

@@ -261,8 +261,8 @@ public:
 	float CatalystBallisticGravityCmPerSec2 = 980.f;
 	TArray<FGridCatalystVisualCell> ActiveCatalystVisualCells;
 
-	/** FIREFX04: optional commercial/local burst and ignition sound.
-	 * Leave empty in the committed Blueprint; assign only on a local runtime instance.
+	/** FIREFX04: game-authored references are serialized in BP_GridLevelRuntimeActor;
+	 * the external Niagara pack itself is excluded from Git.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Fire|Ignition")
 	TSoftObjectPtr<UNiagaraSystem> FireIgnitionBurstVfx;
@@ -289,8 +289,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Audio")
 	TSoftObjectPtr<USoundBase> CatalystFlaskBreakSound;
 
-	void PlayFlaskAudioAt(const TSoftObjectPtr<USoundBase>& Sound, const FVector& LocalPosition,
-		const TCHAR* PrivateConfigKey = nullptr);
+	void PlayFlaskAudioAt(const TSoftObjectPtr<USoundBase>& Sound, const FVector& LocalPosition);
 
 	/** FLASK02: optional authored glass fragments / shatter FX, not a FireFX dependency. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact")

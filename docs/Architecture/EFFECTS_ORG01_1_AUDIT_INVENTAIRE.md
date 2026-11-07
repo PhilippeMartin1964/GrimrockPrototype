@@ -1,5 +1,11 @@
 # EFFECTS-ORG01.1 — Audit et inventaire des effets
 
+**Attention — document historique :** cet inventaire reflète la structure au
+6 novembre 2026. Ses recommandations d'ignorer les profils
+`Effects/Fire/Local` ont été annulées par FIREFX05 du 7 novembre :
+`DA_GroundFire` et `BP_GridLevelRuntimeActor` sont versionnés ;
+seul `Content/F_FreeFlameFx_Pack/` est exclu.
+
 **Date :** 6 novembre 2026. **Base :** branche master de PhilippeMartin1964/GrimrockPrototype.
 **Jalon strictement en lecture seule :** aucun renommage, déplacement, effacement ou resauvegarde de package Unreal.
 

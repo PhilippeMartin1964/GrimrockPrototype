@@ -46,61 +46,39 @@ demeurent). Sans CatalystVfxProfile renseigné, certaines parties de
 la présentation du flacon/onde/étincelles seront absentes. Cette
 configuration explicite remplace les fallbacks implicites.
 
-## Installation locale de FireFX
+## FIREFX05 — Profils Grimrock versionnés et pack externe ignoré
 
-L'utilisateur a installé le pack dans Content/FireFX/.
-Les fichiers commerciaux restent **strictement locaux** et exclus par
-.gitignore. Le système exact inventorié est :
+**Source de vérité :** `Content/GrimrockPrototype/Effects/Fire/Local/DA_GroundFire.uasset`
+est un Data Asset **versionné**. Il est affecté directement à la propriété
+`FireVfxProfile` du Blueprint **versionné** `BP_GridLevelRuntimeActor`.
+Le nom de dossier historique `Local` ne signifie plus que le contenu est privé.
 
-/Game/FireFX/FX/NS_FFX_Ground_Fire.NS_FFX_Ground_Fire
+Le pack tiers lui-même est sous `Content/F_FreeFlameFx_Pack/` et reste
+exclu par `.gitignore`. Les chemins précédemment cités sous `/Game/FireFX/`
+n'étaient qu'une hypothèse et ne doivent pas être imposés en C++.
 
-Ce chemin est une **indication d'asset à sélectionner dans UE**,
-pas une dépendance ajoutée en C++ ou GitHub. Le pack commercial n'a
-pas été ouvert, analysé ou testé par le connecteur GitHub.
+Un `TSoftObjectPtr<UNiagaraSystem>` peut référencer un asset absent du dépôt,
+sans incorporer son contenu. Un clone sans le pack peut compiler et tester le
+gameplay, mais ne peut pas afficher les flammes sans installer le pack.
 
-1. Dans l'éditeur UE 5.5.4, créer un Data Asset de classe
-   `GridSurfaceVfxProfileAsset` sous
-   `Content/GrimrockPrototype/Effects/Fire/Local/DA_GroundFire`.
-   **Ce dossier entier est ignoré par Git**, parce que les profils
-   qui y résident peuvent référencer le pack FireFX commercial.
-2. Dans `Settings`, affecter `NS_FFX_Ground_Fire` à
-   `GroundFireSystem`. Les valeurs initiales du code sont :
-   `GroundFireScale=1`, `GroundFireCoverage=0.9`,
-   `FlameHeightCm=75`, `FlameDensity=1`,
-   `bEnableSmoke=true`, `SmokeDensity=0.5`,
-   `MaxFireCells=48`, `MaxFireLights=8`,
-   `FireLightIntensity=650`. Ce sont des valeurs de départ,
-   non des réglages universellement adaptés à FireFX.
-   Laisser les paramètres utilisateur Niagara sur `None` tant que
-   les noms **et les types** réellement exposés par le système n'ont
-   pas été vérifiés dans son panneau User Parameters.
-3. Renseigner `FireVfxProfile = DA_GroundFire` dans les
-   Class Defaults de `BP_GridLevelRuntimeActor` **pour un essai local**.
-   Attention : ce Blueprint est versionné dans Git. Ne pas
-   committer/pousser sa référence vers un Data Asset ignoré :
-   cela rendrait le projet cloné dépendant du pack commercial
-   absent de GitHub.
-4. Créer séparément un Data Asset `GridCatalystVfxProfileAsset`
-   sous `Content/GrimrockPrototype/Effects/Alchimie/Catalyst/`,
-   par exemple `DA_Catalyst_Default`. Il peut être versionné
-   **si toutes ses références sont des assets autorisés du projet**.
-   Affecter `SM_Catalyst_01` dans `ProjectileMesh`,
-   `M_SurfaceCatalyst_RunePulse` dans `RunePulseMaterial`,
-   `M_SurfaceCatalyst_Ember` dans `EmberMaterial`. Le
-   `SparkMesh` est facultatif. Les valeurs initiales sont :
-   0.42 s de vol, 0.95 s d'onde, 0.085 s/case, arc de 82 cm.
-   Assigner le profil dans `CatalystVfxProfile` du runtime actor.
-5. Tester en PIE le feu au sol, les réactions du catalyseur,
-   l'huile, le poison, les effets d'impact et leur extinction.
-   Vérifier indépendamment les dégâts gameplay et le rendu.
+- Renseigner `GroundFireSystem` dans `DA_GroundFire` directement.
+- Renseigner les noms des véritables Niagara User Parameters *uniquement*
+  après consultation de leur nom et type dans l'asset.
+- `FireCrackleLoopSound` est un champ du profil feu, à renseigner si
+  un son bouclant versionnable existe.
+- Les sons de flasque, `FlaskGlassBreakVfx` et `FireIgnitionBurstVfx` sont
+  des propriétés directes du Blueprint runtime : **elles sont versionnées**.
+- Un profil catalyseur `GridCatalystVfxProfileAsset` versionné est recommandé
+  pour `SM_Catalyst_01`, `M_SurfaceCatalyst_RunePulse`,
+  `M_SurfaceCatalyst_Ember` et le mesh d'étincelle. La vitesse balistique
+  est `LaunchSpeedCmPerSec` ; l'ancienne durée/hauteur d'arc n'est
+  plus l'autorité sur le vol.
+- Le mécanisme de substitution `GrimrockLocalVfx.ini` a été supprimé :
+  pas de configuration parallèle cachée dans `Saved/`.
 
-ATTENTION : un dossier ignoré par Git ne protège pas un
-`.uasset` versionné qui sérialise une référence vers ce dossier.
-Ne pas publier de BP, DataAsset ou niveau traînant des références
-à `FireFX` ou à `Effects/Fire/Local` non distribués.
-L'ancienne exclusion `LocalVFX` dans `.gitignore` reste
-uniquement une précaution pour d'éventuels fichiers locaux
-historiques : **ce n'est plus l'emplacement canonique**.
+Le test `Grimrock.RPG.FIREFX05.ProductionProfileWiring` contrôle la présence
+du vrai Data Asset et le lien sérialisé dans les Class Defaults de la classe BP.
+La vérification visuelle et sonore en PIE est distincte.
 
 ## Objets placés dans le Dungeon Editor
 

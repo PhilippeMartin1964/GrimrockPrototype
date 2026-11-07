@@ -20,42 +20,11 @@
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
-#if WITH_EDITOR
-#include "Misc/ConfigCacheIni.h"
-#include "Misc/Paths.h"
-#include "HAL/FileManager.h"
-#include "UObject/SoftObjectPath.h"
-#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridSurfaceRuntime, Log, All);
 
 namespace
 {
-#if WITH_EDITOR
-	/** FIREFX03A: the ignored Saved/Config override never enters any committed asset. */
-	template<typename T>
-	T* LoadPrivateVfxAsset(const TCHAR* Key)
-	{
-		const FString File = FPaths::Combine(FPaths::ProjectSavedDir(),
-			TEXT("Config"), TEXT("GrimrockLocalVfx.ini"));
-		FConfigFile Config;
-		if (!IFileManager::Get().FileExists(*File)) return nullptr;
-		Config.Read(File);
-		FString Path;
-		if (!Config.GetString(TEXT("Grimrock.LocalVFX"), Key, Path) || Path.IsEmpty())
-		{
-			return nullptr;
-		}
-		T* Result = Cast<T>(FSoftObjectPath(Path).TryLoad());
-		if (!IsValid(Result))
-		{
-			UE_LOG(LogGridSurfaceRuntime, Warning,
-				TEXT("FIREFX03A: invalid private VFX profile '%s' in %s"),
-				*Path, *File);
-		}
-		return Result;
-	}
-#endif
 	constexpr float OilSplashUpdateIntervalSeconds = 1.f / 30.f;
 	constexpr int32 OilSplashDropletCount = 8;
 	constexpr float CatalystVisualTickInterval = 1.f / 30.f;
@@ -91,25 +60,12 @@ namespace
 FGridFireVfxSettings AGridLevelRuntimeActor::ResolveFireVfxSettings() const
 {
 	const UGridSurfaceVfxProfileAsset* Profile = FireVfxProfile.LoadSynchronous();
-#if WITH_EDITOR
-	// Committed Blueprint reference wins; a private local profile is editor-only.
-	if (!IsValid(Profile) && GetWorld() && GetWorld()->WorldType == EWorldType::PIE)
-	{
-		Profile = LoadPrivateVfxAsset<UGridSurfaceVfxProfileAsset>(TEXT("FireVfxProfile"));
-	}
-#endif
 	return IsValid(Profile) ? Profile->GetSettings() : FGridFireVfxSettings().Sanitized();
 }
 
 FGridCatalystVfxSettings AGridLevelRuntimeActor::ResolveCatalystVfxSettings() const
 {
 	const UGridCatalystVfxProfileAsset* Profile = CatalystVfxProfile.LoadSynchronous();
-#if WITH_EDITOR
-	if (!IsValid(Profile) && GetWorld() && GetWorld()->WorldType == EWorldType::PIE)
-	{
-		Profile = LoadPrivateVfxAsset<UGridCatalystVfxProfileAsset>(TEXT("CatalystVfxProfile"));
-	}
-#endif
 	return IsValid(Profile) ? Profile->GetSettings() : FGridCatalystVfxSettings().Sanitized();
 }
 
@@ -266,17 +222,9 @@ float AGridLevelRuntimeActor::GetOilSplashSpreadScale(float NormalizedProgress)
 }
 
 void AGridLevelRuntimeActor::PlayFlaskAudioAt(
-	const TSoftObjectPtr<USoundBase>& Sound, const FVector& LocalPosition,
-	const TCHAR* PrivateConfigKey)
+	const TSoftObjectPtr<USoundBase>& Sound, const FVector& LocalPosition)
 {
 	USoundBase* ResolvedSound = Sound.LoadSynchronous();
-#if WITH_EDITOR
-	if (!IsValid(ResolvedSound) && PrivateConfigKey &&
-		GetWorld() && GetWorld()->WorldType == EWorldType::PIE)
-	{
-		ResolvedSound = LoadPrivateVfxAsset<USoundBase>(PrivateConfigKey);
-	}
-#endif
 	if (!IsValid(ResolvedSound) || !GetWorld() || !GetWorld()->IsGameWorld()) return;
 	UGameplayStatics::PlaySoundAtLocation(this, ResolvedSound,
 		GetActorTransform().TransformPosition(LocalPosition));
@@ -285,12 +233,6 @@ void AGridLevelRuntimeActor::PlayFlaskAudioAt(
 void AGridLevelRuntimeActor::PlayFlaskGlassBreakAt(const FVector& LocalImpactCenter)
 {
 	UNiagaraSystem* System = FlaskGlassBreakVfx.LoadSynchronous();
-#if WITH_EDITOR
-	if (!IsValid(System) && GetWorld() && GetWorld()->WorldType == EWorldType::PIE)
-	{
-		System = LoadPrivateVfxAsset<UNiagaraSystem>(TEXT("FlaskGlassBreakVfx"));
-	}
-#endif
 	if (!IsValid(System) || !GetWorld() || !GetWorld()->IsGameWorld()) return;
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), System,
 		GetActorTransform().TransformPosition(LocalImpactCenter), FRotator::ZeroRotator,
@@ -350,7 +292,7 @@ void AGridLevelRuntimeActor::PlayOilFlaskThrowAtCell(
 	Bottle->SetRelativeScale3D(FVector(FMath::Clamp(18.f / FMath::Max(1.f, Extent), .005f, 3.f)));
 	Bottle->RegisterComponent();
 	ActiveOilFlaskProjectile = Bottle;
-	PlayFlaskAudioAt(OilFlaskThrowSound, Start, TEXT("OilFlaskThrowSound"));
+	PlayFlaskAudioAt(OilFlaskThrowSound, Start);
 	OilFlaskFlightStart = Flight.Start;
 	OilFlaskFlightVelocity = Flight.Velocity;
 	OilFlaskFlightGravity = Flight.GravityCmPerSec2;
@@ -381,7 +323,7 @@ void AGridLevelRuntimeActor::UpdateOilFlaskFlight()
 			OilFlaskFlightVelocity * T - FVector(0.f, 0.f, .5f * OilFlaskFlightGravity * T * T);
 		ClearOilFlaskFlight();
 		PlayFlaskGlassBreakAt(ImpactPoint);
-		PlayFlaskAudioAt(OilFlaskBreakSound, ImpactPoint, TEXT("OilFlaskBreakSound"));
+		PlayFlaskAudioAt(OilFlaskBreakSound, ImpactPoint);
 		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
 	}
 }
@@ -802,7 +744,7 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 		Bottle->SetRelativeScale3D(FVector(Scale));
 		Bottle->RegisterComponent();
 		ActiveCatalystProjectile = Bottle;
-		PlayFlaskAudioAt(CatalystFlaskThrowSound, CatalystFlightStart, TEXT("CatalystFlaskThrowSound"));
+		PlayFlaskAudioAt(CatalystFlaskThrowSound, CatalystFlightStart);
 		const FGridCatalystVfxSettings Vfx = ResolveCatalystVfxSettings();
 		UStaticMesh* TrailSphere = Vfx.SparkMesh.LoadSynchronous();
 		UMaterialInterface* TrailMaterial = Vfx.EmberMaterial.LoadSynchronous();
@@ -850,7 +792,7 @@ void AGridLevelRuntimeActor::BeginCatalystImpactVfx()
 	if (IsValid(ActiveCatalystProjectile))
 	{
 		PlayFlaskGlassBreakAt(CatalystFlightEnd);
-		PlayFlaskAudioAt(CatalystFlaskBreakSound, CatalystFlightEnd, TEXT("CatalystFlaskBreakSound"));
+		PlayFlaskAudioAt(CatalystFlaskBreakSound, CatalystFlightEnd);
 	}
 	if (IsValid(ActiveCatalystProjectile))
 	{
@@ -880,14 +822,8 @@ void AGridLevelRuntimeActor::BeginCatalystImpactVfx()
 	if (bIgnited)
 	{
 		++FireIgnitionPresentationCount;
-		PlayFlaskAudioAt(FireIgnitionSound, CatalystVisualCenter, TEXT("FireIgnitionSound"));
+		PlayFlaskAudioAt(FireIgnitionSound, CatalystVisualCenter);
 		UNiagaraSystem* Burst = FireIgnitionBurstVfx.LoadSynchronous();
-#if WITH_EDITOR
-		if (!IsValid(Burst) && GetWorld() && GetWorld()->WorldType == EWorldType::PIE)
-		{
-			Burst = LoadPrivateVfxAsset<UNiagaraSystem>(TEXT("FireIgnitionBurstVfx"));
-		}
-#endif
 		if (IsValid(Burst))
 		{
 			if (UWorld* World = GetWorld())

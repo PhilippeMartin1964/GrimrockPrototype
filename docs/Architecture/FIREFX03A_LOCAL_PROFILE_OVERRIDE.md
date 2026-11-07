@@ -1,64 +1,17 @@
-# FIREFX03A — Profils VFX privés sans référence publiée dans les Blueprints
+# FIREFX03A–03D — Historique, mécanisme retiré
 
-## Pourquoi
+Ce document décrit un ancien contournement conçu lorsque
+`DA_GroundFire` et `Effects/Fire/Local` étaient exclus de Git.
 
-`BP_GridLevelRuntimeActor` est versionné. Il ne doit pas sérialiser une référence
-vers `/Game/FireFX` ou `Effects/Fire/Local` lorsque ces packages sont ignorés par Git.
+**Depuis FIREFX05, ce mécanisme n'existe plus dans le runtime.**
+`Saved/Config/GrimrockLocalVfx.ini` est ignoré par le code.
+Ne créez pas ce fichier et ne videz pas la propriété
+`FireVfxProfile` du Blueprint pour l'utiliser.
 
-## Configuration locale de l'éditeur UE5.5.4
+Le contrat à appliquer est :
+- profils/Blueprints Grimrock versionnés ;
+- référence directe `BP_GridLevelRuntimeActor → DA_GroundFire` ;
+- seul `Content/F_FreeFlameFx_Pack/` exclu pour ses fichiers tiers.
 
-1. Installer le pack commercial FireFX en local dans `Content/FireFX/` (hors Git).
-2. Dans l'éditeur, créer le profil `GridSurfaceVfxProfileAsset` à
-   `/Game/GrimrockPrototype/Effects/Fire/Local/DA_GroundFire`.
-3. Dans ses propriétés, sélectionner comme `GroundFireSystem` le vrai Niagara
-   `NS_FFX_Ground_Fire` sous `/Game/FireFX/FX/`. Renseigner éventuellement
-   `FireCrackleLoopSound` avec un son bouclant, spatialisé et attenué.
-4. Créer **sur ce poste uniquement** le fichier
-   `Saved/Config/GrimrockLocalVfx.ini` (dossier `Saved` déjà ignoré par Git) :
-   
-   ```ini
-   [Grimrock.LocalVFX]
-   FireVfxProfile=/Game/GrimrockPrototype/Effects/Fire/Local/DA_GroundFire.DA_GroundFire
-   ```
-
-5. Laisser `BP_GridLevelRuntimeActor.FireVfxProfile` **vide**. Le runtime C++
-   résout le profil privé uniquement dans l'éditeur (donc aussi en PIE).
-6. Pour tester un profil catalyseur privé, ajouter éventuellement :
-   `CatalystVfxProfile=/Game/GrimrockPrototype/Effects/Alchimie/Catalyst/DA_Catalyst_Default.DA_Catalyst_Default`
-   après création effective de cet asset.
-
-
-Pour les effets transitoires et les sons (FIREFX03D), le même fichier privé
-peut recevoir les clés supplémentaires suivantes, seulement pour les assets
-que vous avez réellement importés/authorés :
-
-```ini
-FlaskGlassBreakVfx=/Game/.../VotreNiagaraBris.VotreNiagaraBris
-FireIgnitionBurstVfx=/Game/FireFX/FX/NS_FFX_FireBurst.NS_FFX_FireBurst
-OilFlaskThrowSound=/Game/.../VotreSonLancerHuile.VotreSonLancerHuile
-OilFlaskBreakSound=/Game/.../VotreSonBrisHuile.VotreSonBrisHuile
-CatalystFlaskThrowSound=/Game/.../VotreSonLancerCatalyseur.VotreSonLancerCatalyseur
-CatalystFlaskBreakSound=/Game/.../VotreSonBrisCatalyseur.VotreSonBrisCatalyseur
-FireIgnitionSound=/Game/.../VotreSonEmbrasement.VotreSonEmbrasement
-```
-
-Ces chemins sont des **exemples** (y compris l'emplacement exact du FireBurst,
-à confirmer dans votre pack). Chaque clé non renseignée laisse l'effet ou le son
-désactivé si le runtime ne reçoit aucune référence versionnable explicite.
-Les effets ponctuels chargent cet override uniquement en PIE, et le projet
-n'enregistre aucune dépendance vers le pack commercial sur GitHub.
-
-## Priorités de résolution
-
-1. Profil explicite affecté au runtime/Blueprint (uniquement si versionnable).
-2. Profil défini dans `Saved/Config/GrimrockLocalVfx.ini`, en édition UE.
-3. Réglages C++ par défaut (aucun système Niagara si aucun profil).
-
-Aucun chemin commercial n'est codé en C++. Aucun fichier privé n'est publié.
-Le fichier local n'est pas lu dans les builds non éditeur et n'est pas une
-solution de packaging du pack ; cette étape reste distincte et soumise à sa licence.
-
-## Validation
-
-Compilation UE5.5.4, suite Automation, puis contrôle visuel en PIE avec FireFX installé.
-Une validation `-NullRHI` ne remplace pas la recette GPU/son.
+Voir `docs/Architecture/FIREFX05_VERSIONED_ASSETS.md`
+et `docs/Architecture/SURFACE_AND_CATALYST_VFX_PROFILES.md`.

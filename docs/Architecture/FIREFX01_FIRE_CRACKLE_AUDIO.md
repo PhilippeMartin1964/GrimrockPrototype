@@ -7,7 +7,7 @@
 - La disparition des cellules, le changement de niveau ou EndPlay arrêtent/détruisent leurs sources.
 - Le son peut être présent même si `GroundFireSystem` n'est pas affecté, pour dissocier le comportement audio de l'installation locale FireFX.
 - Aucune référence `/Game/FireFX` ni audio privé n'est codée ou committée.
-- Un commit de `BP_GridLevelRuntimeActor` contenant une référence au profil local ignoré par Git **reste interdit**.
+- Le `BP_GridLevelRuntimeActor` et son profil `DA_GroundFire` sont des assets Grimrock **versionnés** ; seul le pack Niagara tiers sous `Content/F_FreeFlameFx_Pack/` est exclu.
 
 Tests : `Grimrock.RPG.FIREFX01.FireAudioClusters` ; compilation/suite Unreal automatiques.
 La restitution sonore du feu, sa spatialisation effective et l'équilibre du mixage exigent un contrôle PIE.
