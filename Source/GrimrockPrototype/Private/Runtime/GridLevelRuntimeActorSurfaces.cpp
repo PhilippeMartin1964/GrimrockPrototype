@@ -13,6 +13,8 @@
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
@@ -217,6 +219,15 @@ float AGridLevelRuntimeActor::GetOilSplashSpreadScale(float NormalizedProgress)
 	return FMath::Lerp(0.18f, 1.f, EaseOut);
 }
 
+void AGridLevelRuntimeActor::PlayFlaskAudioAt(
+	const TSoftObjectPtr<USoundBase>& Sound, const FVector& LocalPosition)
+{
+	USoundBase* ResolvedSound = Sound.LoadSynchronous();
+	if (!IsValid(ResolvedSound) || !GetWorld() || !GetWorld()->IsGameWorld()) return;
+	UGameplayStatics::PlaySoundAtLocation(this, ResolvedSound,
+		GetActorTransform().TransformPosition(LocalPosition));
+}
+
 void AGridLevelRuntimeActor::PlayFlaskGlassBreakAt(const FVector& LocalImpactCenter)
 {
 	UNiagaraSystem* System = FlaskGlassBreakVfx.LoadSynchronous();
@@ -279,6 +290,7 @@ void AGridLevelRuntimeActor::PlayOilFlaskThrowAtCell(
 	Bottle->SetRelativeScale3D(FVector(FMath::Clamp(18.f / FMath::Max(1.f, Extent), .005f, 3.f)));
 	Bottle->RegisterComponent();
 	ActiveOilFlaskProjectile = Bottle;
+	PlayFlaskAudioAt(OilFlaskThrowSound, Start);
 	OilFlaskFlightStart = Flight.Start;
 	OilFlaskFlightVelocity = Flight.Velocity;
 	OilFlaskFlightGravity = Flight.GravityCmPerSec2;
@@ -309,6 +321,7 @@ void AGridLevelRuntimeActor::UpdateOilFlaskFlight()
 			OilFlaskFlightVelocity * T - FVector(0.f, 0.f, .5f * OilFlaskFlightGravity * T * T);
 		ClearOilFlaskFlight();
 		PlayFlaskGlassBreakAt(ImpactPoint);
+		PlayFlaskAudioAt(OilFlaskBreakSound, ImpactPoint);
 		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
 	}
 }
@@ -729,6 +742,7 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 		Bottle->SetRelativeScale3D(FVector(Scale));
 		Bottle->RegisterComponent();
 		ActiveCatalystProjectile = Bottle;
+		PlayFlaskAudioAt(CatalystFlaskThrowSound, CatalystFlightStart);
 		const FGridCatalystVfxSettings Vfx = ResolveCatalystVfxSettings();
 		UStaticMesh* TrailSphere = Vfx.SparkMesh.LoadSynchronous();
 		UMaterialInterface* TrailMaterial = Vfx.EmberMaterial.LoadSynchronous();
@@ -776,6 +790,7 @@ void AGridLevelRuntimeActor::BeginCatalystImpactVfx()
 	if (IsValid(ActiveCatalystProjectile))
 	{
 		PlayFlaskGlassBreakAt(CatalystFlightEnd);
+		PlayFlaskAudioAt(CatalystFlaskBreakSound, CatalystFlightEnd);
 	}
 	if (IsValid(ActiveCatalystProjectile))
 	{

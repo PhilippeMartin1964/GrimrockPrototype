@@ -36,6 +36,7 @@ class UStaticMeshComponent;
 class UPointLightComponent;
 class UNiagaraComponent;
 class UNiagaraSystem;
+class USoundBase;
 class UGridSurfaceVfxProfileAsset;
 class UGridCatalystVfxProfileAsset;
 class UReadableMessageWidget;
@@ -251,6 +252,21 @@ public:
 	float CatalystBallisticFlightSeconds = 0.f;
 	float CatalystBallisticGravityCmPerSec2 = 980.f;
 	TArray<FGridCatalystVisualCell> ActiveCatalystVisualCells;
+
+	/** FLASK03: soft references; no committed audio asset dependency. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Audio")
+	TSoftObjectPtr<USoundBase> OilFlaskThrowSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Audio")
+	TSoftObjectPtr<USoundBase> OilFlaskBreakSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Audio")
+	TSoftObjectPtr<USoundBase> CatalystFlaskThrowSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Audio")
+	TSoftObjectPtr<USoundBase> CatalystFlaskBreakSound;
+
+	void PlayFlaskAudioAt(const TSoftObjectPtr<USoundBase>& Sound, const FVector& LocalPosition);
 
 	/** FLASK02: optional authored glass fragments / shatter FX, not a FireFX dependency. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact")
