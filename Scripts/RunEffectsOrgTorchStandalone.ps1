@@ -55,9 +55,11 @@ if ([IO.Path]::GetFullPath($ActualRoot).TrimEnd('\') -ine $RepositoryRoot.TrimEn
 Assert-Exit -Operation 'fetch master'
 $ExpectedSha = Read-GitOne -Root $RepositoryRoot -Arguments @('rev-parse','refs/remotes/origin/master')
 if ($ExpectedSha -notmatch '^[a-f0-9]{40}$') { throw 'Invalid master SHA.' }
-$Subject = Read-GitOne -Root $RepositoryRoot -Arguments @('show','-s','--format=%s',$ExpectedSha)
-if ($Subject -notmatch '^EFFECTS-ORG01[.]2D-(PREP|PREFLIGHT|RUNNER):') {
-    throw 'HEAD is not an approved EFFECTS-ORG01.2D preparation commit.'
+# Accept only descendants of the reviewed 2D runner, not arbitrary commit subjects.
+$ApprovedRunner = '3a060c987faf0df935a860af7d2d5a1e5c77ba42'
+& git -C $RepositoryRoot merge-base --is-ancestor $ApprovedRunner $ExpectedSha
+if ($LASTEXITCODE -ne 0) {
+    throw 'HEAD does not descend from approved EFFECTS-ORG01.2D runner.'
 }
 New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
 

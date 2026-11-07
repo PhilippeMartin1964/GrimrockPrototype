@@ -61,11 +61,11 @@ try {
  if ($ExpectedHead -notmatch '^[a-f0-9]{40}$') { throw 'INVALID_SHA' }
  if (-not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git'))) { throw 'WORKTREE_ABSENT' }
  if ((GitOne -Arguments @('rev-parse','HEAD')) -cne $ExpectedHead) { throw 'HEAD_MISMATCH' }
- $Subject = GitOne -Arguments @('log','-1','--format=%s')
- # Accept the latest validated, independently prepared 2D milestone;
- # the exact 40-digit HEAD, clean worktree and remote are checked above/below.
- # An asset commit never matches, so the migration cannot repeat.
- if ($Subject -cnotmatch '^EFFECTS-ORG01[.]2D-(PREP|PREFLIGHT|RUNNER):') { throw 'MIGRATION_HEAD_NOT_ALLOWED' }
+ # The standalone runner can advance master past the original 2D milestone.
+ # Require verified ancestry instead of matching the latest subject.
+ $ApprovedRunner = '3a060c987faf0df935a860af7d2d5a1e5c77ba42'
+ & git -C $WorktreePath merge-base --is-ancestor $ApprovedRunner $ExpectedHead
+ if ($LASTEXITCODE -ne 0) { throw 'MIGRATION_HEAD_NOT_ALLOWED' }
  if ((GitOne -Arguments @('remote','get-url','origin')) -notmatch '(?i)github\.com[:/]PhilippeMartin1964/GrimrockPrototype(\.git)?$') {
   throw 'ORIGIN_MISMATCH'
  }
