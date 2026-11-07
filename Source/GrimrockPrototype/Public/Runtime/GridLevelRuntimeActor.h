@@ -35,6 +35,7 @@ class UDecalComponent;
 class UStaticMeshComponent;
 class UPointLightComponent;
 class UNiagaraComponent;
+class UAudioComponent;
 class UNiagaraSystem;
 class USoundBase;
 class UGridSurfaceVfxProfileAsset;
@@ -228,6 +229,13 @@ public:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UPointLightComponent>> ActiveFireSurfaceLights;
+
+	/** One persistent spatial loop per contiguous fire region; retained across visual refreshes. */
+	UPROPERTY(Transient)
+	TMap<FIntPoint, TObjectPtr<UAudioComponent>> ActiveFireCrackleAudio;
+
+	void RefreshFireCrackleAudio(const TArray<FIntPoint>& Cells, const FGridFireVfxSettings& Settings);
+	void ClearFireCrackleAudio();
 
 	/** Wet floor after a canonical Ice->Water reaction; presentation only. */
 	UPROPERTY(Transient)
@@ -795,7 +803,7 @@ public:
 	void UpdateCatalystReactionVfx();
 	void ClearCatalystReactionVfx();
 	void RefreshFireSurfaceVisuals();
-	void ClearFireSurfaceVisuals();
+	void ClearFireSurfaceVisuals(bool bClearAudio = true);
 	void RefreshWaterSurfaceVisuals();
 	void ClearWaterSurfaceVisuals();
 	int32 GetActiveFireNiagaraCount() const { return ActiveFireNiagaraComponents.Num(); }

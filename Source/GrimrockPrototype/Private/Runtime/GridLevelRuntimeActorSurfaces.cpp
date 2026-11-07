@@ -2,6 +2,7 @@
 
 #include "Core/GridSurfaceVfxProfileAsset.h"
 #include "Core/GridFlaskBallistics.h"
+#include "Core/GridFireAudioClusters.h"
 #include "Core/GridCatalystVfxProfileAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
@@ -10,6 +11,7 @@
 #include "Components/DecalComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
+#include "Components/AudioComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
@@ -1008,8 +1010,88 @@ void AGridLevelRuntimeActor::UpdateCatalystReactionVfx()
 	}
 }
 
-void AGridLevelRuntimeActor::ClearFireSurfaceVisuals()
+void AGridLevelRuntimeActor::ClearFireCrackleAudio()
 {
+	for (const TPair<FIntPoint, TObjectPtr<UAudioComponent>>& Entry : ActiveFireCrackleAudio)
+	{
+		if (IsValid(Entry.Value))
+		{
+			Entry.Value->Stop();
+			Entry.Value->DestroyComponent();
+		}
+	}
+	ActiveFireCrackleAudio.Reset();
+}
+
+void AGridLevelRuntimeActor::RefreshFireCrackleAudio(
+	const TArray<FIntPoint>& Cells, const FGridFireVfxSettings& Settings)
+{
+	UWorld* World = GetWorld();
+	USoundBase* Loop = Settings.FireCrackleLoopSound.LoadSynchronous();
+	if (!World || !World->IsGameWorld() || !IsValid(Loop) ||
+		Settings.MaxFireCrackleSources <= 0 || Settings.FireCrackleVolume <= 0.f)
+	{
+		ClearFireCrackleAudio();
+		return;
+	}
+	TArray<FGridFireAudioCluster> Clusters;
+	FGridFireAudioClusters::Build(Cells, Settings.MaxFireCrackleSources, Clusters);
+	TSet<FIntPoint> Desired;
+	const float CellSize = FMath::Max(1.f, LevelAsset->CellSize);
+	for (const FGridFireAudioCluster& Cluster : Clusters)
+	{
+		Desired.Add(Cluster.Anchor);
+		// CellToWorld uses level placement and origin; centroid is in grid-cell units.
+		const FVector GridBase = CellToWorld(0, 0, 0.f);
+		const FVector Center = GridBase +
+			FVector(Cluster.CenterInCells.X * CellSize,
+				Cluster.CenterInCells.Y * CellSize, 45.f);
+		UAudioComponent* Audio = ActiveFireCrackleAudio.FindRef(Cluster.Anchor);
+		if (IsValid(Audio) && Audio->GetSound() != Loop)
+		{
+			Audio->Stop();
+			Audio->DestroyComponent();
+			ActiveFireCrackleAudio.Remove(Cluster.Anchor);
+			Audio = nullptr;
+		}
+		if (!IsValid(Audio))
+		{
+			Audio = NewObject<UAudioComponent>(this);
+			Audio->bAutoActivate = false;
+			Audio->bAutoDestroy = false;
+			Audio->SetupAttachment(SceneRoot);
+			Audio->SetSound(Loop);
+			Audio->RegisterComponent();
+			ActiveFireCrackleAudio.Add(Cluster.Anchor, Audio);
+			Audio->SetRelativeLocation(Center);
+			Audio->SetVolumeMultiplier(Settings.FireCrackleVolume);
+			Audio->Play();
+		}
+		else
+		{
+			Audio->SetRelativeLocation(Center);
+			Audio->SetVolumeMultiplier(Settings.FireCrackleVolume);
+		}
+	}
+	TArray<FIntPoint> StaleAnchors;
+	for (const TPair<FIntPoint, TObjectPtr<UAudioComponent>>& Entry : ActiveFireCrackleAudio)
+	{
+		if (!Desired.Contains(Entry.Key)) StaleAnchors.Add(Entry.Key);
+	}
+	for (const FIntPoint& Anchor : StaleAnchors)
+	{
+		if (UAudioComponent* Audio = ActiveFireCrackleAudio.FindRef(Anchor))
+		{
+			Audio->Stop();
+			Audio->DestroyComponent();
+		}
+		ActiveFireCrackleAudio.Remove(Anchor);
+	}
+}
+
+void AGridLevelRuntimeActor::ClearFireSurfaceVisuals(bool bClearAudio)
+{
+	if (bClearAudio) ClearFireCrackleAudio();
 	for (UNiagaraComponent* FlameFx : ActiveFireNiagaraComponents)
 	{
 		if (IsValid(FlameFx))
@@ -1031,27 +1113,16 @@ void AGridLevelRuntimeActor::ClearFireSurfaceVisuals()
 
 void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 {
-	ClearFireSurfaceVisuals();
+	// Render components are rebuilt; spatial audio stays alive when a fire region persists.
+	ClearFireSurfaceVisuals(false);
 	UWorld* World = GetWorld();
 	const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel();
 	if (!World || !World->IsGameWorld() || !State || !LevelAsset)
 	{
+		ClearFireCrackleAudio();
 		return;
 	}
-
 	const FGridFireVfxSettings Vfx = ResolveFireVfxSettings();
-	if (Vfx.MaxFireCells <= 0)
-	{
-		return;
-	}
-	// No torch fallback, procedural spheres or vendor-specific hardcoded paths.
-	// A selected, reusable visual profile owns the Niagara asset.
-	UNiagaraSystem* FlameSystem = Vfx.GroundFireSystem.LoadSynchronous();
-	if (!IsValid(FlameSystem))
-	{
-		return;
-	}
-
 	TArray<FIntPoint> Cells;
 	for (const TPair<FIntPoint, FGridCombatSurfaceState>& Entry : State->Surfaces)
 	{
@@ -1065,6 +1136,12 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 	{
 		return A.Y == B.Y ? A.X < B.X : A.Y < B.Y;
 	});
+	// Audio remains independent of whether the local Niagara pack is installed.
+	RefreshFireCrackleAudio(Cells, Vfx);
+	if (Vfx.MaxFireCells <= 0) return;
+	// No torch fallback, procedural spheres or vendor-specific hardcoded paths.
+	UNiagaraSystem* FlameSystem = Vfx.GroundFireSystem.LoadSynchronous();
+	if (!IsValid(FlameSystem)) return;
 
 	const float CellSize = FMath::Max(1.f, LevelAsset->CellSize);
 	const float Scale = Vfx.GroundFireScale;

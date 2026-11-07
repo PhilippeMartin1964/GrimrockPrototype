@@ -4,6 +4,7 @@
 #include "GridVfxProfileTypes.generated.h"
 
 class UNiagaraSystem;
+class USoundBase;
 class UMaterialInterface;
 class UStaticMesh;
 
@@ -54,6 +55,17 @@ struct GRIMROCKPROTOTYPE_API FGridFireVfxSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Light")
 	FLinearColor FireLightColor = FLinearColor(1.f, .3f, .06f);
 
+	/** FIREFX01: authored looping spatial sound, never a hardcoded vendor path. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Audio")
+	TSoftObjectPtr<USoundBase> FireCrackleLoopSound;
+
+	/** At most one voice per contiguous fire region. Zero disables fire audio. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Audio", meta=(ClampMin="0", ClampMax="8"))
+	int32 MaxFireCrackleSources = 4;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Audio", meta=(ClampMin="0.0", ClampMax="2.0"))
+	float FireCrackleVolume = .65f;
+
 	/** Optional names of actual Niagara User Parameters (including User. prefix). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters")
 	FName SpawnAreaParameter = NAME_None;
@@ -87,6 +99,8 @@ struct GRIMROCKPROTOTYPE_API FGridFireVfxSettings
 		Result.MaxFireLights = FMath::Clamp(MaxFireLights, 0, 32);
 		Result.FireLightIntensity = Safe(FireLightIntensity, 650.f, 0.f, 50000.f);
 		Result.FireLightRadiusCells = Safe(FireLightRadiusCells, 1.2f, .1f, 5.f);
+		Result.MaxFireCrackleSources = FMath::Clamp(MaxFireCrackleSources, 0, 8);
+		Result.FireCrackleVolume = Safe(FireCrackleVolume, .65f, 0.f, 2.f);
 		Result.FireTint = FireTint.GetClamped(0.f, 8.f);
 		Result.FireLightColor = FireLightColor.GetClamped(0.f, 8.f);
 		return Result;
