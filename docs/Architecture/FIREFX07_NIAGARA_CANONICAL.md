@@ -19,49 +19,63 @@ et **non** un drapeau de `EFunctionFlags` ; le test ne simule pas un clic.
 
 ## Calibrer 200 × 200 cm
 
-Pour `CellSize=200` et `GroundFireCoverage=1`, le contrat demandé est
-`200 × 200 cm`. Si le Niagara natif couvre environ 180 × 180 cm,
-`NiagaraReferenceWidthCm=180` et `GroundFireScale=1` donnent
-`ScaleXY ≈ 1.111`. Ce résultat est uniquement la **transformation du
-composant**, et suppose que les particules suivent l'échelle locale.
+Pour `CellSize=200`, `GroundFireCoverage=1` et
+`GroundFireScale=1`, le contrat demandé est `200 × 200 cm` :
 
-La couverture effective d'un effet qui émet des particules dans l'espace
-monde, dans une sphère ou avec des vitesses latérales ne peut pas être
-garantie par cette transformation : son `Box Location` doit recevoir les
-dimensions de la case via des paramètres Niagara d'entrée.
+- Si `SpawnBox` est compatible (Vector3), le runtime transmet une
+  zone XY de **200 × 200 cm** directement à `User.SpawnBox` et
+  conserve `ScaleXY=1` (pas de double application).
+- Sinon, le C++ utilise le repli par transformation : avec
+  `NiagaraReferenceWidthCm=180`, `ScaleXY ≈ 1.111`.
+  Ce repli suppose que les particules suivent l'échelle locale.
 
-## Architecture canonique proposée
+FIREFX08 sait désormais transmettre `SpawnBox` avec la largeur XY demandée,
+si sa variable est de type `Vector3`. Si ce contrôle est disponible, le code
+n'applique plus une seconde fois la couverture dans l'échelle XY.
+Si les particules possèdent ensuite une vitesse horizontale, leur silhouette
+visible peut dépasser le volume d'émission. Le diagnostic permet de confirmer
+la compatibilité effective du système.
 
-1. **Système Niagara source réutilisable** : `NS_FFX_Ground_Fire` reste dans
-   les packs tiers `Content/FireFX` ou `Content/F_FreeFlameFx_Pack`, ignorés par Git.
-2. **Interface Niagara typée** : des `User.*` réellement connectés aux
-   modules d'émetteurs (`User.SpawnSize` Vector3,
-   `User.FlameHeight` Float, `User.FlameDensity` Float,
-   `User.SmokeDensity` Float, `User.FireTint` LinearColor).
-   Ces noms sont un *contrat de conception proposé*, pas une affirmation
-   sur les paramètres existants de FAB.
-3. **Profils Grimrock versionnés** : `DA_GroundFire`, puis profils séparés
-   pour une torche, un brasier, un feu mural, un feu de camp, etc.
-   Chacun peut réutiliser le **même** Niagara source avec des paramètres
-   différents, sans faire varier les autres instances.
-4. **Composant d'application C++ unique** : chargé de valider le type et
-   l'existence de chaque paramètre, d'appliquer les paramètres à
-   `UNiagaraComponent` **avant** `Activate()`, puis de gérer le cycle
-   de vie, les budgets, sons et lumières.
-5. **Instance de jeu** : contexte spatial (cellule 200 × 200, position,
-   orientation), choix du profil, éventuelles surcharges locales très
-   limitées et optionnelles. L'asset Niagara et les profils ne sont
-   jamais mutés à l'exécution.
+## Architecture canonique retenue (FIREFX08–09)
 
-Une `Niagara Parameter Collection` convient pour des valeurs mondiales
-communes (vent global, météo, ambiance), **pas** pour distinguer
-les dimensions d'une torche et d'un feu au sol utilisant simultanément
-le même système. Utiliser des `User Parameters` par composant pour cela.
+Le système Niagara commercial reste une **ressource partagée**. Son chemin
+est défini dans le profil versionné, jamais codé en dur dans le runtime.
+
+- **Interface FireFX réellement observée dans L_Dungeon** :
+  `SpawnBox`, `FlameRate`, `FlameSizeMin/Max`, `SmokeRate`,
+  `Tint`, `Wind`, `EmberRate`, `GlowSize`, etc. (29 variables).
+  Leurs **types** doivent être consultés dans le nouveau diagnostic.
+- **DA_GroundFire** : `GroundFireCoverage`, `FlameHeightCm`,
+  `FlameDensity`, `SmokeDensity`, `FireTint`, lumière et audio.
+  `bAutoBindKnownFireControls=true` relie automatiquement les contrôles
+  compatibles `SpawnBox`, `FlameRate`, `SmokeRate` et `Tint`.
+- **Surcharges génériques** : `User Parameter Overrides` est une liste
+  `ParameterName + ValueType + valeur` dans le Data Asset ;
+  seuls les noms et types réellement disponibles sont transmis.
+  Ces surcharges sont prioritaires sur les commandes automatiques.
+- **Composants isolés** : le C++ applique chaque profil à sa propre
+  instance `UNiagaraComponent` sans modifier le système partagé.
+  Un autre futur profil de torche ou brasier pourra définir d'autres
+  valeurs pour le même Niagara.
+- **Collections de paramètres mondiales** : réserver les Niagara
+  Parameter Collections aux variables partagées (vent/météo globale),
+  pas aux dimensions particulières de chaque flamme.
+
+Les `User Parameters` doivent réellement être utilisés par les modules
+du Niagara : les exposer ne garantit pas leur influence visuelle.
 
 ## Limites actuellement non résolues
 
-Le C++ du projet sait appliquer hauteur/couverture par transformation et
-transmettre des paramètres utilisateurs **si présents**. En revanche,
-la densité réelle, la fumée et la couleur du pack FAB ne sont pas
-garanties tant que leurs entrées ne sont pas connectées dans Niagara.
-Aucun chemin tiers n'a été introduit ni asset commercial modifié.
+Le C++ relie de façon typée les quatre commandes connues et laisse
+la possibilité d'overrides explicites. Les tests automatiques ne disposent
+pas du pack commercial. Ils ne peuvent donc pas confirmer les types de ses
+29 paramètres, ni démontrer que les modules Niagara utilisent chaque entrée.
+
+La hauteur `FlameHeightCm` transforme le composant en Z ; des émetteurs
+World Space peuvent ignorer cette transformation. Il faut alors régler
+`FlameSizeMin/Max` après contrôle de leur type et de leur sémantique
+dans Niagara.
+
+La fumée peut aussi être générée ponctuellement par `SmokeBurst` :
+`bEnableSmoke=false` met à zéro `SmokeRate`, mais ne modifie pas
+automatiquement les bursts. Aucun asset du pack n'a été modifié.

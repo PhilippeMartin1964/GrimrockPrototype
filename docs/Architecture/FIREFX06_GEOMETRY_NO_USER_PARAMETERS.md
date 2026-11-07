@@ -41,10 +41,12 @@ Modifier `FlameHeightCm` n'élargit plus les flammes.
 
 Les deux contrôles physiques sont **proportionnels** à la taille
 du système original et non des mesures exactes de chaque particule.
-Les paramètres `FlameDensity`, `SmokeDensity`, `bEnableSmoke` et `FireTint`
-restent dépendants des fonctionnalités Niagara du pack tant qu'un adaptateur
-dédié ne leur a pas été implémenté ; ils ne doivent pas être décrits comme
-des propriétés garanties.
+FIREFX08 implémente maintenant un adaptateur typé pour les véritables
+paramètres FireFX `FlameRate`, `SmokeRate`, `Tint` et `SpawnBox`.
+Il faut les confirmer comme compatibles dans le diagnostic utilisateur ;
+les tests sans pack ne peuvent pas valider leur effet artistique.
+FIREFX09 propose en outre des `User Parameter Overrides` typés par
+profil, pour les autres contrôles du système.
 
 ## Tests
 

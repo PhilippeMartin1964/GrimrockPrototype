@@ -96,7 +96,25 @@ Le burst d'embrasement n'est émis qu'au premier impact du catalyseur si une ré
 Dans `DA_GroundFire → Settings` :
 - `GroundFireSystem` : Niagara `NS_FFX_Ground_Fire` **déjà assigné dans le Data Asset versionné et confirmé non nul en automation**.
 - `GroundFireScale` = **1**, `GroundFireCoverage` = **0.9**, `FlameHeightCm` = **75**, `FlameDensity` = **1**, `SmokeDensity` = **0.5** ; `MaxFireCells` = **48**, `MaxFireLights` = **8**, `FireLightIntensity` = **650** (valeurs C++ par défaut, les valeurs sauvegardées dans le Data Asset peuvent différer).
-- Les champs `SpawnAreaParameter`, `FlameHeightParameter`, `FlameDensityParameter`, `SmokeDensityParameter`, `FireTintParameter` doivent rester `None` tant qu'on n'a pas vérifié dans **le Niagara réellement installé** le nom complet `User.*` et le type correspondant. Les nombres seuls n'imposent pas leur interprétation à FireFX.
+- `bAutoBindKnownFireControls = true` : **FIREFX08** recherche `SpawnBox`,
+  `FlameRate`, `SmokeRate`, `Tint` et vérifie leurs types dans
+  `NS_FFX_Ground_Fire` ; les cinq anciennes liaisons manuelles
+  (`SpawnAreaParameter`, etc.) peuvent donc rester `None`.
+- Pour une case de **200 × 200 cm** : `GroundFireScale=1`,
+  `GroundFireCoverage=1` ; si `SpawnBox` est de type Vector3,
+  l'adaptateur envoie un volume XY de 200 × 200 cm en conservant son Z
+  d'émission d'origine. Cela ne garantit pas que les particules ne
+  débordent jamais après leur naissance.
+- `FlameDensity=1` conserve `FlameRate` natif, `SmokeDensity=.5`
+  multiplie `SmokeRate` natif par 0,5.
+- `Settings → User Parameter Overrides` permet de modifier d'autres
+  paramètres du pack **sans copier son Niagara**. Ajouter des entrées
+  `ParameterName / ValueType / valeur` seulement après avoir lu leur
+  type dans le bouton de diagnostic sur l'acteur placé dans `L_Dungeon`.
+  Ce tableau d'overrides est appliqué en dernier.
+- `FlameHeightCm` règle l'échelle verticale du composant ; si les
+  émetteurs simulent en World Space, il faut aussi ajuster des entrées
+  de taille du Niagara (par ex. `FlameSizeMin/Max`, après vérification).
 
 Un clone GitHub **sans pack tiers** conserve le gameplay et le profil mais n'affiche pas les particules du pack. Un packaging intégrant les assets de ce pack exige de vérifier sa licence.
 
