@@ -23,6 +23,7 @@
 #if WITH_EDITOR
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/Paths.h"
+#include "HAL/FileManager.h"
 #include "UObject/SoftObjectPath.h"
 #endif
 
@@ -38,7 +39,8 @@ namespace
 		const FString File = FPaths::Combine(FPaths::ProjectSavedDir(),
 			TEXT("Config"), TEXT("GrimrockLocalVfx.ini"));
 		FConfigFile Config;
-		if (!Config.Read(File)) return nullptr;
+		if (!IFileManager::Get().FileExists(*File)) return nullptr;
+		Config.Read(File);
 		FString Path;
 		if (!Config.GetString(TEXT("Grimrock.LocalVFX"), Key, Path) || Path.IsEmpty())
 		{
