@@ -749,7 +749,7 @@ public:
 	void CancelCatalystSurfaceVisualBatch();
 	/** One bottle/flight, then independent Oil/Poison/Ice/Fizzle effects in the area. */
 	void PlaySurfaceCatalystArea(FIntPoint LaunchCell, FIntPoint ImpactCell,
-		const TArray<struct FGridCatalystCellOutcome>& Outcomes);
+		const TArray<struct FGridCatalystCellOutcome>& Outcomes, UStaticMesh* SourceFlaskMesh = nullptr);
 	void BeginCatalystImpactVfx();
 	void UpdateCatalystReactionVfx();
 	void ClearCatalystReactionVfx();

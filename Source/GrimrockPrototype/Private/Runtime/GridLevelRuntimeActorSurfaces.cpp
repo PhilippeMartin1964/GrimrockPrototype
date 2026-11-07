@@ -628,7 +628,7 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystReactionAtCell(
 
 void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 	FIntPoint LaunchCell, FIntPoint ImpactCell,
-	const TArray<FGridCatalystCellOutcome>& Outcomes)
+	const TArray<FGridCatalystCellOutcome>& Outcomes, UStaticMesh* SourceFlaskMesh)
 {
 	// When called from a gameplay transaction BeginCatalystSurfaceVisualBatch
 	// has already cleared the previous effect. Do not flush that batch early.
@@ -696,6 +696,11 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 	// A real artist-authored mesh is the projectile; its embedded material
 	// remains MI_Catalyst. No temporary procedural duplicate is generated.
 	UStaticMesh* BottleMesh = ResolveCatalystVfxSettings().ProjectileMesh.LoadSynchronous();
+	if (!IsValid(BottleMesh))
+	{
+		// The actual consumed item is authoritative when the optional VFX profile is absent.
+		BottleMesh = SourceFlaskMesh;
+	}
 	if (LaunchCell != ImpactCell && bBallisticReachable && IsValid(BottleMesh))
 	{
 		UStaticMeshComponent* Bottle = NewObject<UStaticMeshComponent>(this);

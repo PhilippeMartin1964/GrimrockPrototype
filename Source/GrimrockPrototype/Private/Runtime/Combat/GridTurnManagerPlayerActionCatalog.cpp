@@ -1757,7 +1757,8 @@ bool UGridTurnManagerComponent::RequestExplorationCatalystActionAtCell(
 	ApplyCatalystBurstDamage(Plan);
 	// One flight, one impact and independent per-cell visual wave.
 	RuntimeActor->PlaySurfaceCatalystArea(
-		FIntPoint(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY), TargetCell, Plan);
+		FIntPoint(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY), TargetCell, Plan,
+		Item->WorldMesh.LoadSynchronous());
 	GridEventFeedPublisher::PublishEvent(this,
 		FGridCombatEventFeedFormatter::MakeCatalystLaunch(
 			ResolveCharacterDisplayName(Action.CharacterIndex), Plan.Num()));
@@ -2622,8 +2623,10 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	// authored projectile hits the target cell. Outcomes include dry Fizzle.
 	if (bCatalystArea && IsValid(RuntimeActor))
 	{
+		const UGridItemDefinitionAsset* CatalystDefinition = Inventory->FindItemDefinition(Action.SourceDefinitionId);
 		RuntimeActor->PlaySurfaceCatalystArea(
-			PartyCell, Preview.TargetCell, CatalystPlan);
+			PartyCell, Preview.TargetCell, CatalystPlan,
+			IsValid(CatalystDefinition) ? CatalystDefinition->WorldMesh.LoadSynchronous() : nullptr);
 	}
 	// Combat/exploration share the same catalyst event; a combat throw gets exactly
 	// one entry after the cost and C6 reaction are committed (never during targeting).
