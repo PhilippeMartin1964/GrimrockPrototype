@@ -8,6 +8,46 @@ class USoundBase;
 class UMaterialInterface;
 class UStaticMesh;
 
+/** A per-component Niagara user override. The type must match the actual
+ * parameter type exposed by the selected Niagara system.
+ */
+UENUM(BlueprintType)
+enum class EGridNiagaraOverrideValueType : uint8
+{
+	Float,
+	Integer,
+	Boolean,
+	Vector3,
+	Color
+};
+
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridNiagaraUserOverride
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara")
+	FName ParameterName = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara")
+	EGridNiagaraOverrideValueType ValueType = EGridNiagaraOverrideValueType::Float;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara")
+	float FloatValue = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara")
+	int32 IntValue = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara")
+	bool bBoolValue = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara")
+	FVector VectorValue = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara")
+	FLinearColor ColorValue = FLinearColor::White;
+};
+
 /** One reusable Niagara ground-fire presentation; not a level or gameplay component. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridFireVfxSettings
@@ -85,6 +125,14 @@ struct GRIMROCKPROTOTYPE_API FGridFireVfxSettings
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters")
 	bool bAutoBindKnownFireControls = true;
+
+	/** FIREFX09: per-profile, explicitly authored overrides applied LAST.
+	 * Supports all matching Niagara User Float/Int/Bool/Vector3/Color values,
+	 * including vendor-specific controls not represented by dedicated fields.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters",
+		meta=(TitleProperty="ParameterName"))
+	TArray<FGridNiagaraUserOverride> UserParameterOverrides;
 
 	/** Optional names of actual Niagara User Parameters (including User. prefix). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters")

@@ -6,6 +6,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraTypes.h"
 #include "NiagaraUserRedirectionParameterStore.h"
+#include "Core/GridNiagaraUserOverrideApplicator.h"
 
 /** Authoring-level adapter: only binds real, exposed, type-correct Niagara
  * User parameters on each component; never mutates the shared system asset.
@@ -26,6 +27,8 @@ struct FGridFireNiagaraBindings
 	bool bTintVec3 = false;
 	bool bTintVec4 = false;
 	FName TintName;
+
+	TArray<FGridResolvedNiagaraOverride> ExplicitOverrides;
 
 	static FString ShortName(FName Value)
 	{
@@ -49,7 +52,10 @@ struct FGridFireNiagaraBindings
 		const FGridFireVfxSettings& Settings)
 	{
 		FGridFireNiagaraBindings Plan;
-		if (!IsValid(System) || !Settings.bAutoBindKnownFireControls) return Plan;
+		if (!IsValid(System)) return Plan;
+		FGridNiagaraUserOverrideApplicator::Resolve(
+			System, Settings.UserParameterOverrides, Plan.ExplicitOverrides);
+		if (!Settings.bAutoBindKnownFireControls) return Plan;
 		const FNiagaraUserRedirectionParameterStore& Store = System->GetExposedParameters();
 		TArray<FNiagaraVariable> UserVariables;
 		Store.GetUserParameters(UserVariables);
@@ -132,6 +138,11 @@ struct FGridFireNiagaraBindings
 			}
 		}
 		return Plan;
+	}
+
+	void ApplyExplicitOverrides(UNiagaraComponent* Component) const
+	{
+		FGridNiagaraUserOverrideApplicator::Apply(Component, ExplicitOverrides);
 	}
 
 	void Apply(UNiagaraComponent* Component, const FGridFireVfxSettings& Settings,

@@ -6,6 +6,7 @@
 #include "Core/GridCatalystVfxProfileAsset.h"
 #include "Core/GridFireNiagaraGeometry.h"
 #include "Core/GridFireNiagaraBindings.h"
+#include "Core/GridNiagaraUserOverrideApplicator.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -238,6 +239,17 @@ bool FGridFireNiagaraGeometryControlsTest::RunTest(const FString&)
 	TestTrue(TEXT("Flame rate scales without clobbering the native base"),
 		FMath::IsNearlyEqual(FGridFireNiagaraBindings::ScaledRate(84.f, .5f), 42.f));
 	TestEqual(TEXT("Smoke disabled means no rate"), FGridFireNiagaraBindings::ScaledRate(84.f, 0.f), 0.f);
+	TestTrue(TEXT("Typed override accepts actual Float"), FGridNiagaraUserOverrideApplicator::MatchesType(
+		EGridNiagaraOverrideValueType::Float, FNiagaraTypeDefinition::GetFloatDef()));
+	TestFalse(TEXT("Typed override never writes Float into Vector"),
+		FGridNiagaraUserOverrideApplicator::MatchesType(
+			EGridNiagaraOverrideValueType::Float, FNiagaraTypeDefinition::GetVec3Def()));
+	TestTrue(TEXT("Typed override accepts Vector3"),
+		FGridNiagaraUserOverrideApplicator::MatchesType(
+			EGridNiagaraOverrideValueType::Vector3, FNiagaraTypeDefinition::GetVec3Def()));
+	TestEqual(TEXT("Overrides always use canonical User namespace"),
+		FGridNiagaraUserOverrideApplicator::ShortName(FName(TEXT("User.FlameSizeMax"))),
+		FString(TEXT("FlameSizeMax")));
 	return true;
 }
 

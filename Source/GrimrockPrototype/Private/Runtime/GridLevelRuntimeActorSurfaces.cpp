@@ -1167,6 +1167,9 @@ void AGridLevelRuntimeActor::LogGroundFireNiagaraBindings()
 			CheckBinding(TEXT("SmokeDensity"), Vfx.SmokeDensityParameter);
 			CheckBinding(TEXT("FireTint"), Vfx.FireTintParameter);
 			Report += FString::Printf(
+				TEXT("Overrides utilisateur valides / demandes : %d / %d\n"),
+				FireBindings.ExplicitOverrides.Num(), Vfx.UserParameterOverrides.Num());
+			Report += FString::Printf(
 				TEXT("AUTO ADAPTER : SpawnBox=%s, FlameRate=%s (natif %.2f), ")
 				TEXT("SmokeRate=%s (natif %.2f), Tint=%s\n"),
 				FireBindings.bSpawnBox ? TEXT("compatible") : TEXT("non"),
@@ -1344,6 +1347,8 @@ void AGridLevelRuntimeActor::UpdateFireSurfacePresentationSettings()
 		if (!(FireBindings.bTintColor || FireBindings.bTintVec3 || FireBindings.bTintVec4)
 			&& !Vfx.FireTintParameter.IsNone())
 			FlameFx->SetVariableLinearColor(Vfx.FireTintParameter, Vfx.FireTint);
+		// Author-defined typed values always have final priority.
+		FireBindings.ApplyExplicitOverrides(FlameFx);
 	}
 	for (int32 Index = 0; Index < ActiveFireSurfaceLights.Num(); ++Index)
 	{
@@ -1447,6 +1452,7 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 		{
 			FlameFx->SetVariableLinearColor(Vfx.FireTintParameter, Vfx.FireTint);
 		}
+		FireBindings.ApplyExplicitOverrides(FlameFx);
 		FlameFx->Activate(true);
 		ActiveFireNiagaraComponents.Add(FlameFx);
 
