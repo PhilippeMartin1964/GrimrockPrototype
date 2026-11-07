@@ -12,6 +12,7 @@
 #include "Components/PointLightComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
@@ -216,6 +217,15 @@ float AGridLevelRuntimeActor::GetOilSplashSpreadScale(float NormalizedProgress)
 	return FMath::Lerp(0.18f, 1.f, EaseOut);
 }
 
+void AGridLevelRuntimeActor::PlayFlaskGlassBreakAt(const FVector& LocalImpactCenter)
+{
+	UNiagaraSystem* System = FlaskGlassBreakVfx.LoadSynchronous();
+	if (!IsValid(System) || !GetWorld() || !GetWorld()->IsGameWorld()) return;
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), System,
+		GetActorTransform().TransformPosition(LocalImpactCenter), FRotator::ZeroRotator,
+		FVector(FMath::Clamp(FlaskGlassBreakScale, 0.01f, 5.f)), true, true);
+}
+
 void AGridLevelRuntimeActor::ClearOilFlaskFlight()
 {
 	if (UWorld* World = GetWorld())
@@ -295,7 +305,10 @@ void AGridLevelRuntimeActor::UpdateOilFlaskFlight()
 	if (T >= OilFlaskFlightDuration)
 	{
 		const FIntPoint ImpactCell = OilFlaskImpactCell;
+		const FVector ImpactPoint = OilFlaskFlightStart +
+			OilFlaskFlightVelocity * T - FVector(0.f, 0.f, .5f * OilFlaskFlightGravity * T * T);
 		ClearOilFlaskFlight();
+		PlayFlaskGlassBreakAt(ImpactPoint);
 		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
 	}
 }
@@ -760,6 +773,10 @@ void AGridLevelRuntimeActor::BeginCatalystImpactVfx()
 	bCatalystImpactStarted = true;
 	CatalystImpactElapsedStart = CatalystVisualElapsedSeconds;
 	++CatalystImpactCount;
+	if (IsValid(ActiveCatalystProjectile))
+	{
+		PlayFlaskGlassBreakAt(CatalystFlightEnd);
+	}
 	if (IsValid(ActiveCatalystProjectile))
 	{
 		ActiveCatalystProjectile->DestroyComponent();

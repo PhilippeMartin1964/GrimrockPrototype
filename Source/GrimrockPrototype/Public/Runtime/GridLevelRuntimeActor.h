@@ -35,6 +35,7 @@ class UDecalComponent;
 class UStaticMeshComponent;
 class UPointLightComponent;
 class UNiagaraComponent;
+class UNiagaraSystem;
 class UGridSurfaceVfxProfileAsset;
 class UGridCatalystVfxProfileAsset;
 class UReadableMessageWidget;
@@ -250,6 +251,15 @@ public:
 	float CatalystBallisticFlightSeconds = 0.f;
 	float CatalystBallisticGravityCmPerSec2 = 980.f;
 	TArray<FGridCatalystVisualCell> ActiveCatalystVisualCells;
+
+	/** FLASK02: optional authored glass fragments / shatter FX, not a FireFX dependency. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact")
+	TSoftObjectPtr<UNiagaraSystem> FlaskGlassBreakVfx;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact")
+	float FlaskGlassBreakScale = 1.f;
+
+	void PlayFlaskGlassBreakAt(const FVector& LocalImpactCenter);
 
 	/** FLASK01: oil bottle in flight, separate from the existing impact splash. */
 	UPROPERTY(Transient)
