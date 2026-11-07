@@ -15,6 +15,7 @@
 #include "Components/AudioComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "NiagaraUserRedirectionParameterStore.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
@@ -1081,6 +1082,55 @@ void AGridLevelRuntimeActor::UpdateCatalystReactionVfx()
 			Spark->SetRelativeScale3D(FVector(Scale, Scale, Scale * (bIce ? .7f : 1.4f)));
 		}
 	}
+}
+
+
+void AGridLevelRuntimeActor::LogGroundFireNiagaraBindings() const
+{
+	const FGridFireVfxSettings Vfx = ResolveFireVfxSettings();
+	UNiagaraSystem* System = Vfx.GroundFireSystem.LoadSynchronous();
+	if (!IsValid(System))
+	{
+		UE_LOG(LogGridSurfaceRuntime, Warning,
+			TEXT("[FIREFX06] No loadable GroundFireSystem in the selected FireVfxProfile."));
+		return;
+	}
+	TArray<FNiagaraVariable> Parameters;
+	System->GetExposedParameters().GetUserParameters(Parameters);
+	TArray<FString> Names;
+	for (const FNiagaraVariable& Parameter : Parameters)
+	{
+		Names.Add(Parameter.GetName().ToString());
+	}
+	Names.Sort();
+	UE_LOG(LogGridSurfaceRuntime, Display,
+		TEXT("[FIREFX06] Niagara=%s | Exposed User Parameters (%d): %s"),
+		*System->GetPathName(), Names.Num(),
+		Names.IsEmpty() ? TEXT("<none>") : *FString::Join(Names, TEXT(", ")));
+	const auto Report = [&Names](const TCHAR* Label, FName Binding)
+	{
+		if (Binding.IsNone())
+		{
+			UE_LOG(LogGridSurfaceRuntime, Display,
+				TEXT("[FIREFX06] %s = None; no vendor parameter binding."), Label);
+			return;
+		}
+		UE_LOG(LogGridSurfaceRuntime, Warning,
+			TEXT("[FIREFX06] %s = %s | Present in Niagara exposed parameters: %s"),
+			Label, *Binding.ToString(),
+			Names.Contains(Binding.ToString()) ? TEXT("YES") : TEXT("NO"));
+	};
+	Report(TEXT("SpawnAreaParameter"), Vfx.SpawnAreaParameter);
+	Report(TEXT("FlameHeightParameter"), Vfx.FlameHeightParameter);
+	Report(TEXT("FlameDensityParameter"), Vfx.FlameDensityParameter);
+	Report(TEXT("SmokeDensityParameter"), Vfx.SmokeDensityParameter);
+	Report(TEXT("FireTintParameter"), Vfx.FireTintParameter);
+	UE_LOG(LogGridSurfaceRuntime, Display,
+		TEXT("[FIREFX06] FlameHeightCm=%.1f | Coverage=%.2f | NiagaraReferenceHeightCm=%.1f | NiagaraReferenceWidthCm=%.1f."),
+		Vfx.FlameHeightCm, Vfx.GroundFireCoverage,
+		Vfx.NiagaraReferenceHeightCm, Vfx.NiagaraReferenceWidthCm);
+	UE_LOG(LogGridSurfaceRuntime, Warning,
+		TEXT("[FIREFX06] Component transforms may NOT scale simulated particles in world-space emitters. Inspect each emitter's Local Space and renderer bindings in the Niagara editor."));
 }
 
 void AGridLevelRuntimeActor::ClearFireCrackleAudio()

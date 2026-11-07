@@ -223,6 +223,10 @@ public:
 
 	/** Preview-only settings from the assigned profile (no gameplay authority). */
 	FGridFireVfxSettings ResolveFireVfxSettings() const;
+
+	/** FIREFX06.2: inspect the actual Niagara User.* names without modifying vendor assets. */
+	UFUNCTION(CallInEditor, BlueprintCallable, Category="Combat|VFX|Fire|Diagnostics")
+	void LogGroundFireNiagaraBindings() const;
 	FGridCatalystVfxSettings ResolveCatalystVfxSettings() const;
 
 	UPROPERTY(Transient)

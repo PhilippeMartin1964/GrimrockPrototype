@@ -15,9 +15,13 @@ soit le pack, sans toucher aux assets tiers :
 - Échelle verticale **Z** :
   `GroundFireScale × (FlameHeightCm / NiagaraReferenceHeightCm)`
 
-Désormais `FlameHeightCm` change effectivement le facteur d'échelle Z des
-flammes, et `GroundFireCoverage` change le facteur X/Y, même si le système
-Niagara n'expose **aucun** paramètre utilisateur.
+`FlameHeightCm` change effectivement le facteur d'échelle **Z du composant**,
+et `GroundFireCoverage` change son facteur **X/Y**, même si le système Niagara
+n'expose aucun paramètre utilisateur. Attention : pour un émetteur **World Space**
+ou des tailles de particules définies en unités monde, le changement de
+transformation du composant peut ne pas se refléter pleinement dans la hauteur
+**visible des particules**. La transmission d'un `User.*` correctement relié
+aux modules Niagara demeure alors nécessaire.
 Cela ne présuppose pas que le Niagara connaît sa hauteur physique.
 Les deux références de calibration indiquent combien mesure le système
 d'origine à `GroundFireScale = 1`.
@@ -65,3 +69,22 @@ le feu pour rester cohérents avec le profil.
 un volume de spawn codé en dur, le changement de transformation peut être
 écrêté. Corriger alors les bounds et la taille native de cet asset Niagara
 dans l'éditeur ; le C++ ne peut pas réécrire ses graphes de particules.
+
+## FIREFX06.2 — Diagnostic immédiat du Niagara commercial
+
+Dans `L_Dungeon`, sélectionner l'instance de `BP_GridLevelRuntimeActor`
+(dans World Outliner), puis dans les **Details**, rechercher le bouton
+`Log Ground Fire Niagara Bindings` (fonction `Call In Editor`).
+Cliquer, puis ouvrir **Window → Developer Tools → Output Log**,
+filtrer `[FIREFX06]`.
+
+Le diagnostic lit réellement le système sélectionné par `DA_GroundFire`,
+liste tous ses paramètres utilisateurs exposés, et indique pour chacun des
+cinq champs du profil s'il est absent, renseigné et effectivement présent
+dans le système Niagara. Il signale explicitement la limite *World Space*.
+Aucun fichier du pack FAB n'est modifié ni versionné par ce diagnostic.
+
+Le fait qu'un paramètre `User.*` existe **ne démontre pas encore** qu'il est
+utilisé dans les modules Niagara. Pour agir sur la hauteur de particules
+World Space ou sur la fumée réelle, le paramètre doit être relié dans le graphe
+Niagara correspondant.

@@ -61,6 +61,8 @@ bool FGridVfxArchitectureDataOwnership::RunTest(const FString&)
 
 	const UClass* Actor = AGridLevelRuntimeActor::StaticClass();
 	TestNotNull(TEXT("One reusable fire profile"), Actor->FindPropertyByName(TEXT("FireVfxProfile")));
+	TestNotNull(TEXT("Editor Niagara parameter audit available"),
+		Actor->FindFunctionByName(TEXT("LogGroundFireNiagaraBindings")));
 	TestNotNull(TEXT("Finite ignition burst lifetime"), Actor->FindPropertyByName(TEXT("FireIgnitionBurstMaxLifetimeSeconds")));
 	TestNotNull(TEXT("Finite glass-break lifetime"), Actor->FindPropertyByName(TEXT("FlaskGlassBreakMaxLifetimeSeconds")));
 	TestNotNull(TEXT("One independent catalyst profile"), Actor->FindPropertyByName(TEXT("CatalystVfxProfile")));
