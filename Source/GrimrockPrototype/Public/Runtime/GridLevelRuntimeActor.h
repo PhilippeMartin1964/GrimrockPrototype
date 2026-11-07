@@ -231,6 +231,9 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UPointLightComponent>> ActiveFireSurfaceLights;
 
+	/** FIREFX06.1: update existing fires during PIE when DA_GroundFire values change. */
+	FTimerHandle FireProfileLiveUpdateTimer;
+
 	/** One persistent spatial loop per contiguous fire region; retained across visual refreshes. */
 	UPROPERTY(Transient)
 	TMap<FIntPoint, TObjectPtr<UAudioComponent>> ActiveFireCrackleAudio;
@@ -855,6 +858,7 @@ public:
 	void UpdateCatalystReactionVfx();
 	void ClearCatalystReactionVfx();
 	void RefreshFireSurfaceVisuals();
+	void UpdateFireSurfacePresentationSettings();
 	void ClearFireSurfaceVisuals(bool bClearAudio = true);
 	void RefreshWaterSurfaceVisuals();
 	void ClearWaterSurfaceVisuals();

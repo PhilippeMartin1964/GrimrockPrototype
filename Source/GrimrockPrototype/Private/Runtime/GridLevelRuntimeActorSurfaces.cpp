@@ -1164,6 +1164,10 @@ void AGridLevelRuntimeActor::RefreshFireCrackleAudio(
 
 void AGridLevelRuntimeActor::ClearFireSurfaceVisuals(bool bClearAudio)
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(FireProfileLiveUpdateTimer);
+	}
 	if (bClearAudio) ClearFireCrackleAudio();
 	for (UNiagaraComponent* FlameFx : ActiveFireNiagaraComponents)
 	{
@@ -1182,6 +1186,66 @@ void AGridLevelRuntimeActor::ClearFireSurfaceVisuals(bool bClearAudio)
 		}
 	}
 	ActiveFireSurfaceLights.Reset();
+}
+
+
+void AGridLevelRuntimeActor::UpdateFireSurfacePresentationSettings()
+{
+	UWorld* World = GetWorld();
+	if (!World || !World->IsGameWorld() || !LevelAsset || ActiveFireNiagaraComponents.IsEmpty())
+	{
+		if (World) World->GetTimerManager().ClearTimer(FireProfileLiveUpdateTimer);
+		return;
+	}
+	const FGridFireVfxSettings Vfx = ResolveFireVfxSettings();
+	const FVector Scale = FGridFireNiagaraGeometry::ComponentScale(Vfx, LevelAsset->CellSize);
+	UNiagaraSystem* SelectedSystem = Vfx.GroundFireSystem.LoadSynchronous();
+	if (!IsValid(SelectedSystem) || !IsValid(ActiveFireNiagaraComponents[0]) ||
+		ActiveFireNiagaraComponents[0]->GetAsset() != SelectedSystem ||
+		ActiveFireNiagaraComponents.Num() > Vfx.MaxFireCells)
+	{
+		// System or budget changed in DA_GroundFire while PIE is running.
+		RefreshFireSurfaceVisuals();
+		return;
+	}
+	for (UNiagaraComponent* FlameFx : ActiveFireNiagaraComponents)
+	{
+		if (!IsValid(FlameFx)) continue;
+		if (!FlameFx->GetRelativeScale3D().Equals(Scale, .0001f))
+		{
+			FlameFx->SetRelativeScale3D(Scale);
+		}
+		// Optional Niagara User.* controls are still supported for compatible packs.
+		if (!Vfx.SpawnAreaParameter.IsNone())
+		{
+			FlameFx->SetVariableVec3(Vfx.SpawnAreaParameter,
+				FVector(LevelAsset->CellSize * Vfx.GroundFireCoverage / Scale.X,
+					LevelAsset->CellSize * Vfx.GroundFireCoverage / Scale.Y,
+					Vfx.FlameHeightCm / Scale.Z));
+		}
+		if (!Vfx.FlameHeightParameter.IsNone())
+			FlameFx->SetVariableFloat(Vfx.FlameHeightParameter, Vfx.FlameHeightCm / Scale.Z);
+		if (!Vfx.FlameDensityParameter.IsNone())
+			FlameFx->SetVariableFloat(Vfx.FlameDensityParameter, Vfx.FlameDensity);
+		if (!Vfx.SmokeDensityParameter.IsNone())
+			FlameFx->SetVariableFloat(Vfx.SmokeDensityParameter,
+				Vfx.bEnableSmoke ? Vfx.SmokeDensity : 0.f);
+		if (!Vfx.FireTintParameter.IsNone())
+			FlameFx->SetVariableLinearColor(Vfx.FireTintParameter, Vfx.FireTint);
+	}
+	for (int32 Index = 0; Index < ActiveFireSurfaceLights.Num(); ++Index)
+	{
+		UPointLightComponent* Light = ActiveFireSurfaceLights[Index];
+		if (!IsValid(Light)) continue;
+		Light->SetVisibility(Index < Vfx.MaxFireLights && Vfx.FireLightIntensity > 0.f);
+		Light->SetIntensity(Vfx.FireLightIntensity);
+		Light->SetLightColor(Vfx.FireLightColor);
+		Light->SetAttenuationRadius(FMath::Max(1.f, LevelAsset->CellSize) * Vfx.FireLightRadiusCells);
+	}
+	for (const TPair<FIntPoint, TObjectPtr<UAudioComponent>>& Entry : ActiveFireCrackleAudio)
+	{
+		if (IsValid(Entry.Value)) Entry.Value->SetVolumeMultiplier(Vfx.FireCrackleVolume);
+	}
 }
 
 void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
@@ -1282,6 +1346,11 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 			Light->RegisterComponent();
 			ActiveFireSurfaceLights.Add(Light);
 		}
+	}
+	if (!ActiveFireNiagaraComponents.IsEmpty())
+	{
+		World->GetTimerManager().SetTimer(FireProfileLiveUpdateTimer, this,
+			&AGridLevelRuntimeActor::UpdateFireSurfacePresentationSettings, .25f, true);
 	}
 }
 

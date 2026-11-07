@@ -48,3 +48,20 @@ des propriétés garanties.
 vérifie l'indépendance XY/Z, le facteur global et la protection contre
 une calibration égale à zéro. Les tests fonctionnent sans le pack commercial
 et sans modifier `DA_GroundFire.uasset` versionné.
+
+## FIREFX06.1 — Modification en direct dans le PIE
+
+Le runtime contrôle désormais les valeurs de `DA_GroundFire` toutes les
+0,25 secondes **uniquement tant que des composants de feu sont actifs**.
+Quand `FlameHeightCm`, `GroundFireCoverage` ou `GroundFireScale` change,
+la transformation XY/Z est actualisée sans recréer les flammes.
+Les lumières et le volume de crépitement sont également actualisés.
+Le timer s'arrête lorsque le feu est détruit, au nettoyage du niveau,
+et à la fin du PIE.
+Les changements de Niagara System ou des limites d'affichage reconstruisent
+le feu pour rester cohérents avec le profil.
+
+**Limite :** si le système Niagara possède ses propres limites/bounds ou
+un volume de spawn codé en dur, le changement de transformation peut être
+écrêté. Corriger alors les bounds et la taille native de cet asset Niagara
+dans l'éditeur ; le C++ ne peut pas réécrire ses graphes de particules.
