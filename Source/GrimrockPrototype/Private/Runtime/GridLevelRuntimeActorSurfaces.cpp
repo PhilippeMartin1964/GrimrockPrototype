@@ -296,6 +296,18 @@ FVector AGridLevelRuntimeActor::GetFlaskImpactPoint(FIntPoint To) const
 		FVector(Size * .5f, Size * .5f, FMath::Clamp(FlaskImpactHeightCm, 0.f, 50.f));
 }
 
+void AGridLevelRuntimeActor::BeginOilFlaskVisualBatch()
+{
+	bOilFlaskVisualsDeferred = true;
+}
+
+void AGridLevelRuntimeActor::FinishOilFlaskVisualBatch()
+{
+	if (!bOilFlaskVisualsDeferred) return;
+	bOilFlaskVisualsDeferred = false;
+	RefreshCombatOilSurfaceVisuals();
+}
+
 void AGridLevelRuntimeActor::PlayOilFlaskThrowAtCell(
 	FIntPoint LaunchCell, FIntPoint ImpactCell, UStaticMesh* FlaskMesh)
 {
@@ -303,6 +315,7 @@ void AGridLevelRuntimeActor::PlayOilFlaskThrowAtCell(
 	UWorld* World = GetWorld();
 	if (!World || !World->IsGameWorld() || !LevelAsset || LaunchCell == ImpactCell)
 	{
+		FinishOilFlaskVisualBatch();
 		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
 		return;
 	}
@@ -312,6 +325,7 @@ void AGridLevelRuntimeActor::PlayOilFlaskThrowAtCell(
 	{
 		UE_LOG(LogGridSurfaceRuntime, Warning,
 			TEXT("[FLASK04] Oil bottle mesh missing; set OilFlaskFallbackMesh on BP_GridLevelRuntimeActor."));
+		FinishOilFlaskVisualBatch();
 		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
 		return;
 	}
@@ -323,6 +337,7 @@ void AGridLevelRuntimeActor::PlayOilFlaskThrowAtCell(
 		(FMath::Abs(World->GetGravityZ()) > KINDA_SMALL_NUMBER ? FMath::Abs(World->GetGravityZ()) : 980.f), Flight))
 	{
 		UE_LOG(LogGridSurfaceRuntime, Warning, TEXT("FLASK01: oil visual trajectory unavailable."));
+		FinishOilFlaskVisualBatch();
 		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
 		return;
 	}
@@ -376,6 +391,7 @@ void AGridLevelRuntimeActor::UpdateOilFlaskFlight()
 		const FVector ImpactPoint = OilFlaskFlightStart +
 			OilFlaskFlightVelocity * T - FVector(0.f, 0.f, .5f * OilFlaskFlightGravity * T * T);
 		ClearOilFlaskFlight();
+		FinishOilFlaskVisualBatch();
 		PlayFlaskGlassBreakAt(ImpactPoint);
 		PlayFlaskAudioAt(OilFlaskBreakSound, ImpactPoint);
 		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
@@ -1332,7 +1348,7 @@ void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 	RefreshExplorationOilTimer();
 	// A catalyst throw commits its C6 data once, but the player sees surfaces
 	// switch only at the bottle impact. Other gameplay readers see committed data.
-	if (bCatalystVisualsDeferred)
+	if (bCatalystVisualsDeferred || bOilFlaskVisualsDeferred)
 	{
 		return;
 	}

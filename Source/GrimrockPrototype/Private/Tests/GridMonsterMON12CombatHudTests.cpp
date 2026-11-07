@@ -1877,9 +1877,8 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 	const FGridCombatSurfaceState* Oil = Fixture.Runtime->FindCombatSurfaceAtCell(TargetCell.X, TargetCell.Y);
 	TestTrue(TEXT("L'effet d'huile RPG03.6 est présent sur la cellule visée"),
 		Oil && Oil->IsValid() && Oil->SurfaceType == EGridCombatSurfaceType::Oil);
-	TestTrue(TEXT("La flasque produit un décalque sur le vrai sol après le ciblage"),
-		Fixture.Runtime->GetActiveOilDecalCount() > 0 &&
-		Fixture.Runtime->GetActiveOilDecal(0) != nullptr);
+	TestEqual(TEXT("No visible oil puddle before the bottle lands"),
+		Fixture.Runtime->GetActiveOilDecalCount(), 0);
 	TestEqual(TEXT("Une flasque a été consommée"),
 		Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 1);
 	// FLASK01: in-flight bottle defers the transient splash until physical impact.
@@ -1897,6 +1896,9 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 		Fixture.Runtime->GetOilSplashPresentationCount(), 1);
 	TestEqual(TEXT("Splash temporaire actif après impact"),
 		Fixture.Runtime->GetActiveOilSplashCount(), 1);
+	TestTrue(TEXT("Persistent oil decals appear with the impact"),
+		Fixture.Runtime->GetActiveOilDecalCount() > 0 &&
+		Fixture.Runtime->GetActiveOilDecal(0) != nullptr);
 
 	UGridEventFeedSubsystem* Feed = Fixture.TestWorld.World
 		? Fixture.TestWorld.World->GetSubsystem<UGridEventFeedSubsystem>() : nullptr;

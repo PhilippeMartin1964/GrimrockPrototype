@@ -321,6 +321,7 @@ public:
 	FVector OilFlaskFlightVelocity = FVector::ZeroVector;
 	float OilFlaskFlightGravity = 980.f;
 	FIntPoint OilFlaskImpactCell = FIntPoint::ZeroValue;
+	bool bOilFlaskVisualsDeferred = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Ballistics", meta=(ClampMin="100.0", ClampMax="5000.0"))
 	float OilFlaskLaunchSpeedCmPerSec = 900.f;
@@ -828,6 +829,9 @@ public:
 	void RefreshCombatOilSurfaceVisuals();
 	void ClearCombatOilSurfaceVisuals();
 	/** Présentation facultative après résolution d'une vraie action de flasque. */
+	/** Only oil decals are held until impact. RPG03.6 gameplay commits immediately. */
+	void BeginOilFlaskVisualBatch();
+	void FinishOilFlaskVisualBatch();
 	/** Start a physically simulated visual throw. RPG03.6 has already committed. */
 	void PlayOilFlaskThrowAtCell(FIntPoint LaunchCell, FIntPoint ImpactCell, UStaticMesh* FlaskMesh);
 	void UpdateOilFlaskFlight();

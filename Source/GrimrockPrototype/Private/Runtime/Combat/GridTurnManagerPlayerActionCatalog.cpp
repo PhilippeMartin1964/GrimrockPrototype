@@ -1909,6 +1909,7 @@ bool UGridTurnManagerComponent::RequestExplorationOilActionAtCell(
 		return false;
 	}
 
+	RuntimeActor->BeginOilFlaskVisualBatch();
 	int32 AppliedCells = 0;
 	for (const FIntPoint& Cell : ValidCells)
 	{
@@ -1921,6 +1922,7 @@ bool UGridTurnManagerComponent::RequestExplorationOilActionAtCell(
 	// The validated payload, cells and allocated runtime state make all applications
 	// deterministic on this game thread. No combat turn and no action points are used.
 	ensureMsgf(AppliedCells == ValidCells.Num(), TEXT("Exploration oil: prevalidated surfaces must all apply."));
+	if (AppliedCells == 0) RuntimeActor->FinishOilFlaskVisualBatch();
 	if (AppliedCells > 0)
 	{
 		RuntimeActor->PlayOilFlaskThrowAtCell(
@@ -2452,8 +2454,12 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	}
 
 	int32 OilFlaskAppliedCells = 0;
+	const bool bOilFlaskQuickItem = bSurfaceResolution &&
+		Action.Definition.ActionId == FName(TEXT("Action_Alchemist_OilSlick")) &&
+		Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
 	if (bSurfaceResolution && IsValid(RuntimeActor))
 	{
+		if (bOilFlaskQuickItem) RuntimeActor->BeginOilFlaskVisualBatch();
 		if (bCatalystArea)
 		{
 			RuntimeActor->BeginCatalystSurfaceVisualBatch();
@@ -2639,6 +2645,10 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	// Un seul splash et une seule entrée Combat du flux d'événements par
 	// flasque effectivement consommée. Pas d'événement lors du ciblage ni
 	// lors de la restauration d'un niveau, ni une entrée par cellule.
+	if (bOilFlaskQuickItem && OilFlaskAppliedCells == 0 && IsValid(RuntimeActor))
+	{
+		RuntimeActor->FinishOilFlaskVisualBatch();
+	}
 	if (OilFlaskAppliedCells > 0 && IsValid(RuntimeActor))
 	{
 		const UGridItemDefinitionAsset* OilDefinition = Inventory->FindItemDefinition(Action.SourceDefinitionId);

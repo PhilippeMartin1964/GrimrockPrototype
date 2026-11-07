@@ -297,6 +297,7 @@ void AGridLevelRuntimeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	ClearExplorationOilTimer();
 	ClearCombatOilSplash();
+	bOilFlaskVisualsDeferred = false;
 	ClearCatalystReactionVfx();
 	ClearCombatOilSurfaceVisuals();
 	ClearFireSurfaceVisuals();
@@ -313,6 +314,7 @@ void AGridLevelRuntimeActor::ClearVisuals(EGridRuntimeRebuildMode RebuildMode)
 		WallISM->ClearInstances();
 	ClearExplorationOilTimer();
 	ClearCombatOilSplash();
+	bOilFlaskVisualsDeferred = false;
 	ClearCatalystReactionVfx();
 	ClearCombatOilSurfaceVisuals();
 	ClearFireSurfaceVisuals();

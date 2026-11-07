@@ -47,3 +47,7 @@ silencieusement l'absence de sa bouteille.
 
 Les sons et Niagara sont facultatifs mais configurables indépendamment :
 voir le guide FLASK/FIREFX de configuration.
+
+## FLASK05 — Synchronisation de la flaque avec l'impact
+
+L'ancien code dessinait l'huile persistante dès la confirmation, alors que la bouteille était encore en vol. Désormais le runtime retarde uniquement ses visuels via `BeginOilFlaskVisualBatch` puis `FinishOilFlaskVisualBatch` à l'impact. Les surfaces et ressources RPG03.6 sont toujours déterminées immédiatement, sans modification des dégâts ni PA. Les tests MON12 vérifient l'absence de flaque avant l'impact et sa présence après.
