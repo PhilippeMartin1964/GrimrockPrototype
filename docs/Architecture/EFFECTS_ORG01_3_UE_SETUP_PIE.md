@@ -38,30 +38,23 @@ puis la suppression des chemins d'assets historiques dans le code/tests.
 
 Le pack tiers est installé dans `Content/F_FreeFlameFx_Pack/`, qui est exclu de Git.
 
-## 2. Créer le profil local de feu au sol
+## 2. Profil de feu au sol déjà créé et versionné
 
-Dans Content Browser :
+Dans le Content Browser, ouvrir
+`Content/GrimrockPrototype/Effects/Fire/Local/DA_GroundFire`.
+Cet asset **existe et est versionné** depuis le commit `a0bfc58e`.
+Il doit conserver sa référence `GroundFireSystem` vers le Niagara réellement
+installé dans `Content/F_FreeFlameFx_Pack/`.
 
-1. Dans \`Content/GrimrockPrototype/Effects/Fire/\`, créer
-   \`Local/\` s'il est absent.
-2. Dans \`Local/\` : clic droit → Miscellaneous → Data Asset →
-   classe \`GridSurfaceVfxProfileAsset\` → nom \`DA_GroundFire\`.
-3. Sous \`Settings\`, sélectionner pour \`GroundFireSystem\` le Niagara
-   \`/Game/FireFX/FX/NS_FFX_Ground_Fire\`.
-4. Conserver d'abord les valeurs C++ par défaut :
-   \`GroundFireScale=1.0\`, \`GroundFireCoverage=0.90\`,
-   \`FlameHeightCm=75\`, \`FlameDensity=1.0\`,
-   \`bEnableSmoke=true\`, \`SmokeDensity=0.5\`,
-   \`MaxFireCells=48\`, \`MaxFireLights=8\`,
-   \`FireLightIntensity=650\`, \`FireLightRadiusCells=1.2\`.
-5. Les cinq champs de noms de \`Niagara User Parameters\`
-   peuvent rester \`None\` ; ne renseigner \`User.*\` qu'après avoir
-   vérifié le nom exact et le type dans l'asset Niagara local.
+Le pack tiers n'est pas versionné ; le Data Asset Grimrock l'est.
+Le lien est une référence souple : aucun Niagara propriétaire n'est copié
+dans le dépôt.
 
-Les paramètres \`GroundFireCoverage\`, \`FlameHeightCm\`, etc. n'ont
-un effet direct sur la simulation Niagara **que si les paramètres
-User. correspondants sont correctement exposés et liés**. Les
-valeurs numériques ne fabriquent pas de paramètres dans FireFX.
+Les valeurs `GroundFireScale`, `GroundFireCoverage`, `FlameHeightCm`,
+`FlameDensity`, `SmokeDensity` et `FireTint` sont des réglages du profil.
+Elles ne modifient les particules Niagara que si les vrais `User Parameters`
+du système exposent des noms et types compatibles avec les champs configurés.
+Vérifier cela directement dans l'éditeur avant d'activer les liaisons.
 
 ## 3. Configurer le catalyseur séparément
 
@@ -72,10 +65,8 @@ valeurs numériques ne fabriquent pas de paramètres dans FireFX.
 - \`EmberMaterial\` : \`M_SurfaceCatalyst_Ember\`.
 - \`SparkMesh\` : facultatif.
 - Conserver pour le premier essai :
-  \`FlightDurationSeconds=0.42\`,
-  \`PulseDurationSeconds=0.95\`,
-  \`WaveDelayPerCellSeconds=0.085\`,
-  \`FlightArcHeightCm=82\`.
+  `LaunchSpeedCmPerSec=1300`, `PulseDurationSeconds=0.95`,
+  `WaveDelayPerCellSeconds=0.085`. Le vol est balistique, sa durée est calculée.
 
 Ce profil Grimrock doit être versionné, même si une référence souple pointe vers le pack tiers. L'aspect du flacon dans le mesh ne doit pas être
 confondu avec le projectile visuel Catalyst.
@@ -90,13 +81,11 @@ puis **Class Defaults → Combat / VFX** :
 
 Compile, Save, puis lancer PIE dans \`L_Dungeon\`.
 
-**Précaution Git cruciale :** \`BP_GridLevelRuntimeActor\` est
-versionné. L'affectation d'un \`DA_GroundFire\` ignoré par Git
-rendrait tout commit du Blueprint impropre au clonage (référence
-sérialisée vers un asset absent sur les autres postes). Ce réglage doit
-être traité comme **local pour l'essai** ; ne pas pousser le BP ainsi
-modifié. Un système de distribution du profil privé reste une décision
-séparée, à régler avant tout packaging destiné aux joueurs.
+**Politique Git actuelle :** les Class Defaults du Blueprint runtime,
+`DA_GroundFire` et tous les assets Grimrock sont versionnés.
+Seul le pack tiers `Content/F_FreeFlameFx_Pack/` est exclu.
+Le mécanisme de substitution par `GrimrockLocalVfx.ini` a été supprimé
+dans FIREFX05.
 
 Aucun paramètre global d'effet ne doit être renseigné dans
 \`DA_GridLevelAsset\` : le runtime référence directement ses deux profils.
@@ -129,7 +118,7 @@ Avant de déclarer le chantier **terminé** :
 3. Suppression du commandlet et des scripts de migration à usage unique,
    retrait de tout fallback vers \`Art/FX\`, tests du chemin final strict.
 4. Réexécution de la compilation et des tests automatisés sur master.
-5. Configuration des profils (locale pour FireFX) et contrôle PIE
+5. Configuration des profils versionnés et contrôle PIE
    effectués dans l'éditeur avec le contenu commercial réellement installé.
 6. Vérification de l'absence de matériaux/instances de feu ou
    d'alchimie involontairement dupliqués, en évitant de déplacer des

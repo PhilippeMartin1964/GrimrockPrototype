@@ -11,7 +11,7 @@ de gameplay. Il ne contient aucun réglage global de Niagara.**
   (FGridFireVfxSettings, UNiagaraSystem et paramètres utilisateur optionnels).
 - UGridCatalystVfxProfileAsset : uniquement la présentation transitoire
   du catalyseur (FGridCatalystVfxSettings : mesh du flacon, matériaux d'onde,
-  mesh d'étincelles, durées, arc et délai par case).
+  mesh d'étincelles, vitesse de lancement, durée d'onde et délai par case).
 - AGridLevelRuntimeActor : référence FireVfxProfile et référence
   CatalystVfxProfile. Pas de doublon de paramètres sur l'acteur.
 - FGridWorldObjectInstanceConfig.NiagaraOverrides : réglages rares par
