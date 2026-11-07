@@ -27,6 +27,27 @@ vers `/Game/FireFX` ou `Effects/Fire/Local` lorsque ces packages sont ignorés p
    `CatalystVfxProfile=/Game/GrimrockPrototype/Effects/Alchimie/Catalyst/DA_Catalyst_Default.DA_Catalyst_Default`
    après création effective de cet asset.
 
+
+Pour les effets transitoires et les sons (FIREFX03D), le même fichier privé
+peut recevoir les clés supplémentaires suivantes, seulement pour les assets
+que vous avez réellement importés/authorés :
+
+```ini
+FlaskGlassBreakVfx=/Game/.../VotreNiagaraBris.VotreNiagaraBris
+FireIgnitionBurstVfx=/Game/FireFX/FX/NS_FFX_FireBurst.NS_FFX_FireBurst
+OilFlaskThrowSound=/Game/.../VotreSonLancerHuile.VotreSonLancerHuile
+OilFlaskBreakSound=/Game/.../VotreSonBrisHuile.VotreSonBrisHuile
+CatalystFlaskThrowSound=/Game/.../VotreSonLancerCatalyseur.VotreSonLancerCatalyseur
+CatalystFlaskBreakSound=/Game/.../VotreSonBrisCatalyseur.VotreSonBrisCatalyseur
+FireIgnitionSound=/Game/.../VotreSonEmbrasement.VotreSonEmbrasement
+```
+
+Ces chemins sont des **exemples** (y compris l'emplacement exact du FireBurst,
+à confirmer dans votre pack). Chaque clé non renseignée laisse l'effet ou le son
+désactivé si le runtime ne reçoit aucune référence versionnable explicite.
+Les effets ponctuels chargent cet override uniquement en PIE, et le projet
+n'enregistre aucune dépendance vers le pack commercial sur GitHub.
+
 ## Priorités de résolution
 
 1. Profil explicite affecté au runtime/Blueprint (uniquement si versionnable).

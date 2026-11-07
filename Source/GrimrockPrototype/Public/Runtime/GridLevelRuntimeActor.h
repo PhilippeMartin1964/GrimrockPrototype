@@ -289,7 +289,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Audio")
 	TSoftObjectPtr<USoundBase> CatalystFlaskBreakSound;
 
-	void PlayFlaskAudioAt(const TSoftObjectPtr<USoundBase>& Sound, const FVector& LocalPosition);
+	void PlayFlaskAudioAt(const TSoftObjectPtr<USoundBase>& Sound, const FVector& LocalPosition,
+		const TCHAR* PrivateConfigKey = nullptr);
 
 	/** FLASK02: optional authored glass fragments / shatter FX, not a FireFX dependency. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact")
