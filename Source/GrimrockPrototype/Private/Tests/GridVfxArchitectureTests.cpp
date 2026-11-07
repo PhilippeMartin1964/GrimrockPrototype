@@ -4,6 +4,7 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridSurfaceVfxProfileAsset.h"
 #include "Core/GridCatalystVfxProfileAsset.h"
+#include "Core/GridFireNiagaraGeometry.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -180,6 +181,39 @@ bool FGridVfxArchitectureLevelIndependence::RunTest(const FString&)
 		Actor->ResolveFireVfxSettings().GroundFireSystem.IsNull());
 	TestTrue(TEXT("No hardcoded projectile mesh fallback"),
 		Actor->ResolveCatalystVfxSettings().ProjectileMesh.IsNull());
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFireNiagaraGeometryControlsTest,
+	"Grimrock.RPG.FIREFX06.GeometryControlsWithoutVendorParameters",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridFireNiagaraGeometryControlsTest::RunTest(const FString&)
+{
+	FGridFireVfxSettings Settings;
+	TestTrue(TEXT("Niagara User height is not required"),
+		Settings.FlameHeightParameter.IsNone());
+	TestTrue(TEXT("Niagara User coverage is not required"),
+		Settings.SpawnAreaParameter.IsNone());
+	const FVector Baseline = FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f);
+	TestTrue(TEXT("Default C++ transform preserves vendor native size"),
+		Baseline.Equals(FVector(1.f), .001f));
+	Settings.FlameHeightCm = 150.f;
+	const FVector Tall = FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f);
+	TestTrue(TEXT("Height 150 makes Z twice as tall"), FMath::IsNearlyEqual(Tall.Z, 2.f));
+	TestTrue(TEXT("Changing height never changes width"),
+		FMath::IsNearlyEqual(Tall.X, Baseline.X));
+	Settings.GroundFireCoverage = .45f;
+	const FVector Narrow = FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f);
+	TestTrue(TEXT("Half coverage changes XY only"), FMath::IsNearlyEqual(Narrow.X, .5f));
+	TestTrue(TEXT("Coverage preserves Z"), FMath::IsNearlyEqual(Narrow.Z, Tall.Z));
+	Settings.GroundFireScale = 1.5f;
+	const FVector Bigger = FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f);
+	TestTrue(TEXT("General size multiplies every axis"),
+		Bigger.Equals(Narrow * 1.5f, .001f));
+	Settings.NiagaraReferenceHeightCm = 0.f;
+	TestTrue(TEXT("Missing calibration cannot divide by zero"),
+		FMath::IsFinite(FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f).Z));
 	return true;
 }
 

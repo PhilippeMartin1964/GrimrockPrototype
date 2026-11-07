@@ -3,6 +3,7 @@
 #include "Core/GridSurfaceVfxProfileAsset.h"
 #include "Core/GridFlaskBallistics.h"
 #include "Core/GridFireAudioClusters.h"
+#include "Core/GridFireNiagaraGeometry.h"
 #include "Core/GridCatalystVfxProfileAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
@@ -1216,7 +1217,7 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 	if (!IsValid(FlameSystem)) return;
 
 	const float CellSize = FMath::Max(1.f, LevelAsset->CellSize);
-	const float Scale = Vfx.GroundFireScale;
+	const FVector RelativeFireScale = FGridFireNiagaraGeometry::ComponentScale(Vfx, CellSize);
 	const int32 VisibleCount = FMath::Min(Cells.Num(), Vfx.MaxFireCells);
 
 	for (int32 Index = 0; Index < VisibleCount; ++Index)
@@ -1229,20 +1230,28 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 		FlameFx->SetupAttachment(SceneRoot);
 		FlameFx->SetAsset(FlameSystem);
 		FlameFx->SetRelativeLocation(Center + FVector(0.f, 0.f, 4.f));
-		FlameFx->SetRelativeScale3D(FVector(Scale));
+		// Mandatory C++ transform: works for ANY Niagara, even if the commercial
+		// pack exposes no User.* controls. Height and ground footprint are independent.
+		FlameFx->SetRelativeScale3D(RelativeFireScale);
 		FlameFx->RegisterComponent();
 
 		// Names and types must match actual User Parameters on the selected Niagara.
 		// Empty names preserve the asset's own authored values.
 		if (!Vfx.SpawnAreaParameter.IsNone())
 		{
-			const float Width = CellSize * Vfx.GroundFireCoverage / Scale;
+			// Optional vendor control. Compensate for the game-owned component transform
+			// to avoid applying the same coverage/height twice when both are configured.
 			FlameFx->SetVariableVec3(Vfx.SpawnAreaParameter,
-				FVector(Width, Width, Vfx.FlameHeightCm / Scale));
+				FVector(CellSize * Vfx.GroundFireCoverage / RelativeFireScale.X,
+					CellSize * Vfx.GroundFireCoverage / RelativeFireScale.Y,
+					Vfx.FlameHeightCm / RelativeFireScale.Z));
 		}
 		if (!Vfx.FlameHeightParameter.IsNone())
 		{
-			FlameFx->SetVariableFloat(Vfx.FlameHeightParameter, Vfx.FlameHeightCm / Scale);
+			// Optional User.Float; when the vendor Niagara has no matching parameter,
+			// the independent component Z transform above still changes visible height.
+			FlameFx->SetVariableFloat(Vfx.FlameHeightParameter,
+				Vfx.FlameHeightCm / RelativeFireScale.Z);
 		}
 		if (!Vfx.FlameDensityParameter.IsNone())
 		{
