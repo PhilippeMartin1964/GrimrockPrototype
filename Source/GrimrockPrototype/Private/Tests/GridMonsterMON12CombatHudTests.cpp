@@ -1883,6 +1883,8 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 	TestEqual(TEXT("Une flasque a été consommée"),
 		Inventory->CountItemDefinitionInCharacterInventory(0, Flask.ItemDefinitionId), 1);
 	// FLASK01: in-flight bottle defers the transient splash until physical impact.
+	TestEqual(TEXT("A real oil bottle must fly before the splash"),
+		Fixture.Runtime->GetActiveOilFlaskProjectileCount(), 1);
 	if (Fixture.Runtime->GetActiveOilFlaskProjectileCount() > 0)
 	{
 		TestEqual(TEXT("Pas de splash avant impact"), Fixture.Runtime->GetOilSplashPresentationCount(), 0);
@@ -1993,6 +1995,8 @@ bool FARMEMENT011717OilExplorationRealPipeline::RunTest(const FString&)
 	const FGridCombatSurfaceState* Applied = Fixture.Runtime->FindCombatSurfaceAtCell(Target.X, Target.Y);
 	TestTrue(TEXT("RPG03.6 authoritative oil surface present"),
 		Applied && Applied->SurfaceType == EGridCombatSurfaceType::Oil && Applied->RemainingRounds == 4);
+	TestEqual(TEXT("Exploration oil flask must be visible in flight"),
+		Fixture.Runtime->GetActiveOilFlaskProjectileCount(), 1);
 	if (Fixture.Runtime->GetActiveOilFlaskProjectileCount() > 0)
 	{
 		TestEqual(TEXT("No splash in flight"), Fixture.Runtime->GetOilSplashPresentationCount(), 0);

@@ -167,6 +167,13 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor()
 	OilSurfaceMaterial = TSoftObjectPtr<UMaterialInterface>(
 		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.MI_Surface_Oil")));
 
+	// Versioned, artist-owned bottle meshes: no need to author a new asset just
+	// to see the oil/catalyst throw when Item.WorldMesh or VFX profile is empty.
+	OilFlaskFallbackMesh = TSoftObjectPtr<UStaticMesh>(
+		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Meshes/Items/SM_Potion_01.SM_Potion_01")));
+	CatalystFlaskFallbackMesh = TSoftObjectPtr<UStaticMesh>(
+		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Meshes/Items/SM_Catalyst_01.SM_Catalyst_01")));
+
 	ActivationComponent = CreateDefaultSubobject<UGridActivationComponent>(TEXT("ActivationComponent"));
 
 	MonsterEncounterComponent = CreateDefaultSubobject<UGridMonsterEncounterComponent>(TEXT("MonsterEncounterComponent"));

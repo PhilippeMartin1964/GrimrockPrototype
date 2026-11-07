@@ -131,7 +131,7 @@ struct GRIMROCKPROTOTYPE_API FGridCatalystVfxSettings
 
 	/** FLASK01: physical launch speed; flight duration comes from gravity and target distance. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Catalyst|Ballistics", meta=(ClampMin="100.0", ClampMax="5000.0"))
-	float LaunchSpeedCmPerSec = 1300.f;
+	float LaunchSpeedCmPerSec = 900.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Catalyst|Animation", meta=(ClampMin="0.3", ClampMax="2.0"))
 	float PulseDurationSeconds = .95f;
@@ -150,7 +150,7 @@ struct GRIMROCKPROTOTYPE_API FGridCatalystVfxSettings
 			return FMath::Clamp(FMath::IsFinite(Value) ? Value : Fallback, Min, Max);
 		};
 		Result.FlightDurationSeconds = Safe(FlightDurationSeconds, .42f, .1f, 1.5f);
-		Result.LaunchSpeedCmPerSec = Safe(LaunchSpeedCmPerSec, 1300.f, 100.f, 5000.f);
+		Result.LaunchSpeedCmPerSec = Safe(LaunchSpeedCmPerSec, 900.f, 100.f, 5000.f);
 		Result.PulseDurationSeconds = Safe(PulseDurationSeconds, .95f, .3f, 2.f);
 		Result.WaveDelayPerCellSeconds = Safe(WaveDelayPerCellSeconds, .085f, 0.f, .3f);
 		Result.FlightArcHeightCm = Safe(FlightArcHeightCm, 82.f, 0.f, 300.f);

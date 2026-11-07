@@ -278,27 +278,49 @@ void AGridLevelRuntimeActor::ClearOilFlaskFlight()
 	OilFlaskFlightDuration = 0.f;
 }
 
+FVector AGridLevelRuntimeActor::GetFlaskLaunchPoint(FIntPoint From, FIntPoint To) const
+{
+	const float Size = LevelAsset ? FMath::Max(1.f, LevelAsset->CellSize) : 200.f;
+	const FVector Forward = FVector(To.X - From.X, To.Y - From.Y, 0.f).GetSafeNormal();
+	const FVector Right(Forward.Y, -Forward.X, 0.f);
+	return CellToWorld(From.X, From.Y, 0.f) +
+		FVector(Size * .5f, Size * .5f, FMath::Clamp(FlaskLaunchHeightCm, 40.f, 180.f)) +
+		Forward * FMath::Clamp(FlaskLaunchForwardOffsetCm, 0.f, FMath::Min(90.f, Size * .35f)) +
+		Right * FMath::Clamp(FlaskLaunchRightOffsetCm, -60.f, 60.f);
+}
+
+FVector AGridLevelRuntimeActor::GetFlaskImpactPoint(FIntPoint To) const
+{
+	const float Size = LevelAsset ? FMath::Max(1.f, LevelAsset->CellSize) : 200.f;
+	return CellToWorld(To.X, To.Y, 0.f) +
+		FVector(Size * .5f, Size * .5f, FMath::Clamp(FlaskImpactHeightCm, 0.f, 50.f));
+}
+
 void AGridLevelRuntimeActor::PlayOilFlaskThrowAtCell(
 	FIntPoint LaunchCell, FIntPoint ImpactCell, UStaticMesh* FlaskMesh)
 {
 	ClearCombatOilSplash();
 	UWorld* World = GetWorld();
-	if (!World || !World->IsGameWorld() || !LevelAsset ||
-		!IsValid(FlaskMesh) || LaunchCell == ImpactCell)
+	if (!World || !World->IsGameWorld() || !LevelAsset || LaunchCell == ImpactCell)
 	{
-		// Without a usable visual mesh, retain the existing gameplay and splash.
 		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
 		return;
 	}
-	const float CellSize = LevelAsset->CellSize;
-	const FVector Start = CellToWorld(LaunchCell.X, LaunchCell.Y, 0.f) +
-		FVector(CellSize * .5f, CellSize * .5f, 110.f);
-	const FVector End = CellToWorld(ImpactCell.X, ImpactCell.Y, 0.f) +
-		FVector(CellSize * .5f, CellSize * .5f, 14.f);
+	// Inventory mesh has priority. A versioned game-owned bottle is the fallback.
+	if (!IsValid(FlaskMesh)) FlaskMesh = OilFlaskFallbackMesh.LoadSynchronous();
+	if (!IsValid(FlaskMesh))
+	{
+		UE_LOG(LogGridSurfaceRuntime, Warning,
+			TEXT("[FLASK04] Oil bottle mesh missing; set OilFlaskFallbackMesh on BP_GridLevelRuntimeActor."));
+		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
+		return;
+	}
+	const FVector Start = GetFlaskLaunchPoint(LaunchCell, ImpactCell);
+	const FVector End = GetFlaskImpactPoint(ImpactCell);
 	FGridFlaskBallistics Flight;
 	if (!FGridFlaskBallistics::Solve(Start, End,
 		FMath::Clamp(OilFlaskLaunchSpeedCmPerSec, 100.f, 5000.f),
-		FMath::Abs(World->GetGravityZ()), Flight))
+		(FMath::Abs(World->GetGravityZ()) > KINDA_SMALL_NUMBER ? FMath::Abs(World->GetGravityZ()) : 980.f), Flight))
 	{
 		UE_LOG(LogGridSurfaceRuntime, Warning, TEXT("FLASK01: oil visual trajectory unavailable."));
 		PlayCombatOilSplashAtCell(ImpactCell.X, ImpactCell.Y);
@@ -313,9 +335,17 @@ void AGridLevelRuntimeActor::PlayOilFlaskThrowAtCell(
 	Bottle->SetCastShadow(true);
 	Bottle->SetRelativeLocation(Start);
 	const float Extent = FlaskMesh->GetBounds().BoxExtent.GetMax();
-	Bottle->SetRelativeScale3D(FVector(FMath::Clamp(18.f / FMath::Max(1.f, Extent), .005f, 3.f)));
+	Bottle->SetRelativeScale3D(FVector(FMath::Clamp(
+		FMath::Clamp(FlaskVisualHalfExtentCm, 5.f, 45.f) / FMath::Max(1.f, Extent), .005f, 3.f)));
 	Bottle->RegisterComponent();
 	ActiveOilFlaskProjectile = Bottle;
+	if (bLogFlaskPresentation)
+	{
+		UE_LOG(LogGridSurfaceRuntime, Log,
+			TEXT("[FLASK04] Oil Launch=(%d,%d) Impact=(%d,%d) Mesh=%s Speed=%.0f Flight=%.3fs"),
+			LaunchCell.X, LaunchCell.Y, ImpactCell.X, ImpactCell.Y,
+			*GetNameSafe(FlaskMesh), OilFlaskLaunchSpeedCmPerSec, Flight.DurationSeconds);
+	}
 	PlayFlaskAudioAt(OilFlaskThrowSound, Start);
 	OilFlaskFlightStart = Flight.Start;
 	OilFlaskFlightVelocity = Flight.Velocity;
@@ -699,13 +729,12 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 	CatalystVisualCellSize = LevelAsset->CellSize;
 	CatalystVisualCenter = CellToWorld(ImpactCell.X, ImpactCell.Y, 0.f) +
 		FVector(CatalystVisualCellSize * .5f, CatalystVisualCellSize * .5f, 0.f);
-	CatalystFlightStart = CellToWorld(LaunchCell.X, LaunchCell.Y, 0.f) +
-		FVector(CatalystVisualCellSize * .5f, CatalystVisualCellSize * .5f, 110.f);
-	CatalystFlightEnd = CatalystVisualCenter + FVector(0.f, 0.f, 14.f);
+	CatalystFlightStart = GetFlaskLaunchPoint(LaunchCell, ImpactCell);
+	CatalystFlightEnd = GetFlaskImpactPoint(ImpactCell);
 	FGridFlaskBallistics Flight;
 	const bool bBallisticReachable = FGridFlaskBallistics::Solve(CatalystFlightStart,
 		CatalystFlightEnd, ResolveCatalystVfxSettings().LaunchSpeedCmPerSec,
-		FMath::Abs(World->GetGravityZ()), Flight);
+		(FMath::Abs(World->GetGravityZ()) > KINDA_SMALL_NUMBER ? FMath::Abs(World->GetGravityZ()) : 980.f), Flight);
 	CatalystFlightInitialVelocity = bBallisticReachable ? Flight.Velocity : FVector::ZeroVector;
 	CatalystBallisticGravityCmPerSec2 = bBallisticReachable ? Flight.GravityCmPerSec2 : 980.f;
 	CatalystBallisticFlightSeconds = bBallisticReachable ? Flight.DurationSeconds : 0.f;
@@ -750,9 +779,10 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 	UStaticMesh* BottleMesh = ResolveCatalystVfxSettings().ProjectileMesh.LoadSynchronous();
 	if (!IsValid(BottleMesh))
 	{
-		// The actual consumed item is authoritative when the optional VFX profile is absent.
+		// The consumed item's artist-authored mesh remains the second choice.
 		BottleMesh = SourceFlaskMesh;
 	}
+	if (!IsValid(BottleMesh)) BottleMesh = CatalystFlaskFallbackMesh.LoadSynchronous();
 	if (LaunchCell != ImpactCell && bBallisticReachable && IsValid(BottleMesh))
 	{
 		UStaticMeshComponent* Bottle = NewObject<UStaticMeshComponent>(this);
@@ -764,10 +794,19 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 		Bottle->SetCastShadow(true);
 		Bottle->SetRelativeLocation(CatalystFlightStart);
 		const float MaxExtent = BottleMesh->GetBounds().BoxExtent.GetMax();
-		const float Scale = FMath::Clamp(18.f / FMath::Max(1.f, MaxExtent), .005f, 3.f);
+		const float Scale = FMath::Clamp(
+			FMath::Clamp(FlaskVisualHalfExtentCm, 5.f, 45.f) / FMath::Max(1.f, MaxExtent), .005f, 3.f);
 		Bottle->SetRelativeScale3D(FVector(Scale));
 		Bottle->RegisterComponent();
 		ActiveCatalystProjectile = Bottle;
+		if (bLogFlaskPresentation)
+		{
+			UE_LOG(LogGridSurfaceRuntime, Log,
+				TEXT("[FLASK04] Catalyst Launch=(%d,%d) Impact=(%d,%d) Mesh=%s Speed=%.0f Flight=%.3fs"),
+				LaunchCell.X, LaunchCell.Y, ImpactCell.X, ImpactCell.Y,
+				*GetNameSafe(BottleMesh), ResolveCatalystVfxSettings().LaunchSpeedCmPerSec,
+				CatalystBallisticFlightSeconds);
+		}
 		PlayFlaskAudioAt(CatalystFlaskThrowSound, CatalystFlightStart);
 		const FGridCatalystVfxSettings Vfx = ResolveCatalystVfxSettings();
 		UStaticMesh* TrailSphere = Vfx.SparkMesh.LoadSynchronous();
@@ -797,9 +836,11 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 			}
 		}
 	}
-	// If the visual mesh was removed, never leave the surface refresh locked.
+	// An unavailable projectile is a configuration failure, never a deadlock.
 	if (!IsValid(ActiveCatalystProjectile))
 	{
+		UE_LOG(LogGridSurfaceRuntime, Warning,
+			TEXT("[FLASK04] Catalyst bottle invisible (mesh or trajectory unavailable)."));
 		BeginCatalystImpactVfx();
 	}
 	World->GetTimerManager().SetTimer(CatalystVisualTimer, this,

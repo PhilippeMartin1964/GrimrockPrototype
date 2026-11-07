@@ -33,6 +33,7 @@ class UGridEditorPreviewComponent;
 class UGridPlayerAttackPresentationComponent;
 class UDecalComponent;
 class UStaticMeshComponent;
+class UStaticMesh;
 class UPointLightComponent;
 class UNiagaraComponent;
 class UAudioComponent;
@@ -321,8 +322,45 @@ public:
 	float OilFlaskFlightGravity = 980.f;
 	FIntPoint OilFlaskImpactCell = FIntPoint::ZeroValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask", meta=(ClampMin="100.0", ClampMax="5000.0"))
-	float OilFlaskLaunchSpeedCmPerSec = 1300.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Ballistics", meta=(ClampMin="100.0", ClampMax="5000.0"))
+	float OilFlaskLaunchSpeedCmPerSec = 900.f;
+
+	/** Fallback for oil if the inventory item's WorldMesh was not authored. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Meshes")
+	TSoftObjectPtr<UStaticMesh> OilFlaskFallbackMesh;
+
+	/** Fallback for catalyst if neither its VFX profile nor the item supplies a mesh. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Meshes")
+	TSoftObjectPtr<UStaticMesh> CatalystFlaskFallbackMesh;
+
+	/** Launch from in front of the party, not at the center of the first-person camera. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Ballistics",
+		meta=(ClampMin="0.0", ClampMax="90.0"))
+	float FlaskLaunchForwardOffsetCm = 48.f;
+
+	/** Side offset makes the flask visible to the right of the camera during release. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Ballistics",
+		meta=(ClampMin="-60.0", ClampMax="60.0"))
+	float FlaskLaunchRightOffsetCm = 25.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Ballistics",
+		meta=(ClampMin="40.0", ClampMax="180.0"))
+	float FlaskLaunchHeightCm = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Ballistics",
+		meta=(ClampMin="0.0", ClampMax="50.0"))
+	float FlaskImpactHeightCm = 14.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Meshes",
+		meta=(ClampMin="5.0", ClampMax="45.0"))
+	float FlaskVisualHalfExtentCm = 20.f;
+
+	/** Logs the resolved asset, launch cells and physical flight duration once per throw. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Diagnostics")
+	bool bLogFlaskPresentation = true;
+
+	FVector GetFlaskLaunchPoint(FIntPoint From, FIntPoint To) const;
+	FVector GetFlaskImpactPoint(FIntPoint To) const;
 
 	FTimerHandle OilSplashTimer;
 	float OilSplashElapsedSeconds = 0.f;
