@@ -264,10 +264,97 @@ void AGridLevelRuntimeActor::SpawnFiniteImpactNiagara(
 		}), FMath::Clamp(MaxLifetimeSeconds, .1f, 5.f), false);
 }
 
+
+void AGridLevelRuntimeActor::ClearFlaskGlassShards()
+{
+	if (UWorld* World = GetWorld())
+		World->GetTimerManager().ClearTimer(GlassShardTimer);
+	for (UStaticMeshComponent* Shard : ActiveGlassShardComponents)
+	{
+		if (IsValid(Shard)) Shard->DestroyComponent();
+	}
+	ActiveGlassShardComponents.Reset();
+	ActiveGlassShardStates.Reset();
+	GlassShardElapsedSeconds = 0.f;
+}
+
+void AGridLevelRuntimeActor::UpdateFlaskGlassShards()
+{
+	const float Dt = 1.f / 30.f;
+	GlassShardElapsedSeconds += Dt;
+	const float Duration = FMath::Clamp(FlaskGlassBreakMaxLifetimeSeconds, .1f, 5.f);
+	if (GlassShardElapsedSeconds >= Duration)
+	{
+		ClearFlaskGlassShards();
+		return;
+	}
+	const float Fade = FMath::Clamp((Duration - GlassShardElapsedSeconds) / .18f, 0.f, 1.f);
+	for (int32 Index = 0; Index < ActiveGlassShardComponents.Num(); ++Index)
+	{
+		UStaticMeshComponent* Shard = ActiveGlassShardComponents[Index];
+		if (!IsValid(Shard) || !ActiveGlassShardStates.IsValidIndex(Index)) continue;
+		FGridGlassShardState& State = ActiveGlassShardStates[Index];
+		FGridGlassShardMotion::Advance(State, Dt);
+		Shard->SetRelativeLocation(State.Position);
+		Shard->SetRelativeRotation(State.Rotation);
+		const float Width = 1.8f + float(Index % 5) * .65f;
+		const float Length = 1.5f + float(Index % 4) * .55f;
+		// Engine Cube is 100cm on each axis; turn it into a thin glass sliver.
+		const float SizeScale = FMath::Clamp(FlaskGlassBreakScale, .01f, 5.f) * Fade / 100.f;
+		Shard->SetRelativeScale3D(FVector(Width, Length, .35f) * SizeScale);
+	}
+}
+
 void AGridLevelRuntimeActor::PlayFlaskGlassBreakAt(const FVector& LocalImpactCenter)
 {
-	SpawnFiniteImpactNiagara(FlaskGlassBreakVfx.LoadSynchronous(),
-		LocalImpactCenter, FlaskGlassBreakScale, FlaskGlassBreakMaxLifetimeSeconds);
+	ClearFlaskGlassShards();
+	UWorld* World = GetWorld();
+	if (!World || !World->IsGameWorld()) return;
+	if (!FlaskGlassBreakVfx.IsNull())
+	{
+		// A deliberately selected Niagara replaces, rather than doubles, native shards.
+		SpawnFiniteImpactNiagara(FlaskGlassBreakVfx.LoadSynchronous(),
+			LocalImpactCenter, FlaskGlassBreakScale, FlaskGlassBreakMaxLifetimeSeconds);
+		return;
+	}
+	UStaticMesh* Mesh = GlassShardMesh.LoadSynchronous();
+	UMaterialInterface* Material = GlassShardMaterial.LoadSynchronous();
+	if (!IsValid(Mesh) || !IsValid(Material))
+	{
+		UE_LOG(LogGridSurfaceRuntime, Warning,
+			TEXT("[FLASK-GLASS01] No glass shard mesh/material; impact gameplay unchanged."));
+		return;
+	}
+	const int32 Count = FMath::Clamp(GlassShardCount, 4, 32);
+	const float FloorZ = LocalImpactCenter.Z - FMath::Clamp(FlaskImpactHeightCm, 0.f, 50.f) + 1.f;
+	for (int32 Index = 0; Index < Count; ++Index)
+	{
+		UStaticMeshComponent* Shard = NewObject<UStaticMeshComponent>(this);
+		if (!IsValid(Shard)) continue;
+		Shard->SetupAttachment(SceneRoot);
+		Shard->SetMobility(EComponentMobility::Movable);
+		Shard->SetStaticMesh(Mesh);
+		Shard->SetMaterial(0, Material);
+		Shard->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Shard->SetGenerateOverlapEvents(false);
+		Shard->SetCastShadow(false);
+		FGridGlassShardState Motion = FGridGlassShardMotion::MakeInitial(
+			Index, Count, LocalImpactCenter, FloorZ, GlassShardLaunchSpeedCmPerSec);
+		Shard->SetRelativeLocation(Motion.Position);
+		Shard->SetRelativeRotation(Motion.Rotation);
+		const float Width = 1.8f + float(Index % 5) * .65f;
+		const float Length = 1.5f + float(Index % 4) * .55f;
+		const float SizeScale = FMath::Clamp(FlaskGlassBreakScale, .01f, 5.f) / 100.f;
+		Shard->SetRelativeScale3D(FVector(Width, Length, .35f) * SizeScale);
+		Shard->RegisterComponent();
+		ActiveGlassShardComponents.Add(Shard);
+		ActiveGlassShardStates.Add(Motion);
+	}
+	if (!ActiveGlassShardComponents.IsEmpty())
+	{
+		World->GetTimerManager().SetTimer(GlassShardTimer, this,
+			&AGridLevelRuntimeActor::UpdateFlaskGlassShards, 1.f / 30.f, true);
+	}
 }
 
 void AGridLevelRuntimeActor::ClearOilFlaskFlight()

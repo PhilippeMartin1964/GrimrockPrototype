@@ -167,6 +167,13 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor()
 	OilSurfaceMaterial = TSoftObjectPtr<UMaterialInterface>(
 		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.MI_Surface_Oil")));
 
+	// FLASK-GLASS01: both resources exist without creating a Niagara asset.
+	// The authored material may be overridden with a dedicated glass material.
+	GlassShardMesh = TSoftObjectPtr<UStaticMesh>(
+		FSoftObjectPath(TEXT("/Engine/BasicShapes/Cube.Cube")));
+	GlassShardMaterial = TSoftObjectPtr<UMaterialInterface>(
+		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Flask.M_SurfaceCatalyst_Flask")));
+
 	// Versioned, artist-owned bottle meshes: no need to author a new asset just
 	// to see the oil/catalyst throw when Item.WorldMesh or VFX profile is empty.
 	OilFlaskFallbackMesh = TSoftObjectPtr<UStaticMesh>(
@@ -297,6 +304,7 @@ void AGridLevelRuntimeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	ClearExplorationOilTimer();
 	ClearCombatOilSplash();
+	ClearFlaskGlassShards();
 	bOilFlaskVisualsDeferred = false;
 	ClearCatalystReactionVfx();
 	ClearCombatOilSurfaceVisuals();
@@ -314,6 +322,7 @@ void AGridLevelRuntimeActor::ClearVisuals(EGridRuntimeRebuildMode RebuildMode)
 		WallISM->ClearInstances();
 	ClearExplorationOilTimer();
 	ClearCombatOilSplash();
+	ClearFlaskGlassShards();
 	bOilFlaskVisualsDeferred = false;
 	ClearCatalystReactionVfx();
 	ClearCombatOilSurfaceVisuals();

@@ -9,6 +9,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "TimerManager.h"
+#include "Core/GridGlassShardMotion.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
@@ -333,9 +334,33 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact", meta=(ClampMin="0.1", ClampMax="5.0"))
 	float FlaskGlassBreakMaxLifetimeSeconds = 1.f;
 
+	/** If FlaskGlassBreakVfx is unset, a small native 3D shard burst is rendered. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact|Glass")
+	TSoftObjectPtr<UStaticMesh> GlassShardMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact|Glass")
+	TSoftObjectPtr<UMaterialInterface> GlassShardMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact|Glass",
+		meta=(ClampMin="4", ClampMax="32"))
+	int32 GlassShardCount = 14;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|VFX|Flask|Impact|Glass",
+		meta=(ClampMin="40.0", ClampMax="400.0"))
+	float GlassShardLaunchSpeedCmPerSec = 155.f;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> ActiveGlassShardComponents;
+	TArray<FGridGlassShardState> ActiveGlassShardStates;
+	FTimerHandle GlassShardTimer;
+	float GlassShardElapsedSeconds = 0.f;
+
 	void SpawnFiniteImpactNiagara(UNiagaraSystem* System, const FVector& LocalCenter,
 		float Scale, float MaxLifetimeSeconds);
 	void PlayFlaskGlassBreakAt(const FVector& LocalImpactCenter);
+	void UpdateFlaskGlassShards();
+	void ClearFlaskGlassShards();
+	int32 GetActiveGlassShardCount() const { return ActiveGlassShardComponents.Num(); }
 
 	/** FLASK01: oil bottle in flight, separate from the existing impact splash. */
 	UPROPERTY(Transient)
