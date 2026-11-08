@@ -8,49 +8,63 @@
  */
 struct FGridFireIgnitionWave
 {
+	/** Shortest orthogonal paths are counted in integer cell steps.
+	 * A single float multiplication at the end avoids accumulated drift
+	 * and keeps the algorithm independent of TMap readback during BFS.
+	 */
 	static void BuildDelays(FIntPoint Impact, const TArray<FIntPoint>& Cells,
 		float SecondsPerCell, TMap<FIntPoint, float>& OutDelays)
 	{
 		OutDelays.Reset();
-		TSet<FIntPoint> Unvisited;
-		for (const FIntPoint& Cell : Cells) Unvisited.Add(Cell);
+		TSet<FIntPoint> Remaining;
+		for (const FIntPoint& Cell : Cells) Remaining.Add(Cell);
 		const float Step = FMath::Max(0.f, SecondsPerCell);
 		const FIntPoint Directions[] = {
 			FIntPoint(0, 1), FIntPoint(1, 0), FIntPoint(0, -1), FIntPoint(-1, 0)
 		};
-		while (!Unvisited.IsEmpty())
+		struct FCellStep
 		{
-			bool bHaveSeed = false;
+			FIntPoint Cell = FIntPoint::ZeroValue;
+			int32 Steps = 0;
+		};
+		while (!Remaining.IsEmpty())
+		{
+			bool bHasSeed = false;
 			FIntPoint Seed = FIntPoint::ZeroValue;
-			int32 BestDistance = MAX_int32;
-			for (const FIntPoint& Candidate : Unvisited)
+			int32 Distance = MAX_int32;
+			for (const FIntPoint& Candidate : Remaining)
 			{
-				const int32 Distance = FMath::Abs(Candidate.X - Impact.X) +
+				const int32 Manhattan = FMath::Abs(Candidate.X - Impact.X) +
 					FMath::Abs(Candidate.Y - Impact.Y);
-				if (!bHaveSeed || Distance < BestDistance ||
-					(Distance == BestDistance &&
-						(Candidate.Y < Seed.Y ||
-						(Candidate.Y == Seed.Y && Candidate.X < Seed.X))))
+				if (!bHasSeed || Manhattan < Distance ||
+					(Manhattan == Distance &&
+					(Candidate.Y < Seed.Y ||
+					(Candidate.Y == Seed.Y && Candidate.X < Seed.X))))
 				{
 					Seed = Candidate;
-					BestDistance = Distance;
-					bHaveSeed = true;
+					Distance = Manhattan;
+					bHasSeed = true;
 				}
 			}
-			TArray<FIntPoint> Frontier;
-			Frontier.Add(Seed);
-			Unvisited.Remove(Seed);
-			OutDelays.Add(Seed, BestDistance * Step);
-			for (int32 Head = 0; Head < Frontier.Num(); ++Head)
+			TArray<FCellStep> Queue;
+			FCellStep First;
+			First.Cell = Seed;
+			First.Steps = Distance;
+			Queue.Add(First);
+			Remaining.Remove(Seed);
+			for (int32 Head = 0; Head < Queue.Num(); ++Head)
 			{
-				const FIntPoint Here = Frontier[Head];
+				const FCellStep Current = Queue[Head];
+				OutDelays.Add(Current.Cell, static_cast<float>(Current.Steps) * Step);
 				for (const FIntPoint& Direction : Directions)
 				{
-					const FIntPoint Next = Here + Direction;
-					if (Unvisited.Remove(Next) > 0)
+					const FIntPoint Adjacent = Current.Cell + Direction;
+					if (Remaining.Remove(Adjacent) > 0)
 					{
-						OutDelays.Add(Next, OutDelays[Here] + Step);
-						Frontier.Add(Next);
+						FCellStep Next;
+						Next.Cell = Adjacent;
+						Next.Steps = Current.Steps + 1;
+						Queue.Add(Next);
 					}
 				}
 			}
