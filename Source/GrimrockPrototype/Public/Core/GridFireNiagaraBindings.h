@@ -121,6 +121,54 @@ struct FGridFireNiagaraBindings
 		return Plan;
 	}
 
+	/** Only transient ignition growth writes SpawnBox and FlameRate.
+	 * Explicit typed overrides remain the *final* target of the animation.
+	 * No graph or shared Niagara System property is modified.
+	 */
+	void ApplyIgnitionGrowth(UNiagaraComponent* Component,
+		const FGridFireVfxSettings& Settings, float CellSizeCm,
+		const FVector& FinalScale, float CoverageFraction, float Strength) const
+	{
+		if (!IsValid(Component)) return;
+		const float Coverage = FMath::Clamp(CoverageFraction, 0.f, 1.f);
+		const float Intensity = FMath::Clamp(Strength, 0.f, 1.f);
+		if (bSpawnBox)
+		{
+			FVector Target(CellSizeCm * Settings.GroundFireCoverage /
+				FMath::Max(.01f, FinalScale.X),
+				CellSizeCm * Settings.GroundFireCoverage /
+				FMath::Max(.01f, FinalScale.Y), NativeSpawnBox.Z);
+			for (const FGridResolvedNiagaraOverride& Entry : ExplicitOverrides)
+			{
+				if (ShortName(Entry.CanonicalName).Equals(TEXT("SpawnBox"), ESearchCase::IgnoreCase) &&
+					Entry.Definition.ValueType == EGridNiagaraOverrideValueType::Vector3)
+				{
+					Target = Entry.Definition.VectorValue;
+				}
+			}
+			Component->SetVariableVec3(SpawnBoxName,
+				FVector(Target.X * Coverage, Target.Y * Coverage, Target.Z));
+		}
+		else
+		{
+			Component->SetRelativeScale3D(FVector(
+				FinalScale.X * Coverage, FinalScale.Y * Coverage, FinalScale.Z));
+		}
+		if (bFlameRate)
+		{
+			float Rate = ScaledRate(NativeFlameRate, Settings.FlameDensity);
+			for (const FGridResolvedNiagaraOverride& Entry : ExplicitOverrides)
+			{
+				if (ShortName(Entry.CanonicalName).Equals(TEXT("FlameRate"), ESearchCase::IgnoreCase) &&
+					Entry.Definition.ValueType == EGridNiagaraOverrideValueType::Float)
+				{
+					Rate = FMath::Max(0.f, Entry.Definition.FloatValue);
+				}
+			}
+			Component->SetVariableFloat(FlameRateName, ScaledRate(Rate, Intensity));
+		}
+	}
+
 	void Apply(UNiagaraComponent* Component, const FGridFireVfxSettings& Settings,
 		float CellSizeCm, const FVector& ComponentScale) const
 	{

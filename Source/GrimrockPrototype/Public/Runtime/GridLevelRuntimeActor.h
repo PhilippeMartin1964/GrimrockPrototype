@@ -51,11 +51,20 @@ enum class EGridSurfaceCatalystVfxKind : uint8 { Fizzle, OilIgnition, PoisonBurs
 /** Visual metadata only; all authoritative C6 outcomes are committed separately. */
 struct FGridCatalystVisualCell
 {
+	FIntPoint Cell = FIntPoint::ZeroValue;
 	FVector Center = FVector::ZeroVector;
 	EGridSurfaceCatalystVfxKind Kind = EGridSurfaceCatalystVfxKind::Fizzle;
 	float WaveDelay = 0.f;
 	int32 FirstSpark = 0;
 	int32 SparkCount = 0;
+};
+
+/** Temporary presentation metadata; never serialized to the level or savegame. */
+struct FGridFireIgnitionCell
+{
+	float ImpactTimeSeconds = 0.f;
+	float DelaySeconds = 0.f;
+	bool bActivated = false;
 };
 
 UENUM()
@@ -229,11 +238,16 @@ public:
 	void LogGroundFireNiagaraBindings();
 	FGridCatalystVfxSettings ResolveCatalystVfxSettings() const;
 
+	/** Keyed by grid cell: existing fires survive unrelated surface refreshes. */
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UNiagaraComponent>> ActiveFireNiagaraComponents;
+	TMap<FIntPoint, TObjectPtr<UNiagaraComponent>> ActiveFireNiagaraByCell;
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UPointLightComponent>> ActiveFireSurfaceLights;
+	TMap<FIntPoint, TObjectPtr<UPointLightComponent>> ActiveFireLightsByCell;
+
+	/** Only created for fresh catalyst oil ignition. Cleared when fully grown. */
+	TMap<FIntPoint, FGridFireIgnitionCell> ActiveFireIgnitionCells;
+	FTimerHandle FireIgnitionTimer;
 
 	#if WITH_EDITOR
 	/** Only the editor needs to detect live Data Asset edits during PIE. */
@@ -261,6 +275,7 @@ public:
 	float CatalystImpactElapsedStart = 0.f;
 	FVector CatalystVisualCenter = FVector::ZeroVector;
 	float CatalystVisualCellSize = 200.f;
+	FIntPoint CatalystImpactGridCell = FIntPoint::ZeroValue;
 	EGridSurfaceCatalystVfxKind CatalystVisualKind = EGridSurfaceCatalystVfxKind::Fizzle;
 	int32 CatalystPresentationCount = 0;
 	int32 CatalystImpactCount = 0;
@@ -866,13 +881,16 @@ public:
 	void UpdateCatalystReactionVfx();
 	void ClearCatalystReactionVfx();
 	void RefreshFireSurfaceVisuals();
+	void QueueGroundFireIgnitionFromCatalyst();
+	void UpdateGroundFireIgnition();
 #if WITH_EDITOR
 	void UpdateFireSurfacePresentationSettings();
 #endif
 	void ClearFireSurfaceVisuals(bool bClearAudio = true);
 	void RefreshWaterSurfaceVisuals();
 	void ClearWaterSurfaceVisuals();
-	int32 GetActiveFireNiagaraCount() const { return ActiveFireNiagaraComponents.Num(); }
+	int32 GetActiveFireNiagaraCount() const { return ActiveFireNiagaraByCell.Num(); }
+	int32 GetActiveFireIgnitionCount() const { return ActiveFireIgnitionCells.Num(); }
 	int32 GetActiveWaterSurfaceDecalCount() const { return ActiveWaterSurfaceDecals.Num(); }
 	int32 GetCatalystPresentationCount() const { return CatalystPresentationCount; }
 	int32 GetCatalystImpactCount() const { return CatalystImpactCount; }

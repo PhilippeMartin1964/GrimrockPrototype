@@ -65,6 +65,23 @@ struct GRIMROCKPROTOTYPE_API FGridFireVfxSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara", meta=(ClampMin="0.1", ClampMax="1.0"))
 	float GroundFireCoverage = .9f;
 
+	/** Time between adjacent burning oil cells in the visual ignition wave.
+	 * Does not delay the authoritative combat surface or periodic damage.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Ignition",
+		meta=(ClampMin="0.0", ClampMax="1.0"))
+	float PropagationDelayPerCell = .15f;
+
+	/** Growth time within one burning cell, for spawn footprint and flame rate. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Ignition",
+		meta=(ClampMin="0.05", ClampMax="3.0"))
+	float IgnitionGrowthDuration = .4f;
+
+	/** Initial fraction of a cell occupied by the ignition; final = GroundFireCoverage. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Ignition",
+		meta=(ClampMin="0.01", ClampMax="1.0"))
+	float InitialCoverage = .1f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara", meta=(ClampMin="5.0", ClampMax="300.0"))
 	float FlameHeightCm = 75.f;
 
@@ -127,6 +144,9 @@ struct GRIMROCKPROTOTYPE_API FGridFireVfxSettings
 		};
 		Result.GroundFireScale = Safe(GroundFireScale, 1.f, .01f, 5.f);
 		Result.GroundFireCoverage = Safe(GroundFireCoverage, .9f, .1f, 1.f);
+		Result.PropagationDelayPerCell = Safe(PropagationDelayPerCell, .15f, 0.f, 1.f);
+		Result.IgnitionGrowthDuration = Safe(IgnitionGrowthDuration, .4f, .05f, 3.f);
+		Result.InitialCoverage = Safe(InitialCoverage, .1f, .01f, 1.f);
 		Result.FlameHeightCm = Safe(FlameHeightCm, 75.f, 5.f, 300.f);
 		Result.NiagaraReferenceHeightCm = Safe(NiagaraReferenceHeightCm, 75.f, 5.f, 2000.f);
 		Result.FlameDensity = Safe(FlameDensity, 1.f, 0.f, 4.f);

@@ -43,8 +43,9 @@ l'exécution uniquement si installé localement. Les deux packs tiers
 ## Rafraîchissement
 
 - Au lancement d'une surface de feu ou au changement de sa topologie,
-  `RefreshFireSurfaceVisuals` construit les composants, leur applique
-  les réglages une fois, puis les active.
+  `RefreshFireSurfaceVisuals` **réconcilie les composants par cellule** :
+  les cases encore enflammées conservent leurs Niagara, les nouvelles
+  sont créées et les cases retirées sont nettoyées.
 - En **éditeur uniquement**, si des flammes existent en PIE,
   le runtime compare `FGridFireVfxSettings::StaticStruct()` avec
   le dernier profil appliqué **toutes les 0,25 seconde** :
@@ -89,3 +90,7 @@ au nouveau contrat XY. Elle inclut les contrôles de :
 
 Les tests Windows compilent et exécutent la suite sans pack commercial,
 donc **une recette PIE avec votre FireFX local reste nécessaire**.
+
+## FIREFX11
+
+Une ignition huile+catalyseur déclenche dorénavant une propagation visuelle progressive. Voir [FIREFX11_PROGRESSIVE_GROUND_FIRE.md](FIREFX11_PROGRESSIVE_GROUND_FIRE.md). Les commandes Niagara permanentes et le comportement audio ne changent pas.

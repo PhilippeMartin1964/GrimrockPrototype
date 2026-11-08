@@ -5,6 +5,7 @@
 #include "Core/GridFireAudioClusters.h"
 #include "Core/GridFireNiagaraGeometry.h"
 #include "Core/GridFireNiagaraBindings.h"
+#include "Core/GridFireIgnitionWave.h"
 #include "Core/GridCatalystVfxProfileAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
@@ -749,6 +750,7 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 	}
 	CatalystVisualElapsedSeconds = 0.f;
 	CatalystVisualCellSize = LevelAsset->CellSize;
+	CatalystImpactGridCell = ImpactCell;
 	CatalystVisualCenter = CellToWorld(ImpactCell.X, ImpactCell.Y, 0.f) +
 		FVector(CatalystVisualCellSize * .5f, CatalystVisualCellSize * .5f, 0.f);
 	CatalystFlightStart = GetFlaskLaunchPoint(LaunchCell, ImpactCell);
@@ -774,6 +776,7 @@ void AGridLevelRuntimeActor::PlaySurfaceCatalystArea(
 		}
 		Seen.Add(Result.Cell);
 		FGridCatalystVisualCell& Visual = ActiveCatalystVisualCells.AddDefaulted_GetRef();
+		Visual.Cell = Result.Cell;
 		Visual.Center = CellToWorld(Result.Cell.X, Result.Cell.Y, 0.f) +
 			FVector(CatalystVisualCellSize * .5f, CatalystVisualCellSize * .5f, 0.f);
 		Visual.Kind = ResolveCatalystVfxKind(Result.InputType, Result.Reaction);
@@ -891,10 +894,12 @@ void AGridLevelRuntimeActor::BeginCatalystImpactVfx()
 		if (IsValid(Trail)) Trail->DestroyComponent();
 	}
 	ActiveCatalystTrailSparks.Reset();
+	// Queue only genuinely new Oil -> Fire cells BEFORE the visual refresh.
+	// All C6 gameplay changes were already committed by the combat system.
+	QueueGroundFireIgnitionFromCatalyst();
 	if (bCatalystVisualsDeferred)
 	{
 		bCatalystVisualsDeferred = false;
-		// One rebuild of the complete final state, at the moment of impact.
 		RefreshCombatOilSurfaceVisuals();
 	}
 
@@ -1252,46 +1257,136 @@ void AGridLevelRuntimeActor::RefreshFireCrackleAudio(
 
 void AGridLevelRuntimeActor::ClearFireSurfaceVisuals(bool bClearAudio)
 {
-#if WITH_EDITOR
-	bHasLastAppliedFireVfxSettings = false;
 	if (UWorld* World = GetWorld())
 	{
+		World->GetTimerManager().ClearTimer(FireIgnitionTimer);
+#if WITH_EDITOR
 		World->GetTimerManager().ClearTimer(FireProfileLiveUpdateTimer);
+#endif
 	}
+	ActiveFireIgnitionCells.Reset();
+#if WITH_EDITOR
+	bHasLastAppliedFireVfxSettings = false;
 #endif
 	if (bClearAudio) ClearFireCrackleAudio();
-	for (UNiagaraComponent* FlameFx : ActiveFireNiagaraComponents)
+	for (const TPair<FIntPoint, TObjectPtr<UNiagaraComponent>>& Entry : ActiveFireNiagaraByCell)
 	{
-		if (IsValid(FlameFx))
+		if (IsValid(Entry.Value))
 		{
-			FlameFx->DeactivateImmediate();
-			FlameFx->DestroyComponent();
+			Entry.Value->DeactivateImmediate();
+			Entry.Value->DestroyComponent();
 		}
 	}
-	ActiveFireNiagaraComponents.Reset();
-	for (UPointLightComponent* Light : ActiveFireSurfaceLights)
+	ActiveFireNiagaraByCell.Reset();
+	for (const TPair<FIntPoint, TObjectPtr<UPointLightComponent>>& Entry : ActiveFireLightsByCell)
 	{
-		if (IsValid(Light))
-		{
-			Light->DestroyComponent();
-		}
+		if (IsValid(Entry.Value)) Entry.Value->DestroyComponent();
 	}
-	ActiveFireSurfaceLights.Reset();
+	ActiveFireLightsByCell.Reset();
 }
 
+void AGridLevelRuntimeActor::QueueGroundFireIgnitionFromCatalyst()
+{
+	UWorld* World = GetWorld();
+	if (!World || !World->IsGameWorld() || !LevelAsset) return;
+	TArray<FIntPoint> NewOilFire;
+	for (const FGridCatalystVisualCell& Visual : ActiveCatalystVisualCells)
+	{
+		if (Visual.Kind != EGridSurfaceCatalystVfxKind::OilIgnition ||
+			ActiveFireNiagaraByCell.Contains(Visual.Cell) ||
+			ActiveFireIgnitionCells.Contains(Visual.Cell))
+		{
+			continue;
+		}
+		const FGridCombatSurfaceState* Surface =
+			FindCombatSurfaceAtCell(Visual.Cell.X, Visual.Cell.Y);
+		if (Surface && Surface->IsValid() &&
+			Surface->SurfaceType == EGridCombatSurfaceType::Fire)
+		{
+			NewOilFire.AddUnique(Visual.Cell);
+		}
+	}
+	if (NewOilFire.IsEmpty()) return;
+	const FGridFireVfxSettings Vfx = ResolveFireVfxSettings();
+	TMap<FIntPoint, float> Delays;
+	FGridFireIgnitionWave::BuildDelays(CatalystImpactGridCell, NewOilFire,
+		Vfx.PropagationDelayPerCell, Delays);
+	const float Now = World->GetTimeSeconds();
+	for (const TPair<FIntPoint, float>& Entry : Delays)
+	{
+		FGridFireIgnitionCell& Ignition = ActiveFireIgnitionCells.Add(Entry.Key);
+		Ignition.ImpactTimeSeconds = Now;
+		Ignition.DelaySeconds = Entry.Value;
+		Ignition.bActivated = false;
+	}
+}
+
+void AGridLevelRuntimeActor::UpdateGroundFireIgnition()
+{
+	UWorld* World = GetWorld();
+	if (!World || !World->IsGameWorld() || !LevelAsset || ActiveFireIgnitionCells.IsEmpty())
+	{
+		if (World) World->GetTimerManager().ClearTimer(FireIgnitionTimer);
+		ActiveFireIgnitionCells.Reset();
+		return;
+	}
+	const FGridFireVfxSettings Vfx = ResolveFireVfxSettings();
+	UNiagaraSystem* NiagaraSystem = Vfx.GroundFireSystem.LoadSynchronous();
+	const FGridFireNiagaraBindings Bindings = FGridFireNiagaraBindings::Resolve(NiagaraSystem, Vfx);
+	const FVector FinalScale = FGridFireNiagaraGeometry::ComponentScale(Vfx, Bindings.bSpawnBox);
+	const float CellSize = FMath::Max(1.f, LevelAsset->CellSize);
+	const float Now = World->GetTimeSeconds();
+	TArray<FIntPoint> Finished;
+	for (TPair<FIntPoint, FGridFireIgnitionCell>& Entry : ActiveFireIgnitionCells)
+	{
+		const FIntPoint Cell = Entry.Key;
+		FGridFireIgnitionCell& Ignition = Entry.Value;
+		UNiagaraComponent* FlameFx = ActiveFireNiagaraByCell.FindRef(Cell);
+		if (!IsValid(FlameFx))
+		{
+			Finished.Add(Cell);
+			continue;
+		}
+		const float Elapsed = Now - Ignition.ImpactTimeSeconds - Ignition.DelaySeconds;
+		if (Elapsed < 0.f) continue;
+		const float Progress = FMath::Clamp(
+			Elapsed / FMath::Max(.05f, Vfx.IgnitionGrowthDuration), 0.f, 1.f);
+		const float Ease = FGridFireIgnitionWave::Ease(Progress);
+		const float Footprint = FGridFireIgnitionWave::CoverageFraction(
+			Vfx.InitialCoverage, Vfx.GroundFireCoverage, Progress);
+		Bindings.ApplyIgnitionGrowth(FlameFx, Vfx, CellSize, FinalScale,
+			Footprint, FMath::Lerp(.15f, 1.f, Ease));
+		if (!Ignition.bActivated)
+		{
+			FlameFx->Activate(true);
+			Ignition.bActivated = true;
+		}
+		if (UPointLightComponent* Light = ActiveFireLightsByCell.FindRef(Cell))
+		{
+			if (IsValid(Light)) Light->SetIntensity(Vfx.FireLightIntensity * Ease);
+		}
+		if (Progress >= 1.f)
+		{
+			// Restore all canonical bindings, including author-specified overrides.
+			FlameFx->SetRelativeScale3D(FinalScale);
+			Bindings.Apply(FlameFx, Vfx, CellSize, FinalScale);
+			Finished.Add(Cell);
+		}
+	}
+	for (const FIntPoint& Cell : Finished) ActiveFireIgnitionCells.Remove(Cell);
+	if (ActiveFireIgnitionCells.IsEmpty())
+		World->GetTimerManager().ClearTimer(FireIgnitionTimer);
+}
 
 #if WITH_EDITOR
 void AGridLevelRuntimeActor::UpdateFireSurfacePresentationSettings()
 {
 	UWorld* World = GetWorld();
-	if (!World || !World->IsGameWorld() || !LevelAsset || ActiveFireNiagaraComponents.IsEmpty())
+	if (!World || !World->IsGameWorld() || !LevelAsset || ActiveFireNiagaraByCell.IsEmpty())
 	{
 		if (World) World->GetTimerManager().ClearTimer(FireProfileLiveUpdateTimer);
 		return;
 	}
-
-	// FIREFX10: compare the small data-only profile once per poll instead of
-	// resolving Niagara reflection and rewriting every live component at 4 Hz.
 	const FGridFireVfxSettings Current = ResolveFireVfxSettings();
 	if (bHasLastAppliedFireVfxSettings &&
 		FGridFireVfxSettings::StaticStruct()->CompareScriptStruct(
@@ -1299,21 +1394,19 @@ void AGridLevelRuntimeActor::UpdateFireSurfacePresentationSettings()
 	{
 		return;
 	}
-
-	// Profile changes are rare during PIE; rebuild through the single canonical
-	// construction path, preserving existing fire audio clusters as before.
+	// Explicit authoring update: rebuild once using the canonical Niagara path.
+	ClearFireSurfaceVisuals(false);
 	RefreshFireSurfaceVisuals();
 }
 #endif
 
 void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 {
-	// Render components are rebuilt; spatial audio stays alive when a fire region persists.
-	ClearFireSurfaceVisuals(false);
 	UWorld* World = GetWorld();
 	const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel();
 	if (!World || !World->IsGameWorld() || !State || !LevelAsset)
 	{
+		ClearFireSurfaceVisuals(false);
 		ClearFireCrackleAudio();
 		return;
 	}
@@ -1321,8 +1414,10 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 	TArray<FIntPoint> Cells;
 	for (const TPair<FIntPoint, FGridCombatSurfaceState>& Entry : State->Surfaces)
 	{
-		if (Entry.Value.IsValid() && Entry.Value.SurfaceType == EGridCombatSurfaceType::Fire &&
-			IsWalkableCell(Entry.Key.X, Entry.Key.Y) && !ShouldHideCellFloor(Entry.Key.X, Entry.Key.Y))
+		if (Entry.Value.IsValid() &&
+			Entry.Value.SurfaceType == EGridCombatSurfaceType::Fire &&
+			IsWalkableCell(Entry.Key.X, Entry.Key.Y) &&
+			!ShouldHideCellFloor(Entry.Key.X, Entry.Key.Y))
 		{
 			Cells.Add(Entry.Key);
 		}
@@ -1331,61 +1426,131 @@ void AGridLevelRuntimeActor::RefreshFireSurfaceVisuals()
 	{
 		return A.Y == B.Y ? A.X < B.X : A.Y < B.Y;
 	});
-	// Audio remains independent of whether the local Niagara pack is installed.
+	// Audio is independent and unchanged by FIREFX11.
 	RefreshFireCrackleAudio(Cells, Vfx);
-	if (Vfx.MaxFireCells <= 0) return;
-	// No torch fallback, procedural spheres or vendor-specific hardcoded paths.
 	UNiagaraSystem* FlameSystem = Vfx.GroundFireSystem.LoadSynchronous();
-	if (!IsValid(FlameSystem)) return;
+	if (!IsValid(FlameSystem) || Vfx.MaxFireCells <= 0)
+	{
+		ClearFireSurfaceVisuals(false);
+		return;
+	}
+	const int32 VisibleCount = FMath::Min(Cells.Num(), Vfx.MaxFireCells);
+	TSet<FIntPoint> VisibleCells;
+	for (int32 Index = 0; Index < VisibleCount; ++Index) VisibleCells.Add(Cells[Index]);
+
+	// Remove only disappeared cells, preserving already stable Niagara and
+	// animations of unrelated cells when new surfaces are added.
+	TArray<FIntPoint> StaleNiagara;
+	for (const TPair<FIntPoint, TObjectPtr<UNiagaraComponent>>& Entry : ActiveFireNiagaraByCell)
+	{
+		if (!VisibleCells.Contains(Entry.Key) ||
+			!IsValid(Entry.Value) || Entry.Value->GetAsset() != FlameSystem)
+		{
+			if (IsValid(Entry.Value))
+			{
+				Entry.Value->DeactivateImmediate();
+				Entry.Value->DestroyComponent();
+			}
+			StaleNiagara.Add(Entry.Key);
+		}
+	}
+	for (const FIntPoint& Cell : StaleNiagara)
+	{
+		ActiveFireNiagaraByCell.Remove(Cell);
+		ActiveFireIgnitionCells.Remove(Cell);
+	}
+	TArray<FIntPoint> StaleLights;
+	for (const TPair<FIntPoint, TObjectPtr<UPointLightComponent>>& Entry : ActiveFireLightsByCell)
+	{
+		if (!VisibleCells.Contains(Entry.Key) || !IsValid(Entry.Value))
+		{
+			if (IsValid(Entry.Value)) Entry.Value->DestroyComponent();
+			StaleLights.Add(Entry.Key);
+		}
+	}
+	for (const FIntPoint& Cell : StaleLights) ActiveFireLightsByCell.Remove(Cell);
 
 	const float CellSize = FMath::Max(1.f, LevelAsset->CellSize);
-	const FGridFireNiagaraBindings FireBindings =
-		FGridFireNiagaraBindings::Resolve(FlameSystem, Vfx);
-	const FVector RelativeFireScale =
-		FGridFireNiagaraGeometry::ComponentScale(Vfx, FireBindings.bSpawnBox);
-	const int32 VisibleCount = FMath::Min(Cells.Num(), Vfx.MaxFireCells);
-
+	const FGridFireNiagaraBindings Bindings = FGridFireNiagaraBindings::Resolve(FlameSystem, Vfx);
+	const FVector FinalScale = FGridFireNiagaraGeometry::ComponentScale(Vfx, Bindings.bSpawnBox);
 	for (int32 Index = 0; Index < VisibleCount; ++Index)
 	{
 		const FIntPoint Cell = Cells[Index];
 		const FVector Center = CellToWorld(Cell.X, Cell.Y, 0.f) +
 			FVector(CellSize * .5f, CellSize * .5f, 0.f);
-		UNiagaraComponent* FlameFx = NewObject<UNiagaraComponent>(this);
-		FlameFx->SetAutoActivate(false);
-		FlameFx->SetupAttachment(SceneRoot);
-		FlameFx->SetAsset(FlameSystem);
-		FlameFx->SetRelativeLocation(Center + FVector(0.f, 0.f, 4.f));
-		// Mandatory C++ transform: works for ANY Niagara, even if the commercial
-		// pack exposes no User.* controls. Height and ground footprint are independent.
-		FlameFx->SetRelativeScale3D(RelativeFireScale);
-		FlameFx->RegisterComponent();
-
-		// Canonical binding path: typed automatic controls then typed data overrides.
-		FireBindings.Apply(FlameFx, Vfx, CellSize, RelativeFireScale);
-		FlameFx->Activate(true);
-		ActiveFireNiagaraComponents.Add(FlameFx);
-
+		UNiagaraComponent* FlameFx = ActiveFireNiagaraByCell.FindRef(Cell);
+		if (!IsValid(FlameFx))
+		{
+			FlameFx = NewObject<UNiagaraComponent>(this);
+			FlameFx->SetAutoActivate(false);
+			FlameFx->SetupAttachment(SceneRoot);
+			FlameFx->SetAsset(FlameSystem);
+			FlameFx->SetRelativeLocation(Center + FVector(0.f, 0.f, 4.f));
+			FlameFx->SetRelativeScale3D(FinalScale);
+			FlameFx->RegisterComponent();
+			Bindings.Apply(FlameFx, Vfx, CellSize, FinalScale);
+			if (FGridFireIgnitionCell* Ignition = ActiveFireIgnitionCells.Find(Cell))
+			{
+				// Delayed cells remain inactive; at t=0 the origin appears small.
+				const float InitialFraction = FGridFireIgnitionWave::CoverageFraction(
+					Vfx.InitialCoverage, Vfx.GroundFireCoverage, 0.f);
+				Bindings.ApplyIgnitionGrowth(FlameFx, Vfx, CellSize, FinalScale,
+					InitialFraction, .15f);
+				if (World->GetTimeSeconds() >= Ignition->ImpactTimeSeconds + Ignition->DelaySeconds)
+				{
+					FlameFx->Activate(true);
+					Ignition->bActivated = true;
+				}
+			}
+			else
+			{
+				FlameFx->Activate(true);
+			}
+			ActiveFireNiagaraByCell.Add(Cell, FlameFx);
+		}
 		if (Index < Vfx.MaxFireLights && Vfx.FireLightIntensity > 0.f)
 		{
-			UPointLightComponent* Light = NewObject<UPointLightComponent>(this);
-			Light->SetupAttachment(SceneRoot);
-			Light->SetMobility(EComponentMobility::Movable);
-			Light->SetRelativeLocation(Center + FVector(0.f, 0.f, 45.f));
-			Light->SetLightColor(Vfx.FireLightColor);
-			Light->SetIntensity(Vfx.FireLightIntensity);
-			Light->SetAttenuationRadius(CellSize * Vfx.FireLightRadiusCells);
-			Light->SetCastShadows(false);
-			Light->RegisterComponent();
-			ActiveFireSurfaceLights.Add(Light);
+			if (!ActiveFireLightsByCell.Contains(Cell))
+			{
+				UPointLightComponent* Light = NewObject<UPointLightComponent>(this);
+				Light->SetupAttachment(SceneRoot);
+				Light->SetMobility(EComponentMobility::Movable);
+				Light->SetRelativeLocation(Center + FVector(0.f, 0.f, 45.f));
+				Light->SetLightColor(Vfx.FireLightColor);
+				const FGridFireIgnitionCell* Ignition = ActiveFireIgnitionCells.Find(Cell);
+				Light->SetIntensity(Ignition ? 0.f : Vfx.FireLightIntensity);
+				Light->SetAttenuationRadius(CellSize * Vfx.FireLightRadiusCells);
+				Light->SetCastShadows(false);
+				Light->RegisterComponent();
+				ActiveFireLightsByCell.Add(Cell, Light);
+			}
+		}
+		else if (UPointLightComponent* OldLight = ActiveFireLightsByCell.FindRef(Cell))
+		{
+			if (IsValid(OldLight)) OldLight->DestroyComponent();
+			ActiveFireLightsByCell.Remove(Cell);
 		}
 	}
+	for (auto It = ActiveFireIgnitionCells.CreateIterator(); It; ++It)
+	{
+		if (!VisibleCells.Contains(It.Key())) It.RemoveCurrent();
+	}
+	if (!ActiveFireIgnitionCells.IsEmpty() &&
+		!World->GetTimerManager().IsTimerActive(FireIgnitionTimer))
+	{
+		World->GetTimerManager().SetTimer(FireIgnitionTimer, this,
+			&AGridLevelRuntimeActor::UpdateGroundFireIgnition, .04f, true);
+	}
 #if WITH_EDITOR
-	if (!ActiveFireNiagaraComponents.IsEmpty())
+	if (!ActiveFireNiagaraByCell.IsEmpty())
 	{
 		LastAppliedFireVfxSettings = Vfx;
 		bHasLastAppliedFireVfxSettings = true;
-		World->GetTimerManager().SetTimer(FireProfileLiveUpdateTimer, this,
-			&AGridLevelRuntimeActor::UpdateFireSurfacePresentationSettings, .25f, true);
+		if (!World->GetTimerManager().IsTimerActive(FireProfileLiveUpdateTimer))
+		{
+			World->GetTimerManager().SetTimer(FireProfileLiveUpdateTimer, this,
+				&AGridLevelRuntimeActor::UpdateFireSurfacePresentationSettings, .25f, true);
+		}
 	}
 #endif
 }
