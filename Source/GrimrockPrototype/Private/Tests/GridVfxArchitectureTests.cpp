@@ -378,7 +378,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11TurnThreeTest,
 bool FGridFX11TurnThreeTest::RunTest(const FString&)
 {
 	const auto Delays = FIREFX11Test::MakeTurnDelays();
-	TestTrue(TEXT("Third cell 450ms"), FMath::IsNearlyEqual(Delays.FindRef(FIntPoint(2,1)), .45f));
+	// 0.15f * 3 and 0.45f have distinct IEEE float representations;
+	// compare durations with a physical-time tolerance (0.1 ms).
+	TestTrue(TEXT("Third cell 450ms"), FMath::IsNearlyEqual(Delays.FindRef(FIntPoint(2,1)), .45f, KINDA_SMALL_NUMBER));
 	return true;
 }
 
