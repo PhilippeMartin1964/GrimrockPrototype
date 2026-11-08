@@ -308,7 +308,7 @@ bool FGridFX11SettingsTest::RunTest(const FString&)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11CrossTest,
-	"Grimrock.RPG.FIREFX11.CrossAndTurn",
+	"Grimrock.RPG.FIREFX11.Cross",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridFX11CrossTest::RunTest(const FString&)
 {
@@ -326,10 +326,20 @@ bool FGridFX11CrossTest::RunTest(const FString&)
 		TestTrue(TEXT("Cross neighbor follows at 150ms"),
 			FMath::IsNearlyEqual(Delays.FindRef(Neighbor),.15f));
 	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11TurnTest,
+	"Grimrock.RPG.FIREFX11.Turn",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridFX11TurnTest::RunTest(const FString&)
+{
 	const TArray<FIntPoint> Turn = {
 		FIntPoint(0,0),FIntPoint(1,0),FIntPoint(1,1),FIntPoint(2,1)
 	};
+	TMap<FIntPoint,float> Delays;
 	FGridFireIgnitionWave::BuildDelays(FIntPoint(0,0),Turn,.15f,Delays);
+	TestEqual(TEXT("Four connected cells"),Delays.Num(),4);
 	TestTrue(TEXT("Turn must follow three orthogonal edges"),
 		FMath::IsNearlyEqual(Delays.FindRef(FIntPoint(2,1)),.45f));
 	return true;
