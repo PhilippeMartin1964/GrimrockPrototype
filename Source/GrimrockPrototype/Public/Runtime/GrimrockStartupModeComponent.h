@@ -8,6 +8,8 @@
 class AGridLevelRuntimeActor;
 class AGrimrockPartyPawn;
 class UGridDungeonBuildProgressWidget;
+class UGridPartyInventoryComponent;
+struct FGridPartyInventoryState;
 
 UCLASS(ClassGroup = (Grimrock), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGrimrockStartupModeComponent : public UActorComponent
@@ -16,6 +18,12 @@ class GRIMROCKPROTOTYPE_API UGrimrockStartupModeComponent : public UActorCompone
 
 public:
 	UGrimrockStartupModeComponent();
+
+	/** STARTUPFLOW/ARMEMENT-LOT02.18: complete the frontend -> dungeon
+	 * handoff, including the non-serialized item-definition registry. */
+	static bool RestorePendingNewGameParty(UGridPartyInventoryComponent* Inventory,
+		const FGridPartyInventoryState& PendingPartyState, AGridLevelRuntimeActor* RuntimeActor,
+		FText& OutError);
 
 protected:
 	virtual void BeginPlay() override;

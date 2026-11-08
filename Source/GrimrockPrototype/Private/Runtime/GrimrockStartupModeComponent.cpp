@@ -3,6 +3,8 @@
 #include "GameFramework/PlayerController.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "RPG/RPGStartingEquipmentPresetCatalog.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GrimrockGameInstance.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridDungeonBuildProgressWidget.h"
@@ -16,6 +18,49 @@ UGrimrockStartupModeComponent::UGrimrockStartupModeComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
+
+bool UGrimrockStartupModeComponent::RestorePendingNewGameParty(
+	UGridPartyInventoryComponent* Inventory, const FGridPartyInventoryState& PendingPartyState,
+	AGridLevelRuntimeActor* RuntimeActor, FText& OutError)
+{
+	OutError = FText::GetEmpty();
+	if (!Inventory)
+	{
+		OutError = FText::FromString(TEXT("New Game has no destination inventory."));
+		return false;
+	}
+	if (!Inventory->RestorePartyInventoryState(PendingPartyState, OutError))
+	{
+		return false;
+	}
+
+	// The frontend transfers only FGridPartyInventoryState across OpenLevel.
+	// Definition objects are held in the frontend inventory's runtime map,
+	// which does not cross levels. Continue already rehydrates this map.
+	// Do the same on New Game before inventory/held-item presentation.
+	FName MissingDefinitionId = NAME_None;
+	if (!Inventory->RehydrateOwnedItemDefinitions(
+		[RuntimeActor](FName ItemId)
+		{
+			return IsValid(RuntimeActor)
+				? RuntimeActor->ResolveRuntimeItemDefinition(ItemId)
+				: FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(ItemId);
+		}, MissingDefinitionId))
+	{
+		OutError = FText::FromString(FString::Printf(
+			TEXT("New Game item definition '%s' cannot be restored."),
+			*MissingDefinitionId.ToString()));
+		// Never enter the dungeon with a finalized but visually/behaviorally
+		// broken party. A brand new destination pawn has no previous game.
+		Inventory->ResetPartyForNewGame();
+		return false;
+	}
+	// RehydrateOwnedItemDefinitions broadcasts per-definition updates;
+	// this final refresh also covers the empty-inventory edge case.
+	Inventory->NotifyPartyInventoryChanged(INDEX_NONE);
+	return true;
+}
+
 
 void UGrimrockStartupModeComponent::BeginPlay()
 {
@@ -57,7 +102,8 @@ void UGrimrockStartupModeComponent::BeginPlay()
 		if (GrimrockGameInstance->ConsumePendingNewPartyState(PendingPartyState))
 		{
 			FText RestoreError;
-			if (!PartyPawn->PartyInventoryComponent || !PartyPawn->PartyInventoryComponent->RestorePartyInventoryState(PendingPartyState, RestoreError))
+			if (!RestorePendingNewGameParty(PartyPawn->PartyInventoryComponent, PendingPartyState,
+				PartyPawn->LevelRuntimeActor, RestoreError))
 			{
 				UE_LOG(LogGrimrockStartupMode, Error, TEXT("GrimrockStartupMode NewGamePartyRestore Failed Pawn=%s Reason=%s"),
 					*GetNameSafe(PartyPawn), *RestoreError.ToString());
