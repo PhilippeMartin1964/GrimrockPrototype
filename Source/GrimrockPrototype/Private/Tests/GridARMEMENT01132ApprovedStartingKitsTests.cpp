@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Kismet/GameplayStatics.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
@@ -222,6 +223,107 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
             ARMEMENT01132::CountPhysical(Save->PartyInventoryState.ActiveCharacters[0],
                 Save->PartyInventoryState.ActiveEquipment[0], SavedGuids);
             TestEqual(TEXT("Item GUIDs persist in SaveGame snapshot"), SavedGuids.Num(), Guids.Num());
+
+            // ARMEMENT-LOT02.17: write every real New Game kit to an isolated
+            // disk slot. Restore and rehydrate from disk, not from the
+            // previous in-memory SaveGame object.
+            Save->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
+            const FString DiskSlot = FString::Printf(TEXT("ARMLOT0217_%s"),
+                *FGuid::NewGuid().ToString(EGuidFormats::Digits));
+            struct FDeleteTestSlot
+            {
+                FString Name;
+                ~FDeleteTestSlot() { UGameplayStatics::DeleteGameInSlot(Name, 0); }
+            } SlotCleanup{DiskSlot};
+            if (!TestTrue(*FString::Printf(TEXT("%s: SaveGame written to disk"), *Kit.KitId.ToString()),
+                UGameplayStatics::SaveGameToSlot(Save, DiskSlot, 0)))
+            {
+                return false;
+            }
+            const UGrimrockPartySaveGame* Disk = Cast<UGrimrockPartySaveGame>(
+                UGameplayStatics::LoadGameFromSlot(DiskSlot, 0));
+            if (!TestNotNull(*FString::Printf(TEXT("%s: disk SaveGame readable"), *Kit.KitId.ToString()), Disk) ||
+                !TestTrue(TEXT("Disk save version is compatible"), Disk->IsCompatible()))
+            {
+                return false;
+            }
+            UGridPartyInventoryComponent* Continued = NewObject<UGridPartyInventoryComponent>();
+            Continued->DefaultInventorySlotCountPerCharacter = 48;
+            Continued->InitializeDefaultPartyIfNeeded();
+            FText RestoreError;
+            if (!TestTrue(*FString::Printf(TEXT("%s: restore into fresh inventory"), *Kit.KitId.ToString()),
+                Continued->RestorePartyInventoryState(Disk->PartyInventoryState, RestoreError)))
+            {
+                AddError(RestoreError.ToString());
+                return false;
+            }
+            FName MissingDefinitionId = NAME_None;
+            if (!TestTrue(*FString::Printf(TEXT("%s: rehydrate starting item definitions"), *Kit.KitId.ToString()),
+                Continued->RehydrateOwnedItemDefinitions(
+                    [](FName ItemId)
+                    {
+                        return FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(ItemId);
+                    }, MissingDefinitionId)))
+            {
+                AddError(FString::Printf(TEXT("%s: missing saved item %s"),
+                    *Kit.KitId.ToString(), *MissingDefinitionId.ToString()));
+                return false;
+            }
+            const FGridPartyInventoryState& Loaded = Continued->PartyInventoryState;
+            if (!TestTrue(TEXT("One hero and one equipment state restored"),
+                    Loaded.ActiveCharacters.Num() == 1 && Loaded.ActiveEquipment.Num() == 1) ||
+                !TestEqual(TEXT("Kit ID round-trips through disk"),
+                    Loaded.ActiveCharacters[0].StartingEquipmentKitId, Kit.KitId) ||
+                !TestEqual(TEXT("Hero identity round-trips through disk"),
+                    Loaded.ActiveCharacters[0].CharacterId, Character.CharacterId))
+            {
+                return false;
+            }
+            TSet<FGuid> LoadedGuids;
+            const int32 LoadedCount = ARMEMENT01132::CountPhysical(
+                Loaded.ActiveCharacters[0], Loaded.ActiveEquipment[0], LoadedGuids);
+            bool bSameGuids = LoadedGuids.Num() == Guids.Num();
+            for (const FGuid& OriginalGuid : Guids)
+            {
+                bSameGuids &= LoadedGuids.Contains(OriginalGuid);
+            }
+            if (!TestEqual(TEXT("Disk kit has exact physical item count"), LoadedCount, Kit.Items.Num()) ||
+                !TestEqual(TEXT("Disk kit has distinct physical GUIDs"), LoadedGuids.Num(), LoadedCount) ||
+                !TestTrue(TEXT("All original GUIDs survived disk"), bSameGuids))
+            {
+                return false;
+            }
+            for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
+            {
+                const FGridItemInstance* Before = ARMEMENT01132::Find(Character, Equipment, Entry);
+                const FGridItemInstance* After = ARMEMENT01132::Find(
+                    Loaded.ActiveCharacters[0], Loaded.ActiveEquipment[0], Entry);
+                if (!TestTrue(*FString::Printf(TEXT("%s: item/slot/GUID/quantity retained"),
+                        *Kit.KitId.ToString()),
+                    Before && After && Before->RuntimeObjectId == After->RuntimeObjectId &&
+                    Before->ItemDefinitionId == After->ItemDefinitionId &&
+                    Before->ItemLevel == After->ItemLevel &&
+                    Before->Quantity == After->Quantity &&
+                    After->OwnerGuid == Loaded.ActiveCharacters[0].CharacterId &&
+                    After->OwnerCharacterIndex == 0 &&
+                    After->EquipmentSlot == Entry.TargetSlot &&
+                    After->OwnerType == (Entry.TargetSlot == EGridEquipmentSlot::None
+                        ? EGridItemOwnerType::CharacterInventory : EGridItemOwnerType::EquipmentSlot)) ||
+                    !TestTrue(TEXT("Exact item definition available after disk load"),
+                        Continued->FindItemDefinition(Entry.ItemDefinition->ItemDefinitionId) == Entry.ItemDefinition.Get()))
+                {
+                    return false;
+                }
+            }
+            FString LoadedOwnershipError;
+            if (!TestTrue(TEXT("Continued party ownership invariant"),
+                Continued->ValidateInventoryOwnership(LoadedOwnershipError)))
+            {
+                AddError(LoadedOwnershipError);
+                return false;
+            }
+            AddInfo(FString::Printf(TEXT("[ARMEMENT-LOT02.17] Disk kit PASS %s"),
+                *Kit.KitId.ToString()));
         }
     }
     TestEqual(TEXT("All 18 approved kits create heroes"), Created, 18);
