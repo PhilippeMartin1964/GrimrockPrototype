@@ -96,25 +96,29 @@ Le burst d'embrasement n'est émis qu'au premier impact du catalyseur si une ré
 Dans `DA_GroundFire → Settings` :
 - `GroundFireSystem` : Niagara `NS_FFX_Ground_Fire` **déjà assigné dans le Data Asset versionné et confirmé non nul en automation**.
 - `GroundFireScale` = **1**, `GroundFireCoverage` = **0.9**, `FlameHeightCm` = **75**, `FlameDensity` = **1**, `SmokeDensity` = **0.5** ; `MaxFireCells` = **48**, `MaxFireLights` = **8**, `FireLightIntensity` = **650** (valeurs C++ par défaut, les valeurs sauvegardées dans le Data Asset peuvent différer).
-- `bAutoBindKnownFireControls = true` : **FIREFX08** recherche `SpawnBox`,
-  `FlameRate`, `SmokeRate`, `Tint` et vérifie leurs types dans
-  `NS_FFX_Ground_Fire` ; les cinq anciennes liaisons manuelles
-  (`SpawnAreaParameter`, etc.) peuvent donc rester `None`.
-- Pour une case de **200 × 200 cm** : `GroundFireScale=1`,
-  `GroundFireCoverage=1` ; si `SpawnBox` est de type Vector3,
-  l'adaptateur envoie un volume XY de 200 × 200 cm en conservant son Z
-  d'émission d'origine. Cela ne garantit pas que les particules ne
-  débordent jamais après leur naissance.
-- `FlameDensity=1` conserve `FlameRate` natif, `SmokeDensity=.5`
-  multiplie `SmokeRate` natif par 0,5.
-- `Settings → User Parameter Overrides` permet de modifier d'autres
-  paramètres du pack **sans copier son Niagara**. Ajouter des entrées
-  `ParameterName / ValueType / valeur` seulement après avoir lu leur
-  type dans le bouton de diagnostic sur l'acteur placé dans `L_Dungeon`.
-  Ce tableau d'overrides est appliqué en dernier.
-- `FlameHeightCm` règle l'échelle verticale du composant ; si les
-  émetteurs simulent en World Space, il faut aussi ajuster des entrées
-  de taille du Niagara (par ex. `FlameSizeMin/Max`, après vérification).
+- **FIREFX10** : liaison automatique **sans interrupteur ni champ de nom manuel**.
+  Le C++ recherche les vrais `SpawnBox` (Vector3), `FlameRate` (Float),
+  `SmokeRate` (Float) et `Tint` (Color/Vector), puis contrôle leur type.
+- Pour une case de **200 × 200 cm**, `GroundFireScale=1` et
+  `GroundFireCoverage=0.9` demandent **180 × 180 cm d'émission** via
+  `SpawnBox`. Le mouvement des particules peut dépasser cette emprise.
+  Un système sans `SpawnBox` reçoit seulement une échelle XY relative :
+  aucune largeur exacte n'est revendiquée.
+- `FlameHeightCm=30` et `NiagaraReferenceHeightCm=150` produisent
+  une échelle Z **0.2** ; cela reste une hauteur **approximative**,
+  variable selon les émetteurs, particulièrement en World Space.
+- `FlameDensity=0.5` divise le taux natif `FlameRate` par 2 ;
+  `SmokeDensity=0.15` multiplie `SmokeRate` natif par 0.15.
+  `SmokeDensity=0` coupe le taux de fumée continu, mais pas les
+  éventuelles émissions `SmokeBurst`.
+- `Settings → User Parameter Overrides` fournit les autres valeurs typées
+  du pack après lecture des types dans le diagnostic sur
+  **l'acteur du niveau**. Ces valeurs ont la priorité finale.
+- Aucun réglage Niagara ancien (cinq noms manuels, référence de largeur,
+  bascule d'auto-binding ou case « Enable Smoke ») n'existe encore.
+- En PIE, les changements du profil ne déclenchent une reconstruction
+  visuelle que lorsqu'ils sont détectés ; en jeu packagé aucun timer
+  d'inspection des Data Assets n'est exécuté.
 
 Un clone GitHub **sans pack tiers** conserve le gameplay et le profil mais n'affiche pas les particules du pack. Un packaging intégrant les assets de ce pack exige de vérifier sa licence.
 

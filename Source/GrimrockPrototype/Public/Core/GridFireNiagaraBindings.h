@@ -55,7 +55,6 @@ struct FGridFireNiagaraBindings
 		if (!IsValid(System)) return Plan;
 		FGridNiagaraUserOverrideApplicator::Resolve(
 			System, Settings.UserParameterOverrides, Plan.ExplicitOverrides);
-		if (!Settings.bAutoBindKnownFireControls) return Plan;
 		const FNiagaraUserRedirectionParameterStore& Store = System->GetExposedParameters();
 		TArray<FNiagaraVariable> UserVariables;
 		Store.GetUserParameters(UserVariables);
@@ -69,80 +68,57 @@ struct FGridFireNiagaraBindings
 			}
 			return nullptr;
 		};
-		// Explicit bindings always win. An authored 'SpawnBox' also uses this
-		// path when supplied through SpawnAreaParameter.
-		if (Settings.SpawnAreaParameter.IsNone() ||
-			ShortName(Settings.SpawnAreaParameter).Equals(TEXT("SpawnBox"), ESearchCase::IgnoreCase))
+		if (const FNiagaraVariable* Var = Find(TEXT("SpawnBox"),
+			FNiagaraTypeDefinition::GetVec3Def()))
 		{
-			if (const FNiagaraVariable* Var = Find(TEXT("SpawnBox"),
-				FNiagaraTypeDefinition::GetVec3Def()))
+			if (const uint8* Bytes = Store.GetParameterData(*Var))
 			{
-				if (const uint8* Bytes = Store.GetParameterData(*Var))
-				{
-					FVector3f Native;
-					FMemory::Memcpy(&Native, Bytes, sizeof(Native));
-					Plan.NativeSpawnBox = FVector(Native);
-					Plan.SpawnBoxName = QualifiedName(Var->GetName());
-					Plan.bSpawnBox = true;
-				}
+				FVector3f Native;
+				FMemory::Memcpy(&Native, Bytes, sizeof(Native));
+				Plan.NativeSpawnBox = FVector(Native);
+				Plan.SpawnBoxName = QualifiedName(Var->GetName());
+				Plan.bSpawnBox = true;
 			}
 		}
-		if (Settings.FlameDensityParameter.IsNone() ||
-			ShortName(Settings.FlameDensityParameter).Equals(TEXT("FlameRate"), ESearchCase::IgnoreCase))
+		if (const FNiagaraVariable* Var = Find(TEXT("FlameRate"),
+			FNiagaraTypeDefinition::GetFloatDef()))
 		{
-			if (const FNiagaraVariable* Var = Find(TEXT("FlameRate"),
-				FNiagaraTypeDefinition::GetFloatDef()))
+			if (const uint8* Bytes = Store.GetParameterData(*Var))
 			{
-				if (const uint8* Bytes = Store.GetParameterData(*Var))
-				{
-					FMemory::Memcpy(&Plan.NativeFlameRate, Bytes, sizeof(float));
-					Plan.FlameRateName = QualifiedName(Var->GetName());
-					Plan.bFlameRate = true;
-				}
+				FMemory::Memcpy(&Plan.NativeFlameRate, Bytes, sizeof(float));
+				Plan.FlameRateName = QualifiedName(Var->GetName());
+				Plan.bFlameRate = true;
 			}
 		}
-		if (Settings.SmokeDensityParameter.IsNone() ||
-			ShortName(Settings.SmokeDensityParameter).Equals(TEXT("SmokeRate"), ESearchCase::IgnoreCase))
+		if (const FNiagaraVariable* Var = Find(TEXT("SmokeRate"),
+			FNiagaraTypeDefinition::GetFloatDef()))
 		{
-			if (const FNiagaraVariable* Var = Find(TEXT("SmokeRate"),
-				FNiagaraTypeDefinition::GetFloatDef()))
+			if (const uint8* Bytes = Store.GetParameterData(*Var))
 			{
-				if (const uint8* Bytes = Store.GetParameterData(*Var))
-				{
-					FMemory::Memcpy(&Plan.NativeSmokeRate, Bytes, sizeof(float));
-					Plan.SmokeRateName = QualifiedName(Var->GetName());
-					Plan.bSmokeRate = true;
-				}
+				FMemory::Memcpy(&Plan.NativeSmokeRate, Bytes, sizeof(float));
+				Plan.SmokeRateName = QualifiedName(Var->GetName());
+				Plan.bSmokeRate = true;
 			}
 		}
-		if (Settings.FireTintParameter.IsNone() ||
-			ShortName(Settings.FireTintParameter).Equals(TEXT("Tint"), ESearchCase::IgnoreCase))
+		if (const FNiagaraVariable* ColorVar = Find(TEXT("Tint"),
+			FNiagaraTypeDefinition::GetColorDef()))
 		{
-			if (const FNiagaraVariable* ColorVar = Find(TEXT("Tint"),
-				FNiagaraTypeDefinition::GetColorDef()))
-			{
-				Plan.bTintColor = true;
-				Plan.TintName = QualifiedName(ColorVar->GetName());
-			}
-			else if (const FNiagaraVariable* Vector3Var = Find(TEXT("Tint"),
-				FNiagaraTypeDefinition::GetVec3Def()))
-			{
-				Plan.bTintVec3 = true;
-				Plan.TintName = QualifiedName(Vector3Var->GetName());
-			}
-			else if (const FNiagaraVariable* Vector4Var = Find(TEXT("Tint"),
-				FNiagaraTypeDefinition::GetVec4Def()))
-			{
-				Plan.bTintVec4 = true;
-				Plan.TintName = QualifiedName(Vector4Var->GetName());
-			}
+			Plan.bTintColor = true;
+			Plan.TintName = QualifiedName(ColorVar->GetName());
+		}
+		else if (const FNiagaraVariable* Vector3Var = Find(TEXT("Tint"),
+			FNiagaraTypeDefinition::GetVec3Def()))
+		{
+			Plan.bTintVec3 = true;
+			Plan.TintName = QualifiedName(Vector3Var->GetName());
+		}
+		else if (const FNiagaraVariable* Vector4Var = Find(TEXT("Tint"),
+			FNiagaraTypeDefinition::GetVec4Def()))
+		{
+			Plan.bTintVec4 = true;
+			Plan.TintName = QualifiedName(Vector4Var->GetName());
 		}
 		return Plan;
-	}
-
-	void ApplyExplicitOverrides(UNiagaraComponent* Component) const
-	{
-		FGridNiagaraUserOverrideApplicator::Apply(Component, ExplicitOverrides);
 	}
 
 	void Apply(UNiagaraComponent* Component, const FGridFireVfxSettings& Settings,
@@ -165,7 +141,7 @@ struct FGridFireNiagaraBindings
 		if (bSmokeRate && FMath::IsFinite(NativeSmokeRate))
 			Component->SetVariableFloat(SmokeRateName,
 				ScaledRate(NativeSmokeRate,
-					Settings.bEnableSmoke ? Settings.SmokeDensity : 0.f));
+					Settings.SmokeDensity));
 		if (bTintColor)
 			Component->SetVariableLinearColor(TintName, Settings.FireTint);
 		if (bTintVec3)
@@ -175,5 +151,7 @@ struct FGridFireNiagaraBindings
 			Component->SetVariableVec4(TintName,
 				FVector4(Settings.FireTint.R, Settings.FireTint.G,
 					Settings.FireTint.B, Settings.FireTint.A));
+		// Data-asset overrides always win over automatic Niagara bindings.
+		FGridNiagaraUserOverrideApplicator::Apply(Component, ExplicitOverrides);
 	}
 };

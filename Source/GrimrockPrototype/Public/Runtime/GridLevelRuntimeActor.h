@@ -235,8 +235,12 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UPointLightComponent>> ActiveFireSurfaceLights;
 
-	/** FIREFX06.1: update existing fires during PIE when DA_GroundFire values change. */
+	#if WITH_EDITOR
+	/** Only the editor needs to detect live Data Asset edits during PIE. */
 	FTimerHandle FireProfileLiveUpdateTimer;
+	FGridFireVfxSettings LastAppliedFireVfxSettings;
+	bool bHasLastAppliedFireVfxSettings = false;
+	#endif
 
 	/** One persistent spatial loop per contiguous fire region; retained across visual refreshes. */
 	UPROPERTY(Transient)
@@ -862,7 +866,9 @@ public:
 	void UpdateCatalystReactionVfx();
 	void ClearCatalystReactionVfx();
 	void RefreshFireSurfaceVisuals();
+#if WITH_EDITOR
 	void UpdateFireSurfacePresentationSettings();
+#endif
 	void ClearFireSurfaceVisuals(bool bClearAudio = true);
 	void RefreshWaterSurfaceVisuals();
 	void ClearWaterSurfaceVisuals();

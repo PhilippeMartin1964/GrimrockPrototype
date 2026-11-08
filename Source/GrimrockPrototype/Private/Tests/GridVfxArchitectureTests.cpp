@@ -197,37 +197,36 @@ bool FGridVfxArchitectureLevelIndependence::RunTest(const FString&)
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFireNiagaraGeometryControlsTest,
-	"Grimrock.RPG.FIREFX06.GeometryControlsWithoutVendorParameters",
+	"Grimrock.RPG.FIREFX10.GeometryAndProfileRefresh",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridFireNiagaraGeometryControlsTest::RunTest(const FString&)
 {
 	FGridFireVfxSettings Settings;
-	TestTrue(TEXT("Niagara User height is not required"),
-		Settings.FlameHeightParameter.IsNone());
-	TestTrue(TEXT("Niagara User coverage is not required"),
-		Settings.SpawnAreaParameter.IsNone());
-	const FVector Baseline = FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f);
-	TestTrue(TEXT("Default C++ transform preserves vendor native size"),
+	const FVector Baseline = FGridFireNiagaraGeometry::ComponentScale(Settings, true);
+	TestTrue(TEXT("SpawnBox preserves native XY component scale"),
 		Baseline.Equals(FVector(1.f), .001f));
+	const FVector Unbound = FGridFireNiagaraGeometry::ComponentScale(Settings, false);
+	TestTrue(TEXT("Unbound XY scales only proportionally, not as a 200cm guarantee"),
+		FMath::IsNearlyEqual(Unbound.X, .9f));
 	Settings.FlameHeightCm = 150.f;
-	const FVector Tall = FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f);
+	const FVector Tall = FGridFireNiagaraGeometry::ComponentScale(Settings, false);
 	TestTrue(TEXT("Height 150 makes Z twice as tall"), FMath::IsNearlyEqual(Tall.Z, 2.f));
 	TestTrue(TEXT("Changing height never changes width"),
-		FMath::IsNearlyEqual(Tall.X, Baseline.X));
+		FMath::IsNearlyEqual(Tall.X, Unbound.X));
 	Settings.GroundFireCoverage = .45f;
-	const FVector Narrow = FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f);
-	TestTrue(TEXT("Half coverage changes XY only"), FMath::IsNearlyEqual(Narrow.X, .5f));
+	const FVector Narrow = FGridFireNiagaraGeometry::ComponentScale(Settings, false);
+	TestTrue(TEXT("Half coverage changes XY only"), FMath::IsNearlyEqual(Narrow.X, .45f));
 	TestTrue(TEXT("Coverage preserves Z"), FMath::IsNearlyEqual(Narrow.Z, Tall.Z));
 	TestTrue(TEXT("Typed SpawnBox controls XY and avoids a second transform"),
 		FMath::IsNearlyEqual(
-			FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f, true).X, 1.f));
+			FGridFireNiagaraGeometry::ComponentScale(Settings, true).X, 1.f));
 	Settings.GroundFireScale = 1.5f;
-	const FVector Bigger = FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f);
+	const FVector Bigger = FGridFireNiagaraGeometry::ComponentScale(Settings, false);
 	TestTrue(TEXT("General size multiplies every axis"),
 		Bigger.Equals(Narrow * 1.5f, .001f));
 	Settings.NiagaraReferenceHeightCm = 0.f;
 	TestTrue(TEXT("Missing calibration cannot divide by zero"),
-		FMath::IsFinite(FGridFireNiagaraGeometry::ComponentScale(Settings, 200.f).Z));
+		FMath::IsFinite(FGridFireNiagaraGeometry::ComponentScale(Settings, false).Z));
 	TestEqual(TEXT("User namespace is removed consistently"),
 		FGridFireNiagaraBindings::ShortName(FName(TEXT("User.SpawnBox"))),
 		FString(TEXT("SpawnBox")));
@@ -250,6 +249,32 @@ bool FGridFireNiagaraGeometryControlsTest::RunTest(const FString&)
 	TestEqual(TEXT("Overrides always use canonical User namespace"),
 		FGridNiagaraUserOverrideApplicator::ShortName(FName(TEXT("User.FlameSizeMax"))),
 		FString(TEXT("FlameSizeMax")));
+
+	// Reflection comparison drives FIREFX10's no-op path during PIE.
+	FGridFireVfxSettings Same = Settings;
+	const UScriptStruct* FireStruct = FGridFireVfxSettings::StaticStruct();
+	TestTrue(TEXT("Unchanged data profile never needs a Niagara rebuild"),
+		FireStruct->CompareScriptStruct(&Settings, &Same, PPF_None));
+	Same.FlameDensity = 0.25f;
+	TestFalse(TEXT("Changing one visual setting triggers a new presentation"),
+		FireStruct->CompareScriptStruct(&Settings, &Same, PPF_None));
+	Same = Settings;
+	FGridNiagaraUserOverride Override;
+	Override.ParameterName = FName(TEXT("FlameSizeMax"));
+	Override.FloatValue = 25.f;
+	Same.UserParameterOverrides.Add(Override);
+	TestFalse(TEXT("Changing a typed user override triggers a new presentation"),
+		FireStruct->CompareScriptStruct(&Settings, &Same, PPF_None));
+
+	const UScriptStruct* FireSettingsType = FGridFireVfxSettings::StaticStruct();
+	for (const TCHAR* Retired : { TEXT("SpawnAreaParameter"), TEXT("FlameHeightParameter"),
+		TEXT("FlameDensityParameter"), TEXT("SmokeDensityParameter"), TEXT("FireTintParameter"),
+		TEXT("NiagaraReferenceWidthCm"), TEXT("bAutoBindKnownFireControls"),
+		TEXT("bEnableSmoke") })
+	{
+		TestNull(*FString::Printf(TEXT("FIREFX10 removes obsolete authoring property %s"), Retired),
+			FireSettingsType->FindPropertyByName(FName(Retired)));
+	}
 	return true;
 }
 

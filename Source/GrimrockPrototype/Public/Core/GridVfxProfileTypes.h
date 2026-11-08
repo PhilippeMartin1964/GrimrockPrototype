@@ -61,31 +61,21 @@ struct GRIMROCKPROTOTYPE_API FGridFireVfxSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara", meta=(ClampMin="0.01", ClampMax="5.0"))
 	float GroundFireScale = 1.f;
 
-	/** Width of the visual effect relative to a cell. Applied to Niagara XYZ transform WITHOUT User Parameters. */
+	/** Fraction of the grid cell used as the ground-fire spawn footprint (via typed SpawnBox). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara", meta=(ClampMin="0.1", ClampMax="1.0"))
 	float GroundFireCoverage = .9f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara", meta=(ClampMin="5.0", ClampMax="300.0"))
 	float FlameHeightCm = 75.f;
 
-	/** Calibration: approximate horizontal extent of the unscaled Niagara at GroundFireScale=1 (in cm).
-	 * E.g. 180 cm for a system authored for a nearly full 200 cm tile.
-	 * This is a reference, not a vendor-specific User parameter.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Calibration", meta=(ClampMin="10.0", ClampMax="2000.0"))
-	float NiagaraReferenceWidthCm = 180.f;
-
-	/** Calibration: apparent flame height of the unscaled Niagara (in cm).
-	 * Set this once after observing the vendor effect in PIE. FlameHeightCm is then a reliable Z-scale control.
+	/** Measured/estimated native fire height. FlameHeightCm / this value scales
+	 * the component Z; World Space particles may need typed size overrides too.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Calibration", meta=(ClampMin="5.0", ClampMax="2000.0"))
 	float NiagaraReferenceHeightCm = 75.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara", meta=(ClampMin="0.0", ClampMax="4.0"))
 	float FlameDensity = 1.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara")
-	bool bEnableSmoke = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara", meta=(ClampMin="0.0", ClampMax="4.0"))
 	float SmokeDensity = .5f;
@@ -119,36 +109,13 @@ struct GRIMROCKPROTOTYPE_API FGridFireVfxSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Audio", meta=(ClampMin="0.0", ClampMax="2.0"))
 	float FireCrackleVolume = .65f;
 
-	/** Recognized FireFX User parameters (SpawnBox, FlameRate, SmokeRate, Tint)
-	 * can be bound automatically by exact name + Niagara type. No package path is hardcoded.
-	 * The native spawn/rate defaults are preserved and reused as references.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters")
-	bool bAutoBindKnownFireControls = true;
-
-	/** FIREFX09: per-profile, explicitly authored overrides applied LAST.
+	/** Per-profile typed Niagara overrides applied LAST, after automatic bindings.
 	 * Supports all matching Niagara User Float/Int/Bool/Vector3/Color values,
 	 * including vendor-specific controls not represented by dedicated fields.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters",
 		meta=(TitleProperty="ParameterName"))
 	TArray<FGridNiagaraUserOverride> UserParameterOverrides;
-
-	/** Optional names of actual Niagara User Parameters (including User. prefix). */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters")
-	FName SpawnAreaParameter = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters")
-	FName FlameHeightParameter = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters")
-	FName FlameDensityParameter = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters")
-	FName SmokeDensityParameter = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fire|Niagara User Parameters")
-	FName FireTintParameter = NAME_None;
 
 	/** Bounds user-authored values, without modifying the asset. */
 	FGridFireVfxSettings Sanitized() const
@@ -161,7 +128,6 @@ struct GRIMROCKPROTOTYPE_API FGridFireVfxSettings
 		Result.GroundFireScale = Safe(GroundFireScale, 1.f, .01f, 5.f);
 		Result.GroundFireCoverage = Safe(GroundFireCoverage, .9f, .1f, 1.f);
 		Result.FlameHeightCm = Safe(FlameHeightCm, 75.f, 5.f, 300.f);
-		Result.NiagaraReferenceWidthCm = Safe(NiagaraReferenceWidthCm, 180.f, 10.f, 2000.f);
 		Result.NiagaraReferenceHeightCm = Safe(NiagaraReferenceHeightCm, 75.f, 5.f, 2000.f);
 		Result.FlameDensity = Safe(FlameDensity, 1.f, 0.f, 4.f);
 		Result.SmokeDensity = Safe(SmokeDensity, .5f, 0.f, 4.f);

@@ -15,12 +15,14 @@ véritables paramètres de `GroundFireSystem`. Formats pris en charge :
 
 ## Priorités
 
-1. Valeurs originales du système Niagara partagé (elles ne sont jamais
-   modifiées dans le pack).
-2. Ajustements automatiques du profil feu : `SpawnBox` (couverture),
-   `FlameRate` (densité), `SmokeRate` (fumée), `Tint` (couleur).
-3. Anciennes liaisons explicites optionnelles sur le profil.
-4. **User Parameter Overrides** validés par nom + type, appliqués en dernier.
+1. Valeurs originales du système Niagara partagé (jamais modifiées).
+2. Liaisons automatiques **toujours actives** lorsqu'un nom/type correspond :
+   `SpawnBox`, `FlameRate`, `SmokeRate`, `Tint`.
+3. **User Parameter Overrides** validés par nom + type, appliqués en dernier.
+
+Il n'existe plus de propriétés de nom manuel ni d'option pour désactiver
+la détection automatique. Toute personnalisation avancée passe par
+`User Parameter Overrides`.
 
 Les modifications sont appliquées séparément sur chaque
 `UNiagaraComponent`, avant l'activation et lors des mises à jour PIE.
