@@ -280,69 +280,87 @@ bool FGridFireNiagaraGeometryControlsTest::RunTest(const FString&)
 }
 
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFireFX11ProgressiveIgnitionTest,
-	"Grimrock.RPG.FIREFX11.ProgressiveOilIgnition",
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11SettingsTest,
+	"Grimrock.RPG.FIREFX11.Settings",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-bool FGridFireFX11ProgressiveIgnitionTest::RunTest(const FString&)
+bool FGridFX11SettingsTest::RunTest(const FString&)
 {
 	FGridFireVfxSettings Settings;
-	TestTrue(TEXT("Propagation delay is configurable"),
-		FMath::IsNearlyEqual(Settings.PropagationDelayPerCell, .15f));
-	TestTrue(TEXT("Each newly ignited cell grows in 0.4 seconds"),
-		FMath::IsNearlyEqual(Settings.IgnitionGrowthDuration, .4f));
-	TestTrue(TEXT("Initial coverage is 10 percent of a grid cell"),
-		FMath::IsNearlyEqual(Settings.InitialCoverage, .1f));
+	TestTrue(TEXT("Default propagation 150ms"), FMath::IsNearlyEqual(Settings.PropagationDelayPerCell,.15f));
+	TestTrue(TEXT("Default cell growth 400ms"), FMath::IsNearlyEqual(Settings.IgnitionGrowthDuration,.4f));
+	TestTrue(TEXT("Default ignition coverage 0.1"), FMath::IsNearlyEqual(Settings.InitialCoverage,.1f));
 	Settings.PropagationDelayPerCell = 500.f;
 	Settings.IgnitionGrowthDuration = -100.f;
 	Settings.InitialCoverage = -1.f;
 	const FGridFireVfxSettings Safe = Settings.Sanitized();
-	TestTrue(TEXT("Propagation delay bounded"), Safe.PropagationDelayPerCell <= 1.f);
-	TestTrue(TEXT("Growth duration stays positive"), Safe.IgnitionGrowthDuration >= .05f);
-	TestTrue(TEXT("Starting coverage stays positive"), Safe.InitialCoverage >= .01f);
-
-	const FIntPoint Origin(5, 5);
-	const TArray<FIntPoint> Cross = {
-		Origin, FIntPoint(4,5), FIntPoint(6,5),
-		FIntPoint(5,4), FIntPoint(5,6)
-	};
-	TMap<FIntPoint, float> Delays;
-	FGridFireIgnitionWave::BuildDelays(Origin, Cross, .15f, Delays);
-	TestEqual(TEXT("Every cell of the cross is accounted for"), Delays.Num(), 5);
-	TestTrue(TEXT("Impact cell lights immediately"),
-		FMath::IsNearlyZero(Delays.FindRef(Origin)));
-	for (const FIntPoint& Neighbor : {
-		FIntPoint(4,5), FIntPoint(6,5), FIntPoint(5,4), FIntPoint(5,6) })
-	{
-		TestTrue(TEXT("Each direct neighbor follows 150ms later"),
-			FMath::IsNearlyEqual(Delays.FindRef(Neighbor), .15f));
-	}
-
-	const TArray<FIntPoint> Turn = {
-		FIntPoint(0,0), FIntPoint(1,0), FIntPoint(1,1), FIntPoint(2,1)
-	};
-	FGridFireIgnitionWave::BuildDelays(FIntPoint(0,0), Turn, .15f, Delays);
-	TestTrue(TEXT("Wave follows orthogonal contiguous oil rather than jumping diagonally"),
-		FMath::IsNearlyEqual(Delays.FindRef(FIntPoint(2,1)), .45f));
-	const TArray<FIntPoint> Islands = {FIntPoint(0,0), FIntPoint(4,0)};
-	FGridFireIgnitionWave::BuildDelays(FIntPoint(0,0), Islands, .15f, Delays);
-	TestEqual(TEXT("Disconnected oil never manufactures intermediate cells"),
-		Delays.Num(), 2);
-	TestTrue(TEXT("Independent island is delayed by distance from impact"),
-		FMath::IsNearlyEqual(Delays.FindRef(FIntPoint(4,0)), .6f));
-	TestTrue(TEXT("Initial SpawnBox fraction is 0.1/0.9"),
-		FMath::IsNearlyEqual(FGridFireIgnitionWave::CoverageFraction(.1f, .9f, 0.f), 1.f/9.f));
-	TestTrue(TEXT("End of growth reaches final SpawnBox target"),
-		FMath::IsNearlyEqual(FGridFireIgnitionWave::CoverageFraction(.1f, .9f, 1.f), 1.f));
-	TestTrue(TEXT("Growth curve is monotonic and smoothly eased"),
-		FGridFireIgnitionWave::CoverageFraction(.1f,.9f,.25f) <
-		FGridFireIgnitionWave::CoverageFraction(.1f,.9f,.75f));
+	TestTrue(TEXT("Propagation bounded"), Safe.PropagationDelayPerCell <= 1.f);
+	TestTrue(TEXT("Growth bounded"), Safe.IgnitionGrowthDuration >= .05f);
+	TestTrue(TEXT("Coverage bounded"), Safe.InitialCoverage >= .01f);
 	const UScriptStruct* Reflected = FGridFireVfxSettings::StaticStruct();
 	for (const TCHAR* Property : {TEXT("PropagationDelayPerCell"),
 		TEXT("IgnitionGrowthDuration"), TEXT("InitialCoverage")})
 	{
-		TestNotNull(*FString::Printf(TEXT("FIREFX11 profile field %s"),Property),
+		TestNotNull(*FString::Printf(TEXT("FIREFX11 field %s"), Property),
 			Reflected->FindPropertyByName(FName(Property)));
 	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11CrossTest,
+	"Grimrock.RPG.FIREFX11.CrossAndTurn",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridFX11CrossTest::RunTest(const FString&)
+{
+	const FIntPoint Origin(5,5);
+	const TArray<FIntPoint> Cross = {
+		Origin,FIntPoint(4,5),FIntPoint(6,5),FIntPoint(5,4),FIntPoint(5,6)
+	};
+	TMap<FIntPoint,float> Delays;
+	FGridFireIgnitionWave::BuildDelays(Origin,Cross,.15f,Delays);
+	TestEqual(TEXT("Cross five cells"),Delays.Num(),5);
+	TestTrue(TEXT("Impact starts at zero"),FMath::IsNearlyZero(Delays.FindRef(Origin)));
+	for (const FIntPoint& Neighbor : {
+		FIntPoint(4,5),FIntPoint(6,5),FIntPoint(5,4),FIntPoint(5,6)})
+	{
+		TestTrue(TEXT("Cross neighbor follows at 150ms"),
+			FMath::IsNearlyEqual(Delays.FindRef(Neighbor),.15f));
+	}
+	const TArray<FIntPoint> Turn = {
+		FIntPoint(0,0),FIntPoint(1,0),FIntPoint(1,1),FIntPoint(2,1)
+	};
+	FGridFireIgnitionWave::BuildDelays(FIntPoint(0,0),Turn,.15f,Delays);
+	TestTrue(TEXT("Turn must follow three orthogonal edges"),
+		FMath::IsNearlyEqual(Delays.FindRef(FIntPoint(2,1)),.45f));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11IslandsTest,
+	"Grimrock.RPG.FIREFX11.DisconnectedIslands",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridFX11IslandsTest::RunTest(const FString&)
+{
+	const TArray<FIntPoint> Islands = {FIntPoint(0,0),FIntPoint(4,0)};
+	TMap<FIntPoint,float> Delays;
+	FGridFireIgnitionWave::BuildDelays(FIntPoint(0,0),Islands,.15f,Delays);
+	TestEqual(TEXT("Two islands only"),Delays.Num(),2);
+	TestTrue(TEXT("Distant island starts after 600ms"),
+		FMath::IsNearlyEqual(Delays.FindRef(FIntPoint(4,0)),.6f));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11GrowthTest,
+	"Grimrock.RPG.FIREFX11.CellGrowth",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridFX11GrowthTest::RunTest(const FString&)
+{
+	TestTrue(TEXT("Start 0.1/0.9"),
+		FMath::IsNearlyEqual(FGridFireIgnitionWave::CoverageFraction(.1f,.9f,0.f),1.f/9.f));
+	TestTrue(TEXT("Finish full coverage"),
+		FMath::IsNearlyEqual(FGridFireIgnitionWave::CoverageFraction(.1f,.9f,1.f),1.f));
+	TestTrue(TEXT("Smooth monotonic growth"),
+		FGridFireIgnitionWave::CoverageFraction(.1f,.9f,.25f) <
+		FGridFireIgnitionWave::CoverageFraction(.1f,.9f,.75f));
 	return true;
 }
 
