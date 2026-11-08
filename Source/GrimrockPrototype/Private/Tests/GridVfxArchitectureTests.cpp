@@ -329,19 +329,56 @@ bool FGridFX11CrossTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11TurnTest,
-	"Grimrock.RPG.FIREFX11.Turn",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-bool FGridFX11TurnTest::RunTest(const FString&)
+namespace FIREFX11Test
 {
-	const TArray<FIntPoint> Turn = {
-		FIntPoint(0,0),FIntPoint(1,0),FIntPoint(1,1),FIntPoint(2,1)
-	};
-	TMap<FIntPoint,float> Delays;
-	FGridFireIgnitionWave::BuildDelays(FIntPoint(0,0),Turn,.15f,Delays);
-	TestEqual(TEXT("Four connected cells"),Delays.Num(),4);
-	TestTrue(TEXT("Turn must follow three orthogonal edges"),
-		FMath::IsNearlyEqual(Delays.FindRef(FIntPoint(2,1)),.45f));
+	static TMap<FIntPoint, float> MakeTurnDelays()
+	{
+		const TArray<FIntPoint> Turn = {
+			FIntPoint(0,0),FIntPoint(1,0),FIntPoint(1,1),FIntPoint(2,1)
+		};
+		TMap<FIntPoint, float> Delays;
+		FGridFireIgnitionWave::BuildDelays(FIntPoint(0,0),Turn,.15f,Delays);
+		return Delays;
+	}
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11TurnCountTest,
+	"Grimrock.RPG.FIREFX11.TurnCount",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridFX11TurnCountTest::RunTest(const FString&)
+{
+	const auto Delays = FIREFX11Test::MakeTurnDelays();
+	TestEqual(TEXT("Four contiguous cells"), Delays.Num(), 4);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11TurnOneTest,
+	"Grimrock.RPG.FIREFX11.TurnStep1",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridFX11TurnOneTest::RunTest(const FString&)
+{
+	const auto Delays = FIREFX11Test::MakeTurnDelays();
+	TestTrue(TEXT("First cell 150ms"), FMath::IsNearlyEqual(Delays.FindRef(FIntPoint(1,0)), .15f));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11TurnTwoTest,
+	"Grimrock.RPG.FIREFX11.TurnStep2",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridFX11TurnTwoTest::RunTest(const FString&)
+{
+	const auto Delays = FIREFX11Test::MakeTurnDelays();
+	TestTrue(TEXT("Second cell 300ms"), FMath::IsNearlyEqual(Delays.FindRef(FIntPoint(1,1)), .30f));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridFX11TurnThreeTest,
+	"Grimrock.RPG.FIREFX11.TurnStep3",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridFX11TurnThreeTest::RunTest(const FString&)
+{
+	const auto Delays = FIREFX11Test::MakeTurnDelays();
+	TestTrue(TEXT("Third cell 450ms"), FMath::IsNearlyEqual(Delays.FindRef(FIntPoint(2,1)), .45f));
 	return true;
 }
 
