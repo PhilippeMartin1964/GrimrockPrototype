@@ -533,44 +533,6 @@ void FGridCombatHudViewModelBuilder::ProjectEquippedHandAttacks(
 	const bool bDualPrimary = InOutActions[0].bResolved &&
 		InOutActions[0].Action.Definition.ActionId == FGridDualWieldPolicy::ActionId();
 
-	// Project the two real weapon icons, not the composite action's single
-	// MainHand icon. A stale/partial catalogue never fabricates a second blade.
-	for (FGridCombatHudActionView& View : InOutActions)
-	{
-		if (!View.bResolved || View.Action.Definition.ActionId != FGridDualWieldPolicy::ActionId() ||
-			View.Action.Definition.SourcePolicy != EGridCombatActionSourcePolicy::Equipment)
-		{
-			continue;
-		}
-		const FGridAvailableCombatAction* MainAttack = AvailableActions.FindByPredicate(
-			[&View](const FGridAvailableCombatAction& Candidate)
-			{
-				return Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-					Candidate.Definition.ActionId != FGridDualWieldPolicy::ActionId() &&
-					Candidate.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
-					Candidate.SourceEquipmentSlot == EGridEquipmentSlot::MainHand &&
-					Candidate.SourceRuntimeId.IsValid() &&
-					Candidate.SourceRuntimeId == View.Action.SourceRuntimeId;
-			});
-		const FGridAvailableCombatAction* OffAttack = AvailableActions.FindByPredicate(
-			[MainAttack](const FGridAvailableCombatAction& Candidate)
-			{
-				return MainAttack &&
-					Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-					Candidate.Definition.ActionId != FGridDualWieldPolicy::ActionId() &&
-					Candidate.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
-					Candidate.SourceEquipmentSlot == EGridEquipmentSlot::OffHand &&
-					Candidate.SourceRuntimeId.IsValid() &&
-					Candidate.SourceRuntimeId != MainAttack->SourceRuntimeId;
-			});
-		if (MainAttack && OffAttack && !MainAttack->Definition.Icon.IsNull() && !OffAttack->Definition.Icon.IsNull())
-		{
-			View.DualMainHandIcon = MainAttack->Definition.Icon;
-			View.DualOffHandIcon = OffAttack->Definition.Icon;
-			View.bHasDualAttackIconPair = true;
-		}
-	}
-
 	// MainHand and OffHand each keep a real, independent action even when
 	// the contextual primary resolves the two-weapon combination.
 	const EGridEquipmentSlot Hands[] = { EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand };
@@ -672,6 +634,13 @@ float FGridCombatHudViewModelBuilder::CalculateHealthPercent(int32 CurrentHealth
 	}
 
 	return FMath::Clamp(static_cast<float>(CurrentHealth) / static_cast<float>(MaximumHealth), 0.0f, 1.0f);
+}
+
+TSoftObjectPtr<UTexture2D> UGridCombatHudActionWidget::ResolveDisplayedIcon(
+	const FGridCombatHudActionView& ActionView, const TSoftObjectPtr<UTexture2D>& InDualAttackIcon)
+{
+	return ActionView.bResolved && ActionView.Action.Definition.ActionId == FGridDualWieldPolicy::ActionId() &&
+		!InDualAttackIcon.IsNull() ? InDualAttackIcon : ActionView.Action.Definition.Icon;
 }
 
 void UGridCombatHudActionWidget::InitializeAction(UGridCombatHudWidget* InOwnerHud, const FGridCombatHudActionView& InView)
@@ -781,38 +750,19 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 			Button_Action->SetToolTipText(BuildAssignedHotbarToolTip(View));
 		}
 	}
-	// The WBP owns the composition and layout of its two weapon images.
-	// With an older WBP, retain the usual icon and expose the "×2" badge
-	// below: no invisible action while Designer assets are being updated.
-	const bool bDualAttack = View.bResolved &&
-		View.Action.Definition.ActionId == FGridDualWieldPolicy::ActionId();
-	const bool bShowDualPair = bDualAttack && View.bHasDualAttackIconPair &&
-		!View.DualMainHandIcon.IsNull() && !View.DualOffHandIcon.IsNull() &&
-		IsValid(Overlay_DualAttack) && IsValid(Image_DualMainHand) && IsValid(Image_DualOffHand);
-	if (Overlay_DualAttack)
-	{
-		Overlay_DualAttack->SetVisibility(bShowDualPair ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-	}
-	if (Image_DualMainHand && Image_DualOffHand)
-	{
-		if (bShowDualPair)
-		{
-			Image_DualMainHand->SetBrushFromSoftTexture(View.DualMainHandIcon, false);
-			Image_DualOffHand->SetBrushFromSoftTexture(View.DualOffHandIcon, false);
-		}
-		Image_DualMainHand->SetVisibility(bShowDualPair ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-		Image_DualOffHand->SetVisibility(bShowDualPair ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-	}
+	// Keep the existing Designer hierarchy. Image_ActionIcon shows one
+	// dedicated dual-attack texture, or the normal equipment/action icon.
 	if (Image_ActionIcon)
 	{
-		if (bShowDualPair || !View.bHasBinding || View.Action.Definition.Icon.IsNull())
+		const TSoftObjectPtr<UTexture2D> Icon = ResolveDisplayedIcon(View, DualAttackIcon);
+		if (!View.bHasBinding || Icon.IsNull())
 		{
 			Image_ActionIcon->SetBrushFromTexture(nullptr);
 			Image_ActionIcon->SetVisibility(ESlateVisibility::Collapsed);
 		}
 		else
 		{
-			Image_ActionIcon->SetBrushFromSoftTexture(View.Action.Definition.Icon, false);
+			Image_ActionIcon->SetBrushFromSoftTexture(Icon, false);
 			Image_ActionIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
 	}
@@ -832,16 +782,13 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 		const bool bShowQuantity = View.bHasBinding && View.bResolved &&
 			View.Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem && View.Action.CurrentSourceItemQuantityCost > 0 &&
 			View.Action.CurrentSourceItemQuantity > 0;
-		// Reuse the existing badge for a language-neutral strike count.
-		// This also disambiguates the action on projects without dual-layer WBP markup.
-		const bool bShowBadge = bShowQuantity || bDualAttack;
-		Text_Quantity->SetText(bDualAttack ? FText::FromString(TEXT("×2")) : bShowQuantity
+		Text_Quantity->SetText(bShowQuantity
 				? FText::FromString(FString::Printf(TEXT("x%d"), View.Action.CurrentSourceItemQuantity))
 				: FText::GetEmpty());
-		Text_Quantity->SetVisibility(bShowBadge ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		Text_Quantity->SetVisibility(bShowQuantity ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 		if (QuantityBadgeContainer)
 		{
-			QuantityBadgeContainer->SetVisibility(bShowBadge ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+			QuantityBadgeContainer->SetVisibility(bShowQuantity ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 		}
 	}
 	SetRenderOpacity(!View.bHasBinding               ? FMath::Clamp(EmptySlotOpacity, 0.0f, 1.0f)
