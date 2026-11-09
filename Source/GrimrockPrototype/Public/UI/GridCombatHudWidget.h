@@ -15,6 +15,7 @@ class UGridCombatHotbarDragDropOperation;
 class UGridPartyInventoryComponent;
 class UGridTurnManagerComponent;
 class UImage;
+class UOverlay;
 class UPanelWidget;
 class UProgressBar;
 class UTextBlock;
@@ -107,6 +108,17 @@ struct FGridCombatHudActionView
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
 	bool bTransientMainHandSuggestion = false;
+
+	/** True only if the resolved composite action has two distinct physical weapon icons.
+	 * Never serialized: rebuilding the action catalogue immediately refreshes both images. */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Dual Attack")
+	bool bHasDualAttackIconPair = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Dual Attack")
+	TSoftObjectPtr<UTexture2D> DualMainHandIcon;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Dual Attack")
+	TSoftObjectPtr<UTexture2D> DualOffHandIcon;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
 	FGridAvailableCombatAction Action;
@@ -241,6 +253,17 @@ public:
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UImage> Image_ActionIcon;
+
+	/** Optional visual-only dual strike layer authored in WBP_GridCombatHudAction.
+	 * Keep as a sibling of Image_ActionIcon in Overlay_ActionContent. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Dual Attack")
+	TObjectPtr<UOverlay> Overlay_DualAttack;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Dual Attack")
+	TObjectPtr<UImage> Image_DualMainHand;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Dual Attack")
+	TObjectPtr<UImage> Image_DualOffHand;
 
 	/** Optional shortcut label overlaid on fixed hotbar slots. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")

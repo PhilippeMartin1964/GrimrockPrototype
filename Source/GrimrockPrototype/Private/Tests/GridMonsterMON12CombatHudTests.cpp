@@ -7,6 +7,8 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/CanvasPanel.h"
 #include "Components/HorizontalBox.h"
+#include "Components/Image.h"
+#include "Components/Overlay.h"
 #include "Components/InputComponent.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
@@ -2633,6 +2635,114 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 	Fixture.Hud->RefreshFromSources();
 	TestTrue(TEXT("Two-handed weapon never creates dual attack"),
 		Fixture.Hud->View.Actions[0].Action.Definition.ActionId != FGridDualWieldPolicy::ActionId());
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT021921DualAttackIconViewTest,
+	"Grimrock.RPG.ARMEMENT.LOT02.19.2.1.ContextualDualAttackIcons",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENTLOT021921DualAttackIconViewTest::RunTest(const FString&)
+{
+	FGridCombatHudFixture Fixture;
+	if (!TestTrue(TEXT("Dual icon fixture has a HUD and actual combat"), Fixture.IsReady()))
+	{
+		return false;
+	}
+	UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
+	UGridItemDefinitionAsset* MainGauche = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_MainGauche_01.DA_Weapon_MainGauche_01"));
+	UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
+	if (!TestNotNull(TEXT("ARM001 actual weapon"), Dagger) ||
+		!TestNotNull(TEXT("ARM013 actual weapon"), MainGauche) ||
+		!TestNotNull(TEXT("ARM075 passive shield"), Shield))
+	{
+		return false;
+	}
+	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
+	auto Equipped = [&Fixture](const UGridItemDefinitionAsset* Definition, const FGuid& Guid, EGridEquipmentSlot Hand)
+	{
+		FGridItemInstance Item;
+		Item.RuntimeObjectId = Guid;
+		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.DisplayName = Definition->DisplayName;
+		Item.ItemLevel = 1;
+		Item.Quantity = 1;
+		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
+		Item.OwnerGuid = Fixture.CharacterIds[0];
+		Item.OwnerCharacterIndex = 0;
+		Item.EquipmentSlot = Hand;
+		return Item;
+	};
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand =
+		Equipped(Dagger, FGuid(19, 2, 1, 21), EGridEquipmentSlot::MainHand);
+	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand =
+		Equipped(MainGauche, FGuid(19, 2, 1, 22), EGridEquipmentSlot::OffHand);
+	if (!TestTrue(TEXT("Register dagger definition"), Inventory->RegisterItemDefinition(Dagger)) ||
+		!TestTrue(TEXT("Register Main-gauche definition"), Inventory->RegisterItemDefinition(MainGauche)) ||
+		!TestTrue(TEXT("Register passive shield definition"), Inventory->RegisterItemDefinition(Shield)))
+	{
+		return false;
+	}
+	Fixture.Hud->RefreshFromSources();
+	const FGridCombatHudActionView& DualView = Fixture.Hud->View.Actions[0];
+	if (!TestEqual(TEXT("Primary attack is dual"), DualView.Action.Definition.ActionId, FGridDualWieldPolicy::ActionId()) ||
+		!TestTrue(TEXT("Dual images are sourced from two real authorized offensive actions"),
+			DualView.bHasDualAttackIconPair && !DualView.DualMainHandIcon.IsNull() && !DualView.DualOffHandIcon.IsNull()) ||
+		!TestTrue(TEXT("Main image is the actual ARM001 authored action icon"),
+			DualView.DualMainHandIcon.ToSoftObjectPath() == Dagger->CombatActions[0].Icon.ToSoftObjectPath()) ||
+		!TestTrue(TEXT("Off image is the actual ARM013 authored action icon"),
+			DualView.DualOffHandIcon.ToSoftObjectPath() == MainGauche->CombatActions[0].Icon.ToSoftObjectPath()) ||
+		!TestTrue(TEXT("Icon projection does not rewrite persistent shortcuts"),
+			Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[0].IsPrimaryAttackBinding()))
+	{
+		return false;
+	}
+
+	UGridCombatHudActionWidget* Slot = CreateWidget<UGridCombatHudActionWidget>(
+		Fixture.TestWorld.World, UGridCombatHudActionWidget::StaticClass());
+	if (!TestNotNull(TEXT("Action widget can render a designer-independent fallback"), Slot))
+	{
+		return false;
+	}
+	Slot->Image_ActionIcon = NewObject<UImage>(Slot);
+	Slot->Text_Quantity = NewObject<UTextBlock>(Slot);
+	Slot->InitializeAction(Fixture.Hud, DualView);
+	TestEqual(TEXT("Fallback explicitly displays times-two on legacy WBP"),
+		Slot->Text_Quantity->GetText().ToString(), FString(TEXT("×2")));
+	TestEqual(TEXT("Fallback retains base weapon icon rather than losing all icons"),
+		Slot->Image_ActionIcon->GetVisibility(), ESlateVisibility::HitTestInvisible);
+
+	Slot->Overlay_DualAttack = NewObject<UOverlay>(Slot);
+	Slot->Image_DualMainHand = NewObject<UImage>(Slot);
+	Slot->Image_DualOffHand = NewObject<UImage>(Slot);
+	Slot->InitializeAction(Fixture.Hud, DualView);
+	TestEqual(TEXT("Complete designer layer becomes visible for eligible dual attack"),
+		Slot->Overlay_DualAttack->GetVisibility(), ESlateVisibility::HitTestInvisible);
+	TestEqual(TEXT("Base single-weapon image is hidden behind the dual icon layer"),
+		Slot->Image_ActionIcon->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Main image becomes visible"), Slot->Image_DualMainHand->GetVisibility(), ESlateVisibility::HitTestInvisible);
+	TestEqual(TEXT("Off image becomes visible"), Slot->Image_DualOffHand->GetVisibility(), ESlateVisibility::HitTestInvisible);
+	TestEqual(TEXT("Strike-count badge stays visible even with two images"),
+		Slot->Text_Quantity->GetText().ToString(), FString(TEXT("×2")));
+
+	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand =
+		Equipped(Shield, FGuid(19, 2, 1, 23), EGridEquipmentSlot::OffHand);
+	Fixture.Hud->RefreshFromSources();
+	const FGridCombatHudActionView& ShieldView = Fixture.Hud->View.Actions[0];
+	TestFalse(TEXT("No dual icon after switching OffHand to a passive shield"), ShieldView.bHasDualAttackIconPair);
+	TestTrue(TEXT("Primary attack returns to a standalone weapon"),
+		ShieldView.Action.Definition.ActionId != FGridDualWieldPolicy::ActionId());
+	Slot->InitializeAction(Fixture.Hud, ShieldView);
+	TestEqual(TEXT("Dual designer layer is collapsed on standalone attacks"),
+		Slot->Overlay_DualAttack->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Main icon returns on standalone attacks"),
+		Slot->Image_ActionIcon->GetVisibility(), ESlateVisibility::HitTestInvisible);
+	TestEqual(TEXT("Times-two indicator clears when only one attack exists"),
+		Slot->Text_Quantity->GetText().ToString(), FString());
 	return true;
 }
 
