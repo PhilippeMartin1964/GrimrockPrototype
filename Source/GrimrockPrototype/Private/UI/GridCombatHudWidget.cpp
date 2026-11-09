@@ -305,6 +305,18 @@ namespace
 			});
 		if (!ResolvedPrimary)
 		{
+			// An equipped secondary weapon is a better fallback than a punch
+			// when MainHand is empty (only physical action sources enter here).
+			ResolvedPrimary = AvailableActions.FindByPredicate(
+				[](const FGridAvailableCombatAction& Candidate)
+				{
+					return Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+						Candidate.SourceEquipmentSlot == EGridEquipmentSlot::OffHand &&
+						Candidate.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+				});
+		}
+		if (!ResolvedPrimary)
+		{
 			ResolvedPrimary = AvailableActions.FindByPredicate(
 				[](const FGridAvailableCombatAction& Candidate)
 				{
@@ -420,7 +432,12 @@ namespace
 		}
 
 		TArray<FText> ShortcutInstructions;
-		ShortcutInstructions.Add(FUILocalizationText::Get(TEXT("Combat.Hotbar.Tooltip.RemoveShortcut")));
+		// No deletion hint for an automatic projection: there is no stored
+		// binding to delete, and the player can customize this slot at will.
+		if (!ActionView.bTransientOffHandSuggestion)
+		{
+			ShortcutInstructions.Add(FUILocalizationText::Get(TEXT("Combat.Hotbar.Tooltip.RemoveShortcut")));
+		}
 		ShortcutInstructions.Add(FUILocalizationText::Get(TEXT("Combat.Hotbar.Tooltip.KeepsItem")));
 		Sections.Add(FText::Join(FText::FromString(TEXT("\n")), ShortcutInstructions));
 		return FText::Join(FText::FromString(TEXT("\n\n")), Sections);
@@ -489,6 +506,69 @@ void FGridCombatHudViewModelBuilder::BuildHotbarActions(
 		ActionView.Action.SourceDefinitionId = ActionView.Binding.SourceDefinitionId;
 		ActionView.Action.SourceRuntimeId = ActionView.Binding.PreferredSourceRuntimeId;
 		ActionView.Action.SourceEquipmentSlot = ActionView.Binding.PreferredEquipmentSlot;
+	}
+}
+
+void FGridCombatHudViewModelBuilder::ProjectEquippedHandAttacks(
+	const TArray<FGridAvailableCombatAction>& AvailableActions, TArray<FGridCombatHudActionView>& InOutActions)
+{
+	ApplyPrimaryAttackProjection(AvailableActions, InOutActions);
+
+	// The second hand is its own action, not an unconditional extra strike.
+	// Its live suggestion never alters the saved layout or the action economy.
+	const FGridAvailableCombatAction* OffHandAction = AvailableActions.FindByPredicate(
+		[](const FGridAvailableCombatAction& Candidate)
+		{
+			return Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+				Candidate.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+				Candidate.SourceEquipmentSlot == EGridEquipmentSlot::OffHand &&
+				Candidate.SourceRuntimeId.IsValid();
+		});
+	if (!OffHandAction || InOutActions.IsEmpty())
+	{
+		return;
+	}
+
+	// Slot 1 already aliases OffHand when MainHand is empty. Likewise an
+	// explicit user binding of the same physical item must not be duplicated.
+	for (const FGridCombatHudActionView& View : InOutActions)
+	{
+		if ((View.bResolved && View.Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+				View.Action.SourceRuntimeId == OffHandAction->SourceRuntimeId) ||
+			(View.Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+				View.Binding.PreferredSourceRuntimeId == OffHandAction->SourceRuntimeId))
+		{
+			return;
+		}
+	}
+
+	for (int32 Index = FGridCombatHotbarBinding::PrimaryAttackSlotIndex + 1; Index < InOutActions.Num(); ++Index)
+	{
+		FGridCombatHudActionView& View = InOutActions[Index];
+		if (View.bHasBinding)
+		{
+			continue;
+		}
+
+		FGridCombatHotbarBinding Suggestion;
+		Suggestion.Reset(Index);
+		Suggestion.ActionId = OffHandAction->Definition.ActionId;
+		Suggestion.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+		Suggestion.SourceDefinitionId = OffHandAction->SourceDefinitionId;
+		Suggestion.PreferredSourceRuntimeId = OffHandAction->SourceRuntimeId;
+		Suggestion.PreferredEquipmentSlot = EGridEquipmentSlot::OffHand;
+		if (!Suggestion.IsValid())
+		{
+			return;
+		}
+
+		View.Binding = Suggestion;
+		View.Action = *OffHandAction;
+		View.bHasBinding = true;
+		View.bResolved = true;
+		View.bTransientOffHandSuggestion = true;
+		View.DisabledReason = OffHandAction->bEnabled ? FText::GetEmpty() : OffHandAction->DisabledReason;
+		return;
 	}
 }
 
@@ -690,6 +770,10 @@ FReply UGridCombatHudActionWidget::NativeOnPreviewMouseButtonDown(const FGeometr
 	{
 		bLeftMousePressed = false;
 		bDragDetected = false;
+		if (View.bTransientOffHandSuggestion)
+		{
+			return FReply::Handled(); // There is no saved binding to remove.
+		}
 		return OwnerHud->ClearHotbarSlot(View.HotbarSlotIndex) ? FReply::Handled() : FReply::Unhandled();
 	}
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && View.bHasBinding)
@@ -724,8 +808,10 @@ void UGridCombatHudActionWidget::NativeOnDragDetected(const FGeometry& InGeometr
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 	bDragDetected = true;
 	bLeftMousePressed = false;
-	if (!IsValid(OwnerHud) || !View.bHasBinding)
+	if (!IsValid(OwnerHud) || !View.bHasBinding || View.bTransientOffHandSuggestion)
 	{
+		// Only stored bindings move. To pin the suggested action, drag its
+		// item from the equipment UI to a chosen persistent slot.
 		return;
 	}
 
@@ -996,7 +1082,7 @@ void UGridCombatHudWidget::RefreshFromSources()
 		}
 	}
 	FGridCombatHudViewModelBuilder::BuildHotbarActions(HotbarBindings, AvailableActions, View.Actions);
-	ApplyPrimaryAttackProjection(AvailableActions, View.Actions);
+	FGridCombatHudViewModelBuilder::ProjectEquippedHandAttacks(AvailableActions, View.Actions);
 	for (FGridCombatHudActionView& ActionView : View.Actions)
 	{
 		ActionView.Action.CharacterIndex = View.ActiveCharacterIndex;

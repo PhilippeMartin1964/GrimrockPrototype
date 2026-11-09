@@ -33,6 +33,7 @@
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
+#include "UObject/UObjectGlobals.h"
 
 namespace
 {
@@ -2251,6 +2252,238 @@ bool FARMEMENT01173BExplorationCatalyst::RunTest(const FString&)
 		Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, BeforeAP);
 	FString Ownership;
 	TestTrue(TEXT("No orphan after exploration uses"), Inventory->ValidateInventoryOwnership(Ownership));
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT02191HandProjection,
+	"Grimrock.RPG.ARMEMENT.LOT02.19.1.HandAttackProjection",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENTLOT02191HandProjection::RunTest(const FString&)
+{
+	const FGuid MainGuid(19, 1, 1, 1), OffGuid(19, 1, 1, 2);
+	auto MakeAction = [](FName ActionId, FName SourceId, const FGuid& RuntimeId, EGridEquipmentSlot Slot)
+	{
+		FGridAvailableCombatAction A;
+		A.Definition.ActionId = ActionId;
+		A.Definition.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+		A.Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
+		A.SourceDefinitionId = SourceId;
+		A.SourceRuntimeId = RuntimeId;
+		A.SourceEquipmentSlot = Slot;
+		A.bEnabled = true;
+		return A;
+	};
+	TArray<FGridAvailableCombatAction> Catalog;
+	Catalog.Add(MakeAction(TEXT("Attack_One"), TEXT("Weapon_One"), MainGuid, EGridEquipmentSlot::MainHand));
+	Catalog.Add(MakeAction(TEXT("Attack_Two"), TEXT("Weapon_Two"), OffGuid, EGridEquipmentSlot::OffHand));
+	FGridAvailableCombatAction Unarmed;
+	Unarmed.Definition.ActionId = TEXT("Attack_Unarmed");
+	Unarmed.Definition.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
+	Catalog.Add(Unarmed);
+
+	TArray<FGridCombatHotbarBinding> Bindings;
+	Bindings.SetNum(4);
+	for (int32 Index = 0; Index < Bindings.Num(); ++Index) Bindings[Index].Reset(Index);
+	Bindings[0].ActionId = FGridCombatHotbarBinding::MakePrimaryAttackActionId();
+	Bindings[0].SourcePolicy = EGridCombatActionSourcePolicy::Universal;
+	auto Project = [&Catalog](const TArray<FGridCombatHotbarBinding>& Source)
+	{
+		TArray<FGridCombatHudActionView> Views;
+		FGridCombatHudViewModelBuilder::BuildHotbarActions(Source, Catalog, Views);
+		FGridCombatHudViewModelBuilder::ProjectEquippedHandAttacks(Catalog, Views);
+		return Views;
+	};
+
+	TArray<FGridCombatHudActionView> Views = Project(Bindings);
+	if (!TestEqual(TEXT("Main attack remains in slot 1"), Views[0].Action.SourceEquipmentSlot, EGridEquipmentSlot::MainHand) ||
+		!TestTrue(TEXT("First empty slot offers OffHand"), Views[1].bTransientOffHandSuggestion &&
+			Views[1].Action.SourceRuntimeId == OffGuid && Views[1].Binding.IsValid()) ||
+		!TestTrue(TEXT("Original slot remains empty and unsaved"), Bindings[1].IsEmpty()))
+		return false;
+
+	FGridCombatHotbarBinding User;
+	User.Reset(1);
+	User.ActionId = TEXT("Attack_Unarmed");
+	User.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
+	Bindings[1] = User;
+	Views = Project(Bindings);
+	if (!TestFalse(TEXT("User's existing action is never replaced"), Views[1].bTransientOffHandSuggestion) ||
+		!TestTrue(TEXT("Suggestion moves to slot 3"), Views[2].bTransientOffHandSuggestion))
+		return false;
+
+	Bindings[3].ActionId = Catalog[1].Definition.ActionId;
+	Bindings[3].SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+	Bindings[3].SourceDefinitionId = Catalog[1].SourceDefinitionId;
+	Bindings[3].PreferredSourceRuntimeId = OffGuid;
+	Bindings[3].PreferredEquipmentSlot = EGridEquipmentSlot::OffHand;
+	Views = Project(Bindings);
+	if (!TestTrue(TEXT("Pinned OffHand is still resolvable"), Views[3].bResolved &&
+			Views[3].Action.SourceRuntimeId == OffGuid) ||
+		!TestFalse(TEXT("Pinned OffHand never has a duplicate suggestion"), Views[2].bTransientOffHandSuggestion))
+		return false;
+
+	Bindings[2] = User; Bindings[2].SlotIndex = 2;
+	Bindings[3] = User; Bindings[3].SlotIndex = 3;
+	Views = Project(Bindings);
+	TestFalse(TEXT("Full bar is never overwritten"),
+		Views.ContainsByPredicate([](const FGridCombatHudActionView& V) { return V.bTransientOffHandSuggestion; }));
+	Bindings[1].Reset(1); Bindings[2].Reset(2); Bindings[3].Reset(3);
+	Catalog.RemoveAt(0);
+	Views = Project(Bindings);
+	TestEqual(TEXT("OffHand alone becomes PrimaryAttack"), Views[0].Action.SourceEquipmentSlot, EGridEquipmentSlot::OffHand);
+	TestFalse(TEXT("OffHand already in slot 1 is not duplicated"), Views[1].bTransientOffHandSuggestion);
+	Catalog.RemoveAt(0);
+	Views = Project(Bindings);
+	TestEqual(TEXT("Only unarmed remains as last-resort attack"), Views[0].Action.Definition.ActionId,
+		FName(TEXT("Attack_Unarmed")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT02191ShadowCombat,
+	"Grimrock.RPG.ARMEMENT.LOT02.19.1.ShadowN1OffHandCombat",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
+{
+	FGridCombatHudFixture Fixture;
+	if (!TestTrue(TEXT("Combat world and HUD are ready"), Fixture.IsReady())) return false;
+	UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
+	UGridItemDefinitionAsset* MainGauche = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_MainGauche_01.DA_Weapon_MainGauche_01"));
+	if (!TestNotNull(TEXT("Real ARM001 Dagger"), Dagger) ||
+		!TestNotNull(TEXT("Real ARM013 Main-gauche"), MainGauche) ||
+		!TestTrue(TEXT("Real ARM013 explicitly allows an OffHand attack"),
+			MainGauche->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand)))
+		return false;
+
+	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
+	auto ItemFor = [&Fixture](const UGridItemDefinitionAsset* Definition, const FGuid& Id, EGridEquipmentSlot Slot)
+	{
+		FGridItemInstance Item;
+		Item.RuntimeObjectId = Id;
+		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.DisplayName = Definition->DisplayName;
+		Item.ItemLevel = 1;
+		Item.Quantity = 1;
+		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
+		Item.OwnerGuid = Fixture.CharacterIds[0];
+		Item.OwnerCharacterIndex = 0;
+		Item.EquipmentSlot = Slot;
+		return Item;
+	};
+	const FGridItemInstance Main = ItemFor(Dagger, FGuid(19, 1, 2, 1), EGridEquipmentSlot::MainHand);
+	const FGridItemInstance Off = ItemFor(MainGauche, FGuid(19, 1, 2, 2), EGridEquipmentSlot::OffHand);
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Main;
+	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Off;
+	if (!TestTrue(TEXT("Register real dagger"), Inventory->RegisterItemDefinition(Dagger)) ||
+		!TestTrue(TEXT("Register real Main-gauche"), Inventory->RegisterItemDefinition(MainGauche))) return false;
+
+	Fixture.Hud->RefreshFromSources();
+	TArray<FGridAvailableCombatAction> Available;
+	Fixture.TurnManager->GetAvailableCombatActions(0, Available);
+	const FGridAvailableCombatAction* Secondary = Available.FindByPredicate(
+		[&Off](const FGridAvailableCombatAction& A)
+		{
+			return A.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+				A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+				A.SourceEquipmentSlot == EGridEquipmentSlot::OffHand &&
+				A.SourceRuntimeId == Off.RuntimeObjectId;
+		});
+	if (!TestNotNull(TEXT("TurnManager exposes actual ARM013 attack"), Secondary) ||
+		!TestEqual(TEXT("Independent Main-gauche attack costs 2 AP"), Secondary->CurrentActionPointCost, 2) ||
+		!TestTrue(TEXT("MainHand icon/action remains in slot 1"),
+			Fixture.Hud->View.Actions[0].Action.SourceDefinitionId == Main.ItemDefinitionId &&
+			Fixture.Hud->View.Actions[0].Action.SourceEquipmentSlot == EGridEquipmentSlot::MainHand) ||
+		!TestTrue(TEXT("OffHand automatically occupies first free slot"),
+			Fixture.Hud->View.Actions[1].bTransientOffHandSuggestion &&
+			Fixture.Hud->View.Actions[1].Action.SourceRuntimeId == Off.RuntimeObjectId) ||
+		!TestTrue(TEXT("Auto-projected shortcut is NOT serialized"),
+			Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].IsEmpty()))
+		return false;
+
+	FGridCombatActionRequestResult Result;
+	if (!TestTrue(TEXT("Automatic OffHand shortcut performs a real attack"), Fixture.Hud->RequestHotbarSlot(1, Result)))
+		return false;
+	TestEqual(TEXT("Resolved attack uses OffHand slot"), Result.AttackRequest.OffensiveEquipmentSlot, EGridEquipmentSlot::OffHand);
+	TestEqual(TEXT("Resolved attack comes from Main-gauche"), Result.AttackRequest.OffensiveItemDefinitionId, Off.ItemDefinitionId);
+	TestEqual(TEXT("Only two AP spent"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
+
+	FGridCombatHotbarBinding User;
+	User.Reset(1); User.ActionId = TEXT("Attack_Unarmed");
+	User.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
+	if (!TestTrue(TEXT("User customizes shortcut 2"), Inventory->SetCharacterCombatHotbarBinding(0, 1, User))) return false;
+	Fixture.Hud->RefreshFromSources();
+	TestFalse(TEXT("User shortcut 2 is never an automatic projection"), Fixture.Hud->View.Actions[1].bTransientOffHandSuggestion);
+	TestTrue(TEXT("Secondary suggestion shifts to shortcut 3"), Fixture.Hud->View.Actions[2].bTransientOffHandSuggestion);
+	if (!TestTrue(TEXT("OffHand can be explicitly pinned to shortcut 5"),
+		Inventory->SetCharacterCombatHotbarBindingFromItem(0, 4, Off, EGridEquipmentSlot::OffHand))) return false;
+	Fixture.Hud->RefreshFromSources();
+	TestTrue(TEXT("Pinned OffHand binding is resolved"), Fixture.Hud->View.Actions[4].bResolved &&
+		Fixture.Hud->View.Actions[4].Action.SourceRuntimeId == Off.RuntimeObjectId);
+	TestFalse(TEXT("Pinned item does not produce a duplicate automatic icon"),
+		Fixture.Hud->View.Actions.ContainsByPredicate(
+			[](const FGridCombatHudActionView& V) { return V.bTransientOffHandSuggestion; }));
+	FGridCombatHotbarBinding Saved;
+	Inventory->GetCharacterCombatHotbarBinding(0, 4, Saved);
+	TestEqual(TEXT("Pinned item keeps its runtime GUID"), Saved.PreferredSourceRuntimeId, Off.RuntimeObjectId);
+
+	Inventory->ClearCharacterCombatHotbarBinding(0, 4);
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = FGridItemInstance();
+	Fixture.Hud->RefreshFromSources();
+	TestEqual(TEXT("Empty MainHand makes OffHand the primary attack"),
+		Fixture.Hud->View.Actions[0].Action.SourceEquipmentSlot, EGridEquipmentSlot::OffHand);
+	TestFalse(TEXT("No second icon when OffHand is primary"),
+		Fixture.Hud->View.Actions.ContainsByPredicate(
+			[](const FGridCombatHudActionView& V) { return V.bTransientOffHandSuggestion; }));
+
+	// Passive shield, incompatible MainHand-only dagger and a two-handed
+	// weapon must never create a fabricated secondary strike.
+	UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
+	UGridItemDefinitionAsset* Assassin = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_AssassinDagger_01.DA_Weapon_AssassinDagger_01"));
+	UGridItemDefinitionAsset* GreatAxe = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_GreatAxe_01.DA_Weapon_GreatAxe_01"));
+	if (!TestNotNull(TEXT("Actual passive shield"), Shield) ||
+		!TestNotNull(TEXT("Actual MainHand-only dagger"), Assassin) ||
+		!TestNotNull(TEXT("Actual two-handed axe"), GreatAxe) ||
+		!TestFalse(TEXT("Shield is not an offensive source"), Shield->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand)) ||
+		!TestFalse(TEXT("Assassin dagger is not an authorized OffHand attack"),
+			Assassin->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand)))
+		return false;
+	Inventory->RegisterItemDefinition(Shield);
+	Inventory->RegisterItemDefinition(Assassin);
+	Inventory->RegisterItemDefinition(GreatAxe);
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Main;
+	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand =
+		ItemFor(Shield, FGuid(19, 1, 2, 3), EGridEquipmentSlot::OffHand);
+	Fixture.Hud->RefreshFromSources();
+	TestFalse(TEXT("Shield never creates suggested secondary attack"),
+		Fixture.Hud->View.Actions.ContainsByPredicate(
+			[](const FGridCombatHudActionView& V) { return V.bTransientOffHandSuggestion; }));
+
+	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand =
+		ItemFor(Assassin, FGuid(19, 1, 2, 4), EGridEquipmentSlot::OffHand);
+	Fixture.TurnManager->GetAvailableCombatActions(0, Available);
+	TestFalse(TEXT("Catalogue rejects unauthorized OffHand attack"),
+		Available.ContainsByPredicate(
+			[](const FGridAvailableCombatAction& A)
+			{
+				return A.SourceEquipmentSlot == EGridEquipmentSlot::OffHand &&
+					A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+			}));
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand =
+		ItemFor(GreatAxe, FGuid(19, 1, 2, 5), EGridEquipmentSlot::MainHand);
+	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
+	Fixture.Hud->RefreshFromSources();
+	TestFalse(TEXT("Two-handed main weapon yields no second strike"),
+		Fixture.Hud->View.Actions.ContainsByPredicate(
+			[](const FGridCombatHudActionView& V) { return V.bTransientOffHandSuggestion; }));
+	TestEqual(TEXT("Great axe is the only physical primary attack"),
+		Fixture.Hud->View.Actions[0].Action.SourceDefinitionId, GreatAxe->ItemDefinitionId);
 	return true;
 }
 

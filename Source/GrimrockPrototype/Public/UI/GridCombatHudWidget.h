@@ -101,6 +101,10 @@ struct FGridCombatHudActionView
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
 	bool bResolved = false;
 
+	/** Live non-persistent OffHand attack preview in a free configurable shortcut. */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
+	bool bTransientOffHandSuggestion = false;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
 	FGridAvailableCombatAction Action;
 
@@ -197,6 +201,11 @@ public:
 
 	static void BuildHotbarActions(const TArray<FGridCombatHotbarBinding>& Bindings, const TArray<FGridAvailableCombatAction>& AvailableActions,
 		TArray<FGridCombatHudActionView>& OutActions);
+
+	/** Slot 1: MainHand -> OffHand -> unarmed. Suggest an independent OffHand
+	 * attack only in an empty, non-protected slot, without saving a binding. */
+	static void ProjectEquippedHandAttacks(const TArray<FGridAvailableCombatAction>& AvailableActions,
+		TArray<FGridCombatHudActionView>& InOutActions);
 
 	static FGridCombatHudMobilityView BuildMobility(const FGridPartyMobilityState& MobilityState);
 

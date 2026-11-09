@@ -334,6 +334,16 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 
 		for (const FGridCombatActionDefinition& SourceAction : ItemDefinition->CombatActions)
 		{
+			// CanEquipToSlot(OffHand) alone is deliberately permissive for
+			// one-handed items. Never invent an OffHand attack when the
+			// authored definition does not actually authorize one.
+			if (HandSlot == EGridEquipmentSlot::OffHand &&
+				SourceAction.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+				SourceAction.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+				!ItemDefinition->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand))
+			{
+				continue;
+			}
 			FGridCombatActionDefinition Definition = SourceAction;
 			if (ItemDefinition->bUseWeaponCatalogue &&
 				Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
