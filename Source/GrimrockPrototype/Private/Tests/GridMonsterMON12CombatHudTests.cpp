@@ -18,6 +18,7 @@
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
+#include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -2394,18 +2395,22 @@ bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
 		});
 	if (!TestNotNull(TEXT("TurnManager exposes actual ARM013 attack"), Secondary) ||
 		!TestEqual(TEXT("Independent Main-gauche attack costs 2 AP"), Secondary->CurrentActionPointCost, 2) ||
-		!TestTrue(TEXT("MainHand icon/action remains in slot 1"),
-			Fixture.Hud->View.Actions[0].Action.SourceDefinitionId == Main.ItemDefinitionId &&
-			Fixture.Hud->View.Actions[0].Action.SourceEquipmentSlot == EGridEquipmentSlot::MainHand) ||
-		!TestTrue(TEXT("OffHand automatically occupies first free slot"),
-			Fixture.Hud->View.Actions[1].bTransientOffHandSuggestion &&
-			Fixture.Hud->View.Actions[1].Action.SourceRuntimeId == Off.RuntimeObjectId) ||
-		!TestTrue(TEXT("Auto-projected shortcut is NOT serialized"),
-			Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].IsEmpty()))
+		!TestTrue(TEXT("Primary slot upgrades to the double strike with both eligible weapons"),
+			Fixture.Hud->View.Actions[0].Action.Definition.ActionId == FGridDualWieldPolicy::ActionId() &&
+			Fixture.Hud->View.Actions[0].Action.SourceDefinitionId == Main.ItemDefinitionId) ||
+		!TestTrue(TEXT("MainHand independent strike moves to first free slot"),
+			Fixture.Hud->View.Actions[1].bTransientMainHandSuggestion &&
+			Fixture.Hud->View.Actions[1].Action.SourceRuntimeId == Main.RuntimeObjectId) ||
+		!TestTrue(TEXT("OffHand independently occupies next free slot"),
+			Fixture.Hud->View.Actions[2].bTransientOffHandSuggestion &&
+			Fixture.Hud->View.Actions[2].Action.SourceRuntimeId == Off.RuntimeObjectId) ||
+		!TestTrue(TEXT("Auto-projected shortcuts are NOT serialized"),
+			Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].IsEmpty() &&
+			Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[2].IsEmpty()))
 		return false;
 
 	FGridCombatActionRequestResult Result;
-	if (!TestTrue(TEXT("Automatic OffHand shortcut performs a real attack"), Fixture.Hud->RequestHotbarSlot(1, Result)))
+	if (!TestTrue(TEXT("Automatic OffHand shortcut performs a real attack"), Fixture.Hud->RequestHotbarSlot(2, Result)))
 		return false;
 	TestEqual(TEXT("Resolved attack uses OffHand slot"), Result.AttackRequest.OffensiveEquipmentSlot, EGridEquipmentSlot::OffHand);
 	TestEqual(TEXT("Resolved attack comes from Main-gauche"), Result.AttackRequest.OffensiveItemDefinitionId, Off.ItemDefinitionId);
@@ -2417,7 +2422,8 @@ bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
 	if (!TestTrue(TEXT("User customizes shortcut 2"), Inventory->SetCharacterCombatHotbarBinding(0, 1, User))) return false;
 	Fixture.Hud->RefreshFromSources();
 	TestFalse(TEXT("User shortcut 2 is never an automatic projection"), Fixture.Hud->View.Actions[1].bTransientOffHandSuggestion);
-	TestTrue(TEXT("Secondary suggestion shifts to shortcut 3"), Fixture.Hud->View.Actions[2].bTransientOffHandSuggestion);
+	TestTrue(TEXT("Main suggestion takes slot 3"), Fixture.Hud->View.Actions[2].bTransientMainHandSuggestion);
+	TestTrue(TEXT("Secondary suggestion shifts to shortcut 4"), Fixture.Hud->View.Actions[3].bTransientOffHandSuggestion);
 	if (!TestTrue(TEXT("OffHand can be explicitly pinned to shortcut 5"),
 		Inventory->SetCharacterCombatHotbarBindingFromItem(0, 4, Off, EGridEquipmentSlot::OffHand))) return false;
 	Fixture.Hud->RefreshFromSources();
@@ -2484,6 +2490,149 @@ bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
 			[](const FGridCombatHudActionView& V) { return V.bTransientOffHandSuggestion; }));
 	TestEqual(TEXT("Great axe is the only physical primary attack"),
 		Fixture.Hud->View.Actions[0].Action.SourceDefinitionId, GreatAxe->ItemDefinitionId);
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT02192DualWield,
+	"Grimrock.RPG.ARMEMENT.LOT02.19.2.N1DualWieldTwoProfilesOneCost",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
+{
+	FGridCombatHudFixture Fixture;
+	if (!TestTrue(TEXT("N1 dual strike has a live combat world"), Fixture.IsReady())) return false;
+	UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
+	UGridItemDefinitionAsset* MainGauche = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_MainGauche_01.DA_Weapon_MainGauche_01"));
+	UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
+	UGridItemDefinitionAsset* GreatAxe = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_GreatAxe_01.DA_Weapon_GreatAxe_01"));
+	if (!TestNotNull(TEXT("Real ARM001"), Dagger) ||
+		!TestNotNull(TEXT("Real ARM013"), MainGauche) ||
+		!TestNotNull(TEXT("Passive ARM075"), Shield) ||
+		!TestNotNull(TEXT("Two-hand ARM031"), GreatAxe)) return false;
+
+	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
+	auto MakeEquipped = [&Fixture](const UGridItemDefinitionAsset* Definition, FGuid Id, EGridEquipmentSlot Hand)
+	{
+		FGridItemInstance Item;
+		Item.RuntimeObjectId = Id;
+		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.DisplayName = Definition->DisplayName;
+		Item.ItemLevel = 1;
+		Item.Quantity = 1;
+		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
+		Item.OwnerCharacterIndex = 0;
+		Item.OwnerGuid = Fixture.CharacterIds[0];
+		Item.EquipmentSlot = Hand;
+		return Item;
+	};
+	const FGridItemInstance Main = MakeEquipped(Dagger, FGuid(19,2,1,1), EGridEquipmentSlot::MainHand);
+	const FGridItemInstance Off = MakeEquipped(MainGauche, FGuid(19,2,1,2), EGridEquipmentSlot::OffHand);
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Main;
+	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Off;
+	if (!TestTrue(TEXT("Register MainHand N1 asset"), Inventory->RegisterItemDefinition(Dagger)) ||
+		!TestTrue(TEXT("Register OffHand N1 asset"), Inventory->RegisterItemDefinition(MainGauche)) ||
+		!TestTrue(TEXT("Register passive N1 shield"), Inventory->RegisterItemDefinition(Shield)) ||
+		!TestTrue(TEXT("Register two-handed N1 axe"), Inventory->RegisterItemDefinition(GreatAxe))) return false;
+	FGridDualWieldPair Pair;
+	if (!TestTrue(TEXT("Two different physical one-handed weapons are eligible"),
+			FGridDualWieldPolicy::TryResolve(Inventory, 0, Pair)) ||
+		!TestTrue(TEXT("Primary and secondary attack use distinct IDs"),
+			Pair.Main.Profile.AttackId != Pair.Off.Profile.AttackId) ||
+		!TestEqual(TEXT("Secondary damage coefficient is 50 percent"),
+			FGridDualWieldPolicy::OffHandDamagePercent, 50))
+		return false;
+
+	TArray<FGridAvailableCombatAction> Available;
+	Fixture.TurnManager->GetAvailableCombatActions(0, Available);
+	const FGridAvailableCombatAction* Dual = Available.FindByPredicate(
+		[](const FGridAvailableCombatAction& A) { return A.Definition.ActionId == FGridDualWieldPolicy::ActionId(); });
+	if (!TestNotNull(TEXT("Dual action belongs to the authoritative catalogue"), Dual) ||
+		!TestEqual(TEXT("Dual action costs 3 AP"), Dual->CurrentActionPointCost, 3) ||
+		!TestEqual(TEXT("Dual action declares two attack resolutions"), Dual->Definition.ResolutionCount, 2) ||
+		!TestTrue(TEXT("Dual action is sourced from the physical MainHand"),
+			Dual->SourceEquipmentSlot == EGridEquipmentSlot::MainHand && Dual->SourceRuntimeId == Main.RuntimeObjectId))
+		return false;
+
+	Fixture.Hud->RefreshFromSources();
+	if (!TestEqual(TEXT("Contextual slot 1 uses dual strike"), Fixture.Hud->View.Actions[0].Action.Definition.ActionId,
+			FGridDualWieldPolicy::ActionId()) ||
+		!TestTrue(TEXT("MainHand remains available individually in slot 2"),
+			Fixture.Hud->View.Actions[1].bTransientMainHandSuggestion &&
+			Fixture.Hud->View.Actions[1].Action.SourceRuntimeId == Main.RuntimeObjectId) ||
+		!TestTrue(TEXT("OffHand remains available individually in slot 3"),
+			Fixture.Hud->View.Actions[2].bTransientOffHandSuggestion &&
+			Fixture.Hud->View.Actions[2].Action.SourceRuntimeId == Off.RuntimeObjectId) ||
+		!TestTrue(TEXT("All contextual shortcuts remain unsaved"),
+			Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].IsEmpty() &&
+			Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[2].IsEmpty()))
+		return false;
+
+	const int32 CombatLogBefore = Fixture.TurnManager->GetCombatLogEntries().Num();
+	const int32 HealthBefore = Fixture.Monster->CurrentHealth;
+	FGridCombatActionRequestResult Result;
+	if (!TestTrue(TEXT("Double strike executes as one accepted combat action"),
+		Fixture.Hud->RequestHotbarSlot(0, Result))) return false;
+	TestTrue(TEXT("Dual action is accepted"), Result.bAccepted);
+	TestEqual(TEXT("Only three action points paid: 4 -> 1"),
+		Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 1);
+	TestEqual(TEXT("Two physical attack outcomes logged after a single action"),
+		Fixture.TurnManager->GetCombatLogEntries().Num() - CombatLogBefore, 2);
+	TestEqual(TEXT("Second resolved request uses OffHand"),
+		Result.AttackRequest.OffensiveEquipmentSlot, EGridEquipmentSlot::OffHand);
+	TestEqual(TEXT("Second resolved request identifies the physical Main-gauche"),
+		Result.AttackRequest.OffensiveItemDefinitionId, Off.ItemDefinitionId);
+	TestEqual(TEXT("Second hit uses the Main-gauche attack profile"),
+		Result.AttackRequest.AttackId, Pair.Off.Profile.AttackId);
+	TestEqual(TEXT("Second hit applies 50 percent raw damage BEFORE armor"),
+		Result.AttackResult.Trace.Damage.RawDamagePercent, 50);
+	const TArray<FGridCombatLogEntry>& LogEntries = Fixture.TurnManager->GetCombatLogEntries();
+	TArray<const FGridCombatLogEntry*> DualStrikeEntries;
+	for (const FGridCombatLogEntry& Entry : LogEntries)
+	{
+		if (Entry.AttackId == Pair.Main.Profile.AttackId || Entry.AttackId == Pair.Off.Profile.AttackId)
+		{
+			DualStrikeEntries.Add(&Entry);
+		}
+	}
+	if (TestEqual(TEXT("Two distinct combat log attack lines"), DualStrikeEntries.Num(), 2))
+	{
+		TestEqual(TEXT("First log line names physical MainHand attack"),
+			DualStrikeEntries[0]->AttackId, Pair.Main.Profile.AttackId);
+		TestEqual(TEXT("First log line identifies MainHand"), DualStrikeEntries[0]->OffensiveEquipmentSlot,
+			EGridEquipmentSlot::MainHand);
+		TestEqual(TEXT("Second log line names physical OffHand attack"),
+			DualStrikeEntries[1]->AttackId, Pair.Off.Profile.AttackId);
+		TestEqual(TEXT("Second log line identifies OffHand"), DualStrikeEntries[1]->OffensiveEquipmentSlot,
+			EGridEquipmentSlot::OffHand);
+	}
+	TestTrue(TEXT("Combat did not heal the monster"), Fixture.Monster->CurrentHealth <= HealthBefore);
+
+	const int32 LogBeforeRefusal = Fixture.TurnManager->GetCombatLogEntries().Num();
+	FGridCombatActionRequestResult Refused;
+	TestFalse(TEXT("Second double strike with only 1 AP is refused"), Fixture.Hud->RequestHotbarSlot(0, Refused));
+	TestEqual(TEXT("Insufficient AP leaves remaining AP at one"),
+		Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 1);
+	TestEqual(TEXT("Refused attack records no additional hit"),
+		Fixture.TurnManager->GetCombatLogEntries().Num(), LogBeforeRefusal);
+
+	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand =
+		MakeEquipped(Shield, FGuid(19,2,1,3), EGridEquipmentSlot::OffHand);
+	Fixture.Hud->RefreshFromSources();
+	TestEqual(TEXT("Equipping shield falls back to standalone MainHand"),
+		Fixture.Hud->View.Actions[0].Action.SourceDefinitionId, Main.ItemDefinitionId);
+	TestTrue(TEXT("Dual action disappears when OffHand is passive"),
+		Fixture.Hud->View.Actions[0].Action.Definition.ActionId != FGridDualWieldPolicy::ActionId());
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand =
+		MakeEquipped(GreatAxe, FGuid(19,2,1,4), EGridEquipmentSlot::MainHand);
+	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
+	Fixture.Hud->RefreshFromSources();
+	TestTrue(TEXT("Two-handed weapon never creates dual attack"),
+		Fixture.Hud->View.Actions[0].Action.Definition.ActionId != FGridDualWieldPolicy::ActionId());
 	return true;
 }
 

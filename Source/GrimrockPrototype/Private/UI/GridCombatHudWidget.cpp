@@ -21,6 +21,7 @@
 #include "Magic/GridPartySpellbookComponent.h"
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -296,13 +297,25 @@ namespace
 		{
 			return;
 		}
+		// Only a fully resolved two-weapon action replaces the contextual
+		// primary alias; the standalone MainHand attack stays available.
 		const FGridAvailableCombatAction* ResolvedPrimary = AvailableActions.FindByPredicate(
 			[](const FGridAvailableCombatAction& Candidate)
 			{
-				return Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-					Candidate.SourceEquipmentSlot == EGridEquipmentSlot::MainHand &&
-					Candidate.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+				return Candidate.Definition.ActionId == FGridDualWieldPolicy::ActionId() &&
+					Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+					Candidate.SourceEquipmentSlot == EGridEquipmentSlot::MainHand;
 			});
+		if (!ResolvedPrimary)
+		{
+			ResolvedPrimary = AvailableActions.FindByPredicate(
+				[](const FGridAvailableCombatAction& Candidate)
+				{
+					return Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+						Candidate.SourceEquipmentSlot == EGridEquipmentSlot::MainHand &&
+						Candidate.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+				});
+		}
 		if (!ResolvedPrimary)
 		{
 			// An equipped secondary weapon is a better fallback than a punch
@@ -434,7 +447,7 @@ namespace
 		TArray<FText> ShortcutInstructions;
 		// No deletion hint for an automatic projection: there is no stored
 		// binding to delete, and the player can customize this slot at will.
-		if (!ActionView.bTransientOffHandSuggestion)
+		if (!ActionView.bTransientOffHandSuggestion && !ActionView.bTransientMainHandSuggestion)
 		{
 			ShortcutInstructions.Add(FUILocalizationText::Get(TEXT("Combat.Hotbar.Tooltip.RemoveShortcut")));
 		}
@@ -513,62 +526,76 @@ void FGridCombatHudViewModelBuilder::ProjectEquippedHandAttacks(
 	const TArray<FGridAvailableCombatAction>& AvailableActions, TArray<FGridCombatHudActionView>& InOutActions)
 {
 	ApplyPrimaryAttackProjection(AvailableActions, InOutActions);
-
-	// The second hand is its own action, not an unconditional extra strike.
-	// Its live suggestion never alters the saved layout or the action economy.
-	const FGridAvailableCombatAction* OffHandAction = AvailableActions.FindByPredicate(
-		[](const FGridAvailableCombatAction& Candidate)
-		{
-			return Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-				Candidate.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
-				Candidate.SourceEquipmentSlot == EGridEquipmentSlot::OffHand &&
-				Candidate.SourceRuntimeId.IsValid();
-		});
-	if (!OffHandAction || InOutActions.IsEmpty())
+	if (InOutActions.IsEmpty())
 	{
 		return;
 	}
+	const bool bDualPrimary = InOutActions[0].bResolved &&
+		InOutActions[0].Action.Definition.ActionId == FGridDualWieldPolicy::ActionId();
 
-	// Slot 1 already aliases OffHand when MainHand is empty. Likewise an
-	// explicit user binding of the same physical item must not be duplicated.
-	for (const FGridCombatHudActionView& View : InOutActions)
+	// MainHand and OffHand each keep a real, independent action even when
+	// the contextual primary resolves the two-weapon combination.
+	const EGridEquipmentSlot Hands[] = { EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand };
+	for (const EGridEquipmentSlot Hand : Hands)
 	{
-		if ((View.bResolved && View.Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-				View.Action.SourceRuntimeId == OffHandAction->SourceRuntimeId) ||
-			(View.Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-				View.Binding.PreferredSourceRuntimeId == OffHandAction->SourceRuntimeId))
+		if (Hand == EGridEquipmentSlot::MainHand && !bDualPrimary)
 		{
-			return;
+			continue; // Slot 1 already offers the standalone main attack.
 		}
-	}
-
-	for (int32 Index = FGridCombatHotbarBinding::PrimaryAttackSlotIndex + 1; Index < InOutActions.Num(); ++Index)
-	{
-		FGridCombatHudActionView& View = InOutActions[Index];
-		if (View.bHasBinding)
+		const FGridAvailableCombatAction* HandAttack = AvailableActions.FindByPredicate(
+			[Hand](const FGridAvailableCombatAction& Candidate)
+			{
+				return Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+					Candidate.Definition.ActionId != FGridDualWieldPolicy::ActionId() &&
+					Candidate.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+					Candidate.SourceEquipmentSlot == Hand && Candidate.SourceRuntimeId.IsValid();
+			});
+		if (!HandAttack)
 		{
 			continue;
 		}
-
-		FGridCombatHotbarBinding Suggestion;
-		Suggestion.Reset(Index);
-		Suggestion.ActionId = OffHandAction->Definition.ActionId;
-		Suggestion.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-		Suggestion.SourceDefinitionId = OffHandAction->SourceDefinitionId;
-		Suggestion.PreferredSourceRuntimeId = OffHandAction->SourceRuntimeId;
-		Suggestion.PreferredEquipmentSlot = EGridEquipmentSlot::OffHand;
-		if (!Suggestion.IsValid())
+		const bool bAlreadyProjected = InOutActions.ContainsByPredicate(
+			[HandAttack](const FGridCombatHudActionView& View)
+			{
+				return (View.bResolved &&
+						View.Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+						View.Action.Definition.ActionId != FGridDualWieldPolicy::ActionId() &&
+						View.Action.SourceRuntimeId == HandAttack->SourceRuntimeId) ||
+					(View.Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+						View.Binding.ActionId != FGridDualWieldPolicy::ActionId() &&
+						View.Binding.PreferredSourceRuntimeId == HandAttack->SourceRuntimeId);
+			});
+		if (bAlreadyProjected)
 		{
-			return;
+			continue;
 		}
-
-		View.Binding = Suggestion;
-		View.Action = *OffHandAction;
-		View.bHasBinding = true;
-		View.bResolved = true;
-		View.bTransientOffHandSuggestion = true;
-		View.DisabledReason = OffHandAction->bEnabled ? FText::GetEmpty() : OffHandAction->DisabledReason;
-		return;
+		for (int32 Index = FGridCombatHotbarBinding::PrimaryAttackSlotIndex + 1; Index < InOutActions.Num(); ++Index)
+		{
+			FGridCombatHudActionView& View = InOutActions[Index];
+			if (View.bHasBinding)
+			{
+				continue;
+			}
+			FGridCombatHotbarBinding Suggestion;
+			Suggestion.Reset(Index);
+			Suggestion.ActionId = HandAttack->Definition.ActionId;
+			Suggestion.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+			Suggestion.SourceDefinitionId = HandAttack->SourceDefinitionId;
+			Suggestion.PreferredSourceRuntimeId = HandAttack->SourceRuntimeId;
+			Suggestion.PreferredEquipmentSlot = Hand;
+			if (!Suggestion.IsValid())
+			{
+				break;
+			}
+			View.Binding = Suggestion;
+			View.Action = *HandAttack;
+			View.bHasBinding = true;
+			View.bResolved = true;
+			View.bTransientOffHandSuggestion = Hand == EGridEquipmentSlot::OffHand;
+			View.bTransientMainHandSuggestion = Hand == EGridEquipmentSlot::MainHand;
+			View.DisabledReason = HandAttack->bEnabled ? FText::GetEmpty() : HandAttack->DisabledReason;
+			break;
+		}
 	}
 }
 
@@ -770,7 +797,7 @@ FReply UGridCombatHudActionWidget::NativeOnPreviewMouseButtonDown(const FGeometr
 	{
 		bLeftMousePressed = false;
 		bDragDetected = false;
-		if (View.bTransientOffHandSuggestion)
+		if (View.bTransientOffHandSuggestion || View.bTransientMainHandSuggestion)
 		{
 			return FReply::Handled(); // There is no saved binding to remove.
 		}
@@ -808,7 +835,7 @@ void UGridCombatHudActionWidget::NativeOnDragDetected(const FGeometry& InGeometr
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 	bDragDetected = true;
 	bLeftMousePressed = false;
-	if (!IsValid(OwnerHud) || !View.bHasBinding || View.bTransientOffHandSuggestion)
+	if (!IsValid(OwnerHud) || !View.bHasBinding || View.bTransientOffHandSuggestion || View.bTransientMainHandSuggestion)
 	{
 		// Only stored bindings move. To pin the suggested action, drag its
 		// item from the equipment UI to a chosen persistent slot.

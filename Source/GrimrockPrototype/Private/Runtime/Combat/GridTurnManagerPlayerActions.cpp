@@ -6,6 +6,7 @@
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
+#include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
@@ -318,6 +319,24 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 				 OffensiveProfile, OffensiveItemDefinitionId, OffensiveEquipmentSlot, OffensiveProfileRejectReason))
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, OffensiveProfileRejectReason, OutRejectReason);
+	}
+	// A composite action is only executable while the exact two physical
+	// weapons that generated the current catalogue entry are still equipped.
+	// Both sources are validated before committing any AP or firing callbacks.
+	const bool bDualWieldAction = CombatActionOverride &&
+		CombatActionOverride->Definition.ActionId == FGridDualWieldPolicy::ActionId();
+	FGridDualWieldPair DualPair;
+	if (bDualWieldAction &&
+		(CombatActionOverride->Definition.SourcePolicy != EGridCombatActionSourcePolicy::Equipment ||
+			CombatActionOverride->SourceEquipmentSlot != EGridEquipmentSlot::MainHand ||
+			CombatActionOverride->Definition.ResolutionCount != 2 ||
+			!FGridDualWieldPolicy::TryResolve(PartyPawn->PartyInventoryComponent, AttackerCharacterIndex, DualPair) ||
+			OffensiveEquipmentSlot != EGridEquipmentSlot::MainHand ||
+			OffensiveItemDefinitionId != DualPair.Main.Item.ItemDefinitionId ||
+			CombatActionOverride->SourceRuntimeId != DualPair.Main.Item.RuntimeObjectId ||
+			CombatActionOverride->Definition.OffensiveProfile.AttackId != DualPair.Main.Profile.AttackId))
+	{
+		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
 	}
 	if (ResolvedAttackSourceTags.IsEmpty() && !OffensiveItemDefinitionId.IsNone())
 	{
@@ -836,10 +855,28 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 
 	for (int32 ResolutionIndex = 1; ResolutionIndex < AttackResolutionCount && IsValid(TargetMonster) && !TargetMonster->IsDead(); ++ResolutionIndex)
 	{
+		// No stale OffHand identity: a reaction or delegate might change
+		// equipment after the first hit. Never strike with a removed item.
+		if (bDualWieldAction)
+		{
+			FGridDualWieldPair CurrentPair;
+			if (!FGridDualWieldPolicy::TryResolve(Inventory, AttackerCharacterIndex, CurrentPair) ||
+				CurrentPair.Main.Item.RuntimeObjectId != DualPair.Main.Item.RuntimeObjectId ||
+				CurrentPair.Off.Item.RuntimeObjectId != DualPair.Off.Item.RuntimeObjectId)
+			{
+				break;
+			}
+		}
+		const FGridOffensiveEquipmentProfile& RepeatProfile = bDualWieldAction ? DualPair.Off.Profile : OffensiveProfile;
+		FGridInventoryCharacterSummary RepeatCharacterSummary = CharacterSummary;
+		if (bDualWieldAction && !Inventory->GetCharacterSummary(AttackerCharacterIndex, RepeatCharacterSummary))
+		{
+			break;
+		}
 		FGridAttackSourceStats RepeatSource;
 		FGridAttackTargetStats RepeatTarget;
 		FGridAttackDefinition RepeatAttackDefinition;
-		if (!BuildPlayerAttackResolutionInputs(CharacterSummary, TargetMonster, OffensiveProfile, RepeatSource, RepeatTarget, RepeatAttackDefinition))
+		if (!BuildPlayerAttackResolutionInputs(RepeatCharacterSummary, TargetMonster, RepeatProfile, RepeatSource, RepeatTarget, RepeatAttackDefinition))
 		{
 			break;
 		}
@@ -847,7 +884,37 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 		{
 			RepeatTarget.Evasion += 2;
 		}
-		if (CombatActionOverride)
+		FGridResolvedCombatModifiers RepeatOutgoingModifiers = ResolvedAttackModifiers;
+		if (bDualWieldAction)
+		{
+			// Never carry MainHand-specific bonuses, stealth consumed on the
+			// first hit, or its weapon tags onto the secondary weapon.
+			RepeatOutgoingModifiers.Reset();
+			TArray<FGridCombatModifierProfile> OffHandModifiers;
+			if (FGridCombatModifierResolver::CollectCharacterModifiers(Attacker, OffHandModifiers))
+			{
+				FGridCombatModifierContext OffHandContext = FGridCombatModifierResolver::MakeAttackContext(
+					DualPair.Off.Action.ActionId, DualPair.Off.Item.ItemDefinitionId, EGridCombatActionSourcePolicy::Equipment,
+					EGridCombatActionType::MeleeAttack, RepeatAttackDefinition.DamageType, RepeatAttackDefinition.PhysicalSubtype,
+					DualPair.Off.Definition->ItemTags);
+				FGridCombatModifierResolver::AddTargetContext(OffHandContext, EGridCombatTargetingPolicy::FirstAxialTarget,
+					IsRPG0392RearArc(PartyCell, TargetMonster), HasRPG0392ActedThisRound(this, TargetMonster),
+					HasRPG0392PhysicalControl(TargetMonster));
+				FGridCombatModifierResolver::AddTargetStatusContext(OffHandContext, TargetMonster->StatusEffects,
+					Attacker.CharacterId, TargetMonster->MonsterDefinition->CategoryId,
+					TargetMonster->MonsterDefinition->SemanticTags);
+				if (const FGridCombatSurfaceState* Surface = RuntimeActor->FindCombatSurfaceAtCell(TargetCell.X, TargetCell.Y))
+				{
+					FGridCombatModifierResolver::AddTargetSurfaceContext(OffHandContext, Surface->SurfaceType);
+				}
+				OffHandContext.bPartyStationarySincePreviousActivation = IsPartyStationarySincePreviousActivation(Attacker.CharacterId);
+				FGridCombatModifierResolver::Resolve(OffHandModifiers, OffHandContext, RepeatOutgoingModifiers);
+			}
+			FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(
+				DualPair.Off.Action, Attacker.SkillRanks, RepeatSource, &RepeatCharacterSummary.Attributes);
+			RepeatSource.RawDamagePercent = FGridDualWieldPolicy::OffHandDamagePercent;
+		}
+		else if (CombatActionOverride)
 		{
 			FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(
 				CombatActionOverride->Definition, Attacker.SkillRanks, RepeatSource, &CharacterSummary.Attributes);
@@ -857,14 +924,19 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 				RepeatSource.RawDamagePercent = CombatActionOverride->Definition.WeaponAttackProfile.WeaponDamagePercent;
 			}
 		}
-		FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(RepeatSource, ResolvedAttackModifiers);
+		FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(RepeatSource, RepeatOutgoingModifiers);
 		RepeatSource.Accuracy += SubsequentAccuracyModifier;
 
 		TArray<FGridCombatModifierProfile> RepeatTargetStatusProfiles;
 		FGridResolvedCombatModifiers RepeatTargetModifiers;
 		if (FGridCombatModifierResolver::CollectStatusModifiers(TargetMonster->StatusEffects, RepeatTargetStatusProfiles))
 		{
-			const FGridCombatModifierContext RepeatTargetContext = CombatActionOverride
+			const FGridCombatModifierContext RepeatTargetContext = bDualWieldAction
+				? FGridCombatModifierResolver::MakeAttackContext(
+					DualPair.Off.Action.ActionId, DualPair.Off.Item.ItemDefinitionId, EGridCombatActionSourcePolicy::Equipment,
+					EGridCombatActionType::MeleeAttack, RepeatAttackDefinition.DamageType, RepeatAttackDefinition.PhysicalSubtype,
+					DualPair.Off.Definition->ItemTags)
+				: CombatActionOverride
 				? (bUsesEquippedWeaponAction
 						? FGridCombatModifierResolver::MakeResolvedActionAttackContext(
 							CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId, OffensiveProfile, ResolvedAttackSourceTags)
@@ -889,10 +961,21 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 			: RepeatTarget.MagicalArmor;
 		FGridCombatArmorEffectResolver::ApplyReferenceModifiers(RepeatArmorSnapshot, RepeatTargetModifiers);
 		FGridCombatArmorEffectResolver::ApplyAttackDamageEffects(
-			AttackArmorEffects, RepeatArmorSnapshot, RepeatTargetModifiers, RepeatResult, &ArmorSourceContext);
+			bDualWieldAction ? DualPair.Off.Action.ArmorEffects : AttackArmorEffects,
+			RepeatArmorSnapshot, RepeatTargetModifiers, RepeatResult, &ArmorSourceContext);
 
 		FGridPlayerAttackRequest RepeatRequest = Request;
 		RepeatRequest.RequestId = FGuid::NewGuid();
+		if (bDualWieldAction)
+		{
+			// One accepted 3-AP action, but separate real attack metadata.
+			// Keep the parent action's AP cost for trace compatibility:
+			// SpendPlayerCharacterActionPoints runs only once above.
+			RepeatRequest.AttackId = RepeatProfile.AttackId;
+			RepeatRequest.OffensiveItemDefinitionId = DualPair.Off.Item.ItemDefinitionId;
+			RepeatRequest.OffensiveEquipmentSlot = EGridEquipmentSlot::OffHand;
+			RepeatRequest.PreparedThrownItemActor = nullptr;
+		}
 		OutRequest = RepeatRequest;
 		OutResult = RepeatResult;
 		LastPlayerAttackRequest = RepeatRequest;
@@ -921,7 +1004,9 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 
 		bPlayerAttackResolutionInProgress = true;
 		TargetMonster->ApplyAttackResult(RepeatResult);
-		if (!AttackStatusApplications.IsEmpty())
+		const TArray<FGridCombatStatusApplicationProfile>& RepeatStatusApplications =
+			bDualWieldAction ? DualPair.Off.Action.StatusApplications : AttackStatusApplications;
+		if (!RepeatStatusApplications.IsEmpty())
 		{
 			if (UWorld* StatusWorld = GetWorld())
 			{
@@ -929,7 +1014,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 				{
 					StatusLifecycle->BindToTurnManager(this);
 					StatusLifecycle->ApplyCombatStatusApplicationsToMonster(
-						TargetMonster, AttackStatusApplications, Attacker.CharacterId, RepeatTarget, &RepeatResult);
+						TargetMonster, RepeatStatusApplications, Attacker.CharacterId, RepeatTarget, &RepeatResult);
 				}
 			}
 		}
@@ -942,8 +1027,9 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 			}
 		}
 		EmitPlayerAttackReactionEvents(AttackerCharacterIndex, RepeatRequest, RepeatResult, ReactionSourcePolicy,
-			ReactionActionType, ReactionActionInstanceId, false, false, ResolvedAttackSourceTags,
-			OffensiveEquipmentSlot != EGridEquipmentSlot::None);
+			ReactionActionType, ReactionActionInstanceId, false, false,
+			bDualWieldAction ? DualPair.Off.Definition->ItemTags : ResolvedAttackSourceTags,
+			bDualWieldAction || OffensiveEquipmentSlot != EGridEquipmentSlot::None);
 		++PlayerAttackResolvedBroadcastCount;
 		bPlayerAttackResolutionInProgress = false;
 		OnPlayerAttackResolved.Broadcast(RepeatRequest, TargetMonster, RepeatResult);

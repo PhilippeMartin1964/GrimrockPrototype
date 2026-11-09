@@ -16,6 +16,7 @@
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
+#include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
@@ -384,6 +385,38 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			}
 			AddMON126Contribution(Definition, EquippedItem.ItemDefinitionId, EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity, OutContributions);
 		}
+	}
+
+	// ARMEMENT-LOT02.19.2: one composite action, two *physical* weapon
+	// sources. Resolve both using their authored N1 melee profiles and bind
+	// the composite to MainHand; the executor pays 3 AP once and independently
+	// resolves the OffHand source as the second attack.
+	FGridDualWieldPair DualPair;
+	if (FGridDualWieldPolicy::TryResolve(Inventory, CharacterIndex, DualPair))
+	{
+		FGridCombatActionDefinition DualAction = DualPair.Main.Action;
+		DualAction.ActionId = FGridDualWieldPolicy::ActionId();
+		DualAction.DisplayName = NSLOCTEXT("GridDualWield", "DualAttackName", "Attaque double");
+		DualAction.Description = NSLOCTEXT("GridDualWield", "DualAttackDescription",
+			"Deux frappes indépendantes : main principale à 100 %, main secondaire à 50 %. Coût unique : 3 PA.");
+		DualAction.ActionPointCost = FGridDualWieldPolicy::ActionPointCost;
+		DualAction.ResolutionCount = 2;
+		DualAction.SubsequentResolutionAccuracyModifier = 0;
+		DualAction.OffensiveProfile = DualPair.Main.Profile;
+		DualAction.RangeCells = DualPair.Main.Profile.RangeCells;
+		if (DualAction.Icon.IsNull())
+		{
+			DualAction.Icon = DualPair.Main.Definition->Icon;
+		}
+		for (const FName Tag : DualPair.Main.Definition->ItemTags)
+		{
+			if (!Tag.IsNone())
+			{
+				DualAction.SourceTags.AddUnique(Tag);
+			}
+		}
+		AddMON126Contribution(DualAction, DualPair.Main.Item.ItemDefinitionId, DualPair.Main.Item.RuntimeObjectId,
+			EGridEquipmentSlot::MainHand, DualPair.Main.Item.Quantity, OutContributions);
 	}
 
 	// Unarmed is a manual universal action, not merely an automatic fallback.
