@@ -1,5 +1,7 @@
 # ARMEMENT-LOT02.19.2.1 — Simplification de l'icône d'attaque double
 
+> **NOTE DE CONSOLIDATION (10.11.2026) :** ce texte est la recette historique du remplacement du badge « ×2 » par une icône unique. Le contrat actuel, élargi à toutes les familles ARM001–ARM082 et **prioritaire**, figure dans [ARMEMENT-LOT02.20](ARMEMENT_LOT02_20_EQUIPPED_ACTION_ICON_FOUNDATION.md). La propriété DualAttackIcon indiquée ci-dessous est désormais **un fallback transitoire** : la nouvelle propriété EquippedWeaponActionIconPalette du même WBP a priorité dès qu'une icône de famille est renseignée. La hiérarchie Image_ActionIcon reste inchangée.
+
 ## Décision corrigée après capture du WBP utilisateur (09.11.2026)
 
 Le système de superposition proposé initialement (deux `UImage`, un `Overlay_DualAttack`, un badge « ×2 ») est **abandonné** : il compliquait inutilement un raccourci de combat. Une action combinée doit se reconnaître à **une icône d'action dédiée**, comme les actions génériques des RPG de type Divinity: Original Sin 2. Ce visuel **ne dépend pas de l'identité des deux armes** : il est remplacé seulement si l'action disponible change.

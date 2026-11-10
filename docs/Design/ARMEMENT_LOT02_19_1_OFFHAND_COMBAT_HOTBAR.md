@@ -1,5 +1,7 @@
 # ARMEMENT-LOT02.19.1 — Main secondaire jouable et barre d'action cohérente
 
+> **HISTORIQUE :** ce jalon introduisait l'attaque OffHand autonome avant l'attaque double de 02.19.2. Le raccourci 1 est désormais **contextuel : double frappe si deux armes sont éligibles, puis MainHand, OffHand, mains nues**. Pour le fonctionnement actuel des icônes et la règle provisoire d'aptitudes d'armes, consulter [ARMEMENT-LOT02.20](ARMEMENT_LOT02_20_EQUIPPED_ACTION_ICON_FOUNDATION.md). Les étapes originelles ci-dessous restent une trace de test et non une recette WBP courante.
+
 ## Périmètre
 
 Incident PIE signalé après validation ARMEMENT-LOT02.18 : Voleur / Ombre commence avec **ARM001 dague MainHand + ARM013 Main-gauche OffHand**. Le raccourci primaire n'affiche que la dague ; aucune action Main-gauche n'est proposée sans intervention manuelle, ce qui rend son rôle offensif invisible.

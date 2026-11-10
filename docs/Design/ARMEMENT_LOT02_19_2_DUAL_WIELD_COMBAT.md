@@ -1,5 +1,7 @@
 # ARMEMENT-LOT02.19.2 — Attaque double, deux armes réelles et un coût unique
 
+> **ÉTAT COURANT (10.11.2026) :** ce document décrit la mécanique autoritaire livrée en 02.19.2. La décision provisoire du joueur est maintenant **explicite** : le Voleur/Ombre N1, ainsi que toute autre classe portant deux armes offensives compatibles, **ne requiert pas de talent de maîtrise** pour une attaque double. Aucun talent RPG n'est octroyé ou court-circuité. Les **icônes de toutes les actions ARMXXX** relèvent de [ARMEMENT-LOT02.20](ARMEMENT_LOT02_20_EQUIPPED_ACTION_ICON_FOUNDATION.md) ; la mention historique « icône principale provisoire » ci-dessous ne prévaut plus quand la palette possède sa texture. Le séquencement audio et visuel demeure ouvert (02.19.2.2).
+
 ## Décision de gameplay
 
 À la suite de 02.19.1 validé en PIE, le Voleur / Ombre équipé de ARM001 (MainHand) et ARM013 (OffHand) obtient une action contextuelle **Attaque double**.

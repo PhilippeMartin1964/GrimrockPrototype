@@ -23,6 +23,14 @@ Le manifeste initial comprend **8 archétypes Active** : ARM001, ARM002, ARM014,
 
 Le catalogue contient **82 archétypes, 1 640 profils N1–N20, dont 260 passifs**. `NarrativeV1` contient 82 descriptions de prototype approuvées : cela **n'implique pas** que 82 DataAssets ont été créés. Les capacités notées `PLANNED` dans le lore ne sont pas exécutées.
 
+## Extension visuelle (10.11.2026) — icônes des actions d'armes équipées
+
+**Contrat actuel :** [ARMEMENT-LOT02.20](../Design/ARMEMENT_LOT02_20_EQUIPPED_ACTION_ICON_FOUNDATION.md). Les icônes **d'objets ARMXXX** restent produites et contrôlées par le pipeline INDUS. Les icônes **d'actions de combat** (frappe à une main, double, deux mains, arc, arbalète, lancer, magie intrinsèque et défense réellement authorée) sont désormais distinctes et partagées entre tous les archétypes d'une même famille.
+
+Le nouveau UGridEquippedWeaponActionIconPalette **ne modifie pas** WeaponProductionManifest.csv, DA_WeaponCatalogue, DA_WeaponVisualCatalogue ni les 82 archétypes et n'impose pas un asset par arme. Sa création et son remplissage avec des Texture2D s'effectuent **une seule fois dans Unreal Editor**, puis une référence est configurée dans les Class Defaults du WBP_GridCombatHudAction existant. Les entrées encore non dessinées conservent l'icône d'action ARMXXX actuelle. L'ancien DualAttackIcon est un simple fallback transitoire. **Aucun script WeaponPipeline -Apply ne doit être utilisé pour créer la palette sans ticket spécifique.**
+
+Cette évolution n'active aucune nouvelle capacité de combat et ne modifie pas le statut de production des armes. Les consommables, QuickItems et sorts mémorisés restent hors du périmètre des icônes d'armement.
+
 ## 2. Démarrage et contrôles sans écriture
 
 Fermer Unreal Editor avant de lancer les scripts :

@@ -115,6 +115,16 @@ Règle commune :
 - chaque palier II→V exige le `ChoiceId` précédent ;
 - les variantes explicites (spécialisation d'arme, affinité élémentaire, ennemi juré) utilisent des ChoiceIds distincts mais ne changent pas le nombre de paliers.
 
+## Décision temporaire de prototype — actions intrinsèques à l'équipement (10.11.2026)
+
+**Cette note ne change pas les 90 talents RPG02**, leurs paliers, leurs ChoiceIds ni leurs Requirements. Elle distingue les aptitudes d'**armement équipé** et les capacités de **talent apprises**.
+
+- Jusqu'à un audit ultérieur des compétences martiales, les personnages peuvent exécuter les actions intrinsèques d'armes déjà autorisées par les DataAssets et le TurnManager **sans maîtrise supplémentaire**.
+- Le Voleur/Ombre N1 débute donc avec l'usage de l'attaque double (dague ARM001 + Main-gauche ARM013) ; toute autre classe avec deux sources physiques compatibles bénéficie provisoirement du même droit. Ce droit ne crée pas de nouveau talent et ne dispense pas des préconditions réelles de l'action.
+- Le bouclier passif ne déclenche pas automatiquement un blocage actif. ARM013 ne crée pas une parade depuis son texte narratif. Ces comportements devront être définis, authorés et testés séparément.
+- Les **actions de talent** explicites de ce document restent soumises aux prérequis RPG déjà définis ; aucun Requirement de talent n'est supprimé.
+- La classification d'icônes ARMXXX appartient à [ARMEMENT-LOT02.20](../Design/ARMEMENT_LOT02_20_EQUIPPED_ACTION_ICON_FOUNDATION.md), **pas à l'arbre de compétences**.
+
 ## Guerrier
 
 ### Gardien

@@ -28,6 +28,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
+#include "UI/GridEquippedWeaponActionIconPalette.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridWeaponVisualUiResolver.h"
 #include "UI/GridQuickItemSurfaceTooltipText.h"
@@ -637,8 +638,26 @@ float FGridCombatHudViewModelBuilder::CalculateHealthPercent(int32 CurrentHealth
 }
 
 TSoftObjectPtr<UTexture2D> UGridCombatHudActionWidget::ResolveDisplayedIcon(
-	const FGridCombatHudActionView& ActionView, const TSoftObjectPtr<UTexture2D>& InDualAttackIcon)
+	const FGridCombatHudActionView& ActionView, const TSoftObjectPtr<UTexture2D>& InDualAttackIcon,
+	const UGridEquippedWeaponActionIconPalette* Palette, const UGridItemDefinitionAsset* EquippedDefinition)
 {
+	if (ActionView.bResolved && IsValid(Palette))
+	{
+		const EGridEquippedWeaponActionIconKind Kind =
+			FGridEquippedWeaponActionIconResolver::Classify(ActionView.Action, EquippedDefinition);
+		// None is deliberately never a palette lookup: a misconfigured
+		// default icon must not leak into spells or consumables.
+		if (Kind != EGridEquippedWeaponActionIconKind::None)
+		{
+			const TSoftObjectPtr<UTexture2D> PaletteIcon = Palette->FindIcon(Kind);
+			if (!PaletteIcon.IsNull())
+			{
+				return PaletteIcon;
+			}
+		}
+	}
+	// Preserve any already-configured dual icon until the new central palette
+	// has its corresponding texture. Do not overwrite existing WBP settings.
 	return ActionView.bResolved && ActionView.Action.Definition.ActionId == FGridDualWieldPolicy::ActionId() &&
 		!InDualAttackIcon.IsNull() ? InDualAttackIcon : ActionView.Action.Definition.Icon;
 }
@@ -754,7 +773,21 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 	// dedicated dual-attack texture, or the normal equipment/action icon.
 	if (Image_ActionIcon)
 	{
-		const TSoftObjectPtr<UTexture2D> Icon = ResolveDisplayedIcon(View, DualAttackIcon);
+		const UGridItemDefinitionAsset* EquippedDefinition = nullptr;
+		if (View.bResolved && View.Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+			IsValid(OwnerHud) && IsValid(OwnerHud->InventoryComponent))
+		{
+			FGridItemInstance Equipped;
+			if (OwnerHud->InventoryComponent->GetEquippedItem(
+					View.Action.CharacterIndex, View.Action.SourceEquipmentSlot, Equipped) &&
+				Equipped.IsValid() && Equipped.RuntimeObjectId == View.Action.SourceRuntimeId &&
+				Equipped.ItemDefinitionId == View.Action.SourceDefinitionId)
+			{
+				EquippedDefinition = OwnerHud->InventoryComponent->FindItemDefinition(Equipped.ItemDefinitionId);
+			}
+		}
+		const TSoftObjectPtr<UTexture2D> Icon = ResolveDisplayedIcon(
+			View, DualAttackIcon, EquippedWeaponActionIconPalette, EquippedDefinition);
 		if (!View.bHasBinding || Icon.IsNull())
 		{
 			Image_ActionIcon->SetBrushFromTexture(nullptr);

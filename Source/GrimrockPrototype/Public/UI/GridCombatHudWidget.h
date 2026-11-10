@@ -12,6 +12,8 @@ class UButton;
 class UDragDropOperation;
 class UGridCombatActionPanelWidget;
 class UGridCombatHotbarDragDropOperation;
+class UGridEquippedWeaponActionIconPalette;
+class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 class UGridTurnManagerComponent;
 class UImage;
@@ -242,8 +244,13 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UImage> Image_ActionIcon;
 
-	/** Single, reusable icon for the dual-wield action. Assign one Texture2D
-	 * in WBP_GridCombatHudAction Class Defaults; no extra Designer widgets. */
+	/** Central, data-driven palette for intrinsic actions of equipped ARMXXX.
+	 * The only visual target remains Image_ActionIcon in the existing WBP. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|HUD|Icons")
+	TObjectPtr<UGridEquippedWeaponActionIconPalette> EquippedWeaponActionIconPalette;
+
+	/** Transitional fallback for WBP builds not yet assigned a complete
+	 * palette. It must not supersede an authored palette dual-wield icon. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|HUD|Icons")
 	TSoftObjectPtr<UTexture2D> DualAttackIcon;
 
@@ -256,10 +263,12 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UTextBlock> Text_Quantity;
 
-	/** Presentation-only icon selection: one image, no overlays or strike-count badge.
-	 * Falls back to the authored action icon until the WBP property is configured. */
+	/** A single Image_ActionIcon is used for every equipped weapon action.
+	 * Empty palette entries and non-equipment actions keep their existing icon. */
 	static TSoftObjectPtr<UTexture2D> ResolveDisplayedIcon(
-		const FGridCombatHudActionView& ActionView, const TSoftObjectPtr<UTexture2D>& InDualAttackIcon);
+		const FGridCombatHudActionView& ActionView, const TSoftObjectPtr<UTexture2D>& InDualAttackIcon,
+		const UGridEquippedWeaponActionIconPalette* Palette = nullptr,
+		const UGridItemDefinitionAsset* EquippedDefinition = nullptr);
 
 	void InitializeAction(UGridCombatHudWidget* InOwnerHud, const FGridCombatHudActionView& InView);
 
