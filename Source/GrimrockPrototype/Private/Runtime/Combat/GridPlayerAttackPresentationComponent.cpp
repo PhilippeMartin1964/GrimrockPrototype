@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 
 #include "Camera/CameraComponent.h"
+#include "Components/AudioComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
 #include "EngineUtils.h"
@@ -18,6 +19,7 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Sound/SoundBase.h"
+#include "Sound/SoundConcurrency.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridPlayerAttackPresentation, Log, All);
 
@@ -162,6 +164,7 @@ void UGridPlayerAttackPresentationComponent::ResetTransientPresentationState()
 	PresentationImpactMissCount = 0;
 	FeedbackCount = 0;
 	AudioPlaybackRequestCount = 0;
+	MultiStrikeAudioVoicesStartedCount = 0;
 	AudioAttackRequestCount = 0;
 	AudioImpactHitRequestCount = 0;
 	AudioImpactMissRequestCount = 0;
@@ -312,6 +315,16 @@ void UGridPlayerAttackPresentationComponent::HandlePlayerAttackRequested(FGridPl
 		Strike.Profile = Profile;
 		Strike.TargetMonster = TargetMonster;
 		Strike.AttackAtSeconds = FMath::Max(SequenceClockSeconds, SequenceTailSeconds);
+		if (ScheduledStrikes.Num() > 1)
+		{
+			// The two samples may each be several tenths long. Without this
+			// floor (old gap: 0.34 s), even two correct audio calls can be
+			// heard as only one hit or the second may be voice-stolen.
+			const FScheduledStrike& PreviousStrike = ScheduledStrikes[ScheduledStrikes.Num() - 2];
+			Strike.AttackAtSeconds = FMath::Max(
+				Strike.AttackAtSeconds,
+				PreviousStrike.AttackAtSeconds + FMath::Clamp(MinimumStrikeStartIntervalSeconds, 0.25f, 2.0f));
+		}
 		Strike.ImpactAtSeconds = Strike.AttackAtSeconds + Profile.ImpactDelaySeconds;
 		Strike.CompleteAtSeconds = FMath::Max(
 			Strike.ImpactAtSeconds + Profile.RecoveryDelaySeconds,
@@ -419,7 +432,20 @@ FGridPlayerAttackPresentationProfile UGridPlayerAttackPresentationComponent::Res
 	}
 	const UGridPartyInventoryComponent* Inventory = PartyPawn ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
 	const UGridItemDefinitionAsset* Definition = Inventory ? Inventory->FindItemDefinition(Request.OffensiveItemDefinitionId) : nullptr;
-	return Definition && Definition->HasValidPlayerAttackPresentation() ? Definition->PlayerAttackPresentationProfile : FGridPlayerAttackPresentationProfile();
+	if (Definition && Definition->HasValidPlayerAttackPresentation())
+	{
+		return Definition->PlayerAttackPresentationProfile;
+	}
+	if (Request.ResolutionCount > 1)
+	{
+		UE_LOG(LogGridPlayerAttackPresentation, Warning,
+			TEXT("[ARMEMENT-LOT02.19.2.2] MultiHitProfileUnavailable Item=%s Hand=%s Definition=%s PresentationOptIn=%s ProfileValid=%s"),
+			*Request.OffensiveItemDefinitionId.ToString(), *UEnum::GetValueAsString(Request.OffensiveEquipmentSlot),
+			*GetNameSafe(Definition),
+			Definition && Definition->bProvidesAttackPresentation ? TEXT("true") : TEXT("false"),
+			Definition && Definition->PlayerAttackPresentationProfile.IsValid() ? TEXT("true") : TEXT("false"));
+	}
+	return FGridPlayerAttackPresentationProfile();
 }
 
 AGridMonsterActor* UGridPlayerAttackPresentationComponent::ResolveTargetMonster(const FGridPlayerAttackRequest& Request) const
@@ -481,6 +507,15 @@ void UGridPlayerAttackPresentationComponent::EmitPresentation(EGridPlayerAttackP
 		Presentation.bHasAttackResult = true;
 	}
 
+	if (Request.ResolutionCount > 1 && Event == EGridPlayerAttackPresentationEvent::Attack && bAudioEnabled &&
+		(!Audio || !Audio->HasConfiguredSound()))
+	{
+		UE_LOG(LogGridPlayerAttackPresentation, Warning,
+			TEXT("[ARMEMENT-LOT02.19.2.2] MultiHitAttackSoundMissing Item=%s Hand=%s Strike=%d/%d"),
+			*Request.OffensiveItemDefinitionId.ToString(), *UEnum::GetValueAsString(Request.OffensiveEquipmentSlot),
+			Request.ResolutionIndex + 1, Request.ResolutionCount);
+	}
+
 	const FVector SourceLocation = PartyPawn && PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation()
 		: PartyPawn                                               ? PartyPawn->GetActorLocation()
 																  : FVector::ZeroVector;
@@ -512,8 +547,42 @@ void UGridPlayerAttackPresentationComponent::EmitPresentation(EGridPlayerAttackP
 			}
 			if (bNativeAudioPlaybackEnabled && GetWorld())
 			{
-				UGameplayStatics::PlaySoundAtLocation(
-					this, Presentation.ResolvedSound, EventLocation, Presentation.VolumeMultiplier, Presentation.PitchMultiplier);
+				if (Request.ActionInstanceId.IsValid() && Request.ResolutionCount > 1)
+				{
+					// Weapon sounds belong to the first-person listener. A
+					// 3D attenuation/concurrency rule on a shared SoundCue
+					// could make the second physical weapon inaudible even
+					// when its Attack delegate was successfully dispatched.
+					if (!SequencedAttackConcurrency)
+					{
+						SequencedAttackConcurrency = NewObject<USoundConcurrency>(this);
+						SequencedAttackConcurrency->Concurrency.MaxCount = 8;
+						SequencedAttackConcurrency->Concurrency.RetriggerTime = 0.0f;
+						SequencedAttackConcurrency->Concurrency.ResolutionRule = EMaxConcurrentResolutionRule::StopOldest;
+					}
+					if (UAudioComponent* Voice = UGameplayStatics::SpawnSound2D(
+						this, Presentation.ResolvedSound, Presentation.VolumeMultiplier,
+						Presentation.PitchMultiplier, 0.0f, SequencedAttackConcurrency))
+					{
+						++MultiStrikeAudioVoicesStartedCount;
+					}
+					else
+					{
+						UE_LOG(LogGridPlayerAttackPresentation, Warning,
+							TEXT("[ARMEMENT-LOT02.19.2.2] MultiHitAudioSpawnFailed Item=%s Hand=%s Strike=%d/%d Event=%s Sound=%s"),
+							*Request.OffensiveItemDefinitionId.ToString(),
+							*UEnum::GetValueAsString(Request.OffensiveEquipmentSlot),
+							Request.ResolutionIndex + 1, Request.ResolutionCount,
+							*UEnum::GetValueAsString(Event), *GetNameSafe(Presentation.ResolvedSound));
+					}
+				}
+				else
+				{
+					// Existing spatial audio behavior is unchanged for every
+					// single-strike attack and thrown projectile.
+					UGameplayStatics::PlaySoundAtLocation(
+						this, Presentation.ResolvedSound, EventLocation, Presentation.VolumeMultiplier, Presentation.PitchMultiplier);
+				}
 			}
 		}
 	}
@@ -576,9 +645,16 @@ void UGridPlayerAttackPresentationComponent::EmitPresentation(EGridPlayerAttackP
 
 	LastPresentationRequest = Presentation;
 	OnPresentationRequested.Broadcast(Presentation);
-	UE_LOG(LogGridPlayerAttackPresentation, Log, TEXT("[GridPlayerAttackPresentation] Seq=%d Event=%s Attack=%s Sound=%s Niagara=%s"),
-		Presentation.SequenceNumber, *UEnum::GetValueAsString(Event), *Request.AttackId.ToString(), *GetNameSafe(Presentation.ResolvedSound),
-		*GetNameSafe(Presentation.ResolvedSystem));
+	UE_LOG(LogGridPlayerAttackPresentation, Log,
+		TEXT("[GridPlayerAttackPresentation] Seq=%d Event=%s Attack=%s Item=%s Hand=%s Strike=%d/%d Sound=%s AudioConfigured=%s AudioEnabled=%s NativeEnabled=%s NativeVoices=%d Niagara=%s"),
+		Presentation.SequenceNumber, *UEnum::GetValueAsString(Event), *Request.AttackId.ToString(),
+		*Request.OffensiveItemDefinitionId.ToString(), *UEnum::GetValueAsString(Request.OffensiveEquipmentSlot),
+		Request.ResolutionIndex + 1, Request.ResolutionCount,
+		*GetNameSafe(Presentation.ResolvedSound),
+		Audio && Audio->HasConfiguredSound() ? TEXT("true") : TEXT("false"),
+		bAudioEnabled ? TEXT("true") : TEXT("false"),
+		bNativeAudioPlaybackEnabled ? TEXT("true") : TEXT("false"),
+		MultiStrikeAudioVoicesStartedCount, *GetNameSafe(Presentation.ResolvedSystem));
 }
 
 void UGridPlayerAttackPresentationComponent::EmitFeedback(const FGridPlayerAttackFeedbackRequest& InFeedback)

@@ -21,6 +21,7 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Sound/SoundWave.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridEventFeedSubsystem.h"
@@ -2535,6 +2536,42 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 		!TestNotNull(TEXT("Passive ARM075"), Shield) ||
 		!TestNotNull(TEXT("Two-hand ARM031"), GreatAxe)) return false;
 
+	// Do not alter shared production DataAssets in an automation test. Give
+	// the *actual weapon profiles* separate, deterministic transient audio.
+	// The previous test set bAudioEnabled=false and thus could never detect
+	// a missing OffHand audio request even though combat delegates succeeded.
+	Dagger = DuplicateObject<UGridItemDefinitionAsset>(Dagger, Fixture.Runtime);
+	MainGauche = DuplicateObject<UGridItemDefinitionAsset>(MainGauche, Fixture.Runtime);
+	if (!TestNotNull(TEXT("Runtime copy of ARM001"), Dagger) ||
+		!TestNotNull(TEXT("Runtime copy of ARM013"), MainGauche)) return false;
+	USoundWave* MainAttackSound = NewObject<USoundWave>(Fixture.Runtime, TEXT("Test_Dual_MainAttackSound"));
+	USoundWave* OffAttackSound = NewObject<USoundWave>(Fixture.Runtime, TEXT("Test_Dual_OffAttackSound"));
+	USoundWave* MainImpactSound = NewObject<USoundWave>(Fixture.Runtime, TEXT("Test_Dual_MainImpactSound"));
+	USoundWave* OffImpactSound = NewObject<USoundWave>(Fixture.Runtime, TEXT("Test_Dual_OffImpactSound"));
+	const auto ConfigureSourceAudio = [](UGridItemDefinitionAsset* Item, USoundWave* AttackSound, USoundWave* ImpactSound)
+	{
+		Item->bProvidesAttackPresentation = true;
+		FGridPlayerAttackPresentationProfile& Profile = Item->PlayerAttackPresentationProfile;
+		Profile.MotionStyle = EGridPlayerAttackMotionStyle::Swing;
+		Profile.bAnimateHeldItem = false;
+		Profile.AttackAudio.Sounds.Reset();
+		Profile.AttackAudio.Sounds.Add(AttackSound);
+		Profile.ImpactHitAudio.Sounds.Reset();
+		Profile.ImpactHitAudio.Sounds.Add(ImpactSound);
+		Profile.ImpactMissAudio.Sounds.Reset();
+		Profile.ImpactMissAudio.Sounds.Add(ImpactSound);
+		Profile.AttackAudio.VolumeMultiplier = 1.0f;
+		Profile.ImpactHitAudio.VolumeMultiplier = 1.0f;
+		Profile.ImpactMissAudio.VolumeMultiplier = 1.0f;
+		Profile.ImpactDelaySeconds = 0.16f;
+		Profile.RecoveryDelaySeconds = 0.18f;
+	};
+	ConfigureSourceAudio(Dagger, MainAttackSound, MainImpactSound);
+	ConfigureSourceAudio(MainGauche, OffAttackSound, OffImpactSound);
+	if (!TestTrue(TEXT("MainHand has a valid audible presentation profile"), Dagger->HasValidPlayerAttackPresentation()) ||
+		!TestTrue(TEXT("OffHand has an independent audible presentation profile"), MainGauche->HasValidPlayerAttackPresentation()))
+		return false;
+
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
 	auto MakeEquipped = [&Fixture](const UGridItemDefinitionAsset* Definition, FGuid Id, EGridEquipmentSlot Hand)
 	{
@@ -2590,9 +2627,13 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 
 	// Bind the actual presentation component to the real TurnManager: this
 	// asserts event-feed gating without changing the authoritative hit tests.
+	// Use the registered runtime component, not an unregistered NewObject
+	// that advances only when a test calls AdvanceSequencedPresentation.
 	UGridPlayerAttackPresentationComponent* Presentation =
-		NewObject<UGridPlayerAttackPresentationComponent>(Fixture.Runtime);
-	Presentation->bAudioEnabled = false;
+		Fixture.Runtime->GetPlayerAttackPresentationComponent();
+	if (!TestNotNull(TEXT("Actual runtime presentation component"), Presentation))
+		return false;
+	Presentation->bAudioEnabled = true;
 	Presentation->bNativeAudioPlaybackEnabled = false;
 	Presentation->bNativeVFXSpawnEnabled = false;
 	Presentation->bNativeFeedbackEnabled = false;
@@ -2642,17 +2683,30 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 	TestTrue(TEXT("The visual sequence gates a second player action"),
 		Fixture.TurnManager->IsSequencedAttackFeedPending());
 	TestEqual(TEXT("First strike presentation starts at the action request"), Presentation->PresentationAttackCount, 1);
+	TestTrue(TEXT("Live component stays ticking until the second weapon is heard"), Presentation->IsComponentTickEnabled());
+	TestEqual(TEXT("MainHand sound is requested in slot 1"), Presentation->AudioAttackRequestCount, 1);
+	TestTrue(TEXT("MainHand plays its own configured whoosh"), Presentation->LastPresentationRequest.ResolvedSound.Get() == MainAttackSound);
 	TestEqual(TEXT("Impacts wait for their own audible frame"), Presentation->PresentationImpactHitCount +
 		Presentation->PresentationImpactMissCount, 0);
 	Presentation->AdvanceSequencedPresentation(0.17f);
 	TestEqual(TEXT("Only one combat impact is presented after first windup"),
 		Presentation->PresentationImpactHitCount + Presentation->PresentationImpactMissCount, 1);
+	TestTrue(TEXT("First impact plays its own contact sound"), Presentation->LastPresentationRequest.ResolvedSound.Get() == MainImpactSound);
 	TestEqual(TEXT("OffHand still waits behind recovery"), Presentation->PresentationAttackCount, 1);
-	Presentation->AdvanceSequencedPresentation(0.18f);
-	TestEqual(TEXT("Second physical weapon starts later"), Presentation->PresentationAttackCount, 2);
+	Presentation->AdvanceSequencedPresentation(0.36f);
+	TestEqual(TEXT("Second physical weapon starts after audible separation"), Presentation->PresentationAttackCount, 2);
+	TestEqual(TEXT("Exactly TWO configured weapon whoosh sounds requested"), Presentation->AudioAttackRequestCount, 2);
+	TestTrue(TEXT("OffHand must use its own sound, not the MainHand sample"),
+		Presentation->LastPresentationRequest.ResolvedSound.Get() == OffAttackSound);
 	Presentation->AdvanceSequencedPresentation(0.17f);
 	TestEqual(TEXT("Second impact has its own presentation slot"),
 		Presentation->PresentationImpactHitCount + Presentation->PresentationImpactMissCount, 2);
+	TestTrue(TEXT("Second impact uses the OffHand contact sample"),
+		Presentation->LastPresentationRequest.ResolvedSound.Get() == OffImpactSound);
+	TestEqual(TEXT("Both separate impacts requested their sounds"),
+		Presentation->AudioImpactHitRequestCount + Presentation->AudioImpactMissRequestCount, 2);
+	TestEqual(TEXT("Two whooshes plus two impact audio requests, one per weapon"),
+		Presentation->AudioPlaybackRequestCount, 4);
 	Presentation->AdvanceSequencedPresentation(0.18f);
 	TestFalse(TEXT("End of the dual sequence releases further combat actions"),
 		Fixture.TurnManager->IsSequencedAttackFeedPending());

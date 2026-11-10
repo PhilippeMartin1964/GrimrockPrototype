@@ -286,8 +286,8 @@ bool FGridMON114SequencedStrikePresentationTest::RunTest(const FString&)
 	TestTrue(TEXT("Turn manager still awaits the second visual strike"),
 		TurnManager->IsSequencedAttackFeedPending());
 
-	Presentation->AdvanceSequencedPresentation(0.18f);
-	TestEqual(TEXT("Second weapon now starts after first impact and recovery"), Presentation->PresentationAttackCount, 2);
+	Presentation->AdvanceSequencedPresentation(0.36f);
+	TestEqual(TEXT("Second weapon starts after audible minimum separation"), Presentation->PresentationAttackCount, 2);
 	TestEqual(TEXT("No second impact at the moment its attack begins"), Presentation->PresentationImpactHitCount, 1);
 	TestEqual(TEXT("OffHand attack ID stays distinct"), Presentation->LastPresentationRequest.AttackRequest.AttackId, Off.AttackId);
 	Presentation->AdvanceSequencedPresentation(0.17f);

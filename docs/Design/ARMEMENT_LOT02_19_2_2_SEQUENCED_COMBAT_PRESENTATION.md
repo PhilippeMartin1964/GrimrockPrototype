@@ -1,5 +1,7 @@
 # ARMEMENT-LOT02.19.2.2 — Séquence audio, impacts et flux d'événements
 
+> **Correctif de fiabilité audio 02.19.2.2.1 — 10.11.2026 :** le premier jalon a réussi ses tests sans couvrir la diffusion réelle des deux sons : le test de combat avait `bAudioEnabled = false` ! Le retour PIE constate **un seul son perceptible** malgré les deux armes configurées. Ce n'était pas une validation sonore suffisante. Le correctif utilise pour les frappes multiples des voix 2D indépendantes avec concurrence dédiée, une séparation minimale réglable entre leurs départs, des traces Item/Hand/Strike/Sound, et des tests qui vérifient **deux sources de sons distinctes**. Les attaques simples conservent leur son 3D habituel. L'écoute PIE demeure indispensable ; `LocalAuto` ne valide pas la sortie physique des haut-parleurs.
+
 ## Décision de gameplay et périmètre
 
 Retour PIE du 10.11.2026 après ARMEMENT-LOT02.21 : le Voleur/Ombre frappe avec **ARM001 en MainHand puis ARM013 en OffHand**, mais la présentation et les lignes du flux d'événements arrivent simultanément. Une double attaque doit être compréhensible **dans le temps**, sans ajouter des raccourcis pour les attaques simples.
@@ -20,11 +22,13 @@ Avec les valeurs par défaut, et si les deux frappes ont eu lieu :
 | --- | --- | --- |
 | 0,00 s | MainHand, départ du coup | `AttackAudio` ARM001 + VFX/mouvement si authorés |
 | 0,16 s | MainHand, impact réel issu du résultat déjà calculé | `ImpactHitAudio` ou `ImpactMissAudio` ARM001 + feedback + **première ligne du flux** |
-| 0,34 s | OffHand, départ du deuxième coup | `AttackAudio` ARM013 + VFX/mouvement si authorés |
-| 0,50 s | OffHand, deuxième impact distinct | `ImpactHitAudio` ou `ImpactMissAudio` ARM013 + feedback + **deuxième ligne du flux** |
-| 0,68 s | fin de récupération | libération du verrou transitoire d'action et du reste du flux (mort/victoire/tour) |
+| 0,52 s | OffHand, départ du deuxième coup | `AttackAudio` ARM013 + VFX/mouvement si authorés |
+| 0,68 s | OffHand, deuxième impact distinct | `ImpactHitAudio` ou `ImpactMissAudio` ARM013 + feedback + **deuxième ligne du flux** |
+| 0,86 s | fin de récupération | libération du verrou transitoire d'action et du reste du flux (mort/victoire/tour) |
 
-Le temps est un exemple **data-driven**, pas une valeur codée en dur pour la dague. Une frame anormalement longue est bornée à **0,10 s** dans le Tick de la présentation pour ne pas faire retentir deux coups à la même image. Aucun son n'est joué si les tableaux d'assets sont vides.
+Le temps est un exemple **data-driven**, pas une valeur codée en dur pour la dague. Depuis 02.19.2.2.1, `UGridPlayerAttackPresentationComponent::MinimumStrikeStartIntervalSeconds` impose par défaut **0,52 s** entre les départs de deux frappes d'une même action (plage 0,25–2,0 s) ; les délais de récupération propres aux armes continuent d'être appliqués et peuvent prolonger cet intervalle. Cette valeur assure une séparation acoustique minimale quand les échantillons de lame durent plusieurs dixièmes de seconde.
+
+La sortie audio des frappes multiples emploie désormais `UGameplayStatics::SpawnSound2D` avec un `USoundConcurrency` transitoire (8 voix, pas d'interdiction de redéclenchement immédiat). Elle n'est pas atténuée par la distance jusqu'au monstre et n'utilise pas le canal 3D partagé susceptible de couper le deuxième son, même lorsqu'il est émis par une arme différente. Le code conserve `PlaySoundAtLocation` pour les attaques simples. L'identité sonore provient **toujours du vrai DataAsset** de chaque frappe, sans son ajouté artificiellement. Une frame anormalement longue est bornée à **0,10 s** dans le Tick de la présentation pour ne pas faire retentir deux coups à la même image. Aucun son n'est joué si les tableaux d'assets sont vides.
 
 ## Architecture modifiée
 
@@ -61,6 +65,8 @@ Sur `DA_Weapon_Dagger_01` (ARM001) et `DA_Weapon_MainGauche_01` (ARM013), vérif
 
 - `Grimrock.RPG.ARMEMENT.LOT02.19.2.2.SequencedStrikePresentation` : avant impacts, MainHand uniquement ; ensuite une frappe et son feedback ; puis OffHand ; puis deuxième impact ; nettoyage fin de séquence et victoire après première frappe létale, pas de seconde fantôme.
 - `Grimrock.Monsters.MON11.Presentation.ProfileValidation` : bornes des timings.
+- `Grimrock.RPG.ARMEMENT.LOT02.19.2.N1DualWieldTwoProfilesOneCost` utilise désormais deux **copies transitoires** de vrais ARM001/ARM013, avec deux sons d'attaque et deux sons d'impact **distincts**. L'audio est **activé**, seul le périphérique natif est désactivé pour le test sous `-NullRHI` : chaque requête doit porter le bon `ItemDefinitionId`, le bon `ResolvedSound`, et les compteurs doivent constater exactement **2 whoosh + 2 impacts**. Le test utilise le composant enregistré du runtime et vérifie que son Tick reste actif pendant la séquence.
+- Les traces PIE `[GridPlayerAttackPresentation]` contiennent désormais `Item`, `Hand`, `Strike=1/2` et `Strike=2/2`, `Sound`, `AudioConfigured`, `NativeVoices`. `MultiHitProfileUnavailable`, `MultiHitAttackSoundMissing` ou `MultiHitAudioSpawnFailed` expliquent les cas où un son assigné dans l'éditeur n'atteint pas l'audio natif. Une réussite d'automatisation ne remplace jamais la vérification du vrai audio PIE.
 - `Grimrock.RPG.ARMEMENT.LOT02.19.2.N1DualWieldTwoProfilesOneCost` : 3 PA et deux calculs distincts inchangés.
 - Régression complète `Grimrock` par VALIDATION-AUTO01, statuts `UE5.5.4/SilentTask` et `UE5.5.4/LocalAuto` sur le SHA final.
 - Contrôle PIE obligatoire : vérifier **flux des deux lignes à deux moments distincts**, mouvements/sons correspondants et absence de chevauchement, monstre tué sur le premier coup, refus d'une deuxième attaque pendant la récupération, puis retour à la normale.

@@ -11,6 +11,7 @@ class AGridMonsterActor;
 class AGridThrownItemActor;
 class AGrimrockPartyPawn;
 class UNiagaraComponent;
+class USoundConcurrency;
 class UGridTurnManagerComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridPlayerAttackPresentationRequestedSignature, FGridPlayerAttackPresentationRequest, Request);
@@ -56,6 +57,18 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack|Audio")
 	int32 AudioPlaybackRequestCount = 0;
+
+	/** Native audio components successfully spawned for multi-strike
+	 * requests (PIE diagnostic; not a substitute for an audible check). */
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack|Audio")
+	int32 MultiStrikeAudioVoicesStartedCount = 0;
+
+	/** Lower bound between the starts of consecutive weapon sounds. Prevents
+	 * two otherwise valid audio requests from becoming one perceptual burst.
+	 * Independent from impact/windup/recovery authored per weapon. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Sequence",
+		meta = (ClampMin = "0.25", ClampMax = "2.0"))
+	float MinimumStrikeStartIntervalSeconds = 0.52f;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack|Audio")
 	int32 AudioAttackRequestCount = 0;
@@ -163,6 +176,11 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<TWeakObjectPtr<UNiagaraComponent>> ActiveNiagaraComponents;
+
+	/** Dedicated 2D audio concurrency policy for short player multi-hit
+	 * gestures. Do not let a shared one-voice asset silence the OffHand. */
+	UPROPERTY(Transient)
+	TObjectPtr<USoundConcurrency> SequencedAttackConcurrency = nullptr;
 
 	TMap<FGuid, FPendingPresentation> PendingPresentations;
 	TArray<FScheduledStrike> ScheduledStrikes;
