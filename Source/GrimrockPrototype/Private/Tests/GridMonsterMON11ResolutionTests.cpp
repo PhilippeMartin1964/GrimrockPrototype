@@ -8,6 +8,8 @@
 #include "Engine/World.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/Combat/GridEquippedGuardResolver.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -419,6 +421,109 @@ bool FGridMonsterMON11PlayerResolutionDeathVictoryTest::RunTest(const FString& P
 	TestFalse(TEXT("A new attack after Victory is refused"), Fixture.TurnManager->RequestCharacterAttack(0, RejectedRequest, RejectedResult, RejectReason));
 	TestEqual(TEXT("The post-victory refusal reports CombatInactive"), RejectReason, EGridPlayerAttackRejectReason::CombatInactive);
 	TestEqual(TEXT("The post-victory refusal does not rebroadcast"), Fixture.TurnManager->PlayerAttackResolvedBroadcastCount, 1);
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON11EquippedGuardRuntimeTest,
+	"Grimrock.RPG.ARMEMENT.LOT02.19.3.MonsterDamageRuntimeIntegration",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON11EquippedGuardRuntimeTest::RunTest(const FString&)
+{
+	UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
+	UGridItemDefinitionAsset* ParryingDagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_MainGauche_01.DA_Weapon_MainGauche_01"));
+	if (!TestNotNull(TEXT("Real ARM075 shield"), Shield) ||
+		!TestNotNull(TEXT("Real ARM013 Main-gauche"), ParryingDagger))
+	{
+		return false;
+	}
+
+	FGridMonsterAttackDefinition Bite;
+	Bite.AttackId = TEXT("Attack_GuardTest_Bite");
+	Bite.DamageType = EGridDamageType::Physical;
+	Bite.MinDamage = 4;
+	Bite.MaxDamage = 4;
+	Bite.AccuracyBonus = 100;
+	Bite.MinRangeCells = 1;
+	Bite.MaxRangeCells = 1;
+
+	const auto EquipOffHand = [](FGridMON11ResolutionFixture& Fixture, UGridItemDefinitionAsset* Definition)
+	{
+		UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
+		Inventory->RegisterItemDefinition(Definition);
+		FGridItemInstance Item;
+		Item.RuntimeObjectId = FGuid::NewGuid();
+		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemLevel = 1;
+		Item.Quantity = 1;
+		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
+		Item.OwnerCharacterIndex = 0;
+		Item.EquipmentSlot = EGridEquipmentSlot::OffHand;
+		Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Item;
+	};
+
+	{
+		FGridMON11ResolutionFixture Fixture;
+		if (!TestTrue(TEXT("Real monster damage world for shield exists"), Fixture.IsReady()) ||
+			!TestNotNull(TEXT("Monster has combat component"), Fixture.Monster->CombatComponent.Get()) ||
+			!TestTrue(TEXT("Monster combat can bind this party"), Fixture.Monster->CombatComponent->InitializeCombat(Fixture.Party)))
+		{
+			return false;
+		}
+		EquipOffHand(Fixture, Shield);
+		const int32 BeforeHP = Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth;
+		TestEqual(TEXT("Shield armor before real monster bite"), Fixture.Party->PartyInventoryComponent->GetEffectiveCurrentPhysicalArmor(0), 5);
+		FRandomStream Stream(FindSeedForNaturalAttackRoll(10));
+		FGridAttackResult Hit;
+		if (!TestTrue(TEXT("Real monster hit resolves"), Fixture.Monster->CombatComponent->ResolveAndApplyPartyAttack(0, Bite, Stream, Hit)))
+		{
+			return false;
+		}
+		TestTrue(TEXT("Real hit reaches shield"), Hit.bHit);
+		TestTrue(TEXT("Real monster attack marks shield block"), Hit.bEquipmentBlocked);
+		TestEqual(TEXT("Exactly four of shield's five physical points are blocked"), Hit.EquipmentBlockedDamage, 4);
+		TestEqual(TEXT("Real shield pool loses exactly four points"), Fixture.Party->PartyInventoryComponent->GetEffectiveCurrentPhysicalArmor(0), 1);
+		TestEqual(TEXT("Shield prevented HP damage without a second mitigation pool"),
+			Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth, BeforeHP);
+	}
+
+	{
+		FGridMON11ResolutionFixture Fixture;
+		if (!TestTrue(TEXT("Real monster damage world for parry exists"), Fixture.IsReady()) ||
+			!TestNotNull(TEXT("Monster combat component for parry"), Fixture.Monster->CombatComponent.Get()) ||
+			!TestTrue(TEXT("Parry monster combat can bind party"), Fixture.Monster->CombatComponent->InitializeCombat(Fixture.Party)))
+		{
+			return false;
+		}
+		EquipOffHand(Fixture, ParryingDagger);
+		const int32 BeforeHP = Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth;
+		int32 TransformCalls = 0;
+		const FGridPartyAttackResultTransform ParryCallback =
+			[&](const FGridAttackTargetStats&, FGridAttackResult& Result)
+			{
+				++TransformCalls;
+				if (FGridEquippedGuardResolver::CanParry(Fixture.Party->PartyInventoryComponent, 0, Bite, Result) &&
+					FGridEquippedGuardResolver::IsSuccessfulParryRoll(1, 15))
+				{
+					FGridEquippedGuardResolver::ApplyParry(Result);
+				}
+			};
+		FRandomStream Stream(FindSeedForNaturalAttackRoll(10));
+		FGridAttackResult Parried;
+		if (!TestTrue(TEXT("Monster component accepts authoritative parry transform"),
+			Fixture.Monster->CombatComponent->ResolveAndApplyPartyAttack(0, Bite, Stream, Parried, ParryCallback)))
+		{
+			return false;
+		}
+		TestEqual(TEXT("Parry transform invoked exactly once"), TransformCalls, 1);
+		TestTrue(TEXT("Parry reached real damage pipeline"), Parried.bEquipmentParried);
+		TestFalse(TEXT("Parried hit never applies as monster hit"), Parried.bHit);
+		TestEqual(TEXT("Parry leaves party HP unchanged"), Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth, BeforeHP);
+		TestEqual(TEXT("Parry leaves armor untouched"), Fixture.Party->PartyInventoryComponent->GetEffectiveCurrentPhysicalArmor(0), 0);
+	}
 	return true;
 }
 

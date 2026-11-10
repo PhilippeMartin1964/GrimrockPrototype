@@ -10,6 +10,7 @@
 #include "Runtime/Combat/GridCombatProjectileActor.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridEquippedGuardResolver.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -302,11 +303,16 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(int32 TargetCharact
 		PartyPawn->PartyInventoryComponent->ApplyPhysicalArmorDamage(
 			TargetCharacterIndex, OutResult.PhysicalArmorDamage,
 			&OutResult.Trace.Damage.PhysicalArmorSources);
+		// A shield block is the actual absorption of the equipped shield's
+		// remaining physical pool, NOT another mitigation or dodge roll.
+		OutResult.EquipmentBlockedDamage = FGridEquippedGuardResolver::ResolveAbsorbedShieldDamage(
+			PartyPawn->PartyInventoryComponent, TargetCharacterIndex, OutResult);
+		OutResult.bEquipmentBlocked = OutResult.EquipmentBlockedDamage > 0;
 		PartyPawn->PartyInventoryComponent->ApplyMagicalArmorDamage(TargetCharacterIndex, OutResult.MagicalArmorDamage);
 		Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - OutResult.HealthDamage);
 	}
 
-	if (!Attack.StatusApplications.IsEmpty())
+	if (!OutResult.bEquipmentParried && !Attack.StatusApplications.IsEmpty())
 	{
 		if (UWorld* StatusWorld = GetWorld())
 		{
@@ -316,6 +322,13 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(int32 TargetCharact
 					TargetCharacterIndex, Attack.StatusApplications, OwnerMonster->ResolvePersistenceId(), Target, &OutResult);
 			}
 		}
+	}
+
+	if (OutResult.bEquipmentBlocked)
+	{
+		UE_LOG(LogGridMonsterCombat, Log,
+			TEXT("[ARMEMENT-LOT02.19.3] ShieldBlock Character=%d Absorbed=%d Attack=%s"),
+			TargetCharacterIndex, OutResult.EquipmentBlockedDamage, *Attack.AttackId.ToString());
 	}
 
 	LastAttackId = Attack.AttackId;

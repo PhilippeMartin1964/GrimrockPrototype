@@ -203,6 +203,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Turn Manager", meta = (ClampMin = "0.0"))
 	float ActionTimeoutPadding = 0.50f;
 
+	/** Temporary ARM013 combat proficiency. Only ordinary physical melee
+	 * hits can be parried; criticals and all ranged/magic hits are excluded.
+	 * Never changes the existing d20 defense or shield armor absorption. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Equipment Guard",
+		meta = (ClampMin = "0", ClampMax = "100"))
+	int32 MainGaucheParryChancePercent = 15;
+
 	/** Stable base seed used to derive each encounter seed. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Turn Manager")
 	int32 EncounterRandomSeed = 1337;

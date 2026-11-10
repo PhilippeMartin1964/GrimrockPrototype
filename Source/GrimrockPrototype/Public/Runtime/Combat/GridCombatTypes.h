@@ -3029,6 +3029,20 @@ struct FGridAttackResult
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Result")
 	EGridPhysicalDamageSubtype PhysicalSubtype = EGridPhysicalDamageSubtype::None;
 
+	/** ARMEMENT-LOT02.19.3: a real OffHand parry prevented this hit before
+	 * armor/status application. Does not spend AP or create a hotbar action. */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Result|Guard")
+	bool bEquipmentParried = false;
+
+	/** True only when an actual equipped shield's physical armor reserve
+	 * absorbed damage. A depleted shield cannot block, and grants no
+	 * additional free mitigation. */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Result|Guard")
+	bool bEquipmentBlocked = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Result|Guard")
+	int32 EquipmentBlockedDamage = 0;
+
 	/** EVENTHUD01.7 exact calculation trace. The HUD reads this snapshot and never recomputes combat. */
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Result|Trace")
 	FGridCombatResolutionTrace Trace;

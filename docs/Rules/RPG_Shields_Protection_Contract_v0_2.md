@@ -1,5 +1,7 @@
 # RPG-SHIELD02 — Contrat des armures physique et magique v0.2
 
+> **ARMEMENT-LOT02.19.3 (10.11.2026) — Blocage sans double mitigation :** l'état d'un coup peut désormais signaler un **blocage au bouclier** (`bEquipmentBlocked`, `EquipmentBlockedDamage`) uniquement lorsque la réserve physique **déjà existante** de l'objet tenu en OffHand absorbe réellement une partie des dégâts. Cette information ajoute un libellé au journal, **aucun point de défense, d'esquive, d'armure ou de réduction n'est créé**. Bouclier vide = zéro blocage. La règle RPG-SHIELD02 v0.2 (déplétion, recharge victoire/repos, SaveGame) est inchangée. Voir [ARMEMENT-LOT02.19.3](../Design/ARMEMENT_LOT02_19_3_PARRY_SHIELD_GUARD.md).
+
 **Décision de conception :** 26 octobre 2026 ; inspiration explicite *Divinity: Original Sin 2* (DOS2).  
 **Portée :** armures physiques et magiques, boucliers, personnages, capacités de restauration, fin de combat, repos et état sauvegardé.  
 **État : CONTRAT CONSOLIDÉ.** RPG-SHIELD02.2 est **validé par l'utilisateur (13/13 tests + PIE)**. RPG-SHIELD02.3 est **validé par l'utilisateur (15/15 tests UE5.5.4)** ; la recette PIE de repos n'est pas encore documentée. RPG-SHIELD02.4A est **validé par l'utilisateur (26/26 tests UE5.5.4)**. RPG-SHIELD02.4B est **validé par l'utilisateur (25/25 tests UE5.5.4)**. RPG-SHIELD02.5 publie des tests réels de persistance sur disque, **compilation/tests UE et recette PIE en attente**. Cette v0.2 **remplace la politique de récupération de v0.1**, sans modifier silencieusement les autres mécaniques déjà validées.

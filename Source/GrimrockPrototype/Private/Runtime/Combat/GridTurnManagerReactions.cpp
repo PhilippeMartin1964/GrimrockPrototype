@@ -5,6 +5,7 @@
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridEquippedGuardResolver.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -367,6 +368,22 @@ void UGridTurnManagerComponent::ApplyIncomingPartyDamageInterception(int32 Targe
 	if (!Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(TargetCharacterIndex))
 	{
 		return;
+	}
+
+	// Equipment reactions run within the existing pre-commit damage hook.
+	// They never create an action or independently apply/reserve armor.
+	if (FGridEquippedGuardResolver::CanParry(Inventory, TargetCharacterIndex, Attack, InOutResult))
+	{
+		const int32 ParryRoll = CombatRandomStream.RandRange(1, 100);
+		if (FGridEquippedGuardResolver::IsSuccessfulParryRoll(ParryRoll, MainGaucheParryChancePercent))
+		{
+			FGridEquippedGuardResolver::ApplyParry(InOutResult);
+			UE_LOG(LogGridTurnManager, Log,
+				TEXT("[ARMEMENT-LOT02.19.3] Parry Character=%d Item=ARM013 Roll=%d Chance=%d Attack=%s"),
+				TargetCharacterIndex, ParryRoll, FMath::Clamp(MainGaucheParryChancePercent, 0, 100),
+				*Attack.AttackId.ToString());
+			return; // No damage, no status-on-hit, no ally interception.
+		}
 	}
 
 	const FGuid SourceId = CurrentMonster->ResolvePersistenceId();

@@ -1,5 +1,7 @@
 # RPG02 — Mécanique des 90 Talents de classe — v0.1
 
+> **Décision équipement provisoire (ARMEMENT-LOT02.19.3, 10.11.2026) :** les défenses issues des **objets équipés** ne sont pas des talents du présent catalogue RPG02. La Main-gauche ARM013 permet une parade réactive provisoire contre les coups physiques de mêlée non critiques, probabilité réglable (15 % par défaut), sans acquisition d'une nouvelle compétence. Les boucliers ne créent pas de blocage actif gratuit ; leurs points de protection absorbés peuvent simplement être signalés comme blocage. Toutes les actions/talents authorés conservent leurs prérequis et leurs mécaniques. Voir [ARMEMENT-LOT02.19.3](../Design/ARMEMENT_LOT02_19_3_PARRY_SHIELD_GUARD.md).
+
 Date : **5 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : `RPG_Class_Progression_1_20_v0_1.md`  

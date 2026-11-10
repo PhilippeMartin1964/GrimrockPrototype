@@ -1,5 +1,7 @@
 # ARMEMENT-LOT02.20 — Contrat consolidé : actions d'armes équipées et icônes
 
+> **ARMEMENT-LOT02.19.3 (10.11.2026) — Parade/blocage réactifs :** les catégories `DefenseParry` et `DefenseBlock` restent réservées à de véritables **actions actives** éventuelles, et ne sont pas automatiquement affichées dans la barre. Le runtime sait maintenant rapporter une parade passive de la Main-gauche ARM013 (15 % provisoires contre coups physiques de mêlée non critiques) et le blocage correspondant exactement aux points absorbés par un bouclier réellement équipé. Aucun changement des 12 icônes de la palette. Voir [contrat](ARMEMENT_LOT02_19_3_PARRY_SHIELD_GUARD.md).
+
 > **CONTRAT DE BARRE ACTUEL (ARMEMENT-LOT02.21, 10.11.2026) :** la palette d'icônes et les catégories ARMXXX restent inchangées, mais la barre d'action ne projette **plus que la seule attaque normale en raccourci 1**. L'ancienne suggestion de MainHand/OffHand en emplacements 2+ est supprimée ; les sorts, capacités, consommables et actions spéciales restent personnalisables. Voir [la règle de projection](ARMEMENT_LOT02_21_SINGLE_EQUIPPED_ATTACK_HOTBAR.md).
 
 **Date : 10.11.2026 — règle de prototype provisoire.** Ce jalon ne remplace pas le futur audit des compétences et ne crée aucun talent.

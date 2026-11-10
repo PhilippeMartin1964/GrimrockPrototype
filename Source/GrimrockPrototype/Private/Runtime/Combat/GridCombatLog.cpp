@@ -110,6 +110,11 @@ FText FGridCombatLogFormatter::FormatMonsterAttack(const FText& MonsterName, con
 {
 	const FText Lead = FormatAttackLead(MonsterName, TargetName, AttackId, LOCTEXT("MonsterAttackLead", "{Source} attaque {Target} avec {Attack}"));
 
+	if (Result.bEquipmentParried)
+	{
+		return FText::Format(LOCTEXT("MonsterAttackParried", "{0} : attaque parée avec la main-gauche."),
+			Lead);
+	}
 	if (!Result.bHit)
 	{
 		FFormatNamedArguments Arguments;
@@ -122,6 +127,11 @@ FText FGridCombatLogFormatter::FormatMonsterAttack(const FText& MonsterName, con
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("Lead"), Lead);
 	Arguments.Add(TEXT("Damage"), FormatAppliedDamage(Result));
+	if (Result.bEquipmentBlocked && Result.EquipmentBlockedDamage > 0)
+	{
+		Arguments.Add(TEXT("Blocked"), FText::AsNumber(Result.EquipmentBlockedDamage));
+		return FText::Format(LOCTEXT("MonsterAttackShieldBlocked", "{Lead} : {Damage} (bouclier : {Blocked} dégâts absorbés)."), Arguments);
+	}
 	return Result.bCriticalHit ? FText::Format(LOCTEXT("MonsterAttackCritical", "{Lead} : coup critique, {Damage}."), Arguments)
 							   : FText::Format(LOCTEXT("MonsterAttackHit", "{Lead} : {Damage}."), Arguments);
 }
