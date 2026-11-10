@@ -96,6 +96,18 @@ struct GRIMROCKPROTOTYPE_API FGridPlayerAttackPresentationProfile
 		meta = (ClampMin = "0.01", ClampMax = "2.0", EditCondition = "bAnimateHeldItem"))
 	float MotionDurationSeconds = 0.18f;
 
+	/** Delays each multi-strike impact and its combat feed line until after
+	 * the attack's sound and windup. No delay to the authoritative damage roll. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Sequence",
+		meta = (ClampMin = "0.01", ClampMax = "2.0"))
+	float ImpactDelaySeconds = 0.16f;
+
+	/** Recovery after each impact before another strike begins. Used for
+	 * all multi-resolution actions, not just dual wield. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Sequence",
+		meta = (ClampMin = "0.0", ClampMax = "2.0"))
+	float RecoveryDelaySeconds = 0.18f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Motion")
 	FVector PeakLocationOffset = FVector::ZeroVector;
 

@@ -346,6 +346,19 @@ struct FGridPlayerAttackRequest
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
 	FGuid RequestId;
 
+	/** Shared by every physical strike belonging to the same accepted action;
+	 * RequestId remains unique to each individual strike. */
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+	FGuid ActionInstanceId;
+
+	/** Presentation-only sequencing metadata. Zero-based; 1 means legacy
+	 * instant single-strike presentation. Never drives authoritative damage. */
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+	int32 ResolutionIndex = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+	int32 ResolutionCount = 1;
+
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
 	int32 RoundNumber = 0;
 

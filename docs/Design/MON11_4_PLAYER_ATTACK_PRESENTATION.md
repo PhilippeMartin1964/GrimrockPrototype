@@ -1,5 +1,7 @@
 # MON11.4 — Présentation des attaques du groupe
 
+> **Extension ARMEMENT-LOT02.19.2.2 (10.11.2026) :** les affirmations historiques ci-dessous concernent le MON11 initial (une seule frappe, événement synchrone). Les attaques multi-résolutions (>1) disposent désormais d'une **timeline de présentation** pour le départ, l'impact, le feedback et le flux, sans modifier les jets ou les dégâts : voir [ARMEMENT-LOT02.19.2.2](ARMEMENT_LOT02_19_2_2_SEQUENCED_COMBAT_PRESENTATION.md). Les tests MON11 de frappe simple continuent d'utiliser le chemin instantané.
+
 ## Séparation gameplay et présentation
 
 MON11.4 observe le pipeline déterministe de MON11.3 sans le modifier.

@@ -820,7 +820,8 @@ bool UGridTurnManagerComponent::TryRestParty()
 
 bool UGridTurnManagerComponent::IsPartyAtRest() const
 {
-	if (!IsValid(PartyPawn) || !IsValid(RuntimeActor) || PendingPartyMotionType != EGridPendingPartyMotionType::None)
+	if (!IsValid(PartyPawn) || !IsValid(RuntimeActor) || PendingPartyMotionType != EGridPendingPartyMotionType::None ||
+		bSequencedAttackFeedPending)
 	{
 		return false;
 	}

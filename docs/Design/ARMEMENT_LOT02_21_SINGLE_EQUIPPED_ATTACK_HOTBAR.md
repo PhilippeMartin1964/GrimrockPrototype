@@ -1,5 +1,7 @@
 # ARMEMENT-LOT02.21 — Une seule attaque normale contextuelle par configuration équipée
 
+> **Évolution 02.19.2.2 (10.11.2026) :** la règle d'une seule attaque contextuelle sur le raccourci 1 est inchangée. Ses **impacts et sons** peuvent désormais être séquencés si l'action a plusieurs résolutions, selon [ARMEMENT-LOT02.19.2.2](ARMEMENT_LOT02_19_2_2_SEQUENCED_COMBAT_PRESENTATION.md). Aucun bouton MainHand/OffHand supplémentaire n'est réintroduit.
+
 **Décision utilisateur du 10.11.2026.** Ce document annule uniquement l'ancienne projection automatique des coups simples MainHand/OffHand dans des raccourcis secondaires (jalons 02.19.1 et 02.19.2). Il conserve les données, les résultats de combat et les icônes validées.
 
 ## Règle d'interface

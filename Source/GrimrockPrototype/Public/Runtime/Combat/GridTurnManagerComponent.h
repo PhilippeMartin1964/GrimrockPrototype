@@ -634,6 +634,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|Feedback")
 	void ClearCombatLog();
 
+	/** Presentation-only: buffer the live event feed for one multi-strike
+	 * sequence; authoritative history and combat delegates stay immediate. */
+	void BeginSequencedAttackFeed();
+	void PublishSequencedAttackFeedThroughNextImpact();
+	void FinishSequencedAttackFeed(bool bPublishRemaining = true);
+	bool IsSequencedAttackFeedPending() const
+	{
+		return bSequencedAttackFeedPending;
+	}
+
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Combat|Feedback|Debug")
 	void LogCombatHistory() const;
 
@@ -670,6 +680,10 @@ private:
 	FRandomStream InitiativeRandomStream;
 	int32 NextCombatLogSequenceNumber = 1;
 	int32 CombatLogBroadcastCount = 0;
+	/** Visual event-feed buffer, not a game-state/save buffer. */
+	TArray<FGridCombatLogEntry> SequencedAttackFeedEntries;
+	bool bSequencedAttackFeedPending = false;
+	bool bFinishPlayerTurnAfterSequencedAttack = false;
 	int32 AttackResolvedBroadcastCount = 0;
 	int32 PlayerAttackRequestedBroadcastCount = 0;
 	int32 PlayerAttackResolvedBroadcastCount = 0;

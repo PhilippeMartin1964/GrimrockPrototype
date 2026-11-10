@@ -612,6 +612,9 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	const int32 ManaCost = CombatActionOverride ? FMath::Max(0, CombatActionOverride->CurrentManaCost) : 0;
 	const int32 AttackResolutionCount =
 		CombatActionOverride ? FMath::Clamp(CombatActionOverride->Definition.ResolutionCount, 1, 8) : 1;
+	Request.ActionInstanceId = Request.RequestId;
+	Request.ResolutionCount = AttackResolutionCount;
+	Request.ResolutionIndex = 0;
 	const int32 SubsequentAccuracyModifier =
 		CombatActionOverride ? CombatActionOverride->Definition.SubsequentResolutionAccuracyModifier : 0;
 	int32 SourceItemQuantityCost = CombatActionOverride ? FMath::Max(0, CombatActionOverride->CurrentSourceItemQuantityCost) : 0;
@@ -966,6 +969,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 
 		FGridPlayerAttackRequest RepeatRequest = Request;
 		RepeatRequest.RequestId = FGuid::NewGuid();
+		RepeatRequest.ResolutionIndex = ResolutionIndex;
 		if (bDualWieldAction)
 		{
 			// One accepted 3-AP action, but separate real attack metadata.
@@ -1059,7 +1063,16 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 		if (GetPlayerCharacterTurnState(AttackerCharacterIndex, TurnState) && TurnState.RemainingActionPoints <= 0 &&
 			IsActivePlayerCharacter(AttackerCharacterIndex))
 		{
-			FinishActivePlayerTurn();
+			// A monster must not start its next turn between two audible
+			// impacts of a single accepted multi-resolution player action.
+			if (bSequencedAttackFeedPending)
+			{
+				bFinishPlayerTurnAfterSequencedAttack = true;
+			}
+			else
+			{
+				FinishActivePlayerTurn();
+			}
 		}
 	}
 	return true;

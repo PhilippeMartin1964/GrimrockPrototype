@@ -111,6 +111,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat|Player Attack|Audio")
 	int32 GetAudioPlaybackRequestCountForEvent(EGridPlayerAttackPresentationEvent Event) const;
 
+	/** True while a multi-hit attack is playing across distinct frames. */
+	UFUNCTION(BlueprintPure, Category = "Combat|Player Attack|Sequence")
+	int32 GetQueuedStrikeCount() const
+	{
+		return ScheduledStrikes.Num();
+	}
+
+	/** Deterministic frame clock, shared by runtime Tick and automation. */
+	void AdvanceSequencedPresentation(float DeltaSeconds);
+
 	UFUNCTION(BlueprintPure, Category = "Combat|Player Attack|Motion")
 	bool IsHeldItemMotionActive() const
 	{
@@ -123,6 +133,23 @@ private:
 		FGridPlayerAttackPresentationProfile Profile;
 		TWeakObjectPtr<AGridMonsterActor> TargetMonster;
 		TWeakObjectPtr<AGridThrownItemActor> ThrownItemActor;
+	};
+
+	/** Pre-resolved authoritative strikes are REPLAYED visually in order.
+	 * No gameplay damage/rolls occur here and no unreal timers are saved. */
+	struct FScheduledStrike
+	{
+		FGridPlayerAttackRequest Request;
+		FGridPlayerAttackPresentationProfile Profile;
+		FGridAttackResult Result;
+		TWeakObjectPtr<AGridMonsterActor> TargetMonster;
+		TWeakObjectPtr<AGridThrownItemActor> ThrownItemActor;
+		float AttackAtSeconds = 0.0f;
+		float ImpactAtSeconds = 0.0f;
+		float CompleteAtSeconds = 0.0f;
+		bool bHasResult = false;
+		bool bAttackStarted = false;
+		bool bImpactPresented = false;
 	};
 
 	UPROPERTY(Transient)
@@ -138,6 +165,10 @@ private:
 	TArray<TWeakObjectPtr<UNiagaraComponent>> ActiveNiagaraComponents;
 
 	TMap<FGuid, FPendingPresentation> PendingPresentations;
+	TArray<FScheduledStrike> ScheduledStrikes;
+	float SequenceClockSeconds = 0.0f;
+	float SequenceTailSeconds = 0.0f;
+	bool bSequenceFinishingCombat = false;
 	int32 NextPresentationSequenceNumber = 1;
 	int32 NextFeedbackSequenceNumber = 1;
 	int32 EventOccurrenceCounts[3] = { 0, 0, 0 };
@@ -167,6 +198,9 @@ private:
 	void EmitPresentation(EGridPlayerAttackPresentationEvent Event, const FGridPlayerAttackRequest& Request, const FGridAttackResult* Result,
 		AGridMonsterActor* TargetMonster, const FGridPlayerAttackPresentationProfile& Profile);
 	void EmitFeedback(const FGridPlayerAttackFeedbackRequest& Feedback);
+	void StartStrikePresentation(FScheduledStrike& Strike);
+	void DeliverStrikeImpact(FScheduledStrike& Strike);
+	void ResetScheduledPresentation(bool bPublishRemainingFeed);
 	void StartHeldItemMotion(const FGridPlayerAttackRequest& Request, const FGridPlayerAttackPresentationProfile& Profile);
 	AGridThrownItemActor* StartThrownItemLaunch(
 		const FGridPlayerAttackRequest& Request, AGridMonsterActor* TargetMonster, const FGridPlayerAttackPresentationProfile& Profile);

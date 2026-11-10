@@ -2588,6 +2588,18 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 			Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[2].IsEmpty()))
 		return false;
 
+	// Bind the actual presentation component to the real TurnManager: this
+	// asserts event-feed gating without changing the authoritative hit tests.
+	UGridPlayerAttackPresentationComponent* Presentation =
+		NewObject<UGridPlayerAttackPresentationComponent>(Fixture.Runtime);
+	Presentation->bAudioEnabled = false;
+	Presentation->bNativeAudioPlaybackEnabled = false;
+	Presentation->bNativeVFXSpawnEnabled = false;
+	Presentation->bNativeFeedbackEnabled = false;
+	if (!TestTrue(TEXT("Physical dual strike has a presentation subscriber"),
+			Presentation->InitializePresentation(Fixture.TurnManager)))
+		return false;
+
 	const int32 CombatLogBefore = Fixture.TurnManager->GetCombatLogEntries().Num();
 	const int32 HealthBefore = Fixture.Monster->CurrentHealth;
 	FGridCombatActionRequestResult Result;
@@ -2627,6 +2639,23 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 			EGridEquipmentSlot::OffHand);
 	}
 	TestTrue(TEXT("Combat did not heal the monster"), Fixture.Monster->CurrentHealth <= HealthBefore);
+	TestTrue(TEXT("The visual sequence gates a second player action"),
+		Fixture.TurnManager->IsSequencedAttackFeedPending());
+	TestEqual(TEXT("First strike presentation starts at the action request"), Presentation->PresentationAttackCount, 1);
+	TestEqual(TEXT("Impacts wait for their own audible frame"), Presentation->PresentationImpactHitCount +
+		Presentation->PresentationImpactMissCount, 0);
+	Presentation->AdvanceSequencedPresentation(0.17f);
+	TestEqual(TEXT("Only one combat impact is presented after first windup"),
+		Presentation->PresentationImpactHitCount + Presentation->PresentationImpactMissCount, 1);
+	TestEqual(TEXT("OffHand still waits behind recovery"), Presentation->PresentationAttackCount, 1);
+	Presentation->AdvanceSequencedPresentation(0.18f);
+	TestEqual(TEXT("Second physical weapon starts later"), Presentation->PresentationAttackCount, 2);
+	Presentation->AdvanceSequencedPresentation(0.17f);
+	TestEqual(TEXT("Second impact has its own presentation slot"),
+		Presentation->PresentationImpactHitCount + Presentation->PresentationImpactMissCount, 2);
+	Presentation->AdvanceSequencedPresentation(0.18f);
+	TestFalse(TEXT("End of the dual sequence releases further combat actions"),
+		Fixture.TurnManager->IsSequencedAttackFeedPending());
 
 	const int32 LogBeforeRefusal = Fixture.TurnManager->GetCombatLogEntries().Num();
 	FGridCombatActionRequestResult Refused;

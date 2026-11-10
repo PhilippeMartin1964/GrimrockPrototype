@@ -111,6 +111,7 @@ void UGridTurnManagerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 	UnbindCurrentMovement();
 	UnbindCurrentCombat();
 	UnbindCombatMonsterDeaths();
+	FinishSequencedAttackFeed(false);
 	SetPartyInputLocked(false);
 	Super::EndPlay(EndPlayReason);
 }
@@ -294,6 +295,7 @@ bool UGridTurnManagerComponent::EndPlayerPhase()
 
 void UGridTurnManagerComponent::AbortCombat()
 {
+	FinishSequencedAttackFeed(false);
 	ClearPlayerCharacterTurnStates();
 	ResetCombatActionCooldowns();
 	ClearPartyMobilityState(true);
@@ -426,9 +428,73 @@ bool UGridTurnManagerComponent::GetLatestCombatLogEntry(FGridCombatLogEntry& Out
 
 void UGridTurnManagerComponent::ClearCombatLog()
 {
+	FinishSequencedAttackFeed(false);
 	CombatLogEntries.Reset();
 	NextCombatLogSequenceNumber = 1;
 	CombatLogBroadcastCount = 0;
+}
+
+void UGridTurnManagerComponent::BeginSequencedAttackFeed()
+{
+	bSequencedAttackFeedPending = true;
+}
+
+void UGridTurnManagerComponent::PublishSequencedAttackFeedThroughNextImpact()
+{
+	if (!bSequencedAttackFeedPending)
+	{
+		return;
+	}
+	while (!SequencedAttackFeedEntries.IsEmpty())
+	{
+		const FGridCombatLogEntry Entry = SequencedAttackFeedEntries[0];
+		SequencedAttackFeedEntries.RemoveAt(0);
+		FGridHudEventEntry Feed;
+		if (FGridCombatEventFeedFormatter::BuildEntry(Entry, Feed))
+		{
+			GridEventFeedPublisher::PublishEvent(this, Feed, true);
+		}
+		if (Entry.Type == EGridCombatLogEntryType::AttackHit || Entry.Type == EGridCombatLogEntryType::AttackMiss)
+		{
+			break;
+		}
+	}
+}
+
+void UGridTurnManagerComponent::FinishSequencedAttackFeed(bool bPublishRemaining)
+{
+	const bool bWasSequenced = bSequencedAttackFeedPending;
+	if (bPublishRemaining)
+	{
+		for (const FGridCombatLogEntry& Entry : SequencedAttackFeedEntries)
+		{
+			FGridHudEventEntry Feed;
+			if (FGridCombatEventFeedFormatter::BuildEntry(Entry, Feed))
+			{
+				GridEventFeedPublisher::PublishEvent(this, Feed, true);
+			}
+		}
+	}
+	SequencedAttackFeedEntries.Reset();
+	bSequencedAttackFeedPending = false;
+	const bool bFinishTurn = bFinishPlayerTurnAfterSequencedAttack && bPublishRemaining;
+	bFinishPlayerTurnAfterSequencedAttack = false;
+	if (bFinishTurn && bCombatActive && CurrentPhase == EGridCombatPhase::PlayerPhase)
+	{
+		FinishActivePlayerTurn();
+	}
+	else if (bWasSequenced && bPublishRemaining && bCombatActive)
+	{
+		// The hotbar was temporarily marked PartyBusy; refresh it as soon
+		// as the visual sequence finishes, without mutating AP or game state.
+		for (const FGridPlayerCharacterTurnState& State : PlayerCharacterTurnStates)
+		{
+			if (State.State == EGridCombatantTurnState::Active)
+			{
+				OnPlayerCharacterTurnStateChanged.Broadcast(State);
+			}
+		}
+	}
 }
 
 void UGridTurnManagerComponent::LogCombatHistory() const
@@ -445,10 +511,20 @@ void UGridTurnManagerComponent::AppendCombatLogEntry(FGridCombatLogEntry Entry)
 	Entry.SequenceNumber = NextCombatLogSequenceNumber++;
 	CombatLogEntries.Add(Entry);
 
+	// Multi-strike presentation releases feed lines alongside each audible
+	// impact, not together during the synchronous game-state transaction.
+	// Hold subsequent victory/phase lines too, preserving chronological order.
 	FGridHudEventEntry EventFeedEntry;
 	if (FGridCombatEventFeedFormatter::BuildEntry(Entry, EventFeedEntry))
 	{
-		GridEventFeedPublisher::PublishEvent(this, EventFeedEntry, true);
+		if (bSequencedAttackFeedPending)
+		{
+			SequencedAttackFeedEntries.Add(Entry);
+		}
+		else
+		{
+			GridEventFeedPublisher::PublishEvent(this, EventFeedEntry, true);
+		}
 	}
 
 	const int32 SafeCapacity = FMath::Clamp(MaxCombatLogEntries, 1, 512);

@@ -85,6 +85,7 @@ void UGridPlayerAttackPresentationComponent::EndPlay(const EEndPlayReason::Type 
 		TurnManager->OnPlayerAttackRejected.RemoveDynamic(this, &UGridPlayerAttackPresentationComponent::HandlePlayerAttackRejected);
 		TurnManager->OnCombatEnded.RemoveDynamic(this, &UGridPlayerAttackPresentationComponent::HandleCombatEnded);
 	}
+	ResetScheduledPresentation(false);
 	RestoreHeldItemMotion();
 	StopActiveVFX();
 	PendingPresentations.Reset();
@@ -94,31 +95,37 @@ void UGridPlayerAttackPresentationComponent::EndPlay(const EEndPlayReason::Type 
 void UGridPlayerAttackPresentationComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (!bMotionActive)
+
+	// Keep long/hitch frames from collapsing two individual hit sounds into
+	// one rendered frame. The queue uses the same clock in PIE and automation.
+	AdvanceSequencedPresentation(FMath::Min(FMath::Max(0.0f, DeltaTime), 0.10f));
+
+	if (bMotionActive)
+	{
+		AGridItemActor* HeldItem = AnimatedHeldItemActor.Get();
+		if (!IsValid(HeldItem) || !PartyPawn || PartyPawn->HeldItemActor.Get() != HeldItem)
+		{
+			RestoreHeldItemMotion();
+		}
+		else
+		{
+			MotionElapsedSeconds += FMath::Max(0.0f, DeltaTime);
+			const float Alpha = FMath::Clamp(MotionElapsedSeconds / FMath::Max(0.01f, MotionDurationSeconds), 0.0f, 1.0f);
+			const float MotionAlpha = FMath::Sin(PI * Alpha);
+			FTransform AnimatedTransform = MotionInitialRelativeTransform;
+			AnimatedTransform.SetLocation(MotionInitialRelativeTransform.GetLocation() + MotionPeakLocationOffset * MotionAlpha);
+			const FRotator InitialRotation = MotionInitialRelativeTransform.Rotator();
+			AnimatedTransform.SetRotation(FQuat((InitialRotation + MotionPeakRotationOffset * MotionAlpha).GetNormalized()));
+			HeldItem->SetActorRelativeTransform(AnimatedTransform);
+			if (Alpha >= 1.0f)
+			{
+				RestoreHeldItemMotion();
+			}
+		}
+	}
+	if (!bMotionActive && ScheduledStrikes.IsEmpty())
 	{
 		SetComponentTickEnabled(false);
-		return;
-	}
-
-	AGridItemActor* HeldItem = AnimatedHeldItemActor.Get();
-	if (!IsValid(HeldItem) || !PartyPawn || PartyPawn->HeldItemActor.Get() != HeldItem)
-	{
-		RestoreHeldItemMotion();
-		return;
-	}
-
-	MotionElapsedSeconds += FMath::Max(0.0f, DeltaTime);
-	const float Alpha = FMath::Clamp(MotionElapsedSeconds / FMath::Max(0.01f, MotionDurationSeconds), 0.0f, 1.0f);
-	const float MotionAlpha = FMath::Sin(PI * Alpha);
-	FTransform AnimatedTransform = MotionInitialRelativeTransform;
-	AnimatedTransform.SetLocation(MotionInitialRelativeTransform.GetLocation() + MotionPeakLocationOffset * MotionAlpha);
-	const FRotator InitialRotation = MotionInitialRelativeTransform.Rotator();
-	AnimatedTransform.SetRotation(FQuat((InitialRotation + MotionPeakRotationOffset * MotionAlpha).GetNormalized()));
-	HeldItem->SetActorRelativeTransform(AnimatedTransform);
-
-	if (Alpha >= 1.0f)
-	{
-		RestoreHeldItemMotion();
 	}
 }
 
@@ -143,6 +150,7 @@ void UGridPlayerAttackPresentationComponent::ResetTransientPresentationState()
 {
 	RestoreHeldItemMotion();
 	StopActiveVFX();
+	ResetScheduledPresentation(false);
 	PendingPresentations.Reset();
 	NextPresentationSequenceNumber = 1;
 	NextFeedbackSequenceNumber = 1;
@@ -196,6 +204,90 @@ int32 UGridPlayerAttackPresentationComponent::GetPresentationRequestCountForEven
 	}
 }
 
+void UGridPlayerAttackPresentationComponent::ResetScheduledPresentation(bool bPublishRemainingFeed)
+{
+	ScheduledStrikes.Reset();
+	SequenceClockSeconds = 0.0f;
+	SequenceTailSeconds = 0.0f;
+	bSequenceFinishingCombat = false;
+	if (TurnManager && TurnManager->IsSequencedAttackFeedPending())
+	{
+		TurnManager->FinishSequencedAttackFeed(bPublishRemainingFeed);
+	}
+}
+
+void UGridPlayerAttackPresentationComponent::StartStrikePresentation(FScheduledStrike& Strike)
+{
+	Strike.bAttackStarted = true;
+	EmitPresentation(EGridPlayerAttackPresentationEvent::Attack, Strike.Request, nullptr, Strike.TargetMonster.Get(), Strike.Profile);
+	if (Strike.Profile.MotionStyle == EGridPlayerAttackMotionStyle::Throw ||
+		IsValid(Strike.Request.PreparedThrownItemActor.Get()))
+	{
+		Strike.ThrownItemActor = StartThrownItemLaunch(Strike.Request, Strike.TargetMonster.Get(), Strike.Profile);
+	}
+	else
+	{
+		StartHeldItemMotion(Strike.Request, Strike.Profile);
+	}
+}
+
+void UGridPlayerAttackPresentationComponent::DeliverStrikeImpact(FScheduledStrike& Strike)
+{
+	Strike.bImpactPresented = true;
+	AGridMonsterActor* Target = Strike.TargetMonster.Get();
+	ConfigureThrownItemOutcome(Strike.ThrownItemActor.Get(), Target, Strike.Result);
+	EmitPresentation(Strike.Result.bHit ? EGridPlayerAttackPresentationEvent::ImpactHit
+		: EGridPlayerAttackPresentationEvent::ImpactMiss,
+		Strike.Request, &Strike.Result, Target, Strike.Profile);
+	const FGridPlayerAttackFeedbackRequest Feedback = FGridPlayerAttackFeedbackFormatter::FormatResolved(
+		Strike.Request, Strike.Result, ResolveCharacterDisplayName(Strike.Request.AttackerCharacterIndex),
+		ResolveMonsterDisplayName(Target), Strike.Profile.FeedbackDurationSeconds);
+	EmitFeedback(Feedback);
+	if (TurnManager)
+	{
+		TurnManager->PublishSequencedAttackFeedThroughNextImpact();
+	}
+}
+
+void UGridPlayerAttackPresentationComponent::AdvanceSequencedPresentation(float DeltaSeconds)
+{
+	if (ScheduledStrikes.IsEmpty())
+	{
+		return;
+	}
+	SequenceClockSeconds += FMath::Max(0.0f, DeltaSeconds);
+	for (FScheduledStrike& Strike : ScheduledStrikes)
+	{
+		if (!Strike.bAttackStarted && SequenceClockSeconds >= Strike.AttackAtSeconds)
+		{
+			StartStrikePresentation(Strike);
+		}
+		if (Strike.bAttackStarted && Strike.bHasResult && !Strike.bImpactPresented &&
+			SequenceClockSeconds >= Strike.ImpactAtSeconds)
+		{
+			DeliverStrikeImpact(Strike);
+		}
+	}
+	// Do not discard a result before its recovery, nor a requested strike
+	// until its authoritative result arrives. Never synthesize missing hits.
+	while (!ScheduledStrikes.IsEmpty() && ScheduledStrikes[0].bImpactPresented &&
+		SequenceClockSeconds >= ScheduledStrikes[0].CompleteAtSeconds)
+	{
+		ScheduledStrikes.RemoveAt(0);
+	}
+	if (ScheduledStrikes.IsEmpty())
+	{
+		const bool bEndedCombat = bSequenceFinishingCombat;
+		ResetScheduledPresentation(true);
+		if (bEndedCombat)
+		{
+			RestoreHeldItemMotion();
+			StopActiveVFX();
+			PendingPresentations.Reset();
+		}
+	}
+}
+
 void UGridPlayerAttackPresentationComponent::HandlePlayerAttackRequested(FGridPlayerAttackRequest Request)
 {
 	bHeldItemMotionStarted = false;
@@ -206,6 +298,33 @@ void UGridPlayerAttackPresentationComponent::HandlePlayerAttackRequested(FGridPl
 	}
 	const FGridPlayerAttackPresentationProfile Profile = ResolveProfile(Request);
 	AGridMonsterActor* TargetMonster = ResolveTargetMonster(Request);
+	if (Request.ActionInstanceId.IsValid() && Request.ResolutionCount > 1)
+	{
+		// A multi-resolution action is one accepted gameplay transaction but
+		// several audible/visual strikes with different physical weapon profiles.
+		if (ScheduledStrikes.IsEmpty())
+		{
+			SequenceClockSeconds = 0.0f;
+			SequenceTailSeconds = 0.0f;
+		}
+		FScheduledStrike& Strike = ScheduledStrikes.AddDefaulted_GetRef();
+		Strike.Request = Request;
+		Strike.Profile = Profile;
+		Strike.TargetMonster = TargetMonster;
+		Strike.AttackAtSeconds = FMath::Max(SequenceClockSeconds, SequenceTailSeconds);
+		Strike.ImpactAtSeconds = Strike.AttackAtSeconds + Profile.ImpactDelaySeconds;
+		Strike.CompleteAtSeconds = FMath::Max(
+			Strike.ImpactAtSeconds + Profile.RecoveryDelaySeconds,
+			Strike.AttackAtSeconds + (Profile.bAnimateHeldItem ? Profile.MotionDurationSeconds : 0.0f));
+		SequenceTailSeconds = Strike.CompleteAtSeconds;
+		if (TurnManager)
+		{
+			TurnManager->BeginSequencedAttackFeed();
+		}
+		SetComponentTickEnabled(true);
+		AdvanceSequencedPresentation(0.0f);
+		return;
+	}
 	FPendingPresentation Pending;
 	Pending.Profile = Profile;
 	Pending.TargetMonster = TargetMonster;
@@ -227,6 +346,19 @@ void UGridPlayerAttackPresentationComponent::HandlePlayerAttackRequested(FGridPl
 void UGridPlayerAttackPresentationComponent::HandlePlayerAttackResolved(
 	FGridPlayerAttackRequest Request, AGridMonsterActor* TargetMonster, FGridAttackResult Result)
 {
+	if (Request.ActionInstanceId.IsValid() && Request.ResolutionCount > 1)
+	{
+		FScheduledStrike* Strike = ScheduledStrikes.FindByPredicate(
+			[&Request](const FScheduledStrike& Candidate) { return Candidate.Request.RequestId == Request.RequestId; });
+		if (Strike)
+		{
+			Strike->Result = Result;
+			Strike->bHasResult = true;
+			Strike->TargetMonster = TargetMonster;
+			SetComponentTickEnabled(true);
+		}
+		return;
+	}
 	FGridPlayerAttackPresentationProfile Profile = MakeUnarmedProfile();
 	AGridThrownItemActor* ThrownItem = nullptr;
 	if (const FPendingPresentation* Pending = PendingPresentations.Find(Request.RequestId))
@@ -267,6 +399,13 @@ void UGridPlayerAttackPresentationComponent::HandlePlayerAttackRejected(int32 At
 
 void UGridPlayerAttackPresentationComponent::HandleCombatEnded(EGridCombatPhase ResultPhase)
 {
+	if (!ScheduledStrikes.IsEmpty())
+	{
+		// Victory from a first-strike kill must not swallow its impact, nor
+		// the related combat-feed line and audio. EndPlay/abort cancels instead.
+		bSequenceFinishingCombat = true;
+		return;
+	}
 	RestoreHeldItemMotion();
 	StopActiveVFX();
 	PendingPresentations.Reset();
@@ -582,7 +721,9 @@ void UGridPlayerAttackPresentationComponent::RestoreHeldItemMotion()
 	AnimatedHeldItemActor.Reset();
 	bMotionActive = false;
 	MotionElapsedSeconds = 0.0f;
-	SetComponentTickEnabled(false);
+	// A second strike must keep the scheduler ticking even when no weapon
+	// model is held in front of the camera.
+	SetComponentTickEnabled(!ScheduledStrikes.IsEmpty());
 }
 
 void UGridPlayerAttackPresentationComponent::StopActiveVFX()

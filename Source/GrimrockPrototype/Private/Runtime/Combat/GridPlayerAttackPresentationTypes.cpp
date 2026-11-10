@@ -44,7 +44,9 @@ bool FGridPlayerAttackPresentationProfile::IsValid() const
 	const bool bMotionValid = !bAnimateHeldItem ||
 		(FMath::IsFinite(MotionDurationSeconds) && MotionDurationSeconds >= 0.01f && MotionDurationSeconds <= 2.0f && IsFiniteVector(PeakLocationOffset) &&
 			IsFiniteRotator(PeakRotationOffset));
-	return bMotionValid && FMath::IsFinite(FeedbackDurationSeconds) && FeedbackDurationSeconds >= 0.1f && FeedbackDurationSeconds <= 10.0f &&
+	const bool bSequenceValid = FMath::IsFinite(ImpactDelaySeconds) && ImpactDelaySeconds >= 0.01f && ImpactDelaySeconds <= 2.0f &&
+		FMath::IsFinite(RecoveryDelaySeconds) && RecoveryDelaySeconds >= 0.0f && RecoveryDelaySeconds <= 2.0f;
+	return bMotionValid && bSequenceValid && FMath::IsFinite(FeedbackDurationSeconds) && FeedbackDurationSeconds >= 0.1f && FeedbackDurationSeconds <= 10.0f &&
 		AttackAudio.IsValid() && ImpactHitAudio.IsValid() && ImpactMissAudio.IsValid() && AttackVFX.IsValid() && ImpactHitVFX.IsValid() &&
 		ImpactMissVFX.IsValid();
 }

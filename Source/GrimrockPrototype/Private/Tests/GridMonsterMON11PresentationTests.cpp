@@ -66,6 +66,12 @@ bool FGridMON114ProfileValidationTest::RunTest(const FString& Parameters)
 	Invalid.MotionDurationSeconds = 2.01f;
 	TestFalse(TEXT("Motion duration is bounded"), Invalid.IsValid());
 	Invalid = Empty;
+	Invalid.ImpactDelaySeconds = 0.0f;
+	TestFalse(TEXT("Multi-strike impact must occur after attack"), Invalid.IsValid());
+	Invalid = Empty;
+	Invalid.RecoveryDelaySeconds = -0.01f;
+	TestFalse(TEXT("Negative multi-strike recovery is invalid"), Invalid.IsValid());
+	Invalid = Empty;
 	Invalid.AttackVFX.Scale.X = 0.0f;
 	TestFalse(TEXT("VFX scale must be positive"), Invalid.IsValid());
 	Invalid = Empty;
@@ -227,6 +233,89 @@ bool FGridMON114TargetReactionExclusivityTest::RunTest(const FString& Parameters
 	TurnManager->OnPlayerAttackResolved.Broadcast(Request, Monster, Fatal);
 	TestEqual(TEXT("Player impact remains unique"), Presentation->PresentationImpactHitCount, 1);
 	TestEqual(TEXT("Feedback works without media"), Presentation->FeedbackCount, 1);
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON114SequencedStrikePresentationTest,
+	"Grimrock.RPG.ARMEMENT.LOT02.19.2.2.SequencedStrikePresentation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMON114SequencedStrikePresentationTest::RunTest(const FString&)
+{
+	UGridTurnManagerComponent* TurnManager = nullptr;
+	UGridPlayerAttackPresentationComponent* Presentation = MakePresentationComponent(TurnManager);
+	FGridPlayerAttackRequest Main = MakePresentationRequest();
+	Main.AttackId = TEXT("Attack_Dagger_01");
+	Main.ActionInstanceId = Main.RequestId;
+	Main.ResolutionCount = 2;
+	Main.ResolutionIndex = 0;
+	FGridPlayerAttackRequest Off = Main;
+	Off.RequestId = FGuid::NewGuid();
+	Off.AttackId = TEXT("Attack_MainGauche_01");
+	Off.ResolutionIndex = 1;
+	FGridAttackResult MainResult;
+	MainResult.bHit = true;
+	MainResult.RawDamage = 5;
+	MainResult.HealthDamage = 3;
+	MainResult.TargetHealthBefore = 20;
+	MainResult.TargetHealthAfter = 17;
+	FGridAttackResult OffResult = MainResult;
+	OffResult.RawDamage = 2;
+	OffResult.HealthDamage = 2;
+	OffResult.TargetHealthBefore = 17;
+	OffResult.TargetHealthAfter = 15;
+
+	TurnManager->OnPlayerAttackRequested.Broadcast(Main);
+	TestEqual(TEXT("First weapon starts immediately"), Presentation->PresentationAttackCount, 1);
+	TestTrue(TEXT("Multi-hit combat feed is gated until a visible impact"),
+		TurnManager->IsSequencedAttackFeedPending());
+	TurnManager->OnPlayerAttackResolved.Broadcast(Main, nullptr, MainResult);
+	TurnManager->OnPlayerAttackRequested.Broadcast(Off);
+	TurnManager->OnPlayerAttackResolved.Broadcast(Off, nullptr, OffResult);
+	TestEqual(TEXT("Second physical weapon has not started yet"), Presentation->PresentationAttackCount, 1);
+	TestEqual(TEXT("No audiovisual impact before the windup completes"), Presentation->PresentationImpactHitCount, 0);
+	TestEqual(TEXT("No feedback emitted while both hits wait for presentation"), Presentation->FeedbackCount, 0);
+	TestEqual(TEXT("Two authoritative strike results are queued"), Presentation->GetQueuedStrikeCount(), 2);
+
+	Presentation->AdvanceSequencedPresentation(0.17f);
+	TestEqual(TEXT("First hit lands before second weapon starts"), Presentation->PresentationImpactHitCount, 1);
+	TestEqual(TEXT("Second attack sound still not requested"), Presentation->PresentationAttackCount, 1);
+	TestEqual(TEXT("Only first combat feedback is visible"), Presentation->FeedbackCount, 1);
+	TestEqual(TEXT("First hit ID is preserved"), Presentation->LastPresentationRequest.AttackRequest.AttackId, Main.AttackId);
+	TestTrue(TEXT("Turn manager still awaits the second visual strike"),
+		TurnManager->IsSequencedAttackFeedPending());
+
+	Presentation->AdvanceSequencedPresentation(0.18f);
+	TestEqual(TEXT("Second weapon now starts after first impact and recovery"), Presentation->PresentationAttackCount, 2);
+	TestEqual(TEXT("No second impact at the moment its attack begins"), Presentation->PresentationImpactHitCount, 1);
+	TestEqual(TEXT("OffHand attack ID stays distinct"), Presentation->LastPresentationRequest.AttackRequest.AttackId, Off.AttackId);
+	Presentation->AdvanceSequencedPresentation(0.17f);
+	TestEqual(TEXT("Second hit receives a separate visual impact"), Presentation->PresentationImpactHitCount, 2);
+	TestEqual(TEXT("Second strike gets its own damage feedback"), Presentation->FeedbackCount, 2);
+	TestEqual(TEXT("Second impact identifies the OffHand attack"), Presentation->LastPresentationRequest.AttackRequest.AttackId, Off.AttackId);
+	Presentation->AdvanceSequencedPresentation(0.18f);
+	TestEqual(TEXT("Queue drains after second recovery"), Presentation->GetQueuedStrikeCount(), 0);
+	TestFalse(TEXT("Feed gate releases after the final impact"), TurnManager->IsSequencedAttackFeedPending());
+
+	// If the first strike killed the target, gameplay authoritatively omits
+	// the second request. Neither phantom sounds nor phantom damage appear.
+	FGridPlayerAttackRequest Lethal = MakePresentationRequest();
+	Lethal.ActionInstanceId = Lethal.RequestId;
+	Lethal.ResolutionCount = 2;
+	Lethal.ResolutionIndex = 0;
+	FGridAttackResult LethalResult = MainResult;
+	LethalResult.TargetHealthAfter = 0;
+	TurnManager->OnPlayerAttackRequested.Broadcast(Lethal);
+	TurnManager->OnPlayerAttackResolved.Broadcast(Lethal, nullptr, LethalResult);
+	TurnManager->OnCombatEnded.Broadcast(EGridCombatPhase::Victory);
+	Presentation->AdvanceSequencedPresentation(0.17f);
+	TestEqual(TEXT("Lethal first hit emits its real impact"), Presentation->PresentationImpactHitCount, 3);
+	TestEqual(TEXT("No phantom OffHand attack was enqueued"), Presentation->PresentationAttackCount, 3);
+	Presentation->AdvanceSequencedPresentation(0.18f);
+	TestEqual(TEXT("Victory does not strand the presentation queue"), Presentation->GetQueuedStrikeCount(), 0);
+	TestFalse(TEXT("Victory flushes pending combat-feed messages"),
+		TurnManager->IsSequencedAttackFeedPending());
 	return true;
 }
 
