@@ -1,5 +1,7 @@
 # ARMEMENT-LOT02.19.1 — Main secondaire jouable et barre d'action cohérente
 
+> **MISE À JOUR 10.11.2026 — ARMEMENT-LOT02.21 :** les suggestions automatiques d'attaques indépendantes MainHand et OffHand, décrites dans les sections historiques ci-dessous, sont **supprimées**. Désormais, seul le raccourci 1 affiche l'attaque normale contextuelle (double > MainHand > OffHand > mains nues). Les cases 2+ restent vides tant que le joueur n'y place pas lui-même une action ; ses bindings historiques explicites restent sauvegardés. Voir [le contrat actuel de la barre](ARMEMENT_LOT02_21_SINGLE_EQUIPPED_ATTACK_HOTBAR.md).
+
 > **HISTORIQUE :** ce jalon introduisait l'attaque OffHand autonome avant l'attaque double de 02.19.2. Le raccourci 1 est désormais **contextuel : double frappe si deux armes sont éligibles, puis MainHand, OffHand, mains nues**. Pour le fonctionnement actuel des icônes et la règle provisoire d'aptitudes d'armes, consulter [ARMEMENT-LOT02.20](ARMEMENT_LOT02_20_EQUIPPED_ACTION_ICON_FOUNDATION.md). Les étapes originelles ci-dessous restent une trace de test et non une recette WBP courante.
 
 ## Périmètre

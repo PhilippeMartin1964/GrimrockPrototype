@@ -298,8 +298,9 @@ namespace
 		{
 			return;
 		}
-		// Only a fully resolved two-weapon action replaces the contextual
-		// primary alias; the standalone MainHand attack stays available.
+		// The equipped configuration defines one normal primary attack.
+		// Standalone hand attacks remain runtime capabilities, but are not
+		// automatically duplicated into the user's hotbar.
 		const FGridAvailableCombatAction* ResolvedPrimary = AvailableActions.FindByPredicate(
 			[](const FGridAvailableCombatAction& Candidate)
 			{
@@ -446,9 +447,9 @@ namespace
 		}
 
 		TArray<FText> ShortcutInstructions;
-		// No deletion hint for an automatic projection: there is no stored
-		// binding to delete, and the player can customize this slot at will.
-		if (!ActionView.bTransientOffHandSuggestion && !ActionView.bTransientMainHandSuggestion)
+		// Protected PrimaryAttack is contextual and cannot be removed.
+		// Only user-customizable persistent bindings show a removal hint.
+		if (!ActionView.Binding.IsPrimaryAttackBinding())
 		{
 			ShortcutInstructions.Add(FUILocalizationText::Get(TEXT("Combat.Hotbar.Tooltip.RemoveShortcut")));
 		}
@@ -523,81 +524,13 @@ void FGridCombatHudViewModelBuilder::BuildHotbarActions(
 	}
 }
 
-void FGridCombatHudViewModelBuilder::ProjectEquippedHandAttacks(
+void FGridCombatHudViewModelBuilder::ProjectPrimaryEquippedAttack(
 	const TArray<FGridAvailableCombatAction>& AvailableActions, TArray<FGridCombatHudActionView>& InOutActions)
 {
+	// The normal weapon attack has ONE contextual hotbar entry. A second
+	// equipped weapon is part of Attack_DualWield, not a second basic shortcut.
+	// No mutation of saved bindings or the combat action catalogue.
 	ApplyPrimaryAttackProjection(AvailableActions, InOutActions);
-	if (InOutActions.IsEmpty())
-	{
-		return;
-	}
-	const bool bDualPrimary = InOutActions[0].bResolved &&
-		InOutActions[0].Action.Definition.ActionId == FGridDualWieldPolicy::ActionId();
-
-	// MainHand and OffHand each keep a real, independent action even when
-	// the contextual primary resolves the two-weapon combination.
-	const EGridEquipmentSlot Hands[] = { EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand };
-	for (const EGridEquipmentSlot Hand : Hands)
-	{
-		if (Hand == EGridEquipmentSlot::MainHand && !bDualPrimary)
-		{
-			continue; // Slot 1 already offers the standalone main attack.
-		}
-		const FGridAvailableCombatAction* HandAttack = AvailableActions.FindByPredicate(
-			[Hand](const FGridAvailableCombatAction& Candidate)
-			{
-				return Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-					Candidate.Definition.ActionId != FGridDualWieldPolicy::ActionId() &&
-					Candidate.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
-					Candidate.SourceEquipmentSlot == Hand && Candidate.SourceRuntimeId.IsValid();
-			});
-		if (!HandAttack)
-		{
-			continue;
-		}
-		const bool bAlreadyProjected = InOutActions.ContainsByPredicate(
-			[HandAttack](const FGridCombatHudActionView& View)
-			{
-				return (View.bResolved &&
-						View.Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-						View.Action.Definition.ActionId != FGridDualWieldPolicy::ActionId() &&
-						View.Action.SourceRuntimeId == HandAttack->SourceRuntimeId) ||
-					(View.Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-						View.Binding.ActionId != FGridDualWieldPolicy::ActionId() &&
-						View.Binding.PreferredSourceRuntimeId == HandAttack->SourceRuntimeId);
-			});
-		if (bAlreadyProjected)
-		{
-			continue;
-		}
-		for (int32 Index = FGridCombatHotbarBinding::PrimaryAttackSlotIndex + 1; Index < InOutActions.Num(); ++Index)
-		{
-			FGridCombatHudActionView& View = InOutActions[Index];
-			if (View.bHasBinding)
-			{
-				continue;
-			}
-			FGridCombatHotbarBinding Suggestion;
-			Suggestion.Reset(Index);
-			Suggestion.ActionId = HandAttack->Definition.ActionId;
-			Suggestion.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-			Suggestion.SourceDefinitionId = HandAttack->SourceDefinitionId;
-			Suggestion.PreferredSourceRuntimeId = HandAttack->SourceRuntimeId;
-			Suggestion.PreferredEquipmentSlot = Hand;
-			if (!Suggestion.IsValid())
-			{
-				break;
-			}
-			View.Binding = Suggestion;
-			View.Action = *HandAttack;
-			View.bHasBinding = true;
-			View.bResolved = true;
-			View.bTransientOffHandSuggestion = Hand == EGridEquipmentSlot::OffHand;
-			View.bTransientMainHandSuggestion = Hand == EGridEquipmentSlot::MainHand;
-			View.DisabledReason = HandAttack->bEnabled ? FText::GetEmpty() : HandAttack->DisabledReason;
-			break;
-		}
-	}
 }
 
 FGridCombatHudMobilityView FGridCombatHudViewModelBuilder::BuildMobility(const FGridPartyMobilityState& MobilityState)
@@ -840,10 +773,6 @@ FReply UGridCombatHudActionWidget::NativeOnPreviewMouseButtonDown(const FGeometr
 	{
 		bLeftMousePressed = false;
 		bDragDetected = false;
-		if (View.bTransientOffHandSuggestion || View.bTransientMainHandSuggestion)
-		{
-			return FReply::Handled(); // There is no saved binding to remove.
-		}
 		return OwnerHud->ClearHotbarSlot(View.HotbarSlotIndex) ? FReply::Handled() : FReply::Unhandled();
 	}
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && View.bHasBinding)
@@ -878,10 +807,8 @@ void UGridCombatHudActionWidget::NativeOnDragDetected(const FGeometry& InGeometr
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 	bDragDetected = true;
 	bLeftMousePressed = false;
-	if (!IsValid(OwnerHud) || !View.bHasBinding || View.bTransientOffHandSuggestion || View.bTransientMainHandSuggestion)
+	if (!IsValid(OwnerHud) || !View.bHasBinding)
 	{
-		// Only stored bindings move. To pin the suggested action, drag its
-		// item from the equipment UI to a chosen persistent slot.
 		return;
 	}
 
@@ -1152,7 +1079,7 @@ void UGridCombatHudWidget::RefreshFromSources()
 		}
 	}
 	FGridCombatHudViewModelBuilder::BuildHotbarActions(HotbarBindings, AvailableActions, View.Actions);
-	FGridCombatHudViewModelBuilder::ProjectEquippedHandAttacks(AvailableActions, View.Actions);
+	FGridCombatHudViewModelBuilder::ProjectPrimaryEquippedAttack(AvailableActions, View.Actions);
 	for (FGridCombatHudActionView& ActionView : View.Actions)
 	{
 		ActionView.Action.CharacterIndex = View.ActiveCharacterIndex;

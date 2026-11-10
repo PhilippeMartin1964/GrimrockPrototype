@@ -1,5 +1,7 @@
 # ARMEMENT-LOT02.19.2.1 — Simplification de l'icône d'attaque double
 
+> **CONTRAT DE BARRE ACTUEL (ARMEMENT-LOT02.21) :** les modes d'armement disposent désormais d'une **unique attaque normale contextuelle** sur le raccourci 1, sans suggestion automatique des attaques simples en emplacements 2+. Cette règle ne modifie pas la sélection d'une seule icône `Image_ActionIcon` exposée par le présent jalon. Voir [contrat actuel](ARMEMENT_LOT02_21_SINGLE_EQUIPPED_ATTACK_HOTBAR.md).
+
 > **NOTE DE CONSOLIDATION (10.11.2026) :** ce texte est la recette historique du remplacement du badge « ×2 » par une icône unique. Le contrat actuel, élargi à toutes les familles ARM001–ARM082 et **prioritaire**, figure dans [ARMEMENT-LOT02.20](ARMEMENT_LOT02_20_EQUIPPED_ACTION_ICON_FOUNDATION.md). La propriété DualAttackIcon indiquée ci-dessous est désormais **un fallback transitoire** : la nouvelle propriété EquippedWeaponActionIconPalette du même WBP a priorité dès qu'une icône de famille est renseignée. La hiérarchie Image_ActionIcon reste inchangée.
 
 ## Décision corrigée après capture du WBP utilisateur (09.11.2026)
