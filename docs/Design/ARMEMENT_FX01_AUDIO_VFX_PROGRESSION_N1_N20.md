@@ -4,6 +4,8 @@
 **Périmètre autoritaire :** les 22 lignes `Active` de `Config/Armement/WeaponProductionManifest.csv`, couvrant 22 × 20 = **440 niveaux d'objet possibles** ; le catalogue complet contient 82 × 20 profils, mais les 60 autres archétypes ne sont pas des DataAssets de production déclarés ici.  
 **Matrice éditable :** [ARMEMENT_FX01_ACTIVE22_CUE_MATRIX.csv](ARMEMENT_FX01_ACTIVE22_CUE_MATRIX.csv), **22 lignes sans assets sonores/Niagara prétendument existants**. Les descriptions et IDs proposés sont des intentions de direction artistique, pas des effets déjà créés.
 
+> **Inventaire ElevenLabs du 11.11.2026 :** [ARMEMENT-SFX01 (nomenclature et correspondances)](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.md) et [64 fichiers originaux → noms UE5 (CSV)](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.csv). Les WAV restent locaux, l'affectation audio conditionnelle reste non implémentée.
+
 ## 1. Décision, preuves et état du projet
 
 Le propriétaire du projet a confirmé le **11.11.2026** avoir exercé en PIE les 22 armes N1 sous différentes configurations et considérer la recette comme validée. Il ne s'agit pas d'une certification exhaustive par capture de chaque scénario : le cycle **quitter le processus → relancer → Continue**, les cultures `Game/en`, les médias réels de chaque arme et les 20 niveaux de rendu restent des audits distincts.
