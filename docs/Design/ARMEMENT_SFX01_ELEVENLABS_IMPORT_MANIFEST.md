@@ -1,6 +1,6 @@
 # ARMEMENT-SFX01 — Inventaire des 72 exports ElevenLabs (11.11.2026)
 
-**Révision du 11.11.2026 — correspondances confirmées par l'auteur des générations.** L'inventaire documente les WAV téléchargés, sans analyse de leur audio ni import Unreal. La liste fournie inclut 72 fichiers distincts, dont un essai antérieur aux 15 prompts Sword.
+**Révision du 11.11.2026 — correspondances confirmées par l'auteur des générations.** L'inventaire documente les WAV téléchargés. **Le script PowerShell local de renommage a été validé par l'utilisateur** après correction de la résolution du dossier ; le dépôt GitHub ne contient pas ce script. La liste comprend 72 fichiers distincts, dont un essai antérieur aux 15 prompts Sword. Les fichiers audio restent sur le poste utilisateur : pas d'analyse audio ni d'import Unreal attesté.
 
 ## 1. Bilan corrigé
 
@@ -68,14 +68,39 @@ Répertoire Unreal conseillé : `/Game/GrimrockPrototype/Audio/Weapons/Sword/` a
 - Aucun son de parade ne confère une parade aux épées ARM014 ou ARM015. Le son critique doit répondre à un vrai critique et ne pas doubler l'impact. Les prompts d'épées deux mains ne confèrent pas de nouvelle action à une arme une main.
 - `DA_EquippedWeaponActionIcons` reste une palette d'icônes, non un Data Asset sonore. Les raccourcis HUD 0–9 ne sont pas non plus des slots de SFX.
 
-## 7. Contrôles avant import UE5
+## 7. Passage de relais — script de renommage validé, import UE5 à réaliser
 
-1. Écouter et évaluer les 72 sons individuellement (plusieurs coups, voix, bruit parasite, temps mort, saturation et réverbération). Les confirmations présentes portent **sur les prompts**, pas sur la qualité des fichiers.
-2. Garder les fichiers ElevenLabs d'origine intacts hors du Content. Copier et renommer uniquement les SoundWave retenus à partir du CSV ; si certaines variantes sont rejetées, conserver leur ID de traçabilité.
-3. Vérifier le format réel des WAV et convertir si nécessaire en PCM 48 kHz adapté au pipeline sonore UE5.
-4. Associer uniquement les sons du système de présentation **actuellement disponibles** ; attendre le catalogue FX01 pour les sélections par matériau, parade, critique et attaque lourde.
-5. Valider ensuite en PIE le déclenchement selon la véritable attaque, la vraie main et le résultat autoritaire, sans doublons.
+**État déclaré par l'utilisateur :** le script local `Renommer-SFX-Sword.ps1` a été corrigé puis **validé** le 11.11.2026. La première version échouait sur un chemin `LiteralPath` vide ; la version corrigée résout le dossier après initialisation et accepte `-Dossier` si besoin. **Aucun script PowerShell n'est ajouté au dépôt GitHub**, conformément à la demande. Ni la sortie détaillée du renommage effectif ni le décompte du dossier Windows n'ont été observés depuis les outils GitHub : ne pas confondre validation utilisateur et audit du disque.
 
-**Périmètre de cette révision : documentation GitHub uniquement.** Aucun WAV n'a été téléversé ou importé dans Unreal ; aucun test UE, compilation ou validation d'écoute n'a été réalisé.
+Chemin source local communiqué : `D:\Development\GrimrockPrototype\Sounds\Weapon`. Contrôle facultatif sur le poste Windows après renommage :
+
+```powershell
+(Get-ChildItem -LiteralPath "D:\Development\GrimrockPrototype\Sounds\Weapon" -File -Filter "SFX_Sword_*.wav").Count
+```
+
+**Attendu : 72** si les 72 sorties ont toutes été renommées et restent dans ce dossier. Un résultat différent invite à comparer avec [le manifeste CSV](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.csv) ; ne jamais renommer arbitrairement les fichiers restants. Les WAV originaux ElevenLabs devraient être archivés séparément avant toute retouche destructive.
+
+### SFX01.2 — Import Unreal et pilote d'écoute (prochain jalon)
+
+1. **Écouter/contrôler les sources** : identifier les variantes utiles, retirer silence excessif, clics, répétitions accidentelles et clipping ; examiner le format réel des WAV (fréquence, canaux, PCM). Une conversion vers WAV PCM 48 kHz peut être utile si la source ne convient pas, mais ne change pas magiquement la qualité acoustique.
+2. **Créer les dossiers dans le Content Browser** sous `/Game/GrimrockPrototype/Audio/Weapons/Sword/` : `Swing`, `Impact`, `Parry`, `HeavyAttack`, `Critical`. Conserver `Swing_Reference` (ancien essai) dans une zone `Review` si non retenu. Les `SFX_Sword_*.wav` importés créent des `SoundWave` portant les noms canoniques.
+3. **Pilote minimal sans changement C++** : dans `/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_StraightSword_01` (ARM014) et `DA_Weapon_LongSword_01` (ARM015), vérifier `bProvidesAttackPresentation = true` et renseigner `PlayerAttackPresentationProfile.AttackAudio.Sounds[]` avec les variantes retenues `SFX_Sword_Swing_Standard_01..04` et `SFX_Sword_Swing_Fast_01..04`. Ajuster `VolumeMultiplier`, `PitchMin` et `PitchMax` après écoute ; ne pas réécrire arbitrairement les valeurs de séquence/animation existantes.
+4. **Impact standard : ne pas truquer le résultat**. Le champ `ImpactHitAudio.Sounds[]` existe, mais ne distingue pas chair, métal et bois. Attendre un résolveur de matériau fiable, ou utiliser un son neutre réellement adapté au pilote. Ne pas mettre les 12 impacts matière dans le même tableau comme s'il filtrait les surfaces.
+5. **PIE** : écouter ARM014 et ARM015 en attaque normale contre cible, avec réussite et raté ; vérifier déclenchement du son d'attaque, une seule émission par événement, qualité/volume et synchronisation avec l'animation. Répéter après changement d'arme, combat suivant et recharge. Pour les attaques à deux résolutions, vérifier deux sons distincts et espacés, conformément à ARMEMENT-LOT02.19.2.2.
+6. **Recette et publication** : vérifier les `.uasset` enregistrés, absence de régressions de combat, puis faire **un commit de jalon unique** seulement après validation locale. Les fichiers audio sont des ressources UE versionnables si licence compatible ; les exports locaux bruts ne sont pas automatiquement à committer.
+
+### SFX01.3 — Catalogue FX conditionnel (étape ultérieure)
+
+Implémenter, conformément à [ARMEMENT-FX01](ARMEMENT_FX01_AUDIO_VFX_PROGRESSION_N1_N20.md), le résolveur par `WeaponArchetypeId`, geste/action, vraie main, résultat de combat et matière **uniquement si celle-ci est réellement identifiable** :
+
+- `ImpactHit/Flesh|Metal|Wood` : choisir le matériau au moment de l'impact, sinon effet neutre ; aucun son mensonger.
+- `DefenseParry` : sons `SFX_Sword_Parry_*` seulement sur `bEquipmentParried` avec **ARM013 en OffHand**.
+- `CriticalAccent` : `bCriticalHit` + frappe réellement réussie ; éviter de superposer deux impacts complets.
+- `HeavyAttack` : uniquement pour action/mouvement réellement définis, sans déduire une attaque à deux mains d'ARM014 ou ARM015, toutes deux `MeleeOneHand`.
+- Le `DA_WeaponFXCatalogue` reste **proposé**, non implémenté ; `DA_EquippedWeaponActionIcons` concerne les icônes, jamais les sons. La progression N1–N20 n'affecte pas les règles de dégâts.
+
+**Critère de fin de SFX01.2 :** sons importés et enregistrés, affectations du pilote vérifiables dans les vrais DA, répétition auditive PIE satisfaisante, et code gameplay inchangé. La validation du script ne valide pas ces opérations Unreal.
+
+**Périmètre de cette révision : documentation GitHub uniquement.** Le script PowerShell local est validé selon le retour utilisateur, mais aucune sortie du dossier local n'a été auditée ici. Aucun WAV n'a été téléversé ni importé dans Unreal ; aucun test UE, compilation ou validation d'écoute des sons n'a été réalisé.
 
 **Références :** [ARMEMENT-FX01](ARMEMENT_FX01_AUDIO_VFX_PROGRESSION_N1_N20.md), `Config/Armement/WeaponProductionManifest.csv`, `Source/GrimrockPrototype/Public/Runtime/Combat/GridPlayerAttackPresentationTypes.h`.
