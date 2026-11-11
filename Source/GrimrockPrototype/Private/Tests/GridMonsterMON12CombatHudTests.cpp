@@ -2977,4 +2977,147 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 	return true;
 }
 
+
+/**
+ * ARMEMENT-LOT02.16.1: run every N1 melee weapon through the genuine
+ * combat TurnManager/monster pipeline. Asset catalogue-only audits do not
+ * prove that an attack can be requested, paid and resolved in combat.
+ * The original DataAssets and the player's saves are never mutated.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT02161MeleeN1Execution,
+	"Grimrock.RPG.ARMEMENT.LOT02.16.1.MeleeN1Execution",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENTLOT02161MeleeN1Execution::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	struct FMeleeN1Case
+	{
+		const TCHAR* ArchetypeId;
+		const TCHAR* AssetName;
+		EGridEquipmentSlot Slot;
+		bool bTwoHanded;
+	};
+	const FMeleeN1Case Cases[] = {
+		{ TEXT("ARM001"), TEXT("Dagger"), EGridEquipmentSlot::MainHand, false },
+		{ TEXT("ARM002"), TEXT("AssassinDagger"), EGridEquipmentSlot::MainHand, false },
+		{ TEXT("ARM003"), TEXT("Stiletto"), EGridEquipmentSlot::MainHand, false },
+		{ TEXT("ARM013"), TEXT("MainGauche"), EGridEquipmentSlot::OffHand, false },
+		{ TEXT("ARM014"), TEXT("StraightSword"), EGridEquipmentSlot::MainHand, false },
+		{ TEXT("ARM015"), TEXT("LongSword"), EGridEquipmentSlot::MainHand, false },
+		{ TEXT("ARM020"), TEXT("Mace"), EGridEquipmentSlot::MainHand, false },
+		{ TEXT("ARM025"), TEXT("WarPick"), EGridEquipmentSlot::MainHand, false },
+		{ TEXT("ARM031"), TEXT("GreatAxe"), EGridEquipmentSlot::MainHand, true },
+		{ TEXT("ARM038"), TEXT("ShortSpear"), EGridEquipmentSlot::MainHand, true }
+	};
+
+	int32 Executed = 0;
+	for (int32 Index = 0; Index < UE_ARRAY_COUNT(Cases); ++Index)
+	{
+		const FMeleeN1Case& Case = Cases[Index];
+		const FString Context = FString::Printf(TEXT("N1 %s"), Case.ArchetypeId);
+		FGridCombatHudFixture Fixture;
+		if (!TestTrue(*FString::Printf(TEXT("%s: live combat fixture"), *Context), Fixture.IsReady()))
+			return false;
+
+		const FString Name(Case.AssetName);
+		const FString AssetPath = FString::Printf(
+			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
+			*Name, *Name);
+		UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *AssetPath);
+		if (!TestNotNull(*FString::Printf(TEXT("%s: real weapon DataAsset"), *Context), Definition))
+			return false;
+		if (!TestTrue(*FString::Printf(TEXT("%s: matching catalogue identity"), *Context),
+				Definition->bUseWeaponCatalogue &&
+				Definition->WeaponArchetypeId == FName(Case.ArchetypeId) &&
+				Definition->DefaultWeaponItemLevel == 1) ||
+			!TestTrue(*FString::Printf(TEXT("%s: authorized attack slot"), *Context),
+				Definition->CanProvideAttackFromSlot(Case.Slot)) ||
+			!TestEqual(*FString::Printf(TEXT("%s: physical two-hand contract"), *Context),
+				Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded, Case.bTwoHanded))
+			return false;
+
+		UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
+		FGridItemInstance Equipped;
+		Equipped.RuntimeObjectId = FGuid(16, 1, 1, Index + 1);
+		Equipped.ItemDefinitionId = Definition->ItemDefinitionId;
+		Equipped.DisplayName = Definition->DisplayName;
+		Equipped.ItemLevel = 1;
+		Equipped.Quantity = 1;
+		Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
+		Equipped.OwnerCharacterIndex = 0;
+		Equipped.OwnerGuid = Fixture.CharacterIds[0];
+		Equipped.EquipmentSlot = Case.Slot;
+		Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = FGridItemInstance();
+		Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
+		if (Case.Slot == EGridEquipmentSlot::MainHand)
+			Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Equipped;
+		else
+			Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Equipped;
+		if (!TestTrue(*FString::Printf(TEXT("%s: register actual weapon"), *Context),
+				Inventory->RegisterItemDefinition(Definition)))
+			return false;
+
+		TArray<FGridAvailableCombatAction> Available;
+		Fixture.TurnManager->GetAvailableCombatActions(0, Available);
+		const FGridAvailableCombatAction* PhysicalAction = Available.FindByPredicate(
+			[&Equipped, &Case](const FGridAvailableCombatAction& Action)
+			{
+				return Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+					Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+					Action.SourceEquipmentSlot == Case.Slot &&
+					Action.SourceRuntimeId == Equipped.RuntimeObjectId;
+			});
+		if (!TestNotNull(*FString::Printf(TEXT("%s: authoritative attack in catalogue"), *Context), PhysicalAction))
+			return false;
+		if (!TestTrue(*FString::Printf(TEXT("%s: N1 AP cost fits the active turn"), *Context),
+				PhysicalAction->CurrentActionPointCost > 0 &&
+				PhysicalAction->CurrentActionPointCost <= 4) ||
+			!TestTrue(*FString::Printf(TEXT("%s: action enabled at adjacent monster"), *Context),
+				PhysicalAction->bEnabled))
+			return false;
+
+		const int32 ExpectedCost = PhysicalAction->CurrentActionPointCost;
+		const int32 LogBefore = Fixture.TurnManager->GetCombatLogEntries().Num();
+		const int32 HealthBefore = Fixture.Monster->CurrentHealth;
+		Fixture.Hud->RefreshFromSources();
+		if (!TestTrue(*FString::Printf(TEXT("%s: primary hotbar uses equipped weapon"), *Context),
+				Fixture.Hud->View.Actions[0].bResolved &&
+				Fixture.Hud->View.Actions[0].Action.SourceRuntimeId == Equipped.RuntimeObjectId))
+			return false;
+		FGridCombatActionRequestResult Attack;
+		if (!TestTrue(*FString::Printf(TEXT("%s: real N1 melee action accepted"), *Context),
+				Fixture.Hud->RequestHotbarSlot(0, Attack)) ||
+			!TestTrue(*FString::Printf(TEXT("%s: action result accepted"), *Context), Attack.bAccepted))
+			return false;
+
+		TestEqual(*FString::Printf(TEXT("%s: AP charged once"), *Context),
+			Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 4 - ExpectedCost);
+		TestEqual(*FString::Printf(TEXT("%s: one physical attack logged"), *Context),
+			Fixture.TurnManager->GetCombatLogEntries().Num() - LogBefore, 1);
+		TestEqual(*FString::Printf(TEXT("%s: correct weapon dealt the attack"), *Context),
+			Attack.AttackRequest.OffensiveItemDefinitionId, Equipped.ItemDefinitionId);
+		TestEqual(*FString::Printf(TEXT("%s: correct equipment hand used"), *Context),
+			Attack.AttackRequest.OffensiveEquipmentSlot, Case.Slot);
+		TestTrue(*FString::Printf(TEXT("%s: real attack roll preserved"), *Context),
+			Attack.AttackResult.Trace.bValid && Attack.AttackResult.Trace.Attack.Roll.bUsed);
+		TestTrue(*FString::Printf(TEXT("%s: no phantom healing"), *Context),
+			Fixture.Monster->CurrentHealth <= HealthBefore);
+
+		// Insufficient AP must not generate another hit or spend resources.
+		Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints = 0;
+		Fixture.Hud->RefreshFromSources();
+		const int32 LogsBeforeReject = Fixture.TurnManager->GetCombatLogEntries().Num();
+		FGridCombatActionRequestResult Refused;
+		TestFalse(*FString::Printf(TEXT("%s: action refused without AP"), *Context),
+			Fixture.Hud->RequestHotbarSlot(0, Refused));
+		TestEqual(*FString::Printf(TEXT("%s: no combat log entry on refusal"), *Context),
+			Fixture.TurnManager->GetCombatLogEntries().Num(), LogsBeforeReject);
+		++Executed;
+	}
+	TestEqual(TEXT("All ten real N1 melee profiles executed"), Executed, static_cast<int32>(UE_ARRAY_COUNT(Cases)));
+	AddInfo(TEXT("[ARMEMENT-LOT02.16.1] N1 melee=10 actual monster attack transactions; PIE/GPU and Save/Continue remain separate."));
+	return true;
+}
+
 #endif

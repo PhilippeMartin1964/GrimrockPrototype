@@ -90,3 +90,16 @@ La suite Automation complète `Grimrock` est exécutée par **`UE5.5.4/LocalAuto
 **Critère de clôture LOT02.16 :** build et Automation du SHA publiés réussis **et** les cinq séances PIE/Continue consignées. Si seul le premier critère est obtenu, statut **validation automatisée acquise — clôture PIE en attente**, jamais « 22 armes validées en jeu ».
 
 **Hors périmètre :** réouverture des 18 kits, création d'effets spéciaux, suppression du legacy ThrowingKnife, modification des .uasset / .umap, nouvelle abstraction de combat ou script par arme.
+
+
+## 6. ARMEMENT-LOT02.16.1 — Exécution des dix armes de mêlée N1
+
+**11 novembre 2026 — couverture ajoutée ; validation automatique Windows à relever sur le commit de ce jalon.**
+
+La campagne de mêlée ne s'appuie désormais pas uniquement sur les 22 entrées de manifeste et sur le tooltip : le test `Grimrock.RPG.ARMEMENT.LOT02.16.1.MeleeN1Execution`, utilisant la fixture réelle de `GridMonsterMON12CombatHudTests.cpp`, charge successivement les **dix DataAssets physiques** ARM001, ARM002, ARM003, ARM013, ARM014, ARM015, ARM020, ARM025, ARM031 et ARM038. L'acteur de monstre est vivant, adjacent au groupe, et chaque arme est réellement équipée à N1 avec GUID distinct, ARM013 en OffHand sans arme principale, les autres en MainHand.
+
+Pour chaque arme, le test exige un profil offensif du catalogue autoritaire, une action principale de raccourci liée au **GUID effectivement équipé**, une attaque acceptée et résolue par le moteur contre le monstre, le coût réel en PA débité **une seule fois**, une entrée de journal de combat, l'identité et la main correctes de l'attaque, une trace de jet réelle et l'absence de soin fictif. Il force ensuite zéro PA et exige un refus sans entrée de combat supplémentaire. Il vérifie également le contrat deux mains de ARM031 et ARM038. Il **ne transforme pas** un simple profil d'arme en test de parade ou en compétence de classe.
+
+**Limites de preuve :** un monde de test Unreal headless et des appels réels au TurnManager ne remplacent pas une observation PIE avec animations, effets de collision, ciblage à plusieurs distances ou inventaire à l'écran. Le parcours manuel mêlée en section 4 reste ouvert ; le test d'armes à distance, de jet, magiques et de passifs sera traité par famille, sans modifier leurs règles de gameplay par anticipation.
+
+Aucun texte joueur, UMG, DataAsset ni sauvegarde du joueur n'est modifié. `UI.csv → ST_UI → WBP → Game/fr/en` : **inchangés**.
