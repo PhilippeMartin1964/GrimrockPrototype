@@ -15,6 +15,7 @@
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "InputCoreTypes.h"
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
@@ -3117,6 +3118,271 @@ bool FARMEMENTLOT02161MeleeN1Execution::RunTest(const FString& Parameters)
 	}
 	TestEqual(TEXT("All ten real N1 melee profiles executed"), Executed, static_cast<int32>(UE_ARRAY_COUNT(Cases)));
 	AddInfo(TEXT("[ARMEMENT-LOT02.16.1] N1 melee=10 actual monster attack transactions; PIE/GPU and Save/Continue remain separate."));
+	return true;
+}
+
+
+/**
+ * ARMEMENT-LOT02.16.2: production bows, real arrows, live TurnManager and
+ * physical arrow projectile. Rejected targeting must never charge AP/ammo.
+ * GPU/PIE projectile visuals and real Save/Continue remain a separate gate.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT02162BowN1Execution,
+	"Grimrock.RPG.ARMEMENT.LOT02.16.2.BowN1Execution",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	struct FBowCase
+	{
+		const TCHAR* Archetype;
+		const TCHAR* Asset;
+	};
+	const FBowCase Cases[] = {
+		{ TEXT("ARM045"), TEXT("ShortBow") },
+		{ TEXT("ARM048"), TEXT("RecurveBow") }
+	};
+	UGridItemDefinitionAsset* Arrows = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
+	if (!TestNotNull(TEXT("Real production arrows"), Arrows) ||
+		!TestEqual(TEXT("One shared arrow identity"), Arrows->ItemDefinitionId, FName(TEXT("Item_Arrows_01"))) ||
+		!TestTrue(TEXT("Arrow definition is stackable and valid"), Arrows->IsValidDefinition() && Arrows->bStackable))
+		return false;
+
+	auto EquipBowAndArrows = [this, Arrows](
+		FGridCombatHudFixture& Fixture, const UGridItemDefinitionAsset* Bow,
+		int32 CaseIndex, int32 ArrowCount) -> bool
+	{
+		UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
+		if (!TestTrue(TEXT("Register real N1 bow"),
+				Inventory->RegisterItemDefinition(const_cast<UGridItemDefinitionAsset*>(Bow))) ||
+			!TestTrue(TEXT("Register real arrows"), Inventory->RegisterItemDefinition(Arrows)))
+			return false;
+		FGridItemInstance Weapon;
+		Weapon.RuntimeObjectId = FGuid(16, 2, CaseIndex + 1, 1);
+		Weapon.ItemDefinitionId = Bow->ItemDefinitionId;
+		Weapon.DisplayName = Bow->DisplayName;
+		Weapon.ItemLevel = 1;
+		Weapon.Quantity = 1;
+		Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
+		Weapon.OwnerCharacterIndex = 0;
+		Weapon.OwnerGuid = Fixture.CharacterIds[0];
+		Weapon.EquipmentSlot = EGridEquipmentSlot::MainHand;
+		Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Weapon;
+		Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
+
+		FGridItemInstance ArrowStack;
+		ArrowStack.RuntimeObjectId = FGuid(16, 2, CaseIndex + 1, 2);
+		ArrowStack.ItemDefinitionId = Arrows->ItemDefinitionId;
+		ArrowStack.Quantity = ArrowCount;
+		if (!TestTrue(TEXT("Resolve physical arrow stack"), Inventory->ApplyItemDefinitionToInstance(ArrowStack)) ||
+			!TestTrue(TEXT("Place arrows in character bag"), Inventory->AddItemToCharacterInventory(0, ArrowStack)) ||
+			!TestEqual(TEXT("Exact starting arrow count"),
+				Inventory->CountItemDefinitionInCharacterInventory(0, Arrows->ItemDefinitionId), ArrowCount))
+			return false;
+		Fixture.Hud->RefreshFromSources();
+		return true;
+	};
+
+	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(Cases)); ++Index)
+	{
+		const FBowCase& Case = Cases[Index];
+		const FString Name(Case.Asset);
+		const FString AssetPath = FString::Printf(
+			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
+			*Name, *Name);
+		const FString Context(Case.Archetype);
+		UGridItemDefinitionAsset* Bow = LoadObject<UGridItemDefinitionAsset>(nullptr, *AssetPath);
+		if (!TestNotNull(*FString::Printf(TEXT("%s actual N1 bow"), *Context), Bow))
+			return false;
+		if (!TestTrue(*FString::Printf(TEXT("%s valid catalogue identity"), *Context),
+				Bow->IsValidDefinition() && Bow->bUseWeaponCatalogue &&
+				Bow->DefaultWeaponItemLevel == 1 && Bow->WeaponArchetypeId == FName(Case.Archetype)) ||
+			!TestEqual(*FString::Printf(TEXT("%s requires actual arrows"), *Context),
+				Bow->RequiredAmmunitionItemDefinitionId, Arrows->ItemDefinitionId) ||
+			!TestTrue(*FString::Printf(TEXT("%s uses two hands"), *Context),
+				Bow->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded) ||
+			!TestTrue(*FString::Printf(TEXT("%s attack is permitted in MainHand"), *Context),
+				Bow->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand)))
+			return false;
+
+		// Accepted shot: real projectile created, exactly one physical arrow
+		// removed, the original bag stack GUID preserved and AP spent once.
+		{
+			FGridCombatHudFixture Fixture;
+			if (!TestTrue(TEXT("Live ranged combat fixture"), Fixture.IsReady()) ||
+				!EquipBowAndArrows(Fixture, Bow, Index, 2))
+				return false;
+			UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
+			TArray<FGridAvailableCombatAction> Catalog;
+			Fixture.TurnManager->GetAvailableCombatActions(0, Catalog);
+			const FGridAvailableCombatAction* Action = Catalog.FindByPredicate(
+				[Bow](const FGridAvailableCombatAction& A)
+				{
+					return A.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+						A.Definition.ActionType == EGridCombatActionType::RangedAttack &&
+						A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+						A.SourceDefinitionId == Bow->ItemDefinitionId &&
+						A.SourceEquipmentSlot == EGridEquipmentSlot::MainHand;
+				});
+			if (!TestNotNull(*FString::Printf(TEXT("%s real ranged attack catalogue action"), *Context), Action))
+				return false;
+			const int32 Range = Action->Definition.RangeCells;
+			const int32 Cost = Action->CurrentActionPointCost;
+			if (!TestTrue(*FString::Printf(TEXT("%s physical ranged action enabled"), *Context), Action->bEnabled) ||
+				!TestTrue(*FString::Printf(TEXT("%s authoring requires line of sight"), *Context),
+					Action->Definition.bRequiresLineOfSight) ||
+				!TestTrue(*FString::Printf(TEXT("%s N1 range supports adjacent monster"), *Context), Range >= 2) ||
+				!TestTrue(*FString::Printf(TEXT("%s N1 AP cost fits turn"), *Context), Cost >= 1 && Cost <= 4) ||
+				!TestTrue(*FString::Printf(TEXT("%s primary shortcut is physical bow"), *Context),
+					Fixture.Hud->View.Actions[0].bResolved &&
+					Fixture.Hud->View.Actions[0].Action.SourceDefinitionId == Bow->ItemDefinitionId))
+				return false;
+
+			const int32 LogBefore = Fixture.TurnManager->GetCombatLogEntries().Num();
+			const int32 HealthBefore = Fixture.Monster->CurrentHealth;
+			FGridCombatActionRequestResult Shot;
+			if (!TestTrue(*FString::Printf(TEXT("%s successful real combat shot"), *Context),
+					Fixture.Hud->RequestHotbarSlot(0, Shot)) ||
+				!TestTrue(*FString::Printf(TEXT("%s accepted combat transaction"), *Context), Shot.bAccepted))
+				return false;
+			TestEqual(*FString::Printf(TEXT("%s exactly one arrow consumed"), *Context),
+				Inventory->CountItemDefinitionInCharacterInventory(0, Arrows->ItemDefinitionId), 1);
+			TestEqual(*FString::Printf(TEXT("%s AP cost paid once"), *Context),
+				Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 4 - Cost);
+			TestEqual(*FString::Printf(TEXT("%s one combat resolution logged"), *Context),
+				Fixture.TurnManager->GetCombatLogEntries().Num() - LogBefore, 1);
+			TestEqual(*FString::Printf(TEXT("%s actual weapon source"), *Context),
+				Shot.AttackRequest.OffensiveItemDefinitionId, Bow->ItemDefinitionId);
+			TestTrue(*FString::Printf(TEXT("%s attack preserves real d20 trace"), *Context),
+				Shot.AttackResult.Trace.bValid && Shot.AttackResult.Trace.Attack.Roll.bUsed);
+			TestTrue(*FString::Printf(TEXT("%s target is never healed"), *Context),
+				Fixture.Monster->CurrentHealth <= HealthBefore);
+			const FGridInventorySlot* RemainingStack =
+				Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.FindByPredicate(
+					[Arrows](const FGridInventorySlot& Slot)
+					{
+						return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == Arrows->ItemDefinitionId;
+					});
+			TestTrue(*FString::Printf(TEXT("%s remaining arrows preserve stack GUID"), *Context),
+				RemainingStack && RemainingStack->Item.RuntimeObjectId == FGuid(16, 2, Index + 1, 2) &&
+				RemainingStack->Item.Quantity == 1);
+			int32 ArrowProjectiles = 0;
+			for (TActorIterator<AGridThrownItemActor> It(Fixture.TestWorld.World); It; ++It)
+			{
+				if (IsValid(*It) && It->ThrownItemInstance.ItemDefinitionId == Arrows->ItemDefinitionId)
+					++ArrowProjectiles;
+			}
+			TestEqual(*FString::Printf(TEXT("%s one recoverable arrow projectile launched"), *Context),
+				ArrowProjectiles, 1);
+
+			// Empty ammunition gate: no second attack, AP or log change.
+			if (!TestTrue(TEXT("Clear remaining single test arrow"),
+					Inventory->RemoveItemDefinitionFromCharacterInventory(0, Arrows->ItemDefinitionId, 1)))
+				return false;
+			Fixture.Hud->RefreshFromSources();
+			const int32 APBeforeReject = Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints;
+			const int32 LogsBeforeReject = Fixture.TurnManager->GetCombatLogEntries().Num();
+			FGridCombatActionRequestResult Empty;
+			TestFalse(*FString::Printf(TEXT("%s no-ammo attack rejected"), *Context),
+				Fixture.Hud->RequestHotbarSlot(0, Empty));
+			TestEqual(*FString::Printf(TEXT("%s no-ammo refusal cannot spend AP"), *Context),
+				Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, APBeforeReject);
+			TestEqual(*FString::Printf(TEXT("%s no-ammo refusal cannot create log entry"), *Context),
+				Fixture.TurnManager->GetCombatLogEntries().Num(), LogsBeforeReject);
+		}
+
+		// A solid wall is a refusal BEFORE projectile spawn and ammo/AP charge.
+		{
+			FGridCombatHudFixture Fixture;
+			if (!TestTrue(TEXT("Wall refusal uses live combat world"), Fixture.IsReady()) ||
+				!EquipBowAndArrows(Fixture, Bow, Index + 10, 2))
+				return false;
+			Fixture.Runtime->LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::Solid;
+			const int32 LogBefore = Fixture.TurnManager->GetCombatLogEntries().Num();
+			FGridCombatActionRequestResult Rejected;
+			TestFalse(*FString::Printf(TEXT("%s wall blocks ranged hotbar shot"), *Context),
+				Fixture.Hud->RequestHotbarSlot(0, Rejected));
+			TestEqual(*FString::Printf(TEXT("%s wall preserves two arrows"), *Context),
+				Fixture.Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, Arrows->ItemDefinitionId), 2);
+			TestEqual(*FString::Printf(TEXT("%s wall refusal spends no AP"), *Context),
+				Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, 4);
+			TestEqual(*FString::Printf(TEXT("%s wall creates no attack log"), *Context),
+				Fixture.TurnManager->GetCombatLogEntries().Num(), LogBefore);
+			FGridPlayerAttackRequest Request;
+			FGridAttackResult CombatResult;
+			EGridPlayerAttackRejectReason Reason = EGridPlayerAttackRejectReason::None;
+			TestFalse(*FString::Printf(TEXT("%s direct wall attack refused"), *Context),
+				Fixture.TurnManager->RequestCharacterAttackFromSlot(
+					0, EGridEquipmentSlot::MainHand, Request, CombatResult, Reason));
+			TestEqual(*FString::Printf(TEXT("%s reason is blocked passage"), *Context),
+				Reason, EGridPlayerAttackRejectReason::PassageBlocked);
+		}
+
+		// A monster one cell beyond the REAL N1 range is rejected, even
+		// with line of sight and arrows. No fake range modifier is authored.
+		{
+			FGridCombatHudFixture Fixture;
+			if (!TestTrue(TEXT("Range refusal uses live combat world"), Fixture.IsReady()) ||
+				!EquipBowAndArrows(Fixture, Bow, Index + 20, 2))
+				return false;
+			TArray<FGridAvailableCombatAction> Catalog;
+			Fixture.TurnManager->GetAvailableCombatActions(0, Catalog);
+			const FGridAvailableCombatAction* Action = Catalog.FindByPredicate(
+				[Bow](const FGridAvailableCombatAction& A)
+				{
+					return A.SourceDefinitionId == Bow->ItemDefinitionId &&
+						A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+						A.SourceEquipmentSlot == EGridEquipmentSlot::MainHand;
+				});
+			if (!TestNotNull(TEXT("N1 range from equipped action"), Action))
+				return false;
+			const int32 Range = Action->Definition.RangeCells;
+			if (!TestTrue(TEXT("N1 catalogue range is usable"), Range >= 2 && Range <= 32))
+				return false;
+			const FIntPoint FarCell(1, 1 + Range + 1);
+			UGridLevelAsset* Level = Fixture.Runtime->LevelAsset;
+			Level->Width = 3;
+			Level->Height = FarCell.Y + 2;
+			Level->EnsureCellCount();
+			for (FGridLevelCellData& Cell : Level->Cells)
+			{
+				Cell.CellType = EGridCellType::Floor;
+				Cell.bBlocksOccupancy = false;
+				Cell.NorthWall = EGridWallType::None;
+				Cell.EastWall = EGridWallType::None;
+				Cell.SouthWall = EGridWallType::None;
+				Cell.WestWall = EGridWallType::None;
+			}
+			UGridMonsterOccupancySubsystem* Occupancy =
+				Fixture.TestWorld.World->GetSubsystem<UGridMonsterOccupancySubsystem>();
+			if (!TestNotNull(TEXT("Live monster occupancy"), Occupancy))
+				return false;
+			Occupancy->UnregisterMonster(Fixture.Monster);
+			Fixture.Monster->CurrentCell = FarCell;
+			Fixture.Monster->SetActorLocation(Fixture.Runtime->GetCellCenterWorld(FarCell.X, FarCell.Y, 0.0f));
+			if (!TestTrue(TEXT("Register monster just outside actual N1 range"),
+					Occupancy->RegisterMonster(Fixture.Monster, FarCell)))
+				return false;
+			const int32 LogsBefore = Fixture.TurnManager->GetCombatLogEntries().Num();
+			FGridPlayerAttackRequest Request;
+			FGridAttackResult CombatResult;
+			EGridPlayerAttackRejectReason Reason = EGridPlayerAttackRejectReason::None;
+			TestFalse(*FString::Printf(TEXT("%s target beyond range is refused"), *Context),
+				Fixture.TurnManager->RequestCharacterAttackFromSlot(
+					0, EGridEquipmentSlot::MainHand, Request, CombatResult, Reason));
+			TestEqual(*FString::Printf(TEXT("%s out-of-range rejection reason"), *Context),
+				Reason, EGridPlayerAttackRejectReason::TargetOutOfRange);
+			TestEqual(*FString::Printf(TEXT("%s out-of-range cannot consume arrows"), *Context),
+				Fixture.Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, Arrows->ItemDefinitionId), 2);
+			TestEqual(*FString::Printf(TEXT("%s out-of-range costs zero AP"), *Context),
+				Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, 4);
+			TestEqual(*FString::Printf(TEXT("%s out-of-range produces no attack log"), *Context),
+				Fixture.TurnManager->GetCombatLogEntries().Num(), LogsBefore);
+		}
+	}
+	AddInfo(TEXT("[ARMEMENT-LOT02.16.2] ARM045/048 real combat shots, arrow projectiles, ammo and AP atomicity, wall and N1 range refusals. PIE/GPU/Continue still separate."));
 	return true;
 }
 

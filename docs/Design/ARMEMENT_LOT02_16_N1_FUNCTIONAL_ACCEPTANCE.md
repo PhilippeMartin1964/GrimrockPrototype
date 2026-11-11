@@ -103,3 +103,20 @@ Pour chaque arme, le test exige un profil offensif du catalogue autoritaire, une
 **Limites de preuve :** un monde de test Unreal headless et des appels réels au TurnManager ne remplacent pas une observation PIE avec animations, effets de collision, ciblage à plusieurs distances ou inventaire à l'écran. Le parcours manuel mêlée en section 4 reste ouvert ; le test d'armes à distance, de jet, magiques et de passifs sera traité par famille, sans modifier leurs règles de gameplay par anticipation.
 
 Aucun texte joueur, UMG, DataAsset ni sauvegarde du joueur n'est modifié. `UI.csv → ST_UI → WBP → Game/fr/en` : **inchangés**.
+
+
+## 7. ARMEMENT-LOT02.16.2 — Arcs N1, tirs réels et refus sans dépense
+
+**11 novembre 2026 — nouveau test automatisé de combat ; vérifier les statuts GitHub sur le SHA final.**
+
+Le test `Grimrock.RPG.ARMEMENT.LOT02.16.2.BowN1Execution` couvre les **deux vrais arcs N1** : ARM045 (ShortBow) et ARM048 (RecurveBow), le vrai DataAsset `DA_Item_Arrows_01` et le pipeline `UGridTurnManagerComponent` / raccourci principal / monstre vivant. Il ne remplace pas les tests de projectile embarqué ni la recette visuelle.
+
+Pour **chaque arc**, il contrôle :
+
+- identité du catalogue, niveau N1, main principale, occupation deux mains, portée réelle, action distante et nécessité d'une ligne de vue ;
+- tir réellement accepté à une case : une seule flèche prélevée au stock 2 → 1, identité GUID du stack conservée, un seul projectile physique `AGridThrownItemActor`, débit des PA une seule fois, une trace de d20 et une seule entrée de combat ;
+- après retrait de la dernière flèche du *stock transitoire de test*, refus d'une nouvelle attaque par le raccourci, sans dépense de PA ni journal supplémentaire ;
+- mur solide devant le groupe : refus avant consommation, stock de deux flèches inchangé, zéro PA perdu et rejet `PassageBlocked` par l'autorité des attaques ;
+- cible déplacée à **portée N1 + 1** sur une grille de test agrandie : refus `TargetOutOfRange` avec deux flèches conservées, sans débit de PA ni nouvelle entrée de combat.
+
+Le test n'écrit ni carte de production, ni DataAsset ni sauvegarde utilisateur. Il n'effectue **aucune validation GPU/PIE du vol, du son, de l'impact visuel ou de Save → Quitter → Continue**, qui demeurent dans la recette de la section 4. Le maillon `UI.csv → ST_UI → WBP → Game/fr/en` est **inchangé** : aucun nouveau texte visible par le joueur.
