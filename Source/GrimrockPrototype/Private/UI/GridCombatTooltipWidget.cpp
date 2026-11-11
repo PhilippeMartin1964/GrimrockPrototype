@@ -106,7 +106,7 @@ namespace
 		if (bEquipmentParried)
 		{
 			Lines.AttackOutcome = NSLOCTEXT("GridCombatTooltipWidget", "MainGaucheParryOutcome",
-				"Parade avec la Main-Gauche : l'attaque a touché, mais le coup a été annulé.");
+				"Parade avec la Main-Gauche : jet d'attaque réussi, coup annulé.");
 			return Lines; // No hit/critical outcome on a parried attack.
 		}
 
