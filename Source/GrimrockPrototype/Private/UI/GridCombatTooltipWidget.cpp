@@ -45,7 +45,7 @@ namespace
 		return FText::AsNumber(Value);
 	}
 
-	FGridCombatTooltipDetailTexts FormatCombatDetailLines(const FGridCombatResolutionTrace& Trace)
+	FGridCombatTooltipDetailTexts FormatCombatDetailLines(const FGridCombatResolutionTrace& Trace, bool bEquipmentParried)
 	{
 		FGridCombatTooltipDetailTexts Lines;
 		const FGridCombatAttackTrace& Attack = Trace.Attack;
@@ -100,6 +100,15 @@ namespace
 		DefenseTotalArgs.Add(TEXT("Total"), FText::AsNumber(Defense.FinalValue));
 		Lines.DefenseTotal =
 			FormatLocalizedLine(TEXT("Combat.Tooltip.Defense.Total"), DefenseTotalArgs);
+
+		// Do not reclassify a post-roll equipment parry as a normal hit.
+		// The historical d20/accuracy/defense lines above remain unchanged.
+		if (bEquipmentParried)
+		{
+			Lines.AttackOutcome = NSLOCTEXT("GridCombatTooltipWidget", "MainGaucheParryOutcome",
+				"Parade avec la Main-Gauche : l'attaque a touché, mais le coup a été annulé.");
+			return Lines; // No hit/critical outcome on a parried attack.
+		}
 
 		const bool bHit = Attack.bAlwaysHits
 			|| (!Attack.bNaturalAutoMiss && (Attack.bNaturalAutoHit
@@ -292,6 +301,7 @@ FGridCombatTooltipViewData UGridCombatTooltipWidget::BuildViewData(const FGridHu
 	Data.Attacker = Entry.CombatAttacker;
 	Data.Defender = Entry.CombatDefender;
 	Data.Trace = Entry.CombatTooltipTrace;
+	Data.bEquipmentParried = Entry.EventCode == FName(TEXT("Combat.Attack.Parried"));
 
 	const FGridCombatDamageTrace& Damage = Data.Trace.Damage;
 	if (!Damage.bResolved)
@@ -338,7 +348,7 @@ int32 UGridCombatTooltipWidget::CountAbsorbingSources(const FGridCombatDamageTra
 FGridCombatTooltipDetailTexts UGridCombatTooltipWidget::BuildDetailTexts(
 	const FGridCombatTooltipViewData& Data)
 {
-	return Data.bValid ? FormatCombatDetailLines(Data.Trace) : FGridCombatTooltipDetailTexts{};
+	return Data.bValid ? FormatCombatDetailLines(Data.Trace, Data.bEquipmentParried) : FGridCombatTooltipDetailTexts{};
 }
 
 FGridCombatTooltipDamageTexts UGridCombatTooltipWidget::BuildDamageTexts(
@@ -374,6 +384,14 @@ FGridCombatTooltipDisplayTexts UGridCombatTooltipWidget::BuildDisplayTexts(
 	else
 	{
 		Texts.Health = FUILocalizationText::Get(TEXT("Combat.Tooltip.Value.NoHealthChange"));
+	}
+
+	if (Data.bEquipmentParried)
+	{
+		Texts.Status = NSLOCTEXT("GridCombatTooltipWidget", "MainGaucheParryStatus",
+			"Main-Gauche : attaque parée, aucun dégât subi.");
+		Texts.bShowStatus = true;
+		return Texts;
 	}
 
 	if (!Data.NewlyExhaustedSources.IsEmpty() || !Data.AlreadyDepletedSources.IsEmpty())
