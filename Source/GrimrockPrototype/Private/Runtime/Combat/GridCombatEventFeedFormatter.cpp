@@ -145,11 +145,14 @@ namespace
 
 	FText BuildAttackHeader(const FGridCombatLogEntry& Entry)
 	{
-		const FText Outcome = !Entry.AttackResult.bHit
-			? LOCTEXT("OutcomeMiss", "ÉCHEC")
-			: Entry.AttackResult.bCriticalHit
-				? LOCTEXT("OutcomeCritical", "COUP CRITIQUE")
-				: LOCTEXT("OutcomeHit", "TOUCHÉ");
+		// A successful Main-Gauche parry cancels a landed blow; it is not a miss.
+		const FText Outcome = Entry.AttackResult.bEquipmentParried
+			? LOCTEXT("OutcomeParried", "PARADE")
+			: !Entry.AttackResult.bHit
+				? LOCTEXT("OutcomeMiss", "ÉCHEC")
+				: Entry.AttackResult.bCriticalHit
+					? LOCTEXT("OutcomeCritical", "COUP CRITIQUE")
+					: LOCTEXT("OutcomeHit", "TOUCHÉ");
 
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Source"), Entry.SourceDisplayName);
@@ -326,7 +329,13 @@ namespace
 
 		TArray<FText> Lines;
 		Lines.Add(BuildCompactAttackDefenseLine(Result.Trace.Attack, Result.Trace.Defense));
-		if (Result.bHit && Result.Trace.Damage.bResolved)
+		if (Result.bEquipmentParried)
+		{
+			Lines.Add(FText::Format(
+				LOCTEXT("ParriedCompactMessage", "{0} pare l'attaque avec sa Main-Gauche : aucun dégât subi."),
+				Entry.TargetDisplayName));
+		}
+		else if (Result.bHit && Result.Trace.Damage.bResolved)
 		{
 			Lines.Add(BuildCompactDamageLine(Result.Trace.Damage, Entry.TargetDisplayName));
 		}
@@ -557,11 +566,13 @@ bool FGridCombatEventFeedFormatter::BuildEntry(
 	if (bAttack)
 	{
 		const FGridAttackResult& Result = CombatEntry.AttackResult;
-		OutEntry.EventCode = !Result.bHit
-			? FName(TEXT("Combat.Attack.Miss"))
-			: Result.bCriticalHit
-				? FName(TEXT("Combat.Attack.Critical"))
-				: FName(TEXT("Combat.Attack.Hit"));
+		OutEntry.EventCode = Result.bEquipmentParried
+			? FName(TEXT("Combat.Attack.Parried"))
+			: !Result.bHit
+				? FName(TEXT("Combat.Attack.Miss"))
+				: Result.bCriticalHit
+					? FName(TEXT("Combat.Attack.Critical"))
+					: FName(TEXT("Combat.Attack.Hit"));
 		OutEntry.Semantic = Result.bHit
 			? ResolveDamageSemantic(Result.DamageType)
 			: EGridHudEventSemantic::Information;
@@ -575,6 +586,10 @@ bool FGridCombatEventFeedFormatter::BuildEntry(
 		{
 			OutEntry.Message = BuildCompactAttackMessage(CombatEntry);
 			AddAttackDetails(Result.Trace.Attack, Result.Trace.Defense, OutEntry.Details);
+			if (Result.bEquipmentParried)
+			{
+				OutEntry.Details.Add(LOCTEXT("ParriedDetail", "Parade avec la Main-Gauche : coup annulé, protections et PV inchangés."));
+			}
 			if (Result.bHit)
 			{
 				AddDamageDetails(Result.Trace.Damage, OutEntry.Details);

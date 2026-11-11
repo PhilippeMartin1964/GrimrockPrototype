@@ -6,10 +6,12 @@
 #include "Engine/World.h"
 #include "Runtime/Combat/GridCombatEventFeedFormatter.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridEquippedGuardResolver.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridEventFeedSubsystem.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "UI/GridCombatTooltipWidget.h"
 
 namespace
 {
@@ -152,6 +154,57 @@ bool FGridUIEventHUD018MissProjectionTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIEventHUD018MainGaucheParryProjectionTest,
+	"Grimrock.UI.EventHUD01.CombatRendering.MainGaucheParryProjection",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIEventHUD018MainGaucheParryProjectionTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	const FGridAttackResult Landed = MakeDetailedResult(EGridDamageType::Physical, 15, 6);
+	if (!TestTrue(TEXT("Fixture initially hits before the parry reaction"), Landed.bHit))
+	{
+		return false;
+	}
+	FGridAttackResult Parried = Landed;
+	FGridEquippedGuardResolver::ApplyParry(Parried);
+	TestTrue(TEXT("The original attack roll survives the parry"), Parried.Trace.Attack.Roll.FinalValue == Landed.Trace.Attack.Roll.FinalValue);
+	TestEqual(TEXT("Parried attack has no health damage"), Parried.HealthDamage, 0);
+	TestEqual(TEXT("Parried attack has no armor damage"), Parried.PhysicalArmorDamage, 0);
+	TestTrue(TEXT("Parry carries an authoritative equipment flag"), Parried.bEquipmentParried);
+	TestFalse(TEXT("Parry is not a hit after interception"), Parried.bHit);
+
+	FGridHudEventEntry FeedEntry;
+	if (!TestTrue(TEXT("A parry projects to a visible combat feed entry"),
+			FGridCombatEventFeedFormatter::BuildEntry(MakeAttackLog(Parried), FeedEntry)))
+	{
+		return false;
+	}
+	TestEqual(TEXT("Parry gets its own stable event code"), FeedEntry.EventCode, FName(TEXT("Combat.Attack.Parried")));
+	TestEqual(TEXT("Parry uses a neutral event semantic"), FeedEntry.Semantic, EGridHudEventSemantic::Information);
+	TestTrue(TEXT("Header identifies the parry instead of a miss"), FeedEntry.Header.ToString().Contains(TEXT("PARADE")));
+	TestFalse(TEXT("Header never calls the parry a miss"), FeedEntry.Header.ToString().Contains(TEXT("ÉCHEC")));
+	TestTrue(TEXT("Compact feed identifies the Main-Gauche"), FeedEntry.Message.ToString().Contains(TEXT("Main-Gauche")));
+	TestTrue(TEXT("Compact feed exposes the unchanged attack roll"), FeedEntry.Message.ToString().Contains(TEXT("Attaque : 1d20 (15)")));
+	TestTrue(TEXT("Compact feed explains zero damage"), FeedEntry.Message.ToString().Contains(TEXT("aucun dégât subi")));
+	TestFalse(TEXT("Parry never invents a damage-stage line"), FeedEntry.Message.ToString().Contains(TEXT("Dégâts :")));
+	TestTrue(TEXT("Fallback tooltip details describe the parry"), ContainsDetail(FeedEntry.Details, TEXT("Parade avec la Main-Gauche")));
+	TestFalse(TEXT("Parry has no applied damage details"), ContainsDetail(FeedEntry.Details, TEXT("Dégâts bruts")));
+
+	const FGridCombatTooltipViewData TooltipData = UGridCombatTooltipWidget::BuildViewData(FeedEntry);
+	TestTrue(TEXT("Structured tooltip receives the authoritative parry outcome"), TooltipData.bValid && TooltipData.bEquipmentParried);
+	const FGridCombatTooltipDetailTexts TooltipLines = UGridCombatTooltipWidget::BuildDetailTexts(TooltipData);
+	TestTrue(TEXT("Structured outcome explicitly names the parade"), TooltipLines.AttackOutcome.ToString().Contains(TEXT("Parade")));
+	TestFalse(TEXT("Structured outcome cannot say normal touché"), TooltipLines.AttackOutcome.ToString().Contains(TEXT("Touché")));
+	TestTrue(TEXT("Structured tooltip retains the original attack total"), !TooltipLines.AttackTotal.IsEmpty());
+	TestTrue(TEXT("Structured tooltip suppresses a critical-hit outcome"), TooltipLines.AttackCritical.IsEmpty());
+	const FGridCombatTooltipDisplayTexts TooltipDisplay = UGridCombatTooltipWidget::BuildDisplayTexts(TooltipData);
+	TestTrue(TEXT("Structured tooltip shows the Main-Gauche status"), TooltipDisplay.bShowStatus && TooltipDisplay.Status.ToString().Contains(TEXT("Main-Gauche")));
+	TestFalse(TEXT("Parry does not produce armor-absorption rows"), TooltipData.bShowAbsorption);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIEventHUD018DamageSemanticTest, "Grimrock.UI.EventHUD01.CombatRendering.DamageSemantics",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
@@ -231,6 +284,23 @@ bool FGridUIEventHUD018CentralPublicationTest::RunTest(const FString& Parameters
 	{
 		TestEqual(TEXT("Published entry is Combat"), Feed->GetEntries()[0].Category, EGridHudEventCategory::Combat);
 		TestTrue(TEXT("Published entry keeps detailed lines"), Feed->GetEntries()[0].Details.Num() > 0);
+	}
+
+	// A parried attack must publish exactly one separate logical event through
+	// the real TurnManager -> EventFeed path, not a miss plus a duplicate reaction.
+	FGridAttackResult Parried = MakeDetailedResult(EGridDamageType::Physical, 15, 6);
+	if (!TestTrue(TEXT("Parry publication fixture lands before interception"), Parried.bHit))
+	{
+		return false;
+	}
+	FGridEquippedGuardResolver::ApplyParry(Parried);
+	TurnManager->AppendCombatLogEntry(MakeAttackLog(Parried));
+	TestEqual(TEXT("One normal attack and one parry produce two feed entries"), Feed->GetEntries().Num(), 2);
+	if (Feed->GetEntries().Num() == 2)
+	{
+		TestEqual(TEXT("Second published event is a parry"), Feed->GetEntries()[1].EventCode,
+			FName(TEXT("Combat.Attack.Parried")));
+		TestTrue(TEXT("Published parry is legible"), Feed->GetEntries()[1].Message.ToString().Contains(TEXT("Main-Gauche")));
 	}
 	return true;
 }

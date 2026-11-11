@@ -28,6 +28,10 @@ struct GRIMROCKPROTOTYPE_API FGridCombatTooltipViewData
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FText Defender;
 
+	/** Authoritative equipment parry outcome; the raw hit roll remains visible. */
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
+	bool bEquipmentParried = false;
+
 	/** Raw attack, defense, damage and health snapshot for C++ formatting. */
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Tooltip")
 	FGridCombatResolutionTrace Trace;
