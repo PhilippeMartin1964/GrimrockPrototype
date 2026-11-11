@@ -120,3 +120,19 @@ Pour **chaque arc**, il contrôle :
 - cible déplacée à **portée N1 + 1** sur une grille de test agrandie : refus `TargetOutOfRange` avec deux flèches conservées, sans débit de PA ni nouvelle entrée de combat.
 
 Le test n'écrit ni carte de production, ni DataAsset ni sauvegarde utilisateur. Il n'effectue **aucune validation GPU/PIE du vol, du son, de l'impact visuel ou de Save → Quitter → Continue**, qui demeurent dans la recette de la section 4. Le maillon `UI.csv → ST_UI → WBP → Game/fr/en` est **inchangé** : aucun nouveau texte visible par le joueur.
+
+
+## 8. ARMEMENT-LOT02.16.3–16.5 — Familles restantes, acceptation technique N1
+
+**11 novembre 2026 — trois tests intégrés dans une publication atomique ; résultats Windows à lire sur le SHA final.**
+
+- **LOT02.16.3 — Jet (ARM054/057/058).** Le test `Grimrock.RPG.ARMEMENT.LOT02.16.3.RealThrowingN1` charge les trois vrais DataAssets non empilables : chacun est équipé puis exécuté par le TurnManager contre un monstre vivant, avec un seul débit de PA, un seul résultat et un projectile physique récupérable portant le GUID de l'exemplaire jeté. Il exerce séparément une unité réelle dans le sac via sa contribution QuickItem, qui consomme l'objet et génère un projectile avec un nouvel identifiant. Il n'invente pas de stack de deux armes lorsque la définition de production est non empilable.
+- **LOT02.16.4 — Magie (ARM061/062/067/069).** Le test `Grimrock.RPG.ARMEMENT.LOT02.16.4.MagicN1Execution` vérifie la compatibilité des mains, l'identité du profil N1 et la véritable attaque distante contre un monstre, avec trace de dés, débit des seuls PA/mana déclarés, absence de munitions physiques et conservation de l'objet. Il refuse également une attaque par-delà un mur sans PA, mana ou journal supplémentaire. Pas de sort, statut, effet de zone ou soin ajouté.
+- **LOT02.16.5 — Défenses passives (ARM070/075/081).** Le test `Grimrock.RPG.ARMEMENT.LOT02.16.5.PassiveN1Execution` équipe réellement chaque passif depuis le sac, exige l'absence d'attaque automatique, constate les seules protections physique/magique propres au DataAsset, débite au plus une unité de chaque réserve existante si elle est positive, puis vérifie que le GUID et les charges dépensées survivent au parcours OffHand → sac → OffHand. Aucune défense active fictive ni recharge à l'équipement.
+
+Cette nouvelle couverture **complète les 22 archétypes N1 pour les tests d'actions et protections en mémoire** (10 mêlée, 2 arcs, 3 jet, 4 magie, 3 passifs). Les scénarios existants `DiskPersistence22N1`, `EmbeddedRangedArrowHit`, `RealWorldPickupAndReturn` et `SHIELD02.5` continuent de contrôler leurs frontières respectives dans la suite complète Grimrock. Ils ne prouvent pas l'intégralité d'un redémarrage du programme.
+
+**Limites restantes :** pas de preuve audiovisuelle ou GPU/PIE des lancers, collisions, impacts, animations, sons, des cas de portée hors caméra, ni du parcours *Save → quitter réellement → Continue*. La clôture fonctionnelle globale LOT02.16 demeure conditionnée à la recette PIE des cinq familles et au redémarrage réel du jeu. En cas d'anomalie PIE, ouvrir un ticket de correction fondé sur un cas reproductible, sans réécrire préventivement les règles.
+
+**Localisation/UI (checklist lue avant et après) :** aucune chaîne visible du joueur et aucune nouvelle clé, aucun WBP/DataAsset modifié. Pipeline `UI.csv → ST_UI → WBP → Game/fr/en` **inchangé**, pas d'authoring nécessaire.
+

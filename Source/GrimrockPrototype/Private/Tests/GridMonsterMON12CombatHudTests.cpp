@@ -3386,4 +3386,427 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 	return true;
 }
 
+
+/** ARMEMENT-LOT02.16.3: real N1 one-unit throwing weapons. Production
+ * definitions are non-stackable: do not simulate a fake equipment stack. */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT02163RealThrowingN1,
+	"Grimrock.RPG.ARMEMENT.LOT02.16.3.RealThrowingN1",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENTLOT02163RealThrowingN1::RunTest(const FString&)
+{
+	struct FCase { const TCHAR* Id; const TCHAR* Name; };
+	const FCase Cases[] = {
+		{ TEXT("ARM054"), TEXT("ThrowingKnife") },
+		{ TEXT("ARM057"), TEXT("Javelin") },
+		{ TEXT("ARM058"), TEXT("Dart") }
+	};
+	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(Cases)); ++Index)
+	{
+		const FCase& Case = Cases[Index];
+		const FString Context(Case.Id);
+		const FString AssetName(Case.Name);
+		const FString Path = FString::Printf(
+			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
+			*AssetName, *AssetName);
+		UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
+		if (!TestNotNull(*FString::Printf(TEXT("%s actual DataAsset"), *Context), Definition) ||
+			!TestTrue(*FString::Printf(TEXT("%s real N1 throwable"), *Context),
+				Definition->IsValidDefinition() && Definition->bUseWeaponCatalogue &&
+				Definition->WeaponArchetypeId == FName(Case.Id) &&
+				Definition->DefaultWeaponItemLevel == 1 &&
+				Definition->IsCombatThrowable() && !Definition->bStackable))
+			return false;
+
+		// The equipped attack transfers its one physical item to a real
+		// projectile and never leaves an inventory duplicate.
+		{
+			FGridCombatHudFixture Fixture;
+			if (!TestTrue(TEXT("Throwing test combat world"), Fixture.IsReady()))
+				return false;
+			UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
+			if (!TestTrue(TEXT("Register real throwing definition"), Inventory->RegisterItemDefinition(Definition)))
+				return false;
+			FGridItemInstance Equipped;
+			Equipped.RuntimeObjectId = FGuid(16, 3, Index + 1, 1);
+			Equipped.ItemDefinitionId = Definition->ItemDefinitionId;
+			Equipped.ItemLevel = 1;
+			Equipped.Quantity = 1;
+			Equipped.DisplayName = Definition->DisplayName;
+			Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
+			Equipped.OwnerGuid = Fixture.CharacterIds[0];
+			Equipped.OwnerCharacterIndex = 0;
+			Equipped.EquipmentSlot = EGridEquipmentSlot::MainHand;
+			Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Equipped;
+			Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
+
+			TArray<FGridAvailableCombatAction> Catalog;
+			Fixture.TurnManager->GetAvailableCombatActions(0, Catalog);
+			const FGridAvailableCombatAction* Action = Catalog.FindByPredicate(
+				[&Equipped](const FGridAvailableCombatAction& A)
+				{
+					return A.SourceRuntimeId == Equipped.RuntimeObjectId &&
+						A.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+						A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+				});
+			if (!TestNotNull(*FString::Printf(TEXT("%s executable equipment attack"), *Context), Action) ||
+				!TestTrue(*FString::Printf(TEXT("%s one item cost and action enabled"), *Context),
+					Action->bEnabled && Action->CurrentSourceItemQuantityCost == 1))
+				return false;
+			const int32 Cost = Action->CurrentActionPointCost;
+			if (!TestTrue(TEXT("Throw action fits N1 four-AP turn"), Cost > 0 && Cost <= 4))
+				return false;
+
+			FGridPlayerAttackRequest Request;
+			FGridAttackResult Result;
+			EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;
+			const int32 LogsBefore = Fixture.TurnManager->GetCombatLogEntries().Num();
+			if (!TestTrue(*FString::Printf(TEXT("%s real equipped throw accepted"), *Context),
+					Fixture.TurnManager->RequestCharacterAttackFromSlot(
+						0, EGridEquipmentSlot::MainHand, Request, Result, RejectReason)))
+				return false;
+			TestEqual(*FString::Printf(TEXT("%s AP charged exactly once"), *Context),
+				Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, 4 - Cost);
+			TestEqual(*FString::Printf(TEXT("%s combat resolved once"), *Context),
+				Fixture.TurnManager->GetCombatLogEntries().Num() - LogsBefore, 1);
+			TestEqual(*FString::Printf(TEXT("%s attack identifies thrown item"), *Context),
+				Request.OffensiveItemDefinitionId, Definition->ItemDefinitionId);
+			FGridItemInstance StillEquipped;
+			TestFalse(*FString::Printf(TEXT("%s spent hand is empty"), *Context),
+				Inventory->GetEquippedItem(0, EGridEquipmentSlot::MainHand, StillEquipped));
+			TestEqual(*FString::Printf(TEXT("%s source does not appear in bag"), *Context),
+				Inventory->CountItemDefinitionInCharacterInventory(0, Definition->ItemDefinitionId), 0);
+
+			int32 Count = 0;
+			for (TActorIterator<AGridThrownItemActor> It(Fixture.TestWorld.World); It; ++It)
+			{
+				if (IsValid(*It) && It->ThrownItemInstance.ItemDefinitionId == Definition->ItemDefinitionId)
+				{
+					++Count;
+					TestEqual(*FString::Printf(TEXT("%s physical throw preserves GUID"), *Context),
+						It->ThrownItemInstance.RuntimeObjectId, Equipped.RuntimeObjectId);
+					TestEqual(*FString::Printf(TEXT("%s physical projectile quantity"), *Context),
+						It->ThrownItemInstance.Quantity, 1);
+				}
+			}
+			TestEqual(*FString::Printf(TEXT("%s exactly one world projectile"), *Context), Count, 1);
+		}
+
+		// A separate, legitimate single copy in the bag is executed through
+		// its QuickItem contribution, not through a synthetic second weapon.
+		{
+			FGridCombatHudFixture Fixture;
+			if (!TestTrue(TEXT("Inventory throw combat world"), Fixture.IsReady()))
+				return false;
+			UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
+			if (!TestTrue(TEXT("Register inventory throwable"), Inventory->RegisterItemDefinition(Definition)))
+				return false;
+			FGridItemInstance BagItem;
+			BagItem.RuntimeObjectId = FGuid(16, 3, Index + 1, 2);
+			BagItem.ItemDefinitionId = Definition->ItemDefinitionId;
+			BagItem.ItemLevel = 1;
+			BagItem.Quantity = 1;
+			if (!TestTrue(TEXT("Apply production item definition"), Inventory->ApplyItemDefinitionToInstance(BagItem)) ||
+				!TestTrue(TEXT("Place physical throwing item into bag"), Inventory->AddItemToCharacterInventory(0, BagItem)))
+				return false;
+			FGridCombatActionDefinition Quick;
+			if (!TestTrue(*FString::Printf(TEXT("%s actual inventory throw action"), *Context),
+					Definition->BuildInventoryCombatActionDefinition(Quick)))
+				return false;
+			const int32 APBefore = Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints;
+			const int32 LogsBefore = Fixture.TurnManager->GetCombatLogEntries().Num();
+			FGridCombatActionRequestResult ActionResult;
+			if (!TestTrue(*FString::Printf(TEXT("%s inventory throw resolves via TurnManager"), *Context),
+					Fixture.TurnManager->RequestCharacterCombatAction(0, Quick.ActionId,
+						EGridCombatActionSourcePolicy::QuickItem, Definition->ItemDefinitionId,
+						EGridEquipmentSlot::None, ActionResult)) ||
+				!TestTrue(TEXT("Real QuickItem throw accepted"), ActionResult.bAccepted))
+				return false;
+			TestEqual(*FString::Printf(TEXT("%s exactly one bag item consumed"), *Context),
+				Inventory->CountItemDefinitionInCharacterInventory(0, Definition->ItemDefinitionId), 0);
+			TestTrue(*FString::Printf(TEXT("%s AP not increased"), *Context),
+				Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints < APBefore);
+			TestEqual(*FString::Printf(TEXT("%s inventory throw resolves once"), *Context),
+				Fixture.TurnManager->GetCombatLogEntries().Num() - LogsBefore, 1);
+			int32 Projectiles = 0;
+			for (TActorIterator<AGridThrownItemActor> It(Fixture.TestWorld.World); It; ++It)
+			{
+				if (IsValid(*It) && It->ThrownItemInstance.ItemDefinitionId == Definition->ItemDefinitionId)
+				{
+					++Projectiles;
+					TestNotEqual(*FString::Printf(TEXT("%s launched unit has fresh GUID"), *Context),
+						It->ThrownItemInstance.RuntimeObjectId, BagItem.RuntimeObjectId);
+				}
+			}
+			TestEqual(*FString::Printf(TEXT("%s one recoverable QuickItem projectile"), *Context), Projectiles, 1);
+		}
+	}
+	return true;
+}
+
+/** ARMEMENT-LOT02.16.4: actual magic weapons use their N1 attack
+ * profiles, do not demand arrows and respect wall/PA rejections. */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT02164MagicN1Execution,
+	"Grimrock.RPG.ARMEMENT.LOT02.16.4.MagicN1Execution",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENTLOT02164MagicN1Execution::RunTest(const FString&)
+{
+	struct FCase { const TCHAR* Id; const TCHAR* Asset; bool bTwoHanded; };
+	const FCase Cases[] = {
+		{ TEXT("ARM061"), TEXT("ArcaneWand"), false },
+		{ TEXT("ARM062"), TEXT("FireWand"), false },
+		{ TEXT("ARM067"), TEXT("ElementalStaff"), true },
+		{ TEXT("ARM069"), TEXT("HolyScepter"), false }
+	};
+	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(Cases)); ++Index)
+	{
+		const FString Context(Cases[Index].Id);
+		const FString AssetName(Cases[Index].Asset);
+		const FString Path = FString::Printf(
+			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
+			*AssetName, *AssetName);
+		UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
+		if (!TestNotNull(*FString::Printf(TEXT("%s real N1 DataAsset"), *Context), Definition) ||
+			!TestTrue(TEXT("Magic item is valid and catalogue-backed"),
+				Definition->IsValidDefinition() && Definition->bUseWeaponCatalogue &&
+				Definition->WeaponArchetypeId == FName(Cases[Index].Id) &&
+				Definition->DefaultWeaponItemLevel == 1) ||
+			!TestEqual(TEXT("Magic item has authored hand usage"),
+				Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded, Cases[Index].bTwoHanded) ||
+			!TestTrue(TEXT("Magic item does not require arrows"), Definition->RequiredAmmunitionItemDefinitionId.IsNone()))
+			return false;
+
+		auto Configure = [this, Definition, Index](FGridCombatHudFixture& F) -> bool
+		{
+			if (!TestTrue(TEXT("Magic test combat fixture is ready"), F.IsReady()) ||
+				!TestTrue(TEXT("Register real magic weapon"),
+					F.Party->PartyInventoryComponent->RegisterItemDefinition(Definition)))
+				return false;
+			FGridItemInstance Weapon;
+			Weapon.RuntimeObjectId = FGuid(16, 4, Index + 1, 1);
+			Weapon.ItemDefinitionId = Definition->ItemDefinitionId;
+			Weapon.DisplayName = Definition->DisplayName;
+			Weapon.ItemLevel = 1;
+			Weapon.Quantity = 1;
+			Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
+			Weapon.OwnerCharacterIndex = 0;
+			Weapon.OwnerGuid = F.CharacterIds[0];
+			Weapon.EquipmentSlot = EGridEquipmentSlot::MainHand;
+			F.Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].MainHand = Weapon;
+			F.Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
+			F.Hud->RefreshFromSources();
+			return true;
+		};
+
+		{
+			FGridCombatHudFixture F;
+			if (!Configure(F))
+				return false;
+			TArray<FGridAvailableCombatAction> Actions;
+			F.TurnManager->GetAvailableCombatActions(0, Actions);
+			const FGridAvailableCombatAction* Action = Actions.FindByPredicate(
+				[Definition](const FGridAvailableCombatAction& A)
+				{
+					return A.SourceDefinitionId == Definition->ItemDefinitionId &&
+						A.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+						A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+				});
+			if (!TestNotNull(*FString::Printf(TEXT("%s real ranged magic attack"), *Context), Action) ||
+				!TestTrue(TEXT("Ranged direct magic action and LOS"),
+					Action->Definition.ActionType == EGridCombatActionType::RangedAttack &&
+					Action->Definition.bRequiresLineOfSight && Action->bEnabled) ||
+				!TestTrue(TEXT("No arbitrary ammunition or mana consumable"),
+					Action->CurrentSourceItemQuantityCost == 0 &&
+					Action->CurrentActionPointCost > 0 &&
+					Action->CurrentActionPointCost <= 4))
+				return false;
+			const int32 Cost = Action->CurrentActionPointCost;
+			const int32 ManaCost = Action->CurrentManaCost;
+			const int32 ManaBefore = F.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMana;
+			const int32 LogsBefore = F.TurnManager->GetCombatLogEntries().Num();
+			FGridCombatActionRequestResult Out;
+			if (!TestTrue(*FString::Printf(TEXT("%s real magic attack accepted"), *Context),
+					F.Hud->RequestHotbarSlot(0, Out)) ||
+				!TestTrue(TEXT("Magic attack action accepted"), Out.bAccepted))
+				return false;
+			TestEqual(TEXT("Magic action charged correct AP once"),
+				F.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, 4 - Cost);
+			TestEqual(TEXT("Magic action used only its authored mana cost"),
+				F.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMana,
+				ManaBefore - ManaCost);
+			TestEqual(TEXT("Magic attack logged exactly once"),
+				F.TurnManager->GetCombatLogEntries().Num() - LogsBefore, 1);
+			TestEqual(TEXT("Magic weapon remains held after attacking"),
+				F.Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].MainHand.ItemDefinitionId,
+				Definition->ItemDefinitionId);
+			TestEqual(TEXT("Correct N1 magic source resolved"),
+				Out.AttackRequest.OffensiveItemDefinitionId, Definition->ItemDefinitionId);
+			TestTrue(TEXT("Magic hit result has a real combat trace"),
+				Out.AttackResult.Trace.bValid && Out.AttackResult.Trace.Attack.Roll.bUsed);
+		}
+
+		{
+			FGridCombatHudFixture F;
+			if (!Configure(F))
+				return false;
+			F.Runtime->LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::Solid;
+			const int32 ManaBefore = F.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMana;
+			FGridPlayerAttackRequest Request;
+			FGridAttackResult Result;
+			EGridPlayerAttackRejectReason Reject = EGridPlayerAttackRejectReason::None;
+			TestFalse(*FString::Printf(TEXT("%s wall rejects direct magic attack"), *Context),
+				F.TurnManager->RequestCharacterAttackFromSlot(0, EGridEquipmentSlot::MainHand,
+					Request, Result, Reject));
+			TestEqual(TEXT("Magic ranged refusal has blocked passage reason"),
+				Reject, EGridPlayerAttackRejectReason::PassageBlocked);
+			TestEqual(TEXT("Magic wall refusal has no AP cost"),
+				F.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, 4);
+			TestEqual(TEXT("Magic wall refusal has no mana cost"),
+				F.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMana, ManaBefore);
+			TestEqual(TEXT("Magic wall refusal creates no combat resolution"),
+				F.TurnManager->GetCombatLogEntries().Num(), 0);
+		}
+	}
+	return true;
+}
+
+/** ARMEMENT-LOT02.16.5: real passive equipment adds only the remaining,
+ * type-specific armor charge; moving the same GUID must never refill it. */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT02165PassiveN1Execution,
+	"Grimrock.RPG.ARMEMENT.LOT02.16.5.PassiveN1Execution",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENTLOT02165PassiveN1Execution::RunTest(const FString&)
+{
+	struct FCase { const TCHAR* Id; const TCHAR* Asset; };
+	const FCase Cases[] = {
+		{ TEXT("ARM070"), TEXT("ArcaneOrb") },
+		{ TEXT("ARM075"), TEXT("RoundShield") },
+		{ TEXT("ARM081"), TEXT("HolyAegis") }
+	};
+	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(Cases)); ++Index)
+	{
+		const FString Name(Cases[Index].Asset);
+		const FString Context(Cases[Index].Id);
+		const FString Path = FString::Printf(
+			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
+			*Name, *Name);
+		UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
+		if (!TestNotNull(*FString::Printf(TEXT("%s real passive"), *Context), Definition) ||
+			!TestTrue(TEXT("Passive is authentic N1 asset"),
+				Definition->IsValidDefinition() && Definition->bUseWeaponCatalogue &&
+				Definition->WeaponArchetypeId == FName(Cases[Index].Id) &&
+				Definition->DefaultWeaponItemLevel == 1 &&
+				Definition->CanEquipToSlot(EGridEquipmentSlot::OffHand) &&
+				!Definition->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand)))
+			return false;
+		FGridCombatHudFixture F;
+		if (!TestTrue(TEXT("Passive combat fixture"), F.IsReady()))
+			return false;
+		UGridPartyInventoryComponent* Inventory = F.Party->PartyInventoryComponent;
+		if (!TestTrue(TEXT("Register passive production definition"), Inventory->RegisterItemDefinition(Definition)))
+			return false;
+		Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = FGridItemInstance();
+		Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
+		const int32 PhysicalBefore = Inventory->GetEffectiveCurrentPhysicalArmor(0);
+		const int32 MagicalBefore = Inventory->GetEffectiveCurrentMagicalArmor(0);
+
+		FGridItemInstance Item;
+		Item.RuntimeObjectId = FGuid(16, 5, Index + 1, 1);
+		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.DisplayName = Definition->DisplayName;
+		Item.ItemLevel = 1;
+		Item.Quantity = 1;
+		if (!TestTrue(TEXT("Real passive instance resolved"), Inventory->ApplyItemDefinitionToInstance(Item)) ||
+			!TestTrue(TEXT("Real passive item added to bag"), Inventory->AddItemToCharacterInventory(0, Item)))
+			return false;
+		const TArray<FGridInventorySlot>& Bag = Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots;
+		int32 BagIndex = INDEX_NONE;
+		for (int32 I = 0; I < Bag.Num(); ++I)
+		{
+			if (!Bag[I].IsEmpty() && Bag[I].Item.RuntimeObjectId == Item.RuntimeObjectId)
+			{
+				BagIndex = I;
+				break;
+			}
+		}
+		if (!TestTrue(TEXT("Physical passive found in bag"), BagIndex != INDEX_NONE) ||
+			!TestTrue(TEXT("Equip actual passive to OffHand"),
+				Inventory->EquipItemFromInventorySlot(0, BagIndex, EGridEquipmentSlot::OffHand)))
+			return false;
+		TestEqual(TEXT("No duplicate physical armor reserve"),
+			Inventory->GetEffectiveCurrentPhysicalArmor(0),
+			PhysicalBefore + Definition->EquipmentStatBonus.ArmorBonus);
+		TestEqual(TEXT("No duplicate magical armor reserve"),
+			Inventory->GetEffectiveCurrentMagicalArmor(0),
+			MagicalBefore + Definition->EquipmentStatBonus.MagicalArmorBonus);
+		F.Hud->RefreshFromSources();
+		TestEqual(TEXT("A passive does not create an attack button"),
+			F.Hud->View.Actions[0].Action.Definition.ActionId, FName(TEXT("Attack_Unarmed")));
+		TArray<FGridAvailableCombatAction> Catalog;
+		F.TurnManager->GetAvailableCombatActions(0, Catalog);
+		TestFalse(TEXT("Passive adds no offensive combat source"),
+			Catalog.ContainsByPredicate(
+				[Definition](const FGridAvailableCombatAction& A)
+				{
+					return A.SourceDefinitionId == Definition->ItemDefinitionId &&
+						A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+				}));
+		const int32 PhysicalDebit = Definition->EquipmentStatBonus.ArmorBonus > 0 ? 1 : 0;
+		const int32 MagicalDebit = Definition->EquipmentStatBonus.MagicalArmorBonus > 0 ? 1 : 0;
+		if (PhysicalDebit)
+		{
+			TArray<FGridArmorAbsorptionSourceTrace> Sources;
+			TestEqual(TEXT("Physical equipment takes one real point"),
+				Inventory->ApplyPhysicalArmorDamage(0, PhysicalDebit, &Sources), PhysicalDebit);
+		}
+		if (MagicalDebit)
+		{
+			TestEqual(TEXT("Magical equipment takes one real point"),
+				Inventory->ApplyMagicalArmorDamage(0, MagicalDebit), MagicalDebit);
+		}
+		FGridItemInstance Spent;
+		if (!TestTrue(TEXT("Equipped passive still exists"), Inventory->GetEquippedItem(0, EGridEquipmentSlot::OffHand, Spent)))
+			return false;
+		TestEqual(TEXT("Physical spent charge recorded on instance"),
+			Spent.AbsorbedEquipmentPhysicalArmor, PhysicalDebit);
+		TestEqual(TEXT("Magical spent charge recorded on instance"),
+			Spent.AbsorbedEquipmentMagicalArmor, MagicalDebit);
+		const int32 PhysicalAfter = Inventory->GetEffectiveCurrentPhysicalArmor(0);
+		const int32 MagicalAfter = Inventory->GetEffectiveCurrentMagicalArmor(0);
+		if (!TestTrue(TEXT("Unequip the same passive physical GUID"),
+				Inventory->UnequipItemToInventory(0, EGridEquipmentSlot::OffHand)))
+			return false;
+		const TArray<FGridInventorySlot>& BagAfter = Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots;
+		int32 RestoredIndex = INDEX_NONE;
+		for (int32 I = 0; I < BagAfter.Num(); ++I)
+		{
+			if (!BagAfter[I].IsEmpty() && BagAfter[I].Item.RuntimeObjectId == Item.RuntimeObjectId)
+			{
+				RestoredIndex = I;
+				TestEqual(TEXT("Physical charge survives move to bag"),
+					BagAfter[I].Item.AbsorbedEquipmentPhysicalArmor, PhysicalDebit);
+				TestEqual(TEXT("Magical charge survives move to bag"),
+					BagAfter[I].Item.AbsorbedEquipmentMagicalArmor, MagicalDebit);
+				break;
+			}
+		}
+		if (!TestTrue(TEXT("Same GUID found for re-equip"), RestoredIndex != INDEX_NONE) ||
+			!TestTrue(TEXT("Re-equip without recharge"),
+				Inventory->EquipItemFromInventorySlot(0, RestoredIndex, EGridEquipmentSlot::OffHand)))
+			return false;
+		FGridItemInstance Restored;
+		TestTrue(TEXT("Original passive GUID still equipped"),
+			Inventory->GetEquippedItem(0, EGridEquipmentSlot::OffHand, Restored) &&
+			Restored.RuntimeObjectId == Item.RuntimeObjectId);
+		TestEqual(TEXT("Re-equipping cannot restore spent physical armor"),
+			Inventory->GetEffectiveCurrentPhysicalArmor(0), PhysicalAfter);
+		TestEqual(TEXT("Re-equipping cannot restore spent magical armor"),
+			Inventory->GetEffectiveCurrentMagicalArmor(0), MagicalAfter);
+	}
+	return true;
+}
+
+
 #endif
