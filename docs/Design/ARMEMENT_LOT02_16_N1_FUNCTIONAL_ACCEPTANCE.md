@@ -4,6 +4,8 @@
 **Révision auditée initialement :** `5e964dfa47857da0175fe9749c55f9653280c88e` (8 novembre 2026).  
 **Règle de preuve :** `Active`, un test Automation et une véritable session PIE sont trois niveaux de preuve différents.
 
+**Décision utilisateur (11.11.2026) :** après de nombreux essais variés en PIE, la couverture fonctionnelle des **22 armes N1 est considérée comme validée par l'utilisateur**. Cette validation n'atteste pas individuellement toutes les combinaisons et ne confirme pas le cycle *quitter réellement → relancer → Continue* ni les nouveaux effets audiovisuels. Le chantier suivant est spécifié dans [ARMEMENT-FX01](ARMEMENT_FX01_AUDIO_VFX_PROGRESSION_N1_N20.md) ; aucun FX de production n'est livré avec cette spécification.
+
 ## 1. Audit initial et autorités
 
 - **22/22 Active** dans le manifeste : 16 armes des cinq familles fonctionnelles ci-dessous et six armes historiques supplémentaires.

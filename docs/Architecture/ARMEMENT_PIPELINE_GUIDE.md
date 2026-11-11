@@ -23,6 +23,10 @@ Le manifeste initial comprend **8 archétypes Active** : ARM001, ARM002, ARM014,
 
 Le catalogue contient **82 archétypes, 1 640 profils N1–N20, dont 260 passifs**. `NarrativeV1` contient 82 descriptions de prototype approuvées : cela **n'implique pas** que 82 DataAssets ont été créés. Les capacités notées `PLANNED` dans le lore ne sont pas exécutées.
 
+## Extension audiovisuelle FX01 (11.11.2026) — spécification des 22 armes N1–N20
+
+La spécification [ARMEMENT-FX01](../Design/ARMEMENT_FX01_AUDIO_VFX_PROGRESSION_N1_N20.md) et sa [matrice de 22 armes](../Design/ARMEMENT_FX01_ACTIVE22_CUE_MATRIX.csv) définissent les sons d'attaque/impact/manqué, parades ARM013 OffHand, absorptions de bouclier/orbe, Niagara et cinq bandes de finition N1–N20, sans remplacer les meshes. **Il s'agit d'un contrat de conception non implémenté** : les chemins média proposés n'existent pas encore et aucun asset Unreal n'est produit par la seule documentation. L'autorité du gameplay reste DA_WeaponCatalogue, l'autorité des meshes reste DA_WeaponVisualCatalogue et les Material Slots ; FX01 ne modifie pas les ressources du combat. Le pipeline actuel `PlayerAttackPresentationProfile` reste utilisable en repli pendant la transition vers un catalogue FX partagé.
+
 ## Extension visuelle (10.11.2026) — icônes des actions d'armes équipées
 
 **Contrat actuel :** [ARMEMENT-LOT02.20](../Design/ARMEMENT_LOT02_20_EQUIPPED_ACTION_ICON_FOUNDATION.md). Les icônes **d'objets ARMXXX** restent produites et contrôlées par le pipeline INDUS. Les icônes **d'actions de combat** (frappe à une main, double, deux mains, arc, arbalète, lancer, magie intrinsèque et défense réellement authorée) sont désormais distinctes et partagées entre tous les archétypes d'une même famille.
