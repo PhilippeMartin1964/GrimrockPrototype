@@ -310,8 +310,8 @@ namespace WeaponPipeline
         if (Existing.WeaponCatalogue.LoadSynchronous() != &Rpg ||
             Existing.WeaponVisualCatalogue.LoadSynchronous() != &Visuals)
             return Fail(TEXT("CatalogueReferenceMismatch"));
-        if (!FMath::IsNearlyEqual(Existing.Weight, N1->WeightKg, 0.0001f))
-            return Fail(TEXT("WeightKgMismatch"));
+        // Runtime inventory weight comes from the catalogue profile at the
+        // item's fixed level. Existing.Weight is a serialized legacy snapshot.
         if (Existing.HandUsage != Usage(Spec))
             return Fail(TEXT("HandUsageMismatch"));
         if (Existing.bCombatThrowWeapon != Spec.IsThrowable())
@@ -333,12 +333,9 @@ namespace WeaponPipeline
         if (Spec.IsPassive())
         {
             if (Existing.ItemType != (Spec.IsShield() ? EGridItemType::Shield : EGridItemType::Weapon) ||
-                !Existing.CombatActions.IsEmpty() ||
-                !FMath::IsNearlyEqual(Existing.EquipmentStatBonus.ArmorBonus,
-                    N1->PhysicalArmor, 0.001f) ||
-                !FMath::IsNearlyEqual(Existing.EquipmentStatBonus.MagicalArmorBonus,
-                    Spec.IsFocus() ? N1->MagicalArmor : 0, 0.001f))
+                !Existing.CombatActions.IsEmpty())
                 return Fail(TEXT("PassiveShieldMismatch"));
+            // Defensive N1 fields on the item are no longer authoritative.
             return true;
         }
 
@@ -360,28 +357,19 @@ namespace WeaponPipeline
             return Fail(TEXT("CombatActionTypeMismatch"));
         if (A.SourcePolicy != EGridCombatActionSourcePolicy::Equipment)
             return Fail(TEXT("ActionSourcePolicyMismatch"));
-        if (A.ActionPointCost != N1->ActionPointCost || A.RangeCells != N1->RangeCells)
-            return Fail(TEXT("ActionPointCostOrRangeMismatch"));
+        // Base AP and range are now projected from the level profile at runtime.
+        // The serialized action is retained as a valid metadata template.
         if (A.bRequiresLineOfSight != Spec.UsesRangedAction())
             return Fail(TEXT("ActionLineOfSightMismatch"));
         if (A.ResourceCosts.SourceItemQuantityCost != (Spec.IsThrowable() ? 1 : 0))
             return Fail(TEXT("ThrowingQuantityCostMismatch"));
 
-        FGridAttackDefinition Expected;
-        if (!N1->TryBuildAttackDefinition(Expected))
+        FGridAttackDefinition CanonicalAttack;
+        if (!N1->TryBuildAttackDefinition(CanonicalAttack))
             return Fail(TEXT("CanonicalAttackUnavailable"));
-        const FGridAttackDefinition& Actual = A.OffensiveProfile.AttackDefinition;
-        if (Actual.DamageType != Expected.DamageType ||
-            Actual.PhysicalSubtype != Expected.PhysicalSubtype ||
-            Actual.AccuracyBonus != Expected.AccuracyBonus ||
-            Actual.MinDamage != Expected.MinDamage || Actual.MaxDamage != Expected.MaxDamage ||
-            Actual.DamageDice.bEnabled != Expected.DamageDice.bEnabled ||
-            Actual.DamageDice.DiceCount != Expected.DamageDice.DiceCount ||
-            Actual.DamageDice.DiceSides != Expected.DamageDice.DiceSides ||
-            Actual.DamageDice.FlatBonus != Expected.DamageDice.FlatBonus)
-            return Fail(TEXT("AttackDamageOrDiceMismatch"));
-        if (A.OffensiveProfile.DamageScalingAttribute != N1->ScalingAttribute)
-            return Fail(TEXT("AttackScalingAttributeMismatch"));
+        // NdM+K, type, accuracy and scaling in the stored N1 CombatAction
+        // are migration-only snapshots; ResolveEquippedOffensiveProfile
+        // replaces them with the canonical level profile on every use.
         if (!Existing.CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand))
             return Fail(TEXT("MainHandAttackUnavailable"));
         return true;

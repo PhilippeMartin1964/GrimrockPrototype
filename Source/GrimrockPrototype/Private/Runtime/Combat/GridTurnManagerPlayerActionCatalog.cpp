@@ -23,6 +23,7 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatMovementResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/Combat/GridCombatEventFeedFormatter.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
 #include "Runtime/Combat/GridCatalystAreaResolver.h"
@@ -356,8 +357,17 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 					// An invalid catalogue level must not fall back to Legacy dice.
 					continue;
 				}
+				// The serialized CombatAction is an identity/targeting template.
+				// Canonical damage, scaling, range AND base AP cost come from
+				// the item's effective level, never the N1 authoring snapshot.
+				const FGridWeaponLevelProfile* LevelProfile = nullptr;
+				if (!ItemDefinition->TryGetWeaponCatalogueProfile(EquippedItem.ItemLevel, LevelProfile))
+				{
+					continue;
+				}
 				Definition.OffensiveProfile = ResolvedProfile;
 				Definition.RangeCells = ResolvedProfile.RangeCells;
+				Definition.ActionPointCost = LevelProfile->ActionPointCost;
 			}
 			for (const FName ItemTag : ItemDefinition->ItemTags)
 			{
