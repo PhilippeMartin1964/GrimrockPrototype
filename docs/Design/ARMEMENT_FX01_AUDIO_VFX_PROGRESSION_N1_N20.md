@@ -4,7 +4,7 @@
 **Périmètre autoritaire :** les 22 lignes `Active` de `Config/Armement/WeaponProductionManifest.csv`, couvrant 22 × 20 = **440 niveaux d'objet possibles** ; le catalogue complet contient 82 × 20 profils, mais les 60 autres archétypes ne sont pas des DataAssets de production déclarés ici.  
 **Matrice éditable :** [ARMEMENT_FX01_ACTIVE22_CUE_MATRIX.csv](ARMEMENT_FX01_ACTIVE22_CUE_MATRIX.csv), **22 lignes sans assets sonores/Niagara prétendument existants**. Les descriptions et IDs proposés sont des intentions de direction artistique, pas des effets déjà créés.
 
-> **État SFX01 au 11.11.2026 :** [inventaire et guide d'import des sons Sword](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.md) et [72 noms WAV d'origine → UE5 (CSV)](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.csv). Le script PowerShell **local** de renommage a été validé par l'utilisateur après correction ; il n'est pas versionné ici. L'import SoundWave, les affectations dans les Data Assets et l'écoute PIE restent à valider ; l'affectation audio conditionnelle FX01 reste non implémentée.
+> **État SFX01 au 11.11.2026 :** [inventaire et guide d'import des sons Sword](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.md) et [72 noms WAV d'origine → UE5 (CSV)](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.csv). Le script PowerShell **local** de renommage a été validé par l'utilisateur après correction ; il n'est pas versionné ici. **Validation utilisateur du 12.11.2026 :** le scénario d'écoute PIE du son d'épée avec réaction sonore du monstre fonctionne. Cela ne prouve ni l'import complet des 72 SoundWaves ni la validation exhaustive des armes/actions. Le routage conditionnel des matériaux, parades et critiques FX01 reste non implémenté.
 
 ## 1. Décision, preuves et état du projet
 

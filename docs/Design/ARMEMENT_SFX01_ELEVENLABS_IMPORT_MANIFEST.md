@@ -80,7 +80,15 @@ Chemin source local communiqué : `D:\Development\GrimrockPrototype\Sounds\Weapo
 
 **Attendu : 72** si les 72 sorties ont toutes été renommées et restent dans ce dossier. Un résultat différent invite à comparer avec [le manifeste CSV](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.csv) ; ne jamais renommer arbitrairement les fichiers restants. Les WAV originaux ElevenLabs devraient être archivés séparément avant toute retouche destructive.
 
-### SFX01.2 — Import Unreal et pilote d'écoute (prochain jalon)
+### SFX01.2 — Pilote d'écoute Unreal (validation fonctionnelle partielle)
+
+**Validation utilisateur du 12.11.2026 — son d'épée et réaction du monstre en PIE : VALIDÉ POUR LE SCÉNARIO EXERCÉ.** L'utilisateur a confirmé « Cela fonctionne bien » après le diagnostic de coexistence de `AttackAudio` / `ImpactHitAudio` avec `HurtAudio` / `DeathAudio`. Cette validation atteste l'écoute satisfaisante dans sa session locale ; elle ne certifie pas séparément chaque branche (monstre blessé versus mort), chaque arme, chaque variante, ni la configuration et l'import des 72 médias. Aucun changement C++ n'a été nécessaire ni réalisé pour cette validation. Ne pas présumer que des médias locaux ont été committés dans le dépôt.
+
+**Conclusion du diagnostic précédent :** le système actuel déclenche les sons d'attaque et d'impact indépendamment des vocalisations de monstre ; la mort ne devrait pas annuler automatiquement un one-shot d'impact. Les traces `GridPlayerAttackPresentation` permettent de distinguer un son non résolu (`Sound=None`) d'une lecture audio désactivée (`AudioEnabled=false` / `NativeEnabled=false`) ou d'un problème d'écoute/mixage. Pour le pilote, `PitchMin/PitchMax` règlent la variation de hauteur/vitesse, pas le volume.
+
+**Reste à faire pour clôturer le jalon d'import complet :** inventaire exact des SoundWaves réellement importés et des variantes retenues, vérification persistante des Data Assets ARM014/ARM015, cas de raté, frappe multiple, reprise après chargement, écoute/qualité de tous les sons nécessaires, statut de licence, et sauvegarde/versionnement des `.uasset` retenus. Les événements conditionnels par matériau, parade et critique restent **FX01 à implémenter**, indépendamment de cette validation PIE.
+
+
 
 1. **Écouter/contrôler les sources** : identifier les variantes utiles, retirer silence excessif, clics, répétitions accidentelles et clipping ; examiner le format réel des WAV (fréquence, canaux, PCM). Une conversion vers WAV PCM 48 kHz peut être utile si la source ne convient pas, mais ne change pas magiquement la qualité acoustique.
 2. **Créer les dossiers dans le Content Browser** sous `/Game/GrimrockPrototype/Audio/Weapons/Sword/` : `Swing`, `Impact`, `Parry`, `HeavyAttack`, `Critical`. Conserver `Swing_Reference` (ancien essai) dans une zone `Review` si non retenu. Les `SFX_Sword_*.wav` importés créent des `SoundWave` portant les noms canoniques.
@@ -101,6 +109,6 @@ Implémenter, conformément à [ARMEMENT-FX01](ARMEMENT_FX01_AUDIO_VFX_PROGRESSI
 
 **Critère de fin de SFX01.2 :** sons importés et enregistrés, affectations du pilote vérifiables dans les vrais DA, répétition auditive PIE satisfaisante, et code gameplay inchangé. La validation du script ne valide pas ces opérations Unreal.
 
-**Périmètre de cette révision : documentation GitHub uniquement.** Le script PowerShell local est validé selon le retour utilisateur, mais aucune sortie du dossier local n'a été auditée ici. Aucun WAV n'a été téléversé ni importé dans Unreal ; aucun test UE, compilation ou validation d'écoute des sons n'a été réalisé.
+**Périmètre de cette révision : documentation GitHub uniquement.** Le script PowerShell et l'écoute PIE du scénario épée/monstre sont validés selon les retours utilisateur ; leurs sorties et fichiers locaux n'ont pas été audités ici. Aucun WAV n'a été téléversé dans ce dépôt par cette opération ; aucun test UE automatisé, aucune compilation et aucun commit de Data Asset n'ont été réalisés par l'assistant.
 
 **Références :** [ARMEMENT-FX01](ARMEMENT_FX01_AUDIO_VFX_PROGRESSION_N1_N20.md), `Config/Armement/WeaponProductionManifest.csv`, `Source/GrimrockPrototype/Public/Runtime/Combat/GridPlayerAttackPresentationTypes.h`.
