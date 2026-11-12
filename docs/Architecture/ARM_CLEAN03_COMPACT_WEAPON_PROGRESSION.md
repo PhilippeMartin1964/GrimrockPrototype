@@ -51,6 +51,42 @@ Le commandlet compare chaque propriété des 1 640 profils avant SavePackage. Cl
 
 Le test LosslessCompactCatalogue compare les 1 640 profils et vérifie le refus d'exceptions de niveau dupliquées.
 
+## Migration automatique isolée — ARM-CLEAN03.3
+
+Une migration **unique** peut désormais être autorisée en publiant sur `master` le
+commit portant exactement le titre
+`feat(ARM-CLEAN03.3): enable one-shot guarded catalogue migration`.
+Ce commit regroupe le helper `Scripts/PublishARMCompactCatalogue.ps1` et son
+raccordement à `Scripts/UEValidationAgent.ps1`.
+
+Le dispositif VALIDATION-AUTO01 doit d'abord obtenir `UE5.5.4/LocalAuto=success`
+sur ce SHA. L'agent exécute alors le commandlet natif
+`GridWeaponCatalogueCompact -Apply` **dans son worktree détaché**, sans modifier
+le checkout de l'utilisateur ni sa configuration globale d'UnrealBuildTool.
+
+Garde-fous supplémentaires : origine GitHub vérifiée, SHA exact, déclencheur
+uniquement pour ce commit, worktree détaché initialement propre, cible unique
+`DA_WeaponCatalogue.uasset` sous Git LFS, fichier réel (pas pointeur LFS),
+taille strictement réduite, aucune autre modification, et **suite complète
+`Grimrock` sur le `.uasset` sauvegardé AVANT tout commit ou push**.
+Un `git fetch` final refuse toute divergence de `origin/master` et aucune
+publication forcée n'est autorisée.
+
+Après succès, l'agent publie exactement un commit d'asset
+`assets(ARM-CLEAN03): migrate weapon catalogue to compact lossless rules`,
+puis le cycle Windows suivant compile et valide ce SHA à son tour.
+Le statut dédié `UE5.5.4/WeaponCompact` porte l'état de cette opération sur
+le commit déclencheur. Le code `UE5.5.4/LocalAuto` représente séparément la
+compilation et la suite automatisée initiale.
+
+En cas d'échec, aucun asset n'est poussé ; une modification unique du catalogue
+dans le worktree isolé est restaurée à partir du SHA vérifié. Une divergence
+ou des changements inattendus sont conservés pour diagnostic au lieu d'être effacés.
+
+L'approbation PIE porte sur la finition visuelle des profils N1/N20, les sons
+et les interactions ; la migration des données numériques n'est jamais utilisée
+pour inventer ou reparamétrer les armes.
+
 ## Retour arrière
 
 Un réimport du XLSX par GridWeaponCatalogueImport recrée le tableau complet Profiles, efface ArchetypeProgressions et invalide le cache. L'identité et les niveaux des instances demeurent inchangés. Ne supprimer aucune propriété sérialisée des items lors de cette migration.

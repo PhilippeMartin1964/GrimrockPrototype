@@ -824,6 +824,58 @@ try {
         catch {
             Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
         }
+
+        # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
+        # success and only for the exact opt-in commit subject. Runs in the
+        # isolated detached worktree; never writes to the user's checkout.
+        $CompactTrigger = 'feat(ARM-CLEAN03.3): enable one-shot guarded catalogue migration'
+        $SubjectLines = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $SubjectLines.Count -eq 1 -and
+            [string]$SubjectLines[0] -ceq $CompactTrigger) {
+            $CompactStatus = 'UE5.5.4/WeaponCompact'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $CompactStatus -Description 'Migration compacte en cours (commandlet + suite Grimrock)'
+                $CompactScript = Join-Path $WorktreePath 'Scripts\PublishARMCompactCatalogue.ps1'
+                if (-not (Test-Path -LiteralPath $CompactScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN03: dedicated migration helper absent.'
+                }
+                $CompactTokens = $null
+                $CompactErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $CompactScript, [ref]$CompactTokens, [ref]$CompactErrors)
+                if ($null -ne $CompactErrors -and $CompactErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN03: dedicated migration helper has invalid syntax.'
+                }
+                $CompactArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $CompactScript +
+                    '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                    '" -ExpectedHead "' + $Sha + '" -RunDir "' + $RunDir + '"'
+                $CompactOut = Join-Path $RunDir 'ARMCompactPublish.stdout.log'
+                $CompactErr = Join-Path $RunDir 'ARMCompactPublish.stderr.log'
+                $CompactProcess = Start-Process -FilePath $PsExe -ArgumentList $CompactArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $CompactOut -RedirectStandardError $CompactErr -PassThru -Wait -ErrorAction Stop
+                if ($CompactProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN03: migration returned a nonzero code.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $CompactStatus -Description 'Catalogue compacte publie; validation du SHA binaire au prochain cycle'
+                Write-Host '[ARM-CLEAN03.3] Compact catalogue published; next SHA receives full UE validation.'
+            }
+            catch {
+                $StagePath = Join-Path $RunDir 'ARMCompactMigration.stage'
+                $SafeStage = if (Test-Path -LiteralPath $StagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $StagePath -TotalCount 1)).Trim()
+                } else { 'PREFLIGHT' }
+                if ($SafeStage -notin @('PREFLIGHT','COMMANDLET','COMMANDLET_FAILED',
+                    'FILESET_UNEXPECTED','SIZE_INVALID','ASSET_SAVED','POST_AUTOMATION',
+                    'POST_AUTOMATION_FAILED','PARITY_AND_AUTOMATION_OK','REMOTE_CHANGED',
+                    'COMMIT_CREATED','PUSH_FAILED','SUCCESS')) {
+                    $SafeStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $CompactStatus -Description ("Migration compacte refusee : " + $SafeStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN03.3] GitHub migration status unavailable.' }
+                Write-Warning ("[ARM-CLEAN03.3] Migration not published; stage " + $SafeStage)
+            }
+        }
         $Result = 'success'
         Write-Host "[VALIDATION-AUTO01] SUCCES $Sha. Journaux : $RunDir"
     }
