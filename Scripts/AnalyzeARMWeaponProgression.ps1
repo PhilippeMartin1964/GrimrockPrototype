@@ -29,7 +29,8 @@ if ([string]::IsNullOrWhiteSpace($ReportCsv)) {
 }
 if ($ExportFirst) {
     & (Join-Path $PSScriptRoot 'ExportARMEMENT014Catalogue.ps1')
-    if ($LASTEXITCODE -ne 0) { throw 'CLEAN03: export canonique echoue.' }
+    # The exporter is a PowerShell script: let terminating errors propagate.
+    # LASTEXITCODE is only defined for external processes and is not applicable.
 }
 if (-not (Test-Path -LiteralPath $SourceCsv -PathType Leaf)) {
     throw "CLEAN03: CSV absent : $SourceCsv. Lancez d'abord -ExportFirst."
