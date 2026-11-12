@@ -45,7 +45,15 @@ bool FGridWeaponLevelProfile::TryBuildAttackDefinition(FGridAttackDefinition& Ou
 
 bool UGridWeaponCatalogueAsset::IsValidCatalogue() const
 {
-	if (Profiles.Num() != 82 * 20)
+	// Refuse dual authorities, and validate the same exact 1,640 expanded
+	// values whether the asset is legacy-full or compact-on-disk.
+	if ((!Profiles.IsEmpty() && !ArchetypeProgressions.IsEmpty()) ||
+		(Profiles.IsEmpty() && ArchetypeProgressions.Num() != 82))
+	{
+		return false;
+	}
+	const TArray<FGridWeaponLevelProfile>* RuntimeProfiles = GetRuntimeProfiles();
+	if (!RuntimeProfiles || RuntimeProfiles->Num() != 82 * 20)
 	{
 		return false;
 	}
@@ -54,7 +62,7 @@ bool UGridWeaponCatalogueAsset::IsValidCatalogue() const
 	TMap<FName, FGridWeaponLevelProfile> Baselines;
 	int32 PassiveCount = 0;
 
-	for (const FGridWeaponLevelProfile& Profile : Profiles)
+	for (const FGridWeaponLevelProfile& Profile : *RuntimeProfiles)
 	{
 		if (!Profile.IsValidProfile())
 		{
@@ -124,10 +132,11 @@ const FGridWeaponLevelProfile* UGridWeaponCatalogueAsset::FindProfile(FName Arch
 	{
 		return nullptr;
 	}
-	return Profiles.FindByPredicate([ArchetypeId, ItemLevel](const FGridWeaponLevelProfile& Profile)
+	const TArray<FGridWeaponLevelProfile>* RuntimeProfiles = GetRuntimeProfiles();
+	return RuntimeProfiles ? RuntimeProfiles->FindByPredicate([ArchetypeId, ItemLevel](const FGridWeaponLevelProfile& Profile)
 	{
 		return Profile.ArchetypeId == ArchetypeId && Profile.ItemLevel == ItemLevel;
-	});
+	}) : nullptr;
 }
 
 bool UGridWeaponCatalogueAsset::TryBuildAttack(FName ArchetypeId, int32 ItemLevel, FGridAttackDefinition& OutAttack) const

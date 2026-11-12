@@ -301,6 +301,10 @@ int32 UGridWeaponCatalogueImportCommandlet::Main(const FString& Params)
 	}
 	Asset->Modify();
 	Asset->Profiles = MoveTemp(Preview->Profiles);
+	// A fresh canonical Excel import deliberately restores the full source.
+	// The optional compact representation is never kept as a second authority.
+	Asset->ArchetypeProgressions.Reset();
+	Asset->InvalidateProfileCache();
 	UPackage* Package = Asset->GetOutermost();
 	Package->MarkPackageDirty();
 

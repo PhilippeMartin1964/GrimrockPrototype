@@ -68,6 +68,65 @@ struct GRIMROCKPROTOTYPE_API FGridWeaponLevelProfile
 	bool TryBuildAttackDefinition(FGridAttackDefinition& OutAttack) const;
 };
 
+/** Absolute correction to a level rule. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridWeaponGrowthException
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Growth", meta=(ClampMin="2", ClampMax="20"))
+	int32 ItemLevel = 2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Growth")
+	int32 Value = 0;
+};
+
+/** Value(L) = N1 + floor((L-1) / StepEveryLevels)*StepAmount + sparse exceptions. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridWeaponIntegerGrowthRule
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Growth", meta=(ClampMin="1", ClampMax="20"))
+	int32 StepEveryLevels = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Growth")
+	int32 StepAmount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Growth")
+	TArray<FGridWeaponGrowthException> Exceptions;
+
+	int32 Resolve(int32 ItemLevel, int32 N1Value) const;
+	bool IsValid() const;
+};
+
+/** One N1 baseline plus five integer progressions, instead of 20 full profiles. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridWeaponArchetypeProgression
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Growth")
+	FGridWeaponLevelProfile BaseProfile;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Growth")
+	FGridWeaponIntegerGrowthRule DiceCountGrowth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Growth")
+	FGridWeaponIntegerGrowthRule DiceSidesGrowth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Growth")
+	FGridWeaponIntegerGrowthRule FlatBonusGrowth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Growth")
+	FGridWeaponIntegerGrowthRule PhysicalArmorGrowth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Growth")
+	FGridWeaponIntegerGrowthRule MagicalArmorGrowth;
+
+	bool TryBuildProfile(int32 ItemLevel, FGridWeaponLevelProfile& OutProfile) const;
+};
+
 /** Advisory only: imported from the canonical ARMEMENT01.2 XLSX, never an equip restriction. */
 UENUM(BlueprintType)
 enum class EGridWeaponClassAffinity : uint8
@@ -144,6 +203,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Catalogue")
 	TArray<FGridWeaponLevelProfile> Profiles;
 
+	/** Opt-in lossless compression, mutually exclusive with Profiles. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Catalogue")
+	TArray<FGridWeaponArchetypeProgression> ArchetypeProgressions;
+
     /** Derived projection of the XLSX Catalogue P/Q columns, not authored in Unreal. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon|Class Affinity")
     TArray<FGridWeaponArchetypeClassAffinity> ClassAffinities;
@@ -159,6 +222,17 @@ public:
 
 	/** Look up an immutable template; never modifies instance state. */
 	const FGridWeaponLevelProfile* FindProfile(FName ArchetypeId, int32 ItemLevel) const;
+
+	/** Read-only compression from the existing 1,640 profiles; requires exact parity. */
+	bool BuildCompactCandidate(TArray<FGridWeaponArchetypeProgression>& OutProgressions,
+		int32& OutExceptionCount) const;
+
+	void InvalidateProfileCache() const { ExpandedProfileCache.Reset(); }
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+
 
     /** Fails if the full workbook-derived metadata has not yet been materialized. */
     UFUNCTION(BlueprintCallable, Category="Weapon|Class Affinity")
@@ -182,4 +256,9 @@ public:
 	/** Builds only a damage definition. No rarity, penalty, forge or item-instance mutation. */
 	UFUNCTION(BlueprintCallable, Category="Weapon|Catalogue")
 	bool TryBuildAttack(FName ArchetypeId, int32 ItemLevel, FGridAttackDefinition& OutAttack) const;
+private:
+	/** Expanded runtime view is transient: does not reintroduce 1,640 disk records. */
+	const TArray<FGridWeaponLevelProfile>* GetRuntimeProfiles() const;
+	mutable TArray<FGridWeaponLevelProfile> ExpandedProfileCache;
+
 };
