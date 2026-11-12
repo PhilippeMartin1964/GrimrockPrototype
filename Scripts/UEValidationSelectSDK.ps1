@@ -69,4 +69,8 @@ try {
 finally {
     Remove-Item -LiteralPath $TempPath -Force -ErrorAction SilentlyContinue
 }
+# Pass the validated SDK explicitly to the next PowerShell process and then
+# to UnrealBuildTool. The XML remains an isolated fallback; on some 5.5
+# installations UBT otherwise selects the latest (incomplete) Windows Kit.
+$env:GRIMROCK_VALIDATION_WINDOWS_SDK = $Chosen[0].Name
 Write-Host "[VALIDATION-AUTO01] SDK_SELECTION COMPLETE version=$($Chosen[0].Name)"

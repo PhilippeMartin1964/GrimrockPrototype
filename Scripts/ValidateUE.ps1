@@ -198,6 +198,20 @@ if (-not $SkipBuild)
         '-NoHotReloadFromIDE'
     )
 
+    # VALIDATION-AUTO01: the isolated Windows agent selects a complete SDK.
+    # Forward it explicitly to UBT; the worktree XML is only a fallback.
+    # Interactive builds are unchanged unless this validated env var is set.
+    $AgentSdk = [Environment]::GetEnvironmentVariable('GRIMROCK_VALIDATION_WINDOWS_SDK')
+    if (-not [string]::IsNullOrWhiteSpace($AgentSdk))
+    {
+        if ($AgentSdk -notmatch '^10\.0\.\d{4,6}\.\d{1,5}$')
+        {
+            throw 'VALIDATION-AUTO01: invalid SDK selection passed to build.'
+        }
+        $BuildArguments += "-WindowsSDKVersion=$AgentSdk"
+        Write-Host "[VALIDATION-AUTO01] SDK_SELECTION COMPLETE version=$AgentSdk"
+    }
+
     Set-GrimrockValidationStage -Stage 'BUILD_STARTED'
     Invoke-GrimrockNativeStep -Label 'UE5.5.4 Development Editor build' -Executable $BuildBatch -Arguments $BuildArguments
     Set-GrimrockValidationStage -Stage 'BUILD_OK'
