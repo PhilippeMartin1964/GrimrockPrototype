@@ -308,6 +308,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Equipment|Combat Actions")
 	bool CanProvideAttackFromSlot(EGridEquipmentSlot Slot) const;
 
+	/** Resolve effective equipment bonuses at this instance's fixed weapon level.
+	 * The catalogue owns Physical/Magical armor for weapons and shields; the
+	 * item remains the source of other bonuses and of all Legacy stats.
+	 * Invalid catalogue references produce no armor, never copied N1 armor. */
+	FGridEquipmentStatBonus GetEffectiveEquipmentStatBonusForInstance(const FGridItemInstance& Instance) const;
+
 	/** Resolve only this item's fixed-level catalogue profile; returns false for Legacy/passive/invalid references. */
 	bool TryGetWeaponCatalogueProfile(int32 ItemLevel, const FGridWeaponLevelProfile*& OutProfile) const;
 

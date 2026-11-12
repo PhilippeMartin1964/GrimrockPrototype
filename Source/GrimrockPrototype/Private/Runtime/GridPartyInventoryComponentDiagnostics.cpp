@@ -351,13 +351,13 @@ void UGridPartyInventoryComponent::LogSelectedCharacterEquipmentStatBonusDiagnos
 				return;
 			}
 
-			if (!Definition->EquipmentStatBonus.HasAnyBonus())
+			if (!Definition->GetEffectiveEquipmentStatBonusForInstance(Item).HasAnyBonus())
 			{
 				return;
 			}
 
 			UE_LOG(LogGridInventory, Log, TEXT("GridEquipmentStatBonus Item=%s Slot=%s Bonus=%s"), *Definition->ItemDefinitionId.ToString(),
-				GridEquipmentSlotUtils::GetLogName(Slot), *GridPartyInventoryDiagnosticsGetEquipmentStatBonusText(Definition->EquipmentStatBonus));
+				GridEquipmentSlotUtils::GetLogName(Slot), *GridPartyInventoryDiagnosticsGetEquipmentStatBonusText(Definition->GetEffectiveEquipmentStatBonusForInstance(Item)));
 		});
 }
 

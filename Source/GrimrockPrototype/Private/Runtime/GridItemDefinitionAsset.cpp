@@ -253,6 +253,31 @@ bool UGridItemDefinitionAsset::TryGetWeaponCatalogueProfile(
 	return true;
 }
 
+FGridEquipmentStatBonus UGridItemDefinitionAsset::GetEffectiveEquipmentStatBonusForInstance(const FGridItemInstance& Instance) const
+{
+	FGridEquipmentStatBonus Result = EquipmentStatBonus;
+	if (!bUseWeaponCatalogue)
+	{
+		return Result;
+	}
+
+	// An invalid or mismatched instance must never inherit the N1 armor copy
+	// stored during initial item authoring.
+	const FGridWeaponLevelProfile* Profile = nullptr;
+	const int32 FixedLevel = Instance.ItemLevel == 0 ? DefaultWeaponItemLevel : Instance.ItemLevel;
+	if (Instance.ItemDefinitionId != ItemDefinitionId ||
+		!TryGetWeaponCatalogueProfile(FixedLevel, Profile))
+	{
+		Result.ArmorBonus = 0;
+		Result.MagicalArmorBonus = 0;
+		return Result;
+	}
+
+	Result.ArmorBonus = Profile->PhysicalArmor;
+	Result.MagicalArmorBonus = Profile->MagicalArmor;
+	return Result;
+}
+
 bool UGridItemDefinitionAsset::ResolveEquippedOffensiveProfile(
 	const FGridItemInstance& Instance, const FGridCombatActionDefinition& Action,
 	FGridOffensiveEquipmentProfile& OutProfile) const

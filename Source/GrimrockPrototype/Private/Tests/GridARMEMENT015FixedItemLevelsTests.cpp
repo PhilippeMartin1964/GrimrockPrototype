@@ -269,4 +269,43 @@ bool FARMEMENT015LegacyTest::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTCLEAN02LevelArmorAuthorityTest,
+	"Grimrock.RPG.ARMEMENT.CLEAN02.FixedLevelArmorAuthority",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENTCLEAN02LevelArmorAuthorityTest::RunTest(const FString&)
+{
+	UGridWeaponCatalogueAsset* Catalogue = ARMEMENT015::LoadProductionCatalogue();
+	if (!TestNotNull(TEXT("Production catalogue"), Catalogue)) return false;
+	const FGridWeaponLevelProfile* N1 = Catalogue->FindProfile(TEXT("ARM075"), 1);
+	const FGridWeaponLevelProfile* N20 = Catalogue->FindProfile(TEXT("ARM075"), 20);
+	if (!TestNotNull(TEXT("Shield level 1"), N1) ||
+		!TestNotNull(TEXT("Shield level 20"), N20)) return false;
+
+	UGridItemDefinitionAsset* Shield = ARMEMENT015::MakeDefinition(Catalogue, TEXT("ARM075"), false);
+	// Deliberately stale N1 copies must not be authoritative.
+	Shield->EquipmentStatBonus.ArmorBonus = 999;
+	Shield->EquipmentStatBonus.MagicalArmorBonus = 999;
+	FGridItemInstance Item = ARMEMENT015::MakeInstance(Shield, 1);
+	FGridEquipmentStatBonus Effective = Shield->GetEffectiveEquipmentStatBonusForInstance(Item);
+	TestEqual(TEXT("N1 physical armor is catalogue-derived"), Effective.ArmorBonus, N1->PhysicalArmor);
+	TestEqual(TEXT("N1 magical armor is catalogue-derived"), Effective.MagicalArmorBonus, N1->MagicalArmor);
+
+	Item.ItemLevel = 20;
+	Effective = Shield->GetEffectiveEquipmentStatBonusForInstance(Item);
+	TestEqual(TEXT("N20 physical armor is catalogue-derived"), Effective.ArmorBonus, N20->PhysicalArmor);
+	TestEqual(TEXT("N20 magical armor is catalogue-derived"), Effective.MagicalArmorBonus, N20->MagicalArmor);
+
+	Item.ItemLevel = 21;
+	Effective = Shield->GetEffectiveEquipmentStatBonusForInstance(Item);
+	TestEqual(TEXT("Invalid level never inherits N1 physical armor"), Effective.ArmorBonus, 0);
+	TestEqual(TEXT("Invalid level never inherits N1 magical armor"), Effective.MagicalArmorBonus, 0);
+
+	Shield->bUseWeaponCatalogue = false;
+	Effective = Shield->GetEffectiveEquipmentStatBonusForInstance(Item);
+	TestEqual(TEXT("Legacy physical bonus unchanged"), Effective.ArmorBonus, 999);
+	TestEqual(TEXT("Legacy magical bonus unchanged"), Effective.MagicalArmorBonus, 999);
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

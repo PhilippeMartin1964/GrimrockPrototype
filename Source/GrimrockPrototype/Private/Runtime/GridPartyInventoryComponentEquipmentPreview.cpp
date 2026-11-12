@@ -24,6 +24,7 @@ namespace
         A.MaxManaBonus += B.MaxManaBonus;
         A.CarryWeightBonus += B.CarryWeightBonus;
         A.ArmorBonus += B.ArmorBonus;
+        A.MagicalArmorBonus += B.MagicalArmorBonus;
     }
 
     void AddNumber(TArray<FGridEquipmentPreviewDelta>& Out,
@@ -158,7 +159,7 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
         const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
         Entry.DisplayName = Definition && !Definition->DisplayName.IsEmpty()
             ? Definition->DisplayName : FText::FromName(Item.ItemDefinitionId);
-        const int32 Nominal = Definition ? Definition->EquipmentStatBonus.ArmorBonus : 0;
+        const int32 Nominal = Definition ? Definition->GetEffectiveEquipmentStatBonusForInstance(Item).ArmorBonus : 0;
         Entry.RemainingPhysicalArmor = FMath::Max(0,
             Nominal - FMath::Max(0, Item.AbsorbedEquipmentPhysicalArmor));
     };
@@ -217,9 +218,9 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
                 const UGridItemDefinitionAsset* Definition =
                     FindItemDefinition(Item.ItemDefinitionId);
                 if (!Definition) return;
-                AddBonuses(Totals.Bonuses, Definition->EquipmentStatBonus);
+                AddBonuses(Totals.Bonuses, Definition->GetEffectiveEquipmentStatBonusForInstance(Item));
                 Totals.Resistances.Add(Definition->EquipmentResistanceBonus);
-                const int32 Armor = Definition->EquipmentStatBonus.ArmorBonus;
+                const int32 Armor = Definition->GetEffectiveEquipmentStatBonusForInstance(Item).ArmorBonus;
                 PhysicalArmor += Armor > 0
                     ? FMath::Max(0, Armor -
                         FMath::Max(0, Item.AbsorbedEquipmentPhysicalArmor))
