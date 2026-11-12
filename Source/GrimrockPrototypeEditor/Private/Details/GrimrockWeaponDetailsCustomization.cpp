@@ -1,5 +1,6 @@
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
 #include "IDetailCustomization.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"

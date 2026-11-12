@@ -70,10 +70,73 @@ function Get-PublicSafeDiagnostics {
                 if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
                 continue
             }
+            # C1083 is a file-open failure, not necessarily a source-code error.
+            # Publish ONLY fixed categories; never the file path or raw message.
+            if ($Line -match '(?i)\b(?:fatal\s+)?error\s+C1083\b') {
+                $FileKind = 'UNSPECIFIED_FILE'
+                if ($Line -match '(?i)cannot\s+open\s+compiler\s+generated\s+file') {
+                    $FileKind = 'COMPILER_OUTPUT'
+                }
+                elseif ($Line -match '(?i)cannot\s+open\s+precompiled\s+header\s+file') {
+                    $FileKind = 'PCH_FILE'
+                }
+                elseif ($Line -match '(?i)cannot\s+open\s+include\s+file') {
+                    $FileKind = if ($Line -match '(?i)\.generated\.h\b') { 'GENERATED_HEADER' } else { 'INCLUDE_FILE' }
+                }
+                elseif ($Line -match '(?i)cannot\s+open\s+source\s+file') {
+                    $FileKind = 'SOURCE_FILE'
+                }
+                # C1083 can say only "Cannot open file" without source/include.
+                # Classify its extension, NEVER disclose the path or basename.
+                if ($FileKind -eq 'UNSPECIFIED_FILE') {
+                    if ($Line -match '(?i)\.generated\.h\b') {
+                        $FileKind = 'GENERATED_HEADER'
+                    }
+                    elseif ($Line -match '(?i)\.(?:cpp|cxx|cc|c)\b') {
+                        $FileKind = 'SOURCE_FILE'
+                    }
+                    elseif ($Line -match '(?i)\.(?:hpp|h|inl)\b') {
+                        $FileKind = 'INCLUDE_FILE'
+                    }
+                    elseif ($Line -match '(?i)\.(?:obj|pch|pdb|idb|ipch|tlog|ilk|exp)\b') {
+                        $FileKind = 'COMPILER_OUTPUT'
+                    }
+                    elseif ($Line -match '(?i)\.(?:rsp|response)\b') {
+                        $FileKind = 'RESPONSE_FILE'
+                    }
+                }
+                $Reason = 'UNKNOWN_REASON'
+                if ($Line -match '(?i)no\s+such\s+file\s+or\s+directory|file\s+not\s+found') {
+                    $Reason = 'NOT_FOUND'
+                }
+                elseif ($Line -match '(?i)permission\s+denied|access\s+is\s+denied|sharing\s+violation') {
+                    $Reason = 'ACCESS_DENIED'
+                }
+                elseif ($Line -match '(?i)no\s+space\s+left|disk\s+full|not\s+enough\s+space') {
+                    $Reason = 'NO_SPACE'
+                }
+                $Record = 'Compilateur : C1083 / ' + $FileKind + ' / ' + $Reason
+                if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
+                # A basename with a C++ extension is safe and distinguishes a
+                # missing tracked source from a generated include. No path,
+                # directory, line contents or arbitrary quoted value leaves PC.
+                $ProjectFileMatches = [regex]::Matches($Line,
+                    '(?i)\b(?<name>[A-Za-z_][A-Za-z0-9_.-]{0,95}\.(?:cpp|cxx|cc|h|hpp|inl))\b')
+                if ($ProjectFileMatches.Count -gt 0) {
+                    $BaseName = $ProjectFileMatches[$ProjectFileMatches.Count - 1].Groups['name'].Value
+                    $FileRecord = 'Compilateur : C1083 / Projet=' + $BaseName
+                    if (-not $Safe.Contains($FileRecord)) { $Safe.Add($FileRecord) }
+                }
+                continue
+            }
             # Linker/UHT may fail without producing file(line) : error Cxxxx.
             # Only known tool error codes and static categories may leave Windows.
             if ($Line -match '(?i)\b(?:fatal\s+)?error\s+(?<code>C\d{4}|CS\d{4}|MSB\d{4}|LNK\d{4})\b') {
                 $Record = 'Compilateur : ' + $Matches['code'].ToUpperInvariant()
+                if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
+            }
+            if ($Line -match '(?i)Windows\s+(?<sdk>10\.0\.\d{4,6}\.\d{1,5})\s+SDK') {
+                $Record = 'Environnement : UBT_SDK=' + $Matches['sdk']
                 if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
             }
             if ($Line -match '(?i)\bUnrealHeaderTool\b' -and $Line -match '(?i)\berror\b') {
@@ -88,6 +151,41 @@ function Get-PublicSafeDiagnostics {
                 $Record = 'Tests Automation en echec : ' + $Matches[1]
                 if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
             }
+        }
+    }
+    # C1083 on assert.h/stddef.h may be missing Windows SDK UCRT headers
+    # rather than a project include. Check the documented installed toolchain
+    # and SDK directories with booleans only; NEVER disclose actual paths.
+    if (@($Safe | Where-Object { $_ -like 'Compilateur : C1083*' }).Count -gt 0) {
+        $VsRoot = Join-Path $env:ProgramFiles 'Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.44.35207'
+        $VcClPresent = Test-Path -LiteralPath (Join-Path $VsRoot 'bin\Hostx64\x64\cl.exe') -PathType Leaf
+        $VcIncludePresent = Test-Path -LiteralPath (Join-Path $VsRoot 'include\type_traits') -PathType Leaf
+        $KitRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\Include'
+        $KnownUcrt = Join-Path $KitRoot '10.0.28000.0\ucrt'
+        $KnownAssert = Test-Path -LiteralPath (Join-Path $KnownUcrt 'assert.h') -PathType Leaf
+        $KnownStddef = Test-Path -LiteralPath (Join-Path $KnownUcrt 'stddef.h') -PathType Leaf
+        $AnyUcrt = $false
+        if (Test-Path -LiteralPath $KitRoot -PathType Container) {
+            foreach ($SdkDir in @(Get-ChildItem -LiteralPath $KitRoot -Directory -ErrorAction SilentlyContinue)) {
+                if ((Test-Path -LiteralPath (Join-Path $SdkDir.FullName 'ucrt\assert.h') -PathType Leaf) -and
+                    (Test-Path -LiteralPath (Join-Path $SdkDir.FullName 'ucrt\stddef.h') -PathType Leaf)) {
+                    $AnyUcrt = $true
+                    break
+                }
+            }
+        }
+        $Safe.Add('Environnement : MSVC14.44_CL=' + $(if ($VcClPresent) { 'PRESENT' } else { 'ABSENT' }))
+        $Safe.Add('Environnement : MSVC14.44_CPP=' + $(if ($VcIncludePresent) { 'PRESENT' } else { 'ABSENT' }))
+        $Safe.Add('Environnement : SDK28000_UCRT_ASSERT=' + $(if ($KnownAssert) { 'PRESENT' } else { 'ABSENT' }))
+        $Safe.Add('Environnement : SDK28000_UCRT_STDDEF=' + $(if ($KnownStddef) { 'PRESENT' } else { 'ABSENT' }))
+        $Safe.Add('Environnement : ANY_SDK_UCRT_PAIR=' + $(if ($AnyUcrt) { 'PRESENT' } else { 'ABSENT' }))
+    }
+    # Project-local SDK choice is safe to report as a version number only.
+    $LocalSdkXml = Join-Path $WorktreePath 'Saved\UnrealBuildTool\BuildConfiguration.xml'
+    if (Test-Path -LiteralPath $LocalSdkXml -PathType Leaf) {
+        $SdkText = Get-Content -LiteralPath $LocalSdkXml -Raw -ErrorAction SilentlyContinue
+        if ($SdkText -match '<WindowsSdkVersion>(?<sdk>10\.0\.\d{4,6}\.\d{1,5})</WindowsSdkVersion>') {
+            $Safe.Add('Environnement : LOCAL_SDK=' + $Matches['sdk'])
         }
     }
     # Stage emitted by the exact same ValidateUE.ps1 invocation. Only the
@@ -684,6 +782,19 @@ try {
         }
         # Les assets volumineux .uasset/.umap sont geres separement par Git LFS.
         Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'lfs', 'pull') | Out-Null
+        # SDK preflight runs only in the detached validation worktree.
+        $SdkSelector = Join-Path $WorktreePath 'Scripts\UEValidationSelectSDK.ps1'
+        if (-not (Test-Path -LiteralPath $SdkSelector -PathType Leaf)) {
+            throw 'SDK_SELECTION: helper missing from checked-out master.'
+        }
+        $SdkTokens = $null
+        $SdkParseErrors = $null
+        [void][System.Management.Automation.Language.Parser]::ParseFile(
+            $SdkSelector, [ref]$SdkTokens, [ref]$SdkParseErrors)
+        if ($SdkParseErrors -and $SdkParseErrors.Count -gt 0) {
+            throw 'SDK_SELECTION: helper has invalid PowerShell syntax.'
+        }
+        & $SdkSelector -WorktreePath $WorktreePath
         $ValidatePath = Join-Path $WorktreePath 'Scripts\ValidateUE.ps1'
         if (-not (Test-Path -LiteralPath $ValidatePath -PathType Leaf)) { throw "Harness UE introuvable : $ValidatePath" }
         Write-Host "[VALIDATION-AUTO01] Validation $Sha : $AutomationFilter"

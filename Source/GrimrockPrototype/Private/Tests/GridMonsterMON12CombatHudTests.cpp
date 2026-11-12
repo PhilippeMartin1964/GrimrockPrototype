@@ -22,6 +22,7 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Sound/SoundWave.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -3735,12 +3736,25 @@ bool FARMEMENTLOT02165PassiveN1Execution::RunTest(const FString&)
 			!TestTrue(TEXT("Equip actual passive to OffHand"),
 				Inventory->EquipItemFromInventorySlot(0, BagIndex, EGridEquipmentSlot::OffHand)))
 			return false;
+		// ARM-CLEAN02: the N1 serialized equipment snapshot is no longer the
+		// combat authority. Validate the real fixed-level catalogue profile.
+		const FGridWeaponLevelProfile* LevelProfile = nullptr;
+		if (!TestTrue(TEXT("Passive N1 catalogue profile available"),
+			Definition->TryGetWeaponCatalogueProfile(Item.ItemLevel, LevelProfile)) ||
+			!TestNotNull(TEXT("Passive N1 catalogue profile"), LevelProfile))
+		{
+			return false;
+		}
+		const FGridEquipmentStatBonus EffectiveBonuses =
+			Definition->GetEffectiveEquipmentStatBonusForInstance(Item);
+		TestEqual(TEXT("Physical armor follows catalogue N1"), EffectiveBonuses.ArmorBonus, LevelProfile->PhysicalArmor);
+		TestEqual(TEXT("Magical armor follows catalogue N1"), EffectiveBonuses.MagicalArmorBonus, LevelProfile->MagicalArmor);
 		TestEqual(TEXT("No duplicate physical armor reserve"),
 			Inventory->GetEffectiveCurrentPhysicalArmor(0),
-			PhysicalBefore + Definition->EquipmentStatBonus.ArmorBonus);
+			PhysicalBefore + EffectiveBonuses.ArmorBonus);
 		TestEqual(TEXT("No duplicate magical armor reserve"),
 			Inventory->GetEffectiveCurrentMagicalArmor(0),
-			MagicalBefore + Definition->EquipmentStatBonus.MagicalArmorBonus);
+			MagicalBefore + EffectiveBonuses.MagicalArmorBonus);
 		F.Hud->RefreshFromSources();
 		TestEqual(TEXT("A passive does not create an attack button"),
 			F.Hud->View.Actions[0].Action.Definition.ActionId, FName(TEXT("Attack_Unarmed")));
@@ -3753,8 +3767,8 @@ bool FARMEMENTLOT02165PassiveN1Execution::RunTest(const FString&)
 					return A.SourceDefinitionId == Definition->ItemDefinitionId &&
 						A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
 				}));
-		const int32 PhysicalDebit = Definition->EquipmentStatBonus.ArmorBonus > 0 ? 1 : 0;
-		const int32 MagicalDebit = Definition->EquipmentStatBonus.MagicalArmorBonus > 0 ? 1 : 0;
+		const int32 PhysicalDebit = EffectiveBonuses.ArmorBonus > 0 ? 1 : 0;
+		const int32 MagicalDebit = EffectiveBonuses.MagicalArmorBonus > 0 ? 1 : 0;
 		if (PhysicalDebit)
 		{
 			TArray<FGridArmorAbsorptionSourceTrace> Sources;

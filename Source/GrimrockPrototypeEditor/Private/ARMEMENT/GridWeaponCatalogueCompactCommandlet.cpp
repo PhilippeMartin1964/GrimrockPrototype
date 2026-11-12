@@ -123,7 +123,7 @@ int32 UGridWeaponCatalogueCompactCommandlet::Main(const FString& Params)
 
 	UPackage* Package = Catalogue->GetOutermost();
 	Package->MarkPackageDirty();
-	const FString PackageName = FPackageName::ObjectPathToPackageName(CataloguePath);
+	const FString PackageName = FPackageName::ObjectPathToPackageName(FString(CataloguePath));
 	const FString File = FPackageName::LongPackageNameToFilename(
 		PackageName, FPackageName::GetAssetPackageExtension());
 	IFileManager::Get().MakeDirectory(*FPaths::GetPath(File), true);
