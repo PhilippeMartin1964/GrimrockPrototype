@@ -825,6 +825,64 @@ try {
             Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
         }
 
+        # ARM-CLEAN06.0: one-shot READ-ONLY asset snapshot for this exact commit.
+        # No asset save, no extra commit, no change to the development worktree.
+        $BaselineTrigger = 'chore(ARM-CLEAN06.0): capture read-only UE asset migration baseline'
+        $BaselineSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $BaselineSubject.Count -eq 1 -and
+            [string]$BaselineSubject[0] -ceq $BaselineTrigger) {
+            $BaselineStatus = 'UE5.5.4/ARM-CLEAN06.0'
+            $BaselinePhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $BaselineStatus -Description 'Inventaire UE en lecture seule en cours'
+                $BaselineScript = Join-Path $WorktreePath 'Scripts\CaptureARM_CLEAN06_Baseline.ps1'
+                if (-not (Test-Path -LiteralPath $BaselineScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.0: baseline script not found.'
+                }
+                $BaselinePhase = 'PARSE'
+                $BaselineTokens = $null
+                $BaselineErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $BaselineScript, [ref]$BaselineTokens, [ref]$BaselineErrors)
+                if ($BaselineErrors -and $BaselineErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.0: baseline PowerShell syntax invalid.'
+                }
+                $BaselinePhase = 'PROCESS_LAUNCH'
+                $BaselineArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $BaselineScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -ExpectedHead "' + $Sha +
+                    '" -RunDir "' + $RunDir + '" -DevelopmentRoot "' + $RepositoryRoot +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $BaselineOut = Join-Path $RunDir 'ARM060.stdout.log'
+                $BaselineErr = Join-Path $RunDir 'ARM060.stderr.log'
+                $BaselinePhase = 'PROCESS_RUNNING'
+                $BaselineProcess = Start-Process -FilePath $PsExe -ArgumentList $BaselineArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $BaselineOut -RedirectStandardError $BaselineErr -PassThru -Wait -ErrorAction Stop
+                if ($BaselineProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.0: baseline capture returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $BaselineStatus -Description 'Baseline UE: 56 assets, 1640 profils; issue GitHub publiee'
+                Write-Host '[ARM-CLEAN06.0] Read-only baseline completed.'
+            }
+            catch {
+                $BaselineStageFile = Join-Path $RunDir 'ARMClean060.stage'
+                $BaselineStage = if (Test-Path -LiteralPath $BaselineStageFile -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $BaselineStageFile -TotalCount 1)).Trim()
+                } else { $BaselinePhase }
+                if ($BaselineStage -notin @('PREFLIGHT','CHECK_HEAD','HEAD_QUERY_FAILED','HEAD_MISMATCH','CHECK_WORKTREE','CHECK_ENGINE','START','PARSE',
+                    'PROCESS_LAUNCH','PROCESS_RUNNING','COMMANDLET','COMMANDLET_FAILED',
+                    'VERIFY','READ_JSON','CHECK_COUNTS','BINARY_HASH','SAVE_HASH',
+                    'WRITE_RECEIPT','CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE',
+                    'WORKTREE_CHANGED','PUBLICATION','SUCCESS')) {
+                    $BaselineStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $BaselineStatus -Description ('Baseline non produite : ' + $BaselineStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.0] Status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.0] Extraction incomplete: ' + $BaselineStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
