@@ -66,7 +66,8 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 	TestEqual(TEXT("All originally unconverted throw physics now accounted for"),
 		Stats.Core.UnconvertedThrowPolicies, 0);
 	TestTrue(TEXT("Final visual catalogue validates"), Stats.bVisualCatalogueValid);
-	TestTrue(TEXT("Final numeric catalogue validates"), Stats.bWeaponCatalogueValid);
+	TestEqual(TEXT("Only unfinished action bindings may keep the numeric catalogue invalid"),
+		Stats.bWeaponCatalogueValid, Stats.Core.UnboundOffensiveArmaments == 0);
 	TestEqual(TEXT("Unbound offensive candidates explicitly counted"),
 		Stats.Core.UnboundOffensiveArmaments, 19 - Stats.Core.Actions.BoundActions);
 	TestFalse(TEXT("A preview never grants binary cutover without full action parity"),

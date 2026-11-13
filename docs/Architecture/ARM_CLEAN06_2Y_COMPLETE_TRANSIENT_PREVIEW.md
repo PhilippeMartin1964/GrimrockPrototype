@@ -40,6 +40,14 @@ sont conservés (19 et deux), **même lorsque** leurs
 le validateur 06.2T signale l'incomplétude au lieu de
 supprimer les commandes ou de fabriquer une présentation.
 
+Le catalogue numérique reste **structurellement invalide**
+tant qu'un ARM actif possède une source MainHand/OffHand
+sans liaison d'action authorée. Le prévol accepte uniquement
+cette erreur de validation connue, en exigeant une erreur par
+arme offensive non liée ; tout autre défaut structurel
+interrompt la construction. Le registre complet reste
+invalide et `ReadyForBinaryCutover()` demeure faux.
+
 Les trois politiques de vol et les trois présentations
 de projectile sont comparées aux vrais DataAssets,
 et leurs compteurs non convertis ne sont annulés

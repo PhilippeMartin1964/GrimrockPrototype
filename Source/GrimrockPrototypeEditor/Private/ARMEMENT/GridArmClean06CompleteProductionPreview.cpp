@@ -101,10 +101,28 @@ bool GridArmClean06CompleteProductionPreview::Build(
 		TransientRoot.WeaponVisualCatalogue->Validate(VisualErrors);
 	OutSummary.bWeaponCatalogueValid =
 		TransientRoot.WeaponCatalogue->Validate(WeaponErrors);
-	if (!OutSummary.bVisualCatalogueValid ||
-		!OutSummary.bWeaponCatalogueValid)
+	if (!OutSummary.bVisualCatalogueValid)
 	{
 		return false;
+	}
+	// An offensive ARM with a proven hand but NO authored ActionId/PresentationId
+	// is correctly rejected by the canonical weapon validator. That expected
+	// blocker must be visible in the preview, not misreported as numeric loss.
+	// Every other validation error remains a fatal mismatch.
+	if (!OutSummary.bWeaponCatalogueValid)
+	{
+		if (OutSummary.Core.UnboundOffensiveArmaments <= 0 ||
+			WeaponErrors.Num() != OutSummary.Core.UnboundOffensiveArmaments)
+		{
+			return false;
+		}
+		for (const FString& WeaponError : WeaponErrors)
+		{
+			if (WeaponError != TEXT("Weapon catalogue: attack source without action binding"))
+			{
+				return false;
+			}
+		}
 	}
 
 	// All physical/visual policies were proven; the original action/presentation
