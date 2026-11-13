@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "ARMEMENT/GridArmClean06ProductionActionsCandidate.h"
 #include "ARMEMENT/GridArmClean06ProductionCandidate.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062QProductionActions,
@@ -64,6 +65,39 @@ bool FGridClean062QProductionActions::RunTest(const FString&)
 	TestTrue(TEXT("Actual bindings never outnumber proved actions"),
 		ActionSummary.BoundActions <= ActionSummary.StandardActions);
 
+	// Replace the deleted provisional 06.2Z/AA staging with a direct
+	// production gate: a missing authored presentation ID is NOT an
+	// invitation to synthesize one from the existing attack ID.
+	int32 MissingAuthoredKeys = 0;
+	for (const FGridWeaponPipelineRow& Row : Manifest)
+	{
+		if (Row.IsPassive()) { continue; }
+		const UGridItemDefinitionAsset* Source =
+			LoadObject<UGridItemDefinitionAsset>(nullptr, *Row.ItemPath);
+		if (!TestNotNull(TEXT("Manifest-only real action source"), Source))
+		{
+			return false;
+		}
+		const FName AttackId(*Row.AttackId);
+		const FGridCombatActionDefinition* Primary =
+			Source->CombatActions.FindByPredicate(
+				[AttackId](const FGridCombatActionDefinition& Action)
+				{
+					return Action.ActionId == AttackId;
+				});
+		if (!TestNotNull(TEXT("Real primary action is still authored"), Primary))
+		{
+			return false;
+		}
+		if (Primary->PresentationProfileId.IsNone())
+		{
+			if (Candidate->ActionCatalogue->Find(AttackId)) { ++MissingAuthoredKeys; }
+			TestNull(TEXT("Missing PresentationId cannot be inferred from AttackId"),
+				Candidate->ActionPresentationCatalogue->Find(AttackId));
+		}
+	}
+	TestEqual(TEXT("Missing authored keys reported by production conversion"),
+		MissingAuthoredKeys, ActionSummary.NoAuthoredPresentationId);
 	TArray<FString> Errors;
 	TestFalse(TEXT("Incomplete 82-ARM numeric semantics must not register as complete"),
 		Candidate->Validate(Errors));
