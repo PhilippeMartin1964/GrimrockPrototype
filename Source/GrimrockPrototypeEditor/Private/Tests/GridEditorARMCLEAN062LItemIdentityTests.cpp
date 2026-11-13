@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "ARMEMENT/GridArmClean06ItemIdentityProjection.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "UObject/StrongObjectPtr.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062LProductionItems,
@@ -25,7 +26,10 @@ bool FGridClean062LProductionItems::RunTest(const FString&)
 	}
 	TSet<FName> SeenItemIds;
 	TSet<FName> SeenArmIds;
-	TStrongObjectPtr<UObject> Owner(NewObject<UObject>(GetTransientPackage()));
+	// UObject is not a suitable generic fixture root for UPrimaryDataAssets.
+	// Use the concrete, already-tested UPrimaryDataAsset registry as Outer.
+	TStrongObjectPtr<UGridItemSystemAsset> Owner(
+		NewObject<UGridItemSystemAsset>(GetTransientPackage()));
 	int32 CustomDefaultLevels = 0;
 	int32 TagsTotal = 0;
 	int32 NonemptyDescriptions = 0;

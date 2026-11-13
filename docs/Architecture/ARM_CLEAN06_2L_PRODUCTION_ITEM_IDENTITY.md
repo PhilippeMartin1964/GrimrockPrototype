@@ -45,3 +45,25 @@ aucun lecteur SaveGame/PIE n'est modifié. La sortie attendue
 est la validation du code + suite `Grimrock` sur le
 SHA exact, puis l'authoring canonique lorsque toutes les
 dépendances seront prouvées.
+
+## ARM-CLEAN06.2O — Réparation de la fixture d'instances transitoires
+
+Les SHA 06.2L et 06.2M ont compilé, mais leur test
+`ProductionItemIdentityProjection` a échoué avec un
+`ENSURE_CONDITION_FAILED` (rapports GitHub #105 et #106).
+Ce symptôme **ne prouve pas** un défaut dans les
+définitions d'armes. La fixture de test créait
+`NewObject<UObject>()` comme Outer ; cette construction
+n'était pas alignée sur les fixtures `CLEAN06.1` validées.
+
+La fixture utilise maintenant un
+`UGridItemSystemAsset` transitoire concret, conservé
+en `TStrongObjectPtr` et propriétaire des
+`UGridArmamentDefinitionAsset` de test. C'est
+le même modèle de durée de vie que les tests
+`SingleResolver` validés.
+
+Aucun `UPackage` de production, aucun calcul de
+poids, `ItemId`, tag ou texte d'arme n'est changé.
+La cause sera considérée comme démontrée seulement
+après une nouvelle validation `LocalAuto` réussie.
