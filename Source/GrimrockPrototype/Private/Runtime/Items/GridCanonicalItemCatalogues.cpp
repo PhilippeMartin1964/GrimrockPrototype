@@ -301,6 +301,22 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 	{
 		bValid = AddError(Errors, TEXT("Weapon catalogue: 82 ARM archetypes required"));
 	}
+	if (!ClassPreferences.IsEmpty())
+	{
+		if (ClassPreferences.Num() != 6)
+		{
+			bValid = AddError(Errors, TEXT("Weapon catalogue: six class preference rows required"));
+		}
+		TSet<FName> PreferenceIds;
+		for (const FGridCanonicalClassPreference& Preference : ClassPreferences)
+		{
+			if (Preference.ClassId.IsNone() || PreferenceIds.Contains(Preference.ClassId))
+			{
+				bValid = AddError(Errors, TEXT("Weapon catalogue: duplicate/invalid class preference"));
+			}
+			PreferenceIds.Add(Preference.ClassId);
+		}
+	}
 	int32 PassiveProfiles = 0;
 	TSet<FName> Seen;
 	for (const FGridCanonicalWeaponArchetype& Archetype : Archetypes)
@@ -342,13 +358,35 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 			SeenActions.Add(Action.ActionId);
 		}
 		TSet<FName> SeenClasses;
-		for (FName ClassId : Archetype.RecommendedClassIds)
+		for (FName ClassId : Archetype.SecondaryClassIds)
 		{
-			if (ClassId.IsNone() || SeenClasses.Contains(ClassId))
+			if (ClassId.IsNone() || SeenClasses.Contains(ClassId) ||
+				ClassId == Archetype.PrimaryClassId)
 			{
-				bValid = AddError(Errors, TEXT("Weapon catalogue: invalid/duplicate class recommendation"));
+				bValid = AddError(Errors, TEXT("Weapon catalogue: invalid/duplicate secondary class recommendation"));
 			}
 			SeenClasses.Add(ClassId);
+		}
+		if (!ClassPreferences.IsEmpty())
+		{
+			if (Archetype.PrimaryClassId.IsNone() ||
+				!ClassPreferences.ContainsByPredicate([&Archetype](const FGridCanonicalClassPreference& Row)
+				{
+					return Row.ClassId == Archetype.PrimaryClassId;
+				}))
+			{
+				bValid = AddError(Errors, TEXT("Weapon catalogue: missing/unknown primary class"));
+			}
+			for (FName ClassId : Archetype.SecondaryClassIds)
+			{
+				if (!ClassPreferences.ContainsByPredicate([ClassId](const FGridCanonicalClassPreference& Row)
+				{
+					return Row.ClassId == ClassId;
+				}))
+				{
+					bValid = AddError(Errors, TEXT("Weapon catalogue: unknown secondary class"));
+				}
+			}
 		}
 		for (int32 Level = 1; Level <= 20; ++Level)
 		{

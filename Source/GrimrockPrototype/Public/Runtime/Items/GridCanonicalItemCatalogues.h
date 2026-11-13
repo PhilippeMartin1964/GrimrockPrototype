@@ -484,13 +484,49 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponArchetype
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TArray<FGridCanonicalReactionPolicy> Reactions;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
-	TArray<FName> RecommendedClassIds;
+	/** Original Primary/Secondary advisory metadata, never an equip restriction. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
+	FName PrimaryClassId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
+	TArray<FName> SecondaryClassIds;
+
+	/** Preserve original XLSX qualifiers verbatim; do not infer class IDs from prose. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
+	FString SecondarySourceLabel;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TArray<FGridItemActionBinding> Actions;
 
 	bool TryResolve(int32 Level, FGridCanonicalResolvedWeapon& Out) const;
+};
+
+/** Canonical copy of each of the six workbook Classes-tab rows. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridCanonicalClassPreference
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
+	FName ClassId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
+	FString CanonicalBranches;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
+	FString PriorityWeapons;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
+	FString EmblematicExamples;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
+	FString Alternatives;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
+	FString DominantAttributes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
+	FString Synergies;
 };
 
 UCLASS(BlueprintType)
@@ -501,6 +537,10 @@ class GRIMROCKPROTOTYPE_API UGridCanonicalWeaponCatalogueAsset : public UPrimary
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Catalogue")
 	TArray<FGridCanonicalWeaponArchetype> Archetypes;
+
+	/** Global class advice from six original rows; no per-weapon duplicates. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
+	TArray<FGridCanonicalClassPreference> ClassPreferences;
 
 	const FGridCanonicalWeaponArchetype* Find(FName ArchetypeId) const;
 	bool Validate(TArray<FString>& Errors) const;
