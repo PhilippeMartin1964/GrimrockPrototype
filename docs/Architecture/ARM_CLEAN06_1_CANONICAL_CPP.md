@@ -99,3 +99,20 @@ disparaître ; comparer chaque profil N1–N20 à la baseline 06.0.
 Ne pas raccorder les lecteurs combat/inventaire/SaveGame avant la validation
 des références et des assets convertis. Les étapes 06.3–06.6 restent
 nécessaires avant l'élimination des classes historiques.
+
+## Correction du cycle de vie des fixtures (après 06.2A)
+
+Les tests du résolveur créaient auparavant directement
+NewObject<UGridItemSubsystem>() sans propriétaire. Or
+UGameInstanceSubsystem est déclaré Within=GameInstance dans Unreal 5.5.4.
+L'Automation signalait alors un ENSURE_CONDITION_FAILED dans le test
+SingleResolver.AmmoAfterRegister, indépendamment de la parité des profils ARM.
+
+Les onze fixtures créent désormais le sous-système avec une vraie
+UGameInstance conservée par référence forte. Le scénario Registry vérifie
+également la propriété GetGameInstance(). Toutes les assertions métier sur
+les munitions, le registre, les actions et les protections sont conservées.
+
+La validation reste définie par les statuts UE5.5.4/LocalAuto et
+UE5.5.4/SilentTask du commit de correction ; une compilation seule
+ne certifie pas la suite Automation.
