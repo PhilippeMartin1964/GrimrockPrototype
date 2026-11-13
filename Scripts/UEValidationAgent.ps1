@@ -907,11 +907,11 @@ try {
 
         # ARM-CLEAN06.2E — one-shot semantic census in native UE. NO asset writes.
         # Triggered only on the exact authored subject and the isolated SHA.
-        $SemanticsTrigger = 'chore(ARM-CLEAN06.2E.3): reconcile source-class and ARM coverage'
+        $SemanticsTrigger = 'chore(ARM-CLEAN06.2E.4): qualify native weapon semantics without asset writes'
         $SemanticsSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $SemanticsSubject.Count -eq 1 -and
             [string]$SemanticsSubject[0] -ceq $SemanticsTrigger) {
-            $SemanticsContext = 'UE5.5.4/ARM-CLEAN06.2E.3'
+            $SemanticsContext = 'UE5.5.4/ARM-CLEAN06.2E.4'
             $SemanticsPhase = 'PREFLIGHT'
             try {
                 Publish-CommitStatus -Sha $Sha -State 'pending' -Context $SemanticsContext -Description 'Audit UE des mains/familles en lecture seule'
@@ -939,7 +939,7 @@ try {
                 if ($SemanticsProcess.ExitCode -ne 0) {
                     throw 'ARM-CLEAN06.2E: native read-only semantic audit rejected.'
                 }
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $SemanticsContext -Description 'Rapprochement UE 22 manifeste / 24 packages, 0 ecriture'
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $SemanticsContext -Description 'Qualification native UE 24 packages/22 ARM, 0 ecriture'
             }
             catch {
                 $SemanticsStageFile = Join-Path $RunDir 'ARMClean062E.stage'
@@ -947,7 +947,7 @@ try {
                     ([string](Get-Content -LiteralPath $SemanticsStageFile -TotalCount 1)).Trim()
                 } else { $SemanticsPhase }
                 if ($SemanticsStage -notin @('PREFLIGHT','PARSE','COMMANDLET','REPORT','CHECK_CLEAN','ISSUE','SUCCESS',
-                    'RECONCILE','CMD_ARGUMENT','SOURCE_CATALOGUE','SOURCE_ARCHETYPE','ITEM_IDS','ASSET_COUNT',
+                    'RECONCILE','QUALIFY','CMD_ARGUMENT','SOURCE_CATALOGUE','SOURCE_ARCHETYPE','ITEM_IDS','ASSET_COUNT',
                     'OUTPUT_JSON','REPORT_ABSENT','NATIVE_PROCESS','UNREAL_EXIT_255')) {
                     $SemanticsStage = 'UNKNOWN'
                 }

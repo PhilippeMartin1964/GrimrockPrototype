@@ -254,3 +254,89 @@ les regles runtime. Un resultat vert **identifie la nature du
 blocage**, mais n'autorise pas la migration binaire, le
 nettoyage de legacy ni un changement automatique de type.
 Aucune PIE n'est necessaire pour cet audit purement structurel.
+
+
+## ARM-CLEAN06.2E.4 — Qualification des types et regles de mains non resolus
+
+### Reference de depart (preuve native E.3)
+
+Le commit 5dd1db70 a passe UE5.5.4/SilentTask,
+UE5.5.4/LocalAuto et UE5.5.4/ARM-CLEAN06.2E.3.
+L'inventaire UE a montre :
+
+- 22/22 objets declares au manifeste de production ont la
+  classe UGridItemDefinitionAsset et les IDs attendus ;
+- deux packages existent hors manifeste, dont un
+  UGridItemDefinitionAsset et un autre objet UE chargeable ;
+- un seul des 23 UGridItemDefinitionAsset est en opt-out
+  (bUseWeaponCatalogue=false) ; aucun ARM vide, inconnu ou
+  dont le profil N1 manque parmi les 22 objets relies ;
+- sur ces 22, trois HandPolicy et un Kind restent indetermines.
+
+Ces constats etablissent des comptes, pas la signification
+ni l'utilite de l'objet non conforme a la classe supposee.
+
+### Observations de 06.2E.4 (en lecture seule)
+
+Le commandlet UE ajoute sur **chaque** ligne de package :
+
+- is_data_asset, is_primary_data_asset, class_compiled_from_blueprint
+  derives de l'heritage reel de l'UObject charge (sans supposition
+  fondee sur le nom de fichier) ;
+- sur les instances UGridItemDefinitionAsset uniquement :
+  HandUsage saisi, usage de main effectif, declaration explicite
+  de MainHand/OffHand, autorisations CanEquipToSlot, nombre
+  d'actions locales, opt-in de lancer, et activation des des N1.
+
+Un helper PowerShell distingue dans qualification-private.json :
+
+- classe atypique : DataAsset ou non-DataAsset,
+  PrimaryDataAsset ou non, classe compilee par Blueprint ou non ;
+- opt-out historique : dans/hors manifeste, actions locales
+  presentes et capacite de lancer active ;
+- main indeterminee : NotHandHeld effectif, Auto non resolu,
+  incoherence de permissions OneHanded/TwoHanded, autre ;
+- kind indetermine : Weapon sans degats (candidat de Focus
+  **sans attribution automatique**), Shield avec degats
+  ou autre ecart ItemType/DamageDice ;
+- difference entre la liste de slots explicitement auteurisee
+  dans le DataAsset et les slots autorises par CanEquipToSlot.
+
+**Attention capitale :** dans le code legacy actuel,
+CanEquipToSlot(MainHand/OffHand) autorise les DEUX mains
+pour une definition OneHanded ou TwoHanded, independamment
+de CompatibleEquipmentSlots. Il ne faut donc pas importer
+CompatibleEquipmentSlots comme restriction active sans valider
+le comportement historique exact. Une politique EitherHand
+observee dans le runtime n'est pas forcement l'intention du
+createur de l'asset.
+
+La valeur FocusPassive dans le manifeste de production reste
+une **intention source** distincte d'une preuve runtime.
+Aucun changement de gameplay, categorie de classe, de
+HandPolicy ou de type passif n'est opere.
+
+### Execution, controles et limites
+
+Apres le build et tous les tests Grimrock, l'agent sur worktree
+detache invoque le sujet exact :
+
+chore(ARM-CLEAN06.2E.4): qualify native weapon semantics without asset writes
+
+Le prevol valide successivement le recensement UE v1 (complements
+de colonnes ajoutees), le rapprochement E.3 et le helper E.4.
+Il refuse toute somme de compteurs incoherente ou ligne perdue,
+puis confirme la proprete Git. Le rapport individuel et les
+classes exactes demeurent dans le RunDir prive ; l'issue GitHub
+ne contient que des categories fixees d'avance.
+Le statut de validation est UE5.5.4/ARM-CLEAN06.2E.4.
+
+Un resultat success atteste seulement d'un **diagnostic
+structurel qualifie**. La preuve d'equivalence de gameplay
+n'est pas encore faite : ni les 60 archetypes sans definition
+reliee, ni les politiques de mains, Focus ou les refs
+d'actions et projectiles ne sont convertis. 06.3–06.5
+restent bloques jusqu'aux preuves de parite pertinentes.
+Aucun .uasset, .umap, SaveGame ni effet audio Sword/RatGiant
+n'est ecrit. Pas de controle PIE pour cet audit sans
+changement fonctionnel.

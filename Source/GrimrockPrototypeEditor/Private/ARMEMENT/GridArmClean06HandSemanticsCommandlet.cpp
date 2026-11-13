@@ -2,6 +2,7 @@
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Dom/JsonObject.h"
+#include "Engine/DataAsset.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Parse.h"
@@ -174,6 +175,14 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 		Row->SetStringField(TEXT("load_classification"),
 			!bLoaded ? TEXT("unloadable") :
 			(Item ? TEXT("expected_class") : TEXT("other_class")));
+		// Structural facts only: an unfamiliar class must not be relabelled
+		// as a weapon, obsolete asset or Blueprint based on its filename.
+		Row->SetBoolField(TEXT("is_data_asset"),
+			bLoaded && LoadedObject->IsA<UDataAsset>());
+		Row->SetBoolField(TEXT("is_primary_data_asset"),
+			bLoaded && LoadedObject->IsA<UPrimaryDataAsset>());
+		Row->SetBoolField(TEXT("class_compiled_from_blueprint"),
+			bLoaded && LoadedObject->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
 		Row->SetBoolField(TEXT("duplicate_package"), bDuplicatePackage);
 		if (!Item)
 		{
@@ -239,6 +248,16 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 		Row->SetNumberField(TEXT("item_type_enum"), static_cast<int32>(Item->ItemType));
 		Row->SetNumberField(TEXT("effective_hand_usage_enum"),
 			static_cast<int32>(Item->GetEffectiveHandUsage()));
+		Row->SetNumberField(TEXT("declared_hand_usage_enum"),
+			static_cast<int32>(Item->HandUsage));
+		Row->SetBoolField(TEXT("declared_slot_main"),
+			Item->CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::MainHand));
+		Row->SetBoolField(TEXT("declared_slot_off"),
+			Item->CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::OffHand));
+		Row->SetNumberField(TEXT("combat_action_count"), Item->CombatActions.Num());
+		Row->SetBoolField(TEXT("combat_throw_weapon"), Item->bCombatThrowWeapon);
+		Row->SetBoolField(TEXT("source_n1_has_damage_dice"),
+			bJoined && SourceN1->DamageDice.bEnabled);
 		Row->SetBoolField(TEXT("can_equip_main"), Item->CanEquipToSlot(EGridEquipmentSlot::MainHand));
 		Row->SetBoolField(TEXT("can_equip_off"), Item->CanEquipToSlot(EGridEquipmentSlot::OffHand));
 		Row->SetStringField(TEXT("provable_hand_policy"), HandPolicy);

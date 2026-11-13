@@ -9,7 +9,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-$Subject='chore(ARM-CLEAN06.2E.3): reconcile source-class and ARM coverage'
+$Subject='chore(ARM-CLEAN06.2E.4): qualify native weapon semantics without asset writes'
 $Stage=Join-Path $RunDir 'ARMClean062E.stage'
 $OutDir=Join-Path $RunDir 'ARM-CLEAN06.2E'
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
@@ -133,6 +133,25 @@ if ($ParseErrors -and $ParseErrors.Count -gt 0) {
 if (-not (Test-Path -LiteralPath (Join-Path $OutDir 'reconciliation-private.json') -PathType Leaf)) {
     throw 'ARM-CLEAN06.2E.3 private cross-check absent.'
 }
+# Resolve class hierarchy, legacy opt-out and all remaining semantic
+# unknowns against the freshly extracted *native* UE properties.
+Set-Stage 'QUALIFY'
+$QualificationHelper=Join-Path $PSScriptRoot 'ARM_CLEAN06_2E4_Qualify.ps1'
+if (-not (Test-Path -LiteralPath $QualificationHelper -PathType Leaf)) {
+    throw 'ARM-CLEAN06.2E.4 qualification helper missing.'
+}
+$QualificationTokens=$null
+$QualificationErrors=$null
+[void][System.Management.Automation.Language.Parser]::ParseFile(
+    $QualificationHelper, [ref]$QualificationTokens, [ref]$QualificationErrors)
+if ($QualificationErrors -and $QualificationErrors.Count -gt 0) {
+    throw 'ARM-CLEAN06.2E.4 helper syntax rejected.'
+}
+. $QualificationHelper
+$QualificationPath=Join-Path $OutDir 'qualification-private.json'
+if (-not (Test-Path -LiteralPath $QualificationPath -PathType Leaf)) {
+    throw 'ARM-CLEAN06.2E.4 private qualification not produced.'
+}
 Set-Stage 'CHECK_CLEAN'
 $After=@(& git -C $WorktreePath status --porcelain --untracked-files=all)
 if ($LASTEXITCODE -ne 0 -or $After.Count -ne 0) {
@@ -147,6 +166,26 @@ $Markdown=@(
     '| Controle | Resultat |',
     '|---|---:|',
     '| Archetypes source | 82 |',
+    ('| Objet autre classe : DataAsset | '+$Details['other_class_data_assets']+' |'),
+    ('| Objet autre classe : PrimaryDataAsset | '+$Details['other_class_primary_data_assets']+' |'),
+    ('| Objet autre classe : hors DataAsset | '+$Details['other_class_non_data_assets']+' |'),
+    ('| Objet autre classe : derive Blueprint compile | '+$Details['other_class_blueprint_compiled']+' |'),
+    ('| Opt-out catalogue dans manifeste | '+$Details['legacy_opt_out_manifest']+' |'),
+    ('| Opt-out catalogue hors manifeste | '+$Details['legacy_opt_out_unlisted']+' |'),
+    ('| Opt-out disposant d actions locales | '+$Details['legacy_opt_out_with_combat_actions']+' |'),
+    ('| Opt-out lancer de combat active | '+$Details['legacy_opt_out_throw_enabled']+' |'),
+    ('| Main indeterminee : NotHandHeld effectif | '+$Details['unresolved_hand_not_handheld']+' |'),
+    ('| Main indeterminee : Auto non resolu | '+$Details['unresolved_hand_effective_auto']+' |'),
+    ('| Main indeterminee : permissions une main | '+$Details['unresolved_hand_one_hand_permission']+' |'),
+    ('| Main indeterminee : permissions deux mains | '+$Details['unresolved_hand_two_hand_permission']+' |'),
+    ('| Main indeterminee : autre | '+$Details['unresolved_hand_other']+' |'),
+    ('| Type indetermine : arme passive / focus candidat | '+$Details['unresolved_kind_passive_weapon_focus_candidate']+' |'),
+    ('| Type indetermine : bouclier offensif | '+$Details['unresolved_kind_offensive_shield_conflict']+' |'),
+    ('| Type indetermine : autres divergences | '+$Details['unresolved_kind_other']+' |'),
+    ('| Profils joints : permissions runtime plus larges que slots declares | '+$Details['explicit_slot_mismatch_on_joined']+' |'),
+    ('| Profils FocusPassive du manifeste joints | '+$Details['listed_focus_passive_profiles']+' |'),
+    ('| FocusPassive joints avec type encore indetermine | '+$Details['listed_focus_passive_unresolved_kind']+' |'),
+
     '| Lignes du manifeste de production | 22 |',
     '| Packages hors manifeste | 2 |',
     ('| Def. du manifeste, classe attendue | '+$Counts['manifest_expected']+' |'),
@@ -181,6 +220,10 @@ $Markdown=@(
     '| .uasset modifies | 0 |',
     '',
     '**Inventaire seulement : conversion binaire NON autorisee.**',
+    'Qualification structurelle seulement : un objet chargeable sous une autre classe peut etre valide.',
+    'Le type Focus n est jamais deduit automatiquement du seul flag de degats.',
+    'CanEquipToSlot peut accepter davantage de mains que les slots declares : le cutover exige une preuve comportementale.',
+    'Les identites et classes exactes restent dans qualification-private.json ; ni conversion ni suppression d assets.',
     'Deux packages hors du manifeste ne signifient pas deux fichiers obsoletes.',
     'La classe exacte et les identites de chaque package restent dans le rapport prive.',
     'Une reconciliation exacte ne justifie jamais une suppression automatique.',
@@ -194,7 +237,7 @@ $Markdown=@(
 )
 $BodyPath=Join-Path $OutDir 'issue.md'
 Set-Content -LiteralPath $BodyPath -Value $Markdown -Encoding UTF8
-$Title='[ARM-CLEAN06.2E.3] Manifest reconciliation '+$ExpectedHead.Substring(0,12)
+$Title='[ARM-CLEAN06.2E.4] Native semantic qualification '+$ExpectedHead.Substring(0,12)
 $Issue=@(& gh issue create --repo $GitHubRepository --title $Title --body-file $BodyPath)
 if ($LASTEXITCODE -ne 0 -or $Issue.Count -ne 1) {
     throw 'Filtered GitHub issue publication failed.'
