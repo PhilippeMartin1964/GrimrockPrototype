@@ -905,6 +905,58 @@ try {
             Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
         }
 
+        # ARM-CLEAN06.2E — one-shot semantic census in native UE. NO asset writes.
+        # Triggered only on the exact authored subject and the isolated SHA.
+        $SemanticsTrigger = 'chore(ARM-CLEAN06.2E): inventory UE weapon hand semantics read-only'
+        $SemanticsSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $SemanticsSubject.Count -eq 1 -and
+            [string]$SemanticsSubject[0] -ceq $SemanticsTrigger) {
+            $SemanticsContext = 'UE5.5.4/ARM-CLEAN06.2E'
+            $SemanticsPhase = 'PREFLIGHT'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $SemanticsContext -Description 'Audit UE des mains/familles en lecture seule'
+                $SemanticsScript = Join-Path $WorktreePath 'Scripts\PreflightARM_CLEAN06_2_HandSemantics.ps1'
+                if (-not (Test-Path -LiteralPath $SemanticsScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.2E: missing semantic preflight.'
+                }
+                $SemanticsPhase = 'PARSE'
+                $SemanticsTokens = $null
+                $SemanticsErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $SemanticsScript, [ref]$SemanticsTokens, [ref]$SemanticsErrors)
+                if ($SemanticsErrors -and $SemanticsErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.2E: invalid PowerShell syntax.'
+                }
+                foreach ($Value in @($SemanticsScript,$WorktreePath,$EngineRoot,$RunDir)) {
+                    if ($Value.Contains('"')) { throw 'ARM-CLEAN06.2E: quoted path unsupported.' }
+                }
+                $SemanticsArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $SemanticsScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -ExpectedHead "' + $Sha +
+                    '" -RunDir "' + $RunDir + '" -GitHubRepository "' + $GitHubRepository + '"'
+                $SemanticsPhase = 'COMMANDLET'
+                $SemanticsProcess = Start-Process -FilePath $PsExe -ArgumentList $SemanticsArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput (Join-Path $RunDir 'ARMClean062E.stdout.log') -RedirectStandardError (Join-Path $RunDir 'ARMClean062E.stderr.log') -PassThru -Wait -ErrorAction Stop
+                if ($SemanticsProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.2E: native read-only semantic audit rejected.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $SemanticsContext -Description 'Audit UE 82 ARM / 24 definitions sans ecriture'
+            }
+            catch {
+                $SemanticsStageFile = Join-Path $RunDir 'ARMClean062E.stage'
+                $SemanticsStage = if (Test-Path -LiteralPath $SemanticsStageFile -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $SemanticsStageFile -TotalCount 1)).Trim()
+                } else { $SemanticsPhase }
+                if ($SemanticsStage -notin @('PREFLIGHT','PARSE','COMMANDLET','REPORT','CHECK_CLEAN','ISSUE','SUCCESS')) {
+                    $SemanticsStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $SemanticsContext -Description ('Audit UE 06.2E bloque : ' + $SemanticsStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.2E] Failed to publish semantic audit status.' }
+                Write-Warning ('[ARM-CLEAN06.2E] Read-only semantic census blocked at ' + $SemanticsStage)
+            }
+        }
+
         # ARM-CLEAN06.2C — exact one-shot read-only canonical number projection.
         # This is explicitly NOT an editor asset migration or a gameplay cutover.
         $ProjectionTrigger = 'chore(ARM-CLEAN06.2C): prove transient compact catalogue numeric parity'
