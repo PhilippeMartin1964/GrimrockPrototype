@@ -22,6 +22,8 @@ namespace GridArmClean06ProductionActionsCandidate
 		int32 NoLocalPresentation = 0;
 		int32 ConflictingPresentationId = 0;
 		int32 BoundActions = 0;
+		/** Existing runtime resolves unconfigured weapons to the same default profile. */
+		int32 NeutralDefaultBindings = 0;
 		/** Transient proposed links, not installed in an ARM catalogue. */
 		TMap<FName, FGridItemActionBinding> BindingsByArchetype;
 	};

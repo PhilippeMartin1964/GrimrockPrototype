@@ -59,15 +59,21 @@ bool FGridClean062QProductionActions::RunTest(const FString&)
 		ActionSummary.StandardActions + ActionSummary.CustomizedActionsUnconverted, 19);
 	TestEqual(TEXT("No imagined ActionIds"), Candidate->ActionCatalogue->Actions.Num(),
 		ActionSummary.StandardActions);
-	TestEqual(TEXT("No imagined PresentationIds"),
+	TestEqual(TEXT("Only one shared silent preset, never fifteen copies"),
 		Candidate->ActionPresentationCatalogue->Presentations.Num(),
-		ActionSummary.BoundActions);
+		ActionSummary.BoundActions - ActionSummary.NeutralDefaultBindings +
+			(ActionSummary.NeutralDefaultBindings > 0 ? 1 : 0));
+	TestEqual(TEXT("Actual primary attacks all have a canonical binding"),
+		ActionSummary.BoundActions, 19);
+	TestEqual(TEXT("Exactly fifteen current attacks use the historic silent default"),
+		ActionSummary.NeutralDefaultBindings, 15);
 	TestTrue(TEXT("Actual bindings never outnumber proved actions"),
 		ActionSummary.BoundActions <= ActionSummary.StandardActions);
 
 	// Only the declared, explicit migration keys may fill historical gaps.
 	// The existing per-asset PresentationProfileId always takes precedence.
 	int32 MigratableMissingKeys = 0;
+	int32 ObservedNeutralDefaults = 0;
 	for (const FGridWeaponPipelineRow& Row : Manifest)
 	{
 		if (Row.IsPassive())
@@ -96,26 +102,34 @@ bool FGridClean062QProductionActions::RunTest(const FString&)
 		TestTrue(TEXT("Presentation migration has a distinct explicit key"),
 			!Row.MigrationPresentationId.IsEmpty() &&
 			Row.MigrationPresentationId != Row.AttackId);
-		const FName SelectedId = Primary->PresentationProfileId.IsNone() ?
-			FName(*Row.MigrationPresentationId) : Primary->PresentationProfileId;
+		const bool bHasAuthoredPresentation = Source->HasValidPlayerAttackPresentation();
+		const bool bInvalidOptIn =
+			Source->bProvidesAttackPresentation && !bHasAuthoredPresentation;
+		const FName SelectedId = !bHasAuthoredPresentation ?
+			FName(TEXT("PRES_AttackNoFX")) :
+			(Primary->PresentationProfileId.IsNone() ?
+				FName(*Row.MigrationPresentationId) : Primary->PresentationProfileId);
 		const bool bConvertedStandard =
 			Candidate->ActionCatalogue->Find(AttackId) != nullptr;
 		if (bConvertedStandard && Primary->PresentationProfileId.IsNone() &&
-			Source->HasValidPlayerAttackPresentation())
+			bHasAuthoredPresentation)
 		{
 			++MigratableMissingKeys;
 		}
 		const FGridCanonicalActionPresentation* Resolved =
 			Candidate->ActionPresentationCatalogue->Find(SelectedId);
-		if (bConvertedStandard && Source->HasValidPlayerAttackPresentation())
+		if (bConvertedStandard && !bInvalidOptIn)
 		{
-			TestNotNull(TEXT("Explicit presentation key resolves true source profile"), Resolved);
+			TestNotNull(TEXT("Valid source or proven neutral default must resolve"), Resolved);
+			if (!bHasAuthoredPresentation) { ++ObservedNeutralDefaults; }
 		}
 		else
 		{
-			TestNull(TEXT("No manufactured presentation for unsupported source"), Resolved);
+			TestNull(TEXT("Invalid opt-in cannot produce a presentation"), Resolved);
 		}
 	}
+	TestEqual(TEXT("Neutral bindings match the actual 22-item source opt-ins"),
+		ObservedNeutralDefaults, ActionSummary.NeutralDefaultBindings);
 	TestEqual(TEXT("No presentation key is absent after manifest authoring"),
 		ActionSummary.NoAuthoredPresentationId, 0);
 	TestTrue(TEXT("Migratable source gaps do not exceed real bindings"),

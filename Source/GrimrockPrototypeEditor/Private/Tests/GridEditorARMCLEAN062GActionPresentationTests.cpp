@@ -195,6 +195,19 @@ bool FGridClean062GProjectionSafetyTest::RunTest(const FString&)
 	TestTrue(TEXT("Default source may project under explicit transient test ID"),
 		GridArmClean06PresentationProjection::TryProject(TEXT("TransientOnly"), Source, Out));
 	TestEqual(TEXT("Explicit ID survives"), Out.PresentationId, FName(TEXT("TransientOnly")));
+	const FGridPlayerAttackPresentationProfile RuntimeNeutralDefault;
+	TestTrue(TEXT("The actual legacy runtime default is a valid presentation"),
+		RuntimeNeutralDefault.IsValid());
+	TestTrue(TEXT("The one shared silent target presentation is a lossless projection"),
+		GridArmClean06PresentationProjection::TryProject(
+			TEXT("PRES_AttackNoFX"), RuntimeNeutralDefault, Out));
+	TestTrue(TEXT("Silent profile matches all legacy default motion, audio, and VFX"),
+		ArmClean062G::EqualPresentation(RuntimeNeutralDefault, Out));
+	TestTrue(TEXT("Silent profile invents neither sound nor Niagara"),
+		Out.AttackAudio.Sounds.IsEmpty() && Out.ImpactHitAudio.Sounds.IsEmpty() &&
+		Out.ImpactMissAudio.Sounds.IsEmpty() &&
+		Out.AttackVFX.Systems.IsEmpty() && Out.ImpactHitVFX.Systems.IsEmpty() &&
+		Out.ImpactMissVFX.Systems.IsEmpty() && !Out.bAnimateHeldItem);
 	Source.AttackAudio.PitchMin = 1.5f;
 	Source.AttackAudio.PitchMax = 0.7f;
 	TestFalse(TEXT("Malformed source never silently converted"),

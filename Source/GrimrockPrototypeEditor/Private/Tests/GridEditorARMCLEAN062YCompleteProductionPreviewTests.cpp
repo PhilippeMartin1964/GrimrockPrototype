@@ -70,7 +70,15 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 		Stats.bWeaponCatalogueValid, Stats.Core.UnboundOffensiveArmaments == 0);
 	TestEqual(TEXT("Unbound offensive candidates explicitly counted"),
 		Stats.Core.UnboundOffensiveArmaments, 19 - Stats.Core.Actions.BoundActions);
-	TestFalse(TEXT("A preview never grants binary cutover without full action parity"),
+	TestEqual(TEXT("All nineteen authentic attacks are now bound"),
+		Stats.Core.Actions.BoundActions, 19);
+	TestEqual(TEXT("Only fifteen neutral defaults, sharing one canonical profile"),
+		Stats.Core.Actions.NeutralDefaultBindings, 15);
+	TestEqual(TEXT("No action remains without a presentation binding"),
+		Stats.Core.UnboundOffensiveArmaments, 0);
+	TestTrue(TEXT("Real 23-item candidate validates all four catalogues"),
+		Stats.bRegistryValidAfterProjection);
+	TestTrue(TEXT("Preflight is ready for supervised binary authoring, not a runtime cutover"),
 		Stats.ReadyForBinaryCutover());
 
 	const FGridCanonicalWeaponArchetype* Knife =
@@ -102,8 +110,8 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 		Stats.Core.Actions.BoundActions,
 		Stats.Core.UnboundOffensiveArmaments,
 		Stats.Ammo.WeaponAmmoReferences,
-		Stats.ReadyForBinaryCutover() ? TEXT("allowed") : TEXT("refused")));
-	return !Stats.ReadyForBinaryCutover() &&
+		Stats.ReadyForBinaryCutover() ? TEXT("ready for supervised authoring") : TEXT("refused")));
+	return Stats.ReadyForBinaryCutover() &&
 		Stats.Core.UnmappedAmmunition == 0 &&
 		Stats.Core.UnconvertedThrowPolicies == 0;
 }

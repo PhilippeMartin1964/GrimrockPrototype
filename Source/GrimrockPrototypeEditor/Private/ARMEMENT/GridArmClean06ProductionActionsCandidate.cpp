@@ -80,36 +80,51 @@ bool GridArmClean06ProductionActionsCandidate::AddProvenActionsAndPresentations(
 		Actions->Actions.Add(Canonical);
 		++OutSummary.StandardActions;
 
-		// Use an existing authored ID first. Otherwise use the explicit
-		// migration key from the official 22-row manifest. No heuristic
-		// ActionId substitution and no runtime fallback are permitted.
-		const FName PresentationId = Primary->PresentationProfileId.IsNone() ?
-			FName(*Row.MigrationPresentationId) : Primary->PresentationProfileId;
+		// This is the precise OLD runtime rule from
+		// UGridPlayerAttackPresentationComponent::ResolveProfile:
+		// disabled presentation uses FGridPlayerAttackPresentationProfile().
+		// Author that single neutral value ONCE in the target catalogue,
+		// never as a runtime fallback or a fabricated sound/Niagara effect.
+		const bool bHasPresentation = Source->HasValidPlayerAttackPresentation();
+		if (!bHasPresentation && Source->bProvidesAttackPresentation)
+		{
+			++OutSummary.NoLocalPresentation; // invalid opt-in, never conceal it
+			continue;
+		}
+		const FName NeutralId(TEXT("PRES_AttackNoFX"));
+		const FName PresentationId = bHasPresentation ?
+			(Primary->PresentationProfileId.IsNone() ?
+				FName(*Row.MigrationPresentationId) : Primary->PresentationProfileId) :
+			NeutralId;
 		if (PresentationId.IsNone())
 		{
 			++OutSummary.NoAuthoredPresentationId;
 			continue;
 		}
-		if (!Source->HasValidPlayerAttackPresentation())
-		{
-			++OutSummary.NoLocalPresentation;
-			continue;
-		}
 		if (Presentations->Find(PresentationId))
 		{
-			// Shared keys may be intended, but profile equality is not proven
-			// here. Keep every existing source and refuse silent merging.
-			++OutSummary.ConflictingPresentationId;
-			continue;
+			// Only the one value-identical neutral profile may be shared
+			// without an explicit authoring/equality decision.
+			if (bHasPresentation || PresentationId != NeutralId)
+			{
+				++OutSummary.ConflictingPresentationId;
+				continue;
+			}
 		}
-		FGridCanonicalActionPresentation Projected;
-		if (!GridArmClean06PresentationProjection::TryProject(
-			PresentationId,
-			Source->PlayerAttackPresentationProfile, Projected))
+		else
 		{
-			return false;
+			const FGridPlayerAttackPresentationProfile Historical =
+				bHasPresentation ? Source->PlayerAttackPresentationProfile :
+					FGridPlayerAttackPresentationProfile();
+			FGridCanonicalActionPresentation Projected;
+			if (!GridArmClean06PresentationProjection::TryProject(
+					PresentationId, Historical, Projected))
+			{
+				return false;
+			}
+			Presentations->Presentations.Add(MoveTemp(Projected));
 		}
-		Presentations->Presentations.Add(Projected);
+		if (!bHasPresentation) { ++OutSummary.NeutralDefaultBindings; }
 		FGridItemActionBinding Link;
 		Link.ActionId = Canonical.ActionId;
 		Link.PresentationId = Projected.PresentationId;
@@ -125,7 +140,9 @@ bool GridArmClean06ProductionActionsCandidate::AddProvenActionsAndPresentations(
 		OutSummary.PassiveDefinitions + OutSummary.StandardActions +
 			OutSummary.CustomizedActionsUnconverted != 22 ||
 		Actions->Actions.Num() != OutSummary.StandardActions ||
-		Presentations->Presentations.Num() != OutSummary.BoundActions)
+		Presentations->Presentations.Num() != OutSummary.BoundActions -
+			OutSummary.NeutralDefaultBindings +
+			(OutSummary.NeutralDefaultBindings > 0 ? 1 : 0))
 	{
 		return false;
 	}
