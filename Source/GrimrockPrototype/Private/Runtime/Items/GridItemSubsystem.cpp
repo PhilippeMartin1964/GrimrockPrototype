@@ -139,3 +139,59 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	OutItem.Error = EGridCanonicalItemResolveError::None;
 	return true;
 }
+
+bool UGridItemSubsystem::ResolveBoundAction(
+	FName ItemId, int32 ItemLevel, FName ActionId, FGridResolvedBoundAction& OutAction) const
+{
+	OutAction = FGridResolvedBoundAction();
+	if (!RootRegistry)
+	{
+		OutAction.Error = EGridCanonicalBoundActionError::RegistryNotConfigured;
+		return false;
+	}
+
+	FGridResolvedItem Item;
+	if (!ResolveItem(ItemId, ItemLevel, Item))
+	{
+		OutAction.Error = EGridCanonicalBoundActionError::ItemResolutionFailed;
+		OutAction.ItemError = Item.Error;
+		return false;
+	}
+
+	const FGridItemActionBinding* Binding = Item.AvailableActions.FindByPredicate(
+		[ActionId](const FGridItemActionBinding& Entry)
+		{
+			return !ActionId.IsNone() && Entry.ActionId == ActionId &&
+				!Entry.PresentationId.IsNone();
+		});
+	if (!Binding)
+	{
+		OutAction.Error = EGridCanonicalBoundActionError::ActionNotBound;
+		return false;
+	}
+
+	const FGridCanonicalAction* Action = RootRegistry->ActionCatalogue ?
+		RootRegistry->ActionCatalogue->Find(Binding->ActionId) : nullptr;
+	if (!Action)
+	{
+		OutAction.Error = EGridCanonicalBoundActionError::ActionDefinitionMissing;
+		return false;
+	}
+	const FGridCanonicalActionPresentation* Presentation =
+		RootRegistry->ActionPresentationCatalogue ?
+		RootRegistry->ActionPresentationCatalogue->Find(Binding->PresentationId) : nullptr;
+	if (!Presentation)
+	{
+		OutAction.Error = EGridCanonicalBoundActionError::PresentationDefinitionMissing;
+		return false;
+	}
+	OutAction.ItemId = Item.ItemId;
+	OutAction.ItemLevel = Item.ItemLevel;
+	OutAction.ActionId = Binding->ActionId;
+	OutAction.PresentationId = Binding->PresentationId;
+	OutAction.Action = *Action;
+	OutAction.Presentation = *Presentation;
+	OutAction.ItemError = EGridCanonicalItemResolveError::None;
+	OutAction.Error = EGridCanonicalBoundActionError::None;
+	return true;
+}

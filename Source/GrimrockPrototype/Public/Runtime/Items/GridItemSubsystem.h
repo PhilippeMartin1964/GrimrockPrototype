@@ -76,6 +76,53 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	bool IsValid() const { return Error == EGridCanonicalItemResolveError::None; }
 };
 
+UENUM(BlueprintType)
+enum class EGridCanonicalBoundActionError : uint8
+{
+	None,
+	RegistryNotConfigured,
+	ItemResolutionFailed,
+	ActionNotBound,
+	ActionDefinitionMissing,
+	PresentationDefinitionMissing
+};
+
+/**
+ * One transient view of an explicitly bound action and its presentation.
+ * No action/presentation data is stored in ItemDefinition or SaveGame.
+ */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridResolvedBoundAction
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
+	EGridCanonicalBoundActionError Error = EGridCanonicalBoundActionError::RegistryNotConfigured;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
+	EGridCanonicalItemResolveError ItemError = EGridCanonicalItemResolveError::None;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
+	FName ItemId = NAME_None;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
+	int32 ItemLevel = 0;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
+	FName ActionId = NAME_None;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
+	FName PresentationId = NAME_None;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
+	FGridCanonicalAction Action;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
+	FGridCanonicalActionPresentation Presentation;
+
+	bool IsValid() const { return Error == EGridCanonicalBoundActionError::None; }
+};
+
 /**
  * The new subsystem is unconfigured until DA_ItemSystem is authored in 06.2.
  * Never probes the old per-weapon catalogues, looks up legacy definitions or
@@ -95,6 +142,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Item System")
 	bool ResolveItem(FName ItemId, int32 ItemLevel, FGridResolvedItem& OutItem) const;
+
+	/** Resolve ONLY an authored ItemActionBinding via the four global catalogues. */
+	UFUNCTION(BlueprintCallable, Category = "Item System")
+	bool ResolveBoundAction(FName ItemId, int32 ItemLevel, FName ActionId,
+		FGridResolvedBoundAction& OutAction) const;
 
 	UFUNCTION(BlueprintPure, Category = "Item System")
 	bool IsConfigured() const { return RootRegistry != nullptr; }

@@ -416,4 +416,77 @@ bool FGridClean061ReferentialIntegrityTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062IBoundActionResolutionTest,
+	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.SingleBoundActionResolver",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean062IBoundActionResolutionTest::RunTest(const FString&)
+{
+	const Clean061::FFixture F = Clean061::Make();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(
+		NewObject<UGridItemSubsystem>(F.GameInstance.Get()));
+	FGridResolvedBoundAction Out;
+	TestFalse(TEXT("Unconfigured subsystem refuses actions"),
+		Subsystem->ResolveBoundAction(TEXT("TestSword"), 20, TEXT("BasicStrike"), Out));
+	TestEqual(TEXT("Unconfigured error is explicit"), Out.Error,
+		EGridCanonicalBoundActionError::RegistryNotConfigured);
+
+	TArray<FString> Errors;
+	if (!TestTrue(TEXT("Canonical registry is installed exactly once"),
+		Subsystem->RegisterItemSystem(F.System, Errors)))
+	{
+		return false;
+	}
+	if (!TestTrue(TEXT("Sword N20 bound action resolved"),
+		Subsystem->ResolveBoundAction(TEXT("TestSword"), 20, TEXT("BasicStrike"), Out)))
+	{
+		return false;
+	}
+	TestEqual(TEXT("ItemId stays with source"), Out.ItemId, FName(TEXT("TestSword")));
+	TestEqual(TEXT("Level stays with source"), Out.ItemLevel, 20);
+	TestEqual(TEXT("ActionId is exact"), Out.Action.ActionId, FName(TEXT("BasicStrike")));
+	TestEqual(TEXT("Presentation ID is authored"), Out.Presentation.PresentationId,
+		FName(TEXT("BasicMotion")));
+	TestEqual(TEXT("No action-side duplicate of Sword action points"),
+		Out.Action.ManaCost, 0);
+	TestTrue(TEXT("Bound action is valid"), Out.IsValid());
+
+	TestFalse(TEXT("Shield does not inherit Sword attack"),
+		Subsystem->ResolveBoundAction(TEXT("TestShield"), 20, TEXT("BasicStrike"), Out));
+	TestEqual(TEXT("Shield has no action binding"), Out.Error,
+		EGridCanonicalBoundActionError::ActionNotBound);
+	TestTrue(TEXT("Failure clears previous output action identity"), Out.ActionId.IsNone());
+	TestTrue(TEXT("Failure clears previous output presentation identity"), Out.PresentationId.IsNone());
+
+	TestFalse(TEXT("Ammo cannot borrow any action"),
+		Subsystem->ResolveBoundAction(TEXT("TestArrow"), 1, TEXT("BasicStrike"), Out));
+	TestEqual(TEXT("Ammo has no bound actions"), Out.Error,
+		EGridCanonicalBoundActionError::ActionNotBound);
+
+	TestFalse(TEXT("Unknown action ID does not fall back"),
+		Subsystem->ResolveBoundAction(TEXT("TestSword"), 1, TEXT("UnknownAction"), Out));
+	TestEqual(TEXT("No unknown ActionId lookup"), Out.Error,
+		EGridCanonicalBoundActionError::ActionNotBound);
+
+	TestFalse(TEXT("Invalid ItemLevel is rejected"),
+		Subsystem->ResolveBoundAction(TEXT("TestSword"), 21, TEXT("BasicStrike"), Out));
+	TestEqual(TEXT("Bad level fails at item resolver"), Out.Error,
+		EGridCanonicalBoundActionError::ItemResolutionFailed);
+	TestEqual(TEXT("Specific item error survives"), Out.ItemError,
+		EGridCanonicalItemResolveError::InvalidItemLevel);
+
+	TestFalse(TEXT("Unknown ItemId is rejected"),
+		Subsystem->ResolveBoundAction(TEXT("MissingSword"), 1, TEXT("BasicStrike"), Out));
+	TestEqual(TEXT("Unknown ItemId is explicit"), Out.ItemError,
+		EGridCanonicalItemResolveError::UnknownItemId);
+
+	TestTrue(TEXT("Potion usage has its own explicitly bound action"),
+		Subsystem->ResolveBoundAction(TEXT("TestPotion"), 1, TEXT("BasicStrike"), Out));
+	TestEqual(TEXT("Potion is the source"), Out.ItemId, FName(TEXT("TestPotion")));
+	TestEqual(TEXT("Potion presentation is shared by ID only"), Out.PresentationId,
+		FName(TEXT("BasicMotion")));
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS
