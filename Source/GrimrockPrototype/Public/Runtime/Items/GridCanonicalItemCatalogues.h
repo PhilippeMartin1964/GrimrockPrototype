@@ -498,6 +498,48 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalResolvedWeapon
 	FGridCanonicalProjectilePolicy Projectile;
 };
 
+/**
+ * Read-only armor reserve for a single persisted item instance.
+ * The nominal maxima come ONLY from WeaponCatalogue N1..N20.
+ * The spent counters come ONLY from the instance's mutable state.
+ * This view never repairs, refills or persists a depleted reserve.
+ */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridCanonicalArmorReserveView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Armor")
+	int32 NominalPhysicalArmor = 0;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Armor")
+	int32 SpentPhysicalArmor = 0;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Armor")
+	int32 RemainingPhysicalArmor = 0;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Armor")
+	int32 NominalMagicalArmor = 0;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Armor")
+	int32 SpentMagicalArmor = 0;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Armor")
+	int32 RemainingMagicalArmor = 0;
+};
+
+/**
+ * Pure read model; does not accept an ItemId or alter an instance/SaveGame.
+ * The caller first resolves the actual item's N1..N20 profile via registry.
+ */
+class GRIMROCKPROTOTYPE_API FGridCanonicalArmorReserveResolver
+{
+public:
+	static bool TryCompute(const FGridCanonicalResolvedWeapon& Weapon,
+		int32 SpentPhysicalArmor, int32 SpentMagicalArmor,
+		FGridCanonicalArmorReserveView& OutView);
+};
+
 /** One archetype owns combat ONLY, with the same five lossless growth rules as CLEAN03. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponArchetype

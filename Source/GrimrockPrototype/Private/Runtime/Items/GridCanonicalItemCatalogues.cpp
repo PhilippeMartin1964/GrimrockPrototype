@@ -266,6 +266,29 @@ bool FGridCanonicalResolvedWeapon::HasAttackSourceInHand(EGridEquipmentSlot Slot
 		CanEquipInHand(Slot) && AttackSourceSlots.Contains(Slot);
 }
 
+bool FGridCanonicalArmorReserveResolver::TryCompute(
+	const FGridCanonicalResolvedWeapon& Weapon,
+	int32 SpentPhysicalArmor, int32 SpentMagicalArmor,
+	FGridCanonicalArmorReserveView& OutView)
+{
+	OutView = FGridCanonicalArmorReserveView();
+	if (Weapon.PhysicalArmor < 0 || Weapon.MagicalArmor < 0 ||
+		SpentPhysicalArmor < 0 || SpentMagicalArmor < 0)
+	{
+		return false;
+	}
+
+	OutView.NominalPhysicalArmor = Weapon.PhysicalArmor;
+	OutView.SpentPhysicalArmor = SpentPhysicalArmor;
+	OutView.RemainingPhysicalArmor =
+		FMath::Max(0, Weapon.PhysicalArmor - SpentPhysicalArmor);
+	OutView.NominalMagicalArmor = Weapon.MagicalArmor;
+	OutView.SpentMagicalArmor = SpentMagicalArmor;
+	OutView.RemainingMagicalArmor =
+		FMath::Max(0, Weapon.MagicalArmor - SpentMagicalArmor);
+	return true;
+}
+
 bool FGridCanonicalWeaponArchetype::TryResolve(int32 Level, FGridCanonicalResolvedWeapon& Out) const
 {
 	Out = FGridCanonicalResolvedWeapon();
