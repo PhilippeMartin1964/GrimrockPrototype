@@ -14,6 +14,9 @@
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridThrownItemActor.h"
@@ -57,6 +60,45 @@ namespace
 			{
 				return Definition->ResolveEquippedOffensiveProfile(EquippedItem, Action, OutProfile);
 			}
+		}
+		return false;
+	}
+
+	// Transient execution view of the sole canonical weapon source.
+	// Used by ordinary attacks AND class actions that borrow equipped damage.
+	bool TryResolveCanonicalOffensiveProfile(
+		const UGridItemSubsystem& Registry, const FGridItemInstance& Equipped,
+		EGridEquipmentSlot SourceHand, FGridOffensiveEquipmentProfile& Out,
+		FGridResolvedItem& OutItem)
+	{
+		Out = FGridOffensiveEquipmentProfile();
+		OutItem = FGridResolvedItem();
+		if (!Registry.ResolveItem(Equipped.ItemDefinitionId, Equipped.ItemLevel, OutItem) ||
+			!OutItem.bIsArmament || !OutItem.Weapon.HasAttackSourceInHand(SourceHand))
+		{
+			return false;
+		}
+		for (const FGridItemActionBinding& Binding : OutItem.AvailableActions)
+		{
+			FGridResolvedBoundAction Bound;
+			if (!Registry.ResolveAttackFromEquippedInstance(
+					Equipped, Binding.ActionId, SourceHand, Equipped.RuntimeObjectId,
+					Equipped.OwnerGuid, Equipped.OwnerCharacterIndex, Bound))
+			{
+				continue;
+			}
+			Out.AttackId = Bound.ActionId;
+			Out.DamageScalingAttribute = OutItem.Weapon.ScalingAttribute;
+			Out.RangeCells = OutItem.Weapon.RangeCells;
+			Out.AttackDefinition.DamageType = OutItem.Weapon.DamageType;
+			Out.AttackDefinition.PhysicalSubtype = OutItem.Weapon.PhysicalSubtype;
+			Out.AttackDefinition.DamageDice = OutItem.Weapon.DamageDice;
+			Out.AttackDefinition.AccuracyBonus = OutItem.Weapon.AccuracyBonus;
+			Out.AttackDefinition.MinDamage =
+				OutItem.Weapon.DamageDice.GetMinimumDamage();
+			Out.AttackDefinition.MaxDamage =
+				OutItem.Weapon.DamageDice.GetMaximumDamage();
+			return Out.IsValid();
 		}
 		return false;
 	}
@@ -1124,6 +1166,14 @@ bool UGridTurnManagerComponent::ResolveCombatActionWeaponProfile(const UGridPart
 		OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
 		return false;
 	}
+	const UGridItemSubsystem* Canonical = nullptr;
+	if (const UWorld* World = GetWorld())
+	{
+		if (UGameInstance* GI = World->GetGameInstance())
+		{
+			Canonical = GI->GetSubsystem<UGridItemSubsystem>();
+		}
+	}
 
 	const EGridEquipmentSlot HandSlots[] = { EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand };
 	for (const EGridEquipmentSlot HandSlot : HandSlots)
@@ -1132,6 +1182,33 @@ bool UGridTurnManagerComponent::ResolveCombatActionWeaponProfile(const UGridPart
 		if (!PartyInventory->GetEquippedItem(AttackerCharacterIndex, HandSlot, EquippedItem))
 		{
 			continue;
+		}
+
+		if (Canonical && Canonical->HasCanonicalItem(EquippedItem.ItemDefinitionId))
+		{
+			FGridResolvedItem Item;
+			if (!Canonical->ResolveItem(EquippedItem.ItemDefinitionId, EquippedItem.ItemLevel, Item))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
+			if (!Item.bIsArmament || !Item.Weapon.HasAttackSourceInHand(HandSlot) ||
+				!ActionDefinition.WeaponAttackProfile.MatchesItemTags(Item.Tags))
+			{
+				continue;
+			}
+			if (!TryResolveCanonicalOffensiveProfile(
+					*Canonical, EquippedItem, HandSlot, OutProfile, Item) ||
+				!ActionDefinition.WeaponAttackProfile.ApplyToOffensiveProfile(
+					ActionDefinition.ActionId, ActionDefinition.RangeCells, OutProfile))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
+			OutItemDefinitionId = EquippedItem.ItemDefinitionId;
+			OutEquipmentSlot = HandSlot;
+			OutItemTags = Item.Tags;
+			return true;
 		}
 
 		const UGridItemDefinitionAsset* Definition = PartyInventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
@@ -1192,6 +1269,14 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyIn
 		OutRejectReason = EGridPlayerAttackRejectReason::PartyUnavailable;
 		return false;
 	}
+	const UGridItemSubsystem* Canonical = nullptr;
+	if (const UWorld* World = GetWorld())
+	{
+		if (UGameInstance* GI = World->GetGameInstance())
+		{
+			Canonical = GI->GetSubsystem<UGridItemSubsystem>();
+		}
+	}
 
 	if (bRequireRequestedEquipmentSlot)
 	{
@@ -1205,6 +1290,20 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyIn
 		if (!PartyInventory->GetEquippedItem(AttackerCharacterIndex, RequestedEquipmentSlot, EquippedItem))
 		{
 			OutProfile = MakeUnarmedOffensiveProfile();
+			return true;
+		}
+
+		if (Canonical && Canonical->HasCanonicalItem(EquippedItem.ItemDefinitionId))
+		{
+			FGridResolvedItem Item;
+			if (!TryResolveCanonicalOffensiveProfile(
+					*Canonical, EquippedItem, RequestedEquipmentSlot, OutProfile, Item))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
+			OutItemDefinitionId = EquippedItem.ItemDefinitionId;
+			OutEquipmentSlot = RequestedEquipmentSlot;
 			return true;
 		}
 
@@ -1242,6 +1341,29 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyIn
 		if (!PartyInventory->GetEquippedItem(AttackerCharacterIndex, HandSlot, EquippedItem))
 		{
 			continue;
+		}
+
+		if (Canonical && Canonical->HasCanonicalItem(EquippedItem.ItemDefinitionId))
+		{
+			FGridResolvedItem Item;
+			if (!Canonical->ResolveItem(EquippedItem.ItemDefinitionId, EquippedItem.ItemLevel, Item))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
+			if (!Item.bIsArmament || !Item.Weapon.HasAttackSourceInHand(HandSlot))
+			{
+				continue;
+			}
+			if (!TryResolveCanonicalOffensiveProfile(
+					*Canonical, EquippedItem, HandSlot, OutProfile, Item))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
+			OutItemDefinitionId = EquippedItem.ItemDefinitionId;
+			OutEquipmentSlot = HandSlot;
+			return true;
 		}
 
 		const UGridItemDefinitionAsset* Definition = PartyInventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
