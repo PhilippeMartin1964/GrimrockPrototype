@@ -1,0 +1,114 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Subsystems/GameInstanceSubsystem.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "GridItemSubsystem.generated.h"
+
+UENUM(BlueprintType)
+enum class EGridCanonicalItemResolveError : uint8
+{
+	None,
+	RegistryNotConfigured,
+	UnknownItemId,
+	InvalidItemLevel,
+	InvalidArchetype,
+	MissingVisual
+};
+
+/**
+ * Read-only projection, rebuilt from the single registry per lookup.
+ * No UObject catalogue references or static stats are persisted in SaveGame.
+ */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridResolvedItem
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	EGridCanonicalItemResolveError Error = EGridCanonicalItemResolveError::RegistryNotConfigured;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	FName ItemId = NAME_None;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	int32 ItemLevel = 0;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	FText DisplayName;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	FText Description;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	float WeightKg = 0.0f;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	TArray<FName> Tags;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	TSoftObjectPtr<UTexture2D> ItemIcon;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	TSoftObjectPtr<UStaticMesh> WorldMesh;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	TSoftObjectPtr<UStaticMesh> EquippedMesh;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	FName ArchetypeId = NAME_None;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	bool bIsArmament = false;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	FGridCanonicalResolvedWeapon Weapon;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	FName AmmoKindId = NAME_None;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	int32 MaxStack = 1;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	TArray<FGridItemActionBinding> AvailableActions;
+
+	bool IsValid() const { return Error == EGridCanonicalItemResolveError::None; }
+};
+
+/**
+ * The new subsystem is unconfigured until DA_ItemSystem is authored in 06.2.
+ * Never probes the old per-weapon catalogues, looks up legacy definitions or
+ * silently resolves an unknown identity. Configuration occurs ONCE per GI.
+ */
+UCLASS(Config = Game, DefaultConfig)
+class GRIMROCKPROTOTYPE_API UGridItemSubsystem : public UGameInstanceSubsystem
+{
+	GENERATED_BODY()
+
+public:
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
+
+	/** One-time boot configuration; also accepts transient assets in automation tests. */
+	bool RegisterItemSystem(UGridItemSystemAsset* System, TArray<FString>& Errors);
+
+	UFUNCTION(BlueprintCallable, Category = "Item System")
+	bool ResolveItem(FName ItemId, int32 ItemLevel, FGridResolvedItem& OutItem) const;
+
+	UFUNCTION(BlueprintPure, Category = "Item System")
+	bool IsConfigured() const { return RootRegistry != nullptr; }
+
+private:
+	/** Authored once in DefaultGame.ini once DA_ItemSystem exists (06.2). */
+	UPROPERTY(Config, EditDefaultsOnly, Category = "Item System")
+	TSoftObjectPtr<UGridItemSystemAsset> ConfiguredItemSystem;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGridItemSystemAsset> RootRegistry;
+
+	UPROPERTY(Transient)
+	TMap<FName, TObjectPtr<UGridCanonicalItemDefinitionAsset>> ItemIndex;
+
+	bool bConfigurationAttempted = false;
+};
