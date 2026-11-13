@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
+#include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "UI/GridEquippedWeaponActionIconPalette.h"
@@ -296,6 +297,50 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponVisualBinding
 	FName VisualId = NAME_None;
 };
 
+/** Visual-only mode; map from EGridThrowVisualMode explicitly in the Editor converter. */
+UENUM(BlueprintType)
+enum class EGridCanonicalProjectileVisualMode : uint8
+{
+	Stable,
+	Tumble,
+	Spin
+};
+
+/**
+ * Projectile presentation belongs to VisualProfiles, never to numeric
+ * weapon damage or concrete item definitions.
+ */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridCanonicalProjectileVisual
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
+	bool bEnabled = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
+	FRotator RelativeRotation = FRotator(-90.0f, 0.0f, 0.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
+	FVector RelativeScale = FVector(1.5f);
+
+	/** Axis of the imported projectile mesh's tip, not dungeon facing. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
+	EGridProjectileForwardAxis MeshForwardAxis = EGridProjectileForwardAxis::PositiveX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
+	EGridCanonicalProjectileVisualMode Mode = EGridCanonicalProjectileVisualMode::Tumble;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
+	FVector TumbleAxis = FVector(0.65f, 0.35f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
+	float TumbleDegreesPerSecond = 180.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
+	float SpinDegreesPerSecond = 1080.0f;
+};
+
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponVisual
 {
@@ -330,9 +375,13 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponVisual
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	TArray<FName> LevelFinishIds;
 
-	/** Presentation-only projectile mesh and attachment offset. */
+	/** Projectile-specific mesh. Can equal WorldMesh, but remains a visual-only role. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	TSoftObjectPtr<UStaticMesh> ProjectileMesh;
+
+	/** Exact authored Stable/Tumble/Spin presentation; no gameplay physics. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
+	FGridCanonicalProjectileVisual ProjectileAppearance;
 };
 
 UCLASS(BlueprintType)

@@ -204,6 +204,23 @@ bool UGridCanonicalWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors)
 			bValid = AddError(Errors, TEXT("Visual catalogue: missing/duplicate VisualId"));
 		}
 		SeenProfiles.Add(Profile.VisualId);
+		const FGridCanonicalProjectileVisual& Flight = Profile.ProjectileAppearance;
+		if (Flight.bEnabled &&
+			(Profile.ProjectileMesh.IsNull() ||
+			 Flight.RelativeRotation.ContainsNaN() ||
+			 Flight.RelativeScale.ContainsNaN() ||
+			 Flight.TumbleAxis.ContainsNaN() ||
+			 !FMath::IsFinite(Flight.TumbleDegreesPerSecond) ||
+			 !FMath::IsFinite(Flight.SpinDegreesPerSecond) ||
+			 static_cast<uint8>(Flight.MeshForwardAxis) >
+				static_cast<uint8>(EGridProjectileForwardAxis::NegativeZ) ||
+			 static_cast<uint8>(Flight.Mode) >
+				static_cast<uint8>(EGridCanonicalProjectileVisualMode::Spin)))
+		{
+			bValid = AddError(Errors, FString::Printf(
+				TEXT("Visual catalogue: incomplete projectile appearance for %s"),
+				*Profile.VisualId.ToString()));
+		}
 	}
 	TSet<FName> SeenBindings;
 	for (const FGridCanonicalWeaponVisualBinding& Binding : ArchetypeBindings)
