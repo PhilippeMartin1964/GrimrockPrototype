@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.11 — Inventaire local des 11 imports Meshy
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Le `git status --short` utilisateur du 28 octobre 2026 montre 11 meshes et 11 icônes.
 Il montre 10 nouvelles Material Instances (sans `MI_HolyScepter`) et aucun dossier PBR HolyScepter.
 Les neuf autres dossiers PBR ne révèlent pas individuellement leurs noms de textures dans `git status`.

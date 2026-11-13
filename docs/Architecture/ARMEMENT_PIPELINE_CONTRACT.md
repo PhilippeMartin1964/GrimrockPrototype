@@ -1,5 +1,8 @@
 # ARMEMENT_PIPELINE_CONTRACT — Contrat du pipeline d'armement (INDUS01–INDUS05)
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). **Ancien pipeline : maintenance/diagnostic de l'existant seulement ; ne pas créer de nouveaux DA selon l'ancien schéma.** **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+
+
 **Contrat actif v0.5 — 26 octobre 2026.** INDUS01–INDUS04 sont validés par l'utilisateur. INDUS05.1–05.4 sont implémentés sur master ; compilation UE5.5.4, suites Industrial05 et recette pipeline locales encore attendues. Le présent document définit les limites de sécurité ; **la seule procédure opérationnelle à suivre est [ARMEMENT_PIPELINE_GUIDE.md](ARMEMENT_PIPELINE_GUIDE.md)**. Les exemples historiques ci-dessous sont maintenus lorsqu'ils restent valides et qualifiés sinon.
 
 ## A. Principes non négociables

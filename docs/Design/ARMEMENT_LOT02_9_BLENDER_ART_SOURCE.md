@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.9 — Sources artistiques des onze armes
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Ce jalon ajoute un générateur Blender pour les 11 modèles N1 restants, sans réécriture des DataAssets existants.
 
 Chaque source contient une géométrie originale distincte (lance, arc, couteau, javelot, dard, deux baguettes, bâton, sceptre, orbe, égide).

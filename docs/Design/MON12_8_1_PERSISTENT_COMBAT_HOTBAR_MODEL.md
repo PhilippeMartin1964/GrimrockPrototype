@@ -1,5 +1,8 @@
 # MON12.8.1 — Modèle persistant de barre de raccourcis de combat
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## Résultat
 
 MON12.8.1 ajoute dix raccourcis configurables à chaque

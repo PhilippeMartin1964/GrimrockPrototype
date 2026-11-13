@@ -1,5 +1,8 @@
 # ARM-CLEAN01 — Audit de l'autorité des données d'armes (UE 5.5.4)
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). **Audit ou jalon de l'ancien modèle ; ne constitue plus l'architecture cible.** **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+
+
 **Date :** 12 novembre 2026. **Statut :** audit statique de `master` ; aucune migration des assets binaires ni validation PIE revendiquée.
 **Objet :** commencer le nettoyage demandé de l'armement ARM001–ARM082, sans perdre les données enregistrées ni modifier le gameplay silencieusement.
 **Sources actives :** `docs/Architecture/ARMEMENT_PIPELINE_GUIDE.md`, `docs/Architecture/ARMEMENT_PIPELINE_CONTRACT.md`, `docs/Design/ARMEMENT_FX01_AUDIO_VFX_PROGRESSION_N1_N20.md`.

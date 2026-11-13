@@ -1,5 +1,8 @@
 # ARMEMENT01 — Contrat d'armement v0.3
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Date :** 20 octobre 2026  
 **Projet :** GrimrockPrototype — Unreal Engine 5.5.4  
 **Statut :** PROPOSITION DE CONCEPTION — à valider ; **aucune nouvelle mécanique de dés n'est déclarée implémentée**

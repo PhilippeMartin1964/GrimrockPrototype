@@ -1,5 +1,8 @@
 # ARMEMENT01.6.5 — Meshes réalistes dans le donjon et l'éditeur
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Date :** 21 octobre 2026. **Statut :** code et tests proposés ; compilation/validation locale en attente. **Référence connue avant ticket :** 1488/1488 tests Grimrock (TD04-20261021-113919), 0 warning/échec.
 
 ## Implémentation

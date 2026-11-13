@@ -1,5 +1,8 @@
 # MON12.3 — État de tour et points d'action des personnages
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 > Ce document décrit le jalon MON12.3 validé. Depuis MON12.4, un seul
 > personnage est `Active` à la fois et reçoit ses 4 PA au début de son propre
 > tour. Voir `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` pour le

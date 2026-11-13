@@ -27,6 +27,12 @@
 - Cette autorisation de réécriture ne couvre que les commits créés par ChatGPT ou ses outils pendant le travail en cours. Ne jamais supprimer ni réécrire un commit utilisateur ou un changement distant imprévu sans instruction explicite.
 - Avant toute réécriture automatique, vérifier le parent et la divergence distante ; après la réécriture, relire `master` et vérifier que le commit parasite n'est plus atteignable depuis la branche.
 
+## Contrat architectural d'objets et d'armement (décision approuvée)
+
+- **Référence de conception obligatoire :** `docs/Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md` ; édition : `docs/Design/ARM_CLEAN06_ITEM_AUTHORING_CONTRACT.md` ; conversion : `docs/Architecture/ARM_CLEAN06_MIGRATION_PLAN.md`.
+- **Architecture cible APPROUVÉE mais NON ENCORE IMPLÉMENTÉE.** Les rapports ARM-CLEAN05 décrivent l'existant ; l'ancien pipeline ARMEMENT/INDUS ne fixe plus les nouveaux schémas.
+- **Zéro legacy dans le runtime final :** aucune référence de catalogue dans `DA_Weapon_*`, pas de copies N1/poids/nom/icône/mesh ni de fallback ; conversion ponctuelle UE Editor obligatoire avant suppression d'anciennes UPROPERTY, .uasset, niveaux ou sauvegardes.
+
 ## Unreal Engine
 
 - Version cible : Unreal Engine 5.5.4.

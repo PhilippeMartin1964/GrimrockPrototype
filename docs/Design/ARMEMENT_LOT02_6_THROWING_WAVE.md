@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.6 — Vague industrielle des armes de jet
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Code à valider sous UE5.5.4.** Le nouveau mode `ThrowingOneHand` prend en charge ARM054, ARM057 et ARM058 au niveau du constructeur industriel, sans modifier leurs données N1. Le constructeur affecte une attaque `RangedAttack` avec ligne de vue, consomme exactement une arme physique, active `bCombatThrowWeapon`, et autorise le lancer depuis le sac via le système QuickItem existant. Les Shuriken et couteaux de jet historiques restent inchangés.
 
 Un nouveau test `Grimrock.RPG.ARMEMENT.LOT02.ThrowingWeaponN1Batch` contrôle les trois profils canon N1, les actions, la physique et l'absence de mutation. Il ne garantit ni animations ni recette PIE.

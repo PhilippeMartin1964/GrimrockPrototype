@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.19.2.2 — Séquence audio, impacts et flux d'événements
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 > **Correctif de fiabilité audio 02.19.2.2.1 — 10.11.2026 :** le premier jalon a réussi ses tests sans couvrir la diffusion réelle des deux sons : le test de combat avait `bAudioEnabled = false` ! Le retour PIE constate **un seul son perceptible** malgré les deux armes configurées. Ce n'était pas une validation sonore suffisante. Le correctif utilise pour les frappes multiples des voix 2D indépendantes avec concurrence dédiée, une séparation minimale réglable entre leurs départs, des traces Item/Hand/Strike/Sound, et des tests qui vérifient **deux sources de sons distinctes**. Les attaques simples conservent leur son 3D habituel. L'écoute PIE demeure indispensable ; `LocalAuto` ne valide pas la sortie physique des haut-parleurs.
 
 ## Décision de gameplay et périmètre

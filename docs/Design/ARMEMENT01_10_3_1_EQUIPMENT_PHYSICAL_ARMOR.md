@@ -1,5 +1,8 @@
 # ARMEMENT01.10.3.1 — Consommation réelle de l'armure physique des équipements
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle approuvé](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et validations historiques conservées ; ancien schéma et fallbacks non normatifs. **Non encore implémenté ; zéro legacy dans le runtime final.**
+
+
 **État au 23.10.2026 : correctif C++ publié et validé localement.** Rapports TD04.2 transmis : ARMEMENT01.10.3.1 **3/3** (`TD04-20261023-161700`), ARMEMENT01.10 **14/14** (`TD04-20261023-163131`), TD07.3.3.3 **8/8** (`TD04-20261023-163146`), RPG03.3 **8/8** (`TD04-20261023-163201`). Capture PIE : `Armure : -4; PV Elias : 11 → 11` pour la morsure de 4 dégâts. La persistance SaveGame disque et toutes les transitions d'armure ne sont pas encore validées.
 
 **Décision RPG générale ARMEMENT01.10.3.2 :** [RPG_Shields_Protection_Contract_v0_1.md](../Rules/RPG_Shields_Protection_Contract_v0_1.md).

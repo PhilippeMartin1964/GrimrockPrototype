@@ -1,5 +1,8 @@
 # ARMEMENT01.17.3D.1 — Migration native du catalyseur
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : 5 novembre 2026. Base : 66570694 (correction CheckAddress).
 Objectif : persister dans le DataAsset approuvé les paramètres C6
 actuellement projetés par ProjectApprovedAction, sans remplacer le contenu artistique.

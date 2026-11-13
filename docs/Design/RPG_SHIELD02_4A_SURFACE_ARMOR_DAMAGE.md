@@ -1,5 +1,8 @@
 # RPG-SHIELD02.4A — Dégâts de surface et réserve physique effective
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **État : C++ et automatisation publiés sur master ; build et validation UE5.5.4 locale attendus.**  
 **Contrat :** [RPG-SHIELD02 v0.2](../Rules/RPG_Shields_Protection_Contract_v0_2.md).  
 **Périmètre strict :** surfaces périodiques touchant les personnages ; résolution d'attaque, états, surfaces affectant les monstres, sorts de restauration et UMG inchangés.

@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.13.6C — Chute, orientation et persistance des flèches
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## 13.6C.1 — Libération physique et véritable pose monde
 - `AGridThrownItemActor` n'est pas le pickup : il détient l'instance unitaire jusqu'au passage à `AGridItemActor`.
 - Le runtime crée ce pickup avec `TryDropItemInstanceAtWorldTransform`, en utilisant **la position et la rotation monde du MeshComponent de la flèche**. La chute est confiée à Chaos via `ConfigureAsWorldPickup` ; aucune rotation arbitraire sud-nord ou snap au centre n'est effectuée.

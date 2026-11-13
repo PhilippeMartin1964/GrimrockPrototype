@@ -1,5 +1,8 @@
 # ARMEMENT-INDUS04.3B — Présentateur global avant/après (C++ + UI.csv)
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **État : C++ et UI.csv proposés pour validation locale.** Dépendance : ARMEMENT-INDUS04.3A validé 4/4 le 25 octobre 2026 ; WeaponTooltip04 8/8 ; Item01 5/5.
 
 ## Contrat

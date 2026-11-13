@@ -1,5 +1,8 @@
 # ARMEMENT01.15 — Potion de soin N1 commune au Prêtre et à l'Apothicaire
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## Objectif
 
 Produire **un seul** `UGridItemDefinitionAsset` réel :

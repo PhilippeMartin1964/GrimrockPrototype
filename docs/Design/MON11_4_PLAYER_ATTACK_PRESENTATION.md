@@ -1,5 +1,8 @@
 # MON11.4 — Présentation des attaques du groupe
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 > **Extension ARMEMENT-LOT02.19.2.2 (10.11.2026) :** les affirmations historiques ci-dessous concernent le MON11 initial (une seule frappe, événement synchrone). Les attaques multi-résolutions (>1) disposent désormais d'une **timeline de présentation** pour le départ, l'impact, le feedback et le flux, sans modifier les jets ou les dégâts : voir [ARMEMENT-LOT02.19.2.2](ARMEMENT_LOT02_19_2_2_SEQUENCED_COMBAT_PRESENTATION.md). Les tests MON11 de frappe simple continuent d'utiliser le chemin instantané.
 
 ## Séparation gameplay et présentation

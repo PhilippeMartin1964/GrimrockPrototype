@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.3 — Piloter les 18 kits et fabriquer les armes par lots
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **28 octobre 2026 — outil publié côté dépôt, validation Windows PowerShell et UE5.5.4 à confirmer localement.**
 
 ## Objectif

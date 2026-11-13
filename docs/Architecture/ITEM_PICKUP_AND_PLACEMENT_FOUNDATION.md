@@ -1,5 +1,8 @@
 # Fondation du ramassage et du placement des items
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques et tests historiques restent pertinents ; les schémas DataAssets ou fallbacks anciens ne sont plus des prescriptions de conception. **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+
+
 > **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
 >
 > Les collectibles utilisent directement `UGridItemDefinitionAsset`; aucun

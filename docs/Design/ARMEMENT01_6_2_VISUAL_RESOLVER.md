@@ -1,5 +1,8 @@
 # ARMEMENT01.6.2 — Résolveur visuel de l'armement
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Date :** 20 octobre 2026.  
 **Statut :** code préparé, validation UE5.5.4 locale à fournir.  
 **Référence validée :** TD04.2, 20 octobre 2026 à 19 h 34 : **1 476 tests**, zéro avertissement, zéro échec.  

@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.10 — Prompts des 44 vues orthographiques pour Meshy
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Projet : GrimrockPrototype / Unreal Engine 5.5.4. Destination : thread « Contrôle des vues ARM20 ».
 
 ## Message de démarrage à transmettre au thread

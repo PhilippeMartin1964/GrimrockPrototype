@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.12 — Fabrication groupée des 11 armes Meshy
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Prévalidation utilisateur le 28.10.2026 : 66/66 fichiers présents,
 les 11 art sets `Art=READY` et `Status=VISUAL_MISSING`, aucun conflit ;
 les onze armes de production existantes restent `COMPLETE`.

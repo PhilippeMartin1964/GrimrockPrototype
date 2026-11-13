@@ -1,5 +1,8 @@
 # Sauvegarde et persistance — Fondation d'architecture
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et tests historiques conservés ; les prescriptions des anciens schémas DataAssets et fallbacks sont remplacées. **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+
+
 > **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
 >
 > `UGrimrockPartySaveGame::CurrentSaveVersion = 27`. Le prototype utilise un

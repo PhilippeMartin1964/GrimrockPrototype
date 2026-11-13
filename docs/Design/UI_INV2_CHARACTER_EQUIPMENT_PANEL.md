@@ -1,5 +1,8 @@
 # UI-INV2 Character Equipment Panel — current split form
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## Objet
 
 Ce document fixe la structure du panneau personnage / équipement actuellement porté par `WBP_CharacterSheet`.

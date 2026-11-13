@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.14 — Démantèlement Throwing Knife : migration du niveau
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## Source du blocage, confirmée dans UE5.5.4
 
 - `DA_GridLevel_00` est l'unique package externe qui référence encore l'ancien `DA_Weapon_ThrowingKnife`.

@@ -1,5 +1,8 @@
 # RPG03.9.5B2 — Prêtre : Exorcisme et clôture logique
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : **6 octobre 2026**  
 Parent : `RPG_Talents_Mechanics_v0_1.md`  
 Dépendances : `RPG03.9.5A` validé 6/6, `RPG03.9.5B1` validé 6/6  

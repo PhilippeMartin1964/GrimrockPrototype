@@ -1,5 +1,8 @@
 # MON20.5.2 — Context + Custom Recruit Transaction
 
+> **ARM-CLEAN06 — MODÈLE D'OBJETS APPROUVÉ (13.11.2026).** [Contrat normatif](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [plan de migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les comportements de ce jalon restent une référence fonctionnelle ; seules ses prescriptions concernant les anciennes structures d'items/armes, copies de données et références d'assets sont remplacées. **Modèle cible non encore implémenté ; zéro legacy final.**
+
+
 Statut : **VALIDÉ UE5.5.4 — CLOS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.5 — Custom Recruit / Wizard Context Reuse**

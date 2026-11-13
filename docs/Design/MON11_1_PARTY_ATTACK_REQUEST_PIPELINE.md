@@ -1,5 +1,8 @@
 # MON11.1 — Ciblage des monstres et pipeline de requête d’attaque
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## Périmètre
 
 MON11.1 introduit la demande d’attaque d’un personnage contre le monstre qui

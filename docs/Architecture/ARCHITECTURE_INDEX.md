@@ -1,5 +1,8 @@
 # Index de l'architecture
 
+> **ARM-CLEAN06 — CONTRAT DE CONCEPTION APPROUVÉ (13.11.2026).** [Modèle normatif Item/Armes](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Plan de migration](ARM_CLEAN06_MIGRATION_PLAN.md) · [Contrat d'édition](../Design/ARM_CLEAN06_ITEM_AUTHORING_CONTRACT.md) · [registre de portée documentaire](../Design/ARM_CLEAN06_DOCUMENTATION_INDEX.md). **La cible n'est pas encore implémentée.** Les anciens contrats de DataAssets ARMEMENT/INDUS/WORLDOBJ sont des descriptions historiques du runtime courant et ne font plus autorité pour créer de nouveaux champs. Les règles de gameplay validées ne sont pas annulées.
+
+
 > **Référence courante — DOC-ARCH01, 9 octobre 2026.**
 >
 > Baseline C++ auditée : `6f98a0ef5599f37d3d544529aa5a790d647e8251`.

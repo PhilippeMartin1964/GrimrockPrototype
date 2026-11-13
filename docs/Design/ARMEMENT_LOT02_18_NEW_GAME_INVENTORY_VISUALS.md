@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.18 — Correction des icônes absentes après New Game
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## Incident PIE (8 novembre 2026)
 
 **Observation utilisateur :** après L_MainMenu → création du personnage → L_Dungeon, les objets N1 apparaissent dans l'inventaire et sur le paperdoll par leur nom et quantité mais leurs images manquent. Après quitter PIE puis revenir par Continue, les mêmes équipements ont leurs visuels normaux.

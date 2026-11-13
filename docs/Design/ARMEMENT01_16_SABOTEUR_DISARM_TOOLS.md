@@ -1,5 +1,8 @@
 # ARMEMENT01.16 — Outils de désamorçage du Voleur/Saboteur
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : 30 octobre 2026
 Statut au 31.10.2026 : **ARMEMENT01.16.1, 16.2A et 16.2B compilés et tests validés localement ; verrou de découverte explicite publié, TRAP01.1 en cours de validation.** L'action réelle n'est pas utilisable sans découverte, et la perception passive reste à implémenter.
 

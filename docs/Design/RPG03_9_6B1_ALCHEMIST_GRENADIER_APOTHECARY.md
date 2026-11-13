@@ -1,5 +1,8 @@
 # RPG03.9.6B1 — Alchimiste : Grenadier + Apothicaire
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : **6 octobre 2026**  
 Dépendance : `RPG03.9.6A` validé 8/8  
 Statut : **VALIDÉ — Grenadier/Apothicaire couvert par Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**

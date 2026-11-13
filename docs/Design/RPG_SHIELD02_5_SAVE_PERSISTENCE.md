@@ -1,5 +1,8 @@
 # RPG-SHIELD02.5 — Persistance réelle des réserves DOS2 (SaveGame disque)
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **État : tests d'intégration et documentation publiés sur master ; compilation, automatisation UE5.5.4 et recette PIE locale en attente.**  
 **Autorité :** [Contrat RPG-SHIELD02 v0.2](../Rules/RPG_Shields_Protection_Contract_v0_2.md) ; [politique de sauvegarde combat MON18.9.1](MON18_9_1_COMBAT_SAVE_POLICY.md).
 

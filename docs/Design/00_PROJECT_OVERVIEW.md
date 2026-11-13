@@ -1,5 +1,8 @@
 # GrimrockPrototype — Vue d’ensemble du projet
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle approuvé](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et validations historiques conservées ; ancien schéma et fallbacks non normatifs. **Non encore implémenté ; zéro legacy dans le runtime final.**
+
+
 ## Objectif
 
 GrimrockPrototype est un dungeon crawler Unreal Engine 5.5.4 en C++ inspiré de

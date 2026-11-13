@@ -1,5 +1,8 @@
 # ARMEMENT-INDUS04.3C - Icones des statistiques du tooltip natif
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Statut : correctif de compatibilite C++ publie ; recette locale et affectations UMG a effectuer.**
 
 ## Contrat

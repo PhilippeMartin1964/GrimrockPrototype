@@ -1,5 +1,8 @@
 # GrimrockPrototype — Définitions d’objets
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle approuvé](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et validations historiques conservées ; ancien schéma et fallbacks non normatifs. **Non encore implémenté ; zéro legacy dans le runtime final.**
+
+
 Statut : **modèle actif après WORLDOBJ-CLASS01**, 2026-09-14.
 
 ## Définitions canoniques

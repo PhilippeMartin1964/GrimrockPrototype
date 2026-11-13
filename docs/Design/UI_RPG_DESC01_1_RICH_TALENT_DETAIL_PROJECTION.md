@@ -1,5 +1,8 @@
 # UI-RPG-DESC01.1 — Rich Talent & Variant Detail Projection
 
+> **ARM-CLEAN06 — MODÈLE D'OBJETS APPROUVÉ (13.11.2026).** [Contrat normatif](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [plan de migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les comportements de ce jalon restent une référence fonctionnelle ; seules ses prescriptions concernant les anciennes structures d'items/armes, copies de données et références d'assets sont remplacées. **Modèle cible non encore implémenté ; zéro legacy final.**
+
+
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 État : **HISTORIQUE — superseded par UI-RPG-DESC01.4**

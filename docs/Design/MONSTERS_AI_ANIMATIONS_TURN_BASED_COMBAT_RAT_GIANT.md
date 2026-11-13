@@ -1,5 +1,8 @@
 # GrimrockPrototype — Monstres, animations, IA et combat tour par tour
 
+> **ARM-CLEAN06 — MODÈLE D'OBJETS APPROUVÉ (13.11.2026).** [Contrat normatif](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [plan de migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les comportements de ce jalon restent une référence fonctionnelle ; seules ses prescriptions concernant les anciennes structures d'items/armes, copies de données et références d'assets sont remplacées. **Modèle cible non encore implémenté ; zéro legacy final.**
+
+
 > Guide historique du prototype de juillet 2026. Les identités et placements cités décrivent cet ancien état ; le contrat courant est celui de [MIG10](../Architecture/WORLDOBJ_MIG10_FINAL.md).
 
 

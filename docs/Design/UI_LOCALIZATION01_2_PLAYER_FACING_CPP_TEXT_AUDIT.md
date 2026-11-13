@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.2 — Player-facing C++ text audit
 
+> **ARM-CLEAN06 — MODÈLE D'OBJETS APPROUVÉ (13.11.2026).** [Contrat normatif](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [plan de migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les comportements de ce jalon restent une référence fonctionnelle ; seules ses prescriptions concernant les anciennes structures d'items/armes, copies de données et références d'assets sont remplacées. **Modèle cible non encore implémenté ; zéro legacy final.**
+
+
 > **Statut : CLOSED — audit historique.** Commit : `6ac148d385381d171b184d4f7b13fc0b58ce413c`. Les P0 identifiés ici ont été fermés par les jalons 01.5 à 01.12. Baseline finale P0 : `6e5cb5f14f532e2685117e4f803d5ae7a13c6e7e`.
 
 

@@ -1,5 +1,8 @@
 # ARMEMENT-INDUS04.3B.2 - Comparaison des degats physiques bruts
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## Decision
 
 La comparaison des degats minimum et maximum (extremes bruts de NdM+K, avant les attributs du personnage) est permise entre armes du **meme type principal de degats**, meme si leurs sous-types physiques different : tranchants, perforants ou contondants.

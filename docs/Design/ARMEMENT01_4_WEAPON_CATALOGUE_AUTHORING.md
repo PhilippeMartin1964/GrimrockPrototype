@@ -1,5 +1,8 @@
 # ARMEMENT01.4 — Authoring du catalogue d'armement N1–N20
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Date :** 20 octobre 2026.
 **Statut :** code C++ et outils préparés ; compilation et génération Unreal locales non encore validées.
 

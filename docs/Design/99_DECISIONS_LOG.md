@@ -1,5 +1,18 @@
 # GrimrockPrototype — Decisions Log
 
+## 2026-11-13 — ARM-CLEAN06 : nouveau modèle DataAssets approuvé
+
+**Décision confirmée par le propriétaire.** Le [contrat architectural ARM-CLEAN06](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) et le [contrat d'édition](ARM_CLEAN06_ITEM_AUTHORING_CONTRACT.md) font dorénavant autorité sur **tous les futurs développements** d'objets et d'armement.
+
+- Un seul **DA_ItemSystem** indexe les définitions ItemId et référence une fois les quatre catalogues : combat N1–N20, visuels/les deux familles d'icônes, actions, présentations audio/Niagara.
+- **DA_Weapon_xxx** : base ItemId, DisplayName, Description, WeightKg, Tags + **ArchetypeId seulement**. Zéro référence WeaponCatalogue/WeaponVisualCatalogue individuelle, ni dés N1, icône, mesh, actions génériques ou SFX/VFX copiés.
+- **UGridItemSubsystem** donne l'unique lecture ; instances, niveaux et sauvegardes ne conservent que les clés, niveaux et états mutables.
+- **Aucun legacy au runtime final**. Les conversions Editor ponctuelles doivent préserver toutes les données et les sauvegardes puis être éliminées.
+- **Statut : cible APPROUVÉE, NON implémentée** ; tests de gameplay antérieurs et parité restent obligatoires. [Plan détaillé](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md).
+
+---
+
+
 Ce fichier conserve les décisions validées afin de ne pas perdre la connaissance acquise entre les sessions ChatGPT, Codex et les commits Git.
 
 ---

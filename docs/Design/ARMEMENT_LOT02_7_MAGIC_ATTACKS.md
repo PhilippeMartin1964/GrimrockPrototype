@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.7 — Armes magiques offensives et lance à deux mains
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Source publiée sur master ; validation UE5.5.4 locale encore nécessaire.**
 
 Le pipeline accepte `MagicOneHand` et `MagicTwoHand`. Ces modes créent uniquement une **attaque directe d'équipement** (type `RangedAttack`, ligne de vue), avec dégâts, type de dégâts, portée et coût en PA issus du catalogue N1. Ils ne créent aucun sort, talent, soin, statut, surface ou mana artificiel.

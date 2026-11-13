@@ -1,5 +1,8 @@
 # ARMEMENT01.9.7 — Approbation des 18 recettes et traitement des affinités qualifiées
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Date : 22 octobre 2026.**
 
 **Décision de conception : les 18 recettes N1 sont `ApprovedDesign` pour la

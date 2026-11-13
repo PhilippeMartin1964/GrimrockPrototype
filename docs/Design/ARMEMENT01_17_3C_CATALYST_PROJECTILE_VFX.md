@@ -1,5 +1,8 @@
 # ARMEMENT01.17.3C — Projectile et VFX multi-cellules
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : 5 novembre 2026. Parent : c0d5aaa1529c4a0f82dae47ef84598cb00f18bc2.
 Un seul commit, C++ + tests + docs ; aucun binaire .uasset ou .umap modifié.
 

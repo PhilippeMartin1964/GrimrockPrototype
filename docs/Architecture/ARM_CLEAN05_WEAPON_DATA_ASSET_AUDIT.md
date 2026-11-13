@@ -1,4 +1,7 @@
 # ARM-CLEAN05 — Audit contradictoire des DataAssets d’armes et du C++
+
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). **Audit ou jalon de l'ancien modèle ; ne constitue plus l'architecture cible.** **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+
 **13 novembre 2026 — Audit statique de master au commit 2baa68e4d708bb8d27b8b8f95e0a93a8ec61a6f4.**
 **Verdict : NON VALIDÉ sur l’architecture des armes.** La validation UE5.5.4 passée garantit compilation et scénarios Automation couverts, pas élimination des doublons, cohérence de toutes les lectures ni simplicité d’édition.
 

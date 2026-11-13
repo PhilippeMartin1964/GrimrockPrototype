@@ -1,5 +1,8 @@
 # FLASK / FIREFX — Mode d'emploi UE 5.5.4
 
+> **ARM-CLEAN06 — MODÈLE D'OBJETS APPROUVÉ (13.11.2026).** [Contrat normatif](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [plan de migration](ARM_CLEAN06_MIGRATION_PLAN.md). Les comportements de ce jalon restent une référence fonctionnelle ; seules ses prescriptions concernant les anciennes structures d'items/armes, copies de données et références d'assets sont remplacées. **Modèle cible non encore implémenté ; zéro legacy final.**
+
+
 **Périmètre :** lancer de flasques d'huile et de catalyseur depuis la troupe, vol balistique en cases de 200 cm, impact, sons et effets de feu. Gameplay RPG03.6/C6 inchangé.
 
 ## 1. Organisation Git confirmée

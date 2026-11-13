@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.16 — Audit N1, matrice fonctionnelle et recette PIE
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Périmètre :** les 22 lignes `Active` de `Config/Armement/WeaponProductionManifest.csv` sur `master`.  
 **Révision auditée initialement :** `5e964dfa47857da0175fe9749c55f9653280c88e` (8 novembre 2026).  
 **Règle de preuve :** `Active`, un test Automation et une véritable session PIE sont trois niveaux de preuve différents.

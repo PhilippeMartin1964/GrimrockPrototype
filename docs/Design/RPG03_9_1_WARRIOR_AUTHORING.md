@@ -1,5 +1,8 @@
 # RPG03.9.1 — Authoring Guerrier
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : **5–6 octobre 2026**  
 Parent : `RPG_Talents_Mechanics_v0_1.md`  
 Statut : **VALIDÉ / MATÉRIALISÉ — 11/11 lors du jalon Guerrier ; couvert ensuite par la campagne globale RPG03 193/193**

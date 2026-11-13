@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.13.4 — Tir visible et récupération des munitions
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Statut : code publié pour validation locale UE5.5.4 ; PIE et sauvegarde/rechargement encore à observer.
 
 ## Contrat

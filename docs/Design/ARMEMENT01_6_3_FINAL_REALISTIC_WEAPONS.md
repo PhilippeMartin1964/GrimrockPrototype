@@ -1,5 +1,8 @@
 # ARMEMENT01.6.3-FINAL — Consolidation des trois armements réalistes
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Date :** 21 octobre 2026. **Statut :** C++ et tests validés localement ; revue visuelle et publication des 19 packages restant à réaliser. **Validation courante :** pilot TD04-20261021-110250 4/4, global TD04-20261021-110400 1486/1486, aucun avertissement, aucun échec, code de sortie 0.
 
 ## 1. Identifiants canoniques et nomenclature

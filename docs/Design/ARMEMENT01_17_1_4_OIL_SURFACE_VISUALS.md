@@ -1,5 +1,8 @@
 # ARMEMENT01.17.1.4 — Refonte du rendu de l’huile au sol
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **4 novembre 2026 — Refonte de la présentation, à valider sous UE 5.5.4.**
 
 ## Pourquoi l’ancienne réalisation était incorrecte

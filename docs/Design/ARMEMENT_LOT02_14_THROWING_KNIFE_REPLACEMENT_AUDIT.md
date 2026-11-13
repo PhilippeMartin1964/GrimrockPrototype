@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.14 — Remplacement de Throwing Knife historique
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **État :** migration des deux kits C++ publiée ; suppression des assets Unreal
 **expressément différée** jusqu'au relevé local des références binaires et
 validation PIE. Travail effectué en un lot, sans micro-tickets.

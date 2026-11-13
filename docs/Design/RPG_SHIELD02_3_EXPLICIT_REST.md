@@ -1,5 +1,8 @@
 # RPG-SHIELD02.3 — Repos explicite, recharge physique et magique
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Statut : Implémentation C++ publiée ; compilation Unreal Engine 5.5.4, tests et recette PIE restent à valider localement.**  
 **Autorité :** [Contrat RPG-SHIELD02 v0.2](../Rules/RPG_Shields_Protection_Contract_v0_2.md).
 

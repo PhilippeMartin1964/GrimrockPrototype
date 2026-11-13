@@ -1,5 +1,8 @@
 # Item Context Action System — inventaire, clic droit, drag/drop et cibles
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Statut : **spécification de design cible**  
 Portée : **UX inventaire, actions contextuelles, drag/drop, cibles en face du groupe, remplacement progressif du Cursor comme modèle public**  
 Complète : `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md`, `WALL_LOCK_MVP_RUNTIME_BEHAVIOR.md`, `GRIMROCK_LOCK_SYSTEM.md`

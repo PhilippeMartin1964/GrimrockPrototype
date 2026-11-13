@@ -1,5 +1,8 @@
 # ARMEMENT01.11.2.2 - ARM002 (Poignard d'assassin), authoring N1
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Statut : code C++ et outillage; compilation Unreal locale et test de cette etape encore a confirmer.
 Etat confirme par l'utilisateur : ARMEMENT01.11.2.1 a enregistre ARM002->VIS_AssassinDagger_01;
 1/1 sous Grimrock.RPG.ARMEMENT01.11.2, TD04-20261025-075614, zero avertissement;

@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.17 — Validation des 18 kits de départ N1
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## Contrat
 
 Ce jalon prolonge ARMEMENT-LOT02.16 et ARMEMENT01.13.2. Six classes de production proposent trois kits approuvés chacune, soit 18 choix propres aux classes. Le choix dans le wizard, la création réelle du personnage et l'écriture/relecture sur disque doivent conserver les objets physiques sans duplication ni disparition.

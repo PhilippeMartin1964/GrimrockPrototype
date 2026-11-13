@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.19.2 — Attaque double, deux armes réelles et un coût unique
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 > **Séquence 02.19.2.2 (10.11.2026) :** la double frappe conserve ses deux calculs autoritaires synchrones, mais la présentation, les bruitages configurés, le feedback et la publication au flux des deux coups sont désormais **étalés dans le temps** (première frappe → impact → deuxième frappe → impact). L'ancienne affirmation « deux événements instantanés dans le flux » décrit uniquement l'historique immédiat, pas l'affichage. Voir [ARMEMENT-LOT02.19.2.2](ARMEMENT_LOT02_19_2_2_SEQUENCED_COMBAT_PRESENTATION.md).
 
 > **MISE À JOUR 10.11.2026 — ARMEMENT-LOT02.21 :** les raccourcis temporaires 2/3 de frappe simple MainHand/OffHand mentionnés ci-dessous étaient une étape de prototype ; **ils ne sont plus projetés automatiquement**. Une seule attaque normale contextuelle est affichée en raccourci 1, y compris avec ARM001 + ARM013. Les deux profils physiques restent dans le moteur pour résoudre l'attaque combinée. Les raccourcis manuellement affectés restent respectés. Voir [contrat courant](ARMEMENT_LOT02_21_SINGLE_EQUIPPED_ATTACK_HOTBAR.md).

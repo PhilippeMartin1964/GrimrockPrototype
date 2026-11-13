@@ -1,5 +1,8 @@
 # RPG03.9.6C — Alchimiste : matérialisation production
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : **6 octobre 2026**  
 Dépendances validées : `RPG03.9.6A` 8/8, `RPG03.9.6B1` 7/7, `RPG03.9.6B2` 7/7  
 Statut : **VALIDÉ / MATÉRIALISÉ — 18 binaires Alchimiste matérialisés ; campagne globale 193/193 le 6 octobre 2026**

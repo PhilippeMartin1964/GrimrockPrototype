@@ -1,5 +1,8 @@
 # ARMEMENT01.6.3 — Trois silhouettes pilotes, icônes et meshes
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Date :** 20 octobre 2026.  
 **État :** sources artistiques et commande d'import publiées ; génération des .uasset,
 compilation et validation visuelle dans UE5.5.4 à effectuer localement.  

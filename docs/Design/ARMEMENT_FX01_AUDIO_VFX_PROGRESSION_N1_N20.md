@@ -1,5 +1,8 @@
 # ARMEMENT-FX01 — Spécification sonore, Niagara et évolution esthétique N1–N20
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Date :** 11 novembre 2026 · **Version :** 1.0 · **Statut :** SPÉCIFICATION PROPOSÉE, NON IMPLÉMENTÉE · **UE :** 5.5.4  
 **Périmètre autoritaire :** les 22 lignes `Active` de `Config/Armement/WeaponProductionManifest.csv`, couvrant 22 × 20 = **440 niveaux d'objet possibles** ; le catalogue complet contient 82 × 20 profils, mais les 60 autres archétypes ne sont pas des DataAssets de production déclarés ici.  
 **Matrice éditable :** [ARMEMENT_FX01_ACTIVE22_CUE_MATRIX.csv](ARMEMENT_FX01_ACTIVE22_CUE_MATRIX.csv), **22 lignes sans assets sonores/Niagara prétendument existants**. Les descriptions et IDs proposés sont des intentions de direction artistique, pas des effets déjà créés.

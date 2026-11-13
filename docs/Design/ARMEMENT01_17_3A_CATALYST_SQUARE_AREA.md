@@ -1,5 +1,8 @@
 # ARMEMENT01.17.3A — Zone carrée et résolution C6 en combat
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : 5 novembre 2026.
 Base : d7b8fdc0 (assets artistiques approuvés). Aucun asset binaire modifié.
 

@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.5 — Véritables munitions du Rôdeur Tireur
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Code source et procédure publiés : production de packages UE5.5.4 encore à effectuer localement.**
 
 ## Contrat fonctionnel

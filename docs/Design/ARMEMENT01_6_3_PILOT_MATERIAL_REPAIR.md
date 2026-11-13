@@ -1,5 +1,8 @@
 # ARMEMENT01.6.3 — Correction des dépendances de matériaux
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Date :** 20 octobre 2026.
 **État :** code de réparation publié ; compilation, exécution et validation locale à effectuer.
 **Référence préalable :** TD04-20261020-202531, 1 484 tests réussis sans avertissement, 1 test réussi avec avertissement, 0 échec.

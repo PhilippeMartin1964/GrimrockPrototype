@@ -1,5 +1,8 @@
 # MON12.7 — HUD de combat orienté actions
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 > **SUPERSEDED POUR L’AUTHORING UMG COURANT — UI-COMBAT-UNIFY01 (05.10.2026).**  
 > Ce document reste l’historique de MON12.7, mais ses procédures manuelles concernant `Panel_Actions`, `ActionWidgetClass` dans le Combat HUD et l’ancienne construction des panneaux ne doivent plus être suivies. La référence actuelle est `docs/Design/UI_COMBAT_WIDGETS_CURRENT.md`.
 

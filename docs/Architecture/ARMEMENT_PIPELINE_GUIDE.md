@@ -1,5 +1,8 @@
 # ARMEMENT — Guide unique de fabrication et de validation (INDUS05)
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). **Ancien pipeline : maintenance/diagnostic de l'existant seulement ; ne pas créer de nouveaux DA selon l'ancien schéma.** **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+
+
 **Procédure active — version 1.0 du 26 octobre 2026.** Tous les comptes rendus `docs/Design/ARMEMENT01_*.md` et les anciennes sections détaillées de ce guide sont **historiques**, non des commandes à exécuter aujourd'hui. L'ancienne version de ce guide reste accessible dans l'historique Git. **Ce guide est le point de vérité opérationnel.**
 
 **État du chantier :** INDUS01/02/03/04 validés par l'utilisateur ; INDUS05.1–05.4 implémentés sur `master`, **compilation locale UE5.5.4 et suite industrielle 7/7 validées le 27 octobre 2026** ; recette complète de clôture INDUS05 encore partiellement attendue. Ne pas transformer publication Git en PASS Unreal.

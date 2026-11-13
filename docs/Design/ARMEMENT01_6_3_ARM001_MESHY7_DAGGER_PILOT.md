@@ -1,5 +1,8 @@
 # ARMEMENT01.6.3 — ARM001 Dague réaliste — essai Meshy 7.1
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : 20 octobre 2026.
 Statut : protocole artistique préparé. La génération Meshy elle-même nécessite une action dans le compte utilisateur.
 Baseline UE5.5.4 : TD04.2 du 20.10.2026 à 20:47, 1 486 réussites, 0 avertissement, 0 échec.

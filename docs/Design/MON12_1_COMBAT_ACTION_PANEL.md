@@ -1,5 +1,8 @@
 # MON12.1 — Premier panneau d’actions de combat
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 > **SUPERSEDED POUR L’AUTHORING UMG COURANT — UI-COMBAT-UNIFY01 (05.10.2026).**  
 > Ce document reste historique. Ne plus appliquer sa hiérarchie `Canvas_Root`, ses positions viewport, ni ses anciennes branches `MainHand / OffHand`. La référence actuelle pour `WBP_GridCombatActionPanel` et `WBP_GridCombatHud` est `docs/Design/UI_COMBAT_WIDGETS_CURRENT.md`.
 

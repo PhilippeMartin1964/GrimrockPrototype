@@ -1,5 +1,8 @@
 # UI Architecture Current State
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Statut : **CURRENT — rebaseliné après UI-SKILLS-CODE-AUDIT02 ; UI-COMBAT-UNIFY02 UMG/PIE reste explicitement à valider**  
 Date : **17 octobre 2026**
 

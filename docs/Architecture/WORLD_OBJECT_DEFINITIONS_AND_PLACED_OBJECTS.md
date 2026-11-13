@@ -1,5 +1,8 @@
 # Définitions des objets du monde et objets placés
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et validations historiques conservées ; ancien schéma et fallbacks non normatifs. **Non encore implémenté ; zéro legacy dans le runtime final.**
+
+
 > **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Definition/Instance, placements typés et `MapSymbolStyle` restent alignés avec le C++ courant.
 
 Statut : **contrat actif après WORLDOBJ-CLASS01**, 2026-09-14.

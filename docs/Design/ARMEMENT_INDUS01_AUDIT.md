@@ -1,5 +1,8 @@
 # ARMEMENT-INDUS01 — Audit de référence du système d'armement
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **État : audit statique GitHub réalisé le 25 octobre 2026 sur master (HEAD initial 1f9cfe0997e47fd154ecb470d166cfd357307492).** Aucun asset Unreal, catalogue, niveau, WBP ni système de combat modifié par ce jalon. Ce document accompagne le contrat ARMEMENT_PIPELINE_CONTRACT.md et l'inventaire ARMEMENT_INDUS01_INVENTAIRE_ASSETS.csv.
 
 ## 1. Périmètre, méthodes, limites de preuve

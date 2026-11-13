@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.13.6A — Flèche fichée sur réussite
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## Contrat implémenté
 Une flèche d'arc physique et récupérable ne devient plus immédiatement un pickup
 au terme d'un trajet vers le monstre **si** le résultat autoritaire est un Hit

@@ -1,5 +1,8 @@
 # ARMEMENT01.6.1 — Schéma du catalogue visuel de l'armement
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Date :** 20 octobre 2026.  
 **Statut :** implémentation C++ soumise à compilation et validation TD04.2 sur UE5.5.4.  
 **Contrat directeur :** docs/Design/ARMEMENT01_6_CONTRAT_PRESENTATION_VISUELLE.md.  

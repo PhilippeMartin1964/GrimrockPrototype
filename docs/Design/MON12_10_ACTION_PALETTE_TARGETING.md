@@ -1,5 +1,8 @@
 # MON12.10 — Palette d’actions et ciblage
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 > **Obsolète depuis HOTBAR01.2 — Remove Legacy Action Palette (01.09.2026).**  
 > La palette d’actions intermédiaire a été supprimée de l’architecture runtime. Ne pas recréer `Panel_ActionPalette` dans `WBP_GridCombatHud`. Les actions sont affectées directement depuis leur source métier (inventaire, Spellbook, futures pages de capacités) vers la barre `1–9,0`. `Panel_Targeting` reste actif pour les actions nécessitant une cible.
 

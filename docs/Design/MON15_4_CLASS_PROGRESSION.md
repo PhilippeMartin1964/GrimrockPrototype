@@ -1,5 +1,8 @@
 # MON15.4 — Progression propre aux classes
 
+> **ARM-CLEAN06 — MODÈLE D'OBJETS APPROUVÉ (13.11.2026).** [Contrat normatif](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [plan de migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les comportements de ce jalon restent une référence fonctionnelle ; seules ses prescriptions concernant les anciennes structures d'items/armes, copies de données et références d'assets sont remplacées. **Modèle cible non encore implémenté ; zéro legacy final.**
+
+
 > **DOC-AUDIT02 — JALON HISTORIQUE.** Le modèle MON15.4 reste la fondation
 > actuelle de progression, mais son helper de commodité
 > `CollectAutomaticSatisfiedRequirements()` a été supprimé par

@@ -1,5 +1,8 @@
 # ARMEMENT01.10.3 — Validation fonctionnelle des quatre armes du premier lot Guerrier
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle approuvé](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et validations historiques conservées ; ancien schéma et fallbacks non normatifs. **Non encore implémenté ; zéro legacy dans le runtime final.**
+
+
 **Mise à jour 24.10.2026 :** la suite complète `Grimrock.RPG.ARMEMENT01.10` est **validée localement 22/22**, zéro avertissement/échec/non-exécuté, rapport `TD04-20261024-204357`. Les cinq tests de ce lot appartiennent au filtre. **La campagne PIE P1–P7 reste NON TESTÉE** et ne doit pas être présentée comme validée. Procédure actualisée : [ARMEMENT01.10.3.4 — Recette PIE des quatre armes Guerrier N1](ARMEMENT01_10_3_4_WARRIOR_PIE_ACCEPTANCE.md).
 
 ## Périmètre et autorités

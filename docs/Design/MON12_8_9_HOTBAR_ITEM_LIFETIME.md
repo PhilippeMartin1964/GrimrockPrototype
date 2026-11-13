@@ -1,5 +1,8 @@
 # MON12.8.9 — Unicité des armes et durée de vie des consommables
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## Résultat
 
 MON12.8.9 fixe deux invariants autoritaires de la barre personnelle, complétés par `HOTBAR-STACK01` pour les piles de `QuickItem` :

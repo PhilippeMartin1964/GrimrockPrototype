@@ -1,5 +1,8 @@
 # ARMEMENT01.3 — Moteur multi-dés C++
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : 20 octobre 2026
 Statut : **IMPLÉMENTÉ — VALIDATION LOCALE UE5 EN ATTENTE**
 Parent : docs/Design/ARMEMENT01_2_DICE_ENGINE_TECHNICAL_CONTRACT.md

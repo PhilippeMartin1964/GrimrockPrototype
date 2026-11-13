@@ -1,5 +1,8 @@
 # GrimrockPrototype — Feuille de route d’implémentation
 
+> **ARM-CLEAN06 (13.11.2026)** — Le [contrat architectural cible](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) est **approuvé et prime** sur les anciens schémas items/armement présentés ici. **Non encore implémenté** ; les comportements de jeu et résultats historiques demeurent à préserver. [Plan](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md).
+
+
 Statut : roadmap historique initiale. Plusieurs phases sont déjà réalisées ou remplacées par les décisions du `99_DECISIONS_LOG.md`.
 
 ## Objectif

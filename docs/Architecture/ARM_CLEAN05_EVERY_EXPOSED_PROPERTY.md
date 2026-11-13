@@ -1,4 +1,7 @@
 # ARM-CLEAN05 — Inventaire de chaque propriété exposée par le schéma des DA_Weapon
+
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). **Audit ou jalon de l'ancien modèle ; ne constitue plus l'architecture cible.** **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+
 **Extraction directe du C++ sur master 2baa68e4, 13 novembre 2026. 542 chemins de propriétés déclarées, pas 542 valeurs nécessairement remplies.**
 
 Cette annexe recense, **une par une**, les propriétés UPROPERTY de UGridItemDefinitionAsset et des structures FGrid imbriquées (jusqu’à cinq niveaux), y compris deux fois le schéma FGridCombatActionDefinition car CombatActions et QuickItemCombatAction sont deux emplacements éditables distincts.

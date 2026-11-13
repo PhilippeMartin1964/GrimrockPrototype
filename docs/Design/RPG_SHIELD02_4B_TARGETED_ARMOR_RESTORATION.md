@@ -1,5 +1,8 @@
 # RPG-SHIELD02.4B — Restaurations C3 ciblées / groupe, équipement et plafonds
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **État : implémentation C++ publiée sur master ; compilation UE5.5.4 et tests locaux attendus.**
 **Contrat :** [RPG-SHIELD02 v0.2](../Rules/RPG_Shields_Protection_Contract_v0_2.md).
 

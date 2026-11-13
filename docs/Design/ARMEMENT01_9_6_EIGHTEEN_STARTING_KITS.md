@@ -1,5 +1,8 @@
 # ARMEMENT01.9.6 — Définition des 18 kits N1
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **22 octobre 2026 — statut : VALIDÉ TECHNIQUEMENT 3/3, 0 avertissement, 0 échec, code 0** (`TD04-20261022-122937`, filtre `Grimrock.RPG.ARMEMENT01.9.KitDesign`). **Les 18 recettes sont désormais approuvées pour l'authoring** (`ApprovedDesign`) par le jalon [ARMEMENT01.9.7](ARMEMENT01_9_7_FINAL_KIT_APPROVAL.md), **sans être activées en runtime** ; les contraintes d'actions, slots et équipement restent à valider. La référence de nettoyage et de transition est [ARMEMENT01.9.6.1](ARMEMENT01_9_6_1_CLEANUP_CONSOLIDATION.md).
 
 ## Intention et hiérarchie des sources

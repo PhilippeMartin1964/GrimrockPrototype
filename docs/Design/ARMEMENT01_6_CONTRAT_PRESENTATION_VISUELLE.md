@@ -1,5 +1,8 @@
 # ARMEMENT01.6 — Contrat de présentation visuelle de l'armement
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Projet :** GrimrockPrototype — Unreal Engine 5.5.4  
 **Date :** 20 octobre 2026  
 **Version :** 1.0 — spécification de conception  

@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.19.3 — Parade et blocage liés aux armes équipées
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Date : 10 novembre 2026. Statut : C++ + tests implémentés, validation Windows/PIE à vérifier sur le SHA du commit.**
 
 ## Autorités auditées

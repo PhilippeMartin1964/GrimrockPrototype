@@ -1,5 +1,8 @@
 # ARMEMENT-SFX01 — Inventaire des 72 exports ElevenLabs (11.11.2026)
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Révision du 11.11.2026 — correspondances confirmées par l'auteur des générations.** L'inventaire documente les WAV téléchargés. **Le script PowerShell local de renommage a été validé par l'utilisateur** après correction de la résolution du dossier ; le dépôt GitHub ne contient pas ce script. La liste comprend 72 fichiers distincts, dont un essai antérieur aux 15 prompts Sword. Les fichiers audio restent sur le poste utilisateur : pas d'analyse audio ni d'import Unreal attesté.
 
 ## 1. Bilan corrigé

@@ -1,5 +1,8 @@
 # ARMEMENT01.11.2.1 — ARM002 Poignard d'assassin : contrôle et référencement des visuels
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Statut : code proposé sur master ; **aucun asset binaire créé ou modifié par ce commit, tests UE locaux non encore exécutés**. ARMEMENT01.11.1 est validé localement (TD04-20261024-230123, 2/2 tests, 0 warnings/failed). Son rapport CSV avait ARM002=MissingItemAndVisual **avant** la nouvelle production graphique.
 
 ## Ressources utilisateur à inspecter dans Unreal Editor

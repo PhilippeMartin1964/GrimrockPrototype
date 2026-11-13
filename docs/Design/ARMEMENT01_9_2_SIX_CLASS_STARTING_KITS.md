@@ -1,5 +1,8 @@
 # ARMEMENT01.9.2 — Douze kits de départ pour les six classes
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 > **Statut au 22.10.2026 — LEGACY RUNTIME MAINTENU.** Les 12 kits (deux par classe) décrivent toujours les recettes *effectivement distribuées* par `FRPGStartingEquipmentPresetCatalog`. Leur choix d'armes ne constitue **plus** la référence de conception pour le futur. Les 18 recettes orientées branches figurent dans [ARMEMENT01.9.6](ARMEMENT01_9_6_EIGHTEEN_STARTING_KITS.md), avec les règles de transition dans [ARMEMENT01.9.6.1](ARMEMENT01_9_6_1_CLEANUP_CONSOLIDATION.md). **Ne pas retirer les identifiants historiques ni les tests liés aux sauvegardes.**
 
 ## Portée

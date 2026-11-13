@@ -1,5 +1,8 @@
 # ARMEMENT01.10.3.4 — Recette PIE des quatre armes Guerrier N1
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle approuvé](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et validations historiques conservées ; ancien schéma et fallbacks non normatifs. **Non encore implémenté ; zéro legacy dans le runtime final.**
+
+
 **Établi le 24.10.2026 — phase de validation manuelle (pas de nouvelle mécanique C++).**
 
 ## 1. Preuves déjà reçues et limites

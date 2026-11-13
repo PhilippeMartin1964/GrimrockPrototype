@@ -1,5 +1,8 @@
 # GrimrockPrototype — Synthèse globale du projet
 
+> **ARM-CLEAN06 (13.11.2026)** — Le [contrat architectural cible](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) est **approuvé et prime** sur les anciens schémas items/armement présentés ici. **Non encore implémenté** ; les comportements de jeu et résultats historiques demeurent à préserver. [Plan](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md).
+
+
 > **Référence courante — DOC-ARCH01, 9 octobre 2026.**
 >
 > Baseline C++ auditée : `6f98a0ef5599f37d3d544529aa5a790d647e8251`

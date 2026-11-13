@@ -1,5 +1,8 @@
 # ARMEMENT01.10.3.3.10 — Dégâts détaillés et éditables dans WBP
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle approuvé](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et validations historiques conservées ; ancien schéma et fallbacks non normatifs. **Non encore implémenté ; zéro legacy dans le runtime final.**
+
+
 Date : 24.10.2026. **Statut : code C++, clés ST_UI et tests publiés ; compilation UE / matérialisation ST_UI / authoring UMG / PIE à valider localement.**
 
 ## 1. Motif et autorité

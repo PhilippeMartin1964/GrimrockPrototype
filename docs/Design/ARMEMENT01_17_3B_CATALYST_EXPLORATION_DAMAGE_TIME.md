@@ -1,5 +1,8 @@
 # ARMEMENT01.17.3B — Catalyseur : exploration, dégâts et temps
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : 5 novembre 2026.
 Parent : acd9682b37d86498feb31f5a1db021e2ea6399c4.
 

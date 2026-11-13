@@ -1,5 +1,8 @@
 # RPG03.9.0 — Weapon-based Talent Attacks
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : **5 octobre 2026**  
 Parent : **RPG03.8 validé TD04.2 — 8/8**  
 Statut : **VALIDÉ — couvert par la campagne globale Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**

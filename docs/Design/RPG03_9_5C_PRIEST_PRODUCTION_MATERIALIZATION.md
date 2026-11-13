@@ -1,5 +1,8 @@
 # RPG03.9.5C — Prêtre : matérialisation production
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Date : **6 octobre 2026**  
 Dépendances validées : `RPG03.9.5A` 6/6, `RPG03.9.5B1` 6/6, `RPG03.9.5B2` 7/7  
 Statut : **VALIDÉ / MATÉRIALISÉ — DA_Class_Priest et statuts de production présents ; campagne globale 193/193 le 6 octobre 2026**

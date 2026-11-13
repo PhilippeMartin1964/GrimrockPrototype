@@ -1,5 +1,8 @@
 # ARM-CLEAN04 — Vue de travail simplifiée pour les armes
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). **Audit ou jalon de l'ancien modèle ; ne constitue plus l'architecture cible.** **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+
+
 **12 novembre 2026 — Code éditeur sur `master`, compilation UE5.5.4 et recette visuelle à réaliser localement.**
 
 ## Principe

@@ -1,5 +1,8 @@
 # MON8 — mort des monstres, butin et victoire automatique
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 ## Périmètre
 
 MON8 rend la mort logique indépendante de sa présentation. Dès que les points de vie atteignent zéro, le monstre cesse d’agir, libère sa cellule, évalue toutes ses entrées de butin, émet `MonsterDied` et permet au gestionnaire de tours de conclure immédiatement la rencontre. L’absence de Montage, son, VFX, lien ou butin ne bloque jamais le gameplay.

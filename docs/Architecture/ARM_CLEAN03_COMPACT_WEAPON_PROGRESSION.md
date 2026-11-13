@@ -1,5 +1,8 @@
 # ARM-CLEAN03 — Progression N1–N20 compacte et sans perte
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). **Audit ou jalon de l'ancien modèle ; ne constitue plus l'architecture cible.** **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+
+
 **12 novembre 2026 — code de lecture/conversion et tests publiés, migration binaire non exécutée.**
 **Autorité éditoriale inchangée :** le classeur ARMEMENT01_Catalogue_Armes_Boucliers_Niveaux_1_20_ARMEMENT01_2.xlsx.
 **Autorité runtime :** DA_WeaponCatalogue. Les représentations anciennes et compactes sont mutuellement exclusives.

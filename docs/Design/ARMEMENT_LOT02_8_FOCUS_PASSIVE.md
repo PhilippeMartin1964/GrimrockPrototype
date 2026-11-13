@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.8 — Focus passif et armure magique des équipements
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Contrat moteur :** `ARM070` correspond à `FocusPassive`, objet passif OffHand (sans sort, attaque, parade ou lancer). Son bonus d'armure magique est lu exclusivement depuis le `DA_WeaponCatalogue` N1. Aucun chiffre n'est inventé.
 
 L'armure magique apportée par les équipements est distincte du réservoir magique de base. À chaque coup, le bonus restant sur l'objet est consommé avant la réserve de base ; `AbsorbedEquipmentMagicalArmor` est sauvegardé sur l'instance (sac, équipement et sauvegardes). Rééquiper ne recharge pas la protection. Restauration et fin de combat rechargent les réserves dans leur chemin autorisé, et les portraits utilisent la même valeur effective que le combat.

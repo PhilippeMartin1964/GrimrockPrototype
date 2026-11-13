@@ -1,5 +1,8 @@
 # WORLDOBJ-MIG07-B — Autorité des placements typés et miroir de compatibilité
 
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et tests historiques conservés ; les prescriptions des anciens schémas DataAssets et fallbacks sont remplacées. **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+
+
 > **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
 
 

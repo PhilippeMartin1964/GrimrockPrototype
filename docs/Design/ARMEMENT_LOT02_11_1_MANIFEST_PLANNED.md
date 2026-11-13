@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.11.1 — 11 modèles Meshy déclarés `Planned` dans le manifeste
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 **Source d'observation** : journal utilisateur du 28 octobre 2026,
 `AuditStarterWeaponArt.ps1 -NoThrow` : **11/11 lots de 6 packages, 66/66 fichiers, Missing=0**.
 Cela prouve uniquement la présence locale. Le chargement Unreal des `.uasset`,

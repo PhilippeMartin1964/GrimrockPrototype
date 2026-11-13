@@ -1,5 +1,8 @@
 # ARMEMENT-LOT02.13.1 — Lier les flèches au véritable arc ARM048
 
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+
+
 Le test local LOT02.13 (28.10.2026) a validé 8/8 tests, 11/11 armes
 et 220/220 tooltips. Le seul blocage signalé est
 `ARM048: BLOCKED_MISSING_ARROWS_LINK`.
