@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
+#include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "UI/GridEquippedWeaponActionIconPalette.h"
 #include "GridCanonicalItemCatalogues.generated.h"
@@ -119,6 +120,65 @@ public:
 	bool Validate(TArray<FString>& Errors) const;
 };
 
+/**
+ * One audio-event source with all authored variants. The old Sword swing
+ * profiles contain multiple sounds, independent volume and pitch bounds.
+ * A single SoundBase pointer would irreversibly discard that information.
+ */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridCanonicalAudioVariants
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
+	TArray<TSoftObjectPtr<USoundBase>> Sounds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio", meta = (ClampMin = "0"))
+	float VolumeMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio", meta = (ClampMin = "0.01"))
+	float PitchMin = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio", meta = (ClampMin = "0.01"))
+	float PitchMax = 1.0f;
+
+	bool IsValid() const;
+};
+
+/** A Niagara event may own several systems and its attachment transform. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridCanonicalVFXVariants
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
+	TArray<TSoftObjectPtr<UNiagaraSystem>> Systems;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
+	bool bAttachToHeldItem = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
+	FName SocketName = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
+	FVector LocationOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
+	FRotator RotationOffset = FRotator::ZeroRotator;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
+	FVector Scale = FVector::OneVector;
+
+	bool IsValid() const;
+};
+
+/**
+ * Canonical authored animation and FX. Every channel has exactly one owner:
+ * the ActionPresentationCatalogue, never the concrete DA_Weapon_*.
+ * AttackAudio, ImpactHitAudio and ImpactMissAudio map the existing UE player
+ * attack presentation fields without discarding arrays, pitch or timing.
+ * Material/reaction/outcome channels are genuine opt-in extensions.
+ */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridCanonicalActionPresentation
 {
@@ -127,38 +187,76 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalActionPresentation
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation")
 	FName PresentationId = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation")
-	FName MotionPresetId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Motion")
+	EGridPlayerAttackMotionStyle MotionStyle = EGridPlayerAttackMotionStyle::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Motion")
+	bool bAnimateHeldItem = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Motion", meta = (ClampMin = "0"))
+	float MotionDurationSeconds = 0.18f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Motion", meta = (ClampMin = "0"))
+	float ImpactDelaySeconds = 0.16f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Motion", meta = (ClampMin = "0"))
+	float RecoveryDelaySeconds = 0.18f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Motion")
+	FVector PeakLocationOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Motion")
+	FRotator PeakRotationOffset = FRotator::ZeroRotator;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Feedback", meta = (ClampMin = "0.1"))
+	float FeedbackDurationSeconds = 1.25f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	TSoftObjectPtr<USoundBase> Swing;
+	FGridCanonicalAudioVariants AttackAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	TSoftObjectPtr<USoundBase> ImpactFlesh;
+	FGridCanonicalAudioVariants ImpactHitAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	TSoftObjectPtr<USoundBase> ImpactMetal;
+	FGridCanonicalAudioVariants ImpactMissAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	TSoftObjectPtr<USoundBase> ImpactWood;
+	FGridCanonicalAudioVariants ImpactFleshAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	TSoftObjectPtr<USoundBase> Parry;
+	FGridCanonicalAudioVariants ImpactMetalAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	TSoftObjectPtr<USoundBase> Block;
+	FGridCanonicalAudioVariants ImpactWoodAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	TSoftObjectPtr<USoundBase> Critical;
+	FGridCanonicalAudioVariants ParryAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	TSoftObjectPtr<USoundBase> Heavy;
+	FGridCanonicalAudioVariants BlockAudio;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
+	FGridCanonicalAudioVariants CriticalAudio;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
+	FGridCanonicalAudioVariants HeavyAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
-	TSoftObjectPtr<UNiagaraSystem> AttackNiagara;
+	FGridCanonicalVFXVariants AttackVFX;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
-	TSoftObjectPtr<UNiagaraSystem> ImpactNiagara;
+	FGridCanonicalVFXVariants ImpactHitVFX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
+	FGridCanonicalVFXVariants ImpactMissVFX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
+	FGridCanonicalVFXVariants ParryVFX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
+	FGridCanonicalVFXVariants BlockVFX;
+
+	bool IsValid() const;
 };
 
 UCLASS(BlueprintType)

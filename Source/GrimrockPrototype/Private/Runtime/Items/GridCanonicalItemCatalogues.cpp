@@ -93,6 +93,62 @@ bool UGridActionCatalogueAsset::Validate(TArray<FString>& Errors) const
 	return bValid;
 }
 
+bool FGridCanonicalAudioVariants::IsValid() const
+{
+	if (!FMath::IsFinite(VolumeMultiplier) || VolumeMultiplier < 0.0f ||
+		!FMath::IsFinite(PitchMin) || PitchMin <= 0.0f ||
+		!FMath::IsFinite(PitchMax) || PitchMax < PitchMin)
+	{
+		return false;
+	}
+	for (const TSoftObjectPtr<USoundBase>& Sound : Sounds)
+	{
+		if (Sound.IsNull())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool FGridCanonicalVFXVariants::IsValid() const
+{
+	if (LocationOffset.ContainsNaN() || RotationOffset.ContainsNaN() ||
+		Scale.ContainsNaN() || Scale.X <= 0.0f || Scale.Y <= 0.0f ||
+		Scale.Z <= 0.0f)
+	{
+		return false;
+	}
+	for (const TSoftObjectPtr<UNiagaraSystem>& System : Systems)
+	{
+		if (System.IsNull())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool FGridCanonicalActionPresentation::IsValid() const
+{
+	if (PresentationId.IsNone() || !FMath::IsFinite(MotionDurationSeconds) ||
+		MotionDurationSeconds < 0.0f || !FMath::IsFinite(ImpactDelaySeconds) ||
+		ImpactDelaySeconds < 0.0f || !FMath::IsFinite(RecoveryDelaySeconds) ||
+		RecoveryDelaySeconds < 0.0f || !FMath::IsFinite(FeedbackDurationSeconds) ||
+		FeedbackDurationSeconds <= 0.0f || PeakLocationOffset.ContainsNaN() ||
+		PeakRotationOffset.ContainsNaN())
+	{
+		return false;
+	}
+	return AttackAudio.IsValid() && ImpactHitAudio.IsValid() &&
+		ImpactMissAudio.IsValid() && ImpactFleshAudio.IsValid() &&
+		ImpactMetalAudio.IsValid() && ImpactWoodAudio.IsValid() &&
+		ParryAudio.IsValid() && BlockAudio.IsValid() &&
+		CriticalAudio.IsValid() && HeavyAudio.IsValid() &&
+		AttackVFX.IsValid() && ImpactHitVFX.IsValid() &&
+		ImpactMissVFX.IsValid() && ParryVFX.IsValid() && BlockVFX.IsValid();
+}
+
 const FGridCanonicalActionPresentation* UGridActionPresentationCatalogueAsset::Find(
 	FName PresentationId) const
 {
@@ -108,9 +164,10 @@ bool UGridActionPresentationCatalogueAsset::Validate(TArray<FString>& Errors) co
 	TSet<FName> Seen;
 	for (const FGridCanonicalActionPresentation& Entry : Presentations)
 	{
-		if (Entry.PresentationId.IsNone() || Seen.Contains(Entry.PresentationId))
+		if (Entry.PresentationId.IsNone() || Seen.Contains(Entry.PresentationId) ||
+			!Entry.IsValid())
 		{
-			bValid = AddError(Errors, TEXT("Presentation catalogue: missing/duplicate PresentationId"));
+			bValid = AddError(Errors, TEXT("Presentation catalogue: invalid settings, or missing/duplicate PresentationId"));
 		}
 		Seen.Add(Entry.PresentationId);
 	}
