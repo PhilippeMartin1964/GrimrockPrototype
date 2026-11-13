@@ -905,6 +905,60 @@ try {
             Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
         }
 
+        # ARM-CLEAN06.2C — exact one-shot read-only canonical number projection.
+        # This is explicitly NOT an editor asset migration or a gameplay cutover.
+        $ProjectionTrigger = 'chore(ARM-CLEAN06.2C): prove transient compact catalogue numeric parity'
+        $ProjectionSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $ProjectionSubject.Count -eq 1 -and
+            [string]$ProjectionSubject[0] -ceq $ProjectionTrigger) {
+            $ProjectionContext = 'UE5.5.4/ARM-CLEAN06.2C'
+            $ProjectionPhase = 'PREFLIGHT'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $ProjectionContext -Description 'Projection numerique canonique UE en lecture seule'
+                $ProjectionScript = Join-Path $WorktreePath 'Scripts\PreflightARM_CLEAN06_2_Catalogue.ps1'
+                if (-not (Test-Path -LiteralPath $ProjectionScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.2C: script missing.'
+                }
+                $ProjectionTokens = $null
+                $ProjectionParseErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $ProjectionScript, [ref]$ProjectionTokens, [ref]$ProjectionParseErrors)
+                if ($ProjectionParseErrors -and $ProjectionParseErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.2C: invalid PowerShell syntax.'
+                }
+                foreach ($Value in @($ProjectionScript,$WorktreePath,$EngineRoot,$RunDir)) {
+                    if ($Value.Contains('"')) { throw 'ARM-CLEAN06.2C: quoted path unsupported.' }
+                }
+                $ProjectionPhase = 'PROCESS'
+                $ProjectionArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $ProjectionScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -ExpectedHead "' + $Sha +
+                    '" -RunDir "' + $RunDir + '" -GitHubRepository "' + $GitHubRepository + '"'
+                $ProjectionOut = Join-Path $RunDir 'ARM062C.stdout.log'
+                $ProjectionErr = Join-Path $RunDir 'ARM062C.stderr.log'
+                $ProjectionProcess = Start-Process -FilePath $PsExe -ArgumentList $ProjectionArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $ProjectionOut -RedirectStandardError $ProjectionErr -ErrorAction Stop
+                if ($ProjectionProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.2C: transient numeric projection rejected.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $ProjectionContext -Description 'Parite numerique UE 82x20; 260 passifs; 0 asset sauve'
+            }
+            catch {
+                $ProjectionStagePath = Join-Path $RunDir 'ARMClean062C.stage'
+                $ProjectionStage = if (Test-Path -LiteralPath $ProjectionStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $ProjectionStagePath -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
+                } else { $ProjectionPhase }
+                if ($ProjectionStage -notin @('PREFLIGHT','COMMANDLET','REPORT',
+                    'CHECK_CLEAN','ISSUE','SUCCESS','PROCESS')) {
+                    $ProjectionStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $ProjectionContext -Description ('Projection UE refusee : ' + $ProjectionStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.2C] Projection status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.2C] Read-only projection blocked: ' + $ProjectionStage)
+            }
+        }
+
         # ARM-CLEAN06.0: one-shot READ-ONLY asset snapshot for this exact commit.
         # No asset save, no extra commit, no change to the development worktree.
         $BaselineTrigger = 'chore(ARM-CLEAN06.0): capture read-only UE asset migration baseline'
