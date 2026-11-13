@@ -9,7 +9,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-$Subject='chore(ARM-CLEAN06.2E.4): qualify native weapon semantics without asset writes'
+$Subject='fix(ARM-CLEAN06.2E.4.1): normalize semantic qualification and classify failures'
 $Stage=Join-Path $RunDir 'ARMClean062E.stage'
 $OutDir=Join-Path $RunDir 'ARM-CLEAN06.2E'
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
@@ -133,24 +133,67 @@ if ($ParseErrors -and $ParseErrors.Count -gt 0) {
 if (-not (Test-Path -LiteralPath (Join-Path $OutDir 'reconciliation-private.json') -PathType Leaf)) {
     throw 'ARM-CLEAN06.2E.3 private cross-check absent.'
 }
-# Resolve class hierarchy, legacy opt-out and all remaining semantic
-# unknowns against the freshly extracted *native* UE properties.
-Set-Stage 'QUALIFY'
+# ARM-CLEAN06.2E.4.1: classify parser, schema, helper and output
+# failures separately, without ever publishing UE properties or file paths.
+Set-Stage 'QUALIFY_HELPER'
 $QualificationHelper=Join-Path $PSScriptRoot 'ARM_CLEAN06_2E4_Qualify.ps1'
 if (-not (Test-Path -LiteralPath $QualificationHelper -PathType Leaf)) {
-    throw 'ARM-CLEAN06.2E.4 qualification helper missing.'
+    throw 'ARM-CLEAN06.2E.4.1 qualification helper missing.'
 }
+Set-Stage 'QUALIFY_PARSE'
 $QualificationTokens=$null
 $QualificationErrors=$null
 [void][System.Management.Automation.Language.Parser]::ParseFile(
     $QualificationHelper, [ref]$QualificationTokens, [ref]$QualificationErrors)
 if ($QualificationErrors -and $QualificationErrors.Count -gt 0) {
-    throw 'ARM-CLEAN06.2E.4 helper syntax rejected.'
+    throw 'ARM-CLEAN06.2E.4.1 helper syntax rejected.'
 }
-. $QualificationHelper
+Set-Stage 'QUALIFY_SCHEMA'
+foreach ($Row in @($Report.concrete_weapon_rows)) {
+    foreach ($RequiredField in @('is_data_asset','is_primary_data_asset',
+        'class_compiled_from_blueprint')) {
+        if (@($Row.PSObject.Properties.Name) -notcontains $RequiredField) {
+            throw 'ARM-CLEAN06.2E.4.1 native class properties not present.'
+        }
+    }
+    if ([string]$Row.load_classification -eq 'expected_class') {
+        foreach ($RequiredField in @('declared_hand_usage_enum','declared_slot_main',
+            'declared_slot_off','combat_action_count','combat_throw_weapon',
+            'source_n1_has_damage_dice')) {
+            if (@($Row.PSObject.Properties.Name) -notcontains $RequiredField) {
+                throw 'ARM-CLEAN06.2E.4.1 native item properties not present.'
+            }
+        }
+    }
+}
+Set-Stage 'QUALIFY_EXEC'
+try {
+    . $QualificationHelper
+}
+catch {
+    $SafeCodes=@(
+        'E4_BAD_PACKAGE_COUNT','E4_CLASS_COUNTS','E4_OPTOUT_COUNTS',
+        'E4_HAND_COUNTS','E4_KIND_COUNTS','E4_FOCUS_COUNTS'
+    )
+    $ErrorCode=[string]$_.Exception.Message
+    if ($SafeCodes -contains $ErrorCode) {
+        Set-Stage $ErrorCode
+    }
+    elseif ($ErrorCode -ceq 'Inconsistent native class hierarchy.') {
+        Set-Stage 'QUALIFY_CLASS_HIERARCHY'
+    }
+    elseif ($ErrorCode -ceq 'Expected UGridItemDefinitionAsset is not a primary data asset.') {
+        Set-Stage 'QUALIFY_EXPECTED_CLASS'
+    }
+    else {
+        Set-Stage 'QUALIFY_EXEC'
+    }
+    throw 'ARM-CLEAN06.2E.4.1 native qualification rejected; see sanitized stage.'
+}
+Set-Stage 'QUALIFY_REPORT'
 $QualificationPath=Join-Path $OutDir 'qualification-private.json'
 if (-not (Test-Path -LiteralPath $QualificationPath -PathType Leaf)) {
-    throw 'ARM-CLEAN06.2E.4 private qualification not produced.'
+    throw 'ARM-CLEAN06.2E.4.1 private qualification not produced.'
 }
 Set-Stage 'CHECK_CLEAN'
 $After=@(& git -C $WorktreePath status --porcelain --untracked-files=all)

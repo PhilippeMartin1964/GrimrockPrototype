@@ -44,9 +44,9 @@ foreach ($Package in @($ByPackage.Keys | Sort-Object)) {
         if ($bIsPrimaryDataAsset -and -not $bIsDataAsset) {
             throw 'Inconsistent native class hierarchy.'
         }
-        $ClassReason=if ($bIsPrimaryDataAsset) { 'primary_data_asset_other' }
-            elseif ($bIsDataAsset) { 'data_asset_other' }
-            else { 'non_data_asset_other' }
+        if ($bIsPrimaryDataAsset) { $ClassReason='primary_data_asset_other' }
+        elseif ($bIsDataAsset) { $ClassReason='data_asset_other' }
+        else { $ClassReason='non_data_asset_other' }
     }
     elseif ($Class -eq 'unloadable') {
         $ClassReason='unloadable'
@@ -75,12 +75,12 @@ foreach ($Package in @($ByPackage.Keys | Sort-Object)) {
     $OffDeclared=[bool]$Row.declared_slot_off
     $MainRuntime=[bool]$Row.can_equip_main
     $OffRuntime=[bool]$Row.can_equip_off
-    $EffectiveHand=if ($Class -eq 'expected_class') {
-        [int]$Row.effective_hand_usage_enum
-    } else { -1 }
-    $DeclaredHand=if ($Class -eq 'expected_class') {
-        [int]$Row.declared_hand_usage_enum
-    } else { -1 }
+    $EffectiveHand=-1
+    $DeclaredHand=-1
+    if ($Class -eq 'expected_class') {
+        $EffectiveHand=[int]$Row.effective_hand_usage_enum
+        $DeclaredHand=[int]$Row.declared_hand_usage_enum
+    }
 
     if ($IsJoined) {
         if (($MainRuntime -and -not $MainDeclared) -or
@@ -161,22 +161,38 @@ foreach ($Package in @($ByPackage.Keys | Sort-Object)) {
         combat_action_count=$(if ($Class -eq 'expected_class') { [int]$Row.combat_action_count } else { 0 })
     })
 }
-if ($Facts.Count -ne 24 -or
-    ($Details['other_class_data_assets']+$Details['other_class_non_data_assets']) -ne
-        [int]$Report.count_other_class -or
-    ($Details['legacy_opt_out_manifest']+$Details['legacy_opt_out_unlisted']) -ne
-        [int]$Counts['join_opt_out'] -or
-    ($Details['unresolved_hand_not_handheld']+
+# Split independent checks so the Windows agent can safely report a
+# fixed diagnostic token without leaking names, classes or logs.
+if ($Facts.Count -ne 24) {
+    throw 'E4_BAD_PACKAGE_COUNT'
+}
+if (($Details['other_class_data_assets']+
+        $Details['other_class_non_data_assets']) -ne
+        [int]$Report.count_other_class) {
+    throw 'E4_CLASS_COUNTS'
+}
+if (($Details['legacy_opt_out_manifest']+
+        $Details['legacy_opt_out_unlisted']) -ne
+        [int]$Counts['join_opt_out']) {
+    throw 'E4_OPTOUT_COUNTS'
+}
+if (($Details['unresolved_hand_not_handheld']+
         $Details['unresolved_hand_effective_auto']+
         $Details['unresolved_hand_one_hand_permission']+
         $Details['unresolved_hand_two_hand_permission']+
-        $Details['unresolved_hand_other']) -ne [int]$Counts['unresolved_joined_hand'] -or
-    ($Details['unresolved_kind_passive_weapon_focus_candidate']+
+        $Details['unresolved_hand_other']) -ne
+        [int]$Counts['unresolved_joined_hand']) {
+    throw 'E4_HAND_COUNTS'
+}
+if (($Details['unresolved_kind_passive_weapon_focus_candidate']+
         $Details['unresolved_kind_offensive_shield_conflict']+
-        $Details['unresolved_kind_other']) -ne [int]$Counts['unresolved_joined_kind'] -or
-    $Details['listed_focus_passive_unresolved_kind'] -gt
+        $Details['unresolved_kind_other']) -ne
+        [int]$Counts['unresolved_joined_kind']) {
+    throw 'E4_KIND_COUNTS'
+}
+if ($Details['listed_focus_passive_unresolved_kind'] -gt
         $Details['listed_focus_passive_profiles']) {
-    throw 'E4 native semantic qualifications do not reconcile with E3.'
+    throw 'E4_FOCUS_COUNTS'
 }
 $Qualification=[ordered]@{
     schema='ARM-CLEAN06.2E.4/qualification/read-only/v1'

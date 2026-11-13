@@ -340,3 +340,39 @@ restent bloques jusqu'aux preuves de parite pertinentes.
 Aucun .uasset, .umap, SaveGame ni effet audio Sword/RatGiant
 n'est ecrit. Pas de controle PIE pour cet audit sans
 changement fonctionnel.
+
+
+## ARM-CLEAN06.2E.4.1 — Réparation contrôlée de la qualification
+
+Le SHA d352a889 a passé UE5.5.4/LocalAuto (compilation et suite
+Grimrock), mais le sous-contrôle E4 s'est arrêté à la phase
+QUALIFY. Cette phase regroupait auparavant le parsing, l'accès aux
+colonnes natives, le calcul des métriques et la sortie JSON :
+**la cause exacte de ce premier échec n'a pas été démontrée.**
+
+Le helper E4 utilise désormais des affectations PowerShell
+explicites plutôt que l'expression conditionnelle inline
+pour la qualification de classe et les usages de mains.
+Il vérifie chaque invariant indépendamment et lève un code
+préfixé E4_ (nombre de packages, classe, opt-out, mains,
+kind, Focus) en cas de défaut.
+
+Le preflight Windows vérifie les colonnes requises du rapport
+natif (y compris les nouvelles propriétés UDataAsset,
+HandUsage et slots), puis publie une catégorie prédéfinie :
+QUALIFY_PARSE, QUALIFY_SCHEMA, QUALIFY_EXEC, QUALIFY_REPORT,
+QUALIFY_CLASS_HIERARCHY, QUALIFY_EXPECTED_CLASS ou E4_... .
+Aucun message d'exception, chemin, ItemId, ArchetypeId, classe
+exacte ou donnée du package n'est publié.
+
+Le déclencheur exact du prochain audit est :
+fix(ARM-CLEAN06.2E.4.1): normalize semantic qualification and classify failures
+
+Statut exact : UE5.5.4/ARM-CLEAN06.2E.4.1, distinct de
+UE5.5.4/LocalAuto. Un vert atteste seulement du diagnostic
+en lecture seule et de la propreté Git du worktree isolé.
+
+L'architecture et les règles actuelles de combat ne sont pas
+modifiées. Pas de conversion automatique, pas de suppression
+d'asset ni de .uasset/.umap/SaveGame touché ; aucune
+validation PIE n'est significative pour ce sous-jalon.
