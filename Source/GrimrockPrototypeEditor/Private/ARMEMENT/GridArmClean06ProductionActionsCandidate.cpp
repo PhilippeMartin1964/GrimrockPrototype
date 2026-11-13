@@ -127,7 +127,7 @@ bool GridArmClean06ProductionActionsCandidate::AddProvenActionsAndPresentations(
 		if (!bHasPresentation) { ++OutSummary.NeutralDefaultBindings; }
 		FGridItemActionBinding Link;
 		Link.ActionId = Canonical.ActionId;
-		Link.PresentationId = Projected.PresentationId;
+		Link.PresentationId = PresentationId;
 		OutSummary.BindingsByArchetype.Add(ArmId, Link);
 		++OutSummary.BoundActions;
 		if (Source->GetOutermost()->IsDirty() != bWasDirty)
