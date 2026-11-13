@@ -9,7 +9,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-$Subject='fix(ARM-CLEAN06.2E.4.2): locate qualification runtime failure safely'
+$Subject='fix(ARM-CLEAN06.2E.4.3): restrict item-only reads to verified UE class'
 $Stage=Join-Path $RunDir 'ARMClean062E.stage'
 $OutDir=Join-Path $RunDir 'ARM-CLEAN06.2E'
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null

@@ -413,3 +413,36 @@ identifie exactement la portion de script a corriger
 dans un jalon additif suivant. Aucun .uasset,
 .umap, SaveGame ni asset audio n'est ecrit ou supprime.
 La conversion ARM-CLEAN06.3-06.5 demeure interdite.
+
+
+## ARM-CLEAN06.2E.4.3 — Proteger les colonnes propres a UGridItemDefinitionAsset
+
+La sortie native E.4 contient 24 lignes : 23 objets de la classe
+UGridItemDefinitionAsset et un objet chargeable d'une autre classe.
+Ce dernier est volontairement represente sans les champs de main
+et de combat propres au type ItemDefinitionAsset.
+
+Or le helper E4 faisait, sans garde de classe, des lectures de
+declared_slot_main / declared_slot_off, can_equip_main / can_equip_off,
+y compris sur la ligne d'autre classe. Sous PowerShell
+Set-StrictMode -Version Latest, une propriete absente leve une
+exception, alors que cet objet n'est pas une definition d'item.
+Ceci explique le risque d'echec avant meme toute analyse semantique.
+
+La version E4.3 initialise pour ces champs une valeur **null**,
+explicite et distincte de false, puis ne lit les colonnes de
+main et d'usage que dans le cas
+load_classification == expected_class. Aucune main fictive,
+aucun enum invente, aucun fallback legacy. Les 24
+packages demeurent dans le rapport prive.
+
+Le declencheur est :
+fix(ARM-CLEAN06.2E.4.3): restrict item-only reads to verified UE class
+
+Ce sous-jalon exige SilentTask=success, LocalAuto=success,
+et UE5.5.4/ARM-CLEAN06.2E.4.3=success sur le meme SHA.
+Les rapports precis restent prives et les issues ne diffusent
+que des comptes agreges. Un succes reste un diagnostic sans
+materialisation des nouveaux DataAssets ; les conversions
+06.3-06.5 demeurent conditionnees aux preuves de parite
+completes. Aucun uasset, umap, audio ou SaveGame n'est ecrit.

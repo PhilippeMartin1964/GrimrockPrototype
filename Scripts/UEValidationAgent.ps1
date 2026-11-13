@@ -907,11 +907,11 @@ try {
 
         # ARM-CLEAN06.2E — one-shot semantic census in native UE. NO asset writes.
         # Triggered only on the exact authored subject and the isolated SHA.
-        $SemanticsTrigger = 'fix(ARM-CLEAN06.2E.4.2): locate qualification runtime failure safely'
+        $SemanticsTrigger = 'fix(ARM-CLEAN06.2E.4.3): restrict item-only reads to verified UE class'
         $SemanticsSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $SemanticsSubject.Count -eq 1 -and
             [string]$SemanticsSubject[0] -ceq $SemanticsTrigger) {
-            $SemanticsContext = 'UE5.5.4/ARM-CLEAN06.2E.4.2'
+            $SemanticsContext = 'UE5.5.4/ARM-CLEAN06.2E.4.3'
             $SemanticsPhase = 'PREFLIGHT'
             try {
                 Publish-CommitStatus -Sha $Sha -State 'pending' -Context $SemanticsContext -Description 'Audit UE des mains/familles en lecture seule'
@@ -939,7 +939,7 @@ try {
                 if ($SemanticsProcess.ExitCode -ne 0) {
                     throw 'ARM-CLEAN06.2E: native read-only semantic audit rejected.'
                 }
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $SemanticsContext -Description 'Qualification E4.2 traçable, 0 ecriture'
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $SemanticsContext -Description 'Qualification E4.3 classe-securisee, 0 ecriture'
             }
             catch {
                 $SemanticsStageFile = Join-Path $RunDir 'ARMClean062E.stage'

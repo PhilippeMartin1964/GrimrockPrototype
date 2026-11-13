@@ -77,13 +77,20 @@ foreach ($Package in @($ByPackage.Keys | Sort-Object)) {
     }
 
     $E4Step='ROW_SLOTS'
-    $MainDeclared=[bool]$Row.declared_slot_main
-    $OffDeclared=[bool]$Row.declared_slot_off
-    $MainRuntime=[bool]$Row.can_equip_main
-    $OffRuntime=[bool]$Row.can_equip_off
-    $EffectiveHand=-1
-    $DeclaredHand=-1
+    # Item-only fields are deliberately absent from "other_class" and
+    # "unloadable" rows. Under StrictMode, even reading such a missing
+    # property raises PropertyNotFoundException. Preserve true unknowns.
+    $MainDeclared=$null
+    $OffDeclared=$null
+    $MainRuntime=$null
+    $OffRuntime=$null
+    $EffectiveHand=$null
+    $DeclaredHand=$null
     if ($Class -eq 'expected_class') {
+        $MainDeclared=[bool]$Row.declared_slot_main
+        $OffDeclared=[bool]$Row.declared_slot_off
+        $MainRuntime=[bool]$Row.can_equip_main
+        $OffRuntime=[bool]$Row.can_equip_off
         $EffectiveHand=[int]$Row.effective_hand_usage_enum
         $DeclaredHand=[int]$Row.declared_hand_usage_enum
     }
