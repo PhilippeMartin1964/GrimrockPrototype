@@ -143,7 +143,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061CanonicalResolutionTest,
 bool FGridClean061CanonicalResolutionTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	UGridItemSubsystem* Subsystem = NewObject<UGridItemSubsystem>();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>());
 	FGridResolvedItem Result;
 	TestFalse(TEXT("Resolver fails closed without registry"),
 		Subsystem->ResolveItem(TEXT("TestSword"), 1, Result));
@@ -166,7 +166,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061SwordResolutionTest,
 bool FGridClean061SwordResolutionTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	UGridItemSubsystem* Subsystem = NewObject<UGridItemSubsystem>();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>());
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
@@ -188,7 +188,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061PassiveResolutionTest,
 bool FGridClean061PassiveResolutionTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	UGridItemSubsystem* Subsystem = NewObject<UGridItemSubsystem>();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>());
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
@@ -207,7 +207,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061ConsumableResolutionTest,
 bool FGridClean061ConsumableResolutionTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	UGridItemSubsystem* Subsystem = NewObject<UGridItemSubsystem>();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>());
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
@@ -226,7 +226,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061AmmoResolutionTest,
 bool FGridClean061AmmoResolutionTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	UGridItemSubsystem* Subsystem = NewObject<UGridItemSubsystem>();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>());
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
@@ -240,7 +240,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061AmmoIdentityTest,
 bool FGridClean061AmmoIdentityTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	UGridItemSubsystem* Subsystem = NewObject<UGridItemSubsystem>();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>());
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
@@ -285,7 +285,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061AmmoOutTypeTest,
 bool FGridClean061AmmoOutTypeTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	UGridItemSubsystem* Subsystem = NewObject<UGridItemSubsystem>();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>());
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
@@ -303,9 +303,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061AmmoAfterRegisterTest,
 bool FGridClean061AmmoAfterRegisterTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	UGridItemSubsystem* Subsystem = NewObject<UGridItemSubsystem>();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>());
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
+	
+	// A subsystem created without a GameInstance outer is transient in this
+	// isolation test: keep it alive explicitly during registry validation.
+	TestTrue(TEXT("Canonical subsystem remains rooted while registered"), Subsystem.IsValid());
 	TestEqual(TEXT("Authored ammo kind after registration"), F.Ammo->AmmoKindId, FName(TEXT("Arrow")));
 	return true;
 }
@@ -317,7 +321,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061AmmoNonemptyTest,
 bool FGridClean061AmmoNonemptyTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	UGridItemSubsystem* Subsystem = NewObject<UGridItemSubsystem>();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>());
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
@@ -333,7 +337,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061AmmoTextTest,
 bool FGridClean061AmmoTextTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	UGridItemSubsystem* Subsystem = NewObject<UGridItemSubsystem>();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>());
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
@@ -349,7 +353,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061RejectionTest,
 bool FGridClean061RejectionTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	UGridItemSubsystem* Subsystem = NewObject<UGridItemSubsystem>();
+	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>());
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
