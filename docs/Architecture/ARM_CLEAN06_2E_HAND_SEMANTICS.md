@@ -183,3 +183,74 @@ Aucun .uasset, .umap, SaveGame ni effet sonore Sword/RatGiant
 n'est modifie par cette etape. Aucun lecteur runtime,
 WBP ou equipement n'est change. Pas de PIE requis ;
 les conversions 06.3-06.5 restent interdites.
+
+
+## ARM-CLEAN06.2E.3 — Rapprochement du manifeste et des classes natives
+
+### Preuves d'entree
+
+Le SHA a08b4590 (06.2E.2) est valide sous UE 5.5.4 : SilentTask,
+LocalAuto et le commandlet read-only sont tous success. Son rapport
+public recense 24 packages DA_Weapon_*, 23 instances de la classe
+UGridItemDefinitionAsset, une instance chargeable d'une autre classe
+et aucun echec de chargement. Il confirme 22 jointures ARM, 19
+regles de mains demontrables et 21 types offensif/bouclier demontrables,
+sans ItemId duplique ni manquant parmi les 23 instances attendues.
+
+La source de production Config/Armement/WeaponProductionManifest.csv
+contient exactement **22 lignes** distinctes (ItemPath, ItemDefinitionId,
+ArchetypeId et BuildKind). Les **deux autres packages** sont des
+elements historiques/specialises possibles : ils ne doivent pas etre
+supposes inutiles ni fusionnes.
+
+### Rapprochement autonome
+
+Le nouveau module PowerShell read-only
+Scripts/ARM_CLEAN06_2E3_Reconcile.ps1 est execute apres le
+commandlet natif et l'examen de son rapport prive.
+
+Il confronte les 22 chemins du manifeste aux 24 packages natifs,
+en conservant l'identite de chaque fichier :
+
+- manifeste vs hors manifeste ; classe attendue vs autre classe
+  ou fichier non chargeable ;
+- correspondance ItemDefinitionId / ArchetypeId sur les vraies
+  instances UGridItemDefinitionAsset du manifeste ;
+- causes de jointure absente : opt-out historique, archetype
+  vide, archetype inconnu ou profil source introuvable ;
+- profils joints mais sans regle de mains/type d'armement prouve ;
+- regroupement de la classe inattendue par **module** seulement
+  (Engine, module natif du jeu, Blueprint, editeur, autre).
+
+Les invariants exigent 22 packages trouves dans le manifeste,
+exactement deux autres, 82 archetypes sources et coherence de
+tous les compteurs avec les statistiques natives. Toute anomalie
+de structure rejette l'audit.
+
+Les noms des packages, ItemId, ArchetypeId, chemins de classes,
+valeurs BuildKind, analyses de jointure et correspondances exactes
+sont conserves uniquement dans un second JSON **prive**
+reconciliation-private.json. L'issue GitHub ne comporte
+que des comptes derives et des classes de modules predeterminees.
+Il est interdit d'inferer un type gameplay ou une regle de main
+depuis le seul nom du package.
+
+### Execution et conditions de sortie
+
+Le sujet de commit autorise une seule execution dans le worktree
+Windows detache, apres compilation et Automation Grimrock :
+
+chore(ARM-CLEAN06.2E.3): reconcile source-class and ARM coverage
+
+Le helper est soumis au parseur PowerShell avant l'execution.
+L'agent valide le rapport natif, le manifeste, le second rapport
+et l'absence de modification du worktree. La validation du SHA exact
+requiert UE5.5.4/SilentTask, UE5.5.4/LocalAuto et
+UE5.5.4/ARM-CLEAN06.2E.3 tous a success.
+
+Le rapprochement ne convertit aucun .uasset/.umap,
+ne touche ni Sword/RatGiant ni SaveGame et ne modifie pas
+les regles runtime. Un resultat vert **identifie la nature du
+blocage**, mais n'autorise pas la migration binaire, le
+nettoyage de legacy ni un changement automatique de type.
+Aucune PIE n'est necessaire pour cet audit purement structurel.

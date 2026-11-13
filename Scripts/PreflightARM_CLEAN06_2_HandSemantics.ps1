@@ -9,7 +9,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-$Subject='fix(ARM-CLEAN06.2E.2): inventory package classes without casting loss'
+$Subject='chore(ARM-CLEAN06.2E.3): reconcile source-class and ARM coverage'
 $Stage=Join-Path $RunDir 'ARMClean062E.stage'
 $OutDir=Join-Path $RunDir 'ARM-CLEAN06.2E'
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
@@ -114,6 +114,25 @@ if ($Report.schema -cne 'ARM-CLEAN06.2E/semantic-census/read-only/v1' -or
     [bool]$Report.any_uasset_saved) {
     throw 'Semantic census schema or safety invariants invalid.'
 }
+# Compare with the exact, user-authored production manifest. Run the helper
+# in this process so it can consume the validated PRIVATE native UE report.
+# The helper contains no Git writes, and its private rows never leave RunDir.
+Set-Stage 'RECONCILE'
+$ReconcileHelper=Join-Path $PSScriptRoot 'ARM_CLEAN06_2E3_Reconcile.ps1'
+if (-not (Test-Path -LiteralPath $ReconcileHelper -PathType Leaf)) {
+    throw 'ARM-CLEAN06.2E.3 helper missing.'
+}
+$Tokens=$null
+$ParseErrors=$null
+[void][System.Management.Automation.Language.Parser]::ParseFile(
+    $ReconcileHelper, [ref]$Tokens, [ref]$ParseErrors)
+if ($ParseErrors -and $ParseErrors.Count -gt 0) {
+    throw 'ARM-CLEAN06.2E.3 helper failed syntax validation.'
+}
+. $ReconcileHelper
+if (-not (Test-Path -LiteralPath (Join-Path $OutDir 'reconciliation-private.json') -PathType Leaf)) {
+    throw 'ARM-CLEAN06.2E.3 private cross-check absent.'
+}
 Set-Stage 'CHECK_CLEAN'
 $After=@(& git -C $WorktreePath status --porcelain --untracked-files=all)
 if ($LASTEXITCODE -ne 0 -or $After.Count -ne 0) {
@@ -128,6 +147,23 @@ $Markdown=@(
     '| Controle | Resultat |',
     '|---|---:|',
     '| Archetypes source | 82 |',
+    '| Lignes du manifeste de production | 22 |',
+    '| Packages hors manifeste | 2 |',
+    ('| Def. du manifeste, classe attendue | '+$Counts['manifest_expected']+' |'),
+    ('| Def. du manifeste, autre classe | '+$Counts['manifest_other']+' |'),
+    ('| Def. hors manifeste, classe attendue | '+$Counts['extra_expected']+' |'),
+    ('| Def. hors manifeste, autre classe | '+$Counts['extra_other']+' |'),
+    ('| Autres classes de module Engine | '+$Counts['other_engine']+' |'),
+    ('| Autres classes de module jeu natif | '+$Counts['other_project_native']+' |'),
+    ('| Autres classes Blueprint / editeur / module divers | '+($Counts['other_blueprint']+$Counts['other_editor']+$Counts['other_module'])+' |'),
+    ('| Identites non conformes au manifeste | '+$Counts['manifest_identity_mismatch']+' |'),
+    ('| ARM non resolu : opt-out historique | '+$Counts['join_opt_out']+' |'),
+    ('| ARM non resolu : identifiant vide | '+$Counts['join_missing_arm']+' |'),
+    ('| ARM non resolu : identifiant inconnu | '+$Counts['join_unknown_arm']+' |'),
+    ('| ARM non resolu : profil inexistant | '+$Counts['join_missing_profile']+' |'),
+    ('| Profils lies, regles de mains non prouvees | '+$Counts['unresolved_joined_hand']+' |'),
+    ('| Profils lies, type d armement non prouve | '+$Counts['unresolved_joined_kind']+' |'),
+
     '| Packages DA_Weapon_* inventoriés | 24 |',
     ('| Classe UGridItemDefinitionAsset | '+[int]$Report.count_expected_class+' |'),
     ('| Autres classes chargeables | '+[int]$Report.count_other_class+' |'),
@@ -145,6 +181,9 @@ $Markdown=@(
     '| .uasset modifies | 0 |',
     '',
     '**Inventaire seulement : conversion binaire NON autorisee.**',
+    'Deux packages hors du manifeste ne signifient pas deux fichiers obsoletes.',
+    'La classe exacte et les identites de chaque package restent dans le rapport prive.',
+    'Une reconciliation exacte ne justifie jamais une suppression automatique.',
     'Chaque package DA_Weapon_* reste dans le rapport, meme si sa classe est inattendue.',
     'Les autres classes, packages non chargeables et ItemId invalides sont des BLOQUEURS de conversion.',
     'Les ItemId absents et dupliques ne justifient aucune fusion ni suppression.',
@@ -155,7 +194,7 @@ $Markdown=@(
 )
 $BodyPath=Join-Path $OutDir 'issue.md'
 Set-Content -LiteralPath $BodyPath -Value $Markdown -Encoding UTF8
-$Title='[ARM-CLEAN06.2E] Hand semantics '+$ExpectedHead.Substring(0,12)
+$Title='[ARM-CLEAN06.2E.3] Manifest reconciliation '+$ExpectedHead.Substring(0,12)
 $Issue=@(& gh issue create --repo $GitHubRepository --title $Title --body-file $BodyPath)
 if ($LASTEXITCODE -ne 0 -or $Issue.Count -ne 1) {
     throw 'Filtered GitHub issue publication failed.'
