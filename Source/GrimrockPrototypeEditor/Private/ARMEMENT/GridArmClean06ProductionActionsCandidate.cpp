@@ -80,9 +80,12 @@ bool GridArmClean06ProductionActionsCandidate::AddProvenActionsAndPresentations(
 		Actions->Actions.Add(Canonical);
 		++OutSummary.StandardActions;
 
-		// A legacy item may contain an embedded presentation with no stable
-		// PresentationId. Never invent one or silently create a binding.
-		if (Primary->PresentationProfileId.IsNone())
+		// Use an existing authored ID first. Otherwise use the explicit
+		// migration key from the official 22-row manifest. No heuristic
+		// ActionId substitution and no runtime fallback are permitted.
+		const FName PresentationId = Primary->PresentationProfileId.IsNone() ?
+			FName(*Row.MigrationPresentationId) : Primary->PresentationProfileId;
+		if (PresentationId.IsNone())
 		{
 			++OutSummary.NoAuthoredPresentationId;
 			continue;
@@ -92,7 +95,7 @@ bool GridArmClean06ProductionActionsCandidate::AddProvenActionsAndPresentations(
 			++OutSummary.NoLocalPresentation;
 			continue;
 		}
-		if (Presentations->Find(Primary->PresentationProfileId))
+		if (Presentations->Find(PresentationId))
 		{
 			// Shared keys may be intended, but profile equality is not proven
 			// here. Keep every existing source and refuse silent merging.
@@ -101,7 +104,7 @@ bool GridArmClean06ProductionActionsCandidate::AddProvenActionsAndPresentations(
 		}
 		FGridCanonicalActionPresentation Projected;
 		if (!GridArmClean06PresentationProjection::TryProject(
-			Primary->PresentationProfileId,
+			PresentationId,
 			Source->PlayerAttackPresentationProfile, Projected))
 		{
 			return false;

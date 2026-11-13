@@ -11,6 +11,8 @@ struct FGridWeaponPipelineRow
     FString ItemDefinitionId;
     FString ItemPath;
     FString AttackId;
+    /** Explicit migration-only key, not gameplay source and never a runtime fallback. */
+    FString MigrationPresentationId;
     FString VisualId;
     FString VisualFamily;
     FString IconPath;

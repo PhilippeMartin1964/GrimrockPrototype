@@ -65,39 +65,62 @@ bool FGridClean062QProductionActions::RunTest(const FString&)
 	TestTrue(TEXT("Actual bindings never outnumber proved actions"),
 		ActionSummary.BoundActions <= ActionSummary.StandardActions);
 
-	// Replace the deleted provisional 06.2Z/AA staging with a direct
-	// production gate: a missing authored presentation ID is NOT an
-	// invitation to synthesize one from the existing attack ID.
-	int32 MissingAuthoredKeys = 0;
+	// Only the declared, explicit migration keys may fill historical gaps.
+	// The existing per-asset PresentationProfileId always takes precedence.
+	int32 MigratableMissingKeys = 0;
 	for (const FGridWeaponPipelineRow& Row : Manifest)
 	{
-		if (Row.IsPassive()) { continue; }
+		if (Row.IsPassive())
+		{
+			TestEqual(TEXT("Passive ARM has no migration presentation ID"),
+				Row.MigrationPresentationId, FString(TEXT("None")));
+			continue;
+		}
 		const UGridItemDefinitionAsset* Source =
 			LoadObject<UGridItemDefinitionAsset>(nullptr, *Row.ItemPath);
-		if (!TestNotNull(TEXT("Manifest-only real action source"), Source))
+		if (!TestNotNull(TEXT("Official manifest action source"), Source))
 		{
 			return false;
 		}
 		const FName AttackId(*Row.AttackId);
 		const FGridCombatActionDefinition* Primary =
 			Source->CombatActions.FindByPredicate(
-				[AttackId](const FGridCombatActionDefinition& Action)
+				[AttackId](const FGridCombatActionDefinition& A)
 				{
-					return Action.ActionId == AttackId;
+					return A.ActionId == AttackId;
 				});
-		if (!TestNotNull(TEXT("Real primary action is still authored"), Primary))
+		if (!TestNotNull(TEXT("Actual authored primary action"), Primary))
 		{
 			return false;
 		}
-		if (Primary->PresentationProfileId.IsNone())
+		TestTrue(TEXT("Presentation migration has a distinct explicit key"),
+			!Row.MigrationPresentationId.IsEmpty() &&
+			Row.MigrationPresentationId != Row.AttackId);
+		const FName SelectedId = Primary->PresentationProfileId.IsNone() ?
+			FName(*Row.MigrationPresentationId) : Primary->PresentationProfileId;
+		const bool bConvertedStandard =
+			Candidate->ActionCatalogue->Find(AttackId) != nullptr;
+		if (bConvertedStandard && Primary->PresentationProfileId.IsNone() &&
+			Source->HasValidPlayerAttackPresentation())
 		{
-			if (Candidate->ActionCatalogue->Find(AttackId)) { ++MissingAuthoredKeys; }
-			TestNull(TEXT("Missing PresentationId cannot be inferred from AttackId"),
-				Candidate->ActionPresentationCatalogue->Find(AttackId));
+			++MigratableMissingKeys;
+		}
+		const FGridCanonicalActionPresentation* Resolved =
+			Candidate->ActionPresentationCatalogue->Find(SelectedId);
+		if (bConvertedStandard && Source->HasValidPlayerAttackPresentation())
+		{
+			TestNotNull(TEXT("Explicit presentation key resolves true source profile"), Resolved);
+		}
+		else
+		{
+			TestNull(TEXT("No manufactured presentation for unsupported source"), Resolved);
 		}
 	}
-	TestEqual(TEXT("Missing authored keys reported by production conversion"),
-		MissingAuthoredKeys, ActionSummary.NoAuthoredPresentationId);
+	TestEqual(TEXT("No presentation key is absent after manifest authoring"),
+		ActionSummary.NoAuthoredPresentationId, 0);
+	TestTrue(TEXT("Migratable source gaps do not exceed real bindings"),
+		MigratableMissingKeys <= ActionSummary.BoundActions);
+
 	TArray<FString> Errors;
 	TestFalse(TEXT("Incomplete 82-ARM numeric semantics must not register as complete"),
 		Candidate->Validate(Errors));

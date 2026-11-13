@@ -7,14 +7,15 @@
 
 namespace
 {
-    constexpr int32 ManifestWidth = 16;
+    constexpr int32 ManifestWidth = 17;
     const TCHAR* const Header[ManifestWidth] =
     {
         TEXT("ArchetypeId"), TEXT("ProductionState"), TEXT("BuildKind"),
         TEXT("ItemDefinitionId"), TEXT("ItemPath"), TEXT("AttackId"),
         TEXT("VisualId"), TEXT("VisualFamily"), TEXT("IconPath"),
         TEXT("MeshPath"), TEXT("MaterialPath"), TEXT("BaseColorPath"),
-        TEXT("NormalPath"), TEXT("OrmPath"), TEXT("ClassId"), TEXT("EquipmentSlots")
+        TEXT("NormalPath"), TEXT("OrmPath"), TEXT("ClassId"), TEXT("EquipmentSlots"),
+        TEXT("MigrationPresentationId")
     };
 
     bool IsSafeObjectPath(const FString& Path)
@@ -61,7 +62,7 @@ bool FGridWeaponPipelineManifest::Load(const FString& File,
     const auto& Data = Parser.GetRows();
     if (Data.Num() < 2 || Data[0].Num() != ManifestWidth)
     {
-        Error = TEXT("Manifest is empty or header width is not 16");
+        Error = TEXT("Manifest is empty or header width is not 17");
         return false;
     }
     for (int32 I = 0; I < ManifestWidth; ++I)
@@ -78,7 +79,7 @@ bool FGridWeaponPipelineManifest::Load(const FString& File,
         }
     }
 
-    TSet<FString> Archetypes, ItemIds, ItemPaths;
+    TSet<FString> Archetypes, ItemIds, ItemPaths, MigrationKeys;
     for (int32 Line = 1; Line < Data.Num(); ++Line)
     {
         const TArray<const TCHAR*>& Cells = Data[Line];
@@ -88,7 +89,7 @@ bool FGridWeaponPipelineManifest::Load(const FString& File,
         }
         if (Cells.Num() != ManifestWidth)
         {
-            Error = FString::Printf(TEXT("Manifest row %d must contain exactly 16 fields"), Line + 1);
+            Error = FString::Printf(TEXT("Manifest row %d must contain exactly 17 fields"), Line + 1);
             return false;
         }
         TArray<FString> V;
@@ -104,13 +105,18 @@ bool FGridWeaponPipelineManifest::Load(const FString& File,
         Row.MeshPath = V[9]; Row.MaterialPath = V[10]; Row.BaseColorPath = V[11];
         Row.NormalPath = V[12]; Row.OrmPath = V[13]; Row.ClassId = V[14];
         Row.EquipmentSlots = V[15];
+        Row.MigrationPresentationId = V[16];
 
         if (!UGridWeaponVisualCatalogueAsset::IsCanonicalArchetypeId(FName(Row.ArchetypeId)) ||
             (Row.ProductionState != TEXT("Active") && Row.ProductionState != TEXT("Planned")) ||
             !Row.IsSupportedBuildKind() || Row.ItemDefinitionId.IsEmpty() ||
             Row.VisualId.IsEmpty() || Row.VisualFamily.IsEmpty() ||
             Row.EquipmentSlots.IsEmpty() ||
-            (Row.IsPassive() ? !Row.AttackId.IsEmpty() : Row.AttackId.IsEmpty()))
+            (Row.IsPassive() ? (!Row.AttackId.IsEmpty() ||
+                Row.MigrationPresentationId != TEXT("None")) :
+                (Row.AttackId.IsEmpty() || !Row.MigrationPresentationId.StartsWith(TEXT("PRES_ARM")) ||
+                 Row.MigrationPresentationId == Row.AttackId ||
+                 MigrationKeys.Contains(Row.MigrationPresentationId))))
         {
             Error = FString::Printf(TEXT("Invalid identity/state/kind/slots at manifest row %d"),
                 Line + 1);
@@ -139,6 +145,7 @@ bool FGridWeaponPipelineManifest::Load(const FString& File,
                 Line + 1);
             return false;
         }
+        if (!Row.IsPassive()) { MigrationKeys.Add(Row.MigrationPresentationId); }
         Archetypes.Add(Row.ArchetypeId);
         ItemIds.Add(Row.ItemDefinitionId);
         ItemPaths.Add(Row.ItemPath);
