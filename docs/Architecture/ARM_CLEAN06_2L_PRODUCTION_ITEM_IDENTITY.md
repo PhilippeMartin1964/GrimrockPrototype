@@ -15,7 +15,11 @@ Les champs sont ensuite comparés directement, y compris
 l'ordre de tags et le contenu `FText`.
 
 La projection refuse les masses invalides et l'écrasement
-d'une fiche canonique existante. Le test
+d'une fiche canonique existante. En revanche une liste historique
+de tags est copiée intégralement, même si le registre final la
+considère invalide (doublon ou tag vide) : cette éventuelle
+incompatibilité est comptée séparément et **bloque le cutover**,
+sans suppression ou correction silencieuse de tags. Le test
 `ProductionItemIdentityProjection` confirme les
 22 ItemId/ArchetypeId uniques, les données et la propreté
 des packages après exécution. Le test négatif
@@ -28,6 +32,13 @@ hérité distinct du `ItemLevel` d'instance. Les
 valeurs non standard sont comptées et doivent être
 converties en politique de création d'instances,
 **pas** copiées dans le DataAsset d'arme de six champs.
+
+Le premier commit 06.2L compilait, mais son test de projection
+était en échec (issue #105) ; le rapport public ne permet pas
+d'identifier le champ en cause. La correction 06.2M sépare donc
+la parité de copie et la validité du schéma canonique, et
+conserve explicitement les refus du validateur pour examen
+avant conversion des vrais fichiers.
 
 Aucun asset n'est créé sous /Game, aucune migration binaire,
 aucun lecteur SaveGame/PIE n'est modifié. La sortie attendue

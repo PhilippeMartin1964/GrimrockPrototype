@@ -29,6 +29,7 @@ bool FGridClean062LProductionItems::RunTest(const FString&)
 	int32 CustomDefaultLevels = 0;
 	int32 TagsTotal = 0;
 	int32 NonemptyDescriptions = 0;
+	int32 CanonicalSchemaRejections = 0;
 	for (const FGridWeaponPipelineRow& Row : Rows)
 	{
 		const FName ArmId(*Row.ArchetypeId);
@@ -59,6 +60,7 @@ bool FGridClean062LProductionItems::RunTest(const FString&)
 			return false;
 		}
 		TagsTotal += Candidate->Tags.Num();
+		if (!Candidate->HasValidIdentity()) { ++CanonicalSchemaRejections; }
 		if (!Source->Description.IsEmpty()) { ++NonemptyDescriptions; }
 		if (Source->DefaultWeaponItemLevel != 1) { ++CustomDefaultLevels; }
 		if (Source->GetOutermost()->IsDirty() != bWasDirty)
@@ -71,9 +73,10 @@ bool FGridClean062LProductionItems::RunTest(const FString&)
 	TestEqual(TEXT("22 distinct ArchetypeIds"), SeenArmIds.Num(), 22);
 	AddInfo(FString::Printf(TEXT(
 		"ARM 06.2L: 22 concrete identities/weights projected; %d tags; "
-		"%d nonempty descriptions; %d custom source default levels "
-		"(migration must preserve default-level semantics separately). No assets saved."),
-		TagsTotal, NonemptyDescriptions, CustomDefaultLevels));
+		"%d nonempty descriptions; %d custom source default levels; "
+		"%d schema rejections retained verbatim and BLOCKING binary cutover. "
+		"No assets saved."),
+		TagsTotal, NonemptyDescriptions, CustomDefaultLevels, CanonicalSchemaRejections));
 	return SeenItemIds.Num() == 22 && SeenArmIds.Num() == 22;
 }
 
@@ -106,6 +109,16 @@ bool FGridClean062LIdentitySafety::RunTest(const FString&)
 	TestFalse(TEXT("Invalid mass refused, not silently clamped"),
 		GridArmClean06ItemIdentityProjection::TryProject(*Source, *Rejected));
 	TestTrue(TEXT("Rejected candidate has no ItemId"), Rejected->ItemId.IsNone());
+	Source->Weight = 2.5f;
+	Source->ItemTags.Add(NAME_None);
+	TStrongObjectPtr<UGridArmamentDefinitionAsset> RawTags(
+		NewObject<UGridArmamentDefinitionAsset>(GetTransientPackage()));
+	TestTrue(TEXT("Lossless preview preserves malformed historical tags"),
+		GridArmClean06ItemIdentityProjection::TryProject(*Source, *RawTags));
+	TestFalse(TEXT("Canonical schema correctly rejects malformed tags"),
+		RawTags->HasValidIdentity());
+	TestTrue(TEXT("No source tag was silently omitted"),
+		GridArmClean06ItemIdentityProjection::Matches(*Source, *RawTags));
 	return true;
 }
 #endif

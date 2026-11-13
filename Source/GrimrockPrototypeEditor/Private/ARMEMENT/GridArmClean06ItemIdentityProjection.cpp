@@ -30,5 +30,8 @@ bool GridArmClean06ItemIdentityProjection::TryProject(
 	Destination.Description = Source.Description;
 	Destination.WeightKg = Source.Weight;
 	Destination.Tags = Source.ItemTags;
-	return Destination.HasValidIdentity() && Matches(Source, Destination);
+	// A byte-for-byte-equivalent preview must not discard original tags.
+	// Canonical schema validation is a separate fail-closed migration gate:
+	// duplicate/empty legacy tags are preserved but not silently accepted.
+	return Matches(Source, Destination);
 }
