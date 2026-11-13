@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/GridInventoryTypes.h"
 #include "GridItemSubsystem.generated.h"
 
 UENUM(BlueprintType)
@@ -152,6 +153,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Item System")
 	bool ResolveItem(FName ItemId, int32 ItemLevel, FGridResolvedItem& OutItem) const;
+
+	/**
+	 * Read remaining armor for this *specific persisted item instance*.
+	 * Nominal armor comes from the one N1-N20 catalogue, spent armor from
+	 * this instance only. Fails closed for legacy level 0 and non-armaments.
+	 * Neither the instance nor any registry data is mutated.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Item System|Armor")
+	bool ResolveArmorReserveForInstance(const FGridItemInstance& Instance,
+		FGridCanonicalArmorReserveView& OutReserve) const;
 
 	/** Resolve ONLY an authored ItemActionBinding via the four global catalogues. */
 	UFUNCTION(BlueprintCallable, Category = "Item System")

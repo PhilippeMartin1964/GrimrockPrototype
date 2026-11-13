@@ -166,6 +166,36 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	return true;
 }
 
+bool UGridItemSubsystem::ResolveArmorReserveForInstance(
+	const FGridItemInstance& Instance,
+	FGridCanonicalArmorReserveView& OutReserve) const
+{
+	// A failed read must never expose a cached amount from an earlier item.
+	OutReserve = FGridCanonicalArmorReserveView();
+	if (!RootRegistry || !Instance.IsValid() ||
+		Instance.ItemLevel < 1 || Instance.ItemLevel > 20 ||
+		Instance.AbsorbedEquipmentPhysicalArmor < 0 ||
+		Instance.AbsorbedEquipmentMagicalArmor < 0)
+	{
+		return false;
+	}
+
+	// Only canonical N1-N20 numbers are allowed; the name/weight snapshots
+	// retained in old saves are deliberately ignored by this read model.
+	FGridResolvedItem Resolved;
+	if (!ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Resolved) ||
+		!Resolved.bIsArmament)
+	{
+		return false;
+	}
+
+	return FGridCanonicalArmorReserveResolver::TryCompute(
+		Resolved.Weapon,
+		Instance.AbsorbedEquipmentPhysicalArmor,
+		Instance.AbsorbedEquipmentMagicalArmor,
+		OutReserve);
+}
+
 bool UGridItemSubsystem::ResolveBoundAction(
 	FName ItemId, int32 ItemLevel, FName ActionId, FGridResolvedBoundAction& OutAction) const
 {

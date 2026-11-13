@@ -870,4 +870,98 @@ bool FGridClean062ACProjectileReadModelTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062AFInstanceArmorReserve,
+	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.InstancedArmorReserveSingleRegistry",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean062AFInstanceArmorReserve::RunTest(const FString&)
+{
+	const Clean061::FFixture F = Clean061::Make();
+	TStrongObjectPtr<UGridItemSubsystem> Resolver(
+		NewObject<UGridItemSubsystem>(F.GameInstance.Get()));
+
+	FGridItemInstance Shield;
+	Shield.RuntimeObjectId = FGuid(6, 2, 1, 99);
+	Shield.ItemDefinitionId = TEXT("TestShield");
+	Shield.ItemLevel = 20;
+	Shield.Quantity = 1;
+	Shield.OwnerType = EGridItemOwnerType::EquipmentSlot;
+	Shield.EquipmentSlot = EGridEquipmentSlot::OffHand;
+	Shield.AbsorbedEquipmentPhysicalArmor = 2;
+	Shield.AbsorbedEquipmentMagicalArmor = 1;
+
+	FGridCanonicalArmorReserveView View;
+	TestFalse(TEXT("No registry: armor is not guessed from saved snapshots"),
+		Resolver->ResolveArmorReserveForInstance(Shield, View));
+	TestEqual(TEXT("Unconfigured output must be empty"), View.RemainingPhysicalArmor, 0);
+
+	TArray<FString> Errors;
+	if (!TestTrue(TEXT("One canonical source registry registered"),
+		Resolver->RegisterItemSystem(F.System, Errors)))
+	{
+		return false;
+	}
+	if (!TestTrue(TEXT("Resolve true N20 shield with its own armor depletion"),
+		Resolver->ResolveArmorReserveForInstance(Shield, View)))
+	{
+		return false;
+	}
+	TestEqual(TEXT("Catalog nominal physical shield"), View.NominalPhysicalArmor, 3);
+	TestEqual(TEXT("Saved spent physical shield"), View.SpentPhysicalArmor, 2);
+	TestEqual(TEXT("No refill: one physical point remains"), View.RemainingPhysicalArmor, 1);
+	TestEqual(TEXT("No fabricated magical protection"), View.NominalMagicalArmor, 0);
+	TestEqual(TEXT("Historical magical depletion stays recorded"), View.SpentMagicalArmor, 1);
+	TestEqual(TEXT("Magical reserve is already exhausted"), View.RemainingMagicalArmor, 0);
+
+	// This is a pure read: changing the persisted owner/hand must not recharge.
+	Shield.OwnerType = EGridItemOwnerType::CharacterInventory;
+	Shield.EquipmentSlot = EGridEquipmentSlot::None;
+	TestTrue(TEXT("Moving shield to bag preserves armor debt"),
+		Resolver->ResolveArmorReserveForInstance(Shield, View));
+	TestEqual(TEXT("Shield reserve is unchanged in bag"), View.RemainingPhysicalArmor, 1);
+	TestEqual(TEXT("Shield debt is unchanged in bag"), View.SpentPhysicalArmor, 2);
+
+	Shield.AbsorbedEquipmentPhysicalArmor = 7;
+	TestTrue(TEXT("Overdepletion does not rewrite a saved instance"),
+		Resolver->ResolveArmorReserveForInstance(Shield, View));
+	TestEqual(TEXT("Overdepleted shield cannot regain any armor"), View.RemainingPhysicalArmor, 0);
+	TestEqual(TEXT("Spent value is not silently truncated"), View.SpentPhysicalArmor, 7);
+	TestEqual(TEXT("Original persisted item is untouched"), Shield.AbsorbedEquipmentPhysicalArmor, 7);
+
+	Shield.ItemLevel = 0;
+	TestFalse(TEXT("Legacy level zero cannot become N1"),
+		Resolver->ResolveArmorReserveForInstance(Shield, View));
+	TestEqual(TEXT("Failure clears previous physical debt"), View.SpentPhysicalArmor, 0);
+	Shield.ItemLevel = 20;
+
+	Shield.AbsorbedEquipmentMagicalArmor = -1;
+	TestFalse(TEXT("Invalid negative magical debt rejected"),
+		Resolver->ResolveArmorReserveForInstance(Shield, View));
+	TestEqual(TEXT("Invalid state has no remaining armor"), View.RemainingPhysicalArmor, 0);
+	Shield.AbsorbedEquipmentMagicalArmor = 0;
+
+	Shield.ItemDefinitionId = TEXT("TestArrow");
+	TestFalse(TEXT("Ammo never has armor resolved as a weapon"),
+		Resolver->ResolveArmorReserveForInstance(Shield, View));
+	Shield.ItemDefinitionId = TEXT("TestPotion");
+	TestFalse(TEXT("Consumable never has an armament reserve"),
+		Resolver->ResolveArmorReserveForInstance(Shield, View));
+	Shield.ItemDefinitionId = TEXT("UnknownARM");
+	TestFalse(TEXT("Unknown ARM never falls back to a legacy catalogue"),
+		Resolver->ResolveArmorReserveForInstance(Shield, View));
+	Shield.ItemDefinitionId = TEXT("TestShield");
+
+	Shield.RuntimeObjectId.Invalidate();
+	TestFalse(TEXT("Item with missing runtime GUID cannot claim reserve"),
+		Resolver->ResolveArmorReserveForInstance(Shield, View));
+	Shield.RuntimeObjectId = FGuid(6, 2, 1, 99);
+	Shield.AbsorbedEquipmentPhysicalArmor = 2;
+	TestTrue(TEXT("Recovered instance resolves after rejected reads"),
+		Resolver->ResolveArmorReserveForInstance(Shield, View));
+	TestEqual(TEXT("Recovery preserves spent reserve"), View.SpentPhysicalArmor, 2);
+	TestEqual(TEXT("Recovery returns precisely one armor point"), View.RemainingPhysicalArmor, 1);
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS
