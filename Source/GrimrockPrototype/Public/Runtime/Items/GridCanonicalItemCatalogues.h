@@ -450,6 +450,13 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponArchetype
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	FName ArchetypeId = NAME_None;
 
+	/**
+	 * A numeric-only ARM may be present in the library before its hand/type
+	 * gameplay semantics are authored. Never permit it for a concrete item.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Semantics")
+	bool bHandAndKindProven = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	EGridCanonicalArmamentKind Kind = EGridCanonicalArmamentKind::Weapon;
 

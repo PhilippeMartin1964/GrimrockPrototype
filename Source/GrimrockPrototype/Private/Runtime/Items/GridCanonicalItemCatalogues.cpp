@@ -527,11 +527,14 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 		}
 		if (const UGridArmamentDefinitionAsset* Weapon = Cast<UGridArmamentDefinitionAsset>(Item))
 		{
-			if (!WeaponCatalogue->Find(Weapon->ArchetypeId) ||
+			const FGridCanonicalWeaponArchetype* Archetype =
+				WeaponCatalogue->Find(Weapon->ArchetypeId);
+			if (!Archetype || !Archetype->bHandAndKindProven ||
 				!WeaponVisualCatalogue->FindForArchetype(Weapon->ArchetypeId))
 			{
 				bValid = AddError(Errors, FString::Printf(
-					TEXT("Item system: invalid armament references for %s"), *Item->ItemId.ToString()));
+					TEXT("Item system: incomplete active armament semantics/visual for %s"),
+					*Item->ItemId.ToString()));
 			}
 		}
 	}

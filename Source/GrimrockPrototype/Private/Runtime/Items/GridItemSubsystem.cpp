@@ -100,7 +100,8 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	{
 		const FGridCanonicalWeaponArchetype* Archetype =
 			RootRegistry->WeaponCatalogue->Find(Armament->ArchetypeId);
-		if (!Archetype || !Archetype->TryResolve(ItemLevel, OutItem.Weapon))
+		if (!Archetype || !Archetype->bHandAndKindProven ||
+			!Archetype->TryResolve(ItemLevel, OutItem.Weapon))
 		{
 			OutItem = FGridResolvedItem();
 			OutItem.Error = EGridCanonicalItemResolveError::InvalidArchetype;

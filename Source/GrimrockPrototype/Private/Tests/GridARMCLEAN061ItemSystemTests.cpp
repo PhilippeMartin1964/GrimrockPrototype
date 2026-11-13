@@ -50,6 +50,9 @@ namespace Clean061
 		{
 			FGridCanonicalWeaponArchetype Weapon;
 			Weapon.ArchetypeId = FName(*FString::Printf(TEXT("ARM%03d"), Index));
+			// Every synthetic row has its hand and kind explicitly authored in
+			// this fixture; real unmaterialized source rows remain unproven.
+			Weapon.bHandAndKindProven = true;
 			const bool bPassive = Index >= 70; // 13 x 20 = 260
 			Weapon.Kind = bPassive ? EGridCanonicalArmamentKind::Shield :
 				EGridCanonicalArmamentKind::Weapon;
@@ -526,6 +529,49 @@ bool FGridClean062NLiveVisualReferencesTest::RunTest(const FString&)
 		F.System->Validate(Errors));
 	TestTrue(TEXT("Missing live visual reports an error"), Errors.Num() > 0);
 	return UnusedRemoved == 80 && LiveRemoved == 1;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062RArmSemanticGateTest,
+	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.ActiveArmamentSemanticGate",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean062RArmSemanticGateTest::RunTest(const FString&)
+{
+	Clean061::FFixture F = Clean061::Make();
+	const FGridCanonicalWeaponArchetype* Source =
+		F.System->WeaponCatalogue->Find(TEXT("ARM014"));
+	if (!TestNotNull(TEXT("ARM014 real linked slot of fixture"), Source))
+	{
+		return false;
+	}
+	FGridCanonicalWeaponArchetype* Active = F.System->WeaponCatalogue->Archetypes.FindByPredicate(
+		[](const FGridCanonicalWeaponArchetype& Row) { return Row.ArchetypeId == TEXT("ARM014"); });
+	FGridCanonicalWeaponArchetype* Unused = F.System->WeaponCatalogue->Archetypes.FindByPredicate(
+		[](const FGridCanonicalWeaponArchetype& Row) { return Row.ArchetypeId == TEXT("ARM060"); });
+	if (!TestNotNull(TEXT("ARM014 mutable fixture"), Active) ||
+		!TestNotNull(TEXT("ARM060 numeric-only archetype"), Unused))
+	{
+		return false;
+	}
+	TArray<FString> Errors;
+	TestTrue(TEXT("Fully authoried fixture has a valid registry"), F.System->Validate(Errors));
+
+	Unused->bHandAndKindProven = false;
+	Errors.Reset();
+	TestTrue(TEXT("Unreferenced 60th numeric ARM needs no guessed hands"),
+		F.System->Validate(Errors));
+
+	Active->bHandAndKindProven = false;
+	Errors.Reset();
+	TestFalse(TEXT("Concrete ARM014 cannot enter registry with unproven hand policy"),
+		F.System->Validate(Errors));
+	TestTrue(TEXT("Unproven active item returns a rejection reason"), Errors.Num() > 0);
+
+	Active->bHandAndKindProven = true;
+	Errors.Reset();
+	TestTrue(TEXT("Restored active semantics are valid"), F.System->Validate(Errors));
+	return true;
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
