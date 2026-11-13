@@ -100,7 +100,19 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	{
 		const FGridCanonicalWeaponArchetype* Archetype =
 			RootRegistry->WeaponCatalogue->Find(Armament->ArchetypeId);
-		if (!Archetype || !Archetype->bHandAndKindProven ||
+		// Numeric parity never grants an active weapon an implicit attack.
+		// A real offensive ARM requires a bound attack and a source hand.
+		const bool bMissingOffensiveAction = Archetype &&
+			Archetype->Kind == EGridCanonicalArmamentKind::Weapon &&
+			(Archetype->AttackSourceSlots.IsEmpty() ||
+				!Archetype->Actions.ContainsByPredicate(
+					[this](const FGridItemActionBinding& Binding)
+					{
+						const FGridCanonicalAction* Action =
+							RootRegistry->ActionCatalogue->Find(Binding.ActionId);
+						return Action && Action->Kind == EGridCanonicalActionKind::Attack;
+					}));
+		if (!Archetype || !Archetype->bHandAndKindProven || bMissingOffensiveAction ||
 			!Archetype->TryResolve(ItemLevel, OutItem.Weapon))
 		{
 			OutItem = FGridResolvedItem();

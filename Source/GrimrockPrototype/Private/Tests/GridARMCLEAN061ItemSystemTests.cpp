@@ -574,4 +574,71 @@ bool FGridClean062RArmSemanticGateTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062TAttackReadinessGate,
+	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.ActiveWeaponAttackReadinessGate",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean062TAttackReadinessGate::RunTest(const FString&)
+{
+	const Clean061::FFixture F = Clean061::Make();
+	FGridCanonicalWeaponArchetype* Sword = F.System->WeaponCatalogue->Archetypes.FindByPredicate(
+		[](const FGridCanonicalWeaponArchetype& Row) { return Row.ArchetypeId == TEXT("ARM014"); });
+	if (!TestNotNull(TEXT("Concrete ARM014 candidate"), Sword))
+	{
+		return false;
+	}
+	TArray<FString> Errors;
+	TestTrue(TEXT("Complete source-hand/action fixture is valid"), F.System->Validate(Errors));
+
+	TStrongObjectPtr<UGridItemSubsystem> Resolver(
+		NewObject<UGridItemSubsystem>(F.GameInstance.Get()));
+	if (!TestTrue(TEXT("Ready registry can be installed"),
+		Resolver->RegisterItemSystem(F.System, Errors)))
+	{
+		return false;
+	}
+	FGridResolvedItem Resolved;
+	TestTrue(TEXT("Sword with real action resolves"),
+		Resolver->ResolveItem(TEXT("TestSword"), 1, Resolved));
+
+	const TArray<EGridEquipmentSlot> RealAttackSlots = Sword->AttackSourceSlots;
+	Sword->AttackSourceSlots.Reset();
+	Errors.Reset();
+	TestFalse(TEXT("A live offensive ARM cannot have zero attack-source hands"),
+		F.System->Validate(Errors));
+	TestFalse(TEXT("Runtime resolver fails closed after losing source hands"),
+		Resolver->ResolveItem(TEXT("TestSword"), 1, Resolved));
+	TestEqual(TEXT("Missing attack source has a precise item error"),
+		Resolved.Error, EGridCanonicalItemResolveError::InvalidArchetype);
+	Sword->AttackSourceSlots = RealAttackSlots;
+
+	const TArray<FGridItemActionBinding> RealActions = Sword->Actions;
+	Sword->Actions.Reset();
+	Errors.Reset();
+	TestFalse(TEXT("A live offensive ARM cannot have an unbound attack"),
+		F.System->Validate(Errors));
+	TestFalse(TEXT("Resolver cannot invent an action when bindings are missing"),
+		Resolver->ResolveItem(TEXT("TestSword"), 1, Resolved));
+	Sword->Actions = RealActions;
+
+	const EGridCanonicalActionKind RealKind = F.System->ActionCatalogue->Actions[0].Kind;
+	F.System->ActionCatalogue->Actions[0].Kind = EGridCanonicalActionKind::Defend;
+	Errors.Reset();
+	TestFalse(TEXT("An action classified Defend cannot satisfy attack readiness"),
+		F.System->Validate(Errors));
+	TestFalse(TEXT("Resolver cannot use a non-attack as a weapon attack"),
+		Resolver->ResolveItem(TEXT("TestSword"), 1, Resolved));
+	F.System->ActionCatalogue->Actions[0].Kind = RealKind;
+
+	Errors.Reset();
+	TestTrue(TEXT("Restored real attack, source hand and binding validate"),
+		F.System->Validate(Errors));
+	TestTrue(TEXT("Restored weapon resolves again"),
+		Resolver->ResolveItem(TEXT("TestSword"), 1, Resolved));
+	TestTrue(TEXT("A passive shield still needs no attack action"),
+		Resolver->ResolveItem(TEXT("TestShield"), 1, Resolved));
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

@@ -535,6 +535,22 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 				bValid = AddError(Errors, FString::Printf(
 					TEXT("Item system: incomplete active armament semantics/visual for %s"),
 					*Item->ItemId.ToString()));
+				continue;
+			}
+			if (Archetype->Kind == EGridCanonicalArmamentKind::Weapon)
+			{
+				const bool bHasAttack = Archetype->Actions.ContainsByPredicate(
+					[this](const FGridItemActionBinding& Binding)
+					{
+						const FGridCanonicalAction* Action = ActionCatalogue->Find(Binding.ActionId);
+						return Action && Action->Kind == EGridCanonicalActionKind::Attack;
+					});
+				if (Archetype->AttackSourceSlots.IsEmpty() || !bHasAttack)
+				{
+					bValid = AddError(Errors, FString::Printf(
+						TEXT("Item system: active weapon missing attack source/bound attack for %s"),
+						*Item->ItemId.ToString()));
+				}
 			}
 		}
 	}
