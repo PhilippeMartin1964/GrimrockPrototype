@@ -907,7 +907,7 @@ try {
 
         # ARM-CLEAN06.2E — one-shot semantic census in native UE. NO asset writes.
         # Triggered only on the exact authored subject and the isolated SHA.
-        $SemanticsTrigger = 'fix(ARM-CLEAN06.2E.1): preserve conflicting IDs and diagnose native census'
+        $SemanticsTrigger = 'fix(ARM-CLEAN06.2E.2): inventory package classes without casting loss'
         $SemanticsSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $SemanticsSubject.Count -eq 1 -and
             [string]$SemanticsSubject[0] -ceq $SemanticsTrigger) {

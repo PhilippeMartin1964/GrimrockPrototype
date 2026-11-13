@@ -9,7 +9,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-$Subject='fix(ARM-CLEAN06.2E.1): preserve conflicting IDs and diagnose native census'
+$Subject='fix(ARM-CLEAN06.2E.2): inventory package classes without casting loss'
 $Stage=Join-Path $RunDir 'ARMClean062E.stage'
 $OutDir=Join-Path $RunDir 'ARM-CLEAN06.2E'
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
@@ -84,17 +84,32 @@ $Report=Get-Content -LiteralPath $ResultPath -Raw -Encoding UTF8 | ConvertFrom-J
 if ($Report.schema -cne 'ARM-CLEAN06.2E/semantic-census/read-only/v1' -or
     [int]$Report.archetypes -ne 82 -or
     [int]$Report.concrete_weapon_assets -ne 24 -or
+    [int]$Report.weapon_packages -ne 24 -or
+    [int]$Report.unique_weapon_packages -ne 24 -or
+    [int]$Report.duplicate_weapon_packages -ne 0 -or
+    [int]$Report.count_expected_class -lt 0 -or
+    [int]$Report.count_other_class -lt 0 -or
+    [int]$Report.count_unloadable -lt 0 -or
+    ([int]$Report.count_expected_class + [int]$Report.count_other_class + [int]$Report.count_unloadable) -ne 24 -or
     [int]$Report.unique_nonempty_item_ids -lt 0 -or
     [int]$Report.missing_item_ids -lt 0 -or
     [int]$Report.duplicate_item_ids -lt 0 -or
-    ([int]$Report.unique_nonempty_item_ids + [int]$Report.missing_item_ids + [int]$Report.duplicate_item_ids) -ne 24 -or
+    ([int]$Report.unique_nonempty_item_ids + [int]$Report.missing_item_ids + [int]$Report.duplicate_item_ids) -ne [int]$Report.count_expected_class -or
     [int]$Report.source_hand_label_variants -ne 3 -or
     @($Report.source_archetype_rows).Count -ne 82 -or
     @($Report.concrete_weapon_rows).Count -ne 24 -or
     [int]$Report.concrete_joined -lt 0 -or
-    [int]$Report.concrete_joined -gt 24 -or
+    [int]$Report.concrete_joined -gt [int]$Report.count_expected_class -or
     [int]$Report.concrete_hand_policy_proven -gt [int]$Report.concrete_joined -or
     [int]$Report.concrete_armament_kind_proven -gt [int]$Report.concrete_joined -or
+    @($Report.concrete_weapon_rows | Where-Object {
+        $_.load_classification -notin @('expected_class','other_class','unloadable') -or
+        [string]::IsNullOrWhiteSpace([string]$_.asset_package) -or
+        [string]::IsNullOrWhiteSpace([string]$_.registry_class) -or
+        ($_.load_classification -ne 'unloadable' -and
+            [string]::IsNullOrWhiteSpace([string]$_.loaded_class))
+    }).Count -ne 0 -or
+    @($Report.concrete_weapon_rows | Select-Object -ExpandProperty asset_package -Unique).Count -ne 24 -or
     [bool]$Report.binary_migration_authorized -or
     [bool]$Report.any_uasset_saved) {
     throw 'Semantic census schema or safety invariants invalid.'
@@ -113,8 +128,11 @@ $Markdown=@(
     '| Controle | Resultat |',
     '|---|---:|',
     '| Archetypes source | 82 |',
-    '| Defintions concretes chargees par UE | 24 |',
-    ('| ItemId uniques et presents | '+[int]$Report.unique_nonempty_item_ids+' |'),
+    '| Packages DA_Weapon_* inventoriés | 24 |',
+    ('| Classe UGridItemDefinitionAsset | '+[int]$Report.count_expected_class+' |'),
+    ('| Autres classes chargeables | '+[int]$Report.count_other_class+' |'),
+    ('| Packages non chargeables | '+[int]$Report.count_unloadable+' |'),
+    ('| ItemId uniques et presents parmi les classes attendues | '+[int]$Report.unique_nonempty_item_ids+' |'),
     ('| ItemId absents | '+[int]$Report.missing_item_ids+' |'),
     ('| ItemId dupliques | '+[int]$Report.duplicate_item_ids+' |'),
     ('| Jointures catalogue valides | '+[int]$Report.concrete_joined+' |'),
@@ -127,7 +145,9 @@ $Markdown=@(
     '| .uasset modifies | 0 |',
     '',
     '**Inventaire seulement : conversion binaire NON autorisee.**',
-    'Les ItemId absents et dupliques sont des BLOQUEURS de conversion, pas une autorisation de fusion.',
+    'Chaque package DA_Weapon_* reste dans le rapport, meme si sa classe est inattendue.',
+    'Les autres classes, packages non chargeables et ItemId invalides sont des BLOQUEURS de conversion.',
+    'Les ItemId absents et dupliques ne justifient aucune fusion ni suppression.',
     'La conversion des 82 archetypes ne peut etre deduite des seules 24 definitions.',
     'Les libelles sources exacts, identites, slots et chemins restent dans le JSON prive.',
     'Les valeurs HandUsage du classeur sont informatives dans le catalogue historique.',

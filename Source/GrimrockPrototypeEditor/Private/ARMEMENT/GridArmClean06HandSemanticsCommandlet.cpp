@@ -115,12 +115,28 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 		return 3;
 	}
 
-	TArray<FAssetData> Assets;
-	Registry.GetAssetsByPath(WeaponFolder, Assets, false);
-	Assets.Sort([](const FAssetData& A, const FAssetData& B)
+	TArray<FAssetData> FolderAssets;
+	Registry.GetAssetsByPath(WeaponFolder, FolderAssets, false);
+	// Important: a package is still part of the migration baseline even if
+	// its UObject does not derive from UGridItemDefinitionAsset.
+	const FString WeaponPackagePrefix = WeaponFolder.ToString() + TEXT("/DA_Weapon_");
+	TArray<FAssetData> WeaponAssets;
+	for (const FAssetData& Asset : FolderAssets)
+	{
+		if (Asset.PackageName.ToString().StartsWith(WeaponPackagePrefix))
+		{
+			WeaponAssets.Add(Asset);
+		}
+	}
+	WeaponAssets.Sort([](const FAssetData& A, const FAssetData& B)
 	{
 		return A.PackageName.ToString() < B.PackageName.ToString();
 	});
+	TSet<FName> SeenPackages;
+	int32 DuplicatePackages = 0;
+	int32 LoadedExpectedClass = 0;
+	int32 LoadedOtherClass = 0;
+	int32 UnloadablePackages = 0;
 	TSet<FName> ConcreteIds;
 	int32 MissingItemIds = 0;
 	int32 DuplicateItemIds = 0;
@@ -133,12 +149,44 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 	int32 HandProven = 0;
 	int32 KindProven = 0;
 	int32 SemanticConflicts = 0;
-	for (const FAssetData& Asset : Assets)
+	for (const FAssetData& Asset : WeaponAssets)
 	{
-		const UGridItemDefinitionAsset* Item =
-			Cast<UGridItemDefinitionAsset>(Asset.GetAsset());
-		if (!Item) { continue; } // Two catalogue assets are not concrete definitions.
+		// Every DA_Weapon_* registry record must survive classification;
+		// otherwise a misleading 24-file / N-UGridItemDefinitionAsset count
+		// stops the audit before the real class mismatch can be diagnosed.
 		++ConcreteCount;
+		const bool bDuplicatePackage = SeenPackages.Contains(Asset.PackageName);
+		if (bDuplicatePackage) { ++DuplicatePackages; }
+		SeenPackages.Add(Asset.PackageName);
+		UObject* LoadedObject = Asset.GetAsset();
+		const bool bLoaded = IsValid(LoadedObject);
+		const UGridItemDefinitionAsset* Item = bLoaded ?
+			Cast<UGridItemDefinitionAsset>(LoadedObject) : nullptr;
+		if (!bLoaded) { ++UnloadablePackages; }
+		else if (!Item) { ++LoadedOtherClass; }
+		else { ++LoadedExpectedClass; }
+
+		TSharedRef<FJsonObject> Row = MakeShared<FJsonObject>();
+		Row->SetStringField(TEXT("asset_package"), Asset.PackageName.ToString());
+		Row->SetStringField(TEXT("registry_class"), Asset.AssetClassPath.ToString());
+		Row->SetStringField(TEXT("loaded_class"),
+			bLoaded ? LoadedObject->GetClass()->GetPathName() : TEXT(""));
+		Row->SetStringField(TEXT("load_classification"),
+			!bLoaded ? TEXT("unloadable") :
+			(Item ? TEXT("expected_class") : TEXT("other_class")));
+		Row->SetBoolField(TEXT("duplicate_package"), bDuplicatePackage);
+		if (!Item)
+		{
+			// Count the package, preserve its class, and leave every item
+			// property unresolved instead of inventing ItemId or hand usage.
+			Row->SetStringField(TEXT("item_id"), TEXT(""));
+			Row->SetStringField(TEXT("source_archetype_id"), TEXT(""));
+			Row->SetBoolField(TEXT("joined_to_source_n1"), false);
+			Row->SetStringField(TEXT("provable_hand_policy"), TEXT("Unresolved"));
+			Row->SetStringField(TEXT("provable_kind"), TEXT("Unresolved"));
+			ConcreteRows.Add(MakeShared<FJsonValueObject>(Row));
+			continue;
+		}
 		// The census must NOT discard a real UE asset because its ItemId is
 		// empty or duplicates another asset (including ThrowingKnife variants).
 		// Record it as a migration blocker, without merging or authoring data.
@@ -182,8 +230,6 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 			KindByArchetype.FindOrAdd(Item->WeaponArchetypeId) = Kind;
 		}
 
-		TSharedRef<FJsonObject> Row = MakeShared<FJsonObject>();
-		Row->SetStringField(TEXT("asset_package"), Asset.PackageName.ToString());
 		Row->SetStringField(TEXT("item_id"), Item->ItemDefinitionId.ToString());
 		Row->SetBoolField(TEXT("missing_item_id"), bMissingId);
 		Row->SetBoolField(TEXT("duplicate_item_id"), bDuplicateId);
@@ -202,11 +248,15 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 		ConcreteRows.Add(MakeShared<FJsonValueObject>(Row));
 	}
 
-	// Keep the baseline count strict; duplicate or missing IDs are audit
-	// findings, not reasons to lose individual asset rows from the inventory.
-	if (ConcreteCount != 24)
+	// The count now refers to DA_Weapon_* packages, not to their C++ base
+	// class. Classification mismatches are audited without being discarded.
+	// A preflight can reject an unexpected package cardinality AFTER the
+	// private report is written, so the diagnostic itself is not lost.
+	if (ConcreteCount != WeaponAssets.Num() ||
+		LoadedExpectedClass + LoadedOtherClass + UnloadablePackages != ConcreteCount ||
+		ConcreteRows.Num() != ConcreteCount)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.2E] Concrete source count changed; abort audit."));
+		UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.2E] Internal package classification error."));
 		return 5;
 	}
 	TSharedRef<FJsonObject> Report = MakeShared<FJsonObject>();
@@ -215,6 +265,12 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 	Report->SetNumberField(TEXT("source_family_variants"), Families.Num());
 	Report->SetNumberField(TEXT("source_hand_label_variants"), RawHandLabels.Num());
 	Report->SetNumberField(TEXT("concrete_weapon_assets"), ConcreteCount);
+	Report->SetNumberField(TEXT("weapon_packages"), WeaponAssets.Num());
+	Report->SetNumberField(TEXT("unique_weapon_packages"), SeenPackages.Num());
+	Report->SetNumberField(TEXT("duplicate_weapon_packages"), DuplicatePackages);
+	Report->SetNumberField(TEXT("count_expected_class"), LoadedExpectedClass);
+	Report->SetNumberField(TEXT("count_other_class"), LoadedOtherClass);
+	Report->SetNumberField(TEXT("count_unloadable"), UnloadablePackages);
 	Report->SetNumberField(TEXT("unique_nonempty_item_ids"), ConcreteIds.Num());
 	Report->SetNumberField(TEXT("missing_item_ids"), MissingItemIds);
 	Report->SetNumberField(TEXT("duplicate_item_ids"), DuplicateItemIds);
@@ -241,7 +297,8 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 	}
 
 	UE_LOG(LogTemp, Display,
-		TEXT("[ARM-CLEAN06.2E] PASS read-only: 82 source ARMs, 24 concrete assets, %d joined, %d hand policies proven, %d armament kinds proven, %d conflicts, %d empty IDs, %d repeated IDs; ZERO binary writes."),
-		Joined, HandProven, KindProven, SemanticConflicts, MissingItemIds, DuplicateItemIds);
+		TEXT("[ARM-CLEAN06.2E] PASS read-only census: %d weapon packages, %d expected item class, %d other class, %d unloadable, %d joined, %d empty IDs, %d repeated IDs; ZERO binary writes."),
+		ConcreteCount, LoadedExpectedClass, LoadedOtherClass, UnloadablePackages,
+		Joined, MissingItemIds, DuplicateItemIds);
 	return 0;
 }

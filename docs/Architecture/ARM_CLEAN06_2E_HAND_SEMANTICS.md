@@ -108,3 +108,78 @@ la publication d'une issue résumée. Le statut spécifique
 **Aucune conversion des assets, suppression d'UPROPERTY, bascule
 runtime, opération SaveGame ni modification Sword/RatGiant.**
 Une recette PIE ne serait pas significative à ce stade.
+
+
+## ARM-CLEAN06.2E.2 — Inventaire par package, sans perte de classe
+
+### Diagnostic verifie
+
+Le commit 921f5d0d a obtenu Build + Automation Grimrock = success.
+Le controle natif 06.2E a echoue avec le code filtre ASSET_COUNT.
+Cela etablit uniquement que le nombre d'instances chargees comme
+UGridItemDefinitionAsset n'etait pas egal a 24 ; le nombre exact,
+la classe effective et la liste des objets non reconnus n'etaient
+pas connus. Aucun cas de doublon d'ItemDefinitionId n'est affirme.
+
+La cause structurelle du blocage est la condition de comptage :
+l'ancienne boucle ne conservait que les resultats de
+Cast<UGridItemDefinitionAsset>(Asset.GetAsset()), avant de
+comparer leur nombre a l'inventaire de 24 packages UE.
+
+### Nouvelle couverture native
+
+Le commandlet selectionne les 24 packages dont le nom commence
+par DA_Weapon_ dans le repertoire Weapons, independamment
+de la classe C++ chargee. Les deux catalogues
+DA_WeaponCatalogue et DA_WeaponVisualCatalogue sont exclus par
+construction de ce prefixe ; aucune variante ThrowingKnife,
+Shuriken, Sword ou autre arme n'est ecartee en raison de son type.
+
+Pour chaque package, le JSON prive conserve :
+
+- PackageName, classe signalee par AssetRegistry, classe de
+  l'UObject effectivement charge si disponible ;
+- classification expected_class, other_class ou unloadable ;
+- doublon de PackageName et, uniquement pour une definition
+  UGridItemDefinitionAsset, les champs disponibles de l'ancienne
+  fiche, les informations de main et la jointure ARM ;
+- les cas inconnus sont explicitement Unresolved, jamais
+  convertis en valeur par defaut ou fusionnes.
+
+Les compteurs publics sont weapon_packages (attendu 24),
+unique_weapon_packages (24), duplicate_weapon_packages (0),
+count_expected_class, count_other_class et count_unloadable.
+La somme des trois classes doit valoir 24. La somme des
+ItemId uniques, absents et dupliques doit correspondre a
+count_expected_class, NON au nombre brut de packages.
+
+Le test Automation
+Grimrock.RPG.ARM.CLEAN06_2.Semantics.WeaponPackageRegistry
+verifie independamment que les 24 packages et les deux
+catalogues sont toujours inventoriables et que les classes
+attendues, autres et non chargeables couvrent la totalite
+des 24. Il ne presuppose pas 24 objets UGridItemDefinitionAsset.
+
+### Garde-fous, statut et suite
+
+Le script Windows rejette tout rapport incomplet, toute
+classification inattendue, le moindre doublon de package,
+la perte d'une ligne, et toute modification Git du worktree
+detache. Seuls des compteurs filtres sont publies sur GitHub ;
+les classes et chemins exacts restent dans le rapport prive.
+
+Le declencheur exact du jalon est :
+fix(ARM-CLEAN06.2E.2): inventory package classes without casting loss
+
+La validation requiert UE5.5.4/SilentTask,
+UE5.5.4/LocalAuto puis UE5.5.4/ARM-CLEAN06.2E
+sur le meme SHA. Le resultat positif signifie uniquement
+qu'un inventaire complet a ete execute sans ecriture.
+Une ou plusieurs classes differentes ou inchargeables
+restent des BLOQUEURS de migration ; le compteur d'assets
+n'est jamais force a la valeur attendue.
+
+Aucun .uasset, .umap, SaveGame ni effet sonore Sword/RatGiant
+n'est modifie par cette etape. Aucun lecteur runtime,
+WBP ou equipement n'est change. Pas de PIE requis ;
+les conversions 06.3-06.5 restent interdites.
