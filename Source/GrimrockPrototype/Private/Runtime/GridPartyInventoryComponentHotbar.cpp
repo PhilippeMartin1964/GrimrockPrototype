@@ -1,6 +1,9 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 
 namespace
 {
@@ -174,8 +177,26 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		return false;
 	}
 
-	const UGridItemDefinitionAsset* Definition = FindItemDefinition(SourceItem.ItemDefinitionId);
-	if (!IsValid(Definition) || !Definition->IsValidDefinition())
+	// ARM-CLEAN06.3C: migrated equipment uses ONLY the registered
+	// ItemId -> ActionId/PresentationId catalogue. Other item families
+	// retain their existing reader until their own migration.
+	const UGridItemSubsystem* Canonical = nullptr;
+	if (SourceEquipmentSlot != EGridEquipmentSlot::None)
+	{
+		if (const UWorld* World = GetWorld())
+		{
+			if (UGameInstance* GI = World->GetGameInstance())
+			{
+				Canonical = GI->GetSubsystem<UGridItemSubsystem>();
+			}
+		}
+	}
+	const bool bCanonicalEquipped = Canonical &&
+		Canonical->HasCanonicalItem(SourceItem.ItemDefinitionId);
+	const UGridItemDefinitionAsset* Definition = bCanonicalEquipped ? nullptr :
+		FindItemDefinition(SourceItem.ItemDefinitionId);
+	if (!bCanonicalEquipped &&
+		(!IsValid(Definition) || !Definition->IsValidDefinition()))
 	{
 		return false;
 	}
@@ -187,7 +208,8 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		{
 			return false;
 		}
-		if (!Definition->CompatibleEquipmentSlots.Contains(SourceEquipmentSlot))
+		if (!bCanonicalEquipped &&
+			!Definition->CompatibleEquipmentSlots.Contains(SourceEquipmentSlot))
 		{
 			return false;
 		}
@@ -200,14 +222,40 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		}
 
 		FName PrimaryActionId = NAME_None;
-		const FGridCombatActionDefinition* PrimaryAction = Definition->CombatActions.FindByPredicate(
-			[](const FGridCombatActionDefinition& Candidate)
-			{
-				return Candidate.IsValid() && Candidate.SourcePolicy == EGridCombatActionSourcePolicy::Equipment;
-			});
-		if (PrimaryAction)
+		if (bCanonicalEquipped)
 		{
-			PrimaryActionId = PrimaryAction->ActionId;
+			FGridResolvedItem Item;
+			if (!Canonical->ResolveItem(SourceItem.ItemDefinitionId, SourceItem.ItemLevel, Item) ||
+				!Item.bIsArmament)
+			{
+				return false; // No legacy fallback for a registered identity.
+			}
+			for (const FGridItemActionBinding& Authored : Item.AvailableActions)
+			{
+				FGridResolvedBoundAction Bound;
+				if (Canonical->ResolveAttackFromEquippedInstance(
+					SourceItem, Authored.ActionId, SourceEquipmentSlot,
+					EquippedItem.RuntimeObjectId, EquippedItem.OwnerGuid,
+					EquippedItem.OwnerCharacterIndex, Bound))
+				{
+					PrimaryActionId = Bound.ActionId;
+					break;
+				}
+			}
+		}
+		else
+		{
+			const FGridCombatActionDefinition* PrimaryAction =
+				Definition->CombatActions.FindByPredicate(
+					[](const FGridCombatActionDefinition& Candidate)
+					{
+						return Candidate.IsValid() &&
+							Candidate.SourcePolicy == EGridCombatActionSourcePolicy::Equipment;
+					});
+			if (PrimaryAction)
+			{
+				PrimaryActionId = PrimaryAction->ActionId;
+			}
 		}
 
 		if (PrimaryActionId.IsNone())

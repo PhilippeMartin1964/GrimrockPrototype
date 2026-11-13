@@ -195,6 +195,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Item System")
 	bool IsConfigured() const { return RootRegistry != nullptr; }
 
+	/** Exact ItemId membership; unknown IDs are handled only by their not-yet-migrated readers. */
+	bool HasCanonicalItem(FName ItemId) const
+	{
+		return RootRegistry && !ItemId.IsNone() && ItemIndex.Contains(ItemId);
+	}
+
 private:
 	/** Authored once in DefaultGame.ini once DA_ItemSystem exists (06.2). */
 	UPROPERTY(Config, EditDefaultsOnly, Category = "Item System")

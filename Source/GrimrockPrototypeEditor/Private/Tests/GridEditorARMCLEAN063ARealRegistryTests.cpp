@@ -56,12 +56,16 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 		return false;
 	}
 
+	TestFalse(TEXT("Unknown item never enters the canonical registry"),
+		Items->HasCanonicalItem(TEXT("NonProductionItem")));
 	int32 AttackCount = 0;
 	int32 PassiveCount = 0;
 	int32 NeutralCount = 0;
 	for (const FGridWeaponPipelineRow& Row : Manifest)
 	{
 		const FName ItemId(*Row.ItemDefinitionId);
+		TestTrue(TEXT("Each official ARM is known to the one runtime registry"),
+			Items->HasCanonicalItem(ItemId));
 		FGridResolvedItem N1, N20;
 		if (!TestTrue(TEXT("Persisted ARM resolves at N1"),
 				Items->ResolveItem(ItemId, 1, N1)) ||
