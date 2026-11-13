@@ -270,6 +270,7 @@ bool FGridCanonicalWeaponArchetype::TryResolve(int32 Level, FGridCanonicalResolv
 	Out.PhysicalArmor = PhysicalArmorGrowth.Resolve(Level, PhysicalArmorN1);
 	Out.MagicalArmor = MagicalArmorGrowth.Resolve(Level, MagicalArmorN1);
 	Out.RequiredAmmoKindId = RequiredAmmoKindId;
+	Out.Projectile = Projectile;
 	if (Out.PhysicalArmor < 0 || Out.MagicalArmor < 0 ||
 		ActionPointCost < 0 || RangeCells < 0 ||
 		(DamageType != EGridDamageType::Physical &&
@@ -363,7 +364,9 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 				Archetype.Projectile.InitialSpeed <= 0.0f ||
 				!FMath::IsFinite(Archetype.Projectile.FlightLifetime) ||
 				Archetype.Projectile.FlightLifetime <= 0.0f ||
-				!FMath::IsFinite(Archetype.Projectile.Arc)))
+				!FMath::IsFinite(Archetype.Projectile.Arc) ||
+				!FMath::IsFinite(Archetype.Projectile.ImpactDropOffset) ||
+				Archetype.Projectile.ImpactDropOffset < 0.0f))
 		{
 			bValid = AddError(Errors, TEXT("Weapon catalogue: invalid projectile policy"));
 		}

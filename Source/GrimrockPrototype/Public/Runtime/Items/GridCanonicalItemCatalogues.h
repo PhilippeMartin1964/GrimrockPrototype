@@ -371,6 +371,10 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalProjectilePolicy
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile", meta = (ClampMin = "0"))
 	float FlightLifetime = 0.0f;
+
+	/** Physical landing offset of a recoverable projectile, not a mesh transform. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile", meta = (ClampMin = "0"))
+	float ImpactDropOffset = 0.0f;
 };
 
 USTRUCT(BlueprintType)
@@ -439,6 +443,10 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalResolvedWeapon
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Resolved")
 	FName RequiredAmmoKindId = NAME_None;
+
+	/** Transient runtime view of the global projectile policy. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Resolved")
+	FGridCanonicalProjectilePolicy Projectile;
 };
 
 /** One archetype owns combat ONLY, with the same five lossless growth rules as CLEAN03. */
