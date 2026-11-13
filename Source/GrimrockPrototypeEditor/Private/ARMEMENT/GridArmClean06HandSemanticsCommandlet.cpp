@@ -122,6 +122,8 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 		return A.PackageName.ToString() < B.PackageName.ToString();
 	});
 	TSet<FName> ConcreteIds;
+	int32 MissingItemIds = 0;
+	int32 DuplicateItemIds = 0;
 	TMap<FName, FString> HandByArchetype;
 	TMap<FName, FString> KindByArchetype;
 	TSet<FName> UnambiguousArchetypes;
@@ -137,12 +139,17 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 			Cast<UGridItemDefinitionAsset>(Asset.GetAsset());
 		if (!Item) { continue; } // Two catalogue assets are not concrete definitions.
 		++ConcreteCount;
-		if (Item->ItemDefinitionId.IsNone() || ConcreteIds.Contains(Item->ItemDefinitionId))
+		// The census must NOT discard a real UE asset because its ItemId is
+		// empty or duplicates another asset (including ThrowingKnife variants).
+		// Record it as a migration blocker, without merging or authoring data.
+		const bool bMissingId = Item->ItemDefinitionId.IsNone();
+		const bool bDuplicateId = !bMissingId && ConcreteIds.Contains(Item->ItemDefinitionId);
+		if (bMissingId) { ++MissingItemIds; }
+		if (bDuplicateId) { ++DuplicateItemIds; }
+		if (!bMissingId && !bDuplicateId)
 		{
-			UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.2E] Missing/duplicate real ItemDefinitionId."));
-			return 4;
+			ConcreteIds.Add(Item->ItemDefinitionId);
 		}
-		ConcreteIds.Add(Item->ItemDefinitionId);
 
 		const FGridWeaponLevelProfile* SourceN1 =
 			Item->bUseWeaponCatalogue ?
@@ -178,6 +185,8 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 		TSharedRef<FJsonObject> Row = MakeShared<FJsonObject>();
 		Row->SetStringField(TEXT("asset_package"), Asset.PackageName.ToString());
 		Row->SetStringField(TEXT("item_id"), Item->ItemDefinitionId.ToString());
+		Row->SetBoolField(TEXT("missing_item_id"), bMissingId);
+		Row->SetBoolField(TEXT("duplicate_item_id"), bDuplicateId);
 		Row->SetStringField(TEXT("source_archetype_id"), Item->WeaponArchetypeId.ToString());
 		Row->SetBoolField(TEXT("b_use_weapon_catalogue"), Item->bUseWeaponCatalogue);
 		Row->SetBoolField(TEXT("joined_to_source_n1"), bJoined);
@@ -193,7 +202,9 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 		ConcreteRows.Add(MakeShared<FJsonValueObject>(Row));
 	}
 
-	if (ConcreteCount != 24 || ConcreteIds.Num() != 24)
+	// Keep the baseline count strict; duplicate or missing IDs are audit
+	// findings, not reasons to lose individual asset rows from the inventory.
+	if (ConcreteCount != 24)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.2E] Concrete source count changed; abort audit."));
 		return 5;
@@ -204,6 +215,9 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 	Report->SetNumberField(TEXT("source_family_variants"), Families.Num());
 	Report->SetNumberField(TEXT("source_hand_label_variants"), RawHandLabels.Num());
 	Report->SetNumberField(TEXT("concrete_weapon_assets"), ConcreteCount);
+	Report->SetNumberField(TEXT("unique_nonempty_item_ids"), ConcreteIds.Num());
+	Report->SetNumberField(TEXT("missing_item_ids"), MissingItemIds);
+	Report->SetNumberField(TEXT("duplicate_item_ids"), DuplicateItemIds);
 	Report->SetNumberField(TEXT("concrete_joined"), Joined);
 	Report->SetNumberField(TEXT("concrete_hand_policy_proven"), HandProven);
 	Report->SetNumberField(TEXT("concrete_armament_kind_proven"), KindProven);
@@ -227,7 +241,7 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 	}
 
 	UE_LOG(LogTemp, Display,
-		TEXT("[ARM-CLEAN06.2E] PASS read-only: 82 source ARMs, 24 concrete assets, %d joined, %d hand policies proven, %d armament kinds proven, %d conflicts; ZERO binary writes."),
-		Joined, HandProven, KindProven, SemanticConflicts);
+		TEXT("[ARM-CLEAN06.2E] PASS read-only: 82 source ARMs, 24 concrete assets, %d joined, %d hand policies proven, %d armament kinds proven, %d conflicts, %d empty IDs, %d repeated IDs; ZERO binary writes."),
+		Joined, HandProven, KindProven, SemanticConflicts, MissingItemIds, DuplicateItemIds);
 	return 0;
 }

@@ -67,3 +67,44 @@ canoniques seront authorés seulement avec preuve de parite
 sur le vrai contenu UE ; la bascule des lecteurs 06.3,
 le cutover 06.4 et la suppression 06.5 ne sont pas autorises
 sur la base de ce seul audit. Pas de validation PIE necessaire.
+
+
+## ARM-CLEAN06.2E.1 — Réparation de l'inventaire des identités
+
+Sur le SHA `39e4526d`, le build UE et la suite Automation `Grimrock`
+étaient verts, mais le commandlet additionnel s'est arrêté à l'étape
+`COMMANDLET`. La cause détaillée n'était pas identifiable dans les
+diagnostics publics : elle ne doit donc pas être présentée comme certaine.
+
+La version 06.2E.1 apporte deux protections :
+
+1. Un `ItemDefinitionId` vide ou répété parmi les 24 définitions est
+   désormais **une anomalie inventoriée**, pas une raison d'interrompre
+   l'examen avant la fin du dossier. Les 24 lignes sont conservées,
+   sans renommer, fusionner, corriger ni ignorer aucune variante
+   (notamment les ThrowingKnife).
+2. Le script Windows distingue par codes **strictement filtrés**
+   les causes possibles : argument, catalogue, archétype, nombre
+   d'assets, sortie JSON, rapport absent ou erreur native. Seule une
+   catégorie prédéfinie peut paraître dans le statut GitHub ; les
+   données métiers, chemins, logs bruts et noms d'assets restent privés.
+
+Le rapport natif comporte les compteurs
+`unique_nonempty_item_ids`, `missing_item_ids` et
+`duplicate_item_ids`. Leur somme doit valoir 24. Un ID absent ou
+dupliqué **bloque toujours la migration binaire**, même si l'inventaire
+en lecture seule peut être validé. Les joints de catalogue et les
+règles de mains encore incertaines restent non résolus.
+
+La reprise automatique est attachée au sujet exact du commit
+`fix(ARM-CLEAN06.2E.1): preserve conflicting IDs and diagnose native census`.
+L'agent exécute toujours l'audit uniquement **après** réussite de la
+compilation et de tous les tests `Grimrock`, dans un worktree détaché
+et propre. Une réussite exige aussi la création du JSON natif,
+sa validation structurelle, la propreté Git après le commandlet et
+la publication d'une issue résumée. Le statut spécifique
+`UE5.5.4/ARM-CLEAN06.2E` reste distinct de `UE5.5.4/LocalAuto`.
+
+**Aucune conversion des assets, suppression d'UPROPERTY, bascule
+runtime, opération SaveGame ni modification Sword/RatGiant.**
+Une recette PIE ne serait pas significative à ce stade.

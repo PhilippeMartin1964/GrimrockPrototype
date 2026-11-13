@@ -907,7 +907,7 @@ try {
 
         # ARM-CLEAN06.2E — one-shot semantic census in native UE. NO asset writes.
         # Triggered only on the exact authored subject and the isolated SHA.
-        $SemanticsTrigger = 'chore(ARM-CLEAN06.2E): inventory UE weapon hand semantics read-only'
+        $SemanticsTrigger = 'fix(ARM-CLEAN06.2E.1): preserve conflicting IDs and diagnose native census'
         $SemanticsSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $SemanticsSubject.Count -eq 1 -and
             [string]$SemanticsSubject[0] -ceq $SemanticsTrigger) {
@@ -946,7 +946,9 @@ try {
                 $SemanticsStage = if (Test-Path -LiteralPath $SemanticsStageFile -PathType Leaf) {
                     ([string](Get-Content -LiteralPath $SemanticsStageFile -TotalCount 1)).Trim()
                 } else { $SemanticsPhase }
-                if ($SemanticsStage -notin @('PREFLIGHT','PARSE','COMMANDLET','REPORT','CHECK_CLEAN','ISSUE','SUCCESS')) {
+                if ($SemanticsStage -notin @('PREFLIGHT','PARSE','COMMANDLET','REPORT','CHECK_CLEAN','ISSUE','SUCCESS',
+                    'CMD_ARGUMENT','SOURCE_CATALOGUE','SOURCE_ARCHETYPE','ITEM_IDS','ASSET_COUNT',
+                    'OUTPUT_JSON','REPORT_ABSENT','NATIVE_PROCESS','UNREAL_EXIT_255')) {
                     $SemanticsStage = 'UNKNOWN'
                 }
                 try {
