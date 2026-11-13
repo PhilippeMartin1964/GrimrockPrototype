@@ -11,6 +11,7 @@
 #include "UObject/SavePackage.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UObjectGlobals.h"
+#include "UObject/UnrealType.h"
 
 namespace
 {
@@ -31,6 +32,22 @@ namespace
 		for (TCHAR Ch : Value)
 		{
 			if (!FChar::IsAlnum(Ch) && Ch != TEXT('_')) { return false; }
+		}
+		return true;
+	}
+
+	// Compare every serialized UPROPERTY. Stage output is not considered
+	// ready if the reloaded binary differs from the exact source candidate.
+	bool SameCanonicalFields(const UObject* Expected, const UObject* Loaded)
+	{
+		if (!IsValid(Expected) || !IsValid(Loaded) ||
+			Expected->GetClass() != Loaded->GetClass()) { return false; }
+		for (TFieldIterator<FProperty> Field(Expected->GetClass()); Field; ++Field)
+		{
+			if (!Field->Identical_InContainer(Expected, Loaded))
+			{
+				return false;
+			}
 		}
 		return true;
 	}
@@ -138,27 +155,82 @@ int32 UGridArmClean06CanonicalStageCommandlet::Main(const FString& Params)
 	if (Plan.Num() != 27) { return 4; }
 	TSet<FString> UniquePaths;
 	UniquePaths.Add(RootPath);
+	int32 ExistingCount = 0;
 	for (const FPlannedAsset& Entry : Plan)
 	{
 		const FString Filename = FPackageName::LongPackageNameToFilename(
 			Entry.PackagePath, FPackageName::GetAssetPackageExtension());
-		if (!IsValid(Entry.Candidate) || UniquePaths.Contains(Entry.PackagePath) ||
-			FPaths::FileExists(Filename) || FindPackage(nullptr, *Entry.PackagePath))
+		if (!IsValid(Entry.Candidate) || UniquePaths.Contains(Entry.PackagePath))
 		{
-			UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.2AM] Destination occupied or invalid: %s"), *Entry.PackagePath);
 			return 5;
 		}
 		UniquePaths.Add(Entry.PackagePath);
+		ExistingCount += FPaths::FileExists(Filename) ? 1 : 0;
 	}
 	const FString RootFilename = FPackageName::LongPackageNameToFilename(
 		RootPath, FPackageName::GetAssetPackageExtension());
-	if (FPaths::FileExists(RootFilename) || FindPackage(nullptr, *RootPath) ||
-		UniquePaths.Num() != 28)
+	ExistingCount += FPaths::FileExists(RootFilename) ? 1 : 0;
+	if (UniquePaths.Num() != 28 || (ExistingCount != 0 && ExistingCount != 28))
 	{
-		UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.2AM] Root package already exists."));
+		UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.2AM] Refusing incomplete/mixed destination set."));
 		return 5;
 	}
-	if (!bApply)
+	if (ExistingCount == 28)
+	{
+		// After the isolated binary authoring, normal full-suite Automation
+		// MUST reload and compare all 28 real packages, including all 1640
+		// N1..N20 numeric profiles and every action/audio/visual property.
+		if (bApply) { return 5; } // never overwrite staged binaries
+		for (const FPlannedAsset& Entry : Plan)
+		{
+			const FString AssetName = FPackageName::GetLongPackageAssetName(Entry.PackagePath);
+			const FString ObjectPath = Entry.PackagePath + TEXT(".") + AssetName;
+			const UObject* Loaded = LoadObject<UObject>(nullptr, *ObjectPath);
+			if (!SameCanonicalFields(Entry.Candidate, Loaded))
+			{
+				UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.2AM] Reload parity rejected: %s"), *Entry.PackagePath);
+				return 9;
+			}
+		}
+		const UGridItemSystemAsset* Persisted = LoadObject<UGridItemSystemAsset>(
+			nullptr, *(RootPath + TEXT(".DA_ItemSystem")));
+		if (!IsValid(Persisted) || Persisted->ItemDefinitions.Num() != 23)
+		{
+			return 9;
+		}
+		const auto MatchesPackage = [](const UObject* Object, const FString& PackagePath)
+		{
+			return IsValid(Object) && Object->GetOutermost()->GetName() == PackagePath;
+		};
+		if (!MatchesPackage(Persisted->WeaponCatalogue, Plan[0].PackagePath) ||
+			!MatchesPackage(Persisted->WeaponVisualCatalogue, Plan[1].PackagePath) ||
+			!MatchesPackage(Persisted->ActionCatalogue, Plan[2].PackagePath) ||
+			!MatchesPackage(Persisted->ActionPresentationCatalogue, Plan[3].PackagePath))
+		{
+			return 9;
+		}
+		for (int32 Index = 0; Index < 23; ++Index)
+		{
+			if (!MatchesPackage(Persisted->ItemDefinitions[Index],
+					Plan[Index + 4].PackagePath))
+			{
+				return 9;
+			}
+		}
+		ValidationErrors.Reset();
+		if (!Persisted->Validate(ValidationErrors)) { return 9; }
+		UE_LOG(LogTemp, Display, TEXT("[ARM-CLEAN06.2AM] VERIFY_EXISTING_OK: 28 persistent packages reload exactly; no writes."));
+		return 0;
+	}
+	if (bApply)
+	{
+		// No package of any expected name may already be in memory.
+		for (const FString& Path : UniquePaths)
+		{
+			if (FindPackage(nullptr, *Path)) { return 5; }
+		}
+	}
+	else
 	{
 		UE_LOG(LogTemp, Display, TEXT("[ARM-CLEAN06.2AM] DRY_RUN_OK: 28 new assets; 22 ARM + 1 arrows; 19 actions; 5 presentations; no files written."));
 		return 0;

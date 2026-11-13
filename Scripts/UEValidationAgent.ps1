@@ -938,6 +938,56 @@ try {
             Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
         }
 
+        # ARM-CLEAN06.2AN: one-shot AUTHORING after full local validation.
+        # 28 NEW .uasset; detached worktree ONLY; original checkout untouched.
+        $CanonicalTrigger = 'feat(ARM-CLEAN06.2AN): enable one-shot guarded canonical asset authoring'
+        $CanonicalSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $CanonicalSubject.Count -eq 1 -and
+            [string]$CanonicalSubject[0] -ceq $CanonicalTrigger) {
+            $CanonicalContext = 'UE5.5.4/ARM-CLEAN06.2AN'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $CanonicalContext -Description 'Authoring natif de 28 assets en worktree isole'
+                $CanonicalScript = Join-Path $WorktreePath 'Scripts\PublishARMCanonicalStage.ps1'
+                if (-not (Test-Path -LiteralPath $CanonicalScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.2AN helper missing'
+                }
+                $CanonicalTokens = $null
+                $CanonicalErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $CanonicalScript, [ref]$CanonicalTokens, [ref]$CanonicalErrors)
+                if ($CanonicalErrors -and $CanonicalErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.2AN helper invalid syntax'
+                }
+                $CanonicalArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $CanonicalScript +
+                    '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
+                    '" -ExpectedHead "' + $Sha + '" -RunDir "' + $RunDir + '"'
+                $CanonicalOut = Join-Path $RunDir 'ARMCanonicalStage.stdout.log'
+                $CanonicalErr = Join-Path $RunDir 'ARMCanonicalStage.stderr.log'
+                $CanonicalProc = Start-Process -FilePath $PsExe -ArgumentList $CanonicalArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput $CanonicalOut -RedirectStandardError $CanonicalErr -ErrorAction Stop
+                if ($CanonicalProc.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.2AN helper returned nonzero'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $CanonicalContext -Description '28 DataAssets UE natifs publies; nouveau SHA a valider'
+            }
+            catch {
+                $CanonicalStage = Join-Path $RunDir 'ARMClean062AN.stage'
+                $Stage = if (Test-Path -LiteralPath $CanonicalStage -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $CanonicalStage -TotalCount 1)).Trim()
+                } else { 'PREFLIGHT' }
+                if ($Stage -notin @('PREFLIGHT','COMMANDLET','COMMANDLET_FAILED',
+                    'VERIFY_FILESET','POST_AUTOMATION','POST_AUTOMATION_FAILED',
+                    'PARITY_OK','REMOTE_CHANGED','FILESET_UNEXPECTED','LFS_FAILED',
+                    'COMMIT_CREATED','PUSH_FAILED','SUCCESS')) {
+                    $Stage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $CanonicalContext -Description ("Authoring refuse : " + $Stage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.2AN] Status publication failed.' }
+                Write-Warning ("[ARM-CLEAN06.2AN] Native staging blocked at $Stage")
+            }
+        }
+
         # ARM-CLEAN06.0: one-shot READ-ONLY asset snapshot for this exact commit.
         # No asset save, no extra commit, no change to the development worktree.
         $BaselineTrigger = 'chore(ARM-CLEAN06.0): capture read-only UE asset migration baseline'
