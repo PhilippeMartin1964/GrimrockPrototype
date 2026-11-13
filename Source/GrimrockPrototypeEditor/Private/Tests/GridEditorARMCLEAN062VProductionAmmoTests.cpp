@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "ARMEMENT/GridArmClean06ProductionAmmoCandidate.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062VRealAmmo,
