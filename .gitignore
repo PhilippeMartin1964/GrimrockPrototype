@@ -14,6 +14,7 @@
 /Content/Goblin_Bomber
 /Sounds
 /Fonts
+/DB
 
 # --- Optional local development plugins ---
 # TD07.1: Meshy is an optional asset-production tool, not a project dependency.
