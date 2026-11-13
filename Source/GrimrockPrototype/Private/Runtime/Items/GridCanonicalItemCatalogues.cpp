@@ -539,13 +539,10 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 	{
 		bValid = AddError(Errors, TEXT("Item system: no item definitions indexed"));
 	}
+	// Only live item definitions need a complete visual mapping (checked above).
+	// A catalogue may describe valid ARM archetypes without a concrete item.
 	for (const FGridCanonicalWeaponArchetype& Weapon : WeaponCatalogue->Archetypes)
 	{
-		if (!WeaponVisualCatalogue->FindForArchetype(Weapon.ArchetypeId))
-		{
-			bValid = AddError(Errors, FString::Printf(
-				TEXT("Item system: missing visual binding for %s"), *Weapon.ArchetypeId.ToString()));
-		}
 		if (!Weapon.RequiredAmmoKindId.IsNone() &&
 			!AmmoKinds.Contains(Weapon.RequiredAmmoKindId))
 		{

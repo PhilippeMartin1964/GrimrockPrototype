@@ -495,4 +495,37 @@ bool FGridClean062IBoundActionResolutionTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062NLiveVisualReferencesTest,
+	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.LiveArmamentVisualReferences",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean062NLiveVisualReferencesTest::RunTest(const FString&)
+{
+	const Clean061::FFixture F = Clean061::Make();
+	const int32 UnusedRemoved = F.System->WeaponVisualCatalogue->ArchetypeBindings.RemoveAll(
+		[](const FGridCanonicalWeaponVisualBinding& Binding)
+		{
+			return Binding.ArchetypeId != FName(TEXT("ARM014")) &&
+				Binding.ArchetypeId != FName(TEXT("ARM075"));
+		});
+	TestEqual(TEXT("Fixture removes exactly 80 unreferenced ARM visual bindings"),
+		UnusedRemoved, 80);
+	TArray<FString> Errors;
+	TestTrue(TEXT("82 valid numeric ARM with only two concrete visuals are allowed"),
+		F.System->Validate(Errors));
+
+	const int32 LiveRemoved = F.System->WeaponVisualCatalogue->ArchetypeBindings.RemoveAll(
+		[](const FGridCanonicalWeaponVisualBinding& Binding)
+		{
+			return Binding.ArchetypeId == FName(TEXT("ARM075"));
+		});
+	TestEqual(TEXT("One active shield binding removed"), LiveRemoved, 1);
+	Errors.Reset();
+	TestFalse(TEXT("A concrete shield with no visual is still invalid"),
+		F.System->Validate(Errors));
+	TestTrue(TEXT("Missing live visual reports an error"), Errors.Num() > 0);
+	return UnusedRemoved == 80 && LiveRemoved == 1;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS
