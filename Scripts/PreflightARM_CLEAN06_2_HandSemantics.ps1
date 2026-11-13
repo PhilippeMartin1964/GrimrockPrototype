@@ -9,7 +9,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-$Subject='fix(ARM-CLEAN06.2E.4.1): normalize semantic qualification and classify failures'
+$Subject='fix(ARM-CLEAN06.2E.4.2): locate qualification runtime failure safely'
 $Stage=Join-Path $RunDir 'ARMClean062E.stage'
 $OutDir=Join-Path $RunDir 'ARM-CLEAN06.2E'
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
@@ -186,9 +186,32 @@ catch {
         Set-Stage 'QUALIFY_EXPECTED_CLASS'
     }
     else {
-        Set-Stage 'QUALIFY_EXEC'
+        # Only predefined phase names are allowed in the public status;
+        # the error's message and stack are retained solely under RunDir.
+        $PublicSteps=@(
+            'INIT','INIT_FACTS','ROW_START','ROW_CLASS','ROW_OPTOUT',
+            'ROW_SLOTS','ROW_SEMANTICS','ROW_FACT','ASSERT',
+            'OUTPUT_MODEL','OUTPUT_JSON'
+        )
+        $SafeStep=if ($PublicSteps -ccontains [string]$E4Step) {
+            [string]$E4Step
+        } else {
+            'EXEC'
+        }
+        Set-Stage ('E4_'+$SafeStep)
+        $PrivateDiagnostic=[ordered]@{
+            schema='ARM-CLEAN06.2E.4.2/error/private/v1'
+            commit_sha=$ExpectedHead
+            step=$SafeStep
+            exception_type=$_.Exception.GetType().FullName
+            error_id=$_.FullyQualifiedErrorId
+            script_stack=$_.ScriptStackTrace
+            message=$_.Exception.Message
+        }
+        $PrivateDiagnostic | ConvertTo-Json -Depth 5 |
+            Set-Content -LiteralPath (Join-Path $OutDir 'qualification-error-private.json') -Encoding UTF8
     }
-    throw 'ARM-CLEAN06.2E.4.1 native qualification rejected; see sanitized stage.'
+    throw 'ARM-CLEAN06.2E.4.2 native qualification rejected; see sanitized stage.'
 }
 Set-Stage 'QUALIFY_REPORT'
 $QualificationPath=Join-Path $OutDir 'qualification-private.json'

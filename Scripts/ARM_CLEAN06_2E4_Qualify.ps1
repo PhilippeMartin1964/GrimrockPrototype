@@ -3,6 +3,7 @@
 # This script does not read/write any .uasset, .umap, SaveGame or source file.
 # Inputs: $Report, $ByPackage, $ByManifestPackage, $Counts,
 # $ExpectedHead, $OutDir. All identifiers remain in the PRIVATE JSON.
+$E4Step='INIT'
 $Details=[ordered]@{
     other_class_data_assets=0
     other_class_primary_data_assets=0
@@ -24,8 +25,10 @@ $Details=[ordered]@{
     listed_focus_passive_profiles=0
     listed_focus_passive_unresolved_kind=0
 }
+$E4Step='INIT_FACTS'
 $Facts=New-Object 'System.Collections.Generic.List[object]'
 foreach ($Package in @($ByPackage.Keys | Sort-Object)) {
+    $E4Step='ROW_START'
     $Row=$ByPackage[$Package]
     $Class=[string]$Row.load_classification
     $Listed=$ByManifestPackage.ContainsKey($Package)
@@ -35,6 +38,7 @@ foreach ($Package in @($ByPackage.Keys | Sort-Object)) {
     $bIsDataAsset=[bool]$Row.is_data_asset
     $bIsPrimaryDataAsset=[bool]$Row.is_primary_data_asset
     $bBlueprintClass=[bool]$Row.class_compiled_from_blueprint
+    $E4Step='ROW_CLASS'
     if ($Class -eq 'other_class') {
         # Class structure is evidence, not an instruction to convert.
         if ($bIsDataAsset) { $Details['other_class_data_assets']=[int]$Details['other_class_data_assets']+1 }
@@ -58,6 +62,7 @@ foreach ($Package in @($ByPackage.Keys | Sort-Object)) {
         throw 'Expected UGridItemDefinitionAsset is not a primary data asset.'
     }
 
+    $E4Step='ROW_OPTOUT'
     $IsJoined=($Class -eq 'expected_class' -and [bool]$Row.joined_to_source_n1)
     $IsOptOut=($Class -eq 'expected_class' -and -not [bool]$Row.b_use_weapon_catalogue)
     if ($IsOptOut) {
@@ -71,6 +76,7 @@ foreach ($Package in @($ByPackage.Keys | Sort-Object)) {
         }
     }
 
+    $E4Step='ROW_SLOTS'
     $MainDeclared=[bool]$Row.declared_slot_main
     $OffDeclared=[bool]$Row.declared_slot_off
     $MainRuntime=[bool]$Row.can_equip_main
@@ -82,6 +88,7 @@ foreach ($Package in @($ByPackage.Keys | Sort-Object)) {
         $DeclaredHand=[int]$Row.declared_hand_usage_enum
     }
 
+    $E4Step='ROW_SEMANTICS'
     if ($IsJoined) {
         if (($MainRuntime -and -not $MainDeclared) -or
             ($OffRuntime -and -not $OffDeclared)) {
@@ -136,6 +143,7 @@ foreach ($Package in @($ByPackage.Keys | Sort-Object)) {
             }
         }
     }
+    $E4Step='ROW_FACT'
     $Facts.Add([pscustomobject]@{
         asset_package=$Package
         class_path=[string]$Row.loaded_class
@@ -163,6 +171,7 @@ foreach ($Package in @($ByPackage.Keys | Sort-Object)) {
 }
 # Split independent checks so the Windows agent can safely report a
 # fixed diagnostic token without leaking names, classes or logs.
+$E4Step='ASSERT'
 if ($Facts.Count -ne 24) {
     throw 'E4_BAD_PACKAGE_COUNT'
 }
@@ -194,6 +203,7 @@ if ($Details['listed_focus_passive_unresolved_kind'] -gt
         $Details['listed_focus_passive_profiles']) {
     throw 'E4_FOCUS_COUNTS'
 }
+$E4Step='OUTPUT_MODEL'
 $Qualification=[ordered]@{
     schema='ARM-CLEAN06.2E.4/qualification/read-only/v1'
     commit_sha=$ExpectedHead
@@ -203,5 +213,6 @@ $Qualification=[ordered]@{
     binary_migration_authorized=$false
     any_uasset_saved=$false
 }
+$E4Step='OUTPUT_JSON'
 $Qualification | ConvertTo-Json -Depth 8 |
     Set-Content -LiteralPath (Join-Path $OutDir 'qualification-private.json') -Encoding UTF8

@@ -376,3 +376,40 @@ L'architecture et les règles actuelles de combat ne sont pas
 modifiées. Pas de conversion automatique, pas de suppression
 d'asset ni de .uasset/.umap/SaveGame touché ; aucune
 validation PIE n'est significative pour ce sous-jalon.
+
+
+## ARM-CLEAN06.2E.4.2 — Localisation de l'erreur d'exécution (read-only)
+
+La validation du SHA e973875c (E.4.1) a confirmé
+SilentTask=success et LocalAuto=success, mais
+ARM-CLEAN06.2E.4.1=failure, categorie QUALIFY_EXEC.
+Le parsing et la presence des champs natifs ont donc ete
+verifies. Il reste une exception **non categorisee** a
+l'interieur du helper PowerShell ; aucun defaut d'asset
+ne peut en etre deduit.
+
+Cette etape ne change aucun critere de parite ni les
+regles du jeu. Elle place des jalons constants dans
+le helper : INIT, INIT_FACTS, ROW_START, ROW_CLASS,
+ROW_OPTOUT, ROW_SLOTS, ROW_SEMANTICS, ROW_FACT,
+ASSERT, OUTPUT_MODEL et OUTPUT_JSON. Le preflight
+publie uniquement un code predefini E4_<phase>
+lorsque l'exception est inconnue.
+
+Un nouveau rapport qualification-error-private.json
+enregistre, uniquement dans le RunDir du worktree
+de validation, le SHA, l'etape, le type d'exception,
+l'ID PowerShell, la pile et le message exact. Aucune
+de ces donnees n'est envoyee aux statuts GitHub.
+Les codes d'invariants connus E4_* restent actifs.
+
+Sujet du commit unique de reprise :
+fix(ARM-CLEAN06.2E.4.2): locate qualification runtime failure safely
+
+Un succes du controle
+UE5.5.4/ARM-CLEAN06.2E.4.2 atteste la qualification
+native sans sauvegarde binaire. Un echec E4_<phase>
+identifie exactement la portion de script a corriger
+dans un jalon additif suivant. Aucun .uasset,
+.umap, SaveGame ni asset audio n'est ecrit ou supprime.
+La conversion ARM-CLEAN06.3-06.5 demeure interdite.
