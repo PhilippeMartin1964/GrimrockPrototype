@@ -29,7 +29,7 @@ bool GridArmClean06ProjectilePolicyProjection::TryProject(
 	}
 	if (!Source.bCombatThrowWeapon)
 	{
-		return Matches(Source, Destination);
+		return Matches(Source, Destination.Projectile);
 	}
 	if (Destination.Kind != EGridCanonicalArmamentKind::Weapon ||
 		!FMath::IsFinite(Source.ThrowSpeed) || Source.ThrowSpeed <= 0.0f ||
@@ -45,5 +45,5 @@ bool GridArmClean06ProjectilePolicyProjection::TryProject(
 	Destination.Projectile.Arc = Source.ThrowArc;
 	Destination.Projectile.FlightLifetime = Source.ThrowLifeSeconds;
 	Destination.Projectile.ImpactDropOffset = Source.ThrowImpactDropOffset;
-	return Matches(Source, Destination);
+	return Matches(Source, Destination.Projectile);
 }
