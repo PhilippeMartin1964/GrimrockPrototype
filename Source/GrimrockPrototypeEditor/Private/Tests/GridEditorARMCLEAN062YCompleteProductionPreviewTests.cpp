@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "ARMEMENT/GridArmClean06CompleteProductionPreview.h"
+#include "ARMEMENT/GridArmClean06CanonicalStageCommandlet.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -102,6 +103,23 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 	TestTrue(TEXT("Visual source unchanged"), Visuals->GetOutermost()->IsDirty() == bVisualDirty);
 	TestTrue(TEXT("Action icon source unchanged"), Icons->GetOutermost()->IsDirty() == bIconDirty);
 	TestTrue(TEXT("Real arrow source unchanged"), Arrows->GetOutermost()->IsDirty() == bArrowDirty);
+
+	// Exercise the real Editor-only authoring entry point with NO -Apply.
+	// This must load/validate all 22 original weapons and plan all 28
+	// NEW packages without creating any of them.
+	UGridArmClean06CanonicalStageCommandlet* Stage =
+		NewObject<UGridArmClean06CanonicalStageCommandlet>(GetTransientPackage());
+	if (!TestNotNull(TEXT("Real canonical staging commandlet exists"), Stage))
+	{
+		return false;
+	}
+	TestEqual(TEXT("Unreal authoring preflight is read-only by default"),
+		Stage->Main(TEXT("")), 0);
+	TestTrue(TEXT("Dry run did not dirty numeric source"),
+		Numerics->GetOutermost()->IsDirty() == bNumberDirty);
+	TestTrue(TEXT("Dry run did not dirty visual source"),
+		Visuals->GetOutermost()->IsDirty() == bVisualDirty);
+
 	AddInfo(FString::Printf(TEXT(
 		"ARM 06.2Y: 22 weapons + 1 real ammo, 82/1640/260 numeric proof; "
 		"%d real action bindings, %d unbound attacks, %d arrow links, "
