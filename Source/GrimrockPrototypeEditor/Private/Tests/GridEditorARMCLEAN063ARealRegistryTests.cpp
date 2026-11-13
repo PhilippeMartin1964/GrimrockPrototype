@@ -5,6 +5,7 @@
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
+#include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063ARealRegistry,
 	"Grimrock.RPG.ARM.CLEAN06_3.RealNativeRegistryAndActions",
@@ -22,6 +23,26 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 		AddError(Error);
 		return false;
 	}
+
+	// Loading the binary explicitly is insufficient: prove the actual
+	// startup configuration points to the same saved registry.
+	const UGridItemSubsystem* Defaults = GetDefault<UGridItemSubsystem>();
+	const FSoftObjectProperty* Config = FindFProperty<FSoftObjectProperty>(
+		UGridItemSubsystem::StaticClass(), TEXT("ConfiguredItemSystem"));
+	if (!TestNotNull(TEXT("One config-backed canonical item-system reference"), Config))
+	{
+		return false;
+	}
+	const FSoftObjectPtr* ConfiguredPath =
+		Config->ContainerPtrToValuePtr<FSoftObjectPtr>(Defaults);
+	if (!TestNotNull(TEXT("Canonical registry config value is readable"), ConfiguredPath))
+	{
+		return false;
+	}
+	TestEqual(TEXT("DefaultGame.ini points at the only native ItemSystem root"),
+		ConfiguredPath->ToSoftObjectPath().ToString(),
+		FString(TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
+			"DA_ItemSystem.DA_ItemSystem")));
 
 	TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
 		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
