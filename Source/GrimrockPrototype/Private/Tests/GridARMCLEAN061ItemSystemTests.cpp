@@ -749,4 +749,125 @@ bool FGridClean062ABBoundHandAttackTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062ACProjectileReadModelTest,
+	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.SingleProjectilePhysicsVisualResolver",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean062ACProjectileReadModelTest::RunTest(const FString&)
+{
+	const Clean061::FFixture F = Clean061::Make();
+	FGridCanonicalWeaponArchetype* Sword = F.System->WeaponCatalogue->Archetypes.FindByPredicate(
+		[](const FGridCanonicalWeaponArchetype& Entry)
+		{
+			return Entry.ArchetypeId == FName(TEXT("ARM014"));
+		});
+	if (!TestNotNull(TEXT("Live ARM014 fixture archetype"), Sword))
+	{
+		return false;
+	}
+	Sword->Projectile.bEnabled = true;
+	Sword->Projectile.InitialSpeed = 1800.0f;
+	Sword->Projectile.Arc = 0.08f;
+	Sword->Projectile.FlightLifetime = 5.0f;
+	Sword->Projectile.ImpactDropOffset = 12.0f;
+
+	FGridCanonicalWeaponVisual Visual;
+	Visual.VisualId = TEXT("SwordFlightVisual");
+	const FString ProjectilePath(TEXT("/Game/Tests/ARM062/TestSwordProjectile.TestSwordProjectile"));
+	Visual.ProjectileMesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(ProjectilePath));
+	Visual.ProjectileAppearance.bEnabled = true;
+	Visual.ProjectileAppearance.Mode = EGridCanonicalProjectileVisualMode::Spin;
+	Visual.ProjectileAppearance.SpinDegreesPerSecond = 720.0f;
+	F.System->WeaponVisualCatalogue->VisualProfiles.Add(Visual);
+	for (FGridCanonicalWeaponVisualBinding& Binding :
+		F.System->WeaponVisualCatalogue->ArchetypeBindings)
+	{
+		if (Binding.ArchetypeId == FName(TEXT("ARM014")))
+		{
+			Binding.VisualId = Visual.VisualId;
+		}
+	}
+	TArray<FString> Errors;
+	if (!TestTrue(TEXT("A dedicated visible flying sword is a complete canonical registry"),
+		F.System->Validate(Errors)))
+	{
+		return false;
+	}
+	TStrongObjectPtr<UGridItemSubsystem> Resolver(
+		NewObject<UGridItemSubsystem>(F.GameInstance.Get()));
+	if (!TestTrue(TEXT("Register fully configured synthetic projectile item"),
+		Resolver->RegisterItemSystem(F.System, Errors)))
+	{
+		return false;
+	}
+	FGridResolvedItem Out;
+	if (!TestTrue(TEXT("One item lookup resolves numeric AND visual projectile data"),
+		Resolver->ResolveItem(TEXT("TestSword"), 20, Out)))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Projectile presentation is enabled"), Out.ProjectileAppearance.bEnabled);
+	TestTrue(TEXT("Projectile physics is enabled"), Out.Weapon.Projectile.bEnabled);
+	TestEqual(TEXT("Physics speed from numeric catalogue"), Out.Weapon.Projectile.InitialSpeed, 1800.0f);
+	TestEqual(TEXT("Physics impact drop offset"), Out.Weapon.Projectile.ImpactDropOffset, 12.0f);
+	TestEqual(TEXT("Visual projectile soft path is identical"), Out.ProjectileMesh.ToSoftObjectPath().ToString(), ProjectilePath);
+	TestEqual(TEXT("Visual spin remains independent of launch speed"),
+		Out.ProjectileAppearance.SpinDegreesPerSecond, 720.0f);
+	TestEqual(TEXT("Visual mode from authored catalogue"),
+		Out.ProjectileAppearance.Mode, EGridCanonicalProjectileVisualMode::Spin);
+
+	FGridCanonicalWeaponVisual* MutableVisual =
+		F.System->WeaponVisualCatalogue->VisualProfiles.FindByPredicate(
+			[](const FGridCanonicalWeaponVisual& Entry)
+			{
+				return Entry.VisualId == FName(TEXT("SwordFlightVisual"));
+			});
+	if (!TestNotNull(TEXT("Unique projectile visual"), MutableVisual))
+	{
+		return false;
+	}
+	MutableVisual->ProjectileAppearance.bEnabled = false;
+	Errors.Reset();
+	TestFalse(TEXT("A real projectile with absent visual fails root validation"),
+		F.System->Validate(Errors));
+	TestFalse(TEXT("Resolver cannot return incomplete projectile visual"),
+		Resolver->ResolveItem(TEXT("TestSword"), 20, Out));
+	TestEqual(TEXT("Exact projectile consistency rejection"), Out.Error,
+		EGridCanonicalItemResolveError::IncompleteProjectileVisual);
+	TestTrue(TEXT("Failed resolution clears former item identity"), Out.ItemId.IsNone());
+	MutableVisual->ProjectileAppearance.bEnabled = true;
+
+	MutableVisual->ProjectileMesh.Reset();
+	Errors.Reset();
+	TestFalse(TEXT("Enabled projectile without mesh fails root validation"),
+		F.System->Validate(Errors));
+	TestFalse(TEXT("Resolver cannot show missing projectile mesh"),
+		Resolver->ResolveItem(TEXT("TestSword"), 20, Out));
+	TestEqual(TEXT("Mesh mismatch is explicit"), Out.Error,
+		EGridCanonicalItemResolveError::IncompleteProjectileVisual);
+	MutableVisual->ProjectileMesh =
+		TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(ProjectilePath));
+
+	Sword->Projectile.bEnabled = false;
+	Errors.Reset();
+	TestFalse(TEXT("Visual projectile without physical policy is not ready"),
+		F.System->Validate(Errors));
+	TestFalse(TEXT("Resolver refuses visual-only fake projectile"),
+		Resolver->ResolveItem(TEXT("TestSword"), 20, Out));
+	TestEqual(TEXT("Physical/visual mismatch is explicit"), Out.Error,
+		EGridCanonicalItemResolveError::IncompleteProjectileVisual);
+	Sword->Projectile.bEnabled = true;
+
+	Errors.Reset();
+	TestTrue(TEXT("Restored physics/visual registry is valid"), F.System->Validate(Errors));
+	TestTrue(TEXT("Restored projectile resolves"),
+		Resolver->ResolveItem(TEXT("TestSword"), 20, Out));
+	TestTrue(TEXT("Passive shield still resolves without projectile"),
+		Resolver->ResolveItem(TEXT("TestShield"), 1, Out));
+	TestFalse(TEXT("Shield has no fake projectile"), Out.ProjectileAppearance.bEnabled);
+	TestTrue(TEXT("Shield has no projectile mesh"), Out.ProjectileMesh.IsNull());
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

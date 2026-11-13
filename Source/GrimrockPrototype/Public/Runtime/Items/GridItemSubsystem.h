@@ -13,7 +13,8 @@ enum class EGridCanonicalItemResolveError : uint8
 	UnknownItemId,
 	InvalidItemLevel,
 	InvalidArchetype,
-	MissingVisual
+	MissingVisual,
+	IncompleteProjectileVisual
 };
 
 /**
@@ -54,6 +55,13 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	TSoftObjectPtr<UStaticMesh> EquippedMesh;
+
+	/** Flight shape and presentation are resolved from the one visual catalogue. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	TSoftObjectPtr<UStaticMesh> ProjectileMesh;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	FGridCanonicalProjectileVisual ProjectileAppearance;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	FName ArchetypeId = NAME_None;

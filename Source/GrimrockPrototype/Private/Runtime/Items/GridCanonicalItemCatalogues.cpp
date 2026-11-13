@@ -549,13 +549,21 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 		{
 			const FGridCanonicalWeaponArchetype* Archetype =
 				WeaponCatalogue->Find(Weapon->ArchetypeId);
-			if (!Archetype || !Archetype->bHandAndKindProven ||
-				!WeaponVisualCatalogue->FindForArchetype(Weapon->ArchetypeId))
+			const FGridCanonicalWeaponVisual* Visual =
+				WeaponVisualCatalogue->FindForArchetype(Weapon->ArchetypeId);
+			if (!Archetype || !Archetype->bHandAndKindProven || !Visual)
 			{
 				bValid = AddError(Errors, FString::Printf(
 					TEXT("Item system: incomplete active armament semantics/visual for %s"),
 					*Item->ItemId.ToString()));
 				continue;
+			}
+			if (Archetype->Projectile.bEnabled != Visual->ProjectileAppearance.bEnabled ||
+				(Archetype->Projectile.bEnabled && Visual->ProjectileMesh.IsNull()))
+			{
+				bValid = AddError(Errors, FString::Printf(
+					TEXT("Item system: active projectile physics/visual mismatch for %s"),
+					*Item->ItemId.ToString()));
 			}
 			if (Archetype->Kind == EGridCanonicalArmamentKind::Weapon)
 			{

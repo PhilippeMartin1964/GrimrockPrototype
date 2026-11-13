@@ -127,6 +127,14 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 			OutItem.Error = EGridCanonicalItemResolveError::MissingVisual;
 			return false;
 		}
+		if (OutItem.Weapon.Projectile.bEnabled !=
+				Visual->ProjectileAppearance.bEnabled ||
+			(OutItem.Weapon.Projectile.bEnabled && Visual->ProjectileMesh.IsNull()))
+		{
+			OutItem = FGridResolvedItem();
+			OutItem.Error = EGridCanonicalItemResolveError::IncompleteProjectileVisual;
+			return false;
+		}
 		OutItem.ArchetypeId = Armament->ArchetypeId;
 		OutItem.bIsArmament = true;
 		OutItem.WorldMesh = Visual->WorldMesh;
@@ -134,6 +142,8 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		// Keep this transient resolution: do not serialize a second mesh pointer.
 		OutItem.EquippedMesh = Visual->EquippedMesh.IsNull() ?
 			Visual->WorldMesh : Visual->EquippedMesh;
+		OutItem.ProjectileMesh = Visual->ProjectileMesh;
+		OutItem.ProjectileAppearance = Visual->ProjectileAppearance;
 		OutItem.ItemIcon = Visual->ItemIcon;
 		OutItem.AvailableActions = Archetype->Actions;
 	}
