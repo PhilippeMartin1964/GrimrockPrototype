@@ -304,6 +304,10 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponVisual
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	FName VisualId = NAME_None;
 
+	/** Preserves the authored art grouping; never a substitute for ArmamentKind. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
+	FName FamilyTag = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	TSoftObjectPtr<UTexture2D> ItemIcon;
 

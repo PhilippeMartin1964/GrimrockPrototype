@@ -174,6 +174,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061SwordResolutionTest,
 bool FGridClean061SwordResolutionTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
+	const FString WorldPath(TEXT("/Game/Tests/ARM062/TestSwordWorld.TestSwordWorld"));
+	F.System->WeaponVisualCatalogue->VisualProfiles[0].WorldMesh =
+		TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(WorldPath));
+	F.System->WeaponVisualCatalogue->VisualProfiles[0].EquippedMesh.Reset();
 	TStrongObjectPtr<UGridItemSubsystem> Subsystem(NewObject<UGridItemSubsystem>(F.GameInstance.Get()));
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
@@ -185,6 +189,8 @@ bool FGridClean061SwordResolutionTest::RunTest(const FString&)
 	TestTrue(TEXT("Sword has dice"), Result.Weapon.DamageDice.bEnabled);
 	TestEqual(TEXT("N20 growth is resolved"), Result.Weapon.DamageDice.FlatBonus, 20);
 	TestEqual(TEXT("Attack cost stays in archetype"), Result.Weapon.ActionPointCost, 2);
+	TestEqual(TEXT("Equipped mesh resolves from WorldMesh without duplicating an asset field"),
+		Result.EquippedMesh.ToSoftObjectPath().ToString(), WorldPath);
 	TestEqual(TEXT("Authored action exists"), Result.AvailableActions.Num(), 1);
 	return true;
 }
