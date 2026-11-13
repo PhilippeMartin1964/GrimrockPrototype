@@ -29,6 +29,9 @@
 #include "Runtime/Combat/GridCatalystAreaResolver.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -242,6 +245,15 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 	}
 
 	const FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+	// ARM-CLEAN06.3D: single current-GI registry, never a second per-weapon lookup.
+	const UGridItemSubsystem* Canonical = nullptr;
+	if (const UWorld* World = GetWorld())
+	{
+		if (UGameInstance* GI = World->GetGameInstance())
+		{
+			Canonical = GI->GetSubsystem<UGridItemSubsystem>();
+		}
+	}
 	const URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
 	if (!FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition))
 	{
@@ -321,6 +333,73 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 		// a second attack source; enumerate only the physical owning slot.
 		if (EquippedItem.EquipmentSlot != HandSlot)
 		{
+			continue;
+		}
+
+		if (Canonical && Canonical->HasCanonicalItem(EquippedItem.ItemDefinitionId))
+		{
+			// Migrated ARM: the old definition and its N1 CombatActions
+			// are NOT consulted. A failed canonical read has no legacy fallback.
+			FGridResolvedItem Resolved;
+			if (!Canonical->ResolveItem(
+					EquippedItem.ItemDefinitionId, EquippedItem.ItemLevel, Resolved) ||
+				!Resolved.bIsArmament || !Resolved.Weapon.HasAttackSourceInHand(HandSlot))
+			{
+				continue;
+			}
+			for (const FGridItemActionBinding& Binding : Resolved.AvailableActions)
+			{
+				FGridResolvedBoundAction Authored;
+				if (!Canonical->ResolveAttackFromEquippedInstance(
+						EquippedItem, Binding.ActionId, HandSlot,
+						EquippedItem.RuntimeObjectId, EquippedItem.OwnerGuid,
+						EquippedItem.OwnerCharacterIndex, Authored))
+				{
+					continue;
+				}
+
+				// The existing MON12 executor/HUD still consumes this transient
+				// transport struct. ALL actual values originate in the four
+				// canonical catalogues; no original combat fields are read.
+				FGridCombatActionDefinition Definition;
+				Definition.ActionId = Authored.ActionId;
+				Definition.DisplayName = Resolved.DisplayName;
+				Definition.Description = Resolved.Description;
+				Definition.Icon = Resolved.ItemIcon;
+				Definition.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+				Definition.ActionType = Authored.Action.bRangedAttack ?
+					EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
+				Definition.TargetingPolicy = Authored.Action.Targeting;
+				Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
+				Definition.ActionPointCost = Resolved.Weapon.ActionPointCost;
+				Definition.RangeCells = Resolved.Weapon.RangeCells;
+				Definition.bRequiresLineOfSight = Authored.Action.bRequiresLineOfSight;
+				Definition.ResourceCosts.ManaCost = Authored.Action.ManaCost;
+				Definition.ResourceCosts.SourceItemQuantityCost =
+					Authored.Action.SourceItemQuantityCost;
+				Definition.CooldownRounds = Authored.Action.CooldownRounds;
+				for (const FName Tag : Resolved.Tags)
+				{
+					if (!Tag.IsNone()) { Definition.SourceTags.AddUnique(Tag); }
+				}
+				FGridOffensiveEquipmentProfile& Attack = Definition.OffensiveProfile;
+				Attack.AttackId = Authored.ActionId;
+				Attack.DamageScalingAttribute = Resolved.Weapon.ScalingAttribute;
+				Attack.RangeCells = Resolved.Weapon.RangeCells;
+				FGridAttackDefinition& Damage = Attack.AttackDefinition;
+				Damage.DamageType = Resolved.Weapon.DamageType;
+				Damage.PhysicalSubtype = Resolved.Weapon.PhysicalSubtype;
+				Damage.DamageDice = Resolved.Weapon.DamageDice;
+				Damage.AccuracyBonus = Resolved.Weapon.AccuracyBonus;
+				Damage.MinDamage = Damage.DamageDice.GetMinimumDamage();
+				Damage.MaxDamage = Damage.DamageDice.GetMaximumDamage();
+				if (Definition.IsValid() && Attack.IsValid())
+				{
+					AddMON126Contribution(Definition, EquippedItem.ItemDefinitionId,
+						EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity,
+						OutContributions);
+				}
+			}
 			continue;
 		}
 
@@ -536,10 +615,40 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 	if (Inventory->PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
 		const FGridCharacterEquipmentState& Equipment = Inventory->PartyInventoryState.ActiveEquipment[CharacterIndex];
+		const UGridItemSubsystem* Canonical = nullptr;
+		if (const UWorld* World = GetWorld())
+		{
+			if (UGameInstance* GI = World->GetGameInstance())
+			{
+				Canonical = GI->GetSubsystem<UGridItemSubsystem>();
+			}
+		}
 		const EGridEquipmentSlot HandSlots[] = { EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand };
 		for (const EGridEquipmentSlot HandSlot : HandSlots)
 		{
 			const FGridItemInstance* Item = Equipment.GetSlot(HandSlot);
+			if (Item && Item->IsValid() && Item->EquipmentSlot == HandSlot &&
+				Canonical && Canonical->HasCanonicalItem(Item->ItemDefinitionId))
+			{
+				FGridResolvedItem Resolved;
+				if (!Canonical->ResolveItem(Item->ItemDefinitionId, Item->ItemLevel, Resolved))
+				{
+					continue; // never look up the old catalogue for canonical ARM
+				}
+				for (const FName Tag : Resolved.Tags)
+				{
+					Context.SatisfiedRequirements.Add(Tag);
+				}
+				if (Resolved.bIsArmament && Resolved.Weapon.HasAttackSourceInHand(HandSlot))
+				{
+					Context.EquippedOffensiveSourceTagSets.Add(Resolved.Tags);
+					Context.EquippedOffensivePhysicalSubtypes.Add(
+						Resolved.Weapon.DamageType == EGridDamageType::Physical ?
+							Resolved.Weapon.PhysicalSubtype : EGridPhysicalDamageSubtype::None);
+					Context.EquippedOffensiveRangeCells.Add(Resolved.Weapon.RangeCells);
+				}
+				continue;
+			}
 			const UGridItemDefinitionAsset* Definition = Item && Item->IsValid() ? Inventory->FindItemDefinition(Item->ItemDefinitionId) : nullptr;
 			if (!IsValid(Definition))
 			{

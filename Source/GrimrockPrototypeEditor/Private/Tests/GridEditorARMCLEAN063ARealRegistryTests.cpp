@@ -95,6 +95,35 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 		}
 		TestEqual(TEXT("No substituted action identity"), Bound.ActionId,
 			FName(*Row.AttackId));
+		TestTrue(TEXT("N20 canonical weapon dice produce a complete attack"),
+			N20.Weapon.DamageDice.IsValid() &&
+			N20.Weapon.DamageDice.GetMaximumDamage() > 0 &&
+			N20.Weapon.ActionPointCost > 0 &&
+			N20.Weapon.RangeCells > 0);
+		// Same identity gate used by the live equipment action enumerator.
+		FGridItemInstance Equipped;
+		Equipped.RuntimeObjectId = FGuid::NewGuid();
+		Equipped.ItemDefinitionId = ItemId;
+		Equipped.ItemLevel = 20;
+		Equipped.Quantity = 1;
+		Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
+		Equipped.OwnerGuid = FGuid::NewGuid();
+		Equipped.OwnerCharacterIndex = 0;
+		Equipped.EquipmentSlot = EGridEquipmentSlot::MainHand;
+		FGridResolvedBoundAction VerifiedInstance;
+		TestTrue(TEXT("Real source slot identity binds exact canonical attack"),
+			Items->ResolveAttackFromEquippedInstance(
+				Equipped, Bound.ActionId, EGridEquipmentSlot::MainHand,
+				Equipped.RuntimeObjectId, Equipped.OwnerGuid,
+				Equipped.OwnerCharacterIndex, VerifiedInstance));
+		TestEqual(TEXT("Source instance attack matches registered ActionId"),
+			VerifiedInstance.ActionId, Bound.ActionId);
+		Equipped.ItemLevel = 0;
+		TestFalse(TEXT("Old Level=0 cannot read N1 implicitly"),
+			Items->ResolveAttackFromEquippedInstance(
+				Equipped, Bound.ActionId, EGridEquipmentSlot::MainHand,
+				Equipped.RuntimeObjectId, Equipped.OwnerGuid,
+				Equipped.OwnerCharacterIndex, VerifiedInstance));
 		if (Bound.PresentationId == FName(TEXT("PRES_AttackNoFX")))
 		{
 			++NeutralCount;
