@@ -940,7 +940,7 @@ try {
 
         # ARM-CLEAN06.2AN: one-shot AUTHORING after full local validation.
         # 28 NEW .uasset; detached worktree ONLY; original checkout untouched.
-        $CanonicalTrigger = 'feat(ARM-CLEAN06.2AN): enable one-shot guarded canonical asset authoring'
+        $CanonicalTrigger = 'fix(ARM-CLEAN06.2AN.1): invoke native Git safely during canonical asset staging'
         $CanonicalSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $CanonicalSubject.Count -eq 1 -and
             [string]$CanonicalSubject[0] -ceq $CanonicalTrigger) {
@@ -974,7 +974,8 @@ try {
                 $Stage = if (Test-Path -LiteralPath $CanonicalStage -PathType Leaf) {
                     ([string](Get-Content -LiteralPath $CanonicalStage -TotalCount 1)).Trim()
                 } else { 'PREFLIGHT' }
-                if ($Stage -notin @('PREFLIGHT','COMMANDLET','COMMANDLET_FAILED',
+                if ($Stage -notin @('PREFLIGHT','PREFLIGHT_GIT','PREFLIGHT_MANIFEST',
+                    'PREFLIGHT_PATHS','PREFLIGHT_ENV','COMMANDLET','COMMANDLET_FAILED',
                     'VERIFY_FILESET','POST_AUTOMATION','POST_AUTOMATION_FAILED',
                     'PARITY_OK','REMOTE_CHANGED','FILESET_UNEXPECTED','LFS_FAILED',
                     'COMMIT_CREATED','PUSH_FAILED','SUCCESS')) {

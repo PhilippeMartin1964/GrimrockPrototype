@@ -9,27 +9,28 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$Trigger = 'feat(ARM-CLEAN06.2AN): enable one-shot guarded canonical asset authoring'
+$Trigger = 'fix(ARM-CLEAN06.2AN.1): invoke native Git safely during canonical asset staging'
 $StageFile = Join-Path $RunDir 'ARMClean062AN.stage'
 $Prefix = 'Content/GrimrockPrototype/Core/DataAssets/CanonicalStage'
 function Stage([string]$Value) {
     Set-Content -LiteralPath $StageFile -Value $Value -Encoding ASCII
 }
-function Git([string[]]$Arguments) {
+function Invoke-GitChecked([string[]]$Arguments) {
     $Output = @(& git -C $WorktreePath @Arguments)
     if ($LASTEXITCODE -ne 0) { throw "Git failed: $($Arguments[0])" }
     return @($Output)
 }
 function GitOne([string[]]$Arguments) {
-    $Output = @(Git -Arguments $Arguments)
+    $Output = @(Invoke-GitChecked -Arguments $Arguments)
     if ($Output.Count -ne 1) { throw 'Expected one Git record.' }
     return ([string]$Output[0]).Trim()
 }
 function Changes {
-    return @(Git -Arguments @('status','--porcelain','--untracked-files=all'))
+    return @(Invoke-GitChecked -Arguments @('status','--porcelain','--untracked-files=all'))
 }
 try {
     Stage 'PREFLIGHT'
+    Stage 'PREFLIGHT_GIT'
     if ($ExpectedHead -notmatch '^[a-f0-9]{40}$' -or
         -not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git'))) {
         throw 'Invalid SHA or worktree.'
@@ -38,7 +39,7 @@ try {
         (GitOne -Arguments @('log','-1','--format=%s')) -cne $Trigger) {
         throw 'Worktree or one-shot trigger mismatch.'
     }
-    if (@(Git -Arguments @('branch','--show-current') | Where-Object { $_ }).Count -ne 0) {
+    if (@(Invoke-GitChecked -Arguments @('branch','--show-current') | Where-Object { $_ }).Count -ne 0) {
         throw 'Only a detached validation worktree is allowed.'
     }
     if ((GitOne -Arguments @('remote','get-url','origin')) -notmatch
@@ -46,6 +47,7 @@ try {
         throw 'Unexpected repository origin.'
     }
     if (@(Changes).Count -ne 0) { throw 'Validation worktree not clean.' }
+    Stage 'PREFLIGHT_MANIFEST'
     $Rows = @(Import-Csv -LiteralPath (Join-Path $WorktreePath 'Config/Armement/WeaponProductionManifest.csv') -Encoding UTF8)
     if ($Rows.Count -ne 22 -or @($Rows | Where-Object { $_.ProductionState -cne 'Active' }).Count -ne 0) {
         throw 'Manifest is not the approved 22-row source.'
@@ -60,6 +62,7 @@ try {
         @($Offensive | Where-Object { $_.MigrationPresentationId -cnotmatch '^PRES_ARM[0-9]{3}$' }).Count -ne 0) {
         throw 'Manifest action presentation contract mismatch.'
     }
+    Stage 'PREFLIGHT_PATHS'
     $Expected = @(
         "$Prefix/DA_CanonicalWeaponCatalogue.uasset",
         "$Prefix/DA_CanonicalWeaponVisualCatalogue.uasset",
@@ -84,6 +87,7 @@ try {
         @(Get-ChildItem -LiteralPath $StageFolder -Force -Recurse -ErrorAction Stop).Count -gt 0) {
         throw 'Canonical stage folder contains preexisting files.'
     }
+    Stage 'PREFLIGHT_ENV'
     $Project = Join-Path $WorktreePath 'GrimrockPrototype.uproject'
     $Editor = Join-Path $EngineRoot 'Engine/Binaries/Win64/UnrealEditor-Cmd.exe'
     $Validate = Join-Path $WorktreePath 'Scripts/ValidateUE.ps1'
@@ -136,13 +140,13 @@ try {
     $Again = @(Changes)
     if (($Again -join '|') -cne ($Actual -join '|')) { throw 'Post-stage UE modified unexpected assets.' }
     Stage 'PARITY_OK'
-    [void](Git -Arguments @('fetch','--no-tags','origin','master'))
+    [void](Invoke-GitChecked -Arguments @('fetch','--no-tags','origin','master'))
     if ((GitOne -Arguments @('rev-parse','refs/remotes/origin/master')) -cne $ExpectedHead) {
         Stage 'REMOTE_CHANGED'
         throw 'Remote master advanced during staging.'
     }
-    [void](Git -Arguments (@('add','--') + $Expected))
-    $Staged = @(Git -Arguments @('diff','--cached','--name-only','--diff-filter=A') | Sort-Object)
+    [void](Invoke-GitChecked -Arguments (@('add','--') + $Expected))
+    $Staged = @(Invoke-GitChecked -Arguments @('diff','--cached','--name-only','--diff-filter=A') | Sort-Object)
     if ($Staged.Count -ne 28 -or ($Staged -join '|') -cne ($Expected -join '|')) {
         Stage 'FILESET_UNEXPECTED'
         throw 'Git staged fileset differs from approved 28 new binaries.'
@@ -156,7 +160,7 @@ try {
             throw 'Git staged a non-LFS asset.'
         }
     }
-    [void](Git -Arguments @('-c','user.name=Grimrock UE Automation',
+    [void](Invoke-GitChecked -Arguments @('-c','user.name=Grimrock UE Automation',
         '-c','user.email=grimrock-ue-automation@users.noreply.github.com',
         'commit','-m','assets(ARM-CLEAN06.2AO): stage 28 native canonical DataAssets with verified parity'))
     Stage 'COMMIT_CREATED'
