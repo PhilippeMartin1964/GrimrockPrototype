@@ -2,9 +2,23 @@
 
 #include "Misc/AutomationTest.h"
 #include "ARMEMENT/GridArmClean06CompleteProductionPreview.h"
-#include "ARMEMENT/GridArmClean06CanonicalStageCommandlet.h"
+#include "UObject/UnrealType.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
+
+namespace
+{
+	bool SameAuthoredFields(const UObject* Source, const UObject* Loaded)
+	{
+		if (!IsValid(Source) || !IsValid(Loaded) ||
+			Source->GetClass() != Loaded->GetClass()) { return false; }
+		for (TFieldIterator<FProperty> Property(Source->GetClass()); Property; ++Property)
+		{
+			if (!Property->Identical_InContainer(Source, Loaded)) { return false; }
+		}
+		return true;
+	}
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062YCompleteProductionPreview,
 	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.CompleteProductionPreview23",
@@ -104,20 +118,39 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 	TestTrue(TEXT("Action icon source unchanged"), Icons->GetOutermost()->IsDirty() == bIconDirty);
 	TestTrue(TEXT("Real arrow source unchanged"), Arrows->GetOutermost()->IsDirty() == bArrowDirty);
 
-	// Exercise the real Editor-only authoring entry point with NO -Apply.
-	// This must load/validate all 22 original weapons and plan all 28
-	// NEW packages without creating any of them.
-	UGridArmClean06CanonicalStageCommandlet* Stage =
-		NewObject<UGridArmClean06CanonicalStageCommandlet>(GetTransientPackage());
-	if (!TestNotNull(TEXT("Real canonical staging commandlet exists"), Stage))
+	// The one-shot authoring tool has been retired. Keep the stronger,
+	// permanent test: every real binary UPROPERTY equals its real source
+	// candidate, including all N1..N20 entries, audio and visuals.
+	TStrongObjectPtr<UGridItemSystemAsset> Persisted(LoadObject<UGridItemSystemAsset>(
+		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+	if (!TestNotNull(TEXT("Real ItemSystem binary exists"), Persisted.Get()))
 	{
 		return false;
 	}
-	TestEqual(TEXT("Unreal authoring preflight is read-only by default"),
-		Stage->Main(TEXT("")), 0);
-	TestTrue(TEXT("Dry run did not dirty numeric source"),
+	TArray<FString> PersistedErrors;
+	TestTrue(TEXT("Persisted canonical root validates after reload"),
+		Persisted->Validate(PersistedErrors));
+	TestTrue(TEXT("Real weapon number catalogue exactly matches source candidate"),
+		SameAuthoredFields(Root->WeaponCatalogue, Persisted->WeaponCatalogue));
+	TestTrue(TEXT("Real weapon visual catalogue exactly matches source candidate"),
+		SameAuthoredFields(Root->WeaponVisualCatalogue, Persisted->WeaponVisualCatalogue));
+	TestTrue(TEXT("Real action catalogue exactly matches source candidate"),
+		SameAuthoredFields(Root->ActionCatalogue, Persisted->ActionCatalogue));
+	TestTrue(TEXT("Real presentation catalogue exactly matches source candidate"),
+		SameAuthoredFields(Root->ActionPresentationCatalogue, Persisted->ActionPresentationCatalogue));
+	if (!TestEqual(TEXT("Real item definitions count"), Persisted->ItemDefinitions.Num(),
+			Root->ItemDefinitions.Num()))
+	{
+		return false;
+	}
+	for (int32 Index = 0; Index < Root->ItemDefinitions.Num(); ++Index)
+	{
+		TestTrue(TEXT("Real item definition has identical authored fields"),
+			SameAuthoredFields(Root->ItemDefinitions[Index], Persisted->ItemDefinitions[Index]));
+	}
+	TestTrue(TEXT("Persistent parity check did not dirty numeric source"),
 		Numerics->GetOutermost()->IsDirty() == bNumberDirty);
-	TestTrue(TEXT("Dry run did not dirty visual source"),
+	TestTrue(TEXT("Persistent parity check did not dirty visual source"),
 		Visuals->GetOutermost()->IsDirty() == bVisualDirty);
 
 	AddInfo(FString::Printf(TEXT(
