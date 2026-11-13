@@ -131,22 +131,22 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 	TestTrue(TEXT("Persisted canonical root validates after reload"),
 		Persisted->Validate(PersistedErrors));
 	TestTrue(TEXT("Real weapon number catalogue exactly matches source candidate"),
-		SameAuthoredFields(Root->WeaponCatalogue, Persisted->WeaponCatalogue));
+		SameAuthoredFields(Candidate->WeaponCatalogue, Persisted->WeaponCatalogue));
 	TestTrue(TEXT("Real weapon visual catalogue exactly matches source candidate"),
-		SameAuthoredFields(Root->WeaponVisualCatalogue, Persisted->WeaponVisualCatalogue));
+		SameAuthoredFields(Candidate->WeaponVisualCatalogue, Persisted->WeaponVisualCatalogue));
 	TestTrue(TEXT("Real action catalogue exactly matches source candidate"),
-		SameAuthoredFields(Root->ActionCatalogue, Persisted->ActionCatalogue));
+		SameAuthoredFields(Candidate->ActionCatalogue, Persisted->ActionCatalogue));
 	TestTrue(TEXT("Real presentation catalogue exactly matches source candidate"),
-		SameAuthoredFields(Root->ActionPresentationCatalogue, Persisted->ActionPresentationCatalogue));
+		SameAuthoredFields(Candidate->ActionPresentationCatalogue, Persisted->ActionPresentationCatalogue));
 	if (!TestEqual(TEXT("Real item definitions count"), Persisted->ItemDefinitions.Num(),
-			Root->ItemDefinitions.Num()))
+			Candidate->ItemDefinitions.Num()))
 	{
 		return false;
 	}
-	for (int32 Index = 0; Index < Root->ItemDefinitions.Num(); ++Index)
+	for (int32 Index = 0; Index < Candidate->ItemDefinitions.Num(); ++Index)
 	{
 		TestTrue(TEXT("Real item definition has identical authored fields"),
-			SameAuthoredFields(Root->ItemDefinitions[Index], Persisted->ItemDefinitions[Index]));
+			SameAuthoredFields(Candidate->ItemDefinitions[Index], Persisted->ItemDefinitions[Index]));
 	}
 	TestTrue(TEXT("Persistent parity check did not dirty numeric source"),
 		Numerics->GetOutermost()->IsDirty() == bNumberDirty);
