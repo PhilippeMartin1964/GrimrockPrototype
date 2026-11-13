@@ -92,6 +92,18 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalAction
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
 	EGridCombatTargetingPolicy Targeting = EGridCombatTargetingPolicy::Hostile;
 
+	/** Concrete attack execution mode; does not invent a new attack. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
+	bool bRangedAttack = false;
+
+	/** Independent line-of-sight requirement, preserved from the authored action. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
+	bool bRequiresLineOfSight = false;
+
+	/** Action-specific item consumption (throwing weapons); not an ammo kind. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action", meta = (ClampMin = "0"))
+	int32 SourceItemQuantityCost = 0;
+
 	/** Costs specific to this action; standard weapon PA and range are NOT copied here. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action", meta = (ClampMin = "0"))
 	int32 ManaCost = 0;
