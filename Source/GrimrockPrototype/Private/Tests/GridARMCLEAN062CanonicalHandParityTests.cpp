@@ -1,7 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Misc/CsvParser.h"
+#include "Serialization/Csv/CsvParser.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
