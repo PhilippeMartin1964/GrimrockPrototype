@@ -898,6 +898,39 @@ try {
         if ($ExitCode -ne 0) { throw "ValidateUE.ps1 a retourne le code $ExitCode. Voir $RunLog et $RunStderrLog." }
         $Phase = 'publication'
         Publish-CommitStatus -Sha $Sha -State 'success' -Description "Build + Automation OK ($AutomationFilter)"
+        
+        # 06.2AK: one-shot publication of existing UE Automation counters.
+        # No new C++ test, commandlet or source asset scan. Only 22 manifest ARM.
+        $ReadinessSubject = 'chore(ARM-CLEAN06.2AK): publish canonical action blockers from UE report'
+        $ActualSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $ActualSubject.Count -eq 1 -and
+            [string]$ActualSubject[0] -ceq $ReadinessSubject) {
+            $ReadinessContext = 'UE5.5.4/ARM-CLEAN06.2AK'
+            try {
+                $Pattern = 'ARM 06\.2Q: (?<standard>\d+) standard attacks; (?<custom>\d+) customized attacks preserved;\s*(?<extras>\d+) other locally authored actions preserved; (?<bound>\d+) direct bindings\s+with real PresentationId; (?<noid>\d+) without PresentationId;\s*(?<noprof>\d+) without local presentation; (?<collision>\d+) duplicate presentation keys'
+                $Evidence = $null
+                foreach ($ReportFile in @(Get-ChildItem -LiteralPath $ReportRoot -File -Recurse -ErrorAction Stop |
+                    Where-Object { $_.Name -in @('index.json','Automation.log') })) {
+                    $Content = Get-Content -LiteralPath $ReportFile.FullName -Raw -Encoding UTF8
+                    if ($Content -match $Pattern) { $Evidence = $Matches; break }
+                }
+                if (-not $Evidence) { throw '06.2Q Automation evidence not found.' }
+                $Standard = [int]$Evidence['standard']; $Custom = [int]$Evidence['custom']
+                $Extra = [int]$Evidence['extras']; $Bound = [int]$Evidence['bound']
+                $NoKey = [int]$Evidence['noid']; $NoProfile = [int]$Evidence['noprof']
+                $Collision = [int]$Evidence['collision']
+                if ($Standard + $Custom -ne 19 -or $Bound -gt $Standard -or
+                    $Extra -lt 0 -or $NoKey -gt $Standard -or
+                    $NoProfile -gt $Standard -or $Collision -gt $Standard) {
+                    throw '06.2Q report counters violate known 22-ARM invariants.'
+                }
+                $Description = "standard=$Standard custom=$Custom extra=$Extra bound=$Bound noKey=$NoKey noFX=$NoProfile collisions=$Collision"
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $ReadinessContext -Description $Description
+            }
+            catch {
+                Publish-CommitStatus -Sha $Sha -State 'failure' -Context $ReadinessContext -Description 'Compteurs 06.2Q absents/incoherents; aucun asset modifie'
+            }
+        }
         try {
             Publish-EffectsInventoryIssue -Sha $Sha -WorktreePath $WorktreePath -NotBeforeUtc $EffectsInventoryStartUtc
         }
