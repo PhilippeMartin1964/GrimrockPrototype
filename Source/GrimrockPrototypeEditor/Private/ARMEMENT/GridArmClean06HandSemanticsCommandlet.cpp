@@ -11,6 +11,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
+#include "UObject/ObjectRedirector.h"
 
 namespace
 {
@@ -183,6 +184,14 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 			bLoaded && LoadedObject->IsA<UPrimaryDataAsset>());
 		Row->SetBoolField(TEXT("class_compiled_from_blueprint"),
 			bLoaded && LoadedObject->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
+		// Redirector identity is a structural fact only. Do not resolve,
+		// delete or re-save an asset based on this classification.
+		const UObjectRedirector* Redirector = bLoaded ?
+			Cast<UObjectRedirector>(LoadedObject) : nullptr;
+		Row->SetBoolField(TEXT("is_object_redirector"), Redirector != nullptr);
+		Row->SetStringField(TEXT("redirect_target_package"),
+			Redirector && Redirector->DestinationObject ?
+			Redirector->DestinationObject->GetOutermost()->GetName() : TEXT(""));
 		Row->SetBoolField(TEXT("duplicate_package"), bDuplicatePackage);
 		if (!Item)
 		{
@@ -260,6 +269,28 @@ int32 UGridArmClean06HandSemanticsCommandlet::Main(const FString& Params)
 			bJoined && SourceN1->DamageDice.bEnabled);
 		Row->SetBoolField(TEXT("can_equip_main"), Item->CanEquipToSlot(EGridEquipmentSlot::MainHand));
 		Row->SetBoolField(TEXT("can_equip_off"), Item->CanEquipToSlot(EGridEquipmentSlot::OffHand));
+		// Runtime equipping and attack eligibility are independent contracts.
+		Row->SetBoolField(TEXT("can_attack_main"), Item->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
+		Row->SetBoolField(TEXT("can_attack_off"), Item->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand));
+		Row->SetBoolField(TEXT("is_physically_throwable"), Item->IsPhysicallyThrowable());
+		Row->SetBoolField(TEXT("is_combat_throwable"), Item->IsCombatThrowable());
+		FGridCombatActionDefinition InventoryAction;
+		const bool bHasInventoryAction = Item->BuildInventoryCombatActionDefinition(InventoryAction);
+		Row->SetBoolField(TEXT("has_inventory_combat_action"), bHasInventoryAction);
+		Row->SetStringField(TEXT("inventory_combat_action_id"),
+			bHasInventoryAction ? InventoryAction.ActionId.ToString() : TEXT(""));
+		TArray<TSharedPtr<FJsonValue>> LocalActions;
+		for (const FGridCombatActionDefinition& Action : Item->CombatActions)
+		{
+			TSharedRef<FJsonObject> ActionRow = MakeShared<FJsonObject>();
+			ActionRow->SetStringField(TEXT("action_id"), Action.ActionId.ToString());
+			ActionRow->SetBoolField(TEXT("valid"), Action.IsValid());
+			ActionRow->SetNumberField(TEXT("source_policy"), static_cast<int32>(Action.SourcePolicy));
+			ActionRow->SetNumberField(TEXT("resolution_profile"), static_cast<int32>(Action.ResolutionProfile));
+			ActionRow->SetNumberField(TEXT("targeting_policy"), static_cast<int32>(Action.TargetingPolicy));
+			LocalActions.Add(MakeShared<FJsonValueObject>(ActionRow));
+		}
+		Row->SetArrayField(TEXT("local_combat_action_rows"), LocalActions);
 		Row->SetStringField(TEXT("provable_hand_policy"), HandPolicy);
 		Row->SetStringField(TEXT("provable_kind"), Kind);
 		Row->SetStringField(TEXT("raw_catalogue_family"), bJoined ? SourceN1->Family : TEXT(""));

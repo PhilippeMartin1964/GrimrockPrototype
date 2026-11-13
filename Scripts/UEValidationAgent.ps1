@@ -907,11 +907,11 @@ try {
 
         # ARM-CLEAN06.2E — one-shot semantic census in native UE. NO asset writes.
         # Triggered only on the exact authored subject and the isolated SHA.
-        $SemanticsTrigger = 'fix(ARM-CLEAN06.2E.4.3): restrict item-only reads to verified UE class'
+        $SemanticsTrigger = 'chore(ARM-CLEAN06.2E.4.4): audit hand attack and redirector parity read-only'
         $SemanticsSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $SemanticsSubject.Count -eq 1 -and
             [string]$SemanticsSubject[0] -ceq $SemanticsTrigger) {
-            $SemanticsContext = 'UE5.5.4/ARM-CLEAN06.2E.4.3'
+            $SemanticsContext = 'UE5.5.4/ARM-CLEAN06.2E.4.4'
             $SemanticsPhase = 'PREFLIGHT'
             try {
                 Publish-CommitStatus -Sha $Sha -State 'pending' -Context $SemanticsContext -Description 'Audit UE des mains/familles en lecture seule'
@@ -939,7 +939,7 @@ try {
                 if ($SemanticsProcess.ExitCode -ne 0) {
                     throw 'ARM-CLEAN06.2E: native read-only semantic audit rejected.'
                 }
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $SemanticsContext -Description 'Qualification E4.3 classe-securisee, 0 ecriture'
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $SemanticsContext -Description 'Qualification E4.4 mains/actions, 0 ecriture'
             }
             catch {
                 $SemanticsStageFile = Join-Path $RunDir 'ARMClean062E.stage'
@@ -953,7 +953,10 @@ try {
                     'E4_ROW_OPTOUT','E4_ROW_SLOTS','E4_ROW_SEMANTICS','E4_ROW_FACT',
                     'E4_ASSERT','E4_OUTPUT_MODEL','E4_OUTPUT_JSON','E4_EXEC',
                     'E4_BAD_PACKAGE_COUNT','E4_CLASS_COUNTS','E4_OPTOUT_COUNTS',
-                    'E4_HAND_COUNTS','E4_KIND_COUNTS','E4_FOCUS_COUNTS','CMD_ARGUMENT','SOURCE_CATALOGUE','SOURCE_ARCHETYPE','ITEM_IDS','ASSET_COUNT',
+                    'E4_HAND_COUNTS','E4_KIND_COUNTS','E4_FOCUS_COUNTS',
+                    'E4_REDIRECTOR_COUNTS','E4_WIDENED_ATTACK_COUNTS',
+                    'E4_ATTACK_SLOT_CONTRACT','E4_ATTACK_EQUIP_CONTRACT',
+                    'E4_ACTION_COUNT_CONTRACT','CMD_ARGUMENT','SOURCE_CATALOGUE','SOURCE_ARCHETYPE','ITEM_IDS','ASSET_COUNT',
                     'OUTPUT_JSON','REPORT_ABSENT','NATIVE_PROCESS','UNREAL_EXIT_255')) {
                     $SemanticsStage = 'UNKNOWN'
                 }

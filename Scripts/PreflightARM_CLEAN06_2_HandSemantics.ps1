@@ -9,7 +9,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-$Subject='fix(ARM-CLEAN06.2E.4.3): restrict item-only reads to verified UE class'
+$Subject='chore(ARM-CLEAN06.2E.4.4): audit hand attack and redirector parity read-only'
 $Stage=Join-Path $RunDir 'ARMClean062E.stage'
 $OutDir=Join-Path $RunDir 'ARM-CLEAN06.2E'
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
@@ -151,7 +151,7 @@ if ($QualificationErrors -and $QualificationErrors.Count -gt 0) {
 Set-Stage 'QUALIFY_SCHEMA'
 foreach ($Row in @($Report.concrete_weapon_rows)) {
     foreach ($RequiredField in @('is_data_asset','is_primary_data_asset',
-        'class_compiled_from_blueprint')) {
+        'class_compiled_from_blueprint','is_object_redirector','redirect_target_package')) {
         if (@($Row.PSObject.Properties.Name) -notcontains $RequiredField) {
             throw 'ARM-CLEAN06.2E.4.1 native class properties not present.'
         }
@@ -159,7 +159,9 @@ foreach ($Row in @($Report.concrete_weapon_rows)) {
     if ([string]$Row.load_classification -eq 'expected_class') {
         foreach ($RequiredField in @('declared_hand_usage_enum','declared_slot_main',
             'declared_slot_off','combat_action_count','combat_throw_weapon',
-            'source_n1_has_damage_dice')) {
+            'source_n1_has_damage_dice','can_attack_main','can_attack_off',
+            'is_physically_throwable','is_combat_throwable','has_inventory_combat_action',
+            'inventory_combat_action_id','local_combat_action_rows')) {
             if (@($Row.PSObject.Properties.Name) -notcontains $RequiredField) {
                 throw 'ARM-CLEAN06.2E.4.1 native item properties not present.'
             }
@@ -173,7 +175,10 @@ try {
 catch {
     $SafeCodes=@(
         'E4_BAD_PACKAGE_COUNT','E4_CLASS_COUNTS','E4_OPTOUT_COUNTS',
-        'E4_HAND_COUNTS','E4_KIND_COUNTS','E4_FOCUS_COUNTS'
+        'E4_HAND_COUNTS','E4_KIND_COUNTS','E4_FOCUS_COUNTS',
+        'E4_REDIRECTOR_COUNTS','E4_WIDENED_ATTACK_COUNTS',
+        'E4_ATTACK_SLOT_CONTRACT','E4_ATTACK_EQUIP_CONTRACT',
+        'E4_ACTION_COUNT_CONTRACT'
     )
     $ErrorCode=[string]$_.Exception.Message
     if ($SafeCodes -contains $ErrorCode) {
@@ -216,7 +221,16 @@ catch {
 Set-Stage 'QUALIFY_REPORT'
 $QualificationPath=Join-Path $OutDir 'qualification-private.json'
 if (-not (Test-Path -LiteralPath $QualificationPath -PathType Leaf)) {
-    throw 'ARM-CLEAN06.2E.4.1 private qualification not produced.'
+    throw 'ARM-CLEAN06.2E.4.4 private qualification not produced.'
+}
+$Qualified=Get-Content -LiteralPath $QualificationPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if ($Qualified.schema -cne 'ARM-CLEAN06.2E.4.4/qualification/read-only/v1' -or
+    [string]$Qualified.commit_sha -cne $ExpectedHead -or
+    @($Qualified.exact_private_facts).Count -ne 24 -or
+    [bool]$Qualified.semantic_equivalence_proven -or
+    [bool]$Qualified.binary_migration_authorized -or
+    [bool]$Qualified.any_uasset_saved) {
+    throw 'ARM-CLEAN06.2E.4.4 output invariants rejected.'
 }
 Set-Stage 'CHECK_CLEAN'
 $After=@(& git -C $WorktreePath status --porcelain --untracked-files=all)
@@ -235,11 +249,14 @@ $Markdown=@(
     ('| Objet autre classe : DataAsset | '+$Details['other_class_data_assets']+' |'),
     ('| Objet autre classe : PrimaryDataAsset | '+$Details['other_class_primary_data_assets']+' |'),
     ('| Objet autre classe : hors DataAsset | '+$Details['other_class_non_data_assets']+' |'),
+    ('| Objet autre classe : redirector confirme | '+$Details['other_class_redirectors']+' |'),
+    ('| Objet autre classe : pas un redirector | '+$Details['other_class_non_redirectors']+' |'),
     ('| Objet autre classe : derive Blueprint compile | '+$Details['other_class_blueprint_compiled']+' |'),
     ('| Opt-out catalogue dans manifeste | '+$Details['legacy_opt_out_manifest']+' |'),
     ('| Opt-out catalogue hors manifeste | '+$Details['legacy_opt_out_unlisted']+' |'),
     ('| Opt-out disposant d actions locales | '+$Details['legacy_opt_out_with_combat_actions']+' |'),
     ('| Opt-out lancer de combat active | '+$Details['legacy_opt_out_throw_enabled']+' |'),
+    ('| Opt-out avec action de combat d inventaire resolue | '+$Details['legacy_opt_out_inventory_action']+' |'),
     ('| Main indeterminee : NotHandHeld effectif | '+$Details['unresolved_hand_not_handheld']+' |'),
     ('| Main indeterminee : Auto non resolu | '+$Details['unresolved_hand_effective_auto']+' |'),
     ('| Main indeterminee : permissions une main | '+$Details['unresolved_hand_one_hand_permission']+' |'),
@@ -249,6 +266,13 @@ $Markdown=@(
     ('| Type indetermine : bouclier offensif | '+$Details['unresolved_kind_offensive_shield_conflict']+' |'),
     ('| Type indetermine : autres divergences | '+$Details['unresolved_kind_other']+' |'),
     ('| Profils joints : permissions runtime plus larges que slots declares | '+$Details['explicit_slot_mismatch_on_joined']+' |'),
+    ('| Profils joints : equipement elargi sans attaque par le slot supplementaire | '+$Details['widened_equip_without_attack']+' |'),
+    ('| Profils joints : attaque MainHand possible | '+$Details['joined_attack_main']+' |'),
+    ('| Profils joints : attaque OffHand possible | '+$Details['joined_attack_off']+' |'),
+    ('| Definitions equipables MainHand sans attaque MainHand | '+$Details['equippable_without_attack_main']+' |'),
+    ('| Definitions equipables OffHand sans attaque OffHand | '+$Details['equippable_without_attack_off']+' |'),
+    ('| NotHandHeld incertains mais equipables dans une main | '+$Details['unresolved_not_handheld_with_hand_slot']+' |'),
+    ('| FocusPassive manifestes exposant une attaque | '+$Details['focus_passive_with_attack']+' |'),
     ('| Profils FocusPassive du manifeste joints | '+$Details['listed_focus_passive_profiles']+' |'),
     ('| FocusPassive joints avec type encore indetermine | '+$Details['listed_focus_passive_unresolved_kind']+' |'),
 
@@ -288,6 +312,9 @@ $Markdown=@(
     '**Inventaire seulement : conversion binaire NON autorisee.**',
     'Qualification structurelle seulement : un objet chargeable sous une autre classe peut etre valide.',
     'Le type Focus n est jamais deduit automatiquement du seul flag de degats.',
+    'Une classe redirector prouvee reste un package preserve ; aucune suppression ni correction des references.',
+    'Equipement de main, attaque de main et lancer sont trois contrats distincts.',
+    'Les actions locales et leurs politiques sont conservees uniquement dans le rapport prive.',
     'CanEquipToSlot peut accepter davantage de mains que les slots declares : le cutover exige une preuve comportementale.',
     'Les identites et classes exactes restent dans qualification-private.json ; ni conversion ni suppression d assets.',
     'Deux packages hors du manifeste ne signifient pas deux fichiers obsoletes.',
@@ -303,7 +330,7 @@ $Markdown=@(
 )
 $BodyPath=Join-Path $OutDir 'issue.md'
 Set-Content -LiteralPath $BodyPath -Value $Markdown -Encoding UTF8
-$Title='[ARM-CLEAN06.2E.4] Native semantic qualification '+$ExpectedHead.Substring(0,12)
+$Title='[ARM-CLEAN06.2E.4.4] Native action/hand parity '+$ExpectedHead.Substring(0,12)
 $Issue=@(& gh issue create --repo $GitHubRepository --title $Title --body-file $BodyPath)
 if ($LASTEXITCODE -ne 0 -or $Issue.Count -ne 1) {
     throw 'Filtered GitHub issue publication failed.'

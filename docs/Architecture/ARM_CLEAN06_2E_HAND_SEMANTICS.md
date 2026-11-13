@@ -446,3 +446,72 @@ que des comptes agreges. Un succes reste un diagnostic sans
 materialisation des nouveaux DataAssets ; les conversions
 06.3-06.5 demeurent conditionnees aux preuves de parite
 completes. Aucun uasset, umap, audio ou SaveGame n'est ecrit.
+
+## ARM-CLEAN06.2E.4.4 — Parite equipement, attaque, lancer et classe atypique
+
+Point de depart verifie : commit `1ff7d4cc3a864ad278502ca4571714b56cbcc7e4`.
+Les statuts `UE5.5.4/SilentTask`, `UE5.5.4/LocalAuto` et
+`UE5.5.4/ARM-CLEAN06.2E.4.3` sont `success` sur ce SHA.
+
+### Contrats reels (ne pas les fusionner)
+
+- `GetEffectiveHandUsage` : `Auto` devient `OneHanded` si l'une des mains
+  figure dans `CompatibleEquipmentSlots`, sinon `NotHandHeld`.
+- `CanEquipToSlot` : un `OneHanded` **ou `TwoHanded`** accepte les DEUX
+  mains meme si une seule a ete declaree. Le transfert d'un `TwoHanded`
+  le range en `MainHand` et libere/occupe physiquement les deux mains.
+- `CanProvideAttackFromSlot` : condition distincte, qui exige le slot
+  explicitement declare, une action d'equipement `Attack` valide et,
+  en mode ARM, un profil source avec des de degats actifs.
+- `IsCombatThrowable` depend du flag `bCombatThrowWeapon` et non du
+  catalogue. `BuildInventoryCombatActionDefinition` peut produire une
+  action QuickItem de lancer uniquement si une attaque locale admissible
+  existe ; une action QuickItem configuree est prioritaire.
+- Un bouclier passif et un `FocusPassive` ne gagnent ni attaque, ni
+  parade, ni absorption supplementaire par inférence. Le label
+  `FocusPassive` est une intention du manifeste, pas une preuve.
+- `EGridCanonicalHandPolicy` n'a pas de valeur `NotHandHeld` :
+  les trois lignes non resolues restent **bloquantes** jusqu'a une
+  decision explicite et une comparaison du comportement d'equipement.
+
+### Recensement supplementaire natif
+
+Le commandlet read-only capture desormais, pour chaque item de classe
+attendue, `can_attack_main/off`, `can_equip_main/off`, les slots declares,
+les deux types de lancer, le resultat du constructeur d'action d'inventaire,
+et les identifiants/politiques d'actions locales. Les valeurs des autres
+classes sont absentes, jamais traitees comme `false` ou `0`.
+
+Pour la classe atypique, il capture `is_object_redirector` et,
+si disponible, le package de destination **dans le JSON prive seulement**.
+Une correspondance avec `UObjectRedirector` prouverait un type, pas
+l'inutilite du fichier ni la possibilite de reparer/supprimer ses references.
+Une classe differente impose un diagnostic complementaire.
+
+Les verifications ajoutent la conservation du lien
+`attaque => slot declare ET equipement permis` et comptent les
+permissions d'equipement elargies qui ne donnent pas d'attaque depuis
+le nouveau slot. Les 17 divergences de permissions signalees en E.4.3
+doivent etre confrontees a ces mesures ; le resultat public du nouveau
+SHA fait foi, pas une supposition issue du catalogue. Le JSON conserve
+les lignes individuelles ; l'issue GitHub n'exporte que des nombres.
+
+Le suivi des 60 archetypes sans definition concrete est explicitement
+`unresolved`. Les 82 labels `Family/HandUsage` du XLSX n'autorisent
+pas a deduire des politiques de mains ni a authorer 60 assets fictifs.
+Chaque archetype exigera un mapping et une provenance approuves.
+
+### Preuves / garde-fous
+
+- Test Automation sans assets : `Grimrock.RPG.ARM.CLEAN06_2.Semantics.HandActionSeparation`.
+- Agent Windows automatique : sujet exact
+  `chore(ARM-CLEAN06.2E.4.4): audit hand attack and redirector parity read-only`,
+  statut `UE5.5.4/ARM-CLEAN06.2E.4.4` apres compilation et suite `Grimrock`.
+- Proprete du worktree detache avant/apres commandlet, aucun chargement
+  d'asset avec sauvegarde ; rapport nominatif seulement dans le RunDir prive.
+- **Aucun cutover 06.3, migration 06.4, nettoyage 06.5 ou modification**
+  d'assets `Sword`, `RatGiant`, `ThrowingKnife`, `Shuriken`,
+  niveaux, audio et SaveGame. Un controle PIE sera requis uniquement
+  si une regle de gameplay est ensuite modifiee.
+- `success` prouve l'inventaire et la separation des contrats, **pas**
+  la parite complete ni l'autorisation de conversion binaire.
