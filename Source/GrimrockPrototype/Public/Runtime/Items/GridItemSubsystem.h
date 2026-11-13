@@ -95,7 +95,9 @@ enum class EGridCanonicalBoundActionError : uint8
 	ActionDefinitionMissing,
 	PresentationDefinitionMissing,
 	AttackSourceNotAuthorized,
-	ActionIsNotAttack
+	ActionIsNotAttack,
+	InvalidSourceInstance,
+	EquipmentSourceMismatch
 };
 
 /**
@@ -176,6 +178,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item System")
 	bool ResolveBoundAttackForHand(FName ItemId, int32 ItemLevel, FName ActionId,
 		EGridEquipmentSlot SourceHand, FGridResolvedBoundAction& OutAttack) const;
+
+	/**
+	 * Verify a persisted equipped item against the identity read from the
+	 * CURRENT equipment slot, then resolve its real hand's bound attack.
+	 * The caller must read the observed GUID, owner and index from the live
+	 * inventory; these arguments do NOT themselves query inventory state.
+	 * Rejects stale hotbar GUIDs, cursor/bag items and legacy item level 0.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Item System|Combat")
+	bool ResolveAttackFromEquippedInstance(const FGridItemInstance& Instance,
+		FName ActionId, EGridEquipmentSlot SourceHand,
+		FGuid ObservedSlotRuntimeObjectId, FGuid ObservedCharacterId,
+		int32 ObservedCharacterIndex, FGridResolvedBoundAction& OutAttack) const;
 
 	UFUNCTION(BlueprintPure, Category = "Item System")
 	bool IsConfigured() const { return RootRegistry != nullptr; }

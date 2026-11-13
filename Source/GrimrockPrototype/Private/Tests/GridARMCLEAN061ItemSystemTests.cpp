@@ -964,4 +964,151 @@ bool FGridClean062AFInstanceArmorReserve::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062AGEquippedInstanceAttack,
+	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.EquippedInstanceAttackIdentity",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean062AGEquippedInstanceAttack::RunTest(const FString&)
+{
+	const Clean061::FFixture F = Clean061::Make();
+	TStrongObjectPtr<UGridItemSubsystem> Resolver(
+		NewObject<UGridItemSubsystem>(F.GameInstance.Get()));
+
+	FGridItemInstance Instance;
+	Instance.RuntimeObjectId = FGuid(2026, 11, 13, 1);
+	Instance.ItemDefinitionId = TEXT("TestSword");
+	Instance.ItemLevel = 20;
+	Instance.Quantity = 1;
+	Instance.OwnerType = EGridItemOwnerType::EquipmentSlot;
+	Instance.EquipmentSlot = EGridEquipmentSlot::MainHand;
+	Instance.OwnerGuid = FGuid(2026, 11, 13, 7);
+	Instance.OwnerCharacterIndex = 2;
+	const FGuid LiveItemId = Instance.RuntimeObjectId;
+	const FGuid LiveCharacterId = Instance.OwnerGuid;
+	const int32 LiveCharacterIndex = Instance.OwnerCharacterIndex;
+	FGridResolvedBoundAction Out;
+
+	auto Resolve = [&](FName Id, EGridEquipmentSlot Hand,
+		FGuid SlotObjectId, FGuid CharacterId, int32 CharacterIndex)
+	{
+		return Resolver->ResolveAttackFromEquippedInstance(
+			Instance, Id, Hand, SlotObjectId, CharacterId, CharacterIndex, Out);
+	};
+
+	TestFalse(TEXT("Registry must be configured first"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex));
+	TestEqual(TEXT("Missing registry error"), Out.Error,
+		EGridCanonicalBoundActionError::RegistryNotConfigured);
+
+	TArray<FString> Errors;
+	if (!TestTrue(TEXT("Canonical fixture registers successfully"),
+		Resolver->RegisterItemSystem(F.System, Errors)))
+	{
+		return false;
+	}
+	if (!TestTrue(TEXT("Actual equipped sword N20 can attack from MainHand"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex)))
+	{
+		return false;
+	}
+	TestEqual(TEXT("Real authored action"), Out.ActionId,
+		FName(TEXT("BasicStrike")));
+	TestEqual(TEXT("Real authored presentation"), Out.PresentationId,
+		FName(TEXT("BasicMotion")));
+	TestEqual(TEXT("Source item level, not character level"), Out.ItemLevel, 20);
+
+	TestFalse(TEXT("Stale hotbar GUID cannot borrow another equipped sword"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			FGuid(2026, 11, 13, 99), LiveCharacterId, LiveCharacterIndex));
+	TestEqual(TEXT("Stale GUID rejection is explicit"), Out.Error,
+		EGridCanonicalBoundActionError::EquipmentSourceMismatch);
+	TestTrue(TEXT("Failed action clears preceding successful identity"),
+		Out.ActionId.IsNone());
+
+	TestFalse(TEXT("Wrong character GUID cannot execute another character's sword"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			LiveItemId, FGuid(2026, 11, 13, 8), LiveCharacterIndex));
+	TestEqual(TEXT("Wrong owner GUID rejected"), Out.Error,
+		EGridCanonicalBoundActionError::EquipmentSourceMismatch);
+
+	TestFalse(TEXT("Wrong party character index cannot authorize attack"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			LiveItemId, LiveCharacterId, 1));
+	TestEqual(TEXT("Wrong owner index rejected"), Out.Error,
+		EGridCanonicalBoundActionError::EquipmentSourceMismatch);
+
+	Instance.OwnerType = EGridItemOwnerType::CharacterInventory;
+	TestFalse(TEXT("Bag sword may not attack as if equipped"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex));
+	TestEqual(TEXT("Bag owner explicitly rejected"), Out.Error,
+		EGridCanonicalBoundActionError::EquipmentSourceMismatch);
+
+	Instance.OwnerType = EGridItemOwnerType::Cursor;
+	TestFalse(TEXT("Cursor-held sword cannot be used from a slot"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex));
+	Instance.OwnerType = EGridItemOwnerType::EquipmentSlot;
+
+	TestFalse(TEXT("OffHand cannot consume MainHand instance action"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::OffHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex));
+	TestEqual(TEXT("Requested hand differs from occupied slot"), Out.Error,
+		EGridCanonicalBoundActionError::EquipmentSourceMismatch);
+
+	Instance.EquipmentSlot = EGridEquipmentSlot::OffHand;
+	TestFalse(TEXT("True OffHand instance still obeys authored attack-source hands"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::OffHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex));
+	TestEqual(TEXT("OffHand attack source not invented"), Out.Error,
+		EGridCanonicalBoundActionError::AttackSourceNotAuthorized);
+	Instance.EquipmentSlot = EGridEquipmentSlot::MainHand;
+
+	Instance.ItemLevel = 0;
+	TestFalse(TEXT("Saved Legacy level 0 cannot become N1"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex));
+	TestEqual(TEXT("Invalid source level is explicit"), Out.Error,
+		EGridCanonicalBoundActionError::InvalidSourceInstance);
+	Instance.ItemLevel = 20;
+
+	Instance.RuntimeObjectId.Invalidate();
+	TestFalse(TEXT("Missing instance GUID rejected"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex));
+	TestEqual(TEXT("Missing instance identity rejected"), Out.Error,
+		EGridCanonicalBoundActionError::InvalidSourceInstance);
+	Instance.RuntimeObjectId = LiveItemId;
+
+	Instance.AbsorbedEquipmentPhysicalArmor = -1;
+	TestFalse(TEXT("Invalid persisted negative armor debt rejected"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex));
+	Instance.AbsorbedEquipmentPhysicalArmor = 0;
+
+	TestFalse(TEXT("Unbound action cannot borrow a replacement attack"),
+		Resolve(TEXT("UnknownAttack"), EGridEquipmentSlot::MainHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex));
+	TestEqual(TEXT("Unknown ActionId remains unknown"), Out.Error,
+		EGridCanonicalBoundActionError::ActionNotBound);
+
+	Instance.ItemDefinitionId = TEXT("TestShield");
+	TestFalse(TEXT("Passive shield cannot borrow offensive binding"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex));
+	TestEqual(TEXT("Shield has no attack source"), Out.Error,
+		EGridCanonicalBoundActionError::AttackSourceNotAuthorized);
+
+	Instance.ItemDefinitionId = TEXT("TestSword");
+	TestTrue(TEXT("Restored equipped sword resolves after every refusal"),
+		Resolve(TEXT("BasicStrike"), EGridEquipmentSlot::MainHand,
+			LiveItemId, LiveCharacterId, LiveCharacterIndex));
+	TestEqual(TEXT("Restored action preserved"), Out.ActionId,
+		FName(TEXT("BasicStrike")));
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

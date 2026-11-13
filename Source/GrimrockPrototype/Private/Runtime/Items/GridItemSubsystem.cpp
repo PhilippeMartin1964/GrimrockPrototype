@@ -286,3 +286,48 @@ bool UGridItemSubsystem::ResolveBoundAttackForHand(
 	}
 	return true;
 }
+
+bool UGridItemSubsystem::ResolveAttackFromEquippedInstance(
+	const FGridItemInstance& Instance, FName ActionId,
+	EGridEquipmentSlot SourceHand, FGuid ObservedSlotRuntimeObjectId,
+	FGuid ObservedCharacterId, int32 ObservedCharacterIndex,
+	FGridResolvedBoundAction& OutAttack) const
+{
+	OutAttack = FGridResolvedBoundAction();
+	if (!RootRegistry)
+	{
+		OutAttack.Error = EGridCanonicalBoundActionError::RegistryNotConfigured;
+		return false;
+	}
+
+	// Instance.ItemLevel=0 was a legacy format. Never substitute N1 or
+	// silently borrow the character's RPG level. No ammo cost is paid here.
+	if (!Instance.IsValid() || Instance.ItemLevel < 1 ||
+		Instance.ItemLevel > 20 ||
+		Instance.AbsorbedEquipmentPhysicalArmor < 0 ||
+		Instance.AbsorbedEquipmentMagicalArmor < 0 ||
+		!ObservedSlotRuntimeObjectId.IsValid() ||
+		!ObservedCharacterId.IsValid() || ObservedCharacterIndex < 0)
+	{
+		OutAttack.Error = EGridCanonicalBoundActionError::InvalidSourceInstance;
+		return false;
+	}
+
+	// Ownership AND actual slot identity must agree. CanEquipInHand alone
+	// is insufficient; the existing hand action resolver is still authoritative.
+	if (Instance.OwnerType != EGridItemOwnerType::EquipmentSlot ||
+		Instance.EquipmentSlot != SourceHand ||
+		(SourceHand != EGridEquipmentSlot::MainHand &&
+		 SourceHand != EGridEquipmentSlot::OffHand) ||
+		Instance.RuntimeObjectId != ObservedSlotRuntimeObjectId ||
+		Instance.OwnerGuid != ObservedCharacterId ||
+		Instance.OwnerCharacterIndex != ObservedCharacterIndex)
+	{
+		OutAttack.Error = EGridCanonicalBoundActionError::EquipmentSourceMismatch;
+		return false;
+	}
+
+	return ResolveBoundAttackForHand(
+		Instance.ItemDefinitionId, Instance.ItemLevel,
+		ActionId, SourceHand, OutAttack);
+}
