@@ -387,6 +387,13 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalResolvedWeapon
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Resolved")
 	EGridCanonicalHandPolicy HandPolicy = EGridCanonicalHandPolicy::MainHand;
 
+	/** Explicit attack-source permission, independent of hand equip permission. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Resolved")
+	TArray<EGridEquipmentSlot> AttackSourceSlots;
+
+	bool CanEquipInHand(EGridEquipmentSlot Slot) const;
+	bool HasAttackSourceInHand(EGridEquipmentSlot Slot) const;
+
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Resolved")
 	EGridDamageType DamageType = EGridDamageType::Physical;
 
@@ -497,6 +504,14 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponArchetype
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TArray<FGridItemActionBinding> Actions;
+
+	/**
+	 * MainHand/OffHand sources of an ALREADY AUTHORed attack. A one-handed
+	 * weapon may be equippable in both hands without exposing a second attack.
+	 * Kept only in the weapon catalogue, never on the concrete DA_Weapon.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Combat")
+	TArray<EGridEquipmentSlot> AttackSourceSlots;
 
 	bool TryResolve(int32 Level, FGridCanonicalResolvedWeapon& Out) const;
 };

@@ -68,6 +68,7 @@ namespace Clean061
 				Binding.ActionId = TEXT("BasicStrike");
 				Binding.PresentationId = TEXT("BasicMotion");
 				Weapon.Actions.Add(Binding);
+				Weapon.AttackSourceSlots.Add(EGridEquipmentSlot::MainHand);
 			}
 			if (Index == 33)
 			{

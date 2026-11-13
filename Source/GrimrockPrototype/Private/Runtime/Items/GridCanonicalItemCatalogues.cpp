@@ -219,6 +219,32 @@ bool UGridCanonicalWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors)
 	return bValid;
 }
 
+bool FGridCanonicalResolvedWeapon::CanEquipInHand(EGridEquipmentSlot Slot) const
+{
+	if (Slot != EGridEquipmentSlot::MainHand && Slot != EGridEquipmentSlot::OffHand)
+	{
+		return false;
+	}
+	switch (HandPolicy)
+	{
+	case EGridCanonicalHandPolicy::MainHand:
+		return Slot == EGridEquipmentSlot::MainHand;
+	case EGridCanonicalHandPolicy::OffHand:
+		return Slot == EGridEquipmentSlot::OffHand;
+	case EGridCanonicalHandPolicy::EitherHand:
+	case EGridCanonicalHandPolicy::TwoHanded:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool FGridCanonicalResolvedWeapon::HasAttackSourceInHand(EGridEquipmentSlot Slot) const
+{
+	return Kind == EGridCanonicalArmamentKind::Weapon &&
+		CanEquipInHand(Slot) && AttackSourceSlots.Contains(Slot);
+}
+
 bool FGridCanonicalWeaponArchetype::TryResolve(int32 Level, FGridCanonicalResolvedWeapon& Out) const
 {
 	Out = FGridCanonicalResolvedWeapon();
@@ -230,6 +256,7 @@ bool FGridCanonicalWeaponArchetype::TryResolve(int32 Level, FGridCanonicalResolv
 	}
 	Out.Kind = Kind;
 	Out.HandPolicy = HandPolicy;
+	Out.AttackSourceSlots = AttackSourceSlots;
 	Out.DamageType = DamageType;
 	Out.PhysicalSubtype = PhysicalSubtype;
 	Out.ScalingAttribute = ScalingAttribute;
@@ -346,6 +373,24 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 				bValid = AddError(Errors, TEXT("Weapon catalogue: invalid/duplicate reaction"));
 			}
 			SeenReactions.Add(Reaction.ReactionId);
+		}
+		FGridCanonicalResolvedWeapon HandView;
+		HandView.Kind = Archetype.Kind;
+		HandView.HandPolicy = Archetype.HandPolicy;
+		TSet<EGridEquipmentSlot> SeenAttackSlots;
+		for (EGridEquipmentSlot Slot : Archetype.AttackSourceSlots)
+		{
+			if ((Slot != EGridEquipmentSlot::MainHand && Slot != EGridEquipmentSlot::OffHand) ||
+				SeenAttackSlots.Contains(Slot) || !HandView.CanEquipInHand(Slot) ||
+				Archetype.Kind != EGridCanonicalArmamentKind::Weapon)
+			{
+				bValid = AddError(Errors, TEXT("Weapon catalogue: invalid attack source hand"));
+			}
+			SeenAttackSlots.Add(Slot);
+		}
+		if (!Archetype.AttackSourceSlots.IsEmpty() && Archetype.Actions.IsEmpty())
+		{
+			bValid = AddError(Errors, TEXT("Weapon catalogue: attack source without action binding"));
 		}
 		TSet<FName> SeenActions;
 		for (const FGridItemActionBinding& Action : Archetype.Actions)
