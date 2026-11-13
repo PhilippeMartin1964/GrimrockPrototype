@@ -211,3 +211,38 @@ bool UGridItemSubsystem::ResolveBoundAction(
 	OutAction.Error = EGridCanonicalBoundActionError::None;
 	return true;
 }
+
+bool UGridItemSubsystem::ResolveBoundAttackForHand(
+	FName ItemId, int32 ItemLevel, FName ActionId, EGridEquipmentSlot SourceHand,
+	FGridResolvedBoundAction& OutAttack) const
+{
+	OutAttack = FGridResolvedBoundAction();
+	if (!RootRegistry)
+	{
+		OutAttack.Error = EGridCanonicalBoundActionError::RegistryNotConfigured;
+		return false;
+	}
+	FGridResolvedItem Item;
+	if (!ResolveItem(ItemId, ItemLevel, Item))
+	{
+		OutAttack.Error = EGridCanonicalBoundActionError::ItemResolutionFailed;
+		OutAttack.ItemError = Item.Error;
+		return false;
+	}
+	if (!Item.bIsArmament || !Item.Weapon.HasAttackSourceInHand(SourceHand))
+	{
+		OutAttack.Error = EGridCanonicalBoundActionError::AttackSourceNotAuthorized;
+		return false;
+	}
+	if (!ResolveBoundAction(ItemId, ItemLevel, ActionId, OutAttack))
+	{
+		return false; // Preserve exact action/presentation resolution failure.
+	}
+	if (OutAttack.Action.Kind != EGridCanonicalActionKind::Attack)
+	{
+		OutAttack = FGridResolvedBoundAction();
+		OutAttack.Error = EGridCanonicalBoundActionError::ActionIsNotAttack;
+		return false;
+	}
+	return true;
+}

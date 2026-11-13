@@ -641,4 +641,112 @@ bool FGridClean062TAttackReadinessGate::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062ABBoundHandAttackTest,
+	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.AuthorizedAttackSourceHandResolver",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean062ABBoundHandAttackTest::RunTest(const FString&)
+{
+	const Clean061::FFixture F = Clean061::Make();
+	TStrongObjectPtr<UGridItemSubsystem> Resolver(
+		NewObject<UGridItemSubsystem>(F.GameInstance.Get()));
+	FGridResolvedBoundAction Out;
+	TestFalse(TEXT("Unconfigured item system cannot authorize hand attacks"),
+		Resolver->ResolveBoundAttackForHand(
+			TEXT("TestSword"), 20, TEXT("BasicStrike"), EGridEquipmentSlot::MainHand, Out));
+	TestEqual(TEXT("Explicit unconfigured guard"), Out.Error,
+		EGridCanonicalBoundActionError::RegistryNotConfigured);
+
+	TArray<FString> Errors;
+	if (!TestTrue(TEXT("Valid canonical fixture registered"),
+		Resolver->RegisterItemSystem(F.System, Errors)))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Sword ARM014 attacks from authored MainHand source"),
+		Resolver->ResolveBoundAttackForHand(
+			TEXT("TestSword"), 20, TEXT("BasicStrike"), EGridEquipmentSlot::MainHand, Out));
+	TestEqual(TEXT("Actual attack name"), Out.ActionId, FName(TEXT("BasicStrike")));
+	TestEqual(TEXT("Real authored presentation link"), Out.PresentationId,
+		FName(TEXT("BasicMotion")));
+	TestEqual(TEXT("Attack resolves at item N20"), Out.ItemLevel, 20);
+	TestEqual(TEXT("Only Attack kind accepted"), Out.Action.Kind,
+		EGridCanonicalActionKind::Attack);
+
+	TestFalse(TEXT("MainHand sword cannot attack from OffHand"),
+		Resolver->ResolveBoundAttackForHand(
+			TEXT("TestSword"), 20, TEXT("BasicStrike"), EGridEquipmentSlot::OffHand, Out));
+	TestEqual(TEXT("OffHand missing source is not a fallback"),
+		Out.Error, EGridCanonicalBoundActionError::AttackSourceNotAuthorized);
+	TestTrue(TEXT("Failed action clears previous identity"), Out.ActionId.IsNone());
+
+	FGridCanonicalWeaponArchetype* Sword = F.System->WeaponCatalogue->Archetypes.FindByPredicate(
+		[](const FGridCanonicalWeaponArchetype& Arm)
+		{
+			return Arm.ArchetypeId == FName(TEXT("ARM014"));
+		});
+	if (!TestNotNull(TEXT("ARM014 fixture entry"), Sword)) { return false; }
+	Sword->HandPolicy = EGridCanonicalHandPolicy::EitherHand;
+	FGridResolvedItem SwordView;
+	TestTrue(TEXT("Wide equip policy resolves without implicit attacks"),
+		Resolver->ResolveItem(TEXT("TestSword"), 20, SwordView));
+	TestTrue(TEXT("Widened equip actually permits OffHand"),
+		SwordView.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand));
+	TestFalse(TEXT("An equippable OffHand cannot gain an unlisted attack source"),
+		Resolver->ResolveBoundAttackForHand(
+			TEXT("TestSword"), 20, TEXT("BasicStrike"), EGridEquipmentSlot::OffHand, Out));
+	TestEqual(TEXT("Widened equip still has no OffHand attack"),
+		Out.Error, EGridCanonicalBoundActionError::AttackSourceNotAuthorized);
+	Sword->HandPolicy = EGridCanonicalHandPolicy::MainHand;
+
+	TestFalse(TEXT("Passive shield does not acquire an offensive attack"),
+		Resolver->ResolveBoundAttackForHand(
+			TEXT("TestShield"), 20, TEXT("BasicStrike"), EGridEquipmentSlot::OffHand, Out));
+	TestEqual(TEXT("Passive equipment has no attack source"),
+		Out.Error, EGridCanonicalBoundActionError::AttackSourceNotAuthorized);
+	TestFalse(TEXT("Consumable cannot borrow equipment-hand attack source"),
+		Resolver->ResolveBoundAttackForHand(
+			TEXT("TestPotion"), 1, TEXT("BasicStrike"), EGridEquipmentSlot::MainHand, Out));
+	TestEqual(TEXT("Non-armament has no attack source"), Out.Error,
+		EGridCanonicalBoundActionError::AttackSourceNotAuthorized);
+
+	TestFalse(TEXT("Unknown ActionId does not fall back to another attack"),
+		Resolver->ResolveBoundAttackForHand(
+			TEXT("TestSword"), 1, TEXT("UnknownAttack"), EGridEquipmentSlot::MainHand, Out));
+	TestEqual(TEXT("Unknown action remains unbound"), Out.Error,
+		EGridCanonicalBoundActionError::ActionNotBound);
+
+	TestFalse(TEXT("Out-of-range level cannot authorize an attack"),
+		Resolver->ResolveBoundAttackForHand(
+			TEXT("TestSword"), 21, TEXT("BasicStrike"), EGridEquipmentSlot::MainHand, Out));
+	TestEqual(TEXT("Item-level check is preserved"), Out.Error,
+		EGridCanonicalBoundActionError::ItemResolutionFailed);
+	TestEqual(TEXT("Actual item-level error is available"), Out.ItemError,
+		EGridCanonicalItemResolveError::InvalidItemLevel);
+
+	FGridCanonicalAction Defense;
+	Defense.ActionId = TEXT("TestGuard");
+	Defense.Kind = EGridCanonicalActionKind::Defend;
+	F.System->ActionCatalogue->Actions.Add(Defense);
+	FGridItemActionBinding DefenseBinding;
+	DefenseBinding.ActionId = Defense.ActionId;
+	DefenseBinding.PresentationId = TEXT("BasicMotion");
+	Sword->Actions.Add(DefenseBinding);
+	TestFalse(TEXT("A bound Defend action is never executable as Attack"),
+		Resolver->ResolveBoundAttackForHand(
+			TEXT("TestSword"), 1, TEXT("TestGuard"), EGridEquipmentSlot::MainHand, Out));
+	TestEqual(TEXT("Wrong kind has a distinct rejection reason"), Out.Error,
+		EGridCanonicalBoundActionError::ActionIsNotAttack);
+	TestTrue(TEXT("Rejected wrong action kind clears its identity"), Out.ActionId.IsNone());
+
+	F.System->ActionPresentationCatalogue->Presentations.Reset();
+	TestFalse(TEXT("Missing presentation is never invented"),
+		Resolver->ResolveBoundAttackForHand(
+			TEXT("TestSword"), 1, TEXT("BasicStrike"), EGridEquipmentSlot::MainHand, Out));
+	TestEqual(TEXT("Missing presentation is reported verbatim"), Out.Error,
+		EGridCanonicalBoundActionError::PresentationDefinitionMissing);
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

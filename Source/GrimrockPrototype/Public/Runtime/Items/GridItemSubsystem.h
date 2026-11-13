@@ -84,7 +84,9 @@ enum class EGridCanonicalBoundActionError : uint8
 	ItemResolutionFailed,
 	ActionNotBound,
 	ActionDefinitionMissing,
-	PresentationDefinitionMissing
+	PresentationDefinitionMissing,
+	AttackSourceNotAuthorized,
+	ActionIsNotAttack
 };
 
 /**
@@ -147,6 +149,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item System")
 	bool ResolveBoundAction(FName ItemId, int32 ItemLevel, FName ActionId,
 		FGridResolvedBoundAction& OutAction) const;
+
+	/** Strict equipment-hand entry point for ATTACK only.
+	 * An item that can equip OffHand does NOT automatically gain an OffHand attack.
+	 * Use ResolveBoundAction for non-attack consumables/abilities.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Item System")
+	bool ResolveBoundAttackForHand(FName ItemId, int32 ItemLevel, FName ActionId,
+		EGridEquipmentSlot SourceHand, FGridResolvedBoundAction& OutAttack) const;
 
 	UFUNCTION(BlueprintPure, Category = "Item System")
 	bool IsConfigured() const { return RootRegistry != nullptr; }
