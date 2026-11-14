@@ -3,6 +3,9 @@
 #include "Runtime/GridEquipmentPreviewTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "UI/GridWeaponTooltipProjection.h"
 #include "UI/UILocalizationText.h"
 
@@ -240,6 +243,13 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
 
     AddNumericChanges(Preview, OutScenario.StatLines);
 
+    // The same GameInstance registry used by the inventory tooltip provides
+    // both candidate and equipped weapon levels, never the old N1 copy.
+    const UWorld* World = Inventory->GetWorld();
+    UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+    const UGridItemSubsystem* Registry = GameInstance
+        ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+
     // Compare offensive catalogues only with the actual weapon displaced
     // from the candidate's target hand. Shield losses are represented by
     // effective-armor rows, never via an attack-versus-shield comparison.
@@ -254,7 +264,7 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
         {
             FGridWeaponTooltipProjection::BuildComparison(
                 CandidateDefinition, Candidate, EquippedDef, EquippedItem,
-                OutScenario.WeaponFacts);
+                OutScenario.WeaponFacts, Registry);
         }
     }
     return true;

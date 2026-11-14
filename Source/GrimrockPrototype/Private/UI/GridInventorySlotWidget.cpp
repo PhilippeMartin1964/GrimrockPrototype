@@ -9,6 +9,7 @@
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridWeaponVisualUiResolver.h"
 #include "GridInventoryItemMetadataReadModel.h"
+#include "../Runtime/GridEquipmentPreviewItemReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -184,19 +185,25 @@ namespace
 	}
 
 	void AppendDefinitionStats(
-		const UGridItemDefinitionAsset* Candidate, const UGridItemDefinitionAsset* Equipped, bool bComparison, TArray<FGridItemTooltipStatLine>& OutLines)
+		const UGridItemSubsystem* Registry,
+		const UGridItemDefinitionAsset* Candidate, const FGridItemInstance& CandidateInstance,
+		const UGridItemDefinitionAsset* Equipped, const FGridItemInstance* EquippedInstance,
+		bool bComparison, TArray<FGridItemTooltipStatLine>& OutLines)
 	{
 		if (!Candidate)
 		{
 			return;
 		}
 
-		const FGridEquipmentStatBonus EmptyStats;
-		const FGridDamageResistanceSet EmptyResistances;
-		const FGridEquipmentStatBonus& CandidateStats = Candidate->EquipmentStatBonus;
-		const FGridEquipmentStatBonus& EquippedStats = Equipped ? Equipped->EquipmentStatBonus : EmptyStats;
-		const FGridDamageResistanceSet& CandidateRes = Candidate->EquipmentResistanceBonus;
-		const FGridDamageResistanceSet& EquippedRes = Equipped ? Equipped->EquipmentResistanceBonus : EmptyResistances;
+		const FGridEquipmentPreviewItemReadView CandidateView =
+			FGridEquipmentPreviewItemReadModel::Resolve(Registry, Candidate, CandidateInstance);
+		const FGridEquipmentPreviewItemReadView EquippedView = EquippedInstance
+			? FGridEquipmentPreviewItemReadModel::Resolve(Registry, Equipped, *EquippedInstance)
+			: FGridEquipmentPreviewItemReadView();
+		const FGridEquipmentStatBonus& CandidateStats = CandidateView.Bonuses;
+		const FGridEquipmentStatBonus& EquippedStats = EquippedView.Bonuses;
+		const FGridDamageResistanceSet& CandidateRes = CandidateView.Resistances;
+		const FGridDamageResistanceSet& EquippedRes = EquippedView.Resistances;
 
 		AddTooltipStatLine(OutLines, TEXT("Strength"), NSLOCTEXT("GridInventoryTooltip", "StatStrength", "Force"),
 			CandidateStats.StrengthBonus, EquippedStats.StrengthBonus, true, bComparison);
@@ -465,7 +472,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		SlotType == EGridInventoryUiSlotType::Inventory && (Definition->BuildInventoryCombatActionDefinition(InventoryAction) || Definition->IsPhysicallyThrowable());
 
 
-	AppendDefinitionStats(Definition, nullptr, false, View.StatLines);
+	AppendDefinitionStats(Registry, Definition, CachedItem, nullptr, nullptr, false, View.StatLines);
 
 	const UGridInventoryWidget* InventoryWidget = OwningInventoryWidget.Get();
 	const UGridPartyInventoryComponent* InventoryComponent = InventoryWidget ? InventoryWidget->InventoryComponent : nullptr;
@@ -540,7 +547,8 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		{
 			Comparison.EquippedItemDisplayText = NSLOCTEXT("GridInventoryTooltip", "EmptyEquipment", "vide");
 		}
-		AppendDefinitionStats(Definition, EquippedDefinition, true, Comparison.StatLines);
+		AppendDefinitionStats(Registry, Definition, CachedItem, EquippedDefinition,
+			bHasEquippedItem ? &EquippedItem : nullptr, true, Comparison.StatLines);
         if (bHasEquippedItem && EquippedDefinition)
         {
             FGridWeaponTooltipProjection::BuildComparison(

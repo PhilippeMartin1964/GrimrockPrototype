@@ -2,6 +2,10 @@
 
 #include "GridEquipmentSlotUtils.h"
 #include "GridEquipmentArmorReadModel.h"
+#include "GridEquipmentPreviewItemReadModel.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
 namespace
@@ -124,6 +128,13 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
         return false;
     }
 
+    // One GameInstance ItemSystem for both real and projected items; headless
+    // diagnostics may still run without a GameInstance during the transition.
+    const UWorld* PreviewWorld = GetWorld();
+    UGameInstance* PreviewGameInstance = PreviewWorld ? PreviewWorld->GetGameInstance() : nullptr;
+    const UGridItemSubsystem* Registry = PreviewGameInstance
+        ? PreviewGameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+
     const FGridCharacterEquipmentState& CurrentEquipment =
         PartyInventoryState.ActiveEquipment[CharacterIndex];
     const bool bIncomingTwoHanded =
@@ -144,7 +155,7 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
     OutPreview.bWouldReleaseBothHands = bReleaseBoth;
 
     // Mirrors EquipItemFromInventorySlot's physical displaced-items list.
-    auto AppendDisplaced = [this, &OutPreview](EGridEquipmentSlot Slot,
+    auto AppendDisplaced = [this, &OutPreview, Registry](EGridEquipmentSlot Slot,
         const FGridItemInstance& Item)
     {
         if (!Item.IsValid()) return;
@@ -152,12 +163,11 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
         Entry.OriginalSlot = Slot;
         Entry.ItemDefinitionId = Item.ItemDefinitionId;
         Entry.RuntimeObjectId = Item.RuntimeObjectId;
-        const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
-        Entry.DisplayName = Definition && !Definition->DisplayName.IsEmpty()
-            ? Definition->DisplayName : FText::FromName(Item.ItemDefinitionId);
-        FGridEquipmentArmorReadView Armor;
-        Entry.RemainingPhysicalArmor = TryResolveEquipmentArmorRead(Item, Armor)
-            ? FMath::Max(0, Armor.RemainingPhysical) : 0;
+        const FGridEquipmentPreviewItemReadView Read =
+            FGridEquipmentPreviewItemReadModel::Resolve(
+                Registry, FindItemDefinition(Item.ItemDefinitionId), Item);
+        Entry.DisplayName = Read.DisplayName;
+        Entry.RemainingPhysicalArmor = Read.RemainingPhysicalArmor;
     };
     if (bReleaseBoth)
     {
@@ -201,24 +211,25 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
     Destination->OwnerType = EGridItemOwnerType::EquipmentSlot;
     Destination->EquipmentSlot = ActualTarget;
 
-    auto Gather = [this, &Character](const FGridCharacterEquipmentState& Equipment)
+    auto Gather = [this, &Character, Registry](const FGridCharacterEquipmentState& Equipment)
         -> FPreviewEquipmentTotals
     {
         FPreviewEquipmentTotals Totals;
         int64 PhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor);
         GridEquipmentSlotUtils::ForEachEquipmentItem(Equipment,
-            [this, &Totals, &PhysicalArmor](EGridEquipmentSlot,
+            [this, Registry, &Totals, &PhysicalArmor](EGridEquipmentSlot,
                 const FGridItemInstance& Item)
             {
                 if (!Item.IsValid()) return;
-                FGridEquipmentArmorReadView Armor;
-                if (!TryResolveEquipmentArmorRead(Item, Armor)) return;
-                AddBonuses(Totals.Bonuses, GetEquipmentBonusesForInstance(Item));
-                if (const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId))
-                {
-                    Totals.Resistances.Add(Definition->EquipmentResistanceBonus);
-                }
-                PhysicalArmor += Armor.RemainingPhysical;
+                const FGridEquipmentPreviewItemReadView Read =
+                    FGridEquipmentPreviewItemReadModel::Resolve(
+                        Registry, FindItemDefinition(Item.ItemDefinitionId), Item);
+                // Independently aggregate the same bonus and resistance sources
+                // as live equipment; lack of an armor reserve must not mask
+                // a real resistance contribution in a read-only projection.
+                AddBonuses(Totals.Bonuses, Read.Bonuses);
+                Totals.Resistances.Add(Read.Resistances);
+                PhysicalArmor += Read.RemainingPhysicalArmor;
             });
         Totals.EffectivePhysicalArmor =
             static_cast<int32>(FMath::Clamp<int64>(PhysicalArmor, 0, MAX_int32));
