@@ -8,6 +8,7 @@
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridWeaponVisualUiResolver.h"
+#include "GridInventoryItemMetadataReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -75,17 +76,16 @@ namespace
 		}
 	}
 
-	FText GetItemDisplayName(const FGridItemInstance& Item, const UGridItemDefinitionAsset* Definition)
+	const UGridItemSubsystem* GetCanonicalItemRegistry(const UGridInventorySlotWidget* Slot)
 	{
-		if (Definition && !Definition->DisplayName.IsEmpty())
+		if (const UWorld* World = Slot->GetWorld())
 		{
-			return Definition->DisplayName;
+			if (UGameInstance* GameInstance = World->GetGameInstance())
+			{
+				return GameInstance->GetSubsystem<UGridItemSubsystem>();
+			}
 		}
-		if (!Item.DisplayName.IsEmpty())
-		{
-			return Item.DisplayName;
-		}
-		return Item.ItemDefinitionId.IsNone() ? FText::GetEmpty() : FText::FromName(Item.ItemDefinitionId);
+		return nullptr;
 	}
 
 	FText BuildCompatibleEquipmentSlotsText(const UGridItemDefinitionAsset* Definition)
@@ -321,14 +321,7 @@ void UGridInventorySlotWidget::SetItem(const FGridItemInstance& InItem)
 	bHasItem = true;
 	CachedIconTexture = nullptr;
 	CachedVisualId = NAME_None;
-	const UGridItemSubsystem* Registry = nullptr;
-	if (const UWorld* World = GetWorld())
-	{
-		if (UGameInstance* GameInstance = World->GetGameInstance())
-		{
-			Registry = GameInstance->GetSubsystem<UGridItemSubsystem>();
-		}
-	}
+	const UGridItemSubsystem* Registry = GetCanonicalItemRegistry(this);
 	const FGridResolvedInventoryItemIcon Visual =
 		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(Registry, GetItemDefinition(), CachedItem);
 	CachedVisualId = Visual.VisualId;
@@ -381,17 +374,10 @@ FString UGridInventorySlotWidget::GetDisplayNameText() const
 		return FString();
 	}
 
-	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
-	if (Definition && !Definition->DisplayName.IsEmpty())
-	{
-		return Definition->DisplayName.ToString();
-	}
-	if (!CachedItem.DisplayName.IsEmpty())
-	{
-		return CachedItem.DisplayName.ToString();
-	}
-
-	return CachedItem.ItemDefinitionId.ToString();
+	const FGridInventoryItemMetadata Metadata = FGridInventoryItemMetadataReadModel::Resolve(
+		GetCanonicalItemRegistry(this), GetItemDefinition(), CachedItem);
+	return Metadata.DisplayName.IsEmpty() ? CachedItem.ItemDefinitionId.ToString()
+		: Metadata.DisplayName.ToString();
 }
 
 FString UGridInventorySlotWidget::GetQuantityText() const
@@ -413,14 +399,18 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	}
 
 	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
+	const UGridItemSubsystem* Registry = GetCanonicalItemRegistry(this);
+	const FGridInventoryItemMetadata Metadata = FGridInventoryItemMetadataReadModel::Resolve(
+		Registry, Definition, CachedItem);
 	View.bValid = true;
 	View.ItemDefinitionId = CachedItem.ItemDefinitionId;
 	View.Icon = CachedIconTexture;
 	View.VisualId = CachedVisualId;
 	View.bHasItemLevel = CachedItem.ItemLevel >= 1 && CachedItem.ItemLevel <= 20;
 	View.ItemLevel = View.bHasItemLevel ? CachedItem.ItemLevel : 0;
-	View.DisplayName = GetItemDisplayName(CachedItem, Definition);
-	View.Description = Definition ? Definition->Description : FText::GetEmpty();
+	View.DisplayName = Metadata.DisplayName.IsEmpty() ? FText::FromName(CachedItem.ItemDefinitionId)
+		: Metadata.DisplayName;
+	View.Description = Metadata.Description;
 	if (Definition)
 	{
 		FGridCombatActionDefinition QuickItemAction;
@@ -445,7 +435,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 			NSLOCTEXT("GridInventoryTooltip", "StackQuantityFormat", "({Quantity}x)"),
 			QuantityArguments);
 	}
-	View.UnitWeight = FMath::Max(0.0f, Definition ? Definition->Weight : CachedItem.Weight);
+	View.UnitWeight = FMath::Max(0.0f, Metadata.UnitWeightKg);
 	View.TotalWeight = View.UnitWeight * static_cast<float>(View.Quantity);
 	View.WeightText = View.Quantity > 1
 		? FText::FromString(FString::Printf(TEXT("%.1f × %d = %.1f"), View.UnitWeight, View.Quantity, View.TotalWeight))
@@ -541,7 +531,10 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		if (bHasEquippedItem)
 		{
 			EquippedDefinition = InventoryComponent->FindItemDefinition(EquippedItem.ItemDefinitionId);
-			Comparison.EquippedItemDisplayText = GetItemDisplayName(EquippedItem, EquippedDefinition);
+			const FGridInventoryItemMetadata EquippedMetadata = FGridInventoryItemMetadataReadModel::Resolve(
+				Registry, EquippedDefinition, EquippedItem);
+			Comparison.EquippedItemDisplayText = EquippedMetadata.DisplayName.IsEmpty()
+				? FText::FromName(EquippedItem.ItemDefinitionId) : EquippedMetadata.DisplayName;
 		}
 		else
 		{
