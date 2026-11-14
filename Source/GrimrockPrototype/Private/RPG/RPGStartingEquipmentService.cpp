@@ -6,6 +6,7 @@
 #include "../Runtime/GridWorldItemLevelReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridStartingKitStaticMetadataReadModel.h"
+#include "GridStartingKitEquipmentPolicyReadModel.h"
 
 bool FRPGStartingEquipmentService::TryBuildKit(
 	const URPGClassAsset* ClassDefinition,
@@ -121,24 +122,22 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		}
 
 		EGridEquipmentSlot PhysicalSlot = Entry.TargetSlot;
+		bool bEntryTwoHanded = false;
 		if (PhysicalSlot != EGridEquipmentSlot::None)
 		{
-			if (!Definition->CanEquipToSlot(PhysicalSlot) || !CandidateEquipment.GetMutableSlot(PhysicalSlot))
+			// 06.3AO: the hand policy must agree with later equipment runtime
+			// even if DA_Weapon_* has obsolete HandUsage/CompatibleSlots.
+			const FGridStartingKitEquipmentPolicyReadView Hand =
+				FGridStartingKitEquipmentPolicyReadModel::Resolve(
+					CanonicalRegistry, Definition, FixedLevel, PhysicalSlot);
+			if (!Hand.bResolved || !CandidateEquipment.GetMutableSlot(Hand.PhysicalSlot))
 			{
 				OutError = FString::Printf(TEXT("Starting kit item %s is incompatible with slot %d."), *ItemId.ToString(), int32(PhysicalSlot));
-				return false;
+				return false; // No partial kit commit.
 			}
-			const bool bTwoHanded = Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
-			if (bTwoHanded && PhysicalSlot != EGridEquipmentSlot::MainHand && PhysicalSlot != EGridEquipmentSlot::OffHand)
-			{
-				OutError = TEXT("A two-handed item must occupy the hands.");
-				return false;
-			}
-			if (bTwoHanded)
-			{
-				PhysicalSlot = EGridEquipmentSlot::MainHand;
-			}
-			if ((bTwoHanded && (CandidateEquipment.MainHand.IsValid() || CandidateEquipment.OffHand.IsValid())) ||
+			bEntryTwoHanded = Hand.bTwoHanded;
+			PhysicalSlot = Hand.PhysicalSlot;
+			if ((bEntryTwoHanded && (CandidateEquipment.MainHand.IsValid() || CandidateEquipment.OffHand.IsValid())) ||
 				(bTwoHandedHandReserved &&
 					(PhysicalSlot == EGridEquipmentSlot::MainHand || PhysicalSlot == EGridEquipmentSlot::OffHand)))
 			{
@@ -183,7 +182,7 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 			Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
 			Item.EquipmentSlot = PhysicalSlot;
 			*Equipped = Item;
-			if (Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded)
+			if (bEntryTwoHanded)
 			{
 				bTwoHandedHandReserved = true;
 			}
