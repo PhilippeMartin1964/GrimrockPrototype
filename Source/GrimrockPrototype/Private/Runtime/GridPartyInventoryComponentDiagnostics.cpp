@@ -2,11 +2,22 @@
 
 #include "GridEquipmentSlotUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridInventoryDiagnosticWeightReadModel.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
 
 namespace
 {
+	const UGridItemSubsystem* GridPartyInventoryDiagnosticsRegistry(const UGridPartyInventoryComponent* Inventory)
+	{
+		const UWorld* World = IsValid(Inventory) ? Inventory->GetWorld() : nullptr;
+		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+		return GameInstance ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	}
+
 	int32 GridPartyInventoryDiagnosticsCountOccupiedSlots(const FGridCharacterInventoryState& CharacterState)
 	{
 		int32 OccupiedCount = 0;
@@ -169,6 +180,7 @@ FString UGridPartyInventoryComponent::GetEquipmentDiagnosticsForCharacter(int32 
 
 FString UGridPartyInventoryComponent::GetPartyInventoryDiagnostics() const
 {
+	const UGridItemSubsystem* Registry = GridPartyInventoryDiagnosticsRegistry(this);
 	FString Result;
 	Result += TEXT("GridPartyInventory Diagnostics\n");
 	Result += FString::Printf(TEXT("ActiveCharacters=%d MaxActiveCharacters=%d SelectedCharacter=%d CursorItem=%s CharacterPool=%d\n"),
@@ -202,8 +214,9 @@ FString UGridPartyInventoryComponent::GetPartyInventoryDiagnostics() const
 				bWroteInventoryHeader = true;
 			}
 
-			Result += FString::Printf(TEXT("      [%d] Item=%s Qty=%d Weight=%.1f Owner=%s\n"), SlotIndex, *Slot.Item.ItemDefinitionId.ToString(),
-				Slot.Item.Quantity, Slot.Item.Weight, GridPartyInventoryDiagnosticsGetOwnerTypeName(Slot.Item.OwnerType));
+			const FString UnitWeightText = FGridInventoryDiagnosticWeightReadModel::FormatInstanceUnitWeight(Registry, Slot.Item);
+			Result += FString::Printf(TEXT("      [%d] Item=%s Qty=%d Weight=%s Owner=%s\n"), SlotIndex, *Slot.Item.ItemDefinitionId.ToString(),
+				Slot.Item.Quantity, *UnitWeightText, GridPartyInventoryDiagnosticsGetOwnerTypeName(Slot.Item.OwnerType));
 		}
 	}
 
@@ -217,6 +230,7 @@ void UGridPartyInventoryComponent::LogPartyInventoryDiagnostics() const
 
 FString UGridPartyInventoryComponent::GetItemDefinitionDiagnostics() const
 {
+	const UGridItemSubsystem* Registry = GridPartyInventoryDiagnosticsRegistry(this);
 	FString Result;
 	Result += TEXT("GridItemDefinition Diagnostics\n");
 	Result += FString::Printf(TEXT("RuntimeDefinitions=%d\n"), RuntimeItemDefinitionsById.Num());
@@ -235,8 +249,9 @@ FString UGridPartyInventoryComponent::GetItemDefinitionDiagnostics() const
 			continue;
 		}
 
-		Result += FString::Printf(TEXT("[%d] Asset=%s Id=%s Type=%s Weight=%.1f Slots=%s\n"), Index, *Definition->GetName(),
-			*Definition->ItemDefinitionId.ToString(), GridPartyInventoryDiagnosticsGetItemTypeName(Definition->ItemType), Definition->Weight,
+		const FString WeightText = FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(Registry, Definition);
+		Result += FString::Printf(TEXT("[%d] Asset=%s Id=%s Type=%s Weight=%s Slots=%s\n"), Index, *Definition->GetName(),
+			*Definition->ItemDefinitionId.ToString(), GridPartyInventoryDiagnosticsGetItemTypeName(Definition->ItemType), *WeightText,
 			*GridPartyInventoryDiagnosticsGetEquipmentSlotsText(Definition->CompatibleEquipmentSlots));
 	}
 
