@@ -18,6 +18,7 @@
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "GridCanonicalActionIconReadModel.h"
+#include "GridCanonicalEquippedAttackReadModel.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
@@ -339,70 +340,20 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 
 		if (Canonical && Canonical->HasCanonicalItem(EquippedItem.ItemDefinitionId))
 		{
-			// Migrated ARM: the old definition and its N1 CombatActions
-			// are NOT consulted. A failed canonical read has no legacy fallback.
+			// 06.3AP: identical canonical source transport for single attacks and dual wield.
+			// No historical CombatActions or N1 snapshots for a registered ItemId.
 			FGridResolvedItem Resolved;
-			if (!Canonical->ResolveItem(
-					EquippedItem.ItemDefinitionId, EquippedItem.ItemLevel, Resolved) ||
+			if (!Canonical->ResolveItem(EquippedItem.ItemDefinitionId, EquippedItem.ItemLevel, Resolved) ||
 				!Resolved.bIsArmament || !Resolved.Weapon.HasAttackSourceInHand(HandSlot))
-			{
 				continue;
-			}
 			for (const FGridItemActionBinding& Binding : Resolved.AvailableActions)
 			{
-				FGridResolvedBoundAction Authored;
-				if (!Canonical->ResolveAttackFromEquippedInstance(
-						EquippedItem, Binding.ActionId, HandSlot,
-						EquippedItem.RuntimeObjectId, EquippedItem.OwnerGuid,
-						EquippedItem.OwnerCharacterIndex, Authored))
-				{
-					continue;
-				}
-
-				// The existing MON12 executor/HUD still consumes this transient
-				// transport struct. ALL actual values originate in the four
-				// canonical catalogues; no original combat fields are read.
 				FGridCombatActionDefinition Definition;
-				Definition.ActionId = Authored.ActionId;
-				Definition.DisplayName = Resolved.DisplayName;
-				Definition.Description = Resolved.Description;
-				// ItemIcon belongs to the bag; the action icon belongs to the
-				// one canonical weapon visual palette and this real action kind.
-				// Assign after ActionType/ResolutionProfile below.
-				Definition.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-				Definition.ActionType = Authored.Action.bRangedAttack ?
-					EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
-				Definition.TargetingPolicy = Authored.Action.Targeting;
-				Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-				Definition.Icon = Canonical->FindEquippedActionIcon(
-					FGridCanonicalActionIconReadModel::Classify(Resolved, Definition));
-				Definition.ActionPointCost = Resolved.Weapon.ActionPointCost;
-				Definition.RangeCells = Resolved.Weapon.RangeCells;
-				Definition.bRequiresLineOfSight = Authored.Action.bRequiresLineOfSight;
-				Definition.ResourceCosts.ManaCost = Authored.Action.ManaCost;
-				Definition.ResourceCosts.SourceItemQuantityCost =
-					Authored.Action.SourceItemQuantityCost;
-				Definition.CooldownRounds = Authored.Action.CooldownRounds;
-				for (const FName Tag : Resolved.Tags)
-				{
-					if (!Tag.IsNone()) { Definition.SourceTags.AddUnique(Tag); }
-				}
-				FGridOffensiveEquipmentProfile& Attack = Definition.OffensiveProfile;
-				Attack.AttackId = Authored.ActionId;
-				Attack.DamageScalingAttribute = Resolved.Weapon.ScalingAttribute;
-				Attack.RangeCells = Resolved.Weapon.RangeCells;
-				FGridAttackDefinition& Damage = Attack.AttackDefinition;
-				Damage.DamageType = Resolved.Weapon.DamageType;
-				Damage.PhysicalSubtype = Resolved.Weapon.PhysicalSubtype;
-				Damage.DamageDice = Resolved.Weapon.DamageDice;
-				Damage.AccuracyBonus = Resolved.Weapon.AccuracyBonus;
-				Damage.MinDamage = Damage.DamageDice.GetMinimumDamage();
-				Damage.MaxDamage = Damage.DamageDice.GetMaximumDamage();
-				if (Definition.IsValid() && Attack.IsValid())
+				if (FGridCanonicalEquippedAttackReadModel::TryResolve(
+					Canonical, EquippedItem, HandSlot, Binding.ActionId, Definition))
 				{
 					AddMON126Contribution(Definition, EquippedItem.ItemDefinitionId,
-						EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity,
-						OutContributions);
+						EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity, OutContributions);
 				}
 			}
 			continue;
@@ -486,7 +437,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 	// the composite to MainHand; the executor pays 3 AP once and independently
 	// resolves the OffHand source as the second attack.
 	FGridDualWieldPair DualPair;
-	if (FGridDualWieldPolicy::TryResolve(Inventory, CharacterIndex, DualPair))
+	if (FGridDualWieldPolicy::TryResolve(Inventory, CharacterIndex, DualPair, Canonical))
 	{
 		FGridCombatActionDefinition DualAction = DualPair.Main.Action;
 		DualAction.ActionId = FGridDualWieldPolicy::ActionId();
@@ -498,11 +449,18 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 		DualAction.SubsequentResolutionAccuracyModifier = 0;
 		DualAction.OffensiveProfile = DualPair.Main.Profile;
 		DualAction.RangeCells = DualPair.Main.Profile.RangeCells;
-		if (DualAction.Icon.IsNull())
+		if (DualPair.Main.bCanonicalIdentity)
+		{
+			// Dual strike's action icon is NOT the old inventory item icon.
+			DualAction.Icon = Canonical
+				? Canonical->FindEquippedActionIcon(EGridEquippedWeaponActionIconKind::MeleeDualWield)
+				: TSoftObjectPtr<UTexture2D>();
+		}
+		else if (DualAction.Icon.IsNull() && IsValid(DualPair.Main.Definition))
 		{
 			DualAction.Icon = DualPair.Main.Definition->Icon;
 		}
-		for (const FName Tag : DualPair.Main.Definition->ItemTags)
+		for (const FName Tag : DualPair.Main.SourceTags)
 		{
 			if (!Tag.IsNone())
 			{

@@ -380,7 +380,12 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
 	}
-	if (ResolvedAttackSourceTags.IsEmpty() && !OffensiveItemDefinitionId.IsNone())
+	if (bDualWieldAction && DualPair.Main.bCanonicalIdentity)
+	{
+		ResolvedAttackSourceTags = DualPair.Main.SourceTags;
+	}
+	if (ResolvedAttackSourceTags.IsEmpty() && !OffensiveItemDefinitionId.IsNone() &&
+		!(bDualWieldAction && DualPair.Main.bCanonicalIdentity))
 	{
 		if (const UGridItemDefinitionAsset* OffensiveDefinition =
 				PartyPawn->PartyInventoryComponent->FindItemDefinition(OffensiveItemDefinitionId))
@@ -907,7 +912,10 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 			FGridDualWieldPair CurrentPair;
 			if (!FGridDualWieldPolicy::TryResolve(Inventory, AttackerCharacterIndex, CurrentPair) ||
 				CurrentPair.Main.Item.RuntimeObjectId != DualPair.Main.Item.RuntimeObjectId ||
-				CurrentPair.Off.Item.RuntimeObjectId != DualPair.Off.Item.RuntimeObjectId)
+				CurrentPair.Off.Item.RuntimeObjectId != DualPair.Off.Item.RuntimeObjectId ||
+					CurrentPair.Main.Item.ItemLevel != DualPair.Main.Item.ItemLevel ||
+					CurrentPair.Off.Item.ItemLevel != DualPair.Off.Item.ItemLevel ||
+					CurrentPair.Off.Profile.AttackId != DualPair.Off.Profile.AttackId)
 			{
 				break;
 			}
@@ -941,7 +949,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 				FGridCombatModifierContext OffHandContext = FGridCombatModifierResolver::MakeAttackContext(
 					DualPair.Off.Action.ActionId, DualPair.Off.Item.ItemDefinitionId, EGridCombatActionSourcePolicy::Equipment,
 					EGridCombatActionType::MeleeAttack, RepeatAttackDefinition.DamageType, RepeatAttackDefinition.PhysicalSubtype,
-					DualPair.Off.Definition->ItemTags);
+					DualPair.Off.SourceTags);
 				FGridCombatModifierResolver::AddTargetContext(OffHandContext, EGridCombatTargetingPolicy::FirstAxialTarget,
 					IsRPG0392RearArc(PartyCell, TargetMonster), HasRPG0392ActedThisRound(this, TargetMonster),
 					HasRPG0392PhysicalControl(TargetMonster));
@@ -980,7 +988,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 				? FGridCombatModifierResolver::MakeAttackContext(
 					DualPair.Off.Action.ActionId, DualPair.Off.Item.ItemDefinitionId, EGridCombatActionSourcePolicy::Equipment,
 					EGridCombatActionType::MeleeAttack, RepeatAttackDefinition.DamageType, RepeatAttackDefinition.PhysicalSubtype,
-					DualPair.Off.Definition->ItemTags)
+					DualPair.Off.SourceTags)
 				: CombatActionOverride
 				? (bUsesEquippedWeaponAction
 						? FGridCombatModifierResolver::MakeResolvedActionAttackContext(
@@ -1074,7 +1082,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 		}
 		EmitPlayerAttackReactionEvents(AttackerCharacterIndex, RepeatRequest, RepeatResult, ReactionSourcePolicy,
 			ReactionActionType, ReactionActionInstanceId, false, false,
-			bDualWieldAction ? DualPair.Off.Definition->ItemTags : ResolvedAttackSourceTags,
+			bDualWieldAction ? DualPair.Off.SourceTags : ResolvedAttackSourceTags,
 			bDualWieldAction || OffensiveEquipmentSlot != EGridEquipmentSlot::None);
 		++PlayerAttackResolvedBroadcastCount;
 		bPlayerAttackResolutionInProgress = false;

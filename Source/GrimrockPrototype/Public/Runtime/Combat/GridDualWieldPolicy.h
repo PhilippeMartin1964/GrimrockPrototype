@@ -3,11 +3,16 @@
 #include "CoreMinimal.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
-/** Resolved physical weapon: an individual roll uses its own N1 catalogue profile. */
+class UGridItemSubsystem;
+
+/** Physical dual source: every roll uses its own immutable N1-N20 item level. */
 struct FGridDualWieldSource
 {
 	FGridItemInstance Item;
+	/** Optional, for identities not yet migrated to DA_ItemSystem. */
 	const UGridItemDefinitionAsset* Definition = nullptr;
+	bool bCanonicalIdentity = false;
+	TArray<FName> SourceTags;
 	FGridCombatActionDefinition Action;
 	FGridOffensiveEquipmentProfile Profile;
 };
@@ -31,5 +36,6 @@ public:
 	static constexpr int32 ActionPointCost = 3;
 	static constexpr int32 OffHandDamagePercent = 50;
 
-	static bool TryResolve(const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex, FGridDualWieldPair& OutPair);
+	static bool TryResolve(const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex,
+		FGridDualWieldPair& OutPair, const UGridItemSubsystem* RegistryOverride = nullptr);
 };
