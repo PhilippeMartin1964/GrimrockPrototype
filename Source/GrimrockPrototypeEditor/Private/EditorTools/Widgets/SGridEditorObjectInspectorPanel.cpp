@@ -16,6 +16,7 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "NiagaraSystem.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
@@ -1636,22 +1637,35 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 						})]
 				+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 4.f, 0.f)[
 					SNew(SSpinBox<int32>)
-						.IsEnabled(InitialItem.ItemDefinition && InitialItem.ItemDefinition->bUseWeaponCatalogue)
+						.IsEnabled_Lambda([this, ObjectId, InitialIndex]()
+						{
+							AGridLevelEditorActor* Editor = GetEditorActor();
+							const UGridLevelAsset* Level = Editor ? Editor->LevelAsset.Get() : nullptr;
+							const FGridWorldObjectInstance* Object = Level
+								? Level->FindWorldObjectInstanceById(ObjectId) : nullptr;
+							const UGridItemDefinitionAsset* Item = Object &&
+								Object->InstanceConfig.ReceptacleInitialContent.IsValidIndex(InitialIndex)
+								? Object->InstanceConfig.ReceptacleInitialContent[InitialIndex].ItemDefinition.Get() : nullptr;
+							return FGridEditorCanonicalItemLevelPolicy::IsLevelEditable(
+								Editor ? Editor->ResolveEditorItemRegistry() : nullptr, Item);
+						})
 						.Value(InitialItem.ItemLevel)
-							.MinValue(0).MaxValue(20)
-							.MinSliderValue(0).MaxSliderValue(20)
-							.Delta(1).MinDesiredWidth(82.f)
-							.ToolTipText(FText::FromString(TEXT("Item level: 0 = definition default; 1..20 = fixed level")))
-							.OnValueCommitted_Lambda([this, ObjectId, InitialIndex](int32 NewValue, ETextCommit::Type)
-							{
-							EditWorldObjectConfig(ObjectId, [InitialIndex, NewValue](FGridWorldObjectInstanceConfig& Config)
+						.MinValue(0).MaxValue(20)
+						.MinSliderValue(0).MaxSliderValue(20)
+						.Delta(1).MinDesiredWidth(82.f)
+						.ToolTipText(FText::FromString(TEXT("Item level: 0 = weapon default; 1..20 = fixed weapon level")))
+						.OnValueCommitted_Lambda([this, ObjectId, InitialIndex](int32 NewValue, ETextCommit::Type)
+						{
+							AGridLevelEditorActor* Editor = GetEditorActor();
+							const UGridItemSubsystem* Registry = Editor ? Editor->ResolveEditorItemRegistry() : nullptr;
+							EditWorldObjectConfig(ObjectId, [InitialIndex, NewValue, Registry](FGridWorldObjectInstanceConfig& Config)
 							{
 								if (Config.ReceptacleInitialContent.IsValidIndex(InitialIndex))
 								{
-									const UGridItemDefinitionAsset* Definition = Config.ReceptacleInitialContent[InitialIndex].ItemDefinition.Get();
-									const FGridWeaponLevelProfile* Profile = nullptr;
-									if (Definition && (NewValue == 0 ||
-										Definition->TryGetWeaponCatalogueProfile(NewValue, Profile)))
+									const UGridItemDefinitionAsset* Definition =
+										Config.ReceptacleInitialContent[InitialIndex].ItemDefinition.Get();
+									if (FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(
+										Registry, Definition, NewValue))
 									{
 										Config.ReceptacleInitialContent[InitialIndex].ItemLevel = NewValue;
 									}

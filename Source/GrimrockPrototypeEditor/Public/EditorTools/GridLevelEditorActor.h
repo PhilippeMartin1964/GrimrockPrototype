@@ -12,6 +12,8 @@ class AGridLevelRuntimeActor;
 class UGridObjectPaletteAsset;
 class UGridWorldObjectDefinitionAsset;
 class UGridItemDefinitionAsset;
+class UGameInstance;
+class UGridItemSubsystem;
 class UGridReadableContentAsset;
 class UGridMonsterDefinitionAsset;
 
@@ -94,6 +96,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
 	TObjectPtr<AGridLevelRuntimeActor> PreviewRuntimeActor;
+
+	/** A transient editor-only context for the same configured DA_ItemSystem. */
+	UPROPERTY(Transient)
+	TObjectPtr<UGameInstance> EditorAuthoringGameInstance;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGridItemSubsystem> EditorAuthoringItemRegistry;
 
 	UPROPERTY(VisibleAnywhere, Category = "Editor")
 	TObjectPtr<USceneComponent> SceneRoot;
@@ -423,7 +432,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
 	bool SetSelectedObjectItemDefinitionAsset(UGridItemDefinitionAsset* NewItemDefinitionAsset);
 
-	/** Changes only the selected loose item's authored fixed level; zero uses the asset default. */
+	/** Read the configured canonical registry also in editor-only worlds without a GameInstance. */
+	const UGridItemSubsystem* ResolveEditorItemRegistry();
+
+	/** Changes a loose-item or item-spawn authored level; N0 inherits only for ARM. */
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
 	bool SetSelectedObjectItemLevel(int32 NewItemLevel);
 

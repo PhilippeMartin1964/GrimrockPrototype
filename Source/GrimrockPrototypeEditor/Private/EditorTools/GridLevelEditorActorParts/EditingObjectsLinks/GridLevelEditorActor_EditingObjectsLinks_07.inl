@@ -1,4 +1,7 @@
 #include "Core/GridObjectInstanceBehavior.h"
+#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
 
 bool AGridLevelEditorActor::FocusSelectedObject()
 {
@@ -73,6 +76,46 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset(UGridItemDefini
 	return true;
 }
 
+const UGridItemSubsystem* AGridLevelEditorActor::ResolveEditorItemRegistry()
+{
+	// During PIE, use the real game registry. An unconfigured runtime cannot
+	// silently fall back to old authoring data.
+	if (UWorld* World = GetWorld())
+	{
+		if (UGameInstance* GameInstance = World->GetGameInstance())
+		{
+			const UGridItemSubsystem* RuntimeRegistry = GameInstance->GetSubsystem<UGridItemSubsystem>();
+			return RuntimeRegistry && RuntimeRegistry->IsConfigured() ? RuntimeRegistry : nullptr;
+		}
+	}
+
+	// EditorPreview has no GameInstance. Use the SAME DefaultGame.ini root
+	// as the preview mesh reader; hold the transient context through GC.
+	if (!IsValid(EditorAuthoringItemRegistry))
+	{
+		UGridItemSystemAsset* ItemSystem =
+			GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+		if (!IsValid(ItemSystem))
+		{
+			return nullptr; // No unchecked historical authoring if registry is missing.
+		}
+		EditorAuthoringGameInstance = NewObject<UGameInstance>(this);
+		EditorAuthoringItemRegistry = NewObject<UGridItemSubsystem>(EditorAuthoringGameInstance.Get());
+		TArray<FString> Errors;
+		if (!EditorAuthoringItemRegistry->RegisterItemSystem(ItemSystem, Errors))
+		{
+			for (const FString& Error : Errors)
+			{
+				UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.3AN] Editor ItemSystem: %s"), *Error);
+			}
+			EditorAuthoringItemRegistry = nullptr;
+			EditorAuthoringGameInstance = nullptr;
+			return nullptr;
+		}
+	}
+	return EditorAuthoringItemRegistry.Get();
+}
+
 bool AGridLevelEditorActor::SetSelectedObjectItemLevel(int32 NewItemLevel)
 {
 	if (!LevelAsset || NewItemLevel < 0 || NewItemLevel > 20)
@@ -82,17 +125,10 @@ bool AGridLevelEditorActor::SetSelectedObjectItemLevel(int32 NewItemLevel)
 	FGridLooseItemInstance* Loose = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId);
 	FGridItemSpawnInstance* Spawn = Loose ? nullptr : LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId);
 	UGridItemDefinitionAsset* Definition = Loose ? Loose->ItemDefinition.Get() : (Spawn ? Spawn->ItemDefinition.Get() : nullptr);
-	if (!IsValid(Definition) || !Definition->bUseWeaponCatalogue)
+	if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(
+		ResolveEditorItemRegistry(), Definition, NewItemLevel))
 	{
-		return false;
-	}
-	if (NewItemLevel > 0)
-	{
-		const FGridWeaponLevelProfile* Profile = nullptr;
-		if (!Definition->TryGetWeaponCatalogueProfile(NewItemLevel, Profile))
-		{
-			return false;
-		}
+		return false; // Known canonical item: never consult obsolete opt-in/level.
 	}
 	int32& AuthoredLevel = Loose ? Loose->ItemLevel : Spawn->ItemLevel;
 	if (AuthoredLevel == NewItemLevel)
