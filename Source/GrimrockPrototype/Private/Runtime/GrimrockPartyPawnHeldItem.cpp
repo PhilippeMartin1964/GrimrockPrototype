@@ -1,6 +1,9 @@
 #include "Runtime/GrimrockPartyPawn.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridCanonicalItemMeshReadModel.h"
 #include "Engine/World.h"
 #include "GridEquipmentSlotUtils.h"
 #include "Kismet/GameplayStatics.h"
@@ -183,6 +186,28 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 
 	if (HeldItemActor)
 	{
+		// Only this path has the actual equipped instance and its N1-N20 level.
+		// A registered ARM may not take its held mesh from DA_Weapon_* copies.
+		if (UWorld* World = GetWorld())
+		{
+			if (UGameInstance* GameInstance = World->GetGameInstance())
+			{
+				if (const UGridItemSubsystem* Registry = GameInstance->GetSubsystem<UGridItemSubsystem>())
+				{
+					const FGridCanonicalItemMeshReadView Visual =
+						FGridCanonicalItemMeshReadModel::Resolve(Registry, *VisualItem);
+					if (Visual.bCanonicalIdentity && HeldItemActor->MeshComponent)
+					{
+						UStaticMesh* CanonicalHeldMesh = Visual.bResolved
+							? Visual.EquippedMesh.LoadSynchronous() : nullptr;
+						if (HeldItemActor->MeshComponent->GetStaticMesh() != CanonicalHeldMesh)
+						{
+							HeldItemActor->MeshComponent->SetStaticMesh(CanonicalHeldMesh);
+						}
+					}
+				}
+			}
+		}
 		HeldItemActor->SetItemLightsEnabled(bAnyEquippedLight);
 	}
 
