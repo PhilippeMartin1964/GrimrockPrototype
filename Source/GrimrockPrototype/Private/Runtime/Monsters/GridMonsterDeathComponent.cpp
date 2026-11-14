@@ -6,6 +6,10 @@
 #include "EngineUtils.h"
 #include "RPG/RPGExperienceRewardService.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridLootStaticMetadataReadModel.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -351,8 +355,18 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 				*GetNameSafe(OwnerMonster), *Result.ItemDefinitionId.ToString(), Entry.ItemLevel);
 			continue;
 		}
+		// Level selection above remains the historical, deterministic loot rule.
+		// Once that level is fixed, metadata comes from the sole ItemSystem when
+		// the item is registered. The old static snapshot survives only to allow
+		// the 06.4 SaveGame/asset migration, never as canonical authority.
+		const UWorld* World = GetWorld();
+		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry = GameInstance
+			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		const bool bCanonicalItem = Registry && Registry->HasCanonicalItem(Result.ItemDefinitionId);
 		const FGridWeaponLevelProfile* LevelProfile = nullptr;
-		if (IsValid(ItemDefinition) && ItemDefinition->bUseWeaponCatalogue && FixedItemLevel > 0)
+		if (!bCanonicalItem && IsValid(ItemDefinition) &&
+			ItemDefinition->bUseWeaponCatalogue && FixedItemLevel > 0)
 		{
 			ItemDefinition->TryGetWeaponCatalogueProfile(FixedItemLevel, LevelProfile);
 		}
@@ -361,9 +375,21 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 		ItemInstance.RuntimeObjectId = FGuid::NewGuid();
 		ItemInstance.ItemDefinitionId = Result.ItemDefinitionId;
 		ItemInstance.ItemLevel = FixedItemLevel;
-		ItemInstance.DisplayName = ItemDefinition ? ItemDefinition->DisplayName : FText::FromName(Result.ItemDefinitionId);
 		ItemInstance.Quantity = Result.Quantity;
-		ItemInstance.Weight = LevelProfile ? LevelProfile->WeightKg : (ItemDefinition ? ItemDefinition->Weight : 0.0f);
+		const FGridLootStaticMetadataReadView Metadata = FGridLootStaticMetadataReadModel::Resolve(
+			Registry, ItemInstance,
+			ItemDefinition ? ItemDefinition->DisplayName : FText::FromName(Result.ItemDefinitionId),
+			LevelProfile ? LevelProfile->WeightKg : (ItemDefinition ? ItemDefinition->Weight : 0.0f));
+		if (!Metadata.bResolved)
+		{
+			++FailedLootCount;
+			UE_LOG(LogGridMonsterLoot, Warning,
+				TEXT("[GridMonsterLoot] InvalidCanonicalMetadata Monster=%s Item=%s Level=%d"),
+				*GetNameSafe(OwnerMonster), *Result.ItemDefinitionId.ToString(), FixedItemLevel);
+			continue;
+		}
+		ItemInstance.DisplayName = Metadata.DisplayName;
+		ItemInstance.Weight = Metadata.UnitWeightKg;
 		ItemInstance.OwnerType = EGridItemOwnerType::World;
 		ItemInstance.OwnerGuid = FGuid();
 		ItemInstance.OwnerCharacterIndex = INDEX_NONE;
