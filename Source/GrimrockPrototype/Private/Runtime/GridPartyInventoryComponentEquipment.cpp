@@ -1,6 +1,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "GridEquipmentSlotUtils.h"
+#include "GridEquipmentArmorReadModel.h"
 #include "Runtime/Combat/GridCombatTraceTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -50,6 +51,34 @@ namespace
 		InOutTotal.ArmorBonus += Bonus.ArmorBonus;
 		InOutTotal.MagicalArmorBonus += Bonus.MagicalArmorBonus;
 	}
+}
+
+bool UGridPartyInventoryComponent::TryResolveEquipmentArmorRead(
+	const FGridItemInstance& Item, FGridEquipmentArmorReadView& OutView) const
+{
+	return FGridEquipmentArmorReadModel::TryResolve(
+		GridPartyInventoryCanonicalRegistry(this), FindItemDefinition(Item.ItemDefinitionId),
+		Item, OutView);
+}
+
+FGridEquipmentStatBonus UGridPartyInventoryComponent::GetEquipmentBonusesForInstance(
+	const FGridItemInstance& Item) const
+{
+	FGridEquipmentStatBonus Bonuses;
+	FGridEquipmentArmorReadView Armor;
+	if (!TryResolveEquipmentArmorRead(Item, Armor))
+	{
+		return Bonuses;
+	}
+	// Remaining non-armor fields are intentionally not migrated in 06.3H.
+	// Do not query DA_WeaponCatalogue through the old definition for canonical armor.
+	if (const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId))
+	{
+		Bonuses = Definition->EquipmentStatBonus;
+	}
+	Bonuses.ArmorBonus = Armor.NominalPhysical;
+	Bonuses.MagicalArmorBonus = Armor.NominalMagical;
+	return Bonuses;
 }
 
 bool UGridPartyInventoryComponent::IsTwoHandedItem(const FGridItemInstance& Item) const
@@ -339,21 +368,19 @@ bool UGridPartyInventoryComponent::TryConsumeEquippedItemQuantityForCombatAction
 int32 UGridPartyInventoryComponent::GetEffectiveCurrentPhysicalArmor(int32 CharacterIndex) const
 {
 	if (!IsValidCharacterIndex(CharacterIndex)) return 0;
-
 	int64 Total = FMath::Max(0, PartyInventoryState.ActiveCharacters[CharacterIndex].Resources.CurrentPhysicalArmor);
-	if (!PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
+	if (PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
-		return static_cast<int32>(FMath::Clamp<int64>(Total, 0, MAX_int32));
+		GridEquipmentSlotUtils::ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
+			[this, &Total](EGridEquipmentSlot, const FGridItemInstance& Item)
+			{
+				FGridEquipmentArmorReadView Armor;
+				if (TryResolveEquipmentArmorRead(Item, Armor))
+				{
+					Total += Armor.RemainingPhysical;
+				}
+			});
 	}
-	GridEquipmentSlotUtils::ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
-		[this, &Total](EGridEquipmentSlot, const FGridItemInstance& Item)
-		{
-			if (!Item.IsValid()) return;
-			const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
-			if (!Definition) return;
-			const int32 Bonus = Definition->GetEffectiveEquipmentStatBonusForInstance(Item).ArmorBonus;
-			Total += Bonus > 0 ? FMath::Max(0, Bonus - FMath::Max(0, Item.AbsorbedEquipmentPhysicalArmor)) : Bonus;
-		});
 	return static_cast<int32>(FMath::Clamp<int64>(Total, 0, MAX_int32));
 }
 
@@ -366,13 +393,11 @@ int32 UGridPartyInventoryComponent::GetEffectiveCurrentMagicalArmor(int32 Charac
 		GridEquipmentSlotUtils::ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
 			[this, &Total](EGridEquipmentSlot, const FGridItemInstance& Item)
 			{
-				if (!Item.IsValid()) return;
-				const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
-				if (!Definition) return;
-				const int32 Bonus = Definition->GetEffectiveEquipmentStatBonusForInstance(Item).MagicalArmorBonus;
-				Total += Bonus > 0
-					? FMath::Max(0, Bonus - FMath::Max(0, Item.AbsorbedEquipmentMagicalArmor))
-					: Bonus;
+				FGridEquipmentArmorReadView Armor;
+				if (TryResolveEquipmentArmorRead(Item, Armor))
+				{
+					Total += Armor.RemainingMagical;
+				}
 			});
 	}
 	return static_cast<int32>(FMath::Clamp<int64>(Total, 0, MAX_int32));
@@ -390,10 +415,9 @@ int32 UGridPartyInventoryComponent::ApplyMagicalArmorDamage(int32 CharacterIndex
 	{
 		FGridItemInstance* Item = Equipment->GetMutableSlot(static_cast<EGridEquipmentSlot>(SlotValue));
 		if (!Item || !Item->IsValid()) continue;
-		const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId);
-		const int32 Bonus = Definition ? FMath::Max(0, Definition->GetEffectiveEquipmentStatBonusForInstance(*Item).MagicalArmorBonus) : 0;
-		if (Bonus <= 0) continue;
-		const int32 Available = FMath::Max(0, Bonus - FMath::Max(0, Item->AbsorbedEquipmentMagicalArmor));
+		FGridEquipmentArmorReadView Armor;
+		if (!TryResolveEquipmentArmorRead(*Item, Armor) || Armor.NominalMagical <= 0) continue;
+		const int32 Available = FMath::Max(0, Armor.RemainingMagical);
 		const int32 Used = FMath::Min(Remaining, Available);
 		Item->AbsorbedEquipmentMagicalArmor += Used;
 		Remaining -= Used;
@@ -416,9 +440,10 @@ int32 UGridPartyInventoryComponent::RestoreMagicalArmor(int32 CharacterIndex, in
 	{
 		FGridItemInstance* Item = Equipment->GetMutableSlot(static_cast<EGridEquipmentSlot>(SlotValue));
 		if (!Item || !Item->IsValid()) continue;
-		const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId);
-		const int32 Bonus = Definition ? FMath::Max(0, Definition->GetEffectiveEquipmentStatBonusForInstance(*Item).MagicalArmorBonus) : 0;
-		const int32 Spent = FMath::Min(Bonus, FMath::Max(0, Item->AbsorbedEquipmentMagicalArmor));
+		FGridEquipmentArmorReadView Armor;
+		if (!TryResolveEquipmentArmorRead(*Item, Armor)) continue;
+		const int32 Spent = FMath::Min(FMath::Max(0, Armor.NominalMagical),
+			FMath::Max(0, Item->AbsorbedEquipmentMagicalArmor));
 		const int32 Restored = FMath::Min(Remaining, Spent);
 		Item->AbsorbedEquipmentMagicalArmor -= Restored;
 		Remaining -= Restored;
@@ -445,10 +470,11 @@ int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterInde
 	{
 		FGridItemInstance* Item = Equipment->GetMutableSlot(static_cast<EGridEquipmentSlot>(SlotValue));
 		if (!Item || !Item->IsValid()) continue;
+		FGridEquipmentArmorReadView Armor;
+		if (!TryResolveEquipmentArmorRead(*Item, Armor) || Armor.NominalPhysical <= 0) continue;
+		const int32 Bonus = Armor.NominalPhysical;
+		const int32 Before = FMath::Max(0, Armor.RemainingPhysical);
 		const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId);
-		const int32 Bonus = Definition ? FMath::Max(0, Definition->GetEffectiveEquipmentStatBonusForInstance(*Item).ArmorBonus) : 0;
-		if (Bonus <= 0) continue;
-		const int32 Before = FMath::Max(0, Bonus - FMath::Max(0, Item->AbsorbedEquipmentPhysicalArmor));
 		const int32 Used = FMath::Min(Remaining, Before);
 		Item->AbsorbedEquipmentPhysicalArmor += Used;
 		Remaining -= Used;
@@ -498,9 +524,10 @@ int32 UGridPartyInventoryComponent::RestorePhysicalArmor(int32 CharacterIndex, i
 	{
 		FGridItemInstance* Item = Equipment->GetMutableSlot(static_cast<EGridEquipmentSlot>(SlotValue));
 		if (!Item || !Item->IsValid()) continue;
-		const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId);
-		const int32 Bonus = Definition ? FMath::Max(0, Definition->GetEffectiveEquipmentStatBonusForInstance(*Item).ArmorBonus) : 0;
-		const int32 Spent = FMath::Min(Bonus, FMath::Max(0, Item->AbsorbedEquipmentPhysicalArmor));
+		FGridEquipmentArmorReadView Armor;
+		if (!TryResolveEquipmentArmorRead(*Item, Armor)) continue;
+		const int32 Spent = FMath::Min(FMath::Max(0, Armor.NominalPhysical),
+			FMath::Max(0, Item->AbsorbedEquipmentPhysicalArmor));
 		const int32 Restored = FMath::Min(Remaining, Spent);
 		Item->AbsorbedEquipmentPhysicalArmor -= Restored;
 		Remaining -= Restored;
@@ -527,13 +554,7 @@ FGridEquipmentStatBonus UGridPartyInventoryComponent::ComputeCharacterEquipmentS
 				return;
 			}
 
-			const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
-			if (!Definition)
-			{
-				return;
-			}
-
-			GridPartyInventoryEquipmentAddStatBonus(TotalBonus, Definition->GetEffectiveEquipmentStatBonusForInstance(Item));
+			GridPartyInventoryEquipmentAddStatBonus(TotalBonus, GetEquipmentBonusesForInstance(Item));
 		});
 
 	return TotalBonus;

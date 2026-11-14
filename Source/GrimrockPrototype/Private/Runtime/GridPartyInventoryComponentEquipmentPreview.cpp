@@ -1,6 +1,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "GridEquipmentSlotUtils.h"
+#include "GridEquipmentArmorReadModel.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
 namespace
@@ -154,9 +155,9 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
         const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
         Entry.DisplayName = Definition && !Definition->DisplayName.IsEmpty()
             ? Definition->DisplayName : FText::FromName(Item.ItemDefinitionId);
-        const int32 Nominal = Definition ? Definition->GetEffectiveEquipmentStatBonusForInstance(Item).ArmorBonus : 0;
-        Entry.RemainingPhysicalArmor = FMath::Max(0,
-            Nominal - FMath::Max(0, Item.AbsorbedEquipmentPhysicalArmor));
+        FGridEquipmentArmorReadView Armor;
+        Entry.RemainingPhysicalArmor = TryResolveEquipmentArmorRead(Item, Armor)
+            ? FMath::Max(0, Armor.RemainingPhysical) : 0;
     };
     if (bReleaseBoth)
     {
@@ -210,16 +211,14 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
                 const FGridItemInstance& Item)
             {
                 if (!Item.IsValid()) return;
-                const UGridItemDefinitionAsset* Definition =
-                    FindItemDefinition(Item.ItemDefinitionId);
-                if (!Definition) return;
-                AddBonuses(Totals.Bonuses, Definition->GetEffectiveEquipmentStatBonusForInstance(Item));
-                Totals.Resistances.Add(Definition->EquipmentResistanceBonus);
-                const int32 Armor = Definition->GetEffectiveEquipmentStatBonusForInstance(Item).ArmorBonus;
-                PhysicalArmor += Armor > 0
-                    ? FMath::Max(0, Armor -
-                        FMath::Max(0, Item.AbsorbedEquipmentPhysicalArmor))
-                    : Armor;
+                FGridEquipmentArmorReadView Armor;
+                if (!TryResolveEquipmentArmorRead(Item, Armor)) return;
+                AddBonuses(Totals.Bonuses, GetEquipmentBonusesForInstance(Item));
+                if (const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId))
+                {
+                    Totals.Resistances.Add(Definition->EquipmentResistanceBonus);
+                }
+                PhysicalArmor += Armor.RemainingPhysical;
             });
         Totals.EffectivePhysicalArmor =
             static_cast<int32>(FMath::Clamp<int64>(PhysicalArmor, 0, MAX_int32));
