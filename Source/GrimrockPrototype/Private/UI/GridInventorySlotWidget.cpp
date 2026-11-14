@@ -8,6 +8,9 @@
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridWeaponVisualUiResolver.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "UI/GridWeaponTooltipProjection.h"
 #include "UI/GridQuickItemSurfaceTooltipText.h"
 #include "UI/GridEquipmentTooltipGlobalProjection.h"
@@ -318,15 +321,22 @@ void UGridInventorySlotWidget::SetItem(const FGridItemInstance& InItem)
 	bHasItem = true;
 	CachedIconTexture = nullptr;
 	CachedVisualId = NAME_None;
-	if (const UGridItemDefinitionAsset* Definition = GetItemDefinition())
+	const UGridItemSubsystem* Registry = nullptr;
+	if (const UWorld* World = GetWorld())
 	{
-		const FGridResolvedWeaponVisual Visual = FGridWeaponVisualUiResolver::Resolve(*Definition, &CachedItem);
-		CachedVisualId = Visual.VisualId;
-		CachedIconTexture = Visual.Icon.Get();
-		if (!CachedIconTexture && !Visual.Icon.IsNull())
+		if (UGameInstance* GameInstance = World->GetGameInstance())
 		{
-			CachedIconTexture = Visual.Icon.LoadSynchronous();
+			Registry = GameInstance->GetSubsystem<UGridItemSubsystem>();
 		}
+	}
+	const FGridResolvedInventoryItemIcon Visual =
+		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(Registry, GetItemDefinition(), CachedItem);
+	CachedVisualId = Visual.VisualId;
+	CachedIconTexture = Visual.Icon.Get();
+	if (!CachedIconTexture && !Visual.Icon.IsNull())
+	{
+		// Inventory refresh only; never load a texture from Tick.
+		CachedIconTexture = Visual.Icon.LoadSynchronous();
 	}
 
 	RefreshSlotVisual();

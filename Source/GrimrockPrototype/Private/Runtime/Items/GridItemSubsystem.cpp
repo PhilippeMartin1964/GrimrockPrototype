@@ -136,6 +136,7 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 			return false;
 		}
 		OutItem.ArchetypeId = Armament->ArchetypeId;
+		OutItem.VisualId = Visual->VisualId;
 		OutItem.bIsArmament = true;
 		OutItem.WorldMesh = Visual->WorldMesh;
 		// The legacy visual resolver uses WorldMesh for a missing equipped mesh.

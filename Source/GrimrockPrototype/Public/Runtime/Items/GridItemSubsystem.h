@@ -51,6 +51,10 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	TSoftObjectPtr<UTexture2D> ItemIcon;
 
+	/** Stable visual identity read from the unique canonical visual catalogue. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	FName VisualId = NAME_None;
+
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
 

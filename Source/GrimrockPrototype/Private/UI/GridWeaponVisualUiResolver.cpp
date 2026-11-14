@@ -2,6 +2,36 @@
 
 #include "Runtime/Combat/GridWeaponVisualResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+
+FGridResolvedInventoryItemIcon FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(
+	const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* LegacyDefinition,
+	const FGridItemInstance& Item)
+{
+	FGridResolvedInventoryItemIcon Result;
+	if (!Item.IsValid())
+	{
+		return Result;
+	}
+	if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+	{
+		Result.bCanonicalIdentity = true;
+		FGridResolvedItem Canonical;
+		if (Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical))
+		{
+			Result.VisualId = Canonical.VisualId;
+			Result.Icon = Canonical.ItemIcon;
+		}
+		return Result; // Never use a copied legacy icon for an invalid canonical item.
+	}
+	if (IsValid(LegacyDefinition) && LegacyDefinition->ItemDefinitionId == Item.ItemDefinitionId)
+	{
+		const FGridResolvedWeaponVisual Legacy = Resolve(*LegacyDefinition, &Item);
+		Result.VisualId = Legacy.VisualId;
+		Result.Icon = Legacy.Icon;
+	}
+	return Result;
+}
 
 FGridResolvedWeaponVisual FGridWeaponVisualUiResolver::Resolve(
 	const UGridItemDefinitionAsset& Definition, const FGridItemInstance* Item)
