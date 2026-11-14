@@ -57,6 +57,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	FGuid RuntimeObjectId;
 
+	/** Transient source level from ApplyCanonicalWorldVisual; never a SaveGame authority. */
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|World Physics")
+	int32 CanonicalWorldItemLevel = 0;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Reading")
 	TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;
 
@@ -83,6 +87,9 @@ public:
 
 	/** Materialize world art using the real N1-N20 instance, preserving noncanonical objects. */
 	bool ApplyCanonicalWorldVisual(const FGridItemInstance& Instance);
+
+	/** Opt-in mass property uses the same canonical weight read model as the inventory. */
+	void RefreshWorldPickupMass();
 
 	UFUNCTION(BlueprintCallable, Category = "Reading")
 	void InitializeReadableContent(

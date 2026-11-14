@@ -8,6 +8,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridCanonicalItemMeshReadModel.h"
+#include "GridWorldPhysicsMassReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridWorldItemVisualResolver.h"
@@ -87,6 +88,7 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 
 	ItemDefinitionAsset = InDefinition;
 	ItemDefinitionId = InDefinition->ItemDefinitionId;
+	CanonicalWorldItemLevel = 0;
 	ItemTags = InDefinition->ItemTags;
 	SetRuntimeObjectId(InRuntimeObjectId);
 	if (!RuntimeObjectId.IsValid())
@@ -129,6 +131,7 @@ bool AGridItemActor::ApplyCanonicalWorldVisual(const FGridItemInstance& Instance
 	{
 		return false; // Unregistered identities preserve historical pickup visual behavior.
 	}
+	CanonicalWorldItemLevel = Instance.ItemLevel;
 	// Explicitly clear rather than reusing an old DA_Weapon_* mesh if N0 is invalid.
 	UStaticMesh* NewMesh = Visual.bResolved ? Visual.WorldMesh.LoadSynchronous() : nullptr;
 	const FTransform NewTransform = Visual.bResolved ? Visual.WorldTransform : FTransform::Identity;
@@ -141,6 +144,11 @@ bool AGridItemActor::ApplyCanonicalWorldVisual(const FGridItemInstance& Instance
 		MeshComponent->SetRelativeTransform(NewTransform);
 	}
 	RefreshWorldSparklePresentation();
+	if (MeshComponent->IsSimulatingPhysics())
+	{
+		// Saved actors can already have a live Chaos body before visual restoration.
+		RefreshWorldPickupMass();
+	}
 	return Visual.bResolved;
 }
 
@@ -153,6 +161,7 @@ void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, co
 
 	ItemDefinitionAsset = nullptr;
 	ItemDefinitionId = InItemDefinitionId;
+	CanonicalWorldItemLevel = 0;
 	ItemTags.Reset();
 	SetRuntimeObjectId(InRuntimeObjectId);
 	if (!RuntimeObjectId.IsValid())
@@ -203,6 +212,24 @@ FGuid AGridItemActor::GetRuntimeObjectId() const
 	return RuntimeObjectId;
 }
 
+void AGridItemActor::RefreshWorldPickupMass()
+{
+	if (!MeshComponent) return;
+	const UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	FGridItemInstance MassInstance;
+	MassInstance.RuntimeObjectId = RuntimeObjectId;
+	MassInstance.ItemDefinitionId = GetItemDefinitionId();
+	MassInstance.ItemLevel = CanonicalWorldItemLevel;
+	MassInstance.Quantity = 1;
+	float MassKg = 0.0f;
+	const bool bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolve(
+		Registry, ItemDefinitionAsset, MassInstance, MassKg);
+	MeshComponent->SetMassOverrideInKg(NAME_None, bOverrideMass ? MassKg : 0.0f, bOverrideMass);
+}
+
 void AGridItemActor::ConfigureAsWorldPickup()
 {
 	if (!MeshComponent)
@@ -214,15 +241,7 @@ void AGridItemActor::ConfigureAsWorldPickup()
 	MeshComponent->SetCollisionProfileName(TEXT("PhysicsActor"));
 	MeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 
-	if (ItemDefinitionAsset && ItemDefinitionAsset->bUseItemWeightAsWorldPhysicsMass && FMath::IsFinite(ItemDefinitionAsset->Weight) &&
-		ItemDefinitionAsset->Weight > KINDA_SMALL_NUMBER)
-	{
-		MeshComponent->SetMassOverrideInKg(NAME_None, ItemDefinitionAsset->Weight, true);
-	}
-	else
-	{
-		MeshComponent->SetMassOverrideInKg(NAME_None, 0.0f, false);
-	}
+	RefreshWorldPickupMass();
 
 	MeshComponent->SetEnableGravity(true);
 	MeshComponent->SetSimulatePhysics(true);
