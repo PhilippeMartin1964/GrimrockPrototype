@@ -3,19 +3,34 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridEquippedGuardItemReadModel.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 
 namespace
 {
-	const UGridItemDefinitionAsset* ResolveGenuineOffHand(const UGridPartyInventoryComponent* Inventory,
+	bool ResolveGenuineOffHand(const UGridPartyInventoryComponent* Inventory,
 		int32 CharacterIndex, FGridItemInstance& OutItem)
 	{
-		if (!IsValid(Inventory) ||
-			!Inventory->GetEquippedItem(CharacterIndex, EGridEquipmentSlot::OffHand, OutItem) ||
-			!OutItem.IsValid() || OutItem.EquipmentSlot != EGridEquipmentSlot::OffHand)
-		{
-			return nullptr;
-		}
-		return Inventory->FindItemDefinition(OutItem.ItemDefinitionId);
+		return IsValid(Inventory) &&
+			Inventory->GetEquippedItem(CharacterIndex, EGridEquipmentSlot::OffHand, OutItem) &&
+			OutItem.IsValid() && OutItem.EquipmentSlot == EGridEquipmentSlot::OffHand;
+	}
+
+	const UGridItemSubsystem* ResolveGuardRegistry(const UGridPartyInventoryComponent* Inventory)
+	{
+		const UWorld* World = IsValid(Inventory) ? Inventory->GetWorld() : nullptr;
+		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+		return GameInstance ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	}
+
+	FGridEquippedGuardItemReadView ResolveGuardItem(const UGridPartyInventoryComponent* Inventory,
+		const FGridItemInstance& Item)
+	{
+		return FGridEquippedGuardItemReadModel::Resolve(
+			ResolveGuardRegistry(Inventory),
+			Inventory->FindItemDefinition(Item.ItemDefinitionId), Item);
 	}
 }
 
@@ -28,12 +43,13 @@ bool FGridEquippedGuardResolver::CanParry(const UGridPartyInventoryComponent* In
 		return false;
 	}
 	FGridItemInstance OffHand;
-	const UGridItemDefinitionAsset* Definition = ResolveGenuineOffHand(Inventory, CharacterIndex, OffHand);
-	// Prototype policy: only an actual ARM013 Main-gauche in the secondary
-	// hand grants the provisional parry aptitude. The catalog, not the text
-	// of the item's display name, defines the eligible equipment.
-	return IsValid(Definition) && Definition->ItemType == EGridItemType::Weapon &&
-		Definition->bUseWeaponCatalogue && Definition->WeaponArchetypeId == FName(TEXT("ARM013"));
+	if (!ResolveGenuineOffHand(Inventory, CharacterIndex, OffHand))
+	{
+		return false;
+	}
+	// The canonical catalogue owns ARM013 identity and offhand eligibility.
+	// The provisional parry chance and attack restrictions are unchanged.
+	return ResolveGuardItem(Inventory, OffHand).bCanParry;
 }
 
 bool FGridEquippedGuardResolver::IsSuccessfulParryRoll(int32 Roll1To100, int32 ParryChancePercent)
@@ -77,8 +93,8 @@ int32 FGridEquippedGuardResolver::ResolveAbsorbedShieldDamage(const UGridPartyIn
 		return 0;
 	}
 	FGridItemInstance OffHand;
-	const UGridItemDefinitionAsset* Definition = ResolveGenuineOffHand(Inventory, CharacterIndex, OffHand);
-	if (!IsValid(Definition) || Definition->ItemType != EGridItemType::Shield)
+	if (!ResolveGenuineOffHand(Inventory, CharacterIndex, OffHand) ||
+		!ResolveGuardItem(Inventory, OffHand).bIsShield)
 	{
 		return 0;
 	}
