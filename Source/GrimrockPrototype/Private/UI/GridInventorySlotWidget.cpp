@@ -448,7 +448,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	}
 
 	// INDUS04.1: use the real instance ItemLevel, never the authored N1 action.
-	FGridWeaponTooltipProjection::Build(Definition, CachedItem, View.WeaponProfile);
+	FGridWeaponTooltipProjection::Build(Definition, CachedItem, View.WeaponProfile, Registry);
 	View.bEquippable = Definition->CompatibleEquipmentSlots.Num() > 0;
 	View.bReadable = UGridItemContextActionLibrary::IsItemReadable(CachedItem, Definition);
 	View.bProvidesLight = Definition->HasLightEmitter();
@@ -545,7 +545,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
         {
             FGridWeaponTooltipProjection::BuildComparison(
                 Definition, CachedItem, EquippedDefinition, EquippedItem,
-                Comparison.WeaponFacts);
+                Comparison.WeaponFacts, Registry);
         }
 	}
 	return View;
