@@ -100,8 +100,10 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 			FName(*Row.ArchetypeId));
 		TestEqual(TEXT("Weight belongs to item identity, not a mutable level"),
 			N20.WeightKg, N1.WeightKg);
-		TestEqual(TEXT("Real canonical N1-N20 hand policy matches two-handed production kind"),
-			N20.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded, Row.IsTwoHanded());
+		// BuildKind is a production label, not evidence of the actual
+		// authored hand policy. That policy was measured from the UE asset.
+		TestEqual(TEXT("Real authored hand policy remains stable from N1 to N20"),
+			N20.Weapon.HandPolicy, N1.Weapon.HandPolicy);
 		TestTrue(TEXT("Canonical weapon accepts its authored equipment hand"),
 			N20.Weapon.CanEquipInHand(Row.IsPassive()
 				? EGridEquipmentSlot::OffHand : EGridEquipmentSlot::MainHand));

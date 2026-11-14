@@ -19,6 +19,6 @@ Ce changement **ne migre pas** les bonus d'équipement, l'armure restante, les r
 
 ## Validation
 
-Le test persistant `Grimrock.RPG.ARM.CLEAN06_3.RealNativeRegistryAndActions` vérifie pour chaque ARM du manifeste que la politique des deux mains correspond au `BuildKind`, que la main déclarée est permise et que `None` est impossible. Les tests d'identité N1–N20 déjà existants restent actifs.
+Le test persistant `Grimrock.RPG.ARM.CLEAN06_3.RealNativeRegistryAndActions` vérifie pour chaque ARM du manifeste que la politique de mains réellement authorée reste stable entre N1 et N20, que la main déclarée est permise et que `None` est impossible. Le `BuildKind` du manifeste ne sert pas de preuve de la politique des mains. Les tests d'identité N1–N20 déjà existants restent actifs.
 
 **Portes de sortie :** `UE5.5.4/SilentTask` et `UE5.5.4/LocalAuto` sur le SHA exact, puis recette PIE des transactions de mains/sac/curseur sur armes une main, deux mains et passives. La validation PIE précédente de 06.3F n'est pas attribuée à tort à ce nouveau code.
