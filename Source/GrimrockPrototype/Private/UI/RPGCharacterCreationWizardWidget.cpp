@@ -1,6 +1,7 @@
 #include "UI/RPGCharacterCreationWizardWidget.h"
 
 #include "UI/UILocalizationText.h"
+#include "GridStartingKitDisplayReadModel.h"
 
 #include "Components/Button.h"
 #include "Components/ComboBoxString.h"
@@ -11,6 +12,7 @@
 #include "Components/Widget.h"
 #include "Components/WidgetSwitcher.h"
 #include "Engine/World.h"
+#include "Engine/GameInstance.h"
 #include "RPG/RPGCharacterPortraitSetAsset.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
@@ -547,6 +549,10 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitSummary(
 FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescription() const
 {
     const FName KitId = GetSelectedStartingEquipmentKitId();
+    const UWorld* World = GetWorld();
+    UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+    const UGridItemSubsystem* CanonicalRegistry = GameInstance
+        ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
     for (const FRPGStartingEquipmentKit& Kit : GetAvailableStartingEquipmentKits())
     {
         if (Kit.KitId != KitId)
@@ -563,11 +569,20 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescript
             {
                 continue;
             }
-            const FText ItemName = Item->DisplayName.IsEmpty() ?
-                FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.UnknownItem")) : Item->DisplayName;
+            const FGridStartingKitDisplayReadView ItemView =
+                FGridStartingKitDisplayReadModel::Resolve(
+                    CanonicalRegistry, Item, Entry.ItemLevel);
+            // A registered invalid ARM must never borrow the old definition's
+            // display name or claim an inherited N1 level in the frontend.
+            if (ItemView.bCanonicalIdentity && !ItemView.bResolved)
+            {
+                continue;
+            }
+            const FText ItemName = ItemView.DisplayName.IsEmpty()
+                ? FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.UnknownItem"))
+                : ItemView.DisplayName;
             const FText SlotName = ResolveLocalizedKitSlot(Entry.TargetSlot);
-            const int32 Level = Entry.ItemLevel == 0 && Item->bUseWeaponCatalogue
-                ? Item->DefaultWeaponItemLevel : Entry.ItemLevel;
+            const int32 Level = ItemView.bResolved ? ItemView.FixedItemLevel : 0;
             if (Level > 0)
             {
                 Rows.Add(FText::FormatNamed(
