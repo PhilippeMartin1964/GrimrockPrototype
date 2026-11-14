@@ -6,6 +6,10 @@
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridInteractableInterface.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridPhysicalThrowStrengthReadModel.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -417,14 +421,20 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		const bool bHasSummary = ItemContext.PartyPawn->PartyInventoryComponent &&
 			ItemContext.PartyPawn->PartyInventoryComponent->GetCharacterSummary(ItemContext.CharacterIndex, CharacterSummary);
 		const int32 Strength = bHasSummary ? CharacterSummary.Attributes.Strength : 0;
-		const bool bCanThrow = Definition && Definition->CanBeThrownByStrength(Strength);
+		UGameInstance* GameInstance = ItemContext.PartyPawn->GetWorld()
+			? ItemContext.PartyPawn->GetWorld()->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry = GameInstance
+			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		const FGridPhysicalThrowStrengthReadView Gate =
+			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, Definition, ItemContext.Item, Strength);
+		const bool bCanThrow = bHasSummary && Gate.bCanThrow;
 
 		FText DisabledReason;
-		if (!Definition)
+		if (!Definition || !Gate.bResolved)
 		{
 			DisabledReason = NSLOCTEXT("GridItemActions", "ThrowMissingDefinition", "Définition d'objet indisponible.");
 		}
-		else if (Definition->GetEffectiveHandUsage() != EGridItemHandUsage::OneHanded)
+		else if (!Gate.bOneHanded)
 		{
 			DisabledReason = NSLOCTEXT("GridItemActions", "ThrowNeedsOneHand", "Cet objet ne peut pas être lancé d'une seule main.");
 		}
@@ -436,8 +446,8 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		{
 			DisabledReason = FText::FormatNamed(
 				FUILocalizationText::Get(TEXT("Interaction.Throw.TooHeavy")),
-				TEXT("Weight"), FText::AsNumber(Definition->Weight),
-				TEXT("MaximumWeight"), FText::AsNumber(Definition->GetMaxThrowableWeightForStrength(Strength)),
+				TEXT("Weight"), FText::AsNumber(Gate.UnitWeightKg),
+				TEXT("MaximumWeight"), FText::AsNumber(Gate.MaxWeightKg),
 				TEXT("Strength"), FText::AsNumber(Strength));
 		}
 

@@ -6,6 +6,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridCanonicalThrowBallisticsReadModel.h"
+#include "GridPhysicalThrowStrengthReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -47,10 +48,10 @@ namespace
 		}
 
 		OutStrength = Summary.Attributes.Strength;
-		// The historic Strength/weight speed modifier is deliberately unchanged in 06.3T;
-		// 06.3U will migrate its numerical mass gate for UI and gameplay together.
-		OutSpeedScale = Definition->GetThrowSpeedScaleForStrength(OutStrength);
-		return OutSpeedScale > 0.0f;
+		const FGridPhysicalThrowStrengthReadView ThrowGate =
+			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, Definition, Instance, OutStrength);
+		OutSpeedScale = ThrowGate.SpeedScale;
+		return ThrowGate.bCanThrow && OutBallistics.bResolved;
 	}
 }
 

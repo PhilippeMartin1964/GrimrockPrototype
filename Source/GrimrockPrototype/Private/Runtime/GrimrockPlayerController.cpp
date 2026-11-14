@@ -17,6 +17,9 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridPhysicalThrowStrengthReadModel.h"
+#include "Engine/GameInstance.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridWallLockActor.h"
@@ -129,17 +132,26 @@ namespace
 			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.DefinitionOrCharacterUnavailable"));
 			return false;
 		}
-		if (OutDefinition->GetEffectiveHandUsage() != EGridItemHandUsage::OneHanded)
+		UGameInstance* GI = PartyPawn->GetWorld() ? PartyPawn->GetWorld()->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		const FGridPhysicalThrowStrengthReadView Gate =
+			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, OutDefinition, OutItem, Summary.Attributes.Strength);
+		if (!Gate.bResolved)
+		{
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.DefinitionOrCharacterUnavailable"));
+			return false;
+		}
+		if (!Gate.bOneHanded)
 		{
 			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.RequiresOneHand"));
 			return false;
 		}
-		if (!OutDefinition->CanBeThrownByStrength(Summary.Attributes.Strength))
+		if (!Gate.bCanThrow)
 		{
 			OutReason = FText::FormatNamed(
 				FUILocalizationText::Get(TEXT("Interaction.Throw.TooHeavy")),
-				TEXT("Weight"), FText::AsNumber(OutDefinition->Weight),
-				TEXT("MaximumWeight"), FText::AsNumber(OutDefinition->GetMaxThrowableWeightForStrength(Summary.Attributes.Strength)),
+				TEXT("Weight"), FText::AsNumber(Gate.UnitWeightKg),
+				TEXT("MaximumWeight"), FText::AsNumber(Gate.MaxWeightKg),
 				TEXT("Strength"), FText::AsNumber(Summary.Attributes.Strength));
 			return false;
 		}
@@ -178,12 +190,43 @@ namespace
 			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.DefinitionOrCharacterUnavailable"));
 			return false;
 		}
-		if (!OutDefinition->CanBeThrownByStrength(Summary.Attributes.Strength))
+		const FGridPartyInventoryState& State = PartyPawn->PartyInventoryComponent->PartyInventoryState;
+		if (!State.ActiveCharacters.IsValidIndex(CharacterIndex))
+		{
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.CharacterChanged"));
+			return false;
+		}
+		const FGridInventorySlot* ItemSlot =
+			State.ActiveCharacters[CharacterIndex].InventorySlots.FindByPredicate(
+				[ItemDefinitionId](const FGridInventorySlot& Slot)
+				{
+					return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == ItemDefinitionId;
+				});
+		if (!ItemSlot)
+		{
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.ItemMissingInventory"));
+			return false;
+		}
+		UGameInstance* GI = PartyPawn->GetWorld() ? PartyPawn->GetWorld()->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		const FGridPhysicalThrowStrengthReadView Gate =
+			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, OutDefinition, ItemSlot->Item, Summary.Attributes.Strength);
+		if (!Gate.bResolved)
+		{
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.DefinitionOrCharacterUnavailable"));
+			return false;
+		}
+		if (!Gate.bOneHanded)
+		{
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.RequiresOneHand"));
+			return false;
+		}
+		if (!Gate.bCanThrow)
 		{
 			OutReason = FText::FormatNamed(
 				FUILocalizationText::Get(TEXT("Interaction.Throw.TooHeavy")),
-				TEXT("Weight"), FText::AsNumber(OutDefinition->Weight),
-				TEXT("MaximumWeight"), FText::AsNumber(OutDefinition->GetMaxThrowableWeightForStrength(Summary.Attributes.Strength)),
+				TEXT("Weight"), FText::AsNumber(Gate.UnitWeightKg),
+				TEXT("MaximumWeight"), FText::AsNumber(Gate.MaxWeightKg),
 				TEXT("Strength"), FText::AsNumber(Summary.Attributes.Strength));
 			return false;
 		}
