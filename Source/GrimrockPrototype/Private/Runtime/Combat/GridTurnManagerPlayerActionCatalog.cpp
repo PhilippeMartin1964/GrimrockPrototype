@@ -17,6 +17,7 @@
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridDualWieldPolicy.h"
+#include "GridCanonicalActionIconReadModel.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
@@ -365,12 +366,16 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 				Definition.ActionId = Authored.ActionId;
 				Definition.DisplayName = Resolved.DisplayName;
 				Definition.Description = Resolved.Description;
-				Definition.Icon = Resolved.ItemIcon;
+				// ItemIcon belongs to the bag; the action icon belongs to the
+				// one canonical weapon visual palette and this real action kind.
+				// Assign after ActionType/ResolutionProfile below.
 				Definition.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
 				Definition.ActionType = Authored.Action.bRangedAttack ?
 					EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
 				Definition.TargetingPolicy = Authored.Action.Targeting;
 				Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
+				Definition.Icon = Canonical->FindEquippedActionIcon(
+					FGridCanonicalActionIconReadModel::Classify(Resolved, Definition));
 				Definition.ActionPointCost = Resolved.Weapon.ActionPointCost;
 				Definition.RangeCells = Resolved.Weapon.RangeCells;
 				Definition.bRequiresLineOfSight = Authored.Action.bRequiresLineOfSight;

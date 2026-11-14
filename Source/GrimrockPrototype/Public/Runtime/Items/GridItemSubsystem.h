@@ -216,6 +216,12 @@ public:
 		return RootRegistry && !ItemId.IsNone() && ItemIndex.Contains(ItemId);
 	}
 
+	/** Read a visual CATEGORY from the sole canonical WeaponVisualCatalogue.
+	 * Does not grant any combat action and never returns the object's ItemIcon.
+	 */
+	TSoftObjectPtr<UTexture2D> FindEquippedActionIcon(
+		EGridEquippedWeaponActionIconKind Kind) const;
+
 private:
 	/** Authored once in DefaultGame.ini once DA_ItemSystem exists (06.2). */
 	UPROPERTY(Config, EditDefaultsOnly, Category = "Item System")

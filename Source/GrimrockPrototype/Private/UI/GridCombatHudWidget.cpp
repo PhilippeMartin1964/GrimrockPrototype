@@ -23,6 +23,10 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "../Runtime/Combat/GridCanonicalActionIconReadModel.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -707,6 +711,8 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 	if (Image_ActionIcon)
 	{
 		const UGridItemDefinitionAsset* EquippedDefinition = nullptr;
+		bool bKnownCanonicalAction = false;
+		TSoftObjectPtr<UTexture2D> CanonicalActionIcon;
 		if (View.bResolved && View.Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
 			IsValid(OwnerHud) && IsValid(OwnerHud->InventoryComponent))
 		{
@@ -717,10 +723,35 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 				Equipped.ItemDefinitionId == View.Action.SourceDefinitionId)
 			{
 				EquippedDefinition = OwnerHud->InventoryComponent->FindItemDefinition(Equipped.ItemDefinitionId);
+				const UWorld* HUDWorld = GetWorld();
+				UGameInstance* GameInstance = HUDWorld ? HUDWorld->GetGameInstance() : nullptr;
+				const UGridItemSubsystem* Registry = GameInstance
+					? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+				if (Registry && Registry->HasCanonicalItem(Equipped.ItemDefinitionId))
+				{
+					bKnownCanonicalAction = true;
+					FGridResolvedItem Resolved;
+					if (Registry->ResolveItem(Equipped.ItemDefinitionId, Equipped.ItemLevel, Resolved))
+					{
+						const EGridEquippedWeaponActionIconKind Kind =
+							FGridCanonicalActionIconReadModel::Classify(Resolved, View.Action.Definition);
+						CanonicalActionIcon = Registry->FindEquippedActionIcon(Kind);
+						// DualWield is an explicitly offered composite; preserve
+						// its dedicated icon if this canonical kind is unconfigured.
+						if (Kind == EGridEquippedWeaponActionIconKind::MeleeDualWield &&
+							CanonicalActionIcon.IsNull())
+						{
+							CanonicalActionIcon = DualAttackIcon;
+						}
+					}
+				}
 			}
 		}
-		const TSoftObjectPtr<UTexture2D> Icon = ResolveDisplayedIcon(
-			View, DualAttackIcon, EquippedWeaponActionIconPalette, EquippedDefinition);
+		// Registered equipment never consults the obsolete DA_Weapon icon
+		// palette; unknown items, spells and consumables keep their old path.
+		const TSoftObjectPtr<UTexture2D> Icon = bKnownCanonicalAction
+			? CanonicalActionIcon
+			: ResolveDisplayedIcon(View, DualAttackIcon, EquippedWeaponActionIconPalette, EquippedDefinition);
 		if (!View.bHasBinding || Icon.IsNull())
 		{
 			Image_ActionIcon->SetBrushFromTexture(nullptr);

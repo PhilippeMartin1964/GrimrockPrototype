@@ -176,6 +176,19 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	return true;
 }
 
+TSoftObjectPtr<UTexture2D> UGridItemSubsystem::FindEquippedActionIcon(
+	EGridEquippedWeaponActionIconKind Kind) const
+{
+	if (Kind == EGridEquippedWeaponActionIconKind::None || !RootRegistry ||
+		!RootRegistry->WeaponVisualCatalogue)
+	{
+		return TSoftObjectPtr<UTexture2D>();
+	}
+	const TSoftObjectPtr<UTexture2D>* Found =
+		RootRegistry->WeaponVisualCatalogue->ActionIcons.Find(Kind);
+	return Found ? *Found : TSoftObjectPtr<UTexture2D>();
+}
+
 bool UGridItemSubsystem::ResolveArmorReserveForInstance(
 	const FGridItemInstance& Instance,
 	FGridCanonicalArmorReserveView& OutReserve) const
