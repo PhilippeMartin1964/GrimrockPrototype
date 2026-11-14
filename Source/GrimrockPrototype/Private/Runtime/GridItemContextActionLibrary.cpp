@@ -9,6 +9,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridPhysicalThrowStrengthReadModel.h"
 #include "GridCanonicalEquipmentSlotsReadModel.h"
+#include "GridCanonicalInventoryStackReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -399,9 +400,18 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		AddAction(OutActions, EGridItemActionType::PlaceOnTarget, Label, &OutFacingTarget);
 	}
 
-	if (bIsInventorySlotSource && Definition && Definition->bStackable && ItemContext.Item.Quantity >= 2)
+	if (bIsInventorySlotSource && ItemContext.Item.Quantity >= 2)
 	{
-		AddAction(OutActions, EGridItemActionType::SplitStack, NSLOCTEXT("GridItemActions", "SplitStack", "Scinder"));
+		const UWorld* World = ItemContext.PartyPawn->GetWorld();
+		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		const FGridCanonicalInventoryStackReadView StackPolicy =
+			FGridCanonicalInventoryStackReadModel::Resolve(Registry, Definition, ItemContext.Item);
+		if (StackPolicy.IsStackable())
+		{
+			AddAction(OutActions, EGridItemActionType::SplitStack,
+				NSLOCTEXT("GridItemActions", "SplitStack", "Scinder"));
+		}
 	}
 
 	if (EffectiveEquipmentSlot == EGridEquipmentSlot::MainHand)

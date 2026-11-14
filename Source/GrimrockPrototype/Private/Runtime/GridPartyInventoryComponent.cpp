@@ -4,6 +4,7 @@
 #include "GridEquipmentSlotUtils.h"
 #include "GridItemWeightReadModel.h"
 #include "GridItemInstanceMaterializationReadModel.h"
+#include "GridCanonicalInventoryStackReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -1045,8 +1046,11 @@ bool UGridPartyInventoryComponent::CanAddItemToCharacterInventory(int32 Characte
 	}
 
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
-	const bool bStackable = Definition && Definition->bStackable;
-	const int32 MaxStackSize = bStackable ? FMath::Max(1, Definition->MaxStackSize) : 1;
+	const FGridCanonicalInventoryStackReadView StackPolicy =
+		FGridCanonicalInventoryStackReadModel::Resolve(
+			ResolvePartyWeightRegistry(this), Definition, ItemToAdd);
+	const bool bStackable = StackPolicy.IsStackable();
+	const int32 MaxStackSize = StackPolicy.MaxStackSize;
 
 	int64 AvailableCapacity = 0;
 	const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
@@ -1095,8 +1099,11 @@ bool UGridPartyInventoryComponent::AddItemToCharacterInventory(int32 CharacterIn
 	}
 
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
-	const bool bStackable = Definition && Definition->bStackable;
-	const int32 MaxStackSize = bStackable ? FMath::Max(1, Definition->MaxStackSize) : 1;
+	const FGridCanonicalInventoryStackReadView StackPolicy =
+		FGridCanonicalInventoryStackReadModel::Resolve(
+			ResolvePartyWeightRegistry(this), Definition, ItemToAdd);
+	const bool bStackable = StackPolicy.IsStackable();
+	const int32 MaxStackSize = StackPolicy.MaxStackSize;
 
 	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	ItemToAdd.OwnerType = EGridItemOwnerType::CharacterInventory;
@@ -1183,7 +1190,10 @@ bool UGridPartyInventoryComponent::TrySplitInventoryStackToFirstFreeSlot(int32 C
 
 	FGridInventorySlot& SourceSlot = CharacterState.InventorySlots[SourceSlotIndex];
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(SourceSlot.Item.ItemDefinitionId);
-	if (!Definition || !Definition->bStackable || SourceSlot.Item.Quantity < 2)
+	const FGridCanonicalInventoryStackReadView StackPolicy =
+		FGridCanonicalInventoryStackReadModel::Resolve(
+			ResolvePartyWeightRegistry(this), Definition, SourceSlot.Item);
+	if (!StackPolicy.IsStackable() || SourceSlot.Item.Quantity < 2)
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Item=%s Quantity=%d Reason=NotSplittable"),
 			CharacterIndex, SourceSlotIndex, *SourceSlot.Item.ItemDefinitionId.ToString(), SourceSlot.Item.Quantity);
@@ -1601,34 +1611,40 @@ UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName
 
 bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstance& ItemInstance) const
 {
-	UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemInstance.ItemDefinitionId);
-	if (!Definition)
-	{
-		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory ItemDefinition Missing ItemDefinitionId=%s"), *ItemInstance.ItemDefinitionId.ToString());
-		return false;
-	}
+    const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemInstance.ItemDefinitionId);
+    const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
+    const bool bCanonical = Registry && Registry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
+    if (!bCanonical && !Definition)
+    {
+        UE_LOG(LogGridInventory, Verbose,
+            TEXT("GridInventory ItemDefinition Missing ItemDefinitionId=%s"),
+            *ItemInstance.ItemDefinitionId.ToString());
+        return false;
+    }
 
-	// Keep the transitional snapshots needed by SaveGame 27, but resolve
-	// registered item mass and initial name from the one DA_ItemSystem.
-	if (!FGridItemInstanceMaterializationReadModel::TryApply(
-		ResolvePartyWeightRegistry(this), Definition, ItemInstance))
-	{
-		return false;
-	}
-	// ITEM-LIGHT02: this function normalizes definition-owned metadata only.
-	// The mutable light state belongs to the item instance and must survive transfers and rehydration.
-	if (!Definition->bStackable)
-	{
-		ItemInstance.Quantity = 1;
-	}
-	else
-	{
-		ItemInstance.Quantity = FMath::Clamp(ItemInstance.Quantity, 1, FMath::Max(1, Definition->MaxStackSize));
-	}
+    // Stage mutations until both the canonical metadata AND stack policy
+    // resolve. Known fixed-level instances no longer require any old asset.
+    FGridItemInstance Candidate = ItemInstance;
+    if (!FGridItemInstanceMaterializationReadModel::TryApply(Registry, Definition, Candidate))
+    {
+        return false;
+    }
+    const FGridCanonicalInventoryStackReadView StackPolicy =
+        FGridCanonicalInventoryStackReadModel::Resolve(Registry, Definition, Candidate);
+    if (!StackPolicy.bResolved)
+    {
+        return false;
+    }
 
-	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory ItemDefinition Applied Item=%s Weight=%.2f Type=%d"), *ItemInstance.ItemDefinitionId.ToString(),
-		ItemInstance.Weight, static_cast<int32>(Definition->ItemType));
-	return true;
+    // Mutable light and armor debt belong to the instance, never to its
+    // definition. Only quantity and the pre-06.4 metadata cache are updated.
+    Candidate.Quantity = FMath::Clamp(Candidate.Quantity, 1, StackPolicy.MaxStackSize);
+    ItemInstance = MoveTemp(Candidate);
+    UE_LOG(LogGridInventory, Verbose,
+        TEXT("GridInventory ItemDefinition Applied Item=%s Weight=%.2f Canonical=%s"),
+        *ItemInstance.ItemDefinitionId.ToString(), ItemInstance.Weight,
+        bCanonical ? TEXT("true") : TEXT("false"));
+    return true;
 }
 
 float UGridPartyInventoryComponent::CalculateCharacterCurrentWeight(int32 CharacterIndex) const

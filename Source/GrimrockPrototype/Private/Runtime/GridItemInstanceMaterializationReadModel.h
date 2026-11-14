@@ -14,10 +14,13 @@ struct FGridItemInstanceMaterializationReadModel
         const UGridItemDefinitionAsset* LegacyDefinition,
         FGridItemInstance& InOutInstance)
     {
-        if (!IsValid(LegacyDefinition) ||
-            LegacyDefinition->ItemDefinitionId != InOutInstance.ItemDefinitionId ||
-            InOutInstance.ItemDefinitionId.IsNone() ||
-            InOutInstance.ItemLevel < 0 || InOutInstance.ItemLevel > 20)
+        const bool bCanonicalIdentity =
+            Registry && Registry->HasCanonicalItem(InOutInstance.ItemDefinitionId);
+        if (InOutInstance.ItemDefinitionId.IsNone() ||
+            InOutInstance.ItemLevel < 0 || InOutInstance.ItemLevel > 20 ||
+            (IsValid(LegacyDefinition) &&
+                LegacyDefinition->ItemDefinitionId != InOutInstance.ItemDefinitionId) ||
+            (!bCanonicalIdentity && !IsValid(LegacyDefinition)))
         {
             return false;
         }
@@ -25,7 +28,7 @@ struct FGridItemInstanceMaterializationReadModel
         // All mutations are staged; failures never alter a saved physical
         // identity, ownership, light state, armor debt or cached metadata.
         FGridItemInstance Candidate = InOutInstance;
-        if (Registry && Registry->HasCanonicalItem(Candidate.ItemDefinitionId))
+        if (bCanonicalIdentity)
         {
             // Probe N1 solely to discover the canonical family. Never assign
             // N1 to an item: non-armaments such as arrows persist at N0.
@@ -36,8 +39,13 @@ struct FGridItemInstanceMaterializationReadModel
             }
             if (Family.bIsArmament && Candidate.ItemLevel == 0)
             {
-                // Freshly authored ARM: materialize legacy default exactly
-                // once; already-fixed N1-N20 instances retain their level.
+                // An authored N0 ARM can inherit the pre-cutover default
+                // only when its *matching* historical authoring asset exists.
+                // Without it N0 is invalid, never silently converted to N1.
+                if (!IsValid(LegacyDefinition))
+                {
+                    return false;
+                }
                 Candidate.ItemLevel = LegacyDefinition->DefaultWeaponItemLevel;
             }
             FGridResolvedItem Resolved;

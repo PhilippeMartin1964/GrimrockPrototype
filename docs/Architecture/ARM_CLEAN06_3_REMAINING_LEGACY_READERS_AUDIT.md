@@ -46,3 +46,14 @@ pourtant enregistrée. Le jalon 06.3AR isole les actions d'équipement
 canoniques et interdit toute réutilisation d'icône d'objet pour ces IDs.
 Les raccourcis quick item/unknown ID restent provisoirement legacy ;
 les données d'authoring en `.uasset` relèvent toujours de 06.4.
+
+## Complément 06.3AS — inventaire/piles sans définition historique
+
+`FGridItemInstanceMaterializationReadModel` pouvait uniquement
+matérialiser les identités connues si un asset historique était
+encore enregistré. Le jalon 06.3AS retire cette obligation pour
+les instances ARM explicitement nivelées et les objets N0 non-ARM,
+et rend `MaxStack` du registre prioritaire dans les entrées, les
+fusions et la séparation des piles. L'héritage de niveau authoré N0,
+la reconstitution SaveGame et les références d'assets binaires
+restent des obligations de 06.4.
