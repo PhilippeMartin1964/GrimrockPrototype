@@ -174,9 +174,8 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	ConfigureAsAttachedItem();
 	SetItemLightsEnabled(InItemInstance.bLightsEnabled);
 
-	// 06.3R: only ARM weapon projectiles are converted here. Ranged ammunition
-	// still has the legacy ItemLevel=0 contract; it must not be silently promoted
-	// to N1 or made invisible before its separate instance-level migration.
+	// ARM flight reads its N1-N20 profile; arrows are an unlevelled family
+	// and keep their actual ItemLevel=0 without any synthetic weapon level.
 	const UWorld* World = GetWorld();
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GameInstance
@@ -186,6 +185,9 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	const bool bCanonicalArmamentProjectile =
 		InDefinition && InDefinition->bUseWeaponCatalogue &&
 		Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bHasProjectileVisual;
+	const bool bCanonicalAmmoFlight =
+		InDefinition && !InDefinition->bUseWeaponCatalogue &&
+		Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bIsAmmunition;
 	// The same N1-N20 weapon policy owns recoverable landing offset and lifetime.
 	// Arc and initial speed are still calculated by launchers (next migration).
 	if (bCanonicalArmamentProjectile)
@@ -201,10 +203,15 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 			MeshComponent->SetStaticMesh(Canonical.ProjectileMesh.LoadSynchronous());
 		}
 	}
-	else if (InDefinition && InDefinition->bUseWeaponCatalogue &&
-		Canonical.bCanonicalIdentity && !Canonical.bResolved && MeshComponent)
+	else if (bCanonicalAmmoFlight && MeshComponent)
 	{
-		// A known but invalid canonical ARM cannot render a copied legacy mesh.
+		// Ammo is not an armament: its canonical UGridAmmoDefinitionAsset owns the
+		// world/flight mesh, while the historical arrow orientation is unchanged.
+		MeshComponent->SetStaticMesh(Canonical.WorldMesh.LoadSynchronous());
+	}
+	else if (Canonical.bCanonicalIdentity && !Canonical.bResolved && MeshComponent)
+	{
+		// A known invalid item level cannot render an obsolete definition copy.
 		MeshComponent->SetStaticMesh(nullptr);
 	}
 

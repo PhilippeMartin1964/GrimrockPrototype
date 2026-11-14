@@ -8,13 +8,15 @@ struct FGridCanonicalProjectileVisualReadView
 	bool bCanonicalIdentity = false;
 	bool bResolved = false;
 	bool bHasProjectileVisual = false;
+	bool bIsAmmunition = false;
 	FName VisualId = NAME_None;
+	TSoftObjectPtr<UStaticMesh> WorldMesh;
 	TSoftObjectPtr<UStaticMesh> ProjectileMesh;
 	FGridCanonicalProjectileVisual Appearance;
 	FGridCanonicalProjectilePolicy FlightPolicy;
 };
 
-/** A missing N1-N20 level must not read DA_Weapon_* visual fields. */
+/** No synthetic N1: armaments require N1-N20, ammunition retains canonical N0. */
 struct FGridCanonicalProjectileVisualReadModel
 {
 	static FGridCanonicalProjectileVisualReadView Resolve(
@@ -33,6 +35,13 @@ struct FGridCanonicalProjectileVisualReadModel
 		}
 		Result.bResolved = true;
 		Result.VisualId = Resolved.VisualId;
+		Result.bIsAmmunition = !Resolved.AmmoKindId.IsNone() && !Resolved.bIsArmament;
+		if (Result.bIsAmmunition)
+		{
+			// Ammo flight renders its single authored world mesh; only armaments
+			// have a dedicated visual flight profile in WeaponVisualCatalogue.
+			Result.WorldMesh = Resolved.WorldMesh;
+		}
 		Result.bHasProjectileVisual = Resolved.bIsArmament && Resolved.ProjectileAppearance.bEnabled;
 		if (Result.bHasProjectileVisual)
 		{
