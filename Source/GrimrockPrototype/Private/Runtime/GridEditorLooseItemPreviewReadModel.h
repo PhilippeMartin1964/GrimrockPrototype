@@ -3,6 +3,7 @@
 #include "Core/GridLevelPlacementTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "GridWorldItemLevelReadModel.h"
 
 /** A preview is an authored placement, not yet a persisted FGridItemInstance. */
 struct FGridEditorLooseItemPreviewReadView
@@ -29,11 +30,17 @@ struct FGridEditorLooseItemPreviewReadModel
 			return View; // Only unregistered items may use the legacy visual reader.
 		}
 		View.bCanonicalIdentity = true;
-		// Mirrors AGridLevelRuntimeActor::AddPlacedItemActor exactly:
-		// authored N0 inherits default ONCE for an ARM; ammo N0 is meaningful.
-		View.EffectiveItemLevel =
-			Definition->bUseWeaponCatalogue && Placement.ItemLevel == 0
-			? Definition->DefaultWeaponItemLevel : Placement.ItemLevel;
+		// Use the EXACT authored-placement policy shared with runtime.
+		// The old bUseWeaponCatalogue flag must not override the canonical
+		// ARM family, otherwise an editor preview can disagree with PIE.
+		const FGridReceptacleItemMetadataReadView Level =
+			FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
+				Registry, Definition, Definition->ItemDefinitionId, Placement.ItemLevel);
+		if (!Level.bResolved)
+		{
+			return View; // Known invalid N0/default: no historical preview fallback.
+		}
+		View.EffectiveItemLevel = Level.FixedItemLevel;
 		FGridResolvedItem Canonical;
 		if (!Registry->ResolveItem(Definition->ItemDefinitionId, View.EffectiveItemLevel, Canonical))
 		{
