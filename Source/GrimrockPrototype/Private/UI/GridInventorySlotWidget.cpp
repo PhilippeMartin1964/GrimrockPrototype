@@ -10,6 +10,7 @@
 #include "UI/GridWeaponVisualUiResolver.h"
 #include "GridInventoryItemMetadataReadModel.h"
 #include "../Runtime/GridEquipmentPreviewItemReadModel.h"
+#include "../Runtime/GridCanonicalEquipmentSlotsReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -79,44 +80,47 @@ namespace
 
 	const UGridItemSubsystem* GetCanonicalItemRegistry(const UGridInventorySlotWidget* Slot)
 	{
-		if (const UWorld* World = Slot->GetWorld())
+		if (!IsValid(Slot)) return nullptr;
+		const UWorld* World = Slot->GetWorld();
+		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+		// Designer-only and transient slot widgets can have no own world.
+		// Their owning inventory's live component is a valid alternative
+		// route to the SAME GameInstance, never a second item registry.
+		if (!GameInstance)
 		{
-			if (UGameInstance* GameInstance = World->GetGameInstance())
-			{
-				return GameInstance->GetSubsystem<UGridItemSubsystem>();
-			}
+			const UGridInventoryWidget* Parent = Slot->OwningInventoryWidget.Get();
+			const UGridPartyInventoryComponent* Inventory =
+				Parent ? Parent->InventoryComponent.Get() : nullptr;
+			const UWorld* InventoryWorld = IsValid(Inventory) ? Inventory->GetWorld() : nullptr;
+			GameInstance = InventoryWorld ? InventoryWorld->GetGameInstance() : nullptr;
 		}
-		return nullptr;
+		return GameInstance ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	}
 
-	FText BuildCompatibleEquipmentSlotsText(const UGridItemDefinitionAsset* Definition)
+	FText BuildCompatibleEquipmentSlotsText(
+		const UGridItemSubsystem* Registry,
+		const UGridItemDefinitionAsset* Definition,
+		const FGridItemInstance& Item)
 	{
-		if (!Definition)
+		const FGridCanonicalEquipmentSlotsReadView Slots =
+			FGridCanonicalEquipmentSlotsReadModel::Resolve(Registry, Definition, Item);
+		if (Slots.bTwoHanded && !Slots.AllowedSlots.IsEmpty())
 		{
-			return FText::GetEmpty();
+			// The physical MainHand slot is a two-hand usage label to players.
+			return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Equipment.TwoHands"));
 		}
-
-        // A two-handed item is installed in MainHand internally, but it
-        // occupies both hands. The tooltip describes usage, not storage.
-        if (Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded &&
-            Definition->CanEquipToSlot(EGridEquipmentSlot::MainHand))
-        {
-            return FUILocalizationText::Get(TEXT("Inventory.Tooltip.Equipment.TwoHands"));
-        }
-
-        TArray<FString> SlotLabels;
-        TArray<EGridEquipmentSlot> EffectiveSlots;
-        FGridEquipmentTooltipGlobalProjection::GatherAllowedSlots(Definition, EffectiveSlots);
-        for (const EGridEquipmentSlot CompatibleSlot : EffectiveSlots)
-        {
-            const FText SlotLabel = GetEquipmentSlotDisplayName(CompatibleSlot);
+		TArray<FString> SlotLabels;
+		for (const EGridEquipmentSlot CompatibleSlot : Slots.AllowedSlots)
+		{
+			const FText SlotLabel = GetEquipmentSlotDisplayName(CompatibleSlot);
 			if (!SlotLabel.IsEmpty())
 			{
 				SlotLabels.Add(SlotLabel.ToString());
 			}
 		}
-
-		return SlotLabels.Num() > 0 ? FText::FromString(FString::Join(SlotLabels, TEXT(", "))) : FText::GetEmpty();
+		return SlotLabels.Num() > 0
+			? FText::FromString(FString::Join(SlotLabels, TEXT(", ")))
+			: FText::GetEmpty();
 	}
 
 	FText BuildUsageSummary(const FGridItemTooltipView& View)
@@ -447,7 +451,10 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.WeightText = View.Quantity > 1
 		? FText::FromString(FString::Printf(TEXT("%.1f × %d = %.1f"), View.UnitWeight, View.Quantity, View.TotalWeight))
 		: FText::FromString(FString::Printf(TEXT("%.1f"), View.UnitWeight));
-	View.CompatibleSlotsText = BuildCompatibleEquipmentSlotsText(Definition);
+	View.CompatibleSlotsText = BuildCompatibleEquipmentSlotsText(Registry, Definition, CachedItem);
+	const FGridCanonicalEquipmentSlotsReadView EquipmentSlots =
+		FGridCanonicalEquipmentSlotsReadModel::Resolve(Registry, Definition, CachedItem);
+	View.bEquippable = !EquipmentSlots.AllowedSlots.IsEmpty();
 
 	if (!Definition)
 	{
@@ -456,7 +463,6 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 
 	// INDUS04.1: use the real instance ItemLevel, never the authored N1 action.
 	FGridWeaponTooltipProjection::Build(Definition, CachedItem, View.WeaponProfile, Registry);
-	View.bEquippable = Definition->CompatibleEquipmentSlots.Num() > 0;
 	View.bReadable = UGridItemContextActionLibrary::IsItemReadable(CachedItem, Definition);
 	View.bProvidesLight = Definition->HasLightEmitter();
 	View.bLightEnabled = View.bProvidesLight && CachedItem.bLightsEnabled;
@@ -498,7 +504,8 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
     if (bSourceBacked)
     {
         TArray<EGridEquipmentSlot> AllowedSlots;
-        FGridEquipmentTooltipGlobalProjection::GatherAllowedSlots(Definition, AllowedSlots);
+        FGridEquipmentTooltipGlobalProjection::GatherAllowedSlots(
+			Registry, Definition, CachedItem, AllowedSlots);
         for (const EGridEquipmentSlot TargetSlot : AllowedSlots)
         {
             FGridItemTooltipEquipmentComparison Scenario;
@@ -515,7 +522,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
     }
 
 	TSet<EGridEquipmentSlot> ComparedSlots;
-	for (const EGridEquipmentSlot TargetSlot : Definition->CompatibleEquipmentSlots)
+	for (const EGridEquipmentSlot TargetSlot : EquipmentSlots.AllowedSlots)
 	{
 		if (TargetSlot == EGridEquipmentSlot::None || ComparedSlots.Contains(TargetSlot))
 		{

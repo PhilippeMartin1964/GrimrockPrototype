@@ -4,6 +4,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "../Runtime/GridCanonicalEquipmentSlotsReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "UI/GridWeaponTooltipProjection.h"
@@ -151,29 +152,13 @@ namespace
 }
 
 void FGridEquipmentTooltipGlobalProjection::GatherAllowedSlots(
-    const UGridItemDefinitionAsset* Candidate,
+    const UGridItemSubsystem* Registry,
+    const UGridItemDefinitionAsset* CandidateDefinition,
+    const FGridItemInstance& Candidate,
     TArray<EGridEquipmentSlot>& OutSlots)
 {
-    OutSlots.Reset();
-    if (!IsValid(Candidate)) return;
-    // Equipment logic, not the authored CompatibleEquipmentSlots array, owns
-    // hand compatibility. Two-handed items are physically installed once.
-    if (Candidate->CanEquipToSlot(EGridEquipmentSlot::MainHand))
-        OutSlots.Add(EGridEquipmentSlot::MainHand);
-    if (Candidate->GetEffectiveHandUsage() != EGridItemHandUsage::TwoHanded &&
-        Candidate->CanEquipToSlot(EGridEquipmentSlot::OffHand))
-        OutSlots.Add(EGridEquipmentSlot::OffHand);
-
-    for (EGridEquipmentSlot Slot : Candidate->CompatibleEquipmentSlots)
-    {
-        if (Slot == EGridEquipmentSlot::None ||
-            Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand ||
-            OutSlots.Contains(Slot) || !Candidate->CanEquipToSlot(Slot))
-        {
-            continue;
-        }
-        OutSlots.Add(Slot);
-    }
+    OutSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(
+        Registry, CandidateDefinition, Candidate).AllowedSlots;
 }
 
 bool FGridEquipmentTooltipGlobalProjection::BuildScenario(

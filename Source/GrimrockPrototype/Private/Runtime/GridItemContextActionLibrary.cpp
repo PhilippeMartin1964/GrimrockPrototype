@@ -8,6 +8,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridPhysicalThrowStrengthReadModel.h"
+#include "GridCanonicalEquipmentSlotsReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -242,47 +243,35 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		const FText UnequipLabel = NSLOCTEXT("GridItemActions", "Unequip", "Enlever");
 		AddAction(OutActions, EGridItemActionType::Unequip, UnequipLabel, nullptr, SourceEquipmentSlot);
 	}
-	else if (Definition)
+	else
 	{
-		if (Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded &&
-			Definition->CanEquipToSlot(EGridEquipmentSlot::MainHand))
+		const UWorld* World = ItemContext.PartyPawn->GetWorld();
+		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry = GameInstance
+			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		const FGridCanonicalEquipmentSlotsReadView Slots =
+			FGridCanonicalEquipmentSlotsReadModel::Resolve(
+				Registry, Definition, ItemContext.Item);
+
+		if (Slots.bTwoHanded && Slots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand))
 		{
-			// ARMEMENT01.7.3: one action reserves both hands. The item remains
-			// physically owned by MainHand; don't offer two equivalent UI actions.
+			// One physical action, with OffHand reserved virtually.
 			AddAction(OutActions, EGridItemActionType::Equip,
 				NSLOCTEXT("GridItemActions", "EquipTwoHands", "S'équiper : deux mains"),
 				nullptr, EGridEquipmentSlot::MainHand);
 		}
 		else
 		{
-			if (Definition->CanEquipToSlot(EGridEquipmentSlot::MainHand))
+			for (const EGridEquipmentSlot Slot : Slots.AllowedSlots)
 			{
-				AddAction(OutActions, EGridItemActionType::Equip,
-					FText::Format(NSLOCTEXT("GridItemActions", "EquipSpecificSlot", "S'equiper : {0}"), GetEquipmentSlotActionLabel(EGridEquipmentSlot::MainHand)),
-					nullptr, EGridEquipmentSlot::MainHand);
+				const FText SlotLabel = GetEquipmentSlotActionLabel(Slot);
+				if (!SlotLabel.IsEmpty())
+				{
+					AddAction(OutActions, EGridItemActionType::Equip,
+						FText::Format(NSLOCTEXT("GridItemActions", "EquipSpecificSlot", "S'equiper : {0}"), SlotLabel),
+						nullptr, Slot);
+				}
 			}
-			if (Definition->CanEquipToSlot(EGridEquipmentSlot::OffHand))
-			{
-				AddAction(OutActions, EGridItemActionType::Equip,
-					FText::Format(NSLOCTEXT("GridItemActions", "EquipSpecificSlot", "S'equiper : {0}"), GetEquipmentSlotActionLabel(EGridEquipmentSlot::OffHand)),
-					nullptr, EGridEquipmentSlot::OffHand);
-			}
-		}
-		for (const EGridEquipmentSlot CompatibleSlot : Definition->CompatibleEquipmentSlots)
-		{
-			if (CompatibleSlot == EGridEquipmentSlot::None || CompatibleSlot == EGridEquipmentSlot::MainHand || CompatibleSlot == EGridEquipmentSlot::OffHand)
-			{
-				continue;
-			}
-
-			const FText SlotLabel = GetEquipmentSlotActionLabel(CompatibleSlot);
-			if (SlotLabel.IsEmpty())
-			{
-				continue;
-			}
-
-			AddAction(OutActions, EGridItemActionType::Equip, FText::Format(NSLOCTEXT("GridItemActions", "EquipSpecificSlot", "S'equiper : {0}"), SlotLabel),
-				nullptr, CompatibleSlot);
 		}
 	}
 

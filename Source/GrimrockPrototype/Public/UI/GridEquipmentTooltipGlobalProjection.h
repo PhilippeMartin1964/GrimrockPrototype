@@ -5,6 +5,7 @@
 
 class UGridPartyInventoryComponent;
 class UGridItemDefinitionAsset;
+class UGridItemSubsystem;
 
 /**
  * ARMEMENT-INDUS04.3B: bridges 04.3A's non-mutating equipment transaction
@@ -21,8 +22,10 @@ struct GRIMROCKPROTOTYPE_API FGridEquipmentTooltipGlobalProjection
         const FGridItemInstance& Candidate,
         FGridItemTooltipEquipmentComparison& OutScenario);
 
-    /** True for hand slots allowed by gameplay, not just authored array entries. */
+    /** Real ItemInstance level and canonical registry decide all shown slots. */
     static void GatherAllowedSlots(
-        const UGridItemDefinitionAsset* Candidate,
+        const UGridItemSubsystem* Registry,
+        const UGridItemDefinitionAsset* CandidateDefinition,
+        const FGridItemInstance& Candidate,
         TArray<EGridEquipmentSlot>& OutSlots);
 };
