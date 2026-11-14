@@ -147,6 +147,16 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	}
 
 	const FGridItemInstance Source = Character.InventorySlots[InventorySlotIndex].Item;
+	// Preserve the existing missing-definition diagnostic for non-canonical
+	// items. Registered canonical ARM must not require DA_Weapon_* to equip.
+	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
+	const bool bCanonicalItem = Registry && Registry->HasCanonicalItem(Source.ItemDefinitionId);
+	if (!bCanonicalItem && !FindItemDefinition(Source.ItemDefinitionId))
+	{
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=MissingDefinition Item=%s"),
+			CharacterIndex, GridEquipmentSlotUtils::GetLogName(TargetSlot), *Source.ItemDefinitionId.ToString());
+		return false;
+	}
 	if (!CanEquipItemToSlot(CharacterIndex, Source, TargetSlot))
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=UnsupportedSlot Item=%s"),
