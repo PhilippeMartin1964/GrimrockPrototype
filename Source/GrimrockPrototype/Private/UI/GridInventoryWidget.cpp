@@ -13,6 +13,10 @@
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridInventorySortReadModel.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridItemTransferService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -996,6 +1000,10 @@ void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int3
 
 	TArray<FGridInventoryProjectionEntry> Entries;
 	Entries.Reserve(SourceSlotCapacity);
+	const UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 
 	if (InventoryComponent)
 	{
@@ -1021,14 +1029,13 @@ void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int3
 					continue;
 				}
 
+				const FGridInventorySortReadView SortSource =
+					FGridInventorySortReadModel::Resolve(Registry, Definition, Item);
 				FGridInventoryProjectionEntry& Entry = Entries.AddDefaulted_GetRef();
 				Entry.SourceSlotIndex = SlotIndex;
-				Entry.DisplayName = Definition && !Definition->DisplayName.IsEmpty()
-					? Definition->DisplayName.ToString()
-					: (!Item.DisplayName.IsEmpty() ? Item.DisplayName.ToString() : Item.ItemDefinitionId.ToString());
+				Entry.DisplayName = SortSource.DisplayName;
 				Entry.ItemType = ItemType;
-				const float UnitWeight = Definition ? Definition->Weight : Item.Weight;
-				Entry.TotalWeight = FMath::Max(0.0f, UnitWeight) * static_cast<float>(FMath::Max(1, Item.Quantity));
+				Entry.TotalWeight = SortSource.TotalWeight;
 			}
 		}
 	}
