@@ -68,3 +68,20 @@ pour les IDs connus et **obligatoires** pour les IDs absents du registre.
 Leurs présences facultatives maintiennent les consommateurs transitoires.
 Le format SaveGame 27 n'est pas modifié et les conversions des
 enregistrements N0 historiques appartiennent toujours à 06.4.
+
+## Complément 06.3AU — catégories de l'inventaire et dette runtime qualifiée
+
+Le filtre, le tri par type et le libellé d'infobulle dérivaient encore
+leur catégorie de `DA_Weapon_*.ItemType`. Le modèle
+`FGridCanonicalInventoryItemTypeReadModel` projette maintenant le
+`Weapon.Kind` du seul `DA_ItemSystem` pour les ARM connus N1–N20,
+sans fallback vers les vieux types contradictoires. Munitions N0 et
+autres non-ARM enregistrés sont provisoirement `Misc` car le type
+`Ammo` n'existe pas dans `EGridItemType`. Les ID hors registre
+conservent le comportement historique.
+
+L'audit détaillé et les dépendances runtime encore bloquantes
+avant 06.4 figurent dans
+`docs/Architecture/ARM_CLEAN06_3AU_RUNTIME_ITEM_CATEGORIES_AUDIT.md`.
+Le présent complément **n'affirme ni la fin de 06.3 ni une
+conversion binaire déjà réalisée**.

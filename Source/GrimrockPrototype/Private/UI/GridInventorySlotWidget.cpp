@@ -9,6 +9,7 @@
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridWeaponVisualUiResolver.h"
 #include "GridInventoryItemMetadataReadModel.h"
+#include "GridCanonicalInventoryItemTypeReadModel.h"
 #include "../Runtime/GridEquipmentPreviewItemReadModel.h"
 #include "../Runtime/GridCanonicalEquipmentSlotsReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -436,7 +437,11 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 			}
 		}
 	}
-	View.ItemType = Definition ? GetItemTypeDisplayName(Definition->ItemType) : NSLOCTEXT("GridInventoryTooltip", "ItemTypeUnknown", "Objet");
+	const FGridCanonicalInventoryItemTypeReadView TypeView =
+		FGridCanonicalInventoryItemTypeReadModel::Resolve(Registry, Definition, CachedItem);
+	View.ItemType = TypeView.bResolved
+		? GetItemTypeDisplayName(TypeView.ItemType)
+		: NSLOCTEXT("GridInventoryTooltip", "ItemTypeUnknown", "Objet");
 	View.Quantity = FMath::Max(1, CachedItem.Quantity);
 	if (View.Quantity > 1)
 	{

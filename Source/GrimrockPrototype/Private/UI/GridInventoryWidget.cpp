@@ -15,6 +15,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridInventorySortReadModel.h"
+#include "GridCanonicalInventoryItemTypeReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemTransferService.h"
@@ -31,6 +32,18 @@
 DEFINE_LOG_CATEGORY_STATIC(LogGridInventoryUI, Log, All);
 namespace
 {
+    const UGridItemSubsystem* ResolveInventoryCanonicalRegistry(
+        const UGridInventoryWidget* Widget)
+    {
+        const UWorld* World = IsValid(Widget) ? Widget->GetWorld() : nullptr;
+        if (!World && IsValid(Widget) && IsValid(Widget->InventoryComponent))
+        {
+            World = Widget->InventoryComponent->GetWorld();
+        }
+        UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+        return GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+    }
+
 	struct FGridInventoryProjectionEntry
 	{
 		int32 SourceSlotIndex = INDEX_NONE;
@@ -1000,10 +1013,7 @@ void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int3
 
 	TArray<FGridInventoryProjectionEntry> Entries;
 	Entries.Reserve(SourceSlotCapacity);
-	const UWorld* World = GetWorld();
-	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
-	const UGridItemSubsystem* Registry = GameInstance
-		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const UGridItemSubsystem* Registry = ResolveInventoryCanonicalRegistry(this);
 
 	if (InventoryComponent)
 	{
@@ -1023,7 +1033,9 @@ void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int3
 
 				const FGridItemInstance& Item = InventorySlot.Item;
 				const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Item.ItemDefinitionId);
-				const EGridItemType ItemType = Definition ? Definition->ItemType : EGridItemType::None;
+				const EGridItemType ItemType =
+					FGridCanonicalInventoryItemTypeReadModel::Resolve(
+						Registry, Definition, Item).ItemType;
 				if (!DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
 				{
 					continue;
@@ -1115,6 +1127,7 @@ int32 UGridInventoryWidget::GetVisibleInventoryItemCount() const
 		return 0;
 	}
 
+	const UGridItemSubsystem* Registry = ResolveInventoryCanonicalRegistry(this);
 	int32 VisibleItems = 0;
 	for (const FGridInventorySlot& InventorySlot : State.ActiveCharacters[CharacterIndex].InventorySlots)
 	{
@@ -1124,7 +1137,9 @@ int32 UGridInventoryWidget::GetVisibleInventoryItemCount() const
 		}
 
 		const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(InventorySlot.Item.ItemDefinitionId);
-		const EGridItemType ItemType = Definition ? Definition->ItemType : EGridItemType::None;
+		const EGridItemType ItemType =
+			FGridCanonicalInventoryItemTypeReadModel::Resolve(
+				Registry, Definition, InventorySlot.Item).ItemType;
 		if (DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
 		{
 			++VisibleItems;
