@@ -203,6 +203,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Item System")
 	bool IsConfigured() const { return RootRegistry != nullptr; }
 
+	/** The same config-backed root, exposed only for a transient preview registry
+	 * in editor worlds without a GameInstance. Never reads historical catalogues. */
+	UGridItemSystemAsset* LoadConfiguredItemSystemForPreview() const
+	{
+		return ConfiguredItemSystem.LoadSynchronous();
+	}
+
 	/** Exact ItemId membership; unknown IDs are handled only by their not-yet-migrated readers. */
 	bool HasCanonicalItem(FName ItemId) const
 	{

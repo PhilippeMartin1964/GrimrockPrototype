@@ -4,6 +4,10 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Components/StaticMeshComponent.h"
 #include "Runtime/Combat/GridWorldItemVisualResolver.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridEditorLooseItemPreviewReadModel.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -111,6 +115,47 @@ void UGridEditorPreviewComponent::AddWorldObjectPreview(const FGridWorldObjectIn
 	SpawnedPreviewObjects.Add(PreviewActor);
 }
 
+const UGridItemSubsystem* UGridEditorPreviewComponent::ResolvePreviewItemRegistry()
+{
+	if (UWorld* World = GetWorld())
+	{
+		if (UGameInstance* GameInstance = World->GetGameInstance())
+		{
+			return GameInstance->GetSubsystem<UGridItemSubsystem>();
+		}
+	}
+
+	// Editor preview worlds do not have a GameInstance. Build a transient,
+	// GC-owned subsystem from the SAME configured ItemSystem, not from a
+	// second per-weapon catalogue. Reuse it for successive preview rebuilds.
+	if (!IsValid(EditorPreviewItemRegistry))
+	{
+		UGridItemSystemAsset* System =
+			GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+		if (!IsValid(System))
+		{
+			UE_LOG(LogGridRuntimeObject, Warning,
+				TEXT("[ARM-CLEAN06.3Z] Editor preview has no configured DA_ItemSystem."));
+			return nullptr;
+		}
+		EditorPreviewGameInstance = NewObject<UGameInstance>(this);
+		EditorPreviewItemRegistry = NewObject<UGridItemSubsystem>(EditorPreviewGameInstance.Get());
+		TArray<FString> Errors;
+		if (!EditorPreviewItemRegistry->RegisterItemSystem(System, Errors))
+		{
+			for (const FString& Error : Errors)
+			{
+				UE_LOG(LogGridRuntimeObject, Error,
+					TEXT("[ARM-CLEAN06.3Z] Preview ItemSystem: %s"), *Error);
+			}
+			EditorPreviewItemRegistry = nullptr;
+			EditorPreviewGameInstance = nullptr;
+			return nullptr;
+		}
+	}
+	return EditorPreviewItemRegistry.Get();
+}
+
 void UGridEditorPreviewComponent::AddLooseItemPreview(const FGridLooseItemInstance& Instance)
 {
 	if (!RuntimeActor || !Instance.ItemDefinition)
@@ -123,8 +168,27 @@ void UGridEditorPreviewComponent::AddLooseItemPreview(const FGridLooseItemInstan
 	{
 		return;
 	}
-	const FGridResolvedWorldItemMesh Visual = FGridWorldItemVisualResolver::Resolve(*Instance.ItemDefinition);
-	if (!Visual.Mesh)
+	const FGridEditorLooseItemPreviewReadView Canonical =
+		FGridEditorLooseItemPreviewReadModel::Resolve(ResolvePreviewItemRegistry(), Instance);
+	UStaticMesh* PreviewMesh = nullptr;
+	FTransform RelativeVisualTransform = FTransform::Identity;
+	if (Canonical.bCanonicalIdentity)
+	{
+		if (!Canonical.bResolved)
+		{
+			return; // Registered identity: never draw an obsolete DA_Weapon mesh.
+		}
+		PreviewMesh = Canonical.WorldMesh.LoadSynchronous();
+		RelativeVisualTransform = Canonical.WorldTransform;
+	}
+	else
+	{
+		const FGridResolvedWorldItemMesh Legacy =
+			FGridWorldItemVisualResolver::Resolve(*Instance.ItemDefinition);
+		PreviewMesh = Legacy.Mesh;
+		RelativeVisualTransform = Legacy.RelativeTransform;
+	}
+	if (!PreviewMesh)
 	{
 		return;
 	}
@@ -152,10 +216,10 @@ void UGridEditorPreviewComponent::AddLooseItemPreview(const FGridLooseItemInstan
 		return;
 	}
 
-	PreviewActor->InitializePreviewObject(Instance.InstanceId, EGridLevelObjectType::Item, Visual.Mesh);
+	PreviewActor->InitializePreviewObject(Instance.InstanceId, EGridLevelObjectType::Item, PreviewMesh);
 	if (PreviewActor->MeshComponent)
 	{
-		PreviewActor->MeshComponent->SetRelativeTransform(Visual.RelativeTransform);
+		PreviewActor->MeshComponent->SetRelativeTransform(RelativeVisualTransform);
 	}
 	SpawnedPreviewObjects.Add(PreviewActor);
 }
@@ -274,12 +338,23 @@ bool UGridEditorPreviewComponent::IsPreviewableWorldObject(const FGridWorldObjec
 	return Definition && Definition->HasAnyVisualPart();
 }
 
-bool UGridEditorPreviewComponent::IsPreviewableLooseItem(const FGridLooseItemInstance& Instance) const
+bool UGridEditorPreviewComponent::IsPreviewableLooseItem(const FGridLooseItemInstance& Instance)
 {
-	return RuntimeActor && RuntimeActor->LevelAsset && RuntimeActor->LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY) &&
-		Instance.ItemDefinition &&
-		(!Instance.ItemDefinition->WorldMesh.IsNull() ||
-		 (Instance.ItemDefinition->bUseWeaponVisualCatalogue && !Instance.ItemDefinition->WeaponVisualCatalogue.IsNull()));
+	if (!RuntimeActor || !RuntimeActor->LevelAsset ||
+		!RuntimeActor->LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY) ||
+		!IsValid(Instance.ItemDefinition.Get()))
+	{
+		return false;
+	}
+	const FGridEditorLooseItemPreviewReadView Canonical =
+		FGridEditorLooseItemPreviewReadModel::Resolve(ResolvePreviewItemRegistry(), Instance);
+	if (Canonical.bCanonicalIdentity)
+	{
+		return Canonical.bResolved && !Canonical.WorldMesh.IsNull();
+	}
+	return !Instance.ItemDefinition->WorldMesh.IsNull() ||
+		(Instance.ItemDefinition->bUseWeaponVisualCatalogue &&
+			!Instance.ItemDefinition->WeaponVisualCatalogue.IsNull());
 }
 
 bool UGridEditorPreviewComponent::IsPreviewableMonsterSpawn(const FGridMonsterSpawnInstance& SpawnData) const

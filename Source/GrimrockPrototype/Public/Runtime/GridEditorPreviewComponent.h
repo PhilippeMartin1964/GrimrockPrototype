@@ -6,6 +6,8 @@
 
 class AGridLevelRuntimeActor;
 class AGridEditorPreviewObjectActor;
+class UGameInstance;
+class UGridItemSubsystem;
 struct FGridLooseItemInstance;
 struct FGridMonsterSpawnInstance;
 struct FGridWorldObjectInstance;
@@ -34,6 +36,13 @@ private:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<AGridEditorPreviewObjectActor>> SpawnedPreviewObjects;
 
+	/** Editor world has no GameInstance; retain one transient canonical context for rebuilds. */
+	UPROPERTY(Transient)
+	TObjectPtr<UGameInstance> EditorPreviewGameInstance;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGridItemSubsystem> EditorPreviewItemRegistry;
+
 	UPROPERTY(Transient)
 	FGuid CurrentHoveredObjectId;
 
@@ -42,7 +51,8 @@ private:
 
 private:
 	bool IsPreviewableWorldObject(const FGridWorldObjectInstance& Instance) const;
-	bool IsPreviewableLooseItem(const FGridLooseItemInstance& Instance) const;
+	bool IsPreviewableLooseItem(const FGridLooseItemInstance& Instance);
+	const UGridItemSubsystem* ResolvePreviewItemRegistry();
 	bool IsPreviewableMonsterSpawn(const FGridMonsterSpawnInstance& SpawnData) const;
 	void AddWorldObjectPreview(const FGridWorldObjectInstance& Instance);
 	void AddLooseItemPreview(const FGridLooseItemInstance& Instance);
