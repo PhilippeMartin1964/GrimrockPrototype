@@ -562,7 +562,8 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	FString KitError;
 	if (!FRPGStartingEquipmentService::TryBuildKit(
 		StartingKitClass, SelectedStartingKitId,
-		NewPartyState.ActiveCharacters[0], NewPartyState.ActiveEquipment[0], StartingDefinitions, KitError))
+		NewPartyState.ActiveCharacters[0], NewPartyState.ActiveEquipment[0], StartingDefinitions, KitError,
+		ResolvePartyWeightRegistry(this)))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("StartingEquipment InvalidKit KitId=%s Reason=%s"), *SelectedStartingKitId.ToString(), *KitError);
 		OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.InvalidKit"));

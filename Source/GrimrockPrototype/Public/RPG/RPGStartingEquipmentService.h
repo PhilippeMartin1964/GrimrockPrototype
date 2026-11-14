@@ -5,6 +5,7 @@
 
 class URPGClassAsset;
 class UGridItemDefinitionAsset;
+class UGridItemSubsystem;
 
 /**
  * ARMEMENT01.9.1: build a class kit into uncommitted character/equipment states.
@@ -20,5 +21,6 @@ public:
 		FGridCharacterInventoryState& InOutCharacter,
 		FGridCharacterEquipmentState& InOutEquipment,
 		TArray<UGridItemDefinitionAsset*>& OutDefinitions,
-		FString& OutError);
+		FString& OutError,
+		const UGridItemSubsystem* CanonicalRegistry = nullptr);
 };

@@ -3,6 +3,8 @@
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridStartingKitStaticMetadataReadModel.h"
 
 bool FRPGStartingEquipmentService::TryBuildKit(
 	const URPGClassAsset* ClassDefinition,
@@ -10,7 +12,8 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 	FGridCharacterInventoryState& InOutCharacter,
 	FGridCharacterEquipmentState& InOutEquipment,
 	TArray<UGridItemDefinitionAsset*>& OutDefinitions,
-	FString& OutError)
+	FString& OutError,
+	const UGridItemSubsystem* CanonicalRegistry)
 {
 	OutDefinitions.Reset();
 	OutError.Reset();
@@ -87,6 +90,17 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 			return false;
 		}
 
+		const FGridStartingKitStaticMetadataReadView Metadata =
+			FGridStartingKitStaticMetadataReadModel::Resolve(
+				CanonicalRegistry, ItemId, FixedLevel, Definition->DisplayName, FixedWeight);
+		if (!Metadata.bResolved)
+		{
+			OutError = FString::Printf(
+				TEXT("Starting kit item %s cannot resolve canonical metadata at level %d."),
+				*ItemId.ToString(), FixedLevel);
+			return false;
+		}
+
 		EGridEquipmentSlot PhysicalSlot = Entry.TargetSlot;
 		if (PhysicalSlot != EGridEquipmentSlot::None)
 		{
@@ -118,9 +132,9 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = ItemId;
 		Item.ItemLevel = FixedLevel;
-		Item.DisplayName = Definition->DisplayName;
+		Item.DisplayName = Metadata.DisplayName;
 		Item.Quantity = Entry.Quantity;
-		Item.Weight = FixedWeight;
+		Item.Weight = Metadata.UnitWeightKg;
 		Item.OwnerGuid = Candidate.CharacterId;
 		Item.OwnerCharacterIndex = 0;
 		Item.bLightsEnabled = Definition->IsLightEnabledByDefault();
