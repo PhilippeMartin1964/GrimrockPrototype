@@ -1140,6 +1140,9 @@ int32 AGridReceptacleActor::AddContainedItem(
 		PlacementItem.ItemDefinitionId = ContainedItems[NewIndex].ItemDefinitionId;
 		PlacementItem.ItemLevel = ContainedItems[NewIndex].ItemLevel;
 		PlacementItem.Quantity = ContainedItems[NewIndex].Quantity;
+		// An inserted or initial-content ARM has the actual fixed item level here.
+		// Resolve its world mesh before applying the receptacle's placement/Chaos policy.
+		ContainedItems[NewIndex].ItemActor->ApplyCanonicalWorldVisual(PlacementItem);
 		ApplyVisualPlacement(ContainedItems[NewIndex].ItemActor.Get(), PlacementItem,
 			PendingPlacementHitResult.IsSet() ? &PendingPlacementHitResult.GetValue() : nullptr, NewIndex, bWasInitialItem);
 		if (PlacementMode != EGridReceptacleVisualPlacementMode::PhysicalAtHit)
