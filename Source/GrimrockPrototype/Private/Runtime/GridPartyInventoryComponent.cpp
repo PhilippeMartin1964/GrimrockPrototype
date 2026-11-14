@@ -3,6 +3,7 @@
 
 #include "GridEquipmentSlotUtils.h"
 #include "GridItemWeightReadModel.h"
+#include "GridItemInstanceMaterializationReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -49,6 +50,17 @@ namespace
 			}
 		}
 		return nullptr;
+	}
+
+	bool RequiresResolvedInventoryDefinition(const UGridPartyInventoryComponent* Inventory,
+		const UGridItemDefinitionAsset* Definition, FName ItemId)
+	{
+		if (IsValid(Definition) && Definition->bUseWeaponCatalogue)
+		{
+			return true; // Pre-cutover nonregistered weapon.
+		}
+		const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(Inventory);
+		return Registry && Registry->HasCanonicalItem(ItemId);
 	}
 
 	constexpr float InventoryHeavyWeightRatio = 0.8f;
@@ -1019,9 +1031,10 @@ bool UGridPartyInventoryComponent::CanAddItemToCharacterInventory(int32 Characte
 	const int32 InitialQuantity = ItemToAdd.Quantity;
 	const UGridItemDefinitionAsset* SourceDefinition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
 	if (!ApplyItemDefinitionToInstance(ItemToAdd) &&
-		SourceDefinition && SourceDefinition->bUseWeaponCatalogue)
+		RequiresResolvedInventoryDefinition(this, SourceDefinition, ItemToAdd.ItemDefinitionId))
 	{
-		// Never accept an unresolved linked item as a silently downgraded Legacy item.
+		// Known canonical IDs and old linked weapons cannot fall back to
+		// a Legacy item when their metadata resolution fails.
 		return false;
 	}
 	ItemToAdd.Quantity = InitialQuantity;
@@ -1068,9 +1081,10 @@ bool UGridPartyInventoryComponent::AddItemToCharacterInventory(int32 CharacterIn
 	const int32 InitialQuantity = ItemToAdd.Quantity;
 	const UGridItemDefinitionAsset* SourceDefinition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
 	if (!ApplyItemDefinitionToInstance(ItemToAdd) &&
-		SourceDefinition && SourceDefinition->bUseWeaponCatalogue)
+		RequiresResolvedInventoryDefinition(this, SourceDefinition, ItemToAdd.ItemDefinitionId))
 	{
-		// Never accept an unresolved linked item as a silently downgraded Legacy item.
+		// Known canonical IDs and old linked weapons cannot fall back to
+		// a Legacy item when their metadata resolution fails.
 		return false;
 	}
 	ItemToAdd.Quantity = InitialQuantity;
@@ -1594,25 +1608,12 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
 		return false;
 	}
 
-	// Assign the catalogue level only once for a newly minted instance. Never
-	// overwrite a persisted level when moving/rehydrating an existing item.
-	float ResolvedWeight = Definition->Weight;
-	if (Definition->bUseWeaponCatalogue)
+	// Keep the transitional snapshots needed by SaveGame 27, but resolve
+	// registered item mass and initial name from the one DA_ItemSystem.
+	if (!FGridItemInstanceMaterializationReadModel::TryApply(
+		ResolvePartyWeightRegistry(this), Definition, ItemInstance))
 	{
-		const int32 FixedLevel = ItemInstance.ItemLevel == 0
-			? Definition->DefaultWeaponItemLevel : ItemInstance.ItemLevel;
-		const FGridWeaponLevelProfile* LevelProfile = nullptr;
-		if (!Definition->TryGetWeaponCatalogueProfile(FixedLevel, LevelProfile))
-		{
-			return false;
-		}
-		ItemInstance.ItemLevel = FixedLevel;
-		ResolvedWeight = LevelProfile->WeightKg;
-	}
-	ItemInstance.Weight = ResolvedWeight;
-	if (ItemInstance.DisplayName.IsEmpty())
-	{
-		ItemInstance.DisplayName = Definition->DisplayName;
+		return false;
 	}
 	// ITEM-LIGHT02: this function normalizes definition-owned metadata only.
 	// The mutable light state belongs to the item instance and must survive transfers and rehydration.
