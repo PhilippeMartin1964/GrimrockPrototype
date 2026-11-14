@@ -11,6 +11,9 @@
 #include "Runtime/GridDoorActor.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridItemWeightReadModel.h"
+#include "Engine/GameInstance.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -969,6 +972,10 @@ bool AGridLevelRuntimeActor::TryResolveWorldCellFromImpactPoint(const FVector& W
 float AGridLevelRuntimeActor::GetWorldItemWeightAtCell(int32 CellX, int32 CellY, bool bIncludeEdgeItems) const
 {
 	const FIntPoint TargetCell(CellX, CellY);
+	const UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	float TotalWeight = 0.0f;
 
 	for (const FGridSpawnedItemRuntimeEntry& Entry : SpawnedItemEntries)
@@ -994,22 +1001,35 @@ float AGridLevelRuntimeActor::GetWorldItemWeightAtCell(int32 CellX, int32 CellY,
 			continue;
 		}
 
-		UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset.Get();
-		if (!ItemDefinition)
+		const FName ItemId = Entry.ItemDefinitionId.IsNone()
+			? Entry.ItemActor->GetItemDefinitionId() : Entry.ItemDefinitionId;
+		const bool bCanonical = Registry && Registry->HasCanonicalItem(ItemId);
+		UGridItemDefinitionAsset* Definition = Entry.ItemDefinitionAsset.Get();
+		if (!bCanonical && !Definition)
 		{
-			const FName DefinitionId = Entry.ItemDefinitionId;
-			ItemDefinition = ResolveRuntimeItemDefinition(DefinitionId);
+			Definition = ResolveRuntimeItemDefinition(ItemId);
 		}
-		if (!ItemDefinition)
+		if (!bCanonical && !Definition)
 		{
-			continue;
+			continue; // Preserve historical behavior for unregistered missing definitions.
 		}
 
-		const int32 Quantity = FMath::Max(1, Entry.Quantity);
-		const float Contribution = ItemDefinition->Weight * Quantity;
+		FGridItemInstance Instance;
+		Instance.RuntimeObjectId = Entry.ObjectId.IsValid() ? Entry.ObjectId :
+			Entry.ItemActor->GetRuntimeObjectId();
+		Instance.ItemDefinitionId = ItemId;
+		Instance.ItemLevel = Entry.ItemLevel;
+		Instance.Quantity = FMath::Max(1, Entry.Quantity);
+		Instance.Weight = Definition ? Definition->Weight : 0.0f;
+		float UnitWeight = 0.0f;
+		if (!FGridItemWeightReadModel::TryResolveUnitWeight(Registry, Instance, UnitWeight))
+		{
+			continue; // Invalid canonical levels never use copied definition mass.
+		}
+		const float Contribution = UnitWeight * Instance.Quantity;
 		TotalWeight += Contribution;
 		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridPressurePlate WeightScan Cell=(%d,%d) Item=%s Quantity=%d UnitWeight=%.2f TotalContribution=%.2f"), CellX, CellY,
-			*ItemDefinition->ItemDefinitionId.ToString(), Quantity, ItemDefinition->Weight, Contribution);
+			*ItemId.ToString(), Instance.Quantity, UnitWeight, Contribution);
 	}
 
 	return TotalWeight;

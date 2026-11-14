@@ -6,6 +6,10 @@
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridItemWeightReadModel.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/GridItemTransferService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -318,10 +322,20 @@ bool AGridReceptacleActor::ContainsItemType(EGridItemType ItemType) const
 
 float AGridReceptacleActor::GetContainedTotalWeight() const
 {
+	const UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	float TotalWeight = 0.0f;
 	for (const FGridContainedReceptacleItem& Item : ContainedItems)
 	{
-		TotalWeight += Item.Weight * FMath::Max(1, Item.Quantity);
+		FGridItemInstance Instance;
+		Instance.RuntimeObjectId = Item.RuntimeObjectId;
+		Instance.ItemDefinitionId = Item.ItemDefinitionId;
+		Instance.ItemLevel = Item.ItemLevel;
+		Instance.Quantity = FMath::Max(1, Item.Quantity);
+		Instance.Weight = Item.Weight; // Used only while the ItemId remains outside ItemSystem.
+		TotalWeight += FGridItemWeightReadModel::GetTotalWeight(Registry, Instance);
 	}
 	return TotalWeight;
 }
