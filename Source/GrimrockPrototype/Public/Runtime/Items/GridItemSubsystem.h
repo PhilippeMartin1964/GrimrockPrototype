@@ -58,6 +58,10 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
 
+	/** Authored pickup-only visual offset, resolved from the single visual catalogue. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
+	FTransform WorldVisualTransform = FTransform::Identity;
+
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	TSoftObjectPtr<UStaticMesh> EquippedMesh;
 

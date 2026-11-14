@@ -6,6 +6,10 @@
 #include "Materials/MaterialInterface.h"
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridCanonicalItemMeshReadModel.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/Combat/GridWorldItemVisualResolver.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
@@ -107,6 +111,37 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 		VisualEffectsComponent->ApplyConfig(InDefinition->VisualEffects);
 	}
 	RefreshWorldSparklePresentation();
+}
+
+bool AGridItemActor::ApplyCanonicalWorldVisual(const FGridItemInstance& Instance)
+{
+	if (!MeshComponent || !Instance.IsValid() || Instance.ItemDefinitionId != GetItemDefinitionId())
+	{
+		return false;
+	}
+	const UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const FGridCanonicalItemMeshReadView Visual =
+		FGridCanonicalItemMeshReadModel::Resolve(Registry, Instance);
+	if (!Visual.bCanonicalIdentity)
+	{
+		return false; // Unregistered identities preserve historical pickup visual behavior.
+	}
+	// Explicitly clear rather than reusing an old DA_Weapon_* mesh if N0 is invalid.
+	UStaticMesh* NewMesh = Visual.bResolved ? Visual.WorldMesh.LoadSynchronous() : nullptr;
+	const FTransform NewTransform = Visual.bResolved ? Visual.WorldTransform : FTransform::Identity;
+	if (MeshComponent->GetStaticMesh() != NewMesh)
+	{
+		MeshComponent->SetStaticMesh(NewMesh);
+	}
+	if (!MeshComponent->GetRelativeTransform().Equals(NewTransform))
+	{
+		MeshComponent->SetRelativeTransform(NewTransform);
+	}
+	RefreshWorldSparklePresentation();
+	return Visual.bResolved;
 }
 
 void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, const FGuid& InRuntimeObjectId)

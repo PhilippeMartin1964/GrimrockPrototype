@@ -2127,6 +2127,12 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	ItemActor->SetActorTransform(Transform);
 	ItemActor->SetRuntimeObjectId(ObjectData.InstanceId);
 	ItemActor->InitializeFromItemDefinition(ItemDefinition, ObjectData.InstanceId);
+	FGridItemInstance PlacedVisualItem;
+	PlacedVisualItem.RuntimeObjectId = ObjectData.InstanceId.IsValid() ? ObjectData.InstanceId : FGuid::NewGuid();
+	PlacedVisualItem.ItemDefinitionId = ItemDefinitionId;
+	PlacedVisualItem.ItemLevel = ResolvedItemLevel;
+	PlacedVisualItem.Quantity = FMath::Max(1, ObjectData.Quantity);
+	ItemActor->ApplyCanonicalWorldVisual(PlacedVisualItem);
 	UGridReadableContentAsset* ReadableContentAsset = ObjectData.ReadableContentAsset;
 	FName ReadableContentId = ObjectData.ReadableContentId;
 	FText ReadTitleOverride = ObjectData.ReadTitleOverride;

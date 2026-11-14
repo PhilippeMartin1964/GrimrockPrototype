@@ -9,6 +9,7 @@ struct FGridCanonicalItemMeshReadView
 	bool bResolved = false;
 	FName VisualId = NAME_None;
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
+	FTransform WorldTransform = FTransform::Identity;
 	TSoftObjectPtr<UStaticMesh> EquippedMesh;
 };
 
@@ -33,6 +34,7 @@ struct FGridCanonicalItemMeshReadModel
 		Result.bResolved = true;
 		Result.VisualId = Item.VisualId;
 		Result.WorldMesh = Item.WorldMesh;
+		Result.WorldTransform = Item.WorldVisualTransform;
 		// UGridItemSubsystem already authoritatively maps absent EquippedMesh
 		// onto WorldMesh. Never copy an old DA_Weapon's mesh here.
 		Result.EquippedMesh = Item.EquippedMesh;

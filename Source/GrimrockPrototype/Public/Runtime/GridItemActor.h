@@ -11,6 +11,7 @@ class UMaterialInstanceDynamic;
 class UStaticMeshComponent;
 class UGridItemDefinitionAsset;
 class UGridReadableContentAsset;
+struct FGridItemInstance;
 
 UCLASS(Blueprintable)
 class GRIMROCKPROTOTYPE_API AGridItemActor : public AActor, public IGridInteractableInterface
@@ -79,6 +80,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void InitializeFromItemDefinitionId(FName InItemDefinitionId, const FGuid& InRuntimeObjectId);
+
+	/** Materialize world art using the real N1-N20 instance, preserving noncanonical objects. */
+	bool ApplyCanonicalWorldVisual(const FGridItemInstance& Instance);
 
 	UFUNCTION(BlueprintCallable, Category = "Reading")
 	void InitializeReadableContent(

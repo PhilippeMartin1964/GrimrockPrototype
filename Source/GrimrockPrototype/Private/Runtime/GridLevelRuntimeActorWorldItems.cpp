@@ -823,6 +823,9 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	ItemActor->SetActorTransform(DropTransform);
 	ItemActor->InitializeFromItemDefinition(ItemDefinition, RuntimeObjectId);
 	ItemActor->SetRuntimeObjectId(RuntimeObjectId);
+	FGridItemInstance DroppedVisualItem = ItemInstance;
+	DroppedVisualItem.ItemLevel = ResolvedItemLevel;
+	ItemActor->ApplyCanonicalWorldVisual(DroppedVisualItem);
 	ItemActor->SetRuntimeCell(CellX, CellY);
 	ItemActor->ApplyWorldPhysicsInitialNudge();
 	ItemActor->ConfigureAsWorldPickup();

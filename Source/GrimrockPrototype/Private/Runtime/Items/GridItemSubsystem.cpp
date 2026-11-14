@@ -139,6 +139,7 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		OutItem.VisualId = Visual->VisualId;
 		OutItem.bIsArmament = true;
 		OutItem.WorldMesh = Visual->WorldMesh;
+		OutItem.WorldVisualTransform = Visual->WorldTransform;
 		// The legacy visual resolver uses WorldMesh for a missing equipped mesh.
 		// Keep this transient resolution: do not serialize a second mesh pointer.
 		OutItem.EquippedMesh = Visual->EquippedMesh.IsNull() ?

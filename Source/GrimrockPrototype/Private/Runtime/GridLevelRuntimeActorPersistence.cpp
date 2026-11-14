@@ -41,6 +41,16 @@ namespace
 		return FallbackItemDefinitionId;
 	}
 
+	FGridItemInstance PersistenceMakeVisualItem(const FGridRuntimeItemState& Saved)
+	{
+		FGridItemInstance Instance;
+		Instance.RuntimeObjectId = Saved.ObjectId;
+		Instance.ItemDefinitionId = Saved.ItemDefinitionId;
+		Instance.ItemLevel = Saved.ItemLevel;
+		Instance.Quantity = FMath::Max(1, Saved.Quantity);
+		return Instance;
+	}
+
 	const FGridLooseItemInstance* PersistenceFindLooseItemById(const UGridLevelAsset* LevelAsset, FGuid ObjectId)
 	{
 		if (!LevelAsset || !ObjectId.IsValid())
@@ -573,6 +583,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 
 			if (AGridItemActor* ItemActor = Entry.ItemActor.Get())
 			{
+				ItemActor->ApplyCanonicalWorldVisual(PersistenceMakeVisualItem(ItemState));
 				ItemActor->SetActorTransform(ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
 				if (ItemState.bHasWorldMeshTransform && IsValid(ItemActor->MeshComponent))
 				{
@@ -606,6 +617,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 					ItemPlacement ? FIntPoint(ItemPlacement->CellX, ItemPlacement->CellY) : FIntPoint(ItemState.CellX, ItemState.CellY);
 				const EGridEdge RuntimeEdge = ItemPlacement ? ItemPlacement->SurfaceSide : ItemState.Edge;
 
+				ItemActor->ApplyCanonicalWorldVisual(PersistenceMakeVisualItem(ItemState));
 				ItemActor->SetActorTransform(ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
 				if (ItemState.bHasWorldMeshTransform && IsValid(ItemActor->MeshComponent))
 				{
@@ -674,6 +686,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				{
 					ItemActor->InitializeFromItemDefinitionId(RuntimeItemDefinitionId, ItemState.ObjectId);
 				}
+				ItemActor->ApplyCanonicalWorldVisual(PersistenceMakeVisualItem(ItemState));
 				ItemActor->SetItemLightsEnabled(ItemState.bLightsEnabled);
 			}
 			FGridRuntimeItemState ResolvedItemState = ItemState;
