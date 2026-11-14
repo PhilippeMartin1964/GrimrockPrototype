@@ -1,5 +1,6 @@
 #include "Runtime/Monsters/GridMonsterLootResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 
 namespace
 {
@@ -63,17 +64,54 @@ FGridMonsterLootRollResult FGridMonsterLootResolver::ResolveEntryFromRolls(
 }
 
 bool FGridMonsterLootResolver::TryResolveItemLevel(
-	const FGridMonsterLootEntry& Entry, const UGridItemDefinitionAsset* ItemDefinition, int32& OutItemLevel)
+	const FGridMonsterLootEntry& Entry, const UGridItemDefinitionAsset* ItemDefinition,
+	int32& OutItemLevel, const UGridItemSubsystem* CanonicalRegistry)
 {
 	OutItemLevel = 0;
 	if (!Entry.IsValidDefinition())
 	{
 		return false;
 	}
+	const FName ItemId = Entry.GetResolvedItemDefinitionId();
+	if (IsValid(ItemDefinition) && ItemDefinition->ItemDefinitionId != ItemId)
+	{
+		return false; // Never inherit a default from another item identity.
+	}
+	if (CanonicalRegistry && CanonicalRegistry->HasCanonicalItem(ItemId))
+	{
+		// Probe N1 solely to classify the item family. The eventual N0 for
+		// arrows is real, not a weapon default to be promoted to N1.
+		FGridResolvedItem Family;
+		if (!CanonicalRegistry->ResolveItem(ItemId, 1, Family))
+		{
+			return false;
+		}
+		if (!Family.bIsArmament)
+		{
+			FGridResolvedItem Unlevelled;
+			return Entry.ItemLevel == 0 &&
+				CanonicalRegistry->ResolveItem(ItemId, 0, Unlevelled) &&
+				!Unlevelled.bIsArmament;
+		}
+		// Authored zero uses the old default only for a NEW armament.
+		// Without the authoring definition there is no default to invent.
+		if (Entry.ItemLevel == 0 && !IsValid(ItemDefinition))
+		{
+			return false;
+		}
+		const int32 FixedLevel = Entry.ItemLevel == 0
+			? ItemDefinition->DefaultWeaponItemLevel : Entry.ItemLevel;
+		FGridResolvedItem Fixed;
+		if (!CanonicalRegistry->ResolveItem(ItemId, FixedLevel, Fixed) || !Fixed.bIsArmament)
+		{
+			return false; // Known invalid ARM: no old catalogue fallback.
+		}
+		OutItemLevel = FixedLevel;
+		return true;
+	}
+	// Existing nonregistered/id-only MON8 loot semantics remain intact.
 	if (!IsValid(ItemDefinition))
 	{
-		// Legacy id-only loot can still use its ordinary unresolved path.
-		// A fixed catalogue level requires a definition to validate against.
 		return Entry.ItemLevel == 0;
 	}
 	if (!ItemDefinition->bUseWeaponCatalogue)

@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 
+class UGridItemSubsystem;
+
 struct GRIMROCKPROTOTYPE_API FGridMonsterLootRollResult
 {
 	bool bDropped = false;
@@ -21,5 +23,7 @@ public:
 	static FGridMonsterLootRollResult ResolveEntryFromRolls(const FGridMonsterLootEntry& Entry, int32 EntryIndex, float DropRoll, int32 QuantityRoll);
 
 	/** Resolve a loot item's fixed catalogue level once, without randomization. */
-	static bool TryResolveItemLevel(const FGridMonsterLootEntry& Entry, const UGridItemDefinitionAsset* ItemDefinition, int32& OutItemLevel);
+	static bool TryResolveItemLevel(const FGridMonsterLootEntry& Entry,
+        const UGridItemDefinitionAsset* ItemDefinition, int32& OutItemLevel,
+        const UGridItemSubsystem* CanonicalRegistry = nullptr);
 };

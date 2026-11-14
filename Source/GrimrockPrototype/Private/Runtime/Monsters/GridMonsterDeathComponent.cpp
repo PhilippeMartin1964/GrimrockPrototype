@@ -318,6 +318,10 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 
 	const TArray<FGridMonsterLootEntry>& LootTable = OwnerMonster->MonsterDefinition->LootTable;
 	const TArray<FGridMonsterLootRollResult> Results = FGridMonsterLootResolver::ResolveLoot(LootTable, BuildMON8LootSeed(OwnerMonster));
+	const UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	int32 DroppedLootCount = 0;
 
 	for (const FGridMonsterLootRollResult& Result : Results)
@@ -348,21 +352,16 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 			ItemDefinition = RuntimeActor->ResolveRuntimeItemDefinition(Result.ItemDefinitionId);
 		}
 		int32 FixedItemLevel = 0;
-		if (!FGridMonsterLootResolver::TryResolveItemLevel(Entry, ItemDefinition, FixedItemLevel))
+		if (!FGridMonsterLootResolver::TryResolveItemLevel(Entry, ItemDefinition, FixedItemLevel, Registry))
 		{
 			++FailedLootCount;
 			UE_LOG(LogGridMonsterLoot, Warning, TEXT("[GridMonsterLoot] InvalidFixedLevel Monster=%s Item=%s Level=%d"),
 				*GetNameSafe(OwnerMonster), *Result.ItemDefinitionId.ToString(), Entry.ItemLevel);
 			continue;
 		}
-		// Level selection above remains the historical, deterministic loot rule.
-		// Once that level is fixed, metadata comes from the sole ItemSystem when
-		// the item is registered. The old static snapshot survives only to allow
-		// the 06.4 SaveGame/asset migration, never as canonical authority.
-		const UWorld* World = GetWorld();
-		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
-		const UGridItemSubsystem* Registry = GameInstance
-			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		// The independent random roll above is unchanged. ItemSystem now
+		// validates the fixed level as well as identity/weight for registered
+		// loot; historical level resolution remains only for unknown IDs.
 		const bool bCanonicalItem = Registry && Registry->HasCanonicalItem(Result.ItemDefinitionId);
 		const FGridWeaponLevelProfile* LevelProfile = nullptr;
 		if (!bCanonicalItem && IsValid(ItemDefinition) &&
