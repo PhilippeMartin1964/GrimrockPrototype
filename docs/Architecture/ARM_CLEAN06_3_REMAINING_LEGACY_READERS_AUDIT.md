@@ -37,3 +37,12 @@ effectivement exécuté pour un ItemId canonique.
 
 Les scénarios non couverts par tests sur le vrai jeu doivent être
 acceptés visuellement en PIE après la conversion de contenus.
+
+## Complément 06.3AR — HUD d'action
+
+Le lecteur HUD `GridCombatHudWidget.cpp` pouvait copier `ItemDefinition.Icon`
+et `ApplyCatalogueIcon` de la palette ancienne dans une action d'arme
+pourtant enregistrée. Le jalon 06.3AR isole les actions d'équipement
+canoniques et interdit toute réutilisation d'icône d'objet pour ces IDs.
+Les raccourcis quick item/unknown ID restent provisoirement legacy ;
+les données d'authoring en `.uasset` relèvent toujours de 06.4.
