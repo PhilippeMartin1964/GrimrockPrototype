@@ -4,6 +4,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridInventoryDiagnosticWeightReadModel.h"
+#include "GridEquipmentContributionReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 
@@ -358,21 +359,20 @@ void UGridPartyInventoryComponent::LogSelectedCharacterEquipmentStatBonusDiagnos
 				return;
 			}
 
-			const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
-			if (!Definition)
+			// Use the same per-instance projection as ComputeCharacterEquipmentStatBonus.
+			// This includes canonical nominal armor at the actual N1-N20 level.
+			const FGridEquipmentStatBonus Bonus = GetEquipmentBonusesForInstance(Item);
+			if (!Bonus.HasAnyBonus())
 			{
-				UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentStatBonus Item=%s Slot=%s Warning=MissingDefinition"), *Item.ItemDefinitionId.ToString(),
-					GridEquipmentSlotUtils::GetLogName(Slot));
+				if (!FindItemDefinition(Item.ItemDefinitionId))
+				{
+					UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentStatBonus Item=%s Slot=%s Warning=MissingDefinition"), *Item.ItemDefinitionId.ToString(),
+						GridEquipmentSlotUtils::GetLogName(Slot));
+				}
 				return;
 			}
-
-			if (!Definition->GetEffectiveEquipmentStatBonusForInstance(Item).HasAnyBonus())
-			{
-				return;
-			}
-
-			UE_LOG(LogGridInventory, Log, TEXT("GridEquipmentStatBonus Item=%s Slot=%s Bonus=%s"), *Definition->ItemDefinitionId.ToString(),
-				GridEquipmentSlotUtils::GetLogName(Slot), *GridPartyInventoryDiagnosticsGetEquipmentStatBonusText(Definition->GetEffectiveEquipmentStatBonusForInstance(Item)));
+			UE_LOG(LogGridInventory, Log, TEXT("GridEquipmentStatBonus Item=%s Slot=%s Bonus=%s"), *Item.ItemDefinitionId.ToString(),
+				GridEquipmentSlotUtils::GetLogName(Slot), *GridPartyInventoryDiagnosticsGetEquipmentStatBonusText(Bonus));
 		});
 }
 
@@ -405,13 +405,16 @@ void UGridPartyInventoryComponent::LogSelectedCharacterResistanceDiagnostics() c
 				return;
 			}
 
-			if (Definition->EquipmentResistanceBonus.IsEmpty())
+			// The canonical armament schema does not yet own elemental resistances.
+			// Read the exact compatibility contribution used by gameplay.
+			const FGridDamageResistanceSet Resistances =
+				FGridEquipmentContributionReadModel::ResolveResistances(Definition, Item);
+			if (Resistances.IsEmpty())
 			{
 				return;
 			}
-
-			UE_LOG(LogGridInventory, Log, TEXT("GridDamageResistance Item=%s Slot=%s Resistances=%s"), *Definition->ItemDefinitionId.ToString(),
-				GridEquipmentSlotUtils::GetLogName(Slot), *GridPartyInventoryDiagnosticsGetDamageResistanceSetText(Definition->EquipmentResistanceBonus));
+			UE_LOG(LogGridInventory, Log, TEXT("GridDamageResistance Item=%s Slot=%s Resistances=%s"), *Item.ItemDefinitionId.ToString(),
+				GridEquipmentSlotUtils::GetLogName(Slot), *GridPartyInventoryDiagnosticsGetDamageResistanceSetText(Resistances));
 		});
 }
 

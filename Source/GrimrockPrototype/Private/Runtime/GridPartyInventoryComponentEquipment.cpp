@@ -2,6 +2,7 @@
 
 #include "GridEquipmentSlotUtils.h"
 #include "GridEquipmentArmorReadModel.h"
+#include "GridEquipmentContributionReadModel.h"
 #include "Runtime/Combat/GridCombatTraceTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -64,21 +65,9 @@ bool UGridPartyInventoryComponent::TryResolveEquipmentArmorRead(
 FGridEquipmentStatBonus UGridPartyInventoryComponent::GetEquipmentBonusesForInstance(
 	const FGridItemInstance& Item) const
 {
-	FGridEquipmentStatBonus Bonuses;
-	FGridEquipmentArmorReadView Armor;
-	if (!TryResolveEquipmentArmorRead(Item, Armor))
-	{
-		return Bonuses;
-	}
-	// Remaining non-armor fields are intentionally not migrated in 06.3H.
-	// Do not query DA_WeaponCatalogue through the old definition for canonical armor.
-	if (const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId))
-	{
-		Bonuses = Definition->EquipmentStatBonus;
-	}
-	Bonuses.ArmorBonus = Armor.NominalPhysical;
-	Bonuses.MagicalArmorBonus = Armor.NominalMagical;
-	return Bonuses;
+	return FGridEquipmentContributionReadModel::ResolveStatBonuses(
+		GridPartyInventoryCanonicalRegistry(this),
+		FindItemDefinition(Item.ItemDefinitionId), Item);
 }
 
 bool UGridPartyInventoryComponent::IsTwoHandedItem(const FGridItemInstance& Item) const
@@ -576,13 +565,8 @@ FGridDamageResistanceSet UGridPartyInventoryComponent::ComputeCharacterEquipment
 				return;
 			}
 
-			const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
-			if (!Definition)
-			{
-				return;
-			}
-
-			TotalResistances.Add(Definition->EquipmentResistanceBonus);
+			TotalResistances.Add(FGridEquipmentContributionReadModel::ResolveResistances(
+				FindItemDefinition(Item.ItemDefinitionId), Item));
 		});
 
 	return TotalResistances;
