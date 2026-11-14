@@ -2,6 +2,10 @@
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #include "GridEquipmentSlotUtils.h"
+#include "GridItemWeightReadModel.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
@@ -35,9 +39,16 @@ namespace
 		return OccupiedCount;
 	}
 
-	float GetItemTotalWeight(const FGridItemInstance& Item)
+	const UGridItemSubsystem* ResolvePartyWeightRegistry(const UGridPartyInventoryComponent* Inventory)
 	{
-		return Item.IsValid() ? Item.Weight * FMath::Max(1, Item.Quantity) : 0.0f;
+		if (const UWorld* World = Inventory->GetWorld())
+		{
+			if (UGameInstance* GameInstance = World->GetGameInstance())
+			{
+				return GameInstance->GetSubsystem<UGridItemSubsystem>();
+			}
+		}
+		return nullptr;
 	}
 
 	constexpr float InventoryHeavyWeightRatio = 0.8f;
@@ -1626,13 +1637,14 @@ float UGridPartyInventoryComponent::CalculateCharacterCurrentWeight(int32 Charac
 	}
 
 	const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
 	float TotalWeight = 0.0f;
 
 	for (const FGridInventorySlot& Slot : CharacterState.InventorySlots)
 	{
 		if (!Slot.IsEmpty())
 		{
-			TotalWeight += GetItemTotalWeight(Slot.Item);
+			TotalWeight += FGridItemWeightReadModel::GetTotalWeight(Registry, Slot.Item);
 		}
 	}
 
@@ -1921,10 +1933,11 @@ bool UGridPartyInventoryComponent::ValidateCombatHotbar(const FGridCharacterInve
 float UGridPartyInventoryComponent::CalculateEquipmentWeight(const FGridCharacterEquipmentState& EquipmentState) const
 {
 	float TotalWeight = 0.0f;
+	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
 	GridEquipmentSlotUtils::ForEachEquipmentItem(EquipmentState,
-		[&TotalWeight](EGridEquipmentSlot, const FGridItemInstance& Item)
+		[Registry, &TotalWeight](EGridEquipmentSlot, const FGridItemInstance& Item)
 		{
-			TotalWeight += GetItemTotalWeight(Item);
+			TotalWeight += FGridItemWeightReadModel::GetTotalWeight(Registry, Item);
 		});
 	return TotalWeight;
 }
