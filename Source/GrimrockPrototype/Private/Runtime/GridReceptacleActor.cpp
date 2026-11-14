@@ -8,6 +8,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridItemWeightReadModel.h"
+#include "GridReceptacleItemMetadataReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
@@ -46,6 +47,13 @@ namespace
 		}
 
 		return FallbackId;
+	}
+
+	const UGridItemSubsystem* ResolveReceptacleItemRegistry(const AGridReceptacleActor* Actor)
+	{
+		const UWorld* World = IsValid(Actor) ? Actor->GetWorld() : nullptr;
+		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+		return GameInstance ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	}
 
 	FName ResolveItemActorDefinitionId(const AGridItemActor* ItemActor)
@@ -522,6 +530,14 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 		}
 	}
 
+	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
+	const bool bCanonical = Registry && Registry->HasCanonicalItem(CursorItem.ItemDefinitionId);
+	if (bCanonical && !FGridReceptacleItemMetadataReadModel::Resolve(
+		Registry, ItemDefinition, CursorItem.ItemDefinitionId, CursorItem.ItemLevel,
+		false).bResolved)
+	{
+		return false; // Cursor item already exists: never re-inherit N0.
+	}
 	const int32 NewIndex = AddContainedItem(CursorItem.ItemDefinitionId, ItemDefinition, nullptr, false, CursorItem.Quantity, CursorItem.RuntimeObjectId, CursorItem.ItemLevel);
 
 	if (!ContainedItems.IsValidIndex(NewIndex))
@@ -530,8 +546,16 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 	}
 
 	FGridContainedReceptacleItem& AcceptedReceptacleItem = ContainedItems[NewIndex];
-	AcceptedReceptacleItem.Weight = CursorItem.Weight;
-	AcceptedReceptacleItem.DisplayName = CursorItem.DisplayName;
+	if (!bCanonical)
+	{
+		AcceptedReceptacleItem.Weight = CursorItem.Weight;
+	}
+	// SaveGame 27 still owns possible custom instance text. Preserve it until
+	// 06.4, but present the canonical name to the player for registered IDs.
+	if (!CursorItem.DisplayName.IsEmpty())
+	{
+		AcceptedReceptacleItem.DisplayName = CursorItem.DisplayName;
+	}
 	AcceptedReceptacleItem.bLightsEnabled = CursorItem.bLightsEnabled;
 	AcceptedReceptacleItem.ReadableContentAsset = CursorItem.ReadableContentAsset;
 	AcceptedReceptacleItem.ReadableContentId = CursorItem.ReadableContentId;
@@ -545,14 +569,27 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 	}
 
 	OutAcceptedItem = CursorItem;
+	OutAcceptedItem.ItemLevel = AcceptedReceptacleItem.ItemLevel;
+	if (bCanonical)
+	{
+		OutAcceptedItem.Weight = AcceptedReceptacleItem.Weight;
+		if (OutAcceptedItem.DisplayName.IsEmpty())
+		{
+			OutAcceptedItem.DisplayName = AcceptedReceptacleItem.DisplayName;
+		}
+	}
 	OutAcceptedItem.OwnerType = EGridItemOwnerType::Receptacle;
 	OutAcceptedItem.OwnerGuid = ObjectId;
 	OutAcceptedItem.OwnerCharacterIndex = INDEX_NONE;
 	OutAcceptedItem.EquipmentSlot = EGridEquipmentSlot::None;
 
-	const FText InsertedItemName = !CursorItem.DisplayName.IsEmpty()
-		? CursorItem.DisplayName
-		: FText::FromString(CursorItem.ItemDefinitionId.ToString());
+	const FGridReceptacleItemMetadataReadView InsertedMetadata =
+		FGridReceptacleItemMetadataReadModel::Resolve(Registry, ItemDefinition,
+			CursorItem.ItemDefinitionId, AcceptedReceptacleItem.ItemLevel, false);
+	const FText InsertedItemName = bCanonical && InsertedMetadata.bResolved
+		? InsertedMetadata.DisplayName
+		: (!CursorItem.DisplayName.IsEmpty()
+			? CursorItem.DisplayName : FText::FromName(CursorItem.ItemDefinitionId));
 	const FText InsertedMessage = FText::Format(
 		NSLOCTEXT("GridEventFeed", "ReceptacleItemInserted", "{0} est placé dans le réceptacle."),
 		InsertedItemName);
@@ -637,7 +674,25 @@ bool AGridReceptacleActor::TryTakeItemAtIndex(int32 ItemIndex, AGrimrockPartyPaw
 	ItemInstance.OwnerType = EGridItemOwnerType::CharacterInventory;
 	ItemInstance.OwnerCharacterIndex = PartyPawn->PartyInventoryComponent ? PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex() : INDEX_NONE;
 
-	if (Item.ItemDefinition)
+	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
+	const bool bCanonical = Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId);
+	const FGridReceptacleItemMetadataReadView TakenMetadata = bCanonical
+		? FGridReceptacleItemMetadataReadModel::Resolve(
+			Registry, Item.ItemDefinition, Item.ItemDefinitionId, Item.ItemLevel, false)
+		: FGridReceptacleItemMetadataReadView();
+	if (bCanonical)
+	{
+		if (!TakenMetadata.bResolved)
+		{
+			return false; // A saved ARM N0 is invalid, not a new N1 item.
+		}
+		ItemInstance.Weight = TakenMetadata.UnitWeightKg;
+		if (ItemInstance.DisplayName.IsEmpty())
+		{
+			ItemInstance.DisplayName = TakenMetadata.DisplayName;
+		}
+	}
+	else if (Item.ItemDefinition)
 	{
 		ItemInstance.Weight = Item.ItemDefinition->Weight;
 		ItemInstance.DisplayName = Item.ItemDefinition->DisplayName;
@@ -665,9 +720,10 @@ bool AGridReceptacleActor::TryTakeItemAtIndex(int32 ItemIndex, AGrimrockPartyPaw
 	}
 	OutRemovedItemDefinitionId = RemovedItem.ItemDefinitionId;
 
-	const FText RemovedItemName = !RemovedItem.DisplayName.IsEmpty()
-		? RemovedItem.DisplayName
-		: FText::FromString(RemovedItem.ItemDefinitionId.ToString());
+	const FText RemovedItemName = bCanonical && TakenMetadata.bResolved
+		? TakenMetadata.DisplayName
+		: (!RemovedItem.DisplayName.IsEmpty()
+			? RemovedItem.DisplayName : FText::FromName(RemovedItem.ItemDefinitionId));
 	const FText RemovedMessage = FText::Format(
 		NSLOCTEXT("GridEventFeed", "ReceptacleItemRemoved", "{0} est retiré du réceptacle."),
 		RemovedItemName);
@@ -915,6 +971,14 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem(const FGridRuntimeItemSta
 			*ObjectId.ToString(), *ItemState.ObjectId.ToString());
 		return false;
 	}
+	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
+	if (Registry && Registry->HasCanonicalItem(ItemState.ItemDefinitionId) &&
+		!FGridReceptacleItemMetadataReadModel::Resolve(
+			Registry, nullptr, ItemState.ItemDefinitionId, ItemState.ItemLevel,
+			false).bResolved)
+	{
+		return false; // Saved fixed item: never re-inherit default N1.
+	}
 	const int32 ItemIndex = AddContainedItem(ItemState.ItemDefinitionId, nullptr, ItemActor, false,
 		ItemState.Quantity, ItemState.ObjectId, ItemState.ItemLevel);
 
@@ -1053,22 +1117,20 @@ int32 AGridReceptacleActor::AddContainedItem(
 	{
 		return INDEX_NONE;
 	}
-	// Resolve catalogue default once. Reject invalid authored/transported levels
-	// before modifying logical contents or spawning a visual actor.
-	// Unknown definitions must not silently erase a previously fixed item level;
-	// catalogue definitions are validated and resolved to an explicit level.
-	int32 ResolvedLevel = ItemDefinition && !ItemDefinition->bUseWeaponCatalogue ? 0 : ItemLevel;
-	const FGridWeaponLevelProfile* Profile = nullptr;
-	if (ItemDefinition && ItemDefinition->bUseWeaponCatalogue)
+	// Fresh placement resolves the authored default once. Persisted cursor
+	// and restore paths separately reject invalid registered N0 before here.
+	const FGridReceptacleItemMetadataReadView Metadata =
+		FGridReceptacleItemMetadataReadModel::Resolve(
+			ResolveReceptacleItemRegistry(this), ItemDefinition,
+			ItemDefinitionId, ItemLevel, true);
+	if (!Metadata.bResolved)
 	{
-		ResolvedLevel = ItemLevel == 0 ? ItemDefinition->DefaultWeaponItemLevel : ItemLevel;
-		if (!ItemDefinition->TryGetWeaponCatalogueProfile(ResolvedLevel, Profile))
-		{
-			UE_LOG(LogGridReceptacle, Warning, TEXT("Receptacle rejected invalid ItemLevel=%d Item=%s"),
-				ResolvedLevel, *ItemDefinitionId.ToString());
-			return INDEX_NONE;
-		}
+		UE_LOG(LogGridReceptacle, Warning,
+			TEXT("Receptacle rejected unresolved ItemLevel=%d Item=%s"),
+			ItemLevel, *ItemDefinitionId.ToString());
+		return INDEX_NONE;
 	}
+	const int32 ResolvedLevel = Metadata.FixedItemLevel;
 	FGridContainedReceptacleItem NewItem;
 	NewItem.RuntimeObjectId = RuntimeObjectId.IsValid() ? RuntimeObjectId : FGuid::NewGuid();
 	NewItem.ItemDefinitionId = ItemDefinitionId;
@@ -1084,10 +1146,10 @@ int32 AGridReceptacleActor::AddContainedItem(
 		NewItem.ReadTitleOverride = ItemActor->ReadTitleOverride;
 		NewItem.ReadTextOverride = ItemActor->ReadTextOverride;
 	}
+	NewItem.Weight = Metadata.UnitWeightKg;
+	NewItem.DisplayName = Metadata.DisplayName;
 	if (ItemDefinition)
 	{
-		NewItem.Weight = Profile ? Profile->WeightKg : ItemDefinition->Weight;
-		NewItem.DisplayName = ItemDefinition->DisplayName;
 		NewItem.bLightsEnabled = ItemDefinition->IsLightEnabledByDefault();
 	}
 
