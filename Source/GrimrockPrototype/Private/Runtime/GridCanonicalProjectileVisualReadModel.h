@@ -11,6 +11,7 @@ struct FGridCanonicalProjectileVisualReadView
 	FName VisualId = NAME_None;
 	TSoftObjectPtr<UStaticMesh> ProjectileMesh;
 	FGridCanonicalProjectileVisual Appearance;
+	FGridCanonicalProjectilePolicy FlightPolicy;
 };
 
 /** A missing N1-N20 level must not read DA_Weapon_* visual fields. */
@@ -37,6 +38,7 @@ struct FGridCanonicalProjectileVisualReadModel
 		{
 			Result.ProjectileMesh = Resolved.ProjectileMesh;
 			Result.Appearance = Resolved.ProjectileAppearance;
+			Result.FlightPolicy = Resolved.Weapon.Projectile;
 		}
 		return Result;
 	}

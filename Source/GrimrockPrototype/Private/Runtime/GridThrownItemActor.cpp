@@ -186,6 +186,12 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	const bool bCanonicalArmamentProjectile =
 		InDefinition && InDefinition->bUseWeaponCatalogue &&
 		Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bHasProjectileVisual;
+	// The same N1-N20 weapon policy owns recoverable landing offset and lifetime.
+	// Arc and initial speed are still calculated by launchers (next migration).
+	if (bCanonicalArmamentProjectile)
+	{
+		ImpactDropOffset = FMath::Max(0.0f, Canonical.FlightPolicy.ImpactDropOffset);
+	}
 	bUseCanonicalProjectileForwardAxis = bCanonicalArmamentProjectile;
 	if (bCanonicalArmamentProjectile)
 	{
@@ -281,7 +287,9 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		ProjectileMovementComponent->Activate(true);
 	}
 
-	const float LifeSeconds = InDefinition ? FMath::Max(0.01f, InDefinition->ThrowLifeSeconds) : 5.0f;
+	const float LifeSeconds = bCanonicalArmamentProjectile
+		? FMath::Max(0.01f, Canonical.FlightPolicy.FlightLifetime)
+		: (InDefinition ? FMath::Max(0.01f, InDefinition->ThrowLifeSeconds) : 5.0f);
 	GetWorldTimerManager().SetTimer(ExpirationTimerHandle, this, &AGridThrownItemActor::HandleProjectileExpired, LifeSeconds, false);
 }
 

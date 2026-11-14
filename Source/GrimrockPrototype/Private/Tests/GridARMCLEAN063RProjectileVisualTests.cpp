@@ -56,6 +56,14 @@ bool FGridClean063RProjectileVisual::RunTest(const FString&)
 			TestEqual(TEXT("Projectile authored forward axis preserved"),
 				static_cast<uint8>(Visual.Appearance.MeshForwardAxis),
 				static_cast<uint8>(Expected.ProjectileAppearance.MeshForwardAxis));
+			TestTrue(TEXT("Flight policy is enabled only for authored projectile"),
+				Visual.FlightPolicy.bEnabled && Expected.Weapon.Projectile.bEnabled);
+			TestTrue(TEXT("Landing offset is one N1-N20 canonical value"),
+				FMath::IsNearlyEqual(Visual.FlightPolicy.ImpactDropOffset,
+					Expected.Weapon.Projectile.ImpactDropOffset));
+			TestTrue(TEXT("Lifetime is one N1-N20 canonical value"),
+				FMath::IsNearlyEqual(Visual.FlightPolicy.FlightLifetime,
+					Expected.Weapon.Projectile.FlightLifetime));
 			TestTrue(TEXT("Flight visual projection does not touch item GUID"),
 				Instance.RuntimeObjectId.IsValid());
 			Instance.ItemLevel = 0;
@@ -64,6 +72,7 @@ bool FGridClean063RProjectileVisual::RunTest(const FString&)
 			TestTrue(TEXT("Registered invalid N0 retains canonical classification"), Invalid.bCanonicalIdentity);
 			TestFalse(TEXT("Registered invalid N0 does not reuse DA_Weapon flight mesh"), Invalid.bResolved);
 			TestTrue(TEXT("Registered invalid N0 has no mesh"), Invalid.ProjectileMesh.IsNull());
+			TestFalse(TEXT("Registered invalid N0 cannot inherit flight policy"), Invalid.FlightPolicy.bEnabled);
 		}
 	}
 	FGridItemInstance Unknown;
