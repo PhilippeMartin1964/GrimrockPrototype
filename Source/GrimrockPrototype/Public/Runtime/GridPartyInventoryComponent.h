@@ -403,6 +403,8 @@ private:
 	void InitializeCombatHotbarDefaults(FGridCharacterInventoryState& CharacterState) const;
 	bool ValidateCombatHotbar(const FGridCharacterInventoryState& CharacterState, FString& OutError) const;
 	bool IsCharacterOverloaded(int32 CharacterIndex) const;
+	/** Resolves hand occupation from the canonical N1-N20 policy for registered ARM. */
+	bool IsTwoHandedItem(const FGridItemInstance& Item) const;
 	float CalculateCharacterCurrentWeight(int32 CharacterIndex) const;
 	float CalculateCharacterBaseMaxWeight(int32 CharacterIndex) const;
 	float CalculateEquipmentWeight(const FGridCharacterEquipmentState& EquipmentState) const;

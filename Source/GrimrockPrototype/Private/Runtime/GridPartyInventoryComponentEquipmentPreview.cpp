@@ -116,11 +116,6 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
     }
 
     const FGridItemInstance& Source = Character.InventorySlots[InventorySlotIndex].Item;
-    const UGridItemDefinitionAsset* Candidate = FindItemDefinition(Source.ItemDefinitionId);
-    if (!Candidate)
-    {
-        return false;
-    }
     if (!CanEquipItemToSlot(CharacterIndex, Source, TargetSlot) ||
         !GridEquipmentSlotUtils::IsSupportedSlot(TargetSlot))
     {
@@ -132,7 +127,7 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
         PartyInventoryState.ActiveEquipment[CharacterIndex];
     const bool bIncomingTwoHanded =
         GridEquipmentSlotUtils::IsHandSlot(TargetSlot) &&
-        Candidate->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
+        IsTwoHandedItem(Source);
     const bool bReleaseBoth = bIncomingTwoHanded ||
         (GridEquipmentSlotUtils::IsHandSlot(TargetSlot) && IsTwoHandedEquipped(CharacterIndex));
     const EGridEquipmentSlot ActualTarget =

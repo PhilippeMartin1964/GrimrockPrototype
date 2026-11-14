@@ -3,11 +3,26 @@
 #include "GridEquipmentSlotUtils.h"
 #include "Runtime/Combat/GridCombatTraceTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
 
 namespace
 {
+	const UGridItemSubsystem* GridPartyInventoryCanonicalRegistry(const UGridPartyInventoryComponent* Inventory)
+	{
+		if (const UWorld* World = Inventory->GetWorld())
+		{
+			if (UGameInstance* GameInstance = World->GetGameInstance())
+			{
+				return GameInstance->GetSubsystem<UGridItemSubsystem>();
+			}
+		}
+		return nullptr;
+	}
+
 	int32 GridPartyInventoryEquipmentFindFreeInventorySlotIndex(const FGridCharacterInventoryState& CharacterState)
 	{
 		for (int32 SlotIndex = 0; SlotIndex < CharacterState.InventorySlots.Num(); ++SlotIndex)
@@ -37,15 +52,33 @@ namespace
 	}
 }
 
+bool UGridPartyInventoryComponent::IsTwoHandedItem(const FGridItemInstance& Item) const
+{
+	if (!Item.IsValid())
+	{
+		return false;
+	}
+	if (const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this))
+	{
+		if (Registry->HasCanonicalItem(Item.ItemDefinitionId))
+		{
+			FGridResolvedItem Resolved;
+			return Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) &&
+				Resolved.bIsArmament &&
+				Resolved.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded;
+		}
+	}
+	const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
+	return Definition && Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
+}
+
 bool UGridPartyInventoryComponent::IsTwoHandedEquipped(int32 CharacterIndex) const
 {
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
 		return false;
 	}
-	const FGridItemInstance& Main = PartyInventoryState.ActiveEquipment[CharacterIndex].MainHand;
-	const UGridItemDefinitionAsset* Definition = Main.IsValid() ? FindItemDefinition(Main.ItemDefinitionId) : nullptr;
-	return Definition && Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
+	return IsTwoHandedItem(PartyInventoryState.ActiveEquipment[CharacterIndex].MainHand);
 }
 
 EGridEquipmentSlot UGridPartyInventoryComponent::ResolveEquipmentSourceSlot(int32 CharacterIndex, EGridEquipmentSlot RequestedSlot) const
@@ -71,6 +104,17 @@ bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, cons
 		return false;
 	}
 
+	// Registered ARM have one authority: the canonical level and hand policy.
+	// An invalid canonical level must not fall back to DA_Weapon_* rules.
+	if (const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this))
+	{
+		if (Registry->HasCanonicalItem(Item.ItemDefinitionId))
+		{
+			FGridResolvedItem Resolved;
+			return Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) &&
+				Resolved.bIsArmament && Resolved.Weapon.CanEquipInHand(TargetSlot);
+		}
+	}
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
 	if (!Definition || !Definition->CanEquipToSlot(TargetSlot))
 	{
@@ -103,13 +147,6 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	}
 
 	const FGridItemInstance Source = Character.InventorySlots[InventorySlotIndex].Item;
-	const UGridItemDefinitionAsset* Definition = FindItemDefinition(Source.ItemDefinitionId);
-	if (!Definition)
-	{
-		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=MissingDefinition Item=%s"),
-			CharacterIndex, GridEquipmentSlotUtils::GetLogName(TargetSlot), *Source.ItemDefinitionId.ToString());
-		return false;
-	}
 	if (!CanEquipItemToSlot(CharacterIndex, Source, TargetSlot))
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=UnsupportedSlot Item=%s"),
@@ -119,7 +156,7 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 
 	FGridCharacterEquipmentState& Equipment = PartyInventoryState.ActiveEquipment[CharacterIndex];
 	const bool bIncomingTwoHanded = GridEquipmentSlotUtils::IsHandSlot(TargetSlot) &&
-		Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
+		IsTwoHandedItem(Source);
 	const bool bReleaseBoth = bIncomingTwoHanded || (GridEquipmentSlotUtils::IsHandSlot(TargetSlot) && IsTwoHandedEquipped(CharacterIndex));
 	const EGridEquipmentSlot ActualTarget = bIncomingTwoHanded ? EGridEquipmentSlot::MainHand : TargetSlot;
 	FGridItemInstance* TargetItem = Equipment.GetMutableSlot(ActualTarget);

@@ -464,9 +464,8 @@ bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot(int32 Chara
 
 	FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	FGridCharacterEquipmentState& Equipment = PartyInventoryState.ActiveEquipment[CharacterIndex];
-	const UGridItemDefinitionAsset* Definition = FindItemDefinition(PartyInventoryState.CursorItem.ItemDefinitionId);
-	const bool bIncomingTwoHanded = Definition && GridEquipmentSlotUtils::IsHandSlot(TargetSlot) &&
-		Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
+	const bool bIncomingTwoHanded = GridEquipmentSlotUtils::IsHandSlot(TargetSlot) &&
+		IsTwoHandedItem(PartyInventoryState.CursorItem);
 	const bool bReleaseBoth = bIncomingTwoHanded ||
 		(GridEquipmentSlotUtils::IsHandSlot(TargetSlot) && IsTwoHandedEquipped(CharacterIndex));
 	const EGridEquipmentSlot ActualTarget = bIncomingTwoHanded ? EGridEquipmentSlot::MainHand : TargetSlot;

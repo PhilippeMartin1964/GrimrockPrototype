@@ -100,6 +100,13 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 			FName(*Row.ArchetypeId));
 		TestEqual(TEXT("Weight belongs to item identity, not a mutable level"),
 			N20.WeightKg, N1.WeightKg);
+		TestEqual(TEXT("Real canonical N1-N20 hand policy matches two-handed production kind"),
+			N20.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded, Row.IsTwoHanded());
+		TestTrue(TEXT("Canonical weapon accepts its authored equipment hand"),
+			N20.Weapon.CanEquipInHand(Row.IsPassive()
+				? EGridEquipmentSlot::OffHand : EGridEquipmentSlot::MainHand));
+		TestFalse(TEXT("Canonical armament never equips outside a hand slot"),
+			N20.Weapon.CanEquipInHand(EGridEquipmentSlot::None));
 		if (Row.IsPassive())
 		{
 			++PassiveCount;

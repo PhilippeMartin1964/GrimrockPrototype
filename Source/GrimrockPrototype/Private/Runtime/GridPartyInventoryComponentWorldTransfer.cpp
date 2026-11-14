@@ -56,8 +56,7 @@ bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 Char
 		return false;
 	}
 
-	const UGridItemDefinitionAsset* Definition = FindItemDefinition(WorldItem.ItemDefinitionId);
-	const bool bTwoHanded = Definition && Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
+	const bool bTwoHanded = IsTwoHandedItem(WorldItem);
 	const EGridEquipmentSlot ActualTarget = bTwoHanded ? EGridEquipmentSlot::MainHand : TargetSlot;
 	if (bTwoHanded && PartyInventoryState.ActiveEquipment[CharacterIndex].OffHand.IsValid())
 	{
