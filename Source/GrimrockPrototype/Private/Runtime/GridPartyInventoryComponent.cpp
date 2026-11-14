@@ -1523,74 +1523,121 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAss
 	return true;
 }
 
-bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(TFunctionRef<UGridItemDefinitionAsset*(FName)> Resolver, FName& OutMissingDefinitionId)
+bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
+	TFunctionRef<UGridItemDefinitionAsset*(FName)> Resolver, FName& OutMissingDefinitionId)
 {
 	OutMissingDefinitionId = NAME_None;
-
+	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
 	TSet<FName> DefinitionIds;
-	auto CollectCharacterItems = [&DefinitionIds](const FGridCharacterInventoryState& Character)
+
+	// A saved physical identity is immutable. Validate registered items BEFORE
+	// touching the transient definition map. This covers inventory, reserve,
+	// equipped items and cursor without changing SaveGame 27's schema.
+	auto CollectItem = [Registry, &DefinitionIds, &OutMissingDefinitionId](
+		const FGridItemInstance& Item) -> bool
+	{
+		const bool bCanonical = Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId);
+		if (bCanonical)
+		{
+			FGridResolvedItem Canonical;
+			if (!Item.IsValid() ||
+				!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical) ||
+				Item.Quantity > FMath::Max(1, Canonical.MaxStack))
+			{
+				OutMissingDefinitionId = Item.ItemDefinitionId;
+				UE_LOG(LogGridInventory, Warning,
+					TEXT("GridInventory SaveRehydrate Rejected Item=%s Level=%d Quantity=%d Reason=InvalidCanonicalSavedInstance"),
+					*Item.ItemDefinitionId.ToString(), Item.ItemLevel, Item.Quantity);
+				return false; // No promotion from a persisted ARM N0 to N1.
+			}
+		}
+		if (Item.IsValid())
+		{
+			DefinitionIds.Add(Item.ItemDefinitionId);
+		}
+		return true;
+	};
+
+	auto CollectCharacterItems = [&DefinitionIds, &CollectItem](
+		const FGridCharacterInventoryState& Character) -> bool
 	{
 		for (const FGridInventorySlot& Slot : Character.InventorySlots)
 		{
-			if (!Slot.IsEmpty())
+			// Inspect bOccupied, not IsEmpty(): a known but malformed saved
+			// item must not be silently lost when IsValid() is false.
+			if (Slot.bOccupied && !CollectItem(Slot.Item))
 			{
-				DefinitionIds.Add(Slot.Item.ItemDefinitionId);
+				return false;
 			}
 		}
 		for (const FGridCombatHotbarBinding& Binding : Character.CombatHotbarSlots)
 		{
 			const bool bUsesItemDefinition =
-				Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment || Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
+				Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment ||
+				Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
 			if (!Binding.IsEmpty() && bUsesItemDefinition && !Binding.SourceDefinitionId.IsNone())
 			{
+				// A binding has no ItemLevel; its GUID and hand are checked by
+				// the action resolver when the shortcut is used.
 				DefinitionIds.Add(Binding.SourceDefinitionId);
 			}
 		}
+		return true;
 	};
 
 	for (const FGridCharacterInventoryState& Character : PartyInventoryState.ActiveCharacters)
 	{
-		CollectCharacterItems(Character);
+		if (!CollectCharacterItems(Character)) return false;
 	}
 	for (const FGridCharacterInventoryState& Character : PartyInventoryState.CharacterPool)
 	{
-		CollectCharacterItems(Character);
+		if (!CollectCharacterItems(Character)) return false;
 	}
 	for (const FGridCharacterEquipmentState& Equipment : PartyInventoryState.ActiveEquipment)
 	{
+		bool bValidEquipment = true;
 		GridEquipmentSlotUtils::ForEachEquipmentItem(Equipment,
-			[&DefinitionIds](EGridEquipmentSlot Slot, const FGridItemInstance& Item)
+			[&CollectItem, &bValidEquipment](EGridEquipmentSlot Slot, const FGridItemInstance& Item)
 			{
 				(void)Slot;
-				if (Item.IsValid())
+				if (bValidEquipment && !CollectItem(Item))
 				{
-					DefinitionIds.Add(Item.ItemDefinitionId);
+					bValidEquipment = false;
 				}
 			});
+		if (!bValidEquipment) return false;
 	}
-	if (PartyInventoryState.bHasCursorItem && PartyInventoryState.CursorItem.IsValid())
+	if (PartyInventoryState.bHasCursorItem && !CollectItem(PartyInventoryState.CursorItem))
 	{
-		DefinitionIds.Add(PartyInventoryState.CursorItem.ItemDefinitionId);
+		return false;
 	}
 
-	TArray<UGridItemDefinitionAsset*> ResolvedDefinitions;
-	ResolvedDefinitions.Reserve(DefinitionIds.Num());
+	// Resolve every unknown ID strictly, but canonical IDs are valid WITHOUT
+	// a legacy definition. Keep a matching historical definition when present
+	// until the binary/SaveGame conversion and remaining UI readers finish.
+	TMap<FName, TObjectPtr<UGridItemDefinitionAsset>> ReplacementDefinitions;
 	for (const FName DefinitionId : DefinitionIds)
 	{
+		const bool bCanonical = Registry && Registry->HasCanonicalItem(DefinitionId);
 		UGridItemDefinitionAsset* Definition = Resolver(DefinitionId);
-		if (!Definition || Definition->ItemDefinitionId.IsNone() || Definition->ItemDefinitionId != DefinitionId)
+		if (!IsValid(Definition) || Definition->ItemDefinitionId != DefinitionId)
 		{
+			if (bCanonical)
+			{
+				// A mismatched obsolete definition is not an authority for a
+				// registered identity; an absent one is entirely acceptable.
+				continue;
+			}
 			OutMissingDefinitionId = DefinitionId;
-			return false;
+			return false; // Unknown saved ID still requires exact legacy asset.
 		}
-		ResolvedDefinitions.Add(Definition);
+		ReplacementDefinitions.Add(DefinitionId, Definition);
 	}
 
-	RuntimeItemDefinitionsById.Reset();
-	for (UGridItemDefinitionAsset* Definition : ResolvedDefinitions)
-	{
-		RegisterItemDefinition(Definition);
-	}
+	// One atomic map replacement. On failure, no retained definitions,
+	// physical instances or hotbar references are modified.
+	RuntimeItemDefinitionsById = MoveTemp(ReplacementDefinitions);
+	NotifyPartyInventoryChanged(INDEX_NONE);
 	return true;
 }
 

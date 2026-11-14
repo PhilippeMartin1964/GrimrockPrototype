@@ -57,3 +57,14 @@ et rend `MaxStack` du registre prioritaire dans les entrées, les
 fusions et la séparation des piles. L'héritage de niveau authoré N0,
 la reconstitution SaveGame et les références d'assets binaires
 restent des obligations de 06.4.
+
+## Complément 06.3AT — reconstitution de sauvegarde
+
+`RehydrateOwnedItemDefinitions` vérifie désormais les instances physiques
+canoniques de l'inventaire actif, de la réserve, de l'équipement et du
+curseur contre `DA_ItemSystem` et leur capacité de pile avant de toucher
+le registre temporaire. Les anciennes définitions sont **optionnelles**
+pour les IDs connus et **obligatoires** pour les IDs absents du registre.
+Leurs présences facultatives maintiennent les consommateurs transitoires.
+Le format SaveGame 27 n'est pas modifié et les conversions des
+enregistrements N0 historiques appartiennent toujours à 06.4.
