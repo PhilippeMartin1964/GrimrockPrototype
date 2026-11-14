@@ -13,6 +13,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridItemWeightReadModel.h"
+#include "GridWorldItemLevelReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -768,19 +769,24 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 		return false;
 	}
 
-	// Resolve a newly minted fixed-level item once; never reroll on pickup.
-	int32 ResolvedItemLevel = 0;
-	if (ItemDefinition->bUseWeaponCatalogue)
+	// WorldDrop receives an already-physical item (inventory, projectile,
+	// monster loot or pending pit transfer), never an authored level request.
+	// Do not reinterpret a persisted registered ARM N0 as a fresh N1 weapon.
+	const UWorld* DropWorld = GetWorld();
+	UGameInstance* DropGameInstance = DropWorld ? DropWorld->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = DropGameInstance
+		? DropGameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const FGridReceptacleItemMetadataReadView LevelRead =
+		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
+			Registry, ItemDefinition, ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel);
+	if (!LevelRead.bResolved)
 	{
-		ResolvedItemLevel = ItemInstance.ItemLevel == 0 ? ItemDefinition->DefaultWeaponItemLevel : ItemInstance.ItemLevel;
-		const FGridWeaponLevelProfile* Profile = nullptr;
-		if (!ItemDefinition->TryGetWeaponCatalogueProfile(ResolvedItemLevel, Profile))
-		{
-			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridInventory WorldDrop Failed Item=%s InvalidItemLevel=%d"),
-				*ItemInstance.ItemDefinitionId.ToString(), ResolvedItemLevel);
-			return false;
-		}
+		UE_LOG(LogGridLevelRuntime, Warning,
+			TEXT("GridInventory WorldDrop Failed Item=%s InvalidPersistedItemLevel=%d"),
+			*ItemInstance.ItemDefinitionId.ToString(), ItemInstance.ItemLevel);
+		return false;
 	}
+	const int32 ResolvedItemLevel = LevelRead.FixedItemLevel;
 
 	if (Edge == EGridEdge::None)
 	{

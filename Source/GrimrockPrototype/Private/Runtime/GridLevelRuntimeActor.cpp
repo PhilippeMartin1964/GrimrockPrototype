@@ -20,6 +20,9 @@
 #include "Runtime/GrimrockGameMode.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "GridWorldItemLevelReadModel.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridMechanismActor.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
@@ -2103,20 +2106,21 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 		return;
 	}
 	const FName ItemDefinitionId = ItemDefinition->ItemDefinitionId;
-	int32 ResolvedItemLevel = 0;
-	if (ItemDefinition->bUseWeaponCatalogue)
+	const UWorld* PlacementWorld = GetWorld();
+	UGameInstance* PlacementGameInstance = PlacementWorld ? PlacementWorld->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = PlacementGameInstance
+		? PlacementGameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const FGridReceptacleItemMetadataReadView LevelRead =
+		FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
+			Registry, ItemDefinition, ItemDefinitionId, ObjectData.ItemLevel);
+	if (!LevelRead.bResolved)
 	{
-		// Zero means the authored placement inherits the current default ONCE.
-		// Every materialized instance thereafter carries its resolved fixed level.
-		ResolvedItemLevel = ObjectData.ItemLevel == 0 ? ItemDefinition->DefaultWeaponItemLevel : ObjectData.ItemLevel;
-		const FGridWeaponLevelProfile* Profile = nullptr;
-		if (!ItemDefinition->TryGetWeaponCatalogueProfile(ResolvedItemLevel, Profile))
-		{
-			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Placed item skipped: invalid authored ItemLevel=%d for %s."),
-				ResolvedItemLevel, *ItemDefinitionId.ToString());
-			return;
-		}
+		UE_LOG(LogGridLevelRuntime, Warning,
+			TEXT("Placed item skipped: unresolved authored ItemLevel=%d for %s."),
+			ObjectData.ItemLevel, *ItemDefinitionId.ToString());
+		return;
 	}
+	const int32 ResolvedItemLevel = LevelRead.FixedItemLevel;
 	AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, ItemDefinitionId, this, nullptr);
 	if (!ItemActor)
 	{
