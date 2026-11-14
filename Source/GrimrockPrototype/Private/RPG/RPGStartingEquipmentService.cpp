@@ -3,6 +3,7 @@
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
+#include "../Runtime/GridWorldItemLevelReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridStartingKitStaticMetadataReadModel.h"
 
@@ -73,8 +74,26 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 
 		int32 FixedLevel = 0;
 		float FixedWeight = Definition->Weight;
-		if (Definition->bUseWeaponCatalogue)
+		if (CanonicalRegistry && CanonicalRegistry->HasCanonicalItem(ItemId))
 		{
+			// This kit creates NEW items: authored ARM N0 inherits its default
+			// once, while real non-ARM N0 stays N0 regardless of obsolete flags.
+			const FGridReceptacleItemMetadataReadView Authored =
+				FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
+					CanonicalRegistry, Definition, ItemId, Entry.ItemLevel);
+			if (!Authored.bResolved)
+			{
+				OutError = FString::Printf(
+					TEXT("Starting kit item %s has an invalid canonical authored level %d."),
+					*ItemId.ToString(), Entry.ItemLevel);
+				return false; // Reject the whole staged kit; no historical N1 fallback.
+			}
+			FixedLevel = Authored.FixedItemLevel;
+			FixedWeight = Authored.UnitWeightKg;
+		}
+		else if (Definition->bUseWeaponCatalogue)
+		{
+			// Temporary path solely for identities absent from DA_ItemSystem.
 			FixedLevel = Entry.ItemLevel == 0 ? Definition->DefaultWeaponItemLevel : Entry.ItemLevel;
 			const FGridWeaponLevelProfile* Profile = nullptr;
 			if (!Definition->TryGetWeaponCatalogueProfile(FixedLevel, Profile) || !Profile)
