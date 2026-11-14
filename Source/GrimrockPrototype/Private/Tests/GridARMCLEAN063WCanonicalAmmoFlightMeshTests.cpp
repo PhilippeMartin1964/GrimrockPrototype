@@ -47,6 +47,13 @@ bool FGridClean063WAmmoFlightMesh::RunTest(const FString&)
 	TestTrue(TEXT("Invalid known arrow retains canonical membership"), Invalid.bCanonicalIdentity);
 	TestFalse(TEXT("Invalid known arrow may not use old mesh"), Invalid.bResolved);
 	TestTrue(TEXT("Invalid arrow mesh is cleared"), Invalid.WorldMesh.IsNull());
+	Arrow.ItemLevel = 0;
+	Arrow.RuntimeObjectId = FGuid();
+	const FGridCanonicalProjectileVisualReadView BadGuid =
+		FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Arrow);
+	TestTrue(TEXT("Missing GUID still classifies known ammo as canonical"), BadGuid.bCanonicalIdentity);
+	TestFalse(TEXT("Missing GUID never resolves a mesh"), BadGuid.bResolved);
+	TestTrue(TEXT("Missing GUID cannot display an obsolete mesh"), BadGuid.WorldMesh.IsNull());
 	FGridItemInstance Unregistered;
 	Unregistered.RuntimeObjectId = FGuid::NewGuid();
 	Unregistered.ItemDefinitionId = TEXT("UnregisteredArrow_063W");
