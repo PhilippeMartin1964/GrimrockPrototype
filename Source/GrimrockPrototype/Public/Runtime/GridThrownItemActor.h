@@ -107,6 +107,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Projectile|Visual")
 	FVector AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
 
+	/** Resolved at launch from the actual N1-N20 instance; never saved as a second policy. */
+	bool bUseCanonicalProjectileForwardAxis = false;
+	EGridProjectileForwardAxis CanonicalProjectileForwardAxis{};
+
 protected:
 	virtual void BeginPlay() override;
 

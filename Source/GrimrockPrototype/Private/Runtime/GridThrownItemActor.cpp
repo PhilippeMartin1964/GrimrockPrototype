@@ -7,6 +7,10 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "GridCanonicalProjectileVisualReadModel.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "TimerManager.h"
@@ -170,9 +174,41 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	ConfigureAsAttachedItem();
 	SetItemLightsEnabled(InItemInstance.bLightsEnabled);
 
+	// 06.3R: only ARM weapon projectiles are converted here. Ranged ammunition
+	// still has the legacy ItemLevel=0 contract; it must not be silently promoted
+	// to N1 or made invisible before its separate instance-level migration.
+	const UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const FGridCanonicalProjectileVisualReadView Canonical =
+		FGridCanonicalProjectileVisualReadModel::Resolve(Registry, InItemInstance);
+	const bool bCanonicalArmamentProjectile =
+		InDefinition && InDefinition->bUseWeaponCatalogue &&
+		Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bHasProjectileVisual;
+	bUseCanonicalProjectileForwardAxis = bCanonicalArmamentProjectile;
+	if (bCanonicalArmamentProjectile)
+	{
+		CanonicalProjectileForwardAxis = Canonical.Appearance.MeshForwardAxis;
+		if (MeshComponent)
+		{
+			MeshComponent->SetStaticMesh(Canonical.ProjectileMesh.LoadSynchronous());
+		}
+	}
+	else if (InDefinition && InDefinition->bUseWeaponCatalogue &&
+		Canonical.bCanonicalIdentity && !Canonical.bResolved && MeshComponent)
+	{
+		// A known but invalid canonical ARM cannot render a copied legacy mesh.
+		MeshComponent->SetStaticMesh(nullptr);
+	}
+
 	InitialFlightWorldLocation = GetActorLocation();
-	const FRotator VisualRotation = InDefinition ? InDefinition->ThrowVisualRelativeRotation : FRotator(-90.0f, 0.0f, 0.0f);
-	FVector VisualScale = InDefinition ? InDefinition->ThrowVisualRelativeScale : FVector(1.5f);
+	const FRotator VisualRotation = bCanonicalArmamentProjectile
+		? Canonical.Appearance.RelativeRotation
+		: (InDefinition ? InDefinition->ThrowVisualRelativeRotation : FRotator(-90.0f, 0.0f, 0.0f));
+	FVector VisualScale = bCanonicalArmamentProjectile
+		? Canonical.Appearance.RelativeScale
+		: (InDefinition ? InDefinition->ThrowVisualRelativeScale : FVector(1.5f));
 	if (VisualScale.ContainsNaN())
 	{
 		VisualScale = FVector(1.5f);
@@ -181,7 +217,12 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	VisualScale.Y = FMath::Clamp(FMath::Abs(VisualScale.Y), 0.01f, 100.0f);
 	VisualScale.Z = FMath::Clamp(FMath::Abs(VisualScale.Z), 0.01f, 100.0f);
 	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
-	const EGridThrowVisualMode VisualMode = InDefinition ? InDefinition->ThrowVisualMode : EGridThrowVisualMode::Tumble;
+	const EGridThrowVisualMode VisualMode = bCanonicalArmamentProjectile
+		? (Canonical.Appearance.Mode == EGridCanonicalProjectileVisualMode::Stable
+			? EGridThrowVisualMode::Stable
+			: Canonical.Appearance.Mode == EGridCanonicalProjectileVisualMode::Spin
+				? EGridThrowVisualMode::Spin : EGridThrowVisualMode::Tumble)
+		: (InDefinition ? InDefinition->ThrowVisualMode : EGridThrowVisualMode::Tumble);
 	switch (VisualMode)
 	{
 		case EGridThrowVisualMode::Stable:
@@ -189,19 +230,25 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 
 		case EGridThrowVisualMode::Spin:
 			AppliedThrowVisualAngularVelocityDegreesPerSecond =
-				FVector(0.0f, 0.0f, InDefinition ? FMath::Max(0.0f, InDefinition->ThrowVisualSpinDegreesPerSecond) : 1080.0f);
+				FVector(0.0f, 0.0f, bCanonicalArmamentProjectile
+					? FMath::Max(0.0f, Canonical.Appearance.SpinDegreesPerSecond)
+					: (InDefinition ? FMath::Max(0.0f, InDefinition->ThrowVisualSpinDegreesPerSecond) : 1080.0f));
 			break;
 
 		case EGridThrowVisualMode::Tumble:
 		default:
 		{
-			FVector TumbleAxis = InDefinition ? InDefinition->ThrowVisualTumbleAxis : FVector(0.65f, 0.35f, 1.0f);
+			FVector TumbleAxis = bCanonicalArmamentProjectile
+				? Canonical.Appearance.TumbleAxis
+				: (InDefinition ? InDefinition->ThrowVisualTumbleAxis : FVector(0.65f, 0.35f, 1.0f));
 			if (TumbleAxis.ContainsNaN() || TumbleAxis.IsNearlyZero())
 			{
 				TumbleAxis = FVector(0.65f, 0.35f, 1.0f);
 			}
 			TumbleAxis.Normalize();
-			const float TumbleSpeed = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowVisualTumbleDegreesPerSecond) : 180.0f;
+			const float TumbleSpeed = bCanonicalArmamentProjectile
+				? FMath::Max(0.0f, Canonical.Appearance.TumbleDegreesPerSecond)
+				: (InDefinition ? FMath::Max(0.0f, InDefinition->ThrowVisualTumbleDegreesPerSecond) : 180.0f);
 			AppliedThrowVisualAngularVelocityDegreesPerSecond = TumbleAxis * TumbleSpeed;
 			break;
 		}
@@ -246,7 +293,15 @@ FVector AGridThrownItemActor::ResolveMeshForwardAxis(EGridProjectileForwardAxis 
 void AGridThrownItemActor::AlignMeshForwardToFlight()
 {
 	const UGridItemDefinitionAsset* Definition = GetItemDefinitionAsset();
-	if (Definition && MeshComponent)
+	if (!MeshComponent)
+	{
+		return;
+	}
+	if (bUseCanonicalProjectileForwardAxis)
+	{
+		MeshComponent->SetRelativeRotation(FGridProjectileGeometry::MeshToFlightRotation(CanonicalProjectileForwardAxis));
+	}
+	else if (Definition)
 	{
 		MeshComponent->SetRelativeRotation(FGridProjectileGeometry::MeshToFlightRotation(Definition->ProjectileMeshForwardAxis));
 	}
