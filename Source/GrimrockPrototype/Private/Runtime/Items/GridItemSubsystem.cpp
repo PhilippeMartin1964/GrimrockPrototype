@@ -63,7 +63,9 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		OutItem.Error = EGridCanonicalItemResolveError::RegistryNotConfigured;
 		return false;
 	}
-	if (ItemLevel < 1 || ItemLevel > 20)
+	// Armaments have authored N1-N20 progression. Ammo, food and other
+	// unlevelled identities legitimately persist as ItemLevel=0.
+	if (ItemLevel < 0 || ItemLevel > 20)
 	{
 		OutItem.Error = EGridCanonicalItemResolveError::InvalidItemLevel;
 		return false;
@@ -76,6 +78,12 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	}
 
 	const UGridCanonicalItemDefinitionAsset* Definition = Found->Get();
+	if (ItemLevel == 0 && Cast<UGridArmamentDefinitionAsset>(Definition) != nullptr)
+	{
+		// Never invent an N1 weapon. Only unlevelled non-ARM families use N0.
+		OutItem.Error = EGridCanonicalItemResolveError::InvalidItemLevel;
+		return false;
+	}
 	OutItem.ItemId = Definition->ItemId;
 	OutItem.ItemLevel = ItemLevel;
 	OutItem.DisplayName = Definition->DisplayName;
