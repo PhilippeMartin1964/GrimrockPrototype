@@ -122,9 +122,21 @@ bool FGridClean063AIReceptacleMaterialization::RunTest(const FString&)
             Registry.Get(), nullptr, TEXT("LegacyIdOnly_AI"), 12, false);
     TestTrue(TEXT("Old ID-only content still allowed"), IdOnlyLegacy.bResolved);
     TestEqual(TEXT("Old ID-only fixed level preserved"), IdOnlyLegacy.FixedItemLevel, 12);
-    TestFalse(TEXT("Mismatched definition identity never borrowed"),
+    // Registered physical identity wins over an obsolete definition.
+    FGridResolvedItem RealSword;
+    if (!TestTrue(TEXT("Real N6 sword is in the canonical registry"),
+        Registry->ResolveItem(TEXT("Weapon_StraightSword_01"), 6, RealSword))) return false;
+    const auto RegisteredMismatch = FGridReceptacleItemMetadataReadModel::Resolve(
+        Registry.Get(), Old.Get(), TEXT("Weapon_StraightSword_01"), 6, false);
+    TestTrue(TEXT("Obsolete definition cannot cancel a registered N6 sword"),
+        RegisteredMismatch.bCanonicalIdentity && RegisteredMismatch.bResolved &&
+        RegisteredMismatch.FixedItemLevel == 6 &&
+        FMath::IsNearlyEqual(RegisteredMismatch.UnitWeightKg, RealSword.WeightKg));
+    TestEqual(TEXT("Registered mismatch still uses canonical display name"),
+        RegisteredMismatch.DisplayName.ToString(), RealSword.DisplayName.ToString());
+    TestFalse(TEXT("Unregistered mismatch still rejected"),
         FGridReceptacleItemMetadataReadModel::Resolve(
-            Registry.Get(), Old.Get(), TEXT("Weapon_StraightSword_01"), 6, false).bResolved);
+            Registry.Get(), Old.Get(), TEXT("AI_UnregisteredOther"), 0, false).bResolved);
     TestEqual(TEXT("Read model never edits definition default"), Old->DefaultWeaponItemLevel, 6);
     return true;
 }

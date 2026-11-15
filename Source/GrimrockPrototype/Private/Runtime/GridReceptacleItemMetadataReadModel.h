@@ -23,7 +23,7 @@ struct FGridReceptacleItemMetadataReadModel
         FGridReceptacleItemMetadataReadView View;
         View.bCanonicalIdentity = Registry && Registry->HasCanonicalItem(ItemId);
         if (ItemId.IsNone() || ItemLevel < 0 || ItemLevel > 20 ||
-            (IsValid(LegacyDefinition) && LegacyDefinition->ItemDefinitionId != ItemId))
+            (!View.bCanonicalIdentity && IsValid(LegacyDefinition) && LegacyDefinition->ItemDefinitionId != ItemId))
         {
             return View;
         }

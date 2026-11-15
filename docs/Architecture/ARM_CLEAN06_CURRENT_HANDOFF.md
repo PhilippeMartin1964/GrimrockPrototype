@@ -117,6 +117,19 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Lire `ARM_CLEAN06_3BF_SHARED_UTILITY_THROW_PREFLIGHT.md` et
   vérifier les deux statuts Windows sur le SHA BF publié.
 
+## ARM-CLEAN06.3BG — réceptacles et inventaire de conversion
+
+- Les réceptacles n'utilisent plus `DA_Item_*` pour renommer un
+  `ItemId` déjà enregistré dans `DA_ItemSystem`.
+- Capture : contrôle de niveau, GUID et accord de l'acteur physique ;
+  les anciens contenus initiaux sans `ItemId` doivent être migrés en 06.4.
+- Les trois tests `ReceptacleIdentity` couvrent insertion N0,
+  niveau ARM N20, capture et conflit actor/ItemId.
+- Inventaire de passage vers 06.4 :
+  `docs/Architecture/ARM_CLEAN06_3BG_RECEPTACLE_AND_064_READINESS.md`.
+- Ne déclarer BG validé qu'après **les deux statuts** du SHA publié.
+  La conversion binaire et le PIE restent ouverts.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,

@@ -9,6 +9,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridItemWeightReadModel.h"
 #include "GridReceptacleItemMetadataReadModel.h"
+#include "GridReceptacleContainedIdentityReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
@@ -39,37 +40,11 @@ namespace
 		return FVector(0.0f, Direction * PairIndex * InitialPhysicalContentSpacing, 0.0f);
 	}
 
-	FName ResolveDefinitionId(const UGridItemDefinitionAsset* Definition, FName FallbackId)
-	{
-		if (Definition && !Definition->ItemDefinitionId.IsNone())
-		{
-			return Definition->ItemDefinitionId;
-		}
-
-		return FallbackId;
-	}
-
 	const UGridItemSubsystem* ResolveReceptacleItemRegistry(const AGridReceptacleActor* Actor)
 	{
 		const UWorld* World = IsValid(Actor) ? Actor->GetWorld() : nullptr;
 		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 		return GameInstance ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	}
-
-	FName ResolveItemActorDefinitionId(const AGridItemActor* ItemActor)
-	{
-		if (!ItemActor)
-		{
-			return NAME_None;
-		}
-		if (const UGridItemDefinitionAsset* Definition = ItemActor->GetItemDefinitionAsset())
-		{
-			if (!Definition->ItemDefinitionId.IsNone())
-			{
-				return Definition->ItemDefinitionId;
-			}
-		}
-		return ItemActor->GetItemDefinitionId();
 	}
 
 	UGridItemDefinitionAsset* ResolveItemDefinition(
@@ -471,7 +446,8 @@ bool AGridReceptacleActor::CanAcceptCursorItemFromParty(const AGrimrockPartyPawn
 
 bool AGridReceptacleActor::TryInsertItem(FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGrimrockPartyPawn* PartyPawn)
 {
-	ItemDefinitionId = ResolveDefinitionId(ItemDefinition, ItemDefinitionId);
+	ItemDefinitionId = FGridReceptacleContainedIdentityReadModel::Resolve(
+		ResolveReceptacleItemRegistry(this), ItemDefinition, ItemDefinitionId);
 
 	if (IsFull())
 	{
@@ -885,16 +861,42 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState(FGridRuntimeReceptacleS
 	OutState.bCanInsertItems = bCanInsertItems;
 	OutState.ContainedItems.Reset();
 
+	const UGridItemSubsystem* CanonicalRegistry = ResolveReceptacleItemRegistry(this);
 	for (const FGridContainedReceptacleItem& Item : ContainedItems)
 	{
 		FName ResolvedItemId = Item.ItemDefinitionId;
-		if (ResolvedItemId.IsNone())
+		if (IsValid(Item.ItemActor.Get()))
 		{
-			ResolvedItemId = ResolveItemActorDefinitionId(Item.ItemActor.Get());
+			const FName ObservedId =
+				FGridReceptacleContainedIdentityReadModel::ResolveActor(
+					Item.ItemActor.Get(), ResolvedItemId, Item.ItemLevel);
+			if (CanonicalRegistry && CanonicalRegistry->HasCanonicalItem(ResolvedItemId) &&
+				ObservedId != ResolvedItemId)
+			{
+				UE_LOG(LogGridReceptacle, Warning,
+					TEXT("GridReceptacle Capture rejected conflicting actor Item=%s Actor=%s"),
+					*ResolvedItemId.ToString(), *GetNameSafe(Item.ItemActor.Get()));
+				continue;
+			}
+			if (ResolvedItemId.IsNone())
+			{
+				ResolvedItemId = ObservedId;
+			}
 		}
 		if (ResolvedItemId.IsNone() && Item.bWasInitialItem)
 		{
-			ResolvedItemId = ResolveDefinitionId(Item.ItemDefinition, Item.ItemDefinitionId);
+			ResolvedItemId = FGridReceptacleContainedIdentityReadModel::Resolve(
+				CanonicalRegistry, Item.ItemDefinition, Item.ItemDefinitionId);
+		}
+		if (!ResolvedItemId.IsNone() && CanonicalRegistry &&
+			CanonicalRegistry->HasCanonicalItem(ResolvedItemId) &&
+			!FGridReceptacleItemMetadataReadModel::Resolve(
+				CanonicalRegistry, nullptr, ResolvedItemId, Item.ItemLevel, false).bResolved)
+		{
+			UE_LOG(LogGridReceptacle, Warning,
+					TEXT("GridReceptacle Capture rejected invalid canonical item %s level %d"),
+					*ResolvedItemId.ToString(), Item.ItemLevel);
+			continue;
 		}
 		if (ResolvedItemId.IsNone())
 		{
@@ -1108,7 +1110,9 @@ int32 AGridReceptacleActor::AddContainedItem(
 		ItemDefinition = RuntimeActor->ResolveRuntimeItemDefinition(ItemDefinitionId);
 	}
 
-	ItemDefinitionId = ResolveDefinitionId(ItemDefinition, ItemDefinitionId);
+	const UGridItemSubsystem* CanonicalRegistry = ResolveReceptacleItemRegistry(this);
+	ItemDefinitionId = FGridReceptacleContainedIdentityReadModel::Resolve(
+		CanonicalRegistry, ItemDefinition, ItemDefinitionId);
 	if (ItemDefinitionId.IsNone())
 	{
 		return INDEX_NONE;
@@ -1131,6 +1135,20 @@ int32 AGridReceptacleActor::AddContainedItem(
 		return INDEX_NONE;
 	}
 	const int32 ResolvedLevel = Metadata.FixedItemLevel;
+	if (CanonicalRegistry && CanonicalRegistry->HasCanonicalItem(ItemDefinitionId))
+	{
+		// Old authored data must not create an actor with a different ItemId.
+		if (IsValid(ItemDefinition) && ItemDefinition->ItemDefinitionId != ItemDefinitionId)
+		{
+			ItemDefinition = nullptr;
+		}
+		if (IsValid(ItemActor) &&
+			FGridReceptacleContainedIdentityReadModel::ResolveActor(
+				ItemActor, ItemDefinitionId, ResolvedLevel) != ItemDefinitionId)
+		{
+			return INDEX_NONE;
+		}
+	}
 	FGridContainedReceptacleItem NewItem;
 	NewItem.RuntimeObjectId = RuntimeObjectId.IsValid() ? RuntimeObjectId : FGuid::NewGuid();
 	NewItem.ItemDefinitionId = ItemDefinitionId;
@@ -1468,7 +1486,8 @@ void AGridReceptacleActor::InitializeInitialContainedItems()
 
 FName AGridReceptacleActor::ResolveInitialItemDefinitionId(const FGridInitialReceptacleItem& InitialItem) const
 {
-	return ResolveDefinitionId(InitialItem.ItemDefinition, InitialItem.ItemDefinitionId);
+	return FGridReceptacleContainedIdentityReadModel::Resolve(
+		ResolveReceptacleItemRegistry(this), InitialItem.ItemDefinition, InitialItem.ItemDefinitionId);
 }
 
 bool AGridReceptacleActor::WasInitialItemRemoved(FName ItemDefinitionId) const

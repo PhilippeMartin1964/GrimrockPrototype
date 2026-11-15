@@ -82,9 +82,21 @@ bool FGridClean063AJWorldItemLevels::RunTest(const FString&)
 	TestFalse(TEXT("Known ARM invalid N21 has no legacy fallback"),
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry.Get(), Old.Get(), Old->ItemDefinitionId, 21).bResolved);
-	TestFalse(TEXT("Mismatched item definition ID rejected"),
+	// A registered ItemId does not borrow the obsolete definition ID.
+	FGridResolvedItem RealGreatAxe;
+	if (!TestTrue(TEXT("Real N7 great axe in canonical catalogue"),
+		Registry->ResolveItem(TEXT("Weapon_GreatAxe_01"), 7, RealGreatAxe))) return false;
+	const auto RegisteredMismatch = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
+		Registry.Get(), Old.Get(), TEXT("Weapon_GreatAxe_01"), 7);
+	TestTrue(TEXT("World registered N7 cannot be rejected by stale pointer"),
+		RegisteredMismatch.bCanonicalIdentity && RegisteredMismatch.bResolved &&
+		RegisteredMismatch.FixedItemLevel == 7 &&
+		FMath::IsNearlyEqual(RegisteredMismatch.UnitWeightKg, RealGreatAxe.WeightKg));
+	TestEqual(TEXT("World registered name remains canonical"),
+		RegisteredMismatch.DisplayName.ToString(), RealGreatAxe.DisplayName.ToString());
+	TestFalse(TEXT("Unregistered mismatched source still rejected"),
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
-			Registry.Get(), Old.Get(), TEXT("Weapon_GreatAxe_01"), 7).bResolved);
+			Registry.Get(), Old.Get(), TEXT("AJ_UnregisteredOther"), 0).bResolved);
 
 	Old->ItemDefinitionId = TEXT("Item_Arrows_01");
 	Old->bUseWeaponCatalogue = true; // Misleading historic flag must be ignored.
