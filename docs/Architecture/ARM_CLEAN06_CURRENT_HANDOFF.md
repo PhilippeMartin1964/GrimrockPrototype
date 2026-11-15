@@ -181,6 +181,25 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   mapping des valeurs doivent être prouvés avant le convertisseur.
 - Voir `docs/Architecture/ARM_CLEAN06_4C_PRIVATE_DELTA_QUALIFICATION.md`.
 
+## ARM-CLEAN06.4D — dry-run réel Unreal Editor : destinations candidates
+
+- Charge la qualification privée 06.4C (`5da0a70`) et le manifeste
+  UE 06.4A (`27563be`) avec leurs preuves et son verrou d'écriture.
+- Après Build et suite `Grimrock` réussis, le commit au sujet exact
+  `chore(ARM-CLEAN06.4D): verify live UE mapping candidates without binary writes` déclenche
+  `PlanARM_CLEAN06_4D_EditorDryRun.ps1`.
+- Lance le commandlet **réel** `GridArmClean06Baseline` en lecture seule ;
+  compare 56 packages (UPROPERTY, liens, classes), 56 SHA-256 binaires,
+  les 1640 profils, puis les 8 propriétés et les 4 liens divergents.
+- Calcule des **destinations candidates**, sans inventer les valeurs
+  ni attribuer automatiquement un ancien champ aux catalogues canoniques.
+  Sortie privée et issue publique à compteurs seuls.
+- `UE5.5.4/ARM-CLEAN06.4D=success` certifie la **parité de la
+  recapture live** avec 06.4A, pas la migration ni son mapping final.
+  Liste d'écriture des `.uasset` et sauvegardes **toujours vide**.
+- Voir `ARM_CLEAN06_4D_LIVE_EDITOR_DRYRUN.md` ; vérifier les
+  trois statuts Windows et l'issue avant 06.4E.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,

@@ -1182,6 +1182,67 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4D: real UE Editor read-only re-scan of all 56 assets,
+        # then compare source UPROPERTY / edges / binary SHA to private 06.4A.
+        # The printed mapping is a CANDIDATE, no migration permission.
+        $DryRun4DTrigger = 'chore(ARM-CLEAN06.4D): verify live UE mapping candidates without binary writes'
+        $DryRun4DSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $DryRun4DSubject.Count -eq 1 -and
+            [string]$DryRun4DSubject[0] -ceq $DryRun4DTrigger) {
+            $DryRun4DContext = 'UE5.5.4/ARM-CLEAN06.4D'
+            $DryRun4DPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $DryRun4DContext -Description 'Dry-run Unreal Editor : 56 assets, 1640 profils, mapping bloque'
+                $DryRun4DScript = Join-Path $WorktreePath 'Scripts\PlanARM_CLEAN06_4D_EditorDryRun.ps1'
+                if (-not (Test-Path -LiteralPath $DryRun4DScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4D: live dry-run script missing.'
+                }
+                $DryRun4DPhase = 'PARSE'
+                $DryRun4DTokens = $null
+                $DryRun4DErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $DryRun4DScript, [ref]$DryRun4DTokens, [ref]$DryRun4DErrors)
+                if ($DryRun4DErrors -and $DryRun4DErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4D: invalid PowerShell script.'
+                }
+                foreach ($DryRun4DValue in @($DryRun4DScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($DryRun4DValue.Contains('"')) { throw 'ARM-CLEAN06.4D: unsupported path quote.' }
+                }
+                $DryRun4DArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $DryRun4DScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $DryRun4DOut = Join-Path $RunDir 'ARM064D.stdout.log'
+                $DryRun4DErr = Join-Path $RunDir 'ARM064D.stderr.log'
+                $DryRun4DPhase = 'PROCESS_RUNNING'
+                $DryRun4DProcess = Start-Process -FilePath $PsExe -ArgumentList $DryRun4DArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $DryRun4DOut -RedirectStandardError $DryRun4DErr -PassThru -Wait -ErrorAction Stop
+                if ($DryRun4DProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4D: live dry-run returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $DryRun4DContext -Description 'Live UE dry-run OK; mapping candidat, ecritures toujours interdites'
+                Write-Host '[ARM-CLEAN06.4D] Real UE verification complete, migration gate remains closed.'
+            }
+            catch {
+                $DryRun4DStagePath = Join-Path $RunDir 'ARMClean064D.stage'
+                $DryRun4DStage = if (Test-Path -LiteralPath $DryRun4DStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $DryRun4DStagePath -TotalCount 1)).Trim()
+                } else { $DryRun4DPhase }
+                if ($DryRun4DStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_PRIVATE','UE_CAPTURE','UE_CAPTURE_FAILED','CHECK_LIVE_ALL',
+                    'CHECK_LIVE_PROFILES','VERIFY_CHANGED_FOUR','WRITE_PRIVATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE','SUCCESS',
+                    'START','PARSE','PROCESS_RUNNING')) {
+                    $DryRun4DStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $DryRun4DContext -Description ('Dry-run 06.4D bloque : ' + $DryRun4DStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4D] Status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4D] Live UE dry-run incomplete: ' + $DryRun4DStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
