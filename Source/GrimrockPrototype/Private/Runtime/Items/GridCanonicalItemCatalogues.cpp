@@ -553,6 +553,14 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 			bValid = ValidateBindings(Consumable->UseActions, ActionCatalogue,
 				ActionPresentationCatalogue, Item->ItemId.ToString(), Errors) && bValid;
 		}
+		if (const UGridGenericStackableDefinitionAsset* GenericStack =
+			Cast<UGridGenericStackableDefinitionAsset>(Item))
+		{
+			if (GenericStack->MaxStack < 1)
+			{
+				bValid = AddError(Errors, TEXT("Item system: invalid generic non-arm stack size"));
+			}
+		}
 		if (const UGridOtherEquipmentDefinitionAsset* Equipment =
 			Cast<UGridOtherEquipmentDefinitionAsset>(Item))
 		{

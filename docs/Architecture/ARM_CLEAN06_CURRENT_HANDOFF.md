@@ -9,22 +9,22 @@
 
 - Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
 - Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
-- Dernier jalon **validé en UE5.5.4** : **ARM-CLEAN06.4O**,
-  commit `20f641621cff0f2db0c12a94f9ff38176f0ca666`.
+- Dernier jalon **validé en UE5.5.4** : **ARM-CLEAN06.4P**,
+  commit `29955df612e1478b94f30a706bac009df3c8d531`.
 - Sur ce SHA exact : `UE5.5.4/SilentTask=success`,
   `UE5.5.4/LocalAuto=success`,
-  `UE5.5.4/ARM-CLEAN06.4O=success`.
-  Issue publique 148 : **11** propriétés actions non-ARM,
-  **1** action équipement, **3** QuickItems normalisées,
-  **1** présentation valide et **54** champs imbriqués non défaut.
-  **Aucun mapping sémantique d'action n'est approuvé.**
+  `UE5.5.4/ARM-CLEAN06.4P=success`.
+  Issue [149](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/149) :
+  15 champs équipement non-ARM, 44 copies exactes, 11 politiques
+  de main dont 4 Auto, 209 emplacements et 33 sondes N0/N1/N20.
+- **11 propriétés d'actions** restent sans mapping approuvé après 06.4O ;
+  06.4P n'a été qu'une validation des données en mémoire.
 - Le propriétaire a confirmé en PIE que les effets, torches et
   Save/Continue du **runtime existant** restent inchangés. Cela ne
   prouve **pas** le futur lecteur canonique.
-- **ARM-CLEAN06.4P est en préparation/validation** : attendre ses trois
-  statuts SUCCESS sur son propre SHA. Le domaine équipement comprend
-  15 champs actifs. Les étapes 06.4–06.6 restent ouvertes et les
-  conversions binaires, SaveGame et modifications WBP sont interdites.
+- **ARM-CLEAN06.4Q est en préparation/validation** : attendre ses trois
+  statuts SUCCESS sur son SHA propre. Il concerne les 6 champs de
+  piles non-ARM. Aucune conversion binaire, SaveGame ou WBP autorisée.
 
 ### Jalons récents déjà réalisés — ne pas les refaire
 
@@ -531,6 +531,33 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   mapping complet d'actions et régression Save/Continue.
 - Documentation :
   `docs/Architecture/ARM_CLEAN06_4P_NONARM_EQUIPMENT_PARITY.md`.
+
+## ARM-CLEAN06.4Q — pile générique et véritable registre UE
+
+- Parent 06.4P validé : `29955df612e1478b94f30a706bac009df3c8d531`,
+  3 statuts Windows SUCCESS, issue 149.
+- Propriété active du domaine `NONARM_STACK` : **6 occurrences**
+  de `bStackable` et/ou `MaxStackSize`. Ne pas confondre avec
+  six ItemId ; sources : 11 ItemId non-ARM et 40 placements.
+- `UGridGenericStackableDefinitionAsset.MaxStack` est une autorité
+  distincte pour les piles *génériques* ; le `MaxStack` existant des
+  munitions et consommables reste leur seule autorité. Le booléen
+  de pile legacy se résout en capacité, pas en second champ.
+- Commandlet `GridArmClean064QNonArmStackParity` : vrais assets UE,
+  22 valeurs source, 6 actives, **34 définitions transitoires**,
+  `UGridItemSubsystem` réellement enregistré, **44 sondes
+  N0/N1/N20/N21** et **33 tests de quantités**.
+- **Ne valider 06.4Q qu'avec :** `UE5.5.4/SilentTask`,
+  `UE5.5.4/LocalAuto` et `UE5.5.4/ARM-CLEAN06.4Q`
+  SUCCESS sur son SHA exact. Un succès n'approuve **aucune**
+  conversion de niveau, SaveGame ou choix de famille réelle.
+- Suite **resserrée** : 06.4R pour décider tous les mappings
+  sémantiques des 4 actions et de la présentation observées en
+  06.4O, puis migration Editor contrôlée, vérification et cutover.
+  **Éviter de prolonger les micro-audits** pour des champs déjà
+  couverts par preuve transitoire. La migration ne commence qu'avec
+  le schéma SaveGame, les références monde et le rollback validés.
+- Détails : `docs/Architecture/ARM_CLEAN06_4Q_NONARM_STACK_REGISTRY_PARITY.md`.
 
 ## Étapes ultérieures inchangées
 

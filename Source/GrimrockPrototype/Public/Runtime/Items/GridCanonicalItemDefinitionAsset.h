@@ -166,6 +166,18 @@ public:
 	int32 MaxStack = 1;
 };
 
+/** Only generic non-ARM stacks. Consumables and ammo retain their OWN
+ * existing MaxStack, never a second capacity or an inferred ItemType. */
+UCLASS(BlueprintType)
+class GRIMROCKPROTOTYPE_API UGridGenericStackableDefinitionAsset : public UGridNonArmamentDefinitionAsset
+{
+    GENERATED_BODY()
+
+public:
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Stack", meta = (ClampMin = "1"))
+    int32 MaxStack = 1;
+};
+
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridOtherEquipmentDefinitionAsset : public UGridNonArmamentDefinitionAsset
 {

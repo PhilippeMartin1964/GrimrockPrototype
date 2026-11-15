@@ -165,6 +165,13 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 			OutItem.ItemIcon = Other->Icon;
 			OutItem.WorldMesh = Other->WorldMesh;
 		}
+		// ARM-CLEAN06.4Q: generic non-ARM stack capacity is an item-family
+		// authority, distinct from consumable and ammunition MaxStack.
+		if (const UGridGenericStackableDefinitionAsset* Generic =
+			Cast<UGridGenericStackableDefinitionAsset>(Definition))
+		{
+			OutItem.MaxStack = Generic->MaxStack;
+		}
 		if (const UGridConsumableDefinitionAsset* Consumable =
 			Cast<UGridConsumableDefinitionAsset>(Definition))
 		{

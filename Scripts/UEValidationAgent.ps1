@@ -1996,6 +1996,80 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4Q — true UGridItemSubsystem registry stack parity,
+        # transient preview only. Never modify the level, asset or SaveGame.
+        $Stack4QTrigger = 'feat(ARM-CLEAN06.4Q): validate generic nonarm stacks through canonical registry'
+        $Stack4QSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Stack4QSubject.Count -eq 1 -and
+            [string]$Stack4QSubject[0] -ceq $Stack4QTrigger) {
+            $Stack4QContext = 'UE5.5.4/ARM-CLEAN06.4Q'
+            $Stack4QPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Stack4QContext -Description 'Registre UE: piles non-ARM N0/N1/N20/N21 et quantites'
+                $Stack4QScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4Q_NonArmStackRegistryParity.ps1'
+                if (-not (Test-Path -LiteralPath $Stack4QScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4Q: missing audit script.'
+                }
+                $Stack4QPhase = 'PARSE'
+                $Stack4QTokens = $null
+                $Stack4QErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Stack4QScript, [ref]$Stack4QTokens, [ref]$Stack4QErrors)
+                if ($Stack4QErrors -and $Stack4QErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4Q: invalid PowerShell syntax.'
+                }
+                foreach ($Stack4QValue in @($Stack4QScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Stack4QValue.Contains('"')) { throw 'ARM-CLEAN06.4Q: unsupported path quote.' }
+                }
+                $Stack4QArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Stack4QScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Stack4QOut = Join-Path $RunDir 'ARM064Q.stdout.log'
+                $Stack4QErr = Join-Path $RunDir 'ARM064Q.stderr.log'
+                $Stack4QPhase = 'PROCESS_RUNNING'
+                $Stack4QProcess = Start-Process -FilePath $PsExe -ArgumentList $Stack4QArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Stack4QOut -RedirectStandardError $Stack4QErr -PassThru -Wait -ErrorAction Stop
+                if ($Stack4QProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4Q: real UE stack registry parity failed.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Stack4QContext -Description '6 champs, 34 definitions transitoires, 44 niveaux et 33 quantites, gate fermee'
+                Write-Host '[ARM-CLEAN06.4Q] Generic stack data parity verified using true item registry.'
+            }
+            catch {
+                $Stack4QStagePath = Join-Path $RunDir 'ARMClean064Q.stage'
+                $Stack4QStage = if (Test-Path -LiteralPath $Stack4QStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Stack4QStagePath -TotalCount 1)).Trim()
+                } else { $Stack4QPhase }
+                if ($Stack4QStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4K_LOCATE','READ_4K_MISSING','READ_4K_MULTIPLE',
+                    'READ_4K_DUPLICATE_PROVENANCE','READ_4K_NO_TRUSTED_COPY',
+                    'READ_4K_COMPARE_COPIES','READ_4K_CONFLICTING_COPIES',
+                    'READ_4K_DUPLICATES_RECONCILED','READ_4K_GATE_EXISTS',
+                    'READ_4K_GATE_READ','READ_4K_GATE_SCHEMA','READ_4K_REPORT_HASH',
+                    'READ_4K_COUNTERS','READ_4K_GATE_CLOSED','VERIFY_4K_DOMAINS',
+                    'REHASH_84','READ_4P','UNREAL_GENERIC_STACK',
+                    'UNREAL_Q_ARGUMENTS','UNREAL_Q_INPUT_SCOPE','UNREAL_Q_DOMAIN',
+                    'UNREAL_Q_IDENTITY','UNREAL_Q_LEGACY','UNREAL_Q_FIELD_DRIFT',
+                    'UNREAL_Q_COUNTERS','UNREAL_Q_REGISTRY','UNREAL_Q_LEVEL_21',
+                    'UNREAL_Q_LEVEL_CAPACITY','UNREAL_Q_QUANTITY',
+                    'UNREAL_Q_IMMUTABILITY','UNREAL_Q_OUTPUT','UNREAL_Q_PROCESS',
+                    'UNREAL_Q_CODE_1','UNREAL_Q_CODE_2','UNREAL_Q_CODE_3',
+                    'UNREAL_Q_CODE_4','UNREAL_Q_CODE_5','UNREAL_Q_CODE_6',
+                    'UNREAL_Q_CODE_7','UNREAL_Q_CODE_8','UNREAL_Q_CODE_9',
+                    'VERIFY_RESULT','WRITE_PRIVATE_GATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE','SUCCESS',
+                    'START','PARSE','PROCESS_RUNNING')) {
+                    $Stack4QStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Stack4QContext -Description ('Empilement 06.4Q bloque : ' + $Stack4QStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4Q] GitHub status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4Q] UE generic stack registry parity incomplete: ' + $Stack4QStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
