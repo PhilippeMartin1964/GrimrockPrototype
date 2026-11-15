@@ -319,6 +319,35 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   pas migration autorisée. **Zéro écriture d'asset ou SaveGame**.
   Voir `ARM_CLEAN06_4I_DISTINCT_IDENTITY_GAPS.md`.
 
+## ARM-CLEAN06.4J — projections non-ARM transitoires en mémoire
+
+- Parent 06.4I validé sur `d3fc4e1`, issue 142 : **11 ItemId
+  distincts** manquants dans `DA_ItemSystem`, **40 occurrences**
+  physiques, **zéro** conflit de définition historique, **zéro**
+  arme manquante ; 95 placements en N0.
+- Le commandlet UE Editor-only
+  `GridArmClean064JNonArmProjection` relit les **11 exports complets
+  d'UPROPERTY** privés et les confronte aux véritables `DA_Item_*`.
+- Pour chacun, déduit **une famille candidate** depuis `ItemType`
+  et les flags de gameplay, construit un `UObject` **transitoire**
+  de la classe canonique adéquate et vérifie nom, ID, description,
+  poids, tags, icône et mesh. Le cas munitions **n'est jamais
+  déduit automatiquement** d'un nom/tag.
+- Comptabilise tous les anciens champs **non par défaut et sans
+  propriétaire canonique démontré**, plus les verrous spécifiques
+  (consommables/actions, équipement, lumière, interaction,
+  balistique/Chaos, réceptacles et SaveGame).
+- `Scripts/AuditARM_CLEAN06_4J_NonArmTransient.ps1` exige les preuves
+  privées de 06.4I, le verrou d'écriture fermé et les 84 binaires
+  d'origine + copies 06.4G vérifiées SHA-256.
+- Rapport privé `nonarm-projection-private.json`, ticket
+  `[ARM-CLEAN06.4J]` à compteurs agrégés et statut Windows
+  `UE5.5.4/ARM-CLEAN06.4J` sur le SHA exact.
+  **SUCCESS = simulation terminée, pas authoring autorisé.**
+- Aucun asset, niveau, palette ni SaveGame sauvegardé ;
+  `migration_authorized=false` et listes d'écriture vides.
+  Voir `ARM_CLEAN06_4J_NONARM_TRANSIENT_PROJECTION.md`.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,

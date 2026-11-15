@@ -1549,6 +1549,66 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4J — one-shot transient UE Editor-only projection.
+        # No SavePackage; private IDs and full property exports stay Windows-only.
+        $NonArm4JTrigger = 'chore(ARM-CLEAN06.4J): verify transient non-armament canonical projections'
+        $NonArm4JSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $NonArm4JSubject.Count -eq 1 -and
+            [string]$NonArm4JSubject[0] -ceq $NonArm4JTrigger) {
+            $NonArm4JContext = 'UE5.5.4/ARM-CLEAN06.4J'
+            $NonArm4JPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $NonArm4JContext -Description 'Dry-run UE transitoire : 11 ItemIds non-ARM, aucune ecriture'
+                $NonArm4JScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4J_NonArmTransient.ps1'
+                if (-not (Test-Path -LiteralPath $NonArm4JScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4J: script missing.'
+                }
+                $NonArm4JPhase = 'PARSE'
+                $NonArm4JTokens = $null
+                $NonArm4JErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $NonArm4JScript, [ref]$NonArm4JTokens, [ref]$NonArm4JErrors)
+                if ($NonArm4JErrors -and $NonArm4JErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4J: invalid PowerShell syntax.'
+                }
+                foreach ($NonArm4JValue in @($NonArm4JScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($NonArm4JValue.Contains('"')) { throw 'ARM-CLEAN06.4J: unsupported path quote.' }
+                }
+                $NonArm4JArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $NonArm4JScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $NonArm4JOut = Join-Path $RunDir 'ARM064J.stdout.log'
+                $NonArm4JErr = Join-Path $RunDir 'ARM064J.stderr.log'
+                $NonArm4JPhase = 'PROCESS_RUNNING'
+                $NonArm4JProcess = Start-Process -FilePath $PsExe -ArgumentList $NonArm4JArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $NonArm4JOut -RedirectStandardError $NonArm4JErr -PassThru -Wait -ErrorAction Stop
+                if ($NonArm4JProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4J: transient UE Editor dry-run returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $NonArm4JContext -Description '11 UObjects transitoires verifies; aucune conversion autorisee'
+                Write-Host '[ARM-CLEAN06.4J] Real UE transient projections audited. Migration gate closed.'
+            }
+            catch {
+                $NonArm4JStagePath = Join-Path $RunDir 'ARMClean064J.stage'
+                $NonArm4JStage = if (Test-Path -LiteralPath $NonArm4JStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $NonArm4JStagePath -TotalCount 1)).Trim()
+                } else { $NonArm4JPhase }
+                if ($NonArm4JStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_06_4I','VERIFY_BINARY_SNAPSHOT','UE_TRANSIENT_PROJECTION',
+                    'UE_PROJECTION_FAILED','VERIFY_RESULT','WRITE_PRIVATE_GATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE','SUCCESS','START',
+                    'PARSE','PROCESS_RUNNING')) {
+                    $NonArm4JStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $NonArm4JContext -Description ('Projection 06.4J bloquee : ' + $NonArm4JStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4J] GitHub status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4J] UE transient projection incomplete: ' + $NonArm4JStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
