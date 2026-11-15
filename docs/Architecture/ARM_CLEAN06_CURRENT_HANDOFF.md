@@ -163,6 +163,24 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Aucune écriture binaire. Lire le document
   ARM_CLEAN06_4B_PRIVATE_PARITY_PREFLIGHT.md avant 06.4C.
 
+## ARM-CLEAN06.4C — qualification des divergences UE sans écriture
+
+- 06.4B validé : huit UPROPERTY, quatre graphes de dépendances,
+  quatre empreintes binaires sur quatre packages ; zéro profil ARM modifié.
+- Le rapport privé 06.4B (`comparison-private.json`) est lu **sur son
+  SHA exact**, avec les deux SHA du manifeste vérifiés contre les tickets
+  GitHub 84 et 134. Aucun contenu privé n'est déplacé sur GitHub.
+- `QualifyARM_CLEAN06_4C_Deltas.ps1` classe les champs en domaines
+  **indicatifs**, conserve chaque nom/valeur/edge dans un rapport privé
+  et émet un plan `conversion-gate-private.json` qui interdit toute
+  écriture, suppression, migration `.sav` ou modification d'asset.
+- L'agent Windows publie `UE5.5.4/ARM-CLEAN06.4C` en plus des deux
+  checks habituels et une issue `[ARM-CLEAN06.4C]` à compteurs seuls.
+- `success` = qualification produite, **PAS** divergence résolue et
+  **PAS** conversion autorisée. La classification détaillée et le
+  mapping des valeurs doivent être prouvés avant le convertisseur.
+- Voir `docs/Architecture/ARM_CLEAN06_4C_PRIVATE_DELTA_QUALIFICATION.md`.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,

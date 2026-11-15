@@ -1123,6 +1123,65 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4C: exact one-shot private qualification of the 06.4B
+        # proof. Only public CATEGORY COUNTS, never names or old/new values.
+        # SUCCESS = classification generated; never a binary migration grant.
+        $Qualify4CTrigger = 'chore(ARM-CLEAN06.4C): classify private UE parity deltas without writes'
+        $Qualify4CSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Qualify4CSubject.Count -eq 1 -and
+            [string]$Qualify4CSubject[0] -ceq $Qualify4CTrigger) {
+            $Qualify4CContext = 'UE5.5.4/ARM-CLEAN06.4C'
+            $Qualify4CPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Qualify4CContext -Description 'Qualification privee des 8 proprietes et 4 dependances'
+                $Qualify4CScript = Join-Path $WorktreePath 'Scripts\QualifyARM_CLEAN06_4C_Deltas.ps1'
+                if (-not (Test-Path -LiteralPath $Qualify4CScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4C: qualification script missing.'
+                }
+                $Qualify4CPhase = 'PARSE'
+                $Qualify4CTokens = $null
+                $Qualify4CErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Qualify4CScript, [ref]$Qualify4CTokens, [ref]$Qualify4CErrors)
+                if ($Qualify4CErrors -and $Qualify4CErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4C: invalid qualification PowerShell syntax.'
+                }
+                foreach ($Qualify4CValue in @($Qualify4CScript,$WorktreePath,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Qualify4CValue.Contains('"')) { throw 'ARM-CLEAN06.4C: unsupported path quote.' }
+                }
+                $Qualify4CArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Qualify4CScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -StateRoot "' + $StateRoot + '" -RunDir "' + $RunDir +
+                    '" -ExpectedHead "' + $Sha + '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Qualify4COut = Join-Path $RunDir 'ARM064C.stdout.log'
+                $Qualify4CErr = Join-Path $RunDir 'ARM064C.stderr.log'
+                $Qualify4CPhase = 'PROCESS_RUNNING'
+                $Qualify4CProcess = Start-Process -FilePath $PsExe -ArgumentList $Qualify4CArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Qualify4COut -RedirectStandardError $Qualify4CErr -PassThru -Wait -ErrorAction Stop
+                if ($Qualify4CProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4C: qualification process returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Qualify4CContext -Description 'Qualification issue + rapport prive; conversion NON autorisee'
+                Write-Host '[ARM-CLEAN06.4C] Private delta qualification finished, migration gate closed.'
+            }
+            catch {
+                $Qualify4CStagePath = Join-Path $RunDir 'ARMClean064C.stage'
+                $Qualify4CStage = if (Test-Path -LiteralPath $Qualify4CStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Qualify4CStagePath -TotalCount 1)).Trim()
+                } else { $Qualify4CPhase }
+                if ($Qualify4CStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_COMPARISON','VERIFY_TOTALS','CLASSIFY','WRITE_PRIVATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE','SUCCESS',
+                    'START','PARSE','PROCESS_RUNNING')) {
+                    $Qualify4CStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Qualify4CContext -Description ('Qualification 06.4C bloquee : ' + $Qualify4CStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4C] Status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4C] Read-only qualification incomplete: ' + $Qualify4CStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
