@@ -264,6 +264,35 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   Suite : audit exhaustif d'identités, niveaux, jets et références
   puis transaction Editor-only explicite avec sauvegardes prouvées.
 
+## ARM-CLEAN06.4H — inventaire des identités monde et schéma SaveGame
+
+- Source 06.4G validée : sauvegarde privée et restauration simulée
+  des 84 binaires, SHA-256 de chaque fichier, sans aucune écriture
+  projet ni SaveGame (issue 140).
+- Commandlet **Editor-only** `GridArmClean064HReferenceAudit` :
+  charge les quatre `UGridLevelAsset`, la vraie palette,
+  les définitions de monde `UGridWorldObjectDefinitionAsset`
+  répertoriées et les 23 définitions du vrai `DA_ItemSystem`.
+- Inventorie les objets physiques `LooseItemInstances`,
+  générateurs `ItemSpawns`, `ReceptacleInitialContent`,
+  les `DefaultItemDefinition` de palette et les contenus
+  initiaux par défaut des définitions d'objets. Enregistre
+  les `ItemId`, niveaux, quantités, GUID et pointeurs exacts
+  **dans le rapport privé uniquement**.
+- Contrôle par domaine les candidats canoniques, identifiants
+  sans correspondance, IDs vides, niveaux ou quantités invalides
+  et archétypes incompatibles ; un candidat d'identité n'est
+  PAS une preuve de parité comportementale ou de conversion.
+- Examine **uniquement le schéma C++** SaveGame : les deux
+  pointeurs legacy `ProjectileDefinitionAsset` et
+  `ItemDefinitionAsset` subsistent ; **aucun .sav ouvert**.
+- Le script rehash les 84 binaires locaux et leurs copies privées
+  06.4G avant l'audit ; contrôle la propreté Git après.
+  Statut `UE5.5.4/ARM-CLEAN06.4H` sur le SHA et ticket
+  `[ARM-CLEAN06.4H]` à compteurs agrégés uniquement.
+- Migration, suppression et mise à jour de sauvegardes **interdites**.
+  Lire `ARM_CLEAN06_4H_WORLD_REFERENCES_READ_ONLY.md`.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,

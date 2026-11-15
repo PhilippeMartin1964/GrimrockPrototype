@@ -1426,6 +1426,67 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4H — live UE level/palette/receptacle ItemId inventory
+        # after full Build + Grimrock. Only private per-object findings;
+        # public GitHub issue contains fixed aggregate counters.
+        $Identity4HTrigger = 'chore(ARM-CLEAN06.4H): audit real world item identities and save schema read-only'
+        $Identity4HSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Identity4HSubject.Count -eq 1 -and
+            [string]$Identity4HSubject[0] -ceq $Identity4HTrigger) {
+            $Identity4HContext = 'UE5.5.4/ARM-CLEAN06.4H'
+            $Identity4HPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Identity4HContext -Description 'Audit live UE: niveaux, palette, receptacles et schema SaveGame'
+                $Identity4HScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4H_WorldReferences.ps1'
+                if (-not (Test-Path -LiteralPath $Identity4HScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4H: identity audit script missing.'
+                }
+                $Identity4HPhase = 'PARSE'
+                $Identity4HTokens = $null
+                $Identity4HErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Identity4HScript, [ref]$Identity4HTokens, [ref]$Identity4HErrors)
+                if ($Identity4HErrors -and $Identity4HErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4H: invalid audit script syntax.'
+                }
+                foreach ($Identity4HValue in @($Identity4HScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Identity4HValue.Contains('"')) { throw 'ARM-CLEAN06.4H: unsupported path quote.' }
+                }
+                $Identity4HArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Identity4HScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Identity4HOut = Join-Path $RunDir 'ARM064H.stdout.log'
+                $Identity4HErr = Join-Path $RunDir 'ARM064H.stderr.log'
+                $Identity4HPhase = 'PROCESS_RUNNING'
+                $Identity4HProcess = Start-Process -FilePath $PsExe -ArgumentList $Identity4HArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Identity4HOut -RedirectStandardError $Identity4HErr -PassThru -Wait -ErrorAction Stop
+                if ($Identity4HProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4H: live UE item reference audit returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Identity4HContext -Description 'Inventaire UE produit; migration non autorisee, SaveGames non ouverts'
+                Write-Host '[ARM-CLEAN06.4H] World reference inventory complete; migration gate remains closed.'
+            }
+            catch {
+                $Identity4HStagePath = Join-Path $RunDir 'ARMClean064H.stage'
+                $Identity4HStage = if (Test-Path -LiteralPath $Identity4HStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Identity4HStagePath -TotalCount 1)).Trim()
+                } else { $Identity4HPhase }
+                if ($Identity4HStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_SNAPSHOT','REHASH_SNAPSHOT','UNREAL_AUDIT',
+                    'UNREAL_AUDIT_FAILED','VERIFY_RESULT','WRITE_GATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE','SUCCESS',
+                    'START','PARSE','PROCESS_RUNNING')) {
+                    $Identity4HStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Identity4HContext -Description ('Inventaire 06.4H bloque : ' + $Identity4HStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4H] Status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4H] World references could not be audited: ' + $Identity4HStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
