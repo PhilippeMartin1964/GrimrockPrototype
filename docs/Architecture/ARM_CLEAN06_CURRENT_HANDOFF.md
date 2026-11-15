@@ -9,14 +9,18 @@
 
 - Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
 - Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
-- Dernier jalon de code examiné : **ARM-CLEAN06.3BA**,
-  commit `3c537bc7fd43815bf0d090545f739ae904b6f9f7`.
-- Statuts publiés et vérifiés sur **ce SHA** :
-  `UE5.5.4/SilentTask=success` et `UE5.5.4/LocalAuto=success`.
-  Ces statuts attestent l'automatisation Windows, la compilation et la suite
-  `Grimrock`, **pas** le comportement GPU/PIE des WBP.
-- Aucun `.uasset`, `.umap`, SaveGame ni table de localisation n'a été
-  converti par BA. Les étapes **06.4–06.6 restent ouvertes**.
+- Dernier jalon **de préflight** terminé et vérifié : **ARM-CLEAN06.4K**,
+  commit `4d5e7eb8b1406d29eeb9b0805f82507aa8a1bfc7`.
+- Statuts publiés et vérifiés sur **ce SHA exact** :
+  `UE5.5.4/SilentTask=success`,
+  `UE5.5.4/LocalAuto=success` et
+  `UE5.5.4/ARM-CLEAN06.4K=success`.
+  Ces statuts prouvent les contrôles automatisés Windows et l'audit UE
+  en lecture seule, **pas** la parité fonctionnelle PIE/Chaos ni le rendu WBP.
+- 06.3BG est le dernier jalon des lecteurs runtime ; les jalons
+  06.4A à 06.4K sont des préflights, **pas** une conversion binaire.
+  Aucun `.uasset`, `.umap`, SaveGame ni texte WBP n'a été migré par 06.4K.
+  Les étapes **06.4–06.6 restent ouvertes**.
 
 ### Jalons récents déjà réalisés — ne pas les refaire
 
@@ -375,6 +379,37 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   Exactes valeurs/champs/identités conservés sur Windows.
 - `migration_authorized=false`, **0 écriture de .uasset/.umap/.sav**,
   aucune modification du jeu. Voir
+  `ARM_CLEAN06_4K_NONARM_FIELD_OWNERSHIP.md`.
+
+## Reprise recommandée — ARM-CLEAN06.4L (après 06.4K validé)
+
+- Preuve publique 06.4K : issue
+  https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/144 ;
+  11 ItemId non-armement manquants, 40 occurrences monde,
+  **50 occurrences de propriétés actives**, **26 noms distincts**,
+  aucune autorité totalement approuvée, zéro écriture autorisée.
+- Répartition vérifiée : lecture **1**, lumière **1**, présentation
+  persistante **11**, physique/Chaos **2**, lancer générique **3**,
+  actions d'objet **11**, équipement hors ARM **15**, empilement
+  hors consommable **6**, ancien catalogue ARM **0**, non classé **0**.
+- **Prochain travail 06.4L :** lire les rapports privés existants dans
+  l'agent Windows avec preuve SHA ; établir les destinations
+  sémantiques *champ par champ*, en priorité pour les domaines dont
+  l'autorité canonique n'existe pas encore, puis réaliser des
+  comparaisons sur objets Unreal transitoires et tests comportementaux.
+  Un domaine de classement ne suffit **jamais** à valider une conversion.
+- Conserver distinctes l'autorité des lancers **non-armes** et celle
+  des projectiles des armes : ne pas réutiliser abusivement
+  `DA_WeaponCatalogue.ProjectilePolicies`. Pas d'inférence depuis le
+  nom d'un objet, une icône ou un tag ; ne pas perdre le N0.
+- 06.4L reste **bloqué pour les écritures binaires** tant que
+  lecture, lumière, FX persistants, physique, interactions, équipements,
+  empilement, références monde et schéma SaveGame n'ont pas leurs
+  preuves. Garder le snapshot 06.4G (84 sources + 84 copies privées)
+  vérifiable ; aucun `SavePackage`, aucun `.sav` modifié.
+- Les validations automatiques `-NullRHI` ne prouvent ni les clics UMG,
+  ni Chaos/PIE, ni un Cook. Garder ces recettes pour la phase 06.6.
+  Documentation détaillée :
   `ARM_CLEAN06_4K_NONARM_FIELD_OWNERSHIP.md`.
 
 ## Étapes ultérieures inchangées
