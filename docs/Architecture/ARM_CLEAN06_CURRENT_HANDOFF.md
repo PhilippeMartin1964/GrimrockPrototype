@@ -348,6 +348,35 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   `migration_authorized=false` et listes d'écriture vides.
   Voir `ARM_CLEAN06_4J_NONARM_TRANSIENT_PROJECTION.md`.
 
+## ARM-CLEAN06.4K — propriétaire des 50 propriétés legacy non-armes
+
+- Source 06.4J validée : **11** identités absentes, **40** occurrences,
+  **11/11** projections temporaires exactes pour les champs communs,
+  **50** propriétés historiques actives sans destination prouvée
+  (1 consommable candidat, 9 génériques, 1 non classifiée), issue 143.
+- Le commandlet Editor-only `GridArmClean064KNonArmFieldOwnership`
+  recharge les sources réelles, compare **toutes les UPROPERTY**
+  avec les preuves privées 06.4I, puis vérifie les 50 champs
+  non par défaut reportés par 06.4J.
+- Chaque champ entre dans **un domaine explicite de revue** :
+  lecture, lumière, FX persistant, physique Chaos, lancer générique
+  (non-ARM), actions, équipement, empilement, legacy armement,
+  ou non classifié. Aucune catégorie ne constitue une autorisation
+  de conversion ni une preuve de parité.
+- Les règles de balistique **non-armement** ne doivent pas être
+  transférées vers le `WeaponCatalogue.ProjectilePolicies`, qui
+  concerne les armes. Les textes lisibles et Niagara persistant
+  exigent également une autorité spécialisée.
+- Le PowerShell `AuditARM_CLEAN06_4K_NonArmFieldOwners.ps1`
+  contrôle les preuves privées 06.4I/4J, rehash les 84 binaires et
+  leurs sauvegardes privées 06.4G, puis lance le commandlet UE.
+- Publication du statut `UE5.5.4/ARM-CLEAN06.4K` et du rapport
+  GitHub `[ARM-CLEAN06.4K]` **agrégé uniquement**.
+  Exactes valeurs/champs/identités conservés sur Windows.
+- `migration_authorized=false`, **0 écriture de .uasset/.umap/.sav**,
+  aucune modification du jeu. Voir
+  `ARM_CLEAN06_4K_NONARM_FIELD_OWNERSHIP.md`.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,

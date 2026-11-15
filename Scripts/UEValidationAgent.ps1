@@ -1609,6 +1609,67 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4K — one-shot read-only semantic ownership triage in UE Editor.
+        # All 50 active legacy fields require a review; no SavePackage or SaveGame reads.
+        $Owner4KTrigger = 'chore(ARM-CLEAN06.4K): classify 50 live nonarm legacy field owners without writes'
+        $Owner4KSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Owner4KSubject.Count -eq 1 -and
+            [string]$Owner4KSubject[0] -ceq $Owner4KTrigger) {
+            $Owner4KContext = 'UE5.5.4/ARM-CLEAN06.4K'
+            $Owner4KPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Owner4KContext -Description 'Inventaire UE de 50 champs non-ARM, sans conversion'
+                $Owner4KScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4K_NonArmFieldOwners.ps1'
+                if (-not (Test-Path -LiteralPath $Owner4KScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4K: script missing.'
+                }
+                $Owner4KPhase = 'PARSE'
+                $Owner4KTokens = $null
+                $Owner4KErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Owner4KScript, [ref]$Owner4KTokens, [ref]$Owner4KErrors)
+                if ($Owner4KErrors -and $Owner4KErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4K: invalid PowerShell syntax.'
+                }
+                foreach ($Owner4KValue in @($Owner4KScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Owner4KValue.Contains('"')) { throw 'ARM-CLEAN06.4K: unsupported path quote.' }
+                }
+                $Owner4KArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Owner4KScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Owner4KOut = Join-Path $RunDir 'ARM064K.stdout.log'
+                $Owner4KErr = Join-Path $RunDir 'ARM064K.stderr.log'
+                $Owner4KPhase = 'PROCESS_RUNNING'
+                $Owner4KProcess = Start-Process -FilePath $PsExe -ArgumentList $Owner4KArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Owner4KOut -RedirectStandardError $Owner4KErr -PassThru -Wait -ErrorAction Stop
+                if ($Owner4KProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4K: UE ownership audit returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Owner4KContext -Description '50 champs classes en revue; migration toujours interdite'
+                Write-Host '[ARM-CLEAN06.4K] Read-only non-arm ownership audit complete. Migration gate closed.'
+            }
+            catch {
+                $Owner4KStagePath = Join-Path $RunDir 'ARMClean064K.stage'
+                $Owner4KStage = if (Test-Path -LiteralPath $Owner4KStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Owner4KStagePath -TotalCount 1)).Trim()
+                } else { $Owner4KPhase }
+                if ($Owner4KStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4J','READ_4I','REHASH_84','UNREAL_OWNER_AUDIT',
+                    'UNREAL_OWNER_FAILED','VERIFY_HEADER','VERIFY_DOMAIN_KEYS',
+                    'VERIFY_DOMAIN_TOTALS','VERIFY_ITEM_ROWS','WRITE_PRIVATE_GATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE','SUCCESS','START',
+                    'PARSE','PROCESS_RUNNING')) {
+                    $Owner4KStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Owner4KContext -Description ('Proprietes 06.4K bloquees : ' + $Owner4KStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4K] GitHub status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4K] UE field ownership audit incomplete: ' + $Owner4KStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
