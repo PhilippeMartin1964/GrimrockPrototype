@@ -5,8 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "GridCanonicalThrowBallisticsReadModel.h"
-#include "GridPhysicalThrowStrengthReadModel.h"
+#include "GridPhysicalThrowPreflightReadModel.h"
 #include "GridItemWeightReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -36,12 +35,6 @@ namespace
 		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GameInstance
 			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		OutBallistics = FGridCanonicalThrowBallisticsReadModel::Resolve(Registry, Definition, Instance);
-		if (!OutBallistics.bResolved)
-		{
-			return false;
-		}
-
 		FGridInventoryCharacterSummary Summary;
 		if (!Inventory->GetCharacterSummary(CharacterIndex, Summary))
 		{
@@ -49,10 +42,12 @@ namespace
 		}
 
 		OutStrength = Summary.Attributes.Strength;
-		const FGridPhysicalThrowStrengthReadView ThrowGate =
-			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, Definition, Instance, OutStrength);
-		OutSpeedScale = ThrowGate.SpeedScale;
-		return ThrowGate.bCanThrow && OutBallistics.bResolved;
+		const FGridPhysicalThrowPreflightReadView ThrowGate =
+			FGridPhysicalThrowPreflightReadModel::Resolve(
+				Registry, Definition, Instance, OutStrength);
+		OutBallistics = ThrowGate.Ballistics;
+		OutSpeedScale = ThrowGate.Strength.SpeedScale;
+		return ThrowGate.bCanThrow;
 	}
 	float GridPartyPawnThrowUnitWeight(
 		const AGrimrockPartyPawn* Pawn, const UGridItemDefinitionAsset* Legacy,

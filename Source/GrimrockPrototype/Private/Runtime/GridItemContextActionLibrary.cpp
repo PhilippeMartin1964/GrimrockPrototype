@@ -7,7 +7,7 @@
 #include "Runtime/GridInteractableInterface.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "GridPhysicalThrowStrengthReadModel.h"
+#include "GridPhysicalThrowPreflightReadModel.h"
 #include "GridCanonicalEquipmentSlotsReadModel.h"
 #include "GridCanonicalInventoryStackReadModel.h"
 #include "GridCanonicalItemInteractionReadModel.h"
@@ -441,8 +441,9 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 			? ItemContext.PartyPawn->GetWorld()->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GameInstance
 			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		const FGridPhysicalThrowStrengthReadView Gate =
-			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, Definition, ItemContext.Item, Strength);
+		const FGridPhysicalThrowPreflightReadView Gate =
+			FGridPhysicalThrowPreflightReadModel::Resolve(
+				Registry, Definition, ItemContext.Item, Strength);
 		const bool bCanThrow = bHasSummary && Gate.bCanThrow;
 
 		FText DisabledReason;
@@ -450,7 +451,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		{
 			DisabledReason = NSLOCTEXT("GridItemActions", "ThrowMissingDefinition", "Définition d'objet indisponible.");
 		}
-		else if (!Gate.bOneHanded)
+		else if (!Gate.Strength.bOneHanded)
 		{
 			DisabledReason = NSLOCTEXT("GridItemActions", "ThrowNeedsOneHand", "Cet objet ne peut pas être lancé d'une seule main.");
 		}
@@ -462,8 +463,8 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		{
 			DisabledReason = FText::FormatNamed(
 				FUILocalizationText::Get(TEXT("Interaction.Throw.TooHeavy")),
-				TEXT("Weight"), FText::AsNumber(Gate.UnitWeightKg),
-				TEXT("MaximumWeight"), FText::AsNumber(Gate.MaxWeightKg),
+				TEXT("Weight"), FText::AsNumber(Gate.Strength.UnitWeightKg),
+				TEXT("MaximumWeight"), FText::AsNumber(Gate.Strength.MaxWeightKg),
 				TEXT("Strength"), FText::AsNumber(Strength));
 		}
 

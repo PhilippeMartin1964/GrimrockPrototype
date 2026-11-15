@@ -62,6 +62,14 @@ struct FGridCanonicalThrowBallisticsReadModel
 		{
 			return Out;
 		}
+		// Historical flight values remain authoritative only if physically
+		// usable. Keep signed finite arcs: the launcher already clamps them.
+		if (!FMath::IsFinite(LegacyDefinition->ThrowSpeed) ||
+			LegacyDefinition->ThrowSpeed <= KINDA_SMALL_NUMBER ||
+			!FMath::IsFinite(LegacyDefinition->ThrowArc))
+		{
+			return Out;
+		}
 		Out.bResolved = true;
 		Out.InitialSpeed = LegacyDefinition->ThrowSpeed;
 		Out.Arc = LegacyDefinition->ThrowArc;

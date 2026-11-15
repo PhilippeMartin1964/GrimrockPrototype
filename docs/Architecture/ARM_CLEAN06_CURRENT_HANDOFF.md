@@ -106,6 +106,17 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Consulter `ARM_CLEAN06_3BE_COMBAT_PHYSICAL_THROW.md` et contrôler
   les deux checks Windows du SHA fonctionnel BE avant verdict.
 
+## ARM-CLEAN06.3BF — menu et Pawn cohérents sur les jets physiques
+
+- Un seul `FGridPhysicalThrowPreflightReadModel` compose les lectures
+  Force/poids et vitesse/arc pour le menu « Lancer » et le Pawn.
+- Les balistiques historiques absentes ou non finies n'autorisent
+  plus l'action ; les vrais jets N1–N20 restent purement canoniques.
+- Aucune vitesse arbitraire pour les jets génériques restant à
+  convertir en 06.4. Sans conversion binaire ni texte WBP nouveau.
+- Lire `ARM_CLEAN06_3BF_SHARED_UTILITY_THROW_PREFLIGHT.md` et
+  vérifier les deux statuts Windows sur le SHA BF publié.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,
