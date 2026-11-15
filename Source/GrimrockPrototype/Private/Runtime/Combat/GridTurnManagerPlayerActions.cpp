@@ -8,6 +8,7 @@
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
+#include "GridCombatPhysicalThrowSourceReadModel.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
@@ -667,15 +668,9 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	int32 SourceItemQuantityCost = CombatActionOverride ? FMath::Max(0, CombatActionOverride->CurrentSourceItemQuantityCost) : 0;
 	const UGridItemDefinitionAsset* SourceItemDefinition =
 		OffensiveItemDefinitionId.IsNone() ? nullptr : Inventory->FindItemDefinition(OffensiveItemDefinitionId);
-	if (IsValid(SourceItemDefinition) && SourceItemDefinition->IsCombatThrowable() &&
-		((SourcePolicy == EGridCombatActionSourcePolicy::Equipment && OffensiveEquipmentSlot != EGridEquipmentSlot::None) ||
-			SourcePolicy == EGridCombatActionSourcePolicy::QuickItem))
-	{
-		SourceItemQuantityCost = 1;
-	}
-
-	// Use the exact physical source level. A known invalid canonical item
-	// cannot borrow its old DA_Weapon ammo link or silently become ammo-free.
+	// Read one exact owned source for both ammo and the physical throw
+	// decision. A registered item must never borrow bCombatThrowWeapon
+	// from its old DA_Weapon_* even when that pointer is still loaded.
 	const UGridItemSubsystem* AmmoRegistry = World && World->GetGameInstance()
 		? World->GetGameInstance()->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	FGridItemInstance AmmoSourceInstance;
@@ -694,6 +689,26 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		{
 			AmmoSourceInstance = SourceSlot->Item;
 		}
+	}
+	const bool bItemSourceAttack =
+		(SourcePolicy == EGridCombatActionSourcePolicy::Equipment && OffensiveEquipmentSlot != EGridEquipmentSlot::None) ||
+		SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
+	const FGridCombatPhysicalThrowSourceReadView ThrowSource = bItemSourceAttack
+		? FGridCombatPhysicalThrowSourceReadModel::Resolve(
+			AmmoRegistry, SourceItemDefinition, AmmoSourceInstance,
+			SourceItemQuantityCost, bResolvedRangedAttack)
+		: FGridCombatPhysicalThrowSourceReadView();
+	if (ThrowSource.bRejectAction)
+	{
+		return RejectPlayerAttack(AttackerCharacterIndex,
+			EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
+	}
+	const bool bPhysicalCombatThrow = ThrowSource.bLaunchPhysicalProjectile;
+	if (bPhysicalCombatThrow)
+	{
+		// Legacy item definitions already forced one unit; canonical thrown
+		// weapons retain their ONE-unit cost from the ActionCatalogue.
+		SourceItemQuantityCost = 1;
 	}
 	const FGridRangedAmmunitionRequirement AmmoRequirement =
 		FGridRangedAmmunitionPolicy::ResolveForAttack(
@@ -718,7 +733,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 				(CombatActionOverride && CombatActionOverride->SourceRuntimeId.IsValid() &&
 					EquippedSourceItem.RuntimeObjectId != CombatActionOverride->SourceRuntimeId) ||
 				FMath::Max(1, EquippedSourceItem.Quantity) < SourceItemQuantityCost ||
-				(SourceItemQuantityCost > 0 && IsValid(SourceItemDefinition) && SourceItemDefinition->IsCombatThrowable() && SourceItemQuantityCost != 1))))
+				(SourceItemQuantityCost > 0 && bPhysicalCombatThrow && SourceItemQuantityCost != 1))))
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
 	}
@@ -798,7 +813,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 	}
 	if (bSourceCommitted && SourcePolicy == EGridCombatActionSourcePolicy::Equipment && SourceItemQuantityCost > 0)
 	{
-		if (IsValid(SourceItemDefinition) && SourceItemDefinition->IsCombatThrowable())
+		if (bPhysicalCombatThrow)
 		{
 			PreparedThrownItem = PartyPawn->TryLaunchEquippedItemForAttack(
 				AttackerCharacterIndex, OffensiveEquipmentSlot, OffensiveItemDefinitionId, TargetMonster->GetActorLocation(), PartyCell);
@@ -812,7 +827,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 	}
 	else if (bSourceCommitted && SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
 	{
-		if (IsValid(SourceItemDefinition) && SourceItemDefinition->IsCombatThrowable())
+		if (bPhysicalCombatThrow)
 		{
 			PreparedThrownItem =
 				PartyPawn->TryLaunchInventoryItemForAttack(AttackerCharacterIndex, OffensiveItemDefinitionId, TargetMonster->GetActorLocation(), PartyCell);

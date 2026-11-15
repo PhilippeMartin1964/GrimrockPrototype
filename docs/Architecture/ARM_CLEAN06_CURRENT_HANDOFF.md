@@ -94,6 +94,18 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Vérifier les statuts Windows **sur le SHA BD** avant de déclarer
   la phase validée ; PIE/Chaos non couvert par l'Automation.
 
+## ARM-CLEAN06.3BE — lancers physiques en combat
+
+- Le moteur de combat utilise `FGridCombatPhysicalThrowSourceReadModel` :
+  seul le niveau réel du projectile canonique et **le coût unitaire authoré**
+  permettent le jet de l'arme équipée ou en raccourci.
+- Le vieux `bCombatThrowWeapon` n'est plus l'autorité pour les objets
+  enregistrés dans le registre ; il reste transitoire hors registre.
+- Un niveau N0/N21 ARM connu ou un coût incompatible refuse le combat
+  **avant les PA**. Ni vitesse ni action inventées.
+- Consulter `ARM_CLEAN06_3BE_COMBAT_PHYSICAL_THROW.md` et contrôler
+  les deux checks Windows du SHA fonctionnel BE avant verdict.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,
