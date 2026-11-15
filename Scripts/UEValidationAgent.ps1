@@ -2209,6 +2209,76 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4T: real UE Editor one-shot materialization.
+        # Only this freshly-created ChatGPT code commit may be amended;
+        # rewritten SHA has the same parent and is fully validated next cycle.
+        $Asset4TTrigger = 'feat(ARM-CLEAN06.4T): materialize real canonical nonarm items in UE Editor'
+        $Asset4TSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Asset4TSubject.Count -eq 1 -and
+            [string]$Asset4TSubject[0] -ceq $Asset4TTrigger) {
+            $Asset4TContext = 'UE5.5.4/ARM-CLEAN06.4T'
+            $Asset4TStage = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Asset4TContext -Description 'Migration UE reelle: assets non-ARM, verif sauvegardes et Git LFS'
+                $Asset4TScript = Join-Path $WorktreePath 'Scripts\ApplyARM_CLEAN06_4T_NonArmEditorMigration.ps1'
+                if (-not (Test-Path -LiteralPath $Asset4TScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4T: missing native migration script.'
+                }
+                $Asset4TTokens = $null
+                $Asset4TErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Asset4TScript, [ref]$Asset4TTokens, [ref]$Asset4TErrors)
+                if ($Asset4TErrors -and $Asset4TErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4T: invalid PowerShell migration script.'
+                }
+                foreach ($Asset4TValue in @($Asset4TScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Asset4TValue.Contains('"')) {throw 'ARM-CLEAN06.4T: unsafe quote in path.'}
+                }
+                $Asset4TArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Asset4TScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Asset4TOut = Join-Path $RunDir 'ARM064T.stdout.log'
+                $Asset4TErr = Join-Path $RunDir 'ARM064T.stderr.log'
+                $Asset4TProcess = Start-Process -FilePath $PsExe -ArgumentList $Asset4TArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Asset4TOut -RedirectStandardError $Asset4TErr -PassThru -Wait -ErrorAction Stop
+                if ($Asset4TProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4T: native asset migration/verification failed.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Asset4TContext -Description 'Conversion UE limitee aux vrais DataAssets, parite verifiee; aucun fallback'
+                Write-Host '[ARM-CLEAN06.4T] Native asset authoring or committed verification succeeded.'
+            }
+            catch {
+                $Asset4TStagePath = Join-Path $RunDir 'ARMClean064T.stage'
+                $Asset4TStage = if (Test-Path -LiteralPath $Asset4TStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Asset4TStagePath -TotalCount 1)).Trim()
+                } else { 'PROCESS_OR_PARSE' }
+                if ($Asset4TStage -notin @(
+                    'PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4K_LOCATE','READ_4K_MISSING','READ_4K_GATE_EXISTS',
+                    'READ_4K_GATE_READ','READ_4K_GATE_SCHEMA','READ_4K_REPORT_HASH',
+                    'READ_4K_COUNTERS','READ_4K_GATE_CLOSED','VERIFY_4K_DOMAINS',
+                    'READ_4K_DUPLICATE_PROVENANCE','READ_4K_NO_TRUSTED_COPY',
+                    'READ_4K_COMPARE_COPIES','READ_4K_CONFLICTING_COPIES',
+                    'READ_4K_DUPLICATES_RECONCILED','REHASH_84',
+                    'PROVE_SIGNED_SOURCE','APPLY_UNREAL','VERIFY_COMMITTED',
+                    'UNREAL_MATERIALIZATION_FAILED','VALIDATE_REPORT',
+                    'CHECK_EXACT_UNCOMMITTED_FILESET','VERIFY_RELOADED_UNREAL',
+                    'UNREAL_REOPEN_FAILED','POST_MIGRATION_AUTOMATION',
+                    'POST_AUTOMATION_FAILED','REMOTE_LEASE','STAGE_REAL_UNREAL_ASSETS',
+                    'AMEND_ONLY_OWN_COMMIT','PUSH_WITH_LEASE',
+                    'VERIFY_COMMIT_FILESET','CHECK_CLEAN','PUBLISH_FINAL_RECEIPT',
+                    'SUCCESS','PROCESS_OR_PARSE')) {
+                    $Asset4TStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Asset4TContext -Description ('Migration 06.4T refusee: '+$Asset4TStage)
+                }
+                catch {Write-Warning '[ARM-CLEAN06.4T] Cannot publish failed status.'}
+                Write-Warning ('[ARM-CLEAN06.4T] Native UE asset migration blocked: '+$Asset4TStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.

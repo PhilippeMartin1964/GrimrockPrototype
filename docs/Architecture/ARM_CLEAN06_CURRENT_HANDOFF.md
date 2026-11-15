@@ -9,24 +9,25 @@
 
 - Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
 - Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
-- Dernier jalon **validé en UE5.5.4** : **ARM-CLEAN06.4R**,
-  commit `37cf07dc21359a9762c6dd244eebe74bba02bc41`.
-- Sur ce SHA exact : `UE5.5.4/SilentTask=success`,
-  `UE5.5.4/LocalAuto=success`,
-  `UE5.5.4/ARM-CLEAN06.4R=success`.
-  Issue [151](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/151) :
-  4 actions complètes (dont 3 QuickItem), 1 présentation,
-  176 champs exportés comparés, 54 champs non défaut préservés.
-  **Zéro route runtime approuvée et zéro vrai asset converti.**
-- Le propriétaire a confirmé en PIE que le runtime **ancien**
-  (effets, torches, Save/Continue) était inchangé. Cela ne prouve
-  **pas** le comportement de la future migration.
-- **ARM-CLEAN06.4S en préparation/validation** : transaction avec
-  manifeste privé exact de 84 packages et simulation de rollback
-  **dans le bac à sable Windows**, sans `SavePackage` sur les
-  fichiers du projet. Attendre trois SUCCESS sur son SHA avant
-  toute déclaration de validation. SaveGames et WBP périphériques
-  ne sont pas protégés : migration réelle toujours interdite.
+- Dernier jalon **validé en UE5.5.4** : **ARM-CLEAN06.4S**,
+  commit `07c757485a929707bcaed9832ed5933ab409950d`.
+- Trois SUCCESS sur ce SHA : `UE5.5.4/SilentTask`,
+  `UE5.5.4/LocalAuto` et `UE5.5.4/ARM-CLEAN06.4S`.
+  Issue [152](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/152) :
+  84 sources et copies rehashées, mutation d'un octet dans la
+  seule copie privée, rollback et suppression du bac à sable.
+- **Ordre explicite du propriétaire : migrer réellement maintenant.**
+  ARM-CLEAN06.4T doit créer avec Unreal Editor les vrais
+  `DA_Canonical_*.uasset` non-ARM démontrables et modifier
+  le vrai `DA_ItemSystem.uasset` en **un commit final atomique**.
+  L'agent Windows amende exclusivement son propre commit
+  06.4T après tests UE et push avec lease. Vérifier trois
+  SUCCESS **sur le SHA final incluant les binaires**.
+- Les quatre actions non-ARM sans route runtime restent différées ;
+  les niveaux et SaveGames ne sont pas convertis par 06.4T.
+  **Ne pas ajouter de fallback legacy au runtime.**
+- Le propriétaire avait confirmé que le PIE ancien fonctionnait ;
+  cela ne prouve pas le futur cutover ni Save/Continue.
 
 ### Jalons récents déjà réalisés — ne pas les refaire
 
@@ -618,6 +619,31 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   périphériques et démonstration post-conversion.
 - Document :
   `docs/Architecture/ARM_CLEAN06_4S_TRANSACTION_REHEARSAL.md`.
+
+## ARM-CLEAN06.4T — véritable lot de DataAssets (pas un audit supplémentaire)
+
+- Source validée : 06.4S `07c757485a929707bcaed9832ed5933ab409950d`,
+  issue 152, trois SUCCESS, 84 binaires protégés.
+- `GridArmClean064TNonArmMaterialize` crée de vrais DataAssets
+  via `CreatePackage` + `SavePackage` et met à jour
+  `DA_ItemSystem.uasset`. Les objets avec actions non
+  routées ou famille ambiguë sont **différés**, non supprimés.
+- Le commandlet `-Verify` rouvre les UAssets dans un **second**
+  processus UE et compare les vrais champs C++ aux sources
+  06.4K. Ne jamais simuler cette étape par un simple JSON.
+- `Scripts/ApplyARM_CLEAN06_4T_NonArmEditorMigration.ps1`
+  est déclenché seulement sur le sujet de commit exact ; il
+  contrôle le set Git/LFS, relance Grimrock, amende **seulement
+  notre propre commit de code 06.4T** et push avec lease ;
+  ainsi, un seul commit final sur `master`.
+- Sur le SHA final (révision contenant réellement `.uasset`) :
+  exiger `UE5.5.4/SilentTask`, `UE5.5.4/LocalAuto`,
+  `UE5.5.4/ARM-CLEAN06.4T` SUCCESS.
+- Ne pas dire « terminé » si seul le commit de code est
+  présent. Les 40 références de niveau et SaveGames sont
+  la suite. Aucun nouveau fallback legacy en runtime.
+- Détails :
+  `docs/Architecture/ARM_CLEAN06_4T_REAL_NONARM_ASSET_MIGRATION.md`.
 
 ## Étapes ultérieures inchangées
 

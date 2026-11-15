@@ -58,7 +58,21 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 		for (const FString& Message : Errors) { AddError(Message); }
 		return false;
 	}
-	TestEqual(TEXT("22 ARM + 1 existing arrow source"), Root->ItemDefinitions.Num(), 23);
+	// Migration creates additional canonical non-ARM definitions in this real
+	// root. Retain the original 22 ARM + arrow baseline and require every
+	// appended entry to remain canonical; do not hardcode a permanent size 23.
+	TestTrue(TEXT("22 ARM + arrow baseline remains registered"),
+		Root->ItemDefinitions.Num() >= 23 && Root->ItemDefinitions.Num() <= 34);
+	TSet<FName> UniqueIds;
+	for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
+	{
+		if (!TestNotNull(TEXT("Saved canonical item is materialized"), Definition))
+		{
+			return false;
+		}
+		TestFalse(TEXT("No duplicate migrated ItemId"), UniqueIds.Contains(Definition->ItemId));
+		UniqueIds.Add(Definition->ItemId);
+	}
 	TestEqual(TEXT("All four catalogues authored in their final C++ classes"),
 		Root->ActionCatalogue->Actions.Num(), 19);
 	TestEqual(TEXT("One neutral and four real presentation profiles"),
