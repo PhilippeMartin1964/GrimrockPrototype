@@ -10,15 +10,16 @@
 - Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
 - Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
 - Dernier jalon de données **validé en UE5.5.4** :
-  **ARM-CLEAN06.4M**, commit `8d925f186e02f419c3b5087f7df8f8f848548552`.
+  **ARM-CLEAN06.4N**, commit `99bd3afc3207830c76542078eaba417dcbbc9b63`.
 - Sur ce SHA exact : `UE5.5.4/SilentTask=success`,
-  `UE5.5.4/LocalAuto=success`, `UE5.5.4/ARM-CLEAN06.4M=success`.
-  Issue publique 146 : 3 champs actifs ReadText/Chaos, 33 copies,
-  44 lectures et 33 sondes de masse/tilt ; 35 champs encore ouverts.
+  `UE5.5.4/LocalAuto=success`, `UE5.5.4/ARM-CLEAN06.4N=success`.
+  Issue publique 147 : 3 champs actifs du lancer générique non-ARM,
+  121 copies de même type, 11 enums explicites, 77 sondes pures.
+  **32** occurrences de propriétés actives restent à convertir.
 - Le propriétaire a confirmé en PIE que les effets, torches et
   Save/Continue du **runtime existant** restent inchangés. Cela ne
   prouve **pas** le futur lecteur canonique.
-- **06.4N est en préparation/validation** : ne le déclarer terminé
+- **06.4O est en préparation/validation** : ne le déclarer terminé
   qu'après trois statuts SUCCESS sur son propre SHA. 06.3BG est
   le dernier jalon runtime antérieur ; **aucune** conversion binaire,
   SaveGame ni modification WBP n'est autorisée. 06.4–06.6 restent ouvertes.
@@ -484,6 +485,26 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Document détaillé :
   `docs/Architecture/ARM_CLEAN06_4N_NONARM_GENERIC_THROW_PARITY.md`.
   Suite prévue : 06.4O, actions non-ARM, puis équipements et empilement.
+
+## ARM-CLEAN06.4O — inventaire des actions non-ARM (lecture seule)
+
+- Parent 06.4N validé sur `99bd3afc3207830c76542078eaba417dcbbc9b63`,
+  issue 147 et les trois statuts SUCCESS.
+- Objet du jalon : **11** occurrences d'UPROPERTY `ITEM_ACTION`
+  actives sur 11 ItemId/40 placements. Conserver leurs détails réels
+  avant de proposer des liens au `DA_ActionCatalogue`.
+- Commandlet Editor-only `GridArmClean064ONonArmActionSemantics` :
+  inspecte les vrais `CombatActions`, QuickItems,
+  présentations, validités, champs non par défaut et collisions d'IDs ;
+  produit une preuve Windows privée, pas de migration.
+- Contrôles : provenance 06.4K et 06.4N exactes, 84 binaires et
+  84 copies vérifiés, **zéro mutation** d'assets/SaveGames.
+- Requiert `UE5.5.4/SilentTask`, `UE5.5.4/LocalAuto` et
+  `UE5.5.4/ARM-CLEAN06.4O` SUCCESS sur son SHA.
+- Même avec SUCCESS, ne déclarer **aucune** parité sémantique
+  des actions. Les **32** champs actifs restants comprennent
+  actions 11, équipement hors ARM 15, empilement 6.
+- Voir `docs/Architecture/ARM_CLEAN06_4O_NONARM_ACTION_SEMANTIC_INVENTORY.md`.
 
 ## Étapes ultérieures inchangées
 

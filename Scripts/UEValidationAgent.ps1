@@ -1866,6 +1866,71 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4O — action semantic audit, read-only UE source capture.
+        $Action4OTrigger = 'chore(ARM-CLEAN06.4O): inventory full legacy nonarm action semantics without writes'
+        $Action4OSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Action4OSubject.Count -eq 1 -and
+            [string]$Action4OSubject[0] -ceq $Action4OTrigger) {
+            $Action4OContext = 'UE5.5.4/ARM-CLEAN06.4O'
+            $Action4OPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Action4OContext -Description 'Audit UE action et effets non-ARM, sans conversion'
+                $Action4OScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4O_NonArmActionSemantics.ps1'
+                if (-not (Test-Path -LiteralPath $Action4OScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4O: script missing.'
+                }
+                $Action4OPhase = 'PARSE'
+                $Action4OTokens = $null
+                $Action4OErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Action4OScript, [ref]$Action4OTokens, [ref]$Action4OErrors)
+                if ($Action4OErrors -and $Action4OErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4O: invalid PowerShell syntax.'
+                }
+                foreach ($Action4OValue in @($Action4OScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Action4OValue.Contains('"')) { throw 'ARM-CLEAN06.4O: unsupported path quote.' }
+                }
+                $Action4OArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Action4OScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Action4OOut = Join-Path $RunDir 'ARM064O.stdout.log'
+                $Action4OErr = Join-Path $RunDir 'ARM064O.stderr.log'
+                $Action4OPhase = 'PROCESS_RUNNING'
+                $Action4OProcess = Start-Process -FilePath $PsExe -ArgumentList $Action4OArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Action4OOut -RedirectStandardError $Action4OErr -PassThru -Wait -ErrorAction Stop
+                if ($Action4OProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4O: real UE action audit returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Action4OContext -Description '11 champs actions releves, donnees privees, aucune ecriture'
+                Write-Host '[ARM-CLEAN06.4O] Real UE non-arm action inventory complete. Migration gate closed.'
+            }
+            catch {
+                $Action4OStagePath = Join-Path $RunDir 'ARMClean064O.stage'
+                $Action4OStage = if (Test-Path -LiteralPath $Action4OStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Action4OStagePath -TotalCount 1)).Trim()
+                } else { $Action4OPhase }
+                if ($Action4OStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4K_LOCATE','READ_4K_MISSING','READ_4K_MULTIPLE',
+                    'READ_4K_DUPLICATE_PROVENANCE','READ_4K_NO_TRUSTED_COPY',
+                    'READ_4K_COMPARE_COPIES','READ_4K_CONFLICTING_COPIES',
+                    'READ_4K_DUPLICATES_RECONCILED','READ_4K_GATE_EXISTS',
+                    'READ_4K_GATE_READ','READ_4K_GATE_SCHEMA','READ_4K_REPORT_HASH',
+                    'READ_4K_COUNTERS','READ_4K_GATE_CLOSED','VERIFY_4K_DOMAINS',
+                    'REHASH_84','READ_4N','UNREAL_ACTION_AUDIT',
+                    'UNREAL_ACTION_FAILED','VERIFY_RESULT','WRITE_PRIVATE_GATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE','SUCCESS',
+                    'START','PARSE','PROCESS_RUNNING')) {
+                    $Action4OStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Action4OContext -Description ('Actions 06.4O bloquees : ' + $Action4OStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4O] GitHub status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4O] UE action semantic inventory incomplete: ' + $Action4OStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
