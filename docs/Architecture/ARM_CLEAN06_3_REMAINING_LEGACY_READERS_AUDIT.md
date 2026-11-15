@@ -159,3 +159,29 @@ la projection, sans valeur arbitraire. Aucun ancien
 Voir
 `docs/Architecture/ARM_CLEAN06_3AX_CANONICAL_SELF_HEAL_USE_ACTIONS.md`.
 Localisation `UI.csv → ST_UI → WBP → Game/fr/en` inchangée.
+
+## Complément 06.3AY — retrait d'un statut identifié, uniquement en combat
+
+Après AX (soin personnel), `FGridCanonicalQuickItemUseReadModel`
+projette également `Use / Self / RemoveStatus(StatusId, Magnitude=1)`
+avec une **identité de statut précise**, `SourceItemQuantityCost=1`,
+et un seul binding d'usage. `FGridCombatActionCatalog` et le
+`GridTurnManager` disposent déjà des contrôles de disponibilité et
+du retrait via `UGridStatusEffectLifecycleSubsystem`.
+Le raccordement se limite à une projection transitoire.
+Aucun effet ou dépense de PA n'est déduit d'un ancien
+`DA_Item_*`.
+
+Les actions de nettoyage de statut sont affectables en hotbar
+de combat mais ne deviennent pas des actions `Consume`
+en exploration. L'absence du statut ciblé rend l'action
+`NoApplicableEffect` avant toute dépense d'objet.
+Les multi-effets, les cibles autres que `Self` et les valeurs
+ambiguës de `Magnitude` restent refusés.
+
+**Dettes :** les autres `UseActions`, leur ciblage et
+la preuve runtime PIE de la transaction complète ;
+les contenus binaires et les sauvegardes restent hors 06.3.
+Voir `docs/Architecture/ARM_CLEAN06_3AY_CANONICAL_USE_REMOVE_STATUS.md`.
+
+Localisation `UI.csv → ST_UI → WBP → Game/fr/en` inchangée.

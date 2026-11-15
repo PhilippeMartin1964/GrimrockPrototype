@@ -4,8 +4,9 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /**
- * ARM-CLEAN06.3AX: strict, transient projection of exactly one authored
- * canonical self-Heal Use action onto the already proven QuickItem executor.
+ * ARM-CLEAN06.3AX/AY: strict, transient projection of exactly one authored
+ * canonical self-Heal or combat-only self-RemoveStatus Use action onto the
+ * already proven QuickItem executor.
  *
  * Zero AP is intentional: canonical Use has NO authored AP field. The schema
  * must be extended and content converted before an AP cost can be charged.
@@ -67,6 +68,60 @@ struct FGridCanonicalQuickItemUseReadModel
         return true;
     }
 
+    /** Single exact status cleansing, combat only; never invent status tags or
+     * infer multiple removals from a level or a legacy definition. */
+    static bool TryProjectSingleStatusRemoval(
+        const FGridResolvedItem& Item, const FGridResolvedBoundAction& Bound,
+        FGridCombatActionDefinition& Out)
+    {
+        Out = FGridCombatActionDefinition();
+        if (!Item.IsValid() || Item.bIsArmament || !Item.AmmoKindId.IsNone() ||
+            !Bound.IsValid() || Bound.ItemId != Item.ItemId ||
+            Bound.ItemLevel != Item.ItemLevel ||
+            Bound.Action.Kind != EGridCanonicalActionKind::Use ||
+            Bound.Action.Targeting != EGridCombatTargetingPolicy::Self ||
+            Bound.Action.bRangedAttack || Bound.Action.bRequiresLineOfSight ||
+            Bound.Action.WeaponDamagePercent != 0 ||
+            Bound.Action.SourceItemQuantityCost != 1 ||
+            Bound.Action.ManaCost < 0 || Bound.Action.CooldownRounds < 0 ||
+            Bound.Action.Effects.Num() != 1 ||
+            Bound.Action.Effects[0].Kind != EGridCanonicalEffectKind::RemoveStatus ||
+            Bound.Action.Effects[0].Magnitude != 1 ||
+            Bound.Action.Effects[0].StatusId.IsNone())
+        {
+            return false;
+        }
+
+        FGridCombatActionDefinition Candidate;
+        Candidate.ActionId = Bound.ActionId;
+        Candidate.DisplayName = Item.DisplayName;
+        Candidate.Description = Item.Description;
+        Candidate.Icon = Item.ItemIcon;
+        Candidate.ActionType = EGridCombatActionType::Ability;
+        Candidate.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+        Candidate.SourceTags = Item.Tags;
+        Candidate.TargetingPolicy = EGridCombatTargetingPolicy::Self;
+        Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+        Candidate.ActionPointCost = 0; // Use has no authored PA field yet.
+        Candidate.ResourceCosts.ManaCost = Bound.Action.ManaCost;
+        Candidate.ResourceCosts.SourceItemQuantityCost = 1;
+        Candidate.CooldownRounds = Bound.Action.CooldownRounds;
+        Candidate.PresentationProfileId = Bound.PresentationId;
+
+        FGridCombatStatusRemovalProfile& Removal = Candidate.StatusRemovals.AddDefaulted_GetRef();
+        Removal.EffectIds.Add(Bound.Action.Effects[0].StatusId);
+        Removal.MaximumRemovals = 1;
+        // The generic availability reader checks the default Any side; the
+        // actual QuickItem executor is already restricted to Self/Party.
+        Removal.TargetSide = EGridCombatStatusRemovalTargetSide::Any;
+        if (!Candidate.IsValid())
+        {
+            return false;
+        }
+        Out = MoveTemp(Candidate);
+        return true;
+    }
+
     static FGridCanonicalQuickItemUseReadView Resolve(
         const UGridItemSubsystem* Registry, const FGridItemInstance& Instance)
     {
@@ -80,7 +135,7 @@ struct FGridCanonicalQuickItemUseReadModel
 
         FGridResolvedItem Item;
         if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Item) ||
-            Item.AvailableActions.IsEmpty())
+            Item.AvailableActions.Num() != 1)
         {
             return Out; // Registered invalid N0/N21 must fail closed.
         }
@@ -92,7 +147,8 @@ struct FGridCanonicalQuickItemUseReadModel
             FGridCombatActionDefinition Candidate;
             if (!Registry->ResolveBoundAction(Instance.ItemDefinitionId,
                     Instance.ItemLevel, Binding.ActionId, Bound) ||
-                !TryProjectSingleHeal(Item, Bound, Candidate))
+                (!TryProjectSingleHeal(Item, Bound, Candidate) &&
+                    !TryProjectSingleStatusRemoval(Item, Bound, Candidate)))
             {
                 continue;
             }
@@ -110,7 +166,11 @@ struct FGridCanonicalQuickItemUseReadModel
             return Out;
         }
         Out.bResolved = true;
+        // Exploration has only the self-restoration executor. Status
+        // removal belongs exclusively to combat's status lifecycle.
         Out.bExplorationCompatible =
+            Out.Action.EffectProfile.IsValid() &&
+            Out.Action.StatusRemovals.IsEmpty() &&
             Out.Action.ResourceCosts.ManaCost == 0 &&
             Out.Action.CooldownRounds == 0;
         return Out;

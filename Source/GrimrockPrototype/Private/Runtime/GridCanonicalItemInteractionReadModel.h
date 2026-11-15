@@ -61,7 +61,10 @@ struct FGridCanonicalItemInteractionReadModel
 				Canonical.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER;
 			const FGridCanonicalQuickItemUseReadView Use =
 				FGridCanonicalQuickItemUseReadModel::Resolve(Registry, Item);
-			Out.bCanConsumeCanonical = Use.bResolved;
+			// Only a true direct self-heal may appear as the inline "Consume"
+            // action. Status cleansing uses the combat hotbar executor.
+            Out.bCanConsumeCanonical = Use.bResolved &&
+                Use.Action.EffectProfile.IsValid();
 			Out.bCanAddToHotbar = Out.bPhysicalThrowHotbar || Use.bResolved;
 			// No registered item ever executes an OLD QuickItem action.
 			return Out;
