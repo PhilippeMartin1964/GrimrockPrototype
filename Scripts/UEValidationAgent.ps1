@@ -1670,6 +1670,71 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4L — dedicated read-only UE non-arm light/persistent FX
+        # parity. Only run after regular Build and Grimrock Automation.
+        $Presentation4LTrigger = 'feat(ARM-CLEAN06.4L): preserve nonarm light and persistent visual data in transient canonical projection'
+        $Presentation4LSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Presentation4LSubject.Count -eq 1 -and
+            [string]$Presentation4LSubject[0] -ceq $Presentation4LTrigger) {
+            $Presentation4LContext = 'UE5.5.4/ARM-CLEAN06.4L'
+            $Presentation4LPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Presentation4LContext -Description 'Parite donnees UE en memoire : lumiere et VFX non-ARM'
+                $Presentation4LScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4L_NonArmPresentationParity.ps1'
+                if (-not (Test-Path -LiteralPath $Presentation4LScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4L: script missing.'
+                }
+                $Presentation4LPhase = 'PARSE'
+                $Presentation4LTokens = $null
+                $Presentation4LErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Presentation4LScript, [ref]$Presentation4LTokens, [ref]$Presentation4LErrors)
+                if ($Presentation4LErrors -and $Presentation4LErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4L: invalid PowerShell syntax.'
+                }
+                foreach ($Presentation4LValue in @($Presentation4LScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Presentation4LValue.Contains('"')) { throw 'ARM-CLEAN06.4L: unsupported path quote.' }
+                }
+                $Presentation4LArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Presentation4LScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Presentation4LOut = Join-Path $RunDir 'ARM064L.stdout.log'
+                $Presentation4LErr = Join-Path $RunDir 'ARM064L.stderr.log'
+                $Presentation4LPhase = 'PROCESS_RUNNING'
+                $Presentation4LProcess = Start-Process -FilePath $PsExe -ArgumentList $Presentation4LArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Presentation4LOut -RedirectStandardError $Presentation4LErr -PassThru -Wait -ErrorAction Stop
+                if ($Presentation4LProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4L: UE presentation data parity returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Presentation4LContext -Description '12 champs visuels/lumiere preserves, 88 copies; conversion interdite'
+                Write-Host '[ARM-CLEAN06.4L] Non-arm presentation data parity complete. Binary gate closed.'
+            }
+            catch {
+                $Presentation4LStagePath = Join-Path $RunDir 'ARMClean064L.stage'
+                $Presentation4LStage = if (Test-Path -LiteralPath $Presentation4LStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Presentation4LStagePath -TotalCount 1)).Trim()
+                } else { $Presentation4LPhase }
+                if ($Presentation4LStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4K_LOCATE','READ_4K_MISSING','READ_4K_MULTIPLE',
+                    'READ_4K_DUPLICATE_PROVENANCE','READ_4K_NO_TRUSTED_COPY',
+                    'READ_4K_COMPARE_COPIES','READ_4K_CONFLICTING_COPIES',
+                    'READ_4K_DUPLICATES_RECONCILED','READ_4K_GATE_EXISTS','READ_4K_GATE_READ','READ_4K_GATE_SCHEMA',
+                    'READ_4K_REPORT_HASH','READ_4K_COUNTERS','READ_4K_GATE_CLOSED',
+                    'VERIFY_4K_DOMAINS','REHASH_84','UNREAL_PRESENTATION_PARITY',
+                    'UNREAL_PARITY_FAILED','VERIFY_RESULT','WRITE_PRIVATE_GATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE','SUCCESS','START',
+                    'PARSE','PROCESS_RUNNING')) {
+                    $Presentation4LStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Presentation4LContext -Description ('Parite 06.4L bloquee : ' + $Presentation4LStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4L] GitHub status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4L] UE parity incomplete: ' + $Presentation4LStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.

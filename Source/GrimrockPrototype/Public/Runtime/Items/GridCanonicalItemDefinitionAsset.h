@@ -3,10 +3,13 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/GridLightEmitterTypes.h"
+#include "Runtime/GridItemVisualEffectsTypes.h"
 #include "GridCanonicalItemDefinitionAsset.generated.h"
 
 class UTexture2D;
 class UStaticMesh;
+class UMaterialInterface;
 
 /** Only an action identity and a presentation identity are authored per owner. */
 USTRUCT(BlueprintType)
@@ -73,6 +76,33 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Visual")
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
+
+	/** ARM-CLEAN06.4L: NON-armament presentation belongs to this item,
+	 * not to an ARM attack/weapon visual catalogue. The old source remains
+	 * untouched until the verified binary migration. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Light")
+	FGridLightEmitterConfig LightEmitter;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Visual|Persistent")
+	FGridItemVisualEffectsConfig VisualEffects;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Visual|Sparkle")
+	bool bEnableWorldSparkle = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Visual|Sparkle")
+	TSoftObjectPtr<UMaterialInterface> WorldSparkleMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Visual|Sparkle")
+	FLinearColor WorldSparkleColor = FLinearColor(1.0f, 0.78f, 0.42f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Visual|Sparkle", meta = (ClampMin = "0.0"))
+	float WorldSparkleIntensity = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Visual|Sparkle", meta = (ClampMin = "0.0"))
+	float WorldSparkleSpeed = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Visual|Sparkle", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float WorldSparkleVariation = 0.35f;
 };
 
 UCLASS(BlueprintType)

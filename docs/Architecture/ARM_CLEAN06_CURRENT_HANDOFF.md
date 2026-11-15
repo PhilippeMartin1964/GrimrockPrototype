@@ -412,6 +412,30 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   Documentation détaillée :
   `ARM_CLEAN06_4K_NONARM_FIELD_OWNERSHIP.md`.
 
+## ARM-CLEAN06.4L — contrat présenté au contrôle UE (statuts à vérifier)
+
+- Sujet exact attendu : `feat(ARM-CLEAN06.4L): preserve nonarm light and persistent visual data in transient canonical projection`.
+- 06.4K et ses trois statuts SUCCESS sont le parent de preuve ; il a
+  distingué **50** occurrences actives : lumière **1**, présentation
+  persistante **11**, les autres domaines **38**.
+- La classe canonique `UGridNonArmamentDefinitionAsset` reçoit les
+  huit champs lumière/VFX/scintillement présents sur les sources legacy.
+  Aucune nouvelle autorité n'entre dans les armes ou leur catalogue.
+- `GridArmClean064LNonArmPresentationParity` doit copier **88** valeurs
+  de propriétés dans **11** objets transitoires UE et constater
+  l'identité exacte, y compris les défauts, ainsi que les prédicats purs.
+- L'agent Windows doit publier pour ce commit :
+  `UE5.5.4/SilentTask`, `UE5.5.4/LocalAuto`,
+  `UE5.5.4/ARM-CLEAN06.4L`.
+  **Ne déclarer 06.4L validé qu'après trois SUCCESS sur son SHA exact**.
+- Des tests PIE/Chaos/SaveGame restent nécessaires : le commandlet n'a
+  produit qu'une parité de *données* ; aucune conversion `.uasset`,
+  `.umap` ni `.sav`. Les 38 autres propriétés sont encore bloquantes.
+- Document détaillé :
+  `docs/Architecture/ARM_CLEAN06_4L_NONARM_PRESENTATION_DATA_PARITY.md`.
+- Suite envisagée : 06.4M, traitement des politiques non-ARM encore
+  sans propriétaire et contrôles comportementaux, sans migration hâtive.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,
