@@ -6,6 +6,7 @@
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "GridWorldPickupIdentityReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridThrownItemActor.h"
@@ -23,26 +24,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridLevelRuntime, Log, All);
 
 namespace
 {
-	FName PersistenceResolvePickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackItemDefinitionId)
-	{
-		if (!ItemActor)
-		{
-			return FallbackItemDefinitionId;
-		}
-		if (const UGridItemDefinitionAsset* Definition = ItemActor->GetItemDefinitionAsset())
-		{
-			if (!Definition->ItemDefinitionId.IsNone())
-			{
-				return Definition->ItemDefinitionId;
-			}
-		}
-		if (!ItemActor->GetItemDefinitionId().IsNone())
-		{
-			return ItemActor->GetItemDefinitionId();
-		}
-		return FallbackItemDefinitionId;
-	}
-
 	FGridItemInstance PersistenceMakeVisualItem(const FGridRuntimeItemState& Saved)
 	{
 		FGridItemInstance Instance;
@@ -215,7 +196,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		ExistingPlacedItemObjectIds.Add(Entry.ObjectId);
 		FGridRuntimeItemState ItemState;
 		ItemState.ObjectId = Entry.ObjectId;
-		ItemState.ItemDefinitionId = PersistenceResolvePickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
+		ItemState.ItemDefinitionId = FGridWorldPickupIdentityReadModel::Resolve(ItemActor, Entry.ItemDefinitionId, Entry.ItemLevel);
 		ItemState.ItemLevel = Entry.ItemLevel;
 		ItemState.Quantity = FMath::Max(1, Entry.Quantity);
 		ItemState.CellX = Entry.Cell.X;

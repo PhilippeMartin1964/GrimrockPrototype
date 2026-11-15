@@ -14,6 +14,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridItemWeightReadModel.h"
 #include "GridWorldItemLevelReadModel.h"
+#include "GridWorldPickupIdentityReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -30,26 +31,6 @@ namespace
 		}
 
 		return FString::Printf(TEXT("%d"), static_cast<int32>(Edge));
-	}
-
-	FName ResolveWorldPickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackItemDefinitionId)
-	{
-		if (!ItemActor)
-		{
-			return FallbackItemDefinitionId;
-		}
-		if (const UGridItemDefinitionAsset* Definition = ItemActor->GetItemDefinitionAsset())
-		{
-			if (!Definition->ItemDefinitionId.IsNone())
-			{
-				return Definition->ItemDefinitionId;
-			}
-		}
-		if (!ItemActor->GetItemDefinitionId().IsNone())
-		{
-			return ItemActor->GetItemDefinitionId();
-		}
-		return FallbackItemDefinitionId;
 	}
 
 	const AGrimrockPartyPawn* ResolveWorldItemInteractionParty(const AGridLevelRuntimeActor* RuntimeActor)
@@ -252,7 +233,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 			continue;
 		}
 
-		const FName ItemDefinitionId = ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
+		const FName ItemDefinitionId = FGridWorldPickupIdentityReadModel::Resolve(ItemActor, Entry.ItemDefinitionId, Entry.ItemLevel);
 		if (ItemDefinitionId.IsNone())
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Item pickup failed at cell %d,%d: missing item definition id."), CellX, CellY);
@@ -330,7 +311,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 			return false;
 		}
 
-		const FName ItemDefinitionId = ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
+		const FName ItemDefinitionId = FGridWorldPickupIdentityReadModel::Resolve(ItemActor, Entry.ItemDefinitionId, Entry.ItemLevel);
 		if (ItemDefinitionId.IsNone())
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Item pickup failed for actor %s: missing item definition id."), *ItemActor->GetName());

@@ -82,6 +82,18 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Le résultat du `LocalAuto` doit être contrôlé sur le SHA BC final,
   et le rendu PIE/Chaos reste une validation distincte.
 
+## ARM-CLEAN06.3BD — identité canonique monde/pickup
+
+- Le résolveur de world item est désormais commun au clic,
+  ramassage par cellule et capture SaveGame.
+- ItemId/ItemLevel connus enregistrés : aucune définition ancienne
+  ne peut renommer un objet, ni corriger silencieusement un niveau
+  invalide ; les identités inconnues restent compatibles.
+- Tests de capture et ramassage effectifs sur le registre réel.
+- Lire `docs/Architecture/ARM_CLEAN06_3BD_CANONICAL_WORLD_PICKUP_IDENTITY.md`.
+- Vérifier les statuts Windows **sur le SHA BD** avant de déclarer
+  la phase validée ; PIE/Chaos non couvert par l'Automation.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,

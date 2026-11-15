@@ -359,6 +359,20 @@ UGridItemDefinitionAsset* AGridItemActor::GetItemDefinitionAsset() const
 
 FName AGridItemActor::GetItemDefinitionId() const
 {
+	// The actor's materialized ItemId is authoritative for registered items.
+	// An optional pre-conversion DA_Item can stay attached for visuals, but
+	// must never rename a canonical pickup or block ApplyCanonicalWorldVisual.
+	if (!ItemDefinitionId.IsNone())
+	{
+		const UWorld* World = GetWorld();
+		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry = GI
+			? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		if (Registry && Registry->HasCanonicalItem(ItemDefinitionId))
+		{
+			return ItemDefinitionId;
+		}
+	}
 	if (ItemDefinitionAsset && !ItemDefinitionAsset->ItemDefinitionId.IsNone())
 	{
 		return ItemDefinitionAsset->ItemDefinitionId;
