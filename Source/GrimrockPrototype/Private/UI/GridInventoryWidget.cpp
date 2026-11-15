@@ -16,6 +16,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridInventorySortReadModel.h"
 #include "GridCanonicalInventoryItemTypeReadModel.h"
+#include "../Runtime/GridCanonicalItemInteractionReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemTransferService.h"
@@ -1638,16 +1639,27 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		{
 			const UGridItemDefinitionAsset* ItemDefinition =
 				InventoryComponent ? InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId) : nullptr;
+			const FGridCanonicalItemInteractionReadView Read =
+				FGridCanonicalItemInteractionReadModel::Resolve(
+					ResolveInventoryCanonicalRegistry(this), ItemDefinition, LastContextItem);
+			if (!Read.bCanRead)
+			{
+				break; // The menu may be stale; never revive old readable flags.
+			}
 			FText Title = LastContextItem.ReadTitleOverride;
 			if (Title.IsEmpty() && LastContextItem.ReadableContentAsset)
 			{
 				Title = LastContextItem.ReadableContentAsset->Title;
 			}
+			if (Title.IsEmpty() && Read.bCanonicalIdentity)
+			{
+				Title = Read.DisplayName;
+			}
 			if (Title.IsEmpty())
 			{
 				Title = LastContextItem.DisplayName;
 			}
-			if (Title.IsEmpty() && ItemDefinition)
+			if (Title.IsEmpty() && ItemDefinition && !Read.bCanonicalIdentity)
 			{
 				Title = ItemDefinition->DisplayName;
 			}
@@ -1668,7 +1680,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 					ResolvedContentId = LastContextItem.ReadableContentAsset->ReadableContentId;
 				}
 			}
-			if (ReadText.IsEmpty() && ItemDefinition && !ItemDefinition->ReadText.IsEmpty())
+			if (ReadText.IsEmpty() && !Read.bCanonicalIdentity && ItemDefinition && !ItemDefinition->ReadText.IsEmpty())
 			{
 				ReadText = ItemDefinition->ReadText;
 				ReadSource = TEXT("DefinitionFallback");
@@ -1705,8 +1717,11 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 
             const UGridItemDefinitionAsset* Definition =
                 InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId);
+            const FGridCanonicalItemInteractionReadView Capabilities =
+                FGridCanonicalItemInteractionReadModel::Resolve(
+                    ResolveInventoryCanonicalRegistry(this), Definition, LastContextItem);
             FGridCombatActionDefinition QuickItemAction;
-            if (!IsValid(Definition) ||
+            if (!Capabilities.bCanConsumeLegacy || !IsValid(Definition) ||
                 !Definition->BuildQuickItemCombatActionDefinition(QuickItemAction) ||
                 (Definition->ItemType != EGridItemType::Potion && Definition->ItemType != EGridItemType::Food) ||
                 QuickItemAction.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
@@ -2001,7 +2016,13 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 
 		case EGridItemActionType::AddToHotbar:
 		{
-			if (SourceSlotType != EGridInventoryUiSlotType::Inventory || !InventoryComponent || LastContextItem.ItemDefinitionId.IsNone())
+			const UGridItemDefinitionAsset* OldDefinition = InventoryComponent
+				? InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId) : nullptr;
+			const FGridCanonicalItemInteractionReadView Capabilities =
+				FGridCanonicalItemInteractionReadModel::Resolve(
+					ResolveInventoryCanonicalRegistry(this), OldDefinition, LastContextItem);
+			if (SourceSlotType != EGridInventoryUiSlotType::Inventory ||
+				!InventoryComponent || !Capabilities.bCanAddToHotbar)
 			{
 				UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute AddToHotbar Failed Item=%s Reason=InvalidSource"),
 					*LastContextItem.ItemDefinitionId.ToString());

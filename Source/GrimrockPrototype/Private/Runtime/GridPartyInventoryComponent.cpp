@@ -1414,6 +1414,13 @@ bool UGridPartyInventoryComponent::TryConsumeSelfRestorativeQuickItem(
     }
 
     const FName ItemId = SourceSlot->Item.ItemDefinitionId;
+    const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
+    if (Registry && Registry->HasCanonicalItem(ItemId))
+    {
+        OutError = NSLOCTEXT("GridItemActions", "ConsumeUnsupportedEffect",
+            "Cet objet ne dispose pas d'un effet personnel consommable hors combat.");
+        return false; // Canonical UseActions do not use the legacy executor.
+    }
     const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemId);
     FGridCombatActionDefinition Action;
     if (!IsValid(Definition) ||

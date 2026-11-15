@@ -26,6 +26,8 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/Combat/GridCanonicalActionIconReadModel.h"
 #include "GridCombatHudCanonicalActionReadModel.h"
+#include "../Runtime/GridCanonicalItemInteractionReadModel.h"
+#include "../Runtime/GridPhysicalThrowStrengthReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -121,31 +123,66 @@ namespace
 			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.Character"));
 			return Action;
 		}
-		Action.CharacterId = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
-		UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Binding.SourceDefinitionId);
-		if (!IsValid(Definition) && IsValid(PartyPawn) && IsValid(PartyPawn->LevelRuntimeActor))
-		{
-			Definition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(Binding.SourceDefinitionId);
-		}
-		if (!IsValid(Definition))
-		{
-			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.ItemDefinition"));
-			return Action;
-		}
-		Action.Definition.DisplayName = FText::FormatNamed(
-			FUILocalizationText::Get(TEXT("Combat.Action.ThrowName")),
-			TEXT("ItemName"), Definition->DisplayName);
-		Action.Definition.Description = Definition->Description;
-		Action.Definition.Icon = Definition->Icon;
-		Action.CurrentSourceItemQuantity = InventoryComponent->CountItemDefinitionInCharacterInventory(CharacterIndex, Binding.SourceDefinitionId);
+		const FGridCharacterInventoryState& Character =
+			InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
+		Action.CharacterId = Character.CharacterId;
+		Action.CurrentSourceItemQuantity = InventoryComponent->CountItemDefinitionInCharacterInventory(
+			CharacterIndex, Binding.SourceDefinitionId);
 		if (Action.CurrentSourceItemQuantity <= 0)
 		{
 			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::InsufficientSourceItems;
 			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.NoInventoryCopies"));
 			return Action;
 		}
+
+		const UWorld* World = IsValid(PartyPawn) ? PartyPawn->GetWorld() : InventoryComponent->GetWorld();
+		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		const bool bCanonical = Registry && Registry->HasCanonicalItem(Binding.SourceDefinitionId);
+		const UGridItemDefinitionAsset* OldDefinition = bCanonical ? nullptr :
+			InventoryComponent->FindItemDefinition(Binding.SourceDefinitionId);
+		if (!bCanonical && !IsValid(OldDefinition) &&
+			IsValid(PartyPawn) && IsValid(PartyPawn->LevelRuntimeActor))
+		{
+			OldDefinition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(
+				Binding.SourceDefinitionId);
+		}
+		const FGridInventorySlot* Source = Character.InventorySlots.FindByPredicate(
+			[&Binding](const FGridInventorySlot& Slot)
+			{
+				return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == Binding.SourceDefinitionId;
+			});
+		if (!Source)
+		{
+			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::InsufficientSourceItems;
+			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.NoInventoryCopies"));
+			return Action;
+		}
+		const FGridCanonicalItemInteractionReadView Capabilities =
+			FGridCanonicalItemInteractionReadModel::Resolve(Registry, OldDefinition, Source->Item);
+		if (bCanonical ? !Capabilities.bPhysicalThrowHotbar :
+			(!IsValid(OldDefinition) || !OldDefinition->IsPhysicallyThrowable()))
+		{
+			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.ItemDefinition"));
+			return Action;
+		}
+		const FText ItemName = bCanonical ? Capabilities.DisplayName : OldDefinition->DisplayName;
+		Action.Definition.DisplayName = FText::FormatNamed(
+			FUILocalizationText::Get(TEXT("Combat.Action.ThrowName")),
+			TEXT("ItemName"), ItemName);
+		Action.Definition.Description = bCanonical ? Capabilities.Description : OldDefinition->Description;
+		Action.Definition.Icon = bCanonical ? Capabilities.ItemIcon : OldDefinition->Icon;
+
 		FGridInventoryCharacterSummary Summary;
-		if (!InventoryComponent->GetCharacterSummary(CharacterIndex, Summary) || !Definition->CanBeThrownByStrength(Summary.Attributes.Strength))
+		if (!InventoryComponent->GetCharacterSummary(CharacterIndex, Summary))
+		{
+			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::MissingRequirement;
+			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.ThrowRequirement"));
+			return Action;
+		}
+		const FGridPhysicalThrowStrengthReadView Gate =
+			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, OldDefinition, Source->Item, Summary.Attributes.Strength);
+		if (!Gate.bCanThrow)
 		{
 			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::MissingRequirement;
 			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.ThrowRequirement"));
@@ -155,7 +192,6 @@ namespace
 		Action.AvailabilityReason = EGridCombatActionAvailabilityReason::None;
 		return Action;
 	}
-
 
     /** ARMEMENT01.15.2: combat catalogue intentionally disables every action
      * during exploration. Project only supported self restorative QuickItems
@@ -1615,9 +1651,10 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 			? ActionView.Action.SourceDefinitionId : ActionView.Binding.SourceDefinitionId;
 		const EGridCombatActionSourcePolicy SourcePolicy = ActionView.bResolved
 			? ActionView.Action.Definition.SourcePolicy : ActionView.Binding.SourcePolicy;
-		const bool bCanonicalEquipment =
-			SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+		const bool bCanonicalIdentity =
 			Registry && Registry->HasCanonicalItem(SourceDefinitionId);
+		const bool bCanonicalEquipment =
+			SourcePolicy == EGridCombatActionSourcePolicy::Equipment && bCanonicalIdentity;
 
 		FGridItemInstance EquippedItem;
 		const FGridItemInstance* SourceItem = nullptr;
@@ -1641,7 +1678,7 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 				Registry, SourceDefinitionId, ActionView.bResolved,
 				SourceItem, ActionView.Action);
 		}
-		else
+		else if (!bCanonicalIdentity)
 		{
 			const UGridItemDefinitionAsset* ItemDefinition =
 				IsValid(InventoryComponent) && !SourceDefinitionId.IsNone()

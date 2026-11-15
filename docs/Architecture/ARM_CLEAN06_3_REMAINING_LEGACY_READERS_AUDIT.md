@@ -106,3 +106,29 @@ non authorée n'est pas inventée.
 
 Voir `docs/Architecture/ARM_CLEAN06_3AV_CANONICAL_SPECIALIZED_THROWS.md`.
 Aucun `.uasset`, SaveGame, WBP ni texte localisé n'a été modifié.
+
+## Complément 06.3AW — capacités d'interaction et raccourcis physiques
+
+Le menu `GridItemContextActionLibrary`, l'assignation des raccourcis
+`GridPartyInventoryComponentHotbar`, leur affichage
+`GridCombatHudWidget` et les exécuteurs de lecture/consommation
+d'inventaire classent maintenant d'abord l'identité canonique
+`ItemId + ItemLevel`.
+
+Un projectile spécialisé enregistré N1–N20 est affectable à la
+barre comme **lancer physique** `ThrowItem_<ItemId>`, sans
+`DA_Weapon_*`. Les anciens `ItemType=Potion/Book`, contenus
+`ReadText` et `QuickItemCombatAction` ne deviennent pas des
+capacités de l'arme. Une lecture reste autorisée si le texte
+appartient à l'instance. Les objets non enregistrés conservent
+leurs exécuteurs de consommation et de lecture historiques.
+
+**Dette explicite :** `UGridConsumableDefinitionAsset.UseActions`
+existe dans le schéma canonique, mais son exécution
+Combat/Exploration n'est pas encore branchée. Ne pas
+annoncer une migration de potion canonique avant la preuve
+du véritable exécuteur. Les conversions binaires UE sont
+toujours prévues en 06.4.
+
+Voir `docs/Architecture/ARM_CLEAN06_3AW_CANONICAL_CONTEXT_HOTBAR_READ.md`.
+Aucun asset Unreal ni clé localisée n'est changé.

@@ -496,6 +496,12 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 
 	for (const FName ItemDefinitionId : QuickItemDefinitionIds)
 	{
+		if (Canonical && Canonical->HasCanonicalItem(ItemDefinitionId))
+		{
+			// Registered action bindings must not be duplicated by legacy QuickItems.
+			// Physical utility throws are projected separately by the HUD.
+			continue;
+		}
 		const UGridItemDefinitionAsset* ItemDefinition = Inventory->FindItemDefinition(ItemDefinitionId);
 		FGridCombatActionDefinition QuickItemAction;
 		if (!IsValid(ItemDefinition) || !ItemDefinition->BuildInventoryCombatActionDefinition(QuickItemAction))

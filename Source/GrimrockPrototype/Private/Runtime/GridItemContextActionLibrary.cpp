@@ -10,6 +10,7 @@
 #include "GridPhysicalThrowStrengthReadModel.h"
 #include "GridCanonicalEquipmentSlotsReadModel.h"
 #include "GridCanonicalInventoryStackReadModel.h"
+#include "GridCanonicalItemInteractionReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -233,6 +234,12 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		Definition = ItemContext.PartyPawn->PartyInventoryComponent->FindItemDefinition(ItemContext.Item.ItemDefinitionId);
 	}
 
+	const UWorld* ItemWorld = ItemContext.PartyPawn->GetWorld();
+	UGameInstance* ItemGI = ItemWorld ? ItemWorld->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* ItemRegistry = ItemGI ? ItemGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const FGridCanonicalItemInteractionReadView Capabilities =
+		FGridCanonicalItemInteractionReadModel::Resolve(ItemRegistry, Definition, ItemContext.Item);
+
 	ResolveFacingTarget(ItemContext.PartyPawn, ItemContext.Item, Definition, OutFacingTarget);
 
 	AddAction(OutActions, EGridItemActionType::Examine, NSLOCTEXT("GridItemActions", "Examine", "Examiner"));
@@ -276,7 +283,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		}
 	}
 
-	if (Definition && (Definition->ItemType == EGridItemType::Potion || Definition->ItemType == EGridItemType::Food))
+	if (Capabilities.bCanConsumeLegacy && Definition)
 	{
 		FGridCombatActionDefinition QuickItemAction;
 		const bool bSelfRestoration =
@@ -311,7 +318,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 			bUsefulEffect ? FText::GetEmpty() : DisabledReason);
 	}
 
-	if (UGridItemContextActionLibrary::IsItemReadable(ItemContext.Item, Definition))
+	if (Capabilities.bCanRead)
 	{
 		AddAction(OutActions, EGridItemActionType::Read, NSLOCTEXT("GridItemActions", "Read", "Lire"));
 	}
@@ -341,13 +348,9 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	const EGridEquipmentSlot EffectiveEquipmentSlot =
 		ItemContext.EquipmentSlot != EGridEquipmentSlot::None ? ItemContext.EquipmentSlot : ItemContext.Item.EquipmentSlot;
 
-	if (bIsInventorySlotSource && Definition && ItemContext.PartyPawn->PartyInventoryComponent)
+	if (bIsInventorySlotSource && Capabilities.bCanAddToHotbar && ItemContext.PartyPawn->PartyInventoryComponent)
 	{
-		FGridCombatActionDefinition InventoryAction;
-		const bool bSupportsHotbar = Definition->BuildInventoryCombatActionDefinition(InventoryAction) || Definition->IsPhysicallyThrowable();
-		if (bSupportsHotbar)
-		{
-			UGridPartyInventoryComponent* InventoryComponent = ItemContext.PartyPawn->PartyInventoryComponent;
+		UGridPartyInventoryComponent* InventoryComponent = ItemContext.PartyPawn->PartyInventoryComponent;
 			bool bAlreadyBound = false;
 			bool bHasFreeSlot = false;
 			for (int32 SlotIndex = 0; SlotIndex < InventoryComponent->GetCharacterCombatHotbarSlotCount(ItemContext.CharacterIndex); ++SlotIndex)
@@ -380,7 +383,6 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 
 			AddAction(OutActions, EGridItemActionType::AddToHotbar, NSLOCTEXT("GridItemActions", "AddToHotbar", "Ajouter à la barre d'action"), nullptr,
 				EGridEquipmentSlot::None, !bAlreadyBound && bHasFreeSlot, DisabledReason);
-		}
 	}
 
 	if (bIsInventorySlotSource && OutFacingTarget.bIsValid && OutFacingTarget.bAcceptsCurrentItem &&

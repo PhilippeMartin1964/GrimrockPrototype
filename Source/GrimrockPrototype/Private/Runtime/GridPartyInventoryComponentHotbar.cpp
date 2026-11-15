@@ -2,6 +2,7 @@
 
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "GridCanonicalItemInteractionReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 
@@ -180,22 +181,14 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 	// ARM-CLEAN06.3C: migrated equipment uses ONLY the registered
 	// ItemId -> ActionId/PresentationId catalogue. Other item families
 	// retain their existing reader until their own migration.
-	const UGridItemSubsystem* Canonical = nullptr;
-	if (SourceEquipmentSlot != EGridEquipmentSlot::None)
-	{
-		if (const UWorld* World = GetWorld())
-		{
-			if (UGameInstance* GI = World->GetGameInstance())
-			{
-				Canonical = GI->GetSubsystem<UGridItemSubsystem>();
-			}
-		}
-	}
-	const bool bCanonicalEquipped = Canonical &&
+	const UWorld* World = GetWorld();
+	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Canonical = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const bool bCanonicalIdentity = Canonical &&
 		Canonical->HasCanonicalItem(SourceItem.ItemDefinitionId);
-	const UGridItemDefinitionAsset* Definition = bCanonicalEquipped ? nullptr :
+	const UGridItemDefinitionAsset* Definition = bCanonicalIdentity ? nullptr :
 		FindItemDefinition(SourceItem.ItemDefinitionId);
-	if (!bCanonicalEquipped &&
+	if (!bCanonicalIdentity &&
 		(!IsValid(Definition) || !Definition->IsValidDefinition()))
 	{
 		return false;
@@ -208,7 +201,7 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		{
 			return false;
 		}
-		if (!bCanonicalEquipped &&
+		if (!bCanonicalIdentity &&
 			!Definition->CompatibleEquipmentSlots.Contains(SourceEquipmentSlot))
 		{
 			return false;
@@ -222,7 +215,7 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		}
 
 		FName PrimaryActionId = NAME_None;
-		if (bCanonicalEquipped)
+		if (bCanonicalIdentity)
 		{
 			FGridResolvedItem Item;
 			if (!Canonical->ResolveItem(SourceItem.ItemDefinitionId, SourceItem.ItemLevel, Item) ||
@@ -283,8 +276,20 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 			return false;
 		}
 
+		const FGridCanonicalItemInteractionReadView Capabilities =
+			FGridCanonicalItemInteractionReadModel::Resolve(Canonical, Definition, SourceItem);
 		FGridCombatActionDefinition InventoryAction;
-		if (Definition->BuildInventoryCombatActionDefinition(InventoryAction))
+		if (Capabilities.bCanonicalIdentity && Capabilities.bPhysicalThrowHotbar)
+		{
+			Binding.ActionId = FGridCombatHotbarBinding::MakePhysicalThrowItemActionId(SourceItem.ItemDefinitionId);
+			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+			Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
+		}
+		else if (Capabilities.bCanonicalIdentity)
+		{
+			return false; // An old quick-item action cannot be resurrected for a known ID.
+		}
+		else if (Definition->BuildInventoryCombatActionDefinition(InventoryAction))
 		{
 			Binding.ActionId = InventoryAction.ActionId;
 			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
