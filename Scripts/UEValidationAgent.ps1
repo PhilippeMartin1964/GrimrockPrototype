@@ -2139,6 +2139,76 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4S — immutable closed transaction plan + private
+        # 84-file staging / tamper detection / full sandbox rollback.
+        $Txn4STrigger = 'chore(ARM-CLEAN06.4S): rehearse sealed UE asset transaction without writes'
+        $Txn4SSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Txn4SSubject.Count -eq 1 -and
+            [string]$Txn4SSubject[0] -ceq $Txn4STrigger) {
+            $Txn4SContext = 'UE5.5.4/ARM-CLEAN06.4S'
+            $Txn4SPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Txn4SContext -Description '84 binaires: manifeste ferme et rollback dans bac a sable prive'
+                $Txn4SScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4S_TransactionRehearsal.ps1'
+                if (-not (Test-Path -LiteralPath $Txn4SScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4S: missing sealed transaction rehearsal script.'
+                }
+                $Txn4SPhase = 'PARSE'
+                $Txn4STokens = $null
+                $Txn4SErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Txn4SScript, [ref]$Txn4STokens, [ref]$Txn4SErrors)
+                if ($Txn4SErrors -and $Txn4SErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4S: invalid PowerShell syntax.'
+                }
+                foreach ($Txn4SValue in @($Txn4SScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Txn4SValue.Contains('"')) {throw 'ARM-CLEAN06.4S: unsafe quote in path.'}
+                }
+                $Txn4SArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Txn4SScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Txn4SOut = Join-Path $RunDir 'ARM064S.stdout.log'
+                $Txn4SErr = Join-Path $RunDir 'ARM064S.stderr.log'
+                $Txn4SPhase = 'PROCESS_RUNNING'
+                $Txn4SProcess = Start-Process -FilePath $PsExe -ArgumentList $Txn4SArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Txn4SOut -RedirectStandardError $Txn4SErr -PassThru -Wait -ErrorAction Stop
+                if ($Txn4SProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4S: signed sandbox transaction rehearsal failed.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Txn4SContext -Description '84 sources/restaurations verifiees; 0 binaire et 0 SaveGame ecrits'
+                Write-Host '[ARM-CLEAN06.4S] Sealed private rollback rehearsal verified; migration still blocked.'
+            }
+            catch {
+                $Txn4SStagePath = Join-Path $RunDir 'ARMClean064S.stage'
+                $Txn4SStage = if (Test-Path -LiteralPath $Txn4SStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Txn4SStagePath -TotalCount 1)).Trim()
+                } else { $Txn4SPhase }
+                if ($Txn4SStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4K_LOCATE','READ_4K_MISSING','READ_4K_MULTIPLE',
+                    'READ_4K_DUPLICATE_PROVENANCE','READ_4K_NO_TRUSTED_COPY',
+                    'READ_4K_COMPARE_COPIES','READ_4K_CONFLICTING_COPIES',
+                    'READ_4K_DUPLICATES_RECONCILED','READ_4K_GATE_EXISTS',
+                    'READ_4K_GATE_READ','READ_4K_GATE_SCHEMA','READ_4K_REPORT_HASH',
+                    'READ_4K_COUNTERS','READ_4K_GATE_CLOSED','VERIFY_4K_DOMAINS',
+                    'REHASH_84','READ_4R','READ_4R_DUPLICATE_PROVENANCE',
+                    'READ_4R_NO_TRUSTED_COPY','READ_4R_COMPARE_COPIES',
+                    'READ_4R_CONFLICTING_COPIES','READ_4R_DUPLICATES_RECONCILED',
+                    'PREPARE_SANDBOX','BUILD_TRANSACTION_MANIFEST',
+                    'REHEARSE_STAGING','REHEARSE_DETECTION','REHEARSE_ROLLBACK',
+                    'VERIFY_ALL_AFTER_ROLLBACK','CLEAN_PRIVATE_SANDBOX',
+                    'WRITE_CLOSED_GATE','VERIFY_CLEAN','ISSUE_BUILD',
+                    'ISSUE_WRITE','SUCCESS','START','PARSE','PROCESS_RUNNING')) {
+                    $Txn4SStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Txn4SContext -Description ('Transaction 06.4S bloquee : ' + $Txn4SStage)
+                }
+                catch {Write-Warning '[ARM-CLEAN06.4S] Status publication failed.'}
+                Write-Warning ('[ARM-CLEAN06.4S] Closed sandbox transaction incomplete: ' + $Txn4SStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.

@@ -9,21 +9,24 @@
 
 - Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
 - Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
-- Dernier jalon **validé en UE5.5.4** : **ARM-CLEAN06.4Q**,
-  commit `608a83c76205cfc126088fc19f36d5f0e2e173aa`.
-- Trois checks sur ce SHA exact :
-  `UE5.5.4/SilentTask=success`, `UE5.5.4/LocalAuto=success`,
-  `UE5.5.4/ARM-CLEAN06.4Q=success`.
-  Issue [150](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/150) :
-  6 occurrences empilement, 4 sources stackables, 7 à capacité 1,
-  34 définitions transitoires et 44 sondes N0/N1/N20/N21.
-- Le propriétaire a confirmé en PIE que le runtime existant (effets,
-  torches, Save/Continue) reste inchangé. **Cela ne prouve pas le
-  futur lecteur canonique après conversion.**
-- **ARM-CLEAN06.4R est en préparation/validation** : quatre actions
-  complètes et une présentation non-ARM, depuis les sources privées
-  06.4O. Ne le déclarer validé qu'après trois SUCCESS sur son SHA.
-  Aucune conversion binaire, SaveGame ou WBP autorisée.
+- Dernier jalon **validé en UE5.5.4** : **ARM-CLEAN06.4R**,
+  commit `37cf07dc21359a9762c6dd244eebe74bba02bc41`.
+- Sur ce SHA exact : `UE5.5.4/SilentTask=success`,
+  `UE5.5.4/LocalAuto=success`,
+  `UE5.5.4/ARM-CLEAN06.4R=success`.
+  Issue [151](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/151) :
+  4 actions complètes (dont 3 QuickItem), 1 présentation,
+  176 champs exportés comparés, 54 champs non défaut préservés.
+  **Zéro route runtime approuvée et zéro vrai asset converti.**
+- Le propriétaire a confirmé en PIE que le runtime **ancien**
+  (effets, torches, Save/Continue) était inchangé. Cela ne prouve
+  **pas** le comportement de la future migration.
+- **ARM-CLEAN06.4S en préparation/validation** : transaction avec
+  manifeste privé exact de 84 packages et simulation de rollback
+  **dans le bac à sable Windows**, sans `SavePackage` sur les
+  fichiers du projet. Attendre trois SUCCESS sur son SHA avant
+  toute déclaration de validation. SaveGames et WBP périphériques
+  ne sont pas protégés : migration réelle toujours interdite.
 
 ### Jalons récents déjà réalisés — ne pas les refaire
 
@@ -590,6 +593,31 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   Ne pas rouvrir un audit de chacune des familles déjà couvertes.
 - Document :
   `docs/Architecture/ARM_CLEAN06_4R_NONARM_ACTION_LOSSLESS_BRIDGE.md`.
+
+## ARM-CLEAN06.4S — transaction binaire répétée en privé (PAS de conversion)
+
+- Source : 06.4R `37cf07dc21359a9762c6dd244eebe74bba02bc41`
+  trois SUCCESS, issue 151 ; backup immuable 06.4G.
+- Le `Scripts/AuditARM_CLEAN06_4S_TransactionRehearsal.ps1`
+  rehash les 84 sources + copies, génère un manifeste SHA-256
+  fermé et crée uniquement **84 copies dans le RunDir privé**.
+- Simulation : ajout volontaire d'un octet dans **une copie de
+  test privée**, détection par SHA-256, restauration depuis
+  le snapshot 06.4G, vérification des **84** copies restaurées
+  et suppression du seul répertoire temporaire.
+- `migration_authorized=false`,
+  `allowed_binary_writes=[]`,
+  `allowed_package_deletions=[]`,
+  `allowed_savegame_writes=[]`.
+  **AUCUN `SavePackage` ni fichier utilisateur touché.**
+- Attendre `UE5.5.4/SilentTask`, `UE5.5.4/LocalAuto`
+  et `UE5.5.4/ARM-CLEAN06.4S` tous SUCCESS **sur SHA S**.
+- Verrous à lever pour **06.4T** : choix des 11 familles
+  exactes, 40 références, 4 actions encore sans route runtime,
+  backups/compatibilité des vrais SaveGames, assets WBP/presets
+  périphériques et démonstration post-conversion.
+- Document :
+  `docs/Architecture/ARM_CLEAN06_4S_TRANSACTION_REHEARSAL.md`.
 
 ## Étapes ultérieures inchangées
 
