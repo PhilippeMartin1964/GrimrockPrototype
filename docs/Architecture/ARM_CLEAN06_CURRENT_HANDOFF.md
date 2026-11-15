@@ -9,20 +9,22 @@
 
 - Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
 - Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
-- Dernier jalon de données **validé en UE5.5.4** :
-  **ARM-CLEAN06.4N**, commit `99bd3afc3207830c76542078eaba417dcbbc9b63`.
+- Dernier jalon **validé en UE5.5.4** : **ARM-CLEAN06.4O**,
+  commit `20f641621cff0f2db0c12a94f9ff38176f0ca666`.
 - Sur ce SHA exact : `UE5.5.4/SilentTask=success`,
-  `UE5.5.4/LocalAuto=success`, `UE5.5.4/ARM-CLEAN06.4N=success`.
-  Issue publique 147 : 3 champs actifs du lancer générique non-ARM,
-  121 copies de même type, 11 enums explicites, 77 sondes pures.
-  **32** occurrences de propriétés actives restent à convertir.
+  `UE5.5.4/LocalAuto=success`,
+  `UE5.5.4/ARM-CLEAN06.4O=success`.
+  Issue publique 148 : **11** propriétés actions non-ARM,
+  **1** action équipement, **3** QuickItems normalisées,
+  **1** présentation valide et **54** champs imbriqués non défaut.
+  **Aucun mapping sémantique d'action n'est approuvé.**
 - Le propriétaire a confirmé en PIE que les effets, torches et
   Save/Continue du **runtime existant** restent inchangés. Cela ne
   prouve **pas** le futur lecteur canonique.
-- **06.4O est en préparation/validation** : ne le déclarer terminé
-  qu'après trois statuts SUCCESS sur son propre SHA. 06.3BG est
-  le dernier jalon runtime antérieur ; **aucune** conversion binaire,
-  SaveGame ni modification WBP n'est autorisée. 06.4–06.6 restent ouvertes.
+- **ARM-CLEAN06.4P est en préparation/validation** : attendre ses trois
+  statuts SUCCESS sur son propre SHA. Le domaine équipement comprend
+  15 champs actifs. Les étapes 06.4–06.6 restent ouvertes et les
+  conversions binaires, SaveGame et modifications WBP sont interdites.
 
 ### Jalons récents déjà réalisés — ne pas les refaire
 
@@ -505,6 +507,30 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   des actions. Les **32** champs actifs restants comprennent
   actions 11, équipement hors ARM 15, empilement 6.
 - Voir `docs/Architecture/ARM_CLEAN06_4O_NONARM_ACTION_SEMANTIC_INVENTORY.md`.
+
+## ARM-CLEAN06.4P — équipements non-ARM, projection avec invariants de main
+
+- Source validée : 06.4O `20f641621cff0f2db0c12a94f9ff38176f0ca666`,
+  trois SUCCESS et issue 148. Les 11 propriétés d'actions restent en revue.
+- 06.4P traite les **15 occurrences actives** du domaine
+  `NONARM_EQUIPMENT` parmi les 11 ItemId/40 placements réels.
+- `UGridOtherEquipmentDefinitionAsset` reçoit
+  `HandPolicy` explicite, `Resistances` et `EquippedMesh`,
+  sans dupliquer `EquipmentSlots` ou `Bonuses` existants.
+- Le commandlet `GridArmClean064PNonArmEquipmentParity`
+  vise **44 copies strictes**, **11 politiques de main résolues**,
+  **209 vérifications des emplacements**, **11 listes UI**, **33
+  sondes de bonus N0/N1/N20** et **11 replis de mesh**.
+- 84 sources et 84 copies privées rehashées, 50 valeurs actives
+  recontrôlées. Aucune écriture binaire et aucun SaveGame ouvert.
+- Attendre `UE5.5.4/SilentTask`, `UE5.5.4/LocalAuto` et
+  `UE5.5.4/ARM-CLEAN06.4P` tous SUCCESS **sur le SHA de 06.4P**.
+  Un succès signifie parité en mémoire, pas test PIE ni cutover.
+- **17 champs** resteraient ouverts après validation des données :
+  actions 11, empilement 6. Suite : 06.4Q pour empilement, puis
+  mapping complet d'actions et régression Save/Continue.
+- Documentation :
+  `docs/Architecture/ARM_CLEAN06_4P_NONARM_EQUIPMENT_PARITY.md`.
 
 ## Étapes ultérieures inchangées
 

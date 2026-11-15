@@ -1931,6 +1931,71 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4P — strict real UE non-armament equipment parity.
+        $Equip4PTrigger = 'feat(ARM-CLEAN06.4P): preserve nonarm equipment hand slots resistances and meshes'
+        $Equip4PSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Equip4PSubject.Count -eq 1 -and
+            [string]$Equip4PSubject[0] -ceq $Equip4PTrigger) {
+            $Equip4PContext = 'UE5.5.4/ARM-CLEAN06.4P'
+            $Equip4PPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Equip4PContext -Description 'Parite UE non-ARM: mains, emplacements, stats, resistances et meshes'
+                $Equip4PScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4P_NonArmEquipmentParity.ps1'
+                if (-not (Test-Path -LiteralPath $Equip4PScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4P: missing private validation script.'
+                }
+                $Equip4PPhase = 'PARSE'
+                $Equip4PTokens = $null
+                $Equip4PErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Equip4PScript, [ref]$Equip4PTokens, [ref]$Equip4PErrors)
+                if ($Equip4PErrors -and $Equip4PErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4P: invalid PowerShell syntax.'
+                }
+                foreach ($Equip4PValue in @($Equip4PScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Equip4PValue.Contains('"')) { throw 'ARM-CLEAN06.4P: unsupported path quote.' }
+                }
+                $Equip4PArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Equip4PScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Equip4POut = Join-Path $RunDir 'ARM064P.stdout.log'
+                $Equip4PErr = Join-Path $RunDir 'ARM064P.stderr.log'
+                $Equip4PPhase = 'PROCESS_RUNNING'
+                $Equip4PProcess = Start-Process -FilePath $PsExe -ArgumentList $Equip4PArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Equip4POut -RedirectStandardError $Equip4PErr -PassThru -Wait -ErrorAction Stop
+                if ($Equip4PProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4P: actual UE equipment parity failed.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Equip4PContext -Description '15 champs non-ARM, 44 copies, 209 emplacements, migration fermee'
+                Write-Host '[ARM-CLEAN06.4P] UE non-armament equipment data parity verified.'
+            }
+            catch {
+                $Equip4PStagePath = Join-Path $RunDir 'ARMClean064P.stage'
+                $Equip4PStage = if (Test-Path -LiteralPath $Equip4PStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Equip4PStagePath -TotalCount 1)).Trim()
+                } else { $Equip4PPhase }
+                if ($Equip4PStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4K_LOCATE','READ_4K_MISSING','READ_4K_MULTIPLE',
+                    'READ_4K_DUPLICATE_PROVENANCE','READ_4K_NO_TRUSTED_COPY',
+                    'READ_4K_COMPARE_COPIES','READ_4K_CONFLICTING_COPIES',
+                    'READ_4K_DUPLICATES_RECONCILED','READ_4K_GATE_EXISTS',
+                    'READ_4K_GATE_READ','READ_4K_GATE_SCHEMA','READ_4K_REPORT_HASH',
+                    'READ_4K_COUNTERS','READ_4K_GATE_CLOSED','VERIFY_4K_DOMAINS',
+                    'REHASH_84','READ_4O','UNREAL_EQUIPMENT_PARITY',
+                    'UNREAL_EQUIPMENT_FAILED','VERIFY_RESULT','WRITE_PRIVATE_GATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE','SUCCESS',
+                    'START','PARSE','PROCESS_RUNNING')) {
+                    $Equip4PStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Equip4PContext -Description ('Equipement 06.4P bloque : ' + $Equip4PStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4P] GitHub status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4P] Native UE equipment parity incomplete: ' + $Equip4PStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.

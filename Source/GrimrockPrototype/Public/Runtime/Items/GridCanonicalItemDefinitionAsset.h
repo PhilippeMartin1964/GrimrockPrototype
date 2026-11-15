@@ -54,6 +54,15 @@ public:
 	bool HasValidIdentity() const;
 };
 
+/** Resolved non-ARM hand policy. No legacy Auto inference survives cutover. */
+UENUM(BlueprintType)
+enum class EGridNonArmamentHandPolicy : uint8
+{
+    NotHandHeld,
+    OneHanded,
+    TwoHanded
+};
+
 /** Exactly one additional editable property; no catalogue, icon or N1 copy. */
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridArmamentDefinitionAsset : public UGridCanonicalItemDefinitionAsset
@@ -169,4 +178,57 @@ public:
 	/** Only for non-ARM armor/jewelry; never duplicates catalogued ARM defenses. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
 	FGridEquipmentStatBonus Bonuses;
+
+	/** Explicit effective hand policy; Auto is resolved from real source
+	 * slots only by the one-shot Editor converter, never at runtime. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
+	EGridNonArmamentHandPolicy HandPolicy = EGridNonArmamentHandPolicy::NotHandHeld;
+
+	/** Non-ARM equipment resistances are not ARM combat catalogue defenses. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
+	FGridDamageResistanceSet Resistances;
+
+	/** Optional held/paperdoll mesh, distinct from non-ARM WorldMesh. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Visual")
+	TSoftObjectPtr<UStaticMesh> EquippedMesh;
+
+	/** Mirrors explicit source slot behavior, including the special hand rule. */
+	bool CanEquipToSlot(EGridEquipmentSlot Slot) const
+	{
+		if (Slot == EGridEquipmentSlot::None) { return false; }
+		if ((Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand) &&
+			(HandPolicy == EGridNonArmamentHandPolicy::OneHanded ||
+			 HandPolicy == EGridNonArmamentHandPolicy::TwoHanded))
+		{
+			return true;
+		}
+		return EquipmentSlots.Contains(Slot);
+	}
+
+	/** Inventory/action visibility hides the virtual OffHand of two-handed
+	 * gear; direct CanEquipToSlot remains identical to the legacy definition. */
+	TArray<EGridEquipmentSlot> GetAvailableSlots() const
+	{
+		TArray<EGridEquipmentSlot> Slots;
+		if (CanEquipToSlot(EGridEquipmentSlot::MainHand)) { Slots.Add(EGridEquipmentSlot::MainHand); }
+		if (HandPolicy != EGridNonArmamentHandPolicy::TwoHanded &&
+			CanEquipToSlot(EGridEquipmentSlot::OffHand))
+		{
+			Slots.Add(EGridEquipmentSlot::OffHand);
+		}
+		for (const EGridEquipmentSlot Slot : EquipmentSlots)
+		{
+			if (Slot != EGridEquipmentSlot::None && Slot != EGridEquipmentSlot::MainHand &&
+				Slot != EGridEquipmentSlot::OffHand && !Slots.Contains(Slot) && CanEquipToSlot(Slot))
+			{
+				Slots.Add(Slot);
+			}
+		}
+		return Slots;
+	}
+
+	TSoftObjectPtr<UStaticMesh> GetEffectiveEquippedMesh() const
+	{
+		return EquippedMesh.IsNull() ? WorldMesh : EquippedMesh;
+	}
 };
