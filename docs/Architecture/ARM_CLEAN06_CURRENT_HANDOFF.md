@@ -240,6 +240,30 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   aucun SaveGame converti. Lire
   `ARM_CLEAN06_4F_THREE_WAY_USER_AUDIO_PROVENANCE.md`.
 
+## ARM-CLEAN06.4G — photographie et restauration binaire en bac à sable
+
+- Source 06.4F validée : quatre définitions Sword présentent les huit
+  champs audio modifiés dès 06.2A, **sans dérive** ultérieure ;
+  06.4E certifie leur parité canonique strictement actuelle.
+- L'agent Windows construit une **liste fermée** :
+  les 56 fichiers des reçus de 06.4A + les 28 fichiers réellement
+  versionnés sous `CanonicalStage` (registre, quatre catalogues,
+  23 définitions). Toute apparition, disparition, LFS pointer,
+  altération de hash ou fichier hors préfixe refuse le lot.
+- Relance `GridArmClean06Baseline` dans UE5.5.4 : vérifie les
+  UPROPERTY, graphes AssetRegistry et 1640 profils de 06.4A.
+- Sauvegarde les 84 vrais binaires dans un dossier **privé** de l'agent,
+  vérifie SHA-256 avant et après chaque copie, puis simule
+  la restauration **uniquement dans un autre dossier privé**.
+- `UE5.5.4/ARM-CLEAN06.4G` publie le statut du SHA exact ;
+  ticket GitHub `[ARM-CLEAN06.4G]` à compteurs seuls.
+- La restauration du vrai projet n'est **pas** exécutée, et aucune
+  écriture .uasset/.umap/.sav n'est autorisée. Les SaveGames
+  personnels ne sont ni recopiés ni ouverts.
+- Livrable `docs/Architecture/ARM_CLEAN06_4G_BINARY_TRANSACTION_GUARD.md`.
+  Suite : audit exhaustif d'identités, niveaux, jets et références
+  puis transaction Editor-only explicite avec sauvegardes prouvées.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,

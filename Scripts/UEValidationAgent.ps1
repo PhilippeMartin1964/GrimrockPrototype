@@ -1363,6 +1363,69 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4G — private 56+28 .uasset backup and restore drill.
+        # Runs after full Build+Grimrock success, only on the exact stage
+        # commit subject; no original asset or SaveGame writes.
+        $Backup4GTrigger = 'chore(ARM-CLEAN06.4G): stage immutable UE binary backups and rollback drill'
+        $Backup4GSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Backup4GSubject.Count -eq 1 -and
+            [string]$Backup4GSubject[0] -ceq $Backup4GTrigger) {
+            $Backup4GContext = 'UE5.5.4/ARM-CLEAN06.4G'
+            $Backup4GPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Backup4GContext -Description 'Photo privee des 84 binaires; verification des copies et restauration bac a sable'
+                $Backup4GScript = Join-Path $WorktreePath 'Scripts\PrepareARM_CLEAN06_4G_BinarySnapshot.ps1'
+                if (-not (Test-Path -LiteralPath $Backup4GScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4G: snapshot script not found.'
+                }
+                $Backup4GPhase = 'PARSE'
+                $Backup4GTokens = $null
+                $Backup4GErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Backup4GScript, [ref]$Backup4GTokens, [ref]$Backup4GErrors)
+                if ($Backup4GErrors -and $Backup4GErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4G: invalid PowerShell syntax.'
+                }
+                foreach ($Backup4GValue in @($Backup4GScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Backup4GValue.Contains('"')) { throw 'ARM-CLEAN06.4G: unsupported path quote.' }
+                }
+                $Backup4GArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Backup4GScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Backup4GOut = Join-Path $RunDir 'ARM064G.stdout.log'
+                $Backup4GErr = Join-Path $RunDir 'ARM064G.stderr.log'
+                $Backup4GPhase = 'PROCESS_RUNNING'
+                $Backup4GProcess = Start-Process -FilePath $PsExe -ArgumentList $Backup4GArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Backup4GOut -RedirectStandardError $Backup4GErr -PassThru -Wait -ErrorAction Stop
+                if ($Backup4GProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4G: guarded backup/restore check returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Backup4GContext -Description '84 copies privees verifiees; restauration testee sans ecriture projet'
+                Write-Host '[ARM-CLEAN06.4G] Private binary backup verified; no migration authorized.'
+            }
+            catch {
+                $Backup4GStagePath = Join-Path $RunDir 'ARMClean064G.stage'
+                $Backup4GStage = if (Test-Path -LiteralPath $Backup4GStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Backup4GStagePath -TotalCount 1)).Trim()
+                } else { $Backup4GPhase }
+                if ($Backup4GStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'PROVENANCE','BUILD_ALLOWLIST','CHECK_TRACKED','BUILD_LEGACY',
+                    'CHECK_CANONICAL_DISCOVERY','CHECK_CANONICAL_NAMES',
+                    'CHECK_FINAL_SCOPE','CHECK_OUTPUT_DIR','LIVE_UNREAL','LIVE_UNREAL_FAILED',
+                    'COMPARE_LIVE','VERIFY_SOURCE_HASHES','COPY_PRIVATE_SNAPSHOT',
+                    'SANDBOX_RESTORE_DRILL','WRITE_RECEIPTS','FINAL_CLEAN',
+                    'ISSUE_BUILD','ISSUE_WRITE','SUCCESS','START','PARSE','PROCESS_RUNNING')) {
+                    $Backup4GStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Backup4GContext -Description ('Sauvegarde 06.4G bloquee : ' + $Backup4GStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4G] Status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4G] Binary snapshot incomplete: ' + $Backup4GStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
