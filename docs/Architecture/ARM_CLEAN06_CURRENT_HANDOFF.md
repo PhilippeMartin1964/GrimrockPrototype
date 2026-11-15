@@ -10,14 +10,15 @@
 - Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
 - Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
 - Dernier jalon de données **validé en UE5.5.4** :
-  **ARM-CLEAN06.4L**, commit `a279761d52fba8d8a5280104e009bd336cb6c2a1`.
+  **ARM-CLEAN06.4M**, commit `8d925f186e02f419c3b5087f7df8f8f848548552`.
 - Sur ce SHA exact : `UE5.5.4/SilentTask=success`,
-  `UE5.5.4/LocalAuto=success`, `UE5.5.4/ARM-CLEAN06.4L=success`.
-  Issue publique 145 : 12 champs actifs lumière/VFX et 88 projections.
+  `UE5.5.4/LocalAuto=success`, `UE5.5.4/ARM-CLEAN06.4M=success`.
+  Issue publique 146 : 3 champs actifs ReadText/Chaos, 33 copies,
+  44 lectures et 33 sondes de masse/tilt ; 35 champs encore ouverts.
 - Le propriétaire a confirmé en PIE que les effets, torches et
   Save/Continue du **runtime existant** restent inchangés. Cela ne
   prouve **pas** le futur lecteur canonique.
-- **06.4M est en préparation/validation** : ne le déclarer terminé
+- **06.4N est en préparation/validation** : ne le déclarer terminé
   qu'après trois statuts SUCCESS sur son propre SHA. 06.3BG est
   le dernier jalon runtime antérieur ; **aucune** conversion binaire,
   SaveGame ni modification WBP n'est autorisée. 06.4–06.6 restent ouvertes.
@@ -457,6 +458,32 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   lancer non-ARM 3, actions 11, équipement non-ARM 15, empilement 6.
 - Voir `docs/Architecture/ARM_CLEAN06_4M_NONARM_READING_WORLD_PHYSICS_PARITY.md`.
   Prochaine phase recommandée : 06.4N, lancer physique non-armement.
+
+## ARM-CLEAN06.4N — lancer générique non-ARM, projection en mémoire
+
+- Parent 06.4M validé sur `8d925f186e02f419c3b5087f7df8f8f848548552`,
+  trois contrôles SUCCESS, issue 146.
+- 06.4N projette les **3 propriétés actives** du domaine
+  `GENERIC_THROW` sans inférer de nouvelle action.
+- `FGridNonArmamentThrowPolicy`, propriété de
+  `UGridNonArmamentDefinitionAsset`, conserve 12 paramètres
+  (balistique, collision/retombée, apparence du mesh, rotation).
+  Aucune modification de `DA_WeaponCatalogue.ProjectilePolicies`.
+- Commandlet `GridArmClean064NNonArmGenericThrow` : 11 objets
+  transitoires sur les sources réelles, **132 propriétés** correspondantes,
+  **121 copies exactes** et **11 modes enum** mappés explicitement,
+  **77 sondes pures** (33 balistique, 44 visuel).
+- Les identités et valeurs privées ne sont jamais publiées. 84 sources
+  et leurs copies immuables vérifiées SHA ; sauvegardes non lues.
+- **À vérifier sur SHA 06.4N :** `UE5.5.4/SilentTask`,
+  `UE5.5.4/LocalAuto`, `UE5.5.4/ARM-CLEAN06.4N` tous SUCCESS ;
+  ce jalon ne vaut qu'une parité de données, pas un PIE/Chaos/cutover.
+- Autres **32** occurrences actives restant à projeter : actions 11,
+  équipement hors ARM 15, empilement 6 ; ne pas convertir les assets
+  avant les contrôles d'interaction, SaveGame et runtime.
+- Document détaillé :
+  `docs/Architecture/ARM_CLEAN06_4N_NONARM_GENERIC_THROW_PARITY.md`.
+  Suite prévue : 06.4O, actions non-ARM, puis équipements et empilement.
 
 ## Étapes ultérieures inchangées
 

@@ -1801,6 +1801,71 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4N — guarded generic NON-ARM throwing audit, read-only.
+        $Generic4NTrigger = 'feat(ARM-CLEAN06.4N): preserve generic nonarm throwing and visual physics data'
+        $Generic4NSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Generic4NSubject.Count -eq 1 -and
+            [string]$Generic4NSubject[0] -ceq $Generic4NTrigger) {
+            $Generic4NContext = 'UE5.5.4/ARM-CLEAN06.4N'
+            $Generic4NPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Generic4NContext -Description 'Audit UE transitoire des lancers physiques non-ARM'
+                $Generic4NScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4N_NonArmGenericThrow.ps1'
+                if (-not (Test-Path -LiteralPath $Generic4NScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4N: script missing.'
+                }
+                $Generic4NPhase = 'PARSE'
+                $Generic4NTokens = $null
+                $Generic4NErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Generic4NScript, [ref]$Generic4NTokens, [ref]$Generic4NErrors)
+                if ($Generic4NErrors -and $Generic4NErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4N: invalid PowerShell syntax.'
+                }
+                foreach ($Generic4NValue in @($Generic4NScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Generic4NValue.Contains('"')) { throw 'ARM-CLEAN06.4N: unsupported path quote.' }
+                }
+                $Generic4NArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Generic4NScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Generic4NOut = Join-Path $RunDir 'ARM064N.stdout.log'
+                $Generic4NErr = Join-Path $RunDir 'ARM064N.stderr.log'
+                $Generic4NPhase = 'PROCESS_RUNNING'
+                $Generic4NProcess = Start-Process -FilePath $PsExe -ArgumentList $Generic4NArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Generic4NOut -RedirectStandardError $Generic4NErr -PassThru -Wait -ErrorAction Stop
+                if ($Generic4NProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4N: native generic throw data parity returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Generic4NContext -Description '3 champs lancers non-ARM, 132 mappings, 77 tests; gate fermee'
+                Write-Host '[ARM-CLEAN06.4N] Generic non-arm physical throw parity verified.'
+            }
+            catch {
+                $Generic4NStagePath = Join-Path $RunDir 'ARMClean064N.stage'
+                $Generic4NStage = if (Test-Path -LiteralPath $Generic4NStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Generic4NStagePath -TotalCount 1)).Trim()
+                } else { $Generic4NPhase }
+                if ($Generic4NStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4K_LOCATE','READ_4K_MISSING','READ_4K_MULTIPLE',
+                    'READ_4K_DUPLICATE_PROVENANCE','READ_4K_NO_TRUSTED_COPY',
+                    'READ_4K_COMPARE_COPIES','READ_4K_CONFLICTING_COPIES',
+                    'READ_4K_DUPLICATES_RECONCILED','READ_4K_GATE_EXISTS',
+                    'READ_4K_GATE_READ','READ_4K_GATE_SCHEMA','READ_4K_REPORT_HASH',
+                    'READ_4K_COUNTERS','READ_4K_GATE_CLOSED','VERIFY_4K_DOMAINS',
+                    'REHASH_84','READ_4M','UNREAL_GENERIC_THROW',
+                    'UNREAL_THROW_FAILED','VERIFY_RESULT','WRITE_PRIVATE_GATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE','SUCCESS',
+                    'START','PARSE','PROCESS_RUNNING')) {
+                    $Generic4NStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Generic4NContext -Description ('Lancers 06.4N bloques : ' + $Generic4NStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4N] GitHub status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4N] UE generic throw data parity incomplete: ' + $Generic4NStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.

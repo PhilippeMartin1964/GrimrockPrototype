@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/Items/GridNonArmamentThrowPolicy.h"
 #include "Runtime/GridLightEmitterTypes.h"
 #include "Runtime/GridItemVisualEffectsTypes.h"
 #include "GridCanonicalItemDefinitionAsset.generated.h"
@@ -123,6 +124,11 @@ public:
 	/** Deterministic first-placement tilt only; never reapplied at Save/Continue. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|World Physics", meta = (ClampMin = "0.0", ClampMax = "45.0"))
 	float WorldPhysicsInitialTiltDegrees = 0.0f;
+
+	/** ARM-CLEAN06.4N: generic non-ARM hand toss data only. No weapon
+	 * catalogue, action permission or runtime fallback is introduced. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Generic Throw")
+	FGridNonArmamentThrowPolicy GenericThrow;
 };
 
 UCLASS(BlueprintType)
