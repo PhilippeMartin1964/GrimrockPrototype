@@ -928,8 +928,12 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 	const bool bMatchingLegacy = IsValid(ItemDefinition) &&
 		ItemDefinition->ItemDefinitionId == ItemInstance.ItemDefinitionId;
 	const bool bValidProjectileSource = bRangedAmmunitionProjectile
-		? bMatchingLegacy && ItemDefinition->bStackable && ItemInstance.Quantity == 1 &&
-			!ItemDefinition->IsCombatThrowable()
+		? (bCanonicalIdentity
+			? (bCanonicalResolved && !Canonical.bIsArmament &&
+				!Canonical.AmmoKindId.IsNone() && Canonical.MaxStack > 1 &&
+				ItemInstance.ItemLevel == 0 && ItemInstance.Quantity == 1)
+			: (bMatchingLegacy && ItemDefinition->bStackable && ItemInstance.Quantity == 1 &&
+				!ItemDefinition->IsCombatThrowable()))
 		: (bCanonicalIdentity
 			? (bCanonicalSpecialized ||
 				(bCanonicalResolved && bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()))

@@ -35,6 +35,15 @@ Documents de détail :
 - `docs/Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md`
 - `docs/Architecture/ARM_CLEAN06_MIGRATION_PLAN.md`
 
+## Avancement 06.3BB — munitions canoniques
+
+Le jalon 06.3BB ajoute la résolution unique des exigences de munitions,
+les préflights partagés HUD/exécution et la porte de spawn canonique
+des flèches N0. Lire `ARM_CLEAN06_3BB_CANONICAL_RANGED_AMMUNITION.md`
+et vérifier les deux statuts de validation **sur le SHA fonctionnel BB**
+avant tout verdict. Les paramètres visuels des flèches conservés en
+transition et la recette PIE restent hors du cutover 06.4.
+
 ## Validation fonctionnelle encore nécessaire pour BA
 
 L'Automation vérifie les projections d'actions `Heal`,

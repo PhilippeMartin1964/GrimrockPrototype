@@ -176,6 +176,28 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	return true;
 }
 
+bool UGridItemSubsystem::ResolveAmmoKind(FName AmmoKindId, FGridResolvedItem& OutAmmo) const
+{
+	OutAmmo = FGridResolvedItem();
+	if (!RootRegistry || AmmoKindId.IsNone())
+	{
+		return false;
+	}
+
+	// RegisterItemSystem validates AmmoKindId uniqueness and requires every
+	// weapon's RequiredAmmoKindId to resolve. No secondary runtime index.
+	for (const TPair<FName, TObjectPtr<UGridCanonicalItemDefinitionAsset>>& Pair : ItemIndex)
+	{
+		const UGridAmmoDefinitionAsset* Ammo = Cast<UGridAmmoDefinitionAsset>(Pair.Value.Get());
+		if (IsValid(Ammo) && Ammo->AmmoKindId == AmmoKindId)
+		{
+			return ResolveItem(Pair.Key, 0, OutAmmo) &&
+				!OutAmmo.bIsArmament && OutAmmo.AmmoKindId == AmmoKindId;
+		}
+	}
+	return false;
+}
+
 TSoftObjectPtr<UTexture2D> UGridItemSubsystem::FindEquippedActionIcon(
 	EGridEquippedWeaponActionIconKind Kind) const
 {

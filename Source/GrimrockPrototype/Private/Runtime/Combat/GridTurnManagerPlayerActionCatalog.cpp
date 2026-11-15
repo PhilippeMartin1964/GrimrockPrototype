@@ -686,6 +686,9 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 	FGridCombatActionCatalog::Build(Context, Contributions, OutActions);
 
 	const bool bSpellActionsBlocked = FGridStatusEffectControlResolver::Resolve(Character.StatusEffects).bBlockSpellActions;
+	const UWorld* AmmoWorld = GetWorld();
+	const UGridItemSubsystem* AmmoRegistry = AmmoWorld && AmmoWorld->GetGameInstance()
+		? AmmoWorld->GetGameInstance()->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	for (FGridAvailableCombatAction& Action : OutActions)
 	{
 		if (bSpellActionsBlocked && Action.bEnabled && Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Spell)
@@ -701,12 +704,19 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
 			Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
 		{
-			const UGridItemDefinitionAsset* Weapon =
+			const UGridItemDefinitionAsset* LegacyWeapon =
 				Inventory->FindItemDefinition(Action.SourceDefinitionId);
-			if (IsValid(Weapon) &&
-				!FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
-					*Inventory, CharacterIndex, *Weapon,
-					Action.Definition.ActionType == EGridCombatActionType::RangedAttack))
+			FGridItemInstance Equipped;
+			const bool bEquipped = Inventory->GetEquippedItem(
+				CharacterIndex, Action.SourceEquipmentSlot, Equipped) &&
+				Equipped.ItemDefinitionId == Action.SourceDefinitionId;
+			const FGridRangedAmmunitionRequirement Ammo =
+				FGridRangedAmmunitionPolicy::ResolveForAttack(
+					AmmoRegistry, Action.SourceDefinitionId,
+					bEquipped ? Equipped.ItemLevel : 0, LegacyWeapon,
+					Action.Definition.ActionType == EGridCombatActionType::RangedAttack);
+			if (!FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
+					*Inventory, CharacterIndex, Ammo))
 			{
 				Action.bEnabled = false;
 				Action.AvailabilityReason = EGridCombatActionAvailabilityReason::InsufficientSourceItems;

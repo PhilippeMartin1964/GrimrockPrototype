@@ -674,11 +674,34 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		SourceItemQuantityCost = 1;
 	}
 
-	// Preflight ammunition before reserving PA; no charge on an invalid
-	// target, an unaccepted attack, or a character with no matching ammo.
-	if (IsValid(SourceItemDefinition) &&
-		!FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
-			*Inventory, AttackerCharacterIndex, *SourceItemDefinition, bResolvedRangedAttack))
+	// Use the exact physical source level. A known invalid canonical item
+	// cannot borrow its old DA_Weapon ammo link or silently become ammo-free.
+	const UGridItemSubsystem* AmmoRegistry = World && World->GetGameInstance()
+		? World->GetGameInstance()->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	FGridItemInstance AmmoSourceInstance;
+	if (SourcePolicy == EGridCombatActionSourcePolicy::Equipment)
+	{
+		Inventory->GetEquippedItem(AttackerCharacterIndex, OffensiveEquipmentSlot, AmmoSourceInstance);
+	}
+	else if (SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
+	{
+		const FGridInventorySlot* SourceSlot = Attacker.InventorySlots.FindByPredicate(
+			[OffensiveItemDefinitionId](const FGridInventorySlot& Slot)
+			{
+				return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == OffensiveItemDefinitionId;
+			});
+		if (SourceSlot)
+		{
+			AmmoSourceInstance = SourceSlot->Item;
+		}
+	}
+	const FGridRangedAmmunitionRequirement AmmoRequirement =
+		FGridRangedAmmunitionPolicy::ResolveForAttack(
+			AmmoRegistry, OffensiveItemDefinitionId, AmmoSourceInstance.ItemLevel,
+			SourceItemDefinition, bResolvedRangedAttack);
+	// Preflight before reserving AP, mana or the source item.
+	if (!FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
+			*Inventory, AttackerCharacterIndex, AmmoRequirement))
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex,
 			EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
@@ -722,12 +745,30 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 	// A consumed ranged ammunition unit is represented by a recoverable world
 	// projectile. Prepare it before inventory mutation, avoiding lost arrows
 	// when spawning fails; gameplay still resolves damage exactly once.
-	if (bResolvedRangedAttack && IsValid(SourceItemDefinition) &&
-		!SourceItemDefinition->RequiredAmmunitionItemDefinitionId.IsNone())
+	if (bResolvedRangedAttack && !AmmoRequirement.AmmunitionItemId.IsNone())
 	{
-		const FName AmmunitionId = SourceItemDefinition->RequiredAmmunitionItemDefinitionId;
+		const FName AmmunitionId = AmmoRequirement.AmmunitionItemId;
 		UGridItemDefinitionAsset* AmmunitionDefinition = Inventory->FindItemDefinition(AmmunitionId);
-		bSourceCommitted = IsValid(AmmunitionDefinition) && IsValid(RuntimeActor);
+		// BB: identity/quantity are canonical. Flight speed remains authored by
+		// the weapon projectile policy when present, otherwise by the existing
+		// arrow's visual/physics asset until the controlled 06.4 conversion.
+		// Never fabricate a speed if neither authoritative source is present.
+		float LaunchSpeed = 0.0f;
+		FGridResolvedItem CanonicalWeapon;
+		if (AmmoRequirement.bCanonicalSource && IsValid(AmmoRegistry) &&
+			AmmoRegistry->ResolveItem(OffensiveItemDefinitionId, AmmoSourceInstance.ItemLevel, CanonicalWeapon) &&
+			CanonicalWeapon.Weapon.Projectile.bEnabled &&
+			FMath::IsFinite(CanonicalWeapon.Weapon.Projectile.InitialSpeed) &&
+			CanonicalWeapon.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER)
+		{
+			LaunchSpeed = CanonicalWeapon.Weapon.Projectile.InitialSpeed;
+		}
+		else if (IsValid(AmmunitionDefinition))
+		{
+			LaunchSpeed = FMath::Clamp(AmmunitionDefinition->ThrowSpeed, 400.0f, 4800.0f);
+		}
+		bSourceCommitted = IsValid(RuntimeActor) && LaunchSpeed > KINDA_SMALL_NUMBER &&
+			(AmmoRequirement.bCanonicalSource || IsValid(AmmunitionDefinition));
 		if (bSourceCommitted)
 		{
 			FGridItemInstance ProjectileItem;
@@ -735,7 +776,8 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 			ProjectileItem.ItemDefinitionId = AmmunitionId;
 			ProjectileItem.ItemLevel = 0;
 			ProjectileItem.Quantity = 1;
-			ProjectileItem.Weight = AmmunitionDefinition->Weight;
+			ProjectileItem.Weight = AmmoRequirement.bCanonicalSource
+				? AmmoRequirement.AmmunitionWeightKg : AmmunitionDefinition->Weight;
 			ProjectileItem.OwnerType = EGridItemOwnerType::World;
 			ProjectileItem.OwnerCharacterIndex = INDEX_NONE;
 			ProjectileItem.EquipmentSlot = EGridEquipmentSlot::None;
@@ -744,15 +786,14 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 			const FVector InitialDirection = (TargetLocation - ViewOrigin).GetSafeNormal();
 			const FVector StartLocation = ViewOrigin + InitialDirection * 60.0f - FVector::UpVector * 12.0f;
 			const FVector LaunchDirection = (TargetLocation - StartLocation).GetSafeNormal();
-			const float LaunchSpeed = FMath::Clamp(AmmunitionDefinition->ThrowSpeed, 400.0f, 4800.0f);
 			PreparedAmmunitionItem = RuntimeActor->SpawnThrownItemProjectile(
 				ProjectileItem, AmmunitionDefinition, StartLocation, LaunchDirection * LaunchSpeed, PartyCell.X, PartyCell.Y, true);
 			bSourceCommitted = IsValid(PreparedAmmunitionItem);
-			if (!bSourceCommitted)
-			{
-				UE_LOG(LogGridTurnManager, Warning, TEXT("[GridRangedAmmo] LaunchFailed Weapon=%s Ammo=%s Character=%d"),
-					*SourceItemDefinition->ItemDefinitionId.ToString(), *AmmunitionId.ToString(), AttackerCharacterIndex);
-			}
+		}
+		if (!bSourceCommitted)
+		{
+			UE_LOG(LogGridTurnManager, Warning, TEXT("[GridRangedAmmo] LaunchFailed Weapon=%s Ammo=%s Character=%d"),
+				*OffensiveItemDefinitionId.ToString(), *AmmunitionId.ToString(), AttackerCharacterIndex);
 		}
 	}
 	if (bSourceCommitted && SourcePolicy == EGridCombatActionSourcePolicy::Equipment && SourceItemQuantityCost > 0)
@@ -786,10 +827,10 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 	// A catalogue-authorized ranged weapon has no other consumable source
 	// cost. Consume exactly one ammunition unit only after action acceptance,
 	// never on a refused target or failed throw.
-	if (bSourceCommitted && IsValid(SourceItemDefinition))
+	if (bSourceCommitted)
 	{
 		bSourceCommitted = FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(
-			*Inventory, AttackerCharacterIndex, *SourceItemDefinition, bResolvedRangedAttack);
+			*Inventory, AttackerCharacterIndex, AmmoRequirement);
 	}
 
 	if (!bSourceCommitted)

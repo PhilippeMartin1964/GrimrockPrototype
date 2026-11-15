@@ -164,6 +164,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item System")
 	bool ResolveItem(FName ItemId, int32 ItemLevel, FGridResolvedItem& OutItem) const;
 
+	/** The validated registry owns a UNIQUE AmmoKindId -> concrete ItemId join.
+	 * Never guess a weapon's ammunition from a legacy arrow asset or name. */
+	bool ResolveAmmoKind(FName AmmoKindId, FGridResolvedItem& OutAmmo) const;
+
 	/**
 	 * Read remaining armor for this *specific persisted item instance*.
 	 * Nominal armor comes from the one N1-N20 catalogue, spent armor from

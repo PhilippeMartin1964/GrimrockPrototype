@@ -10,9 +10,34 @@ class UGridPartyInventoryComponent;
  * No global ammo pool; each hero's bag is authoritative.
  * NAME_None is deliberately backward compatible with existing weapons.
  */
+class UGridItemSubsystem;
+
+/** Immutable decision shared by action availability and final execution.
+ * A registered weapon NEVER consults the historical RequiredAmmunitionItemDefinitionId.
+ */
+struct FGridRangedAmmunitionRequirement
+{
+	bool bCanonicalSource = false;
+	bool bValid = false;
+	FName AmmunitionItemId = NAME_None;
+	float AmmunitionWeightKg = 0.0f;
+};
+
 class GRIMROCKPROTOTYPE_API FGridRangedAmmunitionPolicy
 {
 public:
+	static FGridRangedAmmunitionRequirement ResolveForAttack(
+		const UGridItemSubsystem* Registry, FName WeaponItemId, int32 WeaponLevel,
+		const UGridItemDefinitionAsset* LegacyWeapon, bool bRangedAttack);
+
+	static bool HasRequiredAmmunitionForAttack(
+		const UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
+		const FGridRangedAmmunitionRequirement& Requirement);
+
+	static bool ConsumeRequiredAmmunitionForAttack(
+		UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
+		const FGridRangedAmmunitionRequirement& Requirement);
+
 	static bool HasRequiredAmmunition(
 		const UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
 		const UGridItemDefinitionAsset& Weapon);

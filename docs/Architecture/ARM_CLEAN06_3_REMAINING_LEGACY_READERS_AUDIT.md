@@ -242,3 +242,7 @@ du WBP binaire. Aucun DataAsset/UMAP/SaveGame converti.
 Voir `docs/Architecture/ARM_CLEAN06_3BA_CANONICAL_ALLY_USE_TARGETING.md`.
 
 Checklist `UI.csv → ST_UI.uasset → WBP → Game/fr/en` inchangée.
+
+## Complément 06.3BB — munitions des attaques à distance
+
+Les attaques d'armes canoniques utilisent désormais l'unique `RequiredAmmoKindId` et l'unique `AmmoKindId` du registre (projection vers le vrai `ItemId`). Disponibilité HUD et exécution partagent le même modèle, sans ancien `DA_Weapon_*` comme source de quantité ; la préparation du projectile canonique N0 n'exige plus l'ancien asset flèche. Vitesse/rotation/lifetime de la flèche encore non authorées en canonique sont explicitement conservées en transition lorsqu'elles existent : elles devront migrer en 06.4, sans constante de vitesse inventée. Validation PIE projectiles, impacts et Save/Continue différée. Voir `ARM_CLEAN06_3BB_CANONICAL_RANGED_AMMUNITION.md`.
