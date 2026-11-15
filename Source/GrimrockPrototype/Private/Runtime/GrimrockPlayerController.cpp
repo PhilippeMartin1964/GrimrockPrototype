@@ -1076,7 +1076,8 @@ void AGrimrockPlayerController::RequestGlobalEscape()
 
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
 	UGridCombatHudWidget* Hud = PartyPawn ? PartyPawn->CombatHudWidgetInstance.Get() : nullptr;
-	if (IsValid(Hud) && Hud->IsCombatActionTargetingActive())
+	if (IsValid(Hud) && (Hud->IsCombatActionTargetingActive() ||
+		Hud->IsCombatActionPartyTargetingActive()))
 	{
 		Hud->CancelCombatActionTargeting();
 		DefaultMouseCursor = EMouseCursor::Default;

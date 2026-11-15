@@ -214,3 +214,31 @@ projection séparé.
 Voir `docs/Architecture/ARM_CLEAN06_3AZ_CANONICAL_USE_APPLY_STATUS.md`.
 Aucun asset UE ou texte `UI.csv/ST_UI/WBP/Game-fr-en`
 n'est changé. Les conversions binaires relèvent de 06.4.
+
+## Complément 06.3BA — actions canoniques sur allié explicitement sélectionné
+
+`FGridCanonicalQuickItemUseReadModel` accepte `Targeting=Ally`
+avec une seule cible (`MaximumResolvedTargets=1`) pour les
+trois effets déjà migrés `Heal`, `ApplyStatus` et
+`RemoveStatus`. Les effets combinés, le ciblage `Party`,
+les ID inconnus ou niveaux invalides restent refusés.
+
+Le `GridCombatActionCatalog` cesse d'évaluer l'utilité
+d'une action `Ally` sur les PV/statuts du **lanceur** ;
+l'instance cible est contrôlée par `GridTurnManager`
+avant paiement. La hotbar entre désormais en mode de
+sélection d'un portrait déjà présent au HUD, puis
+transmet exactement un index via l'API de ciblage
+existant ; Échap ou fin de tour annulent cette sélection.
+Le vieux `DA_Item_*` ne peut plus accorder un `Consume`
+de soin personnel à un consommable `Ally` enregistré.
+
+**À vérifier en PIE :** interaction souris sur le WBP
+réel et consommation/soin ou mutation du statut sur la
+cible au cours d'un tour complet, avec cooldown et son.
+La suite Automation couvre les projections, contraintes
+et préflights, non la scène GPU ni l'hit testing
+du WBP binaire. Aucun DataAsset/UMAP/SaveGame converti.
+Voir `docs/Architecture/ARM_CLEAN06_3BA_CANONICAL_ALLY_USE_TARGETING.md`.
+
+Checklist `UI.csv → ST_UI.uasset → WBP → Game/fr/en` inchangée.

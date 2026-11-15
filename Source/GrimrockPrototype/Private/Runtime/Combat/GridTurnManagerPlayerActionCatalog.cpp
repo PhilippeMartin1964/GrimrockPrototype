@@ -1134,6 +1134,23 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 		return false;
 	}
 
+	// BA: one canonical Ally Use means one explicitly selected living party
+	// member. Other historical batch effects retain their existing contract.
+	if (bQuickItem && Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally)
+	{
+		const UWorld* World = GetWorld();
+		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Canonical = GameInstance
+			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		if (Canonical && Canonical->HasCanonicalItem(Action.SourceDefinitionId) &&
+			(ExplicitTargetCharacterIndices.Num() != 1 ||
+				!Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(ExplicitTargetCharacterIndices[0]) ||
+				Inventory->PartyInventoryState.ActiveCharacters[ExplicitTargetCharacterIndices[0]].Resources.CurrentHealth <= 0))
+		{
+			return false;
+		}
+	}
+
 	TArray<int32> TargetIndices;
 	FGridCombatTargetingResolver::CollectPartyTargets(Inventory->PartyInventoryState, Action.Definition.TargetingPolicy,
 		Action.CharacterIndex, ExplicitTargetCharacterIndices, 3, TargetIndices);

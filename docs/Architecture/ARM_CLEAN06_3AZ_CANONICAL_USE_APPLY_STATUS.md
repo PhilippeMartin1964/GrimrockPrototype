@@ -137,3 +137,14 @@ nouvelle matérialisation `ST_UI.uasset` n'est requise.
 **À faire après AZ :** évaluer la première famille de
 `UseActions` à cible `Ally` dans un jalon séparé, puis
 continuer l'audit des lecteurs historiques avant 06.4.
+
+## Addendum ARM-CLEAN06.3BA — ciblage `Ally`
+
+La restriction `Self` décrite pour AZ n'est plus la frontière
+finale. À partir de 06.3BA, un seul
+`ApplyStatus(StatusId, Magnitude=1)` peut viser un allié
+explicitement sélectionné en combat. La durée, la puissance
+et la politique de cumul continuent de provenir de l'asset
+de statut. Le test AZ accepte maintenant `Ally` mais continue
+de refuser `Party`, `AllyOrHostile`, `Hostile` et les
+effets multiples. Aucune application de statut en exploration.

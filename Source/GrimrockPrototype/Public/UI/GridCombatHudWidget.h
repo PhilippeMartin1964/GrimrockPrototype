@@ -367,6 +367,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Targeting")
 	bool bCombatActionTargetingActive = false;
 
+	/** BA: separate selection of a party portrait for an explicit Ally action. */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Targeting")
+	bool bCombatActionPartyTargetingActive = false;
+
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<AGrimrockPartyPawn> PartyPawn;
 
@@ -448,6 +452,20 @@ public:
 	/** Begins targeting without executing or paying the selected action. */
 	UFUNCTION(BlueprintCallable, Category = "Combat|HUD|Targeting")
 	bool BeginCombatActionTargeting(const FGridCombatHudActionView& ActionView);
+
+	/** Start one explicit Ally target selection, without paying resources. */
+	UFUNCTION(BlueprintCallable, Category = "Combat|HUD|Targeting")
+	bool BeginCombatActionPartyTargeting(const FGridCombatHudActionView& ActionView);
+
+	/** Confirm a clicked party portrait using the authoritative combat executor. */
+	UFUNCTION(BlueprintCallable, Category = "Combat|HUD|Targeting")
+	bool ConfirmCombatActionPartyTarget(int32 TargetCharacterIndex, FGridCombatActionRequestResult& OutResult);
+
+	UFUNCTION(BlueprintPure, Category = "Combat|HUD|Targeting")
+	bool IsCombatActionPartyTargetingActive() const
+	{
+		return bCombatActionPartyTargetingActive;
+	}
 
 	/** Rebuilds the authoritative preview for the currently hovered cell. */
 	UFUNCTION(BlueprintCallable, Category = "Combat|HUD|Targeting")

@@ -1,4 +1,8 @@
 #include "UI/GridCombatActionPanelWidget.h"
+#include "UI/GridCombatHudWidget.h"
+#include "InputCoreTypes.h"
+#include "Input/Reply.h"
+#include "Input/Events.h"
 
 #include "Components/Border.h"
 #include "Components/Image.h"
@@ -33,6 +37,21 @@ namespace
 		}
 		return FText::Join(FText::FromString(TEXT("\n\n")), ToolTips);
 	}
+}
+
+FReply UGridCombatActionPanelWidget::NativeOnMouseButtonDown(
+	const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton &&
+		View.bPresent && OwningCombatHud.IsValid() &&
+		OwningCombatHud->IsCombatActionPartyTargetingActive())
+	{
+		FGridCombatActionRequestResult Result;
+		OwningCombatHud->ConfirmCombatActionPartyTarget(View.CharacterIndex, Result);
+		// A rejected target still consumes the click; never use a world object.
+		return FReply::Handled();
+	}
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 void UGridCombatActionPanelWidget::SetView(const FGridCombatHudPartyMemberView& InView)

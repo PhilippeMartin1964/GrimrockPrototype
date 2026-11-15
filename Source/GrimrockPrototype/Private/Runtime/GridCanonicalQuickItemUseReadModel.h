@@ -4,9 +4,9 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /**
- * ARM-CLEAN06.3AX/AY/AZ: strict, transient projection of exactly one authored
- * canonical self-Heal, self-RemoveStatus or self-ApplyStatus Use action onto
- * the existing QuickItem executor. Status actions remain combat-only.
+ * ARM-CLEAN06.3AX/AY/AZ/BA: strictly project one authored
+ * Heal, RemoveStatus or ApplyStatus Use action onto the proven QuickItem
+ * executor. Single explicit Ally targets are combat-only; status actions too.
  *
  * Zero AP is intentional: canonical Use has NO authored AP field. The schema
  * must be extended and content converted before an AP cost can be charged.
@@ -31,7 +31,8 @@ struct FGridCanonicalQuickItemUseReadModel
             !Bound.IsValid() || Bound.ItemId != Item.ItemId ||
             Bound.ItemLevel != Item.ItemLevel ||
             Bound.Action.Kind != EGridCanonicalActionKind::Use ||
-            Bound.Action.Targeting != EGridCombatTargetingPolicy::Self ||
+            (Bound.Action.Targeting != EGridCombatTargetingPolicy::Self &&
+             Bound.Action.Targeting != EGridCombatTargetingPolicy::Ally) ||
             Bound.Action.bRangedAttack || Bound.Action.bRequiresLineOfSight ||
             Bound.Action.WeaponDamagePercent != 0 ||
             Bound.Action.SourceItemQuantityCost != 1 ||
@@ -52,7 +53,8 @@ struct FGridCanonicalQuickItemUseReadModel
         Candidate.ActionType = EGridCombatActionType::Ability;
         Candidate.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
         Candidate.SourceTags = Item.Tags;
-        Candidate.TargetingPolicy = EGridCombatTargetingPolicy::Self;
+        Candidate.TargetingPolicy = Bound.Action.Targeting;
+        Candidate.MaximumResolvedTargets = 1;
         Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
         Candidate.ActionPointCost = 0; // No AP is authored by FGridCanonicalAction.
         Candidate.ResourceCosts.ManaCost = Bound.Action.ManaCost;
@@ -79,7 +81,8 @@ struct FGridCanonicalQuickItemUseReadModel
             !Bound.IsValid() || Bound.ItemId != Item.ItemId ||
             Bound.ItemLevel != Item.ItemLevel ||
             Bound.Action.Kind != EGridCanonicalActionKind::Use ||
-            Bound.Action.Targeting != EGridCombatTargetingPolicy::Self ||
+            (Bound.Action.Targeting != EGridCombatTargetingPolicy::Self &&
+             Bound.Action.Targeting != EGridCombatTargetingPolicy::Ally) ||
             Bound.Action.bRangedAttack || Bound.Action.bRequiresLineOfSight ||
             Bound.Action.WeaponDamagePercent != 0 ||
             Bound.Action.SourceItemQuantityCost != 1 ||
@@ -100,7 +103,8 @@ struct FGridCanonicalQuickItemUseReadModel
         Candidate.ActionType = EGridCombatActionType::Ability;
         Candidate.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
         Candidate.SourceTags = Item.Tags;
-        Candidate.TargetingPolicy = EGridCombatTargetingPolicy::Self;
+        Candidate.TargetingPolicy = Bound.Action.Targeting;
+        Candidate.MaximumResolvedTargets = 1;
         Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
         Candidate.ActionPointCost = 0; // Use has no authored PA field yet.
         Candidate.ResourceCosts.ManaCost = Bound.Action.ManaCost;
@@ -139,7 +143,8 @@ struct FGridCanonicalQuickItemUseReadModel
             !Bound.IsValid() || Bound.ItemId != Item.ItemId ||
             Bound.ItemLevel != Item.ItemLevel ||
             Bound.Action.Kind != EGridCanonicalActionKind::Use ||
-            Bound.Action.Targeting != EGridCombatTargetingPolicy::Self ||
+            (Bound.Action.Targeting != EGridCombatTargetingPolicy::Self &&
+             Bound.Action.Targeting != EGridCombatTargetingPolicy::Ally) ||
             Bound.Action.bRangedAttack || Bound.Action.bRequiresLineOfSight ||
             Bound.Action.WeaponDamagePercent != 0 ||
             Bound.Action.SourceItemQuantityCost != 1 ||
@@ -160,7 +165,8 @@ struct FGridCanonicalQuickItemUseReadModel
         Candidate.ActionType = EGridCombatActionType::Ability;
         Candidate.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
         Candidate.SourceTags = Item.Tags;
-        Candidate.TargetingPolicy = EGridCombatTargetingPolicy::Self;
+        Candidate.TargetingPolicy = Bound.Action.Targeting;
+        Candidate.MaximumResolvedTargets = 1;
         Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
         Candidate.ActionPointCost = 0; // Use has no authored AP cost.
         Candidate.ResourceCosts.ManaCost = Bound.Action.ManaCost;
@@ -228,9 +234,10 @@ struct FGridCanonicalQuickItemUseReadModel
             return Out;
         }
         Out.bResolved = true;
-        // Exploration has only the self-restoration executor. Both kinds of
-        // status mutation belong exclusively to combat's status lifecycle.
+        // Exploration only executes direct self-healing. Explicit Ally
+        // targeting and all status mutations belong to combat executors.
         Out.bExplorationCompatible =
+            Out.Action.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
             Out.Action.EffectProfile.IsValid() &&
             Out.Action.StatusRemovals.IsEmpty() &&
             Out.Action.StatusApplications.IsEmpty() &&

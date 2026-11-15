@@ -186,7 +186,10 @@ bool FGridClean063AZStatusProjection::RunTest(const FString&)
     TestFalse(TEXT("Status identity is required"), Try(Invalid));
     Invalid = Bound;
     Invalid.Action.Targeting = EGridCombatTargetingPolicy::Ally;
-    TestFalse(TEXT("Ally target requires separate UI contract"), Try(Invalid));
+    TestTrue(TEXT("BA: explicit single Ally is now supported"), Try(Invalid));
+    Invalid = Bound;
+    Invalid.Action.Targeting = EGridCombatTargetingPolicy::AllyOrHostile;
+    TestFalse(TEXT("AllyOrHostile target remains forbidden"), Try(Invalid));
     Invalid = Bound;
     Invalid.Action.Targeting = EGridCombatTargetingPolicy::Party;
     TestFalse(TEXT("Party target is not silently authorized"), Try(Invalid));

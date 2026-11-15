@@ -111,3 +111,13 @@ Pas de matérialisation `ST_UI` nécessaire.
 
 **06.4 n'est pas lancé.** Aucun binaire `.uasset`,
 `.umap`, SaveGame ou format de sérialisation n'est modifié.
+
+## Addendum ARM-CLEAN06.3BA — ciblage `Ally`
+
+La restriction `Self` de ce jalon AY est conservée comme historique
+de l'étape. Elle est **étendue par 06.3BA** : un seul
+`RemoveStatus(StatusId, Magnitude=1)` peut désormais viser
+un membre de l'équipe explicitement sélectionné pendant le combat.
+Le test AY qualifie dorénavant `Ally` d'autorisé et maintient
+le rejet de `Party`, des effets multiples et des cibles invalides.
+Le mode exploration reste exclu.

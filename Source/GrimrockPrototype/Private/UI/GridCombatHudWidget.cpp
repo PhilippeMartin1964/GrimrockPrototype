@@ -1023,6 +1023,7 @@ void UGridCombatHudWidget::InitializeCombatHud(AGrimrockPartyPawn* InPartyPawn, 
 {
 	UnbindFromSources();
 	bCombatActionTargetingActive = false;
+	bCombatActionPartyTargetingActive = false;
 	PendingTargetingActionView = FGridCombatHudActionView();
 	TargetingPreview = FGridCombatActionTargetingPreview();
 	PartyPawn = InPartyPawn;
@@ -1041,6 +1042,11 @@ void UGridCombatHudWidget::RefreshFromSources()
 {
 	View = FGridCombatHudView();
 	View.bCombatActive = IsValid(TurnManagerComponent) && TurnManagerComponent->bCombatActive;
+	if (bCombatActionPartyTargetingActive &&
+		(!View.bCombatActive || (IsValid(PartyPawn) && PartyPawn->bInventoryWidgetVisible)))
+	{
+		CancelCombatActionTargeting(); // Modal / combat end cannot leave hidden targeting armed.
+	}
 
 	TArray<FGridPlayerCharacterTurnState> TurnStates;
 	const int32 ActiveCharacterCount = IsValid(InventoryComponent) ? InventoryComponent->GetActiveCharacterCount() : 0;
@@ -1324,6 +1330,12 @@ bool UGridCombatHudWidget::RequestHotbarSlot(int32 SlotIndex, FGridCombatActionR
 		return PartyPawn->BeginSelectedCharacterInventoryItemThrowAiming(ActionView.Binding.SourceDefinitionId);
 	}
 	if (ActionView.bHasBinding && ActionView.bResolved && ActionView.Action.bEnabled &&
+		ActionView.Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally)
+	{
+		OutResult.Action = ActionView.Action;
+		return BeginCombatActionPartyTargeting(ActionView);
+	}
+	if (ActionView.bHasBinding && ActionView.bResolved && ActionView.Action.bEnabled &&
 		(ActionView.Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell ||
 			ActionView.Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area))
 	{
@@ -1346,11 +1358,74 @@ bool UGridCombatHudWidget::BeginCombatActionTargeting(const FGridCombatHudAction
 		return false;
 	}
 
+	bCombatActionPartyTargetingActive = false;
 	bCombatActionTargetingActive = true;
 	PendingTargetingActionView = ActionView;
 	TargetingPreview = FGridCombatActionTargetingPreview();
 	TargetingPreview.Action = ActionView.Action;
 	return true;
+}
+
+bool UGridCombatHudWidget::BeginCombatActionPartyTargeting(const FGridCombatHudActionView& ActionView)
+{
+	if (!View.bCombatActive || !IsValid(TurnManagerComponent) || !ActionView.bHasBinding ||
+		!ActionView.bResolved || !ActionView.Action.bEnabled ||
+		ActionView.Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Ally)
+	{
+		return false;
+	}
+
+	bCombatActionTargetingActive = false;
+	bCombatActionPartyTargetingActive = true;
+	PendingTargetingActionView = ActionView;
+	TargetingPreview = FGridCombatActionTargetingPreview();
+	RefreshBoundWidgets(); // Only while selecting: existing portraits accept clicks.
+	return true;
+}
+
+bool UGridCombatHudWidget::ConfirmCombatActionPartyTarget(
+	int32 TargetCharacterIndex, FGridCombatActionRequestResult& OutResult)
+{
+	OutResult = FGridCombatActionRequestResult();
+	if (!bCombatActionPartyTargetingActive || !View.bCombatActive ||
+		!IsValid(TurnManagerComponent) || !IsValid(InventoryComponent) ||
+		!InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(TargetCharacterIndex) ||
+		InventoryComponent->PartyInventoryState.ActiveCharacters[TargetCharacterIndex].Resources.CurrentHealth <= 0)
+	{
+		OutResult.RejectReason = EGridCombatActionRequestRejectReason::InvalidTarget;
+		return false;
+	}
+
+	const FGridCombatHudActionView Pending = PendingTargetingActionView;
+	TArray<FGridAvailableCombatAction> Fresh;
+	TurnManagerComponent->GetAvailableCombatActions(Pending.Action.CharacterIndex, Fresh);
+	const FGridAvailableCombatAction* Action = Fresh.FindByPredicate(
+		[&Pending](const FGridAvailableCombatAction& Candidate)
+		{
+			return Candidate.bEnabled &&
+				Candidate.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally &&
+				Candidate.MatchesSource(Pending.Action.Definition.ActionId,
+					Pending.Action.Definition.SourcePolicy, Pending.Action.SourceDefinitionId,
+					Pending.Action.SourceEquipmentSlot);
+		});
+	if (!Action)
+	{
+		OutResult.RejectReason = EGridCombatActionRequestRejectReason::ActionUnavailable;
+		RefreshFromSources();
+		return false;
+	}
+
+	TArray<int32> Targets;
+	Targets.Add(TargetCharacterIndex);
+	const bool bAccepted = TurnManagerComponent->RequestCharacterCombatActionOnPartyTargets(
+		Action->CharacterIndex, Action->Definition.ActionId, Action->Definition.SourcePolicy,
+		Action->SourceDefinitionId, Action->SourceEquipmentSlot, Targets, OutResult);
+	if (bAccepted)
+	{
+		CancelCombatActionTargeting();
+	}
+	RefreshFromSources();
+	return bAccepted;
 }
 
 bool UGridCombatHudWidget::UpdateCombatActionTargetingPreview(FIntPoint TargetCell)
@@ -1428,6 +1503,7 @@ void UGridCombatHudWidget::ClearCombatActionTargetingPreview()
 void UGridCombatHudWidget::CancelCombatActionTargeting()
 {
 	bCombatActionTargetingActive = false;
+	bCombatActionPartyTargetingActive = false;
 	PendingTargetingActionView = FGridCombatHudActionView();
 	TargetingPreview = FGridCombatActionTargetingPreview();
 }
@@ -1644,6 +1720,7 @@ void UGridCombatHudWidget::EnsurePartyMemberPanels()
 				: 0.0f;
 			PartySlot->SetPadding(FMargin(0.0f, 0.0f, RightPadding, 0.0f));
 		}
+		Panel->SetOwningCombatHud(this);
 		PartyMemberPanels.Add(Panel);
 	}
 }
@@ -1917,29 +1994,35 @@ void UGridCombatHudWidget::RefreshBoundWidgets()
 		if (IsValid(PartyMemberPanels[Index]))
 		{
 			const bool bPresent = View.PartyMembers.IsValidIndex(Index) && View.PartyMembers[Index].bPresent;
-			PartyMemberPanels[Index]->SetVisibility(bShowCombatOnly && bPresent ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+			PartyMemberPanels[Index]->SetVisibility(bShowCombatOnly && bPresent
+				? (bCombatActionPartyTargetingActive ? ESlateVisibility::Visible : ESlateVisibility::SelfHitTestInvisible)
+				: ESlateVisibility::Collapsed);
 		}
 	}
 }
 
 void UGridCombatHudWidget::ValidateCombatActionTargetingState()
 {
-	if (!bCombatActionTargetingActive)
+	if (!bCombatActionTargetingActive && !bCombatActionPartyTargetingActive)
 	{
 		return;
 	}
 
+	const bool bPartyTarget = bCombatActionPartyTargetingActive;
 	const FGridCombatHudActionView* CurrentActionView = View.Actions.FindByPredicate(
-		[this](const FGridCombatHudActionView& Candidate)
+		[this, bPartyTarget](const FGridCombatHudActionView& Candidate)
 		{
 			return Candidate.bHasBinding && Candidate.bResolved && Candidate.Action.bEnabled &&
 				HaveSameHotbarIdentity(Candidate.Binding, PendingTargetingActionView.Binding) &&
-				(Candidate.Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell ||
-					Candidate.Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area);
+				(bPartyTarget
+					? Candidate.Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally
+					: (Candidate.Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell ||
+						Candidate.Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area));
 		});
 	if (!CurrentActionView || CurrentActionView->Action.CharacterIndex != View.ActiveCharacterIndex)
 	{
 		bCombatActionTargetingActive = false;
+		bCombatActionPartyTargetingActive = false;
 		PendingTargetingActionView = FGridCombatHudActionView();
 		TargetingPreview = FGridCombatActionTargetingPreview();
 		return;

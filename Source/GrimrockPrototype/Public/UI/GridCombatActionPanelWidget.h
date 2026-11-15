@@ -9,6 +9,7 @@ class UBorder;
 class UImage;
 class UTextBlock;
 class UWidget;
+class UGridCombatHudWidget;
 
 /**
  * Pure presentation widget for one party member inside the combat HUD.
@@ -81,7 +82,15 @@ public:
 	/** Applies one already-built combat HUD party-member snapshot. */
 	void SetView(const FGridCombatHudPartyMemberView& InView);
 
+	/** Existing panel delegates clicks to its combat HUD only during Ally targeting. */
+	void SetOwningCombatHud(UGridCombatHudWidget* InOwner) { OwningCombatHud = InOwner; }
+
+protected:
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
 private:
+	TWeakObjectPtr<UGridCombatHudWidget> OwningCombatHud;
+
 	FText GetActionStateText() const;
 	void RefreshBoundWidgets();
 };

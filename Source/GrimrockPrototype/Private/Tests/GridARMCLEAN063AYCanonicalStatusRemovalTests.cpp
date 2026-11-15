@@ -192,7 +192,10 @@ bool FGridClean063AYStatusProjection::RunTest(const FString&)
     TestFalse(TEXT("Missing StatusId is refused"), TryProject(Modified));
     Modified = Bound;
     Modified.Action.Targeting = EGridCombatTargetingPolicy::Ally;
-    TestFalse(TEXT("Ally target not silently enabled"), TryProject(Modified));
+    TestTrue(TEXT("BA: one explicit Ally is now accepted"), TryProject(Modified));
+    Modified = Bound;
+    Modified.Action.Targeting = EGridCombatTargetingPolicy::Party;
+    TestFalse(TEXT("Party target remains forbidden"), TryProject(Modified));
     Modified = Bound;
     // UE TArray may reallocate on Add: never append an element by a
     // reference into the very array being mutated (assertion in Automation).

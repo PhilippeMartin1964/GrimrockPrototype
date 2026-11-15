@@ -219,7 +219,12 @@ namespace
 						Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area) &&
 					(!Definition.SurfaceEffects.IsEmpty() || !Definition.SurfaceConversions.IsEmpty() ||
 						Definition.SurfaceInteraction != EGridCombatSurfaceInteraction::None);
-				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate &&
+				// An explicit Ally target is not the acting character. Availability
+				// here may validate the SOURCE and available charges, but only
+				// RequestCharacterBatchPartyEffect can evaluate the chosen ally.
+				// Never disable a useful ally heal because the caster is full.
+				const bool bRequiresExplicitAlly = Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally;
+				if (!bRequiresExplicitAlly && HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate &&
 					!bStatusRemovalWouldMutate && !bArmorWouldMutate && !bHasSupportedMovement && !bTargetedWorldEffect)
 				{
 					return EGridCombatActionAvailabilityReason::NoApplicableEffect;

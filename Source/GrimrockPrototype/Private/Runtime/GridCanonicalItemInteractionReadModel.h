@@ -64,6 +64,7 @@ struct FGridCanonicalItemInteractionReadModel
 			// Only a true direct self-heal may appear as the inline "Consume"
             // action. Status cleansing uses the combat hotbar executor.
             Out.bCanConsumeCanonical = Use.bResolved &&
+                Use.Action.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
                 Use.Action.EffectProfile.IsValid();
 			Out.bCanAddToHotbar = Out.bPhysicalThrowHotbar || Use.bResolved;
 			// No registered item ever executes an OLD QuickItem action.
