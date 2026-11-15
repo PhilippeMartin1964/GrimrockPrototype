@@ -221,6 +221,25 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   **Écritures autorisées = 0** ; voir
   `docs/Architecture/ARM_CLEAN06_4E_AUTHORED_PRESENTATION_PARITY.md`.
 
+## ARM-CLEAN06.4F — provenance des changements audio historiques
+
+- 06.4E prouve la stricte égalité des **4 profils d'attaque actuels**
+  avec les **4 présentations réellement authorées** dans le catalogue
+  canonique ; issue 138, trois statuts Windows SUCCESS.
+- 06.4F recoupe les **trois captures privées Unreal**
+  06.0 (avant ajout des sons Sword), 06.2A (audit des ajouts utilisateur)
+  et 06.4A (avant conversion), avec leurs SHA-256 et
+  l'attestation de parité 06.4E.
+- Compare les UPROPERTY des 56 assets et les 1640 profils ;
+  dénombre les changements apparus au moment de 06.2A et
+  toute dérive supplémentaire jusqu'à 06.4A.
+- Rapport détaillé privé, issue `[ARM-CLEAN06.4F]` à
+  **compteurs seuls**, contexte `UE5.5.4/ARM-CLEAN06.4F`.
+  SUCCESS signifie « comparaison produite », pas « tout égal ».
+- Un écart tardif reste bloquant. Aucune écriture, aucune suppression,
+  aucun SaveGame converti. Lire
+  `ARM_CLEAN06_4F_THREE_WAY_USER_AUDIO_PROVENANCE.md`.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,

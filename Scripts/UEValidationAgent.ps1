@@ -1304,6 +1304,65 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4F: one-shot private three-way UE source provenance.
+        # Baseline 06.0 vs the post-user-audio 06.2A snapshot vs 06.4A,
+        # guarded by the 06.4E actual canonical presentation parity.
+        $Provenance4FTrigger = 'chore(ARM-CLEAN06.4F): attest source provenance from post-audio UE capture'
+        $Provenance4FSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Provenance4FSubject.Count -eq 1 -and
+            [string]$Provenance4FSubject[0] -ceq $Provenance4FTrigger) {
+            $Provenance4FContext = 'UE5.5.4/ARM-CLEAN06.4F'
+            $Provenance4FPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Provenance4FContext -Description 'Provenance 06.0 / 06.2A / 06.4A + parite canonique 06.4E'
+                $Provenance4FScript = Join-Path $WorktreePath 'Scripts\CompareARM_CLEAN06_4F_ThreeWayProvenance.ps1'
+                if (-not (Test-Path -LiteralPath $Provenance4FScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4F: source script missing.'
+                }
+                $Provenance4FPhase = 'PARSE'
+                $Provenance4FTokens = $null
+                $Provenance4FErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Provenance4FScript, [ref]$Provenance4FTokens, [ref]$Provenance4FErrors)
+                if ($Provenance4FErrors -and $Provenance4FErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4F: invalid PowerShell syntax.'
+                }
+                foreach ($Provenance4FValue in @($Provenance4FScript,$WorktreePath,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Provenance4FValue.Contains('"')) { throw 'ARM-CLEAN06.4F: unsupported path quote.' }
+                }
+                $Provenance4FArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Provenance4FScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -StateRoot "' + $StateRoot + '" -RunDir "' + $RunDir +
+                    '" -ExpectedHead "' + $Sha + '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Provenance4FOut = Join-Path $RunDir 'ARM064F.stdout.log'
+                $Provenance4FErr = Join-Path $RunDir 'ARM064F.stderr.log'
+                $Provenance4FPhase = 'PROCESS_RUNNING'
+                $Provenance4FProcess = Start-Process -FilePath $PsExe -ArgumentList $Provenance4FArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Provenance4FOut -RedirectStandardError $Provenance4FErr -PassThru -Wait -ErrorAction Stop
+                if ($Provenance4FProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4F: three-way source check returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Provenance4FContext -Description 'Rapport de provenance UE produit; zero ecriture, gate fermee'
+                Write-Host '[ARM-CLEAN06.4F] Three-way source history verified; no migration authorized.'
+            }
+            catch {
+                $Provenance4FStagePath = Join-Path $RunDir 'ARMClean064F.stage'
+                $Provenance4FStage = if (Test-Path -LiteralPath $Provenance4FStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Provenance4FStagePath -TotalCount 1)).Trim()
+                } else { $Provenance4FPhase }
+                if ($Provenance4FStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_PROOFS','COMPARE','WRITE_PRIVATE','CHECK_CLEAN',
+                    'ISSUE_BUILD','ISSUE_WRITE','SUCCESS','START','PARSE',
+                    'PROCESS_RUNNING')) {
+                    $Provenance4FStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Provenance4FContext -Description ('Provenance 06.4F bloquee : ' + $Provenance4FStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4F] Status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4F] Private source comparison incomplete: ' + $Provenance4FStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
