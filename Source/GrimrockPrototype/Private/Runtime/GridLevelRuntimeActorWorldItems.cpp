@@ -389,7 +389,18 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinitionAsset, int32 CellX, int32 CellY, const FVector& LocalOffset)
 {
 	FGridRelocationBehaviorParams Relocation;
-	if (!DungeonAsset || !ItemInstance.IsValid() || !ItemDefinitionAsset || !FindOpenPitAtCell(CellX, CellY, Relocation))
+	// A registered fixed-level item may travel between dungeon levels
+	// using only its ItemId: pending inbound state already persists that ID.
+	const UWorld* RouteWorld = GetWorld();
+	UGameInstance* RouteGI = RouteWorld ? RouteWorld->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* RouteRegistry = RouteGI ? RouteGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	FGridResolvedItem RouteCanonical;
+	const bool bCanonicalRoute = RouteRegistry &&
+		RouteRegistry->HasCanonicalItem(ItemInstance.ItemDefinitionId) &&
+		RouteRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, RouteCanonical);
+	if (!DungeonAsset || !ItemInstance.IsValid() ||
+		(!bCanonicalRoute && !IsValid(ItemDefinitionAsset)) ||
+		!FindOpenPitAtCell(CellX, CellY, Relocation))
 	{
 		return false;
 	}
@@ -606,7 +617,18 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 			const FName DefinitionId = Entry.ItemDefinitionId;
 			Definition = ResolveRuntimeItemDefinition(DefinitionId);
 		}
-		if (!Definition)
+		// A canonical pickup can be carried across an open pit using ItemId
+		// alone, even when its obsolete DA_Weapon definition has been retired.
+		const FName ItemId = Entry.ItemDefinitionId.IsNone()
+			? ItemActor->GetItemDefinitionId() : Entry.ItemDefinitionId;
+		const UWorld* RouteWorld = GetWorld();
+		UGameInstance* RouteGI = RouteWorld ? RouteWorld->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry =
+			RouteGI ? RouteGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		const FGridReceptacleItemMetadataReadView RouteRead =
+			FGridWorldItemLevelReadModel::ResolvePersistedInstance(
+				Registry, Definition, ItemId, Entry.ItemLevel);
+		if (!RouteRead.bResolved || (!RouteRead.bCanonicalIdentity && !IsValid(Definition)))
 		{
 			continue;
 		}
@@ -617,7 +639,7 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 		{
 			ItemInstance.RuntimeObjectId = FGuid::NewGuid();
 		}
-		ItemInstance.ItemDefinitionId = Definition->ItemDefinitionId;
+		ItemInstance.ItemDefinitionId = ItemId;
 		ItemInstance.ItemLevel = Entry.ItemLevel;
 		ItemInstance.Quantity = FMath::Max(1, Entry.Quantity);
 		ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled();
@@ -762,13 +784,6 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 		}
 	}
 
-	UGridItemDefinitionAsset* ItemDefinition = IsValid(ItemDefinitionAsset) ? ItemDefinitionAsset : ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId);
-	if (!ItemDefinition)
-	{
-		UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridInventory WorldDrop Failed Item=%s Reason=DefinitionNotResolved"), *ItemInstance.ItemDefinitionId.ToString());
-		return false;
-	}
-
 	// WorldDrop receives an already-physical item (inventory, projectile,
 	// monster loot or pending pit transfer), never an authored level request.
 	// Do not reinterpret a persisted registered ARM N0 as a fresh N1 weapon.
@@ -776,10 +791,19 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	UGameInstance* DropGameInstance = DropWorld ? DropWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = DropGameInstance
 		? DropGameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const bool bCanonicalIdentity = Registry &&
+		Registry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
+	// A null legacy pointer on a canonical drop is intentional: a projectile
+	// initialized from ItemId must not silently reacquire DA_Weapon_* when it
+	// lands. Preserve explicit old assets for transitional callers and keep
+	// the original lookup for IDs absent from DA_ItemSystem.
+	UGridItemDefinitionAsset* ItemDefinition = IsValid(ItemDefinitionAsset)
+		? ItemDefinitionAsset
+		: (bCanonicalIdentity ? nullptr : ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId));
 	const FGridReceptacleItemMetadataReadView LevelRead =
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry, ItemDefinition, ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel);
-	if (!LevelRead.bResolved)
+	if (!LevelRead.bResolved || (!LevelRead.bCanonicalIdentity && !IsValid(ItemDefinition)))
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridInventory WorldDrop Failed Item=%s InvalidPersistedItemLevel=%d"),
@@ -830,7 +854,14 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 
 	const FGuid RuntimeObjectId = ItemInstance.RuntimeObjectId.IsValid() ? ItemInstance.RuntimeObjectId : FGuid::NewGuid();
 	ItemActor->SetActorTransform(DropTransform);
-	ItemActor->InitializeFromItemDefinition(ItemDefinition, RuntimeObjectId);
+	if (IsValid(ItemDefinition))
+	{
+		ItemActor->InitializeFromItemDefinition(ItemDefinition, RuntimeObjectId);
+	}
+	else
+	{
+		ItemActor->InitializeFromItemDefinitionId(ItemInstance.ItemDefinitionId, RuntimeObjectId);
+	}
 	ItemActor->SetRuntimeObjectId(RuntimeObjectId);
 	FGridItemInstance DroppedVisualItem = ItemInstance;
 	DroppedVisualItem.ItemLevel = ResolvedItemLevel;
@@ -879,11 +910,32 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 {
 	// Ordinary hand throws remain unchanged. Only the authoritative ranged
 	// attack may opt into a non-handheld, stackable ammunition projectile.
+	// Specialized ARM projectiles have their full physics and visuals in
+	// DA_ItemSystem. An obsolete ItemDefinition must not be their gate.
+	const UWorld* SpawnWorld = GetWorld();
+	UGameInstance* SpawnGI = SpawnWorld ? SpawnWorld->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* SpawnRegistry = SpawnGI ? SpawnGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const bool bCanonicalIdentity = SpawnRegistry &&
+		SpawnRegistry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
+	FGridResolvedItem Canonical;
+	const bool bCanonicalResolved = bCanonicalIdentity &&
+		SpawnRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, Canonical);
+	const bool bCanonicalSpecialized = bCanonicalResolved && Canonical.bIsArmament &&
+		Canonical.Weapon.Projectile.bEnabled &&
+		FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) &&
+		Canonical.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER &&
+		!Canonical.ProjectileMesh.IsNull();
+	const bool bMatchingLegacy = IsValid(ItemDefinition) &&
+		ItemDefinition->ItemDefinitionId == ItemInstance.ItemDefinitionId;
 	const bool bValidProjectileSource = bRangedAmmunitionProjectile
-		? ItemDefinition && ItemDefinition->bStackable && ItemInstance.Quantity == 1 && !ItemDefinition->IsCombatThrowable()
-		: ItemDefinition && ItemDefinition->IsPhysicallyThrowable();
-	if (!ItemInstance.IsValid() || !ItemDefinition || ItemDefinition->ItemDefinitionId != ItemInstance.ItemDefinitionId ||
-		!bValidProjectileSource || LaunchVelocity.IsNearlyZero() || !IsWalkableCell(SourceCellX, SourceCellY))
+		? bMatchingLegacy && ItemDefinition->bStackable && ItemInstance.Quantity == 1 &&
+			!ItemDefinition->IsCombatThrowable()
+		: (bCanonicalIdentity
+			? (bCanonicalSpecialized ||
+				(bCanonicalResolved && bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()))
+			: (bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()));
+	if (!ItemInstance.IsValid() || !bValidProjectileSource ||
+		LaunchVelocity.IsNearlyZero() || !IsWalkableCell(SourceCellX, SourceCellY))
 	{
 		return nullptr;
 	}

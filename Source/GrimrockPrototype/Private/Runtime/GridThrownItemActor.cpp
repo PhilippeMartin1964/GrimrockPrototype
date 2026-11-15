@@ -170,7 +170,14 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	SourceCellY = InSourceCellY;
 	ImpactDropOffset = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowImpactDropOffset) : 12.0f;
 
-	InitializeFromItemDefinition(InDefinition, InItemInstance.RuntimeObjectId);
+	if (IsValid(InDefinition))
+	{
+		InitializeFromItemDefinition(InDefinition, InItemInstance.RuntimeObjectId);
+	}
+	else
+	{
+		InitializeFromItemDefinitionId(InItemInstance.ItemDefinitionId, InItemInstance.RuntimeObjectId);
+	}
 	ConfigureAsAttachedItem();
 	SetItemLightsEnabled(InItemInstance.bLightsEnabled);
 
@@ -183,13 +190,11 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	const FGridCanonicalProjectileVisualReadView Canonical =
 		FGridCanonicalProjectileVisualReadModel::Resolve(Registry, InItemInstance);
 	const bool bCanonicalArmamentProjectile =
-		InDefinition && InDefinition->bUseWeaponCatalogue &&
 		Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bHasProjectileVisual;
 	const bool bCanonicalAmmoFlight =
-		InDefinition && !InDefinition->bUseWeaponCatalogue &&
 		Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bIsAmmunition;
-	// The same N1-N20 weapon policy owns recoverable landing offset and lifetime.
-	// Arc and initial speed are still calculated by launchers (next migration).
+	// The same N1-N20 weapon policy owns recoverable landing offset,
+	// lifetime, arc and initial speed; the launcher supplies the velocity.
 	if (bCanonicalArmamentProjectile)
 	{
 		ImpactDropOffset = FMath::Max(0.0f, Canonical.FlightPolicy.ImpactDropOffset);

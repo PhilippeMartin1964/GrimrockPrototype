@@ -20,15 +20,15 @@ struct FGridCanonicalThrowBallisticsReadModel
 		const FGridItemInstance& Instance)
 	{
 		FGridCanonicalThrowBallisticsReadView Out;
-		if (!IsValid(LegacyDefinition) || !Instance.IsValid() ||
-			Instance.ItemDefinitionId != LegacyDefinition->ItemDefinitionId)
+		// Membership must be recognized BEFORE IsValid(): an invalid
+		// registered N21 is not an unknown legacy identity.
+		Out.bCanonicalIdentity = Registry && Registry->HasCanonicalItem(Instance.ItemDefinitionId);
+		if (!Instance.IsValid())
 		{
 			return Out;
 		}
-		if (LegacyDefinition->bUseWeaponCatalogue && Registry &&
-			Registry->HasCanonicalItem(Instance.ItemDefinitionId))
+		if (Out.bCanonicalIdentity)
 		{
-			Out.bCanonicalIdentity = true;
 			FGridResolvedItem Canonical;
 			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) ||
 				!Canonical.bIsArmament)
@@ -49,8 +49,18 @@ struct FGridCanonicalThrowBallisticsReadModel
 				Out.Arc = Canonical.Weapon.Projectile.Arc;
 				return Out;
 			}
-			// An ordinary one-handed ARM can still be physically tossed; the
-			// N1-N20 catalogue intentionally does not author a specialized projectile.
+			// Generic hand tossing has no canonical speed/arc yet. Keep the
+			// exact old definition only for that unresolved physics policy.
+			if (!IsValid(LegacyDefinition) ||
+				LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
+			{
+				return Out;
+			}
+		}
+		if (!IsValid(LegacyDefinition) ||
+			LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
+		{
+			return Out;
 		}
 		Out.bResolved = true;
 		Out.InitialSpeed = LegacyDefinition->ThrowSpeed;

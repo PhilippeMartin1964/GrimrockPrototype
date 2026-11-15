@@ -85,3 +85,24 @@ avant 06.4 figurent dans
 `docs/Architecture/ARM_CLEAN06_3AU_RUNTIME_ITEM_CATEGORIES_AUDIT.md`.
 Le présent complément **n'affirme ni la fin de 06.3 ni une
 conversion binaire déjà réalisée**.
+
+## Complément 06.3AV — vols ARM spécialisés et restitution au sol
+
+Le préflight d'un lancer spécialisé était encore bloqué par l'ancien
+`DA_Weapon_*` même lorsque `DA_ItemSystem` enregistrait l'identité et
+les paramètres `ProjectilePolicy`. Les modèles de Force et de
+balistique, le contrôleur (y compris le curseur), les cinq sources de
+lancer du Pawn, le spawner, le projectile et le monde/les fosses
+acceptent maintenant les **ARM N1–N20 ayant un projectile spécialisé
+réel** sans ancienne définition. La masse, l'arc, la vitesse,
+la présentation et la durée de vie proviennent du système canonique ;
+les GUID et niveaux ne sont pas reconstitués artificiellement.
+
+**La transition n'est pas finie :** les lancers physiques ordinaires
+sans `ProjectilePolicy`, les flèches N0 du chemin de combat à distance,
+les interactions `Consume/Read/Hotbar` et les autres objets non ARM
+restent à qualifier avant 06.4. Une valeur de vitesse générique
+non authorée n'est pas inventée.
+
+Voir `docs/Architecture/ARM_CLEAN06_3AV_CANONICAL_SPECIALIZED_THROWS.md`.
+Aucun `.uasset`, SaveGame, WBP ni texte localisé n'a été modifié.

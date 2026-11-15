@@ -22,28 +22,33 @@ struct FGridPhysicalThrowStrengthReadModel
 		const FGridItemInstance& Instance, int32 Strength)
 	{
 		FGridPhysicalThrowStrengthReadView Out;
-		if (!IsValid(LegacyDefinition) || !Instance.IsValid() ||
-			Instance.ItemDefinitionId != LegacyDefinition->ItemDefinitionId)
+		// Membership must be recognized BEFORE IsValid(): an invalid
+		// registered N21 is not an unknown legacy identity.
+		Out.bCanonicalIdentity = Registry && Registry->HasCanonicalItem(Instance.ItemDefinitionId);
+		if (!Instance.IsValid())
 		{
 			return Out;
 		}
-		Out.MaxWeightKg = LegacyDefinition->GetMaxThrowableWeightForStrength(Strength);
-		if (LegacyDefinition->bUseWeaponCatalogue && Registry &&
-			Registry->HasCanonicalItem(Instance.ItemDefinitionId))
+		if (Out.bCanonicalIdentity)
 		{
-			Out.bCanonicalIdentity = true;
 			FGridResolvedItem Canonical;
 			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) ||
 				!Canonical.bIsArmament)
 			{
 				return Out; // A known invalid N0 does not fall back to stale copies.
 			}
+			// Same global rule as GetMaxThrowableWeightForStrength: 0.25 kg
+			// for each point of effective Strength, independent of old DA.
+			Out.MaxWeightKg = FMath::Max(0, Strength) * 0.25f;
 			Out.bResolved = true;
 			Out.bOneHanded = Canonical.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
 				Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand);
 			Out.UnitWeightKg = Canonical.WeightKg;
 			const float Speed = Canonical.Weapon.Projectile.bEnabled
-				? Canonical.Weapon.Projectile.InitialSpeed : LegacyDefinition->ThrowSpeed;
+				? Canonical.Weapon.Projectile.InitialSpeed
+				: (IsValid(LegacyDefinition) &&
+					LegacyDefinition->ItemDefinitionId == Instance.ItemDefinitionId
+					? LegacyDefinition->ThrowSpeed : 0.0f);
 			if (Strength <= 0 || !Out.bOneHanded || !FMath::IsFinite(Speed) ||
 				Speed <= KINDA_SMALL_NUMBER || !FMath::IsFinite(Out.UnitWeightKg) ||
 				Out.UnitWeightKg < 0.0f || Out.UnitWeightKg > Out.MaxWeightKg + KINDA_SMALL_NUMBER)
@@ -61,7 +66,13 @@ struct FGridPhysicalThrowStrengthReadModel
 			Out.bCanThrow = Out.SpeedScale > 0.0f;
 			return Out;
 		}
-		// Nonregistered and non-ARM identities retain all legacy throw semantics.
+		// Identities absent from ItemSystem keep legacy physics during 06.3.
+		if (!IsValid(LegacyDefinition) ||
+			LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
+		{
+			return Out;
+		}
+		Out.MaxWeightKg = LegacyDefinition->GetMaxThrowableWeightForStrength(Strength);
 		Out.bResolved = true;
 		Out.bOneHanded = LegacyDefinition->GetEffectiveHandUsage() == EGridItemHandUsage::OneHanded;
 		Out.UnitWeightKg = LegacyDefinition->Weight;

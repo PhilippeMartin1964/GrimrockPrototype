@@ -429,7 +429,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		const bool bCanThrow = bHasSummary && Gate.bCanThrow;
 
 		FText DisabledReason;
-		if (!Definition || !Gate.bResolved)
+		if (!Gate.bResolved)
 		{
 			DisabledReason = NSLOCTEXT("GridItemActions", "ThrowMissingDefinition", "Définition d'objet indisponible.");
 		}
