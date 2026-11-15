@@ -87,6 +87,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Visual")
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
 
+	/** Explicit per-owner action bindings; mechanics/presentations stay in
+	 * the two global catalogues. Existing consumable UseActions remain until
+	 * their verified Editor cutover (never duplicate bindings per item). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Actions")
+	TArray<FGridItemActionBinding> ActionBindings;
+
 	/** ARM-CLEAN06.4L: NON-armament presentation belongs to this item,
 	 * not to an ARM attack/weapon visual catalogue. The old source remains
 	 * untouched until the verified binary migration. */

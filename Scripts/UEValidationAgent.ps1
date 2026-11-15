@@ -2070,6 +2070,75 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4R — real UE action/presentation full-data catalogue
+        # staging, strictly read-only. Checked after Build and Grimrock suite.
+        $Action4RTrigger = 'feat(ARM-CLEAN06.4R): stage complete nonarm combat actions in canonical catalogues'
+        $Action4RSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Action4RSubject.Count -eq 1 -and
+            [string]$Action4RSubject[0] -ceq $Action4RTrigger) {
+            $Action4RContext = 'UE5.5.4/ARM-CLEAN06.4R'
+            $Action4RPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Action4RContext -Description 'Audit UE complet actions et presentation non-ARM, conversion interdite'
+                $Action4RScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4R_NonArmActionBridge.ps1'
+                if (-not (Test-Path -LiteralPath $Action4RScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4R: private verification script missing.'
+                }
+                $Action4RPhase = 'PARSE'
+                $Action4RTokens = $null
+                $Action4RErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Action4RScript, [ref]$Action4RTokens, [ref]$Action4RErrors)
+                if ($Action4RErrors -and $Action4RErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4R: PowerShell syntax error.'
+                }
+                foreach ($Action4RValue in @($Action4RScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Action4RValue.Contains('"')) {throw 'ARM-CLEAN06.4R: unsafe quote in path.'}
+                }
+                $Action4RArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Action4RScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Action4ROut = Join-Path $RunDir 'ARM064R.stdout.log'
+                $Action4RErr = Join-Path $RunDir 'ARM064R.stderr.log'
+                $Action4RPhase = 'PROCESS_RUNNING'
+                $Action4RProcess = Start-Process -FilePath $PsExe -ArgumentList $Action4RArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Action4ROut -RedirectStandardError $Action4RErr -PassThru -Wait -ErrorAction Stop
+                if ($Action4RProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4R: native UE full action bridge failed.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Action4RContext -Description '4 actions completes et 1 presentation preservees; runtime non bascule'
+                Write-Host '[ARM-CLEAN06.4R] Full non-arm action/presentation data bridge verified.'
+            }
+            catch {
+                $Action4RStagePath = Join-Path $RunDir 'ARMClean064R.stage'
+                $Action4RStage = if (Test-Path -LiteralPath $Action4RStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Action4RStagePath -TotalCount 1)).Trim()
+                } else { $Action4RPhase }
+                if ($Action4RStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4K_LOCATE','READ_4K_MISSING','READ_4K_MULTIPLE',
+                    'READ_4K_DUPLICATE_PROVENANCE','READ_4K_NO_TRUSTED_COPY',
+                    'READ_4K_COMPARE_COPIES','READ_4K_CONFLICTING_COPIES',
+                    'READ_4K_DUPLICATES_RECONCILED','READ_4K_GATE_EXISTS',
+                    'READ_4K_GATE_READ','READ_4K_GATE_SCHEMA','READ_4K_REPORT_HASH',
+                    'READ_4K_COUNTERS','READ_4K_GATE_CLOSED','VERIFY_4K_DOMAINS',
+                    'REHASH_84','READ_4O','READ_4Q',
+                    'READ_4Q_DUPLICATE_PROVENANCE','READ_4Q_NO_TRUSTED_COPY',
+                    'READ_4Q_COMPARE_TRUSTED_COPIES','READ_4Q_CONFLICTING_COPIES',
+                    'READ_4Q_DUPLICATES_RECONCILED','UNREAL_ACTION_BRIDGE',
+                    'UNREAL_ACTION_BRIDGE_FAILED','VERIFY_RESULT',
+                    'WRITE_PRIVATE_GATE','CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE',
+                    'SUCCESS','START','PARSE','PROCESS_RUNNING')) {
+                    $Action4RStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Action4RContext -Description ('Actions 06.4R bloquees : ' + $Action4RStage)
+                }
+                catch {Write-Warning '[ARM-CLEAN06.4R] Cannot publish failed check.'}
+                Write-Warning ('[ARM-CLEAN06.4R] Action bridge audit incomplete: ' + $Action4RStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.

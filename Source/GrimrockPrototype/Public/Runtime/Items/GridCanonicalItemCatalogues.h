@@ -120,6 +120,18 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalAction
 	TArray<FGridCanonicalActionEffect> Effects;
 };
 
+/** Lossless authored execution policy for non-ARM actions using the very
+ * same combat definition consumed by the existing combat runtime.
+ * Disjoint ActionIds from compact weapon actions; one global catalogue. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridCanonicalRuntimeAction
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action|Runtime")
+	FGridCombatActionDefinition Definition;
+};
+
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridActionCatalogueAsset : public UPrimaryDataAsset
 {
@@ -129,7 +141,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Actions")
 	TArray<FGridCanonicalAction> Actions;
 
+	/** Detailed non-ARM policies, never stored a second time in Actions. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Actions|Detailed")
+	TArray<FGridCanonicalRuntimeAction> DetailedActions;
+
 	const FGridCanonicalAction* Find(FName ActionId) const;
+	const FGridCombatActionDefinition* FindDetailed(FName ActionId) const;
 	bool Validate(TArray<FString>& Errors) const;
 };
 
@@ -272,6 +289,20 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalActionPresentation
 	bool IsValid() const;
 };
 
+/** Full player presentation data where compact channels are not yet a
+ * proven lossless projection; disjoint IDs in the SAME global catalogue. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridCanonicalRuntimePresentation
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation")
+	FName PresentationId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation")
+	FGridPlayerAttackPresentationProfile Profile;
+};
+
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridActionPresentationCatalogueAsset : public UPrimaryDataAsset
 {
@@ -281,7 +312,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentations")
 	TArray<FGridCanonicalActionPresentation> Presentations;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentations|Detailed")
+	TArray<FGridCanonicalRuntimePresentation> DetailedPresentations;
+
 	const FGridCanonicalActionPresentation* Find(FName PresentationId) const;
+	const FGridPlayerAttackPresentationProfile* FindDetailed(FName PresentationId) const;
 	bool Validate(TArray<FString>& Errors) const;
 };
 

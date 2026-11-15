@@ -43,7 +43,9 @@ namespace
 				continue;
 			}
 			Seen.Add(Binding.ActionId);
-			if (!Actions->Find(Binding.ActionId) || !Presentations->Find(Binding.PresentationId))
+			if ((!Actions->Find(Binding.ActionId) && !Actions->FindDetailed(Binding.ActionId)) ||
+			(!Presentations->Find(Binding.PresentationId) &&
+			 !Presentations->FindDetailed(Binding.PresentationId)))
 			{
 				bValid = AddError(Errors, FString::Printf(TEXT("%s: unknown action/presentation %s/%s"),
 					*Owner, *Binding.ActionId.ToString(), *Binding.PresentationId.ToString()));
@@ -59,6 +61,16 @@ const FGridCanonicalAction* UGridActionCatalogueAsset::Find(FName ActionId) cons
 	{
 		return Entry.ActionId == ActionId;
 	});
+}
+
+const FGridCombatActionDefinition* UGridActionCatalogueAsset::FindDetailed(FName ActionId) const
+{
+	const FGridCanonicalRuntimeAction* Entry = DetailedActions.FindByPredicate(
+		[ActionId](const FGridCanonicalRuntimeAction& Candidate)
+		{
+			return Candidate.Definition.ActionId == ActionId;
+		});
+	return Entry ? &Entry->Definition : nullptr;
 }
 
 bool UGridActionCatalogueAsset::Validate(TArray<FString>& Errors) const
@@ -95,6 +107,17 @@ bool UGridActionCatalogueAsset::Validate(TArray<FString>& Errors) const
 					*Action.ActionId.ToString()));
 			}
 		}
+	}
+	for (const FGridCanonicalRuntimeAction& Detailed : DetailedActions)
+	{
+		const FName ActionId = Detailed.Definition.ActionId;
+		if (ActionId.IsNone() || Seen.Contains(ActionId) ||
+			!Detailed.Definition.IsValid())
+		{
+			bValid = AddError(Errors,
+				TEXT("Action catalogue: invalid or duplicated detailed ActionId"));
+		}
+		Seen.Add(ActionId);
 	}
 	return bValid;
 }
@@ -164,6 +187,17 @@ const FGridCanonicalActionPresentation* UGridActionPresentationCatalogueAsset::F
 	});
 }
 
+const FGridPlayerAttackPresentationProfile*
+UGridActionPresentationCatalogueAsset::FindDetailed(FName PresentationId) const
+{
+	const FGridCanonicalRuntimePresentation* Entry = DetailedPresentations.FindByPredicate(
+		[PresentationId](const FGridCanonicalRuntimePresentation& Candidate)
+		{
+			return Candidate.PresentationId == PresentationId;
+		});
+	return Entry ? &Entry->Profile : nullptr;
+}
+
 bool UGridActionPresentationCatalogueAsset::Validate(TArray<FString>& Errors) const
 {
 	bool bValid = true;
@@ -176,6 +210,17 @@ bool UGridActionPresentationCatalogueAsset::Validate(TArray<FString>& Errors) co
 			bValid = AddError(Errors, TEXT("Presentation catalogue: invalid settings, or missing/duplicate PresentationId"));
 		}
 		Seen.Add(Entry.PresentationId);
+	}
+	for (const FGridCanonicalRuntimePresentation& Detailed : DetailedPresentations)
+	{
+		if (Detailed.PresentationId.IsNone() ||
+			Seen.Contains(Detailed.PresentationId) ||
+			!Detailed.Profile.IsValid())
+		{
+			bValid = AddError(Errors,
+				TEXT("Presentation catalogue: duplicate or invalid detailed profile"));
+		}
+		Seen.Add(Detailed.PresentationId);
 	}
 	return bValid;
 }
@@ -543,6 +588,21 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 			{
 				AmmoKinds.Add(Ammo->AmmoKindId);
 			}
+		}
+		if (const UGridNonArmamentDefinitionAsset* NonArm =
+			Cast<UGridNonArmamentDefinitionAsset>(Item))
+		{
+			if (const UGridConsumableDefinitionAsset* Consumable =
+				Cast<UGridConsumableDefinitionAsset>(Item))
+			{
+				if (!NonArm->ActionBindings.IsEmpty() && !Consumable->UseActions.IsEmpty())
+				{
+					bValid = AddError(Errors,
+						TEXT("Item system: consumable action bindings have duplicate owners"));
+				}
+			}
+			bValid = ValidateBindings(NonArm->ActionBindings, ActionCatalogue,
+				ActionPresentationCatalogue, Item->ItemId.ToString(), Errors) && bValid;
 		}
 		if (const UGridConsumableDefinitionAsset* Consumable = Cast<UGridConsumableDefinitionAsset>(Item))
 		{

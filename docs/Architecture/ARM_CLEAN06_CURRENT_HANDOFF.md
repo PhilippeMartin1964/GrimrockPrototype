@@ -9,22 +9,21 @@
 
 - Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
 - Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
-- Dernier jalon **validé en UE5.5.4** : **ARM-CLEAN06.4P**,
-  commit `29955df612e1478b94f30a706bac009df3c8d531`.
-- Sur ce SHA exact : `UE5.5.4/SilentTask=success`,
-  `UE5.5.4/LocalAuto=success`,
-  `UE5.5.4/ARM-CLEAN06.4P=success`.
-  Issue [149](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/149) :
-  15 champs équipement non-ARM, 44 copies exactes, 11 politiques
-  de main dont 4 Auto, 209 emplacements et 33 sondes N0/N1/N20.
-- **11 propriétés d'actions** restent sans mapping approuvé après 06.4O ;
-  06.4P n'a été qu'une validation des données en mémoire.
-- Le propriétaire a confirmé en PIE que les effets, torches et
-  Save/Continue du **runtime existant** restent inchangés. Cela ne
-  prouve **pas** le futur lecteur canonique.
-- **ARM-CLEAN06.4Q est en préparation/validation** : attendre ses trois
-  statuts SUCCESS sur son SHA propre. Il concerne les 6 champs de
-  piles non-ARM. Aucune conversion binaire, SaveGame ou WBP autorisée.
+- Dernier jalon **validé en UE5.5.4** : **ARM-CLEAN06.4Q**,
+  commit `608a83c76205cfc126088fc19f36d5f0e2e173aa`.
+- Trois checks sur ce SHA exact :
+  `UE5.5.4/SilentTask=success`, `UE5.5.4/LocalAuto=success`,
+  `UE5.5.4/ARM-CLEAN06.4Q=success`.
+  Issue [150](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/150) :
+  6 occurrences empilement, 4 sources stackables, 7 à capacité 1,
+  34 définitions transitoires et 44 sondes N0/N1/N20/N21.
+- Le propriétaire a confirmé en PIE que le runtime existant (effets,
+  torches, Save/Continue) reste inchangé. **Cela ne prouve pas le
+  futur lecteur canonique après conversion.**
+- **ARM-CLEAN06.4R est en préparation/validation** : quatre actions
+  complètes et une présentation non-ARM, depuis les sources privées
+  06.4O. Ne le déclarer validé qu'après trois SUCCESS sur son SHA.
+  Aucune conversion binaire, SaveGame ou WBP autorisée.
 
 ### Jalons récents déjà réalisés — ne pas les refaire
 
@@ -558,6 +557,39 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   couverts par preuve transitoire. La migration ne commence qu'avec
   le schéma SaveGame, les références monde et le rollback validés.
 - Détails : `docs/Architecture/ARM_CLEAN06_4Q_NONARM_STACK_REGISTRY_PARITY.md`.
+
+## ARM-CLEAN06.4R — action complexe non-ARM sans perte de champ
+
+- Parent : 06.4Q validé sur `608a83c76205cfc126088fc19f36d5f0e2e173aa`,
+  issue 150 et trois statuts SUCCESS.
+- Source : 06.4O a inventorié **11 occurrences ITEM_ACTION**,
+  **1** action équipement, **3** QuickItems normalisées,
+  **1** présentation et **54** champs imbriqués non défaut.
+- Nouveau pont **dans les catalogues uniques existants** :
+  `DA_ActionCatalogue.DetailedActions` contient le vrai
+  `FGridCombatActionDefinition` intégral, et
+  `DA_ActionPresentationCatalogue.DetailedPresentations` la
+  vraie `FGridPlayerAttackPresentationProfile`. Les IDs
+  sont disjoints de leurs entrées compactes. AUCUN cinquième catalogue.
+- Des `ActionBindings` optionnels sont ajoutés à la définition
+  non-ARM, mais ne sont **pas activés** par R. Les anciennes
+  `UseActions` des consommables ne sont pas dupliquées.
+- Le commandlet `GridArmClean064RNonArmFullActionBridge`
+  projette les 11 vrais ItemId dans un root de 34 entrées,
+  vérifie les 50 champs actifs et chaque FProperty des
+  **4 actions** contre la capture 06.4O ; conserve la présentation.
+- Interdits : aucun `SavePackage`, aucune bascule runtime,
+  aucun nouveau contenu joueur. Les quatre liens détaillés
+  restent **non approuvés** tant que leurs routes n'ont
+  pas été testées sur l'exécuteur et l'UMG.
+- Vérifier sur SHA R : `UE5.5.4/SilentTask`,
+  `UE5.5.4/LocalAuto`, `UE5.5.4/ARM-CLEAN06.4R`
+  tous SUCCESS. Ne jamais inférer la parité PIE des comptes.
+- **Suite resserrée : outil de migration Editor transactionnel,
+  activation des bindings réels, tests Save/Continue, puis 06.5/06.6.**
+  Ne pas rouvrir un audit de chacune des familles déjà couvertes.
+- Document :
+  `docs/Architecture/ARM_CLEAN06_4R_NONARM_ACTION_LOSSLESS_BRIDGE.md`.
 
 ## Étapes ultérieures inchangées
 
