@@ -75,9 +75,11 @@ bool UGridActionCatalogueAsset::Validate(TArray<FString>& Errors) const
 		Seen.Add(Action.ActionId);
 		if (Action.CooldownRounds < 0 || Action.ManaCost < 0 ||
 			Action.SourceItemQuantityCost < 0 ||
-			(Action.Kind != EGridCanonicalActionKind::Attack &&
-				(Action.bRangedAttack || Action.bRequiresLineOfSight ||
-				 Action.SourceItemQuantityCost != 0)) ||
+			((Action.Kind != EGridCanonicalActionKind::Attack &&
+				(Action.bRangedAttack || Action.bRequiresLineOfSight)) ||
+			 (Action.Kind != EGridCanonicalActionKind::Attack &&
+			  Action.Kind != EGridCanonicalActionKind::Use &&
+			  Action.SourceItemQuantityCost != 0)) ||
 			Action.WeaponDamagePercent < 0 || Action.WeaponDamagePercent > 500)
 		{
 			bValid = AddError(Errors, FString::Printf(TEXT("Action %s: invalid cost/cooldown/scaling"),

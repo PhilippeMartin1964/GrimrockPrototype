@@ -27,6 +27,7 @@
 #include "../Runtime/Combat/GridCanonicalActionIconReadModel.h"
 #include "GridCombatHudCanonicalActionReadModel.h"
 #include "../Runtime/GridCanonicalItemInteractionReadModel.h"
+#include "../Runtime/GridCanonicalQuickItemUseReadModel.h"
 #include "../Runtime/GridPhysicalThrowStrengthReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -208,11 +209,33 @@ namespace
             return false;
         }
 
-        const UGridItemDefinitionAsset* Definition = Inventory->FindItemDefinition(Binding.SourceDefinitionId);
+        const UWorld* World = Inventory->GetWorld();
+        UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+        const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+        const bool bCanonical = Registry && Registry->HasCanonicalItem(Binding.SourceDefinitionId);
+        const FGridCharacterInventoryState& Character =
+            Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+        const FGridInventorySlot* Source = Character.InventorySlots.FindByPredicate(
+            [&Binding](const FGridInventorySlot& Slot)
+            {
+                return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == Binding.SourceDefinitionId;
+            });
+        if (!Source)
+        {
+            return false;
+        }
+        const FGridCanonicalQuickItemUseReadView Use = bCanonical
+            ? FGridCanonicalQuickItemUseReadModel::Resolve(Registry, Source->Item)
+            : FGridCanonicalQuickItemUseReadView();
+        const UGridItemDefinitionAsset* Definition = bCanonical ? nullptr :
+            Inventory->FindItemDefinition(Binding.SourceDefinitionId);
         FGridCombatActionDefinition QuickItem;
-        if (!IsValid(Definition) ||
-            (Definition->ItemType != EGridItemType::Potion && Definition->ItemType != EGridItemType::Food) ||
-            !Definition->BuildQuickItemCombatActionDefinition(QuickItem) ||
+        const bool bHasAction = bCanonical
+            ? (Use.bResolved && Use.bExplorationCompatible && (QuickItem = Use.Action, true))
+            : (IsValid(Definition) &&
+                (Definition->ItemType == EGridItemType::Potion || Definition->ItemType == EGridItemType::Food) &&
+                Definition->BuildQuickItemCombatActionDefinition(QuickItem));
+        if (!bHasAction ||
             QuickItem.ActionId != Binding.ActionId ||
             QuickItem.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
             QuickItem.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
@@ -227,8 +250,6 @@ namespace
             return false;
         }
 
-        const FGridCharacterInventoryState& Character =
-            Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
         OutAction = FGridAvailableCombatAction();
         OutAction.Definition = QuickItem;
         OutAction.CharacterIndex = CharacterIndex;

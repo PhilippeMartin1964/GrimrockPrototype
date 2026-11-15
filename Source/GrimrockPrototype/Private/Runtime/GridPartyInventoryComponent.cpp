@@ -5,6 +5,7 @@
 #include "GridItemWeightReadModel.h"
 #include "GridItemInstanceMaterializationReadModel.h"
 #include "GridCanonicalInventoryStackReadModel.h"
+#include "GridCanonicalQuickItemUseReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -1415,17 +1416,19 @@ bool UGridPartyInventoryComponent::TryConsumeSelfRestorativeQuickItem(
 
     const FName ItemId = SourceSlot->Item.ItemDefinitionId;
     const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
-    if (Registry && Registry->HasCanonicalItem(ItemId))
-    {
-        OutError = NSLOCTEXT("GridItemActions", "ConsumeUnsupportedEffect",
-            "Cet objet ne dispose pas d'un effet personnel consommable hors combat.");
-        return false; // Canonical UseActions do not use the legacy executor.
-    }
-    const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemId);
+    const bool bCanonical = Registry && Registry->HasCanonicalItem(ItemId);
+    const FGridCanonicalQuickItemUseReadView Canonical = bCanonical
+        ? FGridCanonicalQuickItemUseReadModel::Resolve(Registry, SourceSlot->Item)
+        : FGridCanonicalQuickItemUseReadView();
+    const UGridItemDefinitionAsset* Definition = bCanonical ? nullptr : FindItemDefinition(ItemId);
     FGridCombatActionDefinition Action;
-    if (!IsValid(Definition) ||
-        (Definition->ItemType != EGridItemType::Potion && Definition->ItemType != EGridItemType::Food) ||
-        !Definition->BuildQuickItemCombatActionDefinition(Action) ||
+    const bool bHaveAction = bCanonical
+        ? (Canonical.bResolved && Canonical.bExplorationCompatible &&
+            (Action = Canonical.Action, true))
+        : (IsValid(Definition) &&
+            (Definition->ItemType == EGridItemType::Potion || Definition->ItemType == EGridItemType::Food) &&
+            Definition->BuildQuickItemCombatActionDefinition(Action));
+    if (!bHaveAction ||
         Action.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem ||
         Action.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
         Action.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||

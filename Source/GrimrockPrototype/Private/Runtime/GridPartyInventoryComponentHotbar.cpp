@@ -3,6 +3,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridCanonicalItemInteractionReadModel.h"
+#include "GridCanonicalQuickItemUseReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 
@@ -287,7 +288,15 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		}
 		else if (Capabilities.bCanonicalIdentity)
 		{
-			return false; // An old quick-item action cannot be resurrected for a known ID.
+			const FGridCanonicalQuickItemUseReadView Use =
+				FGridCanonicalQuickItemUseReadModel::Resolve(Canonical, SourceItem);
+			if (!Use.bResolved)
+			{
+				return false; // No fallback to old QuickItem for known IDs.
+			}
+			Binding.ActionId = Use.Action.ActionId;
+			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+			Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
 		}
 		else if (Definition->BuildInventoryCombatActionDefinition(InventoryAction))
 		{

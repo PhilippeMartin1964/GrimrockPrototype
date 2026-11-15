@@ -3,6 +3,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "GridCanonicalQuickItemUseReadModel.h"
 
 /**
  * ARM-CLEAN06.3AW: context/read/hotbar capabilities of an actual item instance.
@@ -16,6 +17,7 @@ struct FGridCanonicalItemInteractionReadView
 	bool bResolved = false;
 	bool bCanRead = false;
 	bool bCanConsumeLegacy = false;
+	bool bCanConsumeCanonical = false;
 	bool bCanAddToHotbar = false;
 	bool bPhysicalThrowHotbar = false;
 	FText DisplayName;
@@ -57,9 +59,11 @@ struct FGridCanonicalItemInteractionReadModel
 				FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f &&
 				FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) &&
 				Canonical.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER;
-			Out.bCanAddToHotbar = Out.bPhysicalThrowHotbar;
-			// No registered item is allowed to execute an old QuickItem effect.
-			// Canonical UseActions need their own executor in the next migration.
+			const FGridCanonicalQuickItemUseReadView Use =
+				FGridCanonicalQuickItemUseReadModel::Resolve(Registry, Item);
+			Out.bCanConsumeCanonical = Use.bResolved;
+			Out.bCanAddToHotbar = Out.bPhysicalThrowHotbar || Use.bResolved;
+			// No registered item ever executes an OLD QuickItem action.
 			return Out;
 		}
 

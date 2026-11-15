@@ -132,3 +132,30 @@ toujours prévues en 06.4.
 
 Voir `docs/Architecture/ARM_CLEAN06_3AW_CANONICAL_CONTEXT_HOTBAR_READ.md`.
 Aucun asset Unreal ni clé localisée n'est changé.
+
+## Complément 06.3AX — soins directs canoniques UseActions
+
+Le catalogue d'actions vérifie désormais le coût d'objet
+`SourceItemQuantityCost` sur `Kind=Use`, en plus des attaques ;
+les autres genres restent sans consommation d'objet.
+
+`FGridCanonicalQuickItemUseReadModel` convertit **en mémoire,
+sans ancien DataAsset et sans copie persistée** une unique
+action authorée `Use / Self / Heal(Magnitude > 0)` en
+`FGridCombatActionDefinition` pour le catalogue QuickItem
+et les exécuteurs combat/exploration existants. Le menu,
+l'affectation du raccourci et sa projection dans le HUD
+utilisent cette même capacité. Un soin canoniquement
+enregistré ne peut jamais récupérer d'anciens effets.
+Les effets avancés ou multiples ne sont pas inventés.
+
+**Dette restante :** les autres `UseActions` (statuts,
+surfaces, téléportation, soin d'un allié, etc.) exigent
+une projection et des tests dédiés ; le coût PA de
+`Use` n'est pas encore authoré et vaut zéro lors de
+la projection, sans valeur arbitraire. Aucun ancien
+`.uasset` ni SaveGame converti à ce stade.
+
+Voir
+`docs/Architecture/ARM_CLEAN06_3AX_CANONICAL_SELF_HEAL_USE_ACTIONS.md`.
+Localisation `UI.csv → ST_UI → WBP → Game/fr/en` inchangée.

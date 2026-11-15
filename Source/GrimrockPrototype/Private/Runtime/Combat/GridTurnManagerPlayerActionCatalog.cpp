@@ -19,6 +19,7 @@
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "GridCanonicalActionIconReadModel.h"
 #include "GridCanonicalEquippedAttackReadModel.h"
+#include "../GridCanonicalQuickItemUseReadModel.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
@@ -498,8 +499,22 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 	{
 		if (Canonical && Canonical->HasCanonicalItem(ItemDefinitionId))
 		{
-			// Registered action bindings must not be duplicated by legacy QuickItems.
-			// Physical utility throws are projected separately by the HUD.
+			const FGridInventorySlot* Source = Character.InventorySlots.FindByPredicate(
+				[ItemDefinitionId](const FGridInventorySlot& Slot)
+				{
+					return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == ItemDefinitionId;
+				});
+			const FGridCanonicalQuickItemUseReadView Use = Source
+				? FGridCanonicalQuickItemUseReadModel::Resolve(Canonical, Source->Item)
+				: FGridCanonicalQuickItemUseReadView();
+			if (Use.bResolved)
+			{
+				AddMON126Contribution(Use.Action, ItemDefinitionId, FGuid(),
+					EGridEquipmentSlot::None,
+					Inventory->CountItemDefinitionInCharacterInventory(CharacterIndex, ItemDefinitionId),
+					OutContributions);
+			}
+			// Physical throws are projected separately; never revive a legacy action.
 			continue;
 		}
 		const UGridItemDefinitionAsset* ItemDefinition = Inventory->FindItemDefinition(ItemDefinitionId);

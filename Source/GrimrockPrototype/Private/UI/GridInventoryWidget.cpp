@@ -16,6 +16,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridInventorySortReadModel.h"
 #include "GridCanonicalInventoryItemTypeReadModel.h"
+#include "../Runtime/GridCanonicalQuickItemUseReadModel.h"
 #include "../Runtime/GridCanonicalItemInteractionReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -1717,13 +1718,18 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 
             const UGridItemDefinitionAsset* Definition =
                 InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId);
+            const UGridItemSubsystem* Registry = ResolveInventoryCanonicalRegistry(this);
             const FGridCanonicalItemInteractionReadView Capabilities =
                 FGridCanonicalItemInteractionReadModel::Resolve(
-                    ResolveInventoryCanonicalRegistry(this), Definition, LastContextItem);
+                    Registry, Definition, LastContextItem);
+            const FGridCanonicalQuickItemUseReadView CanonicalUse =
+                FGridCanonicalQuickItemUseReadModel::Resolve(Registry, LastContextItem);
             FGridCombatActionDefinition QuickItemAction;
-            if (!Capabilities.bCanConsumeLegacy || !IsValid(Definition) ||
-                !Definition->BuildQuickItemCombatActionDefinition(QuickItemAction) ||
-                (Definition->ItemType != EGridItemType::Potion && Definition->ItemType != EGridItemType::Food) ||
+            const bool bHaveAction = Capabilities.bCanConsumeCanonical
+                ? (CanonicalUse.bResolved && (QuickItemAction = CanonicalUse.Action, true))
+                : (Capabilities.bCanConsumeLegacy && IsValid(Definition) &&
+                    Definition->BuildQuickItemCombatActionDefinition(QuickItemAction));
+            if (!bHaveAction ||
                 QuickItemAction.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
                 QuickItemAction.ResolutionProfile != EGridCombatActionResolutionProfile::Effect)
             {

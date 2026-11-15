@@ -11,6 +11,7 @@
 #include "GridCanonicalEquipmentSlotsReadModel.h"
 #include "GridCanonicalInventoryStackReadModel.h"
 #include "GridCanonicalItemInteractionReadModel.h"
+#include "GridCanonicalQuickItemUseReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -283,19 +284,33 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		}
 	}
 
-	if (Capabilities.bCanConsumeLegacy && Definition)
+	if ((Capabilities.bCanConsumeLegacy && Definition) || Capabilities.bCanConsumeCanonical)
 	{
 		FGridCombatActionDefinition QuickItemAction;
+		const FGridCanonicalQuickItemUseReadView CanonicalUse =
+			FGridCanonicalQuickItemUseReadModel::Resolve(ItemRegistry, ItemContext.Item);
+		const bool bActionResolved = Capabilities.bCanConsumeCanonical
+			? (QuickItemAction = CanonicalUse.Action, CanonicalUse.bResolved)
+			: (Definition && Definition->BuildQuickItemCombatActionDefinition(QuickItemAction));
 		const bool bSelfRestoration =
-			ItemContext.InventorySlotIndex != INDEX_NONE &&
-			Definition->BuildQuickItemCombatActionDefinition(QuickItemAction) &&
+			ItemContext.InventorySlotIndex != INDEX_NONE && bActionResolved &&
 			QuickItemAction.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
 			QuickItemAction.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 			QuickItemAction.EffectProfile.IsValid();
 		bool bUsefulEffect = bSelfRestoration;
+		if (Capabilities.bCanConsumeCanonical && !CanonicalUse.bExplorationCompatible)
+		{
+			const UGridTurnManagerComponent* Turns = ItemContext.PartyPawn->LevelRuntimeActor
+				? ItemContext.PartyPawn->LevelRuntimeActor->FindComponentByClass<UGridTurnManagerComponent>()
+				: nullptr;
+			if (!IsValid(Turns) || !Turns->bCombatActive)
+			{
+				bUsefulEffect = false;
+			}
+		}
 		FText DisabledReason = NSLOCTEXT("GridItemActions", "ConsumeUnsupported",
 			"Cet objet n'a pas d'effet personnel consommable.");
-		if (bSelfRestoration && ItemContext.PartyPawn->PartyInventoryComponent)
+		if (bUsefulEffect && ItemContext.PartyPawn->PartyInventoryComponent)
 		{
 			FGridInventoryCharacterSummary Summary;
 			if (ItemContext.PartyPawn->PartyInventoryComponent->GetCharacterSummary(ItemContext.CharacterIndex, Summary))
