@@ -797,9 +797,15 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	// initialized from ItemId must not silently reacquire DA_Weapon_* when it
 	// lands. Preserve explicit old assets for transitional callers and keep
 	// the original lookup for IDs absent from DA_ItemSystem.
-	UGridItemDefinitionAsset* ItemDefinition = IsValid(ItemDefinitionAsset)
-		? ItemDefinitionAsset
-		: (bCanonicalIdentity ? nullptr : ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId));
+	FGridResolvedItem CanonicalDrop;
+	const bool bCanonicalAmmo = bCanonicalIdentity &&
+		Registry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, CanonicalDrop) &&
+		!CanonicalDrop.bIsArmament && !CanonicalDrop.AmmoKindId.IsNone();
+	// For ammunition, even an explicitly supplied old pointer is irrelevant:
+	// the world pickup must retain its canonical ItemId and visual/physics.
+	UGridItemDefinitionAsset* ItemDefinition = bCanonicalAmmo ? nullptr :
+		(IsValid(ItemDefinitionAsset) ? ItemDefinitionAsset
+			: (bCanonicalIdentity ? nullptr : ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId)));
 	const FGridReceptacleItemMetadataReadView LevelRead =
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry, ItemDefinition, ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel);

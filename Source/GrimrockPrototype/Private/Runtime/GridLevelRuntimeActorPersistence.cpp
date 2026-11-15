@@ -6,6 +6,8 @@
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Runtime/GridLeverActor.h"
@@ -246,6 +248,9 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 	// materializing any pickup. In-flight shots reload as recoverable items.
 	if (UWorld* World = GetWorld())
 	{
+		UGameInstance* GameInstance = World->GetGameInstance();
+		const UGridItemSubsystem* Canonical = GameInstance
+			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		for (TActorIterator<AGridThrownItemActor> It(World); It; ++It)
 		{
 			const AGridThrownItemActor* Arrow = *It;
@@ -271,7 +276,11 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 			Item.bHasWorldMeshTransform = IsValid(Arrow->MeshComponent);
 			Item.WorldMeshTransform = Item.bHasWorldMeshTransform
 				? Arrow->MeshComponent->GetComponentTransform() : Item.Transform;
-			Item.ProjectileDefinitionAsset = Arrow->GetItemDefinitionAsset();
+			// 06.3BC: a registered arrow's physical identity is ItemId/N0/GUID.
+			// Never persist an obsolete DA_Item_Arrows pointer for this source.
+			Item.ProjectileDefinitionAsset =
+				Canonical && Canonical->HasCanonicalItem(Item.ItemDefinitionId)
+					? nullptr : Arrow->GetItemDefinitionAsset();
 			Item.bLightsEnabled = Arrow->ThrownItemInstance.bLightsEnabled;
 			int32 X = INDEX_NONE, Y = INDEX_NONE;
 			FVector Offset;
@@ -428,6 +437,13 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	}
 
 	AbortActiveCombatAndMonsterActions();
+
+	// One registry for both flying-arrow pickup materialization and embedded
+	// arrow reattachment. A registered invalid ItemId is never legacy.
+	UWorld* RestoreWorld = GetWorld();
+	UGameInstance* RestoreGI = RestoreWorld ? RestoreWorld->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* RestoreRegistry =
+		RestoreGI ? RestoreGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 
 	TArray<AGridMonsterActor*> WorldMonsters;
 	PersistenceGetWorldMonsters(GetWorld(), WorldMonsters);
@@ -607,8 +623,25 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		const FName RuntimeItemDefinitionId = ItemState.ItemDefinitionId;
 		if (!bFoundExistingItem && !RuntimeItemDefinitionId.IsNone())
 		{
-			UGridItemDefinitionAsset* ItemDefinition = IsValid(ItemState.ProjectileDefinitionAsset)
-				? ItemState.ProjectileDefinitionAsset.Get() : ResolveRuntimeItemDefinition(RuntimeItemDefinitionId);
+			// A flying canonical arrow reloads as a pickup, not a second
+			// projectile. Old SaveGame pointers are not its authoring authority.
+			const bool bCanonicalItem = RestoreRegistry &&
+				RestoreRegistry->HasCanonicalItem(RuntimeItemDefinitionId);
+			FGridResolvedItem ResolvedItem;
+			if (bCanonicalItem &&
+				!RestoreRegistry->ResolveItem(RuntimeItemDefinitionId, ItemState.ItemLevel, ResolvedItem))
+			{
+				UE_LOG(LogGridLevelRuntime, Warning,
+					TEXT("[GridProjectile] RestorePickupRejected Item=%s Level=%d Reason=InvalidCanonicalItem"),
+					*RuntimeItemDefinitionId.ToString(), ItemState.ItemLevel);
+				continue;
+			}
+			const bool bCanonicalAmmo = bCanonicalItem && !ResolvedItem.bIsArmament &&
+				!ResolvedItem.AmmoKindId.IsNone();
+			UGridItemDefinitionAsset* ItemDefinition = bCanonicalAmmo
+				? nullptr
+				: (IsValid(ItemState.ProjectileDefinitionAsset)
+					? ItemState.ProjectileDefinitionAsset.Get() : ResolveRuntimeItemDefinition(RuntimeItemDefinitionId));
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, RuntimeItemDefinitionId, this, nullptr);
 			if (ItemActor)
 			{
@@ -784,14 +817,35 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		{
 			continue;
 		}
-		UGridItemDefinitionAsset* Definition = IsValid(Item.ProjectileDefinitionAsset)
-			? Item.ProjectileDefinitionAsset.Get() : ResolveRuntimeItemDefinition(Item.ItemDefinitionId);
+		// 06.3BC: stored embedded arrows can have a legacy pointer from an
+		// older SaveGame, or none at all. An indexed ItemId must resolve as
+		// real N0 ammunition before any projectile or world pickup is made.
+		const bool bCanonicalItem = RestoreRegistry &&
+			RestoreRegistry->HasCanonicalItem(Item.ItemDefinitionId);
+		FGridResolvedItem ResolvedAmmo;
+		const bool bCanonicalAmmo = bCanonicalItem &&
+			Item.ItemLevel == 0 &&
+			RestoreRegistry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, ResolvedAmmo) &&
+			!ResolvedAmmo.bIsArmament && !ResolvedAmmo.AmmoKindId.IsNone() &&
+			ResolvedAmmo.MaxStack > 1;
+		if (bCanonicalItem && !bCanonicalAmmo)
+		{
+			UE_LOG(LogGridLevelRuntime, Warning,
+				TEXT("[GridProjectile] RestoreEmbeddedRejected Item=%s Level=%d Reason=InvalidCanonicalAmmo"),
+				*Item.ItemDefinitionId.ToString(), Item.ItemLevel);
+			continue;
+		}
+		UGridItemDefinitionAsset* Definition = bCanonicalAmmo
+			? nullptr
+			: (IsValid(Item.ProjectileDefinitionAsset)
+				? Item.ProjectileDefinitionAsset.Get() : ResolveRuntimeItemDefinition(Item.ItemDefinitionId));
 		FGridItemInstance Unit;
 		Unit.RuntimeObjectId = Pair.Key;
 		Unit.ItemDefinitionId = Item.ItemDefinitionId;
 		Unit.ItemLevel = Item.ItemLevel;
 		Unit.Quantity = 1;
-		Unit.Weight = IsValid(Definition) ? Definition->Weight : 0.0f;
+		Unit.Weight = bCanonicalAmmo ? ResolvedAmmo.WeightKg :
+			(IsValid(Definition) ? Definition->Weight : 0.0f);
 		Unit.OwnerType = EGridItemOwnerType::World;
 		Unit.OwnerCharacterIndex = INDEX_NONE;
 		Unit.bLightsEnabled = Item.bLightsEnabled;
@@ -802,7 +856,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			MonstersByPersistenceId.Find(Item.EmbeddedMonsterPersistenceId))
 		{
 			if (Matches->Num() == 1 && IsValid((*Matches)[0]) &&
-				!(*Matches)[0]->IsDead() && IsValid(Definition))
+				!(*Matches)[0]->IsDead() && (bCanonicalAmmo || IsValid(Definition)))
 			{
 				AGridThrownItemActor* Arrow = SpawnThrownItemProjectile(Unit, Definition,
 					SavedMesh.GetLocation(), SavedMesh.GetRotation().GetForwardVector() * 1200.0f,

@@ -62,37 +62,25 @@ préflights. **PIE du WBP réel non vérifié.** Recette visuelle ciblée :
 Ne pas présenter une simulation `-NullRHI` comme une preuve du
 hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 
-## Prochain périmètre de travail proposé — **06.3BB, non commencé**
+## ARM-CLEAN06.3BB — réalisé et validé
 
-**Migration canonique des exigences de munitions pour les attaques à
-distance**, avec tests de non-régression avant toute modification binaire.
+- SHA : `69f122fcd895147eef55fe64f93dbefe29147619`
+- `UE5.5.4/SilentTask=success`, `UE5.5.4/LocalAuto=success`.
+- Disponibilité HUD et combat : munitions canoniques via `RequiredAmmoKindId`
+  de l'arme, `AmmoKindId` de `Item_Arrows_01`, débit unitaire,
+  vrai projectile récupérable. Pas de conversion binaire.
 
-Motif établi par lecture du HEAD `3c537bc` :
-- `GridTurnManagerPlayerActionCatalog.cpp` appelle encore
-  `FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack`
-  sur `UGridItemDefinitionAsset`, même pour des attaques d'armes
-  déjà enregistrées dans `DA_ItemSystem` si l'ancien asset existe.
-- `GridTurnManagerPlayerActions.cpp` utilise encore
-  `RequiredAmmunitionItemDefinitionId` de cet ancien asset pour le
-  préflight, la préparation visuelle d'une flèche et sa consommation.
-- Le modèle normatif prévoit **`RequiredAmmoKindId` côté arme et
-  `AmmoKindId` côté munition**, la jointure et l'identité réelle de
-  `Item_Arrows_01`, sans copie de la liaison dans `DA_Weapon_*`.
-- La disparition d'une ancienne définition ne doit ni autoriser
-  gratuitement un arc canonique ni empêcher un tir pourtant authoré.
-  Les effets secondaires visuels du projectile doivent rester intacts.
+## ARM-CLEAN06.3BC — continuité des projectiles au Save/Continue
 
-**Contrat de sortie BB à définir et tester :** source canonique
-prioritaire sur toute métadonnée legacy ; identité de munition
-déterministe, un seul débit après attaque acceptée ; zéro débit sur
-attaque refusée ; comportement des armes inconnues inchangé ;
-intégrité des projectiles au monde, de l'inventaire et du SaveGame.
-Ne pas inventer de munition, de projectile ou de politique de tir.
-Ne pas supprimer l'ancienne définition utilisée pour fabriquer le
-projectile visuel avant une solution UE de conversion (06.4).
-
-Ce périmètre est **une proposition issue de l'audit**, non une
-implémentation achevée, ni un jalon validé.
+- Voir `ARM_CLEAN06_3BC_CANONICAL_ARROW_PERSISTENCE.md`.
+- Capture d'une flèche canonique en vol ou fichée : aucun ancien
+  `ProjectileDefinitionAsset` sauvegardé.
+- Restauration : flèche N0 enregistrée résolue depuis `DA_ItemSystem` ;
+  le monstre vivant conserve la flèche fichée, sinon un pickup réel
+  conserve le GUID et la pose. Aucun fallback vers un ancien DA_Item
+  pour un ItemId enregistré mais invalide.
+- Le résultat du `LocalAuto` doit être contrôlé sur le SHA BC final,
+  et le rendu PIE/Chaos reste une validation distincte.
 
 ## Étapes ultérieures inchangées
 
