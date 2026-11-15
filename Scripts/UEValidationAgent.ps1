@@ -1487,6 +1487,68 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4I: real UE Editor reflection over the exact
+        # 95 world references from the 06.4H private audit; group 40 missing
+        # occurrences by distinct ItemId, without writes or private disclosure.
+        $Distinct4ITrigger = 'chore(ARM-CLEAN06.4I): count distinct unresolved ItemIds and preserve source fields'
+        $Distinct4ISubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Distinct4ISubject.Count -eq 1 -and
+            [string]$Distinct4ISubject[0] -ceq $Distinct4ITrigger) {
+            $Distinct4IContext = 'UE5.5.4/ARM-CLEAN06.4I'
+            $Distinct4IPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Distinct4IContext -Description 'Read-only distinct ItemId UE: 40 references, 84 protected binaries'
+                $Distinct4IScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4I_DistinctItemIds.ps1'
+                if (-not (Test-Path -LiteralPath $Distinct4IScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4I: identity script missing.'
+                }
+                $Distinct4IPhase = 'PARSE'
+                $Distinct4ITokens = $null
+                $Distinct4IErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Distinct4IScript, [ref]$Distinct4ITokens, [ref]$Distinct4IErrors)
+                if ($Distinct4IErrors -and $Distinct4IErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4I: malformed PowerShell.'
+                }
+                foreach ($Distinct4IValue in @($Distinct4IScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Distinct4IValue.Contains('"')) { throw 'ARM-CLEAN06.4I: unsupported path quote.' }
+                }
+                $Distinct4IArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Distinct4IScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Distinct4IOut = Join-Path $RunDir 'ARM064I.stdout.log'
+                $Distinct4IErr = Join-Path $RunDir 'ARM064I.stderr.log'
+                $Distinct4IPhase = 'PROCESS_RUNNING'
+                $Distinct4IProcess = Start-Process -FilePath $PsExe -ArgumentList $Distinct4IArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Distinct4IOut -RedirectStandardError $Distinct4IErr -PassThru -Wait -ErrorAction Stop
+                if ($Distinct4IProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4I: UE identity grouping failed.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Distinct4IContext -Description 'Distinct IDs enumerated; source UPROPERTY private; migration blocked'
+                Write-Host '[ARM-CLEAN06.4I] Distinct identity audit complete, no asset conversions.'
+            }
+            catch {
+                $Distinct4IStagePath = Join-Path $RunDir 'ARMClean064I.stage'
+                $Distinct4IStage = if (Test-Path -LiteralPath $Distinct4IStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Distinct4IStagePath -TotalCount 1)).Trim()
+                } else { $Distinct4IPhase }
+                if ($Distinct4IStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4H','FIND_4H','CHECK_4H_GATE_FILE','VERIFY_4H_RECEIPT',
+                    'CHECK_4H_ROWS','CHECK_4H_CATEGORIES','VERIFY_BACKUP',
+                    'UE_IDENTITY_AUDIT','UE_IDENTITY_FAILED',
+                    'VERIFY_RESULT','WRITE_GATE','CHECK_CLEAN','ISSUE_BUILD',
+                    'ISSUE_WRITE','SUCCESS','START','PARSE','PROCESS_RUNNING')) {
+                    $Distinct4IStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Distinct4IContext -Description ('Identites 06.4I bloquees : ' + $Distinct4IStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4I] Status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4I] Distinct UE identity audit incomplete: ' + $Distinct4IStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.

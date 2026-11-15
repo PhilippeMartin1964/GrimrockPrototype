@@ -293,6 +293,32 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Migration, suppression et mise à jour de sauvegardes **interdites**.
   Lire `ARM_CLEAN06_4H_WORLD_REFERENCES_READ_ONLY.md`.
 
+## ARM-CLEAN06.4I — distinguer 40 occurrences des ItemId manquants
+
+- Source 06.4H validée : 95 références physiques réelles (55 IDs
+  candidats et **40 occurrences non mappées**), zéro GUID dupliqué,
+  quatre niveaux, 78 entrées de palette, 44 définitions monde ;
+  issue GitHub 141.
+- Commandlet Editor-only `GridArmClean064IIdentityGap` : relit les
+  **95 lignes privées exactes**, charge les `UGridItemDefinitionAsset`
+  correspondants, recoupe l'identité/l'état N0–N20 et les
+  23 définitions sérialisées dans `DA_ItemSystem`.
+- Regroupe les **40 références** par **ItemId distinct**, inventorie
+  les définitions historiques associées et compare **toutes leurs
+  UPROPERTY** pour détecter les duplications contradictoires.
+  Les valeurs complètes (SFX/VFX, meshes, slots, jets, poids, tags...)
+  restent dans les rapports privés.
+- Sur les 55 candidats canoniques, compare uniquement quelques
+  métadonnées *sélectionnées* (DisplayName, Description, Weight,
+  Tags, classe/archétype, Icon et WorldMesh non-ARM).
+  Ceci **n'est pas une preuve d'équivalence générale**.
+- Le script revalide le verrou 06.4H, le reçu 06.4G et
+  les SHA-256 des **84 sources plus sauvegardes privées**.
+  Issue publique `[ARM-CLEAN06.4I]` à chiffres agrégés.
+- `UE5.5.4/ARM-CLEAN06.4I=success` = inventaire exact produit,
+  pas migration autorisée. **Zéro écriture d'asset ou SaveGame**.
+  Voir `ARM_CLEAN06_4I_DISTINCT_IDENTITY_GAPS.md`.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,
