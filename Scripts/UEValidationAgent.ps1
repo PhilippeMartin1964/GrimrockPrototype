@@ -996,6 +996,70 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4A — explicit one-shot read-only recapture of the real
+        # UE baseline, its AssetRegistry graph, 56 hashes and canonical root.
+        # Runs only after successful UBT + complete Grimrock Automation.
+        # Strictly no SavePackage, no migration, and no commit from this path.
+        $Audit4ATrigger = 'chore(ARM-CLEAN06.4A): recapture read-only UE assets and references'
+        $Audit4ASubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Audit4ASubject.Count -eq 1 -and
+            [string]$Audit4ASubject[0] -ceq $Audit4ATrigger) {
+            $Audit4AContext = 'UE5.5.4/ARM-CLEAN06.4A'
+            $Audit4APhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Audit4AContext -Description 'Audit UE en lecture seule: 56 assets, referents et source canonique'
+                $Audit4AScript = Join-Path $WorktreePath 'Scripts\CaptureARM_CLEAN06_Baseline.ps1'
+                if (-not (Test-Path -LiteralPath $Audit4AScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4A: read-only capture script absent.'
+                }
+                $Audit4APhase = 'PARSE'
+                $Audit4ATokens = $null
+                $Audit4AErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Audit4AScript, [ref]$Audit4ATokens, [ref]$Audit4AErrors)
+                if ($Audit4AErrors -and $Audit4AErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4A: read-only capture script syntax invalid.'
+                }
+                $Audit4APhase = 'PROCESS_LAUNCH'
+                foreach ($Audit4AValue in @($Audit4AScript,$WorktreePath,$EngineRoot,$RunDir,$RepositoryRoot,$GitHubRepository)) {
+                    if ($Audit4AValue.Contains('"')) { throw 'ARM-CLEAN06.4A: unsupported path quote.' }
+                }
+                $Audit4AArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Audit4AScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -ExpectedHead "' + $Sha +
+                    '" -RunDir "' + $RunDir + '" -DevelopmentRoot "' + $RepositoryRoot +
+                    '" -GitHubRepository "' + $GitHubRepository + '" -AuditLabel "ARM-CLEAN06.4A"'
+                $Audit4AOut = Join-Path $RunDir 'ARM064A.stdout.log'
+                $Audit4AErr = Join-Path $RunDir 'ARM064A.stderr.log'
+                $Audit4APhase = 'PROCESS_RUNNING'
+                $Audit4AProcess = Start-Process -FilePath $PsExe -ArgumentList $Audit4AArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Audit4AOut -RedirectStandardError $Audit4AErr -PassThru -Wait -ErrorAction Stop
+                if ($Audit4AProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4A: read-only recapture returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Audit4AContext -Description 'Audit UE 56 assets, 1640 profils, 1 root, references et hash en prive'
+                Write-Host '[ARM-CLEAN06.4A] Read-only recapture complete; no asset written.'
+            }
+            catch {
+                $Audit4AStageFile = Join-Path $RunDir 'ARMClean064A.stage'
+                $Audit4AStage = if (Test-Path -LiteralPath $Audit4AStageFile -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Audit4AStageFile -TotalCount 1)).Trim()
+                } else { $Audit4APhase }
+                if ($Audit4AStage -notin @('PREFLIGHT','CHECK_HEAD','HEAD_QUERY_FAILED','HEAD_MISMATCH',
+                    'CHECK_WORKTREE','CHECK_ENGINE','START','PARSE','PROCESS_LAUNCH',
+                    'PROCESS_RUNNING','COMMANDLET','COMMANDLET_FAILED','VERIFY',
+                    'READ_JSON','CHECK_COUNTS','BINARY_HASH','SAVE_HASH',
+                    'WRITE_RECEIPT','CANONICAL_BINARY','CHECK_CLEAN','ISSUE_BUILD',
+                    'ISSUE_WRITE','WORKTREE_CHANGED','PUBLICATION','SUCCESS')) {
+                    $Audit4AStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Audit4AContext -Description ('Audit UE non produit : ' + $Audit4AStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4A] Status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4A] Read-only capture incomplete: ' + $Audit4AStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.

@@ -12,11 +12,14 @@ param(
     [Parameter(Mandatory = $true)][string]$ExpectedHead,
     [Parameter(Mandatory = $true)][string]$RunDir,
     [string]$DevelopmentRoot = '',
-    [string]$GitHubRepository = 'PhilippeMartin1964/GrimrockPrototype'
+    [string]$GitHubRepository = 'PhilippeMartin1964/GrimrockPrototype',
+    [ValidateSet('ARM-CLEAN06.0','ARM-CLEAN06.4A')]
+    [string]$AuditLabel = 'ARM-CLEAN06.0'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$StagePath = Join-Path $RunDir 'ARMClean060.stage'
+$StageFileName = if ($AuditLabel -ceq 'ARM-CLEAN06.4A') { 'ARMClean064A.stage' } else { 'ARMClean060.stage' }
+$StagePath = Join-Path $RunDir $StageFileName
 function Set-Stage([string]$Name) {
     Set-Content -LiteralPath $StagePath -Value $Name -Encoding ASCII
 }
@@ -42,7 +45,7 @@ $Project = Join-Path $WorktreePath 'GrimrockPrototype.uproject'
 $Editor = Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
 if (-not (Test-Path -LiteralPath $Editor -PathType Leaf) -or
     -not (Test-Path -LiteralPath $Project -PathType Leaf)) { throw 'Unreal Editor or project missing.' }
-$OutputDir = Join-Path $RunDir 'ARM-CLEAN06.0'
+$OutputDir = Join-Path $RunDir $AuditLabel
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 $ManifestPath = Join-Path $OutputDir 'asset-baseline.json'
 Set-Stage 'COMMANDLET'
@@ -99,12 +102,28 @@ if (-not [string]::IsNullOrWhiteSpace($DevelopmentRoot)) {
 }
 Set-Stage 'WRITE_RECEIPT'
 $Receipt = [ordered]@{
-    schema = 'ARM-CLEAN06.0/asset-hashes/v1'
+    schema = ($AuditLabel + '/asset-hashes/v1')
     git_sha = $ExpectedHead
     manifest_sha256 = (Get-FileHash -LiteralPath $ManifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
     captured_utc = [DateTime]::UtcNow.ToString('o')
     assets = @($Hashes.ToArray())
     savegames = @($SaveHashes.ToArray())
+}
+# 06.4A: prove the real canonical root exists on disk as an actual LFS
+# materialized binary. The 06.0 baseline intentionally did not include it.
+if ($AuditLabel -ceq 'ARM-CLEAN06.4A') {
+    Set-Stage 'CANONICAL_BINARY'
+    $CanonicalFile = Join-Path $WorktreePath 'Content\GrimrockPrototype\Core\DataAssets\CanonicalStage\DA_ItemSystem.uasset'
+    if (-not (Test-Path -LiteralPath $CanonicalFile -PathType Leaf)) {
+        throw 'Canonical item root not found in project content.'
+    }
+    $CanonicalSize = (Get-Item -LiteralPath $CanonicalFile).Length
+    if ($CanonicalSize -le 200) { throw 'Canonical item root is an LFS pointer or empty.' }
+    $Receipt['canonical_item_system'] = [ordered]@{
+        package = '/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem'
+        bytes = $CanonicalSize
+        sha256 = (Get-FileHash -LiteralPath $CanonicalFile -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
 }
 $ReceiptPath = Join-Path $OutputDir 'asset-hashes.json'
 $Receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $ReceiptPath -Encoding UTF8
@@ -121,7 +140,7 @@ Set-Stage 'ISSUE_BUILD'
 # Use a deliberately small fixed-format public receipt. Full content stays private.
 $ManifestHash = [string]$Receipt['manifest_sha256']
 $BodyLines = @(
-    '# ARM-CLEAN06.0 - baseline UE 5.5.4 en lecture seule',
+    ('# ' + $AuditLabel + ' - baseline UE 5.5.4 en lecture seule'),
     '',
     ('Commit source : ' + $ExpectedHead),
     '',
@@ -140,20 +159,28 @@ $BodyLines = @(
     '',
     'Les UPROPERTY, les graphes de references, les 1640 profils',
     'et les 56 SHA-256 binaires sont conserves dans le dossier',
-    'prive du validateur Windows (Runs/ARM-CLEAN06.0).',
+    ('prive du validateur Windows (Runs/' + $AuditLabel + ').'),
     'Les sauvegardes personnelles ne sont jamais transmises.',
     'Aucun fichier de projet ou asset Unreal modifie.'
 )
+if ($AuditLabel -ceq 'ARM-CLEAN06.4A') {
+    $BodyLines += @(
+        '',
+        'DA_ItemSystem: fichier binaire canonique present et SHA-256 conserve en prive.',
+        'Ce rapport est une capture nouvelle, non une preuve de migration 06.4B.',
+        'Aucun chemin ou contenu de SaveGame personnel ne sera publie.'
+    )
+}
 Set-Stage 'ISSUE_WRITE'
 $IssueBody = Join-Path $OutputDir 'github-issue.md'
 Set-Content -LiteralPath $IssueBody -Value $BodyLines -Encoding UTF8
 Set-Stage 'PUBLICATION'
-$Title = '[ARM-CLEAN06.0] Baseline read-only ' + $ExpectedHead.Substring(0,12)
+$Title = '[' + $AuditLabel + '] Baseline read-only ' + $ExpectedHead.Substring(0,12)
 $IssueUrl = @(& gh issue create --repo $GitHubRepository --title $Title --body-file $IssueBody)
 if ($LASTEXITCODE -ne 0 -or @($IssueUrl).Count -ne 1 -or
     [string]$IssueUrl[0] -notmatch '^https://github\.com/[^/]+/[^/]+/issues/[0-9]+$') {
     throw 'Unable to publish GitHub baseline issue.'
 }
 Set-Stage 'SUCCESS'
-Write-Host ('[ARM-CLEAN06.0] BASELINE_OK: ' + $IssueUrl[0])
-Write-Host ('[ARM-CLEAN06.0] Full private report: ' + $OutputDir)
+Write-Host ('[' + $AuditLabel + '] BASELINE_OK: ' + $IssueUrl[0])
+Write-Host ('[' + $AuditLabel + '] Full private report: ' + $OutputDir)

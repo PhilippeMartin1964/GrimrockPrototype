@@ -130,6 +130,25 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Ne déclarer BG validé qu'après **les deux statuts** du SHA publié.
   La conversion binaire et le PIE restent ouverts.
 
+## ARM-CLEAN06.4A — recapture read-only des vrais contenus UE
+
+- Après UE5.5.4 Build + Automation `Grimrock` réussis, l'agent Windows
+  reconnaît **uniquement** le sujet du commit 06.4A et relance le
+  commandlet existant `GridArmClean06Baseline`.
+- Nouveau contexte `UE5.5.4/ARM-CLEAN06.4A` indépendant de
+  `UE5.5.4/SilentTask` et `UE5.5.4/LocalAuto`.
+  Exiger **les trois SUCCESS** sur le SHA de 06.4A.
+- Manifeste UE privé (UPROPERTY et AssetRegistry), SHA-256 des 56
+  binaires, preuves des 1640 profils/260 passifs, et SHA-256 du
+  vrai `DA_ItemSystem` ; sauvegardes uniquement inventoriées
+  par empreinte locale et jamais diffusées.
+- Un ticket GitHub `[ARM-CLEAN06.4A]` publie uniquement les nombres
+  et l'empreinte du manifeste, sans chemins personnels ni données.
+- **Aucun** asset Unreal, SaveGame ou contenu de niveau n'est modifié :
+  ce point est un **préflight avant** la migration binaire.
+- Lire `docs/Architecture/ARM_CLEAN06_4A_READ_ONLY_ASSET_RECAPTURE.md`.
+  Contrôler le ticket et les checks avant de décider 06.4B.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,
