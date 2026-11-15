@@ -200,6 +200,27 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Voir `ARM_CLEAN06_4D_LIVE_EDITOR_DRYRUN.md` ; vérifier les
   trois statuts Windows et l'issue avant 06.4E.
 
+## ARM-CLEAN06.4E — contrôle du catalogue de présentations réel
+
+- **Préflight** : rapport privé `ARM-CLEAN06.4D/dry-run-private.json`
+  du SHA `046d785`, huit propriétés sur quatre packages, conversion interdite.
+- Commandlet **Editor-only**
+  `GridArmClean064EPresentationParity` : contrôle la valeur actuelle de
+  chaque champ UE divergent, charge le vrai `DA_ItemSystem` et son
+  `DA_ActionPresentationCatalogue`, suit les `ActionId` et liaisons
+  `PresentationId` réellement authorés sur les archétypes.
+- Le projecteur read-only `GridArmClean06PresentationProjection`
+  existant fournit la valeur attendue sans inventer d'action/son ;
+  comparaison stricte de **tous** les champs USTRUCT, y compris
+  sons ordonnés, timings, Niagara et canaux supplémentaires.
+- Rapports détaillés et états `EQUAL_ALL_FIELDS`,
+  `DIFFERENT_FIELDS`, `UNBOUND` et manquants : **privés**.
+  Issue `[ARM-CLEAN06.4E]` : compteurs agrégés uniquement.
+- `UE5.5.4/ARM-CLEAN06.4E=success` prouve uniquement que
+  l'audit a produit son rapport, pas une égalité présumée.
+  **Écritures autorisées = 0** ; voir
+  `docs/Architecture/ARM_CLEAN06_4E_AUTHORED_PRESENTATION_PARITY.md`.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,

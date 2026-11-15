@@ -1243,6 +1243,67 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4E — explicit one-shot real authored presentation parity.
+        # Existing source assets and canonical catalogue are loaded by UE,
+        # but never saved. Public issue contains counts only.
+        $Parity4ETrigger = 'chore(ARM-CLEAN06.4E): verify real authored presentation parity without writes'
+        $Parity4ESubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Parity4ESubject.Count -eq 1 -and
+            [string]$Parity4ESubject[0] -ceq $Parity4ETrigger) {
+            $Parity4EContext = 'UE5.5.4/ARM-CLEAN06.4E'
+            $Parity4EPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Parity4EContext -Description 'Parite presentations UE chargees; sorties privees uniquement'
+                $Parity4EScript = Join-Path $WorktreePath 'Scripts\CheckARM_CLEAN06_4E_PresentationParity.ps1'
+                if (-not (Test-Path -LiteralPath $Parity4EScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4E: parity script absent.'
+                }
+                $Parity4EPhase = 'PARSE'
+                $Parity4ETokens = $null
+                $Parity4EErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Parity4EScript, [ref]$Parity4ETokens, [ref]$Parity4EErrors)
+                if ($Parity4EErrors -and $Parity4EErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4E: invalid PowerShell syntax.'
+                }
+                foreach ($Parity4EValue in @($Parity4EScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Parity4EValue.Contains('"')) { throw 'ARM-CLEAN06.4E: unsupported path quote.' }
+                }
+                $Parity4EArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Parity4EScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Parity4EOut = Join-Path $RunDir 'ARM064E.stdout.log'
+                $Parity4EErr = Join-Path $RunDir 'ARM064E.stderr.log'
+                $Parity4EPhase = 'PROCESS_RUNNING'
+                $Parity4EProcess = Start-Process -FilePath $PsExe -ArgumentList $Parity4EArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Parity4EOut -RedirectStandardError $Parity4EErr -PassThru -Wait -ErrorAction Stop
+                if ($Parity4EProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4E: real UE parity returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Parity4EContext -Description 'Audit presentation termine; migration non autorisee'
+                Write-Host '[ARM-CLEAN06.4E] Real presentation parity report published; cutover gate closed.'
+            }
+            catch {
+                $Parity4EStagePath = Join-Path $RunDir 'ARMClean064E.stage'
+                $Parity4EStage = if (Test-Path -LiteralPath $Parity4EStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Parity4EStagePath -TotalCount 1)).Trim()
+                } else { $Parity4EPhase }
+                if ($Parity4EStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4D','UNREAL_PRESENTATION_PARITY','UNREAL_PARITY_FAILED',
+                    'VERIFY_RESULT','WRITE_PRIVATE_GATE','CHECK_CLEAN',
+                    'ISSUE_BUILD','ISSUE_WRITE','SUCCESS',
+                    'START','PARSE','PROCESS_RUNNING')) {
+                    $Parity4EStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Parity4EContext -Description ('Audit presentation 06.4E bloque : ' + $Parity4EStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4E] Status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4E] Real UE audit not completed: ' + $Parity4EStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
