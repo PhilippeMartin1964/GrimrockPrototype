@@ -1060,6 +1060,69 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4B: exact opt-in, after successful full Grimrock suite.
+        # A success status means comparison finished, never migration ready.
+        $Compare4BTrigger = 'chore(ARM-CLEAN06.4B): compare UE baselines in guarded dry-run'
+        $Compare4BSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Compare4BSubject.Count -eq 1 -and
+            [string]$Compare4BSubject[0] -ceq $Compare4BTrigger) {
+            $Compare4BContext = 'UE5.5.4/ARM-CLEAN06.4B'
+            $Compare4BPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Compare4BContext -Description 'Comparaison UE 06.0/06.4A read-only en cours'
+                $Compare4BScript = Join-Path $WorktreePath 'Scripts\CompareARM_CLEAN06_4B_Baselines.ps1'
+                if (-not (Test-Path -LiteralPath $Compare4BScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4B: comparison script missing.'
+                }
+                $Compare4BPhase = 'PARSE'
+                $Compare4BTokens = $null
+                $Compare4BErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Compare4BScript, [ref]$Compare4BTokens, [ref]$Compare4BErrors)
+                if ($Compare4BErrors -and $Compare4BErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4B: invalid comparison PowerShell syntax.'
+                }
+                foreach ($Compare4BValue in @($Compare4BScript,$WorktreePath,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Compare4BValue.Contains('"')) { throw 'ARM-CLEAN06.4B: unsupported path quote.' }
+                }
+                $Compare4BArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Compare4BScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -StateRoot "' + $StateRoot + '" -RunDir "' + $RunDir +
+                    '" -ExpectedHead "' + $Sha + '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Compare4BOut = Join-Path $RunDir 'ARM064B.stdout.log'
+                $Compare4BErr = Join-Path $RunDir 'ARM064B.stderr.log'
+                $Compare4BPhase = 'PROCESS_RUNNING'
+                $Compare4BProcess = Start-Process -FilePath $PsExe -ArgumentList $Compare4BArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Compare4BOut -RedirectStandardError $Compare4BErr -PassThru -Wait -ErrorAction Stop
+                if ($Compare4BProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4B: comparison process returned nonzero.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Compare4BContext -Description 'Comparaison complete; rapport prive, migration NON autorisee'
+                Write-Host '[ARM-CLEAN06.4B] Private comparison complete; no binary changed.'
+            }
+            catch {
+                $Compare4BStagePath = Join-Path $RunDir 'ARMClean064B.stage'
+                $Compare4BStage = if (Test-Path -LiteralPath $Compare4BStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Compare4BStagePath -TotalCount 1)).Trim()
+                } else { $Compare4BPhase }
+                if ($Compare4BStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_BASELINE','READ_CURRENT','COMPARE','COMPARE_MAPS',
+                    'COMPARE_ASSETS','COMPARE_ASSET_CLASS','COMPARE_ASSET_PROPERTIES',
+                    'COMPARE_ASSET_EDGES','COMPARE_ASSET_HASHES',
+                    'COMPARE_FIELDS_MAP','COMPARE_FIELDS_VALUES',
+                    'COMPARE_PROFILE_MAP','COMPARE_PROFILE_VALUES',
+                    'COMPARE_PROFILES','WRITE_PRIVATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE',
+                    'START','PARSE','PROCESS_RUNNING','SUCCESS')) {
+                    $Compare4BStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Compare4BContext -Description ('Comparaison 06.4B bloquee : ' + $Compare4BStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4B] Status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4B] Comparison not completed: ' + $Compare4BStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.

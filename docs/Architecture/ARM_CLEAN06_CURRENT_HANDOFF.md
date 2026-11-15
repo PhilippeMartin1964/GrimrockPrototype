@@ -149,6 +149,20 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Lire `docs/Architecture/ARM_CLEAN06_4A_READ_ONLY_ASSET_RECAPTURE.md`.
   Contrôler le ticket et les checks avant de décider 06.4B.
 
+## ARM-CLEAN06.4B — comparaison privée des captures UE
+
+- Le commit 06.4B déclenche, après Build et suite Grimrock, la
+  comparaison des deux captures UE réelles (06.0 SHA c66bf68 et
+  06.4A SHA 27563be), leurs reçus et leurs SHA-256.
+- Les 56 packages, leurs UPROPERTY, les dépendances/référents
+  AssetRegistry, les empreintes binaires et les 1640 profils
+  sont comparés champ par champ. Les différences restent privées.
+- Un rapport public [ARM-CLEAN06.4B] expose uniquement les compteurs.
+- Nouveau contexte UE5.5.4/ARM-CLEAN06.4B : SUCCESS signifie
+  **comparaison produite**, jamais migration autorisée.
+- Aucune écriture binaire. Lire le document
+  ARM_CLEAN06_4B_PRIVATE_PARITY_PREFLIGHT.md avant 06.4C.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,
