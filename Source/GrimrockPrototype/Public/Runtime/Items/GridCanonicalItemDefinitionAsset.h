@@ -103,6 +103,26 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Visual|Sparkle", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float WorldSparkleVariation = 0.35f;
+
+	/** ARM-CLEAN06.4M: source of default readable text for non-ARM items.
+	 * Instance overrides and reusable UGridReadableContentAsset remain
+	 * distinct instance-level authorities. No ItemType inference at runtime. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Reading", meta = (MultiLine = "true"))
+	FText ReadText;
+
+	/** True for legacy books/scrolls even when the authored text is empty.
+	 * This is an explicit reader capability, not a second content value. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Reading")
+	bool bReadable = false;
+
+	/** World pickup Chaos policy; numeric mass is always WeightKg per unit,
+	 * never Quantity * WeightKg, and never a duplicate stored mass. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|World Physics")
+	bool bUseItemWeightAsWorldPhysicsMass = false;
+
+	/** Deterministic first-placement tilt only; never reapplied at Save/Continue. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|World Physics", meta = (ClampMin = "0.0", ClampMax = "45.0"))
+	float WorldPhysicsInitialTiltDegrees = 0.0f;
 };
 
 UCLASS(BlueprintType)

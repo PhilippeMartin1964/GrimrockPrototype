@@ -9,18 +9,18 @@
 
 - Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
 - Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
-- Dernier jalon **de préflight** terminé et vérifié : **ARM-CLEAN06.4K**,
-  commit `4d5e7eb8b1406d29eeb9b0805f82507aa8a1bfc7`.
-- Statuts publiés et vérifiés sur **ce SHA exact** :
-  `UE5.5.4/SilentTask=success`,
-  `UE5.5.4/LocalAuto=success` et
-  `UE5.5.4/ARM-CLEAN06.4K=success`.
-  Ces statuts prouvent les contrôles automatisés Windows et l'audit UE
-  en lecture seule, **pas** la parité fonctionnelle PIE/Chaos ni le rendu WBP.
-- 06.3BG est le dernier jalon des lecteurs runtime ; les jalons
-  06.4A à 06.4K sont des préflights, **pas** une conversion binaire.
-  Aucun `.uasset`, `.umap`, SaveGame ni texte WBP n'a été migré par 06.4K.
-  Les étapes **06.4–06.6 restent ouvertes**.
+- Dernier jalon de données **validé en UE5.5.4** :
+  **ARM-CLEAN06.4L**, commit `a279761d52fba8d8a5280104e009bd336cb6c2a1`.
+- Sur ce SHA exact : `UE5.5.4/SilentTask=success`,
+  `UE5.5.4/LocalAuto=success`, `UE5.5.4/ARM-CLEAN06.4L=success`.
+  Issue publique 145 : 12 champs actifs lumière/VFX et 88 projections.
+- Le propriétaire a confirmé en PIE que les effets, torches et
+  Save/Continue du **runtime existant** restent inchangés. Cela ne
+  prouve **pas** le futur lecteur canonique.
+- **06.4M est en préparation/validation** : ne le déclarer terminé
+  qu'après trois statuts SUCCESS sur son propre SHA. 06.3BG est
+  le dernier jalon runtime antérieur ; **aucune** conversion binaire,
+  SaveGame ni modification WBP n'est autorisée. 06.4–06.6 restent ouvertes.
 
 ### Jalons récents déjà réalisés — ne pas les refaire
 
@@ -435,6 +435,28 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   `docs/Architecture/ARM_CLEAN06_4L_NONARM_PRESENTATION_DATA_PARITY.md`.
 - Suite envisagée : 06.4M, traitement des politiques non-ARM encore
   sans propriétaire et contrôles comportementaux, sans migration hâtive.
+
+## ARM-CLEAN06.4M — données de lecture et de physique non-ARM
+
+- 06.4L contrôlé : `a279761d52fba8d8a5280104e009bd336cb6c2a1`,
+  trois SUCCESS, issue 145 ; aucun binaire migré.
+- Scope 06.4M : `ReadText` (**1** champ actif) et opt-in
+  masse/tilt Chaos (**2** champs actifs), en conservant le noyau
+  canonique à cinq champs et les politiques non-ARM spécialisées.
+- Une capacité explicite `bReadable` conserve livres/parchemins
+  même sans texte ; les overrides de texte restent des états d'instance.
+- La projection UE temporaire prévoit **33 copies réfléchies** des
+  trois propriétés sur 11 sources et **77 contrôles purs**
+  (44 lectures et 33 règles de masse/tilt), sans `SavePackage`.
+- Le vrai runtime continue d'utiliser le legacy tant que les
+  11 `ItemId` et les 40 placements n'ont pas été convertis en UE.
+- L'agent doit publier `UE5.5.4/SilentTask`,
+  `UE5.5.4/LocalAuto` et `UE5.5.4/ARM-CLEAN06.4M` sur le
+  **SHA du commit 06.4M**. Aucune validation anticipée.
+- Les autres **35** occurrences actives restent à auditer :
+  lancer non-ARM 3, actions 11, équipement non-ARM 15, empilement 6.
+- Voir `docs/Architecture/ARM_CLEAN06_4M_NONARM_READING_WORLD_PHYSICS_PARITY.md`.
+  Prochaine phase recommandée : 06.4N, lancer physique non-armement.
 
 ## Étapes ultérieures inchangées
 

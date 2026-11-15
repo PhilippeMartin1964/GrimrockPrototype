@@ -1735,6 +1735,72 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4M — one-shot read-only UE projection of non-ARM
+        # reading and world physics. No SavePackage and no SaveGame reads.
+        $NonArm4MTrigger = 'feat(ARM-CLEAN06.4M): preserve nonarm reading and world physics policies in canonical data'
+        $NonArm4MSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $NonArm4MSubject.Count -eq 1 -and
+            [string]$NonArm4MSubject[0] -ceq $NonArm4MTrigger) {
+            $NonArm4MContext = 'UE5.5.4/ARM-CLEAN06.4M'
+            $NonArm4MPhase = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $NonArm4MContext -Description 'Parite donnees UE lecture et physique monde non-ARM'
+                $NonArm4MScript = Join-Path $WorktreePath 'Scripts\AuditARM_CLEAN06_4M_NonArmReadingPhysics.ps1'
+                if (-not (Test-Path -LiteralPath $NonArm4MScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4M: script missing.'
+                }
+                $NonArm4MPhase = 'PARSE'
+                $NonArm4MTokens = $null
+                $NonArm4MErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $NonArm4MScript, [ref]$NonArm4MTokens, [ref]$NonArm4MErrors)
+                if ($NonArm4MErrors -and $NonArm4MErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4M: invalid PowerShell syntax.'
+                }
+                foreach ($NonArm4MValue in @($NonArm4MScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($NonArm4MValue.Contains('"')) { throw 'ARM-CLEAN06.4M: unsupported path quote.' }
+                }
+                $NonArm4MArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $NonArm4MScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $NonArm4MOut = Join-Path $RunDir 'ARM064M.stdout.log'
+                $NonArm4MErr = Join-Path $RunDir 'ARM064M.stderr.log'
+                $NonArm4MPhase = 'PROCESS_RUNNING'
+                $NonArm4MProcess = Start-Process -FilePath $PsExe -ArgumentList $NonArm4MArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $NonArm4MOut -RedirectStandardError $NonArm4MErr -PassThru -Wait -ErrorAction Stop
+                if ($NonArm4MProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4M: real UE reading/physics parity failed.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $NonArm4MContext -Description '3 champs lecture/Chaos, 33 copies, 77 tests purs; migration fermee'
+                Write-Host '[ARM-CLEAN06.4M] Real UE canonical reading/physics data parity verified.'
+            }
+            catch {
+                $NonArm4MStagePath = Join-Path $RunDir 'ARMClean064M.stage'
+                $NonArm4MStage = if (Test-Path -LiteralPath $NonArm4MStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $NonArm4MStagePath -TotalCount 1)).Trim()
+                } else { $NonArm4MPhase }
+                if ($NonArm4MStage -notin @('PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4K_LOCATE','READ_4K_MISSING','READ_4K_MULTIPLE',
+                    'READ_4K_DUPLICATE_PROVENANCE','READ_4K_NO_TRUSTED_COPY',
+                    'READ_4K_COMPARE_COPIES','READ_4K_CONFLICTING_COPIES',
+                    'READ_4K_DUPLICATES_RECONCILED','READ_4K_GATE_EXISTS',
+                    'READ_4K_GATE_READ','READ_4K_GATE_SCHEMA','READ_4K_REPORT_HASH',
+                    'READ_4K_COUNTERS','READ_4K_GATE_CLOSED','VERIFY_4K_DOMAINS',
+                    'REHASH_84','READ_4L','UNREAL_READ_WORLD_PARITY',
+                    'UNREAL_READ_WORLD_FAILED','VERIFY_RESULT','WRITE_PRIVATE_GATE',
+                    'CHECK_CLEAN','ISSUE_BUILD','ISSUE_WRITE','SUCCESS',
+                    'START','PARSE','PROCESS_RUNNING')) {
+                    $NonArm4MStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $NonArm4MContext -Description ('Parite 06.4M bloquee : ' + $NonArm4MStage)
+                }
+                catch { Write-Warning '[ARM-CLEAN06.4M] GitHub status publication failed.' }
+                Write-Warning ('[ARM-CLEAN06.4M] Real UE reading/world projection incomplete: ' + $NonArm4MStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
