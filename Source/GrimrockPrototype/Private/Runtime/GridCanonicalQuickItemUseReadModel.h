@@ -4,9 +4,9 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /**
- * ARM-CLEAN06.3AX/AY: strict, transient projection of exactly one authored
- * canonical self-Heal or combat-only self-RemoveStatus Use action onto the
- * already proven QuickItem executor.
+ * ARM-CLEAN06.3AX/AY/AZ: strict, transient projection of exactly one authored
+ * canonical self-Heal, self-RemoveStatus or self-ApplyStatus Use action onto
+ * the existing QuickItem executor. Status actions remain combat-only.
  *
  * Zero AP is intentional: canonical Use has NO authored AP field. The schema
  * must be extended and content converted before an AP cost can be charged.
@@ -122,6 +122,68 @@ struct FGridCanonicalQuickItemUseReadModel
         return true;
     }
 
+    /**
+     * AZ: one self-targeted status application in combat only.
+     *
+     * Magnitude=1 is interpreted exclusively as one initial stack; the
+     * authoritative status definition owns duration, potency and stacking
+     * behaviour. No asset lookup/fallback to historic item definitions.
+     * The standard combat catalogue checks WouldAnyMutate before payment.
+     */
+    static bool TryProjectSingleStatusApplication(
+        const FGridResolvedItem& Item, const FGridResolvedBoundAction& Bound,
+        FGridCombatActionDefinition& Out)
+    {
+        Out = FGridCombatActionDefinition();
+        if (!Item.IsValid() || Item.bIsArmament || !Item.AmmoKindId.IsNone() ||
+            !Bound.IsValid() || Bound.ItemId != Item.ItemId ||
+            Bound.ItemLevel != Item.ItemLevel ||
+            Bound.Action.Kind != EGridCanonicalActionKind::Use ||
+            Bound.Action.Targeting != EGridCombatTargetingPolicy::Self ||
+            Bound.Action.bRangedAttack || Bound.Action.bRequiresLineOfSight ||
+            Bound.Action.WeaponDamagePercent != 0 ||
+            Bound.Action.SourceItemQuantityCost != 1 ||
+            Bound.Action.ManaCost < 0 || Bound.Action.CooldownRounds < 0 ||
+            Bound.Action.Effects.Num() != 1 ||
+            Bound.Action.Effects[0].Kind != EGridCanonicalEffectKind::ApplyStatus ||
+            Bound.Action.Effects[0].Magnitude != 1 ||
+            Bound.Action.Effects[0].StatusId.IsNone())
+        {
+            return false;
+        }
+
+        FGridCombatActionDefinition Candidate;
+        Candidate.ActionId = Bound.ActionId;
+        Candidate.DisplayName = Item.DisplayName;
+        Candidate.Description = Item.Description;
+        Candidate.Icon = Item.ItemIcon;
+        Candidate.ActionType = EGridCombatActionType::Ability;
+        Candidate.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+        Candidate.SourceTags = Item.Tags;
+        Candidate.TargetingPolicy = EGridCombatTargetingPolicy::Self;
+        Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+        Candidate.ActionPointCost = 0; // Use has no authored AP cost.
+        Candidate.ResourceCosts.ManaCost = Bound.Action.ManaCost;
+        Candidate.ResourceCosts.SourceItemQuantityCost = 1;
+        Candidate.CooldownRounds = Bound.Action.CooldownRounds;
+        Candidate.PresentationProfileId = Bound.PresentationId;
+
+        FGridCombatStatusApplicationProfile& Application =
+            Candidate.StatusApplications.AddDefaulted_GetRef();
+        Application.StatusEffectId = Bound.Action.Effects[0].StatusId;
+        Application.Trigger = EGridCombatStatusApplicationTrigger::AfterResolution;
+        Application.ArmorGate = EGridCombatStatusArmorGate::None;
+        Application.InitialStackCount = 1;
+        Application.DurationOverride = INDEX_NONE;
+        Application.PotencyOverride = INDEX_NONE;
+        if (!Candidate.IsValid())
+        {
+            return false;
+        }
+        Out = MoveTemp(Candidate);
+        return true;
+    }
+
     static FGridCanonicalQuickItemUseReadView Resolve(
         const UGridItemSubsystem* Registry, const FGridItemInstance& Instance)
     {
@@ -148,15 +210,15 @@ struct FGridCanonicalQuickItemUseReadModel
             if (!Registry->ResolveBoundAction(Instance.ItemDefinitionId,
                     Instance.ItemLevel, Binding.ActionId, Bound) ||
                 (!TryProjectSingleHeal(Item, Bound, Candidate) &&
-                    !TryProjectSingleStatusRemoval(Item, Bound, Candidate)))
+                    !TryProjectSingleStatusRemoval(Item, Bound, Candidate) &&
+                    !TryProjectSingleStatusApplication(Item, Bound, Candidate)))
             {
                 continue;
             }
             ++SupportedCount;
             if (SupportedCount > 1)
             {
-                // Hotbar only identifies ONE action per item source; never
-                // select an arbitrary first of multiple self-Heal actions.
+                // Never select an arbitrary action for an item hotbar binding.
                 return Out;
             }
             Out.Action = MoveTemp(Candidate);
@@ -166,11 +228,12 @@ struct FGridCanonicalQuickItemUseReadModel
             return Out;
         }
         Out.bResolved = true;
-        // Exploration has only the self-restoration executor. Status
-        // removal belongs exclusively to combat's status lifecycle.
+        // Exploration has only the self-restoration executor. Both kinds of
+        // status mutation belong exclusively to combat's status lifecycle.
         Out.bExplorationCompatible =
             Out.Action.EffectProfile.IsValid() &&
             Out.Action.StatusRemovals.IsEmpty() &&
+            Out.Action.StatusApplications.IsEmpty() &&
             Out.Action.ResourceCosts.ManaCost == 0 &&
             Out.Action.CooldownRounds == 0;
         return Out;

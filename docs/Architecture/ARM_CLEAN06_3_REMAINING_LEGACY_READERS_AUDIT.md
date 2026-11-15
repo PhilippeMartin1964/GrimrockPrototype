@@ -185,3 +185,32 @@ les contenus binaires et les sauvegardes restent hors 06.3.
 Voir `docs/Architecture/ARM_CLEAN06_3AY_CANONICAL_USE_REMOVE_STATUS.md`.
 
 Localisation `UI.csv → ST_UI → WBP → Game/fr/en` inchangée.
+
+## Complément 06.3AZ — application canonique d'un seul statut sur soi
+
+`FGridCanonicalQuickItemUseReadModel` projette maintenant
+`Use / Self / ApplyStatus(StatusId, Magnitude=1)` sur les
+`StatusApplications` de l'exécuteur QuickItem existant.
+Le statut doit posséder une **définition de statut valide**
+résolue par `FGridCombatStatusApplicationResolver` ;
+sa politique de cumul, sa durée et sa puissance ne sont
+jamais dupliquées dans `DA_ItemSystem`.
+
+L'instance canonique est affectable à la barre de combat
+sans `DA_Item_*`, mais ne devient pas un `Consume`
+d'exploration. Le modèle conserve `Use / Heal` (AX)
+et `Use / RemoveStatus` (AY). Le catalogue désactive
+le nouvel usage avec `NoApplicableEffect` lorsque
+l'application de statut ne changerait rien, ce qui
+empêche de dépenser l'objet pour un effet nul.
+
+**Reste volontairement exclu :** cibles Ally/Party/Hostile,
+plusieurs effets ou niveaux invalides, effet de statut
+en exploration, coût PA non authoré et transaction
+de combat PIE non encore vérifiée par essai visuel.
+Les autres `UseActions` nécessitent un contrat de
+projection séparé.
+
+Voir `docs/Architecture/ARM_CLEAN06_3AZ_CANONICAL_USE_APPLY_STATUS.md`.
+Aucun asset UE ou texte `UI.csv/ST_UI/WBP/Game-fr-en`
+n'est changé. Les conversions binaires relèvent de 06.4.
