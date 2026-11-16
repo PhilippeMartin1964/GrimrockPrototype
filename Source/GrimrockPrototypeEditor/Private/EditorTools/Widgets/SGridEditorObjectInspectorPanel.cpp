@@ -1751,7 +1751,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 						}
 						Config.InteractionOverrides.bOverrideReceptacleRules = bEnableOverride;
 					});
-				})]
+				}))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Rules Source")),
 			FText::FromString(bOverrideRules ? TEXT("Instance Override") : TEXT("Definition")))]
