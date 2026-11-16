@@ -125,6 +125,7 @@ int32 UGridArmClean064X71ReceptacleRulesCommandlet::Main(const FString& Params)
 
     int32 DefinitionCount = 0, ReceptacleLists = 0, Rules = 0;
     int32 KeyLists = 0, KeyPointers = 0, ExplicitKeys = 0;
+    int32 AlreadyCanonical = 0;
     TArray<UGridWorldObjectDefinitionAsset*> Targets;
     for (const FAssetData& Data : Assets)
     {
@@ -161,19 +162,23 @@ int32 UGridArmClean064X71ReceptacleRulesCommandlet::Main(const FString& Params)
                 !Resolver->HasCanonicalItem(Target.ExpectedItemId) ||
                 (bVerify
                     ? R.AcceptedItems[0].CanonicalItemId != Target.ExpectedItemId
-                    : !R.AcceptedItems[0].CanonicalItemId.IsNone()))
+                    : (bApply && !R.AcceptedItems[0].CanonicalItemId.IsNone())))
             {
                 return 5;
             }
+            AlreadyCanonical +=
+                (R.AcceptedItems[0].CanonicalItemId == Target.ExpectedItemId) ? 1 : 0;
             Targets.Add(Definition);
         }
         if (Definition->GetOutermost()->IsDirty() != bDirty) return 4;
     }
     if (LoadedLevels != 4 || DefinitionCount != 44 || ReceptacleLists != 6 ||
         Rules != 2 || KeyLists != 2 || KeyPointers != 2 ||
-        (bVerify ? ExplicitKeys != 0 : ExplicitKeys != 0) ||
+        ExplicitKeys != 0 ||
         OverrideReceptacles != 0 || OverrideLocks != 0 ||
         Targets.Num() != 2 || Targets[0] == Targets[1] ||
+        (bApply && AlreadyCanonical != 0) ||
+        (bVerify && AlreadyCanonical != 2) ||
         ItemSystem->GetOutermost()->IsDirty() != bItemSystemDirty)
     {
         return 6;
@@ -206,6 +211,8 @@ int32 UGridArmClean064X71ReceptacleRulesCommandlet::Main(const FString& Params)
     Report->SetNumberField(TEXT("lock_explicit_ids"), ExplicitKeys);
     Report->SetNumberField(TEXT("overrides"), OverrideReceptacles + OverrideLocks);
     Report->SetNumberField(TEXT("targets"), Targets.Num());
+    Report->SetNumberField(TEXT("already_canonical"), AlreadyCanonical);
+    Report->SetNumberField(TEXT("eligible_legacy"), 2 - AlreadyCanonical);
     Report->SetNumberField(TEXT("packages_saved"), Saved);
     Report->SetBoolField(TEXT("legacy_pointers_retained"), true);
     Report->SetBoolField(TEXT("savegames_opened_or_written"), false);
