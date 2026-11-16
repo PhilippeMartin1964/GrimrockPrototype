@@ -7,34 +7,40 @@
 
 ## Dernier jalon fonctionnel confirmé (GitHub vérifié le 16 novembre 2026)
 
-- Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
-- Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
-- Dernier jalon fonctionnel **terminé et confirmé** : **ARM-CLEAN06.4V**,
-  SHA final `b9750269732f1322ecca11ec2bcd30ba3a4796c2` avec les **5 véritables binaires Unreal**.
-- Sur ce SHA exact : `UE5.5.4/SilentTask=success`,
-  `UE5.5.4/LocalAuto=success` et
-  `UE5.5.4/ARM-CLEAN06.4V=success`.
-  Preuve agrégée : [issue #155](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/155).
-- Registre UE réel : **34 définitions** ; les **11/11 identités non-ARM**
-  étudiées ont été matérialisées. Les **3 QuickItems** et
-  **1 action non-ARM équipée**, avec leur présentation authorée,
-  ont leurs données complètes dans les catalogues existants.
-- 06.4S/4T/4U/4V sont déjà passés : **ne pas les relancer**.
-- Les placements monde, la palette, les réceptacles et les
-  sauvegardes personnelles n'ont **pas** été convertis par 4V.
-  Les **40 références non résolues en 06.4H** ne sont pas
-  l'ensemble des références à migrer : 06.4H avait inventorié
-  **95 placements/références** (44 objets libres, 18 contenus
-  de réceptacle et 33 entrées de palette), dont 55 possédaient
-  déjà un ItemId présent dans le registre à cette date.
-  Recontrôler les 95 et les éventuelles références de définitions
-  de monde avant toute suppression des pointeurs historiques.
-- **Prochaine étape : ARM-CLEAN06.4W**, conversion réelle
-  des références d'authoring vers `ItemId` dans Unreal Editor,
-  avec rollback et relecture dans un second processus ;
-  traiter les SaveGames séparément, sur copies, avant 06.5.
-- AUCUN nouveau fallback legacy au runtime, aucune suppression
-  anticipée de source et aucune parité PIE/Chaos/Cook présumée.
+- Projet : `GrimrockPrototype`, Unreal Engine **5.5.4** ; dépôt
+  `PhilippeMartin1964/GrimrockPrototype` ; branche **`master` uniquement**.
+- **ARM-CLEAN06.4W terminé et validé** sur le commit final
+  `a56f4b5c22a7d883b9e9daad432e876676f2ce82` :
+  `UE5.5.4/SilentTask=success`, `UE5.5.4/LocalAuto=success`,
+  `UE5.5.4/ARM-CLEAN06.4W=success`.
+- 06.4W est **exactement un commit au-dessus** du point documentaire
+  `5b7131fe55d7cd770e9ae2bcc10901db7d7dfd51`. Il comprend les
+  cinq véritables `.uasset`, le commandlet, le script transactionnel, les
+  structures de données, les tests et la documentation du jalon.
+- Quatre `DA_GridLevel_*` et `DA_ObjectPalette_Default` : **95
+  `CanonicalItemId` réellement enregistrés puis rouverts dans UE** :
+  44 objets libres + 18 contenus initiaux de réceptacles +
+  33 entrées directes de palette ; zéro spawn réel. Les 40 anciennes
+  occurrences auparavant sans entrée canonique sont couvertes.
+  Le `DA_ItemSystem` contient **34 définitions**. Reçu public GitHub :
+  **[ARM-CLEAN06.4W Real 95 world ItemIds](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues)**.
+- **AUCUN `.sav`, `.umap` ou Blueprint modifié** par 06.4W.
+  Les anciens pointeurs `ItemDefinition` et `DefaultItemDefinition`
+  subsistent provisoirement dans les structures. La migration des ID
+  n'est PAS la bascule des lecteurs runtime/éditeur, ni une preuve PIE.
+- 06.4S/4T/4U/4V/4W sont terminés : **ne jamais rejouer leur
+  matérialisation sur ces assets déjà convertis**.
+- **Prochaine opération : ARM-CLEAN06.4X** — basculer les consommateurs
+  runtime et éditeur sur `CanonicalItemId` et les projections de
+  `UGridItemSubsystem` ; normaliser explicitement les niveaux hérités
+  N0 des ARM à partir de la source authorée (jamais N1 arbitraire).
+  Suivre le préflight :
+  `docs/Architecture/ARM_CLEAN06_4X1_RUNTIME_EDITOR_CUTOVER_PREFLIGHT.md`.
+- Préserver les effets lumière/Niagara, lecture, Chaos, objets de quête,
+  interactions, quantités, GUID et règles de réceptacle. Les **SaveGames
+  personnels** seront migrés et vérifiés sur des copies dans un jalon
+  séparé avant la suppression des anciens champs. Aucun fallback
+  runtime historique nouveau.
 
 ### Jalons récents déjà réalisés — ne pas les refaire
 
@@ -684,7 +690,9 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
   PIE/Chaos/Cook/Shipping 06.6.
 - Détail : `docs/Architecture/ARM_CLEAN06_4V_LAST_NONARM_EQUIPMENT_MIGRATION.md`.
 
-## ARM-CLEAN06.4W — prochaine opération, conversion des références d'authoring
+## ARM-CLEAN06.4W — archives du plan avant sa validation (réalisé)
+
+**ARCHIVE : cette section est l'ancien plan de 06.4W. Le résultat vérifié et le prochain jalon figurent en tête. Ne pas l'utiliser comme instruction d'exécution.**
 
 **Point de départ obligatoire :** commit final 06.4V
 `b9750269732f1322ecca11ec2bcd30ba3a4796c2`, trois contrôles Windows SUCCESS.
