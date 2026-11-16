@@ -4,6 +4,8 @@
 #include "Styling/SlateBrush.h"
 #include "Widgets/SCompoundWidget.h"
 #include "UObject/StrongObjectPtr.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 
 #if WITH_EDITOR
 
