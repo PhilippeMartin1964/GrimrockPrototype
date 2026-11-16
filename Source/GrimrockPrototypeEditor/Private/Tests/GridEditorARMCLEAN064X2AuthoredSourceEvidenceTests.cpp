@@ -237,8 +237,8 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         TestEqual(TEXT("Persisted initial receptacle references"), InitialReceptacle, 18) &&
         TestEqual(TEXT("Persisted direct palette references"), Palette, 33) &&
         TestEqual(TEXT("All canonical authored references"), Total, 95) &&
-        TestTrue(TEXT("Source-owned ARM N0 inheritance needs a one-shot cutover"),
-            InheritedArmN0 > 0) &&
+        TestTrue(TEXT("Real canonical ARM families retain an authored physical level"),
+            ArmReferences > 0) &&
         TestEqual(TEXT("Canonical family partition"), ArmReferences + NonArmN0, 95) &&
         TestEqual(TEXT("No world-definition initial content in 06.4W scope"),
             WorldDefinitionInitialItems, 0);

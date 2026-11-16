@@ -42,6 +42,14 @@ struct FGridObjectPaletteEntry
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Palette|Item|Canonical")
 	FName CanonicalItemId = NAME_None;
 
+	/** ARM-CLEAN06.4X.5: physical default for NEW direct palette placements.
+	 * N1-N20 for ARM, N0 for unlevelled items; never infer N1 at runtime.
+	 * One-shot Editor migration derives this from the original source.
+	 * The old source pointer remains until the verified reader cutover. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Palette|Item|Canonical",
+		meta = (ClampMin = "0", ClampMax = "20"))
+	int32 CanonicalDefaultItemLevel = 0;
+
 	/** Required default when the definition places a MonsterSpawn. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Monster")
 	TObjectPtr<UGridMonsterDefinitionAsset> DefaultMonsterDefinition = nullptr;

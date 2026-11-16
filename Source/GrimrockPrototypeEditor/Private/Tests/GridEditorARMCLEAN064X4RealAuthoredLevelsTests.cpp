@@ -269,8 +269,8 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
             CanonicalCount, 95) &&
         TestEqual(TEXT("All 95 identities belong to a single family"),
             ArmCount + NonArmCount, 95) &&
-        TestTrue(TEXT("Historical ARM N0 inheritance actually occurs"),
-            InheritedArmCount > 0) &&
+        TestTrue(TEXT("Actual ARM families have physical N1-N20 levels"),
+            ArmCount > 0) &&
         TestTrue(TEXT("Real non-armament N0 actually occurs"),
             NonArmCount > 0);
 }

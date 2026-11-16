@@ -2627,6 +2627,78 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4X.5: single exact commit, physical levels in UE assets.
+        $X5Trigger = 'feat(ARM-CLEAN06.4X.5): materialize authored physical levels in real UE assets'
+        $X5Subject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $X5Subject.Count -eq 1 -and
+            [string]$X5Subject[0] -ceq $X5Trigger) {
+            $X5Context = 'UE5.5.4/ARM-CLEAN06.4X.5'
+            $X5Phase = 'SCRIPT_NOT_STARTED'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $X5Context -Description '95 niveaux physiques, 5 UAssets, relecture UE'
+                $X5Script = Join-Path $WorktreePath 'Scripts\ApplyARM_CLEAN06_4X5_PhysicalLevelMigration.ps1'
+                if (-not (Test-Path -LiteralPath $X5Script -PathType Leaf)) {
+                    throw 'Missing dedicated native materializer.'
+                }
+                $X5Tokens = $null
+                $X5ParseErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $X5Script, [ref]$X5Tokens, [ref]$X5ParseErrors)
+                if ($X5ParseErrors -and $X5ParseErrors.Count -gt 0) {
+                    $X5Phase = 'POWERSHELL_PARSE'
+                    throw 'Native materializer failed syntax check.'
+                }
+                foreach ($X5Value in @($X5Script,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($X5Value.Contains('"')) {
+                        $X5Phase = 'UNSAFE_PATH'
+                        throw 'Quote in materializer argument.'
+                    }
+                }
+                $X5Args = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $X5Script + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $X5Process = Start-Process -FilePath $PsExe -ArgumentList $X5Args -WorkingDirectory $WorktreePath -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput (Join-Path $RunDir 'ARM064X5.stdout-private.log') -RedirectStandardError (Join-Path $RunDir 'ARM064X5.stderr-private.log') -ErrorAction Stop
+                if ($X5Process.ExitCode -ne 0) {
+                    throw 'UE physical materialization or reopening failed.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $X5Context -Description '95 physical levels, 5 packages verified, no SaveGames'
+            }
+            catch {
+                $X5PhasePath = Join-Path $RunDir 'ARMClean064X5.stage'
+                if (Test-Path -LiteralPath $X5PhasePath -PathType Leaf) {
+                    $X5Phase = ([string](Get-Content -LiteralPath $X5PhasePath -TotalCount 1)).Trim()
+                }
+                if ($X5Phase -notmatch '^[A-Z][A-Z0-9_]{0,63}$') {
+                    $X5Phase = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $X5Context -Description ('Migration 06.4X.5 refusee: '+$X5Phase)
+                }
+                catch {Write-Warning '[ARM-CLEAN06.4X.5] Cannot publish failed status.'}
+                # Publish only the allowlisted stage, NEVER UE logs or asset data.
+                try {
+                    $X5DiagDir=Join-Path $StateRoot 'ARM-CLEAN06.4X5-Diagnostics'
+                    $X5DiagMarker=Join-Path $X5DiagDir ($Sha+'.issue-created')
+                    if(-not (Test-Path -LiteralPath $X5DiagMarker -PathType Leaf)) {
+                        New-Item -ItemType Directory -Path $X5DiagDir -Force -ErrorAction Stop | Out-Null
+                        $X5Body=Join-Path $RunDir 'ARM064X5.public.md'
+                        @('# ARM-CLEAN06.4X.5 - diagnostic public','','Commit: '+$Sha,
+                          'Check: '+$X5Context,'Phase: '+$X5Phase,
+                          'No private logs, paths or SaveGames.') |
+                            Set-Content -LiteralPath $X5Body -Encoding UTF8
+                        $X5Issue=@(& gh issue create --repo $GitHubRepository --title ('[ARM-CLEAN06.4X.5] Diagnostic '+$Sha.Substring(0,12)+' '+$X5Phase) --body-file $X5Body)
+                        if($LASTEXITCODE -eq 0 -and $X5Issue.Count -eq 1) {
+                            Set-Content -LiteralPath $X5DiagMarker -Value $X5Issue[0] -Encoding ASCII
+                        }
+                    }
+                }
+                catch {Write-Warning '[ARM-CLEAN06.4X.5] Public diagnostic unavailable.'}
+                Write-Warning ('[ARM-CLEAN06.4X.5] Refused phase: '+$X5Phase)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.
