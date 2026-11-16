@@ -2100,18 +2100,52 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	}
 
 	UGridItemDefinitionAsset* ItemDefinition = ObjectData.ItemDefinition.Get();
-	if (!IsValid(ItemDefinition))
-	{
-		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Placed item skipped: definition missing for instance %s."), *ObjectData.InstanceId.ToString());
-		return;
-	}
-	const FName ItemDefinitionId = ItemDefinition->ItemDefinitionId;
+	const bool bPersistedCanonical = !ObjectData.CanonicalItemId.IsNone();
+	// X.5 has made N1-N20 / N0 physical on the 44 real authored pickups.
+	// A known ItemId may no longer fall back to an authored legacy N0.
+	const FName ItemDefinitionId = bPersistedCanonical
+		? ObjectData.CanonicalItemId
+		: (IsValid(ItemDefinition) ? ItemDefinition->ItemDefinitionId : NAME_None);
 	const UWorld* PlacementWorld = GetWorld();
 	UGameInstance* PlacementGameInstance = PlacementWorld ? PlacementWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = PlacementGameInstance
 		? PlacementGameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	const FGridReceptacleItemMetadataReadView LevelRead =
-		FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
+	FGridResolvedItem Canonical;
+	if (bPersistedCanonical)
+	{
+		if (!ObjectData.InstanceId.IsValid() || ObjectData.Quantity < 1 ||
+			!Registry || !Registry->HasCanonicalItem(ItemDefinitionId) ||
+			(IsValid(ItemDefinition) && ItemDefinition->ItemDefinitionId != ItemDefinitionId) ||
+			!Registry->ResolveItem(ItemDefinitionId, ObjectData.ItemLevel, Canonical))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning,
+				TEXT("Placed canonical item skipped: invalid persisted identity or physical level %s N%d."),
+				*ItemDefinitionId.ToString(), ObjectData.ItemLevel);
+			return;
+		}
+	}
+	else if (!IsValid(ItemDefinition))
+	{
+		UE_LOG(LogGridLevelRuntime, Warning,
+			TEXT("Placed historical item skipped: definition missing for instance %s."),
+			*ObjectData.InstanceId.ToString());
+		return;
+	}
+	// ARM lighting/presentation still needs its dedicated cutover; do not
+	// silently discard its existing effects. Non-ARM source data is fully
+	// projected and may use the canonical actor initializer immediately.
+	const bool bCanonicalNonArm = bPersistedCanonical && !Canonical.bIsArmament;
+	if (bPersistedCanonical && Canonical.bIsArmament && !IsValid(ItemDefinition))
+	{
+		UE_LOG(LogGridLevelRuntime, Warning,
+			TEXT("Placed ARM item skipped until ARM visual cutover: %s."),
+			*ItemDefinitionId.ToString());
+		return;
+	}
+	const FGridReceptacleItemMetadataReadView LevelRead = bPersistedCanonical
+		? FGridWorldItemLevelReadModel::ResolvePersistedInstance(
+			Registry, nullptr, ItemDefinitionId, ObjectData.ItemLevel)
+		: FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
 			Registry, ItemDefinition, ItemDefinitionId, ObjectData.ItemLevel);
 	if (!LevelRead.bResolved)
 	{
@@ -2121,22 +2155,41 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 		return;
 	}
 	const int32 ResolvedItemLevel = LevelRead.FixedItemLevel;
-	AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, ItemDefinitionId, this, nullptr);
+	AGridItemActor* ItemActor = SpawnItemActorForDefinition(
+		bCanonicalNonArm ? nullptr : ItemDefinition, ItemDefinitionId, this, nullptr);
 	if (!ItemActor)
 	{
-		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Placed item skipped: failed to spawn item definition %s."), *ItemDefinitionId.ToString());
+		UE_LOG(LogGridLevelRuntime, Warning,
+			TEXT("Placed item skipped: failed to spawn %s."), *ItemDefinitionId.ToString());
 		return;
 	}
 
 	ItemActor->SetActorTransform(Transform);
-	ItemActor->SetRuntimeObjectId(ObjectData.InstanceId);
-	ItemActor->InitializeFromItemDefinition(ItemDefinition, ObjectData.InstanceId);
 	FGridItemInstance PlacedVisualItem;
-	PlacedVisualItem.RuntimeObjectId = ObjectData.InstanceId.IsValid() ? ObjectData.InstanceId : FGuid::NewGuid();
+	PlacedVisualItem.RuntimeObjectId = ObjectData.InstanceId.IsValid()
+		? ObjectData.InstanceId : FGuid::NewGuid();
 	PlacedVisualItem.ItemDefinitionId = ItemDefinitionId;
 	PlacedVisualItem.ItemLevel = ResolvedItemLevel;
 	PlacedVisualItem.Quantity = FMath::Max(1, ObjectData.Quantity);
-	ItemActor->ApplyCanonicalWorldVisual(PlacedVisualItem);
+	if (bCanonicalNonArm)
+	{
+		if (!ItemActor->InitializeFromCanonicalItem(PlacedVisualItem, Registry))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning,
+				TEXT("Placed non-ARM canonical item skipped: initialization failed %s."),
+				*ItemDefinitionId.ToString());
+			ItemActor->Destroy();
+			return;
+		}
+	}
+	else
+	{
+		// Existing ARM / purely synthetic legacy actors preserve their
+		// presentation while later reader milestones are still pending.
+		ItemActor->SetRuntimeObjectId(ObjectData.InstanceId);
+		ItemActor->InitializeFromItemDefinition(ItemDefinition, ObjectData.InstanceId);
+		ItemActor->ApplyCanonicalWorldVisual(PlacedVisualItem);
+	}
 	UGridReadableContentAsset* ReadableContentAsset = ObjectData.ReadableContentAsset;
 	FName ReadableContentId = ObjectData.ReadableContentId;
 	FText ReadTitleOverride = ObjectData.ReadTitleOverride;
@@ -2146,9 +2199,11 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	ItemActor->SetRuntimeCell(ObjectData.CellX, ObjectData.CellY);
 	ItemActor->ApplyWorldPhysicsInitialNudge();
 	ItemActor->ConfigureAsWorldPickup();
-	// ITEM-LIGHT02: a LevelAsset loose item is a fresh instance, so its initial
-	// light state is authored by the definition exactly once at materialization.
-	ItemActor->SetItemLightsEnabled(ItemDefinition->IsLightEnabledByDefault());
+	// Fresh placed light state is from the authoritative family. Existing
+	// ARM authors remain on their old light source until that visual cutover.
+	ItemActor->SetItemLightsEnabled(bCanonicalNonArm
+		? Canonical.LightEmitter.bDefaultEnabled
+		: ItemDefinition->IsLightEnabledByDefault());
 	SpawnedItemActors.Add(ItemActor);
 
 	FGridSpawnedItemRuntimeEntry Entry;
