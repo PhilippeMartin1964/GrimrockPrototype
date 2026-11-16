@@ -17,13 +17,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $StagePath = Join-Path $RunDir 'ARMClean064X72.stage'
 function Stage([string]$Name) { Set-Content -LiteralPath $StagePath -Value $Name -Encoding ASCII }
-function Git([string[]]$Args) {
-    $Out = @(& git -C $WorktreePath @Args)
+function Invoke-GitChecked([string[]]$GitArguments) {
+    $Out = @(& git.exe -C $WorktreePath @GitArguments)
     if ($LASTEXITCODE -ne 0) { throw 'Protected git operation failed.' }
     return $Out
 }
 function Require-Clean {
-    $Dirty = @(Git -Args @('status','--porcelain','--untracked-files=all'))
+    $Dirty = @(Invoke-GitChecked -GitArguments @('status','--porcelain','--untracked-files=all'))
     if ($Dirty.Count -ne 0) { Stage 'WORKTREE_DIRTY'; throw 'Worktree must stay clean.' }
 }
 function Check-Report($R,[string]$Mode) {
@@ -45,16 +45,16 @@ function Check-Report($R,[string]$Mode) {
     }
 }
 Stage 'SCRIPT_STARTED'
-$Parent = '44df969416cab36f924357e1ebbff9749bc30861'
-$Subject = 'fix(ARM-CLEAN06.4X.16.7.2C): repair isolated native migration gate and revalidate'
+$Parent = 'cff8510c2749a4a6d27907b9937627768f4c45ea'
+$Subject = 'fix(ARM-CLEAN06.4X.16.7.2D): repair Git wrapper and expose guarded failure phase'
 $Files = @(
     'Content/GrimrockPrototype/Core/DataAssets/DA_Receptacle_TorchHolder.uasset',
     'Content/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Guardian.uasset'
 )
 $BinaryCommitSubject = 'feat(ARM-CLEAN06.4X.16.7.3): persist two native receptacle ItemIds'
-$OriginalHead = (@(Git -Args @('rev-parse','HEAD')) | Select-Object -First 1).Trim()
-$ActualParent = (@(Git -Args @('rev-parse','HEAD^')) | Select-Object -First 1).Trim()
-$ActualSubject = (@(Git -Args @('log','-1','--format=%s')) | Select-Object -First 1).Trim()
+$OriginalHead = (@(Invoke-GitChecked -GitArguments @('rev-parse','HEAD')) | Select-Object -First 1).Trim()
+$ActualParent = (@(Invoke-GitChecked -GitArguments @('rev-parse','HEAD^')) | Select-Object -First 1).Trim()
+$ActualSubject = (@(Invoke-GitChecked -GitArguments @('log','-1','--format=%s')) | Select-Object -First 1).Trim()
 if ($OriginalHead -cne $ExpectedHead -or $ActualParent -cne $Parent -or
     $ActualSubject -cne $Subject) {
     Stage 'COMMIT_IDENTITY_REJECTED'
@@ -64,7 +64,7 @@ $CodePaths = @(
     'Scripts/ApplyARM_CLEAN06_4X72_ReceptacleRules.ps1',
     'Scripts/ValidateUE.ps1'
 )
-$Changed = @(Git -Args @('diff-tree','--no-commit-id','--name-only','-r','HEAD'))
+$Changed = @(Invoke-GitChecked -GitArguments @('diff-tree','--no-commit-id','--name-only','-r','HEAD'))
 if ($Changed.Count -ne $CodePaths.Count -or
     @($Changed | Where-Object { $CodePaths -cnotcontains $_ }).Count -ne 0 -or
     @($CodePaths | Where-Object { $Changed -cnotcontains $_ }).Count -ne 0) {
@@ -86,7 +86,7 @@ $PrivateFolder = Join-Path $RunDir 'ARM-CLEAN06.4X72'
 New-Item -ItemType Directory -Path $PrivateFolder -Force -ErrorAction Stop | Out-Null
 Stage 'VERIFY_GIT_LFS_SOURCES'
 foreach ($Relative in $Files) {
-    $Attribute = @(Git -Args @('check-attr','filter','--',$Relative))
+    $Attribute = @(Invoke-GitChecked -GitArguments @('check-attr','filter','--',$Relative))
     if ($Attribute.Count -ne 1 -or [string]$Attribute[0] -notmatch ': filter: lfs$') {
         Stage 'LFS_ATTRIBUTE_MISSING'
         throw 'Native package is not LFS tracked.'
@@ -101,7 +101,7 @@ $Checkout = Start-Process -FilePath 'git.exe' -ArgumentList $CheckoutArgs -Worki
 if ($Checkout.ExitCode -ne 0) { Stage 'LFS_CHECKOUT_FAILED'; throw 'Hydrated LFS checkout rejected.' }
 $Expected = @{}
 foreach ($Relative in $Files) {
-    $Pointer = @(Git -Args @('show',($ExpectedHead+':'+$Relative)) | Where-Object { $_ })
+    $Pointer = @(Invoke-GitChecked -GitArguments @('show',($ExpectedHead+':'+$Relative)) | Where-Object { $_ })
     if ($Pointer.Count -ne 3 -or $Pointer[0] -cne 'version https://git-lfs.github.com/spec/v1' -or
         [string]$Pointer[1] -notmatch '^oid sha256:([0-9a-f]{64})$') {
         Stage 'LFS_POINTER_INVALID'
@@ -165,13 +165,13 @@ try {
     Require-Clean
     Stage 'APPLY_TWO_NATIVE_UASSETS'
     Run-UE 'Apply' (Join-Path $PrivateFolder 'applied-private.json')
-    $ActualChanged = @(Git -Args @('diff','--name-only'))
+    $ActualChanged = @(Invoke-GitChecked -GitArguments @('diff','--name-only'))
     if ($ActualChanged.Count -ne 2 -or
         @($ActualChanged | Where-Object { $Files -cnotcontains $_ }).Count -ne 0) {
         Stage 'UNEXPECTED_BINARY_DIFF'
         throw 'Unreal changed files outside the exact two native packages.'
     }
-    $Status = @(Git -Args @('status','--porcelain','--untracked-files=all'))
+    $Status = @(Invoke-GitChecked -GitArguments @('status','--porcelain','--untracked-files=all'))
     if ($Status.Count -ne 2 -or
         @($Status | Where-Object {
             ([string]$_).Length -lt 4 -or
@@ -190,21 +190,21 @@ try {
         Stage 'POST_AUTOMATION_FAILED'
         throw 'Grimrock suite failed after binary conversion.'
     }
-    $AfterAutomation = @(Git -Args @('diff','--name-only'))
+    $AfterAutomation = @(Invoke-GitChecked -GitArguments @('diff','--name-only'))
     if (($AfterAutomation -join '|') -cne ($ActualChanged -join '|')) {
         Stage 'POST_AUTOMATION_CHANGED_FILESET'
         throw 'Automation changed native file allowlist.'
     }
     Stage 'REMOTE_LEASE_CHECK'
-    [void](Git -Args @('fetch','--no-tags','origin','master'))
-    $Remote = (@(Git -Args @('rev-parse','refs/remotes/origin/master')) | Select-Object -First 1).Trim()
+    [void](Invoke-GitChecked -GitArguments @('fetch','--no-tags','origin','master'))
+    $Remote = (@(Invoke-GitChecked -GitArguments @('rev-parse','refs/remotes/origin/master')) | Select-Object -First 1).Trim()
     if ($Remote -cne $ExpectedHead) {
         Stage 'REMOTE_MASTER_MOVED'
         throw 'Master advanced, refuse binary commit.'
     }
     Stage 'STAGE_TWO_BINARY_PACKAGES'
-    [void](Git -Args (@('add','--')+$Files))
-    $Staged = @(Git -Args @('diff','--cached','--name-only'))
+    [void](Invoke-GitChecked -GitArguments (@('add','--')+$Files))
+    $Staged = @(Invoke-GitChecked -GitArguments @('diff','--cached','--name-only'))
     if ($Staged.Count -ne 2 -or
         @($Staged | Where-Object { $Files -cnotcontains $_ }).Count -ne 0) {
         Stage 'STAGED_FILESET_MISMATCH'
@@ -213,9 +213,9 @@ try {
     Stage 'COMMIT_NATIVE_BINARY_CHILD'
     & git -C $WorktreePath -c 'user.name=Grimrock UE Automation' -c 'user.email=grimrock-ue-automation@users.noreply.github.com' commit -m $BinaryCommitSubject | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Git binary child commit failed.' }
-    $NewHead = (@(Git -Args @('rev-parse','HEAD')) | Select-Object -First 1).Trim()
-    $NewParent = (@(Git -Args @('rev-parse','HEAD^')) | Select-Object -First 1).Trim()
-    $ChildFiles = @(Git -Args @('diff-tree','--no-commit-id','--name-only','-r','HEAD'))
+    $NewHead = (@(Invoke-GitChecked -GitArguments @('rev-parse','HEAD')) | Select-Object -First 1).Trim()
+    $NewParent = (@(Invoke-GitChecked -GitArguments @('rev-parse','HEAD^')) | Select-Object -First 1).Trim()
+    $ChildFiles = @(Invoke-GitChecked -GitArguments @('diff-tree','--no-commit-id','--name-only','-r','HEAD'))
     if ($NewHead -ceq $ExpectedHead -or $NewParent -cne $ExpectedHead -or
         $ChildFiles.Count -ne 2 -or
         @($ChildFiles | Where-Object { $Files -cnotcontains $_ }).Count -ne 0) {
@@ -233,9 +233,9 @@ try {
 catch {
     if ($BackupsReady) {
         try {
-            $Current = (@(Git -Args @('rev-parse','HEAD')) | Select-Object -First 1).Trim()
+            $Current = (@(Invoke-GitChecked -GitArguments @('rev-parse','HEAD')) | Select-Object -First 1).Trim()
             if ($Current -cne $ExpectedHead) { throw 'Cannot restore after commit; original backup remains private.' }
-            $Dirty = @(Git -Args @('diff','--name-only'))
+            $Dirty = @(Invoke-GitChecked -GitArguments @('diff','--name-only'))
             if (@($Dirty | Where-Object { $Files -cnotcontains $_ }).Count -ne 0) {
                 throw 'Unrelated file modified; refuse restore.'
             }

@@ -365,7 +365,7 @@ $IsIsolatedWorktree = (Split-Path -Leaf $RepoRoot) -ceq 'GrimrockPrototype_UEVal
 if ($IsIsolatedWorktree -and -not $SkipBuild -and -not $SkipAutomation -and
     $AutomationFilter -ceq 'Grimrock' -and
     (Split-Path -Leaf $ReportRoot) -ceq 'Automation') {
-    $ExactHookSubject = 'fix(ARM-CLEAN06.4X.16.7.2C): repair isolated native migration gate and revalidate'
+    $ExactHookSubject = 'fix(ARM-CLEAN06.4X.16.7.2D): repair Git wrapper and expose guarded failure phase'
     $GitSubject = @(& git -C $RepoRoot log -1 --format=%s)
     if ($LASTEXITCODE -ne 0) { throw 'Exact validation commit check unavailable.' }
     if ($GitSubject.Count -eq 1 -and [string]$GitSubject[0] -ceq $ExactHookSubject) {
@@ -397,14 +397,36 @@ if ($IsIsolatedWorktree -and -not $SkipBuild -and -not $SkipAutomation -and
         if ($MigrationErrors -and $MigrationErrors.Count -gt 0) {
             throw 'Guarded migration helper failed PowerShell syntax check.'
         }
-        Write-Host '[ARM-CLEAN06.4X72B] Validated isolated one-shot source; exact two-package transaction.'
-        & $MigrationScript -WorktreePath $RepoRoot -EngineRoot $ResolvedEngineRoot -StateRoot $PrivateStateRoot -RunDir $PrivateRunDir -ExpectedHead $ExactSha
         $Receipt = Join-Path $PrivateRunDir 'ARMClean064X72.stage'
-        if (-not (Test-Path -LiteralPath $Receipt -PathType Leaf) -or
-            ([string](Get-Content -LiteralPath $Receipt -TotalCount 1)).Trim() -cne 'SUCCESS') {
-            throw 'Binary transaction did not produce success receipt.'
+        $StatusUrl = "repos/PhilippeMartin1964/GrimrockPrototype/statuses/$ExactSha"
+        $StatusContext = 'UE5.5.4/ARM-CLEAN06.4X72'
+        Write-Host '[ARM-CLEAN06.4X72D] Full Grimrock green; starting exact two-package transaction.'
+        try {
+            & $MigrationScript -WorktreePath $RepoRoot -EngineRoot $ResolvedEngineRoot -StateRoot $PrivateStateRoot -RunDir $PrivateRunDir -ExpectedHead $ExactSha
+            if (-not (Test-Path -LiteralPath $Receipt -PathType Leaf) -or
+                ([string](Get-Content -LiteralPath $Receipt -TotalCount 1)).Trim() -cne 'SUCCESS') {
+                throw 'Binary transaction did not produce SUCCESS receipt.'
+            }
+            & gh.exe api -X POST $StatusUrl -f 'state=success' -f "context=$StatusContext" -f 'description=Two native receptacles saved and pushed; binary SHA needs UE check' --silent
+            if ($LASTEXITCODE -ne 0) { throw 'GitHub receipt failed after transaction.' }
+            Write-Host '[ARM-CLEAN06.4X72D] Binary child published; separate UE validation follows.'
         }
-        Write-Host '[ARM-CLEAN06.4X72B] Binary child published; independent UE validation follows.'
+        catch {
+            $PhaseCode = 'UNKNOWN'
+            if (Test-Path -LiteralPath $Receipt -PathType Leaf) {
+                $ReadPhase = ([string](Get-Content -LiteralPath $Receipt -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
+                if ($ReadPhase -match '^[A-Z][A-Z0-9_]{0,63}
+    }
+}
+exit 0
+) { $PhaseCode = $ReadPhase }
+            }
+            try {
+                & gh.exe api -X POST $StatusUrl -f 'state=failure' -f "context=$StatusContext" -f "description=Two-package transaction blocked: $PhaseCode; no raw logs" --silent
+            }
+            catch { Write-Warning '[ARM-CLEAN06.4X72D] Phase publication unavailable.' }
+            throw "ARM-CLEAN06.4X72D blocked at $PhaseCode"
+        }
     }
 }
 exit 0
