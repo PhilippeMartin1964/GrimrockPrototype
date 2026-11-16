@@ -5,6 +5,27 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.16.11 — PIT02 canonique non-ARM et refus du fallback ARM N0
+
+X.16.10 `afecaacf7dd0f0f6d81da358d0cd624aea3bc4a2` est désormais **validé** :
+`UE5.5.4/SilentTask=SUCCESS` et `UE5.5.4/LocalAuto=SUCCESS`.
+
+X.16.11 (en cours de validation sur son SHA publié) ferme le fallback
+legacy lors du routage d'un ItemId enregistré mais invalide à son niveau,
+n'enregistre plus `FGridPendingWorldItemState.ItemDefinitionAsset` pour
+les non-ARM canoniques et ignore les anciens pointeurs à l'atterrissage.
+Test PIT02 sur deux niveaux temporaires + round-trip SaveGame en mémoire,
+contrôle d'une torche N0 allumée, Niagara et refus d'ARM N0 invalide.
+Les objets non enregistrés et les ARM sans cutover visuel gardent leur
+voie existante. Les champs SaveGame restent présents, aucune sauvegarde
+personnelle ou binaire Unreal modifié.
+
+Lire `ARM_CLEAN06_4X1611_CANONICAL_PIT_TRANSFER.md`.
+Ne déclarer X.16.11 validé qu'avec les **deux statuts SUCCESS sur son SHA**.
+À la prochaine reprise : autres lecteurs legacy, conversion des ARM visuels,
+protection des copies de SaveGame, 06.5 et 06.6. PIE PIT02 à effectuer
+sur contenu réel pour valider lumière et Niagara de la torche après chute.
+
 ## ARM-CLEAN06.4X.16.10 — rechargement non-ARM canonique
 
 Parent `7886a9b757b639f87d6ed8202e9d34e0d19c1a64` : SilentTask et LocalAuto SUCCESS.

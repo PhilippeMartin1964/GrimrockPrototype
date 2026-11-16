@@ -376,9 +376,19 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	UGameInstance* RouteGI = RouteWorld ? RouteWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* RouteRegistry = RouteGI ? RouteGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	FGridResolvedItem RouteCanonical;
-	const bool bCanonicalRoute = RouteRegistry &&
-		RouteRegistry->HasCanonicalItem(ItemInstance.ItemDefinitionId) &&
+	const bool bCanonicalIdentity = RouteRegistry &&
+		RouteRegistry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
+	const bool bCanonicalRoute = bCanonicalIdentity &&
 		RouteRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, RouteCanonical);
+	// A known canonical ItemId at an invalid persisted level (notably ARM N0)
+	// must never fall back to an old UGridItemDefinitionAsset.
+	if (bCanonicalIdentity && !bCanonicalRoute)
+	{
+		UE_LOG(LogGridLevelRuntime, Warning,
+			TEXT("GridPit ItemTransfer rejected Item=%s Level=%d Reason=InvalidCanonicalItem"),
+			*ItemInstance.ItemDefinitionId.ToString(), ItemInstance.ItemLevel);
+		return false;
+	}
 	if (!DungeonAsset || !ItemInstance.IsValid() ||
 		(!bCanonicalRoute && !IsValid(ItemDefinitionAsset)) ||
 		!FindOpenPitAtCell(CellX, CellY, Relocation))
@@ -471,7 +481,11 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 
 	FGridPendingWorldItemState PendingState;
 	PendingState.ItemState = ItemState;
-	PendingState.ItemDefinitionAsset = ItemDefinitionAsset;
+	// Registered non-ARM content has its complete light/Niagara/mesh profile
+	// in DA_ItemSystem. Do not serialize its obsolete item definition asset.
+	// ARM presentation and unregistered items are not yet cut over here.
+	PendingState.ItemDefinitionAsset =
+		bCanonicalRoute && !RouteCanonical.bIsArmament ? nullptr : ItemDefinitionAsset;
 
 	FGridLevelRuntimeState& TargetState = DungeonRuntimeState.LevelStates.FindOrAdd(Relocation.TargetLevelId);
 	TargetState.LevelId = Relocation.TargetLevelId;
@@ -536,8 +550,30 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 		FVector LocalOffset = ItemState.Transform.GetLocation() - CellCenter;
 		LocalOffset.Z = 0.0f;
 
-		UGridItemDefinitionAsset* Definition = PendingCopy.ItemDefinitionAsset.Get();
-		if (!Definition)
+		const UWorld* InboundWorld = GetWorld();
+		UGameInstance* InboundGI = InboundWorld ? InboundWorld->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* InboundRegistry =
+			InboundGI ? InboundGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		const bool bKnownCanonical = InboundRegistry &&
+			InboundRegistry->HasCanonicalItem(ItemState.ItemDefinitionId);
+		FGridResolvedItem InboundCanonical;
+		if (bKnownCanonical &&
+			!InboundRegistry->ResolveItem(ItemState.ItemDefinitionId, ItemState.ItemLevel, InboundCanonical))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning,
+				TEXT("GridPit PendingItem rejected Item=%s Level=%d Reason=InvalidCanonicalItem"),
+				*ItemState.ItemDefinitionId.ToString(), ItemState.ItemLevel);
+			continue; // Retain the queued snapshot for diagnostics, no legacy fallback.
+		}
+		const bool bCanonicalNonArm = bKnownCanonical && !InboundCanonical.bIsArmament;
+		UGridItemDefinitionAsset* Definition = bCanonicalNonArm
+			? nullptr : PendingCopy.ItemDefinitionAsset.Get();
+		if (!Definition && !bKnownCanonical)
+		{
+			Definition = ResolveRuntimeItemDefinition(ItemState.ItemDefinitionId);
+		}
+		// An ARM still using historical presentation may need its old pointer.
+		if (!Definition && bKnownCanonical && !bCanonicalNonArm)
 		{
 			Definition = ResolveRuntimeItemDefinition(ItemState.ItemDefinitionId);
 		}
