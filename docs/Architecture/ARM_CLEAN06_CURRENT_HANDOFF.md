@@ -5,6 +5,81 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## Reprise actuelle — ARM-CLEAN06.4X.18 VALIDÉ (torche au sol lumineuse)
+
+**Dernier jalon fonctionnel validé :**
+`76edb1aec65aa0e524868ea26d14ceea3ac0fd43`,
+`UE5.5.4/SilentTask=SUCCESS` et
+`UE5.5.4/LocalAuto=SUCCESS` sur ce SHA exact.
+
+**PIE utilisateur après X.17.1 :** la torche s'équipe et
+se déplace désormais entre support, sac et mains,
+mais **elle s'éteignait en étant déposée au sol et
+restait éteinte après ramassage**.
+
+**Cause vérifiée dans le code :**
+`TryDropItemInstanceAtCell` utilisait
+`InitializeFromItemDefinitionId` pour le
+non-ARM canonique, qui efface
+`FGridLightEmitterConfig` et
+`VisualEffects`; `ApplyCanonicalWorldVisual`
+n'appliquait ensuite que le mesh. Une tentative
+`SetItemLightsEnabled(true)` sans configuration
+échouait silencieusement. La capture au ramassage
+transformait alors l'état allumé en éteint.
+
+**X.18 :** un objet non-ARM du registre au sol
+est maintenant initialisé avec
+`InitializeFromCanonicalItem` et reçoit
+tout son profil lumineux/Niagara/physique
+avant que son `bLightsEnabled` soit restauré.
+Échec atomique d'initialisation, sans
+fallback vers le vieux DataAsset.
+Les ARM et identités non enregistrées conservent
+leur chemin historique dans ce jalon.
+
+**Test automatique X.18** : vraie torche
+`DA_Item_Torch`, état au sol allumé, capture
+de l'état du niveau, ramassage avec GUID
+inchangé, sac, `MainHand` et
+`UGridPartyIlluminationComponent` allumé.
+Une seconde torche explicitement éteinte
+reste éteinte au sol et après ramassage.
+Les **deux contrôles UE5.5.4 sont verts**.
+
+**Contrat de conception :** une manipulation
+ne doit pas changer l'état lumineux. Support
+et sol éclairent localement si allumés ;
+sac/curseur conservent l'état sans émettre
+de lumière ; une main équipée alimente
+l'éclairage du groupe si la torche est allumée.
+Pas d'extinction automatique au sol.
+Aucune usure ni action explicite d'allumage
+nouvellement créée ; ce seront des tickets
+distincts. Lire
+`ARM_CLEAN06_4X18_TORCH_LIGHT_STATE_CONTRACT.md`.
+
+**Recette PIE non encore validée par l'utilisateur :**
+sur la dernière version compilée, recommencer
+depuis une nouvelle torche allumée (une ancienne
+instance déjà éteinte conserve volontairement
+cet état), puis tester support -> sac -> main
+-> sol -> sac -> main -> support, flamme et
+éclairage visibles à chaque emplacement.
+Sur une copie uniquement pour tester
+Save/Continue ; ne pas modifier les vrais
+niveaux ni les `.sav` personnels.
+
+**Suite après PIE** : X.16.4 migration
+transactionnelle des vraies règles
+`AcceptedItems` des réceptacles,
+puis `AcceptedKeys` de serrures,
+en deux chantiers séparés.
+Ne pas relancer les 95 migrations physiques.
+
+La section suivante est l'historique X.17.1,
+pas le point de reprise courant.
+
 ## Reprise actuelle — ARM-CLEAN06.4X.17.1 VALIDÉ (torche rééquipable)
 
 **Dernier SHA fonctionnel validé :**
