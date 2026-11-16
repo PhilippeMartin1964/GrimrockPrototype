@@ -18,6 +18,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
 #include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
+#include "EditorTools/GridEditorCanonicalReceptacleInitialAuthoring.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "NiagaraSystem.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
@@ -1618,14 +1619,23 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 					BuildItemDefinitionAssetPicker(InitialItem.ItemDefinition,
 						[this, ObjectId, InitialIndex](UGridItemDefinitionAsset* NewAsset)
 						{
-							EditWorldObjectConfig(ObjectId, [InitialIndex, NewAsset](FGridWorldObjectInstanceConfig& Config)
+							AGridLevelEditorActor* EditorActor = GetEditorActor();
+							const UGridItemSubsystem* Registry = EditorActor
+								? EditorActor->ResolveEditorItemRegistry() : nullptr;
+							if (!Registry || !Registry->IsConfigured())
+							{
+								UE_LOG(LogTemp, Warning, TEXT("Initial receptacle item edit refused: ItemSystem missing."));
+								return;
+							}
+							EditWorldObjectConfig(ObjectId, [InitialIndex, NewAsset, Registry](FGridWorldObjectInstanceConfig& Config)
 							{
 								if (Config.ReceptacleInitialContent.IsValidIndex(InitialIndex))
 								{
-									if (Config.ReceptacleInitialContent[InitialIndex].ItemDefinition != NewAsset)
+									FGridReceptacleInitialItemConfig& Current = Config.ReceptacleInitialContent[InitialIndex];
+									if (Current.ItemDefinition != NewAsset)
 									{
-										Config.ReceptacleInitialContent[InitialIndex].ItemDefinition = NewAsset;
-										Config.ReceptacleInitialContent[InitialIndex].ItemLevel = 0;
+										FGridEditorCanonicalReceptacleInitialAuthoring::TrySelectDefinition(
+											Registry, NewAsset, Current);
 									}
 								}
 							});
@@ -1665,7 +1675,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 						.MinValue(0).MaxValue(20)
 						.MinSliderValue(0).MaxSliderValue(20)
 						.Delta(1).MinDesiredWidth(82.f)
-						.ToolTipText(FText::FromString(TEXT("Item level: 0 = weapon default; 1..20 = fixed weapon level")))
+						.ToolTipText(FText::FromString(TEXT("Canonical ARM: N1-N20; unlevelled items: N0. Legacy-only ARM N0 may inherit default.")))
 						.OnValueCommitted_Lambda([this, ObjectId, InitialIndex](int32 NewValue, ETextCommit::Type)
 						{
 							AGridLevelEditorActor* Editor = GetEditorActor();
@@ -1674,13 +1684,8 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 							{
 								if (Config.ReceptacleInitialContent.IsValidIndex(InitialIndex))
 								{
-									const UGridItemDefinitionAsset* Definition =
-										Config.ReceptacleInitialContent[InitialIndex].ItemDefinition.Get();
-									if (FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(
-										Registry, Definition, NewValue))
-									{
-										Config.ReceptacleInitialContent[InitialIndex].ItemLevel = NewValue;
-									}
+									FGridEditorCanonicalReceptacleInitialAuthoring::TrySetLevel(
+										Registry, NewValue, Config.ReceptacleInitialContent[InitialIndex]);
 								}
 							});
 							})]
