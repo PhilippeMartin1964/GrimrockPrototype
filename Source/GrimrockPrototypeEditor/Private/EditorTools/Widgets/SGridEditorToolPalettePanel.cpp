@@ -8,6 +8,10 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Engine/GameInstance.h"
+#include "GridEditorCanonicalPaletteReadModel.h"
 #include "Runtime/GridPitTrapdoorActor.h"
 
 #include "Brushes/SlateImageBrush.h"
@@ -109,6 +113,23 @@ void SGridEditorToolPalettePanel::Construct(const FArguments& InArgs)
 	ToolPaletteState = InArgs._ToolPaletteState;
 	OnGetEditorActor = InArgs._OnGetEditorActor;
 	OnRequestRefresh = InArgs._OnRequestRefresh;
+
+	// One transient read-only projection per open Slate panel. This does not
+	// replace the registered runtime ItemSystem or modify any DataAsset.
+	CanonicalPreviewGI.Reset(NewObject<UGameInstance>(GetTransientPackage()));
+	CanonicalPreviewRegistry.Reset(NewObject<UGridItemSubsystem>(CanonicalPreviewGI.Get()));
+	UGridItemSystemAsset* CanonicalRoot = LoadObject<UGridItemSystemAsset>(
+		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
+		              "DA_ItemSystem.DA_ItemSystem"));
+	TArray<FString> CanonicalErrors;
+	bCanonicalPreviewReady = CanonicalPreviewRegistry.IsValid() &&
+		CanonicalPreviewRegistry->RegisterItemSystem(CanonicalRoot, CanonicalErrors);
+	if (!bCanonicalPreviewReady)
+	{
+		UE_LOG(LogGridEditor, Warning,
+			TEXT("Canonical editor palette preview registry unavailable: %d validation errors."),
+			CanonicalErrors.Num());
+	}
 
 	LoadUserPaletteState();
 	ChildSlot[BuildToolPalettePanel()];
@@ -662,15 +683,18 @@ bool SGridEditorToolPalettePanel::DoesPaletteEntryPassFilters(const FGridObjectP
 		return Candidate.Contains(Search, ESearchCase::IgnoreCase);
 	};
 
-	if (Matches(Entry.GetEffectiveDisplayName().ToString()) || Matches(Entry.EntryId.ToString()) || Matches(Category.ToString()))
+	const FGridEditorCanonicalPaletteReadView CanonicalView =
+		FGridEditorCanonicalPaletteReadModel::Resolve(
+			Entry, bCanonicalPreviewReady ? CanonicalPreviewRegistry.Get() : nullptr);
+	if (Matches(CanonicalView.DisplayName.ToString()) || Matches(Entry.EntryId.ToString()) || Matches(Category.ToString()))
 	{
 		return true;
 	}
 
 	if (Entry.IsDirectItemEntry())
 	{
-		return Matches(Entry.DefaultItemDefinition->ItemDefinitionId.ToString()) ||
-			Matches(Entry.DefaultItemDefinition->Description.ToString());
+		return Matches(CanonicalView.ItemId.ToString()) ||
+			Matches(CanonicalView.Description.ToString());
 	}
 
 	if (Entry.DefaultWorldObjectDefinition)
@@ -899,9 +923,13 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteTile(const FGridObj
 	const bool bSelected = CurrentEditorActor && CurrentEditorActor->SelectedPaletteEntryId == Entry.EntryId;
 	const bool bFavorite = IsFavoriteEntry(Entry.EntryId);
 
-	const FText Label = Entry.GetEffectiveDisplayName();
+	const FGridEditorCanonicalPaletteReadView CanonicalView =
+		FGridEditorCanonicalPaletteReadModel::Resolve(
+			Entry, bCanonicalPreviewReady ? CanonicalPreviewRegistry.Get() : nullptr);
+	const FText Label = CanonicalView.DisplayName;
 	const FName EntryId = Entry.EntryId;
-	UTexture2D* IconTexture = Entry.IsDirectItemEntry() ? Entry.DefaultItemDefinition->Icon.LoadSynchronous() : Entry.Icon.Get();
+	UTexture2D* IconTexture = Entry.IsDirectItemEntry()
+		? CanonicalView.Icon.LoadSynchronous() : Entry.Icon.Get();
 
 	constexpr float TileSize = 96.f;
 	constexpr float IconSize = 60.f;

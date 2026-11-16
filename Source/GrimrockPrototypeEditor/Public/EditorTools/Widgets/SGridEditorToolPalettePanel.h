@@ -3,11 +3,14 @@
 #include "CoreMinimal.h"
 #include "Styling/SlateBrush.h"
 #include "Widgets/SCompoundWidget.h"
+#include "UObject/StrongObjectPtr.h"
 
 #if WITH_EDITOR
 
 class AGridLevelEditorActor;
 class UTexture2D;
+class UGameInstance;
+class UGridItemSubsystem;
 class SVerticalBox;
 enum class EGridEditorTool : uint8;
 enum class EGridLevelObjectType : uint8;
@@ -85,6 +88,9 @@ private:
 	FOnGetGridEditorToolPaletteActor OnGetEditorActor;
 	FOnGridEditorToolPaletteRequestRefresh OnRequestRefresh;
 	TSharedPtr<SVerticalBox> PaletteResultsRoot;
+	TStrongObjectPtr<UGameInstance> CanonicalPreviewGI;
+	TStrongObjectPtr<UGridItemSubsystem> CanonicalPreviewRegistry;
+	bool bCanonicalPreviewReady = false;
 };
 
 #endif
