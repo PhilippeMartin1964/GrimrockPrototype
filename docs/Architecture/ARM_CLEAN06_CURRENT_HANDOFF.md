@@ -5,6 +5,92 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## Reprise actuelle — ARM-CLEAN06.4X.16.8.5 VALIDÉ (serrures cuivre et fer)
+
+**Dernier commit fonctionnel validé :**
+`da9c6c046f1fdc0322274484c995555a8b90a5ca`.
+`UE5.5.4/SilentTask=SUCCESS` et
+`UE5.5.4/LocalAuto=SUCCESS` sur le **SHA binaire final**.
+
+**Parent de la transaction native :**
+`871c97d5046720c9ac3d664ba73b2e92a17429e2`.
+Trois statuts SUCCESS :
+`UE5.5.4/SilentTask`, `UE5.5.4/LocalAuto` et
+`UE5.5.4/ARM-CLEAN06.4X83`. L'agent Windows a
+effectué le préflight, les sauvegardes SHA-256
+avec provenance Git LFS, l'écriture Unreal,
+la réouverture dans un second processus, la
+suite complète Grimrock et le push d'un commit
+binaire enfant contenant **seulement deux fichiers** :
+
+- `Content/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall.uasset` :
+  `DefaultBehavior.Lock.AcceptedKeyIds=[Key_Copper]`.
+- `Content/GrimrockPrototype/Core/DataAssets/DA_Lock_IronWall.uasset` :
+  `DefaultBehavior.Lock.AcceptedKeyIds=[Key_Iron]`.
+
+Les pointeurs `AcceptedKeyItems` restent intacts.
+Le runtime `AGridWallLockActor` calcule une union
+`AddUnique` des deux listes ; **les seules clés
+admises restent les mêmes**, sans modification de
+`bConsumeKeyOnUnlock`, `bStartsUnlocked`,
+messages ou liens logiques. Aucune carte, aucun
+réceptacle et aucune sauvegarde personnelle
+n'a été modifié dans cette transaction.
+
+**Jalons intermédiaires :**
+- X.16.8.1 `b5a8584960275aefe90e4fb4b47587fbbf64de71` :
+  audit read-only des vraies serrures, deux statuts verts.
+- X.16.8.2 `85a06d65d083cbeff76d39f2be1953bbc61827aa` :
+  l'audit historique des réceptacles reconnaît
+  précisément l'état canonique des deux serrures ;
+  deux statuts verts.
+- X.16.8.3 `148d1213aa969af0b4c28871806d45497f170b85` :
+  helper de migration natif désarmé, deux statuts verts.
+- X.16.8.4 `eda5a72d807e820b5393aed4b1c8b69a4eda59b9` :
+  premier déclenchement arrêté en phase
+  `POST_AUTOMATION_FAILED`, sans commit binaire.
+  Les vieux audits TD073 refusaient tous les
+  `AcceptedKeyIds` non vides.
+- X.16.8.4.1 `2455d2ba7dcd16a71f11e5c55ad9a2a9a1619688` :
+  correction très ciblée du schéma TD073,
+  uniquement pour les deux clés canoniques
+  concordantes ; deux statuts verts.
+- X.16.8.4.2 `871c97d5046720c9ac3d664ba73b2e92a17429e2` :
+  transaction protégée complète, trois statuts verts.
+- X.16.8.5 `da9c6c046f1fdc0322274484c995555a8b90a5ca` :
+  deux `.uasset` natifs et double validation
+  UE5.5.4 sur leur SHA réel.
+
+**Les quatre références historiques recensées
+dans l'issue GitHub #176 sont maintenant persistées
+canoniquement dans leurs DataAssets** :
+TorchHolder/Item_Torch, Guardian/Gem_Blue,
+CopperWall/Key_Copper et IronWall/Key_Iron.
+Leurs anciens pointeurs sont conservés.
+La recette PIE des deux réceptacles est
+**validée par l'utilisateur** ; les serrures
+restent à tester en PIE. Lire
+`ARM_CLEAN06_4X85_LOCK_PIE_HANDOFF.md`.
+
+**Prochaine intervention utilisateur :** mettre à jour
+le `master` local propre et Git LFS après fermeture
+d'Unreal, recompiler, tester l'ouverture des serrures
+cuivre/fer avec leur bonne clé et le refus de la mauvaise,
+les messages/porte et la consommation selon leur
+configuration existante. Tester Save/Continue
+uniquement sur copies privées.
+
+**Suite technique après validation PIE :**
+auditer les lecteurs historiques restants,
+les SaveGames sur copies, les ARM physiques
+et les tests Cook ; ne supprimer les pointeurs
+que lorsqu'aucun lecteur ni sauvegarde ne
+les nécessite. Ne pas rejouer 06.4W/X.5
+ou les déclencheurs historiques X.16.7.2.
+
+La section suivante décrit **l'ancien point X.16.7.3**,
+pas le HEAD courant.
+
 ## Reprise actuelle — ARM-CLEAN06.4X.16.7.3 VALIDÉ (deux réceptacles natifs)
 
 **Dernier commit fonctionnel validé :**
