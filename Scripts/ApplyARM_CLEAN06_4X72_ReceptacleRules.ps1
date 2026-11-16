@@ -45,8 +45,8 @@ function Check-Report($R,[string]$Mode) {
     }
 }
 Stage 'SCRIPT_STARTED'
-$Parent = '2dc6348b9ff3fd7df85c932f2bd6b8b3b62d7b16'
-$Subject = 'feat(ARM-CLEAN06.4X.16.7.2): guarded two-package receptacle acceptance migration'
+$Parent = '44bc195f74cda0e588f11a3fbb5444d433b445ab'
+$Subject = 'feat(ARM-CLEAN06.4X.16.7.2B): trigger guarded native receptacle migration after UE suite'
 $Files = @(
     'Content/GrimrockPrototype/Core/DataAssets/DA_Receptacle_TorchHolder.uasset',
     'Content/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Guardian.uasset'
@@ -62,9 +62,8 @@ if ($OriginalHead -cne $ExpectedHead -or $ActualParent -cne $Parent -or
 }
 $CodePaths = @(
     'Scripts/ApplyARM_CLEAN06_4X72_ReceptacleRules.ps1',
-    'Scripts/UEValidationAgent.ps1',
-    'Source/GrimrockPrototypeEditor/Private/ARMEMENT/GridArmClean064X71ReceptacleRulesCommandlet.cpp',
-    'docs/Architecture/ARM_CLEAN06_4X72_NATIVE_RECEPTACLE_MIGRATION.md'
+    'Scripts/ValidateUE.ps1',
+    'docs/Architecture/ARM_CLEAN06_4X72B_ISOLATED_VALIDATION_HOOK.md'
 )
 $Changed = @(Git -Args @('diff-tree','--no-commit-id','--name-only','-r','HEAD'))
 if ($Changed.Count -ne $CodePaths.Count -or

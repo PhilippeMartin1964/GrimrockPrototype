@@ -357,4 +357,54 @@ if (-not $SkipAutomation)
 Write-Host ''
 Write-Host 'TD04.2 validation completed successfully.'
 Set-GrimrockValidationStage -Stage 'SUCCESS'
+
+# ARM-CLEAN06.4X.16.7.2B: one-shot guarded migration ONLY in the
+# isolated validation worktree, after full build and all Grimrock tests.
+# User checkout, ad-hoc tests, -SkipBuild and -SkipAutomation never trigger.
+$IsIsolatedWorktree = (Split-Path -Leaf $RepoRoot) -ceq 'GrimrockPrototype_UEValidation'
+if ($IsIsolatedWorktree -and -not $SkipBuild -and -not $SkipAutomation -and
+    $AutomationFilter -ceq 'Grimrock' -and
+    (Split-Path -Leaf $ReportRoot) -ceq 'Automation') {
+    $ExactHookSubject = 'feat(ARM-CLEAN06.4X.16.7.2B): trigger guarded native receptacle migration after UE suite'
+    $GitSubject = @(& git -C $RepoRoot log -1 --format=%s)
+    if ($LASTEXITCODE -ne 0) { throw 'Exact validation commit check unavailable.' }
+    if ($GitSubject.Count -eq 1 -and [string]$GitSubject[0] -ceq $ExactHookSubject) {
+        $Head = @(& git -C $RepoRoot rev-parse HEAD)
+        if ($LASTEXITCODE -ne 0 -or $Head.Count -ne 1 -or
+            [string]$Head[0] -notmatch '^[0-9a-f]{40}
+) {
+            throw 'Exact validated Git SHA unavailable.'
+        }
+        $ExactSha = [string]$Head[0]
+        $PrivateStateRoot = Join-Path $env:LOCALAPPDATA 'GrimrockPrototype\UEValidationAgent'
+        $PrivateRunDir = Split-Path -Parent $ReportRoot
+        $PrivateRunsRoot = Join-Path $PrivateStateRoot 'Runs'
+        $NormalizedRun = [IO.Path]::GetFullPath($PrivateRunDir).TrimEnd('\')
+        $NormalizedRuns = [IO.Path]::GetFullPath($PrivateRunsRoot).TrimEnd('\')
+        if (-not $NormalizedRun.StartsWith($NormalizedRuns+'\',
+                [StringComparison]::OrdinalIgnoreCase) -or
+            (Split-Path -Leaf $NormalizedRun) -notlike ($ExactSha.Substring(0,12)+'-*')) {
+            throw 'Not an agent-owned validation report directory.'
+        }
+        $MigrationScript = Join-Path $PSScriptRoot 'ApplyARM_CLEAN06_4X72_ReceptacleRules.ps1'
+        if (-not (Test-Path -LiteralPath $MigrationScript -PathType Leaf)) {
+            throw 'Guarded migration helper missing.'
+        }
+        $MigrationTokens = $null
+        $MigrationErrors = $null
+        [void][System.Management.Automation.Language.Parser]::ParseFile(
+            $MigrationScript, [ref]$MigrationTokens, [ref]$MigrationErrors)
+        if ($MigrationErrors -and $MigrationErrors.Count -gt 0) {
+            throw 'Guarded migration helper failed PowerShell syntax check.'
+        }
+        Write-Host '[ARM-CLEAN06.4X72B] Validated isolated one-shot source; exact two-package transaction.'
+        & $MigrationScript -WorktreePath $RepoRoot -EngineRoot $ResolvedEngineRoot -StateRoot $PrivateStateRoot -RunDir $PrivateRunDir -ExpectedHead $ExactSha
+        $Receipt = Join-Path $PrivateRunDir 'ARMClean064X72.stage'
+        if (-not (Test-Path -LiteralPath $Receipt -PathType Leaf) -or
+            ([string](Get-Content -LiteralPath $Receipt -TotalCount 1)).Trim() -cne 'SUCCESS') {
+            throw 'Binary transaction did not produce success receipt.'
+        }
+        Write-Host '[ARM-CLEAN06.4X72B] Binary child published; independent UE validation follows.'
+    }
+}
 exit 0
