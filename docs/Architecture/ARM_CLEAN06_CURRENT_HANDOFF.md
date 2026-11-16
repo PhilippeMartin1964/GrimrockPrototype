@@ -5,95 +5,96 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
-## Reprise actuelle — ARM-CLEAN06.4X.15 VALIDÉ
+## Reprise actuelle — ARM-CLEAN06.4X.16.3 VALIDÉ
 
-**Vérifié sur GitHub, 16 novembre 2026.**
-Dernier jalon fonctionnel : **ARM-CLEAN06.4X.15**,
-SHA `8b9d14d8e6499e3f7c3a778d4497b1d07b32e4c1`,
-avec **`UE5.5.4/SilentTask=SUCCESS` et
-`UE5.5.4/LocalAuto=SUCCESS`**.
+**Dernier jalon fonctionnel validé : ARM-CLEAN06.4X.16.3**
+`2952e852e9e4ee633fc3f42f66fbcfd5fe6bf1cb`.
+Vérifié sur GitHub le **16 novembre 2026** :
+`UE5.5.4/SilentTask=SUCCESS`,
+`UE5.5.4/LocalAuto=SUCCESS`.
 
-X.15 a ajouté **uniquement** un inventaire en lecture seule des
-règles `AcceptedItems` de réceptacles et
-`AcceptedKeyItems/AcceptedKeyIds` des serrures murales,
-sur les quatre niveaux natifs et les définitions d'objets
-réelles retrouvées dans l'Asset Registry. Les statuts
-publics confirment le succès de la suite UE, **pas les nombres
-détaillés**, qui restent dans les journaux Windows privés.
-Lire `ARM_CLEAN06_4X15_PUZZLE_ACCEPTANCE_READONLY_INVENTORY.md`
-avant toute conversion de règles.
+L'agent de validation Windows a également confirmé :
+- **X.16.1** `d5a2dbdd4dd1b4c921aaf53473fb78e8602778a4` :
+  champ `CanonicalItemId` sur les règles de réceptacle,
+  lecture stricte des identités persistées, compatibilité
+  des règles existantes sans champ canonique ;
+- **X.16.2** `adaf7f6cf6fed2eb4d5cc86feb6d922846739151` :
+  choix dans Selected Object et copie d'une règle
+  Definition vers une surcharge d'instance, avec
+  écriture canonique des identités déjà reconnues ;
+- **X.16.3** `2952e852e9e4ee633fc3f42f66fbcfd5fe6bf1cb` :
+  correction de l'inspecteur de contenu initial,
+  `CanonicalItemId` et niveau physique changés ensemble,
+  pas de N0 ARM ni de N1 non-ARM.
 
-**Recette PIE utilisateur positive :** ramassage des armes,
-utilisation des potions et flasques, combats. Palette Slate
-et Selected Object inspectés visuellement. **Non encore
-certifié :** insertion/retrait dans les réceptacles,
-refus des objets non acceptés, déclenchements d'énigmes,
-Save/Continue et effets physiques/visuels associés.
+Les trois jalons sont **validés par les deux contrôles UE**.
+Ils n'ont modifié **aucun véritable `.uasset`, `.umap`,
+`.sav`, Blueprint ou WBP**. Les vrais tableaux historiques
+`AcceptedItems` de réceptacles et
+`AcceptedKeyItems` de serrures n'ont **pas encore été
+convertis** : leur migration est une opération future distincte.
 
-**La validation précédente X.14** est conservée ci-dessous
-comme historique : Projet UE5.5.4,
-branche `master` uniquement. **Dernier SHA fonctionnel validé :**
+**Retour utilisateur PIE confirmé** : palette,
+recherche, sélection/édition d'objets, ramassage des
+armes, potions et flasques, combats, réceptacles et
+énigmes existantes. Cela n'est **pas** une recette
+manuelle de l'édition des *nouvelles* règles
+canoniques ni des *nouveaux* contenus initiaux.
+La recette ciblée est dans
+`ARM_CLEAN06_4X163_MANUAL_EDITOR_ACCEPTANCE_RECIPE.md`.
 
-`d9595b6308374da5f7fb53d7cab5fa279e9cfe60` —
-`fix(ARM-CLEAN06.4X.14): include complete subsystem and game instance types for Slate strong pointers`.
+### Jalons antérieurs acquis (ne pas rejouer)
 
-Statuts de ce SHA : **`UE5.5.4/SilentTask=SUCCESS` et
-`UE5.5.4/LocalAuto=SUCCESS`**. Toute reprise doit néanmoins
-relire le HEAD effectif de GitHub et ses nouveaux statuts.
-
-| Jalon acquis | SHA fonctionnel validé | Portée |
+| Jalon | SHA validé | Résultat |
 |---|---|---|
-| X.9.2 | `3a6832d918fb` | Acteurs non-ARM canoniques dans les réceptacles initiaux |
-| X.10 | `62dbfa08dea9` | ItemSpawns, GUID et niveau physique strict ; 0 spawn réel |
-| X.11 | `56f09ecdaab2` | Lecture seule des 33 entrées physiques de la palette |
-| X.12 | `4f6ed4c4d6eb` | Écriture du `CanonicalItemId` et du niveau lors du placement/édition |
-| X.13 | `d330d613d175` | Parité 33/33 des labels, descriptions et chemins d'icônes |
-| X.14 | `d9595b630837` | Slate : recherche, noms et icônes lus depuis le registre |
-| X.15 | `8b9d14d8e649` | Inventaire read-only des règles de réceptacles et de serrures, deux contrôles SUCCESS |
+| X.9.2 | `3a6832d918fb` | Présentation initiale non-ARM canonique dans les réceptacles |
+| X.10 | `62dbfa08dea9` | ItemSpawns typés, niveaux physiques stricts ; 0 occurrence réelle |
+| X.11 | `56f09ecdaab2` | Audit des 33 entrées réelles de palette |
+| X.12 | `4f6ed4c4d6eb` | Placement/édition enregistrant ItemId et niveau physique |
+| X.13 | `d330d613d175` | Parité des noms, descriptions, icônes |
+| X.14 | `d9595b630837` | Affichage et recherche Slate canoniques |
+| X.15 | `8b9d14d8e649` | Inventaire read-only des règles de réceptacles et serrures |
+| X.16.1 | `d5a2dbdd4dd` | Lecture canonique fail-closed des AcceptedItems |
+| X.16.2 | `adaf7f6cf6fe` | Écriture canonique par l'inspecteur des AcceptedItems |
+| X.16.3 | `2952e852e9e4` | Correction identité/niveau physique des contenus initiaux |
 
-Ces étapes ne changent **aucun vrai niveau ou DataAsset binaire, aucun
-SaveGame, WBP, Blueprint ni `.umap`** depuis X.9.2. X.11/X.13
-auditent les valeurs; X.12/X.14 migrent les lecteurs de l'éditeur.
+**Registre : 34 définitions (22 ARM + 12 non-ARM).**
+Occurrences réelles déjà migrées : **95**
+(44 loose items, 18 contenus initiaux, 33 palette,
+0 ItemSpawn). Ne **pas** rejouer 06.4W et X.5.
 
-**Registre : 34 familles (22 ARM, 12 non-ARM).**
-Occurrences persistées issues de 06.4W et X.5 :
-**44 objets libres + 18 contenus initiaux de réceptacles +
-33 entrées de palette = 95**, dont **0 ItemSpawn réel**.
-Les cinq assets réels sont déjà matérialisés ; ne jamais
-rejouer 06.4W ou X.5, ni réécrire les sauvegardes personnelles.
+### Prochain chantier à reprendre — X.16.4
 
-### Prochaines vérifications et jalons
+1. Lire le test `RealPuzzleAcceptanceSourcesReadOnly`
+   de X.15 et **obtenir les comptes concrets** des
+   règles de définition et des surcharges des quatre
+   niveaux ; les statuts GitHub n'exposent pas les
+   valeurs des journaux UE Windows privés.
+2. Préparer une migration des seules règles
+   réellement utilisées : `AcceptedItems`
+   et `AcceptedKeys` à traiter **séparément**.
+   Les sources absentes/inconnues et les règles
+   historiques explicites nécessitent une
+   qualification, sans hypothèse ni fallback.
+3. Réserver l'écriture des DataAssets à une
+   transaction dédiée, avec sauvegarde de copies,
+   contrôle des hashes/relecture des vrais assets,
+   preuve de non-régression des liens d'énigmes,
+   puis validation UE sur le SHA final.
+4. Ensuite seulement, traiter les ARM physiques,
+   les autres lecteurs historiques, SaveGames sur
+   copies privées, PIE/Chaos/Niagara et Cook.
+   Aucune suppression des vieux pointeurs
+   avant preuve de non-utilisation.
 
-1. **Intervention UE Editor/PIE nécessaire :** vérifier visuellement
-   les tuiles de palette et la recherche, une arme ARM N1–N20 et un
-   objet non-ARM N0, leur placement/édition et les réceptacles
-   (lumière, Niagara, collisions, interaction, énigme).
-   Suivre `docs/Architecture/ARM_CLEAN06_4X14_PIE_SMOKE_RECIPE.md`.
-   Ces observations **ne sont pas prouvées par `-NullRHI`**.
-2. **X.15 acquis** : inventaire des sources `AcceptedItems`
-   et `AcceptedKeys`, sans conversion ; consulter les journaux
-   d'Automation Windows pour les compteurs détaillés.
-3. **X.16 proposé** : établir le contrat de migration des
-   règles d'acceptation et des inspecteurs, puis cutover vérifié
-   des sources réelles uniquement après conservation des
-   priorités Definition/Instance, du comportement des clés et
-   des liens d'énigmes. Plus tard, présentation ARM dédiée.
-4. Migration des **SaveGames sur copies privées vérifiées**,
-   tests PIE/Save/Continue/Chaos/Niagara/Cook, puis suppression
-   des vieux pointeurs uniquement après preuve d'absence
-   de lecteurs nécessaires.
-
-**Règles inchangées :** un jalon fonctionnel = un commit sur
-`master`, contrôles UE SUCCESS sur le SHA final, zéro fallback
-historique nouveau pour un ItemId canonique connu, aucun
-N0 ARM inventé en N1 ni N1 non-ARM, préserver GUID, quantité,
-liens d'énigme, effets, physique et textes. Aucun asset binaire
-ni sauvegarde personnelle ne doit être modifié sans transaction
-de sauvegarde/validation dédiée.
-
-Les sections qui suivent sont **historiques**, non le point
-de reprise courant. Ne pas ré-exécuter leurs étapes décrites
-comme futures à l'époque.
+**Règles :** `master` uniquement,
+un jalon = un commit + push, contrôles UE
+SUCCESS sur le SHA final, aucun changement
+de niveaux ou sauvegardes personnels non
+autorisé. Cette section est le point courant ;
+les sections suivantes sont **historiques**.
+Toujours relire le HEAD réel et les statuts
+en reprenant après interruption.
 
 ## Historique vérifié — point antérieur ARM-CLEAN06.4X.9.1
 
