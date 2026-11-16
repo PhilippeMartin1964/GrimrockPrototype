@@ -28,6 +28,18 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 		return false;
 	}
 
+	const FGridObjectPaletteEntry* CanonicalEntry = ObjectPalette
+		? ObjectPalette->FindEntryById(SelectedPaletteEntryId) : nullptr;
+	if (PaintObjectType == EGridLevelObjectType::Item && CanonicalEntry &&
+		!CanonicalEntry->CanonicalItemId.IsNone() &&
+		(!CanonicalEntry->DefaultItemDefinition ||
+		 ObjectBehavior.Item.ItemDefinitionAsset != CanonicalEntry->DefaultItemDefinition ||
+		 CanonicalEntry->DefaultItemDefinition->ItemDefinitionId != CanonicalEntry->CanonicalItemId ||
+		 CanonicalEntry->CanonicalDefaultItemLevel < 0 ||
+		 CanonicalEntry->CanonicalDefaultItemLevel > 20))
+	{
+		return false; // Refuse before modifying the selected level instance.
+	}
 	if (!EditGridPlacementAuthoring(LevelAsset, LastSelectedObjectId, [this](auto& Placement)
 		{
 			Placement.PaletteEntryId = SelectedPaletteEntryId;
@@ -46,6 +58,17 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 	else if (FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId))
 	{
 		LooseItemInstance->ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+		if (CanonicalEntry && !CanonicalEntry->CanonicalItemId.IsNone())
+		{
+			const bool bChangedItemId = LooseItemInstance->CanonicalItemId !=
+				CanonicalEntry->CanonicalItemId;
+			LooseItemInstance->CanonicalItemId = CanonicalEntry->CanonicalItemId;
+			if (bChangedItemId)
+			{
+				// Never reset a user-authored N1-N20 level on a same-ID edit.
+				LooseItemInstance->ItemLevel = CanonicalEntry->CanonicalDefaultItemLevel;
+			}
+		}
 		LooseItemInstance->ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
 		LooseItemInstance->ReadableContentId = ObjectBehavior.Item.DefaultReadableContentId;
 		LooseItemInstance->ReadTitleOverride = ObjectBehavior.Item.DefaultReadTitleOverride;

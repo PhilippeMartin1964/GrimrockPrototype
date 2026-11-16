@@ -12,6 +12,23 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: PaintObjectType is None."));
 		return;
 	}
+	const FGridObjectPaletteEntry* PaletteEntry = ObjectPalette
+		? ObjectPalette->FindEntryById(SelectedPaletteEntryId) : nullptr;
+	if (PaintObjectType == EGridLevelObjectType::Item && PaletteEntry &&
+		!PaletteEntry->CanonicalItemId.IsNone())
+	{
+		// Check BEFORE editing the level. A canonical selection cannot be
+		// renamed by an out-of-date UI staging pointer.
+		if (!PaletteEntry->DefaultItemDefinition ||
+			ObjectBehavior.Item.ItemDefinitionAsset != PaletteEntry->DefaultItemDefinition ||
+			PaletteEntry->DefaultItemDefinition->ItemDefinitionId != PaletteEntry->CanonicalItemId ||
+			PaletteEntry->CanonicalDefaultItemLevel < 0 ||
+			PaletteEntry->CanonicalDefaultItemLevel > 20)
+		{
+			UE_LOG(LogGridEditor, Warning, TEXT("Canonical palette placement rejected: mismatched staged ItemId."));
+			return;
+		}
+	}
 	const UGridWorldObjectDefinitionAsset* WorldObjectDefinition = FindWorldObjectDefinitionById(WorldObjectDefinitionId);
 	const bool bSuppressBaseWall = WorldObjectDefinition && WorldObjectDefinition->SuppressesBaseWall();
 	const bool bIsStoneAlcoveReceptacle = WorldObjectDefinitionId == FName(TEXT("Receptacle_Alcove_Stone"));
@@ -42,7 +59,6 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		Placement.Notes = ObjectNotes;
 		Placement.PaletteEntryId = SelectedPaletteEntryId;
 	};
-	const FGridObjectPaletteEntry* PaletteEntry = ObjectPalette ? ObjectPalette->FindEntryById(SelectedPaletteEntryId) : nullptr;
 	if (PaintObjectType == EGridLevelObjectType::Item)
 	{
 		// Select a free authored floor position BEFORE appending the new item.
@@ -91,6 +107,11 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		LooseItemInstance.InstanceId = NewId;
 		LooseItemInstance.SurfaceSide = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
 		LooseItemInstance.ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+		if (PaletteEntry && !PaletteEntry->CanonicalItemId.IsNone())
+		{
+			LooseItemInstance.CanonicalItemId = PaletteEntry->CanonicalItemId;
+			LooseItemInstance.ItemLevel = PaletteEntry->CanonicalDefaultItemLevel;
+		}
 		LooseItemInstance.ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
 		LooseItemInstance.ReadableContentId = ObjectBehavior.Item.DefaultReadableContentId;
 		LooseItemInstance.ReadTitleOverride = ObjectBehavior.Item.DefaultReadTitleOverride;

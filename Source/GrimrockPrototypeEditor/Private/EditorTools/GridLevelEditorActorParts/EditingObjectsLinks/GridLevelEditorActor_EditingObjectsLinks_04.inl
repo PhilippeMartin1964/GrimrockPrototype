@@ -138,6 +138,13 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 	// ItemDefinition. No companion UGridWorldObjectDefinitionAsset is required.
 	if (Entry->DefaultItemDefinition)
 	{
+		if (!Entry->CanonicalItemId.IsNone() &&
+			(Entry->DefaultItemDefinition->ItemDefinitionId != Entry->CanonicalItemId ||
+			 Entry->CanonicalDefaultItemLevel < 0 ||
+			 Entry->CanonicalDefaultItemLevel > 20))
+		{
+			return false; // Persisted ItemId must not be renamed by the historical source.
+		}
 		SelectedPaletteEntryId = Entry->EntryId;
 		PaintObjectType = EGridLevelObjectType::Item;
 		WorldObjectDefinitionId = NAME_None;
