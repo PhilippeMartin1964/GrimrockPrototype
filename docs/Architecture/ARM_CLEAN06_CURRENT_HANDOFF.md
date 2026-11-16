@@ -5,6 +5,31 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## Reprise actuelle — X.16.6.3 : quatre packages exacts identifiés
+
+Le test X.16.6.1 a été validé sur db4d5114b068.
+La publication filtrée X.16.6.2 est validée sur
+6c3c72e24083 : SilentTask, LocalAuto et le
+contrôle de publication sont tous SUCCESS.
+
+Preuve nominative : issue GitHub #176 :
+https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/176
+
+Quatre sources, dans quatre DataAssets distincts :
+- DA_Receptacle_TorchHolder : AcceptedItems[0] = Item_Torch
+- DA_Guardian : AcceptedItems[0] = Gem_Blue
+- DA_Lock_CopperWall : AcceptedKeyItems[0] = Key_Copper
+- DA_Lock_IronWall : AcceptedKeyItems[0] = Key_Iron
+
+ARM_CLEAN06_4X1663_EXACT_ACCEPTANCE_PACKAGE_GATE.md
+établit le manifeste des quatre fichiers Git LFS
+et deux transactions binaires distinctes, avec
+copies SHA-256, réouverture UE et tests de régression.
+
+Aucune modification des vrais DataAssets, niveaux,
+SaveGames ou Blueprints n'a encore été faite.
+Ne pas relancer les 95 conversions 06.4W/X.5.
+
 ## Reprise actuelle — X.16.6.1 : manifeste exact des 4 sources
 
 Le rapport réel Windows fourni par l'utilisateur confirme :
