@@ -12,12 +12,63 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "../Runtime/GridCanonicalItemSpawnReadModel.h"
+#include "UObject/StrongObjectPtr.h"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10ItemSpawns,
-    "Grimrock.RPG.ARM.CLEAN06_4X10.CanonicalItemSpawnMaterialization",
+namespace ARMCLEAN064X10
+{
+struct FWorldFixture
+{
+    UWorld* World = nullptr;
+    UGameInstance* GI = nullptr;
+    UGridItemSubsystem* Registry = nullptr;
+    AGridLevelRuntimeActor* Runtime = nullptr;
+
+    FWorldFixture()
+    {
+        const UWorld::InitializationValues Values = UWorld::InitializationValues()
+            .AllowAudioPlayback(false).RequiresHitProxies(false)
+            .CreatePhysicsScene(false).CreateNavigation(false)
+            .CreateAISystem(false).ShouldSimulatePhysics(false)
+            .SetTransactional(false);
+        World = UWorld::CreateWorld(EWorldType::Game, false,
+            FName(*FString::Printf(TEXT("ARM_CLEAN064X10_%s"),
+                *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
+            nullptr, true, ERHIFeatureLevel::Num, &Values);
+        if (!World || !GEngine) {return;}
+        FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
+        Context.SetCurrentWorld(World);
+        GI = NewObject<UGameInstance>(GetTransientPackage());
+        if (!GI) {return;}
+        GI->Init();
+        World->SetGameInstance(GI);
+        Registry = GI->GetSubsystem<UGridItemSubsystem>();
+        Runtime = World->SpawnActor<AGridLevelRuntimeActor>();
+        if (Runtime)
+        {
+            Runtime->LevelAsset = NewObject<UGridLevelAsset>(Runtime);
+            Runtime->LevelAsset->Width = 1;
+            Runtime->LevelAsset->Height = 1;
+            Runtime->LevelAsset->CellSize = 200.f;
+            Runtime->LevelAsset->EnsureCellCount();
+        }
+    }
+    ~FWorldFixture()
+    {
+        if (World) {World->SetGameInstance(nullptr);}
+        if (GI) {GI->Shutdown();}
+        if (World)
+        {
+            World->DestroyWorld(false);
+            if (GEngine) {GEngine->DestroyWorldContext(World);}
+        }
+    }
+};
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10AInventory,
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeA_NativeCount",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FGridClean064X10ItemSpawns::RunTest(const FString&)
+bool FGridClean064X10AInventory::RunTest(const FString&)
 {
     const TCHAR* Paths[] = {
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_00.DA_GridLevel_00"),
@@ -25,116 +76,142 @@ bool FGridClean064X10ItemSpawns::RunTest(const FString&)
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_New_Level_03.DA_GridLevel_New_Level_03"),
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_Pillars_of_Light.DA_GridLevel_Pillars_of_Light")
     };
-    int32 ActualSpawns = 0;
+    int32 Count = 0;
     for (const TCHAR* Path : Paths)
     {
         UGridLevelAsset* Level = LoadObject<UGridLevelAsset>(nullptr, Path);
-        if (!TestNotNull(TEXT("Native level exists"), Level)) {return false;}
-        const bool bWasDirty = Level->GetOutermost()->IsDirty();
-        ActualSpawns += Level->ItemSpawns.Num();
-        if (!TestEqual(TEXT("Native level left unchanged"),
-            Level->GetOutermost()->IsDirty(), bWasDirty)) {return false;}
+        if (!TestNotNull(TEXT("Native level"), Level)) {return false;}
+        const bool Dirty = Level->GetOutermost()->IsDirty();
+        Count += Level->ItemSpawns.Num();
+        if (!TestEqual(TEXT("Read-only"), Level->GetOutermost()->IsDirty(), Dirty))
+            {return false;}
     }
-    if (!TestEqual(TEXT("No real generator to remigrate"), ActualSpawns, 0))
-        {return false;}
+    return TestEqual(TEXT("Four real levels have no typed spawn"), Count, 0);
+}
 
-    UWorld::InitializationValues Values = UWorld::InitializationValues()
-        .AllowAudioPlayback(false).RequiresHitProxies(false)
-        .CreatePhysicsScene(false).CreateNavigation(false)
-        .CreateAISystem(false).ShouldSimulatePhysics(false)
-        .SetTransactional(false);
-    UWorld* World = UWorld::CreateWorld(EWorldType::Game, false,
-        FName(*FString::Printf(TEXT("ARM_CLEAN064X10_%s"),
-            *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
-        nullptr, true, ERHIFeatureLevel::Num, &Values);
-    if (!TestNotNull(TEXT("Temporary runtime world"), World) || !GEngine)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10BIdentity,
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeB_IdentityAndLevels",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean064X10BIdentity::RunTest(const FString&)
+{
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+    if (!TestNotNull(TEXT("Actual canonical catalogue"), Root.Get())) {return false;}
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Registry configured"),
+        Registry->RegisterItemSystem(Root.Get(), Errors))) {return false;}
+
+    FGridItemSpawnInstance Spawn;
+    Spawn.SpawnId = FGuid::NewGuid();
+    Spawn.CanonicalItemId = TEXT("Item_Arrows_01");
+    Spawn.ItemLevel = 0;
+    Spawn.Quantity = 3;
+    FGridLooseItemInstance Materialized;
+    if (!TestTrue(TEXT("N0 canonical source materializes"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Materialized)))
         {return false;}
-    FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
-    Context.SetCurrentWorld(World);
-    UGameInstance* GI = NewObject<UGameInstance>(GetTransientPackage());
-    GI->Init();
-    World->SetGameInstance(GI);
-    UGridItemSubsystem* Registry = GI->GetSubsystem<UGridItemSubsystem>();
-    AGridLevelRuntimeActor* Runtime = World->SpawnActor<AGridLevelRuntimeActor>();
-    bool bPassed = TestNotNull(TEXT("Native item registry"), Registry) &&
-        TestNotNull(TEXT("Dungeon runtime actor"), Runtime);
-    if (bPassed)
+    return TestTrue(TEXT("Stable GUID"), Materialized.InstanceId == Spawn.SpawnId) &&
+        TestEqual(TEXT("Canonical ID"), Materialized.CanonicalItemId, Spawn.CanonicalItemId) &&
+        TestEqual(TEXT("Physical level"), Materialized.ItemLevel, 0) &&
+        TestEqual(TEXT("Quantity"), Materialized.Quantity, 3) &&
+        TestNull(TEXT("Legacy pointer not needed"), Materialized.ItemDefinition.Get());
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10CRejections,
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeC_RejectInvalidPersisted",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean064X10CRejections::RunTest(const FString&)
+{
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+    if (!TestNotNull(TEXT("Real catalogue"), Root.Get())) {return false;}
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Registry ready"), Registry->RegisterItemSystem(Root.Get(), Errors)))
+        {return false;}
+    FGridItemSpawnInstance Spawn;
+    Spawn.SpawnId = FGuid::NewGuid();
+    Spawn.CanonicalItemId = TEXT("Item_Arrows_01");
+    Spawn.ItemLevel = 1;
+    FGridLooseItemInstance Out;
+    if (!TestFalse(TEXT("Arrows N1 invalid"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out)))
+        {return false;}
+    Spawn.CanonicalItemId = TEXT("Weapon_StraightSword_01");
+    Spawn.ItemLevel = 0;
+    if (!TestFalse(TEXT("Weapon N0 invalid"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out)))
+        {return false;}
+    Spawn.ItemLevel = 20;
+    if (!TestTrue(TEXT("Weapon N20 valid"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out)))
+        {return false;}
+    Spawn.CanonicalItemId = TEXT("ARM_CLEAN06_X10_UNKNOWN");
+    if (!TestFalse(TEXT("Unknown ID invalid"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out)))
+        {return false;}
+    Spawn.CanonicalItemId = TEXT("Item_Arrows_01");
+    Spawn.ItemLevel = 0;
+    Spawn.Quantity = 0;
+    if (!TestFalse(TEXT("Zero quantity invalid"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out)))
+        {return false;}
+    Spawn.Quantity = 1;
+    Spawn.ItemDefinition = NewObject<UGridItemDefinitionAsset>(GI.Get());
+    Spawn.ItemDefinition->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
+    return TestFalse(TEXT("Contradictory legacy pointer invalid"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out));
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10DWorld,
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeD_RuntimeActor",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean064X10DWorld::RunTest(const FString&)
+{
+    ARMCLEAN064X10::FWorldFixture F;
+    if (!TestNotNull(TEXT("Temporary world"), F.World) ||
+        !TestNotNull(TEXT("Runtime"), F.Runtime) ||
+        !TestNotNull(TEXT("Configured registry"), F.Registry))
+        {return false;}
+    FGridItemSpawnInstance Spawn;
+    Spawn.SpawnId = FGuid::NewGuid();
+    Spawn.CanonicalItemId = TEXT("Item_Arrows_01");
+    Spawn.ItemLevel = 0;
+    Spawn.Quantity = 3;
+    FGridLooseItemInstance Initial;
+    if (!TestTrue(TEXT("Read model creates placement"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, F.Registry, Initial)))
+        {return false;}
+    F.Runtime->AddPlacedItemActor(Initial);
+    AGridItemActor* Actor = nullptr;
+    for (TActorIterator<AGridItemActor> It(F.World); It; ++It)
     {
-        Runtime->LevelAsset = NewObject<UGridLevelAsset>(Runtime);
-        Runtime->LevelAsset->Width = 1;
-        Runtime->LevelAsset->Height = 1;
-        Runtime->LevelAsset->CellSize = 200.f;
-        Runtime->LevelAsset->EnsureCellCount();
-
-        FGridItemSpawnInstance Spawn;
-        Spawn.SpawnId = FGuid::NewGuid();
-        Spawn.CanonicalItemId = TEXT("Item_Arrows_01");
-        Spawn.ItemLevel = 0;
-        Spawn.Quantity = 3;
-        FGridLooseItemInstance Materialized;
-        bPassed &= TestTrue(TEXT("N0 canonical source materializes without legacy pointer"),
-            FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry, Materialized));
-        bPassed &= TestTrue(TEXT("Spawn GUID survives"), Materialized.InstanceId == Spawn.SpawnId);
-        bPassed &= TestEqual(TEXT("Persisted ItemId survives"),
-            Materialized.CanonicalItemId, Spawn.CanonicalItemId);
-        bPassed &= TestEqual(TEXT("Real physical N0 survives"), Materialized.ItemLevel, 0);
-        bPassed &= TestEqual(TEXT("Quantity survives"), Materialized.Quantity, 3);
-        if (bPassed)
-        {
-            Runtime->AddPlacedItemActor(Materialized);
-            AGridItemActor* Generated = nullptr;
-            for (TActorIterator<AGridItemActor> It(World); It; ++It)
-            {
-                if (It->GetRuntimeObjectId() == Spawn.SpawnId)
-                    {Generated = *It; break;}
-            }
-            bPassed &= TestNotNull(TEXT("Canonical spawn produces physical actor"), Generated);
-            if (Generated)
-            {
-                bPassed &= TestEqual(TEXT("Spawn actor ItemId"), Generated->GetItemDefinitionId(),
-                    Spawn.CanonicalItemId);
-                bPassed &= TestNull(TEXT("Canonical N0 spawn actor does not use legacy"),
-                    Generated->GetItemDefinitionAsset());
-                bPassed &= TestTrue(TEXT("Canonical source configured on actor"),
-                    Generated->CanonicalWorldPresentation.IsValid());
-            }
-        }
-
-        Spawn.ItemLevel = 1;
-        bPassed &= TestFalse(TEXT("Canonical N0 family rejects N1"),
-            FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry, Materialized));
-        Spawn.CanonicalItemId = TEXT("Weapon_StraightSword_01");
-        Spawn.ItemLevel = 0;
-        bPassed &= TestFalse(TEXT("ARM N0 cannot inherit invented N1"),
-            FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry, Materialized));
-        Spawn.ItemLevel = 20;
-        bPassed &= TestTrue(TEXT("Known ARM N20 is physically valid"),
-            FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry, Materialized));
-        Spawn.CanonicalItemId = TEXT("ARM_CLEAN06_X10_UNKNOWN");
-        bPassed &= TestFalse(TEXT("Unknown persisted identity has no fallback"),
-            FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry, Materialized));
-        Spawn.CanonicalItemId = TEXT("Item_Arrows_01");
-        Spawn.ItemLevel = 0;
-        Spawn.Quantity = 0;
-        bPassed &= TestFalse(TEXT("Persisted nonpositive quantity is rejected"),
-            FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry, Materialized));
-        Spawn.Quantity = 1;
-        Spawn.ItemDefinition = NewObject<UGridItemDefinitionAsset>(World);
-        Spawn.ItemDefinition->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
-        bPassed &= TestFalse(TEXT("Contradictory old pointer cannot rename canonical item"),
-            FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry, Materialized));
-        Spawn.CanonicalItemId = NAME_None;
-        bPassed &= TestTrue(TEXT("Legacy-only synthetic fixture preserved"),
-            FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, nullptr, Materialized));
-        bPassed &= TestTrue(TEXT("Synthetic fixture remains without persisted identity"),
-            Materialized.CanonicalItemId.IsNone());
+        if (It->GetRuntimeObjectId() == Spawn.SpawnId) {Actor = *It; break;}
     }
-    World->SetGameInstance(nullptr);
-    GI->Shutdown();
-    World->DestroyWorld(false);
-    GEngine->DestroyWorldContext(World);
-    if (bPassed)
-        {AddInfo(TEXT("[ARM-CLEAN06.4X.10] zero native spawns; synthetic generation preserves GUID, N0, quantity, no legacy downgrade."));}
-    return bPassed && !HasAnyErrors();
+    if (!TestNotNull(TEXT("Spawned physical actor"), Actor)) {return false;}
+    return TestEqual(TEXT("World actor identity"), Actor->GetItemDefinitionId(), Spawn.CanonicalItemId) &&
+        TestNull(TEXT("World actor uses no old definition"), Actor->GetItemDefinitionAsset()) &&
+        TestTrue(TEXT("Actor has canonical projection"), Actor->CanonicalWorldPresentation.IsValid());
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10ELegacy,
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeE_SyntheticCompatibility",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean064X10ELegacy::RunTest(const FString&)
+{
+    FGridItemSpawnInstance Synthetic;
+    Synthetic.SpawnId = FGuid::NewGuid();
+    Synthetic.CanonicalItemId = NAME_None;
+    Synthetic.ItemDefinition = NewObject<UGridItemDefinitionAsset>();
+    Synthetic.ItemDefinition->ItemDefinitionId = TEXT("Legacy_Synthetic_Item");
+    FGridLooseItemInstance Out;
+    return TestTrue(TEXT("Fixture without canonical ID materializes"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Synthetic, nullptr, Out)) &&
+        TestTrue(TEXT("Fixture remains unconverted"), Out.CanonicalItemId.IsNone()) &&
+        TestTrue(TEXT("Old source pointer remains"),
+            Out.ItemDefinition == Synthetic.ItemDefinition);
 }
 #endif
