@@ -5,42 +5,70 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
-## Dernier jalon fonctionnel confirmé (GitHub vérifié le 16 novembre 2026)
+## Dernier jalon fonctionnel confirmé — ARM-CLEAN06.4X.9.1
 
-- Projet : `GrimrockPrototype`, Unreal Engine **5.5.4** ; dépôt
-  `PhilippeMartin1964/GrimrockPrototype` ; branche **`master` uniquement**.
-- **ARM-CLEAN06.4W terminé et validé** sur le commit final
-  `a56f4b5c22a7d883b9e9daad432e876676f2ce82` :
-  `UE5.5.4/SilentTask=success`, `UE5.5.4/LocalAuto=success`,
-  `UE5.5.4/ARM-CLEAN06.4W=success`.
-- 06.4W est **exactement un commit au-dessus** du point documentaire
-  `5b7131fe55d7cd770e9ae2bcc10901db7d7dfd51`. Il comprend les
-  cinq véritables `.uasset`, le commandlet, le script transactionnel, les
-  structures de données, les tests et la documentation du jalon.
-- Quatre `DA_GridLevel_*` et `DA_ObjectPalette_Default` : **95
-  `CanonicalItemId` réellement enregistrés puis rouverts dans UE** :
-  44 objets libres + 18 contenus initiaux de réceptacles +
-  33 entrées directes de palette ; zéro spawn réel. Les 40 anciennes
-  occurrences auparavant sans entrée canonique sont couvertes.
-  Le `DA_ItemSystem` contient **34 définitions**. Reçu public GitHub :
-  **[ARM-CLEAN06.4W Real 95 world ItemIds](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues)**.
-- **AUCUN `.sav`, `.umap` ou Blueprint modifié** par 06.4W.
-  Les anciens pointeurs `ItemDefinition` et `DefaultItemDefinition`
-  subsistent provisoirement dans les structures. La migration des ID
-  n'est PAS la bascule des lecteurs runtime/éditeur, ni une preuve PIE.
-- 06.4S/4T/4U/4V/4W sont terminés : **ne jamais rejouer leur
-  matérialisation sur ces assets déjà convertis**.
-- **Prochaine opération : ARM-CLEAN06.4X** — basculer les consommateurs
-  runtime et éditeur sur `CanonicalItemId` et les projections de
-  `UGridItemSubsystem` ; normaliser explicitement les niveaux hérités
-  N0 des ARM à partir de la source authorée (jamais N1 arbitraire).
-  Suivre le préflight :
-  `docs/Architecture/ARM_CLEAN06_4X1_RUNTIME_EDITOR_CUTOVER_PREFLIGHT.md`.
-- Préserver les effets lumière/Niagara, lecture, Chaos, objets de quête,
-  interactions, quantités, GUID et règles de réceptacle. Les **SaveGames
-  personnels** seront migrés et vérifiés sur des copies dans un jalon
-  séparé avant la suppression des anciens champs. Aucun fallback
-  runtime historique nouveau.
+**Vérifié sur GitHub, 16 novembre 2026.**
+Projet UE **5.5.4** : `PhilippeMartin1964/GrimrockPrototype`,
+branche `master` exclusivement. Le HEAD fonctionnel actuel,
+avant ce rafraîchissement documentaire, est :
+
+`d345268e8f2bc23c7ee1aaf9992a2071c317eed8` —
+**ARM-CLEAN06.4X.9.1 : identité canonique des contenus initiaux
+de réceptacles**. Les contrôles `UE5.5.4/SilentTask` et
+`UE5.5.4/LocalAuto` sont tous deux **SUCCESS** sur ce SHA.
+
+### Jalons acquis : ne jamais rejouer les migrations binaires
+
+| Jalon | Commit final validé | Résultat |
+|---|---|---|
+| **06.4W** | `a56f4b5c22a7` | 95 `CanonicalItemId` enregistrés dans quatre niveaux et une palette ; trois contrôles UE SUCCESS |
+| **06.4X.4** | `0a79e8a11368` | préflight des 95 niveaux réels |
+| **06.4X.5** | `c395ebb53891` | cinq vrais `.uasset` convertis aux niveaux physiques, trois contrôles UE SUCCESS |
+| **06.4X.6** | `68ef913cad26` | projection lumière, Niagara, lecture, scintillement, physique ; deux SUCCESS |
+| **06.4X.7** | `28c0426982d3` | `AGridItemActor::InitializeFromCanonicalItem`, testé sur les 34 familles ; deux SUCCESS |
+| **06.4X.8** | `688f54c45d98` | objets libres non-ARM basculés vers l'acteur canonique ; ARM visuels conservés ; deux SUCCESS |
+| **06.4X.9.1** | `d345268e8f2b` | 18 contenus initiaux de réceptacles résolus par identité et niveau persistés ; deux SUCCESS |
+
+**Registre natif : 34 définitions = 22 ARM + 12 non-ARM**,
+dont les flèches préexistantes (en plus des 11 identités
+non-ARM migrées). Les quatre niveaux et la palette contiennent
+**95 occurrences** : 44 objets libres, 0 spawns réels,
+18 contenus initiaux de réceptacles et 33 entrées directes de
+palette. Ces chiffres comptent des placements, pas des familles.
+La palette stocke maintenant `CanonicalDefaultItemLevel`.
+La migration X.5 a matérialisé **45 références ARM et 50 non-ARM** ;
+23 références ARM du monde ont reçu leur vrai niveau
+physique N1–N20 depuis leur source authorée (jamais N1
+inventé), et les non-ARM conservent N0.
+
+**Prochaine étape ciblée : ARM-CLEAN06.4X.9.2** — faire
+utiliser `InitializeFromCanonicalItem` à la présentation
+physique des **items non-ARM initialement contenus dans
+les réceptacles**, sans modifier les règles d'acceptation,
+les emplacements, la logique des énigmes ni les données de
+persistance. Lire :
+`docs/Architecture/ARM_CLEAN06_4X91_RECEPTACLE_INITIAL_IDENTITIES.md`,
+`docs/Architecture/ARM_CLEAN06_4X8_REAL_LOOSE_ITEM_CUTOVER.md`,
+`docs/Architecture/ARM_CLEAN06_4X7_CANONICAL_ACTOR_INITIALIZATION.md`.
+
+Ensuite : cutover des spawns (zéro instance réelle),
+des **33 entrées de palette**, des règles d'acceptation
+des réceptacles, des équipements ARM et de l'éditeur.
+Les SaveGames seront migrés et vérifiés **sur copies**
+avant la suppression des anciens pointeurs. Ne créer
+aucun nouveau fallback runtime vers les anciens assets
+pour une identité canonique connue. Garder les GUID,
+quantités, lumière, Niagara, Chaos, textes lisibles,
+links logiques et règles d'énigmes strictement identiques.
+
+**Limite de preuve :** compilation et suite `Grimrock`
+en `-NullRHI` ne prouvent pas PIE/UMG/Chaos dynamique,
+Save/Continue ni Cook/Shipping. Ne pas annoncer ces
+recettes comme validées. Pour tout jalon :
+**un commit fonctionnel = une étape** sur `master`,
+validation UE réelle sur le SHA final, aucun changement
+des `.sav`, `.umap`, WBP sauf autorisation dédiée.
+Toujours relire le HEAD GitHub et les statuts à la reprise.
 
 ### Jalons récents déjà réalisés — ne pas les refaire
 
