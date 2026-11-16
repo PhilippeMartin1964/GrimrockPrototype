@@ -183,6 +183,12 @@ public:
 	bool ResolveBoundAction(FName ItemId, int32 ItemLevel, FName ActionId,
 		FGridResolvedBoundAction& OutAction) const;
 
+	/** Full authored non-arm action, looked up ONLY in the single global
+	 * action catalogue and an explicit binding on this item's concrete asset.
+	 * No legacy definition, compact re-synthesis or fallback. */
+	bool ResolveDetailedNonArmAction(FName ItemId, int32 ItemLevel,
+		FName ActionId, FGridCombatActionDefinition& OutAction) const;
+
 	/** Strict equipment-hand entry point for ATTACK only.
 	 * An item that can equip OffHand does NOT automatically gain an OffHand attack.
 	 * Use ResolveBoundAction for non-attack consumables/abilities.

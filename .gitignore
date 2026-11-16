@@ -41,6 +41,8 @@ Build/*
 !Build/**/*.modules
 
 # --- Visual Studio ---
+# Visual Studio conversion report; generated, never a project source.
+/UpgradeLog.htm
 .vs/
 *.VC.db
 *.VC.opendb

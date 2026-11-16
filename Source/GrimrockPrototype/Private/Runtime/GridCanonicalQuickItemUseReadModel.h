@@ -208,6 +208,32 @@ struct FGridCanonicalQuickItemUseReadModel
             return Out; // Registered invalid N0/N21 must fail closed.
         }
 
+        // Directly consume the authored, lossless combat definition from the
+        // one canonical action catalogue. No synthetic PA, target, status,
+        // effect, cooldown, icon or source tags, and NO legacy fallback.
+        FGridCombatActionDefinition Detailed;
+        if (Registry->ResolveDetailedNonArmAction(Instance.ItemDefinitionId,
+                Instance.ItemLevel, Item.AvailableActions[0].ActionId, Detailed))
+        {
+            if (Detailed.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem ||
+                Detailed.ActionId != Item.AvailableActions[0].ActionId ||
+                Detailed.ResourceCosts.SourceItemQuantityCost < 1)
+            {
+                return Out;
+            }
+            Out.Action = MoveTemp(Detailed);
+            Out.bResolved = true;
+            Out.bExplorationCompatible =
+                Out.Action.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
+                Out.Action.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+                Out.Action.EffectProfile.IsValid() &&
+                Out.Action.StatusRemovals.IsEmpty() &&
+                Out.Action.StatusApplications.IsEmpty() &&
+                Out.Action.ResourceCosts.SourceItemQuantityCost == 1 &&
+                Out.Action.ResourceCosts.ManaCost == 0 &&
+                Out.Action.CooldownRounds == 0;
+            return Out;
+        }
         int32 SupportedCount = 0;
         for (const FGridItemActionBinding& Binding : Item.AvailableActions)
         {

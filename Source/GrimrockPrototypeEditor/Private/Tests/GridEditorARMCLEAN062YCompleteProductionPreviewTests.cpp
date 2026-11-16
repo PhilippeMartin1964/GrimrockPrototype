@@ -18,6 +18,37 @@ namespace
 		}
 		return true;
 	}
+
+	// The source preview deliberately contains only the 19 compact ARM
+	// actions. The persisted single catalogue additionally owns the authored
+	// detailed non-ARM QuickItem actions (06.4U). Compare ALL the original
+	// catalogue UPROPERTY fields, excluding ONLY that new authored collection.
+	// A second dedicated native-action test validates the detailed profiles,
+	// their exact owners, N0 and fail-closed N21.
+	bool SameOriginalCompactActionCatalogue(
+		const UGridActionCatalogueAsset* Source,
+		const UGridActionCatalogueAsset* Loaded)
+	{
+		if (!IsValid(Source) || !IsValid(Loaded) ||
+			Source->GetClass() != Loaded->GetClass() ||
+			!Source->DetailedActions.IsEmpty())
+		{
+			return false;
+		}
+		for (TFieldIterator<FProperty> Property(Source->GetClass()); Property; ++Property)
+		{
+			if (Property->GetFName() ==
+				GET_MEMBER_NAME_CHECKED(UGridActionCatalogueAsset, DetailedActions))
+			{
+				continue;
+			}
+			if (!Property->Identical_InContainer(Source, Loaded))
+			{
+				return false;
+			}
+		}
+		return Source->Actions.Num() == 19 && Loaded->Actions.Num() == 19;
+	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062YCompleteProductionPreview,
@@ -134,8 +165,14 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 		SameAuthoredFields(Candidate->WeaponCatalogue, Persisted->WeaponCatalogue));
 	TestTrue(TEXT("Real weapon visual catalogue exactly matches source candidate"),
 		SameAuthoredFields(Candidate->WeaponVisualCatalogue, Persisted->WeaponVisualCatalogue));
-	TestTrue(TEXT("Real action catalogue exactly matches source candidate"),
-		SameAuthoredFields(Candidate->ActionCatalogue, Persisted->ActionCatalogue));
+	TestTrue(TEXT("All 19 original ARM actions exactly match source candidate"),
+		SameOriginalCompactActionCatalogue(
+			Candidate->ActionCatalogue, Persisted->ActionCatalogue));
+	// The detailed QuickItem actions are additional records of the SAME
+	// canonical action catalogue, not another data authority or fallback.
+	TArray<FString> SavedActionErrors;
+	TestTrue(TEXT("Combined canonical action catalogue is valid"),
+		Persisted->ActionCatalogue->Validate(SavedActionErrors));
 	TestTrue(TEXT("Real presentation catalogue exactly matches source candidate"),
 		SameAuthoredFields(Candidate->ActionPresentationCatalogue, Persisted->ActionPresentationCatalogue));
 	// This test proves the original 23 ARM/ammo definitions. The real

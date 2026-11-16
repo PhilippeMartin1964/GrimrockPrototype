@@ -667,6 +667,98 @@ try {
             }
             $Dirty = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'status', '--porcelain', '--untracked-files=all'))
 
+            # ARM-CLEAN06.4U: one-shot recovery at the actual worktree
+            # pre-check, before the older Catalyst/Oil recovery paths below.
+            # Exact 5 outputs of the previously failed -Verify run only;
+            # each byte is backed up outside the Git worktree first.
+            $U4PriorHeads = @(
+                'a414ee67c933c0c4754db649ca79aa9b51c67f6d',
+                'b24a7d72cf57c79b3db59960d45a537b0b347273',
+                '11f33948adbee45e77b8cee1315defb523d1eb7f'
+            )
+            $U4Parent = 'fcf13df12f31e5da4018fc10d2b621d84212b33e'
+            $U4Subject = @(& git -C $RepositoryRoot show -s --format=%s $Sha)
+            $U4ParentActual = @(& git -C $RepositoryRoot rev-parse ($Sha + '^'))
+            $U4PreviousWorktreeHead = @(& git -C $WorktreePath rev-parse HEAD)
+            $U4Prev = if ($U4PreviousWorktreeHead.Count -eq 1) {
+                ([string]$U4PreviousWorktreeHead[0]).Trim()
+            } else { '' }
+            if ($LASTEXITCODE -eq 0 -and $U4Subject.Count -eq 1 -and
+                $U4ParentActual.Count -eq 1 -and $U4PreviousWorktreeHead.Count -eq 1 -and
+                ([string]$U4Subject[0]).Trim() -ceq
+                    'feat(ARM-CLEAN06.4U): migrate authored nonarm QuickItems into real action catalogue' -and
+                ([string]$U4ParentActual[0]).Trim() -ceq $U4Parent -and
+                $U4Prev -cin $U4PriorHeads -and
+                $Dirty.Count -eq 5) {
+                $U4Exact = [ordered]@{
+                    'Content/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ActionCatalogue.uasset' = ' M'
+                    'Content/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.uasset' = ' M'
+                    'Content/GrimrockPrototype/Core/DataAssets/CanonicalStage/Definitions/DA_Canonical_Item_Flask_Oil.uasset' = '??'
+                    'Content/GrimrockPrototype/Core/DataAssets/CanonicalStage/Definitions/DA_Canonical_Item_Potion_Healing_01.uasset' = '??'
+                    'Content/GrimrockPrototype/Core/DataAssets/CanonicalStage/Definitions/DA_Canonical_Item_SurfaceCatalyst_01.uasset' = '??'
+                }
+                $U4Allowed = $true
+                $U4Seen = @{}
+                foreach ($U4Entry in $Dirty) {
+                    $U4Entry = [string]$U4Entry
+                    if ($U4Entry.Length -lt 4) { $U4Allowed = $false; break }
+                    $U4Rel = $U4Entry.Substring(3).Replace('\','/')
+                    $U4Status = $U4Entry.Substring(0,2)
+                    if (-not $U4Exact.Contains($U4Rel) -or
+                        $U4Exact[$U4Rel] -cne $U4Status -or
+                        $U4Seen.ContainsKey($U4Rel)) {
+                        $U4Allowed = $false
+                        break
+                    }
+                    $U4Seen[$U4Rel] = $true
+                }
+                if ($U4Allowed -and $U4Seen.Count -eq 5) {
+                    $U4Backup = Join-Path $StateRoot ('Recovery\ARM4U-NativeReopen-' +
+                        $U4Prev.Substring(0,12) + '-' + (Get-Date -Format 'yyyyMMddHHmmssfff'))
+                    $U4Copies = @()
+                    foreach ($U4Relative in $U4Exact.Keys) {
+                        $U4Real = Join-Path $WorktreePath ($U4Relative.Replace('/','\'))
+                        $U4RelativeBackup = Join-Path $U4Backup ($U4Relative.Replace('/','\'))
+                        if (-not (Test-Path -LiteralPath $U4Real -PathType Leaf) -or
+                            (((Get-Item -LiteralPath $U4Real).Attributes -band
+                                [IO.FileAttributes]::ReparsePoint) -ne 0)) {
+                            throw 'ARM-CLEAN06.4U: known generated asset missing or reparse point; no recovery.'
+                        }
+                        New-Item -ItemType Directory -Path (Split-Path -Parent $U4RelativeBackup) -Force -ErrorAction Stop | Out-Null
+                        Copy-Item -LiteralPath $U4Real -Destination $U4RelativeBackup -ErrorAction Stop
+                        if ((Get-FileHash -LiteralPath $U4Real -Algorithm SHA256).Hash -cne
+                            (Get-FileHash -LiteralPath $U4RelativeBackup -Algorithm SHA256).Hash) {
+                            throw 'ARM-CLEAN06.4U: private recovery SHA256 verification failed.'
+                        }
+                        $U4Copies += $U4Relative
+                    }
+                    if ($U4Copies.Count -ne 5) {
+                        throw 'ARM-CLEAN06.4U: private recovery incomplete.'
+                    }
+                    $U4CheckAgain = @(Invoke-Checked -Executable 'git' -Arguments @(
+                        '-C', $WorktreePath, 'status', '--porcelain', '--untracked-files=all'))
+                    if ((@($U4CheckAgain) -join '|') -cne (@($Dirty) -join '|')) {
+                        throw 'ARM-CLEAN06.4U: concurrent validation worktree changes; no recovery.'
+                    }
+                    foreach ($U4Relative in $U4Exact.Keys) {
+                        if ($U4Exact[$U4Relative] -ceq '??') {
+                            Remove-Item -LiteralPath (Join-Path $WorktreePath ($U4Relative.Replace('/','\'))) -Force -ErrorAction Stop
+                        }
+                        else {
+                            Invoke-Checked -Executable 'git' -Arguments @(
+                                '-C', $WorktreePath, 'restore', '--source=HEAD',
+                                '--worktree', '--', $U4Relative) | Out-Null
+                        }
+                    }
+                    $Dirty = @(Invoke-Checked -Executable 'git' -Arguments @(
+                        '-C', $WorktreePath, 'status', '--porcelain', '--untracked-files=all'))
+                    if ($Dirty.Count -ne 0) {
+                        throw 'ARM-CLEAN06.4U: residual validation worktree changes after targeted recovery.'
+                    }
+                    Write-Host '[ARM-CLEAN06.4U] Exact five native assets backed up by SHA256; validation worktree restored.'
+                }
+            }
+
             # ARMEMENT01.17.2C: a failed native commandlet may leave a partial
             # asset batch. Recover ONLY its five known new binaries and the one
             # dedicated catalyst item, in the isolated validation worktree.
@@ -2276,6 +2368,76 @@ try {
                 }
                 catch {Write-Warning '[ARM-CLEAN06.4T] Cannot publish failed status.'}
                 Write-Warning ('[ARM-CLEAN06.4T] Native UE asset migration blocked: '+$Asset4TStage)
+            }
+        }
+
+        # ARM-CLEAN06.4U: real UE full QuickItem action migration.
+        # Only this freshly-created ChatGPT code commit may be amended;
+        # rewritten SHA has the same parent and is fully validated next cycle.
+        $Asset4UTrigger = 'feat(ARM-CLEAN06.4U): migrate authored nonarm QuickItems into real action catalogue'
+        $Asset4USubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Asset4USubject.Count -eq 1 -and
+            [string]$Asset4USubject[0] -ceq $Asset4UTrigger) {
+            $Asset4UContext = 'UE5.5.4/ARM-CLEAN06.4U'
+            $Asset4UStage = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Asset4UContext -Description 'QuickItem: vrai catalogue actions/objets, relecture et tests UE'
+                $Asset4UScript = Join-Path $WorktreePath 'Scripts\ApplyARM_CLEAN06_4U_NonArmQuickMigration.ps1'
+                if (-not (Test-Path -LiteralPath $Asset4UScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4U: missing native migration script.'
+                }
+                $Asset4UTokens = $null
+                $Asset4UErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Asset4UScript, [ref]$Asset4UTokens, [ref]$Asset4UErrors)
+                if ($Asset4UErrors -and $Asset4UErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4U: invalid PowerShell migration script.'
+                }
+                foreach ($Asset4UValue in @($Asset4UScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Asset4UValue.Contains('"')) {throw 'ARM-CLEAN06.4U: unsafe quote in path.'}
+                }
+                $Asset4UArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Asset4UScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Asset4UOut = Join-Path $RunDir 'ARM064U.stdout.log'
+                $Asset4UErr = Join-Path $RunDir 'ARM064U.stderr.log'
+                $Asset4UProcess = Start-Process -FilePath $PsExe -ArgumentList $Asset4UArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Asset4UOut -RedirectStandardError $Asset4UErr -PassThru -Wait -ErrorAction Stop
+                if ($Asset4UProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4U: native asset migration/verification failed.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Asset4UContext -Description '3 QuickItems complets et catalogue actions verifies en UAssets; 0 fallback'
+                Write-Host '[ARM-CLEAN06.4U] Native asset authoring or committed verification succeeded.'
+            }
+            catch {
+                $Asset4UStagePath = Join-Path $RunDir 'ARMClean064U.stage'
+                $Asset4UStage = if (Test-Path -LiteralPath $Asset4UStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Asset4UStagePath -TotalCount 1)).Trim()
+                } else { 'PROCESS_OR_PARSE' }
+                if ($Asset4UStage -notin @(
+                    'PREFLIGHT','HEAD_MISMATCH','WORKTREE_CHANGED',
+                    'READ_4K_LOCATE','READ_4K_MISSING','READ_4K_GATE_EXISTS',
+                    'READ_4K_GATE_READ','READ_4K_GATE_SCHEMA','READ_4K_REPORT_HASH',
+                    'READ_4K_COUNTERS','READ_4K_GATE_CLOSED','VERIFY_4K_DOMAINS',
+                    'READ_4K_DUPLICATE_PROVENANCE','READ_4K_NO_TRUSTED_COPY',
+                    'READ_4K_COMPARE_COPIES','READ_4K_CONFLICTING_COPIES',
+                    'READ_4K_DUPLICATES_RECONCILED','REHASH_84',
+                    'PROVE_PARENT_4T','APPLY_UNREAL','VERIFY_COMMITTED',
+                    'UNREAL_MATERIALIZATION_FAILED','VALIDATE_REPORT',
+                    'CHECK_EXACT_UNCOMMITTED_FILESET','VERIFY_RELOADED_UNREAL',
+                    'UNREAL_REOPEN_FAILED','POST_MIGRATION_AUTOMATION',
+                    'POST_AUTOMATION_FAILED','REMOTE_LEASE','STAGE_REAL_UNREAL_ASSETS',
+                    'AMEND_ONLY_OWN_COMMIT','PUSH_WITH_LEASE',
+                    'VERIFY_COMMIT_FILESET','CHECK_CLEAN','PUBLISH_FINAL_RECEIPT',
+                    'SUCCESS','PROCESS_OR_PARSE')) {
+                    $Asset4UStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Asset4UContext -Description ('Migration 06.4U refusee: '+$Asset4UStage)
+                }
+                catch {Write-Warning '[ARM-CLEAN06.4U] Cannot publish failed status.'}
+                Write-Warning ('[ARM-CLEAN06.4U] Native UE asset migration blocked: '+$Asset4UStage)
             }
         }
 

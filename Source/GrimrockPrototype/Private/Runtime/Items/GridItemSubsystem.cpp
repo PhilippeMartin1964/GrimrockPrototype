@@ -164,6 +164,7 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		{
 			OutItem.ItemIcon = Other->Icon;
 			OutItem.WorldMesh = Other->WorldMesh;
+			OutItem.AvailableActions = Other->ActionBindings;
 		}
 		// ARM-CLEAN06.4Q: generic non-ARM stack capacity is an item-family
 		// authority, distinct from consumable and ammunition MaxStack.
@@ -301,6 +302,50 @@ bool UGridItemSubsystem::ResolveBoundAction(
 	OutAction.Presentation = *Presentation;
 	OutAction.ItemError = EGridCanonicalItemResolveError::None;
 	OutAction.Error = EGridCanonicalBoundActionError::None;
+	return true;
+}
+
+bool UGridItemSubsystem::ResolveDetailedNonArmAction(
+	FName ItemId, int32 ItemLevel, FName ActionId,
+	FGridCombatActionDefinition& OutAction) const
+{
+	OutAction = FGridCombatActionDefinition();
+	if (!RootRegistry || !RootRegistry->ActionCatalogue ||
+		!RootRegistry->ActionPresentationCatalogue || ActionId.IsNone())
+	{
+		return false;
+	}
+	FGridResolvedItem Resolved;
+	if (!ResolveItem(ItemId, ItemLevel, Resolved) ||
+		Resolved.bIsArmament || !Resolved.AmmoKindId.IsNone())
+	{
+		return false;
+	}
+	const FGridItemActionBinding* Binding = Resolved.AvailableActions.FindByPredicate(
+		[ActionId](const FGridItemActionBinding& Candidate)
+		{
+			return Candidate.ActionId == ActionId && !Candidate.PresentationId.IsNone();
+		});
+	if (!Binding || RootRegistry->ActionCatalogue->Find(Binding->ActionId) ||
+		RootRegistry->ActionPresentationCatalogue->Find(Binding->PresentationId) == nullptr &&
+		RootRegistry->ActionPresentationCatalogue->FindDetailed(Binding->PresentationId) == nullptr)
+	{
+		return false;
+	}
+	const FGridCombatActionDefinition* Detailed =
+		RootRegistry->ActionCatalogue->FindDetailed(Binding->ActionId);
+	if (!Detailed || !Detailed->IsValid() || Detailed->ActionId != ActionId)
+	{
+		return false;
+	}
+	// The binding owns the presentation identity; original execution fields
+	// (including AP, cooldown, target and effects) remain untouched.
+	if (!Detailed->PresentationProfileId.IsNone() &&
+		Detailed->PresentationProfileId != Binding->PresentationId)
+	{
+		return false;
+	}
+	OutAction = *Detailed;
 	return true;
 }
 
