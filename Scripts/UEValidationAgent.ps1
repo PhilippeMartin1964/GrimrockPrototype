@@ -2511,6 +2511,122 @@ try {
             }
         }
 
+        # ARM-CLEAN06.4W: actual level and palette canonical reference migration.
+        # Only this freshly-created ChatGPT code commit may be amended;
+        # rewritten SHA has the same parent and is fully validated next cycle.
+        $Asset4WTrigger = 'feat(ARM-CLEAN06.4W): migrate real level and palette item references to canonical ItemIds'
+        $Asset4WSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $Asset4WSubject.Count -eq 1 -and
+            [string]$Asset4WSubject[0] -ceq $Asset4WTrigger) {
+            $Asset4WContext = 'UE5.5.4/ARM-CLEAN06.4W'
+            $Asset4WStage = 'START'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Asset4WContext -Description '95 IDs dans 4 niveaux et 1 palette, relecture UE'
+                $Asset4WScript = Join-Path $WorktreePath 'Scripts\ApplyARM_CLEAN06_4W_WorldReferenceMigration.ps1'
+                if (-not (Test-Path -LiteralPath $Asset4WScript -PathType Leaf)) {
+                    throw 'ARM-CLEAN06.4W: missing native migration script.'
+                }
+                $Asset4WTokens = $null
+                $Asset4WErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile(
+                    $Asset4WScript, [ref]$Asset4WTokens, [ref]$Asset4WErrors)
+                if ($Asset4WErrors -and $Asset4WErrors.Count -gt 0) {
+                    throw 'ARM-CLEAN06.4W: invalid PowerShell migration script.'
+                }
+                foreach ($Asset4WValue in @($Asset4WScript,$WorktreePath,$EngineRoot,$StateRoot,$RunDir,$GitHubRepository)) {
+                    if ($Asset4WValue.Contains('"')) {throw 'ARM-CLEAN06.4W: unsafe quote in path.'}
+                }
+                $Asset4WArgs = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $Asset4WScript + '" -WorktreePath "' + $WorktreePath +
+                    '" -EngineRoot "' + $EngineRoot + '" -StateRoot "' + $StateRoot +
+                    '" -RunDir "' + $RunDir + '" -ExpectedHead "' + $Sha +
+                    '" -GitHubRepository "' + $GitHubRepository + '"'
+                $Asset4WOut = Join-Path $RunDir 'ARM064W.stdout.log'
+                $Asset4WErr = Join-Path $RunDir 'ARM064W.stderr.log'
+                $Asset4WProcess = Start-Process -FilePath $PsExe -ArgumentList $Asset4WArgs -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $Asset4WOut -RedirectStandardError $Asset4WErr -PassThru -Wait -ErrorAction Stop
+                if ($Asset4WProcess.ExitCode -ne 0) {
+                    throw 'ARM-CLEAN06.4W: native asset migration/verification failed.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Asset4WContext -Description '95 references canoniques sur 5 UAssets reouverts; 0 fallback'
+                Write-Host '[ARM-CLEAN06.4W] Native asset authoring or committed verification succeeded.'
+            }
+            catch {
+                $Asset4WStagePath = Join-Path $RunDir 'ARMClean064W.stage'
+                $Asset4WStage = if (Test-Path -LiteralPath $Asset4WStagePath -PathType Leaf) {
+                    ([string](Get-Content -LiteralPath $Asset4WStagePath -TotalCount 1)).Trim()
+                } elseif ($Asset4WErrors -and $Asset4WErrors.Count -gt 0) {
+                    'POWERSHELL_PARSE'
+                } else { 'PROCESS_OR_PARSE' }
+                if ($Asset4WStage -notin @(
+                    'START','SCRIPT_STARTED','CHECK_GIT_PARENT',
+                    'CHECK_SOURCE_FILES_LFS','CHECK_COMMIT_FILESET',
+                    'HYDRATE_SOURCE_FILES_LFS','LFS_DOWNLOAD_FAILED',
+                    'LFS_CHECKOUT_SOURCE_FILES','LFS_CHECKOUT_FAILED',
+                    'LFS_SIGNED_BACKUP_PREFLIGHT',
+                    'LFS_BACKUP_SCAN_RUNS','LFS_BACKUP_READ_RECEIPT',
+                    'LFS_BACKUP_CHECK_UNIQUE','LFS_BACKUP_READ_GATE',
+                    'LFS_BACKUP_REHASH_RECEIPT','LFS_BACKUP_VERIFY_GATE',
+                    'LFS_BACKUP_PROVE_OIDS','LFS_BACKUP_PREPARE_ENTRY',
+                    'LFS_PINNED_HEAD_DIVERGED','LFS_FINAL_BINARY_UNAVAILABLE',
+                    'LFS_BACKUP_READ_GIT_POINTER','LFS_BACKUP_GIT_POINTER_MISSING',
+                    'LFS_BACKUP_READ_LOCAL_POINTER',
+                    'LFS_BACKUP_VALIDATE_POINTER','LFS_BACKUP_LOOKUP_RECORD',
+                    'LFS_BACKUP_REHASH_FILE','LFS_BACKUP_COPY_VERIFIED',
+                    'LFS_SIGNED_BACKUP_MISSING',
+                    'LFS_SIGNED_BACKUP_INVALID','LFS_BACKUP_OID_MISMATCH',
+                    'LFS_FILE_COUNT_MISMATCH',
+                    'LFS_PIN_COUNT_MISMATCH','LFS_PIN_PATH_MISMATCH',
+                    'LFS_LOCAL_PLACEHOLDER_DIRTY','LFS_SNAPSHOT_OID_MISMATCH',
+                    'LFS_BACKUP_COPY_HASH_MISMATCH',
+                    'LFS_SIGNED_BACKUP_HYDRATED',
+                    'LFS_POINTER_STILL_PRESENT','LFS_POST_RESTORE_POINTER',
+                    'LFS_INVALID_PACKAGE_HEADER',
+                    'LFS_SOURCE_BINARY_NOT_HYDRATED',
+                    'HEAD_MISMATCH','WORKTREE_DIRTY','POWERSHELL_PARSE',
+                    'SAVE_PRIVATE_BACKUPS','VERIFY_COMMITTED',
+                    'APPLY_UNREAL','UNREAL_MATERIALIZATION_FAILED',
+                    'FINAL_BINARY_SET','PUBLISH_FINAL_RECEIPT',
+                    'EXACT_FIVE_CHANGED','VERIFY_RELOADED_UNREAL',
+                    'UNREAL_REOPEN_FAILED','POST_MIGRATION_AUTOMATION',
+                    'POST_AUTOMATION_FAILED','REMOTE_LEASE',
+                    'STAGE_FIVE_REAL_FILES','AMEND_ONLY_OWN_COMMIT',
+                    'PUSH_WITH_LEASE','SUCCESS','PROCESS_OR_PARSE')) {
+                    $Asset4WStage = 'UNKNOWN'
+                }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Asset4WContext -Description ('Migration 06.4W refusee: '+$Asset4WStage)
+                }
+                catch {Write-Warning '[ARM-CLEAN06.4W] Cannot publish failed status.'}
+                # The GitHub connector exposes state but not the status description.
+                # Publish only the public allowlisted gate phase so the repair
+                # does not require a manual gh api round-trip. Never upload logs.
+                try {
+                    $PhaseFolder = Join-Path $StateRoot 'ARM-CLEAN06.4W-Diagnostics'
+                    $PhaseMarker = Join-Path $PhaseFolder ($Sha + '.issue-created')
+                    if (-not (Test-Path -LiteralPath $PhaseMarker -PathType Leaf)) {
+                        New-Item -Path $PhaseFolder -ItemType Directory -Force -ErrorAction Stop | Out-Null
+                        $PhaseBody = Join-Path $RunDir 'ARM064W.failure-public.md'
+                        @(
+                            '# ARM-CLEAN06.4W - diagnostic automatise'
+                            ''
+                            ('Commit de validation : '+$Sha)
+                            ('Controle : '+$Asset4WContext)
+                            ('Phase publique limitee : '+$Asset4WStage)
+                            ''
+                            'Aucun chemin local, journal UE, identifiant d item ou contenu prive n est publie.'
+                        ) | Set-Content -LiteralPath $PhaseBody -Encoding UTF8
+                        $PhaseTitle = '[ARM-CLEAN06.4W] Diagnostic '+$Sha.Substring(0,12)+' '+$Asset4WStage
+                        $PhaseResult = @(& gh issue create --repo $GitHubRepository --title $PhaseTitle --body-file $PhaseBody)
+                        if ($LASTEXITCODE -eq 0 -and $PhaseResult.Count -eq 1) {
+                            Set-Content -LiteralPath $PhaseMarker -Value $PhaseResult[0] -Encoding ASCII
+                        }
+                    }
+                }
+                catch {Write-Warning '[ARM-CLEAN06.4W] Public phase receipt unavailable; private logs remain sealed.'}
+                Write-Warning ('[ARM-CLEAN06.4W] Native UE asset migration blocked: '+$Asset4WStage)
+            }
+        }
+
         # ARM-CLEAN03.3: one-shot binary migration only after full Build+Grimrock
         # success and only for the exact opt-in commit subject. Runs in the
         # isolated detached worktree; never writes to the user's checkout.

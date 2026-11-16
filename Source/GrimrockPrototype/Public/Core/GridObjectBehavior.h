@@ -87,6 +87,11 @@ struct FGridReceptacleInitialItemConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial Content")
 	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
 
+	/** Stable item registry identity, copied from the actual authored
+	 * definition by the one-shot ARM-CLEAN06.4W Editor converter. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Initial Content|Canonical")
+	FName CanonicalItemId = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial Content", meta = (ClampMin = "1"))
 	int32 Quantity = 1;
 

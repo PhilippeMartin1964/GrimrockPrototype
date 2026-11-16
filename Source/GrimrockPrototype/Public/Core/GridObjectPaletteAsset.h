@@ -37,6 +37,11 @@ struct FGridObjectPaletteEntry
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Item")
 	TObjectPtr<UGridItemDefinitionAsset> DefaultItemDefinition = nullptr;
 
+	/** One stable ItemId for direct collectibles; the one-shot 06.4W
+	 * Editor migration derives it from the original authored definition. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Palette|Item|Canonical")
+	FName CanonicalItemId = NAME_None;
+
 	/** Required default when the definition places a MonsterSpawn. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Monster")
 	TObjectPtr<UGridMonsterDefinitionAsset> DefaultMonsterDefinition = nullptr;
