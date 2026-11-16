@@ -365,7 +365,7 @@ $IsIsolatedWorktree = (Split-Path -Leaf $RepoRoot) -ceq 'GrimrockPrototype_UEVal
 if ($IsIsolatedWorktree -and -not $SkipBuild -and -not $SkipAutomation -and
     $AutomationFilter -ceq 'Grimrock' -and
     (Split-Path -Leaf $ReportRoot) -ceq 'Automation') {
-    $ExactHookSubject = 'fix(ARM-CLEAN06.4X.16.7.2F): repair validation hook syntax with exact checks'
+    $ExactHookSubject = 'feat(ARM-CLEAN06.4X.16.8.4): activate guarded native copper and iron locks'
     $GitSubject = @(& git -C $RepoRoot log -1 --format=%s)
     if ($LASTEXITCODE -ne 0) { throw 'Exact validation commit check unavailable.' }
     if ($GitSubject.Count -eq 1 -and [string]$GitSubject[0] -ceq $ExactHookSubject) {
@@ -386,7 +386,7 @@ if ($IsIsolatedWorktree -and -not $SkipBuild -and -not $SkipAutomation -and
             (Split-Path -Leaf $NormalizedRun) -notlike ($ExactSha.Substring(0,12)+'-*')) {
             throw 'Not an agent-owned validation report directory.'
         }
-        $MigrationScript = Join-Path $PSScriptRoot 'ApplyARM_CLEAN06_4X72_ReceptacleRules.ps1'
+        $MigrationScript = Join-Path $PSScriptRoot 'ApplyARM_CLEAN06_4X83_LockRules.ps1'
         if (-not (Test-Path -LiteralPath $MigrationScript -PathType Leaf)) {
             throw 'Guarded migration helper missing.'
         }
@@ -397,19 +397,19 @@ if ($IsIsolatedWorktree -and -not $SkipBuild -and -not $SkipAutomation -and
         if ($MigrationErrors -and $MigrationErrors.Count -gt 0) {
             throw 'Guarded migration helper failed PowerShell syntax check.'
         }
-        $Receipt = Join-Path $PrivateRunDir 'ARMClean064X72.stage'
+        $Receipt = Join-Path $PrivateRunDir 'ARMClean064X83.stage'
         $StatusUrl = "repos/PhilippeMartin1964/GrimrockPrototype/statuses/$ExactSha"
-        $StatusContext = 'UE5.5.4/ARM-CLEAN06.4X72'
-        Write-Host '[ARM-CLEAN06.4X72D] Full Grimrock green; starting exact two-package transaction.'
+        $StatusContext = 'UE5.5.4/ARM-CLEAN06.4X83'
+        Write-Host '[ARM-CLEAN06.4X83] Full Grimrock green; starting exact two-package transaction.'
         try {
             & $MigrationScript -WorktreePath $RepoRoot -EngineRoot $ResolvedEngineRoot -StateRoot $PrivateStateRoot -RunDir $PrivateRunDir -ExpectedHead $ExactSha
             if (-not (Test-Path -LiteralPath $Receipt -PathType Leaf) -or
                 ([string](Get-Content -LiteralPath $Receipt -TotalCount 1)).Trim() -cne 'SUCCESS') {
                 throw 'Binary transaction did not produce SUCCESS receipt.'
             }
-            & gh.exe api -X POST $StatusUrl -f 'state=success' -f "context=$StatusContext" -f 'description=Two native receptacles saved and pushed; binary SHA needs UE check' --silent
+            & gh.exe api -X POST $StatusUrl -f 'state=success' -f "context=$StatusContext" -f 'description=Two native locks saved and pushed; binary SHA needs UE check' --silent
             if ($LASTEXITCODE -ne 0) { throw 'GitHub receipt failed after transaction.' }
-            Write-Host '[ARM-CLEAN06.4X72D] Binary child published; separate UE validation follows.'
+            Write-Host '[ARM-CLEAN06.4X83] Binary child published; separate UE validation follows.'
         }
         catch {
             $PhaseCode = 'UNKNOWN'
@@ -418,10 +418,10 @@ if ($IsIsolatedWorktree -and -not $SkipBuild -and -not $SkipAutomation -and
                 if ($ReadPhase -match '^[A-Z][A-Z0-9_]{0,63}\z') { $PhaseCode = $ReadPhase }
             }
             try {
-                & gh.exe api -X POST $StatusUrl -f 'state=failure' -f "context=$StatusContext" -f "description=Two-package transaction blocked: $PhaseCode; no raw logs" --silent
+                & gh.exe api -X POST $StatusUrl -f 'state=failure' -f "context=$StatusContext" -f "description=Two-lock transaction blocked: $PhaseCode; no raw logs" --silent
             }
-            catch { Write-Warning '[ARM-CLEAN06.4X72D] Phase publication unavailable.' }
-            throw "ARM-CLEAN06.4X72D blocked at $PhaseCode"
+            catch { Write-Warning '[ARM-CLEAN06.4X83] Phase publication unavailable.' }
+            throw "ARM-CLEAN06.4X83 blocked at $PhaseCode"
         }
     }
 }

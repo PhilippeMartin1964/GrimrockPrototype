@@ -47,8 +47,8 @@ function Check-Report($R,[string]$Mode) {
     }
 }
 Stage 'SCRIPT_STARTED'
-$Parent = '85a06d65d083cbeff76d39f2be1953bbc61827aa'
-$Subject = 'NOT_ARMED_X83_MIGRATION_TRIGGER'
+$Parent = '148d1213aa969af0b4c28871806d45497f170b85'
+$Subject = 'feat(ARM-CLEAN06.4X.16.8.4): activate guarded native copper and iron locks'
 $Files = @(
     'Content/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall.uasset',
     'Content/GrimrockPrototype/Core/DataAssets/DA_Lock_IronWall.uasset'
