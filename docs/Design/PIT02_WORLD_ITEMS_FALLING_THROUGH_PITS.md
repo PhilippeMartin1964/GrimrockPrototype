@@ -67,9 +67,10 @@ Un item en chute conserve :
 - offset horizontal dans la cellule ;
 - état des lumières ;
 - données de lecture ;
-- référence au `UGridItemDefinitionAsset`.
+- niveau physique canonique N0 ou ARM N1–N20 ;
+- référence au `UGridItemDefinitionAsset` **uniquement pour une identité historique absente du registre**.
 
-La référence au Data Asset permet de matérialiser l'objet même si le LevelAsset inférieur ne référence pas encore ce type d'item.
+Depuis ARM-CLEAN06.4X.16.12, toute identité enregistrée dans `DA_ItemSystem` (armes comprises) franchit les fosses via `ItemId`, `ItemLevel` et `GUID`, sans conserver `DA_Weapon_*`. Le registre matérialise le mesh, la physique et la présentation. Les définitions historiques restent nécessaires aux objets encore non migrés.
 
 Le simple fait qu'un objet tombe sur un niveau inférieur **ne marque pas ce niveau comme visité**.
 

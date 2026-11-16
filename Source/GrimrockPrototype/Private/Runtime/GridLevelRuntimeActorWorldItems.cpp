@@ -481,11 +481,10 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 
 	FGridPendingWorldItemState PendingState;
 	PendingState.ItemState = ItemState;
-	// Registered non-ARM content has its complete light/Niagara/mesh profile
-	// in DA_ItemSystem. Do not serialize its obsolete item definition asset.
-	// ARM presentation and unregistered items are not yet cut over here.
-	PendingState.ItemDefinitionAsset =
-		bCanonicalRoute && !RouteCanonical.bIsArmament ? nullptr : ItemDefinitionAsset;
+	// The physical ItemId/N-level is the sole source of world presentation
+	// for every registered family. Never serialize DA_Weapon_* along with
+	// a valid canonical ARM item crossing a pit.
+	PendingState.ItemDefinitionAsset = bCanonicalRoute ? nullptr : ItemDefinitionAsset;
 
 	FGridLevelRuntimeState& TargetState = DungeonRuntimeState.LevelStates.FindOrAdd(Relocation.TargetLevelId);
 	TargetState.LevelId = Relocation.TargetLevelId;
@@ -565,17 +564,16 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 				*ItemState.ItemDefinitionId.ToString(), ItemState.ItemLevel);
 			continue; // Retain the queued snapshot for diagnostics, no legacy fallback.
 		}
-		const bool bCanonicalNonArm = bKnownCanonical && !InboundCanonical.bIsArmament;
-		UGridItemDefinitionAsset* Definition = bCanonicalNonArm
+		// Every canonical ItemId (ARM N1-N20 included) lands by registry
+		// alone. Ignore stale pointers even when present in a v27 snapshot.
+		UGridItemDefinitionAsset* Definition = bKnownCanonical
 			? nullptr : PendingCopy.ItemDefinitionAsset.Get();
-		if (!Definition && !bKnownCanonical)
+		if (!Definition)
 		{
-			Definition = ResolveRuntimeItemDefinition(ItemState.ItemDefinitionId);
-		}
-		// An ARM still using historical presentation may need its old pointer.
-		if (!Definition && bKnownCanonical && !bCanonicalNonArm)
-		{
-			Definition = ResolveRuntimeItemDefinition(ItemState.ItemDefinitionId);
+			if (!bKnownCanonical)
+			{
+				Definition = ResolveRuntimeItemDefinition(ItemState.ItemDefinitionId);
+			}
 		}
 
 		if (!TryDropItemInstanceAtCell(ItemInstance, Definition, ItemState.CellX, ItemState.CellY, EGridEdge::None, LocalOffset))
@@ -612,6 +610,10 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 		return 0;
 	}
 
+	// Physics may have moved a weapon since the last level capture.
+	// Refresh the authoritative cell before deciding which resting pickups
+	// fall when a previously closed trapdoor opens.
+	RefreshWorldItemPhysicsCells();
 	const FIntPoint PitCell(CellX, CellY);
 	int32 DroppedCount = 0;
 	for (int32 EntryIndex = SpawnedItemEntries.Num() - 1; EntryIndex >= 0; --EntryIndex)
@@ -628,20 +630,20 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 			continue;
 		}
 
-		UGridItemDefinitionAsset* Definition = Entry.ItemDefinitionAsset.Get();
-		if (!Definition)
-		{
-			const FName DefinitionId = Entry.ItemDefinitionId;
-			Definition = ResolveRuntimeItemDefinition(DefinitionId);
-		}
-		// A canonical pickup can be carried across an open pit using ItemId
-		// alone, even when its obsolete DA_Weapon definition has been retired.
+		// Do not materialize a legacy DA_Weapon just to route an item that
+		// already has an authoritative canonical identity.
 		const FName ItemId = Entry.ItemDefinitionId.IsNone()
 			? ItemActor->GetItemDefinitionId() : Entry.ItemDefinitionId;
 		const UWorld* RouteWorld = GetWorld();
 		UGameInstance* RouteGI = RouteWorld ? RouteWorld->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry =
 			RouteGI ? RouteGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		const bool bCanonicalIdentity = Registry && Registry->HasCanonicalItem(ItemId);
+		UGridItemDefinitionAsset* Definition = bCanonicalIdentity ? nullptr : Entry.ItemDefinitionAsset.Get();
+		if (!Definition && !bCanonicalIdentity)
+		{
+			Definition = ResolveRuntimeItemDefinition(ItemId);
+		}
 		const FGridReceptacleItemMetadataReadView RouteRead =
 			FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 				Registry, Definition, ItemId, Entry.ItemLevel);
@@ -671,6 +673,9 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 		LocalOffset.Z = 0.0f;
 		if (!TryRouteWorldItemThroughOpenPit(ItemInstance, Definition, CellX, CellY, LocalOffset))
 		{
+			UE_LOG(LogGridLevelRuntime, Warning,
+				TEXT("GridPit WorldItem remained on upper level: Item=%s N%d RuntimeId=%s Cell=(%d,%d)"),
+				*ItemId.ToString(), Entry.ItemLevel, *ItemInstance.RuntimeObjectId.ToString(), CellX, CellY);
 			continue;
 		}
 
@@ -810,21 +815,23 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 		? DropGameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	const bool bCanonicalIdentity = Registry &&
 		Registry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
-	// A null legacy pointer on a canonical drop is intentional: a projectile
-	// initialized from ItemId must not silently reacquire DA_Weapon_* when it
-	// lands. Preserve explicit old assets for transitional callers and keep
-	// the original lookup for IDs absent from DA_ItemSystem.
+	// One canonical world-item initializer for *all* registered families,
+	// including ARM N1-N20. The mesh-only legacy ARM route skipped canonical
+	// physics, sparkle and visual effects after a PIT02 transfer.
 	FGridResolvedItem CanonicalDrop;
-	const bool bCanonicalNonArmDrop = bCanonicalIdentity &&
+	const bool bResolvedCanonical = bCanonicalIdentity &&
 		Registry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, CanonicalDrop) &&
-		CanonicalDrop.IsValid() && !CanonicalDrop.bIsArmament;
-	// All canonical non-ARM items (including torch, not just ammunition)
-	// require their full light/Niagara configuration when dropped in the world.
-	// ApplyCanonicalWorldVisual only loads a mesh; it cannot create a flame.
-	// The ARM and unregistered pathways retain their prior behavior.
-	UGridItemDefinitionAsset* ItemDefinition = bCanonicalNonArmDrop ? nullptr :
-		(IsValid(ItemDefinitionAsset) ? ItemDefinitionAsset
-			: (bCanonicalIdentity ? nullptr : ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId)));
+		CanonicalDrop.IsValid();
+	if (bCanonicalIdentity && !bResolvedCanonical)
+	{
+		UE_LOG(LogGridLevelRuntime, Warning,
+			TEXT("GridInventory WorldDrop rejected canonical Item=%s Level=%d"),
+			*ItemInstance.ItemDefinitionId.ToString(), ItemInstance.ItemLevel);
+		return false; // A known ARM N0 must never inherit N1 or use legacy.
+	}
+	UGridItemDefinitionAsset* ItemDefinition = bCanonicalIdentity ? nullptr :
+		(IsValid(ItemDefinitionAsset) ? ItemDefinitionAsset :
+			ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId));
 	const FGridReceptacleItemMetadataReadView LevelRead =
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry, ItemDefinition, ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel);
@@ -882,14 +889,14 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	FGridItemInstance DroppedVisualItem = ItemInstance;
 	DroppedVisualItem.RuntimeObjectId = RuntimeObjectId;
 	DroppedVisualItem.ItemLevel = ResolvedItemLevel;
-	if (bCanonicalNonArmDrop)
+	if (bCanonicalIdentity)
 	{
-		// Full canonical presentation is initialized before restoring the
-		// instance's actual light state below. Never derive state from a default.
+		// One full projection for ARM and non-ARM world pickups. The saved
+		// light state is still applied explicitly below, after initialization.
 		if (!ItemActor->InitializeFromCanonicalItem(DroppedVisualItem, Registry))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning,
-				TEXT("GridInventory WorldDrop Failed Item=%s Reason=CanonicalNonArmInitializationFailed"),
+				TEXT("GridInventory WorldDrop Failed Item=%s Reason=CanonicalInitializationFailed"),
 				*ItemInstance.ItemDefinitionId.ToString());
 			ItemActor->Destroy();
 			return false;

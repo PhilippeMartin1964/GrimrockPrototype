@@ -617,17 +617,17 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 					*RuntimeItemDefinitionId.ToString(), ItemState.ItemLevel);
 				continue;
 			}
-			// A registered non-ARM item must restore its full canonical
-			// mesh/light/Niagara data, not merely its world mesh.
-			const bool bCanonicalNonArm = bCanonicalItem && !ResolvedItem.bIsArmament;
-			UGridItemDefinitionAsset* ItemDefinition = bCanonicalNonArm
+			// Restore the complete world profile for every registered
+			// physical ItemId, including ARM N1-N20 after a PIT transfer.
+			const bool bCanonicalWorld = bCanonicalItem;
+			UGridItemDefinitionAsset* ItemDefinition = bCanonicalWorld
 				? nullptr
 				: (IsValid(ItemState.ProjectileDefinitionAsset)
 					? ItemState.ProjectileDefinitionAsset.Get() : ResolveRuntimeItemDefinition(RuntimeItemDefinitionId));
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, RuntimeItemDefinitionId, this, nullptr);
 			if (ItemActor)
 			{
-				if (bCanonicalNonArm &&
+				if (bCanonicalWorld &&
 					!ItemActor->InitializeFromCanonicalItem(
 						PersistenceMakeVisualItem(ItemState), RestoreRegistry))
 				{

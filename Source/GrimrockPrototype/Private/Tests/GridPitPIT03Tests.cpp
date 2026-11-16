@@ -7,6 +7,13 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "EngineUtils.h"
+#include "Components/StaticMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Runtime/GridItemActor.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Save/GrimrockPartySaveGame.h"
 #include "Engine/World.h"
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -287,6 +294,229 @@ bool FGridPIT03PresentationActorTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Left leaf reaches -80 degrees"), FMath::IsNearlyEqual(Actor->GetLeftLeafPitch(), -80.0f, 0.1f));
 	TestTrue(TEXT("Right leaf reaches +80 degrees"), FMath::IsNearlyEqual(Actor->GetRightLeafPitch(), 80.0f, 0.1f));
 	return true;
+}
+
+
+
+namespace GridPIT03CanonicalARM
+{
+    struct FRegistry
+    {
+        UWorld* World = nullptr;
+        UGameInstance* GI = nullptr;
+        UGridItemSubsystem* Items = nullptr;
+        explicit FRegistry(UWorld* InWorld) : World(InWorld)
+        {
+            if (!World) return;
+            GI = NewObject<UGameInstance>(GetTransientPackage());
+            if (!GI) return;
+            GI->Init();
+            World->SetGameInstance(GI);
+            Items = GI->GetSubsystem<UGridItemSubsystem>();
+        }
+        ~FRegistry()
+        {
+            if (World) World->SetGameInstance(nullptr);
+            if (GI) GI->Shutdown();
+        }
+    };
+
+    AGridItemActor* FindLive(UWorld* World, const FGuid Guid, int32& OutCount)
+    {
+        OutCount = 0;
+        AGridItemActor* Result = nullptr;
+        if (!World) return nullptr;
+        for (TActorIterator<AGridItemActor> It(World); It; ++It)
+        {
+            AGridItemActor* Actor = *It;
+            if (IsValid(Actor) && !Actor->IsActorBeingDestroyed() &&
+                Actor->GetRuntimeObjectId() == Guid)
+            {
+                ++OutCount;
+                Result = Actor;
+            }
+        }
+        return Result;
+    }
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPit03CanonicalARMPersistedFall,
+    "Grimrock.RPG.ARM.CLEAN06_4X1612.TrapOpensUnderTwoWeaponsRealLevels",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
+{
+    using namespace GridPIT03;
+    using namespace GridPIT03CanonicalARM;
+    FTestWorld F;
+    FRegistry Registry(F.World);
+    if (!TestNotNull(TEXT("Transient world"), F.World) ||
+        !TestNotNull(TEXT("Canonical game instance"), Registry.Items))
+        return false;
+
+    struct FWeapon
+    {
+        FName Id;
+        int32 Level;
+        FGuid Guid;
+        FGridResolvedItem Resolved;
+    };
+    TArray<FWeapon> Weapons;
+    Weapons.Add({ FName(TEXT("Weapon_StraightSword_01")), 1, FGuid(101, 102, 103, 104), FGridResolvedItem() });
+    Weapons.Add({ FName(TEXT("Weapon_ThrowingKnife_01")), 20, FGuid(201, 202, 203, 204), FGridResolvedItem() });
+    for (FWeapon& W : Weapons)
+    {
+        if (!TestTrue(TEXT("Real ARM resolves at its fixed N-level"),
+                Registry.Items->ResolveItem(W.Id, W.Level, W.Resolved)) ||
+            !TestTrue(TEXT("Real ARM has a world mesh"),
+                W.Resolved.bIsArmament && !W.Resolved.WorldMesh.IsNull()))
+            return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime = F.World->SpawnActor<AGridLevelRuntimeActor>();
+    AGrimrockPartyPawn* Party = F.World->SpawnActor<AGrimrockPartyPawn>();
+    if (!TestNotNull(TEXT("Runtime"), Runtime) || !TestNotNull(TEXT("Party"), Party))
+        return false;
+    UGridDungeonAsset* Dungeon = NewObject<UGridDungeonAsset>(Runtime);
+    UGridLevelAsset* Upper = MakeFloor(Dungeon);
+    UGridLevelAsset* Lower = MakeFloor(Dungeon);
+    const FName UpperId(TEXT("ARM064X1612_Upper"));
+    const FName LowerId(TEXT("ARM064X1612_Lower"));
+    FGridDungeonLevelEntry U;
+    U.LevelId = UpperId;
+    U.LevelAsset = Upper;
+    U.LogicalPosition = FIntVector(0, 0, 1);
+    U.bEnabled = true;
+    FGridDungeonLevelEntry L;
+    L.LevelId = LowerId;
+    L.LevelAsset = Lower;
+    L.LogicalPosition = FIntVector(0, 0, 0);
+    L.bEnabled = true;
+    Dungeon->DefaultLevelId = UpperId;
+    Dungeon->Levels = {U, L};
+    const FGridWorldObjectInstance Pit = MakeControlledPit(2, 2, LowerId, false);
+    const FGuid PitGuid = Pit.InstanceId;
+    Upper->WorldObjectInstances.Add(Pit);
+
+    UGridWorldObjectDefinitionAsset* Def = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+    Def->DefinitionId = TEXT("Pit_Stone_01");
+    Def->SupportedType = EGridLevelObjectType::Pit;
+    Def->PlacementSurface = EGridObjectPlacementKind::Floor;
+    Def->StaticPart.Mesh = NewObject<UStaticMesh>(Runtime);
+    Def->bHideCellFloor = true;
+    Def->MovingParts.SetNum(2);
+    Def->MovingParts[0].Mesh = NewObject<UStaticMesh>(Runtime);
+    Def->MovingParts[1].Mesh = NewObject<UStaticMesh>(Runtime);
+    Def->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
+    Runtime->DungeonAsset = Dungeon;
+    Runtime->CurrentDungeonLevelId = UpperId;
+    Runtime->LevelAsset = Upper;
+    Runtime->WorldObjectDefinitions.Add(Def);
+    Party->SetGridStart(Runtime, 1, 1, EGridEdge::North);
+
+    TestFalse(TEXT("Trap starts closed"), Runtime->IsPitOpen(PitGuid));
+    for (int32 i=0; i<Weapons.Num(); ++i)
+    {
+        const FWeapon& W = Weapons[i];
+        FGridItemInstance Placed;
+        Placed.RuntimeObjectId = W.Guid;
+        Placed.ItemDefinitionId = W.Id;
+        Placed.ItemLevel = W.Level;
+        Placed.Quantity = 1;
+        Placed.OwnerType = EGridItemOwnerType::World;
+        const FVector Offset(i == 0 ? -25.f : 25.f, 0.f, 0.f);
+        if (!TestTrue(TEXT("Weapon can be physically placed on CLOSED trap"),
+                Runtime->TryDropItemInstanceAtCell(Placed, 2, 2, EGridEdge::None, Offset)))
+            return false;
+        int32 Count = 0;
+        AGridItemActor* Actor = FindLive(F.World, W.Guid, Count);
+        if (!TestNotNull(TEXT("Weapon actor exists above trap"), Actor) ||
+            !TestEqual(TEXT("One actor per weapon"), Count, 1) ||
+            !TestTrue(TEXT("Weapon starts with complete canonical presentation"),
+                Actor->CanonicalWorldPresentation.IsValid() && Actor->MeshComponent &&
+                Actor->MeshComponent->GetStaticMesh() == W.Resolved.WorldMesh.LoadSynchronous()) ||
+            !TestNull(TEXT("No legacy weapon definition on ground actor"),
+                Actor->GetItemDefinitionAsset()))
+            return false;
+    }
+
+    if (!TestTrue(TEXT("Opening a controlled pit routes the resting weapons"),
+            Runtime->SetPitOpen(PitGuid, true, false)))
+        return false;
+    const FGridLevelRuntimeState* PendingLevel =
+        Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
+    if (!TestNotNull(TEXT("Lower-level runtime exists"), PendingLevel))
+        return false;
+    for (const FWeapon& W : Weapons)
+    {
+        const FGridPendingWorldItemState* P = PendingLevel->PendingInboundItems.Find(W.Guid);
+        if (!TestNotNull(TEXT("Same GUID queued downstairs"), P) ||
+            !TestEqual(TEXT("Weapon N-level preserved"), P->ItemState.ItemLevel, W.Level) ||
+            !TestEqual(TEXT("Weapon ID preserved"), P->ItemState.ItemDefinitionId, W.Id) ||
+            !TestNull(TEXT("No legacy DA_Weapon pointer in PIT02 queue"),
+                P->ItemDefinitionAsset.Get()))
+            return false;
+        int32 Count = 0;
+        FindLive(F.World, W.Guid, Count);
+        if (!TestEqual(TEXT("Upper weapon actor destroyed at pit opening"), Count, 0))
+            return false;
+    }
+
+    // Physical save round-trip, *in memory*, before travelling downstairs.
+    UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
+    Save->DungeonRuntimeState = Runtime->DungeonRuntimeState;
+    TArray<uint8> Bytes;
+    if (!TestTrue(TEXT("PIT02 armament state serializes to RAM"),
+            UGameplayStatics::SaveGameToMemory(Save, Bytes)))
+        return false;
+    UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(
+        UGameplayStatics::LoadGameFromMemory(Bytes));
+    if (!TestNotNull(TEXT("PIT02 armament state reloads from RAM"), Loaded) ||
+        !TestTrue(TEXT("Current SaveGame schema is compatible"), Loaded->IsCompatible()))
+        return false;
+    Runtime->DungeonRuntimeState = Loaded->DungeonRuntimeState;
+
+    if (!TestTrue(TEXT("Party can travel to lower dungeon level"),
+            Runtime->TravelToDungeonLevel(LowerId, 1, 1, EGridEdge::North, Party)))
+        return false;
+    for (const FWeapon& W : Weapons)
+    {
+        int32 Count = 0;
+        AGridItemActor* Actor = FindLive(F.World, W.Guid, Count);
+        if (!TestNotNull(TEXT("Weapon materialized below"), Actor) ||
+            !TestEqual(TEXT("Each weapon appears exactly once downstairs"), Count, 1) ||
+            !TestEqual(TEXT("ItemId below"), Actor->GetItemDefinitionId(), W.Id) ||
+            !TestEqual(TEXT("Exact N-level below"), Actor->CanonicalWorldItemLevel, W.Level) ||
+            !TestNull(TEXT("No obsolete item pointer below"), Actor->GetItemDefinitionAsset()) ||
+            !TestTrue(TEXT("Canonical physical weapon mesh below"),
+                Actor->CanonicalWorldPresentation.IsValid() && Actor->MeshComponent &&
+                Actor->MeshComponent->GetStaticMesh() == W.Resolved.WorldMesh.LoadSynchronous()))
+            return false;
+    }
+    const FGridLevelRuntimeState* After = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
+    for (const FWeapon& W : Weapons)
+        if (!TestTrue(TEXT("Each queued item consumed"), After &&
+                !After->PendingInboundItems.Contains(W.Guid))) return false;
+
+    if (!TestTrue(TEXT("Return to upper level"),
+            Runtime->TravelToDungeonLevel(UpperId, 1, 1, EGridEdge::North, Party)) ||
+        !TestTrue(TEXT("Return to lower level"),
+            Runtime->TravelToDungeonLevel(LowerId, 1, 1, EGridEdge::North, Party)))
+        return false;
+    for (const FWeapon& W : Weapons)
+    {
+        int32 Count = 0;
+        AGridItemActor* Actor = FindLive(F.World, W.Guid, Count);
+        if (!TestNotNull(TEXT("Weapon survived second level load"), Actor) ||
+            !TestEqual(TEXT("No duplication after level round-trip"), Count, 1) ||
+            !TestEqual(TEXT("Level remains fixed after second load"),
+                Actor->CanonicalWorldItemLevel, W.Level) ||
+            !TestTrue(TEXT("Canonical mesh survives second level load"),
+                Actor->CanonicalWorldPresentation.IsValid() && Actor->MeshComponent &&
+                Actor->MeshComponent->GetStaticMesh() == W.Resolved.WorldMesh.LoadSynchronous()))
+            return false;
+    }
+    return !HasAnyErrors();
 }
 
 #endif

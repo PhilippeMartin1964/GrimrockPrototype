@@ -5,6 +5,33 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.16.12 — correction armes ARM N1/N20 dans trappe ouverte
+
+Déclencheur utilisateur : des armes préalablement posées sur une fosse piégée
+ne réapparaissent pas au bon endroit après ouverture à l'échec d'un
+désamorçage. La torche PIT02 n'est pas actuellement manipulable par le joueur.
+Le scénario PIE pertinent est **armes déposées, trappe s'ouvre, armes dans
+niveau inférieur, aller-retour niveau/save**, pas une torche.
+
+Parent `738c37d380dbe13bd79e6f3eadc2abbdd13b519d` : 16.11 double validation SUCCESS.
+
+Unification de l'initialisation des pickups canoniques au sol (ARM N1–N20
+compris) via `InitializeFromCanonicalItem`, suppression des anciens
+pointeurs dans la file PIT02 pour *tous* les items canoniques, restauration
+complète après Save/Continue et rafraîchissement de la cellule réelle
+de physique juste avant ouverture de trappe. Un avertissement explicite
+est émis si le transfert échoue. Régression nouvelle :
+`Grimrock.RPG.ARM.CLEAN06_4X1612.TrapOpensUnderTwoWeaponsRealLevels`
+(sword N1 + throwing knife N20, identités GUID, meshes, descente,
+SaveGame mémoire et aller-retour). Aucun binaire UE ni .sav modifié.
+
+**Ne déclarer le correctif vérifié que sur deux statuts SUCCESS au SHA
+exact.** La validation visuelle PIE des armes posées sur la trappe par
+l'utilisateur reste indispensable ; ne pas proposer un test de torche
+impossible à exécuter actuellement.
+
+Lire `ARM_CLEAN06_4X1612_REAL_ARM_PIT_RESTORE.md`.
+
 ## ARM-CLEAN06.4X.16.11 — PIT02 canonique non-ARM et refus du fallback ARM N0
 
 X.16.10 `afecaacf7dd0f0f6d81da358d0cd624aea3bc4a2` est désormais **validé** :
