@@ -617,15 +617,26 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 					*RuntimeItemDefinitionId.ToString(), ItemState.ItemLevel);
 				continue;
 			}
-			const bool bCanonicalAmmo = bCanonicalItem && !ResolvedItem.bIsArmament &&
-				!ResolvedItem.AmmoKindId.IsNone();
-			UGridItemDefinitionAsset* ItemDefinition = bCanonicalAmmo
+			// A registered non-ARM item must restore its full canonical
+			// mesh/light/Niagara data, not merely its world mesh.
+			const bool bCanonicalNonArm = bCanonicalItem && !ResolvedItem.bIsArmament;
+			UGridItemDefinitionAsset* ItemDefinition = bCanonicalNonArm
 				? nullptr
 				: (IsValid(ItemState.ProjectileDefinitionAsset)
 					? ItemState.ProjectileDefinitionAsset.Get() : ResolveRuntimeItemDefinition(RuntimeItemDefinitionId));
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, RuntimeItemDefinitionId, this, nullptr);
 			if (ItemActor)
 			{
+				if (bCanonicalNonArm &&
+					!ItemActor->InitializeFromCanonicalItem(
+						PersistenceMakeVisualItem(ItemState), RestoreRegistry))
+				{
+					UE_LOG(LogGridLevelRuntime, Warning,
+						TEXT("GridRuntimeState Apply canonical world item rejected: %s N%d."),
+						*RuntimeItemDefinitionId.ToString(), ItemState.ItemLevel);
+					ItemActor->Destroy();
+					continue; // Never downgrade a known canonical item.
+				}
 				const FGridLooseItemInstance* ItemPlacement = PersistenceFindLooseItemById(LevelAsset, Pair.Key);
 				const FIntPoint RuntimeCell =
 					ItemPlacement ? FIntPoint(ItemPlacement->CellX, ItemPlacement->CellY) : FIntPoint(ItemState.CellX, ItemState.CellY);
@@ -685,14 +696,34 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 					*Pair.Key.ToString(), *ItemState.ObjectId.ToString());
 				continue;
 			}
-			UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition(RuntimeItemDefinitionId);
+			const bool bCanonicalItem = RestoreRegistry &&
+				RestoreRegistry->HasCanonicalItem(RuntimeItemDefinitionId);
+			FGridResolvedItem CanonicalItem;
+			if (bCanonicalItem &&
+				!RestoreRegistry->ResolveItem(RuntimeItemDefinitionId, ItemState.ItemLevel, CanonicalItem))
+			{
+				UE_LOG(LogGridLevelRuntime, Warning,
+					TEXT("GridRuntimeState Apply canonical receptacle item rejected: %s N%d."),
+					*RuntimeItemDefinitionId.ToString(), ItemState.ItemLevel);
+				continue; // Invalid registered N0 never inherits an ARM level.
+			}
+			const bool bCanonicalNonArm = bCanonicalItem && !CanonicalItem.bIsArmament;
+			UGridItemDefinitionAsset* ItemDefinition = bCanonicalNonArm
+				? nullptr : ResolveRuntimeItemDefinition(RuntimeItemDefinitionId);
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(
 				ItemDefinition, RuntimeItemDefinitionId, ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get());
 			if (ItemActor)
 			{
-				ItemActor->SetRuntimeObjectId(ItemState.ObjectId);
-
-				if (ItemDefinition)
+				if (bCanonicalNonArm)
+				{
+					if (!ItemActor->InitializeFromCanonicalItem(
+						PersistenceMakeVisualItem(ItemState), RestoreRegistry))
+					{
+						ItemActor->Destroy();
+						continue; // No legacy fallback for canonical presentation.
+					}
+				}
+				else if (ItemDefinition)
 				{
 					ItemActor->InitializeFromItemDefinition(ItemDefinition, ItemState.ObjectId);
 				}
@@ -700,12 +731,17 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				{
 					ItemActor->InitializeFromItemDefinitionId(RuntimeItemDefinitionId, ItemState.ObjectId);
 				}
+				ItemActor->SetRuntimeObjectId(ItemState.ObjectId);
 				ItemActor->ApplyCanonicalWorldVisual(PersistenceMakeVisualItem(ItemState));
 				ItemActor->SetItemLightsEnabled(ItemState.bLightsEnabled);
 			}
 			FGridRuntimeItemState ResolvedItemState = ItemState;
 			ResolvedItemState.ItemDefinitionId = RuntimeItemDefinitionId;
-			ReceptacleActor->RestoreRuntimeContainedItem(ResolvedItemState, ItemActor);
+			if (!ReceptacleActor->RestoreRuntimeContainedItem(ResolvedItemState, ItemActor) &&
+				IsValid(ItemActor))
+			{
+				ItemActor->Destroy();
+			}
 		}
 		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridRuntimeState Apply Receptacle Final ObjectId=%s HasItem=%s Count=%d"), *Pair.Key.ToString(),
 			ReceptacleActor->HasItem() ? TEXT("true") : TEXT("false"), ReceptacleActor->GetContainedItemCount());

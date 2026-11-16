@@ -5,6 +5,18 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.16.10 — rechargement non-ARM canonique
+
+Parent `7886a9b757b639f87d6ed8202e9d34e0d19c1a64` : SilentTask et LocalAuto SUCCESS.
+Les serrures cuivre/fer ont été validées en PIE par le propriétaire.
+16.10 restaure les vrais profils non-ARM (lumière et Niagara compris)
+depuis le registre canonique, au sol et dans les réceptacles, sans
+réacquérir les pointeurs historiques. Deux tests de SaveGame en mémoire
+sont ajoutés ; aucun .sav, .uasset, .umap ni WBP écrit.
+**Ne déclarer validé que lorsque SilentTask et LocalAuto sont SUCCESS sur
+le SHA de 16.10.** Lire ARM_CLEAN06_4X1610_CANONICAL_WORLD_RESTORE.md.
+Ensuite : derniers lecteurs, copies SaveGame, cutover ARM, 06.5, 06.6.
+
 ## Reprise après validation PIE du 16 novembre 2026 — ARM-CLEAN06.4X.16.9
 
 Le propriétaire confirme avoir testé et validé en PIE les serrures cuivre/fer

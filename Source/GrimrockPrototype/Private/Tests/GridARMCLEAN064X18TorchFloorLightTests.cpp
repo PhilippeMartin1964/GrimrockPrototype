@@ -1,6 +1,12 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Save/GrimrockPartySaveGame.h"
+#include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridItemVisualEffectsComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/StaticMesh.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
@@ -219,4 +225,164 @@ bool FGridClean064X18TorchFloorLightState::RunTest(const FString&)
         TestFalse(TEXT("Explicitly unlit state survives pickup"),
             F.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[OffSlot].Item.bLightsEnabled);
 }
+
+
+namespace ARMCLEAN064X1610
+{
+    const FName TorchId(TEXT("Item_Torch"));
+    const FGuid ReceptacleId(101, 102, 103, 104);
+
+    FGridRuntimeItemState Torch(FGuid Guid, bool bLit)
+    {
+        FGridRuntimeItemState Item;
+        Item.ObjectId = Guid;
+        Item.ItemDefinitionId = TorchId;
+        Item.ItemLevel = 0;
+        Item.Quantity = 1;
+        Item.CellX = 1;
+        Item.CellY = 1;
+        Item.Edge = EGridEdge::None;
+        Item.Transform = FTransform(FVector(300.0, 300.0, 12.0));
+        Item.bLightsEnabled = bLit;
+        return Item;
+    }
+
+    bool Reload(FAutomationTestBase& Test, ARMCLEAN064X18::FFixture& F)
+    {
+        UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
+        Save->DungeonRuntimeState = F.Runtime->DungeonRuntimeState;
+        TArray<uint8> Bytes;
+        if (!Test.TestTrue(TEXT("Save snapshot in memory"),
+                UGameplayStatics::SaveGameToMemory(Save, Bytes)))
+            return false;
+        UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(
+            UGameplayStatics::LoadGameFromMemory(Bytes));
+        if (!Test.TestNotNull(TEXT("Load snapshot from memory"), Loaded) ||
+            !Test.TestTrue(TEXT("Current exact-match schema"), Loaded->IsCompatible()))
+            return false;
+        F.Runtime->DungeonRuntimeState = Loaded->DungeonRuntimeState;
+        F.Runtime->RebuildLevel();
+        return Test.TestTrue(TEXT("Apply saved state in rebuilt world"),
+            F.Runtime->ApplyCurrentLevelRuntimeState());
+    }
+
+    bool CheckTorch(FAutomationTestBase& Test, AGridItemActor* Actor,
+        FGuid Guid, bool bLit, int32 Effects)
+    {
+        if (!Test.TestNotNull(TEXT("Restored torch exists"), Actor)) return false;
+        Test.TestEqual(TEXT("Same runtime GUID"), Actor->GetRuntimeObjectId(), Guid);
+        Test.TestEqual(TEXT("Same canonical ItemId"), Actor->GetItemDefinitionId(), TorchId);
+        Test.TestNull(TEXT("No historical item definition pointer"), Actor->GetItemDefinitionAsset());
+        Test.TestEqual(TEXT("Light state survives"), Actor->AreItemLightsEnabled(), bLit);
+        Test.TestTrue(TEXT("Canonical point-light profile"), Actor->LightEmitterComponent &&
+            Actor->LightEmitterComponent->RuntimeConfig.bUsePointLight &&
+            Actor->LightEmitterComponent->RuntimeConfig.LightIntensity > 0.0f);
+        Test.TestTrue(TEXT("Canonical Niagara effects"), Actor->VisualEffectsComponent &&
+            Actor->VisualEffectsComponent->GetConfiguredEffectCount() == Effects && Effects > 0);
+        return !Test.HasAnyErrors();
+    }
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X1610WorldRestore,
+    "Grimrock.RPG.ARM.CLEAN06_4X1610.WorldTorchSaveContinue",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean064X1610WorldRestore::RunTest(const FString&)
+{
+    ARMCLEAN064X18::FFixture F;
+    if (!TestTrue(TEXT("Runtime registry has canonical torch"),
+            F.Runtime && F.Registry && F.Registry->HasCanonicalItem(ARMCLEAN064X1610::TorchId)))
+        return false;
+    FGridResolvedItem Projected;
+    if (!TestTrue(TEXT("Torch N0 resolves"), F.Registry->ResolveItem(
+            ARMCLEAN064X1610::TorchId, 0, Projected)))
+        return false;
+
+    const FGuid Lit(11, 12, 13, 14), Unlit(21, 22, 23, 24);
+    FGridLevelRuntimeState* State = F.Runtime->GetOrCreateRuntimeStateForCurrentLevel();
+    State->bHasBeenVisited = true;
+    State->Items.Add(Lit, ARMCLEAN064X1610::Torch(Lit, true));
+    FGridRuntimeItemState UnlitState = ARMCLEAN064X1610::Torch(Unlit, false);
+    UnlitState.CellX = 2;
+    UnlitState.Transform = FTransform(FVector(500.0, 300.0, 12.0));
+    State->Items.Add(Unlit, UnlitState);
+    if (!ARMCLEAN064X1610::Reload(*this, F)) return false;
+
+    AGridItemActor* LitActor = nullptr;
+    AGridItemActor* UnlitActor = nullptr;
+    for (TActorIterator<AGridItemActor> It(F.World); It; ++It)
+    {
+        AGridItemActor* Candidate = *It;
+        if (IsValid(Candidate) && !Candidate->IsActorBeingDestroyed() &&
+            Candidate->GetOwner() == F.Runtime)
+        {
+            if (Candidate->GetRuntimeObjectId() == Lit) LitActor = Candidate;
+            if (Candidate->GetRuntimeObjectId() == Unlit) UnlitActor = Candidate;
+        }
+    }
+    return ARMCLEAN064X1610::CheckTorch(*this, LitActor, Lit, true,
+               Projected.VisualEffects.Effects.Num()) &&
+           ARMCLEAN064X1610::CheckTorch(*this, UnlitActor, Unlit, false,
+               Projected.VisualEffects.Effects.Num());
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X1610ReceptacleRestore,
+    "Grimrock.RPG.ARM.CLEAN06_4X1610.ReceptacleTorchSaveContinue",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean064X1610ReceptacleRestore::RunTest(const FString&)
+{
+    ARMCLEAN064X18::FFixture F;
+    if (!TestTrue(TEXT("Runtime registry has canonical torch"),
+            F.Runtime && F.Registry && F.Registry->HasCanonicalItem(ARMCLEAN064X1610::TorchId)))
+        return false;
+    FGridResolvedItem Projected;
+    if (!TestTrue(TEXT("Torch N0 resolves"), F.Registry->ResolveItem(
+            ARMCLEAN064X1610::TorchId, 0, Projected)))
+        return false;
+
+    const FName DefinitionId(TEXT("ARM064X1610_Receptacle"));
+    FGridWorldObjectInstance Placed;
+    Placed.InstanceId = ARMCLEAN064X1610::ReceptacleId;
+    Placed.WorldObjectDefinitionId = DefinitionId;
+    Placed.Type = EGridLevelObjectType::Receptacle;
+    Placed.CellX = 2;
+    Placed.CellY = 2;
+    Placed.WallSide = EGridEdge::North;
+    F.Runtime->LevelAsset->WorldObjectInstances.Add(Placed);
+    UGridWorldObjectDefinitionAsset* Definition =
+        NewObject<UGridWorldObjectDefinitionAsset>(F.Runtime);
+    Definition->DefinitionId = DefinitionId;
+    Definition->SupportedType = EGridLevelObjectType::Receptacle;
+    Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
+    Definition->bIsInteractable = true;
+    Definition->RuntimeActorClass = AGridReceptacleActor::StaticClass();
+    Definition->StaticPart.Mesh = NewObject<UStaticMesh>(F.Runtime);
+    F.Runtime->WorldObjectDefinitions.Add(Definition);
+
+    const FGuid Guid(31, 32, 33, 34);
+    FGridRuntimeItemState Torch = ARMCLEAN064X1610::Torch(Guid, true);
+    Torch.bIsContainedInReceptacle = true;
+    Torch.ReceptacleObjectId = ARMCLEAN064X1610::ReceptacleId;
+    FGridRuntimeReceptacleState Contained;
+    Contained.ObjectId = ARMCLEAN064X1610::ReceptacleId;
+    Contained.bCanInsertItems = false;
+    Contained.bCanRemoveItem = true;
+    Contained.ContainedItems.Add(Torch);
+    FGridLevelRuntimeState* State = F.Runtime->GetOrCreateRuntimeStateForCurrentLevel();
+    State->bHasBeenVisited = true;
+    State->Receptacles.Add(ARMCLEAN064X1610::ReceptacleId, Contained);
+    if (!ARMCLEAN064X1610::Reload(*this, F)) return false;
+
+    AGridReceptacleActor* Receptacle = F.Runtime->FindRuntimeObjectActor<
+        AGridReceptacleActor>(ARMCLEAN064X1610::ReceptacleId);
+    if (!TestNotNull(TEXT("Rebuilt receptacle exists"), Receptacle) ||
+        !TestEqual(TEXT("One item restored"), Receptacle->GetContainedItemCount(), 1))
+        return false;
+    TestFalse(TEXT("Insertion disabled after restore"), Receptacle->bCanInsertItems);
+    TestTrue(TEXT("Removal permitted after restore"), Receptacle->bCanRemoveItem);
+    return ARMCLEAN064X1610::CheckTorch(*this, Receptacle->GetContainedItemActor(0),
+        Guid, true, Projected.VisualEffects.Effects.Num());
+}
+
 #endif
