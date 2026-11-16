@@ -119,51 +119,114 @@ bool FGridClean064X10BIdentity::RunTest(const FString&)
         TestNull(TEXT("Legacy pointer not needed"), Materialized.ItemDefinition.Get());
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10CRejections,
-    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeC_RejectInvalidPersisted",
-    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-bool FGridClean064X10CRejections::RunTest(const FString&)
+namespace ARMCLEAN064X10
 {
-    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
-    if (!TestNotNull(TEXT("Real catalogue"), Root.Get())) {return false;}
-    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
-    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
-    TArray<FString> Errors;
-    if (!TestTrue(TEXT("Registry ready"), Registry->RegisterItemSystem(Root.Get(), Errors)))
-        {return false;}
+struct FCaseRegistry
+{
+    TStrongObjectPtr<UGridItemSystemAsset> Root;
+    TStrongObjectPtr<UGameInstance> GI;
+    TStrongObjectPtr<UGridItemSubsystem> Registry;
+    bool bReady = false;
+    FCaseRegistry()
+        : Root(LoadObject<UGridItemSystemAsset>(
+            nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")))
+        , GI(NewObject<UGameInstance>())
+        , Registry(NewObject<UGridItemSubsystem>(GI.Get()))
+    {
+        TArray<FString> Errors;
+        bReady = Root.IsValid() && Registry.IsValid() &&
+            Registry->RegisterItemSystem(Root.Get(), Errors);
+    }
+};
+static FGridItemSpawnInstance MakeSpawn(FName Id, int32 Level, int32 Quantity = 1)
+{
     FGridItemSpawnInstance Spawn;
     Spawn.SpawnId = FGuid::NewGuid();
-    Spawn.CanonicalItemId = TEXT("Item_Arrows_01");
-    Spawn.ItemLevel = 1;
+    Spawn.CanonicalItemId = Id;
+    Spawn.ItemLevel = Level;
+    Spawn.Quantity = Quantity;
+    return Spawn;
+}
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C1AmmoN1,
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeC1AmmoN1",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean064X10C1AmmoN1::RunTest(const FString&)
+{
+    ARMCLEAN064X10::FCaseRegistry Probe;
+    if (!TestTrue(TEXT("Real canonical registry ready"), Probe.bReady)) {return false;}
+    FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("Item_Arrows_01"), 1, 1);
     FGridLooseItemInstance Out;
-    if (!TestFalse(TEXT("Arrows N1 invalid"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out)))
-        {return false;}
-    Spawn.CanonicalItemId = TEXT("Weapon_StraightSword_01");
-    Spawn.ItemLevel = 0;
-    if (!TestFalse(TEXT("Weapon N0 invalid"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out)))
-        {return false;}
-    Spawn.ItemLevel = 20;
-    if (!TestTrue(TEXT("Weapon N20 valid"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out)))
-        {return false;}
-    Spawn.CanonicalItemId = TEXT("ARM_CLEAN06_X10_UNKNOWN");
-    if (!TestFalse(TEXT("Unknown ID invalid"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out)))
-        {return false;}
-    Spawn.CanonicalItemId = TEXT("Item_Arrows_01");
-    Spawn.ItemLevel = 0;
-    Spawn.Quantity = 0;
-    if (!TestFalse(TEXT("Zero quantity invalid"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out)))
-        {return false;}
-    Spawn.Quantity = 1;
-    Spawn.ItemDefinition = NewObject<UGridItemDefinitionAsset>(GI.Get());
+    return TestFalse(TEXT("Strict persisted physical identity condition"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C2WeaponN0,
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeC2WeaponN0",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean064X10C2WeaponN0::RunTest(const FString&)
+{
+    ARMCLEAN064X10::FCaseRegistry Probe;
+    if (!TestTrue(TEXT("Real canonical registry ready"), Probe.bReady)) {return false;}
+    FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("Weapon_StraightSword_01"), 0, 1);
+    FGridLooseItemInstance Out;
+    return TestFalse(TEXT("Strict persisted physical identity condition"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C3WeaponN20,
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeC3WeaponN20",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean064X10C3WeaponN20::RunTest(const FString&)
+{
+    ARMCLEAN064X10::FCaseRegistry Probe;
+    if (!TestTrue(TEXT("Real canonical registry ready"), Probe.bReady)) {return false;}
+    FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("Weapon_StraightSword_01"), 20, 1);
+    FGridLooseItemInstance Out;
+    return TestTrue(TEXT("Strict persisted physical identity condition"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C4UnknownId,
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeC4UnknownId",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean064X10C4UnknownId::RunTest(const FString&)
+{
+    ARMCLEAN064X10::FCaseRegistry Probe;
+    if (!TestTrue(TEXT("Real canonical registry ready"), Probe.bReady)) {return false;}
+    FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("ARM_CLEAN06_X10_UNKNOWN"), 0, 1);
+    FGridLooseItemInstance Out;
+    return TestFalse(TEXT("Strict persisted physical identity condition"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C5ZeroQuantity,
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeC5ZeroQuantity",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean064X10C5ZeroQuantity::RunTest(const FString&)
+{
+    ARMCLEAN064X10::FCaseRegistry Probe;
+    if (!TestTrue(TEXT("Real canonical registry ready"), Probe.bReady)) {return false;}
+    FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("Item_Arrows_01"), 0, 0);
+    FGridLooseItemInstance Out;
+    return TestFalse(TEXT("Strict persisted physical identity condition"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C6ContradictorySource,
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeC6ContradictorySource",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean064X10C6ContradictorySource::RunTest(const FString&)
+{
+    ARMCLEAN064X10::FCaseRegistry Probe;
+    if (!TestTrue(TEXT("Real canonical registry ready"), Probe.bReady)) {return false;}
+    FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("Item_Arrows_01"), 0, 1);
+    Spawn.ItemDefinition = NewObject<UGridItemDefinitionAsset>(Probe.GI.Get());
     Spawn.ItemDefinition->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
-    return TestFalse(TEXT("Contradictory legacy pointer invalid"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Out));
+    FGridLooseItemInstance Out;
+    return TestFalse(TEXT("Strict persisted physical identity condition"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10DWorld,
