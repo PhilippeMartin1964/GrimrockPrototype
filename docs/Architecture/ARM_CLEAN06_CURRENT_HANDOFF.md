@@ -5,7 +5,36 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
-## Dernier jalon fonctionnel confirmé — ARM-CLEAN06.4X.9.1
+## Reprise actuelle — ARM-CLEAN06.4X.11 (préflight palette)
+
+**Dernier jalon fonctionnel validé : ARM-CLEAN06.4X.10**
+sur `62dbfa08dea9fdee034754c7093934177d5ee3d3`.
+Les statuts `UE5.5.4/SilentTask` et `UE5.5.4/LocalAuto`
+sont SUCCESS sur ce commit. X.9.2 est également validé sur
+`3a6832d918fb20cb6bd061b6cd8848db612880b5`.
+
+- X.9.2 : les contenus initiaux non-ARM des réceptacles utilisent
+  `InitializeFromCanonicalItem`, avec niveaux physiques persistés.
+- X.10 : les `ItemSpawns` typés matérialisent leur `CanonicalItemId`
+  et `ItemLevel` via le lecteur physique strict partagé.
+  **Zéro ItemSpawn réel** dans les quatre niveaux actuels.
+- X.10 a nécessité un correctif : `ResolveItem` seul permettait
+  un N1 non-ARM ; `ResolvePersistedInstance` refuse cet état.
+  Les sondes de refus C1–C6 et la suite complète `Grimrock` passent.
+- **X.11 en cours :** vérifier en lecture seule les **33 entrées
+  directes de palette** avant toute bascule de leur UI/placement.
+  La publication de X.11 ne prouve pas PIE, ni parité visuelle UMG.
+- Prochaines étapes : placement canonique depuis la palette,
+  présentation/recherche/validation des entrées, acceptation des
+  réceptacles, armes ARM, éditeur complet, SaveGames sur copies et
+  suppression conditionnelle du legacy.
+- `master` seulement, un commit par étape, validation sur SHA final,
+  aucune écriture `.uasset`, `.umap`, `.sav` non autorisée.
+
+La section ci-dessous conserve l'historique des étapes acquises
+antérieurement ; elle n'indique plus le HEAD actuel.
+
+## Historique vérifié — point antérieur ARM-CLEAN06.4X.9.1
 
 **Vérifié sur GitHub, 16 novembre 2026.**
 Projet UE **5.5.4** : `PhilippeMartin1964/GrimrockPrototype`,
