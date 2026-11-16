@@ -11,6 +11,7 @@
 #include "GridReceptacleItemMetadataReadModel.h"
 #include "GridReceptacleContainedIdentityReadModel.h"
 #include "GridReceptacleInitialCanonicalReadModel.h"
+#include "GridReceptacleAcceptedCanonicalReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
@@ -157,11 +158,22 @@ void AGridReceptacleActor::InitializeRuntimeWorldObject(
 
 	bAcceptAnyItem = Params.bAcceptAnyItem;
 	AcceptedItemDefinitionIds.Reset();
+	const UGridItemSubsystem* AcceptanceRegistry = ResolveReceptacleItemRegistry(this);
 	for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Params.AcceptedItems)
 	{
-		if (AcceptedItem.ItemDefinition && !AcceptedItem.ItemDefinition->ItemDefinitionId.IsNone())
+		FName EffectiveId = NAME_None;
+		if (FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(
+			AcceptanceRegistry, AcceptedItem, EffectiveId))
 		{
-			AcceptedItemDefinitionIds.AddUnique(AcceptedItem.ItemDefinition->ItemDefinitionId);
+			AcceptedItemDefinitionIds.AddUnique(EffectiveId);
+		}
+		else if (!AcceptedItem.CanonicalItemId.IsNone())
+		{
+			// Never turn an invalid persisted canonical rule into a
+			// permissive legacy rule or an accept-any fallback.
+			UE_LOG(LogGridReceptacle, Warning,
+				TEXT("Receptacle acceptance rule rejected: canonical ItemId=%s ObjectId=%s."),
+				*AcceptedItem.CanonicalItemId.ToString(), *ObjectId.ToString());
 		}
 	}
 
