@@ -5,6 +5,67 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## Reprise actuelle — ARM-CLEAN06.4X.17.1 VALIDÉ (torche rééquipable)
+
+**Dernier SHA fonctionnel validé :**
+`a33247db90cf05029f542718b04530958869dbaa`
+(`UE5.5.4/SilentTask=SUCCESS` et
+`UE5.5.4/LocalAuto=SUCCESS`).
+Parent fonctionnel X.17 :
+`fe5d05a44f5dd8cd3c0d94cf7cf3544f3ede4ff1`
+(les deux contrôles également SUCCESS).
+
+**Régression rapportée en PIE :** une torche se détache et se
+réinsère dans le réceptacle, mais après ramassage dans le sac
+elle ne peut plus être mise en main principale/secondaire ;
+le groupe se retrouve dans l'obscurité. Armes, potions,
+flasques et combats préalablement validés.
+
+**Cause C++ confirmée :** le cutover 06.3G refusait
+indistinctement **tout non-ARM canonique** dans
+`CanEquipItemToSlot` et
+`FGridCanonicalEquipmentSlotsReadModel`.
+Pourtant les `UGridOtherEquipmentDefinitionAsset`
+portent déjà `EquipmentSlots` et `HandPolicy`
+canoniques. Torch est un non-ARM équipable, non une
+arme de progression N1–N20.
+
+**Correction X.17 :** le `UGridItemSubsystem` projette
+`NonArmEquipmentSlots`/`bNonArmTwoHanded`
+depuis le seul registre. Equipement direct,
+curseur, menus contextuels et tooltips lisent ces
+permissions ; les munitions et consommables
+restent non équipables et les non-ARM restent N0.
+L'identité, le niveau, le GUID et `bLightsEnabled`
+sont préservés pendant l'équipement.
+
+**Test complémentaire X.17.1 :** véritable
+`DA_Item_Torch`, main principale et secondaire,
+conservation de GUID et de l'état lumineux, plus
+`UGridPartyIlluminationComponent` :
+`ActiveSourceId` correspond à la torche et le
+PointLight existe avec intensité/rayon canoniques.
+Les deux commits sont **validés UE 5.5.4**.
+
+**Recette PIE à confirmer par le propriétaire :**
+sur une copie de niveau, détacher la torche du support,
+la ramasser, l'équiper dans chacune des deux mains,
+vérifier le retour de l'éclairage et de la flamme,
+la retirer puis la remettre sur le support. Contrôler
+également le glisser-déposer sac/curseur. Ne pas
+modifier les vrais niveaux ni les `.sav` personnels.
+La validation -NullRHI n'est pas une preuve du rendu PIE.
+
+**À poursuivre après recette :** migration transactionnelle
+des règles historiques `AcceptedItems` et
+`AcceptedKeyItems` réellement enregistrées,
+en séparant réceptacles et serrures ; puis
+ARM physiques, sauvegardes sur copies et
+suppression conditionnelle des anciens pointeurs.
+
+Le point ci-dessous décrit l'état **historique X.16.3**,
+et ne constitue plus le HEAD fonctionnel courant.
+
 ## Reprise actuelle — ARM-CLEAN06.4X.16.3 VALIDÉ
 
 **Dernier jalon fonctionnel validé : ARM-CLEAN06.4X.16.3**
