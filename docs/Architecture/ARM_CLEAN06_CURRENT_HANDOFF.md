@@ -5,6 +5,24 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## Reprise après validation PIE du 16 novembre 2026 — ARM-CLEAN06.4X.16.9
+
+Le propriétaire confirme avoir testé et validé en PIE les serrures cuivre/fer
+après la migration binaire 16.8.5. Ne pas refaire cette recette ni revenir
+aux anciennes étapes X.16.8.1–.4.2.
+
+16.9 ajoute une régression **strictement en mémoire** des SaveGames courants
+(v27 exact-match), pour les identités d'objets, niveaux N0/N20,
+quantités, états de réceptacles/serrures/portes et transferts PIT.
+Lancer les statuts automatiques Windows sur le SHA **réel** de 16.9
+avant de considérer cette régression validée.
+
+**Aucun** fichier .sav personnel, .uasset ou carte n'est modifié par 16.9.
+Les deux champs legacy de SaveGame restent présents volontairement.
+Ensuite : revue des derniers lecteurs historiques et copies isolées de
+SaveGames v27, puis seulement 06.5 et 06.6. Lire
+ARM_CLEAN06_4X169_SAVEGAME_MEMORY_ROUNDTRIP.md.
+
 ## Reprise actuelle — ARM-CLEAN06.4X.16.8.5 VALIDÉ (serrures cuivre et fer)
 
 **Dernier commit fonctionnel validé :**
