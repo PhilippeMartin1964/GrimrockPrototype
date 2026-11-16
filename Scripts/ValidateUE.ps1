@@ -365,14 +365,14 @@ $IsIsolatedWorktree = (Split-Path -Leaf $RepoRoot) -ceq 'GrimrockPrototype_UEVal
 if ($IsIsolatedWorktree -and -not $SkipBuild -and -not $SkipAutomation -and
     $AutomationFilter -ceq 'Grimrock' -and
     (Split-Path -Leaf $ReportRoot) -ceq 'Automation') {
-    $ExactHookSubject = 'feat(ARM-CLEAN06.4X.16.7.2B): trigger guarded native receptacle migration after UE suite'
+    $ExactHookSubject = 'fix(ARM-CLEAN06.4X.16.7.2C): repair isolated native migration gate and revalidate'
     $GitSubject = @(& git -C $RepoRoot log -1 --format=%s)
     if ($LASTEXITCODE -ne 0) { throw 'Exact validation commit check unavailable.' }
     if ($GitSubject.Count -eq 1 -and [string]$GitSubject[0] -ceq $ExactHookSubject) {
         $Head = @(& git -C $RepoRoot rev-parse HEAD)
         if ($LASTEXITCODE -ne 0 -or $Head.Count -ne 1 -or
-            [string]$Head[0] -notmatch '^[0-9a-f]{40}
-) {
+            [string]$Head[0] -notmatch '^[0-9a-f]+$' -or
+            ([string]$Head[0]).Length -ne 40) {
             throw 'Exact validated Git SHA unavailable.'
         }
         $ExactSha = [string]$Head[0]
