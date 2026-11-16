@@ -12,6 +12,9 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridThrownItemActor.h"
@@ -429,6 +432,26 @@ FGridPlayerAttackPresentationProfile UGridPlayerAttackPresentationComponent::Res
 	if (Request.OffensiveItemDefinitionId.IsNone())
 	{
 		return MakeUnarmedProfile();
+	}
+	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Canonical = GameInstance ?
+		GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	if (IsValid(Canonical) && Canonical->HasCanonicalItem(Request.OffensiveItemDefinitionId))
+	{
+		FGridResolvedItem Resolved;
+		if (Canonical->ResolveItem(Request.OffensiveItemDefinitionId, 0, Resolved) &&
+			!Resolved.bIsArmament && Resolved.AmmoKindId.IsNone())
+		{
+			FGridPlayerAttackPresentationProfile Native;
+			if (Canonical->ResolveDetailedNonArmEquippedPresentation(
+				Request.OffensiveItemDefinitionId, Request.OffensiveEquipmentSlot, Native))
+			{
+				return Native;
+			}
+			// A registered non-ARM item never falls back to its historical
+			// PlayerAttackPresentationProfile even when the binding is invalid.
+			return FGridPlayerAttackPresentationProfile();
+		}
 	}
 	const UGridPartyInventoryComponent* Inventory = PartyPawn ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
 	const UGridItemDefinitionAsset* Definition = Inventory ? Inventory->FindItemDefinition(Request.OffensiveItemDefinitionId) : nullptr;

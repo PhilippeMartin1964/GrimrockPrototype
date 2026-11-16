@@ -189,6 +189,18 @@ public:
 	bool ResolveDetailedNonArmAction(FName ItemId, int32 ItemLevel,
 		FName ActionId, FGridCombatActionDefinition& OutAction) const;
 
+	/** A native non-ARM equipped action requires an ACTUAL physical source
+	 * slot, never a virtual second attack for a two-handed item. No legacy DA. */
+	bool ResolveDetailedNonArmEquippedAction(const FGridItemInstance& Instance,
+		EGridEquipmentSlot SourceHand, FName ActionId,
+		FGridCombatActionDefinition& OutAction) const;
+
+	/** The ONE detailed non-ARM presentation attached to a physically held
+	 * equipment source. Never reads the old UGridItemDefinitionAsset. */
+	bool ResolveDetailedNonArmEquippedPresentation(FName ItemId,
+		EGridEquipmentSlot SourceHand,
+		FGridPlayerAttackPresentationProfile& OutPresentation) const;
+
 	/** Strict equipment-hand entry point for ATTACK only.
 	 * An item that can equip OffHand does NOT automatically gain an OffHand attack.
 	 * Use ResolveBoundAction for non-attack consumables/abilities.

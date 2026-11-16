@@ -28,10 +28,10 @@ bool FGridClean064UQuickActionMigration::RunTest(const FString&)
         return false;
     }
     const int32 DetailedCount = Root->ActionCatalogue->DetailedActions.Num();
-    // Before Editor materialization there are zero detailed actions. The
-    // published binary must contain precisely the three authentic QuickItems.
-    if (!TestTrue(TEXT("Only 0 pre-migration or 3 post-migration detailed QuickItems"),
-        DetailedCount == 0 || DetailedCount == 3))
+    // 06.4V adds one separately checked non-ARM equipped action to the
+    // SAME catalogue. This test retains exactly its three original QuickItems.
+    if (!TestTrue(TEXT("Three original QuickItems, plus optional equipped action"),
+        DetailedCount == 3 || DetailedCount == 4))
     {
         return false;
     }
@@ -47,6 +47,10 @@ bool FGridClean064UQuickActionMigration::RunTest(const FString&)
     for (const FGridCanonicalRuntimeAction& Entry : Root->ActionCatalogue->DetailedActions)
     {
         const FGridCombatActionDefinition& Saved = Entry.Definition;
+        if (Saved.SourcePolicy == EGridCombatActionSourcePolicy::Equipment)
+        {
+            continue; // Separate V test checks its exact equipped owner/hand.
+        }
         if (!TestTrue(TEXT("Original QuickItem action valid"), Saved.IsValid()) ||
             !TestEqual(TEXT("QuickItem source policy retained"), Saved.SourcePolicy,
                 EGridCombatActionSourcePolicy::QuickItem))
@@ -93,7 +97,7 @@ bool FGridClean064UQuickActionMigration::RunTest(const FString&)
         }
     }
     return TestEqual(TEXT("Native action owners mapped after authoring"),
-        Checked, DetailedCount);
+        Checked, 3);
 }
 
 #endif

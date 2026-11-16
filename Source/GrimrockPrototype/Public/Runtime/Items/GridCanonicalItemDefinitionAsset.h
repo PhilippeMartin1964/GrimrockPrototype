@@ -190,6 +190,11 @@ class GRIMROCKPROTOTYPE_API UGridOtherEquipmentDefinitionAsset : public UGridNon
 	GENERATED_BODY()
 
 public:
+	/** Exact stack capacity for equipped non-ARM throwables. A weapon ARCHEtype
+	 * is not inferred from a stack, and non-stackable gear retains capacity 1. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Stack", meta = (ClampMin = "1"))
+	int32 MaxStack = 1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
 	TArray<EGridEquipmentSlot> EquipmentSlots;
 

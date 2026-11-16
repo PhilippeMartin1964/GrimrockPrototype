@@ -173,8 +173,35 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 	TArray<FString> SavedActionErrors;
 	TestTrue(TEXT("Combined canonical action catalogue is valid"),
 		Persisted->ActionCatalogue->Validate(SavedActionErrors));
-	TestTrue(TEXT("Real presentation catalogue exactly matches source candidate"),
-		SameAuthoredFields(Candidate->ActionPresentationCatalogue, Persisted->ActionPresentationCatalogue));
+	// 06.4V adds ONE exact non-ARM presentation to the EXISTING global
+	// presentation catalogue. The original ARM presentations must remain
+	// bit-identical; only the separately tested DetailedPresentations are new.
+	const UGridActionPresentationCatalogueAsset* OldPresentations =
+		Candidate->ActionPresentationCatalogue;
+	const UGridActionPresentationCatalogueAsset* SavedPresentations =
+		Persisted->ActionPresentationCatalogue;
+	bool bOriginalPresentationParity = IsValid(OldPresentations) &&
+		IsValid(SavedPresentations) &&
+		OldPresentations->GetClass() == SavedPresentations->GetClass() &&
+		OldPresentations->DetailedPresentations.IsEmpty();
+	if (bOriginalPresentationParity)
+	{
+		for (TFieldIterator<FProperty> Property(OldPresentations->GetClass()); Property; ++Property)
+		{
+			if (Property->GetFName() ==
+				GET_MEMBER_NAME_CHECKED(UGridActionPresentationCatalogueAsset, DetailedPresentations))
+			{
+				continue;
+			}
+			if (!Property->Identical_InContainer(OldPresentations, SavedPresentations))
+			{
+				bOriginalPresentationParity = false;
+				break;
+			}
+		}
+	}
+	TestTrue(TEXT("All original ARM presentations exactly match source candidate"),
+		bOriginalPresentationParity);
 	// This test proves the original 23 ARM/ammo definitions. The real
 	// registry may also contain additional, separately checked non-ARM
 	// definitions after a native Editor materialization; never reject them

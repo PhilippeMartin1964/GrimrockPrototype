@@ -9,22 +9,21 @@
 
 - Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
 - Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
-- Dernier jalon validé en UE5.5.4 : **ARM-CLEAN06.4T**,
-  commit final fcf13df12f31e5da4018fc10d2b621d84212b33e,
-  avec SilentTask, LocalAuto et ARM-CLEAN06.4T tous SUCCESS.
-  Issue #153 : 6 vrais .uasset non-ARM et DA_ItemSystem modifié,
-  29 définitions dans le registre. Aucune écriture SaveGame.
-- **ARM-CLEAN06.4U en développement** : créer trois vrais
-  QuickItems canoniques et sauver trois nouveaux .uasset,
-  DA_ActionCatalogue.uasset et DA_ItemSystem.uasset par Unreal
-  Editor. Les profils de combat complets résident seulement
-  dans le catalogue global, avec un nouveau lecteur canonique
-  sans fallback legacy. Deux identités d'équipement différées.
-- Exiger trois checks Windows SUCCESS sur le commit U final
-  après amend de son propre commit avec les cinq binaires Git LFS.
-  Ce n'est pas fini si seuls les fichiers C++ sont publiés.
-- Les 40 références monde/palette/réceptacle et les SaveGames
-  nécessitent encore leur cutover ; PIE antérieur non probant.
+- Dernier jalon **confirmé** : ARM-CLEAN06.4U,
+  SHA final `1fd53212b60b26363a874db2b561dcf2c92347d2`,
+  SilentTask/LocalAuto/ARM-CLEAN06.4U = **SUCCESS** ;
+  issue [#154](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/154).
+- Registre UE réel : 32 définitions, dont 9 des 11 non-ARM ;
+  3 QuickItems avec profils complets dans un seul catalogue.
+- **ARM-CLEAN06.4V en cours** : convertir les deux ItemId manquants
+  et l'unique action équipée + sa présentation, avec cinq vrais
+  binaires UE en **un seul commit Git final**.
+- Ne déclarer V terminé qu'après les trois SUCCESS Windows
+  sur son **SHA final**, pas sur son commit de déclenchement.
+- Les 40 références historiques monde/palette/réceptacle,
+  les SaveGames et le code legacy restent à convertir/supprimer
+  séparément. AUCUN nouveau fallback legacy au runtime.
+
 ### Jalons récents déjà réalisés — ne pas les refaire
 
 | Jalon | Portée | Commit |
@@ -654,6 +653,25 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Lire docs/Architecture/ARM_CLEAN06_4U_NONARM_QUICKITEM_REAL_MIGRATION.md.
 - Après U : les 2 objets action/équipement, les 40
   références historiques, SaveGame, puis 06.5/06.6.
+## ARM-CLEAN06.4V — reprise de la conversion effective
+
+- Parent validé : 06.4U `1fd53212b60b26363a874db2b561dcf2c92347d2`.
+- `GridArmClean064VNonArmEquipmentMaterialize` crée deux vrais
+  DataAssets puis écrit DA_ItemSystem, DA_ActionCatalogue et
+  DA_ActionPresentationCatalogue. La vérification `-Verify`
+  recharge les fichiers dans un second Unreal Editor.
+- `ResolveDetailedNonArmEquippedAction` et le TurnManager
+  transmettent la source de main physique et les profils complets.
+  Les équipements empilables conservent leur MaxStack unique.
+- `Scripts/ApplyARM_CLEAN06_4V_NonArmEquipmentMigration.ps1`
+  limite les écritures à cinq binaires LFS et n'amende que
+  son propre commit V avec lease après les tests.
+- Exiger SilentTask, LocalAuto et ARM-CLEAN06.4V SUCCESS sur
+  le commit final comportant ces binaires ; sinon V reste ouvert.
+- Puis : 40 références monde, SaveGames sur copies, nettoyage 06.5,
+  PIE/Chaos/Cook/Shipping 06.6.
+- Détail : `docs/Architecture/ARM_CLEAN06_4V_LAST_NONARM_EQUIPMENT_MIGRATION.md`.
+
 ## Étapes ultérieures inchangées
 
 1. Terminer l'audit des autres lecteurs 06.3 (jets génériques,

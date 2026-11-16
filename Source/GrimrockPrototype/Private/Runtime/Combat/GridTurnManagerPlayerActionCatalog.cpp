@@ -344,9 +344,32 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			// 06.3AP: identical canonical source transport for single attacks and dual wield.
 			// No historical CombatActions or N1 snapshots for a registered ItemId.
 			FGridResolvedItem Resolved;
-			if (!Canonical->ResolveItem(EquippedItem.ItemDefinitionId, EquippedItem.ItemLevel, Resolved) ||
-				!Resolved.bIsArmament || !Resolved.Weapon.HasAttackSourceInHand(HandSlot))
+			if (!Canonical->ResolveItem(EquippedItem.ItemDefinitionId, EquippedItem.ItemLevel, Resolved))
+			{
 				continue;
+			}
+			if (!Resolved.bIsArmament)
+			{
+				// The physical hand and full action policy come from the concrete
+				// non-ARM definition and the ONE canonical action catalogue.
+				// Never read old UGridItemDefinitionAsset::CombatActions here.
+				for (const FGridItemActionBinding& Binding : Resolved.AvailableActions)
+				{
+					FGridCombatActionDefinition Definition;
+					if (Canonical->ResolveDetailedNonArmEquippedAction(
+						EquippedItem, HandSlot, Binding.ActionId, Definition))
+					{
+						AddMON126Contribution(Definition, EquippedItem.ItemDefinitionId,
+							EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity,
+							OutContributions);
+					}
+				}
+				continue;
+			}
+			if (!Resolved.Weapon.HasAttackSourceInHand(HandSlot))
+			{
+				continue;
+			}
 			for (const FGridItemActionBinding& Binding : Resolved.AvailableActions)
 			{
 				FGridCombatActionDefinition Definition;

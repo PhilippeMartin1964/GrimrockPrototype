@@ -168,6 +168,12 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		}
 		// ARM-CLEAN06.4Q: generic non-ARM stack capacity is an item-family
 		// authority, distinct from consumable and ammunition MaxStack.
+		if (const UGridOtherEquipmentDefinitionAsset* Equipment =
+			Cast<UGridOtherEquipmentDefinitionAsset>(Definition))
+		{
+			OutItem.MaxStack = Equipment->MaxStack;
+			OutItem.EquippedMesh = Equipment->GetEffectiveEquippedMesh();
+		}
 		if (const UGridGenericStackableDefinitionAsset* Generic =
 			Cast<UGridGenericStackableDefinitionAsset>(Definition))
 		{
@@ -347,6 +353,84 @@ bool UGridItemSubsystem::ResolveDetailedNonArmAction(
 	}
 	OutAction = *Detailed;
 	return true;
+}
+
+bool UGridItemSubsystem::ResolveDetailedNonArmEquippedAction(
+	const FGridItemInstance& Instance, EGridEquipmentSlot SourceHand,
+	FName ActionId, FGridCombatActionDefinition& OutAction) const
+{
+	OutAction = FGridCombatActionDefinition();
+	if (!RootRegistry || !Instance.IsValid() || Instance.ItemLevel < 0 ||
+		Instance.ItemLevel > 20 || Instance.Quantity < 1 ||
+		(SourceHand != EGridEquipmentSlot::MainHand &&
+		 SourceHand != EGridEquipmentSlot::OffHand) ||
+		Instance.EquipmentSlot != SourceHand || ActionId.IsNone())
+	{
+		return false;
+	}
+	const TObjectPtr<UGridCanonicalItemDefinitionAsset>* Found =
+		ItemIndex.Find(Instance.ItemDefinitionId);
+	const UGridOtherEquipmentDefinitionAsset* Equipment =
+		Found ? Cast<UGridOtherEquipmentDefinitionAsset>(Found->Get()) : nullptr;
+	if (!IsValid(Equipment) ||
+		!Equipment->EquipmentSlots.Contains(SourceHand) ||
+		!Equipment->CanEquipToSlot(SourceHand) ||
+		(Equipment->HandPolicy == EGridNonArmamentHandPolicy::TwoHanded &&
+		 SourceHand == EGridEquipmentSlot::OffHand))
+	{
+		return false;
+	}
+	FGridCombatActionDefinition Exact;
+	if (!ResolveDetailedNonArmAction(Instance.ItemDefinitionId,
+		Instance.ItemLevel, ActionId, Exact) ||
+		Exact.SourcePolicy != EGridCombatActionSourcePolicy::Equipment ||
+		Exact.ActionId != ActionId ||
+		(Exact.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+		 !Exact.OffensiveProfile.IsValid()))
+	{
+		return false;
+	}
+	OutAction = MoveTemp(Exact);
+	return true;
+}
+
+bool UGridItemSubsystem::ResolveDetailedNonArmEquippedPresentation(
+	FName ItemId, EGridEquipmentSlot SourceHand,
+	FGridPlayerAttackPresentationProfile& OutPresentation) const
+{
+	OutPresentation = FGridPlayerAttackPresentationProfile();
+	if (!RootRegistry || !RootRegistry->ActionCatalogue ||
+		!RootRegistry->ActionPresentationCatalogue || ItemId.IsNone() ||
+		(SourceHand != EGridEquipmentSlot::MainHand &&
+		 SourceHand != EGridEquipmentSlot::OffHand))
+	{
+		return false;
+	}
+	const TObjectPtr<UGridCanonicalItemDefinitionAsset>* Found = ItemIndex.Find(ItemId);
+	const UGridOtherEquipmentDefinitionAsset* Equipment =
+		Found ? Cast<UGridOtherEquipmentDefinitionAsset>(Found->Get()) : nullptr;
+	if (!IsValid(Equipment) || !Equipment->EquipmentSlots.Contains(SourceHand) ||
+		!Equipment->CanEquipToSlot(SourceHand) ||
+		(Equipment->HandPolicy == EGridNonArmamentHandPolicy::TwoHanded &&
+		 SourceHand == EGridEquipmentSlot::OffHand))
+	{
+		return false;
+	}
+	for (const FGridItemActionBinding& Binding : Equipment->ActionBindings)
+	{
+		const FGridCombatActionDefinition* Action =
+			RootRegistry->ActionCatalogue->FindDetailed(Binding.ActionId);
+		const FGridPlayerAttackPresentationProfile* Profile =
+			RootRegistry->ActionPresentationCatalogue->FindDetailed(Binding.PresentationId);
+		if (Action && Action->IsValid() &&
+			Action->SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+			Profile && Profile->IsValid())
+		{
+			OutPresentation = *Profile;
+			return true;
+		}
+	}
+	return false;
 }
 
 bool UGridItemSubsystem::ResolveBoundAttackForHand(
