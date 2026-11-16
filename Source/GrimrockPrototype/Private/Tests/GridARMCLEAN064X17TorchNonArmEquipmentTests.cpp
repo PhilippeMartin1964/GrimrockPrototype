@@ -7,6 +7,8 @@
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridPartyIlluminationComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -151,6 +153,32 @@ bool FGridClean064X17TorchHandRegression::RunTest(const FString&)
             0, EGridEquipmentSlot::OffHand, Equipped)) ||
         !TestTrue(TEXT("Off torch preserves light state"),
             Equipped.RuntimeObjectId == Off.RuntimeObjectId && Equipped.bLightsEnabled))
+        {return false;}
+
+    // The real torch must illuminate the PARTY after being equipped,
+    // not merely occupy a valid equipment slot.
+    UGridPartyIlluminationComponent* PartyLight =
+        NewObject<UGridPartyIlluminationComponent>(F.Pawn, TEXT("TorchPartyLightRegression"));
+    if (!TestNotNull(TEXT("Explicit party light component"), PartyLight))
+        {return false;}
+    PartyLight->SetupAttachment(F.Pawn->GetRootComponent());
+    F.Pawn->AddInstanceComponent(PartyLight);
+    PartyLight->RegisterComponent();
+    PartyLight->RefreshFromEquipment(F.Inventory, nullptr);
+    if (!TestTrue(TEXT("Lit equipped torch activates party illumination"),
+        PartyLight->HasActiveIlluminationSource()) ||
+        !TestEqual(TEXT("Torch ItemId is party light source"),
+            PartyLight->ActiveSourceId, Torch->ItemDefinitionId) ||
+        !TestTrue(TEXT("Torch supplies actual point light"),
+            PartyLight->RuntimeConfig.bUsePointLight &&
+            PartyLight->RuntimeConfig.LightIntensity > 0.0f &&
+            PartyLight->RuntimeConfig.LightRadius > 0.0f) ||
+        !TestTrue(TEXT("Party source uses real canonical torch intensity"),
+            FMath::IsNearlyEqual(PartyLight->RuntimeConfig.LightIntensity,
+                Resolved.LightEmitter.LightIntensity)))
+        {return false;}
+    UPointLightComponent* Light = F.Pawn->FindComponentByClass<UPointLightComponent>();
+    if (!TestNotNull(TEXT("Equipped torch creates real point-light component"), Light))
         {return false;}
 
     // Canonical ammunition never borrows obsolete old hand policy.

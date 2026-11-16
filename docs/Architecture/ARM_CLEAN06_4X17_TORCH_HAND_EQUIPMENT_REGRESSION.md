@@ -50,3 +50,14 @@ pas le rendu réel de la torche tenue ni la luminosité
 effective en PIE. Ces deux points doivent être
 retestés en jeu après compilation et validation UE.
 Aucun `.uasset`, `.umap` ni `.sav` modifié.
+
+## Test complémentaire X.17.1 — Éclairage du groupe
+
+Le test réel de torche vérifie maintenant l'ensemble
+`bag -> MainHand/OffHand -> UGridPartyIlluminationComponent` :
+`ActiveSourceId` conserve l'ItemId de la torche,
+`HasActiveIlluminationSource` est vrai, le PointLight
+runtime existe et intensité/rayon correspondent aux données
+canoniques. Ce test protège le retour à la lumière après
+le rééquipement ; la visibilité effective et les ombres
+dans le donjon doivent toujours être contrôlées en PIE.
