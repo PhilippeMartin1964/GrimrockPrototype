@@ -5,9 +5,33 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
-## Reprise actuelle — ARM-CLEAN06.4X.14 VALIDÉ
+## Reprise actuelle — ARM-CLEAN06.4X.15 VALIDÉ
 
-**Vérifié sur GitHub, 16 novembre 2026.** Projet UE5.5.4,
+**Vérifié sur GitHub, 16 novembre 2026.**
+Dernier jalon fonctionnel : **ARM-CLEAN06.4X.15**,
+SHA `8b9d14d8e6499e3f7c3a778d4497b1d07b32e4c1`,
+avec **`UE5.5.4/SilentTask=SUCCESS` et
+`UE5.5.4/LocalAuto=SUCCESS`**.
+
+X.15 a ajouté **uniquement** un inventaire en lecture seule des
+règles `AcceptedItems` de réceptacles et
+`AcceptedKeyItems/AcceptedKeyIds` des serrures murales,
+sur les quatre niveaux natifs et les définitions d'objets
+réelles retrouvées dans l'Asset Registry. Les statuts
+publics confirment le succès de la suite UE, **pas les nombres
+détaillés**, qui restent dans les journaux Windows privés.
+Lire `ARM_CLEAN06_4X15_PUZZLE_ACCEPTANCE_READONLY_INVENTORY.md`
+avant toute conversion de règles.
+
+**Recette PIE utilisateur positive :** ramassage des armes,
+utilisation des potions et flasques, combats. Palette Slate
+et Selected Object inspectés visuellement. **Non encore
+certifié :** insertion/retrait dans les réceptacles,
+refus des objets non acceptés, déclenchements d'énigmes,
+Save/Continue et effets physiques/visuels associés.
+
+**La validation précédente X.14** est conservée ci-dessous
+comme historique : Projet UE5.5.4,
 branche `master` uniquement. **Dernier SHA fonctionnel validé :**
 
 `d9595b6308374da5f7fb53d7cab5fa279e9cfe60` —
@@ -25,6 +49,7 @@ relire le HEAD effectif de GitHub et ses nouveaux statuts.
 | X.12 | `4f6ed4c4d6eb` | Écriture du `CanonicalItemId` et du niveau lors du placement/édition |
 | X.13 | `d330d613d175` | Parité 33/33 des labels, descriptions et chemins d'icônes |
 | X.14 | `d9595b630837` | Slate : recherche, noms et icônes lus depuis le registre |
+| X.15 | `8b9d14d8e649` | Inventaire read-only des règles de réceptacles et de serrures, deux contrôles SUCCESS |
 
 Ces étapes ne changent **aucun vrai niveau ou DataAsset binaire, aucun
 SaveGame, WBP, Blueprint ni `.umap`** depuis X.9.2. X.11/X.13
@@ -45,12 +70,14 @@ rejouer 06.4W ou X.5, ni réécrire les sauvegardes personnelles.
    (lumière, Niagara, collisions, interaction, énigme).
    Suivre `docs/Architecture/ARM_CLEAN06_4X14_PIE_SMOKE_RECIPE.md`.
    Ces observations **ne sont pas prouvées par `-NullRHI`**.
-2. **X.15 proposé :** audit ciblé read-only des `AcceptedItems`
-   des réceptacles, des default contents des définitions d'objets
-   et des autres éditeurs/inspecteurs encore basés sur
-   `UGridItemDefinitionAsset`, puis plan de migration explicite.
-3. Bascule stricte des règles d'acceptation et des inspecteurs,
-   puis cutover visuel dédié des ARM et de leurs effets.
+2. **X.15 acquis** : inventaire des sources `AcceptedItems`
+   et `AcceptedKeys`, sans conversion ; consulter les journaux
+   d'Automation Windows pour les compteurs détaillés.
+3. **X.16 proposé** : établir le contrat de migration des
+   règles d'acceptation et des inspecteurs, puis cutover vérifié
+   des sources réelles uniquement après conservation des
+   priorités Definition/Instance, du comportement des clés et
+   des liens d'énigmes. Plus tard, présentation ARM dédiée.
 4. Migration des **SaveGames sur copies privées vérifiées**,
    tests PIE/Save/Continue/Chaos/Niagara/Cook, puis suppression
    des vieux pointeurs uniquement après preuve d'absence
