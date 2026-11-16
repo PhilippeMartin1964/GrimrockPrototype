@@ -5,6 +5,24 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## Reprise actuelle — X.16.6.1 : manifeste exact des 4 sources
+
+Le rapport réel Windows fourni par l'utilisateur confirme :
+- 44 définitions et 4 niveaux ; aucun override de réceptacle ou serrure ;
+- 6 listes de réceptacles, toutes sûres ; exactement 2 règles à migrer ;
+- 2 listes de serrures, toutes sûres ; exactement 2 pointeurs à migrer ;
+- aucun ID déjà canonique, aucune référence absente, inconnue
+  ou contradictoire dans ces quatre sources.
+
+X.16.6.1 ajoute un test read-only enregistrant nom de
+package/DefinitionId/ItemId de chaque référence et
+bloquant toute dérive des comptes. Les vrais assets restent
+intacts. Lire ARM_CLEAN06_4X1661_REAL_ACCEPTANCE_ASSET_MANIFEST.md.
+
+Une conversion binaire exige d'abord ces noms, un manifeste
+de packages exact, des copies SHA-256 et une vérification
+indépendante. Ne pas utiliser de noms de fichiers supposés.
+
 ## Reprise actuelle — ARM-CLEAN06.4X.16.5 VALIDÉ (règles d'énigmes)
 
 Dernier SHA fonctionnel validé :
