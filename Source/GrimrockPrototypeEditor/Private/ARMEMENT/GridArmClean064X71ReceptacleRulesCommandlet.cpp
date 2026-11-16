@@ -152,6 +152,21 @@ int32 UGridArmClean064X71ReceptacleRulesCommandlet::Main(const FString& Params)
             KeyPointers += Lock.AcceptedKeyItems.Num();
             ExplicitKeys += Lock.AcceptedKeyIds.Num();
         }
+        // The independent lock conversion adds these exact known keys.
+        // The receptacle audit must accept the post-migration schema
+        // without tolerating unrelated or partial lock IDs.
+        if (!Lock.AcceptedKeyIds.IsEmpty())
+        {
+            const FString ObjectPath = Definition->GetPathName();
+            const bool bCopper = ObjectPath ==
+                TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall.DA_Lock_CopperWall");
+            const bool bIron = ObjectPath ==
+                TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_IronWall.DA_Lock_IronWall");
+            if (Lock.AcceptedKeyIds.Num() != 1 ||
+                !((bCopper && Lock.AcceptedKeyIds[0] == FName(TEXT("Key_Copper"))) ||
+                  (bIron && Lock.AcceptedKeyIds[0] == FName(TEXT("Key_Iron")))))
+                return 4;
+        }
         for (const ARMCLEAN064X71::FTarget& Target : ARMCLEAN064X71::Receptacles)
         {
             if (Definition->GetPathName() != Target.ObjectPath) continue;
@@ -174,7 +189,7 @@ int32 UGridArmClean064X71ReceptacleRulesCommandlet::Main(const FString& Params)
     }
     if (LoadedLevels != 4 || DefinitionCount != 44 || ReceptacleLists != 6 ||
         Rules != 2 || KeyLists != 2 || KeyPointers != 2 ||
-        ExplicitKeys != 0 ||
+        (ExplicitKeys != 0 && ExplicitKeys != 2) ||
         OverrideReceptacles != 0 || OverrideLocks != 0 ||
         Targets.Num() != 2 || Targets[0] == Targets[1] ||
         (bApply && AlreadyCanonical != 0) ||
