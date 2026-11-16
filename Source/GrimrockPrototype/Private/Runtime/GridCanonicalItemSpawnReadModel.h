@@ -3,6 +3,7 @@
 #include "Core/GridLevelPlacementTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "GridWorldItemLevelReadModel.h"
 
 /**
  * ARM-CLEAN06.4X.10: one-shot materialization of typed ItemSpawns.
@@ -31,8 +32,19 @@ struct FGridCanonicalItemSpawnReadModel
             {
                 return false;
             }
+            // ResolveItem alone allows non-ARM N1 (family-level projection);
+            // already-authored physical instances must use the strict reader
+            // shared by world pickups and initial receptacle contents.
+            const FGridReceptacleItemMetadataReadView Physical =
+                FGridWorldItemLevelReadModel::ResolvePersistedInstance(
+                    Registry, nullptr, Source.CanonicalItemId, Source.ItemLevel);
+            if (!Physical.bCanonicalIdentity || !Physical.bResolved ||
+                Physical.FixedItemLevel != Source.ItemLevel)
+            {
+                return false;
+            }
             FGridResolvedItem Projected;
-            if (!Registry->ResolveItem(Source.CanonicalItemId, Source.ItemLevel, Projected) ||
+            if (!Registry->ResolveItem(Source.CanonicalItemId, Physical.FixedItemLevel, Projected) ||
                 !Projected.IsValid() || Projected.ItemId != Source.CanonicalItemId ||
                 Projected.ItemLevel != Source.ItemLevel)
             {

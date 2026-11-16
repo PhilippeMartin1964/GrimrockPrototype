@@ -37,3 +37,15 @@ réelle. Pas d'écriture de `.uasset`, `.umap`, `.sav`, Blueprint ou WBP.
 **Suite :** 33 entrées directes de palette, règles d'acceptation
 des réceptacles, présentation des armes ARM, outils éditeur, puis
 SaveGames sur copies privées avant tout retrait de pointeur ancien.
+
+## Correction de la porte de niveau physique
+
+Le diagnostic des sondes X.10 a isolé le cas `Item_Arrows_01 N1` :
+`UGridItemSubsystem::ResolveItem` projette une famille à un niveau donné,
+mais n'est pas à lui seul la validation d'un **niveau physique persisté**
+pour les non-ARM. Les autres lecteurs utilisent déjà
+`FGridWorldItemLevelReadModel::ResolvePersistedInstance`, qui refuse
+N1 pour une famille non-ARM et N0 pour une arme canonique connue.
+Le générateur adopte exactement ce lecteur strict, puis seulement la
+projection visuelle canonique. Les sondes C1–C6 restent indépendantes
+pour exposer immédiatement une future régression, sans journal privé.
