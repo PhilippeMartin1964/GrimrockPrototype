@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "GridTypedPlacementAuditTestUtils.h"
+#include "GridEditorTD073ApprovedCanonicalLockAcceptance.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -111,7 +112,7 @@ namespace GridTD0731SchemaAuditPrivate
 		AuditDefinitionPair(AssetPath, Context + TEXT(".DefaultReadableContent"), ReadableDefinition,
 			ReadableDefinition ? ReadableDefinition->ReadableContentId : NAME_None, Behavior.Item.DefaultReadableContentId, TEXT("ReadableContent"), Findings);
 
-		if (!Behavior.Lock.AcceptedKeyIds.IsEmpty())
+		if (!GridTD073ApprovedCanonicalLockAcceptance::IsHistoricalOrApproved(AssetPath, Behavior.Lock))
 		{
 			AddFinding(Findings, EGridTD0731FindingKind::LegacyField, TEXT("AUTHORING.LOCK_KEY_IDS"), AssetPath, Context + TEXT(".Lock"),
 				FString::Printf(

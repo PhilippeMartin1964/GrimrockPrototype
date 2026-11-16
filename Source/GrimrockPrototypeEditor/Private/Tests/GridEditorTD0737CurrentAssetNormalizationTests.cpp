@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "GridTypedPlacementAuditTestUtils.h"
+#include "GridEditorTD073ApprovedCanonicalLockAcceptance.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -63,7 +64,7 @@ namespace GridTD0737Normalization
 		AuditPair(AssetPath, Context + TEXT(".DefaultReadableContent"), Readable, Readable ? Readable->ReadableContentId : NAME_None,
 			Behavior.Item.DefaultReadableContentId, Candidates);
 
-		if (!Behavior.Lock.AcceptedKeyIds.IsEmpty())
+		if (!GridTD073ApprovedCanonicalLockAcceptance::IsHistoricalOrApproved(AssetPath, Behavior.Lock))
 		{
 			AddCandidate(Candidates, TEXT("AUTHORING.LOCK_KEY_IDS"), AssetPath, Context + TEXT(".Lock"));
 		}
@@ -247,14 +248,14 @@ bool FGridTD0737LockAuthoringNormalizedTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestTrue(TEXT("Copper lock legacy key ids are empty"), CopperLock->DefaultBehavior.Lock.AcceptedKeyIds.IsEmpty());
+	TestTrue(TEXT("Copper lock current/canonical key IDs are exact"), GridTD073ApprovedCanonicalLockAcceptance::IsHistoricalOrApproved(CopperLock->GetPathName(), CopperLock->DefaultBehavior.Lock));
 	TestEqual(TEXT("Copper lock has one accepted key asset"), CopperLock->DefaultBehavior.Lock.AcceptedKeyItems.Num(), 1);
 	if (CopperLock->DefaultBehavior.Lock.AcceptedKeyItems.Num() == 1 && CopperLock->DefaultBehavior.Lock.AcceptedKeyItems[0])
 	{
 		TestEqual(TEXT("Copper lock references Key_Copper"), CopperLock->DefaultBehavior.Lock.AcceptedKeyItems[0]->ItemDefinitionId, FName(TEXT("Key_Copper")));
 	}
 
-	TestTrue(TEXT("Iron lock legacy key ids are empty"), IronLock->DefaultBehavior.Lock.AcceptedKeyIds.IsEmpty());
+	TestTrue(TEXT("Iron lock current/canonical key IDs are exact"), GridTD073ApprovedCanonicalLockAcceptance::IsHistoricalOrApproved(IronLock->GetPathName(), IronLock->DefaultBehavior.Lock));
 	TestEqual(TEXT("Iron lock has one accepted key asset"), IronLock->DefaultBehavior.Lock.AcceptedKeyItems.Num(), 1);
 	if (IronLock->DefaultBehavior.Lock.AcceptedKeyItems.Num() == 1 && IronLock->DefaultBehavior.Lock.AcceptedKeyItems[0])
 	{

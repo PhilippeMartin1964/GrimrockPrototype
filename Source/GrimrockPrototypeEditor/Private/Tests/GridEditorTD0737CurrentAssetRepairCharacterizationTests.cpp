@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "GridTypedPlacementAuditTestUtils.h"
+#include "GridEditorTD073ApprovedCanonicalLockAcceptance.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -79,7 +80,7 @@ namespace GridTD0737Characterization
 			ReadableDefinition ? ReadableDefinition->ReadableContentId : NAME_None, Behavior.Item.DefaultReadableContentId, TEXT("ReadableContent"),
 			Candidates);
 
-		if (!Behavior.Lock.AcceptedKeyIds.IsEmpty())
+		if (!GridTD073ApprovedCanonicalLockAcceptance::IsHistoricalOrApproved(AssetPath, Behavior.Lock))
 		{
 			AddCandidate(Candidates, TEXT("AUTHORING.LOCK_KEY_IDS"), AssetPath, Context + TEXT(".Lock"),
 				FString::Printf(TEXT("AcceptedKeyIds contains %d id(s); current schema keeps AcceptedKeyItems only."), Behavior.Lock.AcceptedKeyIds.Num()));
