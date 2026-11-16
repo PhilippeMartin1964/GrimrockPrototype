@@ -365,7 +365,7 @@ $IsIsolatedWorktree = (Split-Path -Leaf $RepoRoot) -ceq 'GrimrockPrototype_UEVal
 if ($IsIsolatedWorktree -and -not $SkipBuild -and -not $SkipAutomation -and
     $AutomationFilter -ceq 'Grimrock' -and
     (Split-Path -Leaf $ReportRoot) -ceq 'Automation') {
-    $ExactHookSubject = 'fix(ARM-CLEAN06.4X.16.7.2D): repair Git wrapper and expose guarded failure phase'
+    $ExactHookSubject = 'fix(ARM-CLEAN06.4X.16.7.2F): repair validation hook syntax with exact checks'
     $GitSubject = @(& git -C $RepoRoot log -1 --format=%s)
     if ($LASTEXITCODE -ne 0) { throw 'Exact validation commit check unavailable.' }
     if ($GitSubject.Count -eq 1 -and [string]$GitSubject[0] -ceq $ExactHookSubject) {
@@ -415,11 +415,7 @@ if ($IsIsolatedWorktree -and -not $SkipBuild -and -not $SkipAutomation -and
             $PhaseCode = 'UNKNOWN'
             if (Test-Path -LiteralPath $Receipt -PathType Leaf) {
                 $ReadPhase = ([string](Get-Content -LiteralPath $Receipt -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
-                if ($ReadPhase -match '^[A-Z][A-Z0-9_]{0,63}
-    }
-}
-exit 0
-) { $PhaseCode = $ReadPhase }
+                if ($ReadPhase -match '^[A-Z][A-Z0-9_]{0,63}\z') { $PhaseCode = $ReadPhase }
             }
             try {
                 & gh.exe api -X POST $StatusUrl -f 'state=failure' -f "context=$StatusContext" -f "description=Two-package transaction blocked: $PhaseCode; no raw logs" --silent

@@ -45,8 +45,8 @@ function Check-Report($R,[string]$Mode) {
     }
 }
 Stage 'SCRIPT_STARTED'
-$Parent = 'cff8510c2749a4a6d27907b9937627768f4c45ea'
-$Subject = 'fix(ARM-CLEAN06.4X.16.7.2D): repair Git wrapper and expose guarded failure phase'
+$Parent = 'c9eb8bcfe5b0d7c43f4af1b13787c53260045aaa'
+$Subject = 'fix(ARM-CLEAN06.4X.16.7.2F): repair validation hook syntax with exact checks'
 $Files = @(
     'Content/GrimrockPrototype/Core/DataAssets/DA_Receptacle_TorchHolder.uasset',
     'Content/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Guardian.uasset'
