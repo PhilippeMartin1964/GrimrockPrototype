@@ -5,6 +5,54 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## Reprise actuelle — ARM-CLEAN06.4X.16.5 VALIDÉ (règles d'énigmes)
+
+Dernier SHA fonctionnel validé :
+f12487b61dd099cb3dcd9240c6e696ee07e3c651.
+UE5.5.4/SilentTask=SUCCESS et UE5.5.4/LocalAuto=SUCCESS.
+
+Retour PIE : la torche reste allumée lors du dépôt au sol,
+du ramassage et du rééquipement (X.18 validé manuellement).
+Les objets, l'inventaire, le combat, les réceptacles et les
+énigmes existants ont également été contrôlés dans les jalons précédents.
+
+- X.16.4 : 50e9f628d844f96f187f72cca38c3a2d03a9f6bd.
+  Préflight atomique en lecture seule des AcceptedItems des
+  définitions de réceptacles et de leurs surcharges des quatre niveaux.
+  Une référence absente, inconnue ou contradictoire interdit
+  de convertir la liste entière.
+- X.16.5 : f12487b61dd099cb3dcd9240c6e696ee07e3c651.
+  Préflight indépendant des AcceptedKeyItems et AcceptedKeyIds
+  de serrures, en préservant tous les IDs explicitement authorés,
+  même ceux des clés narratives extérieures au registre.
+  L'ensemble des clés acceptées est inchangé avant/après.
+- Les deux jalons ont passé les deux contrôles UE Windows.
+  Les vrais DataAssets, .umap, WBP, SaveGames et liens
+  d'énigme ne sont pas réécrits par ces préflights.
+
+ATTENTION : une suite d'automatisation verte n'atteste pas
+que toutes les références sont convertibles. Les décomptes
+des listes sûres et bloquées ne figurent que dans
+les journaux UE de l'agent Windows, non dans les
+statuts GitHub.
+
+La porte de migration effective est documentée dans
+ARM_CLEAN06_4X166_ACCEPTANCE_MIGRATION_GATE.md.
+La prochaine intervention nécessaire est la récupération
+des deux lignes de compteurs anonymisées de ce rapport.
+Ne pas lancer une conversion des vrais assets avant de
+connaître ces nombres et de disposer d'un manifeste
+de packages, de copies SHA-256 et d'une vérification
+par réouverture UE indépendante.
+
+Travail futur : migrer les règles de réceptacles et de
+serrures séparément, valider refus/acceptation et énigmes
+en PIE, puis considérer les derniers lecteurs historiques,
+SaveGames sur copies et suppression conditionnelle du legacy.
+Ne jamais relancer les migrations 06.4W et 06.4X.5.
+
+Le chapitre suivant est historique (X.18).
+
 ## Reprise actuelle — ARM-CLEAN06.4X.18 VALIDÉ (torche au sol lumineuse)
 
 **Dernier jalon fonctionnel validé :**
