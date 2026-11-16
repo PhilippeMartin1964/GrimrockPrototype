@@ -17,6 +17,7 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "NiagaraSystem.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
@@ -1546,11 +1547,20 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 							BuildItemDefinitionAssetPicker(CurrentItem,
 								[this, ObjectId, Index](UGridItemDefinitionAsset* NewAsset)
 								{
-									EditWorldObjectConfig(ObjectId, [Index, NewAsset](FGridWorldObjectInstanceConfig& Config)
+									AGridLevelEditorActor* EditorActor = GetEditorActor();
+									const UGridItemSubsystem* Registry = EditorActor
+										? EditorActor->ResolveEditorItemRegistry() : nullptr;
+									if (!Registry || !Registry->IsConfigured())
+									{
+										UE_LOG(LogTemp, Warning, TEXT("Receptacle rule edit refused: ItemSystem unavailable."));
+										return;
+									}
+									EditWorldObjectConfig(ObjectId, [Index, NewAsset, Registry](FGridWorldObjectInstanceConfig& Config)
 									{
 										if (Config.InteractionOverrides.ReceptacleRules.AcceptedItems.IsValidIndex(Index))
 										{
-											Config.InteractionOverrides.ReceptacleRules.AcceptedItems[Index].ItemDefinition = NewAsset;
+											FGridEditorCanonicalReceptacleRuleAuthoring::TryAssign(Registry,
+												NewAsset, Config.InteractionOverrides.ReceptacleRules.AcceptedItems[Index]);
 										}
 									});
 								})]
@@ -1587,7 +1597,9 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 			for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Receptacle.AcceptedItems)
 			{
 				AcceptedItemsList->AddSlot().AutoHeight().Padding(0.f, 2.f)[
-					SNew(STextBlock).Text(FText::FromString(GetNameSafe(AcceptedItem.ItemDefinition)))];
+					SNew(STextBlock).Text(AcceptedItem.CanonicalItemId.IsNone()
+						? FText::FromString(GetNameSafe(AcceptedItem.ItemDefinition))
+						: FText::FromName(AcceptedItem.CanonicalItemId))];
 			}
 			if (Receptacle.AcceptedItems.IsEmpty())
 			{
@@ -1712,21 +1724,34 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 			FText::FromString(TEXT("Override Acceptance / Capacity")),
 			SNew(SCheckBox)
 				.IsChecked(bOverrideRules ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-				.OnCheckStateChanged_Lambda([this, ObjectId, DefaultReceptacle](ECheckBoxState State)
+				.OnCheckStateChanged_Lambda([this, ObjectId, DefaultReceptacle, bOverrideRules](ECheckBoxState State)
 				{
-					EditWorldObjectConfig(ObjectId, [State, DefaultReceptacle](FGridWorldObjectInstanceConfig& Config)
+					TArray<FGridReceptacleAcceptedItemConfig> CanonicalRules;
+					if (State == ECheckBoxState::Checked && !bOverrideRules)
+					{
+						AGridLevelEditorActor* EditorActor = GetEditorActor();
+						const UGridItemSubsystem* Registry = EditorActor
+							? EditorActor->ResolveEditorItemRegistry() : nullptr;
+						if (!FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(
+							Registry, DefaultReceptacle.AcceptedItems, CanonicalRules))
+						{
+							UE_LOG(LogTemp, Warning, TEXT("Receptacle override refused: invalid ItemSystem or source."));
+							return;
+						}
+					}
+					EditWorldObjectConfig(ObjectId, [State, DefaultReceptacle, CanonicalRules](FGridWorldObjectInstanceConfig& Config)
 					{
 						const bool bEnableOverride = State == ECheckBoxState::Checked;
 						if (bEnableOverride && !Config.InteractionOverrides.bOverrideReceptacleRules)
 						{
 							Config.InteractionOverrides.ReceptacleRules.bAcceptAnyItem = DefaultReceptacle.bAcceptAnyItem;
-							Config.InteractionOverrides.ReceptacleRules.AcceptedItems = DefaultReceptacle.AcceptedItems;
+							Config.InteractionOverrides.ReceptacleRules.AcceptedItems = CanonicalRules;
 							Config.InteractionOverrides.ReceptacleRules.MaxContainedItems =
 								FMath::Max(1, DefaultReceptacle.MaxContainedItems);
 						}
 						Config.InteractionOverrides.bOverrideReceptacleRules = bEnableOverride;
 					});
-				}))]
+				})]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Rules Source")),
 			FText::FromString(bOverrideRules ? TEXT("Instance Override") : TEXT("Definition")))]
