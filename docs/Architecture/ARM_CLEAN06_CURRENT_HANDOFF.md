@@ -1,28 +1,40 @@
-# ARM-CLEAN06 — Point de reprise fiable (15 novembre 2026)
+# ARM-CLEAN06 — Point de reprise fiable (16 novembre 2026)
 
 > **Document de continuité, pas une autorisation de conversion.**
 > Lors de toute reprise, **relire le HEAD réel de `origin/master` et ses statuts**
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
-## Dernier jalon fonctionnel confirmé
+## Dernier jalon fonctionnel confirmé (GitHub vérifié le 16 novembre 2026)
 
 - Projet : `GrimrockPrototype`, Unreal Engine **5.5.4**.
 - Dépôt : `PhilippeMartin1964/GrimrockPrototype`, branche **`master` uniquement**.
-- Dernier jalon **confirmé** : ARM-CLEAN06.4U,
-  SHA final `1fd53212b60b26363a874db2b561dcf2c92347d2`,
-  SilentTask/LocalAuto/ARM-CLEAN06.4U = **SUCCESS** ;
-  issue [#154](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/154).
-- Registre UE réel : 32 définitions, dont 9 des 11 non-ARM ;
-  3 QuickItems avec profils complets dans un seul catalogue.
-- **ARM-CLEAN06.4V en cours** : convertir les deux ItemId manquants
-  et l'unique action équipée + sa présentation, avec cinq vrais
-  binaires UE en **un seul commit Git final**.
-- Ne déclarer V terminé qu'après les trois SUCCESS Windows
-  sur son **SHA final**, pas sur son commit de déclenchement.
-- Les 40 références historiques monde/palette/réceptacle,
-  les SaveGames et le code legacy restent à convertir/supprimer
-  séparément. AUCUN nouveau fallback legacy au runtime.
+- Dernier jalon fonctionnel **terminé et confirmé** : **ARM-CLEAN06.4V**,
+  SHA final `b9750269732f1322ecca11ec2bcd30ba3a4796c2` avec les **5 véritables binaires Unreal**.
+- Sur ce SHA exact : `UE5.5.4/SilentTask=success`,
+  `UE5.5.4/LocalAuto=success` et
+  `UE5.5.4/ARM-CLEAN06.4V=success`.
+  Preuve agrégée : [issue #155](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/155).
+- Registre UE réel : **34 définitions** ; les **11/11 identités non-ARM**
+  étudiées ont été matérialisées. Les **3 QuickItems** et
+  **1 action non-ARM équipée**, avec leur présentation authorée,
+  ont leurs données complètes dans les catalogues existants.
+- 06.4S/4T/4U/4V sont déjà passés : **ne pas les relancer**.
+- Les placements monde, la palette, les réceptacles et les
+  sauvegardes personnelles n'ont **pas** été convertis par 4V.
+  Les **40 références non résolues en 06.4H** ne sont pas
+  l'ensemble des références à migrer : 06.4H avait inventorié
+  **95 placements/références** (44 objets libres, 18 contenus
+  de réceptacle et 33 entrées de palette), dont 55 possédaient
+  déjà un ItemId présent dans le registre à cette date.
+  Recontrôler les 95 et les éventuelles références de définitions
+  de monde avant toute suppression des pointeurs historiques.
+- **Prochaine étape : ARM-CLEAN06.4W**, conversion réelle
+  des références d'authoring vers `ItemId` dans Unreal Editor,
+  avec rollback et relecture dans un second processus ;
+  traiter les SaveGames séparément, sur copies, avant 06.5.
+- AUCUN nouveau fallback legacy au runtime, aucune suppression
+  anticipée de source et aucune parité PIE/Chaos/Cook présumée.
 
 ### Jalons récents déjà réalisés — ne pas les refaire
 
@@ -671,6 +683,53 @@ hit testing du `UGridCombatActionPanelWidget` dans son WBP binaire.
 - Puis : 40 références monde, SaveGames sur copies, nettoyage 06.5,
   PIE/Chaos/Cook/Shipping 06.6.
 - Détail : `docs/Architecture/ARM_CLEAN06_4V_LAST_NONARM_EQUIPMENT_MIGRATION.md`.
+
+## ARM-CLEAN06.4W — prochaine opération, conversion des références d'authoring
+
+**Point de départ obligatoire :** commit final 06.4V
+`b9750269732f1322ecca11ec2bcd30ba3a4796c2`, trois contrôles Windows SUCCESS.
+Ce passage doit être une **migration effective d'assets UE**, et
+non une répétition des audits 06.4H/4I ni une conversion SaveGame déguisée.
+
+- Périmètre : les 4 niveaux `DA_GridLevel_*`, la palette physique,
+  les contenus initiaux des réceptacles et les définitions de monde
+  réellement référencées. Revalider l'inventaire de **95 références
+  06.4H** ; ne pas limiter artificiellement la conversion aux
+  seules **40** occurrences précédemment non canoniques.
+- Sérialiser l'identité canonique `ItemId` (avec le niveau **N0
+  conservé tel quel**), le GUID, la quantité, les cellules/poses,
+  les paramètres de réceptacle et les champs propres à l'énigme.
+  La source de vérité runtime doit passer par
+  `UGridItemSubsystem::ResolveItem`. Les accès d'éditeur et
+  les lecteurs historiques doivent être mis à jour sans réintroduire
+  une seconde autorité par pointeur.
+- Exécuter un préflight **Editor-only** à périmètre de packages fermé,
+  vérification des sources et du snapshot privé 06.4G, liste blanche
+  des sorties, suivi Git LFS, puis `SavePackage` uniquement sur
+  les fichiers explicitement validés. Aucun `.sav` ni fichier hors
+  liste ne peut être écrit.
+- Après écriture, ouvrir les vrais assets dans **un second processus
+  Unreal Editor** et prouver la parité de chacune des références,
+  quantités, GUID, N0/N1–N20, poses et règles de réceptacle, puis
+  refaire la suite `Grimrock` sur les binaires enregistrés.
+  Prévoir restauration des copies privées si un contrôle échoue.
+- Publier au plus **un commit final** sur `master`, puis vérifier
+  sur son SHA `SilentTask`, `LocalAuto` et le contrôle spécifique
+  06.4W. Aucune validation PIE/Chaos/Save/Continue n'est inférée
+  des tests `-NullRHI`.
+- **Après 4W seulement :** migration des SaveGames sur copies
+  privées, avec contrôle de version et de GUID, puis 06.5
+  suppression du legacy et 06.6 PIE/Cook/Shipping.
+
+**Point de vigilance confirmé dans le C++ courant :**
+`FGridLooseItemInstance.ItemDefinition`,
+`FGridReceptacleInitialItemConfig.ItemDefinition` et
+`FGridObjectPaletteEntry.DefaultItemDefinition` sont encore des
+pointeurs vers `UGridItemDefinitionAsset` ; le schéma SaveGame
+possède encore `ProjectileDefinitionAsset` et
+`FGridPendingWorldItemState.ItemDefinitionAsset`.
+Ne pas vider ces champs tant que leurs consommateurs et
+la conversion des assets n'ont pas été validés.
 
 ## Étapes ultérieures inchangées
 
