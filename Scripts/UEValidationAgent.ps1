@@ -991,6 +991,105 @@ try {
         $Phase = 'publication'
         Publish-CommitStatus -Sha $Sha -State 'success' -Description "Build + Automation OK ($AutomationFilter)"
         
+        # ARM-CLEAN06.4X.16.6.2: one-shot, all-source whitelist publication.
+        # Never publish arbitrary logs, Windows paths, or unverified UE content.
+        $ManifestTrigger = 'chore(ARM-CLEAN06.4X.16.6.2): publish whitelisted native acceptance manifest from UE report'
+        $ManifestCommitSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $ManifestCommitSubject.Count -eq 1 -and
+            [string]$ManifestCommitSubject[0] -ceq $ManifestTrigger) {
+            $ManifestContext = 'UE5.5.4/ARM-CLEAN06.4X1662'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $ManifestContext -Description 'Publication en liste blanche du manifeste UE reel'
+                $ValidatedSourceSha = 'db4d5114b068d2487a46c72caf30ef9c8e08c7ff'
+                $PreviousRuns = Join-Path $StateRoot 'Runs'
+                $SourceRuns = @(Get-ChildItem -LiteralPath $PreviousRuns -Directory -ErrorAction Stop |
+                    Where-Object { $_.Name -like 'db4d5114b068-*' } |
+                    Sort-Object LastWriteTimeUtc -Descending)
+                if ($SourceRuns.Count -eq 0) { throw 'Source run missing.' }
+
+                # The ONLY public fields: native /Game package, DefinitionId,
+                # item ID, object type, list index. Reject everything else.
+                $RecordPattern = '\[ARM-CLEAN06\.4X\.16\.6\.1\] (?<Kind>RECEPTACLE|LOCK) package=(?<Package>/Game/GrimrockPrototype/[A-Za-z0-9_/-]{1,180}) definition=(?<Definition>[A-Za-z0-9_-]{1,100}) index=(?<Index>[0-9]{1,2}) source=(?<Source>[A-Za-z0-9_-]{1,100}) canonical=(?<Canonical>[A-Za-z0-9_-]{1,100})'
+                $SummaryPattern = '\[ARM-CLEAN06\.4X\.16\.6\.1\] SUMMARY definitions=44 levels=4 receptacleLists=6 receptacleRules=2 lockLists=2 lockPointers=2 receptacleOverrides=0 lockOverrides=0 manifestRows=4'
+                $Whitelisted = @()
+                foreach ($SourceRun in $SourceRuns) {
+                    $PrivateReports = @(Get-ChildItem -LiteralPath $SourceRun.FullName -Recurse -File -ErrorAction Stop |
+                        Where-Object { $_.Name -in @('Automation.log', 'Automation.console.log') } |
+                        Sort-Object LastWriteTimeUtc -Descending)
+                    foreach ($PrivateReport in $PrivateReports) {
+                        $PrivateText = Get-Content -LiteralPath $PrivateReport.FullName -Raw -Encoding UTF8 -ErrorAction Stop
+                        if ($PrivateText -notmatch $SummaryPattern) { continue }
+                        $Candidates = @([regex]::Matches($PrivateText, $RecordPattern) |
+                            ForEach-Object { $_.Value } | Sort-Object -Unique)
+                        if ($Candidates.Count -eq 4) {
+                            $Whitelisted = $Candidates
+                            break
+                        }
+                    }
+                    if ($Whitelisted.Count -eq 4) { break }
+                }
+                if ($Whitelisted.Count -ne 4) { throw 'Exact four-row manifest absent.' }
+
+                $ReceptacleCount = 0
+                $LockCount = 0
+                $PublicRows = @()
+                $Seen = @()
+                foreach ($Line in $Whitelisted) {
+                    $Match = [regex]::Match($Line, $RecordPattern)
+                    if (-not $Match.Success -or $Match.Value -cne $Line) {
+                        throw 'Manifest contains unvalidated content.'
+                    }
+                    $Kind = $Match.Groups['Kind'].Value
+                    $Package = $Match.Groups['Package'].Value
+                    $Definition = $Match.Groups['Definition'].Value
+                    $Index = $Match.Groups['Index'].Value
+                    $SourceId = $Match.Groups['Source'].Value
+                    $CanonicalId = $Match.Groups['Canonical'].Value
+                    if ($SourceId -cne $CanonicalId) { throw 'Canonical identity mismatch.' }
+                    $UniqueSlot = "$Kind/$Package/$Index"
+                    if ($Seen -contains $UniqueSlot) { throw 'Duplicate source.' }
+                    $Seen += $UniqueSlot
+                    if ($Kind -ceq 'RECEPTACLE') { ++$ReceptacleCount }
+                    elseif ($Kind -ceq 'LOCK') { ++$LockCount }
+                    else { throw 'Invalid acceptance type.' }
+                    $PublicRows += "| $Kind | $Package | $Definition | $Index | $SourceId | $CanonicalId |"
+                }
+                if ($ReceptacleCount -ne 2 -or $LockCount -ne 2) {
+                    throw 'Manifest contains unexpected source counts.'
+                }
+
+                $Body = @(
+                    '# ARM-CLEAN06.4X.16.6.2 - Native acceptance asset manifest',
+                    '',
+                    "Verified Windows UE source SHA: $ValidatedSourceSha",
+                    "Manifest publication SHA: $Sha",
+                    'Only four whitelisted references appear below.',
+                    'No private log or local Windows path is published.',
+                    '',
+                    '| Kind | UE asset package | DefinitionId | Index | Legacy ItemId | Canonical ItemId |',
+                    '|---|---|---|---:|---|---|'
+                )
+                $Body += $PublicRows
+                $Body += @(
+                    '',
+                    'Read-only evidence. No native package, map or player save changed.',
+                    'Binary conversion requires SHA-256 backups and separate verification.'
+                )
+                $BodyFile = Join-Path $StateRoot ("ARM-CLEAN06-4X1662-" + $Sha.Substring(0,12) + ".md")
+                $Body | Set-Content -LiteralPath $BodyFile -Encoding UTF8 -ErrorAction Stop
+                $Title = '[ARM-CLEAN06.4X.16.6.2] Four native acceptance sources ' + $Sha.Substring(0,12)
+                & gh issue create --repo $GitHubRepository --title $Title --body-file $BodyFile | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw 'GitHub issue publication failed.' }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $ManifestContext -Description 'Four verified puzzle references published as sanitized issue'
+            }
+            catch {
+                Write-Warning '[ARM-CLEAN06.4X.16.6.2] Sanitized issue unavailable; no private logs published.'
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $ManifestContext -Description 'Source report missing or whitelist validation failed'
+                } catch { Write-Warning '[ARM-CLEAN06.4X.16.6.2] Status publication unavailable.' }
+            }
+        }
+
         # 06.2AK: one-shot publication of existing UE Automation counters.
         # No new C++ test, commandlet or source asset scan. Only 22 manifest ARM.
         $ReadinessSubject = 'chore(ARM-CLEAN06.2AK): publish canonical action blockers from UE report'
