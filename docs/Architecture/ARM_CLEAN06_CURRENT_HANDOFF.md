@@ -5,6 +5,69 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## Reprise actuelle — ARM-CLEAN06.4X.16.7.3 VALIDÉ (deux réceptacles natifs)
+
+**Dernier commit fonctionnel validé :**
+`d3ecdf6bb19b249c891db9e90e87413dbf3bc118`.
+Sur ce SHA binaire final, `UE5.5.4/SilentTask=SUCCESS` et
+`UE5.5.4/LocalAuto=SUCCESS`.
+
+**Parent de la transaction :**
+`ca32a56d825fa1f9e172556d258475a069ca1395`,
+avec `SilentTask`, `LocalAuto` et
+`UE5.5.4/ARM-CLEAN06.4X72` tous SUCCESS.
+L'agent Windows a appliqué la transaction dans son
+worktree isolé après sauvegardes SHA-256,
+contrôle Git LFS, relecture par un deuxième
+processus UE et tests Grimrock complets.
+
+**Deux seuls fichiers natifs modifiés et publiés :**
+- `Content/GrimrockPrototype/Core/DataAssets/DA_Receptacle_TorchHolder.uasset` :
+  `DefaultBehavior.Receptacle.AcceptedItems[0].CanonicalItemId=Item_Torch`.
+- `Content/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Guardian.uasset` :
+  `DefaultBehavior.Receptacle.AcceptedItems[0].CanonicalItemId=Gem_Blue`.
+
+Le diff final vérifié par GitHub contient exactement ces
+deux `.uasset` (commit enfant par avance rapide).
+Les anciens `ItemDefinition` restent disponibles
+pour les lecteurs en transition. Ni niveau, ni map,
+ni serrure, ni SaveGame personnel, ni WBP modifié.
+
+**Historique d'incidents d'automatisation :**
+les premiers déclencheurs X.16.7.2B/C/D ont échoué
+à cause de substitutions incorrectes dans
+`Scripts/ValidateUE.ps1` et du nom de fonction
+PowerShell `Git` masquant `git.exe`.
+Le SHA final X.16.7.2F a corrigé ces erreurs, et
+la transaction plus le SHA binaire ont été validés.
+**Ne pas rejouer** les anciens déclencheurs ni les
+migrations W/X.5. Ne plus réécrire le volumineux
+`Scripts/UEValidationAgent.ps1` par des
+substitutions textuelles non contrôlées.
+
+**Intervention PIE nécessaire maintenant** :
+fermer Unreal, synchroniser `origin/master`
+dans le checkout de développement propre,
+`git lfs pull origin master`, recompiler.
+Vérifier sur une session PIE du niveau :
+1. support de torche : insertion, extraction,
+   lumière allumée au sol et reprise en main ;
+2. Gardien : insertion de `Gem_Blue` acceptée,
+   mauvais objet refusé, énigme et liens inchangés ;
+3. aucun changement dans les interactions
+   inventaire, clés ou combat.
+Ne pas écraser de sauvegardes personnelles.
+
+**Ensuite seulement** : X.16.8, migration native
+séparée de `DA_Lock_CopperWall` (Key_Copper)
+et `DA_Lock_IronWall` (Key_Iron), avec contrôles
+et backups indépendants. Aucune migration de clé
+n'a été effectuée à ce jour.
+
+Lire `ARM_CLEAN06_4X73_RECEPTACLE_PIE_HANDOFF.md`.
+La section suivante est l'historique X.16.6.3,
+non le HEAD actuel.
+
 ## Reprise actuelle — X.16.6.3 : quatre packages exacts identifiés
 
 Le test X.16.6.1 a été validé sur db4d5114b068.
