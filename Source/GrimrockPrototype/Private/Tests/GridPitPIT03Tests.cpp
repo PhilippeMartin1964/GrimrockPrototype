@@ -380,6 +380,11 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
     UGridDungeonAsset* Dungeon = NewObject<UGridDungeonAsset>(Runtime);
     UGridLevelAsset* Upper = MakeFloor(Dungeon);
     UGridLevelAsset* Lower = MakeFloor(Dungeon);
+    // Real trap layout: the vertical target is a void; items must land on
+    // the same nearest usable neighboring cell as the falling party.
+    Lower->GetCellMutable(2, 2).CellType = EGridCellType::Empty;
+    Lower->GetCellMutable(2, 2).bBlocksOccupancy = false;
+    const FIntPoint ExpectedLanding(2, 1);
     const FName UpperId(TEXT("ARM064X1612_Upper"));
     const FName LowerId(TEXT("ARM064X1612_Lower"));
     FGridDungeonLevelEntry U;
@@ -425,8 +430,11 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
         Placed.Quantity = 1;
         Placed.OwnerType = EGridItemOwnerType::World;
         const FVector Offset(i == 0 ? -25.f : 25.f, 0.f, 0.f);
-        if (!TestTrue(TEXT("Weapon can be physically placed on CLOSED trap"),
-                Runtime->TryDropItemInstanceAtCell(Placed, 2, 2, EGridEdge::None, Offset)))
+        // Second weapon's recorded cell is stale: the Chaos mesh has moved
+        // onto the trap. It must be collected rather than dropped on rebuild.
+        const int32 PlacedX = i == 0 ? 2 : 1;
+        if (!TestTrue(TEXT("Weapon can be physically placed near CLOSED trap"),
+                Runtime->TryDropItemInstanceAtCell(Placed, PlacedX, 2, EGridEdge::None, Offset)))
             return false;
         int32 Count = 0;
         AGridItemActor* Actor = FindLive(F.World, W.Guid, Count);
@@ -438,6 +446,12 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
             !TestNull(TEXT("No legacy weapon definition on ground actor"),
                 Actor->GetItemDefinitionAsset()))
             return false;
+        if (i == 1 && Actor->MeshComponent)
+        {
+            const FVector TrapCenter = Runtime->GetCellCenterWorld(2, 2, 12.f);
+            Actor->MeshComponent->SetWorldLocation(TrapCenter,
+                false, nullptr, ETeleportType::TeleportPhysics);
+        }
     }
 
     if (!TestTrue(TEXT("Opening a controlled pit routes the resting weapons"),
@@ -451,6 +465,8 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
     {
         const FGridPendingWorldItemState* P = PendingLevel->PendingInboundItems.Find(W.Guid);
         if (!TestNotNull(TEXT("Same GUID queued downstairs"), P) ||
+            !TestEqual(TEXT("Weapon lands at adjacent resolved X"), P->ItemState.CellX, ExpectedLanding.X) ||
+            !TestEqual(TEXT("Weapon lands at adjacent resolved Y"), P->ItemState.CellY, ExpectedLanding.Y) ||
             !TestEqual(TEXT("Weapon N-level preserved"), P->ItemState.ItemLevel, W.Level) ||
             !TestEqual(TEXT("Weapon ID preserved"), P->ItemState.ItemDefinitionId, W.Id) ||
             !TestNull(TEXT("No legacy DA_Weapon pointer in PIT02 queue"),
@@ -477,14 +493,17 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
     Runtime->DungeonRuntimeState = Loaded->DungeonRuntimeState;
 
     if (!TestTrue(TEXT("Party can travel to lower dungeon level"),
-            Runtime->TravelToDungeonLevel(LowerId, 1, 1, EGridEdge::North, Party)))
+            Runtime->TravelToDungeonLevel(LowerId, ExpectedLanding.X, ExpectedLanding.Y, EGridEdge::North, Party)))
         return false;
     for (const FWeapon& W : Weapons)
     {
         int32 Count = 0;
         AGridItemActor* Actor = FindLive(F.World, W.Guid, Count);
+        const FVector ExpectedCenter = Runtime->GetCellCenterWorld(ExpectedLanding.X, ExpectedLanding.Y, 12.f);
         if (!TestNotNull(TEXT("Weapon materialized below"), Actor) ||
             !TestEqual(TEXT("Each weapon appears exactly once downstairs"), Count, 1) ||
+            !TestTrue(TEXT("Weapon root is in the actual adjacent arrival cell"),
+                Actor->GetActorLocation().Equals(ExpectedCenter, 80.f)) ||
             !TestEqual(TEXT("ItemId below"), Actor->GetItemDefinitionId(), W.Id) ||
             !TestEqual(TEXT("Exact N-level below"), Actor->CanonicalWorldItemLevel, W.Level) ||
             !TestNull(TEXT("No obsolete item pointer below"), Actor->GetItemDefinitionAsset()) ||
@@ -493,6 +512,12 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
                 Actor->MeshComponent->GetStaticMesh() == W.Resolved.WorldMesh.LoadSynchronous()))
             return false;
     }
+    const float ExpectedWeight = Weapons[0].Resolved.WeightKg + Weapons[1].Resolved.WeightKg;
+    if (!TestTrue(TEXT("Both armaments have their canonical weight on the adjacent target cell"),
+            FMath::IsNearlyEqual(
+                Runtime->GetWorldItemWeightAtCell(ExpectedLanding.X, ExpectedLanding.Y, false),
+                ExpectedWeight, 0.1f)))
+        return false;
     const FGridLevelRuntimeState* After = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
     for (const FWeapon& W : Weapons)
         if (!TestTrue(TEXT("Each queued item consumed"), After &&
@@ -507,8 +532,12 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
     {
         int32 Count = 0;
         AGridItemActor* Actor = FindLive(F.World, W.Guid, Count);
+        const FVector ExpectedCenter = Runtime->GetCellCenterWorld(ExpectedLanding.X, ExpectedLanding.Y, 12.f);
         if (!TestNotNull(TEXT("Weapon survived second level load"), Actor) ||
             !TestEqual(TEXT("No duplication after level round-trip"), Count, 1) ||
+            !TestTrue(TEXT("Weapon root stays on neighboring arrival cell after reload"),
+                FMath::Abs(Actor->GetActorLocation().X - ExpectedCenter.X) <= 80.f &&
+                FMath::Abs(Actor->GetActorLocation().Y - ExpectedCenter.Y) <= 80.f) ||
             !TestEqual(TEXT("Level remains fixed after second load"),
                 Actor->CanonicalWorldItemLevel, W.Level) ||
             !TestTrue(TEXT("Canonical mesh survives second level load"),

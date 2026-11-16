@@ -1477,6 +1477,18 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 		return;
 	}
 
+	// Transfer all resting world items while the supporting FloorISM tile
+	// still exists. Removing the floor first can wake Chaos rigid bodies
+	// before PIT02 has captured their stable GUID, level and destination.
+	if (bIsOpen)
+	{
+		const int32 Transferred = DropWorldItemsThroughOpenPitAtCell(PitObject->CellX, PitObject->CellY);
+		UE_LOG(LogGridLevelRuntime, Log,
+			TEXT("GridPit TrapOpenTransfer PitId=%s Level=%s Cell=(%d,%d) Transferred=%d"),
+			*PitObjectId.ToString(), *CurrentDungeonLevelId.ToString(),
+			PitObject->CellX, PitObject->CellY, Transferred);
+	}
+
 	RefreshConcealedPitCellFloor(*PitObject);
 
 	// When a trap has actually opened its associated PIT03, let the Pit
@@ -1506,8 +1518,7 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 
 	if (bIsOpen)
 	{
-		DropWorldItemsThroughOpenPitAtCell(PitObject->CellX, PitObject->CellY);
-
+		// World items have already been transferred before floor removal.
 		if (AGrimrockPartyPawn* PartyPawn = GetWorld() ? Cast<AGrimrockPartyPawn>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0)) : nullptr)
 		{
 			if (PartyPawn->CurrentCellX == PitObject->CellX && PartyPawn->CurrentCellY == PitObject->CellY && !PartyPawn->IsPitFalling())

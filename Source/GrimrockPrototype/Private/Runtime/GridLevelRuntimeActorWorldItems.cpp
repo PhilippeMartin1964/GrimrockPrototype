@@ -490,7 +490,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	TargetState.LevelId = Relocation.TargetLevelId;
 	TargetState.PendingInboundItems.Add(ItemState.ObjectId, PendingState);
 
-	UE_LOG(LogGridLevelRuntime, Verbose,
+	UE_LOG(LogGridLevelRuntime, Log,
 		TEXT("GridPit ItemTransfer queued Item=%s RuntimeId=%s SourceLevel=%s Source=(%d,%d) TargetLevel=%s Target=(%d,%d) Offset=%s"),
 		*ItemState.ItemDefinitionId.ToString(), *ItemState.ObjectId.ToString(), *CurrentDungeonLevelId.ToString(), CellX, CellY,
 		*Relocation.TargetLevelId.ToString(), Relocation.TargetCellX, Relocation.TargetCellY, *ClampedOffset.ToCompactString());
@@ -583,6 +583,32 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 			continue;
 		}
 
+		const FGridSpawnedItemRuntimeEntry* Spawned = SpawnedItemEntries.FindByPredicate(
+			[RuntimeObjectId](const FGridSpawnedItemRuntimeEntry& Entry)
+			{
+				return Entry.ObjectId == RuntimeObjectId && IsValid(Entry.ItemActor.Get());
+			});
+		// This diagnostic distinguishes lost transfers, wrong-cell spawns and
+		// actors with an unrenderable mesh in a real PIE/Chaos environment.
+		if (Spawned && IsValid(Spawned->ItemActor.Get()))
+		{
+			const AGridItemActor* Actor = Spawned->ItemActor.Get();
+			const FVector ActorMeshWorld = IsValid(Actor->MeshComponent)
+				? Actor->MeshComponent->GetComponentLocation() : Actor->GetActorLocation();
+			UE_LOG(LogGridLevelRuntime, Log,
+				TEXT("GridPit PendingItem materialized Item=%s N%d RuntimeId=%s Level=%s ExpectedCell=(%d,%d) EntryCell=(%d,%d) Root=%s Mesh=%s HasMesh=%d"),
+				*ItemState.ItemDefinitionId.ToString(), ItemState.ItemLevel, *RuntimeObjectId.ToString(),
+				*RuntimeLevelId.ToString(), ItemState.CellX, ItemState.CellY,
+				Spawned->Cell.X, Spawned->Cell.Y,
+				*Actor->GetActorLocation().ToCompactString(), *ActorMeshWorld.ToCompactString(),
+				IsValid(Actor->MeshComponent) && Actor->MeshComponent->GetStaticMesh() ? 1 : 0);
+		}
+		else
+		{
+			UE_LOG(LogGridLevelRuntime, Error,
+				TEXT("GridPit PendingItem spawn bookkeeping missing Item=%s RuntimeId=%s Level=%s"),
+				*ItemState.ItemDefinitionId.ToString(), *RuntimeObjectId.ToString(), *RuntimeLevelId.ToString());
+		}
 		if (FGridLevelRuntimeState* MutableState = DungeonRuntimeState.LevelStates.Find(RuntimeLevelId))
 		{
 			MutableState->PendingInboundItems.Remove(RuntimeObjectId);
@@ -610,10 +636,10 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 		return 0;
 	}
 
-	// Physics may have moved a weapon since the last level capture.
-	// Refresh the authoritative cell before deciding which resting pickups
-	// fall when a previously closed trapdoor opens.
-	RefreshWorldItemPhysicsCells();
+	// Preserve an item's last authoritative placed cell if it was on the
+	// trap, while ALSO recognizing a physics mesh that has since moved into
+	// it. Overwriting all cells just as the trap opens could discard items
+	// that visibly rest on the cover.
 	const FIntPoint PitCell(CellX, CellY);
 	int32 DroppedCount = 0;
 	for (int32 EntryIndex = SpawnedItemEntries.Num() - 1; EntryIndex >= 0; --EntryIndex)
@@ -625,7 +651,23 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 
 		FGridSpawnedItemRuntimeEntry& Entry = SpawnedItemEntries[EntryIndex];
 		AGridItemActor* ItemActor = Entry.ItemActor.Get();
-		if (Entry.Cell != PitCell || Entry.Edge != EGridEdge::None || !IsValid(ItemActor))
+		if (Entry.Edge != EGridEdge::None || !IsValid(ItemActor))
+		{
+			continue;
+		}
+		FIntPoint PhysicsCell = Entry.Cell;
+		if (IsValid(ItemActor->MeshComponent))
+		{
+			int32 MeshCellX = INDEX_NONE, MeshCellY = INDEX_NONE;
+			FVector MeshLocalOffset;
+			if (TryResolveWorldCellFromImpactPoint(
+				ItemActor->MeshComponent->GetComponentLocation(),
+				MeshCellX, MeshCellY, MeshLocalOffset))
+			{
+				PhysicsCell = FIntPoint(MeshCellX, MeshCellY);
+			}
+		}
+		if (Entry.Cell != PitCell && PhysicsCell != PitCell)
 		{
 			continue;
 		}
@@ -669,7 +711,11 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 		ItemInstance.LastWorldTransform = IsValid(ItemActor->MeshComponent)
 			? ItemActor->MeshComponent->GetComponentTransform() : ItemActor->GetActorTransform();
 
-		FVector LocalOffset = ItemActor->GetActorLocation() - GetCellCenterWorld(CellX, CellY, 12.0f);
+		// With simulating Chaos the mesh may travel while the actor root
+		// remains at its original spawn. Transfer its actual horizontal pose.
+		const FVector PhysicalLocation = IsValid(ItemActor->MeshComponent)
+			? ItemActor->MeshComponent->GetComponentLocation() : ItemActor->GetActorLocation();
+		FVector LocalOffset = PhysicalLocation - GetCellCenterWorld(CellX, CellY, 12.0f);
 		LocalOffset.Z = 0.0f;
 		if (!TryRouteWorldItemThroughOpenPit(ItemInstance, Definition, CellX, CellY, LocalOffset))
 		{

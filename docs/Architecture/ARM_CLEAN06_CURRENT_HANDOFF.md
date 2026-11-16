@@ -5,6 +5,29 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.16.13 — ordre physique PIT02 et atterrissage voisin
+
+L'utilisateur a confirmé un **ÉCHEC PIE** de X.16.12 malgré
+SilentTask/LocalAuto SUCCESS sur `3b55adf4824d195925de96d06c9ad34cb869ab75` :
+les armes posées sur une fosse piégée disparaissent à l'ouverture,
+mais la cellule voisine d'arrivée reste vide.
+**La migration ARM-CLEAN06 N'EST PAS TERMINÉE** :
+06.4 encore partielle, 06.5/06.6 en attente.
+
+X.16.13 transfère les objets **avant** la suppression du sol, reconnaît
+la cellule de placement ou la position physique du mesh, utilise
+son XY pour PIT02, journalise entrée/sortie et matérialisation. Le test
+ARM N1 / N20 existant exige maintenant une **destination voisine (2,1)**,
+le poids des deux armes à cette cellule et le bon XY avant et après
+SaveGame en mémoire et changement de niveau. Aucun binaire ni .sav
+personnel modifié. Voir `ARM_CLEAN06_4X1613_PIT_FLOOR_ORDER_AND_LANDING.md`.
+
+**Validation Windows sur le SHA réel** requise, puis recette PIE ciblée
+des deux armes du joueur. Ne pas déclarer X.16.13 résolu avant PIE.
+Si échec, consulter les logs `GridPit TrapOpenTransfer`,
+`GridPit ItemTransfer queued`, `GridPit PendingItem materialized`.
+Respecter 1 commit atomique max par tâche, master seul.
+
 ## ARM-CLEAN06.4X.16.12 — correction armes ARM N1/N20 dans trappe ouverte
 
 Déclencheur utilisateur : des armes préalablement posées sur une fosse piégée
