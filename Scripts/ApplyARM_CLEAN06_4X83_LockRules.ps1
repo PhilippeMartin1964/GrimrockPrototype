@@ -47,8 +47,8 @@ function Check-Report($R,[string]$Mode) {
     }
 }
 Stage 'SCRIPT_STARTED'
-$Parent = '148d1213aa969af0b4c28871806d45497f170b85'
-$Subject = 'feat(ARM-CLEAN06.4X.16.8.4): activate guarded native copper and iron locks'
+$Parent = '2455d2ba7dcd16a71f11e5c55ad9a2a9a1619688'
+$Subject = 'fix(ARM-CLEAN06.4X.16.8.4.2): rerun guarded lock migration after TD073 checks'
 $Files = @(
     'Content/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall.uasset',
     'Content/GrimrockPrototype/Core/DataAssets/DA_Lock_IronWall.uasset'

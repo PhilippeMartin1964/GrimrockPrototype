@@ -365,7 +365,7 @@ $IsIsolatedWorktree = (Split-Path -Leaf $RepoRoot) -ceq 'GrimrockPrototype_UEVal
 if ($IsIsolatedWorktree -and -not $SkipBuild -and -not $SkipAutomation -and
     $AutomationFilter -ceq 'Grimrock' -and
     (Split-Path -Leaf $ReportRoot) -ceq 'Automation') {
-    $ExactHookSubject = 'feat(ARM-CLEAN06.4X.16.8.4): activate guarded native copper and iron locks'
+    $ExactHookSubject = 'fix(ARM-CLEAN06.4X.16.8.4.2): rerun guarded lock migration after TD073 checks'
     $GitSubject = @(& git -C $RepoRoot log -1 --format=%s)
     if ($LASTEXITCODE -ne 0) { throw 'Exact validation commit check unavailable.' }
     if ($GitSubject.Count -eq 1 -and [string]$GitSubject[0] -ceq $ExactHookSubject) {
