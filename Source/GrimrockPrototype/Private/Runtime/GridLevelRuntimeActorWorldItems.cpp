@@ -779,12 +779,14 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	// lands. Preserve explicit old assets for transitional callers and keep
 	// the original lookup for IDs absent from DA_ItemSystem.
 	FGridResolvedItem CanonicalDrop;
-	const bool bCanonicalAmmo = bCanonicalIdentity &&
+	const bool bCanonicalNonArmDrop = bCanonicalIdentity &&
 		Registry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, CanonicalDrop) &&
-		!CanonicalDrop.bIsArmament && !CanonicalDrop.AmmoKindId.IsNone();
-	// For ammunition, even an explicitly supplied old pointer is irrelevant:
-	// the world pickup must retain its canonical ItemId and visual/physics.
-	UGridItemDefinitionAsset* ItemDefinition = bCanonicalAmmo ? nullptr :
+		CanonicalDrop.IsValid() && !CanonicalDrop.bIsArmament;
+	// All canonical non-ARM items (including torch, not just ammunition)
+	// require their full light/Niagara configuration when dropped in the world.
+	// ApplyCanonicalWorldVisual only loads a mesh; it cannot create a flame.
+	// The ARM and unregistered pathways retain their prior behavior.
+	UGridItemDefinitionAsset* ItemDefinition = bCanonicalNonArmDrop ? nullptr :
 		(IsValid(ItemDefinitionAsset) ? ItemDefinitionAsset
 			: (bCanonicalIdentity ? nullptr : ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId)));
 	const FGridReceptacleItemMetadataReadView LevelRead =
@@ -841,18 +843,35 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 
 	const FGuid RuntimeObjectId = ItemInstance.RuntimeObjectId.IsValid() ? ItemInstance.RuntimeObjectId : FGuid::NewGuid();
 	ItemActor->SetActorTransform(DropTransform);
-	if (IsValid(ItemDefinition))
+	FGridItemInstance DroppedVisualItem = ItemInstance;
+	DroppedVisualItem.RuntimeObjectId = RuntimeObjectId;
+	DroppedVisualItem.ItemLevel = ResolvedItemLevel;
+	if (bCanonicalNonArmDrop)
 	{
-		ItemActor->InitializeFromItemDefinition(ItemDefinition, RuntimeObjectId);
+		// Full canonical presentation is initialized before restoring the
+		// instance's actual light state below. Never derive state from a default.
+		if (!ItemActor->InitializeFromCanonicalItem(DroppedVisualItem, Registry))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning,
+				TEXT("GridInventory WorldDrop Failed Item=%s Reason=CanonicalNonArmInitializationFailed"),
+				*ItemInstance.ItemDefinitionId.ToString());
+			ItemActor->Destroy();
+			return false;
+		}
 	}
 	else
 	{
-		ItemActor->InitializeFromItemDefinitionId(ItemInstance.ItemDefinitionId, RuntimeObjectId);
+		if (IsValid(ItemDefinition))
+		{
+			ItemActor->InitializeFromItemDefinition(ItemDefinition, RuntimeObjectId);
+		}
+		else
+		{
+			ItemActor->InitializeFromItemDefinitionId(ItemInstance.ItemDefinitionId, RuntimeObjectId);
+		}
+		ItemActor->ApplyCanonicalWorldVisual(DroppedVisualItem);
 	}
 	ItemActor->SetRuntimeObjectId(RuntimeObjectId);
-	FGridItemInstance DroppedVisualItem = ItemInstance;
-	DroppedVisualItem.ItemLevel = ResolvedItemLevel;
-	ItemActor->ApplyCanonicalWorldVisual(DroppedVisualItem);
 	ItemActor->SetRuntimeCell(CellX, CellY);
 	ItemActor->ApplyWorldPhysicsInitialNudge();
 	ItemActor->ConfigureAsWorldPickup();
