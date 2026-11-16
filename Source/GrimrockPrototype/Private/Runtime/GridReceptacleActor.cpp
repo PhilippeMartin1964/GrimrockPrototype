@@ -1102,7 +1102,7 @@ FText AGridReceptacleActor::GetInteractionText_Implementation(UPrimitiveComponen
 
 int32 AGridReceptacleActor::AddContainedItem(
 	FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity,
-	FGuid RuntimeObjectId, int32 ItemLevel)
+	FGuid RuntimeObjectId, int32 ItemLevel, bool bPersistedCanonicalInitialItem)
 {
 	AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor(GetWorld());
 	if (!ItemDefinition && RuntimeActor)
@@ -1113,6 +1113,24 @@ int32 AGridReceptacleActor::AddContainedItem(
 	const UGridItemSubsystem* CanonicalRegistry = ResolveReceptacleItemRegistry(this);
 	ItemDefinitionId = FGridReceptacleContainedIdentityReadModel::Resolve(
 		CanonicalRegistry, ItemDefinition, ItemDefinitionId);
+	// Opt in only when the initial configuration actually persisted its
+	// CanonicalItemId. Historical fixtures and default definitions keep
+	// their existing visual path.
+	const bool bCanonicalInitialSource = bWasInitialItem && bPersistedCanonicalInitialItem;
+	FGridResolvedItem InitialProjection;
+	if (bCanonicalInitialSource &&
+		(!CanonicalRegistry ||
+		 !CanonicalRegistry->ResolveItem(ItemDefinitionId, ItemLevel, InitialProjection) ||
+		 !InitialProjection.IsValid() || InitialProjection.ItemId != ItemDefinitionId ||
+		 InitialProjection.ItemLevel != ItemLevel))
+	{
+		return INDEX_NONE; // No implicit N0 -> N1 or legacy fallback.
+	}
+	const bool bCanonicalNonArmInitial = bCanonicalInitialSource && !InitialProjection.bIsArmament;
+	if (bCanonicalNonArmInitial && !RuntimeActor)
+	{
+		return INDEX_NONE; // Cannot construct a historical actor instead.
+	}
 	if (ItemDefinitionId.IsNone())
 	{
 		return INDEX_NONE;
@@ -1166,7 +1184,11 @@ int32 AGridReceptacleActor::AddContainedItem(
 	}
 	NewItem.Weight = Metadata.UnitWeightKg;
 	NewItem.DisplayName = Metadata.DisplayName;
-	if (ItemDefinition)
+	if (bCanonicalNonArmInitial)
+	{
+		NewItem.bLightsEnabled = InitialProjection.LightEmitter.bDefaultEnabled;
+	}
+	else if (ItemDefinition)
 	{
 		NewItem.bLightsEnabled = ItemDefinition->IsLightEnabledByDefault();
 	}
@@ -1176,10 +1198,25 @@ int32 AGridReceptacleActor::AddContainedItem(
 	const EGridReceptacleVisualPlacementMode PlacementMode = GetEffectiveVisualPlacementMode();
 	if (!IsValid(ItemActor) && RuntimeActor)
 	{
-		ItemActor = RuntimeActor->SpawnItemActorForDefinition(ItemDefinition, ItemDefinitionId, this, ItemAttachPoint);
+		ItemActor = RuntimeActor->SpawnItemActorForDefinition(
+			bCanonicalNonArmInitial ? nullptr : ItemDefinition, ItemDefinitionId, this, ItemAttachPoint);
 		if (ItemActor)
 		{
-			if (ItemDefinition)
+			if (bCanonicalNonArmInitial)
+			{
+				FGridItemInstance CanonicalInstance;
+				CanonicalInstance.RuntimeObjectId = NewItem.RuntimeObjectId;
+				CanonicalInstance.ItemDefinitionId = NewItem.ItemDefinitionId;
+				CanonicalInstance.ItemLevel = NewItem.ItemLevel;
+				CanonicalInstance.Quantity = NewItem.Quantity;
+				if (!ItemActor->InitializeFromCanonicalItem(CanonicalInstance, CanonicalRegistry))
+				{
+					ItemActor->Destroy();
+					ContainedItems.RemoveAt(NewIndex);
+					return INDEX_NONE; // Fail closed, never downgrade presentation.
+				}
+			}
+			else if (ItemDefinition)
 			{
 				ItemActor->InitializeFromItemDefinition(ItemDefinition, NewItem.RuntimeObjectId);
 			}
@@ -1189,6 +1226,11 @@ int32 AGridReceptacleActor::AddContainedItem(
 			}
 			ContainedItems[NewIndex].ItemActor = ItemActor;
 		}
+	}
+	if (!IsValid(ItemActor) && bCanonicalNonArmInitial)
+	{
+		ContainedItems.RemoveAt(NewIndex);
+		return INDEX_NONE;
 	}
 	if (!IsValid(ItemActor))
 	{
@@ -1222,7 +1264,10 @@ int32 AGridReceptacleActor::AddContainedItem(
 		PlacementItem.Quantity = ContainedItems[NewIndex].Quantity;
 		// An inserted or initial-content ARM has the actual fixed item level here.
 		// Resolve its world mesh before applying the receptacle's placement/Chaos policy.
-		ContainedItems[NewIndex].ItemActor->ApplyCanonicalWorldVisual(PlacementItem);
+		if (!bCanonicalNonArmInitial)
+		{
+			ContainedItems[NewIndex].ItemActor->ApplyCanonicalWorldVisual(PlacementItem);
+		}
 		ApplyVisualPlacement(ContainedItems[NewIndex].ItemActor.Get(), PlacementItem,
 			PendingPlacementHitResult.IsSet() ? &PendingPlacementHitResult.GetValue() : nullptr, NewIndex, bWasInitialItem);
 		if (PlacementMode != EGridReceptacleVisualPlacementMode::PhysicalAtHit)
@@ -1480,7 +1525,8 @@ void AGridReceptacleActor::InitializeInitialContainedItems()
 			continue;
 		}
 		AddContainedItem(ItemDefinitionId, InitialItem.ItemDefinition, nullptr, true,
-			InitialItem.Quantity, FGuid(), InitialItem.ItemLevel);
+			InitialItem.Quantity, FGuid(), InitialItem.ItemLevel,
+			InitialItem.bHasPersistedCanonicalIdentity);
 	}
 }
 

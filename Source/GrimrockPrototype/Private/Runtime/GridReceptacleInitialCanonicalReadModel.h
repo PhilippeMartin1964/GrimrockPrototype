@@ -38,6 +38,7 @@ struct FGridReceptacleInitialCanonicalReadModel
             {
                 return false;
             }
+            Out.bHasPersistedCanonicalIdentity = true;
             Out.ItemDefinitionId = Source.CanonicalItemId;
             Out.ItemDefinition = Source.ItemDefinition; // Transient transition only.
             Out.ItemLevel = Physical.FixedItemLevel;

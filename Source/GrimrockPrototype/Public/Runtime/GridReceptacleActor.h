@@ -41,6 +41,10 @@ struct FGridInitialReceptacleItem
 	/** 0 = definition default; 1..20 = fixed RPG level. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "0", ClampMax = "20"))
 	int32 ItemLevel = 0;
+
+	/** Runtime provenance: true only when the source persisted CanonicalItemId. */
+	UPROPERTY(Transient)
+	bool bHasPersistedCanonicalIdentity = false;
 };
 
 /**
@@ -350,7 +354,7 @@ protected:
 	// ============================================================
 
 	int32 AddContainedItem(FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity,
-		FGuid RuntimeObjectId = FGuid(), int32 ItemLevel = 0);
+		FGuid RuntimeObjectId = FGuid(), int32 ItemLevel = 0, bool bPersistedCanonicalInitialItem = false);
 
 	bool RemoveContainedItemAtIndex(int32 ItemIndex, FGridContainedReceptacleItem& OutRemovedItem);
 

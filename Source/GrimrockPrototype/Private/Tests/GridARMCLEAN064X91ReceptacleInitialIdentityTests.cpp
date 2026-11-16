@@ -73,6 +73,8 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
                         Initial.ItemLevel, Config.ItemLevel) ||
                     !TestEqual(TEXT("Quantity is preserved"),
                         Initial.Quantity, Config.Quantity) ||
+                    !TestTrue(TEXT("Physical cutover provenance comes from persisted ID"),
+                        Initial.bHasPersistedCanonicalIdentity) ||
                     !TestTrue(TEXT("Legacy pointer retained until actor cutover"),
                         Initial.ItemDefinition == Config.ItemDefinition))
                 {
@@ -148,7 +150,9 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
             nullptr, Invalid, Out)) ||
         !TestEqual(TEXT("Historical quantity clamp unchanged"), Out.Quantity, 1) ||
         !TestEqual(TEXT("Historical ID unchanged"),
-            Out.ItemDefinitionId, Legacy->ItemDefinitionId))
+            Out.ItemDefinitionId, Legacy->ItemDefinitionId) ||
+        !TestFalse(TEXT("Legacy-only fixture is not marked as migrated"),
+            Out.bHasPersistedCanonicalIdentity))
     {
         return false;
     }
