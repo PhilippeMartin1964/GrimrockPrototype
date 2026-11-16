@@ -10,6 +10,7 @@
 #include "GridItemWeightReadModel.h"
 #include "GridReceptacleItemMetadataReadModel.h"
 #include "GridReceptacleContainedIdentityReadModel.h"
+#include "GridReceptacleInitialCanonicalReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
@@ -182,22 +183,21 @@ void AGridReceptacleActor::InitializeRuntimeWorldObject(
 	RemovedInitialItemDefinitionIds.Reset();
 	bInitialItemsInitialized = false;
 
+	const UGridItemSubsystem* ItemRegistry = ResolveReceptacleItemRegistry(this);
 	for (const FGridReceptacleInitialItemConfig& ConfigItem : Params.InitialContent)
 	{
-		if (!ConfigItem.ItemDefinition)
+		FGridInitialReceptacleItem InitialItem;
+		if (!FGridReceptacleInitialCanonicalReadModel::TryResolve(
+			ItemRegistry, ConfigItem, InitialItem))
 		{
+			// A known canonical identity may not be downgraded to legacy
+			// data when the registry or its physical N-level is invalid.
+			UE_LOG(LogGridReceptacle, Warning,
+				TEXT("Receptacle initial item rejected: invalid physical identity for %s."),
+				*ConfigItem.CanonicalItemId.ToString());
 			continue;
 		}
-
-		FGridInitialReceptacleItem InitialItem;
-		InitialItem.ItemDefinition = ConfigItem.ItemDefinition;
-		InitialItem.ItemDefinitionId = ConfigItem.ItemDefinition->ItemDefinitionId;
-		InitialItem.Quantity = FMath::Max(1, ConfigItem.Quantity);
-		InitialItem.ItemLevel = ConfigItem.ItemLevel;
-		if (!InitialItem.ItemDefinitionId.IsNone())
-		{
-			InitialContainedItems.Add(InitialItem);
-		}
+		InitialContainedItems.Add(InitialItem);
 	}
 
 	UE_LOG(LogGridReceptacle, Verbose, TEXT("GridReceptacle Init InitialContent Receptacle=%s ObjectId=%s ConfigCount=%d RuntimeInitialCount=%d"), *GetName(),
