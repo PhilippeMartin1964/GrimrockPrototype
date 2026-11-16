@@ -21,6 +21,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "GridWorldItemLevelReadModel.h"
+#include "GridCanonicalItemSpawnReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridLeverActor.h"
@@ -2307,7 +2308,7 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 	// loose-item path, then let world-item persistence own its lifetime.
 	for (const FGridItemSpawnInstance& Spawn : LevelAsset->ItemSpawns)
 	{
-		if (!Spawn.bSpawnAtStart || !Spawn.SpawnId.IsValid() || !IsValid(Spawn.ItemDefinition.Get()) ||
+		if (!Spawn.bSpawnAtStart || !Spawn.SpawnId.IsValid() ||
 			!LevelAsset->IsValidCoord(Spawn.CellX, Spawn.CellY))
 		{
 			continue;
@@ -2328,14 +2329,19 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 			continue; // Rebuilds cannot generate a duplicate runtime object.
 		}
 
+		const UWorld* SpawnWorld = GetWorld();
+		UGameInstance* SpawnGI = SpawnWorld ? SpawnWorld->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* ItemRegistry = SpawnGI
+			? SpawnGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		FGridLooseItemInstance Generated;
-		Generated.InstanceId = Spawn.SpawnId;
-		Generated.ItemDefinition = Spawn.ItemDefinition;
-		Generated.ItemLevel = Spawn.ItemLevel;
-		Generated.Quantity = Spawn.Quantity;
-		Generated.CellX = Spawn.CellX;
-		Generated.CellY = Spawn.CellY;
-		Generated.SurfaceSide = EGridEdge::None;
+		if (!FGridCanonicalItemSpawnReadModel::TryMaterialize(
+			Spawn, ItemRegistry, Generated))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning,
+				TEXT("ItemSpawn skipped: invalid authored physical identity for SpawnId=%s ItemId=%s N%d."),
+				*Spawn.SpawnId.ToString(), *Spawn.CanonicalItemId.ToString(), Spawn.ItemLevel);
+			continue;
+		}
 		AddPlacedItemActor(Generated);
 	}
 
