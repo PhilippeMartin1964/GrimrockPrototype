@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Runtime/GridInteractableInterface.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "GridItemActor.generated.h"
 
 class UGridLightEmitterComponent;
@@ -61,6 +62,12 @@ public:
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|World Physics")
 	int32 CanonicalWorldItemLevel = 0;
 
+	/** ARM-CLEAN06.4X.7: a resolved, transient presentation snapshot, never
+	 * authored, network replicated, SaveGame-serialized or legacy-owned.
+	 * Initialized only after successful canonical ItemId + physical N-level resolution. */
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|Canonical")
+	FGridResolvedItem CanonicalWorldPresentation;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Reading")
 	TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;
 
@@ -84,6 +91,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void InitializeFromItemDefinitionId(FName InItemDefinitionId, const FGuid& InRuntimeObjectId);
+
+	/** Opt-in canonical initialization. No legacy source pointer and no N1 guess.
+	 * Failure leaves the actor untouched. Caller owns runtime light state. */
+	bool InitializeFromCanonicalItem(const FGridItemInstance& Instance, const UGridItemSubsystem* Registry);
 
 	/** Materialize world art using the real N1-N20 instance, preserving noncanonical objects. */
 	bool ApplyCanonicalWorldVisual(const FGridItemInstance& Instance);

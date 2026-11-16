@@ -86,6 +86,7 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 		return;
 	}
 
+	CanonicalWorldPresentation = FGridResolvedItem();
 	ItemDefinitionAsset = InDefinition;
 	ItemDefinitionId = InDefinition->ItemDefinitionId;
 	CanonicalWorldItemLevel = 0;
@@ -113,6 +114,46 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 		VisualEffectsComponent->ApplyConfig(InDefinition->VisualEffects);
 	}
 	RefreshWorldSparklePresentation();
+}
+
+bool AGridItemActor::InitializeFromCanonicalItem(
+	const FGridItemInstance& Instance, const UGridItemSubsystem* Registry)
+{
+	// The entire resolve must complete before touching the actor.
+	if (!Registry || !Instance.IsValid() ||
+		!Registry->HasCanonicalItem(Instance.ItemDefinitionId) ||
+		!MeshComponent || !LightEmitterComponent || !VisualEffectsComponent)
+	{
+		return false;
+	}
+	FGridResolvedItem Projected;
+	if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Projected) ||
+		!Projected.IsValid() || Projected.ItemId != Instance.ItemDefinitionId ||
+		Projected.ItemLevel != Instance.ItemLevel)
+	{
+		return false; // Known invalid ARM N0 never silently becomes N1.
+	}
+
+	ItemDefinitionAsset = nullptr;
+	ItemDefinitionId = Projected.ItemId;
+	CanonicalWorldItemLevel = Projected.ItemLevel;
+	ItemTags = Projected.Tags;
+	SetRuntimeObjectId(Instance.RuntimeObjectId);
+	// This is not a second authority: a transient copy from the sole registry.
+	CanonicalWorldPresentation = MoveTemp(Projected);
+
+	MeshComponent->SetStaticMesh(CanonicalWorldPresentation.WorldMesh.LoadSynchronous());
+	MeshComponent->SetRelativeTransform(CanonicalWorldPresentation.WorldVisualTransform);
+	SetItemLightsEnabled(false);
+	LightEmitterComponent->ApplyConfig(CanonicalWorldPresentation.LightEmitter);
+	VisualEffectsComponent->ApplyConfig(CanonicalWorldPresentation.VisualEffects);
+	// Reinitialization must not keep another pickup's active sparkle.
+	SetWorldSparkleEnabled(false);
+	if (MeshComponent->IsSimulatingPhysics())
+	{
+		RefreshWorldPickupMass();
+	}
+	return true;
 }
 
 bool AGridItemActor::ApplyCanonicalWorldVisual(const FGridItemInstance& Instance)
@@ -159,6 +200,7 @@ void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, co
 		return;
 	}
 
+	CanonicalWorldPresentation = FGridResolvedItem();
 	ItemDefinitionAsset = nullptr;
 	ItemDefinitionId = InItemDefinitionId;
 	CanonicalWorldItemLevel = 0;
@@ -225,8 +267,19 @@ void AGridItemActor::RefreshWorldPickupMass()
 	MassInstance.ItemLevel = CanonicalWorldItemLevel;
 	MassInstance.Quantity = 1;
 	float MassKg = 0.0f;
-	const bool bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolve(
-		Registry, ItemDefinitionAsset, MassInstance, MassKg);
+	bool bOverrideMass = false;
+	if (CanonicalWorldPresentation.IsValid())
+	{
+		const float UnitKg = CanonicalWorldPresentation.WeightKg;
+		bOverrideMass = CanonicalWorldPresentation.bUseItemWeightAsWorldPhysicsMass &&
+			FMath::IsFinite(UnitKg) && UnitKg > KINDA_SMALL_NUMBER;
+		MassKg = bOverrideMass ? UnitKg : 0.0f;
+	}
+	else
+	{
+		bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolve(
+			Registry, ItemDefinitionAsset, MassInstance, MassKg);
+	}
 	MeshComponent->SetMassOverrideInKg(NAME_None, bOverrideMass ? MassKg : 0.0f, bOverrideMass);
 }
 
@@ -251,12 +304,15 @@ void AGridItemActor::ConfigureAsWorldPickup()
 
 void AGridItemActor::ApplyWorldPhysicsInitialNudge()
 {
-	if (!ItemDefinitionAsset)
+	if (!CanonicalWorldPresentation.IsValid() && !ItemDefinitionAsset)
 	{
 		return;
 	}
 
-	const float TiltDegrees = FMath::Clamp(ItemDefinitionAsset->WorldPhysicsInitialTiltDegrees, 0.0f, 45.0f);
+	const float AuthoredTilt = CanonicalWorldPresentation.IsValid()
+		? CanonicalWorldPresentation.WorldPhysicsInitialTiltDegrees
+		: ItemDefinitionAsset->WorldPhysicsInitialTiltDegrees;
+	const float TiltDegrees = FMath::Clamp(AuthoredTilt, 0.0f, 45.0f);
 	if (!FMath::IsFinite(TiltDegrees) || TiltDegrees <= KINDA_SMALL_NUMBER)
 	{
 		return;
@@ -284,8 +340,14 @@ void AGridItemActor::ConfigureAsAttachedItem()
 
 void AGridItemActor::SetWorldSparkleEnabled(bool bEnabled)
 {
-	const bool bCanEnable = bEnabled && ItemDefinitionAsset && ItemDefinitionAsset->bEnableWorldSparkle &&
-		!ItemDefinitionAsset->WorldSparkleMaterial.IsNull() && MeshComponent && MeshComponent->GetStaticMesh() != nullptr;
+	const bool bCanonical = CanonicalWorldPresentation.IsValid();
+	const bool bAuthorised = bCanonical
+		? (CanonicalWorldPresentation.bEnableWorldSparkle &&
+			!CanonicalWorldPresentation.WorldSparkleMaterial.IsNull())
+		: (ItemDefinitionAsset && ItemDefinitionAsset->bEnableWorldSparkle &&
+			!ItemDefinitionAsset->WorldSparkleMaterial.IsNull());
+	const bool bCanEnable = bEnabled && bAuthorised &&
+		MeshComponent && MeshComponent->GetStaticMesh() != nullptr;
 
 	bWorldSparkleActive = bCanEnable;
 	RefreshWorldSparklePresentation();
@@ -313,14 +375,18 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 	UStaticMesh* SourceMesh = MeshComponent ? MeshComponent->GetStaticMesh() : nullptr;
 	SparkleMeshComponent->SetStaticMesh(SourceMesh);
 
-	if (!bWorldSparkleActive || !ItemDefinitionAsset || !SourceMesh)
+	if (!bWorldSparkleActive ||
+		(!CanonicalWorldPresentation.IsValid() && !ItemDefinitionAsset) || !SourceMesh)
 	{
 		SparkleMeshComponent->SetVisibility(false, true);
 		WorldSparkleMaterialInstance = nullptr;
 		return;
 	}
 
-	UMaterialInterface* SparkleMaterial = ItemDefinitionAsset->WorldSparkleMaterial.LoadSynchronous();
+	const bool bCanonical = CanonicalWorldPresentation.IsValid();
+	UMaterialInterface* SparkleMaterial = bCanonical
+		? CanonicalWorldPresentation.WorldSparkleMaterial.LoadSynchronous()
+		: ItemDefinitionAsset->WorldSparkleMaterial.LoadSynchronous();
 	if (!SparkleMaterial)
 	{
 		bWorldSparkleActive = false;
@@ -337,10 +403,18 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 		return;
 	}
 
-	WorldSparkleMaterialInstance->SetVectorParameterValue(TEXT("SparkleColor"), ItemDefinitionAsset->WorldSparkleColor);
-	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparkleIntensity"), FMath::Max(0.0f, ItemDefinitionAsset->WorldSparkleIntensity));
-	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparkleSpeed"), FMath::Max(0.0f, ItemDefinitionAsset->WorldSparkleSpeed));
-	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparkleVariation"), FMath::Clamp(ItemDefinitionAsset->WorldSparkleVariation, 0.0f, 1.0f));
+	const FLinearColor SparkleColor = bCanonical ? CanonicalWorldPresentation.WorldSparkleColor
+		: ItemDefinitionAsset->WorldSparkleColor;
+	const float SparkleIntensity = bCanonical ? CanonicalWorldPresentation.WorldSparkleIntensity
+		: ItemDefinitionAsset->WorldSparkleIntensity;
+	const float SparkleSpeed = bCanonical ? CanonicalWorldPresentation.WorldSparkleSpeed
+		: ItemDefinitionAsset->WorldSparkleSpeed;
+	const float SparkleVariation = bCanonical ? CanonicalWorldPresentation.WorldSparkleVariation
+		: ItemDefinitionAsset->WorldSparkleVariation;
+	WorldSparkleMaterialInstance->SetVectorParameterValue(TEXT("SparkleColor"), SparkleColor);
+	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparkleIntensity"), FMath::Max(0.0f, SparkleIntensity));
+	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparkleSpeed"), FMath::Max(0.0f, SparkleSpeed));
+	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparkleVariation"), FMath::Clamp(SparkleVariation, 0.0f, 1.0f));
 	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparklePhase"), BuildWorldSparklePhase());
 
 	const int32 MaterialCount = FMath::Max(1, SparkleMeshComponent->GetNumMaterials());
