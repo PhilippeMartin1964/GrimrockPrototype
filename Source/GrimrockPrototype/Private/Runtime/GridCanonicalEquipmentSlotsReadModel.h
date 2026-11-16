@@ -41,8 +41,12 @@ struct FGridCanonicalEquipmentSlotsReadModel
 			View.bResolved = true;
 			if (!Canonical.bIsArmament)
 			{
-				// In particular, canonical ammo N0 cannot be equipped even
-				// if an obsolete definition wrongly declares a hand slot.
+				// Only genuine canonical equipment carries explicit slots.
+				// Ammo, potions and generic stacks have none, regardless
+				// of obsolete legacy hand flags. Physical non-ARM is N0.
+				if (Item.ItemLevel != 0) { View.bResolved = false; return View; }
+				View.bTwoHanded = Canonical.bNonArmTwoHanded;
+				View.AllowedSlots = Canonical.NonArmEquipmentSlots;
 				return View;
 			}
 

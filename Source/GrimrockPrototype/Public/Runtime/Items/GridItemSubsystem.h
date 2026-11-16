@@ -65,6 +65,15 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	TSoftObjectPtr<UStaticMesh> EquippedMesh;
 
+	/** Canonical non-armament equipment permissions (torch, armor, jewelry).
+	 * Empty for ammo/consumables and ARM; no legacy slot data. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Equipment")
+	TArray<EGridEquipmentSlot> NonArmEquipmentSlots;
+
+	/** Two-hand canonical non-ARM occupancy; OffHand is a virtual reservation. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Equipment")
+	bool bNonArmTwoHanded = false;
+
 	/** Flight shape and presentation are resolved from the one visual catalogue. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	TSoftObjectPtr<UStaticMesh> ProjectileMesh;

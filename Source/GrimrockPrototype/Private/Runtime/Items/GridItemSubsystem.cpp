@@ -195,6 +195,13 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		{
 			OutItem.MaxStack = Equipment->MaxStack;
 			OutItem.EquippedMesh = Equipment->GetEffectiveEquippedMesh();
+			// Hand and armor-slot permissions are authored on the ONE
+			// registered non-ARM equipment definition. A torch must not
+			// become non-equippable merely because it is not an ARM weapon.
+			OutItem.NonArmEquipmentSlots = Equipment->GetAvailableSlots();
+			OutItem.bNonArmTwoHanded =
+				Equipment->HandPolicy == EGridNonArmamentHandPolicy::TwoHanded &&
+				OutItem.NonArmEquipmentSlots.Contains(EGridEquipmentSlot::MainHand);
 		}
 		if (const UGridGenericStackableDefinitionAsset* Generic =
 			Cast<UGridGenericStackableDefinitionAsset>(Definition))

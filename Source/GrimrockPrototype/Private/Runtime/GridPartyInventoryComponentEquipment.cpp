@@ -82,8 +82,9 @@ bool UGridPartyInventoryComponent::IsTwoHandedItem(const FGridItemInstance& Item
 		{
 			FGridResolvedItem Resolved;
 			return Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) &&
-				Resolved.bIsArmament &&
-				Resolved.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded;
+				(Resolved.bIsArmament
+					? Resolved.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded
+					: (Item.ItemLevel == 0 && Resolved.bNonArmTwoHanded));
 		}
 	}
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
@@ -130,7 +131,9 @@ bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, cons
 		{
 			FGridResolvedItem Resolved;
 			return Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) &&
-				Resolved.bIsArmament && Resolved.Weapon.CanEquipInHand(TargetSlot);
+				(Resolved.bIsArmament
+					? Resolved.Weapon.CanEquipInHand(TargetSlot)
+					: (Item.ItemLevel == 0 && Resolved.NonArmEquipmentSlots.Contains(TargetSlot)));
 		}
 	}
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
