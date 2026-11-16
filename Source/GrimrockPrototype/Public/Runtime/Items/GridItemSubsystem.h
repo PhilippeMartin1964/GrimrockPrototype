@@ -90,6 +90,44 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	TArray<FGridItemActionBinding> AvailableActions;
 
+	/** ARM-CLEAN06.4X.6: transient non-ARM presentation directly from the
+	 * single canonical definition. These values never enter SaveGame. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Presentation")
+	FGridLightEmitterConfig LightEmitter;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Presentation")
+	FGridItemVisualEffectsConfig VisualEffects;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Presentation")
+	bool bEnableWorldSparkle = false;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Presentation")
+	TSoftObjectPtr<UMaterialInterface> WorldSparkleMaterial;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Presentation")
+	FLinearColor WorldSparkleColor = FLinearColor(1.f, 0.78f, 0.42f, 1.f);
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Presentation")
+	float WorldSparkleIntensity = 2.f;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Presentation")
+	float WorldSparkleSpeed = 1.f;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Presentation")
+	float WorldSparkleVariation = 0.35f;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Reading")
+	FText ReadText;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Reading")
+	bool bReadable = false;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Physics")
+	bool bUseItemWeightAsWorldPhysicsMass = false;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Physics")
+	float WorldPhysicsInitialTiltDegrees = 0.f;
+
 	bool IsValid() const { return Error == EGridCanonicalItemResolveError::None; }
 };
 

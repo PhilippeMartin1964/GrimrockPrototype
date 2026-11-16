@@ -91,6 +91,28 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	OutItem.WeightKg = Definition->WeightKg;
 	OutItem.Tags = Definition->Tags;
 
+	// Project non-ARM physical presentation BEFORE the ammunition fast path:
+	// arrows and other ammo must retain their canonical Niagara/physics data.
+	// Never use historical UGridItemDefinitionAsset as a second authority.
+	if (const UGridNonArmamentDefinitionAsset* Other =
+		Cast<UGridNonArmamentDefinitionAsset>(Definition))
+	{
+		OutItem.LightEmitter = Other->LightEmitter;
+		OutItem.VisualEffects = Other->VisualEffects;
+		OutItem.bEnableWorldSparkle = Other->bEnableWorldSparkle;
+		OutItem.WorldSparkleMaterial = Other->WorldSparkleMaterial;
+		OutItem.WorldSparkleColor = Other->WorldSparkleColor;
+		OutItem.WorldSparkleIntensity = Other->WorldSparkleIntensity;
+		OutItem.WorldSparkleSpeed = Other->WorldSparkleSpeed;
+		OutItem.WorldSparkleVariation = Other->WorldSparkleVariation;
+		OutItem.ReadText = Other->ReadText;
+		OutItem.bReadable = Other->bReadable;
+		OutItem.bUseItemWeightAsWorldPhysicsMass =
+			Other->bUseItemWeightAsWorldPhysicsMass;
+		OutItem.WorldPhysicsInitialTiltDegrees =
+			Other->WorldPhysicsInitialTiltDegrees;
+	}
+
 	// Ammunition is a distinct canonical family. Finalize its identity before
 	// any other equipment/consumable projection can be considered.
 	if (const UGridAmmoDefinitionAsset* Ammo = Cast<UGridAmmoDefinitionAsset>(Definition))
