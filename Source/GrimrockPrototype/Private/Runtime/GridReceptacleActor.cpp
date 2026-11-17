@@ -316,10 +316,40 @@ bool AGridReceptacleActor::ContainsItemTag(FName ItemTag) const
 
 bool AGridReceptacleActor::ContainsItemType(EGridItemType ItemType) const
 {
+	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
 	return ContainedItems.ContainsByPredicate(
-		[ItemType](const FGridContainedReceptacleItem& Item)
+		[Registry, ItemType](const FGridContainedReceptacleItem& Item)
 		{
-			return Item.ItemDefinition && Item.ItemDefinition->ItemType == ItemType;
+			if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+			{
+				FGridResolvedItem Resolved;
+				if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved))
+				{
+					return false; // A known invalid N0/N21 cannot borrow a legacy type.
+				}
+				if (Resolved.bIsArmament)
+				{
+					const EGridItemType CanonicalType =
+						Resolved.Weapon.Kind == EGridCanonicalArmamentKind::Shield
+							? EGridItemType::Shield : EGridItemType::Weapon;
+					return ItemType == CanonicalType;
+				}
+				// Unlike ARM, every registered non-ARM item is physically N0.
+				// The generic resolver currently accepts a non-ARM N1, so this
+				// gameplay condition must reject it before consulting legacy type.
+				if (Item.ItemLevel != 0)
+				{
+					return false;
+				}
+				// Non-ARM still has no authored gameplay EGridItemType in ItemSystem.
+				// Preserve existing puzzle semantics only with a matching old ID;
+				// pointerless non-ARM needs a separate explicit category migration.
+				return IsValid(Item.ItemDefinition) &&
+					Item.ItemDefinition->ItemDefinitionId == Item.ItemDefinitionId &&
+					Item.ItemDefinition->ItemType == ItemType;
+			}
+			// Genuine out-of-registry items keep their historical condition.
+			return IsValid(Item.ItemDefinition) && Item.ItemDefinition->ItemType == ItemType;
 		});
 }
 

@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.31 — condition de type dans les réceptacles ARM canoniques
+
+**Parent :** `54f547b0802715492a8e0cb73639cbb85def501a`. Rapport : [ARM_CLEAN06_4X31_CANONICAL_RECEPTACLE_ITEM_TYPE.md](ARM_CLEAN06_4X31_CANONICAL_RECEPTACLE_ITEM_TYPE.md).
+
+`ContainsItemType` reconnaît désormais les ARM enregistrés N1–N20 sans `ItemDefinition` : `Shield` pour les boucliers, `Weapon` pour les autres ; un niveau invalide ne lit jamais l'ancien type. Les catégories non-ARM restent historiques seulement avec un ancien ID concordant (le registre ne porte pas encore leur taxonomie gameplay). Les objets hors registre restent compatibles. Régression sur vrai registre et réceptacle transitoire ; aucun binaire ni SaveGame modifié. **06.4 partielle ; 06.5 bloquée ; vérifier les deux statuts Windows sur le SHA final.**
+
 ## ARM-CLEAN06.4X.30 — visuel de clé insérée sans ancien ItemDefinition
 
 **Parent :** `145a97b3f217e84a796a756db61f31c6902b8bde`. Rapport : [ARM_CLEAN06_4X30_POINTERLESS_LOCK_INSERTED_KEY.md](ARM_CLEAN06_4X30_POINTERLESS_LOCK_INSERTED_KEY.md).
