@@ -41,6 +41,16 @@ bool FGridClean063WAmmoFlightMesh::RunTest(const FString&)
 		Flight.WorldMesh.ToSoftObjectPath().ToString(),
 		Canonical.WorldMesh.ToSoftObjectPath().ToString());
 	TestTrue(TEXT("Unlevelled arrow remains N0"), Arrow.ItemLevel == 0);
+	Arrow.ItemLevel = 1;
+	FGridResolvedItem LegacyFamilyRead;
+	TestTrue(TEXT("Non-ARM N1 family read remains available"),
+		Registry->ResolveItem(Arrow.ItemDefinitionId, Arrow.ItemLevel, LegacyFamilyRead));
+	const FGridCanonicalProjectileVisualReadView InvalidPhysical =
+		FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Arrow);
+	TestTrue(TEXT("Non-ARM N1 keeps canonical membership"), InvalidPhysical.bCanonicalIdentity);
+	TestFalse(TEXT("Non-ARM N1 is not a physical ammo flight"), InvalidPhysical.bResolved);
+	TestFalse(TEXT("Invalid flight cannot classify ammunition"), InvalidPhysical.bIsAmmunition);
+	TestTrue(TEXT("Invalid N1 flight has no canonical mesh"), InvalidPhysical.WorldMesh.IsNull());
 	Arrow.ItemLevel = -1;
 	const FGridCanonicalProjectileVisualReadView Invalid =
 		FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Arrow);

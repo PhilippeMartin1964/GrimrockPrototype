@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.34 — vol physique : les munitions sont N0
+
+**Parent :** `df36e7836d491b9db92f8c56f68f18af3ecbaa4f`. Rapport : [ARM_CLEAN06_4X34_CANONICAL_PROJECTILE_PHYSICAL_LEVEL.md](ARM_CLEAN06_4X34_CANONICAL_PROJECTILE_PHYSICAL_LEVEL.md).
+
+Le lecteur de vol `FGridCanonicalProjectileVisualReadModel` rejette les non-ARM N1–N20 avant tout mesh, classe `Ammo` ou paramètre de vol, sans effacer `bCanonicalIdentity` ni modifier les lectures de famille historiques. Les ARM N1–N20 et les flèches N0 conservent leurs rendus. Test renforcé sur vrais `DA_ItemSystem` et munitions. Aucun `.uasset`, `.umap` ni SaveGame touché. **06.4 partielle ; 06.5 bloquée ; attendre deux SUCCESS Windows sur SHA final.**
+
 ## ARM-CLEAN06.4X.33 — acteurs physiques non-ARM uniquement N0
 
 **Parent :** `d4d329415b46ff33039adace55a6fdeac1909a26`. Rapport : [ARM_CLEAN06_4X33_CANONICAL_WORLD_ACTOR_PHYSICAL_LEVEL.md](ARM_CLEAN06_4X33_CANONICAL_WORLD_ACTOR_PHYSICAL_LEVEL.md).
