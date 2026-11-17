@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.46B — 44 objets libres migrés dans le vrai .uasset, contrôles Windows verts
+
+**Transaction binaire :** `cd177cd5473c8ab3777bfecae56cd0e33abd23eb` (parent `875814f2d189a244cd84ab5f7bfa2fb521174f87`). Rapport de réception : [ARM_CLEAN06_4X46B_NATIVE_LOOSE_RESULT.md](ARM_CLEAN06_4X46B_NATIVE_LOOSE_RESULT.md).
+
+`DA_GridLevel_00.uasset` est désormais réellement resauvegardé par UE5.5.4 avec les **44 `FGridLooseItemInstance::ItemDefinition` retirés**. GitHub compare : **un seul package natif modifié** ; deux validations Windows `SilentTask=SUCCESS` et `LocalAuto=SUCCESS` sur le SHA exact. Sur la version convertie : **1961 tests réussis, 26 avec avertissements, zéro échec ou non exécuté**, réouverture `-Verify` avec code 0. Aucun autre asset ni SaveGame dans le commit. **Prochaine porte : recette PIE post-conversion (mesh, pickup, PIT02/transfert dans la bonne cellule, Save/Continue)**. Avant le reste de 06.4, refaire un scan UE natif des pointeurs résiduels (solde de 63 estimé d'après l'audit antérieur, non revérifié). 06.4 partielle / 06.5 bloquée.
+
 ## ARM-CLEAN06.4X.47 — correctif de test du vrai niveau après conversion et restauration visible
 
 **Parent :** `939ef5dc1846aec896cb2f04261a6e20b3444a30`. Rapport : [ARM_CLEAN06_4X47_POST_NATIVE_LOOSE_TEST_AND_ROLLBACK.md](ARM_CLEAN06_4X47_POST_NATIVE_LOOSE_TEST_AND_ROLLBACK.md).

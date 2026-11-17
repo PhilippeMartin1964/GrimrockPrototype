@@ -1,6 +1,6 @@
 # ARM-CLEAN06 — Plan de refonte et de migration sans legacy final
 
-**Statut : PLAN NORMATIF APPROUVÉ SUR LES OBJECTIFS ; EXÉCUTION NON DÉMARRÉE.** 13 novembre 2026. Source de vérité : [contrat ARM-CLEAN06](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md). **Ne pas présenter le modèle cible comme déjà implémenté.**
+**Statut au 17 novembre 2026 : plan normatif approuvé ; exécution en cours.** La première conversion native (44 objets libres de `DA_GridLevel_00.uasset`) a été publiée et validée techniquement dans le commit `cd177cd5473c8ab3777bfecae56cd0e33abd23eb`. ARM-CLEAN06.4 reste **partielle** et la recette PIE post-conversion est due. Plan initial du 13 novembre 2026. Source de vérité : [contrat ARM-CLEAN06](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md). **Ne pas présenter le modèle cible comme déjà implémenté.**
 
 ## 1. Invariants de migration
 
@@ -8,7 +8,7 @@
 - **Pas de changement de gameplay masqué** : 1 640 profils numériques et 260 profils passifs, protections (dont déplétion), coûts PA, portée, combat mains nues, MainHand/OffHand, deux mains, dual-wield, lancers, munitions, parade, blocage, action HUD 1 et compétences réelles restent équivalents.
 - **Un seul modèle final** : aucun commutateur legacy, profil N1 copié, double pointeur, fallback, sérialisation d'anciennes variantes dans le runtime final. Les outils de conversion sont Editor-only et **retirés au cutover**.
 - **Sécurité Unreal** : migration de .uasset/.umap par commandlets UE5.5.4, pas modification binaire artisanale ; Git LFS, données non commitées utilisateur et sauvegardes existantes protégées ; contrôle de listes de fichiers, sha et diff.
-- **Traçabilité** : un jalon = au maximum un commit atomique sur master ; validate Windows `UE5.5.4/SilentTask` et `UE5.5.4/LocalAuto` sur le SHA exact ; PIE pour rendu non prouvé par NullRHI.
+- **Traçabilité** : un lot cohérent = un commit atomique sur master (plusieurs lots successifs autorisés) ; validate Windows `UE5.5.4/SilentTask` et `UE5.5.4/LocalAuto` sur le SHA exact ; PIE pour rendu non prouvé par NullRHI.
 
 ## 2. Séquence imposée et portes de validation
 
