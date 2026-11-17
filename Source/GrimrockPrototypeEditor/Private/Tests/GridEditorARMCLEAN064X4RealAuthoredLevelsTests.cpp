@@ -79,8 +79,48 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
     const auto Check = [this, &Definitions, &Registry, &CanonicalCount,
         &ArmCount, &InheritedArmCount, &NonArmCount](
             const FName AuthoredItemId, const UGridItemDefinitionAsset* Source,
-            int32 AuthoredLevel, int32 Quantity) -> bool
+            int32 AuthoredLevel, int32 Quantity, bool bAllowPointerless) -> bool
     {
+        // X.45: tolerate a completed native cutover ONLY for the 44
+        // loose objects. All other old references remain required until
+        // their own independent migration, and N-levels stay physical.
+        if (!IsValid(Source) && bAllowPointerless)
+        {
+            const UGridCanonicalItemDefinitionAsset* const* Found =
+                Definitions.Find(AuthoredItemId);
+            if (AuthoredItemId.IsNone() || !Found || !IsValid(*Found) ||
+                Quantity < 1 || AuthoredLevel < 0 || AuthoredLevel > 20)
+            {
+                return false;
+            }
+            const UGridArmamentDefinitionAsset* Arm =
+                Cast<UGridArmamentDefinitionAsset>(*Found);
+            if (Arm)
+            {
+                if (AuthoredLevel == 0 || Arm->ArchetypeId.IsNone()) { return false; }
+                ++ArmCount;
+            }
+            else if (Cast<UGridNonArmamentDefinitionAsset>(*Found) &&
+                AuthoredLevel == 0)
+            {
+                ++NonArmCount;
+            }
+            else
+            {
+                return false;
+            }
+            FGridResolvedItem Physical;
+            if (!Registry->ResolveItem(AuthoredItemId, AuthoredLevel, Physical) ||
+                !Physical.IsValid() || Physical.ItemId != AuthoredItemId ||
+                Physical.ItemLevel != AuthoredLevel ||
+                Physical.bIsArmament != (Arm != nullptr) ||
+                (Arm && Physical.ArchetypeId != Arm->ArchetypeId))
+            {
+                return false;
+            }
+            ++CanonicalCount;
+            return true;
+        }
         if (!IsValid(Source) || AuthoredItemId.IsNone() ||
             Source->ItemDefinitionId != AuthoredItemId ||
             Quantity < 1)
@@ -180,7 +220,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
             if (!Placement.InstanceId.IsValid() ||
                 PhysicalGuids.Contains(Placement.InstanceId) ||
                 !Check(Placement.CanonicalItemId, Placement.ItemDefinition,
-                    Placement.ItemLevel, Placement.Quantity))
+                    Placement.ItemLevel, Placement.Quantity, true))
             {
                 AddError(TEXT("Invalid source, duplicate GUID or level in real loose placement."));
                 return false;
@@ -193,7 +233,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
         {
             if (!Spawn.SpawnId.IsValid() ||
                 !Check(Spawn.CanonicalItemId, Spawn.ItemDefinition,
-                    Spawn.ItemLevel, Spawn.Quantity))
+                    Spawn.ItemLevel, Spawn.Quantity, false))
             {
                 AddError(TEXT("Invalid source identity or level in authored spawn."));
                 return false;
@@ -207,7 +247,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
                 World.InstanceConfig.ReceptacleInitialContent)
             {
                 if (!Check(Initial.CanonicalItemId, Initial.ItemDefinition,
-                    Initial.ItemLevel, Initial.Quantity))
+                    Initial.ItemLevel, Initial.Quantity, false))
                 {
                     AddError(TEXT("Invalid initial receptacle physical level."));
                     return false;
@@ -240,7 +280,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
         }
         // Palette entries have no authored N-level; the source-defined
         // default is necessary when a NEW ARM placement is created.
-        if (!Check(Entry.CanonicalItemId, Entry.DefaultItemDefinition, 0, 1))
+        if (!Check(Entry.CanonicalItemId, Entry.DefaultItemDefinition, 0, 1, false))
         {
             AddError(TEXT("Physical level for a direct palette item is unresolved."));
             return false;

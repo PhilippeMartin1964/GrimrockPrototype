@@ -40,8 +40,18 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
     int32 Spawn = 0;
     int32 Receptacle = 0;
     int32 Palette = 0;
-    auto Visit = [&](const UGridItemDefinitionAsset* Legacy, FName ItemId) -> bool
+    auto Visit = [&](const UGridItemDefinitionAsset* Legacy, FName ItemId,
+        bool bAllowPointerless) -> bool
     {
+        // X.45: only the 44 loose placements are eligible for removal
+        // of a historical pointer. Other 51 references remain strict.
+        if (!IsValid(Legacy) && bAllowPointerless)
+        {
+            if (ItemId.IsNone() || !ValidIds.Contains(ItemId)) { return false; }
+            ++Total;
+            ++Materialized;
+            return true;
+        }
         if (!IsValid(Legacy) || Legacy->ItemDefinitionId.IsNone() ||
             !ValidIds.Contains(Legacy->ItemDefinitionId) ||
             (!ItemId.IsNone() && ItemId != Legacy->ItemDefinitionId))
@@ -69,13 +79,13 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
         for (const FGridLooseItemInstance& Item : Level->LooseItemInstances)
         {
             if (!TestTrue(TEXT("Loose item maintains exact source ItemId"),
-                Visit(Item.ItemDefinition, Item.CanonicalItemId))) { return false; }
+                Visit(Item.ItemDefinition, Item.CanonicalItemId, true))) { return false; }
             ++Loose;
         }
         for (const FGridItemSpawnInstance& Item : Level->ItemSpawns)
         {
             if (!TestTrue(TEXT("Spawn maintains exact source ItemId"),
-                Visit(Item.ItemDefinition, Item.CanonicalItemId))) { return false; }
+                Visit(Item.ItemDefinition, Item.CanonicalItemId, false))) { return false; }
             ++Spawn;
         }
         for (const FGridWorldObjectInstance& World : Level->WorldObjectInstances)
@@ -84,7 +94,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
                 World.InstanceConfig.ReceptacleInitialContent)
             {
                 if (!TestTrue(TEXT("Receptacle maintains exact source ItemId"),
-                    Visit(Item.ItemDefinition, Item.CanonicalItemId))) { return false; }
+                    Visit(Item.ItemDefinition, Item.CanonicalItemId, false))) { return false; }
                 ++Receptacle;
             }
         }
@@ -98,7 +108,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
     {
         if (!Entry.DefaultItemDefinition) { continue; }
         if (!TestTrue(TEXT("Palette item retains exact source ItemId"),
-                Visit(Entry.DefaultItemDefinition, Entry.CanonicalItemId)))
+                Visit(Entry.DefaultItemDefinition, Entry.CanonicalItemId, false)))
         {
             return false;
         }

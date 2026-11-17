@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.45 — préflight natif, 44 références d'objets libres (sans écriture)
+
+**Parent :** `9f72e6e8094b66760ad0b9d1166f0a82bf083197`. Rapport : [ARM_CLEAN06_4X45_NATIVE_LOOSE_POINTER_PREFLIGHT.md](ARM_CLEAN06_4X45_NATIVE_LOOSE_POINTER_PREFLIGHT.md).
+
+Quatre anciennes suites d'audit (X.2, X.4, W, test de véritable donjon ARMEMENT01.10.3) reconnaissent désormais une pose libre canonical-only **sans** autoriser la perte d'ID, de niveau, de GUID ou le retrait des 18 sources de réceptacles / 33 entrées de palette. Nouveau test X.45 sur les 44 vraies entrées de DA_GridLevel_00 : copie transitoire, suppression des pointeurs dans la copie, comparaison de champs stables et refus d'un ARM N0. Aucun SavePackage, package UE, SaveGame ni contenu personnel modifié. Transaction UE native à préparer séparément après deux statuts Windows sur SHA final. **06.4 partielle / 06.5 bloquée.**
+
 ## ARM-CLEAN06.4X.44 — Authoring Editor : nouveaux objets canoniques sans anciennes définitions
 
 **Parent :** `53dc881d2be1559fe3154bae7a86b0e0f26867d7`. Rapport : [ARM_CLEAN06_4X44_EDITOR_POINTERLESS_AUTHORING.md](ARM_CLEAN06_4X44_EDITOR_POINTERLESS_AUTHORING.md).

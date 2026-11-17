@@ -194,7 +194,14 @@ bool FARMEMENT01103ProductionBindings::RunTest(const FString&)
         int32 DungeonCount = 0;
         for (const FGridLooseItemInstance& Placed : Dungeon->LooseItemInstances)
         {
-            if (Placed.ItemDefinition.Get() == Item) ++DungeonCount;
+            // Existing native rows may be legacy-backed until X.46 or
+            // already pointerless after the guarded one-package migration.
+            const bool bMatchingLegacy = Placed.ItemDefinition.Get() == Item &&
+                Placed.CanonicalItemId == Item->ItemDefinitionId;
+            const bool bMatchingCanonical = Placed.ItemDefinition == nullptr &&
+                Placed.CanonicalItemId == Item->ItemDefinitionId &&
+                Placed.ItemLevel >= 1 && Placed.ItemLevel <= 20;
+            if (bMatchingLegacy || bMatchingCanonical) ++DungeonCount;
         }
         TestTrue(TEXT("Real dungeon contains this weapon as a loose item"), DungeonCount > 0);
     }

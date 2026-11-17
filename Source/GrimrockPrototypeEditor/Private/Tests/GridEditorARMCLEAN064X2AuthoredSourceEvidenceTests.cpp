@@ -56,8 +56,34 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
     TSet<FGuid> LoosePlacementGuids;
 
     auto CheckSource = [&](FName CanonicalId, const UGridItemDefinitionAsset* Source,
-        int32 AuthoredLevel, int32 Quantity) -> bool
+        int32 AuthoredLevel, int32 Quantity, bool bAllowPointerless) -> bool
     {
+        // X.45: a real loose row may have completed the protected native
+        // cutover. Never extend that tolerance to palette/receptacles.
+        if (!IsValid(Source) && bAllowPointerless)
+        {
+            const UGridCanonicalItemDefinitionAsset* const* Found = Registry.Find(CanonicalId);
+            if (CanonicalId.IsNone() || !Found || !IsValid(*Found) ||
+                Quantity < 1 || AuthoredLevel < 0 || AuthoredLevel > 20)
+            {
+                return false;
+            }
+            if (Cast<UGridArmamentDefinitionAsset>(*Found))
+            {
+                if (AuthoredLevel == 0) { return false; }
+                ++ArmReferences;
+            }
+            else if (Cast<UGridNonArmamentDefinitionAsset>(*Found) && AuthoredLevel == 0)
+            {
+                ++NonArmN0;
+            }
+            else
+            {
+                return false;
+            }
+            ++Total;
+            return true;
+        }
         if (!IsValid(Source) || CanonicalId.IsNone() ||
             CanonicalId != Source->ItemDefinitionId ||
             Quantity < 1 || AuthoredLevel < 0 || AuthoredLevel > 20)
@@ -127,7 +153,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
             if (!Item.InstanceId.IsValid() ||
                 LoosePlacementGuids.Contains(Item.InstanceId) ||
                 !CheckSource(Item.CanonicalItemId, Item.ItemDefinition,
-                    Item.ItemLevel, Item.Quantity))
+                    Item.ItemLevel, Item.Quantity, true))
             {
                 AddError(TEXT("Invalid loose placement identity, GUID or authored level."));
                 return false;
@@ -139,7 +165,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         {
             if (!Item.SpawnId.IsValid() ||
                 !CheckSource(Item.CanonicalItemId, Item.ItemDefinition,
-                    Item.ItemLevel, Item.Quantity))
+                    Item.ItemLevel, Item.Quantity, false))
             {
                 AddError(TEXT("Invalid authored item spawn identity or level."));
                 return false;
@@ -152,7 +178,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
                 Object.InstanceConfig.ReceptacleInitialContent)
             {
                 if (!CheckSource(Item.CanonicalItemId, Item.ItemDefinition,
-                    Item.ItemLevel, Item.Quantity))
+                    Item.ItemLevel, Item.Quantity, false))
                 {
                     AddError(TEXT("Invalid receptacle initial item identity or level."));
                     return false;
@@ -175,7 +201,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         if (!Entry.DefaultItemDefinition) { continue; }
         // The palette has no item level; a new authored placement starts at N0.
         if (!CheckSource(Entry.CanonicalItemId, Entry.DefaultItemDefinition,
-            0, 1))
+            0, 1, false))
         {
             AddError(TEXT("Invalid direct palette identity or inherited level."));
             return false;
