@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.26 — validation Editor canonique et modification du niveau physique
+
+**Parent :** fffa04d9b0a0118d4edb72b1cb77c96b61f2f4e1. Rapport : [ARM_CLEAN06_4X26_EDITOR_POINTERLESS_VALIDATION.md](ARM_CLEAN06_4X26_EDITOR_POINTERLESS_VALIDATION.md).
+
+Le validateur de niveaux reconnaît les objets possédant CanonicalItemId sans ancien ItemDefinition, contrôle strictement leur ItemLevel et refuse les contradictions. L'édition d'ItemLevel fonctionne désormais sur loose items et ItemSpawns pointerless. Les réceptacles convertis ne déclenchent plus de fausses alertes de pointeur manquant. Test isolé du module Editor ; aucun asset UE ni SaveGame modifié. **06.4 non terminée, 06.5 bloquée.**
+
 ## ARM-CLEAN06.4X.25 — aperçu d'objets pointerless dans l'éditeur
 
 **Parent :** `cafd5850a5e471dfc323f3002ccc7e1e98a251ff`. [Rapport X.25](ARM_CLEAN06_4X25_POINTERLESS_EDITOR_WORLD_PREVIEW.md).

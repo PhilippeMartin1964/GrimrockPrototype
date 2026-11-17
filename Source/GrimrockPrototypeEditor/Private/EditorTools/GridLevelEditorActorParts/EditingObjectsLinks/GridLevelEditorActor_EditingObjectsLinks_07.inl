@@ -124,11 +124,20 @@ bool AGridLevelEditorActor::SetSelectedObjectItemLevel(int32 NewItemLevel)
 	}
 	FGridLooseItemInstance* Loose = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId);
 	FGridItemSpawnInstance* Spawn = Loose ? nullptr : LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId);
-	UGridItemDefinitionAsset* Definition = Loose ? Loose->ItemDefinition.Get() : (Spawn ? Spawn->ItemDefinition.Get() : nullptr);
-	if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(
-		ResolveEditorItemRegistry(), Definition, NewItemLevel))
+	if (!Loose && !Spawn)
 	{
-		return false; // Known canonical item: never consult obsolete opt-in/level.
+		return false;
+	}
+	UGridItemDefinitionAsset* Definition = Loose ? Loose->ItemDefinition.Get() : Spawn->ItemDefinition.Get();
+	const FName CanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
+	const bool bAllowed = !CanonicalId.IsNone()
+		? FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			ResolveEditorItemRegistry(), CanonicalId, NewItemLevel)
+		: FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(
+			ResolveEditorItemRegistry(), Definition, NewItemLevel);
+	if (!bAllowed)
+	{
+		return false; // Persisted ARM N0 / non-ARM N1 cannot be authored.
 	}
 	int32& AuthoredLevel = Loose ? Loose->ItemLevel : Spawn->ItemLevel;
 	if (AuthoredLevel == NewItemLevel)
@@ -148,7 +157,9 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 	if (!LevelAsset) return false;
 	if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId))
 	{
-		if (LooseItemInstance->ItemDefinition && LooseItemInstance->ItemDefinition->ItemDefinitionId == NewItemDefinitionId) return true;
+		if (LooseItemInstance->CanonicalItemId == NewItemDefinitionId ||
+			(LooseItemInstance->ItemDefinition &&
+			 LooseItemInstance->ItemDefinition->ItemDefinitionId == NewItemDefinitionId)) return true;
 	}
 	if (ObjectPalette)
 	{

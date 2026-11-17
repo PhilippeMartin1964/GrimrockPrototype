@@ -1,5 +1,7 @@
 #include "Core/GridBoundary.h"
 #include "Core/GridRelocationUtils.h"
+#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 
 TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel()
 {
@@ -445,32 +447,60 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 				if (!Receptacle.bAcceptAnyItem && Receptacle.AcceptedItems.IsEmpty())
 					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Receptacle does not accept any item because AcceptedItems is empty."), ObjectId);
 				for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Receptacle.AcceptedItems)
-					if (!AcceptedItem.ItemDefinition)
-						AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Receptacle AcceptedItems contains an entry without an ItemDefinition."), ObjectId);
+					if (!AcceptedItem.ItemDefinition && AcceptedItem.CanonicalItemId.IsNone())
+						AddMessage(EGridLevelValidationSeverity::Warning,
+							TEXT("Receptacle AcceptedItems requires an ItemDefinition or CanonicalItemId."), ObjectId);
 			}
 			for (const FGridReceptacleInitialItemConfig& InitialItem : Obj.InstanceConfig.ReceptacleInitialContent)
 			{
-				if (!InitialItem.ItemDefinition)
-					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Receptacle InitialContent contains an entry without an ItemDefinition."), ObjectId);
+				if (!InitialItem.ItemDefinition && InitialItem.CanonicalItemId.IsNone())
+					AddMessage(EGridLevelValidationSeverity::Warning,
+						TEXT("Receptacle InitialContent requires an ItemDefinition or CanonicalItemId."), ObjectId);
 				if (InitialItem.Quantity < 1)
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent requires Quantity >= 1."), ObjectId);
 			}
 		}
 	}
 
-	const auto ValidateItemDefinition = [&AddMessage](FGuid ObjectId, const UGridItemDefinitionAsset* Definition, int32 Quantity)
+	const auto ValidateItemDefinition = [this, &AddMessage](
+		FGuid ObjectId, const UGridItemDefinitionAsset* Definition,
+		FName CanonicalItemId, int32 PhysicalLevel, int32 Quantity)
 	{
-		if (!Definition)
-			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Item placement requires an ItemDefinition asset."), ObjectId);
+		if (!CanonicalItemId.IsNone())
+		{
+			const UGridItemSubsystem* Registry = ResolveEditorItemRegistry();
+			if (IsValid(Definition) && Definition->ItemDefinitionId != CanonicalItemId)
+			{
+				AddMessage(EGridLevelValidationSeverity::Error,
+					TEXT("Canonical ItemId contradicts the old ItemDefinition asset."), ObjectId);
+			}
+			if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+				Registry, CanonicalItemId, PhysicalLevel))
+			{
+				AddMessage(EGridLevelValidationSeverity::Error,
+					TEXT("Canonical item placement requires an ItemId registered with a valid physical ItemLevel."), ObjectId);
+			}
+		}
+		else if (!IsValid(Definition))
+		{
+			AddMessage(EGridLevelValidationSeverity::Error,
+				TEXT("Item placement requires an ItemDefinition or CanonicalItemId."), ObjectId);
+		}
 		else if (Definition->ItemDefinitionId.IsNone())
-			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Placed item references an item definition asset whose ItemDefinitionId is empty."), ObjectId);
+		{
+			AddMessage(EGridLevelValidationSeverity::Error,
+				TEXT("Placed item references an item definition asset whose ItemDefinitionId is empty."), ObjectId);
+		}
 		if (Quantity < 1)
+		{
 			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Item placement requires Quantity >= 1."), ObjectId);
+		}
 	};
 	for (const FGridLooseItemInstance& LooseItemInstance : LevelAsset->LooseItemInstances)
 	{
 		const bool bValidCell = ValidatePlacement(LooseItemInstance.InstanceId, LooseItemInstance.CellX, LooseItemInstance.CellY, LooseItemInstance.PaletteEntryId, EGridLevelObjectType::Item);
-		ValidateItemDefinition(LooseItemInstance.InstanceId, LooseItemInstance.ItemDefinition, LooseItemInstance.Quantity);
+		ValidateItemDefinition(LooseItemInstance.InstanceId, LooseItemInstance.ItemDefinition,
+			LooseItemInstance.CanonicalItemId, LooseItemInstance.ItemLevel, LooseItemInstance.Quantity);
 		if (bValidCell)
 		{
 			const FGridLevelCellData& Cell = LevelAsset->GetCell(LooseItemInstance.CellX, LooseItemInstance.CellY);
@@ -481,7 +511,8 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	for (const FGridItemSpawnInstance& ItemSpawn : LevelAsset->ItemSpawns)
 	{
 		ValidatePlacement(ItemSpawn.SpawnId, ItemSpawn.CellX, ItemSpawn.CellY, ItemSpawn.PaletteEntryId, EGridLevelObjectType::ItemSpawn);
-		ValidateItemDefinition(ItemSpawn.SpawnId, ItemSpawn.ItemDefinition, ItemSpawn.Quantity);
+		ValidateItemDefinition(ItemSpawn.SpawnId, ItemSpawn.ItemDefinition,
+			ItemSpawn.CanonicalItemId, ItemSpawn.ItemLevel, ItemSpawn.Quantity);
 	}
 	for (const FGridMonsterSpawnInstance& MonsterSpawn : LevelAsset->MonsterSpawns)
 	{
