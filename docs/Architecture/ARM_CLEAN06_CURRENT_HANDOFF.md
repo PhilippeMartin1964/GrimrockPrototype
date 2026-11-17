@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.37.2 — build local automatique avant preflight natif
+
+**Parent :** `eefec795d2252dca8371892535063374582135a0`. Rapport : [ARM_CLEAN06_4X372_LOCAL_EDITOR_BUILD_GATE.md](ARM_CLEAN06_4X372_LOCAL_EDITOR_BUILD_GATE.md).
+
+Incident Windows réel : `Failed to find commandlet class GridArmClean064X37NativeArmWorldProfilesCommandlet` lors du `-Preflight` dans le checkout utilisateur. L'agent Windows compile un worktree isolé et ne met pas à jour les DLL du projet principal. Le script X.37 exécute maintenant `Build.bat GrimrockPrototypeEditor Win64 Development -Project=... -WaitMutex -NoHotReloadFromIDE` **avant** le preflight, après contrôle du HEAD/branch/propreté et avec recontrôle après build. Un échec UBT bloque le lancement sans backups/SavePackage. Aucun binaire UE, SaveGame ou migration effectués par ce commit. **Rerun natif X.38 requis avec le nouveau ExpectedHead. 06.4 partielle ; 06.5 bloquée.**
+
 ## ARM-CLEAN06.4X.37.1 — sauvegardes natives X.38 : garde-fou renforcé
 
 **Parent :** `5071d6eb4cf65b76e8f8bcd3f9bae1fc37d54687`. Rapport : [ARM_CLEAN06_4X371_BACKUP_RECEIPT_GUARD.md](ARM_CLEAN06_4X371_BACKUP_RECEIPT_GUARD.md).

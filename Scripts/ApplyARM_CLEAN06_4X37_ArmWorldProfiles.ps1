@@ -6,6 +6,9 @@ SHA-256 backups outside the repository before any UE SavePackage.
 On failure it restores ONLY the two allowlisted catalogues.
 This script intentionally does not git commit or push binary changes.
 #>
+# Important: a successful Windows validation in the isolated worktree
+# does NOT install the commandlet DLL in the user's primary checkout.
+# The mandatory local UBT rebuild below makes the class discoverable.
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)][string]$RepoRoot,
@@ -27,9 +30,11 @@ if ($StateRoot.StartsWith(($RepoRoot+'\'), [StringComparison]::OrdinalIgnoreCase
 }
 $Project = Join-Path $RepoRoot 'GrimrockPrototype.uproject'
 $EditorCmd = Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
+$BuildBatch = Join-Path $EngineRoot 'Engine\Build\BatchFiles\Build.bat'
 if (-not (Test-Path -LiteralPath $Project -PathType Leaf) -or
-    -not (Test-Path -LiteralPath $EditorCmd -PathType Leaf)) {
-    throw 'Exact project or installed UE5.5.4 commandlet executable missing.'
+    -not (Test-Path -LiteralPath $EditorCmd -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $BuildBatch -PathType Leaf)) {
+    throw 'Exact project or installed UE5.5.4 editor/build executables missing.'
 }
 $ActualHead = @(& git -C $RepoRoot rev-parse HEAD)
 if ($LASTEXITCODE -ne 0 -or $ActualHead.Count -ne 1 -or
@@ -61,6 +66,20 @@ function Unreal([string]$Mode, [string[]]$Extra) {
     $Args += $Extra
     & $EditorCmd @Args
     if ($LASTEXITCODE -ne 0) { throw ('UE '+$Mode+' exited with '+$LASTEXITCODE) }
+}
+# The scheduled Windows validator compiles in its OWN detached worktree.
+# It never refreshes the user's primary project's native Editor module.
+# Commandlets introduced in X.37 therefore require this mandatory local
+# build BEFORE trying -run=..., even when the remote CI checks are green.
+# A UBT failure stops safely before backup/snapshot and SavePackage.
+Assert-Clean
+Write-Host '[ARM-CLEAN06.4X.37] Building the LOCAL GrimrockPrototypeEditor before commandlet preflight.'
+$BuildArgs = @('GrimrockPrototypeEditor', 'Win64', 'Development',
+    "-Project=$Project", '-WaitMutex', '-NoHotReloadFromIDE')
+& $BuildBatch @BuildArgs
+if ($LASTEXITCODE -ne 0) {
+    throw ('UE local Editor build failed with code ' + $LASTEXITCODE +
+        '. No preflight, backups, or native migration performed.')
 }
 Assert-Clean
 Unreal 'Preflight' @()
