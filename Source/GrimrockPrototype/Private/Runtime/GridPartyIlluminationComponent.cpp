@@ -100,28 +100,28 @@ void UGridPartyIlluminationComponent::RefreshFromEquipment(UGridPartyInventoryCo
 				continue;
 			}
 
-			FGridLightEmitterConfig CandidateConfig;
+				FGridLightEmitterConfig CandidateConfig;
 			bool bHasConfig = false;
 			const bool bCanonicalRegistered = Registry &&
 				Registry->HasCanonicalItem(CandidateItem.ItemDefinitionId);
-			FGridResolvedItem Canonical;
 			if (bCanonicalRegistered)
 			{
+				FGridResolvedItem Canonical;
 				if (!Registry->ResolveItem(CandidateItem.ItemDefinitionId,
-					CandidateItem.ItemLevel, Canonical))
+					CandidateItem.ItemLevel, Canonical) ||
+					(!Canonical.bIsArmament && CandidateItem.ItemLevel != 0))
 				{
-					continue; // A registered ARM N0 never borrows legacy light.
+					continue; // Invalid physical N0 ARM or non-ARM N1: no fallback.
 				}
-				if (!Canonical.bIsArmament)
-				{
-					CandidateConfig = Canonical.LightEmitter;
-					bHasConfig = true;
-				}
+				// X.41: the native X.38 ARM visual parity covers LightEmitter.
+				// All registered families use the same canonical authority even
+				// if a stale DA_Weapon_* still exists in inventory.
+				CandidateConfig = Canonical.LightEmitter;
+				bHasConfig = true;
 			}
-			// Until the ARM native visual migration, a legacy-backed ARM keeps
-			// its authored lighting. Unknown IDs retain the historical path.
-			if (!bHasConfig)
+			else
 			{
+				// Genuine out-of-registry items remain temporarily historical.
 				UGridItemDefinitionAsset* CandidateDefinition =
 					Inventory->FindItemDefinition(CandidateItem.ItemDefinitionId);
 				if (!CandidateDefinition && LevelRuntimeActor)
@@ -133,11 +133,6 @@ void UGridPartyIlluminationComponent::RefreshFromEquipment(UGridPartyInventoryCo
 				{
 					CandidateConfig = CandidateDefinition->LightEmitter;
 					bHasConfig = true;
-				}
-				else if (bCanonicalRegistered)
-				{
-					CandidateConfig = Canonical.LightEmitter;
-					bHasConfig = true; // Pointerless registered ARM after cutover.
 				}
 			}
 

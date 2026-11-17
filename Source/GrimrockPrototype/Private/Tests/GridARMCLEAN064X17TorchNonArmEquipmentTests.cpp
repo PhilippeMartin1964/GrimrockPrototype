@@ -311,4 +311,155 @@ bool FGridClean064X23PointerlessHeldTorch::RunTest(const FString&)
     return true;
 }
 
+
+// X.41: Two real equipped-light readers must agree on the registered
+// physical item identity. Legacy sources may exist in inventory while
+// the 22 canonical ARM visual profiles have already been native-verified.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X41CanonicalEquippedLight,
+    "Grimrock.RPG.ARM.CLEAN06_4X41.CanonicalEquippedLightReaders",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean064X41CanonicalEquippedLight::RunTest(const FString&)
+{
+    ARMCLEAN064X17::FWorldFixture F;
+    if (!TestNotNull(TEXT("Canonical registry"), F.Registry) ||
+        !TestNotNull(TEXT("Inventory"), F.Inventory) ||
+        !TestNotNull(TEXT("Party pawn"), F.Pawn) ||
+        !TestTrue(TEXT("Active equipment exists"),
+            !F.Inventory->PartyInventoryState.ActiveEquipment.IsEmpty()) ||
+        !TestTrue(TEXT("Active hero exists"),
+            !F.Inventory->PartyInventoryState.ActiveCharacters.IsEmpty()))
+    {
+        return false;
+    }
+
+    const FName ArmId(TEXT("Weapon_StraightSword_01"));
+    FGridResolvedItem CanonicalArm;
+    if (!TestTrue(TEXT("Real ARM physical N1 resolves"),
+            F.Registry->ResolveItem(ArmId, 1, CanonicalArm)) ||
+        !TestTrue(TEXT("Real armament family"), CanonicalArm.bIsArmament))
+    {
+        return false;
+    }
+    const bool bArmEmitsLight = CanonicalArm.LightEmitter.HasEmitter();
+    UGridItemDefinitionAsset* StaleArm = NewObject<UGridItemDefinitionAsset>(F.Inventory);
+    StaleArm->ItemDefinitionId = ArmId;
+    StaleArm->LightEmitter.bUsePointLight = !bArmEmitsLight;
+    StaleArm->LightEmitter.LightIntensity = 12345.f;
+    StaleArm->LightEmitter.LightRadius = 9999.f;
+    if (!TestTrue(TEXT("Conflicting same-ID source registered in old inventory"),
+            F.Inventory->RegisterItemDefinition(StaleArm)))
+    {
+        return false;
+    }
+
+    UGridPartyIlluminationComponent* PartyLight =
+        NewObject<UGridPartyIlluminationComponent>(F.Pawn, TEXT("X41PartyLight"));
+    if (!TestNotNull(TEXT("Party illumination component"), PartyLight))
+    {
+        return false;
+    }
+    PartyLight->SetupAttachment(F.Pawn->GetRootComponent());
+    F.Pawn->AddInstanceComponent(PartyLight);
+    PartyLight->RegisterComponent();
+
+    FGridCharacterEquipmentState& Equipment =
+        F.Inventory->PartyInventoryState.ActiveEquipment[0];
+    const FGuid CharacterId =
+        F.Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
+    for (const int32 PhysicalLevel : {1, 20})
+    {
+        FGridResolvedItem LevelProjection;
+        if (!TestTrue(TEXT("Real ARM resolves at equipped level"),
+                F.Registry->ResolveItem(ArmId, PhysicalLevel, LevelProjection)))
+        {
+            return false;
+        }
+        FGridItemInstance Arm = ARMCLEAN064X17::MakeItem(
+            ArmId, PhysicalLevel, CharacterId, true);
+        Arm.OwnerType = EGridItemOwnerType::EquipmentSlot;
+        Arm.EquipmentSlot = EGridEquipmentSlot::MainHand;
+        Equipment.MainHand = Arm;
+        Equipment.OffHand = FGridItemInstance();
+        PartyLight->RefreshFromEquipment(F.Inventory, nullptr);
+        if (!TestEqual(TEXT("Party light uses canonical ARM rather than stale inventory"),
+                PartyLight->HasActiveIlluminationSource(),
+                LevelProjection.LightEmitter.HasEmitter()) ||
+            !TestEqual(TEXT("Pawn held-light predicate uses canonical ARM"),
+                F.Pawn->DoesEquippedItemEmitLight(Arm),
+                LevelProjection.LightEmitter.HasEmitter()))
+        {
+            return false;
+        }
+        if (LevelProjection.LightEmitter.HasEmitter() &&
+            (!TestEqual(TEXT("Registered ARM is the illumination source"),
+                PartyLight->ActiveSourceId, ArmId) ||
+             !TestTrue(TEXT("ARM light intensity is canonical, not 12345"),
+                FMath::IsNearlyEqual(PartyLight->RuntimeConfig.LightIntensity,
+                    LevelProjection.LightEmitter.LightIntensity *
+                    PartyLight->IntensityMultiplier))))
+        {
+            return false;
+        }
+    }
+
+    // An invalid physical N0 ARM must not revive the stale LightEmitter.
+    FGridItemInstance BadArm = ARMCLEAN064X17::MakeItem(
+        ArmId, 0, CharacterId, true);
+    BadArm.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    BadArm.EquipmentSlot = EGridEquipmentSlot::MainHand;
+    Equipment.MainHand = BadArm;
+    PartyLight->RefreshFromEquipment(F.Inventory, nullptr);
+    if (!TestFalse(TEXT("ARM N0 cannot illuminate from legacy source"),
+            F.Pawn->DoesEquippedItemEmitLight(BadArm)) ||
+        !TestFalse(TEXT("ARM N0 does not illuminate party"),
+            PartyLight->HasActiveIlluminationSource()))
+    {
+        return false;
+    }
+
+    // ResolveItem supports non-ARM N1 family metadata in some callers;
+    // that level is not a valid persisted physical equipped torch.
+    FGridItemInstance BadTorch = ARMCLEAN064X17::MakeItem(
+        TEXT("Item_Torch"), 1, CharacterId, true);
+    BadTorch.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    BadTorch.EquipmentSlot = EGridEquipmentSlot::MainHand;
+    Equipment.MainHand = BadTorch;
+    PartyLight->RefreshFromEquipment(F.Inventory, nullptr);
+    if (!TestFalse(TEXT("Physical torch N1 cannot illuminate in held predicate"),
+            F.Pawn->DoesEquippedItemEmitLight(BadTorch)) ||
+        !TestFalse(TEXT("Physical torch N1 cannot illuminate party"),
+            PartyLight->HasActiveIlluminationSource()))
+    {
+        return false;
+    }
+
+    // Unknown historical items retain their old, explicit emitter until
+    // their authoring is converted separately.
+    const FName LegacyId(TEXT("Legacy_X41_Light"));
+    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Inventory);
+    Legacy->ItemDefinitionId = LegacyId;
+    Legacy->LightEmitter.bUsePointLight = true;
+    Legacy->LightEmitter.LightIntensity = 1200.f;
+    Legacy->LightEmitter.LightRadius = 500.f;
+    if (!TestTrue(TEXT("Unregistered legacy item source registered"),
+            F.Inventory->RegisterItemDefinition(Legacy)))
+    {
+        return false;
+    }
+    FGridItemInstance LegacyItem = ARMCLEAN064X17::MakeItem(
+        LegacyId, 0, CharacterId, true);
+    LegacyItem.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    LegacyItem.EquipmentSlot = EGridEquipmentSlot::MainHand;
+    Equipment.MainHand = LegacyItem;
+    PartyLight->RefreshFromEquipment(F.Inventory, nullptr);
+    return TestTrue(TEXT("Out-of-registry legacy held light is preserved"),
+            F.Pawn->DoesEquippedItemEmitLight(LegacyItem)) &&
+        TestTrue(TEXT("Out-of-registry light remains available to party"),
+            PartyLight->HasActiveIlluminationSource()) &&
+        TestEqual(TEXT("Legacy source identity preserved"),
+            PartyLight->ActiveSourceId, LegacyId) &&
+        !HasAnyErrors();
+}
+
 #endif

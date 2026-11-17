@@ -174,13 +174,13 @@ bool AGrimrockPartyPawn::DoesEquippedItemEmitLight(const FGridItemInstance& Item
 		{
 			return false; // No invalid ARM N0 -> N1 default.
 		}
-		if (!Canonical.bIsArmament)
-		{
-			return Canonical.LightEmitter.HasEmitter();
-		}
-		// Current ARM with a legacy visual source keeps its previous light.
-		const UGridItemDefinitionAsset* Source = ResolveEquippedItemDefinition(Item);
-		return Source ? Source->HasLightEmitter() : Canonical.LightEmitter.HasEmitter();
+		// X.41: the 22 ARM emitter profiles are already native-verified
+		// equal to DA_Weapon_* (X.38). A registered item must never get its
+		// held-light status from a stale historical definition. Only N0 is
+		// physically valid for registered non-ARM items; the generic registry
+		// can intentionally resolve some non-ARM N1 family queries.
+		return (Canonical.bIsArmament || Item.ItemLevel == 0) &&
+			Canonical.LightEmitter.HasEmitter();
 	}
 	const UGridItemDefinitionAsset* ItemDefinition = ResolveEquippedItemDefinition(Item);
 	return ItemDefinition && ItemDefinition->HasLightEmitter();

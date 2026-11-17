@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.41 — lumière équipée : fin de l'autorité DA_Weapon pour les ARM enregistrées
+
+**Parent :** `396a269290f9bad65cebd4dc827faa2dd93e589b`. Rapport : [ARM_CLEAN06_4X41_EQUIPPED_CANONICAL_LIGHT.md](ARM_CLEAN06_4X41_EQUIPPED_CANONICAL_LIGHT.md).
+
+`DoesEquippedItemEmitLight` et `GridPartyIlluminationComponent::RefreshFromEquipment` utilisent désormais le seul `LightEmitter` canonique pour les ARM N1–N20 et non-ARM N0. Un faux ancien `DA_Weapon` de même ID ne peut plus modifier la lumière équipée. Tests réels : 2 niveaux ARM, refus ARM N0 / torche N1, et maintien hors-registre. Aucun asset UE ou SaveGame écrit. `EquipHeldItem(FName)` reste en dette distincte car son API n'a pas d'ItemLevel. **06.4 partielle / 06.5 bloquée ; vérifier les deux validations Windows.**
+
 ## ARM-CLEAN06.4X.40 — entrées monde transitoires sans ancienne source pour les ItemId canoniques
 
 **Parent :** `06effc11ee81d6de76230007a8c0b01f3417ae7b` (règle de lots cohérents). Rapport : [ARM_CLEAN06_4X40_CANONICAL_RUNTIME_ENTRY_SOURCE.md](ARM_CLEAN06_4X40_CANONICAL_RUNTIME_ENTRY_SOURCE.md).
