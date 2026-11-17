@@ -595,6 +595,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Held Item")
 	bool EquipHeldItem(FName ItemDefinitionId);
 
+	/** X.42: the actual equipped physical N-level is required for any
+	 * canonical ARM held visual. Never invent N1 from a mere ItemId. */
+	bool EquipHeldItemFromInstance(const FGridItemInstance& Item);
+
 	UFUNCTION(BlueprintCallable, Category = "Held Item")
 	void ClearHeldItem();
 

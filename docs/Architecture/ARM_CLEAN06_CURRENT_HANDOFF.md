@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.42 — visuel tenu ARM : niveau physique explicite, sans DA_Weapon
+
+**Parent :** `02ffcb99ad48d3a308a5d31f76cfb59d88199294`. Rapport : [ARM_CLEAN06_4X42_CANONICAL_HELD_PHYSICAL_INSTANCE.md](ARM_CLEAN06_4X42_CANONICAL_HELD_PHYSICAL_INSTANCE.md).
+
+Le visuel tenu des items enregistrés peut désormais partir du `FGridItemInstance` réellement équipé via `EquipHeldItemFromInstance` et obtenir le `EquippedMesh`, la lumière et les effets du catalogue au N1–N20 réel. `SyncHeldVisualFromSelectedCharacterEquipment` utilise cette voie, y compris après changement de niveau. L'API historique `EquipHeldItem(FName)` continue pour torche N0 et IDs hors-registre mais refuse les ARM enregistrées, faute de niveau explicite ; aucun fallback DA_Weapon inventé. Test ARM N1/N20 pointerless, ARM N0 / torche N1 refusés, torche N0/hors registre conservés. Aucun binaire UE ni SaveGame écrit. **06.4 partielle, 06.5 bloquée ; vérifier deux statuts Windows.**
+
 ## ARM-CLEAN06.4X.41 — lumière équipée : fin de l'autorité DA_Weapon pour les ARM enregistrées
 
 **Parent :** `396a269290f9bad65cebd4dc827faa2dd93e589b`. Rapport : [ARM_CLEAN06_4X41_EQUIPPED_CANONICAL_LIGHT.md](ARM_CLEAN06_4X41_EQUIPPED_CANONICAL_LIGHT.md).

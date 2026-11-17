@@ -45,6 +45,16 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 		Registry->HasCanonicalItem(ItemDefinitionId) &&
 		Registry->ResolveItem(ItemDefinitionId, 0, Canonical) &&
 		!Canonical.bIsArmament;
+	// The legacy Blueprint entry point only has an ItemId. It cannot
+	// determine an ARM's N1-N20, so it must never generate a canonical
+	// ARM visual by guessing a level or by reading DA_Weapon_*.
+	if (Registry && Registry->HasCanonicalItem(ItemDefinitionId) && !bCanonicalNonArm)
+	{
+		UE_LOG(LogGridItemTransfer, Warning,
+			TEXT("Held ARM visual requires equipped ItemLevel: %s."),
+			*ItemDefinitionId.ToString());
+		return false;
+	}
 	if (!ItemDefinition && !bCanonicalNonArm)
 	{
 		UE_LOG(LogGridItemTransfer, Warning,
@@ -114,6 +124,93 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 
 	UE_LOG(LogGridItemTransfer, Verbose, TEXT("Held item equipped: %s Mesh=%s"), *ItemDefinitionId.ToString(),
 		HeldItemActor->MeshComponent ? *GetNameSafe(HeldItemActor->MeshComponent->GetStaticMesh()) : TEXT("None"));
+	return true;
+}
+
+
+// X.42: the selected equipped instance is the only place where ARM
+// ItemLevel N1-N20 is known. Resolve its complete visual without ever
+// loading or inheriting a historical DA_Weapon.
+bool AGrimrockPartyPawn::EquipHeldItemFromInstance(const FGridItemInstance& Item)
+{
+	if (!Item.IsValid())
+	{
+		return false;
+	}
+	const UWorld* OwningWorld = GetWorld();
+	UGameInstance* GI = OwningWorld ? OwningWorld->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	if (!Registry || !Registry->HasCanonicalItem(Item.ItemDefinitionId))
+	{
+		// Only genuinely unregistered historical sources keep their
+		// pre-conversion ItemId-only path.
+		return EquipHeldItem(Item.ItemDefinitionId);
+	}
+
+	FGridResolvedItem Canonical;
+	if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical) ||
+		!Canonical.IsValid() || (!Canonical.bIsArmament && Item.ItemLevel != 0))
+	{
+		return false; // No canonical ARM N0, non-ARM N1 or implicit promotion.
+	}
+	if (!LevelRuntimeActor)
+	{
+		LevelRuntimeActor = Cast<AGridLevelRuntimeActor>(
+			UGameplayStatics::GetActorOfClass(GetWorld(), AGridLevelRuntimeActor::StaticClass()));
+	}
+	if (!GetWorld())
+	{
+		return false;
+	}
+
+	ClearHeldItem();
+	USceneComponent* AttachParent = HeldItemRoot ? HeldItemRoot.Get() : GetRootComponent();
+	if (LevelRuntimeActor)
+	{
+		HeldItemActor = LevelRuntimeActor->SpawnItemActorForDefinition(
+			nullptr, Item.ItemDefinitionId, this, AttachParent);
+	}
+	else
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = GetInstigator();
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		HeldItemActor = GetWorld()->SpawnActor<AGridItemActor>(
+			AGridItemActor::StaticClass(), FTransform::Identity, SpawnParams);
+	}
+	if (!HeldItemActor)
+	{
+		return false;
+	}
+
+	// The held mesh has its own ephemeral presentation GUID; the source
+	// equipped instance retains its actual GUID for inventory/save logic.
+	FGridItemInstance Visual = Item;
+	Visual.RuntimeObjectId = FGuid::NewGuid();
+	if (!HeldItemActor->InitializeFromCanonicalItem(Visual, Registry))
+	{
+		HeldItemActor->Destroy();
+		HeldItemActor = nullptr;
+		return false;
+	}
+	if (HeldItemActor->MeshComponent)
+	{
+		HeldItemActor->MeshComponent->SetStaticMesh(Canonical.EquippedMesh.LoadSynchronous());
+	}
+	if (HeldItemActor->LightEmitterComponent)
+	{
+		// The party proxy emits the actual PointLight; attached Niagara stays.
+		HeldItemActor->LightEmitterComponent->SetPointLightPresentationEnabled(false);
+	}
+	HeldItemActor->ConfigureAsAttachedItem();
+	HeldItemActor->AttachToComponent(AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	HeldItemActor->SetActorRelativeLocation(HeldItemRelativeLocation);
+	HeldItemActor->SetActorRelativeRotation(HeldItemRelativeRotation);
+	HeldItemActor->SetActorRelativeScale3D(HeldItemRelativeScale);
+	HeldItemActor->OnPlacedInWorld();
+	HeldItemActor->SetItemLightsEnabled(Item.bLightsEnabled && Canonical.LightEmitter.HasEmitter());
+	HeldItemDefinitionId = Item.ItemDefinitionId;
 	return true;
 }
 
@@ -231,9 +328,12 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 		return;
 	}
 
-	if (GetHeldItemDefinitionId() != VisualItem->ItemDefinitionId && !EquipHeldItem(VisualItem->ItemDefinitionId))
+	const bool bNeedsNewHeldVisual =
+		GetHeldItemDefinitionId() != VisualItem->ItemDefinitionId ||
+		!HeldItemActor || HeldItemActor->CanonicalWorldItemLevel != VisualItem->ItemLevel;
+	if (bNeedsNewHeldVisual && !EquipHeldItemFromInstance(*VisualItem))
 	{
-		return;
+		return; // Never build an ARM held visual from an invented physical N-level.
 	}
 
 	if (HeldItemActor)

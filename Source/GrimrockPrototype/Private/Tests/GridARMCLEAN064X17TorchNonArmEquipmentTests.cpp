@@ -7,6 +7,7 @@
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemActor.h"
+#include "Components/StaticMeshComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridPartyIlluminationComponent.h"
 #include "Components/PointLightComponent.h"
@@ -460,6 +461,131 @@ bool FGridClean064X41CanonicalEquippedLight::RunTest(const FString&)
         TestEqual(TEXT("Legacy source identity preserved"),
             PartyLight->ActiveSourceId, LegacyId) &&
         !HasAnyErrors();
+}
+
+
+// X.42: direct held-instance initialization must use the real equipped
+// physical N-level, never an inferred N1 or an obsolete DA_Weapon.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X42HeldPhysicalArm,
+    "Grimrock.RPG.ARM.CLEAN06_4X42.CanonicalHeldPhysicalArm",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean064X42HeldPhysicalArm::RunTest(const FString&)
+{
+    ARMCLEAN064X17::FWorldFixture F;
+    if (!TestNotNull(TEXT("Canonical registry"), F.Registry) ||
+        !TestNotNull(TEXT("Pawn"), F.Pawn) ||
+        !TestNotNull(TEXT("Inventory"), F.Inventory) ||
+        !TestTrue(TEXT("Character exists"),
+            !F.Inventory->PartyInventoryState.ActiveCharacters.IsEmpty()))
+    {
+        return false;
+    }
+    const FGuid CharacterId =
+        F.Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
+    const FName ArmId(TEXT("Weapon_StraightSword_01"));
+
+    // An ItemId-only Blueprint call cannot know whether a physical
+    // sword is N1 or N20 and must not fall back to an old DA_Weapon.
+    if (!TestFalse(TEXT("ItemId-only ARM held visual is explicitly rejected"),
+            F.Pawn->EquipHeldItem(ArmId)))
+    {
+        return false;
+    }
+
+    for (const int32 Level : {1, 20})
+    {
+        FGridResolvedItem Expected;
+        if (!TestTrue(TEXT("Real ARM level registered"),
+                F.Registry->ResolveItem(ArmId, Level, Expected)) ||
+            !TestTrue(TEXT("Resolved family is ARM"), Expected.bIsArmament))
+        {
+            return false;
+        }
+        FGridItemInstance Item = ARMCLEAN064X17::MakeItem(
+            ArmId, Level, CharacterId);
+        Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
+        Item.EquipmentSlot = EGridEquipmentSlot::MainHand;
+        if (!TestTrue(TEXT("Pointerless real ARM held visual spawns"),
+                F.Pawn->EquipHeldItemFromInstance(Item)) ||
+            !TestNotNull(TEXT("Held actor exists"), F.Pawn->HeldItemActor.Get()) ||
+            !TestNull(TEXT("Held actor does not retain DA_Weapon"),
+                F.Pawn->HeldItemActor->GetItemDefinitionAsset()) ||
+            !TestTrue(TEXT("Held actor owns complete canonical projection"),
+                F.Pawn->HeldItemActor->CanonicalWorldPresentation.IsValid()) ||
+            !TestEqual(TEXT("Physical equipped level retained in visual"),
+                F.Pawn->HeldItemActor->CanonicalWorldItemLevel, Level) ||
+            !TestEqual(TEXT("ItemId retained in visual"),
+                F.Pawn->GetHeldItemDefinitionId(), ArmId) ||
+            !TestTrue(TEXT("Held mesh is the canonical equipped mesh"),
+                F.Pawn->HeldItemActor->MeshComponent->GetStaticMesh() ==
+                    Expected.EquippedMesh.LoadSynchronous()))
+        {
+            return false;
+        }
+    }
+    AGridItemActor* ValidHeld = F.Pawn->HeldItemActor.Get();
+    FGridItemInstance InvalidArm = ARMCLEAN064X17::MakeItem(
+        ArmId, 0, CharacterId);
+    InvalidArm.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    InvalidArm.EquipmentSlot = EGridEquipmentSlot::MainHand;
+    if (!TestFalse(TEXT("ARM N0 cannot create an arbitrary N1 held visual"),
+            F.Pawn->EquipHeldItemFromInstance(InvalidArm)) ||
+        !TestTrue(TEXT("Rejected ARM N0 keeps previous held actor"),
+            F.Pawn->HeldItemActor.Get() == ValidHeld))
+    {
+        return false;
+    }
+
+    FGridItemInstance InvalidTorch = ARMCLEAN064X17::MakeItem(
+        TEXT("Item_Torch"), 1, CharacterId);
+    InvalidTorch.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    InvalidTorch.EquipmentSlot = EGridEquipmentSlot::MainHand;
+    if (!TestFalse(TEXT("NonARM N1 cannot create physical held visual"),
+            F.Pawn->EquipHeldItemFromInstance(InvalidTorch)) ||
+        !TestTrue(TEXT("Rejected torch N1 keeps previous held actor"),
+            F.Pawn->HeldItemActor.Get() == ValidHeld))
+    {
+        return false;
+    }
+
+    FGridItemInstance Torch = ARMCLEAN064X17::MakeItem(
+        TEXT("Item_Torch"), 0, CharacterId, true);
+    Torch.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    Torch.EquipmentSlot = EGridEquipmentSlot::OffHand;
+    if (!TestTrue(TEXT("Registered pointerless torch N0 remains supported"),
+            F.Pawn->EquipHeldItemFromInstance(Torch)) ||
+        !TestNotNull(TEXT("Canonical torch held actor exists"),
+            F.Pawn->HeldItemActor.Get()) ||
+        !TestNull(TEXT("Registered torch has no old UObject"),
+            F.Pawn->HeldItemActor->GetItemDefinitionAsset()) ||
+        !TestEqual(TEXT("Torch N0 remains unchanged"),
+            F.Pawn->HeldItemActor->CanonicalWorldItemLevel, 0))
+    {
+        return false;
+    }
+
+    // No data migration has occurred for genuinely unregistered items.
+    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Inventory);
+    const FName LegacyId(TEXT("Legacy_X42_Held"));
+    Legacy->ItemDefinitionId = LegacyId;
+    if (!TestTrue(TEXT("Historical definition registers"),
+            F.Inventory->RegisterItemDefinition(Legacy)))
+    {
+        return false;
+    }
+    FGridItemInstance LegacyItem = ARMCLEAN064X17::MakeItem(
+        LegacyId, 0, CharacterId);
+    if (!TestTrue(TEXT("Out-of-registry held fallback still exists"),
+            F.Pawn->EquipHeldItemFromInstance(LegacyItem)) ||
+        !TestNotNull(TEXT("Historical held actor remains spawnable"),
+            F.Pawn->HeldItemActor.Get()) ||
+        !TestTrue(TEXT("Historical actor retains historical source"),
+            F.Pawn->HeldItemActor->GetItemDefinitionAsset() == Legacy))
+    {
+        return false;
+    }
+    return !HasAnyErrors();
 }
 
 #endif
