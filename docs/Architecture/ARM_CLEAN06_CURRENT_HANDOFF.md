@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.39 — objets libres ARM existants : présentation physique canonique
+
+**Parent :** `519ae9433e8007f66f33793338b78516f590e740`. Rapport : [ARM_CLEAN06_4X39_REAL_ARM_LOOSE_RUNTIME_CUTOVER.md](ARM_CLEAN06_4X39_REAL_ARM_LOOSE_RUNTIME_CUTOVER.md).
+
+Après X.38 (22 profils natifs déjà égaux), `AGridLevelRuntimeActor::AddPlacedItemActor` ne dépend plus de `DA_Weapon_*` pour la création physique d'un objet enregistré, même si le pointeur historique est encore sérialisé dans le niveau : l'acteur n'attache plus l'ancien UObject et lit lumière, Niagara, mesh, transform et physique depuis `FGridResolvedItem`. Test étendu aux 44 vraies instances libres, avec vraie source ARM et faux ancien pointeur de même ID mais lumière contradictoire, ARM N1/N20 pointerless, non-ARM N0 et rejets des identités invalides. La fixture PIT02 `FlyingProjectilePassage` charge sa source historique de lancer indépendamment du nouvel acteur monde sans pointeur (correctif issu de l'échec Windows #190), sans modifier la logique du lancer. Aucun asset natif, WBP ni SaveGame modifié ; les entrées de runtime et 107 pointeurs de packages restent à auditer. **06.4 partielle, 06.5 bloquée ; attendre deux statuts Windows du SHA final.**
+
 ## ARM-CLEAN06.4X.38 — 22 profils ARM réels déjà en parité : pas de SavePackage inutile
 
 **Parent :** `5d83c683e7ea6c867187b6dacd9ace9abe96d236`. Rapport : [ARM_CLEAN06_4X38_NATIVE_ALREADY_EQUAL_NOOP.md](ARM_CLEAN06_4X38_NATIVE_ALREADY_EQUAL_NOOP.md).

@@ -2175,11 +2175,12 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 			*ObjectData.InstanceId.ToString());
 		return;
 	}
-	// Existing authored ARM definitions retain their presentation until
-	// the native visual asset cutover. A pointerless canonical ARM can use
-	// the registered physical presentation without inventing a DA_Weapon.
-	const bool bCanonicalPresentation = bPersistedCanonical &&
-		(!Canonical.bIsArmament || !IsValid(ItemDefinition));
+	// X.39: after native X.38 parity (22 ARM / 8 visual + 2 physics
+	// fields), every persisted canonical item has ONE physical presentation
+	// authority, even when an old DA_Weapon pointer is still serialized.
+	// Preserve the pointer only for the guarded historical compatibility
+	// paths; never copy old LightEmitter / Niagara / mass / tilt to an actor.
+	const bool bCanonicalPresentation = bPersistedCanonical;
 	const FGridReceptacleItemMetadataReadView LevelRead = bPersistedCanonical
 		? FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry, nullptr, ItemDefinitionId, ObjectData.ItemLevel)
@@ -2222,8 +2223,8 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	}
 	else
 	{
-		// Existing ARM / purely synthetic legacy actors preserve their
-		// presentation while later reader milestones are still pending.
+		// Only genuinely historical, non-canonical placements still use
+		// the old item definition. Registered canonical ARM never enter here.
 		ItemActor->SetRuntimeObjectId(ObjectData.InstanceId);
 		ItemActor->InitializeFromItemDefinition(ItemDefinition, ObjectData.InstanceId);
 		ItemActor->ApplyCanonicalWorldVisual(PlacedVisualItem);
@@ -2237,7 +2238,8 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	ItemActor->SetRuntimeCell(ObjectData.CellX, ObjectData.CellY);
 	ItemActor->ApplyWorldPhysicsInitialNudge();
 	ItemActor->ConfigureAsWorldPickup();
-	// Existing ARM with a serialized definition retains its authored lighting.
+	// Registered ARM now obtain their initial light state exclusively
+	// from the resolved canonical projection, not from DA_Weapon_*.
 	ItemActor->SetItemLightsEnabled(bCanonicalPresentation
 		? Canonical.LightEmitter.bDefaultEnabled
 		: ItemDefinition->IsLightEnabledByDefault());

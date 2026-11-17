@@ -483,7 +483,21 @@ bool FGridIssue181FlyingProjectilePassage::RunTest(const FString&)
 	Item.ItemDefinitionId = TEXT("Weapon_Dagger_01");
 	Item.ItemLevel = 20;
 	Item.Quantity = 1;
-	UGridItemDefinitionAsset* Definition = F.Find(Item.ItemDefinitionId)->ItemDefinitionAsset;
+	// X.39: placed canonical ARM actors no longer retain DA_Weapon_*.
+	// This PIT02 test deliberately exercises a LEGACY ordinary hand throw,
+	// so obtain the still-authored throwable definition independently. Never
+	// reattach it to the physical world actor or downgrade canonical identity.
+	AGridItemActor* PlacedDagger = F.Find(Item.ItemDefinitionId);
+	if (!TestNotNull(TEXT("Real authored dagger exists"), PlacedDagger) ||
+		!TestNull(TEXT("X.39 world actor is pointerless despite native legacy placement"),
+			PlacedDagger->GetItemDefinitionAsset()))
+		return false;
+	UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
+	if (!TestNotNull(TEXT("Legacy ordinary throw test retains its own authored source"), Definition) ||
+		!TestEqual(TEXT("Throw source ItemId matches canonical physical dagger"),
+			Definition->ItemDefinitionId, Item.ItemDefinitionId))
+		return false;
 	AGridThrownItemActor* Projectile =
 		F.Runtime->SpawnThrownItemProjectile(Item, Definition, FVector(5500.f, 4900.f, 140.f), FVector(0.f, 0.f, -250.f), 27, 23);
 	if (!TestNotNull(TEXT("Actual throwing pipeline creates the projectile"), Projectile))

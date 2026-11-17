@@ -8,6 +8,7 @@
 #include "EngineUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GridItemActor.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
@@ -188,22 +189,68 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
         return false;
     }
 
+    // X.39: this is a real authored ARM row from one of four production
+    // levels, WITH its original persisted DA_Weapon pointer still present.
+    // The actor must not import a single presentation property from it.
+    FGridResolvedItem ArmResolved;
+    if (!TestNotNull(TEXT("Real ARM placement retains its historical source in the level asset"),
+            Arm.ItemDefinition.Get()) ||
+        !TestTrue(TEXT("Real ARM projection resolves at authored physical level"),
+            F.Registry->ResolveItem(Arm.CanonicalItemId, Arm.ItemLevel, ArmResolved)))
+    {
+        return false;
+    }
     AGridItemActor* ArmActor = PlaceAtOrigin(Arm);
-    if (!TestNotNull(TEXT("ARM actor remains present during later visual cutover"),
-        ArmActor) ||
-        !TestTrue(TEXT("ARM presentation retains historic pointer temporarily"),
-            ArmActor->GetItemDefinitionAsset() != nullptr) ||
+    if (!TestNotNull(TEXT("Real authored ARM actor spawned from canonical ItemId"),
+            ArmActor) ||
+        !TestNull(TEXT("Real ARM actor must never inherit the historic pointer"),
+            ArmActor->GetItemDefinitionAsset()) ||
+        !TestTrue(TEXT("Real authored ARM has full canonical world presentation"),
+            ArmActor->CanonicalWorldPresentation.IsValid()) ||
         !TestEqual(TEXT("Persisted ARM physical level is never invented"),
             ArmActor->CanonicalWorldItemLevel, Arm.ItemLevel) ||
         !TestEqual(TEXT("ARM canonical identity remains authoritative"),
-            ArmActor->GetItemDefinitionId(), Arm.CanonicalItemId))
+            ArmActor->GetItemDefinitionId(), Arm.CanonicalItemId) ||
+        !TestTrue(TEXT("Real authored ARM has a stable valid GUID"),
+            ArmActor->GetRuntimeObjectId().IsValid()) ||
+        !TestTrue(TEXT("Real ARM mesh is canonical"),
+            ArmActor->MeshComponent->GetStaticMesh() == ArmResolved.WorldMesh.LoadSynchronous()) ||
+        !TestTrue(TEXT("Real ARM mesh transform is canonical"),
+            ArmActor->MeshComponent->GetRelativeTransform().Equals(ArmResolved.WorldVisualTransform)) ||
+        !TestEqual(TEXT("Real ARM persistent Niagara from canonical catalogue"),
+            ArmActor->VisualEffectsComponent->GetConfiguredEffectCount(),
+            ArmResolved.VisualEffects.Effects.Num()) ||
+        !TestEqual(TEXT("Real ARM emitter configuration from canonical catalogue"),
+            ArmActor->LightEmitterComponent->RuntimeConfig.bUsePointLight,
+            ArmResolved.LightEmitter.bUsePointLight))
     {
         return false;
     }
 
-    // 4X20: a copied, already-canonical ARM placement without its historical
-    // DA_Weapon is resolvable at N1/N20. Real authored ARM rows keep their old
-    // source unchanged until the visual asset migration.
+    // A malicious/outdated same-ID legacy source is no longer visual
+    // authority, even though it passes the authored ID consistency gate.
+    FGridLooseItemInstance Contradictory = Arm;
+    UGridItemDefinitionAsset* Fake = NewObject<UGridItemDefinitionAsset>(F.Runtime);
+    Fake->ItemDefinitionId = Arm.CanonicalItemId;
+    Fake->LightEmitter.bUsePointLight = !ArmResolved.LightEmitter.bUsePointLight;
+    Fake->VisualEffects.Effects.Reset();
+    Contradictory.ItemDefinition = Fake;
+    AGridItemActor* ContradictoryActor = PlaceAtOrigin(Contradictory);
+    if (!TestNotNull(TEXT("Same-ID legacy source can no longer override canonical visuals"),
+            ContradictoryActor) ||
+        !TestNull(TEXT("Same-ID contradictory old asset is never attached"),
+            ContradictoryActor->GetItemDefinitionAsset()) ||
+        !TestEqual(TEXT("Canonical emitter unchanged by old contradictory source"),
+            ContradictoryActor->LightEmitterComponent->RuntimeConfig.bUsePointLight,
+            ArmResolved.LightEmitter.bUsePointLight) ||
+        !TestEqual(TEXT("Canonical Niagara unchanged by old contradictory source"),
+            ContradictoryActor->VisualEffectsComponent->GetConfiguredEffectCount(),
+            ArmResolved.VisualEffects.Effects.Num()))
+    {
+        return false;
+    }
+
+    // Pointerless canonical ARM remain supported at both N1 and N20.
     for (const int32 Level : {1, 20})
     {
         FGridLooseItemInstance Pointerless = Arm;
@@ -264,9 +311,10 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     if (!TestNull(TEXT("Contradictory legacy source cannot spoof canonical ID"),
         F.FindItem(WrongSource.InstanceId))) {return false;}
 
-    AddInfo(TEXT("[ARM-CLEAN06.4X8] 44 native loose items audited, "
-        "nonARM physical actor uses canonical-only presentation, "
-        "ARM visuals retained until own cutover; no UAsset/SaveGame write."));
+    AddInfo(TEXT("[ARM-CLEAN06.4X39] 44 real loose items audited; "
+        "ARM with real DA_Weapon pointers now initializes from canonical "
+        "mesh, light, Niagara and physical N level; fake same-ID legacy "
+        "asset cannot override them. No UAsset/SaveGame writes."));
     return true;
 }
 #endif
