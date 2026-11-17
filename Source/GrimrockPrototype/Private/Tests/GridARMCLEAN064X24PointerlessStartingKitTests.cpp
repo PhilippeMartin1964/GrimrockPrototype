@@ -198,4 +198,100 @@ bool FGridClean064X24PointerlessKits::RunTest(const FString&)
 		"stacking, both-hand policy, invalid levels and transactional failures."));
 	return true;
 }
+
+// X.43: explicitly canonical starting-kit entries may still carry old
+// pointers in authored class data; these must NEVER override MaxStack,
+// hand policy, light state or physical N-level of DA_ItemSystem.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X43CanonicalStarterAuthority,
+    "Grimrock.RPG.ARM.CLEAN06_4X43.CanonicalStarterIgnoresOldItemMetadata",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean064X43CanonicalStarterAuthority::RunTest(const FString&)
+{
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
+                      "DA_ItemSystem.DA_ItemSystem")));
+    if (!TestNotNull(TEXT("Real item system"), Root.Get())) return false;
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Canonical registry is configured"),
+        Registry->RegisterItemSystem(Root.Get(), Errors)))
+    {
+        for (const FString& E : Errors) AddError(E);
+        return false;
+    }
+
+    FGridResolvedItem Sword, Arrows, Torch;
+    if (!TestTrue(TEXT("Real sword N20"), Registry->ResolveItem(TEXT("Weapon_StraightSword_01"), 20, Sword)) ||
+        !TestTrue(TEXT("Real arrows N0"), Registry->ResolveItem(TEXT("Item_Arrows_01"), 0, Arrows)) ||
+        !TestTrue(TEXT("Real torch N0"), Registry->ResolveItem(TEXT("Item_Torch"), 0, Torch)) ||
+        !TestTrue(TEXT("Canonical arrows are stackable"), Arrows.MaxStack >= 3) ||
+        !TestTrue(TEXT("Canonical torch is equippable offhand"),
+            Torch.NonArmEquipmentSlots.Contains(EGridEquipmentSlot::OffHand)))
+    {
+        return false;
+    }
+
+    TStrongObjectPtr<URPGClassAsset> Class(NewObject<URPGClassAsset>());
+    Class->ClassId = TEXT("Warrior");
+    FRPGStartingEquipmentKit& Kit = Class->StartingEquipmentKits.AddDefaulted_GetRef();
+    Kit.KitId = TEXT("X43_MixedExplicitNative");
+
+    TStrongObjectPtr<UGridItemDefinitionAsset> OldSword(NewObject<UGridItemDefinitionAsset>());
+    OldSword->ItemDefinitionId = Sword.ItemId;
+    OldSword->LightEmitter.bUsePointLight = !Sword.LightEmitter.bUsePointLight;
+    OldSword->LightEmitter.bDefaultEnabled = !Sword.LightEmitter.bDefaultEnabled;
+    FRPGStartingEquipmentEntry& SwordEntry = ARMCLEAN064X24::Add(
+        Class.Get(), Sword.ItemId, 20);
+    SwordEntry.ItemDefinition = OldSword.Get();
+
+    TStrongObjectPtr<UGridItemDefinitionAsset> OldArrows(NewObject<UGridItemDefinitionAsset>());
+    OldArrows->ItemDefinitionId = Arrows.ItemId;
+    OldArrows->bStackable = false;
+    OldArrows->MaxStackSize = 1;
+    FRPGStartingEquipmentEntry& ArrowEntry = ARMCLEAN064X24::Add(
+        Class.Get(), Arrows.ItemId, 0, EGridEquipmentSlot::None, 3);
+    ArrowEntry.ItemDefinition = OldArrows.Get();
+
+    TStrongObjectPtr<UGridItemDefinitionAsset> OldTorch(NewObject<UGridItemDefinitionAsset>());
+    OldTorch->ItemDefinitionId = Torch.ItemId;
+    OldTorch->LightEmitter.bUsePointLight = false;
+    OldTorch->LightEmitter.bDefaultEnabled = false;
+    OldTorch->HandUsage = EGridItemHandUsage::NotHandHeld;
+    OldTorch->CompatibleEquipmentSlots.Reset();
+    FRPGStartingEquipmentEntry& TorchEntry = ARMCLEAN064X24::Add(
+        Class.Get(), Torch.ItemId, 0, EGridEquipmentSlot::OffHand);
+    TorchEntry.ItemDefinition = OldTorch.Get();
+
+    FGridCharacterInventoryState Character = ARMCLEAN064X24::NewCharacter();
+    FGridCharacterEquipmentState Equipment;
+    TArray<UGridItemDefinitionAsset*> OldDefinitions;
+    FString Error;
+    if (!TestTrue(TEXT("All three explicitly native entries ignore stale source metadata"),
+        FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
+            Character, Equipment, OldDefinitions, Error, Registry.Get())))
+    {
+        AddError(Error);
+        return false;
+    }
+
+    return TestEqual(TEXT("Canonical sword N20 level retained"),
+            Character.InventorySlots[0].Item.ItemLevel, 20) &&
+        TestEqual(TEXT("Canonical sword light not overwritten by old definition"),
+            Character.InventorySlots[0].Item.bLightsEnabled,
+            Sword.LightEmitter.bDefaultEnabled) &&
+        TestEqual(TEXT("Canonical ammo stack granted as authored"),
+            Character.InventorySlots[1].Item.Quantity, 3) &&
+        TestEqual(TEXT("Canonical torch occupies actual offhand"),
+            Equipment.OffHand.ItemDefinitionId, Torch.ItemId) &&
+        TestEqual(TEXT("Canonical torch light remains canonical"),
+            Equipment.OffHand.bLightsEnabled, Torch.LightEmitter.bDefaultEnabled) &&
+        TestEqual(TEXT("Historical pointers remain only as transitional output"),
+            OldDefinitions.Num(), 3) &&
+        TestEqual(TEXT("Kit ID committed only once, after full success"),
+            Character.StartingEquipmentKitId, Kit.KitId) &&
+        !HasAnyErrors();
+}
+
 #endif

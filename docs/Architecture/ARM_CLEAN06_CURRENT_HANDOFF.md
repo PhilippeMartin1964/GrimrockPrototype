@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.43 — kits explicitement canoniques : stack/main/lumière hors legacy
+
+**Parent :** `d3adc0e99adb604c479569fdbf6dba233b863d93`. Rapport : [ARM_CLEAN06_4X43_STARTING_KIT_CANONICAL_AUTHORITY.md](ARM_CLEAN06_4X43_STARTING_KIT_CANONICAL_AUTHORITY.md).
+
+Dans `FRPGStartingEquipmentService::TryBuildKit`, un `CanonicalItemId` explicite s'appuie désormais sur `FGridResolvedItem` pour MaxStack, lumière initiale et politique de main, **même avec un ancien pointeur cohérent encore sérialisé**. Test réel : épée N20, 3 flèches N0 et torche OffHand N0 avec faux anciens champs contradictoires. La liste transitoire des définitions reste inchangée ; aucune classe .uasset ou SaveGame modifiée. **06.4 partielle/06.5 bloquée ; vérifier les deux statuts Windows.**
+
 ## ARM-CLEAN06.4X.42 — visuel tenu ARM : niveau physique explicite, sans DA_Weapon
 
 **Parent :** `02ffcb99ad48d3a308a5d31f76cfb59d88199294`. Rapport : [ARM_CLEAN06_4X42_CANONICAL_HELD_PHYSICAL_INSTANCE.md](ARM_CLEAN06_4X42_CANONICAL_HELD_PHYSICAL_INSTANCE.md).

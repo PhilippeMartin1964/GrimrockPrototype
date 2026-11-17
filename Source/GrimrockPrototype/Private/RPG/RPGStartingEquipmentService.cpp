@@ -59,11 +59,16 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 			OutError = TEXT("Starting kit contains an invalid item definition, canonical ID, level or quantity.");
 			return false;
 		}
-		const bool bPointerlessCanonical = bExplicitCanonical && !IsValid(Definition);
-		FGridResolvedItem PointerlessItem;
-		if (bPointerlessCanonical &&
-			(!CanonicalRegistry->ResolveItem(ItemId, Entry.ItemLevel, PointerlessItem) ||
-			 !PointerlessItem.IsValid()))
+		// X.43: a concrete CanonicalItemId always opts into the ONE
+		// registered item family, regardless of whether a stale matching
+		// UGridItemDefinitionAsset pointer is still authored beside it.
+		// The pointer is checked above only to reject contradictory IDs.
+		const bool bExplicitNative = bExplicitCanonical && bCanonicalRegistered;
+		FGridResolvedItem NativeItem;
+		if (bExplicitNative &&
+			(!CanonicalRegistry->ResolveItem(ItemId, Entry.ItemLevel, NativeItem) ||
+			 !NativeItem.IsValid() ||
+			 (!NativeItem.bIsArmament && Entry.ItemLevel != 0)))
 		{
 			OutError = TEXT("Starting kit canonical item requires an explicit valid physical level.");
 			return false; // No arbitrary N0 -> N1 promotion.
@@ -84,9 +89,9 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 				CandidateDefinitions.Add(Definition);
 			}
 		}
-		const int32 StackCapacity = bPointerlessCanonical ? FMath::Max(1, PointerlessItem.MaxStack)
+		const int32 StackCapacity = bExplicitNative ? FMath::Max(1, NativeItem.MaxStack)
 			: FMath::Max(1, Definition->MaxStackSize);
-		const bool bStackable = bPointerlessCanonical ? StackCapacity > 1 : Definition->bStackable;
+		const bool bStackable = bExplicitNative ? StackCapacity > 1 : Definition->bStackable;
 		if ((!bStackable && Entry.Quantity != 1) ||
 			(bStackable && Entry.Quantity > StackCapacity) ||
 			(Entry.TargetSlot != EGridEquipmentSlot::None && Entry.Quantity != 1))
@@ -153,7 +158,7 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		{
 			// 06.3AO: the hand policy must agree with later equipment runtime
 			// even if DA_Weapon_* has obsolete HandUsage/CompatibleSlots.
-			const FGridStartingKitEquipmentPolicyReadView Hand = bPointerlessCanonical
+			const FGridStartingKitEquipmentPolicyReadView Hand = bExplicitNative
 				? FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
 					CanonicalRegistry, ItemId, FixedLevel, PhysicalSlot)
 				: FGridStartingKitEquipmentPolicyReadModel::Resolve(
@@ -183,8 +188,8 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		Item.Weight = Metadata.UnitWeightKg;
 		Item.OwnerGuid = Candidate.CharacterId;
 		Item.OwnerCharacterIndex = 0;
-		Item.bLightsEnabled = bPointerlessCanonical
-			? PointerlessItem.LightEmitter.bDefaultEnabled
+		Item.bLightsEnabled = bExplicitNative
+			? NativeItem.LightEmitter.bDefaultEnabled
 			: Definition->IsLightEnabledByDefault();
 
 		if (PhysicalSlot == EGridEquipmentSlot::None)
