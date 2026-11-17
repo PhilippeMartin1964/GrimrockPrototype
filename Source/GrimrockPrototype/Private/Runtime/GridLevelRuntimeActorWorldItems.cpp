@@ -104,10 +104,9 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 		}
 
 		const float PickupReach = FMath::Max(0.0f, WorldItemPickupReach);
-		// Chaos moves the rigid-body mesh, not the scene-root actor. Hand reach
-		// must be measured to the visible arrow at its actual resting place.
-		const FVector PickupWorldLocation = IsValid(ItemActor->MeshComponent)
-			? ItemActor->MeshComponent->GetComponentLocation() : ItemActor->GetActorLocation();
+		// A rolled weapon's handle pivot can remain out of reach while its
+		// visible collision shape is within reach. The mouse still owns occlusion.
+		const FVector PickupWorldLocation = ItemActor->GetClosestWorldPickupPoint(PartyPawn->GetActorLocation());
 		const float DistanceSquared = FVector::DistSquared2D(PartyPawn->GetActorLocation(), PickupWorldLocation);
 		if (DistanceSquared > FMath::Square(PickupReach))
 		{
@@ -396,6 +395,51 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 		return false;
 	}
 
+	if (Relocation.TargetLevelId == CurrentDungeonLevelId && CanRelocateThroughPitOnCurrentLevel(Relocation, CellX, CellY) && !bIsRoutingLocalPitItem)
+	{
+		TGuardValue<bool> LocalGuard(bIsRoutingLocalPitItem, true);
+		const float MaxOffset = LevelAsset->CellSize * 0.35f;
+		const FVector Target = GetCellCenterWorld(Relocation.TargetCellX, Relocation.TargetCellY, 12.f) +
+			FVector(FMath::Clamp(LocalOffset.X, -MaxOffset, MaxOffset), FMath::Clamp(LocalOffset.Y, -MaxOffset, MaxOffset), 0.f);
+		FGridSpawnedItemRuntimeEntry* Existing = SpawnedItemEntries.FindByPredicate(
+			[&ItemInstance](const FGridSpawnedItemRuntimeEntry& Entry)
+			{
+				return Entry.ObjectId == ItemInstance.RuntimeObjectId;
+			});
+		if (Existing)
+		{
+			AGridItemActor* Actor = Existing->ItemActor.Get();
+			if (!IsValid(Actor) || !IsValid(Actor->MeshComponent))
+				return false;
+			const FVector Center = Actor->GetWorldPickupLocation();
+			const FVector Delta(Target.X - Center.X, Target.Y - Center.Y, 0.f);
+			FTransform MeshPose = Actor->MeshComponent->GetComponentTransform();
+			MeshPose.AddToTranslation(Delta);
+			Existing->Cell = FIntPoint(Relocation.TargetCellX, Relocation.TargetCellY);
+			Actor->SetActorLocation(Actor->GetActorLocation() + Delta, false, nullptr, ETeleportType::TeleportPhysics);
+			Actor->MeshComponent->SetWorldTransform(MeshPose, false, nullptr, ETeleportType::TeleportPhysics);
+			Actor->MeshComponent->SetPhysicsLinearVelocity(FVector::ZeroVector);
+			Actor->MeshComponent->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+			Actor->SetRuntimeCell(Relocation.TargetCellX, Relocation.TargetCellY);
+			if (ActivationComponent)
+			{
+				ActivationComponent->RefreshPressurePlatesAtCell(CellX, CellY);
+				ActivationComponent->RefreshPressurePlatesAtCell(Relocation.TargetCellX, Relocation.TargetCellY);
+			}
+		}
+		else
+		{
+			FGridItemInstance LocalItem = ItemInstance;
+			LocalItem.OwnerType = EGridItemOwnerType::World;
+			if (!TryDropItemInstanceAtCell(LocalItem, ItemDefinitionAsset, Relocation.TargetCellX, Relocation.TargetCellY, EGridEdge::None,
+					Target - GetCellCenterWorld(Relocation.TargetCellX, Relocation.TargetCellY, 12.f)))
+				return false;
+		}
+		UE_LOG(LogGridLevelRuntime, Log, TEXT("GridPit ItemTransfer local Item=%s RuntimeId=%s Source=(%d,%d) Target=(%d,%d) Level=%s"),
+			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), CellX, CellY, Relocation.TargetCellX, Relocation.TargetCellY,
+			*CurrentDungeonLevelId.ToString());
+		return true;
+	}
 	if (Relocation.TargetLevelId.IsNone() || Relocation.TargetLevelId == CurrentDungeonLevelId)
 	{
 		UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Source=(%d,%d) Reason=InvalidTargetLevel Target=%s"),
@@ -649,7 +693,7 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 			continue;
 		}
 
-		FGridSpawnedItemRuntimeEntry& Entry = SpawnedItemEntries[EntryIndex];
+		const FGridSpawnedItemRuntimeEntry Entry = SpawnedItemEntries[EntryIndex];
 		AGridItemActor* ItemActor = Entry.ItemActor.Get();
 		if (Entry.Edge != EGridEdge::None || !IsValid(ItemActor))
 		{
@@ -660,9 +704,7 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 		{
 			int32 MeshCellX = INDEX_NONE, MeshCellY = INDEX_NONE;
 			FVector MeshLocalOffset;
-			if (TryResolveWorldCellFromImpactPoint(
-				ItemActor->MeshComponent->GetComponentLocation(),
-				MeshCellX, MeshCellY, MeshLocalOffset))
+			if (TryResolveWorldCellFromImpactPoint(ItemActor->GetWorldPickupLocation(), MeshCellX, MeshCellY, MeshLocalOffset))
 			{
 				PhysicsCell = FIntPoint(MeshCellX, MeshCellY);
 			}
@@ -691,6 +733,8 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 				Registry, Definition, ItemId, Entry.ItemLevel);
 		if (!RouteRead.bResolved || (!RouteRead.bCanonicalIdentity && !IsValid(Definition)))
 		{
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridPit ItemSelection rejected Item=%s N%d RuntimeId=%s Reason=InvalidPersistedIdentity"),
+				*ItemId.ToString(), Entry.ItemLevel, *Entry.ObjectId.ToString());
 			continue;
 		}
 
@@ -713,8 +757,7 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 
 		// With simulating Chaos the mesh may travel while the actor root
 		// remains at its original spawn. Transfer its actual horizontal pose.
-		const FVector PhysicalLocation = IsValid(ItemActor->MeshComponent)
-			? ItemActor->MeshComponent->GetComponentLocation() : ItemActor->GetActorLocation();
+		const FVector PhysicalLocation = ItemActor->GetWorldPickupLocation();
 		FVector LocalOffset = PhysicalLocation - GetCellCenterWorld(CellX, CellY, 12.0f);
 		LocalOffset.Z = 0.0f;
 		if (!TryRouteWorldItemThroughOpenPit(ItemInstance, Definition, CellX, CellY, LocalOffset))
@@ -722,6 +765,12 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 			UE_LOG(LogGridLevelRuntime, Warning,
 				TEXT("GridPit WorldItem remained on upper level: Item=%s N%d RuntimeId=%s Cell=(%d,%d)"),
 				*ItemId.ToString(), Entry.ItemLevel, *ItemInstance.RuntimeObjectId.ToString(), CellX, CellY);
+			continue;
+		}
+
+		if (Relocation.TargetLevelId == CurrentDungeonLevelId)
+		{
+			++DroppedCount; // Existing actor was moved in place; never destroy it or queue it for a level reload.
 			continue;
 		}
 
@@ -756,8 +805,7 @@ void AGridLevelRuntimeActor::RefreshWorldItemPhysicsCells()
 		}
 		int32 X = INDEX_NONE, Y = INDEX_NONE;
 		FVector LocalOffset;
-		if (TryResolveWorldCellFromImpactPoint(Item->MeshComponent->GetComponentLocation(), X, Y, LocalOffset) &&
-			Entry.Cell != FIntPoint(X,Y))
+		if (TryResolveWorldCellFromImpactPoint(Item->GetWorldPickupLocation(), X, Y, LocalOffset) && Entry.Cell != FIntPoint(X, Y))
 		{
 			Entry.Cell = FIntPoint(X,Y);
 			Item->SetRuntimeCell(X,Y);
@@ -1147,8 +1195,7 @@ float AGridLevelRuntimeActor::GetWorldItemWeightAtCell(int32 CellX, int32 CellY,
 		{
 			int32 X = INDEX_NONE, Y = INDEX_NONE;
 			FVector Offset;
-			if (TryResolveWorldCellFromImpactPoint(
-				Entry.ItemActor->MeshComponent->GetComponentLocation(), X, Y, Offset))
+			if (TryResolveWorldCellFromImpactPoint(Entry.ItemActor->GetWorldPickupLocation(), X, Y, Offset))
 			{
 				ActualCell = FIntPoint(X, Y);
 			}

@@ -971,6 +971,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Dungeon|Pit")
 	bool IsPitOpen(FGuid PitObjectId) const;
 
+	/** Explicit local-relocation test mode. Ordinary pits retain their inter-level contract. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon|Pit")
+	bool bEnableSameLevelPitRelocation = false;
+
+	bool CanRelocateThroughPitOnCurrentLevel(const FGridRelocationBehaviorParams& Relocation, int32 SourceX, int32 SourceY) const;
+	bool RelocatePartyWithinCurrentLevel(const FGridRelocationBehaviorParams& Relocation, AGrimrockPartyPawn* PartyPawn);
+
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Pit")
 	bool SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmitEvent = true);
 
@@ -1048,6 +1055,8 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<FGridSpawnedItemRuntimeEntry> SpawnedItemEntries;
+
+	bool bIsRoutingLocalPitItem = false;
 
 	/** MON13.2 Actors owned by LevelAsset MonsterSpawn placements. */
 	UPROPERTY(Transient)

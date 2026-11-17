@@ -152,6 +152,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void SetRuntimeCell(int32 InCellX, int32 InCellY);
 
+	/** Spatial authority for grid occupancy: the physical mesh center, not its authored handle pivot. */
+	FVector GetWorldPickupLocation() const;
+	/** Horizontal hand reach to the collision shape; queried only for the interacted item. */
+	FVector GetClosestWorldPickupPoint(const FVector& WorldLocation) const;
+
 	void RefreshWorldSparklePresentation();
 	float BuildWorldSparklePhase() const;
 

@@ -1624,6 +1624,11 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 		return false;
 	}
 
+	if (Relocation.TargetLevelId == CurrentDungeonLevelId)
+	{
+		return CanRelocateThroughPitOnCurrentLevel(Relocation, CellX, CellY) && RelocatePartyWithinCurrentLevel(Relocation, PartyPawn);
+	}
+
 	if (Relocation.TargetFacing == EGridEdge::None)
 	{
 		Relocation.TargetFacing = PartyPawn->Facing;
@@ -1713,6 +1718,22 @@ bool AGridLevelRuntimeActor::TryExecuteRelocationAtCell(int32 CellX, int32 CellY
 		return bTraveled;
 	}
 
+	return RelocatePartyWithinCurrentLevel(Relocation, PartyPawn);
+}
+
+bool AGridLevelRuntimeActor::CanRelocateThroughPitOnCurrentLevel(const FGridRelocationBehaviorParams& Relocation, int32 SourceX, int32 SourceY) const
+{
+	FGridRelocationBehaviorParams TargetPit;
+	return bEnableSameLevelPitRelocation && !CurrentDungeonLevelId.IsNone() && Relocation.TargetLevelId == CurrentDungeonLevelId &&
+		(Relocation.TargetCellX != SourceX || Relocation.TargetCellY != SourceY) && IsWalkableCell(Relocation.TargetCellX, Relocation.TargetCellY) &&
+		!FindOpenPitAtCell(Relocation.TargetCellX, Relocation.TargetCellY, TargetPit);
+}
+
+bool AGridLevelRuntimeActor::RelocatePartyWithinCurrentLevel(const FGridRelocationBehaviorParams& Relocation, AGrimrockPartyPawn* PartyPawn)
+{
+	if (!IsValid(PartyPawn) || bIsExecutingRelocation)
+		return false;
+	const EGridEdge Facing = Relocation.TargetFacing == EGridEdge::None ? PartyPawn->Facing : Relocation.TargetFacing;
 	if (!LevelAsset || !LevelAsset->IsValidCoord(Relocation.TargetCellX, Relocation.TargetCellY) ||
 		!LevelAsset->Cells.IsValidIndex(LevelAsset->GetIndex(Relocation.TargetCellX, Relocation.TargetCellY))) return false;
 	const FGridLevelCellData& TargetCell = LevelAsset->GetCell(Relocation.TargetCellX, Relocation.TargetCellY);

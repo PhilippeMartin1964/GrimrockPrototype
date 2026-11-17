@@ -312,13 +312,12 @@ bool AGridLevelRuntimeActor::TryActivateDungeonTrap(
             ? DungeonAsset->FindLevelEntry(Pit->InstanceConfig.Relocation.TargetLevelId) : nullptr;
         const FGridDungeonLevelEntry* SourceLevel =
             DungeonAsset ? DungeonAsset->FindLevelEntry(CurrentDungeonLevelId) : nullptr;
-        const bool bTargetReady = Pit && SourceLevel && DungeonAsset &&
-            (Pit->InstanceConfig.Relocation.TargetLevelId.IsNone()
-                ? DungeonAsset->FindLevelBelow(CurrentDungeonLevelId) != nullptr
-                : ExplicitTarget && ExplicitTarget->bEnabled && ExplicitTarget->LevelAsset &&
-                    ExplicitTarget->LevelId != CurrentDungeonLevelId &&
-                    ExplicitTarget->LogicalPosition.Z < SourceLevel->LogicalPosition.Z);
-        if (!bUnique || !IsValid(PitDefinition) || !PitDefinition->HasCompletePitTrapdoorCover() ||
+		const bool bTargetReady = Pit && SourceLevel && DungeonAsset &&
+			(CanRelocateThroughPitOnCurrentLevel(Pit->InstanceConfig.Relocation, CellX, CellY) ||
+				(Pit->InstanceConfig.Relocation.TargetLevelId.IsNone() ? DungeonAsset->FindLevelBelow(CurrentDungeonLevelId) != nullptr
+																	   : ExplicitTarget && ExplicitTarget->bEnabled && ExplicitTarget->LevelAsset &&
+							ExplicitTarget->LevelId != CurrentDungeonLevelId && ExplicitTarget->LogicalPosition.Z < SourceLevel->LogicalPosition.Z));
+		if (!bUnique || !IsValid(PitDefinition) || !PitDefinition->HasCompletePitTrapdoorCover() ||
             IsPitOpen(PitId) || !bTargetReady)
         {
             UE_LOG(LogGridDungeonTrapDamage, Warning,

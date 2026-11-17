@@ -465,6 +465,24 @@ void AGridItemActor::SetRuntimeCell(int32 InCellX, int32 InCellY)
 	RuntimeCellY = InCellY;
 }
 
+FVector AGridItemActor::GetWorldPickupLocation() const
+{
+	return IsValid(MeshComponent) && MeshComponent->GetStaticMesh() ? MeshComponent->Bounds.Origin : GetActorLocation();
+}
+
+FVector AGridItemActor::GetClosestWorldPickupPoint(const FVector& WorldLocation) const
+{
+	if (!IsValid(MeshComponent) || !MeshComponent->GetStaticMesh())
+		return GetActorLocation();
+	const FVector Query(WorldLocation.X, WorldLocation.Y, MeshComponent->Bounds.Origin.Z);
+	FVector Closest;
+	const float Distance = MeshComponent->GetClosestPointOnCollision(Query, Closest);
+	if (Distance == 0.f)
+		return Query;
+	// Editor previews / worlds without a query body still have valid mesh bounds.
+	return Distance > 0.f ? Closest : MeshComponent->Bounds.GetBox().GetClosestPointTo(Query);
+}
+
 bool AGridItemActor::CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
 {
 	if (!InstigatorPawn || !HitComponent || HitComponent != MeshComponent || GetItemDefinitionId().IsNone())
