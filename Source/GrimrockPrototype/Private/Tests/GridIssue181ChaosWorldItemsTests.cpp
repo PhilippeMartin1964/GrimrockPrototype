@@ -10,6 +10,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridItemActor.h"
+#include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -26,6 +27,7 @@ namespace GridIssue181
 {
 	struct FWorld
 	{
+		const uint64 InitialFrameCounter = GFrameCounter;
 		UWorld* World = nullptr;
 		UGameInstance* GI = nullptr;
 		AGridLevelRuntimeActor* Runtime = nullptr;
@@ -122,6 +124,12 @@ namespace GridIssue181
 			FAssetCompilingManager::Get().FinishAllCompilation();
 			for (TActorIterator<AGridItemActor> It(World); It; ++It)
 				It->MeshComponent->RecreatePhysicsState();
+			// This isolated world has no GameMode to dispatch Pawn BeginPlay.
+			// Start it after clearing the save slot, so World::Tick runs its real movement/presentation.
+			Runtime->bApplyLevelStartOnBeginPlay = false;
+			Party->SetGridStart(Runtime, 27, 23, EGridEdge::North);
+			if (!Party->HasActorBegunPlay())
+				Party->DispatchBeginPlay();
 			Party->SetGridStart(Runtime, 27, 23, EGridEdge::North);
 			FGridCharacterInventoryState Hero;
 			Hero.CharacterId = FGuid::NewGuid();
@@ -143,6 +151,16 @@ namespace GridIssue181
 				if (GEngine)
 					GEngine->DestroyWorldContext(World);
 			}
+			GFrameCounter = InitialFrameCounter;
+		}
+
+		void Tick(int32 Frames = 1) const
+		{
+			for (int32 Frame = 0; Frame < Frames; ++Frame)
+			{
+				World->Tick(LEVELTICK_All, 1.f / 60.f);
+				++GFrameCounter; // Match Engine's FTestWorldWrapper: physics/timers must see distinct gameplay frames.
+			}
 		}
 
 		AGridItemActor* Find(FName ItemId) const
@@ -160,7 +178,7 @@ namespace GridIssue181
 			Item->MeshComponent->SetWorldTransform(FTransform(FRotator(90.f, 0.f, 0.f), Pivot), false, nullptr, ETeleportType::TeleportPhysics);
 			Item->MeshComponent->SetPhysicsLinearVelocity(FVector::ZeroVector);
 			Item->MeshComponent->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
-			World->Tick(LEVELTICK_All, 1.f / 60.f);
+			Tick();
 		}
 	};
 }
@@ -188,6 +206,7 @@ bool FGridIssue181PlacedMeshSelection::RunTest(const FString&)
 	TestTrue(TEXT("Mesh center is over cell 27 while its pivot is still in cell 28"),
 		Axe->MeshComponent->Bounds.Origin.X < 5600.f && Axe->MeshComponent->GetComponentLocation().X > 5600.f);
 	TestTrue(TEXT("Opening succeeds"), F.Runtime->SetPitOpen(F.PitId, true, false));
+	F.Tick(120);
 	const FGridLevelRuntimeState* Lower = F.Runtime->DungeonRuntimeState.LevelStates.Find(F.LowerId);
 	TestTrue(TEXT("Placed axe geometry is selected and queued once"), Lower && Lower->PendingInboundItems.Contains(Guid));
 	TestTrue(TEXT("N20 sword selected independently"), Lower && Lower->PendingInboundItems.Contains(SwordGuid));
@@ -216,8 +235,8 @@ bool FGridIssue181ExplicitLocalDisarm::RunTest(const FString&)
 	if (!TestNotNull(TEXT("Real pit placement"), Pit))
 		return false;
 	Pit->InstanceConfig.Relocation.TargetLevelId = F.UpperId;
-	TestFalse(TEXT("Same-level mode is opt-in"), F.Runtime->CanRelocateThroughPitOnCurrentLevel(Pit->InstanceConfig.Relocation, 27, 24));
-	F.Runtime->bEnableSameLevelPitRelocation = true;
+	TestTrue(TEXT("Authored explicit same-level destination enables local landing"),
+		F.Runtime->CanRelocateThroughPitOnCurrentLevel(Pit->InstanceConfig.Relocation, 27, 24));
 	TestTrue(TEXT("Explicit authored local destination is accepted"), F.Runtime->CanRelocateThroughPitOnCurrentLevel(Pit->InstanceConfig.Relocation, 27, 24));
 	FGridRelocationBehaviorParams Invalid = Pit->InstanceConfig.Relocation;
 	Invalid.TargetCellY = 24;
@@ -261,12 +280,15 @@ bool FGridIssue181ExplicitLocalDisarm::RunTest(const FString&)
 	Tools.Quantity = 1;
 	TestTrue(TEXT("Operator carries their tools"), Inventory->AddItemToCharacterInventory(0, Tools));
 	URPGSkillAsset* Skill = LoadObject<URPGSkillAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/Skills/DA_Skill_Traps.DA_Skill_Traps"));
-	TestTrue(TEXT("Trap detected before disarm"), F.Runtime->TryRecordDungeonTrapDetection(F.TrapId));
+	TestTrue(TEXT("Trap detected before disarm"), F.Runtime->IsTriggerTrapDetected(F.TrapId) || F.Runtime->TryRecordDungeonTrapDetection(F.TrapId));
 	FRandomStream Dice(181);
 	FRPGSkillCheckResult Result;
 	bool bTriggered = false;
+	F.Party->SetGridStart(F.Runtime, 27, 24, EGridEdge::North);
 	TestTrue(TEXT("Actual disarm pipeline resolves"), F.Runtime->TryDisarmTriggerTrap(F.Party, F.TrapId, 0, Skill, Dice, Result, nullptr, &bTriggered));
 	TestTrue(TEXT("Unsafe failure actually opens the authored trap"), !Result.bSuccess && bTriggered && F.Runtime->IsPitOpen(F.PitId));
+	TestTrue(TEXT("Unsafe disarm underfoot starts one animated group fall"), F.Party->IsPitFalling());
+	F.Tick(120); // The opening itself must not teleport a supported rigid body.
 	TestTrue(TEXT("Axe actor survives the local move"), F.Find(TEXT("Weapon_GreatAxe_01")) == Axe);
 	TestTrue(TEXT("Sword actor survives the local move"), F.Find(TEXT("Weapon_LongSword_01")) == Sword);
 	for (AGridItemActor* Item : { Axe, Sword })
@@ -279,6 +301,8 @@ bool FGridIssue181ExplicitLocalDisarm::RunTest(const FString&)
 	TestTrue(TEXT("Repeated Open does not duplicate the local item"), F.Find(TEXT("Weapon_GreatAxe_01")) == Axe);
 	F.Party->SetGridStart(F.Runtime, 27, 24, EGridEdge::North);
 	TestTrue(TEXT("Party uses guarded local relocation, not level travel"), F.Runtime->TryBeginPitFallAtCell(27, 24, F.Party));
+	TestTrue(TEXT("Local pit starts the normal fall presentation"), F.Party->IsPitFalling());
+	F.Tick(60);
 	TestEqual(TEXT("Party arrives at local Y"), F.Party->CurrentCellY, 23);
 	TestEqual(TEXT("Party relocation does not rebuild"), F.Runtime->GetRuntimeObjectRebuildGeneration(), Generation);
 	FGridItemInstance Incoming;
@@ -357,6 +381,125 @@ bool FGridIssue181PlacedMeshPickup::RunTest(const FString&)
 	for (const FGridInventorySlot& Slot : F.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].InventorySlots)
 		bFoundGuid |= Slot.bOccupied && Slot.Item.RuntimeObjectId == Guid;
 	TestTrue(TEXT("Inventory preserves the same GUID"), bFoundGuid);
+	return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridIssue181LocalFallLifecycleTest, "Grimrock.Pit.Issue181.LocalWalkFallLifecycle",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridIssue181LocalFallLifecycleTest::RunTest(const FString&)
+{
+	for (bool bOpenBeforeMove : { true, false })
+	{
+		GridIssue181::FWorld F;
+		F.Level->FindWorldObjectInstanceById(F.PitId)->InstanceConfig.Relocation.TargetLevelId = F.UpperId;
+		const int32 Generation = F.Runtime->GetRuntimeObjectRebuildGeneration();
+		if (bOpenBeforeMove)
+			TestTrue(TEXT("Combined trap pit opens before the walk"), F.Runtime->SetPitOpen(F.PitId, true, false));
+		TestTrue(TEXT("Normal movement starts towards the open pit"), F.Party->TryStartMove(EGridEdge::North));
+		F.Party->UpdateMove(F.Party->MoveDuration);
+		TestEqual(TEXT("Actual pit X reached"), F.Party->CurrentCellX, 27);
+		TestEqual(TEXT("Contact does not teleport directly to arrival"), F.Party->CurrentCellY, 24);
+		TestTrue(TEXT("Movement completion starts BeginPitFall"), F.Party->IsPitFalling());
+		TestFalse(TEXT("Repeated Open/fall notification cannot start a second fall"), F.Runtime->TryBeginPitFallAtCell(27, 24, F.Party));
+		const FVector Contact = F.Party->GetActorLocation();
+		F.Party->UpdatePitFall(F.Party->PitFallDuration * 0.5f);
+		TestTrue(TEXT("Fall remains active during presentation"), F.Party->IsPitFalling());
+		TestTrue(TEXT("Presentation moves the group down before landing"), F.Party->GetActorLocation().Z < Contact.Z - 10.f);
+		F.Party->UpdatePitFall(F.Party->PitFallDuration);
+		TestFalse(TEXT("Fall completes"), F.Party->IsPitFalling());
+		TestEqual(TEXT("Arrival uses authored local cell"), F.Party->CurrentCellY, 23);
+		TestEqual(TEXT("Landing does not rebuild the level"), F.Runtime->GetRuntimeObjectRebuildGeneration(), Generation);
+		TestTrue(TEXT("Landing starts the existing camera impact"), F.Party->bPitFallLandingCameraImpactActive);
+		F.Party->UpdatePitFallLandingCameraImpact(1.f);
+		TestFalse(TEXT("Landing camera recovers"), F.Party->bPitFallLandingCameraImpactActive);
+	}
+	return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridIssue181AfterOpenChaosPassage, "Grimrock.Pit.Issue181.AfterOpenChaosPassage", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridIssue181AfterOpenChaosPassage::RunTest(const FString&)
+{
+	GridIssue181::FWorld F(true);
+	F.Level->FindWorldObjectInstanceById(F.PitId)->InstanceConfig.Relocation.TargetLevelId = F.UpperId;
+	AGridItemActor* Axe = F.Find(TEXT("Weapon_GreatAxe_01"));
+	if (!TestNotNull(TEXT("Real placed axe"), Axe))
+		return false;
+	const FGuid Guid = Axe->RuntimeObjectId;
+	TestTrue(TEXT("Opening occurs before the body enters the hole"), F.Runtime->SetPitOpen(F.PitId, true, false));
+	AGridItemActor* Supported = F.Find(TEXT("Weapon_LongSword_01"));
+	F.LayDown(Supported, FVector(5700.f, 4852.f, 8.f));
+	F.Tick(30);
+	TestTrue(TEXT("A supported tip over the open hole is not transferred"), Supported->GetWorldPickupLocation().Y >= 4800.f);
+	F.LayDown(Axe, FVector(5652.f, 4900.f, 160.f));
+	TestTrue(TEXT("Pivot remains in the neighbouring placement cell at release"), Axe->MeshComponent->GetComponentLocation().X > 5600.f);
+	F.Tick(180);
+	AddInfo(FString::Printf(TEXT("After-open body: center=%s velocity=%s minZ=%.2f"), *Axe->GetWorldPickupLocation().ToString(),
+		*Axe->MeshComponent->GetPhysicsLinearVelocity().ToString(), Axe->MeshComponent->Bounds.GetBox().Min.Z));
+	TestTrue(TEXT("The existing body arrives after physical descent"), F.Find(TEXT("Weapon_GreatAxe_01")) == Axe);
+	const FVector Arrival = Axe->GetWorldPickupLocation();
+	TestTrue(TEXT("Post-opening fall reaches local destination"), Arrival.X >= 5400.f && Arrival.X < 5600.f && Arrival.Y >= 4600.f && Arrival.Y < 4800.f);
+	TestTrue(TEXT("Arrival is accessible above destination floor"), Axe->MeshComponent->Bounds.GetBox().Min.Z >= 0.f);
+	TestEqual(TEXT("Physical transfer preserves GUID"), Axe->RuntimeObjectId, Guid);
+	TestEqual(TEXT("Physical transfer preserves item level"), Axe->CanonicalWorldItemLevel, 1);
+	TestTrue(TEXT("Local arrival never enters an orphaned inbound queue"), F.Runtime->DungeonRuntimeState.LevelStates[F.UpperId].PendingInboundItems.IsEmpty());
+	return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridIssue181OffsetBodyPassage, "Grimrock.Pit.Issue181.CollisionPassageOutsideCenter",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridIssue181OffsetBodyPassage::RunTest(const FString&)
+{
+	GridIssue181::FWorld F;
+	F.Level->FindWorldObjectInstanceById(F.PitId)->InstanceConfig.Relocation.TargetLevelId = F.UpperId;
+	AGridItemActor* Axe = F.Find(TEXT("Weapon_GreatAxe_01"));
+	if (!TestNotNull(TEXT("Actual authored long body"), Axe))
+		return false;
+	TestTrue(TEXT("Already open pit"), F.Runtime->SetPitOpen(F.PitId, true, false));
+	Axe->MeshComponent->SetWorldTransform(FTransform(FRotator(120.f, 0.f, 0.f), FVector(5675.f, 4900.f, 40.f)), false, nullptr, ETeleportType::TeleportPhysics);
+	Axe->MeshComponent->SetPhysicsLinearVelocity(FVector(0.f, 0.f, -120.f));
+	Axe->MeshComponent->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+	TestTrue(TEXT("Both pivot and bounds centre remain outside the pit"),
+		Axe->MeshComponent->GetComponentLocation().X > 5600.f && Axe->GetWorldPickupLocation().X > 5600.f);
+	TestTrue(TEXT("Actual descending shape reaches below the pit floor"), Axe->MeshComponent->Bounds.GetBox().Min.Z < -20.f);
+	F.Tick(12);
+	TestTrue(TEXT("Collision passage is selected despite outside centre"), Axe->GetWorldPickupLocation().Y < 4800.f);
+	return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridIssue181FlyingProjectilePassage, "Grimrock.Pit.Issue181.FlyingProjectilePassage",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridIssue181FlyingProjectilePassage::RunTest(const FString&)
+{
+	GridIssue181::FWorld F;
+	F.Level->FindWorldObjectInstanceById(F.PitId)->InstanceConfig.Relocation.TargetLevelId = F.UpperId;
+	TestTrue(TEXT("Pit is open before flight"), F.Runtime->SetPitOpen(F.PitId, true, false));
+	FGridItemInstance Item;
+	Item.RuntimeObjectId = FGuid::NewGuid();
+	Item.ItemDefinitionId = TEXT("Weapon_Dagger_01");
+	Item.ItemLevel = 20;
+	Item.Quantity = 1;
+	UGridItemDefinitionAsset* Definition = F.Find(Item.ItemDefinitionId)->ItemDefinitionAsset;
+	AGridThrownItemActor* Projectile =
+		F.Runtime->SpawnThrownItemProjectile(Item, Definition, FVector(5500.f, 4900.f, 140.f), FVector(0.f, 0.f, -250.f), 27, 23);
+	if (!TestNotNull(TEXT("Actual throwing pipeline creates the projectile"), Projectile))
+		return false;
+	Projectile->DispatchBeginPlay(); // The isolated test world has no GameMode.
+	F.Tick(60);
+	TestTrue(TEXT("Physical passage consumes the projectile before expiry"), Projectile->IsActorBeingDestroyed());
+	int32 Count = 0;
+	for (TActorIterator<AGridItemActor> It(F.World); It; ++It)
+		if (!It->IsActorBeingDestroyed() && It->GetRuntimeObjectId() == Item.RuntimeObjectId)
+		{
+			++Count;
+			TestEqual(TEXT("Thrown N20 preserved"), It->CanonicalWorldItemLevel, 20);
+			TestTrue(TEXT("Thrown item arrives in authored local cell"), It->GetWorldPickupLocation().Y >= 4600.f && It->GetWorldPickupLocation().Y < 4800.f);
+		}
+	TestEqual(TEXT("Exactly one pickup replaces the projectile"), Count, 1);
 	return !HasAnyErrors();
 }
 

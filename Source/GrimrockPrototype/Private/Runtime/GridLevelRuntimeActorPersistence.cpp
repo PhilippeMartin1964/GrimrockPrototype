@@ -930,6 +930,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 
 	ApplyPendingInboundItemsForCurrentLevel();
     RestoreDungeonTrapRevealVisuals(); // Save/Continue: restore materialized known traps.
+	RefreshOpenPitItemMonitoring();
 	RefreshCombatOilSurfaceVisuals();
 	return true;
 }

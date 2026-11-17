@@ -809,5 +809,6 @@ private:
 	friend class FGridPartyMovementAudioFeedbackTest;
 	friend class FGridPartyWeightMovementLockTest;
 	friend class FGridPIT01FallLifecycleTest;
+	friend class FGridIssue181LocalFallLifecycleTest;
 	friend class FGridRELOC01RuntimeTest;
 };

@@ -613,14 +613,30 @@ void AGrimrockPartyPawn::UpdatePitFall(float DeltaSeconds)
 	PitFallTargetFacing = EGridEdge::None;
 	ClearBufferedCommand();
 
-	if (!LevelRuntimeActor->TravelToDungeonLevel(TargetLevelId, TargetCellX, TargetCellY, TargetFacing, this))
+	FGridRelocationBehaviorParams Landing;
+	Landing.TargetLevelId = TargetLevelId;
+	Landing.TargetCellX = TargetCellX;
+	Landing.TargetCellY = TargetCellY;
+	Landing.TargetFacing = TargetFacing;
+	const bool bLocalLanding = TargetLevelId == LevelRuntimeActor->CurrentDungeonLevelId;
+	bool bLanded = false;
+	if (bLocalLanding)
+	{
+		bLanded = LevelRuntimeActor->CanRelocateThroughPitOnCurrentLevel(Landing, CurrentCellX, CurrentCellY) &&
+			LevelRuntimeActor->RelocatePartyWithinCurrentLevel(Landing, this);
+	}
+	else
+	{
+		bLanded = LevelRuntimeActor->TravelToDungeonLevel(TargetLevelId, TargetCellX, TargetCellY, TargetFacing, this);
+	}
+	if (!bLanded)
 	{
 		SnapToCurrentCell();
 		return;
 	}
 
 	// Landing feedback belongs to the destination level. Trigger it only after
-	// the inter-level travel has succeeded and the party has been snapped there.
+	// the landing has succeeded and the party has been snapped there.
 	PlayPitFallLandingSound();
 	StartPitFallLandingCameraImpact();
 }

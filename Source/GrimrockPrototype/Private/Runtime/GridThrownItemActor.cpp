@@ -97,6 +97,18 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 		{
 			LastWalkableFlightCell = FIntPoint(CellX, CellY);
 			LastWalkableFlightOffset = LocalOffset;
+			// A projectile can cross an open hole without any impact callback.
+			// Use its physical collision trajectory, then the same PIT02 authority
+			// as impact conversion; a rejected route keeps the projectile alive.
+			FGridRelocationBehaviorParams Pit;
+			if (ProjectileMovementComponent && ProjectileMovementComponent->Velocity.Z < -10.f &&
+				CurrentLocation.Z < RuntimeActor->GetCellCenterWorld(CellX, CellY, -20.f).Z && RuntimeActor->FindOpenPitAtCell(CellX, CellY, Pit) &&
+				RuntimeActor->TryRouteWorldItemThroughOpenPit(ThrownItemInstance, GetItemDefinitionAsset(), CellX, CellY, LocalOffset))
+			{
+				bConversionAttempted = true;
+				Destroy();
+				return;
+			}
 		}
 	}
 

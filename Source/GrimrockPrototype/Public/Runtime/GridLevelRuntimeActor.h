@@ -971,10 +971,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Dungeon|Pit")
 	bool IsPitOpen(FGuid PitObjectId) const;
 
-	/** Explicit local-relocation test mode. Ordinary pits retain their inter-level contract. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon|Pit")
-	bool bEnableSameLevelPitRelocation = false;
-
+	/** A same-level pit requires an explicitly authored, safe destination distinct from its source. */
 	bool CanRelocateThroughPitOnCurrentLevel(const FGridRelocationBehaviorParams& Relocation, int32 SourceX, int32 SourceY) const;
 	bool RelocatePartyWithinCurrentLevel(const FGridRelocationBehaviorParams& Relocation, AGrimrockPartyPawn* PartyPawn);
 
@@ -991,8 +988,11 @@ public:
 	/** PIT02: materializes queued arrivals for the current dungeon level. Returns the number successfully spawned. */
 	int32 ApplyPendingInboundItemsForCurrentLevel();
 
-	/** PIT03: routes already placed center World Items when a closed trapdoor opens underneath them. */
+	/** PIT03: immediate transfer for non-physical pickups; real Chaos bodies wait for physical passage. */
 	int32 DropWorldItemsThroughOpenPitAtCell(int32 CellX, int32 CellY);
+
+	/** Only open pits query descending collision bodies below their floor; no world-item Tick. */
+	void RefreshOpenPitItemMonitoring();
 
 	void RebuildRuntimeObjects();
 	void AddRuntimeObjectActor(const FGridWorldObjectInstance& ObjectData);
@@ -1018,6 +1018,11 @@ public:
 		USceneComponent* AttachParent) const;
 
 protected:
+	FTimerHandle OpenPitItemTimer;
+	TArray<FIntPoint> OpenPitItemCells;
+	void CheckOpenPitItemPassages();
+	bool TransferWorldItemThroughPit(AGridItemActor* ItemActor, int32 CellX, int32 CellY);
+
 	FVector CellToWorld(int32 X, int32 Y, float ZOffset = 0.f) const;
 
 	void AddFloor(int32 X, int32 Y, float CellSize);

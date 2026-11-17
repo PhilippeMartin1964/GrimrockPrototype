@@ -306,6 +306,7 @@ const FGridLevelRuntimeState* AGridLevelRuntimeActor::FindRuntimeStateForCurrent
 
 void AGridLevelRuntimeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	GetWorldTimerManager().ClearTimer(OpenPitItemTimer);
 	ClearExplorationOilTimer();
 	ClearCombatOilSplash();
 	ClearFlaskGlassShards();
@@ -1477,9 +1478,8 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 		return;
 	}
 
-	// Transfer all resting world items while the supporting FloorISM tile
-	// still exists. Removing the floor first can wake Chaos rigid bodies
-	// before PIT02 has captured their stable GUID, level and destination.
+	// Non-physical pickups use the immediate path. Real Chaos bodies are
+	// transferred only when they descend through the open pit's passage volume.
 	if (bIsOpen)
 	{
 		const int32 Transferred = DropWorldItemsThroughOpenPitAtCell(PitObject->CellX, PitObject->CellY);
@@ -1490,6 +1490,7 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 	}
 
 	RefreshConcealedPitCellFloor(*PitObject);
+	RefreshOpenPitItemMonitoring();
 
 	// When a trap has actually opened its associated PIT03, let the Pit
 	// completely replace the trap mesh; restore it if the Pit later closes.
@@ -1626,7 +1627,14 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 
 	if (Relocation.TargetLevelId == CurrentDungeonLevelId)
 	{
-		return CanRelocateThroughPitOnCurrentLevel(Relocation, CellX, CellY) && RelocatePartyWithinCurrentLevel(Relocation, PartyPawn);
+		if (!CanRelocateThroughPitOnCurrentLevel(Relocation, CellX, CellY))
+			return false;
+		if (Relocation.TargetFacing == EGridEdge::None)
+			Relocation.TargetFacing = PartyPawn->Facing;
+		if (!PartyPawn->BeginPitFall(Relocation))
+			return false;
+		AbortActiveCombatAndMonsterActions();
+		return true;
 	}
 
 	if (Relocation.TargetFacing == EGridEdge::None)
@@ -1724,9 +1732,10 @@ bool AGridLevelRuntimeActor::TryExecuteRelocationAtCell(int32 CellX, int32 CellY
 bool AGridLevelRuntimeActor::CanRelocateThroughPitOnCurrentLevel(const FGridRelocationBehaviorParams& Relocation, int32 SourceX, int32 SourceY) const
 {
 	FGridRelocationBehaviorParams TargetPit;
-	return bEnableSameLevelPitRelocation && !CurrentDungeonLevelId.IsNone() && Relocation.TargetLevelId == CurrentDungeonLevelId &&
-		(Relocation.TargetCellX != SourceX || Relocation.TargetCellY != SourceY) && IsWalkableCell(Relocation.TargetCellX, Relocation.TargetCellY) &&
-		!FindOpenPitAtCell(Relocation.TargetCellX, Relocation.TargetCellY, TargetPit);
+	const FGridDungeonLevelEntry* Source = DungeonAsset ? DungeonAsset->FindLevelEntry(CurrentDungeonLevelId) : nullptr;
+	return Source && Source->bEnabled && Source->LevelAsset == LevelAsset && !CurrentDungeonLevelId.IsNone() &&
+		Relocation.TargetLevelId == CurrentDungeonLevelId && (Relocation.TargetCellX != SourceX || Relocation.TargetCellY != SourceY) &&
+		IsWalkableCell(Relocation.TargetCellX, Relocation.TargetCellY) && !FindOpenPitAtCell(Relocation.TargetCellX, Relocation.TargetCellY, TargetPit);
 }
 
 bool AGridLevelRuntimeActor::RelocatePartyWithinCurrentLevel(const FGridRelocationBehaviorParams& Relocation, AGrimrockPartyPawn* PartyPawn)
@@ -2051,6 +2060,8 @@ void AGridLevelRuntimeActor::RegisterRuntimeObjectActor(const FGuid& ObjectId, A
 
 void AGridLevelRuntimeActor::ClearRuntimeObjectActors()
 {
+	GetWorldTimerManager().ClearTimer(OpenPitItemTimer);
+	OpenPitItemCells.Reset();
 	ClearSpawnedMonsterActors();
 	for (AGridItemActor* ItemActor : SpawnedItemActors)
 	{
@@ -2388,4 +2399,5 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 		}
 	}
     RestoreDungeonTrapRevealVisuals(); // Save/Continue and runtime rebuild re-materialize only known traps.
+	RefreshOpenPitItemMonitoring();
 }
