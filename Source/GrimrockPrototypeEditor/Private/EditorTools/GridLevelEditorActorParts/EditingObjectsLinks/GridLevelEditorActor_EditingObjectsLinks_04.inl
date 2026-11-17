@@ -1,3 +1,5 @@
+#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+
 bool AGridLevelEditorActor::TryGetSelectedObjectWorldLocation(FVector& OutWorldLocation) const
 {
 	return LastSelectedObjectId.IsValid() && TryGetObjectWorldLocationById(LastSelectedObjectId, OutWorldLocation);
@@ -134,16 +136,28 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 		return false;
 	}
 
-	// WORLDOBJ-MIG05: collectibles are palette-addressable directly through their
-	// ItemDefinition. No companion UGridWorldObjectDefinitionAsset is required.
-	if (Entry->DefaultItemDefinition)
+	// Registered collectibles are authored directly from ItemSystem. Legacy
+	// direct entries still use their existing definition until migrated.
+	if (Entry->IsDirectItemEntry())
 	{
-		if (!Entry->CanonicalItemId.IsNone() &&
-			(Entry->DefaultItemDefinition->ItemDefinitionId != Entry->CanonicalItemId ||
-			 Entry->CanonicalDefaultItemLevel < 0 ||
-			 Entry->CanonicalDefaultItemLevel > 20))
+		if (!IsValid(Entry->DefaultItemDefinition.Get()) &&
+			(Entry->CanonicalItemId.IsNone() || Entry->DefaultWorldObjectDefinition ||
+			 Entry->Icon))
 		{
-			return false; // Persisted ItemId must not be renamed by the historical source.
+			return false; // Pointerless must be canonical and not a world object.
+		}
+		if (!Entry->CanonicalItemId.IsNone() &&
+			IsValid(Entry->DefaultItemDefinition.Get()) &&
+			Entry->DefaultItemDefinition->ItemDefinitionId != Entry->CanonicalItemId)
+		{
+			return false; // Legacy-backed fixture retains prior selection rules.
+		}
+		if (!Entry->CanonicalItemId.IsNone() &&
+			!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+				ResolveEditorItemRegistry(), Entry->CanonicalItemId,
+				Entry->CanonicalDefaultItemLevel))
+		{
+			return false; // No registered ARM N0, unlevelled N1 or absent registry.
 		}
 		SelectedPaletteEntryId = Entry->EntryId;
 		PaintObjectType = EGridLevelObjectType::Item;

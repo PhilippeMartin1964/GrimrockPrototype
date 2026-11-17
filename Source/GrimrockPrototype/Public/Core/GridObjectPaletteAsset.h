@@ -39,14 +39,14 @@ struct FGridObjectPaletteEntry
 
 	/** One stable ItemId for direct collectibles; the one-shot 06.4W
 	 * Editor migration derives it from the original authored definition. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Palette|Item|Canonical")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Item|Canonical")
 	FName CanonicalItemId = NAME_None;
 
 	/** ARM-CLEAN06.4X.5: physical default for NEW direct palette placements.
 	 * N1-N20 for ARM, N0 for unlevelled items; never infer N1 at runtime.
 	 * One-shot Editor migration derives this from the original source.
 	 * The old source pointer remains until the verified reader cutover. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Palette|Item|Canonical",
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Item|Canonical",
 		meta = (ClampMin = "0", ClampMax = "20"))
 	int32 CanonicalDefaultItemLevel = 0;
 
@@ -60,7 +60,7 @@ struct FGridObjectPaletteEntry
 
 	bool IsDirectItemEntry() const
 	{
-		return DefaultItemDefinition != nullptr;
+		return DefaultItemDefinition != nullptr || !CanonicalItemId.IsNone();
 	}
 
 #if WITH_EDITOR
@@ -96,6 +96,10 @@ struct FGridObjectPaletteEntry
 	{
 		if (IsDirectItemEntry())
 		{
+			if (!IsValid(DefaultItemDefinition.Get()))
+			{
+				return FText::FromName(CanonicalItemId);
+			}
 			if (!DefaultItemDefinition->DisplayName.IsEmpty())
 			{
 				return DefaultItemDefinition->DisplayName;
@@ -121,7 +125,19 @@ struct FGridObjectPaletteEntry
 
 		if (IsDirectItemEntry())
 		{
-			return !DefaultWorldObjectDefinition && !Icon && DefaultItemDefinition->IsValidDefinition();
+			if (DefaultWorldObjectDefinition || Icon || CanonicalDefaultItemLevel < 0 ||
+				CanonicalDefaultItemLevel > 20)
+			{
+				return false;
+			}
+			if (!CanonicalItemId.IsNone() && IsValid(DefaultItemDefinition.Get()) &&
+				DefaultItemDefinition->ItemDefinitionId != CanonicalItemId)
+			{
+				return false;
+			}
+			return !CanonicalItemId.IsNone() ||
+				(IsValid(DefaultItemDefinition.Get()) &&
+				 DefaultItemDefinition->IsValidDefinition());
 		}
 
 		return DefaultWorldObjectDefinition && !DefaultWorldObjectDefinition->DefinitionId.IsNone() && DefaultWorldObjectDefinition->SupportedType != EGridLevelObjectType::None

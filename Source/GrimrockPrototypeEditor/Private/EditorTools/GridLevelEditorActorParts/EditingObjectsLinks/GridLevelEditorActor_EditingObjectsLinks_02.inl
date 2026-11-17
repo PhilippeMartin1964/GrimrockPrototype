@@ -1,3 +1,5 @@
+#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+
 #include "Core/GridObjectInstanceBehavior.h"
 
 void AGridLevelEditorActor::PlaceSelectedObject()
@@ -17,15 +19,18 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 	if (PaintObjectType == EGridLevelObjectType::Item && PaletteEntry &&
 		!PaletteEntry->CanonicalItemId.IsNone())
 	{
-		// Check BEFORE editing the level. A canonical selection cannot be
-		// renamed by an out-of-date UI staging pointer.
-		if (!PaletteEntry->DefaultItemDefinition ||
-			ObjectBehavior.Item.ItemDefinitionAsset != PaletteEntry->DefaultItemDefinition ||
-			PaletteEntry->DefaultItemDefinition->ItemDefinitionId != PaletteEntry->CanonicalItemId ||
-			PaletteEntry->CanonicalDefaultItemLevel < 0 ||
-			PaletteEntry->CanonicalDefaultItemLevel > 20)
+		// Registered authoring is valid without a legacy pointer, but its
+		// physical ItemLevel must be fully resolved BEFORE editing the grid.
+		UGridItemDefinitionAsset* Legacy = PaletteEntry->DefaultItemDefinition.Get();
+		if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+				ResolveEditorItemRegistry(), PaletteEntry->CanonicalItemId,
+				PaletteEntry->CanonicalDefaultItemLevel) ||
+			(IsValid(Legacy) &&
+				(Legacy->ItemDefinitionId != PaletteEntry->CanonicalItemId ||
+				 ObjectBehavior.Item.ItemDefinitionAsset != Legacy)) ||
+			(!IsValid(Legacy) && ObjectBehavior.Item.ItemDefinitionAsset != nullptr))
 		{
-			UE_LOG(LogGridEditor, Warning, TEXT("Canonical palette placement rejected: mismatched staged ItemId."));
+			UE_LOG(LogGridEditor, Warning, TEXT("Canonical palette placement rejected: invalid physical identity or staged source."));
 			return;
 		}
 	}

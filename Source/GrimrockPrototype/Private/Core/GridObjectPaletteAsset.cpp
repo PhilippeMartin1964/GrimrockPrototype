@@ -40,26 +40,46 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridWorldObjectDefinitionV
 				FString::Printf(TEXT("Palette entry '%s' cannot use a WorldObjectDefinition for a collectible Item. Use DefaultItemDefinition instead."), *EntryName));
 		}
 
-		if (Entry.DefaultItemDefinition)
+		if (Entry.IsDirectItemEntry())
 		{
 			if (Entry.DefaultWorldObjectDefinition)
 			{
 				OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
-					FString::Printf(TEXT("Palette entry '%s' must reference either DefaultItemDefinition or DefaultWorldObjectDefinition, not both."), *EntryName));
+					FString::Printf(TEXT("Palette entry '%s' must reference either a collectible or a world-object definition, not both."), *EntryName));
 			}
-
 			if (Entry.Icon)
 			{
-				OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
-					FString::Printf(TEXT("Palette entry '%s' is a direct collectible and must use DefaultItemDefinition.Icon instead of duplicating Palette Icon."), *EntryName));
+				if (IsValid(Entry.DefaultItemDefinition.Get()))
+				{
+					OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
+						FString::Printf(TEXT("Palette entry '%s' is a direct collectible and must use DefaultItemDefinition.Icon instead of duplicating Palette Icon."), *EntryName));
+				}
+				else
+				{
+					OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
+						FString::Printf(TEXT("Palette entry '%s' is a direct collectible and must use the item icon from ItemSystem."), *EntryName));
+				}
 			}
-
-			if (!Entry.DefaultItemDefinition->IsValidDefinition())
+			if (Entry.CanonicalDefaultItemLevel < 0 || Entry.CanonicalDefaultItemLevel > 20)
 			{
 				OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
-					FString::Printf(TEXT("Palette entry '%s' has an invalid DefaultItemDefinition."), *EntryName));
+					FString::Printf(TEXT("Palette entry '%s' has a physical item level outside N0-N20."), *EntryName));
 			}
-			continue;
+			if (IsValid(Entry.DefaultItemDefinition.Get()))
+			{
+				if (!Entry.DefaultItemDefinition->IsValidDefinition())
+				{
+					OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
+						FString::Printf(TEXT("Palette entry '%s' has an invalid DefaultItemDefinition."), *EntryName));
+				}
+				if (!Entry.CanonicalItemId.IsNone() &&
+					Entry.DefaultItemDefinition->ItemDefinitionId != Entry.CanonicalItemId)
+				{
+					OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
+						FString::Printf(TEXT("Palette entry '%s' has contradictory canonical and historical item identities."), *EntryName));
+				}
+			}
+			continue; // Registry and level-family checks happen in Editor authoring.
 		}
 
 		if (!Entry.DefaultWorldObjectDefinition)
@@ -131,7 +151,8 @@ void UGridObjectPaletteAsset::PostEditChangeChainProperty(FPropertyChangedChainE
 	// Only normalize the entry being edited. A collectible must never retain
 	// a palette-level icon that is hidden by EditConditionHides.
 	const bool bNewItemDefinition =
-		PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FGridObjectPaletteEntry, DefaultItemDefinition);
+		PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FGridObjectPaletteEntry, DefaultItemDefinition) ||
+		PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FGridObjectPaletteEntry, CanonicalItemId);
 	const bool bArrayEntryAddedOrDuplicated =
 		PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayAdd ||
 		PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate;

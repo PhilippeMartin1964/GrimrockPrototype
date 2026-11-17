@@ -1,3 +1,5 @@
+#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+
 SelectedPaletteEntryId = Entry->EntryId;
 PaintObjectType = Entry->DefaultWorldObjectDefinition->SupportedType;
 WorldObjectDefinitionId = Entry->DefaultWorldObjectDefinition->DefinitionId;
@@ -31,14 +33,19 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 	const FGridObjectPaletteEntry* CanonicalEntry = ObjectPalette
 		? ObjectPalette->FindEntryById(SelectedPaletteEntryId) : nullptr;
 	if (PaintObjectType == EGridLevelObjectType::Item && CanonicalEntry &&
-		!CanonicalEntry->CanonicalItemId.IsNone() &&
-		(!CanonicalEntry->DefaultItemDefinition ||
-		 ObjectBehavior.Item.ItemDefinitionAsset != CanonicalEntry->DefaultItemDefinition ||
-		 CanonicalEntry->DefaultItemDefinition->ItemDefinitionId != CanonicalEntry->CanonicalItemId ||
-		 CanonicalEntry->CanonicalDefaultItemLevel < 0 ||
-		 CanonicalEntry->CanonicalDefaultItemLevel > 20))
+		!CanonicalEntry->CanonicalItemId.IsNone())
 	{
-		return false; // Refuse before modifying the selected level instance.
+		UGridItemDefinitionAsset* Legacy = CanonicalEntry->DefaultItemDefinition.Get();
+		if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+				ResolveEditorItemRegistry(), CanonicalEntry->CanonicalItemId,
+				CanonicalEntry->CanonicalDefaultItemLevel) ||
+			(IsValid(Legacy) &&
+				(Legacy->ItemDefinitionId != CanonicalEntry->CanonicalItemId ||
+				 ObjectBehavior.Item.ItemDefinitionAsset != Legacy)) ||
+			(!IsValid(Legacy) && ObjectBehavior.Item.ItemDefinitionAsset != nullptr))
+		{
+			return false; // Refuse before modifying selected object.
+		}
 	}
 	if (!EditGridPlacementAuthoring(LevelAsset, LastSelectedObjectId, [this](auto& Placement)
 		{

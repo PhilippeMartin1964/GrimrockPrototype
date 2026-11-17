@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.28 — palette C++ directement canonique sans ancien DataAsset
+
+**Parent :** `0ca06dfbd351b364830e233762bf843ee87786ba`. Rapport : [ARM_CLEAN06_4X28_POINTERLESS_CANONICAL_PALETTE.md](ARM_CLEAN06_4X28_POINTERLESS_CANONICAL_PALETTE.md).
+
+Les entrées de palette possédant `CanonicalItemId + CanonicalDefaultItemLevel` peuvent être structurées, affichées, sélectionnées, placées et rééditées **sans ancien DefaultItemDefinition**. ItemSystem valide les niveaux physiques au moment de la sélection et avant la modification de la grille ; un ARM N0, une ID inconnue ou un ancien pointeur contradictoire est refusé. Test sur palette et monde transitoires avec ARM N20 et munitions N0 ; les palettes et niveaux réels restent inchangés. **06.4 partielle ; 06.5 bloquée ; contrôler les statuts Windows du SHA.**
+
 ## ARM-CLEAN06.4X.27 — Selected Object par ItemId canonique
 
 **Parent :** `b34eccf33e56fed6ec8feb8d759eb4399714c048`. Rapport : [ARM_CLEAN06_4X27_EDITOR_CANONICAL_SELECTED_OBJECT.md](ARM_CLEAN06_4X27_EDITOR_CANONICAL_SELECTED_OBJECT.md).
