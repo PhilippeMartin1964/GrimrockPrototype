@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.47 — correctif de test du vrai niveau après conversion et restauration visible
+
+**Parent :** `939ef5dc1846aec896cb2f04261a6e20b3444a30`. Rapport : [ARM_CLEAN06_4X47_POST_NATIVE_LOOSE_TEST_AND_ROLLBACK.md](ARM_CLEAN06_4X47_POST_NATIVE_LOOSE_TEST_AND_ROLLBACK.md).
+
+Premier essai local `X.46 -Apply -Publish` : conversion des 44 références et réouverture UE réussies, puis un seul échec sur 1987 tests (1961 succès, 25 avertissements, 1 échec) : X.8 exigeait encore un pointeur historique dans le vrai niveau. Le script a déclenché le rollback avant tout commit binaire. Correction X.47 : le test X.8 accepte le vrai ARM avec source cohérente **ou** pointerless, tout en imposant la présentation canonique, et injecte explicitement une source d'ID discordant pour que son test négatif continue après migration. Le script affiche `ROLLBACK VERIFIED` seulement après contrôle SHA-256 + worktree propre. **Ce commit ne migre pas l'asset.** Attendre les deux validations du SHA X.47, puis relancer le script X.46 avec le nouveau `-ExpectedHead` sur Windows ; recette PIE après le commit binaire. 06.4 partielle / 06.5 bloquée.
+
 ## ARM-CLEAN06.4X.46 — outil UE natif pour 44 objets libres (code seulement)
 
 **Parent :** `5e79797e8234ccf392642350a84d7d30aff10818`. Rapport : [ARM_CLEAN06_4X46_NATIVE_LOOSE_PROTECTED_APPLY.md](ARM_CLEAN06_4X46_NATIVE_LOOSE_PROTECTED_APPLY.md).

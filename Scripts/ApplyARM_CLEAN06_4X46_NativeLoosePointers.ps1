@@ -240,6 +240,15 @@ catch {
             if ((Sha $Target) -cne $BeforeHash) {
                 throw 'CRITICAL: native rollback hash differs from approved original!'
             }
+            # X.47: after a validation failure the operator must be able
+            # to see unambiguously that the original package was restored.
+            # Do not report rollback success if Git still sees any dirty file.
+            $RollbackStatus = @(Git @('status','--porcelain','--untracked-files=all'))
+            if ($RollbackStatus.Count -ne 0) {
+                throw 'CRITICAL: native file bytes restored, but the worktree is not clean.'
+            }
+            Write-Host ('[ARM-CLEAN06.4X46] ROLLBACK VERIFIED: native target SHA256=' +
+                $BeforeHash + '; worktree clean; no binary commit or push.')
         }
     }
     else {

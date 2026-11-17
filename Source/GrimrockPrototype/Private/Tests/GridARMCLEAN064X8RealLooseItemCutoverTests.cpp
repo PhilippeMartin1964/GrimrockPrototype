@@ -204,14 +204,18 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
         return false;
     }
 
-    // X.39: this is a real authored ARM row from one of four production
-    // levels, WITH its original persisted DA_Weapon pointer still present.
-    // The actor must not import a single presentation property from it.
+    // X.47 / native X.46: this REAL row has two valid serialized states:
+    // before native Apply it can retain its matching old DA_Weapon pointer;
+    // after Apply the SAME physical ARM must be pointerless. Both states
+    // must resolve one canonical visual/physics authority in the runtime.
     FGridResolvedItem ArmResolved;
-    if (!TestNotNull(TEXT("Real ARM placement retains its historical source in the level asset"),
-            Arm.ItemDefinition.Get()) ||
-        !TestTrue(TEXT("Real ARM projection resolves at authored physical level"),
-            F.Registry->ResolveItem(Arm.CanonicalItemId, Arm.ItemLevel, ArmResolved)))
+    if (!TestTrue(TEXT("Real ARM projection resolves at authored physical level"),
+            F.Registry->ResolveItem(Arm.CanonicalItemId, Arm.ItemLevel, ArmResolved)) ||
+        !TestTrue(TEXT("Real ARM source is absent OR consistent with the canonical identity"),
+            !Arm.ItemDefinition ||
+                (IsValid(Arm.ItemDefinition.Get()) &&
+                 Arm.ItemDefinition->ItemDefinitionId == Arm.CanonicalItemId &&
+                 Arm.ItemDefinition->WeaponArchetypeId == ArmResolved.ArchetypeId)))
     {
         return false;
     }
@@ -334,7 +338,14 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     if (!TestNull(TEXT("Known registered ARM N0 cannot spawn"),
         F.FindItem(InvalidLevel.InstanceId))) {return false;}
 
+    // The source level is now allowed to be pointerless. Attach a
+    // deliberate WRONG old source to this negative fixture; otherwise
+    // copying the converted NonArm row would accidentally make it a
+    // valid pointerless ARM and this rejection test would be vacuous.
     FGridLooseItemInstance WrongSource = NonArm;
+    UGridItemDefinitionAsset* WrongLegacy = NewObject<UGridItemDefinitionAsset>(F.Runtime);
+    WrongLegacy->ItemDefinitionId = NonArm.CanonicalItemId;
+    WrongSource.ItemDefinition = WrongLegacy;
     WrongSource.InstanceId = FGuid::NewGuid();
     WrongSource.CanonicalItemId = Arm.CanonicalItemId;
     WrongSource.ItemLevel = Arm.ItemLevel;
@@ -344,10 +355,11 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     if (!TestNull(TEXT("Contradictory legacy source cannot spoof canonical ID"),
         F.FindItem(WrongSource.InstanceId))) {return false;}
 
-    AddInfo(TEXT("[ARM-CLEAN06.4X40] 44 real loose items audited; "
-        "all known canonical actors and their runtime entries exclude old "
-        "source pointers, including real ARM and fake same-ID legacy. "
-        "Mesh/light/Niagara/N levels remain canonical; no native assets changed."));
+    AddInfo(TEXT("[ARM-CLEAN06.4X47] 44 real loose items audited in either "
+        "pre-Apply legacy-backed or post-Apply pointerless native state. "
+        "Real ARM/N0 nonARM actors are canonical-only; an injected mismatching "
+        "source still rejects and a same-ID contradictory source cannot override "
+        "mesh/light/Niagara/physics. The test never saves any native package."));
     return true;
 }
 #endif
