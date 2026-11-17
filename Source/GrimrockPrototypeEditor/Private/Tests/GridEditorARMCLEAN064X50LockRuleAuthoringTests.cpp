@@ -85,6 +85,34 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
         return false;
     }
 
+    // X.53: clearing the final ID is a deliberate empty instance override,
+    // not permission to rediscover the shared historical key pointers.
+    FGridWorldObjectInstance EmptyKeys = Placed;
+    EmptyKeys.InstanceConfig.InteractionOverrides.AcceptedKeys.AcceptedKeyIds.Reset();
+    const FGridObjectBehaviorParams NoKeys =
+        GridObjectInstanceBehavior::Resolve(EmptyKeys, Definition);
+    if (!TestEqual(TEXT("Empty override does not inherit historical key assets"),
+            NoKeys.Lock.AcceptedKeyItems.Num(), 0) ||
+        !TestEqual(TEXT("Empty override does not inherit default accepted ItemIds"),
+            NoKeys.Lock.AcceptedKeyIds.Num(), 0) ||
+        !TestEqual(TEXT("Consume-key policy survives empty override"),
+            NoKeys.Lock.bConsumeKeyOnUnlock, Shared.bConsumeKeyOnUnlock))
+        return false;
+
+    // Already-authored legacy-only instances stay readable and unchanged.
+    FGridWorldObjectInstance LegacyKeys = Placed;
+    LegacyKeys.InstanceConfig.InteractionOverrides.AcceptedKeys.AcceptedKeyIds.Reset();
+    LegacyKeys.InstanceConfig.InteractionOverrides.AcceptedKeys.AcceptedKeyItems = {Copper};
+    const FGridObjectBehaviorParams LegacyEffective =
+        GridObjectInstanceBehavior::Resolve(LegacyKeys, Definition);
+    if (!TestEqual(TEXT("Legacy-only instance retains one historical key"),
+            LegacyEffective.Lock.AcceptedKeyItems.Num(), 1) ||
+        !TestEqual(TEXT("Existing legacy key identity is not rewritten"),
+            LegacyEffective.Lock.AcceptedKeyItems[0].Get(), Copper) ||
+        !TestEqual(TEXT("Legacy-only instance does not fabricate ItemIds"),
+            LegacyEffective.Lock.AcceptedKeyIds.Num(), 0))
+        return false;
+
     Shared.AcceptedKeyItems.Add(Unknown);
     if (!TestFalse(TEXT("Unregistered historical source rejects entire conversion"),
         FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(Registry.Get(), Shared, Out)) ||
@@ -123,8 +151,11 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
             !TestEqual(TEXT("Real projected key retains ID"), Projection.AcceptedKeyIds[0], ExpectedIds[Index]) ||
             !TestEqual(TEXT("No old key pointers copied from shared definition"),
                 Projection.AcceptedKeyItems.Num(), 0) ||
-            !TestEqual(TEXT("Shared old source retained for later native migration"),
-                RealLock.AcceptedKeyItems.Num(), 1) ||
+            !TestTrue(TEXT("Shared source intact or fully pointerless after native migration"),
+                RealLock.AcceptedKeyItems.IsEmpty() ||
+                (RealLock.AcceptedKeyItems.Num() == 1 &&
+                 RealLock.AcceptedKeyItems[0] &&
+                 RealLock.AcceptedKeyItems[0]->ItemDefinitionId == ExpectedIds[Index])) ||
             !TestEqual(TEXT("Original package not dirty"), Real->GetOutermost()->IsDirty(), bDirty))
         {
             return false;

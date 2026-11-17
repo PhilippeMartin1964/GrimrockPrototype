@@ -1878,66 +1878,18 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLockBehaviorSection(FG
 	const bool bOverrideKeys = Overrides.bOverrideAcceptedKeys;
 
 	TSharedRef<SVerticalBox> KeyAssets = SNew(SVerticalBox);
-	// Canonical IDs are the effective lock authority. The old UObject
-	// picker remains available ONLY for an explicitly legacy-only list.
-	if (bOverrideKeys && Lock.AcceptedKeyIds.IsEmpty())
+	// X.53: historical key assets are read-only even for legacy-only
+	// overrides with no IDs. Deleting the last AcceptedKeyId must NEVER
+	// make an obsolete UObject picker or Add Key Asset action reappear.
+	for (const UGridItemDefinitionAsset* AcceptedItem : Lock.AcceptedKeyItems)
 	{
-		for (int32 Index = 0; Index < Overrides.AcceptedKeys.AcceptedKeyItems.Num(); ++Index)
-		{
-			UGridItemDefinitionAsset* CurrentItem = Overrides.AcceptedKeys.AcceptedKeyItems[Index].Get();
-			KeyAssets->AddSlot().AutoHeight().Padding(0.f, 2.f)[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)[
-					BuildItemDefinitionAssetPicker(CurrentItem,
-						[this, ObjectId, Index](UGridItemDefinitionAsset* NewAsset)
-						{
-							EditWorldObjectConfig(ObjectId, [Index, NewAsset](FGridWorldObjectInstanceConfig& Config)
-							{
-								if (Config.InteractionOverrides.AcceptedKeys.AcceptedKeyItems.IsValidIndex(Index))
-								{
-									Config.InteractionOverrides.AcceptedKeys.AcceptedKeyItems[Index] = NewAsset;
-								}
-							});
-						})]
-				+ SHorizontalBox::Slot().AutoWidth()[
-					SNew(SButton)
-						.Text(FText::FromString(TEXT("Remove")))
-						.OnClicked_Lambda([this, ObjectId, Index]()
-						{
-							EditWorldObjectConfig(ObjectId, [Index](FGridWorldObjectInstanceConfig& Config)
-							{
-								if (Config.InteractionOverrides.AcceptedKeys.AcceptedKeyItems.IsValidIndex(Index))
-								{
-									Config.InteractionOverrides.AcceptedKeys.AcceptedKeyItems.RemoveAt(Index);
-								}
-							});
-							return FReply::Handled();
-						})]
-			];
-		}
-		KeyAssets->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[
-			SNew(SButton)
-				.Text(FText::FromString(TEXT("Add Accepted Key Asset")))
-				.OnClicked_Lambda([this, ObjectId]()
-				{
-					EditWorldObjectConfig(ObjectId, [](FGridWorldObjectInstanceConfig& Config)
-					{
-						Config.InteractionOverrides.AcceptedKeys.AcceptedKeyItems.Add(nullptr);
-					});
-					return FReply::Handled();
-				})];
+		KeyAssets->AddSlot().AutoHeight().Padding(0.f, 2.f)[
+			SNew(STextBlock).Text(FText::FromString(GetNameSafe(AcceptedItem)))];
 	}
-	else
+	if (Lock.AcceptedKeyItems.IsEmpty())
 	{
-		for (const UGridItemDefinitionAsset* AcceptedItem : Lock.AcceptedKeyItems)
-		{
-			KeyAssets->AddSlot().AutoHeight().Padding(0.f, 2.f)[
-				SNew(STextBlock).Text(FText::FromString(GetNameSafe(AcceptedItem)))];
-		}
-		if (Lock.AcceptedKeyItems.IsEmpty())
-		{
-			KeyAssets->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("None")))];
-		}
+		KeyAssets->AddSlot().AutoHeight()[
+			SNew(STextBlock).Text(FText::FromString(TEXT("None")))];
 	}
 
 	TSharedRef<SVerticalBox> KeyIds = SNew(SVerticalBox);

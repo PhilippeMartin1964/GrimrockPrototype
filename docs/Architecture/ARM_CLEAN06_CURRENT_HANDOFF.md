@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.53 — plus aucun ajout d'ancien pointeur dans l'inspecteur des serrures
+
+**Parent :** `e4537dbc8de1148232fbc89cc9116c0ef6eeac4a` (X.52 validé SilentTask + LocalAuto). Rapport : [ARM_CLEAN06_4X53_LOCK_INSPECTOR_POINTER_GUARD.md](ARM_CLEAN06_4X53_LOCK_INSPECTOR_POINTER_GUARD.md).
+
+Après effacement du dernier `AcceptedKeyId`, l'inspecteur ne fait plus réapparaître `Add Accepted Key Asset` ou l'ancien picker. Les `AcceptedKeyItems` historiques restent visibles en lecture seule, les IDs restent éditables. X.50 teste maintenant la liste volontairement vide et la conservation des vieux placements ; lecture compatible avec les vrais locks avant/après conversion des quatre définitions. **Aucun binaire migré, 63 références restantes.** Deux statuts Windows requis sur le SHA X.53 ; 06.4 partielle et 06.5 bloquée.
+
 ## ARM-CLEAN06.4X.52 — audits de règles partagées sûrs avant/après migration native
 
 **Parent :** `9ab587af5d7c80aac6041eeb9a72ed70309b3f75`. Rapport : [ARM_CLEAN06_4X52_DUAL_STATE_SHARED_RULE_TESTS.md](ARM_CLEAN06_4X52_DUAL_STATE_SHARED_RULE_TESTS.md).
