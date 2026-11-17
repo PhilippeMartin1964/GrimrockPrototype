@@ -11,6 +11,8 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridThrownItemActor.h"
+#include "Runtime/GridLightEmitterComponent.h"
+#include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/GridCanonicalThrowBallisticsReadModel.h"
 #include "../Runtime/GridPhysicalThrowStrengthReadModel.h"
@@ -161,8 +163,21 @@ namespace ARMCLEAN063AV
         Projectile)) return false;
     Test.TestNull(TEXT("Projectile has no obsolete item asset"), Projectile->GetItemDefinitionAsset());
     Test.TestEqual(TEXT("Projectile retains its ID"), Projectile->GetItemDefinitionId(), Valid.ItemDefinitionId);
-    Test.TestTrue(TEXT("Projectile uses actual canonical visual"),
-        Projectile->MeshComponent && Projectile->MeshComponent->GetStaticMesh() != nullptr);
+    FGridResolvedItem CanonicalFlightSource;
+    if (!Test.TestTrue(TEXT("Physical source resolves before presentation checks"),
+        F.Registry->ResolveItem(Valid.ItemDefinitionId, Valid.ItemLevel, CanonicalFlightSource))) return false;
+    Test.TestTrue(TEXT("Pointerless ARM projectile has complete canonical presentation"),
+        Projectile->CanonicalWorldPresentation.IsValid());
+    Test.TestEqual(TEXT("Projectile keeps the physical N20 level"),
+        Projectile->CanonicalWorldItemLevel, Valid.ItemLevel);
+    Test.TestTrue(TEXT("Flight mesh is still the dedicated projectile mesh"),
+        Projectile->MeshComponent->GetStaticMesh() == CanonicalFlightSource.ProjectileMesh.LoadSynchronous());
+    Test.TestEqual(TEXT("Point-light profile comes from ItemSystem"),
+        Projectile->LightEmitterComponent->RuntimeConfig.bUsePointLight,
+        CanonicalFlightSource.LightEmitter.bUsePointLight);
+    Test.TestEqual(TEXT("Persistent Niagara setup comes from ItemSystem"),
+        Projectile->VisualEffectsComponent->GetConfiguredEffectCount(),
+        CanonicalFlightSource.VisualEffects.Effects.Num());
 
     if (FCString::Strcmp(Scenario, TEXT("Projectile")) == 0)
         return !Test.HasAnyErrors();

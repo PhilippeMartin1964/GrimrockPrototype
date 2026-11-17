@@ -11,6 +11,8 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridThrownItemActor.h"
+#include "Runtime/GridLightEmitterComponent.h"
+#include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 namespace ARMCLEAN063BB
@@ -205,6 +207,17 @@ namespace ARMCLEAN063BB
                 Projectile->ThrownItemInstance.RuntimeObjectId, Arrow.RuntimeObjectId);
             Test.TestTrue(TEXT("Projectile uses real canonical mesh"),
                 Projectile->MeshComponent && Projectile->MeshComponent->GetStaticMesh() != nullptr);
+            Test.TestTrue(TEXT("Pointerless ammunition has complete canonical presentation"),
+                Projectile->CanonicalWorldPresentation.IsValid());
+            Test.TestEqual(TEXT("Ammo keeps physical level N0"), Projectile->CanonicalWorldItemLevel, 0);
+            Test.TestTrue(TEXT("Arrow mesh remains the registered world mesh"),
+                Projectile->MeshComponent->GetStaticMesh() == Ammo.WorldMesh.LoadSynchronous());
+            Test.TestEqual(TEXT("Ammo point-light profile comes from ItemSystem"),
+                Projectile->LightEmitterComponent->RuntimeConfig.bUsePointLight,
+                Ammo.LightEmitter.bUsePointLight);
+            Test.TestEqual(TEXT("Ammo Niagara configuration comes from ItemSystem"),
+                Projectile->VisualEffectsComponent->GetConfiguredEffectCount(),
+                Ammo.VisualEffects.Effects.Num());
             Test.TestEqual(TEXT("Spawning alone never charges inventory"),
                 F.Inventory->CountItemDefinitionInCharacterInventory(0, ArrowId), 0);
             return !Test.HasAnyErrors();

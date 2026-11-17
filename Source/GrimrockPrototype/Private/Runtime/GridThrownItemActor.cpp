@@ -182,7 +182,27 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	SourceCellY = InSourceCellY;
 	ImpactDropOffset = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowImpactDropOffset) : 12.0f;
 
-	if (IsValid(InDefinition))
+	const UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const bool bPointerlessCanonical = !IsValid(InDefinition) && Registry &&
+		Registry->HasCanonicalItem(InItemInstance.ItemDefinitionId);
+	if (bPointerlessCanonical)
+	{
+		// Complete physical presentation for a registered projectile that no
+		// longer has an old DA_Item/DA_Weapon: world mesh, Niagara and light.
+		// Its actual flight mesh/rotation will be selected below.
+		if (!InitializeFromCanonicalItem(InItemInstance, Registry))
+		{
+			UE_LOG(LogGridThrownItem, Warning,
+				TEXT("Canonical thrown item rejected: ItemId=%s Level=%d"),
+				*InItemInstance.ItemDefinitionId.ToString(), InItemInstance.ItemLevel);
+			Destroy();
+			return; // Never create an incomplete known canonical projectile.
+		}
+	}
+	else if (IsValid(InDefinition))
 	{
 		InitializeFromItemDefinition(InDefinition, InItemInstance.RuntimeObjectId);
 	}
@@ -195,10 +215,6 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 
 	// ARM flight reads its N1-N20 profile; arrows are an unlevelled family
 	// and keep their actual ItemLevel=0 without any synthetic weapon level.
-	const UWorld* World = GetWorld();
-	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
-	const UGridItemSubsystem* Registry = GameInstance
-		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	const FGridCanonicalProjectileVisualReadView Canonical =
 		FGridCanonicalProjectileVisualReadModel::Resolve(Registry, InItemInstance);
 	const bool bCanonicalArmamentProjectile =

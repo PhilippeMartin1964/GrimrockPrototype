@@ -1179,6 +1179,10 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 	}
 
 	ThrownActor->InitializeThrownItem(this, ItemInstance, ItemDefinition, LaunchVelocity, SourceCellX, SourceCellY);
+	if (!IsValid(ThrownActor) || ThrownActor->IsActorBeingDestroyed())
+	{
+		return nullptr; // A failed canonical init destroyed the incomplete actor.
+	}
 	ThrownActor->ConfigureLaunchSourceActor(LaunchSourceActor ? LaunchSourceActor :
 		const_cast<AGrimrockPartyPawn*>(ResolveWorldItemInteractionParty(this)));
 

@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.36 — projectile pointerless complet (mesh, lumière, Niagara)
+
+**Parent :** `871f26100e50fbebed254062dc3c54dd1d7075df`. Rapport : [ARM_CLEAN06_4X36_POINTERLESS_PROJECTILE_PRESENTATION.md](ARM_CLEAN06_4X36_POINTERLESS_PROJECTILE_PRESENTATION.md).
+
+`AGridThrownItemActor` initialise désormais toute arme ou munition enregistrée sans ancienne définition via `InitializeFromCanonicalItem` : présentation complète, puis application du mesh/axe de vol exact. En cas d'échec, le projectile est détruit et la porte de spawn refuse de le livrer. Les projectiles utilisant encore leurs anciennes définitions et les IDs hors registre restent inchangés. Tests sur vraie arme N20 et flèche N0 avec Niagara/lumière. Aucun binaire UE, SaveGame ni nouvel objet authoré. **06.4 partielle ; 06.5 bloquée ; attendre les deux SUCCESS Windows du SHA final.**
+
 ## ARM-CLEAN06.4X.35 — refus du spawn physique non-ARM N1
 
 **Parent :** `e41a6b89e87f8c3e2799d9674f9b32d9cb9fac11`. Rapport : [ARM_CLEAN06_4X35_PHYSICAL_THROW_SPAWN_LEVEL.md](ARM_CLEAN06_4X35_PHYSICAL_THROW_SPAWN_LEVEL.md).
