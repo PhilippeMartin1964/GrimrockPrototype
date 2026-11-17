@@ -14,10 +14,11 @@
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/Package.h"
 
-/** X.48 is a read-only AFTER-native audit on real packages. It must
- *  fail if the 44 migrated loose items acquire old pointers again,
- *  while making the remaining 63 dependencies explicit and testable.
- *  It never invokes SavePackage, Modify, or changes a SaveGame.
+/** X.48/X.52 is a read-only audit of the real native packages.
+ *  The 44 loose rows are permanently pointerless. The FOUR shared rule
+ *  pointers can be present together (63 left) or absent together (59 left)
+ *  once their independently protected native migration is committed.
+ *  Partial conversion and unrelated changes MUST fail closed.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X48PostNativeRefs,
     "Grimrock.RPG.ARM.CLEAN06_4X48.PostNative63ReferenceBaseline",
@@ -174,29 +175,51 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         const bool bWasDirty = Definition->GetOutermost()->IsDirty();
         const FGridReceptacleBehaviorParams& Receptacle = Definition->DefaultBehavior.Receptacle;
         if (!Receptacle.AcceptedItems.IsEmpty()) ++RuleAssets;
+        const FString Package = Definition->GetOutermost()->GetName();
         for (const FGridReceptacleAcceptedItemConfig& Rule : Receptacle.AcceptedItems)
         {
-            if (!IsValid(Rule.ItemDefinition.Get()) ||
-                Rule.CanonicalItemId.IsNone() || !Known.Contains(Rule.CanonicalItemId) ||
-                Rule.ItemDefinition->ItemDefinitionId != Rule.CanonicalItemId)
+            const FName Required = Package ==
+                TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Receptacle_TorchHolder")
+                ? FName(TEXT("Item_Torch")) :
+                (Package ==
+                    TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Guardian")
+                    ? FName(TEXT("Gem_Blue")) : NAME_None);
+            const UGridItemDefinitionAsset* Old = Rule.ItemDefinition.Get();
+            if (Required.IsNone() || Rule.CanonicalItemId != Required ||
+                !Known.Contains(Required) ||
+                (Rule.ItemDefinition && (!IsValid(Old) ||
+                    Old->ItemDefinitionId != Required)))
             {
-                AddError(TEXT("Canonical receptacle rule still requires matching legacy source."));
+                AddError(TEXT("Shared receptacle rule is neither exact legacy-backed nor exact canonical-only."));
                 return false;
             }
-            ++AcceptanceRules;
+            if (Old) ++AcceptanceRules;
         }
         const FGridLockBehaviorParams& Lock = Definition->DefaultBehavior.Lock;
-        if (!Lock.AcceptedKeyItems.IsEmpty()) ++LockAssets;
-        for (const TObjectPtr<UGridItemDefinitionAsset>& Key : Lock.AcceptedKeyItems)
+        if (!Lock.AcceptedKeyIds.IsEmpty()) ++LockAssets;
+        if (!Lock.AcceptedKeyItems.IsEmpty() || !Lock.AcceptedKeyIds.IsEmpty())
         {
-            if (!IsValid(Key.Get()) ||
-                !Known.Contains(Key->ItemDefinitionId) ||
-                !Lock.AcceptedKeyIds.Contains(Key->ItemDefinitionId))
+            const FName Required = Package ==
+                TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall")
+                ? FName(TEXT("Key_Copper")) :
+                (Package == TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_IronWall")
+                    ? FName(TEXT("Key_Iron")) : NAME_None);
+            if (Required.IsNone() || Lock.AcceptedKeyIds.Num() != 1 ||
+                Lock.AcceptedKeyIds[0] != Required ||
+                !Known.Contains(Required) || Lock.AcceptedKeyItems.Num() > 1)
             {
-                AddError(TEXT("Native lock key ID and old source diverged."));
+                AddError(TEXT("Shared lock does not have the exact approved canonical key."));
                 return false;
             }
-            ++LockKeys;
+            for (const TObjectPtr<UGridItemDefinitionAsset>& Key : Lock.AcceptedKeyItems)
+            {
+                if (!IsValid(Key.Get()) || Key->ItemDefinitionId != Required)
+                {
+                    AddError(TEXT("Existing historical key does not match the canonical key."));
+                    return false;
+                }
+                ++LockKeys;
+            }
         }
         if (!TestEqual(TEXT("World definition remains unmodified"),
             Definition->GetOutermost()->IsDirty(), bWasDirty)) return false;
@@ -256,14 +279,16 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         TestEqual(TEXT("Two dormant lock key references"), LockOverrideOld, 2) &&
         TestEqual(TEXT("No activated dormant overrides"), ActiveAcceptanceOverrides, 0) &&
         TestEqual(TEXT("33 source pointers in palette"), PaletteOld, 33) &&
-        TestEqual(TEXT("Two shared receptacle rules"), AcceptanceRules, 2) &&
+        TestTrue(TEXT("Four shared old pointers are all present or all removed"),
+            (AcceptanceRules == 2 && LockKeys == 2) ||
+            (AcceptanceRules == 0 && LockKeys == 0)) &&
         TestEqual(TEXT("Two shared receptacle assets"), RuleAssets, 2) &&
-        TestEqual(TEXT("Two shared lock key pointers"), LockKeys, 2) &&
         TestEqual(TEXT("Two shared lock assets"), LockAssets, 2) &&
         TestEqual(TEXT("Five historic monster loot sources"), MonsterOld, 5) &&
         TestEqual(TEXT("Five historic loot rows"), MonsterRows, 5) &&
         TestEqual(TEXT("One already registered monster loot identity"), MonsterRegistered, 1) &&
-        TestEqual(TEXT("Exactly 63 outstanding native old pointers"), Remaining, 63) &&
+        TestTrue(TEXT("Exactly 63 pre-conversion or 59 post-conversion old pointers"),
+            Remaining == (AcceptanceRules == 2 ? 63 : 59)) &&
         TestEqual(TEXT("Canonical root remains unmodified"), Root->GetOutermost()->IsDirty(), bRootDirty);
 }
 #endif

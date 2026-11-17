@@ -248,20 +248,36 @@ bool FGridTD0737LockAuthoringNormalizedTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestTrue(TEXT("Copper lock current/canonical key IDs are exact"), GridTD073ApprovedCanonicalLockAcceptance::IsHistoricalOrApproved(CopperLock->GetPathName(), CopperLock->DefaultBehavior.Lock));
-	TestEqual(TEXT("Copper lock has one accepted key asset"), CopperLock->DefaultBehavior.Lock.AcceptedKeyItems.Num(), 1);
-	if (CopperLock->DefaultBehavior.Lock.AcceptedKeyItems.Num() == 1 && CopperLock->DefaultBehavior.Lock.AcceptedKeyItems[0])
+	// X.52: real Copper/Iron shared definitions must accept only their
+	// exact canonical ID, with the old source either matching or absent.
+	// This fixture remains strict before AND after UE native SavePackage.
+	const auto Check = [this](const TCHAR* Label,
+		const UGridWorldObjectDefinitionAsset* LockAsset, FName Expected) -> bool
 	{
-		TestEqual(TEXT("Copper lock references Key_Copper"), CopperLock->DefaultBehavior.Lock.AcceptedKeyItems[0]->ItemDefinitionId, FName(TEXT("Key_Copper")));
-	}
-
-	TestTrue(TEXT("Iron lock current/canonical key IDs are exact"), GridTD073ApprovedCanonicalLockAcceptance::IsHistoricalOrApproved(IronLock->GetPathName(), IronLock->DefaultBehavior.Lock));
-	TestEqual(TEXT("Iron lock has one accepted key asset"), IronLock->DefaultBehavior.Lock.AcceptedKeyItems.Num(), 1);
-	if (IronLock->DefaultBehavior.Lock.AcceptedKeyItems.Num() == 1 && IronLock->DefaultBehavior.Lock.AcceptedKeyItems[0])
-	{
-		TestEqual(TEXT("Iron lock references Key_Iron"), IronLock->DefaultBehavior.Lock.AcceptedKeyItems[0]->ItemDefinitionId, FName(TEXT("Key_Iron")));
-	}
-	return true;
+		const FGridLockBehaviorParams& Rule = LockAsset->DefaultBehavior.Lock;
+		if (!TestTrue(*FString::Printf(TEXT("%s exact native accepted keys"), Label),
+			GridTD073ApprovedCanonicalLockAcceptance::IsExactApprovedPair(
+				LockAsset->GetPathName(), Rule)) ||
+			!TestEqual(*FString::Printf(TEXT("%s exactly one canonical key"), Label),
+				Rule.AcceptedKeyIds.Num(), 1) ||
+			!TestEqual(*FString::Printf(TEXT("%s accepted ID unchanged"), Label),
+				Rule.AcceptedKeyIds[0], Expected))
+		{
+			return false;
+		}
+		if (!Rule.AcceptedKeyItems.IsEmpty())
+		{
+			return TestEqual(*FString::Printf(TEXT("%s at most one historical pointer"), Label),
+				Rule.AcceptedKeyItems.Num(), 1) &&
+				TestNotNull(*FString::Printf(TEXT("%s historical source"), Label),
+					Rule.AcceptedKeyItems[0].Get()) &&
+				TestEqual(*FString::Printf(TEXT("%s old source agrees"), Label),
+					Rule.AcceptedKeyItems[0]->ItemDefinitionId, Expected);
+		}
+		return true;
+	};
+	return Check(TEXT("Copper"), CopperLock, TEXT("Key_Copper")) &&
+		Check(TEXT("Iron"), IronLock, TEXT("Key_Iron"));
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0737MonsterSpawnAuthoringAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_7.Normalization.MonsterSpawnAuthority",

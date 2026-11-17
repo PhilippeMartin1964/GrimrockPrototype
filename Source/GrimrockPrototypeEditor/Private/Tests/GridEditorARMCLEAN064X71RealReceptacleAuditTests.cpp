@@ -1,54 +1,73 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "ARMEMENT/GridArmClean064X71ReceptacleRulesCommandlet.h"
-#include "Dom/JsonObject.h"
-#include "HAL/FileManager.h"
-#include "Misc/FileHelper.h"
-#include "Misc/Paths.h"
-#include "Serialization/JsonReader.h"
-#include "Serialization/JsonSerializer.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "UObject/Package.h"
+#include "UObject/StrongObjectPtr.h"
 
+/** X.52 replaces the obsolete X.71 -Audit commandlet dependency.
+ * It opens the real native rules read-only and accepts only a matching
+ * old source OR a pointerless canonical rule; never calls old -Apply.
+ */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X71RealReceptacleAudit,
     "Grimrock.RPG.ARM.CLEAN06_4X71.RealReceptacleMigrationAuditOnly",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridClean064X71RealReceptacleAudit::RunTest(const FString&)
 {
-    UGridArmClean064X71ReceptacleRulesCommandlet* Commandlet =
-        NewObject<UGridArmClean064X71ReceptacleRulesCommandlet>(GetTransientPackage());
-    if (!TestNotNull(TEXT("Audit-only commandlet"), Commandlet)) return false;
-    const FString Output = FPaths::CreateTempFilename(
-        *FPaths::ProjectSavedDir(), TEXT("ARM_CLEAN064X71_"), TEXT(".json"));
-    const FString Arguments = FString::Printf(TEXT("-Audit -Output=\"%s\""), *Output);
-    const int32 Code = Commandlet->Main(Arguments);
-    FString Data;
-    const bool bRead = FFileHelper::LoadFileToString(Data, *Output);
-    IFileManager::Get().Delete(*Output, false, true);
-    if (!TestEqual(TEXT("Audit completes without binary writes"), Code, 0) ||
-        !TestTrue(TEXT("Audit JSON report exists"), bRead)) return false;
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
+                      "DA_ItemSystem.DA_ItemSystem")));
+    if (!TestNotNull(TEXT("Real item system"), Root.Get())) return false;
+    const bool bSystemDirty = Root->GetOutermost()->IsDirty();
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Real item registry configured"),
+        Registry->RegisterItemSystem(Root.Get(), Errors))) return false;
 
-    TSharedPtr<FJsonObject> Report;
-    const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Data);
-    if (!TestTrue(TEXT("Report is valid JSON"),
-        FJsonSerializer::Deserialize(Reader, Report) && Report.IsValid()))
-        return false;
-    return TestEqual(TEXT("Audit schema"),
-            Report->GetStringField(TEXT("schema")),
-            FString(TEXT("ARM-CLEAN06.4X7/real-receptacle-acceptance/v1"))) &&
-        TestEqual(TEXT("Only Audit mode used"), Report->GetStringField(TEXT("mode")),
-            FString(TEXT("Audit"))) &&
-        TestEqual(TEXT("Exactly two objects"), Report->GetIntegerField(TEXT("targets")), 2) &&
-        TestEqual(TEXT("Zero native packages written"),
-            Report->GetIntegerField(TEXT("packages_saved")), 0) &&
-        TestEqual(TEXT("Four real levels"), Report->GetIntegerField(TEXT("levels")), 4) &&
-        TestEqual(TEXT("Forty-four definitions"),
-            Report->GetIntegerField(TEXT("definitions")), 44) &&
-        TestEqual(TEXT("Two rules"), Report->GetIntegerField(TEXT("receptacle_rules")), 2) &&
-        TestEqual(TEXT("No overrides"), Report->GetIntegerField(TEXT("overrides")), 0) &&
-        TestTrue(TEXT("Historical pointers retained"),
-            Report->GetBoolField(TEXT("legacy_pointers_retained"))) &&
-        TestFalse(TEXT("No player SaveGame touched"),
-            Report->GetBoolField(TEXT("savegames_opened_or_written")));
+    const TCHAR* Paths[] = {
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Receptacle_TorchHolder.DA_Receptacle_TorchHolder"),
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Guardian.DA_Guardian")
+    };
+    const FName ExpectedIds[] = {TEXT("Item_Torch"), TEXT("Gem_Blue")};
+    int32 Old = 0;
+    for (int32 Index = 0; Index < 2; ++Index)
+    {
+        TStrongObjectPtr<UGridWorldObjectDefinitionAsset> Definition(
+            LoadObject<UGridWorldObjectDefinitionAsset>(nullptr, Paths[Index]));
+        if (!TestNotNull(TEXT("One real shared receptacle"), Definition.Get())) return false;
+        const bool bDirty = Definition->GetOutermost()->IsDirty();
+        const FGridReceptacleBehaviorParams& R = Definition->DefaultBehavior.Receptacle;
+        if (!TestEqual(TEXT("One exact native accepted-item rule"), R.AcceptedItems.Num(), 1) ||
+            !TestEqual(TEXT("Canonical accepted ItemId unchanged"),
+                R.AcceptedItems[0].CanonicalItemId, ExpectedIds[Index]) ||
+            !TestTrue(TEXT("Registered physical item is accepted"),
+                Registry->HasCanonicalItem(ExpectedIds[Index])))
+            return false;
+        const UGridItemDefinitionAsset* Legacy = R.AcceptedItems[0].ItemDefinition.Get();
+        if (R.AcceptedItems[0].ItemDefinition)
+        {
+            if (!TestTrue(TEXT("Optional old source has the exact ItemId"),
+                IsValid(Legacy) && Legacy->ItemDefinitionId == ExpectedIds[Index]))
+                return false;
+            ++Old;
+        }
+        if (!TestEqual(TEXT("Real receptacle package unchanged"), 
+            Definition->GetOutermost()->IsDirty(), bDirty)) return false;
+    }
+
+    AddInfo(FString::Printf(TEXT(
+        "[ARM-CLEAN06.4X52] read-only shared receptacle rules=2 "
+        "oldPointers=%d canonical Torch/Gem preserved; no SavePackage."),
+        Old));
+    return TestTrue(TEXT("Two shared rules are both legacy-backed or both pointerless"),
+        Old == 2 || Old == 0) &&
+        TestEqual(TEXT("Real ItemSystem remains read-only"),
+            Root->GetOutermost()->IsDirty(), bSystemDirty);
 }
 #endif

@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.52 — audits de règles partagées sûrs avant/après migration native
+
+**Parent :** `9ab587af5d7c80aac6041eeb9a72ed70309b3f75`. Rapport : [ARM_CLEAN06_4X52_DUAL_STATE_SHARED_RULE_TESTS.md](ARM_CLEAN06_4X52_DUAL_STATE_SHARED_RULE_TESTS.md).
+
+Les tests X.48, X.1661, TD0737/whitelist 841 et X.71/X.81 AuditOnly acceptent désormais les **deux états natifs complets** : quatre pointeurs historiques encore cohérents (63 résiduels) ou aucun de ces quatre pointeurs (59 résiduels), en préservant strictement `Item_Torch`, `Gem_Blue`, `Key_Copper` et `Key_Iron`. Les tests X.71/X.81 ne relancent plus les anciens commandlets dont les préconditions appartenaient à l'ancien schéma. Toute conversion partielle et toute clé inattendue sont refusées. **Aucun .uasset / SaveGame modifié** ; préparer ensuite le nouveau commandlet natif sécurisé, pas les anciens scripts X.72/X.83. 06.4 partielle / 06.5 bloquée.
+
 ## ARM-CLEAN06.4X.51 — préflight des quatre règles partagées réelles
 
 **Parent :** `2690fc7dc335a552ffb0afd647604b5182d9176c`. Rapport : [ARM_CLEAN06_4X51_SHARED_RULE_NATIVE_PREFLIGHT.md](ARM_CLEAN06_4X51_SHARED_RULE_NATIVE_PREFLIGHT.md).

@@ -54,6 +54,20 @@ bool FGridClean064X841TD073LockSchemaWhitelist::RunTest(const FString&)
         !TestFalse(TEXT("Iron pair cannot be applied to copper"), IsExactApprovedPair(CopperPath, R)))
         return false;
     R.AcceptedKeyItems[0] = nullptr;
-    return TestFalse(TEXT("Missing historical pointer rejected"), IsHistoricalOrApproved(IronPath, R));
+    if (!TestFalse(TEXT("A present but null historical pointer is not canonical-only"),
+        IsHistoricalOrApproved(IronPath, R))) return false;
+    R.AcceptedKeyItems.Reset();
+    if (!TestTrue(TEXT("Exact iron ID-only final state accepted"),
+        IsExactApprovedPair(IronPath, R)) ||
+        !TestFalse(TEXT("Iron ID-only state not accepted for copper"),
+            IsExactApprovedPair(CopperPath, R))) return false;
+    L.AcceptedKeyItems.Reset();
+    if (!TestTrue(TEXT("Exact copper ID-only final state accepted"),
+        IsExactApprovedPair(CopperPath, L)) ||
+        !TestFalse(TEXT("Copper ID-only state not accepted for iron"),
+            IsExactApprovedPair(IronPath, L))) return false;
+    L.AcceptedKeyIds.Add(TEXT("Key_Copper"));
+    return TestFalse(TEXT("Duplicate ID-only key set rejected"),
+        IsHistoricalOrApproved(CopperPath, L));
 }
 #endif
