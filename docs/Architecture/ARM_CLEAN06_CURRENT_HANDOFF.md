@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.51 — préflight des quatre règles partagées réelles
+
+**Parent :** `2690fc7dc335a552ffb0afd647604b5182d9176c`. Rapport : [ARM_CLEAN06_4X51_SHARED_RULE_NATIVE_PREFLIGHT.md](ARM_CLEAN06_4X51_SHARED_RULE_NATIVE_PREFLIGHT.md).
+
+Les quatre règles natives déjà projetées par ID `Item_Torch`, `Gem_Blue`, `Key_Copper` et `Key_Iron` sont testées en **lecture seule**. Le test X.51 duplique chaque DataAsset dans `GetTransientPackage()`, retire le seul pointeur obsolète sur cette copie et contrôle l'identité, les politiques de réceptacle, les messages et la consommation des serrures ; refuse une conversion partielle, sans modifier les packages originaux ni SaveGame. Les anciens tests de manifeste devront devenir compatibles avant toute migration de ces quatre binaires. **63 références natives restent actuellement ; 59 après conversion n'est qu'un résultat attendu.** 06.4 partielle / 06.5 bloquée. Deux contrôles Windows requis sur le SHA X.51.
+
 ## ARM-CLEAN06.4X.50 — copie canonique des clés de serrure dans les nouveaux overrides
 
 **Parent :** `336ad30a946284bca1af58a5178eb57836ec681c`. Rapport : [ARM_CLEAN06_4X50_POINTERLESS_LOCK_OVERRIDE_AUTHORING.md](ARM_CLEAN06_4X50_POINTERLESS_LOCK_OVERRIDE_AUTHORING.md).
