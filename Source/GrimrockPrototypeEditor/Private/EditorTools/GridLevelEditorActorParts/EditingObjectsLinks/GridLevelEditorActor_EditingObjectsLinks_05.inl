@@ -41,7 +41,8 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 				CanonicalEntry->CanonicalDefaultItemLevel) ||
 			(IsValid(Legacy) &&
 				(Legacy->ItemDefinitionId != CanonicalEntry->CanonicalItemId ||
-				 ObjectBehavior.Item.ItemDefinitionAsset != Legacy)) ||
+				 (ObjectBehavior.Item.ItemDefinitionAsset != nullptr &&
+				  ObjectBehavior.Item.ItemDefinitionAsset != Legacy))) ||
 			(!IsValid(Legacy) && ObjectBehavior.Item.ItemDefinitionAsset != nullptr))
 		{
 			return false; // Refuse before modifying selected object.
@@ -64,7 +65,12 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 	}
 	else if (FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId))
 	{
-		LooseItemInstance->ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+		// Explicitly applying an edit to a registered object switches that
+		// one authored entry to pointerless canonical identity. The other
+		// historical rows are never swept or rewritten by this editor path.
+		LooseItemInstance->ItemDefinition =
+			CanonicalEntry && !CanonicalEntry->CanonicalItemId.IsNone()
+				? nullptr : ObjectBehavior.Item.ItemDefinitionAsset;
 		if (CanonicalEntry && !CanonicalEntry->CanonicalItemId.IsNone())
 		{
 			const bool bChangedItemId = LooseItemInstance->CanonicalItemId !=

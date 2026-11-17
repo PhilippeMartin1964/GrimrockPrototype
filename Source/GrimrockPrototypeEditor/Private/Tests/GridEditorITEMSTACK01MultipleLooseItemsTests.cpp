@@ -145,7 +145,8 @@ bool FGridEditorITEMSTACK01AdditiveTest::RunTest(const FString&)
         TestEqual(TEXT("Cell X unchanged"), Item.CellX, 1);
         TestEqual(TEXT("Cell Y unchanged"), Item.CellY, 1);
         TestEqual(TEXT("Floor surface retained"), Item.SurfaceSide, EGridEdge::None);
-        TestNotNull(TEXT("Canonical definition retained"), Item.ItemDefinition.Get());
+        TestTrue(TEXT("Canonical ItemId retained"), !Item.CanonicalItemId.IsNone());
+        TestNull(TEXT("New canonical placement is pointerless"), Item.ItemDefinition.Get());
         TestTrue(TEXT("Unique persistent identity"), Item.InstanceId.IsValid() && !UniqueIds.Contains(Item.InstanceId));
         UniqueIds.Add(Item.InstanceId);
         const FVector2D Offset(Item.LocalOffset.X, Item.LocalOffset.Y);

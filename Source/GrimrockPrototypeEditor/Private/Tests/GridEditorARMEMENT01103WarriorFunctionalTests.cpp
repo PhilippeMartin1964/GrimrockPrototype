@@ -17,6 +17,7 @@
 #include "Runtime/GridEditorPreviewComponent.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
@@ -243,7 +244,10 @@ bool FARMEMENT01103TransientPlacement::RunTest(const FString&)
         const FGridLooseItemInstance* Placed = Level->LooseItemInstances.FindByPredicate(
             [Item, Index](const FGridLooseItemInstance& Candidate)
             {
-                return Candidate.ItemDefinition.Get() == Item && Candidate.CellX == Index && Candidate.CellY == 1;
+                return Candidate.ItemDefinition == nullptr &&
+                    Candidate.CanonicalItemId == Item->ItemDefinitionId &&
+                    Candidate.ItemLevel >= 1 && Candidate.ItemLevel <= 20 &&
+                    Candidate.CellX == Index && Candidate.CellY == 1;
             });
         if (TestNotNull(TEXT("Correct item saved in temporary level"), Placed))
         {
@@ -259,11 +263,16 @@ bool FARMEMENT01103TransientPlacement::RunTest(const FString&)
     Preview->Initialize(Runtime);
     Preview->RebuildPreviewObjects();
 
+    const UGridItemSubsystem* Registry = Editor->ResolveEditorItemRegistry();
+    if (!TestNotNull(TEXT("Registered preview resolver"), Registry)) return false;
     for (const FGridLooseItemInstance& Placed : Level->LooseItemInstances)
     {
-        if (!TestNotNull(TEXT("Preview item definition"), Placed.ItemDefinition.Get())) continue;
-        const FGridResolvedWorldItemMesh Resolved = FGridWorldItemVisualResolver::Resolve(*Placed.ItemDefinition);
-        if (!TestNotNull(TEXT("Resolved real 3D world mesh"), Resolved.Mesh)) continue;
+        TestNull(TEXT("New registered placement is pointerless"), Placed.ItemDefinition.Get());
+        FGridResolvedItem Canonical;
+        if (!TestTrue(TEXT("Canonical physical preview resolves"),
+            Registry->ResolveItem(Placed.CanonicalItemId, Placed.ItemLevel, Canonical))) continue;
+        UStaticMesh* ExpectedMesh = Canonical.WorldMesh.LoadSynchronous();
+        if (!TestNotNull(TEXT("Registered real 3D world mesh"), ExpectedMesh)) continue;
         AGridEditorPreviewObjectActor* PreviewActor = nullptr;
         for (TActorIterator<AGridEditorPreviewObjectActor> It(Fixture.World); It; ++It)
         {
@@ -275,9 +284,9 @@ bool FARMEMENT01103TransientPlacement::RunTest(const FString&)
         }
         if (!TestNotNull(TEXT("Actual preview actor"), PreviewActor)) continue;
         TestEqual(TEXT("Preview shows the catalogue mesh"),
-            PreviewActor->MeshComponent->GetStaticMesh().Get(), Resolved.Mesh);
+            PreviewActor->MeshComponent->GetStaticMesh().Get(), ExpectedMesh);
         TestTrue(TEXT("Preview keeps the visual transform"),
-            PreviewActor->MeshComponent->GetRelativeTransform().Equals(Resolved.RelativeTransform));
+            PreviewActor->MeshComponent->GetRelativeTransform().Equals(Canonical.WorldVisualTransform));
     }
     Preview->ClearPreviewObjects();
     return true;

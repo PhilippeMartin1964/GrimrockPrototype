@@ -63,11 +63,12 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset(UGridItemDefini
 	FGridItemSpawnInstance* Spawn = Loose ? nullptr : LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId);
 	if (!Loose && !Spawn) return false;
 	const FName CanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
-	if (!CanonicalId.IsNone() && IsValid(NewItemDefinitionAsset) &&
-		NewItemDefinitionAsset->ItemDefinitionId != CanonicalId)
+	if (!CanonicalId.IsNone() && IsValid(NewItemDefinitionAsset))
 	{
-		// A legacy picker cannot silently change the identity of a persisted
-		// canonical object. Use the ItemId command to author a new identity.
+		// X.44: even a SAME-ID old source would reintroduce a legacy
+		// pointer into an otherwise canonical level placement. Clear with
+		// nullptr or change identity via the canonical ItemId command.
+		// Do not modify the authored level on this rejected operation.
 		return false;
 	}
 	UGridItemDefinitionAsset* Previous = Loose ? Loose->ItemDefinition.Get() : Spawn->ItemDefinition.Get();

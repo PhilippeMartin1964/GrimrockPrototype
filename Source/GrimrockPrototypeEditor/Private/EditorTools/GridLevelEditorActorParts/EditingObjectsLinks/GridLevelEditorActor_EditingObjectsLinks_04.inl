@@ -166,7 +166,11 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 		bObjectInitiallyEnabled = true;
 		bObjectInitiallyActive = false;
 		ObjectBehavior = FGridObjectBehaviorParams();
-		ObjectBehavior.Item.ItemDefinitionAsset = Entry->DefaultItemDefinition;
+		// X.44: the old palette definition may remain serialized solely
+		// for pre-migration reference integrity. Do not stage it for new
+		// registered placements or inspector edits.
+		ObjectBehavior.Item.ItemDefinitionAsset = Entry->CanonicalItemId.IsNone()
+			? Entry->DefaultItemDefinition.Get() : nullptr;
 		return true;
 	}
 

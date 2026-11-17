@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.44 — Authoring Editor : nouveaux objets canoniques sans anciennes définitions
+
+**Parent :** `53dc881d2be1559fe3154bae7a86b0e0f26867d7`. Rapport : [ARM_CLEAN06_4X44_EDITOR_POINTERLESS_AUTHORING.md](ARM_CLEAN06_4X44_EDITOR_POINTERLESS_AUTHORING.md).
+
+`ApplyPaletteEntry`, `PlaceSelectedObject`, `ApplyEditedSelectedObject` et le picker ItemDefinition ne réécrivent plus `DA_Weapon_*` pour une entrée déjà identifiée par `CanonicalItemId`. Nouvelle pose : pointeur null, identité/niveau/GUID conservés ; édition explicite : purge ciblée uniquement de l'objet modifié ; anciennes entrées non touchées sans action. Les IDs non enregistrés gardent leur chemin historique. Test X.28 étendu à une palette réellement legacy-backed et à l'édition N12. Après un premier échec Automation #191, cinq fixtures historiques de **nouveau placement transitoire** sont corrigées pour exiger ItemId/niveau et prévisualisation canonique plutôt qu'un pointeur ancien ; même lot X.44, aucun rollback de gameplay. Aucun binaire UE ou SaveGame modifié. **06.4 partielle / 06.5 bloquée ; attendre deux statuts Windows.**
+
 ## ARM-CLEAN06.4X.43 — kits explicitement canoniques : stack/main/lumière hors legacy
 
 **Parent :** `d3adc0e99adb604c479569fdbf6dba233b863d93`. Rapport : [ARM_CLEAN06_4X43_STARTING_KIT_CANONICAL_AUTHORITY.md](ARM_CLEAN06_4X43_STARTING_KIT_CANONICAL_AUTHORITY.md).

@@ -147,8 +147,52 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 			Level->LooseItemInstances[0].ItemDefinition.Get());
 	}
 
-	const int32 PlacedCount = Level->LooseItemInstances.Num();
 	const FGridObjectPaletteEntry OriginalArm = Arm;
+	// X.44: the REAL palette still stores 33 legacy sources beside valid
+	// canonical IDs. A matching source must be validated for ID equality,
+	// but a newly placed/explicitly edited item cannot COPY the pointer.
+	UGridItemDefinitionAsset* OldMatchingArm = NewObject<UGridItemDefinitionAsset>(Palette);
+	OldMatchingArm->ItemDefinitionId = OriginalArm.CanonicalItemId;
+	FGridObjectPaletteEntry OldBackedEntry = OriginalArm;
+	OldBackedEntry.EntryId = TEXT("X44_MatchingLegacyBackedArm");
+	OldBackedEntry.DefaultItemDefinition = OldMatchingArm;
+	Palette->Entries.Add(OldBackedEntry);
+	Editor->SelectedCellX = 1;
+	Editor->SelectedCellY = 2;
+	bOk &= TestTrue(TEXT("Matching old ARM palette entry remains selectable"),
+		Editor->ApplyPaletteEntry(OldBackedEntry.EntryId));
+	bOk &= TestNull(TEXT("Canonical palette stages no legacy definition"),
+		Editor->ObjectBehavior.Item.ItemDefinitionAsset.Get());
+	Editor->PlaceSelectedObject();
+	bOk &= TestEqual(TEXT("Matching legacy-backed palette adds a third item"),
+		Level->LooseItemInstances.Num(), 3);
+	if (Level->LooseItemInstances.Num() == 3)
+	{
+		FGridLooseItemInstance& Third = Level->LooseItemInstances[2];
+		bOk &= TestEqual(TEXT("New placement keeps canonical ItemId"), Third.CanonicalItemId,
+			OriginalArm.CanonicalItemId);
+		bOk &= TestEqual(TEXT("New placement keeps physical N20"), Third.ItemLevel, 20);
+		bOk &= TestNull(TEXT("New placement never copies the old palette pointer"),
+			Third.ItemDefinition.Get());
+		// Simulate a single historical row that the user explicitly edits.
+		Third.ItemDefinition = OldMatchingArm;
+		Third.ItemLevel = 12;
+		const FGuid PreviousId = Third.InstanceId;
+		Editor->LastSelectedObjectId = PreviousId;
+		bOk &= TestTrue(TEXT("Reselect matching historical palette item"),
+			Editor->ApplyPaletteEntry(OldBackedEntry.EntryId));
+		bOk &= TestTrue(TEXT("Explicit edit of legacy-backed canonical placement"),
+			Editor->ApplyEditedSelectedObject());
+		bOk &= TestNull(TEXT("Edited canonical row drops historical source"),
+			Third.ItemDefinition.Get());
+		bOk &= TestEqual(TEXT("Explicit edit preserves physical N12"), Third.ItemLevel, 12);
+		bOk &= TestEqual(TEXT("Explicit edit preserves GUID"), Third.InstanceId, PreviousId);
+		bOk &= TestFalse(TEXT("Old pointer cannot be reattached to a canonical row"),
+			Editor->SetSelectedObjectItemDefinitionAsset(OldMatchingArm));
+		bOk &= TestNull(TEXT("Rejected reattachment leaves canonical row pointerless"),
+			Third.ItemDefinition.Get());
+	}
+	const int32 PlacedCount = Level->LooseItemInstances.Num();
 	FGridObjectPaletteEntry Bad = OriginalArm;
 	Bad.EntryId = TEXT("X28_InvalidN0");
 	Bad.CanonicalDefaultItemLevel = 0;

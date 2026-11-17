@@ -27,7 +27,8 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 				PaletteEntry->CanonicalDefaultItemLevel) ||
 			(IsValid(Legacy) &&
 				(Legacy->ItemDefinitionId != PaletteEntry->CanonicalItemId ||
-				 ObjectBehavior.Item.ItemDefinitionAsset != Legacy)) ||
+				 (ObjectBehavior.Item.ItemDefinitionAsset != nullptr &&
+				  ObjectBehavior.Item.ItemDefinitionAsset != Legacy))) ||
 			(!IsValid(Legacy) && ObjectBehavior.Item.ItemDefinitionAsset != nullptr))
 		{
 			UE_LOG(LogGridEditor, Warning, TEXT("Canonical palette placement rejected: invalid physical identity or staged source."));
@@ -111,7 +112,12 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		LooseItemInstance.LocalOffset = FVector(NewFloorOffset.X, NewFloorOffset.Y, 0.0f);
 		LooseItemInstance.InstanceId = NewId;
 		LooseItemInstance.SurfaceSide = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
-		LooseItemInstance.ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+		// X.44: canonical authoring must never re-persist the obsolete
+		// palette pointer. Existing level rows stay untouched until native
+		// cleanup, but all NEW registered placements are pointerless.
+		LooseItemInstance.ItemDefinition =
+			PaletteEntry && !PaletteEntry->CanonicalItemId.IsNone()
+				? nullptr : ObjectBehavior.Item.ItemDefinitionAsset;
 		if (PaletteEntry && !PaletteEntry->CanonicalItemId.IsNone())
 		{
 			LooseItemInstance.CanonicalItemId = PaletteEntry->CanonicalItemId;

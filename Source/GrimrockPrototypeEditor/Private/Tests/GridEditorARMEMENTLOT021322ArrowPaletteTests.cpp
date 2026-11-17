@@ -89,7 +89,9 @@ bool FARMEMENTLOT021322Arrows::RunTest(const FString&)
             TestEqual(TEXT("Item mode"), Editor->PaintObjectType, EGridLevelObjectType::Item);
             Editor->PlaceSelectedObject();
             bPlacement = Level->LooseItemInstances.Num() == 1 &&
-                Level->LooseItemInstances[0].ItemDefinition.Get() == Arrows &&
+                Level->LooseItemInstances[0].ItemDefinition.Get() == nullptr &&
+                Level->LooseItemInstances[0].CanonicalItemId == ArrowId &&
+                Level->LooseItemInstances[0].ItemLevel == 0 &&
                 Level->LooseItemInstances[0].PaletteEntryId == ArrowId &&
                 Level->LooseItemInstances[0].CellX == 1 &&
                 Level->LooseItemInstances[0].CellY == 2 &&

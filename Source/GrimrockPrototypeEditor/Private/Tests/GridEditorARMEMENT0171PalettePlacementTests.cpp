@@ -14,6 +14,7 @@
 #include "Runtime/GridEditorPreviewComponent.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 
 namespace ARMEMENT0171Tests
@@ -142,7 +143,9 @@ bool FARMEMENT0171PlacementPreviewTest::RunTest(const FString&)
         Editor->PlaceSelectedObject();
         if (Level->LooseItemInstances.Num() <= Index) { continue; }
         const FGridLooseItemInstance& Placed = Level->LooseItemInstances[Index];
-        TestEqual(TEXT("Canonical definition is persisted on placement"), Placed.ItemDefinition.Get(), Definition);
+        TestNull(TEXT("New canonical item does not persist old definition"), Placed.ItemDefinition.Get());
+        TestEqual(TEXT("Real canonical ItemId persisted"), Placed.CanonicalItemId, Definition->ItemDefinitionId);
+        TestTrue(TEXT("ARM physical N1–N20 retained"), Placed.ItemLevel >= 1 && Placed.ItemLevel <= 20);
         TestEqual(TEXT("Palette identity is persisted on placement"), Placed.PaletteEntryId, FName(Pilot.EntryId));
         TestEqual(TEXT("Correct grid X"), Placed.CellX, Index);
         TestEqual(TEXT("Correct grid Y"), Placed.CellY, 1);
@@ -157,11 +160,16 @@ bool FARMEMENT0171PlacementPreviewTest::RunTest(const FString&)
     if (!TestNotNull(TEXT("Existing preview component"), PreviewComponent)) { return false; }
     PreviewComponent->Initialize(Runtime);
     PreviewComponent->RebuildPreviewObjects();
+    const UGridItemSubsystem* Registry = Editor->ResolveEditorItemRegistry();
+    if (!TestNotNull(TEXT("Registered preview resolver"), Registry)) return false;
     for (const FGridLooseItemInstance& Placed : Level->LooseItemInstances)
     {
-        if (!TestNotNull(TEXT("Placed item definition"), Placed.ItemDefinition.Get())) { continue; }
-        const FGridResolvedWorldItemMesh Visual = FGridWorldItemVisualResolver::Resolve(*Placed.ItemDefinition);
-        if (!TestNotNull(TEXT("Resolved realistic mesh"), Visual.Mesh)) { continue; }
+        TestNull(TEXT("New registered placement is pointerless"), Placed.ItemDefinition.Get());
+        FGridResolvedItem Canonical;
+        if (!TestTrue(TEXT("Canonical physical preview resolves"),
+            Registry->ResolveItem(Placed.CanonicalItemId, Placed.ItemLevel, Canonical))) { continue; }
+        UStaticMesh* ExpectedMesh = Canonical.WorldMesh.LoadSynchronous();
+        if (!TestNotNull(TEXT("Resolved canonical mesh"), ExpectedMesh)) { continue; }
         AGridEditorPreviewObjectActor* Preview = nullptr;
         for (TActorIterator<AGridEditorPreviewObjectActor> It(Fixture.World); It; ++It)
         {
@@ -172,10 +180,10 @@ bool FARMEMENT0171PlacementPreviewTest::RunTest(const FString&)
             }
         }
         if (!TestNotNull(TEXT("Placed real item has editor preview"), Preview)) { continue; }
-        TestEqual(TEXT("Preview mesh is real item mesh"), Preview->MeshComponent->GetStaticMesh().Get(), Visual.Mesh);
+        TestEqual(TEXT("Preview mesh is real item mesh"), Preview->MeshComponent->GetStaticMesh().Get(), ExpectedMesh);
         TestTrue(TEXT("Preview retains visual transform"),
-            Preview->MeshComponent->GetRelativeTransform().Equals(Visual.RelativeTransform));
-        TestEqual(TEXT("Mesh PBR material slot retained"), Preview->MeshComponent->GetMaterial(0), Visual.Mesh->GetMaterial(0));
+            Preview->MeshComponent->GetRelativeTransform().Equals(Canonical.WorldVisualTransform));
+        TestEqual(TEXT("Mesh PBR material slot retained"), Preview->MeshComponent->GetMaterial(0), ExpectedMesh->GetMaterial(0));
         TestEqual(TEXT("Preview has no collision"), Preview->MeshComponent->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
     }
     PreviewComponent->ClearPreviewObjects();
