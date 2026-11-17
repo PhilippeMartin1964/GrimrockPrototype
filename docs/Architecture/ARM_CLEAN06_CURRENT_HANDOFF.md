@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.25 — aperçu d'objets pointerless dans l'éditeur
+
+**Parent :** `cafd5850a5e471dfc323f3002ccc7e1e98a251ff`. [Rapport X.25](ARM_CLEAN06_4X25_POINTERLESS_EDITOR_WORLD_PREVIEW.md).
+
+Le modèle d'aperçu privilégie le `CanonicalItemId` et le niveau physique des loose items ; un ID enregistré peut être visualisé dans l'éditeur sans `ItemDefinition`. Le composant ne refuse plus ces objets avant la résolution canonique. Test acteur d'aperçu transitoire N20 et refus ARM N0/nonARM N1/ancien pointeur contradictoire/registre manquant. Les niveaux réels ne sont pas édités, la validation/Selected Object reste legacy et sera traitée séparément. **06.4 partielle, 06.5 bloquée ; contrôler les deux statuts Windows du commit.**
+
 ## ARM-CLEAN06.4X.24 — kits de départ explicitement canoniques sans ancien asset
 
 **Parent :** `3d353420e9fb1d61403e6a6b4f7981b50e880eeb`. Rapport : [ARM_CLEAN06_4X24_POINTERLESS_CANONICAL_STARTING_KITS.md](ARM_CLEAN06_4X24_POINTERLESS_CANONICAL_STARTING_KITS.md).

@@ -24,25 +24,37 @@ struct FGridEditorLooseItemPreviewReadModel
 	{
 		FGridEditorLooseItemPreviewReadView View;
 		const UGridItemDefinitionAsset* Definition = Placement.ItemDefinition.Get();
-		if (!Registry || !IsValid(Definition) ||
-			!Registry->HasCanonicalItem(Definition->ItemDefinitionId))
+		const bool bPersistedCanonical = !Placement.CanonicalItemId.IsNone();
+		const FName ItemId = bPersistedCanonical ? Placement.CanonicalItemId :
+			(IsValid(Definition) ? Definition->ItemDefinitionId : NAME_None);
+		// A persisted canonical identity may NEVER fall back to the old mesh,
+		// even when the ItemSystem is unavailable or the ItemId is wrong.
+		View.bCanonicalIdentity = bPersistedCanonical ||
+			(Registry && Registry->HasCanonicalItem(ItemId));
+		if (!View.bCanonicalIdentity || !Registry || !Registry->HasCanonicalItem(ItemId))
 		{
-			return View; // Only unregistered items may use the legacy visual reader.
+			return View; // Only unregistered, non-canonical source uses legacy art.
 		}
-		View.bCanonicalIdentity = true;
-		// Use the EXACT authored-placement policy shared with runtime.
-		// The old bUseWeaponCatalogue flag must not override the canonical
-		// ARM family, otherwise an editor preview can disagree with PIE.
-		const FGridReceptacleItemMetadataReadView Level =
-			FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
-				Registry, Definition, Definition->ItemDefinitionId, Placement.ItemLevel);
+		if (bPersistedCanonical &&
+			(!Placement.InstanceId.IsValid() || Placement.Quantity < 1 ||
+			 (IsValid(Definition) && Definition->ItemDefinitionId != ItemId)))
+		{
+			return View; // Contradictory source or invalid physical placement.
+		}
+		// Persisted identities have physical ItemLevel N1..20 / N0.
+		// Old synthetic authoring may inherit its legacy default once.
+		const FGridReceptacleItemMetadataReadView Level = bPersistedCanonical
+			? FGridWorldItemLevelReadModel::ResolvePersistedInstance(
+				Registry, nullptr, ItemId, Placement.ItemLevel)
+			: FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
+				Registry, Definition, ItemId, Placement.ItemLevel);
 		if (!Level.bResolved)
 		{
 			return View; // Known invalid N0/default: no historical preview fallback.
 		}
 		View.EffectiveItemLevel = Level.FixedItemLevel;
 		FGridResolvedItem Canonical;
-		if (!Registry->ResolveItem(Definition->ItemDefinitionId, View.EffectiveItemLevel, Canonical))
+		if (!Registry->ResolveItem(ItemId, View.EffectiveItemLevel, Canonical))
 		{
 			return View;
 		}

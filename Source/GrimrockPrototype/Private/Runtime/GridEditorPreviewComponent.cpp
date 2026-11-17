@@ -158,7 +158,8 @@ const UGridItemSubsystem* UGridEditorPreviewComponent::ResolvePreviewItemRegistr
 
 void UGridEditorPreviewComponent::AddLooseItemPreview(const FGridLooseItemInstance& Instance)
 {
-	if (!RuntimeActor || !Instance.ItemDefinition)
+	if (!RuntimeActor ||
+		(!IsValid(Instance.ItemDefinition.Get()) && Instance.CanonicalItemId.IsNone()))
 	{
 		return;
 	}
@@ -342,7 +343,7 @@ bool UGridEditorPreviewComponent::IsPreviewableLooseItem(const FGridLooseItemIns
 {
 	if (!RuntimeActor || !RuntimeActor->LevelAsset ||
 		!RuntimeActor->LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY) ||
-		!IsValid(Instance.ItemDefinition.Get()))
+		(!IsValid(Instance.ItemDefinition.Get()) && Instance.CanonicalItemId.IsNone()))
 	{
 		return false;
 	}
