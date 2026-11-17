@@ -203,4 +203,66 @@ bool FGridClean064X21PointerlessInitialArm::RunTest(const FString&)
                  "No native package or SaveGame written."));
     return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X22PointerlessArmRestore,
+    "Grimrock.RPG.ARM.CLEAN06_4X22.PointerlessCanonicalArmReceptacleRestore",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean064X22PointerlessArmRestore::RunTest(const FString&)
+{
+    ARMCLEAN064X21::FWorld F;
+    if (!TestNotNull(TEXT("World"), F.World) ||
+        !TestNotNull(TEXT("Registry"), F.Registry) ||
+        !TestNotNull(TEXT("Runtime"), F.Runtime))
+    {
+        return false;
+    }
+    F.Runtime->RebuildLevel();
+    AGridReceptacleActor* Receptacle =
+        F.Runtime->FindRuntimeObjectActor<AGridReceptacleActor>(F.Ids[1]);
+    if (!TestNotNull(TEXT("Canonical N20 receptacle exists"), Receptacle) ||
+        !TestEqual(TEXT("One initial N20 item"), Receptacle->GetContainedItemCount(), 1))
+    {
+        return false;
+    }
+
+    FGridRuntimeReceptacleState Saved;
+    Receptacle->CaptureRuntimeReceptacleState(Saved);
+    if (!TestEqual(TEXT("Captured one N20 item"), Saved.ContainedItems.Num(), 1))
+    {
+        return false;
+    }
+    const FGridRuntimeItemState ItemState = Saved.ContainedItems[0];
+    Receptacle->ForceClearRuntimeContents(false);
+
+    FGridItemInstance Instance;
+    Instance.RuntimeObjectId = ItemState.ObjectId;
+    Instance.ItemDefinitionId = ItemState.ItemDefinitionId;
+    Instance.ItemLevel = ItemState.ItemLevel;
+    Instance.Quantity = ItemState.Quantity;
+    AGridItemActor* Prebuilt = F.World->SpawnActor<AGridItemActor>();
+    if (!TestNotNull(TEXT("Prebuilt actor"), Prebuilt) ||
+        !TestTrue(TEXT("Restored ARM resolves without historical source"),
+            Prebuilt->InitializeFromCanonicalItem(Instance, F.Registry)) ||
+        !TestTrue(TEXT("Restore accepts canonical actor without reattaching old source"),
+            Receptacle->RestoreRuntimeContainedItem(ItemState, Prebuilt)))
+    {
+        return false;
+    }
+
+    if (!TestEqual(TEXT("One item restored"), Receptacle->GetContainedItemCount(), 1))
+    {
+        return false;
+    }
+    const FGridContainedReceptacleItem& Item = Receptacle->ContainedItems[0];
+    return TestNull(TEXT("No old DA_Weapon attached during restore"), Item.ItemDefinition.Get()) &&
+        TestNull(TEXT("Restored actor remains canonical"), Prebuilt->GetItemDefinitionAsset()) &&
+        TestTrue(TEXT("Full canonical world presentation retained"),
+            Prebuilt->CanonicalWorldPresentation.IsValid()) &&
+        TestEqual(TEXT("Stable GUID preserved"), Item.RuntimeObjectId, ItemState.ObjectId) &&
+        TestEqual(TEXT("ItemId preserved"), Item.ItemDefinitionId, ItemState.ItemDefinitionId) &&
+        TestEqual(TEXT("Physical N20 preserved"), Item.ItemLevel, 20) &&
+        TestEqual(TEXT("State light preserved"), Item.bLightsEnabled, ItemState.bLightsEnabled);
+}
+
 #endif

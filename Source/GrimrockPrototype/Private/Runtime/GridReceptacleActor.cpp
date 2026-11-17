@@ -1130,7 +1130,13 @@ int32 AGridReceptacleActor::AddContainedItem(
 	// ItemDefinition. Do not reattach a legacy object merely to materialize
 	// a canonical ARM whose world presentation is already resolvable.
 	const bool bCanonicalInitialSource = bWasInitialItem && bPersistedCanonicalInitialItem;
-	if (!ItemDefinition && RuntimeActor && !bCanonicalInitialSource)
+	const bool bCanonicalAlreadyInitialized = IsValid(ItemActor) &&
+		CanonicalRegistry && CanonicalRegistry->HasCanonicalItem(ItemDefinitionId) &&
+		ItemActor->CanonicalWorldPresentation.IsValid() &&
+		ItemActor->CanonicalWorldItemLevel == ItemLevel &&
+		ItemActor->GetItemDefinitionId() == ItemDefinitionId;
+	if (!ItemDefinition && RuntimeActor &&
+		!bCanonicalInitialSource && !bCanonicalAlreadyInitialized)
 	{
 		ItemDefinition = RuntimeActor->ResolveRuntimeItemDefinition(ItemDefinitionId);
 	}

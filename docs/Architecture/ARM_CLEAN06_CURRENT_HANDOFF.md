@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.22 — restauration de contenu ARM canonique sans ancien asset
+
+**Parent :** `168594fe504af3ca8cb5489fe6534ea9fd8fca9e`. Rapport : [ARM_CLEAN06_4X22_RECEPTACLE_POINTERLESS_RESTORE.md](ARM_CLEAN06_4X22_RECEPTACLE_POINTERLESS_RESTORE.md).
+
+La restauration d'un ARM contenu, déjà enregistré dans ItemSystem, utilise l'initialisation canonique complète **si aucun ancien ItemDefinition n'est encore résoluble**. Lorsqu'un acteur est déjà initialisé canoniquement, AddContainedItem n'y réattache plus un vieux DA_Weapon. L'ancien rendu est préservé pour les ARM avec définition toujours disponible. Test en mémoire à N20 avec GUID, niveau, lumière et propriétaire sans pointeur. Aucun asset ni SaveGame modifié. **06.4 partielle, 06.5 bloquée ; vérifier les deux validations Windows sur le SHA publié.**
+
 ## ARM-CLEAN06.4X.21 — initialisation canonique d'ARM sans pointeur dans les réceptacles
 
 **Parent :** `476fe10700d3ace56c1416ab9b5a762ac5564cee`. Rapport : [ARM_CLEAN06_4X21_RECEPTACLE_POINTERLESS_INITIAL_ARM.md](ARM_CLEAN06_4X21_RECEPTACLE_POINTERLESS_INITIAL_ARM.md).
