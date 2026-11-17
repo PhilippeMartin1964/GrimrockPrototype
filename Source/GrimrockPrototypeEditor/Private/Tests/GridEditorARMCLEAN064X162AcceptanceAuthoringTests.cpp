@@ -40,11 +40,13 @@ bool FGridClean064X162Authoring::RunTest(const FString&)
     if (!TestTrue(TEXT("Known ItemId written by picker"),
         FGridEditorCanonicalReceptacleRuleAuthoring::TryAssign(Registry.Get(), Arrow, Rule)) ||
         !TestEqual(TEXT("Arrow identity written"), Rule.CanonicalItemId, Arrow->ItemDefinitionId) ||
-        !TestTrue(TEXT("Old pointer retained in transition"), Rule.ItemDefinition == Arrow))
+        !TestNull(TEXT("New registered accepted rule has no old pointer"), Rule.ItemDefinition.Get()))
         {return false;}
     if (!TestTrue(TEXT("New selection updates both fields"),
         FGridEditorCanonicalReceptacleRuleAuthoring::TryAssign(Registry.Get(), Sword, Rule)) ||
-        !TestEqual(TEXT("No stale previous ItemId"), Rule.CanonicalItemId, Sword->ItemDefinitionId))
+        !TestEqual(TEXT("No stale previous ItemId"), Rule.CanonicalItemId, Sword->ItemDefinitionId) ||
+        !TestNull(TEXT("Switching registered rules never copies a legacy pointer"),
+            Rule.ItemDefinition.Get()))
         {return false;}
     if (!TestTrue(TEXT("Unknown historic source stays unmigrated"),
         FGridEditorCanonicalReceptacleRuleAuthoring::TryAssign(Registry.Get(), Unknown, Rule)) ||
@@ -72,12 +74,13 @@ bool FGridClean064X162Authoring::RunTest(const FString&)
         !TestEqual(TEXT("All three rules kept"), Copies.Num(), 3) ||
         !TestEqual(TEXT("Known legacy default upgraded in copy only"),
             Copies[0].CanonicalItemId, Arrow->ItemDefinitionId) ||
+        !TestNull(TEXT("Known shared default copied pointerlessly"), Copies[0].ItemDefinition.Get()) ||
         !TestTrue(TEXT("Unknown historical rule preserved"), Copies[1].CanonicalItemId.IsNone() &&
             Copies[1].ItemDefinition == Unknown) ||
         !TestTrue(TEXT("Canonical ID-only rule remains source independent"),
             Copies[2].CanonicalItemId == Sword->ItemDefinitionId && Copies[2].ItemDefinition == nullptr) ||
         !TestTrue(TEXT("Shared definition default unmodified"),
-            Defaults[0].CanonicalItemId.IsNone())) {return false;}
+            Defaults[0].CanonicalItemId.IsNone() && Defaults[0].ItemDefinition == Arrow)) {return false;}
 
     UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
     Definition->DefaultBehavior.Receptacle.bAcceptAnyItem = false;
@@ -91,6 +94,8 @@ bool FGridClean064X162Authoring::RunTest(const FString&)
     if (!TestEqual(TEXT("Override rule count"), Effective.Receptacle.AcceptedItems.Num(), 3) ||
         !TestEqual(TEXT("Override gains canonical identity"), Effective.Receptacle.AcceptedItems[0].CanonicalItemId,
             Arrow->ItemDefinitionId) ||
+        !TestNull(TEXT("Instance accepted override remains pointerless"),
+            Effective.Receptacle.AcceptedItems[0].ItemDefinition.Get()) ||
         !TestEqual(TEXT("Override capacity remains 4"), Effective.Receptacle.MaxContainedItems, 4))
         {return false;}
 

@@ -1580,8 +1580,18 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 			for (int32 Index = 0; Index < Overrides.ReceptacleRules.AcceptedItems.Num(); ++Index)
 			{
 				UGridItemDefinitionAsset* CurrentItem = Overrides.ReceptacleRules.AcceptedItems[Index].ItemDefinition;
+				// X.49: a newly authored registered rule is pointerless. The
+				// inspector must show its persisted ItemId even when the old
+				// UObject picker no longer contains a selected asset.
+				const FName AuthoredItemId =
+					Overrides.ReceptacleRules.AcceptedItems[Index].CanonicalItemId;
 				AcceptedItemsList->AddSlot().AutoHeight().Padding(0.f, 2.f)[
 					SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 8.f, 0.f)[
+							SNew(STextBlock)
+								.Text(AuthoredItemId.IsNone()
+									? FText::FromString(TEXT("Legacy"))
+									: FText::FromName(AuthoredItemId))]
 						+ SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)[
 							BuildItemDefinitionAssetPicker(CurrentItem,
 								[this, ObjectId, Index](UGridItemDefinitionAsset* NewAsset)

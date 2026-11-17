@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.49 — nouvelles règles de réceptacle pointerless
+
+**Parent :** `e2f4db137dc21b3e27797bd8abe5470ac19eab28`. Rapport : [ARM_CLEAN06_4X49_POINTERLESS_RECEPTACLE_RULE_AUTHORING.md](ARM_CLEAN06_4X49_POINTERLESS_RECEPTACLE_RULE_AUTHORING.md).
+
+L'éditeur ne recopie plus `ItemDefinition` lorsqu'une règle d'acceptation pointe vers un `CanonicalItemId` connu ; l'attribution et le bouton « Copy Defaults » produisent des overrides à ID seul, tout en conservant les cas hors-registre et le refus d'une divergence entre ancien pointeur et identité canonique. Le panneau Slate affiche explicitement l'ItemId des règles pointerless. Test X.162 étendu. **Aucun .uasset ni SaveGame écrit** ; les 63 références restantes vérifiées dans le test X.48 n'ont pas encore été converties. Deux validations Windows requises sur X.49 ; 06.4 partielle / 06.5 bloquée.
+
 ## ARM-CLEAN06.4X.48 — lecture UE des dépendances historiques restantes, après PIE X.46B
 
 **Parent :** `848d0caa2047911869e8eba3a06c79a59f7445ff`. Rapport : [ARM_CLEAN06_4X48_POST_NATIVE_RESIDUAL_AUDIT.md](ARM_CLEAN06_4X48_POST_NATIVE_RESIDUAL_AUDIT.md).

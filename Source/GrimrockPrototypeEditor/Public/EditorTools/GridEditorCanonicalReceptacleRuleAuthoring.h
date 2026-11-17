@@ -4,8 +4,10 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
-/** ARM-CLEAN06.4X.16.2: one editor transaction owns mutation;
- * validated canonical identity never derives from a stale old pointer. */
+/** ARM-CLEAN06.4X.49: new registered acceptance rules are authored
+ * as canonical ItemIds without copying an obsolete DA_Item/DA_Weapon.
+ * Legacy unknown identities still retain their source until registered.
+ * Existing shared assets are NOT migrated here. */
 struct FGridEditorCanonicalReceptacleRuleAuthoring
 {
     static bool TryAssign(const UGridItemSubsystem* Registry,
@@ -17,10 +19,11 @@ struct FGridEditorCanonicalReceptacleRuleAuthoring
             return false;
         }
         FGridReceptacleAcceptedItemConfig NewRule = InOut;
-        NewRule.ItemDefinition = Source;
-        NewRule.CanonicalItemId = IsValid(Source) &&
-            Registry->HasCanonicalItem(Source->ItemDefinitionId)
+        const bool bRegistered = IsValid(Source) &&
+            Registry->HasCanonicalItem(Source->ItemDefinitionId);
+        NewRule.CanonicalItemId = bRegistered
             ? Source->ItemDefinitionId : NAME_None;
+        NewRule.ItemDefinition = bRegistered ? nullptr : Source;
         InOut = NewRule;
         return true;
     }
@@ -47,6 +50,9 @@ struct FGridEditorCanonicalReceptacleRuleAuthoring
                 {
                     return false;
                 }
+                // Do not copy the shared definition's historical pointer
+                // into a newly authored per-placement acceptance override.
+                Next.ItemDefinition = nullptr;
             }
             else if (IsValid(Legacy))
             {
@@ -54,9 +60,10 @@ struct FGridEditorCanonicalReceptacleRuleAuthoring
                 if (Registry->HasCanonicalItem(Legacy->ItemDefinitionId))
                 {
                     Next.CanonicalItemId = Legacy->ItemDefinitionId;
+                    Next.ItemDefinition = nullptr;
                 }
             }
-            Proposed.Add(Next); // Never reorder/dedupe/default historical sources.
+            Proposed.Add(Next); // Preserve rule order and legacy-only unknowns.
         }
         OutRules = MoveTemp(Proposed);
         return true;
