@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.54 — outil protégé pour retirer les quatre pointeurs natifs partagés
+
+**Parent :** `724e987c1b325eab1484bd51fc7c8d26710d8690` (X.53 validé SilentTask + LocalAuto). Rapport : [ARM_CLEAN06_4X54_FOUR_NATIVE_RULE_PROTECTED_TRANSACTION.md](ARM_CLEAN06_4X54_FOUR_NATIVE_RULE_PROTECTED_TRANSACTION.md).
+
+Nouveau commandlet `GridArmClean064X54NativeSharedRules` et script `ApplyARM_CLEAN06_4X54_NativeSharedRules.ps1` : préflight et verify lecture seule, transaction `-Apply` explicitement protégée par quatre sauvegardes privées byte-equal/SHA256, `SavePackage` borné aux quatre définitions Torch/Guardian/Copper/Iron, seconde réouverture Unreal, suite Grimrock, contrôle Git LFS, rollback et publication binaire limitée aux quatre fichiers sur `master`. **Ce commit est uniquement du code : aucun -Apply lancé, aucun .uasset ni SaveGame changé ; 63 pointeurs toujours présents.** Exiger les deux statuts Windows du SHA code X.54 avant toute utilisation locale ; puis opération native opérateur et recette PIE distinctes. 06.4 partielle / 06.5 bloquée.
+
 ## ARM-CLEAN06.4X.53 — plus aucun ajout d'ancien pointeur dans l'inspecteur des serrures
 
 **Parent :** `e4537dbc8de1148232fbc89cc9116c0ef6eeac4a` (X.52 validé SilentTask + LocalAuto). Rapport : [ARM_CLEAN06_4X53_LOCK_INSPECTOR_POINTER_GUARD.md](ARM_CLEAN06_4X53_LOCK_INSPECTOR_POINTER_GUARD.md).
