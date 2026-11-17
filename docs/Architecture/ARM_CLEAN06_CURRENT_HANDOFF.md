@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.48 — lecture UE des dépendances historiques restantes, après PIE X.46B
+
+**Parent :** `848d0caa2047911869e8eba3a06c79a59f7445ff`. Rapport : [ARM_CLEAN06_4X48_POST_NATIVE_RESIDUAL_AUDIT.md](ARM_CLEAN06_4X48_POST_NATIVE_RESIDUAL_AUDIT.md).
+
+Le propriétaire a **validé le fonctionnement PIE** du premier package migré X.46B (`DA_GridLevel_00`, 44 objets libres pointerless, SHA binaire `cd177cd5473c8ab3777bfecae56cd0e33abd23eb` ; validations Windows déjà SUCCESS). X.48 ajoute le contrôle Editor-only post-conversion des **63** anciennes références restantes **attendues** dans les niveaux, overrides dormants, palette, règles de réceptacles/serrures et deux monstres. Aucun package ou SaveGame n'est écrit ; ce lot échoue si un des 44 objets libres retrouve un pointeur ou si les 63 références changent sans lot de migration. Tant que ses deux statuts Windows ne sont pas `success`, 63 reste un décompte **attendu**. À suivre : lecteurs de règles et conversion binaire bornée, SaveGame v27 conservé. 06.4 partielle / 06.5 bloquée.
+
 ## ARM-CLEAN06.4X.46B — 44 objets libres migrés dans le vrai .uasset, contrôles Windows verts
 
 **Transaction binaire :** `cd177cd5473c8ab3777bfecae56cd0e33abd23eb` (parent `875814f2d189a244cd84ab5f7bfa2fb521174f87`). Rapport de réception : [ARM_CLEAN06_4X46B_NATIVE_LOOSE_RESULT.md](ARM_CLEAN06_4X46B_NATIVE_LOOSE_RESULT.md).

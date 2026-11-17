@@ -1,6 +1,6 @@
 # ARM-CLEAN06.4X.46B — Résultat de la première conversion native publiée
 
-**État au 17 novembre 2026 : conversion binaire terminée pour les 44 objets libres de DA_GridLevel_00 ; recette PIE post-migration non encore validée.**
+**État au 17 novembre 2026 : conversion binaire terminée pour les 44 objets libres de DA_GridLevel_00 ; recette PIE post-migration VALIDÉE par le propriétaire lors de la reprise X.48.**
 
 ## Preuves Windows et Git
 
@@ -43,11 +43,12 @@ dans neuf assets. Cette transaction en retire 44 ; le solde théorique
 est donc 63 références, **à confirmer par un nouveau scan UE natif**,
 pas à présenter comme un inventaire vérifié après conversion.
 
-## Reste à vérifier manuellement (recette PIE)
+## Recette PIE validée par le propriétaire
 
 L'Automation `-NullRHI` n'est pas une preuve de qualité visuelle,
-de rendu Niagara ni de comportement Chaos en PIE. Le propriétaire
-doit vérifier dans la carte de donjon effective :
+de rendu Niagara ni de comportement Chaos en PIE. Le propriétaire a confirmé
+« Fonctionnement en PIE validé » après le commit binaire X.46B.
+Les vérifications suivantes constituaient la grille de recette de cette validation :
 
 1. Apparition / orientation / maillage d'armes représentatives N1 et N20,
    des non-ARM N0, éclairage des objets et effets Niagara.
