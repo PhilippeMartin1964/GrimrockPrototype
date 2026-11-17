@@ -5,6 +5,9 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "GridWallLockAcceptedKeyReadModel.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -242,9 +245,42 @@ bool AGridWallLockActor::AttachInsertedKeyVisual(AGrimrockPartyPawn* PartyPawn, 
 	}
 
 	const FGuid VisualRuntimeObjectId = CursorItem.Quantity > 1 ? FGuid::NewGuid() : CursorItem.RuntimeObjectId;
-	const int32 ItemIndex = AddContainedItem(CursorItem.ItemDefinitionId, ItemDefinition, nullptr, false, 1, VisualRuntimeObjectId);
+	const UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const bool bPointerlessCanonical = !IsValid(ItemDefinition) && Registry &&
+		Registry->HasCanonicalItem(CursorItem.ItemDefinitionId);
+	AGridItemActor* CanonicalVisual = nullptr;
+	if (bPointerlessCanonical)
+	{
+		// Prebuild the complete world presentation (mesh, light, effects)
+		// before AddContainedItem. Its legacy-ID-only spawn cannot by itself
+		// project a registered key with no historical definition.
+		CanonicalVisual = PartyPawn->LevelRuntimeActor->SpawnItemActorForDefinition(
+			nullptr, CursorItem.ItemDefinitionId, this, ItemAttachPoint.Get());
+		if (!IsValid(CanonicalVisual))
+		{
+			return false;
+		}
+		FGridItemInstance PhysicalKey = CursorItem;
+		PhysicalKey.RuntimeObjectId = VisualRuntimeObjectId;
+		PhysicalKey.Quantity = 1;
+		if (!CanonicalVisual->InitializeFromCanonicalItem(PhysicalKey, Registry))
+		{
+			CanonicalVisual->Destroy();
+			return false; // No known ID may revert to incomplete legacy art.
+		}
+	}
+	const int32 ItemIndex = AddContainedItem(
+		CursorItem.ItemDefinitionId, ItemDefinition, CanonicalVisual, false,
+		1, VisualRuntimeObjectId, CursorItem.ItemLevel);
 	if (ItemIndex == INDEX_NONE)
 	{
+		if (IsValid(CanonicalVisual))
+		{
+			CanonicalVisual->Destroy();
+		}
 		return false;
 	}
 

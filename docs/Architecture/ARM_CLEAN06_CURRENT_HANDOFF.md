@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.30 — visuel de clé insérée sans ancien ItemDefinition
+
+**Parent :** `145a97b3f217e84a796a756db61f31c6902b8bde`. Rapport : [ARM_CLEAN06_4X30_POINTERLESS_LOCK_INSERTED_KEY.md](ARM_CLEAN06_4X30_POINTERLESS_LOCK_INSERTED_KEY.md).
+
+Une serrure peut désormais créer, insérer et afficher une clé enregistrée (`Key_Copper` N0) sans définition historique, avec mesh, Niagara, lumière, GUID et absence de collision depuis `ItemSystem`. Une clé de niveau invalide est refusée sans ouvrir la serrure. Le chemin historique est préservé tant que l'ancienne définition existe. Test de vrais acteurs sur monde transitoire ; aucun binaire UE ni SaveGame écrit. **06.4 partielle ; 06.5 bloquée ; contrôler les statuts Windows avant la suite.**
+
 ## ARM-CLEAN06.4X.29 — serrure : priorité aux IDs de clés autorisés
 
 **Parent :** `474e622472fcb15a2f6a85f0ca0730d626a55a61`. Rapport : [ARM_CLEAN06_4X29_CANONICAL_WALL_LOCK_KEYS.md](ARM_CLEAN06_4X29_CANONICAL_WALL_LOCK_KEYS.md).
