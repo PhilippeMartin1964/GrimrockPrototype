@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.23 — torche tenue et lumière de groupe sans ancienne définition
+
+**Parent :** `7f5f5ae4045f93e273fc904e351502dd580084eb`. [Rapport X.23](ARM_CLEAN06_4X23_POINTERLESS_HELD_TORCH_LIGHT.md).
+
+Les non-ARM enregistrés, dont `Item_Torch` N0, peuvent maintenant produire un objet tenu et l'éclairage du groupe depuis `DA_ItemSystem` sans `UGridItemDefinitionAsset`. Régression automatique dans les deux mains et après extinction, sans modification de WBP, .uasset ni SaveGame. Les ARM encore dotés d'un ancien asset conservent leurs propriétés lumineuses historiques jusqu'à parité native. `EquipHeldItem(FName)` ne devine pas de niveau ARM. **06.4 encore partielle, 06.5 bloquée ; attendre les deux statuts Windows sur le commit exact.**
+
 ## ARM-CLEAN06.4X.22 — restauration de contenu ARM canonique sans ancien asset
 
 **Parent :** `168594fe504af3ca8cb5489fe6534ea9fd8fca9e`. Rapport : [ARM_CLEAN06_4X22_RECEPTACLE_POINTERLESS_RESTORE.md](ARM_CLEAN06_4X22_RECEPTACLE_POINTERLESS_RESTORE.md).

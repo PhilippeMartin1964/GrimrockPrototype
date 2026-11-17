@@ -3,17 +3,15 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 
 namespace
 {
-	float GridPartyIlluminationGetScore(const UGridItemDefinitionAsset* ItemDefinition)
+	float GridPartyIlluminationGetScore(const FGridLightEmitterConfig& Config)
 	{
-		if (!ItemDefinition || !ItemDefinition->LightEmitter.bUsePointLight)
-		{
-			return -1.0f;
-		}
-
-		return ItemDefinition->LightEmitter.LightIntensity;
+		return Config.bUsePointLight ? Config.LightIntensity : -1.0f;
 	}
 }
 
@@ -81,9 +79,14 @@ void UGridPartyIlluminationComponent::RefreshFromEquipment(UGridPartyInventoryCo
 		return;
 	}
 
-	UGridItemDefinitionAsset* BestDefinition = nullptr;
+	FGridLightEmitterConfig BestConfig;
+	bool bHasBestConfig = false;
 	FName BestSourceId = NAME_None;
 	float BestScore = -1.0f;
+	const UWorld* OwningWorld = GetWorld();
+	UGameInstance* GameInstance = OwningWorld ? OwningWorld->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 
 	const int32 ActiveCharacterCount = Inventory->GetActiveCharacterCount();
 	const EGridEquipmentSlot HandSlots[] = {EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand};
@@ -97,25 +100,62 @@ void UGridPartyIlluminationComponent::RefreshFromEquipment(UGridPartyInventoryCo
 				continue;
 			}
 
-			UGridItemDefinitionAsset* CandidateDefinition = Inventory->FindItemDefinition(CandidateItem.ItemDefinitionId);
-			if (!CandidateDefinition && LevelRuntimeActor)
+			FGridLightEmitterConfig CandidateConfig;
+			bool bHasConfig = false;
+			const bool bCanonicalRegistered = Registry &&
+				Registry->HasCanonicalItem(CandidateItem.ItemDefinitionId);
+			FGridResolvedItem Canonical;
+			if (bCanonicalRegistered)
 			{
-				CandidateDefinition = LevelRuntimeActor->ResolveRuntimeItemDefinition(CandidateItem.ItemDefinitionId);
+				if (!Registry->ResolveItem(CandidateItem.ItemDefinitionId,
+					CandidateItem.ItemLevel, Canonical))
+				{
+					continue; // A registered ARM N0 never borrows legacy light.
+				}
+				if (!Canonical.bIsArmament)
+				{
+					CandidateConfig = Canonical.LightEmitter;
+					bHasConfig = true;
+				}
+			}
+			// Until the ARM native visual migration, a legacy-backed ARM keeps
+			// its authored lighting. Unknown IDs retain the historical path.
+			if (!bHasConfig)
+			{
+				UGridItemDefinitionAsset* CandidateDefinition =
+					Inventory->FindItemDefinition(CandidateItem.ItemDefinitionId);
+				if (!CandidateDefinition && LevelRuntimeActor)
+				{
+					CandidateDefinition = LevelRuntimeActor->ResolveRuntimeItemDefinition(
+						CandidateItem.ItemDefinitionId);
+				}
+				if (CandidateDefinition)
+				{
+					CandidateConfig = CandidateDefinition->LightEmitter;
+					bHasConfig = true;
+				}
+				else if (bCanonicalRegistered)
+				{
+					CandidateConfig = Canonical.LightEmitter;
+					bHasConfig = true; // Pointerless registered ARM after cutover.
+				}
 			}
 
-			const float CandidateScore = GridPartyIlluminationGetScore(CandidateDefinition);
+			const float CandidateScore = bHasConfig
+				? GridPartyIlluminationGetScore(CandidateConfig) : -1.0f;
 			if (CandidateScore > BestScore)
 			{
 				BestScore = CandidateScore;
-				BestDefinition = CandidateDefinition;
+				BestConfig = CandidateConfig;
+				bHasBestConfig = true;
 				BestSourceId = CandidateItem.ItemDefinitionId;
 			}
 		}
 	}
 
-	if (BestDefinition)
+	if (bHasBestConfig)
 	{
-		ApplyIlluminationSource(BestDefinition->LightEmitter, BestSourceId);
+		ApplyIlluminationSource(BestConfig, BestSourceId);
 	}
 	else
 	{

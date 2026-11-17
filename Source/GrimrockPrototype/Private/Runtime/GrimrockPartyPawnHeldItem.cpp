@@ -33,9 +33,22 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 	{
 		ItemDefinition = LevelRuntimeActor->ResolveRuntimeItemDefinition(ItemDefinitionId);
 	}
-	if (!ItemDefinition)
+	const UWorld* OwningWorld = GetWorld();
+	UGameInstance* GameInstance = OwningWorld ? OwningWorld->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	FGridResolvedItem Canonical;
+	// EquipHeldItem receives an ID, not an ItemLevel. Only genuinely
+	// unlevelled registered NON-ARM items (such as the torch) can use N0.
+	// A pointerless ARM may never be guessed into a N1 equipped visual.
+	const bool bCanonicalNonArm = Registry &&
+		Registry->HasCanonicalItem(ItemDefinitionId) &&
+		Registry->ResolveItem(ItemDefinitionId, 0, Canonical) &&
+		!Canonical.bIsArmament;
+	if (!ItemDefinition && !bCanonicalNonArm)
 	{
-		UE_LOG(LogGridItemTransfer, Warning, TEXT("Held item equip failed: item definition %s could not be resolved."), *ItemDefinitionId.ToString());
+		UE_LOG(LogGridItemTransfer, Warning,
+			TEXT("Held item equip failed: item definition %s could not be resolved."), *ItemDefinitionId.ToString());
 		return false;
 	}
 
@@ -44,7 +57,8 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 	USceneComponent* AttachParent = HeldItemRoot ? HeldItemRoot.Get() : GetRootComponent();
 	if (LevelRuntimeActor)
 	{
-		HeldItemActor = LevelRuntimeActor->SpawnItemActorForDefinition(ItemDefinition, ItemDefinitionId, this, AttachParent);
+		HeldItemActor = LevelRuntimeActor->SpawnItemActorForDefinition(
+			bCanonicalNonArm ? nullptr : ItemDefinition, ItemDefinitionId, this, AttachParent);
 	}
 	else if (UWorld* World = GetWorld())
 	{
@@ -53,7 +67,7 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 		SpawnParams.Instigator = GetInstigator();
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		HeldItemActor = World->SpawnActor<AGridItemActor>(AGridItemActor::StaticClass(), FTransform::Identity, SpawnParams);
-		if (HeldItemActor)
+		if (HeldItemActor && !bCanonicalNonArm)
 		{
 			HeldItemActor->InitializeFromItemDefinition(ItemDefinition, FGuid());
 		}
@@ -65,9 +79,24 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 		return false;
 	}
 
+	if (bCanonicalNonArm)
+	{
+		FGridItemInstance CanonicalInstance;
+		CanonicalInstance.RuntimeObjectId = FGuid::NewGuid();
+		CanonicalInstance.ItemDefinitionId = ItemDefinitionId;
+		CanonicalInstance.ItemLevel = 0;
+		CanonicalInstance.Quantity = 1;
+		if (!HeldItemActor->InitializeFromCanonicalItem(CanonicalInstance, Registry))
+		{
+			HeldItemActor->Destroy();
+			HeldItemActor = nullptr;
+			return false; // Registered identity must never degrade to old art.
+		}
+	}
 	if (HeldItemActor->MeshComponent)
 	{
-		HeldItemActor->MeshComponent->SetStaticMesh(ItemDefinition->LoadHeldMesh());
+		HeldItemActor->MeshComponent->SetStaticMesh(bCanonicalNonArm
+			? Canonical.EquippedMesh.LoadSynchronous() : ItemDefinition->LoadHeldMesh());
 	}
 	if (HeldItemActor->LightEmitterComponent)
 	{
@@ -130,8 +159,31 @@ UGridItemDefinitionAsset* AGrimrockPartyPawn::ResolveEquippedItemDefinition(cons
 
 bool AGrimrockPartyPawn::DoesEquippedItemEmitLight(const FGridItemInstance& Item) const
 {
+	if (!Item.IsValid() || !Item.bLightsEnabled)
+	{
+		return false;
+	}
+	const UWorld* World = GetWorld();
+	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GI
+		? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+	{
+		FGridResolvedItem Canonical;
+		if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical))
+		{
+			return false; // No invalid ARM N0 -> N1 default.
+		}
+		if (!Canonical.bIsArmament)
+		{
+			return Canonical.LightEmitter.HasEmitter();
+		}
+		// Current ARM with a legacy visual source keeps its previous light.
+		const UGridItemDefinitionAsset* Source = ResolveEquippedItemDefinition(Item);
+		return Source ? Source->HasLightEmitter() : Canonical.LightEmitter.HasEmitter();
+	}
 	const UGridItemDefinitionAsset* ItemDefinition = ResolveEquippedItemDefinition(Item);
-	return Item.IsValid() && Item.bLightsEnabled && ItemDefinition && ItemDefinition->HasLightEmitter();
+	return ItemDefinition && ItemDefinition->HasLightEmitter();
 }
 
 void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()

@@ -6,6 +6,7 @@
 #include "Engine/World.h"
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridItemActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridPartyIlluminationComponent.h"
 #include "Components/PointLightComponent.h"
@@ -205,4 +206,109 @@ bool FGridClean064X17TorchHandRegression::RunTest(const FString&)
         "GUID and lit state preserved; ammo N0 cannot equip, nonARM N1 rejected."));
     return !HasAnyErrors();
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X23PointerlessHeldTorch,
+    "Grimrock.RPG.ARM.CLEAN06_4X23.CanonicalHeldTorchWithoutLegacySource",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean064X23PointerlessHeldTorch::RunTest(const FString&)
+{
+    ARMCLEAN064X17::FWorldFixture F;
+    if (!TestNotNull(TEXT("Configured canonical registry"), F.Registry) ||
+        !TestNotNull(TEXT("Party inventory"), F.Inventory) ||
+        !TestNotNull(TEXT("Party pawn"), F.Pawn) ||
+        !TestTrue(TEXT("Active character and equipment available"),
+            !F.Inventory->PartyInventoryState.ActiveCharacters.IsEmpty() &&
+            !F.Inventory->PartyInventoryState.ActiveEquipment.IsEmpty()))
+    {
+        return false;
+    }
+
+    FGridResolvedItem Canonical;
+    const FName TorchId(TEXT("Item_Torch"));
+    if (!TestTrue(TEXT("Real torch resolves without historical source"),
+            F.Registry->ResolveItem(TorchId, 0, Canonical)) ||
+        !TestTrue(TEXT("Torch world light is a canonical property"),
+            Canonical.LightEmitter.bUsePointLight) ||
+        !TestFalse(TEXT("Torch is non-ARM N0"), Canonical.bIsArmament))
+    {
+        return false;
+    }
+
+    UGridPartyIlluminationComponent* PartyLight =
+        NewObject<UGridPartyIlluminationComponent>(F.Pawn, TEXT("X23PartyLight"));
+    if (!TestNotNull(TEXT("Runtime party light"), PartyLight))
+    {
+        return false;
+    }
+    PartyLight->SetupAttachment(F.Pawn->GetRootComponent());
+    F.Pawn->AddInstanceComponent(PartyLight);
+    PartyLight->RegisterComponent();
+
+    FGridCharacterEquipmentState& Equipment =
+        F.Inventory->PartyInventoryState.ActiveEquipment[0];
+    const FGuid CharacterId =
+        F.Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
+
+    for (const EGridEquipmentSlot Slot : {
+        EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand})
+    {
+        Equipment.MainHand = FGridItemInstance();
+        Equipment.OffHand = FGridItemInstance();
+        FGridItemInstance Torch = ARMCLEAN064X17::MakeItem(
+            TorchId, 0, CharacterId, true);
+        Torch.OwnerType = EGridItemOwnerType::EquipmentSlot;
+        Torch.EquipmentSlot = Slot;
+        if (Slot == EGridEquipmentSlot::MainHand)
+        {
+            Equipment.MainHand = Torch;
+        }
+        else
+        {
+            Equipment.OffHand = Torch;
+        }
+
+        F.Pawn->SyncHeldVisualFromSelectedCharacterEquipment();
+        PartyLight->RefreshFromEquipment(F.Inventory, nullptr);
+        if (!TestEqual(TEXT("Pointerless held torch is visible from either hand"),
+                F.Pawn->GetHeldItemDefinitionId(), TorchId) ||
+            !TestNotNull(TEXT("Visual item actor exists"), F.Pawn->HeldItemActor.Get()) ||
+            !TestNull(TEXT("Held visual never references a legacy torch definition"),
+                F.Pawn->HeldItemActor->GetItemDefinitionAsset()) ||
+            !TestTrue(TEXT("Held actor retains canonical presentation"),
+                F.Pawn->HeldItemActor->CanonicalWorldPresentation.IsValid()) ||
+            !TestTrue(TEXT("Party illumination works with pointerless torch"),
+                PartyLight->HasActiveIlluminationSource()) ||
+            !TestEqual(TEXT("Correct light source ItemId"),
+                PartyLight->ActiveSourceId, TorchId) ||
+            !TestTrue(TEXT("Canonical light intensity used"),
+                FMath::IsNearlyEqual(PartyLight->RuntimeConfig.LightIntensity,
+                    Canonical.LightEmitter.LightIntensity)))
+        {
+            return false;
+        }
+
+        // Extinguishing the same instance must turn OFF both light and held
+        // presentation, not leave a visually lit phantom torch.
+        if (Slot == EGridEquipmentSlot::MainHand)
+        {
+            Equipment.MainHand.bLightsEnabled = false;
+        }
+        else
+        {
+            Equipment.OffHand.bLightsEnabled = false;
+        }
+        F.Pawn->SyncHeldVisualFromSelectedCharacterEquipment();
+        PartyLight->RefreshFromEquipment(F.Inventory, nullptr);
+        if (!TestFalse(TEXT("Extinguished torch does not illuminate the party"),
+                PartyLight->HasActiveIlluminationSource()) ||
+            !TestTrue(TEXT("No active held-light visual after extinction"),
+                F.Pawn->GetHeldItemDefinitionId().IsNone()))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 #endif
