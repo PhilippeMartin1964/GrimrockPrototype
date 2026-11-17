@@ -7,25 +7,26 @@
 - Dossier local principal : D:\Development\GrimrockPrototype.
 - Travailler sur `master` sauf instruction contraire explicite.
 - Ne pas créer de branche pour les petites modifications.
-- Une tâche / une réponse ChatGPT = un seul commit Git au maximum.
-- Ne jamais créer un commit par fichier.
-- Si les outils GitHub disponibles risquent de créer plusieurs commits, ne pas les utiliser.
+- **Un commit atomique par lot de travail cohérent et vérifiable**, jamais un commit par fichier.
+- **Plusieurs lots et commits successifs peuvent être réalisés dans une même intervention ChatGPT** : aucune limite artificielle par réponse, par micro-étape ou par numéro de jalon.
+- Grouper dans le même lot le code, ses tests, ses corrections de prépublication et sa documentation associée.
+- Si une API GitHub commite un fichier par appel, ne pas l'utiliser : créer un arbre Git unique et un commit unique pour chaque lot, ou utiliser un outil de staging atomique.
 - Utiliser `docs/` en minuscule, jamais `Docs/`.
 
-## Git
+## Git — règle des lots cohérents (17.11.2026)
 
-- Toujours commencer par `git status`.
-- Avant modification importante, vérifier la branche courante avec `git branch --show-current`.
-- Ne pas écraser les changements utilisateur.
-- RÈGLE ABSOLUE : une étape fonctionnelle = exactement un commit final maximum sur `master`.
-- Aucun commit intermédiaire ne doit être poussé pour une étape en cours.
-- Toutes les modifications de code, tests et documentation appartenant à une même étape doivent être regroupées dans ce commit final.
-- Les corrections découvertes avant livraison doivent être intégrées dans ce même commit final ; ne jamais publier de commit séparé `Fix...`, `Fix includes...`, `Cleanup...` ou équivalent pour la même étape.
-- Avant toute publication, vérifier que l'écart entre le commit de départ de l'étape et le HEAD publié contient exactement un commit, sauf demande explicite contraire de l'utilisateur.
-- Si plusieurs commits intermédiaires ont été créés localement ou techniquement, les regrouper avant toute mise à jour de `origin/master`.
-- AUTORISATION PERMANENTE : si ChatGPT ou un outil qu'il pilote crée accidentellement sur `master` un commit parasite, vide, intermédiaire ou techniquement indésirable, ChatGPT est autorisé à réécrire immédiatement `master` par force-push/reset vers le dernier état vérifié puis à republier l'étape sous forme atomique, sans demander une nouvelle confirmation.
-- Cette autorisation de réécriture ne couvre que les commits créés par ChatGPT ou ses outils pendant le travail en cours. Ne jamais supprimer ni réécrire un commit utilisateur ou un changement distant imprévu sans instruction explicite.
-- Avant toute réécriture automatique, vérifier le parent et la divergence distante ; après la réécriture, relire `master` et vérifier que le commit parasite n'est plus atteignable depuis la branche.
+- Toujours commencer par `git status` lorsque le checkout local est accessible ; en GitHub distant, contrôler le SHA réel de `origin/master`, ses statuts et la concurrence avant toute écriture.
+- Avant modification importante, vérifier la branche courante avec `git branch --show-current` lorsque disponible.
+- Ne jamais écraser les changements utilisateur. Travailler sur `master` sans créer de branches non demandées.
+- **Un lot = un objectif fonctionnel/technique précis, avec un périmètre de fichiers liés, des critères de réussite, des tests et un éventuel retour arrière identifiables.** Un lot peut couvrir plusieurs micro-jalons. Les fichiers C++, tests, scripts et documentation de cet objectif appartiennent au **même commit**.
+- **Ne pas créer un commit par fichier, par correction d'include, par test, par fichier de documentation ni par simple numéro de jalon.** Ne pas découper un lot seulement pour générer davantage de commits.
+- Séparer les lots lorsque leurs objectifs, risques, validations ou procédures de retour arrière sont réellement indépendants ; isoler notamment les écritures natives de `.uasset`/`.umap`, les migrations de sauvegardes et les changements de schéma lorsque leurs garanties diffèrent.
+- **Un commit final atomique par lot publié** : ne pas pousser de WIP ou de commits intermédiaires de mise au point. Grouper les corrections identifiées *avant publication* dans le même commit.
+- **Une réponse/intervention ChatGPT peut publier plusieurs commits de lots distincts, de manière séquentielle.** Pas de plafond rigide de commits par conversation. Après chaque lot technique, attendre les deux statuts Windows `UE5.5.4/SilentTask` et `UE5.5.4/LocalAuto` sur **son SHA exact** avant de publier le lot suivant.
+- Si la validation publiée échoue, analyser les diagnostics puis traiter **l'ensemble du correctif de ce lot** de manière atomique ; ne pas empiler plusieurs micro-commits `Fix...`. Une révision contrôlée du seul HEAD créé par l'assistant pendant l'intervention est autorisée si son parent et l'absence de divergence sont prouvés ; une correction par commit supplémentaire cohérent est permise si réécrire `master` n'est pas sûr.
+- **AUTORISATION DE RÉÉCRITURE STRICTEMENT LIMITÉE :** seulement pour un HEAD parasite ou invalide créé par ChatGPT/ses outils pendant le travail en cours, après vérification du SHA exact, du parent, des statuts et de la non-divergence ; mise à jour avec protection équivalente à `--force-with-lease`, jamais un force-push aveugle. Ne jamais réécrire un commit utilisateur ni une modification distante imprévue sans autorisation explicite.
+- Après chaque publication, relire `master`, comparer au parent du lot et vérifier que le diff inclut les fichiers attendus. Vérifier la validation finale avant de marquer le lot terminé.
+- **Ne pas arrêter l'intervention au seul motif qu'un lot vient de réussir.** Poursuivre les lots suivants sans nouvelle autorisation tant que les outils, le périmètre et les garanties le permettent ; s'arrêter seulement en cas de véritable blocage, de conflit distant, de risque de toucher au travail utilisateur, de validation nécessitant une action native non disponible, ou d'instruction explicite.
 
 ## Contrat architectural d'objets et d'armement (décision approuvée)
 
@@ -67,18 +68,16 @@
 - Les `.uasset` (WBP et String Table) sont des assets UE, jamais produits artificiellement. Inspecter les changements Git et versionner la projection validée avec le jalon concerné ; sinon laisser explicitement « matérialisation ST_UI non faite » et **ne pas clore**.
 - **TO-DO récurrent non supprimable :** au début **et à la fin** de chaque ticket UI/WBP, relire les cases de la checklist de `docs/UI_WBP_LOCALIZATION_WORKFLOW.md` et préciser explicitement le statut `UI.csv → ST_UI → WBP → Game/fr/en`.
 
-## Publication automatique
+## Publication automatique par lots
 
-- Cette section remplace toute instruction antérieure contradictoire.
-- Toute demande de développement, correction ou documentation implique :
-  1. préparer et vérifier l'ensemble des changements de l'étape sans publication intermédiaire ;
-  2. créer un seul commit atomique final au maximum pour l'étape ;
-  3. pousser automatiquement ce commit unique sur `origin/master`.
-- Ne jamais utiliser un workflow qui crée un commit par fichier ou un commit par correction intermédiaire.
-- Ne jamais demander une confirmation supplémentaire avant un commit ou un push ordinaire.
-- Ne pas demander de confirmation pour un force-push destiné exclusivement à retirer des commits accidentels créés par ChatGPT ou ses outils pendant l'étape en cours ; appliquer alors les garde-fous de la section Git.
-- S'arrêter uniquement en cas de divergence distante ou de changements utilisateur imprévus, de réécriture qui toucherait un commit utilisateur, ou de blocage technique réel.
-- Si l'environnement interdit le push, ne pas demander à nouveau l'autorisation : conserver le commit local et fournir directement la commande exacte à exécuter.
+- Cette section et « Git — règle des lots cohérents » remplacent la contrainte historique « une réponse = un commit » et « un micro-jalon = exactement un commit ».
+- Pour **chaque lot** : définir le périmètre lié → modifier code/tests/documentation ensemble → contrôler le diff → créer et pousser **un commit atomique final** sur `origin/master` → vérifier les deux statuts de validation sur le SHA publié.
+- Dès que les deux statuts requis sont `success`, **enchaîner le prochain lot utile sans interrompre la réponse pour demander « Go »**. Une intervention peut contenir plusieurs commits de lots indépendants.
+- Un échec de compilation, d'Automation, de préflight ou de statut Git suspend le lot suivant jusqu'à analyse/correction du lot en échec. Ne jamais déclarer un lot validé sur `pending`, sur un statut absent, ni sur le statut d'un ancien SHA.
+- Ne jamais publier un commit par fichier ou un WIP. Si le connecteur GitHub n'a pas de commit atomique multi-fichiers, utiliser une opération Git tree/commit/ref atomique ou conserver un patch ; ne pas multiplier les commits d'API.
+- Ne pas demander une confirmation supplémentaire avant des commits/push ordinaires. Une migration d'assets native ou de sauvegardes conserve **tous ses garde-fous spécifiques** et une intervention locale si indispensable.
+- Si le push est impossible, conserver le patch/commit préparé et donner précisément le blocage, sans prétendre l'avoir publié.
+
 ## Validation locale automatique obligatoire après publication
 
 - **RÈGLE PERMANENTE :** tout jalon modifiant le C++, un test, un asset Unreal ou le runtime doit passer par le dispositif déjà installé `VALIDATION-AUTO01`. Ne jamais demander par réflexe à l'utilisateur de lancer `ValidateUE.ps1`, `git pull`, Visual Studio ou le Session Frontend.
