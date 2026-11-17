@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.27 — Selected Object par ItemId canonique
+
+**Parent :** `b34eccf33e56fed6ec8feb8d759eb4399714c048`. Rapport : [ARM_CLEAN06_4X27_EDITOR_CANONICAL_SELECTED_OBJECT.md](ARM_CLEAN06_4X27_EDITOR_CANONICAL_SELECTED_OBJECT.md).
+
+Le panneau Selected Object affiche et permet de changer un `CanonicalItemId` sans pointer vers un ancien `ItemDefinition`, avec niveau physique explicite N1–N20 pour ARM, N0 pour non-ARM. Un changement volontaire de famille conserve un niveau légal sinon applique le défaut d'authoring N1/N0 ; le recomit du même ID historique ne migre **jamais** son ancien rendu. Les changements incompatibles de quantités et les anciens pointeurs contradictoires sont refusés sans mutation. Test transitoire sur loose items et ItemSpawns. Aucun binaire Unreal ni SaveGame écrit. **06.4 partielle ; 06.5 bloquée ; attendre les deux contrôles Windows sur le SHA.**
+
 ## ARM-CLEAN06.4X.26 — validation Editor canonique et modification du niveau physique
 
 **Parent :** fffa04d9b0a0118d4edb72b1cb77c96b61f2f4e1. Rapport : [ARM_CLEAN06_4X26_EDITOR_POINTERLESS_VALIDATION.md](ARM_CLEAN06_4X26_EDITOR_POINTERLESS_VALIDATION.md).

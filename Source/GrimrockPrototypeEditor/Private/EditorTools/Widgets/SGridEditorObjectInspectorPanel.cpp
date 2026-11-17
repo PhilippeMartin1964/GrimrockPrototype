@@ -1312,43 +1312,81 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(FGuid ObjectId)
 {
-	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
+	AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
 	if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset) return SNullWidget::NullWidget;
 	const FGridLooseItemInstance* LooseItem = CurrentEditorActor->LevelAsset->FindLooseItemInstanceById(ObjectId);
 	const FGridItemSpawnInstance* ItemSpawn = CurrentEditorActor->LevelAsset->FindItemSpawnInstanceById(ObjectId);
 	if (!LooseItem && !ItemSpawn) return SNullWidget::NullWidget;
 	UGridItemDefinitionAsset* Definition = LooseItem ? LooseItem->ItemDefinition.Get() : ItemSpawn->ItemDefinition.Get();
+	const FName CanonicalId = LooseItem ? LooseItem->CanonicalItemId : ItemSpawn->CanonicalItemId;
+	const FName DisplayId = !CanonicalId.IsNone() ? CanonicalId :
+		(IsValid(Definition) ? Definition->ItemDefinitionId : NAME_None);
+	const int32 PhysicalLevel = LooseItem ? LooseItem->ItemLevel : ItemSpawn->ItemLevel;
+	const bool bCanonicalArm = !CanonicalId.IsNone() &&
+		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			CurrentEditorActor->ResolveEditorItemRegistry(), CanonicalId, 1);
+
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Item Definition"))).Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Placement")), FText::FromString(LooseItem ? TEXT("Item present in the level") : TEXT("Item generator")))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ItemDefinitionAsset")), BuildItemDefinitionAssetPicker(Definition,
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ItemDefinitionAsset (legacy)")), BuildItemDefinitionAssetPicker(Definition,
 			[this](UGridItemDefinitionAsset* NewAsset)
 			{
-				if (AGridLevelEditorActor* Editor = GetEditorActor()) if (Editor->SetSelectedObjectItemDefinitionAsset(NewAsset)) RequestRefresh();
+				if (AGridLevelEditorActor* Editor = GetEditorActor())
+				{
+					Editor->SetSelectedObjectItemDefinitionAsset(NewAsset);
+					RequestRefresh();
+				}
 			}))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Item Id")), GetNameText(Definition ? Definition->ItemDefinitionId : NAME_None))];
-	if (!Definition)
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
+			FText::FromString(TEXT("Canonical Item Id")),
+			SNew(SEditableTextBox)
+				.Text(GetNameText(DisplayId))
+				.ToolTipText(FText::FromString(TEXT("Enter a registered ItemId. Changing an identity keeps its valid physical level; otherwise it starts at N1 for weapons or N0 for unlevelled items.")))
+				.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type)
+				{
+					if (AGridLevelEditorActor* Editor = GetEditorActor())
+					{
+						Editor->SetSelectedObjectItemDefinitionId(GetNameFromEditorText(NewText));
+						RequestRefresh();
+					}
+				}))];
+	if (!Definition && CanonicalId.IsNone())
 	{
-		Root->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Assign an Item Definition asset."))).AutoWrapText(true)];
+		Root->AddSlot().AutoHeight()[SNew(STextBlock)
+			.Text(FText::FromString(TEXT("Choose a legacy ItemDefinition or enter a registered Canonical Item Id.")))
+			.AutoWrapText(true)];
 	}
-	if ((LooseItem || ItemSpawn) && Definition && Definition->bUseWeaponCatalogue)
+	else if (!Definition && !CanonicalId.IsNone())
 	{
-		// ARMEMENT01.8.2: both a loose pickup and an item generator author an
-		// instance-specific level, without changing their shared definition.
+		Root->AddSlot().AutoHeight()[SNew(STextBlock)
+			.Text(FText::FromString(TEXT("Canonical placement: identity and preview come from ItemSystem; no legacy asset is required.")))
+			.AutoWrapText(true)];
+	}
+	if ((LooseItem || ItemSpawn) &&
+		(bCanonicalArm || (CanonicalId.IsNone() && IsValid(Definition) && Definition->bUseWeaponCatalogue)))
+	{
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
-			FText::FromString(TEXT("Item Level (0 = default)")),
+			FText::FromString(bCanonicalArm ? TEXT("Item Level (physical N1-N20)") : TEXT("Item Level (0 = legacy default)")),
 			SNew(SSpinBox<int32>)
-				.Value(LooseItem ? LooseItem->ItemLevel : ItemSpawn->ItemLevel)
-				.MinValue(0).MaxValue(20)
-				.MinSliderValue(0).MaxSliderValue(20)
+				.Value(PhysicalLevel)
+				.MinValue(bCanonicalArm ? 1 : 0).MaxValue(20)
+				.MinSliderValue(bCanonicalArm ? 1 : 0).MaxSliderValue(20)
 				.Delta(1).MinDesiredWidth(90.f)
 				.OnValueCommitted_Lambda([this](int32 NewLevel, ETextCommit::Type)
 				{
 					if (AGridLevelEditorActor* Editor = GetEditorActor())
 					{
-						if (Editor->SetSelectedObjectItemLevel(NewLevel)) RequestRefresh();
+						Editor->SetSelectedObjectItemLevel(NewLevel);
+						RequestRefresh();
 					}
 				}))];
+	}
+	else if (!CanonicalId.IsNone())
+	{
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			FText::FromString(TEXT("Item Level (canonical N0)")),
+			FText::AsNumber(PhysicalLevel))];
 	}
 	if (LooseItem)
 	{

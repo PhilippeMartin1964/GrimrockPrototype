@@ -59,17 +59,22 @@ bool AGridLevelEditorActor::SetSelectedWorldObjectDefinitionId(FName NewWorldObj
 bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset(UGridItemDefinitionAsset* NewItemDefinitionAsset)
 {
 	if (!LevelAsset) return false;
-	if (FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId))
+	FGridLooseItemInstance* Loose = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId);
+	FGridItemSpawnInstance* Spawn = Loose ? nullptr : LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId);
+	if (!Loose && !Spawn) return false;
+	const FName CanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
+	if (!CanonicalId.IsNone() && IsValid(NewItemDefinitionAsset) &&
+		NewItemDefinitionAsset->ItemDefinitionId != CanonicalId)
 	{
-		LevelAsset->Modify();
-		LooseItemInstance->ItemDefinition = NewItemDefinitionAsset;
+		// A legacy picker cannot silently change the identity of a persisted
+		// canonical object. Use the ItemId command to author a new identity.
+		return false;
 	}
-	else if (FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId))
-	{
-		LevelAsset->Modify();
-		ItemSpawn->ItemDefinition = NewItemDefinitionAsset;
-	}
-	else return false;
+	UGridItemDefinitionAsset* Previous = Loose ? Loose->ItemDefinition.Get() : Spawn->ItemDefinition.Get();
+	if (Previous == NewItemDefinitionAsset) return true;
+	LevelAsset->Modify();
+	if (Loose) Loose->ItemDefinition = NewItemDefinitionAsset;
+	else Spawn->ItemDefinition = NewItemDefinitionAsset;
 	ObjectBehavior.Item.ItemDefinitionAsset = NewItemDefinitionAsset;
 	LevelAsset->MarkPackageDirty();
 	RebuildPreview();
@@ -153,20 +158,88 @@ bool AGridLevelEditorActor::SetSelectedObjectItemLevel(int32 NewItemLevel)
 
 bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefinitionId)
 {
-	// Compatibility authoring command: resolve a definition without storing a second identity.
-	if (!LevelAsset) return false;
-	if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId))
+	if (!LevelAsset || NewItemDefinitionId.IsNone()) return false;
+	FGridLooseItemInstance* Loose = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId);
+	FGridItemSpawnInstance* Spawn = Loose ? nullptr : LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId);
+	if (!Loose && !Spawn) return false;
+
+	const FName PreviousCanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
+	UGridItemDefinitionAsset* PreviousDefinition = Loose ? Loose->ItemDefinition.Get() : Spawn->ItemDefinition.Get();
+	if ((PreviousCanonicalId == NewItemDefinitionId &&
+			(!IsValid(PreviousDefinition) ||
+			 PreviousDefinition->ItemDefinitionId == NewItemDefinitionId)) ||
+		(PreviousCanonicalId.IsNone() && IsValid(PreviousDefinition) &&
+		 PreviousDefinition->ItemDefinitionId == NewItemDefinitionId))
 	{
-		if (LooseItemInstance->CanonicalItemId == NewItemDefinitionId ||
-			(LooseItemInstance->ItemDefinition &&
-			 LooseItemInstance->ItemDefinition->ItemDefinitionId == NewItemDefinitionId)) return true;
+		// Recommitting a displayed ID must not silently migrate the
+		// 44 legacy-backed level instances before native visual parity.
+		return true;
+	}
+
+	const UGridItemSubsystem* Registry = ResolveEditorItemRegistry();
+	if (Registry && Registry->HasCanonicalItem(NewItemDefinitionId))
+	{
+		const int32 CurrentLevel = Loose ? Loose->ItemLevel : Spawn->ItemLevel;
+		int32 AuthoredLevel = CurrentLevel;
+		if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			Registry, NewItemDefinitionId, AuthoredLevel))
+		{
+			// Changing an item's identity is a NEW authoring operation, not
+			// restoring a persisted item: explicitly select physical N0 for
+			// unlevelled families, otherwise N1. Never persist ARM N0.
+			AuthoredLevel = FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+				Registry, NewItemDefinitionId, 0) ? 0 : 1;
+			if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+				Registry, NewItemDefinitionId, AuthoredLevel))
+			{
+				return false;
+			}
+		}
+		FGridResolvedItem Resolved;
+		const int32 Quantity = Loose ? Loose->Quantity : Spawn->Quantity;
+		if (!Registry->ResolveItem(NewItemDefinitionId, AuthoredLevel, Resolved) ||
+			!Resolved.IsValid() || Quantity < 1 ||
+			Quantity > FMath::Max(1, Resolved.MaxStack))
+		{
+			return false; // Changing ID must not silently discard stack units.
+		}
+		LevelAsset->Modify();
+		if (Loose)
+		{
+			Loose->CanonicalItemId = NewItemDefinitionId;
+			Loose->ItemLevel = AuthoredLevel;
+			Loose->ItemDefinition = nullptr;
+		}
+		else
+		{
+			Spawn->CanonicalItemId = NewItemDefinitionId;
+			Spawn->ItemLevel = AuthoredLevel;
+			Spawn->ItemDefinition = nullptr;
+		}
+		ObjectBehavior.Item.ItemDefinitionAsset = nullptr;
+		LevelAsset->MarkPackageDirty();
+		RebuildPreview();
+		return true;
+	}
+
+	// Only genuinely unregistered historical identities may still be picked
+	// from the existing palette. A canonical ID without its configured
+	// registry is rejected instead of being reinterpreted as legacy.
+	if (!PreviousCanonicalId.IsNone()) return false;
+	if (IsValid(PreviousDefinition) &&
+		PreviousDefinition->ItemDefinitionId == NewItemDefinitionId)
+	{
+		return true;
 	}
 	if (ObjectPalette)
 	{
 		for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
 		{
-			if (Entry.DefaultItemDefinition && Entry.DefaultItemDefinition->ItemDefinitionId == NewItemDefinitionId)
+			if (Entry.DefaultItemDefinition &&
+				Entry.DefaultItemDefinition->ItemDefinitionId == NewItemDefinitionId)
+			{
 				return SetSelectedObjectItemDefinitionAsset(Entry.DefaultItemDefinition);
+			}
 		}
 	}
 	return false;
