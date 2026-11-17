@@ -1,6 +1,7 @@
 #include "ARMEMENT/GridArmClean064X37NativeArmWorldProfilesCommandlet.h"
 
 #include "GridArmClean064X37ArmWorldProfileProjection.h"
+#include "GridArmClean064X371BackupReceiptGuard.h"
 #include "Dom/JsonObject.h"
 #include "Misc/FileHelper.h"
 #include "Misc/PackageName.h"
@@ -18,41 +19,50 @@ namespace
 
     bool CheckPrivateBackupManifest(const FString& Path, const FString& ExpectedHead)
     {
-        if (Path.IsEmpty() || ExpectedHead.Len() != 40 ||
-            !FPaths::FileExists(Path))
+        if (Path.IsEmpty() || !FPaths::FileExists(Path))
         {
             return false;
         }
         const FString AbsoluteBackup = FPaths::ConvertRelativePathToFull(Path);
-        const FString Project = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
-        if (AbsoluteBackup.StartsWith(Project, ESearchCase::IgnoreCase))
+        FString Project = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+        FPaths::NormalizeDirectoryName(Project);
+        const FString ProjectPrefix = Project + TEXT("/");
+        if (AbsoluteBackup.StartsWith(ProjectPrefix, ESearchCase::IgnoreCase) ||
+            AbsoluteBackup.Equals(Project, ESearchCase::IgnoreCase))
         {
-            return false; // Never keep the verified backups inside the repo.
+            return false; // Backups must be outside the repository.
         }
 
         FString Text;
         TSharedPtr<FJsonObject> Manifest;
-        if (!FFileHelper::LoadFileToString(Text, *Path) ||
-            !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), Manifest) ||
-            !Manifest.IsValid())
+        if (!FFileHelper::LoadFileToString(Text, *AbsoluteBackup) ||
+            !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), Manifest))
         {
             return false;
         }
-        FString Schema, Head;
-        bool bVerified = false;
-        int32 SourceCount = 0, OutputCount = 0;
-        const TArray<TSharedPtr<FJsonValue>>* Files = nullptr;
-        return Manifest->TryGetStringField(TEXT("schema"), Schema) &&
-            Schema == TEXT("ARM-CLEAN06.4X.37/native-backup/v1") &&
-            Manifest->TryGetStringField(TEXT("head"), Head) &&
-            Head == ExpectedHead &&
-            Manifest->TryGetBoolField(TEXT("verified"), bVerified) && bVerified &&
-            Manifest->TryGetNumberField(TEXT("source_count"), SourceCount) &&
-            SourceCount == 22 &&
-            Manifest->TryGetNumberField(TEXT("output_count"), OutputCount) &&
-            OutputCount == 2 &&
-            Manifest->TryGetArrayField(TEXT("files"), Files) &&
-            Files && Files->Num() == 24;
+        TArray<FString> BackupPaths;
+        if (!ARMCLEAN064X371::ValidateReceipt(Manifest, ExpectedHead, BackupPaths))
+        {
+            return false; // Exact 22 sources, 2 targets, unique paths and SHA tokens.
+        }
+
+        const FString SnapshotDirectory = FPaths::GetPath(AbsoluteBackup);
+        for (const FString& Relative : BackupPaths)
+        {
+            // Relative is taken from a closed literal allowlist, never a free
+            // user supplied path or an unverified manifest traversal.
+            const FString Live = FPaths::Combine(Project, Relative);
+            const FString Backup = FPaths::Combine(SnapshotDirectory, Relative);
+            TArray<uint8> LiveBytes;
+            TArray<uint8> BackupBytes;
+            if (!FFileHelper::LoadFileToArray(LiveBytes, *Live) ||
+                !FFileHelper::LoadFileToArray(BackupBytes, *Backup) ||
+                LiveBytes != BackupBytes)
+            {
+                return false; // Never write if even one byte cannot be restored.
+            }
+        }
+        return true;
     }
 
     bool SaveNativeCatalogue(UObject* Asset)

@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.37.1 — sauvegardes natives X.38 : garde-fou renforcé
+
+**Parent :** `5071d6eb4cf65b76e8f8bcd3f9bae1fc37d54687`. Rapport : [ARM_CLEAN06_4X371_BACKUP_RECEIPT_GUARD.md](ARM_CLEAN06_4X371_BACKUP_RECEIPT_GUARD.md).
+
+Le mode `-Apply` du commandlet natif X.37 exige désormais les 24 chemins uniques exacts, leurs identifiants SHA-256 bien formés et une comparaison octet par octet entre les 24 backups privés et les fichiers actifs avant le premier SavePackage. Tests Automation de refus de reçu incomplet, duplicata, sortie de répertoire, hash malformé et HEAD erroné. Le script PowerShell conserve son contrôle SHA-256 propre. **Pas d'exécution Apply ni de modification de .uasset/SaveGame, 06.4 partielle et 06.5 bloquée. Vérifier deux statuts Windows sur SHA final.**
+
 ## ARM-CLEAN06.4X.37 — migrateur natif des 22 profils ARM, code seulement
 
 **Parent :** 1ba63f264892b20e4fc5eb72ce39998a86fb7d7b. Rapport : [ARM_CLEAN06_4X37_NATIVE_ARM_WORLD_PROFILES.md](ARM_CLEAN06_4X37_NATIVE_ARM_WORLD_PROFILES.md).
