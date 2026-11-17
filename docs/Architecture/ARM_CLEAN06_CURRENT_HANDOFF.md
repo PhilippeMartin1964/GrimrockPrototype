@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.37 — migrateur natif des 22 profils ARM, code seulement
+
+**Parent :** 1ba63f264892b20e4fc5eb72ce39998a86fb7d7b. Rapport : [ARM_CLEAN06_4X37_NATIVE_ARM_WORLD_PROFILES.md](ARM_CLEAN06_4X37_NATIVE_ARM_WORLD_PROFILES.md).
+
+Nouveau commandlet Editor-only GridArmClean064X37NativeArmWorldProfiles : jointure fermée de 22 anciennes armes à leurs 22 profils visuels et 82 archétypes canoniques, copie exacte en mémoire des 8 propriétés visuelles persistantes et 2 propriétés physiques. Preflight et Verify sont en lecture seule ; Apply exige une intervention native explicite avec 24 sauvegardes SHA-256 privées, pour deux catalogues .uasset seulement. Le script ne se lance pas par LocalAuto et ne publie pas de commit. Régression sur sources UE réelles et copies transitoires. **Aucun profil réel migré dans le commit de code X.37 ; X.38 pour les binaires. 06.4 partielle ; 06.5 bloquée ; vérifier les deux validations Windows.**
+
 ## ARM-CLEAN06.4X.36 — projectile pointerless complet (mesh, lumière, Niagara)
 
 **Parent :** `871f26100e50fbebed254062dc3c54dd1d7075df`. Rapport : [ARM_CLEAN06_4X36_POINTERLESS_PROJECTILE_PRESENTATION.md](ARM_CLEAN06_4X36_POINTERLESS_PROJECTILE_PRESENTATION.md).
