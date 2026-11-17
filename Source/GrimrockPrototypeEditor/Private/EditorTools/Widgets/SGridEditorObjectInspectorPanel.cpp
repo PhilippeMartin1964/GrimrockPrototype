@@ -18,6 +18,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
 #include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
+#include "EditorTools/GridEditorCanonicalLockRuleAuthoring.h"
 #include "EditorTools/GridEditorCanonicalReceptacleInitialAuthoring.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "NiagaraSystem.h"
@@ -1877,7 +1878,9 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLockBehaviorSection(FG
 	const bool bOverrideKeys = Overrides.bOverrideAcceptedKeys;
 
 	TSharedRef<SVerticalBox> KeyAssets = SNew(SVerticalBox);
-	if (bOverrideKeys)
+	// Canonical IDs are the effective lock authority. The old UObject
+	// picker remains available ONLY for an explicitly legacy-only list.
+	if (bOverrideKeys && Lock.AcceptedKeyIds.IsEmpty())
 	{
 		for (int32 Index = 0; Index < Overrides.AcceptedKeys.AcceptedKeyItems.Num(); ++Index)
 		{
@@ -1999,8 +2002,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLockBehaviorSection(FG
 		}
 	}
 
-	const TArray<TObjectPtr<UGridItemDefinitionAsset>> DefaultKeyItems = Definition->DefaultBehavior.Lock.AcceptedKeyItems;
-	const TArray<FName> DefaultKeyIds = Definition->DefaultBehavior.Lock.AcceptedKeyIds;
+	const FGridLockBehaviorParams DefaultLock = Definition->DefaultBehavior.Lock;
 
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
@@ -2018,15 +2020,27 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLockBehaviorSection(FG
 			FText::FromString(TEXT("Override Accepted Keys")),
 			SNew(SCheckBox)
 				.IsChecked(bOverrideKeys ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-				.OnCheckStateChanged_Lambda([this, ObjectId, DefaultKeyItems, DefaultKeyIds](ECheckBoxState State)
+				.OnCheckStateChanged_Lambda([this, ObjectId, DefaultLock](ECheckBoxState State)
 				{
-					EditWorldObjectConfig(ObjectId, [State, DefaultKeyItems, DefaultKeyIds](FGridWorldObjectInstanceConfig& Config)
+					const bool bEnableOverride = State == ECheckBoxState::Checked;
+					FGridLockAcceptedKeyInstanceRuleValues CanonicalKeys;
+					if (bEnableOverride)
 					{
-						const bool bEnableOverride = State == ECheckBoxState::Checked;
+						AGridLevelEditorActor* EditorActor = GetEditorActor();
+						const UGridItemSubsystem* Registry = EditorActor
+							? EditorActor->ResolveEditorItemRegistry() : nullptr;
+						if (!FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(
+							Registry, DefaultLock, CanonicalKeys))
+						{
+							UE_LOG(LogTemp, Warning, TEXT("Lock override refused: unable to materialize the existing accepted key set."));
+							return;
+						}
+					}
+					EditWorldObjectConfig(ObjectId, [bEnableOverride, CanonicalKeys](FGridWorldObjectInstanceConfig& Config)
+					{
 						if (bEnableOverride && !Config.InteractionOverrides.bOverrideAcceptedKeys)
 						{
-							Config.InteractionOverrides.AcceptedKeys.AcceptedKeyItems = DefaultKeyItems;
-							Config.InteractionOverrides.AcceptedKeys.AcceptedKeyIds = DefaultKeyIds;
+							Config.InteractionOverrides.AcceptedKeys = CanonicalKeys;
 						}
 						Config.InteractionOverrides.bOverrideAcceptedKeys = bEnableOverride;
 					});

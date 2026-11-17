@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.50 — copie canonique des clés de serrure dans les nouveaux overrides
+
+**Parent :** `336ad30a946284bca1af58a5178eb57836ec681c`. Rapport : [ARM_CLEAN06_4X50_POINTERLESS_LOCK_OVERRIDE_AUTHORING.md](ARM_CLEAN06_4X50_POINTERLESS_LOCK_OVERRIDE_AUTHORING.md).
+
+L'inspecteur verrouille désormais la recopie de `AcceptedKeyItems` lorsque l'utilisateur active l'override de serrure : un helper Editor-only projette atomiquement les sources historiques enregistrées en `AcceptedKeyIds` via le preview X.165, sans ajouter de pointeurs dans le placement. Les IDs scriptés existants restent préservés, une source absente ou non enregistrée refuse la transaction, et le picker legacy n'est plus accessible lorsqu'une liste canonique explicite est autoritaire. Nouveau test X.50, y compris les deux vrais DataAssets Copper/Iron en lecture seule. **Aucune conversion native ni SaveGame écrits.** X.48 a confirmé 63 pointeurs restants ; 06.4 partielle / 06.5 bloquée. Vérifier les deux statuts Windows du SHA X.50.
+
 ## ARM-CLEAN06.4X.49 — nouvelles règles de réceptacle pointerless
 
 **Parent :** `e2f4db137dc21b3e27797bd8abe5470ac19eab28`. Rapport : [ARM_CLEAN06_4X49_POINTERLESS_RECEPTACLE_RULE_AUTHORING.md](ARM_CLEAN06_4X49_POINTERLESS_RECEPTACLE_RULE_AUTHORING.md).
