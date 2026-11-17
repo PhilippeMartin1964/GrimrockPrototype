@@ -476,16 +476,29 @@ bool AGridReceptacleActor::EvaluateItemAcceptance(const FGridItemInstance& Item,
 	{
 		return Reject(EGridReceptacleRejectReason::Full);
 	}
+	// Preserve authored rule precedence: an unlisted item still fails
+	// NoMatchingAcceptanceRule (even if its physical level is invalid).
+	// Only a *matching* rule needs the stricter world-instance preflight.
+	const bool bListedItem = AcceptedItemDefinitionIds.Contains(Item.ItemDefinitionId);
+	if (!bAcceptAnyItem && !bListedItem)
+	{
+		return Reject(EGridReceptacleRejectReason::NoMatchingAcceptanceRule);
+	}
+	// Match the physical-instance check performed by AddContainedItem.
+	// Otherwise an ARM at N0 or a non-ARM at N1 appears insertable in
+	// cursor/UI preflight even though the real insertion fails closed.
+	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
+	if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId) &&
+		!FGridReceptacleItemMetadataReadModel::Resolve(
+			Registry, nullptr, Item.ItemDefinitionId, Item.ItemLevel, false).bResolved)
+	{
+		return Reject(EGridReceptacleRejectReason::InvalidItem);
+	}
 	if (bAcceptAnyItem)
 	{
 		return Accept(TEXT("accepted by accept any"), TEXT("true"));
 	}
-	if (AcceptedItemDefinitionIds.Contains(Item.ItemDefinitionId))
-	{
-		return Accept(TEXT("accepted item definition"), Item.ItemDefinitionId.ToString());
-	}
-
-	return Reject(EGridReceptacleRejectReason::NoMatchingAcceptanceRule);
+	return Accept(TEXT("accepted item definition"), Item.ItemDefinitionId.ToString());
 }
 
 bool AGridReceptacleActor::CanAcceptCursorItemFromParty(const AGrimrockPartyPawn* PartyPawn) const

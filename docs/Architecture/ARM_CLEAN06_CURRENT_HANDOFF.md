@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.32 — précontrôle physique d'insertion cohérent
+
+**Parent :** `4f1f58913b21301a8dc10edbee25727605a06ee1`. Rapport : [ARM_CLEAN06_4X32_RECEPTACLE_PHYSICAL_ACCEPTANCE_PREFLIGHT.md](ARM_CLEAN06_4X32_RECEPTACLE_PHYSICAL_ACCEPTANCE_PREFLIGHT.md).
+
+`EvaluateItemAcceptance` refuse désormais un ARM enregistré N0 ou un non-ARM enregistré N1 dès le précontrôle de curseur, sans faux signal « accepté » avant le rejet par `AddContainedItem`. Le refus reste `InvalidItem` ; les objets réellement hors registre et les priorités `InsertionDisabled`/`Full`/`NoMatchingAcceptanceRule` conservent leur comportement (règle historique X.16.1). Aucun changement de `ResolveItem` (projections non-ARM N1 historiquement permises), aucun binaire UE ni SaveGame. **06.4 partielle ; 06.5 bloquée ; attendre les deux contrôles Windows du SHA final.**
+
 ## ARM-CLEAN06.4X.31 — condition de type dans les réceptacles ARM canoniques
 
 **Parent :** `54f547b0802715492a8e0cb73639cbb85def501a`. Rapport : [ARM_CLEAN06_4X31_CANONICAL_RECEPTACLE_ITEM_TYPE.md](ARM_CLEAN06_4X31_CANONICAL_RECEPTACLE_ITEM_TYPE.md).
