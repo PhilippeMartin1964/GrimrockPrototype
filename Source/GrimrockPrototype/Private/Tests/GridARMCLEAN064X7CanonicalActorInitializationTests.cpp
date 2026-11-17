@@ -167,6 +167,29 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
                 return false;
             }
         }
+        else
+        {
+            // A levelled non-ARM family may still resolve for legacy
+            // readers, but it is never a valid physical world actor.
+            FGridItemInstance Invalid = Instance;
+            Invalid.ItemLevel = 1;
+            FGridResolvedItem FamilyRead;
+            if (!TestTrue(TEXT("Legacy non-ARM N1 family read remains available"),
+                    Registry->ResolveItem(Invalid.ItemDefinitionId, 1, FamilyRead)) ||
+                !TestFalse(TEXT("Non-ARM N1 cannot materialize an actor"),
+                    Actor->InitializeFromCanonicalItem(Invalid, Registry.Get())) ||
+                !TestEqual(TEXT("Failed non-ARM initialization preserves physical N0"),
+                    Actor->CanonicalWorldItemLevel, 0) ||
+                !TestEqual(TEXT("Failed non-ARM initialization preserves ItemId"),
+                    Actor->GetItemDefinitionId(), Instance.ItemDefinitionId) ||
+                !TestEqual(TEXT("Failed non-ARM initialization preserves GUID"),
+                    Actor->GetRuntimeObjectId(), Instance.RuntimeObjectId) ||
+                !TestTrue(TEXT("Failed non-ARM initialization keeps original presentation"),
+                    Actor->CanonicalWorldPresentation.IsValid()))
+            {
+                return false;
+            }
+        }
 
         FGridItemInstance Unknown = Instance;
         Unknown.ItemDefinitionId = FName(TEXT("ARM_CLEAN064X7_MissingItem"));

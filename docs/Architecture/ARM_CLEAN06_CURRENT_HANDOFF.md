@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.33 — acteurs physiques non-ARM uniquement N0
+
+**Parent :** `d4d329415b46ff33039adace55a6fdeac1909a26`. Rapport : [ARM_CLEAN06_4X33_CANONICAL_WORLD_ACTOR_PHYSICAL_LEVEL.md](ARM_CLEAN06_4X33_CANONICAL_WORLD_ACTOR_PHYSICAL_LEVEL.md).
+
+`AGridItemActor::InitializeFromCanonicalItem` ne peut plus matérialiser une famille non-ARM à N1–N20 malgré la compatibilité historique de `ResolveItem` pour les lectures de famille. Refus avant toute mutation d'identité, GUID, niveau ou présentation. Régression étendue au test des 34 définitions réelles : 22 ARM N1, 12 non-ARM N0 avec refus N1. Aucune écriture `.uasset`, `.umap` ou SaveGame. **06.4 partielle ; 06.5 bloquée ; attendre deux statuts Windows sur SHA final.**
+
 ## ARM-CLEAN06.4X.32 — précontrôle physique d'insertion cohérent
 
 **Parent :** `4f1f58913b21301a8dc10edbee25727605a06ee1`. Rapport : [ARM_CLEAN06_4X32_RECEPTACLE_PHYSICAL_ACCEPTANCE_PREFLIGHT.md](ARM_CLEAN06_4X32_RECEPTACLE_PHYSICAL_ACCEPTANCE_PREFLIGHT.md).
