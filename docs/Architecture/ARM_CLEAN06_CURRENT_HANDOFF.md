@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.29 — serrure : priorité aux IDs de clés autorisés
+
+**Parent :** `474e622472fcb15a2f6a85f0ca0730d626a55a61`. Rapport : [ARM_CLEAN06_4X29_CANONICAL_WALL_LOCK_KEYS.md](ARM_CLEAN06_4X29_CANONICAL_WALL_LOCK_KEYS.md).
+
+`AGridWallLockActor` accepte maintenant exactement les `AcceptedKeyIds` lorsqu'ils sont explicitement renseignés, sans union permissive avec les anciens pointeurs `AcceptedKeyItems`. Les serrures historiques sans ID explicite conservent leur branche d'origine. Test d'acteur transitoire cuivre/fer, legacy-only et IDs malformés. Aucun asset de serrure ou SaveGame écrit. **06.4 partielle ; 06.5 bloquée ; vérifier les statuts Windows exacts.**
+
 ## ARM-CLEAN06.4X.28 — palette C++ directement canonique sans ancien DataAsset
 
 **Parent :** `0ca06dfbd351b364830e233762bf843ee87786ba`. Rapport : [ARM_CLEAN06_4X28_POINTERLESS_CANONICAL_PALETTE.md](ARM_CLEAN06_4X28_POINTERLESS_CANONICAL_PALETTE.md).

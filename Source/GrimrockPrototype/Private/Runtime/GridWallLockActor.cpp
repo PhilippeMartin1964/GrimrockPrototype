@@ -4,6 +4,7 @@
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "GridWallLockAcceptedKeyReadModel.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -48,21 +49,9 @@ void AGridWallLockActor::InitializeRuntimeWorldObject(
 	MaxContainedItems = 1;
 	SetCanRemoveItem(false);
 
-	AcceptedKeyDefinitionIds.Reset();
-	for (const UGridItemDefinitionAsset* AcceptedKeyItem : LockParams.AcceptedKeyItems)
-	{
-		if (AcceptedKeyItem && !AcceptedKeyItem->ItemDefinitionId.IsNone())
-		{
-			AcceptedKeyDefinitionIds.AddUnique(AcceptedKeyItem->ItemDefinitionId);
-		}
-	}
-	for (const FName AcceptedKeyId : LockParams.AcceptedKeyIds)
-	{
-		if (!AcceptedKeyId.IsNone())
-		{
-			AcceptedKeyDefinitionIds.AddUnique(AcceptedKeyId);
-		}
-	}
+	// Once the lock has explicitly authored accepted ItemIds, its old
+	// asset pointers cannot silently extend the set of keys that unlock it.
+	AcceptedKeyDefinitionIds = FGridWallLockAcceptedKeyReadModel::Resolve(LockParams);
 
 	UE_LOG(LogGridWallLock, Log,
 		TEXT(
