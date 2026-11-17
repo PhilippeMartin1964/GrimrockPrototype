@@ -11,6 +11,7 @@
 
 class UNiagaraSystem;
 class USoundBase;
+class UMaterialInterface;
 class UStaticMesh;
 class UTexture2D;
 
@@ -406,6 +407,32 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponVisual
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	FTransform WorldTransform = FTransform::Identity;
 
+	/** Persistent pickup presentation, independent of attack SFX/VFX.
+	 * Existing UE assets retain default values until verified native migration. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|World")
+	FGridLightEmitterConfig LightEmitter;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|World")
+	FGridItemVisualEffectsConfig VisualEffects;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|Sparkle")
+	bool bEnableWorldSparkle = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|Sparkle")
+	TSoftObjectPtr<UMaterialInterface> WorldSparkleMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|Sparkle")
+	FLinearColor WorldSparkleColor = FLinearColor(1.f, 0.78f, 0.42f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|Sparkle", meta = (ClampMin = "0.0"))
+	float WorldSparkleIntensity = 2.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|Sparkle", meta = (ClampMin = "0.0"))
+	float WorldSparkleSpeed = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|Sparkle", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float WorldSparkleVariation = 0.35f;
+
 	/** Appearance only: cannot influence combat statistics or ItemLevel. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	TArray<FName> LevelFinishIds;
@@ -596,6 +623,14 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponArchetype
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	EGridCanonicalHandPolicy HandPolicy = EGridCanonicalHandPolicy::MainHand;
+
+	/** World pickup physical policy, per archetype rather than shared VisualId.
+	 * Numeric mass remains the concrete item's WeightKg. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|World Physics")
+	bool bUseItemWeightAsWorldPhysicsMass = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|World Physics", meta = (ClampMin = "0.0", ClampMax = "45.0"))
+	float WorldPhysicsInitialTiltDegrees = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	EGridDamageType DamageType = EGridDamageType::Physical;

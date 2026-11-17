@@ -170,6 +170,20 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		OutItem.bIsArmament = true;
 		OutItem.WorldMesh = Visual->WorldMesh;
 		OutItem.WorldVisualTransform = Visual->WorldTransform;
+		// World pickup presentation comes from this one visual catalogue.
+		// Current legacy-backed ARM placements do not switch to it yet.
+		OutItem.LightEmitter = Visual->LightEmitter;
+		OutItem.VisualEffects = Visual->VisualEffects;
+		OutItem.bEnableWorldSparkle = Visual->bEnableWorldSparkle;
+		OutItem.WorldSparkleMaterial = Visual->WorldSparkleMaterial;
+		OutItem.WorldSparkleColor = Visual->WorldSparkleColor;
+		OutItem.WorldSparkleIntensity = Visual->WorldSparkleIntensity;
+		OutItem.WorldSparkleSpeed = Visual->WorldSparkleSpeed;
+		OutItem.WorldSparkleVariation = Visual->WorldSparkleVariation;
+		// Physical world-pickup policy belongs to the ARM archetype, because
+		// several weapons may share a visual without sharing their physics.
+		OutItem.bUseItemWeightAsWorldPhysicsMass = Archetype->bUseItemWeightAsWorldPhysicsMass;
+		OutItem.WorldPhysicsInitialTiltDegrees = Archetype->WorldPhysicsInitialTiltDegrees;
 		// The legacy visual resolver uses WorldMesh for a missing equipped mesh.
 		// Keep this transient resolution: do not serialize a second mesh pointer.
 		OutItem.EquippedMesh = Visual->EquippedMesh.IsNull() ?

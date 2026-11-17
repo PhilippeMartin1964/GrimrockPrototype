@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/Engine.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -198,6 +199,49 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
             ArmActor->GetItemDefinitionId(), Arm.CanonicalItemId))
     {
         return false;
+    }
+
+    // 4X20: a copied, already-canonical ARM placement without its historical
+    // DA_Weapon is resolvable at N1/N20. Real authored ARM rows keep their old
+    // source unchanged until the visual asset migration.
+    for (const int32 Level : {1, 20})
+    {
+        FGridLooseItemInstance Pointerless = Arm;
+        Pointerless.ItemDefinition = nullptr;
+        Pointerless.ItemLevel = Level;
+        Pointerless.InstanceId = FGuid::NewGuid();
+        Pointerless.CellX = 0;
+        Pointerless.CellY = 0;
+        Pointerless.SurfaceSide = EGridEdge::None;
+        Pointerless.LocalOffset = FVector::ZeroVector;
+        Pointerless.LocalYaw = 0.f;
+        F.Runtime->AddPlacedItemActor(Pointerless);
+        AGridItemActor* Canonical = F.FindItem(Pointerless.InstanceId);
+        FGridResolvedItem Projection;
+        if (!TestNotNull(TEXT("Pointerless ARM actor is spawned"), Canonical) ||
+            !TestTrue(TEXT("Pointerless ARM physical level is registered"),
+                F.Registry->ResolveItem(Pointerless.CanonicalItemId, Level, Projection)) ||
+            !TestNull(TEXT("Canonical ARM actor has no legacy definition"),
+                Canonical->GetItemDefinitionAsset()) ||
+            !TestEqual(TEXT("Canonical ARM runtime GUID unchanged"),
+                Canonical->GetRuntimeObjectId(), Pointerless.InstanceId) ||
+            !TestEqual(TEXT("Canonical ARM N level unchanged"),
+                Canonical->CanonicalWorldItemLevel, Level) ||
+            !TestEqual(TEXT("Canonical ARM ItemId unchanged"),
+                Canonical->GetItemDefinitionId(), Pointerless.CanonicalItemId) ||
+            !TestTrue(TEXT("Canonical ARM presentation is transient"),
+                Canonical->CanonicalWorldPresentation.IsValid()) ||
+            !TestTrue(TEXT("Canonical ARM world mesh from visual catalogue"),
+                Canonical->MeshComponent->GetStaticMesh() == Projection.WorldMesh.LoadSynchronous()) ||
+            !TestEqual(TEXT("Canonical ARM persistent Niagara configuration"),
+                Canonical->VisualEffectsComponent->GetConfiguredEffectCount(),
+                Projection.VisualEffects.Effects.Num()) ||
+            !TestEqual(TEXT("Canonical ARM light configuration"),
+                Canonical->LightEmitterComponent->RuntimeConfig.bUsePointLight,
+                Projection.LightEmitter.bUsePointLight))
+        {
+            return false;
+        }
     }
 
     // Every refusal must occur BEFORE the transient actor is created.

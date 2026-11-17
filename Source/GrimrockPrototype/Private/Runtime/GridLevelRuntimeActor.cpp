@@ -2175,17 +2175,11 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 			*ObjectData.InstanceId.ToString());
 		return;
 	}
-	// ARM lighting/presentation still needs its dedicated cutover; do not
-	// silently discard its existing effects. Non-ARM source data is fully
-	// projected and may use the canonical actor initializer immediately.
-	const bool bCanonicalNonArm = bPersistedCanonical && !Canonical.bIsArmament;
-	if (bPersistedCanonical && Canonical.bIsArmament && !IsValid(ItemDefinition))
-	{
-		UE_LOG(LogGridLevelRuntime, Warning,
-			TEXT("Placed ARM item skipped until ARM visual cutover: %s."),
-			*ItemDefinitionId.ToString());
-		return;
-	}
+	// Existing authored ARM definitions retain their presentation until
+	// the native visual asset cutover. A pointerless canonical ARM can use
+	// the registered physical presentation without inventing a DA_Weapon.
+	const bool bCanonicalPresentation = bPersistedCanonical &&
+		(!Canonical.bIsArmament || !IsValid(ItemDefinition));
 	const FGridReceptacleItemMetadataReadView LevelRead = bPersistedCanonical
 		? FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry, nullptr, ItemDefinitionId, ObjectData.ItemLevel)
@@ -2200,7 +2194,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	}
 	const int32 ResolvedItemLevel = LevelRead.FixedItemLevel;
 	AGridItemActor* ItemActor = SpawnItemActorForDefinition(
-		bCanonicalNonArm ? nullptr : ItemDefinition, ItemDefinitionId, this, nullptr);
+		bCanonicalPresentation ? nullptr : ItemDefinition, ItemDefinitionId, this, nullptr);
 	if (!ItemActor)
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
@@ -2215,12 +2209,12 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	PlacedVisualItem.ItemDefinitionId = ItemDefinitionId;
 	PlacedVisualItem.ItemLevel = ResolvedItemLevel;
 	PlacedVisualItem.Quantity = FMath::Max(1, ObjectData.Quantity);
-	if (bCanonicalNonArm)
+	if (bCanonicalPresentation)
 	{
 		if (!ItemActor->InitializeFromCanonicalItem(PlacedVisualItem, Registry))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning,
-				TEXT("Placed non-ARM canonical item skipped: initialization failed %s."),
+				TEXT("Placed canonical item skipped: initialization failed %s."),
 				*ItemDefinitionId.ToString());
 			ItemActor->Destroy();
 			return;
@@ -2243,9 +2237,8 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	ItemActor->SetRuntimeCell(ObjectData.CellX, ObjectData.CellY);
 	ItemActor->ApplyWorldPhysicsInitialNudge();
 	ItemActor->ConfigureAsWorldPickup();
-	// Fresh placed light state is from the authoritative family. Existing
-	// ARM authors remain on their old light source until that visual cutover.
-	ItemActor->SetItemLightsEnabled(bCanonicalNonArm
+	// Existing ARM with a serialized definition retains its authored lighting.
+	ItemActor->SetItemLightsEnabled(bCanonicalPresentation
 		? Canonical.LightEmitter.bDefaultEnabled
 		: ItemDefinition->IsLightEnabledByDefault());
 	SpawnedItemActors.Add(ItemActor);

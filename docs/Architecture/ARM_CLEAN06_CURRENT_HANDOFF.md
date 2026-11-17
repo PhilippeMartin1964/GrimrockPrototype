@@ -5,6 +5,15 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.20 — présentation physique ARM prête côté C++ (17 novembre 2026)
+
+**Parent :** 0e8da96346ed897b5844a340af8e65f3ff6ef061. **Pas de modification des assets binaires ni des sauvegardes.**
+Rapport : [ARM_CLEAN06_4X20_ARM_WORLD_PRESENTATION_PRECUTOVER.md](ARM_CLEAN06_4X20_ARM_WORLD_PRESENTATION_PRECUTOVER.md).
+
+Le VisualCatalogue ARM possède désormais les champs persistants de lumière, Niagara et sparkle ; le WeaponCatalogue porte la politique physique de pickup par archétype. UGridItemSubsystem projette les deux sans copie de masse. AddPlacedItemActor accepte un ARM portant CanonicalItemId à N1/N20 sans pointeur historique, testé sur copies transitoires. **Les armes réellement authorées avec leur ancien ItemDefinition gardent leur ancienne présentation jusqu'à la migration native des 22 profils visuels et des politiques physiques des archétypes actifs ; leur comportement n'est pas basculé par ce jalon.**
+
+**06.4 encore partielle, 06.5 bloquée.** Vérifier UE5.5.4/SilentTask et UE5.5.4/LocalAuto sur le SHA de X.20. Le prochain verrou est la preuve et migration native par Unreal des paramètres persistants, pas un nouveau gros audit Codex. L'audit X.19 et son issue #182 restent valables.
+
 ## ARM-CLEAN06.4X.19 — audit natif UE terminé sur le périmètre, sortie 06.4 toujours bloquée
 
 Audit natif du contenu de `ae6742b1694355bc71c3a49a4b2d6f7a408fa69d` (code fonctionnel
