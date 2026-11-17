@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.35 — refus du spawn physique non-ARM N1
+
+**Parent :** `e41a6b89e87f8c3e2799d9674f9b32d9cb9fac11`. Rapport : [ARM_CLEAN06_4X35_PHYSICAL_THROW_SPAWN_LEVEL.md](ARM_CLEAN06_4X35_PHYSICAL_THROW_SPAWN_LEVEL.md).
+
+La porte de spawn des objets lancés vérifie maintenant le niveau physique strict pour tout ItemId enregistré, même si un ancien `ItemDefinition` correspondant prétend autoriser le lancer. Un non-ARM N1 ne peut plus voler avec un ancien mesh puis échouer à l'atterrissage ; les ARM N1–N20, non-ARM N0 et véritables IDs historiques hors registre sont préservés. Test runtime de spawn avec registre réel et définition contradictoire transitoire. Aucun binaire UE ni SaveGame écrit. **06.4 partielle, 06.5 bloquée ; attendre validations Windows sur SHA final.**
+
 ## ARM-CLEAN06.4X.34 — vol physique : les munitions sont N0
 
 **Parent :** `df36e7836d491b9db92f8c56f68f18af3ecbaa4f`. Rapport : [ARM_CLEAN06_4X34_CANONICAL_PROJECTILE_PHYSICAL_LEVEL.md](ARM_CLEAN06_4X34_CANONICAL_PROJECTILE_PHYSICAL_LEVEL.md).

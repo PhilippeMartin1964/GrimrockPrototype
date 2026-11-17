@@ -212,6 +212,23 @@ namespace ARMCLEAN063AV
             F.Runtime->SpawnThrownItemProjectile(Bad, Contradictory, Start, Velocity, 0, 0));
     }
 
+    // The general resolver retains non-ARM N1 family reads for legacy UI.
+    // A PHYSICAL arrow N1 must still be rejected before spawning, even if an
+    // old matching asset falsely advertises a valid hand-throw policy.
+    const FGridItemInstance BadArrow = F.Make(TEXT("Item_Arrows_01"), 1);
+    FGridResolvedItem N1Family;
+    Test.TestTrue(TEXT("Non-ARM N1 family read remains supported"),
+        F.Registry->ResolveItem(BadArrow.ItemDefinitionId, BadArrow.ItemLevel, N1Family));
+    UGridItemDefinitionAsset* MatchingLegacyArrow = NewObject<UGridItemDefinitionAsset>(F.Runtime);
+    MatchingLegacyArrow->ItemDefinitionId = BadArrow.ItemDefinitionId;
+    MatchingLegacyArrow->HandUsage = EGridItemHandUsage::OneHanded;
+    MatchingLegacyArrow->Weight = 0.25f;
+    MatchingLegacyArrow->ThrowSpeed = 1800.0f;
+    Test.TestTrue(TEXT("Legacy arrow fixture would otherwise be throwable"),
+        MatchingLegacyArrow->IsPhysicallyThrowable());
+    Test.TestNull(TEXT("Registered non-ARM N1 cannot launch via matching old pointer"),
+        F.Runtime->SpawnThrownItemProjectile(BadArrow, MatchingLegacyArrow, Start, Velocity, 0, 0));
+
     const FGridItemInstance Unknown = F.Make(TEXT("ARM063AV_Unknown"), 0);
     Test.TestNull(TEXT("Unknown item without old definition cannot spawn"),
         F.Runtime->SpawnThrownItemProjectile(Unknown, nullptr, Start, Velocity, 0, 0));

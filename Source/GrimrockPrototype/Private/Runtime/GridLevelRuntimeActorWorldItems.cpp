@@ -1127,6 +1127,12 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 	FGridResolvedItem Canonical;
 	const bool bCanonicalResolved = bCanonicalIdentity &&
 		SpawnRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, Canonical);
+	// A thrown item is a persisted physical instance, not a family-level
+	// compatibility query. A registered non-ARM N1 must not launch using an
+	// old throwable ItemDefinition even when ResolveItem permits its N1 read.
+	const bool bValidCanonicalPhysicalLevel = !bCanonicalIdentity ||
+		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
+			SpawnRegistry, nullptr, ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel).bResolved;
 	const bool bCanonicalSpecialized = bCanonicalResolved && Canonical.bIsArmament &&
 		Canonical.Weapon.Projectile.bEnabled &&
 		FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) &&
@@ -1145,7 +1151,7 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 			? (bCanonicalSpecialized ||
 				(bCanonicalResolved && bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()))
 			: (bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()));
-	if (!ItemInstance.IsValid() || !bValidProjectileSource ||
+	if (!ItemInstance.IsValid() || !bValidCanonicalPhysicalLevel || !bValidProjectileSource ||
 		LaunchVelocity.IsNearlyZero() || !IsWalkableCell(SourceCellX, SourceCellY))
 	{
 		return nullptr;
