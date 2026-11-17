@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.46 — outil UE natif pour 44 objets libres (code seulement)
+
+**Parent :** `5e79797e8234ccf392642350a84d7d30aff10818`. Rapport : [ARM_CLEAN06_4X46_NATIVE_LOOSE_PROTECTED_APPLY.md](ARM_CLEAN06_4X46_NATIVE_LOOSE_PROTECTED_APPLY.md).
+
+Nouveau commandlet Editor-only `GridArmClean064X46NativeLoosePointers` et script PowerShell `ApplyARM_CLEAN06_4X46_NativeLoosePointers.ps1` : préflight/verify lecture seule, Apply no-op si zéro ancien pointeur, sinon 44 exactement, backup privé SHA256, refus des niveaux/identités invalides, SavePackage limité **exclusivement** à `DA_GridLevel_00.uasset`. La publication binaire n'est déclenchée que par `-Apply -Publish` explicite, après réouverture UE, contrôle mono-fichier et suite Grimrock complète ; aucune tâche automatique ne la lance. Les packages réceptacles/palette, trois overrides, autres niveaux et SaveGame v27 restent protégés. **Le commit de code ne réalise pas la migration native.** Deux statuts Windows requis avant le préflight local. 06.4 partielle / 06.5 bloquée.
+
 ## ARM-CLEAN06.4X.45 — préflight natif, 44 références d'objets libres (sans écriture)
 
 **Parent :** `9f72e6e8094b66760ad0b9d1166f0a82bf083197`. Rapport : [ARM_CLEAN06_4X45_NATIVE_LOOSE_POINTER_PREFLIGHT.md](ARM_CLEAN06_4X45_NATIVE_LOOSE_POINTER_PREFLIGHT.md).
