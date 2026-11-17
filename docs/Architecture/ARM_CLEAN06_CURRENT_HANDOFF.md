@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.24 — kits de départ explicitement canoniques sans ancien asset
+
+**Parent :** `3d353420e9fb1d61403e6a6b4f7981b50e880eeb`. Rapport : [ARM_CLEAN06_4X24_POINTERLESS_CANONICAL_STARTING_KITS.md](ARM_CLEAN06_4X24_POINTERLESS_CANONICAL_STARTING_KITS.md).
+
+`FRPGStartingEquipmentEntry.CanonicalItemId` est une nouvelle option d'authoring non activée par les presets actuels. Les entrées explicitement canoniques peuvent être accordées sans `ItemDefinition` en respectant ItemId, niveau physique, quantité, main, lumière et transaction complète, avec régression N20/N0/invalides et conflit deux mains. Les anciens kits C++ ne sont pas modifiés ; certaines recettes d'alchimie sont hors registre. Aucun asset UE/SaveGame modifié. **06.4 partielle, 06.5 bloquée ; vérifier SilentTask + LocalAuto sur le commit.**
+
 ## ARM-CLEAN06.4X.23 — torche tenue et lumière de groupe sans ancienne définition
 
 **Parent :** `7f5f5ae4045f93e273fc904e351502dd580084eb`. [Rapport X.23](ARM_CLEAN06_4X23_POINTERLESS_HELD_TORCH_LIGHT.md).

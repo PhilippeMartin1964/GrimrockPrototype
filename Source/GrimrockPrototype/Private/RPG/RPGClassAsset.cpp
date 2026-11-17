@@ -272,7 +272,12 @@ bool URPGClassAsset::IsValidDefinition() const
 		SeenKitIds.Add(Kit.KitId);
 		for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
 		{
-			if (!IsValid(Entry.ItemDefinition.Get()) || Entry.ItemLevel < 0 || Entry.ItemLevel > 20 || Entry.Quantity < 1 ||
+			const bool bExplicitCanonical = !Entry.CanonicalItemId.IsNone();
+			const UGridItemDefinitionAsset* Old = Entry.ItemDefinition.Get();
+			if ((!bExplicitCanonical && !IsValid(Old)) ||
+				(bExplicitCanonical && IsValid(Old) &&
+					Old->ItemDefinitionId != Entry.CanonicalItemId) ||
+				Entry.ItemLevel < 0 || Entry.ItemLevel > 20 || Entry.Quantity < 1 ||
 				(Entry.TargetSlot != EGridEquipmentSlot::None && Entry.Quantity != 1))
 			{
 				return false;

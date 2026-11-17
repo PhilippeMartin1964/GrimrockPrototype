@@ -1,0 +1,201 @@
+#if WITH_DEV_AUTOMATION_TESTS
+
+#include "Misc/AutomationTest.h"
+#include "Engine/GameInstance.h"
+#include "RPG/RPGClassAsset.h"
+#include "RPG/RPGStartingEquipmentService.h"
+#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "UObject/StrongObjectPtr.h"
+
+namespace ARMCLEAN064X24
+{
+	static FRPGStartingEquipmentEntry& Add(
+		URPGClassAsset* Class, FName ItemId, int32 Level,
+		EGridEquipmentSlot Slot = EGridEquipmentSlot::None, int32 Quantity = 1)
+	{
+		FRPGStartingEquipmentEntry& Entry =
+			Class->StartingEquipmentKits[0].Items.AddDefaulted_GetRef();
+		Entry.CanonicalItemId = ItemId;
+		Entry.ItemLevel = Level;
+		Entry.TargetSlot = Slot;
+		Entry.Quantity = Quantity;
+		return Entry;
+	}
+
+	static FGridCharacterInventoryState NewCharacter()
+	{
+		FGridCharacterInventoryState Character;
+		Character.CharacterId = FGuid::NewGuid();
+		Character.InventorySlots.SetNum(6);
+		return Character;
+	}
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X24PointerlessKits,
+	"Grimrock.RPG.ARM.CLEAN06_4X24.PointerlessCanonicalStartingKit",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean064X24PointerlessKits::RunTest(const FString&)
+{
+	TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
+		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
+					  "DA_ItemSystem.DA_ItemSystem")));
+	if (!TestNotNull(TEXT("Real ItemSystem"), Root.Get())) { return false; }
+	TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+	TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+	TArray<FString> Errors;
+	if (!TestTrue(TEXT("Canonical register initialized"),
+		Registry->RegisterItemSystem(Root.Get(), Errors)))
+	{
+		for (const FString& E : Errors) { AddError(E); }
+		return false;
+	}
+
+	TStrongObjectPtr<URPGClassAsset> Class(NewObject<URPGClassAsset>());
+	Class->ClassId = TEXT("Warrior");
+	FRPGStartingEquipmentKit& Kit = Class->StartingEquipmentKits.AddDefaulted_GetRef();
+	Kit.KitId = TEXT("X24_PointerlessKit");
+	ARMCLEAN064X24::Add(Class.Get(), TEXT("Weapon_Dagger_01"), 20,
+		EGridEquipmentSlot::MainHand);
+	ARMCLEAN064X24::Add(Class.Get(), TEXT("Item_Torch"), 0);
+	ARMCLEAN064X24::Add(Class.Get(), TEXT("Item_Arrows_01"), 0,
+		EGridEquipmentSlot::None, 3);
+
+	if (!TestTrue(TEXT("Class accepts explicitly canonical pointerless entries"),
+			Class->IsValidDefinition()))
+	{
+		return false;
+	}
+
+	FGridCharacterInventoryState Character = ARMCLEAN064X24::NewCharacter();
+	FGridCharacterEquipmentState Equipment;
+	TArray<UGridItemDefinitionAsset*> OldDefinitions;
+	FString Error;
+	if (!TestTrue(TEXT("Mixed N20 ARM / N0 non-ARM kit succeeds"),
+		FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
+			Character, Equipment, OldDefinitions, Error, Registry.Get())))
+	{
+		AddError(Error);
+		return false;
+	}
+
+	FGridResolvedItem Torch;
+	if (!TestTrue(TEXT("Real torch resolves"), Registry->ResolveItem(TEXT("Item_Torch"), 0, Torch)) ||
+		!TestTrue(TEXT("Old definition list stays empty"), OldDefinitions.IsEmpty()) ||
+		!TestEqual(TEXT("Chosen kit persisted"), Character.StartingEquipmentKitId, Kit.KitId) ||
+		!TestEqual(TEXT("ARM in main hand"), Equipment.MainHand.ItemDefinitionId,
+			FName(TEXT("Weapon_Dagger_01"))) ||
+		!TestEqual(TEXT("ARM physical N20 kept"), Equipment.MainHand.ItemLevel, 20) ||
+		!TestTrue(TEXT("ARM has stable instance GUID"), Equipment.MainHand.RuntimeObjectId.IsValid()) ||
+		!TestFalse(TEXT("No off hand invented"), Equipment.OffHand.IsValid()) ||
+		!TestEqual(TEXT("Torch in first bag slot"),
+			Character.InventorySlots[0].Item.ItemDefinitionId, FName(TEXT("Item_Torch"))) ||
+		!TestEqual(TEXT("Torch is N0"), Character.InventorySlots[0].Item.ItemLevel, 0) ||
+		!TestEqual(TEXT("Torch light source is canonical"),
+			Character.InventorySlots[0].Item.bLightsEnabled, Torch.LightEmitter.bDefaultEnabled) ||
+		!TestEqual(TEXT("Arrows in second bag slot"),
+			Character.InventorySlots[1].Item.ItemDefinitionId, FName(TEXT("Item_Arrows_01"))) ||
+		!TestEqual(TEXT("Arrows quantity keeps authoring"), Character.InventorySlots[1].Item.Quantity, 3) ||
+		!TestEqual(TEXT("Arrows remain N0"), Character.InventorySlots[1].Item.ItemLevel, 0) ||
+		!TestTrue(TEXT("No duplicate in bag"),
+			Character.InventorySlots[2].IsEmpty()))
+	{
+		return false;
+	}
+
+	// Invalid physical level of an explicitly authored ARM cannot become a
+	// default N1. The whole transaction fails before granting a valid torch.
+	Kit.Items[0].ItemLevel = 0;
+	FGridCharacterInventoryState Rejected = ARMCLEAN064X24::NewCharacter();
+	FGridCharacterEquipmentState RejectedGear;
+	OldDefinitions.Reset();
+	Error.Reset();
+	if (!TestFalse(TEXT("Explicit ARM N0 is forbidden"),
+		FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
+			Rejected, RejectedGear, OldDefinitions, Error, Registry.Get())) ||
+		!TestTrue(TEXT("Reject leaves inventory empty"), Rejected.InventorySlots[0].IsEmpty()) ||
+		!TestFalse(TEXT("Reject leaves MainHand empty"), RejectedGear.MainHand.IsValid()) ||
+		!TestTrue(TEXT("Reject does not publish old definitions"), OldDefinitions.IsEmpty()) ||
+		!TestTrue(TEXT("Reject does not commit kit ID"), Rejected.StartingEquipmentKitId.IsNone()))
+	{
+		return false;
+	}
+	Kit.Items[0].ItemLevel = 20;
+
+	// Registered non-ARM N1 is invalid. Even a later kit entry cannot
+	// commit a partial set of otherwise valid items.
+	Kit.Items[2].ItemLevel = 1;
+	Rejected = ARMCLEAN064X24::NewCharacter();
+	RejectedGear = FGridCharacterEquipmentState();
+	Error.Reset();
+	if (!TestFalse(TEXT("Explicit non-ARM N1 forbidden"),
+		FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
+			Rejected, RejectedGear, OldDefinitions, Error, Registry.Get())) ||
+		!TestTrue(TEXT("No partial inventory on late invalid item"), Rejected.InventorySlots[0].IsEmpty()) ||
+		!TestFalse(TEXT("No partial equipment on late invalid item"), RejectedGear.MainHand.IsValid()))
+	{
+		return false;
+	}
+	Kit.Items[2].ItemLevel = 0;
+
+	// Never grant a different item just because an obsolete UObject was set.
+	TStrongObjectPtr<UGridItemDefinitionAsset> Conflicting(NewObject<UGridItemDefinitionAsset>());
+	Conflicting->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
+	Kit.Items[0].ItemDefinition = Conflicting.Get();
+	if (!TestFalse(TEXT("Mismatched historical pointer rejected by class"),
+			Class->IsValidDefinition()) ||
+		!TestFalse(TEXT("Mismatched historical pointer rejected by builder"),
+			FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
+				Rejected, RejectedGear, OldDefinitions, Error, Registry.Get())))
+	{
+		return false;
+	}
+	Kit.Items[0].ItemDefinition = nullptr;
+
+	// WeaponCatalogue hand policy remains authoritative without an old
+	// UGridItemDefinitionAsset (offhand-only shield and two-handed bow).
+	TStrongObjectPtr<URPGClassAsset> Hands(NewObject<URPGClassAsset>());
+	Hands->ClassId = TEXT("Warrior");
+	FRPGStartingEquipmentKit& HandKit = Hands->StartingEquipmentKits.AddDefaulted_GetRef();
+	HandKit.KitId = TEXT("X24_CanonicalHands");
+	ARMCLEAN064X24::Add(Hands.Get(), TEXT("Weapon_ShortBow_01"), 6,
+		EGridEquipmentSlot::OffHand);
+	FGridCharacterInventoryState BowCharacter = ARMCLEAN064X24::NewCharacter();
+	FGridCharacterEquipmentState BowEquipment;
+	OldDefinitions.Reset();
+	Error.Reset();
+	if (!TestTrue(TEXT("Pointerless two-handed bow equips"),
+		FRPGStartingEquipmentService::TryBuildKit(Hands.Get(), HandKit.KitId,
+			BowCharacter, BowEquipment, OldDefinitions, Error, Registry.Get())) ||
+		!TestEqual(TEXT("Two-handed bow stored in physical MainHand"),
+			BowEquipment.MainHand.ItemDefinitionId, FName(TEXT("Weapon_ShortBow_01"))) ||
+		!TestFalse(TEXT("OffHand remains virtual"), BowEquipment.OffHand.IsValid()))
+	{
+		AddError(Error);
+		return false;
+	}
+
+	ARMCLEAN064X24::Add(Hands.Get(), TEXT("Weapon_RoundShield_01"), 7,
+		EGridEquipmentSlot::OffHand);
+	BowCharacter = ARMCLEAN064X24::NewCharacter();
+	BowEquipment = FGridCharacterEquipmentState();
+	OldDefinitions.Reset();
+	Error.Reset();
+	if (!TestFalse(TEXT("Shield cannot occupy bow reserved hand"),
+		FRPGStartingEquipmentService::TryBuildKit(Hands.Get(), HandKit.KitId,
+			BowCharacter, BowEquipment, OldDefinitions, Error, Registry.Get())) ||
+		!TestFalse(TEXT("Two-handed conflict has no committed MainHand"),
+			BowEquipment.MainHand.IsValid()) ||
+		!TestTrue(TEXT("Two-handed conflict has no committed kit"),
+			BowCharacter.StartingEquipmentKitId.IsNone()))
+	{
+		return false;
+	}
+
+	AddInfo(TEXT("[ARM-CLEAN06.4X.24] pointerless ARM N20, non-ARM N0, "
+		"stacking, both-hand policy, invalid levels and transactional failures."));
+	return true;
+}
+#endif

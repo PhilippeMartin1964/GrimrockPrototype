@@ -45,13 +45,29 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 	for (const FRPGStartingEquipmentEntry& Entry : Kit->Items)
 	{
 		UGridItemDefinitionAsset* Definition = Entry.ItemDefinition.Get();
-		if (!IsValid(Definition) || Definition->ItemDefinitionId.IsNone() ||
-			Entry.ItemLevel < 0 || Entry.ItemLevel > 20 || Entry.Quantity < 1)
+		const bool bExplicitCanonical = !Entry.CanonicalItemId.IsNone();
+		const FName ItemId = bExplicitCanonical ? Entry.CanonicalItemId
+			: (IsValid(Definition) ? Definition->ItemDefinitionId : NAME_None);
+		const bool bCanonicalRegistered = CanonicalRegistry &&
+			CanonicalRegistry->HasCanonicalItem(ItemId);
+		if (ItemId.IsNone() ||
+			Entry.ItemLevel < 0 || Entry.ItemLevel > 20 || Entry.Quantity < 1 ||
+			(!IsValid(Definition) && !bExplicitCanonical) ||
+			(bExplicitCanonical && (!bCanonicalRegistered ||
+				(IsValid(Definition) && Definition->ItemDefinitionId != ItemId))))
 		{
-			OutError = TEXT("Starting kit contains an invalid item definition, level or quantity.");
+			OutError = TEXT("Starting kit contains an invalid item definition, canonical ID, level or quantity.");
 			return false;
 		}
-		const FName ItemId = Definition->ItemDefinitionId;
+		const bool bPointerlessCanonical = bExplicitCanonical && !IsValid(Definition);
+		FGridResolvedItem PointerlessItem;
+		if (bPointerlessCanonical &&
+			(!CanonicalRegistry->ResolveItem(ItemId, Entry.ItemLevel, PointerlessItem) ||
+			 !PointerlessItem.IsValid()))
+		{
+			OutError = TEXT("Starting kit canonical item requires an explicit valid physical level.");
+			return false; // No arbitrary N0 -> N1 promotion.
+		}
 		if (UGridItemDefinitionAsset** Previous = DefinitionById.Find(ItemId))
 		{
 			if (*Previous != Definition)
@@ -63,10 +79,16 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		else
 		{
 			DefinitionById.Add(ItemId, Definition);
-			CandidateDefinitions.Add(Definition);
+			if (IsValid(Definition))
+			{
+				CandidateDefinitions.Add(Definition);
+			}
 		}
-		if ((!Definition->bStackable && Entry.Quantity != 1) ||
-			(Definition->bStackable && Entry.Quantity > FMath::Max(1, Definition->MaxStackSize)) ||
+		const int32 StackCapacity = bPointerlessCanonical ? FMath::Max(1, PointerlessItem.MaxStack)
+			: FMath::Max(1, Definition->MaxStackSize);
+		const bool bStackable = bPointerlessCanonical ? StackCapacity > 1 : Definition->bStackable;
+		if ((!bStackable && Entry.Quantity != 1) ||
+			(bStackable && Entry.Quantity > StackCapacity) ||
 			(Entry.TargetSlot != EGridEquipmentSlot::None && Entry.Quantity != 1))
 		{
 			OutError = TEXT("Starting kit quantity is incompatible with the item or equipment slot.");
@@ -74,13 +96,16 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		}
 
 		int32 FixedLevel = 0;
-		float FixedWeight = Definition->Weight;
-		if (CanonicalRegistry && CanonicalRegistry->HasCanonicalItem(ItemId))
+		float FixedWeight = IsValid(Definition) ? Definition->Weight : 0.0f;
+		if (bCanonicalRegistered)
 		{
-			// This kit creates NEW items: authored ARM N0 inherits its default
-			// once, while real non-ARM N0 stays N0 regardless of obsolete flags.
-			const FGridReceptacleItemMetadataReadView Authored =
-				FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
+			// Explicit canonical entries author physical ItemLevel. The old
+			// starter-kit N0 -> definition-default rule is preserved ONLY for
+			// entries that have not opted into a canonical ItemId yet.
+			const FGridReceptacleItemMetadataReadView Authored = bExplicitCanonical
+				? FGridWorldItemLevelReadModel::ResolvePersistedInstance(
+					CanonicalRegistry, nullptr, ItemId, Entry.ItemLevel)
+				: FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
 					CanonicalRegistry, Definition, ItemId, Entry.ItemLevel);
 			if (!Authored.bResolved)
 			{
@@ -112,7 +137,8 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 
 		const FGridStartingKitStaticMetadataReadView Metadata =
 			FGridStartingKitStaticMetadataReadModel::Resolve(
-				CanonicalRegistry, ItemId, FixedLevel, Definition->DisplayName, FixedWeight);
+				CanonicalRegistry, ItemId, FixedLevel,
+				IsValid(Definition) ? Definition->DisplayName : FText::GetEmpty(), FixedWeight);
 		if (!Metadata.bResolved)
 		{
 			OutError = FString::Printf(
@@ -127,8 +153,10 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		{
 			// 06.3AO: the hand policy must agree with later equipment runtime
 			// even if DA_Weapon_* has obsolete HandUsage/CompatibleSlots.
-			const FGridStartingKitEquipmentPolicyReadView Hand =
-				FGridStartingKitEquipmentPolicyReadModel::Resolve(
+			const FGridStartingKitEquipmentPolicyReadView Hand = bPointerlessCanonical
+				? FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+					CanonicalRegistry, ItemId, FixedLevel, PhysicalSlot)
+				: FGridStartingKitEquipmentPolicyReadModel::Resolve(
 					CanonicalRegistry, Definition, FixedLevel, PhysicalSlot);
 			if (!Hand.bResolved || !CandidateEquipment.GetMutableSlot(Hand.PhysicalSlot))
 			{
@@ -155,7 +183,9 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		Item.Weight = Metadata.UnitWeightKg;
 		Item.OwnerGuid = Candidate.CharacterId;
 		Item.OwnerCharacterIndex = 0;
-		Item.bLightsEnabled = Definition->IsLightEnabledByDefault();
+		Item.bLightsEnabled = bPointerlessCanonical
+			? PointerlessItem.LightEmitter.bDefaultEnabled
+			: Definition->IsLightEnabledByDefault();
 
 		if (PhysicalSlot == EGridEquipmentSlot::None)
 		{

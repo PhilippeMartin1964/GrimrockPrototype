@@ -14,6 +14,45 @@ struct FGridStartingKitEquipmentPolicyReadView
 
 struct FGridStartingKitEquipmentPolicyReadModel
 {
+	/** No legacy UGridItemDefinitionAsset required for an explicitly authored
+	 * ItemId + physical N-level. Rejects unsupported non-ARM hand slots. */
+	static FGridStartingKitEquipmentPolicyReadView ResolveCanonical(
+		const UGridItemSubsystem* Registry,
+		FName ItemId, int32 FixedItemLevel, EGridEquipmentSlot AuthoredSlot)
+	{
+		FGridStartingKitEquipmentPolicyReadView View;
+		View.bCanonicalIdentity = Registry && Registry->HasCanonicalItem(ItemId);
+		if (!View.bCanonicalIdentity || AuthoredSlot == EGridEquipmentSlot::None)
+		{
+			return View;
+		}
+		FGridResolvedItem Item;
+		if (!Registry->ResolveItem(ItemId, FixedItemLevel, Item))
+		{
+			return View;
+		}
+		if (Item.bIsArmament)
+		{
+			if (!Item.Weapon.CanEquipInHand(AuthoredSlot))
+			{
+				return View;
+			}
+			View.bTwoHanded = Item.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded;
+		}
+		else
+		{
+			if (!Item.NonArmEquipmentSlots.Contains(AuthoredSlot))
+			{
+				return View;
+			}
+			View.bTwoHanded = Item.bNonArmTwoHanded;
+		}
+		View.PhysicalSlot = View.bTwoHanded
+			? EGridEquipmentSlot::MainHand : AuthoredSlot;
+		View.bResolved = true;
+		return View;
+	}
+
 	static FGridStartingKitEquipmentPolicyReadView Resolve(
 		const UGridItemSubsystem* Registry,
 		const UGridItemDefinitionAsset* LegacyDefinition,
