@@ -299,9 +299,17 @@ bool AGridReceptacleActor::ContainsItemTag(FName ItemTag) const
 		return false;
 	}
 
+	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
 	return ContainedItems.ContainsByPredicate(
-		[ItemTag](const FGridContainedReceptacleItem& Item)
+		[Registry, ItemTag](const FGridContainedReceptacleItem& Item)
 		{
+			if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+			{
+				FGridResolvedItem Resolved;
+				return Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) &&
+					Resolved.Tags.Contains(ItemTag);
+			}
+			// Only an identity outside ItemSystem may use its historic tags.
 			return Item.ItemDefinition && Item.ItemDefinition->ItemTags.Contains(ItemTag);
 		});
 }
@@ -1117,18 +1125,19 @@ int32 AGridReceptacleActor::AddContainedItem(
 	FGuid RuntimeObjectId, int32 ItemLevel, bool bPersistedCanonicalInitialItem)
 {
 	AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor(GetWorld());
-	if (!ItemDefinition && RuntimeActor)
+	const UGridItemSubsystem* CanonicalRegistry = ResolveReceptacleItemRegistry(this);
+	// Only a persisted, explicitly canonical initial item may omit its old
+	// ItemDefinition. Do not reattach a legacy object merely to materialize
+	// a canonical ARM whose world presentation is already resolvable.
+	const bool bCanonicalInitialSource = bWasInitialItem && bPersistedCanonicalInitialItem;
+	if (!ItemDefinition && RuntimeActor && !bCanonicalInitialSource)
 	{
 		ItemDefinition = RuntimeActor->ResolveRuntimeItemDefinition(ItemDefinitionId);
 	}
-
-	const UGridItemSubsystem* CanonicalRegistry = ResolveReceptacleItemRegistry(this);
 	ItemDefinitionId = FGridReceptacleContainedIdentityReadModel::Resolve(
 		CanonicalRegistry, ItemDefinition, ItemDefinitionId);
-	// Opt in only when the initial configuration actually persisted its
-	// CanonicalItemId. Historical fixtures and default definitions keep
-	// their existing visual path.
-	const bool bCanonicalInitialSource = bWasInitialItem && bPersistedCanonicalInitialItem;
+	// Historical initial fixtures and cursor insertions continue to use
+	// their existing presentation until the native asset cutover.
 	FGridResolvedItem InitialProjection;
 	if (bCanonicalInitialSource &&
 		(!CanonicalRegistry ||
@@ -1138,8 +1147,9 @@ int32 AGridReceptacleActor::AddContainedItem(
 	{
 		return INDEX_NONE; // No implicit N0 -> N1 or legacy fallback.
 	}
-	const bool bCanonicalNonArmInitial = bCanonicalInitialSource && !InitialProjection.bIsArmament;
-	if (bCanonicalNonArmInitial && !RuntimeActor)
+	const bool bCanonicalWorldInitial = bCanonicalInitialSource &&
+		(!InitialProjection.bIsArmament || !IsValid(ItemDefinition));
+	if (bCanonicalWorldInitial && !RuntimeActor)
 	{
 		return INDEX_NONE; // Cannot construct a historical actor instead.
 	}
@@ -1196,7 +1206,7 @@ int32 AGridReceptacleActor::AddContainedItem(
 	}
 	NewItem.Weight = Metadata.UnitWeightKg;
 	NewItem.DisplayName = Metadata.DisplayName;
-	if (bCanonicalNonArmInitial)
+	if (bCanonicalWorldInitial)
 	{
 		NewItem.bLightsEnabled = InitialProjection.LightEmitter.bDefaultEnabled;
 	}
@@ -1211,10 +1221,10 @@ int32 AGridReceptacleActor::AddContainedItem(
 	if (!IsValid(ItemActor) && RuntimeActor)
 	{
 		ItemActor = RuntimeActor->SpawnItemActorForDefinition(
-			bCanonicalNonArmInitial ? nullptr : ItemDefinition, ItemDefinitionId, this, ItemAttachPoint);
+			bCanonicalWorldInitial ? nullptr : ItemDefinition, ItemDefinitionId, this, ItemAttachPoint);
 		if (ItemActor)
 		{
-			if (bCanonicalNonArmInitial)
+			if (bCanonicalWorldInitial)
 			{
 				FGridItemInstance CanonicalInstance;
 				CanonicalInstance.RuntimeObjectId = NewItem.RuntimeObjectId;
@@ -1239,7 +1249,7 @@ int32 AGridReceptacleActor::AddContainedItem(
 			ContainedItems[NewIndex].ItemActor = ItemActor;
 		}
 	}
-	if (!IsValid(ItemActor) && bCanonicalNonArmInitial)
+	if (!IsValid(ItemActor) && bCanonicalWorldInitial)
 	{
 		ContainedItems.RemoveAt(NewIndex);
 		return INDEX_NONE;
@@ -1274,9 +1284,10 @@ int32 AGridReceptacleActor::AddContainedItem(
 		PlacementItem.ItemDefinitionId = ContainedItems[NewIndex].ItemDefinitionId;
 		PlacementItem.ItemLevel = ContainedItems[NewIndex].ItemLevel;
 		PlacementItem.Quantity = ContainedItems[NewIndex].Quantity;
-		// An inserted or initial-content ARM has the actual fixed item level here.
-		// Resolve its world mesh before applying the receptacle's placement/Chaos policy.
-		if (!bCanonicalNonArmInitial)
+		// Inserted/historically authored ARM retains the old persistent
+		// presentation until the native visual profile has been migrated.
+		// Canonical pointerless initial ARM is already fully projected.
+		if (!bCanonicalWorldInitial)
 		{
 			ContainedItems[NewIndex].ItemActor->ApplyCanonicalWorldVisual(PlacementItem);
 		}

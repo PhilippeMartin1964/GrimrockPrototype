@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.21 — initialisation canonique d'ARM sans pointeur dans les réceptacles
+
+**Parent :** `476fe10700d3ace56c1416ab9b5a762ac5564cee`. Rapport : [ARM_CLEAN06_4X21_RECEPTACLE_POINTERLESS_INITIAL_ARM.md](ARM_CLEAN06_4X21_RECEPTACLE_POINTERLESS_INITIAL_ARM.md).
+
+Un contenu initial de réceptacle explicitement canonique (ID enregistré + niveau N1–N20) peut désormais construire son acteur ARM **sans rechercher ni attacher un ancien DA_Weapon** si son `ItemDefinition` est absent. Les réceptacles actuellement authorés avec leurs pointeurs historiques **ne basculent pas**. `ContainsItemTag` privilégie les tags du registre canonique ; le fallback legacy est réservé aux identités non inscrites au registre. Test transitoire sur N1/N20/N0 et capture runtime ; aucun asset Unreal/SaveGame écrit. **06.4 en cours, 06.5 bloquée.** Attendre deux statuts Windows sur le SHA exact.
+
 ## ARM-CLEAN06.4X.20 — présentation physique ARM prête côté C++ (17 novembre 2026)
 
 **Parent :** 0e8da96346ed897b5844a340af8e65f3ff6ef061. **Pas de modification des assets binaires ni des sauvegardes.**
