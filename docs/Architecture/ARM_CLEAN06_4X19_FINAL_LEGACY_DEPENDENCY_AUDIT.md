@@ -1,81 +1,296 @@
-# ARM-CLEAN06.4X.19 — préflight de sortie 06.4 et dépendances legacy
+# ARM-CLEAN06.4X.19 — audit natif des dépendances avant 06.5
 
-**Date :** 17 novembre 2026. **Base audité :** `9e8331c122e319aff26a2934293744f3e73b6108` (`master`).
-**Demande :** « Go ARM-CLEAN06.4X.17 », renommée **X.19** car X.17 désigne déjà la régression de la torche équipable et X.18 la torche lumineuse au sol.
-**Statut : PRÉFLIGHT STATIQUE CONFIRMÉ ; AUDIT NATIF DES ASSETS À TERMINER.** **ARM-CLEAN06.4 et 06.5 ne sont pas déclarées terminées.**
-**Exécution UE Windows demandée :** [issue #182](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/182).
+**17 novembre 2026 — ARM-CLEAN06.4 NON TERMINÉ ; 06.5 BLOQUÉE.**
+Audit du contenu et des sources de `master=ae6742b1694355bc71c3a49a4b2d6f7a408fa69d`.
+Ce parent ajoute seulement le préflight documentaire au code fonctionnel `9e8331c1`.
+[Mission #182](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/182).
+Le préflight distant initial reste consultable dans Git au parent `ae6742b1`.
 
-## 1. Périmètre réellement vérifié
+## 1. Preuves obtenues, sans conversion
 
-- Lecture de `AGENTS.md`, du contrat `ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md`, du `ARM_CLEAN06_MIGRATION_PLAN.md`, de l'historique `ARM_CLEAN06_CURRENT_HANDOFF.md` et des sources C++ de production ciblées via GitHub sur le SHA ci-dessus.
-- Inventaire des chemins versionnés dans les arbres Git `Content/`, `Source/` et `Scripts/`. Les présences et noms sont vérifiés ; **les valeurs internes des .uasset ne sont pas inspectables de façon fiable via ce connecteur**.
-- Pas d'Unreal Editor/AssetRegistry exécuté sur le poste Windows pendant cette étape distante, pas de parcours PIE supplémentaire, pas de modification du code de gameplay, des binaires ni des sauvegardes.
-- Ce rapport n'est **pas** une preuve de « zéro lecteur legacy » à l'échelle de chaque ligne du dépôt. L'issue #182 impose la recherche statique exhaustive et le contrôle natif des packages.
+- UE **5.5.4-40574608**, PythonScript commandlet nouvellement écrit hors dépôt :
+  lecture AssetRegistry synchrone de **1486 assets /Game**, propriétés natives de
+  **238 DataAssets** du projet, puis CDO d'un WBP référent. Aucun ancien migrateur lancé.
+- **239 packages** inspectés par propriétés/CDO, plus cinq redirecteurs examinés
+  séparément : **244 empreintes SHA-256 inchangées** avant/après, y compris après
+  la vérification du résolveur. Aucun `.uasset`, `.umap` ou SaveGame écrit.
+- Zéro erreur de lecture des propriétés des DataAssets/CDO. Les trois avertissements
+  du commandlet concernent des alias Python dépréciés du schéma monde
+  (`archetype_id`, `default_archetype`, `action`), pas trois conversions ARM ratées.
+- Initialisation native du registre dans un monde SIE temporaire vide, GameInstance
+  de base, **aucun GrimrockPartyPawn ni propriétaire de sauvegarde** : registre
+  configuré et **452 résolutions réussies** (22 ARM × N1–N20 + 12 non-ARM à N0).
+  Les 22 ARM à N0 sont refusés. Ce test n'est pas une recette de combat/présentation.
+- Comparaison des valeurs natives de **82 archétypes**, neuf champs N1 et cinq règles
+  de progression : **1148 comparaisons, zéro différence**. Cette parité de données
+  ne prouve pas les sons, Niagara, collisions ou états mutables dans chaque lecteur.
+- Les sources et assets de gameplay restent ceux de `9e8331c1`, dont PIT02 est
+  validé par le propriétaire selon le point de reprise. Cette recette n'est pas rejouée
+  ni présentée comme une nouvelle preuve X.19.
 
-## 2. Inventaire des packages : preuves et limites
+Le native manifest décrit les valeurs chargées par UE et les dépendances de package,
+pas l'emplacement de chaque octet sur disque. Les pointeurs non nuls relevés sont
+recoupés avec les dépendances AssetRegistry. Il distingue absence de propriété,
+valeur nulle et ID absent ; un nom de fichier ne tient pas lieu de preuve.
 
-| Ensemble | Résultat | Niveau de preuve |
+## 2. Déjà matérialisé, avec portée exacte
+
+| Ensemble | État natif actuel |
+|---|---|
+| `CanonicalStage/DA_ItemSystem` | 34 définitions uniques : 22 ARM, 12 non-ARM ; quatre références globales vers les catalogues canoniques |
+| `CanonicalStage/Definitions/*` | 34 définitions spécialisées ; les ARM ont les cinq champs de base + ArchetypeId ; noms et poids identiques à leurs 34 sources historiques |
+| `DA_CanonicalWeaponCatalogue` | 82 archétypes et six préférences de classe ; données N1/progressions comparées ci-dessus |
+| `DA_CanonicalWeaponVisualCatalogue` | 22 liaisons, 22 profils visuels, 12 icônes d'actions ; ne pas inventer 60 définitions manquantes à partir des 82 archétypes |
+| `DA_ActionCatalogue` | 19 actions et quatre actions détaillées |
+| `DA_ActionPresentationCatalogue` | cinq présentations et une présentation détaillée |
+| Quatre niveaux | 44 loose dans `DA_GridLevel_00`, 17 contenus initiaux dans `_00`, un contenu initial dans `_01`, zéro ItemSpawn dans les quatre |
+| `DA_ObjectPalette_Default` | 33 collectibles directs avec ID et niveau canoniques |
+| 95 occurrences | 44 + 18 + 33 : toutes identités enregistrées, niveaux physiques ARM N1 / non-ARM N0, aucun conflit ancien ID / nouvel ID détecté |
+| Six `DA_Class_*` | `StartingEquipmentKits` vides dans les six packages ; presets actuellement construits par C++, pas six assets de kits à remigrer |
+
+Le dossier `CanonicalStage` contient donc bien **39 DataAssets** : 34 définitions,
+les quatre catalogues et la racine. Ils coexistent encore avec **48 définitions
+historiques**. « Projection canonique matérialisée » ne signifie pas « ancienne
+classe et anciens lecteurs supprimables ».
+
+### 24 fichiers DA_Weapon_* contre 22 ARM : correspondance native
+
+Préfixe exact des packages ci-dessous :
+`/Game/GrimrockPrototype/Core/DataAssets/Weapons/`.
+Les 23 premières définitions ci-dessous sont de classe historique
+`GridItemDefinitionAsset`, pas déjà de classe canonique finale.
+
+| Package relatif | ItemId natif | Jointure canonique |
 |---|---|---|
-| `Content/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_*.uasset` | **24 fichiers** conservés | Arbre Git, chemins exacts |
-| `Content/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_*.uasset` | **4 fichiers** | Arbre Git, chemins exacts |
-| `.../Core/DataAssets/DA_ObjectPalette_Default.uasset` | Présent | Arbre Git |
-| `.../Core/DataAssets/CanonicalStage/DA_ItemSystem.uasset` | Présent | Arbre Git |
-| `.../Core/DataAssets/CanonicalStage/` | **39 assets** au total (catalogues et définitions inclus) | Arbre Git ; pas un compte de lignes du registre |
-| `DA_Receptacle_TorchHolder`, `DA_Guardian`, `DA_Lock_CopperWall`, `DA_Lock_IronWall` | Quatre packages versionnés | Arbre Git |
-| Définitions enregistrées : **34 (22 ARM, 12 non-ARM)** | Comptage des jalons historiques X.7/X.1 | **À reconfirmer** dans l'asset UE actuel |
-| Occurrences matérialisées par X.4W : **95** | 44 loose + 0 spawns réels + 18 contenus initiaux de réceptacle + 33 palette | **Historique**, pas preuve que les pointeurs ont été supprimés |
+| `DA_Weapon_ArcaneOrb_01` | `Weapon_ArcaneOrb_01` | `ARM070` |
+| `DA_Weapon_ArcaneWand_01` | `Weapon_ArcaneWand_01` | `ARM061` |
+| `DA_Weapon_AssassinDagger_01` | `Weapon_AssassinDagger_01` | `ARM002` |
+| `DA_Weapon_Dagger_01` | `Weapon_Dagger_01` | `ARM001` |
+| `DA_Weapon_Dart_01` | `Weapon_Dart_01` | `ARM058` |
+| `DA_Weapon_ElementalStaff_01` | `Weapon_ElementalStaff_01` | `ARM067` |
+| `DA_Weapon_FireWand_01` | `Weapon_FireWand_01` | `ARM062` |
+| `DA_Weapon_GreatAxe_01` | `Weapon_GreatAxe_01` | `ARM031` |
+| `DA_Weapon_HolyAegis_01` | `Weapon_HolyAegis_01` | `ARM081` |
+| `DA_Weapon_HolyScepter_01` | `Weapon_HolyScepter_01` | `ARM069` |
+| `DA_Weapon_Javelin_01` | `Weapon_Javelin_01` | `ARM057` |
+| `DA_Weapon_LongSword_01` | `Weapon_LongSword_01` | `ARM015` |
+| `DA_Weapon_Mace_01` | `Weapon_Mace_01` | `ARM020` |
+| `DA_Weapon_MainGauche_01` | `Weapon_MainGauche_01` | `ARM013` |
+| `DA_Weapon_RecurveBow_01` | `Weapon_RecurveBow_01` | `ARM048` |
+| `DA_Weapon_RoundShield_01` | `Weapon_RoundShield_01` | `ARM075` |
+| `DA_Weapon_ShortBow_01` | `Weapon_ShortBow_01` | `ARM045` |
+| `DA_Weapon_ShortSpear_01` | `Weapon_ShortSpear_01` | `ARM038` |
+| `DA_Weapon_Shuriken` | `Shuriken` | `non-ARM` |
+| `DA_Weapon_Stiletto_01` | `Weapon_Stiletto_01` | `ARM003` |
+| `DA_Weapon_StraightSword_01` | `Weapon_StraightSword_01` | `ARM014` |
+| `DA_Weapon_ThrowingKnife_01` | `Weapon_ThrowingKnife_01` | `ARM054` |
+| `DA_Weapon_WarPick_01` | `Weapon_WarPick_01` | `ARM025` |
+| `DA_Weapon_ThrowingKnife` | redirecteur, aucune définition supplémentaire | résolution native vers `DA_Weapon_ThrowingKnife_01` |
 
-Les anciens `DA_Weapon_Shuriken.uasset`, `DA_Weapon_ThrowingKnife.uasset` et `DA_Weapon_ThrowingKnife_01.uasset` figurent parmi les 24. **Ne pas déduire d'une différence entre 24 fichiers historiques et 22 ARM canoniques que deux assets précis seraient orphelins :** faire une correspondance native `package → ItemId → ArchetypeId` et relever les éventuels alias/doublons.
+Il y a **22 ARM + Shuriken non-ARM + un redirecteur = 24**, sans doublon de
+lancer à supprimer sur simple comptage. Les deux anciens catalogues voisins
+`DA_WeaponCatalogue` et `DA_WeaponVisualCatalogue` ne font pas partie du motif
+`DA_Weapon_*`. Les 22 définitions ARM ont encore les deux options et les deux
+références vers ces catalogues historiques.
 
-## 3. Matrice des dépendances C++ confirmées
+## 3. Manifeste des références historiques restantes
 
-**Légende :** P0 = bloque le cutover/suppression ; P1 = à qualifier avant suppression ; P2 = outillage/test historique. Un chemin de compatibilité réellement exécuté n'est pas prouvé par la seule présence d'un symbole.
+**107 occurrences de pointeur vers les 48 définitions historiques**, dans neuf
+packages. Leur détail complet (champ, index, GUID/cellule lorsque applicable,
+ancien package/ID, nouvel ID, niveau, contexte) figure dans les CSV hors dépôt.
 
-| Priorité | Source actuelle (lignes approx. au SHA de base) | Preuve de lecture et risque | Porte de sortie |
+| Package source exact | Occurrences |
+|---|---:|
+| `/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall` | 1 |
+| `/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_IronWall` | 1 |
+| `/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default` | 33 |
+| `/Game/GrimrockPrototype/Core/DataAssets/DA_Receptacle_TorchHolder` | 1 |
+| `/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Guardian` | 1 |
+| `/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_00` | 64 |
+| `/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_01` | 1 |
+| `/Game/GrimrockPrototype/Monsters/GoblinThrower/Data/DA_MON_GoblinThrower` | 3 |
+| `/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant` | 2 |
+
+Décomposition : **95 pointeurs** conservés avec les 95 IDs matérialisés,
+**quatre règles de définition** déjà converties, **trois overrides inactifs**
+et **cinq entrées de loot**. Les nombres 95 et 107 ne sont donc pas contradictoires.
+
+En plus de ces 107 occurrences :
+
+- **44 références aux anciens catalogues** : `weapon_catalogue` et
+  `weapon_visual_catalogue` dans chacune des 22 anciennes définitions ARM ;
+- **une référence WBP** :
+  `/Game/GrimrockPrototype/Blueprints/UI/Combat/WBP_GridCombatHudAction`, CDO
+  `equipped_weapon_action_icon_palette` →
+  `/Game/GrimrockPrototype/UI/Icons/Combat/DA_EquippedWeaponActionIcons` ;
+- le redirecteur ThrowingKnife décrit ci-dessus pointe encore vers la définition
+  historique `_01`. Ce lien est compté séparément des propriétés des DataAssets.
+
+Le graphe AssetRegistry n'a trouvé aucun autre référent direct à ces cibles parmi
+les 1486 packages /Game : tous sont couverts par les DataAssets, le WBP et ce
+redirecteur. Cela n'exclut ni les chargements C++ par chemin/ID ni les fichiers
+SaveGame externes. Aucun besoin de resauvegarde massive des `.umap` n'est établi.
+
+### Règles déjà converties : conserver le résultat, préparer le retrait ciblé
+
+| Package sous `/Game/GrimrockPrototype/Core/DataAssets/` | Nouvelle valeur | Ancien champ encore non nul |
+|---|---|---|
+| `DA_Receptacle_TorchHolder` | AcceptedItems[0].CanonicalItemId=`Item_Torch` | AcceptedItems[0].ItemDefinition=DA_Item_Torch |
+| `GridObjectArchetypeAsset/DA_Guardian` | AcceptedItems[0].CanonicalItemId=`Gem_Blue` | AcceptedItems[0].ItemDefinition=DA_Item_BlueGem |
+| `DA_Lock_CopperWall` | AcceptedKeyIds=[`Key_Copper`] | AcceptedKeyItems=[DA_Item_CopperKey] |
+| `DA_Lock_IronWall` | AcceptedKeyIds=[`Key_Iron`] | AcceptedKeyItems=[DA_Item_IronKey] |
+
+Ces quatre identités/règles sont bien converties ; **elles ne sont pas sans legacy**.
+Pas de réexécution des migrations X.7/8. Leur futur nettoyage doit suivre le cutover
+et la validation des lecteurs/éditeurs, sans changer les règles d'énigme.
+
+Dans `DA_GridLevel_00`, trois anciennes valeurs d'override sont encore sérialisées,
+mais leurs interrupteurs sont **false** :
+
+| GUID | Cellule | Champ stocké | Nouvel ID |
 |---|---|---|---|
-| **P0** | `GridLevelRuntimeActor.cpp:2133–2260` — `AddPlacedItemActor` | Loose Item ARM canonique : exige encore `ObjectData.ItemDefinition`, refuse un ARM sans ancien pointeur ; appelle `InitializeFromItemDefinition` puis `ApplyCanonicalWorldVisual`. Le non-ARM canonique utilise déjà `InitializeFromCanonicalItem`. | Bascule ARM **après** parité mesh/lumière/Niagara/masse/pose/GUID/N1–N20 sur assets réels. |
-| **P0** | `GridLevelRuntimeActorPersistence.cpp:690–736` | Pour restaurer le contenu de réceptacle, `bCanonicalNonArm` prend le chemin unifié, les ARM reprennent `ResolveRuntimeItemDefinition`, `InitializeFromItemDefinition` ou ID puis présentation partielle. | Restaurer ARM canonique complet avec tests SaveGame en mémoire et copies v27. |
-| **P0** | `GridReceptacleActor.cpp:1116–1275` — `AddContainedItem` | L'initialisation canonique intégrale reste réservée aux items initiaux non-ARM ; les autres configurations conservent les chemins `ItemDefinition`, métadonnées et visuels historiques. | Auditer ARM/objets insérés/retirés, niveaux et états lumineux, sans toucher aux règles d'énigmes déjà validées. |
-| **P0** | `GridLevelEditorActor_EditingObjectsLinks_07.inl:59–170`, `SGridEditorObjectInspectorPanel.cpp:1313–1349`, `GridLevelEditorActor_Validation.inl:448–484` | Le Selected Object écrit `ItemDefinition` et l'inspecteur affiche `ItemDefinitionAsset` ; la validation exige encore ce pointeur. Retirer le champ maintenant casserait l'authoring et/ou créerait des erreurs factices. | UI d'édition pilotée par `CanonicalItemId` + niveau, validation réelle et resauvegarde UE contrôlée. |
-| **P0** | `GridObjectPaletteAsset.h:38–47`, `GridObjectPaletteAsset.cpp:40–60` | La palette conserve et valide `DefaultItemDefinition` (avec `CanonicalItemId` matérialisé). | Contrat palette canonique validé sur ses 33 entrées **actuelles** avant suppression du pointeur. |
-| **P0** | `GridDungeonRuntimeState.h:125–170`, `GridLevelRuntimeActorPersistence.cpp:262–266,855–858`, `GridLevelRuntimeActorWorldItems.cpp:536,618–626` | `FGridRuntimeItemState.ProjectileDefinitionAsset` et `FGridPendingWorldItemState.ItemDefinitionAsset` restent `UPROPERTY(SaveGame)` et sont encore lus pour les identités non enregistrées. | Scanner toutes les identités hors registre, préparer migration ponctuelle des copies v27, ne jamais retirer les champs par simple recherche. |
-| **P1** | `GridCanonicalItemSpawnReadModel.h:25–61` | `ItemSpawns` peut copier `ItemDefinition` vers le loose matérialisé, même si `CanonicalItemId` validé domine l'identité. Les quatre vrais niveaux comptaient **0 spawn** lors du jalon historique. | Convertir le schéma authorable et les tests, pas supprimer la fonctionnalité de spawn. |
-| **P1** | `GridThrownItemActor.cpp:177–194,670–753` et `GridLevelRuntimeActorWorldItems.cpp:1109+` | L'initialisation de projectile utilise encore des définitions/ID et la projection canonique partielle ; la conversion à l'impact conserve le pointeur pour hors-registre. | Comparaison canonique du lancement, mesh/axe, collisions, durée, munitions, PIT02, niveaux et GUID avant retrait. |
-| **P1** | `GrimrockPartyPawnHeldItem.cpp:28–63,113–140` | Visualisation tenue : recherche `UGridItemDefinitionAsset` et `InitializeFromItemDefinition`. | Identifier objets réellement concernés (torche/ARM) et préserver la lumière et les mains. |
-| **P1** | `GridWallLockActor.cpp:51–65`, `GridLevelPlacementTypes.h:85–90` | Union runtime des anciennes règles `AcceptedKeyItems` et des `AcceptedKeyIds` canoniques. Les deux serrures cuivre/fer ont déjà été migrées et validées en PIE. | Scanner toutes les règles/overrides avant retrait ; pas de nouvelle conversion binaire aveugle. |
-| **P1** | `GridItemDefinitionAsset.h:109–163`, `GrimrockWeaponDetailsCustomization.cpp:54–91` | `bUseWeaponCatalogue`, `WeaponCatalogue`, `WeaponVisualCatalogue` et profil N1/N20 sont encore représentés/consultés dans les Details historiques. | Conversion des 24 assets et passage du Details à la définition canonique ; suppression seulement en 06.5. |
-| **P1** | `GridMonsterDeathComponent.cpp:349–381` | Branche pour ItemId hors registre utilise `ItemDefinitionAsset`, `bUseWeaponCatalogue` et poids historique ; branche canonique prioritaire pour IDs connus. | Qualifier chaque loot réellement authoré, puis supprimer uniquement après conversion native. |
-| **P2** | `Source/GrimrockPrototypeEditor/Private/ARMEMENT/` et `Scripts/ApplyARM_CLEAN06_*.ps1` | Les commandlets de migration et l'ancien pipeline d'authoring restent présents. Pas une preuve de lecture runtime ; risque de réintroduire des références si réexécutés. | Maintenir désarmés ; inventorier avant suppression Editor-only de 06.5. |
+| `0CB018F04E6C3DCB059133A0CA12214F` | 16,25 | receptacle_rules.accepted_items[0].item_definition=Torch | None |
+| `12F822EE439884334380F4AED3223847` | 11,24 | accepted_keys.accepted_key_items[0]=CopperKey | liste vide |
+| `22CCD36F42A9F3FE8C7C3B852E2F71FA` | 9,23 | accepted_keys.accepted_key_items[0]=IronKey | liste vide |
 
-### Chemins déjà convergés ou protégés
+Elles ne remplacent actuellement pas les définitions converties. Préparer leur
+nettoyage contrôlé en conservant l'état inactif, pas une activation/migration
+automatique de leurs valeurs dormantes.
 
-- `GridLevelRuntimeActorWorldItems.cpp:941+` : dépôts de nouveaux items canoniques ARM/non-ARM via `InitializeFromCanonicalItem`, niveau physique fixe, GUID conservé.
-- `GridLevelRuntimeActorPersistence.cpp:623–670` : restauration des objets libres **canoniques** via le registre ; `ProjectileDefinitionAsset` n'est pas utilisé pour ceux-ci.
-- `GridLevelRuntimeActorWorldItems.cpp:536,618+` : transport inter-niveau d'une identité **canonique** par ItemId/Niveau/GUID, sans dépendre de l'ancien `DA_Weapon_*`.
-- PIT02/TRAP-PIT01, commit `9e8331c1` : validation PIE du propriétaire le 17 novembre 2026, suite Windows et deux statuts `SilentTask`/`LocalAuto` réussis. **Ne pas rouvrir ce correctif pendant le cutover ARM.**
-- Les deux réceptacles (TorchHolder/Gardien) et les deux serrures (Cuivre/Fer) ont reçu leur identité/règle canonique native dans les jalons X.16.7–8, avec retours PIE positifs. Leur présence ne prouve toutefois pas que toutes les propriétés legacy ont été effacées.
+### Quatorze identités historiques hors registre
 
-## 4. Blocages avant une suppression 06.5
+Préfixe exact : `/Game/GrimrockPrototype/Core/DataAssets/Items/`.
 
-1. **Preuve AssetRegistry/UE manquante :** inventaire actuel de chaque ancien pointeur et valeur dans les 24 armes, quatre niveaux, palette, tous presets et règles d'énigmes. Les 95 occurrences sont historiques, et `Content/` contient d'autres packages susceptibles de référencer les mêmes classes.
-2. **ARM au premier placement/réceptacle :** plusieurs chemins de production passent par la présentation historique ; pas de preuve de parité complète pour leur remplacement.
-3. **Éditeur :** Inspector, placement de palette, validation, prévisualisation et certains widgets/commandlets doivent pouvoir authorer des IDs sans dépendre des anciens pointeurs avant suppression.
-4. **Persistance v27 :** deux pointeurs `SaveGame` et des lecteurs hors registre ; les tests `SaveGameToMemory` démontrent la structure, pas la reprise sûre de fichiers v27 sur disque.
-5. **Autres consommateurs :** vérifier exhaustivement `Source/` hors tests (menus, hotbar, combat, loot, rendu, inventaire) par rapport au contrat du registre, avec attribution précise de chaque branche legacy.
+| Package relatif | ItemId | Usage établi |
+|---|---|---|
+| `DA_Item_Antidote` | `Item_Antidote` | aucun référent package ; authoring alchimie |
+| `DA_Item_Bomb_Fire` | `Item_Bomb_Fire` | aucun référent package ; authoring alchimie |
+| `DA_Item_Bomb_Toxic` | `Item_Bomb_Toxic` | aucun référent package ; authoring alchimie |
+| `DA_Item_DefensiveElixir_Fire` | `Item_DefensiveElixir_Fire` | aucun référent package ; authoring alchimie |
+| `DA_Item_DefensiveElixir_Ice` | `Item_DefensiveElixir_Ice` | aucun référent package ; authoring alchimie |
+| `DA_Item_DefensiveElixir_Lightning` | `Item_DefensiveElixir_Lightning` | aucun référent package ; authoring alchimie |
+| `DA_Item_DefensiveElixir_Poison` | `Item_DefensiveElixir_Poison` | aucun référent package ; authoring alchimie |
+| `DA_Item_EmptyVial` | `EmptyVial` | loot réel : DA_MON_GoblinThrower |
+| `DA_Item_Flask_Acid` | `Item_Flask_Acid` | aucun référent package ; authoring alchimie |
+| `DA_Item_Flask_CorrosiveCloud` | `Item_Flask_CorrosiveCloud` | aucun référent package ; authoring alchimie |
+| `DA_Item_GoblinKnife` | `GoblinKnife` | loot réel : DA_MON_GoblinThrower |
+| `DA_Item_Panacea` | `Item_Panacea` | aucun référent package ; authoring alchimie |
+| `DA_Item_RatMeat` | `Item_RatMeat` | loot réel : DA_MON_RatGiant |
+| `DA_Item_RatTooth` | `Item_RatTooth` | loot réel : DA_MON_RatGiant |
 
-**Décision : 06.5 BLOQUÉE.** Les quatre DataAssets de règles déjà convertis ne doivent pas être réécrits par les anciennes migrations.
+Les cinq loots sont : gobelin `[GoblinKnife, Stone, EmptyVial]`, rat
+`[Item_RatMeat, Item_RatTooth]`. Leurs `ItemDefinitionId` sont **None** et leurs
+niveaux N0 ; Stone est déjà enregistré, les quatre autres non.
+`GoblinKnife` a ItemType=Weapon mais aucun ArchetypeId et aucune action :
+**aucune correspondance ARM ne peut être inventée**. Sa famille/identité finale
+est une décision de contenu préalable à sa conversion.
 
-## 5. Ordre de travail recommandé à Codex / portes de validation
+Les dix autres n'ont pas de référent package direct actuel, mais leurs IDs sont
+présents dans l'authoring d'alchimie (`RPGAlchemistAuthoring.cpp:40–50`, plus outils
+spécifiques pour FireBomb). Ce ne sont pas dix suppressions autorisées. Choisir
+explicitement conversion canonique ou retrait de contenu, puis traiter aussi les
+outils qui les recréent et les éventuelles occurrences sur copies de sauvegarde.
 
-1. **X.19 natif, lecture seule** (issue [#182](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/182)) : rapport JSON/CSV hors dépôt, matrice fichier:ligne des lecteurs, scan UE des packages et overrides, correspondance des 24 armes à la table de 22 ARM, état des 95 occurrences, inventaire des SaveGame v27 sur copies **seulement**. Publier le delta documenté si les chiffres changent.
-2. **Conversion limitée des ARM placés et réceptacles**, avec preuve de présentation complète, équipement, réactions, état lumineux, Chaos, GUID et niveau N1/N20 ; aucun changement de gameplay masqué. Décomposer si le périmètre ne tient pas en un seul jalon atomique.
-3. **Passage Editor/Palette/ItemSpawns à l'identité canonique**, migration binaire UE native avec manifeste de packages, sauvegardes SHA-256 et réouverture indépendante. Conserver les propriétés tant que leurs valeurs sont nécessaires à la conversion.
-4. **Copies v27 protégées**, puis suppression 06.5 : lecture de tous les packages et tous les lecteurs avant retrait des UPROPERTY/classe/scripts ; zéro fallback seulement après cutover.
-5. **06.6** : suite UE globale, Cook/Shipping, Save/Continue, PIE sur ARM représentatifs et régression PIT02, SFX/VFX/held icons et inventaire.
+## 4. Lecteurs C++ et schéma : ce qui interdit encore 06.5
 
-## 6. Verdict de ce commit de documentation
+`cpp_candidates.csv` indexe la recherche sur tout `Source/GrimrockPrototype` et
+`Source/GrimrockPrototypeEditor` : **1776 mentions**, dont 1000 en tests,
+450 Editor, deux mentions des pointeurs dans le schéma de monde et 324 autres
+mentions runtime/headers. Ce nombre n'est **pas** un nombre de lecteurs legacy :
+il inclut champs canoniques homonymes, diagnostics, types et icônes non-item.
+`cpp_readers.csv` classe les groupes revus (A/B/C/D/E), avec fichier, ligne repère,
+fonction, champ et condition d'autorité. Les tests sont exclus du verdict production.
 
-- Aucun C++, `.uasset`, `.umap`, `.sav` ou script modifié par l'audit distant.
-- Aucun test UE/PIE exécuté **pour ce jalon documentaire** ; ne pas emprunter les 1 968 tests verts de `9e8331c1` comme preuve d'un scan X.19.
-- L'issue #182 constitue l'ordre de travail natif restant ; **la sortie 06.4 n'est pas autorisée** tant que son relevé ne confirme pas les propriétés et la parité sur les vrais packages.
-- Un seul commit de documentation, avec le point de reprise, est l'unité de publication prévue.
+| Classe | Lecteur / repère au SHA audité | Autorité constatée / blocage |
+|---|---|---|
+| A | `GridLevelRuntimeActor.cpp:2146`, AddPlacedItemActor | ARM connu exige encore ItemDefinition et initialisation historique avant projection du mesh |
+| A | `GridReceptacleActor.cpp:1115`, AddContainedItem ; `Persistence.cpp:690` | initialisation complète limitée au non-ARM ; ARM contenu encore historique |
+| A | `GridReceptacleActor.cpp:296`, ContainsItemTag/Type | accès direct à ItemDefinition, sans résolution du registre dans ces deux fonctions |
+| A | `GridItemActor.cpp:81`, InitializeFromItemDefinition | copie LightEmitter/VisualEffects et visuel historique ; ApplyCanonicalWorldVisual ne remplace pas tout |
+| A | `GrimrockPartyPawnHeldItem.cpp:32,145`, EquipHeldItem / DoesEquippedItemEmitLight | définition et lumière historiques encore requises ; mesh canonique partiel ensuite |
+| A | `GridPlayerAttackPresentationComponent.cpp:432`, ResolveProfile | branche canonique non-ARM à N0 ; les ARM peuvent encore rejoindre PlayerAttackPresentationProfile historique |
+| A | `RPGStartingEquipmentService.cpp:47`, TryBuildKit | pointeur obligatoire pour identité/stack/règles, même si poids et niveau deviennent canoniques |
+| A/D | `GridEditorPreviewComponent.cpp:159`, AddLooseItemPreview | absence du pointeur bloque avant résolution du mesh canonique |
+| A | `GridWallLockActor.cpp:52`, InitializeRuntimeWorldObject | union des anciennes clés et des nouveaux IDs ; retrait encore à faire |
+| B | WorldItems PIT02, restauration libre/projectile, poids, actions équipées, DualWield, hotbar, icônes | autorité canonique prioritaire pour IDs connus ; fallback réel reste nécessaire aux IDs absents, dont les quatre loots |
+| B | `GridCombatHudWidget.cpp:809` | icônes canoniques pour actions connues ; ancienne palette encore utilisée pour autres sources et référencée par le WBP |
+| C | `GridDungeonRuntimeState.h:127,170` | ProjectileDefinitionAsset et PendingWorldItem.ItemDefinitionAsset sont encore UPROPERTY(SaveGame) |
+| C | `GridInventoryTypes.h:319,326` | DisplayName et Weight sont encore dans la structure d'instance sérialisée, même si connus ignorés comme autorité |
+| D | édition `_07.inl:59`, inspecteur `:1313`, validation `.inl:448`, Palette `:43`, Weapon Details `:54` | écrivent/valident les anciens champs ; cutover Editor préalable au nettoyage des packages |
+| D | presets C++ / anciens commandlets et scripts | générations transientes et outils historiques à traiter ; aucun outil ancien exécuté dans X.19 |
+| E | Tests et documentation | fixtures/mentions ne prouvent ni un lecteur de production ni une conversion binaire |
+
+**La priorité canonique n'est pas uniforme.** Une icône ou une attaque numérique
+correcte par registre ne prouve pas que l'initialisation de l'acteur, la lumière,
+les effets et la présentation n'ont plus besoin de la définition historique.
+Ce relevé ne prétend pas prouver la parité comportementale de tout le graphe d'appels.
+
+### SaveGame v27 : preuve de schéma, pas preuve de migration de fichiers
+
+Le CDO natif expose SaveVersion=27, les deux champs de pointeur et les structures
+attendues. `UGrimrockPartySaveGame::ValidateCurrentState` (`.cpp:270`) exige exactement
+la version courante ; `Serialize` (`:293`) valide, mais ne constitue pas une conversion
+ponctuelle vers un schéma sans legacy. Les anciens outils d'assets examinés ne
+fournissent pas la preuve d'une conversion de fichiers v27.
+
+**Aucun fichier personnel ouvert, copié ou modifié. Aucune conversion sur copies
+v27 exécutée ici.** Cette preuve reste manquante : fixtures isolées et protégées,
+lecture avant/après, conservation GUID/quantité/N0–N20/états d'armure/poses/files
+PIT02 et round-trip disque doivent précéder suppression ou changement des types.
+
+## 5. Décision de conversion, par périmètre
+
+1. **Ne pas rematérialiser les 39 assets CanonicalStage** : leurs données actuelles
+   sont présentes. Faire converger les lecteurs A, puis décider une seule autorité
+   de package par ItemId. Les 34 sources historiques correspondantes ne sont ni
+   librement supprimables ni à recréer numériquement ; la liste des paires est dans
+   `legacy_definitions.csv`. Le changement de classe/retrait doit attendre le cutover.
+2. **Quatre définitions de loot à convertir/enregistrer**, avec décision explicite
+   pour GoblinKnife ; **deux packages de monstres à projeter par ID**, cinq lignes,
+   sans toucher chances/quantités. Les dix autres identités hors registre demandent
+   une décision de contenu et d'authoring avant retrait.
+3. **Après cutover C++/Editor seulement**, transaction native ciblée des neuf packages
+   du manifeste pour retirer/projeter les 107 pointeurs. Préserver les 95 GUID/IDs/
+   niveaux ; conserver les quatre règles converties ; traiter les trois overrides
+   comme inactifs. Pas de nouvelle migration massive ni de rerun W/X.5/X.7/X.8.
+4. **WBP_GridCombatHudAction** : retirer sa dépendance à l'ancienne palette seulement
+   après parité des catégories d'actions ; contrôler Designer/rendu et variantes
+   non enregistrées. Nettoyer ensuite les 44 références de catalogue et le redirecteur
+   ThrowingKnife selon la décision de packages finaux. Aucun asset UI modifié ici.
+5. **Copies v27 vérifiées**, puis et seulement puis **06.5** : suppression des champs,
+   classes et outils historiques avec recherche C++ et nouveau scan de tous les
+   référents. **06.6** garde sa recette globale, Cook/Shipping et PIE de présentation.
+
+Un redirecteur tiers supplémentaire, `/Game/F_FreeFlameFx_Pack/FX/NS_Flame_8_Torch`,
+référence l'ancien chemin non monté `.../Art/FX/NS_Flame_8_Torch` et ne se résout pas
+par ce chemin. La torche canonique charge bien le système actuel
+`/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch`. Ce reliquat tiers est
+signalé pour tri séparé, sans modifier l'asset ni le confondre avec une corruption
+de la définition canonique ou une conversion ARM autorisée.
+
+## 6. Livrables et limites de validation
+
+Preuves complètes hors dépôt :
+`D:/Development/GrimrockPrototype_Audits/ARM_CLEAN06_4X19/`.
+
+| Fichier | Contenu |
+|---|---|
+| native_manifest.json / native_properties.csv | propriétés de 238 DataAssets, CDO du WBP, graphe des 1486 packages, schéma natif v27 |
+| remaining_references.csv | 107 pointeurs historiques, champs/index/GUID/IDs/niveaux/contexte |
+| canonical_occurrences.csv | 95 occurrences matérialisées, jointure exacte et niveaux |
+| legacy_definitions.csv | 48 définitions, paires canoniques, archetypes et référents |
+| catalogue_references.csv | 44 pointeurs de catalogue + le pointeur du WBP |
+| cpp_candidates.csv / cpp_readers.csv | index des mentions et classification des groupes de lecteurs A–E |
+| native_resolver.json / catalogue_parity.json | 452 résolutions natives, rejet ARM N0, 1148 comparaisons de données |
+| redirectors.json / integrity.json / SHA256.json | résolutions des alias, 244 packages inchangés et empreintes des preuves |
+| scripts Python et journaux natifs | nouvelles sondes de lecture uniquement ; aucun migrateur historique |
+
+SHA-256 du manifeste natif :
+`d519072fa76c9ebb7575008fedffc963115a5aa7b33304d016b756df7062420d`.
+
+Les commandlets NullRHI prouvent la lecture native et les données, pas le rendu.
+Le SIE vide prouve l'initialisation/résolution, pas une scène de combat ni les effets
+sur un acteur. Aucun résultat de CI global ou ancienne recette PIT02 ne remplace
+ces preuves de contenu. Seuls ce rapport et le point de reprise changent dans Git.
+L'issue #182 reste ouverte pour les suites de conversion ; **06.4 reste incomplète
+et 06.5 bloquée**.

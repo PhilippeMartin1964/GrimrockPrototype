@@ -5,20 +5,35 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
-## ARM-CLEAN06.4X.19 — audit de sortie 06.4 (PRÉFLIGHT DISTANT)
+## ARM-CLEAN06.4X.19 — audit natif UE terminé sur le périmètre, sortie 06.4 toujours bloquée
 
-**Demande du 17.11.2026 :** « Go ARM-CLEAN06.4X.17 » pour auditer les dépendances legacy.
-**Numérotation rectifiée :** X.17 est déjà la correction de torche en main et X.18 celle de la torche au sol ; le nouveau jalon est **X.19**, sans réécrire l'historique.
+Audit natif du contenu de `ae6742b1694355bc71c3a49a4b2d6f7a408fa69d` (code fonctionnel
+`9e8331c1` inchangé). **06.4 NON TERMINÉ ; 06.5 BLOQUÉE.**
+[Rapport complet](ARM_CLEAN06_4X19_FINAL_LEGACY_DEPENDENCY_AUDIT.md) et [issue #182](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/182).
 
-**HEAD fonctionnel de départ :** `9e8331c122e319aff26a2934293744f3e73b6108`.
-PIT02 / piège fosse **validé en PIE par le propriétaire le 17.11.2026** ; issue #181 clôturée. `UE5.5.4/SilentTask=success` et `UE5.5.4/LocalAuto=success` sur ce SHA.
+UE 5.5.4 : 1486 packages /Game indexés, 238 DataAssets + un CDO WBP inspectés,
+244 empreintes de packages inchangées avec les redirecteurs. Registre : **34 définitions
+(22 ARM + 12 non-ARM)**, quatre catalogues ; **452 résolutions natives réussies**.
+Les 24 DA_Weapon_* sont 22 ARM, Shuriken non-ARM et un redirecteur ThrowingKnife,
+pas deux armes orphelines. Les 95 IDs/niveaux (44 loose + 18 contenus + 33 palette)
+sont matérialisés mais leurs anciens pointeurs subsistent.
 
-**Rapport X.19 :** [ARM_CLEAN06_4X19_FINAL_LEGACY_DEPENDENCY_AUDIT.md](ARM_CLEAN06_4X19_FINAL_LEGACY_DEPENDENCY_AUDIT.md).
-**Suite Codex Windows :** [issue #182](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/182).
+**Restes établis : 107 pointeurs vers les anciennes définitions dans neuf DataAssets,
+44 pointeurs de catalogue dans les 22 ARM, une ancienne palette référencée par
+WBP_GridCombatHudAction ; 14 définitions hors registre, dont quatre loots réels.**
+Les quatre règles TorchHolder/Gardien/Cuivre/Fer sont déjà converties, avec anciens
+pointeurs conservés. Trois overrides de niveau ont encore des valeurs anciennes
+mais sont désactivés. Six assets de classe ont zéro kit sérialisé : presets C++.
 
-Lecture C++ confirmée : placements ARM par `AddPlacedItemActor`, restauration ARM en réceptacle, initialisation de réceptacle, palette/inspecteur/validation Editor, projectiles/held-item/loot à qualifier, champs `ProjectileDefinitionAsset` et `PendingInboundItems.ItemDefinitionAsset` du SaveGame v27. Les 24 anciens `DA_Weapon_*`, 4 niveaux et `DA_ItemSystem` sont bien présents. Les 34 définitions et 95 références physiques proviennent d'audits historiques ; **les propriétés natives des .uasset n'ont pas encore été relues dans ce jalon distant**.
+Les placements/restaurations ARM, réceptacles, held/lumière, présentation d'attaque
+et authoring exigent encore un cutover C++ avant nettoyage binaire. SaveGame v27 :
+schéma confirmé, **aucun fichier personnel ouvert et aucune migration sur copies
+prouvée**. Aucun ancien migrateur lancé. Preuves JSON/CSV hors dépôt :
+`D:/Development/GrimrockPrototype_Audits/ARM_CLEAN06_4X19/`.
 
-**Décision : 06.4 non close, 06.5 BLOQUÉE** jusqu'à audit UE/AssetRegistry réel et tests de parité/conversion protégée. Aucun changement C++/binaire/SaveGame dans X.19 documentaire. Ne pas rejouer les migrations W/X.5 ni modifier le scénario PIT02 validé.
+PIT02 / piège fosse reste validé par le propriétaire sur `9e8331c1` ; issue #181
+clôturée selon le retour du 17.11.2026. Ce jalon ne le modifie pas et ne prétend pas
+remplacer ses preuves PIE par les vérifications natives de catalogue.
 
 L'historique X.16.13 et les sections antérieures ci-dessous sont conservés comme **historique d'incidents**, non comme état actuel.
 
