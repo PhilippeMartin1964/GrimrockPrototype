@@ -60,12 +60,20 @@ function Assert-Clean {
 function Sha([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
-function Unreal([string]$Mode, [string[]]$Extra) {
+function Unreal([string]$Mode, [string[]]$Extra, [switch]$AllowProfileMismatch) {
     $Args = @($Project, '-run=GridArmClean064X37NativeArmWorldProfiles',
         ('-'+$Mode), '-NullRHI', '-Unattended', '-NoSplash', '-NoSound', '-nop4')
     $Args += $Extra
     & $EditorCmd @Args
-    if ($LASTEXITCODE -ne 0) { throw ('UE '+$Mode+' exited with '+$LASTEXITCODE) }
+    $script:LastNativeExitCode = [int]$LASTEXITCODE
+    # Verify code 4 denotes real profile differences ONLY: BuildPlan
+    # failures already returned code 3, and all other exits are fatal.
+    # Never grant this exception to Preflight or Apply.
+    if ($script:LastNativeExitCode -ne 0 -and
+        -not ($AllowProfileMismatch -and $Mode -ceq 'Verify' -and
+            $script:LastNativeExitCode -eq 4)) {
+        throw ('UE '+$Mode+' exited with '+$script:LastNativeExitCode)
+    }
 }
 # The scheduled Windows validator compiles in its OWN detached worktree.
 # It never refreshes the user's primary project's native Editor module.
@@ -88,6 +96,21 @@ if (-not $Apply) {
     Write-Host 'X.37: read-only UE preflight succeeded; no package written.'
     return
 }
+
+# X.38: real data may already be in exact parity. A second independent
+# Unreal process performs read-only Verify BEFORE any snapshot or Apply.
+# Exit 0 = zero mismatch -> no write, no snapshot and no LFS commit.
+# Exit 4 = differences exist -> continue with the safeguarded 24 backups.
+# Any other exit code aborts before an attempt to modify packages.
+Unreal 'Verify' @() -AllowProfileMismatch
+if ($script:LastNativeExitCode -eq 0) {
+    Assert-Clean
+    Write-Host '[ARM-CLEAN06.4X.38] VERIFIED NO-OP: all 22 native ARM profiles already match their 8 visual + 2 physics properties.'
+    Write-Host 'Two real catalogues are unchanged; no SavePackage, rollback, LFS commit or migration needed for these 220 fields.'
+    Write-Host '06.4 remains PARTIAL; other X.19 legacy references, runtime readers and SaveGames are NOT converted.'
+    return
+}
+Write-Host '[ARM-CLEAN06.4X.38] Verified differences exist; protected native Apply and 24 SHA256 backups are required.'
 
 $Suffixes = @(
  'ArcaneOrb_01','ArcaneWand_01','AssassinDagger_01','Dagger_01',

@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.38 — 22 profils ARM réels déjà en parité : pas de SavePackage inutile
+
+**Parent :** `5d83c683e7ea6c867187b6dacd9ace9abe96d236`. Rapport : [ARM_CLEAN06_4X38_NATIVE_ALREADY_EQUAL_NOOP.md](ARM_CLEAN06_4X38_NATIVE_ALREADY_EQUAL_NOOP.md).
+
+Preuve Windows utilisateur : compilation native de 452 actions UE5.5.4 réussie, `-Preflight` réel sur les deux catalogues `.uasset` avec `sources=22 mismatching_profiles=0`. L'ancien `-Apply` a malgré tout exigé un manifeste de sauvegarde et renvoyé code 5 **avant SavePackage** ; restauration des deux catalogues annoncée. Correction : `-Apply` lance maintenant `-Verify` dans un SECOND processus UE avant tout snapshot ; si les 22 profils sont déjà identiques, sortie réussie `VERIFIED NO-OP` sans backup ni écriture. Si différences vérifiées (code 4), conserver intact le chemin protégé des 24 backups. Le commandlet direct possède le même no-op sûr. Test Windows sur vrais assets : zéro différence des 220 champs, parité rechargée. **Aucun binaire LFS artificiellement modifié ni commit de migration à créer ; 06.4 partielle et 06.5 bloquée. Deux statuts Windows à vérifier sur SHA final.**
+
 ## ARM-CLEAN06.4X.37.2 — build local automatique avant preflight natif
 
 **Parent :** `eefec795d2252dca8371892535063374582135a0`. Rapport : [ARM_CLEAN06_4X372_LOCAL_EDITOR_BUILD_GATE.md](ARM_CLEAN06_4X372_LOCAL_EDITOR_BUILD_GATE.md).

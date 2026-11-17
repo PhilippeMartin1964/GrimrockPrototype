@@ -33,6 +33,15 @@ bool FGridEditorARMCLEAN064X37WorldPresentationProjection::RunTest(const FString
         TestEqual(TEXT("Existing visual profile count unchanged"), Plan.Visuals.Num(), 22) &&
         TestEqual(TEXT("All 82 numeric archetypes preserved"), Plan.Archetypes.Num(), 82);
 
+    // X.38: a real Windows UE preflight reported mismatching_profiles=0.
+    // Guard the *persisted* binary catalogue parity in every scheduled
+    // Windows validation; never fabricate LFS changes for already equal data.
+    FString NativeParityError;
+    bOk &= TestEqual(TEXT("Existing 22 native ARM world profiles already equal"), Plan.ChangedProfiles, 0);
+    const bool bDiskParity = ARMCLEAN064X37::VerifyDiskProfiles(Root, NativeParityError);
+    bOk &= TestTrue(TEXT("Reloaded real catalogues match 22 historical ARM sources"), bDiskParity);
+    if (!bDiskParity) { AddError(NativeParityError); }
+
     // Prove the staging helper detects an actual discrepancy, rather than
     // rubber-stamping every value. No source or real catalogue is edited.
     const TCHAR* FirstSuffix = ARMCLEAN064X37::LegacySuffixes[0];

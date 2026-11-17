@@ -136,6 +136,17 @@ int32 UGridArmClean064X37NativeArmWorldProfilesCommandlet::Main(const FString& P
         return 0;
     }
 
+    // X.38: exact native parity is already an idempotent success. No
+    // SavePackage can follow this return, so never require/write a backup
+    // snapshot for a no-op. Any actual changed profile still MUST pass the
+    // complete 24-file receipt gate below before the first write.
+    if (Plan.ChangedProfiles == 0)
+    {
+        UE_LOG(LogTemp, Display,
+            TEXT("[ARM-CLEAN06.4X.38] All 22 native ARM already match; verified no-op, no binary write."));
+        return 0;
+    }
+
     FString BackupManifest, ExpectedHead;
     if (!FParse::Value(*Params, TEXT("BackupManifest="), BackupManifest) ||
         !FParse::Value(*Params, TEXT("ExpectedHead="), ExpectedHead) ||
@@ -144,13 +155,6 @@ int32 UGridArmClean064X37NativeArmWorldProfilesCommandlet::Main(const FString& P
         UE_LOG(LogTemp, Error,
             TEXT("[ARM-CLEAN06.4X.37] Apply refused: verified private 24-file backup receipt required."));
         return 5;
-    }
-
-    if (Plan.ChangedProfiles == 0)
-    {
-        UE_LOG(LogTemp, Display,
-            TEXT("[ARM-CLEAN06.4X.37] All 22 ARM already match; no binary write."));
-        return 0;
     }
 
     // Two arrays are staged and checked before touching the real catalogues.
