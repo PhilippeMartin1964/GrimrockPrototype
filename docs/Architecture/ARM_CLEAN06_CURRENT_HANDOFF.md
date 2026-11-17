@@ -1,9 +1,27 @@
-# ARM-CLEAN06 — Point de reprise fiable (16 novembre 2026)
+# ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
 > **Document de continuité, pas une autorisation de conversion.**
 > Lors de toute reprise, **relire le HEAD réel de `origin/master` et ses statuts**
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
+
+## ARM-CLEAN06.4X.19 — audit de sortie 06.4 (PRÉFLIGHT DISTANT)
+
+**Demande du 17.11.2026 :** « Go ARM-CLEAN06.4X.17 » pour auditer les dépendances legacy.
+**Numérotation rectifiée :** X.17 est déjà la correction de torche en main et X.18 celle de la torche au sol ; le nouveau jalon est **X.19**, sans réécrire l'historique.
+
+**HEAD fonctionnel de départ :** `9e8331c122e319aff26a2934293744f3e73b6108`.
+PIT02 / piège fosse **validé en PIE par le propriétaire le 17.11.2026** ; issue #181 clôturée. `UE5.5.4/SilentTask=success` et `UE5.5.4/LocalAuto=success` sur ce SHA.
+
+**Rapport X.19 :** [ARM_CLEAN06_4X19_FINAL_LEGACY_DEPENDENCY_AUDIT.md](ARM_CLEAN06_4X19_FINAL_LEGACY_DEPENDENCY_AUDIT.md).
+**Suite Codex Windows :** [issue #182](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/182).
+
+Lecture C++ confirmée : placements ARM par `AddPlacedItemActor`, restauration ARM en réceptacle, initialisation de réceptacle, palette/inspecteur/validation Editor, projectiles/held-item/loot à qualifier, champs `ProjectileDefinitionAsset` et `PendingInboundItems.ItemDefinitionAsset` du SaveGame v27. Les 24 anciens `DA_Weapon_*`, 4 niveaux et `DA_ItemSystem` sont bien présents. Les 34 définitions et 95 références physiques proviennent d'audits historiques ; **les propriétés natives des .uasset n'ont pas encore été relues dans ce jalon distant**.
+
+**Décision : 06.4 non close, 06.5 BLOQUÉE** jusqu'à audit UE/AssetRegistry réel et tests de parité/conversion protégée. Aucun changement C++/binaire/SaveGame dans X.19 documentaire. Ne pas rejouer les migrations W/X.5 ni modifier le scénario PIT02 validé.
+
+L'historique X.16.13 et les sections antérieures ci-dessous sont conservés comme **historique d'incidents**, non comme état actuel.
+
 
 ## ARM-CLEAN06.4X.16.13 — ordre physique PIT02 et atterrissage voisin
 
