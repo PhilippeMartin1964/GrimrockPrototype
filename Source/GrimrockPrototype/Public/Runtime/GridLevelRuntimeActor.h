@@ -1046,6 +1046,10 @@ private:
 
 	friend class UGridMonsterEncounterComponent;
 
+	// X.40: read-only Automation access to the transient world-entry
+	// invariant. No public gameplay accessor or new UObject property.
+	friend class FGridClean064X8LooseCutover;
+
 	void GetEdgeTransform(int32 X, int32 Y, EGridEdge Edge, float CellSize, FVector& OutWorldLocation, FRotator& OutWorldRotation) const;
 	bool TryGetOppositeEdge(int32 X, int32 Y, EGridEdge Edge, int32& OutX, int32& OutY, EGridEdge& OutEdge) const;
 	bool TryResolveDoorEdge(int32 X, int32 Y, EGridEdge Edge, int32& OutX, int32& OutY, EGridEdge& OutEdge, bool& bOutResolvedOpposite) const;

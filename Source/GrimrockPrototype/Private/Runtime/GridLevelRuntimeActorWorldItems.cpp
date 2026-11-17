@@ -1282,7 +1282,9 @@ float AGridLevelRuntimeActor::GetWorldItemWeightAtCell(int32 CellX, int32 CellY,
 		const FName ItemId = Entry.ItemDefinitionId.IsNone()
 			? Entry.ItemActor->GetItemDefinitionId() : Entry.ItemDefinitionId;
 		const bool bCanonical = Registry && Registry->HasCanonicalItem(ItemId);
-		UGridItemDefinitionAsset* Definition = Entry.ItemDefinitionAsset.Get();
+		// Read the registry for registered item weights, even if a stale
+		// entry from a historical runtime build still holds an old pointer.
+		UGridItemDefinitionAsset* Definition = bCanonical ? nullptr : Entry.ItemDefinitionAsset.Get();
 		if (!bCanonical && !Definition)
 		{
 			Definition = ResolveRuntimeItemDefinition(ItemId);

@@ -2250,7 +2250,11 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	Entry.Edge = ObjectData.SurfaceSide;
 	Entry.ItemActor = ItemActor;
 	Entry.ObjectId = ObjectData.InstanceId;
-	Entry.ItemDefinitionAsset = ItemDefinition;
+	// X.40: never keep an obsolete UGridItemDefinitionAsset alive in a
+	// canonical runtime entry. The authored level retains its pointer until
+	// its separate native migration; genuine out-of-registry items retain
+	// their historic source for PIT/weight compatibility.
+	Entry.ItemDefinitionAsset = bCanonicalPresentation ? nullptr : ItemDefinition;
 	Entry.ItemDefinitionId = ItemDefinitionId;
 	Entry.Quantity = FMath::Max(1, ObjectData.Quantity);
 	Entry.ItemLevel = ResolvedItemLevel;

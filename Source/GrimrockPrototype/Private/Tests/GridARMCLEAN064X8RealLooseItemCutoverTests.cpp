@@ -158,12 +158,27 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
         return F.FindItem(Source.InstanceId);
     };
 
+    const auto FindRuntimeEntry = [&F](const AGridItemActor* Actor)
+        -> const FGridSpawnedItemRuntimeEntry*
+    {
+        return F.Runtime->SpawnedItemEntries.FindByPredicate(
+            [Actor](const FGridSpawnedItemRuntimeEntry& Entry)
+            {
+                return Entry.ItemActor.Get() == Actor;
+            });
+    };
+
     AGridItemActor* NonArmActor = PlaceAtOrigin(NonArm);
     if (!TestNotNull(TEXT("NonARM actor was spawned from persisted ID"),
         NonArmActor))
     {
         return false;
     }
+    const FGridSpawnedItemRuntimeEntry* NonArmEntry = FindRuntimeEntry(NonArmActor);
+    if (!TestNotNull(TEXT("Registered nonARM has a runtime entry"), NonArmEntry) ||
+        !TestNull(TEXT("Registered nonARM runtime entry has no legacy source"),
+            NonArmEntry->ItemDefinitionAsset.Get())) return false;
+
     FGridResolvedItem NonArmResolved;
     if (!TestTrue(TEXT("NonARM physical N0 resolves"),
         F.Registry->ResolveItem(NonArm.CanonicalItemId, NonArm.ItemLevel, NonArmResolved)) ||
@@ -201,6 +216,17 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
         return false;
     }
     AGridItemActor* ArmActor = PlaceAtOrigin(Arm);
+    const FGridSpawnedItemRuntimeEntry* ArmEntry = FindRuntimeEntry(ArmActor);
+    if (!TestNotNull(TEXT("Real ARM runtime entry exists"), ArmEntry) ||
+        !TestNull(TEXT("X.40: Real ARM entry discards DA_Weapon source"),
+            ArmEntry->ItemDefinitionAsset.Get()) ||
+        !TestEqual(TEXT("X.40: Runtime entry retains authoritative ARM ID"),
+            ArmEntry->ItemDefinitionId, Arm.CanonicalItemId) ||
+        !TestEqual(TEXT("X.40: Runtime entry preserves authored ARM level"),
+            ArmEntry->ItemLevel, Arm.ItemLevel))
+    {
+        return false;
+    }
     if (!TestNotNull(TEXT("Real authored ARM actor spawned from canonical ItemId"),
             ArmActor) ||
         !TestNull(TEXT("Real ARM actor must never inherit the historic pointer"),
@@ -236,6 +262,13 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     Fake->VisualEffects.Effects.Reset();
     Contradictory.ItemDefinition = Fake;
     AGridItemActor* ContradictoryActor = PlaceAtOrigin(Contradictory);
+    const FGridSpawnedItemRuntimeEntry* FakeEntry = FindRuntimeEntry(ContradictoryActor);
+    if (!TestNotNull(TEXT("Contradictory same-ID native runtime entry exists"), FakeEntry) ||
+        !TestNull(TEXT("X.40: Contradictory same-ID source not retained in transient entry"),
+            FakeEntry->ItemDefinitionAsset.Get()))
+    {
+        return false;
+    }
     if (!TestNotNull(TEXT("Same-ID legacy source can no longer override canonical visuals"),
             ContradictoryActor) ||
         !TestNull(TEXT("Same-ID contradictory old asset is never attached"),
@@ -311,10 +344,10 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     if (!TestNull(TEXT("Contradictory legacy source cannot spoof canonical ID"),
         F.FindItem(WrongSource.InstanceId))) {return false;}
 
-    AddInfo(TEXT("[ARM-CLEAN06.4X39] 44 real loose items audited; "
-        "ARM with real DA_Weapon pointers now initializes from canonical "
-        "mesh, light, Niagara and physical N level; fake same-ID legacy "
-        "asset cannot override them. No UAsset/SaveGame writes."));
+    AddInfo(TEXT("[ARM-CLEAN06.4X40] 44 real loose items audited; "
+        "all known canonical actors and their runtime entries exclude old "
+        "source pointers, including real ARM and fake same-ID legacy. "
+        "Mesh/light/Niagara/N levels remain canonical; no native assets changed."));
     return true;
 }
 #endif

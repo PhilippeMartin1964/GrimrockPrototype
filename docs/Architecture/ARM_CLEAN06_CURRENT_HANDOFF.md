@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.40 — entrées monde transitoires sans ancienne source pour les ItemId canoniques
+
+**Parent :** `06effc11ee81d6de76230007a8c0b01f3417ae7b` (règle de lots cohérents). Rapport : [ARM_CLEAN06_4X40_CANONICAL_RUNTIME_ENTRY_SOURCE.md](ARM_CLEAN06_4X40_CANONICAL_RUNTIME_ENTRY_SOURCE.md).
+
+Dans `AddPlacedItemActor`, un objet libre à identité canonique validée ne conserve plus `DA_Weapon_*` dans son `FGridSpawnedItemRuntimeEntry`, en plus de l'acteur physique pointerless X.39. Le poids des plaques de pression ignore désormais tout pointeur d'entrée resté dans une instance historique pour un ID enregistré. Test X.8 étendu aux vrais ARM et non-ARM, avec source historique de même ID contradictoire, vérification directe (lecture seule) des entrées et conservation de l'ItemId/niveau. Aucun .uasset/SaveGame/UPROPERTY touché ; autres pointeurs historiques non migrés. **06.4 partielle / 06.5 bloquée ; SHA final et deux statuts Windows à relever.**
+
 ## ARM-CLEAN06.4X.39 — objets libres ARM existants : présentation physique canonique
 
 **Parent :** `519ae9433e8007f66f33793338b78516f590e740`. Rapport : [ARM_CLEAN06_4X39_REAL_ARM_LOOSE_RUNTIME_CUTOVER.md](ARM_CLEAN06_4X39_REAL_ARM_LOOSE_RUNTIME_CUTOVER.md).
