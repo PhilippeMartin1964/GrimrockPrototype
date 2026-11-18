@@ -29,3 +29,7 @@ Préparer la transaction de 12 packages du registre d'alchimie, les gates exacts
 ## Correction du test après validation automatique
 
 Le premier SHA `e1642ecdb856` a échoué en compilation (issue #193, C2440 ligne 26). Le fixture Race a été corrigé pour fournir les six caractéristiques comme dans le test MON12.8 de référence. Aucun changement du convertisseur ou du schéma ; relancer les deux statuts sur le SHA corrigé.
+
+## Correction de la preuve binaire (issue #194)
+
+La compilation corrigée est passée, mais la suite a subi un fatal dans SaveBinaryCopyRoundTrip. Le scénario avait IntVariables non vide et bLevelVariablesInitialized=false, ce que ValidateDungeonSnapshots refuse explicitement (MON19.2.2). Le fixture respecte désormais cet invariant. EncodeChecked applique avant l'archive les trois gardes de Serialize (ValidateCurrentState, combat et statuts runtime), vide toute sortie refusée ; test négatif de variable non initialisée. Contrôles des indices et de la présence de niveau/piège avant accès. La cause exacte du fatal n'est pas publiée par l'agent, donc le nouveau SHA doit démontrer la correction. Aucun état joueur réel n'a été touché.

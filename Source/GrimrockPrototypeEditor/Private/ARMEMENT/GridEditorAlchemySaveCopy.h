@@ -2,6 +2,8 @@
 
 #include "GridEditorAlchemyActionIdentity.h"
 #include "Save/GrimrockPartySaveGame.h"
+#include "Save/GridCombatSavePolicy.h"
+#include "RPG/StatusEffects/GridStatusEffectPersistence.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
@@ -79,6 +81,35 @@ namespace GridEditorAlchemySaveCopy
         return Save;
     }
 
+    /** Match all current save-time guards up front. A serializer rejection
+     * must never leave a partial archive that is subsequently passed to Load.
+     */
+    inline bool EncodeChecked(UGrimrockPartySaveGame& Snapshot, TArray<uint8>& Bytes, FString& Error)
+    {
+        Bytes.Reset();
+        Error.Reset();
+        FText Validation;
+        if (!Snapshot.ValidateCurrentState(Validation))
+        {
+            Error = Validation.ToString();
+            return false;
+        }
+        if (FGridCombatSavePolicy::IsSaveBlockedForParty(Snapshot.PartyInventoryState))
+        {
+            Error = TEXT("Active combat: save serialization refused");
+            return false;
+        }
+        if (!FGridStatusEffectPersistence::ValidateRuntimePartyStatusEffects(Snapshot.PartyInventoryState, Error))
+            return false;
+        if (!UGameplayStatics::SaveGameToMemory(&Snapshot, Bytes) || Bytes.IsEmpty())
+        {
+            Bytes.Reset();
+            Error = TEXT("UE refused to serialize the converted copy");
+            return false;
+        }
+        return true;
+    }
+
     inline bool Convert(const TArray<uint8>& Input, TArray<uint8>& Output,
         int32& Changed, FString& Error)
     {
@@ -109,11 +140,7 @@ namespace GridEditorAlchemySaveCopy
             ExpectedCount != Count || !SameSaveProperties(*Working.Get(), *Expected.Get(), Error))
             return false;
         TArray<uint8> Bytes;
-        if (!UGameplayStatics::SaveGameToMemory(Working.Get(), Bytes) || Bytes.IsEmpty())
-        {
-            Error = TEXT("UE refused to serialize the converted copy");
-            return false;
-        }
+        if (!EncodeChecked(*Working.Get(), Bytes, Error)) return false;
         TStrongObjectPtr<UGrimrockPartySaveGame> Reloaded(LoadExact(Bytes, Error));
         if (!Reloaded.IsValid() || !SameSaveProperties(*Expected.Get(), *Reloaded.Get(), Error) ||
             !CheckOtherActionReferences(*Reloaded.Get(), Error)) return false;

@@ -41,7 +41,9 @@ namespace
 
         Save.PartyInventoryState = Inventory.PartyInventoryState;
         auto& Party = Save.PartyInventoryState;
-        const auto Template = Party.ActiveCharacters[0];
+        if (!Party.ActiveCharacters.IsValidIndex(0) ||
+            !Party.ActiveCharacters[0].CombatHotbarSlots.IsValidIndex(2)) return false;
+        const FGridCharacterInventoryState Template = Party.ActiveCharacters[0];
         Party.ActiveCharacters.SetNum(2);
         Party.ActiveEquipment.SetNum(2);
         Party.CharacterPool.SetNum(2);
@@ -78,6 +80,7 @@ namespace
         FGridLevelRuntimeState Level;
         Level.LevelId = Save.CurrentDungeonLevelId;
         Level.bHasBeenVisited = true;
+        Level.bLevelVariablesInitialized = true;
         Level.IntVariables.Add(TEXT("RuneCount"), 3);
         FGridRuntimeItemState Dropped;
         Dropped.ObjectId = FGuid::NewGuid();
@@ -110,16 +113,26 @@ bool FGridEditorARMCLEAN064X64SaveCopy::RunTest(const FString&)
     TStrongObjectPtr<UGrimrockPartySaveGame> Save(NewObject<UGrimrockPartySaveGame>());
     if (!TestTrue(TEXT("Valid character creation and v27 snapshot"), MakeFixture(*Inventory.Get(), *Save.Get())))
         return false;
+    FString Error;
+    FText Validation;
+    if (!TestTrue(TEXT("Complete fixture accepted by actual SaveGame validator"), Save->ValidateCurrentState(Validation)))
+    {
+        AddError(Validation.ToString());
+        return false;
+    }
     TArray<uint8> Input;
-    if (!TestTrue(TEXT("Real UE SaveGame byte serialization"), UGameplayStatics::SaveGameToMemory(Save.Get(), Input)) ||
+    const bool bEncoded = Copy::EncodeChecked(*Save.Get(), Input, Error);
+    if (!TestTrue(*FString::Printf(TEXT("Real UE SaveGame byte serialization: %s"), *Error), bEncoded) ||
         !TestFalse(TEXT("Nonempty archive"), Input.IsEmpty())) return false;
     const TArray<uint8> Original = Input;
-    FString Error;
     TStrongObjectPtr<UGrimrockPartySaveGame> Expected(Copy::LoadExact(Input, Error));
     if (!TestNotNull(TEXT("Original binary accepted by actual v27 loader"), Expected.Get())) return false;
+    if (!TestEqual(TEXT("Active character count"), Expected->PartyInventoryState.ActiveCharacters.Num(), 2) ||
+        !TestEqual(TEXT("Reserve character count"), Expected->PartyInventoryState.CharacterPool.Num(), 2)) return false;
     for (int32 I = 0; I < 4; ++I)
     {
         auto& C = I < 2 ? Expected->PartyInventoryState.ActiveCharacters[I] : Expected->PartyInventoryState.CharacterPool[I-2];
+        if (!TestTrue(TEXT("Expected saved slot exists"), C.CombatHotbarSlots.IsValidIndex(2))) return false;
         C.CombatHotbarSlots[2].ActionId = Identity::ActionForItem(Identity::Item(I));
     }
     TArray<uint8> Converted;
@@ -152,17 +165,28 @@ bool FGridEditorARMCLEAN064X64SaveCopy::RunTest(const FString&)
     // reader but is ambiguous for this migration and must be refused.
     Save->PartyInventoryState.CharacterPool[1].CombatHotbarSlots[2].SourceDefinitionId = TEXT("Unknown");
     TArray<uint8> Bad;
-    if (!TestTrue(TEXT("Serialize ambiguous binding fixture"), UGameplayStatics::SaveGameToMemory(Save.Get(), Bad))) return false;
+    if (!TestTrue(TEXT("Serialize ambiguous binding fixture"), Copy::EncodeChecked(*Save.Get(), Bad, Error))) return false;
     TestFalse(TEXT("Unknown item for shared action refused atomically"), Copy::Convert(Bad, Again, Count, Error));
     TestTrue(TEXT("No partial file returned"), Count == 0 && Again.IsEmpty());
 
     Save->PartyInventoryState.CharacterPool[1].CombatHotbarSlots[2].SourceDefinitionId = Identity::Item(3);
-    auto& Level = Save->DungeonRuntimeState.LevelStates.FindChecked(Save->CurrentDungeonLevelId);
-    Level.CombatTraps.FindChecked(FIntPoint(9,8)).SourceActionId = Identity::SharedLegacyAction();
+    auto* Level = Save->DungeonRuntimeState.LevelStates.Find(Save->CurrentDungeonLevelId);
+    if (!TestNotNull(TEXT("World snapshot still exists"), Level)) return false;
+    auto* Trap = Level->CombatTraps.Find(FIntPoint(9,8));
+    if (!TestNotNull(TEXT("Trap still exists"), Trap)) return false;
+    Trap->SourceActionId = Identity::SharedLegacyAction();
     Bad.Reset();
-    if (!TestTrue(TEXT("Serialize ambiguous trap fixture"), UGameplayStatics::SaveGameToMemory(Save.Get(), Bad))) return false;
+    if (!TestTrue(TEXT("Serialize ambiguous trap fixture"), Copy::EncodeChecked(*Save.Get(), Bad, Error))) return false;
     TestFalse(TEXT("Ambiguous persisted source without ItemId refused"), Copy::Convert(Bad, Again, Count, Error));
     TestTrue(TEXT("No candidate on world-state conflict"), Again.IsEmpty());
+    // Prove invalid save state never reaches the raw serializer. This
+    // exercises the exact previously missed MON19.2.2 fixture invariant.
+    Trap->SourceActionId = TEXT("Action_Unchanged_Trap");
+    Level->bLevelVariablesInitialized = false;
+    TArray<uint8> Partial = Original;
+    TestFalse(TEXT("Uninitialized level variable state refuses encoding"),
+        Copy::EncodeChecked(*Save.Get(), Partial, Error));
+    TestTrue(TEXT("No partial bytes can be passed to LoadGameFromMemory"), Partial.IsEmpty());
     AddInfo(TEXT("[ARM-CLEAN06.4X64] UE v27 archive copy, exact action remapping and independent reload; original bytes preserved."));
     return !HasAnyErrors();
 }
