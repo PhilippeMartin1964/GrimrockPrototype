@@ -43,8 +43,8 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
     auto Visit = [&](const UGridItemDefinitionAsset* Legacy, FName ItemId,
         bool bAllowPointerless) -> bool
     {
-        // X.45: only the 44 loose placements are eligible for removal
-        // of a historical pointer. Other 51 references remain strict.
+        // X.45/X.56: loose placements and direct palette entries can be
+        // pointerless. Receptacle initial content remains strict.
         if (!IsValid(Legacy) && bAllowPointerless)
         {
             if (ItemId.IsNone() || !ValidIds.Contains(ItemId)) { return false; }
@@ -106,9 +106,9 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
     if (!TestNotNull(TEXT("Real palette loaded"), P.Get())) { return false; }
     for (const FGridObjectPaletteEntry& Entry : P->Entries)
     {
-        if (!Entry.DefaultItemDefinition) { continue; }
+        if (!Entry.IsDirectItemEntry()) { continue; }
         if (!TestTrue(TEXT("Palette item retains exact source ItemId"),
-                Visit(Entry.DefaultItemDefinition, Entry.CanonicalItemId, false)))
+                Visit(Entry.DefaultItemDefinition, Entry.CanonicalItemId, true)))
         {
             return false;
         }

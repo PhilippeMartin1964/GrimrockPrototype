@@ -24,7 +24,7 @@ EGridWeaponPipelinePaletteState FGridWeaponPipelinePalette::Inspect(
             ++EntryCount;
             Matching = &Entry;
         }
-        if (Entry.DefaultItemDefinition.Get() == Item &&
+        if ((Entry.DefaultItemDefinition.Get() == Item || Entry.CanonicalItemId == Item->ItemDefinitionId) &&
             Entry.EntryId != EntryId)
         {
             ++AliasCount;
@@ -41,7 +41,7 @@ EGridWeaponPipelinePaletteState FGridWeaponPipelinePalette::Inspect(
         Detail = TEXT("DirectItemPaletteEntryMissing");
         return EGridWeaponPipelinePaletteState::Missing;
     }
-    if (Matching->DefaultItemDefinition.Get() != Item)
+    if (!Matching->MatchesDirectItemSource(Item))
     {
         Detail = TEXT("PaletteEntryReferencesDifferentItem");
         return EGridWeaponPipelinePaletteState::Conflict;
@@ -133,13 +133,13 @@ bool FGridWeaponPipelinePalette::ProposeDirectItem(
             ++Count;
             Existing = &Entry;
         }
-        if (Entry.DefaultItemDefinition.Get() == Item &&
+        if ((Entry.DefaultItemDefinition.Get() == Item || Entry.CanonicalItemId == Item->ItemDefinitionId) &&
             Entry.EntryId != Item->ItemDefinitionId)
             ++Aliases;
     }
     if (Count > 1 || Aliases > 0 || (Existing &&
         (Existing->PaletteCategory != Category ||
-         Existing->DefaultItemDefinition.Get() != Item ||
+         !Existing->MatchesDirectItemSource(Item) ||
          Existing->Icon != nullptr ||
          Existing->DefaultWorldObjectDefinition != nullptr ||
          Existing->DefaultMonsterDefinition != nullptr ||

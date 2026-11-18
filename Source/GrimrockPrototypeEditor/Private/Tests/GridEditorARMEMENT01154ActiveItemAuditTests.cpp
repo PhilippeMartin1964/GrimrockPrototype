@@ -227,12 +227,13 @@ bool FARMEMENT01154InventoryItemAudit::RunTest(const FString&)
         int32 References = 0;
         for (const FGridObjectPaletteEntry& Entry : Palette->Entries)
         {
-            if (IsValid(Entry.DefaultItemDefinition) &&
-                Entry.DefaultItemDefinition->ItemDefinitionId == ARMEMENT01154::PotionId())
+            if (Entry.CanonicalItemId == ARMEMENT01154::PotionId() ||
+                (IsValid(Entry.DefaultItemDefinition) &&
+                 Entry.DefaultItemDefinition->ItemDefinitionId == ARMEMENT01154::PotionId()))
             {
                 ++References;
                 TestTrue(TEXT("Existing N1 potion palette entry uses the canonical direct collectible contract"),
-                    Entry.IsValidEntry() && Entry.DefaultItemDefinition == Potion);
+                    Entry.IsValidEntry() && Entry.MatchesDirectItemSource(Potion));
             }
         }
         AddInfo(FString::Printf(

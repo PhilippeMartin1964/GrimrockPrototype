@@ -268,6 +268,27 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
     TestFalse(TEXT("Idempotence: no entry appended"), bAdded);
     TestEqual(TEXT("Idempotence: array size unchanged"), Proposed.Num(), OriginalCount);
 
+    // Simulate a fully pointerless production palette. Historical inspection
+    // may recognize a registered item but must not reattach a pointer.
+    UGridObjectPaletteAsset* Pointerless = NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
+    Pointerless->Entries = Production->Entries;
+    for (FGridObjectPaletteEntry& Entry : Pointerless->Entries)
+        if (!Entry.CanonicalItemId.IsNone()) Entry.DefaultItemDefinition = nullptr;
+    FString PointerlessError;
+    TArray<FGridObjectPaletteEntry> PointerlessProposal;
+    bool bPointerlessAdded = true;
+    TestTrue(TEXT("Historical inspection recognizes existing canonical-only identity"),
+        FGridWeaponPipelinePalette::Inspect(*Pointerless, EntryId, Item, false, PointerlessError) ==
+            EGridWeaponPipelinePaletteState::PresentSame);
+    TestTrue(TEXT("Existing pointerless item remains idempotent"),
+        FGridWeaponPipelinePalette::Propose(*Pointerless, EntryId, Item, false,
+            PointerlessProposal, bPointerlessAdded, PointerlessError));
+    TestFalse(TEXT("Canonical-only identity must never be re-added"), bPointerlessAdded);
+    const FGridObjectPaletteEntry* Preserved = PointerlessProposal.FindByPredicate([EntryId](const FGridObjectPaletteEntry& Entry)
+        { return Entry.EntryId == EntryId; });
+    if (TestNotNull(TEXT("Pointerless proposal retains entry"), Preserved))
+        TestNull(TEXT("No legacy source reattached"), Preserved->DefaultItemDefinition.Get());
+
     // Simulate an absent entry in a transient copy. No production data is changed.
     UGridObjectPaletteAsset* Missing = NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
     Missing->Entries = Production->Entries;

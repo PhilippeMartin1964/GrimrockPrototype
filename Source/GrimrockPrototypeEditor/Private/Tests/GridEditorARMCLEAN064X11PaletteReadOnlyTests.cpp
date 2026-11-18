@@ -36,12 +36,12 @@ bool FGridEditorClean064X11RealPalette::RunTest(const FString&)
         return false;
     }
 
-    int32 Direct = 0, Arms = 0, NonArms = 0;
+    int32 Direct = 0, Arms = 0, NonArms = 0, Old = 0;
     int32 LabelDiffs = 0, DescriptionDiffs = 0, IconDiffs = 0;
     TSet<FName> EntryIds;
     for (const FGridObjectPaletteEntry& Entry : Palette->Entries)
     {
-        if (!Entry.DefaultItemDefinition)
+        if (!Entry.IsDirectItemEntry())
         {
             continue; // Object archetypes and monster entries are outside X.11.
         }
@@ -52,8 +52,9 @@ bool FGridEditorClean064X11RealPalette::RunTest(const FString&)
         EntryIds.Add(Entry.EntryId);
         if (!TestTrue(TEXT("All real direct items have persisted ItemId"),
             !Entry.CanonicalItemId.IsNone()) ||
-            !TestEqual(TEXT("Historical pointer agrees with persisted ItemId"),
-                Entry.DefaultItemDefinition->ItemDefinitionId, Entry.CanonicalItemId))
+            !TestTrue(TEXT("Optional historical pointer agrees with persisted ItemId"),
+                !Entry.DefaultItemDefinition ||
+                Entry.DefaultItemDefinition->ItemDefinitionId == Entry.CanonicalItemId))
             {return false;}
 
         FGridResolvedItem Resolved;
@@ -79,15 +80,20 @@ bool FGridEditorClean064X11RealPalette::RunTest(const FString&)
         }
         // Measure parity, do not silently relabel or overwrite user-authored
         // data. Any differences require a dedicated mapping before editor cutover.
-        if (Entry.DefaultItemDefinition->DisplayName.ToString() != Resolved.DisplayName.ToString())
-            {++LabelDiffs;}
-        if (Entry.DefaultItemDefinition->Description.ToString() != Resolved.Description.ToString())
-            {++DescriptionDiffs;}
-        if (Entry.DefaultItemDefinition->Icon.ToSoftObjectPath() !=
-            Resolved.ItemIcon.ToSoftObjectPath())
-            {++IconDiffs;}
+        if (Entry.DefaultItemDefinition)
+        {
+            ++Old;
+            if (Entry.DefaultItemDefinition->DisplayName.ToString() != Resolved.DisplayName.ToString())
+                {++LabelDiffs;}
+            if (Entry.DefaultItemDefinition->Description.ToString() != Resolved.Description.ToString())
+                {++DescriptionDiffs;}
+            if (Entry.DefaultItemDefinition->Icon.ToSoftObjectPath() !=
+                Resolved.ItemIcon.ToSoftObjectPath())
+                {++IconDiffs;}
+        }
     }
     if (!TestEqual(TEXT("All 33 direct entries inspected"), Direct, 33) ||
+        !TestTrue(TEXT("Complete native pre/post state"), Old == 33 || Old == 0) ||
         !TestEqual(TEXT("Exactly 33 canonical physical levels"),
             Arms + NonArms, 33) ||
         !TestEqual(TEXT("Read-only palette access"),
@@ -98,9 +104,9 @@ bool FGridEditorClean064X11RealPalette::RunTest(const FString&)
 
     AddInfo(FString::Printf(TEXT(
         "[ARM-CLEAN06.4X11] 33 direct entries: %d ARM, %d nonARM; "
-        "legacy-vs-canonical label=%d, description=%d, icon=%d differences; "
+        "historical comparisons=%d: label=%d, description=%d, icon=%d differences; "
         "read-only (no binary write)."),
-        Arms, NonArms, LabelDiffs, DescriptionDiffs, IconDiffs));
+        Arms, NonArms, Old, LabelDiffs, DescriptionDiffs, IconDiffs));
     return !HasAnyErrors();
 }
 #endif

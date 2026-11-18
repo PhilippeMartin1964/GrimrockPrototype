@@ -14,11 +14,10 @@
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/Package.h"
 
-/** X.48/X.52 is a read-only audit of the real native packages.
- *  The 44 loose rows are permanently pointerless. The FOUR shared rule
- *  pointers can be present together (63 left) or absent together (59 left)
- *  once their independently protected native migration is committed.
- *  Partial conversion and unrelated changes MUST fail closed.
+/** X.48/X.56 is a read-only audit of the real native packages.
+ *  The 44 loose rows and four X.54B shared rules are pointerless.
+ *  The 33 palette pointers are all present (59 total) or all absent
+ *  (26 total). No mixed state or unrelated change is accepted.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X48PostNativeRefs,
     "Grimrock.RPG.ARM.CLEAN06_4X48.PostNative63ReferenceBaseline",
@@ -139,18 +138,20 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
                  "DA_ObjectPalette_Default.DA_ObjectPalette_Default")));
     if (!TestNotNull(TEXT("Real direct item palette"), Palette.Get())) return false;
     const bool bPaletteDirty = Palette->GetOutermost()->IsDirty();
-    int32 PaletteOld = 0;
+    int32 PaletteRows = 0, PaletteOld = 0;
     for (const FGridObjectPaletteEntry& Entry : Palette->Entries)
     {
-        if (Entry.CanonicalItemId.IsNone()) continue;
-        if (!Known.Contains(Entry.CanonicalItemId) ||
-            !IsValid(Entry.DefaultItemDefinition.Get()) ||
-            Entry.DefaultItemDefinition->ItemDefinitionId != Entry.CanonicalItemId)
+        if (!Entry.IsDirectItemEntry()) continue;
+        ++PaletteRows;
+        if (Entry.CanonicalItemId.IsNone() || !Known.Contains(Entry.CanonicalItemId) ||
+            !Entry.IsValidEntry() || (Entry.DefaultItemDefinition &&
+                (!IsValid(Entry.DefaultItemDefinition.Get()) ||
+                 Entry.DefaultItemDefinition->ItemDefinitionId != Entry.CanonicalItemId)))
         {
-            AddError(TEXT("Canonical palette entry lost matching pre-migration definition."));
+            AddError(TEXT("Canonical palette entry lost identity or retained contradictory source."));
             return false;
         }
-        ++PaletteOld;
+        if (Entry.DefaultItemDefinition) ++PaletteOld;
     }
     if (!TestEqual(TEXT("Palette remains unmodified"), Palette->GetOutermost()->IsDirty(), bPaletteDirty))
         return false;
@@ -262,11 +263,11 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
     AddInfo(FString::Printf(TEXT(
         "[ARM-CLEAN06.4X48] REAL POST-NATIVE scan: loose %d/%d, "
         "receptacle initial %d/%d, dormant overrides receptacle %d lock %d, "
-        "palette %d, world acceptance %d/%d assets, world locks %d/%d assets, "
+        "palette %d/%d, world acceptance %d/%d assets, world locks %d/%d assets, "
         "monster loot %d/%d (%d canonical IDs), REMAINING=%d; "
         "no assets or SaveGames saved."),
         LooseOld, LooseTotal, InitialOld, InitialTotal,
-        ReceptacleOverrideOld, LockOverrideOld, PaletteOld,
+        ReceptacleOverrideOld, LockOverrideOld, PaletteOld, PaletteRows,
         AcceptanceRules, RuleAssets, LockKeys, LockAssets,
         MonsterOld, MonsterRows, MonsterRegistered, Remaining));
 
@@ -278,17 +279,17 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         TestEqual(TEXT("One dormant receptacle rule reference"), ReceptacleOverrideOld, 1) &&
         TestEqual(TEXT("Two dormant lock key references"), LockOverrideOld, 2) &&
         TestEqual(TEXT("No activated dormant overrides"), ActiveAcceptanceOverrides, 0) &&
-        TestEqual(TEXT("33 source pointers in palette"), PaletteOld, 33) &&
-        TestTrue(TEXT("Four shared old pointers are all present or all removed"),
-            (AcceptanceRules == 2 && LockKeys == 2) ||
-            (AcceptanceRules == 0 && LockKeys == 0)) &&
+        TestEqual(TEXT("33 direct palette rows remain"), PaletteRows, 33) &&
+        TestTrue(TEXT("Palette pointers entirely present or entirely absent"), PaletteOld == 33 || PaletteOld == 0) &&
+        TestEqual(TEXT("X.54B shared receptacle pointers remain removed"), AcceptanceRules, 0) &&
+        TestEqual(TEXT("X.54B shared lock pointers remain removed"), LockKeys, 0) &&
         TestEqual(TEXT("Two shared receptacle assets"), RuleAssets, 2) &&
         TestEqual(TEXT("Two shared lock assets"), LockAssets, 2) &&
         TestEqual(TEXT("Five historic monster loot sources"), MonsterOld, 5) &&
         TestEqual(TEXT("Five historic loot rows"), MonsterRows, 5) &&
         TestEqual(TEXT("One already registered monster loot identity"), MonsterRegistered, 1) &&
-        TestTrue(TEXT("Exactly 63 pre-conversion or 59 post-conversion old pointers"),
-            Remaining == (AcceptanceRules == 2 ? 63 : 59)) &&
+        TestEqual(TEXT("Exactly 59 pre-palette or 26 post-palette old pointers"),
+            Remaining, PaletteOld == 33 ? 59 : 26) &&
         TestEqual(TEXT("Canonical root remains unmodified"), Root->GetOutermost()->IsDirty(), bRootDirty);
 }
 #endif

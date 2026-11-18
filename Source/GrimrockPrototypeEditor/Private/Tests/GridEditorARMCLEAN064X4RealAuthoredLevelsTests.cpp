@@ -81,9 +81,8 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
             const FName AuthoredItemId, const UGridItemDefinitionAsset* Source,
             int32 AuthoredLevel, int32 Quantity, bool bAllowPointerless) -> bool
     {
-        // X.45: tolerate a completed native cutover ONLY for the 44
-        // loose objects. All other old references remain required until
-        // their own independent migration, and N-levels stay physical.
+        // X.45/X.56: loose objects and direct palette entries can be
+        // pointerless. Other old references remain required.
         if (!IsValid(Source) && bAllowPointerless)
         {
             const UGridCanonicalItemDefinitionAsset* const* Found =
@@ -274,13 +273,13 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
     const bool bPaletteWasDirty = Palette->GetOutermost()->IsDirty();
     for (const FGridObjectPaletteEntry& Entry : Palette->Entries)
     {
-        if (!Entry.DefaultItemDefinition)
+        if (!Entry.IsDirectItemEntry())
         {
             continue;
         }
-        // Palette entries have no authored N-level; the source-defined
-        // default is necessary when a NEW ARM placement is created.
-        if (!Check(Entry.CanonicalItemId, Entry.DefaultItemDefinition, 0, 1, false))
+        // X.5 materialized the physical default in the palette.
+        if (!Check(Entry.CanonicalItemId, Entry.DefaultItemDefinition,
+                Entry.CanonicalDefaultItemLevel, 1, true))
         {
             AddError(TEXT("Physical level for a direct palette item is unresolved."));
             return false;

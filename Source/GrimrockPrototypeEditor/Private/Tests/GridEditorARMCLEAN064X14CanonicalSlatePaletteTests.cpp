@@ -29,6 +29,7 @@ bool FGridEditorClean064X14SlateReadModel::RunTest(const FString&)
     if (!TestTrue(TEXT("Valid canonical registry"), Registry->RegisterItemSystem(Root.Get(), Errors)))
         {return false;}
     int32 Count = 0;
+    int32 OldPointers = 0;
     const FGridObjectPaletteEntry* Arm = nullptr;
     for (const FGridObjectPaletteEntry& Entry : Palette->Entries)
     {
@@ -36,23 +37,44 @@ bool FGridEditorClean064X14SlateReadModel::RunTest(const FString&)
         ++Count;
         const FGridEditorCanonicalPaletteReadView View =
             FGridEditorCanonicalPaletteReadModel::Resolve(Entry, Registry.Get());
+        FGridResolvedItem Expected;
+        if (!TestTrue(TEXT("Canonical identity resolves at authored physical level"),
+                Registry->ResolveItem(Entry.CanonicalItemId, Entry.CanonicalDefaultItemLevel, Expected)))
+            return false;
+        const UGridItemDefinitionAsset* OldSource = Entry.DefaultItemDefinition.Get();
+        if (OldSource) ++OldPointers;
+        const FString ExpectedLabel = Expected.DisplayName.IsEmpty()
+            ? Entry.CanonicalItemId.ToString() : Expected.DisplayName.ToString();
         if (!TestTrue(TEXT("Real direct entry uses canonical projection"),
                 View.bCanonicalSource && View.bResolved) ||
             !TestEqual(TEXT("ItemId unchanged"), View.ItemId, Entry.CanonicalItemId) ||
-            !TestEqual(TEXT("No visible label change"), View.DisplayName.ToString(),
-                Entry.GetEffectiveDisplayName().ToString()) ||
-            !TestEqual(TEXT("No visible search-description change"),
-                View.Description.ToString(), Entry.DefaultItemDefinition->Description.ToString()) ||
-            !TestTrue(TEXT("No tile icon change"),
-                View.Icon.ToSoftObjectPath() == Entry.DefaultItemDefinition->Icon.ToSoftObjectPath()))
+            !TestEqual(TEXT("Visible label uses canonical resolution"), View.DisplayName.ToString(), ExpectedLabel) ||
+            !TestEqual(TEXT("Search description uses canonical resolution"),
+                View.Description.ToString(), Expected.Description.ToString()) ||
+            !TestTrue(TEXT("Tile icon uses canonical resolution"),
+                View.Icon.ToSoftObjectPath() == Expected.ItemIcon.ToSoftObjectPath()) ||
+            !TestTrue(TEXT("Historical presentation parity while pointer exists"), !OldSource ||
+                (View.DisplayName.ToString() == Entry.GetEffectiveDisplayName().ToString() &&
+                 View.Description.ToString() == OldSource->Description.ToString() &&
+                 View.Icon.ToSoftObjectPath() == OldSource->Icon.ToSoftObjectPath())))
             {return false;}
         if (Entry.CanonicalDefaultItemLevel > 0 && !Arm) {Arm = &Entry;}
     }
     if (!TestEqual(TEXT("33 real direct entries"), Count, 33) ||
+        !TestTrue(TEXT("Complete native palette state"), OldPointers == 33 || OldPointers == 0) ||
         !TestNotNull(TEXT("At least one ARM entry exists"), Arm))
         {return false;}
 
+    // Keep genuine synthetic conflicting and legacy-only fixtures post-conversion.
+    const FGridEditorCanonicalPaletteReadView ArmView =
+        FGridEditorCanonicalPaletteReadModel::Resolve(*Arm, Registry.Get());
+    TStrongObjectPtr<UGridItemDefinitionAsset> Fixture(NewObject<UGridItemDefinitionAsset>());
+    Fixture->ItemDefinitionId = Arm->CanonicalItemId;
+    Fixture->DisplayName = ArmView.DisplayName;
+    Fixture->Description = ArmView.Description;
+    Fixture->Icon = ArmView.Icon;
     FGridObjectPaletteEntry Bad = *Arm;
+    Bad.DefaultItemDefinition = Fixture.Get();
     Bad.CanonicalItemId = TEXT("Item_Arrows_01");
     FGridEditorCanonicalPaletteReadView Invalid =
         FGridEditorCanonicalPaletteReadModel::Resolve(Bad, Registry.Get());
@@ -65,6 +87,7 @@ bool FGridEditorClean064X14SlateReadModel::RunTest(const FString&)
 
     FGridObjectPaletteEntry Legacy = *Arm;
     Legacy.CanonicalItemId = NAME_None;
+    Legacy.DefaultItemDefinition = Fixture.Get();
     const FGridEditorCanonicalPaletteReadView Old =
         FGridEditorCanonicalPaletteReadModel::Resolve(Legacy, nullptr);
     return TestFalse(TEXT("Synthetic fixture not considered canonical"), Old.bCanonicalSource) &&

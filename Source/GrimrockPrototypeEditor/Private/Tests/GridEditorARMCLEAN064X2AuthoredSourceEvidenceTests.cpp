@@ -58,8 +58,8 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
     auto CheckSource = [&](FName CanonicalId, const UGridItemDefinitionAsset* Source,
         int32 AuthoredLevel, int32 Quantity, bool bAllowPointerless) -> bool
     {
-        // X.45: a real loose row may have completed the protected native
-        // cutover. Never extend that tolerance to palette/receptacles.
+        // X.45/X.56: loose rows and direct palette entries may have completed
+        // protected native conversion; initial receptacle entries may not.
         if (!IsValid(Source) && bAllowPointerless)
         {
             const UGridCanonicalItemDefinitionAsset* const* Found = Registry.Find(CanonicalId);
@@ -198,10 +198,10 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
     }
     for (const FGridObjectPaletteEntry& Entry : PaletteAsset->Entries)
     {
-        if (!Entry.DefaultItemDefinition) { continue; }
-        // The palette has no item level; a new authored placement starts at N0.
+        if (!Entry.IsDirectItemEntry()) { continue; }
+        // X.5 materialized the physical palette default.
         if (!CheckSource(Entry.CanonicalItemId, Entry.DefaultItemDefinition,
-            0, 1, false))
+            Entry.CanonicalDefaultItemLevel, 1, true))
         {
             AddError(TEXT("Invalid direct palette identity or inherited level."));
             return false;

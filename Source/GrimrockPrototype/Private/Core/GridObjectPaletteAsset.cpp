@@ -37,7 +37,7 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridWorldObjectDefinitionV
 		if (Entry.DefaultWorldObjectDefinition && Entry.DefaultWorldObjectDefinition->SupportedType == EGridLevelObjectType::Item)
 		{
 			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
-				FString::Printf(TEXT("Palette entry '%s' cannot use a WorldObjectDefinition for a collectible Item. Use DefaultItemDefinition instead."), *EntryName));
+				FString::Printf(TEXT("Palette entry '%s' cannot use a WorldObjectDefinition for a collectible Item. Use CanonicalItemId instead."), *EntryName));
 		}
 
 		if (Entry.IsDirectItemEntry())
@@ -85,7 +85,7 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridWorldObjectDefinitionV
 		if (!Entry.DefaultWorldObjectDefinition)
 		{
 			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
-				FString::Printf(TEXT("Palette entry '%s' requires DefaultWorldObjectDefinition or DefaultItemDefinition."), *EntryName));
+				FString::Printf(TEXT("Palette entry '%s' requires DefaultWorldObjectDefinition or CanonicalItemId."), *EntryName));
 			continue;
 		}
 

@@ -182,7 +182,8 @@ bool FARMEMENT01103ProductionBindings::RunTest(const FString&)
         if (TestNotNull(TEXT("Real collectible palette entry"), Entry))
         {
             TestEqual(TEXT("Weapon palette category"), Entry->PaletteCategory, FName(TEXT("Weapon")));
-            TestEqual(TEXT("Palette points to actual item definition"), Entry->DefaultItemDefinition.Get(), Item);
+            TestEqual(TEXT("Palette stores actual canonical ItemId"), Entry->CanonicalItemId, Item->ItemDefinitionId);
+            TestTrue(TEXT("Any retained warrior source matches"), Entry->MatchesDirectItemSource(Item));
             TestTrue(TEXT("No second WorldObject definition"), Entry->DefaultWorldObjectDefinition == nullptr);
             TestTrue(TEXT("No duplicate palette icon"), Entry->Icon == nullptr);
             TestTrue(TEXT("Palette entry valid"), Entry->IsValidEntry());

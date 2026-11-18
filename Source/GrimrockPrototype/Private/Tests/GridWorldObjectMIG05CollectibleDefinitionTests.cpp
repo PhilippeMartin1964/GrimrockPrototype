@@ -112,6 +112,16 @@ bool FGridWorldObjectPaletteDisplayNameAuthorityTest::RunTest(const FString& Par
 				continue;
 			}
 
+			// Pointerless direct entries are displayed by the canonical Slate read model
+			// (X.14/X.55); this raw helper has only the stable identity fallback.
+			if (ProductionEntry.IsDirectItemEntry() && !ProductionEntry.DefaultItemDefinition)
+			{
+				TestFalse(TEXT("Pointerless direct entry has a stable ID"), ProductionEntry.CanonicalItemId.IsNone());
+				TestEqual(TEXT("Raw context-free helper returns the stable ID"),
+					ProductionEntry.GetEffectiveDisplayName().ToString(), ProductionEntry.CanonicalItemId.ToString());
+				continue;
+			}
+
 			const FText DefinitionDisplayName = ProductionEntry.IsDirectItemEntry()
 				? ProductionEntry.DefaultItemDefinition->DisplayName
 				: ProductionEntry.DefaultWorldObjectDefinition->DisplayName;
@@ -262,10 +272,10 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 	Palette->Entries[0].DefaultItemDefinition = nullptr;
 	TestFalse(TEXT("Item WorldObjectDefinition alone is not a valid palette entry"), Palette->Entries[0].IsValidEntry());
 	TestFalse(TEXT("Palette rejects Item WorldObjectDefinition without a direct ItemDefinition"), Palette->ValidatePalette(Messages));
-	TestTrue(TEXT("Legacy collectible palette rejection directs authors to DefaultItemDefinition"),
+	TestTrue(TEXT("Legacy collectible palette rejection directs authors to CanonicalItemId"),
 		Messages.ContainsByPredicate([](const FGridWorldObjectDefinitionValidationMessage& Message)
 		{
-			return Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error && Message.Message.Contains(TEXT("Use DefaultItemDefinition instead"));
+			return Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error && Message.Message.Contains(TEXT("Use CanonicalItemId instead"));
 		}));
 
 	TestFalse(TEXT("WorldObjectDefinition rejects collectible Item type"), LegacyDefinition->ValidateDefinition(Messages));

@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.56 — audits et protection d'authoring de la palette native
+
+**Parent :** `859fa3cc79f04d906c6c6b235a64d28bf55e49ac` (X.55 SilentTask + LocalAuto succès). Rapport : [ARM_CLEAN06_4X56_PALETTE_DUAL_STATE_AUDITS.md](ARM_CLEAN06_4X56_PALETTE_DUAL_STATE_AUDITS.md).
+
+Audits du contenu et tests de présentation/placement autorisent exactement 33/0 anciens pointeurs de palette, contrôlent toujours les IDs/niveaux et la vue canonique ; X.48 borne les vrais totaux à 59/26, quatre règles X.54B définitivement pointerless. Les inspecteurs historiques reconnaissent les identités canoniques sans réattacher de pointeur ; source historique en lecture seule dans Details, Icon réservé aux objets monde. Aucun binaire ni SaveGame changé. Migration native à préparer après les deux statuts Windows du SHA X.56. 06.4 partielle ; 06.5 bloquée.
+
 ## ARM-CLEAN06.4X.55 — préflight de la palette complète
 
 **Parent :** `51d3a1e4d15d3560bf77c17ab158d4df934c87c2` (X.54B, quatre assets natifs, SilentTask + LocalAuto succès, PIE 8/8 confirmé). Rapport : [ARM_CLEAN06_4X55_NATIVE_PALETTE_PREFLIGHT.md](ARM_CLEAN06_4X55_NATIVE_PALETTE_PREFLIGHT.md).

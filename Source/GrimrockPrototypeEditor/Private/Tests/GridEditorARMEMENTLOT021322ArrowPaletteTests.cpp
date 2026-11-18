@@ -41,7 +41,8 @@ bool FARMEMENTLOT021322Arrows::RunTest(const FString&)
     const FName ArrowId(TEXT("Item_Arrows_01"));
     const FGridObjectPaletteEntry* Entry = Palette->FindEntryById(ArrowId);
     if (!TestNotNull(TEXT("Arrow is available in editor palette"), Entry)) return false;
-    TestEqual(TEXT("Canonical item definition"), Entry->DefaultItemDefinition.Get(), Arrows);
+    TestEqual(TEXT("Canonical arrow identity"), Entry->CanonicalItemId, ArrowId);
+    TestTrue(TEXT("Any retained arrow source matches"), Entry->MatchesDirectItemSource(Arrows));
     TestEqual(TEXT("Category Items"), Entry->PaletteCategory, FName(TEXT("Items")));
     TestNull(TEXT("Direct arrow entry must not duplicate the item icon"), Entry->Icon.Get());
     TestNull(TEXT("Direct arrow entry must not define a world object"), Entry->DefaultWorldObjectDefinition.Get());

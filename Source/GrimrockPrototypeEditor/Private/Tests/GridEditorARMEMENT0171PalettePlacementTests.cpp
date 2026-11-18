@@ -91,7 +91,8 @@ bool FARMEMENT0171ProductionPaletteTest::RunTest(const FString&)
         TestEqual(TEXT("EntryId occurs once"), Count, 1);
         TestTrue(TEXT("Pilot retains legacy Items or migrated Weapon palette category"),
             Entry->PaletteCategory == FName(TEXT("Items")) || Entry->PaletteCategory == FName(TEXT("Weapon")));
-        TestEqual(TEXT("Entry stores the canonical item"), Entry->DefaultItemDefinition.Get(), Item);
+        TestEqual(TEXT("Entry stores the canonical ItemId"), Entry->CanonicalItemId, Item->ItemDefinitionId);
+        TestTrue(TEXT("Any retained pilot source matches"), Entry->MatchesDirectItemSource(Item));
         TestTrue(TEXT("No companion WorldObjectDefinition"), Entry->DefaultWorldObjectDefinition == nullptr);
         TestTrue(TEXT("No duplicate palette Icon"), Entry->Icon == nullptr);
         TestTrue(TEXT("Direct collectible palette entry is valid"), Entry->IsValidEntry());

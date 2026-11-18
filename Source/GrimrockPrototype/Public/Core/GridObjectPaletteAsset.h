@@ -25,16 +25,16 @@ struct FGridObjectPaletteEntry
 	FName PaletteCategory = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
-		meta = (ToolTip = "Palette icon for world-object entries only. Direct collectibles use DefaultItemDefinition.Icon.",
-			EditCondition = "DefaultItemDefinition == nullptr", EditConditionHides))
+		meta = (ToolTip = "Palette icon for world-object entries only. Direct collectibles resolve their icon from ItemSystem.",
+			EditCondition = "DefaultWorldObjectDefinition != nullptr && DefaultItemDefinition == nullptr", EditConditionHides))
 	TObjectPtr<UTexture2D> Icon = nullptr;
 
 	/** World-object definition for non-collectible entries. Collectible items use DefaultItemDefinition directly. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette")
 	TObjectPtr<UGridWorldObjectDefinitionAsset> DefaultWorldObjectDefinition = nullptr;
 
-	/** WORLDOBJ-MIG05: canonical direct palette definition for a collectible Item. No companion WorldObjectDefinition is required. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Item")
+	/** Historical serialized source, read-only in Details. Author new direct entries by CanonicalItemId. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Palette|Item")
 	TObjectPtr<UGridItemDefinitionAsset> DefaultItemDefinition = nullptr;
 
 	/** One stable ItemId for direct collectibles; the one-shot 06.4W
@@ -75,6 +75,21 @@ struct FGridObjectPaletteEntry
 		return true;
 	}
 #endif
+
+	#if WITH_EDITOR
+	/** Temporary Editor migration/inspection predicate. Compare identity only,
+	 *  never resolve item gameplay/presentation from the old source. */
+	bool MatchesDirectItemSource(const UGridItemDefinitionAsset* Source) const
+	{
+		if (!IsValid(Source) || Source->ItemDefinitionId.IsNone()) return false;
+		if (!CanonicalItemId.IsNone())
+		{
+			return CanonicalItemId == Source->ItemDefinitionId &&
+				(!DefaultItemDefinition || DefaultItemDefinition.Get() == Source);
+		}
+		return DefaultItemDefinition.Get() == Source;
+	}
+	#endif
 
 	FName GetEffectiveWorldObjectDefinitionId() const
 	{

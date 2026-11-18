@@ -72,7 +72,7 @@ bool FARMEMENT011023IdempotenceTest::RunTest(const FString&)
         const FGridObjectPaletteEntry* Entry = Copy->FindEntryById(FName(Target.Spec->EntryId));
         if (!TestNotNull(TEXT("Expected direct item entry"), Entry)) continue;
         TestEqual(TEXT("Expected category"), Entry->PaletteCategory, FName(Target.Spec->Category));
-        TestEqual(TEXT("Canonical definition"), Entry->DefaultItemDefinition.Get(), Target.Item);
+        TestTrue(TEXT("Existing item source or canonical identity matches"), Entry->MatchesDirectItemSource(Target.Item));
         TestEqual(TEXT("Gameplay type still Item"), Entry->GetEffectiveObjectType(), EGridLevelObjectType::Item);
         TestNull(TEXT("No world-object wrapper"), Entry->DefaultWorldObjectDefinition.Get());
         TestNull(TEXT("No duplicated icon"), Entry->Icon.Get());
@@ -172,8 +172,17 @@ bool FARMEMENT011023BombPlacementTest::RunTest(const FString&)
                 const FGridLooseItemInstance& Placed = Level->LooseItemInstances[0];
                 TestEqual(TEXT("Correct persistent palette entry id"),
                     Placed.PaletteEntryId, FName(TEXT("Item_Bomb_Fire")));
-                TestEqual(TEXT("Correct ItemDefinition persists"),
-                    Placed.ItemDefinition.Get(), Bomb->DefaultItemDefinition.Get());
+                if (!Bomb->CanonicalItemId.IsNone())
+                {
+                    TestEqual(TEXT("Correct canonical ItemId persists"), Placed.CanonicalItemId, Bomb->CanonicalItemId);
+                    TestEqual(TEXT("Physical default persists"), Placed.ItemLevel, Bomb->CanonicalDefaultItemLevel);
+                    TestNull(TEXT("New canonical placement is pointerless"), Placed.ItemDefinition.Get());
+                }
+                else
+                {
+                    TestEqual(TEXT("Synthetic historical ItemDefinition persists"),
+                        Placed.ItemDefinition.Get(), Bomb->DefaultItemDefinition.Get());
+                }
             }
         }
     }

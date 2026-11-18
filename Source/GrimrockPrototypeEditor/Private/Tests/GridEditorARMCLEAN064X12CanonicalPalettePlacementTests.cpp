@@ -121,6 +121,9 @@ bool FGridEditorClean064X12PalettePlacement::RunTest(const FString&)
     TStrongObjectPtr<UGridObjectPaletteAsset> Invalid(NewObject<UGridObjectPaletteAsset>(Editor));
     FGridObjectPaletteEntry Bad = *Arm;
     Bad.EntryId = TEXT("ARM_CLEAN06_4X12_INVALID");
+    UGridItemDefinitionAsset* ContradictorySource = NewObject<UGridItemDefinitionAsset>(Invalid.Get());
+    ContradictorySource->ItemDefinitionId = Arm->CanonicalItemId;
+    Bad.DefaultItemDefinition = ContradictorySource;
     Bad.CanonicalItemId = TEXT("Item_Arrows_01");
     Invalid->Entries.Add(Bad);
     Editor->ObjectPalette = Invalid.Get();

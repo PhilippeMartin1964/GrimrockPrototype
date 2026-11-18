@@ -86,8 +86,9 @@ namespace ARMEMENT011023
                 }
                 // Refuse a second palette identity pointing at the same item.
                 // Never remove or silently rewrite manually authored entries.
-                else if (Entry.DefaultItemDefinition &&
-                    Entry.DefaultItemDefinition->ItemDefinitionId == Target.Item->ItemDefinitionId)
+                else if (Entry.CanonicalItemId == Target.Item->ItemDefinitionId ||
+                    (Entry.DefaultItemDefinition &&
+                     Entry.DefaultItemDefinition->ItemDefinitionId == Target.Item->ItemDefinitionId))
                 {
                     OutError = FString::Printf(TEXT("Item already exposed by another EntryId: %s"), *Entry.EntryId.ToString());
                     return false;
@@ -107,7 +108,7 @@ namespace ARMEMENT011023
                 ++OutAdded;
                 continue;
             }
-            if (Existing->DefaultItemDefinition.Get() != Target.Item ||
+            if (!Existing->MatchesDirectItemSource(Target.Item) ||
                 Existing->DefaultWorldObjectDefinition != nullptr ||
                 Existing->Icon != nullptr ||
                 Existing->DefaultMonsterDefinition != nullptr ||
