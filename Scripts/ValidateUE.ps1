@@ -200,6 +200,7 @@ $RetirementSelfTestGit=(Get-Command git.exe -CommandType Application -ErrorActio
 $RetirementSelfTestHead=@(& $RetirementSelfTestGit -C $RepoRoot rev-parse HEAD)
 if ($LASTEXITCODE -ne 0 -or $RetirementSelfTestHead.Count -ne 1) { throw 'Cannot determine HEAD for retirement audit self-test.' }
 & (Join-Path $PSScriptRoot 'AuditARM_CLEAN06_5_Retirement.ps1') -ExpectedHead $RetirementSelfTestHead[0] -SelfTest
+& (Join-Path $PSScriptRoot 'InstallARM_CLEAN06_5B_ReadableSaveCopy.ps1') -SelfTest
 Assert-FileExists -Path $ProjectFile -Description 'Projet Unreal'
 
 $ResolvedEngineRoot = Resolve-GrimrockEngineRoot -RequestedRoot $EngineRoot

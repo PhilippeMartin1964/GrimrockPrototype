@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5B.1 — installation contrôlée
+
+SHA conversion `475f7f3f04c60ea50bd9ed44ef2bee69c7116ba0` : deux statuts SUCCESS, conversion réelle 7/7, six copies octet-identiques, une réécrite avec deux références restaurées, zéro erreur. Warning attendu sur ancien chemin à l'entrée seulement. Originales intactes, reçu privé non installé. Installer après validation du SHA code 5B.1 via InstallARM_CLEAN06_5B_ReadableSaveCopy.ps1, reçu 5B exact ; relecture froide des copies et contrôle des deux cibles réelles avant remplacement atomique de la seule save concernée. Reçu d'intention et preuve d'installation privés, garde par hash des sept fichiers, retour arrière sur octets connus uniquement. Aucun asset supprimé. Puis 5C, 5D, 5E–G, 06.6.
+
 ## ARM-CLEAN06.5B — traitement des readables sur copies uniquement
 
 Parent `177664b26aa07debf775b1f16716844037345112` : SilentTask/LocalAuto SUCCESS ; audit opérateur 5A.1 terminé, 48↔48 IDs, 466 résolutions, 54 candidats, une seule arête externe WBP_GridCombatHudAction → DA_EquippedWeaponActionIcons. 7/7 v27 décodables et live inchangé ; 172 entrées objets, 33 caches nom/poids, zéro ID inconnu, zéro pointeur projectile/pending, deux anciens chemins readables et deux IDs sans pointeur dans une seule save. Les quatre fichiers MON188 restent protégés. [5B](ARM_CLEAN06_5B_READABLE_SAVE_REPAIR.md). Réparation ponctuelle Editor-only par identité réelle des deux readables déplacés ; correspondance exacte des occurrences du chemin ancien et des champs nuls, preuve round-trip et refus d'ambiguïté, no-op octet exact. Aucun fallback runtime, aucune installation live ni suppression ; les readables ne sont pas des anciennes définitions d'objets. Mode -RepairReadables du runner X.64, reçu distinct. Attendre deux statuts du SHA code puis copies privées vérifiées. Kits et lecteurs/caches à traiter ensuite, WBP et anciens packages seulement après. PIE dû.
