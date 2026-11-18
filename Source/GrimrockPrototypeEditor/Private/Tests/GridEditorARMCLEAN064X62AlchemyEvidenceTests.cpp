@@ -1,6 +1,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
-#include "../ARMEMENT/GridEditorAlchemyMigrationAudit.h"
+#include "../ARMEMENT/GridEditorAlchemyCutoverPlan.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X62AlchemyEvidence,
     "Grimrock.RPG.ARM.CLEAN06_4X62.NativeAlchemyEvidenceReadOnly",
@@ -13,12 +13,24 @@ bool FGridEditorARMCLEAN064X62AlchemyEvidence::RunTest(const FString&)
     if (!TestNotNull(TEXT("Real X.61B canonical root"), Root.Get()) ||
         !TestNotNull(TEXT("Action catalogue"), Root->ActionCatalogue.Get()) ||
         !TestNotNull(TEXT("Presentation catalogue"), Root->ActionPresentationCatalogue.Get())) return false;
+    TStrongObjectPtr<UGridItemSystemAsset> Historical(NewObject<UGridItemSystemAsset>());
+    TStrongObjectPtr<UGridItemSystemAsset> Verified(NewObject<UGridItemSystemAsset>());
+    UGridItemSystemAsset* EvidenceRoot = Root.Get();
+    if (Root->ItemDefinitions.Num() == 48)
+    {
+        FString VerifyError;
+        if (!TestTrue(TEXT("Persisted extension equals fresh projection"),
+            GridEditorAlchemyCutoverPlan::BuildForCurrentState(*Root.Get(), *Verified.Get(), VerifyError)) ||
+            !GridEditorAlchemyCutoverPlan::HistoricalView(*Root.Get(), *Historical.Get(), VerifyError))
+        { AddError(VerifyError); return false; }
+        EvidenceRoot = Historical.Get();
+    }
     const auto Original = Root->ItemDefinitions;
     const auto ExistingActions = Root->ActionCatalogue->DetailedActions.Num();
     const auto ExistingPresentations = Root->ActionPresentationCatalogue->DetailedPresentations.Num();
     FString Error;
     TArray<Audit::FRow> Rows;
-    const bool bBuilt = Audit::Build(*Root.Get(), Rows, Error);
+    const bool bBuilt = Audit::Build(*EvidenceRoot, Rows, Error, EvidenceRoot != Root.Get());
     if (!TestTrue(*FString::Printf(TEXT("Read-only native evidence: %s"), *Error), bBuilt) ||
         !TestEqual(TEXT("Ten legacy sources and canonical Oil control"), Rows.Num(), Audit::TotalCount))
         return false;

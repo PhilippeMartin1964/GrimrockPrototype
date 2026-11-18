@@ -204,11 +204,11 @@ struct FGridEditorLootDefinitionProjection
      * projection, rather than trusting names or the new count alone.
      */
     static bool BuildPreview(UGridItemSystemAsset& Root, UGridItemSystemAsset& Preview,
-        FString& Error)
+        FString& Error, bool bAllowAlchemyExtension = false)
     {
         Error.Reset();
         const int32 Count = Root.ItemDefinitions.Num();
-        if (Count != BaseCount && Count != FinalCount)
+        if (Count != BaseCount && Count != FinalCount && !(bAllowAlchemyExtension && Count == 48))
         { Error = TEXT("Partial/unexpected canonical root."); return false; }
         if (Root.GetOutermost()->IsDirty())
         { Error = TEXT("Source root dirty."); return false; }
@@ -234,7 +234,7 @@ struct FGridEditorLootDefinitionProjection
                 NewObject<UObject>(&Preview, ClassFor(I), NAME_None, RF_Transient));
             if (!IsValid(Old) || !IsValid(Candidate) || !Project(*Old, I, *Candidate))
             { Error = FString::Printf(TEXT("Source projection refused: %s"), *Id(I).ToString()); return false; }
-            if (Count == FinalCount)
+            if (Count >= FinalCount)
             {
                 const auto* Actual = Cast<UGridNonArmamentDefinitionAsset>(Root.ItemDefinitions[BaseCount + I].Get());
                 if (!IsValid(Actual) || Actual->GetPathName() != TargetPath(I) ||

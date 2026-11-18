@@ -249,12 +249,13 @@ namespace GridEditorAlchemyMigrationAudit
         TArray<FString> PeerDifferences;
     };
 
-    inline bool Build(UGridItemSystemAsset& Root, TArray<FRow>& Rows, FString& Error)
+    inline bool Build(UGridItemSystemAsset& Root, TArray<FRow>& Rows, FString& Error, bool bHistoricalView = false)
     {
         Rows.Reset();
         Error.Reset();
         TArray<FString> Validation;
-        if (Root.GetPathName() != FString(RootPath()) ||
+        if ((!bHistoricalView && Root.GetPathName() != FString(RootPath())) ||
+            (bHistoricalView && Root.GetOutermost() != GetTransientPackage()) ||
             Root.ItemDefinitions.Num() != 38 || !Root.Validate(Validation))
         {
             Error = TEXT("Expected valid 38-definition X.61B root: ") + FString::Join(Validation, TEXT("; "));

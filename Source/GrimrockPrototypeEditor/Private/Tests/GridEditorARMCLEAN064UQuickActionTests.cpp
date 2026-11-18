@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
@@ -31,7 +32,8 @@ bool FGridClean064UQuickActionMigration::RunTest(const FString&)
     // 06.4V adds one separately checked non-ARM equipped action to the
     // SAME catalogue. This test retains exactly its three original QuickItems.
     if (!TestTrue(TEXT("Three original QuickItems, plus optional equipped action"),
-        DetailedCount == 3 || DetailedCount == 4))
+        DetailedCount == 3 || DetailedCount == 4 || (DetailedCount == 14 &&
+            Root->ItemDefinitions.Num() == 48 && GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get()))))
     {
         return false;
     }
@@ -97,7 +99,7 @@ bool FGridClean064UQuickActionMigration::RunTest(const FString&)
         }
     }
     return TestEqual(TEXT("Native action owners mapped after authoring"),
-        Checked, 3);
+        Checked, DetailedCount == 14 ? 13 : 3);
 }
 
 #endif

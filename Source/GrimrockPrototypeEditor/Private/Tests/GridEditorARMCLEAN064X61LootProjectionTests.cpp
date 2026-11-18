@@ -27,9 +27,9 @@ bool FGridEditorARMCLEAN064X61LootProjection::RunTest(const FString&)
     const FString OriginalRat = FStone::Export(*Rat.Get());
 
     FString Error;
-    const bool bProjection = FPlan::BuildPreview(*Root.Get(), *Preview.Get(), Error);
+    const bool bProjection = FPlan::BuildPreview(*Root.Get(), *Preview.Get(), Error, true);
     if (!TestTrue(*FString::Printf(TEXT("Exact four real definitions: %s"), *Error), bProjection) ||
-        !TestEqual(TEXT("38 projected identities"), Preview->ItemDefinitions.Num(), FPlan::FinalCount) ||
+        !TestEqual(TEXT("Exact projected identities"), Preview->ItemDefinitions.Num(), FMath::Max(FPlan::FinalCount, OriginalDefinitions.Num())) ||
         !TestTrue(TEXT("Original 34 and exact four appended identities"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Preview.Get())) ||
         !TestTrue(TEXT("Four catalogue references identical"),
             Preview->WeaponCatalogue == Root->WeaponCatalogue &&
@@ -39,7 +39,7 @@ bool FGridEditorARMCLEAN064X61LootProjection::RunTest(const FString&)
         return false;
 
     TArray<FGridMonsterLootEntry> GoblinPlan, RatPlan;
-    const bool bMigrated = OriginalDefinitions.Num() == FPlan::FinalCount;
+    const bool bMigrated = OriginalDefinitions.Num() >= FPlan::FinalCount;
     if (!TestTrue(TEXT("Both tables are entirely in one native state"),
         FPlan::BuildLootTables(*Goblin.Get(), *Rat.Get(), bMigrated, GoblinPlan, RatPlan, Error)))
     {
@@ -88,7 +88,7 @@ bool FGridEditorARMCLEAN064X61LootProjection::RunTest(const FString&)
     Partial->ItemDefinitions = Preview->ItemDefinitions;
     Partial->ItemDefinitions.Pop();
     TStrongObjectPtr<UGridItemSystemAsset> Refused(NewObject<UGridItemSystemAsset>());
-    TestFalse(TEXT("37-item partial cutover refused"), FPlan::BuildPreview(*Partial.Get(), *Refused.Get(), Error));
+    TestFalse(TEXT("Partial cutover refused"), FPlan::BuildPreview(*Partial.Get(), *Refused.Get(), Error));
     TestTrue(TEXT("Ordered source root untouched"), Root->ItemDefinitions == OriginalDefinitions &&
         FPlan::RootManifest(*Root.Get()) == OriginalRoot);
     TestTrue(TEXT("Goblin unchanged"), FStone::Export(*Goblin.Get()) == OriginalGoblin);

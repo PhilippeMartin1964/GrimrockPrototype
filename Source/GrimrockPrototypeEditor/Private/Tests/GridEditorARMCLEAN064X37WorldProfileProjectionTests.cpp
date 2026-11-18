@@ -25,7 +25,7 @@ bool FGridEditorARMCLEAN064X37WorldPresentationProjection::RunTest(const FString
     // Keep the obsolete X.37 commandlet's exact historical guard intact.
     // The test uses a transient view of the original 34 and the SAME real catalogues.
     TStrongObjectPtr<UGridItemSystemAsset> Historical;
-    if (Root->ItemDefinitions.Num() == 38)
+    if (Root->ItemDefinitions.Num() >= 38)
     {
         Historical.Reset(NewObject<UGridItemSystemAsset>());
         Historical->WeaponCatalogue = Root->WeaponCatalogue;

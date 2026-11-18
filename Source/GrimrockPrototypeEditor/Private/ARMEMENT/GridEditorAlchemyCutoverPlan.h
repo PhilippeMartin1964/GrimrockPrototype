@@ -73,7 +73,7 @@ namespace GridEditorAlchemyCutoverPlan
             Old.EquippedMesh.IsNull();
     }
 
-    inline bool Build(UGridItemSystemAsset& Root, UGridItemSystemAsset& Preview, FString& Error)
+    inline bool Build(UGridItemSystemAsset& Root, UGridItemSystemAsset& Preview, FString& Error, bool bHistoricalView = false)
     {
         Error.Reset();
         // Never allow the destination to alias any persisted object.
@@ -85,7 +85,7 @@ namespace GridEditorAlchemyCutoverPlan
             return false;
         }
         TArray<Audit::FRow> Rows;
-        if (!Audit::Build(Root, Rows, Error)) return false;
+        if (!Audit::Build(Root, Rows, Error, bHistoricalView)) return false;
         if (Rows.Num() != Audit::TotalCount || Root.ItemDefinitions.Num() != BeforeCount ||
             Root.ActionCatalogue->DetailedActions.Num() != BeforeDetailedCount ||
             Root.ActionCatalogue->Actions.Num() != 19 ||
@@ -160,5 +160,76 @@ namespace GridEditorAlchemyCutoverPlan
             return false;
         }
         return true;
+    }
+    inline FString TargetName(int32 I) { return TEXT("DA_Canonical_") + Audit::Id(I).ToString(); }
+    inline FString TargetPackage(int32 I)
+    {
+        return TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/Definitions/") + TargetName(I);
+    }
+    inline FString TargetPath(int32 I) { return TargetPackage(I) + TEXT(".") + TargetName(I); }
+
+    // Compare every reflected item property and every appended action, never
+    // merely accept a root with 48 items. The prefix must stay in order.
+    inline bool MatchesProjected(const UGridItemSystemAsset& Actual,
+        const UGridItemSystemAsset& Expected, FString& Error, bool bNativePaths)
+    {
+        if (Actual.ItemDefinitions.Num() != AfterCount || Expected.ItemDefinitions.Num() != AfterCount ||
+            !Actual.ActionCatalogue || !Expected.ActionCatalogue ||
+            Actual.ActionCatalogue->DetailedActions.Num() != AfterDetailedCount ||
+            Expected.ActionCatalogue->DetailedActions.Num() != AfterDetailedCount ||
+            Actual.WeaponCatalogue != Expected.WeaponCatalogue ||
+            Actual.WeaponVisualCatalogue != Expected.WeaponVisualCatalogue)
+        { Error = TEXT("Wrong projected root cardinality or catalogue identity"); return false; }
+        for (int32 I = 0; I < BeforeCount; ++I)
+            if (Actual.ItemDefinitions[I] != Expected.ItemDefinitions[I])
+            { Error = TEXT("Original definition prefix changed"); return false; }
+        for (int32 I = 0; I < Audit::LegacyCount; ++I)
+        {
+            const auto* A = Cast<UGridConsumableDefinitionAsset>(Actual.ItemDefinitions[BeforeCount+I].Get());
+            const auto* E = Cast<UGridConsumableDefinitionAsset>(Expected.ItemDefinitions[BeforeCount+I].Get());
+            if (!IsValid(A) || !IsValid(E) || (bNativePaths && A->GetPathName() != TargetPath(I)) ||
+                !FGridEditorLootDefinitionProjection::SameDefinition(*A, *E))
+            { Error = TEXT("Projected native item differs: ") + Audit::Id(I).ToString(); return false; }
+        }
+        for (int32 I = 0; I < AfterDetailedCount; ++I)
+            if (!Audit::DifferentActionFields(Actual.ActionCatalogue->DetailedActions[I].Definition,
+                    Expected.ActionCatalogue->DetailedActions[I].Definition).IsEmpty())
+            { Error = TEXT("Projected detailed action differs"); return false; }
+        TArray<FString> Validation;
+        if (!Actual.Validate(Validation))
+        { Error = FString::Join(Validation, TEXT("; ")); return false; }
+        return true;
+    }
+
+    inline bool HistoricalView(UGridItemSystemAsset& Root, UGridItemSystemAsset& Historical, FString& Error)
+    {
+        if (&Root == &Historical || Historical.GetOutermost() != GetTransientPackage() ||
+            !Historical.ItemDefinitions.IsEmpty() || Historical.ActionCatalogue ||
+            !Root.ActionCatalogue || Root.ItemDefinitions.Num() != AfterCount ||
+            Root.ActionCatalogue->DetailedActions.Num() != AfterDetailedCount)
+        { Error = TEXT("Only an exact post-cutover root may produce a historical view"); return false; }
+        Audit::CopyRoot(Root, Historical);
+        Historical.ItemDefinitions.SetNum(BeforeCount);
+        auto* Actions = NewObject<UGridActionCatalogueAsset>(&Historical, NAME_None, RF_Transient);
+        Actions->Actions = Root.ActionCatalogue->Actions;
+        Actions->DetailedActions = Root.ActionCatalogue->DetailedActions;
+        Actions->DetailedActions.SetNum(BeforeDetailedCount);
+        Historical.ActionCatalogue = Actions;
+        return true;
+    }
+
+    inline bool BuildForCurrentState(UGridItemSystemAsset& Root, UGridItemSystemAsset& Preview, FString& Error)
+    {
+        if (Root.GetPathName() != FString(Audit::RootPath()) || Root.GetOutermost()->IsDirty() ||
+            !Root.ActionCatalogue || Root.ActionCatalogue->GetOutermost()->IsDirty())
+        { Error = TEXT("Expected clean, exact native alchemy source root"); return false; }
+        if (Root.ItemDefinitions.Num() == BeforeCount) return Build(Root, Preview, Error);
+        TStrongObjectPtr<UGridItemSystemAsset> Historical(NewObject<UGridItemSystemAsset>());
+        if (!HistoricalView(Root, *Historical.Get(), Error) ||
+            !Build(*Historical.Get(), Preview, Error, true)) return false;
+        for (int32 I = BeforeCount; I < AfterCount; ++I)
+            if (!IsValid(Root.ItemDefinitions[I].Get()) || Root.ItemDefinitions[I]->GetOutermost()->IsDirty())
+            { Error = TEXT("Dirty or missing persisted alchemy item"); return false; }
+        return MatchesProjected(Root, Preview, Error, true);
     }
 }

@@ -37,7 +37,7 @@ bool FGridClean064VEquippedNonArm::RunTest(const FString&)
     }
     const int32 ExpectedEquipped = OriginalCount == 32 ? 0 : 1;
     if (!TestEqual(TEXT("Exactly 3 QuickItems plus equipped detail"),
-            Root->ActionCatalogue->DetailedActions.Num(), 3 + ExpectedEquipped) ||
+            Root->ActionCatalogue->DetailedActions.Num(), 3 + ExpectedEquipped + (OriginalCount == 48 ? 10 : 0)) ||
         !TestEqual(TEXT("Original full presentation is authored only after V"),
             Root->ActionPresentationCatalogue->DetailedPresentations.Num(), ExpectedEquipped))
     {

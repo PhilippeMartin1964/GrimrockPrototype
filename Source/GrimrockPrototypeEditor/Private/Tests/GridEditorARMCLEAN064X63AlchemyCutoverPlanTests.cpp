@@ -28,7 +28,7 @@ bool FGridEditorARMCLEAN064X63AlchemyJointProjection::RunTest(const FString&)
     const auto OriginalPresentations = Root->ActionPresentationCatalogue->DetailedPresentations;
     const FString OriginalRootManifest = FGridEditorLootDefinitionProjection::RootManifest(*Root.Get());
     FString Error;
-    const bool bBuilt = Plan::Build(*Root.Get(), *Preview.Get(), Error);
+    const bool bBuilt = Plan::BuildForCurrentState(*Root.Get(), *Preview.Get(), Error);
     if (!TestTrue(*FString::Printf(TEXT("All ten items coexist: %s"), *Error), bBuilt)) return false;
     TestEqual(TEXT("48 definitions"), Preview->ItemDefinitions.Num(), 48);
     TestEqual(TEXT("14 detailed actions"), Preview->ActionCatalogue->DetailedActions.Num(), 14);
@@ -95,9 +95,25 @@ bool FGridEditorARMCLEAN064X63AlchemyJointProjection::RunTest(const FString&)
     }
     TestEqual(TEXT("All eleven exact owners including unchanged Oil"), Used.Num(), 11);
 
+    // Independently reconstructed projection must be identical, and even
+    // one changed item field or action cost must defeat the native gate.
+    TStrongObjectPtr<UGridItemSystemAsset> Second(NewObject<UGridItemSystemAsset>());
+    if (!TestTrue(TEXT("Second complete projection"), Plan::BuildForCurrentState(*Root.Get(), *Second.Get(), Error)) ||
+        !TestTrue(TEXT("Exact native-equivalent projection comparison"), Plan::MatchesProjected(*Second.Get(), *Preview.Get(), Error, false)))
+        return false;
+    auto* ChangedItem = Cast<UGridConsumableDefinitionAsset>(Second->ItemDefinitions.Last().Get());
+    if (!TestNotNull(TEXT("Final projected consumable"), ChangedItem)) return false;
+    ChangedItem->WeightKg += 0.5f;
+    TestFalse(TEXT("One changed authored field refuses conversion"), Plan::MatchesProjected(*Second.Get(), *Preview.Get(), Error, false));
+    ChangedItem->WeightKg -= 0.5f;
+    Second->ActionCatalogue->DetailedActions.Last().Definition.ActionPointCost += 1;
+    TestFalse(TEXT("One changed action cost refuses conversion"), Plan::MatchesProjected(*Second.Get(), *Preview.Get(), Error, false));
+    Second->ActionCatalogue->DetailedActions.Last().Definition.ActionPointCost -= 1;
+    TestTrue(TEXT("Restored projection is identical"), Plan::MatchesProjected(*Second.Get(), *Preview.Get(), Error, false));
+
     // Re-run the same planner without changing the persisted root or any
     // already allocated destination. A partially populated root is refused.
-    TestFalse(TEXT("Populated candidate cannot be appended again"), Plan::Build(*Root.Get(), *Preview.Get(), Error));
+    TestFalse(TEXT("Populated candidate cannot be appended again"), Plan::BuildForCurrentState(*Root.Get(), *Preview.Get(), Error));
     TestTrue(TEXT("Original root ordered definitions unchanged"), Root->ItemDefinitions == OriginalItems);
     TestTrue(TEXT("Original root manifest identical"), FGridEditorLootDefinitionProjection::RootManifest(*Root.Get()) == OriginalRootManifest);
     TestEqual(TEXT("Original detailed action count unchanged"), Root->ActionCatalogue->DetailedActions.Num(), OriginalActions.Num());
@@ -257,7 +273,7 @@ bool FGridEditorARMCLEAN064X63CanonicalAlchemyHotbar::RunTest(const FString&)
     TStrongObjectPtr<UGridItemSystemAsset> Preview(NewObject<UGridItemSystemAsset>());
     if (!TestNotNull(TEXT("Real registry"), Root.Get())) return false;
     FString Error;
-    const bool bBuilt = Plan::Build(*Root.Get(), *Preview.Get(), Error);
+    const bool bBuilt = Plan::BuildForCurrentState(*Root.Get(), *Preview.Get(), Error);
     if (!TestTrue(*FString::Printf(TEXT("Complete joint projection: %s"), *Error), bBuilt)) return false;
     FX63World Fixture(Preview.Get());
     if (!TestTrue(TEXT("World-backed inventory with joint registry"),

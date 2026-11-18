@@ -17,16 +17,23 @@ bool FGridEditorARMCLEAN064X65AlchemyStarterAuthoring::RunTest(const FString&)
     TStrongObjectPtr<UGridItemSystemAsset> Preview(NewObject<UGridItemSystemAsset>());
     if (!TestNotNull(TEXT("Native baseline"), Root.Get())) return false;
     FString Error;
-    if (!TestTrue(TEXT("Joint alchemy preview"), Plan::Build(*Root.Get(), *Preview.Get(), Error)))
+    if (!TestTrue(TEXT("Joint alchemy preview"), Plan::BuildForCurrentState(*Root.Get(), *Preview.Get(), Error)))
     {
         AddError(Error);
         return false;
+    }
+    TStrongObjectPtr<UGridItemSystemAsset> Historical(NewObject<UGridItemSystemAsset>());
+    UGridItemSystemAsset* BeforeRoot = Root.Get();
+    if (Root->ItemDefinitions.Num() == 48)
+    {
+        if (!Plan::HistoricalView(*Root.Get(), *Historical.Get(), Error)) { AddError(Error); return false; }
+        BeforeRoot = Historical.Get();
     }
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Before(NewObject<UGridItemSubsystem>(GI.Get()));
     TStrongObjectPtr<UGridItemSubsystem> After(NewObject<UGridItemSubsystem>(GI.Get()));
     TArray<FString> Errors;
-    if (!TestTrue(TEXT("Real pre-cutover registry"), Before->RegisterItemSystem(Root.Get(), Errors)) ||
+    if (!TestTrue(TEXT("Real pre-cutover registry"), Before->RegisterItemSystem(BeforeRoot, Errors)) ||
         !TestTrue(TEXT("Isolated post-cutover registry"), After->RegisterItemSystem(Preview.Get(), Errors)))
         return false;
 

@@ -245,7 +245,7 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
     TStrongObjectPtr<UGridMonsterDefinitionAsset> Rat(LoadObject<UGridMonsterDefinitionAsset>(nullptr, MonsterPaths[1]));
     if (!TestNotNull(TEXT("Real goblin"), Goblin.Get()) ||
         !TestNotNull(TEXT("Real rat"), Rat.Get())) return false;
-    const bool bMigrated = Root->ItemDefinitions.Num() == FProjection::FinalCount;
+    const bool bMigrated = Root->ItemDefinitions.Num() >= FProjection::FinalCount;
     TArray<FGridMonsterLootEntry> GoblinPlan, RatPlan;
     FString Error;
     if (!TestTrue(TEXT("Exact X.60B/X.61 native monster state"),

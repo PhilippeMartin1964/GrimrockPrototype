@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## X.66 — Native alchemy cutover prepared (not applied)
+
+Code prepares the exact 12-package cutover (38 -> 48 definitions, 4 -> 14 detailed actions), guarded save copy installation and verified historical regression views. Parent X.65 `d944814a072f94b7483b23a63ea4fc204d4257c5` passed both Windows statuses. See [X.66 native procedure](ARM_CLEAN06_4X66_NATIVE_ALCHEMY_CUTOVER.md). Native apply requires local Unreal/SaveDirectory and exact code SHA validation. No old assets removed; no local saves accessed by code publication. Remain at 38 persisted definitions until X.66B.
+
 ## ARM-CLEAN06.4X.65 — kits alchimie et garde d'authoring
 
 **Parent :** `433c08fde6fe47fcdf5550c211bc521b7bc4281a`. [Rapport X.65](ARM_CLEAN06_4X65_ALCHEMY_STARTERS_AND_AUTHORING_GUARD.md). Les deux entrées production CreateInitialCharacter/preview wizard passent le registre existant : FireBomb et Oil enregistrés sont des entrées explicites N0 quantité 1 en sac sans ancien pointer, aucun fallback pour ID connu invalide ; FireBomb non inscrit reste source transitoire avant cutover. Lecteur UI gère les entrées explicites. Garde legacy FRPGAlchemistAuthoring : ne touche déjà plus Oil, puis aucun des onze une fois inscrits ; refus partiel. Tests vrais kits et authoring, aucun nouvel asset/texte/sauf code. Prochain travail : transaction 12 packages, gates 38/48, conversion de copies et installation synchronisée, gameplay. Registre natif 38, 107/107, aucune sauvegarde live touchée. 06.4 partielle.

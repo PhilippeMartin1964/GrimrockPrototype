@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory=$true)][string]$EngineRoot,
     [Parameter(Mandatory=$true)][string]$StateRoot,
     [Parameter(Mandatory=$true)][string]$SaveDirectory,
-    [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-f]{40}$')][string]$ExpectedHead
+    [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-f]{40}$')][string]$ExpectedHead,
+    [switch]$PassThru
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -91,7 +92,7 @@ foreach ($Context in @('UE5.5.4/SilentTask','UE5.5.4/LocalAuto')) {
 $Busy = @(Get-Process -Name 'UnrealEditor','UnrealEditor-Cmd','GrimrockPrototype','GrimrockPrototype-Win64-Shipping' -ErrorAction SilentlyContinue)
 if ($Busy.Count -ne 0) { throw 'Close the editor and game before capturing save copies.' }
 # The validation agent compiled a separate worktree, not this checkout.
-& $Build GrimrockPrototypeEditor Win64 Development "-Project=$Project" -WaitMutex -NoHotReloadFromIDE
+& $Build GrimrockPrototypeEditor Win64 Development "-Project=$Project" -WaitMutex -NoHotReloadFromIDE | Out-Host
 if ($LASTEXITCODE -ne 0) { throw 'Local commandlet build failed.' }
 AssertGit
 $Before = @(InventorySaves)
@@ -114,7 +115,7 @@ foreach ($Row in $Before) {
 foreach ($Row in $Before) {
     $Copy = Join-Path $Original $Row.name
     $Target = Join-Path $Converted $Row.name
-    & $Editor $Project '-run=GridArmClean064X64SaveCopy' '-ConvertCopy' "-SnapshotRoot=$Run" "-File=$($Row.name)" '-Unattended' '-NoP4' '-NoSplash' '-NoSound' '-NullRHI'
+    & $Editor $Project '-run=GridArmClean064X64SaveCopy' '-ConvertCopy' "-SnapshotRoot=$Run" "-File=$($Row.name)" '-Unattended' '-NoP4' '-NoSplash' '-NoSound' '-NullRHI' | Out-Host
     if ($LASTEXITCODE -ne 0) { throw ('Copy conversion failed: '+$Row.name) }
     if (-not (Test-Path -LiteralPath $Target -PathType Leaf) -or (Sha $Copy) -cne $Row.sha256) {
         throw ('Copy receipt invalid: '+$Row.name)
@@ -137,3 +138,5 @@ $Report = [pscustomobject]@{
 $Receipt = Join-Path $Run 'verified-copies.json'
 $Report | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $Receipt -Encoding UTF8
 Write-Host ('[ARM-CLEAN06.4X64] VERIFIED OFFLINE COPIES '+$Before.Count+' '+$Receipt)
+
+if ($PassThru) { Write-Output $Receipt }
