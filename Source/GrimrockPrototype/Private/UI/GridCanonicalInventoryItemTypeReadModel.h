@@ -53,7 +53,8 @@ struct FGridCanonicalInventoryItemTypeReadModel
                 }
                 View.ItemType = Resolved.Tags.Contains(Weapon()) ? EGridItemType::Weapon :
                     Resolved.Tags.Contains(Food()) ? EGridItemType::Food :
-                    Resolved.Tags.Contains(Component()) ? EGridItemType::Component : EGridItemType::Misc;
+                    Resolved.Tags.Contains(Component()) ? EGridItemType::Component :
+                    Resolved.Tags.Contains(Potion()) ? EGridItemType::Potion : EGridItemType::Misc;
             }
             return View;
         }

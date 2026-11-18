@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.63 — projection conjointe alchimie et remapping en copie
+
+**Parent :** `2497018bbc89616ce8f551e9faf13641677265dc` (X.62, deux statuts SUCCESS, rapport natif transmis le 18.11.2026 : 10/10 projections, Oil exact, 0 erreurs / 2 warnings Status_Silence absent, dépôt propre). [Rapport X.63](ARM_CLEAN06_4X63_ALCHEMY_JOINT_PROJECTION.md). Preuve privée `AlchemyEvidence-20261118-201511678.json`.
+
+Plan transitoire 38→48 définitions, 4→14 actions détaillées, quatre IDs DefensiveElixir_Fire/Ice/Lightning/Poison uniques, seul ActionId change ; six tags de catégorie Potion, autres SourceTags/effets/PA/cooldowns intacts. Helper Editor-only convertit en copie les raccourcis des quatre élixirs par SourceDefinitionId dans actifs et réserve, atomique et idempotent, refus ambiguïté. Tests projection, hotbar réelle, copie de struct v27 et catégorie. **Aucune migration native ni SaveGame ici, ni compat legacy par alias.** Valider le SHA code, puis transaction protégée 12 packages et stratégie des fichiers v27 sur copies avant activation ; adapter authors/gates, vérifier exécuteur complet. Status_Silence uniquement filtre de retrait historique (Panacea/Priest), pas d'invention ni suppression de mécanique. 38 persistant, 107/107, 06.4 partielle, 06.5/06.6 ouvertes.
+
 ## ARM-CLEAN06.4X.62 — audit natif d'alchimie et projections sans écriture
 
 **Parent :** `4cdde5e4dbe670de0bb95efa30f36167c5a56c62` (X.61B, deux statuts Windows SUCCESS, 1997 tests, propriétaire éditeur/PIE 8/8). **107/107 références du périmètre X.48 migrées ; 38 définitions.** [Rapport X.62](ARM_CLEAN06_4X62_ALCHEMY_SOURCE_AUDIT.md).

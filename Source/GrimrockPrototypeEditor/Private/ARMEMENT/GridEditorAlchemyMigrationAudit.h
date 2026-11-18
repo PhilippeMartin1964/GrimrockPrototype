@@ -177,8 +177,10 @@ namespace GridEditorAlchemyMigrationAudit
 
     inline bool ResolveExact(const UGridItemDefinitionAsset& Old,
         const FGridCombatActionDefinition& Action, UGridItemSystemAsset& Candidate,
-        FString& Reason)
+        FString& Reason, FName PresentationTag = NAME_None)
     {
+        TArray<FName> ExpectedTags = Old.ItemTags;
+        if (!PresentationTag.IsNone()) ExpectedTags.AddUnique(PresentationTag);
         TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
         TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
         TArray<FString> Errors;
@@ -193,7 +195,7 @@ namespace GridEditorAlchemyMigrationAudit
             Item.bIsArmament || Item.ItemLevel != 0 ||
             Item.ItemId != Old.ItemDefinitionId || Item.WeightKg != Old.Weight ||
             !Item.DisplayName.EqualTo(Old.DisplayName) || !Item.Description.EqualTo(Old.Description) ||
-            Item.Tags != Old.ItemTags || Item.MaxStack != (Old.bStackable ? Old.MaxStackSize : 1) ||
+            Item.Tags != ExpectedTags || Item.MaxStack != (Old.bStackable ? Old.MaxStackSize : 1) ||
             Item.ItemIcon.ToSoftObjectPath() != Old.Icon.ToSoftObjectPath() ||
             Item.WorldMesh.ToSoftObjectPath() != Old.WorldMesh.ToSoftObjectPath() ||
             !Item.NonArmEquipmentSlots.IsEmpty() || Item.bNonArmTwoHanded ||

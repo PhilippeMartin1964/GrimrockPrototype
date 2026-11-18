@@ -345,4 +345,55 @@ bool FGridClean064X61LootPresentationCategory::RunTest(const FString&)
     return !HasAnyErrors();
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X63PotionPresentationOnly,
+    "Grimrock.RPG.ARM.CLEAN06_4X63.PotionPresentationDoesNotGrantUse",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean064X63PotionPresentationOnly::RunTest(const FString&)
+{
+    namespace Tags = GridCanonicalInventoryCategoryTags;
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+    if (!TestNotNull(TEXT("Real root"), Root.Get())) return false;
+    TStrongObjectPtr<UGridItemSystemAsset> Preview(NewObject<UGridItemSystemAsset>());
+    Preview->WeaponCatalogue = Root->WeaponCatalogue;
+    Preview->WeaponVisualCatalogue = Root->WeaponVisualCatalogue;
+    Preview->ActionCatalogue = Root->ActionCatalogue;
+    Preview->ActionPresentationCatalogue = Root->ActionPresentationCatalogue;
+    Preview->ItemDefinitions = Root->ItemDefinitions;
+    auto* Definition = NewObject<UGridConsumableDefinitionAsset>(Preview.Get());
+    Definition->ItemId = TEXT("Item_X63_PresentationOnly");
+    Definition->DisplayName = FText::FromName(Definition->ItemId);
+    Definition->Tags = {TEXT("QuickItem.Alchemy"), Tags::Potion()};
+    Preview->ItemDefinitions.Add(Definition);
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Presentation-only candidate registers"), Registry->RegisterItemSystem(Preview.Get(), Errors))) return false;
+    FGridItemInstance Item;
+    Item.RuntimeObjectId = FGuid::NewGuid();
+    Item.ItemDefinitionId = Definition->ItemId;
+    Item.Quantity = 1;
+    Item.ItemLevel = 0;
+    auto* Wrong = NewObject<UGridItemDefinitionAsset>(GI.Get());
+    Wrong->ItemDefinitionId = Item.ItemDefinitionId;
+    Wrong->ItemType = EGridItemType::Weapon;
+    const auto View = FGridCanonicalInventoryItemTypeReadModel::Resolve(Registry.Get(), Wrong, Item);
+    TestTrue(TEXT("Category resolves without historical definition authority"), View.bCanonicalIdentity && View.bResolved);
+    TestEqual(TEXT("Explicit Potion category"), View.ItemType, EGridItemType::Potion);
+    TestEqual(TEXT("Existing Consumables filter"), ResolveGridInventoryFilterCategory(View.ItemType),
+        EGridInventoryFilterCategory::Consumables);
+    const auto Interaction = FGridCanonicalItemInteractionReadModel::Resolve(Registry.Get(), Wrong, Item);
+    TestTrue(TEXT("A category grants no unbound action"), Interaction.bResolved &&
+        !Interaction.bCanConsumeLegacy && !Interaction.bCanConsumeCanonical && !Interaction.bCanAddToHotbar &&
+        !Interaction.bPhysicalThrowHotbar);
+    const auto Slots = FGridCanonicalEquipmentSlotsReadModel::Resolve(Registry.Get(), Wrong, Item);
+    TestTrue(TEXT("Potion category grants no slot"), Slots.bResolved && Slots.AllowedSlots.IsEmpty());
+    Definition->Tags.Add(Tags::Weapon());
+    Errors.Reset();
+    TestFalse(TEXT("Conflicting Potion/Weapon tags refused"), Preview->Validate(Errors));
+    TestTrue(TEXT("Category conflict diagnostic"), !Errors.IsEmpty());
+    return !HasAnyErrors();
+}
+
 #endif
