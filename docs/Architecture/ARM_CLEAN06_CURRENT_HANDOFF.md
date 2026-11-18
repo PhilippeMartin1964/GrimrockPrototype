@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.62 — audit natif d'alchimie et projections sans écriture
+
+**Parent :** `4cdde5e4dbe670de0bb95efa30f36167c5a56c62` (X.61B, deux statuts Windows SUCCESS, 1997 tests, propriétaire éditeur/PIE 8/8). **107/107 références du périmètre X.48 migrées ; 38 définitions.** [Rapport X.62](ARM_CLEAN06_4X62_ALCHEMY_SOURCE_AUDIT.md).
+
+Dix vrais objets d'alchimie hors registre + Oil canonique témoin. Le code d'authoring des quatre élixirs partage Action_Alchemist_DefensiveElixir malgré quatre statuts différents ; les données natives doivent confirmer. FireBomb utilisé par kit Grenadier C++, anciens outils et authoring d'Oil à traiter. Audit/commandlet lecture seule projettent individuellement chaque objet dans un registre transitoire, comparent toutes les propriétés d'action, exportent métadonnées, groupes de collisions, différences Oil, références package et statuts. Test de collecte et refus d'ID dupliqué. Aucun changement runtime, ni native, ni SaveGame, ni localisation. **Attendre deux statuts sur SHA code puis recevoir le JSON du commandlet -ReadOnly** ; aucune recette PIE supplémentaire. Ne jamais exécuter un ancien migrateur. Pas de nouveau registre de 48 ni de modification d'identité d'action avant vérification des données et traitement explicite des bindings v27. 06.4 partielle, 06.5/06.6 ouvertes.
+
 ## ARM-CLEAN06.4X.61 — quatre loots + registre et fin du périmètre de 107 références
 
 **Parent :** `84d7324af420687e5a17a9696642a80cb88d3a28` (X.60B deux statuts Windows SUCCESS, 1995 tests réussis avec 31 avertis, PIE 8/8). [Rapport X.61](ARM_CLEAN06_4X61_FOUR_LOOT_CUTOVER.md).
