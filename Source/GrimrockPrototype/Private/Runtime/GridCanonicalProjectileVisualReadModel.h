@@ -9,6 +9,8 @@ struct FGridCanonicalProjectileVisualReadView
 	bool bResolved = false;
 	bool bHasProjectileVisual = false;
 	bool bIsAmmunition = false;
+	bool bIsNonArmament = false;
+	FGridNonArmamentThrowPolicy GenericThrow;
 	FName VisualId = NAME_None;
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
 	TSoftObjectPtr<UStaticMesh> ProjectileMesh;
@@ -42,6 +44,7 @@ struct FGridCanonicalProjectileVisualReadModel
 		}
 		// A flight visual belongs to a materialized physical item, not a
 		// legacy N1 non-ARM family read. Do not re-enable an obsolete mesh.
+		Result.bIsNonArmament = !Resolved.bIsArmament;
 		if (!Resolved.bIsArmament && Instance.ItemLevel != 0)
 		{
 			return Result;
@@ -49,11 +52,12 @@ struct FGridCanonicalProjectileVisualReadModel
 		Result.bResolved = true;
 		Result.VisualId = Resolved.VisualId;
 		Result.bIsAmmunition = !Resolved.AmmoKindId.IsNone() && !Resolved.bIsArmament;
-		if (Result.bIsAmmunition)
+		if (Result.bIsNonArmament)
 		{
 			// Ammo flight renders its single authored world mesh; only armaments
 			// have a dedicated visual flight profile in WeaponVisualCatalogue.
 			Result.WorldMesh = Resolved.WorldMesh;
+			Result.GenericThrow = Resolved.GenericThrow;
 		}
 		Result.bHasProjectileVisual = Resolved.bIsArmament && Resolved.ProjectileAppearance.bEnabled;
 		if (Result.bHasProjectileVisual)

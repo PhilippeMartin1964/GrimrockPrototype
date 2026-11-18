@@ -298,4 +298,66 @@ bool FGridClean063AVInvalidAndLegacy::RunTest(const FString&)
 {
     return ARMCLEAN063AV::RunScenario(*this, TEXT("InvalidAndLegacy"));
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065DGenericThrow,
+    "Grimrock.RPG.ARM.CLEAN06_5D.PointerlessNonArmThrow",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean065DGenericThrow::RunTest(const FString&)
+{
+    ARMCLEAN063AV::FFixture F;
+    if (!TestTrue(TEXT("Configured real registry"), F.Ready())) return false;
+    auto* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+    if (!TestNotNull(TEXT("Native root"), Root)) return false;
+    const FVector Start = F.Runtime->GetCellCenterWorld(0, 0, 100.f);
+    const FVector Velocity(1200.f, 0.f, 100.f);
+    int32 NonArmCount = 0;
+    int32 HandheldCount = 0;
+    for (const auto& Entry : Root->ItemDefinitions)
+    {
+        const auto* Native = Cast<UGridNonArmamentDefinitionAsset>(Entry.Get());
+        if (!Native) continue;
+        ++NonArmCount;
+        FGridItemInstance Item = F.Make(Native->ItemId, 0);
+        FGridResolvedItem Resolved;
+        if (!TestTrue(TEXT("Native N0 resolves"), F.Registry->ResolveItem(Native->ItemId, 0, Resolved))) return false;
+        TestTrue(TEXT("Exact authored throw policy projected"),
+            FGridNonArmamentThrowPolicy::StaticStruct()->CompareScriptStruct(&Native->GenericThrow, &Resolved.GenericThrow, 0));
+        auto* Stale = NewObject<UGridItemDefinitionAsset>(F.Runtime);
+        Stale->ItemDefinitionId = Native->ItemId;
+        Stale->HandUsage = EGridItemHandUsage::OneHanded;
+        Stale->Weight = 0.1f;
+        Stale->ThrowSpeed = 777.f;
+        const auto* Equipment = Cast<UGridOtherEquipmentDefinitionAsset>(Native);
+        const bool bOneHand = Equipment && Equipment->HandPolicy == EGridNonArmamentHandPolicy::OneHanded;
+        const auto Gate = FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Stale, Item, 100);
+        const auto Flight = FGridCanonicalThrowBallisticsReadModel::Resolve(F.Registry, Stale, Item);
+        TestEqual(TEXT("Hand permission does not use obsolete definition"), Gate.bOneHanded, bOneHand);
+        if (Flight.bResolved)
+            TestEqual(TEXT("Authored speed"), Flight.InitialSpeed, Native->GenericThrow.InitialSpeed);
+        if (!bOneHand)
+        {
+            TestFalse(TEXT("No invented hand permission"), Gate.bCanThrow);
+            TestNull(TEXT("No obsolete hand permission at spawn"), F.Runtime->SpawnThrownItemProjectile(Item, Stale, Start, Velocity, 0, 0));
+        }
+        if (bOneHand && Gate.bCanThrow && Flight.bResolved && !Native->WorldMesh.IsNull())
+        {
+            ++HandheldCount;
+            auto* Projectile = F.Runtime->SpawnThrownItemProjectile(Item, Stale, Start, Velocity, 0, 0);
+            if (!TestNotNull(TEXT("Registered non-ARM launches without old asset"), Projectile)) return false;
+            TestNull(TEXT("Stale definition was discarded"), Projectile->GetItemDefinitionAsset());
+            TestTrue(TEXT("Native world mesh in flight"), Projectile->MeshComponent &&
+                Projectile->MeshComponent->GetStaticMesh() == Native->WorldMesh.LoadSynchronous());
+            Projectile->Destroy();
+        }
+        Item.ItemLevel = 1;
+        TestFalse(TEXT("Nonphysical non-ARM level refused"), FGridCanonicalThrowBallisticsReadModel::Resolve(F.Registry, Stale, Item).bResolved);
+        TestFalse(TEXT("Nonphysical non-ARM hand gate refused"), FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Stale, Item, 100).bResolved);
+    }
+    TestEqual(TEXT("All non-ARM definitions covered"), NonArmCount, 26);
+    TestTrue(TEXT("At least one actual handheld item launched"), HandheldCount > 0);
+    return !HasAnyErrors();
+}
+
 #endif

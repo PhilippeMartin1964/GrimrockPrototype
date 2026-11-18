@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.1 — lancers génériques non-ARM
+
+Parent 5D `46d7dcd8113685aca7629543acffde62046b57c6` : SilentTask + LocalAuto SUCCESS. Projection transitoire de GenericThrow et HandPolicy depuis les définitions natives, N0 réel obligatoire, force/masse et spawn sans ancien pointeur. Paramètres de vol des non-ARM et munitions lus depuis GenericThrow, y compris axe, pose, rotation, durée et offset. Test natif des 26 non-ARM et spawn des objets à une main éligibles. Pas de mutation de package ni save ; 5B.1 reste installée. **Les lancers génériques ARM sans projectile spécialisé conservent encore les anciennes données physiques** : audit/cutover dédié nécessaire avant suppression. PIE reste dû.
+
 ## ARM-CLEAN06.5D — lecteurs d'exploration pointerless
 
 Parent 5C `00a0b3a5798a6f7cf3ff324694a67db4fb229e78`. Trois parcours pièges, HUD et exécution huile/catalyseur et mesh de présentation résolus via DA_ItemSystem lorsque connu, pas de fallback enregistré. Tests sur identités réelles N0 et refus d'absence/action/niveau ; 5C est un prérequis exact-SHA. [5D](ARM_CLEAN06_5D_EXPLORATION_ITEM_READERS.md). Sauvegardes 5B.1 installées, ne pas relancer. Reste retrait final des rehydrate et autres lecteurs, WBP, propriétés, packages et outils de migration ; PIE dû.

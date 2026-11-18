@@ -33,7 +33,7 @@ struct FGridPhysicalThrowStrengthReadModel
 		{
 			FGridResolvedItem Canonical;
 			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) ||
-				!Canonical.bIsArmament)
+				(!Canonical.bIsArmament && Instance.ItemLevel != 0))
 			{
 				return Out; // A known invalid N0 does not fall back to stale copies.
 			}
@@ -41,10 +41,12 @@ struct FGridPhysicalThrowStrengthReadModel
 			// for each point of effective Strength, independent of old DA.
 			Out.MaxWeightKg = FMath::Max(0, Strength) * 0.25f;
 			Out.bResolved = true;
-			Out.bOneHanded = Canonical.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
-				Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand);
+			Out.bOneHanded = Canonical.bIsArmament
+				? Canonical.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
+					Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand)
+				: Canonical.NonArmHandPolicy == EGridNonArmamentHandPolicy::OneHanded;
 			Out.UnitWeightKg = Canonical.WeightKg;
-			const float Speed = Canonical.Weapon.Projectile.bEnabled
+			const float Speed = !Canonical.bIsArmament ? Canonical.GenericThrow.InitialSpeed : Canonical.Weapon.Projectile.bEnabled
 				? Canonical.Weapon.Projectile.InitialSpeed
 				: (IsValid(LegacyDefinition) &&
 					LegacyDefinition->ItemDefinitionId == Instance.ItemDefinitionId

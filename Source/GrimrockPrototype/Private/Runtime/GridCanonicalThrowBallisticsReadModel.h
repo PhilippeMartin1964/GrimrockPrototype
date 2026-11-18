@@ -30,10 +30,19 @@ struct FGridCanonicalThrowBallisticsReadModel
 		if (Out.bCanonicalIdentity)
 		{
 			FGridResolvedItem Canonical;
-			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) ||
-				!Canonical.bIsArmament)
+			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical))
 			{
 				return Out; // No synthetic N1 or old projectile for a known invalid ARM.
+			}
+			if (!Canonical.bIsArmament)
+			{
+				if (Instance.ItemLevel != 0 || !FMath::IsFinite(Canonical.GenericThrow.InitialSpeed) ||
+					Canonical.GenericThrow.InitialSpeed <= KINDA_SMALL_NUMBER || !FMath::IsFinite(Canonical.GenericThrow.Arc))
+					return Out;
+				Out.bResolved = true;
+				Out.InitialSpeed = Canonical.GenericThrow.InitialSpeed;
+				Out.Arc = Canonical.GenericThrow.Arc;
+				return Out;
 			}
 			if (Canonical.Weapon.Projectile.bEnabled)
 			{

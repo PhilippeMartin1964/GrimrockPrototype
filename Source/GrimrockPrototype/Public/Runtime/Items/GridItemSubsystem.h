@@ -74,6 +74,14 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Equipment")
 	bool bNonArmTwoHanded = false;
 
+	/** Explicit physical hand policy, not inferred from a presentation tag. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Equipment")
+	EGridNonArmamentHandPolicy NonArmHandPolicy = EGridNonArmamentHandPolicy::NotHandHeld;
+
+	/** Authored non-ARM flight settings; transient projection only. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Physics")
+	FGridNonArmamentThrowPolicy GenericThrow;
+
 	/** Flight shape and presentation are resolved from the one visual catalogue. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	TSoftObjectPtr<UStaticMesh> ProjectileMesh;

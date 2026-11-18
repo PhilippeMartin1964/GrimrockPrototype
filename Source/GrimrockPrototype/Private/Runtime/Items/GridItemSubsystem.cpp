@@ -97,6 +97,7 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	if (const UGridNonArmamentDefinitionAsset* Other =
 		Cast<UGridNonArmamentDefinitionAsset>(Definition))
 	{
+		OutItem.GenericThrow = Other->GenericThrow;
 		OutItem.LightEmitter = Other->LightEmitter;
 		OutItem.VisualEffects = Other->VisualEffects;
 		OutItem.bEnableWorldSparkle = Other->bEnableWorldSparkle;
@@ -212,6 +213,7 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 			// Hand and armor-slot permissions are authored on the ONE
 			// registered non-ARM equipment definition. A torch must not
 			// become non-equippable merely because it is not an ARM weapon.
+			OutItem.NonArmHandPolicy = Equipment->HandPolicy;
 			OutItem.NonArmEquipmentSlots = Equipment->GetAvailableSlots();
 			OutItem.bNonArmTwoHanded =
 				Equipment->HandPolicy == EGridNonArmamentHandPolicy::TwoHanded &&
