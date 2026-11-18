@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.58 — préparation complète de la transaction des 18 contenus initiaux
+
+**Parent binaire :** `8ae270b3e3f2f90ae46e7b88a80676427e7073d6` (X.57B : 33 références palette supprimées, deux statuts Windows SUCCESS, 8/8 éditeur/PIE). Rapport : [ARM_CLEAN06_4X58_INITIAL_CONTENT_PROTECTED_TRANSACTION.md](ARM_CLEAN06_4X58_INITIAL_CONTENT_PROTECTED_TRANSACTION.md).
+
+Selected Object édite désormais le CanonicalItemId et le niveau physique sans source historique ; Details garde celle-ci en lecture seule. Audits 4W/X.2/X.4/X.48/X.91 et acteurs X.92/X.21 adaptés et renforcés ; tests X.163 et nouveau plan natif. Préflight exige 17+1 contenus dans les niveaux 00/01, 0 dans 03/Pillars et soit 18 soit 0 anciens pointeurs. Runner protégé vérifie les deux validations Windows du SHA code, sauvegarde les deux cibles, vérifie la parité de toutes les propriétés de niveau réfléchies avant/après, les SHA256 des quatre niveaux, la suite Grimrock complète et le pointeur LFS staged. **Aucun Apply effectué par ce commit de code : 26 références restantes.** 8 seulement après X.58B réel, puis PIE. Trois overrides dormants et cinq loots strictement préservés. 06.4 partielle ; 06.5 bloquée ; SaveGame v27 non modifié.
+
 ## ARM-CLEAN06.4X.57 — runner protégé pour la palette native unique
 
 **Parent :** `bd02f2b0dbb5978e216c5edbe485fc31c4ad0104`. Rapport : [ARM_CLEAN06_4X57_NATIVE_PALETTE_PROTECTED_TRANSACTION.md](ARM_CLEAN06_4X57_NATIVE_PALETTE_PROTECTED_TRANSACTION.md).

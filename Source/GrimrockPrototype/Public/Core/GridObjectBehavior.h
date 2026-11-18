@@ -84,18 +84,18 @@ struct FGridReceptacleInitialItemConfig
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial Content")
+	/** Serialized migration source; new authoring uses CanonicalItemId. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Initial Content")
 	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
 
-	/** Stable item registry identity, copied from the actual authored
-	 * definition by the one-shot ARM-CLEAN06.4W Editor converter. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Initial Content|Canonical")
+	/** Stable registered identity for initial content. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Initial Content|Canonical")
 	FName CanonicalItemId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial Content", meta = (ClampMin = "1"))
 	int32 Quantity = 1;
 
-	/** 0 inherits default; 1..20 is a fixed catalogue level for initial content. */
+	/** Canonical physical level: N0 non-ARM, N1-N20 ARM. Only legacy-only N0 may inherit. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial Content", meta = (ClampMin = "0", ClampMax = "20", UIMin = "0", UIMax = "20"))
 	int32 ItemLevel = 0;
 };

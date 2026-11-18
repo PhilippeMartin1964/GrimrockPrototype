@@ -46,6 +46,8 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     };
 
     int32 ReceptacleCount = 0;
+    int32 HistoricalCount = 0;
+    int32 LevelIndex = 0;
     int32 ArmCount = 0;
     int32 NonArmCount = 0;
     for (const TCHAR* Path : Paths)
@@ -57,12 +59,14 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
             return false;
         }
         const bool bInitiallyDirty = Level->GetOutermost()->IsDirty();
+        const int32 Before = ReceptacleCount;
         for (const FGridWorldObjectInstance& World : Level->WorldObjectInstances)
         {
             for (const FGridReceptacleInitialItemConfig& Config :
                 World.InstanceConfig.ReceptacleInitialContent)
             {
                 ++ReceptacleCount;
+                if (Config.ItemDefinition) ++HistoricalCount;
                 FGridInitialReceptacleItem Initial;
                 if (!TestTrue(TEXT("Persisted initial identity resolves exactly"),
                     FGridReceptacleInitialCanonicalReadModel::TryResolve(
@@ -80,6 +84,20 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
                 {
                     return false;
                 }
+                // Prove the same reader accepts every real row after
+                // removing only its historical pointer on a stack copy.
+                FGridReceptacleInitialItemConfig Pointerless = Config;
+                Pointerless.ItemDefinition = nullptr;
+                FGridInitialReceptacleItem Projected;
+                if (!TestTrue(TEXT("Pointerless projection resolves"),
+                        FGridReceptacleInitialCanonicalReadModel::TryResolve(
+                            Registry.Get(), Pointerless, Projected)) ||
+                    !TestTrue(TEXT("No legacy UObject, exact physical projection"),
+                        !Projected.ItemDefinition && Projected.bHasPersistedCanonicalIdentity &&
+                        Projected.ItemDefinitionId == Initial.ItemDefinitionId &&
+                        Projected.ItemLevel == Initial.ItemLevel &&
+                        Projected.Quantity == Initial.Quantity))
+                    return false;
                 FGridResolvedItem Resolved;
                 if (!TestTrue(TEXT("Real family and physical level resolve"),
                     Registry->ResolveItem(Initial.ItemDefinitionId,
@@ -98,6 +116,10 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
                 }
             }
         }
+        const int32 Expected = LevelIndex == 0 ? 17 : LevelIndex == 1 ? 1 : 0;
+        ++LevelIndex;
+        if (!TestEqual(TEXT("Original per-level distribution"), ReceptacleCount - Before, Expected))
+            return false;
         if (!TestEqual(TEXT("Read-only model never dirties native level"),
             Level->GetOutermost()->IsDirty(), bInitiallyDirty))
         {
@@ -106,7 +128,8 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     }
     if (!TestEqual(TEXT("All 18 materialized initial receptacle contents"),
         ReceptacleCount, 18) ||
-        !TestEqual(TEXT("Exact canonical families"), ArmCount + NonArmCount, 18))
+        !TestEqual(TEXT("Exact canonical families"), ArmCount + NonArmCount, 18) ||
+        !TestTrue(TEXT("Complete 18/0 native pointer state"), HistoricalCount == 18 || HistoricalCount == 0))
     {
         return false;
     }

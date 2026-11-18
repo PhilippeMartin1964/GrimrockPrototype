@@ -14,10 +14,10 @@
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/Package.h"
 
-/** X.48/X.56 is a read-only audit of the real native packages.
- *  The 44 loose rows and four X.54B shared rules are pointerless.
- *  The 33 palette pointers are all present (59 total) or all absent
- *  (26 total). No mixed state or unrelated change is accepted.
+/** X.48/X.58: exact native baseline after X.57B.
+ *  44 loose, four shared rules and 33 palette rows are pointerless.
+ *  Exactly 18 initial-content rows in levels 00/01 retain all or no
+ *  old pointers; the three dormant overrides and five loots stay strict.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X48PostNativeRefs,
     "Grimrock.RPG.ARM.CLEAN06_4X48.PostNative63ReferenceBaseline",
@@ -83,6 +83,7 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
             }
             SeenLoose.Add(Item.InstanceId);
         }
+        const int32 BeforeInitial = InitialTotal;
         for (const FGridWorldObjectInstance& Object : Level->WorldObjectInstances)
         {
             for (const FGridReceptacleInitialItemConfig& Item :
@@ -90,12 +91,12 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
             {
                 ++InitialTotal;
                 if (Item.ItemDefinition) ++InitialOld;
-                if (!IsValid(Item.ItemDefinition.Get()) ||
-                    Item.CanonicalItemId.IsNone() || !Known.Contains(Item.CanonicalItemId) ||
-                    Item.ItemDefinition->ItemDefinitionId != Item.CanonicalItemId ||
+                if (Item.CanonicalItemId.IsNone() || !Known.Contains(Item.CanonicalItemId) ||
+                    (Item.ItemDefinition && (!IsValid(Item.ItemDefinition.Get()) ||
+                        Item.ItemDefinition->ItemDefinitionId != Item.CanonicalItemId)) ||
                     Item.Quantity < 1 || Item.ItemLevel < 0 || Item.ItemLevel > 20)
                 {
-                    AddError(TEXT("Unmigrated receptacle initial content changed unexpectedly."));
+                    AddError(TEXT("Initial receptacle content identity changed unexpectedly."));
                     return false;
                 }
             }
@@ -126,6 +127,9 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
                 ++LockOverrideOld;
             }
         }
+        const int32 ExpectedInitial = LevelIndex == 0 ? 17 : LevelIndex == 1 ? 1 : 0;
+        if (!TestEqual(TEXT("Exact original per-level distribution"), InitialTotal - BeforeInitial, ExpectedInitial))
+            return false;
         if (!TestEqual(TEXT("Real level remains unmodified"), Level->GetOutermost()->IsDirty(), bWasDirty))
         {
             return false;
@@ -274,13 +278,13 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
     return TestEqual(TEXT("44 native loose instances remain pointerless"), LooseTotal, 44) &&
         TestEqual(TEXT("Zero old pointers among 44"), LooseOld, 0) &&
         TestEqual(TEXT("No historical item spawns"), ItemSpawns, 0) &&
-        TestEqual(TEXT("18 initial receptacle entries still pending"), InitialOld, 18) &&
+        TestTrue(TEXT("All 18 initial pointers present or all absent"), InitialOld == 18 || InitialOld == 0) &&
         TestEqual(TEXT("18 total initial entries"), InitialTotal, 18) &&
         TestEqual(TEXT("One dormant receptacle rule reference"), ReceptacleOverrideOld, 1) &&
         TestEqual(TEXT("Two dormant lock key references"), LockOverrideOld, 2) &&
         TestEqual(TEXT("No activated dormant overrides"), ActiveAcceptanceOverrides, 0) &&
         TestEqual(TEXT("33 direct palette rows remain"), PaletteRows, 33) &&
-        TestTrue(TEXT("Palette pointers entirely present or entirely absent"), PaletteOld == 33 || PaletteOld == 0) &&
+        TestEqual(TEXT("X.57B palette remains pointerless"), PaletteOld, 0) &&
         TestEqual(TEXT("X.54B shared receptacle pointers remain removed"), AcceptanceRules, 0) &&
         TestEqual(TEXT("X.54B shared lock pointers remain removed"), LockKeys, 0) &&
         TestEqual(TEXT("Two shared receptacle assets"), RuleAssets, 2) &&
@@ -288,8 +292,8 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         TestEqual(TEXT("Five historic monster loot sources"), MonsterOld, 5) &&
         TestEqual(TEXT("Five historic loot rows"), MonsterRows, 5) &&
         TestEqual(TEXT("One already registered monster loot identity"), MonsterRegistered, 1) &&
-        TestEqual(TEXT("Exactly 59 pre-palette or 26 post-palette old pointers"),
-            Remaining, PaletteOld == 33 ? 59 : 26) &&
+        TestEqual(TEXT("Exactly 26 before initial-content cutover or 8 after"),
+            Remaining, InitialOld == 18 ? 26 : 8) &&
         TestEqual(TEXT("Canonical root remains unmodified"), Root->GetOutermost()->IsDirty(), bRootDirty);
 }
 #endif

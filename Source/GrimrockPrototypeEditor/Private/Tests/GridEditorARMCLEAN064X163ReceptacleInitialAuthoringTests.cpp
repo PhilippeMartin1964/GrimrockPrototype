@@ -108,6 +108,47 @@ bool FGridClean064X163InitialAuthoring::RunTest(const FString&)
             Contradiction.ItemLevel, 20))
         {return false;}
 
+    FGridReceptacleInitialItemConfig Canonical;
+    Canonical.Quantity = 3;
+    using FAuthoring = FGridEditorCanonicalReceptacleInitialAuthoring;
+    if (!TestTrue(TEXT("New canonical arrow needs no source asset"),
+            FAuthoring::TrySelectCanonicalId(Registry.Get(), Arrows->ItemDefinitionId, Canonical)) ||
+        !TestNull(TEXT("No legacy pointer on new arrow"), Canonical.ItemDefinition.Get()) ||
+        !TestEqual(TEXT("Arrow N0"), Canonical.ItemLevel, 0) ||
+        !TestFalse(TEXT("Non-ARM level not editable"), FAuthoring::IsLevelEditable(Registry.Get(), Canonical)) ||
+        !TestFalse(TEXT("Unknown registered identity refused"),
+            FAuthoring::TrySelectCanonicalId(Registry.Get(), Unknown->ItemDefinitionId, Canonical)) ||
+        !TestEqual(TEXT("Refused identity preserves arrow"), Canonical.CanonicalItemId, Arrows->ItemDefinitionId) ||
+        !TestTrue(TEXT("New ARM explicit physical N1"),
+            FAuthoring::TrySelectCanonicalId(Registry.Get(), Sword->ItemDefinitionId, Canonical)) ||
+        !TestEqual(TEXT("New ARM N1"), Canonical.ItemLevel, 1) ||
+        !TestTrue(TEXT("Pointerless ARM level editable"), FAuthoring::IsLevelEditable(Registry.Get(), Canonical)) ||
+        !TestTrue(TEXT("Pointerless ARM can author N20"),
+            FAuthoring::TrySetLevel(Registry.Get(), 20, Canonical)) ||
+        !TestFalse(TEXT("Pointerless ARM N0 refused"),
+            FAuthoring::TrySetLevel(Registry.Get(), 0, Canonical)) ||
+        !TestTrue(TEXT("Recommit same ID preserves N20"),
+            FAuthoring::TrySelectCanonicalId(Registry.Get(), Sword->ItemDefinitionId, Canonical)) ||
+        !TestEqual(TEXT("Physical level remains N20"), Canonical.ItemLevel, 20) ||
+        !TestNull(TEXT("No historical pointer reintroduced"), Canonical.ItemDefinition.Get()) ||
+        !TestTrue(TEXT("Change back to unlevelled resets to physical N0"),
+            FAuthoring::TrySelectCanonicalId(Registry.Get(), Arrows->ItemDefinitionId, Canonical)) ||
+        !TestEqual(TEXT("Arrow now N0"), Canonical.ItemLevel, 0) ||
+        !TestEqual(TEXT("Quantity preserved by canonical edits"), Canonical.Quantity, 3))
+        return false;
+
+    FGridReceptacleInitialItemConfig LegacyBacked;
+    LegacyBacked.CanonicalItemId = Sword->ItemDefinitionId;
+    LegacyBacked.ItemDefinition = Sword;
+    LegacyBacked.ItemLevel = 7;
+    if (!TestTrue(TEXT("Same ID does not implicitly migrate old row"),
+            FAuthoring::TrySelectCanonicalId(Registry.Get(), Sword->ItemDefinitionId, LegacyBacked)) ||
+        !TestTrue(TEXT("Original source preserved until explicit native conversion"), LegacyBacked.ItemDefinition == Sword) ||
+        !TestEqual(TEXT("Authored N7 preserved"), LegacyBacked.ItemLevel, 7) ||
+        !TestFalse(TEXT("Contradictory identity cannot be silently repaired"),
+            FAuthoring::TrySelectCanonicalId(Registry.Get(), Arrows->ItemDefinitionId, Contradiction)))
+        return false;
+
     return TestEqual(TEXT("No mutation of real ItemSystem"),
         Root->GetOutermost()->IsDirty(), WasDirty);
 }

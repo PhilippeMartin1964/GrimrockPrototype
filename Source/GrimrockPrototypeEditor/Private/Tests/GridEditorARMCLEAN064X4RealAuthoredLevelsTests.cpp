@@ -81,8 +81,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
             const FName AuthoredItemId, const UGridItemDefinitionAsset* Source,
             int32 AuthoredLevel, int32 Quantity, bool bAllowPointerless) -> bool
     {
-        // X.45/X.56: loose objects and direct palette entries can be
-        // pointerless. Other old references remain required.
+        // X.58: loose, palette and initial-content rows may be pointerless.
         if (!IsValid(Source) && bAllowPointerless)
         {
             const UGridCanonicalItemDefinitionAsset* const* Found =
@@ -246,7 +245,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
                 World.InstanceConfig.ReceptacleInitialContent)
             {
                 if (!Check(Initial.CanonicalItemId, Initial.ItemDefinition,
-                    Initial.ItemLevel, Initial.Quantity, false))
+                    Initial.ItemLevel, Initial.Quantity, true))
                 {
                     AddError(TEXT("Invalid initial receptacle physical level."));
                     return false;

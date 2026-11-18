@@ -458,6 +458,11 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 						TEXT("Receptacle InitialContent requires an ItemDefinition or CanonicalItemId."), ObjectId);
 				if (InitialItem.Quantity < 1)
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent requires Quantity >= 1."), ObjectId);
+				if (!InitialItem.CanonicalItemId.IsNone() &&
+					((InitialItem.ItemDefinition && InitialItem.ItemDefinition->ItemDefinitionId != InitialItem.CanonicalItemId) ||
+					 !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+						ResolveEditorItemRegistry(), InitialItem.CanonicalItemId, InitialItem.ItemLevel)))
+					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent has an invalid canonical identity or physical level."), ObjectId);
 			}
 		}
 	}

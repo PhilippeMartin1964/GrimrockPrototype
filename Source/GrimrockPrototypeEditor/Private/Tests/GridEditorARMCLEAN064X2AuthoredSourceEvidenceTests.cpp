@@ -58,8 +58,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
     auto CheckSource = [&](FName CanonicalId, const UGridItemDefinitionAsset* Source,
         int32 AuthoredLevel, int32 Quantity, bool bAllowPointerless) -> bool
     {
-        // X.45/X.56: loose rows and direct palette entries may have completed
-        // protected native conversion; initial receptacle entries may not.
+        // X.58: loose, palette and initial-content rows may be pointerless.
         if (!IsValid(Source) && bAllowPointerless)
         {
             const UGridCanonicalItemDefinitionAsset* const* Found = Registry.Find(CanonicalId);
@@ -178,7 +177,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
                 Object.InstanceConfig.ReceptacleInitialContent)
             {
                 if (!CheckSource(Item.CanonicalItemId, Item.ItemDefinition,
-                    Item.ItemLevel, Item.Quantity, false))
+                    Item.ItemLevel, Item.Quantity, true))
                 {
                     AddError(TEXT("Invalid receptacle initial item identity or level."));
                     return false;

@@ -43,8 +43,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
     auto Visit = [&](const UGridItemDefinitionAsset* Legacy, FName ItemId,
         bool bAllowPointerless) -> bool
     {
-        // X.45/X.56: loose placements and direct palette entries can be
-        // pointerless. Receptacle initial content remains strict.
+        // X.58: loose, palette and initial-content rows may be pointerless.
         if (!IsValid(Legacy) && bAllowPointerless)
         {
             if (ItemId.IsNone() || !ValidIds.Contains(ItemId)) { return false; }
@@ -94,7 +93,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
                 World.InstanceConfig.ReceptacleInitialContent)
             {
                 if (!TestTrue(TEXT("Receptacle maintains exact source ItemId"),
-                    Visit(Item.ItemDefinition, Item.CanonicalItemId, false))) { return false; }
+                    Visit(Item.ItemDefinition, Item.CanonicalItemId, true))) { return false; }
                 ++Receptacle;
             }
         }

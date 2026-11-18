@@ -171,6 +171,26 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
             Canonical.VisualEffects.Effects.Num()))
         {return false;}
 
+    FGridReceptacleInitialItemConfig Pointerless = NonArm;
+    Pointerless.ItemDefinition = nullptr;
+    AGridReceptacleActor* PR = F.MakeReceptacle(Pointerless);
+    if (!TestNotNull(TEXT("Pointerless real nonARM host"), PR) ||
+        !TestEqual(TEXT("Pointerless nonARM content count"), PR->GetContainedItemCount(), 1))
+        return false;
+    AGridItemActor* PA = PR->GetContainedItemActor(0);
+    if (!TestNotNull(TEXT("Pointerless physical actor"), PA) ||
+        !TestNull(TEXT("No source on pointerless physical actor"), PA->GetItemDefinitionAsset()) ||
+        !TestTrue(TEXT("Exact item quantity, level, light and identity"),
+            PR->ContainedItems[0].Quantity == Entry.Quantity &&
+            PR->ContainedItems[0].ItemLevel == Entry.ItemLevel &&
+            PR->ContainedItems[0].ItemDefinitionId == Entry.ItemDefinitionId &&
+            PR->ContainedItems[0].bLightsEnabled == Entry.bLightsEnabled &&
+            !PR->ContainedItems[0].ItemDefinition) ||
+        !TestEqual(TEXT("Pointerless Niagara parity"),
+            PA->VisualEffectsComponent->GetConfiguredEffectCount(),
+            Actor->VisualEffectsComponent->GetConfiguredEffectCount()))
+        return false;
+
     // A persisted nonARM cannot become N1 or fall back to its old pointer.
     FGridReceptacleInitialItemConfig Invalid = NonArm;
     Invalid.ItemLevel = 1;
@@ -199,9 +219,15 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
         AGridReceptacleActor* AR = F.MakeReceptacle(Arm);
         if (!TestNotNull(TEXT("ARM host remains"), AR) ||
             !TestEqual(TEXT("ARM initial count unchanged"), AR->GetContainedItemCount(), 1) ||
-            !TestNotNull(TEXT("ARM actor keeps old visual until its own cutover"),
-                AR->GetContainedItemActor(0)->GetItemDefinitionAsset()))
+            !TestNotNull(TEXT("ARM physical actor"), AR->GetContainedItemActor(0)))
             {return false;}
+        // X.21 already proves the pointerless ARM runtime path.
+        if (!Arm.ItemDefinition &&
+            !TestNull(TEXT("Native pointerless ARM actor retains no historical source"),
+                AR->GetContainedItemActor(0)->GetItemDefinitionAsset()))
+            return false;
+        if (!TestEqual(TEXT("Native ARM physical level"), AR->ContainedItems[0].ItemLevel, Arm.ItemLevel))
+            return false;
     }
     AddInfo(TEXT("[ARM-CLEAN06.4X.9.2] 18 real initial entries audited; "
         "nonARM actors canonical, ARM and legacy synthetic unchanged; no binary writes."));

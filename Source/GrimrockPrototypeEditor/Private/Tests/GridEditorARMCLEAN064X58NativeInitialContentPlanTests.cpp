@@ -1,0 +1,98 @@
+#if WITH_DEV_AUTOMATION_TESTS
+
+#include "Misc/AutomationTest.h"
+#include "../ARMEMENT/GridEditorNativeInitialContentPlan.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "UObject/Package.h"
+#include "UObject/StrongObjectPtr.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X58NativeInitialPlan,
+    "Grimrock.RPG.ARM.CLEAN06_4X58.NativeInitialContentPlan",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorARMCLEAN064X58NativeInitialPlan::RunTest(const FString&)
+{
+    using FPlan = FGridEditorNativeInitialContentPlan;
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+    if (!TestNotNull(TEXT("Real ItemSystem"), Root.Get()) ||
+        !TestEqual(TEXT("34 registered definitions"), Root->ItemDefinitions.Num(), 34))
+        return false;
+    const bool bRootDirty = Root->GetOutermost()->IsDirty();
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Real ItemSystem configured"), Registry->RegisterItemSystem(Root.Get(), Errors)))
+        return false;
+
+    TArray<TStrongObjectPtr<UGridLevelAsset>> Owned;
+    TArray<UGridLevelAsset*> Levels;
+    TArray<bool> Dirty;
+    for (int32 Index = 0; Index < FPlan::LevelCount; ++Index)
+    {
+        Owned.Emplace(LoadObject<UGridLevelAsset>(nullptr, FPlan::Path(Index)));
+        UGridLevelAsset* Level = Owned.Last().Get();
+        if (!TestNotNull(TEXT("Exact real level"), Level)) return false;
+        Levels.Add(Level);
+        Dirty.Add(Level->GetOutermost()->IsDirty());
+    }
+    TArray<FPlan::FLevel> Plan;
+    FString Error;
+    int32 Old = INDEX_NONE;
+    const bool bPlan = FPlan::TryBuild(Levels, Registry.Get(), Plan, Old, Error);
+    if (!TestTrue(*FString::Printf(TEXT("Exact real initial plan: %s"), *Error), bPlan) ||
+        !TestTrue(TEXT("All or zero source pointers"), Old == 18 || Old == 0) ||
+        !TestEqual(TEXT("Four level projections"), Plan.Num(), 4))
+        return false;
+    for (int32 Index = 0; Index < Levels.Num(); ++Index)
+    {
+        TArray<FGridWorldObjectInstance> Expected = Levels[Index]->WorldObjectInstances;
+        int32 Rows = 0;
+        for (FGridWorldObjectInstance& Object : Expected)
+            for (FGridReceptacleInitialItemConfig& Item : Object.InstanceConfig.ReceptacleInitialContent)
+            {
+                ++Rows;
+                Item.ItemDefinition = nullptr;
+            }
+        if (!TestEqual(TEXT("Original distribution preserved"), Rows, FPlan::OriginalRows(Index)) ||
+            !TestTrue(TEXT("Every reflected field and ordering preserved except old source"),
+                FPlan::SameObjects(Expected, Plan[Index].WorldObjects)) ||
+            !TestFalse(TEXT("Complete normalized level manifest not empty"),
+                FPlan::Manifest(*Levels[Index], Plan[Index]).IsEmpty()) ||
+            !TestEqual(TEXT("Original package remains read-only"), Levels[Index]->GetOutermost()->IsDirty(), Dirty[Index]))
+            return false;
+    }
+
+    TStrongObjectPtr<UGridLevelAsset> Copy(NewObject<UGridLevelAsset>(GetTransientPackage()));
+    Copy->Width = Levels[0]->Width;
+    Copy->Height = Levels[0]->Height;
+    Copy->WorldObjectInstances = Plan[0].WorldObjects;
+    FPlan::FLevel Repeated;
+    if (!TestTrue(TEXT("Pointerless plan is idempotent"),
+            FPlan::TryBuildLevel(*Copy.Get(), Registry.Get(), 17, Repeated, Error)) ||
+        !TestEqual(TEXT("No pointers reattached"), Repeated.Old, 0) ||
+        !TestTrue(TEXT("Projection remains identical"), FPlan::SameObjects(Repeated.WorldObjects, Plan[0].WorldObjects)))
+        return false;
+    auto* Owner = Copy->WorldObjectInstances.FindByPredicate([](const FGridWorldObjectInstance& Object)
+        { return !Object.InstanceConfig.ReceptacleInitialContent.IsEmpty(); });
+    if (!TestNotNull(TEXT("Real initial-content owner"), Owner)) return false;
+    Owner->InstanceConfig.ReceptacleInitialContent[0].CanonicalItemId = TEXT("X58_Unknown");
+    if (!TestFalse(TEXT("Unregistered identity refused"),
+            FPlan::TryBuildLevel(*Copy.Get(), Registry.Get(), 17, Repeated, Error)) ||
+        !TestTrue(TEXT("Rejected plan has no mutation proposal"), Repeated.WorldObjects.IsEmpty()))
+        return false;
+    Copy->WorldObjectInstances = Levels[0]->WorldObjectInstances;
+    if (Old == 18)
+    {
+        Owner = Copy->WorldObjectInstances.FindByPredicate([](const FGridWorldObjectInstance& Object)
+            { return !Object.InstanceConfig.ReceptacleInitialContent.IsEmpty(); });
+        Owner->InstanceConfig.ReceptacleInitialContent[0].ItemDefinition = nullptr;
+        if (!TestFalse(TEXT("Partial level conversion refused"),
+                FPlan::TryBuildLevel(*Copy.Get(), Registry.Get(), 17, Repeated, Error)))
+            return false;
+    }
+    AddInfo(FString::Printf(TEXT("[ARM-CLEAN06.4X58] 17+1 real rows; old=%d; projections read-only."), Old));
+    return TestEqual(TEXT("Real ItemSystem unmodified"), Root->GetOutermost()->IsDirty(), bRootDirty);
+}
+#endif

@@ -51,6 +51,7 @@ struct FGridEditorCanonicalReceptacleInitialAuthoring
             }
             Proposed.CanonicalItemId = Physical.ItemId;
             Proposed.ItemLevel = Physical.ItemLevel;
+            Proposed.ItemDefinition = nullptr;
         }
         // Unknown legacy definitions retain the old N0 authoring pathway.
         // The quantity is never changed when replacing the source.
@@ -58,43 +59,70 @@ struct FGridEditorCanonicalReceptacleInitialAuthoring
         return true;
     }
 
+    /** New direct authoring, not a persisted-level migration. Preserve a
+     * valid level when changing identity; otherwise explicitly initialize
+     * a new ARM at N1 or an unlevelled item at N0, like loose placements.
+     * Recommitting the same ID is a no-op, even before native conversion. */
+    static bool TrySelectCanonicalId(const UGridItemSubsystem* Registry,
+        FName NewId, FGridReceptacleInitialItemConfig& InOut)
+    {
+        if (!IsValid(Registry) || !Registry->IsConfigured() ||
+            NewId.IsNone() || !Registry->HasCanonicalItem(NewId) ||
+            InOut.Quantity < 1)
+            return false;
+
+        const UGridItemDefinitionAsset* Old = InOut.ItemDefinition.Get();
+        if (!InOut.CanonicalItemId.IsNone() && Old &&
+            Old->ItemDefinitionId != InOut.CanonicalItemId)
+            return false;
+
+        if (InOut.CanonicalItemId == NewId)
+            return FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+                Registry, NewId, InOut.ItemLevel);
+
+        int32 Level = InOut.ItemLevel;
+        if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry, NewId, Level))
+            Level = FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+                Registry, NewId, 0) ? 0 : 1;
+        if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry, NewId, Level))
+            return false;
+        InOut.CanonicalItemId = NewId;
+        InOut.ItemLevel = Level;
+        InOut.ItemDefinition = nullptr;
+        return true;
+    }
+
+    static bool IsLevelEditable(const UGridItemSubsystem* Registry,
+        const FGridReceptacleInitialItemConfig& Item)
+    {
+        if (!Item.CanonicalItemId.IsNone())
+        {
+            const UGridItemDefinitionAsset* Old = Item.ItemDefinition.Get();
+            return (!Old || Old->ItemDefinitionId == Item.CanonicalItemId) &&
+                FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+                    Registry, Item.CanonicalItemId, 1);
+        }
+        return FGridEditorCanonicalItemLevelPolicy::IsLevelEditable(
+            Registry, Item.ItemDefinition.Get());
+    }
+
     static bool TrySetLevel(const UGridItemSubsystem* Registry,
         int32 NewLevel, FGridReceptacleInitialItemConfig& InOut)
     {
         if (!IsValid(Registry) || !Registry->IsConfigured() ||
-            NewLevel < 0 || NewLevel > 20 ||
-            !IsValid(InOut.ItemDefinition.Get()))
-        {
+            NewLevel < 0 || NewLevel > 20)
             return false;
-        }
         if (!InOut.CanonicalItemId.IsNone())
         {
-            if (InOut.CanonicalItemId != InOut.ItemDefinition->ItemDefinitionId ||
-                !Registry->HasCanonicalItem(InOut.CanonicalItemId))
-            {
+            const UGridItemDefinitionAsset* Old = InOut.ItemDefinition.Get();
+            if ((Old && Old->ItemDefinitionId != InOut.CanonicalItemId) ||
+                !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+                    Registry, InOut.CanonicalItemId, NewLevel))
                 return false;
-            }
-            FGridResolvedItem Family;
-            if (!Registry->ResolveItem(InOut.CanonicalItemId, 1, Family) ||
-                (Family.bIsArmament && NewLevel == 0) ||
-                (!Family.bIsArmament && NewLevel != 0))
-            {
-                return false;
-            }
-            FGridResolvedItem Physical;
-            if (!Registry->ResolveItem(InOut.CanonicalItemId, NewLevel, Physical) ||
-                !Physical.IsValid() ||
-                Physical.ItemId != InOut.CanonicalItemId ||
-                Physical.ItemLevel != NewLevel)
-            {
-                return false;
-            }
         }
         else if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(
             Registry, InOut.ItemDefinition.Get(), NewLevel))
-        {
-            return false; // Legacy-only fixture retains authored default rules.
-        }
+            return false;
         InOut.ItemLevel = NewLevel;
         return true;
     }

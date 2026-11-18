@@ -1665,28 +1665,30 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 		InitialContentList->AddSlot().AutoHeight().Padding(0.f, 2.f)[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)[
-					BuildItemDefinitionAssetPicker(InitialItem.ItemDefinition,
-						[this, ObjectId, InitialIndex](UGridItemDefinitionAsset* NewAsset)
+					SNew(SEditableTextBox)
+						.Text(GetNameText(!InitialItem.CanonicalItemId.IsNone()
+							? InitialItem.CanonicalItemId : (InitialItem.ItemDefinition
+								? InitialItem.ItemDefinition->ItemDefinitionId : NAME_None)))
+						.ToolTipText(FText::FromString(TEXT("Enter a registered ItemId. Changing an identity keeps its valid physical level; otherwise it starts at N1 for weapons or N0 for unlevelled items.")))
+						.OnTextCommitted_Lambda([this, ObjectId, InitialIndex](const FText& NewText, ETextCommit::Type)
 						{
 							AGridLevelEditorActor* EditorActor = GetEditorActor();
-							const UGridItemSubsystem* Registry = EditorActor
-								? EditorActor->ResolveEditorItemRegistry() : nullptr;
-							if (!Registry || !Registry->IsConfigured())
+							const FGridWorldObjectInstance* Object = GetWorldObjectInstance(EditorActor, ObjectId);
+							if (!Object || !Object->InstanceConfig.ReceptacleInitialContent.IsValidIndex(InitialIndex)) return;
+							const FGridReceptacleInitialItemConfig& Current = Object->InstanceConfig.ReceptacleInitialContent[InitialIndex];
+							FGridReceptacleInitialItemConfig Proposed = Current;
+							if (!FGridEditorCanonicalReceptacleInitialAuthoring::TrySelectCanonicalId(
+								EditorActor->ResolveEditorItemRegistry(), GetNameFromEditorText(NewText), Proposed) ||
+								(Current.CanonicalItemId == Proposed.CanonicalItemId &&
+								 Current.ItemLevel == Proposed.ItemLevel && Current.ItemDefinition == Proposed.ItemDefinition))
 							{
-								UE_LOG(LogTemp, Warning, TEXT("Initial receptacle item edit refused: ItemSystem missing."));
+								RequestRefresh();
 								return;
 							}
-							EditWorldObjectConfig(ObjectId, [InitialIndex, NewAsset, Registry](FGridWorldObjectInstanceConfig& Config)
+							EditWorldObjectConfig(ObjectId, [InitialIndex, Proposed](FGridWorldObjectInstanceConfig& Config)
 							{
 								if (Config.ReceptacleInitialContent.IsValidIndex(InitialIndex))
-								{
-									FGridReceptacleInitialItemConfig& Current = Config.ReceptacleInitialContent[InitialIndex];
-									if (Current.ItemDefinition != NewAsset)
-									{
-										FGridEditorCanonicalReceptacleInitialAuthoring::TrySelectDefinition(
-											Registry, NewAsset, Current);
-									}
-								}
+									Config.ReceptacleInitialContent[InitialIndex] = Proposed;
 							});
 						})]
 				+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 4.f, 0.f)[
@@ -1714,11 +1716,9 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 							const UGridLevelAsset* Level = Editor ? Editor->LevelAsset.Get() : nullptr;
 							const FGridWorldObjectInstance* Object = Level
 								? Level->FindWorldObjectInstanceById(ObjectId) : nullptr;
-							const UGridItemDefinitionAsset* Item = Object &&
-								Object->InstanceConfig.ReceptacleInitialContent.IsValidIndex(InitialIndex)
-								? Object->InstanceConfig.ReceptacleInitialContent[InitialIndex].ItemDefinition.Get() : nullptr;
-							return FGridEditorCanonicalItemLevelPolicy::IsLevelEditable(
-								Editor ? Editor->ResolveEditorItemRegistry() : nullptr, Item);
+							return Object && Object->InstanceConfig.ReceptacleInitialContent.IsValidIndex(InitialIndex) &&
+								FGridEditorCanonicalReceptacleInitialAuthoring::IsLevelEditable(
+									Editor->ResolveEditorItemRegistry(), Object->InstanceConfig.ReceptacleInitialContent[InitialIndex]);
 						})
 						.Value(InitialItem.ItemLevel)
 						.MinValue(0).MaxValue(20)
@@ -1729,13 +1729,19 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 						{
 							AGridLevelEditorActor* Editor = GetEditorActor();
 							const UGridItemSubsystem* Registry = Editor ? Editor->ResolveEditorItemRegistry() : nullptr;
-							EditWorldObjectConfig(ObjectId, [InitialIndex, NewValue, Registry](FGridWorldObjectInstanceConfig& Config)
+							const FGridWorldObjectInstance* Object = GetWorldObjectInstance(Editor, ObjectId);
+							if (!Object || !Object->InstanceConfig.ReceptacleInitialContent.IsValidIndex(InitialIndex)) return;
+							FGridReceptacleInitialItemConfig Proposed = Object->InstanceConfig.ReceptacleInitialContent[InitialIndex];
+							if (Proposed.ItemLevel == NewValue ||
+								!FGridEditorCanonicalReceptacleInitialAuthoring::TrySetLevel(Registry, NewValue, Proposed))
+							{
+								RequestRefresh();
+								return;
+							}
+							EditWorldObjectConfig(ObjectId, [InitialIndex, Proposed](FGridWorldObjectInstanceConfig& Config)
 							{
 								if (Config.ReceptacleInitialContent.IsValidIndex(InitialIndex))
-								{
-									FGridEditorCanonicalReceptacleInitialAuthoring::TrySetLevel(
-										Registry, NewValue, Config.ReceptacleInitialContent[InitialIndex]);
-								}
+									Config.ReceptacleInitialContent[InitialIndex] = Proposed;
 							});
 							})]
 				+ SHorizontalBox::Slot().AutoWidth()[
