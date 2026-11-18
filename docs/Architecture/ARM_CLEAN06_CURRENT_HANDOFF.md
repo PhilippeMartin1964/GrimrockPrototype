@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.57 — runner protégé pour la palette native unique
+
+**Parent :** `bd02f2b0dbb5978e216c5edbe485fc31c4ad0104`. Rapport : [ARM_CLEAN06_4X57_NATIVE_PALETTE_PROTECTED_TRANSACTION.md](ARM_CLEAN06_4X57_NATIVE_PALETTE_PROTECTED_TRANSACTION.md).
+
+Commandlet X.57 utilise le plan canonique X.55, requiert sauvegarde privée byte-equal et SHA opérateur, ne sauvegarde que la palette et compare le manifeste avant/après rechargement. Runner vérifie LFS, SHA256, suite complète, git index, rollback borné et publication binaire mono-asset. Aucun Apply réalisé par le seul commit de code : 59 pointeurs restent, 26 seulement après transaction locale validée. Deux statuts Windows du SHA code requis avant exécution opérateur et deux statuts du SHA binaire avant recette PIE. 06.4 partielle ; 06.5 bloquée.
+
 ## ARM-CLEAN06.4X.56 — audits et protection d'authoring de la palette native
 
 **Parent :** `859fa3cc79f04d906c6c6b235a64d28bf55e49ac` (X.55 SilentTask + LocalAuto succès). Rapport : [ARM_CLEAN06_4X56_PALETTE_DUAL_STATE_AUDITS.md](ARM_CLEAN06_4X56_PALETTE_DUAL_STATE_AUDITS.md).
