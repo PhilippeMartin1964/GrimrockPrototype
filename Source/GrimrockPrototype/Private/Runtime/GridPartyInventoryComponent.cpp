@@ -557,7 +557,8 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 		StartingKitClass = DuplicateObject<URPGClassAsset>(CombatActionSourceClass, this);
 		FString PresetError;
 		if (!StartingKitClass ||
-			!FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*StartingKitClass, PresetError))
+			!FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*StartingKitClass, PresetError,
+				ResolvePartyWeightRegistry(this)))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("StartingEquipment PresetUnavailable Reason=%s"), *PresetError);
 			OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Unavailable"));

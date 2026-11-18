@@ -453,7 +453,10 @@ TArray<FRPGStartingEquipmentKit> URPGCharacterCreationWizardWidget::GetAvailable
         // class copy, exactly as in CreateInitialCharacter().
         URPGClassAsset* PreviewClass = DuplicateObject<URPGClassAsset>(ClassDefinition, GetTransientPackage());
         FString Error;
-        if (!PreviewClass || !FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*PreviewClass, Error))
+        const UWorld* World = GetWorld();
+        UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+        const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+        if (!PreviewClass || !FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*PreviewClass, Error, Registry))
         {
             UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("Starting kit preview unavailable: %s"), *Error);
             return {};
@@ -565,13 +568,13 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescript
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
             const UGridItemDefinitionAsset* Item = Entry.ItemDefinition.Get();
-            if (!Item)
+            if (!Item && Entry.CanonicalItemId.IsNone())
             {
                 continue;
             }
             const FGridStartingKitDisplayReadView ItemView =
                 FGridStartingKitDisplayReadModel::Resolve(
-                    CanonicalRegistry, Item, Entry.ItemLevel);
+                    CanonicalRegistry, Item, Entry.ItemLevel, Entry.CanonicalItemId);
             // A registered invalid ARM must never borrow the old definition's
             // display name or claim an inherited N1 level in the frontend.
             if (ItemView.bCanonicalIdentity && !ItemView.bResolved)

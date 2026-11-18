@@ -2,6 +2,7 @@
 
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "UI/UILocalizationText.h"
 #include "UObject/UObjectGlobals.h"
 
@@ -151,22 +152,37 @@ namespace RPGStartingPresets
             {TEXT("DA_Item_Flask_Oil"), EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} }
     };
 
-    bool AddItem(FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec, FString& OutError);
+    bool AddItem(FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec, FString& OutError,
+        const UGridItemSubsystem* Registry = nullptr);
 
-    bool AddApprovedItem(FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec, FString& OutError)
+    FName CanonicalAlchemyStarterId(const TCHAR* AssetName)
+    {
+        if (!AssetName) return NAME_None;
+        if (FCString::Strcmp(AssetName, TEXT("DA_Item_Bomb_Fire")) == 0) return TEXT("Item_Bomb_Fire");
+        if (FCString::Strcmp(AssetName, TEXT("DA_Item_Flask_Oil")) == 0) return TEXT("Item_Flask_Oil");
+        return NAME_None;
+    }
+
+    bool AddApprovedItem(FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec, FString& OutError,
+        const UGridItemSubsystem* Registry)
     {
         if (!Spec.AssetName)
         {
             return true;
         }
-        if (Spec.Quantity < 1 || !AddItem(Kit, Spec, OutError))
+        if (Spec.Quantity < 1 || !AddItem(Kit, Spec, OutError, Registry))
         {
             return false;
         }
         FRPGStartingEquipmentEntry& Entry = Kit.Items.Last();
-        UGridItemDefinitionAsset* Definition = Entry.ItemDefinition.Get();
-        if ((Spec.Quantity > 1 && (!Definition->bStackable || Spec.Quantity > Definition->MaxStackSize)) ||
-            (Spec.Quantity > 1 && Spec.Slot != EGridEquipmentSlot::None))
+        const UGridItemDefinitionAsset* Definition = Entry.ItemDefinition.Get();
+        FGridResolvedItem Canonical;
+        const bool bValidQuantity = !Entry.CanonicalItemId.IsNone()
+            ? Registry && Registry->ResolveItem(Entry.CanonicalItemId, Entry.ItemLevel, Canonical) &&
+                Spec.Quantity <= Canonical.MaxStack
+            : IsValid(Definition) && (Spec.Quantity == 1 ||
+                (Definition->bStackable && Spec.Quantity <= Definition->MaxStackSize));
+        if (!bValidQuantity || (Spec.Quantity > 1 && Spec.Slot != EGridEquipmentSlot::None))
         {
             OutError = FString::Printf(TEXT("Invalid approved starter quantity: %s"), Spec.AssetName);
             Kit.Items.Pop();
@@ -200,8 +216,32 @@ namespace RPGStartingPresets
 
     bool AddItem(
         FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec,
-        FString& OutError)
+        FString& OutError, const UGridItemSubsystem* Registry)
     {
+        const FName CanonicalId = CanonicalAlchemyStarterId(Spec.AssetName);
+        if (!CanonicalId.IsNone() && Registry && Registry->HasCanonicalItem(CanonicalId))
+        {
+            FGridResolvedItem Resolved;
+            FGridCombatActionDefinition Action;
+            if (Spec.Slot != EGridEquipmentSlot::None || Spec.Quantity != 1 ||
+                !Registry->ResolveItem(CanonicalId, 0, Resolved) || !Resolved.IsValid() ||
+                Resolved.bIsArmament || Resolved.MaxStack < 1 ||
+                Resolved.AvailableActions.Num() != 1 ||
+                !Registry->ResolveDetailedNonArmAction(CanonicalId, 0, Resolved.AvailableActions[0].ActionId, Action) ||
+                Action.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem)
+            {
+                OutError = FString::Printf(TEXT("Invalid registered alchemy starter: %s"), *CanonicalId.ToString());
+                return false; // Registered-but-broken never falls back to old asset.
+            }
+            FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
+            Entry.CanonicalItemId = CanonicalId;
+            Entry.ItemLevel = 0;
+            Entry.Quantity = 1;
+            Entry.TargetSlot = EGridEquipmentSlot::None;
+            return true;
+        }
+        // Temporary only: unregistered identities and historical no-world
+        // characterization fixtures still require their original source.
         UGridItemDefinitionAsset* Definition = ResolveItem(Spec.AssetName);
         if (!IsValid(Definition) || Definition->ItemDefinitionId.IsNone() ||
             (Spec.Slot != EGridEquipmentSlot::None && !Definition->CanEquipToSlot(Spec.Slot)))
@@ -360,7 +400,7 @@ bool FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(
 }
 
 bool FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
-    URPGClassAsset& TransientClass, FString& OutError)
+    URPGClassAsset& TransientClass, FString& OutError, const UGridItemSubsystem* CanonicalRegistry)
 {
     OutError.Reset();
     if (!RPGStartingPresets::IsSupportedClass(TransientClass.ClassId))
@@ -389,10 +429,10 @@ bool FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
         const FString LabelKey = FString::Printf(TEXT("CharacterCreation.StartingKit.Name.Kit.%s.%s"), Spec.ClassId, Spec.BranchId);
         Kit.DisplayName = FUILocalizationText::Get(*LabelKey);
         if (Kit.DisplayName.IsEmpty() ||
-            !RPGStartingPresets::AddApprovedItem(Kit, Spec.First, OutError) ||
-            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Second, OutError) ||
-            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Third, OutError) ||
-            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Fourth, OutError))
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.First, OutError, CanonicalRegistry) ||
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Second, OutError, CanonicalRegistry) ||
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Third, OutError, CanonicalRegistry) ||
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Fourth, OutError, CanonicalRegistry))
         {
             if (OutError.IsEmpty())
             {

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.65 — kits alchimie et garde d'authoring
+
+**Parent :** `433c08fde6fe47fcdf5550c211bc521b7bc4281a`. [Rapport X.65](ARM_CLEAN06_4X65_ALCHEMY_STARTERS_AND_AUTHORING_GUARD.md). Les deux entrées production CreateInitialCharacter/preview wizard passent le registre existant : FireBomb et Oil enregistrés sont des entrées explicites N0 quantité 1 en sac sans ancien pointer, aucun fallback pour ID connu invalide ; FireBomb non inscrit reste source transitoire avant cutover. Lecteur UI gère les entrées explicites. Garde legacy FRPGAlchemistAuthoring : ne touche déjà plus Oil, puis aucun des onze une fois inscrits ; refus partiel. Tests vrais kits et authoring, aucun nouvel asset/texte/sauf code. Prochain travail : transaction 12 packages, gates 38/48, conversion de copies et installation synchronisée, gameplay. Registre natif 38, 107/107, aucune sauvegarde live touchée. 06.4 partielle.
+
 ## ARM-CLEAN06.4X.64 — conversion binaire v27 sur copies, sans installation
 
 **Parent :** `89f3beb4891633cd042ad153fcd96997c79cd38b` (X.63, SilentTask + LocalAuto SUCCESS). Première validation X.64 : C2440 fixture six attributs (issue #193), correction du fixture ; deuxième SHA compilé, fatal pendant preuve binaire (issue #194), invariant de variables corrigé + EncodeChecked avant sérialisation, nouvelle validation exacte-SHA. [Rapport X.64](ARM_CLEAN06_4X64_SAVE_COPY_CONVERSION.md).

@@ -6,6 +6,7 @@
 class URPGClassAsset;
 class UGridItemDefinitionAsset;
 class UGridStatusEffectDefinitionAsset;
+class UGridItemSubsystem;
 
 /** RPG03.9.6 editor-only production authoring for the Alchemist class and consumables. */
 struct GRIMROCKPROTOTYPEEDITOR_API FRPGAlchemistAuthoring
@@ -36,6 +37,12 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGAlchemistAuthoring
 	static bool BuildMajorTransmutationRecipeAction(
 		EGridCombatSurfaceType OutputSurfaceType, FGridCombatActionDefinition& OutAction);
 
-	/** Materializes production class, QuickItems and owned statuses through Unreal Editor. */
+    /** Read-only guard: only absent alchemy IDs may be authored historically.
+     * Refuses a partial registry cutover before any package is modified.
+     */
+    static bool PlanUnregisteredItems(const UGridItemSubsystem& Registry,
+        TArray<FName>& OutItemIds, FString& OutError);
+
+	/** Materializes production class, unregistered QuickItems and owned statuses through Unreal Editor. */
 	static bool AuthorProductionAssets(FString& OutError);
 };

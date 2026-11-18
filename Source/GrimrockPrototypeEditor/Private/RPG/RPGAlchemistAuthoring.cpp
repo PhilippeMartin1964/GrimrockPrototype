@@ -8,6 +8,9 @@
 #include "RPG/RPGClassProgressionAuthoring.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "UObject/StrongObjectPtr.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
 
@@ -857,6 +860,54 @@ bool FRPGAlchemistAuthoring::BuildMajorTransmutationRecipeAction(
 }
 
 
+bool FRPGAlchemistAuthoring::PlanUnregisteredItems(const UGridItemSubsystem& Registry,
+    TArray<FName>& OutItemIds, FString& OutError)
+{
+    OutItemIds.Reset();
+    OutError.Reset();
+    if (!Registry.IsConfigured() || !Registry.HasCanonicalItem(TEXT("Item_Flask_Oil")))
+    {
+        OutError = TEXT("Canonical Oil/root must be available before legacy alchemy authoring.");
+        return false;
+    }
+    TArray<FName> All, B2, Pending;
+    GetB1ItemIds(All);
+    GetB2ItemIds(B2);
+    All.Append(B2);
+    TSet<FName> Seen;
+    for (FName Id : All)
+    {
+        if (Id.IsNone() || Seen.Contains(Id))
+        {
+            OutError = TEXT("Invalid or duplicate alchemy source identity.");
+            return false;
+        }
+        Seen.Add(Id);
+        if (!Registry.HasCanonicalItem(Id))
+        {
+            Pending.Add(Id);
+            continue;
+        }
+        FGridResolvedItem Item;
+        FGridCombatActionDefinition Action;
+        if (!Registry.ResolveItem(Id, 0, Item) || !Item.IsValid() ||
+            Item.bIsArmament || Item.AvailableActions.Num() != 1 ||
+            !Registry.ResolveDetailedNonArmAction(Id, 0, Item.AvailableActions[0].ActionId, Action) ||
+            Action.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem)
+        {
+            OutError = TEXT("Invalid canonical alchemy owner: ") + Id.ToString();
+            return false;
+        }
+    }
+    if (All.Num() != 11 || (Pending.Num() != 10 && Pending.Num() != 0))
+    {
+        OutError = TEXT("Unexpected partial alchemy migration; authoring refused before writes.");
+        return false;
+    }
+    OutItemIds = MoveTemp(Pending);
+    return true;
+}
+
 bool FRPGAlchemistAuthoring::AuthorProductionAssets(FString& OutError)
 {
 	using namespace RPGAlchemistAuthoring;
@@ -878,11 +929,20 @@ bool FRPGAlchemistAuthoring::AuthorProductionAssets(FString& OutError)
 		return false;
 	}
 
-	TArray<FName> ItemIds;
-	TArray<FName> B2ItemIds;
-	GetB1ItemIds(ItemIds);
-	GetB2ItemIds(B2ItemIds);
-	ItemIds.Append(B2ItemIds);
+    // The configured canonical system is the authority. Do not recreate or
+    // mutate old item packages for registered IDs (Oil already now, all
+    // eleven after cutover). Class and status authoring are independent.
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    UGridItemSystemAsset* Root = Registry->LoadConfiguredItemSystemForPreview();
+    TArray<FString> RegistryErrors;
+    TArray<FName> ItemIds;
+    if (!Registry->RegisterItemSystem(Root, RegistryErrors))
+    {
+        OutError = TEXT("Canonical authoring guard: ") + FString::Join(RegistryErrors, TEXT("; "));
+        return false;
+    }
+    if (!PlanUnregisteredItems(*Registry.Get(), ItemIds, OutError)) return false;
 
 	TArray<UGridItemDefinitionAsset*> Items;
 	for (const FName ItemId : ItemIds)

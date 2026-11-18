@@ -103,6 +103,25 @@ bool FGridClean063AFStartingKitDisplay::RunTest(const FString&)
     TestEqual(TEXT("Preview never edits source's default"), Old->DefaultWeaponItemLevel, 4);
     TestEqual(TEXT("Preview never edits source's display name"),
         Old->DisplayName.ToString(), FString(TEXT("INCORRECT OLD STARTING NAME")));
+    // X.65: the production wizard can display an explicit native N0
+    // ingredient without a legacy pointer, using only the real registry.
+    FGridResolvedItem Oil;
+    const FName OilId(TEXT("Item_Flask_Oil"));
+    if (!TestTrue(TEXT("Canonical Oil resolves"), Registry->ResolveItem(OilId, 0, Oil))) return false;
+    const auto Explicit = FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), nullptr, 0, OilId);
+    TestTrue(TEXT("Pointerless item preview resolved"), Explicit.bCanonicalIdentity && Explicit.bResolved);
+    TestTrue(TEXT("DataAsset FText retained"), Explicit.DisplayName.EqualTo(Oil.DisplayName));
+    TestEqual(TEXT("Physical N0 retained"), Explicit.FixedItemLevel, 0);
+    TestFalse(TEXT("Explicit unknown ID cannot fall back to legacy"),
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0, TEXT("Unknown_X65")).bResolved);
+    TestFalse(TEXT("Contradictory old pointer forbidden"),
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0, OilId).bResolved);
+    TestFalse(TEXT("Explicit invalid N1 consumable forbidden"),
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), nullptr, 1, OilId).bResolved);
+    TestFalse(TEXT("Missing registry not permitted for explicit ID"),
+        FGridStartingKitDisplayReadModel::Resolve(nullptr, nullptr, 0, OilId).bResolved);
+    TestFalse(TEXT("Explicit ARM N0 cannot inherit a level"),
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), nullptr, 0, TEXT("Weapon_RoundShield_01")).bResolved);
     return true;
 }
 

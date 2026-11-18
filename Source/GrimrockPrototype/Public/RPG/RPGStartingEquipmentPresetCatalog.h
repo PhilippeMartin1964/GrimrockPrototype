@@ -4,6 +4,7 @@
 
 class URPGClassAsset;
 class UGridItemDefinitionAsset;
+class UGridItemSubsystem;
 
 /**
  * ARMEMENT01.9.2: deterministic, source-controlled starting-kit recipes for
@@ -27,5 +28,6 @@ public:
      * Called by the wizard preview and CreateInitialCharacter on transient copies.
      * Missing future support items are never fabricated.
      */
-    static bool TryPopulateApprovedTransientClass(URPGClassAsset& TransientClass, FString& OutError);
+    static bool TryPopulateApprovedTransientClass(URPGClassAsset& TransientClass, FString& OutError,
+        const UGridItemSubsystem* CanonicalRegistry = nullptr);
 };
