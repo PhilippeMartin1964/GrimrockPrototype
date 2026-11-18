@@ -1,6 +1,9 @@
 #include "RPG/RPGAuthoringIdentityResolver.h"
 
 #include "Engine/AssetManager.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "AssetRegistry/ARFilter.h"
+#include "Modules/ModuleManager.h"
 #include "Engine/Texture2D.h"
 #include "RPG/RPGCharacterPortraitSetAsset.h"
 #include "RPG/RPGClassAsset.h"
@@ -35,23 +38,63 @@ namespace RPGAuthoringIdentityResolverPrivate
 
 		UAssetManager& AssetManager = UAssetManager::Get();
 		T* Definition = AssetManager.GetPrimaryAssetObject<T>(PrimaryAssetId);
-		if (!IsValid(Definition))
+		if (IsValid(Definition) && Definition->GetPrimaryAssetId() == PrimaryAssetId)
 		{
-			FSoftObjectPath AssetPath = AssetManager.GetPrimaryAssetPath(PrimaryAssetId);
-			if (!AssetPath.IsValid())
+			return Definition;
+		}
+		const FSoftObjectPath AssetPath = AssetManager.GetPrimaryAssetPath(PrimaryAssetId);
+		if (AssetPath.IsValid())
+		{
+			Definition = Cast<T>(AssetPath.TryLoad());
+			if (IsValid(Definition) && Definition->GetPrimaryAssetId() == PrimaryAssetId)
 			{
-				TArray<FString> SearchPaths;
-				SearchPaths.Add(TEXT("/Game"));
-				AssetManager.ScanPathsForPrimaryAssets(PrimaryAssetId.PrimaryAssetType, SearchPaths, AssetClass, false, false, true);
-				AssetPath = AssetManager.GetPrimaryAssetPath(PrimaryAssetId);
-			}
-			if (AssetPath.IsValid())
-			{
-				Definition = Cast<T>(AssetPath.TryLoad());
+				return Definition;
 			}
 		}
 
-		return IsValid(Definition) ? Definition : nullptr;
+		// Cold Editor/commandlet sessions can discover an older native
+		// PrimaryDataAsset class tag (e.g. RPGRaceAsset) before the real
+		// GetPrimaryAssetId override (RPGRace:Dwarf) is available. A broad
+		// ScanPathsForPrimaryAssets then rejects the asset as a type conflict.
+		// Discover by concrete class, verify the loaded semantic identity,
+		// never infer it from a filename or accept a different identity.
+		IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(
+			TEXT("AssetRegistry")).Get();
+#if WITH_EDITOR
+		if (Registry.IsLoadingAssets())
+		{
+			Registry.WaitForCompletion();
+		}
+		TArray<FString> SearchPaths;
+		SearchPaths.Add(TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG"));
+		Registry.ScanPathsSynchronous(SearchPaths);
+#endif
+		FARFilter Filter;
+		Filter.PackagePaths.Add(FName(TEXT("/Game")));
+		Filter.ClassPaths.Add(AssetClass->GetClassPathName());
+		Filter.bRecursivePaths = true;
+		Filter.bRecursiveClasses = true;
+		Filter.bIncludeOnlyOnDiskAssets = true;
+		TArray<FAssetData> Assets;
+		Registry.GetAssets(Filter, Assets);
+
+		T* Match = nullptr;
+		for (const FAssetData& Asset : Assets)
+		{
+			T* Candidate = Cast<T>(Asset.GetAsset());
+			if (!IsValid(Candidate) || Candidate->GetPrimaryAssetId() != PrimaryAssetId)
+			{
+				continue;
+			}
+			if (Match && Match != Candidate)
+			{
+				UE_LOG(LogTemp, Error, TEXT("[RPGIdentity] Ambiguous authored identity %s: %s and %s"),
+					*PrimaryAssetId.ToString(), *Match->GetPathName(), *Candidate->GetPathName());
+				return nullptr;
+			}
+			Match = Candidate;
+		}
+		return Match;
 	}
 }
 

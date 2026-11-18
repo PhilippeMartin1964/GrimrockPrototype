@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.66C — résolution RPG à cache froid
+
+Parent : `5d13c82a3e3a6f93d1f8fcaf79b9f70d9f9cad99` validé. Exécution opérateur X.66B stoppée avant Apply : conflit RPGRace/RPGRaceAsset (Dwarf), RPGPortraitSet/RPGCharacterPortraitSetAsset, puis rejet budget ActiveCharacter[0] v27. [Rapport X.66C](ARM_CLEAN06_4X66C_COLD_RPG_SAVE_RESOLUTION.md). Corriger la résolution sémantique par classe AssetRegistry lorsque AssetManager ne trouve pas le vrai ID ; test natif cache froid et diagnostic de budget détaillé, aucun assouplissement du validateur ni écriture joueur. Après validation du SHA code, reprendre la même transaction native avec le nouveau SHA. 38 persistant, migration non appliquée.
+
 ## X.66 — Native alchemy cutover prepared (not applied)
 
 Code prepares the exact 12-package cutover (38 -> 48 definitions, 4 -> 14 detailed actions), guarded save copy installation and verified historical regression views. Parent X.65 `d944814a072f94b7483b23a63ea4fc204d4257c5` passed both Windows statuses. See [X.66 native procedure](ARM_CLEAN06_4X66_NATIVE_ALCHEMY_CUTOVER.md). Native apply requires local Unreal/SaveDirectory and exact code SHA validation. No old assets removed; no local saves accessed by code publication. Remain at 38 persisted definitions until X.66B.

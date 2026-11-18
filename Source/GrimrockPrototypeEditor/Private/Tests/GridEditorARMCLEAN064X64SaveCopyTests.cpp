@@ -3,6 +3,8 @@
 #include "../ARMEMENT/GridEditorAlchemySaveCopy.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGCharacterPortraitSetAsset.h"
+#include "RPG/RPGClassVisualAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
@@ -190,4 +192,134 @@ bool FGridEditorARMCLEAN064X64SaveCopy::RunTest(const FString&)
     AddInfo(TEXT("[ARM-CLEAN06.4X64] UE v27 archive copy, exact action remapping and independent reload; original bytes preserved."));
     return !HasAnyErrors();
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X66ColdNativeSave,
+    "Grimrock.RPG.ARM.CLEAN06_4X66.ColdNativeRPGSaveCopy",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorARMCLEAN064X66ColdNativeSave::RunTest(const FString&)
+{
+    FIdentityGuard Guard;
+    using FResolver = FRPGAuthoringIdentityResolver;
+    const FString Root = TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/");
+    const TCHAR* Races[] = { TEXT("Dwarf"), TEXT("Elf"), TEXT("Gnome"), TEXT("HalfOrc"), TEXT("Halfling"), TEXT("Human") };
+    const TCHAR* Classes[] = { TEXT("Alchemist"), TEXT("Mage"), TEXT("Priest"), TEXT("Ranger"), TEXT("Rogue"), TEXT("Warrior") };
+    auto ObjectPath = [&](const FString& Directory, const FString& Name)
+    { return Root + Directory + Name + TEXT(".") + Name; };
+
+    // Use actual native assets as the oracle, not transient fixtures or
+    // file names as durable semantic identities. Reset the runtime cache
+    // separately before each lookup so a remembered character creation
+    // definition cannot conceal the commandlet's cold-load defect.
+    for (const TCHAR* Name : Races)
+    {
+        FResolver::ResetRuntimeCache();
+        const auto* ResolvedRace = FResolver::ResolveRaceById(FName(Name));
+        const FString RaceName = FString(TEXT("DA_Race_")) + Name;
+        const auto* Race = LoadObject<URPGRaceAsset>(nullptr, *ObjectPath(TEXT(""), RaceName));
+        if (!TestNotNull(TEXT("Native race asset"), Race)) return false;
+        TestTrue(*FString::Printf(TEXT("Cold race %s resolves to native asset"), Name),
+            ResolvedRace == Race && Race->RaceId == FName(Name));
+
+        FResolver::ResetRuntimeCache();
+        const auto* ResolvedPortrait = FResolver::ResolvePortraitSetByRaceId(FName(Name));
+        const FString PortraitName = FString(TEXT("DA_PortraitSet_")) + Name;
+        const auto* Portrait = LoadObject<URPGCharacterPortraitSetAsset>(nullptr,
+            *ObjectPath(TEXT("Visuals/PortraitSets/"), PortraitName));
+        if (!TestNotNull(TEXT("Native portrait set"), Portrait)) return false;
+        TestTrue(*FString::Printf(TEXT("Cold portrait set %s resolves to native asset"), Name),
+            ResolvedPortrait == Portrait && Portrait->RaceId == FName(Name));
+    }
+    for (const TCHAR* Name : Classes)
+    {
+        const auto* Class = LoadObject<URPGClassAsset>(nullptr,
+            *ObjectPath(TEXT(""), FString(TEXT("DA_Class_")) + Name));
+        if (!TestNotNull(TEXT("Native RPG class"), Class)) return false;
+        FResolver::ResetRuntimeCache();
+        TestTrue(*FString::Printf(TEXT("Cold class %s resolves to native asset"), Name),
+            FResolver::ResolveClassById(Class->ClassId) == Class);
+        const auto* Visual = LoadObject<URPGClassVisualAsset>(nullptr,
+            *ObjectPath(TEXT("Visuals/ClassVisuals/"), FString(TEXT("DA_ClassVisual_")) + Name));
+        if (!TestNotNull(TEXT("Native class visual"), Visual)) return false;
+        FResolver::ResetRuntimeCache();
+        TestTrue(*FString::Printf(TEXT("Cold class visual %s resolves to native asset"), Name),
+            FResolver::ResolveClassVisualByClassId(Visual->ClassId) == Visual);
+    }
+    FResolver::ResetRuntimeCache();
+    TestNull(TEXT("Unknown race is not guessed"), FResolver::ResolveRaceById(TEXT("X66_NoSuchRace")));
+
+    auto* Race = LoadObject<URPGRaceAsset>(nullptr, *ObjectPath(TEXT(""), TEXT("DA_Race_Dwarf")));
+    auto* Class = LoadObject<URPGClassAsset>(nullptr, *ObjectPath(TEXT(""), TEXT("DA_Class_Warrior")));
+    auto* Portrait = LoadObject<URPGCharacterPortraitSetAsset>(nullptr,
+        *ObjectPath(TEXT("Visuals/PortraitSets/"), TEXT("DA_PortraitSet_Dwarf")));
+    if (!Race || !Class || !Portrait) return false;
+    FResolver::ResetRuntimeCache();
+    TStrongObjectPtr<UGridPartyInventoryComponent> Inventory(NewObject<UGridPartyInventoryComponent>());
+    Inventory->InitializeDefaultPartyIfNeeded();
+    FRPGCharacterCreationRequest Request;
+    Request.DisplayName = FText::FromString(TEXT("X66 Native Hero"));
+    Request.RaceDefinition = Race;
+    Request.ClassDefinition = Class;
+    FRPGCharacterPortraitVariant Variant;
+    if (!TestTrue(TEXT("Actual Dwarf portrait"), Portrait->GetFirstValidPortrait(ERPGCharacterPortraitGender::Male, Variant)))
+        return false;
+    Request.PortraitGender = ERPGCharacterPortraitGender::Male;
+    Request.PortraitVariantId = Variant.VariantId;
+    Request.Portrait = Variant.Portrait;
+    FText CreationError;
+    const bool bCreated = Inventory->CreateInitialCharacter(Request, CreationError);
+    if (!TestTrue(*FString::Printf(TEXT("Create native character: %s"), *CreationError.ToString()), bCreated))
+        return false;
+    TStrongObjectPtr<UGrimrockPartySaveGame> Save(NewObject<UGrimrockPartySaveGame>());
+    Save->PartyInventoryState = Inventory->PartyInventoryState;
+    if (!Save->PartyInventoryState.ActiveCharacters.IsValidIndex(0)) return false;
+    auto& Character = Save->PartyInventoryState.ActiveCharacters[0];
+    if (!Character.CombatHotbarSlots.IsValidIndex(2)) return false;
+    auto& Slot = Character.InventorySlots.AddDefaulted_GetRef();
+    Slot.bOccupied = true;
+    Slot.Item.ItemDefinitionId = Identity::Item(0);
+    Slot.Item.ItemLevel = 0;
+    Slot.Item.Quantity = 1;
+    Slot.Item.RuntimeObjectId = FGuid::NewGuid();
+    Slot.Item.OwnerGuid = Character.CharacterId;
+    Slot.Item.OwnerCharacterIndex = 0;
+    Slot.Item.OwnerType = EGridItemOwnerType::CharacterInventory;
+    auto& Binding = Character.CombatHotbarSlots[2];
+    Binding.Reset(2);
+    Binding.ActionId = Identity::SharedLegacyAction();
+    Binding.SourceDefinitionId = Slot.Item.ItemDefinitionId;
+    Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+    Binding.PreferredSourceRuntimeId = Slot.Item.RuntimeObjectId;
+    Save->CurrentDungeonLevelId = TEXT("X66_ColdNative");
+    FString Error;
+    TArray<uint8> Bytes, Converted;
+    const bool bEncoded = Copy::EncodeChecked(*Save.Get(), Bytes, Error);
+    if (!TestTrue(*FString::Printf(TEXT("Encode native v27: %s"), *Error), bEncoded)) return false;
+    const auto Original = Bytes;
+    FResolver::ResetRuntimeCache();
+    int32 Count = INDEX_NONE;
+    const bool bConverted = Copy::Convert(Bytes, Converted, Count, Error);
+    if (!TestTrue(*FString::Printf(TEXT("Cold native conversion: %s"), *Error), bConverted)) return false;
+    TestEqual(TEXT("Exactly one elixir binding rewritten"), Count, 1);
+    TestTrue(TEXT("Original archive untouched"), Bytes == Original);
+    FResolver::ResetRuntimeCache();
+    TStrongObjectPtr<UGrimrockPartySaveGame> Loaded(Copy::LoadExact(Converted, Error));
+    if (!TestNotNull(TEXT("Cold converted save accepted"), Loaded.Get()) ||
+        !Loaded->PartyInventoryState.ActiveCharacters.IsValidIndex(0)) return false;
+    const auto& Restored = Loaded->PartyInventoryState.ActiveCharacters[0];
+    TestTrue(TEXT("Durable attributes unchanged"), FRPGAttributes::StaticStruct()->CompareScriptStruct(
+        &Character.Attributes, &Restored.Attributes, 0));
+    TestEqual(TEXT("Same character identity"), Restored.CharacterId, Character.CharacterId);
+    TestTrue(TEXT("Native class and race resolve"), FResolver::ResolveClassById(Restored.ClassId) == Class &&
+        FResolver::ResolveRaceById(Restored.RaceId) == Race);
+    TestTrue(TEXT("Portrait preserved"), Restored.Portrait.ToSoftObjectPath() == Variant.Portrait.ToSoftObjectPath());
+    FRPGAttributePointBalance Balance;
+    TestTrue(TEXT("Native v27 budget retains strict rules"), FRPGAttributePointService::TryGetBalance(Restored, Balance));
+    auto Invalid = Restored;
+    Invalid.Attributes.Strength = 99;
+    TestFalse(TEXT("Genuinely invalid attribute still rejected"), FRPGAttributePointService::TryGetBalance(Invalid, Balance));
+    TestTrue(TEXT("Native assets untouched"), !Class->GetOutermost()->IsDirty() && !Race->GetOutermost()->IsDirty());
+    return !HasAnyErrors();
+}
+
 #endif

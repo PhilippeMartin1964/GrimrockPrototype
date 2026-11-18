@@ -3,6 +3,11 @@
 #include "GridEditorAlchemyActionIdentity.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "Save/GridCombatSavePolicy.h"
+#include "RPG/RPGAttributePointService.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
+#include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGClassAsset.h"
+#include "RPG/RPGRaceAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectPersistence.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/StrongObjectPtr.h"
@@ -67,9 +72,35 @@ namespace GridEditorAlchemySaveCopy
         }
         auto* Save = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromMemory(Bytes));
         if (!IsValid(Save) || Save->GetClass() != UGrimrockPartySaveGame::StaticClass() ||
-            Save->SaveVersion != 27 || !Save->IsCompatible())
+            Save->SaveVersion != 27)
         {
-            Error = TEXT("Input is not an accepted exact Grimrock v27 save");
+            Error = TEXT("Input is not an exact Grimrock v27 save");
+            return nullptr;
+        }
+        if (!Save->IsCompatible())
+        {
+            Error = Save->GetLoadError();
+            // Diagnostic only, in the private commandlet log. Never repair
+            // attributes or progression by inference, even for a test save.
+            auto Sum = [](const FRPGAttributes& A)
+            { return int64(A.Strength) + A.Dexterity + A.Constitution + A.Intelligence + A.Wisdom + A.Charisma; };
+            auto Describe = [&](const FGridCharacterInventoryState& Character, const TCHAR* Owner, int32 Index)
+            {
+                FRPGAttributePointBalance Balance;
+                if (FRPGAttributePointService::TryGetBalance(Character, Balance)) return;
+                const auto* Class = FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
+                const auto* Race = FRPGAuthoringIdentityResolver::ResolveRaceById(Character.RaceId);
+                const int64 Base = Class && Race ? Sum(Class->BaseAttributes) + Sum(Race->AttributeBonuses) : -1;
+                Error += FString::Printf(TEXT("\n%s[%d] ClassId=%s RaceId=%s ClassResolved=%d RaceResolved=%d Level=%d XP=%d AttributesInRange=%d Total=%lld Base=%lld Granted=%d"),
+                    Owner, Index, *Character.ClassId.ToString(), *Character.RaceId.ToString(),
+                    Class != nullptr, Race != nullptr, Character.Level, Character.Experience,
+                    URPGCharacterRulesLibrary::AreAttributesInRange(Character.Attributes),
+                    Sum(Character.Attributes), Base, FRPGAttributePointService::GetTotalPointsGranted(Character.Level));
+            };
+            for (int32 I = 0; I < Save->PartyInventoryState.ActiveCharacters.Num(); ++I)
+                Describe(Save->PartyInventoryState.ActiveCharacters[I], TEXT("ActiveCharacter"), I);
+            for (int32 I = 0; I < Save->PartyInventoryState.CharacterPool.Num(); ++I)
+                Describe(Save->PartyInventoryState.CharacterPool[I], TEXT("CharacterPool"), I);
             return nullptr;
         }
         FText Validation;
