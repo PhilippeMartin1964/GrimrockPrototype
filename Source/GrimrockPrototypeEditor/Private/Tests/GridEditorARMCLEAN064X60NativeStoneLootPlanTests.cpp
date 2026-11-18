@@ -48,7 +48,7 @@ bool FGridEditorARMCLEAN064X60StonePlan::RunTest(const FString&)
     Altered[1].ItemLevel = 1;
     if (!TestFalse(TEXT("Stone N1 refused"),
             FGridMonsterLootResolver::TryResolveItemLevel(Altered[1], nullptr, Level, Registry.Get()))) return false;
-    // Source evidence is read-only; the remaining four are deliberately not registered.
+    // Source evidence is read-only; the remaining four can only be registered as one complete X.61 cutover.
     for (int32 Index = 0; Index < 5; ++Index)
     {
         const auto* Source = FPlan::LoadSource(Index);

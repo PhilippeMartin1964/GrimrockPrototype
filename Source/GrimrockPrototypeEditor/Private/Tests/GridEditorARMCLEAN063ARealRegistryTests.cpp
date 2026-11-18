@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "Engine/GameInstance.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -62,7 +63,7 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 	// root. Retain the original 22 ARM + arrow baseline and require every
 	// appended entry to remain canonical; do not hardcode a permanent size 23.
 	TestTrue(TEXT("22 ARM + arrow baseline remains registered"),
-		Root->ItemDefinitions.Num() >= 23 && Root->ItemDefinitions.Num() <= 34);
+		GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get()));
 	TSet<FName> UniqueIds;
 	for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
 	{

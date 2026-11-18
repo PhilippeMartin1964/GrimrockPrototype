@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "../ARMEMENT/GridEditorNativePalettePlan.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
@@ -19,7 +20,7 @@ bool FGridEditorARMCLEAN064X55NativePalette::RunTest(const FString&)
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.DA_ObjectPalette_Default")));
     if (!TestNotNull(TEXT("Real registry"), Root.Get()) ||
         !TestNotNull(TEXT("Real palette"), Source.Get()) ||
-        !TestEqual(TEXT("34 definitions remain registered"), Root->ItemDefinitions.Num(), 34))
+        !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
         return false;
     const bool bRootDirty = Root->GetOutermost()->IsDirty();
     const bool bPaletteDirty = Source->GetOutermost()->IsDirty();

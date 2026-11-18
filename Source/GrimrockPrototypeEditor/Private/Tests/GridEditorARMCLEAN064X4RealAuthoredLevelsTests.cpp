@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "ARMEMENT/GridArmClean064X3AuthoredLevelMaterializer.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
@@ -27,7 +28,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
                       "DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Native ItemSystem root"), Root.Get()) ||
-        !TestEqual(TEXT("Original 34 canonical definitions"), Root->ItemDefinitions.Num(), 34))
+        !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
     {
         return false;
     }
@@ -61,7 +62,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
         }
         Definitions.Add(Definition->ItemId, Definition);
     }
-    if (!TestEqual(TEXT("Exactly 34 unique registry identities"), Definitions.Num(), 34))
+    if (!TestEqual(TEXT("Exact unique registry identities"), Definitions.Num(), Root->ItemDefinitions.Num()))
     {
         return false;
     }

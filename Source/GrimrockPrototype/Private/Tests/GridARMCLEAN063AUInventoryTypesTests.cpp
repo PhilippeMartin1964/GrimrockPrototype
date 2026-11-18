@@ -1,6 +1,12 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Runtime/Items/GridCanonicalInventoryCategoryTags.h"
+#include "../Runtime/GridCanonicalItemInteractionReadModel.h"
+#include "../Runtime/GridCanonicalEquipmentSlotsReadModel.h"
+#include "../Runtime/GridCanonicalInventoryStackReadModel.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Blueprint/UserWidget.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
@@ -254,6 +260,89 @@ bool FGridClean063AUInventoryItemTypes::RunTest(const FString&)
         ShieldView.ItemType.EqualTo(
             NSLOCTEXT("GridInventoryTooltip", "ItemTypeShield", "Bouclier")));
     return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X61LootPresentationCategory,
+    "Grimrock.RPG.ARM.CLEAN06_4X61.LootPresentationCategories",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean064X61LootPresentationCategory::RunTest(const FString&)
+{
+    using namespace GridCanonicalInventoryCategoryTags;
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+    if (!TestNotNull(TEXT("Real root"), Root.Get()) ||
+        !TestTrue(TEXT("Exact native registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
+        return false;
+    TStrongObjectPtr<UGridItemSystemAsset> Preview(NewObject<UGridItemSystemAsset>());
+    Preview->WeaponCatalogue = Root->WeaponCatalogue;
+    Preview->WeaponVisualCatalogue = Root->WeaponVisualCatalogue;
+    Preview->ActionCatalogue = Root->ActionCatalogue;
+    Preview->ActionPresentationCatalogue = Root->ActionPresentationCatalogue;
+    Preview->ItemDefinitions = Root->ItemDefinitions;
+    const FName Ids[] = {TEXT("GoblinKnife"), TEXT("EmptyVial"), TEXT("Item_RatMeat"), TEXT("Item_RatTooth")};
+    const FName Tags[] = {Weapon(), Component(), Food(), Component()};
+    const EGridItemType Types[] = {EGridItemType::Weapon, EGridItemType::Component, EGridItemType::Food, EGridItemType::Component};
+    const int32 Capacities[] = {1,10,99,99};
+    // Before the native transaction the same runtime projection is
+    // exercised with an isolated preview. Afterwards test the real assets.
+    if (Root->ItemDefinitions.Num() == 34)
+    {
+        for (int32 I = 0; I < 4; ++I)
+        {
+            UGridNonArmamentDefinitionAsset* D = nullptr;
+            if (I == 0) D = NewObject<UGridNonArmamentDefinitionAsset>(Preview.Get());
+            else if (I == 2)
+            {
+                auto* FoodItem = NewObject<UGridConsumableDefinitionAsset>(Preview.Get());
+                FoodItem->MaxStack = Capacities[I];
+                D = FoodItem;
+            }
+            else
+            {
+                auto* Stack = NewObject<UGridGenericStackableDefinitionAsset>(Preview.Get());
+                Stack->MaxStack = Capacities[I];
+                D = Stack;
+            }
+            D->ItemId = Ids[I];
+            D->DisplayName = FText::FromName(Ids[I]);
+            D->Tags = {Tags[I]};
+            Preview->ItemDefinitions.Add(D);
+        }
+    }
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("38-item isolated resolver"), Registry->RegisterItemSystem(Preview.Get(), Errors))) return false;
+    for (int32 I = 0; I < 4; ++I)
+    {
+        FGridItemInstance Item;
+        Item.RuntimeObjectId = FGuid::NewGuid();
+        Item.ItemDefinitionId = Ids[I];
+        Item.ItemLevel = 0;
+        Item.Quantity = 1;
+        auto* Wrong = NewObject<UGridItemDefinitionAsset>(GI.Get());
+        Wrong->ItemDefinitionId = Ids[I];
+        Wrong->ItemType = EGridItemType::Book;
+        Wrong->CompatibleEquipmentSlots = {EGridEquipmentSlot::MainHand};
+        Wrong->bStackable = true;
+        Wrong->MaxStackSize = 3;
+        const auto Category = FGridCanonicalInventoryItemTypeReadModel::Resolve(Registry.Get(), Wrong, Item);
+        TestTrue(TEXT("Registered N0 category resolved"), Category.bCanonicalIdentity && Category.bResolved);
+        TestEqual(TEXT("Retain original inventory type without old definition"), Category.ItemType, Types[I]);
+        TestEqual(TEXT("Same existing filter category"), ResolveGridInventoryFilterCategory(Category.ItemType),
+            ResolveGridInventoryFilterCategory(Types[I]));
+        const auto Slots = FGridCanonicalEquipmentSlotsReadModel::Resolve(Registry.Get(), Wrong, Item);
+        TestTrue(TEXT("Category never grants a physical hand"), Slots.bResolved && Slots.AllowedSlots.IsEmpty());
+        const auto Interaction = FGridCanonicalItemInteractionReadModel::Resolve(Registry.Get(), Wrong, Item);
+        TestTrue(TEXT("No read/consume/hotbar/throw capability invented"),
+            Interaction.bCanonicalIdentity && Interaction.bResolved && !Interaction.bCanRead &&
+            !Interaction.bCanConsumeLegacy && !Interaction.bCanConsumeCanonical &&
+            !Interaction.bCanAddToHotbar && !Interaction.bPhysicalThrowHotbar);
+        const auto Stack = FGridCanonicalInventoryStackReadModel::Resolve(Registry.Get(), Wrong, Item);
+        TestEqual(TEXT("Exact capacity wins over stale source"), Stack.MaxStackSize, Capacities[I]);
+    }
+    return !HasAnyErrors();
 }
 
 #endif

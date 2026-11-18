@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/ARFilter.h"
 #include "Core/GridLevelAsset.h"
@@ -27,8 +28,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
                       "DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Native DA_ItemSystem"), Root.Get()) ||
-        !TestEqual(TEXT("34 materialized canonical item definitions"),
-            Root->ItemDefinitions.Num(), 34))
+        !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
     {
         return false;
     }

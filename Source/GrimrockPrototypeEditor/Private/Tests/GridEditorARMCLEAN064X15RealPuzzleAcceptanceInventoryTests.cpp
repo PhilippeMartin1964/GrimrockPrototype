@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/AssetData.h"
 #include "Modules/ModuleManager.h"
@@ -60,7 +61,7 @@ bool FGridEditorClean064X15RealAcceptanceInventory::RunTest(const FString&)
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.DA_ObjectPalette_Default")));
     if (!TestNotNull(TEXT("Actual ItemSystem"), Root.Get()) ||
         !TestNotNull(TEXT("Actual editor palette"), Palette.Get()) ||
-        !TestEqual(TEXT("34 canonical definitions"), Root->ItemDefinitions.Num(), 34))
+        !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
     {
         return false;
     }

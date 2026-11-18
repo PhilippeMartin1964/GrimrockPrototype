@@ -226,10 +226,12 @@ bool FGridTD0737RatLootDefinitionsNormalizedTest::RunTest(const FString& Paramet
 		return false;
 	}
 
-	TestEqual(TEXT("Rat meat loot uses the current asset"), MeatLoot->ItemDefinitionAsset.Get(), RatMeat);
-	TestTrue(TEXT("Rat meat loot mirror id is empty"), MeatLoot->ItemDefinitionId.IsNone());
-	TestEqual(TEXT("Rat tooth loot uses the current asset"), ToothLoot->ItemDefinitionAsset.Get(), RatTooth);
-	TestTrue(TEXT("Rat tooth loot mirror id is empty"), ToothLoot->ItemDefinitionId.IsNone());
+	const bool bBefore = MeatLoot->ItemDefinitionAsset.Get() == RatMeat &&
+		MeatLoot->ItemDefinitionId.IsNone() && ToothLoot->ItemDefinitionAsset.Get() == RatTooth &&
+		ToothLoot->ItemDefinitionId.IsNone();
+	const bool bAfter = GridTD073ApprovedCanonicalStoneLoot::IsExact(Rat->GetPathName(), 0, *MeatLoot) &&
+		GridTD073ApprovedCanonicalStoneLoot::IsExact(Rat->GetPathName(), 1, *ToothLoot);
+	TestTrue(TEXT("Both rat loot entries are in one exact native authoring state"), bBefore || bAfter);
 	return true;
 }
 

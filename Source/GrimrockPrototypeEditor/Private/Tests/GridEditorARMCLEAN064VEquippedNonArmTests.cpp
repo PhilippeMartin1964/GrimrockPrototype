@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
@@ -29,8 +30,8 @@ bool FGridClean064VEquippedNonArm::RunTest(const FString&)
         return false;
     }
     const int32 OriginalCount = Root->ItemDefinitions.Num();
-    if (!TestTrue(TEXT("Native source: 32 before V or 34 after V"),
-        OriginalCount == 32 || OriginalCount == 34))
+    if (!TestTrue(TEXT("Native source: V baseline or exact X.61 extension"),
+        OriginalCount == 32 || GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
     {
         return false;
     }

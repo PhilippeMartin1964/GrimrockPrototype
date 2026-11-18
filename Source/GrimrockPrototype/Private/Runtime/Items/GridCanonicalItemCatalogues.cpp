@@ -1,4 +1,5 @@
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridCanonicalInventoryCategoryTags.h"
 
 namespace
 {
@@ -574,6 +575,12 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 			continue;
 		}
 		Ids.Add(Item->ItemId);
+		if (GridCanonicalInventoryCategoryTags::Count(Item->Tags) > 1 ||
+			(Cast<UGridArmamentDefinitionAsset>(Item) &&
+				GridCanonicalInventoryCategoryTags::Count(Item->Tags) != 0))
+		{
+			bValid = AddError(Errors, TEXT("Item system: conflicting or misplaced non-ARM presentation category tags"));
+		}
 		if (const UGridAmmoDefinitionAsset* Ammo = Cast<UGridAmmoDefinitionAsset>(Item))
 		{
 			if (Ammo->AmmoKindId.IsNone() || Ammo->MaxStack < 1)

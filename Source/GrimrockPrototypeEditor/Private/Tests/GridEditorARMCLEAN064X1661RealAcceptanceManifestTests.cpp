@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/AssetData.h"
 #include "Modules/ModuleManager.h"
@@ -30,7 +31,7 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
     TArray<FString> Errors;
     if (!TestTrue(TEXT("Registered canonical item catalogue"),
         Registry->RegisterItemSystem(ItemSystem.Get(), Errors))) return false;
-    if (!TestEqual(TEXT("Catalogue count"), ItemSystem->ItemDefinitions.Num(), 34))
+    if (!TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*ItemSystem.Get())))
         return false;
 
     const TCHAR* LevelPaths[] = {

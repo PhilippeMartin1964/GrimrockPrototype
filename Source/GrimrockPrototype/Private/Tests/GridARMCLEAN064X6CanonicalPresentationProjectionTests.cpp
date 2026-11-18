@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
@@ -17,7 +18,7 @@ bool FGridClean064X6CanonicalPresentation::RunTest(const FString&)
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
                       "DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real single ItemSystem"), Root.Get()) ||
-        !TestEqual(TEXT("Real registry size"), Root->ItemDefinitions.Num(), 34))
+        !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
     {
         return false;
     }
@@ -167,7 +168,7 @@ bool FGridClean064X6CanonicalPresentation::RunTest(const FString&)
         "text and physics values projected; no native assets written."),
         ArmCount, NonArmCount, AmmoCount));
     return TestEqual(TEXT("All real ARM item definitions"), ArmCount, 22) &&
-        TestEqual(TEXT("All real non-ARM item definitions"), NonArmCount, 12) &&
+        TestEqual(TEXT("All real non-ARM item definitions"), NonArmCount, Root->ItemDefinitions.Num() - 22) &&
         TestTrue(TEXT("Ammunition early-return path is covered"), AmmoCount > 0);
 }
 namespace
@@ -186,7 +187,8 @@ bool RunX6Probe(FAutomationTestBase& Test, EGridProjectionProbe Mode)
     UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
                       "DA_ItemSystem.DA_ItemSystem"));
-    if (!Test.TestNotNull(TEXT("Real root"), Root)) { return false; }
+    if (!Test.TestNotNull(TEXT("Real root"), Root) || !Test.TestTrue(TEXT("Exact 34/38 registry shape"),
+        GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root))) { return false; }
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Registry(
         NewObject<UGridItemSubsystem>(GI.Get()));
@@ -273,7 +275,7 @@ bool RunX6Probe(FAutomationTestBase& Test, EGridProjectionProbe Mode)
         }
     }
     return Test.TestEqual(TEXT("Expected ARM registry families"), Arm, 22) &&
-        Test.TestEqual(TEXT("Expected nonARM registry families"), NonArm, 12);
+        Test.TestEqual(TEXT("Expected nonARM registry families"), NonArm, Root->ItemDefinitions.Num() - 22);
 }
 }
 

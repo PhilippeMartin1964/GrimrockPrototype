@@ -1,6 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
+#include "../ARMEMENT/GridEditorLootDefinitionProjection.h"
 #include "AssetRegistry/ARFilter.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Modules/ModuleManager.h"
@@ -27,7 +29,7 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
                       "DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Native item system root"), Root.Get()) ||
-        !TestEqual(TEXT("34 canonical definitions"), Root->ItemDefinitions.Num(), 34))
+        !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
     {
         return false;
     }
@@ -238,35 +240,29 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/"
              "DA_MON_RatGiant.DA_MON_RatGiant")
     };
-    int32 MonsterOld = 0, MonsterRows = 0, MonsterRegistered = 0;
-    for (const TCHAR* Path : MonsterPaths)
+    using FProjection = FGridEditorLootDefinitionProjection;
+    TStrongObjectPtr<UGridMonsterDefinitionAsset> Goblin(LoadObject<UGridMonsterDefinitionAsset>(nullptr, MonsterPaths[0]));
+    TStrongObjectPtr<UGridMonsterDefinitionAsset> Rat(LoadObject<UGridMonsterDefinitionAsset>(nullptr, MonsterPaths[1]));
+    if (!TestNotNull(TEXT("Real goblin"), Goblin.Get()) ||
+        !TestNotNull(TEXT("Real rat"), Rat.Get())) return false;
+    const bool bMigrated = Root->ItemDefinitions.Num() == FProjection::FinalCount;
+    TArray<FGridMonsterLootEntry> GoblinPlan, RatPlan;
+    FString Error;
+    if (!TestTrue(TEXT("Exact X.60B/X.61 native monster state"),
+            FProjection::BuildLootTables(*Goblin.Get(), *Rat.Get(),
+                bMigrated, GoblinPlan, RatPlan, Error)))
     {
-        TStrongObjectPtr<UGridMonsterDefinitionAsset> Monster(
-            LoadObject<UGridMonsterDefinitionAsset>(nullptr, Path));
-        if (!TestNotNull(TEXT("Real historic monster definition"), Monster.Get()))
-            return false;
-        const bool bWasDirty = Monster->GetOutermost()->IsDirty();
+        AddError(Error);
+        return false;
+    }
+    int32 MonsterOld = 0, MonsterRows = 0, MonsterRegistered = 0;
+    for (const auto* Monster : {Goblin.Get(), Rat.Get()})
         for (const FGridMonsterLootEntry& Loot : Monster->LootTable)
         {
             ++MonsterRows;
             if (Loot.ItemDefinitionAsset) ++MonsterOld;
-            const UGridItemDefinitionAsset* Old = Loot.ItemDefinitionAsset.Get();
-            const FName Id = Loot.GetResolvedItemDefinitionId();
-            const bool bStone = FString(Path) == FString(MonsterPaths[0]) && Id == FName(TEXT("Stone"));
-            if ((!Old && (!bStone || Loot.ItemDefinitionId != Id)) ||
-                (Old && (!IsValid(Old) || !Loot.ItemDefinitionId.IsNone())) ||
-                !Loot.IsValidDefinition() || Loot.ItemLevel != 0 ||
-                Loot.MinQuantity < 1 || Loot.MaxQuantity < Loot.MinQuantity)
-            {
-                AddError(TEXT("Historical monster loot unexpectedly modified."));
-                return false;
-            }
-            if (Known.Contains(Id))
-                ++MonsterRegistered;
+            if (Known.Contains(Loot.GetResolvedItemDefinitionId())) ++MonsterRegistered;
         }
-        if (!TestEqual(TEXT("Monster package remains unmodified"),
-            Monster->GetOutermost()->IsDirty(), bWasDirty)) return false;
-    }
 
     const int32 Remaining = LooseOld + InitialOld + ReceptacleOverrideOld +
         LockOverrideOld + PaletteOld + AcceptanceRules + LockKeys + MonsterOld;
@@ -295,10 +291,10 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         TestEqual(TEXT("X.54B shared lock pointers remain removed"), LockKeys, 0) &&
         TestEqual(TEXT("Two shared receptacle assets"), RuleAssets, 2) &&
         TestEqual(TEXT("Two shared lock assets"), LockAssets, 2) &&
-        TestTrue(TEXT("Only Stone may have completed native migration"), MonsterOld == 5 || MonsterOld == 4) &&
+        TestEqual(TEXT("Only four or zero old loot references"), MonsterOld, bMigrated ? 0 : 4) &&
         TestEqual(TEXT("Five historic loot rows"), MonsterRows, 5) &&
-        TestEqual(TEXT("One already registered monster loot identity"), MonsterRegistered, 1) &&
-        TestEqual(TEXT("Exactly five or four remaining sources"), Remaining, MonsterOld) &&
+        TestEqual(TEXT("Exact registered monster loot count"), MonsterRegistered, bMigrated ? 5 : 1) &&
+        TestEqual(TEXT("Exactly four or zero remaining sources"), Remaining, MonsterOld) &&
         TestEqual(TEXT("Canonical root remains unmodified"), Root->GetOutermost()->IsDirty(), bRootDirty);
 }
 #endif

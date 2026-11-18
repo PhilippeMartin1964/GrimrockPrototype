@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
@@ -58,8 +59,7 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
                       "DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real item system"), Root.Get()) ||
-        !TestEqual(TEXT("Real canonical definition count"),
-            Root->ItemDefinitions.Num(), 34))
+        !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
     {
         return false;
     }
@@ -216,12 +216,12 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
     }
 
     AddInfo(FString::Printf(TEXT(
-        "[ARM-CLEAN06.4X7] 34 canonical actor initializations: "
+        "[ARM-CLEAN06.4X7] All canonical actor initializations: "
         "%d ARM N1, %d non-ARM N0 (%d ammo); "
         "no legacy definition, UE package write or SaveGame mutation."),
         Arms, NonArms, Ammo));
     return TestEqual(TEXT("Registered ARM classes"), Arms, 22) &&
-        TestEqual(TEXT("Registered non-ARM classes"), NonArms, 12) &&
+        TestEqual(TEXT("Registered non-ARM classes"), NonArms, Root->ItemDefinitions.Num() - 22) &&
         TestTrue(TEXT("Ammo path exercised"), Ammo > 0);
 }
 #endif

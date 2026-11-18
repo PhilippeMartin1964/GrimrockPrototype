@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "../ARMEMENT/GridEditorNativeInitialContentPlan.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
@@ -17,7 +18,7 @@ bool FGridEditorARMCLEAN064X58NativeInitialPlan::RunTest(const FString&)
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real ItemSystem"), Root.Get()) ||
-        !TestEqual(TEXT("34 registered definitions"), Root->ItemDefinitions.Num(), 34))
+        !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
         return false;
     const bool bRootDirty = Root->GetOutermost()->IsDirty();
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());

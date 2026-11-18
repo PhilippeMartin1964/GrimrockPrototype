@@ -2,6 +2,7 @@
 
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/Items/GridCanonicalInventoryCategoryTags.h"
 
 /** ARM-CLEAN06.3AU: transient inventory type projection; no persisted data. */
 struct FGridCanonicalInventoryItemTypeReadView
@@ -42,10 +43,17 @@ struct FGridCanonicalInventoryItemTypeReadModel
             }
             else
             {
-                // EGridItemType has no Ammo; canonical N0 arrows and other
-                // non-ARM identities conservatively belong to Misc until
-                // an explicitly authored non-ARM UI taxonomy exists.
-                View.ItemType = EGridItemType::Misc;
+                // Presentation only: retain the explicitly authored category
+                // without inferring combat/equip/use permissions from it.
+                using namespace GridCanonicalInventoryCategoryTags;
+                if (Count(Resolved.Tags) > 1)
+                {
+                    View.bResolved = false;
+                    return View;
+                }
+                View.ItemType = Resolved.Tags.Contains(Weapon()) ? EGridItemType::Weapon :
+                    Resolved.Tags.Contains(Food()) ? EGridItemType::Food :
+                    Resolved.Tags.Contains(Component()) ? EGridItemType::Component : EGridItemType::Misc;
             }
             return View;
         }

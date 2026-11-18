@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
@@ -17,7 +18,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
                       "DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real canonical registry loaded"), Root.Get()) ||
-        !TestEqual(TEXT("All 34 real definitions present"), Root->ItemDefinitions.Num(), 34))
+        !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
     {
         return false;
     }
@@ -30,7 +31,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
         }
         ValidIds.Add(Definition->ItemId);
     }
-    if (!TestEqual(TEXT("All 34 identities unique"), ValidIds.Num(), 34))
+    if (!TestEqual(TEXT("All real identities unique"), ValidIds.Num(), Root->ItemDefinitions.Num()))
     {
         return false;
     }

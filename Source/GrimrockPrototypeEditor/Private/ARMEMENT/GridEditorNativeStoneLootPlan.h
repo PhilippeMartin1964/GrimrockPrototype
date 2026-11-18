@@ -94,6 +94,9 @@ struct FGridEditorNativeStoneLootPlan
             Goblin.ExperienceReward != 125 || Rat.ExperienceReward != 500)
         { Error = TEXT("Unexpected real monster baseline."); return false; }
 
+        // After X.61, the old commandlet remains pinned to 34; its
+        // permanent test can also recheck Stone on the exact completed state.
+        const bool bAllRegistered = Registry->HasCanonicalItem(ItemId(0));
         TArray<FGridMonsterLootEntry> Plan = Goblin.LootTable;
         int32 Count = 0;
         for (int32 Index = 0; Index < 5; ++Index)
@@ -104,7 +107,7 @@ struct FGridEditorNativeStoneLootPlan
             if (!IsValid(Source) || Source->GetOutermost()->IsDirty() ||
                 Source->ItemDefinitionId != Id || !Source->IsValidDefinition() ||
                 !Row.IsValidDefinition() || Row.GetResolvedItemDefinitionId() != Id ||
-                Row.ItemLevel != 0 || Registry->HasCanonicalItem(Id) != (Index == 1))
+                Row.ItemLevel != 0 || Registry->HasCanonicalItem(Id) != (Index == 1 || bAllRegistered))
             { Error = FString::Printf(TEXT("Unexpected source/loot/registry state: %s"), *Id.ToString()); return false; }
             if (Index < 3)
             {
@@ -114,8 +117,9 @@ struct FGridEditorNativeStoneLootPlan
             }
             if (Index != 1)
             {
-                if (Row.ItemDefinitionAsset.Get() != Source || !Row.ItemDefinitionId.IsNone())
-                { Error = TEXT("Nonselected loot changed."); return false; }
+                if (bAllRegistered ? (Row.ItemDefinitionAsset != nullptr || Row.ItemDefinitionId != Id) :
+                    (Row.ItemDefinitionAsset.Get() != Source || !Row.ItemDefinitionId.IsNone()))
+                { Error = TEXT("Nonselected loot changed outside complete X.61 cutover."); return false; }
                 continue;
             }
             if (Row.ItemDefinitionAsset)

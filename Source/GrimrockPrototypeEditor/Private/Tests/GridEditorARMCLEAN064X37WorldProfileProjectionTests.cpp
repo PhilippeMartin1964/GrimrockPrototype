@@ -1,5 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "../ARMEMENT/GridArmClean064X37ArmWorldProfileProjection.h"
@@ -17,6 +19,22 @@ bool FGridEditorARMCLEAN064X37WorldPresentationProjection::RunTest(const FString
         !TestNotNull(TEXT("Real weapon catalogue"), Root->WeaponCatalogue.Get()))
     {
         return false;
+    }
+    if (!TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root)))
+        return false;
+    // Keep the obsolete X.37 commandlet's exact historical guard intact.
+    // The test uses a transient view of the original 34 and the SAME real catalogues.
+    TStrongObjectPtr<UGridItemSystemAsset> Historical;
+    if (Root->ItemDefinitions.Num() == 38)
+    {
+        Historical.Reset(NewObject<UGridItemSystemAsset>());
+        Historical->WeaponCatalogue = Root->WeaponCatalogue;
+        Historical->WeaponVisualCatalogue = Root->WeaponVisualCatalogue;
+        Historical->ActionCatalogue = Root->ActionCatalogue;
+        Historical->ActionPresentationCatalogue = Root->ActionPresentationCatalogue;
+        Historical->ItemDefinitions = Root->ItemDefinitions;
+        Historical->ItemDefinitions.SetNum(34);
+        Root = Historical.Get();
     }
     const bool bVisualDirty = Root->WeaponVisualCatalogue->GetOutermost()->IsDirty();
     const bool bWeaponDirty = Root->WeaponCatalogue->GetOutermost()->IsDirty();

@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.61 — quatre loots + registre et fin du périmètre de 107 références
+
+**Parent :** `84d7324af420687e5a17a9696642a80cb88d3a28` (X.60B deux statuts Windows SUCCESS, 1995 tests réussis avec 31 avertis, PIE 8/8). [Rapport X.61](ARM_CLEAN06_4X61_FOUR_LOOT_CUTOVER.md).
+
+X.60B a prouvé quatre placeholders non équipables, sans action ni mesh/icon : GoblinKnife 0.5 kg pile 1, EmptyVial 0.1 kg pile 10, RatMeat 0 kg pile 99, RatTooth 0 kg pile 99. Projection exacte N0 avec catégories UI explicites via tags réservés, sans ARM ni effet inventé. Préflight 34 → 38, vérifie toutes les propriétés, mêmes tables de chances/quantités et 128 seeds par monstre. Commandlet/runner protègent sept packages : trois sources existantes + quatre nouvelles définitions ; rollback exact et fresh Verify avant publication. **Aucun Apply fait par le code : 4 anciens pointeurs restent ; zéro des 107 après X.61B.** Deux statuts exacts + PIE nécessaires ; dix définitions d'alchimie, anciens catalogues, WBP et SaveGame v27 encore à traiter. Pas de nouveau texte/asset visuel ; UI.csv/ST_UI/WBP/Game-fr/en inchangés.
+
 ## ARM-CLEAN06.4X.60 — transaction Stone et evidence des quatre autres loots
 
 **Parent :** `1cf5ace7e979eac8843bd9e556a382cb4bc0c8f2` (X.59B, SilentTask + LocalAuto SUCCESS, 1993 tests, PIE 8/8). [Rapport X.60](ARM_CLEAN06_4X60_STONE_LOOT_PROTECTED_TRANSACTION.md).

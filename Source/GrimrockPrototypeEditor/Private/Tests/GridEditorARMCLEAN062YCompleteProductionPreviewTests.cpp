@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "ARMEMENT/GridArmClean06CompleteProductionPreview.h"
 #include "UObject/UnrealType.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -208,7 +209,7 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 	// merely because the historical preview had only 23 entries.
 	if (!TestTrue(TEXT("Real canonical root retains baseline definitions"),
 		Persisted->ItemDefinitions.Num() >= Candidate->ItemDefinitions.Num() &&
-		Persisted->ItemDefinitions.Num() <= 34))
+		GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Persisted.Get())))
 	{
 		return false;
 	}
