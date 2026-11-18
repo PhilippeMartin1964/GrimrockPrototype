@@ -14,10 +14,8 @@
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/Package.h"
 
-/** X.48/X.58: exact native baseline after X.57B.
- *  44 loose, four shared rules and 33 palette rows are pointerless.
- *  Exactly 18 initial-content rows in levels 00/01 retain all or no
- *  old pointers; the three dormant overrides and five loots stay strict.
+/** X.48/X.59: 99 migrated references remain pointerless.
+ * Only all three or none of the dormant pointers may remain; five loots stay strict.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X48PostNativeRefs,
     "Grimrock.RPG.ARM.CLEAN06_4X48.PostNative63ReferenceBaseline",
@@ -109,9 +107,11 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
             for (const FGridReceptacleAcceptedItemConfig& Rule :
                 Overrides.ReceptacleRules.AcceptedItems)
             {
-                if (!IsValid(Rule.ItemDefinition.Get()))
+                if (LevelIndex != 0 || !IsValid(Rule.ItemDefinition.Get()) ||
+                    Rule.ItemDefinition->ItemDefinitionId != FName(TEXT("Item_Torch")) ||
+                    !Rule.CanonicalItemId.IsNone())
                 {
-                    AddError(TEXT("Dormant receptacle override lost its old reference."));
+                    AddError(TEXT("Dormant receptacle override has an unexpected source."));
                     return false;
                 }
                 ++ReceptacleOverrideOld;
@@ -119,9 +119,11 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
             for (const TObjectPtr<UGridItemDefinitionAsset>& Key :
                 Overrides.AcceptedKeys.AcceptedKeyItems)
             {
-                if (!IsValid(Key.Get()))
+                if (LevelIndex != 0 || !IsValid(Key.Get()) ||
+                    (Key->ItemDefinitionId != FName(TEXT("Key_Copper")) &&
+                     Key->ItemDefinitionId != FName(TEXT("Key_Iron"))))
                 {
-                    AddError(TEXT("Dormant lock override lost its old reference."));
+                    AddError(TEXT("Dormant lock override has an unexpected source."));
                     return false;
                 }
                 ++LockOverrideOld;
@@ -278,10 +280,11 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
     return TestEqual(TEXT("44 native loose instances remain pointerless"), LooseTotal, 44) &&
         TestEqual(TEXT("Zero old pointers among 44"), LooseOld, 0) &&
         TestEqual(TEXT("No historical item spawns"), ItemSpawns, 0) &&
-        TestTrue(TEXT("All 18 initial pointers present or all absent"), InitialOld == 18 || InitialOld == 0) &&
+        TestEqual(TEXT("X.58B initial pointers remain removed"), InitialOld, 0) &&
         TestEqual(TEXT("18 total initial entries"), InitialTotal, 18) &&
-        TestEqual(TEXT("One dormant receptacle rule reference"), ReceptacleOverrideOld, 1) &&
-        TestEqual(TEXT("Two dormant lock key references"), LockOverrideOld, 2) &&
+        TestTrue(TEXT("All three dormant references or none"),
+            (ReceptacleOverrideOld == 1 && LockOverrideOld == 2) ||
+            (ReceptacleOverrideOld == 0 && LockOverrideOld == 0)) &&
         TestEqual(TEXT("No activated dormant overrides"), ActiveAcceptanceOverrides, 0) &&
         TestEqual(TEXT("33 direct palette rows remain"), PaletteRows, 33) &&
         TestEqual(TEXT("X.57B palette remains pointerless"), PaletteOld, 0) &&
@@ -292,8 +295,8 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         TestEqual(TEXT("Five historic monster loot sources"), MonsterOld, 5) &&
         TestEqual(TEXT("Five historic loot rows"), MonsterRows, 5) &&
         TestEqual(TEXT("One already registered monster loot identity"), MonsterRegistered, 1) &&
-        TestEqual(TEXT("Exactly 26 before initial-content cutover or 8 after"),
-            Remaining, InitialOld == 18 ? 26 : 8) &&
+        TestEqual(TEXT("Exactly 8 before dormant cleanup or 5 after"),
+            Remaining, ReceptacleOverrideOld == 1 ? 8 : 5) &&
         TestEqual(TEXT("Canonical root remains unmodified"), Root->GetOutermost()->IsDirty(), bRootDirty);
 }
 #endif

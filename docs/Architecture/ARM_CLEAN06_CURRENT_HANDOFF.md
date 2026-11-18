@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.59 — nettoyage protégé des trois overrides dormants
+
+**Parent :** `d59d3cb25dd43d02c6b14c8cad340bdf23d81896` (X.58B : 18 contenus natifs migrés, deux statuts Windows SUCCESS, 1992 tests réussis, 8/8 éditeur/PIE). [Rapport X.59](ARM_CLEAN06_4X59_DORMANT_OVERRIDES_PROTECTED_TRANSACTION.md).
+
+Plan strict des trois GUID/cellules de l'audit X.19, listes inactives uniquement, parité du comportement effectif et des helpers de réactivation canonique ; X.48 verrouille les 99 références déjà supprimées et accepte uniquement 8/5 restantes. Commandlet et runner protègent le seul DA_GridLevel_00, manifeste complet des quatre niveaux, snapshot SHA256, verify frais, tests et commit LFS mono-asset. **Aucun Apply fait par le code : 8 pointeurs restent.** Après X.59B réel : 5 loots. 06.4 partielle ; 06.5 bloquée ; SaveGame v27 préservé.
+
 ## ARM-CLEAN06.4X.58 — préparation complète de la transaction des 18 contenus initiaux
 
 **Parent binaire :** `8ae270b3e3f2f90ae46e7b88a80676427e7073d6` (X.57B : 33 références palette supprimées, deux statuts Windows SUCCESS, 8/8 éditeur/PIE). Rapport : [ARM_CLEAN06_4X58_INITIAL_CONTENT_PROTECTED_TRANSACTION.md](ARM_CLEAN06_4X58_INITIAL_CONTENT_PROTECTED_TRANSACTION.md).
