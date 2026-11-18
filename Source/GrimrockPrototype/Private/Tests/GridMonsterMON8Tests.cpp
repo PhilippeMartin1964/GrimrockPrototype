@@ -4,6 +4,10 @@
 
 #include "Core/GridDirectionUtils.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "EngineUtils.h"
+#include "Runtime/GridItemActor.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridActivationComponent.h"
@@ -24,6 +28,7 @@ namespace
 	struct FGridMON8TestWorld
 	{
 		UWorld* World = nullptr;
+		UGameInstance* CanonicalGI = nullptr;
 
 		FGridMON8TestWorld()
 		{
@@ -52,6 +57,11 @@ namespace
 			if (!World)
 			{
 				return;
+			}
+			if (CanonicalGI)
+			{
+				World->SetGameInstance(nullptr);
+				CanonicalGI->Shutdown();
 			}
 			World->DestroyWorld(false);
 			if (GEngine)
@@ -617,6 +627,50 @@ bool FGridMonsterMON8MonsterDiedEventTest::RunTest(const FString& Parameters)
 	UnlinkedMonster->MarkDead();
 	TestTrue(TEXT("A missing LevelAsset link does not prevent death"), UnlinkedMonster->DeathComponent->bDeathCommitted);
 	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X60PointerlessLootDeath,
+    "Grimrock.RPG.ARM.CLEAN06_4X60.PointerlessLootDeath",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean064X60PointerlessLootDeath::RunTest(const FString&)
+{
+    AddExpectedError(TEXT("Reason=MissingMonsterMovement; continuing death."), EAutomationExpectedErrorFlags::Contains, 1);
+    FGridMON8TestWorld F;
+    if (!TestNotNull(TEXT("Loot world"), F.World)) return false;
+    F.CanonicalGI = NewObject<UGameInstance>(GetTransientPackage());
+    F.CanonicalGI->Init();
+    F.World->SetGameInstance(F.CanonicalGI);
+    const UGridItemSubsystem* Registry = F.CanonicalGI->GetSubsystem<UGridItemSubsystem>();
+    FGridResolvedItem Stone;
+    if (!TestTrue(TEXT("Real canonical Stone resolves N0"),
+            Registry && Registry->ResolveItem(TEXT("Stone"), 0, Stone))) return false;
+    AGridLevelRuntimeActor* Runtime = F.World->SpawnActor<AGridLevelRuntimeActor>();
+    if (!TestNotNull(TEXT("Runtime floor"), ConfigureMON8Floor(Runtime))) return false;
+    UGridMonsterDefinitionAsset* Def = MakeMON8MonsterDefinition(Runtime, TEXT("X60_PointerlessLoot"));
+    Def->LootTable.Add(MakeMON8LootEntry(TEXT("Stone"), 1.0f));
+    AGridMonsterActor* Monster = SpawnMON8Monster(F.World, Def, FGuid(60,60,60,60), FIntPoint(2,2), false);
+    if (!TestNotNull(TEXT("Monster"), Monster) || !Monster->DeathComponent) return false;
+    Monster->DeathComponent->InitializeDeathComponent(Runtime);
+    Monster->MarkDead();
+    if (!TestEqual(TEXT("Pointerless canonical drop placed"), Monster->DeathComponent->PlacedLootCount, 1) ||
+        !TestEqual(TEXT("No placement failure"), Monster->DeathComponent->FailedLootCount, 0) ||
+        !TestEqual(TEXT("Single physical instance"), Monster->DeathComponent->GeneratedLoot.Num(), 1))
+        return false;
+    const FGridItemInstance& Item = Monster->DeathComponent->GeneratedLoot[0];
+    if (!TestEqual(TEXT("Stable Stone ID"), Item.ItemDefinitionId, FName(TEXT("Stone"))) ||
+        !TestEqual(TEXT("N0 untouched"), Item.ItemLevel, 0) ||
+        !TestEqual(TEXT("Quantity unchanged"), Item.Quantity, 1) ||
+        !TestEqual(TEXT("Unit mass from canonical registry"), Item.Weight, Stone.WeightKg))
+        return false;
+    AGridItemActor* Found = nullptr;
+    for (TActorIterator<AGridItemActor> It(F.World); It; ++It)
+        if (It->GetRuntimeObjectId() == Item.RuntimeObjectId) { Found = *It; break; }
+    if (!TestNotNull(TEXT("Physical canonical loot actor"), Found) ||
+        !TestNull(TEXT("No old definition on spawned loot"), Found->GetItemDefinitionAsset()))
+        return false;
+    Monster->MarkDead();
+    return TestEqual(TEXT("Death cannot replay loot"), Monster->DeathComponent->PlacedLootCount, 1);
 }
 
 #endif

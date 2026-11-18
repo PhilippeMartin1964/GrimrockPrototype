@@ -346,8 +346,11 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 		}
 
 		const FGridMonsterLootEntry& Entry = LootTable[Result.EntryIndex];
+		const bool bCanonicalItem = Registry && Registry->HasCanonicalItem(Result.ItemDefinitionId);
 		UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset.Get();
-		if (!IsValid(ItemDefinition) && RuntimeActor)
+		// A persisted canonical ID is sufficient. Only an explicitly retained
+		// old ARM source may supply its authored default level during migration.
+		if (!bCanonicalItem && !IsValid(ItemDefinition) && RuntimeActor)
 		{
 			ItemDefinition = RuntimeActor->ResolveRuntimeItemDefinition(Result.ItemDefinitionId);
 		}
@@ -362,7 +365,7 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 		// The independent random roll above is unchanged. ItemSystem now
 		// validates the fixed level as well as identity/weight for registered
 		// loot; historical level resolution remains only for unknown IDs.
-		const bool bCanonicalItem = Registry && Registry->HasCanonicalItem(Result.ItemDefinitionId);
+		if (bCanonicalItem) ItemDefinition = nullptr;
 		const FGridWeaponLevelProfile* LevelProfile = nullptr;
 		if (!bCanonicalItem && IsValid(ItemDefinition) &&
 			ItemDefinition->bUseWeaponCatalogue && FixedItemLevel > 0)
@@ -394,6 +397,17 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 		ItemInstance.OwnerCharacterIndex = INDEX_NONE;
 		ItemInstance.EquipmentSlot = EGridEquipmentSlot::None;
 		ItemInstance.bLightsEnabled = ItemDefinition && ItemDefinition->IsLightEnabledByDefault();
+		if (bCanonicalItem)
+		{
+			FGridResolvedItem Canonical;
+			if (!Registry->ResolveItem(ItemInstance.ItemDefinitionId, FixedItemLevel, Canonical))
+			{
+				++FailedLootCount;
+				continue;
+			}
+			ItemInstance.bLightsEnabled = Canonical.LightEmitter.HasEmitter() &&
+				Canonical.LightEmitter.bDefaultEnabled;
+		}
 
 		const FVector LocalOffset = GetMON8LootLocalOffset(PlacedLootCount);
 		if (RuntimeActor)

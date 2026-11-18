@@ -14,8 +14,8 @@
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/Package.h"
 
-/** X.48/X.59: 99 migrated references remain pointerless.
- * Only all three or none of the dormant pointers may remain; five loots stay strict.
+/** X.48/X.60: 102 migrated references remain removed.
+ * Five loot rows remain; only Stone may be canonical-only.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X48PostNativeRefs,
     "Grimrock.RPG.ARM.CLEAN06_4X48.PostNative63ReferenceBaseline",
@@ -250,14 +250,18 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         {
             ++MonsterRows;
             if (Loot.ItemDefinitionAsset) ++MonsterOld;
-            if (!IsValid(Loot.ItemDefinitionAsset.Get()) ||
-                !Loot.ItemDefinitionId.IsNone() || Loot.ItemLevel != 0 ||
+            const UGridItemDefinitionAsset* Old = Loot.ItemDefinitionAsset.Get();
+            const FName Id = Loot.GetResolvedItemDefinitionId();
+            const bool bStone = FString(Path) == FString(MonsterPaths[0]) && Id == FName(TEXT("Stone"));
+            if ((!Old && (!bStone || Loot.ItemDefinitionId != Id)) ||
+                (Old && (!IsValid(Old) || !Loot.ItemDefinitionId.IsNone())) ||
+                !Loot.IsValidDefinition() || Loot.ItemLevel != 0 ||
                 Loot.MinQuantity < 1 || Loot.MaxQuantity < Loot.MinQuantity)
             {
                 AddError(TEXT("Historical monster loot unexpectedly modified."));
                 return false;
             }
-            if (Known.Contains(Loot.ItemDefinitionAsset->ItemDefinitionId))
+            if (Known.Contains(Id))
                 ++MonsterRegistered;
         }
         if (!TestEqual(TEXT("Monster package remains unmodified"),
@@ -282,9 +286,8 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         TestEqual(TEXT("No historical item spawns"), ItemSpawns, 0) &&
         TestEqual(TEXT("X.58B initial pointers remain removed"), InitialOld, 0) &&
         TestEqual(TEXT("18 total initial entries"), InitialTotal, 18) &&
-        TestTrue(TEXT("All three dormant references or none"),
-            (ReceptacleOverrideOld == 1 && LockOverrideOld == 2) ||
-            (ReceptacleOverrideOld == 0 && LockOverrideOld == 0)) &&
+        TestEqual(TEXT("X.59B dormant receptacle reference remains removed"), ReceptacleOverrideOld, 0) &&
+        TestEqual(TEXT("X.59B dormant lock references remain removed"), LockOverrideOld, 0) &&
         TestEqual(TEXT("No activated dormant overrides"), ActiveAcceptanceOverrides, 0) &&
         TestEqual(TEXT("33 direct palette rows remain"), PaletteRows, 33) &&
         TestEqual(TEXT("X.57B palette remains pointerless"), PaletteOld, 0) &&
@@ -292,11 +295,10 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         TestEqual(TEXT("X.54B shared lock pointers remain removed"), LockKeys, 0) &&
         TestEqual(TEXT("Two shared receptacle assets"), RuleAssets, 2) &&
         TestEqual(TEXT("Two shared lock assets"), LockAssets, 2) &&
-        TestEqual(TEXT("Five historic monster loot sources"), MonsterOld, 5) &&
+        TestTrue(TEXT("Only Stone may have completed native migration"), MonsterOld == 5 || MonsterOld == 4) &&
         TestEqual(TEXT("Five historic loot rows"), MonsterRows, 5) &&
         TestEqual(TEXT("One already registered monster loot identity"), MonsterRegistered, 1) &&
-        TestEqual(TEXT("Exactly 8 before dormant cleanup or 5 after"),
-            Remaining, ReceptacleOverrideOld == 1 ? 8 : 5) &&
+        TestEqual(TEXT("Exactly five or four remaining sources"), Remaining, MonsterOld) &&
         TestEqual(TEXT("Canonical root remains unmodified"), Root->GetOutermost()->IsDirty(), bRootDirty);
 }
 #endif

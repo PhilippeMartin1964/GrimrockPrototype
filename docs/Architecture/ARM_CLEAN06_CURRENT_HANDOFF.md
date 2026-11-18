@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.60 — transaction Stone et evidence des quatre autres loots
+
+**Parent :** `1cf5ace7e979eac8843bd9e556a382cb4bc0c8f2` (X.59B, SilentTask + LocalAuto SUCCESS, 1993 tests, PIE 8/8). [Rapport X.60](ARM_CLEAN06_4X60_STONE_LOOT_PROTECTED_TRANSACTION.md).
+
+Le seul loot déjà enregistré Stone N0 a une projection pointerless exacte, manifeste complet de deux monstres, 128 seeds de parité, test de mort/placement réel, adaptation X.48 et TD07. Le composant de mort cesse le lookup legacy pour les IDs enregistrés : lumière canonique, ancienne source directe uniquement pour niveau ARM hérité pendant migration. Commandlet/runner protègent le seul DA_MON_GoblinThrower. Preflight journalise et exporte les cinq définitions historiques ; quatre hors registre restent inchangées (GoblinKnife sans ARM ; RatMeat Food avec ancienne autorisation Consume ; EmptyVial et RatTooth à projeter). **Pas d'Apply par ce commit : 5 références restent, 4 après X.60B réel.** 06.4 partielle, 06.5 bloquée, v27 préservé. Ne pas relancer anciens outils.
+
 ## ARM-CLEAN06.4X.59 — nettoyage protégé des trois overrides dormants
 
 **Parent :** `d59d3cb25dd43d02c6b14c8cad340bdf23d81896` (X.58B : 18 contenus natifs migrés, deux statuts Windows SUCCESS, 1992 tests réussis, 8/8 éditeur/PIE). [Rapport X.59](ARM_CLEAN06_4X59_DORMANT_OVERRIDES_PROTECTED_TRANSACTION.md).

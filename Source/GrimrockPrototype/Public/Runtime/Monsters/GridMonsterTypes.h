@@ -331,7 +331,7 @@ struct FGridMonsterDamageModifier
 };
 
 USTRUCT(BlueprintType)
-struct FGridMonsterLootEntry
+struct GRIMROCKPROTOTYPE_API FGridMonsterLootEntry
 {
 	GENERATED_BODY()
 

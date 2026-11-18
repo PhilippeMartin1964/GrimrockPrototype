@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "GridTypedPlacementAuditTestUtils.h"
 #include "GridEditorTD073ApprovedCanonicalLockAcceptance.h"
+#include "GridEditorTD073ApprovedCanonicalStoneLoot.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -111,6 +112,7 @@ namespace GridTD0738StrictSchema
 			for (int32 LootIndex = 0; LootIndex < Monster->LootTable.Num(); ++LootIndex)
 			{
 				const FGridMonsterLootEntry& Loot = Monster->LootTable[LootIndex];
+				if (GridTD073ApprovedCanonicalStoneLoot::IsExact(AssetPath, LootIndex, Loot)) continue;
 				const UGridItemDefinitionAsset* Item = Loot.ItemDefinitionAsset.Get();
 				AuditPair(AssetPath, FString::Printf(TEXT("LootTable[%d]"), LootIndex), Item, Item ? Item->ItemDefinitionId : NAME_None, Loot.ItemDefinitionId,
 					Candidates);
