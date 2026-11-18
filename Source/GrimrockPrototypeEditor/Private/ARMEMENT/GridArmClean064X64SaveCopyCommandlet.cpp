@@ -1,5 +1,6 @@
 #include "ARMEMENT/GridArmClean064X64SaveCopyCommandlet.h"
 #include "GridEditorAlchemySaveCopy.h"
+#include "GridEditorReadableSaveRepair.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Parse.h"
@@ -51,6 +52,8 @@ UGridArmClean064X64SaveCopyCommandlet::UGridArmClean064X64SaveCopyCommandlet()
 int32 UGridArmClean064X64SaveCopyCommandlet::Main(const FString& Params)
 {
     FString Root, Slot;
+    const bool bRepairReadables = FParse::Param(*Params, TEXT("RepairReadables"));
+    const auto Convert = bRepairReadables ? &GridEditorReadableSaveRepair::Convert : &GridEditorAlchemySaveCopy::Convert;
     if (!FParse::Param(*Params, TEXT("ConvertCopy")) ||
         FParse::Param(*Params, TEXT("Apply")) || FParse::Param(*Params, TEXT("Publish")) ||
         !FParse::Value(*Params, TEXT("SnapshotRoot="), Root) || FPaths::IsRelative(Root) ||
@@ -72,7 +75,7 @@ int32 UGridArmClean064X64SaveCopyCommandlet::Main(const FString& Params)
     if (!FFileHelper::LoadFileToArray(Before, *Input)) return 2;
     int32 Changed = INDEX_NONE;
     FString Error;
-    if (!GridEditorAlchemySaveCopy::Convert(Before, After, Changed, Error))
+    if (!Convert(Before, After, Changed, Error))
     {
         UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.4X64] Copy refused: %s"), *Error);
         return 3;
@@ -92,9 +95,9 @@ int32 UGridArmClean064X64SaveCopyCommandlet::Main(const FString& Params)
         !FFileHelper::LoadFileToArray(Current, *Input) || Current != Before) return 6;
     TArray<uint8> Verified;
     int32 Residual = INDEX_NONE;
-    if (!GridEditorAlchemySaveCopy::Convert(Readback, Verified, Residual, Error) ||
+    if (!Convert(Readback, Verified, Residual, Error) ||
         Residual != 0 || Verified != Readback) return 6;
-    UE_LOG(LogTemp, Display, TEXT("[ARM-CLEAN06.4X64] VERIFIED COPY bindings=%d bytes=%d file=%s"),
-        Changed, Readback.Num(), *Slot);
+    UE_LOG(LogTemp, Display, TEXT("[%s] VERIFIED COPY changes=%d bytes=%d file=%s"),
+        bRepairReadables ? TEXT("ARM-CLEAN06.5B") : TEXT("ARM-CLEAN06.4X64"), Changed, Readback.Num(), *Slot);
     return 0;
 }

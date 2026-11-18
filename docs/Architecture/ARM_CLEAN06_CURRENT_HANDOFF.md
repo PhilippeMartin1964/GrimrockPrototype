@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5B — traitement des readables sur copies uniquement
+
+Parent `177664b26aa07debf775b1f16716844037345112` : SilentTask/LocalAuto SUCCESS ; audit opérateur 5A.1 terminé, 48↔48 IDs, 466 résolutions, 54 candidats, une seule arête externe WBP_GridCombatHudAction → DA_EquippedWeaponActionIcons. 7/7 v27 décodables et live inchangé ; 172 entrées objets, 33 caches nom/poids, zéro ID inconnu, zéro pointeur projectile/pending, deux anciens chemins readables et deux IDs sans pointeur dans une seule save. Les quatre fichiers MON188 restent protégés. [5B](ARM_CLEAN06_5B_READABLE_SAVE_REPAIR.md). Réparation ponctuelle Editor-only par identité réelle des deux readables déplacés ; correspondance exacte des occurrences du chemin ancien et des champs nuls, preuve round-trip et refus d'ambiguïté, no-op octet exact. Aucun fallback runtime, aucune installation live ni suppression ; les readables ne sont pas des anciennes définitions d'objets. Mode -RepairReadables du runner X.64, reçu distinct. Attendre deux statuts du SHA code puis copies privées vérifiées. Kits et lecteurs/caches à traiter ensuite, WBP et anciens packages seulement après. PIE dû.
+
 ## ARM-CLEAN06.5A.1 — correction du wrapper Git de l'audit
 
 Parent `a202b99882de3e1499a02d48885e78fad1e6f810` : SilentTask + LocalAuto SUCCESS ; lancement opérateur du script 5A en échec CallDepthOverflow avant toute copie/commande Unreal. La fonction Git masquait git (PowerShell insensible à la casse). Wrapper renommé Invoke-ArmRetirementGit, chemin git.exe résolu comme Application. ValidateUE appelle désormais le script réel avec -SelfTest (HEAD/status et copie/hash de fichier synthétique, sans lecture de saves réelles ni réseau/UE). Nouveau SHA à valider, puis audit opérateur lecture seule sur copies ; aucune suppression. Inutile de restaurer la transaction précédente pour cet échec de préflight.

@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
 #include "../ARMEMENT/GridEditorAlchemySaveCopy.h"
+#include "../ARMEMENT/GridEditorReadableSaveRepair.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGCharacterPortraitSetAsset.h"
@@ -319,6 +320,79 @@ bool FGridEditorARMCLEAN064X66ColdNativeSave::RunTest(const FString&)
     Invalid.Attributes.Strength = 99;
     TestFalse(TEXT("Genuinely invalid attribute still rejected"), FRPGAttributePointService::TryGetBalance(Invalid, Balance));
     TestTrue(TEXT("Native assets untouched"), !Class->GetOutermost()->IsDirty() && !Race->GetOutermost()->IsDirty());
+    return !HasAnyErrors();
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN065ReadableSaveRepair,
+    "Grimrock.Editor.ARM.CLEAN06_5B.ReadableSaveRepair",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorARMCLEAN065ReadableSaveRepair::RunTest(const FString&)
+{
+    namespace Repair = GridEditorReadableSaveRepair;
+    FIdentityGuard Guard;
+    TArray<Repair::FMapping> Mappings;
+    FString Error;
+    if (!TestTrue(TEXT("Both moved real readable assets have distinct durable IDs"),
+        Repair::LoadMappings(Mappings, Error))) { AddError(Error); return false; }
+    TStrongObjectPtr<UGridPartyInventoryComponent> Inventory(NewObject<UGridPartyInventoryComponent>());
+    TStrongObjectPtr<UGrimrockPartySaveGame> Save(NewObject<UGrimrockPartySaveGame>());
+    if (!TestTrue(TEXT("Valid v27 fixture"), MakeFixture(*Inventory.Get(), *Save.Get()))) return false;
+    auto& First = Save->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item;
+    auto& Second = Save->PartyInventoryState.CharacterPool[0].InventorySlots[0].Item;
+    First.ReadableContentId = Mappings[0].Asset->ReadableContentId;
+    Second.ReadableContentId = Mappings[1].Asset->ReadableContentId;
+    First.ReadTitleOverride = FText::FromString(TEXT("Preserve existing override"));
+    TArray<uint8> Evidence;
+    for (const auto& Mapping : Mappings)
+    {
+        for (TCHAR Ch : Mapping.OldPath) Evidence.Add(uint8(Ch));
+        Evidence.Add(0);
+    }
+    TArray<Repair::FPatch> Patches;
+    TestTrue(TEXT("Two old path candidates match two decoded IDs"),
+        Repair::Plan(*Save.Get(), Mappings, Evidence, Patches, Error));
+    TestEqual(TEXT("Exactly two pointer patches"), Patches.Num(), 2);
+    TestTrue(TEXT("Planning is read only"), !First.ReadableContentAsset && !Second.ReadableContentAsset);
+    const auto CorrectId = Second.ReadableContentId;
+    Second.ReadableContentId = TEXT("Unknown_Readable_5B");
+    TestFalse(TEXT("Unknown ID refuses whole plan"),
+        Repair::Plan(*Save.Get(), Mappings, Evidence, Patches, Error));
+    TestTrue(TEXT("No partial patches"), Patches.IsEmpty() && !First.ReadableContentAsset);
+    Second.ReadableContentId = CorrectId;
+    if (!TestTrue(TEXT("Restore matching plan"), Repair::Plan(*Save.Get(), Mappings, Evidence, Patches, Error)))
+        return false;
+    Repair::Apply(Patches);
+    TestTrue(TEXT("Actual moved assets restored"),
+        First.ReadableContentAsset.Get() == Mappings[0].Asset && Second.ReadableContentAsset.Get() == Mappings[1].Asset);
+    TestEqual(TEXT("Existing title override retained"), First.ReadTitleOverride.ToString(), FString(TEXT("Preserve existing override")));
+    TArray<uint8> Bytes;
+    if (!TestTrue(TEXT("Real v27 encoding with repaired pointers"), Copy::EncodeChecked(*Save.Get(), Bytes, Error)))
+        return false;
+    TStrongObjectPtr<UGrimrockPartySaveGame> Reload(Copy::LoadExact(Bytes, Error));
+    if (!TestNotNull(TEXT("Real v27 reload"), Reload.Get())) return false;
+    TestTrue(TEXT("Both pointers survive real archive serialization"),
+        Reload->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.ReadableContentAsset.Get() == Mappings[0].Asset &&
+        Reload->PartyInventoryState.CharacterPool[0].InventorySlots[0].Item.ReadableContentAsset.Get() == Mappings[1].Asset);
+    TestTrue(TEXT("Override survives"), Reload->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.ReadTitleOverride.EqualTo(First.ReadTitleOverride));
+    TArray<uint8> Again;
+    int32 Count = INDEX_NONE;
+    TestTrue(TEXT("Repaired copy is an exact no-op"), Repair::Convert(Bytes, Again, Count, Error));
+    TestEqual(TEXT("No further changes"), Count, 0);
+    TestTrue(TEXT("No-op retains every byte"), Again == Bytes);
+
+    // A raw text occurrence alone is not proof of a serialized pointer.
+    // If the old path survives as meaningful text, refuse the full conversion.
+    First.ReadableContentAsset = nullptr;
+    Second.ReadableContentAsset = nullptr;
+    First.ReadTextOverride = FText::FromString(Mappings[0].OldPath);
+    Second.ReadTextOverride = FText::FromString(Mappings[1].OldPath);
+    if (!TestTrue(TEXT("Serialize misleading raw path in text fields"), Copy::EncodeChecked(*Save.Get(), Bytes, Error)))
+        return false;
+    const auto Original = Bytes;
+    TestFalse(TEXT("Old path remaining in text rejects conversion"), Repair::Convert(Bytes, Again, Count, Error));
+    TestTrue(TEXT("No candidate, no source mutation"), Again.IsEmpty() && Count == 0 && Bytes == Original);
     return !HasAnyErrors();
 }
 

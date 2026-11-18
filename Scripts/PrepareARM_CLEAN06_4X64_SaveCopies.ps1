@@ -5,7 +5,8 @@ param(
     [Parameter(Mandatory=$true)][string]$StateRoot,
     [Parameter(Mandatory=$true)][string]$SaveDirectory,
     [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-f]{40}$')][string]$ExpectedHead,
-    [switch]$PassThru
+    [switch]$PassThru,
+    [switch]$RepairReadables
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -96,7 +97,8 @@ if ($Busy.Count -ne 0) { throw 'Close the editor and game before capturing save 
 if ($LASTEXITCODE -ne 0) { throw 'Local commandlet build failed.' }
 AssertGit
 $Before = @(InventorySaves)
-$Run = Join-Path $StateRoot ('ARM_CLEAN06_4X64_'+$ExpectedHead.Substring(0,12)+'_'+[guid]::NewGuid().ToString('N'))
+$Prefix = if ($RepairReadables) { 'ARM_CLEAN06_5B_' } else { 'ARM_CLEAN06_4X64_' }
+$Run = Join-Path $StateRoot ($Prefix+$ExpectedHead.Substring(0,12)+'_'+[guid]::NewGuid().ToString('N'))
 if (Test-Path -LiteralPath $Run) { throw 'Snapshot collision.' }
 [void](New-Item -ItemType Directory -Path $Run)
 $Original = Join-Path $Run 'Original'
@@ -115,7 +117,9 @@ foreach ($Row in $Before) {
 foreach ($Row in $Before) {
     $Copy = Join-Path $Original $Row.name
     $Target = Join-Path $Converted $Row.name
-    & $Editor $Project '-run=GridArmClean064X64SaveCopy' '-ConvertCopy' "-SnapshotRoot=$Run" "-File=$($Row.name)" '-Unattended' '-NoP4' '-NoSplash' '-NoSound' '-NullRHI' | Out-Host
+    $ModeArgs = @()
+    if ($RepairReadables) { $ModeArgs += '-RepairReadables' }
+    & $Editor $Project '-run=GridArmClean064X64SaveCopy' '-ConvertCopy' "-SnapshotRoot=$Run" "-File=$($Row.name)" '-Unattended' '-NoP4' '-NoSplash' '-NoSound' '-NullRHI' @ModeArgs | Out-Host
     if ($LASTEXITCODE -ne 0) { throw ('Copy conversion failed: '+$Row.name) }
     if (-not (Test-Path -LiteralPath $Target -PathType Leaf) -or (Sha $Copy) -cne $Row.sha256) {
         throw ('Copy receipt invalid: '+$Row.name)
@@ -126,7 +130,7 @@ $End = @(InventorySaves)
 if ((ReceiptString $Before) -cne (ReceiptString $End)) { throw 'Live save set changed during conversion. Do not install these candidates.' }
 AssertGit
 $Report = [pscustomobject]@{
-    schema='ARM-CLEAN06.4X64/save-copy-receipt/v1'
+    schema=$(if ($RepairReadables) { 'ARM-CLEAN06.5B/readable-copy-receipt/v1' } else { 'ARM-CLEAN06.4X64/save-copy-receipt/v1' })
     head=$ExpectedHead
     source_directory=$SaveDirectory
     snapshot=$Run
@@ -137,6 +141,7 @@ $Report = [pscustomobject]@{
 }
 $Receipt = Join-Path $Run 'verified-copies.json'
 $Report | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $Receipt -Encoding UTF8
-Write-Host ('[ARM-CLEAN06.4X64] VERIFIED OFFLINE COPIES '+$Before.Count+' '+$Receipt)
+$Label = if ($RepairReadables) { 'ARM-CLEAN06.5B' } else { 'ARM-CLEAN06.4X64' }
+Write-Host ('['+$Label+'] VERIFIED OFFLINE COPIES '+$Before.Count+' '+$Receipt)
 
 if ($PassThru) { Write-Output $Receipt }
