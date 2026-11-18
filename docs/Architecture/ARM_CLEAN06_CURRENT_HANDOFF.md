@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5A — inventaire de retrait (ne pas supprimer)
+
+X.66B binaire `52fdac2a79cd8f33660996b527b9c69b1c69a6ac` validé SilentTask + LocalAuto, exactement 12 packages, 48 définitions/14 actions, 107/107 références de X.48, 2006 Automation réussis dont 31 avertis, aucune save modifiée (isolation OK, zéro résidu). PIE alchimie reste dû. [Audit 5A](ARM_CLEAN06_5A_RETIREMENT_EVIDENCE.md) : scan natif final des anciens packages et des copies v27, y compris pointeurs de monde toujours sérialisés, caches DisplayName/Weight, readables déplacés et chemins bruts. Aucune suppression jusqu'à examen des preuves. Après validation du SHA 5A, exécuter l'audit local en lecture seule sur copies et transmettre retirement-evidence.json ; aucune relance des anciens scripts Apply. Les quatre anciens MON188 restent protégés. 06.4 non clôturée globalement, 06.5 préparatoire, 06.6 non faite, v27 préservée.
+
 ## ARM-CLEAN06.4X.66F.1 — remplacement atomique PowerShell 5.1
 
 Le premier SHA X.66F `f3bf06b62aa94f5b97ffd0643fce3e629ab2bcc1` a obtenu SilentTask success, LocalAuto failure au PREFLIGHT ([issue #195](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/195)), avant Unreal. Cause probable identifiée par revue : le paramètre de backup .NET File.Replace reçoit un $null PowerShell susceptible de devenir une chaîne vide. La restauration des packages et l'installation/restauration des saves utilisent désormais le même helper compare-and-replace avec NullString.Value, vérification après écriture et tests synthétiques aller/retour du vrai helper. Phases fixes des tests publiables par l'agent sans chemin, contenu ou diagnostic privé. Pas de réécriture de master ; deux statuts du nouveau SHA nécessaires. Ne pas lancer X.66B sur le SHA F en échec.

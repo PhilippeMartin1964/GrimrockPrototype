@@ -1,6 +1,6 @@
 # ARM-CLEAN06 — Plan de refonte et de migration sans legacy final
 
-**Statut au 17 novembre 2026 : plan normatif approuvé ; exécution en cours.** La première conversion native (44 objets libres de `DA_GridLevel_00.uasset`) a été publiée et validée techniquement dans le commit `cd177cd5473c8ab3777bfecae56cd0e33abd23eb`. ARM-CLEAN06.4 reste **partielle** et la recette PIE post-conversion est due. Plan initial du 13 novembre 2026. Source de vérité : [contrat ARM-CLEAN06](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md). **Ne pas présenter le modèle cible comme déjà implémenté.**
+**Statut au 18 novembre 2026 : plan normatif approuvé ; exécution en cours.** X.66B `52fdac2a79cd8f33660996b527b9c69b1c69a6ac` publié : 48 définitions, 14 actions détaillées, 107/107 références du périmètre X.48, deux validations Windows SUCCESS ; sauvegardes inchangées. Recette PIE alchimie, audit du legacy restant dans les packages, sources et sauvegardes, retrait 06.5 puis recette 06.6 encore dus. Voir [5A](ARM_CLEAN06_5A_RETIREMENT_EVIDENCE.md). Source de vérité : [contrat ARM-CLEAN06](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md). **Ne pas présenter le modèle cible comme déjà implémenté.**
 
 ## 1. Invariants de migration
 
