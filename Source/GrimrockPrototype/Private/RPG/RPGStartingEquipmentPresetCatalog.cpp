@@ -1,6 +1,7 @@
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
 
 #include "RPG/RPGClassAsset.h"
+#include "GridStartingKitEquipmentPolicyReadModel.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UI/UILocalizationText.h"
@@ -13,6 +14,9 @@ namespace RPGStartingPresets
         const TCHAR* AssetName;
         EGridEquipmentSlot Slot;
         int32 Quantity = 1;
+        // Explicit canonical physical identity for approved production recipes.
+        const TCHAR* ItemId = nullptr;
+        int32 ItemLevel = 0;
     };
 
     struct FKitSpec
@@ -91,77 +95,69 @@ namespace RPGStartingPresets
     const FApprovedKitSpec ApprovedKits[] =
     {
         {TEXT("Warrior"), TEXT("Guardian"),
-            {TEXT("DA_Weapon_StraightSword_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand},
+            {TEXT("DA_Weapon_StraightSword_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_StraightSword_01"), 1}, {TEXT("DA_Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand, 1, TEXT("Weapon_RoundShield_01"), 1},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Warrior"), TEXT("Breaker"),
-            {TEXT("DA_Weapon_GreatAxe_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
+            {TEXT("DA_Weapon_GreatAxe_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_GreatAxe_01"), 1}, {nullptr, EGridEquipmentSlot::None},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Warrior"), TEXT("WeaponMaster"),
-            {TEXT("DA_Weapon_LongSword_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_WarPick_01"), EGridEquipmentSlot::None},
+            {TEXT("DA_Weapon_LongSword_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_LongSword_01"), 1}, {TEXT("DA_Weapon_WarPick_01"), EGridEquipmentSlot::None, 1, TEXT("Weapon_WarPick_01"), 1},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Rogue"), TEXT("Shadow"),
-            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_MainGauche_01"), EGridEquipmentSlot::OffHand},
+            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_Dagger_01"), 1}, {TEXT("DA_Weapon_MainGauche_01"), EGridEquipmentSlot::OffHand, 1, TEXT("Weapon_MainGauche_01"), 1},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Rogue"), TEXT("Assassin"),
-            {TEXT("DA_Weapon_AssassinDagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_ThrowingKnife_01"), EGridEquipmentSlot::None},
+            {TEXT("DA_Weapon_AssassinDagger_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_AssassinDagger_01"), 1}, {TEXT("DA_Weapon_ThrowingKnife_01"), EGridEquipmentSlot::None, 1, TEXT("Weapon_ThrowingKnife_01"), 1},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         // ARMEMENT01.16.3: real reusable N1 tools in the bag. No automatic
         // Skill_Traps rank or level-2 talent is granted by a starter kit.
         {TEXT("Rogue"), TEXT("Saboteur"),
-            {TEXT("DA_Weapon_Stiletto_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Item_DisarmTools_01"), EGridEquipmentSlot::None},
+            {TEXT("DA_Weapon_Stiletto_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_Stiletto_01"), 1}, {TEXT("DA_Item_DisarmTools_01"), EGridEquipmentSlot::None, 1, TEXT("Item_DisarmTools_01"), 0},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Ranger"), TEXT("Marksman"),
-            {TEXT("DA_Weapon_ShortBow_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None},
-            {TEXT("DA_Item_Arrows_01"), EGridEquipmentSlot::None, 12}, {nullptr, EGridEquipmentSlot::None} },
+            {TEXT("DA_Weapon_ShortBow_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_ShortBow_01"), 1}, {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None, 1, TEXT("Weapon_Dagger_01"), 1},
+            {TEXT("DA_Item_Arrows_01"), EGridEquipmentSlot::None, 12, TEXT("Item_Arrows_01"), 0}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Ranger"), TEXT("Hunter"),
-            {TEXT("DA_Weapon_ShortSpear_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_Javelin_01"), EGridEquipmentSlot::None},
+            {TEXT("DA_Weapon_ShortSpear_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_ShortSpear_01"), 1}, {TEXT("DA_Weapon_Javelin_01"), EGridEquipmentSlot::None, 1, TEXT("Weapon_Javelin_01"), 1},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Ranger"), TEXT("Scout"),
-            {TEXT("DA_Weapon_RecurveBow_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None},
-            {TEXT("DA_Item_Torch"), EGridEquipmentSlot::None}, {TEXT("DA_Item_Arrows_01"), EGridEquipmentSlot::None, 12} },
+            {TEXT("DA_Weapon_RecurveBow_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_RecurveBow_01"), 1}, {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::None, 1, TEXT("Weapon_Dagger_01"), 1},
+            {TEXT("DA_Item_Torch"), EGridEquipmentSlot::None, 1, TEXT("Item_Torch"), 0}, {TEXT("DA_Item_Arrows_01"), EGridEquipmentSlot::None, 12, TEXT("Item_Arrows_01"), 0} },
         {TEXT("Mage"), TEXT("Arcanist"),
-            {TEXT("DA_Weapon_ArcaneWand_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_ArcaneOrb_01"), EGridEquipmentSlot::OffHand},
+            {TEXT("DA_Weapon_ArcaneWand_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_ArcaneWand_01"), 1}, {TEXT("DA_Weapon_ArcaneOrb_01"), EGridEquipmentSlot::OffHand, 1, TEXT("Weapon_ArcaneOrb_01"), 1},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Mage"), TEXT("Evoker"),
-            {TEXT("DA_Weapon_FireWand_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
+            {TEXT("DA_Weapon_FireWand_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_FireWand_01"), 1}, {nullptr, EGridEquipmentSlot::None},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         // ARMEMENT01.17.2B: exactly one finished N1 consumable catalyst,
         // distinct from the N2+ Mage SurfaceWeaver talent abilities.
         {TEXT("Mage"), TEXT("SurfaceWeaver"),
-            {TEXT("DA_Weapon_ElementalStaff_01"), EGridEquipmentSlot::MainHand}, {nullptr, EGridEquipmentSlot::None},
-            {TEXT("DA_Item_SurfaceCatalyst_01"), EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+            {TEXT("DA_Weapon_ElementalStaff_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_ElementalStaff_01"), 1}, {nullptr, EGridEquipmentSlot::None},
+            {TEXT("DA_Item_SurfaceCatalyst_01"), EGridEquipmentSlot::None, 1, TEXT("Item_SurfaceCatalyst_01"), 0}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Priest"), TEXT("Protection"),
-            {TEXT("DA_Weapon_Mace_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand},
+            {TEXT("DA_Weapon_Mace_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_Mace_01"), 1}, {TEXT("DA_Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand, 1, TEXT("Weapon_RoundShield_01"), 1},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Priest"), TEXT("Restoration"),
-            {TEXT("DA_Weapon_HolyScepter_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Item_Potion_Healing_01"), EGridEquipmentSlot::None},
+            {TEXT("DA_Weapon_HolyScepter_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_HolyScepter_01"), 1}, {TEXT("DA_Item_Potion_Healing_01"), EGridEquipmentSlot::None, 1, TEXT("Item_Potion_Healing_01"), 0},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Priest"), TEXT("Exorcism"),
-            {TEXT("DA_Weapon_HolyScepter_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_HolyAegis_01"), EGridEquipmentSlot::OffHand},
+            {TEXT("DA_Weapon_HolyScepter_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_HolyScepter_01"), 1}, {TEXT("DA_Weapon_HolyAegis_01"), EGridEquipmentSlot::OffHand, 1, TEXT("Weapon_HolyAegis_01"), 1},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Alchemist"), TEXT("Apothecary"),
-            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Item_Potion_Healing_01"), EGridEquipmentSlot::None},
+            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_Dagger_01"), 1}, {TEXT("DA_Item_Potion_Healing_01"), EGridEquipmentSlot::None, 1, TEXT("Item_Potion_Healing_01"), 0},
             {nullptr, EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
         {TEXT("Alchemist"), TEXT("Grenadier"),
-            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_Dart_01"), EGridEquipmentSlot::None},
-            {TEXT("DA_Item_Bomb_Fire"), EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} },
+            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_Dagger_01"), 1}, {TEXT("DA_Weapon_Dart_01"), EGridEquipmentSlot::None, 1, TEXT("Weapon_Dart_01"), 1},
+            {TEXT("DA_Item_Bomb_Fire"), EGridEquipmentSlot::None, 1, TEXT("Item_Bomb_Fire"), 0}, {nullptr, EGridEquipmentSlot::None} },
         // ARMEMENT01.17.1: one finished Oil flask is a usable N1
         // QuickItem; it is not a crafting recipe or a granted N2 talent.
         {TEXT("Alchemist"), TEXT("Transmuter"),
-            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand}, {TEXT("DA_Weapon_ArcaneOrb_01"), EGridEquipmentSlot::OffHand},
-            {TEXT("DA_Item_Flask_Oil"), EGridEquipmentSlot::None}, {nullptr, EGridEquipmentSlot::None} }
+            {TEXT("DA_Weapon_Dagger_01"), EGridEquipmentSlot::MainHand, 1, TEXT("Weapon_Dagger_01"), 1}, {TEXT("DA_Weapon_ArcaneOrb_01"), EGridEquipmentSlot::OffHand, 1, TEXT("Weapon_ArcaneOrb_01"), 1},
+            {TEXT("DA_Item_Flask_Oil"), EGridEquipmentSlot::None, 1, TEXT("Item_Flask_Oil"), 0}, {nullptr, EGridEquipmentSlot::None} }
     };
 
     bool AddItem(FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec, FString& OutError,
         const UGridItemSubsystem* Registry = nullptr);
-
-    FName CanonicalAlchemyStarterId(const TCHAR* AssetName)
-    {
-        if (!AssetName) return NAME_None;
-        if (FCString::Strcmp(AssetName, TEXT("DA_Item_Bomb_Fire")) == 0) return TEXT("Item_Bomb_Fire");
-        if (FCString::Strcmp(AssetName, TEXT("DA_Item_Flask_Oil")) == 0) return TEXT("Item_Flask_Oil");
-        return NAME_None;
-    }
 
     bool AddApprovedItem(FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec, FString& OutError,
         const UGridItemSubsystem* Registry)
@@ -218,30 +214,41 @@ namespace RPGStartingPresets
         FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec,
         FString& OutError, const UGridItemSubsystem* Registry)
     {
-        const FName CanonicalId = CanonicalAlchemyStarterId(Spec.AssetName);
-        if (!CanonicalId.IsNone() && Registry && Registry->HasCanonicalItem(CanonicalId))
+        if (Registry)
         {
+            const FName ItemId(Spec.ItemId);
             FGridResolvedItem Resolved;
-            FGridCombatActionDefinition Action;
-            if (Spec.Slot != EGridEquipmentSlot::None || Spec.Quantity != 1 ||
-                !Registry->ResolveItem(CanonicalId, 0, Resolved) || !Resolved.IsValid() ||
-                Resolved.bIsArmament || Resolved.MaxStack < 1 ||
-                Resolved.AvailableActions.Num() != 1 ||
-                !Registry->ResolveDetailedNonArmAction(CanonicalId, 0, Resolved.AvailableActions[0].ActionId, Action) ||
-                Action.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem)
+            if (ItemId.IsNone() || !Registry->ResolveItem(ItemId, Spec.ItemLevel, Resolved) ||
+                !Resolved.IsValid() || Resolved.bIsArmament != (Spec.ItemLevel == 1) ||
+                Spec.Quantity < 1 || Spec.Quantity > FMath::Max(1, Resolved.MaxStack) ||
+                (Spec.Slot != EGridEquipmentSlot::None &&
+                    (Spec.Quantity != 1 || !FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+                        Registry, ItemId, Spec.ItemLevel, Spec.Slot).bResolved)))
             {
-                OutError = FString::Printf(TEXT("Invalid registered alchemy starter: %s"), *CanonicalId.ToString());
-                return false; // Registered-but-broken never falls back to old asset.
+                OutError = FString::Printf(TEXT("Invalid canonical starter: %s N%d"), *ItemId.ToString(), Spec.ItemLevel);
+                return false; // Missing registry entry is NOT permission to load an old asset.
+            }
+            if (ItemId == FName(TEXT("Item_Bomb_Fire")) || ItemId == FName(TEXT("Item_Flask_Oil")))
+            {
+                FGridCombatActionDefinition Action;
+                if (Resolved.AvailableActions.Num() != 1 ||
+                    !Registry->ResolveDetailedNonArmAction(ItemId, Spec.ItemLevel, Resolved.AvailableActions[0].ActionId, Action) ||
+                    Action.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem)
+                {
+                    OutError = TEXT("Invalid canonical alchemy starter action.");
+                    return false;
+                }
             }
             FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
-            Entry.CanonicalItemId = CanonicalId;
-            Entry.ItemLevel = 0;
-            Entry.Quantity = 1;
-            Entry.TargetSlot = EGridEquipmentSlot::None;
+            Entry.CanonicalItemId = ItemId;
+            Entry.ItemLevel = Spec.ItemLevel;
+            Entry.Quantity = Spec.Quantity;
+            Entry.TargetSlot = Spec.Slot;
             return true;
         }
-        // Temporary only: unregistered identities and historical no-world
-        // characterization fixtures still require their original source.
+        // Historical worldless fixtures and the old two-kit editor audit
+        // remain until their retirement. Production with a registry never
+        // loads these paths or uses them as fallback.
         UGridItemDefinitionAsset* Definition = ResolveItem(Spec.AssetName);
         if (!IsValid(Definition) || Definition->ItemDefinitionId.IsNone() ||
             (Spec.Slot != EGridEquipmentSlot::None && !Definition->CanEquipToSlot(Spec.Slot)))
@@ -416,6 +423,13 @@ bool FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
         return TransientClass.IsValidDefinition();
     }
 
+#if !WITH_DEV_AUTOMATION_TESTS
+    if (!CanonicalRegistry)
+    {
+        OutError = TEXT("Production starter kits require the canonical ItemSystem.");
+        return false;
+    }
+#endif
     TArray<FRPGStartingEquipmentKit> Candidate;
     FName DefaultId = NAME_None;
     for (const RPGStartingPresets::FApprovedKitSpec& Spec : RPGStartingPresets::ApprovedKits)

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5C — kits de départ canoniques
+
+5B.1 `5bf6ae63bd903c0fd58cd640a988ba086ab80997` : deux statuts SUCCESS et installation locale réussie, cold audit 7/7 sans erreur/avertissement, deux readables restaurés et une seule save remplacée, six inchangées, originaux archivés. Ne pas relancer installation/migration. 5C : 18 kits, 6 classes, ItemId+N1/N0 explicites dans le chemin registre, pas de définition historique ni fallback si registre fourni. Tests historiques worldless encore conservés et rehydrate non encore supprimé ; test réel 48 définitions / 18 constructions et parité. [5C](ARM_CLEAN06_5C_CANONICAL_STARTERS.md). Attendre les deux validations exact SHA ; poursuivre lecteurs runtime et WBP/retrait des assets. Pas d'intervention opérateur pour ce lot C++.
+
 ## ARM-CLEAN06.5B.1 — installation contrôlée
 
 SHA conversion `475f7f3f04c60ea50bd9ed44ef2bee69c7116ba0` : deux statuts SUCCESS, conversion réelle 7/7, six copies octet-identiques, une réécrite avec deux références restaurées, zéro erreur. Warning attendu sur ancien chemin à l'entrée seulement. Originales intactes, reçu privé non installé. Installer après validation du SHA code 5B.1 via InstallARM_CLEAN06_5B_ReadableSaveCopy.ps1, reçu 5B exact ; relecture froide des copies et contrôle des deux cibles réelles avant remplacement atomique de la seule save concernée. Reçu d'intention et preuve d'installation privés, garde par hash des sept fichiers, retour arrière sur octets connus uniquement. Aucun asset supprimé. Puis 5C, 5D, 5E–G, 06.6.
