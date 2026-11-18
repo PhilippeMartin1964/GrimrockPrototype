@@ -22,7 +22,9 @@ $Configuration = 'Development'
 function Set-GrimrockValidationStage
 {
     param(
-        [ValidateSet('PREFLIGHT', 'BUILD_STARTED', 'BUILD_FAILED', 'BUILD_OK',
+        [ValidateSet('PREFLIGHT', 'ROLLBACK_FIXTURE', 'ROLLBACK_RESTORE', 'ROLLBACK_NEW_PACKAGE',
+            'ROLLBACK_REFUSALS', 'ROLLBACK_SAVE_REPLACE', 'ROLLBACK_RESULT',
+            'BUILD_STARTED', 'BUILD_FAILED', 'BUILD_OK',
             'AUTOMATION_STARTED', 'AUTOMATION_PROCESS_EXITED',
             'AUTOMATION_REPORT_MISSING', 'AUTOMATION_REPORT_READING',
             'AUTOMATION_REPORT_OK', 'AUTOMATION_NO_TESTS',
@@ -192,7 +194,8 @@ if ($SkipBuild -and $SkipAutomation)
 }
 
 Set-GrimrockValidationStage -Stage 'PREFLIGHT'
-& (Join-Path $PSScriptRoot 'TestARM_CLEAN06_4X66_Rollback.ps1')
+& (Join-Path $PSScriptRoot 'TestARM_CLEAN06_4X66_Rollback.ps1') -Stage { param($Name) Set-GrimrockValidationStage -Stage $Name }
+Set-GrimrockValidationStage -Stage 'PREFLIGHT'
 Assert-FileExists -Path $ProjectFile -Description 'Projet Unreal'
 
 $ResolvedEngineRoot = Resolve-GrimrockEngineRoot -RequestedRoot $EngineRoot

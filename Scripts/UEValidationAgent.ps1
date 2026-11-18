@@ -193,7 +193,9 @@ function Get-PublicSafeDiagnostics {
     $ValidationStage = Join-Path $ReportRoot 'Validation.stage'
     if (Test-Path -LiteralPath $ValidationStage -PathType Leaf) {
         $Stage = ([string](Get-Content -LiteralPath $ValidationStage -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
-        $KnownStages = @('PREFLIGHT','BUILD_STARTED','BUILD_FAILED','BUILD_OK',
+        $KnownStages = @('PREFLIGHT','ROLLBACK_FIXTURE','ROLLBACK_RESTORE','ROLLBACK_NEW_PACKAGE',
+            'ROLLBACK_REFUSALS','ROLLBACK_SAVE_REPLACE','ROLLBACK_RESULT',
+            'BUILD_STARTED','BUILD_FAILED','BUILD_OK',
             'AUTOMATION_STARTED','AUTOMATION_PROCESS_EXITED',
             'AUTOMATION_REPORT_MISSING','AUTOMATION_REPORT_READING',
             'AUTOMATION_REPORT_OK','AUTOMATION_NO_TESTS',

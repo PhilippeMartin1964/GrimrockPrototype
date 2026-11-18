@@ -262,17 +262,7 @@ function CheckSaveSet([switch]$Converted) {
     }
 }
 function ReplaceSave([string]$Source,[string]$Target,[string]$ExpectedBefore,[string]$ExpectedAfter) {
-    Assert-ArmX66OrdinaryPath $Source
-    Assert-ArmX66OrdinaryPath $Target
-    if ((Sha $Target) -cne $ExpectedBefore -or (Sha $Source) -cne $ExpectedAfter) { throw 'Save compare-and-replace refused.' }
-    $Temp = Join-Path $SaveDirectory ('.armx66-'+[guid]::NewGuid().ToString('N')+'.tmp')
-    try {
-        Copy-Item -LiteralPath $Source -Destination $Temp
-        if ((Sha $Temp) -cne $ExpectedAfter -or (Sha $Target) -cne $ExpectedBefore) { throw 'Save replacement race.' }
-        [IO.File]::Replace($Temp,$Target,$null)
-    } finally {
-        if (Test-Path -LiteralPath $Temp -PathType Leaf) { Remove-Item -LiteralPath $Temp -Force }
-    }
+    Replace-ArmX66CheckedFile $Source $Target $ExpectedBefore $ExpectedAfter
 }
 CheckSaveSet
 

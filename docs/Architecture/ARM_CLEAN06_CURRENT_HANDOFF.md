@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.66F.1 — remplacement atomique PowerShell 5.1
+
+Le premier SHA X.66F `f3bf06b62aa94f5b97ffd0643fce3e629ab2bcc1` a obtenu SilentTask success, LocalAuto failure au PREFLIGHT ([issue #195](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/195)), avant Unreal. Cause probable identifiée par revue : le paramètre de backup .NET File.Replace reçoit un $null PowerShell susceptible de devenir une chaîne vide. La restauration des packages et l'installation/restauration des saves utilisent désormais le même helper compare-and-replace avec NullString.Value, vérification après écriture et tests synthétiques aller/retour du vrai helper. Phases fixes des tests publiables par l'agent sans chemin, contenu ou diagnostic privé. Pas de réécriture de master ; deux statuts du nouveau SHA nécessaires. Ne pas lancer X.66B sur le SHA F en échec.
+
 ## ARM-CLEAN06.4X.66F — rollback indépendant et preuves natives persistantes
 
 Parent : `46f42513f42eccae7a1b2c778146e62e0a083de7` (SilentTask et LocalAuto success, isolation Automation X.66E validée). Le catch X.66 n'interrompt plus la restauration des packages connus sur erreur SaveGames : quatre phases indépendantes agrègent les erreurs, et conservent le refus de toucher aux octets inconnus, aux sauvegardes non installées, au travail utilisateur et à un commit existant. Reçus natifs avant/après, archive des candidats exacts et rapport privé de rollback. Tests PowerShell synthétiques exécutés par ValidateUE avant compilation. [Rapport X.66F](ARM_CLEAN06_4X66F_NATIVE_ROLLBACK_SAFETY.md).

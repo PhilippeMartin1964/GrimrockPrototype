@@ -37,6 +37,28 @@ function Invoke-ArmX66RollbackActions([System.Collections.IDictionary]$Actions) 
     return [pscustomobject]@{ Success=($Issues.Count -eq 0); Issues=@($Issues.ToArray()) }
 }
 
+# Shared compare-and-replace for both native packages and SaveGame copies.
+# Windows PowerShell 5.1 may marshal $null to an empty .NET string.
+function Replace-ArmX66CheckedFile([string]$Source,[string]$Target,[string]$ExpectedBefore,[string]$ExpectedAfter) {
+    if ($ExpectedBefore -cnotmatch '^[0-9a-f]{64}$' -or $ExpectedAfter -cnotmatch '^[0-9a-f]{64}$' -or
+        (Get-ArmX66FileState $Source) -cne $ExpectedAfter -or (Get-ArmX66FileState $Target) -cne $ExpectedBefore) {
+        throw 'File compare-and-replace refused.'
+    }
+    if ($ExpectedBefore -ceq $ExpectedAfter) { return }
+    $Temp = Join-Path (Split-Path -Parent $Target) ('.armx66-replace-'+[guid]::NewGuid().ToString('N')+'.tmp')
+    try {
+        if ((Get-ArmX66FileState $Temp) -cne 'ABSENT') { throw 'Replacement temporary file collision.' }
+        Copy-Item -LiteralPath $Source -Destination $Temp
+        if ((Get-ArmX66FileState $Temp) -cne $ExpectedAfter -or (Get-ArmX66FileState $Target) -cne $ExpectedBefore) {
+            throw 'File replacement race.'
+        }
+        [IO.File]::Replace($Temp,$Target,[System.Management.Automation.Language.NullString]::Value)
+        if ((Get-ArmX66FileState $Target) -cne $ExpectedAfter) { throw 'File replacement result hash mismatch.' }
+    } finally {
+        if (Test-Path -LiteralPath $Temp -PathType Leaf) { Remove-Item -LiteralPath $Temp }
+    }
+}
+
 function Restore-ArmX66NativeFile {
     [CmdletBinding()]
     param(
@@ -67,16 +89,7 @@ function Restore-ArmX66NativeFile {
         Remove-Item -LiteralPath $Live
     }
     else {
-        $Temp = Join-Path (Split-Path -Parent $Live) ('.armx66-rollback-'+[guid]::NewGuid().ToString('N')+'.tmp')
-        try {
-            Copy-Item -LiteralPath $Backup -Destination $Temp
-            if ((Get-ArmX66FileState $Temp) -cne $Before -or (Get-ArmX66FileState $Live) -cne $After) {
-                throw 'Package compare-and-replace refused.'
-            }
-            [IO.File]::Replace($Temp,$Live,$null)
-        } finally {
-            if (Test-Path -LiteralPath $Temp -PathType Leaf) { Remove-Item -LiteralPath $Temp }
-        }
+        Replace-ArmX66CheckedFile $Backup $Live $After $Before
     }
     if ((Get-ArmX66FileState $Live) -cne $Before) { throw 'Native rollback state mismatch.' }
 }
