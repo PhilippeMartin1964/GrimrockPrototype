@@ -23,7 +23,7 @@ namespace
         auto* Race = NewObject<URPGRaceAsset>(&Inventory);
         Race->RaceId = TEXT("X64_Human");
         Race->DisplayName = FText::FromString(TEXT("X64 Human"));
-        Race->AttributeBonuses = FRPGAttributes{0,0,0,0,0};
+        Race->AttributeBonuses = FRPGAttributes{0,0,0,0,0,0};
         auto* Class = NewObject<URPGClassAsset>(&Inventory);
         Class->ClassId = TEXT("X64_Warrior");
         Class->DisplayName = FText::FromString(TEXT("X64 Warrior"));

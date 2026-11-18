@@ -7,7 +7,7 @@
 
 ## ARM-CLEAN06.4X.64 — conversion binaire v27 sur copies, sans installation
 
-**Parent :** `89f3beb4891633cd042ad153fcd96997c79cd38b` (X.63, SilentTask + LocalAuto SUCCESS). [Rapport X.64](ARM_CLEAN06_4X64_SAVE_COPY_CONVERSION.md).
+**Parent :** `89f3beb4891633cd042ad153fcd96997c79cd38b` (X.63, SilentTask + LocalAuto SUCCESS). Première validation X.64 : C2440 fixture six attributs (issue #193), correction du fixture et nouvelle validation exacte-SHA. [Rapport X.64](ARM_CLEAN06_4X64_SAVE_COPY_CONVERSION.md).
 
 Helper Editor-only transforme les vrais octets SaveGame v27, compare toutes les propriétés SaveGame après rechargement indépendant, refuse anciens IDs ambigus de surfaces/pièges, no-op octet exact. Commandlet SaveCopy + runner PrepareARM_CLEAN06_4X64_SaveCopies.ps1 produisent copies privées vérifiées et reçu SHA256, jamais d'installation ni écriture live. Test binaire actif/réserve et état monde. Aucun fichier joueur ouvert dans ce commit ; aucune commande manuelle demandée séparément. Préparer ensuite la transaction alchimie 12 assets et synchroniser l'installation des copies, gates 38/48, kit Grenadier, authoring et gameplay. Les pointeurs de sauvegarde monde historiques restent hors lot. 38 persistant ; 107/107 ; 06.4 partielle.
 

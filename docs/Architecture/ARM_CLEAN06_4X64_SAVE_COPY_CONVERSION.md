@@ -25,3 +25,7 @@ Grimrock.RPG.ARM.CLEAN06_4X64.SaveBinaryCopyRoundTrip : création réelle de per
 ## Suite
 
 Préparer la transaction de 12 packages du registre d'alchimie, les gates exacts 38/48, le kit Grenadier et la neutralisation de l'authoring historique. Contrôler l'exécution réelle des actions. X.64 ne modifie aucun package natif, fichier de sauvegarde live, WBP, UI.csv, ST_UI ou localisation Game/fr/en. **Le registre persistant reste à 38.** La prochaine écriture doit être protégée par le snapshot et la preuve de conversion des saves concernées.
+
+## Correction du test après validation automatique
+
+Le premier SHA `e1642ecdb856` a échoué en compilation (issue #193, C2440 ligne 26). Le fixture Race a été corrigé pour fournir les six caractéristiques comme dans le test MON12.8 de référence. Aucun changement du convertisseur ou du schéma ; relancer les deux statuts sur le SHA corrigé.
