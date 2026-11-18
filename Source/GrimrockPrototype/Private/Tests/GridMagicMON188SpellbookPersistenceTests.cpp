@@ -1,5 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Tests/GridAutomationSaveIsolation.h"
+
 #include "Kismet/GameplayStatics.h"
 #include "Magic/GridPartySpellbookComponent.h"
 #include "Magic/GridProductionSpellLibrary.h"
@@ -17,9 +19,12 @@ namespace GridMON188Tests
 	{
 		FString SlotName = FString::Printf(TEXT("MON188_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits));
 		int32 UserIndex = 0;
+		FAutomationTestBase& Test;
+
+		explicit FMON188DiskSlot(FAutomationTestBase& InTest) : Test(InTest) {}
 		~FMON188DiskSlot()
 		{
-			UGameplayStatics::DeleteGameInSlot(SlotName, UserIndex);
+			GridAutomationSaveIsolation::DeleteOwnedSlot(Test, SlotName, UserIndex);
 		}
 	};
 
@@ -294,10 +299,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FGridMagicMON188DiskRoundTripTest::RunTest(const FString& Parameters)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	(void)Parameters;
 	using namespace GridMON188Tests;
 
-	FMON188DiskSlot DiskSlot;
+	FMON188DiskSlot DiskSlot(*this);
 
 	UGridPartyInventoryComponent* SourceParty = MakeMON188SerializableParty();
 	if (!TestNotNull(TEXT("Serializable MON18.8 party is created"), SourceParty))
@@ -329,6 +335,8 @@ bool FGridMagicMON188DiskRoundTripTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	TestTrue(TEXT("The actual SaveGame file is under the isolated Saved directory"),
+		IFileManager::Get().FileExists(*(FPaths::ProjectSavedDir() / TEXT("SaveGames") / (DiskSlot.SlotName + TEXT(".sav")))));
 	UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromSlot(DiskSlot.SlotName, DiskSlot.UserIndex));
 	if (!TestNotNull(TEXT("Temporary disk save reloads"), Loaded))
 	{

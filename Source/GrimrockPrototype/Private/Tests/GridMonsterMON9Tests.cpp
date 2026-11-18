@@ -1,5 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Tests/GridAutomationSaveIsolation.h"
+
 #include "Misc/AutomationTest.h"
 
 #include "Engine/Engine.h"
@@ -903,6 +905,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FGridMonsterMON9DiskSaveRoundTripTest::RunTest(const FString& Parameters)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	(void)Parameters;
 	AddExpectedError(TEXT("Reason=MissingMonsterMovement; continuing death."), EAutomationExpectedErrorFlags::Contains, 1);
 	const FString SlotName = FString::Printf(TEXT("MON9_Automation_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits));

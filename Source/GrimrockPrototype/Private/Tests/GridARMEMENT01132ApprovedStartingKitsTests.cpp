@@ -1,5 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Tests/GridAutomationSaveIsolation.h"
+
 #include "Misc/AutomationTest.h"
 #include "Kismet/GameplayStatics.h"
 #include "RPG/RPGClassAsset.h"
@@ -153,6 +155,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01132Creation,
 
 bool FARMEMENT01132Creation::RunTest(const FString&)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
     URPGRaceAsset* Race = ARMEMENT01132::Human();
     if (!TestNotNull(TEXT("Production race exists"), Race)) return false;
     int32 Created = 0;

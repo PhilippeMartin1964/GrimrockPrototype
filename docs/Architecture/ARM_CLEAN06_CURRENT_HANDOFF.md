@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.66E — récupération X.66D et isolation Automation
+
+Parent : `e59b192eeb8d210ff851aeb28f73cd3adc9a1ac0` (les deux statuts Windows success). X.66B avait réussi Apply, Verify (48/14) et 2005 tests (31 avertis), puis CheckSaveSet a rejeté un checkpoint MON135 supplémentaire ; le catch n'a pas restauré. L'audit opérateur et la récupération X.66D confirment 7/7 saves live originales et deux jeux de copies intacts, 12/12 états natifs restaurés, 12 candidats et le checkpoint exact archivés en privé, master propre. 38 persistées, 107/107. Quatre anciens MON188 restent à qualifier. [Rapport X.66E](ARM_CLEAN06_4X66E_AUTOMATION_SAVE_ISOLATION.md).
+
+Ce lot isole les processus ValidateUE via UserDir vérifié au démarrage, contrôle l'inventaire live et les résidus isolés, protège les tests disque connus et corrige le nettoyage MON135/MON188. Deux statuts exact-SHA requis. X.66F : rollback indépendant, preuve persistante des candidats et tests de panne avant nouvel Apply ; aucun relancement natif ni suppression historique avant validation. SaveGame v27 inchangée ; aucun fichier de sauvegarde ou snapshot publié.
+
 ## ARM-CLEAN06.4X.66C — résolution RPG à cache froid
 
 Parent : `5d13c82a3e3a6f93d1f8fcaf79b9f70d9f9cad99` validé. Exécution opérateur X.66B stoppée avant Apply : conflit RPGRace/RPGRaceAsset (Dwarf), RPGPortraitSet/RPGCharacterPortraitSetAsset, puis rejet budget ActiveCharacter[0] v27. [Rapport X.66C](ARM_CLEAN06_4X66C_COLD_RPG_SAVE_RESOLUTION.md). Corriger la résolution sémantique par classe AssetRegistry lorsque AssetManager ne trouve pas le vrai ID ; test natif cache froid et diagnostic de budget détaillé, aucun assouplissement du validateur ni écriture joueur. Après validation du SHA code, reprendre la même transaction native avec le nouveau SHA. 38 persistant, migration non appliquée.

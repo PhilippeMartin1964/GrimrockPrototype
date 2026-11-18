@@ -1,5 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Tests/GridAutomationSaveIsolation.h"
+
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
@@ -264,6 +266,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FShield025DiskRoundTrip,
 
 bool FShield025DiskRoundTrip::RunTest(const FString&)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	Shield025::FFixture F;
 	if (!TestTrue(TEXT("Complete persistent party fixture with real round shield"), F.Initialize()))
 	{
@@ -318,6 +321,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FShield025PreCombatCheckpoint,
 
 bool FShield025PreCombatCheckpoint::RunTest(const FString&)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	Shield025::FFixture F;
 	if (!TestTrue(TEXT("Persistent party prepared for checkpoint"), F.Initialize())) return false;
 	TestTrue(TEXT("Baseline exploration main slot saved"), F.Save());
@@ -356,6 +360,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FShield025RecoveryDiskRoundTrip,
 
 bool FShield025RecoveryDiskRoundTrip::RunTest(const FString&)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	Shield025::FFixture F;
 	if (!TestTrue(TEXT("Persistent party with depleted equipment prepared"), F.Initialize())) return false;
 	auto* Inventory = F.Party->PartyInventoryComponent.Get();

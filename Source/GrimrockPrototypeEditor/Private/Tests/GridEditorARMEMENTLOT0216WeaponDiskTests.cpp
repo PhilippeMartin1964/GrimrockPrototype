@@ -1,5 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Tests/GridAutomationSaveIsolation.h"
+
 #include "Misc/AutomationTest.h"
 
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
@@ -99,6 +101,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT0216DiskPersistence,
 
 bool FARMEMENTLOT0216DiskPersistence::RunTest(const FString&)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	using namespace ARMEMENTLOT0216;
 
 	// A real disk slot, isolated from player saves and removed on exit.

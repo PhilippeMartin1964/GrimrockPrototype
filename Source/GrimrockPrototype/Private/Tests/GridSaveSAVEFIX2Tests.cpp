@@ -1,5 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Tests/GridAutomationSaveIsolation.h"
+
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -171,6 +173,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridSAVEFIX2ContinueFailureIsNonDestructiveTes
 
 bool FGridSAVEFIX2ContinueFailureIsNonDestructiveTest::RunTest(const FString& Parameters)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	(void)Parameters;
 
 	FGridSAVEFIX2TestSaveSlot SaveSlot;

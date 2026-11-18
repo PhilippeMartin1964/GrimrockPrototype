@@ -1,5 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Tests/GridAutomationSaveIsolation.h"
+
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -190,6 +192,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1891SaveOutsideCombatAcceptedTest, "Gri
 
 bool FGridMON1891SaveOutsideCombatAcceptedTest::RunTest(const FString& Parameters)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	(void)Parameters;
 	FGridMON1891TestSaveSlots Slots;
 	FGridMON1891TestWorld TestWorld;
@@ -215,6 +218,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1891SaveDuringCombatRejectedTest, "Grim
 
 bool FGridMON1891SaveDuringCombatRejectedTest::RunTest(const FString& Parameters)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	(void)Parameters;
 	FGridMON1891TestSaveSlots Slots;
 	FGridMON1891TestWorld TestWorld;
@@ -239,6 +243,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1891PreCombatCheckpointCreatedTest, "Gr
 
 bool FGridMON1891PreCombatCheckpointCreatedTest::RunTest(const FString& Parameters)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	(void)Parameters;
 	FGridMON1891TestSaveSlots Slots;
 	FGridMON1891TestWorld TestWorld;
@@ -295,6 +300,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1891CombatSavePreservesMainSlotTest, "G
 
 bool FGridMON1891CombatSavePreservesMainSlotTest::RunTest(const FString& Parameters)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	(void)Parameters;
 	FGridMON1891TestSaveSlots Slots;
 	FGridMON1891TestWorld TestWorld;
@@ -325,6 +331,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1891DefeatPreservesCheckpointTest, "Gri
 
 bool FGridMON1891DefeatPreservesCheckpointTest::RunTest(const FString& Parameters)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	(void)Parameters;
 	FGridMON1891TestSaveSlots Slots;
 	FGridMON1891TestWorld TestWorld;

@@ -1,5 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Tests/GridAutomationSaveIsolation.h"
+
 #include "Misc/AutomationTest.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -19,6 +21,7 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
+#include "Save/GridCombatSavePolicy.h"
 #include "Tests/AutomationEditorCommon.h"
 #include "Tests/AutomationCommon.h"
 #include "UObject/StrongObjectPtr.h"
@@ -829,10 +832,9 @@ namespace
 				FWorldDelegates::OnPostWorldInitialization.Remove(State->PIEWorldInitializationHandle);
 				State->PIEWorldInitializationHandle.Reset();
 			}
-			if (UGameplayStatics::DoesSaveGameExist(State->TemporarySaveSlot, 0))
-			{
-				Test->TestTrue(TEXT("The dedicated temporary save is deleted"), UGameplayStatics::DeleteGameInSlot(State->TemporarySaveSlot, 0));
-			}
+			GridAutomationSaveIsolation::DeleteOwnedSlot(*Test, State->TemporarySaveSlot, 0);
+			GridAutomationSaveIsolation::DeleteOwnedSlot(*Test,
+				FGridCombatSavePolicy::BuildPreCombatCheckpointSlotName(State->TemporarySaveSlot), 0);
 			return true;
 		}
 
@@ -847,6 +849,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorMON135RealPIEIntegrationTest, "Grimr
 
 bool FGridEditorMON135RealPIEIntegrationTest::RunTest(const FString& Parameters)
 {
+	if (!GridAutomationSaveIsolation::Require(*this)) return false;
 	(void)Parameters;
 	AddExpectedError(TEXT("PartySave EndPlay Failed Slot="), EAutomationExpectedErrorFlags::Contains, 1);
 	TSharedRef<FMON135RealPIEState> State = MakeShared<FMON135RealPIEState>();

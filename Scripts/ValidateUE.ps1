@@ -37,6 +37,25 @@ function Set-GrimrockValidationStage
     Set-Content -LiteralPath (Join-Path $ReportRoot 'Validation.stage') -Value $Stage -Encoding ASCII
 }
 
+# Byte-for-byte observation only; never print slot names or hashes.
+function Get-GrimrockLiveSaveInventory
+{
+    $Directory = Join-Path $RepoRoot 'Saved\SaveGames'
+    if (-not (Test-Path -LiteralPath $Directory)) { return }
+    $RootItem = Get-Item -LiteralPath $Directory -Force
+    if (-not $RootItem.PSIsContainer -or ($RootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw 'Live SaveGames is not an ordinary directory.'
+    }
+    foreach ($File in @(Get-ChildItem -LiteralPath $Directory -Force | Sort-Object Name)) {
+        if ($File.PSIsContainer -or ($File.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'Unexpected directory or reparse point in live SaveGames.'
+        }
+        if ($File.Extension -ieq '.sav') {
+            [pscustomobject]@{ Name=$File.Name; Bytes=$File.Length; Sha256=(Get-FileHash -LiteralPath $File.FullName -Algorithm SHA256).Hash }
+        }
+    }
+}
+
 function Resolve-GrimrockEngineRoot
 {
     param([string]$RequestedRoot)
@@ -237,11 +256,25 @@ if (-not $SkipAutomation)
 
     New-Item -ItemType Directory -Path $SessionReportPath -Force | Out-Null
 
+    # Unique UE user directory per process, not a save filename exception.
+    # Keep the isolated output in the private report directory for diagnosis.
+    $IsolationRoot = [IO.Path]::GetFullPath((Join-Path $SessionReportPath ('GrimrockAutomation-'+[guid]::NewGuid().ToString('N'))))
+    if (Test-Path -LiteralPath $IsolationRoot) { throw 'Automation isolation directory collision.' }
+    $LiveSaveRoot = [IO.Path]::GetFullPath((Join-Path $RepoRoot 'Saved\SaveGames')).TrimEnd('\','/')
+    if ($IsolationRoot.Equals($LiveSaveRoot,[StringComparison]::OrdinalIgnoreCase) -or
+        $IsolationRoot.StartsWith(($LiveSaveRoot+'\'),[StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Automation report root must not be in live SaveGames.'
+    }
+    New-Item -ItemType Directory -Path $IsolationRoot | Out-Null
+    $SaveBefore = ConvertTo-Json -InputObject @(Get-GrimrockLiveSaveInventory) -Compress
+
     $ExecCommands = "Automation RunTest $AutomationFilter;Quit"
     $AutomationConsolePath = Join-Path $SessionReportPath 'Automation.console.log'
     $AutomationSummaryPath = Join-Path $SessionReportPath 'Automation.summary.txt'
     $EditorArguments = @(
         $ProjectFile,
+        "-UserDir=$IsolationRoot",
+        "-GrimrockAutomationUserDir=$IsolationRoot",
         '-Unattended',
         '-NoSplash',
         '-NoP4',
@@ -288,6 +321,18 @@ if (-not $SkipAutomation)
             -Value ([string]$AutomationExitCode) -Encoding ASCII
     }
     Set-GrimrockValidationStage -Stage 'AUTOMATION_PROCESS_EXITED'
+
+    $SaveAfter = ConvertTo-Json -InputObject @(Get-GrimrockLiveSaveInventory) -Compress
+    if ($SaveBefore -cne $SaveAfter) { throw 'Live SaveGames changed during Automation; refusing validation.' }
+    if (-not (Test-Path -LiteralPath $AutomationLogPath -PathType Leaf) -or
+        -not (Select-String -LiteralPath $AutomationLogPath -SimpleMatch '[GrimrockAutomation] Isolated SaveGames verified.' -Quiet)) {
+        throw 'Automation process did not prove its isolated Saved directory.'
+    }
+    $ResidualSaves = @(Get-ChildItem -LiteralPath $IsolationRoot -Recurse -Force -File -Filter '*.sav')
+    if ($ResidualSaves.Count -ne 0) {
+        throw ('Automation leaked isolated test saves: '+$ResidualSaves.Count+'; private evidence retained.')
+    }
+    Write-Host '[OK] Automation save isolation; live inventory unchanged; no residual test saves.'
 
     $IndexJsonPath = Join-Path $SessionReportPath 'index.json'
     if (-not (Test-Path -LiteralPath $IndexJsonPath -PathType Leaf))
