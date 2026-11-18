@@ -11,6 +11,7 @@
 #include "RPG/RPGSkillService.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "GridCanonicalExplorationItemReadModel.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridInteractableInterface.h"
@@ -412,8 +413,6 @@ bool AGridLevelRuntimeActor::TryInteractWithRevealedDungeonTrap(
         return true;
     }
 
-    const FName ToolId(TEXT("Item_DisarmTools_01"));
-    const UGridItemDefinitionAsset* Tool = Inventory->FindItemDefinition(ToolId);
     int32 ToolSourceIndex = INDEX_NONE;
     bool bTrainedWithTools = false;
     for (int32 i = 0; i < Inventory->PartyInventoryState.ActiveCharacters.Num(); ++i)
@@ -421,7 +420,7 @@ bool AGridLevelRuntimeActor::TryInteractWithRevealedDungeonTrap(
         const FGridCharacterInventoryState& Character =
             Inventory->PartyInventoryState.ActiveCharacters[i];
         if (Character.Resources.CurrentHealth <= 0 ||
-            Inventory->CountItemDefinitionInCharacterInventory(i, ToolId) < 1)
+            !FGridCanonicalExplorationItemReadModel::HasDisarmTool(Inventory, i, Def->DungeonTrap.RequiredToolTag))
         {
             continue;
         }
@@ -431,8 +430,7 @@ bool AGridLevelRuntimeActor::TryInteractWithRevealedDungeonTrap(
             bTrainedWithTools = true;
         }
     }
-    if (ToolSourceIndex == INDEX_NONE || !IsValid(Tool) ||
-        !Tool->ItemTags.Contains(Def->DungeonTrap.RequiredToolTag))
+    if (ToolSourceIndex == INDEX_NONE)
     {
         Report(FName(TEXT("Dungeon.Trap.ToolsMissing")),
             NSLOCTEXT("TRAP01", "DisarmNeedsTools",
@@ -549,14 +547,7 @@ bool AGridLevelRuntimeActor::TryGetDungeonTrapDisarmOdds(
         return false;
     }
 
-    const FName ToolId(TEXT("Item_DisarmTools_01"));
-    const UGridItemDefinitionAsset* Tool = Inventory->FindItemDefinition(ToolId);
-    if (!IsValid(Tool) || Tool->ItemDefinitionId != ToolId ||
-        !Tool->ItemTags.Contains(Definition->DungeonTrap.RequiredToolTag))
-    {
-        return false;
-    }
-    const URPGSkillAsset* Skill = LoadObject<URPGSkillAsset>(nullptr,
+     const URPGSkillAsset* Skill = LoadObject<URPGSkillAsset>(nullptr,
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/Skills/DA_Skill_Traps.DA_Skill_Traps"));
     if (!IsValid(Skill) || !Skill->IsValidDefinition())
     {
@@ -568,7 +559,7 @@ bool AGridLevelRuntimeActor::TryGetDungeonTrapDisarmOdds(
     FGridPartyInventoryState Eligible = Inventory->PartyInventoryState;
     for (int32 Index = 0; Index < Eligible.ActiveCharacters.Num(); ++Index)
     {
-        if (Inventory->CountItemDefinitionInCharacterInventory(Index, ToolId) < 1)
+        if (!FGridCanonicalExplorationItemReadModel::HasDisarmTool(Inventory, Index, Definition->DungeonTrap.RequiredToolTag))
         {
             Eligible.ActiveCharacters[Index].Resources.CurrentHealth = 0;
         }
@@ -722,11 +713,8 @@ bool AGridLevelRuntimeActor::TryDisarmTriggerTrap(
     // The context source slot must still own a genuine tool. A different
     // trained party member may perform the check only if THEY also carry
     // their own required tool; clicking a tool does not teleport it.
-    const FName ToolId(TEXT("Item_DisarmTools_01"));
-    const UGridItemDefinitionAsset* Tool = Inventory->FindItemDefinition(ToolId);
-    if (!IsValid(Tool) || Tool->ItemDefinitionId != ToolId ||
-        !Tool->ItemTags.Contains(TrapDefinition->DungeonTrap.RequiredToolTag) ||
-        Inventory->CountItemDefinitionInCharacterInventory(CharacterIndex, ToolId) < 1)
+    if (!FGridCanonicalExplorationItemReadModel::HasDisarmTool(
+        Inventory, CharacterIndex, TrapDefinition->DungeonTrap.RequiredToolTag))
     {
         return false;
     }
@@ -753,7 +741,7 @@ bool AGridLevelRuntimeActor::TryDisarmTriggerTrap(
     FGridPartyInventoryState EligibleParty = PartyState;
     for (int32 Index = 0; Index < EligibleParty.ActiveCharacters.Num(); ++Index)
     {
-        if (Inventory->CountItemDefinitionInCharacterInventory(Index, ToolId) < 1)
+        if (!FGridCanonicalExplorationItemReadModel::HasDisarmTool(Inventory, Index, TrapDefinition->DungeonTrap.RequiredToolTag))
         {
             EligibleParty.ActiveCharacters[Index].Resources.CurrentHealth = 0;
         }

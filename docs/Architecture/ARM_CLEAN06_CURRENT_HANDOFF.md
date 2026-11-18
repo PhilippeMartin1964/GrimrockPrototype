@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D — lecteurs d'exploration pointerless
+
+Parent 5C `00a0b3a5798a6f7cf3ff324694a67db4fb229e78`. Trois parcours pièges, HUD et exécution huile/catalyseur et mesh de présentation résolus via DA_ItemSystem lorsque connu, pas de fallback enregistré. Tests sur identités réelles N0 et refus d'absence/action/niveau ; 5C est un prérequis exact-SHA. [5D](ARM_CLEAN06_5D_EXPLORATION_ITEM_READERS.md). Sauvegardes 5B.1 installées, ne pas relancer. Reste retrait final des rehydrate et autres lecteurs, WBP, propriétés, packages et outils de migration ; PIE dû.
+
 ## ARM-CLEAN06.5C — kits de départ canoniques
 
 5B.1 `5bf6ae63bd903c0fd58cd640a988ba086ab80997` : deux statuts SUCCESS et installation locale réussie, cold audit 7/7 sans erreur/avertissement, deux readables restaurés et une seule save remplacée, six inchangées, originaux archivés. Ne pas relancer installation/migration. 5C : 18 kits, 6 classes, ItemId+N1/N0 explicites dans le chemin registre, pas de définition historique ni fallback si registre fourni. Tests historiques worldless encore conservés et rehydrate non encore supprimé ; test réel 48 définitions / 18 constructions et parité. [5C](ARM_CLEAN06_5C_CANONICAL_STARTERS.md). Attendre les deux validations exact SHA ; poursuivre lecteurs runtime et WBP/retrait des assets. Pas d'intervention opérateur pour ce lot C++.

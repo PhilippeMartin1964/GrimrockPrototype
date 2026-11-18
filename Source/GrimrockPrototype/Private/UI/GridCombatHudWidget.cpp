@@ -28,6 +28,7 @@
 #include "GridCombatHudCanonicalActionReadModel.h"
 #include "../Runtime/GridCanonicalItemInteractionReadModel.h"
 #include "../Runtime/GridCanonicalQuickItemUseReadModel.h"
+#include "../Runtime/GridCanonicalExplorationItemReadModel.h"
 #include "../Runtime/GridPhysicalThrowStrengthReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -310,9 +311,10 @@ namespace
 		{
 			return false;
 		}
-		const UGridItemDefinitionAsset* Item = Inventory->FindItemDefinition(Binding.SourceDefinitionId);
-		FGridCombatActionDefinition Definition;
-		if (!IsValid(Item) || !Item->BuildQuickItemCombatActionDefinition(Definition) ||
+		const auto Source = FGridCanonicalExplorationItemReadModel::ResolveSurface(
+			Inventory, CharacterIndex, Binding.SourceDefinitionId, Binding.ActionId, false);
+		const FGridCombatActionDefinition& Definition = Source.Action;
+		if (!Source.bResolved ||
 			Definition.ActionId != Binding.ActionId ||
 			!(UGridTurnManagerComponent::IsExplorationOilSlickAction(Definition) ||
 				(UGridTurnManagerComponent::IsExplorationCatalystAction(Definition) &&

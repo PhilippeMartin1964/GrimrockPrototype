@@ -20,6 +20,7 @@
 #include "GridCanonicalActionIconReadModel.h"
 #include "GridCanonicalEquippedAttackReadModel.h"
 #include "../GridCanonicalQuickItemUseReadModel.h"
+#include "../GridCanonicalExplorationItemReadModel.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
@@ -1863,11 +1864,12 @@ bool UGridTurnManagerComponent::RequestExplorationCatalystActionAtCell(
 	}
 
 	// Re-read the EXACT owned item; never trust the HUD's cached definition.
-	const UGridItemDefinitionAsset* Item = Inventory->FindItemDefinition(Action.SourceDefinitionId);
-	FGridCombatActionDefinition FreshDefinition;
+	auto Source = FGridCanonicalExplorationItemReadModel::ResolveSurface(
+		Inventory, Action.CharacterIndex, Action.SourceDefinitionId, Action.Definition.ActionId, true);
+	const FGridCombatActionDefinition& FreshDefinition = Source.Action;
 	const FGridCharacterInventoryState& Character =
 		Inventory->PartyInventoryState.ActiveCharacters[Action.CharacterIndex];
-	if (!IsValid(Item) || !Item->BuildQuickItemCombatActionDefinition(FreshDefinition) ||
+	if (!Source.bResolved ||
 		!FGridCatalystAreaResolver::IsApprovedItem(Action.SourceDefinitionId, FreshDefinition.ActionId) ||
 		!IsExplorationCatalystAction(FreshDefinition) ||
 		FreshDefinition.ActionId != Action.Definition.ActionId ||
@@ -1954,7 +1956,7 @@ bool UGridTurnManagerComponent::RequestExplorationCatalystActionAtCell(
 	// One flight, one impact and independent per-cell visual wave.
 	RuntimeActor->PlaySurfaceCatalystArea(
 		FIntPoint(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY), TargetCell, Plan,
-		Item->WorldMesh.LoadSynchronous());
+		Source.Mesh.LoadSynchronous());
 	GridEventFeedPublisher::PublishEvent(this,
 		FGridCombatEventFeedFormatter::MakeCatalystLaunch(
 			ResolveCharacterDisplayName(Action.CharacterIndex), Plan.Num()));
@@ -2030,10 +2032,10 @@ bool UGridTurnManagerComponent::RequestExplorationOilActionAtCell(
 	}
 
 	// Never trust a cached HUD definition: resolve the actual owned item afresh.
-	const UGridItemDefinitionAsset* ItemDefinition = Inventory->FindItemDefinition(Action.SourceDefinitionId);
-	FGridCombatActionDefinition FreshDefinition;
-	if (!IsValid(ItemDefinition) ||
-		!ItemDefinition->BuildQuickItemCombatActionDefinition(FreshDefinition) ||
+	auto Source = FGridCanonicalExplorationItemReadModel::ResolveSurface(
+		Inventory, Action.CharacterIndex, Action.SourceDefinitionId, Action.Definition.ActionId, true);
+	const FGridCombatActionDefinition& FreshDefinition = Source.Action;
+	if (!Source.bResolved ||
 		!IsExplorationOilSlickAction(FreshDefinition) ||
 		FreshDefinition.ActionId != Action.Definition.ActionId ||
 		Inventory->PartyInventoryState.ActiveCharacters[Action.CharacterIndex].CharacterId != Action.CharacterId ||
@@ -2123,7 +2125,7 @@ bool UGridTurnManagerComponent::RequestExplorationOilActionAtCell(
 	{
 		RuntimeActor->PlayOilFlaskThrowAtCell(
 			FIntPoint(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY), TargetCell,
-			ItemDefinition->WorldMesh.LoadSynchronous());
+			Source.Mesh.LoadSynchronous());
 		FGridHudEventEntry OilEvent;
 		OilEvent.Category = EGridHudEventCategory::Combat;
 		OilEvent.Semantic = EGridHudEventSemantic::Interaction;
@@ -2825,10 +2827,9 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	// authored projectile hits the target cell. Outcomes include dry Fizzle.
 	if (bCatalystArea && IsValid(RuntimeActor))
 	{
-		const UGridItemDefinitionAsset* CatalystDefinition = Inventory->FindItemDefinition(Action.SourceDefinitionId);
+		auto Mesh = FGridCanonicalExplorationItemReadModel::ResolveSurfaceMesh(Inventory, Action.SourceDefinitionId);
 		RuntimeActor->PlaySurfaceCatalystArea(
-			PartyCell, Preview.TargetCell, CatalystPlan,
-			IsValid(CatalystDefinition) ? CatalystDefinition->WorldMesh.LoadSynchronous() : nullptr);
+			PartyCell, Preview.TargetCell, CatalystPlan, Mesh.LoadSynchronous());
 	}
 	// Combat/exploration share the same catalyst event; a combat throw gets exactly
 	// one entry after the cost and C6 reaction are committed (never during targeting).
@@ -2847,9 +2848,8 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	}
 	if (OilFlaskAppliedCells > 0 && IsValid(RuntimeActor))
 	{
-		const UGridItemDefinitionAsset* OilDefinition = Inventory->FindItemDefinition(Action.SourceDefinitionId);
-		RuntimeActor->PlayOilFlaskThrowAtCell(PartyCell, Preview.TargetCell,
-			IsValid(OilDefinition) ? OilDefinition->WorldMesh.LoadSynchronous() : nullptr);
+		auto Mesh = FGridCanonicalExplorationItemReadModel::ResolveSurfaceMesh(Inventory, Action.SourceDefinitionId);
+		RuntimeActor->PlayOilFlaskThrowAtCell(PartyCell, Preview.TargetCell, Mesh.LoadSynchronous());
 		FGridHudEventEntry OilEvent;
 		OilEvent.Category = EGridHudEventCategory::Combat;
 		OilEvent.Semantic = EGridHudEventSemantic::Interaction;
