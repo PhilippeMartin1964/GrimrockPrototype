@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.64 — conversion binaire v27 sur copies, sans installation
+
+**Parent :** `89f3beb4891633cd042ad153fcd96997c79cd38b` (X.63, SilentTask + LocalAuto SUCCESS). [Rapport X.64](ARM_CLEAN06_4X64_SAVE_COPY_CONVERSION.md).
+
+Helper Editor-only transforme les vrais octets SaveGame v27, compare toutes les propriétés SaveGame après rechargement indépendant, refuse anciens IDs ambigus de surfaces/pièges, no-op octet exact. Commandlet SaveCopy + runner PrepareARM_CLEAN06_4X64_SaveCopies.ps1 produisent copies privées vérifiées et reçu SHA256, jamais d'installation ni écriture live. Test binaire actif/réserve et état monde. Aucun fichier joueur ouvert dans ce commit ; aucune commande manuelle demandée séparément. Préparer ensuite la transaction alchimie 12 assets et synchroniser l'installation des copies, gates 38/48, kit Grenadier, authoring et gameplay. Les pointeurs de sauvegarde monde historiques restent hors lot. 38 persistant ; 107/107 ; 06.4 partielle.
+
 ## ARM-CLEAN06.4X.63 — projection conjointe alchimie et remapping en copie
 
 **Parent :** `2497018bbc89616ce8f551e9faf13641677265dc` (X.62, deux statuts SUCCESS, rapport natif transmis le 18.11.2026 : 10/10 projections, Oil exact, 0 erreurs / 2 warnings Status_Silence absent, dépôt propre). [Rapport X.63](ARM_CLEAN06_4X63_ALCHEMY_JOINT_PROJECTION.md). Preuve privée `AlchemyEvidence-20261118-201511678.json`.
