@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.66F — rollback indépendant et preuves natives persistantes
+
+Parent : `46f42513f42eccae7a1b2c778146e62e0a083de7` (SilentTask et LocalAuto success, isolation Automation X.66E validée). Le catch X.66 n'interrompt plus la restauration des packages connus sur erreur SaveGames : quatre phases indépendantes agrègent les erreurs, et conservent le refus de toucher aux octets inconnus, aux sauvegardes non installées, au travail utilisateur et à un commit existant. Reçus natifs avant/après, archive des candidats exacts et rapport privé de rollback. Tests PowerShell synthétiques exécutés par ValidateUE avant compilation. [Rapport X.66F](ARM_CLEAN06_4X66F_NATIVE_ROLLBACK_SAFETY.md).
+
+Deux statuts exact-SHA nécessaires. Ensuite seulement, checkout principal propre, UE et jeu fermés, `git pull --ff-only` AVANT invocation du script X.66 révisé (ne pas exécuter l'ancien script chargé en mémoire). Nouvelle transaction native complète, pas de réutilisation implicite des anciennes copies ; vérifier ensuite 48/14, 12 packages et deux statuts du SHA binaire. Les quatre résidus MON188 historiques sans preuve individuelle restent protégés comme toute autre sauvegarde du reçu. Aucun fichier personnel publié ; v27 inchangée.
+
 ## ARM-CLEAN06.4X.66E — récupération X.66D et isolation Automation
 
 Parent : `e59b192eeb8d210ff851aeb28f73cd3adc9a1ac0` (les deux statuts Windows success). X.66B avait réussi Apply, Verify (48/14) et 2005 tests (31 avertis), puis CheckSaveSet a rejeté un checkpoint MON135 supplémentaire ; le catch n'a pas restauré. L'audit opérateur et la récupération X.66D confirment 7/7 saves live originales et deux jeux de copies intacts, 12/12 états natifs restaurés, 12 candidats et le checkpoint exact archivés en privé, master propre. 38 persistées, 107/107. Quatre anciens MON188 restent à qualifier. [Rapport X.66E](ARM_CLEAN06_4X66E_AUTOMATION_SAVE_ISOLATION.md).

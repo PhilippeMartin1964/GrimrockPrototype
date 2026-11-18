@@ -192,6 +192,7 @@ if ($SkipBuild -and $SkipAutomation)
 }
 
 Set-GrimrockValidationStage -Stage 'PREFLIGHT'
+& (Join-Path $PSScriptRoot 'TestARM_CLEAN06_4X66_Rollback.ps1')
 Assert-FileExists -Path $ProjectFile -Description 'Projet Unreal'
 
 $ResolvedEngineRoot = Resolve-GrimrockEngineRoot -RequestedRoot $EngineRoot

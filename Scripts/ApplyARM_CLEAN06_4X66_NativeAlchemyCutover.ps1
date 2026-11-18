@@ -15,6 +15,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'ARM_CLEAN06_4X66_Rollback.ps1')
 if ($ExpectedHead -cnotmatch '^[a-f0-9]{40}$') { throw 'ExpectedHead must be exact SHA40.' }
 if ($Apply -and [string]::IsNullOrWhiteSpace($SaveDirectory)) { throw 'Apply requires an explicit SaveDirectory.' }
 if ($Publish -ne $Apply) { throw 'Native Apply and Publish must be requested together; default is read-only.' }
@@ -74,9 +75,7 @@ function Sha([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 function StateHash([string]$Path) {
-    if (-not (Test-Path -LiteralPath $Path)) { return 'ABSENT' }
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw ('Expected file or absence: '+$Path) }
-    return (Sha $Path)
+    return (Get-ArmX66FileState $Path)
 }
 function CheckHashes([string[]]$Expected) {
     if ($Expected.Count -ne 12) { throw 'Twelve file-state receipts required.' }
@@ -217,6 +216,15 @@ for ($Index=0; $Index -lt $ExistingCount; ++$Index) {
     $Backups += $Backup
 }
 
+# Persist original path states before the native mutation.
+$BeforeReceipt = [pscustomobject]@{
+    schema='ARM-CLEAN06.4X66/native-before/v1'; head=$ExpectedHead
+    files=@(for ($Index=0; $Index -lt 12; ++$Index) {
+        [pscustomobject]@{ path=$Relative[$Index]; sha256=$Before[$Index] }
+    })
+}
+$BeforeReceipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $Run 'native-before.json') -Encoding UTF8
+
 # The preceding conversion validates copies in a separate private snapshot.
 # Installation is permitted only after the twelve native packages and the full
 # suite have passed, and only for the explicitly selected save directory.
@@ -234,6 +242,8 @@ $SaveRows = @($SaveReceipt.files)
 $SaveSnapshot = [string]$SaveReceipt.snapshot
 $Installed = New-Object 'System.Collections.Generic.List[object]'
 function CheckSaveSet([switch]$Converted) {
+    Assert-ArmX66OrdinaryPath $SaveDirectory
+    Assert-ArmX66OrdinaryPath $SaveSnapshot
     $Entries = @(Get-ChildItem -LiteralPath $SaveDirectory -Force)
     if (@($Entries | Where-Object { $_.PSIsContainer -or ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 }).Count -ne 0) {
         throw 'Save directory contains a new directory or reparse point.'
@@ -252,6 +262,8 @@ function CheckSaveSet([switch]$Converted) {
     }
 }
 function ReplaceSave([string]$Source,[string]$Target,[string]$ExpectedBefore,[string]$ExpectedAfter) {
+    Assert-ArmX66OrdinaryPath $Source
+    Assert-ArmX66OrdinaryPath $Target
     if ((Sha $Target) -cne $ExpectedBefore -or (Sha $Source) -cne $ExpectedAfter) { throw 'Save compare-and-replace refused.' }
     $Temp = Join-Path $SaveDirectory ('.armx66-'+[guid]::NewGuid().ToString('N')+'.tmp')
     try {
@@ -265,6 +277,7 @@ function ReplaceSave([string]$Source,[string]$Target,[string]$ExpectedBefore,[st
 CheckSaveSet
 
 $Committed = $false
+$CandidateHashes = @()
 try {
     CheckClean
     CheckHashes $Before
@@ -282,6 +295,17 @@ try {
         }
         NativeHeader $Live[$Index]
     }
+    # A strict Apply report and all twelve actual hashes/headers are required
+    # before attributing changed bytes to a transaction. Preserve ambiguous
+    # partial Apply results for audit instead of overwriting unknown bytes.
+    $CandidateHashes = @($After)
+    $CandidateReceipt = [pscustomobject]@{
+        schema='ARM-CLEAN06.4X66/native-after/v1'; head=$ExpectedHead
+        files=@(for ($Index=0; $Index -lt 12; ++$Index) {
+            [pscustomobject]@{ path=$Relative[$Index]; sha256=$After[$Index] }
+        })
+    }
+    $CandidateReceipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $Run 'native-after.json') -Encoding UTF8
     $Verify = RunUE 'Verify' (Join-Path $Run 'reopened-verify.json') @()
     CheckReport $Verify.Data 'Verify' 0 0
     CheckSameManifest $Pre.Data $Verify.Data
@@ -349,40 +373,73 @@ try {
     Write-Host 'Await SilentTask and LocalAuto on binary SHA, then alchemy PIE/editor checks.'
 }
 catch {
-    if (-not $Committed -and (Head) -ceq $ExpectedHead) {
-        foreach ($Row in $Installed) {
-            $Target = Join-Path $SaveDirectory $Row.name
-            if ((Sha $Target) -ceq $Row.original_sha256) { continue }
-            ReplaceSave (Join-Path (Join-Path $SaveSnapshot 'Original') $Row.name) $Target $Row.converted_sha256 $Row.original_sha256
-        }
-        CheckSaveSet
-        Write-Host '[ARM-CLEAN06.4X66] ORIGINAL SAVE HASHES VERIFIED.'
-        Write-Warning ('Native transaction failed; restoring the approved two source packages and removing ten newly created files: '+$_.Exception.Message)
-        $Dirty = @(Git @('status','--porcelain','--untracked-files=all'))
-        foreach ($Line in $Dirty) {
-            $Text = [string]$Line
-            if ($Text.Length -lt 4 -or $Relative -cnotcontains $Text.Substring(3).Replace('\','/')) {
-                throw 'Unexpected user file modification: automatic rollback refused.'
+    $OriginalFailure = $_
+    if (-not $Committed -and (Head) -ceq $ExpectedHead -and
+        ([string]@(Git @('branch','--show-current'))[0]).Trim() -ceq 'master') {
+        Write-Warning 'Native transaction failed; attempting independent guarded rollback phases.'
+        $Rollback = Invoke-ArmX66RollbackActions ([ordered]@{
+            RestoreSaves={
+                $Errors = New-Object 'System.Collections.Generic.List[string]'
+                foreach ($Row in $Installed) {
+                    try {
+                        $Target = Join-Path $SaveDirectory $Row.name
+                        $State = StateHash $Target
+                        if ($State -ceq $Row.original_sha256) { continue }
+                        if ($State -cne $Row.converted_sha256) { throw 'Installed save changed unexpectedly; preserved.' }
+                        ReplaceSave (Join-Path (Join-Path $SaveSnapshot 'Original') $Row.name) $Target $Row.converted_sha256 $Row.original_sha256
+                    } catch { $Errors.Add($_.Exception.Message) }
+                }
+                if ($Errors.Count -ne 0) { throw ($Errors -join '; ') }
             }
-        }
-        $StagedNow = @(Git @('diff','--cached','--name-only'))
-        foreach ($File in $StagedNow) {
-            if ($Relative -cnotcontains [string]$File) { throw 'Unexpected staged user file: rollback refused.' }
-        }
-        if ($StagedNow.Count -gt 0) { [void](Git (@('restore','--staged','--') + $StagedNow)) }
-        for ($Index=0; $Index -lt $ExistingCount; ++$Index) {
-            Copy-Item -LiteralPath $Backups[$Index] -Destination $Live[$Index] -Force
-        }
-        for ($Index=$ExistingCount; $Index -lt 12; ++$Index) {
-            if ($Before[$Index] -cne 'ABSENT') { throw 'Refusing deletion of pre-existing asset.' }
-            if (Test-Path -LiteralPath $Live[$Index] -PathType Leaf) {
-                Remove-Item -LiteralPath $Live[$Index] -Force
+            RestorePackages={
+                if ((Head) -cne $ExpectedHead -or ([string]@(Git @('branch','--show-current'))[0]).Trim() -cne 'master') {
+                    throw 'Checkout changed; package rollback refused.'
+                }
+                # Preserve strict worktree scope. Unrelated work is not ours
+                # to revert, staged or unstaged.
+                foreach ($Line in @(Git @('status','--porcelain','--untracked-files=all'))) {
+                    $Text = [string]$Line
+                    if ($Text.Length -lt 4 -or $Relative -cnotcontains $Text.Substring(3).Replace('\','/')) {
+                        throw 'Unexpected user file modification: automatic package rollback refused.'
+                    }
+                }
+                $StagedNow = @(Git @('diff','--cached','--name-only'))
+                foreach ($File in $StagedNow) {
+                    $Index = [array]::IndexOf($Relative,[string]$File)
+                    if ($Index -lt 0 -or $CandidateHashes.Count -ne 12) { throw 'Unproven staged package; rollback refused.' }
+                    $Pointer = @(Git @('show',(':'+$Relative[$Index])))
+                    if ($Pointer -cnotcontains ('oid sha256:'+$CandidateHashes[$Index])) { throw 'Unexpected staged package bytes; rollback refused.' }
+                }
+                if ($StagedNow.Count -gt 0) { [void](Git (@('restore','--staged','--') + $StagedNow)) }
+                $Errors = New-Object 'System.Collections.Generic.List[string]'
+                for ($Index=0; $Index -lt 12; ++$Index) {
+                    try {
+                        $Candidate = if ($CandidateHashes.Count -eq 12) { $CandidateHashes[$Index] } else { '' }
+                        $Backup = if ($Index -lt $ExistingCount) { $Backups[$Index] } else { '' }
+                        $Archive = Join-Path (Join-Path $Run 'RollbackCandidates') ($Relative[$Index].Replace('/','\'))
+                        Restore-ArmX66NativeFile -Live $Live[$Index] -Before $Before[$Index] -After $Candidate -Backup $Backup -Archive $Archive
+                    } catch { $Errors.Add(($Relative[$Index]+': '+$_.Exception.Message)) }
+                }
+                if ($Errors.Count -ne 0) { throw ($Errors -join '; ') }
             }
+            VerifySaves={ CheckSaveSet }
+            VerifyPackages={ CheckHashes $Before; CheckClean }
+        })
+        $RollbackReport = [pscustomobject]@{
+            schema='ARM-CLEAN06.4X66/rollback/v1'; head=$ExpectedHead
+            success=$Rollback.Success; issues=@($Rollback.Issues)
+            original_failure=$OriginalFailure.Exception.Message
         }
-        CheckHashes $Before
-        CheckClean
-        Write-Host '[ARM-CLEAN06.4X66] ROLLBACK VERIFIED: source SHA256 restored; worktree clean.'
+        try {
+            $RollbackReport | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $Run 'rollback.json') -Encoding UTF8
+        } catch { Write-Warning 'Could not persist private rollback report; retain console output.' }
+        if ($Rollback.Success) {
+            Write-Host '[ARM-CLEAN06.4X66] ROLLBACK VERIFIED: save and package SHA256 restored; worktree clean.'
+        } else {
+            foreach ($Issue in $Rollback.Issues) { Write-Warning $Issue }
+            Write-Warning 'Rollback incomplete: do not launch game, reset Git, or rerun the migration; inspect private evidence.'
+        }
     }
-    else { Write-Warning 'HEAD changed or binary commit exists; never reset or force-push committed history.' }
-    throw
+    else { Write-Warning 'HEAD or branch changed or binary commit exists; never reset or force-push committed history.' }
+    throw $OriginalFailure
 }

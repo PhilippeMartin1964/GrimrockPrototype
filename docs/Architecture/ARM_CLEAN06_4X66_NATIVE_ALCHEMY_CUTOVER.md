@@ -31,3 +31,8 @@ No private save contents in public logs or Git. After binary push check exact SH
 ## Exit gate
 
 The native migration has not been executed by the code publication. Persistent registry is 38 until X.66B. Do not delete old definitions or historical save fields. Global 107/107 previous reference migration stays complete; alchemy deletion, catalogue/icon retirement and saved world-pointer cleanup remain.
+
+
+## X.66E/F — protections de reprise
+
+Après la récupération X.66D (12 états initiaux, 7 sauvegardes originales intactes), chaque exécution Automation utilise un UserDir isolé et contrôlé. X.66F écrit les reçus privés native-before.json et native-after.json, et sépare RestoreSaves, RestorePackages, VerifySaves et VerifyPackages. Une erreur du répertoire SaveGames ne peut plus empêcher la tentative de restauration des packages dont les octets sont prouvés. Les candidats exacts sont archivés avant restauration ou retrait ; tout état ambigu reste en place pour audit. Un rapport rollback.json indique le résultat global et la cause originale. Aucune restauration de commit, aucun force-push, aucun retrait de sauvegarde personnelle. Les tests PowerShell synthétiques sont un gate de ValidateUE. Après deux statuts Windows success sur le SHA de code X.66F, mettre à jour le checkout propre par git pull --ff-only AVANT de lancer le script; ne jamais lancer l'ancienne version et compter sur sa fusion interne.
