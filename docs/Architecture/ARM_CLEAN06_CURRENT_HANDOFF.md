@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.4X.55 — préflight de la palette complète
+
+**Parent :** `51d3a1e4d15d3560bf77c17ab158d4df934c87c2` (X.54B, quatre assets natifs, SilentTask + LocalAuto succès, PIE 8/8 confirmé). Rapport : [ARM_CLEAN06_4X55_NATIVE_PALETTE_PREFLIGHT.md](ARM_CLEAN06_4X55_NATIVE_PALETTE_PREFLIGHT.md).
+
+Plan Editor-only transitoire, strictement 33 entrées directes et état 33/0 anciens pointeurs ; parité des projections Slate, validation structurelle, contrôle de chaque champ réfléchi et idempotence par test réel. Aucun binaire changé : 59 références restent après X.54B. Adapter les audits et inspecteurs historiques encore liés au pointeur puis préparer la transaction native protégée, jamais les anciens pipelines. 06.4 partielle ; 06.5 bloquée ; deux statuts Windows requis sur le nouveau SHA.
+
 ## ARM-CLEAN06.4X.54 — outil protégé pour retirer les quatre pointeurs natifs partagés
 
 **Parent :** `724e987c1b325eab1484bd51fc7c8d26710d8690` (X.53 validé SilentTask + LocalAuto). Rapport : [ARM_CLEAN06_4X54_FOUR_NATIVE_RULE_PROTECTED_TRANSACTION.md](ARM_CLEAN06_4X54_FOUR_NATIVE_RULE_PROTECTED_TRANSACTION.md).
