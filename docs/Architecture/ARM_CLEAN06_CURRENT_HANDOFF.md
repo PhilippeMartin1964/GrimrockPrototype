@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5A.1 — correction du wrapper Git de l'audit
+
+Parent `a202b99882de3e1499a02d48885e78fad1e6f810` : SilentTask + LocalAuto SUCCESS ; lancement opérateur du script 5A en échec CallDepthOverflow avant toute copie/commande Unreal. La fonction Git masquait git (PowerShell insensible à la casse). Wrapper renommé Invoke-ArmRetirementGit, chemin git.exe résolu comme Application. ValidateUE appelle désormais le script réel avec -SelfTest (HEAD/status et copie/hash de fichier synthétique, sans lecture de saves réelles ni réseau/UE). Nouveau SHA à valider, puis audit opérateur lecture seule sur copies ; aucune suppression. Inutile de restaurer la transaction précédente pour cet échec de préflight.
+
 ## ARM-CLEAN06.5A — inventaire de retrait (ne pas supprimer)
 
 X.66B binaire `52fdac2a79cd8f33660996b527b9c69b1c69a6ac` validé SilentTask + LocalAuto, exactement 12 packages, 48 définitions/14 actions, 107/107 références de X.48, 2006 Automation réussis dont 31 avertis, aucune save modifiée (isolation OK, zéro résidu). PIE alchimie reste dû. [Audit 5A](ARM_CLEAN06_5A_RETIREMENT_EVIDENCE.md) : scan natif final des anciens packages et des copies v27, y compris pointeurs de monde toujours sérialisés, caches DisplayName/Weight, readables déplacés et chemins bruts. Aucune suppression jusqu'à examen des preuves. Après validation du SHA 5A, exécuter l'audit local en lecture seule sur copies et transmettre retirement-evidence.json ; aucune relance des anciens scripts Apply. Les quatre anciens MON188 restent protégés. 06.4 non clôturée globalement, 06.5 préparatoire, 06.6 non faite, v27 préservée.

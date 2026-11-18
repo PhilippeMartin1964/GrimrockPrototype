@@ -196,6 +196,10 @@ if ($SkipBuild -and $SkipAutomation)
 Set-GrimrockValidationStage -Stage 'PREFLIGHT'
 & (Join-Path $PSScriptRoot 'TestARM_CLEAN06_4X66_Rollback.ps1') -Stage { param($Name) Set-GrimrockValidationStage -Stage $Name }
 Set-GrimrockValidationStage -Stage 'PREFLIGHT'
+$RetirementSelfTestGit=(Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$RetirementSelfTestHead=@(& $RetirementSelfTestGit -C $RepoRoot rev-parse HEAD)
+if ($LASTEXITCODE -ne 0 -or $RetirementSelfTestHead.Count -ne 1) { throw 'Cannot determine HEAD for retirement audit self-test.' }
+& (Join-Path $PSScriptRoot 'AuditARM_CLEAN06_5_Retirement.ps1') -ExpectedHead $RetirementSelfTestHead[0] -SelfTest
 Assert-FileExists -Path $ProjectFile -Description 'Projet Unreal'
 
 $ResolvedEngineRoot = Resolve-GrimrockEngineRoot -RequestedRoot $EngineRoot

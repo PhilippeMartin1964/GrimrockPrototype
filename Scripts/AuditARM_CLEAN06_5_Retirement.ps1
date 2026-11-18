@@ -2,25 +2,25 @@
 param(
     [Parameter(Mandatory=$true)][string]$ExpectedHead,
     [string]$EngineRoot='D:\UE_5.5',
-    [string]$StateRoot='D:\GrimrockNativeSnapshots'
+    [string]$StateRoot='D:\GrimrockNativeSnapshots',
+    [switch]$SelfTest
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ARM_CLEAN06_4X66_Rollback.ps1')
 $RepoRoot=Split-Path -Parent $PSScriptRoot
-$Live=Join-Path $RepoRoot 'Saved\SaveGames'
-$StateRoot=[IO.Path]::GetFullPath($StateRoot).TrimEnd('\','/')
-$Project=[IO.Path]::GetFullPath($RepoRoot).TrimEnd('\','/')
-if ($StateRoot -ieq $Project -or $StateRoot.StartsWith($Project+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Private state must be outside project.' }
-function Git([string[]]$Arguments) {
-    $Result=@(& git -C $RepoRoot @Arguments)
+# Resolve the native executable explicitly: PowerShell function names are
+# case-insensitive, and a wrapper named Git would shadow a bare git call.
+$GitExecutable=(Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+function Invoke-ArmRetirementGit([string[]]$Arguments) {
+    $Result=@(& $GitExecutable -C $RepoRoot @Arguments)
     if ($LASTEXITCODE -ne 0) { throw 'Git read failed.' }
     $Result
 }
 function CheckClean {
-    if ((Git @('rev-parse','HEAD')) -cne $ExpectedHead -or (Git @('branch','--show-current')) -cne 'master' -or
-        @(Git @('status','--porcelain','--untracked-files=all')).Count -ne 0) { throw 'Expected clean master at exact SHA.' }
-    if ((@(Git @('ls-remote','origin','refs/heads/master'))[0] -split '\s+')[0] -cne $ExpectedHead) { throw 'Origin master changed.' }
+    if ((Invoke-ArmRetirementGit @('rev-parse','HEAD')) -cne $ExpectedHead -or (Invoke-ArmRetirementGit @('branch','--show-current')) -cne 'master' -or
+        @(Invoke-ArmRetirementGit @('status','--porcelain','--untracked-files=all')).Count -ne 0) { throw 'Expected clean master at exact SHA.' }
+    if ((@(Invoke-ArmRetirementGit @('ls-remote','origin','refs/heads/master'))[0] -split '\s+')[0] -cne $ExpectedHead) { throw 'Origin master changed.' }
 }
 function CheckClosed {
     if (@(Get-Process -Name UnrealEditor,UnrealEditor-Cmd,GrimrockPrototype,GrimrockPrototype-Win64-Shipping -ErrorAction SilentlyContinue).Count -ne 0) {
@@ -36,6 +36,43 @@ function Inventory([string]$Directory) {
         [pscustomobject]@{ name=$File.Name; bytes=$File.Length; sha256=(Get-ArmX66FileState $File.FullName) }
     }
 }
+# The same script and functions run in ValidateUE, on disposable bytes
+# only: no real SaveGames, native assets, Unreal or network access.
+if ($SelfTest) {
+    $Actual=@(Invoke-ArmRetirementGit @('rev-parse','HEAD'))
+    if ($Actual.Count -ne 1 -or $Actual[0] -cne $ExpectedHead -or $Actual[0] -cnotmatch '^[0-9a-f]{40}$') {
+        throw 'Retirement audit native Git self-test: HEAD mismatch.'
+    }
+    [void]@(Invoke-ArmRetirementGit @('status','--porcelain','--untracked-files=all'))
+    $Fixture=Join-Path ([IO.Path]::GetTempPath()) ('ArmRetirementTest-'+[guid]::NewGuid().ToString('N'))
+    if (Test-Path -LiteralPath $Fixture) { throw 'Fixture collision.' }
+    [void](New-Item -ItemType Directory -Path $Fixture)
+    try {
+        $From=Join-Path $Fixture 'Source'
+        $To=Join-Path $Fixture 'Copies'
+        [void](New-Item -ItemType Directory -Path $From)
+        [void](New-Item -ItemType Directory -Path $To)
+        [IO.File]::WriteAllBytes((Join-Path $From 'Fixture.sav'),[byte[]]@(1,2,3,4))
+        $Rows=@(Inventory $From)
+        if ($Rows.Count -ne 1 -or $Rows[0].bytes -ne 4 -or $Rows[0].sha256 -cnotmatch '^[0-9a-f]{64}$') {
+            throw 'Retirement audit fixture inventory mismatch.'
+        }
+        foreach ($Row in $Rows) { Copy-Item -LiteralPath (Join-Path $From $Row.name) -Destination (Join-Path $To $Row.name) }
+        $Expected=ConvertTo-Json -InputObject $Rows -Compress
+        if ((ConvertTo-Json -InputObject @(Inventory $To) -Compress) -cne $Expected) { throw 'Fixture copy mismatch.' }
+        [IO.File]::WriteAllBytes((Join-Path $To 'Fixture.sav'),[byte[]]@(1,2,3,5))
+        if ((ConvertTo-Json -InputObject @(Inventory $To) -Compress) -ceq $Expected) { throw 'Fixture modified bytes not detected.' }
+        if ((ConvertTo-Json -InputObject @(Inventory $From) -Compress) -cne $Expected) { throw 'Fixture source changed.' }
+    } finally {
+        Remove-Item -LiteralPath $Fixture -Recurse -Force
+    }
+    Write-Host '[OK] Retirement audit native Git and copy-inventory self-test.'
+    return
+}
+$Live=Join-Path $RepoRoot 'Saved\SaveGames'
+$StateRoot=[IO.Path]::GetFullPath($StateRoot).TrimEnd('\','/')
+$Project=[IO.Path]::GetFullPath($RepoRoot).TrimEnd('\','/')
+if ($StateRoot -ieq $Project -or $StateRoot.StartsWith($Project+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Private state must be outside project.' }
 CheckClean
 CheckClosed
 Assert-ArmX66OrdinaryPath $StateRoot
