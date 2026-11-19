@@ -248,7 +248,12 @@ bool AGrimrockPartyPawn::TryDropCursorItemAtCell(int32 CellX, int32 CellY, EGrid
 	}
 
 	FGridItemInstance DroppedItem;
-	if (!BuildSingleItemInstanceFromCursor(DroppedItem) || !LevelRuntimeActor->TryDropItemInstanceAtCell(DroppedItem, CellX, CellY, Edge, LocalOffset))
+	if (!BuildSingleItemInstanceFromCursor(DroppedItem))
+	{
+		return false;
+	}
+	UGridItemDefinitionAsset* Definition = FGridLegacyItemLookup::Resolve(this, DroppedItem.ItemDefinitionId);
+	if (!LevelRuntimeActor->TryDropItemInstanceAtCell(DroppedItem, Definition, CellX, CellY, Edge, LocalOffset))
 	{
 		return false;
 	}
@@ -266,7 +271,7 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 	}
 
 	const FGridItemInstance CursorItem = PartyInventoryComponent->GetCursorItem();
-	UGridItemDefinitionAsset* ItemDefinition = LevelRuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId);
+	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(this, CursorItem.ItemDefinitionId);
 	const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex();
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
@@ -297,7 +302,8 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 
 	const FVector StartLocation = (Camera ? Camera->GetComponentLocation() : GetActorLocation()) + ThrowDirection * 60.0f;
 	const FVector LaunchVelocity = ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale;
-	if (!LevelRuntimeActor->TrySpawnThrownItemProjectile(ThrownItem, StartLocation, LaunchVelocity, CurrentCellX, CurrentCellY))
+	if (!LevelRuntimeActor->SpawnThrownItemProjectile(ThrownItem, ItemDefinition, StartLocation,
+		LaunchVelocity, CurrentCellX, CurrentCellY, false, this))
 	{
 		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Throw Failed Item=%s Quantity=%d Reason=ProjectileSpawnFailed"), *CursorItem.ItemDefinitionId.ToString(),
 			CursorItem.Quantity);

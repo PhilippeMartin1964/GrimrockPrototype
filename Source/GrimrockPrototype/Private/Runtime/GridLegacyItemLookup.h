@@ -8,7 +8,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
-/** Historical transfer lookup. Membership before any old map or level read. */
+/** Temporary historical transfer lookup. Membership before any old inventory map or recipe read. */
 struct FGridLegacyItemLookup
 {
 	static bool IsRegistered(const AGrimrockPartyPawn* Party, FName ItemId)
@@ -19,7 +19,7 @@ struct FGridLegacyItemLookup
 		return Registry && Registry->HasCanonicalItem(ItemId);
 	}
 
-	static UGridItemDefinitionAsset* Resolve(const AGrimrockPartyPawn* Party, FName ItemId, bool bAllowLevel = true)
+	static UGridItemDefinitionAsset* Resolve(const AGrimrockPartyPawn* Party, FName ItemId, bool bAllowRecipe = true)
 	{
 		if (!Party || ItemId.IsNone() || IsRegistered(Party, ItemId))
 		{
@@ -31,7 +31,7 @@ struct FGridLegacyItemLookup
 		{
 			return Old;
 		}
-		return bAllowLevel && Party->LevelRuntimeActor
+		return bAllowRecipe && Party->LevelRuntimeActor
 			? Party->LevelRuntimeActor->ResolveRuntimeItemDefinition(ItemId) : nullptr;
 	}
 };

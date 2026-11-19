@@ -103,10 +103,6 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	Definition->Weight = 2.5f;
 	Definition->WorldMesh = NewObject<UStaticMesh>(Runtime);
 
-	FGridLooseItemInstance DefinitionLookup;
-	DefinitionLookup.InstanceId = FGuid::NewGuid();
-	DefinitionLookup.ItemDefinition = Definition;
-	LevelAsset->LooseItemInstances.Add(DefinitionLookup);
 
 	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
 	TestNotNull(TEXT("The party pawn is created"), Party);

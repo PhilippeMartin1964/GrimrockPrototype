@@ -150,10 +150,6 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 		Cell.CellType = EGridCellType::Floor;
 		Cell.bBlocksOccupancy = false;
 	}
-	FGridLooseItemInstance DefinitionLookup;
-	DefinitionLookup.InstanceId = FGuid::NewGuid();
-	DefinitionLookup.ItemDefinition = Definition;
-	LevelAsset->LooseItemInstances.Add(DefinitionLookup);
 	Runtime->LevelAsset = LevelAsset;
 
 	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();

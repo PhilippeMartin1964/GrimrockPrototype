@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.23 — Retrait du lookup de définitions depuis les placements
+
+Parent 00ce3fde16475a1b226a178cf13a01c2a76d20a7 : publication après validation de 5G.22.1. ResolveRuntimeItemDefinition ne parcourt plus les loose items ; seules les recettes historiques restent provisoirement accessibles pour les IDs hors registre. Dépôt/lancer et ciblage utilisent la source inventaire déjà enregistrée, sans nouvel index. TD02.1/MON11 ne simulent plus de placements pour fournir une définition ; test 5E4D exige le refus du vieux placement même hors registre. Aucune écriture binaire ni SaveGame. Voir [5G.23](ARM_CLEAN06_5G23_RETIRE_LEVEL_ITEM_LOOKUP.md).
+
 ## ARM-CLEAN06.5G.22.1 — Correction du test FireBombDirectPlacement (issue #203)
 
 5G.22 (2d40d261) compile mais un seul test Automation échoue : le plan historique de palette ajoute FireBomb avec un pointeur ancien. Correction ciblée : preuve du refus de cette entrée, puis placement N0 de Item_Bomb_Fire après résolution réelle dans ItemSystem, dans la seule copie transitoire. Le test du plan historique reste distinct. Aucun package, SaveGame ni comportement runtime modifié. Validation complète à recevoir avant 5G.23.

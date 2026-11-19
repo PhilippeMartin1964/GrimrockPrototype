@@ -1951,8 +1951,8 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition(F
 		return nullptr;
 	}
 
-	// Historical lookup only. Never scan placements or load old recipes
-	// for registered identities, even when an old DA is still installed.
+	// Authored placements are not a definition catalogue. This remaining
+	// historical recipe lookup is only for out-of-registry identities.
 	const UWorld* World = GetWorld();
 	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
@@ -1961,19 +1961,9 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition(F
 		return nullptr;
 	}
 
-	if (LevelAsset)
-	{
-		for (const FGridLooseItemInstance& Item : LevelAsset->LooseItemInstances)
-		{
-			if (Item.ItemDefinition && Item.ItemDefinition->ItemDefinitionId == ItemDefinitionId)
-			{
-				return Item.ItemDefinition;
-			}
-		}
-	}
-
-	// A saved starting weapon may not appear anywhere in the active dungeon.
-	// ARMEMENT01.9.2 recipes are the authoritative source of these assets.
+	// Temporary recipe compatibility for no-registry fixtures. The physical
+	// source owner supplies any explicitly registered historical inventory
+	// definition; an unrelated authored level row can never supply one.
 	return FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(ItemDefinitionId);
 }
 

@@ -1186,7 +1186,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 					if (bWasUnlocked || !bAcceptedKey)
 					{
 						UGridItemDefinitionAsset* CursorItemDefinition =
-							RuntimeActor ? RuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId) : nullptr;
+							FGridLegacyItemLookup::Resolve(PartyPawn, CursorItem.ItemDefinitionId);
 						const bool bRegistered = FGridLegacyItemLookup::IsRegistered(PartyPawn, CursorItem.ItemDefinitionId);
 						const TCHAR* RejectReason = bWasUnlocked
 							? TEXT("AlreadyUnlocked")
@@ -1302,7 +1302,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 			return;
 		}
 
-		UGridItemDefinitionAsset* ItemDefinition = RuntimeActor ? RuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId) : nullptr;
+		UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(PartyPawn, CursorItem.ItemDefinitionId);
 		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Throwable=%s"), *CursorItem.ItemDefinitionId.ToString(),
 			CanSelectedCharacterPhysicallyThrow(PartyPawn, CursorItem, ItemDefinition) ? TEXT("true") : TEXT("false"));
 		if (!CanSelectedCharacterPhysicallyThrow(PartyPawn, CursorItem, ItemDefinition))
@@ -1532,9 +1532,8 @@ bool AGrimrockPlayerController::ResolveCursorItemHoverCursor(
 		case EGridMouseInteractionIntent::CursorItemThrow:
 		{
 			const AGrimrockPartyPawn* PartyPawn = MouseResolution.PartyPawn;
-			const AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get() : nullptr;
 			const UGridItemDefinitionAsset* ItemDefinition =
-				RuntimeActor ? RuntimeActor->ResolveRuntimeItemDefinition(MouseResolution.CursorItem.ItemDefinitionId) : nullptr;
+				FGridLegacyItemLookup::Resolve(PartyPawn, MouseResolution.CursorItem.ItemDefinitionId);
 			const FVector ThrowStartLocation =
 				PartyPawn && PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : (PartyPawn ? PartyPawn->GetActorLocation() : FVector::ZeroVector);
 			const FVector TargetOffset = MouseResolution.HitResult.ImpactPoint - ThrowStartLocation;

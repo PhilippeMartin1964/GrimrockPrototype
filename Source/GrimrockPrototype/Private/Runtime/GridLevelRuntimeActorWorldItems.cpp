@@ -18,6 +18,7 @@
 #include "GridItemWeightReadModel.h"
 #include "GridWorldItemLevelReadModel.h"
 #include "GridWorldPickupIdentityReadModel.h"
+#include "GridLegacyItemLookup.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -934,7 +935,13 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtWorldTransform(
 bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	const FGridItemInstance& ItemInstance, int32 CellX, int32 CellY, EGridEdge Edge, const FVector& LocalOffset)
 {
-	return TryDropItemInstanceAtCell(ItemInstance, nullptr, CellX, CellY, Edge, LocalOffset);
+	// Inventory-origin convenience path: preserve the explicit source
+	// inventory's definition for genuinely unregistered synthetic items.
+	// Registered identities always pass nullptr and resolve via ItemSystem.
+	const AGrimrockPartyPawn* Party = ResolveWorldItemInteractionParty(this);
+	UGridItemDefinitionAsset* Definition = FGridLegacyItemLookup::Resolve(
+		Party, ItemInstance.ItemDefinitionId, false);
+	return TryDropItemInstanceAtCell(ItemInstance, Definition, CellX, CellY, Edge, LocalOffset);
 }
 
 bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
@@ -1106,9 +1113,12 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 bool AGridLevelRuntimeActor::TrySpawnThrownItemProjectile(
 	const FGridItemInstance& ItemInstance, const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY)
 {
-	UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId);
+	const AGrimrockPartyPawn* Party = ResolveWorldItemInteractionParty(this);
+	UGridItemDefinitionAsset* ItemDefinition = Party
+		? FGridLegacyItemLookup::Resolve(Party, ItemInstance.ItemDefinitionId)
+		: ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId);
 	return SpawnThrownItemProjectile(ItemInstance, ItemDefinition, StartWorldLocation, LaunchVelocity, SourceCellX, SourceCellY,
-		false, const_cast<AGrimrockPartyPawn*>(ResolveWorldItemInteractionParty(this))) != nullptr;
+		false, const_cast<AGrimrockPartyPawn*>(Party)) != nullptr;
 }
 
 AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinition,
