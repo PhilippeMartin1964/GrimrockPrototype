@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
 #include "../Runtime/GridInventoryDiagnosticWeightReadModel.h"
+#include "../Runtime/GridCanonicalInventoryDefinitionDiagnosticReadModel.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
@@ -24,6 +25,27 @@ bool FGridClean063ACInventoryDiagnosticWeight::RunTest(const FString&)
 		for (const FString& Error : Errors) AddError(Error);
 		return false;
 	}
+	TArray<FGridCanonicalInventoryDefinitionDiagnosticRow> Rows;
+	if (!TestTrue(TEXT("Canonical definitions available without inventory cache"),
+		FGridCanonicalInventoryDefinitionDiagnosticReadModel::Build(Registry.Get(), Rows))) return false;
+	TestEqual(TEXT("Every registered identity is present"), Rows.Num(), Root->ItemDefinitions.Num());
+	TSet<FName> Seen;
+	for (const auto& Row : Rows)
+	{
+		TestFalse(TEXT("Canonical diagnostics never duplicate identities"), Seen.Contains(Row.ItemId));
+		Seen.Add(Row.ItemId);
+		TestTrue(TEXT("Real canonical row resolves"), Row.bResolved);
+		TestTrue(TEXT("Weight reports actual level endpoints"), Row.WeightText.StartsWith(Row.bArmament ? TEXT("N1:") : TEXT("N0:")));
+		if (Row.bAmmo) TestTrue(TEXT("Ammunition has no equipment slots"), Row.Slots.IsEmpty());
+	}
+	const auto* Shield = Rows.FindByPredicate([](const auto& Row) { return Row.ItemId == FName(TEXT("Weapon_RoundShield_01")); });
+	if (TestNotNull(TEXT("Canonical shield row"), Shield))
+	{
+		TestTrue(TEXT("Shield allowed in OffHand"), Shield->Slots.Contains(EGridEquipmentSlot::OffHand));
+		TestFalse(TEXT("Shield forbidden in MainHand"), Shield->Slots.Contains(EGridEquipmentSlot::MainHand));
+	}
+	TestFalse(TEXT("Absent registry is explicit"), FGridCanonicalInventoryDefinitionDiagnosticReadModel::Build(nullptr, Rows));
+	TestTrue(TEXT("Absent registry clears rows"), Rows.IsEmpty());
 	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
 	Old->Weight = 99999.0f;
 	const FName Arms[] = {

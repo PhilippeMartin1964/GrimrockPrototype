@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.41 — Lectures du cache isolées et diagnostics canoniques
+
+Parent bbe81ff1d02c41eddab48901743e0f671f30b04b. Publication conditionnée aux deux statuts SUCCESS. FindItemDefinition ne lit le cache que pendant Automation active ; diagnostics de définitions et compatibilité utilisent les identités triées du registre, poids N0 ou N1/N20 et permissions de main/slots canoniques. La propriété Transient reste pour le GC des fixtures ; aucune suppression de schéma. Voir [5G.41](ARM_CLEAN06_5G41_CANONICAL_INVENTORY_DIAGNOSTICS.md).
+
 ## ARM-CLEAN06.5G.40 — Kits de départ : registre obligatoire
 
 Parent fbf63c22e28bdeee397ab5c69118ae1ea3b53675. Publication après les deux statuts SUCCESS. Refus des identités hors registre et du registre absent/non configuré en jeu ; cache de départ alimenté seulement dans les fixtures historiques Automation sans GameInstance. Le contrat X24 ajoute deux refus atomiques ; le test des 18 kits et STARTUPFLOW01 restent obligatoires. Voir [5G.40](ARM_CLEAN06_5G40_STRICT_STARTER_REGISTRY.md). Aucun asset ou SaveGame modifié.

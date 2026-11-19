@@ -296,6 +296,17 @@ public:
 		return ConfiguredItemSystem.LoadSynchronous();
 	}
 
+	/** Sorted read-only identity inventory for diagnostics. No asset pointers escape. */
+	void GetCanonicalItemIds(TArray<FName>& OutIds) const
+	{
+		OutIds.Reset();
+		if (IsConfigured())
+		{
+			ItemIndex.GetKeys(OutIds);
+			OutIds.Sort(FNameLexicalLess());
+		}
+	}
+
 	/** Exact ItemId membership; unknown IDs are handled only by their not-yet-migrated readers. */
 	bool HasCanonicalItem(FName ItemId) const
 	{

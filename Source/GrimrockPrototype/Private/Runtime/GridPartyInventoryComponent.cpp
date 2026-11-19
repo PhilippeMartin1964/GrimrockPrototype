@@ -1642,7 +1642,9 @@ bool UGridPartyInventoryComponent::RehydrateCanonicalOwnedItemDefinitions(FName&
 		return false;
 
 	// Commit only after all physical items and shortcuts pass validation.
-	RuntimeItemDefinitionsById.Reset();
+#if WITH_DEV_AUTOMATION_TESTS
+	RuntimeItemDefinitionsById.Reset(); // Purge historical fixture entries only.
+#endif
 	NotifyPartyInventoryChanged(INDEX_NONE);
 	return true;
 }
@@ -1768,6 +1770,8 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
 
 UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName ItemDefinitionId) const
 {
+#if WITH_DEV_AUTOMATION_TESTS
+	if (!GIsAutomationTesting) return nullptr;
 	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
 	if (ItemDefinitionId.IsNone() || (Registry && Registry->HasCanonicalItem(ItemDefinitionId)))
 	{
@@ -1778,6 +1782,7 @@ UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName
 	{
 		return Definition->Get();
 	}
+#endif // WITH_DEV_AUTOMATION_TESTS
 
 	return nullptr;
 }

@@ -1,7 +1,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "GridEquipmentSlotUtils.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalInventoryDefinitionDiagnosticReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridInventoryDiagnosticWeightReadModel.h"
 #include "GridEquipmentContributionReadModel.h"
@@ -55,43 +55,6 @@ namespace
 		}
 	}
 
-	const TCHAR* GridPartyInventoryDiagnosticsGetItemTypeName(EGridItemType ItemType)
-	{
-		switch (ItemType)
-		{
-			case EGridItemType::Torch:
-				return TEXT("Torch");
-			case EGridItemType::Weapon:
-				return TEXT("Weapon");
-			case EGridItemType::Shield:
-				return TEXT("Shield");
-			case EGridItemType::Armor:
-				return TEXT("Armor");
-			case EGridItemType::Jewelry:
-				return TEXT("Jewelry");
-			case EGridItemType::Key:
-				return TEXT("Key");
-			case EGridItemType::Gem:
-				return TEXT("Gem");
-			case EGridItemType::Potion:
-				return TEXT("Potion");
-			case EGridItemType::Scroll:
-				return TEXT("Scroll");
-			case EGridItemType::Book:
-				return TEXT("Book");
-			case EGridItemType::Food:
-				return TEXT("Food");
-			case EGridItemType::Component:
-				return TEXT("Component");
-			case EGridItemType::Quest:
-				return TEXT("Quest");
-			case EGridItemType::Misc:
-				return TEXT("Misc");
-			default:
-				return TEXT("None");
-		}
-	}
-
 	FString GridPartyInventoryDiagnosticsGetEquipmentSlotsText(const TArray<EGridEquipmentSlot>& Slots)
 	{
 		if (Slots.Num() == 0)
@@ -119,28 +82,6 @@ namespace
 	bool GridPartyInventoryDiagnosticsIsNewPaperDollSlot(EGridEquipmentSlot Slot)
 	{
 		return Slot == EGridEquipmentSlot::Shirt || Slot == EGridEquipmentSlot::Bracers;
-	}
-
-	bool GridPartyInventoryDiagnosticsLooksPotentiallyEquippable(const UGridItemDefinitionAsset* Definition)
-	{
-		if (!Definition)
-		{
-			return false;
-		}
-
-		switch (Definition->ItemType)
-		{
-			case EGridItemType::Torch:
-			case EGridItemType::Weapon:
-			case EGridItemType::Shield:
-			case EGridItemType::Armor:
-			case EGridItemType::Jewelry:
-				return true;
-			default:
-				break;
-		}
-
-		return !Definition->EquippedMesh.IsNull();
 	}
 
 	FString GridPartyInventoryDiagnosticsGetEquipmentStatBonusText(const FGridEquipmentStatBonus& Bonus)
@@ -231,31 +172,22 @@ void UGridPartyInventoryComponent::LogPartyInventoryDiagnostics() const
 
 FString UGridPartyInventoryComponent::GetItemDefinitionDiagnostics() const
 {
-	const UGridItemSubsystem* Registry = GridPartyInventoryDiagnosticsRegistry(this);
-	FString Result;
-	Result += TEXT("GridItemDefinition Diagnostics\n");
-	Result += FString::Printf(TEXT("RuntimeDefinitions=%d\n"), RuntimeItemDefinitionsById.Num());
-
-	TArray<FName> DefinitionIds;
-	RuntimeItemDefinitionsById.GetKeys(DefinitionIds);
-	DefinitionIds.Sort(FNameLexicalLess());
-	for (int32 Index = 0; Index < DefinitionIds.Num(); ++Index)
+	TArray<FGridCanonicalInventoryDefinitionDiagnosticRow> Rows;
+	FString Result = TEXT("GridItemDefinition Diagnostics\n");
+	if (!FGridCanonicalInventoryDefinitionDiagnosticReadModel::Build(GridPartyInventoryDiagnosticsRegistry(this), Rows))
+		return Result + TEXT("ItemSystem=UNCONFIGURED\n");
+	Result += FString::Printf(TEXT("CanonicalDefinitions=%d\n"), Rows.Num());
+	for (const auto& Row : Rows)
 	{
-		const FName DefinitionId = DefinitionIds[Index];
-		const TObjectPtr<UGridItemDefinitionAsset>* DefinitionEntry = RuntimeItemDefinitionsById.Find(DefinitionId);
-		const UGridItemDefinitionAsset* Definition = DefinitionEntry ? DefinitionEntry->Get() : nullptr;
-		if (!Definition)
+		if (!Row.bResolved)
 		{
-			Result += FString::Printf(TEXT("[%d] Id=%s Asset=None Warning=NullDefinition\n"), Index, *DefinitionId.ToString());
+			Result += FString::Printf(TEXT("Id=%s Weight=INVALID Warning=CanonicalResolveFailed\n"), *Row.ItemId.ToString());
 			continue;
 		}
-
-		const FString WeightText = FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(Registry, Definition);
-		Result += FString::Printf(TEXT("[%d] Asset=%s Id=%s Type=%s Weight=%s Slots=%s\n"), Index, *Definition->GetName(),
-			*Definition->ItemDefinitionId.ToString(), GridPartyInventoryDiagnosticsGetItemTypeName(Definition->ItemType), *WeightText,
-			*GridPartyInventoryDiagnosticsGetEquipmentSlotsText(Definition->CompatibleEquipmentSlots));
+		Result += FString::Printf(TEXT("Id=%s Kind=%s Weight=%s Slots=%s\n"),
+			*Row.ItemId.ToString(), Row.bArmament ? TEXT("ARM") : (Row.bAmmo ? TEXT("Ammo") : TEXT("NonARM")),
+			*Row.WeightText, *GridPartyInventoryDiagnosticsGetEquipmentSlotsText(Row.Slots));
 	}
-
 	return Result;
 }
 
@@ -266,76 +198,52 @@ void UGridPartyInventoryComponent::LogItemDefinitionDiagnostics() const
 
 void UGridPartyInventoryComponent::LogEquipmentCompatibilityDiagnostics() const
 {
-	UE_LOG(LogGridInventory, Log, TEXT("GridEquipmentCompatibility Diagnostics RuntimeDefinitions=%d"), RuntimeItemDefinitionsById.Num());
-
-	TArray<FName> DefinitionIds;
-	RuntimeItemDefinitionsById.GetKeys(DefinitionIds);
-	DefinitionIds.Sort(FNameLexicalLess());
-
+	TArray<FGridCanonicalInventoryDefinitionDiagnosticRow> Rows;
+	if (!FGridCanonicalInventoryDefinitionDiagnosticReadModel::Build(GridPartyInventoryDiagnosticsRegistry(this), Rows))
+	{
+		UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility ItemSystem=UNCONFIGURED"));
+		return;
+	}
+	int32 UnresolvedCount = 0;
 	int32 PotentiallyEquippableWithoutSlotsCount = 0;
 	int32 LightWithoutHandSlotCount = 0;
 	int32 ExcludedPaperDollSlotCount = 0;
 	int32 NewPaperDollSlotUsageCount = 0;
-
-	for (const FName DefinitionId : DefinitionIds)
+	for (const auto& Row : Rows)
 	{
-		const TObjectPtr<UGridItemDefinitionAsset>* DefinitionEntry = RuntimeItemDefinitionsById.Find(DefinitionId);
-		const UGridItemDefinitionAsset* Definition = DefinitionEntry ? DefinitionEntry->Get() : nullptr;
-		if (!Definition)
+		if (!Row.bResolved)
 		{
-			UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=NullDefinition"), *DefinitionId.ToString());
+			++UnresolvedCount;
+			UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=CanonicalResolveFailed"), *Row.ItemId.ToString());
 			continue;
 		}
-
-		const FString SlotsText = GridPartyInventoryDiagnosticsGetEquipmentSlotsText(Definition->CompatibleEquipmentSlots);
-		if (Definition->CompatibleEquipmentSlots.Num() == 0 && GridPartyInventoryDiagnosticsLooksPotentiallyEquippable(Definition))
+		const FString SlotsText = GridPartyInventoryDiagnosticsGetEquipmentSlotsText(Row.Slots);
+		if (Row.Slots.IsEmpty() && Row.bLooksEquippable)
 		{
 			++PotentiallyEquippableWithoutSlotsCount;
-			UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=PotentiallyEquippableWithoutSlots Type=%s Slots=%s"),
-				*Definition->ItemDefinitionId.ToString(), GridPartyInventoryDiagnosticsGetItemTypeName(Definition->ItemType), *SlotsText);
+			UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=PotentiallyEquippableWithoutSlots"), *Row.ItemId.ToString());
 		}
-
-		if (Definition->HasLightEmitter())
+		if (Row.bHasLightEmitter && !Row.Slots.Contains(EGridEquipmentSlot::MainHand) && !Row.Slots.Contains(EGridEquipmentSlot::OffHand))
 		{
-			bool bHasHandSlot = false;
-			for (const EGridEquipmentSlot Slot : Definition->CompatibleEquipmentSlots)
-			{
-				if (GridEquipmentSlotUtils::IsHandSlot(Slot))
-				{
-					bHasHandSlot = true;
-					break;
-				}
-			}
-
-			if (!bHasHandSlot)
-			{
-				++LightWithoutHandSlotCount;
-				UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=LightWithoutMainHandOrOffHand Slots=%s"),
-					*Definition->ItemDefinitionId.ToString(), *SlotsText);
-			}
+			++LightWithoutHandSlotCount;
+			UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=LightWithoutMainHandOrOffHand Slots=%s"), *Row.ItemId.ToString(), *SlotsText);
 		}
-
-		for (const EGridEquipmentSlot Slot : Definition->CompatibleEquipmentSlots)
+		for (EGridEquipmentSlot Slot : Row.Slots)
 		{
 			if (GridPartyInventoryDiagnosticsIsExcludedPaperDollSlot(Slot))
 			{
 				++ExcludedPaperDollSlotCount;
-				UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=PaperDollExcludedSlot Slot=%s Slots=%s"),
-					*Definition->ItemDefinitionId.ToString(), GridEquipmentSlotUtils::GetLogName(Slot), *SlotsText);
+				UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=PaperDollExcludedSlot Slot=%s"), *Row.ItemId.ToString(), GridEquipmentSlotUtils::GetLogName(Slot));
 			}
 			else if (GridPartyInventoryDiagnosticsIsNewPaperDollSlot(Slot))
 			{
 				++NewPaperDollSlotUsageCount;
-				UE_LOG(LogGridInventory, Log, TEXT("GridEquipmentCompatibility Item=%s UsesNewPaperDollSlot=%s Slots=%s"), *Definition->ItemDefinitionId.ToString(),
-					GridEquipmentSlotUtils::GetLogName(Slot), *SlotsText);
+				UE_LOG(LogGridInventory, Log, TEXT("GridEquipmentCompatibility Item=%s UsesNewPaperDollSlot=%s"), *Row.ItemId.ToString(), GridEquipmentSlotUtils::GetLogName(Slot));
 			}
 		}
 	}
-
-	UE_LOG(LogGridInventory, Log,
-		TEXT(
-			"GridEquipmentCompatibility Summary PotentiallyEquippableWithoutSlots=%d LightWithoutHandSlot=%d ExcludedPaperDollSlots=%d NewPaperDollSlotUses=%d"),
-		PotentiallyEquippableWithoutSlotsCount, LightWithoutHandSlotCount, ExcludedPaperDollSlotCount, NewPaperDollSlotUsageCount);
+	UE_LOG(LogGridInventory, Log, TEXT("GridEquipmentCompatibility Summary CanonicalDefinitions=%d Unresolved=%d PotentiallyEquippableWithoutSlots=%d LightWithoutHandSlot=%d ExcludedPaperDollSlots=%d NewPaperDollSlotUses=%d"),
+		Rows.Num(), UnresolvedCount, PotentiallyEquippableWithoutSlotsCount, LightWithoutHandSlotCount, ExcludedPaperDollSlotCount, NewPaperDollSlotUsageCount);
 }
 
 void UGridPartyInventoryComponent::LogSelectedCharacterEquipmentStatBonusDiagnostics() const
