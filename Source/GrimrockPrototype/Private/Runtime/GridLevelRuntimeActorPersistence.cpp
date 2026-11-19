@@ -707,15 +707,9 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 					*RuntimeItemDefinitionId.ToString(), ItemState.ItemLevel);
 				continue; // Invalid registered N0 never inherits an ARM level.
 			}
-			const bool bCanonicalNonArm = bCanonicalItem && !CanonicalItem.bIsArmament;
-			UGridItemDefinitionAsset* ItemDefinition = bCanonicalNonArm
+			const bool bCanonicalWorld = bCanonicalItem;
+			UGridItemDefinitionAsset* ItemDefinition = bCanonicalWorld
 				? nullptr : ResolveRuntimeItemDefinition(RuntimeItemDefinitionId);
-			// An ARM with no remaining legacy definition uses the same full
-			// canonical presentation as a restored free world item.
-			// Legacy-backed ARM keeps the proven old visual path until native
-			// catalogues are migrated and their presentation parity is checked.
-			const bool bCanonicalWorld = bCanonicalItem &&
-				(bCanonicalNonArm || !IsValid(ItemDefinition));
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(
 				bCanonicalWorld ? nullptr : ItemDefinition, RuntimeItemDefinitionId,
 				ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get());

@@ -151,8 +151,8 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
         !TestEqual(TEXT("Logical identity retained"), Entry.ItemDefinitionId, NonArm.CanonicalItemId) ||
         !TestEqual(TEXT("Actual quantity retained"), Entry.Quantity, NonArm.Quantity) ||
         !TestEqual(TEXT("Physical N0 retained"), Entry.ItemLevel, NonArm.ItemLevel) ||
-        !TestTrue(TEXT("Legacy pointer retained in transient receptacle entry"),
-            Entry.ItemDefinition == NonArm.ItemDefinition) ||
+        !TestNull(TEXT("No historical pointer retained in migrated entry"),
+            Entry.ItemDefinition.Get()) ||
         !TestNull(TEXT("Physical actor no longer reads legacy definition"),
             Actor->GetItemDefinitionAsset()) ||
         !TestTrue(TEXT("Physical actor projects canonical family"),
@@ -221,16 +221,17 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
             !TestEqual(TEXT("ARM initial count unchanged"), AR->GetContainedItemCount(), 1) ||
             !TestNotNull(TEXT("ARM physical actor"), AR->GetContainedItemActor(0)))
             {return false;}
-        // X.21 already proves the pointerless ARM runtime path.
-        if (!Arm.ItemDefinition &&
-            !TestNull(TEXT("Native pointerless ARM actor retains no historical source"),
-                AR->GetContainedItemActor(0)->GetItemDefinitionAsset()))
+        if (!TestNull(TEXT("Migrated ARM entry retains no historical source"), AR->ContainedItems[0].ItemDefinition.Get()) ||
+            !TestNull(TEXT("Migrated ARM actor retains no historical source"),
+                AR->GetContainedItemActor(0)->GetItemDefinitionAsset()) ||
+            !TestTrue(TEXT("Migrated ARM has full canonical presentation"),
+                AR->GetContainedItemActor(0)->CanonicalWorldPresentation.IsValid()))
             return false;
         if (!TestEqual(TEXT("Native ARM physical level"), AR->ContainedItems[0].ItemLevel, Arm.ItemLevel))
             return false;
     }
     AddInfo(TEXT("[ARM-CLEAN06.4X.9.2] 18 real initial entries audited; "
-        "nonARM actors canonical, ARM and legacy synthetic unchanged; no binary writes."));
+        "migrated nonARM/ARM actors canonical, legacy synthetic unchanged; no binary writes."));
     return true;
 }
 #endif

@@ -9,6 +9,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemActor.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
@@ -263,6 +264,51 @@ bool FGridClean064X22PointerlessArmRestore::RunTest(const FString&)
         TestEqual(TEXT("ItemId preserved"), Item.ItemDefinitionId, ItemState.ItemDefinitionId) &&
         TestEqual(TEXT("Physical N20 preserved"), Item.ItemLevel, 20) &&
         TestEqual(TEXT("State light preserved"), Item.bLightsEnabled, ItemState.bLightsEnabled);
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065D2CanonicalReceptacleInsertRestore,
+    "Grimrock.RPG.ARM.CLEAN06_5D2.CanonicalReceptacleInsertRestore",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean065D2CanonicalReceptacleInsertRestore::RunTest(const FString&)
+{
+    ARMCLEAN064X21::FWorld F;
+    if (!TestNotNull(TEXT("Registry"), F.Registry) || !TestNotNull(TEXT("Runtime"), F.Runtime)) return false;
+    F.Runtime->RebuildLevel();
+    auto* R = F.Runtime->FindRuntimeObjectActor<AGridReceptacleActor>(F.Ids[1]);
+    if (!TestNotNull(TEXT("Native receptacle"), R)) return false;
+    FGridRuntimeReceptacleState Saved;
+    R->CaptureRuntimeReceptacleState(Saved);
+    if (!TestEqual(TEXT("Initial N20 row"), Saved.ContainedItems.Num(), 1)) return false;
+    FGridRuntimeItemState State = Saved.ContainedItems[0];
+    R->ForceClearRuntimeContents(false);
+    auto* Old = NewObject<UGridItemDefinitionAsset>(F.Runtime);
+    Old->ItemDefinitionId = State.ItemDefinitionId;
+    auto* Actor = F.World->SpawnActor<AGridItemActor>();
+    if (!TestNotNull(TEXT("An old-style actor"), Actor)) return false;
+    Actor->InitializeFromItemDefinition(Old, State.ObjectId);
+    TestNotNull(TEXT("Fixture initially carries a historical pointer"), Actor->GetItemDefinitionAsset());
+    State.ReadTitleOverride = FText::FromString(TEXT("Preserved instance text"));
+    State.bLightsEnabled = false;
+    if (!TestTrue(TEXT("Restore upgrades an old-style actor to canonical presentation"),
+        R->RestoreRuntimeContainedItem(State, Actor))) return false;
+    TestNull(TEXT("No old pointer after restore"), R->ContainedItems[0].ItemDefinition.Get());
+    TestNull(TEXT("Actor no longer references old definition"), Actor->GetItemDefinitionAsset());
+    TestTrue(TEXT("Complete canonical presentation"), Actor->CanonicalWorldPresentation.IsValid());
+    TestEqual(TEXT("N20 persists"), Actor->CanonicalWorldItemLevel, 20);
+    TestEqual(TEXT("GUID persists"), Actor->GetRuntimeObjectId(), State.ObjectId);
+    TestTrue(TEXT("Mutable text survives"), Actor->ReadTitleOverride.EqualTo(State.ReadTitleOverride));
+    R->ForceClearRuntimeContents(false);
+    if (!TestTrue(TEXT("Restore without a prebuilt actor"), R->RestoreRuntimeContainedItem(State, nullptr))) return false;
+    auto* Restored = R->GetContainedItemActor(0);
+    if (!TestNotNull(TEXT("Physical N20 actor spawned"), Restored)) return false;
+    TestTrue(TEXT("Pointerless restore has complete presentation"), Restored->CanonicalWorldPresentation.IsValid());
+    TestNull(TEXT("Pointerless restore never attaches legacy"), Restored->GetItemDefinitionAsset());
+    R->ForceClearRuntimeContents(false);
+    State.ItemLevel = 0;
+    TestFalse(TEXT("Persisted N0 ARM rejected"), R->RestoreRuntimeContainedItem(State, nullptr));
+    TestEqual(TEXT("No invalid row added"), R->GetContainedItemCount(), 0);
+    return !HasAnyErrors();
 }
 
 #endif

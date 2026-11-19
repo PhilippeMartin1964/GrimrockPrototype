@@ -237,20 +237,23 @@ bool AGridWallLockActor::AttachInsertedKeyVisual(AGrimrockPartyPawn* PartyPawn, 
 		return false;
 	}
 
-	UGridItemDefinitionAsset* ItemDefinition =
-		PartyPawn->PartyInventoryComponent ? PartyPawn->PartyInventoryComponent->FindItemDefinition(CursorItem.ItemDefinitionId) : nullptr;
-	if (!ItemDefinition)
-	{
-		ItemDefinition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId);
-	}
-
 	const FGuid VisualRuntimeObjectId = CursorItem.Quantity > 1 ? FGuid::NewGuid() : CursorItem.RuntimeObjectId;
 	const UWorld* World = GetWorld();
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GameInstance
 		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	const bool bPointerlessCanonical = !IsValid(ItemDefinition) && Registry &&
+	const bool bPointerlessCanonical = Registry &&
 		Registry->HasCanonicalItem(CursorItem.ItemDefinitionId);
+	UGridItemDefinitionAsset* ItemDefinition = nullptr;
+	if (!bPointerlessCanonical)
+	{
+		ItemDefinition = PartyPawn->PartyInventoryComponent
+			? PartyPawn->PartyInventoryComponent->FindItemDefinition(CursorItem.ItemDefinitionId) : nullptr;
+		if (!ItemDefinition)
+		{
+			ItemDefinition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId);
+		}
+	}
 	AGridItemActor* CanonicalVisual = nullptr;
 	if (bPointerlessCanonical)
 	{

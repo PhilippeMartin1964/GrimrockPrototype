@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.2 — réceptacles et serrures
+
+Parent 5D.1 `2879e8464dafda87d792f177399b3f5c428fc656` : SilentTask + LocalAuto SUCCESS. Initial migré, cursor, restore, clé physique : présentation complète canonique sans ancien pointeur, GUID/niveau/readables conservés. Fixtures initiales non converties et méthode ID seul encore historiques. [5D.2](ARM_CLEAN06_5D2_RECEPTACLE_CUTOVER.md). Aucun binaire ni save modifié. PIE dû. Reste physique ARM hors projectile spécialisé, autres lecteurs, WBP/anciens packages/outils.
+
 ## ARM-CLEAN06.5D.1 — lancers génériques non-ARM
 
 Parent 5D `46d7dcd8113685aca7629543acffde62046b57c6` : SilentTask + LocalAuto SUCCESS. Projection transitoire de GenericThrow et HandPolicy depuis les définitions natives, N0 réel obligatoire, force/masse et spawn sans ancien pointeur. Paramètres de vol des non-ARM et munitions lus depuis GenericThrow, y compris axe, pose, rotation, durée et offset. Test natif des 26 non-ARM et spawn des objets à une main éligibles. Pas de mutation de package ni save ; 5B.1 reste installée. **Les lancers génériques ARM sans projectile spécialisé conservent encore les anciennes données physiques** : audit/cutover dédié nécessaire avant suppression. PIE reste dû.
