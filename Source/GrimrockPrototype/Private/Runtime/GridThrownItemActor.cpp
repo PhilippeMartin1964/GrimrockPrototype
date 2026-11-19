@@ -190,10 +190,12 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		FGridCanonicalProjectileVisualReadModel::Resolve(Registry, InItemInstance);
 	const bool bCanonicalNonArmFlight = Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bIsNonArmament;
 	const bool bCanonicalGenericArm = Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bGenericArmamentFlight;
-	const bool bPointerlessCanonical = Canonical.bCanonicalIdentity &&
-		(!IsValid(InDefinition) || Canonical.bIsNonArmament || bCanonicalGenericArm);
-	if (bCanonicalGenericArm)
+	const bool bPointerlessCanonical = Canonical.bCanonicalIdentity;
+	if (bPointerlessCanonical)
+	{
 		InDefinition = nullptr;
+		ImpactDropOffset = 12.0f;
+	}
 	if (bCanonicalNonArmFlight)
 	{
 		InDefinition = nullptr; // Never attach an obsolete non-ARM definition.

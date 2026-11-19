@@ -1159,9 +1159,7 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 			: (bMatchingLegacy && ItemDefinition->bStackable && ItemInstance.Quantity == 1 &&
 				!ItemDefinition->IsCombatThrowable()))
 		: (bCanonicalIdentity
-			? (bCanonicalSpecialized || bCanonicalGenericNonArm || bCanonicalGenericArm ||
-				(bCanonicalResolved && Canonical.bIsArmament && !Canonical.Weapon.Projectile.bGenericThrowAuthored &&
-					bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()))
+			? (bCanonicalSpecialized || bCanonicalGenericNonArm || bCanonicalGenericArm)
 			: (bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()));
 	if (!ItemInstance.IsValid() || !bValidCanonicalPhysicalLevel || !bValidProjectileSource ||
 		LaunchVelocity.IsNearlyZero() || !IsWalkableCell(SourceCellX, SourceCellY))
@@ -1190,7 +1188,8 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 		return nullptr;
 	}
 
-	ThrownActor->InitializeThrownItem(this, ItemInstance, ItemDefinition, LaunchVelocity, SourceCellX, SourceCellY);
+	ThrownActor->InitializeThrownItem(this, ItemInstance, bCanonicalIdentity ? nullptr : ItemDefinition,
+		LaunchVelocity, SourceCellX, SourceCellY);
 	if (!IsValid(ThrownActor) || ThrownActor->IsActorBeingDestroyed())
 	{
 		return nullptr; // A failed canonical init destroyed the incomplete actor.

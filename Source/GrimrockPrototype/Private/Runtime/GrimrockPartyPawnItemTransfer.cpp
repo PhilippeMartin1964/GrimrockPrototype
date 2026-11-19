@@ -7,6 +7,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridPhysicalThrowPreflightReadModel.h"
 #include "GridItemWeightReadModel.h"
+#include "GridLegacyItemLookup.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -436,11 +437,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefini
 		return false;
 	}
 
-	UGridItemDefinitionAsset* ItemDefinition = PartyInventoryComponent->FindItemDefinition(ItemDefinitionId);
-	if (!IsValid(ItemDefinition))
-	{
-		ItemDefinition = LevelRuntimeActor->ResolveRuntimeItemDefinition(ItemDefinitionId);
-	}
+	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(this, ItemDefinitionId);
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
 	FGridCanonicalThrowBallisticsReadView Ballistics;
@@ -507,7 +504,7 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	FGridCanonicalThrowBallisticsReadView Ballistics;
 	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex,
 		ItemDefinition, EquippedItem, Strength, StrengthSpeedScale, Ballistics) ||
-		!(Ballistics.bSpecializedProjectile || (IsValid(ItemDefinition) && ItemDefinition->IsCombatThrowable())))
+		!(Ballistics.bSpecializedProjectile || (!Ballistics.bCanonicalIdentity && IsValid(ItemDefinition) && ItemDefinition->IsCombatThrowable())))
 	{
 		return nullptr;
 	}
@@ -561,14 +558,14 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchInventoryItemForAttack(
 		{
 			return !Candidate.IsEmpty() && Candidate.Item.ItemDefinitionId == ExpectedItemDefinitionId;
 		});
-	UGridItemDefinitionAsset* ItemDefinition = PartyInventoryComponent->FindItemDefinition(ExpectedItemDefinitionId);
+	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(this, ExpectedItemDefinitionId, false);
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
 	FGridCanonicalThrowBallisticsReadView Ballistics;
 	if (!SourceSlot ||
 		!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex,
 			ItemDefinition, SourceSlot->Item, Strength, StrengthSpeedScale, Ballistics) ||
-		!(Ballistics.bSpecializedProjectile || (IsValid(ItemDefinition) && ItemDefinition->IsCombatThrowable())))
+		!(Ballistics.bSpecializedProjectile || (!Ballistics.bCanonicalIdentity && IsValid(ItemDefinition) && ItemDefinition->IsCombatThrowable())))
 	{
 		return nullptr;
 	}

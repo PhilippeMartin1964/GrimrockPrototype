@@ -51,9 +51,7 @@ struct FGridPhysicalThrowStrengthReadModel
 			const float Speed = !Canonical.bIsArmament ? Canonical.GenericThrow.InitialSpeed :
 				(Canonical.Weapon.Projectile.bEnabled || Canonical.Weapon.Projectile.bGenericThrowAuthored)
 				? Canonical.Weapon.Projectile.InitialSpeed
-				: (IsValid(LegacyDefinition) &&
-					LegacyDefinition->ItemDefinitionId == Instance.ItemDefinitionId
-					? LegacyDefinition->ThrowSpeed : 0.0f);
+				: 0.0f;
 			if (Strength <= 0 || !Out.bOneHanded || !FMath::IsFinite(Speed) ||
 				Speed <= KINDA_SMALL_NUMBER || !FMath::IsFinite(Out.UnitWeightKg) ||
 				Out.UnitWeightKg < 0.0f || Out.UnitWeightKg > Out.MaxWeightKg + KINDA_SMALL_NUMBER)

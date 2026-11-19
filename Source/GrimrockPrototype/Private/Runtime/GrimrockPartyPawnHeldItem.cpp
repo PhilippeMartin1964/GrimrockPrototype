@@ -4,6 +4,7 @@
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridCanonicalItemMeshReadModel.h"
+#include "GridLegacyItemLookup.h"
 #include "Engine/World.h"
 #include "GridEquipmentSlotUtils.h"
 #include "Kismet/GameplayStatics.h"
@@ -28,11 +29,7 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 		LevelRuntimeActor = Cast<AGridLevelRuntimeActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridLevelRuntimeActor::StaticClass()));
 	}
 
-	UGridItemDefinitionAsset* ItemDefinition = PartyInventoryComponent ? PartyInventoryComponent->FindItemDefinition(ItemDefinitionId) : nullptr;
-	if (!ItemDefinition && LevelRuntimeActor)
-	{
-		ItemDefinition = LevelRuntimeActor->ResolveRuntimeItemDefinition(ItemDefinitionId);
-	}
+	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(this, ItemDefinitionId);
 	const UWorld* OwningWorld = GetWorld();
 	UGameInstance* GameInstance = OwningWorld ? OwningWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GameInstance
@@ -243,15 +240,7 @@ UGridItemDefinitionAsset* AGrimrockPartyPawn::ResolveEquippedItemDefinition(cons
 		return nullptr;
 	}
 
-	if (PartyInventoryComponent)
-	{
-		if (UGridItemDefinitionAsset* ItemDefinition = PartyInventoryComponent->FindItemDefinition(Item.ItemDefinitionId))
-		{
-			return ItemDefinition;
-		}
-	}
-
-	return LevelRuntimeActor ? LevelRuntimeActor->ResolveRuntimeItemDefinition(Item.ItemDefinitionId) : nullptr;
+	return FGridLegacyItemLookup::Resolve(this, Item.ItemDefinitionId);
 }
 
 bool AGrimrockPartyPawn::DoesEquippedItemEmitLight(const FGridItemInstance& Item) const

@@ -11,6 +11,9 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridThrownItemActor.h"
+#include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GridPartyInventoryComponent.h"
+#include "../Runtime/GridLegacyItemLookup.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -157,8 +160,11 @@ namespace ARMCLEAN063AV
     const FGridItemInstance Valid = F.Make(Ids[0], 20);
     const FVector Start = F.Runtime->GetCellCenterWorld(0, 0, 100.0f);
     const FVector Velocity(1200.0f, 0.0f, 100.0f);
+    Contradictory->ItemDefinitionId = Valid.ItemDefinitionId;
+    UGridItemDefinitionAsset* SuppliedOld = FCString::Strcmp(Scenario, TEXT("Projectile")) == 0
+        ? Contradictory : nullptr;
     AGridThrownItemActor* Projectile = F.Runtime->SpawnThrownItemProjectile(
-        Valid, nullptr, Start, Velocity, 0, 0);
+        Valid, SuppliedOld, Start, Velocity, 0, 0);
     if (!Test.TestNotNull(TEXT("Real canonical specialized projectile spawns without old asset"),
         Projectile)) return false;
     Test.TestNull(TEXT("Projectile has no obsolete item asset"), Projectile->GetItemDefinitionAsset());
@@ -380,7 +386,8 @@ bool FGridClean065D3GenericArmFlight::RunTest(const FString&)
             FGridResolvedItem Item;
             auto Instance = F.Make(Arm->ItemId, N);
             if (!TestTrue(TEXT("Exact ARM level"), F.Registry->ResolveItem(Arm->ItemId, N, Item))) return false;
-            if (!Item.Weapon.Projectile.bGenericThrowAuthored) continue; // Pre-Apply code stage is intentionally supported.
+            if (Item.Weapon.Projectile.bEnabled) continue;
+            if (!TestTrue(TEXT("Every ordinary ARM requires materialized flight policy"), Item.Weapon.Projectile.bGenericThrowAuthored)) return false;
             if (N == 1) ++Authored;
             auto* Stale = NewObject<UGridItemDefinitionAsset>(F.Runtime);
             Stale->ItemDefinitionId = Arm->ItemId;
@@ -405,7 +412,43 @@ bool FGridClean065D3GenericArmFlight::RunTest(const FString&)
             }
         }
     }
-    TestTrue(TEXT("Native stage is all or none"), Authored == 0 || Authored == 19);
+    TestEqual(TEXT("All 19 ordinary ARM policies materialized"), Authored, 19);
+    return !HasAnyErrors();
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065E4DLegacyLookup,
+    "Grimrock.RPG.ARM.CLEAN06_5E4D.PhysicalTransferLegacyLookup",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean065E4DLegacyLookup::RunTest(const FString&)
+{
+    ARMCLEAN063AV::FFixture F;
+    if (!TestTrue(TEXT("Real registry and runtime"), F.Ready())) return false;
+    const FName Known(TEXT("Weapon_StraightSword_01"));
+    const FName Unknown(TEXT("ARM065E4D_Unregistered"));
+    auto* OldKnown = NewObject<UGridItemDefinitionAsset>(F.Runtime);
+    OldKnown->ItemDefinitionId = Known;
+    auto* OldUnknown = NewObject<UGridItemDefinitionAsset>(F.Runtime);
+    OldUnknown->ItemDefinitionId = Unknown;
+    FGridLooseItemInstance KnownPlacement;
+    KnownPlacement.ItemDefinition = OldKnown;
+    F.Runtime->LevelAsset->LooseItemInstances.Add(KnownPlacement);
+    FGridLooseItemInstance UnknownPlacement;
+    UnknownPlacement.ItemDefinition = OldUnknown;
+    F.Runtime->LevelAsset->LooseItemInstances.Add(UnknownPlacement);
+    TestNull(TEXT("Known ID never returns old placement or recipe"), F.Runtime->ResolveRuntimeItemDefinition(Known));
+    TestEqual(TEXT("Out-of-registry placement remains discoverable"), F.Runtime->ResolveRuntimeItemDefinition(Unknown), OldUnknown);
+    auto* Party = F.World->SpawnActor<AGrimrockPartyPawn>();
+    if (!TestNotNull(TEXT("Party"), Party)) return false;
+    Party->LevelRuntimeActor = F.Runtime;
+    auto* Inventory = Party->PartyInventoryComponent.Get();
+    if (!TestNotNull(TEXT("Inventory"), Inventory)) return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
+    TestTrue(TEXT("Contradictory old map entry seeded"), Inventory->RegisterItemDefinition(OldKnown));
+    TestNull(TEXT("Canonical transfer ignores old inventory entry"), FGridLegacyItemLookup::Resolve(Party, Known));
+    TestNull(TEXT("Canonical inventory-only transfer also ignores it"), FGridLegacyItemLookup::Resolve(Party, Known, false));
+    TestEqual(TEXT("Unknown transfer can use old level entry"), FGridLegacyItemLookup::Resolve(Party, Unknown), OldUnknown);
+    TestNull(TEXT("Unknown inventory-only transfer does not widen lookup"), FGridLegacyItemLookup::Resolve(Party, Unknown, false));
+    TestTrue(TEXT("Unknown entry registered"), Inventory->RegisterItemDefinition(OldUnknown));
+    TestEqual(TEXT("Unknown inventory-only transfer retains map entry"), FGridLegacyItemLookup::Resolve(Party, Unknown, false), OldUnknown);
     return !HasAnyErrors();
 }
 #endif

@@ -4,8 +4,8 @@
 #include "GridPhysicalThrowStrengthReadModel.h"
 
 /** Same authored throw preflight for context menu and Pawn execution.
- * The old item definition supplies flight numbers ONLY while 06.4
- * has not migrated generic, non-specialized hand-toss physics.
+ * Registered items exclusively use materialized flight policies.
+ * Historical definitions supply flight only outside the registry.
  */
 struct FGridPhysicalThrowPreflightReadView
 {

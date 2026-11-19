@@ -159,7 +159,7 @@ bool FGridBFGeneric::RunTest(const FString&)
     const auto I = F.Make(Old->ItemDefinitionId);
     FGridResolvedItem Canonical;
     if (!TestTrue(TEXT("Real ordinary ARM N1 resolves"), F.Registry->ResolveItem(I.ItemDefinitionId, I.ItemLevel, Canonical))) return false;
-    if (Canonical.Weapon.Projectile.bGenericThrowAuthored)
+    if (!TestTrue(TEXT("5D.3 ordinary flight must be materialized"), Canonical.Weapon.Projectile.bGenericThrowAuthored)) return false;
     {
         // After the native cutover, a matching obsolete definition must
         // neither enable, disable nor modify a real registered flight.
@@ -206,33 +206,7 @@ bool FGridBFGeneric::RunTest(const FString&)
         return !HasAnyErrors();
     }
 
-    // Explicit pre-materialization characterization (the original test).
-    // The transaction's second full run exercises the branch above.
-    const auto Missing = FGridPhysicalThrowPreflightReadModel::Resolve(
-        F.Registry, nullptr, I, 100);
-    TestTrue(TEXT("Generic canonical hand toss cannot invent missing physics"),
-        Missing.bCanonicalIdentity && !Missing.bCanThrow && !Missing.bResolved);
-    const auto Legacy = FGridPhysicalThrowPreflightReadModel::Resolve(
-        F.Registry, Old, I, 100);
-    TestTrue(TEXT("Existing ordinary throw retains speed and signed arc"),
-        Legacy.bResolved && Legacy.bCanThrow &&
-        FMath::IsNearlyEqual(Legacy.Ballistics.InitialSpeed, 1200.0f) &&
-        FMath::IsNearlyEqual(Legacy.Ballistics.Arc, -0.12f));
-    Old->ThrowArc = std::numeric_limits<float>::quiet_NaN();
-    const auto BadArc = FGridPhysicalThrowPreflightReadModel::Resolve(
-        F.Registry, Old, I, 100);
-    TestTrue(TEXT("Gate alone cannot authorize missing valid flight"),
-        BadArc.Strength.bCanThrow && !BadArc.Ballistics.bResolved &&
-        !BadArc.bResolved && !BadArc.bCanThrow);
-    bool Present = false;
-    const bool Enabled = F.MenuThrow(I, Old, Present);
-    TestTrue(TEXT("Actual MainHand context offers Throw, but disabled"), Present);
-    TestFalse(TEXT("Actual menu refuses undefined flight"), Enabled);
-    Old->ThrowArc = 0.1f;
-    Old->ThrowSpeed = 0.0f;
-    TestFalse(TEXT("Zero speed cannot create a thrown item"),
-        FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 100).bCanThrow);
-    return !HasAnyErrors();
+
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridBFLegacy,

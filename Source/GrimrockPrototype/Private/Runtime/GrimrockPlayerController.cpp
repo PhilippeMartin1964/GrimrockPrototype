@@ -19,6 +19,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridPhysicalThrowStrengthReadModel.h"
+#include "GridLegacyItemLookup.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -129,11 +130,7 @@ namespace
 			return false;
 		}
 
-		OutDefinition = PartyPawn->PartyInventoryComponent->FindItemDefinition(OutItem.ItemDefinitionId);
-		if (!IsValid(OutDefinition))
-		{
-			OutDefinition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(OutItem.ItemDefinitionId);
-		}
+		OutDefinition = FGridLegacyItemLookup::Resolve(PartyPawn, OutItem.ItemDefinitionId);
 		FGridInventoryCharacterSummary Summary;
 		if (!PartyPawn->PartyInventoryComponent->GetCharacterSummary(CharacterIndex, Summary))
 		{
@@ -187,11 +184,7 @@ namespace
 			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.ItemMissingInventory"));
 			return false;
 		}
-		OutDefinition = PartyPawn->PartyInventoryComponent->FindItemDefinition(ItemDefinitionId);
-		if (!IsValid(OutDefinition))
-		{
-			OutDefinition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(ItemDefinitionId);
-		}
+		OutDefinition = FGridLegacyItemLookup::Resolve(PartyPawn, ItemDefinitionId);
 		FGridInventoryCharacterSummary Summary;
 		if (!PartyPawn->PartyInventoryComponent->GetCharacterSummary(CharacterIndex, Summary))
 		{
@@ -1194,9 +1187,11 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 					{
 						UGridItemDefinitionAsset* CursorItemDefinition =
 							RuntimeActor ? RuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId) : nullptr;
+						const bool bRegistered = FGridLegacyItemLookup::IsRegistered(PartyPawn, CursorItem.ItemDefinitionId);
 						const TCHAR* RejectReason = bWasUnlocked
 							? TEXT("AlreadyUnlocked")
-							: (CursorItemDefinition && CursorItemDefinition->ItemType != EGridItemType::Key ? TEXT("NonKeyItem") : TEXT("IncompatibleKey"));
+							: (bRegistered ? TEXT("RejectedCanonicalKeyIdentity")
+								: (CursorItemDefinition && CursorItemDefinition->ItemType != EGridItemType::Key ? TEXT("NonKeyItem") : TEXT("IncompatibleKey")));
 						UE_LOG(LogGridMouse, Log,
 							TEXT("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Rejected Reason=%s"),
 							*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(WallLockActor), RejectReason);

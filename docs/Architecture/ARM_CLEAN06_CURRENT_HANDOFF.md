@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5E.4D — transferts physiques sans ancien DA inscrit
+
+Parent `749301ba89f408b2f21e76517066269c6905a364` : deux statuts SUCCESS. Le résolveur runtime refuse les ID inscrits avant parcours des placements ou recettes ; le lookup de transfert pawn/controller filtre aussi la map. Les jets utilisent exclusivement les politiques matérialisées 5D.3, et les projectiles inscrits ignorent un ancien pointeur explicitement fourni. Tests 3AV/3BF et 5E4D.PhysicalTransferLegacyLookup. Aucun asset, SaveGame, WBP ou clé localisée modifié. Voir [5E.4D](ARM_CLEAN06_5E4D_PHYSICAL_TRANSFER_RETIREMENT.md).
+
 ## ARM-CLEAN06.5E.4C — réhydratation strictement hors registre
 
 Parent `29d8b144c54fce3518bdf5da0c078797bd17b9eb` : SilentTask et LocalAuto SUCCESS. New Game / Continue valident les instances canoniques mais n'appellent plus le resolver historique pour un seul ID inscrit (sac actif/réserve, équipement, curseur, raccourci seul). Remplacement atomique de map uniquement hors registre, échec strict des ID inconnus, pas de mutation des instances/caches/SaveGame. Nom des sources d'absorption physique lu depuis FGridResolvedItem.DisplayName, y compris sans ancien pointeur. Test 3AT vérifie zéro appel canonique, éviction des anciens assets préinscrits, rollback et accès strict hors registre, trace bouclier réelle et raccourci seul. Le test historique 0192 sans GI conserve son contrat de compatibilité. Aucun changement UI.csv/ST_UI/WBP/Game fr/en. Voir [5E.4C](ARM_CLEAN06_5E4C_CANONICAL_REHYDRATION.md). Les chargements explicites de DA historiques dans les transferts restent un objectif distinct à auditer/retirer avant 5G ; ne pas confondre cette étape avec suppression de tous les accès historiques.

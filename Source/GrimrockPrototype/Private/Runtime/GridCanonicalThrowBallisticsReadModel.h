@@ -58,13 +58,9 @@ struct FGridCanonicalThrowBallisticsReadModel
 				Out.Arc = Canonical.Weapon.Projectile.Arc;
 				return Out;
 			}
-			// The native two-catalogue cutover marks all 19 ordinary ARMs.
-			// Before that one-shot operation only, retain historical physics.
-			if (!IsValid(LegacyDefinition) ||
-				LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
-			{
-				return Out;
-			}
+			// 5D.3 materialized the ordinary policies. Missing canonical
+			// flight is a refusal, never a historical fallback.
+			return Out;
 		}
 		if (!IsValid(LegacyDefinition) ||
 			LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)

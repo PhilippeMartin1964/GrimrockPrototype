@@ -1951,6 +1951,16 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition(F
 		return nullptr;
 	}
 
+	// Historical lookup only. Never scan placements or load old recipes
+	// for registered identities, even when an old DA is still installed.
+	const UWorld* World = GetWorld();
+	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	if (Registry && Registry->HasCanonicalItem(ItemDefinitionId))
+	{
+		return nullptr;
+	}
+
 	if (LevelAsset)
 	{
 		for (const FGridLooseItemInstance& Item : LevelAsset->LooseItemInstances)
