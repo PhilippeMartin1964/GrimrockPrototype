@@ -41,7 +41,9 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		FName(TEXT("InitializeItem")),
 		FName(TEXT("GetItemArchetypeId")),
 		FName(TEXT("SetSelectedObjectItemDefinitionAsset")),
-		FName(TEXT("SyncSelectedItemDefinitionIdFromAsset"))
+		FName(TEXT("SyncSelectedItemDefinitionIdFromAsset")),
+		FName(TEXT("RegisterItemDefinition")),
+		FName(TEXT("FindItemDefinition"))
 	};
 
 	TArray<FString> LegacyReferences;
@@ -91,7 +93,7 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 	}
 
 	TestTrue(TEXT("Native Blueprint inventory is not empty"), BlueprintAssets.Num() > 0);
-	TestEqual(TEXT("No Blueprint calls retired item actor or editor identity APIs"), LegacyReferences.Num(), 0);
+	TestEqual(TEXT("No Blueprint calls retired item identity APIs or historical inventory registry"), LegacyReferences.Num(), 0);
 	TestNull(TEXT("Retired setter is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SetSelectedObjectItemDefinitionAsset")));
 	TestNull(TEXT("Retired sync is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SyncSelectedItemDefinitionIdFromAsset")));
 	return BlueprintAssets.Num() > 0 && LegacyReferences.IsEmpty() && LoadedBlueprintCount == BlueprintAssets.Num();

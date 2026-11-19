@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.37 — Audit Blueprint du registre historique d'inventaire
+
+Parent 72cc1f03e1a4910eb2ea3bb15ad93bae9c5e31ad. MIG09 contrôle les deux appels historiques RegisterItemDefinition et FindItemDefinition dans l'inventaire natif des Blueprint du projet. Si référencés, traiter les graphes concernés avant tout retrait réfléchi. Aucune fonction retirée dans ce lot ; aucun asset ou SaveGame écrit. Ne pas confondre ApplyItemDefinitionToInstance (projection de l'instance, toujours utilisée) avec le registre historique. Voir [5G.37](ARM_CLEAN06_5G37_INVENTORY_BLUEPRINT_REFERENCE_AUDIT.md).
+
 ## ARM-CLEAN06.5G.36 — Isolation de la réhydratation historique
 
 Parent aaea2b8797bdbac2ee50238fab0cfa8119d30bcc. Chemin canonique autonome, validation des raccourcis Equipment/QuickItem et purge atomique du cache historique. Ancien collecteur disponible uniquement en Automation. Tests de refus, rollback et raccourci canonique sans instance renforcés. Voir [5G.36](ARM_CLEAN06_5G36_STRICT_REHYDRATION_ISOLATION.md). Aucun asset ni SaveGame modifié.
