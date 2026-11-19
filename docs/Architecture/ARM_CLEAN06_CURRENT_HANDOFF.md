@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.30 — Audit natif des fonctions Blueprint historiques de l'éditeur
+
+Parent c1d8c0fcb9604b0af019a9961cf49e5ddf25e87f. Le test MIG09 parcourt les Blueprint natifs sous /Game/GrimrockPrototype, exige un inventaire non vide et charge chaque asset ; il refuse les appels SetSelectedObjectItemDefinitionAsset/SyncSelectedItemDefinitionIdFromAsset en plus des deux fonctions runtime déjà auditées. Ce lot ne supprime aucune fonction réfléchie ; si le test passe sur le SHA exact, le retrait pourra être préparé sans toucher aux graphes. Si un appel est détecté, analyser le graphe concerné, ne pas supprimer aveuglément. Aucun package ni SaveGame modifié.
+
 ## ARM-CLEAN06.5G.29 — Retrait de la politique historique de niveaux éditeur
 
 Parent 0c7a9008680387cab0212e8605e620dea41535a1, publication conditionnée à ses deux SUCCESS. Suppression de IsLevelEditable/CanAuthorLevel acceptant UGridItemDefinitionAsset et des règles historiques de N0 hérité. Seule CanAuthorCanonicalLevel reste ; 3AN couvre IDs enregistrés, N0/N1/N20/N21, ID inconnu et registre absent, puis les commandes réelles loose/generator. Les anciennes UFUNCTION restent à auditer séparément pour les références natives Blueprint. Aucun package ni SaveGame modifié.

@@ -38,7 +38,9 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 
 	const TSet<FName> LegacyFunctionNames = {
 		FName(TEXT("InitializeItem")),
-		FName(TEXT("GetItemArchetypeId"))
+		FName(TEXT("GetItemArchetypeId")),
+		FName(TEXT("SetSelectedObjectItemDefinitionAsset")),
+		FName(TEXT("SyncSelectedItemDefinitionIdFromAsset"))
 	};
 
 	TArray<FString> LegacyReferences;
@@ -87,8 +89,9 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		AddError(FString::Printf(TEXT("MIG09-B2C legacy item Blueprint reference remains: %s"), *Reference));
 	}
 
-	TestEqual(TEXT("No Blueprint calls InitializeItem or GetItemArchetypeId"), LegacyReferences.Num(), 0);
-	return LegacyReferences.IsEmpty() && LoadedBlueprintCount == BlueprintAssets.Num();
+	TestTrue(TEXT("Native Blueprint inventory is not empty"), BlueprintAssets.Num() > 0);
+	TestEqual(TEXT("No Blueprint calls retired item actor or editor identity APIs"), LegacyReferences.Num(), 0);
+	return BlueprintAssets.Num() > 0 && LegacyReferences.IsEmpty() && LoadedBlueprintCount == BlueprintAssets.Num();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
