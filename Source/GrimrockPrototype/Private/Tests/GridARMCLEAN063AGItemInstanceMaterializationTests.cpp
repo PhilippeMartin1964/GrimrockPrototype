@@ -84,20 +84,17 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
             TestTrue(TEXT("Stale snapshot weight corrected"),
                 FMath::IsNearlyEqual(Item.Weight, Canonical.WeightKg));
         }
-        FGridResolvedItem Default;
-        if (!TestTrue(TEXT("Inherited canonical N6 exists"),
-            Registry->ResolveItem(Id, 6, Default))) return false;
         FGridItemInstance Fresh;
         Fresh.RuntimeObjectId = FGuid::NewGuid();
         Fresh.ItemDefinitionId = Id;
         Fresh.ItemLevel = 0;
         Fresh.Quantity = 1;
-        Old->bUseWeaponCatalogue = false; // Obsolete flag cannot override canonical ARM type.
-        TestTrue(TEXT("ARM inherited default works without old flag"),
+        Fresh.Weight = 999.0f;
+        Old->bUseWeaponCatalogue = false;
+        TestFalse(TEXT("Registered physical ARM N0 cannot inherit obsolete N6"),
             FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Fresh));
-        TestEqual(TEXT("N0 authored ARM materializes exactly N6"), Fresh.ItemLevel, 6);
-        TestTrue(TEXT("Inherited weight matches canonical definition"),
-            FMath::IsNearlyEqual(Fresh.Weight, Default.WeightKg));
+        TestEqual(TEXT("Refused level stays N0"), Fresh.ItemLevel, 0);
+        TestEqual(TEXT("Refused weight remains unchanged"), Fresh.Weight, 999.0f);
         Old->bUseWeaponCatalogue = true;
     }
 
@@ -141,6 +138,14 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
         CanonicalArrow.DisplayName.ToString());
     TestTrue(TEXT("Arrow unit mass canonical"),
         FMath::IsNearlyEqual(Ammo.Weight, CanonicalArrow.WeightKg));
+
+    FGridItemInstance InvalidAmmo = Ammo;
+    InvalidAmmo.ItemLevel = 1;
+    InvalidAmmo.Weight = 999.0f;
+    TestFalse(TEXT("Non-armament physical N1 cannot use registry family alias"),
+        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), InvalidAmmo));
+    TestEqual(TEXT("Refused ammo level unchanged"), InvalidAmmo.ItemLevel, 1);
+    TestEqual(TEXT("Refused ammo weight unchanged"), InvalidAmmo.Weight, 999.0f);
 
     Old->ItemDefinitionId = TEXT("UnregisteredItem_AG");
     Old->DisplayName = FText::FromString(TEXT("LEGACY ORIGINAL"));

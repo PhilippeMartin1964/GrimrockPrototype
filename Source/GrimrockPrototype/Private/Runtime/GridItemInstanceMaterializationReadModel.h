@@ -30,29 +30,12 @@ struct FGridItemInstanceMaterializationReadModel
         FGridItemInstance Candidate = InOutInstance;
         if (bCanonicalIdentity)
         {
-            // Probe N1 solely to discover the canonical family. Never assign
-            // N1 to an item: non-armaments such as arrows persist at N0.
-            FGridResolvedItem Family;
-            if (!Registry->ResolveItem(Candidate.ItemDefinitionId, 1, Family))
-            {
-                return false;
-            }
-            if (Family.bIsArmament && Candidate.ItemLevel == 0)
-            {
-                // An authored N0 ARM can inherit the pre-cutover default
-                // only when its *matching* historical authoring asset exists.
-                // Without it N0 is invalid, never silently converted to N1.
-                if (!IsValid(LegacyDefinition))
-                {
-                    return false;
-                }
-                Candidate.ItemLevel = LegacyDefinition->DefaultWeaponItemLevel;
-            }
             FGridResolvedItem Resolved;
             if (!Registry->ResolveItem(Candidate.ItemDefinitionId, Candidate.ItemLevel, Resolved) ||
+                (!Resolved.bIsArmament && Candidate.ItemLevel != 0) ||
                 !FMath::IsFinite(Resolved.WeightKg) || Resolved.WeightKg < 0.0f)
             {
-                return false; // Known invalid identity never borrows old N1.
+                return false; // Physical instances never inherit an obsolete default or family alias.
             }
             Candidate.Weight = Resolved.WeightKg;
             if (Candidate.DisplayName.IsEmpty())

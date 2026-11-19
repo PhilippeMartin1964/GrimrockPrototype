@@ -32,7 +32,8 @@ struct FGridCanonicalInventoryStackReadModel
         {
             View.bCanonicalIdentity = true;
             FGridResolvedItem Resolved;
-            if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved))
+            if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) ||
+                (!Resolved.bIsArmament && Item.ItemLevel != 0))
             {
                 return View; // Registered invalid level must never use old MaxStackSize.
             }

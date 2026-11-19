@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.5 — Niveaux physiques stricts inventaire
+
+Parent 5d6ad973bbcd0df73edd1bf9c8ec4c8554584457 : deux statuts SUCCESS. Matérialisation d'instances et stack policy refusent N0 ARM/N1 non-ARM sans emprunter un niveau historique ; tests 3AG/3AS mis à jour. Aucun asset ou SaveGame modifié. Draft suivant 5G.6 : 02f3cdbcf28d5f01dbfdee732d78016ab1ecdcae (parent 5d6ad973bbcd0df73edd1bf9c8ec4c8554584457, neuf fichiers) strict monde/loot. Draft 5G.7 : b60ee136d8576beee7db2321d9ac9b29d87e7cf8 (même parent, dix fichiers) authoring/preview kits. Ajouter handoff et rebaser uniquement les différences sur chaque HEAD validé.
+
 ## ARM-CLEAN06.5G.4 — Registre des kits et inventaire
 
 Parent fa5a76ee8f34aa420ba0ac88f3ff0e2e97c57fa3 : deux statuts SUCCESS. Les ID inscrits ne peuvent plus alimenter l'ancienne map de définitions et les kits exigent CanonicalItemId et niveau explicite ; les anciens pointeurs compatibles ne sont plus retournés. Les fixtures réellement hors registre restent provisoirement compatibles. Tests 3AM/3AO/4X43/3AT/5E4D mis à jour. Aucun asset ou SaveGame modifié. Prochain lot 5G.5 : draft 1e6fc752536a3b3c4843dcdc57c1448b31531329 (parent fa5a76ee8f34aa420ba0ac88f3ff0e2e97c57fa3, cinq fichiers) à rebaser sur HEAD validé.

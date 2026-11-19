@@ -196,7 +196,15 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
         FGridCanonicalInventoryStackReadModel::Resolve(Fixture.Registry, WrongOld, Conflict).MaxStackSize,
         Ammo.MaxStack);
 
-    // N0 on a REAL ARM without authored old default fails, never silently N1.
+    FGridItemInstance InvalidAmmo = ARMCLEAN063AS::MakeItem(AmmoId, 1, 1);
+    const auto InvalidPolicy = FGridCanonicalInventoryStackReadModel::Resolve(Fixture.Registry, WrongOld, InvalidAmmo);
+    TestTrue(TEXT("Invalid ammo still recognized canonical"), InvalidPolicy.bCanonicalIdentity);
+    TestFalse(TEXT("Physical ammo N1 stack policy rejected"), InvalidPolicy.bResolved);
+    TestFalse(TEXT("Physical ammo N1 cannot materialize"), Fixture.Inventory->ApplyItemDefinitionToInstance(InvalidAmmo));
+    TestFalse(TEXT("Physical ammo N1 cannot enter inventory"), Fixture.Inventory->CanAddItemToCharacterInventory(0, InvalidAmmo));
+    TestEqual(TEXT("Invalid ammo level unchanged"), InvalidAmmo.ItemLevel, 1);
+
+    // N0 on a REAL ARM fails, never silently N1.
     Fixture.ClearSlots();
     const FName SwordId(TEXT("Weapon_StraightSword_01"));
     FGridItemInstance SwordN0 = ARMCLEAN063AS::MakeItem(SwordId, 0);
