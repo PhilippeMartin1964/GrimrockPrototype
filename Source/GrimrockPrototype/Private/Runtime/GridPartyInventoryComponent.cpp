@@ -1624,22 +1624,19 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
 		return false;
 	}
 
-	// Resolve every unknown ID strictly, but canonical IDs are valid WITHOUT
-	// a legacy definition. Keep a matching historical definition when present
-	// until the binary/SaveGame conversion and remaining UI readers finish.
+	// Registered identities have already passed the physical-instance
+	// gate above. Never even invoke the historical resolver for them,
+	// including shortcuts whose physical source may no longer exist.
 	TMap<FName, TObjectPtr<UGridItemDefinitionAsset>> ReplacementDefinitions;
 	for (const FName DefinitionId : DefinitionIds)
 	{
-		const bool bCanonical = Registry && Registry->HasCanonicalItem(DefinitionId);
+		if (Registry && Registry->HasCanonicalItem(DefinitionId))
+		{
+			continue;
+		}
 		UGridItemDefinitionAsset* Definition = Resolver(DefinitionId);
 		if (!IsValid(Definition) || Definition->ItemDefinitionId != DefinitionId)
 		{
-			if (bCanonical)
-			{
-				// A mismatched obsolete definition is not an authority for a
-				// registered identity; an absent one is entirely acceptable.
-				continue;
-			}
 			OutMissingDefinitionId = DefinitionId;
 			return false; // Unknown saved ID still requires exact legacy asset.
 		}

@@ -5,6 +5,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Combat/GridCombatTraceTypes.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -152,8 +153,7 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 				return nullptr;
 			}, FailedId));
 	TestTrue(TEXT("No failure identity"), FailedId.IsNone());
-	TestTrue(TEXT("Optional resolver sees every canonical id"), LookedUpIds.Contains(SwordId) &&
-		LookedUpIds.Contains(ShieldId) && LookedUpIds.Contains(ArrowId));
+	TestTrue(TEXT("Canonical-only rehydration never invokes the old resolver"), LookedUpIds.IsEmpty());
 	TestNull(TEXT("No old sword definition required"), Fixture.Inventory->FindItemDefinition(SwordId));
 	TestNull(TEXT("No old shield definition required"), Fixture.Inventory->FindItemDefinition(ShieldId));
 	TestEqual(TEXT("Saved GUID preserved"), Fixture.Inventory->
@@ -182,26 +182,52 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 	const TMap<FName, UGridItemDefinitionAsset*> TransientOld = {
 		{SwordId, OldSword}, {ShieldId, OldShield}, {ArrowId, OldArrow}
 	};
-	TestTrue(TEXT("Matching old DAs remain optional for unconverted readers"),
+	// Existing historical map entries must disappear on a successful load,
+	// even when the callback would have returned the exact old assets.
+	TestTrue(TEXT("Seed obsolete sword"), Fixture.Inventory->RegisterItemDefinition(OldSword));
+	TestTrue(TEXT("Seed obsolete shield"), Fixture.Inventory->RegisterItemDefinition(OldShield));
+	TestTrue(TEXT("Seed obsolete arrows"), Fixture.Inventory->RegisterItemDefinition(OldArrow));
+	LookedUpIds.Reset();
+	TestTrue(TEXT("Canonical load discards previously registered historical definitions"),
 		Fixture.Inventory->RehydrateOwnedItemDefinitions(
-			[&TransientOld](FName Id) -> UGridItemDefinitionAsset*
+			[&TransientOld, &LookedUpIds](FName Id) -> UGridItemDefinitionAsset*
 			{
+				LookedUpIds.Add(Id);
 				return TransientOld.FindRef(Id);
 			}, FailedId));
-	TestEqual(TEXT("Optional old sword remains registered"),
-		Fixture.Inventory->FindItemDefinition(SwordId), OldSword);
+	TestTrue(TEXT("Available historical assets never requested"), LookedUpIds.IsEmpty());
+	TestNull(TEXT("Old sword dropped"), Fixture.Inventory->FindItemDefinition(SwordId));
+	TestNull(TEXT("Old shield dropped"), Fixture.Inventory->FindItemDefinition(ShieldId));
+	TestNull(TEXT("Old arrows dropped"), Fixture.Inventory->FindItemDefinition(ArrowId));
+
+	// A real combat armor trace must preserve the authored localized name,
+	// not the internal ID or the deliberately stale instance label.
+	FGridResolvedItem ShieldMeta;
+	if (!TestTrue(TEXT("Canonical shield metadata"), Fixture.Registry->ResolveItem(ShieldId, 1, ShieldMeta))) return false;
+	TArray<FGridArmorAbsorptionSourceTrace> Sources;
+	Fixture.Inventory->ApplyPhysicalArmorDamage(0, 0, &Sources);
+	const auto* ShieldTrace = Sources.FindByPredicate([ShieldId](const FGridArmorAbsorptionSourceTrace& Trace)
+	{
+		return Trace.bEquipment && Trace.ItemDefinitionId == ShieldId;
+	});
+	if (!TestNotNull(TEXT("Pointerless shield armor trace exists"), ShieldTrace)) return false;
+	TestTrue(TEXT("Trace uses canonical authored shield name"), ShieldTrace->DisplayName.EqualTo(ShieldMeta.DisplayName));
 
 	// An UNKNOWN saved object must still have a matching definition. A
 	// failure cannot discard a previously populated runtime definition map.
 	const FName UnknownId(TEXT("ARMCLEAN063AT_UnknownSaveItem"));
 	Fixture.Put(2, Fixture.Make(UnknownId, 0, 1));
+	TestTrue(TEXT("Seed old map before failed load"), Fixture.Inventory->RegisterItemDefinition(OldSword));
+	LookedUpIds.Reset();
 	TestFalse(TEXT("Missing legacy definition blocks mixed rehydration"),
 		Fixture.Inventory->RehydrateOwnedItemDefinitions(
-			[&TransientOld](FName Id) -> UGridItemDefinitionAsset*
+			[&TransientOld, &LookedUpIds](FName Id) -> UGridItemDefinitionAsset*
 			{
+				LookedUpIds.Add(Id);
 				return TransientOld.FindRef(Id);
 			}, FailedId));
 	TestEqual(TEXT("Exact missing unknown ID reported"), FailedId, UnknownId);
+	TestTrue(TEXT("Only unknown ID reached the resolver on failure"), LookedUpIds.Num() == 1 && LookedUpIds.Contains(UnknownId));
 	TestEqual(TEXT("Rollback preserves prior transient registry"),
 		Fixture.Inventory->FindItemDefinition(SwordId), OldSword);
 
@@ -210,13 +236,17 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 		{SwordId, OldSword}, {ShieldId, OldShield},
 		{ArrowId, OldArrow}, {UnknownId, OldUnknown}
 	};
+	LookedUpIds.Reset();
 	TestTrue(TEXT("Mixed legacy/canonical party rehydrates with known old definitions"),
 		Fixture.Inventory->RehydrateOwnedItemDefinitions(
-			[&AllOld](FName Id) -> UGridItemDefinitionAsset*
+			[&AllOld, &LookedUpIds](FName Id) -> UGridItemDefinitionAsset*
 			{
+				LookedUpIds.Add(Id);
 				return AllOld.FindRef(Id);
 			}, FailedId));
+	TestTrue(TEXT("Only unknown ID reached the resolver on success"), LookedUpIds.Num() == 1 && LookedUpIds.Contains(UnknownId));
 	TestEqual(TEXT("Unknown saved source registered"), Fixture.Inventory->FindItemDefinition(UnknownId), OldUnknown);
+	TestNull(TEXT("No old canonical sword retained in mixed load"), Fixture.Inventory->FindItemDefinition(SwordId));
 
 	// Invalid canonical levels and impossible N0 ARM must not borrow old
 	// definitions or mutate the map. Restore the malformed item only after
@@ -233,7 +263,8 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 		TestEqual(TEXT("Invalid registered item reported"), FailedId, SwordId);
 		TestEqual(TEXT("Invalid saved level not rewritten"), FirstSlot.Item.ItemLevel, InvalidLevel);
 		TestEqual(TEXT("Rejected item GUID preserved"), FirstSlot.Item.RuntimeObjectId, OriginalGuid);
-		TestEqual(TEXT("Failed read keeps transient registry"), Fixture.Inventory->FindItemDefinition(SwordId), OldSword);
+		TestEqual(TEXT("Failed read keeps unknown transient registry"), Fixture.Inventory->FindItemDefinition(UnknownId), OldUnknown);
+		TestNull(TEXT("Failed read cannot recreate old canonical sword"), Fixture.Inventory->FindItemDefinition(SwordId));
 	}
 	FirstSlot.Item = BeforeSword;
 
@@ -277,13 +308,20 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 	Fixture.Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].ActionId = TEXT("AT_HotbarOnly");
 	Fixture.Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].SourcePolicy =
 		EGridCombatActionSourcePolicy::Equipment;
-	Fixture.Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].SourceDefinitionId = SwordId;
+	Fixture.Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].SourceDefinitionId = TEXT("Weapon_Dagger_01");
 	Fixture.Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].PreferredSourceRuntimeId = FGuid::NewGuid();
 	Fixture.Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].PreferredEquipmentSlot =
 		EGridEquipmentSlot::MainHand;
+	LookedUpIds.Reset();
 	TestTrue(TEXT("Hotbar-only registered identity does not require old DA"),
 		Fixture.Inventory->RehydrateOwnedItemDefinitions(
-			[](FName) -> UGridItemDefinitionAsset* { return nullptr; }, FailedId));
+			[&LookedUpIds](FName Id) -> UGridItemDefinitionAsset*
+			{
+				LookedUpIds.Add(Id);
+				return nullptr;
+			}, FailedId));
+	TestTrue(TEXT("Hotbar-only registered ID also skips resolver"), LookedUpIds.IsEmpty());
+	TestNull(TEXT("Unknown no longer owned is removed from the map"), Fixture.Inventory->FindItemDefinition(UnknownId));
 
 	return true;
 }

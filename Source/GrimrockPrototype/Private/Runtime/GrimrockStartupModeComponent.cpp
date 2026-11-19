@@ -35,9 +35,8 @@ bool UGrimrockStartupModeComponent::RestorePendingNewGameParty(
 	}
 
 	// The frontend transfers only FGridPartyInventoryState across OpenLevel.
-	// Definition objects are held in the frontend inventory's runtime map,
-	// which does not cross levels. Continue already rehydrates this map.
-	// Do the same on New Game before inventory/held-item presentation.
+	// Validate canonical physical instances and rebuild the historical map
+	// ONLY for identities outside the registry, as on Continue.
 	FName MissingDefinitionId = NAME_None;
 	if (!Inventory->RehydrateOwnedItemDefinitions(
 		[RuntimeActor](FName ItemId)
@@ -55,8 +54,8 @@ bool UGrimrockStartupModeComponent::RestorePendingNewGameParty(
 		Inventory->ResetPartyForNewGame();
 		return false;
 	}
-	// RehydrateOwnedItemDefinitions broadcasts per-definition updates;
-	// this final refresh also covers the empty-inventory edge case.
+	// RehydrateOwnedItemDefinitions replaces the map atomically and
+	// notifies the inventory once; retain the existing startup refresh.
 	Inventory->NotifyPartyInventoryChanged(INDEX_NONE);
 	return true;
 }

@@ -466,7 +466,6 @@ int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterInde
 		if (!TryResolveEquipmentArmorRead(*Item, Armor) || Armor.NominalPhysical <= 0) continue;
 		const int32 Bonus = Armor.NominalPhysical;
 		const int32 Before = FMath::Max(0, Armor.RemainingPhysical);
-		const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId);
 		const int32 Used = FMath::Min(Remaining, Before);
 		Item->AbsorbedEquipmentPhysicalArmor += Used;
 		Remaining -= Used;
@@ -474,8 +473,24 @@ int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterInde
 		{
 			FGridArmorAbsorptionSourceTrace& Source = OutSources->AddDefaulted_GetRef();
 			Source.ItemDefinitionId = Item->ItemDefinitionId;
-			Source.DisplayName = Definition && !Definition->DisplayName.IsEmpty()
-				? Definition->DisplayName : FText::FromName(Item->ItemDefinitionId);
+			Source.DisplayName = FText::FromName(Item->ItemDefinitionId);
+			const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
+			if (Registry && Registry->HasCanonicalItem(Item->ItemDefinitionId))
+			{
+				FGridResolvedItem Resolved;
+				if (Registry->ResolveItem(Item->ItemDefinitionId, Item->ItemLevel, Resolved) &&
+					!Resolved.DisplayName.IsEmpty())
+				{
+					Source.DisplayName = Resolved.DisplayName;
+				}
+			}
+			else if (const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId))
+			{
+				if (Definition->ItemDefinitionId == Item->ItemDefinitionId && !Definition->DisplayName.IsEmpty())
+				{
+					Source.DisplayName = Definition->DisplayName;
+				}
+			}
 			Source.bEquipment = true;
 			Source.Maximum = Bonus;
 			Source.Before = Before;
