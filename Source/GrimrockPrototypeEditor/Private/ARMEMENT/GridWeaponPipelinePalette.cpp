@@ -1,172 +1,116 @@
 #include "ARMEMENT/GridWeaponPipelinePalette.h"
+#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
+namespace
+{
+    bool IsCanonicalDirect(const FGridObjectPaletteEntry& Entry, const UGridItemSubsystem* Registry)
+    {
+        return Entry.IsDirectItemEntry() && !Entry.DefaultItemDefinition &&
+            !Entry.DefaultWorldObjectDefinition && !Entry.Icon &&
+            !Entry.DefaultMonsterDefinition && !Entry.DefaultStoryCompanionDefinition &&
+            FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+                Registry, Entry.CanonicalItemId, Entry.CanonicalDefaultItemLevel);
+    }
+}
 
 EGridWeaponPipelinePaletteState FGridWeaponPipelinePalette::Inspect(
-    const UGridObjectPaletteAsset& Palette, FName EntryId,
-    const UGridItemDefinitionAsset* Item, bool bAllowLegacyItems, FString& Detail)
+    const UGridObjectPaletteAsset& Palette, FName ItemId,
+    const UGridItemSubsystem* Registry, bool bAllowItemsCategory, FString& Detail)
 {
+    using State = EGridWeaponPipelinePaletteState;
     Detail.Reset();
-    if (EntryId.IsNone() || !IsValid(Item) || !Item->IsValidDefinition() ||
-        Item->ItemDefinitionId != EntryId)
+    if (ItemId.IsNone() || !IsValid(Registry) || !Registry->IsConfigured() ||
+        !Registry->HasCanonicalItem(ItemId))
     {
-        Detail = TEXT("InvalidPaletteItemOrIdentity");
-        return EGridWeaponPipelinePaletteState::Conflict;
+        Detail = TEXT("InvalidCanonicalPaletteIdentity");
+        return State::Conflict;
     }
-
-    int32 EntryCount = 0;
-    int32 AliasCount = 0;
+    int32 Count = 0;
+    int32 Aliases = 0;
     const FGridObjectPaletteEntry* Matching = nullptr;
     for (const FGridObjectPaletteEntry& Entry : Palette.Entries)
     {
-        if (Entry.EntryId == EntryId)
+        if (Entry.EntryId == ItemId)
         {
-            ++EntryCount;
+            ++Count;
             Matching = &Entry;
         }
-        if ((Entry.DefaultItemDefinition.Get() == Item || Entry.CanonicalItemId == Item->ItemDefinitionId) &&
-            Entry.EntryId != EntryId)
+        if (Entry.CanonicalItemId == ItemId && Entry.EntryId != ItemId)
+            ++Aliases;
+        if (Entry.IsDirectItemEntry() && !IsCanonicalDirect(Entry, Registry))
         {
-            ++AliasCount;
+            Detail = TEXT("InvalidCanonicalDirectEntry");
+            return State::Conflict;
         }
     }
-    if (EntryCount > 1 || AliasCount > 0)
+    if (Count > 1 || Aliases > 0)
     {
-        Detail = EntryCount > 1 ? TEXT("DuplicatePaletteEntryId") :
-            TEXT("SameItemAlreadyRegisteredUnderDifferentId");
-        return EGridWeaponPipelinePaletteState::Conflict;
+        Detail = Count > 1 ? TEXT("DuplicatePaletteEntryId") : TEXT("SameItemAlreadyRegisteredUnderDifferentId");
+        return State::Conflict;
     }
     if (!Matching)
     {
         Detail = TEXT("DirectItemPaletteEntryMissing");
-        return EGridWeaponPipelinePaletteState::Missing;
+        return State::Missing;
     }
-    if (!Matching->MatchesDirectItemSource(Item))
-    {
-        Detail = TEXT("PaletteEntryReferencesDifferentItem");
-        return EGridWeaponPipelinePaletteState::Conflict;
-    }
-    if (Matching->PaletteCategory != FName(TEXT("Weapon")) &&
-        !(bAllowLegacyItems && Matching->PaletteCategory == FName(TEXT("Items"))))
-    {
-        Detail = TEXT("UnexpectedPaletteCategory");
-        return EGridWeaponPipelinePaletteState::Conflict;
-    }
-    if (Matching->Icon != nullptr ||
-        Matching->DefaultWorldObjectDefinition != nullptr ||
-        Matching->DefaultMonsterDefinition != nullptr ||
-        Matching->DefaultStoryCompanionDefinition != nullptr ||
+    if (!IsCanonicalDirect(*Matching, Registry) || Matching->CanonicalItemId != ItemId ||
         !Matching->IsValidEntry())
     {
-        Detail = TEXT("InvalidDirectItemPaletteEntry");
-        return EGridWeaponPipelinePaletteState::Conflict;
+        Detail = TEXT("PaletteEntryReferencesDifferentItem");
+        return State::Conflict;
     }
-    Detail = TEXT("DirectItemPaletteEntryChecked");
-    return EGridWeaponPipelinePaletteState::PresentSame;
+    if (Matching->PaletteCategory != FName(TEXT("Weapon")) &&
+        !(bAllowItemsCategory && Matching->PaletteCategory == FName(TEXT("Items"))))
+    {
+        Detail = TEXT("UnexpectedPaletteCategory");
+        return State::Conflict;
+    }
+    Detail = TEXT("DirectCanonicalItemPaletteEntryChecked");
+    return State::PresentSame;
 }
 
 bool FGridWeaponPipelinePalette::Propose(
-    const UGridObjectPaletteAsset& Palette, FName EntryId,
-    UGridItemDefinitionAsset* Item, bool bAllowLegacyItems,
+    const UGridObjectPaletteAsset& Palette, FName ItemId,
+    const UGridItemSubsystem* Registry, int32 NewPhysicalLevel, bool bAllowItemsCategory,
     TArray<FGridObjectPaletteEntry>& Out, bool& bAdded, FString& Error)
 {
     Out.Reset();
     bAdded = false;
-    TArray<FGridWorldObjectDefinitionValidationMessage> Validation;
-    if (!Palette.ValidatePalette(Validation))
+    Error.Reset();
+    TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
+    if (!Palette.ValidatePalette(Messages))
     {
         Error = TEXT("ExistingPaletteInvalid");
         return false;
     }
-    FString Detail;
-    const EGridWeaponPipelinePaletteState Status =
-        Inspect(Palette, EntryId, Item, bAllowLegacyItems, Detail);
+    const auto Status = Inspect(Palette, ItemId, Registry, bAllowItemsCategory, Error);
     if (Status == EGridWeaponPipelinePaletteState::Conflict)
+        return false;
+    if (Status == EGridWeaponPipelinePaletteState::Missing &&
+        !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry, ItemId, NewPhysicalLevel))
     {
-        Error = Detail;
+        Error = TEXT("InvalidNewPhysicalLevel");
         return false;
     }
-    Out = Palette.Entries;
+    TArray<FGridObjectPaletteEntry> Candidate = Palette.Entries;
     if (Status == EGridWeaponPipelinePaletteState::Missing)
     {
-        FGridObjectPaletteEntry& Entry = Out.AddDefaulted_GetRef();
-        Entry.EntryId = EntryId;
-        Entry.PaletteCategory = FName(TEXT("Weapon"));
-        Entry.DefaultItemDefinition = Item;
-        bAdded = true;
+        FGridObjectPaletteEntry& Entry = Candidate.AddDefaulted_GetRef();
+        Entry.EntryId = ItemId;
+        Entry.PaletteCategory = TEXT("Weapon");
+        Entry.CanonicalItemId = ItemId;
+        Entry.CanonicalDefaultItemLevel = NewPhysicalLevel;
     }
-    UGridObjectPaletteAsset* Candidate = NewObject<UGridObjectPaletteAsset>(
-        GetTransientPackage());
-    Candidate->Entries = Out;
-    if (!Candidate->ValidatePalette(Validation))
+    UGridObjectPaletteAsset* Copy = NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
+    Copy->Entries = Candidate;
+    if (!Copy->ValidatePalette(Messages))
     {
         Error = TEXT("ProposedPaletteInvalid");
-        Out.Reset();
-        bAdded = false;
         return false;
     }
-    return true;
-}
-
-bool FGridWeaponPipelinePalette::ProposeDirectItem(
-    const UGridObjectPaletteAsset& Palette, UGridItemDefinitionAsset* Item,
-    FName Category, TArray<FGridObjectPaletteEntry>& Out, bool& bAdded,
-    FString& Error)
-{
-    Out.Reset();
-    bAdded = false;
-    TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
-    if (!IsValid(Item) || !Item->IsValidDefinition() ||
-        Item->ItemDefinitionId.IsNone() || Category.IsNone() ||
-        !Palette.ValidatePalette(Messages))
-    {
-        Error = TEXT("InvalidItemOrOriginalPalette");
-        return false;
-    }
-    int32 Count = 0;
-    int32 Aliases = 0;
-    const FGridObjectPaletteEntry* Existing = nullptr;
-    for (const FGridObjectPaletteEntry& Entry : Palette.Entries)
-    {
-        if (Entry.EntryId == Item->ItemDefinitionId)
-        {
-            ++Count;
-            Existing = &Entry;
-        }
-        if ((Entry.DefaultItemDefinition.Get() == Item || Entry.CanonicalItemId == Item->ItemDefinitionId) &&
-            Entry.EntryId != Item->ItemDefinitionId)
-            ++Aliases;
-    }
-    if (Count > 1 || Aliases > 0 || (Existing &&
-        (Existing->PaletteCategory != Category ||
-         !Existing->MatchesDirectItemSource(Item) ||
-         Existing->Icon != nullptr ||
-         Existing->DefaultWorldObjectDefinition != nullptr ||
-         Existing->DefaultMonsterDefinition != nullptr ||
-         Existing->DefaultStoryCompanionDefinition != nullptr ||
-         !Existing->IsValidEntry())))
-    {
-        Error = TEXT("DuplicateAliasOrConflictingExistingItem");
-        return false;
-    }
-    Out = Palette.Entries;
-    if (!Existing)
-    {
-        FGridObjectPaletteEntry& Entry = Out.AddDefaulted_GetRef();
-        Entry.EntryId = Item->ItemDefinitionId;
-        Entry.PaletteCategory = Category;
-        Entry.DefaultItemDefinition = Item;
-        bAdded = true;
-    }
-    UGridObjectPaletteAsset* Candidate =
-        NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
-    Candidate->Entries = Out;
-    if (!Candidate->ValidatePalette(Messages))
-    {
-        Error = TEXT("InvalidProposedPalette");
-        Out.Reset();
-        bAdded = false;
-        return false;
-    }
+    Out = MoveTemp(Candidate);
+    bAdded = Status == EGridWeaponPipelinePaletteState::Missing;
+    Error.Reset();
     return true;
 }

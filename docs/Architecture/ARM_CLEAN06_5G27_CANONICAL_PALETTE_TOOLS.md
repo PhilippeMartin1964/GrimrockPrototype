@@ -1,0 +1,5 @@
+# ARM-CLEAN06.5G.27 — Outils de proposition de palette canoniques
+
+Précondition : 5G.26 validé. FGridWeaponPipelinePalette et ARMEMENT011023::Propose n'utilisent plus UGridItemDefinitionAsset comme source d'authoring. L'appelant fournit ItemSystem et un niveau physique explicite pour une nouvelle entrée. Les niveaux existants ne sont pas réinitialisés. Toute entrée directe doit déjà être canonique et non mixte ; conflits d'ID/alias, catégories inattendues et niveaux invalides sont refusés. Les propositions sont atomiques en mémoire ; aucun package marqué dirty ni SavePackage. API inutilisée ProposeDirectItem retirée (aucun appelant dans le dépôt). 
+
+Les tests INDUS02 gardent leurs preuves catalogue/manifeste/visuels historiques distinctes et valident les propositions par le registre. ARMEMENT011023 prouve les trois pilotes et la vraie bombe N0, ajout uniquement en copie transitoire. Le test de refus du pointeur concordant est conservé jusqu'au retrait de la propriété. Le schéma de palette et les autres anciens audits sont traités dans le lot suivant.

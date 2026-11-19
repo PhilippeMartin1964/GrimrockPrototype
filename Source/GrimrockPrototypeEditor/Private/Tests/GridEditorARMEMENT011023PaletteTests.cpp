@@ -8,31 +8,35 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/Package.h"
+#include "Engine/GameInstance.h"
+#include "UObject/StrongObjectPtr.h"
 
 namespace ARMEMENT011023Tests
 {
+    struct FCanonicalRegistry
+    {
+        TStrongObjectPtr<UGameInstance> GI{NewObject<UGameInstance>(GetTransientPackage())};
+        TStrongObjectPtr<UGridItemSubsystem> Registry{NewObject<UGridItemSubsystem>(GI.Get())};
+        bool bReady = false;
+        FCanonicalRegistry()
+        {
+            UGridItemSystemAsset* Root = GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+            TArray<FString> Errors;
+            bReady = IsValid(Root) && Registry.IsValid() && Registry->RegisterItemSystem(Root, Errors);
+        }
+    };
     static constexpr const TCHAR* PalettePath =
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.DA_ObjectPalette_Default");
 
-    // ARM014 art/definition is currently local only. The tests also work
-    // against a clean clone without the user's new ARM014 .uasset.
-    bool ResolveAvailable(TArray<ARMEMENT011023::FResolved>& Out)
+    bool ResolveAvailable(const UGridItemSubsystem* Registry, TArray<const ARMEMENT011023::FSpec*>& Out)
     {
-        for (const ARMEMENT011023::FSpec& Spec : ARMEMENT011023::Specs)
+        // Retain the original three pilots + FireBomb coverage.
+        for (const auto& Spec : ARMEMENT011023::Specs)
         {
-            if (FName(Spec.EntryId) == FName(TEXT("Weapon_StraightSword_01")))
-            {
-                continue;
-            }
-            ARMEMENT011023::FResolved& Target = Out.AddDefaulted_GetRef();
-            Target.Spec = &Spec;
-            Target.Item = LoadObject<UGridItemDefinitionAsset>(nullptr, Spec.ObjectPath);
-            if (!IsValid(Target.Item) ||
-                Target.Item->ItemDefinitionId != FName(Spec.ItemDefinitionId) ||
-                !Target.Item->IsValidDefinition())
-            {
-                return false;
-            }
+            if (FName(Spec.EntryId) == FName(TEXT("Weapon_StraightSword_01"))) continue;
+            if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+                Registry, FName(Spec.EntryId), Spec.NewPhysicalLevel)) return false;
+            Out.Add(&Spec);
         }
         return Out.Num() == 4;
     }
@@ -48,16 +52,18 @@ bool FARMEMENT011023IdempotenceTest::RunTest(const FString&)
         LoadObject<UGridObjectPaletteAsset>(nullptr, ARMEMENT011023Tests::PalettePath);
     if (!TestNotNull(TEXT("Production palette available"), Source)) return false;
 
-    TArray<ARMEMENT011023::FResolved> Targets;
+    ARMEMENT011023Tests::FCanonicalRegistry Canonical;
+    if (!TestTrue(TEXT("Configured canonical registry"), Canonical.bReady)) return false;
+    TArray<const ARMEMENT011023::FSpec*> Targets;
     if (!TestTrue(TEXT("Three existing pilot items and bomb definitions valid"),
-        ARMEMENT011023Tests::ResolveAvailable(Targets))) return false;
+        ARMEMENT011023Tests::ResolveAvailable(Canonical.Registry.Get(), Targets))) return false;
 
     const int32 OriginalCount = Source->Entries.Num();
     TArray<FGridObjectPaletteEntry> Proposal;
     int32 Added = 0, Moved = 0;
     FString Error;
     if (!TestTrue(TEXT("Builds safe proposal"),
-        ARMEMENT011023::Propose(Source->Entries, Targets, Proposal, Added, Moved, Error)))
+        ARMEMENT011023::Propose(Source->Entries, Canonical.Registry.Get(), Targets, Proposal, Added, Moved, Error)))
     {
         AddError(Error);
         return false;
@@ -69,12 +75,15 @@ bool FARMEMENT011023IdempotenceTest::RunTest(const FString&)
     Copy->Entries = Proposal;
     TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
     TestTrue(TEXT("Complete proposed palette validates"), Copy->ValidatePalette(Messages));
-    for (const ARMEMENT011023::FResolved& Target : Targets)
+    for (const ARMEMENT011023::FSpec* Target : Targets)
     {
-        const FGridObjectPaletteEntry* Entry = Copy->FindEntryById(FName(Target.Spec->EntryId));
+        const FGridObjectPaletteEntry* Entry = Copy->FindEntryById(FName(Target->EntryId));
         if (!TestNotNull(TEXT("Expected direct item entry"), Entry)) continue;
-        TestEqual(TEXT("Expected category"), Entry->PaletteCategory, FName(Target.Spec->Category));
-        TestTrue(TEXT("Existing item source or canonical identity matches"), Entry->MatchesDirectItemSource(Target.Item));
+        TestEqual(TEXT("Expected category"), Entry->PaletteCategory, FName(Target->Category));
+        TestEqual(TEXT("Canonical identity matches"), Entry->CanonicalItemId, FName(Target->EntryId));
+        TestTrue(TEXT("Physical default resolves"), FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+            Canonical.Registry.Get(), Entry->CanonicalItemId, Entry->CanonicalDefaultItemLevel));
+        TestNull(TEXT("No old source created"), Entry->DefaultItemDefinition.Get());
         TestEqual(TEXT("Gameplay type still Item"), Entry->GetEffectiveObjectType(), EGridLevelObjectType::Item);
         TestNull(TEXT("No world-object wrapper"), Entry->DefaultWorldObjectDefinition.Get());
         TestNull(TEXT("No duplicated icon"), Entry->Icon.Get());
@@ -83,7 +92,7 @@ bool FARMEMENT011023IdempotenceTest::RunTest(const FString&)
     TArray<FGridObjectPaletteEntry> Again;
     int32 AddedAgain = 0, MovedAgain = 0;
     TestTrue(TEXT("Second proposal succeeds"),
-        ARMEMENT011023::Propose(Proposal, Targets, Again, AddedAgain, MovedAgain, Error));
+        ARMEMENT011023::Propose(Proposal, Canonical.Registry.Get(), Targets, Again, AddedAgain, MovedAgain, Error));
     TestEqual(TEXT("No duplicate addition"), AddedAgain, 0);
     TestEqual(TEXT("No repeated category migration"), MovedAgain, 0);
     TestEqual(TEXT("Entry count stable"), Again.Num(), Proposal.Num());
@@ -98,8 +107,9 @@ bool FARMEMENT011023IdempotenceTest::RunTest(const FString&)
         TArray<FGridObjectPaletteEntry> Rejected;
         int32 A = 0, M = 0;
         TestFalse(TEXT("Second identity for same bomb rejected"),
-            ARMEMENT011023::Propose(Conflict, Targets, Rejected, A, M, Error));
+            ARMEMENT011023::Propose(Conflict, Canonical.Registry.Get(), Targets, Rejected, A, M, Error));
         TestEqual(TEXT("Conflict input remains intact"), Conflict.Num(), Proposal.Num() + 1);
+        TestTrue(TEXT("Conflicting plan returns no output"), Rejected.IsEmpty() && A == 0 && M == 0);
     }
     return true;
 }
@@ -114,15 +124,17 @@ bool FARMEMENT011023BombPlacementTest::RunTest(const FString&)
         LoadObject<UGridObjectPaletteAsset>(nullptr, ARMEMENT011023Tests::PalettePath);
     if (!TestNotNull(TEXT("Production palette available"), Source)) return false;
 
-    TArray<ARMEMENT011023::FResolved> Targets;
+    ARMEMENT011023Tests::FCanonicalRegistry Canonical;
+    if (!TestTrue(TEXT("Configured canonical registry"), Canonical.bReady)) return false;
+    TArray<const ARMEMENT011023::FSpec*> Targets;
     if (!TestTrue(TEXT("Production collectible definitions load"),
-        ARMEMENT011023Tests::ResolveAvailable(Targets))) return false;
+        ARMEMENT011023Tests::ResolveAvailable(Canonical.Registry.Get(), Targets))) return false;
 
     TArray<FGridObjectPaletteEntry> Proposal;
     int32 Added = 0, Moved = 0;
     FString Error;
     if (!TestTrue(TEXT("Transient palette constructed"),
-        ARMEMENT011023::Propose(Source->Entries, Targets, Proposal, Added, Moved, Error)))
+        ARMEMENT011023::Propose(Source->Entries, Canonical.Registry.Get(), Targets, Proposal, Added, Moved, Error)))
     {
         AddError(Error);
         return false;
@@ -166,30 +178,20 @@ bool FARMEMENT011023BombPlacementTest::RunTest(const FString&)
         Editor->SelectedCellX = 0;
         Editor->SelectedCellY = 0;
         Editor->SelectedEdge = EGridEdge::None;
-        // The historical proposal is deliberately not a production authoring
-        // authority. Its fire bomb may have been absent from the native palette.
-        if (Bomb->DefaultItemDefinition)
-        {
-            TestFalse(TEXT("Old proposed bomb source cannot be selected"),
-                Editor->ApplyPaletteEntry(BombId));
-            Editor->SelectedPaletteEntryId = BombId;
-            Editor->PaintObjectType = EGridLevelObjectType::Item;
-            Editor->PlaceSelectedObject();
-            TestEqual(TEXT("Old source cannot bypass selection"), Level->LooseItemInstances.Num(), 0);
-        }
-        const UGridItemSubsystem* Registry = Editor->ResolveEditorItemRegistry();
-        FGridResolvedItem Resolved;
-        if (TestTrue(TEXT("Actual canonical fire bomb N0 resolves"),
-                Registry && Registry->ResolveItem(BombId, 0, Resolved) &&
-                Resolved.IsValid() && !Resolved.bIsArmament && Resolved.ItemId == BombId &&
-                Resolved.ItemLevel == 0))
-        {
-            // Explicit authoring in a disposable palette only; not a native
-            // palette migration or a change to the old proposal's own test.
-            Bomb->DefaultItemDefinition = nullptr;
-            Bomb->CanonicalItemId = BombId;
-            Bomb->CanonicalDefaultItemLevel = 0;
-        }
+        // The real proposal is canonical; inject a matching old source only
+        // to prove that the former editor bypass stays closed.
+        TestEqual(TEXT("Proposed fire bomb resolves at N0"), Bomb->CanonicalItemId, BombId);
+        TestEqual(TEXT("Proposed fire bomb level"), Bomb->CanonicalDefaultItemLevel, 0);
+        TestNull(TEXT("Proposal carries no historical pointer"), Bomb->DefaultItemDefinition.Get());
+        UGridItemDefinitionAsset* OldBomb = NewObject<UGridItemDefinitionAsset>(Palette);
+        OldBomb->ItemDefinitionId = BombId;
+        Bomb->DefaultItemDefinition = OldBomb;
+        TestFalse(TEXT("Matching old source cannot be selected"), Editor->ApplyPaletteEntry(BombId));
+        Editor->SelectedPaletteEntryId = BombId;
+        Editor->PaintObjectType = EGridLevelObjectType::Item;
+        Editor->PlaceSelectedObject();
+        TestEqual(TEXT("Old source cannot bypass selection"), Level->LooseItemInstances.Num(), 0);
+        Bomb->DefaultItemDefinition = nullptr;
         if (TestTrue(TEXT("Canonical bomb selectable via Grid Editor"),
             Editor->ApplyPaletteEntry(BombId)))
         {

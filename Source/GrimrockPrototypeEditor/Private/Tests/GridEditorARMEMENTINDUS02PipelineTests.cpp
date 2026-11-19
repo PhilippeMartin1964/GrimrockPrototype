@@ -11,10 +11,25 @@
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "UObject/StrongObjectPtr.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace WeaponPipelineTests
 {
+    struct FCanonicalRegistry
+    {
+        TStrongObjectPtr<UGameInstance> GI{NewObject<UGameInstance>(GetTransientPackage())};
+        TStrongObjectPtr<UGridItemSubsystem> Registry{NewObject<UGridItemSubsystem>(GI.Get())};
+        bool bReady = false;
+        FCanonicalRegistry()
+        {
+            UGridItemSystemAsset* Root = GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+            TArray<FString> Errors;
+            bReady = IsValid(Root) && Registry.IsValid() && Registry->RegisterItemSystem(Root, Errors);
+        }
+    };
     constexpr const TCHAR* RpgPath =
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue");
     constexpr const TCHAR* VisualsPath =
@@ -146,6 +161,8 @@ bool FWeaponPipelineExistingContracts::RunTest(const FString&)
         !TestNotNull(TEXT("Visual catalogue"), Visuals) ||
         !TestNotNull(TEXT("Production palette"), Palette))
         return false;
+    WeaponPipelineTests::FCanonicalRegistry Canonical;
+    if (!TestTrue(TEXT("Configured canonical registry"), Canonical.bReady)) return false;
     const bool BeforeRpg = Rpg->GetOutermost()->IsDirty();
     const bool BeforeVisuals = Visuals->GetOutermost()->IsDirty();
     const bool BeforePalette = Palette->GetOutermost()->IsDirty();
@@ -201,7 +218,7 @@ bool FWeaponPipelineExistingContracts::RunTest(const FString&)
         TestTrue(TEXT("Authored item definition remains valid"), Item->IsValidDefinition());
         FString PaletteReason;
         const EGridWeaponPipelinePaletteState PaletteState =
-            FGridWeaponPipelinePalette::Inspect(*Palette, FName(Row.ItemDefinitionId), Item,
+            FGridWeaponPipelinePalette::Inspect(*Palette, FName(Row.ItemDefinitionId), Canonical.Registry.Get(),
                 WeaponPipelineTests::LegacyCategory(Row.ArchetypeId), PaletteReason);
         TestTrue(*FString::Printf(TEXT("Existing palette entry unchanged %s (%s)"),
             *Row.ArchetypeId, *PaletteReason),
@@ -254,6 +271,8 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
     if (!TestNotNull(TEXT("Real production palette"), Production) ||
         !TestNotNull(TEXT("Real ARM002 definition"), Item))
         return false;
+    WeaponPipelineTests::FCanonicalRegistry Canonical;
+    if (!TestTrue(TEXT("Configured canonical registry"), Canonical.bReady)) return false;
     const bool bBeforeDirty = Production->GetOutermost()->IsDirty();
     const FName EntryId(TEXT("Weapon_AssassinDagger_01"));
     const int32 OriginalCount = Production->Entries.Num();
@@ -263,25 +282,22 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
     bool bAdded = false;
     FString Error;
     TestTrue(TEXT("Already-registered item can be proposed unchanged"),
-        FGridWeaponPipelinePalette::Propose(*Production, EntryId, Item, false,
+        FGridWeaponPipelinePalette::Propose(*Production, EntryId, Canonical.Registry.Get(), 1, false,
             Proposed, bAdded, Error));
     TestFalse(TEXT("Idempotence: no entry appended"), bAdded);
     TestEqual(TEXT("Idempotence: array size unchanged"), Proposed.Num(), OriginalCount);
 
-    // Simulate a fully pointerless production palette. Historical inspection
-    // may recognize a registered item but must not reattach a pointer.
+    // Duplicate the already canonical production palette. No old source may be introduced.
     UGridObjectPaletteAsset* Pointerless = NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
     Pointerless->Entries = Production->Entries;
-    for (FGridObjectPaletteEntry& Entry : Pointerless->Entries)
-        if (!Entry.CanonicalItemId.IsNone()) Entry.DefaultItemDefinition = nullptr;
     FString PointerlessError;
     TArray<FGridObjectPaletteEntry> PointerlessProposal;
     bool bPointerlessAdded = true;
     TestTrue(TEXT("Historical inspection recognizes existing canonical-only identity"),
-        FGridWeaponPipelinePalette::Inspect(*Pointerless, EntryId, Item, false, PointerlessError) ==
+        FGridWeaponPipelinePalette::Inspect(*Pointerless, EntryId, Canonical.Registry.Get(), false, PointerlessError) ==
             EGridWeaponPipelinePaletteState::PresentSame);
     TestTrue(TEXT("Existing pointerless item remains idempotent"),
-        FGridWeaponPipelinePalette::Propose(*Pointerless, EntryId, Item, false,
+        FGridWeaponPipelinePalette::Propose(*Pointerless, EntryId, Canonical.Registry.Get(), 1, false,
             PointerlessProposal, bPointerlessAdded, PointerlessError));
     TestFalse(TEXT("Canonical-only identity must never be re-added"), bPointerlessAdded);
     const FGridObjectPaletteEntry* Preserved = PointerlessProposal.FindByPredicate([EntryId](const FGridObjectPaletteEntry& Entry)
@@ -300,23 +316,34 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
     Proposed.Reset();
     bAdded = false;
     Error.Reset();
+    TestFalse(TEXT("Missing ARM cannot be proposed at N0"),
+        FGridWeaponPipelinePalette::Propose(*Missing, EntryId, Canonical.Registry.Get(), 0, false,
+            Proposed, bAdded, Error));
+    TestTrue(TEXT("Rejected plan exposes no partial output"), Proposed.IsEmpty() && !bAdded);
     if (TestTrue(TEXT("Can propose one absent entry"),
-        FGridWeaponPipelinePalette::Propose(*Missing, EntryId, Item, false,
+        FGridWeaponPipelinePalette::Propose(*Missing, EntryId, Canonical.Registry.Get(), 1, false,
             Proposed, bAdded, Error)))
     {
         TestTrue(TEXT("Exactly one proposal added"), bAdded);
         TestEqual(TEXT("Proposed entry count restored"), Proposed.Num(), OriginalCount);
         UGridObjectPaletteAsset* Candidate = NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
         Candidate->Entries = Proposed;
+        const FGridObjectPaletteEntry* NewEntry = Candidate->FindEntryById(EntryId);
+        if (TestNotNull(TEXT("Authored new canonical entry"), NewEntry))
+        {
+            TestEqual(TEXT("Explicit physical N1"), NewEntry->CanonicalDefaultItemLevel, 1);
+            TestEqual(TEXT("Explicit ItemId"), NewEntry->CanonicalItemId, EntryId);
+            TestNull(TEXT("No legacy source created"), NewEntry->DefaultItemDefinition.Get());
+        }
         FString Detail;
         TestTrue(TEXT("Proposed entry is compatible"),
-            FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Item, false, Detail) ==
+            FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Canonical.Registry.Get(), false, Detail) ==
                 EGridWeaponPipelinePaletteState::PresentSame);
         TArray<FGridObjectPaletteEntry> SecondPass;
         bool bSecondAdded = true;
         FString SecondError;
         TestTrue(TEXT("Second pass succeeds"),
-            FGridWeaponPipelinePalette::Propose(*Candidate, EntryId, Item, false,
+            FGridWeaponPipelinePalette::Propose(*Candidate, EntryId, Canonical.Registry.Get(), 1, false,
                 SecondPass, bSecondAdded, SecondError));
         TestFalse(TEXT("Second pass does not duplicate item"), bSecondAdded);
         TestEqual(TEXT("Second pass preserves all entries"), SecondPass.Num(), OriginalCount);
@@ -325,7 +352,7 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
         Candidate->Entries.Add(Duplicate);
         Detail.Reset();
         TestTrue(TEXT("Duplicate entry rejected"),
-            FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Item, false, Detail) ==
+            FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Canonical.Registry.Get(), false, Detail) ==
                 EGridWeaponPipelinePaletteState::Conflict);
 
         Candidate->Entries.Pop();
@@ -338,12 +365,12 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
         {
             TargetEntry->PaletteCategory = FName(TEXT("Misc"));
             TestTrue(TEXT("Unexpected category rejected"),
-                FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Item, false, Detail) ==
+                FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Canonical.Registry.Get(), false, Detail) ==
                     EGridWeaponPipelinePaletteState::Conflict);
             TargetEntry->PaletteCategory = FName(TEXT("Weapon"));
             TargetEntry->EntryId = FName(TEXT("Weapon_AlternateAlias_TestOnly"));
             TestTrue(TEXT("Same item registered under another EntryId rejected"),
-                FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Item, false, Detail) ==
+                FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Canonical.Registry.Get(), false, Detail) ==
                     EGridWeaponPipelinePaletteState::Conflict);
             TargetEntry->EntryId = EntryId;
             UGridItemDefinitionAsset* Other = LoadObject<UGridItemDefinitionAsset>(
@@ -353,7 +380,7 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
             {
                 TargetEntry->DefaultItemDefinition = Other;
                 TestTrue(TEXT("Palette entry pointing to a different item rejected"),
-                    FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Item, false, Detail) ==
+                    FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Canonical.Registry.Get(), false, Detail) ==
                         EGridWeaponPipelinePaletteState::Conflict);
             }
         }

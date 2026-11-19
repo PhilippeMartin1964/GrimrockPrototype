@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.27 — Outils de proposition de palette canoniques
+
+Parent f9b64bf419641e04e6f32160425412ed2c889b37, publication conditionnée aux deux statuts SUCCESS. Les deux anciens outils de proposition utilisent désormais le registre canonique, l'ItemId et un niveau physique explicite pour une nouvelle entrée ; aucun chargement/écriture d'ancienne définition dans ces outils. Préservation des niveaux existants, rejet des collisions et des propositions partielles. INDUS02 et ARMEMENT011023 contrôlent les vrais IDs/N, le refus N0 ARM et la bombe N0 transitoire. Aucun ajout de bombe à la palette réelle, aucun package ni SaveGame modifié. Voir [5G.27](ARM_CLEAN06_5G27_CANONICAL_PALETTE_TOOLS.md).
+
 ## ARM-CLEAN06.5G.26 — Présentation canonique stricte de la palette
 
 Parent 96bd3aaf4b69f8e6ec075d79d3c3ba972f1ffe4c : publication après validation complète. Le lecteur Slate ne peut plus afficher le texte, la description ou l'icône d'une ancienne définition, même correspondant à l'ID canonique. Une tuile directe non résolue est désactivée et la sélection refusée ne change ni l'outil ni l'historique. X.13/X.14/X.55 prouvent les 33 entrées finales et le refus de source historique. La propriété DefaultItemDefinition des outils anciens reste distincte. Aucun asset ni SaveGame modifié. Voir [5G.26](ARM_CLEAN06_5G26_STRICT_PALETTE_PRESENTATION.md).

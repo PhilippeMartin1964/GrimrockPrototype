@@ -1,94 +1,91 @@
 #pragma once
 
 #include "Core/GridObjectPaletteAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
 
-// ARMEMENT01.10.2.3: editor-only presentation categories. Gameplay ItemType and
-// persisted palette entry identities are intentionally unchanged.
+// ARMEMENT01.10.2.3: editor-only grouping; explicit canonical identities
+// and physical defaults for new entries, never a second item definition.
 namespace ARMEMENT011023
 {
     struct FSpec
     {
         const TCHAR* EntryId;
-        const TCHAR* ObjectPath;
-        const TCHAR* ItemDefinitionId;
         const TCHAR* Category;
+        int32 NewPhysicalLevel;
     };
 
     static const FSpec Specs[] =
     {
-        { TEXT("Weapon_Dagger_01"),
-          TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"),
-          TEXT("Weapon_Dagger_01"), TEXT("Weapon") },
-        { TEXT("Weapon_ShortBow_01"),
-          TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ShortBow_01.DA_Weapon_ShortBow_01"),
-          TEXT("Weapon_ShortBow_01"), TEXT("Weapon") },
-        { TEXT("Weapon_RoundShield_01"),
-          TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"),
-          TEXT("Weapon_RoundShield_01"), TEXT("Weapon") },
-        { TEXT("Weapon_StraightSword_01"),
-          TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_StraightSword_01.DA_Weapon_StraightSword_01"),
-          TEXT("Weapon_StraightSword_01"), TEXT("Weapon") },
-        { TEXT("Item_Bomb_Fire"),
-          TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Bomb_Fire.DA_Item_Bomb_Fire"),
-          TEXT("Item_Bomb_Fire"), TEXT("Items") }
+        { TEXT("Weapon_Dagger_01"), TEXT("Weapon"), 1 },
+        { TEXT("Weapon_ShortBow_01"), TEXT("Weapon"), 1 },
+        { TEXT("Weapon_RoundShield_01"), TEXT("Weapon"), 1 },
+        { TEXT("Weapon_StraightSword_01"), TEXT("Weapon"), 1 },
+        { TEXT("Item_Bomb_Fire"), TEXT("Items"), 0 }
     };
 
-    struct FResolved
+    inline bool IsCanonicalDirect(const FGridObjectPaletteEntry& Entry,
+        const UGridItemSubsystem* Registry)
     {
-        const FSpec* Spec = nullptr;
-        UGridItemDefinitionAsset* Item = nullptr;
-    };
+        return Entry.IsDirectItemEntry() && !Entry.DefaultItemDefinition &&
+            !Entry.DefaultWorldObjectDefinition && !Entry.Icon &&
+            !Entry.DefaultMonsterDefinition && !Entry.DefaultStoryCompanionDefinition &&
+            FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+                Registry, Entry.CanonicalItemId, Entry.CanonicalDefaultItemLevel);
+    }
 
-    // Pure proposal: no package dirtying, no mutation of Original and no saves.
-    // The caller must separately run UGridObjectPaletteAsset::ValidatePalette
-    // on the complete proposed entries before saving the production package.
+    // Copy-first: conflicts cannot expose a partially authored proposal.
     inline bool Propose(
         const TArray<FGridObjectPaletteEntry>& Original,
-        const TArray<FResolved>& Targets,
+        const UGridItemSubsystem* Registry,
+        const TArray<const FSpec*>& Targets,
         TArray<FGridObjectPaletteEntry>& OutEntries,
-        int32& OutAdded,
-        int32& OutMoved,
-        FString& OutError)
+        int32& OutAdded, int32& OutMoved, FString& OutError)
     {
+        OutEntries.Reset();
+        OutAdded = OutMoved = 0;
         OutError.Reset();
-        OutAdded = 0;
-        OutMoved = 0;
-        OutEntries = Original;
-
-        TSet<FName> RequestedIds;
-        for (const FResolved& Target : Targets)
+        if (!IsValid(Registry) || !Registry->IsConfigured())
         {
-            if (!Target.Spec || !IsValid(Target.Item) || !Target.Item->IsValidDefinition())
+            OutError = TEXT("Missing canonical registry");
+            return false;
+        }
+        for (const auto& Entry : Original)
+        {
+            if (Entry.IsDirectItemEntry() && !IsCanonicalDirect(Entry, Registry))
             {
-                OutError = TEXT("Missing or invalid real ItemDefinition");
+                OutError = TEXT("Invalid direct source in original palette");
                 return false;
             }
-            const FName Id(Target.Spec->EntryId);
-            const FName DesiredCategory(Target.Spec->Category);
-            if (Id.IsNone() || DesiredCategory.IsNone() ||
-                Target.Item->ItemDefinitionId != FName(Target.Spec->ItemDefinitionId) ||
-                RequestedIds.Contains(Id))
+        }
+        TArray<FGridObjectPaletteEntry> Candidate = Original;
+        int32 Added = 0, Moved = 0;
+        TSet<FName> RequestedIds;
+        for (const FSpec* Target : Targets)
+        {
+            if (!Target)
             {
-                OutError = FString::Printf(TEXT("Invalid/duplicate requested identity: %s"), Target.Spec->EntryId);
+                OutError = TEXT("Missing requested spec");
+                return false;
+            }
+            const FName Id(Target->EntryId);
+            const FName DesiredCategory(Target->Category);
+            if (Id.IsNone() || DesiredCategory.IsNone() || RequestedIds.Contains(Id) ||
+                !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry, Id, Target->NewPhysicalLevel))
+            {
+                OutError = FString::Printf(TEXT("Invalid requested canonical identity or level: %s"), Target->EntryId);
                 return false;
             }
             RequestedIds.Add(Id);
-
             FGridObjectPaletteEntry* Existing = nullptr;
             int32 Count = 0;
-            for (FGridObjectPaletteEntry& Entry : OutEntries)
+            for (FGridObjectPaletteEntry& Entry : Candidate)
             {
                 if (Entry.EntryId == Id)
                 {
                     Existing = &Entry;
                     ++Count;
                 }
-                // Refuse a second palette identity pointing at the same item.
-                // Never remove or silently rewrite manually authored entries.
-                else if (Entry.CanonicalItemId == Target.Item->ItemDefinitionId ||
-                    (Entry.DefaultItemDefinition &&
-                     Entry.DefaultItemDefinition->ItemDefinitionId == Target.Item->ItemDefinitionId))
+                else if (Entry.CanonicalItemId == Id)
                 {
                     OutError = FString::Printf(TEXT("Item already exposed by another EntryId: %s"), *Entry.EntryId.ToString());
                     return false;
@@ -96,46 +93,39 @@ namespace ARMEMENT011023
             }
             if (Count > 1)
             {
-                OutError = FString::Printf(TEXT("Duplicate existing EntryId: %s"), Target.Spec->EntryId);
+                OutError = FString::Printf(TEXT("Duplicate existing EntryId: %s"), Target->EntryId);
                 return false;
             }
             if (!Existing)
             {
-                FGridObjectPaletteEntry& NewEntry = OutEntries.AddDefaulted_GetRef();
+                FGridObjectPaletteEntry& NewEntry = Candidate.AddDefaulted_GetRef();
                 NewEntry.EntryId = Id;
                 NewEntry.PaletteCategory = DesiredCategory;
-                NewEntry.DefaultItemDefinition = Target.Item;
-                ++OutAdded;
+                NewEntry.CanonicalItemId = Id;
+                NewEntry.CanonicalDefaultItemLevel = Target->NewPhysicalLevel;
+                ++Added;
                 continue;
             }
-            if (!Existing->MatchesDirectItemSource(Target.Item) ||
-                Existing->DefaultWorldObjectDefinition != nullptr ||
-                Existing->Icon != nullptr ||
-                Existing->DefaultMonsterDefinition != nullptr ||
-                Existing->DefaultStoryCompanionDefinition != nullptr ||
+            if (!IsCanonicalDirect(*Existing, Registry) || Existing->CanonicalItemId != Id ||
                 !Existing->IsValidEntry())
             {
-                OutError = FString::Printf(TEXT("Conflicting direct collectible entry: %s"), Target.Spec->EntryId);
+                OutError = FString::Printf(TEXT("Conflicting direct collectible entry: %s"), Target->EntryId);
                 return false;
             }
-
-            if (Existing->PaletteCategory == DesiredCategory)
-            {
-                continue;
-            }
-            // Only the previous pilot grouping is allowed as a migration
-            // source. An arbitrary manually chosen category is never overwritten.
-            if (DesiredCategory == FName(TEXT("Weapon")) &&
-                Existing->PaletteCategory == FName(TEXT("Items")))
+            if (Existing->PaletteCategory == DesiredCategory) continue;
+            if (DesiredCategory == FName(TEXT("Weapon")) && Existing->PaletteCategory == FName(TEXT("Items")))
             {
                 Existing->PaletteCategory = DesiredCategory;
-                ++OutMoved;
+                ++Moved;
                 continue;
             }
             OutError = FString::Printf(TEXT("Unexpected authored category for %s: %s"),
-                Target.Spec->EntryId, *Existing->PaletteCategory.ToString());
+                Target->EntryId, *Existing->PaletteCategory.ToString());
             return false;
         }
+        OutEntries = MoveTemp(Candidate);
+        OutAdded = Added;
+        OutMoved = Moved;
         return true;
     }
 }
