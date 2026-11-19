@@ -105,10 +105,6 @@ struct FGridReceptacleAcceptedItemConfig
 {
 	GENERATED_BODY()
 
-	/** Retained only for the pre-retirement audit, never used for acceptance. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Accepted Items")
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
-
 	/** Only explicit registered identity controls the acceptance rule. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accepted Items|Canonical")
 	FName CanonicalItemId = NAME_None;

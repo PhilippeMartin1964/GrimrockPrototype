@@ -7,8 +7,7 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "EditorTools/GridEditorReceptacleAcceptanceMigrationPreview.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -35,41 +34,15 @@ struct FFixture
 };
 
 bool VerifyPlanInvariance(FAutomationTestBase& Test, const UGridItemSubsystem* Registry,
-    const TArray<FGridReceptacleAcceptedItemConfig>& Input,
-    FGridReceptacleAcceptancePlanStats& Total, int32& bPreviewSafeCount)
+    const TArray<FGridReceptacleAcceptedItemConfig>& Input, int32& SafeCount)
 {
-    const TArray<FGridReceptacleAcceptedItemConfig> Source = Input;
-    TArray<FGridReceptacleAcceptedItemConfig> Preview;
-    FGridReceptacleAcceptancePlanStats Stats;
-    const bool bSafe = FGridReceptacleAcceptanceMigrationPreview::TryPreview(
-        Registry, Input, Preview, Stats);
-    Total.Accumulate(Stats);
-    bPreviewSafeCount += bSafe ? 1 : 0;
-    if (!Test.TestEqual(TEXT("Preview did not edit source count"), Input.Num(), Source.Num()) ||
-        !Test.TestEqual(TEXT("Stats count exact"), Stats.Rules, Input.Num()) ||
-        !Test.TestEqual(TEXT("Blocked list produces no partial proposal"),
-            Preview.Num(), bSafe ? Input.Num() : 0))
-        return false;
-    for (int32 Index = 0; Index < Source.Num(); ++Index)
-    {
-        if (!Test.TestTrue(TEXT("Preview cannot modify serialized rule fields"),
-            Input[Index].ItemDefinition == Source[Index].ItemDefinition &&
-            Input[Index].CanonicalItemId == Source[Index].CanonicalItemId))
-            return false;
-        if (bSafe)
-        {
-            const FGridReceptacleAcceptedItemConfig& Before = Source[Index];
-            const FGridReceptacleAcceptedItemConfig& After = Preview[Index];
-            const FName OldId = Before.CanonicalItemId.IsNone()
-                ? (IsValid(Before.ItemDefinition.Get())
-                    ? Before.ItemDefinition->ItemDefinitionId : NAME_None)
-                : Before.CanonicalItemId;
-            if (!Test.TestTrue(TEXT("Strict identity order/pointer parity"),
-                OldId == After.CanonicalItemId &&
-                After.ItemDefinition == Before.ItemDefinition))
-                return false;
-        }
-    }
+    TArray<FGridReceptacleAcceptedItemConfig> Copy;
+    if (!Test.TestTrue(TEXT("Explicit rules copy atomically"),
+        FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(Registry, Input, Copy)) ||
+        !Test.TestEqual(TEXT("Copy preserves exact rule count"), Copy.Num(), Input.Num())) return false;
+    for (int32 Index = 0; Index < Input.Num(); ++Index)
+        if (!Test.TestEqual(TEXT("Identity and order preserved"), Copy[Index].CanonicalItemId, Input[Index].CanonicalItemId)) return false;
+    ++SafeCount;
     return true;
 }
 }
@@ -80,78 +53,31 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X164AtomicPreview,
 bool FGridClean064X164AtomicPreview::RunTest(const FString&)
 {
     ARMCLEAN064X164::FFixture F;
-    if (!TestTrue(TEXT("Actual canonical registry"), F.bReady))
-        return false;
+    if (!TestTrue(TEXT("Actual canonical registry"), F.bReady)) return false;
     const bool bDirtyBefore = F.ItemSystem->GetOutermost()->IsDirty();
-    UGridItemDefinitionAsset* KnownA = NewObject<UGridItemDefinitionAsset>();
-    KnownA->ItemDefinitionId = TEXT("Item_Arrows_01");
-    UGridItemDefinitionAsset* KnownB = NewObject<UGridItemDefinitionAsset>();
-    KnownB->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
-    UGridItemDefinitionAsset* Unknown = NewObject<UGridItemDefinitionAsset>();
-    Unknown->ItemDefinitionId = TEXT("X164_Unregistered_Historical");
-
-    FGridReceptacleAcceptedItemConfig LegacyA;
-    LegacyA.ItemDefinition = KnownA;
-    FGridReceptacleAcceptedItemConfig LegacyB;
-    LegacyB.ItemDefinition = KnownB;
-    FGridReceptacleAcceptedItemConfig Explicit;
-    Explicit.CanonicalItemId = KnownA->ItemDefinitionId;
-    TArray<FGridReceptacleAcceptedItemConfig> Rules = {
-        LegacyA, LegacyB, LegacyA, Explicit
-    };
+    FGridReceptacleAcceptedItemConfig A, B;
+    A.CanonicalItemId = TEXT("Item_Arrows_01");
+    B.CanonicalItemId = TEXT("Weapon_StraightSword_01");
+    TArray<FGridReceptacleAcceptedItemConfig> Rules = {A, B, A, A};
+    int32 Safe = 0;
+    if (!ARMCLEAN064X164::VerifyPlanInvariance(*this, F.Registry.Get(), Rules, Safe) ||
+        !ARMCLEAN064X164::VerifyPlanInvariance(*this, F.Registry.Get(), {}, Safe)) return false;
     TArray<FGridReceptacleAcceptedItemConfig> Proposed;
-    FGridReceptacleAcceptancePlanStats Stats;
-    if (!TestTrue(TEXT("Safe duplicate/order-preserving preview"),
-            FGridReceptacleAcceptanceMigrationPreview::TryPreview(
-                F.Registry.Get(), Rules, Proposed, Stats)) ||
-        !TestEqual(TEXT("All 4 rules preserved"), Proposed.Num(), 4) ||
-        !TestEqual(TEXT("3 eligible legacy sources"), Stats.EligibleLegacy, 3) ||
-        !TestEqual(TEXT("1 existing canonical rule"), Stats.AlreadyCanonical, 1) ||
-        !TestEqual(TEXT("No item level inferred from acceptance rules"),
-            Proposed[1].CanonicalItemId, KnownB->ItemDefinitionId) ||
-        !TestTrue(TEXT("Shared first rule remains unmodified"),
-            Rules[0].CanonicalItemId.IsNone()) ||
-        !TestTrue(TEXT("Duplicate rule order intact"),
-            Proposed[0].CanonicalItemId == Proposed[2].CanonicalItemId &&
-            Proposed[0].ItemDefinition == Proposed[2].ItemDefinition))
-        return false;
-
-    FGridReceptacleAcceptedItemConfig Unmapped;
-    Unmapped.ItemDefinition = Unknown;
-    Rules.Add(Unmapped);
-    if (!TestFalse(TEXT("Unknown historical family blocks entire list"),
-            FGridReceptacleAcceptanceMigrationPreview::TryPreview(
-                F.Registry.Get(), Rules, Proposed, Stats)) ||
-        !TestEqual(TEXT("Unknown legacy source counted"), Stats.UnknownLegacy, 1) ||
-        !TestTrue(TEXT("No partial migration can escape"), Proposed.IsEmpty()))
-        return false;
-
+    FGridReceptacleAcceptedItemConfig Invalid;
+    Invalid.CanonicalItemId = TEXT("X164_Unregistered");
+    Rules.Add(Invalid);
+    if (!TestFalse(TEXT("Unknown identity blocks entire list"),
+            FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(F.Registry.Get(), Rules, Proposed)) ||
+        !TestTrue(TEXT("No partial output"), Proposed.IsEmpty())) return false;
+    Rules.Last().CanonicalItemId = NAME_None;
+    if (!TestFalse(TEXT("Empty identity blocks entire list"),
+            FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(F.Registry.Get(), Rules, Proposed)) ||
+        !TestTrue(TEXT("No partial output"), Proposed.IsEmpty())) return false;
     Rules.Pop();
-    FGridReceptacleAcceptedItemConfig Conflict = Explicit;
-    Conflict.ItemDefinition = KnownB;
-    Rules.Add(Conflict);
-    if (!TestFalse(TEXT("Persisted contradictory identity blocks entire list"),
-            FGridReceptacleAcceptanceMigrationPreview::TryPreview(
-                F.Registry.Get(), Rules, Proposed, Stats)) ||
-        !TestEqual(TEXT("Contradictory source count"), Stats.ContradictoryCanonical, 1) ||
-        !TestTrue(TEXT("Contradiction leaves preview empty"), Proposed.IsEmpty()))
-        return false;
-
-    Rules.Pop();
-    FGridReceptacleAcceptedItemConfig Missing;
-    Rules.Add(Missing);
-    if (!TestFalse(TEXT("Missing authoring is not silently converted"),
-            FGridReceptacleAcceptanceMigrationPreview::TryPreview(
-                F.Registry.Get(), Rules, Proposed, Stats)) ||
-        !TestEqual(TEXT("Missing source counted"), Stats.MissingSource, 1))
-        return false;
-
-    return TestFalse(TEXT("No registry never plans migration"),
-            FGridReceptacleAcceptanceMigrationPreview::TryPreview(
-                nullptr, Rules, Proposed, Stats)) &&
-        TestTrue(TEXT("No registry flagged"), Stats.bRegistryUnavailable) &&
-        TestEqual(TEXT("Native canonical asset not dirtied"),
-            F.ItemSystem->GetOutermost()->IsDirty(), bDirtyBefore);
+    return TestFalse(TEXT("No registry never copies rules"),
+            FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(nullptr, Rules, Proposed)) &&
+        TestTrue(TEXT("No partial output"), Proposed.IsEmpty()) &&
+        TestEqual(TEXT("Native catalogue not modified"), F.ItemSystem->GetOutermost()->IsDirty(), bDirtyBefore);
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X164RealSourcesPreview,
@@ -169,7 +95,6 @@ bool FGridClean064X164RealSourcesPreview::RunTest(const FString&)
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_New_Level_03.DA_GridLevel_New_Level_03"),
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_Pillars_of_Light.DA_GridLevel_Pillars_of_Light")
     };
-    FGridReceptacleAcceptancePlanStats InstanceStats, DefaultStats;
     int32 InstanceLists = 0, DefaultLists = 0;
     int32 SafeInstances = 0, SafeDefaults = 0, LevelCount = 0;
     int32 ExplicitKeysInOverrides = 0, KeyPointersInOverrides = 0;
@@ -188,8 +113,7 @@ bool FGridClean064X164RealSourcesPreview::RunTest(const FString&)
             {
                 ++InstanceLists;
                 if (!ARMCLEAN064X164::VerifyPlanInvariance(*this, F.Registry.Get(),
-                    Overrides.ReceptacleRules.AcceptedItems, InstanceStats,
-                    SafeInstances)) return false;
+                    Overrides.ReceptacleRules.AcceptedItems, SafeInstances)) return false;
             }
             if (Overrides.bOverrideAcceptedKeys)
             {
@@ -227,7 +151,7 @@ bool FGridClean064X164RealSourcesPreview::RunTest(const FString&)
         {
             ++DefaultLists;
             if (!ARMCLEAN064X164::VerifyPlanInvariance(*this, F.Registry.Get(),
-                Receptacle.AcceptedItems, DefaultStats, SafeDefaults))
+                Receptacle.AcceptedItems, SafeDefaults))
                 return false;
         }
         DefaultExplicitKeyIds += Definition->DefaultBehavior.Lock.AcceptedKeyIds.Num();
@@ -235,21 +159,10 @@ bool FGridClean064X164RealSourcesPreview::RunTest(const FString&)
             Definition->GetOutermost()->IsDirty(), bDirty))
             return false;
     }
-    AddInfo(FString::Printf(TEXT(
-        "[ARM-CLEAN06.4X.16.4] levels=%d definitions=%d "
-        "instanceRuleLists=%d safeInstanceLists=%d {%s} "
-        "definitionRuleLists=%d safeDefinitionLists=%d {%s} "
-        "lockDefaultPointers=%d lockDefaultExplicitIds=%d "
-        "lockInstancePointers=%d lockInstanceExplicitIds=%d"),
-        LevelCount, DefinitionCount, InstanceLists, SafeInstances,
-        *InstanceStats.Describe(), DefaultLists, SafeDefaults,
-        *DefaultStats.Describe(), DefaultKeyPointers, DefaultExplicitKeyIds,
-        KeyPointersInOverrides, ExplicitKeysInOverrides));
-    if (InstanceStats.HasBlockers() || DefaultStats.HasBlockers())
-    {
-        AddWarning(TEXT("Some acceptance lists have blockers. Keep all native assets "
-            "unchanged and resolve each unknown/contradictory source before conversion."));
-    }
+    AddInfo(FString::Printf(TEXT("[ARM-CLEAN06.4X164] levels=%d definitions=%d ruleLists=%d/%d safe=%d/%d"),
+        LevelCount, DefinitionCount, DefaultLists, InstanceLists, SafeDefaults, SafeInstances));
+    if (!TestEqual(TEXT("Six actual receptacle lists copied"), SafeDefaults, 6) ||
+        !TestEqual(TEXT("No active native receptacle overrides"), SafeInstances, 0)) return false;
     return TestEqual(TEXT("Four real levels checked"), LevelCount, 4) &&
         TestTrue(TEXT("At least one definition class asset scanned"), DefinitionCount > 0) &&
         TestEqual(TEXT("ItemSystem package never modified"),

@@ -7,7 +7,6 @@
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridInventoryTypes.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/GridReceptacleAcceptedCanonicalReadModel.h"
@@ -96,32 +95,11 @@ bool FGridClean064X161Rules::RunTest(const FString&)
         !TestTrue(TEXT("Failure clears previous result"), Found.IsNone()))
         {return false;}
 
-    Rule.ItemDefinition = NewObject<UGridItemDefinitionAsset>(F.World);
-    Rule.ItemDefinition->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
-    if (!TestFalse(TEXT("Contradictory legacy pointer cannot rename rule"),
-            FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(F.Registry, Rule, Found)) ||
-        !TestTrue(TEXT("Contradiction fails closed"), Found.IsNone()))
-        {return false;}
-    Rule.ItemDefinition->ItemDefinitionId = Rule.CanonicalItemId;
-    if (!TestFalse(TEXT("Matching historical pointer also refused after cutover"),
-            FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(F.Registry, Rule, Found)))
-        {return false;}
-
     FGridReceptacleAcceptedItemConfig Unknown = Rule;
     Unknown.CanonicalItemId = TEXT("ARM_CLEAN06_X161_NOT_REGISTERED");
     if (!TestFalse(TEXT("Unknown persisted ItemId cannot fallback"),
             FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(F.Registry, Unknown, Found)))
         {return false;}
-    FGridReceptacleAcceptedItemConfig Legacy = Rule;
-    Legacy.CanonicalItemId = NAME_None;
-    Legacy.ItemDefinition->ItemDefinitionId = TEXT("Legacy_Unmigrated_Rule");
-    if (!TestFalse(TEXT("Legacy-only rule cannot accept any item"),
-            FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(F.Registry, Legacy, Found)) ||
-        !TestTrue(TEXT("Historical source cannot produce an identity"), Found.IsNone()))
-        {return false;}
-
-    Rule.ItemDefinition = nullptr;
-    Unknown.ItemDefinition = nullptr;
     FGridReceptacleAcceptedItemConfig Sword;
     Sword.CanonicalItemId = TEXT("Weapon_StraightSword_01");
     FGridReceptacleAcceptedItemConfig Empty;
@@ -175,8 +153,7 @@ bool FGridClean064X161Rules::RunTest(const FString&)
         GridObjectInstanceBehavior::Resolve(Placement, Definition);
     if (!TestTrue(TEXT("Instance override replaces definition rule"),
             Effective.Receptacle.AcceptedItems.Num() == 1 &&
-            Effective.Receptacle.AcceptedItems[0].CanonicalItemId == Sword.CanonicalItemId &&
-            !Effective.Receptacle.AcceptedItems[0].ItemDefinition) ||
+            Effective.Receptacle.AcceptedItems[0].CanonicalItemId == Sword.CanonicalItemId) ||
         !TestEqual(TEXT("Override capacity remains instance-owned"),
             Effective.Receptacle.MaxContainedItems, 3))
         {return false;}
@@ -189,7 +166,7 @@ bool FGridClean064X161Rules::RunTest(const FString&)
         {return false;}
 
     AddInfo(TEXT("[ARM-CLEAN06.4X.16.1] canonical acceptance is exact and fail-closed; "
-        "legacy-only sources refused and sparse override semantics preserved; no binary writes."));
+        "sparse override semantics preserved; no binary writes."));
     return !HasAnyErrors();
 }
 #endif

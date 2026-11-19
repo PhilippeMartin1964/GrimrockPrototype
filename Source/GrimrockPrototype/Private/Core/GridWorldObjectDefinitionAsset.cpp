@@ -307,7 +307,7 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 			}
 			for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : DefaultBehavior.Receptacle.AcceptedItems)
 			{
-				if (AcceptedItem.CanonicalItemId.IsNone() || AcceptedItem.ItemDefinition) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Receptacle AcceptedItems requires an explicit canonical ItemId and no historical definition."));
+				if (AcceptedItem.CanonicalItemId.IsNone()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Receptacle AcceptedItems requires an explicit canonical ItemId."));
 			}
 			for (const FGridReceptacleInitialItemConfig& InitialItem : DefaultBehavior.Receptacle.InitialContent)
 			{

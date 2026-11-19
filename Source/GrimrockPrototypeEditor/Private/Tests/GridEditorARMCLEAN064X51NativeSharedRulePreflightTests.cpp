@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "EditorTools/GridEditorReceptacleAcceptanceMigrationPreview.h"
+#include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
@@ -62,28 +62,17 @@ bool FGridEditorARMCLEAN064X51NativeSharedRules::RunTest(const FString&)
             !TestTrue(TEXT("Accepted real ItemId belongs to ItemSystem"),
                 Registry->HasCanonicalItem(ReceptacleIds[Index])))
             return false;
-        const UGridItemDefinitionAsset* Old = Source.AcceptedItems[0].ItemDefinition.Get();
-        if (Old)
-        {
-            if (!TestEqual(TEXT("Historical acceptance pointer matches actual ID"),
-                Old->ItemDefinitionId, ReceptacleIds[Index])) return false;
-            ++OldPointers;
-        }
-
         TStrongObjectPtr<UGridWorldObjectDefinitionAsset> Copy(
             DuplicateObject<UGridWorldObjectDefinitionAsset>(
                 Original.Get(), GetTransientPackage()));
         if (!TestNotNull(TEXT("Disposable receptacle copy"), Copy.Get())) return false;
         const FGridReceptacleBehaviorParams Before = Copy->DefaultBehavior.Receptacle;
-        Copy->DefaultBehavior.Receptacle.AcceptedItems[0].ItemDefinition = nullptr;
         const FGridReceptacleBehaviorParams& After = Copy->DefaultBehavior.Receptacle;
         TArray<FGridReceptacleAcceptedItemConfig> Preview;
-        FGridReceptacleAcceptancePlanStats Stats;
-        if (!TestTrue(TEXT("Pointerless rule remains resolvable"),
-            FGridReceptacleAcceptanceMigrationPreview::TryPreview(
-                Registry.Get(), After.AcceptedItems, Preview, Stats)) ||
+        if (!TestTrue(TEXT("Explicit rule remains authorable"),
+            FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(
+                Registry.Get(), After.AcceptedItems, Preview)) ||
             !TestEqual(TEXT("Exactly one pointerless canonical rule"), Preview.Num(), 1) ||
-            !TestNull(TEXT("Disposable copy has no old source"), Preview[0].ItemDefinition.Get()) ||
             !TestEqual(TEXT("Physical acceptance ItemId unchanged"),
                 Preview[0].CanonicalItemId, ReceptacleIds[Index]) ||
             !TestEqual(TEXT("Accept-any state unchanged"), After.bAcceptAnyItem, Before.bAcceptAnyItem) ||

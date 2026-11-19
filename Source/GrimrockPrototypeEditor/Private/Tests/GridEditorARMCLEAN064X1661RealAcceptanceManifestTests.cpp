@@ -7,7 +7,7 @@
 #include "Modules/ModuleManager.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "EditorTools/GridEditorReceptacleAcceptanceMigrationPreview.h"
+#include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -88,16 +88,14 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
         {
             ++ReceptacleLists;
             TArray<FGridReceptacleAcceptedItemConfig> Proposed;
-            FGridReceptacleAcceptancePlanStats Stats;
-            if (!TestTrue(TEXT("Every actual receptacle list previews atomically"),
-                FGridReceptacleAcceptanceMigrationPreview::TryPreview(
-                    Registry.Get(), R.AcceptedItems, Proposed, Stats)))
+            if (!TestTrue(TEXT("Every actual receptacle list copies atomically"),
+                FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(
+                    Registry.Get(), R.AcceptedItems, Proposed)))
                 return false;
             ReceptacleRules += R.AcceptedItems.Num();
             for (int32 Index = 0; Index < R.AcceptedItems.Num(); ++Index)
             {
                 const FGridReceptacleAcceptedItemConfig& Rule = R.AcceptedItems[Index];
-                const UGridItemDefinitionAsset* Old = Rule.ItemDefinition.Get();
                 const FName AcceptedId = Proposed[Index].CanonicalItemId;
                 const FName ExpectedId = Package ==
                     TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Receptacle_TorchHolder")
@@ -108,14 +106,11 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
                 if (!TestTrue(TEXT("Only the two approved shared acceptance rules"),
                         !ExpectedId.IsNone() && AcceptedId == ExpectedId &&
                         Rule.CanonicalItemId == ExpectedId &&
-                        Registry->HasCanonicalItem(AcceptedId) &&
-                        (!Rule.ItemDefinition ||
-                            (IsValid(Old) && Old->ItemDefinitionId == AcceptedId))))
+                        Registry->HasCanonicalItem(AcceptedId)))
                     return false;
-                if (Old) ++ReceptaclePointers;
                 AddInfo(FString::Printf(TEXT(
                     "[ARM-CLEAN06.4X.52] RECEPTACLE package=%s definition=%s index=%d legacy=%d canonical=%s"),
-                    *Package, *DefinitionId, Index, Old ? 1 : 0, *AcceptedId.ToString()));
+                    *Package, *DefinitionId, Index, 0, *AcceptedId.ToString()));
                 ++ManifestRows;
             }
         }

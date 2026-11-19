@@ -447,9 +447,9 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 				if (!Receptacle.bAcceptAnyItem && Receptacle.AcceptedItems.IsEmpty())
 					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Receptacle does not accept any item because AcceptedItems is empty."), ObjectId);
 				for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Receptacle.AcceptedItems)
-					if (AcceptedItem.ItemDefinition || AcceptedItem.CanonicalItemId.IsNone())
+					if (AcceptedItem.CanonicalItemId.IsNone())
 						AddMessage(EGridLevelValidationSeverity::Warning,
-							TEXT("Receptacle AcceptedItems requires a canonical ItemId without an old ItemDefinition."), ObjectId);
+							TEXT("Receptacle AcceptedItems requires a canonical ItemId."), ObjectId);
 			}
 			for (const FGridReceptacleInitialItemConfig& InitialItem : Obj.InstanceConfig.ReceptacleInitialContent)
 			{

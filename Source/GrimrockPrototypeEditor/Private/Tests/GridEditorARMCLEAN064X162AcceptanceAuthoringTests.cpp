@@ -5,7 +5,6 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
@@ -26,16 +25,17 @@ bool FGridClean064X162Authoring::RunTest(const FString&)
     if (!TestTrue(TEXT("Single validated registry"), Registry->RegisterItemSystem(Root.Get(), Errors)))
         {return false;}
 
+    TestNull(TEXT("Removed historical acceptance pointer schema"), FGridReceptacleAcceptedItemConfig::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
+
     const FName Arrow = TEXT("Item_Arrows_01");
     const FName Sword = TEXT("Weapon_StraightSword_01");
     FGridReceptacleAcceptedItemConfig Rule;
     if (!TestFalse(TEXT("No registry cannot rewrite rule"),
         FGridEditorCanonicalReceptacleRuleAuthoring::TrySelectCanonicalId(nullptr, Arrow, Rule)) ||
-        !TestTrue(TEXT("Rejected draft remains empty"), Rule.CanonicalItemId.IsNone() && !Rule.ItemDefinition) ||
+        !TestTrue(TEXT("Rejected draft remains empty"), Rule.CanonicalItemId.IsNone()) ||
         !TestTrue(TEXT("Known ItemId accepted"),
             FGridEditorCanonicalReceptacleRuleAuthoring::TrySelectCanonicalId(Registry.Get(), Arrow, Rule)) ||
         !TestEqual(TEXT("Arrow identity persisted"), Rule.CanonicalItemId, Arrow) ||
-        !TestTrue(TEXT("Rule has no historical pointer"), !Rule.ItemDefinition) ||
         !TestTrue(TEXT("Switch to canonical sword"),
             FGridEditorCanonicalReceptacleRuleAuthoring::TrySelectCanonicalId(Registry.Get(), Sword, Rule)) ||
         !TestEqual(TEXT("No stale identity"), Rule.CanonicalItemId, Sword) ||
@@ -44,7 +44,7 @@ bool FGridClean064X162Authoring::RunTest(const FString&)
         !TestEqual(TEXT("Rejected edit keeps prior ID"), Rule.CanonicalItemId, Sword) ||
         !TestTrue(TEXT("Clear draft"),
             FGridEditorCanonicalReceptacleRuleAuthoring::TrySelectCanonicalId(Registry.Get(), NAME_None, Rule)) ||
-        !TestTrue(TEXT("Cleared draft has no identity"), Rule.CanonicalItemId.IsNone() && !Rule.ItemDefinition))
+        !TestTrue(TEXT("Cleared draft has no identity"), Rule.CanonicalItemId.IsNone()))
         return false;
 
     FGridReceptacleAcceptedItemConfig DefaultArrow;
@@ -76,19 +76,9 @@ bool FGridClean064X162Authoring::RunTest(const FString&)
     if (!TestEqual(TEXT("Override rule count"), Effective.Receptacle.AcceptedItems.Num(), 3) ||
         !TestEqual(TEXT("Override gains canonical identity"), Effective.Receptacle.AcceptedItems[0].CanonicalItemId,
             Arrow) ||
-        !TestNull(TEXT("Instance accepted override remains pointerless"),
-            Effective.Receptacle.AcceptedItems[0].ItemDefinition.Get()) ||
         !TestEqual(TEXT("Override capacity remains 4"), Effective.Receptacle.MaxContainedItems, 4))
         {return false;}
 
-    FGridReceptacleAcceptedItemConfig Legacy = DefaultArrow;
-    Legacy.ItemDefinition = NewObject<UGridItemDefinitionAsset>();
-    Legacy.ItemDefinition->ItemDefinitionId = Arrow;
-    Defaults.Add(Legacy);
-    if (!TestFalse(TEXT("Even matching old pointer blocks default copy"),
-            FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(Registry.Get(), Defaults, Copies)) ||
-        !TestTrue(TEXT("No partial copy"), Copies.IsEmpty())) return false;
-    Defaults.Pop();
     FGridReceptacleAcceptedItemConfig Invalid;
     Invalid.CanonicalItemId = TEXT("X162_Unknown");
     Defaults.Add(Invalid);

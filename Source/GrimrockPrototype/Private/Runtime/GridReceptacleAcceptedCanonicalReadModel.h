@@ -4,7 +4,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** The acceptance rule is a registered ItemId, independent of a physical level.
- * Historical pointers are not accepted, even if their old identity matches.
+ * Unknown, empty or unavailable identities cannot produce acceptance.
  */
 struct FGridReceptacleAcceptedCanonicalReadModel
 {
@@ -13,7 +13,7 @@ struct FGridReceptacleAcceptedCanonicalReadModel
     {
         OutItemId = NAME_None;
         if (!IsValid(Registry) || !Registry->IsConfigured() ||
-            Rule.CanonicalItemId.IsNone() || Rule.ItemDefinition ||
+            Rule.CanonicalItemId.IsNone() ||
             !Registry->HasCanonicalItem(Rule.CanonicalItemId))
         {
             return false;

@@ -10,8 +10,7 @@
 #include "UObject/StrongObjectPtr.h"
 
 /** X.52 replaces the obsolete X.71 -Audit commandlet dependency.
- * It opens the real native rules read-only and accepts only a matching
- * old source OR a pointerless canonical rule; never calls old -Apply.
+ * The real shared rules are read-only and must contain their exact IDs.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X71RealReceptacleAudit,
     "Grimrock.RPG.ARM.CLEAN06_4X71.RealReceptacleMigrationAuditOnly",
@@ -35,7 +34,7 @@ bool FGridClean064X71RealReceptacleAudit::RunTest(const FString&)
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Guardian.DA_Guardian")
     };
     const FName ExpectedIds[] = {TEXT("Item_Torch"), TEXT("Gem_Blue")};
-    int32 Old = 0;
+    TestNull(TEXT("No historical acceptance pointer property"), FGridReceptacleAcceptedItemConfig::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
     for (int32 Index = 0; Index < 2; ++Index)
     {
         TStrongObjectPtr<UGridWorldObjectDefinitionAsset> Definition(
@@ -49,25 +48,11 @@ bool FGridClean064X71RealReceptacleAudit::RunTest(const FString&)
             !TestTrue(TEXT("Registered physical item is accepted"),
                 Registry->HasCanonicalItem(ExpectedIds[Index])))
             return false;
-        const UGridItemDefinitionAsset* Legacy = R.AcceptedItems[0].ItemDefinition.Get();
-        if (R.AcceptedItems[0].ItemDefinition)
-        {
-            if (!TestTrue(TEXT("Optional old source has the exact ItemId"),
-                IsValid(Legacy) && Legacy->ItemDefinitionId == ExpectedIds[Index]))
-                return false;
-            ++Old;
-        }
         if (!TestEqual(TEXT("Real receptacle package unchanged"), 
             Definition->GetOutermost()->IsDirty(), bDirty)) return false;
     }
 
-    AddInfo(FString::Printf(TEXT(
-        "[ARM-CLEAN06.4X52] read-only shared receptacle rules=2 "
-        "oldPointers=%d canonical Torch/Gem preserved; no SavePackage."),
-        Old));
-    return TestTrue(TEXT("Two shared rules are both legacy-backed or both pointerless"),
-        Old == 2 || Old == 0) &&
-        TestEqual(TEXT("Real ItemSystem remains read-only"),
+    return TestEqual(TEXT("Real ItemSystem remains read-only"),
             Root->GetOutermost()->IsDirty(), bSystemDirty);
 }
 #endif

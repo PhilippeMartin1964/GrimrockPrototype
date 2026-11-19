@@ -24,14 +24,14 @@ struct FReferenceCount
     int32 Missing = 0;
     int32 Duplicates = 0;
 
-    void Visit(const UGridItemDefinitionAsset* Legacy, const UGridItemSubsystem* Registry)
+    void Visit(FName ItemId, const UGridItemSubsystem* Registry)
     {
         ++Total;
-        if (!IsValid(Legacy) || Legacy->ItemDefinitionId.IsNone())
+        if (ItemId.IsNone())
         {
             ++Missing;
         }
-        else if (Registry && Registry->HasCanonicalItem(Legacy->ItemDefinitionId))
+        else if (Registry && Registry->HasCanonicalItem(ItemId))
         {
             ++CanonicalKnown;
         }
@@ -111,7 +111,7 @@ bool FGridEditorClean064X15RealAcceptanceInventory::RunTest(const FString&)
             {
                 ++OverrideReceptacleCount;
                 for (const FGridReceptacleAcceptedItemConfig& Rule : O.ReceptacleRules.AcceptedItems)
-                    {InstanceAccepted.Visit(Rule.ItemDefinition, Registry.Get());}
+                    {InstanceAccepted.Visit(Rule.CanonicalItemId, Registry.Get());}
             }
             if (O.bOverrideAcceptedKeys)
             {
@@ -158,7 +158,7 @@ bool FGridEditorClean064X15RealAcceptanceInventory::RunTest(const FString&)
             for (const FGridReceptacleAcceptedItemConfig& Rule :
                 Definition->DefaultBehavior.Receptacle.AcceptedItems)
             {
-                DefinitionAccepted.Visit(Rule.ItemDefinition, Registry.Get());
+                DefinitionAccepted.Visit(Rule.CanonicalItemId, Registry.Get());
             }
         }
 
@@ -213,7 +213,10 @@ bool FGridEditorClean064X15RealAcceptanceInventory::RunTest(const FString&)
             "Do not perform automatic pointer-to-ID migration before identifying each source."));
     }
 
-    return TestTrue(TEXT("Native world definition assets inspected"), DefinitionAssets > 0) &&
+    return TestEqual(TEXT("Two explicit shared rules"), DefinitionAccepted.CanonicalKnown, 2) &&
+        TestEqual(TEXT("No unresolved shared rules"), DefinitionAccepted.Unrecognized + DefinitionAccepted.Missing, 0) &&
+        TestEqual(TEXT("No active instance rules"), InstanceAccepted.Total, 0) &&
+        TestTrue(TEXT("Native world definition assets inspected"), DefinitionAssets > 0) &&
         TestEqual(TEXT("Registry package not modified"), Root->GetOutermost()->IsDirty(), bRootDirty) &&
         TestEqual(TEXT("Palette package not modified"), Palette->GetOutermost()->IsDirty(), bPaletteDirty);
 }

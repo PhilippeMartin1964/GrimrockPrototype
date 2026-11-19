@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.16 — Retrait du schéma des règles de réceptacles
+
+Parent 4c702e46bc85301f651072771e169a8ca49e7f67 : publication uniquement après deux statuts SUCCESS. Suppression du pointeur FGridReceptacleAcceptedItemConfig.ItemDefinition et du helper de conversion historique ; les contrôles X.48/X.71/X.51/X.59/X.15/X.164/X.1661/X.2 contrôlent l'état natif final et la copie canonique, sans modifier les packages. Aucun changement du contenu initial des réceptacles. Voir [5G.16](ARM_CLEAN06_5G16_RECEPTACLE_ACCEPTANCE_SCHEMA_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.15 — Acceptation des réceptacles par ItemId
 
 Parent d020833bfbe09524485ac415f638041d3ffa3d2e : publication conditionnée à deux statuts SUCCESS. L'acceptation runtime refuse toute source historique, identifiant vide/inconnu et registre indisponible. L'inspecteur encode directement un ItemId inscrit ; les règles partagées deviennent éditables par ItemId, les copies d'override valident strictement chaque règle. Tests X.161/X.162/GEUI09 et énigme Lua du Gardien alignés, pile synthétique du test conservée dans une copie transitoire du registre, aucun binaire ni SaveGame modifié. Voir [5G.15](ARM_CLEAN06_5G15_STRICT_RECEPTACLE_ACCEPTANCE.md).

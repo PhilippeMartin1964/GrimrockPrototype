@@ -243,8 +243,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
             Receptacle.AcceptedItems)
         {
             ++AcceptanceRules;
-            if (!IsValid(Rule.ItemDefinition) ||
-                !Registry.Contains(Rule.ItemDefinition->ItemDefinitionId))
+            if (Rule.CanonicalItemId.IsNone() || !Registry.Contains(Rule.CanonicalItemId))
             {
                 ++UnmappedAcceptanceRules;
             }
@@ -265,6 +264,8 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         TestTrue(TEXT("Real canonical ARM families retain an authored physical level"),
             ArmReferences > 0) &&
         TestEqual(TEXT("Canonical family partition"), ArmReferences + NonArmN0, 95) &&
+        TestEqual(TEXT("Exactly two registered acceptance rules"), AcceptanceRules, 2) &&
+        TestEqual(TEXT("No unmapped acceptance rules"), UnmappedAcceptanceRules, 0) &&
         TestEqual(TEXT("No world-definition initial content in 06.4W scope"),
             WorldDefinitionInitialItems, 0);
 }

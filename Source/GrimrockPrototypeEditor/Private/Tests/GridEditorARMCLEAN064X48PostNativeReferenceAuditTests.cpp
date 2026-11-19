@@ -47,7 +47,8 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
     }
     const bool bRootDirty = Root->GetOutermost()->IsDirty();
     int32 LooseTotal = 0, LooseOld = 0, InitialTotal = 0, InitialOld = 0;
-    int32 ReceptacleOverrideOld = 0;
+    const int32 ReceptacleOverrideOld = 0;
+    TestNull(TEXT("Removed acceptance pointer schema"), FGridReceptacleAcceptedItemConfig::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
     const int32 LockOverrideOld = 0;
     TestNull(TEXT("Removed shared key pointer schema"), FGridLockBehaviorParams::StaticStruct()->FindPropertyByName(TEXT("AcceptedKeyItems")));
     TestNull(TEXT("Removed instance key pointer schema"), FGridLockAcceptedKeyInstanceRuleValues::StaticStruct()->FindPropertyByName(TEXT("AcceptedKeyItems")));
@@ -109,17 +110,11 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
             {
                 ++ActiveAcceptanceOverrides;
             }
-            for (const FGridReceptacleAcceptedItemConfig& Rule :
-                Overrides.ReceptacleRules.AcceptedItems)
+            if (!Overrides.ReceptacleRules.AcceptedItems.IsEmpty() ||
+                !Overrides.AcceptedKeys.AcceptedKeyIds.IsEmpty())
             {
-                if (LevelIndex != 0 || !IsValid(Rule.ItemDefinition.Get()) ||
-                    Rule.ItemDefinition->ItemDefinitionId != FName(TEXT("Item_Torch")) ||
-                    !Rule.CanonicalItemId.IsNone())
-                {
-                    AddError(TEXT("Dormant receptacle override has an unexpected source."));
-                    return false;
-                }
-                ++ReceptacleOverrideOld;
+                AddError(TEXT("Dormant overrides must remain empty after native cutover."));
+                return false;
             }
         }
         const int32 ExpectedInitial = LevelIndex == 0 ? 17 : LevelIndex == 1 ? 1 : 0;
@@ -166,7 +161,8 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
     AssetRegistry.Get().GetAssets(Filter, Definitions);
     if (!TestEqual(TEXT("44 real world-object definitions inspected"), Definitions.Num(), 44))
         return false;
-    int32 AcceptanceRules = 0, RuleAssets = 0, LockAssets = 0;
+    int32 RuleAssets = 0, LockAssets = 0;
+    const int32 AcceptanceRules = 0;
     const int32 LockKeys = 0;
     for (const FAssetData& Data : Definitions)
     {
@@ -185,16 +181,12 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
                 (Package ==
                     TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Guardian")
                     ? FName(TEXT("Gem_Blue")) : NAME_None);
-            const UGridItemDefinitionAsset* Old = Rule.ItemDefinition.Get();
             if (Required.IsNone() || Rule.CanonicalItemId != Required ||
-                !Known.Contains(Required) ||
-                (Rule.ItemDefinition && (!IsValid(Old) ||
-                    Old->ItemDefinitionId != Required)))
+                !Known.Contains(Required))
             {
-                AddError(TEXT("Shared receptacle rule is neither exact legacy-backed nor exact canonical-only."));
+                AddError(TEXT("Shared receptacle rule does not match exact registered identity."));
                 return false;
             }
-            if (Old) ++AcceptanceRules;
         }
         const FGridLockBehaviorParams& Lock = Definition->DefaultBehavior.Lock;
         if (!Lock.AcceptedKeyIds.IsEmpty()) ++LockAssets;

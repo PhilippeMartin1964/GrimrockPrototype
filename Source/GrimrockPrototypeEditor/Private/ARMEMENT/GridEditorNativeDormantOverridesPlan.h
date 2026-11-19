@@ -88,18 +88,12 @@ struct FGridEditorNativeDormantOverridesPlan
             const FGridObjectBehaviorParams Before = GridObjectInstanceBehavior::Resolve(Object, Definition);
             if (Index == 0)
             {
-                auto& Rules = O.ReceptacleRules.AcceptedItems;
-                if (Rules.Num() > 1 ||
-                    (Rules.Num() == 1 && (!Rules[0].CanonicalItemId.IsNone() ||
-                        !IsValid(Rules[0].ItemDefinition.Get()) ||
-                        Rules[0].ItemDefinition->ItemDefinitionId != ItemId)))
+                if (!O.ReceptacleRules.AcceptedItems.IsEmpty())
                 { Error = TEXT("Unexpected dormant torch list."); return false; }
-                Plan.Old += Rules.Num();
-                Rules.Reset();
                 TArray<FGridReceptacleAcceptedItemConfig> Reactivated;
                 if (!FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(
                         Registry, Definition->DefaultBehavior.Receptacle.AcceptedItems, Reactivated) ||
-                    Reactivated.Num() != 1 || Reactivated[0].ItemDefinition ||
+                    Reactivated.Num() != 1 ||
                     Reactivated[0].CanonicalItemId != ItemId)
                 { Error = TEXT("Cannot reauthor exact canonical torch rule."); return false; }
             }
@@ -118,7 +112,7 @@ struct FGridEditorNativeDormantOverridesPlan
             if (!SameBehavior(Before, After) || Definition->GetOutermost()->IsDirty())
             { Error = TEXT("Effective behavior changed."); return false; }
         }
-        if (Plan.Rows != OriginalRows(LevelIndex) || (Plan.Old != 0 && Plan.Old != OriginalRows(LevelIndex)))
+        if (Plan.Rows != OriginalRows(LevelIndex) || Plan.Old != 0)
         { Error = TEXT("Missing approved owners or partial cleanup."); return false; }
         Out = MoveTemp(Plan);
         return true;

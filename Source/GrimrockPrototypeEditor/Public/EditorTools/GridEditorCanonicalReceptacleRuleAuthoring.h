@@ -30,7 +30,7 @@ struct FGridEditorCanonicalReceptacleRuleAuthoring
         if (!IsValid(Registry) || !Registry->IsConfigured()) return false;
         for (const FGridReceptacleAcceptedItemConfig& Rule : Defaults)
         {
-            if (Rule.ItemDefinition || Rule.CanonicalItemId.IsNone() ||
+            if (Rule.CanonicalItemId.IsNone() ||
                 !Registry->HasCanonicalItem(Rule.CanonicalItemId))
             {
                 return false;
