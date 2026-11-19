@@ -1158,7 +1158,7 @@ try {
         # Exact, one-shot 5D.3 native package transaction after successful code validation.
         $HandThrowSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $HandThrowSubject.Count -eq 1 -and
-            [string]$HandThrowSubject[0] -ceq 'fix(ARM-CLEAN06.5D.3): close native apply argument construction') {
+            [string]$HandThrowSubject[0] -ceq 'fix(ARM-CLEAN06.5D.3): verify ordinary throw parity before and after native cutover') {
             $HandThrowContext = 'UE5.5.4/ARM-CLEAN06.5D3'
             $HandThrowStage = 'HOOK_STATUS'
             try {

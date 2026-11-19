@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.3.7 — parité réelle des suites pré/post conversion
+
+`267eab44fe9bc737721fef94608ee7a1054bf49b` a publié le diagnostic [issue #199](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/199) : 1981/32/2/0 (succès/avertissements/échecs/non exécutés). Deux tests anciens présupposaient l'absence des politiques 5D.3 : CompleteProductionPreview23 compare maintenant le candidat transitoire précisément reprojeté depuis les 19 sources, sans exclure de propriété ; GenericFallback vérifie le runtime canonique après matérialisation (null/ancien contradictoire, permission, niveau, menu) et conserve le test historique pré-matérialisation. Relance native sur nouveau SHA après ses deux statuts, aucun runtime modifié. Attendre le statut spécial et commit binaire puis ses deux statuts. Draft suivant `5b96b41db3090d53bbd6b16cdff9deecbfb15f4d`.
+
 ## ARM-CLEAN06.5D.3.6 — diagnostic post-conversion
 
 `bb58ae3be7fa9d8ee913a2ca516096e251434389` : SilentTask et LocalAuto SUCCESS ; statut spécial FAILURE/AUTOMATION après écriture et réouverture vérifiées, aucun enfant binaire publié. Collecte rétrospective autonome du rapport privé exact par l'agent, statut UE5.5.4/ARM-CLEAN06.5D3-diagnostic et issue limitée aux tests/états/compteurs. Ne pas relancer Apply avant lecture de ce diagnostic. Ce SHA diagnostic ne déclenche volontairement pas la conversion. Draft 5D.4 amélioré `5b96b41db3090d53bbd6b16cdff9deecbfb15f4d` ; reprendre uniquement ses fichiers après le commit binaire et ses deux statuts.

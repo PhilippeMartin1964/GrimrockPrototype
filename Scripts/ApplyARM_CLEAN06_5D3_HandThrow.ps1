@@ -21,7 +21,9 @@ $StagePath = Join-Path $RunDir 'ArmClean065D3.stage'
 if ($SelfTest) { Set-Content -LiteralPath $StagePath -Value 'SELFTEST_INIT' -Encoding ASCII }
 $GitApplication = (Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $ExpectedParent = '0be0a8ddd471d74a2a70e05fff47df0a5782b7f0'
-$ExpectedSubject = 'fix(ARM-CLEAN06.5D.3): close native apply argument construction'
+$ExpectedSubject = 'fix(ARM-CLEAN06.5D.3): verify ordinary throw parity before and after native cutover'
+$DiagnosticParent = '267eab44fe9bc737721fef94608ee7a1054bf49b'
+$FailedAutomationParent = 'bb58ae3be7fa9d8ee913a2ca516096e251434389'
 $FailedSyntaxParent = 'a74d58da10baf45af58da8c35bec6d3d9905208a'
 $FailedHookParent = '989ea666ef6404ed8e119c7b4b6ba58c4cfe7e88'
 $FailedPreflightParent = 'c7b56b425a531164452d533951b51e23b0c7d0f7'
@@ -48,7 +50,9 @@ $CodePaths = @(
     'Source/GrimrockPrototypeEditor/Private/Tests/GridEditorARMCLEAN065D3HandThrowTests.cpp',
     'docs/Architecture/ARM_CLEAN06_5D3_ARM_HAND_THROW.md',
     'Scripts/ApplyARM_CLEAN06_5D3_HandThrow.ps1',
-    'Scripts/UEValidationAgent.ps1'
+    'Scripts/UEValidationAgent.ps1',
+    'Source/GrimrockPrototype/Private/Tests/GridARMCLEAN063BFPhysicalThrowPreflightTests.cpp',
+    'Source/GrimrockPrototypeEditor/Private/Tests/GridEditorARMCLEAN062YCompleteProductionPreviewTests.cpp'
 )
 function Set-Stage([string]$Value) {
     Set-Content -LiteralPath $StagePath -Value $Value -Encoding ASCII
@@ -184,12 +188,14 @@ try {
     Set-Stage 'PREFLIGHT_REMOTE'
     Assert-Remote
     Set-Stage 'PREFLIGHT_ANCESTRY'
-    if ((Invoke-HandThrowGit @('rev-parse','HEAD~1')) -cne $FailedSyntaxParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~2')) -cne $FailedHookParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~3')) -cne $FailedPreflightParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~4')) -cne $ValidatedCodeParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~5')) -cne $FailedParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~6')) -cne $ExpectedParent -or
+    if ((Invoke-HandThrowGit @('rev-parse','HEAD~1')) -cne $DiagnosticParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~2')) -cne $FailedAutomationParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~3')) -cne $FailedSyntaxParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~4')) -cne $FailedHookParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~5')) -cne $FailedPreflightParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~6')) -cne $ValidatedCodeParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~7')) -cne $FailedParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~8')) -cne $ExpectedParent -or
         (Invoke-HandThrowGit @('log','-1','--format=%s')) -cne $ExpectedSubject) { throw 'Wrong one-shot revision.' }
     Set-Stage 'PREFLIGHT_DIFF'
     Assert-SameSet @(Invoke-HandThrowGit @('diff','--name-only',$ExpectedParent,'HEAD')) $CodePaths

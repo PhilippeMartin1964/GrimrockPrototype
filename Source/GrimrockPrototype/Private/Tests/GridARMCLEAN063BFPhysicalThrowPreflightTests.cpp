@@ -157,6 +157,57 @@ bool FGridBFGeneric::RunTest(const FString&)
     Old->ThrowSpeed = 1200.0f;
     Old->ThrowArc = -0.12f;
     const auto I = F.Make(Old->ItemDefinitionId);
+    FGridResolvedItem Canonical;
+    if (!TestTrue(TEXT("Real ordinary ARM N1 resolves"), F.Registry->ResolveItem(I.ItemDefinitionId, I.ItemLevel, Canonical))) return false;
+    if (Canonical.Weapon.Projectile.bGenericThrowAuthored)
+    {
+        // After the native cutover, a matching obsolete definition must
+        // neither enable, disable nor modify a real registered flight.
+        const auto& Policy = Canonical.Weapon.Projectile;
+        TestFalse(TEXT("Ordinary hand toss is not a specialized combat projectile"), Policy.bEnabled);
+        const bool bExpectedFlight = FMath::IsFinite(Policy.InitialSpeed) &&
+            Policy.InitialSpeed > KINDA_SMALL_NUMBER && FMath::IsFinite(Policy.Arc);
+        const bool bExpectedPermission = bExpectedFlight && Policy.bGenericThrowOneHanded &&
+            Canonical.WeightKg >= 0.0f && Canonical.WeightKg <= 25.0f + KINDA_SMALL_NUMBER;
+        const auto Native = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, nullptr, I, 100);
+        const auto Contradictory = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 100);
+        TestTrue(TEXT("Ordinary registered source remains canonical"), Native.bCanonicalIdentity &&
+            Contradictory.bCanonicalIdentity);
+        TestFalse(TEXT("No specialized action authorized"), Native.Ballistics.bSpecializedProjectile);
+        TestEqual(TEXT("Native flight resolution matches exact authored validity"), Native.bResolved, bExpectedFlight);
+        TestEqual(TEXT("Native physical permission matches authored hand, mass and speed"), Native.bCanThrow, bExpectedPermission);
+        TestEqual(TEXT("Old speed and arc cannot supply or disable flight"), Contradictory.bResolved, Native.bResolved);
+        TestEqual(TEXT("Old hand and weight cannot supply permission"), Contradictory.bCanThrow, Native.bCanThrow);
+        if (bExpectedFlight)
+        {
+            TestEqual(TEXT("Native speed is authoritative"), Native.Ballistics.InitialSpeed, Policy.InitialSpeed);
+            TestEqual(TEXT("Native signed arc is authoritative"), Native.Ballistics.Arc, Policy.Arc);
+            TestEqual(TEXT("Obsolete speed ignored"), Contradictory.Ballistics.InitialSpeed, Native.Ballistics.InitialSpeed);
+            TestEqual(TEXT("Obsolete signed arc ignored"), Contradictory.Ballistics.Arc, Native.Ballistics.Arc);
+        }
+
+        Old->ThrowSpeed = 0.0f;
+        Old->ThrowArc = std::numeric_limits<float>::quiet_NaN();
+        const auto InvalidOld = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 100);
+        TestEqual(TEXT("Invalid old flight cannot override native resolution"), InvalidOld.bResolved, Native.bResolved);
+        TestEqual(TEXT("Invalid old flight cannot override native permission"), InvalidOld.bCanThrow, Native.bCanThrow);
+        const auto ExpectedMenu = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, nullptr, I, F.Strength());
+        bool bPresent = false;
+        const bool bEnabled = F.MenuThrow(I, Old, bPresent);
+        TestTrue(TEXT("Actual main-hand context exposes Throw"), bPresent);
+        TestEqual(TEXT("Actual menu uses native policy at actual strength"), bEnabled, ExpectedMenu.bCanThrow);
+        for (int32 InvalidLevel : {0,21})
+        {
+            const auto Invalid = FGridPhysicalThrowPreflightReadModel::Resolve(
+                F.Registry, Old, F.Make(I.ItemDefinitionId, InvalidLevel), 100);
+            TestTrue(TEXT("Invalid physical level cannot borrow old data"),
+                Invalid.bCanonicalIdentity && !Invalid.bResolved && !Invalid.bCanThrow);
+        }
+        return !HasAnyErrors();
+    }
+
+    // Explicit pre-materialization characterization (the original test).
+    // The transaction's second full run exercises the branch above.
     const auto Missing = FGridPhysicalThrowPreflightReadModel::Resolve(
         F.Registry, nullptr, I, 100);
     TestTrue(TEXT("Generic canonical hand toss cannot invent missing physics"),
@@ -203,6 +254,14 @@ bool FGridBFLegacy::RunTest(const FString&)
     TestTrue(TEXT("Historical unregistered throw uses exact old physics"),
         !Valid.bCanonicalIdentity && Valid.bResolved && Valid.bCanThrow &&
         FMath::IsNearlyEqual(Valid.Ballistics.Arc, Old->ThrowArc));
+    Old->ThrowArc = std::numeric_limits<float>::quiet_NaN();
+    TestFalse(TEXT("Unregistered source rejects nonfinite authored arc"),
+        FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 25).bCanThrow);
+    Old->ThrowArc = 0.08f;
+    Old->ThrowSpeed = 0.0f;
+    TestFalse(TEXT("Unregistered source rejects zero authored speed"),
+        FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 25).bCanThrow);
+    Old->ThrowSpeed = 1800.0f;
     TestFalse(TEXT("Wrong old definition cannot supply speed"),
         FGridPhysicalThrowPreflightReadModel::Resolve(
             F.Registry, Old, F.Make(TEXT("BF_Unregistered_Other"), 0), 25).bCanThrow);

@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "ARMEMENT/GridArmClean06CompleteProductionPreview.h"
+#include "../ARMEMENT/GridEditorArmHandThrowPlan.h"
 #include "UObject/UnrealType.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
@@ -162,6 +163,47 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 	TArray<FString> PersistedErrors;
 	TestTrue(TEXT("Persisted canonical root validates after reload"),
 		Persisted->Validate(PersistedErrors));
+	// The original complete preview intentionally knew only three specialized
+	// projectile policies. 5D.3 additionally authors the 19 ordinary hand
+	// toss policies. Rebuild those exact values from the original sources in
+	// the transient candidate, rather than excluding any catalogue property
+	// or copying a value out of the persisted destination under test.
+	int32 AuthoredOrdinary = 0;
+	for (const auto& Entry : Persisted->WeaponCatalogue->Archetypes)
+	{
+		if (Entry.Projectile.bGenericThrowAuthored) ++AuthoredOrdinary;
+	}
+	if (!TestTrue(TEXT("Ordinary native cutover is all or none"),
+		AuthoredOrdinary == 0 || AuthoredOrdinary == GridEditorArmHandThrowPlan::OrdinaryCount))
+	{
+		return false;
+	}
+	if (AuthoredOrdinary == GridEditorArmHandThrowPlan::OrdinaryCount)
+	{
+		int32 ProjectedOrdinary = 0;
+		for (const auto& Row : Manifest)
+		{
+			if (Row.IsThrowable()) continue;
+			const auto* Old = LoadObject<UGridItemDefinitionAsset>(nullptr, *Row.ItemPath);
+			const FName Arch(*Row.ArchetypeId), VisualId(*Row.VisualId);
+			auto* A = Candidate->WeaponCatalogue->Archetypes.FindByPredicate(
+				[Arch](const auto& Record){ return Record.ArchetypeId == Arch; });
+			auto* V = Candidate->WeaponVisualCatalogue->VisualProfiles.FindByPredicate(
+				[VisualId](const auto& Record){ return Record.VisualId == VisualId; });
+			if (!TestTrue(TEXT("Exact ordinary legacy physical and visual source"),
+				IsValid(Old) && Old->GetPathName() == Row.ItemPath &&
+				Old->ItemDefinitionId == FName(*Row.ItemDefinitionId) && A && V &&
+				GridEditorArmHandThrowPlan::Project(*Old, A->Projectile, V->ProjectileAppearance)))
+			{
+				return false;
+			}
+			++ProjectedOrdinary;
+		}
+		if (!TestEqual(TEXT("All 19 ordinary policies independently projected"), ProjectedOrdinary, AuthoredOrdinary))
+		{
+			return false;
+		}
+	}
 	TestTrue(TEXT("Real weapon number catalogue exactly matches source candidate"),
 		SameAuthoredFields(Candidate->WeaponCatalogue, Persisted->WeaponCatalogue));
 	TestTrue(TEXT("Real weapon visual catalogue exactly matches source candidate"),
