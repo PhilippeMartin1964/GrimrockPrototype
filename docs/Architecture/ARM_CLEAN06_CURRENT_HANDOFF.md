@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.11 — Retrait des points d'entrée d'audit historiques
+
+Parent 3f44454cc9d92fec9afad091a7132554bc3d636d : publication conditionnée aux deux statuts SUCCESS. Retrait de 13 commandlets d'audit/projection et 12 scripts (38 fichiers). Les outils Baseline, SaveCopy, RetirementAudit, preuves, helpers, fixtures et protections de rollback restent présents. Aucun changement runtime, asset ou SaveGame. Attendre les deux statuts du SHA exact. Voir [5G.11](ARM_CLEAN06_5G11_RETIRE_HISTORICAL_PROJECTION_ENTRYPOINTS.md).
+
 ## ARM-CLEAN06.5G.10 — Retrait des points d'entrée natifs de conversion
 
 Parent 2683d5d602299e5f8d9124303aeb061d360e3f02 : publication conditionnée aux deux statuts SUCCESS. Suppression de 17 scripts ApplyARM_CLEAN06 et 17 commandlets associés (34 fichiers C++). Helpers de parité, tests, audits et sauvegardes/rollback conservés. Aucun asset ou SaveGame modifié. Attendre les deux statuts du SHA publié. Suite : dénouer les dépendances des audits historiques puis du schéma et des fixtures legacy avant 06.6. Voir [5G.10](ARM_CLEAN06_5G10_RETIRE_NATIVE_MIGRATION_ENTRYPOINTS.md).
