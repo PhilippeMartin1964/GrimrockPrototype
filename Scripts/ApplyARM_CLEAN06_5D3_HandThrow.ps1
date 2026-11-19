@@ -1,19 +1,22 @@
 # One-shot transaction in the dedicated validation worktree. Never changes the principal checkout.
+[CmdletBinding(DefaultParameterSetName='Transaction')]
 param(
-    [Parameter(Mandatory=$true)][string]$WorktreePath,
-    [Parameter(Mandatory=$true)][string]$RepositoryRoot,
-    [Parameter(Mandatory=$true)][string]$EngineRoot,
-    [Parameter(Mandatory=$true)][string]$StateRoot,
-    [Parameter(Mandatory=$true)][string]$RunDir,
-    [Parameter(Mandatory=$true)][string]$ExpectedHead,
-    [Parameter(Mandatory=$true)][string]$GitHubRepository
+    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$WorktreePath,
+    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$RepositoryRoot,
+    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$EngineRoot,
+    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$StateRoot,
+    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$RunDir,
+    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$ExpectedHead,
+    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$GitHubRepository,
+    [Parameter(Mandatory=$true,ParameterSetName='SelfTest')][switch]$SelfTest
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'ARM_CLEAN06_4X66_Rollback.ps1')
-$StagePath = Join-Path $RunDir 'ArmClean065D3.stage'
+$StagePath = if (-not $SelfTest) { Join-Path $RunDir 'ArmClean065D3.stage' } else { '' }
 $ExpectedParent = '0be0a8ddd471d74a2a70e05fff47df0a5782b7f0'
-$ExpectedSubject = 'fix(ARM-CLEAN06.5D.3): preserve explicit physical throw permission for passive gear'
+$ExpectedSubject = 'fix(ARM-CLEAN06.5D.3): make native transaction preflight observable and robust'
+$ValidatedCodeParent = 'd19b3535b313ba405210da2d3090eaa612554c46'
 $FailedParent = 'e7e4f11d7c9dd6ea622e03c71dafd038f5e4f11a'
 $BinarySubject = 'ARM-CLEAN06.5D.3B: persist 19 ordinary ARM flight policies'
 $Packages = @(
@@ -36,7 +39,8 @@ $CodePaths = @(
     'Source/GrimrockPrototypeEditor/Private/Tests/GridEditorARMCLEAN065D3HandThrowTests.cpp',
     'docs/Architecture/ARM_CLEAN06_5D3_ARM_HAND_THROW.md',
     'Scripts/ApplyARM_CLEAN06_5D3_HandThrow.ps1',
-    'Scripts/UEValidationAgent.ps1'
+    'Scripts/UEValidationAgent.ps1',
+    'Scripts/ValidateUE.ps1'
 )
 function Set-Stage([string]$Value) {
     Set-Content -LiteralPath $StagePath -Value $Value -Encoding ASCII
@@ -45,6 +49,9 @@ function Invoke-HandThrowGit([string[]]$Arguments) {
     $Output = @(& git.exe -C $WorktreePath @Arguments)
     if ($LASTEXITCODE -ne 0) { throw 'Native hand-throw git command failed.' }
     return $Output
+}
+function Normalize-HandThrowPath([string]$Path) {
+    return [IO.Path]::GetFullPath($Path.Replace('/', '\')).TrimEnd('\')
 }
 function Assert-SameSet([string[]]$Actual,[string[]]$Expected) {
     if ($Actual.Count -ne $Expected.Count -or
@@ -103,36 +110,71 @@ function Invoke-Probe([string]$Mode,[int]$ExitExpected,[string]$Name,[string[]]$
     }
     return $Report
 }
+if ($SelfTest) {
+    $Repo = Split-Path -Parent $PSScriptRoot
+    $WorktreePath = $Repo
+    $LocalHead = @(Invoke-HandThrowGit @('rev-parse','HEAD'))
+    if ($LocalHead.Count -ne 1 -or $LocalHead[0] -cnotmatch '^[0-9a-f]{40}$') { throw 'Hand throw Git self-test failed.' }
+    Assert-SameSet @('b','a') @('a','b')
+    $Rejected = $false
+    try { Assert-SameSet @('b','c') @('a','b') } catch { $Rejected = $true }
+    if (-not $Rejected) { throw 'Mismatch self-test failed.' }
+    $Normalized = Normalize-HandThrowPath $Repo
+    if ((Normalize-HandThrowPath ($Repo.Replace('\','/')+'/')) -ine $Normalized) { throw 'Path normalization self-test failed.' }
+    $DummyHash = 'a'*64
+    Assert-Pointer @('version https://git-lfs.github.com/spec/v1',('oid sha256:'+$DummyHash),'size 42') $DummyHash 42
+    if ((Quote-Arg 'a b') -cne '"a b"') { throw 'Argument self-test failed.' }
+    Write-Host '[OK] ARM 5D3 transaction helper self-test (no native writes).'
+    return
+}
 $Committed = $false
 $Writing = $false
 $Candidate = @{}
 $Before = @{}
 $Backup = @{}
 try {
-    Set-Stage 'PREFLIGHT'
+    Set-Stage 'PREFLIGHT_INPUT'
     if ($GitHubRepository -cne 'PhilippeMartin1964/GrimrockPrototype' -or $ExpectedHead -cnotmatch '^[0-9a-f]{40}$') { throw 'Unexpected repository or revision.' }
-    $WorktreePath = [IO.Path]::GetFullPath($WorktreePath)
-    $RepositoryRoot = [IO.Path]::GetFullPath($RepositoryRoot)
-    $RunDir = [IO.Path]::GetFullPath($RunDir)
+    Set-Stage 'PREFLIGHT_LOCATION'
+    $WorktreePath = Normalize-HandThrowPath $WorktreePath
+    $RepositoryRoot = Normalize-HandThrowPath $RepositoryRoot
+    $RunDir = Normalize-HandThrowPath $RunDir
     $RunRoot = [IO.Path]::GetFullPath((Join-Path $StateRoot 'Runs')).TrimEnd('\') + '\'
     if ((Split-Path -Leaf $WorktreePath) -cne 'GrimrockPrototype_UEValidation' -or
         $WorktreePath -ieq $RepositoryRoot -or -not $RunDir.StartsWith($RunRoot,[StringComparison]::OrdinalIgnoreCase) -or
         -not (Split-Path -Leaf $RunDir).StartsWith($ExpectedHead.Substring(0,12)+'-')) { throw 'Unexpected transaction location.' }
+    Set-Stage 'PREFLIGHT_ORDINARY_PATH'
     foreach ($P in @($WorktreePath,$RepositoryRoot,$RunDir)) { Assert-ArmX66OrdinaryPath $P }
+    Set-Stage 'PREFLIGHT_WORKTREE'
     if ((Invoke-HandThrowGit @('rev-parse','--abbrev-ref','HEAD')) -cne 'HEAD') { throw 'Detached validation worktree required.' }
-    $Registered = @(& git.exe -C $RepositoryRoot worktree list --porcelain)
-    if ($LASTEXITCODE -ne 0 -or ('worktree '+$WorktreePath.Replace('\','/')) -cnotin $Registered) { throw 'Worktree not registered.' }
+    $RegisteredRaw = @(& git.exe -C $RepositoryRoot worktree list --porcelain)
+    if ($LASTEXITCODE -ne 0) { throw 'Worktree listing failed.' }
+    $Registered = @($RegisteredRaw | Where-Object { $_ -like 'worktree *' } | ForEach-Object {
+        Normalize-HandThrowPath ($_.Substring(9).Trim())
+    })
+    if (@($Registered | Where-Object { $_ -ieq $WorktreePath }).Count -ne 1 -or
+        (Normalize-HandThrowPath (Invoke-HandThrowGit @('rev-parse','--show-toplevel'))) -ine $WorktreePath) { throw 'Worktree not registered.' }
+    Set-Stage 'PREFLIGHT_HEAD'
     Assert-Head
+    Set-Stage 'PREFLIGHT_REMOTE'
     Assert-Remote
-    if ((Invoke-HandThrowGit @('rev-parse','HEAD^')) -cne $FailedParent -or (Invoke-HandThrowGit @('rev-parse','HEAD^^')) -cne $ExpectedParent -or (Invoke-HandThrowGit @('log','-1','--format=%s')) -cne $ExpectedSubject) { throw 'Wrong one-shot revision.' }
+    Set-Stage 'PREFLIGHT_ANCESTRY'
+    if ((Invoke-HandThrowGit @('rev-parse','HEAD^')) -cne $ValidatedCodeParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~2')) -cne $FailedParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~3')) -cne $ExpectedParent -or
+        (Invoke-HandThrowGit @('log','-1','--format=%s')) -cne $ExpectedSubject) { throw 'Wrong one-shot revision.' }
+    Set-Stage 'PREFLIGHT_DIFF'
     Assert-SameSet @(Invoke-HandThrowGit @('diff','--name-only',$ExpectedParent,'HEAD')) $CodePaths
+    Set-Stage 'PREFLIGHT_CLEAN'
     if (@(Get-Dirty).Count -ne 0) { throw 'Worktree must be clean.' }
+    Set-Stage 'PREFLIGHT_VALIDATION'
     $StatusText = @(& gh.exe api ('repos/'+$GitHubRepository+'/commits/'+$ExpectedHead+'/status'))
     if ($LASTEXITCODE -ne 0) { throw 'Cannot read validation status.' }
     $Status = ($StatusText -join '') | ConvertFrom-Json
     foreach ($Context in @('UE5.5.4/SilentTask','UE5.5.4/LocalAuto')) {
         if (@($Status.statuses | Where-Object { $_.context -ceq $Context -and $_.state -ceq 'success' }).Count -ne 1) { throw 'Exact code validation required.' }
     }
+    Set-Stage 'PREFLIGHT_SNAPSHOT'
     $Private = Join-Path $RunDir 'ARM-CLEAN06.5D3'
     if (Test-Path -LiteralPath $Private) { throw 'Private transaction already exists.' }
     [void](New-Item -ItemType Directory -Path $Private)
@@ -140,7 +182,9 @@ try {
     $Editor = Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
     $Validator = Join-Path $WorktreePath 'Scripts\ValidateUE.ps1'
     $Ps = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    Set-Stage 'PREFLIGHT_EXECUTABLES'
     foreach ($P in @($Project,$Editor,$Validator,$Ps)) { if (-not (Test-Path -LiteralPath $P -PathType Leaf)) { throw 'Required executable or file absent.' } }
+    Set-Stage 'PREFLIGHT_LFS'
     foreach ($P in $Packages) {
         $Live = Join-Path $WorktreePath $P
         $Before[$P] = Get-ArmX66FileState $Live

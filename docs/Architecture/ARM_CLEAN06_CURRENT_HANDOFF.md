@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.3.2 — préflight de conversion native
+
+`d19b3535b313ba405210da2d3090eaa612554c46` : les deux validations Windows du C++ et de tous les tests passent. Le statut spécial de conversion native est FAILURE/PREFLIGHT, aucun enfant binaire. Correction du runner et hook : normalisation worktree Windows, diagnostics de sous-phase et SelfTest dans ValidateUE. Le détail de la cause initiale reste inconnu. Relance automatique uniquement après validation exacte du nouveau SHA. Aucune écriture de sauvegarde. 5D.4 demeure préparé, rebase après binaires validés.
+
 ## ARM-CLEAN06.5D.3.1 — permission de lancer indépendante des slots
 
 5D.3 `e7e4f11d7c9dd6ea622e03c71dafd038f5e4f11a` : SilentTask SUCCESS, LocalAuto FAILURE (issue #197, RealHandThrowProjection). Cause probable étayée par `GridWeaponPipelineCommandlet::Usage` et le pilote : les passifs NotHandHeld restent équipables OffHand, contrairement à l'hypothèse du convertisseur. Correction explicite de la permission physique, assertions de parité conservées, diagnostics publics à liste blanche. Le code déclenche le même runner natif uniquement après ses deux validations exactes. Aucune écriture de sauvegarde ni package à ce stade. Le lot 5D.4 préparé (arbre Git `ebd25012b35e51955745e0194b69d14a5bd7aee9`) devra être rebasé après le commit binaire et ses deux statuts.

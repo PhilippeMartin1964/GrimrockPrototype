@@ -1019,15 +1019,18 @@ try {
         # Exact, one-shot 5D.3 native package transaction after successful code validation.
         $HandThrowSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $HandThrowSubject.Count -eq 1 -and
-            [string]$HandThrowSubject[0] -ceq 'fix(ARM-CLEAN06.5D.3): preserve explicit physical throw permission for passive gear') {
+            [string]$HandThrowSubject[0] -ceq 'fix(ARM-CLEAN06.5D.3): make native transaction preflight observable and robust') {
             $HandThrowContext = 'UE5.5.4/ARM-CLEAN06.5D3'
+            $HandThrowStage = 'HOOK_STATUS'
             try {
                 Publish-CommitStatus -Sha $Sha -State 'pending' -Context $HandThrowContext -Description 'Conversion native de deux catalogues ARM'
+                $HandThrowStage = 'HOOK_PARSE'
                 $HandThrowScript = Join-Path $WorktreePath 'Scripts\ApplyARM_CLEAN06_5D3_HandThrow.ps1'
                 $ParseTokens = $null
                 $ParseErrors = $null
                 [void][System.Management.Automation.Language.Parser]::ParseFile($HandThrowScript,[ref]$ParseTokens,[ref]$ParseErrors)
-                if (@($ParseErrors).Count -gt 0) { throw 'Native transaction script parse error.' }
+                if ($ParseErrors -and $ParseErrors.Count -gt 0) { throw 'Native transaction script parse error.' }
+                $HandThrowStage = 'HOOK_ARGUMENTS'
                 $HandThrowArgs = @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$HandThrowScript,
                     '-WorktreePath',$WorktreePath,'-RepositoryRoot',$RepositoryRoot,'-EngineRoot',$EngineRoot,
                     '-StateRoot',$StateRoot,'-RunDir',$RunDir,'-ExpectedHead',$Sha,'-GitHubRepository',$GitHubRepository)
@@ -1035,18 +1038,18 @@ try {
                     if ($_.Contains('"')) { throw 'Unsafe argument.' }
                     '"' + $_ + '"'
                 }) -join ' '
+                $HandThrowStage = 'HOOK_PROCESS'
                 $HandThrowProcess = Start-Process -FilePath $PsExe -ArgumentList $HandThrowArgLine -WorkingDirectory $WorktreePath -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput (Join-Path $RunDir 'ARM065D3.stdout.log') -RedirectStandardError (Join-Path $RunDir 'ARM065D3.stderr.log') -ErrorAction Stop
                 if ($HandThrowProcess.ExitCode -ne 0 -or (Get-Content -LiteralPath (Join-Path $RunDir 'ArmClean065D3.stage') -TotalCount 1) -cne 'SUCCESS') {
                     throw 'Native transaction did not complete.'
                 }
                 Publish-CommitStatus -Sha $Sha -State 'success' -Context $HandThrowContext -Description '19 ARM, deux catalogues, reouverture et Automation OK'
             } catch {
-                $HandThrowStage = 'PREFLIGHT'
                 $HandThrowStagePath = Join-Path $RunDir 'ArmClean065D3.stage'
                 if (Test-Path -LiteralPath $HandThrowStagePath -PathType Leaf) {
                     $HandThrowStage = ([string](Get-Content -LiteralPath $HandThrowStagePath -TotalCount 1)).Trim()
                 }
-                if ($HandThrowStage -notin @('PREFLIGHT','AUDIT','APPLY','REOPEN','AUTOMATION','PUBLISH','ROLLBACK_INCOMPLETE','SUCCESS')) { $HandThrowStage = 'UNKNOWN' }
+                if ($HandThrowStage -notin @('HOOK_STATUS','HOOK_PARSE','HOOK_ARGUMENTS','HOOK_PROCESS','PREFLIGHT_INPUT','PREFLIGHT_LOCATION','PREFLIGHT_ORDINARY_PATH','PREFLIGHT_WORKTREE','PREFLIGHT_HEAD','PREFLIGHT_REMOTE','PREFLIGHT_ANCESTRY','PREFLIGHT_DIFF','PREFLIGHT_CLEAN','PREFLIGHT_VALIDATION','PREFLIGHT_SNAPSHOT','PREFLIGHT_EXECUTABLES','PREFLIGHT_LFS','AUDIT','APPLY','REOPEN','AUTOMATION','PUBLISH','ROLLBACK_INCOMPLETE','SUCCESS')) { $HandThrowStage = 'UNKNOWN' }
                 try {
                     Publish-CommitStatus -Sha $Sha -State 'failure' -Context $HandThrowContext -Description ('Conversion ARM bloquee : '+$HandThrowStage)
                 } catch { Write-Warning 'Native transaction status unavailable.' }
