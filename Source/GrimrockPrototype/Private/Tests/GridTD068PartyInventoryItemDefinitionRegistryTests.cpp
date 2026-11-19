@@ -76,14 +76,13 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 		return false;
 	}
 
-	const FName ReflectedFunctions[] = { TEXT("RegisterItemDefinition"), TEXT("FindItemDefinition"), TEXT("ApplyItemDefinitionToInstance") };
-	for (const FName FunctionName : ReflectedFunctions)
-	{
-		const UFunction* Function = Component->FindFunction(FunctionName);
-		TestNotNull(FString::Printf(TEXT("%s remains reflected"), *FunctionName.ToString()), Function);
-		TestTrue(
-			FString::Printf(TEXT("%s remains BlueprintCallable"), *FunctionName.ToString()), Function && Function->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	}
+	// ARM-CLEAN06.5G.38: historical registration/lookup are native-only.
+	TestNull(TEXT("RegisterItemDefinition is no longer reflected"), Component->FindFunction(TEXT("RegisterItemDefinition")));
+	TestNull(TEXT("FindItemDefinition is no longer reflected"), Component->FindFunction(TEXT("FindItemDefinition")));
+	const UFunction* Projection = Component->FindFunction(TEXT("ApplyItemDefinitionToInstance"));
+	TestNotNull(TEXT("ApplyItemDefinitionToInstance remains reflected"), Projection);
+	TestTrue(TEXT("ApplyItemDefinitionToInstance remains BlueprintCallable"),
+		Projection && Projection->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 
 	TestFalse(TEXT("RegisterItemDefinition rejects null"), Component->RegisterItemDefinition(nullptr));
 	UGridItemDefinitionAsset* InvalidDefinition = GridTD068CreateDefinition(Component, NAME_None);

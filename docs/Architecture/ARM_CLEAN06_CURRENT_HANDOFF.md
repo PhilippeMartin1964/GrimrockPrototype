@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.38 correctif — Contrat TD06.8
+
+Parent 17a2d9fe562652d8f2d81345f6805c0d8f3b6c9a. Issue #205 : LocalAuto a échoué sur le seul test Grimrock.TechnicalDebt.TD06_8.PartyInventoryItemDefinitionRegistry.Contract ; celui-ci exigeait encore la réflexion des deux API retirées. Inverser ces deux assertions et préserver la réflexion BlueprintCallable de ApplyItemDefinitionToInstance et tous les tests natifs. Attendre les deux statuts du correctif avant de rebaser et publier 5G.39. Aucun changement runtime ni asset.
+
 ## ARM-CLEAN06.5G.38 — Retrait de la réflexion du registre historique d’inventaire
 
 Parent 824e6a2b7d277c33f904d5125a4696cea56522fb. SilentTask et LocalAuto SUCCESS sur 5G.37. Retrait des deux UFUNCTION uniquement ; les méthodes natives restent nécessaires aux appelants C++ et aux fixtures. MIG09 conserve les six noms interdits et vérifie maintenant l’absence des deux fonctions réfléchies ainsi que la présence de ApplyItemDefinitionToInstance. Voir [5G.38](ARM_CLEAN06_5G38_INVENTORY_REGISTRY_UNREFLECT.md). Aucun asset ou SaveGame écrit. Prochaine étape après validation : inventorier les appelants natifs et séparer les fixtures historiques des chemins de production.
