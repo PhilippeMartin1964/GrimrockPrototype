@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.6 — Niveaux physiques stricts monde et loot
+
+Parent 5d36b39db2913a7465e2e3e48d84ee97a6cc1c73 : deux statuts SUCCESS. Suppression de l'héritage du niveau historique pour IDs inscrits dans les placements, réceptacles, preview et loot. Niveaux explicites conservés ; aucun changement de RNG, asset ou SaveGame. Draft 5G.7 : b60ee136d8576beee7db2321d9ac9b29d87e7cf8 (parent 5d6ad973bbcd0df73edd1bf9c8ec4c8554584457, dix fichiers). Draft 5G.8 : 8d88ffbadf9e33f1168a754b25ba1c129ddc8174 (parent 5d36b39db2913a7465e2e3e48d84ee97a6cc1c73, dix fichiers) verrou central ResolveItem N0/N1–N20 et 542 cas de refus. Rebaser uniquement les fichiers de chaque draft après validation du HEAD. 5G.8 exige audit complémentaire des appels historiques du résolveur avant publication.
+
 ## ARM-CLEAN06.5G.5 — Niveaux physiques stricts inventaire
 
 Parent 5d6ad973bbcd0df73edd1bf9c8ec4c8554584457 : deux statuts SUCCESS. Matérialisation d'instances et stack policy refusent N0 ARM/N1 non-ARM sans emprunter un niveau historique ; tests 3AG/3AS mis à jour. Aucun asset ou SaveGame modifié. Draft suivant 5G.6 : 02f3cdbcf28d5f01dbfdee732d78016ab1ecdcae (parent 5d6ad973bbcd0df73edd1bf9c8ec4c8554584457, neuf fichiers) strict monde/loot. Draft 5G.7 : b60ee136d8576beee7db2321d9ac9b29d87e7cf8 (même parent, dix fichiers) authoring/preview kits. Ajouter handoff et rebaser uniquement les différences sur chaque HEAD validé.

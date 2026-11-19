@@ -51,10 +51,10 @@ bool FGridClean063AHLootLevelResolution::RunTest(const FString&)
             TestEqual(TEXT("Authored fixed level retained"), FixedLevel, Level);
         }
         Entry.ItemLevel = 0;
-        TestTrue(TEXT("Fresh ARM loot inherits authored default once"),
+        TestFalse(TEXT("Fresh registered ARM loot N0 cannot inherit obsolete N6"),
             FGridMonsterLootResolver::TryResolveItemLevel(
                 Entry, Old.Get(), FixedLevel, Registry.Get()));
-        TestEqual(TEXT("Inherited default is N6, not assumed N1"), FixedLevel, 6);
+        TestEqual(TEXT("Refused default resets output"), FixedLevel, 0);
 
         // An explicit fixed level can resolve without a historical definition.
         Entry.ItemDefinitionAsset = nullptr;

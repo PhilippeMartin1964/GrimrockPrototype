@@ -39,10 +39,10 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 		FGridLooseItemInstance Placement;
 		Placement.InstanceId = FGuid::NewGuid();
 		Placement.ItemDefinition = Old.Get();
-		for (const int32 Level : {1, 20, 0})
+		for (const int32 Level : {1, 20})
 		{
 			Placement.ItemLevel = Level;
-			const int32 ExpectedLevel = Level == 0 ? 3 : Level;
+			const int32 ExpectedLevel = Level;
 			FGridResolvedItem Expected;
 			if (!TestTrue(TEXT("Effective ARM level resolves"),
 				Registry->ResolveItem(ArmId, ExpectedLevel, Expected))) return false;
@@ -57,6 +57,11 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 			TestTrue(TEXT("Editor preview uses canonical world visual transform"),
 				Preview.WorldTransform.Equals(Expected.WorldVisualTransform));
 		}
+		Placement.ItemLevel = 0;
+		const auto Zero = FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Placement);
+		TestTrue(TEXT("N0 remains known canonical"), Zero.bCanonicalIdentity);
+		TestFalse(TEXT("Editor preview refuses N0 despite old N3 default"), Zero.bResolved);
+		TestTrue(TEXT("N0 has no historical mesh"), Zero.WorldMesh.IsNull());
 		Placement.ItemLevel = 21;
 		const FGridEditorLooseItemPreviewReadView Invalid =
 			FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Placement);

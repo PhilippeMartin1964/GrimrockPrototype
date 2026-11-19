@@ -1,0 +1,5 @@
+# ARM-CLEAN06.5G.6 — Niveaux physiques stricts monde et loot
+
+Parent 5d36b39db2913a7465e2e3e48d84ee97a6cc1c73 : 5G.5 validé par les deux statuts Windows. Les placements loose, spawns, contenus et loots historiques ont déjà été convertis par 4X.5 et les lots de cutover. Toute identité inscrite doit désormais résoudre son niveau tel quel : ARM N1–N20, autres N0. La branche N0 héritant DefaultWeaponItemLevel est retirée des projections monde/réceptacle et génération loot. Les appels de compatibilité conservent provisoirement leur signature ; la valeur booléenne autorisant l'ancien défaut ne change plus le résultat canonique. Les fixtures hors registre gardent provisoirement leur comportement. Probabilités et graines de loot inchangées.
+
+Tests 3AI/3AJ/3AH/3Z actualisés : N0 refusé malgré une ancienne définition valide N6/N7, N1–N20 et vraies munitions N0 conservés, refus N21 et N1 non-ARM, aucune parité mesh perdue ; le test RNG conserve les niveaux 1/20. Aucun asset ou SaveGame modifié. Il reste à aligner les anciens contrôles d'authoring Editor et le frontend des kits sur le même contrat.

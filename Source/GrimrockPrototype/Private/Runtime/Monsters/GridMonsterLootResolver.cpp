@@ -79,34 +79,13 @@ bool FGridMonsterLootResolver::TryResolveItemLevel(
 	}
 	if (CanonicalRegistry && CanonicalRegistry->HasCanonicalItem(ItemId))
 	{
-		// Probe N1 solely to classify the item family. The eventual N0 for
-		// arrows is real, not a weapon default to be promoted to N1.
-		FGridResolvedItem Family;
-		if (!CanonicalRegistry->ResolveItem(ItemId, 1, Family))
-		{
-			return false;
-		}
-		if (!Family.bIsArmament)
-		{
-			FGridResolvedItem Unlevelled;
-			return Entry.ItemLevel == 0 &&
-				CanonicalRegistry->ResolveItem(ItemId, 0, Unlevelled) &&
-				!Unlevelled.bIsArmament;
-		}
-		// Authored zero uses the old default only for a NEW armament.
-		// Without the authoring definition there is no default to invent.
-		if (Entry.ItemLevel == 0 && !IsValid(ItemDefinition))
-		{
-			return false;
-		}
-		const int32 FixedLevel = Entry.ItemLevel == 0
-			? ItemDefinition->DefaultWeaponItemLevel : Entry.ItemLevel;
 		FGridResolvedItem Fixed;
-		if (!CanonicalRegistry->ResolveItem(ItemId, FixedLevel, Fixed) || !Fixed.bIsArmament)
+		if (!CanonicalRegistry->ResolveItem(ItemId, Entry.ItemLevel, Fixed) ||
+			(!Fixed.bIsArmament && Entry.ItemLevel != 0))
 		{
-			return false; // Known invalid ARM: no old catalogue fallback.
+			return false; // A registered loot entry never inherits an obsolete default.
 		}
-		OutItemLevel = FixedLevel;
+		OutItemLevel = Entry.ItemLevel;
 		return true;
 	}
 	// Existing nonregistered/id-only MON8 loot semantics remain intact.

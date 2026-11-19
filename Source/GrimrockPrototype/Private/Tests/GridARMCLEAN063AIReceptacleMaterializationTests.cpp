@@ -51,16 +51,12 @@ bool FGridClean063AIReceptacleMaterialization::RunTest(const FString&)
             TestEqual(TEXT("Contained display name canonical"),
                 View.DisplayName.ToString(), Canonical.DisplayName.ToString());
         }
-        FGridResolvedItem Default;
-        if (!TestTrue(TEXT("Real default N6 exists"),
-            Registry->ResolveItem(Id, 6, Default))) return false;
         const FGridReceptacleItemMetadataReadView Fresh =
             FGridReceptacleItemMetadataReadModel::Resolve(
                 Registry.Get(), Old.Get(), Id, 0, true);
-        TestTrue(TEXT("New placement inherits authored ARM default"), Fresh.bResolved);
-        TestEqual(TEXT("New placement materializes N6 not N1"), Fresh.FixedItemLevel, 6);
-        TestTrue(TEXT("Inherited mass still canonical"), FMath::IsNearlyEqual(
-            Fresh.UnitWeightKg, Default.WeightKg));
+        TestTrue(TEXT("Malformed authored ARM still classified canonical"), Fresh.bCanonicalIdentity);
+        TestFalse(TEXT("Fresh registered ARM N0 cannot inherit obsolete N6"), Fresh.bResolved);
+        TestEqual(TEXT("Rejected authored level exposes no fallback mass"), Fresh.UnitWeightKg, 0.0f);
         const FGridReceptacleItemMetadataReadView Persisted =
             FGridReceptacleItemMetadataReadModel::Resolve(
                 Registry.Get(), Old.Get(), Id, 0, false);

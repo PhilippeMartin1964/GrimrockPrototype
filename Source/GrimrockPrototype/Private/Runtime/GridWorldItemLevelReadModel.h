@@ -3,14 +3,13 @@
 #include "GridReceptacleItemMetadataReadModel.h"
 
 /**
- * Read-only world item level bridge, reusing 06.3AI identity validation.
- * The two named entry points prohibit an accidental default-level promotion
- * during world drops, projectile landings and pending pit transfers.
+ * Read-only world item level bridge. Both authoring and persistence now
+ * require exact physical levels for registered IDs (5G.6); the two entry
+ * points remain until the historical reader signatures are retired.
  */
 struct FGridWorldItemLevelReadModel
 {
-	/** Unmaterialized LevelAsset placement: authored ARM N0 may inherit its
-	 * author's DefaultWeaponItemLevel exactly once. */
+	/** LevelAsset placement with a materialized physical level. */
 	static FGridReceptacleItemMetadataReadView ResolveAuthoredPlacement(
 		const UGridItemSubsystem* Registry,
 		const UGridItemDefinitionAsset* Definition, FName ItemId, int32 AuthoredLevel)

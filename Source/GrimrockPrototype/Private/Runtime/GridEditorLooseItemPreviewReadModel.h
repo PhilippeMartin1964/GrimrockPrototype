@@ -41,8 +41,8 @@ struct FGridEditorLooseItemPreviewReadModel
 		{
 			return View; // Contradictory source or invalid physical placement.
 		}
-		// Persisted identities have physical ItemLevel N1..20 / N0.
-		// Old synthetic authoring may inherit its legacy default once.
+		// All registered identities require physical ItemLevel N1..20 / N0,
+		// regardless of whether the source still carries a legacy pointer.
 		const FGridReceptacleItemMetadataReadView Level = bPersistedCanonical
 			? FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 				Registry, nullptr, ItemId, Placement.ItemLevel)
@@ -50,7 +50,7 @@ struct FGridEditorLooseItemPreviewReadModel
 				Registry, Definition, ItemId, Placement.ItemLevel);
 		if (!Level.bResolved)
 		{
-			return View; // Known invalid N0/default: no historical preview fallback.
+			return View; // Known invalid physical level: no historical preview fallback.
 		}
 		View.EffectiveItemLevel = Level.FixedItemLevel;
 		FGridResolvedItem Canonical;

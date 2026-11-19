@@ -53,14 +53,11 @@ bool FGridClean063AJWorldItemLevels::RunTest(const FString&)
 			TestEqual(TEXT("World item name canonical"), Placed.DisplayName.ToString(),
 				Canonical.DisplayName.ToString());
 		}
-		FGridResolvedItem Default;
-		if (!TestTrue(TEXT("Real canonical N7 exists"), Registry->ResolveItem(Id, 7, Default)))
-			return false;
 		const auto Initial = FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
 			Registry.Get(), Old.Get(), Id, 0);
-		TestTrue(TEXT("New authored ARM inherits once"), Initial.bResolved);
-		TestEqual(TEXT("New authored ARM inherits N7 not N1"), Initial.FixedItemLevel, 7);
-		TestTrue(TEXT("Inherited world item mass canonical"), FMath::IsNearlyEqual(Initial.UnitWeightKg, Default.WeightKg));
+		TestTrue(TEXT("Malformed placement still classified canonical"), Initial.bCanonicalIdentity);
+		TestFalse(TEXT("New authored ARM N0 cannot inherit obsolete N7"), Initial.bResolved);
+		TestEqual(TEXT("Rejected placement has no fallback mass"), Initial.UnitWeightKg, 0.0f);
 		const auto PersistedZero = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry.Get(), Old.Get(), Id, 0);
 		TestTrue(TEXT("Persisted invalid N0 remains known canonical"), PersistedZero.bCanonicalIdentity);

@@ -18,7 +18,7 @@ struct FGridReceptacleItemMetadataReadModel
     static FGridReceptacleItemMetadataReadView Resolve(
         const UGridItemSubsystem* Registry,
         const UGridItemDefinitionAsset* LegacyDefinition,
-        FName ItemId, int32 ItemLevel, bool bAllowAuthoredDefault)
+        FName ItemId, int32 ItemLevel, bool /*bAllowAuthoredDefault*/)
     {
         FGridReceptacleItemMetadataReadView View;
         View.bCanonicalIdentity = Registry && Registry->HasCanonicalItem(ItemId);
@@ -30,38 +30,15 @@ struct FGridReceptacleItemMetadataReadModel
 
         if (View.bCanonicalIdentity)
         {
-            FGridResolvedItem Family;
-            if (!Registry->ResolveItem(ItemId, 1, Family))
-            {
-                return View;
-            }
-            int32 FixedLevel = ItemLevel;
-            if (Family.bIsArmament)
-            {
-                if (ItemLevel == 0)
-                {
-                    // Only fresh authoring may inherit; taking a persisted
-                    // contained ARM at N0 must never invent N1.
-                    if (!bAllowAuthoredDefault || !IsValid(LegacyDefinition))
-                    {
-                        return View;
-                    }
-                    FixedLevel = LegacyDefinition->DefaultWeaponItemLevel;
-                }
-            }
-            else if (ItemLevel != 0)
-            {
-                return View; // Ammo and other non-ARM authoring is truly N0.
-            }
             FGridResolvedItem Canonical;
-            if (!Registry->ResolveItem(ItemId, FixedLevel, Canonical) ||
-                Canonical.bIsArmament != Family.bIsArmament ||
+            if (!Registry->ResolveItem(ItemId, ItemLevel, Canonical) ||
+                (!Canonical.bIsArmament && ItemLevel != 0) ||
                 !FMath::IsFinite(Canonical.WeightKg) || Canonical.WeightKg < 0.0f)
             {
-                return View; // No fallback for invalid registered identities.
+                return View; // All registered placements now carry their physical level.
             }
             View.bResolved = true;
-            View.FixedItemLevel = FixedLevel;
+            View.FixedItemLevel = ItemLevel;
             View.UnitWeightKg = Canonical.WeightKg;
             View.DisplayName = Canonical.DisplayName.IsEmpty()
                 ? FText::FromName(ItemId) : Canonical.DisplayName;
