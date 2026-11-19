@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.3.5 — correction syntaxique confirmée
+
+`a74d58da10baf45af58da8c35bec6d3d9905208a` : deux statuts généraux SUCCESS ; statut natif FAILURE `PARSE_MissingEndParenthesisInSubexpression_L238_C5`. Cause exacte : parenthèse fermante manquante du tableau des arguments Apply. Tableau séparé et appel nommé. Aucun changement de C++, binaire ni sauvegarde. Relance de l'agent sur le SHA exact ; vérifier le statut natif et l'enfant binaire avant 5D.4. Draft `f5401a1fc7547a73f4d9963d1c6e096f63ef4ba2`.
+
 ## ARM-CLEAN06.5D.3.4 — exécution réelle du self-test Windows
 
 `989ea666ef6404ed8e119c7b4b6ba58c4cfe7e88` : les deux statuts généraux sont SUCCESS ; statut natif FAILURE HOOK_PARSE. Le hook lançait un appel de parsing supplémentaire avant le processus réel. Désormais `-File -SelfTest` est le test de parsing et d'exécution obligatoire ; diagnostic sûr identifiant/ligne/colonne si démarrage impossible, reçu SELFTEST_SUCCESS exigé avant écriture. Aucun changement de C++ ni binaire. Deux statuts exacts du nouveau SHA + statut natif et enfant binaire à vérifier. Draft 5D.4 `f5401a1fc7547a73f4d9963d1c6e096f63ef4ba2` inchangé.

@@ -21,7 +21,8 @@ $StagePath = Join-Path $RunDir 'ArmClean065D3.stage'
 if ($SelfTest) { Set-Content -LiteralPath $StagePath -Value 'SELFTEST_INIT' -Encoding ASCII }
 $GitApplication = (Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $ExpectedParent = '0be0a8ddd471d74a2a70e05fff47df0a5782b7f0'
-$ExpectedSubject = 'fix(ARM-CLEAN06.5D.3): run native self-test directly with exact Windows diagnostics'
+$ExpectedSubject = 'fix(ARM-CLEAN06.5D.3): close native apply argument construction'
+$FailedSyntaxParent = 'a74d58da10baf45af58da8c35bec6d3d9905208a'
 $FailedHookParent = '989ea666ef6404ed8e119c7b4b6ba58c4cfe7e88'
 $FailedPreflightParent = 'c7b56b425a531164452d533951b51e23b0c7d0f7'
 $ValidatedCodeParent = 'd19b3535b313ba405210da2d3090eaa612554c46'
@@ -183,11 +184,12 @@ try {
     Set-Stage 'PREFLIGHT_REMOTE'
     Assert-Remote
     Set-Stage 'PREFLIGHT_ANCESTRY'
-    if ((Invoke-HandThrowGit @('rev-parse','HEAD~1')) -cne $FailedHookParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~2')) -cne $FailedPreflightParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~3')) -cne $ValidatedCodeParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~4')) -cne $FailedParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~5')) -cne $ExpectedParent -or
+    if ((Invoke-HandThrowGit @('rev-parse','HEAD~1')) -cne $FailedSyntaxParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~2')) -cne $FailedHookParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~3')) -cne $FailedPreflightParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~4')) -cne $ValidatedCodeParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~5')) -cne $FailedParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~6')) -cne $ExpectedParent -or
         (Invoke-HandThrowGit @('log','-1','--format=%s')) -cne $ExpectedSubject) { throw 'Wrong one-shot revision.' }
     Set-Stage 'PREFLIGHT_DIFF'
     Assert-SameSet @(Invoke-HandThrowGit @('diff','--name-only',$ExpectedParent,'HEAD')) $CodePaths
@@ -233,8 +235,12 @@ try {
     Set-Stage 'APPLY'
     $Writing = $true
     try {
-        $Applied = Invoke-Probe 'Apply' 0 'apply' @(
-            ('-ExpectedHead='+$ExpectedHead),('-Backup0='+$Backup[$Packages[0]]),('-Backup1='+$Backup[$Packages[1]])
+        $ApplyArguments = @(
+            ('-ExpectedHead=' + $ExpectedHead)
+            ('-Backup0=' + $Backup[$Packages[0]])
+            ('-Backup1=' + $Backup[$Packages[1]])
+        )
+        $Applied = Invoke-Probe -Mode 'Apply' -ExitExpected 0 -Name 'apply' -Extra $ApplyArguments
     } finally {
         Assert-Head
         Get-Dirty | Out-Null
