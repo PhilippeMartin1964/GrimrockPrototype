@@ -211,11 +211,7 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     FGridResolvedItem ArmResolved;
     if (!TestTrue(TEXT("Real ARM projection resolves at authored physical level"),
             F.Registry->ResolveItem(Arm.CanonicalItemId, Arm.ItemLevel, ArmResolved)) ||
-        !TestTrue(TEXT("Real ARM source is absent OR consistent with the canonical identity"),
-            !Arm.ItemDefinition ||
-                (IsValid(Arm.ItemDefinition.Get()) &&
-                 Arm.ItemDefinition->ItemDefinitionId == Arm.CanonicalItemId &&
-                 Arm.ItemDefinition->WeaponArchetypeId == ArmResolved.ArchetypeId)))
+        !TestNull(TEXT("Real ARM source is pointerless after native migration"), Arm.ItemDefinition.Get()))
     {
         return false;
     }
@@ -257,35 +253,16 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
         return false;
     }
 
-    // A malicious/outdated same-ID legacy source is no longer visual
-    // authority, even though it passes the authored ID consistency gate.
+    // Even a matching historical pointer cannot authorize a placement.
     FGridLooseItemInstance Contradictory = Arm;
     UGridItemDefinitionAsset* Fake = NewObject<UGridItemDefinitionAsset>(F.Runtime);
     Fake->ItemDefinitionId = Arm.CanonicalItemId;
-    Fake->LightEmitter.bUsePointLight = !ArmResolved.LightEmitter.bUsePointLight;
-    Fake->VisualEffects.Effects.Reset();
     Contradictory.ItemDefinition = Fake;
-    AGridItemActor* ContradictoryActor = PlaceAtOrigin(Contradictory);
-    const FGridSpawnedItemRuntimeEntry* FakeEntry = FindRuntimeEntry(ContradictoryActor);
-    if (!TestNotNull(TEXT("Contradictory same-ID native runtime entry exists"), FakeEntry) ||
-        !TestNull(TEXT("X.40: Contradictory same-ID source not retained in transient entry"),
-            FakeEntry->ItemDefinitionAsset.Get()))
-    {
+    if (!TestNull(TEXT("Matching historical source cannot spawn"), PlaceAtOrigin(Contradictory)))
         return false;
-    }
-    if (!TestNotNull(TEXT("Same-ID legacy source can no longer override canonical visuals"),
-            ContradictoryActor) ||
-        !TestNull(TEXT("Same-ID contradictory old asset is never attached"),
-            ContradictoryActor->GetItemDefinitionAsset()) ||
-        !TestEqual(TEXT("Canonical emitter unchanged by old contradictory source"),
-            ContradictoryActor->LightEmitterComponent->RuntimeConfig.bUsePointLight,
-            ArmResolved.LightEmitter.bUsePointLight) ||
-        !TestEqual(TEXT("Canonical Niagara unchanged by old contradictory source"),
-            ContradictoryActor->VisualEffectsComponent->GetConfiguredEffectCount(),
-            ArmResolved.VisualEffects.Effects.Num()))
-    {
+    Contradictory.CanonicalItemId = NAME_None;
+    if (!TestNull(TEXT("Pointer-only source cannot spawn"), PlaceAtOrigin(Contradictory)))
         return false;
-    }
 
     // Pointerless canonical ARM remain supported at both N1 and N20.
     for (const int32 Level : {1, 20})
@@ -355,11 +332,20 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     if (!TestNull(TEXT("Contradictory legacy source cannot spoof canonical ID"),
         F.FindItem(WrongSource.InstanceId))) {return false;}
 
-    AddInfo(TEXT("[ARM-CLEAN06.4X47] 44 real loose items audited in either "
-        "pre-Apply legacy-backed or post-Apply pointerless native state. "
-        "Real ARM/N0 nonARM actors are canonical-only; an injected mismatching "
-        "source still rejects and a same-ID contradictory source cannot override "
-        "mesh/light/Niagara/physics. The test never saves any native package."));
+    FGridLooseItemInstance Invalid = Arm;
+    Invalid.Quantity = 0;
+    if (!TestNull(TEXT("Zero quantity cannot spawn"), PlaceAtOrigin(Invalid))) return false;
+    Invalid = Arm;
+    Invalid.CanonicalItemId = TEXT("X8_UnknownIdentity");
+    if (!TestNull(TEXT("Unknown identity cannot spawn"), PlaceAtOrigin(Invalid))) return false;
+    Invalid = Arm;
+    Invalid.InstanceId.Invalidate();
+    Invalid.CellX = Invalid.CellY = 0;
+    const int32 Before = F.Runtime->SpawnedItemEntries.Num();
+    F.Runtime->AddPlacedItemActor(Invalid);
+    if (!TestEqual(TEXT("Invalid GUID cannot generate a replacement"), F.Runtime->SpawnedItemEntries.Num(), Before))
+        return false;
+    AddInfo(TEXT("[ARM-CLEAN06.4X47] 44 native loose items; strict pointerless identity, physical level and presentation."));
     return true;
 }
 #endif

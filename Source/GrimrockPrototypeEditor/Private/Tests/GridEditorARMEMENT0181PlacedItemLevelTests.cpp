@@ -5,6 +5,9 @@
 #include "Core/GridLevelAsset.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridItemActor.h"
@@ -22,6 +25,8 @@ namespace ARMEMENT0181
     struct FWorldFixture
     {
         UWorld* World = nullptr;
+        TStrongObjectPtr<UGameInstance> GI;
+        UGridItemSubsystem* Registry = nullptr;
         AGridLevelRuntimeActor* Runtime = nullptr;
         UGridLevelAsset* Level = nullptr;
         UGridItemDefinitionAsset* Dagger = nullptr;
@@ -41,6 +46,15 @@ namespace ARMEMENT0181
                 Context.SetCurrentWorld(World);
             }
             if (!World) return;
+            if (WorldType == EWorldType::Game)
+            {
+                GI.Reset(NewObject<UGameInstance>(GetTransientPackage()));
+                if (!GI.IsValid()) return;
+                GI->Init();
+                World->SetGameInstance(GI.Get());
+                Registry = GI->GetSubsystem<UGridItemSubsystem>();
+                if (!Registry || !Registry->IsConfigured()) return;
+            }
             Runtime = World->SpawnActor<AGridLevelRuntimeActor>();
             if (!Runtime) return;
             Level = NewObject<UGridLevelAsset>(Runtime);
@@ -59,6 +73,11 @@ namespace ARMEMENT0181
         ~FWorldFixture()
         {
             if (!World) return;
+            if (GI.IsValid())
+            {
+                World->SetGameInstance(nullptr);
+                GI->Shutdown();
+            }
             World->DestroyWorld(false);
             if (GEngine) GEngine->DestroyWorldContext(World);
         }
@@ -69,7 +88,7 @@ namespace ARMEMENT0181
         {
             FGridLooseItemInstance& Item = Level->LooseItemInstances.AddDefaulted_GetRef();
             Item.InstanceId = FGuid::NewGuid();
-            Item.ItemDefinition = Dagger;
+            Item.CanonicalItemId = TEXT("Weapon_Dagger_01");
             Item.ItemLevel = LevelNumber;
             Item.Quantity = 1;
             Item.CellX = CellX;
@@ -87,7 +106,6 @@ namespace ARMEMENT0181
             Party->Facing = EGridEdge::North;
             Party->SetActorLocation(Runtime->GetCellCenterWorld(0, 0, Party->EyeHeight));
             Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded();
-            if (!Party->PartyInventoryComponent->RegisterItemDefinition(Dagger)) return nullptr;
             Runtime->WorldItemPickupReach = 500.0f;
             return Party;
         }
@@ -133,10 +151,10 @@ bool FARMEMENT0181EditorTest::RunTest(const FString&)
     if (!TestNotNull(TEXT("Grid editor actor exists"), Editor)) return false;
     Editor->LevelAsset = Fixture.Level;
 
-    const FGuid Id = Fixture.Place(0, 0, 0);
+    const FGuid Id = Fixture.Place(0, 0, 1);
     Editor->LastSelectedObjectId = Id;
-    TestEqual(TEXT("Legacy placement inherits definition when level is zero"),
-        Fixture.Level->LooseItemInstances[0].ItemLevel, 0);
+    TestEqual(TEXT("Canonical placement starts at explicit N1"),
+        Fixture.Level->LooseItemInstances[0].ItemLevel, 1);
     TestTrue(TEXT("Set authored fixed level 9"), Editor->SetSelectedObjectItemLevel(9));
     TestEqual(TEXT("Authored placement saves level 9"), Fixture.Level->LooseItemInstances[0].ItemLevel, 9);
     TestFalse(TEXT("Level 21 rejected"), Editor->SetSelectedObjectItemLevel(21));
@@ -159,11 +177,13 @@ bool FARMEMENT0181PickupTest::RunTest(const FString&)
 {
     ARMEMENT0181::FWorldFixture Fixture;
     if (!TestTrue(TEXT("Runtime dagger fixture loaded"), Fixture.Ready())) return false;
-    const FGuid DefaultId = Fixture.Place(0, 0, 0);
+    const FGuid DefaultId = Fixture.Place(0, 0, 1);
+    const FGuid InvalidId = Fixture.Place(1, 1, 0);
     const FGuid FixedId = Fixture.Place(1, 0, 9);
     Fixture.Runtime->RebuildRuntimeObjects();
     // Use public world actors and the authoritative persisted runtime read model.
     // SpawnedItemEntries is deliberately private and must stay encapsulated.
+    TestNull(TEXT("Invalid ARM N0 is never materialized"), ARMEMENT0181::FindWorldActor(Fixture.World, InvalidId));
     AGridItemActor* DefaultActor = ARMEMENT0181::FindWorldActor(Fixture.World, DefaultId);
     AGridItemActor* FixedActor = ARMEMENT0181::FindWorldActor(Fixture.World, FixedId);
     if (!TestNotNull(TEXT("Default item spawned"), DefaultActor) ||
@@ -176,7 +196,7 @@ bool FARMEMENT0181PickupTest::RunTest(const FString&)
     const FGridRuntimeItemState* Fixed = Saved->Items.Find(FixedId);
     if (!TestNotNull(TEXT("Default level snapshot exists"), Default) ||
         !TestNotNull(TEXT("Level 9 snapshot exists"), Fixed)) return false;
-    TestEqual(TEXT("Default level materialized once"), Default->ItemLevel, Fixture.Dagger->DefaultWeaponItemLevel);
+    TestEqual(TEXT("Explicit N1 preserved"), Default->ItemLevel, 1);
     TestEqual(TEXT("Level 9 materialized unchanged"), Fixed->ItemLevel, 9);
     TestEqual(TEXT("Saved world item retains level 9"), Fixed->ItemLevel, 9);
 
@@ -189,7 +209,7 @@ bool FARMEMENT0181PickupTest::RunTest(const FString&)
     const FGridItemInstance* FixedItem = ARMEMENT0181::FindInBag(Party->PartyInventoryComponent, FixedId);
     if (!TestNotNull(TEXT("Default dagger entered the bag"), DefaultItem) ||
         !TestNotNull(TEXT("Level 9 dagger entered the bag"), FixedItem)) return false;
-    TestEqual(TEXT("Default dagger level inherited correctly"), DefaultItem->ItemLevel, Fixture.Dagger->DefaultWeaponItemLevel);
+    TestEqual(TEXT("Explicit N1 survives pickup"), DefaultItem->ItemLevel, 1);
     TestEqual(TEXT("Pickup retains exact authored level"), FixedItem->ItemLevel, 9);
     TestEqual(TEXT("Fixed dagger original identity unchanged"), FixedItem->RuntimeObjectId, FixedId);
     TestTrue(TEXT("Pickup removes the actor from the world"),

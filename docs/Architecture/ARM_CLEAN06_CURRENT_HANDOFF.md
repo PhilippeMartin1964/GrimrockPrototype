@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.21 — Matérialisation runtime des objets au sol
+
+Parent b6562b17a3dd618f158202c874913cb012534f34 : publication uniquement après deux statuts SUCCESS. AddPlacedItemActor ne matérialise désormais que les placements portant un ItemId canonique explicite, GUID, niveau, quantité valides et aucun ancien pointeur. X.8, LIGHT02, MON11.4.2, ARM0181 conservent présentation, lumière, reconstruction unique, pickup et sauvegarde. Les anciens scans servant encore de catalogue aux fixtures de transfert sont isolés pour le lot suivant ; aucun changement de sauvegarde. Voir [5G.21](ARM_CLEAN06_5G21_STRICT_LOOSE_ITEM_RUNTIME.md).
+
 ## ARM-CLEAN06.5G.20 — Aperçu des objets libres strictement canonique
 
 Parent 5d13606d89de7711437c3727640f83ff5a605cee : publication après deux statuts SUCCESS. Retrait du rendu de repli de l'aperçu loose item : l'ID explicite, le N physique, la quantité et le GUID valides sont requis ; même un pointeur historique concordant est refusé. Le test de parité des trois meshes pilotes utilise leurs IDs réels au lieu d'une définition synthétique. Les tests runtime et la propriété de placement restent provisoirement distincts en attendant leur retrait. Voir [5G.20](ARM_CLEAN06_5G20_STRICT_LOOSE_ITEM_PREVIEW.md).

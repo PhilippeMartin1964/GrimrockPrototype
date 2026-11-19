@@ -5,6 +5,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -123,10 +124,16 @@ bool FGridItemLIGHT02CanonicalItemLightStateTest::RunTest(const FString& Paramet
 	Level->Cells[0].CellType = EGridCellType::Floor;
 	Runtime->LevelAsset = Level;
 
-	UGridItemDefinitionAsset* AuthoredTorch = GridItemLIGHT02Tests::MakeLightDefinition(Runtime, TEXT("LIGHT02_AuthoredTorch"), true, 1.0f);
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Canonical world registry configured"), RegistryScope.Attach(TestWorld.World))) return false;
+	FGridResolvedItem AuthoredTorch;
+	if (!TestTrue(TEXT("Real torch resolves at N0"),
+		RegistryScope.Registry->ResolveItem(TEXT("Item_Torch"), 0, AuthoredTorch)) ||
+		!TestTrue(TEXT("Real torch authored default is lit"), AuthoredTorch.LightEmitter.bDefaultEnabled))
+		return false;
 	FGridLooseItemInstance Placement;
 	Placement.InstanceId = FGuid::NewGuid();
-	Placement.ItemDefinition = AuthoredTorch;
+	Placement.CanonicalItemId = AuthoredTorch.ItemId;
 	Placement.Quantity = 1;
 	Placement.CellX = 0;
 	Placement.CellY = 0;

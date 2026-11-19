@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
@@ -349,19 +350,16 @@ bool FGridMON1142PlacedItemRebuildUniquenessTest::RunTest(const FString& Paramet
 		Cell.bBlocksOccupancy = false;
 	}
 
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Runtime);
-	Definition->ItemDefinitionId = TEXT("Shuriken");
-	Definition->DisplayName = FText::FromString(TEXT("Shuriken"));
-	Definition->ItemType = EGridItemType::Weapon;
-	Definition->Weight = 0.1f;
-	Definition->WorldMesh = NewObject<UStaticMesh>(Runtime);
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Canonical rebuild fixture registry"), RegistryScope.Attach(TestWorld.World)))
+		return false;
 
 	const FGuid PlacedObjectId = FGuid::NewGuid();
 	FGridLooseItemInstance PlacedItem;
 	PlacedItem.InstanceId = PlacedObjectId;
 	PlacedItem.CellX = 0;
 	PlacedItem.CellY = 0;
-	PlacedItem.ItemDefinition = Definition;
+	PlacedItem.CanonicalItemId = TEXT("Shuriken");
 	LevelAsset->LooseItemInstances.Add(PlacedItem);
 	Runtime->LevelAsset = LevelAsset;
 

@@ -2115,63 +2115,30 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	}
 	if (!IsSafeRuntimeRenderTransform(Transform))
 	{
-		LogUnsafeItemTransform(TEXT("AddPlacedItemActor"), ObjectData.ItemDefinition ? ObjectData.ItemDefinition->ItemDefinitionId : NAME_None, this, nullptr, nullptr, Transform);
+		LogUnsafeItemTransform(TEXT("AddPlacedItemActor"), ObjectData.CanonicalItemId, this, nullptr, nullptr, Transform);
 		return;
 	}
 
-	UGridItemDefinitionAsset* ItemDefinition = ObjectData.ItemDefinition.Get();
-	const bool bPersistedCanonical = !ObjectData.CanonicalItemId.IsNone();
-	// X.5 has made N1-N20 / N0 physical on the 44 real authored pickups.
-	// A known ItemId may no longer fall back to an authored legacy N0.
-	const FName ItemDefinitionId = bPersistedCanonical
-		? ObjectData.CanonicalItemId
-		: (IsValid(ItemDefinition) ? ItemDefinition->ItemDefinitionId : NAME_None);
+	const FName ItemDefinitionId = ObjectData.CanonicalItemId;
 	const UWorld* PlacementWorld = GetWorld();
 	UGameInstance* PlacementGameInstance = PlacementWorld ? PlacementWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = PlacementGameInstance
 		? PlacementGameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	FGridResolvedItem Canonical;
-	if (bPersistedCanonical)
-	{
-		if (!ObjectData.InstanceId.IsValid() || ObjectData.Quantity < 1 ||
-			!Registry || !Registry->HasCanonicalItem(ItemDefinitionId) ||
-			(IsValid(ItemDefinition) && ItemDefinition->ItemDefinitionId != ItemDefinitionId) ||
-			!Registry->ResolveItem(ItemDefinitionId, ObjectData.ItemLevel, Canonical))
-		{
-			UE_LOG(LogGridLevelRuntime, Warning,
-				TEXT("Placed canonical item skipped: invalid persisted identity or physical level %s N%d."),
-				*ItemDefinitionId.ToString(), ObjectData.ItemLevel);
-			return;
-		}
-	}
-	else if (!IsValid(ItemDefinition))
+	if (ObjectData.ItemDefinition || !ObjectData.InstanceId.IsValid() ||
+		ItemDefinitionId.IsNone() || ObjectData.Quantity < 1 ||
+		!IsValid(Registry) || !Registry->IsConfigured() ||
+		!Registry->ResolveItem(ItemDefinitionId, ObjectData.ItemLevel, Canonical) ||
+		!Canonical.IsValid() || Canonical.ItemId != ItemDefinitionId ||
+		Canonical.ItemLevel != ObjectData.ItemLevel)
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
-			TEXT("Placed historical item skipped: definition missing for instance %s."),
-			*ObjectData.InstanceId.ToString());
+			TEXT("Placed canonical item skipped: invalid persisted identity or physical level %s N%d."),
+			*ItemDefinitionId.ToString(), ObjectData.ItemLevel);
 		return;
 	}
-	// X.39: after native X.38 parity (22 ARM / 8 visual + 2 physics
-	// fields), every persisted canonical item has ONE physical presentation
-	// authority, even when an old DA_Weapon pointer is still serialized.
-	// Preserve the pointer only for the guarded historical compatibility
-	// paths; never copy old LightEmitter / Niagara / mass / tilt to an actor.
-	const bool bCanonicalPresentation = bPersistedCanonical;
-	const FGridReceptacleItemMetadataReadView LevelRead = bPersistedCanonical
-		? FGridWorldItemLevelReadModel::ResolvePersistedInstance(
-			Registry, nullptr, ItemDefinitionId, ObjectData.ItemLevel)
-		: FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
-			Registry, ItemDefinition, ItemDefinitionId, ObjectData.ItemLevel);
-	if (!LevelRead.bResolved)
-	{
-		UE_LOG(LogGridLevelRuntime, Warning,
-			TEXT("Placed item skipped: unresolved authored ItemLevel=%d for %s."),
-			ObjectData.ItemLevel, *ItemDefinitionId.ToString());
-		return;
-	}
-	const int32 ResolvedItemLevel = LevelRead.FixedItemLevel;
-	AGridItemActor* ItemActor = SpawnItemActorForDefinition(
-		bCanonicalPresentation ? nullptr : ItemDefinition, ItemDefinitionId, this, nullptr);
+	const int32 ResolvedItemLevel = Canonical.ItemLevel;
+	AGridItemActor* ItemActor = SpawnItemActorForDefinition(nullptr, ItemDefinitionId, this, nullptr);
 	if (!ItemActor)
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
@@ -2181,29 +2148,16 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 
 	ItemActor->SetActorTransform(Transform);
 	FGridItemInstance PlacedVisualItem;
-	PlacedVisualItem.RuntimeObjectId = ObjectData.InstanceId.IsValid()
-		? ObjectData.InstanceId : FGuid::NewGuid();
+	PlacedVisualItem.RuntimeObjectId = ObjectData.InstanceId;
 	PlacedVisualItem.ItemDefinitionId = ItemDefinitionId;
 	PlacedVisualItem.ItemLevel = ResolvedItemLevel;
-	PlacedVisualItem.Quantity = FMath::Max(1, ObjectData.Quantity);
-	if (bCanonicalPresentation)
+	PlacedVisualItem.Quantity = ObjectData.Quantity;
+	if (!ItemActor->InitializeFromCanonicalItem(PlacedVisualItem, Registry))
 	{
-		if (!ItemActor->InitializeFromCanonicalItem(PlacedVisualItem, Registry))
-		{
-			UE_LOG(LogGridLevelRuntime, Warning,
-				TEXT("Placed canonical item skipped: initialization failed %s."),
-				*ItemDefinitionId.ToString());
-			ItemActor->Destroy();
-			return;
-		}
-	}
-	else
-	{
-		// Only genuinely historical, non-canonical placements still use
-		// the old item definition. Registered canonical ARM never enter here.
-		ItemActor->SetRuntimeObjectId(ObjectData.InstanceId);
-		ItemActor->InitializeFromItemDefinition(ItemDefinition, ObjectData.InstanceId);
-		ItemActor->ApplyCanonicalWorldVisual(PlacedVisualItem);
+		UE_LOG(LogGridLevelRuntime, Warning,
+			TEXT("Placed canonical item skipped: initialization failed %s."), *ItemDefinitionId.ToString());
+		ItemActor->Destroy();
+		return;
 	}
 	UGridReadableContentAsset* ReadableContentAsset = ObjectData.ReadableContentAsset;
 	FName ReadableContentId = ObjectData.ReadableContentId;
@@ -2216,9 +2170,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	ItemActor->ConfigureAsWorldPickup();
 	// Registered ARM now obtain their initial light state exclusively
 	// from the resolved canonical projection, not from DA_Weapon_*.
-	ItemActor->SetItemLightsEnabled(bCanonicalPresentation
-		? Canonical.LightEmitter.bDefaultEnabled
-		: ItemDefinition->IsLightEnabledByDefault());
+	ItemActor->SetItemLightsEnabled(Canonical.LightEmitter.bDefaultEnabled);
 	SpawnedItemActors.Add(ItemActor);
 
 	FGridSpawnedItemRuntimeEntry Entry;
@@ -2226,13 +2178,9 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	Entry.Edge = ObjectData.SurfaceSide;
 	Entry.ItemActor = ItemActor;
 	Entry.ObjectId = ObjectData.InstanceId;
-	// X.40: never keep an obsolete UGridItemDefinitionAsset alive in a
-	// canonical runtime entry. The authored level retains its pointer until
-	// its separate native migration; genuine out-of-registry items retain
-	// their historic source for PIT/weight compatibility.
-	Entry.ItemDefinitionAsset = bCanonicalPresentation ? nullptr : ItemDefinition;
+	Entry.ItemDefinitionAsset = nullptr;
 	Entry.ItemDefinitionId = ItemDefinitionId;
-	Entry.Quantity = FMath::Max(1, ObjectData.Quantity);
+	Entry.Quantity = ObjectData.Quantity;
 	Entry.ItemLevel = ResolvedItemLevel;
 	SpawnedItemEntries.Add(Entry);
 	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Placed item spawned: %s at object %s. Runtime=%s RebuildGeneration=%d ActiveItemCount=%d"), *ItemDefinitionId.ToString(),
