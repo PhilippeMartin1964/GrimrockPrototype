@@ -32,21 +32,27 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 
 	const FGridObjectPaletteEntry* CanonicalEntry = ObjectPalette
 		? ObjectPalette->FindEntryById(SelectedPaletteEntryId) : nullptr;
-	if (PaintObjectType == EGridLevelObjectType::Item && CanonicalEntry &&
-		!CanonicalEntry->CanonicalItemId.IsNone())
+	const FGridLooseItemInstance* ExistingLoose = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId);
+	const bool bReplaceLooseIdentity = ExistingLoose &&
+		SelectedPaletteEntryId != ExistingLoose->PaletteEntryId;
+	if (ExistingLoose)
 	{
-		UGridItemDefinitionAsset* Legacy = CanonicalEntry->DefaultItemDefinition.Get();
-		if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
-				ResolveEditorItemRegistry(), CanonicalEntry->CanonicalItemId,
-				CanonicalEntry->CanonicalDefaultItemLevel) ||
-			(IsValid(Legacy) &&
-				(Legacy->ItemDefinitionId != CanonicalEntry->CanonicalItemId ||
-				 (ObjectBehavior.Item.ItemDefinitionAsset != nullptr &&
-				  ObjectBehavior.Item.ItemDefinitionAsset != Legacy))) ||
-			(!IsValid(Legacy) && ObjectBehavior.Item.ItemDefinitionAsset != nullptr))
-		{
-			return false; // Refuse before modifying selected object.
-		}
+		if (ExistingLoose->ItemDefinition || ObjectBehavior.Item.ItemDefinitionAsset ||
+			(bReplaceLooseIdentity && !CanonicalEntry) ||
+			(CanonicalEntry && (!CanonicalEntry->IsDirectItemEntry() || CanonicalEntry->DefaultItemDefinition ||
+			 CanonicalEntry->DefaultWorldObjectDefinition || CanonicalEntry->Icon || CanonicalEntry->CanonicalItemId.IsNone())))
+			return false;
+		const FName TargetId = bReplaceLooseIdentity ? CanonicalEntry->CanonicalItemId : ExistingLoose->CanonicalItemId;
+		const int32 TargetLevel = TargetId == ExistingLoose->CanonicalItemId
+			? ExistingLoose->ItemLevel : CanonicalEntry->CanonicalDefaultItemLevel;
+		const UGridItemSubsystem* Registry = ResolveEditorItemRegistry();
+		FGridResolvedItem Resolved;
+		if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry, TargetId, TargetLevel) ||
+			!Registry->ResolveItem(TargetId, TargetLevel, Resolved) ||
+			ExistingLoose->Quantity < 1 ||
+			(TargetId != ExistingLoose->CanonicalItemId &&
+			 ExistingLoose->Quantity > FMath::Max(1, Resolved.MaxStack)))
+			return false;
 	}
 	if (PaintObjectType == EGridLevelObjectType::ItemSpawn &&
 		ObjectBehavior.Item.ItemDefinitionAsset)
@@ -68,22 +74,10 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 	}
 	else if (FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId))
 	{
-		// Explicitly applying an edit to a registered object switches that
-		// one authored entry to pointerless canonical identity. The other
-		// historical rows are never swept or rewritten by this editor path.
-		LooseItemInstance->ItemDefinition =
-			CanonicalEntry && !CanonicalEntry->CanonicalItemId.IsNone()
-				? nullptr : ObjectBehavior.Item.ItemDefinitionAsset;
-		if (CanonicalEntry && !CanonicalEntry->CanonicalItemId.IsNone())
+		if (bReplaceLooseIdentity && LooseItemInstance->CanonicalItemId != CanonicalEntry->CanonicalItemId)
 		{
-			const bool bChangedItemId = LooseItemInstance->CanonicalItemId !=
-				CanonicalEntry->CanonicalItemId;
 			LooseItemInstance->CanonicalItemId = CanonicalEntry->CanonicalItemId;
-			if (bChangedItemId)
-			{
-				// Never reset a user-authored N1-N20 level on a same-ID edit.
-				LooseItemInstance->ItemLevel = CanonicalEntry->CanonicalDefaultItemLevel;
-			}
+			LooseItemInstance->ItemLevel = CanonicalEntry->CanonicalDefaultItemLevel;
 		}
 		LooseItemInstance->ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
 		LooseItemInstance->ReadableContentId = ObjectBehavior.Item.DefaultReadableContentId;

@@ -16,24 +16,16 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 	}
 	const FGridObjectPaletteEntry* PaletteEntry = ObjectPalette
 		? ObjectPalette->FindEntryById(SelectedPaletteEntryId) : nullptr;
-	if (PaintObjectType == EGridLevelObjectType::Item && PaletteEntry &&
-		!PaletteEntry->CanonicalItemId.IsNone())
+	if (PaintObjectType == EGridLevelObjectType::Item &&
+		(!PaletteEntry || !PaletteEntry->IsDirectItemEntry() || PaletteEntry->DefaultItemDefinition ||
+		 PaletteEntry->DefaultWorldObjectDefinition || PaletteEntry->Icon ||
+		 ObjectBehavior.Item.ItemDefinitionAsset ||
+		 !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			ResolveEditorItemRegistry(), PaletteEntry->CanonicalItemId,
+			PaletteEntry->CanonicalDefaultItemLevel)))
 	{
-		// Registered authoring is valid without a legacy pointer, but its
-		// physical ItemLevel must be fully resolved BEFORE editing the grid.
-		UGridItemDefinitionAsset* Legacy = PaletteEntry->DefaultItemDefinition.Get();
-		if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
-				ResolveEditorItemRegistry(), PaletteEntry->CanonicalItemId,
-				PaletteEntry->CanonicalDefaultItemLevel) ||
-			(IsValid(Legacy) &&
-				(Legacy->ItemDefinitionId != PaletteEntry->CanonicalItemId ||
-				 (ObjectBehavior.Item.ItemDefinitionAsset != nullptr &&
-				  ObjectBehavior.Item.ItemDefinitionAsset != Legacy))) ||
-			(!IsValid(Legacy) && ObjectBehavior.Item.ItemDefinitionAsset != nullptr))
-		{
-			UE_LOG(LogGridEditor, Warning, TEXT("Canonical palette placement rejected: invalid physical identity or staged source."));
-			return;
-		}
+		UE_LOG(LogGridEditor, Warning, TEXT("Canonical palette placement rejected: invalid physical identity or staged source."));
+		return;
 	}
 	// A generator may be an empty editor draft, but cannot be authored from
 	// an obsolete definition. A canonical palette selection is explicit.
@@ -125,17 +117,8 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		LooseItemInstance.LocalOffset = FVector(NewFloorOffset.X, NewFloorOffset.Y, 0.0f);
 		LooseItemInstance.InstanceId = NewId;
 		LooseItemInstance.SurfaceSide = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
-		// X.44: canonical authoring must never re-persist the obsolete
-		// palette pointer. Existing level rows stay untouched until native
-		// cleanup, but all NEW registered placements are pointerless.
-		LooseItemInstance.ItemDefinition =
-			PaletteEntry && !PaletteEntry->CanonicalItemId.IsNone()
-				? nullptr : ObjectBehavior.Item.ItemDefinitionAsset;
-		if (PaletteEntry && !PaletteEntry->CanonicalItemId.IsNone())
-		{
-			LooseItemInstance.CanonicalItemId = PaletteEntry->CanonicalItemId;
-			LooseItemInstance.ItemLevel = PaletteEntry->CanonicalDefaultItemLevel;
-		}
+		LooseItemInstance.CanonicalItemId = PaletteEntry->CanonicalItemId;
+		LooseItemInstance.ItemLevel = PaletteEntry->CanonicalDefaultItemLevel;
 		LooseItemInstance.ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
 		LooseItemInstance.ReadableContentId = ObjectBehavior.Item.DefaultReadableContentId;
 		LooseItemInstance.ReadTitleOverride = ObjectBehavior.Item.DefaultReadTitleOverride;

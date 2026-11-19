@@ -87,7 +87,7 @@ bool FGridEditorWorldObjectMIG05DirectItemPlacementTest::RunTest(const FString& 
 	EditorActor->LevelAsset = Level;
 
 	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(EditorActor);
-	Definition->ItemDefinitionId = TEXT("BlueGem");
+	Definition->ItemDefinitionId = TEXT("Item_Arrows_01");
 	Definition->DisplayName = FText::FromString(TEXT("Blue Gem"));
 	Definition->ItemType = EGridItemType::Gem;
 	Definition->WorldMesh = NewObject<UStaticMesh>(Definition);
@@ -95,18 +95,18 @@ bool FGridEditorWorldObjectMIG05DirectItemPlacementTest::RunTest(const FString& 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>(EditorActor);
 	FGridObjectPaletteEntry& Entry = Palette->Entries.AddDefaulted_GetRef();
 	Entry.EntryId = TEXT("BlueGem");
-	Entry.DefaultItemDefinition = Definition;
+	Entry.CanonicalItemId = Definition->ItemDefinitionId;
 	EditorActor->ObjectPalette = Palette;
 
 	EditorActor->SelectedCellX = 1;
 	EditorActor->SelectedCellY = 1;
 	EditorActor->SelectedEdge = EGridEdge::None;
 
-	TestTrue(TEXT("Direct ItemDefinition palette entry can be selected without DefaultWorldObjectDefinition"), EditorActor->ApplyPaletteEntry(Entry.EntryId));
+	TestTrue(TEXT("Direct canonical palette entry can be selected without DefaultWorldObjectDefinition"), EditorActor->ApplyPaletteEntry(Entry.EntryId));
 	TestEqual(TEXT("Direct collectible palette selects Item paint type"), EditorActor->PaintObjectType, EGridLevelObjectType::Item);
 	TestTrue(TEXT("Direct collectible palette leaves WorldObjectDefinitionId empty"), EditorActor->WorldObjectDefinitionId.IsNone());
 	TestTrue(TEXT("Direct collectible palette leaves SelectedWorldObjectDefinitionId empty"), EditorActor->SelectedWorldObjectDefinitionId.IsNone());
-	TestTrue(TEXT("Direct collectible staging references the ItemDefinition"), EditorActor->ObjectBehavior.Item.ItemDefinitionAsset == Definition);
+	TestNull(TEXT("Direct collectible staging has no old ItemDefinition"), EditorActor->ObjectBehavior.Item.ItemDefinitionAsset.Get());
 
 	EditorActor->PlaceSelectedObject();
 	TestEqual(TEXT("Direct collectible placement creates exactly one loose item"), Level->LooseItemInstances.Num(), 1);
@@ -118,7 +118,8 @@ bool FGridEditorWorldObjectMIG05DirectItemPlacementTest::RunTest(const FString& 
 	const FGridLooseItemInstance& PlacedItem = Level->LooseItemInstances[0];
 	TestEqual(TEXT("Placed collectible type is Item"), Level->GetTypedPlacementType(PlacedItem.InstanceId), EGridLevelObjectType::Item);
 	TestTrue(TEXT("Placed collectible has no companion world object"), Level->WorldObjectInstances.IsEmpty());
-	TestTrue(TEXT("Placed collectible stores the canonical ItemDefinition asset"), PlacedItem.ItemDefinition == Definition);
+	TestEqual(TEXT("Placed collectible stores the canonical ItemId"), PlacedItem.CanonicalItemId, Definition->ItemDefinitionId);
+	TestNull(TEXT("Placed collectible has no old definition"), PlacedItem.ItemDefinition.Get());
 	TestEqual(TEXT("Placement creates exactly one typed entry"), Level->GetTypedPlacementCount(), 1);
 	TestEqual(TEXT("Placed collectible keeps the selected cell X"), PlacedItem.CellX, 1);
 	TestEqual(TEXT("Placed collectible keeps the selected cell Y"), PlacedItem.CellY, 1);

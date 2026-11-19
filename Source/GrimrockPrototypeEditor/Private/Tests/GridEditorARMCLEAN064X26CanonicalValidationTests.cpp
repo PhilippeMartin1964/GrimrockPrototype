@@ -160,7 +160,11 @@ bool FGridEditorClean064X26CanonicalAuthoring::RunTest(const FString&)
 	Loose.ItemDefinition = WrongSource;
 	Messages = Editor->ValidateCurrentLevel();
 	const bool bRejectContradictory = HasSpecificError(
-		Messages, LooseId, TEXT("contradicts"));
+		Messages, LooseId, TEXT("legacy ItemDefinition"));
+	WrongSource->ItemDefinitionId = Loose.CanonicalItemId;
+	Messages = Editor->ValidateCurrentLevel();
+	const bool bRejectMatching = HasSpecificError(
+		Messages, LooseId, TEXT("legacy ItemDefinition"));
 	Loose.ItemDefinition = nullptr;
 	Spawn.CanonicalItemId = TEXT("ARM_CLEAN064X26_Unknown");
 	Messages = Editor->ValidateCurrentLevel();
@@ -171,6 +175,7 @@ bool FGridEditorClean064X26CanonicalAuthoring::RunTest(const FString&)
 	if (GEngine) { GEngine->DestroyWorldContext(World); }
 	return TestTrue(TEXT("Editor validator rejects persisted ARM N0"), bRejectN0) &&
 		TestTrue(TEXT("Editor validator rejects contradictory definition"), bRejectContradictory) &&
+		TestTrue(TEXT("Editor validator rejects matching old definition"), bRejectMatching) &&
 		TestTrue(TEXT("Editor validator rejects unregistered ItemId"), bRejectUnknown);
 }
 #endif

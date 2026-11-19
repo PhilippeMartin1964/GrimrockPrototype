@@ -145,52 +145,50 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 			Level->LooseItemInstances[0].ItemLevel, 12);
 		bOk &= TestNull(TEXT("Edited ARM is still pointerless"),
 			Level->LooseItemInstances[0].ItemDefinition.Get());
+		const FName Sword(TEXT("Weapon_StraightSword_01"));
+		bOk &= TestTrue(TEXT("Selected object changes ID without changing source palette"),
+			Editor->SetSelectedObjectItemDefinitionId(Sword));
+		bOk &= TestTrue(TEXT("Apply subsequent metadata edit"), Editor->ApplyEditedSelectedObject());
+		bOk &= TestEqual(TEXT("Metadata cannot restore stale palette identity"),
+			Level->LooseItemInstances[0].CanonicalItemId, Sword);
+		bOk &= TestEqual(TEXT("Metadata preserves N12 after explicit ID change"),
+			Level->LooseItemInstances[0].ItemLevel, 12);
+		bOk &= TestTrue(TEXT("Restore test item ID explicitly"),
+			Editor->SetSelectedObjectItemDefinitionId(Arm.CanonicalItemId));
 	}
 
 	const FGridObjectPaletteEntry OriginalArm = Arm;
-	// X.44: the REAL palette still stores 33 legacy sources beside valid
-	// canonical IDs. A matching source must be validated for ID equality,
-	// but a newly placed/explicitly edited item cannot COPY the pointer.
+	// The native palette and level no longer need the old authoring bridge.
 	UGridItemDefinitionAsset* OldMatchingArm = NewObject<UGridItemDefinitionAsset>(Palette);
 	OldMatchingArm->ItemDefinitionId = OriginalArm.CanonicalItemId;
 	FGridObjectPaletteEntry OldBackedEntry = OriginalArm;
 	OldBackedEntry.EntryId = TEXT("X44_MatchingLegacyBackedArm");
 	OldBackedEntry.DefaultItemDefinition = OldMatchingArm;
 	Palette->Entries.Add(OldBackedEntry);
-	Editor->SelectedCellX = 1;
-	Editor->SelectedCellY = 2;
-	bOk &= TestTrue(TEXT("Matching old ARM palette entry remains selectable"),
+	bOk &= TestFalse(TEXT("Even matching old palette pointer is rejected"),
 		Editor->ApplyPaletteEntry(OldBackedEntry.EntryId));
-	bOk &= TestNull(TEXT("Canonical palette stages no legacy definition"),
-		Editor->ObjectBehavior.Item.ItemDefinitionAsset.Get());
+	const int32 BeforeReject = Level->LooseItemInstances.Num();
+	Editor->SelectedPaletteEntryId = OldBackedEntry.EntryId;
 	Editor->PlaceSelectedObject();
-	bOk &= TestEqual(TEXT("Matching legacy-backed palette adds a third item"),
-		Level->LooseItemInstances.Num(), 3);
-	if (Level->LooseItemInstances.Num() == 3)
+	bOk &= TestEqual(TEXT("Bypassing palette selection cannot place legacy item"),
+		Level->LooseItemInstances.Num(), BeforeReject);
+	if (BeforeReject == 2)
 	{
-		FGridLooseItemInstance& Third = Level->LooseItemInstances[2];
-		bOk &= TestEqual(TEXT("New placement keeps canonical ItemId"), Third.CanonicalItemId,
-			OriginalArm.CanonicalItemId);
-		bOk &= TestEqual(TEXT("New placement keeps physical N20"), Third.ItemLevel, 20);
-		bOk &= TestNull(TEXT("New placement never copies the old palette pointer"),
-			Third.ItemDefinition.Get());
-		// Simulate a single historical row that the user explicitly edits.
-		Third.ItemDefinition = OldMatchingArm;
-		Third.ItemLevel = 12;
-		const FGuid PreviousId = Third.InstanceId;
-		Editor->LastSelectedObjectId = PreviousId;
-		bOk &= TestTrue(TEXT("Reselect matching historical palette item"),
-			Editor->ApplyPaletteEntry(OldBackedEntry.EntryId));
-		bOk &= TestTrue(TEXT("Explicit edit of legacy-backed canonical placement"),
+		FGridLooseItemInstance& First = Level->LooseItemInstances[0];
+		Editor->LastSelectedObjectId = First.InstanceId;
+		bOk &= TestTrue(TEXT("Reselect pointerless ARM"),
+			Editor->ApplyPaletteEntry(OriginalArm.EntryId));
+		First.ItemDefinition = OldMatchingArm;
+		const FGuid PreviousId = First.InstanceId;
+		bOk &= TestFalse(TEXT("Metadata apply rejects old persisted source"),
 			Editor->ApplyEditedSelectedObject());
-		bOk &= TestNull(TEXT("Edited canonical row drops historical source"),
-			Third.ItemDefinition.Get());
-		bOk &= TestEqual(TEXT("Explicit edit preserves physical N12"), Third.ItemLevel, 12);
-		bOk &= TestEqual(TEXT("Explicit edit preserves GUID"), Third.InstanceId, PreviousId);
-		bOk &= TestFalse(TEXT("Old pointer cannot be reattached to a canonical row"),
+		bOk &= TestEqual(TEXT("Rejection preserves GUID"), First.InstanceId, PreviousId);
+		bOk &= TestEqual(TEXT("Rejection preserves authored N12"), First.ItemLevel, 12);
+		First.ItemDefinition = nullptr;
+		bOk &= TestFalse(TEXT("Old pointer cannot be reattached"),
 			Editor->SetSelectedObjectItemDefinitionAsset(OldMatchingArm));
-		bOk &= TestNull(TEXT("Rejected reattachment leaves canonical row pointerless"),
-			Third.ItemDefinition.Get());
+		bOk &= TestNull(TEXT("Rejected reattachment leaves pointerless placement"),
+			First.ItemDefinition.Get());
 	}
 	const int32 PlacedCount = Level->LooseItemInstances.Num();
 	FGridObjectPaletteEntry Bad = OriginalArm;

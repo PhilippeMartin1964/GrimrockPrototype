@@ -136,28 +136,15 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 		return false;
 	}
 
-	// Registered collectibles are authored directly from ItemSystem. Legacy
-	// direct entries still use their existing definition until migrated.
+	// Direct collectibles are authored exclusively from the configured ItemSystem.
 	if (Entry->IsDirectItemEntry())
 	{
-		if (!IsValid(Entry->DefaultItemDefinition.Get()) &&
-			(Entry->CanonicalItemId.IsNone() || Entry->DefaultWorldObjectDefinition ||
-			 Entry->Icon))
-		{
-			return false; // Pointerless must be canonical and not a world object.
-		}
-		if (!Entry->CanonicalItemId.IsNone() &&
-			IsValid(Entry->DefaultItemDefinition.Get()) &&
-			Entry->DefaultItemDefinition->ItemDefinitionId != Entry->CanonicalItemId)
-		{
-			return false; // Legacy-backed fixture retains prior selection rules.
-		}
-		if (!Entry->CanonicalItemId.IsNone() &&
+		if (Entry->DefaultItemDefinition || Entry->DefaultWorldObjectDefinition || Entry->Icon ||
 			!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
 				ResolveEditorItemRegistry(), Entry->CanonicalItemId,
 				Entry->CanonicalDefaultItemLevel))
 		{
-			return false; // No registered ARM N0, unlevelled N1 or absent registry.
+			return false;
 		}
 		SelectedPaletteEntryId = Entry->EntryId;
 		PaintObjectType = EGridLevelObjectType::Item;
@@ -166,11 +153,6 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 		bObjectInitiallyEnabled = true;
 		bObjectInitiallyActive = false;
 		ObjectBehavior = FGridObjectBehaviorParams();
-		// X.44: the old palette definition may remain serialized solely
-		// for pre-migration reference integrity. Do not stage it for new
-		// registered placements or inspector edits.
-		ObjectBehavior.Item.ItemDefinitionAsset = Entry->CanonicalItemId.IsNone()
-			? Entry->DefaultItemDefinition.Get() : nullptr;
 		return true;
 	}
 

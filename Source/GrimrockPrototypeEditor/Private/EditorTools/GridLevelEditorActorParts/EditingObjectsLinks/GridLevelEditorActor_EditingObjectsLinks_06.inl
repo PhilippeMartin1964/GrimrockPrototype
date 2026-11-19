@@ -48,7 +48,6 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 	else if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(ObjectId))
 	{
 		ReadAuthoring(*LooseItemInstance);
-		ObjectBehavior.Item.ItemDefinitionAsset = LooseItemInstance->ItemDefinition;
 		ObjectBehavior.Item.DefaultReadableContentAsset = LooseItemInstance->ReadableContentAsset;
 		ObjectBehavior.Item.DefaultReadableContentId = LooseItemInstance->ReadableContentId;
 		ObjectBehavior.Item.DefaultReadTitleOverride = LooseItemInstance->ReadTitleOverride;

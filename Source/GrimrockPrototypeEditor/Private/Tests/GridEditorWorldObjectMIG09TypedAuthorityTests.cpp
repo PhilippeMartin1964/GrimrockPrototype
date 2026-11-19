@@ -139,8 +139,7 @@ bool FGridMIG09EditorTypedValidationTest::RunTest(const FString& Parameters)
 	FGridLooseItemInstance& LooseItem = Level->LooseItemInstances.AddDefaulted_GetRef();
 	LooseItem.InstanceId = FGuid::NewGuid();
 	LooseItem.CellX = 1;
-	LooseItem.ItemDefinition = NewObject<UGridItemDefinitionAsset>(Level);
-	LooseItem.ItemDefinition->ItemDefinitionId = TEXT("MIG09_DirectItem");
+	LooseItem.CanonicalItemId = TEXT("Item_Arrows_01");
 	FGridItemSpawnInstance& ItemSpawn = Level->ItemSpawns.AddDefaulted_GetRef();
 	ItemSpawn.SpawnId = FGuid::NewGuid();
 	ItemSpawn.CellX = 2;
@@ -162,7 +161,7 @@ bool FGridMIG09EditorTypedValidationTest::RunTest(const FString& Parameters)
 	};
 	TArray<FGridLevelValidationMessage> Messages = Fixture.Editor->ValidateCurrentLevel();
 	TestFalse(TEXT("Direct item needs no world definition"), HasError(Messages, LooseItem.InstanceId, TEXT("definition")));
-	TestTrue(TEXT("Spawner requires its own item definition"), HasError(Messages, ItemSpawn.SpawnId, TEXT("ItemDefinition")));
+	TestTrue(TEXT("Spawner requires its own item definition"), HasError(Messages, ItemSpawn.SpawnId, TEXT("ItemId")));
 	TestTrue(TEXT("Relay cannot reset like a Latch"), HasError(Messages, Logic.InstanceId, TEXT("not supported")));
 	TestTrue(TEXT("Diagnostic resolves native location"), Messages.ContainsByPredicate([&ItemSpawn](const FGridLevelValidationMessage& Message)
 	{

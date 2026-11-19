@@ -96,10 +96,10 @@ bool FGridClean063ANAuthoring::RunTest(const FString&)
 		Editor->LevelAsset = Level;
 		FGridLooseItemInstance& Loose = Level->LooseItemInstances.AddDefaulted_GetRef();
 		Loose.InstanceId = FGuid::NewGuid();
-		Loose.ItemDefinition = Sword.Get();
+		Loose.CanonicalItemId = Sword->ItemDefinitionId;
 		Loose.ItemLevel = 1;
 		Editor->LastSelectedObjectId = Loose.InstanceId;
-		TestTrue(TEXT("Actor can author canonical ARM despite old false flag"),
+		TestTrue(TEXT("Actor can author explicit canonical ARM"),
 			Editor->SetSelectedObjectItemLevel(20));
 		TestEqual(TEXT("Loose item fixed N20 persisted"), Loose.ItemLevel, 20);
 		TestFalse(TEXT("Actor cannot restore obsolete default sentinel"),

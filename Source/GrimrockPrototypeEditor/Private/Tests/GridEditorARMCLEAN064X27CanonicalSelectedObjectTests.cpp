@@ -57,21 +57,21 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	Loose.InstanceId = FGuid::NewGuid();
 	Loose.CellX = 1;
 	Loose.CellY = 1;
-	Loose.ItemDefinition = HistoricDagger;
+	Loose.CanonicalItemId = Dagger;
 	Loose.ItemLevel = 20;
 	Loose.Quantity = 1;
 	const FGuid StableLooseId = Loose.InstanceId;
 	Editor->LastSelectedObjectId = StableLooseId;
 
-	// Simply re-entering the ID shown by the inspector is a strict no-op.
-	// It must NOT drop an old definition before native visual parity.
-	bool bOk = TestTrue(TEXT("Recommit historical ID succeeds"),
-		Editor->SetSelectedObjectItemDefinitionId(Dagger)) &&
-		TestTrue(TEXT("Recommit does not drop legacy presentation"),
-			Loose.ItemDefinition == HistoricDagger) &&
-		TestTrue(TEXT("Recommit does not invent canonical authoring"),
-			Loose.CanonicalItemId.IsNone());
-
+	bool bOk = TestTrue(TEXT("Recommit valid canonical ID succeeds"),
+		Editor->SetSelectedObjectItemDefinitionId(Dagger));
+	Loose.ItemDefinition = HistoricDagger;
+	bOk &= TestFalse(TEXT("Even a matching old pointer blocks authoring"),
+		Editor->SetSelectedObjectItemDefinitionId(Dagger));
+	bOk &= TestFalse(TEXT("Old pointer blocks level edits"),
+		Editor->SetSelectedObjectItemLevel(12));
+	bOk &= TestEqual(TEXT("Rejected edit preserves N20"), Loose.ItemLevel, 20);
+	Loose.ItemDefinition = nullptr;
 	// Explicitly changing the item family is new authoring: old source is
 	// dropped, but GUID, quantity and a valid physical level stay stable.
 	bOk &= TestTrue(TEXT("Select canonical sword by ID"),

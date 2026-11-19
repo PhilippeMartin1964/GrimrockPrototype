@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.22 — Authoring strict des objets libres
+
+Parent 85c4d7df83334cb387fd88c36ea7e52b0a5e7eb2 : publication après ses deux statuts SUCCESS et revue des fixtures restantes. Placement, édition, niveau, identité, validation et inspecteur n'acceptent plus de source historique. X.26/X.27/X.28/3AN/TD033/MIG05/MIG09 actualisés. Propriété et API réfléchies conservées provisoirement jusqu'au retrait par dépendance. Aucun asset ni SaveGame modifié. Voir [5G.22](ARM_CLEAN06_5G22_STRICT_LOOSE_ITEM_AUTHORING.md).
+
 ## ARM-CLEAN06.5G.21 — Matérialisation runtime des objets au sol
 
 Parent b6562b17a3dd618f158202c874913cb012534f34 : publication uniquement après deux statuts SUCCESS. AddPlacedItemActor ne matérialise désormais que les placements portant un ItemId canonique explicite, GUID, niveau, quantité valides et aucun ancien pointeur. X.8, LIGHT02, MON11.4.2, ARM0181 conservent présentation, lumière, reconstruction unique, pickup et sauvegarde. Les anciens scans servant encore de catalogue aux fixtures de transfert sont isolés pour le lot suivant ; aucun changement de sauvegarde. Voir [5G.21](ARM_CLEAN06_5G21_STRICT_LOOSE_ITEM_RUNTIME.md).

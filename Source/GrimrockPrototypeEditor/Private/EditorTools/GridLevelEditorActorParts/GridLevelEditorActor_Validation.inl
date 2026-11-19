@@ -469,31 +469,13 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		FGuid ObjectId, const UGridItemDefinitionAsset* Definition,
 		FName CanonicalItemId, int32 PhysicalLevel, int32 Quantity)
 	{
-		if (!CanonicalItemId.IsNone())
-		{
-			const UGridItemSubsystem* Registry = ResolveEditorItemRegistry();
-			if (IsValid(Definition) && Definition->ItemDefinitionId != CanonicalItemId)
-			{
-				AddMessage(EGridLevelValidationSeverity::Error,
-					TEXT("Canonical ItemId contradicts the old ItemDefinition asset."), ObjectId);
-			}
-			if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
-				Registry, CanonicalItemId, PhysicalLevel))
-			{
-				AddMessage(EGridLevelValidationSeverity::Error,
-					TEXT("Canonical item placement requires an ItemId registered with a valid physical ItemLevel."), ObjectId);
-			}
-		}
-		else if (!IsValid(Definition))
-		{
+		if (IsValid(Definition))
 			AddMessage(EGridLevelValidationSeverity::Error,
-				TEXT("Item placement requires an ItemDefinition or CanonicalItemId."), ObjectId);
-		}
-		else if (Definition->ItemDefinitionId.IsNone())
-		{
+				TEXT("Item placement must not reference a legacy ItemDefinition asset."), ObjectId);
+		if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			ResolveEditorItemRegistry(), CanonicalItemId, PhysicalLevel))
 			AddMessage(EGridLevelValidationSeverity::Error,
-				TEXT("Placed item references an item definition asset whose ItemDefinitionId is empty."), ObjectId);
-		}
+				TEXT("Canonical item placement requires an ItemId registered with a valid physical ItemLevel."), ObjectId);
 		if (Quantity < 1)
 		{
 			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Item placement requires Quantity >= 1."), ObjectId);
