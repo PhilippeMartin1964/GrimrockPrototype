@@ -217,8 +217,10 @@ public:
 	 */
 	bool TryConsumeSelfRestorativeQuickItem(int32 CharacterIndex, FGuid SourceRuntimeObjectId, FText& OutError);
 
-	/** Historical native registry API; not exposed to Blueprint. */
+#if WITH_DEV_AUTOMATION_TESTS
+	/** Historical fixture registration only; production has no native caller. */
 	bool RegisterItemDefinition(UGridItemDefinitionAsset* Definition);
+#endif
 
 	/** Production New Game/Continue: validate against the configured registry; never restore old definitions. */
 	bool RehydrateCanonicalOwnedItemDefinitions(FName& OutMissingDefinitionId);

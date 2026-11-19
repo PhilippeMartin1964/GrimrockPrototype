@@ -1506,6 +1506,7 @@ bool UGridPartyInventoryComponent::TryConsumeSelfRestorativeQuickItem(
     return true;
 }
 
+#if WITH_DEV_AUTOMATION_TESTS
 bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAsset* Definition)
 {
 	if (!Definition || Definition->ItemDefinitionId.IsNone())
@@ -1542,6 +1543,7 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAss
 
 	return true;
 }
+#endif // WITH_DEV_AUTOMATION_TESTS
 
 bool UGridPartyInventoryComponent::RehydrateCanonicalOwnedItemDefinitions(FName& OutMissingDefinitionId)
 {

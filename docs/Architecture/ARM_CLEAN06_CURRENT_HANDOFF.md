@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.39 — Enregistrement historique réservé aux fixtures Automation
+
+Parent 175ba1043faab4c7e93e9dc7089fb2454af44231. Publication conditionnée aux deux statuts SUCCESS du correctif 5G.38 (TD06.8). RegisterItemDefinition est compilée uniquement sous WITH_DEV_AUTOMATION_TESTS. Recherche indexée : 64 fichiers de tests, aucun appelant natif hors tests identifié. La construction des kits historiques peut encore alimenter le cache ; FindItemDefinition conserve des lecteurs natifs. Voir [5G.39](ARM_CLEAN06_5G39_INVENTORY_REGISTRATION_AUTOMATION_ONLY.md). Aucun asset ni SaveGame écrit.
+
 ## ARM-CLEAN06.5G.38 correctif — Contrat TD06.8
 
 Parent 17a2d9fe562652d8f2d81345f6805c0d8f3b6c9a. Issue #205 : LocalAuto a échoué sur le seul test Grimrock.TechnicalDebt.TD06_8.PartyInventoryItemDefinitionRegistry.Contract ; celui-ci exigeait encore la réflexion des deux API retirées. Inverser ces deux assertions et préserver la réflexion BlueprintCallable de ApplyItemDefinitionToInstance et tous les tests natifs. Attendre les deux statuts du correctif avant de rebaser et publier 5G.39. Aucun changement runtime ni asset.
