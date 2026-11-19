@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.9 — Retrait des déclencheurs de migration terminés
+
+Parent b35f8ce024bd54407d8eb6d6d417642c33ac0131 : publication de ce lot conditionnée aux deux statuts SUCCESS sur le parent. Les anciens hooks exact-SHA ARM sont retirés de l'agent et de ValidateUE ; les contrôles généraux, les trois auto-tests des sauvegardes/rollback et les récupérations non-ARM restent présents. Aucune suppression de packages, SaveGame, reçus ou fichiers de sauvegarde. Attendre les deux statuts Windows du présent SHA avant le retrait par dépendance des outils historiques. Voir ARM_CLEAN06_5G9_RETIRE_MIGRATION_HOOKS.md.
+
 ## ARM-CLEAN06.5G.8 — Contrat physique unique
 
 Parent b7ba5f7ee906e58aa55f6094b300ee7b2e2da879 : SilentTask et LocalAuto SUCCESS. ResolveItem refuse ARM N0 et non-ARM N1–N20 avant toute projection. Tests historiques alignés, 542 rejets natifs supplémentaires, commentaires obsolètes corrigés. Aucun asset, SaveGame, texte joueur ou WBP modifié. Validation du présent SHA obligatoire ; les contrôles physiques périphériques sont conservés. Suite 5G.9 : draft 65f1a4a71ddbe5295a0888f634319ad4565c8980, rebaser uniquement ses fichiers après les deux statuts du HEAD. Le retrait des classes et assets historiques reste ouvert avant 06.6.
