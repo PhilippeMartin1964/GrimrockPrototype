@@ -38,7 +38,7 @@ bool FGridEditorARMCLEAN064X55NativePalette::RunTest(const FString&)
         *Source, Registry.Get(), Plan, Old, Error);
     if (!TestTrue(*FString::Printf(TEXT("Real palette dry-run: %s"), *Error), bPlanned) ||
         !TestEqual(TEXT("Complete palette entry count preserved"), Plan.Num(), Original.Num()) ||
-        !TestTrue(TEXT("All 33 pointers present or all absent"), Old == 33 || Old == 0))
+        !TestEqual(TEXT("All 33 pointers already removed"), Old, 0))
         return false;
 
     auto SameEntry = [](const FGridObjectPaletteEntry& A, const FGridObjectPaletteEntry& B)
@@ -60,9 +60,8 @@ bool FGridEditorARMCLEAN064X55NativePalette::RunTest(const FString&)
             ++Direct;
             if (Expected.CanonicalDefaultItemLevel > 0 && ArmIndex == INDEX_NONE)
                 ArmIndex = Index;
-            Expected.DefaultItemDefinition = nullptr;
         }
-        if (!TestTrue(TEXT("Only the historical pointer may differ; order and all reflected fields preserved"),
+        if (!TestTrue(TEXT("Order and all reflected fields preserved"),
             SameEntry(Expected, Plan[Index])) ||
             !TestTrue(TEXT("Original entry untouched"), SameEntry(Original[Index], Source->Entries[Index])))
             return false;
@@ -105,12 +104,11 @@ bool FGridEditorARMCLEAN064X55NativePalette::RunTest(const FString&)
     Copy->Entries = Plan;
     Copy->Entries.RemoveAt(ArmIndex);
     if (!Refuses(TEXT("Unexpected number of direct items rejected"))) return false;
-    if (Old == 33)
-    {
-        Copy->Entries = Original;
-        Copy->Entries[ArmIndex].DefaultItemDefinition = nullptr;
-        if (!Refuses(TEXT("Partly converted native palette rejected"))) return false;
-    }
+    Copy->Entries = Plan;
+    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(Copy.Get());
+    Legacy->ItemDefinitionId = Plan[ArmIndex].CanonicalItemId;
+    Copy->Entries[ArmIndex].DefaultItemDefinition = Legacy;
+    if (!Refuses(TEXT("Even matching historical pointer rejected after cutover"))) return false;
 
     AddInfo(FString::Printf(TEXT("[ARM-CLEAN06.4X55] 33 real direct entries, old=%d; "
         "complete pointerless projection, field and presentation parity, no SavePackage."), Old));

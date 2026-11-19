@@ -1,0 +1,5 @@
+# ARM-CLEAN06.5G.26 — Présentation de la palette sans repli historique
+
+Précondition : deux statuts SUCCESS sur 96bd3aaf4b69f8e6ec075d79d3c3ba972f1ffe4c. Pour toute entrée directe, nom/description/icône ne peuvent provenir que de ItemSystem, avec ItemId et niveau physique exacts. Les entrées legacy-only, les anciens pointeurs même concordants, les IDs inconnus, les niveaux invalides et les entrées mixtes sont refusés. Un ItemId/EntryId peut servir de libellé diagnostic, jamais une ancienne présentation. Slate désactive les tuiles directes non résolues ; un clic dont ApplyPaletteEntry échoue n'active pas PaintObject et n'ajoute rien aux récents. Les catégories, favoris, recherche et monde non collectible sont inchangés.
+
+Le contrôle X.55 devient une preuve en lecture seule de la palette publiée (33 entrées directes, zéro pointeur, toutes les propriétés identiques) plutôt qu'une conversion ancienne. X.13/X.14 conservent la comparaison aux valeurs résolues et ajoutent des refus explicites. Le champ physique DefaultItemDefinition, ses anciens outils de proposition et ses tests spécifiques restent pour le retrait séparé du schéma. Aucun package ni SaveGame modifié.

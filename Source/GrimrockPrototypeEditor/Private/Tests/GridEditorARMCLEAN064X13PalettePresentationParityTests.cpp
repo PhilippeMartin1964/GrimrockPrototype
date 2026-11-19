@@ -83,7 +83,7 @@ bool Verify(FAutomationTestBase& Test, EField Field)
         if (!bSame) {++Differences;}
     }
     if (!Test.TestEqual(TEXT("All 33 real direct entries checked"), Count, 33) ||
-        !Test.TestTrue(TEXT("Native palette is entirely pre/post conversion"), OldPointers == 33 || OldPointers == 0) ||
+        !Test.TestTrue(TEXT("Native palette is entirely pre/post conversion"), OldPointers == 0) ||
         !Test.TestEqual(TEXT("No UI field can change silently at cutover"),
             Differences, 0) ||
         !Test.TestEqual(TEXT("Read-only palette"), F.Palette->GetOutermost()->IsDirty(), bPaletteDirty) ||

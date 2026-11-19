@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.26 — Présentation canonique stricte de la palette
+
+Parent 96bd3aaf4b69f8e6ec075d79d3c3ba972f1ffe4c : publication après validation complète. Le lecteur Slate ne peut plus afficher le texte, la description ou l'icône d'une ancienne définition, même correspondant à l'ID canonique. Une tuile directe non résolue est désactivée et la sélection refusée ne change ni l'outil ni l'historique. X.13/X.14/X.55 prouvent les 33 entrées finales et le refus de source historique. La propriété DefaultItemDefinition des outils anciens reste distincte. Aucun asset ni SaveGame modifié. Voir [5G.26](ARM_CLEAN06_5G26_STRICT_PALETTE_PRESENTATION.md).
+
 ## ARM-CLEAN06.5G.25.1 — Correctif de compilation MIG05 (issue #204)
 
 5G.25 a supprimé les deux champs du scratch mais le test PaletteRejectsDualDefinition les écrivait encore. Remplacement des anciennes fixtures impossibles par deux assertions de réflexion, maintien des refus du type Item et des résolutions runtime depuis les WorldObjectDefinitions et réceptacles. Aucun changement de production. Valider le SHA du correctif avant 5G.26.

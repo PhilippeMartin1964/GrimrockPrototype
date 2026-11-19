@@ -6,10 +6,9 @@
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UObjectGlobals.h"
 
-/** ARM-CLEAN06.4X.55: bounded native palette conversion plan.
- *  No Modify, MarkPackageDirty or SavePackage. Caller owns publication.
- *  Only the 33 already registered direct entries may lose a pointer;
- *  a partly converted production palette is deliberately rejected.
+/** ARM-CLEAN06.4X.55 / 5G.26: read-only proof of the final native palette.
+ * No Modify, MarkPackageDirty or SavePackage. Every direct row must already
+ * be pointerless; this is no longer a migration path.
  */
 struct FGridEditorNativePalettePlan
 {
@@ -31,7 +30,6 @@ struct FGridEditorNativePalettePlan
 
         TArray<FGridObjectPaletteEntry> Candidate = Source.Entries;
         int32 Direct = 0;
-        int32 Old = 0;
         for (FGridObjectPaletteEntry& Entry : Candidate)
         {
             if (!Entry.IsDirectItemEntry())
@@ -39,12 +37,10 @@ struct FGridEditorNativePalettePlan
                 continue;
             }
             ++Direct;
-            const UGridItemDefinitionAsset* Legacy = Entry.DefaultItemDefinition.Get();
             if (Entry.CanonicalItemId.IsNone() ||
                 !Entry.IsValidEntry() ||
                 Entry.DefaultMonsterDefinition || Entry.DefaultStoryCompanionDefinition ||
-                (Legacy && (!IsValid(Legacy) ||
-                    Legacy->ItemDefinitionId != Entry.CanonicalItemId)))
+                Entry.DefaultItemDefinition)
             {
                 Error = FString::Printf(TEXT("Invalid direct entry: %s"), *Entry.EntryId.ToString());
                 return false;
@@ -58,19 +54,6 @@ struct FGridEditorNativePalettePlan
                     *Entry.EntryId.ToString());
                 return false;
             }
-            if (Legacy)
-            {
-                ++Old;
-                if (Entry.GetEffectiveDisplayName().ToString() != Before.DisplayName.ToString() ||
-                    Legacy->Description.ToString() != Before.Description.ToString() ||
-                    Legacy->Icon.ToSoftObjectPath() != Before.Icon.ToSoftObjectPath())
-                {
-                    Error = FString::Printf(TEXT("Historical presentation differs: %s"),
-                        *Entry.EntryId.ToString());
-                    return false;
-                }
-            }
-            Entry.DefaultItemDefinition = nullptr;
             const FGridEditorCanonicalPaletteReadView After =
                 FGridEditorCanonicalPaletteReadModel::Resolve(Entry, Registry);
             if (!Entry.IsValidEntry() || !After.bCanonicalSource || !After.bResolved ||
@@ -84,10 +67,9 @@ struct FGridEditorNativePalettePlan
                 return false;
             }
         }
-        if (Direct != ExpectedDirectEntries || (Old != 0 && Old != ExpectedDirectEntries))
+        if (Direct != ExpectedDirectEntries)
         {
-            Error = FString::Printf(TEXT("Expected 33 direct entries and 33 or 0 old pointers, got %d/%d."),
-                Direct, Old);
+            Error = FString::Printf(TEXT("Expected 33 canonical direct entries, got %d."), Direct);
             return false;
         }
         TStrongObjectPtr<UGridObjectPaletteAsset> Copy(
@@ -98,7 +80,6 @@ struct FGridEditorNativePalettePlan
             Error = TEXT("Pointerless candidate failed structural palette validation.");
             return false;
         }
-        OldPointers = Old;
         Out = MoveTemp(Candidate);
         return true;
     }

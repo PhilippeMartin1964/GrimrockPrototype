@@ -61,7 +61,7 @@ bool FGridEditorClean064X14SlateReadModel::RunTest(const FString&)
         if (Entry.CanonicalDefaultItemLevel > 0 && !Arm) {Arm = &Entry;}
     }
     if (!TestEqual(TEXT("33 real direct entries"), Count, 33) ||
-        !TestTrue(TEXT("Complete native palette state"), OldPointers == 33 || OldPointers == 0) ||
+        !TestTrue(TEXT("Complete native palette state"), OldPointers == 0) ||
         !TestNotNull(TEXT("At least one ARM entry exists"), Arm))
         {return false;}
 
@@ -85,16 +85,25 @@ bool FGridEditorClean064X14SlateReadModel::RunTest(const FString&)
         !TestTrue(TEXT("Conflicting source has no legacy description"), Invalid.Description.IsEmpty()))
         {return false;}
 
+    Bad = *Arm;
+    Bad.DefaultItemDefinition = Fixture.Get();
+    const FGridEditorCanonicalPaletteReadView MatchingOld =
+        FGridEditorCanonicalPaletteReadModel::Resolve(Bad, Registry.Get());
+    if (!TestFalse(TEXT("Even agreeing historical pointer cannot supply presentation"), MatchingOld.bResolved) ||
+        !TestTrue(TEXT("No old icon or description"), MatchingOld.Icon.IsNull() && MatchingOld.Description.IsEmpty()))
+        return false;
     FGridObjectPaletteEntry Legacy = *Arm;
     Legacy.CanonicalItemId = NAME_None;
     Legacy.DefaultItemDefinition = Fixture.Get();
     const FGridEditorCanonicalPaletteReadView Old =
-        FGridEditorCanonicalPaletteReadModel::Resolve(Legacy, nullptr);
-    return TestFalse(TEXT("Synthetic fixture not considered canonical"), Old.bCanonicalSource) &&
-        TestTrue(TEXT("Synthetic fixture retains historical icon and text"),
-            Old.bResolved &&
-            Old.Icon.ToSoftObjectPath() == Legacy.DefaultItemDefinition->Icon.ToSoftObjectPath() &&
-            Old.DisplayName.ToString() == Legacy.GetEffectiveDisplayName().ToString()) &&
+        FGridEditorCanonicalPaletteReadModel::Resolve(Legacy, Registry.Get());
+    const FGridEditorCanonicalPaletteReadView NoRegistry =
+        FGridEditorCanonicalPaletteReadModel::Resolve(*Arm, nullptr);
+    return TestFalse(TEXT("Old-only entry has no canonical identity"), Old.bCanonicalSource) &&
+        TestFalse(TEXT("Legacy-only tile cannot resolve"), Old.bResolved) &&
+        TestTrue(TEXT("Legacy-only tile has no historical presentation"), Old.Icon.IsNull() &&
+            Old.Description.IsEmpty() && Old.DisplayName.ToString() == Legacy.EntryId.ToString()) &&
+        TestFalse(TEXT("Missing registry cannot resolve"), NoRegistry.bResolved) &&
         TestEqual(TEXT("No native palette mutation"), Palette->GetOutermost()->IsDirty(), bPaletteDirty) &&
         TestEqual(TEXT("No registry mutation"), Root->GetOutermost()->IsDirty(), bRootDirty);
 }

@@ -943,6 +943,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteTile(const FGridObj
 			+ SOverlay::Slot()
 			[
 				SNew(SButton)
+					.IsEnabled(!Entry.IsDirectItemEntry() || CanonicalView.bResolved)
 					.ContentPadding(FMargin(3.f))
 					.ButtonColorAndOpacity(
 						bSelected
@@ -1021,9 +1022,11 @@ FReply SGridEditorToolPalettePanel::OnPaletteEntryClicked(FName EntryId)
 	if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
 	{
 		CurrentEditorActor->Modify();
-		CurrentEditorActor->ApplyPaletteEntry(EntryId);
-		CurrentEditorActor->ActiveTool = EGridEditorTool::PaintObject;
-		AddRecentEntry(EntryId);
+		if (CurrentEditorActor->ApplyPaletteEntry(EntryId))
+		{
+			CurrentEditorActor->ActiveTool = EGridEditorTool::PaintObject;
+			AddRecentEntry(EntryId);
+		}
 		RequestRefresh();
 	}
 	return FReply::Handled();
