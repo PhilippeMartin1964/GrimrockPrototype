@@ -12,8 +12,6 @@ class UButton;
 class UDragDropOperation;
 class UGridCombatActionPanelWidget;
 class UGridCombatHotbarDragDropOperation;
-class UGridEquippedWeaponActionIconPalette;
-class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 class UGridTurnManagerComponent;
 class UImage;
@@ -238,11 +236,6 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UImage> Image_ActionIcon;
 
-	/** Historical serialized WBP field; never read for live rendering.
-	 * Native 5F detaches the reference before schema retirement. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|HUD|Icons")
-	TObjectPtr<UGridEquippedWeaponActionIconPalette> EquippedWeaponActionIconPalette;
-
 	/** Historical no-registry dual fallback only; canonical dual uses ItemSystem. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|HUD|Icons")
 	TSoftObjectPtr<UTexture2D> DualAttackIcon;
@@ -256,12 +249,9 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UTextBlock> Text_Quantity;
 
-	/** A single Image_ActionIcon is used for every equipped weapon action.
-	 * Empty palette entries and non-equipment actions keep their existing icon. */
+	/** Explicit action icon for sources outside the canonical equipment path. */
 	static TSoftObjectPtr<UTexture2D> ResolveDisplayedIcon(
-		const FGridCombatHudActionView& ActionView, const TSoftObjectPtr<UTexture2D>& InDualAttackIcon,
-		const UGridEquippedWeaponActionIconPalette* Palette = nullptr,
-		const UGridItemDefinitionAsset* EquippedDefinition = nullptr);
+		const FGridCombatHudActionView& ActionView, const TSoftObjectPtr<UTexture2D>& InDualAttackIcon);
 
 	void InitializeAction(UGridCombatHudWidget* InOwnerHud, const FGridCombatHudActionView& InView);
 

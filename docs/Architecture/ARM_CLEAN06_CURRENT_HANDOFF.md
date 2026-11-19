@@ -5,9 +5,13 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.1 — retrait du schéma et du second classificateur d'icônes
+
+5F.1 e1790a0b531011eebf9a72a1e99b8b24ab508d76 : trois statuts SUCCESS. Enfant binaire 2dfdd7fbc93203c5e6e6865b12f3a52880ae0f7c : deux statuts SUCCESS, seul WBP_GridCombatHudAction modifié. Publication désormais autorisée. Retrait de la propriété historique et de son helper de classification : les 82 archétypes et les cas négatifs passent par FGridCanonicalActionIconReadModel (LOT02.20 conservé). L'énumération stable est indépendante de l'ancienne classe de palette conservée uniquement pour les projections historiques. Gate permanent zéro arête externe et chargement du WBP natif, retrait des quatre outils one-shot et de leur hook. Aucun changement de texte, asset ou SaveGame. Voir [5G.1](ARM_CLEAN06_5G1_HUD_PALETTE_SCHEMA_RETIREMENT.md).
+
 ## ARM-CLEAN06.5F.1 — correctif de liaison
 
-fe491a4e902b34195c483ef8ae4ba69f7748f00a en échec BUILD_FAILED (issue #201, LNK2019/LNK2001/LNK1120). Aucun symbole précis publié ; les méthodes directes UMG MinimalAPI et K2 sont remplacées par la réflexion CoreUObject, la classe générique UBlueprint et l'inspection des sous-objets de Designer et graphes, UMG explicite. Runner one-shot relancé sur la filiation exacte avec le même diff cumulé. Aucun changement runtime, asset ou save. Attendre les deux statuts et statut natif, puis enfant binaire. 5G.1 draft 4c09c3d81fea31471e280bd4fa37fae14ff9fd64 à rebaser et revoir après preuve.
+fe491a4e902b34195c483ef8ae4ba69f7748f00a en échec BUILD_FAILED (issue #201, LNK2019/LNK2001/LNK1120). Aucun symbole précis publié ; les méthodes directes UMG MinimalAPI et K2 sont remplacées par la réflexion CoreUObject, la classe générique UBlueprint et l'inspection des sous-objets de Designer et graphes, UMG explicite. Runner one-shot relancé sur la filiation exacte avec le même diff cumulé. Aucun changement runtime, asset ou save. Attendre les deux statuts et statut natif, puis enfant binaire. 5G.1 rebasé après preuve. Draft 5G.2 (Details canoniques) dd4425289b7a3002b3e4964c14d7cb25cd40a74b : reprendre exclusivement ses quatre fichiers après deux statuts du nouveau HEAD. Draft 5G.3 (retrait producteurs historiques) 9f3bad580a04c90ca777a80fc583e6502b06f543 : reprendre exclusivement ses 21 fichiers après 5G.2 validé.
 
 ## ARM-CLEAN06.5F — palette d'icônes, transaction native du WBP
 

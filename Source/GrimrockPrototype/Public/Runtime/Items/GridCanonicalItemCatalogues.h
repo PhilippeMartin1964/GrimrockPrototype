@@ -6,7 +6,7 @@
 #include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
-#include "UI/GridEquippedWeaponActionIconPalette.h"
+#include "Runtime/Items/GridEquippedWeaponActionIconTypes.h"
 #include "GridCanonicalItemCatalogues.generated.h"
 
 class UNiagaraSystem;

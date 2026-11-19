@@ -26,9 +26,8 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         Audit.Report->GetArrayField(TEXT("legacy_ids_without_canonical")).Num(), 0);
     TestEqual(TEXT("All canonical identities have historical evidence"),
         Audit.Report->GetArrayField(TEXT("canonical_ids_without_legacy_source")).Num(), 0);
-    AddInfo(FString::Printf(TEXT("[ARM-CLEAN06.5A] Candidate assets=%d external edges=%d (diagnostic, NOT a deletion gate)"),
-        int32(Audit.Report->GetNumberField(TEXT("candidate_asset_count"))),
-        int32(Audit.Report->GetNumberField(TEXT("external_referencer_edges")))));
+    TestEqual(TEXT("No external package referencer remains after native 5F"),
+        int32(Audit.Report->GetNumberField(TEXT("external_referencer_edges"))), 0);
     return !HasAnyErrors();
 }
 

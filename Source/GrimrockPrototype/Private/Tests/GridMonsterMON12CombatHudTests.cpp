@@ -36,7 +36,7 @@
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "UI/GridCombatHudWidget.h"
-#include "UI/GridEquippedWeaponActionIconPalette.h"
+#include "../Runtime/Combat/GridCanonicalActionIconReadModel.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UObject/UObjectGlobals.h"
@@ -2839,9 +2839,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT0220EquippedIconCategories,
 bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 {
 	using Kind = EGridEquippedWeaponActionIconKind;
-	UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>();
-	Item->ItemType = EGridItemType::Weapon;
-	Item->bUseWeaponCatalogue = true;
+	FGridResolvedItem Item;
+	Item.Error = EGridCanonicalItemResolveError::None;
+	Item.ItemId = TEXT("IconFamilyFixture");
+	Item.ItemLevel = 1;
+	Item.bIsArmament = true;
+	Item.Weapon.Kind = EGridCanonicalArmamentKind::Weapon;
 
 	FGridAvailableCombatAction Action;
 	Action.Definition.ActionId = FName(TEXT("Attack_Test"));
@@ -2851,6 +2854,7 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 	Action.SourceEquipmentSlot = EGridEquipmentSlot::MainHand;
 	Action.SourceRuntimeId = FGuid(20,1,1,1);
 	Action.bEnabled = true;
+	Item.AvailableActions.AddDefaulted_GetRef().ActionId = Action.Definition.ActionId;
 
 	struct FExpectedIconFamily
 	{
@@ -2875,10 +2879,10 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 	{
 		for (int32 Id = Family.First; Id <= Family.Last; ++Id)
 		{
-			Item->WeaponArchetypeId = FName(*FString::Printf(TEXT("ARM%03d"), Id));
+			Item.ArchetypeId = FName(*FString::Printf(TEXT("ARM%03d"), Id));
 			Action.Definition.ActionType = Family.Type;
-			TestEqual(FString::Printf(TEXT("Visual family of %s"), *Item->WeaponArchetypeId.ToString()),
-				FGridEquippedWeaponActionIconResolver::Classify(Action, Item), Family.Expected);
+			TestEqual(FString::Printf(TEXT("Visual family of %s"), *Item.ArchetypeId.ToString()),
+				FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Family.Expected);
 		}
 	}
 	// Complete the 82-archtype audit: passive focus objects (70-71)
@@ -2886,97 +2890,84 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 	Action.Definition.ActionType = EGridCombatActionType::RangedAttack;
 	for (int32 Id = 70; Id <= 82; ++Id)
 	{
-		Item->ItemType = Id <= 71 ? EGridItemType::Weapon : EGridItemType::Shield;
-		Item->WeaponArchetypeId = FName(*FString::Printf(TEXT("ARM%03d"), Id));
+		Item.Weapon.Kind = Id <= 71 ? EGridCanonicalArmamentKind::Focus : EGridCanonicalArmamentKind::Shield;
+		Item.AvailableActions.Reset();
+		Item.ArchetypeId = FName(*FString::Printf(TEXT("ARM%03d"), Id));
 		TestEqual(FString::Printf(TEXT("Passive ARM%03d has no offensive icon"), Id),
-			FGridEquippedWeaponActionIconResolver::Classify(Action, Item), Kind::None);
+			FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 	}
-	Item->ItemType = EGridItemType::Weapon;
+	Item.Weapon.Kind = EGridCanonicalArmamentKind::Weapon;
 	// A thrown weapon switched to an actually authored melee action takes
 	// the one-handed melee icon, not its default thrown classification.
-	Item->WeaponArchetypeId = TEXT("ARM054");
+	Item.AvailableActions.AddDefaulted_GetRef().ActionId = Action.Definition.ActionId;
+	Item.ArchetypeId = TEXT("ARM054");
 	Action.Definition.ActionType = EGridCombatActionType::MeleeAttack;
 	TestEqual(TEXT("Thrown knife melee mode has an individual melee icon"),
-		FGridEquippedWeaponActionIconResolver::Classify(Action, Item), Kind::MeleeOneHand);
-	Item->WeaponArchetypeId = TEXT("ARM010");
-	Item->bCombatThrowWeapon = true;
+		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::MeleeOneHand);
+	Item.ArchetypeId = TEXT("ARM010");
 	Action.Definition.ActionType = EGridCombatActionType::RangedAttack;
 	TestEqual(TEXT("Combat throwable hatchet uses throw icon for throw mode"),
-		FGridEquippedWeaponActionIconResolver::Classify(Action, Item), Kind::ThrownWeapon);
-	Item->bCombatThrowWeapon = false;
+		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::ThrownWeapon);
 	Action.Definition.ActionType = EGridCombatActionType::MeleeAttack;
 	Action.Definition.ActionId = FGridDualWieldPolicy::ActionId();
 	TestEqual(TEXT("Two physical one-handed attacks share one dual icon"),
-		FGridEquippedWeaponActionIconResolver::Classify(Action, Item), Kind::MeleeDualWield);
+		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::MeleeDualWield);
 
 	Action.Definition.ActionId = TEXT("Action_Test");
-	Item->ItemType = EGridItemType::Shield;
+	Item.AvailableActions.Reset();
+	Item.Weapon.Kind = EGridCanonicalArmamentKind::Shield;
 	Action.Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-	Item->WeaponArchetypeId = TEXT("ARM075");
+	Item.ArchetypeId = TEXT("ARM075");
 	TestEqual(TEXT("A passive shield must never manufacture an offensive icon"),
-		FGridEquippedWeaponActionIconResolver::Classify(Action, Item), Kind::None);
+		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 	Action.Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Defense;
 	Action.Definition.ActionType = EGridCombatActionType::Defend;
+	TestEqual(TEXT("Unbound passive shield has no defensive shortcut"),
+		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
+	Item.AvailableActions.AddDefaulted_GetRef().ActionId = Action.Definition.ActionId;
 	TestEqual(TEXT("Only a real shield defense action receives a block icon"),
-		FGridEquippedWeaponActionIconResolver::Classify(Action, Item), Kind::DefenseBlock);
-	Item->ItemType = EGridItemType::Weapon;
-	Item->WeaponArchetypeId = TEXT("ARM013");
+		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::DefenseBlock);
+	Item.Weapon.Kind = EGridCanonicalArmamentKind::Weapon;
+	Item.ArchetypeId = TEXT("ARM013");
 	TestEqual(TEXT("Future authored Main-gauche defense uses the parry icon"),
-		FGridEquippedWeaponActionIconResolver::Classify(Action, Item), Kind::DefenseParry);
+		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::DefenseParry);
 
 	Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
 	TestEqual(TEXT("Spellbook actions are entirely outside ARMEMENT icon palette"),
-		FGridEquippedWeaponActionIconResolver::Classify(Action, Item), Kind::None);
+		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 	Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 	TestEqual(TEXT("Consumables are entirely outside ARMEMENT icon palette"),
-		FGridEquippedWeaponActionIconResolver::Classify(Action, Item), Kind::None);
+		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 	Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-	Item->bUseWeaponCatalogue = false;
-	TestEqual(TEXT("Legacy equipment without ARM identity retains its icon"),
-		FGridEquippedWeaponActionIconResolver::Classify(Action, Item), Kind::None);
+	Item.bIsArmament = false;
+	TestEqual(TEXT("Non-ARM equipment retains its own action icon"),
+		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 
-	// Palette overrides only the selected class of action; missing entries
-	// keep the existing DataAsset icon without touching hotbar or combat.
-	UGridEquippedWeaponActionIconPalette* Palette = NewObject<UGridEquippedWeaponActionIconPalette>();
-	UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
-	UGridItemDefinitionAsset* OffHand = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_MainGauche_01.DA_Weapon_MainGauche_01"));
-	if (!TestNotNull(TEXT("Palette needs real production ARM001"), Dagger) ||
-		!TestNotNull(TEXT("Palette needs real ARM013 alternate texture"), OffHand))
-		return false;
-	const TSoftObjectPtr<UTexture2D> Icon = OffHand->Icon;
-	if (!TestTrue(TEXT("Alternate Texture2D is authored"), !Icon.IsNull()))
-		return false;
-	Palette->Icons.Add(Kind::MeleeDualWield, Icon);
-	Item->bUseWeaponCatalogue = true;
-	Item->ItemType = EGridItemType::Weapon;
-	Item->WeaponArchetypeId = TEXT("ARM001");
-	Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-	Action.Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-	Action.Definition.ActionType = EGridCombatActionType::MeleeAttack;
-	Action.Definition.ActionId = FGridDualWieldPolicy::ActionId();
-	Action.Definition.Icon = Dagger->Icon;
+	// Outside the canonical equipment path the explicit action icon is
+	// preserved. Even a colliding composite ActionId cannot repaint spells.
+	const TSoftObjectPtr<UTexture2D> ActionIcon(FSoftObjectPath(TEXT("/Game/Tests/IconAction.IconAction")));
+	const TSoftObjectPtr<UTexture2D> DualIcon(FSoftObjectPath(TEXT("/Game/Tests/IconDual.IconDual")));
 	FGridCombatHudActionView View;
 	View.bResolved = true;
 	View.bHasBinding = true;
 	View.Action = Action;
-	TestEqual(TEXT("Central palette overrides previous one-off dual icon"),
-		UGridCombatHudActionWidget::ResolveDisplayedIcon(View, Dagger->Icon, Palette, Item).ToSoftObjectPath(),
-		Icon.ToSoftObjectPath());
-	Palette->Icons.Add(Kind::None, Icon); // Deliberate bad configuration.
-	FGridCombatHudActionView SpellView = View;
-	SpellView.Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
-	SpellView.Action.Definition.ActionId = TEXT("Spell_Test");
-	TestEqual(TEXT("Even a misconfigured None entry cannot repaint a spell"),
-		UGridCombatHudActionWidget::ResolveDisplayedIcon(
-			SpellView, TSoftObjectPtr<UTexture2D>(), Palette, Item).ToSoftObjectPath(),
-		Dagger->Icon.ToSoftObjectPath());
-	Palette->Icons.Reset();
-	TestEqual(TEXT("Unfilled palette preserves existing dual icon without reauthoring WBP"),
-		UGridCombatHudActionWidget::ResolveDisplayedIcon(View, Dagger->Icon, Palette, Item).ToSoftObjectPath(),
-		Dagger->Icon.ToSoftObjectPath());
-	return true;
+	View.Action.Definition.ActionId = FGridDualWieldPolicy::ActionId();
+	View.Action.Definition.Icon = ActionIcon;
+	for (const auto Policy : {EGridCombatActionSourcePolicy::Spell, EGridCombatActionSourcePolicy::QuickItem})
+	{
+		View.Action.Definition.SourcePolicy = Policy;
+		TestEqual(TEXT("Non-equipment never receives old dual fallback"),
+			UGridCombatHudActionWidget::ResolveDisplayedIcon(View, DualIcon).ToSoftObjectPath(),
+			ActionIcon.ToSoftObjectPath());
+	}
+	View.Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+	TestEqual(TEXT("No-registry equipment dual fallback remains compatible"),
+		UGridCombatHudActionWidget::ResolveDisplayedIcon(View, DualIcon).ToSoftObjectPath(),
+		DualIcon.ToSoftObjectPath());
+	TestEqual(TEXT("Empty no-registry fallback preserves explicit action"),
+		UGridCombatHudActionWidget::ResolveDisplayedIcon(View, TSoftObjectPtr<UTexture2D>()).ToSoftObjectPath(),
+		ActionIcon.ToSoftObjectPath());
+	return !HasAnyErrors();
 }
 
 

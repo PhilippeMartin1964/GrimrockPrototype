@@ -37,7 +37,6 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
-#include "UI/GridEquippedWeaponActionIconPalette.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridWeaponVisualUiResolver.h"
 #include "UI/GridQuickItemSurfaceTooltipText.h"
@@ -635,27 +634,13 @@ float FGridCombatHudViewModelBuilder::CalculateHealthPercent(int32 CurrentHealth
 }
 
 TSoftObjectPtr<UTexture2D> UGridCombatHudActionWidget::ResolveDisplayedIcon(
-	const FGridCombatHudActionView& ActionView, const TSoftObjectPtr<UTexture2D>& InDualAttackIcon,
-	const UGridEquippedWeaponActionIconPalette* Palette, const UGridItemDefinitionAsset* EquippedDefinition)
+	const FGridCombatHudActionView& ActionView, const TSoftObjectPtr<UTexture2D>& InDualAttackIcon)
 {
-	if (ActionView.bResolved && IsValid(Palette))
-	{
-		const EGridEquippedWeaponActionIconKind Kind =
-			FGridEquippedWeaponActionIconResolver::Classify(ActionView.Action, EquippedDefinition);
-		// None is deliberately never a palette lookup: a misconfigured
-		// default icon must not leak into spells or consumables.
-		if (Kind != EGridEquippedWeaponActionIconKind::None)
-		{
-			const TSoftObjectPtr<UTexture2D> PaletteIcon = Palette->FindIcon(Kind);
-			if (!PaletteIcon.IsNull())
-			{
-				return PaletteIcon;
-			}
-		}
-	}
-	// Preserve any already-configured dual icon until the new central palette
-	// has its corresponding texture. Do not overwrite existing WBP settings.
-	return ActionView.bResolved && ActionView.Action.Definition.ActionId == FGridDualWieldPolicy::ActionId() &&
+	// Only the no-registry dual path may use this transitional WBP texture.
+	// A spell or quick item must not pick up a weapon icon by ActionId alone.
+	return ActionView.bResolved &&
+		ActionView.Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+		ActionView.Action.Definition.ActionId == FGridDualWieldPolicy::ActionId() &&
 		!InDualAttackIcon.IsNull() ? InDualAttackIcon : ActionView.Action.Definition.Icon;
 }
 
