@@ -21,3 +21,7 @@ Le SHA `989ea666ef6404ed8e119c7b4b6ba58c4cfe7e88` passe SilentTask et LocalAuto 
 ## Diagnostic syntaxique confirmé
 
 `a74d58da10baf45af58da8c35bec6d3d9905208a` : SilentTask et LocalAuto SUCCESS, statut natif `PARSE_MissingEndParenthesisInSubexpression_L238_C5`. L'appel Apply ouvrait `@(` sans le fermer après les trois arguments. Construction séparée de `$ApplyArguments` suivie d'un appel nommé : la faute exacte est corrigée, indépendamment des hypothèses précédentes. Aucune exécution du convertisseur n'a eu lieu sur le SHA en échec. Les autotests, garde-fous, diagnostics, contrôles de la filiation exacte, diff fermé et écritures conditionnées demeurent intacts. La validation Windows du nouveau SHA reste nécessaire.
+
+## Diagnostic de la validation post-conversion
+
+`bb58ae3be7fa9d8ee913a2ca516096e251434389` : deux validations générales SUCCESS ; l'agent a franchi APPLY et REOPEN, puis le statut natif FAILURE/AUTOMATION a empêché la publication des deux packages. Le rapport exact est privé. La nouvelle révision ne réexécute pas la conversion : elle publie un diagnostic rétrospectif strictement limité au RunDir de ce SHA, aux états fixes, compteurs numériques, noms de tests Grimrock et catégories d'assertions connues. La même fonction est disponible pour les échecs de conversion ultérieurs. Aucun changement C++, aucun asset ni sauvegarde modifié par cette collecte. La réussite du rollback ne sera confirmée que par le contrôle normal de propreté et des octets de la nouvelle validation.

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.3.6 — diagnostic post-conversion
+
+`bb58ae3be7fa9d8ee913a2ca516096e251434389` : SilentTask et LocalAuto SUCCESS ; statut spécial FAILURE/AUTOMATION après écriture et réouverture vérifiées, aucun enfant binaire publié. Collecte rétrospective autonome du rapport privé exact par l'agent, statut UE5.5.4/ARM-CLEAN06.5D3-diagnostic et issue limitée aux tests/états/compteurs. Ne pas relancer Apply avant lecture de ce diagnostic. Ce SHA diagnostic ne déclenche volontairement pas la conversion. Draft 5D.4 amélioré `5b96b41db3090d53bbd6b16cdff9deecbfb15f4d` ; reprendre uniquement ses fichiers après le commit binaire et ses deux statuts.
+
 ## ARM-CLEAN06.5D.3.5 — correction syntaxique confirmée
 
 `a74d58da10baf45af58da8c35bec6d3d9905208a` : deux statuts généraux SUCCESS ; statut natif FAILURE `PARSE_MissingEndParenthesisInSubexpression_L238_C5`. Cause exacte : parenthèse fermante manquante du tableau des arguments Apply. Tableau séparé et appel nommé. Aucun changement de C++, binaire ni sauvegarde. Relance de l'agent sur le SHA exact ; vérifier le statut natif et l'enfant binaire avant 5D.4. Draft `f5401a1fc7547a73f4d9963d1c6e096f63ef4ba2`.

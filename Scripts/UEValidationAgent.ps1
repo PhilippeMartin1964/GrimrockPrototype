@@ -524,6 +524,117 @@ function Publish-EffectsInventoryIssue {
     }
 }
 
+# A native cutover has an independent post-write validation. Publish only
+# structured metadata from that exact run, not ordinary validation results
+# and never arbitrary native messages, local paths, saved games or log lines.
+function Publish-ArmHandThrowPostAutomationEvidence {
+    param([string]$SourceSha,[string]$SourceRun)
+    if ($SourceSha -cnotmatch '^[0-9a-f]{40}$') { throw 'Invalid source revision.' }
+    $SourceRun = [IO.Path]::GetFullPath($SourceRun).TrimEnd('\')
+    $RunsRoot = [IO.Path]::GetFullPath((Join-Path $StateRoot 'Runs')).TrimEnd('\')
+    if (-not $SourceRun.StartsWith($RunsRoot+'\',[StringComparison]::OrdinalIgnoreCase) -or
+        (Split-Path -Parent $SourceRun) -ine $RunsRoot -or
+        -not (Split-Path -Leaf $SourceRun).StartsWith($SourceSha.Substring(0,12)+'-')) { throw 'Invalid source run.' }
+    $StagePath = Join-Path $SourceRun 'ArmClean065D3.stage'
+    if (-not (Test-Path -LiteralPath $StagePath -PathType Leaf) -or
+        (Get-Content -LiteralPath $StagePath -TotalCount 1) -cne 'AUTOMATION') { throw 'Not a post-conversion test failure.' }
+    $NativeRoot = Join-Path $SourceRun 'ARM-CLEAN06.5D3'
+    $PostRoot = Join-Path $NativeRoot 'PostAutomation'
+    $Before = Join-Path $NativeRoot 'before.json'
+    $Candidate = Join-Path $NativeRoot 'candidate.json'
+    if (-not (Test-Path -LiteralPath $Before -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $Candidate -PathType Leaf)) { throw 'Native receipts absent.' }
+    $SafeRows = New-Object 'System.Collections.Generic.List[string]'
+    $SafeRows.Add('Validation native : AUTOMATION')
+    $PostStageFile = Join-Path $PostRoot 'Validation.stage'
+    $PostStage = 'NOT_RECORDED'
+    if (Test-Path -LiteralPath $PostStageFile -PathType Leaf) {
+        $PostStage = ([string](Get-Content -LiteralPath $PostStageFile -TotalCount 1)).Trim()
+    }
+    $KnownStages = @('PREFLIGHT','ROLLBACK_FIXTURE','ROLLBACK_RESTORE','ROLLBACK_NEW_PACKAGE','ROLLBACK_REFUSALS',
+        'ROLLBACK_SAVE_REPLACE','ROLLBACK_RESULT','BUILD_STARTED','BUILD_FAILED','BUILD_OK','AUTOMATION_STARTED',
+        'AUTOMATION_PROCESS_EXITED','AUTOMATION_REPORT_MISSING','AUTOMATION_REPORT_READING','AUTOMATION_REPORT_OK',
+        'AUTOMATION_NO_TESTS','AUTOMATION_TESTS_FAILED','AUTOMATION_EXIT_NONZERO','SUCCESS','NOT_RECORDED')
+    if ($PostStage -cnotin $KnownStages) { $PostStage = 'UNKNOWN' }
+    $SafeRows.Add('Validation post-conversion : '+$PostStage)
+    $NativeExit = Join-Path $PostRoot 'Automation.exitcode'
+    if (Test-Path -LiteralPath $NativeExit -PathType Leaf) {
+        $ExitText = ([string](Get-Content -LiteralPath $NativeExit -TotalCount 1)).Trim()
+        if ($ExitText -cmatch '^-?[0-9]{1,10}$') { $SafeRows.Add('UnrealEditor-Cmd : sortie '+$ExitText) }
+    }
+    $PostIndices = @()
+    if (Test-Path -LiteralPath $PostRoot -PathType Container) {
+        $PostIndices = @(Get-ChildItem -LiteralPath $PostRoot -Recurse -File -Filter 'index.json')
+    }
+    $SafeRows.Add('Nombre de rapports index.json : '+$PostIndices.Count)
+    if ($PostIndices.Count -eq 1) {
+        $PostReport = Get-Content -LiteralPath $PostIndices[0].FullName -Raw | ConvertFrom-Json
+        foreach ($Counter in @('succeeded','succeededWithWarnings','failed','notRun')) {
+            $Property = $PostReport.PSObject.Properties[$Counter]
+            if ($null -ne $Property -and [string]$Property.Value -cmatch '^[0-9]{1,7}$') {
+                $SafeRows.Add($Counter+': '+[string]$Property.Value)
+            }
+        }
+        if ($PostReport.PSObject.Properties['tests']) {
+            foreach ($Test in @($PostReport.tests)) {
+                if ($null -eq $Test -or [string]$Test.state -notmatch '^(?i:fail|failed|error)$') { continue }
+                $TestName = [string]$Test.fullTestPath
+                if ($TestName -cnotmatch '^Grimrock\.[A-Za-z0-9_.]{1,180}$') { continue }
+                $TestRecord = 'Test : '+$TestName
+                if (-not $SafeRows.Contains($TestRecord)) { $SafeRows.Add($TestRecord) }
+                if ($Test.PSObject.Properties['entries']) {
+                    foreach ($Entry in @($Test.entries)) {
+                        if ($null -eq $Entry -or $null -eq $Entry.event -or [string]$Entry.event.type -notmatch '^(?i:error|fatal)$') { continue }
+                        $Message = [string]$Entry.event.message
+                        $Kind = 'OTHER_ASSERTION'
+                        if ($Message -match 'Canonical speed success|Old speed cannot override ordinary flight|flight speed') { $Kind = 'FLIGHT_SPEED' }
+                        elseif ($Message -match 'Ordinary ARM spawns without old definition|Canonical thrown item rejected') { $Kind = 'SPAWN' }
+                        elseif ($Message -match 'Old definition discarded|obsolete item asset|historical source') { $Kind = 'OLD_POINTER' }
+                        elseif ($Message -match 'Complete canonical world presentation|canonical presentation') { $Kind = 'WORLD_PRESENTATION' }
+                        elseif ($Message -match 'Ordinary flight mesh is real world mesh|flight mesh') { $Kind = 'FLIGHT_MESH' }
+                        elseif ($Message -match 'Physical N preserved|Exact ARM level|physical level') { $Kind = 'PHYSICAL_LEVEL' }
+                        elseif ($Message -match 'Native stage is all or none|ordinary policies|specialized projectiles preserved') { $Kind = 'COUNTS' }
+                        elseif ($Message -match 'No specialist attack invented|Specialized combat authorization unchanged|Physical eligibility matches original') { $Kind = 'PERMISSION' }
+                        elseif ($Message -match 'Exact speed|Exact signed arc|Exact lifetime|Exact impact offset|Flight rotation|Flight scale|Flight angular axis|Flight forward axis|Tumble|Spin') { $Kind = 'PARITY' }
+                        elseif ($Message -match 'Expected.*legacy|legacy.*expected|fallback') { $Kind = 'LEGACY_EXPECTATION' }
+                        $CategoryRecord = 'Assertion : '+$TestName+' / '+$Kind
+                        if (-not $SafeRows.Contains($CategoryRecord)) { $SafeRows.Add($CategoryRecord) }
+                    }
+                }
+            }
+        }
+    }
+    # Identify known harness failures even when UE never produced a report.
+    foreach ($LogName in @('post-automation.stdout.log','post-automation.stderr.log')) {
+        $Log = Join-Path $NativeRoot $LogName
+        if (-not (Test-Path -LiteralPath $Log -PathType Leaf)) { continue }
+        foreach ($Line in @(Get-Content -LiteralPath $Log -Tail 500)) {
+            $FailureKind = ''
+            if ($Line -match 'Live SaveGames changed during Automation') { $FailureKind = 'LIVE_SAVE_INVENTORY' }
+            elseif ($Line -match 'Automation process did not prove its isolated Saved directory') { $FailureKind = 'ISOLATION_MARKER' }
+            elseif ($Line -match 'Automation leaked isolated test saves') { $FailureKind = 'ISOLATION_RESIDUE' }
+            elseif ($Line -match 'Impossible de.*path|PathTooLongException|The specified path.*too long|chemin.*trop long') { $FailureKind = 'PATH_LENGTH' }
+            elseif ($Line -match 'cannot.*open.*file|Cannot find path|introuvable|ItemNotFoundException') { $FailureKind = 'FILE_NOT_FOUND' }
+            elseif ($Line -match 'FullyQualifiedErrorId\s*:\s*([A-Za-z][A-Za-z0-9_]{0,63})\s*$') { $FailureKind = 'PS_'+$Matches[1] }
+            if ($FailureKind) {
+                $Record = 'Harness : '+$FailureKind
+                if (-not $SafeRows.Contains($Record)) { $SafeRows.Add($Record) }
+            }
+        }
+    }
+    $Short = $SourceSha.Substring(0,12)
+    $Title = '[UEValidation] ARM-CLEAN06.5D3 post-conversion '+$Short
+    $Body = @('## Echec de validation apres conversion native', '', ('- Commit source : '+$SourceSha),
+        '- Les deux statuts generaux precedant cette conversion etaient acquis.',
+        '- La publication des binaires n est pas acquise.', '', '### Diagnostics publics limites')
+    $Body += @($SafeRows | Select-Object -First 100 | ForEach-Object { '- '+$_ })
+    $Body += @('', 'Aucun journal brut, chemin prive, nom de sauvegarde, hash prive ni message libre.')
+    $BodyFile = Join-Path $SourceRun 'ARM065D3.public-diagnostics.md'
+    $Body | Set-Content -LiteralPath $BodyFile -Encoding UTF8
+    & gh issue create --repo $GitHubRepository --title $Title --body-file $BodyFile | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Native diagnostic publication failed.' }
+}
+
 function Publish-FailureIssue {
     param([string]$Sha, [int]$ValidationExitCode, [string]$RunLogPath, [string]$ReportRoot)
     $ShortSha = $Sha.Substring(0, 12)
@@ -671,6 +782,34 @@ try {
 
     try {
         Publish-CommitStatus -Sha $Sha -State 'pending' -Description "Validation Windows en cours : $AutomationFilter"
+
+        # One-shot retrospective report from the exact rejected binary run.
+        # Runs before checkout/build. No native package, save or working tree
+        # is written by this evidence publication.
+        $HandDiagnosticSubject = @(& git -C $RepositoryRoot show -s --format=%s $Sha)
+        $HandDiagnosticParent = @(& git -C $RepositoryRoot rev-parse ($Sha+'~1'))
+        if ($LASTEXITCODE -eq 0 -and $HandDiagnosticSubject.Count -eq 1 -and
+            $HandDiagnosticParent.Count -eq 1 -and
+            [string]$HandDiagnosticSubject[0] -ceq 'fix(ARM-CLEAN06.5D.3): expose post-conversion automation diagnostics' -and
+            [string]$HandDiagnosticParent[0] -ceq 'bb58ae3be7fa9d8ee913a2ca516096e251434389') {
+            $HandContext = 'UE5.5.4/ARM-CLEAN06.5D3-diagnostic'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $HandContext -Description 'Lecture du rapport natif precedent'
+                $ExactPreviousRun = @(Get-ChildItem -LiteralPath (Join-Path $StateRoot 'Runs') -Directory |
+                    Where-Object {
+                        $_.Name -like 'bb58ae3be7fa-*' -and
+                        (Test-Path -LiteralPath (Join-Path $_.FullName 'ArmClean065D3.stage') -PathType Leaf) -and
+                        (Get-Content -LiteralPath (Join-Path $_.FullName 'ArmClean065D3.stage') -TotalCount 1) -ceq 'AUTOMATION'
+                    })
+                if ($ExactPreviousRun.Count -ne 1) { throw 'Exact previous native run unavailable or ambiguous.' }
+                Publish-ArmHandThrowPostAutomationEvidence -SourceSha 'bb58ae3be7fa9d8ee913a2ca516096e251434389' -SourceRun $ExactPreviousRun[0].FullName
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $HandContext -Description 'Diagnostic post-conversion publie'
+            } catch {
+                try { Publish-CommitStatus -Sha $Sha -State 'failure' -Context $HandContext -Description 'Rapport natif precedent absent/indisponible' }
+                catch { Write-Warning 'Native diagnostic status unavailable.' }
+                Write-Warning 'Native retrospective diagnostic unavailable; private logs retained.'
+            }
+        }
 
         if (Test-Path -LiteralPath $WorktreePath) {
             if (-not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git'))) {
@@ -1108,6 +1247,10 @@ try {
                 try {
                     Publish-CommitStatus -Sha $Sha -State 'failure' -Context $HandThrowContext -Description ('Conversion ARM bloquee : '+$HandThrowStage)
                 } catch { Write-Warning 'Native transaction status unavailable.' }
+                if ($HandThrowStage -ceq 'AUTOMATION') {
+                    try { Publish-ArmHandThrowPostAutomationEvidence -SourceSha $Sha -SourceRun $RunDir }
+                    catch { Write-Warning 'Native post-automation diagnostic unavailable.' }
+                }
                 Write-Warning ('ARM-CLEAN06.5D3: '+$HandThrowStage)
             }
         }
