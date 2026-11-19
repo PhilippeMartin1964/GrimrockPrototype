@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.22.1 — Correction du test FireBombDirectPlacement (issue #203)
+
+5G.22 (2d40d261) compile mais un seul test Automation échoue : le plan historique de palette ajoute FireBomb avec un pointeur ancien. Correction ciblée : preuve du refus de cette entrée, puis placement N0 de Item_Bomb_Fire après résolution réelle dans ItemSystem, dans la seule copie transitoire. Le test du plan historique reste distinct. Aucun package, SaveGame ni comportement runtime modifié. Validation complète à recevoir avant 5G.23.
+
 ## ARM-CLEAN06.5G.22 — Authoring strict des objets libres
 
 Parent 85c4d7df83334cb387fd88c36ea7e52b0a5e7eb2 : publication après ses deux statuts SUCCESS et revue des fixtures restantes. Placement, édition, niveau, identité, validation et inspecteur n'acceptent plus de source historique. X.26/X.27/X.28/3AN/TD033/MIG05/MIG09 actualisés. Propriété et API réfléchies conservées provisoirement jusqu'au retrait par dépendance. Aucun asset ni SaveGame modifié. Voir [5G.22](ARM_CLEAN06_5G22_STRICT_LOOSE_ITEM_AUTHORING.md).

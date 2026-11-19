@@ -6,6 +6,8 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "UObject/Package.h"
 
 namespace ARMEMENT011023Tests
 {
@@ -127,8 +129,11 @@ bool FARMEMENT011023BombPlacementTest::RunTest(const FString&)
     }
     UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>();
     Palette->Entries = Proposal;
-    const FGridObjectPaletteEntry* Bomb = Palette->FindEntryById(TEXT("Item_Bomb_Fire"));
+    const FName BombId(TEXT("Item_Bomb_Fire"));
+    FGridObjectPaletteEntry* Bomb = Palette->Entries.FindByPredicate(
+        [BombId](const FGridObjectPaletteEntry& Entry) { return Entry.EntryId == BombId; });
     if (!TestNotNull(TEXT("Direct fire bomb in proposed palette"), Bomb)) return false;
+    const bool bSourceWasDirty = Source->GetOutermost()->IsDirty();
     TestEqual(TEXT("Fire bomb stays in Items"), Bomb->PaletteCategory, FName(TEXT("Items")));
 
     const UWorld::InitializationValues Values = UWorld::InitializationValues()
@@ -161,8 +166,32 @@ bool FARMEMENT011023BombPlacementTest::RunTest(const FString&)
         Editor->SelectedCellX = 0;
         Editor->SelectedCellY = 0;
         Editor->SelectedEdge = EGridEdge::None;
-        if (TestTrue(TEXT("Bomb selectable via Grid Editor"),
-            Editor->ApplyPaletteEntry(TEXT("Item_Bomb_Fire"))))
+        // The historical proposal is deliberately not a production authoring
+        // authority. Its fire bomb may have been absent from the native palette.
+        if (Bomb->DefaultItemDefinition)
+        {
+            TestFalse(TEXT("Old proposed bomb source cannot be selected"),
+                Editor->ApplyPaletteEntry(BombId));
+            Editor->SelectedPaletteEntryId = BombId;
+            Editor->PaintObjectType = EGridLevelObjectType::Item;
+            Editor->PlaceSelectedObject();
+            TestEqual(TEXT("Old source cannot bypass selection"), Level->LooseItemInstances.Num(), 0);
+        }
+        const UGridItemSubsystem* Registry = Editor->ResolveEditorItemRegistry();
+        FGridResolvedItem Resolved;
+        if (TestTrue(TEXT("Actual canonical fire bomb N0 resolves"),
+                Registry && Registry->ResolveItem(BombId, 0, Resolved) &&
+                Resolved.IsValid() && !Resolved.bIsArmament && Resolved.ItemId == BombId &&
+                Resolved.ItemLevel == 0))
+        {
+            // Explicit authoring in a disposable palette only; not a native
+            // palette migration or a change to the old proposal's own test.
+            Bomb->DefaultItemDefinition = nullptr;
+            Bomb->CanonicalItemId = BombId;
+            Bomb->CanonicalDefaultItemLevel = 0;
+        }
+        if (TestTrue(TEXT("Canonical bomb selectable via Grid Editor"),
+            Editor->ApplyPaletteEntry(BombId)))
         {
             TestEqual(TEXT("Painting treats bomb as Item"),
                 Editor->PaintObjectType, EGridLevelObjectType::Item);
@@ -172,23 +201,18 @@ bool FARMEMENT011023BombPlacementTest::RunTest(const FString&)
                 const FGridLooseItemInstance& Placed = Level->LooseItemInstances[0];
                 TestEqual(TEXT("Correct persistent palette entry id"),
                     Placed.PaletteEntryId, FName(TEXT("Item_Bomb_Fire")));
-                if (!Bomb->CanonicalItemId.IsNone())
-                {
-                    TestEqual(TEXT("Correct canonical ItemId persists"), Placed.CanonicalItemId, Bomb->CanonicalItemId);
-                    TestEqual(TEXT("Physical default persists"), Placed.ItemLevel, Bomb->CanonicalDefaultItemLevel);
-                    TestNull(TEXT("New canonical placement is pointerless"), Placed.ItemDefinition.Get());
-                }
-                else
-                {
-                    TestEqual(TEXT("Synthetic historical ItemDefinition persists"),
-                        Placed.ItemDefinition.Get(), Bomb->DefaultItemDefinition.Get());
-                }
+                TestEqual(TEXT("Correct canonical ItemId persists"), Placed.CanonicalItemId, BombId);
+                TestEqual(TEXT("Physical N0 persists"), Placed.ItemLevel, 0);
+                TestEqual(TEXT("One physical bomb"), Placed.Quantity, 1);
+                TestTrue(TEXT("Stable authored identity"), Placed.InstanceId.IsValid());
+                TestNull(TEXT("New canonical placement is pointerless"), Placed.ItemDefinition.Get());
             }
         }
     }
     World->DestroyWorld(false);
     if (GEngine) GEngine->DestroyWorldContext(World);
-    return true;
+    TestEqual(TEXT("Production palette remains read-only"), Source->GetOutermost()->IsDirty(), bSourceWasDirty);
+    return !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
