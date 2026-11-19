@@ -285,33 +285,18 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 			return Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error && Message.Message.Contains(TEXT("cannot represent a collectible Item"));
 		}));
 
-	// Item behavior is forbidden even on a non-Item WorldObjectDefinition.
+	// The duplicate identity is now impossible to encode, even on a non-Item world definition.
+	TestNull(TEXT("Historical item asset property removed"), FGridItemBehaviorParams::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
+	TestNull(TEXT("Historical item ID property removed"), FGridItemBehaviorParams::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionId")));
 	LegacyDefinition->SupportedType = EGridLevelObjectType::Decoration;
-	LegacyDefinition->DefaultBehavior.Item.ItemDefinitionAsset = Definition;
-	TestFalse(TEXT("WorldObjectDefinition rejects legacy Item asset reference"), LegacyDefinition->ValidateDefinition(Messages));
-	TestTrue(TEXT("Legacy Item asset reference emits a specific error"),
-		Messages.ContainsByPredicate([](const FGridWorldObjectDefinitionValidationMessage& Message)
-		{
-			return Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error && Message.Message.Contains(TEXT("cannot retain DefaultBehavior.Item"));
-		}));
 
 	FMIG05ItemTestWorld TestWorld;
 	if (!TestNotNull(TEXT("Item resolution rejection test world exists"), TestWorld.World)) return false;
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	if (!TestNotNull(TEXT("Item resolution rejection runtime exists"), Runtime)) return false;
 	Runtime->WorldObjectDefinitions.Add(LegacyDefinition);
-	TestNull(TEXT("Runtime cannot resolve an item through WorldObjectDefinition Item behavior"), Runtime->ResolveRuntimeItemDefinition(Definition->ItemDefinitionId));
+	TestNull(TEXT("Runtime cannot resolve an item through WorldObjectDefinition"), Runtime->ResolveRuntimeItemDefinition(Definition->ItemDefinitionId));
 
-	LegacyDefinition->DefaultBehavior.Item.ItemDefinitionAsset = nullptr;
-	LegacyDefinition->DefaultBehavior.Item.ItemDefinitionId = Definition->ItemDefinitionId;
-	TestFalse(TEXT("WorldObjectDefinition rejects legacy Item id alone"), LegacyDefinition->ValidateDefinition(Messages));
-	TestTrue(TEXT("Legacy Item id emits a specific error"),
-		Messages.ContainsByPredicate([](const FGridWorldObjectDefinitionValidationMessage& Message)
-		{
-			return Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error && Message.Message.Contains(TEXT("cannot retain DefaultBehavior.Item"));
-		}));
-
-	LegacyDefinition->DefaultBehavior.Item.ItemDefinitionId = NAME_None;
 	LegacyDefinition->SupportedType = EGridLevelObjectType::Receptacle;
 	LegacyDefinition->DefaultBehavior.Receptacle.InitialContent.AddDefaulted_GetRef().CanonicalItemId = Definition->ItemDefinitionId;
 	TestNull(TEXT("Receptacle canonical ID cannot supply an obsolete runtime item definition"), Runtime->ResolveRuntimeItemDefinition(Definition->ItemDefinitionId));

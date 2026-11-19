@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.25.1 — Correctif de compilation MIG05 (issue #204)
+
+5G.25 a supprimé les deux champs du scratch mais le test PaletteRejectsDualDefinition les écrivait encore. Remplacement des anciennes fixtures impossibles par deux assertions de réflexion, maintien des refus du type Item et des résolutions runtime depuis les WorldObjectDefinitions et réceptacles. Aucun changement de production. Valider le SHA du correctif avant 5G.26.
+
 ## ARM-CLEAN06.5G.25 — Retrait des champs d'identité du scratch d'authoring
 
 Parent fa4ee74614855ecb8f33ef15224ccd69f8855710, validation complète exigée avant publication. Retrait de FGridItemBehaviorParams.ItemDefinitionAsset et ItemDefinitionId ; uniquement les champs de contenu lisible subsistent. La palette canonique et le placement typé restent seuls propriétaires de l'identité. Les quatre audits TD07 sont adaptés, contrôle réfléchi de l'absence des champs, refus d'une ancienne entrée de palette et conservation des données lisibles. Aucune écriture native ni SaveGame. Voir [5G.25](ARM_CLEAN06_5G25_ITEM_AUTHORING_SCRATCH.md).
