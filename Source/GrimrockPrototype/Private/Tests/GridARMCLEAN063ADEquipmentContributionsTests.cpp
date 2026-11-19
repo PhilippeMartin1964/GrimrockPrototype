@@ -26,7 +26,7 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 	}
 
 	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-	Old->EquipmentStatBonus.StrengthBonus = 3; // Still authored outside canonical weapon schema.
+	Old->EquipmentStatBonus.StrengthBonus = 3; // Deliberately conflicting stale data; canonical ARM must ignore it.
 	Old->EquipmentStatBonus.CarryWeightBonus = 2.5f;
 	Old->EquipmentStatBonus.ArmorBonus = 999;
 	Old->EquipmentStatBonus.MagicalArmorBonus = 999;
@@ -57,18 +57,38 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 				Canonical.Weapon.PhysicalArmor);
 			TestEqual(TEXT("Magical armor uses canonical N1-N20"), Bonuses.MagicalArmorBonus,
 				Canonical.Weapon.MagicalArmor);
-			TestEqual(TEXT("Legacy strength bonus remains gameplay authority"), Bonuses.StrengthBonus, 3);
-			TestTrue(TEXT("Legacy carry weight bonus remains gameplay authority"),
-				FMath::IsNearlyEqual(Bonuses.CarryWeightBonus, 2.5f));
+			FGridEquipmentStatBonus Expected;
+			Expected.ArmorBonus = Canonical.Weapon.PhysicalArmor;
+			Expected.MagicalArmorBonus = Canonical.Weapon.MagicalArmor;
+			TestTrue(TEXT("ARM only contributes catalogued armor"),
+				FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&Bonuses, &Expected, 0));
+			const auto Pointerless = FGridEquipmentContributionReadModel::ResolveStatBonuses(
+				Registry.Get(), nullptr, Equipped);
+			TestTrue(TEXT("ARM bonuses identical without old pointer"),
+				FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&Pointerless, &Expected, 0));
 
 			const FGridDamageResistanceSet Resistances =
 				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Old.Get(), Equipped);
-			TestEqual(TEXT("Fire resistance uses existing gameplay source"), Resistances.FireResistance, 12);
-			TestEqual(TEXT("Ice resistance uses existing gameplay source"), Resistances.IceResistance, 7);
-			Equipped.ItemLevel = 0;
-			const FGridEquipmentStatBonus Invalid =
-				FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Old.Get(), Equipped);
-			TestFalse(TEXT("Invalid registered ARM N0 cannot inherit old armor"), Invalid.HasAnyBonus());
+			TestTrue(TEXT("Registered ARM ignores old resistance"), Resistances.IsEmpty());
+			TestTrue(TEXT("Pointerless ARM has no resistance contribution"),
+				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), nullptr, Equipped).IsEmpty());
+			Old->ItemDefinitionId = TEXT("Conflicting_ARM_5D5");
+			const auto WrongIdentity = FGridEquipmentContributionReadModel::ResolveStatBonuses(
+				Registry.Get(), Old.Get(), Equipped);
+			TestTrue(TEXT("Wrong historical identity cannot affect registered ARM"),
+				FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&WrongIdentity, &Expected, 0));
+			TestTrue(TEXT("Wrong identity cannot affect resistance"),
+				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Old.Get(), Equipped).IsEmpty());
+			Old->ItemDefinitionId = Id;
+			for (const int32 InvalidLevel : {0, 21})
+			{
+				Equipped.ItemLevel = InvalidLevel;
+				const FGridEquipmentStatBonus Invalid =
+					FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Old.Get(), Equipped);
+				TestFalse(TEXT("Invalid registered ARM cannot inherit old bonuses"), Invalid.HasAnyBonus());
+				TestTrue(TEXT("Invalid registered ARM cannot inherit old resistances"),
+					FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Old.Get(), Equipped).IsEmpty());
+			}
 		}
 	}
 

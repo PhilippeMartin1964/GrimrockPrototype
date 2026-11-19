@@ -6,8 +6,8 @@
  * One read-only equipment contribution model shared by gameplay and diagnostics.
  * ItemSystem owns the armor maximum of every registered ARM N1-N20.
  * Non-ARM equipment already owns its native bonuses and resistances.
- * ARM attributes other than armor and elemental resistances retain the
- * historical source temporarily, pending their own lossless retirement.
+ * Registered ARM have only catalogued armor contributions. The native
+ * 22-source retirement gate proved that no authored extras are lost.
  */
 struct FGridEquipmentContributionReadModel
 {
@@ -23,11 +23,16 @@ struct FGridEquipmentContributionReadModel
 			return Result; // Known invalid canonical ARM never falls back to old armor.
 		}
 		FGridResolvedItem Canonical;
-		if (Registry && Registry->HasCanonicalItem(Instance.ItemDefinitionId) &&
-			Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) &&
-			!Canonical.bIsArmament)
+		if (Registry && Registry->HasCanonicalItem(Instance.ItemDefinitionId))
 		{
-			Result = Canonical.NonArmEquipmentBonuses;
+			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical))
+			{
+				return Result;
+			}
+			if (!Canonical.bIsArmament)
+			{
+				Result = Canonical.NonArmEquipmentBonuses;
+			}
 		}
 		else if (IsValid(LegacyDefinition) && LegacyDefinition->ItemDefinitionId == Instance.ItemDefinitionId)
 		{
@@ -52,9 +57,9 @@ struct FGridEquipmentContributionReadModel
 			if (!Resolved.bIsArmament)
 				return Instance.ItemLevel == 0 && !Resolved.NonArmEquipmentSlots.IsEmpty()
 					? Resolved.NonArmEquipmentResistances : FGridDamageResistanceSet();
+			return FGridDamageResistanceSet(); // No historical resistance for registered ARM.
 		}
-		// ARM non-armor contributions are still gated by their exact
-		// historical identity; no fallback for registered non-ARM equipment.
+		// Only unregistered identities retain the temporary historical reader.
 		if (!Instance.IsValid() || !IsValid(LegacyDefinition) ||
 			LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
 		{

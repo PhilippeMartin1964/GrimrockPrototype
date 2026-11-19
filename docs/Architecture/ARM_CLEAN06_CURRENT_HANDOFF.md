@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.5 — retrait des contributions historiques ARM
+
+Parent exact `6a475dcb3c35bf533f12e940a7fb3e26bf778b91` : SilentTask et LocalAuto SUCCESS, y compris la preuve native read-only des 22 sources ARM sans bonus hors armure ni résistance. Le modèle commun ignore désormais toute ancienne contribution d'une identité ARM inscrite, même avec pointeur contradictoire ; armure N1–N20 canonique inchangée, contributions non-ARM et cas non inscrits conservés. Les tests 3AD/3AE sont actualisés au nouveau contrat (N0/N21 invalides, pointeur absent/contradictoire, prévisualisation, résistance). La preuve native 5D.4 reste intacte et obligatoire. Aucun changement de package, de sauvegarde, de schéma ou de WBP. Attendre les deux statuts exact-SHA avant poursuite ; aucun retrait global des pointeurs anciens ni validation PIE implicite. [Détail](ARM_CLEAN06_5D5_ARM_CONTRIBUTION_RETIREMENT.md).
+
 ## ARM-CLEAN06.5D.4 — contributions d'équipement non-ARM
 
 5D.3B matérialisé par `fcd13d5d8c117ed70acdfd97001a487f73f77184`, enfant direct de `1c74fd7ced53266d40a626d6c26b7e6f33eba4ea` (statut spécifique SUCCESS : 19 ARM, deux catalogues, réouverture et Automation OK). Exactement les deux packages canoniques attendus. 5D.4 : projection des bonus et résistances non-ARM déjà authorés, armure N0 et réserves par instance via ItemSystem, gameplay/prévisualisation/diagnostics communs, aucune écriture de sauvegarde ni binaire. Garde native read-only sur les 22 sources ARM : contributions hors armure strictement égales au défaut ou migration explicite nécessaire. Attendre les deux statuts de ce lot avant tout retrait historique. [Détail](ARM_CLEAN06_5D4_NONARM_EQUIPMENT.md).

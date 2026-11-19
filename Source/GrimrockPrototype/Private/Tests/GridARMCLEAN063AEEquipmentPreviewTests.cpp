@@ -59,10 +59,16 @@ bool FGridClean063AEEquipmentPreviewReadModel::RunTest(const FString&)
 			TestEqual(TEXT("Preview armor remains debt-aware"),
 				Read.RemainingPhysicalArmor,
 				FMath::Max(0, Canonical.Weapon.PhysicalArmor - 2));
-			TestEqual(TEXT("Preview strength retains as-yet-unmigrated definition authority"),
-				Read.Bonuses.StrengthBonus, 7);
-			TestEqual(TEXT("Preview fire resistance equals actual gameplay definition contribution"),
-				Read.Resistances.FireResistance, 14);
+			FGridEquipmentStatBonus Expected;
+			Expected.ArmorBonus = Canonical.Weapon.PhysicalArmor;
+			Expected.MagicalArmorBonus = Canonical.Weapon.MagicalArmor;
+			TestTrue(TEXT("Preview ignores all historical ARM extra bonuses"),
+				FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&Read.Bonuses, &Expected, 0));
+			TestTrue(TEXT("Preview ignores historical ARM resistance"), Read.Resistances.IsEmpty());
+			const auto Pointerless = FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), nullptr, Item);
+			TestTrue(TEXT("Pointerless preview has the same contributions"),
+				FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&Pointerless.Bonuses, &Expected, 0));
+			TestTrue(TEXT("Pointerless preview has no resistance"), Pointerless.Resistances.IsEmpty());
 			TestEqual(TEXT("Displaced item name comes from canonical item definition"),
 				Read.DisplayName.ToString(), Canonical.DisplayName.ToString());
 			TestEqual(TEXT("Preview never alters item identity"), Item.RuntimeObjectId, OriginalGuid);
@@ -73,6 +79,7 @@ bool FGridClean063AEEquipmentPreviewReadModel::RunTest(const FString&)
 			TestFalse(TEXT("Known ARM N0 cannot borrow old physical/magical armor"),
 				Invalid.Bonuses.HasAnyBonus());
 			TestEqual(TEXT("Invalid ARM N0 leaves no remaining armor"), Invalid.RemainingPhysicalArmor, 0);
+			TestTrue(TEXT("Invalid ARM N0 cannot borrow resistance"), Invalid.Resistances.IsEmpty());
 			TestEqual(TEXT("Invalid ARM N0 name never reverts to old definition"),
 				Invalid.DisplayName.ToString(), Id.ToString());
 		}
