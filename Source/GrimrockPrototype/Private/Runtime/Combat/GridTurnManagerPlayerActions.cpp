@@ -9,6 +9,7 @@
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "GridCombatPhysicalThrowSourceReadModel.h"
+#include "GridCanonicalEquippedAttackReadModel.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
@@ -81,24 +82,13 @@ namespace
 		}
 		for (const FGridItemActionBinding& Binding : OutItem.AvailableActions)
 		{
-			FGridResolvedBoundAction Bound;
-			if (!Registry.ResolveAttackFromEquippedInstance(
-					Equipped, Binding.ActionId, SourceHand, Equipped.RuntimeObjectId,
-					Equipped.OwnerGuid, Equipped.OwnerCharacterIndex, Bound))
+			FGridCombatActionDefinition Action;
+			if (!FGridCanonicalEquippedAttackReadModel::TryResolve(
+					&Registry, Equipped, SourceHand, Binding.ActionId, Action))
 			{
 				continue;
 			}
-			Out.AttackId = Bound.ActionId;
-			Out.DamageScalingAttribute = OutItem.Weapon.ScalingAttribute;
-			Out.RangeCells = OutItem.Weapon.RangeCells;
-			Out.AttackDefinition.DamageType = OutItem.Weapon.DamageType;
-			Out.AttackDefinition.PhysicalSubtype = OutItem.Weapon.PhysicalSubtype;
-			Out.AttackDefinition.DamageDice = OutItem.Weapon.DamageDice;
-			Out.AttackDefinition.AccuracyBonus = OutItem.Weapon.AccuracyBonus;
-			Out.AttackDefinition.MinDamage =
-				OutItem.Weapon.DamageDice.GetMinimumDamage();
-			Out.AttackDefinition.MaxDamage =
-				OutItem.Weapon.DamageDice.GetMaximumDamage();
+			Out = Action.OffensiveProfile;
 			return Out.IsValid();
 		}
 		return false;
@@ -381,17 +371,47 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
 	}
-	if (bDualWieldAction && DualPair.Main.bCanonicalIdentity)
+	const UWorld* AttackSourceWorld = GetWorld();
+	UGameInstance* AttackSourceGI = AttackSourceWorld ? AttackSourceWorld->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* AttackRegistry = AttackSourceGI ? AttackSourceGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const bool bCanonicalAttackSource = AttackRegistry &&
+		AttackRegistry->HasCanonicalItem(OffensiveItemDefinitionId);
+	FGridCombatActionDefinition DirectCanonicalAction;
+	if (bCanonicalAttackSource)
 	{
-		ResolvedAttackSourceTags = DualPair.Main.SourceTags;
+		if (OffensiveEquipmentSlot != EGridEquipmentSlot::None)
+		{
+			FGridItemInstance ActualSource;
+			FGridResolvedItem ResolvedSource;
+			if (!PartyPawn->PartyInventoryComponent->GetEquippedItem(
+					AttackerCharacterIndex, OffensiveEquipmentSlot, ActualSource) ||
+				ActualSource.ItemDefinitionId != OffensiveItemDefinitionId ||
+				!AttackRegistry->ResolveItem(ActualSource.ItemDefinitionId, ActualSource.ItemLevel, ResolvedSource) ||
+				(!ResolvedSource.bIsArmament && ActualSource.ItemLevel != 0))
+			{
+				return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
+			}
+			ResolvedAttackSourceTags = ResolvedSource.Tags;
+			if (!CombatActionOverride &&
+				!FGridCanonicalEquippedAttackReadModel::TryResolve(AttackRegistry, ActualSource,
+					OffensiveEquipmentSlot, OffensiveProfile.AttackId, DirectCanonicalAction))
+			{
+				return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
+			}
+		}
+		else if (CombatActionOverride)
+		{
+			// The action catalogue already projected the canonical QuickItem.
+			ResolvedAttackSourceTags = CombatActionOverride->Definition.SourceTags;
+		}
 	}
-	if (ResolvedAttackSourceTags.IsEmpty() && !OffensiveItemDefinitionId.IsNone() &&
-		!(bDualWieldAction && DualPair.Main.bCanonicalIdentity))
+	else if (ResolvedAttackSourceTags.IsEmpty() && !OffensiveItemDefinitionId.IsNone())
 	{
 		if (const UGridItemDefinitionAsset* OffensiveDefinition =
 				PartyPawn->PartyInventoryComponent->FindItemDefinition(OffensiveItemDefinitionId))
 		{
-			ResolvedAttackSourceTags = OffensiveDefinition->ItemTags;
+			if (OffensiveDefinition->ItemDefinitionId == OffensiveItemDefinitionId)
+				ResolvedAttackSourceTags = OffensiveDefinition->ItemTags;
 		}
 	}
 
@@ -402,12 +422,22 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		AttackStatusApplications = CombatActionOverride->Definition.StatusApplications;
 		AttackArmorEffects = CombatActionOverride->Definition.ArmorEffects;
 	}
+	else if (bCanonicalAttackSource)
+	{
+		// The same standard action as HUD/dual wield; its current compact
+		// representation is proven lossless by the native retirement gate.
+		AttackStatusApplications = DirectCanonicalAction.StatusApplications;
+		AttackArmorEffects = DirectCanonicalAction.ArmorEffects;
+	}
 	else if (!OffensiveItemDefinitionId.IsNone())
 	{
 		const UGridItemDefinitionAsset* OffensiveDefinition =
 			PartyPawn->PartyInventoryComponent->FindItemDefinition(OffensiveItemDefinitionId);
-		ResolveMON12AttackStatusApplications(OffensiveDefinition, OffensiveProfile.AttackId, AttackStatusApplications);
-		ResolveMON12AttackArmorEffects(OffensiveDefinition, OffensiveProfile.AttackId, AttackArmorEffects);
+		if (IsValid(OffensiveDefinition) && OffensiveDefinition->ItemDefinitionId == OffensiveItemDefinitionId)
+		{
+			ResolveMON12AttackStatusApplications(OffensiveDefinition, OffensiveProfile.AttackId, AttackStatusApplications);
+			ResolveMON12AttackArmorEffects(OffensiveDefinition, OffensiveProfile.AttackId, AttackArmorEffects);
+		}
 	}
 
 	TArray<FGridCombatModifierProfile> ChoiceModifiers;

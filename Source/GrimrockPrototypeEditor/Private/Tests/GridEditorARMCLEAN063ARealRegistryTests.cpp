@@ -5,6 +5,7 @@
 #include "Engine/GameInstance.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
 
@@ -100,6 +101,19 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 	for (const FGridWeaponPipelineRow& Row : Manifest)
 	{
 		const FName ItemId(*Row.ItemDefinitionId);
+		const auto* Old = LoadObject<UGridItemDefinitionAsset>(nullptr, *Row.ItemPath);
+		if (!TestNotNull(TEXT("Exact historical ARM for read-only retirement evidence"), Old)) return false;
+		if (!TestTrue(TEXT("Historical identity and path exact"), Old->ItemDefinitionId == ItemId &&
+				Old->GetPathName() == Row.ItemPath)) return false;
+		const bool bWasDirty = Old->GetOutermost()->IsDirty();
+		TestEqual(TEXT("No additional historical combat action to lose"), Old->CombatActions.Num(), Row.IsPassive() ? 0 : 1);
+		for (const auto& Action : Old->CombatActions)
+		{
+			TestTrue(TEXT("Historical standard attack has no status or armor effects"),
+				Action.ActionId == FName(*Row.AttackId) && Action.OffensiveProfile.AttackId == Action.ActionId &&
+				Action.StatusApplications.IsEmpty() && Action.ArmorEffects.IsEmpty());
+		}
+		TestTrue(TEXT("Native evidence does not dirty historical package"), Old->GetOutermost()->IsDirty() == bWasDirty);
 		TestTrue(TEXT("Each official ARM is known to the one runtime registry"),
 			Items->HasCanonicalItem(ItemId));
 		FGridResolvedItem N1, N20;
@@ -138,6 +152,10 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 		{
 			return false;
 		}
+		for (const FName Tag : Old->ItemTags)
+			TestTrue(TEXT("Historical gameplay tag preserved in canonical registry"), N20.Tags.Contains(Tag));
+		TestTrue(TEXT("Canonical compact standard attack has no unprojected effects"),
+			Bound.Action.Effects.IsEmpty() && Bound.Action.WeaponDamagePercent == 0);
 		TestEqual(TEXT("No substituted action identity"), Bound.ActionId,
 			FName(*Row.AttackId));
 		TestTrue(TEXT("N20 canonical weapon dice produce a complete attack"),

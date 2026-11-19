@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5E.2 — sources des attaques et effets
+
+Parent `83f3643af6fb85e78ae70e919367e4698e5f6516` : SilentTask/LocalAuto SUCCESS. L'entrée d'attaque directe et les attaques empruntées utilisent maintenant la même projection standard que HUD/dual wield. Tags ARM lus sur le vrai objet, même si liste vide ; QuickItem conserve les tags de l'action projetée, aucun retour aux anciens tags. Effets directs pris sur l'action canonique ; effets explicites des actions de classe inchangés. Garde de production 22 sources/19 attaques/3 passifs contre perte de tags ou effets non projetés. Aucun changement du coût de la commande de diagnostic directe, de la préparation des projectiles, des assets ni des sauvegardes ; prochains audits munitions/flux et réhydratation. Deux statuts exact-SHA requis. [Détail](ARM_CLEAN06_5E2_ATTACK_CONTRIBUTIONS.md).
+
 ## ARM-CLEAN06.5E.1 — lecteurs d'infobulles et lecture
 
 Parent `59202029bb9fb81403b349ebb5623d446f73fac9` : SilentTask/LocalAuto SUCCESS. Précondition au retrait de Rehydrate : la projection tooltip exigeait encore un ancien pointeur même pour les ARM inscrits. Désormais profils, comparaisons source-backed, bonus, lumière, actions QuickItem et texte de surface passent par les modèles canoniques ; la lecture partage le texte par défaut canonique avec le menu et son exécution. Test monde réel N20/N1, torche, huile et refus du niveau non-ARM invalide. UI.csv/ST_UI/WBP/Game fr/en inchangés, aucune nouvelle clé ; PIE dû. Ne pas retirer encore la réhydratation globale : autres consommateurs (combat, transferts, etc.) à vérifier. Aucun binaire ni sauvegarde modifié. Attendre deux statuts du SHA exact. [Détail](ARM_CLEAN06_5E1_POINTERLESS_TOOLTIP.md).

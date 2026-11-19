@@ -20,6 +20,10 @@ struct FGridCanonicalEquippedAttackReadModel
 		FGridResolvedBoundAction Bound;
 		if (!Registry->ResolveAttackFromEquippedInstance(Item, ActionId, Hand,
 			Item.RuntimeObjectId, Item.OwnerGuid, Item.OwnerCharacterIndex, Bound)) return false;
+		// Standard ARM attacks are lossless only for the current compact
+		// schema. An authored advanced effect requires an explicit executor;
+		// never silently discard it or revive an old DA_Weapon.
+		if (!Bound.Action.Effects.IsEmpty() || Bound.Action.WeaponDamagePercent != 0) return false;
 
 		FGridCombatActionDefinition Action;
 		Action.ActionId = Bound.ActionId;

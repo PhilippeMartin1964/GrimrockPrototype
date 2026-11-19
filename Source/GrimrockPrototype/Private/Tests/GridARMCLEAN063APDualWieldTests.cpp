@@ -93,6 +93,15 @@ bool FGridClean063APDualWield::RunTest(const FString&)
 		Registry.Get(), Equipment.MainHand, EGridEquipmentSlot::MainHand, Pair.Main.Action.ActionId, Single));
 	TestEqual(TEXT("Same standalone versus dual main damage"), Single.OffensiveProfile.AttackDefinition.DamageDice.GetMaximumDamage(),
 		Pair.Main.Profile.AttackDefinition.DamageDice.GetMaximumDamage());
+	TestTrue(TEXT("Same canonical tags for standalone and dual main"), Single.SourceTags == Pair.Main.SourceTags);
+	TestTrue(TEXT("Standard canonical attack does not fabricate status or armor effects"),
+		Single.StatusApplications.IsEmpty() && Single.ArmorEffects.IsEmpty());
+	FGridItemInstance InvalidDirect = Equipment.MainHand;
+	InvalidDirect.ItemLevel = 0;
+	FGridCombatActionDefinition Rejected;
+	TestFalse(TEXT("Direct standard reader rejects N0 without fallback"), FGridCanonicalEquippedAttackReadModel::TryResolve(
+		Registry.Get(), InvalidDirect, EGridEquipmentSlot::MainHand, Single.ActionId, Rejected));
+	TestFalse(TEXT("Rejected direct reader clears action"), Rejected.IsValid());
 
 	Equipment.OffHand.ItemLevel = 0;
 	TestFalse(TEXT("Persisted ARM N0 cannot inherit N1"), FGridDualWieldPolicy::TryResolve(
