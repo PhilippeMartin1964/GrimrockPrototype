@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.2.1 — correction des réceptacles autonomes
+
+5D.2 `bed4605243471c0c858b60ecebb1615693a626fe` : SilentTask SUCCESS, LocalAuto FAILURE (deux tests de réceptacles autonomes, [issue #196](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/196)). Cause : la création canonique exigeait un AGridLevelRuntimeActor alors qu'un réceptacle autonome possède un UWorld et le registre réel sans cet acteur. Création canonique directe dans ce cas seulement, exactement même initialisation complète, jamais fallback ID-only ; tests autonomes renforcés (GUID/niveau/pointeur/présentation). Retest complet avant poursuite. Pas de fichiers natifs/saves touchés.
+
 ## ARM-CLEAN06.5D.2 — réceptacles et serrures
 
 Parent 5D.1 `2879e8464dafda87d792f177399b3f5c428fc656` : SilentTask + LocalAuto SUCCESS. Initial migré, cursor, restore, clé physique : présentation complète canonique sans ancien pointeur, GUID/niveau/readables conservés. Fixtures initiales non converties et méthode ID seul encore historiques. [5D.2](ARM_CLEAN06_5D2_RECEPTACLE_CUTOVER.md). Aucun binaire ni save modifié. PIE dû. Reste physique ARM hors projectile spécialisé, autres lecteurs, WBP/anciens packages/outils.

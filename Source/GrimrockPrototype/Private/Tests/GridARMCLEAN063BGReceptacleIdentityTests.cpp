@@ -95,6 +95,12 @@ bool FGridBGPhysicalInsertion::RunTest(const FString&)
     if (!TestNotNull(TEXT("Actual contained item actor"), Physical)) return false;
     TestEqual(TEXT("Physical actor has canonical identity"),
         Physical->GetItemDefinitionId(), ArrowId);
+    TestNull(TEXT("Standalone actor never stores obsolete definition"), Physical->GetItemDefinitionAsset());
+    TestTrue(TEXT("Standalone materialization has full canonical presentation"),
+        Physical->CanonicalWorldPresentation.IsValid());
+    TestEqual(TEXT("Standalone item-level remains N0"), Physical->CanonicalWorldItemLevel, 0);
+    TestEqual(TEXT("Standalone actor carries the actual instance GUID"),
+        Physical->GetRuntimeObjectId(), Contained.RuntimeObjectId);
 
     FGridRuntimeReceptacleState Snapshot;
     F.Receptacle->CaptureRuntimeReceptacleState(Snapshot);

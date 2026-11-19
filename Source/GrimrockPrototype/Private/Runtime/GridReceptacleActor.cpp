@@ -1187,10 +1187,6 @@ int32 AGridReceptacleActor::AddContainedItem(
 	}
 	ItemDefinitionId = FGridReceptacleContainedIdentityReadModel::Resolve(
 		CanonicalRegistry, ItemDefinition, ItemDefinitionId);
-	if (bCanonicalWorld && !RuntimeActor && !IsValid(ItemActor))
-	{
-		return INDEX_NONE;
-	}
 	if (ItemDefinitionId.IsNone())
 	{
 		return INDEX_NONE;
@@ -1283,11 +1279,26 @@ int32 AGridReceptacleActor::AddContainedItem(
 	const int32 NewIndex = ContainedItems.Add(NewItem);
 
 	const EGridReceptacleVisualPlacementMode PlacementMode = GetEffectiveVisualPlacementMode();
-	if (!IsValid(ItemActor) && RuntimeActor)
+	if (!IsValid(ItemActor) && (RuntimeActor || bCanonicalWorld))
 	{
-		ItemActor = RuntimeActor->SpawnItemActorForDefinition(
-			bCanonicalWorld ? nullptr : ItemDefinition, ItemDefinitionId, this, ItemAttachPoint);
-		if (ItemActor)
+		if (RuntimeActor)
+		{
+			ItemActor = RuntimeActor->SpawnItemActorForDefinition(
+				bCanonicalWorld ? nullptr : ItemDefinition, ItemDefinitionId, this, ItemAttachPoint);
+		}
+		else if (UWorld* World = GetWorld())
+		{
+			// Standalone receptacles (including runtime tests) have a valid
+			// world and registry but no central level actor. Construct the
+			// SAME canonical item, never an incomplete ID-only fallback.
+			const FTransform SpawnTransform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform() : GetActorTransform();
+			FActorSpawnParameters Params;
+			Params.Owner = this;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			ItemActor = World->SpawnActor<AGridItemActor>(AGridItemActor::StaticClass(),
+				SpawnTransform.GetLocation(), SpawnTransform.GetRotation().Rotator(), Params);
+		}
+		if (IsValid(ItemActor))
 		{
 			if (bCanonicalWorld)
 			{
