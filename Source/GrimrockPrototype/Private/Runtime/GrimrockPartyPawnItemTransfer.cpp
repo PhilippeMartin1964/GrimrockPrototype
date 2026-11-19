@@ -371,7 +371,9 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 		LevelRuntimeActor->SpawnThrownItemProjectile(WorldItem, ItemDefinition, StartLocation, LaunchVelocity, CurrentCellX, CurrentCellY);
 	if (!ThrownActor)
 	{
-		PartyInventoryComponent->TryRestoreExtractedItemToEquipment(CharacterIndex, EGridEquipmentSlot::MainHand, WorldItem);
+		const bool bRestored = PartyInventoryComponent->TryRestoreExtractedItemToEquipment(CharacterIndex, EGridEquipmentSlot::MainHand, WorldItem);
+		UE_LOG(LogGridItemTransfer, Error, TEXT("GridInventory MainHandThrow SpawnFailed Item=%s RuntimeId=%s Restored=%s"),
+			*WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString(), bRestored ? TEXT("true") : TEXT("false"));
 		return false;
 	}
 

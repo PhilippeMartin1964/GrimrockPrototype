@@ -103,6 +103,14 @@ bool FGridTD022EquipmentWorldTransferContractTest::RunTest(const FString& Parame
 		Inventory->TryRestoreExtractedItemToEquipment(0, EGridEquipmentSlot::MainHand, OtherWorldItem));
 	TestEqual(TEXT("Rejected rollback leaves the equipped definition unchanged"), MainHand.ItemDefinitionId, ShurikenId);
 	TestEqual(TEXT("Rejected rollback leaves the equipped quantity unchanged"), MainHand.Quantity, 1);
+	TestFalse(TEXT("Rollback cannot merge its own GUID"),
+		Inventory->TryRestoreExtractedItemToEquipment(0, EGridEquipmentSlot::MainHand, FinalUnit));
+	FGridItemInstance WrongLevel = FinalUnit;
+	WrongLevel.RuntimeObjectId = FGuid::NewGuid();
+	WrongLevel.ItemLevel = 1;
+	TestFalse(TEXT("Same definition with another physical level is rejected"),
+		Inventory->TryRestoreExtractedItemToEquipment(0, EGridEquipmentSlot::MainHand, WrongLevel));
+	TestEqual(TEXT("Rejected merges preserve one unit"), MainHand.Quantity, 1);
 
 	return true;
 }

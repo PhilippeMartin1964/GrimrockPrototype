@@ -1,9 +1,22 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "GridEquipmentSlotUtils.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
+
+namespace
+{
+	bool IsCanonicalWorldTransferItem(const UGridPartyInventoryComponent* Inventory, FName ItemId)
+	{
+		const UWorld* World = Inventory->GetWorld();
+		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		return Registry && Registry->HasCanonicalItem(ItemId);
+	}
+}
 
 bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 	int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ExpectedItemDefinitionId, FGridItemInstance& OutWorldItem)
@@ -16,10 +29,18 @@ bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 		return false;
 	}
 
-	FGridItemInstance* EquippedItem = PartyInventoryState.ActiveEquipment[CharacterIndex].GetMutableSlot(ResolveEquipmentSourceSlot(CharacterIndex, SourceSlot));
+	const EGridEquipmentSlot PhysicalSource = ResolveEquipmentSourceSlot(CharacterIndex, SourceSlot);
+	FGridItemInstance* EquippedItem = PartyInventoryState.ActiveEquipment[CharacterIndex].GetMutableSlot(PhysicalSource);
 	if (!EquippedItem || !EquippedItem->IsValid() || EquippedItem->ItemDefinitionId != ExpectedItemDefinitionId)
 	{
 		return false;
+	}
+
+	if (!CanAcceptSingleInventoryItem(*EquippedItem) ||
+		(IsCanonicalWorldTransferItem(this, EquippedItem->ItemDefinitionId) &&
+			!CanEquipItemToSlot(CharacterIndex, *EquippedItem, PhysicalSource)))
+	{
+		return false; // An invalid source must remain owned, not become a world item.
 	}
 
 	OutWorldItem = *EquippedItem;
@@ -50,7 +71,8 @@ bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 CharacterIndex, EGridEquipmentSlot TargetSlot, const FGridItemInstance& WorldItem)
 {
 	EnsureEquipmentCountMatchesActiveCharacters();
-	if (!WorldItem.IsValid() || WorldItem.Quantity != 1 || !IsValidCharacterIndex(CharacterIndex) ||
+	if (!CanAcceptSingleInventoryItem(WorldItem) || WorldItem.Quantity != 1 ||
+		WorldItem.OwnerType != EGridItemOwnerType::World || !IsValidCharacterIndex(CharacterIndex) ||
 		!PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex) || !GridEquipmentSlotUtils::IsHandSlot(TargetSlot))
 	{
 		return false;
@@ -58,7 +80,10 @@ bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 Char
 
 	const bool bTwoHanded = IsTwoHandedItem(WorldItem);
 	const EGridEquipmentSlot ActualTarget = bTwoHanded ? EGridEquipmentSlot::MainHand : TargetSlot;
-	if (bTwoHanded && PartyInventoryState.ActiveEquipment[CharacterIndex].OffHand.IsValid())
+	if ((IsCanonicalWorldTransferItem(this, WorldItem.ItemDefinitionId) &&
+		!CanEquipItemToSlot(CharacterIndex, WorldItem, TargetSlot)) ||
+		(bTwoHanded && PartyInventoryState.ActiveEquipment[CharacterIndex].OffHand.IsValid()) ||
+		(ActualTarget == EGridEquipmentSlot::OffHand && IsTwoHandedEquipped(CharacterIndex)))
 	{
 		return false;
 	}
@@ -71,11 +96,24 @@ bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 Char
 	const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	if (EquippedItem->IsValid())
 	{
-		if (EquippedItem->ItemDefinitionId != WorldItem.ItemDefinitionId)
+		if (EquippedItem->ItemDefinitionId != WorldItem.ItemDefinitionId ||
+			EquippedItem->ItemLevel != WorldItem.ItemLevel ||
+			EquippedItem->RuntimeObjectId == WorldItem.RuntimeObjectId ||
+			EquippedItem->Quantity == MAX_int32 ||
+			EquippedItem->bLightsEnabled != WorldItem.bLightsEnabled ||
+			EquippedItem->AbsorbedEquipmentPhysicalArmor != WorldItem.AbsorbedEquipmentPhysicalArmor ||
+			EquippedItem->AbsorbedEquipmentMagicalArmor != WorldItem.AbsorbedEquipmentMagicalArmor ||
+			EquippedItem->ReadableContentAsset != WorldItem.ReadableContentAsset ||
+			EquippedItem->ReadableContentId != WorldItem.ReadableContentId ||
+			!EquippedItem->ReadTitleOverride.EqualTo(WorldItem.ReadTitleOverride) ||
+			!EquippedItem->ReadTextOverride.EqualTo(WorldItem.ReadTextOverride))
 		{
 			return false;
 		}
-		++EquippedItem->Quantity;
+		FGridItemInstance Merged = *EquippedItem;
+		++Merged.Quantity;
+		if (!CanAcceptSingleInventoryItem(Merged)) return false;
+		EquippedItem->Quantity = Merged.Quantity;
 	}
 	else
 	{

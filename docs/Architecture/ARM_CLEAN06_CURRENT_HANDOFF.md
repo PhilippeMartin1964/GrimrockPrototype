@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.43 — Transfert équipement/monde et restauration
+
+Parent 0770d411faa185d5171e0dd5afd44eef0d8877c0. Publication après deux statuts SUCCESS. Extraction et restauration vérifient l’identité, le niveau, la capacité d’une pile physique et la politique de main canonique ; fusion de restauration interdit GUID identique, niveau ou état mutable incompatible. L’échec de restauration du lancer utilitaire est journalisé. Tests 3AS et TD02.2 renforcés. Voir [5G.43](ARM_CLEAN06_5G43_EQUIPPED_WORLD_TRANSFER_GATE.md). Aucun asset/save modifié.
+
 ## ARM-CLEAN06.5G.42 — Contrôle d’entrée inventaire et curseur
 
 Parent 4e4d417c2fc45b5554b7a7efa2501e10c6b7f948. Publication après deux statuts SUCCESS. Refus en jeu de toute entrée non matérialisable dans CanAdd/Add et des transferts de curseur vers le sac ; SetCursorItem contrôle également l’identité physique et l’intégrité de quantité. Le multi-stack du ramassage reste autorisé. 3AS ajoute les refus et contrôles de non-mutation sur registre réel, sans retirer ses anciennes fixtures. Voir [5G.42](ARM_CLEAN06_5G42_INVENTORY_INGRESS_GATE.md). Aucun asset ou SaveGame écrit.

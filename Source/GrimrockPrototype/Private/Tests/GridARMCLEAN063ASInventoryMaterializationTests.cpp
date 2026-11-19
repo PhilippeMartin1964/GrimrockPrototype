@@ -254,6 +254,37 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     TestEqual(TEXT("Canonical transfer preserves units"), Character.InventorySlots[0].Item.Quantity, More.Quantity);
     TestFalse(TEXT("Successful transfer clears cursor"), Fixture.Inventory->HasCursorItem());
 
+    // Equipment/world rollback is a physical transfer, never a new item grant.
+    Fixture.ClearSlots();
+    FGridItemInstance& Hand = Fixture.Inventory->PartyInventoryState.ActiveEquipment[0].MainHand;
+    Hand = SwordN0;
+    FGridItemInstance WorldItem;
+    TestFalse(TEXT("Invalid physical N0 cannot leave equipped slot"), Fixture.Inventory->TryExtractOneEquippedItemForWorldTransfer(0, EGridEquipmentSlot::MainHand, SwordId, WorldItem));
+    TestEqual(TEXT("Invalid source remains owned"), Hand.RuntimeObjectId, SwordN0.RuntimeObjectId);
+    TestFalse(TEXT("No world item produced on refusal"), WorldItem.IsValid());
+    Hand = FGridItemInstance();
+    TestTrue(TEXT("Valid N19 sword enters bag"), Fixture.Inventory->AddItemToCharacterInventory(0, Sword));
+    TestTrue(TEXT("Valid sword equips"), Fixture.Inventory->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::MainHand));
+    if (!TestTrue(TEXT("Valid N19 leaves physical hand"), Fixture.Inventory->TryExtractOneEquippedItemForWorldTransfer(0, EGridEquipmentSlot::MainHand, SwordId, WorldItem))) return false;
+    TestTrue(TEXT("Hand empty after extraction"), !Hand.IsValid());
+    TestEqual(TEXT("World item preserves level"), WorldItem.ItemLevel, 19);
+    TestTrue(TEXT("Valid world item restores"), Fixture.Inventory->TryRestoreExtractedItemToEquipment(0, EGridEquipmentSlot::MainHand, WorldItem));
+    TestEqual(TEXT("Rollback preserves GUID"), Hand.RuntimeObjectId, Sword.RuntimeObjectId);
+    TestEqual(TEXT("Rollback preserves level"), Hand.ItemLevel, 19);
+    TestEqual(TEXT("Rollback preserves armor debt"), Hand.AbsorbedEquipmentPhysicalArmor, Sword.AbsorbedEquipmentPhysicalArmor);
+    TestFalse(TEXT("Cannot replay same GUID into occupied hand"), Fixture.Inventory->TryRestoreExtractedItemToEquipment(0, EGridEquipmentSlot::MainHand, WorldItem));
+    FGridItemInstance OtherLevel = WorldItem;
+    OtherLevel.RuntimeObjectId = FGuid::NewGuid();
+    OtherLevel.ItemLevel = 20;
+    TestFalse(TEXT("Cannot merge a different physical level"), Fixture.Inventory->TryRestoreExtractedItemToEquipment(0, EGridEquipmentSlot::MainHand, OtherLevel));
+    OtherLevel.ItemLevel = 19;
+    TestFalse(TEXT("Cannot exceed canonical non-stackable capacity"), Fixture.Inventory->TryRestoreExtractedItemToEquipment(0, EGridEquipmentSlot::MainHand, OtherLevel));
+    TestEqual(TEXT("Rejected restores do not duplicate sword"), Hand.Quantity, 1);
+    Hand = FGridItemInstance();
+    TestFalse(TEXT("Unknown world identity cannot enter empty equipment"), Fixture.Inventory->TryRestoreExtractedItemToEquipment(0, EGridEquipmentSlot::MainHand, Unknown));
+    TestFalse(TEXT("Invalid N0 cannot restore into empty hand"), Fixture.Inventory->TryRestoreExtractedItemToEquipment(0, EGridEquipmentSlot::MainHand, SwordN0));
+    TestFalse(TEXT("Unknown or invalid restore leaves hand empty"), Hand.IsValid());
+
     // Explicitly registered historical automation fixtures retain their former capacities.
     Fixture.ClearSlots();
     UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(Fixture.Inventory);
