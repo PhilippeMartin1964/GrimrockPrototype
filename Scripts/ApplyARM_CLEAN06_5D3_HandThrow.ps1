@@ -1,21 +1,27 @@
 # One-shot transaction in the dedicated validation worktree. Never changes the principal checkout.
-[CmdletBinding(DefaultParameterSetName='Transaction')]
+[CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$WorktreePath,
-    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$RepositoryRoot,
-    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$EngineRoot,
-    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$StateRoot,
-    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$RunDir,
-    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$ExpectedHead,
-    [Parameter(Mandatory=$true,ParameterSetName='Transaction')][string]$GitHubRepository,
-    [Parameter(Mandatory=$true,ParameterSetName='SelfTest')][switch]$SelfTest
+    [string]$WorktreePath,
+    [string]$RepositoryRoot,
+    [string]$EngineRoot,
+    [string]$StateRoot,
+    [string]$RunDir,
+    [string]$ExpectedHead,
+    [string]$GitHubRepository,
+    [switch]$SelfTest
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'ARM_CLEAN06_4X66_Rollback.ps1')
-$StagePath = if (-not $SelfTest) { Join-Path $RunDir 'ArmClean065D3.stage' } else { '' }
+if ([string]::IsNullOrWhiteSpace($RunDir) -or -not (Test-Path -LiteralPath $RunDir -PathType Container)) {
+    throw 'An existing private run directory is required.'
+}
+Assert-ArmX66OrdinaryPath $RunDir
+$StagePath = Join-Path $RunDir 'ArmClean065D3.stage'
+$GitApplication = (Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $ExpectedParent = '0be0a8ddd471d74a2a70e05fff47df0a5782b7f0'
-$ExpectedSubject = 'fix(ARM-CLEAN06.5D.3): make native transaction preflight observable and robust'
+$ExpectedSubject = 'fix(ARM-CLEAN06.5D.3): isolate and diagnose native transaction self-test'
+$FailedPreflightParent = 'c7b56b425a531164452d533951b51e23b0c7d0f7'
 $ValidatedCodeParent = 'd19b3535b313ba405210da2d3090eaa612554c46'
 $FailedParent = 'e7e4f11d7c9dd6ea622e03c71dafd038f5e4f11a'
 $BinarySubject = 'ARM-CLEAN06.5D.3B: persist 19 ordinary ARM flight policies'
@@ -39,14 +45,13 @@ $CodePaths = @(
     'Source/GrimrockPrototypeEditor/Private/Tests/GridEditorARMCLEAN065D3HandThrowTests.cpp',
     'docs/Architecture/ARM_CLEAN06_5D3_ARM_HAND_THROW.md',
     'Scripts/ApplyARM_CLEAN06_5D3_HandThrow.ps1',
-    'Scripts/UEValidationAgent.ps1',
-    'Scripts/ValidateUE.ps1'
+    'Scripts/UEValidationAgent.ps1'
 )
 function Set-Stage([string]$Value) {
     Set-Content -LiteralPath $StagePath -Value $Value -Encoding ASCII
 }
 function Invoke-HandThrowGit([string[]]$Arguments) {
-    $Output = @(& git.exe -C $WorktreePath @Arguments)
+    $Output = @(& $GitApplication -C $WorktreePath @Arguments)
     if ($LASTEXITCODE -ne 0) { throw 'Native hand-throw git command failed.' }
     return $Output
 }
@@ -54,10 +59,15 @@ function Normalize-HandThrowPath([string]$Path) {
     return [IO.Path]::GetFullPath($Path.Replace('/', '\')).TrimEnd('\')
 }
 function Assert-SameSet([string[]]$Actual,[string[]]$Expected) {
-    if ($Actual.Count -ne $Expected.Count -or
-        (@(Compare-Object -ReferenceObject $Expected -DifferenceObject $Actual -CaseSensitive).Count -ne 0)) {
-        throw 'Unexpected exact file set.'
+    if ($Actual.Count -ne $Expected.Count) { throw 'Unexpected exact file set.' }
+    $Seen = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+    foreach ($Entry in $Expected) {
+        if (-not $Seen.Add($Entry)) { throw 'Duplicate expected entry.' }
     }
+    foreach ($Entry in $Actual) {
+        if (-not $Seen.Remove($Entry)) { throw 'Unexpected exact file set.' }
+    }
+    if ($Seen.Count -ne 0) { throw 'Missing exact file entry.' }
 }
 function Assert-Head {
     if ((Invoke-HandThrowGit @('rev-parse','HEAD')) -cne $ExpectedHead) { throw 'Unexpected HEAD.' }
@@ -83,7 +93,7 @@ function Assert-Pointer([string[]]$Lines,[string]$Hash,[long]$Bytes) {
     }
 }
 function Quote-Arg([string]$Value) {
-    if ($Value.Contains('"') -or $Value.Contains([char]10) -or $Value.Contains([char]13)) {
+    if ($Value -match '[\r\n"]') {
         throw 'Unsafe process argument.'
     }
     return '"' + $Value + '"'
@@ -111,19 +121,25 @@ function Invoke-Probe([string]$Mode,[int]$ExitExpected,[string]$Name,[string[]]$
     return $Report
 }
 if ($SelfTest) {
+    Set-Stage 'SELFTEST_GIT'
     $Repo = Split-Path -Parent $PSScriptRoot
     $WorktreePath = $Repo
-    $LocalHead = @(Invoke-HandThrowGit @('rev-parse','HEAD'))
+    $LocalHead = @(Invoke-HandThrowGit -Arguments @('rev-parse','HEAD'))
     if ($LocalHead.Count -ne 1 -or $LocalHead[0] -cnotmatch '^[0-9a-f]{40}$') { throw 'Hand throw Git self-test failed.' }
-    Assert-SameSet @('b','a') @('a','b')
+    Set-Stage 'SELFTEST_SET'
+    Assert-SameSet -Actual @('b','a') -Expected @('a','b')
     $Rejected = $false
-    try { Assert-SameSet @('b','c') @('a','b') } catch { $Rejected = $true }
+    try { Assert-SameSet -Actual @('b','c') -Expected @('a','b') } catch { $Rejected = $true }
     if (-not $Rejected) { throw 'Mismatch self-test failed.' }
-    $Normalized = Normalize-HandThrowPath $Repo
+    Set-Stage 'SELFTEST_PATH'
+    $Normalized = Normalize-HandThrowPath -Path $Repo
     if ((Normalize-HandThrowPath ($Repo.Replace('\','/')+'/')) -ine $Normalized) { throw 'Path normalization self-test failed.' }
+    Set-Stage 'SELFTEST_POINTER'
     $DummyHash = 'a'*64
-    Assert-Pointer @('version https://git-lfs.github.com/spec/v1',('oid sha256:'+$DummyHash),'size 42') $DummyHash 42
+    Assert-Pointer -Lines @('version https://git-lfs.github.com/spec/v1',('oid sha256:'+$DummyHash),'size 42') -Hash $DummyHash -Bytes 42
+    Set-Stage 'SELFTEST_QUOTE'
     if ((Quote-Arg 'a b') -cne '"a b"') { throw 'Argument self-test failed.' }
+    Set-Stage 'SELFTEST_SUCCESS'
     Write-Host '[OK] ARM 5D3 transaction helper self-test (no native writes).'
     return
 }
@@ -133,7 +149,13 @@ $Candidate = @{}
 $Before = @{}
 $Backup = @{}
 try {
+    if (-not (Test-Path -LiteralPath $StagePath -PathType Leaf) -or
+        (Get-Content -LiteralPath $StagePath -TotalCount 1) -cne 'SELFTEST_SUCCESS') { throw 'Native self-test not acquired for this run.' }
     Set-Stage 'PREFLIGHT_INPUT'
+    foreach ($Required in @($WorktreePath,$RepositoryRoot,$EngineRoot,$StateRoot,$ExpectedHead,$GitHubRepository)) {
+        if ([string]::IsNullOrWhiteSpace($Required)) { throw 'Missing transaction argument.' }
+    }
+    if ((Get-Content -LiteralPath $StagePath -TotalCount 1) -cne 'PREFLIGHT_INPUT') { throw 'Stage write failed.' }
     if ($GitHubRepository -cne 'PhilippeMartin1964/GrimrockPrototype' -or $ExpectedHead -cnotmatch '^[0-9a-f]{40}$') { throw 'Unexpected repository or revision.' }
     Set-Stage 'PREFLIGHT_LOCATION'
     $WorktreePath = Normalize-HandThrowPath $WorktreePath
@@ -159,9 +181,10 @@ try {
     Set-Stage 'PREFLIGHT_REMOTE'
     Assert-Remote
     Set-Stage 'PREFLIGHT_ANCESTRY'
-    if ((Invoke-HandThrowGit @('rev-parse','HEAD^')) -cne $ValidatedCodeParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~2')) -cne $FailedParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~3')) -cne $ExpectedParent -or
+    if ((Invoke-HandThrowGit @('rev-parse','HEAD~1')) -cne $FailedPreflightParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~2')) -cne $ValidatedCodeParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~3')) -cne $FailedParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~4')) -cne $ExpectedParent -or
         (Invoke-HandThrowGit @('log','-1','--format=%s')) -cne $ExpectedSubject) { throw 'Wrong one-shot revision.' }
     Set-Stage 'PREFLIGHT_DIFF'
     Assert-SameSet @(Invoke-HandThrowGit @('diff','--name-only',$ExpectedParent,'HEAD')) $CodePaths

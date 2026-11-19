@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.3.3 — isolation et diagnostic du self-test
+
+`c7b56b425a531164452d533951b51e23b0c7d0f7` : SilentTask SUCCESS, LocalAuto FAILURE/PREFLIGHT, [issue #198](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/198), aucune compilation ni écriture native confirmée. Le self-test de migration reste obligatoire mais est isolé dans le hook de conversion après la validation générale, avec un reçu de réussite même RunDir et des codes d'étape fixes. Le correctif C++ validé d19b3535 n'est pas modifié. 5D.4 préparé, arbre de draft corrigé `f5401a1fc7547a73f4d9963d1c6e096f63ef4ba2` (reprendre seulement les neuf fichiers du lot ; ne pas reprendre les anciennes versions des autres fichiers). Rebase après commit binaire validé.
+
 ## ARM-CLEAN06.5D.3.2 — préflight de conversion native
 
 `d19b3535b313ba405210da2d3090eaa612554c46` : les deux validations Windows du C++ et de tous les tests passent. Le statut spécial de conversion native est FAILURE/PREFLIGHT, aucun enfant binaire. Correction du runner et hook : normalisation worktree Windows, diagnostics de sous-phase et SelfTest dans ValidateUE. Le détail de la cause initiale reste inconnu. Relance automatique uniquement après validation exacte du nouveau SHA. Aucune écriture de sauvegarde. 5D.4 demeure préparé, rebase après binaires validés.

@@ -1019,7 +1019,7 @@ try {
         # Exact, one-shot 5D.3 native package transaction after successful code validation.
         $HandThrowSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $HandThrowSubject.Count -eq 1 -and
-            [string]$HandThrowSubject[0] -ceq 'fix(ARM-CLEAN06.5D.3): make native transaction preflight observable and robust') {
+            [string]$HandThrowSubject[0] -ceq 'fix(ARM-CLEAN06.5D.3): isolate and diagnose native transaction self-test') {
             $HandThrowContext = 'UE5.5.4/ARM-CLEAN06.5D3'
             $HandThrowStage = 'HOOK_STATUS'
             try {
@@ -1029,7 +1029,25 @@ try {
                 $ParseTokens = $null
                 $ParseErrors = $null
                 [void][System.Management.Automation.Language.Parser]::ParseFile($HandThrowScript,[ref]$ParseTokens,[ref]$ParseErrors)
-                if ($ParseErrors -and $ParseErrors.Count -gt 0) { throw 'Native transaction script parse error.' }
+                if ($ParseErrors -and $ParseErrors.Count -gt 0) {
+                    $AllowedParseCodes = @('UnexpectedToken','MissingEndCurlyBrace','MissingEndParenthesisInExpression',
+                        'MissingEndParenthesisInFunctionParameterList','MissingExpressionAfterToken','InvalidVariableReferenceWithDrive',
+                        'InvalidVariableReference','MissingArgument','TerminatorExpectedAtEndOfString','InvalidLeftHandSide',
+                        'InvalidFunctionParameter','MissingStatementBlock','MissingStatementBlockAfterIf','MissingCatchOrFinally')
+                    $FirstParseCode = [string]$ParseErrors[0].ErrorId
+                    if ($FirstParseCode -cin $AllowedParseCodes) { $HandThrowStage = 'HOOK_PARSE_'+$FirstParseCode }
+                    throw 'Native transaction script parse error.'
+                }
+                $HandThrowStage = 'HOOK_SELFTEST'
+                if ($HandThrowScript.Contains('"') -or $RunDir.Contains('"')) { throw 'Unsafe self-test argument.' }
+                $SelfTestArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $HandThrowScript + '" -SelfTest -RunDir "' + $RunDir + '"'
+                $SelfTestProcess = Start-Process -FilePath $PsExe -ArgumentList $SelfTestArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput (Join-Path $RunDir 'ARM065D3.selftest.stdout.log') -RedirectStandardError (Join-Path $RunDir 'ARM065D3.selftest.stderr.log') -ErrorAction Stop
+                if ($SelfTestProcess.ExitCode -ne 0 -or
+                    -not (Test-Path -LiteralPath (Join-Path $RunDir 'ArmClean065D3.stage') -PathType Leaf) -or
+                    (Get-Content -LiteralPath (Join-Path $RunDir 'ArmClean065D3.stage') -TotalCount 1) -cne 'SELFTEST_SUCCESS') {
+                    throw 'Native transaction self-test did not complete.'
+                }
                 $HandThrowStage = 'HOOK_ARGUMENTS'
                 $HandThrowArgs = @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$HandThrowScript,
                     '-WorktreePath',$WorktreePath,'-RepositoryRoot',$RepositoryRoot,'-EngineRoot',$EngineRoot,
@@ -1047,9 +1065,10 @@ try {
             } catch {
                 $HandThrowStagePath = Join-Path $RunDir 'ArmClean065D3.stage'
                 if (Test-Path -LiteralPath $HandThrowStagePath -PathType Leaf) {
-                    $HandThrowStage = ([string](Get-Content -LiteralPath $HandThrowStagePath -TotalCount 1)).Trim()
+                    $RecordedHandThrowStage = ([string](Get-Content -LiteralPath $HandThrowStagePath -TotalCount 1)).Trim()
+                    if ($RecordedHandThrowStage -cne 'SELFTEST_SUCCESS' -or $HandThrowStage -ceq 'HOOK_SELFTEST') { $HandThrowStage = $RecordedHandThrowStage }
                 }
-                if ($HandThrowStage -notin @('HOOK_STATUS','HOOK_PARSE','HOOK_ARGUMENTS','HOOK_PROCESS','PREFLIGHT_INPUT','PREFLIGHT_LOCATION','PREFLIGHT_ORDINARY_PATH','PREFLIGHT_WORKTREE','PREFLIGHT_HEAD','PREFLIGHT_REMOTE','PREFLIGHT_ANCESTRY','PREFLIGHT_DIFF','PREFLIGHT_CLEAN','PREFLIGHT_VALIDATION','PREFLIGHT_SNAPSHOT','PREFLIGHT_EXECUTABLES','PREFLIGHT_LFS','AUDIT','APPLY','REOPEN','AUTOMATION','PUBLISH','ROLLBACK_INCOMPLETE','SUCCESS')) { $HandThrowStage = 'UNKNOWN' }
+                if ($HandThrowStage -notin @('HOOK_STATUS','HOOK_PARSE','HOOK_PARSE_UnexpectedToken','HOOK_PARSE_MissingEndCurlyBrace','HOOK_PARSE_MissingEndParenthesisInExpression','HOOK_PARSE_MissingEndParenthesisInFunctionParameterList','HOOK_PARSE_MissingExpressionAfterToken','HOOK_PARSE_InvalidVariableReferenceWithDrive','HOOK_PARSE_InvalidVariableReference','HOOK_PARSE_MissingArgument','HOOK_PARSE_TerminatorExpectedAtEndOfString','HOOK_PARSE_InvalidLeftHandSide','HOOK_PARSE_InvalidFunctionParameter','HOOK_PARSE_MissingStatementBlock','HOOK_PARSE_MissingStatementBlockAfterIf','HOOK_PARSE_MissingCatchOrFinally','HOOK_SELFTEST','SELFTEST_GIT','SELFTEST_SET','SELFTEST_PATH','SELFTEST_POINTER','SELFTEST_QUOTE','SELFTEST_SUCCESS','HOOK_ARGUMENTS','HOOK_PROCESS','PREFLIGHT_INPUT','PREFLIGHT_LOCATION','PREFLIGHT_ORDINARY_PATH','PREFLIGHT_WORKTREE','PREFLIGHT_HEAD','PREFLIGHT_REMOTE','PREFLIGHT_ANCESTRY','PREFLIGHT_DIFF','PREFLIGHT_CLEAN','PREFLIGHT_VALIDATION','PREFLIGHT_SNAPSHOT','PREFLIGHT_EXECUTABLES','PREFLIGHT_LFS','AUDIT','APPLY','REOPEN','AUTOMATION','PUBLISH','ROLLBACK_INCOMPLETE','SUCCESS')) { $HandThrowStage = 'UNKNOWN' }
                 try {
                     Publish-CommitStatus -Sha $Sha -State 'failure' -Context $HandThrowContext -Description ('Conversion ARM bloquee : '+$HandThrowStage)
                 } catch { Write-Warning 'Native transaction status unavailable.' }
