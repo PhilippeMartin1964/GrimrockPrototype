@@ -6,6 +6,7 @@
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Engine/Blueprint.h"
 #include "EditorTools/GridLevelEditorActor.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "K2Node_CallFunction.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Modules/ModuleManager.h"
@@ -96,6 +97,9 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 	TestEqual(TEXT("No Blueprint calls retired item identity APIs or historical inventory registry"), LegacyReferences.Num(), 0);
 	TestNull(TEXT("Retired setter is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SetSelectedObjectItemDefinitionAsset")));
 	TestNull(TEXT("Retired sync is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SyncSelectedItemDefinitionIdFromAsset")));
+	TestNull(TEXT("Historical inventory registration is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("RegisterItemDefinition")));
+	TestNull(TEXT("Historical inventory lookup is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("FindItemDefinition")));
+	TestNotNull(TEXT("Inventory instance projection remains reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("ApplyItemDefinitionToInstance")));
 	return BlueprintAssets.Num() > 0 && LegacyReferences.IsEmpty() && LoadedBlueprintCount == BlueprintAssets.Num();
 }
 

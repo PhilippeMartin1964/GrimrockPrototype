@@ -217,7 +217,7 @@ public:
 	 */
 	bool TryConsumeSelfRestorativeQuickItem(int32 CharacterIndex, FGuid SourceRuntimeObjectId, FText& OutError);
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
+	/** Historical native registry API; not exposed to Blueprint. */
 	bool RegisterItemDefinition(UGridItemDefinitionAsset* Definition);
 
 	/** Production New Game/Continue: validate against the configured registry; never restore old definitions. */
@@ -228,7 +228,7 @@ public:
 	bool RehydrateOwnedItemDefinitions(TFunctionRef<UGridItemDefinitionAsset*(FName)> Resolver, FName& OutMissingDefinitionId);
 #endif
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
+	/** Historical native lookup; canonical definitions are resolved through ItemSystem. */
 	UGridItemDefinitionAsset* FindItemDefinition(FName ItemDefinitionId) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
