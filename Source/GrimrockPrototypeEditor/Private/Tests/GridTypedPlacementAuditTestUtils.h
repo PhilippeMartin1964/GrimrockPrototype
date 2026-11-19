@@ -41,9 +41,8 @@ namespace GridTypedPlacementAuditTestUtils
 		}
 		for (const FGridItemSpawnInstance& Spawn : Level.ItemSpawns)
 		{
-			const UGridItemDefinitionAsset* Item = Spawn.ItemDefinition;
-			Audit(FString::Printf(TEXT("ItemSpawns[%s].ItemDefinition"), *Spawn.SpawnId.ToString()), Item,
-				Item ? Item->ItemDefinitionId : NAME_None, NAME_None, TEXT("Item"));
+			Audit(FString::Printf(TEXT("ItemSpawns[%s].CanonicalItemId"), *Spawn.SpawnId.ToString()), nullptr,
+				Spawn.CanonicalItemId, NAME_None, TEXT("Item"));
 		}
 	}
 }

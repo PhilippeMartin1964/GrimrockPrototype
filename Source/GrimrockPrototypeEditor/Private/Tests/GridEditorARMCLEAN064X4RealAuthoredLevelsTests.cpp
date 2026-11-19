@@ -231,8 +231,8 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
         for (const FGridItemSpawnInstance& Spawn : Level->ItemSpawns)
         {
             if (!Spawn.SpawnId.IsValid() ||
-                !Check(Spawn.CanonicalItemId, Spawn.ItemDefinition,
-                    Spawn.ItemLevel, Spawn.Quantity, false))
+                !Check(Spawn.CanonicalItemId, nullptr,
+                    Spawn.ItemLevel, Spawn.Quantity, true))
             {
                 AddError(TEXT("Invalid source identity or level in authored spawn."));
                 return false;

@@ -514,7 +514,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	for (const FGridItemSpawnInstance& ItemSpawn : LevelAsset->ItemSpawns)
 	{
 		ValidatePlacement(ItemSpawn.SpawnId, ItemSpawn.CellX, ItemSpawn.CellY, ItemSpawn.PaletteEntryId, EGridLevelObjectType::ItemSpawn);
-		ValidateItemDefinition(ItemSpawn.SpawnId, ItemSpawn.ItemDefinition,
+		ValidateItemDefinition(ItemSpawn.SpawnId, nullptr,
 			ItemSpawn.CanonicalItemId, ItemSpawn.ItemLevel, ItemSpawn.Quantity);
 	}
 	for (const FGridMonsterSpawnInstance& MonsterSpawn : LevelAsset->MonsterSpawns)

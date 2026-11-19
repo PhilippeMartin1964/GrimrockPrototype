@@ -5,6 +5,9 @@
 #include "Core/GridLevelAsset.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridItemActor.h"
@@ -21,6 +24,8 @@ namespace ARMEMENT0182
     struct FFixture
     {
         UWorld* World = nullptr;
+        TStrongObjectPtr<UGameInstance> GI;
+        UGridItemSubsystem* Registry = nullptr;
         AGridLevelRuntimeActor* Runtime = nullptr;
         UGridLevelAsset* Level = nullptr;
         UGridItemDefinitionAsset* Dagger = nullptr;
@@ -40,6 +45,15 @@ namespace ARMEMENT0182
                 Context.SetCurrentWorld(World);
             }
             if (!World) return;
+            if (WorldType == EWorldType::Game)
+            {
+                GI.Reset(NewObject<UGameInstance>(GetTransientPackage()));
+                if (!GI.IsValid()) return;
+                GI->Init();
+                World->SetGameInstance(GI.Get());
+                Registry = GI->GetSubsystem<UGridItemSubsystem>();
+                if (!Registry || !Registry->IsConfigured()) return;
+            }
             Runtime = World->SpawnActor<AGridLevelRuntimeActor>();
             if (!Runtime) return;
             Level = NewObject<UGridLevelAsset>(Runtime);
@@ -58,6 +72,11 @@ namespace ARMEMENT0182
         ~FFixture()
         {
             if (!World) return;
+            if (GI.IsValid())
+            {
+                World->SetGameInstance(nullptr);
+                GI->Shutdown();
+            }
             World->DestroyWorld(false);
             if (GEngine) GEngine->DestroyWorldContext(World);
         }
@@ -68,7 +87,7 @@ namespace ARMEMENT0182
         {
             FGridItemSpawnInstance& Spawn = Level->ItemSpawns.AddDefaulted_GetRef();
             Spawn.SpawnId = FGuid::NewGuid();
-            Spawn.ItemDefinition = Dagger;
+            Spawn.CanonicalItemId = TEXT("Weapon_Dagger_01");
             Spawn.ItemLevel = ItemLevel;
             Spawn.Quantity = 1;
             Spawn.CellX = X;
@@ -87,7 +106,6 @@ namespace ARMEMENT0182
             Party->Facing = EGridEdge::North;
             Party->SetActorLocation(Runtime->GetCellCenterWorld(0, 0, Party->EyeHeight));
             Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded();
-            if (!Party->PartyInventoryComponent->RegisterItemDefinition(Dagger)) return nullptr;
             Runtime->WorldItemPickupReach = 600.f;
             return Party;
         }
@@ -141,10 +159,10 @@ bool FARMEMENT0182AuthoringTest::RunTest(const FString&)
     AGridLevelEditorActor* Editor = Fixture.World->SpawnActor<AGridLevelEditorActor>();
     if (!TestNotNull(TEXT("Editor actor exists"), Editor)) return false;
     Editor->LevelAsset = Fixture.Level;
-    const FGuid SpawnId = Fixture.AddSpawn(1, 1, 0, false);
+    const FGuid SpawnId = Fixture.AddSpawn(1, 1, 1, false);
     Editor->LastSelectedObjectId = SpawnId;
 
-    TestEqual(TEXT("Generator starts in inherited-level mode"), Fixture.Level->ItemSpawns[0].ItemLevel, 0);
+    TestEqual(TEXT("Generator starts at explicit physical N1"), Fixture.Level->ItemSpawns[0].ItemLevel, 1);
     TestTrue(TEXT("Set generator to level 11"), Editor->SetSelectedObjectItemLevel(11));
     TestEqual(TEXT("Generator stores its own level"), Fixture.Level->ItemSpawns[0].ItemLevel, 11);
     TestFalse(TEXT("Level 21 is rejected"), Editor->SetSelectedObjectItemLevel(21));
@@ -167,13 +185,15 @@ bool FARMEMENT0182MaterializationTest::RunTest(const FString&)
     ARMEMENT0182::FFixture Fixture;
     if (!TestTrue(TEXT("Runtime fixture and production dagger exist"), Fixture.Ready())) return false;
     const FGuid Fixed = Fixture.AddSpawn(0, 0, 9, true);
-    const FGuid Default = Fixture.AddSpawn(1, 0, 0, true);
+    const FGuid Default = Fixture.AddSpawn(1, 0, 1, true);
+    const FGuid Invalid = Fixture.AddSpawn(2, 1, 0, true);
     const FGuid Disabled = Fixture.AddSpawn(2, 0, 14, false);
     Fixture.Runtime->RebuildRuntimeObjects();
 
     AGridItemActor* FixedActor = Fixture.FindActor(Fixed);
     if (!TestNotNull(TEXT("Enabled fixed-level generator produces a pickup"), FixedActor)) return false;
-    TestNotNull(TEXT("Enabled inherited-level generator produces a pickup"), Fixture.FindActor(Default));
+    TestNotNull(TEXT("Enabled explicit N1 generator produces a pickup"), Fixture.FindActor(Default));
+    TestNull(TEXT("Invalid ARM N0 generator produces no pickup"), Fixture.FindActor(Invalid));
     TestNull(TEXT("Disabled generator produces no pickup"), Fixture.FindActor(Disabled));
     TestEqual(TEXT("Generator uses SpawnId for item identity"), FixedActor->GetRuntimeObjectId(), Fixed);
     TestEqual(TEXT("One world item per active generator"), Fixture.CountActors(Fixed), 1);
@@ -186,9 +206,10 @@ bool FARMEMENT0182MaterializationTest::RunTest(const FString&)
     const FGridRuntimeItemState* FixedState = Snapshot->Items.Find(Fixed);
     const FGridRuntimeItemState* DefaultState = Snapshot->Items.Find(Default);
     if (!TestNotNull(TEXT("Fixed generator item captured"), FixedState) ||
-        !TestNotNull(TEXT("Inherited-level item captured"), DefaultState)) return false;
+        !TestNotNull(TEXT("Explicit N1 item captured"), DefaultState)) return false;
     TestEqual(TEXT("Level 9 retained in runtime state"), FixedState->ItemLevel, 9);
-    TestEqual(TEXT("Default level resolved once on generation"), DefaultState->ItemLevel, Fixture.Dagger->DefaultWeaponItemLevel);
+    TestEqual(TEXT("Explicit N1 retained"), DefaultState->ItemLevel, 1);
+    TestFalse(TEXT("No runtime item for invalid N0"), Snapshot->Items.Contains(Invalid));
     TestFalse(TEXT("No runtime item for a disabled generator"), Snapshot->Items.Contains(Disabled));
 
     AGrimrockPartyPawn* Party = Fixture.MakeParty();

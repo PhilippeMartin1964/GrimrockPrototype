@@ -85,7 +85,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
         for (const FGridItemSpawnInstance& Item : Level->ItemSpawns)
         {
             if (!TestTrue(TEXT("Spawn maintains exact source ItemId"),
-                Visit(Item.ItemDefinition, Item.CanonicalItemId, false))) { return false; }
+                Visit(nullptr, Item.CanonicalItemId, true))) { return false; }
             ++Spawn;
         }
         for (const FGridWorldObjectInstance& World : Level->WorldObjectInstances)

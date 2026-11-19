@@ -75,15 +75,6 @@ namespace ARMEMENT0183
             Definition->RuntimeActorClass = AGridReceptacleActor::StaticClass();
             Definition->StaticPart.Mesh = NewObject<UStaticMesh>(Runtime);
 
-            // Exercise runtime definition lookup when the receptacle starts empty.
-            // A disabled item generator references the pilot without spawning loot.
-            FGridItemSpawnInstance& CatalogReference = Level->ItemSpawns.AddDefaulted_GetRef();
-            CatalogReference.SpawnId = FGuid::NewGuid();
-            CatalogReference.ItemDefinition = Dagger;
-            CatalogReference.bSpawnAtStart = false;
-            CatalogReference.CellX = 0;
-            CatalogReference.CellY = 0;
-
             Runtime->LevelAsset = Level;
             Runtime->WorldObjectDefinitions.Add(Definition);
         }
@@ -110,8 +101,7 @@ namespace ARMEMENT0183
         bool Build()
         {
             if (!Ready()) return false;
-            if (!Level->WorldObjectInstances[0].InstanceConfig.ReceptacleInitialContent.IsEmpty() &&
-                !RegistryScope.Attach(World)) return false;
+            if (!RegistryScope.Attach(World)) return false;
             Runtime->RebuildLevel();
             Receptacle = Runtime->FindRuntimeObjectActor<AGridReceptacleActor>(ReceptacleId);
             return Receptacle != nullptr;
@@ -127,7 +117,6 @@ namespace ARMEMENT0183
             Party->Facing = EGridEdge::North;
             Party->SetActorLocation(Runtime->GetCellCenterWorld(1, 1, Party->EyeHeight));
             Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded();
-            if (!Party->PartyInventoryComponent->RegisterItemDefinition(Dagger)) return nullptr;
             return Party;
         }
 
@@ -195,7 +184,9 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     Cursor.RuntimeObjectId = FGuid::NewGuid();
     Cursor.ItemDefinitionId = Fixture.Dagger->ItemDefinitionId;
     Cursor.ItemLevel = 12;
-    Cursor.Weight = Fixture.Dagger->Weight;
+    FGridResolvedItem Physical;
+    if (!TestTrue(TEXT("Canonical transferred dagger resolves"), Fixture.RegistryScope.Registry->ResolveItem(Cursor.ItemDefinitionId, Cursor.ItemLevel, Physical))) return false;
+    Cursor.Weight = Physical.WeightKg;
     Cursor.Quantity = 1;
     Cursor.OwnerType = EGridItemOwnerType::Cursor;
 

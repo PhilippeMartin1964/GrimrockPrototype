@@ -63,7 +63,6 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 	{
 		ReadAuthoring(*ItemSpawn);
 		bObjectInitiallyEnabled = ItemSpawn->bSpawnAtStart;
-		ObjectBehavior.Item.ItemDefinitionAsset = ItemSpawn->ItemDefinition;
 	}
 	else if (const FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(ObjectId))
 	{

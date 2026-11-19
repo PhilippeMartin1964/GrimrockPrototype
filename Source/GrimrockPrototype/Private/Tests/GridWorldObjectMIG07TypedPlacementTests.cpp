@@ -62,7 +62,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 
 	FGridItemSpawnInstance ItemSpawn;
 	ItemSpawn.SpawnId = FGuid::NewGuid();
-	ItemSpawn.ItemDefinition = ItemDefinition;
+	ItemSpawn.CanonicalItemId = ItemDefinition->ItemDefinitionId;
 	ItemSpawn.CellX = 9;
 	ItemSpawn.CellY = 10;
 	ItemSpawn.bSpawnAtStart = true;
@@ -127,7 +127,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	{
 		const FGridItemSpawnInstance& Spawn = Level->ItemSpawns[0];
 		TestEqual(TEXT("Item SpawnId remains stable"), Spawn.SpawnId, ItemSpawn.SpawnId);
-		TestTrue(TEXT("ItemSpawn references its item definition directly"), Spawn.ItemDefinition == ItemDefinition);
+		TestEqual(TEXT("ItemSpawn keeps explicit ItemId"), Spawn.CanonicalItemId, ItemDefinition->ItemDefinitionId);
 		TestEqual(TEXT("ItemSpawn defaults to quantity one"), Spawn.Quantity, 1);
 		TestTrue(TEXT("ItemSpawn stores startup generation semantically"), Spawn.bSpawnAtStart);
 	}

@@ -71,11 +71,11 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset(UGridItemDefini
 		// Do not modify the authored level on this rejected operation.
 		return false;
 	}
-	UGridItemDefinitionAsset* Previous = Loose ? Loose->ItemDefinition.Get() : Spawn->ItemDefinition.Get();
+	if (Spawn) return NewItemDefinitionAsset == nullptr; // No legacy generator property.
+	UGridItemDefinitionAsset* Previous = Loose->ItemDefinition.Get();
 	if (Previous == NewItemDefinitionAsset) return true;
 	LevelAsset->Modify();
-	if (Loose) Loose->ItemDefinition = NewItemDefinitionAsset;
-	else Spawn->ItemDefinition = NewItemDefinitionAsset;
+	Loose->ItemDefinition = NewItemDefinitionAsset;
 	ObjectBehavior.Item.ItemDefinitionAsset = NewItemDefinitionAsset;
 	LevelAsset->MarkPackageDirty();
 	RebuildPreview();
@@ -134,7 +134,7 @@ bool AGridLevelEditorActor::SetSelectedObjectItemLevel(int32 NewItemLevel)
 	{
 		return false;
 	}
-	UGridItemDefinitionAsset* Definition = Loose ? Loose->ItemDefinition.Get() : Spawn->ItemDefinition.Get();
+	UGridItemDefinitionAsset* Definition = Loose ? Loose->ItemDefinition.Get() : nullptr;
 	const FName CanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
 	const bool bAllowed = !CanonicalId.IsNone()
 		? FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
@@ -165,7 +165,10 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 	if (!Loose && !Spawn) return false;
 
 	const FName PreviousCanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
-	UGridItemDefinitionAsset* PreviousDefinition = Loose ? Loose->ItemDefinition.Get() : Spawn->ItemDefinition.Get();
+	UGridItemDefinitionAsset* PreviousDefinition = Loose ? Loose->ItemDefinition.Get() : nullptr;
+	if (Spawn && PreviousCanonicalId == NewItemDefinitionId)
+		return FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			ResolveEditorItemRegistry(), NewItemDefinitionId, Spawn->ItemLevel);
 	if ((PreviousCanonicalId == NewItemDefinitionId &&
 			(!IsValid(PreviousDefinition) ||
 			 PreviousDefinition->ItemDefinitionId == NewItemDefinitionId)) ||
@@ -215,7 +218,6 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 		{
 			Spawn->CanonicalItemId = NewItemDefinitionId;
 			Spawn->ItemLevel = AuthoredLevel;
-			Spawn->ItemDefinition = nullptr;
 		}
 		ObjectBehavior.Item.ItemDefinitionAsset = nullptr;
 		LevelAsset->MarkPackageDirty();
@@ -226,7 +228,7 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 	// Only genuinely unregistered historical identities may still be picked
 	// from the existing palette. A canonical ID without its configured
 	// registry is rejected instead of being reinterpreted as legacy.
-	if (!PreviousCanonicalId.IsNone()) return false;
+	if (Spawn || !PreviousCanonicalId.IsNone()) return false;
 	if (IsValid(PreviousDefinition) &&
 		PreviousDefinition->ItemDefinitionId == NewItemDefinitionId)
 	{

@@ -392,18 +392,14 @@ struct FGridItemSpawnInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
 	FGuid SpawnId;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
-
-	/** Authored stable identity saved into the level by ARM-CLEAN06.4W.
-	 * No new runtime fallback or definition copy: only this ItemId. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item|Canonical")
+	/** Registered identity of the generated physical item. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Canonical")
 	FName CanonicalItemId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "1"))
 	int32 Quantity = 1;
 
-	/** 0 inherits the definition default at first spawn; 1..20 keeps a fixed item level. */
+	/** Explicit physical level: N0 non-ARM; N1..N20 ARM. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "0", ClampMax = "20", UIMin = "0", UIMax = "20"))
 	int32 ItemLevel = 0;
 

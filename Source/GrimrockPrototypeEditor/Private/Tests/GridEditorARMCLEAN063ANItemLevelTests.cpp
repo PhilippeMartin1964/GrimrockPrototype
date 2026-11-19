@@ -113,12 +113,12 @@ bool FGridClean063ANAuthoring::RunTest(const FString&)
 
 		FGridItemSpawnInstance& Spawn = Level->ItemSpawns.AddDefaulted_GetRef();
 		Spawn.SpawnId = FGuid::NewGuid();
-		Spawn.ItemDefinition = Sword.Get();
+		Spawn.CanonicalItemId = Sword->ItemDefinitionId;
 		Spawn.ItemLevel = 1;
 		Editor->LastSelectedObjectId = Spawn.SpawnId;
 		TestTrue(TEXT("Generator uses same canonical authored gate"), Editor->SetSelectedObjectItemLevel(13));
 		TestEqual(TEXT("Generator stores its N13"), Spawn.ItemLevel, 13);
-		Spawn.ItemDefinition = Ammo.Get();
+		Spawn.CanonicalItemId = Ammo->ItemDefinitionId;
 		TestFalse(TEXT("Ammo generator rejects invented N1"), Editor->SetSelectedObjectItemLevel(1));
 		TestEqual(TEXT("Rejected generator edit does not overwrite prior authored level"), Spawn.ItemLevel, 13);
 		TestTrue(TEXT("Ammo generator may set the real N0"), Editor->SetSelectedObjectItemLevel(0));

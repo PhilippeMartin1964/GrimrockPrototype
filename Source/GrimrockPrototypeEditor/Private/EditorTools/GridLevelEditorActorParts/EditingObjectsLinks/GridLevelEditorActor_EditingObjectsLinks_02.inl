@@ -35,6 +35,19 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 			return;
 		}
 	}
+	// A generator may be an empty editor draft, but cannot be authored from
+	// an obsolete definition. A canonical palette selection is explicit.
+	if (PaintObjectType == EGridLevelObjectType::ItemSpawn &&
+		ObjectBehavior.Item.ItemDefinitionAsset)
+	{
+		UE_LOG(LogGridEditor, Warning, TEXT("Item generator placement rejected: use a canonical ItemId."));
+		return;
+	}
+	if (PaintObjectType == EGridLevelObjectType::ItemSpawn && PaletteEntry &&
+		!PaletteEntry->CanonicalItemId.IsNone() &&
+		!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			ResolveEditorItemRegistry(), PaletteEntry->CanonicalItemId, PaletteEntry->CanonicalDefaultItemLevel))
+		return;
 	const UGridWorldObjectDefinitionAsset* WorldObjectDefinition = FindWorldObjectDefinitionById(WorldObjectDefinitionId);
 	const bool bSuppressBaseWall = WorldObjectDefinition && WorldObjectDefinition->SuppressesBaseWall();
 	const bool bIsStoneAlcoveReceptacle = WorldObjectDefinitionId == FName(TEXT("Receptacle_Alcove_Stone"));
@@ -141,7 +154,11 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		FGridItemSpawnInstance& ItemSpawn = LevelAsset->ItemSpawns.AddDefaulted_GetRef();
 		InitializeAuthoring(ItemSpawn);
 		ItemSpawn.SpawnId = NewId;
-		ItemSpawn.ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+		if (PaletteEntry && !PaletteEntry->CanonicalItemId.IsNone())
+		{
+			ItemSpawn.CanonicalItemId = PaletteEntry->CanonicalItemId;
+			ItemSpawn.ItemLevel = PaletteEntry->CanonicalDefaultItemLevel;
+		}
 		ItemSpawn.bSpawnAtStart = bObjectInitiallyEnabled;
 	}
 	else if (PaintObjectType == EGridLevelObjectType::Logic || PaintObjectType == EGridLevelObjectType::StoryCompanion ||

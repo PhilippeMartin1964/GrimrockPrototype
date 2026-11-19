@@ -131,7 +131,7 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 		Editor->SetSelectedObjectItemDefinitionId(Dagger));
 	bOk &= TestEqual(TEXT("Spawn canonical ID updated"), Spawn.CanonicalItemId, Dagger);
 	bOk &= TestEqual(TEXT("New ARM spawn has physical N1"), Spawn.ItemLevel, 1);
-	bOk &= TestNull(TEXT("Spawn remains pointerless"), Spawn.ItemDefinition.Get());
+	bOk &= TestNull(TEXT("Generator schema has no old pointer"), FGridItemSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	bOk &= TestEqual(TEXT("Spawn GUID retained"), Spawn.SpawnId, StableSpawnId);
 	bOk &= TestEqual(TEXT("Spawn authored quantity retained"), Spawn.Quantity, 1);
 	bOk &= TestTrue(TEXT("Clearing an already-null legacy picker is a no-op"),

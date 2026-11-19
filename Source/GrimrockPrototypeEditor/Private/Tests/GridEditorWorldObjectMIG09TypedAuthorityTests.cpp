@@ -86,7 +86,7 @@ bool FGridMIG09EditorTypedMutationsTest::RunTest(const FString& Parameters)
 	FGridItemSpawnInstance& ItemSpawn = Level->ItemSpawns.AddDefaulted_GetRef();
 	ItemSpawn.SpawnId = FGuid::NewGuid();
 	ItemSpawn.CellX = 3;
-	ItemSpawn.ItemDefinition = ItemDefinition;
+	ItemSpawn.CanonicalItemId = TEXT("Item_Arrows_01");
 	ItemSpawn.Quantity = 9;
 	FGridLogicObjectInstance& Logic = Level->LogicObjects.AddDefaulted_GetRef();
 	Logic.InstanceId = FGuid::NewGuid();
@@ -169,7 +169,7 @@ bool FGridMIG09EditorTypedValidationTest::RunTest(const FString& Parameters)
 		return Message.OptionalObjectId == ItemSpawn.SpawnId && Message.CellX == 2 && Message.CellY == 0;
 	}));
 	Logic.Logic.NodeType = EGridLogicNodeType::Latch;
-	ItemSpawn.ItemDefinition = LooseItem.ItemDefinition;
+	ItemSpawn.CanonicalItemId = TEXT("Stone");
 	ItemSpawn.SpawnId = LooseItem.InstanceId;
 	Messages = Fixture.Editor->ValidateCurrentLevel();
 	TestFalse(TEXT("Latch supports reset"), HasError(Messages, Logic.InstanceId, TEXT("not supported")));

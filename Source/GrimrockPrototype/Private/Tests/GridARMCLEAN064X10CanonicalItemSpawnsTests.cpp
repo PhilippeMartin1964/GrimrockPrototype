@@ -215,15 +215,14 @@ bool FGridClean064X10C5ZeroQuantity::RunTest(const FString&)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C6ContradictorySource,
-    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeC6ContradictorySource",
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeC6InvalidGuid",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridClean064X10C6ContradictorySource::RunTest(const FString&)
 {
     ARMCLEAN064X10::FCaseRegistry Probe;
     if (!TestTrue(TEXT("Real canonical registry ready"), Probe.bReady)) {return false;}
     FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("Item_Arrows_01"), 0, 1);
-    Spawn.ItemDefinition = NewObject<UGridItemDefinitionAsset>(Probe.GI.Get());
-    Spawn.ItemDefinition->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
+    Spawn.SpawnId.Invalidate();
     FGridLooseItemInstance Out;
     return TestFalse(TEXT("Strict persisted physical identity condition"),
         FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
@@ -261,20 +260,26 @@ bool FGridClean064X10DWorld::RunTest(const FString&)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10ELegacy,
-    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeE_SyntheticCompatibility",
+    "Grimrock.RPG.ARM.CLEAN06_4X10.ProbeE_StrictGeneratorSchema",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridClean064X10ELegacy::RunTest(const FString&)
 {
+    ARMCLEAN064X10::FCaseRegistry Probe;
+    if (!TestTrue(TEXT("Real canonical registry ready"), Probe.bReady)) return false;
     FGridItemSpawnInstance Synthetic;
     Synthetic.SpawnId = FGuid::NewGuid();
-    Synthetic.CanonicalItemId = NAME_None;
-    Synthetic.ItemDefinition = NewObject<UGridItemDefinitionAsset>();
-    Synthetic.ItemDefinition->ItemDefinitionId = TEXT("Legacy_Synthetic_Item");
     FGridLooseItemInstance Out;
-    return TestTrue(TEXT("Fixture without canonical ID materializes"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Synthetic, nullptr, Out)) &&
-        TestTrue(TEXT("Fixture remains unconverted"), Out.CanonicalItemId.IsNone()) &&
-        TestTrue(TEXT("Old source pointer remains"),
-            Out.ItemDefinition == Synthetic.ItemDefinition);
+    if (!TestNull(TEXT("Historical generator field removed"),
+            FGridItemSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition"))) ||
+        !TestFalse(TEXT("Empty ID cannot materialize"),
+            FGridCanonicalItemSpawnReadModel::TryMaterialize(Synthetic, Probe.Registry.Get(), Out)))
+        return false;
+    Synthetic.CanonicalItemId = TEXT("Stone");
+    if (!TestFalse(TEXT("Missing registry cannot materialize"),
+            FGridCanonicalItemSpawnReadModel::TryMaterialize(Synthetic, nullptr, Out)))
+        return false;
+    Synthetic.bSpawnAtStart = false;
+    return TestFalse(TEXT("Disabled generator cannot materialize"),
+        FGridCanonicalItemSpawnReadModel::TryMaterialize(Synthetic, Probe.Registry.Get(), Out));
 }
 #endif

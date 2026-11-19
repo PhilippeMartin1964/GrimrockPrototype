@@ -100,9 +100,7 @@ namespace
 		}
 		if (const FGridItemSpawnInstance* Instance = LevelAsset->FindItemSpawnInstanceById(ObjectId))
 		{
-			return Instance->ItemDefinition && !Instance->ItemDefinition->ItemDefinitionId.IsNone()
-				? Instance->ItemDefinition->ItemDefinitionId
-				: Instance->PaletteEntryId;
+			return !Instance->CanonicalItemId.IsNone() ? Instance->CanonicalItemId : Instance->PaletteEntryId;
 		}
 		if (const FGridLogicObjectInstance* Instance = LevelAsset->FindLogicObjectInstanceById(ObjectId))
 		{

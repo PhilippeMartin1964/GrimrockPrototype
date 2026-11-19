@@ -1317,7 +1317,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 	const FGridLooseItemInstance* LooseItem = CurrentEditorActor->LevelAsset->FindLooseItemInstanceById(ObjectId);
 	const FGridItemSpawnInstance* ItemSpawn = CurrentEditorActor->LevelAsset->FindItemSpawnInstanceById(ObjectId);
 	if (!LooseItem && !ItemSpawn) return SNullWidget::NullWidget;
-	UGridItemDefinitionAsset* Definition = LooseItem ? LooseItem->ItemDefinition.Get() : ItemSpawn->ItemDefinition.Get();
+	UGridItemDefinitionAsset* Definition = LooseItem ? LooseItem->ItemDefinition.Get() : nullptr;
 	const FName CanonicalId = LooseItem ? LooseItem->CanonicalItemId : ItemSpawn->CanonicalItemId;
 	const FName DisplayId = !CanonicalId.IsNone() ? CanonicalId :
 		(IsValid(Definition) ? Definition->ItemDefinitionId : NAME_None);
@@ -1329,7 +1329,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Item Definition"))).Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Placement")), FText::FromString(LooseItem ? TEXT("Item present in the level") : TEXT("Item generator")))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ItemDefinitionAsset (legacy)")), BuildItemDefinitionAssetPicker(Definition,
+		+ SVerticalBox::Slot().AutoHeight()[LooseItem ? GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ItemDefinitionAsset (legacy)")), BuildItemDefinitionAssetPicker(Definition,
 			[this](UGridItemDefinitionAsset* NewAsset)
 			{
 				if (AGridLevelEditorActor* Editor = GetEditorActor())
@@ -1337,7 +1337,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 					Editor->SetSelectedObjectItemDefinitionAsset(NewAsset);
 					RequestRefresh();
 				}
-			}))]
+			})) : SNullWidget::NullWidget]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
 			FText::FromString(TEXT("Canonical Item Id")),
 			SNew(SEditableTextBox)
@@ -1354,7 +1354,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 	if (!Definition && CanonicalId.IsNone())
 	{
 		Root->AddSlot().AutoHeight()[SNew(STextBlock)
-			.Text(FText::FromString(TEXT("Choose a legacy ItemDefinition or enter a registered Canonical Item Id.")))
+			.Text(FText::FromString(LooseItem ? TEXT("Choose a legacy ItemDefinition or enter a registered Canonical Item Id.") : TEXT("Enter a registered Canonical Item Id.")))
 			.AutoWrapText(true)];
 	}
 	else if (!Definition && !CanonicalId.IsNone())

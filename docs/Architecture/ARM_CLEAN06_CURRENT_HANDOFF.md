@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.19 — Générateurs d'objets : schéma canonique
+
+Parent 712af1c409f0d6f69ce485ef952ca2350d9c6a33 : publication après deux statuts SUCCESS. Le contrôle X.10 confirme zéro générateur dans les quatre niveaux natifs. Retrait de FGridItemSpawnInstance.ItemDefinition, de l'ancien lookup runtime, du fallback de matérialisation et de l'authoring ancien. GUID, quantité, niveau physique, SpawnAtStart et non-régénération après ramassage conservés. Les tests de transfert, capture et restauration utilisent le registre canonique ; le schéma des objets au sol reste distinct. Voir [5G.19](ARM_CLEAN06_5G19_CANONICAL_ITEM_SPAWN_SCHEMA.md).
+
 ## ARM-CLEAN06.5G.18 — Retrait du schéma historique du contenu initial
 
 Parent e739471e0adbc307bd524981e065a2cb8547db2e : publication uniquement après deux statuts SUCCESS. Suppression de ItemDefinition dans FGridReceptacleInitialItemConfig et FGridInitialReceptacleItem, plus le témoin transitoire bHasPersistedCanonicalIdentity. Les 18 contenus natifs, quantités, niveaux, GUIDs d'owners, ordre et rendu canonique restent vérifiés par X.48/X.58/X.91/X.92 ; contrôles d'authoring et TD07 adaptés. Le modèle de transfert des objets déjà contenus reste distinct. Aucun package ni SaveGame modifié. Voir [5G.18](ARM_CLEAN06_5G18_INITIAL_CONTENT_SCHEMA_RETIREMENT.md).

@@ -1,0 +1,9 @@
+# ARM-CLEAN06.5G.19 — Générateurs d'objets : schéma canonique
+
+Précondition : parent 712af1c409f0d6f69ce485ef952ca2350d9c6a33 validé. Le contrôle natif X.10/X.48 constate zéro générateur d'objet dans les quatre niveaux réels ; il n'existe donc pas de pointeur de générateur à convertir dans ces packages.
+
+- Supprimer FGridItemSpawnInstance.ItemDefinition ; CanonicalItemId et niveau physique explicite sont l'autorité unique. Refuser les GUIDs invalides, quantités non positives, IDs absents/inconnus, niveaux invalides, registre indisponible et générateurs désactivés. Garder SpawnId comme GUID de l'objet matérialisé, et conserver ses coordonnées.
+- Retirer le scan historique des générateurs dans ResolveRuntimeItemDefinition. Ne pas modifier le modèle de sauvegarde ni le mécanisme anti-duplication et anti-régénération.
+- Éditeur : le générateur peut rester un brouillon sans ID jusqu'à l'édition explicite. Prévalidation d'un ID de palette avant écriture ; ancien asset refusé, plus de sélecteur de pointeur pour les générateurs. L'application des métadonnées et de SpawnAtStart conserve l'identité et le niveau. Les IDs des liens sont affichés directement.
+- X.10 vérifie les quatre niveaux, le schéma par réflexion, N0 non-ARM, N1/N20 ARM, invalidités, GUID stable et présentation. ARM0182 maintient les tests de génération, ramassage, reconstruction, non-régénération et capture/restauration : les niveaux hérités sont remplacés par des niveaux explicites, un N0 invalide est ajouté. ARM0183 utilise désormais le vrai registre également pour insertion/restitution plutôt qu'un générateur désactivé servant de faux catalogue. MIG07/MIG09 et X.2/X.4/W/X.27/TD07 sont adaptés.
+- Aucun package, SaveGame, WBP ou texte joueur modifié. Le retrait des pointeurs des objets au sol reste un lot distinct, plus large. Le contrôle visuel de l'inspecteur reste à faire en 06.6.

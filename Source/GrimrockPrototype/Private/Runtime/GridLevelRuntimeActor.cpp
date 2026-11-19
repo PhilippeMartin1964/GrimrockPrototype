@@ -1970,13 +1970,6 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition(F
 				return Item.ItemDefinition;
 			}
 		}
-		for (const FGridItemSpawnInstance& Spawn : LevelAsset->ItemSpawns)
-		{
-			if (Spawn.ItemDefinition && Spawn.ItemDefinition->ItemDefinitionId == ItemDefinitionId)
-			{
-				return Spawn.ItemDefinition;
-			}
-		}
 	}
 
 	// A saved starting weapon may not appear anywhere in the active dungeon.

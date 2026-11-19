@@ -163,8 +163,8 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         for (const FGridItemSpawnInstance& Item : Level->ItemSpawns)
         {
             if (!Item.SpawnId.IsValid() ||
-                !CheckSource(Item.CanonicalItemId, Item.ItemDefinition,
-                    Item.ItemLevel, Item.Quantity, false))
+                !CheckSource(Item.CanonicalItemId, nullptr,
+                    Item.ItemLevel, Item.Quantity, true))
             {
                 AddError(TEXT("Invalid authored item spawn identity or level."));
                 return false;

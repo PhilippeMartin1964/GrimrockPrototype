@@ -48,6 +48,9 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 			return false; // Refuse before modifying selected object.
 		}
 	}
+	if (PaintObjectType == EGridLevelObjectType::ItemSpawn &&
+		ObjectBehavior.Item.ItemDefinitionAsset)
+		return false;
 	if (!EditGridPlacementAuthoring(LevelAsset, LastSelectedObjectId, [this](auto& Placement)
 		{
 			Placement.PaletteEntryId = SelectedPaletteEntryId;
@@ -93,7 +96,8 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 	}
 	else if (FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId))
 	{
-		ItemSpawn->ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+		// The selected-object ItemId command is the identity authority.
+		// Applying metadata must not overwrite the generator's physical identity.
 		ItemSpawn->bSpawnAtStart = bObjectInitiallyEnabled;
 	}
 	else if (FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(LastSelectedObjectId))
