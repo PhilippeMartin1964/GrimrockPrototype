@@ -140,6 +140,36 @@ bool FGridClean064X24PointerlessKits::RunTest(const FString&)
 	}
 	Kit.Items[2].ItemLevel = 0;
 
+	// A valid-looking historical pointer must not grant an unregistered item
+	// after canonical entries have already been staged.
+	TStrongObjectPtr<UGridItemDefinitionAsset> Unknown(NewObject<UGridItemDefinitionAsset>());
+	Unknown->ItemDefinitionId = TEXT("X24_UnregisteredFixture");
+	FRPGStartingEquipmentEntry& UnknownEntry = Kit.Items.AddDefaulted_GetRef();
+	UnknownEntry.ItemDefinition = Unknown.Get();
+	UnknownEntry.Quantity = 1;
+	Rejected = ARMCLEAN064X24::NewCharacter();
+	RejectedGear = FGridCharacterEquipmentState();
+	if (!TestFalse(TEXT("Configured registry rejects historical unregistered item"),
+		FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
+			Rejected, RejectedGear, OldDefinitions, Error, Registry.Get())) ||
+		!TestTrue(TEXT("Unknown item refusal is atomic"),
+			Rejected.InventorySlots[0].IsEmpty() && !RejectedGear.MainHand.IsValid() &&
+			Rejected.StartingEquipmentKitId.IsNone() && OldDefinitions.IsEmpty()))
+	{
+		return false;
+	}
+	Kit.Items.Pop();
+	TStrongObjectPtr<UGridItemSubsystem> Unconfigured(NewObject<UGridItemSubsystem>(GI.Get()));
+	if (!TestFalse(TEXT("Present but unconfigured registry cannot build a kit"),
+		FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
+			Rejected, RejectedGear, OldDefinitions, Error, Unconfigured.Get())) ||
+		!TestTrue(TEXT("Unconfigured registry refusal is atomic"),
+			Rejected.InventorySlots[0].IsEmpty() && !RejectedGear.MainHand.IsValid() &&
+			Rejected.StartingEquipmentKitId.IsNone() && OldDefinitions.IsEmpty()))
+	{
+		return false;
+	}
+
 	// Never grant a different item just because an obsolete UObject was set.
 	TStrongObjectPtr<UGridItemDefinitionAsset> Conflicting(NewObject<UGridItemDefinitionAsset>());
 	Conflicting->ItemDefinitionId = TEXT("Weapon_StraightSword_01");

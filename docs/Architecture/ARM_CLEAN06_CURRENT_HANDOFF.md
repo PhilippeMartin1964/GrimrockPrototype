@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.40 — Kits de départ : registre obligatoire
+
+Parent fbf63c22e28bdeee397ab5c69118ae1ea3b53675. Publication après les deux statuts SUCCESS. Refus des identités hors registre et du registre absent/non configuré en jeu ; cache de départ alimenté seulement dans les fixtures historiques Automation sans GameInstance. Le contrat X24 ajoute deux refus atomiques ; le test des 18 kits et STARTUPFLOW01 restent obligatoires. Voir [5G.40](ARM_CLEAN06_5G40_STRICT_STARTER_REGISTRY.md). Aucun asset ou SaveGame modifié.
+
 ## ARM-CLEAN06.5G.39 — Enregistrement historique réservé aux fixtures Automation
 
 Parent 175ba1043faab4c7e93e9dc7089fb2454af44231. Publication conditionnée aux deux statuts SUCCESS du correctif 5G.38 (TD06.8). RegisterItemDefinition est compilée uniquement sous WITH_DEV_AUTOMATION_TESTS. Recherche indexée : 64 fichiers de tests, aucun appelant natif hors tests identifié. La construction des kits historiques peut encore alimenter le cache ; FindItemDefinition conserve des lecteurs natifs. Voir [5G.39](ARM_CLEAN06_5G39_INVENTORY_REGISTRATION_AUTOMATION_ONLY.md). Aucun asset ni SaveGame écrit.

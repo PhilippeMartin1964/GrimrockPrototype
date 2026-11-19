@@ -1,4 +1,5 @@
 #include "RPG/RPGStartingEquipmentService.h"
+#include "CoreGlobals.h"
 
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -18,6 +19,16 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 {
 	OutDefinitions.Reset();
 	OutError.Reset();
+#if WITH_DEV_AUTOMATION_TESTS
+	const bool bAllowLegacyFixture = !CanonicalRegistry && GIsAutomationTesting;
+#else
+	constexpr bool bAllowLegacyFixture = false;
+#endif
+	if (!bAllowLegacyFixture && (!IsValid(CanonicalRegistry) || !CanonicalRegistry->IsConfigured()))
+	{
+		OutError = TEXT("Starting kit requires the configured canonical ItemSystem.");
+		return false;
+	}
 	if (KitId.IsNone())
 	{
 		return true; // Existing unconfigured class behaviour stays unchanged.
@@ -49,6 +60,11 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 			: (IsValid(Definition) ? Definition->ItemDefinitionId : NAME_None);
 		const bool bCanonicalRegistered = CanonicalRegistry &&
 			CanonicalRegistry->HasCanonicalItem(ItemId);
+		if (!bAllowLegacyFixture && !bCanonicalRegistered)
+		{
+			OutError = TEXT("Starting kit item is not registered in the canonical ItemSystem.");
+			return false;
+		}
 		if (ItemId.IsNone() ||
 			Entry.ItemLevel < 0 || Entry.ItemLevel > 20 || Entry.Quantity < 1 ||
 			(!IsValid(Definition) && !bExplicitCanonical) ||

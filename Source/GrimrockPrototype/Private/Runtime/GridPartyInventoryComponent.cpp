@@ -1,4 +1,5 @@
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "CoreGlobals.h"
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #include "GridEquipmentSlotUtils.h"
@@ -503,6 +504,22 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 		return false;
 	}
 
+	// Actual frontend/PIE games must never build a kit from old definitions.
+	const UGridItemSubsystem* StartingRegistry = ResolvePartyWeightRegistry(this);
+#if WITH_DEV_AUTOMATION_TESTS
+	const UWorld* StartingWorld = GetWorld();
+	const bool bAllowLegacyFixture = GIsAutomationTesting && !StartingRegistry &&
+		(!StartingWorld || !StartingWorld->GetGameInstance());
+#else
+	constexpr bool bAllowLegacyFixture = false;
+#endif
+	if (!bAllowLegacyFixture && (!IsValid(StartingRegistry) || !StartingRegistry->IsConfigured()))
+	{
+		UE_LOG(LogGridInventory, Warning, TEXT("StartingEquipment requires configured ItemSystem."));
+		OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Unavailable"));
+		return false;
+	}
+
 	FRPGAuthoringIdentityResolver::RememberRaceDefinition(Request.RaceDefinition);
 	FRPGAuthoringIdentityResolver::RememberClassDefinition(CombatActionSourceClass);
 	FRPGAuthoringIdentityResolver::RememberPortraitVisual(Request.RaceDefinition->RaceId, Request.PortraitGender, Request.PortraitVariantId, Request.Portrait);
@@ -558,7 +575,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 		FString PresetError;
 		if (!StartingKitClass ||
 			!FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*StartingKitClass, PresetError,
-				ResolvePartyWeightRegistry(this)))
+				StartingRegistry))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("StartingEquipment PresetUnavailable Reason=%s"), *PresetError);
 			OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Unavailable"));
@@ -578,12 +595,19 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	if (!FRPGStartingEquipmentService::TryBuildKit(
 		StartingKitClass, SelectedStartingKitId,
 		NewPartyState.ActiveCharacters[0], NewPartyState.ActiveEquipment[0], StartingDefinitions, KitError,
-		ResolvePartyWeightRegistry(this)))
+		StartingRegistry))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("StartingEquipment InvalidKit KitId=%s Reason=%s"), *SelectedStartingKitId.ToString(), *KitError);
 		OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.InvalidKit"));
 		return false;
 	}
+	if (!bAllowLegacyFixture && !StartingDefinitions.IsEmpty())
+	{
+		UE_LOG(LogGridInventory, Error, TEXT("Canonical starting kit returned historical definitions."));
+		OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.InvalidKit"));
+		return false;
+	}
+#if WITH_DEV_AUTOMATION_TESTS
 	for (UGridItemDefinitionAsset* Definition : StartingDefinitions)
 	{
 		if (UGridItemDefinitionAsset* Existing = FindItemDefinition(Definition->ItemDefinitionId))
@@ -597,9 +621,12 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 		}
 	}
 
+#endif // WITH_DEV_AUTOMATION_TESTS
+
 	const FGridPartyInventoryState PreviousPartyState = PartyInventoryState;
 	const TArray<FGuid> PreviousPortraitOrder = PartyPortraitOrder;
 	PartyInventoryState = MoveTemp(NewPartyState);
+#if WITH_DEV_AUTOMATION_TESTS
 	TArray<FName> AddedDefinitionIds;
 	for (UGridItemDefinitionAsset* Definition : StartingDefinitions)
 	{
@@ -609,6 +636,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 			AddedDefinitionIds.Add(Definition->ItemDefinitionId);
 		}
 	}
+#endif // WITH_DEV_AUTOMATION_TESTS
 	NotifyPartyInventoryChanged(INDEX_NONE);
 
 	FString OwnershipError;
@@ -616,10 +644,12 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	{
 		PartyInventoryState = PreviousPartyState;
 		PartyPortraitOrder = PreviousPortraitOrder;
+#if WITH_DEV_AUTOMATION_TESTS
 		for (const FName DefinitionId : AddedDefinitionIds)
 		{
 			RuntimeItemDefinitionsById.Remove(DefinitionId);
 		}
+#endif // WITH_DEV_AUTOMATION_TESTS
 		NotifyPartyInventoryChanged(INDEX_NONE);
 		OutError = FText::FromString(FString::Printf(TEXT("La création du personnage a échoué lors de la validation de l'ownership : %s"), *OwnershipError));
 		return false;
