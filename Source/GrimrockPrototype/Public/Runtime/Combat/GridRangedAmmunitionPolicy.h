@@ -11,6 +11,7 @@ class UGridPartyInventoryComponent;
  * NAME_None is deliberately backward compatible with existing weapons.
  */
 class UGridItemSubsystem;
+struct FGridResolvedItem;
 
 /** Immutable decision shared by action availability and final execution.
  * A registered weapon NEVER consults the historical RequiredAmmunitionItemDefinitionId.
@@ -21,11 +22,20 @@ struct FGridRangedAmmunitionRequirement
 	bool bValid = false;
 	FName AmmunitionItemId = NAME_None;
 	float AmmunitionWeightKg = 0.0f;
+	bool bCanonicalAmmunition = false;
+	int32 AmmunitionMaxStack = 0;
+	float AmmunitionLaunchSpeed = 0.0f;
 };
 
 class GRIMROCKPROTOTYPE_API FGridRangedAmmunitionPolicy
 {
 public:
+	/** Canonical flight policy only. An enabled specialized launcher wins;
+	 * otherwise use the unlevelled ammo's migrated generic speed, with the
+	 * existing ranged-ammo clamp. Invalid data never falls back. */
+	static bool TryResolveCanonicalLaunchSpeed(const FGridResolvedItem* Weapon,
+		const FGridResolvedItem& Ammo, float& OutSpeed);
+
 	static FGridRangedAmmunitionRequirement ResolveForAttack(
 		const UGridItemSubsystem* Registry, FName WeaponItemId, int32 WeaponLevel,
 		const UGridItemDefinitionAsset* LegacyWeapon, bool bRangedAttack);

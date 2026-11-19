@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Components/StaticMeshComponent.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
@@ -125,6 +126,37 @@ namespace ARMCLEAN063BB
 
         if (FCString::Strcmp(Scenario, TEXT("Projection")) == 0)
         {
+            Test.TestTrue(TEXT("Canonical ammunition is valid before any AP reservation"), Required.bCanonicalAmmunition);
+            const auto* OldArrow = LoadObject<UGridItemDefinitionAsset>(nullptr,
+                TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
+            if (!Test.TestNotNull(TEXT("Native historical arrow for retirement evidence"), OldArrow)) return false;
+            Test.TestEqual(TEXT("Migrated speed equals actual former authored speed"), Ammo.GenericThrow.InitialSpeed, OldArrow->ThrowSpeed);
+            const float ExpectedSpeed = Weapon.Weapon.Projectile.bEnabled
+                ? Weapon.Weapon.Projectile.InitialSpeed : FMath::Clamp(OldArrow->ThrowSpeed, 400.0f, 4800.0f);
+            Test.TestEqual(TEXT("Canonical ranged speed preserves former flight"), Required.AmmunitionLaunchSpeed, ExpectedSpeed);
+            Test.TestEqual(TEXT("Pointerless and contradictory launcher same speed"), NoLegacy.AmmunitionLaunchSpeed, ExpectedSpeed);
+            FGridResolvedItem ProbeWeapon = Weapon;
+            FGridResolvedItem ProbeAmmo = Ammo;
+            ProbeWeapon.Weapon.Projectile.bEnabled = false;
+            float Speed = -1.f;
+            ProbeAmmo.GenericThrow.InitialSpeed = 200.f;
+            Test.TestTrue(TEXT("Ordinary ammo clamp below range"), FGridRangedAmmunitionPolicy::TryResolveCanonicalLaunchSpeed(&ProbeWeapon, ProbeAmmo, Speed));
+            Test.TestEqual(TEXT("Lower legacy clamp"), Speed, 400.f);
+            ProbeAmmo.GenericThrow.InitialSpeed = 7000.f;
+            Test.TestTrue(TEXT("Ordinary ammo clamp above range"), FGridRangedAmmunitionPolicy::TryResolveCanonicalLaunchSpeed(&ProbeWeapon, ProbeAmmo, Speed));
+            Test.TestEqual(TEXT("Upper legacy clamp"), Speed, 4800.f);
+            ProbeAmmo.GenericThrow.InitialSpeed = 0.f;
+            Test.TestFalse(TEXT("Invalid ordinary speed is not replaced"), FGridRangedAmmunitionPolicy::TryResolveCanonicalLaunchSpeed(&ProbeWeapon, ProbeAmmo, Speed));
+            Test.TestEqual(TEXT("Rejected speed resets projection"), Speed, 0.f);
+            ProbeWeapon.Weapon.Projectile.bEnabled = true;
+            ProbeWeapon.Weapon.Projectile.InitialSpeed = 6500.f;
+            Test.TestTrue(TEXT("Actual specialized launcher has precedence"), FGridRangedAmmunitionPolicy::TryResolveCanonicalLaunchSpeed(&ProbeWeapon, ProbeAmmo, Speed));
+            Test.TestEqual(TEXT("Specialized speed is not clamped"), Speed, 6500.f);
+            ProbeWeapon.Weapon.Projectile.InitialSpeed = 0.f;
+            ProbeAmmo.GenericThrow.InitialSpeed = 1800.f;
+            Test.TestFalse(TEXT("Invalid enabled launcher cannot borrow ammo speed"), FGridRangedAmmunitionPolicy::TryResolveCanonicalLaunchSpeed(&ProbeWeapon, ProbeAmmo, Speed));
+            ProbeAmmo.ItemLevel = 1;
+            Test.TestFalse(TEXT("N1 ammo cannot be physical flight"), FGridRangedAmmunitionPolicy::TryResolveCanonicalLaunchSpeed(nullptr, ProbeAmmo, Speed));
             const auto InvalidN0 = F.Resolve(OldWeapon, 0);
             Test.TestTrue(TEXT("Known but invalid canonical N0 fails closed"),
                 InvalidN0.bCanonicalSource && !InvalidN0.bValid);
@@ -158,6 +190,13 @@ namespace ARMCLEAN063BB
             Slot.Item.OwnerGuid = Hero.CharacterId;
             Slot.Item.OwnerCharacterIndex = 0;
             const FGuid StackGuid = Slot.Item.RuntimeObjectId;
+            Slot.Item.ItemLevel = 1;
+            Test.TestFalse(TEXT("Invalid N1 ammo cannot authorize shot"),
+                FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*F.Inventory, 0, Required));
+            Test.TestFalse(TEXT("Invalid N1 ammo cannot be debited"),
+                FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*F.Inventory, 0, Required));
+            Test.TestEqual(TEXT("Refusal leaves invalid stack untouched"), Slot.Item.Quantity, 2);
+            Slot.Item.ItemLevel = 0;
             const auto NonRanged = F.Resolve(OldWeapon, 1, false);
             Test.TestTrue(TEXT("Non ranged call no-op"),
                 FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*F.Inventory, 0, NonRanged));
@@ -194,11 +233,16 @@ namespace ARMCLEAN063BB
             Arrow.OwnerType = EGridItemOwnerType::World;
             Arrow.OwnerCharacterIndex = INDEX_NONE;
             const FVector Spawn = F.Runtime->GetCellCenterWorld(0, 0, 100.0f);
-            const FVector Velocity(1200.0f, 0.0f, 0.0f);
+            const FVector Velocity(Required.AmmunitionLaunchSpeed, 0.0f, 0.0f);
             AGridThrownItemActor* Projectile = F.Runtime->SpawnThrownItemProjectile(
                 Arrow, nullptr, Spawn, Velocity, 0, 0, true);
             if (!Test.TestNotNull(TEXT("Canonical arrow launches without old item DA"),
                 Projectile)) return false;
+            Test.TestNull(TEXT("No retired arrow asset attached"), Projectile->GetItemDefinitionAsset());
+            if (Test.TestNotNull(TEXT("Movement component"), Projectile->ProjectileMovementComponent))
+                Test.TestTrue(TEXT("Real projectile uses preflight speed"),
+                    FMath::IsNearlyEqual(Projectile->ProjectileMovementComponent->Velocity.Size(),
+                        static_cast<double>(Required.AmmunitionLaunchSpeed)));
             Test.TestTrue(TEXT("Projectile flagged as ranged ammunition"),
                 Projectile->bRangedAmmunitionProjectile);
             Test.TestEqual(TEXT("Projectile ItemId preserved"),

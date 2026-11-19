@@ -697,7 +697,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		CombatActionOverride ? CombatActionOverride->Definition.SubsequentResolutionAccuracyModifier : 0;
 	int32 SourceItemQuantityCost = CombatActionOverride ? FMath::Max(0, CombatActionOverride->CurrentSourceItemQuantityCost) : 0;
 	const UGridItemDefinitionAsset* SourceItemDefinition =
-		OffensiveItemDefinitionId.IsNone() ? nullptr : Inventory->FindItemDefinition(OffensiveItemDefinitionId);
+		OffensiveItemDefinitionId.IsNone() || bCanonicalAttackSource
+			? nullptr : Inventory->FindItemDefinition(OffensiveItemDefinitionId);
 	// Read one exact owned source for both ammo and the physical throw
 	// decision. A registered item must never borrow bCombatThrowWeapon
 	// from its old DA_Weapon_* even when that pointer is still loaded.
@@ -793,27 +794,18 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 	if (bResolvedRangedAttack && !AmmoRequirement.AmmunitionItemId.IsNone())
 	{
 		const FName AmmunitionId = AmmoRequirement.AmmunitionItemId;
-		UGridItemDefinitionAsset* AmmunitionDefinition = Inventory->FindItemDefinition(AmmunitionId);
-		// BB: identity/quantity are canonical. Flight speed remains authored by
-		// the weapon projectile policy when present, otherwise by the existing
-		// arrow's visual/physics asset until the controlled 06.4 conversion.
-		// Never fabricate a speed if neither authoritative source is present.
-		float LaunchSpeed = 0.0f;
-		FGridResolvedItem CanonicalWeapon;
-		if (AmmoRequirement.bCanonicalSource && IsValid(AmmoRegistry) &&
-			AmmoRegistry->ResolveItem(OffensiveItemDefinitionId, AmmoSourceInstance.ItemLevel, CanonicalWeapon) &&
-			CanonicalWeapon.Weapon.Projectile.bEnabled &&
-			FMath::IsFinite(CanonicalWeapon.Weapon.Projectile.InitialSpeed) &&
-			CanonicalWeapon.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER)
-		{
-			LaunchSpeed = CanonicalWeapon.Weapon.Projectile.InitialSpeed;
-		}
-		else if (IsValid(AmmunitionDefinition))
-		{
-			LaunchSpeed = FMath::Clamp(AmmunitionDefinition->ThrowSpeed, 400.0f, 4800.0f);
-		}
-		bSourceCommitted = IsValid(RuntimeActor) && LaunchSpeed > KINDA_SMALL_NUMBER &&
-			(AmmoRequirement.bCanonicalSource || IsValid(AmmunitionDefinition));
+		UGridItemDefinitionAsset* AmmunitionDefinition = AmmoRequirement.bCanonicalAmmunition
+			? nullptr : Inventory->FindItemDefinition(AmmunitionId);
+		// Canonical launch speed was validated together with the ammo join
+		// before reserving AP. Never consult a historical arrow for it.
+		const float LaunchSpeed = AmmoRequirement.bCanonicalAmmunition
+			? AmmoRequirement.AmmunitionLaunchSpeed
+			: (IsValid(AmmunitionDefinition) &&
+				AmmunitionDefinition->ItemDefinitionId == AmmunitionId &&
+				FMath::IsFinite(AmmunitionDefinition->ThrowSpeed)
+				? FMath::Clamp(AmmunitionDefinition->ThrowSpeed, 400.0f, 4800.0f) : 0.0f);
+		bSourceCommitted = IsValid(RuntimeActor) && FMath::IsFinite(LaunchSpeed) && LaunchSpeed > KINDA_SMALL_NUMBER &&
+			(AmmoRequirement.bCanonicalAmmunition || IsValid(AmmunitionDefinition));
 		if (bSourceCommitted)
 		{
 			FGridItemInstance ProjectileItem;
@@ -821,7 +813,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 			ProjectileItem.ItemDefinitionId = AmmunitionId;
 			ProjectileItem.ItemLevel = 0;
 			ProjectileItem.Quantity = 1;
-			ProjectileItem.Weight = AmmoRequirement.bCanonicalSource
+			ProjectileItem.Weight = AmmoRequirement.bCanonicalAmmunition
 				? AmmoRequirement.AmmunitionWeightKg : AmmunitionDefinition->Weight;
 			ProjectileItem.OwnerType = EGridItemOwnerType::World;
 			ProjectileItem.OwnerCharacterIndex = INDEX_NONE;

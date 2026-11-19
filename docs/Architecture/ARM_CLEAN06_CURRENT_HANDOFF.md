@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5E.3 — lancement canonique des munitions
+
+Parent `bbe1705d8492a8f20065571f17eb5ee27c4c3d78` : SilentTask/LocalAuto SUCCESS. Projection de vitesse des munitions au même préflight que le lien AmmoKindId, priorité au projectile spécialisé actif sinon GenericThrow.InitialSpeed avec clamp historique 400–4800. Pointeur ancien nul pour toute munition inscrite (y compris lanceur non inscrit). Refus vitesse invalide/niveau physique N1/stack invalide avant débit ; aucun changement des trajectoires valides, de l'ordre de transaction ou de SaveGame. Test 3BB renforcé (parité source native, priorité, refus, vrais projectile/stock). Attendre les deux statuts exact-SHA. La réhydratation globale et les transferts restants restent à examiner. [Détail](ARM_CLEAN06_5E3_CANONICAL_AMMO_LAUNCH.md).
+
 ## ARM-CLEAN06.5E.2 — sources des attaques et effets
 
 Parent `83f3643af6fb85e78ae70e919367e4698e5f6516` : SilentTask/LocalAuto SUCCESS. L'entrée d'attaque directe et les attaques empruntées utilisent maintenant la même projection standard que HUD/dual wield. Tags ARM lus sur le vrai objet, même si liste vide ; QuickItem conserve les tags de l'action projetée, aucun retour aux anciens tags. Effets directs pris sur l'action canonique ; effets explicites des actions de classe inchangés. Garde de production 22 sources/19 attaques/3 passifs contre perte de tags ou effets non projetés. Aucun changement du coût de la commande de diagnostic directe, de la préparation des projectiles, des assets ni des sauvegardes ; prochains audits munitions/flux et réhydratation. Deux statuts exact-SHA requis. [Détail](ARM_CLEAN06_5E2_ATTACK_CONTRIBUTIONS.md).

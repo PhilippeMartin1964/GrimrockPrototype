@@ -729,7 +729,8 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
 		{
 			const UGridItemDefinitionAsset* LegacyWeapon =
-				Inventory->FindItemDefinition(Action.SourceDefinitionId);
+				AmmoRegistry && AmmoRegistry->HasCanonicalItem(Action.SourceDefinitionId)
+				? nullptr : Inventory->FindItemDefinition(Action.SourceDefinitionId);
 			FGridItemInstance Equipped;
 			const bool bEquipped = Inventory->GetEquippedItem(
 				CharacterIndex, Action.SourceEquipmentSlot, Equipped) &&
