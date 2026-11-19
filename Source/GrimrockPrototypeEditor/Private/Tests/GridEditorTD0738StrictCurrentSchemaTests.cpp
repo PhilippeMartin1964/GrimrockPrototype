@@ -113,8 +113,7 @@ namespace GridTD0738StrictSchema
 			{
 				const FGridMonsterLootEntry& Loot = Monster->LootTable[LootIndex];
 				if (GridTD073ApprovedCanonicalStoneLoot::IsExact(AssetPath, LootIndex, Loot)) continue;
-				const UGridItemDefinitionAsset* Item = Loot.ItemDefinitionAsset.Get();
-				AuditPair(AssetPath, FString::Printf(TEXT("LootTable[%d]"), LootIndex), Item, Item ? Item->ItemDefinitionId : NAME_None, Loot.ItemDefinitionId,
+				AuditPair(AssetPath, FString::Printf(TEXT("LootTable[%d]"), LootIndex), nullptr, NAME_None, Loot.ItemDefinitionId,
 					Candidates);
 			}
 		}

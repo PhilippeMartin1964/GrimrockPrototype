@@ -1,6 +1,5 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterCategoryAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBalanceTypes.h"
 
@@ -11,14 +10,12 @@ UGridMonsterDefinitionAsset::UGridMonsterDefinitionAsset()
 
 FName FGridMonsterLootEntry::GetResolvedItemDefinitionId() const
 {
-	return ItemDefinitionAsset && !ItemDefinitionAsset->ItemDefinitionId.IsNone() ? ItemDefinitionAsset->ItemDefinitionId : ItemDefinitionId;
+	return ItemDefinitionId;
 }
 
 bool FGridMonsterLootEntry::IsValidDefinition() const
 {
-	const FName ResolvedId = GetResolvedItemDefinitionId();
-	const bool bIdsAgree = !ItemDefinitionAsset || ItemDefinitionId.IsNone() || ItemDefinitionAsset->ItemDefinitionId == ItemDefinitionId;
-	return !ResolvedId.IsNone() && bIdsAgree && FMath::IsFinite(DropChance) && DropChance >= 0.0f && DropChance <= 1.0f && MinQuantity > 0 &&
+	return !ItemDefinitionId.IsNone() && FMath::IsFinite(DropChance) && DropChance >= 0.0f && DropChance <= 1.0f && MinQuantity > 0 &&
 		MaxQuantity >= MinQuantity && ItemLevel >= 0 && ItemLevel <= 20;
 }
 

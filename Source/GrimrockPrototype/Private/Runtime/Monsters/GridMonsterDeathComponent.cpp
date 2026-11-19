@@ -5,12 +5,10 @@
 #include "Components/BoxComponent.h"
 #include "EngineUtils.h"
 #include "RPG/RPGExperienceRewardService.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridLootStaticMetadataReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -346,42 +344,22 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 		}
 
 		const FGridMonsterLootEntry& Entry = LootTable[Result.EntryIndex];
-		const bool bCanonicalItem = Registry && Registry->HasCanonicalItem(Result.ItemDefinitionId);
-		UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset.Get();
-		// A persisted canonical ID is sufficient. Only an explicitly retained
-		// old ARM source may supply its authored default level during migration.
-		if (!bCanonicalItem && !IsValid(ItemDefinition) && RuntimeActor)
-		{
-			ItemDefinition = RuntimeActor->ResolveRuntimeItemDefinition(Result.ItemDefinitionId);
-		}
 		int32 FixedItemLevel = 0;
-		if (!FGridMonsterLootResolver::TryResolveItemLevel(Entry, ItemDefinition, FixedItemLevel, Registry))
+		if (!FGridMonsterLootResolver::TryResolveItemLevel(Entry, FixedItemLevel, Registry))
 		{
 			++FailedLootCount;
-			UE_LOG(LogGridMonsterLoot, Warning, TEXT("[GridMonsterLoot] InvalidFixedLevel Monster=%s Item=%s Level=%d"),
-				*GetNameSafe(OwnerMonster), *Result.ItemDefinitionId.ToString(), Entry.ItemLevel);
+			UE_LOG(LogGridMonsterLoot, Warning, TEXT("[GridMonsterLoot] InvalidFixedLevel Monster=%s Item=%s Level=%d"), *GetNameSafe(OwnerMonster), *Result.ItemDefinitionId.ToString(), Entry.ItemLevel);
 			continue;
 		}
-		// The independent random roll above is unchanged. ItemSystem now
-		// validates the fixed level as well as identity/weight for registered
-		// loot; historical level resolution remains only for unknown IDs.
-		if (bCanonicalItem) ItemDefinition = nullptr;
-		const FGridWeaponLevelProfile* LevelProfile = nullptr;
-		if (!bCanonicalItem && IsValid(ItemDefinition) &&
-			ItemDefinition->bUseWeaponCatalogue && FixedItemLevel > 0)
-		{
-			ItemDefinition->TryGetWeaponCatalogueProfile(FixedItemLevel, LevelProfile);
-		}
+		// The independent random roll is unchanged; only the registered
+		// physical identity and level may supply the spawned item's data.
 
 		FGridItemInstance ItemInstance;
 		ItemInstance.RuntimeObjectId = FGuid::NewGuid();
 		ItemInstance.ItemDefinitionId = Result.ItemDefinitionId;
 		ItemInstance.ItemLevel = FixedItemLevel;
 		ItemInstance.Quantity = Result.Quantity;
-		const FGridLootStaticMetadataReadView Metadata = FGridLootStaticMetadataReadModel::Resolve(
-			Registry, ItemInstance,
-			ItemDefinition ? ItemDefinition->DisplayName : FText::FromName(Result.ItemDefinitionId),
-			LevelProfile ? LevelProfile->WeightKg : (ItemDefinition ? ItemDefinition->Weight : 0.0f));
+		const FGridLootStaticMetadataReadView Metadata = FGridLootStaticMetadataReadModel::Resolve(Registry, ItemInstance);
 		if (!Metadata.bResolved)
 		{
 			++FailedLootCount;
@@ -396,18 +374,7 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 		ItemInstance.OwnerGuid = FGuid();
 		ItemInstance.OwnerCharacterIndex = INDEX_NONE;
 		ItemInstance.EquipmentSlot = EGridEquipmentSlot::None;
-		ItemInstance.bLightsEnabled = ItemDefinition && ItemDefinition->IsLightEnabledByDefault();
-		if (bCanonicalItem)
-		{
-			FGridResolvedItem Canonical;
-			if (!Registry->ResolveItem(ItemInstance.ItemDefinitionId, FixedItemLevel, Canonical))
-			{
-				++FailedLootCount;
-				continue;
-			}
-			ItemInstance.bLightsEnabled = Canonical.LightEmitter.HasEmitter() &&
-				Canonical.LightEmitter.bDefaultEnabled;
-		}
+		ItemInstance.bLightsEnabled = Metadata.bLightsEnabled;
 
 		const FVector LocalOffset = GetMON8LootLocalOffset(PlacedLootCount);
 		if (RuntimeActor)
@@ -417,7 +384,7 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 		}
 
 		const bool bPlaced =
-			RuntimeActor && RuntimeActor->TryDropItemInstanceAtCell(ItemInstance, ItemDefinition, DeathCell.X, DeathCell.Y, EGridEdge::None, LocalOffset);
+			RuntimeActor && RuntimeActor->TryDropItemInstanceAtCell(ItemInstance, nullptr, DeathCell.X, DeathCell.Y, EGridEdge::None, LocalOffset);
 		if (!bPlaced)
 		{
 			++FailedLootCount;

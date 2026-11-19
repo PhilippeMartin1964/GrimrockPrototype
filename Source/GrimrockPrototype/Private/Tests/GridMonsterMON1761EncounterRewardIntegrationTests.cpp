@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -126,33 +127,25 @@ namespace
 		return Definition;
 	}
 
-	UGridItemDefinitionAsset* LoadMON176ProductionStone(FAutomationTestBase& Test)
+	const UGridCanonicalItemDefinitionAsset* LoadMON176ProductionStone(FAutomationTestBase& Test)
 	{
-		UGridItemDefinitionAsset* Definition =
-			LoadObject<UGridItemDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Stone.DA_Item_Stone"));
-		Test.TestNotNull(TEXT("Production DA_Item_Stone loads"), Definition);
-		return Definition;
-	}
-
-	UGridItemDefinitionAsset* MakeMON176ItemDefinition(UObject* Outer, FName ItemId)
-	{
-		UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>(Outer);
-		Item->ItemDefinitionId = ItemId;
-		Item->DisplayName = FText::FromName(ItemId);
-		Item->Weight = 1.0f;
-		return Item;
-	}
-
-	void AddMON176GuaranteedLoot(UGridMonsterDefinitionAsset* Definition, UGridItemDefinitionAsset* Item)
-	{
-		if (!Definition || !Item)
+		const UGridItemSystemAsset* Root = GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+		if (Root)
 		{
-			return;
+			for (const UGridCanonicalItemDefinitionAsset* Item : Root->ItemDefinitions)
+			{
+				if (IsValid(Item) && Item->ItemId == FName(TEXT("Stone"))) return Item;
+			}
 		}
+		Test.AddError(TEXT("Production canonical Stone not found"));
+		return nullptr;
+	}
 
+	void AddMON176GuaranteedLoot(UGridMonsterDefinitionAsset* Definition, FName ItemId)
+	{
+		if (!Definition || ItemId.IsNone()) return;
 		FGridMonsterLootEntry Entry;
-		Entry.ItemDefinitionId = Item->ItemDefinitionId;
-		Entry.ItemDefinitionAsset = Item;
+		Entry.ItemDefinitionId = ItemId;
 		Entry.DropChance = 1.0f;
 		Entry.MinQuantity = 1;
 		Entry.MaxQuantity = 1;
@@ -190,19 +183,17 @@ namespace
 		return Definition;
 	}
 
-	void AddMON176SyntheticCanonicalLoot(UGridMonsterDefinitionAsset* Definition)
+	void AddMON176CanonicalLoot(UGridMonsterDefinitionAsset* Definition)
 	{
 		if (!Definition)
 		{
 			return;
 		}
 
-		// The ArtBook contract is knife / shaped stone / empty vial.
-		// Knife and vial production DataAssets do not exist yet, so these
-		// MON17.6-only ids deliberately stay synthetic and non-authoritative.
-		AddMON176GuaranteedLoot(Definition, MakeMON176ItemDefinition(Definition, TEXT("MON176_GoblinKnife")));
-		AddMON176GuaranteedLoot(Definition, MakeMON176ItemDefinition(Definition, TEXT("MON176_ShapedStone")));
-		AddMON176GuaranteedLoot(Definition, MakeMON176ItemDefinition(Definition, TEXT("MON176_EmptyVial")));
+		// The three ArtBook identities now exist in the real ItemSystem.
+		AddMON176GuaranteedLoot(Definition, TEXT("GoblinKnife"));
+		AddMON176GuaranteedLoot(Definition, TEXT("Stone"));
+		AddMON176GuaranteedLoot(Definition, TEXT("EmptyVial"));
 	}
 
 	FGridMonsterSpawnInstance MakeMON176Spawn(UGridMonsterDefinitionAsset* Definition, FGuid SpawnId, FIntPoint Cell, FName EncounterId = NAME_None,
@@ -276,7 +267,7 @@ bool FGridMonsterMON1761ProductionRewardContractTest::RunTest(const FString& Par
 	(void)Parameters;
 
 	UGridMonsterDefinitionAsset* ProductionGoblin = LoadMON176ProductionGoblin(*this);
-	UGridItemDefinitionAsset* ProductionStone = LoadMON176ProductionStone(*this);
+	const UGridCanonicalItemDefinitionAsset* ProductionStone = LoadMON176ProductionStone(*this);
 	if (!ProductionGoblin || !ProductionStone)
 	{
 		return false;
@@ -284,10 +275,10 @@ bool FGridMonsterMON1761ProductionRewardContractTest::RunTest(const FString& Par
 
 	TestEqual(TEXT("Production monster id remains MON_GoblinThrower"), ProductionGoblin->MonsterId, MON176GoblinId);
 	TestEqual(TEXT("Production Goblin reward remains 125 XP"), ProductionGoblin->ExperienceReward, MON176GoblinExperienceReward);
-	TestEqual(TEXT("Existing production stone resolves to Stone"), ProductionStone->ItemDefinitionId, FName(TEXT("Stone")));
+	TestEqual(TEXT("Existing production stone resolves to Stone"), ProductionStone->ItemId, FName(TEXT("Stone")));
 
 	UGridMonsterDefinitionAsset* Contract = MakeMON176SyntheticGoblin(GetTransientPackage());
-	AddMON176SyntheticCanonicalLoot(Contract);
+	AddMON176CanonicalLoot(Contract);
 	FString Error;
 	TestTrue(TEXT("Canonical synthetic reward contract validates"), Contract->ValidateDefinition(Error));
 	TestEqual(TEXT("ArtBook contract exposes three independent loot entries"), Contract->LootTable.Num(), 3);
@@ -313,6 +304,8 @@ bool FGridMonsterMON1761EncounterWaveParticipationTest::RunTest(const FString& P
 	{
 		return false;
 	}
+	FGridCanonicalLootTestScope LootRegistry;
+	if (!TestTrue(TEXT("Canonical loot registry attached"), LootRegistry.Attach(TestWorld.World))) return false;
 
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	UGridLevelAsset* Level = MakeMON176Floor(Runtime);
@@ -382,12 +375,14 @@ bool FGridMonsterMON1761DeathRewardsExactlyOnceTest::RunTest(const FString& Para
 	{
 		return false;
 	}
+	FGridCanonicalLootTestScope LootRegistry;
+	if (!TestTrue(TEXT("Canonical loot registry attached"), LootRegistry.Attach(TestWorld.World))) return false;
 
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	UGridLevelAsset* Level = MakeMON176Floor(Runtime);
 	AGrimrockPartyPawn* Party = SpawnMON176Party(TestWorld.World, Runtime);
 	UGridMonsterDefinitionAsset* Definition = MakeMON176SyntheticGoblin(Runtime);
-	AddMON176SyntheticCanonicalLoot(Definition);
+	AddMON176CanonicalLoot(Definition);
 	if (!Runtime || !Level || !Party || !Definition)
 	{
 		return false;
@@ -444,19 +439,21 @@ bool FGridMonsterMON1761PersistenceNoReplayTest::RunTest(const FString& Paramete
 	{
 		return false;
 	}
+	FGridCanonicalLootTestScope LootRegistry;
+	if (!TestTrue(TEXT("Canonical loot registry attached"), LootRegistry.Attach(TestWorld.World))) return false;
 
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	UGridLevelAsset* Level = MakeMON176Floor(Runtime);
 	AGrimrockPartyPawn* Party = SpawnMON176Party(TestWorld.World, Runtime);
 	UGridMonsterDefinitionAsset* ProductionGoblin = LoadMON176ProductionGoblin(*this);
-	UGridItemDefinitionAsset* ProductionStone = LoadMON176ProductionStone(*this);
+	const UGridCanonicalItemDefinitionAsset* ProductionStone = LoadMON176ProductionStone(*this);
 	if (!Runtime || !Level || !Party || !ProductionGoblin || !ProductionStone)
 	{
 		return false;
 	}
 
 	UGridMonsterDefinitionAsset* Definition = MakeMON176SyntheticGoblin(Runtime, ProductionGoblin);
-	AddMON176GuaranteedLoot(Definition, ProductionStone);
+	AddMON176GuaranteedLoot(Definition, ProductionStone->ItemId);
 	const FGuid SpawnId(17, 6, 4, 1);
 	Level->MonsterSpawns.Add(MakeMON176Spawn(Definition, SpawnId, FIntPoint(2, 2)));
 

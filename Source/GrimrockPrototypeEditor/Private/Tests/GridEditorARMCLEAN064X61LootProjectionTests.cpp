@@ -40,6 +40,8 @@ bool FGridEditorARMCLEAN064X61LootProjection::RunTest(const FString&)
 
     TArray<FGridMonsterLootEntry> GoblinPlan, RatPlan;
     const bool bMigrated = OriginalDefinitions.Num() >= FPlan::FinalCount;
+    if (!TestTrue(TEXT("Native loot cutover must already be complete"), bMigrated)) return false;
+    TestNull(TEXT("Legacy loot pointer property removed"), FGridMonsterLootEntry::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
     if (!TestTrue(TEXT("Both tables are entirely in one native state"),
         FPlan::BuildLootTables(*Goblin.Get(), *Rat.Get(), bMigrated, GoblinPlan, RatPlan, Error)))
     {
@@ -48,12 +50,10 @@ bool FGridEditorARMCLEAN064X61LootProjection::RunTest(const FString&)
     }
     for (const auto& Row : GoblinPlan)
     {
-        TestNull(TEXT("Goblin projected old pointer"), Row.ItemDefinitionAsset.Get());
         TestTrue(TEXT("Goblin physical N0"), Row.ItemLevel == 0 && !Row.ItemDefinitionId.IsNone());
     }
     for (const auto& Row : RatPlan)
     {
-        TestNull(TEXT("Rat projected old pointer"), Row.ItemDefinitionAsset.Get());
         TestTrue(TEXT("Rat physical N0"), Row.ItemLevel == 0 && !Row.ItemDefinitionId.IsNone());
     }
     TestTrue(TEXT("Goblin 128 unchanged RNG sequences"), FStone::SameRolls(Goblin->LootTable, GoblinPlan));

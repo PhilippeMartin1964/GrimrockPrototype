@@ -23,8 +23,6 @@ bool FGridClean063XLootMetadata::RunTest(const FString&)
 		for (const FString& Error : Errors) AddError(Error);
 		return false;
 	}
-	const FText OldName = FText::FromString(TEXT("WRONG OLD LOOT NAME"));
-	const float OldWeight = 54321.0f;
 	const FName Arms[] = {TEXT("Weapon_StraightSword_01"), TEXT("Weapon_ThrowingKnife_01"),
 		TEXT("Weapon_GreatAxe_01"), TEXT("Weapon_RoundShield_01")};
 	const int32 Levels[] = {1, 20};
@@ -41,7 +39,7 @@ bool FGridClean063XLootMetadata::RunTest(const FString&)
 			Drop.ItemLevel = Level;
 			Drop.Quantity = 2;
 			const FGridLootStaticMetadataReadView Meta =
-				FGridLootStaticMetadataReadModel::Resolve(Registry.Get(), Drop, OldName, OldWeight);
+				FGridLootStaticMetadataReadModel::Resolve(Registry.Get(), Drop);
 			TestTrue(TEXT("Registered ARM loot uses canonical identity"), Meta.bCanonicalIdentity);
 			TestTrue(TEXT("Registered ARM loot resolves"), Meta.bResolved);
 			TestEqual(TEXT("Loot name ignores stale DA_Weapon"), Meta.DisplayName.ToString(),
@@ -50,7 +48,7 @@ bool FGridClean063XLootMetadata::RunTest(const FString&)
 				FMath::IsNearlyEqual(Meta.UnitWeightKg, Canonical.WeightKg));
 			Drop.ItemLevel = 0;
 			const FGridLootStaticMetadataReadView Invalid =
-				FGridLootStaticMetadataReadModel::Resolve(Registry.Get(), Drop, OldName, OldWeight);
+				FGridLootStaticMetadataReadModel::Resolve(Registry.Get(), Drop);
 			TestTrue(TEXT("Known ARM cannot use old value for invalid N0"), Invalid.bCanonicalIdentity);
 			TestFalse(TEXT("Invalid level blocks canonical loot projection"), Invalid.bResolved);
 			TestTrue(TEXT("No old name on invalid canonical item"), Invalid.DisplayName.IsEmpty());
@@ -66,7 +64,7 @@ bool FGridClean063XLootMetadata::RunTest(const FString&)
 	if (!TestTrue(TEXT("Real unlevelled arrows exist"), Registry->ResolveItem(Arrow.ItemDefinitionId, 0, CanonicalArrow)))
 		return false;
 	const FGridLootStaticMetadataReadView Ammo =
-		FGridLootStaticMetadataReadModel::Resolve(Registry.Get(), Arrow, OldName, OldWeight);
+		FGridLootStaticMetadataReadModel::Resolve(Registry.Get(), Arrow);
 	TestTrue(TEXT("Unlevelled arrows use same canonical owner"), Ammo.bCanonicalIdentity && Ammo.bResolved);
 	TestTrue(TEXT("Unlevelled arrows retain unit mass"),
 		FMath::IsNearlyEqual(Ammo.UnitWeightKg, CanonicalArrow.WeightKg));
@@ -76,11 +74,13 @@ bool FGridClean063XLootMetadata::RunTest(const FString&)
 	Legacy.ItemLevel = 0;
 	Legacy.Quantity = 1;
 	const FGridLootStaticMetadataReadView Old =
-		FGridLootStaticMetadataReadModel::Resolve(Registry.Get(), Legacy, OldName, OldWeight);
-	TestFalse(TEXT("Unknown ID remains old"), Old.bCanonicalIdentity);
-	TestTrue(TEXT("Unknown ID remains supported"), Old.bResolved);
-	TestEqual(TEXT("Old loot name preserved"), Old.DisplayName.ToString(), OldName.ToString());
-	TestEqual(TEXT("Old loot mass preserved"), Old.UnitWeightKg, OldWeight);
+		FGridLootStaticMetadataReadModel::Resolve(Registry.Get(), Legacy);
+	TestFalse(TEXT("Unknown ID is not registered"), Old.bCanonicalIdentity);
+	TestFalse(TEXT("Unknown ID cannot produce loot metadata"), Old.bResolved);
+	TestTrue(TEXT("Unknown loot has no invented name"), Old.DisplayName.IsEmpty());
+	TestEqual(TEXT("Unknown loot has no invented weight"), Old.UnitWeightKg, 0.0f);
+	const auto NoRegistry = FGridLootStaticMetadataReadModel::Resolve(nullptr, Arrow);
+	TestFalse(TEXT("Missing registry refuses metadata"), NoRegistry.bResolved);
 	return true;
 }
 

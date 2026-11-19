@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Core/GridDirectionUtils.h"
 #include "Engine/Engine.h"
@@ -100,15 +101,6 @@ namespace
 		Definition->MaxHealth = 8;
 		Definition->ActionPointsPerTurn = 2;
 		Definition->DeathExpectedDuration = 1.0f;
-		return Definition;
-	}
-
-	UGridItemDefinitionAsset* MakeMON8ItemDefinition(UObject* Outer, FName ItemDefinitionId)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
-		Definition->ItemDefinitionId = ItemDefinitionId;
-		Definition->DisplayName = FText::FromName(ItemDefinitionId);
-		Definition->Weight = 1.0f;
 		return Definition;
 	}
 
@@ -290,6 +282,8 @@ bool FGridMonsterMON8MultipleIndependentDropsTest::RunTest(const FString& Parame
 		return false;
 	}
 
+	FGridCanonicalLootTestScope LootRegistry;
+	if (!TestTrue(TEXT("Canonical loot registry attached"), LootRegistry.Attach(TestWorld.World))) return false;
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	if (!TestNotNull(TEXT("The loot runtime exists"), Runtime) || !TestNotNull(TEXT("The loot floor exists"), ConfigureMON8Floor(Runtime)))
 	{
@@ -297,13 +291,11 @@ bool FGridMonsterMON8MultipleIndependentDropsTest::RunTest(const FString& Parame
 	}
 
 	UGridMonsterDefinitionAsset* Definition = MakeMON8MonsterDefinition(Runtime, TEXT("MON8_MultipleLootRat"));
-	const FName ItemIds[] = { TEXT("Key_Iron"), TEXT("Item_RatTooth"), TEXT("Item_RatMeat") };
+	const FName ItemIds[] = { TEXT("Stone"), TEXT("Item_RatTooth"), TEXT("Item_RatMeat") };
 	for (const FName ItemId : ItemIds)
 	{
-		UGridItemDefinitionAsset* ItemDefinition = MakeMON8ItemDefinition(Definition, ItemId);
-		FGridMonsterLootEntry Entry = MakeMON8LootEntry(ItemId, 1.0f);
-		Entry.ItemDefinitionAsset = ItemDefinition;
-		Definition->LootTable.Add(Entry);
+		if (!TestTrue(TEXT("Real loot identity registered"), LootRegistry.Registry->HasCanonicalItem(ItemId))) return false;
+		Definition->LootTable.Add(MakeMON8LootEntry(ItemId, 1.0f));
 	}
 
 	AGridMonsterActor* Monster = SpawnMON8Monster(TestWorld.World, Definition, FGuid(8, 8, 8, 8), FIntPoint(2, 2), false);

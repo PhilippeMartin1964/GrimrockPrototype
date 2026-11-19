@@ -193,10 +193,10 @@ struct FGridEditorLootDefinitionProjection
         Entry.ItemDefinitionId = Id(Index);
         Entry.DropChance = 1.f;
         int32 Level = INDEX_NONE;
-        if (!FGridMonsterLootResolver::TryResolveItemLevel(Entry, nullptr, Level, &Registry) || Level != 0)
+        if (!FGridMonsterLootResolver::TryResolveItemLevel(Entry, Level, &Registry) || Level != 0)
             return false;
         Entry.ItemLevel = 1;
-        return !FGridMonsterLootResolver::TryResolveItemLevel(Entry, nullptr, Level, &Registry);
+        return !FGridMonsterLootResolver::TryResolveItemLevel(Entry, Level, &Registry);
     }
 
     /** Strict all-or-none root state; the old 34 entries remain in order.
@@ -263,7 +263,7 @@ struct FGridEditorLootDefinitionProjection
     {
         GoblinPlan.Reset();
         RatPlan.Reset();
-        if (Goblin.GetPathName() != FString(FStone::MonsterPath(0)) ||
+        if (!bAlreadyMigrated || Goblin.GetPathName() != FString(FStone::MonsterPath(0)) ||
             Rat.GetPathName() != FString(FStone::MonsterPath(1)) ||
             Goblin.GetOutermost()->IsDirty() || Rat.GetOutermost()->IsDirty() ||
             Goblin.LootTable.Num() != 3 || Rat.LootTable.Num() != 2 ||
@@ -274,26 +274,13 @@ struct FGridEditorLootDefinitionProjection
         for (int32 J = 0; J < 5; ++J)
         {
             const auto& Original = J < 3 ? Goblin.LootTable[J] : Rat.LootTable[J-3];
-            auto& Target = J < 3 ? GoblinPlan[J] : RatPlan[J-3];
             const FName ItemId = FStone::ItemId(J);
             if (!Original.IsValidDefinition() || Original.GetResolvedItemDefinitionId() != ItemId ||
                 Original.ItemLevel != 0 || (J < 3 &&
                     (Original.DropChance != (J == 1 ? 0.5f : 0.25f) ||
                      Original.MinQuantity != 1 || Original.MaxQuantity != 1)))
             { Error = TEXT("Loot ID, order, level or Goblin balance differs."); return false; }
-            if (J == 1 || bAlreadyMigrated)
-            {
-                if (Original.ItemDefinitionAsset || Original.ItemDefinitionId != ItemId)
-                { Error = TEXT("Expected fully canonical persisted loot row."); return false; }
-            }
-            else
-            {
-                const auto* Old = FStone::LoadSource(J);
-                if (!IsValid(Old) || Original.ItemDefinitionAsset.Get() != Old || !Original.ItemDefinitionId.IsNone())
-                { Error = TEXT("Expected exact old loot source."); return false; }
-            }
-            Target.ItemDefinitionId = ItemId;
-            Target.ItemDefinitionAsset = nullptr;
+
         }
         if (!FStone::SameRolls(Goblin.LootTable, GoblinPlan) ||
             !FStone::SameRolls(Rat.LootTable, RatPlan))

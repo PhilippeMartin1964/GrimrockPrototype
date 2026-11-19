@@ -1,5 +1,4 @@
 #include "Runtime/Monsters/GridMonsterLootResolver.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 namespace
@@ -64,45 +63,20 @@ FGridMonsterLootRollResult FGridMonsterLootResolver::ResolveEntryFromRolls(
 }
 
 bool FGridMonsterLootResolver::TryResolveItemLevel(
-	const FGridMonsterLootEntry& Entry, const UGridItemDefinitionAsset* ItemDefinition,
-	int32& OutItemLevel, const UGridItemSubsystem* CanonicalRegistry)
+	const FGridMonsterLootEntry& Entry, int32& OutItemLevel,
+	const UGridItemSubsystem* CanonicalRegistry)
 {
 	OutItemLevel = 0;
-	if (!Entry.IsValidDefinition())
+	if (!Entry.IsValidDefinition() || !IsValid(CanonicalRegistry))
 	{
 		return false;
 	}
-	const FName ItemId = Entry.GetResolvedItemDefinitionId();
-	if (IsValid(ItemDefinition) && ItemDefinition->ItemDefinitionId != ItemId)
-	{
-		return false; // Never inherit a default from another item identity.
-	}
-	if (CanonicalRegistry && CanonicalRegistry->HasCanonicalItem(ItemId))
-	{
-		FGridResolvedItem Fixed;
-		if (!CanonicalRegistry->ResolveItem(ItemId, Entry.ItemLevel, Fixed) ||
-			(!Fixed.bIsArmament && Entry.ItemLevel != 0))
-		{
-			return false; // A registered loot entry never inherits an obsolete default.
-		}
-		OutItemLevel = Entry.ItemLevel;
-		return true;
-	}
-	// Existing nonregistered/id-only MON8 loot semantics remain intact.
-	if (!IsValid(ItemDefinition))
-	{
-		return Entry.ItemLevel == 0;
-	}
-	if (!ItemDefinition->bUseWeaponCatalogue)
-	{
-		return Entry.ItemLevel == 0;
-	}
-	const int32 FixedLevel = Entry.ItemLevel == 0 ? ItemDefinition->DefaultWeaponItemLevel : Entry.ItemLevel;
-	const FGridWeaponLevelProfile* Profile = nullptr;
-	if (FixedLevel < 1 || FixedLevel > 20 || !ItemDefinition->TryGetWeaponCatalogueProfile(FixedLevel, Profile))
+	FGridResolvedItem Fixed;
+	if (!CanonicalRegistry->ResolveItem(Entry.ItemDefinitionId, Entry.ItemLevel, Fixed) ||
+		!Fixed.IsValid() || Fixed.ItemId != Entry.ItemDefinitionId || Fixed.ItemLevel != Entry.ItemLevel)
 	{
 		return false;
 	}
-	OutItemLevel = FixedLevel;
+	OutItemLevel = Fixed.ItemLevel;
 	return true;
 }

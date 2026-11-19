@@ -255,12 +255,13 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         AddError(Error);
         return false;
     }
-    int32 MonsterOld = 0, MonsterRows = 0, MonsterRegistered = 0;
+    const int32 MonsterOld = 0;
+    TestNull(TEXT("No historical loot pointer schema"), FGridMonsterLootEntry::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
+    int32 MonsterRows = 0, MonsterRegistered = 0;
     for (const auto* Monster : {Goblin.Get(), Rat.Get()})
         for (const FGridMonsterLootEntry& Loot : Monster->LootTable)
         {
             ++MonsterRows;
-            if (Loot.ItemDefinitionAsset) ++MonsterOld;
             if (Known.Contains(Loot.GetResolvedItemDefinitionId())) ++MonsterRegistered;
         }
 
@@ -291,10 +292,10 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         TestEqual(TEXT("X.54B shared lock pointers remain removed"), LockKeys, 0) &&
         TestEqual(TEXT("Two shared receptacle assets"), RuleAssets, 2) &&
         TestEqual(TEXT("Two shared lock assets"), LockAssets, 2) &&
-        TestEqual(TEXT("Only four or zero old loot references"), MonsterOld, bMigrated ? 0 : 4) &&
+        TestEqual(TEXT("Zero old loot references"), MonsterOld, 0) &&
         TestEqual(TEXT("Five historic loot rows"), MonsterRows, 5) &&
-        TestEqual(TEXT("Exact registered monster loot count"), MonsterRegistered, bMigrated ? 5 : 1) &&
-        TestEqual(TEXT("Exactly four or zero remaining sources"), Remaining, MonsterOld) &&
+        TestEqual(TEXT("Exact registered monster loot count"), MonsterRegistered, 5) &&
+        TestEqual(TEXT("Zero remaining sources"), Remaining, 0) &&
         TestEqual(TEXT("Canonical root remains unmodified"), Root->GetOutermost()->IsDirty(), bRootDirty);
 }
 #endif

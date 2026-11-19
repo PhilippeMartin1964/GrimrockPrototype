@@ -124,9 +124,7 @@ namespace GridTD0737Characterization
 			{
 				const FGridMonsterLootEntry& Loot = Monster->LootTable[LootIndex];
 				if (GridTD073ApprovedCanonicalStoneLoot::IsExact(AssetPath, LootIndex, Loot)) continue;
-				const UGridItemDefinitionAsset* ItemDefinition = Loot.ItemDefinitionAsset.Get();
-				AuditDefinitionPair(AssetPath, FString::Printf(TEXT("LootTable[%d]"), LootIndex), ItemDefinition,
-					ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None, Loot.ItemDefinitionId, TEXT("LootItem"), Candidates);
+				AuditDefinitionPair(AssetPath, FString::Printf(TEXT("LootTable[%d]"), LootIndex), nullptr, NAME_None, Loot.ItemDefinitionId, TEXT("LootItem"), Candidates);
 			}
 		}
 	}

@@ -3,6 +3,7 @@
 #include "Tests/GridAutomationSaveIsolation.h"
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -114,14 +115,8 @@ namespace
 
 	void AddGuaranteedMON9Loot(UGridMonsterDefinitionAsset* MonsterDefinition, FName ItemDefinitionId)
 	{
-		UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>(MonsterDefinition);
-		ItemDefinition->ItemDefinitionId = ItemDefinitionId;
-		ItemDefinition->DisplayName = FText::FromName(ItemDefinitionId);
-		ItemDefinition->Weight = 1.0f;
-
 		FGridMonsterLootEntry Entry;
 		Entry.ItemDefinitionId = ItemDefinitionId;
-		Entry.ItemDefinitionAsset = ItemDefinition;
 		Entry.DropChance = 1.0f;
 		Entry.MinQuantity = 1;
 		Entry.MaxQuantity = 1;
@@ -711,6 +706,9 @@ bool FGridMonsterMON9DeadRoundTripTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	FGridCanonicalLootTestScope LootRegistry;
+	if (!TestTrue(TEXT("Canonical synthetic loot registry attached"), LootRegistry.Attach(TestWorld.World,
+		{ FName(TEXT("Item_MON9LootA")), FName(TEXT("Item_MON9LootB")) }))) return false;
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	Runtime->LevelAsset = MakeMON9Floor(Runtime);
 	UGridMonsterDefinitionAsset* Definition = MakeMON9Definition(Runtime, TEXT("MON9_DeadRat"));

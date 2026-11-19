@@ -10,7 +10,7 @@ namespace GridTD073ApprovedCanonicalStoneLoot
 {
     inline bool IsExact(const FString& Path, int32 Index, const FGridMonsterLootEntry& Loot)
     {
-        if (Loot.ItemDefinitionAsset || Loot.ItemLevel != 0 || !Loot.IsValidDefinition()) return false;
+        if (Loot.ItemLevel != 0 || !Loot.IsValidDefinition()) return false;
         if (Path == TEXT("/Game/GrimrockPrototype/Monsters/GoblinThrower/Data/DA_MON_GoblinThrower.DA_MON_GoblinThrower"))
         {
             if (Index < 0 || Index >= 3) return false;

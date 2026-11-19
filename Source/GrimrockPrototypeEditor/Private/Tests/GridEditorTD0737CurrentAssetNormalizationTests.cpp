@@ -106,8 +106,7 @@ namespace GridTD0737Normalization
 			{
 				const FGridMonsterLootEntry& Loot = Monster->LootTable[LootIndex];
 				if (GridTD073ApprovedCanonicalStoneLoot::IsExact(AssetPath, LootIndex, Loot)) continue;
-				const UGridItemDefinitionAsset* Item = Loot.ItemDefinitionAsset.Get();
-				AuditPair(AssetPath, FString::Printf(TEXT("LootTable[%d]"), LootIndex), Item, Item ? Item->ItemDefinitionId : NAME_None, Loot.ItemDefinitionId,
+				AuditPair(AssetPath, FString::Printf(TEXT("LootTable[%d]"), LootIndex), nullptr, NAME_None, Loot.ItemDefinitionId,
 					Candidates);
 			}
 		}
@@ -160,10 +159,7 @@ namespace GridTD0737Normalization
 		return Monster->LootTable.FindByPredicate(
 			[ItemId](const FGridMonsterLootEntry& Entry)
 			{
-				const UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset.Get();
-				const FName ResolvedItemId =
-					(ItemDefinition && !ItemDefinition->ItemDefinitionId.IsNone()) ? ItemDefinition->ItemDefinitionId : Entry.ItemDefinitionId;
-				return ResolvedItemId == ItemId;
+				return Entry.ItemDefinitionId == ItemId;
 			});
 	}
 }
@@ -226,12 +222,9 @@ bool FGridTD0737RatLootDefinitionsNormalizedTest::RunTest(const FString& Paramet
 		return false;
 	}
 
-	const bool bBefore = MeatLoot->ItemDefinitionAsset.Get() == RatMeat &&
-		MeatLoot->ItemDefinitionId.IsNone() && ToothLoot->ItemDefinitionAsset.Get() == RatTooth &&
-		ToothLoot->ItemDefinitionId.IsNone();
 	const bool bAfter = GridTD073ApprovedCanonicalStoneLoot::IsExact(Rat->GetPathName(), 0, *MeatLoot) &&
 		GridTD073ApprovedCanonicalStoneLoot::IsExact(Rat->GetPathName(), 1, *ToothLoot);
-	TestTrue(TEXT("Both rat loot entries are in one exact native authoring state"), bBefore || bAfter);
+	TestTrue(TEXT("Both rat loot entries are in one exact native authoring state"), bAfter);
 	return true;
 }
 

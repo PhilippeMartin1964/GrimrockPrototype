@@ -30,11 +30,10 @@ bool FGridEditorARMCLEAN064X60StonePlan::RunTest(const FString&)
     FString Error;
     const bool bPlanned = FPlan::TryBuild(*Goblin.Get(), *Rat.Get(), Registry.Get(), Plan, Old, Error);
     if (!TestTrue(*FString::Printf(TEXT("Exact native Stone projection: %s"), *Error), bPlanned) ||
-        !TestTrue(TEXT("Only exact old/new Stone states"), Old == 1 || Old == 0) ||
+        !TestEqual(TEXT("No historical pointer state remains"), Old, 0) ||
         !TestEqual(TEXT("Three goblin entries"), Plan.Num(), 3)) return false;
     auto Expected = Goblin->LootTable;
     Expected[1].ItemDefinitionId = TEXT("Stone");
-    Expected[1].ItemDefinitionAsset = nullptr;
     if (!TestTrue(TEXT("All reflected loot fields except approved identity pair unchanged"),
             FPlan::SameTable(Expected, Plan)) ||
         !TestTrue(TEXT("128 deterministic seeds preserve every roll"), FPlan::SameRolls(Goblin->LootTable, Plan)) ||
@@ -47,7 +46,7 @@ bool FGridEditorARMCLEAN064X60StonePlan::RunTest(const FString&)
     Altered = Plan;
     Altered[1].ItemLevel = 1;
     if (!TestFalse(TEXT("Stone N1 refused"),
-            FGridMonsterLootResolver::TryResolveItemLevel(Altered[1], nullptr, Level, Registry.Get()))) return false;
+            FGridMonsterLootResolver::TryResolveItemLevel(Altered[1], Level, Registry.Get()))) return false;
     // Source evidence is read-only; the remaining four can only be registered as one complete X.61 cutover.
     for (int32 Index = 0; Index < 5; ++Index)
     {

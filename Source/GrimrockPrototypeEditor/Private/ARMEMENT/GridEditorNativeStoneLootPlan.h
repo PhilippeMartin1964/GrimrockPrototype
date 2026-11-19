@@ -7,8 +7,7 @@
 #include "UObject/Package.h"
 #include "UObject/UnrealType.h"
 
-/** X.60: only Stone has an existing canonical definition. No registry
- * expansion or change of drop probability is authorized in this lot. */
+/** Read-only X.60/X.61 evidence for the completed native loot tables. */
 struct FGridEditorNativeStoneLootPlan
 {
     static const TCHAR* MonsterPath(int32 Index)
@@ -94,11 +93,7 @@ struct FGridEditorNativeStoneLootPlan
             Goblin.ExperienceReward != 125 || Rat.ExperienceReward != 500)
         { Error = TEXT("Unexpected real monster baseline."); return false; }
 
-        // After X.61, the old commandlet remains pinned to 34; its
-        // permanent test can also recheck Stone on the exact completed state.
-        const bool bAllRegistered = Registry->HasCanonicalItem(ItemId(0));
         TArray<FGridMonsterLootEntry> Plan = Goblin.LootTable;
-        int32 Count = 0;
         for (int32 Index = 0; Index < 5; ++Index)
         {
             const FGridMonsterLootEntry& Row = Index < 3 ? Goblin.LootTable[Index] : Rat.LootTable[Index - 3];
@@ -107,7 +102,7 @@ struct FGridEditorNativeStoneLootPlan
             if (!IsValid(Source) || Source->GetOutermost()->IsDirty() ||
                 Source->ItemDefinitionId != Id || !Source->IsValidDefinition() ||
                 !Row.IsValidDefinition() || Row.GetResolvedItemDefinitionId() != Id ||
-                Row.ItemLevel != 0 || Registry->HasCanonicalItem(Id) != (Index == 1 || bAllRegistered))
+                Row.ItemLevel != 0 || !Registry->HasCanonicalItem(Id))
             { Error = FString::Printf(TEXT("Unexpected source/loot/registry state: %s"), *Id.ToString()); return false; }
             if (Index < 3)
             {
@@ -115,21 +110,10 @@ struct FGridEditorNativeStoneLootPlan
                 if (Row.DropChance != ExpectedChance || Row.MinQuantity != 1 || Row.MaxQuantity != 1)
                 { Error = TEXT("Goblin MON17.7 balance changed."); return false; }
             }
-            if (Index != 1)
-            {
-                if (bAllRegistered ? (Row.ItemDefinitionAsset != nullptr || Row.ItemDefinitionId != Id) :
-                    (Row.ItemDefinitionAsset.Get() != Source || !Row.ItemDefinitionId.IsNone()))
-                { Error = TEXT("Nonselected loot changed outside complete X.61 cutover."); return false; }
-                continue;
-            }
-            if (Row.ItemDefinitionAsset)
-            {
-                if (Row.ItemDefinitionAsset.Get() != Source || !Row.ItemDefinitionId.IsNone())
-                { Error = TEXT("Stone source conflicts with exact historical row."); return false; }
-                Count = 1;
-            }
-            else if (Row.ItemDefinitionId != Id)
-            { Error = TEXT("Stone must have its exact persisted ItemId."); return false; }
+            int32 Level = INDEX_NONE;
+            if (!FGridMonsterLootResolver::TryResolveItemLevel(Row, Level, Registry) || Level != 0)
+            { Error = TEXT("Canonical loot level does not resolve."); return false; }
+            if (Index != 1) continue;
             FGridResolvedItem Physical;
             if (!Registry->ResolveItem(Id, 0, Physical) || !Physical.IsValid() ||
                 Physical.bIsArmament || Physical.ItemId != Id || Physical.ItemLevel != 0 ||
@@ -139,16 +123,10 @@ struct FGridEditorNativeStoneLootPlan
                 !FMath::IsNearlyEqual(Physical.WeightKg, Source->Weight) ||
                 (Physical.LightEmitter.HasEmitter() && Physical.LightEmitter.bDefaultEnabled) != Source->IsLightEnabledByDefault())
             { Error = TEXT("Canonical Stone metadata differs from historical source."); return false; }
-            FGridMonsterLootEntry& Target = Plan[Index];
-            Target.ItemDefinitionId = Id;
-            Target.ItemDefinitionAsset = nullptr;
-            int32 Level = INDEX_NONE;
-            if (!FGridMonsterLootResolver::TryResolveItemLevel(Target, nullptr, Level, Registry) || Level != 0)
-            { Error = TEXT("Pointerless Stone level does not resolve."); return false; }
+
         }
         if (!SameRolls(Goblin.LootTable, Plan))
         { Error = TEXT("Deterministic loot rolls changed."); return false; }
-        Old = Count;
         Out = MoveTemp(Plan);
         return true;
     }

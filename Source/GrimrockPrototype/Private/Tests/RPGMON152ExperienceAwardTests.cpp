@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Core/GridDirectionUtils.h"
 #include "Engine/Engine.h"
@@ -295,10 +296,12 @@ bool FRPGMON152LootIndependenceTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	FGridCanonicalLootTestScope LootRegistry;
+	if (!TestTrue(TEXT("Canonical loot registry attached"), LootRegistry.Attach(TestWorld.World))) return false;
 	AGrimrockPartyPawn* Party = SpawnMON152Party(TestWorld.World, 1);
 	UGridMonsterDefinitionAsset* Definition = MakeMON152MonsterDefinition(TestWorld.World, TEXT("MON152_LootFailureMonster"), 7);
 	FGridMonsterLootEntry GuaranteedLoot;
-	GuaranteedLoot.ItemDefinitionId = TEXT("MON152_MissingRuntimeLoot");
+	GuaranteedLoot.ItemDefinitionId = TEXT("Stone");
 	GuaranteedLoot.DropChance = 1.0f;
 	GuaranteedLoot.MinQuantity = 1;
 	GuaranteedLoot.MaxQuantity = 1;

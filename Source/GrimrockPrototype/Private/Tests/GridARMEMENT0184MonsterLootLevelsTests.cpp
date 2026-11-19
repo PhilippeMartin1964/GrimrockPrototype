@@ -1,12 +1,12 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -18,18 +18,14 @@
 
 namespace ARMEMENT0184
 {
-    constexpr const TCHAR* DaggerAssetPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01");
-    constexpr const TCHAR* BowAssetPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ShortBow_01.DA_Weapon_ShortBow_01");
-
     struct FFixture
     {
         UWorld* World = nullptr;
         AGridLevelRuntimeActor* Runtime = nullptr;
         UGridLevelAsset* Level = nullptr;
-        UGridItemDefinitionAsset* Dagger = nullptr;
-        UGridItemDefinitionAsset* Bow = nullptr;
+        const FName Dagger = TEXT("Weapon_Dagger_01");
+        const FName Bow = TEXT("Weapon_ShortBow_01");
+        FGridCanonicalLootTestScope LootRegistry;
 
         FFixture()
         {
@@ -45,9 +41,7 @@ namespace ARMEMENT0184
                 FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
                 Context.SetCurrentWorld(World);
             }
-            Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr, DaggerAssetPath);
-            Bow = LoadObject<UGridItemDefinitionAsset>(nullptr, BowAssetPath);
-            if (!World) return;
+            if (!World || !LootRegistry.Attach(World)) return;
             Runtime = World->SpawnActor<AGridLevelRuntimeActor>();
             if (!Runtime) return;
             Level = NewObject<UGridLevelAsset>(Runtime);
@@ -66,17 +60,21 @@ namespace ARMEMENT0184
         ~FFixture()
         {
             if (!World) return;
+            LootRegistry.Detach();
             World->DestroyWorld(false);
             if (GEngine) GEngine->DestroyWorldContext(World);
         }
 
-        bool Ready() const { return World && Runtime && Level && Dagger && Bow; }
+        bool Ready() const
+        {
+            return World && Runtime && Level && LootRegistry.Registry &&
+                LootRegistry.Registry->HasCanonicalItem(Dagger) && LootRegistry.Registry->HasCanonicalItem(Bow);
+        }
 
-        FGridMonsterLootEntry MakeEntry(UGridItemDefinitionAsset* Definition, int32 LevelNumber) const
+        FGridMonsterLootEntry MakeEntry(FName ItemId, int32 LevelNumber) const
         {
             FGridMonsterLootEntry Entry;
-            Entry.ItemDefinitionAsset = Definition;
-            Entry.ItemDefinitionId = Definition ? Definition->ItemDefinitionId : NAME_None;
+            Entry.ItemDefinitionId = ItemId;
             Entry.ItemLevel = LevelNumber;
             Entry.DropChance = 1.0f;
             Entry.MinQuantity = 1;
@@ -130,11 +128,6 @@ namespace ARMEMENT0184
             Party->Facing = EGridEdge::North;
             Party->SetActorLocation(Runtime->GetCellCenterWorld(2, 2, Party->EyeHeight));
             Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded();
-            if (!Party->PartyInventoryComponent->RegisterItemDefinition(Dagger) ||
-                !Party->PartyInventoryComponent->RegisterItemDefinition(Bow))
-            {
-                return nullptr;
-            }
             return Party;
         }
 
@@ -163,19 +156,23 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0184LevelContractTest,
 bool FARMEMENT0184LevelContractTest::RunTest(const FString&)
 {
     ARMEMENT0184::FFixture Fixture;
-    if (!TestTrue(TEXT("Pilot weapon assets load"), Fixture.Ready())) return false;
+    if (!TestTrue(TEXT("Canonical weapons resolve"), Fixture.Ready())) return false;
     const FProperty* Field = FGridMonsterLootEntry::StaticStruct()->FindPropertyByName(TEXT("ItemLevel"));
     TestTrue(TEXT("Per-entry level is serialized in monster asset"), Field && !Field->HasAnyPropertyFlags(CPF_Transient));
+    TestNull(TEXT("Legacy loot pointer schema removed"), FGridMonsterLootEntry::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
 
     FGridMonsterLootEntry Fixed = Fixture.MakeEntry(Fixture.Dagger, 9);
     TestTrue(TEXT("Level 9 loot is valid"), Fixed.IsValidDefinition());
     int32 Resolved = INDEX_NONE;
-    TestTrue(TEXT("Level 9 resolves from catalogue"), FGridMonsterLootResolver::TryResolveItemLevel(Fixed, Fixture.Dagger, Resolved));
+    TestTrue(TEXT("Level 9 resolves from catalogue"), FGridMonsterLootResolver::TryResolveItemLevel(Fixed, Resolved, Fixture.LootRegistry.Registry));
     TestEqual(TEXT("Fixed authored level unchanged"), Resolved, 9);
 
-    FGridMonsterLootEntry Inherited = Fixture.MakeEntry(Fixture.Bow, 0);
-    TestTrue(TEXT("Default level resolves once"), FGridMonsterLootResolver::TryResolveItemLevel(Inherited, Fixture.Bow, Resolved));
-    TestEqual(TEXT("Default catalogue level selected"), Resolved, Fixture.Bow->DefaultWeaponItemLevel);
+    FGridMonsterLootEntry InvalidBow = Fixture.MakeEntry(Fixture.Bow, 0);
+    TestFalse(TEXT("ARM N0 cannot inherit a default"), FGridMonsterLootResolver::TryResolveItemLevel(InvalidBow, Resolved, Fixture.LootRegistry.Registry));
+    TestEqual(TEXT("Refused level leaves no result"), Resolved, 0);
+    InvalidBow.ItemLevel = 12;
+    TestTrue(TEXT("Explicit bow N12 resolves"), FGridMonsterLootResolver::TryResolveItemLevel(InvalidBow, Resolved, Fixture.LootRegistry.Registry));
+    TestEqual(TEXT("Explicit bow level kept"), Resolved, 12);
 
     // The authored item level must not add any random consumption to MON8.
     TArray<FGridMonsterLootEntry> LevelNineTable;
@@ -191,17 +188,15 @@ bool FARMEMENT0184LevelContractTest::RunTest(const FString&)
 
     Fixed.ItemLevel = 21;
     TestFalse(TEXT("Above maximum level is invalid authoring"), Fixed.IsValidDefinition());
-    TestFalse(TEXT("Invalid level is rejected by resolver"), FGridMonsterLootResolver::TryResolveItemLevel(Fixed, Fixture.Dagger, Resolved));
+    TestFalse(TEXT("Invalid level is rejected by resolver"), FGridMonsterLootResolver::TryResolveItemLevel(Fixed, Resolved, Fixture.LootRegistry.Registry));
     Fixed.ItemLevel = -1;
     TestFalse(TEXT("Negative levels are invalid authoring"), Fixed.IsValidDefinition());
 
-    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(Fixture.Runtime);
-    Legacy->ItemDefinitionId = TEXT("ARM0184_LegacyKey");
-    FGridMonsterLootEntry NonCatalogue = Fixture.MakeEntry(Legacy, 0);
-    TestTrue(TEXT("Legacy loot still resolves with level 0"), FGridMonsterLootResolver::TryResolveItemLevel(NonCatalogue, Legacy, Resolved));
-    TestEqual(TEXT("Legacy item stays unlevelled"), Resolved, 0);
-    NonCatalogue.ItemLevel = 9;
-    TestFalse(TEXT("Cannot assign weapon level to legacy item"), FGridMonsterLootResolver::TryResolveItemLevel(NonCatalogue, Legacy, Resolved));
+    FGridMonsterLootEntry NonArm = Fixture.MakeEntry(TEXT("Stone"), 0);
+    TestTrue(TEXT("Canonical non-ARM loot resolves at N0"), FGridMonsterLootResolver::TryResolveItemLevel(NonArm, Resolved, Fixture.LootRegistry.Registry));
+    TestEqual(TEXT("Non-ARM stays unlevelled"), Resolved, 0);
+    NonArm.ItemLevel = 9;
+    TestFalse(TEXT("Cannot assign weapon level to non-ARM item"), FGridMonsterLootResolver::TryResolveItemLevel(NonArm, Resolved, Fixture.LootRegistry.Registry));
     return true;
 }
 
@@ -216,7 +211,7 @@ bool FARMEMENT0184DeathTest::RunTest(const FString&)
     if (!TestTrue(TEXT("Runtime level and pilot weapons exist"), Fixture.Ready())) return false;
     TArray<FGridMonsterLootEntry> Entries;
     Entries.Add(Fixture.MakeEntry(Fixture.Dagger, 9));
-    Entries.Add(Fixture.MakeEntry(Fixture.Bow, 0));
+    Entries.Add(Fixture.MakeEntry(Fixture.Bow, 12));
     AGridMonsterActor* Monster = Fixture.SpawnMonster(Entries);
     if (!TestNotNull(TEXT("Monster with two guaranteed drops exists"), Monster) ||
         !TestNotNull(TEXT("Death component exists"), Monster->DeathComponent.Get())) return false;
@@ -229,7 +224,7 @@ bool FARMEMENT0184DeathTest::RunTest(const FString&)
     const FGridItemInstance DroppedBow = Monster->DeathComponent->GeneratedLoot[1];
     TestTrue(TEXT("Distinct physical object identities"), DroppedDagger.RuntimeObjectId != DroppedBow.RuntimeObjectId);
     TestEqual(TEXT("Level 9 on generated dagger"), DroppedDagger.ItemLevel, 9);
-    TestEqual(TEXT("Default level materialized for bow"), DroppedBow.ItemLevel, Fixture.Bow->DefaultWeaponItemLevel);
+    TestEqual(TEXT("Explicit N12 materialized for bow"), DroppedBow.ItemLevel, 12);
     TestNotNull(TEXT("Dagger pickup actor exists"), Fixture.FindWorldItem(DroppedDagger.RuntimeObjectId));
 
     if (!TestTrue(TEXT("Capture the monster's world loot"), Fixture.Runtime->CaptureCurrentLevelRuntimeState())) return false;
@@ -238,7 +233,7 @@ bool FARMEMENT0184DeathTest::RunTest(const FString&)
     if (!TestNotNull(TEXT("Dagger has a saved world state"), SavedDagger) ||
         !TestNotNull(TEXT("Bow has a saved world state"), SavedBow)) return false;
     TestEqual(TEXT("Saved dagger retains level 9"), SavedDagger->ItemLevel, 9);
-    TestEqual(TEXT("Saved bow retains default level"), SavedBow->ItemLevel, Fixture.Bow->DefaultWeaponItemLevel);
+    TestEqual(TEXT("Saved bow retains N12"), SavedBow->ItemLevel, 12);
 
     AGrimrockPartyPawn* Party = Fixture.SpawnParty();
     if (!TestNotNull(TEXT("Pickup pawn and inventory exist"), Party)) return false;
@@ -278,7 +273,7 @@ bool FARMEMENT0184SaveTest::RunTest(const FString&)
     TestEqual(TEXT("Initial saved fixed level"), SavedDrop->ItemLevel, 13);
 
     // Rehydration must use the saved instance level, not the loot-table authoring
-    // value or the definition default; no loot roll runs on restore.
+    // value; no loot roll runs on restore.
     SavedDrop->ItemLevel = 17;
     if (!TestTrue(TEXT("Restore saved world"), Fixture.Runtime->ApplyCurrentLevelRuntimeState())) return false;
     if (!TestTrue(TEXT("Recapture restored world"), Fixture.Runtime->CaptureCurrentLevelRuntimeState())) return false;

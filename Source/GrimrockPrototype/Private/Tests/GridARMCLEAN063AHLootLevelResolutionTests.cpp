@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Monsters/GridMonsterLootResolver.h"
 #include "UObject/StrongObjectPtr.h"
@@ -24,97 +23,53 @@ bool FGridClean063AHLootLevelResolution::RunTest(const FString&)
         for (const FString& Error : Errors) AddError(Error);
         return false;
     }
-    TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-    Old->DefaultWeaponItemLevel = 6;
-    Old->bUseWeaponCatalogue = false; // Contradict canonical ARM deliberately.
     FGridMonsterLootEntry Entry;
-    Entry.ItemDefinitionAsset = Old.Get();
     Entry.DropChance = 1.0f;
     Entry.MinQuantity = 1;
     Entry.MaxQuantity = 4;
     int32 FixedLevel = INDEX_NONE;
-
     const FName Arms[] = {
         TEXT("Weapon_StraightSword_01"), TEXT("Weapon_GreatAxe_01"),
         TEXT("Weapon_RoundShield_01"), TEXT("Weapon_HolyAegis_01") };
     for (const FName Id : Arms)
     {
-        Old->ItemDefinitionId = Id;
         Entry.ItemDefinitionId = Id;
         for (const int32 Level : {1, 20})
         {
             Entry.ItemLevel = Level;
             if (!TestTrue(TEXT("Authoring valid"), Entry.IsValidDefinition())) return false;
-            TestTrue(TEXT("Canonical ARM level does not need legacy profile"),
-                FGridMonsterLootResolver::TryResolveItemLevel(
-                    Entry, Old.Get(), FixedLevel, Registry.Get()));
+            TestTrue(TEXT("Canonical ARM resolves without a definition pointer"),
+                FGridMonsterLootResolver::TryResolveItemLevel(Entry, FixedLevel, Registry.Get()));
             TestEqual(TEXT("Authored fixed level retained"), FixedLevel, Level);
         }
         Entry.ItemLevel = 0;
-        TestFalse(TEXT("Fresh registered ARM loot N0 cannot inherit obsolete N6"),
-            FGridMonsterLootResolver::TryResolveItemLevel(
-                Entry, Old.Get(), FixedLevel, Registry.Get()));
-        TestEqual(TEXT("Refused default resets output"), FixedLevel, 0);
-
-        // An explicit fixed level can resolve without a historical definition.
-        Entry.ItemDefinitionAsset = nullptr;
-        Entry.ItemLevel = 20;
-        TestTrue(TEXT("Known canonical fixed level resolves by ItemId"),
-            FGridMonsterLootResolver::TryResolveItemLevel(
-                Entry, nullptr, FixedLevel, Registry.Get()));
-        TestEqual(TEXT("Id-only fixed loot retains N20"), FixedLevel, 20);
-        Entry.ItemLevel = 0;
-        TestFalse(TEXT("Cannot invent an inherited default without definition"),
-            FGridMonsterLootResolver::TryResolveItemLevel(
-                Entry, nullptr, FixedLevel, Registry.Get()));
-        TestEqual(TEXT("Failed read resets output"), FixedLevel, 0);
-        Entry.ItemDefinitionAsset = Old.Get();
+        TestFalse(TEXT("ARM N0 cannot inherit a default"),
+            FGridMonsterLootResolver::TryResolveItemLevel(Entry, FixedLevel, Registry.Get()));
+        TestEqual(TEXT("Refused level resets output"), FixedLevel, 0);
     }
-
-    Old->ItemDefinitionId = TEXT("Weapon_RoundShield_01");
-    Entry.ItemDefinitionId = Old->ItemDefinitionId;
+    Entry.ItemDefinitionId = TEXT("Item_Arrows_01");
     Entry.ItemLevel = 0;
-    Old->DefaultWeaponItemLevel = 0;
-    TestFalse(TEXT("ARM default N0 must fail closed"),
-        FGridMonsterLootResolver::TryResolveItemLevel(
-            Entry, Old.Get(), FixedLevel, Registry.Get()));
-    TestEqual(TEXT("N0 rejection leaves level zero"), FixedLevel, 0);
-    Old->DefaultWeaponItemLevel = 6;
-
-    Old->ItemDefinitionId = TEXT("Item_Arrows_01");
-    Old->bUseWeaponCatalogue = true; // Contradict canonical ammunition deliberately.
-    Entry.ItemDefinitionId = Old->ItemDefinitionId;
+    TestTrue(TEXT("Canonical arrows remain N0"),
+        FGridMonsterLootResolver::TryResolveItemLevel(Entry, FixedLevel, Registry.Get()));
+    TestEqual(TEXT("Arrows remain unlevelled"), FixedLevel, 0);
+    for (const int32 Level : {1, 20, 21, -1})
+    {
+        Entry.ItemLevel = Level;
+        TestFalse(TEXT("Invalid non-ARM level rejected"),
+            FGridMonsterLootResolver::TryResolveItemLevel(Entry, FixedLevel, Registry.Get()));
+    }
     Entry.ItemLevel = 0;
-    TestTrue(TEXT("Canonical arrows remain genuine N0"),
-        FGridMonsterLootResolver::TryResolveItemLevel(
-            Entry, Old.Get(), FixedLevel, Registry.Get()));
-    TestEqual(TEXT("Arrows never inherit ARM default"), FixedLevel, 0);
-    Entry.ItemLevel = 1;
-    TestFalse(TEXT("Unlevelled ammo cannot be assigned a kit/loot weapon level"),
-        FGridMonsterLootResolver::TryResolveItemLevel(
-            Entry, Old.Get(), FixedLevel, Registry.Get()));
-
-    Old->ItemDefinitionId = TEXT("LegacyLoot_AH");
-    Old->bUseWeaponCatalogue = false;
-    Entry.ItemDefinitionId = Old->ItemDefinitionId;
-    Entry.ItemLevel = 0;
-    TestTrue(TEXT("Unknown legacy loot N0 remains supported"),
-        FGridMonsterLootResolver::TryResolveItemLevel(
-            Entry, Old.Get(), FixedLevel, Registry.Get()));
-    TestEqual(TEXT("Unknown legacy level unchanged"), FixedLevel, 0);
-    Entry.ItemLevel = 9;
-    TestFalse(TEXT("Unknown non-catalogue loot cannot invent N9"),
-        FGridMonsterLootResolver::TryResolveItemLevel(
-            Entry, Old.Get(), FixedLevel, Registry.Get()));
-    Entry.ItemDefinitionAsset = nullptr;
-    Entry.ItemLevel = 0;
-    TestTrue(TEXT("Unknown id-only loot N0 remains supported"),
-        FGridMonsterLootResolver::TryResolveItemLevel(
-            Entry, nullptr, FixedLevel, Registry.Get()));
+    Entry.ItemDefinitionId = TEXT("UnknownLoot_AH");
+    TestFalse(TEXT("Unknown ID cannot create physical loot"),
+        FGridMonsterLootResolver::TryResolveItemLevel(Entry, FixedLevel, Registry.Get()));
+    Entry.ItemDefinitionId = TEXT("Stone");
+    TestFalse(TEXT("No registry cannot create physical loot"),
+        FGridMonsterLootResolver::TryResolveItemLevel(Entry, FixedLevel, nullptr));
+    Entry.ItemDefinitionId = NAME_None;
+    TestFalse(TEXT("No explicit identity is invalid"), Entry.IsValidDefinition());
 
     // RNG remains independent of ItemLevel; this is a pure post-roll read.
     Entry.ItemDefinitionId = TEXT("Weapon_StraightSword_01");
-    Entry.ItemDefinitionAsset = nullptr;
     Entry.ItemLevel = 1;
     const TArray<FGridMonsterLootRollResult> Low =
         FGridMonsterLootResolver::ResolveLoot(TArray<FGridMonsterLootEntry>{Entry}, 631);
