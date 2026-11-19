@@ -18,9 +18,11 @@ if ([string]::IsNullOrWhiteSpace($RunDir) -or -not (Test-Path -LiteralPath $RunD
 }
 Assert-ArmX66OrdinaryPath $RunDir
 $StagePath = Join-Path $RunDir 'ArmClean065D3.stage'
+if ($SelfTest) { Set-Content -LiteralPath $StagePath -Value 'SELFTEST_INIT' -Encoding ASCII }
 $GitApplication = (Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $ExpectedParent = '0be0a8ddd471d74a2a70e05fff47df0a5782b7f0'
-$ExpectedSubject = 'fix(ARM-CLEAN06.5D.3): isolate and diagnose native transaction self-test'
+$ExpectedSubject = 'fix(ARM-CLEAN06.5D.3): run native self-test directly with exact Windows diagnostics'
+$FailedHookParent = '989ea666ef6404ed8e119c7b4b6ba58c4cfe7e88'
 $FailedPreflightParent = 'c7b56b425a531164452d533951b51e23b0c7d0f7'
 $ValidatedCodeParent = 'd19b3535b313ba405210da2d3090eaa612554c46'
 $FailedParent = 'e7e4f11d7c9dd6ea622e03c71dafd038f5e4f11a'
@@ -60,7 +62,7 @@ function Normalize-HandThrowPath([string]$Path) {
 }
 function Assert-SameSet([string[]]$Actual,[string[]]$Expected) {
     if ($Actual.Count -ne $Expected.Count) { throw 'Unexpected exact file set.' }
-    $Seen = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+    $Seen = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($Entry in $Expected) {
         if (-not $Seen.Add($Entry)) { throw 'Duplicate expected entry.' }
     }
@@ -100,15 +102,15 @@ function Quote-Arg([string]$Value) {
 }
 function Invoke-Child([string]$Executable,[string[]]$Arguments,[string]$Name) {
     $ArgLine = ($Arguments | ForEach-Object { Quote-Arg $_ }) -join ' '
-    $P = Start-Process -FilePath $Executable -ArgumentList $ArgLine -WorkingDirectory $WorktreePath -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput (Join-Path $Private ($Name+'.stdout.log')) -RedirectStandardError (Join-Path $Private ($Name+'.stderr.log')) -ErrorAction Stop
+    $P = Start-Process -FilePath $Executable -ArgumentList $ArgLine -WorkingDirectory $WorktreePath -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput (Join-Path $EvidenceDir ($Name+'.stdout.log')) -RedirectStandardError (Join-Path $EvidenceDir ($Name+'.stderr.log')) -ErrorAction Stop
     return $P.ExitCode
 }
 function Invoke-Probe([string]$Mode,[int]$ExitExpected,[string]$Name,[string[]]$Extra = @()) {
-    $Json = Join-Path $Private ($Name+'.json')
-    $User = Join-Path $Private ($Name+'-User')
-    $Log = Join-Path $Private ($Name+'.log')
-    $Args = @($Project,'-run=GridArmClean065D3HandThrow',('-'+$Mode),('-Output='+$Json),('-UserDir='+$User),('-abslog='+$Log),'-Unattended','-NoP4','-NoSplash','-NoSound','-NullRHI') + $Extra
-    $Exit = Invoke-Child $Editor $Args $Name
+    $Json = Join-Path $EvidenceDir ($Name+'.json')
+    $User = Join-Path $EvidenceDir ($Name+'-User')
+    $Log = Join-Path $EvidenceDir ($Name+'.log')
+    $ProbeArguments = @($Project,'-run=GridArmClean065D3HandThrow',('-'+$Mode),('-Output='+$Json),('-UserDir='+$User),('-abslog='+$Log),'-Unattended','-NoP4','-NoSplash','-NoSound','-NullRHI') + $Extra
+    $Exit = Invoke-Child -Executable $Editor -Arguments $ProbeArguments -Name $Name
     if ($Exit -ne $ExitExpected -or -not (Test-Path -LiteralPath $Json -PathType Leaf)) {
         throw 'Unexpected native probe result.'
     }
@@ -181,10 +183,11 @@ try {
     Set-Stage 'PREFLIGHT_REMOTE'
     Assert-Remote
     Set-Stage 'PREFLIGHT_ANCESTRY'
-    if ((Invoke-HandThrowGit @('rev-parse','HEAD~1')) -cne $FailedPreflightParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~2')) -cne $ValidatedCodeParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~3')) -cne $FailedParent -or
-        (Invoke-HandThrowGit @('rev-parse','HEAD~4')) -cne $ExpectedParent -or
+    if ((Invoke-HandThrowGit @('rev-parse','HEAD~1')) -cne $FailedHookParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~2')) -cne $FailedPreflightParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~3')) -cne $ValidatedCodeParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~4')) -cne $FailedParent -or
+        (Invoke-HandThrowGit @('rev-parse','HEAD~5')) -cne $ExpectedParent -or
         (Invoke-HandThrowGit @('log','-1','--format=%s')) -cne $ExpectedSubject) { throw 'Wrong one-shot revision.' }
     Set-Stage 'PREFLIGHT_DIFF'
     Assert-SameSet @(Invoke-HandThrowGit @('diff','--name-only',$ExpectedParent,'HEAD')) $CodePaths
@@ -198,9 +201,9 @@ try {
         if (@($Status.statuses | Where-Object { $_.context -ceq $Context -and $_.state -ceq 'success' }).Count -ne 1) { throw 'Exact code validation required.' }
     }
     Set-Stage 'PREFLIGHT_SNAPSHOT'
-    $Private = Join-Path $RunDir 'ARM-CLEAN06.5D3'
-    if (Test-Path -LiteralPath $Private) { throw 'Private transaction already exists.' }
-    [void](New-Item -ItemType Directory -Path $Private)
+    $EvidenceDir = Join-Path $RunDir 'ARM-CLEAN06.5D3'
+    if (Test-Path -LiteralPath $EvidenceDir) { throw 'Private transaction already exists.' }
+    [void](New-Item -ItemType Directory -Path $EvidenceDir)
     $Project = Join-Path $WorktreePath 'GrimrockPrototype.uproject'
     $Editor = Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
     $Validator = Join-Path $WorktreePath 'Scripts\ValidateUE.ps1'
@@ -213,11 +216,11 @@ try {
         $Before[$P] = Get-ArmX66FileState $Live
         if ($Before[$P] -eq 'ABSENT') { throw 'Native source absent.' }
         Assert-Pointer @(Invoke-HandThrowGit @('show',($ExpectedHead+':'+$P))) $Before[$P] (Get-Item -LiteralPath $Live).Length
-        $Backup[$P] = Join-Path $Private ((Split-Path -Leaf $P)+'.before')
+        $Backup[$P] = Join-Path $EvidenceDir ((Split-Path -Leaf $P)+'.before')
         Copy-Item -LiteralPath $Live -Destination $Backup[$P]
         if ((Get-ArmX66FileState $Backup[$P]) -cne $Before[$P]) { throw 'Backup mismatch.' }
     }
-    $Before | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Private 'before.json') -Encoding UTF8
+    $Before | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $EvidenceDir 'before.json') -Encoding UTF8
     Set-Stage 'AUDIT'
     $Audit = Invoke-Probe 'Audit' 0 'audit'
     $Prior = Invoke-Probe 'Verify' 4 'prior'
@@ -234,9 +237,9 @@ try {
             ('-ExpectedHead='+$ExpectedHead),('-Backup0='+$Backup[$Packages[0]]),('-Backup1='+$Backup[$Packages[1]])
     } finally {
         Assert-Head
-        [void]@(Get-Dirty)
+        Get-Dirty | Out-Null
         foreach ($P in $Packages) { $Candidate[$P] = Get-ArmX66FileState (Join-Path $WorktreePath $P) }
-        $Candidate | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Private 'candidate.json') -Encoding UTF8
+        $Candidate | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $EvidenceDir 'candidate.json') -Encoding UTF8
     }
     if ($Applied.authored -ne 19 -or $Applied.packages_saved -ne 2 -or $Applied.normalized_manifest -cne $Audit.normalized_manifest) { throw 'Apply projection mismatch.' }
     foreach ($P in $Packages) { if ($Candidate[$P] -eq 'ABSENT' -or $Candidate[$P] -ceq $Before[$P]) { throw 'Expected two changed binary packages.' } }
@@ -244,7 +247,7 @@ try {
     $Reopened = Invoke-Probe 'Verify' 0 'reopened'
     if ($Reopened.authored -ne 19 -or $Reopened.packages_saved -ne 0 -or $Reopened.normalized_manifest -cne $Audit.normalized_manifest) { throw 'Reopened projection mismatch.' }
     Set-Stage 'AUTOMATION'
-    $ReportRoot = Join-Path $Private 'PostAutomation'
+    $ReportRoot = Join-Path $EvidenceDir 'PostAutomation'
     $Exit = Invoke-Child $Ps @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$Validator,'-EngineRoot',$EngineRoot,'-SkipBuild','-AutomationFilter','Grimrock','-ReportRoot',$ReportRoot) 'post-automation'
     if ($Exit -ne 0) { throw 'Post-write full automation failed.' }
     $Indices = @(Get-ChildItem -LiteralPath $ReportRoot -Recurse -File -Filter 'index.json')
@@ -271,13 +274,13 @@ try {
     [void](Invoke-HandThrowGit @('push','origin','HEAD:refs/heads/master'))
     [void](Invoke-HandThrowGit @('fetch','--no-tags','origin','master'))
     if ((Invoke-HandThrowGit @('rev-parse','refs/remotes/origin/master')) -cne $New) { throw 'Binary child not confirmed on remote.' }
-    Set-Content -LiteralPath (Join-Path $Private 'binary.sha') -Value $New -Encoding ASCII
+    Set-Content -LiteralPath (Join-Path $EvidenceDir 'binary.sha') -Value $New -Encoding ASCII
     Set-Stage 'SUCCESS'
 } catch {
     if ($Writing -and -not $Committed) {
         try {
             Assert-Head
-            [void]@(Get-Dirty)
+            Get-Dirty | Out-Null
             foreach ($P in @(Invoke-HandThrowGit @('diff','--cached','--name-only'))) {
                 if ($P -cnotin $Packages -or -not $Candidate.ContainsKey($P)) { throw 'Unknown staged candidate.' }
                 Assert-Pointer @(Invoke-HandThrowGit @('show',(':'+$P))) $Candidate[$P] (Get-Item -LiteralPath (Join-Path $WorktreePath $P)).Length
@@ -285,7 +288,7 @@ try {
             }
             foreach ($P in $Packages) {
                 $After = if ($Candidate.ContainsKey($P)) { $Candidate[$P] } else { '' }
-                Restore-ArmX66NativeFile -Live (Join-Path $WorktreePath $P) -Before $Before[$P] -After $After -Backup $Backup[$P] -Archive (Join-Path $Private ((Split-Path -Leaf $P)+'.rejected'))
+                Restore-ArmX66NativeFile -Live (Join-Path $WorktreePath $P) -Before $Before[$P] -After $After -Backup $Backup[$P] -Archive (Join-Path $EvidenceDir ((Split-Path -Leaf $P)+'.rejected'))
             }
             if (@(Get-Dirty).Count -ne 0) { throw 'Rollback did not restore clean state.' }
         } catch {

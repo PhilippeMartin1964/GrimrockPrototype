@@ -1019,25 +1019,16 @@ try {
         # Exact, one-shot 5D.3 native package transaction after successful code validation.
         $HandThrowSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $HandThrowSubject.Count -eq 1 -and
-            [string]$HandThrowSubject[0] -ceq 'fix(ARM-CLEAN06.5D.3): isolate and diagnose native transaction self-test') {
+            [string]$HandThrowSubject[0] -ceq 'fix(ARM-CLEAN06.5D.3): run native self-test directly with exact Windows diagnostics') {
             $HandThrowContext = 'UE5.5.4/ARM-CLEAN06.5D3'
             $HandThrowStage = 'HOOK_STATUS'
             try {
                 Publish-CommitStatus -Sha $Sha -State 'pending' -Context $HandThrowContext -Description 'Conversion native de deux catalogues ARM'
-                $HandThrowStage = 'HOOK_PARSE'
+                # -File must itself parse and execute the complete script. A
+                # separate in-process ParseFile call is not a prerequisite.
+                # On failure only a parser identifier/line/column is public.
                 $HandThrowScript = Join-Path $WorktreePath 'Scripts\ApplyARM_CLEAN06_5D3_HandThrow.ps1'
-                $ParseTokens = $null
-                $ParseErrors = $null
-                [void][System.Management.Automation.Language.Parser]::ParseFile($HandThrowScript,[ref]$ParseTokens,[ref]$ParseErrors)
-                if ($ParseErrors -and $ParseErrors.Count -gt 0) {
-                    $AllowedParseCodes = @('UnexpectedToken','MissingEndCurlyBrace','MissingEndParenthesisInExpression',
-                        'MissingEndParenthesisInFunctionParameterList','MissingExpressionAfterToken','InvalidVariableReferenceWithDrive',
-                        'InvalidVariableReference','MissingArgument','TerminatorExpectedAtEndOfString','InvalidLeftHandSide',
-                        'InvalidFunctionParameter','MissingStatementBlock','MissingStatementBlockAfterIf','MissingCatchOrFinally')
-                    $FirstParseCode = [string]$ParseErrors[0].ErrorId
-                    if ($FirstParseCode -cin $AllowedParseCodes) { $HandThrowStage = 'HOOK_PARSE_'+$FirstParseCode }
-                    throw 'Native transaction script parse error.'
-                }
+                if (-not (Test-Path -LiteralPath $HandThrowScript -PathType Leaf)) { throw 'Native transaction script missing.' }
                 $HandThrowStage = 'HOOK_SELFTEST'
                 if ($HandThrowScript.Contains('"') -or $RunDir.Contains('"')) { throw 'Unsafe self-test argument.' }
                 $SelfTestArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
@@ -1046,6 +1037,43 @@ try {
                 if ($SelfTestProcess.ExitCode -ne 0 -or
                     -not (Test-Path -LiteralPath (Join-Path $RunDir 'ArmClean065D3.stage') -PathType Leaf) -or
                     (Get-Content -LiteralPath (Join-Path $RunDir 'ArmClean065D3.stage') -TotalCount 1) -cne 'SELFTEST_SUCCESS') {
+                    # Parse only structured diagnostic metadata, never raw
+                    # exception text, source snippets or paths. If the helper
+                    # could not even start, the Windows parser can identify
+                    # the exact failing extent in this read-only catch path.
+                    $HandSyntaxDiagnostic = ''
+                    $HandStageFile = Join-Path $RunDir 'ArmClean065D3.stage'
+                    if (-not (Test-Path -LiteralPath $HandStageFile -PathType Leaf)) {
+                        try {
+                            $HandTokens = $null
+                            $HandErrors = $null
+                            $HandSource = [IO.File]::ReadAllText($HandThrowScript)
+                            [void][System.Management.Automation.Language.Parser]::ParseInput(
+                                $HandSource, [ref]$HandTokens, [ref]$HandErrors)
+                            if ($HandErrors -and $HandErrors.Count -gt 0) {
+                                $Code = [string]$HandErrors[0].ErrorId
+                                $Line = [int]$HandErrors[0].Extent.StartLineNumber
+                                $Column = [int]$HandErrors[0].Extent.StartColumnNumber
+                                if ($Code -cmatch '^[A-Za-z][A-Za-z0-9_]{0,63}$' -and
+                                    $Line -ge 1 -and $Line -le 10000 -and $Column -ge 1 -and $Column -le 1000) {
+                                    $HandSyntaxDiagnostic = 'PARSE_'+$Code+'_L'+$Line+'_C'+$Column
+                                }
+                            }
+                        } catch {
+                            # Also distinguish parser API infrastructure errors.
+                            $HandSyntaxDiagnostic = 'PARSE_API_ERROR'
+                        }
+                        if ([string]::IsNullOrEmpty($HandSyntaxDiagnostic)) {
+                            $HandErrorLog = Join-Path $RunDir 'ARM065D3.selftest.stderr.log'
+                            if (Test-Path -LiteralPath $HandErrorLog -PathType Leaf) {
+                                $HandErrorText = Get-Content -LiteralPath $HandErrorLog -Raw
+                                if ($HandErrorText -match '(?m)^\s*\+\s*FullyQualifiedErrorId\s*:\s*([A-Za-z][A-Za-z0-9_]{0,63})\s*$') {
+                                    $HandSyntaxDiagnostic = 'CHILD_'+$Matches[1]
+                                }
+                            }
+                        }
+                    }
+                    if (-not [string]::IsNullOrEmpty($HandSyntaxDiagnostic)) { $HandThrowStage = $HandSyntaxDiagnostic }
                     throw 'Native transaction self-test did not complete.'
                 }
                 $HandThrowStage = 'HOOK_ARGUMENTS'
@@ -1068,7 +1096,15 @@ try {
                     $RecordedHandThrowStage = ([string](Get-Content -LiteralPath $HandThrowStagePath -TotalCount 1)).Trim()
                     if ($RecordedHandThrowStage -cne 'SELFTEST_SUCCESS' -or $HandThrowStage -ceq 'HOOK_SELFTEST') { $HandThrowStage = $RecordedHandThrowStage }
                 }
-                if ($HandThrowStage -notin @('HOOK_STATUS','HOOK_PARSE','HOOK_PARSE_UnexpectedToken','HOOK_PARSE_MissingEndCurlyBrace','HOOK_PARSE_MissingEndParenthesisInExpression','HOOK_PARSE_MissingEndParenthesisInFunctionParameterList','HOOK_PARSE_MissingExpressionAfterToken','HOOK_PARSE_InvalidVariableReferenceWithDrive','HOOK_PARSE_InvalidVariableReference','HOOK_PARSE_MissingArgument','HOOK_PARSE_TerminatorExpectedAtEndOfString','HOOK_PARSE_InvalidLeftHandSide','HOOK_PARSE_InvalidFunctionParameter','HOOK_PARSE_MissingStatementBlock','HOOK_PARSE_MissingStatementBlockAfterIf','HOOK_PARSE_MissingCatchOrFinally','HOOK_SELFTEST','SELFTEST_GIT','SELFTEST_SET','SELFTEST_PATH','SELFTEST_POINTER','SELFTEST_QUOTE','SELFTEST_SUCCESS','HOOK_ARGUMENTS','HOOK_PROCESS','PREFLIGHT_INPUT','PREFLIGHT_LOCATION','PREFLIGHT_ORDINARY_PATH','PREFLIGHT_WORKTREE','PREFLIGHT_HEAD','PREFLIGHT_REMOTE','PREFLIGHT_ANCESTRY','PREFLIGHT_DIFF','PREFLIGHT_CLEAN','PREFLIGHT_VALIDATION','PREFLIGHT_SNAPSHOT','PREFLIGHT_EXECUTABLES','PREFLIGHT_LFS','AUDIT','APPLY','REOPEN','AUTOMATION','PUBLISH','ROLLBACK_INCOMPLETE','SUCCESS')) { $HandThrowStage = 'UNKNOWN' }
+                $HandFixedStages = @('HOOK_STATUS','HOOK_SELFTEST','SELFTEST_INIT','SELFTEST_GIT','SELFTEST_SET',
+                    'SELFTEST_PATH','SELFTEST_POINTER','SELFTEST_QUOTE','SELFTEST_SUCCESS','HOOK_ARGUMENTS','HOOK_PROCESS',
+                    'PREFLIGHT_INPUT','PREFLIGHT_LOCATION','PREFLIGHT_ORDINARY_PATH','PREFLIGHT_WORKTREE',
+                    'PREFLIGHT_HEAD','PREFLIGHT_REMOTE','PREFLIGHT_ANCESTRY','PREFLIGHT_DIFF','PREFLIGHT_CLEAN',
+                    'PREFLIGHT_VALIDATION','PREFLIGHT_SNAPSHOT','PREFLIGHT_EXECUTABLES','PREFLIGHT_LFS',
+                    'AUDIT','APPLY','REOPEN','AUTOMATION','PUBLISH','ROLLBACK_INCOMPLETE','SUCCESS','PARSE_API_ERROR')
+                if ($HandThrowStage -cnotin $HandFixedStages -and
+                    $HandThrowStage -cnotmatch '^PARSE_[A-Za-z][A-Za-z0-9_]{0,63}_L[0-9]{1,5}_C[0-9]{1,4}$' -and
+                    $HandThrowStage -cnotmatch '^CHILD_[A-Za-z][A-Za-z0-9_]{0,63}$') { $HandThrowStage = 'UNKNOWN' }
                 try {
                     Publish-CommitStatus -Sha $Sha -State 'failure' -Context $HandThrowContext -Description ('Conversion ARM bloquee : '+$HandThrowStage)
                 } catch { Write-Warning 'Native transaction status unavailable.' }

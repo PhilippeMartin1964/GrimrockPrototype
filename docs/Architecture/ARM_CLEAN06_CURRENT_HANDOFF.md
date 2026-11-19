@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.3.4 — exécution réelle du self-test Windows
+
+`989ea666ef6404ed8e119c7b4b6ba58c4cfe7e88` : les deux statuts généraux sont SUCCESS ; statut natif FAILURE HOOK_PARSE. Le hook lançait un appel de parsing supplémentaire avant le processus réel. Désormais `-File -SelfTest` est le test de parsing et d'exécution obligatoire ; diagnostic sûr identifiant/ligne/colonne si démarrage impossible, reçu SELFTEST_SUCCESS exigé avant écriture. Aucun changement de C++ ni binaire. Deux statuts exacts du nouveau SHA + statut natif et enfant binaire à vérifier. Draft 5D.4 `f5401a1fc7547a73f4d9963d1c6e096f63ef4ba2` inchangé.
+
 ## ARM-CLEAN06.5D.3.3 — isolation et diagnostic du self-test
 
 `c7b56b425a531164452d533951b51e23b0c7d0f7` : SilentTask SUCCESS, LocalAuto FAILURE/PREFLIGHT, [issue #198](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/198), aucune compilation ni écriture native confirmée. Le self-test de migration reste obligatoire mais est isolé dans le hook de conversion après la validation générale, avec un reçu de réussite même RunDir et des codes d'étape fixes. Le correctif C++ validé d19b3535 n'est pas modifié. 5D.4 préparé, arbre de draft corrigé `f5401a1fc7547a73f4d9963d1c6e096f63ef4ba2` (reprendre seulement les neuf fichiers du lot ; ne pas reprendre les anciennes versions des autres fichiers). Rebase après commit binaire validé.
