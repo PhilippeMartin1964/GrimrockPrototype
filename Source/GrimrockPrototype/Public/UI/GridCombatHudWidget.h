@@ -238,13 +238,12 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UImage> Image_ActionIcon;
 
-	/** Central, data-driven palette for intrinsic actions of equipped ARMXXX.
-	 * The only visual target remains Image_ActionIcon in the existing WBP. */
+	/** Historical serialized WBP field; never read for live rendering.
+	 * Native 5F detaches the reference before schema retirement. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|HUD|Icons")
 	TObjectPtr<UGridEquippedWeaponActionIconPalette> EquippedWeaponActionIconPalette;
 
-	/** Transitional fallback for WBP builds not yet assigned a complete
-	 * palette. It must not supersede an authored palette dual-wield icon. */
+	/** Historical no-registry dual fallback only; canonical dual uses ItemSystem. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|HUD|Icons")
 	TSoftObjectPtr<UTexture2D> DualAttackIcon;
 

@@ -770,48 +770,35 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 	// dedicated dual-attack texture, or the normal equipment/action icon.
 	if (Image_ActionIcon)
 	{
-		const UGridItemDefinitionAsset* EquippedDefinition = nullptr;
-		bool bKnownCanonicalAction = false;
-		TSoftObjectPtr<UTexture2D> CanonicalActionIcon;
-		if (View.bResolved && View.Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-			IsValid(OwnerHud) && IsValid(OwnerHud->InventoryComponent))
+		const UWorld* HUDWorld = GetWorld();
+		UGameInstance* GI = HUDWorld ? HUDWorld->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		const FName SourceId = View.bResolved && !View.Action.SourceDefinitionId.IsNone()
+			? View.Action.SourceDefinitionId : View.Binding.SourceDefinitionId;
+		const EGridCombatActionSourcePolicy Policy = View.bResolved
+			? View.Action.Definition.SourcePolicy : View.Binding.SourcePolicy;
+		TSoftObjectPtr<UTexture2D> Icon;
+		if (Policy == EGridCombatActionSourcePolicy::Equipment && Registry && Registry->HasCanonicalItem(SourceId))
 		{
 			FGridItemInstance Equipped;
-			if (OwnerHud->InventoryComponent->GetEquippedItem(
-					View.Action.CharacterIndex, View.Action.SourceEquipmentSlot, Equipped) &&
-				Equipped.IsValid() && Equipped.RuntimeObjectId == View.Action.SourceRuntimeId &&
-				Equipped.ItemDefinitionId == View.Action.SourceDefinitionId)
+			const FGridItemInstance* Source = nullptr;
+			if (View.bResolved && IsValid(OwnerHud) && IsValid(OwnerHud->InventoryComponent) &&
+				OwnerHud->InventoryComponent->GetEquippedItem(View.Action.CharacterIndex,
+					View.Action.SourceEquipmentSlot, Equipped))
 			{
-				EquippedDefinition = OwnerHud->InventoryComponent->FindItemDefinition(Equipped.ItemDefinitionId);
-				const UWorld* HUDWorld = GetWorld();
-				UGameInstance* GameInstance = HUDWorld ? HUDWorld->GetGameInstance() : nullptr;
-				const UGridItemSubsystem* Registry = GameInstance
-					? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-				if (Registry && Registry->HasCanonicalItem(Equipped.ItemDefinitionId))
-				{
-					bKnownCanonicalAction = true;
-					FGridResolvedItem Resolved;
-					if (Registry->ResolveItem(Equipped.ItemDefinitionId, Equipped.ItemLevel, Resolved))
-					{
-						const EGridEquippedWeaponActionIconKind Kind =
-							FGridCanonicalActionIconReadModel::Classify(Resolved, View.Action.Definition);
-						CanonicalActionIcon = Registry->FindEquippedActionIcon(Kind);
-						// DualWield is an explicitly offered composite; preserve
-						// its dedicated icon if this canonical kind is unconfigured.
-						if (Kind == EGridEquippedWeaponActionIconKind::MeleeDualWield &&
-							CanonicalActionIcon.IsNull())
-						{
-							CanonicalActionIcon = DualAttackIcon;
-						}
-					}
-				}
+				Source = &Equipped;
 			}
+			// Same strict projection as the HUD builder, including stale GUID
+			// and missing bound source. No historical icon can reappear.
+			FGridAvailableCombatAction Projected = View.Action;
+			FGridCombatHudCanonicalActionReadModel::Apply(Registry, SourceId, View.bResolved, Source, Projected);
+			Icon = Projected.Definition.Icon;
 		}
-		// Registered equipment never consults the obsolete DA_Weapon icon
-		// palette; unknown items, spells and consumables keep their old path.
-		const TSoftObjectPtr<UTexture2D> Icon = bKnownCanonicalAction
-			? CanonicalActionIcon
-			: ResolveDisplayedIcon(View, DualAttackIcon, EquippedWeaponActionIconPalette, EquippedDefinition);
+		else
+		{
+			// Unregistered actions retain their explicit transport icon.
+			Icon = ResolveDisplayedIcon(View, DualAttackIcon);
+		}
 		if (!View.bHasBinding || Icon.IsNull())
 		{
 			Image_ActionIcon->SetBrushFromTexture(nullptr);

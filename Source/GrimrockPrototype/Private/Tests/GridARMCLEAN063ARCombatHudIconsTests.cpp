@@ -85,6 +85,7 @@ bool FGridClean063ARHudActionIcons::RunTest(const FString&)
 				Registry.Get(), SwordId, true, &Source, Action));
 		const auto Expected = Registry->FindEquippedActionIcon(
 			EGridEquippedWeaponActionIconKind::MeleeOneHand);
+		TestFalse(TEXT("Real active ARM has its authored action texture"), Expected.IsNull());
 		TestEqual(TEXT("Only global canonical ACTION palette supplies icon"),
 			Action.Definition.Icon.ToSoftObjectPath().ToString(),
 			Expected.ToSoftObjectPath().ToString());
@@ -124,6 +125,8 @@ bool FGridClean063ARHudActionIcons::RunTest(const FString&)
 	TestTrue(TEXT("Existing dual composite is handled as canonical"),
 		FGridCombatHudCanonicalActionReadModel::Apply(
 			Registry.Get(), DualMain.ItemDefinitionId, true, &DualMain, Dual));
+	TestFalse(TEXT("Actual dual icon must be configured before retiring fallback"),
+		Registry->FindEquippedActionIcon(EGridEquippedWeaponActionIconKind::MeleeDualWield).IsNull());
 	TestEqual(TEXT("Dual icon has the canonical composite category"),
 		Dual.Definition.Icon.ToSoftObjectPath().ToString(),
 		Registry->FindEquippedActionIcon(

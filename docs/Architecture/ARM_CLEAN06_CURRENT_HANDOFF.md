@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5F — palette d'icônes, transaction native du WBP
+
+Parent c8dfc6b161047bdf77b31d3389f551d015e7ea70 validé. Unification projection widget/vue, aucun recours à la palette historique ni fallback dual enregistré. Commandlet natif Audit/Apply/Verify limité au CDO de WBP_GridCombatHudAction, parité des 12 catégories et manifeste du Designer/graphes/propriétés. Agent one-shot sur sujet/parent/diff exacts, copie SHA256/LFS, relecture et Automation complète avant push du seul WBP avec rollback. Statut tiers et enfant binaire à constater. Voir [5F](ARM_CLEAN06_5F_ICON_PALETTE_RETIREMENT.md).
+
 ## ARM-CLEAN06.5E.4D — transferts physiques sans ancien DA inscrit
 
 Parent `749301ba89f408b2f21e76517066269c6905a364` : deux statuts SUCCESS. Le résolveur runtime refuse les ID inscrits avant parcours des placements ou recettes ; le lookup de transfert pawn/controller filtre aussi la map. Les jets utilisent exclusivement les politiques matérialisées 5D.3, et les projectiles inscrits ignorent un ancien pointeur explicitement fourni. Tests 3AV/3BF et 5E4D.PhysicalTransferLegacyLookup. Aucun asset, SaveGame, WBP ou clé localisée modifié. Voir [5E.4D](ARM_CLEAN06_5E4D_PHYSICAL_TRANSFER_RETIREMENT.md).
