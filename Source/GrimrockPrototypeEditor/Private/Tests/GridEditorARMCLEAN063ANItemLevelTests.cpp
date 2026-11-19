@@ -27,51 +27,32 @@ bool FGridClean063ANAuthoring::RunTest(const FString&)
 		return false;
 	}
 
-	TStrongObjectPtr<UGridItemDefinitionAsset> Sword(NewObject<UGridItemDefinitionAsset>());
-	Sword->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
-	Sword->DefaultWeaponItemLevel = 7;
-	Sword->bUseWeaponCatalogue = false; // The stale flag must NOT disable editing.
-	TestTrue(TEXT("Canonical ARM editing enabled despite old false flag"),
-		FGridEditorCanonicalItemLevelPolicy::IsLevelEditable(Registry.Get(), Sword.Get()));
+	const FName Sword(TEXT("Weapon_StraightSword_01"));
+	const FName Ammo(TEXT("Item_Arrows_01"));
+	const FName Unknown(TEXT("Legacy_Editor_063AN"));
 	for (int32 Authored : {1, 20})
 	{
 		TestTrue(TEXT("Canonical ARM permits actual N1-N20"),
-			FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Sword.Get(), Authored));
+			FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Sword, Authored));
 		FGridResolvedItem Canonical;
-		const int32 Fixed = Authored;
 		TestTrue(TEXT("Same fixed level resolves in actual canonical system"),
-			Registry->ResolveItem(Sword->ItemDefinitionId, Fixed, Canonical) && Canonical.bIsArmament);
+			Registry->ResolveItem(Sword, Authored, Canonical) && Canonical.bIsArmament &&
+			Canonical.ItemLevel == Authored);
 	}
 	TestFalse(TEXT("N21 never accepted"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Sword.Get(), 21));
-	TestFalse(TEXT("ARM N0 rejected even with obsolete N7 default"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Sword.Get(), 0));
-	Sword->DefaultWeaponItemLevel = 0;
-	TestFalse(TEXT("ARM N0 without valid inherited default is invalid"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Sword.Get(), 0));
-	Sword->DefaultWeaponItemLevel = 7;
-
-	TStrongObjectPtr<UGridItemDefinitionAsset> Ammo(NewObject<UGridItemDefinitionAsset>());
-	Ammo->ItemDefinitionId = TEXT("Item_Arrows_01");
-	Ammo->bUseWeaponCatalogue = true; // A stale flag must NOT invent an ammo level.
-	TestFalse(TEXT("Canonical ammo has no level spinner"),
-		FGridEditorCanonicalItemLevelPolicy::IsLevelEditable(Registry.Get(), Ammo.Get()));
+		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Sword, 21));
+	TestFalse(TEXT("ARM N0 is not an inherited default"),
+		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Sword, 0));
 	TestTrue(TEXT("Canonical ammo permits only true N0"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Ammo.Get(), 0));
-	TestFalse(TEXT("Canonical ammo N1 is rejected despite legacy flag"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Ammo.Get(), 1));
-
-	TStrongObjectPtr<UGridItemDefinitionAsset> Legacy(NewObject<UGridItemDefinitionAsset>());
-	Legacy->ItemDefinitionId = TEXT("Legacy_Editor_063AN");
-	Legacy->bUseWeaponCatalogue = false;
-	TestFalse(TEXT("Unregistered non-ARM has no progressive level spinner"),
-		FGridEditorCanonicalItemLevelPolicy::IsLevelEditable(Registry.Get(), Legacy.Get()));
-	TestTrue(TEXT("Unknown non-levelled item keeps authored N0"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Legacy.Get(), 0));
-	TestFalse(TEXT("Unknown non-levelled item cannot invent N1"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Legacy.Get(), 1));
+		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Ammo, 0));
+	TestFalse(TEXT("Canonical ammo N1 is rejected"),
+		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Ammo, 1));
+	TestFalse(TEXT("Unknown ID cannot authorize even N0"),
+		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Unknown, 0));
+	TestFalse(TEXT("Unknown ID cannot authorize N1"),
+		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Unknown, 1));
 	TestFalse(TEXT("Missing editor registry fails closed"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(nullptr, Sword.Get(), 1));
+		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(nullptr, Sword, 1));
 
 	const UWorld::InitializationValues Settings = UWorld::InitializationValues()
 		.AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(false)
@@ -96,7 +77,7 @@ bool FGridClean063ANAuthoring::RunTest(const FString&)
 		Editor->LevelAsset = Level;
 		FGridLooseItemInstance& Loose = Level->LooseItemInstances.AddDefaulted_GetRef();
 		Loose.InstanceId = FGuid::NewGuid();
-		Loose.CanonicalItemId = Sword->ItemDefinitionId;
+		Loose.CanonicalItemId = Sword;
 		Loose.ItemLevel = 1;
 		Editor->LastSelectedObjectId = Loose.InstanceId;
 		TestTrue(TEXT("Actor can author explicit canonical ARM"),
@@ -105,20 +86,18 @@ bool FGridClean063ANAuthoring::RunTest(const FString&)
 		TestFalse(TEXT("Actor cannot restore obsolete default sentinel"),
 			Editor->SetSelectedObjectItemLevel(0));
 		TestEqual(TEXT("Loose item physical N20 remains"), Loose.ItemLevel, 20);
-		Sword->DefaultWeaponItemLevel = 0;
-		TestFalse(TEXT("Invalid inherited ARM default rejected before mutation"),
+		TestFalse(TEXT("Repeated invalid N0 rejected before mutation"),
 			Editor->SetSelectedObjectItemLevel(0));
 		TestEqual(TEXT("Rejected edit preserves prior loose item authoring"), Loose.ItemLevel, 20);
-		Sword->DefaultWeaponItemLevel = 7;
 
 		FGridItemSpawnInstance& Spawn = Level->ItemSpawns.AddDefaulted_GetRef();
 		Spawn.SpawnId = FGuid::NewGuid();
-		Spawn.CanonicalItemId = Sword->ItemDefinitionId;
+		Spawn.CanonicalItemId = Sword;
 		Spawn.ItemLevel = 1;
 		Editor->LastSelectedObjectId = Spawn.SpawnId;
 		TestTrue(TEXT("Generator uses same canonical authored gate"), Editor->SetSelectedObjectItemLevel(13));
 		TestEqual(TEXT("Generator stores its N13"), Spawn.ItemLevel, 13);
-		Spawn.CanonicalItemId = Ammo->ItemDefinitionId;
+		Spawn.CanonicalItemId = Ammo;
 		TestFalse(TEXT("Ammo generator rejects invented N1"), Editor->SetSelectedObjectItemLevel(1));
 		TestEqual(TEXT("Rejected generator edit does not overwrite prior authored level"), Spawn.ItemLevel, 13);
 		TestTrue(TEXT("Ammo generator may set the real N0"), Editor->SetSelectedObjectItemLevel(0));

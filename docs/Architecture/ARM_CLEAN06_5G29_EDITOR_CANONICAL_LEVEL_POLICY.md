@@ -1,0 +1,3 @@
+# ARM-CLEAN06.5G.29 — Politique de niveau éditeur unique
+
+Parent 0c7a9008680387cab0212e8605e620dea41535a1. Le seul chemin autorisant un niveau physique d'objet dans l'éditeur est CanAuthorCanonicalLevel. Les anciens helpers IsLevelEditable/CanAuthorLevel ne sont plus appelés hors tests et permettaient encore N0 pour un identifiant inconnu. Retrait complet, aucune définition historique consultée. Le test 3AN conserve les checks de résolution et de mutation du niveau réel/grille/générateur ; il refuse désormais tout identifiant inconnu même N0. Aucune modification native, aucune sauvegarde. Les fonctions historiques réfléchies (setter pointeur/sync) ne sont pas retirées dans ce lot : leur absence d'appel natif Blueprint doit être prouvée d'abord.

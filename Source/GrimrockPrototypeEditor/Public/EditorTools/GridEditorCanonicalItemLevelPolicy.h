@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** Editor-only validation of NEW authored levels; never touches SaveGame instances. */
@@ -24,40 +23,4 @@ struct FGridEditorCanonicalItemLevelPolicy
 			(Resolved.bIsArmament || PhysicalLevel == 0);
 	}
 
-	static bool IsLevelEditable(const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* Definition)
-	{
-		if (!IsValid(Registry) || !Registry->IsConfigured() ||
-			!IsValid(Definition) || Definition->ItemDefinitionId.IsNone())
-		{
-			return false; // Missing ItemSystem cannot silently validate legacy fields.
-		}
-		if (Registry->HasCanonicalItem(Definition->ItemDefinitionId))
-		{
-			FGridResolvedItem Family;
-			return Registry->ResolveItem(Definition->ItemDefinitionId, 1, Family) && Family.bIsArmament;
-		}
-		return Definition->bUseWeaponCatalogue; // Unmigrated IDs only, through 06.4.
-	}
-
-	static bool CanAuthorLevel(const UGridItemSubsystem* Registry,
-		const UGridItemDefinitionAsset* Definition, int32 AuthoredLevel)
-	{
-		if (!IsValid(Registry) || !Registry->IsConfigured() ||
-			!IsValid(Definition) || Definition->ItemDefinitionId.IsNone() ||
-			AuthoredLevel < 0 || AuthoredLevel > 20)
-		{
-			return false;
-		}
-		const FName ItemId = Definition->ItemDefinitionId;
-		if (Registry->HasCanonicalItem(ItemId))
-		{
-			return CanAuthorCanonicalLevel(Registry, ItemId, AuthoredLevel);
-		}
-
-		// Until 06.4 migrates the binary assets, honor only unknown historical IDs.
-		if (!Definition->bUseWeaponCatalogue) return AuthoredLevel == 0;
-		if (AuthoredLevel == 0) return true; // Historical inherited-default request.
-		const FGridWeaponLevelProfile* Profile = nullptr;
-		return Definition->TryGetWeaponCatalogueProfile(AuthoredLevel, Profile) && Profile;
-	}
 };
