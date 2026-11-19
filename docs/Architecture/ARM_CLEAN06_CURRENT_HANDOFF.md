@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.10 — Retrait des points d'entrée natifs de conversion
+
+Parent 2683d5d602299e5f8d9124303aeb061d360e3f02 : publication conditionnée aux deux statuts SUCCESS. Suppression de 17 scripts ApplyARM_CLEAN06 et 17 commandlets associés (34 fichiers C++). Helpers de parité, tests, audits et sauvegardes/rollback conservés. Aucun asset ou SaveGame modifié. Attendre les deux statuts du SHA publié. Suite : dénouer les dépendances des audits historiques puis du schéma et des fixtures legacy avant 06.6. Voir [5G.10](ARM_CLEAN06_5G10_RETIRE_NATIVE_MIGRATION_ENTRYPOINTS.md).
+
 ## ARM-CLEAN06.5G.9 — Retrait des déclencheurs de migration terminés
 
 Parent b35f8ce024bd54407d8eb6d6d417642c33ac0131 : publication de ce lot conditionnée aux deux statuts SUCCESS sur le parent. Les anciens hooks exact-SHA ARM sont retirés de l'agent et de ValidateUE ; les contrôles généraux, les trois auto-tests des sauvegardes/rollback et les récupérations non-ARM restent présents. Aucune suppression de packages, SaveGame, reçus ou fichiers de sauvegarde. Attendre les deux statuts Windows du présent SHA avant le retrait par dépendance des outils historiques. Voir ARM_CLEAN06_5G9_RETIRE_MIGRATION_HOOKS.md.
