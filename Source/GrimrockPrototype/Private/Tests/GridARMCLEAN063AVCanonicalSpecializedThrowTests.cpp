@@ -442,7 +442,8 @@ bool FGridClean065E4DLegacyLookup::RunTest(const FString&)
     auto* Inventory = Party->PartyInventoryComponent.Get();
     if (!TestNotNull(TEXT("Inventory"), Inventory)) return false;
     Inventory->InitializeDefaultPartyIfNeeded();
-    TestTrue(TEXT("Contradictory old map entry seeded"), Inventory->RegisterItemDefinition(OldKnown));
+    TestTrue(TEXT("Known registration is already satisfied by ItemSystem"), Inventory->RegisterItemDefinition(OldKnown));
+    TestNull(TEXT("Registered ID cannot enter the obsolete map"), Inventory->FindItemDefinition(Known));
     TestNull(TEXT("Canonical transfer ignores old inventory entry"), FGridLegacyItemLookup::Resolve(Party, Known));
     TestNull(TEXT("Canonical inventory-only transfer also ignores it"), FGridLegacyItemLookup::Resolve(Party, Known, false));
     TestEqual(TEXT("Unknown transfer can use old level entry"), FGridLegacyItemLookup::Resolve(Party, Unknown), OldUnknown);

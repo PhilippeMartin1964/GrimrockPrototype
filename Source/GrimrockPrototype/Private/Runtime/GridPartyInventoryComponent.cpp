@@ -1513,6 +1513,15 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAss
 		return false;
 	}
 
+	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
+	if (Registry && Registry->HasCanonicalItem(Definition->ItemDefinitionId))
+	{
+		// The canonical authority already owns this ID. Compatibility
+		// callers receive success but no old pointer is retained.
+		RuntimeItemDefinitionsById.Remove(Definition->ItemDefinitionId);
+		return true;
+	}
+
 	if (const TObjectPtr<UGridItemDefinitionAsset>* ExistingDefinition = RuntimeItemDefinitionsById.Find(Definition->ItemDefinitionId))
 	{
 		if (ExistingDefinition->Get() == Definition)
@@ -1652,9 +1661,10 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
 
 UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName ItemDefinitionId) const
 {
-	if (ItemDefinitionId.IsNone())
+	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
+	if (ItemDefinitionId.IsNone() || (Registry && Registry->HasCanonicalItem(ItemDefinitionId)))
 	{
-		return nullptr;
+		return nullptr; // Historical lookup only, including stale map entries.
 	}
 
 	if (const TObjectPtr<UGridItemDefinitionAsset>* Definition = RuntimeItemDefinitionsById.Find(ItemDefinitionId))

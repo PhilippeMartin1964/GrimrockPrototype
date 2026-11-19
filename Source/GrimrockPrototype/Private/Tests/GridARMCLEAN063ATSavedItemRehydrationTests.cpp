@@ -182,13 +182,16 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 	const TMap<FName, UGridItemDefinitionAsset*> TransientOld = {
 		{SwordId, OldSword}, {ShieldId, OldShield}, {ArrowId, OldArrow}
 	};
-	// Existing historical map entries must disappear on a successful load,
-	// even when the callback would have returned the exact old assets.
-	TestTrue(TEXT("Seed obsolete sword"), Fixture.Inventory->RegisterItemDefinition(OldSword));
-	TestTrue(TEXT("Seed obsolete shield"), Fixture.Inventory->RegisterItemDefinition(OldShield));
-	TestTrue(TEXT("Seed obsolete arrows"), Fixture.Inventory->RegisterItemDefinition(OldArrow));
+	// Explicit historical registration of canonical IDs is an idempotent
+	// no-op; even a matching obsolete pointer must not enter the old map.
+	TestTrue(TEXT("Known sword registration already satisfied"), Fixture.Inventory->RegisterItemDefinition(OldSword));
+	TestTrue(TEXT("Known shield registration already satisfied"), Fixture.Inventory->RegisterItemDefinition(OldShield));
+	TestTrue(TEXT("Known arrow registration already satisfied"), Fixture.Inventory->RegisterItemDefinition(OldArrow));
+	TestNull(TEXT("Known sword cannot be returned before load"), Fixture.Inventory->FindItemDefinition(SwordId));
+	TestNull(TEXT("Known shield cannot be returned before load"), Fixture.Inventory->FindItemDefinition(ShieldId));
+	TestNull(TEXT("Known arrows cannot be returned before load"), Fixture.Inventory->FindItemDefinition(ArrowId));
 	LookedUpIds.Reset();
-	TestTrue(TEXT("Canonical load discards previously registered historical definitions"),
+	TestTrue(TEXT("Canonical load still never consults historical definitions"),
 		Fixture.Inventory->RehydrateOwnedItemDefinitions(
 			[&TransientOld, &LookedUpIds](FName Id) -> UGridItemDefinitionAsset*
 			{
@@ -217,7 +220,9 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 	// failure cannot discard a previously populated runtime definition map.
 	const FName UnknownId(TEXT("ARMCLEAN063AT_UnknownSaveItem"));
 	Fixture.Put(2, Fixture.Make(UnknownId, 0, 1));
-	TestTrue(TEXT("Seed old map before failed load"), Fixture.Inventory->RegisterItemDefinition(OldSword));
+	const FName PriorUnknownId(TEXT("ARMCLEAN063AT_PriorUnknown"));
+	UGridItemDefinitionAsset* PriorUnknown = ARMCLEAN063AT::MakeLegacy(Fixture.Inventory, PriorUnknownId);
+	TestTrue(TEXT("Seed actual out-of-registry map before failed load"), Fixture.Inventory->RegisterItemDefinition(PriorUnknown));
 	LookedUpIds.Reset();
 	TestFalse(TEXT("Missing legacy definition blocks mixed rehydration"),
 		Fixture.Inventory->RehydrateOwnedItemDefinitions(
@@ -229,7 +234,8 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 	TestEqual(TEXT("Exact missing unknown ID reported"), FailedId, UnknownId);
 	TestTrue(TEXT("Only unknown ID reached the resolver on failure"), LookedUpIds.Num() == 1 && LookedUpIds.Contains(UnknownId));
 	TestEqual(TEXT("Rollback preserves prior transient registry"),
-		Fixture.Inventory->FindItemDefinition(SwordId), OldSword);
+		Fixture.Inventory->FindItemDefinition(PriorUnknownId), PriorUnknown);
+	TestNull(TEXT("Rollback cannot expose a registered historical definition"), Fixture.Inventory->FindItemDefinition(SwordId));
 
 	UGridItemDefinitionAsset* OldUnknown = ARMCLEAN063AT::MakeLegacy(Fixture.Inventory, UnknownId);
 	const TMap<FName, UGridItemDefinitionAsset*> AllOld = {
@@ -246,6 +252,7 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 			}, FailedId));
 	TestTrue(TEXT("Only unknown ID reached the resolver on success"), LookedUpIds.Num() == 1 && LookedUpIds.Contains(UnknownId));
 	TestEqual(TEXT("Unknown saved source registered"), Fixture.Inventory->FindItemDefinition(UnknownId), OldUnknown);
+	TestNull(TEXT("No longer owned prior unknown is removed"), Fixture.Inventory->FindItemDefinition(PriorUnknownId));
 	TestNull(TEXT("No old canonical sword retained in mixed load"), Fixture.Inventory->FindItemDefinition(SwordId));
 
 	// Invalid canonical levels and impossible N0 ARM must not borrow old

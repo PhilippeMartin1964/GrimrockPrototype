@@ -3,7 +3,6 @@
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
-#include "../Runtime/GridWorldItemLevelReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridStartingKitStaticMetadataReadModel.h"
 #include "GridStartingKitEquipmentPolicyReadModel.h"
@@ -59,33 +58,41 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 			OutError = TEXT("Starting kit contains an invalid item definition, canonical ID, level or quantity.");
 			return false;
 		}
-		// X.43: a concrete CanonicalItemId always opts into the ONE
-		// registered item family, regardless of whether a stale matching
-		// UGridItemDefinitionAsset pointer is still authored beside it.
-		// The pointer is checked above only to reject contradictory IDs.
-		const bool bExplicitNative = bExplicitCanonical && bCanonicalRegistered;
+		// All production kits have been migrated (5C). A registered
+		// physical item now requires an explicit stable ID and level.
+		// Never resurrect the old pointer-only N0/default-level rule.
+		if (bCanonicalRegistered && !bExplicitCanonical)
+		{
+			OutError = TEXT("Registered starting kit item requires CanonicalItemId and an explicit physical level.");
+			return false;
+		}
+		const bool bExplicitNative = bCanonicalRegistered;
 		FGridResolvedItem NativeItem;
 		if (bExplicitNative &&
 			(!CanonicalRegistry->ResolveItem(ItemId, Entry.ItemLevel, NativeItem) ||
 			 !NativeItem.IsValid() ||
+			 !FMath::IsFinite(NativeItem.WeightKg) || NativeItem.WeightKg < 0.0f ||
 			 (!NativeItem.bIsArmament && Entry.ItemLevel != 0)))
 		{
 			OutError = TEXT("Starting kit canonical item requires an explicit valid physical level.");
 			return false; // No arbitrary N0 -> N1 promotion.
 		}
-		if (UGridItemDefinitionAsset** Previous = DefinitionById.Find(ItemId))
+		// The returned old-definition map is strictly outside the
+		// registry. Matching obsolete pointers on registered entries
+		// are checked for identity above and otherwise ignored.
+		if (!bExplicitNative)
 		{
-			if (*Previous != Definition)
+			if (UGridItemDefinitionAsset** Previous = DefinitionById.Find(ItemId))
 			{
-				OutError = TEXT("Starting kit maps one item ID to multiple definitions.");
-				return false;
+				if (*Previous != Definition)
+				{
+					OutError = TEXT("Starting kit maps one item ID to multiple definitions.");
+					return false;
+				}
 			}
-		}
-		else
-		{
-			DefinitionById.Add(ItemId, Definition);
-			if (IsValid(Definition))
+			else
 			{
+				DefinitionById.Add(ItemId, Definition);
 				CandidateDefinitions.Add(Definition);
 			}
 		}
@@ -101,26 +108,11 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		}
 
 		int32 FixedLevel = 0;
-		float FixedWeight = IsValid(Definition) ? Definition->Weight : 0.0f;
-		if (bCanonicalRegistered)
+		float FixedWeight = bExplicitNative ? NativeItem.WeightKg : Definition->Weight;
+		if (bExplicitNative)
 		{
-			// Explicit canonical entries author physical ItemLevel. The old
-			// starter-kit N0 -> definition-default rule is preserved ONLY for
-			// entries that have not opted into a canonical ItemId yet.
-			const FGridReceptacleItemMetadataReadView Authored = bExplicitCanonical
-				? FGridWorldItemLevelReadModel::ResolvePersistedInstance(
-					CanonicalRegistry, nullptr, ItemId, Entry.ItemLevel)
-				: FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
-					CanonicalRegistry, Definition, ItemId, Entry.ItemLevel);
-			if (!Authored.bResolved)
-			{
-				OutError = FString::Printf(
-					TEXT("Starting kit item %s has an invalid canonical authored level %d."),
-					*ItemId.ToString(), Entry.ItemLevel);
-				return false; // Reject the whole staged kit; no historical N1 fallback.
-			}
-			FixedLevel = Authored.FixedItemLevel;
-			FixedWeight = Authored.UnitWeightKg;
+			// Already validated the actual fixed level, weight and kind above.
+			FixedLevel = Entry.ItemLevel;
 		}
 		else if (Definition->bUseWeaponCatalogue)
 		{
@@ -143,7 +135,7 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		const FGridStartingKitStaticMetadataReadView Metadata =
 			FGridStartingKitStaticMetadataReadModel::Resolve(
 				CanonicalRegistry, ItemId, FixedLevel,
-				IsValid(Definition) ? Definition->DisplayName : FText::GetEmpty(), FixedWeight);
+				bExplicitNative ? FText::GetEmpty() : Definition->DisplayName, FixedWeight);
 		if (!Metadata.bResolved)
 		{
 			OutError = FString::Printf(

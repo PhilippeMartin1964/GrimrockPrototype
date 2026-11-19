@@ -24,7 +24,8 @@ namespace ARMCLEAN063AO
 	{
 		FRPGStartingEquipmentEntry& Entry = Class->StartingEquipmentKits[0].Items.AddDefaulted_GetRef();
 		Entry.ItemDefinition = Definition;
-		Entry.ItemLevel = 0;
+		Entry.CanonicalItemId = Definition->ItemDefinitionId;
+		Entry.ItemLevel = Definition->DefaultWeaponItemLevel; // Explicit test fixture authoring.
 		Entry.Quantity = 1;
 		Entry.TargetSlot = Slot;
 	}
@@ -133,7 +134,7 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	TestTrue(TEXT("Physical bow stored in MainHand"), BowEquipment.MainHand.IsValid());
 	TestFalse(TEXT("No duplicate object in OffHand"), BowEquipment.OffHand.IsValid());
 	TestEqual(TEXT("Physical bow has real N6 level"), BowEquipment.MainHand.ItemLevel, 6);
-	TestEqual(TEXT("No extra definition registered"), OutDefinitions.Num(), 1);
+	TestTrue(TEXT("No old bow definition returned"), OutDefinitions.IsEmpty());
 
 	// The second item cannot steal the virtual OffHand of a two-handed bow.
 	ARMCLEAN063AO::Add(BowClass.Get(), Shield.Get(), EGridEquipmentSlot::OffHand);

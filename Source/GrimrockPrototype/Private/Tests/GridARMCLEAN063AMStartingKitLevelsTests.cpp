@@ -38,11 +38,13 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     Sword->Weight = 9999.0f;
     FRPGStartingEquipmentEntry& Inherited = Kit.Items.AddDefaulted_GetRef();
     Inherited.ItemDefinition = Sword.Get();
-    Inherited.ItemLevel = 0;
+    Inherited.CanonicalItemId = Sword->ItemDefinitionId;
+    Inherited.ItemLevel = 6;
     Inherited.Quantity = 1;
 
     FRPGStartingEquipmentEntry& Explicit = Kit.Items.AddDefaulted_GetRef();
     Explicit.ItemDefinition = Sword.Get();
+    Explicit.CanonicalItemId = Sword->ItemDefinitionId;
     Explicit.ItemLevel = 20;
     Explicit.Quantity = 1;
 
@@ -54,6 +56,7 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     Arrows->Weight = 9999.0f;
     FRPGStartingEquipmentEntry& Ammunition = Kit.Items.AddDefaulted_GetRef();
     Ammunition.ItemDefinition = Arrows.Get();
+    Ammunition.CanonicalItemId = Arrows->ItemDefinitionId;
     Ammunition.ItemLevel = 0;
     Ammunition.Quantity = 1;
 
@@ -71,7 +74,7 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
         return false;
     }
     TestEqual(TEXT("Kit ID is stored after successful grant"), Character.StartingEquipmentKitId, Kit.KitId);
-    TestEqual(TEXT("Two unique definitions despite two sword levels"), Definitions.Num(), 2);
+    TestTrue(TEXT("No historical definition published despite matching supplied pointers"), Definitions.IsEmpty());
     const int32 ExpectedLevels[] = {6, 20, 0};
     const FName ExpectedIds[] = {
         TEXT("Weapon_StraightSword_01"),
@@ -103,6 +106,7 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     Invalid->bUseWeaponCatalogue = false;
     FRPGStartingEquipmentEntry& Bad = Kit.Items.AddDefaulted_GetRef();
     Bad.ItemDefinition = Invalid.Get();
+    Bad.CanonicalItemId = Invalid->ItemDefinitionId;
     Bad.ItemLevel = 0;
     Bad.Quantity = 1;
     FGridCharacterInventoryState Rejected;
@@ -112,7 +116,7 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     FGridCharacterEquipmentState RejectedGear;
     Definitions.Reset();
     Failure.Reset();
-    TestFalse(TEXT("Canonical ARM N0 without a valid default rejects the kit"),
+    TestFalse(TEXT("Canonical ARM N0 cannot inherit any obsolete default"),
         FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
             Rejected, RejectedGear, Definitions, Failure, Registry.Get()));
     TestFalse(TEXT("Rejection has an explicit diagnostic"), Failure.IsEmpty());
@@ -124,12 +128,24 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
 
     // Non-ARM N1 must not be accepted merely because a legacy flag says ARM.
     Bad.ItemDefinition = Arrows.Get();
+    Bad.CanonicalItemId = Arrows->ItemDefinitionId;
     Bad.ItemLevel = 1;
     Failure.Reset();
     TestFalse(TEXT("Canonical ammunition N1 is invalid"),
         FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
             Rejected, RejectedGear, Definitions, Failure, Registry.Get()));
     TestTrue(TEXT("A failed ammo kit still grants nothing"), Rejected.InventorySlots[0].IsEmpty());
-    return true;
+
+    // A pointer-only registered entry must no longer promote N0 to the
+    // previous default level (6), even though its old asset still exists.
+    Bad.ItemDefinition = Sword.Get();
+    Bad.CanonicalItemId = NAME_None;
+    Bad.ItemLevel = 0;
+    TestFalse(TEXT("Pointer-only registered ARM rejected"),
+        FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
+            Rejected, RejectedGear, Definitions, Failure, Registry.Get()));
+    TestTrue(TEXT("Pointer-only refusal leaves kit uncommitted"),
+        Rejected.StartingEquipmentKitId.IsNone() && Rejected.InventorySlots[0].IsEmpty() && Definitions.IsEmpty());
+    return !HasAnyErrors();
 }
 #endif

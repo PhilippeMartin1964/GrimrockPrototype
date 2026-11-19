@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.4 — Registre des kits et inventaire
+
+Parent fa5a76ee8f34aa420ba0ac88f3ff0e2e97c57fa3 : deux statuts SUCCESS. Les ID inscrits ne peuvent plus alimenter l'ancienne map de définitions et les kits exigent CanonicalItemId et niveau explicite ; les anciens pointeurs compatibles ne sont plus retournés. Les fixtures réellement hors registre restent provisoirement compatibles. Tests 3AM/3AO/4X43/3AT/5E4D mis à jour. Aucun asset ou SaveGame modifié. Prochain lot 5G.5 : draft 1e6fc752536a3b3c4843dcdc57c1448b31531329 (parent fa5a76ee8f34aa420ba0ac88f3ff0e2e97c57fa3, cinq fichiers) à rebaser sur HEAD validé.
+
 ## ARM-CLEAN06.5G.3 — Retrait des producteurs historiques
 
 Parent 9c4d4ac734cee0ae680bec727f4d551be5d5c0a0 : deux statuts SUCCESS. Suppression des cinq commandlets et huit scripts capables de recréer ou de modifier l'ancien armement, conservation des helpers de parité et des manifests de référence. Test industriel adapté au contrat d'absence des producteurs historiques ; authoring canonique manuel documenté. Aucun changement binaire ou SaveGame. Prochain lot 5G.4 : draft d08e480769d659d37bb222851d48c4f939bcbc4c (parent 4d12154b71e651082193e77517ddc5a00965c9ca, huit différences seulement) à rebaser sur le HEAD validé.

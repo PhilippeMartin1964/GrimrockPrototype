@@ -287,8 +287,8 @@ bool FGridClean064X43CanonicalStarterAuthority::RunTest(const FString&)
             Equipment.OffHand.ItemDefinitionId, Torch.ItemId) &&
         TestEqual(TEXT("Canonical torch light remains canonical"),
             Equipment.OffHand.bLightsEnabled, Torch.LightEmitter.bDefaultEnabled) &&
-        TestEqual(TEXT("Historical pointers remain only as transitional output"),
-            OldDefinitions.Num(), 3) &&
+        TestTrue(TEXT("Canonical kit never publishes matching obsolete pointers"),
+            OldDefinitions.IsEmpty()) &&
         TestEqual(TEXT("Kit ID committed only once, after full success"),
             Character.StartingEquipmentKitId, Kit.KitId) &&
         !HasAnyErrors();
