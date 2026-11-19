@@ -56,16 +56,6 @@ bool AGridLevelEditorActor::SetSelectedWorldObjectDefinitionId(FName NewWorldObj
 	return true;
 }
 
-bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset(UGridItemDefinitionAsset* NewItemDefinitionAsset)
-{
-	if (!LevelAsset) return false;
-	FGridLooseItemInstance* Loose = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId);
-	FGridItemSpawnInstance* Spawn = Loose ? nullptr : LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId);
-	if (!Loose && !Spawn) return false;
-	// Reflected compatibility entrypoint: no old definition may be attached.
-	return NewItemDefinitionAsset == nullptr;
-}
-
 const UGridItemSubsystem* AGridLevelEditorActor::ResolveEditorItemRegistry()
 {
 	// During PIE, use the real game registry. An unconfigured runtime cannot
@@ -195,11 +185,6 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 	}
 
 	return false;
-}
-
-bool AGridLevelEditorActor::SyncSelectedItemDefinitionIdFromAsset()
-{
-	return false; // Historic asset synchronization is no longer an authoring operation.
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectMonsterDefinitionAsset(UGridMonsterDefinitionAsset* NewMonsterDefinitionAsset)

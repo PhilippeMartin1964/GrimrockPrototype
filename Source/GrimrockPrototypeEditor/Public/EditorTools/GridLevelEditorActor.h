@@ -429,9 +429,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Object Paint")
 	bool SetSelectedWorldObjectDefinitionId(FName NewWorldObjectDefinitionId);
 
-	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
-	bool SetSelectedObjectItemDefinitionAsset(UGridItemDefinitionAsset* NewItemDefinitionAsset);
-
 	/** Read the configured canonical registry also in editor-only worlds without a GameInstance. */
 	const UGridItemSubsystem* ResolveEditorItemRegistry();
 
@@ -441,9 +438,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
 	bool SetSelectedObjectItemDefinitionId(FName NewItemDefinitionId);
-
-	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
-	bool SyncSelectedItemDefinitionIdFromAsset();
 
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Monster Definition")
 	bool SetSelectedObjectMonsterDefinitionAsset(UGridMonsterDefinitionAsset* NewMonsterDefinitionAsset);

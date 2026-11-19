@@ -6,7 +6,6 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../EditorTools/Widgets/GridEditorCanonicalPaletteReadModel.h"
 
@@ -159,8 +158,6 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 
 	const FGridObjectPaletteEntry OriginalArm = Arm;
 	// The native palette and level no longer need the old authoring bridge.
-	UGridItemDefinitionAsset* OldMatchingArm = NewObject<UGridItemDefinitionAsset>(Palette);
-	OldMatchingArm->ItemDefinitionId = OriginalArm.CanonicalItemId;
 	FGridObjectPaletteEntry OldBackedEntry = OriginalArm;
 	OldBackedEntry.EntryId = TEXT("X44_MatchingLegacyBackedArm");
 	OldBackedEntry.DefaultWorldObjectDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Palette);
@@ -185,8 +182,8 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 		bOk &= TestEqual(TEXT("Rejection preserves GUID"), First.InstanceId, PreviousId);
 		bOk &= TestEqual(TEXT("Rejection preserves authored N12"), First.ItemLevel, 12);
 		bOk &= TestTrue(TEXT("Restore valid palette selection"), Editor->ApplyPaletteEntry(OriginalArm.EntryId));
-		bOk &= TestFalse(TEXT("Old pointer cannot be reattached"),
-			Editor->SetSelectedObjectItemDefinitionAsset(OldMatchingArm));
+		bOk &= TestNull(TEXT("Old pointer authoring API removed"),
+			Editor->FindFunction(TEXT("SetSelectedObjectItemDefinitionAsset")));
 		bOk &= TestNull(TEXT("Rejected reattachment leaves pointerless placement"),
 			FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	}
@@ -207,8 +204,6 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 	bOk &= TestFalse(TEXT("Unknown ItemId cannot pass editor source registry"),
 		Editor->ApplyPaletteEntry(Bad.EntryId));
 
-	UGridItemDefinitionAsset* Wrong = NewObject<UGridItemDefinitionAsset>(Palette);
-	Wrong->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
 	Bad = OriginalArm;
 	Bad.EntryId = TEXT("X28_Contradictory");
 	Bad.CanonicalItemId = TEXT("ARM_CLEAN06_UNKNOWN");

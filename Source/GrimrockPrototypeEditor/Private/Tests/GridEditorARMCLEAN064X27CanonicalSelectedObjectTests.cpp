@@ -5,7 +5,6 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorClean064X27CanonicalSelectedObject,
 	"Grimrock.RPG.ARM.CLEAN06_4X27.SelectedObjectCanonicalItemId",
@@ -51,8 +50,6 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	const FName Sword(TEXT("Weapon_StraightSword_01"));
 	const FName Shield(TEXT("Weapon_RoundShield_01"));
 	const FName Arrows(TEXT("Item_Arrows_01"));
-	UGridItemDefinitionAsset* HistoricDagger = NewObject<UGridItemDefinitionAsset>(Level);
-	HistoricDagger->ItemDefinitionId = Dagger;
 	FGridLooseItemInstance& Loose = Level->LooseItemInstances.AddDefaulted_GetRef();
 	Loose.InstanceId = FGuid::NewGuid();
 	Loose.CellX = 1;
@@ -66,9 +63,9 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	bool bOk = TestTrue(TEXT("Recommit valid canonical ID succeeds"),
 		Editor->SetSelectedObjectItemDefinitionId(Dagger));
 	bOk &= TestNull(TEXT("Historical pointer cannot be represented"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
-	bOk &= TestFalse(TEXT("Even matching historical picker input is rejected"),
-		Editor->SetSelectedObjectItemDefinitionAsset(HistoricDagger));
-	bOk &= TestEqual(TEXT("Rejected picker preserves N20"), Loose.ItemLevel, 20);
+	bOk &= TestNull(TEXT("Historical picker no longer reflected"),
+		Editor->FindFunction(TEXT("SetSelectedObjectItemDefinitionAsset")));
+	bOk &= TestEqual(TEXT("Recommit preserves N20"), Loose.ItemLevel, 20);
 	// Explicitly changing the item family is new authoring: old source is
 	// dropped, but GUID, quantity and a valid physical level stay stable.
 	bOk &= TestTrue(TEXT("Select canonical sword by ID"),
@@ -77,11 +74,11 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	bOk &= TestEqual(TEXT("Valid N20 kept on sword"), Loose.ItemLevel, 20);
 	bOk &= TestNull(TEXT("Old asset removed from new canonical selection"),
 		FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
-	bOk &= TestFalse(TEXT("Legacy picker cannot contradict persisted canonical ID"),
-		Editor->SetSelectedObjectItemDefinitionAsset(HistoricDagger));
-	bOk &= TestEqual(TEXT("Conflicting picker has not changed canonical ID"),
+	bOk &= TestFalse(TEXT("Unknown identity cannot contradict persisted canonical ID"),
+		Editor->SetSelectedObjectItemDefinitionId(TEXT("ARM_CLEAN064X27_Unregistered")));
+	bOk &= TestEqual(TEXT("Rejected identity has not changed canonical ID"),
 		Loose.CanonicalItemId, Sword);
-	bOk &= TestEqual(TEXT("Conflicting picker has not changed physical level"),
+	bOk &= TestEqual(TEXT("Rejected identity has not changed physical level"),
 		Loose.ItemLevel, 20);
 
 	bOk &= TestTrue(TEXT("Select unlevelled registered arrows"),
@@ -130,9 +127,9 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	bOk &= TestNull(TEXT("Generator schema has no old pointer"), FGridItemSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	bOk &= TestEqual(TEXT("Spawn GUID retained"), Spawn.SpawnId, StableSpawnId);
 	bOk &= TestEqual(TEXT("Spawn authored quantity retained"), Spawn.Quantity, 1);
-	bOk &= TestTrue(TEXT("Clearing an already-null legacy picker is a no-op"),
-		Editor->SetSelectedObjectItemDefinitionAsset(nullptr));
-	bOk &= TestEqual(TEXT("Canonical identity survives empty picker"),
+	bOk &= TestFalse(TEXT("Empty ID cannot replace physical generator identity"),
+		Editor->SetSelectedObjectItemDefinitionId(NAME_None));
+	bOk &= TestEqual(TEXT("Canonical identity survives rejected empty ID"),
 		Spawn.CanonicalItemId, Dagger);
 
 	World->DestroyWorld(false);

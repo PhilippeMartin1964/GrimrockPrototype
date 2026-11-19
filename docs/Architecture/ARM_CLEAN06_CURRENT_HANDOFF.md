@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.31 — Retrait des UFUNCTION historiques d'édition d'objets
+
+Parent bbb01a07a8ba93ea0462e656d2b6e01c852e8a64. Publication STRICTEMENT conditionnée aux deux SUCCESS sur 5G.30 et à son audit natif sans référence Blueprint. Suppression du setter pointeur et du sync ancienne définition, sans alias ni redirect. X.27/X.28/TD033 vérifient la réflexion, le maintien GUID/N/quantité, le rejet des IDs inconnus et les commandes monster distinctes. MIG09 continue à détecter les références orphelines. Aucun package ni SaveGame modifié.
+
 ## ARM-CLEAN06.5G.30 — Audit natif des fonctions Blueprint historiques de l'éditeur
 
 Parent c1d8c0fcb9604b0af019a9961cf49e5ddf25e87f. Le test MIG09 parcourt les Blueprint natifs sous /Game/GrimrockPrototype, exige un inventaire non vide et charge chaque asset ; il refuse les appels SetSelectedObjectItemDefinitionAsset/SyncSelectedItemDefinitionIdFromAsset en plus des deux fonctions runtime déjà auditées. Ce lot ne supprime aucune fonction réfléchie ; si le test passe sur le SHA exact, le retrait pourra être préparé sans toucher aux graphes. Si un appel est détecté, analyser le graphe concerné, ne pas supprimer aveuglément. Aucun package ni SaveGame modifié.

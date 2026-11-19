@@ -5,6 +5,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Engine/Blueprint.h"
+#include "EditorTools/GridLevelEditorActor.h"
 #include "K2Node_CallFunction.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Modules/ModuleManager.h"
@@ -91,6 +92,8 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 
 	TestTrue(TEXT("Native Blueprint inventory is not empty"), BlueprintAssets.Num() > 0);
 	TestEqual(TEXT("No Blueprint calls retired item actor or editor identity APIs"), LegacyReferences.Num(), 0);
+	TestNull(TEXT("Retired setter is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SetSelectedObjectItemDefinitionAsset")));
+	TestNull(TEXT("Retired sync is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SyncSelectedItemDefinitionIdFromAsset")));
 	return BlueprintAssets.Num() > 0 && LegacyReferences.IsEmpty() && LoadedBlueprintCount == BlueprintAssets.Num();
 }
 

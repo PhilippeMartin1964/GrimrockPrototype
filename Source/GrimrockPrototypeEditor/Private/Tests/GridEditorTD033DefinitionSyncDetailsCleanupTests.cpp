@@ -7,7 +7,6 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "UObject/Class.h"
 
@@ -86,13 +85,12 @@ bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
 	}
 	EditorActor->LevelAsset = LevelAsset;
 
-	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>(EditorActor);
-	ItemDefinition->ItemDefinitionId = TEXT("Item_Arrows_01");
+	const FName ItemId(TEXT("Item_Arrows_01"));
 
 	UGridObjectPaletteAsset* ObjectPalette = NewObject<UGridObjectPaletteAsset>(EditorActor);
 	FGridObjectPaletteEntry& ItemPaletteEntry = ObjectPalette->Entries.AddDefaulted_GetRef();
 	ItemPaletteEntry.EntryId = TEXT("TD033_Item");
-	ItemPaletteEntry.CanonicalItemId = ItemDefinition->ItemDefinitionId;
+	ItemPaletteEntry.CanonicalItemId = ItemId;
 	TestTrue(TEXT("The collectible palette entry has no companion WorldObjectDefinition"), ItemPaletteEntry.DefaultWorldObjectDefinition == nullptr);
 	EditorActor->ObjectPalette = ObjectPalette;
 
@@ -101,7 +99,7 @@ bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
 
 	FGridLooseItemInstance ItemObject;
 	ItemObject.InstanceId = FGuid::NewGuid();
-	ItemObject.CanonicalItemId = ItemDefinition->ItemDefinitionId;
+	ItemObject.CanonicalItemId = ItemId;
 	ItemObject.CellX = 0;
 	ItemObject.CellY = 0;
 	LevelAsset->LooseItemInstances.Add(ItemObject);
@@ -116,25 +114,23 @@ bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
 
 	const UFunction* ItemSyncFunction = EditorActor->FindFunction(TEXT("SyncSelectedItemDefinitionIdFromAsset"));
 	const UFunction* MonsterSyncFunction = EditorActor->FindFunction(TEXT("SyncSelectedMonsterDefinitionIdFromAsset"));
-	TestNotNull(TEXT("SyncSelectedItemDefinitionIdFromAsset remains reflected"), ItemSyncFunction);
+	TestNull(TEXT("Historical item sync is absent from reflection"), ItemSyncFunction);
 	TestNotNull(TEXT("SyncSelectedMonsterDefinitionIdFromAsset remains reflected"), MonsterSyncFunction);
-	TestTrue(TEXT("Item definition repair is BlueprintCallable"), ItemSyncFunction && ItemSyncFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 	TestTrue(TEXT("Monster definition sync is BlueprintCallable"), MonsterSyncFunction && MonsterSyncFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestFalse(TEXT("Item definition sync is no longer exposed as CallInEditor"), ItemSyncFunction && ItemSyncFunction->HasMetaData(TEXT("CallInEditor")));
 	TestFalse(
 		TEXT("Monster definition sync is no longer exposed as CallInEditor"), MonsterSyncFunction && MonsterSyncFunction->HasMetaData(TEXT("CallInEditor")));
 
 	TestTrue(TEXT("The typed item can be selected"), EditorActor->SelectObjectById(ItemObject.InstanceId));
 	TestFalse(TEXT("Monster sync rejects an item selection"), EditorActor->SyncSelectedMonsterDefinitionIdFromAsset());
-	TestFalse(TEXT("Historical item sync is retired for canonical placement"), EditorActor->SyncSelectedItemDefinitionIdFromAsset());
-	TestEqual(TEXT("The typed item keeps its canonical ID"), LevelAsset->LooseItemInstances[0].CanonicalItemId, ItemDefinition->ItemDefinitionId);
+	TestTrue(TEXT("Canonical item can recommit its explicit identity"), EditorActor->SetSelectedObjectItemDefinitionId(ItemId));
+	TestEqual(TEXT("The typed item keeps its canonical ID"), LevelAsset->LooseItemInstances[0].CanonicalItemId, ItemId);
 	TestTrue(TEXT("The monster spawn remains untouched by item sync"), LevelAsset->MonsterSpawns[0].MonsterDefinition == MonsterDefinition);
 
 	TestTrue(TEXT("The typed monster spawn can be selected"), EditorActor->SelectObjectById(MonsterObject.SpawnId));
-	TestFalse(TEXT("Item sync rejects a monster selection"), EditorActor->SyncSelectedItemDefinitionIdFromAsset());
+	TestFalse(TEXT("Canonical item ID command rejects monster selection"), EditorActor->SetSelectedObjectItemDefinitionId(ItemId));
 	TestTrue(TEXT("Monster sync accepts the canonical typed definition asset"), EditorActor->SyncSelectedMonsterDefinitionIdFromAsset());
 	TestTrue(TEXT("The typed monster keeps its definition asset"), LevelAsset->MonsterSpawns[0].MonsterDefinition == MonsterDefinition);
-	TestEqual(TEXT("The typed item remains canonical after monster sync"), LevelAsset->LooseItemInstances[0].CanonicalItemId, ItemDefinition->ItemDefinitionId);
+	TestEqual(TEXT("The typed item remains canonical after monster sync"), LevelAsset->LooseItemInstances[0].CanonicalItemId, ItemId);
 
 	EditorActor->SelectedCellX = 2;
 	EditorActor->SelectedCellY = 2;
@@ -144,7 +140,7 @@ bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
 	EditorActor->PlaceSelectedObject();
 	TestEqual(TEXT("Placing the palette item adds exactly one typed loose item"), LevelAsset->LooseItemInstances.Num(), ItemCountBeforePlacement + 1);
 	const FGridLooseItemInstance& PlacedItem = LevelAsset->LooseItemInstances.Last();
-	TestEqual(TEXT("The placed item stores the canonical ID"), PlacedItem.CanonicalItemId, ItemDefinition->ItemDefinitionId);
+	TestEqual(TEXT("The placed item stores the canonical ID"), PlacedItem.CanonicalItemId, ItemId);
 	TestNull(TEXT("No old definition persisted"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	TestEqual(TEXT("The placed item stores the source palette entry"), PlacedItem.PaletteEntryId, ItemPaletteEntry.EntryId);
 
