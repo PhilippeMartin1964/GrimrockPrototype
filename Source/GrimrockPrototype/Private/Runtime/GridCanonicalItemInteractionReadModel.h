@@ -22,6 +22,7 @@ struct FGridCanonicalItemInteractionReadView
 	bool bPhysicalThrowHotbar = false;
 	FText DisplayName;
 	FText Description;
+	FText DefaultReadText;
 	TSoftObjectPtr<UTexture2D> ItemIcon;
 };
 
@@ -43,7 +44,8 @@ struct FGridCanonicalItemInteractionReadModel
 		if (Out.bCanonicalIdentity)
 		{
 			FGridResolvedItem Canonical;
-			if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical))
+			if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical) ||
+				(!Canonical.bIsArmament && Item.ItemLevel != 0))
 			{
 				return Out; // Known invalid ARM N0/N21 never borrows old capabilities.
 			}
@@ -51,7 +53,8 @@ struct FGridCanonicalItemInteractionReadModel
 			Out.DisplayName = Canonical.DisplayName;
 			Out.Description = Canonical.Description;
 			Out.ItemIcon = Canonical.ItemIcon;
-			Out.bCanRead = bHasInstanceText;
+			Out.DefaultReadText = Canonical.ReadText;
+			Out.bCanRead = bHasInstanceText || Canonical.bReadable || !Out.DefaultReadText.IsEmpty();
 			Out.bPhysicalThrowHotbar = Canonical.bIsArmament &&
 				Canonical.Weapon.Projectile.bEnabled &&
 				Canonical.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
@@ -85,6 +88,7 @@ struct FGridCanonicalItemInteractionReadModel
 		{
 			Out.DisplayName = OldDefinition->DisplayName;
 			Out.Description = OldDefinition->Description;
+			Out.DefaultReadText = OldDefinition->ReadText;
 			Out.ItemIcon = OldDefinition->Icon;
 			Out.bCanConsumeLegacy = OldDefinition->ItemType == EGridItemType::Potion ||
 				OldDefinition->ItemType == EGridItemType::Food;

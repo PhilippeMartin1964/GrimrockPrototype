@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5E.1 — lecteurs d'infobulles et lecture
+
+Parent `59202029bb9fb81403b349ebb5623d446f73fac9` : SilentTask/LocalAuto SUCCESS. Précondition au retrait de Rehydrate : la projection tooltip exigeait encore un ancien pointeur même pour les ARM inscrits. Désormais profils, comparaisons source-backed, bonus, lumière, actions QuickItem et texte de surface passent par les modèles canoniques ; la lecture partage le texte par défaut canonique avec le menu et son exécution. Test monde réel N20/N1, torche, huile et refus du niveau non-ARM invalide. UI.csv/ST_UI/WBP/Game fr/en inchangés, aucune nouvelle clé ; PIE dû. Ne pas retirer encore la réhydratation globale : autres consommateurs (combat, transferts, etc.) à vérifier. Aucun binaire ni sauvegarde modifié. Attendre deux statuts du SHA exact. [Détail](ARM_CLEAN06_5E1_POINTERLESS_TOOLTIP.md).
+
 ## ARM-CLEAN06.5D.5 — retrait des contributions historiques ARM
 
 Parent exact `6a475dcb3c35bf533f12e940a7fb3e26bf778b91` : SilentTask et LocalAuto SUCCESS, y compris la preuve native read-only des 22 sources ARM sans bonus hors armure ni résistance. Le modèle commun ignore désormais toute ancienne contribution d'une identité ARM inscrite, même avec pointeur contradictoire ; armure N1–N20 canonique inchangée, contributions non-ARM et cas non inscrits conservés. Les tests 3AD/3AE sont actualisés au nouveau contrat (N0/N21 invalides, pointeur absent/contradictoire, prévisualisation, résistance). La preuve native 5D.4 reste intacte et obligatoire. Aucun changement de package, de sauvegarde, de schéma ou de WBP. Attendre les deux statuts exact-SHA avant poursuite ; aucun retrait global des pointeurs anciens ni validation PIE implicite. [Détail](ARM_CLEAN06_5D5_ARM_CONTRIBUTION_RETIREMENT.md).

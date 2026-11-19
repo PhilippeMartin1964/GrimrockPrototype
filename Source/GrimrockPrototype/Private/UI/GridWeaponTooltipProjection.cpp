@@ -15,8 +15,7 @@ namespace
         const UGridItemSubsystem* Registry, FGridWeaponLevelProfile& OutProfile)
     {
         OutProfile = FGridWeaponLevelProfile();
-        if (!IsValid(Definition) || !Instance.IsValid() ||
-            Instance.ItemDefinitionId != Definition->ItemDefinitionId)
+        if (!Instance.IsValid())
         {
             return false;
         }
@@ -44,6 +43,10 @@ namespace
             OutProfile.MagicalArmor = Weapon.MagicalArmor;
             // A tooltip is not a combat action; no action or slot is created.
             return true;
+        }
+        if (!IsValid(Definition) || Instance.ItemDefinitionId != Definition->ItemDefinitionId)
+        {
+            return false;
         }
         const FGridWeaponLevelProfile* Old = nullptr;
         if (!Definition->TryGetWeaponCatalogueProfile(Instance.ItemLevel, Old) ||
@@ -145,12 +148,6 @@ bool FGridWeaponTooltipProjection::Build(
     const UGridItemSubsystem* CanonicalRegistry)
 {
     Out = FGridWeaponTooltipPresentation();
-    if (!IsValid(Definition) || !Instance.IsValid() ||
-        Instance.ItemDefinitionId != Definition->ItemDefinitionId)
-    {
-        return false;
-    }
-
     FGridWeaponLevelProfile ResolvedProfile;
     if (!ResolveTooltipLevelProfile(Definition, Instance, CanonicalRegistry, ResolvedProfile))
     {
@@ -281,13 +278,6 @@ bool FGridWeaponTooltipProjection::BuildComparison(
     const UGridItemSubsystem* CanonicalRegistry)
 {
     OutFacts.Reset();
-    if (!IsValid(CandidateDefinition) || !IsValid(EquippedDefinition) ||
-        !Candidate.IsValid() || !Equipped.IsValid() ||
-        Candidate.ItemDefinitionId != CandidateDefinition->ItemDefinitionId ||
-        Equipped.ItemDefinitionId != EquippedDefinition->ItemDefinitionId)
-    {
-        return false;
-    }
     FGridWeaponLevelProfile CandidateProfile;
     FGridWeaponLevelProfile EquippedProfile;
     if (!ResolveTooltipLevelProfile(CandidateDefinition, Candidate, CanonicalRegistry, CandidateProfile) ||

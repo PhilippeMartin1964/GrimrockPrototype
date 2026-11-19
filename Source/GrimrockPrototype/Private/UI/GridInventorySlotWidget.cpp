@@ -12,6 +12,7 @@
 #include "GridCanonicalInventoryItemTypeReadModel.h"
 #include "../Runtime/GridEquipmentPreviewItemReadModel.h"
 #include "../Runtime/GridCanonicalEquipmentSlotsReadModel.h"
+#include "../Runtime/GridCanonicalItemInteractionReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -195,7 +196,8 @@ namespace
 		const UGridItemDefinitionAsset* Equipped, const FGridItemInstance* EquippedInstance,
 		bool bComparison, TArray<FGridItemTooltipStatLine>& OutLines)
 	{
-		if (!Candidate)
+		if (!(Registry && Registry->HasCanonicalItem(CandidateInstance.ItemDefinitionId)) &&
+			(!IsValid(Candidate) || Candidate->ItemDefinitionId != CandidateInstance.ItemDefinitionId))
 		{
 			return;
 		}
@@ -423,18 +425,33 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.DisplayName = Metadata.DisplayName.IsEmpty() ? FText::FromName(CachedItem.ItemDefinitionId)
 		: Metadata.DisplayName;
 	View.Description = Metadata.Description;
-	if (Definition)
+	const bool bCanonical = Registry && Registry->HasCanonicalItem(CachedItem.ItemDefinitionId);
+	FGridResolvedItem Canonical;
+	const bool bResolvedCanonical = bCanonical &&
+		Registry->ResolveItem(CachedItem.ItemDefinitionId, CachedItem.ItemLevel, Canonical) &&
+		(Canonical.bIsArmament || CachedItem.ItemLevel == 0);
+	const bool bLegacy = !bCanonical && IsValid(Definition) &&
+		Definition->ItemDefinitionId == CachedItem.ItemDefinitionId;
+	FGridCombatActionDefinition QuickItemAction;
+	bool bHasQuickItemAction = false;
+	if (bResolvedCanonical)
 	{
-		FGridCombatActionDefinition QuickItemAction;
-		if (Definition->BuildQuickItemCombatActionDefinition(QuickItemAction))
+		const auto Use = FGridCanonicalQuickItemUseReadModel::Resolve(Registry, CachedItem);
+		bHasQuickItemAction = Use.bResolved;
+		if (bHasQuickItemAction) QuickItemAction = Use.Action;
+	}
+	else if (bLegacy)
+	{
+		bHasQuickItemAction = Definition->BuildQuickItemCombatActionDefinition(QuickItemAction);
+	}
+	if (bHasQuickItemAction)
+	{
+		const FText SurfaceUsage = FGridQuickItemSurfaceTooltipText::Build(QuickItemAction);
+		if (!SurfaceUsage.IsEmpty())
 		{
-			const FText SurfaceUsage = FGridQuickItemSurfaceTooltipText::Build(QuickItemAction);
-			if (!SurfaceUsage.IsEmpty())
-			{
-				View.Description = View.Description.IsEmpty()
-					? SurfaceUsage
-					: FText::Join(FText::FromString(TEXT("\n\n")), TArray<FText>{ View.Description, SurfaceUsage });
-			}
+			View.Description = View.Description.IsEmpty()
+				? SurfaceUsage
+				: FText::Join(FText::FromString(TEXT("\n\n")), TArray<FText>{ View.Description, SurfaceUsage });
 		}
 	}
 	const FGridCanonicalInventoryItemTypeReadView TypeView =
@@ -461,15 +478,16 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		FGridCanonicalEquipmentSlotsReadModel::Resolve(Registry, Definition, CachedItem);
 	View.bEquippable = !EquipmentSlots.AllowedSlots.IsEmpty();
 
-	if (!Definition)
+	if (!bResolvedCanonical && !bLegacy)
 	{
 		return View;
 	}
 
 	// INDUS04.1: use the real instance ItemLevel, never the authored N1 action.
 	FGridWeaponTooltipProjection::Build(Definition, CachedItem, View.WeaponProfile, Registry);
-	View.bReadable = UGridItemContextActionLibrary::IsItemReadable(CachedItem, Definition);
-	View.bProvidesLight = Definition->HasLightEmitter();
+	const auto Capabilities = FGridCanonicalItemInteractionReadModel::Resolve(Registry, Definition, CachedItem);
+	View.bReadable = Capabilities.bCanRead;
+	View.bProvidesLight = bResolvedCanonical ? Canonical.LightEmitter.HasEmitter() : Definition->HasLightEmitter();
 	View.bLightEnabled = View.bProvidesLight && CachedItem.bLightsEnabled;
 	if (View.bProvidesLight)
 	{
@@ -478,9 +496,8 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 			: NSLOCTEXT("GridInventoryTooltip", "LightDisabled", "Lumière : éteinte");
 	}
 
-	FGridCombatActionDefinition InventoryAction;
 	View.bCanAssignToHotbar =
-		SlotType == EGridInventoryUiSlotType::Inventory && (Definition->BuildInventoryCombatActionDefinition(InventoryAction) || Definition->IsPhysicallyThrowable());
+		SlotType == EGridInventoryUiSlotType::Inventory && Capabilities.bCanAddToHotbar;
 
 
 	AppendDefinitionStats(Registry, Definition, CachedItem, nullptr, nullptr, false, View.StatLines);
@@ -561,7 +578,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		}
 		AppendDefinitionStats(Registry, Definition, CachedItem, EquippedDefinition,
 			bHasEquippedItem ? &EquippedItem : nullptr, true, Comparison.StatLines);
-        if (bHasEquippedItem && EquippedDefinition)
+        if (bHasEquippedItem)
         {
             FGridWeaponTooltipProjection::BuildComparison(
                 Definition, CachedItem, EquippedDefinition, EquippedItem,

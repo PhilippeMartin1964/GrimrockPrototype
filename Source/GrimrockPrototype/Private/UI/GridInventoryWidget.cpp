@@ -1681,10 +1681,10 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 					ResolvedContentId = LastContextItem.ReadableContentAsset->ReadableContentId;
 				}
 			}
-			if (ReadText.IsEmpty() && !Read.bCanonicalIdentity && ItemDefinition && !ItemDefinition->ReadText.IsEmpty())
+			if (ReadText.IsEmpty() && !Read.DefaultReadText.IsEmpty())
 			{
-				ReadText = ItemDefinition->ReadText;
-				ReadSource = TEXT("DefinitionFallback");
+				ReadText = Read.DefaultReadText;
+				ReadSource = Read.bCanonicalIdentity ? TEXT("CanonicalDefinition") : TEXT("DefinitionFallback");
 			}
 			if (ReadText.IsEmpty())
 			{

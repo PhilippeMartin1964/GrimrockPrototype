@@ -169,7 +169,17 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
     FGridItemTooltipEquipmentComparison& OutScenario)
 {
     OutScenario = FGridItemTooltipEquipmentComparison();
-    if (!IsValid(Inventory) || !IsValid(CandidateDefinition) || !Candidate.IsValid())
+    if (!IsValid(Inventory) || !Candidate.IsValid())
+    {
+        return false;
+    }
+    const UWorld* World = Inventory->GetWorld();
+    UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+    const UGridItemSubsystem* Registry = GameInstance
+        ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+    const auto Slots = FGridCanonicalEquipmentSlotsReadModel::Resolve(
+        Registry, CandidateDefinition, Candidate);
+    if (!Slots.bResolved || !Slots.AllowedSlots.Contains(RequestedSlot))
     {
         return false;
     }
@@ -230,10 +240,7 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
 
     // The same GameInstance registry used by the inventory tooltip provides
     // both candidate and equipped weapon levels, never the old N1 copy.
-    const UWorld* World = Inventory->GetWorld();
-    UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
-    const UGridItemSubsystem* Registry = GameInstance
-        ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+
 
     // Compare offensive catalogues only with the actual weapon displaced
     // from the candidate's target hand. Shield losses are represented by
@@ -245,12 +252,9 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
     {
         const UGridItemDefinitionAsset* EquippedDef =
             Inventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
-        if (EquippedDef)
-        {
-            FGridWeaponTooltipProjection::BuildComparison(
-                CandidateDefinition, Candidate, EquippedDef, EquippedItem,
-                OutScenario.WeaponFacts, Registry);
-        }
+        FGridWeaponTooltipProjection::BuildComparison(
+            CandidateDefinition, Candidate, EquippedDef, EquippedItem,
+            OutScenario.WeaponFacts, Registry);
     }
     return true;
 }

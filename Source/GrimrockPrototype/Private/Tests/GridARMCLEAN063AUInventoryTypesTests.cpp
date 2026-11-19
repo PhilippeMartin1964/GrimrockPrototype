@@ -18,6 +18,7 @@
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridInventorySlotWidget.h"
 #include "UI/GridInventoryUiTypes.h"
+#include "UI/GridQuickItemSurfaceTooltipText.h"
 #include "../UI/GridCanonicalInventoryItemTypeReadModel.h"
 
 namespace ARMCLEAN063AU
@@ -393,6 +394,74 @@ bool FGridClean064X63PotionPresentationOnly::RunTest(const FString&)
     Errors.Reset();
     TestFalse(TEXT("Conflicting Potion/Weapon tags refused"), Preview->Validate(Errors));
     TestTrue(TEXT("Category conflict diagnostic"), !Errors.IsEmpty());
+    return !HasAnyErrors();
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065E1PointerlessTooltip,
+    "Grimrock.RPG.ARM.CLEAN06_5E1.PointerlessInventoryTooltip",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean065E1PointerlessTooltip::RunTest(const FString&)
+{
+    ARMCLEAN063AU::FFixture F;
+    if (!TestTrue(TEXT("Live production registry"), F.Ready())) return false;
+    auto* UI = CreateWidget<UGridInventoryWidget>(F.World, UGridInventoryWidget::StaticClass());
+    auto* Slot = CreateWidget<UGridInventorySlotWidget>(F.World, UGridInventorySlotWidget::StaticClass());
+    if (!TestNotNull(TEXT("Inventory UI"), UI) || !TestNotNull(TEXT("Slot UI"), Slot)) return false;
+    UI->InventoryComponent = F.Inventory;
+    Slot->SetOwnerInventoryWidget(UI);
+    Slot->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, 0);
+    const FName SwordId(TEXT("Weapon_StraightSword_01"));
+    const FGridItemInstance Candidate = F.Make(SwordId, 20);
+    F.Put(0, Candidate);
+    FGridItemInstance Equipped = F.Make(SwordId, 1);
+    Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    Equipped.EquipmentSlot = EGridEquipmentSlot::MainHand;
+    F.Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Equipped;
+    TestNull(TEXT("No historical sword definition"), F.Inventory->FindItemDefinition(SwordId));
+    Slot->SetItem(Candidate);
+    const auto SwordView = Slot->GetTooltipView();
+    TestTrue(TEXT("Pointerless N20 weapon facts"), SwordView.WeaponProfile.bHasProfile &&
+        SwordView.WeaponProfile.ItemLevel == 20 && !SwordView.WeaponProfile.Facts.IsEmpty());
+    const auto* Comparison = SwordView.EquipmentComparisons.FindByPredicate(
+        [](const auto& C) { return C.EquipmentSlot == EGridEquipmentSlot::MainHand; });
+    if (TestNotNull(TEXT("Source-backed main-hand scenario"), Comparison))
+        TestTrue(TEXT("Pointerless N20 versus N1 comparison"), Comparison->bGlobalEquipmentScenario &&
+            !Comparison->WeaponFacts.IsEmpty());
+    TestEqual(TEXT("Preview leaves equipped GUID alone"), F.Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.RuntimeObjectId,
+        Equipped.RuntimeObjectId);
+    auto* Stale = F.RegisterWrong(SwordId, EGridItemType::Book);
+    Stale->ReadText = FText::FromString(TEXT("Stale readable text"));
+    Stale->EquipmentStatBonus.StrengthBonus = 999;
+    Slot->SetItem(Candidate);
+    const auto Contradictory = Slot->GetTooltipView();
+    TestFalse(TEXT("Stale book cannot give sword read capability"), Contradictory.bReadable);
+    TestEqual(TEXT("Same weapon facts with contradictory source"), Contradictory.WeaponProfile.Facts.Num(), SwordView.WeaponProfile.Facts.Num());
+
+    auto Torch = F.Make(TEXT("Item_Torch"), 0);
+    Torch.bLightsEnabled = true;
+    TestNull(TEXT("No historical torch definition"), F.Inventory->FindItemDefinition(Torch.ItemDefinitionId));
+    F.Put(0, Torch);
+    Slot->SetItem(Torch);
+    const auto TorchView = Slot->GetTooltipView();
+    TestTrue(TEXT("Native torch emitter and enabled instance"), TorchView.bProvidesLight && TorchView.bLightEnabled);
+    auto Oil = F.Make(TEXT("Item_Flask_Oil"), 0);
+    F.Put(0, Oil);
+    Slot->SetItem(Oil);
+    const auto OilView = Slot->GetTooltipView();
+    const auto Use = FGridCanonicalQuickItemUseReadModel::Resolve(F.Registry, Oil);
+    if (TestTrue(TEXT("Native oil action resolves"), Use.bResolved))
+    {
+        const FText SurfaceText = FGridQuickItemSurfaceTooltipText::Build(Use.Action);
+        TestTrue(TEXT("Oil description retains localized mechanical usage"),
+            !SurfaceText.IsEmpty() && OilView.Description.ToString().Contains(SurfaceText.ToString()));
+    }
+    TestTrue(TEXT("Pointerless oil can bind hotbar"), OilView.bCanAssignToHotbar);
+    Oil.ItemLevel = 1;
+    F.Put(0, Oil);
+    Slot->SetItem(Oil);
+    TestFalse(TEXT("Invalid physical N1 non-ARM gives no shortcut"), Slot->GetTooltipView().bCanAssignToHotbar);
     return !HasAnyErrors();
 }
 
