@@ -4,11 +4,10 @@
 #include "Engine/World.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
-/** Temporary historical transfer lookup. Membership before any old inventory map or recipe read. */
+/** Temporary explicit inventory source only. Never loads recipes or scans the level. */
 struct FGridLegacyItemLookup
 {
 	static bool IsRegistered(const AGrimrockPartyPawn* Party, FName ItemId)
@@ -19,7 +18,7 @@ struct FGridLegacyItemLookup
 		return Registry && Registry->HasCanonicalItem(ItemId);
 	}
 
-	static UGridItemDefinitionAsset* Resolve(const AGrimrockPartyPawn* Party, FName ItemId, bool bAllowRecipe = true)
+	static UGridItemDefinitionAsset* Resolve(const AGrimrockPartyPawn* Party, FName ItemId)
 	{
 		if (!Party || ItemId.IsNone() || IsRegistered(Party, ItemId))
 		{
@@ -31,7 +30,6 @@ struct FGridLegacyItemLookup
 		{
 			return Old;
 		}
-		return bAllowRecipe && Party->LevelRuntimeActor
-			? Party->LevelRuntimeActor->ResolveRuntimeItemDefinition(ItemId) : nullptr;
+		return nullptr;
 	}
 };

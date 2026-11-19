@@ -564,7 +564,7 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchInventoryItemForAttack(
 		{
 			return !Candidate.IsEmpty() && Candidate.Item.ItemDefinitionId == ExpectedItemDefinitionId;
 		});
-	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(this, ExpectedItemDefinitionId, false);
+	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(this, ExpectedItemDefinitionId);
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
 	FGridCanonicalThrowBallisticsReadView Ballistics;

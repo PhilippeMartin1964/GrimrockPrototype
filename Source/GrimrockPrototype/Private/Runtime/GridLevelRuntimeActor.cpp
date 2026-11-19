@@ -1,5 +1,4 @@
 #include "Runtime/GridLevelRuntimeActor.h"
-#include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "UObject/ConstructorHelpers.h"
 
 #include "Core/GridRelocationUtils.h"
@@ -1942,29 +1941,6 @@ const UGridWorldObjectDefinitionAsset* AGridLevelRuntimeActor::FindWorldObjectDe
 		}
 	}
 	return nullptr;
-}
-
-UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition(FName ItemDefinitionId) const
-{
-	if (ItemDefinitionId.IsNone())
-	{
-		return nullptr;
-	}
-
-	// Authored placements are not a definition catalogue. This remaining
-	// historical recipe lookup is only for out-of-registry identities.
-	const UWorld* World = GetWorld();
-	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
-	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	if (Registry && Registry->HasCanonicalItem(ItemDefinitionId))
-	{
-		return nullptr;
-	}
-
-	// Temporary recipe compatibility for no-registry fixtures. The physical
-	// source owner supplies any explicitly registered historical inventory
-	// definition; an unrelated authored level row can never supply one.
-	return FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(ItemDefinitionId);
 }
 
 AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId, AActor* OwnerActor,

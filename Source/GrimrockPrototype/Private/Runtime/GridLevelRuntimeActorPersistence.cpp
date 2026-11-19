@@ -623,7 +623,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			UGridItemDefinitionAsset* ItemDefinition = bCanonicalWorld
 				? nullptr
 				: (IsValid(ItemState.ProjectileDefinitionAsset)
-					? ItemState.ProjectileDefinitionAsset.Get() : ResolveRuntimeItemDefinition(RuntimeItemDefinitionId));
+					? ItemState.ProjectileDefinitionAsset.Get() : nullptr);
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, RuntimeItemDefinitionId, this, nullptr);
 			if (ItemActor)
 			{
@@ -708,8 +708,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				continue; // Invalid registered N0 never inherits an ARM level.
 			}
 			const bool bCanonicalWorld = bCanonicalItem;
-			UGridItemDefinitionAsset* ItemDefinition = bCanonicalWorld
-				? nullptr : ResolveRuntimeItemDefinition(RuntimeItemDefinitionId);
+			UGridItemDefinitionAsset* ItemDefinition = nullptr;
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(
 				bCanonicalWorld ? nullptr : ItemDefinition, RuntimeItemDefinitionId,
 				ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get());
@@ -856,7 +855,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		UGridItemDefinitionAsset* Definition = bCanonicalAmmo
 			? nullptr
 			: (IsValid(Item.ProjectileDefinitionAsset)
-				? Item.ProjectileDefinitionAsset.Get() : ResolveRuntimeItemDefinition(Item.ItemDefinitionId));
+				? Item.ProjectileDefinitionAsset.Get() : nullptr);
 		FGridItemInstance Unit;
 		Unit.RuntimeObjectId = Pair.Key;
 		Unit.ItemDefinitionId = Item.ItemDefinitionId;

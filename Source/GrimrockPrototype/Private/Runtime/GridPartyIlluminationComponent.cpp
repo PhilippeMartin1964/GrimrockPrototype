@@ -124,11 +124,6 @@ void UGridPartyIlluminationComponent::RefreshFromEquipment(UGridPartyInventoryCo
 				// Genuine out-of-registry items remain temporarily historical.
 				UGridItemDefinitionAsset* CandidateDefinition =
 					Inventory->FindItemDefinition(CandidateItem.ItemDefinitionId);
-				if (!CandidateDefinition && LevelRuntimeActor)
-				{
-					CandidateDefinition = LevelRuntimeActor->ResolveRuntimeItemDefinition(
-						CandidateItem.ItemDefinitionId);
-				}
 				if (CandidateDefinition)
 				{
 					CandidateConfig = CandidateDefinition->LightEmitter;

@@ -142,12 +142,6 @@ namespace
 		const bool bCanonical = Registry && Registry->HasCanonicalItem(Binding.SourceDefinitionId);
 		const UGridItemDefinitionAsset* OldDefinition = bCanonical ? nullptr :
 			InventoryComponent->FindItemDefinition(Binding.SourceDefinitionId);
-		if (!bCanonical && !IsValid(OldDefinition) &&
-			IsValid(PartyPawn) && IsValid(PartyPawn->LevelRuntimeActor))
-		{
-			OldDefinition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(
-				Binding.SourceDefinitionId);
-		}
 		const FGridInventorySlot* Source = Character.InventorySlots.FindByPredicate(
 			[&Binding](const FGridInventorySlot& Slot)
 			{

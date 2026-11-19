@@ -249,10 +249,6 @@ bool AGridWallLockActor::AttachInsertedKeyVisual(AGrimrockPartyPawn* PartyPawn, 
 	{
 		ItemDefinition = PartyPawn->PartyInventoryComponent
 			? PartyPawn->PartyInventoryComponent->FindItemDefinition(CursorItem.ItemDefinitionId) : nullptr;
-		if (!ItemDefinition)
-		{
-			ItemDefinition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId);
-		}
 	}
 	AGridItemActor* CanonicalVisual = nullptr;
 	if (bPointerlessCanonical)

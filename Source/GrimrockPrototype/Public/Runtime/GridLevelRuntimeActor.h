@@ -1013,7 +1013,6 @@ public:
 	}
 
 	const UGridWorldObjectDefinitionAsset* FindWorldObjectDefinition(FName WorldObjectDefinitionId) const;
-	UGridItemDefinitionAsset* ResolveRuntimeItemDefinition(FName ItemDefinitionId) const;
 	AGridItemActor* SpawnItemActorForDefinition(UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId, AActor* OwnerActor,
 		USceneComponent* AttachParent) const;
 

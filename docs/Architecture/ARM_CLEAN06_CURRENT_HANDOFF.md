@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.33 — Retrait du lookup runtime des recettes historiques
+
+Parent b9fd173c179cf182b6322e8fc1a3f56b88a773bc. Suppression de AGridLevelRuntimeActor::ResolveRuntimeItemDefinition et de tous ses appels production. Les transferts et lectures ne peuvent plus récupérer des anciennes définitions par recette ; le seul helper legacy restant lit la carte explicite du propriétaire. Les snapshots historiques avec pointeur explicite et les représentations par ID de tests sans registre restent distincts, à traiter avec la restauration stricte du monde. 0192, MIG05, 3AV et X.30 utilisent le vrai registre ou un transfert sans source pour vérifier les refus. Aucun package ni SaveGame joueur écrit.
+
 ## ARM-CLEAN06.5G.32 — Handoff et Continue sans lookup de recette
 
 Parent 9681730322b073accd75af76fe77f5adb8756e54 : validation des lots éditeur préalables obligatoire. New Game et Continue emploient RehydrateCanonicalOwnedItemDefinitions ; exige ItemSystem configuré, refuse toute identité inconnue via résolveur nul, ne charge plus de recette historique. STARTUPFLOW01 teste les 18 kits natifs via GameInstance et inventaires réellement configurés, vérifie N0/N1, quantités, slots, GUID, icônes ARM et absence de carte historique. Vérifie aussi les slots occupés, équipements identifiés et curseur malformés avant mutation. Le collecteur historique reste utilisé par des fixtures hors production et sera retiré séparément. Les tests disque SHIELD025 et LOT0216 utilisent désormais le registre réel et conservent les assertions GUID/quantité/armure dépensée, sans carte historique. Aucun SaveGame joueur écrit ou schéma modifié. Les erreurs de démarrage existantes sont conservées.

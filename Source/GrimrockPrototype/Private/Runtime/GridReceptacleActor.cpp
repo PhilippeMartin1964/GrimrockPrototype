@@ -564,13 +564,6 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 		{
 			ItemDefinition = ResolveItemDefinition(PartyPawn->PartyInventoryComponent, nullptr, CursorItem.ItemDefinitionId);
 		}
-		if (!ItemDefinition)
-		{
-			if (const AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor(GetWorld()))
-			{
-				ItemDefinition = RuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId);
-			}
-		}
 	}
 	if (bCanonical && !FGridReceptacleItemMetadataReadModel::Resolve(
 		Registry, ItemDefinition, CursorItem.ItemDefinitionId, CursorItem.ItemLevel,
@@ -1179,10 +1172,6 @@ int32 AGridReceptacleActor::AddContainedItem(
 	if (bCanonicalInitialSource && !bKnownExplicit)
 	{
 		return INDEX_NONE;
-	}
-	if (!ItemDefinition && RuntimeActor && !bCanonicalWorld)
-	{
-		ItemDefinition = RuntimeActor->ResolveRuntimeItemDefinition(ItemDefinitionId);
 	}
 	ItemDefinitionId = FGridReceptacleContainedIdentityReadModel::Resolve(
 		CanonicalRegistry, ItemDefinition, ItemDefinitionId);

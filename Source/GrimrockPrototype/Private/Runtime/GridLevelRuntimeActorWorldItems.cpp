@@ -618,13 +618,6 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 		// alone. Ignore stale pointers even when present in a v27 snapshot.
 		UGridItemDefinitionAsset* Definition = bKnownCanonical
 			? nullptr : PendingCopy.ItemDefinitionAsset.Get();
-		if (!Definition)
-		{
-			if (!bKnownCanonical)
-			{
-				Definition = ResolveRuntimeItemDefinition(ItemState.ItemDefinitionId);
-			}
-		}
 
 		if (!TryDropItemInstanceAtCell(ItemInstance, Definition, ItemState.CellX, ItemState.CellY, EGridEdge::None, LocalOffset))
 		{
@@ -738,10 +731,6 @@ bool AGridLevelRuntimeActor::TransferWorldItemThroughPit(AGridItemActor* ItemAct
 	const UGridItemSubsystem* Registry = RouteGI ? RouteGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	const bool bCanonicalIdentity = Registry && Registry->HasCanonicalItem(ItemId);
 	UGridItemDefinitionAsset* Definition = bCanonicalIdentity ? nullptr : Entry.ItemDefinitionAsset.Get();
-	if (!Definition && !bCanonicalIdentity)
-	{
-		Definition = ResolveRuntimeItemDefinition(ItemId);
-	}
 	const FGridReceptacleItemMetadataReadView RouteRead = FGridWorldItemLevelReadModel::ResolvePersistedInstance(Registry, Definition, ItemId, Entry.ItemLevel);
 	if (!RouteRead.bResolved || (!RouteRead.bCanonicalIdentity && !IsValid(Definition)))
 	{
@@ -940,7 +929,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	// Registered identities always pass nullptr and resolve via ItemSystem.
 	const AGrimrockPartyPawn* Party = ResolveWorldItemInteractionParty(this);
 	UGridItemDefinitionAsset* Definition = FGridLegacyItemLookup::Resolve(
-		Party, ItemInstance.ItemDefinitionId, false);
+		Party, ItemInstance.ItemDefinitionId);
 	return TryDropItemInstanceAtCell(ItemInstance, Definition, CellX, CellY, Edge, LocalOffset);
 }
 
@@ -995,8 +984,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 		return false; // A known ARM N0 must never inherit N1 or use legacy.
 	}
 	UGridItemDefinitionAsset* ItemDefinition = bCanonicalIdentity ? nullptr :
-		(IsValid(ItemDefinitionAsset) ? ItemDefinitionAsset :
-			ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId));
+		(IsValid(ItemDefinitionAsset) ? ItemDefinitionAsset : nullptr);
 	const FGridReceptacleItemMetadataReadView LevelRead =
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry, ItemDefinition, ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel);
@@ -1114,9 +1102,7 @@ bool AGridLevelRuntimeActor::TrySpawnThrownItemProjectile(
 	const FGridItemInstance& ItemInstance, const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY)
 {
 	const AGrimrockPartyPawn* Party = ResolveWorldItemInteractionParty(this);
-	UGridItemDefinitionAsset* ItemDefinition = Party
-		? FGridLegacyItemLookup::Resolve(Party, ItemInstance.ItemDefinitionId)
-		: ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId);
+	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(Party, ItemInstance.ItemDefinitionId);
 	return SpawnThrownItemProjectile(ItemInstance, ItemDefinition, StartWorldLocation, LaunchVelocity, SourceCellX, SourceCellY,
 		false, const_cast<AGrimrockPartyPawn*>(Party)) != nullptr;
 }
@@ -1305,10 +1291,6 @@ float AGridLevelRuntimeActor::GetWorldItemWeightAtCell(int32 CellX, int32 CellY,
 		// Read the registry for registered item weights, even if a stale
 		// entry from a historical runtime build still holds an old pointer.
 		UGridItemDefinitionAsset* Definition = bCanonical ? nullptr : Entry.ItemDefinitionAsset.Get();
-		if (!bCanonical && !Definition)
-		{
-			Definition = ResolveRuntimeItemDefinition(ItemId);
-		}
 		if (!bCanonical && !Definition)
 		{
 			continue; // Preserve historical behavior for unregistered missing definitions.

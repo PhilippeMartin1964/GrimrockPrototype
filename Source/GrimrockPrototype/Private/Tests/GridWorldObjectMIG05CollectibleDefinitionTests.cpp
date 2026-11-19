@@ -291,11 +291,28 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	if (!TestNotNull(TEXT("Item resolution rejection runtime exists"), Runtime)) return false;
 	Runtime->WorldObjectDefinitions.Add(LegacyDefinition);
-	TestNull(TEXT("Runtime cannot resolve an item through WorldObjectDefinition"), Runtime->ResolveRuntimeItemDefinition(Definition->ItemDefinitionId));
+	UGridLevelAsset* EmptyLevel = NewObject<UGridLevelAsset>(Runtime);
+	EmptyLevel->Width = 2;
+	EmptyLevel->Height = 2;
+	EmptyLevel->EnsureCellCount();
+	for (FGridLevelCellData& Cell : EmptyLevel->Cells)
+	{
+		Cell.CellType = EGridCellType::Floor;
+		Cell.bBlocksOccupancy = false;
+	}
+	Runtime->LevelAsset = EmptyLevel;
+	FGridItemInstance Unknown;
+	Unknown.RuntimeObjectId = FGuid::NewGuid();
+	Unknown.ItemDefinitionId = Definition->ItemDefinitionId;
+	Unknown.Quantity = 1;
+	Unknown.ItemLevel = 0;
+	TestFalse(TEXT("Runtime cannot drop an item through WorldObjectDefinition alone"),
+		Runtime->TryDropItemInstanceAtCell(Unknown, nullptr, 0, 0, EGridEdge::None, FVector::ZeroVector));
 
 	LegacyDefinition->SupportedType = EGridLevelObjectType::Receptacle;
 	LegacyDefinition->DefaultBehavior.Receptacle.InitialContent.AddDefaulted_GetRef().CanonicalItemId = Definition->ItemDefinitionId;
-	TestNull(TEXT("Receptacle canonical ID cannot supply an obsolete runtime item definition"), Runtime->ResolveRuntimeItemDefinition(Definition->ItemDefinitionId));
+	TestFalse(TEXT("Receptacle canonical ID cannot supply an obsolete runtime item definition"),
+		Runtime->TryDropItemInstanceAtCell(Unknown, nullptr, 0, 0, EGridEdge::None, FVector::ZeroVector));
 
 	return true;
 }

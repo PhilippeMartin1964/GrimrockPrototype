@@ -434,8 +434,9 @@ bool FGridClean065E4DLegacyLookup::RunTest(const FString&)
     FGridLooseItemInstance UnknownPlacement;
     UnknownPlacement.CanonicalItemId = Unknown;
     F.Runtime->LevelAsset->LooseItemInstances.Add(UnknownPlacement);
-    TestNull(TEXT("Known ID never returns old placement or recipe"), F.Runtime->ResolveRuntimeItemDefinition(Known));
-    TestNull(TEXT("Unregistered authored ItemId is not a definition catalogue"), F.Runtime->ResolveRuntimeItemDefinition(Unknown));
+    FGridResolvedItem Resolved;
+    TestTrue(TEXT("Known ID resolves independently of level placement"), F.Registry->ResolveItem(Known, 1, Resolved));
+    TestFalse(TEXT("Unregistered authored ItemId is not a definition catalogue"), F.Registry->ResolveItem(Unknown, 0, Resolved));
     auto* Party = F.World->SpawnActor<AGrimrockPartyPawn>();
     if (!TestNotNull(TEXT("Party"), Party)) return false;
     Party->LevelRuntimeActor = F.Runtime;
@@ -445,13 +446,10 @@ bool FGridClean065E4DLegacyLookup::RunTest(const FString&)
     TestTrue(TEXT("Known registration is already satisfied by ItemSystem"), Inventory->RegisterItemDefinition(OldKnown));
     TestNull(TEXT("Registered ID cannot enter the obsolete map"), Inventory->FindItemDefinition(Known));
     TestNull(TEXT("Canonical transfer ignores old inventory entry"), FGridLegacyItemLookup::Resolve(Party, Known));
-    TestNull(TEXT("Canonical inventory-only transfer also ignores it"), FGridLegacyItemLookup::Resolve(Party, Known, false));
     TestNull(TEXT("Unknown transfer cannot use an old level entry"), FGridLegacyItemLookup::Resolve(Party, Unknown));
-    TestNull(TEXT("Unknown inventory-only transfer does not widen lookup"), FGridLegacyItemLookup::Resolve(Party, Unknown, false));
     TestTrue(TEXT("Unknown entry registered"), Inventory->RegisterItemDefinition(OldUnknown));
-    TestEqual(TEXT("Unknown inventory-only transfer retains its explicit map entry"), FGridLegacyItemLookup::Resolve(Party, Unknown, false), OldUnknown);
     TestEqual(TEXT("Transfer reads its own explicit map, not the level"), FGridLegacyItemLookup::Resolve(Party, Unknown), OldUnknown);
-    TestNull(TEXT("Recipe lookup stays independent of the explicit inventory map"), F.Runtime->ResolveRuntimeItemDefinition(Unknown));
+    TestFalse(TEXT("Explicit inventory map cannot alter ItemSystem"), F.Registry->ResolveItem(Unknown, 0, Resolved));
     return !HasAnyErrors();
 }
 #endif

@@ -10,6 +10,8 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GridPartyInventoryComponent.h"
+#include "../Runtime/GridLegacyItemLookup.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
@@ -80,7 +82,7 @@ bool FGridClean064X30PointerlessLockVisual::RunTest(const FString&)
 	if (Lock) Lock->InitializeRuntimeWorldObject(Data, nullptr, FTransform::Identity);
 
 	bOk &= TestNull(TEXT("No historical copper key definition is discoverable"),
-		Runtime->ResolveRuntimeItemDefinition(CopperId));
+		FGridLegacyItemLookup::Resolve(Party, CopperId));
 	FGridItemInstance Key;
 	Key.RuntimeObjectId = FGuid::NewGuid();
 	Key.ItemDefinitionId = CopperId;
