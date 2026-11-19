@@ -5,6 +5,7 @@
 #include "Engine/GameInstance.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
@@ -181,6 +182,28 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 				Equipped.OwnerCharacterIndex, VerifiedInstance));
 		TestEqual(TEXT("Source instance attack matches registered ActionId"),
 			VerifiedInstance.ActionId, Bound.ActionId);
+		// Compare the actual execution view, not only the Editor forward
+		// conversion. No persisted fields, media order or timings may be lost.
+		const FGridPlayerAttackPresentationProfile Expected = Old->HasValidPlayerAttackPresentation()
+			? Old->PlayerAttackPresentationProfile : FGridPlayerAttackPresentationProfile();
+		for (const int32 Level : {1, 20})
+		{
+			Equipped.ItemLevel = Level;
+			FGridPlayerAttackRequest Request;
+			Request.OffensiveItemDefinitionId = ItemId;
+			Request.OffensiveEquipmentSlot = EGridEquipmentSlot::MainHand;
+			Request.AttackId = Bound.ActionId;
+			Request.PresentationSource = FGridCanonicalAttackPresentationReadModel::CaptureFromInstance(
+				Items.Get(), Equipped, Equipped.OwnerGuid, 0, EGridEquipmentSlot::MainHand, Bound.ActionId, false);
+			FGridPlayerAttackPresentationProfile Actual;
+			TestTrue(TEXT("Exact canonical runtime attack presentation"), FGridCanonicalAttackPresentationReadModel::TryResolve(Items.Get(), Request, Actual));
+			TestTrue(FString(TEXT("Lossless authored runtime presentation: ")) + Row.ArchetypeId,
+				FGridPlayerAttackPresentationProfile::StaticStruct()->CompareScriptStruct(&Actual, &Expected, 0));
+			TestEqual(TEXT("Real source level captured"), Request.PresentationSource.ItemLevel, Level);
+			TestEqual(TEXT("Real source GUID captured"), Request.PresentationSource.RuntimeObjectId, Equipped.RuntimeObjectId);
+			Request.PresentationSource.ItemLevel = 0;
+			TestFalse(TEXT("Known ARM cannot synthesize N1 media"), FGridCanonicalAttackPresentationReadModel::TryResolve(Items.Get(), Request, Actual));
+		}
 		Equipped.ItemLevel = 0;
 		TestFalse(TEXT("Old Level=0 cannot read N1 implicitly"),
 			Items->ResolveAttackFromEquippedInstance(

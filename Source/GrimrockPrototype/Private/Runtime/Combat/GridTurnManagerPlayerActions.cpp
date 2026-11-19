@@ -1,4 +1,5 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
 #include "Camera/CameraComponent.h"
 
 #include "Core/GridDirectionUtils.h"
@@ -678,6 +679,15 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	Request.OffensiveItemDefinitionId = OffensiveItemDefinitionId;
 	Request.OffensiveEquipmentSlot = OffensiveEquipmentSlot;
 	Request.ActionPointCost = SafeAttackActionPointCost;
+	Request.PresentationSource = FGridCanonicalAttackPresentationReadModel::Capture(
+		AttackRegistry, PartyPawn->PartyInventoryComponent.Get(), AttackerCharacterIndex,
+		OffensiveItemDefinitionId, OffensiveEquipmentSlot, Request.AttackId, bUsesEquippedWeaponAction);
+	// Capture both sources before the first AP spend or callback.
+	const FGridAttackPresentationSource OffPresentationSource = bDualWieldAction
+		? FGridCanonicalAttackPresentationReadModel::Capture(
+			AttackRegistry, PartyPawn->PartyInventoryComponent.Get(), AttackerCharacterIndex,
+			DualPair.Off.Item.ItemDefinitionId, EGridEquipmentSlot::OffHand, DualPair.Off.Action.ActionId, false)
+		: FGridAttackPresentationSource();
 	if (!Request.IsValid())
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::TargetCellUnavailable, OutRejectReason);
@@ -1106,6 +1116,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 			RepeatRequest.AttackId = RepeatProfile.AttackId;
 			RepeatRequest.OffensiveItemDefinitionId = DualPair.Off.Item.ItemDefinitionId;
 			RepeatRequest.OffensiveEquipmentSlot = EGridEquipmentSlot::OffHand;
+			RepeatRequest.PresentationSource = OffPresentationSource;
 			RepeatRequest.PreparedThrownItemActor = nullptr;
 		}
 		OutRequest = RepeatRequest;

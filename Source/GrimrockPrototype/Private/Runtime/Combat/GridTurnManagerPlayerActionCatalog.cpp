@@ -1,4 +1,5 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
 
 #include "Magic/GridProductionSpellLibrary.h"
 #include "Magic/GridSpellbookUI.h"
@@ -2259,6 +2260,10 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		TargetMonsters.Add(TargetMonster);
 	}
 
+	const FGridAttackPresentationSource PresentationSource = FGridCanonicalAttackPresentationReadModel::Capture(
+		FGridCanonicalAttackPresentationReadModel::RegistryFor(Inventory), Inventory, Action.CharacterIndex,
+		EffectiveOffensiveItemDefinitionId, EffectiveOffensiveEquipmentSlot,
+		EffectiveOffensiveProfile.AttackId, bUsesEquippedWeaponAction);
 	const bool bQuickItem = Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
 	const int32 QuantityBefore = bQuickItem ? Inventory->CountItemDefinitionInCharacterInventory(Action.CharacterIndex, Action.SourceDefinitionId) : 0;
 	if (bQuickItem &&
@@ -2390,6 +2395,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			Request.AttackId = EffectiveOffensiveProfile.AttackId;
 			Request.OffensiveItemDefinitionId = bQuickItem ? Action.SourceDefinitionId : EffectiveOffensiveItemDefinitionId;
 			Request.OffensiveEquipmentSlot = bQuickItem ? EGridEquipmentSlot::None : EffectiveOffensiveEquipmentSlot;
+			Request.PresentationSource = bQuickItem ? FGridAttackPresentationSource() : PresentationSource;
 			Request.ActionPointCost = Action.CurrentActionPointCost;
 
 			FGridAttackResult AttackResult =

@@ -10,6 +10,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Engine/GameInstance.h"
@@ -438,6 +439,11 @@ FGridPlayerAttackPresentationProfile UGridPlayerAttackPresentationComponent::Res
 		GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	if (IsValid(Canonical) && Canonical->HasCanonicalItem(Request.OffensiveItemDefinitionId))
 	{
+		FGridPlayerAttackPresentationProfile ArmProfile;
+		if (FGridCanonicalAttackPresentationReadModel::TryResolve(Canonical, Request, ArmProfile))
+		{
+			return ArmProfile;
+		}
 		FGridResolvedItem Resolved;
 		if (Canonical->ResolveItem(Request.OffensiveItemDefinitionId, 0, Resolved) &&
 			!Resolved.bIsArmament && Resolved.AmmoKindId.IsNone())
@@ -452,10 +458,14 @@ FGridPlayerAttackPresentationProfile UGridPlayerAttackPresentationComponent::Res
 			// PlayerAttackPresentationProfile even when the binding is invalid.
 			return FGridPlayerAttackPresentationProfile();
 		}
+		// Known identities with an invalid/missing presentation source are
+		// never allowed to resurrect old weapon data. This is presentation
+		// only; damage and the committed projectile remain authoritative.
+		return FGridPlayerAttackPresentationProfile();
 	}
 	const UGridPartyInventoryComponent* Inventory = PartyPawn ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
 	const UGridItemDefinitionAsset* Definition = Inventory ? Inventory->FindItemDefinition(Request.OffensiveItemDefinitionId) : nullptr;
-	if (Definition && Definition->HasValidPlayerAttackPresentation())
+	if (Definition && Definition->ItemDefinitionId == Request.OffensiveItemDefinitionId && Definition->HasValidPlayerAttackPresentation())
 	{
 		return Definition->PlayerAttackPresentationProfile;
 	}

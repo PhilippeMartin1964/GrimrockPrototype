@@ -338,6 +338,23 @@ enum class EGridPlayerAttackRejectReason : uint8
 	NotActiveCombatant UMETA(DisplayName = "Not Active Combatant")
 };
 
+/** Transient presentation identity captured BEFORE consuming or replacing an
+ * equipped weapon. No serialized profile, new gameplay authority or SaveGame. */
+USTRUCT(BlueprintType)
+struct FGridAttackPresentationSource
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+	FGuid RuntimeObjectId;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+	int32 ItemLevel = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+	FName ActionId = NAME_None;
+};
+
 USTRUCT(BlueprintType)
 struct FGridPlayerAttackRequest
 {
@@ -391,6 +408,9 @@ struct FGridPlayerAttackRequest
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
 	EGridEquipmentSlot OffensiveEquipmentSlot = EGridEquipmentSlot::None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+	FGridAttackPresentationSource PresentationSource;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
 	int32 ActionPointCost = 2;

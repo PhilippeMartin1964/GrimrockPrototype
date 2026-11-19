@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5E.4B — présentation ARM canonique
+
+Parent `7e3b7720ff34b800fe3e09f773c6d877bf697fb0` : deux statuts SUCCESS. Snapshot transitoire GUID/niveau/action réelle avant dépenses/consommation dans attaques simples, doubles (deux sources), ciblées et contre-attaques ; compétences empruntant une arme conservent son unique liaison d'attaque de base. Projection inverse sans perte des trois canaux média et timings, aucune relecture inventaire ou ancien asset ARM à la présentation. Test natif 3A égalité complète des 19 anciens profils (dont neutres), N1/N20 ; 3AP source N3/N19 retirée avant résolution des FX, binding emprunté/refus non lié. Pas de migration SaveGame, WBP, binaire ni nouveaux canaux. Validations exact-SHA obligatoires. [Détail](ARM_CLEAN06_5E4B_CANONICAL_ATTACK_PRESENTATION.md).
+
 ## ARM-CLEAN06.5E.4A — préconditions au retrait de la réhydratation
 
 Parent `47a3fad5454d1a48da8b90257568743a9b6e3cf2` : SilentTask/LocalAuto SUCCESS. Deux dépendances encore réelles découvertes : le clic droit Equiper imposait une ancienne définition malgré le menu/CanEquipItemToSlot canoniques ; ResolveProfile du composant PlayerAttackPresentation lit toujours l'ancien profil ARM. 5E.4A retire la double validation UI et protège la réhydratation contre N1 physique non-ARM (alias famille autorisé seulement en lecture non physique). Tests exécution réelle menu indexé N20/N1 et ancien Book contradictoire, refus N0, contrôle Save N1 avant resolver et rollback. **Ne pas désactiver encore le resolver historique : migrer les profils d'attaque Audio/VFX ARM (snapshot de la source réellement utilisée, y compris dernier projectile et dual wield) puis revoir les transferts.** Aucune écriture de SaveGame ou binaire, UI.csv/ST_UI/WBP/Game fr/en inchangés. [Détail](ARM_CLEAN06_5E4A_REHYDRATION_PRECONDITIONS.md).

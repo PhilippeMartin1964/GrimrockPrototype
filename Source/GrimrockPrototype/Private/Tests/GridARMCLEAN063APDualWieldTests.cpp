@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Combat/GridDualWieldPolicy.h"
+#include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/Combat/GridCanonicalEquippedAttackReadModel.h"
@@ -82,6 +83,38 @@ bool FGridClean063APDualWield::RunTest(const FString&)
 	TestEqual(TEXT("Main action and profile share AttackId"), Pair.Main.Action.ActionId, Pair.Main.Profile.AttackId);
 	TestEqual(TEXT("Off action and profile share AttackId"), Pair.Off.Action.ActionId, Pair.Off.Profile.AttackId);
 	TestTrue(TEXT("Both transient actions valid"), Pair.Main.Action.IsValid() && Pair.Off.Action.IsValid());
+	FGridPlayerAttackRequest MainRequest;
+	MainRequest.OffensiveItemDefinitionId = Pair.Main.Item.ItemDefinitionId;
+	MainRequest.OffensiveEquipmentSlot = EGridEquipmentSlot::MainHand;
+	MainRequest.AttackId = Pair.Main.Action.ActionId;
+	MainRequest.PresentationSource = FGridCanonicalAttackPresentationReadModel::Capture(
+		Registry.Get(), Inventory.Get(), 0, MainRequest.OffensiveItemDefinitionId, MainRequest.OffensiveEquipmentSlot, MainRequest.AttackId, false);
+	FGridPlayerAttackRequest OffRequest;
+	OffRequest.OffensiveItemDefinitionId = Pair.Off.Item.ItemDefinitionId;
+	OffRequest.OffensiveEquipmentSlot = EGridEquipmentSlot::OffHand;
+	OffRequest.AttackId = Pair.Off.Action.ActionId;
+	OffRequest.PresentationSource = FGridCanonicalAttackPresentationReadModel::Capture(
+		Registry.Get(), Inventory.Get(), 0, OffRequest.OffensiveItemDefinitionId, OffRequest.OffensiveEquipmentSlot, OffRequest.AttackId, false);
+	TestEqual(TEXT("First strike captures real N3"), MainRequest.PresentationSource.ItemLevel, 3);
+	TestEqual(TEXT("Second strike captures real N19"), OffRequest.PresentationSource.ItemLevel, 19);
+	TestEqual(TEXT("First strike source GUID"), MainRequest.PresentationSource.RuntimeObjectId, MainId);
+	TestEqual(TEXT("Second strike source GUID"), OffRequest.PresentationSource.RuntimeObjectId, OffId);
+	// Simulate removal of the source before the delayed presentation runs.
+	const FGridItemInstance SavedMain = Equipment.MainHand;
+	const FGridItemInstance SavedOff = Equipment.OffHand;
+	Equipment.MainHand = FGridItemInstance();
+	Equipment.OffHand = FGridItemInstance();
+	FGridPlayerAttackPresentationProfile MainFX, OffFX;
+	TestTrue(TEXT("Main presentation resolves after source removal"), FGridCanonicalAttackPresentationReadModel::TryResolve(Registry.Get(), MainRequest, MainFX));
+	TestTrue(TEXT("Off presentation resolves independently after source removal"), FGridCanonicalAttackPresentationReadModel::TryResolve(Registry.Get(), OffRequest, OffFX));
+	Equipment.MainHand = SavedMain;
+	Equipment.OffHand = SavedOff;
+	const auto Borrowed = FGridCanonicalAttackPresentationReadModel::Capture(
+		Registry.Get(), Inventory.Get(), 0, MainRequest.OffensiveItemDefinitionId, MainRequest.OffensiveEquipmentSlot, TEXT("Skill_TestBorrowedWeapon"), true);
+	TestEqual(TEXT("Borrowed weapon skill keeps physical primary binding"), Borrowed.ActionId, MainRequest.AttackId);
+	const auto WrongAction = FGridCanonicalAttackPresentationReadModel::Capture(
+		Registry.Get(), Inventory.Get(), 0, MainRequest.OffensiveItemDefinitionId, MainRequest.OffensiveEquipmentSlot, TEXT("Unbound_Action"), false);
+	TestTrue(TEXT("Unknown standard action cannot invent media"), WrongAction.ActionId.IsNone());
 	for (const FName Tag : Pair.Main.SourceTags)
 		TestTrue(TEXT("Main tags belong to N3 registry"), MainN3.Tags.Contains(Tag));
 	for (const FName Tag : Pair.Off.SourceTags)

@@ -1,0 +1,9 @@
+# ARM-CLEAN06.5E.4B — Présentation ARM canonique
+
+Base `7e3b7720ff34b800fe3e09f773c6d877bf697fb0` deux statuts SUCCESS. La présentation des attaques ordinaires et composées lisait encore PlayerAttackPresentationProfile sur les anciens DA_Weapon. Elle doit survivre à la consommation du dernier projectile, aux callbacks inventaire et à la séquence des deux armes.
+
+FGridAttackPresentationSource transporte uniquement le GUID, niveau physique et ActionId de liaison capturés avant dépenses/débit. Les deux frappes dual-wield reçoivent chacune leur snapshot (et non le niveau de la première). Les attaques ciblées et réactions empruntant l'arme utilisent son unique liaison d'attaque canonique, indépendamment de l'AttackId de compétence. Ambiguïté/refus : pas de média historique substitué. Le choix de l'attaque gameplay et les coûts ne changent pas.
+
+FGridCanonicalAttackPresentationReadModel reconstitue la vue transitoire du présentateur à partir de la liaison exacte du registre : mouvement, délais attaque/impact/récupération, offsets, feedback, listes ordonnées de sons et Niagara, volumes, pitch, sockets, transforms. Les 15 liaisons neutres sont authorées, pas un nouveau fallback. Les nouveaux canaux matière/parade/blocage/critique ne sont pas activés par ce lot (aucun nouveau comportement). Les profils détaillés non-ARM existants restent inchangés ; identités non enregistrées gardent la voie historique exacte.
+
+Tests : le gate Editor 3A compare strictement le profil runtime des 19 armes actives N1 et N20 à l'ancien comportement (y compris opt-in désactivé). 3AP vérifie deux armes N3/N19, capture avant retrait des deux sources, résolution sans inventaire, liaison empruntée et refus d'action hors liaison. Suite complète Windows exigée. Pas de binaire, localisation, WBP ni SaveGame modifié. La recette audio/visuelle reste distincte de NullRHI.
