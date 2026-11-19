@@ -303,7 +303,7 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
     const FGridObjectPaletteEntry* Preserved = PointerlessProposal.FindByPredicate([EntryId](const FGridObjectPaletteEntry& Entry)
         { return Entry.EntryId == EntryId; });
     if (TestNotNull(TEXT("Pointerless proposal retains entry"), Preserved))
-        TestNull(TEXT("No legacy source reattached"), Preserved->DefaultItemDefinition.Get());
+        TestNull(TEXT("No legacy source reattached"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")));
 
     // Simulate an absent entry in a transient copy. No production data is changed.
     UGridObjectPaletteAsset* Missing = NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
@@ -333,7 +333,7 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
         {
             TestEqual(TEXT("Explicit physical N1"), NewEntry->CanonicalDefaultItemLevel, 1);
             TestEqual(TEXT("Explicit ItemId"), NewEntry->CanonicalItemId, EntryId);
-            TestNull(TEXT("No legacy source created"), NewEntry->DefaultItemDefinition.Get());
+            TestNull(TEXT("No legacy source created"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")));
         }
         FString Detail;
         TestTrue(TEXT("Proposed entry is compatible"),
@@ -378,7 +378,7 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
                 TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
             if (TestNotNull(TEXT("Second real item for collision fixture"), Other))
             {
-                TargetEntry->DefaultItemDefinition = Other;
+                TargetEntry->CanonicalItemId = Other->ItemDefinitionId;
                 TestTrue(TEXT("Palette entry pointing to a different item rejected"),
                     FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Canonical.Registry.Get(), false, Detail) ==
                         EGridWeaponPipelinePaletteState::Conflict);

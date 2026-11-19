@@ -43,11 +43,9 @@ bool Verify(FAutomationTestBase& Test, EField Field)
     const bool bPaletteDirty = F.Palette->GetOutermost()->IsDirty();
     int32 Count = 0;
     int32 Differences = 0;
-    int32 OldPointers = 0;
     for (const FGridObjectPaletteEntry& Entry : F.Palette->Entries)
     {
         if (!Entry.IsDirectItemEntry()) {continue;}
-        if (Entry.DefaultItemDefinition) ++OldPointers;
         ++Count;
         FGridResolvedItem Resolved;
         if (!Test.TestTrue(TEXT("Persisted palette identity resolves physically"),
@@ -59,7 +57,6 @@ bool Verify(FAutomationTestBase& Test, EField Field)
         if (!Test.TestTrue(TEXT("Canonical tile resolves exact persisted item"),
                 View.bCanonicalSource && View.bResolved && View.ItemId == Entry.CanonicalItemId))
             return false;
-        const UGridItemDefinitionAsset* Old = Entry.DefaultItemDefinition.Get();
         bool bSame = false;
         switch (Field)
         {
@@ -67,23 +64,20 @@ bool Verify(FAutomationTestBase& Test, EField Field)
             {
                 const FString Expected = Resolved.DisplayName.IsEmpty()
                     ? Entry.CanonicalItemId.ToString() : Resolved.DisplayName.ToString();
-                bSame = View.DisplayName.ToString() == Expected &&
-                    (!Old || Entry.GetEffectiveDisplayName().ToString() == Expected);
+                bSame = View.DisplayName.ToString() == Expected;
                 break;
             }
             case EField::Description:
-                bSame = View.Description.ToString() == Resolved.Description.ToString() &&
-                    (!Old || Old->Description.ToString() == Resolved.Description.ToString());
+                bSame = View.Description.ToString() == Resolved.Description.ToString();
                 break;
             case EField::Icon:
-                bSame = View.Icon.ToSoftObjectPath() == Resolved.ItemIcon.ToSoftObjectPath() &&
-                    (!Old || Old->Icon.ToSoftObjectPath() == Resolved.ItemIcon.ToSoftObjectPath());
+                bSame = View.Icon.ToSoftObjectPath() == Resolved.ItemIcon.ToSoftObjectPath();
                 break;
         }
         if (!bSame) {++Differences;}
     }
     if (!Test.TestEqual(TEXT("All 33 real direct entries checked"), Count, 33) ||
-        !Test.TestTrue(TEXT("Native palette is entirely pre/post conversion"), OldPointers == 0) ||
+        !Test.TestNull(TEXT("Removed palette pointer schema"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition"))) ||
         !Test.TestEqual(TEXT("No UI field can change silently at cutover"),
             Differences, 0) ||
         !Test.TestEqual(TEXT("Read-only palette"), F.Palette->GetOutermost()->IsDirty(), bPaletteDirty) ||

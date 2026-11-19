@@ -183,7 +183,7 @@ bool FARMEMENT01103ProductionBindings::RunTest(const FString&)
         {
             TestEqual(TEXT("Weapon palette category"), Entry->PaletteCategory, FName(TEXT("Weapon")));
             TestEqual(TEXT("Palette stores actual canonical ItemId"), Entry->CanonicalItemId, Item->ItemDefinitionId);
-            TestTrue(TEXT("Any retained warrior source matches"), Entry->MatchesDirectItemSource(Item));
+            TestTrue(TEXT("Any retained warrior source matches"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")) == nullptr);
             TestTrue(TEXT("No second WorldObject definition"), Entry->DefaultWorldObjectDefinition == nullptr);
             TestTrue(TEXT("No duplicate palette icon"), Entry->Icon == nullptr);
             TestTrue(TEXT("Palette entry valid"), Entry->IsValidEntry());

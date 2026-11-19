@@ -108,7 +108,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
     {
         if (!Entry.IsDirectItemEntry()) { continue; }
         if (!TestTrue(TEXT("Palette item retains exact source ItemId"),
-                Visit(Entry.DefaultItemDefinition, Entry.CanonicalItemId, true)))
+                Visit(nullptr, Entry.CanonicalItemId, true)))
         {
             return false;
         }

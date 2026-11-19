@@ -33,12 +33,11 @@ bool FGridEditorARMCLEAN064X55NativePalette::RunTest(const FString&)
 
     TArray<FGridObjectPaletteEntry> Plan;
     FString Error;
-    int32 Old = 0;
     const bool bPlanned = FGridEditorNativePalettePlan::TryBuild(
-        *Source, Registry.Get(), Plan, Old, Error);
+        *Source, Registry.Get(), Plan, Error);
     if (!TestTrue(*FString::Printf(TEXT("Real palette dry-run: %s"), *Error), bPlanned) ||
         !TestEqual(TEXT("Complete palette entry count preserved"), Plan.Num(), Original.Num()) ||
-        !TestEqual(TEXT("All 33 pointers already removed"), Old, 0))
+        !TestNull(TEXT("Removed palette pointer schema"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition"))))
         return false;
 
     auto SameEntry = [](const FGridObjectPaletteEntry& A, const FGridObjectPaletteEntry& B)
@@ -74,10 +73,8 @@ bool FGridEditorARMCLEAN064X55NativePalette::RunTest(const FString&)
         NewObject<UGridObjectPaletteAsset>(GetTransientPackage()));
     Copy->Entries = Plan;
     TArray<FGridObjectPaletteEntry> Repeat;
-    int32 RepeatOld = -1;
     if (!TestTrue(TEXT("Already pointerless palette is accepted idempotently"),
-        FGridEditorNativePalettePlan::TryBuild(*Copy.Get(), Registry.Get(), Repeat, RepeatOld, Error)) ||
-        !TestEqual(TEXT("No pointers in rechecked plan"), RepeatOld, 0) ||
+        FGridEditorNativePalettePlan::TryBuild(*Copy.Get(), Registry.Get(), Repeat, Error)) ||
         !TestEqual(TEXT("Rechecked plan has same size"), Repeat.Num(), Plan.Num()))
         return false;
     for (int32 Index = 0; Index < Plan.Num(); ++Index)
@@ -87,13 +84,11 @@ bool FGridEditorARMCLEAN064X55NativePalette::RunTest(const FString&)
     auto Refuses = [&](const TCHAR* Label)
     {
         TArray<FGridObjectPaletteEntry> Rejected = Plan;
-        int32 RejectedOld = -1;
         FString Reason;
         const bool bAccepted = FGridEditorNativePalettePlan::TryBuild(
-            *Copy.Get(), Registry.Get(), Rejected, RejectedOld, Reason);
+            *Copy.Get(), Registry.Get(), Rejected, Reason);
         return TestFalse(Label, bAccepted) &&
             TestTrue(TEXT("Rejected transaction exposes no proposal"), Rejected.IsEmpty()) &&
-            TestEqual(TEXT("Rejected transaction exposes no old count"), RejectedOld, 0) &&
             TestFalse(TEXT("Rejected transaction explains failure"), Reason.IsEmpty());
     };
     Copy->Entries[ArmIndex].CanonicalDefaultItemLevel = 0;
@@ -105,13 +100,10 @@ bool FGridEditorARMCLEAN064X55NativePalette::RunTest(const FString&)
     Copy->Entries.RemoveAt(ArmIndex);
     if (!Refuses(TEXT("Unexpected number of direct items rejected"))) return false;
     Copy->Entries = Plan;
-    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(Copy.Get());
-    Legacy->ItemDefinitionId = Plan[ArmIndex].CanonicalItemId;
-    Copy->Entries[ArmIndex].DefaultItemDefinition = Legacy;
-    if (!Refuses(TEXT("Even matching historical pointer rejected after cutover"))) return false;
+    Copy->Entries[ArmIndex].DefaultWorldObjectDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Copy.Get());
+    if (!Refuses(TEXT("Mixed direct identity and world source rejected"))) return false;
 
-    AddInfo(FString::Printf(TEXT("[ARM-CLEAN06.4X55] 33 real direct entries, old=%d; "
-        "complete pointerless projection, field and presentation parity, no SavePackage."), Old));
+    AddInfo(TEXT("[ARM-CLEAN06.4X55] 33 real direct entries; canonical schema, field and presentation parity, no SavePackage."));
     return TestEqual(TEXT("Native palette remains read-only"), Source->GetOutermost()->IsDirty(), bPaletteDirty) &&
         TestEqual(TEXT("Canonical root remains read-only"), Root->GetOutermost()->IsDirty(), bRootDirty);
 }

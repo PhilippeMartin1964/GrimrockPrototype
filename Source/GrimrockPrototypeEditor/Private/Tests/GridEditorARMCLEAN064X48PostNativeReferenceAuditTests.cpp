@@ -132,20 +132,19 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
                  "DA_ObjectPalette_Default.DA_ObjectPalette_Default")));
     if (!TestNotNull(TEXT("Real direct item palette"), Palette.Get())) return false;
     const bool bPaletteDirty = Palette->GetOutermost()->IsDirty();
-    int32 PaletteRows = 0, PaletteOld = 0;
+    int32 PaletteRows = 0;
+    const int32 PaletteOld = 0;
+    TestNull(TEXT("Removed palette pointer schema"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")));
     for (const FGridObjectPaletteEntry& Entry : Palette->Entries)
     {
         if (!Entry.IsDirectItemEntry()) continue;
         ++PaletteRows;
         if (Entry.CanonicalItemId.IsNone() || !Known.Contains(Entry.CanonicalItemId) ||
-            !Entry.IsValidEntry() || (Entry.DefaultItemDefinition &&
-                (!IsValid(Entry.DefaultItemDefinition.Get()) ||
-                 Entry.DefaultItemDefinition->ItemDefinitionId != Entry.CanonicalItemId)))
+            !Entry.IsValidEntry())
         {
             AddError(TEXT("Canonical palette entry lost identity or retained contradictory source."));
             return false;
         }
-        if (Entry.DefaultItemDefinition) ++PaletteOld;
     }
     if (!TestEqual(TEXT("Palette remains unmodified"), Palette->GetOutermost()->IsDirty(), bPaletteDirty))
         return false;

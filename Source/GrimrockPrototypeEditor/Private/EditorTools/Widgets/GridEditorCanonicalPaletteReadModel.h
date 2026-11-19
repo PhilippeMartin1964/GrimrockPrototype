@@ -30,11 +30,6 @@ struct FGridEditorCanonicalPaletteReadModel
             return Out; // World objects are not item definitions.
         }
 
-        // Legacy-only entries are invalid direct items, not alternate sources.
-        Out.DisplayName = FText::FromName(Entry.EntryId);
-        if (Entry.CanonicalItemId.IsNone())
-            return Out;
-
         Out.bCanonicalSource = true;
         Out.ItemId = Entry.CanonicalItemId;
         Out.DisplayName = FText::FromName(Entry.CanonicalItemId);
@@ -42,7 +37,7 @@ struct FGridEditorCanonicalPaletteReadModel
         Out.Icon.Reset();
         if (!IsValid(Registry) || !Registry->IsConfigured() ||
             !Registry->HasCanonicalItem(Entry.CanonicalItemId) ||
-            Entry.DefaultItemDefinition || Entry.DefaultWorldObjectDefinition ||
+            Entry.DefaultWorldObjectDefinition ||
             Entry.Icon || Entry.DefaultMonsterDefinition || Entry.DefaultStoryCompanionDefinition ||
             Entry.CanonicalDefaultItemLevel < 0 || Entry.CanonicalDefaultItemLevel > 20)
         {

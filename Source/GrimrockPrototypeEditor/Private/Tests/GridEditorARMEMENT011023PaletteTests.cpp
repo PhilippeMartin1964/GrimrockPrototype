@@ -83,7 +83,7 @@ bool FARMEMENT011023IdempotenceTest::RunTest(const FString&)
         TestEqual(TEXT("Canonical identity matches"), Entry->CanonicalItemId, FName(Target->EntryId));
         TestTrue(TEXT("Physical default resolves"), FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
             Canonical.Registry.Get(), Entry->CanonicalItemId, Entry->CanonicalDefaultItemLevel));
-        TestNull(TEXT("No old source created"), Entry->DefaultItemDefinition.Get());
+        TestNull(TEXT("No old source created"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")));
         TestEqual(TEXT("Gameplay type still Item"), Entry->GetEffectiveObjectType(), EGridLevelObjectType::Item);
         TestNull(TEXT("No world-object wrapper"), Entry->DefaultWorldObjectDefinition.Get());
         TestNull(TEXT("No duplicated icon"), Entry->Icon.Get());
@@ -182,16 +182,14 @@ bool FARMEMENT011023BombPlacementTest::RunTest(const FString&)
         // to prove that the former editor bypass stays closed.
         TestEqual(TEXT("Proposed fire bomb resolves at N0"), Bomb->CanonicalItemId, BombId);
         TestEqual(TEXT("Proposed fire bomb level"), Bomb->CanonicalDefaultItemLevel, 0);
-        TestNull(TEXT("Proposal carries no historical pointer"), Bomb->DefaultItemDefinition.Get());
-        UGridItemDefinitionAsset* OldBomb = NewObject<UGridItemDefinitionAsset>(Palette);
-        OldBomb->ItemDefinitionId = BombId;
-        Bomb->DefaultItemDefinition = OldBomb;
-        TestFalse(TEXT("Matching old source cannot be selected"), Editor->ApplyPaletteEntry(BombId));
+        TestNull(TEXT("Proposal carries no historical pointer"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")));
+        Bomb->DefaultWorldObjectDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Palette);
+        TestFalse(TEXT("Mixed world source cannot be selected"), Editor->ApplyPaletteEntry(BombId));
         Editor->SelectedPaletteEntryId = BombId;
         Editor->PaintObjectType = EGridLevelObjectType::Item;
         Editor->PlaceSelectedObject();
-        TestEqual(TEXT("Old source cannot bypass selection"), Level->LooseItemInstances.Num(), 0);
-        Bomb->DefaultItemDefinition = nullptr;
+        TestEqual(TEXT("Mixed source cannot bypass selection"), Level->LooseItemInstances.Num(), 0);
+        Bomb->DefaultWorldObjectDefinition = nullptr;
         if (TestTrue(TEXT("Canonical bomb selectable via Grid Editor"),
             Editor->ApplyPaletteEntry(BombId)))
         {

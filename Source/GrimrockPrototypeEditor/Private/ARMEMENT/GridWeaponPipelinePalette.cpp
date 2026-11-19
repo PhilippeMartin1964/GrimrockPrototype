@@ -6,7 +6,7 @@ namespace
 {
     bool IsCanonicalDirect(const FGridObjectPaletteEntry& Entry, const UGridItemSubsystem* Registry)
     {
-        return Entry.IsDirectItemEntry() && !Entry.DefaultItemDefinition &&
+        return Entry.IsDirectItemEntry() &&
             !Entry.DefaultWorldObjectDefinition && !Entry.Icon &&
             !Entry.DefaultMonsterDefinition && !Entry.DefaultStoryCompanionDefinition &&
             FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(

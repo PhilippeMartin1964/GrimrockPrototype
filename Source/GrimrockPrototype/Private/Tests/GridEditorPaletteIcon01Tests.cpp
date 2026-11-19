@@ -22,11 +22,8 @@ bool FGridEditorPaletteIcon01::RunTest(const FString& Parameters)
 		return false;
 	}
 	TestEqual(TEXT("Icon is editable only for world-object entries"),
-		IconProperty->GetMetaData(TEXT("EditCondition")), FString(TEXT("DefaultWorldObjectDefinition != nullptr && DefaultItemDefinition == nullptr")));
-	const FProperty* OldSource = FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(
-		GET_MEMBER_NAME_CHECKED(FGridObjectPaletteEntry, DefaultItemDefinition));
-	if (!TestNotNull(TEXT("Historical serialized source remains reflected"), OldSource)) return false;
-	TestTrue(TEXT("Historical pointer is read-only in Details"), OldSource->HasAnyPropertyFlags(CPF_EditConst));
+		IconProperty->GetMetaData(TEXT("EditCondition")), FString(TEXT("DefaultWorldObjectDefinition != nullptr")));
+	TestNull(TEXT("Historical source removed from schema"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")));
 	TestTrue(TEXT("Inapplicable icon is hidden in Details"), IconProperty->HasMetaData(TEXT("EditConditionHides")));
 
 	UTexture2D* WorldIcon = NewObject<UTexture2D>();
@@ -49,7 +46,7 @@ bool FGridEditorPaletteIcon01::RunTest(const FString& Parameters)
 	FGridObjectPaletteEntry DirectItemEntry;
 	DirectItemEntry.EntryId = Item->ItemDefinitionId;
 	DirectItemEntry.PaletteCategory = TEXT("Items");
-	DirectItemEntry.DefaultItemDefinition = Item;
+	DirectItemEntry.CanonicalItemId = Item->ItemDefinitionId;
 	DirectItemEntry.Icon = WorldIcon; // Simulate setting Icon before choosing the ItemDefinition.
 	TestFalse(TEXT("Duplicate icon is invalid before normalizing"), DirectItemEntry.IsValidEntry());
 	TestTrue(TEXT("Switch to direct item clears its stale palette icon"), DirectItemEntry.ClearRedundantIconForDirectItem());
@@ -61,7 +58,6 @@ bool FGridEditorPaletteIcon01::RunTest(const FString& Parameters)
 	FGridObjectPaletteEntry CanonicalEntry = DirectItemEntry;
 	CanonicalEntry.EntryId = TEXT("Canonical_Icon01");
 	CanonicalEntry.CanonicalItemId = TEXT("Item_Icon01");
-	CanonicalEntry.DefaultItemDefinition = nullptr;
 	CanonicalEntry.Icon = WorldIcon;
 	TestFalse(TEXT("Pointerless direct entry cannot own a duplicate icon"), CanonicalEntry.IsValidEntry());
 	TestTrue(TEXT("Pointerless direct item clears stale icon"), CanonicalEntry.ClearRedundantIconForDirectItem());

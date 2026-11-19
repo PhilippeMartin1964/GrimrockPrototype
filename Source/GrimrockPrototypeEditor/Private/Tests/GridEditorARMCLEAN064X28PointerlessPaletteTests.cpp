@@ -163,9 +163,9 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 	OldMatchingArm->ItemDefinitionId = OriginalArm.CanonicalItemId;
 	FGridObjectPaletteEntry OldBackedEntry = OriginalArm;
 	OldBackedEntry.EntryId = TEXT("X44_MatchingLegacyBackedArm");
-	OldBackedEntry.DefaultItemDefinition = OldMatchingArm;
+	OldBackedEntry.DefaultWorldObjectDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Palette);
 	Palette->Entries.Add(OldBackedEntry);
-	bOk &= TestFalse(TEXT("Even matching old palette pointer is rejected"),
+	bOk &= TestFalse(TEXT("Mixed canonical and world source rejected"),
 		Editor->ApplyPaletteEntry(OldBackedEntry.EntryId));
 	const int32 BeforeReject = Level->LooseItemInstances.Num();
 	Editor->SelectedPaletteEntryId = OldBackedEntry.EntryId;
@@ -211,9 +211,9 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 	Wrong->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
 	Bad = OriginalArm;
 	Bad.EntryId = TEXT("X28_Contradictory");
-	Bad.DefaultItemDefinition = Wrong;
+	Bad.CanonicalItemId = TEXT("ARM_CLEAN06_UNKNOWN");
 	Palette->Entries.Add(Bad);
-	bOk &= TestFalse(TEXT("Contradictory old item cannot be selected"),
+	bOk &= TestFalse(TEXT("Unknown canonical item cannot be selected"),
 		Editor->ApplyPaletteEntry(Bad.EntryId));
 
 	World->DestroyWorld(false);

@@ -16,10 +16,9 @@ struct FGridEditorNativePalettePlan
 
     static bool TryBuild(const UGridObjectPaletteAsset& Source,
         const UGridItemSubsystem* Registry, TArray<FGridObjectPaletteEntry>& Out,
-        int32& OldPointers, FString& Error)
+        FString& Error)
     {
         Out.Reset();
-        OldPointers = 0;
         Error.Reset();
         TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
         if (!IsValid(Registry) || !Source.ValidatePalette(Messages))
@@ -39,8 +38,7 @@ struct FGridEditorNativePalettePlan
             ++Direct;
             if (Entry.CanonicalItemId.IsNone() ||
                 !Entry.IsValidEntry() ||
-                Entry.DefaultMonsterDefinition || Entry.DefaultStoryCompanionDefinition ||
-                Entry.DefaultItemDefinition)
+                Entry.DefaultMonsterDefinition || Entry.DefaultStoryCompanionDefinition)
             {
                 Error = FString::Printf(TEXT("Invalid direct entry: %s"), *Entry.EntryId.ToString());
                 return false;

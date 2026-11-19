@@ -199,7 +199,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
     {
         if (!Entry.IsDirectItemEntry()) { continue; }
         // X.5 materialized the physical palette default.
-        if (!CheckSource(Entry.CanonicalItemId, Entry.DefaultItemDefinition,
+        if (!CheckSource(Entry.CanonicalItemId, nullptr,
             Entry.CanonicalDefaultItemLevel, 1, true))
         {
             AddError(TEXT("Invalid direct palette identity or inherited level."));

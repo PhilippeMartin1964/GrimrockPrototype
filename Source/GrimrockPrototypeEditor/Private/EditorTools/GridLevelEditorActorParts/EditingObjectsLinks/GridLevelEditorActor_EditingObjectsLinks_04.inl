@@ -139,7 +139,7 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 	// Direct collectibles are authored exclusively from the configured ItemSystem.
 	if (Entry->IsDirectItemEntry())
 	{
-		if (Entry->DefaultItemDefinition || Entry->DefaultWorldObjectDefinition || Entry->Icon ||
+		if (!Entry->IsValidEntry() ||
 			!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
 				ResolveEditorItemRegistry(), Entry->CanonicalItemId,
 				Entry->CanonicalDefaultItemLevel))

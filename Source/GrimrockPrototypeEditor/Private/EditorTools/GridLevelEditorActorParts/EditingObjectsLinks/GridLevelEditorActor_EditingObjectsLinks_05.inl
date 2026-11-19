@@ -38,8 +38,7 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 	if (ExistingLoose)
 	{
 		if ((bReplaceLooseIdentity && !CanonicalEntry) ||
-			(CanonicalEntry && (!CanonicalEntry->IsDirectItemEntry() || CanonicalEntry->DefaultItemDefinition ||
-			 CanonicalEntry->DefaultWorldObjectDefinition || CanonicalEntry->Icon || CanonicalEntry->CanonicalItemId.IsNone())))
+			(CanonicalEntry && (!CanonicalEntry->IsDirectItemEntry() || !CanonicalEntry->IsValidEntry())))
 			return false;
 		const FName TargetId = bReplaceLooseIdentity ? CanonicalEntry->CanonicalItemId : ExistingLoose->CanonicalItemId;
 		const int32 TargetLevel = TargetId == ExistingLoose->CanonicalItemId

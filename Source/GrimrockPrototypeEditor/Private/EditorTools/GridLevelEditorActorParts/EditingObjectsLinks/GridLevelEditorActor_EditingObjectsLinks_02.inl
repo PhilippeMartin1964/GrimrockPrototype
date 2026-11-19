@@ -17,8 +17,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 	const FGridObjectPaletteEntry* PaletteEntry = ObjectPalette
 		? ObjectPalette->FindEntryById(SelectedPaletteEntryId) : nullptr;
 	if (PaintObjectType == EGridLevelObjectType::Item &&
-		(!PaletteEntry || !PaletteEntry->IsDirectItemEntry() || PaletteEntry->DefaultItemDefinition ||
-		 PaletteEntry->DefaultWorldObjectDefinition || PaletteEntry->Icon ||
+		(!PaletteEntry || !PaletteEntry->IsDirectItemEntry() || !PaletteEntry->IsValidEntry() ||
 		 !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
 			ResolveEditorItemRegistry(), PaletteEntry->CanonicalItemId,
 			PaletteEntry->CanonicalDefaultItemLevel)))

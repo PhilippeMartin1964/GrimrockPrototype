@@ -26,26 +26,18 @@ struct FGridObjectPaletteEntry
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
 		meta = (ToolTip = "Palette icon for world-object entries only. Direct collectibles resolve their icon from ItemSystem.",
-			EditCondition = "DefaultWorldObjectDefinition != nullptr && DefaultItemDefinition == nullptr", EditConditionHides))
+			EditCondition = "DefaultWorldObjectDefinition != nullptr", EditConditionHides))
 	TObjectPtr<UTexture2D> Icon = nullptr;
 
-	/** World-object definition for non-collectible entries. Collectible items use DefaultItemDefinition directly. */
+	/** World-object definition for non-collectible entries. Collectibles use CanonicalItemId and ItemSystem. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette")
 	TObjectPtr<UGridWorldObjectDefinitionAsset> DefaultWorldObjectDefinition = nullptr;
 
-	/** Historical serialized source, read-only in Details. Author new direct entries by CanonicalItemId. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Palette|Item")
-	TObjectPtr<UGridItemDefinitionAsset> DefaultItemDefinition = nullptr;
-
-	/** One stable ItemId for direct collectibles; the one-shot 06.4W
-	 * Editor migration derives it from the original authored definition. */
+	/** Sole stable identity for direct collectibles. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Item|Canonical")
 	FName CanonicalItemId = NAME_None;
 
-	/** ARM-CLEAN06.4X.5: physical default for NEW direct palette placements.
-	 * N1-N20 for ARM, N0 for unlevelled items; never infer N1 at runtime.
-	 * One-shot Editor migration derives this from the original source.
-	 * The old source pointer remains until the verified reader cutover. */
+	/** Explicit physical default for new placements: ARM N1-N20, other items N0. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Item|Canonical",
 		meta = (ClampMin = "0", ClampMax = "20"))
 	int32 CanonicalDefaultItemLevel = 0;
@@ -60,7 +52,7 @@ struct FGridObjectPaletteEntry
 
 	bool IsDirectItemEntry() const
 	{
-		return DefaultItemDefinition != nullptr || !CanonicalItemId.IsNone();
+		return !CanonicalItemId.IsNone();
 	}
 
 #if WITH_EDITOR
@@ -75,21 +67,6 @@ struct FGridObjectPaletteEntry
 		return true;
 	}
 #endif
-
-	#if WITH_EDITOR
-	/** Temporary Editor migration/inspection predicate. Compare identity only,
-	 *  never resolve item gameplay/presentation from the old source. */
-	bool MatchesDirectItemSource(const UGridItemDefinitionAsset* Source) const
-	{
-		if (!IsValid(Source) || Source->ItemDefinitionId.IsNone()) return false;
-		if (!CanonicalItemId.IsNone())
-		{
-			return CanonicalItemId == Source->ItemDefinitionId &&
-				(!DefaultItemDefinition || DefaultItemDefinition.Get() == Source);
-		}
-		return DefaultItemDefinition.Get() == Source;
-	}
-	#endif
 
 	FName GetEffectiveWorldObjectDefinitionId() const
 	{
@@ -111,15 +88,7 @@ struct FGridObjectPaletteEntry
 	{
 		if (IsDirectItemEntry())
 		{
-			if (!IsValid(DefaultItemDefinition.Get()))
-			{
-				return FText::FromName(CanonicalItemId);
-			}
-			if (!DefaultItemDefinition->DisplayName.IsEmpty())
-			{
-				return DefaultItemDefinition->DisplayName;
-			}
-			return !DefaultItemDefinition->ItemDefinitionId.IsNone() ? FText::FromName(DefaultItemDefinition->ItemDefinitionId) : FText::FromName(EntryId);
+			return FText::FromName(CanonicalItemId);
 		}
 
 		if (DefaultWorldObjectDefinition && !DefaultWorldObjectDefinition->DisplayName.IsEmpty())
@@ -140,19 +109,9 @@ struct FGridObjectPaletteEntry
 
 		if (IsDirectItemEntry())
 		{
-			if (DefaultWorldObjectDefinition || Icon || CanonicalDefaultItemLevel < 0 ||
-				CanonicalDefaultItemLevel > 20)
-			{
-				return false;
-			}
-			if (!CanonicalItemId.IsNone() && IsValid(DefaultItemDefinition.Get()) &&
-				DefaultItemDefinition->ItemDefinitionId != CanonicalItemId)
-			{
-				return false;
-			}
-			return !CanonicalItemId.IsNone() ||
-				(IsValid(DefaultItemDefinition.Get()) &&
-				 DefaultItemDefinition->IsValidDefinition());
+			return !DefaultWorldObjectDefinition && !Icon && !DefaultMonsterDefinition &&
+				!DefaultStoryCompanionDefinition && CanonicalDefaultItemLevel >= 0 &&
+				CanonicalDefaultItemLevel <= 20;
 		}
 
 		return DefaultWorldObjectDefinition && !DefaultWorldObjectDefinition->DefinitionId.IsNone() && DefaultWorldObjectDefinition->SupportedType != EGridLevelObjectType::None

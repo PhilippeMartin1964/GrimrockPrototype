@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.28 — Retrait du pointeur historique de la palette
+
+Parent b789cc0eb515f01f204061a472904c86907ef68f : publication seulement après validation complète. Suppression de FGridObjectPaletteEntry.DefaultItemDefinition et de MatchesDirectItemSource ; identité, niveau physique, présentation et propositions directs reposent exclusivement sur ItemSystem. Les 33 lignes natives et leurs valeurs sont contrôlées sans écriture ; la réflexion doit confirmer l'absence du champ. Rejet des identités inconnues, niveaux incohérents et sources mixtes. Aucun asset ni SaveGame modifié. Voir [5G.28](ARM_CLEAN06_5G28_PALETTE_SCHEMA_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.27 — Outils de proposition de palette canoniques
 
 Parent f9b64bf419641e04e6f32160425412ed2c889b37, publication conditionnée aux deux statuts SUCCESS. Les deux anciens outils de proposition utilisent désormais le registre canonique, l'ItemId et un niveau physique explicite pour une nouvelle entrée ; aucun chargement/écriture d'ancienne définition dans ces outils. Préservation des niveaux existants, rejet des collisions et des propositions partielles. INDUS02 et ARMEMENT011023 contrôlent les vrais IDs/N, le refus N0 ARM et la bombe N0 transitoire. Aucun ajout de bombe à la palette réelle, aucun package ni SaveGame modifié. Voir [5G.27](ARM_CLEAN06_5G27_CANONICAL_PALETTE_TOOLS.md).

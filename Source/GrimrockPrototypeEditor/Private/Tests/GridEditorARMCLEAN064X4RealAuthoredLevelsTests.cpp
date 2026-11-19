@@ -278,7 +278,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
             continue;
         }
         // X.5 materialized the physical default in the palette.
-        if (!Check(Entry.CanonicalItemId, Entry.DefaultItemDefinition,
+        if (!Check(Entry.CanonicalItemId, nullptr,
                 Entry.CanonicalDefaultItemLevel, 1, true))
         {
             AddError(TEXT("Physical level for a direct palette item is unresolved."));
