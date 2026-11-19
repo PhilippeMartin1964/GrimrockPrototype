@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Kismet/GameplayStatics.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
@@ -51,8 +52,10 @@ bool FARMEMENT01172BStarterSave::RunTest(const FString&)
 	if (!TestTrue(TEXT("Catalyst builds QuickItem"), Catalyst->BuildQuickItemCombatActionDefinition(Action)))
 		return false;
 	TestTrue(TEXT("N1 catalyst does not require Mage N2 talent"), Action.Requirements.IsEmpty());
-	TestTrue(TEXT("Canonical starter save resolver knows only exact approved source"),
-		FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(Catalyst->ItemDefinitionId) == Catalyst);
+	FGridCanonicalRegistryFixture Canonical;
+	FGridResolvedItem Resolved;
+	TestTrue(TEXT("Catalyst save identity resolves through ItemSystem at N0"),
+		Canonical.Resolve(Catalyst->ItemDefinitionId, 0, Resolved) && !Resolved.bIsArmament);
 
 	const int32 OriginalKitCount = Mage->StartingEquipmentKits.Num();
 	const FName OriginalDefault = Mage->DefaultStartingEquipmentKitId;

@@ -16,9 +16,6 @@ class UGridItemSubsystem;
 class GRIMROCKPROTOTYPE_API FRPGStartingEquipmentPresetCatalog
 {
 public:
-    /** Recover starter item definitions independently of dungeon placement. */
-    static UGridItemDefinitionAsset* ResolveKnownStartingItemDefinition(FName ItemDefinitionId);
-
     static bool IsProductionClassAsset(const URPGClassAsset* ClassAsset);
 
     /** Populate an initially unconfigured transient class. Transactional. */

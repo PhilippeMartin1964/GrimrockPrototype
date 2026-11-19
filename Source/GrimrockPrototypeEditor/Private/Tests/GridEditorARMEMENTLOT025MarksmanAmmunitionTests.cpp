@@ -21,8 +21,8 @@ bool FARMEMENTLOT025MarksmanStarter::RunTest(const FString&)
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ShortBow_01.DA_Weapon_ShortBow_01"));
     UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
-    UGridItemDefinitionAsset* Arrows =
-        FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(ArrowId);
+    UGridItemDefinitionAsset* Arrows = LoadObject<UGridItemDefinitionAsset>(
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
     if (!TestNotNull(TEXT("ARM045 has a definition"), Bow) ||
         !TestNotNull(TEXT("ARM001 has a definition"), Dagger) ||
         !TestNotNull(TEXT("Real arrow package resolves for SaveGame"), Arrows))
@@ -106,7 +106,12 @@ bool FARMEMENTLOT025MarksmanStarter::RunTest(const FString&)
     FName MissingId;
     TestTrue(TEXT("Saved starting items rehydrate without dungeon placement"),
         Restored->RehydrateOwnedItemDefinitions(
-            [](FName Id) { return FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(Id); },
+            [Bow, Dagger, Arrows](FName Id) -> UGridItemDefinitionAsset*
+            {
+                for (UGridItemDefinitionAsset* Definition : {Bow, Dagger, Arrows})
+                    if (Definition && Definition->ItemDefinitionId == Id) return Definition;
+                return nullptr;
+            },
             MissingId));
     TestTrue(TEXT("No missing item IDs"), MissingId.IsNone());
     TestEqual(TEXT("Saved stack quantity"), Restored->CountItemDefinitionInCharacterInventory(0, ArrowId), 11);

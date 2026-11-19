@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Kismet/GameplayStatics.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
@@ -81,8 +82,10 @@ bool FARMEMENT01171OilContract::RunTest(const FString&)
     TestEqual(TEXT("Existing oil lasts four rounds"), Action.SurfaceEffects[0].DurationRounds, 4);
     TestEqual(TEXT("Oil terrain traversal penalty is preserved"),
         Action.SurfaceEffects[0].TraversalCostModifier, 1);
-    TestTrue(TEXT("Exact ID is found by the authorized starter rehydration catalogue"),
-        FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(Oil->ItemDefinitionId) == Oil);
+    FGridCanonicalRegistryFixture Canonical;
+    FGridResolvedItem Resolved;
+    TestTrue(TEXT("Exact oil save identity resolves through ItemSystem at N0"),
+        Canonical.Resolve(Oil->ItemDefinitionId, 0, Resolved) && !Resolved.bIsArmament);
     return true;
 }
 

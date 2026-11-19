@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
@@ -194,9 +195,11 @@ bool FWeaponIndustrial05LegacyExceptions::RunTest(const FString&)
     TestTrue(TEXT("ARM054 definition is valid"), Canonical->IsValidDefinition());
     TestTrue(TEXT("ARM054 is still a physical throwing weapon"),
         Canonical->bCombatThrowWeapon && Canonical->IsPhysicallyThrowable());
-    TestTrue(TEXT("ARM054 can rehydrate the same saved definition ID"),
-        FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(
-            Canonical->ItemDefinitionId) == Canonical);
+    FGridCanonicalRegistryFixture CanonicalRegistry;
+    FGridResolvedItem Resolved;
+    TestTrue(TEXT("ARM054 saved identity resolves through the canonical ItemSystem"),
+        CanonicalRegistry.Resolve(Canonical->ItemDefinitionId, 1, Resolved) &&
+        Resolved.bIsArmament && Resolved.ArchetypeId == FName(TEXT("ARM054")));
 
     struct FKitToMigrate
     {

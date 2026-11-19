@@ -3,6 +3,7 @@
 #include "Tests/GridAutomationSaveIsolation.h"
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Kismet/GameplayStatics.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
@@ -263,9 +264,12 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
             FName MissingDefinitionId = NAME_None;
             if (!TestTrue(*FString::Printf(TEXT("%s: rehydrate starting item definitions"), *Kit.KitId.ToString()),
                 Continued->RehydrateOwnedItemDefinitions(
-                    [](FName ItemId)
+                    [&Kit](FName ItemId) -> UGridItemDefinitionAsset*
                     {
-                        return FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(ItemId);
+                        for (const auto& Entry : Kit.Items)
+                            if (Entry.ItemDefinition && Entry.ItemDefinition->ItemDefinitionId == ItemId)
+                                return Entry.ItemDefinition.Get();
+                        return nullptr;
                     }, MissingDefinitionId)))
             {
                 AddError(FString::Printf(TEXT("%s: missing saved item %s"),
@@ -341,6 +345,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01132Legacy,
 
 bool FARMEMENT01132Legacy::RunTest(const FString&)
 {
+    FGridCanonicalRegistryFixture Canonical;
+    if (!TestTrue(TEXT("Configured canonical registry"), Canonical.bReady)) return false;
     int32 Count = 0;
     for (const TCHAR* Id : ARMEMENT01132::Classes)
     {
@@ -361,15 +367,15 @@ bool FARMEMENT01132Legacy::RunTest(const FString&)
             {
                 UGridItemDefinitionAsset* Definition = Entry.ItemDefinition.Get();
                 if (!TestNotNull(TEXT("Legacy definition exists"), Definition)) return false;
-                TestTrue(TEXT("Exact legacy item identity can be rehydrated"),
-                    FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(
-                        Definition->ItemDefinitionId) == Definition);
+                FGridResolvedItem Resolved;
+                TestTrue(TEXT("Every old kit identity has a canonical physical representation"),
+                    Canonical.Resolve(Definition->ItemDefinitionId, Definition->bUseWeaponCatalogue ? 1 : 0, Resolved));
             }
         }
     }
     TestEqual(TEXT("All twelve legacy recipes preserved"), Count, 12);
-    TestNull(TEXT("Unknown saved ID is not substituted"),
-        FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(TEXT("Unknown_01132")));
+    FGridResolvedItem Missing;
+    TestFalse(TEXT("Unknown saved ID is not substituted"), Canonical.Resolve(TEXT("Unknown_01132"), 0, Missing));
 
     URPGClassAsset* Warrior = ARMEMENT01132::LoadClass(TEXT("Warrior"));
     URPGRaceAsset* Race = ARMEMENT01132::Human();

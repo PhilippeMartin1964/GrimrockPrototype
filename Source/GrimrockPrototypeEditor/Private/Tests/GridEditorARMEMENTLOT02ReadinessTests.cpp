@@ -17,6 +17,16 @@
 
 namespace ARMEMENTLOT02
 {
+    // Historical manifest characterization only: explicit item package named by
+    // the CSV, no runtime catalogue or recipe fallback.
+    UGridItemDefinitionAsset* LoadHistoricalSupport(FName ItemId)
+    {
+        const FString Name = FString::Printf(TEXT("DA_%s"), *ItemId.ToString());
+        const FString Path = FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/%s.%s"), *Name, *Name);
+        UGridItemDefinitionAsset* Asset = LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
+        return IsValid(Asset) && Asset->ItemDefinitionId == ItemId ? Asset : nullptr;
+    }
+
     struct FRecipe
     {
         FString ClassId;
@@ -310,8 +320,7 @@ bool FARMEMENTLOT02Readiness::RunTest(const FString&)
             Reason = TEXT("PENDING_SUPPORT:") + Recipe.PendingSupport;
         else if (Recipe.DesignNote == TEXT("AmmoSupplyMustBeVerified"))
         {
-            Ammunition = FRPGStartingEquipmentPresetCatalog::
-                ResolveKnownStartingItemDefinition(TEXT("Item_Arrows_01"));
+            Ammunition = LoadHistoricalSupport(TEXT("Item_Arrows_01"));
             if (!IsValid(Ammunition) || !Ammunition->IsValidDefinition() ||
                 !Ammunition->bStackable || Ammunition->MaxStackSize < 12 ||
                 !IsValid(Main.Item) ||
@@ -322,8 +331,7 @@ bool FARMEMENTLOT02Readiness::RunTest(const FString&)
         }
         else if (!Recipe.SupportId.IsNone())
         {
-            Support = FRPGStartingEquipmentPresetCatalog::
-                ResolveKnownStartingItemDefinition(Recipe.SupportId);
+            Support = LoadHistoricalSupport(Recipe.SupportId);
             if (!IsValid(Support) || !Support->IsValidDefinition())
                 Reason = TEXT("SUPPORT_ITEM_UNAVAILABLE:") + Recipe.SupportId.ToString();
         }

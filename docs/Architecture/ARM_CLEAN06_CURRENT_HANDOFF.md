@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.35 — Retrait de la fonction de recherche des recettes
+
+Parent 17fbeb2f1cb522c654b2308fcfd2b2b1832cc747. Après retrait de tous les consommateurs runtime en 5G.33, supprimer ResolveKnownStartingItemDefinition des recettes RPG. Les fixtures historiques de projection récupèrent uniquement leurs entrées explicites déjà chargées ou leurs packages du manifeste ; les preuves d'identité des douze recettes, ARM054, huile et catalyseur passent par un registre canonique réel. Aucun chargement par recette dans le jeu. Les recettes historiques elles-mêmes et les tests de création sans registre restent un périmètre distinct. Aucun asset ni SaveGame joueur modifié.
+
 ## ARM-CLEAN06.5G.34 — Préflight canonique des snapshots monde
 
 Parent a72bc7fe09b3b228332a1ae737a436d96a5d1fa4. Contrôle en lecture seule de l'identité physique, GUID et appartenance des objets (sol, réceptacles, file PIT, projectile enchâssé) avant mutations de restauration. Continue valide tous les niveaux avant RebuildLevel ; la réhydratation du groupe précède également la reconstruction. Le voyage valide le snapshot destination avant de quitter la source. Les anciens mondes Automation sans GameInstance restent temporairement distingués pour l'application directe et les déplacements, sans repli de production. Le nouveau test 5G34 vérifie les refus et l'acteur/transform inchangés. Aucun changement de schéma ni sauvegarde joueur.
