@@ -1,4 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "GridCanonicalWorldSnapshotReadModel.h"
 #include "UObject/ConstructorHelpers.h"
 
 #include "Core/GridRelocationUtils.h"
@@ -1853,6 +1854,21 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 	{
 		UE_LOG(LogGridLevelRuntime, Error, TEXT("Dungeon travel failed: PartyPawn is null."));
 		return false;
+	}
+
+	// Reject a corrupt destination before capturing/clearing the source.
+#if WITH_DEV_AUTOMATION_TESTS
+	if (GetWorld() && GetWorld()->GetGameInstance())
+#endif
+	{
+		const FGridLevelRuntimeState* Destination = DungeonRuntimeState.LevelStates.Find(TargetLevelId);
+		FString ItemError;
+		if (Destination && !FGridCanonicalWorldSnapshotReadModel::ValidateLevel(
+			FGridCanonicalWorldSnapshotReadModel::GetRegistry(GetWorld()), *Destination, ItemError))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Dungeon travel rejected: %s"), *ItemError);
+			return false;
+		}
 	}
 
 	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Dungeon travel: %s -> %s, Cell=(%d,%d), Facing=%s."), *CurrentDungeonLevelId.ToString(), *TargetLevelId.ToString(),

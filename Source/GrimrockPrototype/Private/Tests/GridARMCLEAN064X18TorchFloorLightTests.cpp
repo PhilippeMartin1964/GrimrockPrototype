@@ -21,6 +21,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "../Runtime/GridCanonicalWorldSnapshotReadModel.h"
 
 namespace ARMCLEAN064X18
 {
@@ -383,6 +384,73 @@ bool FGridClean064X1610ReceptacleRestore::RunTest(const FString&)
     TestTrue(TEXT("Removal permitted after restore"), Receptacle->bCanRemoveItem);
     return ARMCLEAN064X1610::CheckTorch(*this, Receptacle->GetContainedItemActor(0),
         Guid, true, Projected.VisualEffects.Effects.Num());
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean5G34WorldPreflight,
+    "Grimrock.RPG.ARM.CLEAN06_5G34.CanonicalWorldSnapshotPreflight",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean5G34WorldPreflight::RunTest(const FString&)
+{
+    ARMCLEAN064X18::FFixture F;
+    if (!TestTrue(TEXT("Configured runtime registry"),
+        F.Runtime && F.Registry && F.Registry->IsConfigured())) return false;
+    const FGuid TorchGuid = FGuid::NewGuid();
+    FGridRuntimeItemState Torch = ARMCLEAN064X1610::Torch(TorchGuid, true);
+    FGridLevelRuntimeState* State = F.Runtime->GetOrCreateRuntimeStateForCurrentLevel();
+    State->bHasBeenVisited = true;
+    State->Items.Add(TorchGuid, Torch);
+    if (!TestTrue(TEXT("Valid physical snapshot applies"), F.Runtime->ApplyCurrentLevelRuntimeState()))
+        return false;
+    AGridItemActor* Original = F.Find(TorchGuid);
+    if (!TestNotNull(TEXT("Existing canonical torch"), Original)) return false;
+    const FTransform Before = Original->GetActorTransform();
+    const int32 BeforeCount = State->Items.Num();
+    FString Error;
+    TestTrue(TEXT("Complete valid snapshot preflights"),
+        FGridCanonicalWorldSnapshotReadModel::ValidateLevel(F.Registry, *State, Error));
+    State->Items[TorchGuid].ItemLevel = 1;
+    State->Items[TorchGuid].Transform.SetLocation(FVector(9999.f, 9999.f, 9999.f));
+    TestFalse(TEXT("Invalid N1 torch rejects before touching actors"), F.Runtime->ApplyCurrentLevelRuntimeState());
+    TestTrue(TEXT("Original actor remains live"), F.Find(TorchGuid) == Original && IsValid(Original));
+    TestTrue(TEXT("Original transform unchanged"), Original->GetActorTransform().Equals(Before));
+    State->Items[TorchGuid] = Torch;
+    const FGuid OtherGuid = FGuid::NewGuid();
+    FGridRuntimeItemState Unknown = Torch;
+    Unknown.ObjectId = OtherGuid;
+    Unknown.ItemDefinitionId = TEXT("ARM_CLEAN06_UnknownWorldItem");
+    State->Items.Add(OtherGuid, Unknown);
+    TestFalse(TEXT("Unknown item cannot create a placeholder"), F.Runtime->ApplyCurrentLevelRuntimeState());
+    TestNull(TEXT("Unknown actor absent"), F.Find(OtherGuid));
+    State->Items.Remove(OtherGuid);
+    FGridPendingWorldItemState Pending;
+    Pending.ItemState = Torch;
+    State->PendingInboundItems.Add(TorchGuid, Pending);
+    TestFalse(TEXT("Pending duplicate of a ground GUID is rejected"),
+        FGridCanonicalWorldSnapshotReadModel::ValidateLevel(F.Registry, *State, Error));
+    State->PendingInboundItems.Reset();
+    Pending.ItemState.ObjectId = OtherGuid;
+    Pending.ItemState.Quantity = 0;
+    State->PendingInboundItems.Add(OtherGuid, Pending);
+    TestFalse(TEXT("Malformed pending physical item rejected"),
+        FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(F.Registry, F.Runtime->DungeonRuntimeState, Error));
+    State->PendingInboundItems.Reset();
+    const FGuid Owner = FGuid::NewGuid();
+    FGridRuntimeReceptacleState Contained;
+    Contained.ObjectId = Owner;
+    FGridRuntimeItemState ContainedTorch = Torch;
+    ContainedTorch.ObjectId = OtherGuid;
+    ContainedTorch.bIsContainedInReceptacle = true;
+    ContainedTorch.ReceptacleObjectId = FGuid::NewGuid();
+    Contained.ContainedItems.Add(ContainedTorch);
+    State->Receptacles.Add(Owner, Contained);
+    TestFalse(TEXT("Contained item must identify its actual owner"),
+        FGridCanonicalWorldSnapshotReadModel::ValidateLevel(F.Registry, *State, Error));
+    State->Receptacles.Remove(Owner);
+    TestEqual(TEXT("Original number of ground items"), State->Items.Num(), BeforeCount);
+    TestTrue(TEXT("Corrected snapshot applies"), F.Runtime->ApplyCurrentLevelRuntimeState());
+    TestTrue(TEXT("Corrected world retains original GUID"), F.Find(TorchGuid) == Original);
+    return !HasAnyErrors();
 }
 
 #endif

@@ -1,4 +1,5 @@
 #include "Runtime/GrimrockPartyPawn.h"
+#include "GridCanonicalWorldSnapshotReadModel.h"
 
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
@@ -163,6 +164,18 @@ bool AGrimrockPartyPawn::LoadCurrentGameData(FText& OutError, bool bApplyDungeon
 		return false;
 	}
 
+	// Inspect every saved level, including inactive destinations, before
+	// rebuilding actors or changing the live party.
+	FString WorldItemError;
+	if (bApplyDungeonState && !FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(
+		FGridCanonicalWorldSnapshotReadModel::GetRegistry(GetWorld()),
+		SaveGame->DungeonRuntimeState, WorldItemError))
+	{
+		UE_LOG(LogGrimrockPartySave, Warning, TEXT("Saved world item preflight rejected: %s"), *WorldItemError);
+		OutError = FText::FromString(TEXT("L'état runtime sauvegardé ne peut pas être appliqué au niveau."));
+		return false;
+	}
+
 	const FGridPartyInventoryState PreviousPartyState = PartyInventoryComponent->PartyInventoryState;
 	const TArray<FGuid> PreviousPortraitOrder = PartyInventoryComponent->PartyPortraitOrder;
 	const FGridDungeonRuntimeState PreviousDungeonState = LevelRuntimeActor->DungeonRuntimeState;
@@ -193,6 +206,12 @@ bool AGrimrockPartyPawn::LoadCurrentGameData(FText& OutError, bool bApplyDungeon
 
 	PartyInventoryComponent->RestorePartyPortraitOrder(SaveGame->PartyPortraitOrder);
 
+	if (!RehydrateLoadedItemDefinitions(OutError))
+	{
+		RestorePreviousState();
+		return false;
+	}
+
 	if (bApplyDungeonState)
 	{
 		LevelRuntimeActor->DungeonRuntimeState = SaveGame->DungeonRuntimeState;
@@ -213,12 +232,6 @@ bool AGrimrockPartyPawn::LoadCurrentGameData(FText& OutError, bool bApplyDungeon
 		CurrentCellX = SaveGame->PartyCellX;
 		CurrentCellY = SaveGame->PartyCellY;
 		Facing = SaveGame->PartyFacing == EGridEdge::None ? EGridEdge::North : SaveGame->PartyFacing;
-	}
-
-	if (!RehydrateLoadedItemDefinitions(OutError))
-	{
-		RestorePreviousState();
-		return false;
 	}
 
 	if (bApplyDungeonState && !LevelRuntimeActor->ApplyCurrentLevelRuntimeState())

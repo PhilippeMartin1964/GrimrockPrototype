@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.34 — Préflight canonique des snapshots monde
+
+Parent a72bc7fe09b3b228332a1ae737a436d96a5d1fa4. Contrôle en lecture seule de l'identité physique, GUID et appartenance des objets (sol, réceptacles, file PIT, projectile enchâssé) avant mutations de restauration. Continue valide tous les niveaux avant RebuildLevel ; la réhydratation du groupe précède également la reconstruction. Le voyage valide le snapshot destination avant de quitter la source. Les anciens mondes Automation sans GameInstance restent temporairement distingués pour l'application directe et les déplacements, sans repli de production. Le nouveau test 5G34 vérifie les refus et l'acteur/transform inchangés. Aucun changement de schéma ni sauvegarde joueur.
+
 ## ARM-CLEAN06.5G.33 — Retrait du lookup runtime des recettes historiques
 
 Parent b9fd173c179cf182b6322e8fc1a3f56b88a773bc. Suppression de AGridLevelRuntimeActor::ResolveRuntimeItemDefinition et de tous ses appels production. Les transferts et lectures ne peuvent plus récupérer des anciennes définitions par recette ; le seul helper legacy restant lit la carte explicite du propriétaire. Les snapshots historiques avec pointeur explicite et les représentations par ID de tests sans registre restent distincts, à traiter avec la restauration stricte du monde. 0192, MIG05, 3AV et X.30 utilisent le vrai registre ou un transfert sans source pour vérifier les refus. Aucun package ni SaveGame joueur écrit.

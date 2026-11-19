@@ -7,6 +7,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "GridWorldPickupIdentityReadModel.h"
+#include "GridCanonicalWorldSnapshotReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridThrownItemActor.h"
@@ -410,6 +411,21 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	}
 
 	const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel();
+	const UGridItemSubsystem* RestoreRegistry =
+		FGridCanonicalWorldSnapshotReadModel::GetRegistry(GetWorld());
+	// Registry-less historical automation worlds are not a production path.
+	// Pending inbound items on an unvisited level are also validated.
+#if WITH_DEV_AUTOMATION_TESTS
+	if (GetWorld() && GetWorld()->GetGameInstance())
+#endif
+	{
+		FString ItemError;
+		if (State && !FGridCanonicalWorldSnapshotReadModel::ValidateLevel(RestoreRegistry, *State, ItemError))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Apply rejected: %s"), *ItemError);
+			return false;
+		}
+	}
 	if (!State || !State->bHasBeenVisited)
 	{
 		ApplyInitialMonsterStateForCurrentLevel();
@@ -419,12 +435,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 
 	AbortActiveCombatAndMonsterActions();
 
-	// One registry for both flying-arrow pickup materialization and embedded
-	// arrow reattachment. A registered invalid ItemId is never legacy.
-	UWorld* RestoreWorld = GetWorld();
-	UGameInstance* RestoreGI = RestoreWorld ? RestoreWorld->GetGameInstance() : nullptr;
-	const UGridItemSubsystem* RestoreRegistry =
-		RestoreGI ? RestoreGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 
 	TArray<AGridMonsterActor*> WorldMonsters;
 	PersistenceGetWorldMonsters(GetWorld(), WorldMonsters);
