@@ -335,8 +335,7 @@ bool AGridReceptacleActor::ContainsItemType(EGridItemType ItemType) const
 					return ItemType == CanonicalType;
 				}
 				// Unlike ARM, every registered non-ARM item is physically N0.
-				// The generic resolver currently accepts a non-ARM N1, so this
-				// gameplay condition must reject it before consulting legacy type.
+				// Keep the physical invariant explicit before consulting item type.
 				if (Item.ItemLevel != 0)
 				{
 					return false;

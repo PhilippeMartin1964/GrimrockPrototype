@@ -233,12 +233,11 @@ namespace ARMCLEAN063AV
             F.Runtime->SpawnThrownItemProjectile(Bad, Contradictory, Start, Velocity, 0, 0));
     }
 
-    // The general resolver retains non-ARM N1 family reads for legacy UI.
-    // A PHYSICAL arrow N1 must still be rejected before spawning, even if an
-    // old matching asset falsely advertises a valid hand-throw policy.
+    // A malformed arrow N1 is rejected at the sole registry and also at
+    // spawn, even if an old matching asset advertises a valid throw policy.
     const FGridItemInstance BadArrow = F.Make(TEXT("Item_Arrows_01"), 1);
     FGridResolvedItem N1Family;
-    Test.TestTrue(TEXT("Non-ARM N1 family read remains supported"),
+    Test.TestFalse(TEXT("Registry rejects former non-ARM N1 family alias"),
         F.Registry->ResolveItem(BadArrow.ItemDefinitionId, BadArrow.ItemLevel, N1Family));
     UGridItemDefinitionAsset* MatchingLegacyArrow = NewObject<UGridItemDefinitionAsset>(F.Runtime);
     MatchingLegacyArrow->ItemDefinitionId = BadArrow.ItemDefinitionId;

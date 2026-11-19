@@ -32,9 +32,8 @@ struct FGridCanonicalItemSpawnReadModel
             {
                 return false;
             }
-            // ResolveItem alone allows non-ARM N1 (family-level projection);
-            // already-authored physical instances must use the strict reader
-            // shared by world pickups and initial receptacle contents.
+            // Use the physical reader shared by world pickups and initial
+            // receptacle contents; registered identities require exact levels.
             const FGridReceptacleItemMetadataReadView Physical =
                 FGridWorldItemLevelReadModel::ResolvePersistedInstance(
                     Registry, nullptr, Source.CanonicalItemId, Source.ItemLevel);

@@ -30,20 +30,19 @@ bool FGridClean063VUnlevelledAmmo::RunTest(const FString&)
 	if (!TestTrue(TEXT("Production arrows have a canonical ItemId"), Registry->HasCanonicalItem(ArrowsId)))
 		return false;
 
-	FGridResolvedItem N0, N1;
+	FGridResolvedItem N0;
 	if (!TestTrue(TEXT("Real arrows resolve as unlevelled item at N0"),
 		Registry->ResolveItem(ArrowsId, 0, N0))) return false;
-	if (!TestTrue(TEXT("Pre-existing N1 ammo resolutions remain supported"),
-		Registry->ResolveItem(ArrowsId, 1, N1))) return false;
 	TestFalse(TEXT("Unlevelled arrows do not invent an ARM archetype"), N0.bIsArmament);
 	TestEqual(TEXT("Arrows preserve zero item level"), N0.ItemLevel, 0);
-	TestEqual(TEXT("Arrows keep a single canonical name"),
-		N0.DisplayName.ToString(), N1.DisplayName.ToString());
-	TestEqual(TEXT("Arrows retain one authored WeightKg"), N0.WeightKg, N1.WeightKg);
-	TestEqual(TEXT("Arrows retain one canonical icon"),
-		N0.ItemIcon.ToSoftObjectPath().ToString(), N1.ItemIcon.ToSoftObjectPath().ToString());
-	TestEqual(TEXT("Arrows retain one canonical world mesh"),
-		N0.WorldMesh.ToSoftObjectPath().ToString(), N1.WorldMesh.ToSoftObjectPath().ToString());
+	for (int32 Level = 1; Level <= 20; ++Level)
+	{
+		FGridResolvedItem Refused = N0;
+		TestFalse(TEXT("Non-ARM physical level above N0 rejected at sole registry"),
+			Registry->ResolveItem(ArrowsId, Level, Refused));
+		TestEqual(TEXT("Invalid level error"), Refused.Error, EGridCanonicalItemResolveError::InvalidItemLevel);
+		TestTrue(TEXT("No stale data after failure"), Refused.ItemId.IsNone() && Refused.ItemIcon.IsNull());
+	}
 
 	FGridItemInstance Stack;
 	Stack.RuntimeObjectId = FGuid::NewGuid();

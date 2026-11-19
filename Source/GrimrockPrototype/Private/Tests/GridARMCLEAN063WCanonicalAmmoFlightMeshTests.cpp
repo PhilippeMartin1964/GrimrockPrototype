@@ -43,7 +43,7 @@ bool FGridClean063WAmmoFlightMesh::RunTest(const FString&)
 	TestTrue(TEXT("Unlevelled arrow remains N0"), Arrow.ItemLevel == 0);
 	Arrow.ItemLevel = 1;
 	FGridResolvedItem LegacyFamilyRead;
-	TestTrue(TEXT("Non-ARM N1 family read remains available"),
+	TestFalse(TEXT("Registry rejects former non-ARM N1 family alias"),
 		Registry->ResolveItem(Arrow.ItemDefinitionId, Arrow.ItemLevel, LegacyFamilyRead));
 	const FGridCanonicalProjectileVisualReadView InvalidPhysical =
 		FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Arrow);

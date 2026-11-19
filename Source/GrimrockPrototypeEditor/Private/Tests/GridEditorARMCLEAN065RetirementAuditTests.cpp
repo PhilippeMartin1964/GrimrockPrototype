@@ -28,6 +28,28 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         Audit.Report->GetArrayField(TEXT("canonical_ids_without_legacy_source")).Num(), 0);
     TestEqual(TEXT("No external package referencer remains after native 5F"),
         int32(Audit.Report->GetNumberField(TEXT("external_referencer_edges"))), 0);
+
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr, RootPath()));
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Configured root for full physical level rejection audit"),
+        Root.IsValid() && Registry->RegisterItemSystem(Root.Get(), Errors))) return false;
+    int32 Rejections = 0;
+    for (const auto& Def : Root->ItemDefinitions)
+    {
+        const bool bArm = Def->IsA<UGridArmamentDefinitionAsset>();
+        for (int32 Level = bArm ? 0 : 1; Level <= (bArm ? 0 : 20); ++Level)
+        {
+            FGridResolvedItem Item;
+            TestFalse(TEXT("Wrong physical family level rejected"), Registry->ResolveItem(Def->ItemId, Level, Item));
+            TestEqual(TEXT("Exact invalid physical level diagnostic"), Item.Error,
+                EGridCanonicalItemResolveError::InvalidItemLevel);
+            TestTrue(TEXT("Invalid level exposes no metadata"), Item.ItemId.IsNone());
+            ++Rejections;
+        }
+    }
+    TestEqual(TEXT("22 ARM N0 and 26 non-ARM x 20 invalid levels audited"), Rejections, 542);
     return !HasAnyErrors();
 }
 

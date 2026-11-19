@@ -43,8 +43,7 @@ struct FGridCanonicalProjectileVisualReadModel
 		{
 			return Result;
 		}
-		// A flight visual belongs to a materialized physical item, not a
-		// legacy N1 non-ARM family read. Do not re-enable an obsolete mesh.
+		// Flight visuals belong to valid physical instances only.
 		Result.bIsNonArmament = !Resolved.bIsArmament;
 		if (!Resolved.bIsArmament && Instance.ItemLevel != 0)
 		{

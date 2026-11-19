@@ -174,7 +174,7 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
             FGridItemInstance Invalid = Instance;
             Invalid.ItemLevel = 1;
             FGridResolvedItem FamilyRead;
-            if (!TestTrue(TEXT("Legacy non-ARM N1 family read remains available"),
+            if (!TestFalse(TEXT("Registry rejects non-ARM N1 before actor initialization"),
                     Registry->ResolveItem(Invalid.ItemDefinitionId, 1, FamilyRead)) ||
                 !TestFalse(TEXT("Non-ARM N1 cannot materialize an actor"),
                     Actor->InitializeFromCanonicalItem(Invalid, Registry.Get())) ||

@@ -133,9 +133,7 @@ bool AGridItemActor::InitializeFromCanonicalItem(
 	{
 		return false; // Known invalid ARM N0 never silently becomes N1.
 	}
-	// ResolveItem deliberately supports some N1 non-ARM *family reads* for
-	// legacy callers. This method materializes a PHYSICAL item instead:
-	// all registered non-ARM instances are N0, without a hidden promotion.
+	// All registered non-ARM physical instances are N0.
 	if (!Projected.bIsArmament && Instance.ItemLevel != 0)
 	{
 		return false; // Leave any preexisting actor state completely unchanged.

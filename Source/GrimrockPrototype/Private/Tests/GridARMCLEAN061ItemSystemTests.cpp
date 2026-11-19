@@ -228,7 +228,7 @@ bool FGridClean061ConsumableResolutionTest::RunTest(const FString&)
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
-	if (!TestTrue(TEXT("Consumable resolves"), Subsystem->ResolveItem(TEXT("TestPotion"), 1, Result)))
+	if (!TestTrue(TEXT("Consumable resolves"), Subsystem->ResolveItem(TEXT("TestPotion"), 0, Result)))
 	{
 		return false;
 	}
@@ -247,7 +247,7 @@ bool FGridClean061AmmoResolutionTest::RunTest(const FString&)
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
-	return TestTrue(TEXT("Ammo resolves"), Subsystem->ResolveItem(TEXT("TestArrow"), 1, Result));
+	return TestTrue(TEXT("Ammo resolves"), Subsystem->ResolveItem(TEXT("TestArrow"), 0, Result));
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061AmmoIdentityTest,
@@ -261,7 +261,7 @@ bool FGridClean061AmmoIdentityTest::RunTest(const FString&)
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
-	if (!TestTrue(TEXT("Ammo resolves"), Subsystem->ResolveItem(TEXT("TestArrow"), 1, Result)))
+	if (!TestTrue(TEXT("Ammo resolves"), Subsystem->ResolveItem(TEXT("TestArrow"), 0, Result)))
 	{
 		return false;
 	}
@@ -306,7 +306,7 @@ bool FGridClean061AmmoOutTypeTest::RunTest(const FString&)
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
-	if (!TestTrue(TEXT("Ammo resolves"), Subsystem->ResolveItem(TEXT("TestArrow"), 1, Result))) return false;
+	if (!TestTrue(TEXT("Ammo resolves"), Subsystem->ResolveItem(TEXT("TestArrow"), 0, Result))) return false;
 	TestEqual(TEXT("Resolved item id"), Result.ItemId, FName(TEXT("TestArrow")));
 	TestFalse(TEXT("Ammo must not resolve as armament"), Result.bIsArmament);
 	TestEqual(TEXT("MaxStack from ammo definition"), Result.MaxStack, 50);
@@ -342,7 +342,7 @@ bool FGridClean061AmmoNonemptyTest::RunTest(const FString&)
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
-	if (!TestTrue(TEXT("Resolve test ammo"), Subsystem->ResolveItem(TEXT("TestArrow"), 1, Result))) return false;
+	if (!TestTrue(TEXT("Resolve test ammo"), Subsystem->ResolveItem(TEXT("TestArrow"), 0, Result))) return false;
 	TestFalse(TEXT("Resolved ammo kind nonempty"), Result.AmmoKindId.IsNone());
 	return true;
 }
@@ -358,7 +358,7 @@ bool FGridClean061AmmoTextTest::RunTest(const FString&)
 	TArray<FString> Errors;
 	if (!TestTrue(TEXT("Register fixture"), Subsystem->RegisterItemSystem(F.System, Errors))) return false;
 	FGridResolvedItem Result;
-	if (!TestTrue(TEXT("Resolve test ammo"), Subsystem->ResolveItem(TEXT("TestArrow"), 1, Result))) return false;
+	if (!TestTrue(TEXT("Resolve test ammo"), Subsystem->ResolveItem(TEXT("TestArrow"), 0, Result))) return false;
 	TestEqual(TEXT("Resolved AmmoKindId spelling"), Result.AmmoKindId.ToString(), FString(TEXT("Arrow")));
 	return true;
 }
@@ -381,7 +381,18 @@ bool FGridClean061RejectionTest::RunTest(const FString&)
 		Subsystem->ResolveItem(TEXT("TestSword"), 0, Result));
 	TestEqual(TEXT("Invalid level diagnostic"), Result.Error,
 		EGridCanonicalItemResolveError::InvalidItemLevel);
-	return true;
+	for (const FName Id : {FName(TEXT("TestArrow")), FName(TEXT("TestPotion"))})
+	{
+		for (const int32 Level : {1, 20})
+		{
+			TestFalse(TEXT("Unlevelled family has no synthetic physical level"),
+				Subsystem->ResolveItem(Id, Level, Result));
+			TestEqual(TEXT("Exact invalid level reason"), Result.Error,
+				EGridCanonicalItemResolveError::InvalidItemLevel);
+			TestTrue(TEXT("Rejected output contains no item identity"), Result.ItemId.IsNone());
+		}
+	}
+	return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061ReferentialIntegrityTest,
@@ -469,7 +480,7 @@ bool FGridClean062IBoundActionResolutionTest::RunTest(const FString&)
 	TestTrue(TEXT("Failure clears previous output presentation identity"), Out.PresentationId.IsNone());
 
 	TestFalse(TEXT("Ammo cannot borrow any action"),
-		Subsystem->ResolveBoundAction(TEXT("TestArrow"), 1, TEXT("BasicStrike"), Out));
+		Subsystem->ResolveBoundAction(TEXT("TestArrow"), 0, TEXT("BasicStrike"), Out));
 	TestEqual(TEXT("Ammo has no bound actions"), Out.Error,
 		EGridCanonicalBoundActionError::ActionNotBound);
 
@@ -491,7 +502,7 @@ bool FGridClean062IBoundActionResolutionTest::RunTest(const FString&)
 		EGridCanonicalItemResolveError::UnknownItemId);
 
 	TestTrue(TEXT("Potion usage has its own explicitly bound action"),
-		Subsystem->ResolveBoundAction(TEXT("TestPotion"), 1, TEXT("BasicStrike"), Out));
+		Subsystem->ResolveBoundAction(TEXT("TestPotion"), 0, TEXT("BasicStrike"), Out));
 	TestEqual(TEXT("Potion is the source"), Out.ItemId, FName(TEXT("TestPotion")));
 	TestEqual(TEXT("Potion presentation is shared by ID only"), Out.PresentationId,
 		FName(TEXT("BasicMotion")));
@@ -707,7 +718,7 @@ bool FGridClean062ABBoundHandAttackTest::RunTest(const FString&)
 		Out.Error, EGridCanonicalBoundActionError::AttackSourceNotAuthorized);
 	TestFalse(TEXT("Consumable cannot borrow equipment-hand attack source"),
 		Resolver->ResolveBoundAttackForHand(
-			TEXT("TestPotion"), 1, TEXT("BasicStrike"), EGridEquipmentSlot::MainHand, Out));
+			TEXT("TestPotion"), 0, TEXT("BasicStrike"), EGridEquipmentSlot::MainHand, Out));
 	TestEqual(TEXT("Non-armament has no attack source"), Out.Error,
 		EGridCanonicalBoundActionError::AttackSourceNotAuthorized);
 

@@ -1127,9 +1127,8 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 	FGridResolvedItem Canonical;
 	const bool bCanonicalResolved = bCanonicalIdentity &&
 		SpawnRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, Canonical);
-	// A thrown item is a persisted physical instance, not a family-level
-	// compatibility query. A registered non-ARM N1 must not launch using an
-	// old throwable ItemDefinition even when ResolveItem permits its N1 read.
+	// A thrown item must retain a valid persisted physical level.
+	// A rejected registered identity cannot launch from an old definition.
 	const bool bValidCanonicalPhysicalLevel = !bCanonicalIdentity ||
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			SpawnRegistry, nullptr, ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel).bResolved;

@@ -312,11 +312,11 @@ int32 UGridArmClean064QNonArmStackParityCommandlet::Main(const FString& Params)
         {
             FGridResolvedItem Resolved;
             const bool bSuccess = Registry->ResolveItem(Entry.ItemId, Level, Resolved);
-            if (Level == 21)
+            if (Level != 0)
             {
                 if (bSuccess || Resolved.Error != EGridCanonicalItemResolveError::InvalidItemLevel)
                 {
-                    UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.4Q] Invalid N21 accepted."));
+                    UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.4Q] Invalid non-ARM physical level accepted."));
                     return Fail(8);
                 }
             }
@@ -328,7 +328,7 @@ int32 UGridArmClean064QNonArmStackParityCommandlet::Main(const FString& Params)
                     Resolved.MaxStack != LegacyStackCapacity(*Entry.Legacy) ||
                     !FMath::IsNearlyEqual(Resolved.WeightKg, Entry.Legacy->Weight))
                 {
-                    UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.4Q] N0/N1/N20 capacity differs."));
+                    UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.4Q] N0 capacity differs."));
                     return Fail(8);
                 }
             }

@@ -78,9 +78,11 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	}
 
 	const UGridCanonicalItemDefinitionAsset* Definition = Found->Get();
-	if (ItemLevel == 0 && Cast<UGridArmamentDefinitionAsset>(Definition) != nullptr)
+	const bool bArmament = Definition->IsA<UGridArmamentDefinitionAsset>();
+	if ((bArmament && ItemLevel == 0) || (!bArmament && ItemLevel != 0))
 	{
-		// Never invent an N1 weapon. Only unlevelled non-ARM families use N0.
+		// One physical level contract for every reader. No non-ARM N1 family
+		// alias and no ARM N0 default promotion.
 		OutItem.Error = EGridCanonicalItemResolveError::InvalidItemLevel;
 		return false;
 	}

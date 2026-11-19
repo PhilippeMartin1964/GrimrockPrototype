@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.8 — Contrat physique unique
+
+Parent b7ba5f7ee906e58aa55f6094b300ee7b2e2da879 : SilentTask et LocalAuto SUCCESS. ResolveItem refuse ARM N0 et non-ARM N1–N20 avant toute projection. Tests historiques alignés, 542 rejets natifs supplémentaires, commentaires obsolètes corrigés. Aucun asset, SaveGame, texte joueur ou WBP modifié. Validation du présent SHA obligatoire ; les contrôles physiques périphériques sont conservés. Suite 5G.9 : draft 65f1a4a71ddbe5295a0888f634319ad4565c8980, rebaser uniquement ses fichiers après les deux statuts du HEAD. Le retrait des classes et assets historiques reste ouvert avant 06.6.
+
 ## ARM-CLEAN06.5G.7 — Authoring et aperçu des kits alignés
 
 Parent 6762daf3f083e982e63e847f263face2002371b4 : SilentTask et LocalAuto SUCCESS. Le sélecteur d'objets et l'aperçu des kits utilisent la même identité canonique et le même niveau explicite que les constructeurs. Aucun changement d'asset ou de sauvegarde.

@@ -419,8 +419,7 @@ bool FGridClean064X41CanonicalEquippedLight::RunTest(const FString&)
         return false;
     }
 
-    // ResolveItem supports non-ARM N1 family metadata in some callers;
-    // that level is not a valid persisted physical equipped torch.
+    // The physical equipped torch must resolve at N0, never N1.
     FGridItemInstance BadTorch = ARMCLEAN064X17::MakeItem(
         TEXT("Item_Torch"), 1, CharacterId, true);
     BadTorch.OwnerType = EGridItemOwnerType::EquipmentSlot;

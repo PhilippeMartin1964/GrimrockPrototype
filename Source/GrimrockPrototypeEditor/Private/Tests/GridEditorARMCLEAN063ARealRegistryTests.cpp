@@ -225,7 +225,7 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 
 	FGridResolvedItem Arrows;
 	TestTrue(TEXT("Existing production arrows resolved from same canonical registry"),
-		Items->ResolveItem(TEXT("Item_Arrows_01"), 1, Arrows));
+		Items->ResolveItem(TEXT("Item_Arrows_01"), 0, Arrows));
 	TestEqual(TEXT("Authoritative arrow type"), Arrows.AmmoKindId,
 		FName(TEXT("Item_Arrows_01")));
 	return AttackCount == 19 && PassiveCount == 3 && NeutralCount == 15;

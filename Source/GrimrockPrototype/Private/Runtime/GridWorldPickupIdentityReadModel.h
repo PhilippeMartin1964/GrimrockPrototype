@@ -47,9 +47,8 @@ struct FGridWorldPickupIdentityReadModel
                 return NAME_None;
             }
 
-            // ResolveItem alone permits non-ARM N1 when reading the
-            // family. A physical persisted instance has the stricter
-            // contract: armaments N1-N20, ammunition and other non-ARM N0.
+            // Preserve the persisted physical level: armaments N1-N20,
+            // ammunition and other non-ARM N0.
             const FGridReceptacleItemMetadataReadView Physical =
                 FGridWorldItemLevelReadModel::ResolvePersistedInstance(
                     Registry, nullptr, Candidate, ItemLevel);
