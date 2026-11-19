@@ -46,7 +46,9 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         Known.Add(Definition->ItemId);
     }
     const bool bRootDirty = Root->GetOutermost()->IsDirty();
-    int32 LooseTotal = 0, LooseOld = 0, InitialTotal = 0;
+    int32 LooseTotal = 0, InitialTotal = 0;
+    const int32 LooseOld = 0;
+    TestNull(TEXT("Removed loose placement pointer schema"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
     const int32 InitialOld = 0;
     TestNull(TEXT("Removed initial content pointer schema"), FGridReceptacleInitialItemConfig::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
     const int32 ReceptacleOverrideOld = 0;
@@ -77,8 +79,7 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         for (const FGridLooseItemInstance& Item : Level->LooseItemInstances)
         {
             ++LooseTotal;
-            if (Item.ItemDefinition) ++LooseOld;
-            if (LevelIndex != 0 || Item.ItemDefinition ||
+            if (LevelIndex != 0 ||
                 !Item.InstanceId.IsValid() || SeenLoose.Contains(Item.InstanceId) ||
                 Item.CanonicalItemId.IsNone() || !Known.Contains(Item.CanonicalItemId) ||
                 Item.Quantity < 1 || !Level->IsValidCoord(Item.CellX, Item.CellY) ||

@@ -195,14 +195,8 @@ bool FARMEMENT01103ProductionBindings::RunTest(const FString&)
         int32 DungeonCount = 0;
         for (const FGridLooseItemInstance& Placed : Dungeon->LooseItemInstances)
         {
-            // Existing native rows may be legacy-backed until X.46 or
-            // already pointerless after the guarded one-package migration.
-            const bool bMatchingLegacy = Placed.ItemDefinition.Get() == Item &&
-                Placed.CanonicalItemId == Item->ItemDefinitionId;
-            const bool bMatchingCanonical = Placed.ItemDefinition == nullptr &&
-                Placed.CanonicalItemId == Item->ItemDefinitionId &&
-                Placed.ItemLevel >= 1 && Placed.ItemLevel <= 20;
-            if (bMatchingLegacy || bMatchingCanonical) ++DungeonCount;
+            if (Placed.CanonicalItemId == Item->ItemDefinitionId &&
+                Placed.ItemLevel >= 1 && Placed.ItemLevel <= 20) ++DungeonCount;
         }
         TestTrue(TEXT("Real dungeon contains this weapon as a loose item"), DungeonCount > 0);
     }
@@ -252,8 +246,7 @@ bool FARMEMENT01103TransientPlacement::RunTest(const FString&)
         const FGridLooseItemInstance* Placed = Level->LooseItemInstances.FindByPredicate(
             [Item, Index](const FGridLooseItemInstance& Candidate)
             {
-                return Candidate.ItemDefinition == nullptr &&
-                    Candidate.CanonicalItemId == Item->ItemDefinitionId &&
+                return Candidate.CanonicalItemId == Item->ItemDefinitionId &&
                     Candidate.ItemLevel >= 1 && Candidate.ItemLevel <= 20 &&
                     Candidate.CellX == Index && Candidate.CellY == 1;
             });
@@ -275,7 +268,7 @@ bool FARMEMENT01103TransientPlacement::RunTest(const FString&)
     if (!TestNotNull(TEXT("Registered preview resolver"), Registry)) return false;
     for (const FGridLooseItemInstance& Placed : Level->LooseItemInstances)
     {
-        TestNull(TEXT("New registered placement is pointerless"), Placed.ItemDefinition.Get());
+        TestNull(TEXT("New registered placement is pointerless"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
         FGridResolvedItem Canonical;
         if (!TestTrue(TEXT("Canonical physical preview resolves"),
             Registry->ResolveItem(Placed.CanonicalItemId, Placed.ItemLevel, Canonical))) continue;

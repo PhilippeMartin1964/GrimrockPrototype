@@ -151,7 +151,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         {
             if (!Item.InstanceId.IsValid() ||
                 LoosePlacementGuids.Contains(Item.InstanceId) ||
-                !CheckSource(Item.CanonicalItemId, Item.ItemDefinition,
+                !CheckSource(Item.CanonicalItemId, nullptr,
                     Item.ItemLevel, Item.Quantity, true))
             {
                 AddError(TEXT("Invalid loose placement identity, GUID or authored level."));

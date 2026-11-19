@@ -27,8 +27,7 @@ namespace GridTypedPlacementAuditTestUtils
 		for (const FGridLooseItemInstance& Instance : Level.LooseItemInstances)
 		{
 			const FString Context = FString::Printf(TEXT("LooseItemInstances[%s]"), *Instance.InstanceId.ToString());
-			const UGridItemDefinitionAsset* Item = Instance.ItemDefinition;
-			Audit(Context + TEXT(".ItemDefinition"), Item, Item ? Item->ItemDefinitionId : NAME_None, NAME_None, TEXT("Item"));
+			Audit(Context + TEXT(".CanonicalItemId"), nullptr, Instance.CanonicalItemId, NAME_None, TEXT("Item"));
 			const UGridReadableContentAsset* Readable = Instance.ReadableContentAsset;
 			Audit(Context + TEXT(".ReadableContent"), Readable, Readable ? Readable->ReadableContentId : NAME_None, Instance.ReadableContentId,
 				TEXT("ReadableContent"));

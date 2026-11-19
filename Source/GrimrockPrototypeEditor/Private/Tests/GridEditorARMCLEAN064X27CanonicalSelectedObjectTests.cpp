@@ -65,13 +65,10 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 
 	bool bOk = TestTrue(TEXT("Recommit valid canonical ID succeeds"),
 		Editor->SetSelectedObjectItemDefinitionId(Dagger));
-	Loose.ItemDefinition = HistoricDagger;
-	bOk &= TestFalse(TEXT("Even a matching old pointer blocks authoring"),
-		Editor->SetSelectedObjectItemDefinitionId(Dagger));
-	bOk &= TestFalse(TEXT("Old pointer blocks level edits"),
-		Editor->SetSelectedObjectItemLevel(12));
-	bOk &= TestEqual(TEXT("Rejected edit preserves N20"), Loose.ItemLevel, 20);
-	Loose.ItemDefinition = nullptr;
+	bOk &= TestNull(TEXT("Historical pointer cannot be represented"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
+	bOk &= TestFalse(TEXT("Even matching historical picker input is rejected"),
+		Editor->SetSelectedObjectItemDefinitionAsset(HistoricDagger));
+	bOk &= TestEqual(TEXT("Rejected picker preserves N20"), Loose.ItemLevel, 20);
 	// Explicitly changing the item family is new authoring: old source is
 	// dropped, but GUID, quantity and a valid physical level stay stable.
 	bOk &= TestTrue(TEXT("Select canonical sword by ID"),
@@ -79,7 +76,7 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	bOk &= TestEqual(TEXT("Canonical sword ID persisted"), Loose.CanonicalItemId, Sword);
 	bOk &= TestEqual(TEXT("Valid N20 kept on sword"), Loose.ItemLevel, 20);
 	bOk &= TestNull(TEXT("Old asset removed from new canonical selection"),
-		Loose.ItemDefinition.Get());
+		FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	bOk &= TestFalse(TEXT("Legacy picker cannot contradict persisted canonical ID"),
 		Editor->SetSelectedObjectItemDefinitionAsset(HistoricDagger));
 	bOk &= TestEqual(TEXT("Conflicting picker has not changed canonical ID"),
@@ -91,8 +88,7 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 		Editor->SetSelectedObjectItemDefinitionId(Arrows));
 	bOk &= TestEqual(TEXT("Family changes to arrows"), Loose.CanonicalItemId, Arrows);
 	bOk &= TestEqual(TEXT("New non-ARM family is physically N0"), Loose.ItemLevel, 0);
-	bOk &= TestTrue(TEXT("No legacy definition recreated"),
-		Loose.ItemDefinition == nullptr);
+	bOk &= TestNull(TEXT("No legacy field exists"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 
 	bOk &= TestTrue(TEXT("Select shield from N0 creates NEW physical N1"),
 		Editor->SetSelectedObjectItemDefinitionId(Shield));

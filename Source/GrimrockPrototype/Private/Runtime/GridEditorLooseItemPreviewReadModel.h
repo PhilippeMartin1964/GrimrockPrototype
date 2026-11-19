@@ -25,7 +25,7 @@ struct FGridEditorLooseItemPreviewReadModel
 		FGridEditorLooseItemPreviewReadView View;
 		View.bCanonicalIdentity = !Placement.CanonicalItemId.IsNone();
 		if (!View.bCanonicalIdentity || !IsValid(Registry) || !Registry->IsConfigured() ||
-			Placement.ItemDefinition || !Placement.InstanceId.IsValid() || Placement.Quantity < 1)
+			!Placement.InstanceId.IsValid() || Placement.Quantity < 1)
 			return View;
 
 		FGridResolvedItem Canonical;

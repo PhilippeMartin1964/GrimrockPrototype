@@ -428,13 +428,14 @@ bool FGridClean065E4DLegacyLookup::RunTest(const FString&)
     auto* OldUnknown = NewObject<UGridItemDefinitionAsset>(F.Runtime);
     OldUnknown->ItemDefinitionId = Unknown;
     FGridLooseItemInstance KnownPlacement;
-    KnownPlacement.ItemDefinition = OldKnown;
+    KnownPlacement.CanonicalItemId = Known;
+    KnownPlacement.ItemLevel = 1;
     F.Runtime->LevelAsset->LooseItemInstances.Add(KnownPlacement);
     FGridLooseItemInstance UnknownPlacement;
-    UnknownPlacement.ItemDefinition = OldUnknown;
+    UnknownPlacement.CanonicalItemId = Unknown;
     F.Runtime->LevelAsset->LooseItemInstances.Add(UnknownPlacement);
     TestNull(TEXT("Known ID never returns old placement or recipe"), F.Runtime->ResolveRuntimeItemDefinition(Known));
-    TestNull(TEXT("Unregistered historical placement is not a definition catalogue"), F.Runtime->ResolveRuntimeItemDefinition(Unknown));
+    TestNull(TEXT("Unregistered authored ItemId is not a definition catalogue"), F.Runtime->ResolveRuntimeItemDefinition(Unknown));
     auto* Party = F.World->SpawnActor<AGrimrockPartyPawn>();
     if (!TestNotNull(TEXT("Party"), Party)) return false;
     Party->LevelRuntimeActor = F.Runtime;

@@ -218,7 +218,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
         {
             if (!Placement.InstanceId.IsValid() ||
                 PhysicalGuids.Contains(Placement.InstanceId) ||
-                !Check(Placement.CanonicalItemId, Placement.ItemDefinition,
+                !Check(Placement.CanonicalItemId, nullptr,
                     Placement.ItemLevel, Placement.Quantity, true))
             {
                 AddError(TEXT("Invalid source, duplicate GUID or level in real loose placement."));

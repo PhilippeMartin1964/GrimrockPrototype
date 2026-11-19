@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.24 — Retrait de la propriété ItemDefinition des objets au sol
+
+Parent 4bdfcaf3e5cf6bae581afee2806ded02e0409dd1 : publier seulement après validation complète de 5G.23. Retrait du membre réfléchi FGridLooseItemInstance.ItemDefinition ; runtime, preview, authoring, liens, diagnostics et tests de preuve migrés. La cohérence des 44 lignes natives est vérifiée sur le registre réel et par duplication sans écriture. Rejet des IDs absents/inconnus, N0 ARM, N1 non-ARM, quantités invalides ; anciens pointeurs impossibles dans le schéma. Le scratch FGridItemBehaviorParams et la palette restent distincts. Voir [5G.24](ARM_CLEAN06_5G24_LOOSE_ITEM_SCHEMA_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.23 — Retrait du lookup de définitions depuis les placements
 
 Parent 00ce3fde16475a1b226a178cf13a01c2a76d20a7 : publication après validation de 5G.22.1. ResolveRuntimeItemDefinition ne parcourt plus les loose items ; seules les recettes historiques restent provisoirement accessibles pour les IDs hors registre. Dépôt/lancer et ciblage utilisent la source inventaire déjà enregistrée, sans nouvel index. TD02.1/MON11 ne simulent plus de placements pour fournir une définition ; test 5E4D exige le refus du vieux placement même hors registre. Aucune écriture binaire ni SaveGame. Voir [5G.23](ARM_CLEAN06_5G23_RETIRE_LEVEL_ITEM_LOOKUP.md).

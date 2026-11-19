@@ -17,11 +17,6 @@
 			Asset->IsStartCellValid() ? TEXT("true") : TEXT("false"));
 	}
 
-	FString GetObjectWorkflowAssetName(const UObject* Object)
-	{
-		return Object ? Object->GetName() : TEXT("None");
-	}
-
 	FString GetReceptacleWorkflowStatus(const TArray<FGridReceptacleInitialItemConfig>& InitialContent)
 	{
 		if (InitialContent.IsEmpty()) return TEXT("EMPTY_RECEPTACLE");
@@ -42,19 +37,22 @@
 			return;
 		}
 		const int32 ItemPlacements = Asset->LooseItemInstances.Num();
-		int32 ItemPlacementsUsingDefinitionAsset = 0;
-		const int32 ItemPlacementsUsingDefinitionId = 0;
+		const int32 ItemPlacementsUsingDefinitionAsset = 0;
+		int32 ItemPlacementsUsingDefinitionId = 0;
 		const int32 ItemPlacementsUsingLegacyFallback = 0;
 		int32 Receptacles = 0;
 		int32 ReceptaclesUsingInitialDefinition = 0;
 		Result += FString::Printf(TEXT("Level=%s Asset=%s\n"), *LevelLabel, *Asset->GetName());
 		for (const FGridLooseItemInstance& LooseItemInstance : Asset->LooseItemInstances)
 		{
-			if (LooseItemInstance.ItemDefinition) ++ItemPlacementsUsingDefinitionAsset;
-			Result += FString::Printf(TEXT("  Item ObjectId=%s Cell=(%d,%d) ItemDefinitionAsset=%s Status=%s\n"),
+			if (!LooseItemInstance.CanonicalItemId.IsNone()) ++ItemPlacementsUsingDefinitionId;
+			const bool bHasPhysicalFields = LooseItemInstance.InstanceId.IsValid() &&
+				!LooseItemInstance.CanonicalItemId.IsNone() && LooseItemInstance.Quantity > 0 &&
+				LooseItemInstance.ItemLevel >= 0 && LooseItemInstance.ItemLevel <= 20;
+			Result += FString::Printf(TEXT("  Item ObjectId=%s Cell=(%d,%d) ItemId=%s N%d Status=%s\n"),
 				*LooseItemInstance.InstanceId.ToString(), LooseItemInstance.CellX, LooseItemInstance.CellY,
-				*GetObjectWorkflowAssetName(LooseItemInstance.ItemDefinition),
-				LooseItemInstance.ItemDefinition ? TEXT("OK_ITEM_DEFINITION_ASSET") : TEXT("ERROR_NO_ITEM_DEFINITION"));
+				*LooseItemInstance.CanonicalItemId.ToString(), LooseItemInstance.ItemLevel,
+				bHasPhysicalFields ? TEXT("AUTHORED_CANONICAL_FIELDS") : TEXT("ERROR_INVALID_CANONICAL_FIELDS"));
 		}
 		for (const FGridWorldObjectInstance& WorldObjectInstance : Asset->WorldObjectInstances)
 		{

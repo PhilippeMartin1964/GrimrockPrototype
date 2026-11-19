@@ -204,17 +204,12 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
         return false;
     }
 
-    // X.47 / native X.46: this REAL row has two valid serialized states:
-    // before native Apply it can retain its matching old DA_Weapon pointer;
-    // after Apply the SAME physical ARM must be pointerless. Both states
-    // must resolve one canonical visual/physics authority in the runtime.
+    // The real migrated ARM resolves only from the canonical placement schema.
     FGridResolvedItem ArmResolved;
     if (!TestTrue(TEXT("Real ARM projection resolves at authored physical level"),
             F.Registry->ResolveItem(Arm.CanonicalItemId, Arm.ItemLevel, ArmResolved)) ||
-        !TestNull(TEXT("Real ARM source is pointerless after native migration"), Arm.ItemDefinition.Get()))
-    {
+        !TestNull(TEXT("Legacy placement property removed from schema"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition"))))
         return false;
-    }
     AGridItemActor* ArmActor = PlaceAtOrigin(Arm);
     const FGridSpawnedItemRuntimeEntry* ArmEntry = FindRuntimeEntry(ArmActor);
     if (!TestNotNull(TEXT("Real ARM runtime entry exists"), ArmEntry) ||
@@ -253,22 +248,15 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
         return false;
     }
 
-    // Even a matching historical pointer cannot authorize a placement.
-    FGridLooseItemInstance Contradictory = Arm;
-    UGridItemDefinitionAsset* Fake = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-    Fake->ItemDefinitionId = Arm.CanonicalItemId;
-    Contradictory.ItemDefinition = Fake;
-    if (!TestNull(TEXT("Matching historical source cannot spawn"), PlaceAtOrigin(Contradictory)))
-        return false;
-    Contradictory.CanonicalItemId = NAME_None;
-    if (!TestNull(TEXT("Pointer-only source cannot spawn"), PlaceAtOrigin(Contradictory)))
+    FGridLooseItemInstance MissingId = Arm;
+    MissingId.CanonicalItemId = NAME_None;
+    if (!TestNull(TEXT("Missing authored ItemId cannot spawn"), PlaceAtOrigin(MissingId)))
         return false;
 
     // Pointerless canonical ARM remain supported at both N1 and N20.
     for (const int32 Level : {1, 20})
     {
         FGridLooseItemInstance Pointerless = Arm;
-        Pointerless.ItemDefinition = nullptr;
         Pointerless.ItemLevel = Level;
         Pointerless.InstanceId = FGuid::NewGuid();
         Pointerless.CellX = 0;
@@ -315,22 +303,14 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     if (!TestNull(TEXT("Known registered ARM N0 cannot spawn"),
         F.FindItem(InvalidLevel.InstanceId))) {return false;}
 
-    // The source level is now allowed to be pointerless. Attach a
-    // deliberate WRONG old source to this negative fixture; otherwise
-    // copying the converted NonArm row would accidentally make it a
-    // valid pointerless ARM and this rejection test would be vacuous.
-    FGridLooseItemInstance WrongSource = NonArm;
-    UGridItemDefinitionAsset* WrongLegacy = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-    WrongLegacy->ItemDefinitionId = NonArm.CanonicalItemId;
-    WrongSource.ItemDefinition = WrongLegacy;
-    WrongSource.InstanceId = FGuid::NewGuid();
-    WrongSource.CanonicalItemId = Arm.CanonicalItemId;
-    WrongSource.ItemLevel = Arm.ItemLevel;
-    WrongSource.CellX = 0;
-    WrongSource.CellY = 0;
-    F.Runtime->AddPlacedItemActor(WrongSource);
-    if (!TestNull(TEXT("Contradictory legacy source cannot spoof canonical ID"),
-        F.FindItem(WrongSource.InstanceId))) {return false;}
+    FGridLooseItemInstance WrongLevel = NonArm;
+    WrongLevel.InstanceId = FGuid::NewGuid();
+    WrongLevel.ItemLevel = 1;
+    WrongLevel.CellX = 0;
+    WrongLevel.CellY = 0;
+    F.Runtime->AddPlacedItemActor(WrongLevel);
+    if (!TestNull(TEXT("Non-ARM with invented physical N1 cannot spawn"),
+        F.FindItem(WrongLevel.InstanceId))) {return false;}
 
     FGridLooseItemInstance Invalid = Arm;
     Invalid.Quantity = 0;

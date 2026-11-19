@@ -149,23 +149,18 @@ bool FGridEditorClean064X26CanonicalAuthoring::RunTest(const FString&)
 	}
 
 	// Force a malformed native payload in memory and ensure validation catches
-	// both illegal physical levels and contradictory legacy assets.
+	// illegal physical levels and absent or unknown canonical identities.
 	Loose.ItemLevel = 0;
 	TArray<FGridLevelValidationMessage> Messages = Editor->ValidateCurrentLevel();
 	const bool bRejectN0 = HasSpecificError(
 		Messages, LooseId, TEXT("Canonical item placement"));
 	Loose.ItemLevel = 20;
-	UGridItemDefinitionAsset* WrongSource = NewObject<UGridItemDefinitionAsset>(Level);
-	WrongSource->ItemDefinitionId = Arrows;
-	Loose.ItemDefinition = WrongSource;
+	const bool bSchemaClean = TestNull(TEXT("Contradictory source is no longer representable"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
+	const FName SavedId = Loose.CanonicalItemId;
+	Loose.CanonicalItemId = NAME_None;
 	Messages = Editor->ValidateCurrentLevel();
-	const bool bRejectContradictory = HasSpecificError(
-		Messages, LooseId, TEXT("legacy ItemDefinition"));
-	WrongSource->ItemDefinitionId = Loose.CanonicalItemId;
-	Messages = Editor->ValidateCurrentLevel();
-	const bool bRejectMatching = HasSpecificError(
-		Messages, LooseId, TEXT("legacy ItemDefinition"));
-	Loose.ItemDefinition = nullptr;
+	const bool bRejectMissing = HasSpecificError(Messages, LooseId, TEXT("Canonical item placement"));
+	Loose.CanonicalItemId = SavedId;
 	Spawn.CanonicalItemId = TEXT("ARM_CLEAN064X26_Unknown");
 	Messages = Editor->ValidateCurrentLevel();
 	const bool bRejectUnknown = HasSpecificError(
@@ -174,8 +169,8 @@ bool FGridEditorClean064X26CanonicalAuthoring::RunTest(const FString&)
 	World->DestroyWorld(false);
 	if (GEngine) { GEngine->DestroyWorldContext(World); }
 	return TestTrue(TEXT("Editor validator rejects persisted ARM N0"), bRejectN0) &&
-		TestTrue(TEXT("Editor validator rejects contradictory definition"), bRejectContradictory) &&
-		TestTrue(TEXT("Editor validator rejects matching old definition"), bRejectMatching) &&
+		bSchemaClean &&
+		TestTrue(TEXT("Editor validator rejects missing ItemId"), bRejectMissing) &&
 		TestTrue(TEXT("Editor validator rejects unregistered ItemId"), bRejectUnknown);
 }
 #endif

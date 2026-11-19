@@ -2115,7 +2115,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	const UGridItemSubsystem* Registry = PlacementGameInstance
 		? PlacementGameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	FGridResolvedItem Canonical;
-	if (ObjectData.ItemDefinition || !ObjectData.InstanceId.IsValid() ||
+	if (!ObjectData.InstanceId.IsValid() ||
 		ItemDefinitionId.IsNone() || ObjectData.Quantity < 1 ||
 		!IsValid(Registry) || !Registry->IsConfigured() ||
 		!Registry->ResolveItem(ItemDefinitionId, ObjectData.ItemLevel, Canonical) ||

@@ -466,12 +466,8 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	}
 
 	const auto ValidateItemDefinition = [this, &AddMessage](
-		FGuid ObjectId, const UGridItemDefinitionAsset* Definition,
-		FName CanonicalItemId, int32 PhysicalLevel, int32 Quantity)
+		FGuid ObjectId, FName CanonicalItemId, int32 PhysicalLevel, int32 Quantity)
 	{
-		if (IsValid(Definition))
-			AddMessage(EGridLevelValidationSeverity::Error,
-				TEXT("Item placement must not reference a legacy ItemDefinition asset."), ObjectId);
 		if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
 			ResolveEditorItemRegistry(), CanonicalItemId, PhysicalLevel))
 			AddMessage(EGridLevelValidationSeverity::Error,
@@ -484,8 +480,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	for (const FGridLooseItemInstance& LooseItemInstance : LevelAsset->LooseItemInstances)
 	{
 		const bool bValidCell = ValidatePlacement(LooseItemInstance.InstanceId, LooseItemInstance.CellX, LooseItemInstance.CellY, LooseItemInstance.PaletteEntryId, EGridLevelObjectType::Item);
-		ValidateItemDefinition(LooseItemInstance.InstanceId, LooseItemInstance.ItemDefinition,
-			LooseItemInstance.CanonicalItemId, LooseItemInstance.ItemLevel, LooseItemInstance.Quantity);
+		ValidateItemDefinition(LooseItemInstance.InstanceId, LooseItemInstance.CanonicalItemId, LooseItemInstance.ItemLevel, LooseItemInstance.Quantity);
 		if (bValidCell)
 		{
 			const FGridLevelCellData& Cell = LevelAsset->GetCell(LooseItemInstance.CellX, LooseItemInstance.CellY);
@@ -496,8 +491,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	for (const FGridItemSpawnInstance& ItemSpawn : LevelAsset->ItemSpawns)
 	{
 		ValidatePlacement(ItemSpawn.SpawnId, ItemSpawn.CellX, ItemSpawn.CellY, ItemSpawn.PaletteEntryId, EGridLevelObjectType::ItemSpawn);
-		ValidateItemDefinition(ItemSpawn.SpawnId, nullptr,
-			ItemSpawn.CanonicalItemId, ItemSpawn.ItemLevel, ItemSpawn.Quantity);
+		ValidateItemDefinition(ItemSpawn.SpawnId, ItemSpawn.CanonicalItemId, ItemSpawn.ItemLevel, ItemSpawn.Quantity);
 	}
 	for (const FGridMonsterSpawnInstance& MonsterSpawn : LevelAsset->MonsterSpawns)
 	{

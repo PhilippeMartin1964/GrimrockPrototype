@@ -119,7 +119,7 @@ bool FGridEditorWorldObjectMIG05DirectItemPlacementTest::RunTest(const FString& 
 	TestEqual(TEXT("Placed collectible type is Item"), Level->GetTypedPlacementType(PlacedItem.InstanceId), EGridLevelObjectType::Item);
 	TestTrue(TEXT("Placed collectible has no companion world object"), Level->WorldObjectInstances.IsEmpty());
 	TestEqual(TEXT("Placed collectible stores the canonical ItemId"), PlacedItem.CanonicalItemId, Definition->ItemDefinitionId);
-	TestNull(TEXT("Placed collectible has no old definition"), PlacedItem.ItemDefinition.Get());
+	TestNull(TEXT("Placed collectible has no old definition"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	TestEqual(TEXT("Placement creates exactly one typed entry"), Level->GetTypedPlacementCount(), 1);
 	TestEqual(TEXT("Placed collectible keeps the selected cell X"), PlacedItem.CellX, 1);
 	TestEqual(TEXT("Placed collectible keeps the selected cell Y"), PlacedItem.CellY, 1);

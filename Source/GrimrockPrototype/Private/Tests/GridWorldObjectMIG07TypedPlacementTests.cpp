@@ -41,7 +41,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 
 	FGridLooseItemInstance LooseItem;
 	LooseItem.InstanceId = FGuid::NewGuid();
-	LooseItem.ItemDefinition = ItemDefinition;
+	LooseItem.CanonicalItemId = ItemDefinition->ItemDefinitionId;
 	LooseItem.CellX = 5;
 	LooseItem.CellY = 6;
 	LooseItem.LocalYaw = 22.5f;
@@ -106,7 +106,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	{
 		const FGridLooseItemInstance& Instance = Level->LooseItemInstances[0];
 		TestEqual(TEXT("Loose item keeps stable instance id"), Instance.InstanceId, LooseItem.InstanceId);
-		TestTrue(TEXT("Loose item directly references ItemDefinition"), Instance.ItemDefinition == ItemDefinition);
+		TestEqual(TEXT("Loose item retains explicit ItemId"), Instance.CanonicalItemId, ItemDefinition->ItemDefinitionId);
 		TestEqual(TEXT("Loose item defaults to quantity one"), Instance.Quantity, 1);
 		TestEqual(TEXT("Loose item preserves local yaw bridge"), Instance.LocalYaw, 22.5f);
 	}

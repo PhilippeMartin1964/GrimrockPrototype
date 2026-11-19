@@ -205,7 +205,7 @@ bool FARMEMENT011023BombPlacementTest::RunTest(const FString&)
                 TestEqual(TEXT("Physical N0 persists"), Placed.ItemLevel, 0);
                 TestEqual(TEXT("One physical bomb"), Placed.Quantity, 1);
                 TestTrue(TEXT("Stable authored identity"), Placed.InstanceId.IsValid());
-                TestNull(TEXT("New canonical placement is pointerless"), Placed.ItemDefinition.Get());
+                TestNull(TEXT("New canonical placement is pointerless"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
             }
         }
     }

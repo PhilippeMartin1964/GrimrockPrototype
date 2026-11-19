@@ -13,8 +13,7 @@
 
 namespace ARMCLEAN064X45
 {
-    // Fingerprint of authored gameplay/spatial state deliberately excludes
-    // ONLY the obsolete ItemDefinition pointer being removed on a COPY.
+    // Fingerprint of canonical authored gameplay/spatial state.
     FString StableWorldFingerprint(const UGridLevelAsset& Level)
     {
         FString Result = FString::Printf(TEXT("Cells=%d;Objects=%d;Links=%d;Monsters=%d;Spawns=%d;Logic=%d;"),
@@ -36,9 +35,8 @@ namespace ARMCLEAN064X45
     }
 
     bool ValidateLoose(const UGridLevelAsset& Level, const UGridItemSubsystem& Registry,
-        int32& OutLegacyCount, FString& OutError)
+        FString& OutError)
     {
-        OutLegacyCount = 0;
         OutError.Reset();
         if (Level.LooseItemInstances.Num() != 44 || !Level.ItemSpawns.IsEmpty())
         {
@@ -67,20 +65,6 @@ namespace ARMCLEAN064X45
             {
                 OutError = TEXT("One real loose item cannot resolve its registered physical identity.");
                 return false;
-            }
-            if (Item.ItemDefinition)
-            {
-                const UGridItemDefinitionAsset* Historical = Item.ItemDefinition.Get();
-                if (!IsValid(Historical) ||
-                    Historical->ItemDefinitionId != Item.CanonicalItemId ||
-                    (Resolved.bIsArmament &&
-                        Historical->WeaponArchetypeId != Resolved.ArchetypeId) ||
-                    (!Resolved.bIsArmament && !Historical->WeaponArchetypeId.IsNone()))
-                {
-                    OutError = TEXT("A persisted historical pointer disagrees with the registered item.");
-                    return false;
-                }
-                ++OutLegacyCount;
             }
         }
         return true;
@@ -113,44 +97,32 @@ bool FGridEditorARMCLEAN064X45NativeLoosePreflight::RunTest(const FString&)
         return false;
     }
 
-    int32 OriginalOldPointers = 0;
     FString Error;
     if (!TestTrue(TEXT("All 44 native loose rows are safe and canonical"),
         ARMCLEAN064X45::ValidateLoose(*Real.Get(), *Registry.Get(),
-            OriginalOldPointers, Error)))
+            Error)))
     {
         AddError(Error);
         return false;
     }
-    if (!TestTrue(TEXT("No partial/unreviewed binary migration of the 44 rows"),
-        OriginalOldPointers == 44 || OriginalOldPointers == 0))
-    {
+    if (!TestNull(TEXT("Legacy pointer schema removed"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition"))))
         return false;
-    }
 
-    // Never call Modify(), SavePackage(), or touch the production level.
-    // This copy is an exact in-memory dry run for the single property only.
+    // Duplicate and compare to the native source, never save packages.
     TStrongObjectPtr<UGridLevelAsset> Copy(DuplicateObject<UGridLevelAsset>(
         Real.Get(), GetTransientPackage()));
     if (!TestNotNull(TEXT("Transient, disposable copy of native level"), Copy.Get()))
         return false;
 
-    const FString Before = ARMCLEAN064X45::StableWorldFingerprint(*Copy.Get());
-    for (FGridLooseItemInstance& Item : Copy->LooseItemInstances)
-    {
-        Item.ItemDefinition = nullptr;
-    }
-    int32 PointerlessCount = -1;
-    if (!TestTrue(TEXT("Disposable target still validates after pointer removal"),
+    const FString Before = ARMCLEAN064X45::StableWorldFingerprint(*Real.Get());
+    if (!TestTrue(TEXT("Disposable duplicate validates under canonical schema"),
         ARMCLEAN064X45::ValidateLoose(*Copy.Get(), *Registry.Get(),
-            PointerlessCount, Error)))
+            Error)))
     {
         AddError(Error);
         return false;
     }
-    if (!TestEqual(TEXT("No legacy pointer remains in disposable copy"),
-            PointerlessCount, 0) ||
-        !TestEqual(TEXT("All 44 authored fields remain stable"),
+    if (!TestEqual(TEXT("All 44 authored fields remain stable"),
             ARMCLEAN064X45::StableWorldFingerprint(*Copy.Get()), Before) ||
         !TestEqual(TEXT("Real level package never becomes dirty"),
             Real->GetOutermost()->IsDirty(), bSourceDirty))
@@ -169,17 +141,13 @@ bool FGridEditorARMCLEAN064X45NativeLoosePreflight::RunTest(const FString&)
     if (!TestNotNull(TEXT("There are authored ARM among the 44"), FirstArm))
         return false;
     FirstArm->ItemLevel = 0;
-    int32 InvalidCount = 0;
     if (!TestFalse(TEXT("ARM N0 corruption is rejected on disposable level"),
         ARMCLEAN064X45::ValidateLoose(*Copy.Get(), *Registry.Get(),
-            InvalidCount, Error)))
+            Error)))
     {
         return false;
     }
-    AddInfo(FString::Printf(
-        TEXT("[ARM-CLEAN06.4X45] 44 native loose items, legacy pointers %d, ")
-        TEXT("disposable pointerless dry-run + physical-level rejection; no package saved."),
-        OriginalOldPointers));
+    AddInfo(TEXT("[ARM-CLEAN06.4X45] 44 native canonical loose items; duplicate field parity, schema removal and physical-level rejection; no package saved."));
     return !HasAnyErrors();
 }
 #endif

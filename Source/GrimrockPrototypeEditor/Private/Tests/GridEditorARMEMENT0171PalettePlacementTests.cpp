@@ -144,7 +144,7 @@ bool FARMEMENT0171PlacementPreviewTest::RunTest(const FString&)
         Editor->PlaceSelectedObject();
         if (Level->LooseItemInstances.Num() <= Index) { continue; }
         const FGridLooseItemInstance& Placed = Level->LooseItemInstances[Index];
-        TestNull(TEXT("New canonical item does not persist old definition"), Placed.ItemDefinition.Get());
+        TestNull(TEXT("New canonical item does not persist old definition"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
         TestEqual(TEXT("Real canonical ItemId persisted"), Placed.CanonicalItemId, Definition->ItemDefinitionId);
         TestTrue(TEXT("ARM physical N1–N20 retained"), Placed.ItemLevel >= 1 && Placed.ItemLevel <= 20);
         TestEqual(TEXT("Palette identity is persisted on placement"), Placed.PaletteEntryId, FName(Pilot.EntryId));
@@ -165,7 +165,7 @@ bool FARMEMENT0171PlacementPreviewTest::RunTest(const FString&)
     if (!TestNotNull(TEXT("Registered preview resolver"), Registry)) return false;
     for (const FGridLooseItemInstance& Placed : Level->LooseItemInstances)
     {
-        TestNull(TEXT("New registered placement is pointerless"), Placed.ItemDefinition.Get());
+        TestNull(TEXT("New registered placement is pointerless"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
         FGridResolvedItem Canonical;
         if (!TestTrue(TEXT("Canonical physical preview resolves"),
             Registry->ResolveItem(Placed.CanonicalItemId, Placed.ItemLevel, Canonical))) { continue; }

@@ -88,9 +88,7 @@ namespace
 		}
 		if (const FGridLooseItemInstance* Instance = LevelAsset->FindLooseItemInstanceById(ObjectId))
 		{
-			return Instance->ItemDefinition && !Instance->ItemDefinition->ItemDefinitionId.IsNone()
-				? Instance->ItemDefinition->ItemDefinitionId
-				: Instance->PaletteEntryId;
+			return Instance->CanonicalItemId;
 		}
 		if (const FGridMonsterSpawnInstance* Instance = LevelAsset->FindMonsterSpawnInstanceById(ObjectId))
 		{

@@ -74,7 +74,7 @@ bool FGridMIG09EditorTypedMutationsTest::RunTest(const FString& Parameters)
 	FGridLooseItemInstance& LooseItem = Level->LooseItemInstances.AddDefaulted_GetRef();
 	LooseItem.InstanceId = FGuid::NewGuid();
 	LooseItem.CellX = 1;
-	LooseItem.ItemDefinition = ItemDefinition;
+	LooseItem.CanonicalItemId = ItemDefinition->ItemDefinitionId;
 	LooseItem.Quantity = 7;
 	LooseItem.LocalOffset = FVector(3.f, 4.f, 5.f);
 	LooseItem.ReadTextOverride = FText::FromString(TEXT("Keep this text"));

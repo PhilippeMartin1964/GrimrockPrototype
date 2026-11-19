@@ -109,17 +109,11 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 	TestTrue(TEXT("Invalid ammo level remains classified canonical"), InvalidAmmo.bCanonicalIdentity);
 	TestFalse(TEXT("Non-ARM cannot invent N1 despite transitional registry support"), InvalidAmmo.bResolved);
 	Arrows.ItemLevel = 0;
-	Old->ItemDefinitionId = Arrows.CanonicalItemId;
-	Arrows.ItemDefinition = Old.Get();
-	const auto MatchingOld = FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);
-	TestTrue(TEXT("Explicit identity stays classified"), MatchingOld.bCanonicalIdentity);
-	TestFalse(TEXT("Even matching old pointer cannot supply preview"), MatchingOld.bResolved);
-	TestTrue(TEXT("Old pointer exposes no mesh"), MatchingOld.WorldMesh.IsNull());
+	TestNull(TEXT("Legacy pointer is no longer a placement property"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	Arrows.CanonicalItemId = NAME_None;
-	const auto Legacy = FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);
-	TestFalse(TEXT("Pointer cannot supply a canonical identity"), Legacy.bCanonicalIdentity);
-	TestFalse(TEXT("Pointer-only placement does not preview"), Legacy.bResolved);
-	Arrows.ItemDefinition = nullptr;
+	const auto Missing = FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);
+	TestFalse(TEXT("Missing ID is not canonical"), Missing.bCanonicalIdentity);
+	TestFalse(TEXT("Missing ID cannot preview"), Missing.bResolved);
 	Arrows.CanonicalItemId = TEXT("LegacyEditorPreview_063Z");
 	TestFalse(TEXT("Unknown ID cannot preview"),
 		FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows).bResolved);

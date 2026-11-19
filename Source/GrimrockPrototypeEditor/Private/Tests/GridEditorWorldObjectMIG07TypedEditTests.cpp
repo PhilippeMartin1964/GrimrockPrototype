@@ -88,7 +88,7 @@ bool FGridEditorWorldObjectMIG07TypedWriteThroughTest::RunTest(const FString& Pa
 
 	FGridLooseItemInstance Item;
 	Item.InstanceId = FGuid::NewGuid();
-	Item.ItemDefinition = ItemDefinition;
+	Item.CanonicalItemId = ItemDefinition->ItemDefinitionId;
 	Item.CellX = 1;
 	Item.CellY = 1;
 	Item.Quantity = 9;

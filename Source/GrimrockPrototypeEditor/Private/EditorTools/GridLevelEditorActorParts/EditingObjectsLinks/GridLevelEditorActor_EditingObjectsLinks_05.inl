@@ -37,7 +37,7 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 		SelectedPaletteEntryId != ExistingLoose->PaletteEntryId;
 	if (ExistingLoose)
 	{
-		if (ExistingLoose->ItemDefinition || ObjectBehavior.Item.ItemDefinitionAsset ||
+		if (ObjectBehavior.Item.ItemDefinitionAsset ||
 			(bReplaceLooseIdentity && !CanonicalEntry) ||
 			(CanonicalEntry && (!CanonicalEntry->IsDirectItemEntry() || CanonicalEntry->DefaultItemDefinition ||
 			 CanonicalEntry->DefaultWorldObjectDefinition || CanonicalEntry->Icon || CanonicalEntry->CanonicalItemId.IsNone())))

@@ -92,7 +92,7 @@ bool FGridEditorClean064X12PalettePlacement::RunTest(const FString&)
         const FGridLooseItemInstance& Item = Level->LooseItemInstances.Last();
         return Item.InstanceId.IsValid() &&
             Item.CanonicalItemId == Entry->CanonicalItemId &&
-            Item.ItemDefinition == nullptr &&
+            FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")) == nullptr &&
             Item.ItemLevel == Entry->CanonicalDefaultItemLevel &&
             Item.Quantity == 1 &&
             Item.CellX == 1 && Item.CellY == 1;

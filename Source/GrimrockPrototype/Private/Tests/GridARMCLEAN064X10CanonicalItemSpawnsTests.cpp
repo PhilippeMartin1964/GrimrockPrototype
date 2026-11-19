@@ -116,7 +116,7 @@ bool FGridClean064X10BIdentity::RunTest(const FString&)
         TestEqual(TEXT("Canonical ID"), Materialized.CanonicalItemId, Spawn.CanonicalItemId) &&
         TestEqual(TEXT("Physical level"), Materialized.ItemLevel, 0) &&
         TestEqual(TEXT("Quantity"), Materialized.Quantity, 3) &&
-        TestNull(TEXT("Legacy pointer not needed"), Materialized.ItemDefinition.Get());
+        TestNull(TEXT("Materialized placement has no legacy property"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 }
 
 namespace ARMCLEAN064X10

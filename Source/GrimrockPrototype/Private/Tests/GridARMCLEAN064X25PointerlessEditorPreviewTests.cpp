@@ -96,7 +96,6 @@ bool FGridClean064X25PointerlessEditorPreview::RunTest(const FString&)
 	Placement.InstanceId = FGuid::NewGuid();
 	Placement.CellX = 0;
 	Placement.CellY = 0;
-	Placement.ItemDefinition = nullptr;
 	Placement.CanonicalItemId = TEXT("Weapon_Dagger_01");
 	Placement.ItemLevel = 20;
 	Placement.Quantity = 1;
@@ -168,23 +167,13 @@ bool FGridClean064X25PointerlessEditorPreview::RunTest(const FString&)
 
 	Placement.ItemLevel = 20;
 	Placement.CanonicalItemId = TEXT("Weapon_Dagger_01");
-	UGridItemDefinitionAsset* Contradiction = NewObject<UGridItemDefinitionAsset>();
-	Contradiction->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
-	Placement.ItemDefinition = Contradiction;
-	const auto WrongSource = FGridEditorLooseItemPreviewReadModel::Resolve(
-		F.Registry, Placement);
-	if (!TestTrue(TEXT("Contradictory source is still canonical"),
-			WrongSource.bCanonicalIdentity) ||
-		!TestFalse(TEXT("Contradictory legacy source never supplies its mesh"),
-			WrongSource.bResolved))
-	{
+	if (!TestNull(TEXT("Old placement source cannot be represented"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition"))))
 		return false;
-	}
-	Contradiction->ItemDefinitionId = Placement.CanonicalItemId;
-	if (!TestFalse(TEXT("Even matching historical pointer cannot preview"),
+	Placement.CanonicalItemId = NAME_None;
+	if (!TestFalse(TEXT("Missing identity cannot preview"),
 		FGridEditorLooseItemPreviewReadModel::Resolve(F.Registry, Placement).bResolved))
 		return false;
-	Placement.ItemDefinition = nullptr;
+	Placement.CanonicalItemId = TEXT("Weapon_Dagger_01");
 	if (!TestTrue(TEXT("No registry cannot authorize legacy fallback"),
 		FGridEditorLooseItemPreviewReadModel::Resolve(
 			nullptr, Placement).bCanonicalIdentity) ||

@@ -34,7 +34,7 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 
 	FGridLooseItemInstance Item;
 	Item.InstanceId = FGuid::NewGuid();
-	Item.ItemDefinition = ItemDefinition;
+	Item.CanonicalItemId = ItemDefinition->ItemDefinitionId;
 	Item.CellX = 4;
 	Item.CellY = 5;
 	Item.Tag = TEXT("ItemBefore");
@@ -90,7 +90,7 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Loose item typed-only offset survives direct snapshot edit"), Level->LooseItemInstances[0].LocalOffset.Equals(FVector(12.0f, -8.0f, 4.0f)));
 
 	FGridLooseItemInstance AddedItem;
-	AddedItem.ItemDefinition = ItemDefinition;
+	AddedItem.CanonicalItemId = ItemDefinition->ItemDefinitionId;
 	AddedItem.CellX = 10;
 	AddedItem.CellY = 11;
 	Level->LooseItemInstances.Add(AddedItem);

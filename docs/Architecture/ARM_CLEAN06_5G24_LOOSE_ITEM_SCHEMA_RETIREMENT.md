@@ -1,0 +1,7 @@
+# ARM-CLEAN06.5G.24 — Retrait du schéma des placements d'objets libres
+
+Parent : 4bdfcaf3e5cf6bae581afee2806ded02e0409dd1. Précondition : deux statuts SUCCESS du parent. FGridLooseItemInstance ne sérialise plus de référence à UGridItemDefinitionAsset ; CanonicalItemId + ItemLevel physique sont la seule identité de définition. GUID, quantité, coordonnées, orientation, offset, contenu lisible, notes et provenance de palette inchangés. Aucun package ni SaveGame écrit.
+
+Le runtime et l'aperçu refusent toujours les identités absentes/inconnues et les niveaux invalides. L'éditeur ne lit plus la propriété retirée ; l'ancien setter réfléchi refuse toujours un asset non nul. Le panneau des liens lit l'identité explicite et le diagnostic affiche ID/N et présence des champs physiques (la validation complète du registre reste dans ValidateCurrentLevel). Les tests négatifs sur un ancien pointeur remplacent sa construction devenue impossible par une assertion de schéma, et conservent les refus de données malformées.
+
+X.45/X.48 : 44 placements natifs sur quatre niveaux, absence de propriété réfléchie, identités, niveaux, GUIDs, quantités et coordonnées valides ; duplication transitoire et empreinte du contenu réel, sans SavePackage. Les autres contrôles de niveaux, lifecycle, transfert, palette, preview et matérialisation sont adaptés. Ne pas confondre test Automation avec recette PIE/Chaos. Le scratch, les outils de palette legacy et les autres lecteurs historiques ne sont pas supprimés par ce lot.

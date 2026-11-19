@@ -277,18 +277,14 @@ struct FGridLooseItemInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
 	FGuid InstanceId;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
-
-	/** Authored stable identity saved into the level by ARM-CLEAN06.4W.
-	 * No new runtime fallback or definition copy: only this ItemId. */
+	/** Sole authored identity. Resolved by ItemSystem at the explicit physical level. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item|Canonical")
 	FName CanonicalItemId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "1"))
 	int32 Quantity = 1;
 
-	/** 0 inherits the definition's default level. 1..20 is an authored fixed RPG level. */
+	/** Physical N0 for non-armament; N1-N20 for armament. Never an inheritance sentinel. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "0", ClampMax = "20", UIMin = "0", UIMax = "20"))
 	int32 ItemLevel = 0;
 

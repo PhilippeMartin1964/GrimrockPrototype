@@ -116,7 +116,7 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 			Arm.CanonicalItemId);
 		bOk &= TestEqual(TEXT("Placed ARM level N20"), Placed.ItemLevel, 20);
 		bOk &= TestNull(TEXT("Placed ARM does not store an old definition"),
-			Placed.ItemDefinition.Get());
+			FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 		bOk &= TestTrue(TEXT("Placed ARM has stable GUID"), Placed.InstanceId.IsValid());
 	}
 
@@ -132,7 +132,7 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 		bOk &= TestEqual(TEXT("Placed ammo is Item_Arrows_01"),
 			Placed.CanonicalItemId, Ammo.CanonicalItemId);
 		bOk &= TestEqual(TEXT("Placed ammo remains N0"), Placed.ItemLevel, 0);
-		bOk &= TestNull(TEXT("Placed ammo is pointerless"), Placed.ItemDefinition.Get());
+		bOk &= TestNull(TEXT("Placed ammo is pointerless"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 
 		// Label/notes edits must not reset independently authored physical levels.
 		Editor->LastSelectedObjectId = Level->LooseItemInstances[0].InstanceId;
@@ -144,7 +144,7 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 		bOk &= TestEqual(TEXT("Authored N12 survived the edit"),
 			Level->LooseItemInstances[0].ItemLevel, 12);
 		bOk &= TestNull(TEXT("Edited ARM is still pointerless"),
-			Level->LooseItemInstances[0].ItemDefinition.Get());
+			FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 		const FName Sword(TEXT("Weapon_StraightSword_01"));
 		bOk &= TestTrue(TEXT("Selected object changes ID without changing source palette"),
 			Editor->SetSelectedObjectItemDefinitionId(Sword));
@@ -178,17 +178,17 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 		Editor->LastSelectedObjectId = First.InstanceId;
 		bOk &= TestTrue(TEXT("Reselect pointerless ARM"),
 			Editor->ApplyPaletteEntry(OriginalArm.EntryId));
-		First.ItemDefinition = OldMatchingArm;
+		Editor->ObjectBehavior.Item.ItemDefinitionAsset = OldMatchingArm;
 		const FGuid PreviousId = First.InstanceId;
-		bOk &= TestFalse(TEXT("Metadata apply rejects old persisted source"),
+		bOk &= TestFalse(TEXT("Metadata apply rejects old staged source"),
 			Editor->ApplyEditedSelectedObject());
 		bOk &= TestEqual(TEXT("Rejection preserves GUID"), First.InstanceId, PreviousId);
 		bOk &= TestEqual(TEXT("Rejection preserves authored N12"), First.ItemLevel, 12);
-		First.ItemDefinition = nullptr;
+		Editor->ObjectBehavior.Item.ItemDefinitionAsset = nullptr;
 		bOk &= TestFalse(TEXT("Old pointer cannot be reattached"),
 			Editor->SetSelectedObjectItemDefinitionAsset(OldMatchingArm));
 		bOk &= TestNull(TEXT("Rejected reattachment leaves pointerless placement"),
-			First.ItemDefinition.Get());
+			FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	}
 	const int32 PlacedCount = Level->LooseItemInstances.Num();
 	FGridObjectPaletteEntry Bad = OriginalArm;

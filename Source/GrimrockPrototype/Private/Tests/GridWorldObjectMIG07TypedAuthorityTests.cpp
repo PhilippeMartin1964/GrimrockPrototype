@@ -35,7 +35,7 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 
 	FGridLooseItemInstance Item;
 	Item.InstanceId = FGuid::NewGuid();
-	Item.ItemDefinition = ItemDefinition;
+	Item.CanonicalItemId = ItemDefinition->ItemDefinitionId;
 	Item.CellX = 5;
 	Item.CellY = 6;
 	Item.LocalYaw = 15.0f;
@@ -78,7 +78,7 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 	TestNotNull(TEXT("Loose item is found by native identity"), RestoredItem);
 	if (RestoredItem)
 	{
-		TestTrue(TEXT("Loose item retains its single ItemDefinition"), RestoredItem->ItemDefinition == ItemDefinition);
+		TestEqual(TEXT("Loose item retains its sole authored ItemId"), RestoredItem->CanonicalItemId, ItemDefinition->ItemDefinitionId);
 		TestEqual(TEXT("Loose item local yaw survives projection"), RestoredItem->LocalYaw, 15.0f);
 	}
 

@@ -63,7 +63,7 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset(UGridItemDefini
 	FGridItemSpawnInstance* Spawn = Loose ? nullptr : LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId);
 	if (!Loose && !Spawn) return false;
 	// Reflected compatibility entrypoint: no old definition may be attached.
-	return NewItemDefinitionAsset == nullptr && (!Loose || !Loose->ItemDefinition);
+	return NewItemDefinitionAsset == nullptr;
 }
 
 const UGridItemSubsystem* AGridLevelEditorActor::ResolveEditorItemRegistry()
@@ -119,8 +119,7 @@ bool AGridLevelEditorActor::SetSelectedObjectItemLevel(int32 NewItemLevel)
 		return false;
 	}
 	const FName CanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
-	const bool bAllowed = (!Loose || !Loose->ItemDefinition) &&
-		(Loose ? Loose->Quantity : Spawn->Quantity) > 0 &&
+	const bool bAllowed = (Loose ? Loose->Quantity : Spawn->Quantity) > 0 &&
 		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
 			ResolveEditorItemRegistry(), CanonicalId, NewItemLevel);
 	if (!bAllowed)
@@ -147,7 +146,6 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 	if (!Loose && !Spawn) return false;
 
 	const FName PreviousCanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
-	if (Loose && Loose->ItemDefinition) return false;
 	if (PreviousCanonicalId == NewItemDefinitionId)
 		return (Loose ? Loose->Quantity : Spawn->Quantity) > 0 &&
 			FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(

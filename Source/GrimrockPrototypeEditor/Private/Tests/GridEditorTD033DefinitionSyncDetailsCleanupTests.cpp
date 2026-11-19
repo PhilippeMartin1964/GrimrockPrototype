@@ -145,7 +145,7 @@ bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Placing the palette item adds exactly one typed loose item"), LevelAsset->LooseItemInstances.Num(), ItemCountBeforePlacement + 1);
 	const FGridLooseItemInstance& PlacedItem = LevelAsset->LooseItemInstances.Last();
 	TestEqual(TEXT("The placed item stores the canonical ID"), PlacedItem.CanonicalItemId, ItemDefinition->ItemDefinitionId);
-	TestNull(TEXT("No old definition persisted"), PlacedItem.ItemDefinition.Get());
+	TestNull(TEXT("No old definition persisted"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	TestEqual(TEXT("The placed item stores the source palette entry"), PlacedItem.PaletteEntryId, ItemPaletteEntry.EntryId);
 
 	return true;

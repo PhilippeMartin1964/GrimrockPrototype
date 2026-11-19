@@ -208,7 +208,7 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	ItemData.InstanceId = FGuid::NewGuid();
 	ItemData.CellX = 0;
 	ItemData.CellY = 0;
-	ItemData.ItemDefinition = Definition;
+	ItemData.CanonicalItemId = Definition->ItemDefinitionId;
 
 	FTransform PlacementTransform;
 	TestTrue(TEXT("Loose item placement transform resolves without any WorldObjectDefinition"), GridPlacementTransformResolver::ResolveLooseItem(*Runtime, ItemData, PlacementTransform));
