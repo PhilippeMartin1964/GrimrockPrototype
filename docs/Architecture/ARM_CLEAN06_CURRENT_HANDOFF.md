@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.2 — Details des armes canoniques
+
+Parent 4d12154b71e651082193e77517ddc5a00965c9ca : deux statuts SUCCESS, zéro arête externe. Remplacement de la personnalisation historique par celle de UGridArmamentDefinitionAsset : aperçu N1/N20 depuis le DA_ItemSystem configuré, refus d'un doublon hors index, navigation vers le registre et ses quatre catalogues via soft paths, aucune copie ni écriture. Test 22 définitions réelles. Contrôle visuel Details restant. Draft suivant 5G.3 : 9f3bad580a04c90ca777a80fc583e6502b06f543 (21 fichiers, ajouter handoff). Draft 5G.4 : d08e480769d659d37bb222851d48c4f939bcbc4c (8 fichiers, ajouter handoff). Attendre les statuts exacts de chaque lot.
+
 ## ARM-CLEAN06.5G.1 — retrait du schéma et du second classificateur d'icônes
 
 5F.1 e1790a0b531011eebf9a72a1e99b8b24ab508d76 : trois statuts SUCCESS. Enfant binaire 2dfdd7fbc93203c5e6e6865b12f3a52880ae0f7c : deux statuts SUCCESS, seul WBP_GridCombatHudAction modifié. Publication désormais autorisée. Retrait de la propriété historique et de son helper de classification : les 82 archétypes et les cas négatifs passent par FGridCanonicalActionIconReadModel (LOT02.20 conservé). L'énumération stable est indépendante de l'ancienne classe de palette conservée uniquement pour les projections historiques. Gate permanent zéro arête externe et chargement du WBP natif, retrait des quatre outils one-shot et de leur hook. Aucun changement de texte, asset ou SaveGame. Voir [5G.1](ARM_CLEAN06_5G1_HUD_PALETTE_SCHEMA_RETIREMENT.md).
