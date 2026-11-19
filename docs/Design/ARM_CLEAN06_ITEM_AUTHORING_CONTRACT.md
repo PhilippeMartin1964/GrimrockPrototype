@@ -67,7 +67,7 @@ Une arme n'embarque **aucun** `TArray<FGridCombatActionDefinition>` universel. L
 4. Vérifier `DA_ItemSystem` : index exact des définitions et quatre références globales. Aucun alias anonyme ni duplication de clés.
 5. Faire passer validations d'intégrité, tests gameplay, N1/N20, inventaire/SaveGame/monde/PIE. Un asset qui manque d'une référence obligatoire **échoue** à la validation, sans fallback.
 
-**Pendant la migration :** le pipeline actuel `Scripts/WeaponPipeline.ps1` conserve sa vocation historique ; **il ne peut pas servir à produire de nouveaux objets selon ce contrat sans être refondu**. Ne pas relancer un commandlet qui recompose les anciennes copies de Nom, Weight, Icon, mesh ou OffensiveProfile N1.
+**Après 5G.3 :** les entrées d'écriture historiques `WeaponPipeline`, `WeaponPilotItemAuthoring`, `WeaponPilotPaletteAuthoring`, `MarksmanAmmunitionAuthoring` et `WeaponFireBombPalette` ainsi que leurs wrappers sont retirées. Ne pas les relancer depuis un ancien checkout. Créer/éditer les DataAssets canoniques dans Unreal selon le cycle ci-dessus ; les quatre catalogues du registre configuré et le panneau Details en lecture seule sont la seule voie d'édition. Les anciens manifests et tests de parité sont conservés à titre de preuve jusqu'au retrait global. Aucun pipeline automatique de production de nouvelles armes n'est prétendu disponible tant qu'il n'est pas réimplémenté/testé sur les actifs canoniques.
 
 ## 5. Conditions qualité / revues
 

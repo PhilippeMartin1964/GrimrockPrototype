@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.3 — Retrait des producteurs historiques
+
+Parent 9c4d4ac734cee0ae680bec727f4d551be5d5c0a0 : deux statuts SUCCESS. Suppression des cinq commandlets et huit scripts capables de recréer ou de modifier l'ancien armement, conservation des helpers de parité et des manifests de référence. Test industriel adapté au contrat d'absence des producteurs historiques ; authoring canonique manuel documenté. Aucun changement binaire ou SaveGame. Prochain lot 5G.4 : draft d08e480769d659d37bb222851d48c4f939bcbc4c (parent 4d12154b71e651082193e77517ddc5a00965c9ca, huit différences seulement) à rebaser sur le HEAD validé.
+
 ## ARM-CLEAN06.5G.2 — Details des armes canoniques
 
 Parent 4d12154b71e651082193e77517ddc5a00965c9ca : deux statuts SUCCESS, zéro arête externe. Remplacement de la personnalisation historique par celle de UGridArmamentDefinitionAsset : aperçu N1/N20 depuis le DA_ItemSystem configuré, refus d'un doublon hors index, navigation vers le registre et ses quatre catalogues via soft paths, aucune copie ni écriture. Test 22 définitions réelles. Contrôle visuel Details restant. Draft suivant 5G.3 : 9f3bad580a04c90ca777a80fc583e6502b06f543 (21 fichiers, ajouter handoff). Draft 5G.4 : d08e480769d659d37bb222851d48c4f939bcbc4c (8 fichiers, ajouter handoff). Attendre les statuts exacts de chaque lot.

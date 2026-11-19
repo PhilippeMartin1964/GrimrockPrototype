@@ -335,25 +335,21 @@ bool FWeaponIndustrial05LegacyExceptions::RunTest(const FString&)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponIndustrial05SingleEntrypoint,
-    "Grimrock.RPG.ARMEMENT.Industrial05.SinglePublicPipeline",
+    "Grimrock.RPG.ARM.CLEAN06_5G3.RetiredLegacyWeaponWriters",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FWeaponIndustrial05SingleEntrypoint::RunTest(const FString&)
 {
     const FString Scripts = FPaths::Combine(FPaths::ProjectDir(), TEXT("Scripts"));
-    FString Text;
-    const FString Pipeline = FPaths::Combine(Scripts, TEXT("WeaponPipeline.ps1"));
-    if (!TestTrue(TEXT("Canonical PowerShell pipeline exists"),
-        FFileHelper::LoadFileToString(Text, *Pipeline))) return false;
-    TestTrue(TEXT("Generic commandlet invocation retained"),
-        Text.Contains(TEXT("-run=GridWeaponPipeline")));
-    TestTrue(TEXT("Narrative publishing integrated in main script"),
-        Text.Contains(TEXT("-Action=NarrativeItem")));
-    TestTrue(TEXT("Explicit Apply retained"),
-        Text.Contains(TEXT("if ($Apply)")));
-    TestTrue(TEXT("No automatic git staging or pushing"),
-        !Text.Contains(TEXT("git add -A")) && !Text.Contains(TEXT("git push origin")));
     const TCHAR* RemovedWrappers[] = {
+        TEXT("WeaponPipeline.ps1"),
+        TEXT("ProduceStarterWeaponWave.ps1"),
+        TEXT("StarterKitProductionBatch.ps1"),
+        TEXT("PlanStarterWeaponWaves.ps1"),
+        TEXT("RepairARMEMENT0171Palette.ps1"),
+        TEXT("RepairRecurveBowAmmo.ps1"),
+        TEXT("ProduceMarksmanAmmunition.ps1"),
+        TEXT("ApplyARMEMENT011023WeaponFireBombPalette.ps1"),
         TEXT("AuthorARMEMENT01102WarriorN1.ps1"),
         TEXT("AuthorARMEMENT011122AssassinDaggerN1.ps1"),
         TEXT("RegisterARMEMENT011021WarriorVisuals.ps1"),
@@ -364,10 +360,36 @@ bool FWeaponIndustrial05SingleEntrypoint::RunTest(const FString&)
     for (const TCHAR* Old : RemovedWrappers)
     {
         const FString File = FPaths::Combine(Scripts, Old);
-        TestFalse(*FString::Printf(TEXT("Retired per-weapon wrapper remains absent: %s"), Old),
+        TestFalse(*FString::Printf(TEXT("Retired legacy weapon wrapper remains absent: %s"), Old),
             IFileManager::Get().FileExists(*File));
     }
-    return true;
+    const TCHAR* RemovedCommandlets[] = {
+        TEXT("GridWeaponPipelineCommandlet"),
+        TEXT("GridWeaponPilotItemAuthoringCommandlet"),
+        TEXT("GridWeaponPilotPaletteAuthoringCommandlet"),
+        TEXT("GridMarksmanAmmunitionAuthoringCommandlet"),
+        TEXT("GridWeaponFireBombPaletteCommandlet"),
+    };
+    for (const TCHAR* Old : RemovedCommandlets)
+    {
+        const FString Name(Old);
+        const FString Header = FPaths::Combine(FPaths::ProjectDir(),
+            TEXT("Source/GrimrockPrototypeEditor/Public/ARMEMENT"), Name + TEXT(".h"));
+        const FString Cpp = FPaths::Combine(FPaths::ProjectDir(),
+            TEXT("Source/GrimrockPrototypeEditor/Private/ARMEMENT"), Name + TEXT(".cpp"));
+        const FString ClassPath = TEXT("/Script/GrimrockPrototypeEditor.") + Name;
+        TestFalse(*FString::Printf(TEXT("Old authoring header absent: %s"), Old), IFileManager::Get().FileExists(*Header));
+        TestFalse(*FString::Printf(TEXT("Old authoring source absent: %s"), Old), IFileManager::Get().FileExists(*Cpp));
+        TestTrue(*FString::Printf(TEXT("Old authoring commandlet not registered: %s"), Old),
+            FindObject<UClass>(nullptr, *ClassPath) == nullptr);
+    }
+
+    // The approved recipe and source manifests remain read-only evidence
+    // until the final legacy parity audits are replaced, not writer inputs.
+    TestTrue(TEXT("Approved 18 kit recipe source remains available"),
+        IFileManager::Get().FileExists(*FPaths::Combine(FPaths::ProjectDir(),
+            TEXT("docs/Design/ARMEMENT01_9_6_STARTER_KIT_RECIPES.csv"))));
+    return !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
