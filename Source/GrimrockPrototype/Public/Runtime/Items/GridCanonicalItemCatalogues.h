@@ -474,6 +474,11 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalProjectilePolicy
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile")
 	bool bEnabled = false;
 
+	/** Ordinary physical hand toss: authored numeric policy, NOT a
+	 * recoverable combat projectile or an attack permission. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile")
+	bool bGenericThrowAuthored = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile", meta = (ClampMin = "0"))
 	float InitialSpeed = 0.0f;
 

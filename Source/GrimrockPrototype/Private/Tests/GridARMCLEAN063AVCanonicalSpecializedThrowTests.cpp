@@ -360,4 +360,52 @@ bool FGridClean065DGenericThrow::RunTest(const FString&)
     return !HasAnyErrors();
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065D3GenericArmFlight,
+    "Grimrock.RPG.ARM.CLEAN06_5D3.PersistedOrdinaryARMFlight",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean065D3GenericArmFlight::RunTest(const FString&)
+{
+    ARMCLEAN063AV::FFixture F;
+    if (!TestTrue(TEXT("Actual runtime registry"), F.Ready())) return false;
+    auto* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+    if (!TestNotNull(TEXT("Native root"), Root)) return false;
+    int32 Authored = 0;
+    for (const auto& D : Root->ItemDefinitions)
+    {
+        const auto* Arm = Cast<UGridArmamentDefinitionAsset>(D.Get());
+        if (!Arm) continue;
+        for (int32 N : {1,20})
+        {
+            FGridResolvedItem Item;
+            auto Instance = F.Make(Arm->ItemId, N);
+            if (!TestTrue(TEXT("Exact ARM level"), F.Registry->ResolveItem(Arm->ItemId, N, Item))) return false;
+            if (!Item.Weapon.Projectile.bGenericThrowAuthored) continue; // Pre-Apply code stage is intentionally supported.
+            if (N == 1) ++Authored;
+            auto* Stale = NewObject<UGridItemDefinitionAsset>(F.Runtime);
+            Stale->ItemDefinitionId = Arm->ItemId;
+            Stale->ThrowSpeed = 99999.f;
+            Stale->ThrowArc = 99.f;
+            Stale->Weight = 99999.f;
+            const auto Flight = FGridCanonicalThrowBallisticsReadModel::Resolve(F.Registry, Stale, Instance);
+            const auto Strength = FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Stale, Instance, 100);
+            TestFalse(TEXT("No specialist attack invented"), Item.Weapon.Projectile.bEnabled || Flight.bSpecializedProjectile);
+            TestEqual(TEXT("Canonical speed success"), Flight.bResolved, Item.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER);
+            if (Flight.bResolved) TestEqual(TEXT("Old speed cannot override ordinary flight"), Flight.InitialSpeed, Item.Weapon.Projectile.InitialSpeed);
+            if (Strength.bCanThrow && Flight.bResolved && !Item.WorldMesh.IsNull())
+            {
+                const FVector Start = F.Runtime->GetCellCenterWorld(0, 0, 100.f);
+                auto* Projectile = F.Runtime->SpawnThrownItemProjectile(Instance, Stale, Start, FVector(1200,0,100), 0,0);
+                if (!TestNotNull(TEXT("Ordinary ARM spawns without old definition"), Projectile)) return false;
+                TestNull(TEXT("Old definition discarded"), Projectile->GetItemDefinitionAsset());
+                TestTrue(TEXT("Complete canonical world presentation"), Projectile->CanonicalWorldPresentation.IsValid());
+                TestEqual(TEXT("Physical N preserved"), Projectile->CanonicalWorldItemLevel, N);
+                TestTrue(TEXT("Ordinary flight mesh is real world mesh"), Projectile->MeshComponent->GetStaticMesh() == Item.WorldMesh.LoadSynchronous());
+                Projectile->Destroy();
+            }
+        }
+    }
+    TestTrue(TEXT("Native stage is all or none"), Authored == 0 || Authored == 19);
+    return !HasAnyErrors();
+}
 #endif

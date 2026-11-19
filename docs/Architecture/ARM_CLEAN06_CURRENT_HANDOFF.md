@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.3 — lancer physique des ARM non spécialisées
+
+Parent 5D.2.1 `0be0a8ddd471d74a2a70e05fff47df0a5782b7f0`. Projection des 19 politiques ordinaires, 3 spécialisées inchangées, 2 catalogues et 22 identités exactes. Pas d'attaque inventée ; préflight transitoire, même politique physique/visuelle N1/N20, tests runtime et garde avant écriture. [5D.3](ARM_CLEAN06_5D3_ARM_HAND_THROW.md). Aucune modification de save. Le code n'est pas la preuve de matérialisation ; attendre le SHA binaire et ses deux statuts.
+
 ## ARM-CLEAN06.5D.2.1 — correction des réceptacles autonomes
 
 5D.2 `bed4605243471c0c858b60ecebb1615693a626fe` : SilentTask SUCCESS, LocalAuto FAILURE (deux tests de réceptacles autonomes, [issue #196](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/196)). Cause : la création canonique exigeait un AGridLevelRuntimeActor alors qu'un réceptacle autonome possède un UWorld et le registre réel sans cet acteur. Création canonique directe dans ce cas seulement, exactement même initialisation complète, jamais fallback ID-only ; tests autonomes renforcés (GUID/niveau/pointeur/présentation). Retest complet avant poursuite. Pas de fichiers natifs/saves touchés.

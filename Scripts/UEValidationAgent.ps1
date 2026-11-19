@@ -992,6 +992,45 @@ try {
         if ($ExitCode -ne 0) { throw "ValidateUE.ps1 a retourne le code $ExitCode. Voir $RunLog et $RunStderrLog." }
         $Phase = 'publication'
         Publish-CommitStatus -Sha $Sha -State 'success' -Description "Build + Automation OK ($AutomationFilter)"
+
+        # Exact, one-shot 5D.3 native package transaction after successful code validation.
+        $HandThrowSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $HandThrowSubject.Count -eq 1 -and
+            [string]$HandThrowSubject[0] -ceq 'ARM-CLEAN06.5D.3: preserve ordinary ARM physical flight in canonical catalogues') {
+            $HandThrowContext = 'UE5.5.4/ARM-CLEAN06.5D3'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $HandThrowContext -Description 'Conversion native de deux catalogues ARM'
+                $HandThrowScript = Join-Path $WorktreePath 'Scripts\ApplyARM_CLEAN06_5D3_HandThrow.ps1'
+                $ParseTokens = $null
+                $ParseErrors = $null
+                [void][System.Management.Automation.Language.Parser]::ParseFile($HandThrowScript,[ref]$ParseTokens,[ref]$ParseErrors)
+                if (@($ParseErrors).Count -gt 0) { throw 'Native transaction script parse error.' }
+                $HandThrowArgs = @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$HandThrowScript,
+                    '-WorktreePath',$WorktreePath,'-RepositoryRoot',$RepositoryRoot,'-EngineRoot',$EngineRoot,
+                    '-StateRoot',$StateRoot,'-RunDir',$RunDir,'-ExpectedHead',$Sha,'-GitHubRepository',$GitHubRepository)
+                $HandThrowArgLine = ($HandThrowArgs | ForEach-Object {
+                    if ($_.Contains('"')) { throw 'Unsafe argument.' }
+                    '"' + $_ + '"'
+                }) -join ' '
+                $HandThrowProcess = Start-Process -FilePath $PsExe -ArgumentList $HandThrowArgLine -WorkingDirectory $WorktreePath -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput (Join-Path $RunDir 'ARM065D3.stdout.log') -RedirectStandardError (Join-Path $RunDir 'ARM065D3.stderr.log') -ErrorAction Stop
+                if ($HandThrowProcess.ExitCode -ne 0 -or (Get-Content -LiteralPath (Join-Path $RunDir 'ArmClean065D3.stage') -TotalCount 1) -cne 'SUCCESS') {
+                    throw 'Native transaction did not complete.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $HandThrowContext -Description '19 ARM, deux catalogues, reouverture et Automation OK'
+            } catch {
+                $HandThrowStage = 'PREFLIGHT'
+                $HandThrowStagePath = Join-Path $RunDir 'ArmClean065D3.stage'
+                if (Test-Path -LiteralPath $HandThrowStagePath -PathType Leaf) {
+                    $HandThrowStage = ([string](Get-Content -LiteralPath $HandThrowStagePath -TotalCount 1)).Trim()
+                }
+                if ($HandThrowStage -notin @('PREFLIGHT','AUDIT','APPLY','REOPEN','AUTOMATION','PUBLISH','ROLLBACK_INCOMPLETE','SUCCESS')) { $HandThrowStage = 'UNKNOWN' }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $HandThrowContext -Description ('Conversion ARM bloquee : '+$HandThrowStage)
+                } catch { Write-Warning 'Native transaction status unavailable.' }
+                Write-Warning ('ARM-CLEAN06.5D3: '+$HandThrowStage)
+            }
+        }
+
         
         # ARM-CLEAN06.4X.16.6.2: one-shot, all-source whitelist publication.
         # Never publish arbitrary logs, Windows paths, or unverified UE content.

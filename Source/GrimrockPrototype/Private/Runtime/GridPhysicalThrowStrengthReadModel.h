@@ -46,7 +46,8 @@ struct FGridPhysicalThrowStrengthReadModel
 					Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand)
 				: Canonical.NonArmHandPolicy == EGridNonArmamentHandPolicy::OneHanded;
 			Out.UnitWeightKg = Canonical.WeightKg;
-			const float Speed = !Canonical.bIsArmament ? Canonical.GenericThrow.InitialSpeed : Canonical.Weapon.Projectile.bEnabled
+			const float Speed = !Canonical.bIsArmament ? Canonical.GenericThrow.InitialSpeed :
+				(Canonical.Weapon.Projectile.bEnabled || Canonical.Weapon.Projectile.bGenericThrowAuthored)
 				? Canonical.Weapon.Projectile.InitialSpeed
 				: (IsValid(LegacyDefinition) &&
 					LegacyDefinition->ItemDefinitionId == Instance.ItemDefinitionId

@@ -189,8 +189,11 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	const FGridCanonicalProjectileVisualReadView Canonical =
 		FGridCanonicalProjectileVisualReadModel::Resolve(Registry, InItemInstance);
 	const bool bCanonicalNonArmFlight = Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bIsNonArmament;
+	const bool bCanonicalGenericArm = Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bGenericArmamentFlight;
 	const bool bPointerlessCanonical = Canonical.bCanonicalIdentity &&
-		(!IsValid(InDefinition) || Canonical.bIsNonArmament);
+		(!IsValid(InDefinition) || Canonical.bIsNonArmament || bCanonicalGenericArm);
+	if (bCanonicalGenericArm)
+		InDefinition = nullptr;
 	if (bCanonicalNonArmFlight)
 	{
 		InDefinition = nullptr; // Never attach an obsolete non-ARM definition.
@@ -224,7 +227,8 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	// ARM flight reads its N1-N20 profile; arrows are an unlevelled family
 	// and keep their actual ItemLevel=0 without any synthetic weapon level.
 	const bool bCanonicalArmamentProjectile =
-		Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bHasProjectileVisual;
+		Canonical.bCanonicalIdentity && Canonical.bResolved &&
+		(Canonical.bHasProjectileVisual || Canonical.bGenericArmamentFlight);
 	const bool bCanonicalAmmoFlight =
 		Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bIsAmmunition;
 	// The same N1-N20 weapon policy owns recoverable landing offset,

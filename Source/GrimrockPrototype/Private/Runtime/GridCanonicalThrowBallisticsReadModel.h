@@ -44,7 +44,7 @@ struct FGridCanonicalThrowBallisticsReadModel
 				Out.Arc = Canonical.GenericThrow.Arc;
 				return Out;
 			}
-			if (Canonical.Weapon.Projectile.bEnabled)
+			if (Canonical.Weapon.Projectile.bEnabled || Canonical.Weapon.Projectile.bGenericThrowAuthored)
 			{
 				if (!FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) ||
 					Canonical.Weapon.Projectile.InitialSpeed <= KINDA_SMALL_NUMBER ||
@@ -53,13 +53,13 @@ struct FGridCanonicalThrowBallisticsReadModel
 					return Out;
 				}
 				Out.bResolved = true;
-				Out.bSpecializedProjectile = true;
+				Out.bSpecializedProjectile = Canonical.Weapon.Projectile.bEnabled;
 				Out.InitialSpeed = Canonical.Weapon.Projectile.InitialSpeed;
 				Out.Arc = Canonical.Weapon.Projectile.Arc;
 				return Out;
 			}
-			// Generic hand tossing has no canonical speed/arc yet. Keep the
-			// exact old definition only for that unresolved physics policy.
+			// The native two-catalogue cutover marks all 19 ordinary ARMs.
+			// Before that one-shot operation only, retain historical physics.
 			if (!IsValid(LegacyDefinition) ||
 				LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
 			{

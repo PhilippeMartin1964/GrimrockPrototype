@@ -458,6 +458,14 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 		{
 			bValid = AddError(Errors, TEXT("Weapon catalogue: invalid projectile policy"));
 		}
+		if (Archetype.Projectile.bGenericThrowAuthored &&
+			(Archetype.Projectile.bEnabled || !FMath::IsFinite(Archetype.Projectile.InitialSpeed) ||
+			 Archetype.Projectile.InitialSpeed < 0.0f || !FMath::IsFinite(Archetype.Projectile.Arc) ||
+			 !FMath::IsFinite(Archetype.Projectile.FlightLifetime) || Archetype.Projectile.FlightLifetime < 0.0f ||
+			 !FMath::IsFinite(Archetype.Projectile.ImpactDropOffset) || Archetype.Projectile.ImpactDropOffset < 0.0f))
+		{
+			bValid = AddError(Errors, TEXT("Weapon catalogue: invalid generic hand throw policy"));
+		}
 		TSet<FName> SeenReactions;
 		for (const FGridCanonicalReactionPolicy& Reaction : Archetype.Reactions)
 		{

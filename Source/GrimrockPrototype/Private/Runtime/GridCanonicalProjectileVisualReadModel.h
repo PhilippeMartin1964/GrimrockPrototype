@@ -8,6 +8,7 @@ struct FGridCanonicalProjectileVisualReadView
 	bool bCanonicalIdentity = false;
 	bool bResolved = false;
 	bool bHasProjectileVisual = false;
+	bool bGenericArmamentFlight = false;
 	bool bIsAmmunition = false;
 	bool bIsNonArmament = false;
 	FGridNonArmamentThrowPolicy GenericThrow;
@@ -60,9 +61,10 @@ struct FGridCanonicalProjectileVisualReadModel
 			Result.GenericThrow = Resolved.GenericThrow;
 		}
 		Result.bHasProjectileVisual = Resolved.bIsArmament && Resolved.ProjectileAppearance.bEnabled;
-		if (Result.bHasProjectileVisual)
+		Result.bGenericArmamentFlight = Resolved.bIsArmament && Resolved.Weapon.Projectile.bGenericThrowAuthored;
+		if (Result.bHasProjectileVisual || Result.bGenericArmamentFlight)
 		{
-			Result.ProjectileMesh = Resolved.ProjectileMesh;
+			Result.ProjectileMesh = Result.bHasProjectileVisual ? Resolved.ProjectileMesh : Resolved.WorldMesh;
 			Result.Appearance = Resolved.ProjectileAppearance;
 			Result.FlightPolicy = Resolved.Weapon.Projectile;
 		}

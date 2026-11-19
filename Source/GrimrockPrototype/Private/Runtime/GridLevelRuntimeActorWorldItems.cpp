@@ -1138,6 +1138,12 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 		FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) &&
 		Canonical.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER &&
 		!Canonical.ProjectileMesh.IsNull();
+	const bool bCanonicalGenericArm = bCanonicalResolved && Canonical.bIsArmament &&
+		Canonical.Weapon.Projectile.bGenericThrowAuthored &&
+		Canonical.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
+		FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f &&
+		FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) &&
+		Canonical.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER && FMath::IsFinite(Canonical.Weapon.Projectile.Arc);
 	const bool bCanonicalGenericNonArm = bCanonicalResolved && !Canonical.bIsArmament &&
 		Canonical.NonArmHandPolicy == EGridNonArmamentHandPolicy::OneHanded &&
 		FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f &&
@@ -1153,8 +1159,9 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 			: (bMatchingLegacy && ItemDefinition->bStackable && ItemInstance.Quantity == 1 &&
 				!ItemDefinition->IsCombatThrowable()))
 		: (bCanonicalIdentity
-			? (bCanonicalSpecialized || bCanonicalGenericNonArm ||
-				(bCanonicalResolved && Canonical.bIsArmament && bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()))
+			? (bCanonicalSpecialized || bCanonicalGenericNonArm || bCanonicalGenericArm ||
+				(bCanonicalResolved && Canonical.bIsArmament && !Canonical.Weapon.Projectile.bGenericThrowAuthored &&
+					bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()))
 			: (bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()));
 	if (!ItemInstance.IsValid() || !bValidCanonicalPhysicalLevel || !bValidProjectileSource ||
 		LaunchVelocity.IsNearlyZero() || !IsWalkableCell(SourceCellX, SourceCellY))
