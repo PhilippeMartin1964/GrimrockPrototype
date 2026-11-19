@@ -453,15 +453,13 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			}
 			for (const FGridReceptacleInitialItemConfig& InitialItem : Obj.InstanceConfig.ReceptacleInitialContent)
 			{
-				if (!InitialItem.ItemDefinition && InitialItem.CanonicalItemId.IsNone())
-					AddMessage(EGridLevelValidationSeverity::Warning,
-						TEXT("Receptacle InitialContent requires an ItemDefinition or CanonicalItemId."), ObjectId);
+				if (InitialItem.ItemDefinition || InitialItem.CanonicalItemId.IsNone())
+					AddMessage(EGridLevelValidationSeverity::Error,
+						TEXT("Receptacle InitialContent requires a canonical ItemId without an old ItemDefinition."), ObjectId);
 				if (InitialItem.Quantity < 1)
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent requires Quantity >= 1."), ObjectId);
-				if (!InitialItem.CanonicalItemId.IsNone() &&
-					((InitialItem.ItemDefinition && InitialItem.ItemDefinition->ItemDefinitionId != InitialItem.CanonicalItemId) ||
-					 !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
-						ResolveEditorItemRegistry(), InitialItem.CanonicalItemId, InitialItem.ItemLevel)))
+				if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+					ResolveEditorItemRegistry(), InitialItem.CanonicalItemId, InitialItem.ItemLevel))
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent has an invalid canonical identity or physical level."), ObjectId);
 			}
 		}

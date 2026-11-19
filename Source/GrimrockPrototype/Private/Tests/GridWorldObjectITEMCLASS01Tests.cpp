@@ -25,7 +25,7 @@ bool FGridWorldObjectITEMCLASS01ReflectionContractTest::RunTest(const FString& P
 		AGridReceptacleActor::StaticClass()->FindPropertyByName(TEXT("ContainedItemActorClass")));
 
 	TestNotNull(
-		TEXT("Receptacle initial content remains ItemDefinition-driven"),
+		TEXT("Historical initial-content field retained only until schema retirement"),
 		FGridReceptacleInitialItemConfig::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 
 	TestNotNull(

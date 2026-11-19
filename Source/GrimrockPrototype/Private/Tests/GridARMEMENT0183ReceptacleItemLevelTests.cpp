@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
@@ -22,6 +23,7 @@ namespace ARMEMENT0183
     struct FFixture
     {
         UWorld* World = nullptr;
+        FGridCanonicalLootTestScope RegistryScope;
         AGridLevelRuntimeActor* Runtime = nullptr;
         UGridLevelAsset* Level = nullptr;
         UGridItemDefinitionAsset* Dagger = nullptr;
@@ -88,6 +90,7 @@ namespace ARMEMENT0183
 
         ~FFixture()
         {
+            RegistryScope.Detach();
             if (!World) return;
             World->DestroyWorld(false);
             if (GEngine) GEngine->DestroyWorldContext(World);
@@ -99,7 +102,7 @@ namespace ARMEMENT0183
         {
             FGridReceptacleInitialItemConfig& Initial =
                 Level->WorldObjectInstances[0].InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef();
-            Initial.ItemDefinition = Dagger;
+            Initial.CanonicalItemId = TEXT("Weapon_Dagger_01");
             Initial.Quantity = 1;
             Initial.ItemLevel = LevelNumber;
         }
@@ -107,6 +110,8 @@ namespace ARMEMENT0183
         bool Build()
         {
             if (!Ready()) return false;
+            if (!Level->WorldObjectInstances[0].InstanceConfig.ReceptacleInitialContent.IsEmpty() &&
+                !RegistryScope.Attach(World)) return false;
             Runtime->RebuildLevel();
             Receptacle = Runtime->FindRuntimeObjectActor<AGridReceptacleActor>(ReceptacleId);
             return Receptacle != nullptr;
@@ -153,7 +158,8 @@ bool FARMEMENT0183InitialTest::RunTest(const FString&)
     ARMEMENT0183::FFixture Fixture;
     if (!TestTrue(TEXT("Pilot dagger and runtime fixture available"), Fixture.Ready())) return false;
     Fixture.AddInitial(9);
-    Fixture.AddInitial(0);
+    Fixture.AddInitial(1);
+    Fixture.AddInitial(0); // Invalid persisted ARM level must not materialize.
 
     const FProperty* DefinitionProperty =
         FGridReceptacleInitialItemConfig::StaticStruct()->FindPropertyByName(TEXT("ItemLevel"));
@@ -162,8 +168,7 @@ bool FARMEMENT0183InitialTest::RunTest(const FString&)
     if (!TestTrue(TEXT("Receptacle materialized with initial contents"), Fixture.Build())) return false;
     if (!TestEqual(TEXT("Two independently authored items"), Fixture.Receptacle->ContainedItems.Num(), 2)) return false;
     TestEqual(TEXT("First item has fixed level 9"), Fixture.Receptacle->ContainedItems[0].ItemLevel, 9);
-    TestEqual(TEXT("Second item has inherited default"), Fixture.Receptacle->ContainedItems[1].ItemLevel,
-        Fixture.Dagger->DefaultWeaponItemLevel);
+    TestEqual(TEXT("Second item has explicit N1"), Fixture.Receptacle->ContainedItems[1].ItemLevel, 1);
     TestNotEqual(TEXT("Distinct contents keep distinct RuntimeObjectIds"),
         Fixture.Receptacle->ContainedItems[0].RuntimeObjectId, Fixture.Receptacle->ContainedItems[1].RuntimeObjectId);
 
@@ -171,8 +176,7 @@ bool FARMEMENT0183InitialTest::RunTest(const FString&)
     Fixture.Receptacle->CaptureRuntimeReceptacleState(State);
     if (!TestEqual(TEXT("Two items are captured in receptacle state"), State.ContainedItems.Num(), 2)) return false;
     TestEqual(TEXT("Fixed item level captured"), State.ContainedItems[0].ItemLevel, 9);
-    TestEqual(TEXT("Default level resolved once before saving"), State.ContainedItems[1].ItemLevel,
-        Fixture.Dagger->DefaultWeaponItemLevel);
+    TestEqual(TEXT("Explicit N1 preserved when saving"), State.ContainedItems[1].ItemLevel, 1);
     return true;
 }
 

@@ -1,0 +1,9 @@
+# ARM-CLEAN06.5G.17 — Contenu initial des réceptacles : autorité physique canonique
+
+Précondition : parent d27ac308bfd1ffebd3789ab4f6850f6b5d9bffca validé. X.58/X.48 ont établi 18 références natives sans pointeur (17 dans le premier niveau, 1 dans le deuxième).
+
+- Lire uniquement ItemId inscrit + quantité positive + niveau explicite strict. Un pointeur même concordant est refusé. Aucun N0 ARM hérité, aucun changement de niveau ou quantité en lecture.
+- AGridReceptacleActor valide aussi les entrées initiales directes (BeginPlay) et passe explicitement par la matérialisation canonique, sans interpréter une ancienne définition. Retirer les deux scans historiques du contenu des réceptacles de ResolveRuntimeItemDefinition ; autres surfaces de lookup traitées séparément.
+- L'authoring initial n'offre plus la sélection d'ancien DataAsset. Une nouvelle identité reçoit un niveau valide conservé ou N0/N1 explicite ; réédition d'une même identité conserve son niveau valide. Données anciennes refusées, pas de migration implicite. Validation de niveau et diagnostics d'édition alignés.
+- X.91/X.92 vérifient les 18 véritables rangées, le rejet des sources non migrées et la présentation canonique. X.163 contrôle édition physique et absence de mutation. ARM0183 conserve deux niveaux explicites, N0 refusé, capture N7 puis restauration N14 ; scénario indépendant de transfert hérité inchangé en attendant la migration de la surface de transfert. TD075 conserve toutes les commandes avec deux IDs synthétiques dans un registre transitoire. MIG05 interdit maintenant le fallback de lookup ; MIG06/MIG07/MIG09 utilisent des IDs pour le contenu initial.
+- Le champ historique reste temporairement réfléchi en lecture seule pour les contrôles natifs ; retrait physique au prochain lot. Aucun package UE, texte joueur, SaveGame ou localisation modifié. Contrôle visuel PIE/éditeur distinct, à faire en 06.6.

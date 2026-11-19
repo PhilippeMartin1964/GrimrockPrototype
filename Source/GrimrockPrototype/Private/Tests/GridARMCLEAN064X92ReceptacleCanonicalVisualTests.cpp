@@ -200,19 +200,16 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
             Rejected->GetContainedItemCount(), 0))
         {return false;}
 
-    // Historical fixtures with no persisted CanonicalItemId are not cut over.
+    // An old pointer cannot create an initial item, even for a known ID.
     UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.World);
     Legacy->ItemDefinitionId = NonArm.CanonicalItemId;
     FGridReceptacleInitialItemConfig Synthetic;
     Synthetic.ItemDefinition = Legacy;
-    Synthetic.CanonicalItemId = NAME_None;
     Synthetic.Quantity = 1;
     AGridReceptacleActor* Historic = F.MakeReceptacle(Synthetic);
     if (!TestNotNull(TEXT("Historical fixture host"), Historic) ||
-        !TestEqual(TEXT("Historical source still mounts"), Historic->GetContainedItemCount(), 1) ||
-        !TestNotNull(TEXT("Historical actor retains its definition"),
-            Historic->GetContainedItemActor(0)->GetItemDefinitionAsset()))
-        {return false;}
+        !TestEqual(TEXT("Historical source creates no content"), Historic->GetContainedItemCount(), 0))
+        return false;
 
     if (bHasArm)
     {
@@ -231,7 +228,7 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
             return false;
     }
     AddInfo(TEXT("[ARM-CLEAN06.4X.9.2] 18 real initial entries audited; "
-        "migrated nonARM/ARM actors canonical, legacy synthetic unchanged; no binary writes."));
+        "migrated nonARM/ARM actors canonical, legacy synthetic rejected; no binary writes."));
     return true;
 }
 #endif

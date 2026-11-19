@@ -80,8 +80,8 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
                         Initial.Quantity, Config.Quantity) ||
                     !TestTrue(TEXT("Physical cutover provenance comes from persisted ID"),
                         Initial.bHasPersistedCanonicalIdentity) ||
-                    !TestTrue(TEXT("Legacy pointer retained until actor cutover"),
-                        Initial.ItemDefinition == Config.ItemDefinition))
+                    !TestTrue(TEXT("No old asset in runtime initialization"),
+                        !Initial.ItemDefinition && !Config.ItemDefinition))
                 {
                     return false;
                 }
@@ -130,7 +130,7 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     if (!TestEqual(TEXT("All 18 materialized initial receptacle contents"),
         ReceptacleCount, 18) ||
         !TestEqual(TEXT("Exact canonical families"), ArmCount + NonArmCount, 18) ||
-        !TestTrue(TEXT("Complete 18/0 native pointer state"), HistoricalCount == 18 || HistoricalCount == 0))
+        !TestTrue(TEXT("Zero historical pointers"), HistoricalCount == 0))
     {
         return false;
     }
@@ -163,23 +163,24 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
         return false;
     }
 
-    // Synthetic default-content fixtures still use the original source.
     UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>();
-    Legacy->ItemDefinitionId = TEXT("Legacy_Fixture_NotPersisted");
+    Legacy->ItemDefinitionId = TEXT("Item_Arrows_01");
     Invalid.CanonicalItemId = NAME_None;
     Invalid.ItemDefinition = Legacy;
-    Invalid.Quantity = 0;
-    if (!TestTrue(TEXT("Unmigrated synthetic default retains historic identity"),
-        FGridReceptacleInitialCanonicalReadModel::TryResolve(
-            nullptr, Invalid, Out)) ||
-        !TestEqual(TEXT("Historical quantity clamp unchanged"), Out.Quantity, 1) ||
-        !TestEqual(TEXT("Historical ID unchanged"),
-            Out.ItemDefinitionId, Legacy->ItemDefinitionId) ||
-        !TestFalse(TEXT("Legacy-only fixture is not marked as migrated"),
-            Out.bHasPersistedCanonicalIdentity))
-    {
+    Invalid.Quantity = 1;
+    if (!TestFalse(TEXT("Legacy-only source fails closed"),
+            FGridReceptacleInitialCanonicalReadModel::TryResolve(Registry.Get(), Invalid, Out)))
         return false;
-    }
+    Invalid.CanonicalItemId = Legacy->ItemDefinitionId;
+    if (!TestFalse(TEXT("Even matching old pointer is rejected"),
+            FGridReceptacleInitialCanonicalReadModel::TryResolve(Registry.Get(), Invalid, Out)))
+        return false;
+    Invalid.ItemDefinition = nullptr;
+    Invalid.Quantity = 0;
+    if (!TestFalse(TEXT("Zero quantity cannot be clamped into an item"),
+            FGridReceptacleInitialCanonicalReadModel::TryResolve(Registry.Get(), Invalid, Out)) ||
+        !TestTrue(TEXT("No physical identity on rejection"), Out.ItemDefinitionId.IsNone()))
+        return false;
     AddInfo(FString::Printf(TEXT(
         "[ARM-CLEAN06.4X9.1] 18 real receptacle initial IDs: "
         "%d ARM / %d nonARM; strict physical levels; "

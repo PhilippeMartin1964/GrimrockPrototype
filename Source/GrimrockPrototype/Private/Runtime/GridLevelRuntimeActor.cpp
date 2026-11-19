@@ -1977,33 +1977,6 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition(F
 				return Spawn.ItemDefinition;
 			}
 		}
-		for (const FGridWorldObjectInstance& ObjectData : LevelAsset->WorldObjectInstances)
-		{
-			for (const FGridReceptacleInitialItemConfig& InitialItem : ObjectData.InstanceConfig.ReceptacleInitialContent)
-			{
-				if (InitialItem.ItemDefinition && InitialItem.ItemDefinition->ItemDefinitionId == ItemDefinitionId)
-				{
-					return InitialItem.ItemDefinition;
-				}
-			}
-		}
-	}
-
-	for (const UGridWorldObjectDefinitionAsset* Definition : WorldObjectDefinitions)
-	{
-		if (!Definition)
-		{
-			continue;
-		}
-
-		const FGridReceptacleBehaviorParams& ReceptacleParams = Definition->DefaultBehavior.Receptacle;
-		for (const FGridReceptacleInitialItemConfig& InitialItem : ReceptacleParams.InitialContent)
-		{
-			if (InitialItem.ItemDefinition && InitialItem.ItemDefinition->ItemDefinitionId == ItemDefinitionId)
-			{
-				return InitialItem.ItemDefinition;
-			}
-		}
 	}
 
 	// A saved starting weapon may not appear anywhere in the active dungeon.

@@ -27,13 +27,8 @@
 		if (InitialContent.IsEmpty()) return TEXT("EMPTY_RECEPTACLE");
 		for (const FGridReceptacleInitialItemConfig& InitialItem : InitialContent)
 		{
-			if (!InitialItem.CanonicalItemId.IsNone())
-			{
-				if ((InitialItem.ItemDefinition && InitialItem.ItemDefinition->ItemDefinitionId != InitialItem.CanonicalItemId) ||
-					InitialItem.ItemLevel < 0 || InitialItem.ItemLevel > 20 || InitialItem.Quantity < 1)
-					return TEXT("ERROR_INVALID_INITIAL_CONTENT");
-			}
-			else if (!InitialItem.ItemDefinition || InitialItem.ItemDefinition->ItemDefinitionId.IsNone())
+			if (InitialItem.ItemDefinition || InitialItem.CanonicalItemId.IsNone() ||
+				InitialItem.ItemLevel < 0 || InitialItem.ItemLevel > 20 || InitialItem.Quantity < 1)
 				return TEXT("ERROR_INVALID_INITIAL_CONTENT");
 		}
 		return TEXT("OK_INITIAL_CONTENT");

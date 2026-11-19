@@ -314,7 +314,7 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 	LegacyDefinition->DefaultBehavior.Item.ItemDefinitionId = NAME_None;
 	LegacyDefinition->SupportedType = EGridLevelObjectType::Receptacle;
 	LegacyDefinition->DefaultBehavior.Receptacle.InitialContent.AddDefaulted_GetRef().ItemDefinition = Definition;
-	TestTrue(TEXT("Runtime still resolves legitimate receptacle initial content"), Runtime->ResolveRuntimeItemDefinition(Definition->ItemDefinitionId) == Definition);
+	TestNull(TEXT("Receptacle legacy content no longer supplies a runtime item definition"), Runtime->ResolveRuntimeItemDefinition(Definition->ItemDefinitionId));
 
 	return true;
 }

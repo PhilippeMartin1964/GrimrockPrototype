@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
@@ -57,19 +58,6 @@ namespace GridTD075ReceptacleRecovery
 		}
 	};
 
-	UGridItemDefinitionAsset* MakeTD075ItemDefinition(UObject* Outer, FName ItemId)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
-		Definition->ItemDefinitionId = ItemId;
-		Definition->DisplayName = FText::FromName(ItemId);
-		Definition->Description = FText::FromString(TEXT("TD07.5 transient receptacle command fixture."));
-		Definition->ItemType = EGridItemType::Component;
-		Definition->Weight = 0.0f;
-		Definition->bStackable = false;
-		Definition->MaxStackSize = 1;
-		return Definition;
-	}
-
 	FGridObjectLink MakeTD075Link(EGridObjectEvent Event, EGridObjectCommand Command)
 	{
 		FGridObjectLink Link;
@@ -94,9 +82,6 @@ namespace GridTD075ReceptacleRecovery
 			return nullptr;
 		}
 
-		UGridItemDefinitionAsset* ItemA = MakeTD075ItemDefinition(Runtime, TEXT("Item_TD075_A"));
-		UGridItemDefinitionAsset* ItemB = MakeTD075ItemDefinition(Runtime, TEXT("Item_TD075_B"));
-
 		UGridLevelAsset* Level = NewObject<UGridLevelAsset>(Runtime);
 		Level->Width = 1;
 		Level->Height = 1;
@@ -119,11 +104,11 @@ namespace GridTD075ReceptacleRecovery
 		Receptacle.WallSide = EGridEdge::North;
 
 		FGridReceptacleInitialItemConfig& InitialA = Receptacle.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef();
-		InitialA.ItemDefinition = ItemA;
+		InitialA.CanonicalItemId = TEXT("Item_TD075_A");
 		InitialA.Quantity = 1;
 
 		FGridReceptacleInitialItemConfig& InitialB = Receptacle.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef();
-		InitialB.ItemDefinition = ItemB;
+		InitialB.CanonicalItemId = TEXT("Item_TD075_B");
 		InitialB.Quantity = 1;
 
 		Level->Links.Add(MakeTD075Link(EGridObjectEvent::Activated, EGridObjectCommand::ReceptacleConsumeItem));
@@ -161,6 +146,11 @@ bool FGridTD075ReceptacleCommandRecoveryTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
+
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Canonical command fixture registry"),
+		RegistryScope.Attach(TestWorld.World, {TEXT("Item_TD075_A"), TEXT("Item_TD075_B")})))
+		return false;
 
 	AGridLevelRuntimeActor* Runtime = GridTD075ReceptacleRecovery::BuildTD075Runtime(*this, TestWorld.World);
 	TestNotNull(TEXT("TD07.5 runtime exists"), Runtime);

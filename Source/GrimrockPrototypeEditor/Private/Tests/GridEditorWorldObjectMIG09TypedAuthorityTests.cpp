@@ -119,7 +119,7 @@ bool FGridMIG09EditorTypedMutationsTest::RunTest(const FString& Parameters)
 	FGridObjectBehaviorParams EditedBehavior = Editor->ObjectBehavior;
 	EditedBehavior.Receptacle.MaxContainedItems = 99;
 	FGridReceptacleInitialItemConfig& Content = EditedBehavior.Receptacle.InitialContent.AddDefaulted_GetRef();
-	Content.ItemDefinition = ItemDefinition;
+	Content.CanonicalItemId = ItemDefinition->ItemDefinitionId;
 	Content.Quantity = 2;
 	TestTrue(TEXT("Apply only instance behavior"), Editor->ApplyBehaviorToSelectedObject(EditedBehavior));
 	TestEqual(TEXT("Definition rule remains authoritative"), Editor->ObjectBehavior.Receptacle.MaxContainedItems, 4);

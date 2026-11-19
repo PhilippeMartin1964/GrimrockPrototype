@@ -1659,9 +1659,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)[
 					SNew(SEditableTextBox)
-						.Text(GetNameText(!InitialItem.CanonicalItemId.IsNone()
-							? InitialItem.CanonicalItemId : (InitialItem.ItemDefinition
-								? InitialItem.ItemDefinition->ItemDefinitionId : NAME_None)))
+						.Text(GetNameText(InitialItem.CanonicalItemId))
 						.ToolTipText(FText::FromString(TEXT("Enter a registered ItemId. Changing an identity keeps its valid physical level; otherwise it starts at N1 for weapons or N0 for unlevelled items.")))
 						.OnTextCommitted_Lambda([this, ObjectId, InitialIndex](const FText& NewText, ETextCommit::Type)
 						{
@@ -1717,7 +1715,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 						.MinValue(0).MaxValue(20)
 						.MinSliderValue(0).MaxSliderValue(20)
 						.Delta(1).MinDesiredWidth(82.f)
-						.ToolTipText(FText::FromString(TEXT("Canonical ARM: N1-N20; unlevelled items: N0. Legacy-only ARM N0 may inherit default.")))
+						.ToolTipText(FText::FromString(TEXT("Canonical ARM: N1-N20; unlevelled items: N0.")))
 						.OnValueCommitted_Lambda([this, ObjectId, InitialIndex](int32 NewValue, ETextCommit::Type)
 						{
 							AGridLevelEditorActor* Editor = GetEditorActor();

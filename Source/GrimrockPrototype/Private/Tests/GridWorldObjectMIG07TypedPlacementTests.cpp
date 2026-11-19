@@ -35,7 +35,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	Door.InstanceConfig.Relocation.TargetCellX = 0;
 	Door.InstanceConfig.Relocation.TargetCellY = 0;
 	Door.InstanceConfig.Relocation.TargetLevelId = TEXT("LowerLevel");
-	Door.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef().ItemDefinition = ItemDefinition;
+	Door.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef().CanonicalItemId = ItemDefinition->ItemDefinitionId;
 	Door.InstanceConfig.bStartsUnlocked = true;
 	Level->WorldObjectInstances.Add(Door);
 

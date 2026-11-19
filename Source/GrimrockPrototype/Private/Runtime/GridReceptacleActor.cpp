@@ -1621,16 +1621,23 @@ void AGridReceptacleActor::InitializeInitialContainedItems()
 		{
 			continue;
 		}
-		AddContainedItem(ItemDefinitionId, InitialItem.ItemDefinition, nullptr, true,
-			InitialItem.Quantity, FGuid(), InitialItem.ItemLevel,
-			InitialItem.bHasPersistedCanonicalIdentity);
+		AddContainedItem(ItemDefinitionId, nullptr, nullptr, true,
+			InitialItem.Quantity, FGuid(), InitialItem.ItemLevel, true);
 	}
 }
 
 FName AGridReceptacleActor::ResolveInitialItemDefinitionId(const FGridInitialReceptacleItem& InitialItem) const
 {
-	return FGridReceptacleContainedIdentityReadModel::Resolve(
-		ResolveReceptacleItemRegistry(this), InitialItem.ItemDefinition, InitialItem.ItemDefinitionId);
+	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
+	FGridResolvedItem Physical;
+	if (!IsValid(Registry) || !Registry->IsConfigured() ||
+		InitialItem.ItemDefinition || InitialItem.ItemDefinitionId.IsNone() ||
+		InitialItem.Quantity < 1 ||
+		!Registry->ResolveItem(InitialItem.ItemDefinitionId, InitialItem.ItemLevel, Physical) ||
+		!Physical.IsValid() || Physical.ItemId != InitialItem.ItemDefinitionId ||
+		Physical.ItemLevel != InitialItem.ItemLevel)
+		return NAME_None;
+	return InitialItem.ItemDefinitionId;
 }
 
 bool AGridReceptacleActor::WasInitialItemRemoved(FName ItemDefinitionId) const
