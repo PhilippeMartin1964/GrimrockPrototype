@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.25 — Retrait des champs d'identité du scratch d'authoring
+
+Parent fa4ee74614855ecb8f33ef15224ccd69f8855710, validation complète exigée avant publication. Retrait de FGridItemBehaviorParams.ItemDefinitionAsset et ItemDefinitionId ; uniquement les champs de contenu lisible subsistent. La palette canonique et le placement typé restent seuls propriétaires de l'identité. Les quatre audits TD07 sont adaptés, contrôle réfléchi de l'absence des champs, refus d'une ancienne entrée de palette et conservation des données lisibles. Aucune écriture native ni SaveGame. Voir [5G.25](ARM_CLEAN06_5G25_ITEM_AUTHORING_SCRATCH.md).
+
 ## ARM-CLEAN06.5G.24 — Retrait de la propriété ItemDefinition des objets au sol
 
 Parent 4bdfcaf3e5cf6bae581afee2806ded02e0409dd1 : publier seulement après validation complète de 5G.23. Retrait du membre réfléchi FGridLooseItemInstance.ItemDefinition ; runtime, preview, authoring, liens, diagnostics et tests de preuve migrés. La cohérence des 44 lignes natives est vérifiée sur le registre réel et par duplication sans écriture. Rejet des IDs absents/inconnus, N0 ARM, N1 non-ARM, quantités invalides ; anciens pointeurs impossibles dans le schéma. Le scratch FGridItemBehaviorParams et la palette restent distincts. Voir [5G.24](ARM_CLEAN06_5G24_LOOSE_ITEM_SCHEMA_RETIREMENT.md).

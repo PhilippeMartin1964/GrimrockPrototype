@@ -189,7 +189,6 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 			Spawn->CanonicalItemId = NewItemDefinitionId;
 			Spawn->ItemLevel = AuthoredLevel;
 		}
-		ObjectBehavior.Item.ItemDefinitionAsset = nullptr;
 		LevelAsset->MarkPackageDirty();
 		RebuildPreview();
 		return true;

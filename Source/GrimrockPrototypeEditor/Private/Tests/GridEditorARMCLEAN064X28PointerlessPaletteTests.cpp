@@ -106,7 +106,7 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 	bOk &= TestTrue(TEXT("Select pointerless ARM from palette"),
 		Editor->ApplyPaletteEntry(Arm.EntryId));
 	bOk &= TestNull(TEXT("Selected ARM has no legacy definition"),
-		Editor->ObjectBehavior.Item.ItemDefinitionAsset.Get());
+		FGridItemBehaviorParams::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
 	Editor->PlaceSelectedObject();
 	bOk &= TestEqual(TEXT("Place one pointerless ARM"), Level->LooseItemInstances.Num(), 1);
 	if (Level->LooseItemInstances.Num() == 1)
@@ -178,13 +178,13 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 		Editor->LastSelectedObjectId = First.InstanceId;
 		bOk &= TestTrue(TEXT("Reselect pointerless ARM"),
 			Editor->ApplyPaletteEntry(OriginalArm.EntryId));
-		Editor->ObjectBehavior.Item.ItemDefinitionAsset = OldMatchingArm;
+		Editor->SelectedPaletteEntryId = OldBackedEntry.EntryId;
 		const FGuid PreviousId = First.InstanceId;
-		bOk &= TestFalse(TEXT("Metadata apply rejects old staged source"),
+		bOk &= TestFalse(TEXT("Metadata apply rejects old-backed palette source"),
 			Editor->ApplyEditedSelectedObject());
 		bOk &= TestEqual(TEXT("Rejection preserves GUID"), First.InstanceId, PreviousId);
 		bOk &= TestEqual(TEXT("Rejection preserves authored N12"), First.ItemLevel, 12);
-		Editor->ObjectBehavior.Item.ItemDefinitionAsset = nullptr;
+		bOk &= TestTrue(TEXT("Restore valid palette selection"), Editor->ApplyPaletteEntry(OriginalArm.EntryId));
 		bOk &= TestFalse(TEXT("Old pointer cannot be reattached"),
 			Editor->SetSelectedObjectItemDefinitionAsset(OldMatchingArm));
 		bOk &= TestNull(TEXT("Rejected reattachment leaves pointerless placement"),

@@ -202,17 +202,6 @@ namespace
 		return Definition->HasAnyVisualPart() || Definition->RuntimeActorClass;
 	}
 
-	TSharedRef<SWidget> BuildItemDefinitionAssetPicker(UGridItemDefinitionAsset* CurrentAsset, TFunction<void(UGridItemDefinitionAsset*)> ApplyAsset)
-	{
-		return SNew(SObjectPropertyEntryBox)
-			.AllowedClass(UGridItemDefinitionAsset::StaticClass())
-			.ObjectPath(CurrentAsset ? CurrentAsset->GetPathName() : FString())
-			.OnObjectChanged_Lambda([ApplyAsset](const FAssetData& AssetData)
-			{
-				ApplyAsset(Cast<UGridItemDefinitionAsset>(AssetData.GetAsset()));
-			});
-	}
-
 	TSharedRef<SWidget> BuildReadableContentAssetPicker(UGridReadableContentAsset* CurrentAsset, TFunction<void(UGridReadableContentAsset*)> ApplyAsset)
 	{
 		return SNew(SObjectPropertyEntryBox)

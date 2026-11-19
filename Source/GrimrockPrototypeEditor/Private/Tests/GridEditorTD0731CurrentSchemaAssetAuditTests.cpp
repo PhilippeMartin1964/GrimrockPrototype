@@ -105,10 +105,6 @@ namespace GridTD0731SchemaAuditPrivate
 
 	void AuditBehavior(const FString& AssetPath, const FString& Context, const FGridObjectBehaviorParams& Behavior, TArray<FGridTD0731Finding>& Findings)
 	{
-		const UGridItemDefinitionAsset* ItemDefinition = Behavior.Item.ItemDefinitionAsset.Get();
-		AuditDefinitionPair(AssetPath, Context + TEXT(".Item"), ItemDefinition, ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None,
-			Behavior.Item.ItemDefinitionId, TEXT("Item"), Findings);
-
 		const UGridReadableContentAsset* ReadableDefinition = Behavior.Item.DefaultReadableContentAsset.Get();
 		AuditDefinitionPair(AssetPath, Context + TEXT(".DefaultReadableContent"), ReadableDefinition,
 			ReadableDefinition ? ReadableDefinition->ReadableContentId : NAME_None, Behavior.Item.DefaultReadableContentId, TEXT("ReadableContent"), Findings);
@@ -264,6 +260,8 @@ bool FGridTD0731CurrentSchemaAssetAuditTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	using namespace GridTD0731SchemaAuditPrivate;
+	TestNull(TEXT("No retired Item behavior asset property"), FGridItemBehaviorParams::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
+	TestNull(TEXT("No duplicate Item behavior ID property"), FGridItemBehaviorParams::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionId")));
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
@@ -317,10 +315,6 @@ bool FGridTD0731CurrentSchemaAssetAuditTest::RunTest(const FString& Parameters)
 		DefinitionIds.Add(Definition->DefinitionId);
 		TestFalse(FString::Printf(TEXT("%s: WorldObjectDefinitions cannot represent collectibles"), *AssetPath),
 			Definition->SupportedType == EGridLevelObjectType::Item);
-		TestTrue(FString::Printf(TEXT("%s: WorldObjectDefinitions cannot retain legacy Item behavior asset references"), *AssetPath),
-			Definition->DefaultBehavior.Item.ItemDefinitionAsset == nullptr);
-		TestTrue(FString::Printf(TEXT("%s: WorldObjectDefinitions cannot retain legacy Item behavior ids"), *AssetPath),
-			Definition->DefaultBehavior.Item.ItemDefinitionId.IsNone());
 		TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
 		Definition->ValidateDefinition(Messages);
 		for (const FGridWorldObjectDefinitionValidationMessage& Message : Messages)

@@ -105,11 +105,6 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
     }
 
 	if (SupportedType == EGridLevelObjectType::None) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("SupportedType must not be None."));
-	if (DefaultBehavior.Item.ItemDefinitionAsset || !DefaultBehavior.Item.ItemDefinitionId.IsNone())
-	{
-		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
-			TEXT("WorldObjectDefinition cannot retain DefaultBehavior.Item definition references. Use UGridItemDefinitionAsset and FGridLooseItemInstance instead."));
-	}
 	if (!HasValidPlacementSurface())
 	{
 		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
@@ -326,7 +321,7 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 		case EGridLevelObjectType::Item:
 		{
 			AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
-				TEXT("WorldObjectDefinition cannot represent a collectible Item. Use UGridItemDefinitionAsset and FGridLooseItemInstance instead."));
+				TEXT("WorldObjectDefinition cannot represent a collectible Item. Use ItemSystem and FGridLooseItemInstance instead."));
 			break;
 		}
 		case EGridLevelObjectType::None:

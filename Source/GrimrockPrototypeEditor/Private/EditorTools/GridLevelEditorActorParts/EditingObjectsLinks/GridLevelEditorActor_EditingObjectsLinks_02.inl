@@ -19,22 +19,14 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 	if (PaintObjectType == EGridLevelObjectType::Item &&
 		(!PaletteEntry || !PaletteEntry->IsDirectItemEntry() || PaletteEntry->DefaultItemDefinition ||
 		 PaletteEntry->DefaultWorldObjectDefinition || PaletteEntry->Icon ||
-		 ObjectBehavior.Item.ItemDefinitionAsset ||
 		 !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
 			ResolveEditorItemRegistry(), PaletteEntry->CanonicalItemId,
 			PaletteEntry->CanonicalDefaultItemLevel)))
 	{
-		UE_LOG(LogGridEditor, Warning, TEXT("Canonical palette placement rejected: invalid physical identity or staged source."));
+		UE_LOG(LogGridEditor, Warning, TEXT("Canonical palette placement rejected: invalid canonical palette identity."));
 		return;
 	}
-	// A generator may be an empty editor draft, but cannot be authored from
-	// an obsolete definition. A canonical palette selection is explicit.
-	if (PaintObjectType == EGridLevelObjectType::ItemSpawn &&
-		ObjectBehavior.Item.ItemDefinitionAsset)
-	{
-		UE_LOG(LogGridEditor, Warning, TEXT("Item generator placement rejected: use a canonical ItemId."));
-		return;
-	}
+	// A generator may be an empty editor draft; an authored palette identity is explicit.
 	if (PaintObjectType == EGridLevelObjectType::ItemSpawn && PaletteEntry &&
 		!PaletteEntry->CanonicalItemId.IsNone() &&
 		!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(

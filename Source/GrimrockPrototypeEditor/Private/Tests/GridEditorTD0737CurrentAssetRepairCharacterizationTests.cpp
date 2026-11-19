@@ -72,10 +72,6 @@ namespace GridTD0737Characterization
 
 	void AuditBehavior(const FString& AssetPath, const FString& Context, const FGridObjectBehaviorParams& Behavior, TArray<FCandidate>& Candidates)
 	{
-		const UGridItemDefinitionAsset* ItemDefinition = Behavior.Item.ItemDefinitionAsset.Get();
-		AuditDefinitionPair(AssetPath, Context + TEXT(".Item"), ItemDefinition, ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None,
-			Behavior.Item.ItemDefinitionId, TEXT("Item"), Candidates);
-
 		const UGridReadableContentAsset* ReadableDefinition = Behavior.Item.DefaultReadableContentAsset.Get();
 		AuditDefinitionPair(AssetPath, Context + TEXT(".DefaultReadableContent"), ReadableDefinition,
 			ReadableDefinition ? ReadableDefinition->ReadableContentId : NAME_None, Behavior.Item.DefaultReadableContentId, TEXT("ReadableContent"),

@@ -37,8 +37,7 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 		SelectedPaletteEntryId != ExistingLoose->PaletteEntryId;
 	if (ExistingLoose)
 	{
-		if (ObjectBehavior.Item.ItemDefinitionAsset ||
-			(bReplaceLooseIdentity && !CanonicalEntry) ||
+		if ((bReplaceLooseIdentity && !CanonicalEntry) ||
 			(CanonicalEntry && (!CanonicalEntry->IsDirectItemEntry() || CanonicalEntry->DefaultItemDefinition ||
 			 CanonicalEntry->DefaultWorldObjectDefinition || CanonicalEntry->Icon || CanonicalEntry->CanonicalItemId.IsNone())))
 			return false;
@@ -54,9 +53,6 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 			 ExistingLoose->Quantity > FMath::Max(1, Resolved.MaxStack)))
 			return false;
 	}
-	if (PaintObjectType == EGridLevelObjectType::ItemSpawn &&
-		ObjectBehavior.Item.ItemDefinitionAsset)
-		return false;
 	if (!EditGridPlacementAuthoring(LevelAsset, LastSelectedObjectId, [this](auto& Placement)
 		{
 			Placement.PaletteEntryId = SelectedPaletteEntryId;

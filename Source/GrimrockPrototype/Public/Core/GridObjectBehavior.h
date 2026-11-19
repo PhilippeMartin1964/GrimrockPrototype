@@ -28,12 +28,6 @@ struct FGridItemBehaviorParams
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-	FName ItemDefinitionId = NAME_None;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Reading")
 	TObjectPtr<UGridReadableContentAsset> DefaultReadableContentAsset = nullptr;
 

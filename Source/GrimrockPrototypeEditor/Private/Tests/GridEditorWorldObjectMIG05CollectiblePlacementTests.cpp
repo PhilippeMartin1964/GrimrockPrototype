@@ -106,7 +106,7 @@ bool FGridEditorWorldObjectMIG05DirectItemPlacementTest::RunTest(const FString& 
 	TestEqual(TEXT("Direct collectible palette selects Item paint type"), EditorActor->PaintObjectType, EGridLevelObjectType::Item);
 	TestTrue(TEXT("Direct collectible palette leaves WorldObjectDefinitionId empty"), EditorActor->WorldObjectDefinitionId.IsNone());
 	TestTrue(TEXT("Direct collectible palette leaves SelectedWorldObjectDefinitionId empty"), EditorActor->SelectedWorldObjectDefinitionId.IsNone());
-	TestNull(TEXT("Direct collectible staging has no old ItemDefinition"), EditorActor->ObjectBehavior.Item.ItemDefinitionAsset.Get());
+	TestNull(TEXT("Direct collectible staging has no old ItemDefinition"), FGridItemBehaviorParams::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
 
 	EditorActor->PlaceSelectedObject();
 	TestEqual(TEXT("Direct collectible placement creates exactly one loose item"), Level->LooseItemInstances.Num(), 1);

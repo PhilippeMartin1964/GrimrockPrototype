@@ -58,9 +58,6 @@ namespace GridTD0737Normalization
 
 	void AuditBehavior(const FString& AssetPath, const FString& Context, const FGridObjectBehaviorParams& Behavior, TArray<FCandidate>& Candidates)
 	{
-		const UGridItemDefinitionAsset* Item = Behavior.Item.ItemDefinitionAsset.Get();
-		AuditPair(AssetPath, Context + TEXT(".Item"), Item, Item ? Item->ItemDefinitionId : NAME_None, Behavior.Item.ItemDefinitionId, Candidates);
-
 		const UGridReadableContentAsset* Readable = Behavior.Item.DefaultReadableContentAsset.Get();
 		AuditPair(AssetPath, Context + TEXT(".DefaultReadableContent"), Readable, Readable ? Readable->ReadableContentId : NAME_None,
 			Behavior.Item.DefaultReadableContentId, Candidates);
