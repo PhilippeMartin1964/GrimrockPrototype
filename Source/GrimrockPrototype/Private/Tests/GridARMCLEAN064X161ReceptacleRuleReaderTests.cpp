@@ -103,7 +103,7 @@ bool FGridClean064X161Rules::RunTest(const FString&)
         !TestTrue(TEXT("Contradiction fails closed"), Found.IsNone()))
         {return false;}
     Rule.ItemDefinition->ItemDefinitionId = Rule.CanonicalItemId;
-    if (!TestTrue(TEXT("Matching historical pointer allowed during cutover"),
+    if (!TestFalse(TEXT("Matching historical pointer also refused after cutover"),
             FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(F.Registry, Rule, Found)))
         {return false;}
 
@@ -115,13 +115,17 @@ bool FGridClean064X161Rules::RunTest(const FString&)
     FGridReceptacleAcceptedItemConfig Legacy = Rule;
     Legacy.CanonicalItemId = NAME_None;
     Legacy.ItemDefinition->ItemDefinitionId = TEXT("Legacy_Unmigrated_Rule");
-    if (!TestTrue(TEXT("Legacy-only fixture is still readable"),
-            FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(nullptr, Legacy, Found)) ||
-        !TestEqual(TEXT("Historical item identity preserved"),
-            Found, Legacy.ItemDefinition->ItemDefinitionId))
+    if (!TestFalse(TEXT("Legacy-only rule cannot accept any item"),
+            FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(F.Registry, Legacy, Found)) ||
+        !TestTrue(TEXT("Historical source cannot produce an identity"), Found.IsNone()))
         {return false;}
 
     Rule.ItemDefinition = nullptr;
+    Unknown.ItemDefinition = nullptr;
+    FGridReceptacleAcceptedItemConfig Sword;
+    Sword.CanonicalItemId = TEXT("Weapon_StraightSword_01");
+    FGridReceptacleAcceptedItemConfig Empty;
+    if (!TestFalse(TEXT("Empty identity cannot accept"), FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(F.Registry, Empty, Found))) return false;
     FGridReceptacleBehaviorParams Params;
     Params.bAcceptAnyItem = false;
     Params.MaxContainedItems = 2;
@@ -165,27 +169,27 @@ bool FGridClean064X161Rules::RunTest(const FString&)
     Placement.InstanceId = FGuid::NewGuid();
     Placement.InstanceConfig.InteractionOverrides.bOverrideReceptacleRules = true;
     Placement.InstanceConfig.InteractionOverrides.ReceptacleRules.bAcceptAnyItem = false;
-    Placement.InstanceConfig.InteractionOverrides.ReceptacleRules.AcceptedItems = { Legacy };
+    Placement.InstanceConfig.InteractionOverrides.ReceptacleRules.AcceptedItems = { Sword };
     Placement.InstanceConfig.InteractionOverrides.ReceptacleRules.MaxContainedItems = 3;
     const FGridObjectBehaviorParams Effective =
         GridObjectInstanceBehavior::Resolve(Placement, Definition);
     if (!TestTrue(TEXT("Instance override replaces definition rule"),
             Effective.Receptacle.AcceptedItems.Num() == 1 &&
-            Effective.Receptacle.AcceptedItems[0].CanonicalItemId.IsNone() &&
-            Effective.Receptacle.AcceptedItems[0].ItemDefinition == Legacy.ItemDefinition) ||
+            Effective.Receptacle.AcceptedItems[0].CanonicalItemId == Sword.CanonicalItemId &&
+            !Effective.Receptacle.AcceptedItems[0].ItemDefinition) ||
         !TestEqual(TEXT("Override capacity remains instance-owned"),
             Effective.Receptacle.MaxContainedItems, 3))
         {return false;}
     AGridReceptacleActor* Overridden = F.Spawn(Effective.Receptacle);
-    if (!TestNotNull(TEXT("Legacy override host"), Overridden) ||
-        !TestTrue(TEXT("Legacy-only instance override unchanged"),
-            Overridden->CanAcceptItem(TEXT("Legacy_Unmigrated_Rule"))) ||
+    if (!TestNotNull(TEXT("Canonical override host"), Overridden) ||
+        !TestTrue(TEXT("Explicit sword override accepted"),
+            Overridden->CanAcceptItem(TEXT("Weapon_StraightSword_01"))) ||
         !TestFalse(TEXT("Default canonical rule does not leak through override"),
             Overridden->CanAcceptItem(TEXT("Item_Arrows_01"))))
         {return false;}
 
     AddInfo(TEXT("[ARM-CLEAN06.4X.16.1] canonical acceptance is exact and fail-closed; "
-        "legacy-only and sparse instance override semantics preserved; no binary writes."));
+        "legacy-only sources refused and sparse override semantics preserved; no binary writes."));
     return !HasAnyErrors();
 }
 #endif

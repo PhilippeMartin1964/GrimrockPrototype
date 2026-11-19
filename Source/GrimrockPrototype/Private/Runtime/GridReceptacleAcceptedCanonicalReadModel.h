@@ -1,17 +1,10 @@
 #pragma once
 
 #include "Core/GridObjectBehavior.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
-/**
- * ARM-CLEAN06.4X.16.1: item-identity read bridge for receptacle acceptance
- * rules. A rule matches ItemId only; it must not consume, change or infer
- * a physical ItemLevel. bAcceptAnyItem and instance override precedence
- * belong to GridObjectInstanceBehavior and AGridReceptacleActor.
- *
- * No native rule assets have yet been converted. Legacy-only entries
- * remain readable until their separately verified one-shot migration.
+/** The acceptance rule is a registered ItemId, independent of a physical level.
+ * Historical pointers are not accepted, even if their old identity matches.
  */
 struct FGridReceptacleAcceptedCanonicalReadModel
 {
@@ -19,27 +12,13 @@ struct FGridReceptacleAcceptedCanonicalReadModel
         const FGridReceptacleAcceptedItemConfig& Rule, FName& OutItemId)
     {
         OutItemId = NAME_None;
-        const UGridItemDefinitionAsset* Legacy = Rule.ItemDefinition.Get();
-        if (!Rule.CanonicalItemId.IsNone())
-        {
-            // Persisted identity is the only authority. Neither a stale
-            // pointer nor an unconfigured registry may change it.
-            if (!Registry || !Registry->HasCanonicalItem(Rule.CanonicalItemId) ||
-                (IsValid(Legacy) && Legacy->ItemDefinitionId != Rule.CanonicalItemId))
-            {
-                return false;
-            }
-            OutItemId = Rule.CanonicalItemId;
-            return true;
-        }
-
-        // Explicitly unmigrated rule or synthetic fixture. Historical
-        // behavior retained; this cannot override a persisted ItemId.
-        if (!IsValid(Legacy) || Legacy->ItemDefinitionId.IsNone())
+        if (!IsValid(Registry) || !Registry->IsConfigured() ||
+            Rule.CanonicalItemId.IsNone() || Rule.ItemDefinition ||
+            !Registry->HasCanonicalItem(Rule.CanonicalItemId))
         {
             return false;
         }
-        OutItemId = Legacy->ItemDefinitionId;
+        OutItemId = Rule.CanonicalItemId;
         return true;
     }
 };

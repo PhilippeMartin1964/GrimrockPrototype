@@ -1579,37 +1579,33 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 		{
 			for (int32 Index = 0; Index < Overrides.ReceptacleRules.AcceptedItems.Num(); ++Index)
 			{
-				UGridItemDefinitionAsset* CurrentItem = Overrides.ReceptacleRules.AcceptedItems[Index].ItemDefinition;
-				// X.49: a newly authored registered rule is pointerless. The
-				// inspector must show its persisted ItemId even when the old
-				// UObject picker no longer contains a selected asset.
 				const FName AuthoredItemId =
 					Overrides.ReceptacleRules.AcceptedItems[Index].CanonicalItemId;
 				AcceptedItemsList->AddSlot().AutoHeight().Padding(0.f, 2.f)[
 					SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 8.f, 0.f)[
-							SNew(STextBlock)
-								.Text(AuthoredItemId.IsNone()
-									? FText::FromString(TEXT("Legacy"))
-									: FText::FromName(AuthoredItemId))]
 						+ SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)[
-							BuildItemDefinitionAssetPicker(CurrentItem,
-								[this, ObjectId, Index](UGridItemDefinitionAsset* NewAsset)
+							SNew(SEditableTextBox)
+								.Text(GetNameText(AuthoredItemId))
+								.ToolTipText(FText::FromString(TEXT("Enter a registered ItemId. An empty draft accepts no item.")))
+								.OnTextCommitted_Lambda([this, ObjectId, Index](const FText& NewText, ETextCommit::Type)
 								{
 									AGridLevelEditorActor* EditorActor = GetEditorActor();
-									const UGridItemSubsystem* Registry = EditorActor
-										? EditorActor->ResolveEditorItemRegistry() : nullptr;
-									if (!Registry || !Registry->IsConfigured())
+									const FGridWorldObjectInstance* Object = GetWorldObjectInstance(EditorActor, ObjectId);
+									if (!Object || !Object->InstanceConfig.InteractionOverrides.ReceptacleRules.AcceptedItems.IsValidIndex(Index)) return;
+									const auto& Current = Object->InstanceConfig.InteractionOverrides.ReceptacleRules.AcceptedItems[Index];
+									FGridReceptacleAcceptedItemConfig Proposed = Current;
+									if (!FGridEditorCanonicalReceptacleRuleAuthoring::TrySelectCanonicalId(
+										EditorActor->ResolveEditorItemRegistry(), GetNameFromEditorText(NewText), Proposed) ||
+										(Current.CanonicalItemId == Proposed.CanonicalItemId && Current.ItemDefinition == Proposed.ItemDefinition))
 									{
-										UE_LOG(LogTemp, Warning, TEXT("Receptacle rule edit refused: ItemSystem unavailable."));
+										RequestRefresh();
 										return;
 									}
-									EditWorldObjectConfig(ObjectId, [Index, NewAsset, Registry](FGridWorldObjectInstanceConfig& Config)
+									EditWorldObjectConfig(ObjectId, [Index, Proposed](FGridWorldObjectInstanceConfig& Config)
 									{
 										if (Config.InteractionOverrides.ReceptacleRules.AcceptedItems.IsValidIndex(Index))
 										{
-											FGridEditorCanonicalReceptacleRuleAuthoring::TryAssign(Registry,
-												NewAsset, Config.InteractionOverrides.ReceptacleRules.AcceptedItems[Index]);
+											Config.InteractionOverrides.ReceptacleRules.AcceptedItems[Index] = Proposed;
 										}
 									});
 								})]
@@ -1646,9 +1642,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 			for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Receptacle.AcceptedItems)
 			{
 				AcceptedItemsList->AddSlot().AutoHeight().Padding(0.f, 2.f)[
-					SNew(STextBlock).Text(AcceptedItem.CanonicalItemId.IsNone()
-						? FText::FromString(GetNameSafe(AcceptedItem.ItemDefinition))
-						: FText::FromName(AcceptedItem.CanonicalItemId))];
+					SNew(STextBlock).Text(GetNameText(AcceptedItem.CanonicalItemId))];
 			}
 			if (Receptacle.AcceptedItems.IsEmpty())
 			{

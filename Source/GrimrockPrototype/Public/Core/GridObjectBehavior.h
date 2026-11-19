@@ -105,14 +105,12 @@ struct FGridReceptacleAcceptedItemConfig
 {
 	GENERATED_BODY()
 
-	/** Historical pointer kept for unmigrated rules and editor fixtures.
-	 * When CanonicalItemId is authored, this pointer is never the identity authority. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accepted Items")
+	/** Retained only for the pre-retirement audit, never used for acceptance. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Accepted Items")
 	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
 
-	/** Persisted ItemId for the canonical acceptance rule. Migrated separately
-	 * from the 95 world-item references; absent on current legacy rule assets. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Accepted Items|Canonical")
+	/** Only explicit registered identity controls the acceptance rule. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accepted Items|Canonical")
 	FName CanonicalItemId = NAME_None;
 };
 

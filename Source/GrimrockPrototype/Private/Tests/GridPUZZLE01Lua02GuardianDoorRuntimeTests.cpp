@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "GridDoorTestUtils.h"
 #include "Core/GridLevelAsset.h"
@@ -89,6 +90,39 @@ bool FGridPUZZLE01Lua02RuntimeGuardianDoorCompletionTest::RunTest(const FString&
 	{
 		return false;
 	}
+
+	FGridCanonicalLootTestScope ItemRegistry;
+	if (!TestTrue(TEXT("Canonical registry attached to puzzle fixture"), ItemRegistry.Attach(TestWorld.World))) return false;
+	UGridItemSystemAsset* ProductionRoot = ItemRegistry.Registry->LoadConfiguredItemSystemForPreview();
+	if (!TestNotNull(TEXT("Production ItemSystem"), ProductionRoot)) return false;
+	TStrongObjectPtr<UGridItemSystemAsset> TestRoot(DuplicateObject<UGridItemSystemAsset>(ProductionRoot, GetTransientPackage()));
+	if (!TestNotNull(TEXT("Isolated puzzle item registry"), TestRoot.Get())) return false;
+	const FName BlueGemId = TEXT("Gem_Blue");
+	const FName WrongItemId = TEXT("Stone");
+	// This integration test has always used a synthetic three-gem stack.
+	// Preserve its controlled stack capacity in a private canonical fixture,
+	// never change the production definition or the real Lua source.
+	bool bReplacedGem = false;
+	for (auto& Item : TestRoot->ItemDefinitions)
+	{
+		if (!Item || Item->ItemId != BlueGemId) continue;
+		auto* Gem = NewObject<UGridGenericStackableDefinitionAsset>(TestRoot.Get());
+		Gem->ItemId = Item->ItemId;
+		Gem->DisplayName = Item->DisplayName;
+		Gem->Description = Item->Description;
+		Gem->Tags = Item->Tags;
+		Gem->WeightKg = Item->WeightKg;
+		Gem->MaxStack = 10;
+		Item = Gem;
+		bReplacedGem = true;
+		break;
+	}
+	ItemRegistry.Registry->Deinitialize();
+	TArray<FString> RegistryErrors;
+	if (!TestTrue(TEXT("Real gem identity exists and controlled test stack registers"),
+		bReplacedGem && ItemRegistry.Registry->RegisterItemSystem(TestRoot.Get(), RegistryErrors)) ||
+		!TestTrue(TEXT("Wrong item is also registered"), ItemRegistry.Registry->HasCanonicalItem(WrongItemId)))
+		return false;
 
 	const UGridLevelAsset* ProductionLevel = LoadObject<UGridLevelAsset>(
 		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_00.DA_GridLevel_00"));
@@ -183,16 +217,6 @@ bool FGridPUZZLE01Lua02RuntimeGuardianDoorCompletionTest::RunTest(const FString&
 	GuardianMesh->GetStaticMaterials().Add(FStaticMaterial(EmptyLeft, FName(TEXT("EyesLeft"))));
 	GuardianMesh->GetStaticMaterials().Add(FStaticMaterial(EmptyRight, FName(TEXT("EyesRight"))));
 
-	UGridItemDefinitionAsset* BlueGem = NewObject<UGridItemDefinitionAsset>(Runtime);
-	BlueGem->ItemDefinitionId = TEXT("Gem_Blue");
-	BlueGem->DisplayName = FText::FromString(TEXT("Blue Gem"));
-	BlueGem->bStackable = true;
-	BlueGem->MaxStackSize = 10;
-
-	UGridItemDefinitionAsset* WrongItem = NewObject<UGridItemDefinitionAsset>(Runtime);
-	WrongItem->ItemDefinitionId = TEXT("Gem_Red");
-	WrongItem->DisplayName = FText::FromString(TEXT("Red Gem"));
-
 	UGridWorldObjectDefinitionAsset* GuardianDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	GuardianDefinition->DefinitionId = TEXT("Guardian_LUA02_Runtime");
 	GuardianDefinition->SupportedType = EGridLevelObjectType::Receptacle;
@@ -204,7 +228,7 @@ bool FGridPUZZLE01Lua02RuntimeGuardianDoorCompletionTest::RunTest(const FString&
 	GuardianDefinition->DefaultBehavior.Receptacle.bAcceptAnyItem = false;
 	GuardianDefinition->DefaultBehavior.Receptacle.MaxContainedItems = 1;
 	FGridReceptacleAcceptedItemConfig AcceptedGem;
-	AcceptedGem.ItemDefinition = BlueGem;
+	AcceptedGem.CanonicalItemId = BlueGemId;
 	GuardianDefinition->DefaultBehavior.Receptacle.AcceptedItems.Add(AcceptedGem);
 	Runtime->WorldObjectDefinitions.Add(GuardianDefinition);
 
@@ -268,9 +292,6 @@ bool FGridPUZZLE01Lua02RuntimeGuardianDoorCompletionTest::RunTest(const FString&
 
 	Party->SetGridStart(Runtime, 0, 0, EGridEdge::North);
 	Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded();
-	TestTrue(TEXT("Blue gem definition registers"), Party->PartyInventoryComponent->RegisterItemDefinition(BlueGem));
-	TestTrue(TEXT("Wrong item definition registers"), Party->PartyInventoryComponent->RegisterItemDefinition(WrongItem));
-
 	AddExpectedError(TEXT("Receptacle cursor insert refused"), EAutomationExpectedErrorFlags::Contains, 2);
 	AddExpectedError(TEXT("GridInventory Cursor Place ToReceptacle Failed"), EAutomationExpectedErrorFlags::Contains, 2);
 	AddExpectedError(TEXT("cyclic link dispatch"), EAutomationExpectedErrorFlags::Contains, 2);
@@ -278,14 +299,14 @@ bool FGridPUZZLE01Lua02RuntimeGuardianDoorCompletionTest::RunTest(const FString&
 	FHitResult GuardianHit;
 	GuardianHit.Component = Guardian->MeshComponent;
 
-	TestTrue(TEXT("Wrong item reaches the cursor"), Party->PartyInventoryComponent->SetCursorItem(MakeItem(WrongItem->ItemDefinitionId, 1)));
+	TestTrue(TEXT("Wrong item reaches the cursor"), Party->PartyInventoryComponent->SetCursorItem(MakeItem(WrongItemId, 1)));
 	TestFalse(TEXT("Wrong item is rejected by the Guardian receptacle"), Guardian->TryPlaceCursorItemFromHit(Party, GuardianHit));
 	TestTrue(TEXT("Wrong item remains on the cursor"), Party->PartyInventoryComponent->HasCursorItem());
 	TestEqual(TEXT("Wrong item creates no contained entry"), Guardian->GetContainedItemCount(), 0);
 	Party->PartyInventoryComponent->ClearCursorItem();
 
 	TestTrue(TEXT("Three blue gems are placed on the cursor"),
-		Party->PartyInventoryComponent->SetCursorItem(MakeItem(BlueGem->ItemDefinitionId, 3)));
+		Party->PartyInventoryComponent->SetCursorItem(MakeItem(BlueGemId, 3)));
 
 	TestTrue(TEXT("First blue gem executes production puzzle1_lvl1"), Guardian->TryPlaceCursorItemFromHit(Party, GuardianHit));
 	TestTrue(TEXT("Cursor retains two unconsumed blue gems"), Party->PartyInventoryComponent->HasCursorItem());

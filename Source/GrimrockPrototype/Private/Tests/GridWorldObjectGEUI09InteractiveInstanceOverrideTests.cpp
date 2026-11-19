@@ -87,10 +87,8 @@ bool FGridWorldObjectGEUI09InteractiveInstanceOverridesTest::RunTest(const FStri
 	Plate.bCountEdgeItems = true;
 
 	// Receptacle puzzle rules. Presentation stays on Definition.
-	UGridItemDefinitionAsset* Gem = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-	Gem->ItemDefinitionId = TEXT("Gem_Blue");
 	FGridReceptacleAcceptedItemConfig AcceptedGem;
-	AcceptedGem.ItemDefinition = Gem;
+	AcceptedGem.CanonicalItemId = TEXT("Gem_Blue");
 	Instance.InstanceConfig.InteractionOverrides.bOverrideReceptacleRules = true;
 	auto& Receptacle = Instance.InstanceConfig.InteractionOverrides.ReceptacleRules;
 	Receptacle.bAcceptAnyItem = false;

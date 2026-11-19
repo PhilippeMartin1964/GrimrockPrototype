@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.15 — Acceptation des réceptacles par ItemId
+
+Parent d020833bfbe09524485ac415f638041d3ffa3d2e : publication conditionnée à deux statuts SUCCESS. L'acceptation runtime refuse toute source historique, identifiant vide/inconnu et registre indisponible. L'inspecteur encode directement un ItemId inscrit ; les règles partagées deviennent éditables par ItemId, les copies d'override valident strictement chaque règle. Tests X.161/X.162/GEUI09 et énigme Lua du Gardien alignés, pile synthétique du test conservée dans une copie transitoire du registre, aucun binaire ni SaveGame modifié. Voir [5G.15](ARM_CLEAN06_5G15_STRICT_RECEPTACLE_ACCEPTANCE.md).
+
 ## ARM-CLEAN06.5G.14 — Retrait du schéma historique des serrures
 
 Issue #202 : référence TD0737 restante corrigée dans la révision du même lot ; compilation et suite complète à revalider sur le nouveau SHA.
