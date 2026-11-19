@@ -458,6 +458,10 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 		{
 			bValid = AddError(Errors, TEXT("Weapon catalogue: invalid projectile policy"));
 		}
+		if (Archetype.Projectile.bGenericThrowOneHanded && !Archetype.Projectile.bGenericThrowAuthored)
+		{
+			bValid = AddError(Errors, TEXT("Weapon catalogue: generic throw permission without authored policy"));
+		}
 		if (Archetype.Projectile.bGenericThrowAuthored &&
 			(Archetype.Projectile.bEnabled || !FMath::IsFinite(Archetype.Projectile.InitialSpeed) ||
 			 Archetype.Projectile.InitialSpeed < 0.0f || !FMath::IsFinite(Archetype.Projectile.Arc) ||

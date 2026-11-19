@@ -1140,7 +1140,7 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 		!Canonical.ProjectileMesh.IsNull();
 	const bool bCanonicalGenericArm = bCanonicalResolved && Canonical.bIsArmament &&
 		Canonical.Weapon.Projectile.bGenericThrowAuthored &&
-		Canonical.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
+		Canonical.Weapon.Projectile.bGenericThrowOneHanded &&
 		FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f &&
 		FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) &&
 		Canonical.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER && FMath::IsFinite(Canonical.Weapon.Projectile.Arc);

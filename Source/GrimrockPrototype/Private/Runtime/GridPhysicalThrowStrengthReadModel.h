@@ -42,8 +42,10 @@ struct FGridPhysicalThrowStrengthReadModel
 			Out.MaxWeightKg = FMath::Max(0, Strength) * 0.25f;
 			Out.bResolved = true;
 			Out.bOneHanded = Canonical.bIsArmament
-				? Canonical.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
-					Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand)
+				? (Canonical.Weapon.Projectile.bGenericThrowAuthored
+					? Canonical.Weapon.Projectile.bGenericThrowOneHanded
+					: Canonical.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
+						Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand))
 				: Canonical.NonArmHandPolicy == EGridNonArmamentHandPolicy::OneHanded;
 			Out.UnitWeightKg = Canonical.WeightKg;
 			const float Speed = !Canonical.bIsArmament ? Canonical.GenericThrow.InitialSpeed :

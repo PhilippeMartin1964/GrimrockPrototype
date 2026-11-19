@@ -42,6 +42,7 @@ namespace GridEditorArmHandThrowPlan
         default: return false;
         }
         P.bGenericThrowAuthored = true;
+        P.bGenericThrowOneHanded = Source.GetEffectiveHandUsage() == EGridItemHandUsage::OneHanded;
         P.InitialSpeed = Source.ThrowSpeed;
         P.Arc = Source.ThrowArc;
         P.FlightLifetime = Source.ThrowLifeSeconds;
@@ -105,6 +106,7 @@ namespace GridEditorArmHandThrowPlan
             if (Row.IsThrowable())
             {
                 if (A->Projectile.bGenericThrowAuthored ||
+                    A->Projectile.bGenericThrowOneHanded ||
                     !GridArmClean06ProjectilePolicyProjection::Matches(*Old, A->Projectile) ||
                     !GridArmClean06ProjectileVisualProjection::Matches(*Old, *V))
                 {
@@ -125,7 +127,7 @@ namespace GridEditorArmHandThrowPlan
             // Prove old permission rather than manufacture it from the
             // existence of a physical policy. The existing strength gate
             // additionally enforces its main-hand rule, unchanged.
-            const bool bProjectedPhysical = A->HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
+            const bool bProjectedPhysical = P.bGenericThrowOneHanded &&
                 FMath::IsFinite(Old->Weight) && Old->Weight >= 0.f && P.InitialSpeed > KINDA_SMALL_NUMBER;
             if (bProjectedPhysical != Old->IsPhysicallyThrowable())
             {

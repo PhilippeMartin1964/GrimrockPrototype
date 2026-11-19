@@ -479,6 +479,11 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalProjectilePolicy
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile")
 	bool bGenericThrowAuthored = false;
 
+	/** Physical permission differs from a hand slot: passive shields/foci
+	 * can be equipped off-hand without being one-handed throwable objects. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile")
+	bool bGenericThrowOneHanded = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile", meta = (ClampMin = "0"))
 	float InitialSpeed = 0.0f;
 

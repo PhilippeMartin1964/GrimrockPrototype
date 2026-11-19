@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.3.1 — permission de lancer indépendante des slots
+
+5D.3 `e7e4f11d7c9dd6ea622e03c71dafd038f5e4f11a` : SilentTask SUCCESS, LocalAuto FAILURE (issue #197, RealHandThrowProjection). Cause probable étayée par `GridWeaponPipelineCommandlet::Usage` et le pilote : les passifs NotHandHeld restent équipables OffHand, contrairement à l'hypothèse du convertisseur. Correction explicite de la permission physique, assertions de parité conservées, diagnostics publics à liste blanche. Le code déclenche le même runner natif uniquement après ses deux validations exactes. Aucune écriture de sauvegarde ni package à ce stade. Le lot 5D.4 préparé (arbre Git `ebd25012b35e51955745e0194b69d14a5bd7aee9`) devra être rebasé après le commit binaire et ses deux statuts.
+
 ## ARM-CLEAN06.5D.3 — lancer physique des ARM non spécialisées
 
 Parent 5D.2.1 `0be0a8ddd471d74a2a70e05fff47df0a5782b7f0`. Projection des 19 politiques ordinaires, 3 spécialisées inchangées, 2 catalogues et 22 identités exactes. Pas d'attaque inventée ; préflight transitoire, même politique physique/visuelle N1/N20, tests runtime et garde avant écriture. [5D.3](ARM_CLEAN06_5D3_ARM_HAND_THROW.md). Aucune modification de save. Le code n'est pas la preuve de matérialisation ; attendre le SHA binaire et ses deux statuts.

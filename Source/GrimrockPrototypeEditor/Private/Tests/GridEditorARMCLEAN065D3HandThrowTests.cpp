@@ -41,6 +41,15 @@ bool FGridEditorARMCLEAN065D3NativeProjection::RunTest(const FString&)
             const auto& V = Item.ProjectileAppearance;
             TestEqual(TEXT("Specialized combat authorization unchanged"), P.bEnabled, Row.IsThrowable());
             TestEqual(TEXT("Ordinary policy explicit"), P.bGenericThrowAuthored, !Row.IsThrowable());
+            TestEqual(TEXT("Explicit physical one-hand permission"), P.bGenericThrowOneHanded,
+                !Row.IsThrowable() && Old->GetEffectiveHandUsage() == EGridItemHandUsage::OneHanded);
+            if (!Row.IsThrowable())
+            {
+                const bool bPhysical = P.bGenericThrowOneHanded && FMath::IsFinite(Item.WeightKg) &&
+                    Item.WeightKg >= 0.f && P.InitialSpeed > KINDA_SMALL_NUMBER;
+                TestEqual(TEXT("Physical eligibility matches original"), bPhysical, Old->IsPhysicallyThrowable());
+                if (Row.IsPassive()) TestFalse(TEXT("Passive off-hand source is not a hand-toss permission"), P.bGenericThrowOneHanded);
+            }
             TestEqual(TEXT("Exact speed"), P.InitialSpeed, Old->ThrowSpeed);
             TestEqual(TEXT("Exact signed arc"), P.Arc, Old->ThrowArc);
             TestEqual(TEXT("Exact lifetime"), P.FlightLifetime, Old->ThrowLifeSeconds);

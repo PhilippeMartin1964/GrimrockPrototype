@@ -240,6 +240,29 @@ function Get-PublicSafeDiagnostics {
                             $Record = 'Test : ' + $TestPath
                             if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
                         }
+                        if ($TestPath -ceq 'Grimrock.RPG.ARM.CLEAN06_5D3.RealHandThrowProjection' -and
+                            $State -match '^(?i:fail|failed|error)$' -and
+                            $Test.PSObject.Properties['entries']) {
+                            foreach ($Entry in @($Test.entries)) {
+                                if ($null -eq $Entry -or $null -eq $Entry.event) { continue }
+                                if ([string]$Entry.event.type -notmatch '^(?i:error|fatal|warning)$') { continue }
+                                $Message = [string]$Entry.event.message
+                                $Category = 'OTHER'
+                                if ($Message -match 'Native registry or exact production manifest rejected') { $Category = 'ROOT_MANIFEST' }
+                                elseif ($Message -match 'Identity/visual/native source mismatch') { $Category = 'SOURCE_IDENTITY' }
+                                elseif ($Message -match 'Specialized projectile mismatch') { $Category = 'SPECIALIZED_POLICY' }
+                                elseif ($Message -match 'Ordinary physical/visual source rejected') { $Category = 'ORDINARY_SOURCE' }
+                                elseif ($Message -match 'Hand-toss eligibility differs|Physical eligibility matches original|Explicit physical one-hand permission|Passive off-hand source') { $Category = 'PHYSICAL_PERMISSION' }
+                                elseif ($Message -match 'Previously authored flight data contradicts source|Unconverted policy contains unexpected authored values') { $Category = 'AUTHORED_CONFLICT' }
+                                elseif ($Message -match 'Resolved level lost ordinary flight data|Runtime resolves physical level') { $Category = 'LEVEL_RESOLUTION' }
+                                elseif ($Message -match 'Partial migration or unexpected active item count') { $Category = 'COUNTS' }
+                                elseif ($Message -match 'Projected root validates|Runtime accepts projected root') { $Category = 'PREVIEW_REGISTRY' }
+                                elseif ($Message -match 'Exact speed|Exact signed arc|Exact lifetime|Exact impact offset|Flight rotation|Flight scale|Flight angular axis|Flight forward axis|Tumble|Spin') { $Category = 'FIELD_PARITY' }
+                                elseif ($Message -match 'Original catalogues untouched') { $Category = 'SOURCE_MUTATION' }
+                                $Record = 'ARM-CLEAN06.5D3 projection : ' + $Category
+                                if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
+                            }
+                        }
                         # ARM-CLEAN06.1: only a fixed, non-sensitive error
                         # classification may leave the private Automation report.
                         if ($TestPath -ceq 'Grimrock.RPG.ARM.CLEAN06_1.SingleResolver.AmmoAfterRegister' -and
@@ -996,7 +1019,7 @@ try {
         # Exact, one-shot 5D.3 native package transaction after successful code validation.
         $HandThrowSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $HandThrowSubject.Count -eq 1 -and
-            [string]$HandThrowSubject[0] -ceq 'ARM-CLEAN06.5D.3: preserve ordinary ARM physical flight in canonical catalogues') {
+            [string]$HandThrowSubject[0] -ceq 'fix(ARM-CLEAN06.5D.3): preserve explicit physical throw permission for passive gear') {
             $HandThrowContext = 'UE5.5.4/ARM-CLEAN06.5D3'
             try {
                 Publish-CommitStatus -Sha $Sha -State 'pending' -Context $HandThrowContext -Description 'Conversion native de deux catalogues ARM'

@@ -13,7 +13,8 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'ARM_CLEAN06_4X66_Rollback.ps1')
 $StagePath = Join-Path $RunDir 'ArmClean065D3.stage'
 $ExpectedParent = '0be0a8ddd471d74a2a70e05fff47df0a5782b7f0'
-$ExpectedSubject = 'ARM-CLEAN06.5D.3: preserve ordinary ARM physical flight in canonical catalogues'
+$ExpectedSubject = 'fix(ARM-CLEAN06.5D.3): preserve explicit physical throw permission for passive gear'
+$FailedParent = 'e7e4f11d7c9dd6ea622e03c71dafd038f5e4f11a'
 $BinarySubject = 'ARM-CLEAN06.5D.3B: persist 19 ordinary ARM flight policies'
 $Packages = @(
     'Content/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_CanonicalWeaponCatalogue.uasset',
@@ -123,8 +124,8 @@ try {
     if ($LASTEXITCODE -ne 0 -or ('worktree '+$WorktreePath.Replace('\','/')) -cnotin $Registered) { throw 'Worktree not registered.' }
     Assert-Head
     Assert-Remote
-    if ((Invoke-HandThrowGit @('rev-parse','HEAD^')) -cne $ExpectedParent -or (Invoke-HandThrowGit @('log','-1','--format=%s')) -cne $ExpectedSubject) { throw 'Wrong one-shot revision.' }
-    Assert-SameSet @(Invoke-HandThrowGit @('diff-tree','--no-commit-id','--name-only','-r','HEAD')) $CodePaths
+    if ((Invoke-HandThrowGit @('rev-parse','HEAD^')) -cne $FailedParent -or (Invoke-HandThrowGit @('rev-parse','HEAD^^')) -cne $ExpectedParent -or (Invoke-HandThrowGit @('log','-1','--format=%s')) -cne $ExpectedSubject) { throw 'Wrong one-shot revision.' }
+    Assert-SameSet @(Invoke-HandThrowGit @('diff','--name-only',$ExpectedParent,'HEAD')) $CodePaths
     if (@(Get-Dirty).Count -ne 0) { throw 'Worktree must be clean.' }
     $StatusText = @(& gh.exe api ('repos/'+$GitHubRepository+'/commits/'+$ExpectedHead+'/status'))
     if ($LASTEXITCODE -ne 0) { throw 'Cannot read validation status.' }
