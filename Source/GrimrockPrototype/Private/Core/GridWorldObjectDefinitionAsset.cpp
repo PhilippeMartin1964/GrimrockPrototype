@@ -54,7 +54,7 @@ namespace
 	bool IsWallLockDefinition(const UGridWorldObjectDefinitionAsset& Definition)
 	{
 		return (Definition.RuntimeActorClass && Definition.RuntimeActorClass->IsChildOf(AGridWallLockActor::StaticClass())) ||
-			Definition.DefaultBehavior.Lock.AcceptedKeyIds.Num() > 0 || Definition.DefaultBehavior.Lock.AcceptedKeyItems.Num() > 0;
+			Definition.DefaultBehavior.Lock.AcceptedKeyIds.Num() > 0;
 	}
 
 	bool HasCustomButtonBehaviorParams(const FGridObjectBehaviorParams& Behavior)

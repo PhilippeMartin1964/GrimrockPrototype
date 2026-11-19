@@ -74,8 +74,7 @@ namespace
 		{
 			return true;
 		}
-		return Definition->DefaultBehavior.Lock.AcceptedKeyItems.Num() > 0 ||
-			Definition->DefaultBehavior.Lock.AcceptedKeyIds.Num() > 0;
+		return Definition->DefaultBehavior.Lock.AcceptedKeyIds.Num() > 0;
 	}
 
 	template <typename TValue, typename TRead>

@@ -1,14 +1,11 @@
 #pragma once
 
 #include "Core/GridLevelPlacementTypes.h"
-#include "EditorTools/GridEditorLockKeyMigrationPreview.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
-/** X.50: a NEW lock override must not re-persist historical key pointers.
- * The existing preview preserves every authored key identity and order,
- * including script-owned keys outside ItemSystem, but refuses unknown/null
- * old pointers because their effective key set cannot be safely projected.
- * This is authoring-only; old native lock definitions stay unchanged.
+/** New overrides copy the explicit key IDs only. A remaining historical
+ * pointer indicates an unretired source and blocks authoring atomically.
+ * Script-owned IDs, duplicates and order are preserved without inference.
  */
 struct FGridEditorCanonicalLockRuleAuthoring
 {
@@ -16,19 +13,13 @@ struct FGridEditorCanonicalLockRuleAuthoring
         const FGridLockBehaviorParams& Defaults,
         FGridLockAcceptedKeyInstanceRuleValues& OutOverride)
     {
-        TArray<FName> ProposedIds;
-        FGridLockKeyPreviewStats Stats;
-        if (!FGridLockKeyMigrationPreview::TryPreview(
-            Registry, Defaults.AcceptedKeyItems, Defaults.AcceptedKeyIds,
-            ProposedIds, Stats))
+        if (!IsValid(Registry) || !Registry->IsConfigured() ||
+            !Defaults.AcceptedKeyItems.IsEmpty())
         {
-            return false; // Never partially rewrite the existing override.
+            return false;
         }
-
         FGridLockAcceptedKeyInstanceRuleValues Proposed;
-        Proposed.AcceptedKeyIds = MoveTemp(ProposedIds);
-        // Leave AcceptedKeyItems EMPTY even if the shared Definition
-        // retains its historical pointers until the UE-native migration.
+        Proposed.AcceptedKeyIds = Defaults.AcceptedKeyIds;
         OutOverride = MoveTemp(Proposed);
         return true;
     }

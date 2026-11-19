@@ -52,15 +52,22 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
             Out.AcceptedKeyItems[0].Get(), Copper))
         return false;
 
-    if (!TestTrue(TEXT("Valid mixed explicit/old lock list converts atomically"),
+    if (!TestFalse(TEXT("Mixed old/canonical defaults block authoring atomically"),
         FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(Registry.Get(), Shared, Out)) ||
-        !TestEqual(TEXT("Existing explicit IDs and converted sources kept"), Out.AcceptedKeyIds.Num(), 3) ||
+        !TestEqual(TEXT("Blocked draft keeps its previous ID"), Out.AcceptedKeyIds[0], FName(TEXT("X50_KeepOnFailure"))) ||
+        !TestEqual(TEXT("Blocked draft keeps previous pointer"), Out.AcceptedKeyItems[0].Get(), Copper))
+        return false;
+    Shared.AcceptedKeyItems.Reset();
+    Shared.AcceptedKeyIds.Add(Iron->ItemDefinitionId);
+    if (!TestTrue(TEXT("Explicit IDs copy atomically"),
+        FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(Registry.Get(), Shared, Out)) ||
+        !TestEqual(TEXT("Existing explicit IDs kept"), Out.AcceptedKeyIds.Num(), 3) ||
         !TestEqual(TEXT("Script-owned non-registry key preserved"), Out.AcceptedKeyIds[0],
             FName(TEXT("Key_Scripted"))) ||
         !TestEqual(TEXT("Registered copper kept"), Out.AcceptedKeyIds[1], Copper->ItemDefinitionId) ||
-        !TestEqual(TEXT("Registered iron appended"), Out.AcceptedKeyIds[2], Iron->ItemDefinitionId) ||
+        !TestEqual(TEXT("Registered iron kept"), Out.AcceptedKeyIds[2], Iron->ItemDefinitionId) ||
         !TestEqual(TEXT("No obsolete key source stored in new override"), Out.AcceptedKeyItems.Num(), 0) ||
-        !TestEqual(TEXT("Shared definition remains unmodified"), Shared.AcceptedKeyItems.Num(), 2))
+        !TestEqual(TEXT("Shared definition remains unmodified"), Shared.AcceptedKeyItems.Num(), 0))
     {
         return false;
     }
@@ -99,7 +106,8 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
             NoKeys.Lock.bConsumeKeyOnUnlock, Shared.bConsumeKeyOnUnlock))
         return false;
 
-    // Already-authored legacy-only instances stay readable and unchanged.
+    // Instance resolver retains the old field for audit until schema retirement;
+    // the runtime acceptance reader no longer uses it.
     FGridWorldObjectInstance LegacyKeys = Placed;
     LegacyKeys.InstanceConfig.InteractionOverrides.AcceptedKeys.AcceptedKeyIds.Reset();
     LegacyKeys.InstanceConfig.InteractionOverrides.AcceptedKeys.AcceptedKeyItems = {Copper};
@@ -151,11 +159,8 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
             !TestEqual(TEXT("Real projected key retains ID"), Projection.AcceptedKeyIds[0], ExpectedIds[Index]) ||
             !TestEqual(TEXT("No old key pointers copied from shared definition"),
                 Projection.AcceptedKeyItems.Num(), 0) ||
-            !TestTrue(TEXT("Shared source intact or fully pointerless after native migration"),
-                RealLock.AcceptedKeyItems.IsEmpty() ||
-                (RealLock.AcceptedKeyItems.Num() == 1 &&
-                 RealLock.AcceptedKeyItems[0] &&
-                 RealLock.AcceptedKeyItems[0]->ItemDefinitionId == ExpectedIds[Index])) ||
+            !TestTrue(TEXT("Real shared lock fully pointerless after native migration"),
+                RealLock.AcceptedKeyItems.IsEmpty()) ||
             !TestEqual(TEXT("Original package not dirty"), Real->GetOutermost()->IsDirty(), bDirty))
         {
             return false;
@@ -164,7 +169,7 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
 
     AddInfo(TEXT("[ARM-CLEAN06.4X50] new lock overrides are canonical-only; "
         "real Copper/Iron lock defaults projected without modifying either package; "
-        "script IDs preserved and unknown/null old sources fail atomically."));
+        "script IDs preserved and any old source fails authoring atomically."));
     return TestEqual(TEXT("ItemSystem package unchanged"),
         Root->GetOutermost()->IsDirty(), bRootDirty);
 }

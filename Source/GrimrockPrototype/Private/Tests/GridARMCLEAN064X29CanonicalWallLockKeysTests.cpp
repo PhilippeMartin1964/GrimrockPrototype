@@ -65,10 +65,10 @@ bool FGridClean064X29CanonicalWallLockKeys::RunTest(const FString&)
 		TestFalse(TEXT("Runtime lock rejects stale iron pointer"),
 			Lock->CanAcceptKeyDefinition(TEXT("Key_Iron")));
 
-	// Legacy fixtures without any authored KeyIds still behave as before.
+	// An empty explicit list must not regain an obsolete key pointer.
 	Data.Behavior.Lock.AcceptedKeyIds.Reset();
 	Lock->InitializeRuntimeWorldObject(Data, nullptr, FTransform::Identity);
-	bOk &= TestTrue(TEXT("Legacy-only lock still accepts its old iron key"),
+	bOk &= TestFalse(TEXT("Legacy-only lock rejects its old iron pointer"),
 		Lock->CanAcceptKeyDefinition(TEXT("Key_Iron")));
 	bOk &= TestFalse(TEXT("Legacy-only lock does not invent copper"),
 		Lock->CanAcceptKeyDefinition(TEXT("Key_Copper")));

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.13 — Serrures : lecture et authoring sans repli
+
+Parent 6e31647e07f23d3f00adeae917c79e0ee8522acc : publication uniquement après ses deux statuts SUCCESS. Les serrures utilisent exclusivement AcceptedKeyIds (y compris IDs de script) ; liste vide ou invalide sans repli. Classification runtime et inspector alignées, copie de règles refuse tout pointeur historique au lieu de le convertir implicitement. Les deux propriétés historiques et leurs preuves restent provisoirement présentes pour le retrait de schéma séparé ; aucun asset, SaveGame ou WBP modifié. Voir [5G.13](ARM_CLEAN06_5G13_STRICT_LOCK_KEY_IDS.md).
+
 ## ARM-CLEAN06.5G.12 — Loot monstre sans pointeur historique
 
 Parent ea4f755f9bfb2fb0cd8606f2e5e0a95710d43e16 : publication conditionnée à ses deux statuts SUCCESS. Suppression effective de FGridMonsterLootEntry.ItemDefinitionAsset et des chemins de résolution legacy de loot. Tests MON8/MON9/MON17.6/ARMEMENT01.8 et preuves X.48/X.60/X.61/TD07 alignés sur ItemId + N ; aucun asset, SaveGame ou WBP changé. Attendre les deux statuts Windows sur le nouveau SHA. Voir [5G.12](ARM_CLEAN06_5G12_CANONICAL_MONSTER_LOOT_SCHEMA.md).
