@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
 #include "../Runtime/GridEditorLooseItemPreviewReadModel.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -38,7 +39,7 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 		Old->ItemDefinitionId = ArmId;
 		FGridLooseItemInstance Placement;
 		Placement.InstanceId = FGuid::NewGuid();
-		Placement.ItemDefinition = Old.Get();
+		Placement.CanonicalItemId = ArmId;
 		for (const int32 Level : {1, 20})
 		{
 			Placement.ItemLevel = Level;
@@ -73,7 +74,7 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 	Old->ItemDefinitionId = TEXT("Item_Arrows_01");
 	FGridLooseItemInstance Arrows;
 	Arrows.InstanceId = FGuid::NewGuid();
-	Arrows.ItemDefinition = Old.Get();
+	Arrows.CanonicalItemId = TEXT("Item_Arrows_01");
 	Arrows.ItemLevel = 0;
 	FGridResolvedItem ExpectedAmmo;
 	if (!TestTrue(TEXT("Production unlevelled arrows resolve at N0"),
@@ -92,7 +93,7 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 	Old->bUseWeaponCatalogue = false;
 	FGridLooseItemInstance InvalidDefault;
 	InvalidDefault.InstanceId = FGuid::NewGuid();
-	InvalidDefault.ItemDefinition = Old.Get();
+	InvalidDefault.CanonicalItemId = TEXT("Weapon_RoundShield_01");
 	InvalidDefault.ItemLevel = 0;
 	const FGridEditorLooseItemPreviewReadView BadDefault =
 		FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), InvalidDefault);
@@ -108,10 +109,20 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 	TestTrue(TEXT("Invalid ammo level remains classified canonical"), InvalidAmmo.bCanonicalIdentity);
 	TestFalse(TEXT("Non-ARM cannot invent N1 despite transitional registry support"), InvalidAmmo.bResolved);
 	Arrows.ItemLevel = 0;
-	Old->ItemDefinitionId = TEXT("LegacyEditorPreview_063Z");
-	const FGridEditorLooseItemPreviewReadView Legacy =
-		FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);
-	TestFalse(TEXT("Unregistered identity retains old editor preview"), Legacy.bCanonicalIdentity);
+	Old->ItemDefinitionId = Arrows.CanonicalItemId;
+	Arrows.ItemDefinition = Old.Get();
+	const auto MatchingOld = FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);
+	TestTrue(TEXT("Explicit identity stays classified"), MatchingOld.bCanonicalIdentity);
+	TestFalse(TEXT("Even matching old pointer cannot supply preview"), MatchingOld.bResolved);
+	TestTrue(TEXT("Old pointer exposes no mesh"), MatchingOld.WorldMesh.IsNull());
+	Arrows.CanonicalItemId = NAME_None;
+	const auto Legacy = FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);
+	TestFalse(TEXT("Pointer cannot supply a canonical identity"), Legacy.bCanonicalIdentity);
+	TestFalse(TEXT("Pointer-only placement does not preview"), Legacy.bResolved);
+	Arrows.ItemDefinition = nullptr;
+	Arrows.CanonicalItemId = TEXT("LegacyEditorPreview_063Z");
+	TestFalse(TEXT("Unknown ID cannot preview"),
+		FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows).bResolved);
 	return true;
 }
 

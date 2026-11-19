@@ -158,8 +158,7 @@ const UGridItemSubsystem* UGridEditorPreviewComponent::ResolvePreviewItemRegistr
 
 void UGridEditorPreviewComponent::AddLooseItemPreview(const FGridLooseItemInstance& Instance)
 {
-	if (!RuntimeActor ||
-		(!IsValid(Instance.ItemDefinition.Get()) && Instance.CanonicalItemId.IsNone()))
+	if (!RuntimeActor || Instance.CanonicalItemId.IsNone())
 	{
 		return;
 	}
@@ -171,24 +170,9 @@ void UGridEditorPreviewComponent::AddLooseItemPreview(const FGridLooseItemInstan
 	}
 	const FGridEditorLooseItemPreviewReadView Canonical =
 		FGridEditorLooseItemPreviewReadModel::Resolve(ResolvePreviewItemRegistry(), Instance);
-	UStaticMesh* PreviewMesh = nullptr;
-	FTransform RelativeVisualTransform = FTransform::Identity;
-	if (Canonical.bCanonicalIdentity)
-	{
-		if (!Canonical.bResolved)
-		{
-			return; // Registered identity: never draw an obsolete DA_Weapon mesh.
-		}
-		PreviewMesh = Canonical.WorldMesh.LoadSynchronous();
-		RelativeVisualTransform = Canonical.WorldTransform;
-	}
-	else
-	{
-		const FGridResolvedWorldItemMesh Legacy =
-			FGridWorldItemVisualResolver::Resolve(*Instance.ItemDefinition);
-		PreviewMesh = Legacy.Mesh;
-		RelativeVisualTransform = Legacy.RelativeTransform;
-	}
+	if (!Canonical.bResolved) return;
+	UStaticMesh* PreviewMesh = Canonical.WorldMesh.LoadSynchronous();
+	const FTransform RelativeVisualTransform = Canonical.WorldTransform;
 	if (!PreviewMesh)
 	{
 		return;
@@ -343,19 +327,13 @@ bool UGridEditorPreviewComponent::IsPreviewableLooseItem(const FGridLooseItemIns
 {
 	if (!RuntimeActor || !RuntimeActor->LevelAsset ||
 		!RuntimeActor->LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY) ||
-		(!IsValid(Instance.ItemDefinition.Get()) && Instance.CanonicalItemId.IsNone()))
+		Instance.CanonicalItemId.IsNone())
 	{
 		return false;
 	}
 	const FGridEditorLooseItemPreviewReadView Canonical =
 		FGridEditorLooseItemPreviewReadModel::Resolve(ResolvePreviewItemRegistry(), Instance);
-	if (Canonical.bCanonicalIdentity)
-	{
-		return Canonical.bResolved && !Canonical.WorldMesh.IsNull();
-	}
-	return !Instance.ItemDefinition->WorldMesh.IsNull() ||
-		(Instance.ItemDefinition->bUseWeaponVisualCatalogue &&
-			!Instance.ItemDefinition->WeaponVisualCatalogue.IsNull());
+	return Canonical.bResolved && !Canonical.WorldMesh.IsNull();
 }
 
 bool UGridEditorPreviewComponent::IsPreviewableMonsterSpawn(const FGridMonsterSpawnInstance& SpawnData) const

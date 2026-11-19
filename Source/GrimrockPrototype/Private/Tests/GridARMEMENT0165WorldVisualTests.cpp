@@ -165,13 +165,13 @@ bool FARMEMENT0165EditorPreviewTest::RunTest(const FString&)
 	Runtime->LevelAsset = Level;
 
 	const TCHAR* Archetypes[] = {TEXT("ARM001"), TEXT("ARM045"), TEXT("ARM075")};
+	const TCHAR* ItemIds[] = {TEXT("Weapon_Dagger_01"), TEXT("Weapon_ShortBow_01"), TEXT("Weapon_RoundShield_01")};
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
-		const FName Id(*FString::Printf(TEXT("ARM0165_Preview_%s"), Archetypes[Index]));
-		UGridItemDefinitionAsset* Definition = MakeDefinition(Runtime, Catalogue, Id, FName(Archetypes[Index]));
 		FGridLooseItemInstance Placed;
 		Placed.InstanceId = FGuid::NewGuid();
-		Placed.ItemDefinition = Definition;
+		Placed.CanonicalItemId = FName(ItemIds[Index]);
+		Placed.ItemLevel = 1;
 		Placed.CellX = Index;
 		Placed.CellY = 1;
 		Level->LooseItemInstances.Add(Placed);

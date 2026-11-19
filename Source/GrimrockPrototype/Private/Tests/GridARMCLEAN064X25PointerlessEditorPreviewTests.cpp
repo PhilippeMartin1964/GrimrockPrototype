@@ -180,6 +180,10 @@ bool FGridClean064X25PointerlessEditorPreview::RunTest(const FString&)
 	{
 		return false;
 	}
+	Contradiction->ItemDefinitionId = Placement.CanonicalItemId;
+	if (!TestFalse(TEXT("Even matching historical pointer cannot preview"),
+		FGridEditorLooseItemPreviewReadModel::Resolve(F.Registry, Placement).bResolved))
+		return false;
 	Placement.ItemDefinition = nullptr;
 	if (!TestTrue(TEXT("No registry cannot authorize legacy fallback"),
 		FGridEditorLooseItemPreviewReadModel::Resolve(
