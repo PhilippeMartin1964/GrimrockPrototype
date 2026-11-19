@@ -8,7 +8,6 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "EditorTools/GridEditorReceptacleAcceptanceMigrationPreview.h"
-#include "EditorTools/GridEditorLockKeyMigrationPreview.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -122,16 +121,9 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
         }
 
         const FGridLockBehaviorParams& Lock = Definition->DefaultBehavior.Lock;
-        if (!Lock.AcceptedKeyItems.IsEmpty() || !Lock.AcceptedKeyIds.IsEmpty())
+        if (!Lock.AcceptedKeyIds.IsEmpty())
         {
             ++LockLists;
-            TArray<FName> Preview;
-            FGridLockKeyPreviewStats Stats;
-            if (!TestTrue(TEXT("Every actual lock key list previews atomically"),
-                FGridLockKeyMigrationPreview::TryPreview(
-                    Registry.Get(), Lock.AcceptedKeyItems, Lock.AcceptedKeyIds,
-                    Preview, Stats)))
-                return false;
             const FName ExpectedKey = Package ==
                 TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall")
                 ? FName(TEXT("Key_Copper"))
@@ -140,21 +132,11 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
             if (!TestTrue(TEXT("Only approved shared Copper/Iron rules exist"),
                 !ExpectedKey.IsNone() && Lock.AcceptedKeyIds.Num() == 1 &&
                 Lock.AcceptedKeyIds[0] == ExpectedKey &&
-                Preview.Num() == 1 && Preview[0] == ExpectedKey &&
-                Registry->HasCanonicalItem(ExpectedKey) &&
-                Lock.AcceptedKeyItems.Num() <= 1))
+                Registry->HasCanonicalItem(ExpectedKey)))
                 return false;
-            if (!Lock.AcceptedKeyItems.IsEmpty())
-            {
-                const UGridItemDefinitionAsset* Old = Lock.AcceptedKeyItems[0].Get();
-                if (!TestTrue(TEXT("Optional historical key agrees with approved ID"),
-                    IsValid(Old) && Old->ItemDefinitionId == ExpectedKey))
-                    return false;
-                ++LockPointers;
-            }
             AddInfo(FString::Printf(TEXT(
                 "[ARM-CLEAN06.4X.52] LOCK package=%s definition=%s legacy=%d canonical=%s"),
-                *Package, *DefinitionId, Lock.AcceptedKeyItems.IsEmpty() ? 0 : 1,
+                *Package, *DefinitionId, 0,
                 *ExpectedKey.ToString()));
             ++ManifestRows;
         }
@@ -176,9 +158,8 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
         TestEqual(TEXT("6 actual receptacle lists"), ReceptacleLists, 6) &&
         TestEqual(TEXT("2 accepted item rules"), ReceptacleRules, 2) &&
         TestEqual(TEXT("2 lock key lists"), LockLists, 2) &&
-        TestTrue(TEXT("Only ALL pre/post native shared pointers are valid"),
-            (ReceptaclePointers == 2 && LockPointers == 2) ||
-            (ReceptaclePointers == 0 && LockPointers == 0)) &&
+        TestTrue(TEXT("Only native post-migration shared rules are valid"),
+            ReceptaclePointers == 0 && LockPointers == 0) &&
         TestEqual(TEXT("No receptacle instance overrides"), ReceptacleOverrides, 0) &&
         TestEqual(TEXT("No lock instance overrides"), LockOverrides, 0) &&
         TestEqual(TEXT("Exactly 4 manifest rows"), ManifestRows, 4) &&

@@ -83,9 +83,6 @@ struct FGridLockAcceptedKeyInstanceRuleValues
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Lock|Accepted Keys")
-	TArray<TObjectPtr<UGridItemDefinitionAsset>> AcceptedKeyItems;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Lock|Accepted Keys")
 	TArray<FName> AcceptedKeyIds;
 };
 

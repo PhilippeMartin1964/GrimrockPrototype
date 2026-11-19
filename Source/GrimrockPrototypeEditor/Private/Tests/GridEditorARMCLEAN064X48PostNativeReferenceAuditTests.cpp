@@ -47,7 +47,10 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
     }
     const bool bRootDirty = Root->GetOutermost()->IsDirty();
     int32 LooseTotal = 0, LooseOld = 0, InitialTotal = 0, InitialOld = 0;
-    int32 ReceptacleOverrideOld = 0, LockOverrideOld = 0;
+    int32 ReceptacleOverrideOld = 0;
+    const int32 LockOverrideOld = 0;
+    TestNull(TEXT("Removed shared key pointer schema"), FGridLockBehaviorParams::StaticStruct()->FindPropertyByName(TEXT("AcceptedKeyItems")));
+    TestNull(TEXT("Removed instance key pointer schema"), FGridLockAcceptedKeyInstanceRuleValues::StaticStruct()->FindPropertyByName(TEXT("AcceptedKeyItems")));
     int32 ActiveAcceptanceOverrides = 0;
     int32 ItemSpawns = 0;
     TSet<FGuid> SeenLoose;
@@ -118,18 +121,6 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
                 }
                 ++ReceptacleOverrideOld;
             }
-            for (const TObjectPtr<UGridItemDefinitionAsset>& Key :
-                Overrides.AcceptedKeys.AcceptedKeyItems)
-            {
-                if (LevelIndex != 0 || !IsValid(Key.Get()) ||
-                    (Key->ItemDefinitionId != FName(TEXT("Key_Copper")) &&
-                     Key->ItemDefinitionId != FName(TEXT("Key_Iron"))))
-                {
-                    AddError(TEXT("Dormant lock override has an unexpected source."));
-                    return false;
-                }
-                ++LockOverrideOld;
-            }
         }
         const int32 ExpectedInitial = LevelIndex == 0 ? 17 : LevelIndex == 1 ? 1 : 0;
         if (!TestEqual(TEXT("Exact original per-level distribution"), InitialTotal - BeforeInitial, ExpectedInitial))
@@ -175,7 +166,8 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
     AssetRegistry.Get().GetAssets(Filter, Definitions);
     if (!TestEqual(TEXT("44 real world-object definitions inspected"), Definitions.Num(), 44))
         return false;
-    int32 AcceptanceRules = 0, LockKeys = 0, RuleAssets = 0, LockAssets = 0;
+    int32 AcceptanceRules = 0, RuleAssets = 0, LockAssets = 0;
+    const int32 LockKeys = 0;
     for (const FAssetData& Data : Definitions)
     {
         UGridWorldObjectDefinitionAsset* Definition =
@@ -206,7 +198,7 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         }
         const FGridLockBehaviorParams& Lock = Definition->DefaultBehavior.Lock;
         if (!Lock.AcceptedKeyIds.IsEmpty()) ++LockAssets;
-        if (!Lock.AcceptedKeyItems.IsEmpty() || !Lock.AcceptedKeyIds.IsEmpty())
+        if (!Lock.AcceptedKeyIds.IsEmpty())
         {
             const FName Required = Package ==
                 TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall")
@@ -215,19 +207,10 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
                     ? FName(TEXT("Key_Iron")) : NAME_None);
             if (Required.IsNone() || Lock.AcceptedKeyIds.Num() != 1 ||
                 Lock.AcceptedKeyIds[0] != Required ||
-                !Known.Contains(Required) || Lock.AcceptedKeyItems.Num() > 1)
+                !Known.Contains(Required))
             {
                 AddError(TEXT("Shared lock does not have the exact approved canonical key."));
                 return false;
-            }
-            for (const TObjectPtr<UGridItemDefinitionAsset>& Key : Lock.AcceptedKeyItems)
-            {
-                if (!IsValid(Key.Get()) || Key->ItemDefinitionId != Required)
-                {
-                    AddError(TEXT("Existing historical key does not match the canonical key."));
-                    return false;
-                }
-                ++LockKeys;
             }
         }
         if (!TestEqual(TEXT("World definition remains unmodified"),

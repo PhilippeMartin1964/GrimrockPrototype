@@ -193,7 +193,6 @@ bool FGridClean064X164RealSourcesPreview::RunTest(const FString&)
             }
             if (Overrides.bOverrideAcceptedKeys)
             {
-                KeyPointersInOverrides += Overrides.AcceptedKeys.AcceptedKeyItems.Num();
                 ExplicitKeysInOverrides += Overrides.AcceptedKeys.AcceptedKeyIds.Num();
             }
         }
@@ -231,7 +230,6 @@ bool FGridClean064X164RealSourcesPreview::RunTest(const FString&)
                 Receptacle.AcceptedItems, DefaultStats, SafeDefaults))
                 return false;
         }
-        DefaultKeyPointers += Definition->DefaultBehavior.Lock.AcceptedKeyItems.Num();
         DefaultExplicitKeyIds += Definition->DefaultBehavior.Lock.AcceptedKeyIds.Num();
         if (!TestEqual(TEXT("Definition package unchanged by preview"),
             Definition->GetOutermost()->IsDirty(), bDirty))

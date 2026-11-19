@@ -1882,21 +1882,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLockBehaviorSection(FG
 	const FGridWorldObjectInteractionOverrides& Overrides = Instance->InstanceConfig.InteractionOverrides;
 	const bool bOverrideKeys = Overrides.bOverrideAcceptedKeys;
 
-	TSharedRef<SVerticalBox> KeyAssets = SNew(SVerticalBox);
-	// X.53: historical key assets are read-only even for legacy-only
-	// overrides with no IDs. Deleting the last AcceptedKeyId must NEVER
-	// make an obsolete UObject picker or Add Key Asset action reappear.
-	for (const UGridItemDefinitionAsset* AcceptedItem : Lock.AcceptedKeyItems)
-	{
-		KeyAssets->AddSlot().AutoHeight().Padding(0.f, 2.f)[
-			SNew(STextBlock).Text(FText::FromString(GetNameSafe(AcceptedItem)))];
-	}
-	if (Lock.AcceptedKeyItems.IsEmpty())
-	{
-		KeyAssets->AddSlot().AutoHeight()[
-			SNew(STextBlock).Text(FText::FromString(TEXT("None")))];
-	}
-
 	TSharedRef<SVerticalBox> KeyIds = SNew(SVerticalBox);
 	if (bOverrideKeys)
 	{
@@ -2005,8 +1990,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLockBehaviorSection(FG
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Accepted Keys Source")),
 			FText::FromString(bOverrideKeys ? TEXT("Instance Override") : TEXT("Definition")))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
-			FText::FromString(TEXT("Accepted Key Assets")), KeyAssets)]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
 			FText::FromString(TEXT("Accepted Key Ids")), KeyIds)]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(

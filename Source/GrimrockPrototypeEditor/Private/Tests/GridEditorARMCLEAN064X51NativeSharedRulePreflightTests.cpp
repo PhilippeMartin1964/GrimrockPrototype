@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "EditorTools/GridEditorLockKeyMigrationPreview.h"
 #include "EditorTools/GridEditorReceptacleAcceptanceMigrationPreview.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -114,33 +113,13 @@ bool FGridEditorARMCLEAN064X51NativeSharedRules::RunTest(const FString&)
             !TestTrue(TEXT("Accepted key remains registered"),
                 Registry->HasCanonicalItem(KeyIds[Index])))
             return false;
-        if (!Source.AcceptedKeyItems.IsEmpty())
-        {
-            if (!TestEqual(TEXT("Exactly one matching historical key pointer"),
-                Source.AcceptedKeyItems.Num(), 1) ||
-                !TestNotNull(TEXT("Historical key source"), Source.AcceptedKeyItems[0].Get()) ||
-                !TestEqual(TEXT("Historical source agrees with accepted key"),
-                    Source.AcceptedKeyItems[0]->ItemDefinitionId, KeyIds[Index]))
-                return false;
-            ++OldPointers;
-        }
-
         TStrongObjectPtr<UGridWorldObjectDefinitionAsset> Copy(
             DuplicateObject<UGridWorldObjectDefinitionAsset>(
                 Original.Get(), GetTransientPackage()));
         if (!TestNotNull(TEXT("Disposable lock copy"), Copy.Get())) return false;
         const FGridLockBehaviorParams Before = Copy->DefaultBehavior.Lock;
-        Copy->DefaultBehavior.Lock.AcceptedKeyItems.Reset();
         const FGridLockBehaviorParams& After = Copy->DefaultBehavior.Lock;
-        TArray<FName> Preview;
-        FGridLockKeyPreviewStats Stats;
-        if (!TestTrue(TEXT("Pointerless accepted key resolves"),
-            FGridLockKeyMigrationPreview::TryPreview(Registry.Get(),
-                After.AcceptedKeyItems, After.AcceptedKeyIds, Preview, Stats)) ||
-            !TestEqual(TEXT("Exactly one accepted key survives"), Preview.Num(), 1) ||
-            !TestEqual(TEXT("Canonical key stays exact"), Preview[0], KeyIds[Index]) ||
-            !TestEqual(TEXT("No historical keys survive copy"),
-                After.AcceptedKeyItems.Num(), 0) ||
+        if (!TestTrue(TEXT("Exact accepted key ID survives copy"), After.AcceptedKeyIds == Before.AcceptedKeyIds) ||
             !TestEqual(TEXT("Starts-unlocked state unchanged"),
                 After.bStartsUnlocked, Before.bStartsUnlocked) ||
             !TestEqual(TEXT("Consume-on-unlock policy unchanged"),
@@ -162,7 +141,7 @@ bool FGridEditorARMCLEAN064X51NativeSharedRules::RunTest(const FString&)
         "Torch/Gem/Copper/Iron identities and puzzle rules preserved; no SavePackage."),
         OldPointers));
     return TestTrue(TEXT("Shared rule packages are entirely pre/post migration"),
-        OldPointers == 4 || OldPointers == 0) &&
+        OldPointers == 0) &&
         TestEqual(TEXT("ItemSystem root remains read-only"),
             Root->GetOutermost()->IsDirty(), bRootDirty);
 }

@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridRuntimeWorldObjectData.h"
 #include "Runtime/GridWallLockActor.h"
 #include "../Runtime/GridWallLockAcceptedKeyReadModel.h"
@@ -14,17 +13,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X29CanonicalWallLockKeys,
 
 bool FGridClean064X29CanonicalWallLockKeys::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* LegacyIron = NewObject<UGridItemDefinitionAsset>();
-	LegacyIron->ItemDefinitionId = TEXT("Key_Iron");
 	FGridLockBehaviorParams Params;
-	Params.AcceptedKeyItems.Add(LegacyIron);
 	Params.AcceptedKeyIds.Add(TEXT("Key_Copper"));
 	Params.AcceptedKeyIds.Add(TEXT("Key_Copper"));
 
 	TArray<FName> Effective = FGridWallLockAcceptedKeyReadModel::Resolve(Params);
 	if (!TestEqual(TEXT("Explicit canonical ids deduplicated"), Effective.Num(), 1) ||
 		!TestTrue(TEXT("Only authored copper key is accepted"), Effective.Contains(TEXT("Key_Copper"))) ||
-		!TestFalse(TEXT("Contradictory old iron pointer cannot add an accepted key"),
+		!TestFalse(TEXT("Unlisted iron key is not accepted"),
 			Effective.Contains(TEXT("Key_Iron"))))
 	{
 		return false;
@@ -62,19 +58,19 @@ bool FGridClean064X29CanonicalWallLockKeys::RunTest(const FString&)
 	Lock->InitializeRuntimeWorldObject(Data, nullptr, FTransform::Identity);
 	bool bOk = TestTrue(TEXT("Runtime lock accepts canonical copper ID"),
 		Lock->CanAcceptKeyDefinition(TEXT("Key_Copper"))) &&
-		TestFalse(TEXT("Runtime lock rejects stale iron pointer"),
+		TestFalse(TEXT("Runtime lock rejects unlisted iron ID"),
 			Lock->CanAcceptKeyDefinition(TEXT("Key_Iron")));
 
-	// An empty explicit list must not regain an obsolete key pointer.
+	// An empty explicit list must not inherit any key.
 	Data.Behavior.Lock.AcceptedKeyIds.Reset();
 	Lock->InitializeRuntimeWorldObject(Data, nullptr, FTransform::Identity);
-	bOk &= TestFalse(TEXT("Legacy-only lock rejects its old iron pointer"),
+	bOk &= TestFalse(TEXT("Empty lock rejects iron"),
 		Lock->CanAcceptKeyDefinition(TEXT("Key_Iron")));
-	bOk &= TestFalse(TEXT("Legacy-only lock does not invent copper"),
+	bOk &= TestFalse(TEXT("Empty lock rejects copper"),
 		Lock->CanAcceptKeyDefinition(TEXT("Key_Copper")));
 
 	// A nonempty but invalid authored list never turns into an implicit
-	// fallback to the old accepted key pointers.
+	// implicit acceptance of any other key.
 	Data.Behavior.Lock.AcceptedKeyIds.Add(NAME_None);
 	Lock->InitializeRuntimeWorldObject(Data, nullptr, FTransform::Identity);
 	bOk &= TestFalse(TEXT("Malformed explicit list fails closed for iron"),

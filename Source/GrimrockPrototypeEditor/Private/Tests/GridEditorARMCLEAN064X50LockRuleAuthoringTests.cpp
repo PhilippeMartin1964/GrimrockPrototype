@@ -5,7 +5,6 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "EditorTools/GridEditorCanonicalLockRuleAuthoring.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/Package.h"
@@ -28,49 +27,21 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
     if (!TestTrue(TEXT("Canonical item registry configured"),
         Registry->RegisterItemSystem(Root.Get(), Errors))) return false;
 
-    UGridItemDefinitionAsset* Copper = NewObject<UGridItemDefinitionAsset>();
-    Copper->ItemDefinitionId = TEXT("Key_Copper");
-    UGridItemDefinitionAsset* Iron = NewObject<UGridItemDefinitionAsset>();
-    Iron->ItemDefinitionId = TEXT("Key_Iron");
-    UGridItemDefinitionAsset* Unknown = NewObject<UGridItemDefinitionAsset>();
-    Unknown->ItemDefinitionId = TEXT("X50_HistoricUnregisteredKey");
-
+    const FName Copper = TEXT("Key_Copper");
+    const FName Iron = TEXT("Key_Iron");
     FGridLockBehaviorParams Shared;
     Shared.bStartsUnlocked = false;
     Shared.bConsumeKeyOnUnlock = true;
-    Shared.AcceptedKeyItems = {Copper, Iron};
-    Shared.AcceptedKeyIds = {TEXT("Key_Scripted"), Copper->ItemDefinitionId};
-
+    Shared.AcceptedKeyIds = {TEXT("Key_Scripted"), Copper, Iron};
     FGridLockAcceptedKeyInstanceRuleValues Out;
-    Out.AcceptedKeyItems.Add(Copper);
     Out.AcceptedKeyIds.Add(TEXT("X50_KeepOnFailure"));
     if (!TestFalse(TEXT("Missing registry cannot author or modify override"),
         FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(nullptr, Shared, Out)) ||
-        !TestEqual(TEXT("Rejected draft keeps its previous ItemId"),
-            Out.AcceptedKeyIds[0], FName(TEXT("X50_KeepOnFailure"))) ||
-        !TestEqual(TEXT("Rejected draft keeps its historical source"),
-            Out.AcceptedKeyItems[0].Get(), Copper))
+        !TestEqual(TEXT("Rejected draft keeps previous ID"), Out.AcceptedKeyIds[0], FName(TEXT("X50_KeepOnFailure"))) ||
+        !TestTrue(TEXT("Explicit IDs copy atomically"),
+            FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(Registry.Get(), Shared, Out)) ||
+        !TestTrue(TEXT("Explicit IDs including script IDs and order are preserved"), Out.AcceptedKeyIds == Shared.AcceptedKeyIds))
         return false;
-
-    if (!TestFalse(TEXT("Mixed old/canonical defaults block authoring atomically"),
-        FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(Registry.Get(), Shared, Out)) ||
-        !TestEqual(TEXT("Blocked draft keeps its previous ID"), Out.AcceptedKeyIds[0], FName(TEXT("X50_KeepOnFailure"))) ||
-        !TestEqual(TEXT("Blocked draft keeps previous pointer"), Out.AcceptedKeyItems[0].Get(), Copper))
-        return false;
-    Shared.AcceptedKeyItems.Reset();
-    Shared.AcceptedKeyIds.Add(Iron->ItemDefinitionId);
-    if (!TestTrue(TEXT("Explicit IDs copy atomically"),
-        FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(Registry.Get(), Shared, Out)) ||
-        !TestEqual(TEXT("Existing explicit IDs kept"), Out.AcceptedKeyIds.Num(), 3) ||
-        !TestEqual(TEXT("Script-owned non-registry key preserved"), Out.AcceptedKeyIds[0],
-            FName(TEXT("Key_Scripted"))) ||
-        !TestEqual(TEXT("Registered copper kept"), Out.AcceptedKeyIds[1], Copper->ItemDefinitionId) ||
-        !TestEqual(TEXT("Registered iron kept"), Out.AcceptedKeyIds[2], Iron->ItemDefinitionId) ||
-        !TestEqual(TEXT("No obsolete key source stored in new override"), Out.AcceptedKeyItems.Num(), 0) ||
-        !TestEqual(TEXT("Shared definition remains unmodified"), Shared.AcceptedKeyItems.Num(), 0))
-    {
-        return false;
-    }
 
     UGridWorldObjectDefinitionAsset* Definition =
         NewObject<UGridWorldObjectDefinitionAsset>();
@@ -80,9 +51,7 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
     Placed.InstanceConfig.InteractionOverrides.AcceptedKeys = Out;
     const FGridObjectBehaviorParams Effective =
         GridObjectInstanceBehavior::Resolve(Placed, Definition);
-    if (!TestEqual(TEXT("Runtime receives canonical-only overrides"),
-        Effective.Lock.AcceptedKeyItems.Num(), 0) ||
-        !TestEqual(TEXT("Runtime sees the three original accepted key IDs"),
+    if (!TestEqual(TEXT("Runtime sees the three original accepted key IDs"),
             Effective.Lock.AcceptedKeyIds.Num(), 3) ||
         !TestTrue(TEXT("Lock does not gain an unrelated accepted key"),
             !Effective.Lock.AcceptedKeyIds.Contains(TEXT("Key_Gold"))) ||
@@ -98,42 +67,10 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
     EmptyKeys.InstanceConfig.InteractionOverrides.AcceptedKeys.AcceptedKeyIds.Reset();
     const FGridObjectBehaviorParams NoKeys =
         GridObjectInstanceBehavior::Resolve(EmptyKeys, Definition);
-    if (!TestEqual(TEXT("Empty override does not inherit historical key assets"),
-            NoKeys.Lock.AcceptedKeyItems.Num(), 0) ||
-        !TestEqual(TEXT("Empty override does not inherit default accepted ItemIds"),
+    if (!TestEqual(TEXT("Empty override does not inherit default accepted ItemIds"),
             NoKeys.Lock.AcceptedKeyIds.Num(), 0) ||
         !TestEqual(TEXT("Consume-key policy survives empty override"),
             NoKeys.Lock.bConsumeKeyOnUnlock, Shared.bConsumeKeyOnUnlock))
-        return false;
-
-    // Instance resolver retains the old field for audit until schema retirement;
-    // the runtime acceptance reader no longer uses it.
-    FGridWorldObjectInstance LegacyKeys = Placed;
-    LegacyKeys.InstanceConfig.InteractionOverrides.AcceptedKeys.AcceptedKeyIds.Reset();
-    LegacyKeys.InstanceConfig.InteractionOverrides.AcceptedKeys.AcceptedKeyItems = {Copper};
-    const FGridObjectBehaviorParams LegacyEffective =
-        GridObjectInstanceBehavior::Resolve(LegacyKeys, Definition);
-    if (!TestEqual(TEXT("Legacy-only instance retains one historical key"),
-            LegacyEffective.Lock.AcceptedKeyItems.Num(), 1) ||
-        !TestEqual(TEXT("Existing legacy key identity is not rewritten"),
-            LegacyEffective.Lock.AcceptedKeyItems[0].Get(), Copper) ||
-        !TestEqual(TEXT("Legacy-only instance does not fabricate ItemIds"),
-            LegacyEffective.Lock.AcceptedKeyIds.Num(), 0))
-        return false;
-
-    Shared.AcceptedKeyItems.Add(Unknown);
-    if (!TestFalse(TEXT("Unregistered historical source rejects entire conversion"),
-        FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(Registry.Get(), Shared, Out)) ||
-        !TestEqual(TEXT("Failed projection keeps accepted key set"), Out.AcceptedKeyIds.Num(), 3) ||
-        !TestEqual(TEXT("Failed projection cannot reintroduce old pointers"),
-            Out.AcceptedKeyItems.Num(), 0))
-        return false;
-    Shared.AcceptedKeyItems.Pop();
-    Shared.AcceptedKeyItems.Add(nullptr);
-    if (!TestFalse(TEXT("Null historical source also rejects conversion"),
-        FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(Registry.Get(), Shared, Out)) ||
-        !TestEqual(TEXT("Null source does not mutate prior accepted ID set"),
-            Out.AcceptedKeyIds.Num(), 3))
         return false;
 
     // Check the two ACTUAL shared assets; do not mutate either one.
@@ -157,10 +94,6 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
                 Registry.Get(), RealLock, Projection)) ||
             !TestEqual(TEXT("Real projected accepted key count"), Projection.AcceptedKeyIds.Num(), 1) ||
             !TestEqual(TEXT("Real projected key retains ID"), Projection.AcceptedKeyIds[0], ExpectedIds[Index]) ||
-            !TestEqual(TEXT("No old key pointers copied from shared definition"),
-                Projection.AcceptedKeyItems.Num(), 0) ||
-            !TestTrue(TEXT("Real shared lock fully pointerless after native migration"),
-                RealLock.AcceptedKeyItems.IsEmpty()) ||
             !TestEqual(TEXT("Original package not dirty"), Real->GetOutermost()->IsDirty(), bDirty))
         {
             return false;
@@ -169,7 +102,7 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
 
     AddInfo(TEXT("[ARM-CLEAN06.4X50] new lock overrides are canonical-only; "
         "real Copper/Iron lock defaults projected without modifying either package; "
-        "script IDs preserved and any old source fails authoring atomically."));
+        "script IDs and empty overrides preserved; missing registry fails atomically."));
     return TestEqual(TEXT("ItemSystem package unchanged"),
         Root->GetOutermost()->IsDirty(), bRootDirty);
 }

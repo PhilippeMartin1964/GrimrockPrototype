@@ -43,7 +43,7 @@ bool FGridEditorARMCLEAN064X59NativeDormantPlan::RunTest(const FString&)
     int32 Old = INDEX_NONE;
     const bool bPlan = FPlan::TryBuild(Levels, Registry.Get(), Plan, Old, Error);
     if (!TestTrue(*FString::Printf(TEXT("Exact real dormant plan: %s"), *Error), bPlan) ||
-        !TestTrue(TEXT("All or zero source pointers"), Old == 3 || Old == 0) ||
+        !TestEqual(TEXT("No dormant source pointers"), Old, 0) ||
         !TestEqual(TEXT("Four level projections"), Plan.Num(), 4))
         return false;
     for (int32 Index = 0; Index < Levels.Num(); ++Index)
@@ -57,7 +57,6 @@ bool FGridEditorARMCLEAN064X59NativeDormantPlan::RunTest(const FString&)
             ++Rows;
             auto& O = Object.InstanceConfig.InteractionOverrides;
             if (Target == 0) O.ReceptacleRules.AcceptedItems.Reset();
-            else O.AcceptedKeys.AcceptedKeyItems.Reset();
         }
         if (!TestEqual(TEXT("Original distribution preserved"), Rows, FPlan::OriginalRows(Index)) ||
             !TestTrue(TEXT("Every reflected field and ordering preserved except old source"),
@@ -98,16 +97,6 @@ bool FGridEditorARMCLEAN064X59NativeDormantPlan::RunTest(const FString&)
     if (!TestFalse(TEXT("Unexpected authored rule refused"), FPlan::TryBuildLevel(*Copy.Get(), Registry.Get(), 0, Repeated, Error)))
         return false;
 
-    if (Old == 3)
-    {
-        Copy->WorldObjectInstances = Levels[0]->WorldObjectInstances;
-        Owner = Copy->WorldObjectInstances.FindByPredicate([](const FGridWorldObjectInstance& Object)
-            { return FPlan::TargetIndex(Object.InstanceId) == 0; });
-        if (!TestNotNull(TEXT("Exact original owner"), Owner)) return false;
-        Owner->InstanceConfig.InteractionOverrides.ReceptacleRules.AcceptedItems.Reset();
-        if (!TestFalse(TEXT("Partial cleanup refused"), FPlan::TryBuildLevel(*Copy.Get(), Registry.Get(), 0, Repeated, Error)))
-            return false;
-    }
     AddInfo(FString::Printf(TEXT("[ARM-CLEAN06.4X59] three exact dormant owners; old=%d; effective behavior and canonical reactivation verified."), Old));
     return TestEqual(TEXT("Real ItemSystem unmodified"), Root->GetOutermost()->IsDirty(), bRootDirty);
 }

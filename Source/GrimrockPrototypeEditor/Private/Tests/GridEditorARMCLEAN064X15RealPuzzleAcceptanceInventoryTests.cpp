@@ -116,8 +116,6 @@ bool FGridEditorClean064X15RealAcceptanceInventory::RunTest(const FString&)
             if (O.bOverrideAcceptedKeys)
             {
                 ++OverrideLockCount;
-                for (const TObjectPtr<UGridItemDefinitionAsset>& Key : O.AcceptedKeys.AcceptedKeyItems)
-                    {InstanceKeys.Visit(Key.Get(), Registry.Get());}
                 ExplicitOverrideKeyIds += O.AcceptedKeys.AcceptedKeyIds.Num();
             }
         }
@@ -165,15 +163,9 @@ bool FGridEditorClean064X15RealAcceptanceInventory::RunTest(const FString&)
         }
 
         // Keys are a distinct gameplay acceptance surface, not a receptacle
-        // decoration. Record both pointer and already explicit ID forms.
-        if (!Definition->DefaultBehavior.Lock.AcceptedKeyItems.IsEmpty() ||
-            !Definition->DefaultBehavior.Lock.AcceptedKeyIds.IsEmpty())
+        // decoration. Record explicit IDs only.
+        if (!Definition->DefaultBehavior.Lock.AcceptedKeyIds.IsEmpty())
             {++DefinitionLockCount;}
-        for (const TObjectPtr<UGridItemDefinitionAsset>& Key :
-            Definition->DefaultBehavior.Lock.AcceptedKeyItems)
-        {
-            DefinitionKeys.Visit(Key.Get(), Registry.Get());
-        }
         ExplicitDefaultKeyIds += Definition->DefaultBehavior.Lock.AcceptedKeyIds.Num();
 
         if (!TestEqual(TEXT("Read-only definition package"),

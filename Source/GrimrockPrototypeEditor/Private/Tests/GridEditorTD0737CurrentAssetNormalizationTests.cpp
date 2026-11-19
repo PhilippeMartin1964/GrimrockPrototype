@@ -246,8 +246,7 @@ bool FGridTD0737LockAuthoringNormalizedTest::RunTest(const FString& Parameters)
 	}
 
 	// X.52: real Copper/Iron shared definitions must accept only their
-	// exact canonical ID, with the old source either matching or absent.
-	// This fixture remains strict before AND after UE native SavePackage.
+	// exact canonical ID after native cutover; the old field no longer exists.
 	const auto Check = [this](const TCHAR* Label,
 		const UGridWorldObjectDefinitionAsset* LockAsset, FName Expected) -> bool
 	{
@@ -261,15 +260,6 @@ bool FGridTD0737LockAuthoringNormalizedTest::RunTest(const FString& Parameters)
 				Rule.AcceptedKeyIds[0], Expected))
 		{
 			return false;
-		}
-		if (!Rule.AcceptedKeyItems.IsEmpty())
-		{
-			return TestEqual(*FString::Printf(TEXT("%s at most one historical pointer"), Label),
-				Rule.AcceptedKeyItems.Num(), 1) &&
-				TestNotNull(*FString::Printf(TEXT("%s historical source"), Label),
-					Rule.AcceptedKeyItems[0].Get()) &&
-				TestEqual(*FString::Printf(TEXT("%s old source agrees"), Label),
-					Rule.AcceptedKeyItems[0]->ItemDefinitionId, Expected);
 		}
 		return true;
 	};

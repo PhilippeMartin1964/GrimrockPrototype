@@ -99,10 +99,7 @@ bool FGridWorldObjectGEUI09InteractiveInstanceOverridesTest::RunTest(const FStri
 
 	// Wall-lock accepted keys only. Consume-key remains Definition-owned because current
 	// wall-lock runtime does not expose that flag as an instance-selectable rule.
-	UGridItemDefinitionAsset* IronKey = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-	IronKey->ItemDefinitionId = TEXT("Key_Iron");
 	Instance.InstanceConfig.InteractionOverrides.bOverrideAcceptedKeys = true;
-	Instance.InstanceConfig.InteractionOverrides.AcceptedKeys.AcceptedKeyItems = { IronKey };
 	Instance.InstanceConfig.InteractionOverrides.AcceptedKeys.AcceptedKeyIds = { TEXT("Key_Iron_Legacy") };
 
 	// Existing door-chain sparse overrides remain independent.
@@ -123,7 +120,7 @@ bool FGridWorldObjectGEUI09InteractiveInstanceOverridesTest::RunTest(const FStri
 	TestTrue(TEXT("Receptacle visual placement remains Definition-owned"),
 		Resolved.Receptacle.VisualPlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit);
 
-	TestEqual(TEXT("Lock accepted asset resolves instance override"), Resolved.Lock.AcceptedKeyItems.Num(), 1);
+	TestEqual(TEXT("Exactly one authored key ID resolves instance override"), Resolved.Lock.AcceptedKeyIds.Num(), 1);
 	TestTrue(TEXT("Lock accepted id resolves instance override"),
 		Resolved.Lock.AcceptedKeyIds.Contains(TEXT("Key_Iron_Legacy")));
 	TestTrue(TEXT("Lock consume-key remains Definition-owned"), Resolved.Lock.bConsumeKeyOnUnlock);

@@ -67,7 +67,6 @@ struct FGridEditorNativeDormantOverridesPlan
             if (Index == INDEX_NONE || LevelIndex != 0)
             {
                 if (!O.ReceptacleRules.AcceptedItems.IsEmpty() ||
-                    !O.AcceptedKeys.AcceptedKeyItems.IsEmpty() ||
                     !O.AcceptedKeys.AcceptedKeyIds.IsEmpty() || Index != INDEX_NONE)
                 { Error = TEXT("Unexpected acceptance rule outside approved owners."); return false; }
                 continue;
@@ -90,7 +89,7 @@ struct FGridEditorNativeDormantOverridesPlan
             if (Index == 0)
             {
                 auto& Rules = O.ReceptacleRules.AcceptedItems;
-                if (!O.AcceptedKeys.AcceptedKeyItems.IsEmpty() || Rules.Num() > 1 ||
+                if (Rules.Num() > 1 ||
                     (Rules.Num() == 1 && (!Rules[0].CanonicalItemId.IsNone() ||
                         !IsValid(Rules[0].ItemDefinition.Get()) ||
                         Rules[0].ItemDefinition->ItemDefinitionId != ItemId)))
@@ -106,16 +105,12 @@ struct FGridEditorNativeDormantOverridesPlan
             }
             else
             {
-                auto& Keys = O.AcceptedKeys.AcceptedKeyItems;
-                if (!O.ReceptacleRules.AcceptedItems.IsEmpty() || Keys.Num() > 1 ||
-                    (Keys.Num() == 1 && (!IsValid(Keys[0].Get()) || Keys[0]->ItemDefinitionId != ItemId)))
-                { Error = TEXT("Unexpected dormant key list."); return false; }
-                Plan.Old += Keys.Num();
-                Keys.Reset();
+                if (!O.ReceptacleRules.AcceptedItems.IsEmpty())
+                { Error = TEXT("Unexpected dormant key owner rule list."); return false; }
                 FGridLockAcceptedKeyInstanceRuleValues Reactivated;
                 if (!FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(
                         Registry, Definition->DefaultBehavior.Lock, Reactivated) ||
-                    !Reactivated.AcceptedKeyItems.IsEmpty() || Reactivated.AcceptedKeyIds.Num() != 1 ||
+                    Reactivated.AcceptedKeyIds.Num() != 1 ||
                     Reactivated.AcceptedKeyIds[0] != ItemId)
                 { Error = TEXT("Cannot reauthor exact canonical lock rule."); return false; }
             }

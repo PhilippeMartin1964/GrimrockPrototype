@@ -165,9 +165,6 @@ struct FGridLockBehaviorParams
 	bool bConsumeKeyOnUnlock = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lock|Accepted Keys")
-	TArray<TObjectPtr<UGridItemDefinitionAsset>> AcceptedKeyItems;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lock|Accepted Keys")
 	TArray<FName> AcceptedKeyIds;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lock|Messages")

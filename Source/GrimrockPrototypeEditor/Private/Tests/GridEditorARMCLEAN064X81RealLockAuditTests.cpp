@@ -35,7 +35,7 @@ bool FGridClean064X81RealLockAudit::RunTest(const FString&)
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_IronWall.DA_Lock_IronWall")
     };
     const FName ExpectedIds[] = {TEXT("Key_Copper"), TEXT("Key_Iron")};
-    int32 OldPointers = 0;
+    TestNull(TEXT("Shared lock pointer property removed"), FGridLockBehaviorParams::StaticStruct()->FindPropertyByName(TEXT("AcceptedKeyItems")));
     for (int32 Index = 0; Index < 2; ++Index)
     {
         TStrongObjectPtr<UGridWorldObjectDefinitionAsset> Definition(
@@ -48,30 +48,14 @@ bool FGridClean064X81RealLockAudit::RunTest(const FString&)
             !TestEqual(TEXT("Exact Copper/Iron key ID"),
                 Rule.AcceptedKeyIds[0], ExpectedIds[Index]) ||
             !TestTrue(TEXT("Lock key registered in canonical system"),
-                Registry->HasCanonicalItem(ExpectedIds[Index])) ||
-            !TestTrue(TEXT("No additional key asset sources"),
-                Rule.AcceptedKeyItems.Num() <= 1))
+                Registry->HasCanonicalItem(ExpectedIds[Index])))
             return false;
 
-        if (!Rule.AcceptedKeyItems.IsEmpty())
-        {
-            const UGridItemDefinitionAsset* Source = Rule.AcceptedKeyItems[0].Get();
-            if (!TestTrue(TEXT("Old lock source agrees with approved key"),
-                IsValid(Source) && Source->ItemDefinitionId == ExpectedIds[Index]))
-                return false;
-            ++OldPointers;
-        }
         if (!TestEqual(TEXT("Read-only lock package"),
             Definition->GetOutermost()->IsDirty(), bDirty)) return false;
     }
 
-    AddInfo(FString::Printf(TEXT(
-        "[ARM-CLEAN06.4X52] read-only Copper/Iron lock rules=2 "
-        "historicalPointers=%d; old -Apply never called; no SavePackage."),
-        OldPointers));
-    return TestTrue(TEXT("Both real keys use the same native migration state"),
-            OldPointers == 2 || OldPointers == 0) &&
-        TestEqual(TEXT("Canonical item system stays read-only"),
+    return TestEqual(TEXT("Canonical item system stays read-only"),
             Root->GetOutermost()->IsDirty(), bSystemDirty);
 }
 #endif

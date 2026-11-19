@@ -3,8 +3,7 @@
 #include "Core/GridLevelPlacementTypes.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
-/** New overrides copy the explicit key IDs only. A remaining historical
- * pointer indicates an unretired source and blocks authoring atomically.
+/** New overrides copy explicit key IDs atomically.
  * Script-owned IDs, duplicates and order are preserved without inference.
  */
 struct FGridEditorCanonicalLockRuleAuthoring
@@ -13,8 +12,7 @@ struct FGridEditorCanonicalLockRuleAuthoring
         const FGridLockBehaviorParams& Defaults,
         FGridLockAcceptedKeyInstanceRuleValues& OutOverride)
     {
-        if (!IsValid(Registry) || !Registry->IsConfigured() ||
-            !Defaults.AcceptedKeyItems.IsEmpty())
+        if (!IsValid(Registry) || !Registry->IsConfigured())
         {
             return false;
         }

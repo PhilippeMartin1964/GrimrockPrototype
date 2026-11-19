@@ -63,7 +63,6 @@ namespace GridObjectInstanceBehavior
 
 		if (Overrides.bOverrideAcceptedKeys)
 		{
-			InOutBehavior.Lock.AcceptedKeyItems = Overrides.AcceptedKeys.AcceptedKeyItems;
 			InOutBehavior.Lock.AcceptedKeyIds = Overrides.AcceptedKeys.AcceptedKeyIds;
 		}
 	}
