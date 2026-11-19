@@ -249,6 +249,21 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 	TestEqual(TEXT("Oversized stack is not clamped in-place"),
 		ArrowSlot.Item.Quantity, ArrowMeta.MaxStack + 1);
 	ArrowSlot.Item = BeforeArrow;
+	ArrowSlot.Item.ItemLevel = 1;
+	int32 ResolverCalls = 0;
+	TestFalse(TEXT("Physical non-ARM N1 must not use family-level alias at rehydrate"),
+		Fixture.Inventory->RehydrateOwnedItemDefinitions(
+			[&ResolverCalls, &AllOld](FName Id) -> UGridItemDefinitionAsset*
+			{
+				++ResolverCalls;
+				return AllOld.FindRef(Id);
+			}, FailedId));
+	TestEqual(TEXT("Physical non-ARM N1 reports exact saved identity"), FailedId, ArrowId);
+	TestEqual(TEXT("Physical invalid level refuses before old resolver"), ResolverCalls, 0);
+	TestEqual(TEXT("Invalid non-ARM level not rewritten"), ArrowSlot.Item.ItemLevel, 1);
+	TestEqual(TEXT("Physical N1 rejection preserves prior map"), Fixture.Inventory->FindItemDefinition(UnknownId), OldUnknown);
+	TestEqual(TEXT("Physical N1 rejection preserves GUID"), ArrowSlot.Item.RuntimeObjectId, BeforeArrow.RuntimeObjectId);
+	ArrowSlot.Item = BeforeArrow;
 
 	// The unregistered item used by the mixed-save refusal must not remain
 	// in the canonical-only scenario below. Otherwise its required legacy

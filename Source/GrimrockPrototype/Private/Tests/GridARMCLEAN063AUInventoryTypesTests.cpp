@@ -465,4 +465,61 @@ bool FGridClean065E1PointerlessTooltip::RunTest(const FString&)
     return !HasAnyErrors();
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065E4ContextEquip,
+    "Grimrock.RPG.ARM.CLEAN06_5E4.PointerlessContextEquip",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean065E4ContextEquip::RunTest(const FString&)
+{
+    ARMCLEAN063AU::FFixture F;
+    if (!TestTrue(TEXT("Live production registry"), F.Ready())) return false;
+    auto* UI = CreateWidget<UGridInventoryWidget>(F.World, UGridInventoryWidget::StaticClass());
+    if (!TestNotNull(TEXT("Inventory UI"), UI)) return false;
+    UI->OwningPartyPawn = F.Party;
+    UI->InventoryComponent = F.Inventory;
+    const auto Sword = F.Make(TEXT("Weapon_StraightSword_01"), 20);
+    const auto Shield = F.Make(TEXT("Weapon_RoundShield_01"), 1);
+    F.Put(0, Sword);
+    F.Put(1, Shield);
+    TestNull(TEXT("Sword needs no historical definition"), F.Inventory->FindItemDefinition(Sword.ItemDefinitionId));
+    auto* WrongShield = F.RegisterWrong(Shield.ItemDefinitionId, EGridItemType::Book);
+    WrongShield->CompatibleEquipmentSlots.Reset();
+    const auto EquipViaMenu = [&](int32 SlotIndex, EGridEquipmentSlot Hand)
+    {
+        FGridFacingTargetContext Target;
+        TArray<FGridItemContextAction> Actions;
+        if (!TestTrue(TEXT("Real inventory context menu builds"),
+            UI->BuildContextActionsForSlot(EGridInventoryUiSlotType::Inventory, SlotIndex, Target, Actions)))
+            return false;
+        const int32 Index = Actions.IndexOfByPredicate([Hand](const FGridItemContextAction& Action)
+        {
+            return Action.ActionType == EGridItemActionType::Equip && Action.EquipmentSlot == Hand && Action.bEnabled;
+        });
+        if (!TestTrue(TEXT("Canonical hand action enabled"), Index != INDEX_NONE)) return false;
+        return TestTrue(TEXT("Actual context action by index executes"),
+            UI->ExecuteInventoryContextActionByIndex(EGridInventoryUiSlotType::Inventory, SlotIndex, Index));
+    };
+    if (!EquipViaMenu(0, EGridEquipmentSlot::MainHand)) return false;
+    if (!EquipViaMenu(1, EGridEquipmentSlot::OffHand)) return false;
+    FGridItemInstance Actual;
+    TestTrue(TEXT("Sword now physically equipped"), F.Inventory->GetEquippedItem(0, EGridEquipmentSlot::MainHand, Actual));
+    TestEqual(TEXT("Sword GUID preserved"), Actual.RuntimeObjectId, Sword.RuntimeObjectId);
+    TestEqual(TEXT("Sword level preserved"), Actual.ItemLevel, 20);
+    TestTrue(TEXT("Shield now physically equipped despite stale Book"), F.Inventory->GetEquippedItem(0, EGridEquipmentSlot::OffHand, Actual));
+    TestEqual(TEXT("Shield GUID preserved"), Actual.RuntimeObjectId, Shield.RuntimeObjectId);
+    TestEqual(TEXT("Shield level preserved"), Actual.ItemLevel, 1);
+    TestTrue(TEXT("Source inventory slots cleared"),
+        F.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].IsEmpty() &&
+        F.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[1].IsEmpty());
+    // The exact same real menu route must still refuse invalid level data.
+    const auto Invalid = F.Make(Sword.ItemDefinitionId, 0);
+    F.Put(2, Invalid);
+    FGridFacingTargetContext Target;
+    TArray<FGridItemContextAction> Actions;
+    TestTrue(TEXT("Invalid physical source can be inspected"),
+        UI->BuildContextActionsForSlot(EGridInventoryUiSlotType::Inventory, 2, Target, Actions));
+    TestFalse(TEXT("Invalid ARM does not offer equip"), Actions.ContainsByPredicate(
+        [](const FGridItemContextAction& Action) { return Action.ActionType == EGridItemActionType::Equip; }));
+    return !HasAnyErrors();
+}
 #endif

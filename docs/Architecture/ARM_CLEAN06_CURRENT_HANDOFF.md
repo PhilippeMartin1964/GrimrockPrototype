@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5E.4A — préconditions au retrait de la réhydratation
+
+Parent `47a3fad5454d1a48da8b90257568743a9b6e3cf2` : SilentTask/LocalAuto SUCCESS. Deux dépendances encore réelles découvertes : le clic droit Equiper imposait une ancienne définition malgré le menu/CanEquipItemToSlot canoniques ; ResolveProfile du composant PlayerAttackPresentation lit toujours l'ancien profil ARM. 5E.4A retire la double validation UI et protège la réhydratation contre N1 physique non-ARM (alias famille autorisé seulement en lecture non physique). Tests exécution réelle menu indexé N20/N1 et ancien Book contradictoire, refus N0, contrôle Save N1 avant resolver et rollback. **Ne pas désactiver encore le resolver historique : migrer les profils d'attaque Audio/VFX ARM (snapshot de la source réellement utilisée, y compris dernier projectile et dual wield) puis revoir les transferts.** Aucune écriture de SaveGame ou binaire, UI.csv/ST_UI/WBP/Game fr/en inchangés. [Détail](ARM_CLEAN06_5E4A_REHYDRATION_PRECONDITIONS.md).
+
 ## ARM-CLEAN06.5E.3.1 — correction de compilation du test
 
 SHA précédent `3ce60215d5bac92b9c6de97358cb5abd06d1bbd2` : SilentTask SUCCESS, LocalAuto FAILURE (BUILD_FAILED, C2672, [issue #200](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/200)). Correction de la déduction de type `TestNotNull` par `.Get()` sur le composant de projectile ; assertion conservée. Aucun changement runtime ni asset. Attendre les deux statuts exacts du commit correctif avant poursuivre.

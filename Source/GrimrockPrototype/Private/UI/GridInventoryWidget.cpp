@@ -1887,14 +1887,9 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			if (SourceSlotType == EGridInventoryUiSlotType::Inventory && InventoryComponent && OwningPartyPawn &&
 				Action.EquipmentSlot != EGridEquipmentSlot::None)
 			{
-				const UGridItemDefinitionAsset* ItemDefinition = InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId);
-				if (!ItemDefinition || !ItemDefinition->CanEquipToSlot(Action.EquipmentSlot))
-				{
-					UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),
-						*LastContextItem.ItemDefinitionId.ToString(), GetContextEquipmentSlotName(Action.EquipmentSlot));
-					break;
-				}
-
+				// The inventory component already owns the real slot, level and
+				// hand policy (canonical for registered IDs, legacy otherwise).
+				// A second historical check can veto a valid menu action.
 				if (!InventoryComponent->CanEquipItemToSlot(CharacterIndex, LastContextItem, Action.EquipmentSlot))
 				{
 					UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),

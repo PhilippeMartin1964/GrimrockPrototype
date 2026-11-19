@@ -1553,13 +1553,14 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
 			FGridResolvedItem Canonical;
 			if (!Item.IsValid() ||
 				!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical) ||
+				(!Canonical.bIsArmament && Item.ItemLevel != 0) ||
 				Item.Quantity > FMath::Max(1, Canonical.MaxStack))
 			{
 				OutMissingDefinitionId = Item.ItemDefinitionId;
 				UE_LOG(LogGridInventory, Warning,
 					TEXT("GridInventory SaveRehydrate Rejected Item=%s Level=%d Quantity=%d Reason=InvalidCanonicalSavedInstance"),
 					*Item.ItemDefinitionId.ToString(), Item.ItemLevel, Item.Quantity);
-				return false; // No promotion from a persisted ARM N0 to N1.
+				return false; // No physical level promotion or non-ARM N1 family alias.
 			}
 		}
 		if (Item.IsValid())
