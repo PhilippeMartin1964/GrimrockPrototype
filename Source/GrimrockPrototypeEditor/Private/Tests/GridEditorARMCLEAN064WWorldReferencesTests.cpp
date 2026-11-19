@@ -94,7 +94,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
                 World.InstanceConfig.ReceptacleInitialContent)
             {
                 if (!TestTrue(TEXT("Receptacle maintains exact source ItemId"),
-                    Visit(Item.ItemDefinition, Item.CanonicalItemId, true))) { return false; }
+                    Visit(nullptr, Item.CanonicalItemId, true))) { return false; }
                 ++Receptacle;
             }
         }

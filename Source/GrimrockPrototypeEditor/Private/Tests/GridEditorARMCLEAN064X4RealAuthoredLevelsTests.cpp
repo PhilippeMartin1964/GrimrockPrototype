@@ -245,7 +245,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
             for (const FGridReceptacleInitialItemConfig& Initial :
                 World.InstanceConfig.ReceptacleInitialContent)
             {
-                if (!Check(Initial.CanonicalItemId, Initial.ItemDefinition,
+                if (!Check(Initial.CanonicalItemId, nullptr,
                     Initial.ItemLevel, Initial.Quantity, true))
                 {
                     AddError(TEXT("Invalid initial receptacle physical level."));

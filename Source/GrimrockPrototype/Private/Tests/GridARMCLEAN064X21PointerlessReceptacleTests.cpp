@@ -83,7 +83,6 @@ struct FWorld
             Placed.WallSide = EGridEdge::North;
             FGridReceptacleInitialItemConfig& Initial =
                 Placed.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef();
-            Initial.ItemDefinition = nullptr;
             Initial.CanonicalItemId = TEXT("Weapon_Dagger_01");
             Initial.ItemLevel = Index == 0 ? 1 : Index == 1 ? 20 : 0;
             Initial.Quantity = 1;

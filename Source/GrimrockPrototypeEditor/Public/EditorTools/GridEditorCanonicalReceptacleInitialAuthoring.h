@@ -14,7 +14,7 @@ struct FGridEditorCanonicalReceptacleInitialAuthoring
     {
         if (!IsValid(Registry) || !Registry->IsConfigured() ||
             NewId.IsNone() || !Registry->HasCanonicalItem(NewId) ||
-            InOut.Quantity < 1 || InOut.ItemDefinition)
+            InOut.Quantity < 1)
             return false;
 
         if (InOut.CanonicalItemId == NewId)
@@ -35,16 +35,14 @@ struct FGridEditorCanonicalReceptacleInitialAuthoring
     static bool IsLevelEditable(const UGridItemSubsystem* Registry,
         const FGridReceptacleInitialItemConfig& Item)
     {
-        return !Item.ItemDefinition &&
-            FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+        return FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
                 Registry, Item.CanonicalItemId, 1);
     }
 
     static bool TrySetLevel(const UGridItemSubsystem* Registry,
         int32 NewLevel, FGridReceptacleInitialItemConfig& InOut)
     {
-        if (InOut.ItemDefinition ||
-            !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+        if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
                 Registry, InOut.CanonicalItemId, NewLevel))
             return false;
         InOut.ItemLevel = NewLevel;

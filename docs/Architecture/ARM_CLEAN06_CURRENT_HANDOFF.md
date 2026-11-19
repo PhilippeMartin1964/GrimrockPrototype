@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.18 — Retrait du schéma historique du contenu initial
+
+Parent e739471e0adbc307bd524981e065a2cb8547db2e : publication uniquement après deux statuts SUCCESS. Suppression de ItemDefinition dans FGridReceptacleInitialItemConfig et FGridInitialReceptacleItem, plus le témoin transitoire bHasPersistedCanonicalIdentity. Les 18 contenus natifs, quantités, niveaux, GUIDs d'owners, ordre et rendu canonique restent vérifiés par X.48/X.58/X.91/X.92 ; contrôles d'authoring et TD07 adaptés. Le modèle de transfert des objets déjà contenus reste distinct. Aucun package ni SaveGame modifié. Voir [5G.18](ARM_CLEAN06_5G18_INITIAL_CONTENT_SCHEMA_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.17 — Contenu initial des réceptacles : autorité physique canonique
 
 Parent d27ac308bfd1ffebd3789ab4f6850f6b5d9bffca : publication seulement après ses deux statuts SUCCESS. Runtime initial, authoring Slate et validation rejettent désormais ancien pointeur, ID vide/inconnu, quantité invalide ou niveau non physique ; l'ancien scanner des définitions de réceptacle ne peut plus servir de repli. Les fixtures ARM0183/TD075/MIG sont alignées (N0 ARM explicitement refusé, état sauvegardé et commandes conservés). Aucun asset ni SaveGame modifié. Voir [5G.17](ARM_CLEAN06_5G17_STRICT_RECEPTACLE_INITIAL_CONTENT.md).

@@ -1671,7 +1671,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 							if (!FGridEditorCanonicalReceptacleInitialAuthoring::TrySelectCanonicalId(
 								EditorActor->ResolveEditorItemRegistry(), GetNameFromEditorText(NewText), Proposed) ||
 								(Current.CanonicalItemId == Proposed.CanonicalItemId &&
-								 Current.ItemLevel == Proposed.ItemLevel && Current.ItemDefinition == Proposed.ItemDefinition))
+								 Current.ItemLevel == Proposed.ItemLevel))
 							{
 								RequestRefresh();
 								return;

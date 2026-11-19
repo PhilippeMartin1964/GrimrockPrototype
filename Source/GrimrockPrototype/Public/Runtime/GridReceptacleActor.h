@@ -22,7 +22,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogGridReceptacle, Log, All);
  * Item initially contained in a receptacle.
  *
  * Used by TorchHolder, alcoves, niches, altars, offering bowls, chests, etc.
- * The official item identity is ItemDefinitionId / ItemDefinition.
+ * The only initial item identity is ItemDefinitionId.
  */
 USTRUCT(BlueprintType)
 struct FGridInitialReceptacleItem
@@ -30,21 +30,15 @@ struct FGridInitialReceptacleItem
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FName ItemDefinitionId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "1"))
 	int32 Quantity = 1;
 
-	/** 0 = definition default; 1..20 = fixed RPG level. */
+	/** Explicit physical level: N0 non-ARM; N1..N20 ARM. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "0", ClampMax = "20"))
 	int32 ItemLevel = 0;
 
-	/** Runtime provenance: true only when the source persisted CanonicalItemId. */
-	UPROPERTY(Transient)
-	bool bHasPersistedCanonicalIdentity = false;
 };
 
 /**
@@ -110,7 +104,7 @@ struct FGridContainedReceptacleItem
  * - supports 0..N contained items;
  * - ItemDefinitionId is the official runtime identity;
  * - ItemActor is only an optional visual/runtime representation;
- * - initial content is resolved from item definition assets.
+ * - initial content is resolved from the canonical ItemSystem.
  */
 UCLASS(Blueprintable)
 class GRIMROCKPROTOTYPE_API AGridReceptacleActor : public AGridRuntimeObjectActor, public IGridInteractableInterface

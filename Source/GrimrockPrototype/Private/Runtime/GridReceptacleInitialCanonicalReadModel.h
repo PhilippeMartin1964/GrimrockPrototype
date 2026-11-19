@@ -4,7 +4,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** Initial content is an exact physical ItemId, quantity and level.
- * Historical sources are not admitted after native conversion.
+ * The serialized config contains no historical source.
  */
 struct FGridReceptacleInitialCanonicalReadModel
 {
@@ -14,7 +14,7 @@ struct FGridReceptacleInitialCanonicalReadModel
     {
         Out = FGridInitialReceptacleItem();
         if (!IsValid(Registry) || !Registry->IsConfigured() ||
-            Source.ItemDefinition || Source.CanonicalItemId.IsNone() || Source.Quantity < 1)
+            Source.CanonicalItemId.IsNone() || Source.Quantity < 1)
             return false;
 
         FGridResolvedItem Physical;
@@ -23,7 +23,6 @@ struct FGridReceptacleInitialCanonicalReadModel
             Physical.ItemLevel != Source.ItemLevel)
             return false;
 
-        Out.bHasPersistedCanonicalIdentity = true;
         Out.ItemDefinitionId = Source.CanonicalItemId;
         Out.ItemLevel = Source.ItemLevel;
         Out.Quantity = Source.Quantity;

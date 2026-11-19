@@ -4,7 +4,6 @@
 #include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "Engine/GameInstance.h"
 #include "Core/GridLevelAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "../Runtime/GridReceptacleInitialCanonicalReadModel.h"
@@ -47,7 +46,6 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     };
 
     int32 ReceptacleCount = 0;
-    int32 HistoricalCount = 0;
     int32 LevelIndex = 0;
     int32 ArmCount = 0;
     int32 NonArmCount = 0;
@@ -67,7 +65,6 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
                 World.InstanceConfig.ReceptacleInitialContent)
             {
                 ++ReceptacleCount;
-                if (Config.ItemDefinition) ++HistoricalCount;
                 FGridInitialReceptacleItem Initial;
                 if (!TestTrue(TEXT("Persisted initial identity resolves exactly"),
                     FGridReceptacleInitialCanonicalReadModel::TryResolve(
@@ -77,28 +74,10 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
                     !TestEqual(TEXT("Physical level is preserved"),
                         Initial.ItemLevel, Config.ItemLevel) ||
                     !TestEqual(TEXT("Quantity is preserved"),
-                        Initial.Quantity, Config.Quantity) ||
-                    !TestTrue(TEXT("Physical cutover provenance comes from persisted ID"),
-                        Initial.bHasPersistedCanonicalIdentity) ||
-                    !TestTrue(TEXT("No old asset in runtime initialization"),
-                        !Initial.ItemDefinition && !Config.ItemDefinition))
+                        Initial.Quantity, Config.Quantity))
                 {
                     return false;
                 }
-                // Prove the same reader accepts every real row after
-                // removing only its historical pointer on a stack copy.
-                FGridReceptacleInitialItemConfig Pointerless = Config;
-                Pointerless.ItemDefinition = nullptr;
-                FGridInitialReceptacleItem Projected;
-                if (!TestTrue(TEXT("Pointerless projection resolves"),
-                        FGridReceptacleInitialCanonicalReadModel::TryResolve(
-                            Registry.Get(), Pointerless, Projected)) ||
-                    !TestTrue(TEXT("No legacy UObject, exact physical projection"),
-                        !Projected.ItemDefinition && Projected.bHasPersistedCanonicalIdentity &&
-                        Projected.ItemDefinitionId == Initial.ItemDefinitionId &&
-                        Projected.ItemLevel == Initial.ItemLevel &&
-                        Projected.Quantity == Initial.Quantity))
-                    return false;
                 FGridResolvedItem Resolved;
                 if (!TestTrue(TEXT("Real family and physical level resolve"),
                     Registry->ResolveItem(Initial.ItemDefinitionId,
@@ -129,12 +108,14 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     }
     if (!TestEqual(TEXT("All 18 materialized initial receptacle contents"),
         ReceptacleCount, 18) ||
-        !TestEqual(TEXT("Exact canonical families"), ArmCount + NonArmCount, 18) ||
-        !TestTrue(TEXT("Zero historical pointers"), HistoricalCount == 0))
+        !TestEqual(TEXT("Exact canonical families"), ArmCount + NonArmCount, 18))
     {
         return false;
     }
 
+    TestNull(TEXT("Initial content historical schema removed"), FGridReceptacleInitialItemConfig::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
+    TestNull(TEXT("Runtime initial pointer removed"), FGridInitialReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
+    TestNull(TEXT("Runtime transition provenance removed"), FGridInitialReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("bHasPersistedCanonicalIdentity")));
     FGridInitialReceptacleItem Out;
     FGridReceptacleInitialItemConfig Invalid;
     Invalid.CanonicalItemId = TEXT("Weapon_StraightSword_01");
@@ -163,19 +144,12 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
         return false;
     }
 
-    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>();
-    Legacy->ItemDefinitionId = TEXT("Item_Arrows_01");
     Invalid.CanonicalItemId = NAME_None;
-    Invalid.ItemDefinition = Legacy;
     Invalid.Quantity = 1;
-    if (!TestFalse(TEXT("Legacy-only source fails closed"),
+    if (!TestFalse(TEXT("Empty persisted identity fails closed"),
             FGridReceptacleInitialCanonicalReadModel::TryResolve(Registry.Get(), Invalid, Out)))
         return false;
-    Invalid.CanonicalItemId = Legacy->ItemDefinitionId;
-    if (!TestFalse(TEXT("Even matching old pointer is rejected"),
-            FGridReceptacleInitialCanonicalReadModel::TryResolve(Registry.Get(), Invalid, Out)))
-        return false;
-    Invalid.ItemDefinition = nullptr;
+    Invalid.CanonicalItemId = TEXT("Item_Arrows_01");
     Invalid.Quantity = 0;
     if (!TestFalse(TEXT("Zero quantity cannot be clamped into an item"),
             FGridReceptacleInitialCanonicalReadModel::TryResolve(Registry.Get(), Invalid, Out)) ||

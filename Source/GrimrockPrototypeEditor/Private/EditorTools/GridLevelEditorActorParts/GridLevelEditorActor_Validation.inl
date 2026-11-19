@@ -453,9 +453,9 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			}
 			for (const FGridReceptacleInitialItemConfig& InitialItem : Obj.InstanceConfig.ReceptacleInitialContent)
 			{
-				if (InitialItem.ItemDefinition || InitialItem.CanonicalItemId.IsNone())
+				if (InitialItem.CanonicalItemId.IsNone())
 					AddMessage(EGridLevelValidationSeverity::Error,
-						TEXT("Receptacle InitialContent requires a canonical ItemId without an old ItemDefinition."), ObjectId);
+						TEXT("Receptacle InitialContent requires a canonical ItemId."), ObjectId);
 				if (InitialItem.Quantity < 1)
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent requires Quantity >= 1."), ObjectId);
 				if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(

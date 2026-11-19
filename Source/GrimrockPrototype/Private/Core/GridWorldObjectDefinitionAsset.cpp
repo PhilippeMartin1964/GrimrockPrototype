@@ -311,7 +311,7 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 			}
 			for (const FGridReceptacleInitialItemConfig& InitialItem : DefaultBehavior.Receptacle.InitialContent)
 			{
-				if (InitialItem.ItemDefinition || InitialItem.CanonicalItemId.IsNone() || InitialItem.Quantity < 1 ||
+				if (InitialItem.CanonicalItemId.IsNone() || InitialItem.Quantity < 1 ||
 					InitialItem.ItemLevel < 0 || InitialItem.ItemLevel > 20)
 					AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Receptacle InitialContent requires an explicit canonical ItemId, physical level and positive quantity."));
 			}

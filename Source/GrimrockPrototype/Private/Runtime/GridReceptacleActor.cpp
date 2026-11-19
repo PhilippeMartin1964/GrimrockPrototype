@@ -1631,7 +1631,7 @@ FName AGridReceptacleActor::ResolveInitialItemDefinitionId(const FGridInitialRec
 	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
 	FGridResolvedItem Physical;
 	if (!IsValid(Registry) || !Registry->IsConfigured() ||
-		InitialItem.ItemDefinition || InitialItem.ItemDefinitionId.IsNone() ||
+		InitialItem.ItemDefinitionId.IsNone() ||
 		InitialItem.Quantity < 1 ||
 		!Registry->ResolveItem(InitialItem.ItemDefinitionId, InitialItem.ItemLevel, Physical) ||
 		!Physical.IsValid() || Physical.ItemId != InitialItem.ItemDefinitionId ||

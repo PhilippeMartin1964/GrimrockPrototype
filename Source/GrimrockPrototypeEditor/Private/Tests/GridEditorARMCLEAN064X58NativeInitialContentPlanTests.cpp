@@ -43,21 +43,17 @@ bool FGridEditorARMCLEAN064X58NativeInitialPlan::RunTest(const FString&)
     int32 Old = INDEX_NONE;
     const bool bPlan = FPlan::TryBuild(Levels, Registry.Get(), Plan, Old, Error);
     if (!TestTrue(*FString::Printf(TEXT("Exact real initial plan: %s"), *Error), bPlan) ||
-        !TestTrue(TEXT("All or zero source pointers"), Old == 18 || Old == 0) ||
+        !TestEqual(TEXT("No historical pointers"), Old, 0) ||
         !TestEqual(TEXT("Four level projections"), Plan.Num(), 4))
         return false;
     for (int32 Index = 0; Index < Levels.Num(); ++Index)
     {
         TArray<FGridWorldObjectInstance> Expected = Levels[Index]->WorldObjectInstances;
         int32 Rows = 0;
-        for (FGridWorldObjectInstance& Object : Expected)
-            for (FGridReceptacleInitialItemConfig& Item : Object.InstanceConfig.ReceptacleInitialContent)
-            {
-                ++Rows;
-                Item.ItemDefinition = nullptr;
-            }
+        for (const FGridWorldObjectInstance& Object : Expected)
+            Rows += Object.InstanceConfig.ReceptacleInitialContent.Num();
         if (!TestEqual(TEXT("Original distribution preserved"), Rows, FPlan::OriginalRows(Index)) ||
-            !TestTrue(TEXT("Every reflected field and ordering preserved except old source"),
+            !TestTrue(TEXT("Every reflected field and ordering preserved"),
                 FPlan::SameObjects(Expected, Plan[Index].WorldObjects)) ||
             !TestFalse(TEXT("Complete normalized level manifest not empty"),
                 FPlan::Manifest(*Levels[Index], Plan[Index]).IsEmpty()) ||
@@ -84,15 +80,12 @@ bool FGridEditorARMCLEAN064X58NativeInitialPlan::RunTest(const FString&)
         !TestTrue(TEXT("Rejected plan has no mutation proposal"), Repeated.WorldObjects.IsEmpty()))
         return false;
     Copy->WorldObjectInstances = Levels[0]->WorldObjectInstances;
-    if (Old == 18)
-    {
-        Owner = Copy->WorldObjectInstances.FindByPredicate([](const FGridWorldObjectInstance& Object)
-            { return !Object.InstanceConfig.ReceptacleInitialContent.IsEmpty(); });
-        Owner->InstanceConfig.ReceptacleInitialContent[0].ItemDefinition = nullptr;
-        if (!TestFalse(TEXT("Partial level conversion refused"),
-                FPlan::TryBuildLevel(*Copy.Get(), Registry.Get(), 17, Repeated, Error)))
-            return false;
-    }
+    Owner = Copy->WorldObjectInstances.FindByPredicate([](const FGridWorldObjectInstance& Object)
+        { return !Object.InstanceConfig.ReceptacleInitialContent.IsEmpty(); });
+    Owner->InstanceConfig.ReceptacleInitialContent[0].Quantity = 0;
+    if (!TestFalse(TEXT("Zero quantity refused"),
+            FPlan::TryBuildLevel(*Copy.Get(), Registry.Get(), 17, Repeated, Error)))
+        return false;
     AddInfo(FString::Printf(TEXT("[ARM-CLEAN06.4X58] 17+1 real rows; old=%d; projections read-only."), Old));
     return TestEqual(TEXT("Real ItemSystem unmodified"), Root->GetOutermost()->IsDirty(), bRootDirty);
 }

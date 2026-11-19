@@ -84,10 +84,6 @@ struct FGridReceptacleInitialItemConfig
 {
 	GENERATED_BODY()
 
-	/** Retained only for pre-retirement audit; not an initial-content source. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Initial Content")
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
-
 	/** Stable registered identity for initial content. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial Content|Canonical")
 	FName CanonicalItemId = NAME_None;

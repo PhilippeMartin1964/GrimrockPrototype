@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 #include "EditorTools/GridEditorCanonicalReceptacleInitialAuthoring.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
@@ -40,7 +39,6 @@ bool FGridClean064X163InitialAuthoring::RunTest(const FString&)
     Canonical.Quantity = 3;
     if (!TestTrue(TEXT("New canonical arrow needs no source asset"),
             FAuthoring::TrySelectCanonicalId(Registry.Get(), Arrows, Canonical)) ||
-        !TestNull(TEXT("No legacy pointer on new arrow"), Canonical.ItemDefinition.Get()) ||
         !TestEqual(TEXT("Arrow N0"), Canonical.ItemLevel, 0) ||
         !TestFalse(TEXT("Non-ARM level not editable"), FAuthoring::IsLevelEditable(Registry.Get(), Canonical)) ||
         !TestFalse(TEXT("Unknown registered identity refused"),
@@ -57,25 +55,23 @@ bool FGridClean064X163InitialAuthoring::RunTest(const FString&)
         !TestTrue(TEXT("Recommit same ID preserves N20"),
             FAuthoring::TrySelectCanonicalId(Registry.Get(), Sword, Canonical)) ||
         !TestEqual(TEXT("Physical level remains N20"), Canonical.ItemLevel, 20) ||
-        !TestNull(TEXT("No historical pointer reintroduced"), Canonical.ItemDefinition.Get()) ||
         !TestTrue(TEXT("Change back to unlevelled resets to physical N0"),
             FAuthoring::TrySelectCanonicalId(Registry.Get(), Arrows, Canonical)) ||
         !TestEqual(TEXT("Arrow now N0"), Canonical.ItemLevel, 0) ||
         !TestEqual(TEXT("Quantity preserved by canonical edits"), Canonical.Quantity, 3))
         return false;
 
-    FGridReceptacleInitialItemConfig LegacyBacked;
-    LegacyBacked.CanonicalItemId = Sword;
-    LegacyBacked.ItemDefinition = NewObject<UGridItemDefinitionAsset>();
-    LegacyBacked.ItemDefinition->ItemDefinitionId = Sword;
-    LegacyBacked.ItemLevel = 7;
-    if (!TestFalse(TEXT("Same ID cannot authorize old pointer"),
-            FAuthoring::TrySelectCanonicalId(Registry.Get(), Sword, LegacyBacked)) ||
-        !TestFalse(TEXT("Old pointer cannot authorize level edit"),
-            FAuthoring::TrySetLevel(Registry.Get(), 9, LegacyBacked)) ||
-        !TestFalse(TEXT("Old pointer disables physical editing"),
-            FAuthoring::IsLevelEditable(Registry.Get(), LegacyBacked)) ||
-        !TestEqual(TEXT("Rejected level remains N7"), LegacyBacked.ItemLevel, 7))
+    FGridReceptacleInitialItemConfig Invalid;
+    Invalid.CanonicalItemId = Sword;
+    Invalid.ItemLevel = 0;
+    if (!TestFalse(TEXT("Same ID does not repair a persisted invalid ARM N0"),
+            FAuthoring::TrySelectCanonicalId(Registry.Get(), Sword, Invalid)) ||
+        !TestFalse(TEXT("Invalid physical level cannot be committed"),
+            FAuthoring::TrySetLevel(Registry.Get(), 0, Invalid)) ||
+        !TestEqual(TEXT("Rejected level remains unchanged"), Invalid.ItemLevel, 0) ||
+        !TestTrue(TEXT("Explicit valid edit repairs the draft"),
+            FAuthoring::TrySetLevel(Registry.Get(), 7, Invalid)) ||
+        !TestEqual(TEXT("Explicit N7 stored"), Invalid.ItemLevel, 7))
         return false;
 
     return TestEqual(TEXT("No mutation of real ItemSystem"),

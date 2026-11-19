@@ -176,7 +176,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
             for (const FGridReceptacleInitialItemConfig& Item :
                 Object.InstanceConfig.ReceptacleInitialContent)
             {
-                if (!CheckSource(Item.CanonicalItemId, Item.ItemDefinition,
+                if (!CheckSource(Item.CanonicalItemId, nullptr,
                     Item.ItemLevel, Item.Quantity, true))
                 {
                     AddError(TEXT("Invalid receptacle initial item identity or level."));

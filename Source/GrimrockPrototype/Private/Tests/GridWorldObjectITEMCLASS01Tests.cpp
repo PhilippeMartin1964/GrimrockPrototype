@@ -24,8 +24,8 @@ bool FGridWorldObjectITEMCLASS01ReflectionContractTest::RunTest(const FString& P
 		TEXT("Receptacle actor no longer exposes ContainedItemActorClass to Unreal reflection"),
 		AGridReceptacleActor::StaticClass()->FindPropertyByName(TEXT("ContainedItemActorClass")));
 
-	TestNotNull(
-		TEXT("Historical initial-content field retained only until schema retirement"),
+	TestNull(
+		TEXT("Historical initial-content field is removed"),
 		FGridReceptacleInitialItemConfig::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 
 	TestNotNull(

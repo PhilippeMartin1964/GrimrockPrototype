@@ -17,9 +17,11 @@ namespace GridTypedPlacementAuditTestUtils
 		{
 			for (int32 Index = 0; Index < Instance.InstanceConfig.ReceptacleInitialContent.Num(); ++Index)
 			{
-				const UGridItemDefinitionAsset* Item = Instance.InstanceConfig.ReceptacleInitialContent[Index].ItemDefinition;
+				const FName ItemId = Instance.InstanceConfig.ReceptacleInitialContent[Index].CanonicalItemId;
+				// Native canonical initial content is audited in X.48/X.58.
+				// Do not report the intentional absence of a retired pointer as TD07 debt.
 				Audit(FString::Printf(TEXT("WorldObjectInstances[%s].ReceptacleInitialContent[%d]"), *Instance.InstanceId.ToString(), Index),
-					Item, Item ? Item->ItemDefinitionId : NAME_None, NAME_None, TEXT("Item"));
+					nullptr, ItemId, NAME_None, TEXT("Item"));
 			}
 		}
 		for (const FGridLooseItemInstance& Instance : Level.LooseItemInstances)

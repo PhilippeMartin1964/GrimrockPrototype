@@ -172,7 +172,6 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
         {return false;}
 
     FGridReceptacleInitialItemConfig Pointerless = NonArm;
-    Pointerless.ItemDefinition = nullptr;
     AGridReceptacleActor* PR = F.MakeReceptacle(Pointerless);
     if (!TestNotNull(TEXT("Pointerless real nonARM host"), PR) ||
         !TestEqual(TEXT("Pointerless nonARM content count"), PR->GetContainedItemCount(), 1))
@@ -200,15 +199,11 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
             Rejected->GetContainedItemCount(), 0))
         {return false;}
 
-    // An old pointer cannot create an initial item, even for a known ID.
-    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.World);
-    Legacy->ItemDefinitionId = NonArm.CanonicalItemId;
-    FGridReceptacleInitialItemConfig Synthetic;
-    Synthetic.ItemDefinition = Legacy;
-    Synthetic.Quantity = 1;
-    AGridReceptacleActor* Historic = F.MakeReceptacle(Synthetic);
-    if (!TestNotNull(TEXT("Historical fixture host"), Historic) ||
-        !TestEqual(TEXT("Historical source creates no content"), Historic->GetContainedItemCount(), 0))
+    FGridReceptacleInitialItemConfig Empty;
+    Empty.Quantity = 1;
+    AGridReceptacleActor* EmptyHost = F.MakeReceptacle(Empty);
+    if (!TestNotNull(TEXT("Empty-ID fixture host"), EmptyHost) ||
+        !TestEqual(TEXT("Empty identity creates no content"), EmptyHost->GetContainedItemCount(), 0))
         return false;
 
     if (bHasArm)
@@ -228,7 +223,7 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
             return false;
     }
     AddInfo(TEXT("[ARM-CLEAN06.4X.9.2] 18 real initial entries audited; "
-        "migrated nonARM/ARM actors canonical, legacy synthetic rejected; no binary writes."));
+        "migrated nonARM/ARM actors canonical, empty identity rejected; no binary writes."));
     return true;
 }
 #endif

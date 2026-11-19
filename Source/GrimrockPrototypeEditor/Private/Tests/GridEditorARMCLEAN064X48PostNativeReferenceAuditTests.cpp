@@ -46,7 +46,9 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         Known.Add(Definition->ItemId);
     }
     const bool bRootDirty = Root->GetOutermost()->IsDirty();
-    int32 LooseTotal = 0, LooseOld = 0, InitialTotal = 0, InitialOld = 0;
+    int32 LooseTotal = 0, LooseOld = 0, InitialTotal = 0;
+    const int32 InitialOld = 0;
+    TestNull(TEXT("Removed initial content pointer schema"), FGridReceptacleInitialItemConfig::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
     const int32 ReceptacleOverrideOld = 0;
     TestNull(TEXT("Removed acceptance pointer schema"), FGridReceptacleAcceptedItemConfig::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
     const int32 LockOverrideOld = 0;
@@ -94,10 +96,7 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
                 Object.InstanceConfig.ReceptacleInitialContent)
             {
                 ++InitialTotal;
-                if (Item.ItemDefinition) ++InitialOld;
                 if (Item.CanonicalItemId.IsNone() || !Known.Contains(Item.CanonicalItemId) ||
-                    (Item.ItemDefinition && (!IsValid(Item.ItemDefinition.Get()) ||
-                        Item.ItemDefinition->ItemDefinitionId != Item.CanonicalItemId)) ||
                     Item.Quantity < 1 || Item.ItemLevel < 0 || Item.ItemLevel > 20)
                 {
                     AddError(TEXT("Initial receptacle content identity changed unexpectedly."));

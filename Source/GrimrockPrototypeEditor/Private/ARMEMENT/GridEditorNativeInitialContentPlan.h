@@ -75,7 +75,7 @@ struct FGridEditorNativeInitialContentPlan
                 return false;
             }
             Seen.Add(Object.InstanceId);
-            for (FGridReceptacleInitialItemConfig& Item : Initial)
+            for (const FGridReceptacleInitialItemConfig& Item : Initial)
             {
                 ++Plan.Rows;
                 FGridResolvedItem Physical;
@@ -89,24 +89,11 @@ struct FGridEditorNativeInitialContentPlan
                         *Item.CanonicalItemId.ToString(), *Object.InstanceId.ToString());
                     return false;
                 }
-                if (Item.ItemDefinition)
-                {
-                    const UGridItemDefinitionAsset* Old = Item.ItemDefinition.Get();
-                    if (!IsValid(Old) || Old->ItemDefinitionId != Item.CanonicalItemId ||
-                        (Physical.bIsArmament && Old->WeaponArchetypeId != Physical.ArchetypeId) ||
-                        (!Physical.bIsArmament && !Old->WeaponArchetypeId.IsNone()))
-                    {
-                        Error = TEXT("Historical initial source disagrees with physical canonical identity.");
-                        return false;
-                    }
-                    ++Plan.Old;
-                }
-                Item.ItemDefinition = nullptr;
             }
         }
-        if (Plan.Rows != Expected || (Plan.Old != 0 && Plan.Old != Expected))
+        if (Plan.Rows != Expected || Plan.Old != 0)
         {
-            Error = FString::Printf(TEXT("Expected %d initial rows and all/zero pointers, got %d/%d."),
+            Error = FString::Printf(TEXT("Expected %d initial rows and zero old sources, got %d/%d."),
                 Expected, Plan.Rows, Plan.Old);
             return false;
         }
@@ -141,9 +128,9 @@ struct FGridEditorNativeInitialContentPlan
             Count += Candidate.Old;
             Plans.Add(MoveTemp(Candidate));
         }
-        if (Count != 0 && Count != ExpectedRows)
+        if (Count != 0)
         {
-            Error = TEXT("Partially converted two-level transaction refused.");
+            Error = TEXT("Unexpected historical source.");
             return false;
         }
         Old = Count;
@@ -151,8 +138,8 @@ struct FGridEditorNativeInitialContentPlan
         return true;
     }
 
-    /** Export the full level-owned reflected authoring, normalizing only the
-     * expected WorldObjectInstances array to its pointerless proposal.
+    /** Export the full level-owned reflected authoring, using the
+     * expected WorldObjectInstances array for the canonical parity audit.
      * This intentionally preserves the dormant overrides, Lua, links, cells,
      * loose objects, monsters and all positioning/configuration. */
     static FString Manifest(const UGridLevelAsset& Level, const FLevel& Plan)
