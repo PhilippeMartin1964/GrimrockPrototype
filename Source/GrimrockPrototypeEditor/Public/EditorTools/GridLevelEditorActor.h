@@ -435,7 +435,7 @@ public:
 	/** Read the configured canonical registry also in editor-only worlds without a GameInstance. */
 	const UGridItemSubsystem* ResolveEditorItemRegistry();
 
-	/** Changes a loose-item or item-spawn authored level; N0 inherits only for ARM. */
+	/** Changes a loose-item or item-spawn authored physical level; registered ARM N0 is invalid. */
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
 	bool SetSelectedObjectItemLevel(int32 NewItemLevel);
 

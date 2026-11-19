@@ -33,17 +33,19 @@ bool FGridClean063ANAuthoring::RunTest(const FString&)
 	Sword->bUseWeaponCatalogue = false; // The stale flag must NOT disable editing.
 	TestTrue(TEXT("Canonical ARM editing enabled despite old false flag"),
 		FGridEditorCanonicalItemLevelPolicy::IsLevelEditable(Registry.Get(), Sword.Get()));
-	for (int32 Authored : {0, 1, 20})
+	for (int32 Authored : {1, 20})
 	{
-		TestTrue(TEXT("Canonical ARM permits inherited or actual N1-N20"),
+		TestTrue(TEXT("Canonical ARM permits actual N1-N20"),
 			FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Sword.Get(), Authored));
 		FGridResolvedItem Canonical;
-		const int32 Fixed = Authored == 0 ? 7 : Authored;
+		const int32 Fixed = Authored;
 		TestTrue(TEXT("Same fixed level resolves in actual canonical system"),
 			Registry->ResolveItem(Sword->ItemDefinitionId, Fixed, Canonical) && Canonical.bIsArmament);
 	}
 	TestFalse(TEXT("N21 never accepted"),
 		FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Sword.Get(), 21));
+	TestFalse(TEXT("ARM N0 rejected even with obsolete N7 default"),
+		FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Sword.Get(), 0));
 	Sword->DefaultWeaponItemLevel = 0;
 	TestFalse(TEXT("ARM N0 without valid inherited default is invalid"),
 		FGridEditorCanonicalItemLevelPolicy::CanAuthorLevel(Registry.Get(), Sword.Get(), 0));
@@ -100,13 +102,13 @@ bool FGridClean063ANAuthoring::RunTest(const FString&)
 		TestTrue(TEXT("Actor can author canonical ARM despite old false flag"),
 			Editor->SetSelectedObjectItemLevel(20));
 		TestEqual(TEXT("Loose item fixed N20 persisted"), Loose.ItemLevel, 20);
-		TestTrue(TEXT("Actor can restore valid authored default"),
+		TestFalse(TEXT("Actor cannot restore obsolete default sentinel"),
 			Editor->SetSelectedObjectItemLevel(0));
-		TestEqual(TEXT("Loose item N0 request persisted"), Loose.ItemLevel, 0);
+		TestEqual(TEXT("Loose item physical N20 remains"), Loose.ItemLevel, 20);
 		Sword->DefaultWeaponItemLevel = 0;
 		TestFalse(TEXT("Invalid inherited ARM default rejected before mutation"),
 			Editor->SetSelectedObjectItemLevel(0));
-		TestEqual(TEXT("Rejected edit preserves prior loose item authoring"), Loose.ItemLevel, 0);
+		TestEqual(TEXT("Rejected edit preserves prior loose item authoring"), Loose.ItemLevel, 20);
 		Sword->DefaultWeaponItemLevel = 7;
 
 		FGridItemSpawnInstance& Spawn = Level->ItemSpawns.AddDefaulted_GetRef();

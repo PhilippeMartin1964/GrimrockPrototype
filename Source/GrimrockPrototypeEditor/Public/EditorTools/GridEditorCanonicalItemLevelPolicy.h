@@ -51,17 +51,7 @@ struct FGridEditorCanonicalItemLevelPolicy
 		const FName ItemId = Definition->ItemDefinitionId;
 		if (Registry->HasCanonicalItem(ItemId))
 		{
-			// Exactly the authored vs persisted rule used by the world reader:
-			// only fresh ARM N0 can inherit DefaultWeaponItemLevel once.
-			FGridResolvedItem Family;
-			if (!Registry->ResolveItem(ItemId, 1, Family)) return false;
-			if (!Family.bIsArmament && AuthoredLevel != 0) return false;
-			const int32 FixedLevel = Family.bIsArmament && AuthoredLevel == 0
-				? Definition->DefaultWeaponItemLevel : AuthoredLevel;
-			if (Family.bIsArmament && (FixedLevel < 1 || FixedLevel > 20)) return false;
-			FGridResolvedItem Canonical;
-			return Registry->ResolveItem(ItemId, FixedLevel, Canonical) &&
-				Canonical.bIsArmament == Family.bIsArmament;
+			return CanAuthorCanonicalLevel(Registry, ItemId, AuthoredLevel);
 		}
 
 		// Until 06.4 migrates the binary assets, honor only unknown historical IDs.

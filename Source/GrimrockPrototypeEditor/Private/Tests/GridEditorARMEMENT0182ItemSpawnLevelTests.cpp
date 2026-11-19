@@ -151,8 +151,8 @@ bool FARMEMENT0182AuthoringTest::RunTest(const FString&)
     TestFalse(TEXT("Negative level is rejected"), Editor->SetSelectedObjectItemLevel(-1));
     TestEqual(TEXT("Rejections leave authored value intact"), Fixture.Level->ItemSpawns[0].ItemLevel, 11);
     TestFalse(TEXT("Editing level does not activate disabled generator"), Fixture.Level->ItemSpawns[0].bSpawnAtStart);
-    TestTrue(TEXT("Restore definition's default-level mode"), Editor->SetSelectedObjectItemLevel(0));
-    TestEqual(TEXT("Inherited level sentinel is stored"), Fixture.Level->ItemSpawns[0].ItemLevel, 0);
+    TestFalse(TEXT("Registered generator cannot reset to historical N0"), Editor->SetSelectedObjectItemLevel(0));
+    TestEqual(TEXT("Rejected zero preserves N11"), Fixture.Level->ItemSpawns[0].ItemLevel, 11);
     const FProperty* Field = FGridItemSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("ItemLevel"));
     TestTrue(TEXT("ItemSpawn ItemLevel is serialized in LevelAsset"), Field && !Field->HasAnyPropertyFlags(CPF_Transient));
     return true;

@@ -54,19 +54,19 @@ bool FGridClean064X163InitialAuthoring::RunTest(const FString&)
         !TestEqual(TEXT("Arrow remains N0"), Item.ItemLevel, 0))
         {return false;}
 
-    if (!TestTrue(TEXT("Changing to ARM stores a physical N7"),
+    if (!TestTrue(TEXT("Changing to ARM stores an explicit physical N1"),
         FGridEditorCanonicalReceptacleInitialAuthoring::TrySelectDefinition(
             Registry.Get(), Sword, Item)) ||
         !TestEqual(TEXT("Canonical sword identity replaces arrow"),
             Item.CanonicalItemId, Sword->ItemDefinitionId) ||
-        !TestEqual(TEXT("ARM authored default physically materialized"),
-            Item.ItemLevel, 7) ||
+        !TestEqual(TEXT("ARM N1 from canonical authoring, not old N7"),
+            Item.ItemLevel, 1) ||
         !TestEqual(TEXT("Quantity unchanged"), Item.Quantity, 5))
         {return false;}
     if (!TestFalse(TEXT("Persisted ARM N0 cannot inherit arbitrary N1"),
         FGridEditorCanonicalReceptacleInitialAuthoring::TrySetLevel(
             Registry.Get(), 0, Item)) ||
-        !TestEqual(TEXT("Refused N0 leaves N7 intact"), Item.ItemLevel, 7))
+        !TestEqual(TEXT("Refused N0 leaves N1 intact"), Item.ItemLevel, 1))
         {return false;}
     if (!TestTrue(TEXT("ARM N20 is an editable physical level"),
         FGridEditorCanonicalReceptacleInitialAuthoring::TrySetLevel(
@@ -75,10 +75,10 @@ bool FGridClean064X163InitialAuthoring::RunTest(const FString&)
         {return false;}
 
     Sword->DefaultWeaponItemLevel = 0;
-    if (!TestFalse(TEXT("Canonical ARM with invalid default is rejected"),
+    if (!TestTrue(TEXT("Old default cannot prevent selection of the same explicit ID"),
         FGridEditorCanonicalReceptacleInitialAuthoring::TrySelectDefinition(
             Registry.Get(), Sword, Item)) ||
-        !TestEqual(TEXT("Failed authored default does not corrupt N20"),
+        !TestEqual(TEXT("Same ID retains physical N20"),
             Item.ItemLevel, 20))
         {return false;}
 

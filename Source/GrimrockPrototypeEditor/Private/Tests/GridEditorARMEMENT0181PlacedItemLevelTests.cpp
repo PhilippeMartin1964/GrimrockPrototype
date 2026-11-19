@@ -142,8 +142,8 @@ bool FARMEMENT0181EditorTest::RunTest(const FString&)
     TestFalse(TEXT("Level 21 rejected"), Editor->SetSelectedObjectItemLevel(21));
     TestFalse(TEXT("Negative level rejected"), Editor->SetSelectedObjectItemLevel(-1));
     TestEqual(TEXT("Rejected writes keep level 9"), Fixture.Level->LooseItemInstances[0].ItemLevel, 9);
-    TestTrue(TEXT("Reset to asset default"), Editor->SetSelectedObjectItemLevel(0));
-    TestEqual(TEXT("Zero reset persisted"), Fixture.Level->LooseItemInstances[0].ItemLevel, 0);
+    TestFalse(TEXT("Registered ARM cannot reset to historical N0"), Editor->SetSelectedObjectItemLevel(0));
+    TestEqual(TEXT("Rejected zero preserves N9"), Fixture.Level->LooseItemInstances[0].ItemLevel, 9);
 
     const FProperty* LevelProperty = FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemLevel"));
     TestTrue(TEXT("LevelAsset stores an authored UPROPERTY ItemLevel"), LevelProperty &&

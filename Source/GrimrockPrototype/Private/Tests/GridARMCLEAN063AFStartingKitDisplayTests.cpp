@@ -42,23 +42,21 @@ bool FGridClean063AFStartingKitDisplay::RunTest(const FString&)
             if (!TestTrue(TEXT("Actual ARM N1/N20 resolves"),
                 Registry->ResolveItem(Id, Level, Canonical))) return false;
             const FGridStartingKitDisplayReadView Read =
-                FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), Level);
+                FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), Level, Id);
             TestTrue(TEXT("Recognize canonical ARM"), Read.bCanonicalIdentity && Read.bResolved);
             TestEqual(TEXT("Show actual fixed level"), Read.FixedItemLevel, Level);
             TestEqual(TEXT("Show canonical name, not old item name"),
                 Read.DisplayName.ToString(), Canonical.DisplayName.ToString());
         }
-        FGridResolvedItem Level4;
-        if (!TestTrue(TEXT("Canonical inherited N4 exists"),
-            Registry->ResolveItem(Id, 4, Level4))) return false;
-        const FGridStartingKitDisplayReadView Inherited =
-            FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0);
-        TestTrue(TEXT("Authored N0 inherits default only for ARM"), Inherited.bResolved);
-        TestEqual(TEXT("ARM inherited default materialized N4"), Inherited.FixedItemLevel, 4);
-        TestEqual(TEXT("ARM default preview name is canonical"), Inherited.DisplayName.ToString(),
-            Level4.DisplayName.ToString());
+        const auto MissingId = FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 20);
+        TestTrue(TEXT("Pointer-only registered ARM remains canonical"), MissingId.bCanonicalIdentity);
+        TestFalse(TEXT("Pointer-only registered ARM cannot preview a valid N20"), MissingId.bResolved);
+        const auto Inherited = FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0, Id);
+        TestTrue(TEXT("Known malformed ARM remains canonical"), Inherited.bCanonicalIdentity);
+        TestFalse(TEXT("Explicit ARM N0 cannot inherit obsolete N4"), Inherited.bResolved);
+        TestTrue(TEXT("No obsolete label on refusal"), Inherited.DisplayName.IsEmpty());
         const FGridStartingKitDisplayReadView Invalid = 
-            FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 21);
+            FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 21, Id);
         TestTrue(TEXT("Known invalid ARM still classified canonical"), Invalid.bCanonicalIdentity);
         TestFalse(TEXT("Invalid N21 cannot inherit old data"), Invalid.bResolved);
         TestTrue(TEXT("Invalid N21 has no obsolete name"), Invalid.DisplayName.IsEmpty());
@@ -78,14 +76,16 @@ bool FGridClean063AFStartingKitDisplay::RunTest(const FString&)
     FGridResolvedItem Arrows;
     if (!TestTrue(TEXT("Real canonical arrows N0 resolve"),
         Registry->ResolveItem(Old->ItemDefinitionId, 0, Arrows))) return false;
+    TestFalse(TEXT("Registered ammo also needs an explicit authored ID"),
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0).bResolved);
     const FGridStartingKitDisplayReadView Ammo =
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0, Old->ItemDefinitionId);
     TestTrue(TEXT("Ammo N0 still has canonical identity"), Ammo.bCanonicalIdentity && Ammo.bResolved);
     TestEqual(TEXT("Ammo N0 is a real fixed level 0"), Ammo.FixedItemLevel, 0);
     TestEqual(TEXT("Ammo name canonical not obsolete"), Ammo.DisplayName.ToString(),
         Arrows.DisplayName.ToString());
     TestFalse(TEXT("Ammo N1 is rejected for starting kit, despite transitional resolver support"),
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 1).bResolved);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 1, Old->ItemDefinitionId).bResolved);
 
     Old->ItemDefinitionId = TEXT("LegacyStarter_AF");
     Old->bUseWeaponCatalogue = false;

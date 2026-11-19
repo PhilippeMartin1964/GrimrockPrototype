@@ -5,6 +5,12 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.7 — Authoring et aperçu des kits alignés
+
+Parent 6762daf3f083e982e63e847f263face2002371b4 : SilentTask et LocalAuto SUCCESS. Le sélecteur d'objets et l'aperçu des kits utilisent la même identité canonique et le même niveau explicite que les constructeurs. Aucun changement d'asset ou de sauvegarde.
+
+Draft suivant 5G.8 : `8d88ffbadf9e33f1168a754b25ba1c129ddc8174` (parent `5d36b39db2913a7465e2e3e48d84ee97a6cc1c73`, 10 fichiers). Draft 5G.9 : `65f1a4a71ddbe5295a0888f634319ad4565c8980` (parent 6762daf3f083e982e63e847f263face2002371b4, 3 fichiers), retrait des hooks ARM ponctuels de l'agent, sans retirer les contrôles ordinaires ni les outils de sauvegarde/rollback. Rebaser les diffs après validation du parent effectif.
+
 ## ARM-CLEAN06.5G.6 — Niveaux physiques stricts monde et loot
 
 Parent 5d36b39db2913a7465e2e3e48d84ee97a6cc1c73 : deux statuts SUCCESS. Suppression de l'héritage du niveau historique pour IDs inscrits dans les placements, réceptacles, preview et loot. Niveaux explicites conservés ; aucun changement de RNG, asset ou SaveGame. Draft 5G.7 : b60ee136d8576beee7db2321d9ac9b29d87e7cf8 (parent 5d6ad973bbcd0df73edd1bf9c8ec4c8554584457, dix fichiers). Draft 5G.8 : 8d88ffbadf9e33f1168a754b25ba1c129ddc8174 (parent 5d36b39db2913a7465e2e3e48d84ee97a6cc1c73, dix fichiers) verrou central ResolveItem N0/N1–N20 et 542 cas de refus. Rebaser uniquement les fichiers de chaque draft après validation du HEAD. 5G.8 exige audit complémentaire des appels historiques du résolveur avant publication.

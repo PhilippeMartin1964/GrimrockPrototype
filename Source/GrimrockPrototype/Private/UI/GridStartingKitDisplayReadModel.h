@@ -4,8 +4,8 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 
 /**
- * Read-only frontend projection of a starting equipment entry. The authored
- * level 0 is a default-level REQUEST for ARM, but a real level 0 for ammo.
+ * Read-only frontend projection of a starting equipment entry. Registered
+ * entries require an explicit canonical ID and physical N1–N20 / N0.
  * No ItemInstance, UPackage or mutable starting kit is touched.
  */
 struct FGridStartingKitDisplayReadView
@@ -48,18 +48,10 @@ struct FGridStartingKitDisplayReadModel
             return View;
         }
 
-        // The canonical type, not an obsolete bUseWeaponCatalogue copy, decides
-        // whether a persisted N0 denotes an ARM default or unlevelled arrows.
-        bool bArmament = LegacyDefinition->bUseWeaponCatalogue;
-        if (View.bCanonicalIdentity)
-        {
-            FGridResolvedItem Probe;
-            if (!Registry->ResolveItem(ItemId, 1, Probe))
-            {
-                return View; // Registered but invalid: never legacy fallback.
-            }
-            bArmament = Probe.bIsArmament;
-        }
+        // Match the 5G.4 kit builder: an old pointer alone cannot author
+        // or preview a registered starting item, even with a valid level.
+        if (View.bCanonicalIdentity) return View;
+        const bool bArmament = LegacyDefinition->bUseWeaponCatalogue;
         const int32 FixedLevel = bArmament && AuthoredItemLevel == 0
             ? LegacyDefinition->DefaultWeaponItemLevel : AuthoredItemLevel;
         if ((bArmament && (FixedLevel < 1 || FixedLevel > 20)) ||

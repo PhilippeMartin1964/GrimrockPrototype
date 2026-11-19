@@ -21,38 +21,16 @@ struct FGridEditorCanonicalReceptacleInitialAuthoring
         {
             return false;
         }
+        if (IsValid(NewDefinition) && Registry->HasCanonicalItem(NewDefinition->ItemDefinitionId))
+        {
+            // The old selection entry point has no authority over levels.
+            // Use the direct ID authoring policy (preserve valid level or N1/N0).
+            return TrySelectCanonicalId(Registry, NewDefinition->ItemDefinitionId, InOut);
+        }
         FGridReceptacleInitialItemConfig Proposed = InOut;
         Proposed.ItemDefinition = NewDefinition;
         Proposed.CanonicalItemId = NAME_None;
         Proposed.ItemLevel = 0;
-        if (IsValid(NewDefinition) &&
-            Registry->HasCanonicalItem(NewDefinition->ItemDefinitionId))
-        {
-            FGridResolvedItem Family;
-            if (!Registry->ResolveItem(NewDefinition->ItemDefinitionId, 1, Family))
-            {
-                return false;
-            }
-            const int32 FixedLevel = Family.bIsArmament
-                ? NewDefinition->DefaultWeaponItemLevel : 0;
-            if ((Family.bIsArmament && (FixedLevel < 1 || FixedLevel > 20)) ||
-                (!Family.bIsArmament && FixedLevel != 0))
-            {
-                return false;
-            }
-            FGridResolvedItem Physical;
-            if (!Registry->ResolveItem(NewDefinition->ItemDefinitionId, FixedLevel, Physical) ||
-                !Physical.IsValid() ||
-                Physical.ItemId != NewDefinition->ItemDefinitionId ||
-                Physical.ItemLevel != FixedLevel ||
-                Physical.bIsArmament != Family.bIsArmament)
-            {
-                return false;
-            }
-            Proposed.CanonicalItemId = Physical.ItemId;
-            Proposed.ItemLevel = Physical.ItemLevel;
-            Proposed.ItemDefinition = nullptr;
-        }
         // Unknown legacy definitions retain the old N0 authoring pathway.
         // The quantity is never changed when replacing the source.
         InOut = Proposed;
