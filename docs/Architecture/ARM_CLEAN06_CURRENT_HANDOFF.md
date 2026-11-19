@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.32 — Handoff et Continue sans lookup de recette
+
+Parent 9681730322b073accd75af76fe77f5adb8756e54 : validation des lots éditeur préalables obligatoire. New Game et Continue emploient RehydrateCanonicalOwnedItemDefinitions ; exige ItemSystem configuré, refuse toute identité inconnue via résolveur nul, ne charge plus de recette historique. STARTUPFLOW01 teste les 18 kits natifs via GameInstance et inventaires réellement configurés, vérifie N0/N1, quantités, slots, GUID, icônes ARM et absence de carte historique. Vérifie aussi les slots occupés, équipements identifiés et curseur malformés avant mutation. Le collecteur historique reste utilisé par des fixtures hors production et sera retiré séparément. Les tests disque SHIELD025 et LOT0216 utilisent désormais le registre réel et conservent les assertions GUID/quantité/armure dépensée, sans carte historique. Aucun SaveGame joueur écrit ou schéma modifié. Les erreurs de démarrage existantes sont conservées.
+
 ## ARM-CLEAN06.5G.31 — Retrait des UFUNCTION historiques d'édition d'objets
 
 Parent bbb01a07a8ba93ea0462e656d2b6e01c852e8a64. Publication STRICTEMENT conditionnée aux deux SUCCESS sur 5G.30 et à son audit natif sans référence Blueprint. Suppression du setter pointeur et du sync ancienne définition, sans alias ni redirect. X.27/X.28/TD033 vérifient la réflexion, le maintien GUID/N/quantité, le rejet des IDs inconnus et les commandes monster distinctes. MIG09 continue à détecter les références orphelines. Aucun package ni SaveGame modifié.

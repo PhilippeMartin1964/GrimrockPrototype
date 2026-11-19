@@ -124,12 +124,7 @@ bool AGrimrockPartyPawn::RehydrateLoadedItemDefinitions(FText& OutError)
 	}
 
 	FName MissingDefinitionId = NAME_None;
-	if (!PartyInventoryComponent->RehydrateOwnedItemDefinitions(
-			[this](FName DefinitionId)
-			{
-				return LevelRuntimeActor->ResolveRuntimeItemDefinition(DefinitionId);
-			},
-			MissingDefinitionId))
+	if (!PartyInventoryComponent->RehydrateCanonicalOwnedItemDefinitions(MissingDefinitionId))
 	{
 		OutError = FText::FromString(FString::Printf(TEXT("La définition d'objet sauvegardée '%s' est introuvable."), *MissingDefinitionId.ToString()));
 		return false;

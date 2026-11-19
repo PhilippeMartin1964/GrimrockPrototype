@@ -19,10 +19,9 @@ class GRIMROCKPROTOTYPE_API UGrimrockStartupModeComponent : public UActorCompone
 public:
 	UGrimrockStartupModeComponent();
 
-	/** STARTUPFLOW/ARMEMENT-LOT02.18: complete the frontend -> dungeon
-	 * handoff, including the non-serialized item-definition registry. */
+	/** Restore frontend physical identities through the configured ItemSystem. */
 	static bool RestorePendingNewGameParty(UGridPartyInventoryComponent* Inventory,
-		const FGridPartyInventoryState& PendingPartyState, AGridLevelRuntimeActor* RuntimeActor,
+		const FGridPartyInventoryState& PendingPartyState,
 		FText& OutError);
 
 protected:

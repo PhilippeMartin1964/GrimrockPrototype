@@ -7,11 +7,12 @@
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -22,6 +23,8 @@ namespace ARMEMENTLOT0216
 	struct FTestWorld
 	{
 		UWorld* World = nullptr;
+		UGameInstance* GI = nullptr;
+		UGridItemSubsystem* Registry = nullptr;
 
 		FTestWorld()
 		{
@@ -36,11 +39,17 @@ namespace ARMEMENTLOT0216
 			{
 				FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
 				Context.SetCurrentWorld(World);
+				GI = NewObject<UGameInstance>(GetTransientPackage());
+				GI->Init();
+				World->SetGameInstance(GI);
+				Registry = GI->GetSubsystem<UGridItemSubsystem>();
 			}
 		}
 
 		~FTestWorld()
 		{
+			if (World) World->SetGameInstance(nullptr);
+			if (GI) GI->Shutdown();
 			if (World)
 			{
 				World->DestroyWorld(false);
@@ -115,7 +124,8 @@ bool FARMEMENTLOT0216DiskPersistence::RunTest(const FString&)
 	} Cleanup{SlotName, UserIndex};
 
 	FTestWorld Fixture;
-	if (!TestNotNull(TEXT("Transient game world"), Fixture.World))
+	if (!TestNotNull(TEXT("Transient game world"), Fixture.World) ||
+		!TestTrue(TEXT("Configured canonical ItemSystem"), Fixture.Registry && Fixture.Registry->IsConfigured()))
 	{
 		return false;
 	}
@@ -191,23 +201,20 @@ bool FARMEMENTLOT0216DiskPersistence::RunTest(const FString&)
 		{
 			continue;
 		}
-		UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *Row.ItemPath);
-		if (!TestNotNull(*FString::Printf(TEXT("%s actual DataAsset"), *Row.ArchetypeId), Definition))
-		{
-			return false;
-		}
+		const FName ItemId(*Row.ItemDefinitionId);
+		FGridResolvedItem Definition;
 		if (!TestTrue(*FString::Printf(TEXT("%s canonical N1 definition"), *Row.ArchetypeId),
-			Definition->IsValidDefinition() && Definition->ItemDefinitionId == FName(*Row.ItemDefinitionId) &&
-			Definition->WeaponArchetypeId == FName(*Row.ArchetypeId) &&
-			Definition->bUseWeaponCatalogue && Definition->DefaultWeaponItemLevel == 1) ||
-			!TestTrue(*FString::Printf(TEXT("%s registered"), *Row.ArchetypeId),
-				Inventory->RegisterItemDefinition(Definition)))
+			Fixture.Registry->ResolveItem(ItemId, 1, Definition) &&
+			Definition.IsValid() && Definition.bIsArmament &&
+			Definition.ItemId == ItemId && Definition.ArchetypeId == FName(*Row.ArchetypeId)) ||
+			!TestNull(TEXT("No historical definition registered"), Inventory->FindItemDefinition(ItemId)))
 		{
 			return false;
 		}
+
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemDefinitionId = Definition.ItemId;
 		Item.ItemLevel = 1;
 		Item.Quantity = 1;
 		if (!TestTrue(*FString::Printf(TEXT("%s N1 instance resolved"), *Row.ArchetypeId),
@@ -225,16 +232,17 @@ bool FARMEMENTLOT0216DiskPersistence::RunTest(const FString&)
 	}
 
 	// One real ammunition stack accompanies both bows.
-	UGridItemDefinitionAsset* Arrows = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
-	if (!TestNotNull(TEXT("Real arrow definition"), Arrows) ||
-		!TestTrue(TEXT("Register real arrows"), Inventory->RegisterItemDefinition(Arrows)))
+	FGridResolvedItem Arrows;
+	if (!TestTrue(TEXT("Real canonical N0 arrow definition"),
+		Fixture.Registry->ResolveItem(TEXT("Item_Arrows_01"), 0, Arrows) &&
+		Arrows.IsValid() && !Arrows.bIsArmament && Arrows.MaxStack >= 3))
 	{
 		return false;
 	}
+
 	FGridItemInstance ArrowStack;
 	ArrowStack.RuntimeObjectId = FGuid::NewGuid();
-	ArrowStack.ItemDefinitionId = Arrows->ItemDefinitionId;
+	ArrowStack.ItemDefinitionId = Arrows.ItemId;
 	ArrowStack.Quantity = 3;
 	if (!TestTrue(TEXT("Resolve real arrows"), Inventory->ApplyItemDefinitionToInstance(ArrowStack)) ||
 		!TestTrue(TEXT("Add three arrows to bag"), Inventory->AddItemToCharacterInventory(0, ArrowStack)))
@@ -260,9 +268,11 @@ bool FARMEMENTLOT0216DiskPersistence::RunTest(const FString&)
 	{
 		return false;
 	}
-	UGridItemDefinitionAsset* Focus = Inventory->FindItemDefinition(ExpectedFocus->ItemDefinitionId);
-	const int32 FocusBonus = Focus ? Focus->EquipmentStatBonus.MagicalArmorBonus : 0;
-	const int32 MainHandMagic = Inventory->FindItemDefinition(TEXT("Weapon_Stiletto_01"))->EquipmentStatBonus.MagicalArmorBonus;
+	FGridResolvedItem Focus, Stiletto;
+	if (!Fixture.Registry->ResolveItem(ExpectedFocus->ItemDefinitionId, 1, Focus) ||
+		!Fixture.Registry->ResolveItem(TEXT("Weapon_Stiletto_01"), 1, Stiletto)) return false;
+	const int32 FocusBonus = Focus.Weapon.MagicalArmor;
+	const int32 MainHandMagic = Stiletto.Weapon.MagicalArmor;
 	const int32 FocusSpend = FocusBonus > 0 ? 1 : 0;
 	if (!TestTrue(TEXT("Focus N1 magic reserve is nonnegative and catalogue-owned"), FocusBonus >= 0) ||
 		!TestEqual(TEXT("Focus counted exactly once"), MagicBefore,
@@ -304,7 +314,7 @@ bool FARMEMENTLOT0216DiskPersistence::RunTest(const FString&)
 				}
 			}
 			if (!TestEqual(*FString::Printf(TEXT("%s: %s exists exactly once"), *Phase, *Entry.Key.ToString()), Matches, 1) ||
-				!TestNotNull(*FString::Printf(TEXT("%s: %s definition rehydrated"), *Phase, *Entry.Key.ToString()),
+				!TestNull(*FString::Printf(TEXT("%s: %s no historical definition rehydrated"), *Phase, *Entry.Key.ToString()),
 					Inventory->FindItemDefinition(Entry.Key)))
 			{
 				return false;
@@ -378,9 +388,10 @@ bool FARMEMENTLOT0216DiskPersistence::RunTest(const FString&)
 		return false;
 	}
 	const int32 PhysicalBefore = Inventory->GetEffectiveCurrentPhysicalArmor(0);
-	UGridItemDefinitionAsset* Aegis = Inventory->FindItemDefinition(TEXT("Weapon_HolyAegis_01"));
-	const int32 ShieldBonus = Aegis ? Aegis->EquipmentStatBonus.ArmorBonus : 0;
-	const int32 MainHandPhysical = Inventory->FindItemDefinition(TEXT("Weapon_Stiletto_01"))->EquipmentStatBonus.ArmorBonus;
+	FGridResolvedItem Aegis;
+	if (!Fixture.Registry->ResolveItem(TEXT("Weapon_HolyAegis_01"), 1, Aegis)) return false;
+	const int32 ShieldBonus = Aegis.Weapon.PhysicalArmor;
+	const int32 MainHandPhysical = Stiletto.Weapon.PhysicalArmor;
 	const int32 ShieldSpend = ShieldBonus > 0 ? 1 : 0;
 	if (!TestTrue(TEXT("ARM081 N1 physical reserve is nonnegative and catalogue-owned"), ShieldBonus >= 0) ||
 		!TestEqual(TEXT("ARM081 protection counted once"), PhysicalBefore,

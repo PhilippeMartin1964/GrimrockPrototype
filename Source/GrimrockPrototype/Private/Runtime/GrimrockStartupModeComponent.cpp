@@ -3,8 +3,6 @@
 #include "GameFramework/PlayerController.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "RPG/RPGStartingEquipmentPresetCatalog.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GrimrockGameInstance.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridDungeonBuildProgressWidget.h"
@@ -21,7 +19,7 @@ UGrimrockStartupModeComponent::UGrimrockStartupModeComponent()
 
 bool UGrimrockStartupModeComponent::RestorePendingNewGameParty(
 	UGridPartyInventoryComponent* Inventory, const FGridPartyInventoryState& PendingPartyState,
-	AGridLevelRuntimeActor* RuntimeActor, FText& OutError)
+	FText& OutError)
 {
 	OutError = FText::GetEmpty();
 	if (!Inventory)
@@ -34,17 +32,9 @@ bool UGrimrockStartupModeComponent::RestorePendingNewGameParty(
 		return false;
 	}
 
-	// The frontend transfers only FGridPartyInventoryState across OpenLevel.
-	// Validate canonical physical instances and rebuild the historical map
-	// ONLY for identities outside the registry, as on Continue.
+	// Frontend and dungeon share the same canonical ItemSystem authority.
 	FName MissingDefinitionId = NAME_None;
-	if (!Inventory->RehydrateOwnedItemDefinitions(
-		[RuntimeActor](FName ItemId)
-		{
-			return IsValid(RuntimeActor)
-				? RuntimeActor->ResolveRuntimeItemDefinition(ItemId)
-				: FRPGStartingEquipmentPresetCatalog::ResolveKnownStartingItemDefinition(ItemId);
-		}, MissingDefinitionId))
+	if (!Inventory->RehydrateCanonicalOwnedItemDefinitions(MissingDefinitionId))
 	{
 		OutError = FText::FromString(FString::Printf(
 			TEXT("New Game item definition '%s' cannot be restored."),
@@ -54,7 +44,7 @@ bool UGrimrockStartupModeComponent::RestorePendingNewGameParty(
 		Inventory->ResetPartyForNewGame();
 		return false;
 	}
-	// RehydrateOwnedItemDefinitions replaces the map atomically and
+	// Canonical rehydration clears the obsolete map atomically and
 	// notifies the inventory once; retain the existing startup refresh.
 	Inventory->NotifyPartyInventoryChanged(INDEX_NONE);
 	return true;
@@ -102,7 +92,7 @@ void UGrimrockStartupModeComponent::BeginPlay()
 		{
 			FText RestoreError;
 			if (!RestorePendingNewGameParty(PartyPawn->PartyInventoryComponent, PendingPartyState,
-				PartyPawn->LevelRuntimeActor, RestoreError))
+				RestoreError))
 			{
 				UE_LOG(LogGrimrockStartupMode, Error, TEXT("GrimrockStartupMode NewGamePartyRestore Failed Pawn=%s Reason=%s"),
 					*GetNameSafe(PartyPawn), *RestoreError.ToString());

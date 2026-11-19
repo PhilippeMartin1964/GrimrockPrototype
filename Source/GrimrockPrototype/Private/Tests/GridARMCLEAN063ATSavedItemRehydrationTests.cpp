@@ -332,4 +332,52 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 
 	return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063ATStrictPartyRehydration,
+	"Grimrock.RPG.ARM.CLEAN06_5G32.StrictPartyRehydration",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean063ATStrictPartyRehydration::RunTest(const FString&)
+{
+	ARMCLEAN063AT::FFixture F;
+	if (!TestTrue(TEXT("Configured canonical inventory"), F.Ready())) return false;
+	const FName Sword(TEXT("Weapon_StraightSword_01"));
+	const FName Unknown(TEXT("ARM_CLEAN06_5G32_Unknown"));
+	FName Missing = NAME_None;
+	F.Put(0, F.Make(Sword, 20, 1));
+	TestTrue(TEXT("Valid canonical party rehydrates"),
+		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+	const FGuid StableGuid = F.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.RuntimeObjectId;
+	UGridItemDefinitionAsset* Old = ARMCLEAN063AT::MakeLegacy(F.Inventory, Unknown);
+	TestTrue(TEXT("Seed historical map for rollback test"), F.Inventory->RegisterItemDefinition(Old));
+	F.Put(1, F.Make(Unknown, 0, 1));
+	TestFalse(TEXT("Old definition cannot authorize unknown saved identity"),
+		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+	TestEqual(TEXT("Unknown identity reported"), Missing, Unknown);
+	TestEqual(TEXT("Failed validation preserves prior map"), F.Inventory->FindItemDefinition(Unknown), Old);
+	F.Put(1, F.Make(Unknown, 0, 0));
+	TestFalse(TEXT("Malformed occupied unknown object cannot be skipped"),
+		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+	TestEqual(TEXT("Malformed identity reported"), Missing, Unknown);
+	F.Put(1, F.Make(NAME_None, 0, 1));
+	TestFalse(TEXT("Occupied slot without identity cannot be skipped"),
+		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+	F.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[1] = FGridInventorySlot();
+	F.Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = F.Make(Unknown, 1, 0);
+	TestFalse(TEXT("Malformed equipped item cannot be skipped"),
+		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+	F.Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
+	F.Inventory->PartyInventoryState.bHasCursorItem = true;
+	F.Inventory->PartyInventoryState.CursorItem = F.Make(Unknown, 0, 0, EGridItemOwnerType::Cursor);
+	TestFalse(TEXT("Malformed cursor cannot be skipped"),
+		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+	F.Inventory->PartyInventoryState.bHasCursorItem = false;
+	F.Inventory->PartyInventoryState.CursorItem = FGridItemInstance();
+	TestTrue(TEXT("Canonical-only state succeeds once corrected"),
+		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+	TestNull(TEXT("Successful canonical restore removes old map"), F.Inventory->FindItemDefinition(Unknown));
+	TestEqual(TEXT("Canonical item identity remains stable"),
+		F.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.RuntimeObjectId, StableGuid);
+	return !HasAnyErrors();
+}
+
 #endif

@@ -6,12 +6,13 @@
 
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -44,6 +45,8 @@ namespace Shield025
 	struct FTestWorld
 	{
 		UWorld* World = nullptr;
+		UGameInstance* GI = nullptr;
+		UGridItemSubsystem* Registry = nullptr;
 		FTestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
@@ -57,11 +60,17 @@ namespace Shield025
 			{
 				FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
 				Context.SetCurrentWorld(World);
+				GI = NewObject<UGameInstance>(GetTransientPackage());
+				GI->Init();
+				World->SetGameInstance(GI);
+				Registry = GI->GetSubsystem<UGridItemSubsystem>();
 			}
 		}
 
 		~FTestWorld()
 		{
+			if (World) World->SetGameInstance(nullptr);
+			if (GI) GI->Shutdown();
 			if (World)
 			{
 				World->DestroyWorld(false);
@@ -80,7 +89,7 @@ namespace Shield025
 		AGridLevelRuntimeActor* Runtime = nullptr;
 		AGrimrockPartyPawn* Party = nullptr;
 		UGridTurnManagerComponent* Manager = nullptr;
-		UGridItemDefinitionAsset* ShieldDef = nullptr;
+		FGridResolvedItem ShieldDef;
 		FGuid EquippedId;
 		FGuid BagId;
 		FGuid CursorId;
@@ -91,7 +100,7 @@ namespace Shield025
 
 		bool Initialize()
 		{
-			if (!TestWorld.World)
+			if (!TestWorld.World || !TestWorld.Registry || !TestWorld.Registry->IsConfigured())
 			{
 				return false;
 			}
@@ -151,11 +160,9 @@ namespace Shield025
 				return false;
 			}
 
-			ShieldDef = LoadObject<UGridItemDefinitionAsset>(nullptr,
-				TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-			if (!ShieldDef || ShieldDef->EquipmentStatBonus.ArmorBonus != 5 ||
-				Runtime->ResolveRuntimeItemDefinition(ShieldDef->ItemDefinitionId) != ShieldDef ||
-				!Inventory->RegisterItemDefinition(ShieldDef))
+			if (!TestWorld.Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, ShieldDef) ||
+				!ShieldDef.bIsArmament || ShieldDef.Weapon.PhysicalArmor != 5 ||
+				Inventory->FindItemDefinition(ShieldDef.ItemId))
 			{
 				return false;
 			}
@@ -174,11 +181,11 @@ namespace Shield025
 			{
 				FGridItemInstance Item;
 				Item.RuntimeObjectId = FGuid::NewGuid();
-				Item.ItemDefinitionId = ShieldDef->ItemDefinitionId;
+				Item.ItemDefinitionId = ShieldDef.ItemId;
 				Item.ItemLevel = 1;
-				Item.DisplayName = ShieldDef->DisplayName;
+				Item.DisplayName = ShieldDef.DisplayName;
 				Item.Quantity = 1;
-				Item.Weight = ShieldDef->Weight;
+				Item.Weight = ShieldDef.WeightKg;
 				Item.AbsorbedEquipmentPhysicalArmor = Spent;
 				Item.OwnerType = Owner;
 				Item.OwnerGuid = Owner == EGridItemOwnerType::Cursor ? FGuid() : CharacterId;
@@ -305,7 +312,7 @@ bool FShield025DiskRoundTrip::RunTest(const FString&)
 	TestEqual(TEXT("Loaded base pool was not refilled"), Restored.ActiveCharacters[0].Resources.CurrentPhysicalArmor, 1);
 	TestEqual(TEXT("Loaded magical pool was not refilled"), Restored.ActiveCharacters[0].Resources.CurrentMagicalArmor, 1);
 	TestEqual(TEXT("Effective pool after load is still 3/7"), Inventory->GetEffectiveCurrentPhysicalArmor(0), 3);
-	TestEqual(TEXT("Equipped definition rehydrated"), Inventory->FindItemDefinition(F.ShieldDef->ItemDefinitionId), F.ShieldDef);
+	TestNull(TEXT("Canonical shield restores without historical map"), Inventory->FindItemDefinition(F.ShieldDef.ItemId));
 	TestEqual(TEXT("Equipped GUID persisted"), Restored.ActiveEquipment[0].OffHand.RuntimeObjectId, F.EquippedId);
 	TestEqual(TEXT("Bag GUID persisted"), Restored.ActiveCharacters[0].InventorySlots[F.BagIndex].Item.RuntimeObjectId, F.BagId);
 	TestEqual(TEXT("Cursor GUID persisted"), Restored.CursorItem.RuntimeObjectId, F.CursorId);

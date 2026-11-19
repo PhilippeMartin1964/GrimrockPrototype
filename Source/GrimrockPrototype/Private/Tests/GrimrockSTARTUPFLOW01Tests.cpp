@@ -8,7 +8,55 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockStartupModeComponent.h"
-#include "UI/GridWeaponVisualUiResolver.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/GrimrockPartyPawn.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
+
+namespace STARTUPFLOW01Canonical
+{
+	struct FWorld
+	{
+		UWorld* World = nullptr;
+		UGrimrockGameInstance* GI = nullptr;
+		UGridItemSubsystem* Registry = nullptr;
+
+		FWorld()
+		{
+			const UWorld::InitializationValues Values = UWorld::InitializationValues()
+				.AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(false)
+				.CreateNavigation(false).CreateAISystem(false).ShouldSimulatePhysics(false)
+				.SetTransactional(false);
+			World = UWorld::CreateWorld(EWorldType::Game, false,
+				FName(*FString::Printf(TEXT("STARTUPFLOW01_Canonical_%s"),
+					*FGuid::NewGuid().ToString(EGuidFormats::Digits))),
+				nullptr, true, ERHIFeatureLevel::Num, &Values);
+			if (!World || !GEngine) return;
+			GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
+			GI = NewObject<UGrimrockGameInstance>(GetTransientPackage());
+			GI->Init();
+			World->SetGameInstance(GI);
+			Registry = GI->GetSubsystem<UGridItemSubsystem>();
+		}
+
+		~FWorld()
+		{
+			if (World) World->SetGameInstance(nullptr);
+			if (GI) GI->Shutdown();
+			if (World)
+			{
+				World->DestroyWorld(false);
+				if (GEngine) GEngine->DestroyWorldContext(World);
+			}
+		}
+
+		UGridPartyInventoryComponent* NewInventory() const
+		{
+			AGrimrockPartyPawn* Pawn = World ? World->SpawnActor<AGrimrockPartyPawn>() : nullptr;
+			return Pawn ? Pawn->PartyInventoryComponent.Get() : nullptr;
+		}
+	};
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGrimrockSTARTUPFLOW01PendingPartyTest,
@@ -68,8 +116,10 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 		return false;
 	}
 
-	UGrimrockGameInstance* GameInstance = NewObject<UGrimrockGameInstance>();
-	if (!TestNotNull(TEXT("Frontend / dungeon GameInstance"), GameInstance))
+	STARTUPFLOW01Canonical::FWorld Fixture;
+	UGrimrockGameInstance* GameInstance = Fixture.GI;
+	if (!TestNotNull(TEXT("Frontend / dungeon GameInstance"), GameInstance) ||
+		!TestTrue(TEXT("Real configured ItemSystem"), Fixture.Registry && Fixture.Registry->IsConfigured()))
 	{
 		return false;
 	}
@@ -94,7 +144,7 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 		FString KitError;
 		if (!TestTrue(TEXT("Approved N1 kits materialize on transient class"),
 			Preview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
-				*Preview, KitError)))
+				*Preview, KitError, Fixture.Registry)))
 		{
 			AddError(KitError);
 			return false;
@@ -106,9 +156,9 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 		}
 		for (const FRPGStartingEquipmentKit& Kit : Preview->StartingEquipmentKits)
 		{
-			// The frontend component owns real item definitions; the pending
-			// GameInstance state intentionally does not serialize that map.
-			UGridPartyInventoryComponent* Frontend = NewObject<UGridPartyInventoryComponent>();
+			// Physical state crosses levels without a legacy definition map.
+			UGridPartyInventoryComponent* Frontend = Fixture.NewInventory();
+			if (!TestNotNull(TEXT("Real frontend inventory"), Frontend)) return false;
 			Frontend->InitializeDefaultPartyIfNeeded();
 			FRPGCharacterCreationRequest Request;
 			Request.DisplayName = FText::FromString(TEXT("Handoff Test"));
@@ -135,18 +185,19 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 			{
 				return false;
 			}
-			UGridPartyInventoryComponent* Dungeon = NewObject<UGridPartyInventoryComponent>();
+			UGridPartyInventoryComponent* Dungeon = Fixture.NewInventory();
+			if (!TestNotNull(TEXT("Real dungeon inventory"), Dungeon)) return false;
 			Dungeon->InitializeDefaultPartyIfNeeded();
-			const FName FirstId = Kit.Items[0].ItemDefinition->ItemDefinitionId;
+			const FName FirstId = Kit.Items[0].CanonicalItemId;
 			if (!TestNull(TEXT("Dungeon initially has no frontend definition map"),
 				Dungeon->FindItemDefinition(FirstId)))
 			{
 				return false;
 			}
-			if (!TestTrue(*FString::Printf(TEXT("%s: startup restores items AND definitions"),
+			if (!TestTrue(*FString::Printf(TEXT("%s: startup restores canonical physical identities"),
 				*Kit.KitId.ToString()),
 				UGrimrockStartupModeComponent::RestorePendingNewGameParty(
-					Dungeon, Pending, nullptr, Error)))
+					Dungeon, Pending, Error)))
 			{
 				AddError(Error.ToString());
 				return false;
@@ -165,10 +216,12 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 				Dungeon->PartyInventoryState.ActiveEquipment[0];
 			for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
 			{
-				const UGridItemDefinitionAsset* Definition = Entry.ItemDefinition.Get();
-				if (!TestNotNull(TEXT("N1 kit item definition"), Definition) ||
-					!TestTrue(TEXT("Item definition immediately ready for inventory UI"),
-						Dungeon->FindItemDefinition(Definition->ItemDefinitionId) == Definition))
+				FGridResolvedItem Resolved;
+				if (!TestNull(TEXT("No legacy definition in approved recipe"), Entry.ItemDefinition.Get()) ||
+					!TestTrue(TEXT("Real recipe identity resolves"),
+						Fixture.Registry->ResolveItem(Entry.CanonicalItemId, Entry.ItemLevel, Resolved)) ||
+					!TestNull(TEXT("No old definition in dungeon registry"),
+						Dungeon->FindItemDefinition(Entry.CanonicalItemId)))
 				{
 					return false;
 				}
@@ -182,7 +235,7 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 					for (const FGridInventorySlot& Slot : Hero.InventorySlots)
 					{
 						if (!Slot.IsEmpty() &&
-							Slot.Item.ItemDefinitionId == Definition->ItemDefinitionId)
+							Slot.Item.ItemDefinitionId == Entry.CanonicalItemId)
 						{
 							Item = &Slot.Item;
 							break;
@@ -190,23 +243,21 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 					}
 				}
 				const FString Label = FString::Printf(TEXT("%s / %s"),
-					*Kit.KitId.ToString(), *Definition->ItemDefinitionId.ToString());
+					*Kit.KitId.ToString(), *Entry.CanonicalItemId.ToString());
 				if (!TestTrue(*FString::Printf(TEXT("%s: correct item/slot/N1/quantity"),
 					*Label), Item && Item->IsValid() &&
-						Item->ItemDefinitionId == Definition->ItemDefinitionId &&
+						Item->ItemDefinitionId == Entry.CanonicalItemId &&
 						Item->Quantity == Entry.Quantity &&
-						Item->ItemLevel == (Definition->bUseWeaponCatalogue ? 1 : 0)))
+						Item->ItemLevel == Entry.ItemLevel))
 				{
 					return false;
 				}
-				if (Definition->bUseWeaponCatalogue)
+				if (Resolved.bIsArmament)
 				{
-					const FGridResolvedWeaponVisual Visual =
-						FGridWeaponVisualUiResolver::Resolve(*Definition, Item);
 					if (!TestFalse(*FString::Printf(TEXT("%s: weapon icon reference"), *Label),
-						Visual.Icon.IsNull()) ||
+						Resolved.ItemIcon.IsNull()) ||
 						!TestNotNull(*FString::Printf(TEXT("%s: icon loads on first New Game"), *Label),
-							Visual.Icon.LoadSynchronous()))
+							Resolved.ItemIcon.LoadSynchronous()))
 					{
 						return false;
 					}
@@ -234,12 +285,13 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 	// Missing assets must not yield a finalized but unusable hero.
 	RepresentativeState.ActiveEquipment[0].MainHand.ItemDefinitionId =
 		TEXT("Weapon_Unknown_StartupHandoff_0218");
-	UGridPartyInventoryComponent* InvalidDungeon = NewObject<UGridPartyInventoryComponent>();
+	UGridPartyInventoryComponent* InvalidDungeon = Fixture.NewInventory();
+	if (!TestNotNull(TEXT("Invalid handoff inventory fixture"), InvalidDungeon)) return false;
 	InvalidDungeon->InitializeDefaultPartyIfNeeded();
 	FText Error;
 	TestFalse(TEXT("Unknown starter item aborts dungeon startup"),
 		UGrimrockStartupModeComponent::RestorePendingNewGameParty(
-			InvalidDungeon, RepresentativeState, nullptr, Error));
+			InvalidDungeon, RepresentativeState, Error));
 	TestFalse(TEXT("Failed handoff cannot leave a finalized hero"),
 		InvalidDungeon->HasCompletedInitialCharacterCreation());
 	TestFalse(TEXT("Missing definition error is reported"), Error.IsEmpty());

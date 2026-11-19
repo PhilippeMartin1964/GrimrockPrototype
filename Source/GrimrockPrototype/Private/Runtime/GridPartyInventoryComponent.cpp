@@ -1543,6 +1543,65 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAss
 	return true;
 }
 
+bool UGridPartyInventoryComponent::RehydrateCanonicalOwnedItemDefinitions(FName& OutMissingDefinitionId)
+{
+	OutMissingDefinitionId = NAME_None;
+	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
+	if (!IsValid(Registry) || !Registry->IsConfigured())
+	{
+		UE_LOG(LogGridInventory, Warning, TEXT("Canonical party rehydrate requires configured ItemSystem."));
+		return false;
+	}
+	// Occupied slots and the cursor must never disappear just because a
+	// malformed instance would report IsValid() == false. Empty equipment
+	// slots are the only implicit empty representation.
+	auto ValidatePhysical = [Registry, &OutMissingDefinitionId](const FGridItemInstance& Item)
+	{
+		FGridResolvedItem Resolved;
+		if (!Item.IsValid() || !Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) ||
+			!Resolved.IsValid() || Resolved.ItemId != Item.ItemDefinitionId ||
+			Resolved.ItemLevel != Item.ItemLevel ||
+			(Resolved.bIsArmament ? Item.ItemLevel < 1 : Item.ItemLevel != 0) ||
+			Item.Quantity > FMath::Max(1, Resolved.MaxStack))
+		{
+			OutMissingDefinitionId = Item.ItemDefinitionId;
+			UE_LOG(LogGridInventory, Warning,
+				TEXT("Canonical party rehydrate rejected Item=%s N%d Quantity=%d"),
+				*Item.ItemDefinitionId.ToString(), Item.ItemLevel, Item.Quantity);
+			return false;
+		}
+		return true;
+	};
+	auto ValidateCharacter = [&ValidatePhysical](const FGridCharacterInventoryState& Character)
+	{
+		for (const FGridInventorySlot& Slot : Character.InventorySlots)
+			if (Slot.bOccupied && !ValidatePhysical(Slot.Item)) return false;
+		return true;
+	};
+	for (const auto& Character : PartyInventoryState.ActiveCharacters)
+		if (!ValidateCharacter(Character)) return false;
+	for (const auto& Character : PartyInventoryState.CharacterPool)
+		if (!ValidateCharacter(Character)) return false;
+	for (const auto& Equipment : PartyInventoryState.ActiveEquipment)
+	{
+		bool bValid = true;
+		GridEquipmentSlotUtils::ForEachEquipmentItem(Equipment,
+			[&ValidatePhysical, &bValid](EGridEquipmentSlot, const FGridItemInstance& Item)
+			{
+				if (bValid && (Item.RuntimeObjectId.IsValid() || !Item.ItemDefinitionId.IsNone()))
+					bValid = ValidatePhysical(Item);
+			});
+		if (!bValid) return false;
+	}
+	if (PartyInventoryState.bHasCursorItem && !ValidatePhysical(PartyInventoryState.CursorItem))
+		return false;
+
+	// Use the existing atomic map replacement and hotbar source checks.
+	// An unknown ID cannot be resolved through a starting recipe.
+	return RehydrateOwnedItemDefinitions(
+		[](FName) -> UGridItemDefinitionAsset* { return nullptr; }, OutMissingDefinitionId);
+}
+
 bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
 	TFunctionRef<UGridItemDefinitionAsset*(FName)> Resolver, FName& OutMissingDefinitionId)
 {

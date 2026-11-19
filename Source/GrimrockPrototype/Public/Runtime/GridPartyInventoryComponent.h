@@ -220,6 +220,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
 	bool RegisterItemDefinition(UGridItemDefinitionAsset* Definition);
 
+	/** Production New Game/Continue: validate against the configured registry; never restore old definitions. */
+	bool RehydrateCanonicalOwnedItemDefinitions(FName& OutMissingDefinitionId);
+
+	// Temporary fixture path until the historical item registry is removed.
 	bool RehydrateOwnedItemDefinitions(TFunctionRef<UGridItemDefinitionAsset*(FName)> Resolver, FName& OutMissingDefinitionId);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
