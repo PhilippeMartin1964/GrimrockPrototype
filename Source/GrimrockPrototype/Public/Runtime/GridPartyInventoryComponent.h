@@ -401,6 +401,9 @@ public:
 	bool ValidateInventoryOwnership(UPARAM(ref) FString& OutError) const;
 
 private:
+	/** Preflight a single physical cursor/slot transfer without changing its quantity. */
+	bool CanAcceptSingleInventoryItem(const FGridItemInstance& Item) const;
+
 	/** One transient armor view shared by combat, summaries, recovery and previews. */
 	bool TryResolveEquipmentArmorRead(const FGridItemInstance& Item, FGridEquipmentArmorReadView& OutView) const;
 	/** Native non-ARM contributions and nominal armor; ARM non-armor bonuses remain transitional until parity evidence. */

@@ -96,7 +96,7 @@ bool UGridPartyInventoryComponent::TryTakeSelectedCharacterEquipmentSlotToCursor
 
 bool UGridPartyInventoryComponent::SetCursorItem(const FGridItemInstance& Item)
 {
-	if (!Item.IsValid())
+	if (!CanAcceptSingleInventoryItem(Item))
 	{
 		return false;
 	}
@@ -226,6 +226,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 
 	FGridInventorySlot& TargetSlot = CharacterState.InventorySlots[TargetSlotIndex];
 	FGridItemInstance CursorItem = PartyInventoryState.CursorItem;
+	if (!CanAcceptSingleInventoryItem(CursorItem)) return false;
 	ApplyItemDefinitionToInstance(CursorItem);
 	CursorItem.OwnerType = EGridItemOwnerType::CharacterInventory;
 	CursorItem.OwnerGuid = CharacterState.CharacterId;
@@ -422,6 +423,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventory(int32 
 	}
 
 	FGridItemInstance ItemToInventory = PartyInventoryState.CursorItem;
+	if (!CanAcceptSingleInventoryItem(ItemToInventory)) return false;
 	ApplyItemDefinitionToInstance(ItemToInventory);
 	ItemToInventory.OwnerType = EGridItemOwnerType::CharacterInventory;
 	ItemToInventory.OwnerGuid = CharacterState.CharacterId;

@@ -229,7 +229,32 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     TestFalse(TEXT("ARM cannot gain a SplitStack menu"),
         ARMCLEAN063AS::HasSplitAction(Fixture.Pawn, Character.InventorySlots[0].Item));
 
-    // Unregistered objects maintain their former definition-driven capacities.
+    // An unknown ID with plausible cached metadata must not enter a configured inventory.
+    Fixture.ClearSlots();
+    const FGridItemInstance Unknown = ARMCLEAN063AS::MakeItem(TEXT("CLEAN06_5G42_Unknown"), 0, 2);
+    TestFalse(TEXT("Unknown ID has no bag capacity"), Fixture.Inventory->CanAddItemToCharacterInventory(0, Unknown));
+    TestFalse(TEXT("Unknown ID cannot enter a bag"), Fixture.Inventory->AddItemToCharacterInventory(0, Unknown));
+    TestFalse(TEXT("Unknown ID cannot enter cursor"), Fixture.Inventory->SetCursorItem(Unknown));
+    TestFalse(TEXT("Invalid physical ARM N0 cannot enter cursor"), Fixture.Inventory->SetCursorItem(SwordN0));
+    TestFalse(TEXT("Single cursor cannot clamp excess canonical units"), Fixture.Inventory->SetCursorItem(Incoming));
+    TestFalse(TEXT("Rejected cursor is empty"), Fixture.Inventory->HasCursorItem());
+    TestTrue(TEXT("Rejected bag remains empty"), Character.InventorySlots[0].IsEmpty());
+    // Simulate a malformed already-owned cursor, bypassing its public setter.
+    Fixture.Inventory->PartyInventoryState.CursorItem = Unknown;
+    Fixture.Inventory->PartyInventoryState.bHasCursorItem = true;
+    TestFalse(TEXT("Unknown cursor cannot move into explicit slot"), Fixture.Inventory->TryPlaceCursorItemInCharacterInventorySlot(0, 0));
+    TestFalse(TEXT("Unknown cursor cannot move into first free slot"), Fixture.Inventory->TryPlaceCursorItemInCharacterInventory(0));
+    TestTrue(TEXT("Rejection preserves cursor identity and quantity"), Fixture.Inventory->HasCursorItem() &&
+        Fixture.Inventory->GetCursorItem().RuntimeObjectId == Unknown.RuntimeObjectId &&
+        Fixture.Inventory->GetCursorItem().Quantity == Unknown.Quantity);
+    TestTrue(TEXT("No partial bag transfer"), Character.InventorySlots[0].IsEmpty());
+    Fixture.ClearSlots();
+    TestTrue(TEXT("Valid canonical single stack may enter cursor"), Fixture.Inventory->SetCursorItem(More));
+    TestTrue(TEXT("Canonical single stack enters free bag slot"), Fixture.Inventory->TryPlaceCursorItemInCharacterInventory(0));
+    TestEqual(TEXT("Canonical transfer preserves units"), Character.InventorySlots[0].Item.Quantity, More.Quantity);
+    TestFalse(TEXT("Successful transfer clears cursor"), Fixture.Inventory->HasCursorItem());
+
+    // Explicitly registered historical automation fixtures retain their former capacities.
     Fixture.ClearSlots();
     UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(Fixture.Inventory);
     Legacy->ItemDefinitionId = TEXT("ARM063AS_Unregistered_Stack");

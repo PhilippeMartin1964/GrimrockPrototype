@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.42 — Contrôle d’entrée inventaire et curseur
+
+Parent 4e4d417c2fc45b5554b7a7efa2501e10c6b7f948. Publication après deux statuts SUCCESS. Refus en jeu de toute entrée non matérialisable dans CanAdd/Add et des transferts de curseur vers le sac ; SetCursorItem contrôle également l’identité physique et l’intégrité de quantité. Le multi-stack du ramassage reste autorisé. 3AS ajoute les refus et contrôles de non-mutation sur registre réel, sans retirer ses anciennes fixtures. Voir [5G.42](ARM_CLEAN06_5G42_INVENTORY_INGRESS_GATE.md). Aucun asset ou SaveGame écrit.
+
 ## ARM-CLEAN06.5G.41 — Lectures du cache isolées et diagnostics canoniques
 
 Parent bbe81ff1d02c41eddab48901743e0f671f30b04b. Publication conditionnée aux deux statuts SUCCESS. FindItemDefinition ne lit le cache que pendant Automation active ; diagnostics de définitions et compatibilité utilisent les identités triées du registre, poids N0 ou N1/N20 et permissions de main/slots canoniques. La propriété Transient reste pour le GC des fixtures ; aucune suppression de schéma. Voir [5G.41](ARM_CLEAN06_5G41_CANONICAL_INVENTORY_DIAGNOSTICS.md).
