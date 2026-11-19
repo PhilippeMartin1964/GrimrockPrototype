@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5F.1 — correctif de liaison
+
+fe491a4e902b34195c483ef8ae4ba69f7748f00a en échec BUILD_FAILED (issue #201, LNK2019/LNK2001/LNK1120). Aucun symbole précis publié ; les méthodes directes UMG MinimalAPI et K2 sont remplacées par la réflexion CoreUObject, la classe générique UBlueprint et l'inspection des sous-objets de Designer et graphes, UMG explicite. Runner one-shot relancé sur la filiation exacte avec le même diff cumulé. Aucun changement runtime, asset ou save. Attendre les deux statuts et statut natif, puis enfant binaire. 5G.1 draft 4c09c3d81fea31471e280bd4fa37fae14ff9fd64 à rebaser et revoir après preuve.
+
 ## ARM-CLEAN06.5F — palette d'icônes, transaction native du WBP
 
 Parent c8dfc6b161047bdf77b31d3389f551d015e7ea70 validé. Unification projection widget/vue, aucun recours à la palette historique ni fallback dual enregistré. Commandlet natif Audit/Apply/Verify limité au CDO de WBP_GridCombatHudAction, parité des 12 catégories et manifeste du Designer/graphes/propriétés. Agent one-shot sur sujet/parent/diff exacts, copie SHA256/LFS, relecture et Automation complète avant push du seul WBP avec rollback. Statut tiers et enfant binaire à constater. Voir [5F](ARM_CLEAN06_5F_ICON_PALETTE_RETIREMENT.md).

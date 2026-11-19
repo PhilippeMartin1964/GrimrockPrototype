@@ -60,6 +60,14 @@ function Get-PublicSafeDiagnostics {
         if (-not (Test-Path -LiteralPath $Log -PathType Leaf)) { continue }
         foreach ($RawLine in @(Get-Content -LiteralPath $Log -Tail 2500 -ErrorAction SilentlyContinue)) {
             $Line = [string]$RawLine
+            if ($Line -match '\bLNK(?:2019|2001)\b') {
+                foreach ($Symbol in @('UWidgetTree','UPanelWidget','UWidgetBlueprint','UWidget','UK2Node_Variable','UBlueprint','GetObjectsWithOuter','FProperty','FObjectPropertyBase','UEdGraphNode','UEdGraph')) {
+                    if ($Line.Contains($Symbol)) {
+                        $Record = 'Edition liens : ' + $Symbol
+                        if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
+                    }
+                }
+            }
             $Location = [regex]::Match($Line,
                 '(?i)(?<file>[A-Za-z_][A-Za-z0-9_.-]{0,95}\.(?:cpp|h|cs|inl))\((?<line>\d{1,7})(?:,\d{1,7})?\)\s*:\s*(?:fatal\s+)?error(?:\s+(?<code>C\d{4}|CS\d{4}|MSB\d{4}))?\b')
             if ($Location.Success) {
@@ -1259,7 +1267,7 @@ try {
         # Exact, one-shot 5F native package transaction after successful code validation.
         $IconDetachSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $IconDetachSubject.Count -eq 1 -and
-            [string]$IconDetachSubject[0] -ceq 'ARM-CLEAN06.5F: detach legacy action icon palette through native transaction') {
+            [string]$IconDetachSubject[0] -ceq 'ARM-CLEAN06.5F.1: use exported reflection APIs for native WBP detachment') {
             $IconDetachContext = 'UE5.5.4/ARM-CLEAN06.5F'
             $IconDetachStage = 'HOOK_STATUS'
             try {

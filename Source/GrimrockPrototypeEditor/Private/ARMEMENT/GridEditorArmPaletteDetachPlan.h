@@ -2,24 +2,24 @@
 #include "ARMEMENT/GridArmClean06ActionIconsProjection.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
-#include "Blueprint/WidgetTree.h"
-#include "Components/PanelWidget.h"
+#include "Components/PanelSlot.h"
 #include "Components/Widget.h"
 #include "EdGraph/EdGraph.h"
-#include "K2Node_Variable.h"
+#include "EdGraph/EdGraphNode.h"
+#include "Engine/Blueprint.h"
 #include "Misc/AssetRegistryInterface.h"
 #include "Modules/ModuleManager.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UI/GridCombatHudWidget.h"
 #include "UObject/Package.h"
 #include "UObject/UnrealType.h"
-#include "WidgetBlueprint.h"
+#include "UObject/UObjectHash.h"
 
 namespace GridEditorArmPaletteDetachPlan
 {
     struct FPlan
     {
-        UWidgetBlueprint* Blueprint = nullptr;
+        UBlueprint* Blueprint = nullptr;
         UGridCombatHudActionWidget* Defaults = nullptr;
         bool bAssigned = false;
         bool bDiskReference = false;
@@ -47,47 +47,91 @@ namespace GridEditorArmPaletteDetachPlan
         }
     }
 
-    inline bool Fingerprint(UWidgetBlueprint* BP, const UGridCombatHudActionWidget* Defaults,
+    // Only CoreUObject reflection and exported native class metadata are
+    // needed. Avoid linking MinimalAPI UWidgetTree methods or editor K2 helpers.
+    inline UObject* ObjectField(const UObject* Object, FName Name)
+    {
+        const FObjectPropertyBase* Field = Object
+            ? FindFProperty<FObjectPropertyBase>(Object->GetClass(), Name) : nullptr;
+        return Field ? Field->GetObjectPropertyValue_InContainer(Object) : nullptr;
+    }
+
+    inline bool ExportField(const UObject* Object, FName Name, FString& Out)
+    {
+        const FProperty* Field = Object ? FindFProperty<FProperty>(Object->GetClass(), Name) : nullptr;
+        if (!Field) return false;
+        Out.Reset();
+        Field->ExportText_InContainer(0, Out, Object, nullptr, const_cast<UObject*>(Object), PPF_None);
+        return true;
+    }
+
+    inline bool Fingerprint(UBlueprint* BP, const UGridCombatHudActionWidget* Defaults,
         FString& Out, FString& Error)
     {
-        if (!BP || !Defaults || !BP->WidgetTree || !BP->WidgetTree->FindWidget(FName(TEXT("Image_ActionIcon"))))
+        UObject* Tree = ObjectField(BP, FName(TEXT("WidgetTree")));
+        UObject* RootWidget = ObjectField(Tree, FName(TEXT("RootWidget")));
+        if (!BP || !Defaults || !Tree || !Cast<UWidget>(RootWidget))
         {
-            Error = TEXT("Missing Designer action icon");
+            Error = TEXT("Missing Designer tree or root");
             return false;
         }
         TArray<FString> Lines;
         AddEditableProperties(Defaults, Lines);
-        TArray<UWidget*> Widgets;
-        BP->WidgetTree->GetAllWidgets(Widgets);
-        for (UWidget* Widget : Widgets)
+        Lines.Add(TEXT("ROOT|") + RootWidget->GetPathName());
+        TArray<UObject*> Descendants;
+        GetObjectsWithOuter(Tree, Descendants, true, RF_Transient);
+        bool bActionIconFound = false;
+        int32 WidgetCount = 0;
+        for (UObject* Child : Descendants)
         {
-            if (!Widget) return false;
-            UPanelWidget* Parent = Widget->GetParent();
-            Lines.Add(FString::Printf(TEXT("W|%s|%s|%s|%d"), *Widget->GetPathName(),
-                *Widget->GetClass()->GetPathName(), *GetNameSafe(Parent),
-                Parent ? Parent->GetChildIndex(Widget) : INDEX_NONE));
+            UWidget* Widget = Cast<UWidget>(Child);
+            if (!Widget) continue;
+            ++WidgetCount;
+            bActionIconFound |= Widget->GetFName() == FName(TEXT("Image_ActionIcon"));
+            Lines.Add(FString::Printf(TEXT("W|%s|%s"), *Widget->GetPathName(),
+                *Widget->GetClass()->GetPathName()));
             AddEditableProperties(Widget, Lines);
-            AddEditableProperties(Widget->Slot, Lines);
+            // Reflected Slot, Parent, Content and ordered Slots encode the
+            // actual hierarchy/order even when UMG methods are not exported.
+            UObject* Slot = ObjectField(Widget, FName(TEXT("Slot")));
+            Lines.Add(TEXT("S|") + Widget->GetPathName() + TEXT("|") + GetPathNameSafe(Slot));
+            if (Slot)
+            {
+                AddEditableProperties(Slot, Lines);
+                Lines.Add(TEXT("PARENT|") + Widget->GetPathName() + TEXT("|") +
+                    GetPathNameSafe(ObjectField(Slot, FName(TEXT("Parent")))));
+                Lines.Add(TEXT("CONTENT|") + Widget->GetPathName() + TEXT("|") +
+                    GetPathNameSafe(ObjectField(Slot, FName(TEXT("Content")))));
+            }
+            FString OrderedSlots;
+            if (ExportField(Widget, FName(TEXT("Slots")), OrderedSlots))
+                Lines.Add(TEXT("ORDER|") + Widget->GetPathName() + TEXT("|") + OrderedSlots);
         }
-        TArray<UEdGraph*> Graphs;
-        BP->GetAllGraphs(Graphs);
-        for (UEdGraph* Graph : Graphs)
+        if (!bActionIconFound || WidgetCount <= 0 || !Descendants.Contains(RootWidget))
         {
-            if (!Graph) return false;
+            Error = TEXT("Missing authored Image_ActionIcon or root in Designer descendants");
+            return false;
+        }
+        TArray<UObject*> BlueprintObjects;
+        GetObjectsWithOuter(BP, BlueprintObjects, true, RF_Transient);
+        for (UObject* Child : BlueprintObjects)
+        {
+            UEdGraph* Graph = Cast<UEdGraph>(Child);
+            if (!Graph) continue;
             Lines.Add(TEXT("G|") + Graph->GetPathName());
             for (UEdGraphNode* Node : Graph->Nodes)
             {
                 if (!Node) return false;
-                if (const UK2Node_Variable* Variable = Cast<UK2Node_Variable>(Node))
+                FString VariableReference;
+                if (ExportField(Node, FName(TEXT("VariableReference")), VariableReference) &&
+                    VariableReference.Contains(TEXT("EquippedWeaponActionIconPalette"), ESearchCase::CaseSensitive))
                 {
-                    if (Variable->GetVarName() == FName(TEXT("EquippedWeaponActionIconPalette")))
-                    {
-                        Error = TEXT("Graph still reads historical palette");
-                        return false;
-                    }
+                    Error = TEXT("Graph still reads historical palette");
+                    return false;
                 }
-                Lines.Add(FString::Printf(TEXT("N|%s|%s|%s"), *Graph->GetPathName(),
-                    *Node->GetClass()->GetPathName(), *Node->NodeGuid.ToString()));
+                Lines.Add(FString::Printf(TEXT("N|%s|%s|%s|%s"), *Graph->GetPathName(),
+                    *Node->GetClass()->GetPathName(), *Node->NodeGuid.ToString(), *VariableReference));
+                AddEditableProperties(Node, Lines);
             }
         }
         Lines.Sort();
@@ -101,8 +145,9 @@ namespace GridEditorArmPaletteDetachPlan
         Error.Reset();
         auto* Root = LoadObject<UGridItemSystemAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
         auto* Legacy = LoadObject<UGridEquippedWeaponActionIconPalette>(nullptr, TEXT("/Game/GrimrockPrototype/UI/Icons/Combat/DA_EquippedWeaponActionIcons.DA_EquippedWeaponActionIcons"));
-        Out.Blueprint = LoadObject<UWidgetBlueprint>(nullptr, TEXT("/Game/GrimrockPrototype/Blueprints/UI/Combat/WBP_GridCombatHudAction.WBP_GridCombatHudAction"));
+        Out.Blueprint = LoadObject<UBlueprint>(nullptr, TEXT("/Game/GrimrockPrototype/Blueprints/UI/Combat/WBP_GridCombatHudAction.WBP_GridCombatHudAction"));
         if (!Root || !Root->WeaponVisualCatalogue || !Legacy || !Out.Blueprint ||
+            Out.Blueprint->GetClass()->GetPathName() != TEXT("/Script/UMGEditor.WidgetBlueprint") ||
             !Out.Blueprint->GeneratedClass ||
             !Out.Blueprint->GeneratedClass->IsChildOf(UGridCombatHudActionWidget::StaticClass()) ||
             Root->GetOutermost()->IsDirty() || Root->WeaponVisualCatalogue->GetOutermost()->IsDirty() ||

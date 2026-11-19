@@ -21,7 +21,8 @@ $StagePath = Join-Path $RunDir 'ArmClean065F.stage'
 if ($SelfTest) { Set-Content -LiteralPath $StagePath -Value 'SELFTEST_INIT' -Encoding ASCII }
 $GitApplication = (Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $ExpectedParent = 'c8dfc6b161047bdf77b31d3389f551d015e7ea70'
-$ExpectedSubject = 'ARM-CLEAN06.5F: detach legacy action icon palette through native transaction'
+$FailedCodeParent = 'fe491a4e902b34195c483ef8ae4ba69f7748f00a'
+$ExpectedSubject = 'ARM-CLEAN06.5F.1: use exported reflection APIs for native WBP detachment'
 $BinarySubject = 'ARM-CLEAN06.5F.B: detach historical icon palette in combat action WBP'
 $Packages = @(
     'Content/GrimrockPrototype/Blueprints/UI/Combat/WBP_GridCombatHudAction.uasset'
@@ -173,7 +174,8 @@ try {
     Set-Stage 'PREFLIGHT_REMOTE'
     Assert-Remote
     Set-Stage 'PREFLIGHT_ANCESTRY'
-    if ((Invoke-IconDetachGit @('rev-parse','HEAD~1')) -cne $ExpectedParent -or
+    if ((Invoke-IconDetachGit @('rev-parse','HEAD~1')) -cne $FailedCodeParent -or
+        (Invoke-IconDetachGit @('rev-parse','HEAD~2')) -cne $ExpectedParent -or
         (Invoke-IconDetachGit @('log','-1','--format=%s')) -cne $ExpectedSubject) { throw 'Wrong one-shot revision.' }
     Set-Stage 'PREFLIGHT_DIFF'
     Assert-SameSet @(Invoke-IconDetachGit @('diff','--name-only',$ExpectedParent,'HEAD')) $CodePaths
