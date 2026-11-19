@@ -372,9 +372,25 @@ bool FGridClean063ATStrictPartyRehydration::RunTest(const FString&)
 		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
 	F.Inventory->PartyInventoryState.bHasCursorItem = false;
 	F.Inventory->PartyInventoryState.CursorItem = FGridItemInstance();
+	auto& Hotbar = F.Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots;
+	FGridCombatHotbarBinding Shortcut;
+	Shortcut.SlotIndex = 1;
+	Shortcut.ActionId = TEXT("5G36_HotbarOnly");
+	Shortcut.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+	Shortcut.SourceDefinitionId = Unknown;
+	Shortcut.PreferredSourceRuntimeId = FGuid::NewGuid();
+	Shortcut.PreferredEquipmentSlot = EGridEquipmentSlot::MainHand;
+	Hotbar[1] = Shortcut;
+	TestFalse(TEXT("Unknown shortcut cannot authorize legacy definition"),
+		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+	TestEqual(TEXT("Unknown shortcut reports exact identity"), Missing, Unknown);
+	TestEqual(TEXT("Failed shortcut validation preserves prior map"), F.Inventory->FindItemDefinition(Unknown), Old);
+	Hotbar[1].SourceDefinitionId = TEXT("Weapon_Dagger_01");
 	TestTrue(TEXT("Canonical-only state succeeds once corrected"),
 		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
 	TestNull(TEXT("Successful canonical restore removes old map"), F.Inventory->FindItemDefinition(Unknown));
+	TestTrue(TEXT("Shortcut-only identity does not fabricate a physical source"), Missing.IsNone());
+	TestEqual(TEXT("Shortcut source GUID preserved"), Hotbar[1].PreferredSourceRuntimeId, Shortcut.PreferredSourceRuntimeId);
 	TestEqual(TEXT("Canonical item identity remains stable"),
 		F.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.RuntimeObjectId, StableGuid);
 	return !HasAnyErrors();

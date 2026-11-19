@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.36 — Isolation de la réhydratation historique
+
+Parent aaea2b8797bdbac2ee50238fab0cfa8119d30bcc. Chemin canonique autonome, validation des raccourcis Equipment/QuickItem et purge atomique du cache historique. Ancien collecteur disponible uniquement en Automation. Tests de refus, rollback et raccourci canonique sans instance renforcés. Voir [5G.36](ARM_CLEAN06_5G36_STRICT_REHYDRATION_ISOLATION.md). Aucun asset ni SaveGame modifié.
+
 ## ARM-CLEAN06.5G.35 — Retrait de la fonction de recherche des recettes
 
 Parent 17fbeb2f1cb522c654b2308fcfd2b2b1832cc747. Après retrait de tous les consommateurs runtime en 5G.33, supprimer ResolveKnownStartingItemDefinition des recettes RPG. Les fixtures historiques de projection récupèrent uniquement leurs entrées explicites déjà chargées ou leurs packages du manifeste ; les preuves d'identité des douze recettes, ARM054, huile et catalyseur passent par un registre canonique réel. Aucun chargement par recette dans le jeu. Les recettes historiques elles-mêmes et les tests de création sans registre restent un périmètre distinct. Aucun asset ni SaveGame joueur modifié.

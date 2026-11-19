@@ -223,8 +223,10 @@ public:
 	/** Production New Game/Continue: validate against the configured registry; never restore old definitions. */
 	bool RehydrateCanonicalOwnedItemDefinitions(FName& OutMissingDefinitionId);
 
-	// Temporary fixture path until the historical item registry is removed.
+#if WITH_DEV_AUTOMATION_TESTS
+	// Historical fixture helper; no runtime caller in Shipping.
 	bool RehydrateOwnedItemDefinitions(TFunctionRef<UGridItemDefinitionAsset*(FName)> Resolver, FName& OutMissingDefinitionId);
+#endif
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
 	UGridItemDefinitionAsset* FindItemDefinition(FName ItemDefinitionId) const;

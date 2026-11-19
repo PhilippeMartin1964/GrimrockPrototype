@@ -1572,10 +1572,23 @@ bool UGridPartyInventoryComponent::RehydrateCanonicalOwnedItemDefinitions(FName&
 		}
 		return true;
 	};
-	auto ValidateCharacter = [&ValidatePhysical](const FGridCharacterInventoryState& Character)
+	auto ValidateCharacter = [&ValidatePhysical, Registry, &OutMissingDefinitionId](const FGridCharacterInventoryState& Character)
 	{
 		for (const FGridInventorySlot& Slot : Character.InventorySlots)
 			if (Slot.bOccupied && !ValidatePhysical(Slot.Item)) return false;
+		for (const FGridCombatHotbarBinding& Binding : Character.CombatHotbarSlots)
+		{
+			const bool bItemSource = Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment ||
+				Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
+			// A shortcut identifies a family, not a physical instance. Its actual
+			// source GUID, slot and level are checked when the action is resolved.
+			if (!Binding.IsEmpty() && bItemSource && !Binding.SourceDefinitionId.IsNone() &&
+				!Registry->HasCanonicalItem(Binding.SourceDefinitionId))
+			{
+				OutMissingDefinitionId = Binding.SourceDefinitionId;
+				return false;
+			}
+		}
 		return true;
 	};
 	for (const auto& Character : PartyInventoryState.ActiveCharacters)
@@ -1596,12 +1609,13 @@ bool UGridPartyInventoryComponent::RehydrateCanonicalOwnedItemDefinitions(FName&
 	if (PartyInventoryState.bHasCursorItem && !ValidatePhysical(PartyInventoryState.CursorItem))
 		return false;
 
-	// Use the existing atomic map replacement and hotbar source checks.
-	// An unknown ID cannot be resolved through a starting recipe.
-	return RehydrateOwnedItemDefinitions(
-		[](FName) -> UGridItemDefinitionAsset* { return nullptr; }, OutMissingDefinitionId);
+	// Commit only after all physical items and shortcuts pass validation.
+	RuntimeItemDefinitionsById.Reset();
+	NotifyPartyInventoryChanged(INDEX_NONE);
+	return true;
 }
 
+#if WITH_DEV_AUTOMATION_TESTS
 bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
 	TFunctionRef<UGridItemDefinitionAsset*(FName)> Resolver, FName& OutMissingDefinitionId)
 {
@@ -1717,6 +1731,8 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
 	NotifyPartyInventoryChanged(INDEX_NONE);
 	return true;
 }
+
+#endif // WITH_DEV_AUTOMATION_TESTS
 
 UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName ItemDefinitionId) const
 {
