@@ -364,7 +364,9 @@ void UGridPartyInventoryComponent::LogSelectedCharacterEquipmentStatBonusDiagnos
 			const FGridEquipmentStatBonus Bonus = GetEquipmentBonusesForInstance(Item);
 			if (!Bonus.HasAnyBonus())
 			{
-				if (!FindItemDefinition(Item.ItemDefinitionId))
+				const UGridItemSubsystem* Registry = GridPartyInventoryDiagnosticsRegistry(this);
+				if (!FindItemDefinition(Item.ItemDefinitionId) &&
+					!(Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId)))
 				{
 					UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentStatBonus Item=%s Slot=%s Warning=MissingDefinition"), *Item.ItemDefinitionId.ToString(),
 						GridEquipmentSlotUtils::GetLogName(Slot));
@@ -398,17 +400,17 @@ void UGridPartyInventoryComponent::LogSelectedCharacterResistanceDiagnostics() c
 			}
 
 			const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
-			if (!Definition)
+			const UGridItemSubsystem* Registry = GridPartyInventoryDiagnosticsRegistry(this);
+			if (!Definition && !(Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId)))
 			{
 				UE_LOG(LogGridInventory, Warning, TEXT("GridDamageResistance Item=%s Slot=%s Warning=MissingDefinition"), *Item.ItemDefinitionId.ToString(),
 					GridEquipmentSlotUtils::GetLogName(Slot));
 				return;
 			}
 
-			// The canonical armament schema does not yet own elemental resistances.
-			// Read the exact compatibility contribution used by gameplay.
+			// Same canonical projection as gameplay, including non-ARM equipment.
 			const FGridDamageResistanceSet Resistances =
-				FGridEquipmentContributionReadModel::ResolveResistances(Definition, Item);
+				FGridEquipmentContributionReadModel::ResolveResistances(Registry, Definition, Item);
 			if (Resistances.IsEmpty())
 			{
 				return;

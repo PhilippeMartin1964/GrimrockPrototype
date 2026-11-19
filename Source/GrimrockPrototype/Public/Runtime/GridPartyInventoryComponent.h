@@ -395,7 +395,7 @@ public:
 private:
 	/** One transient armor view shared by combat, summaries, recovery and previews. */
 	bool TryResolveEquipmentArmorRead(const FGridItemInstance& Item, FGridEquipmentArmorReadView& OutView) const;
-	/** Preserve non-armor legacy bonuses temporarily; override both armor stats from the canonical source. */
+	/** Native non-ARM contributions and nominal armor; ARM non-armor bonuses remain transitional until parity evidence. */
 	FGridEquipmentStatBonus GetEquipmentBonusesForInstance(const FGridItemInstance& Item) const;
 
 	/** Shared bounded refill for the two authoritative entry points: Victory and explicit Rest. */

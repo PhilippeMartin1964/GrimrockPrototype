@@ -569,7 +569,7 @@ FGridDamageResistanceSet UGridPartyInventoryComponent::ComputeCharacterEquipment
 			}
 
 			TotalResistances.Add(FGridEquipmentContributionReadModel::ResolveResistances(
-				FindItemDefinition(Item.ItemDefinitionId), Item));
+				GridPartyInventoryCanonicalRegistry(this), FindItemDefinition(Item.ItemDefinitionId), Item));
 		});
 
 	return TotalResistances;

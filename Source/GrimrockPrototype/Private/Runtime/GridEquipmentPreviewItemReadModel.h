@@ -31,7 +31,7 @@ struct FGridEquipmentPreviewItemReadModel
 		View.Bonuses = FGridEquipmentContributionReadModel::ResolveStatBonuses(
 			Registry, LegacyDefinition, Item);
 		View.Resistances = FGridEquipmentContributionReadModel::ResolveResistances(
-			LegacyDefinition, Item);
+			Registry, LegacyDefinition, Item);
 		FGridEquipmentArmorReadView Armor;
 		if (FGridEquipmentArmorReadModel::TryResolve(
 			Registry, LegacyDefinition, Item, Armor))

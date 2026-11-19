@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5D.4 — contributions d'équipement non-ARM
+
+5D.3B matérialisé par `fcd13d5d8c117ed70acdfd97001a487f73f77184`, enfant direct de `1c74fd7ced53266d40a626d6c26b7e6f33eba4ea` (statut spécifique SUCCESS : 19 ARM, deux catalogues, réouverture et Automation OK). Exactement les deux packages canoniques attendus. 5D.4 : projection des bonus et résistances non-ARM déjà authorés, armure N0 et réserves par instance via ItemSystem, gameplay/prévisualisation/diagnostics communs, aucune écriture de sauvegarde ni binaire. Garde native read-only sur les 22 sources ARM : contributions hors armure strictement égales au défaut ou migration explicite nécessaire. Attendre les deux statuts de ce lot avant tout retrait historique. [Détail](ARM_CLEAN06_5D4_NONARM_EQUIPMENT.md).
+
 ## ARM-CLEAN06.5D.3.7 — parité réelle des suites pré/post conversion
 
 `267eab44fe9bc737721fef94608ee7a1054bf49b` a publié le diagnostic [issue #199](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/199) : 1981/32/2/0 (succès/avertissements/échecs/non exécutés). Deux tests anciens présupposaient l'absence des politiques 5D.3 : CompleteProductionPreview23 compare maintenant le candidat transitoire précisément reprojeté depuis les 19 sources, sans exclure de propriété ; GenericFallback vérifie le runtime canonique après matérialisation (null/ancien contradictoire, permission, niveau, menu) et conserve le test historique pré-matérialisation. Relance native sur nouveau SHA après ses deux statuts, aucun runtime modifié. Attendre le statut spécial et commit binaire puis ses deux statuts. Draft suivant `5b96b41db3090d53bbd6b16cdff9deecbfb15f4d`.

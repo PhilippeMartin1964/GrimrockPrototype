@@ -29,7 +29,7 @@ struct FGridEquipmentArmorReadModel
 			FGridCanonicalArmorReserveView Canonical;
 			if (!Registry->ResolveArmorReserveForInstance(Instance, Canonical))
 			{
-				return false; // Never reinterpret an invalid canonical level via DA_Weapon_*.
+				return false; // Never reinterpret an invalid physical level via an old definition.
 			}
 			Out.NominalPhysical = Canonical.NominalPhysicalArmor;
 			Out.NominalMagical = Canonical.NominalMagicalArmor;

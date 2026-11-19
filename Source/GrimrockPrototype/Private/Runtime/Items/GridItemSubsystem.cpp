@@ -215,6 +215,8 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 			// become non-equippable merely because it is not an ARM weapon.
 			OutItem.NonArmHandPolicy = Equipment->HandPolicy;
 			OutItem.NonArmEquipmentSlots = Equipment->GetAvailableSlots();
+			OutItem.NonArmEquipmentBonuses = Equipment->Bonuses;
+			OutItem.NonArmEquipmentResistances = Equipment->Resistances;
 			OutItem.bNonArmTwoHanded =
 				Equipment->HandPolicy == EGridNonArmamentHandPolicy::TwoHanded &&
 				OutItem.NonArmEquipmentSlots.Contains(EGridEquipmentSlot::MainHand);
@@ -277,22 +279,43 @@ bool UGridItemSubsystem::ResolveArmorReserveForInstance(
 	// A failed read must never expose a cached amount from an earlier item.
 	OutReserve = FGridCanonicalArmorReserveView();
 	if (!RootRegistry || !Instance.IsValid() ||
-		Instance.ItemLevel < 1 || Instance.ItemLevel > 20 ||
 		Instance.AbsorbedEquipmentPhysicalArmor < 0 ||
 		Instance.AbsorbedEquipmentMagicalArmor < 0)
 	{
 		return false;
 	}
 
-	// Only canonical N1-N20 numbers are allowed; the name/weight snapshots
-	// retained in old saves are deliberately ignored by this read model.
+	// Resolve the real physical item. An unlevelled equipment definition
+	// must never be synthesized as a weapon at N1, and vice versa.
 	FGridResolvedItem Resolved;
-	if (!ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Resolved) ||
-		!Resolved.bIsArmament)
+	if (!ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Resolved))
 	{
 		return false;
 	}
-
+	if (!Resolved.bIsArmament)
+	{
+		if (Instance.ItemLevel != 0 || Resolved.NonArmEquipmentSlots.IsEmpty())
+		{
+			return false;
+		}
+		OutReserve.NominalPhysicalArmor = Resolved.NonArmEquipmentBonuses.ArmorBonus;
+		OutReserve.NominalMagicalArmor = Resolved.NonArmEquipmentBonuses.MagicalArmorBonus;
+		OutReserve.SpentPhysicalArmor = Instance.AbsorbedEquipmentPhysicalArmor;
+		OutReserve.SpentMagicalArmor = Instance.AbsorbedEquipmentMagicalArmor;
+		// Preserve the prior non-ARM rule for negative authored modifiers.
+		// Positive reserves deplete, a penalty is not a recoverable reserve.
+		OutReserve.RemainingPhysicalArmor = OutReserve.NominalPhysicalArmor > 0
+			? FMath::Max(0, OutReserve.NominalPhysicalArmor - OutReserve.SpentPhysicalArmor)
+			: OutReserve.NominalPhysicalArmor;
+		OutReserve.RemainingMagicalArmor = OutReserve.NominalMagicalArmor > 0
+			? FMath::Max(0, OutReserve.NominalMagicalArmor - OutReserve.SpentMagicalArmor)
+			: OutReserve.NominalMagicalArmor;
+		return true;
+	}
+	if (Instance.ItemLevel < 1 || Instance.ItemLevel > 20)
+	{
+		return false;
+	}
 	return FGridCanonicalArmorReserveResolver::TryCompute(
 		Resolved.Weapon,
 		Instance.AbsorbedEquipmentPhysicalArmor,

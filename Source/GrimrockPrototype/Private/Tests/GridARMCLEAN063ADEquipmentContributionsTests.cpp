@@ -62,7 +62,7 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 				FMath::IsNearlyEqual(Bonuses.CarryWeightBonus, 2.5f));
 
 			const FGridDamageResistanceSet Resistances =
-				FGridEquipmentContributionReadModel::ResolveResistances(Old.Get(), Equipped);
+				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Old.Get(), Equipped);
 			TestEqual(TEXT("Fire resistance uses existing gameplay source"), Resistances.FireResistance, 12);
 			TestEqual(TEXT("Ice resistance uses existing gameplay source"), Resistances.IceResistance, 7);
 			Equipped.ItemLevel = 0;
@@ -101,10 +101,69 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 	TestEqual(TEXT("Legacy magical armor remains four"), LegacyBonuses.MagicalArmorBonus, 4);
 	TestEqual(TEXT("Legacy attribute contribution unchanged"), LegacyBonuses.StrengthBonus, 3);
 	TestEqual(TEXT("Legacy resistance contribution unchanged"),
-		FGridEquipmentContributionReadModel::ResolveResistances(Old.Get(), Legacy).FireResistance, 12);
+		FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Old.Get(), Legacy).FireResistance, 12);
 	TestTrue(TEXT("Missing definition gives no resistance contribution"),
-		FGridEquipmentContributionReadModel::ResolveResistances(nullptr, Legacy).IsEmpty());
+		FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), nullptr, Legacy).IsEmpty());
 	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065D4NonArmContributions,
+	"Grimrock.RPG.ARM.CLEAN06_5D4.CanonicalNonArmEquipmentContributions",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean065D4NonArmContributions::RunTest(const FString&)
+{
+	TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+	if (!TestNotNull(TEXT("Native registry"), Root.Get())) return false;
+	TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+	TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+	TArray<FString> Errors;
+	if (!TestTrue(TEXT("Register native root"), Registry->RegisterItemSystem(Root.Get(), Errors))) return false;
+	int32 Count = 0;
+	for (const auto& Entry : Root->ItemDefinitions)
+	{
+		const auto* Gear = Cast<UGridOtherEquipmentDefinitionAsset>(Entry.Get());
+		if (!Gear || Gear->GetAvailableSlots().IsEmpty()) continue;
+		++Count;
+		TStrongObjectPtr<UGridItemDefinitionAsset> Stale(NewObject<UGridItemDefinitionAsset>());
+		Stale->ItemDefinitionId = Gear->ItemId;
+		Stale->EquipmentStatBonus.StrengthBonus = Gear->Bonuses.StrengthBonus + 100;
+		Stale->EquipmentResistanceBonus.FireResistance = Gear->Resistances.FireResistance + 100;
+		FGridItemInstance Item;
+		Item.RuntimeObjectId = FGuid::NewGuid();
+		Item.ItemDefinitionId = Gear->ItemId;
+		Item.ItemLevel = 0;
+		Item.Quantity = 1;
+		Item.AbsorbedEquipmentPhysicalArmor = 2;
+		Item.AbsorbedEquipmentMagicalArmor = 3;
+		const auto Bonus = FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Stale.Get(), Item);
+		const auto NoOld = FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), nullptr, Item);
+		TestTrue(TEXT("Exact native bonuses, no old source"), FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&Bonus, &Gear->Bonuses, 0));
+		TestTrue(TEXT("Same without pointer"), FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&NoOld, &Gear->Bonuses, 0));
+		const auto R = FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Stale.Get(), Item);
+		TestTrue(TEXT("Exact native resistance"), FGridDamageResistanceSet::StaticStruct()->CompareScriptStruct(&R, &Gear->Resistances, 0));
+		FGridEquipmentArmorReadView Armor;
+		if (!TestTrue(TEXT("Physical non-ARM armor resolves"), FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), nullptr, Item, Armor))) return false;
+		FGridCanonicalArmorReserveView Direct;
+		TestTrue(TEXT("Public registry resolves same non-ARM reserve"), Registry->ResolveArmorReserveForInstance(Item, Direct));
+		TestEqual(TEXT("Exact spent physical debt"), Direct.SpentPhysicalArmor, 2);
+		TestEqual(TEXT("Exact spent magical debt"), Direct.SpentMagicalArmor, 3);
+		TestEqual(TEXT("Single physical reserve authority"), Armor.RemainingPhysical, Direct.RemainingPhysicalArmor);
+		TestEqual(TEXT("Single magical reserve authority"), Armor.RemainingMagical, Direct.RemainingMagicalArmor);
+		TestEqual(TEXT("Nominal armor"), Armor.NominalPhysical, Gear->Bonuses.ArmorBonus);
+		TestEqual(TEXT("Physical spent reserve"), Armor.RemainingPhysical, Gear->Bonuses.ArmorBonus > 0 ? FMath::Max(0, Gear->Bonuses.ArmorBonus-2) : Gear->Bonuses.ArmorBonus);
+		TestEqual(TEXT("Magical spent reserve"), Armor.RemainingMagical, Gear->Bonuses.MagicalArmorBonus > 0 ? FMath::Max(0, Gear->Bonuses.MagicalArmorBonus-3) : Gear->Bonuses.MagicalArmorBonus);
+		Item.AbsorbedEquipmentMagicalArmor = -1;
+		TestFalse(TEXT("Negative canonical armor debt rejected"), Registry->ResolveArmorReserveForInstance(Item, Direct));
+		Item.AbsorbedEquipmentMagicalArmor = 3;
+		Item.ItemLevel = 1;
+		TestFalse(TEXT("Invalid registry reserve rejected"), Registry->ResolveArmorReserveForInstance(Item, Direct));
+		TestFalse(TEXT("Physical N1 rejected"), FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Stale.Get(), Item).HasAnyBonus());
+		TestTrue(TEXT("Invalid levels do not borrow resistance"), FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Stale.Get(), Item).IsEmpty());
+	}
+	TestTrue(TEXT("Real equipment tested"), Count > 0);
+	return !HasAnyErrors();
 }
 
 #endif

@@ -70,6 +70,14 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Equipment")
 	TArray<EGridEquipmentSlot> NonArmEquipmentSlots;
 
+	/** Transient projection of the existing specialized non-ARM definition;
+	 * never serialized into an instance or duplicated on an ARM. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Equipment")
+	FGridEquipmentStatBonus NonArmEquipmentBonuses;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Equipment")
+	FGridDamageResistanceSet NonArmEquipmentResistances;
+
 	/** Two-hand canonical non-ARM occupancy; OffHand is a virtual reservation. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Equipment")
 	bool bNonArmTwoHanded = false;
@@ -225,8 +233,9 @@ public:
 
 	/**
 	 * Read remaining armor for this *specific persisted item instance*.
-	 * Nominal armor comes from the one N1-N20 catalogue, spent armor from
-	 * this instance only. Fails closed for legacy level 0 and non-armaments.
+	 * ARM N1-N20 nominal armor comes from the catalogue; non-ARM N0 armor
+	 * from its specialized equipment definition. Spent armor is per-instance.
+	 * Fails closed for a wrong physical level or a non-equippable item.
 	 * Neither the instance nor any registry data is mutated.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Item System|Armor")
