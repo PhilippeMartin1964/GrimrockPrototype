@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5E.3.1 — correction de compilation du test
+
+SHA précédent `3ce60215d5bac92b9c6de97358cb5abd06d1bbd2` : SilentTask SUCCESS, LocalAuto FAILURE (BUILD_FAILED, C2672, [issue #200](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/200)). Correction de la déduction de type `TestNotNull` par `.Get()` sur le composant de projectile ; assertion conservée. Aucun changement runtime ni asset. Attendre les deux statuts exacts du commit correctif avant poursuivre.
+
 ## ARM-CLEAN06.5E.3 — lancement canonique des munitions
 
 Parent `bbe1705d8492a8f20065571f17eb5ee27c4c3d78` : SilentTask/LocalAuto SUCCESS. Projection de vitesse des munitions au même préflight que le lien AmmoKindId, priorité au projectile spécialisé actif sinon GenericThrow.InitialSpeed avec clamp historique 400–4800. Pointeur ancien nul pour toute munition inscrite (y compris lanceur non inscrit). Refus vitesse invalide/niveau physique N1/stack invalide avant débit ; aucun changement des trajectoires valides, de l'ordre de transaction ou de SaveGame. Test 3BB renforcé (parité source native, priorité, refus, vrais projectile/stock). Attendre les deux statuts exact-SHA. La réhydratation globale et les transferts restants restent à examiner. [Détail](ARM_CLEAN06_5E3_CANONICAL_AMMO_LAUNCH.md).
