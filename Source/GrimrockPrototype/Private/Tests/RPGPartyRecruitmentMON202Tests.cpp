@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "GridCanonicalWeightTestWorld.h"
 #include "RPG/RPGPartyRecruitmentService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
@@ -30,9 +31,9 @@ namespace GridMON202RecruitmentTests
 		return Character;
 	}
 
-	UGridPartyInventoryComponent* MakeParty(int32 MaxActiveCharacters = 2)
+	UGridPartyInventoryComponent* MakeParty(int32 MaxActiveCharacters = 2, UGridPartyInventoryComponent* InInventory = nullptr)
 	{
-		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+		UGridPartyInventoryComponent* Inventory = InInventory ? InInventory : NewObject<UGridPartyInventoryComponent>();
 		Inventory->DefaultInventorySlotCountPerCharacter = 4;
 		Inventory->PartyInventoryState = FGridPartyInventoryState();
 		Inventory->PartyInventoryState.MaxActiveCharacters = MaxActiveCharacters;
@@ -44,15 +45,13 @@ namespace GridMON202RecruitmentTests
 	}
 
 	void PutInventoryItem(
-		FGridCharacterInventoryState& Character, int32 SlotIndex, const FGuid& RuntimeObjectId, float Weight, int32 Quantity, int32 OwnerCharacterIndex)
+		FGridCharacterInventoryState& Character, int32 SlotIndex, const FGuid& RuntimeObjectId, int32 Quantity, int32 OwnerCharacterIndex)
 	{
 		check(Character.InventorySlots.IsValidIndex(SlotIndex));
 		FGridInventorySlot& Slot = Character.InventorySlots[SlotIndex];
 		Slot.bOccupied = true;
 		Slot.Item.RuntimeObjectId = RuntimeObjectId;
 		Slot.Item.ItemDefinitionId = TEXT("Item_TestRecruitment");
-		Slot.Item.DisplayName = FText::FromString(TEXT("Objet de recrutement"));
-		Slot.Item.Weight = Weight;
 		Slot.Item.Quantity = Quantity;
 		Slot.Item.OwnerType = EGridItemOwnerType::CharacterInventory;
 		Slot.Item.OwnerGuid = Character.CharacterId;
@@ -157,10 +156,21 @@ bool FGridMON202InventoryOwnershipNormalizationTest::RunTest(const FString& Para
 	(void)Parameters;
 	using namespace GridMON202RecruitmentTests;
 
-	UGridPartyInventoryComponent* Inventory = MakeParty(2);
+	FGridCanonicalWeightTestWorld Fixture({}, [](UGridItemSystemAsset& Root)
+	{
+		auto* Item = NewObject<UGridGenericStackableDefinitionAsset>(&Root);
+		Item->ItemId = TEXT("Item_TestRecruitment");
+		Item->DisplayName = FText::FromString(TEXT("Objet de recrutement"));
+		Item->WeightKg = 1.25f;
+		Item->MaxStack = 2;
+		Root.ItemDefinitions.Add(Item);
+	});
+	auto* Component = Fixture.MakeInventory();
+	if (!TestNotNull(TEXT("Canonical recruitment fixture"), Component)) return false;
+	UGridPartyInventoryComponent* Inventory = MakeParty(2, Component);
 	const FGuid RecruitId(20, 2, 5, 2);
 	FGridCharacterInventoryState Candidate = MakeCharacter(RecruitId, TEXT("Carrier"));
-	PutInventoryItem(Candidate, 0, FGuid(20, 2, 5, 10), 1.25f, 2, INDEX_NONE);
+	PutInventoryItem(Candidate, 0, FGuid(20, 2, 5, 10), 2, INDEX_NONE);
 	Candidate.InventorySlots[0].Item.OwnerType = EGridItemOwnerType::None;
 	Candidate.InventorySlots[0].Item.OwnerGuid = FGuid();
 	Inventory->PartyInventoryState.CharacterPool.Add(Candidate);
@@ -191,13 +201,16 @@ bool FGridMON202OwnershipCollisionRollbackTest::RunTest(const FString& Parameter
 	(void)Parameters;
 	using namespace GridMON202RecruitmentTests;
 
-	UGridPartyInventoryComponent* Inventory = MakeParty(2);
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("Item_TestRecruitment"), 1.f}});
+	auto* Component = Fixture.MakeInventory();
+	if (!TestNotNull(TEXT("Canonical collision fixture"), Component)) return false;
+	UGridPartyInventoryComponent* Inventory = MakeParty(2, Component);
 	const FGuid SharedItemRuntimeId(20, 2, 6, 10);
-	PutInventoryItem(Inventory->PartyInventoryState.ActiveCharacters[0], 0, SharedItemRuntimeId, 1.0f, 1, 0);
+	PutInventoryItem(Inventory->PartyInventoryState.ActiveCharacters[0], 0, SharedItemRuntimeId, 1, 0);
 
 	const FGuid RecruitId(20, 2, 6, 2);
 	FGridCharacterInventoryState Candidate = MakeCharacter(RecruitId, TEXT("CollisionRecruit"));
-	PutInventoryItem(Candidate, 0, SharedItemRuntimeId, 1.0f, 1, INDEX_NONE);
+	PutInventoryItem(Candidate, 0, SharedItemRuntimeId, 1, INDEX_NONE);
 	Inventory->PartyInventoryState.CharacterPool.Add(Candidate);
 
 	FString PreOwnershipError;

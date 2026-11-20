@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.112 — Fixtures recrutement et propriété
+
+Parent 7fb7d0c31b83559e240e6611896140dc7a163dbe : attendre SilentTask et LocalAuto SUCCESS. Voir [5G.112](ARM_CLEAN06_5G112_CANONICAL_RECRUITMENT_FIXTURES.md).
+
 ## ARM-CLEAN06.5G.111 — Fixtures mains canoniques
 
 Parent 499093671105a9d2faf7a9df07e16c4fb39c157c : attendre SilentTask et LocalAuto SUCCESS. Restaurer la parité de placement OffHand des équipements non-ARM à deux mains sans modifier les choix contextuels. Voir [5G.111](ARM_CLEAN06_5G111_CANONICAL_TWO_HAND_FIXTURES.md).

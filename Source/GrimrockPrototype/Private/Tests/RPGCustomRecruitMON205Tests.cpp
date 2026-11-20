@@ -86,9 +86,7 @@ namespace RPGCustomRecruitMON205Tests
 		Slot.bOccupied = true;
 		Slot.Item.RuntimeObjectId = FGuid(20, 5, 7, 50);
 		Slot.Item.ItemDefinitionId = TEXT("Item_InvalidOwnership");
-		Slot.Item.DisplayName = FText::FromString(TEXT("Ownership invalide"));
 		Slot.Item.Quantity = 1;
-		Slot.Item.Weight = 1.0f;
 		Slot.Item.OwnerType = EGridItemOwnerType::CharacterInventory;
 		Slot.Item.OwnerGuid = FGuid(20, 5, 7, 99);
 		Slot.Item.OwnerCharacterIndex = 99;
