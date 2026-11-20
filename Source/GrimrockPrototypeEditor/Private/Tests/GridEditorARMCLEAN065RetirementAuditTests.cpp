@@ -28,6 +28,32 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         Audit.Report->GetArrayField(TEXT("canonical_ids_without_legacy_source")).Num(), 0);
     TestEqual(TEXT("No external package referencer remains after native 5F"),
         int32(Audit.Report->GetNumberField(TEXT("external_referencer_edges"))), 0);
+    const auto& Categories = Audit.Report->GetArrayField(TEXT("puzzle_category_sources"));
+    TestEqual(TEXT("Every native historical source has explicit category evidence"), Categories.Num(), 48);
+    TSet<FName> CategoryIds;
+    int32 ArmCategories = 0;
+    for (const auto& Value : Categories)
+    {
+        const auto Row = Value->AsObject();
+        const FName Id(*Row->GetStringField(TEXT("item_id")));
+        TestFalse(TEXT("Category evidence has no duplicate identity"), CategoryIds.Contains(Id));
+        CategoryIds.Add(Id);
+        TestTrue(TEXT("Category evidence retains exact source category"), !Row->GetStringField(TEXT("legacy_type")).IsEmpty());
+        TestTrue(TEXT("Category evidence has canonical match"), Row->GetBoolField(TEXT("canonical_id_exists")));
+        TestTrue(TEXT("Canonical tags captured independently"), Row->HasTypedField<EJson::Array>(TEXT("canonical_tags")));
+        if (Row->GetBoolField(TEXT("armament"))) ++ArmCategories;
+    }
+    TestEqual(TEXT("ARM category evidence"), ArmCategories, 22);
+    TestTrue(TEXT("Native level assets scanned for category links"),
+        Audit.Report->GetNumberField(TEXT("puzzle_level_assets_scanned")) > 0);
+    for (const auto& Value : Audit.Report->GetArrayField(TEXT("puzzle_type_links")))
+    {
+        const auto Row = Value->AsObject();
+        TestTrue(TEXT("Link evidence retains level and endpoints"),
+            !Row->GetStringField(TEXT("level")).IsEmpty() &&
+            !Row->GetStringField(TEXT("source_id")).IsEmpty() &&
+            !Row->GetStringField(TEXT("target_id")).IsEmpty());
+    }
 
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr, RootPath()));
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());

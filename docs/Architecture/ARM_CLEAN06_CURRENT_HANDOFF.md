@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.63 — Preuves des catégories d'énigmes
+
+Parent e7a77244e88986a453eed045cb07f9addfdebddb. Audit Editor en lecture seule : types historiques des 48 sources, tags canoniques distincts, comparaison ARM et liens natifs de réceptacle. Aucune décision implicite sur la taxonomie non-ARM ni conversion. Voir [5G.63](ARM_CLEAN06_5G63_PUZZLE_CATEGORY_EVIDENCE.md).
+
 ## ARM-CLEAN06.5G.62 — Politique canonique de physique au sol
 
 Parent 4675dba7e16b54980c2636b3077f8024b7d5af3a. Opt-in Chaos, masse unitaire et inclinaison fraîche selon ItemSystem ; fixture Automation isolée seulement. Voir [5G.62](ARM_CLEAN06_5G62_CANONICAL_WORLD_PHYSICS.md).

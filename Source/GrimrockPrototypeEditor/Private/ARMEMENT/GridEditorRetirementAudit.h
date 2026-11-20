@@ -1,6 +1,8 @@
 #pragma once
 
 #include "AssetRegistry/AssetData.h"
+#include "AssetRegistry/ARFilter.h"
+#include "Core/GridLevelAsset.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Dom/JsonObject.h"
@@ -134,6 +136,12 @@ namespace GridEditorRetirementAudit
 
         int32 LegacyCount = 0;
         int32 ExternalEdges = 0;
+        TMap<EGridItemType, int32> LegacyCategoryCounts;
+        TArray<TSharedPtr<FJsonValue>> CategoryRows;
+        const auto CategoryName = [](EGridItemType Type)
+        {
+            return StaticEnum<EGridItemType>()->GetNameStringByValue(static_cast<int64>(Type));
+        };
         TSet<FName> CoveredIds;
         TArray<FName> UnmappedIds;
         for (const FAssetData& Data : Assets)
@@ -158,6 +166,42 @@ namespace GridEditorRetirementAudit
                 Row->SetBoolField(TEXT("canonical_id_exists"), bCovered);
                 if (bCovered) CoveredIds.Add(Legacy->ItemDefinitionId);
                 else UnmappedIds.AddUnique(Legacy->ItemDefinitionId);
+
+                // The old category is evidence of the authored puzzle contract,
+                // not a new runtime authority. Record tags without inferring types.
+                ++LegacyCategoryCounts.FindOrAdd(Legacy->ItemType);
+                auto Category = MakeShared<FJsonObject>();
+                Category->SetStringField(TEXT("source"), ObjectPath);
+                Category->SetStringField(TEXT("item_id"), Legacy->ItemDefinitionId.ToString());
+                Category->SetStringField(TEXT("legacy_type"), CategoryName(Legacy->ItemType));
+                Category->SetBoolField(TEXT("canonical_id_exists"), bCovered);
+                if (bCovered)
+                {
+                    const auto* Definition = Root->ItemDefinitions.FindByPredicate(
+                        [&](const auto& Def) { return IsValid(Def.Get()) && Def->ItemId == Legacy->ItemDefinitionId; });
+                    if (!Definition)
+                    {
+                        Error = TEXT("Missing canonical definition for category evidence: ") + ObjectPath;
+                        return false;
+                    }
+                    const bool bArm = (*Definition)->IsA<UGridArmamentDefinitionAsset>();
+                    FGridResolvedItem Resolved;
+                    if (!Items->ResolveItem(Legacy->ItemDefinitionId, bArm ? 1 : 0, Resolved))
+                    {
+                        Error = TEXT("Unresolved category evidence: ") + ObjectPath;
+                        return false;
+                    }
+                    Category->SetBoolField(TEXT("armament"), bArm);
+                    Category->SetArrayField(TEXT("canonical_tags"), Names(Resolved.Tags));
+                    if (bArm)
+                    {
+                        const EGridItemType Type = Resolved.Weapon.Kind == EGridCanonicalArmamentKind::Shield
+                            ? EGridItemType::Shield : EGridItemType::Weapon;
+                        Category->SetStringField(TEXT("canonical_arm_type"), CategoryName(Type));
+                        Category->SetBoolField(TEXT("arm_type_matches"), Type == Legacy->ItemType);
+                    }
+                }
+                CategoryRows.Add(MakeShared<FJsonValueObject>(Category));
             }
             TArray<FName> AllRefs, Hard, Soft, External;
             const bool bQuery = Registry.GetReferencers(Data.PackageName, AllRefs, EDependencyCategory::All, FDependencyQuery());
@@ -183,6 +227,45 @@ namespace GridEditorRetirementAudit
         Out.Report->SetArrayField(TEXT("legacy_ids_without_canonical"), Names(UnmappedIds));
         Out.Report->SetArrayField(TEXT("canonical_ids_without_legacy_source"), Names(MissingLegacyIds));
         Out.Report->SetArrayField(TEXT("candidates"), Rows);
+        Out.Report->SetArrayField(TEXT("puzzle_category_sources"), CategoryRows);
+
+        // Native level assets, including subclasses. Do not rewrite links,
+        // reverse conditions, Blueprint defaults or save data in this audit.
+        FARFilter LevelFilter;
+        LevelFilter.PackagePaths.Add(FName(TEXT("/Game")));
+        LevelFilter.bRecursivePaths = true;
+        LevelFilter.ClassPaths.Add(UGridLevelAsset::StaticClass()->GetClassPathName());
+        LevelFilter.bRecursiveClasses = true;
+        TArray<FAssetData> LevelAssets;
+        Registry.GetAssets(LevelFilter, LevelAssets);
+        LevelAssets.Sort([](const FAssetData& A, const FAssetData& B)
+            { return A.GetSoftObjectPath().ToString() < B.GetSoftObjectPath().ToString(); });
+        TArray<TSharedPtr<FJsonValue>> TypeLinks;
+        for (const FAssetData& Data : LevelAssets)
+        {
+            const auto* Level = Cast<UGridLevelAsset>(Data.GetAsset());
+            if (!IsValid(Level))
+            {
+                Error = TEXT("Level failed to load for puzzle category evidence: ") +
+                    Data.GetSoftObjectPath().ToString();
+                return false;
+            }
+            for (const FGridObjectLink& Link : Level->Links)
+            {
+                if (Link.Condition != EGridObjectCondition::ReceptacleContainsItemType) continue;
+                auto Row = MakeShared<FJsonObject>();
+                Row->SetStringField(TEXT("level"), Data.GetSoftObjectPath().ToString());
+                Row->SetStringField(TEXT("source_id"), Link.SourceObjectId.ToString());
+                Row->SetStringField(TEXT("target_id"), Link.TargetObjectId.ToString());
+                Row->SetStringField(TEXT("type"), CategoryName(Link.ConditionItemType));
+                Row->SetBoolField(TEXT("inverted"), Link.bInvertCondition);
+                Row->SetNumberField(TEXT("historical_matching_definitions"),
+                    LegacyCategoryCounts.FindRef(Link.ConditionItemType));
+                TypeLinks.Add(MakeShared<FJsonValueObject>(Row));
+            }
+        }
+        Out.Report->SetNumberField(TEXT("puzzle_level_assets_scanned"), LevelAssets.Num());
+        Out.Report->SetArrayField(TEXT("puzzle_type_links"), TypeLinks);
         Out.Report->SetBoolField(TEXT("native_root_dirty"), Root->GetOutermost()->IsDirty());
         return !Root->GetOutermost()->IsDirty();
     }
