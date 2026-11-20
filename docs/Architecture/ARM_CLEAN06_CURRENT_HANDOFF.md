@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.89 — Diagnostic de refus des caches
+
+Parent be0f6ed88fede589893542258b6515ac9489130b : SilentTask, LocalAuto et preuve native 5G88 SUCCESS ; CacheParity FAILURE. Rapport exact du parent seulement, quatre catégories booléennes sans données privées. Aucun accès aux saves live, aucune nouvelle copie ni conversion. Voir [5G.89](ARM_CLEAN06_5G89_CACHE_REFUSAL_DIAGNOSTIC.md). Les catégories signalées commandent la suite, jamais le retrait automatique.
+
 ## ARM-CLEAN06.5G.88 — Redondance des caches SaveGame
 
 Parent 1fe6ddc68823cbbc7fa8c9c2fd9ae8b5f0b67b18. Rapport #212 : 72 BP, zéro pin. Audit privé des caches nom/poids, refuse divergences, normalisation mémoire uniquement si redondance attestée ; deux statuts natifs Evidence et CacheParity après compilation/tests. Voir [5G.88](ARM_CLEAN06_5G88_INSTANCE_CACHE_SAVE_EVIDENCE.md). Aucun retrait autorisé.

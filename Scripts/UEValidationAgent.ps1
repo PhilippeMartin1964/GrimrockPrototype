@@ -982,6 +982,21 @@ try {
             }
         }
 
+        if ($LASTEXITCODE -eq 0 -and $EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.]89:') {
+            $Context='UE5.5.4/ARM-CLEAN06.5G89'
+            try {
+                $Diagnostic=& (Join-Path $WorktreePath 'Scripts\GetARM_CLEAN06_5G89_CacheRefusal.ps1') -StateRoot $StateRoot -WorktreePath $WorktreePath -ExpectedHead $Sha
+                foreach ($Category in @('NameConflict','WeightConflict','InvalidIdentity','NormalizedRoundtrip')) {
+                    if ($Diagnostic.$Category -isnot [bool]) { throw 'Invalid diagnostic category.' }
+                    $CategoryState=if ($Diagnostic.$Category) {'failure'} else {'success'}
+                    Publish-CommitStatus -Sha $Sha -State $CategoryState -Context ($Context+'.'+$Category) -Description 'Fixed refusal category only; failure means detected'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Private baseline refusal classified'
+            } catch {
+                Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Private baseline diagnosis unavailable'
+            }
+        }
+
         # One-shot read-only save proof. Never publish private rows, paths,
         # hashes, save names or native log content.
         $Subject=@(& git -C $WorktreePath log -1 '--format=%s')
