@@ -6,6 +6,7 @@
 #include "RPG/RPGStartingEquipmentService.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "../UI/GridInventoryItemMetadataReadModel.h"
 #include "UObject/StrongObjectPtr.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063AMStartingKitLevels,
@@ -91,9 +92,13 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
             return false;
         const FString ExpectedName = Canonical.DisplayName.IsEmpty()
             ? ExpectedIds[Index].ToString() : Canonical.DisplayName.ToString();
-        TestEqual(TEXT("Starter name comes from ItemSystem"), Item.DisplayName.ToString(), ExpectedName);
+        TestTrue(TEXT("Starter has no cached name"), Item.DisplayName.IsEmpty());
+        TestEqual(TEXT("Starter has no cached weight"), Item.Weight, 0.0f);
+        const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), nullptr, Item);
+        TestTrue(TEXT("Starter metadata resolves"), Metadata.bResolved);
+        TestEqual(TEXT("Starter name comes from ItemSystem"), Metadata.DisplayName.ToString(), ExpectedName);
         TestTrue(TEXT("Starter weight comes from ItemSystem"),
-            FMath::IsNearlyEqual(Item.Weight, Canonical.WeightKg));
+            FMath::IsNearlyEqual(Metadata.UnitWeightKg, Canonical.WeightKg));
     }
     TestFalse(TEXT("No extra physical item in bag"), Character.InventorySlots[3].Item.IsValid());
     TestFalse(TEXT("No MainHand item invented"), Equipment.MainHand.IsValid());

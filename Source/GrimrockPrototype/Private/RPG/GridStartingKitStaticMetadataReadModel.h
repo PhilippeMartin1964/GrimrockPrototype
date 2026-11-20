@@ -3,7 +3,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
 
-/** Starter kit may save old snapshots, but their value comes from ItemSystem. */
+/** Read-only starter metadata projection; historical fixture values are not serialized. */
 struct FGridStartingKitStaticMetadataReadView
 {
 	bool bCanonicalIdentity = false;

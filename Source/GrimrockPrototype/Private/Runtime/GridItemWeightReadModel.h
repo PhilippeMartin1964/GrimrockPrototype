@@ -6,7 +6,8 @@
 /**
  * ARM-CLEAN06.3I: Read-only unit mass for an actual persisted item.
  * Canonical ItemIds always read WeightKg from the single registry at ItemLevel.
- * Copies of Weight on instances remain serialized only for 06.4 migration.
+ * Weight copies are no longer serialized (5G93); remaining fixture-only reads
+ * are temporary until the C++ members are retired.
  */
 struct FGridItemWeightReadModel
 {

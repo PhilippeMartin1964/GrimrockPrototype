@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.95 — Génération des instances sans métadonnées dupliquées
+
+Parent 4259f93607192acedd1c72bf1e1d53e06de9114d : publication seulement après SilentTask et LocalAuto SUCCESS. Les loots et kits de départ canoniques ne recopient plus nom/masse, tests MON8 et 3AM lisent l'autorité canonique. Fixtures non canoniques isolées conservées. Voir [5G.95](ARM_CLEAN06_5G95_GENERATION_CACHE_WRITER_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.94.1 — Alignement de la preuve de restitution
 
 Parent 5359516194ebbfd2b2c2e5dd6f1348c1f99b581e : SilentTask SUCCESS, LocalAuto FAILURE (issue #213, unique test ARMEMENT01.8.Receptacles.InsertRestoreTake). Le test exigeait encore nom/masse dupliqués après insertion sac. Contrôler les caches vides et la valeur canonique projetée, garder toutes les assertions d'identité, de récit et de restitution. Les assertions de la phase d'acceptation du réceptacle restent inchangées jusqu'au lot de transfert. Attendre les deux statuts du SHA correctif ; rebaser le lot 5G95 préparé, ne jamais publier son ancien arbre.

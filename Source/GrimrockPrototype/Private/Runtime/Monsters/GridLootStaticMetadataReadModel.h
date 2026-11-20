@@ -3,7 +3,7 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
-/** Temporary instance metadata copies, resolved only from ItemSystem. */
+/** Read-only loot validation and metadata projection from ItemSystem. */
 struct FGridLootStaticMetadataReadView
 {
 	bool bCanonicalIdentity = false;

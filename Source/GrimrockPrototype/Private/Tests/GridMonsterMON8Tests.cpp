@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "GridCanonicalLootTestScope.h"
+#include "../UI/GridInventoryItemMetadataReadModel.h"
 
 #include "Core/GridDirectionUtils.h"
 #include "Engine/Engine.h"
@@ -653,7 +654,12 @@ bool FGridClean064X60PointerlessLootDeath::RunTest(const FString&)
     if (!TestEqual(TEXT("Stable Stone ID"), Item.ItemDefinitionId, FName(TEXT("Stone"))) ||
         !TestEqual(TEXT("N0 untouched"), Item.ItemLevel, 0) ||
         !TestEqual(TEXT("Quantity unchanged"), Item.Quantity, 1) ||
-        !TestEqual(TEXT("Unit mass from canonical registry"), Item.Weight, Stone.WeightKg))
+        !TestEqual(TEXT("Loot has no stored unit mass"), Item.Weight, 0.0f) ||
+        !TestTrue(TEXT("Loot has no stored name"), Item.DisplayName.IsEmpty()))
+        return false;
+    const auto LootMeta = FGridInventoryItemMetadataReadModel::Resolve(Registry, nullptr, Item);
+    if (!TestTrue(TEXT("Loot metadata resolved"), LootMeta.bResolved) ||
+        !TestEqual(TEXT("Unit mass from canonical registry"), LootMeta.UnitWeightKg, Stone.WeightKg))
         return false;
     AGridItemActor* Found = nullptr;
     for (TActorIterator<AGridItemActor> It(F.World); It; ++It)

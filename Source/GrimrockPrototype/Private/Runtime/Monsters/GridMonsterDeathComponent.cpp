@@ -368,8 +368,7 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 				*GetNameSafe(OwnerMonster), *Result.ItemDefinitionId.ToString(), FixedItemLevel);
 			continue;
 		}
-		ItemInstance.DisplayName = Metadata.DisplayName;
-		ItemInstance.Weight = Metadata.UnitWeightKg;
+		// Name and mass belong to the canonical definition, not the loot instance.
 		ItemInstance.OwnerType = EGridItemOwnerType::World;
 		ItemInstance.OwnerGuid = FGuid();
 		ItemInstance.OwnerCharacterIndex = INDEX_NONE;
