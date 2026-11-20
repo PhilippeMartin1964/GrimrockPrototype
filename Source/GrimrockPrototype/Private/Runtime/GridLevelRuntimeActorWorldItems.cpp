@@ -1179,9 +1179,19 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 	const UGridItemSubsystem* SpawnRegistry = SpawnGI ? SpawnGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	const bool bCanonicalIdentity = SpawnRegistry &&
 		SpawnRegistry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
+	bool bRequireCanonical = true;
+#if WITH_DEV_AUTOMATION_TESTS
+	bRequireCanonical = !GIsAutomationTesting || SpawnGI != nullptr;
+#endif
 	FGridResolvedItem Canonical;
 	const bool bCanonicalResolved = bCanonicalIdentity &&
-		SpawnRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, Canonical);
+		SpawnRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, Canonical) &&
+		Canonical.IsValid() && Canonical.ItemId == ItemInstance.ItemDefinitionId &&
+		Canonical.ItemLevel == ItemInstance.ItemLevel &&
+		(Canonical.bIsArmament ? ItemInstance.ItemLevel >= 1 : ItemInstance.ItemLevel == 0) &&
+		ItemInstance.Quantity == 1;
+	if ((bRequireCanonical || bCanonicalIdentity) && !bCanonicalResolved)
+		return nullptr;
 	// A thrown item must retain a valid persisted physical level.
 	// A rejected registered identity cannot launch from an old definition.
 	const bool bValidCanonicalPhysicalLevel = !bCanonicalIdentity ||
@@ -1203,7 +1213,7 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 		FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f &&
 		FMath::IsFinite(Canonical.GenericThrow.InitialSpeed) &&
 		Canonical.GenericThrow.InitialSpeed > KINDA_SMALL_NUMBER && FMath::IsFinite(Canonical.GenericThrow.Arc);
-	const bool bMatchingLegacy = IsValid(ItemDefinition) &&
+	const bool bMatchingLegacy = !bRequireCanonical && !bCanonicalIdentity && IsValid(ItemDefinition) &&
 		ItemDefinition->ItemDefinitionId == ItemInstance.ItemDefinitionId;
 	const bool bValidProjectileSource = bRangedAmmunitionProjectile
 		? (bCanonicalIdentity

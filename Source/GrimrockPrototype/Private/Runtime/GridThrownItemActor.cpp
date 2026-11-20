@@ -180,14 +180,25 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	ThrownItemInstance = InItemInstance;
 	SourceCellX = InSourceCellX;
 	SourceCellY = InSourceCellY;
-	ImpactDropOffset = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowImpactDropOffset) : 12.0f;
-
 	const UWorld* World = GetWorld();
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GameInstance
 		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	bool bRequireCanonical = true;
+#if WITH_DEV_AUTOMATION_TESTS
+	bRequireCanonical = !GIsAutomationTesting || GameInstance != nullptr;
+#endif
 	const FGridCanonicalProjectileVisualReadView Canonical =
 		FGridCanonicalProjectileVisualReadModel::Resolve(Registry, InItemInstance);
+	if ((bRequireCanonical || Canonical.bCanonicalIdentity) &&
+		(!InItemInstance.IsValid() || InItemInstance.Quantity != 1 ||
+		 !Canonical.bCanonicalIdentity || !Canonical.bResolved))
+	{
+		Destroy();
+		return;
+	}
+	if (Canonical.bCanonicalIdentity) InDefinition = nullptr;
+	ImpactDropOffset = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowImpactDropOffset) : 12.0f;
 	const bool bCanonicalNonArmFlight = Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bIsNonArmament;
 	const bool bCanonicalGenericArm = Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bGenericArmamentFlight;
 	const bool bPointerlessCanonical = Canonical.bCanonicalIdentity;

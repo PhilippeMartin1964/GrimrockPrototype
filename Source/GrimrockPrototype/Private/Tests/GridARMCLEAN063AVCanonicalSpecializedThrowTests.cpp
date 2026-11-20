@@ -260,6 +260,12 @@ namespace ARMCLEAN063AV
     Legacy->HandUsage = EGridItemHandUsage::OneHanded;
     Legacy->ThrowSpeed = 1800.0f;
     Legacy->Weight = 0.25f;
+    Test.TestNull(TEXT("Matching obsolete asset cannot authorize an unknown projectile"),
+        F.Runtime->SpawnThrownItemProjectile(Unknown, Legacy, Start, Velocity, 0, 0));
+    FGridItemInstance Oversized = F.Make(Ids[0], 20);
+    Oversized.Quantity = 2;
+    Test.TestNull(TEXT("One physical projectile cannot carry two armaments"),
+        F.Runtime->SpawnThrownItemProjectile(Oversized, Contradictory, Start, Velocity, 0, 0));
     const auto LegacyGate =
         FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Legacy, Unknown, 20);
     Test.TestFalse(TEXT("Unregistered item stays on legacy path"), LegacyGate.bCanonicalIdentity);

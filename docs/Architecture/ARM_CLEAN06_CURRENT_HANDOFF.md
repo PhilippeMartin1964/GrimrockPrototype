@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.57 — Autorité canonique du lancement
+
+Parent 5ee2bc3c62f3be4d0dd26a0382eb969d14bffab5. Publication après deux statuts SUCCESS. Le spawn exige un ItemId et niveau exacts, une unité physique, une résolution canonique valide ; l'initialisation native rejette aussi le contournement. Le fallback est limité aux fixtures sans GameInstance pendant Automation. Test 3AV InvalidAndLegacy renforcé. Voir [5G.57](ARM_CLEAN06_5G57_CANONICAL_PROJECTILE_LAUNCH.md).
+
 ## ARM-CLEAN06.5G.56 — Restitution des arrivées différées
 
 Parent 5fcaf31c714821937bef2416c2eb939eecb2be08. Publication après deux statuts SUCCESS. Arrivée en attente validée sans correction GUID/quantité, matérialisation sans chaînage ni notification de plaque avant dequeue, notification après transfert d'ownership, arrêt de boucle si changement de niveau. Test PIT03 garde les lignes invalides en attente. Voir [5G.56](ARM_CLEAN06_5G56_INBOUND_OWNERSHIP_COMMIT.md).
