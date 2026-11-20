@@ -83,7 +83,6 @@ bool FWeaponIndustrial05ActiveMatrix::RunTest(const FString&)
             FGridItemInstance Item;
             Item.RuntimeObjectId = FGuid::NewGuid();
             Item.ItemDefinitionId = Definition->ItemDefinitionId;
-            Item.DisplayName = Definition->DisplayName;
             Item.ItemLevel = Level;
             Item.Quantity = 1;
             Item.OwnerType = EGridItemOwnerType::CharacterInventory;

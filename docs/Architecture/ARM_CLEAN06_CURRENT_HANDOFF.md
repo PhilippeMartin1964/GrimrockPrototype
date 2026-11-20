@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.124 — Fixtures Editor sans copies de métadonnées
+
+Parent `e121171d235b0c823a0dfb334a61dd478c30ced5` : publier après SilentTask et LocalAuto SUCCESS. Audit matrices d'armes N1/N20, SaveGame v27 et tests de trajectoire, récupération et flèche fichée sans copie de nom/poids dans les instances. Voir [5G.124](ARM_CLEAN06_5G124_EDITOR_INSTANCE_FIXTURES.md).
+
 ## ARM-CLEAN06.5G.123 — Instances de combat MON12 sans copie de nom
 
 Parent `a810b7a347aa79ec2961d5f66c9af3a775c8b23a` : après SilentTask et LocalAuto SUCCESS. Suppression des 18 noms recopiés dans les instances des tests MON12 ; conserver toutes les définitions de capacités, objets et actions et leurs contrôles. Voir [5G.123](ARM_CLEAN06_5G123_MON12_PHYSICAL_INSTANCE_NAMES.md).

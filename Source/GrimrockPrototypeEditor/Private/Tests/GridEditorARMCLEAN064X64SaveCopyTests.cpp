@@ -66,7 +66,6 @@ namespace
             Slot.Item.OwnerGuid = C.CharacterId;
             Slot.Item.OwnerCharacterIndex = I < 2 ? I : INDEX_NONE;
             Slot.Item.OwnerType = EGridItemOwnerType::CharacterInventory;
-            Slot.Item.DisplayName = FText::FromString(TEXT("Saved elixir name"));
             auto& Hotbar = C.CombatHotbarSlots[2];
             Hotbar.Reset(2);
             Hotbar.ActionId = Identity::SharedLegacyAction();

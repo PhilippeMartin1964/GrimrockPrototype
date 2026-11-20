@@ -87,7 +87,6 @@ bool FARMLOT02136BMissT::RunTest(const FString&)
         FGridItemInstance Ammo;
         Ammo.RuntimeObjectId = FGuid::NewGuid();
         Ammo.ItemDefinitionId = Arrow->ItemDefinitionId;
-        Ammo.Weight = Arrow->Weight;
         Ammo.Quantity = 1;
         Ammo.OwnerType = EGridItemOwnerType::World;
         Ammo.OwnerCharacterIndex = INDEX_NONE;

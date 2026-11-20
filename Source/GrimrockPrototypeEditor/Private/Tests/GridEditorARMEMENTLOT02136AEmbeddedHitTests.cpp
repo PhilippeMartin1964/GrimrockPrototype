@@ -75,7 +75,6 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
     Unit.ItemDefinitionId = TEXT("Item_Arrows_01");
     Unit.ItemLevel = 0;
     Unit.Quantity = 1;
-    Unit.Weight = CanonicalArrow.WeightKg;
     Unit.OwnerType = EGridItemOwnerType::World;
     Unit.OwnerCharacterIndex = INDEX_NONE;
 

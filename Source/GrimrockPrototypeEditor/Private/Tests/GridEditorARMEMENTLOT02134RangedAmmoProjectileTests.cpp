@@ -67,7 +67,6 @@ bool FARMLot02134RangedArrow::RunTest(const FString&)
     Unit.RuntimeObjectId = FGuid::NewGuid();
     Unit.ItemDefinitionId = Arrow->ItemDefinitionId;
     Unit.Quantity = 1;
-    Unit.Weight = Arrow->Weight;
     Unit.OwnerType = EGridItemOwnerType::World;
     Unit.OwnerCharacterIndex = INDEX_NONE;
     struct FRearDoorCase
