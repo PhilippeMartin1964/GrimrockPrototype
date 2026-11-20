@@ -1,13 +1,13 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGSkillAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -17,6 +17,7 @@ namespace ARMEMENT01162A
     struct FWorldFixture
     {
         UWorld* World = nullptr;
+        FGridCanonicalLootTestScope RegistryScope;
         FWorldFixture()
         {
             const UWorld::InitializationValues Values = UWorld::InitializationValues()
@@ -32,11 +33,13 @@ namespace ARMEMENT01162A
             {
                 FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
                 Context.SetCurrentWorld(World);
+                RegistryScope.Attach(World);
             }
         }
         ~FWorldFixture()
         {
             if (!World) return;
+            RegistryScope.Detach();
             World->DestroyWorld(false);
             if (GEngine) GEngine->DestroyWorldContext(World);
         }
@@ -183,16 +186,15 @@ bool FARMEMENT01162ARuntime::RunTest(const FString&)
     TestEqual(TEXT("Rejected attempt preserves RNG"),
         Stream.GetCurrentSeed(), SeedBeforeReject);
 
-    UGridItemDefinitionAsset* Tool = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DisarmTools_01.DA_Item_DisarmTools_01"));
-    if (!TestNotNull(TEXT("Production disarm tool exists"), Tool) ||
-        !TestTrue(TEXT("Published tool is registered by its exact identity"),
-            Inventory->RegisterItemDefinition(Tool)))
+    const FName ToolId(TEXT("Item_DisarmTools_01"));
+    FGridResolvedItem Tool;
+    if (!TestTrue(TEXT("Production tool resolves from canonical ItemSystem"),
+        Fixture.RegistryScope.Registry && Fixture.RegistryScope.Registry->ResolveItem(ToolId, 0, Tool)))
         return false;
 
     FGridItemInstance ToolItem;
     ToolItem.RuntimeObjectId = FGuid::NewGuid();
-    ToolItem.ItemDefinitionId = Tool->ItemDefinitionId;
+    ToolItem.ItemDefinitionId = ToolId;
     ToolItem.Quantity = 1;
     if (!TestTrue(TEXT("Tool instance configured"),
         Inventory->ApplyItemDefinitionToInstance(ToolItem)) ||
@@ -208,7 +210,7 @@ bool FARMEMENT01162ARuntime::RunTest(const FString&)
     TestEqual(TEXT("Unsafe failure fires repeatable trap"),
         Runtime->GetDungeonTrapState(Trap.InstanceId), EGridDungeonTrapState::Triggered);
     TestEqual(TEXT("Reusable tool not consumed on failure"),
-        Inventory->CountItemDefinitionInCharacterInventory(0, Tool->ItemDefinitionId), 1);
+        Inventory->CountItemDefinitionInCharacterInventory(0, ToolId), 1);
 
     Def->DisarmDifficulty = 1;
     FRandomStream SuccessStream(162);
@@ -217,7 +219,7 @@ bool FARMEMENT01162ARuntime::RunTest(const FString&)
     TestTrue(TEXT("Low DC check succeeds"), Check.bSuccess);
     TestTrue(TEXT("Persistent instance is disarmed"), Runtime->IsTriggerTrapDisarmed(Trap.InstanceId));
     TestEqual(TEXT("Reusable tool remains after successful disarm"),
-        Inventory->CountItemDefinitionInCharacterInventory(0, Tool->ItemDefinitionId), 1);
+        Inventory->CountItemDefinitionInCharacterInventory(0, ToolId), 1);
     TestFalse(TEXT("Disarmed trap no longer offers a second skill check"),
         Runtime->GetTriggerTrapDisarmDifficulty(Trap.InstanceId, Difficulty));
 

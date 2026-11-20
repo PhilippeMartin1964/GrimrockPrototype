@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -8,7 +9,6 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGSkillAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridDungeonTrapDisarmOdds.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -19,6 +19,7 @@ namespace TRAP018
     struct FWorldFixture
     {
         UWorld* World = nullptr;
+        FGridCanonicalLootTestScope RegistryScope;
         FWorldFixture()
         {
             const UWorld::InitializationValues Values = UWorld::InitializationValues()
@@ -34,12 +35,14 @@ namespace TRAP018
             {
                 FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
                 Context.SetCurrentWorld(World);
+                RegistryScope.Attach(World);
             }
             if (World) World->InitializeActorsForPlay(FURL());
         }
         ~FWorldFixture()
         {
             if (!World) return;
+            RegistryScope.Detach();
             World->DestroyWorld(false);
             if (GEngine) GEngine->DestroyWorldContext(World);
         }
@@ -77,18 +80,16 @@ namespace TRAP018
         Rank.Rank = 1;
         Hero.SkillRanks.Add(Rank);
 
-        UGridItemDefinitionAsset* Tool = NewObject<UGridItemDefinitionAsset>(Outer);
-        Tool->ItemDefinitionId = TEXT("Item_DisarmTools_01");
-        Tool->DisplayName = FText::FromString(TEXT("Outils"));
-        Tool->Description = FText::FromString(TEXT("Trousse authentique"));
-        Tool->ItemType = EGridItemType::Misc;
-        Tool->Weight = 0.5f;
-        Tool->HandUsage = EGridItemHandUsage::NotHandHeld;
-        Tool->ItemTags = { TEXT("Tool.Disarm") };
-        if (!Inventory->RegisterItemDefinition(Tool)) return false;
+        (void)Outer;
+        const FName ToolId(TEXT("Item_DisarmTools_01"));
+        const UWorld* World = Party->GetWorld();
+        UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+        const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+        FGridResolvedItem Tool;
+        if (!Registry || !Registry->ResolveItem(ToolId, 0, Tool)) return false;
         FGridItemInstance Item;
         Item.RuntimeObjectId = FGuid::NewGuid();
-        Item.ItemDefinitionId = Tool->ItemDefinitionId;
+        Item.ItemDefinitionId = ToolId;
         Item.Quantity = 1;
         return Inventory->ApplyItemDefinitionToInstance(Item) &&
             Inventory->AddItemToCharacterInventory(0, Item);

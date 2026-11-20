@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
@@ -61,6 +62,7 @@ namespace ARMEMENT01163
     struct FWorldFixture
     {
         UWorld* World = nullptr;
+        FGridCanonicalLootTestScope RegistryScope;
         FWorldFixture()
         {
             const UWorld::InitializationValues Values = UWorld::InitializationValues()
@@ -76,12 +78,14 @@ namespace ARMEMENT01163
             {
                 FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
                 Context.SetCurrentWorld(World);
+                RegistryScope.Attach(World);
             }
             if (World) World->InitializeActorsForPlay(FURL());
         }
         ~FWorldFixture()
         {
             if (!World) return;
+            RegistryScope.Detach();
             World->DestroyWorld(false);
             if (GEngine) GEngine->DestroyWorldContext(World);
         }
@@ -210,8 +214,11 @@ bool FARMEMENT01163NewGameDisarmSave::RunTest(const FString&)
     TestEqual(TEXT("Tool belongs to inventory, not equipment"),
         Tools->OwnerType, EGridItemOwnerType::CharacterInventory);
     TestEqual(TEXT("Tool retains quantity one"), Tools->Quantity, 1);
-    TestEqual(TEXT("Starter tool definition is registered"),
-        Inventory->FindItemDefinition(Tool->ItemDefinitionId), Tool);
+    TestNull(TEXT("Starter tool does not depend on historical inventory cache"),
+        Inventory->FindItemDefinition(Tool->ItemDefinitionId));
+    FGridResolvedItem CanonicalTool;
+    TestTrue(TEXT("Starter tool resolves from canonical ItemSystem"), Fixture.RegistryScope.Registry &&
+        Fixture.RegistryScope.Registry->ResolveItem(Tool->ItemDefinitionId, 0, CanonicalTool));
     TestEqual(TEXT("Main-hand weapon unchanged"), Stiletto.ItemDefinitionId,
         FName(TEXT("Weapon_Stiletto_01")));
     TestEqual(TEXT("Kit ID saved on hero"), Hero.StartingEquipmentKitId,

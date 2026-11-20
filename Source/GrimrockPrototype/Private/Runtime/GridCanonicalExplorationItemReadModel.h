@@ -26,23 +26,17 @@ struct FGridCanonicalExplorationItemReadModel
     }
 
     static bool HasDisarmTool(const UGridItemSubsystem* Registry,
-        const UGridItemDefinitionAsset* Old, const FGridCharacterInventoryState& Character, FName Tag)
+        const FGridCharacterInventoryState& Character, FName Tag)
     {
         const FName Id(TEXT("Item_DisarmTools_01"));
-        if (Tag.IsNone()) return false;
-        const bool bCanonical = Registry && Registry->HasCanonicalItem(Id);
+        FGridResolvedItem Tool;
+        if (Tag.IsNone() || !Registry || !Registry->ResolveItem(Id, 0, Tool) ||
+            !Tool.IsValid() || Tool.bIsArmament || !Tool.Tags.Contains(Tag))
+            return false;
         for (const auto& Slot : Character.InventorySlots)
         {
-            if (Slot.IsEmpty() || Slot.Item.ItemDefinitionId != Id || !Slot.Item.IsValid()) continue;
-            if (bCanonical)
-            {
-                FGridResolvedItem Resolved;
-                if (Slot.Item.ItemLevel == 0 && Registry->ResolveItem(Id, Slot.Item.ItemLevel, Resolved) &&
-                    Resolved.IsValid() && !Resolved.bIsArmament &&
-                    Slot.Item.Quantity <= FMath::Max(1, Resolved.MaxStack) && Resolved.Tags.Contains(Tag))
-                    return true;
-            }
-            else if (IsValid(Old) && Old->ItemDefinitionId == Id && Old->ItemTags.Contains(Tag))
+            if (!Slot.IsEmpty() && Slot.Item.IsValid() && Slot.Item.ItemDefinitionId == Id &&
+                Slot.Item.ItemLevel == 0 && Slot.Item.Quantity <= FMath::Max(1, Tool.MaxStack))
                 return true;
         }
         return false;
@@ -51,8 +45,7 @@ struct FGridCanonicalExplorationItemReadModel
     static bool HasDisarmTool(const UGridPartyInventoryComponent* Inventory, int32 Index, FName Tag)
     {
         if (!IsValid(Inventory) || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Index)) return false;
-        return HasDisarmTool(RegistryFor(Inventory), Inventory->FindItemDefinition(TEXT("Item_DisarmTools_01")),
-            Inventory->PartyInventoryState.ActiveCharacters[Index], Tag);
+        return HasDisarmTool(RegistryFor(Inventory), Inventory->PartyInventoryState.ActiveCharacters[Index], Tag);
     }
 
     static bool IsSurfaceItem(FName Id)

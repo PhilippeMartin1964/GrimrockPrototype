@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Engine/StaticMesh.h"
@@ -10,7 +11,6 @@
 #include "Runtime/GridGenericObjectActor.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "RPG/RPGSkillAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -36,12 +36,19 @@ bool FTRAP014BestMember::RunTest(const FString&)
         FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
         Context.SetCurrentWorld(World);
     }
+    FGridCanonicalLootTestScope RegistryScope;
     auto Cleanup = [&]()
     {
+        RegistryScope.Detach();
         World->DestroyWorld(false);
         if (GEngine) GEngine->DestroyWorldContext(World);
     };
 
+    if (!TestTrue(TEXT("Canonical trap fixture registry"), RegistryScope.Attach(World)))
+    {
+        Cleanup();
+        return false;
+    }
     World->InitializeActorsForPlay(FURL());
     AGridLevelRuntimeActor* Runtime = World->SpawnActor<AGridLevelRuntimeActor>();
     AGrimrockPartyPawn* Party = World->SpawnActor<AGrimrockPartyPawn>();
@@ -130,23 +137,17 @@ bool FTRAP014BestMember::RunTest(const FString&)
         Inventory->PartyInventoryState.ActiveCharacters[i].SkillRanks.Add(Rank);
     }
 
-    UGridItemDefinitionAsset* Tool = NewObject<UGridItemDefinitionAsset>(Runtime);
-    Tool->ItemDefinitionId = TEXT("Item_DisarmTools_01");
-    Tool->DisplayName = FText::FromString(TEXT("Tools"));
-    Tool->Description = FText::FromString(TEXT("Reusable precision tools"));
-    Tool->Weight = 0.5f;
-    Tool->HandUsage = EGridItemHandUsage::NotHandHeld;
-    Tool->ItemType = EGridItemType::Misc;
-    Tool->ItemTags = { TEXT("Tool.Disarm") };
-    if (!TestTrue(TEXT("Register authentic tool type"),
-        Inventory->RegisterItemDefinition(Tool)))
+    const FName ToolId(TEXT("Item_DisarmTools_01"));
+    FGridResolvedItem Tool;
+    if (!TestTrue(TEXT("Authentic tool resolves from ItemSystem"),
+        RegistryScope.Registry->ResolveItem(ToolId, 0, Tool)))
     {
         Cleanup();
         return false;
     }
     FGridItemInstance Tools;
     Tools.RuntimeObjectId = FGuid::NewGuid();
-    Tools.ItemDefinitionId = Tool->ItemDefinitionId;
+    Tools.ItemDefinitionId = ToolId;
     Tools.Quantity = 1;
     if (!TestTrue(TEXT("Real inventory tool instance prepared"),
         Inventory->ApplyItemDefinitionToInstance(Tools)))
@@ -231,9 +232,9 @@ bool FTRAP014BestMember::RunTest(const FString&)
 
     // A failed attempt does not consume either tool; success does not either.
     TestEqual(TEXT("Clicked tool still present"),
-        Inventory->CountItemDefinitionInCharacterInventory(0, Tool->ItemDefinitionId), 1);
+        Inventory->CountItemDefinitionInCharacterInventory(0, ToolId), 1);
     TestEqual(TEXT("Performer's tool still present"),
-        Inventory->CountItemDefinitionInCharacterInventory(1, Tool->ItemDefinitionId), 1);
+        Inventory->CountItemDefinitionInCharacterInventory(1, ToolId), 1);
 
     // TRAP01.4.1: failure and rejection must not award any group XP.
     for (const FGridCharacterInventoryState& Hero : Inventory->PartyInventoryState.ActiveCharacters)

@@ -31,13 +31,17 @@ bool FGridARMCLEAN065ExplorationItemReaders::RunTest(const FString&)
     Slot.Item.ItemLevel = 0;
     Slot.Item.Quantity = 1;
     TestTrue(TEXT("Actual pointerless Saboteur tools qualify"),
-        Read::HasDisarmTool(Registry.Get(), nullptr, Character, TEXT("Tool.Disarm")));
-    TestFalse(TEXT("Wrong tag rejected"), Read::HasDisarmTool(Registry.Get(), nullptr, Character, TEXT("Wrong.Tag")));
+        Read::HasDisarmTool(Registry.Get(), Character, TEXT("Tool.Disarm")));
+    TestFalse(TEXT("Missing registry cannot authorize a tool"), Read::HasDisarmTool(nullptr, Character, TEXT("Tool.Disarm")));
+    Slot.Item.Quantity = MAX_int32;
+    TestFalse(TEXT("Over-capacity tool stack cannot authorize disarm"), Read::HasDisarmTool(Registry.Get(), Character, TEXT("Tool.Disarm")));
+    Slot.Item.Quantity = 1;
+    TestFalse(TEXT("Wrong tag rejected"), Read::HasDisarmTool(Registry.Get(), Character, TEXT("Wrong.Tag")));
     Slot.Item.ItemLevel = 1;
-    TestFalse(TEXT("Wrong physical level rejected"), Read::HasDisarmTool(Registry.Get(), nullptr, Character, TEXT("Tool.Disarm")));
+    TestFalse(TEXT("Wrong physical level rejected"), Read::HasDisarmTool(Registry.Get(), Character, TEXT("Tool.Disarm")));
     Slot.Item.ItemLevel = 0;
     Slot.bOccupied = false;
-    TestFalse(TEXT("Tool must be owned"), Read::HasDisarmTool(Registry.Get(), nullptr, Character, TEXT("Tool.Disarm")));
+    TestFalse(TEXT("Tool must be owned"), Read::HasDisarmTool(Registry.Get(), Character, TEXT("Tool.Disarm")));
     Slot.bOccupied = true;
 
     const FName Items[] = {TEXT("Item_Flask_Oil"), TEXT("Item_SurfaceCatalyst_01")};
