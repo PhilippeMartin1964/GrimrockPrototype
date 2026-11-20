@@ -532,6 +532,72 @@ function Publish-EffectsInventoryIssue {
     }
 }
 
+
+# 5G.68: publish ONLY committed project-asset metadata, never saves/logs.
+function Publish-PuzzleCategoryEvidenceIssue {
+    param([string]$Sha, [string]$WorktreePath, [string]$ReportRoot, [datetime]$NotBeforeUtc)
+    $Subject = @(& git -C $WorktreePath log -1 '--format=%s')
+    if ($LASTEXITCODE -ne 0 -or $Subject.Count -ne 1 -or
+        $Subject[0] -cne 'ARM-CLEAN06.5G.68: publish native puzzle category evidence') { return }
+    $Head = @(& git -C $WorktreePath rev-parse HEAD)
+    if ($LASTEXITCODE -ne 0 -or $Head.Count -ne 1 -or $Head[0] -cne $Sha) { return }
+    $Sessions = @(Get-ChildItem -LiteralPath $ReportRoot -Directory -Filter 'TD04-*')
+    if ($Sessions.Count -ne 1) { return }
+    $Path = Join-Path $Sessions[0].FullName 'PuzzleCategoryEvidence.json'
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return }
+    $File = Get-Item -LiteralPath $Path
+    if ($File.Length -gt 65536 -or $File.LastWriteTimeUtc -lt $NotBeforeUtc) { return }
+    $Report = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    $Types = @('None','Torch','Weapon','Shield','Armor','Jewelry','Key','Gem','Potion','Scroll','Book','Food','Component','Quest','Misc')
+    $Sources = @($Report.sources)
+    if ($Report.schema -ne 1 -or $Sources.Count -ne 48 -or
+        $Report.level_assets_scanned -le 0 -or $Report.level_assets_scanned -gt 10000) { return }
+    $Ids = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $Body = New-Object 'System.Collections.Generic.List[string]'
+    $Body.Add('# ARM-CLEAN06.5G.68 - Categories natives')
+    $Body.Add('')
+    $Body.Add("- Commit : $Sha")
+    $Body.Add('- Contenu versionne uniquement. Aucun chemin local, journal, texte joueur, GUID, sauvegarde ou tag libre.')
+    $Body.Add('')
+    $Body.Add('| ItemId | Type historique | Type ARM canonique | Tags PuzzleCategory existants |')
+    $Body.Add('|---|---|---|---:|')
+    $ArmCount = 0
+    foreach ($Row in @($Sources | Sort-Object -Property item_id)) {
+        $Id = [string]$Row.item_id
+        $Type = [string]$Row.legacy_type
+        $ArmType = [string]$Row.canonical_arm_type
+        $Existing = $Row.existing_puzzle_category_tags
+        if ($Id -cnotmatch '^[A-Za-z][A-Za-z0-9_]{0,95}$' -or -not $Ids.Add($Id) -or
+            $Type -cnotin $Types -or $Row.armament -isnot [bool] -or
+            ($Existing -isnot [int] -and $Existing -isnot [long]) -or $Existing -lt 0 -or $Existing -gt 100) { return }
+        if ($Row.armament) {
+            if ($ArmType -cnotin @('Weapon','Shield')) { return }
+            ++$ArmCount
+        } elseif ($ArmType -cne 'None') { return }
+        $Body.Add("| $Id | $Type | $ArmType | $Existing |")
+    }
+    if ($ArmCount -ne 22) { return }
+    $Body.Add('')
+    $Body.Add("Niveaux analyses : $([int]$Report.level_assets_scanned)")
+    $Body.Add('')
+    $Body.Add('| Type de condition | Nombre de liens |')
+    $Body.Add('|---|---:|')
+    foreach ($Property in $Report.link_counts.PSObject.Properties) {
+        $Type = $Property.Name
+        $Count = $Property.Value
+        if ($Type -cnotin $Types -or ($Count -isnot [int] -and $Count -isnot [long]) -or
+            $Count -lt 0 -or $Count -gt 100000) { return }
+        $Body.Add("| $Type | $Count |")
+    }
+    $Body.Add('')
+    $Body.Add('Ce rapport ne constitue pas une autorisation de retrait.')
+    $Title = '[ARM-CLEAN06.5G.68] Categories natives ' + $Sha.Substring(0,12)
+    $BodyPath = Join-Path $StateRoot ('arm-clean06-5g68-' + $Sha.Substring(0,12) + '.md')
+    $Body | Set-Content -LiteralPath $BodyPath -Encoding UTF8
+    & gh issue create --repo $GitHubRepository --title $Title --body-file $BodyPath | Out-Null
+    if ($LASTEXITCODE -ne 0) { Write-Warning '[5G.68] Publication impossible ; rapport local.' }
+}
+
 # A native cutover has an independent post-write validation. Publish only
 # structured metadata from that exact run, not ordinary validation results
 # and never arbitrary native messages, local paths, saved games or log lines.
@@ -872,6 +938,10 @@ try {
 
         if ($ExitCode -ne 0) { throw "ValidateUE.ps1 a retourne le code $ExitCode. Voir $RunLog et $RunStderrLog." }
         $Phase = 'publication'
+        try {
+            Publish-PuzzleCategoryEvidenceIssue -Sha $Sha -WorktreePath $WorktreePath -ReportRoot $ReportRoot -NotBeforeUtc $EffectsInventoryStartUtc
+        }
+        catch { Write-Warning '[5G.68] Publication du rapport non bloquante.' }
         Publish-CommitStatus -Sha $Sha -State 'success' -Description "Build + Automation OK ($AutomationFilter)"
 
         try {

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.68 — Rapport distant des catégories
+
+Parent 77385a41f2cbdaaad865681432069ea07bd72886. Rapport minimal des 48 catégories et comptes agrégés des liens, export par le test natif et publication limitée au contenu versionné par l'agent. Aucun SaveGame, chemin ou journal. Voir [5G.68](ARM_CLEAN06_5G68_PUZZLE_EVIDENCE_EXPORT.md).
+
 ## ARM-CLEAN06.5G.67 — Source physique des raccourcis
 
 Parent 16d20f38d8626cf423dc21f3d0d9ed062c4712ca. La création de raccourci résout l'instance réellement détenue dans le sac ou la main ; refus des niveaux de drag obsolètes, quantité invalide et propriétaire d'équipement contradictoire. Voir [5G.67](ARM_CLEAN06_5G67_HOTBAR_PHYSICAL_SOURCE.md).
