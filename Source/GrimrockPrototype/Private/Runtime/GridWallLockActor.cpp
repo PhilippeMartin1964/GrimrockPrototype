@@ -266,7 +266,7 @@ bool AGridWallLockActor::AttachInsertedKeyVisual(AGrimrockPartyPawn* PartyPawn, 
 		return false;
 	}
 	const int32 ItemIndex = AddContainedItem(
-		CursorItem.ItemDefinitionId, nullptr, CanonicalVisual, false,
+		CursorItem.ItemDefinitionId, CanonicalVisual, false,
 		1, VisualRuntimeObjectId, CursorItem.ItemLevel);
 	if (ItemIndex == INDEX_NONE)
 	{

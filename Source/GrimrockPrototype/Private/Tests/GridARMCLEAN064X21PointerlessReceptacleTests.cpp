@@ -307,6 +307,21 @@ bool FGridClean065D2CanonicalReceptacleInsertRestore::RunTest(const FString&)
     State.ItemLevel = 0;
     TestFalse(TEXT("Persisted N0 ARM rejected"), R->RestoreRuntimeContainedItem(State, nullptr));
     TestEqual(TEXT("No invalid row added"), R->GetContainedItemCount(), 0);
+    State.ItemLevel = 20;
+    State.Quantity = MAX_int32;
+    TestFalse(TEXT("Persisted over-capacity ARM rejected"), R->RestoreRuntimeContainedItem(State, nullptr));
+    State.Quantity = 1;
+    State.ObjectId.Invalidate();
+    TestFalse(TEXT("Persisted missing GUID cannot be invented"), R->RestoreRuntimeContainedItem(State, nullptr));
+    State.ObjectId = FGuid::NewGuid();
+    const FName PreviousId = State.ItemDefinitionId;
+    State.ItemDefinitionId = TEXT("CLEAN06_5G50_Unknown");
+    TestFalse(TEXT("Persisted unknown identity rejected"), R->RestoreRuntimeContainedItem(State, nullptr));
+    State.ItemDefinitionId = PreviousId;
+    TestTrue(TEXT("Physical N20 restores with exact identity"), R->RestoreRuntimeContainedItem(State, nullptr));
+    R->MaxContainedItems = 2;
+    TestFalse(TEXT("Duplicate restored GUID refused"), R->RestoreRuntimeContainedItem(State, nullptr));
+    TestEqual(TEXT("Exactly one physical object remains"), R->GetContainedItemCount(), 1);
     return !HasAnyErrors();
 }
 

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.50 — Matérialisation centrale des réceptacles
+
+Parent 12fc5685a3bdfdc277351852645863e150231202. Publication après deux statuts SUCCESS. AddContainedItem ne reçoit plus de définition historique, toutes les routes matérialisent le niveau et la quantité exacts dans le registre, seule l’initialisation authorée crée un GUID. Restauration et service restitution rejettent les inconnus ; 5D2 couvre quantité, GUID et identité invalides/rejeu. Voir [5G.50](ARM_CLEAN06_5G50_CANONICAL_RECEPTACLE_MATERIALIZATION.md). Capture, type métier non-ARM et propriété historique réfléchie restent à traiter. Aucun asset/save écrit.
+
 ## ARM-CLEAN06.5G.49 — Insertion et tags de réceptacles canoniques
 
 Parent 57738fe3df12877ed1b4f04baa82dd0ac6f5742c. Publication après deux statuts SUCCESS. Accept-any n’accepte plus un ItemId inconnu, ni niveau/quantité invalides, ni GUID déjà présent. Insertion ID-only conserve l’API réfléchie mais ignore les anciens arguments ; aucune recherche cache au transfert. Tags des conditions proviennent uniquement du registre. X32/3BG renforcés. Voir [5G.49](ARM_CLEAN06_5G49_RECEPTACLE_CANONICAL_INSERTION.md). Type métier non-ARM et restauration historique restent distincts. Aucun asset/save écrit.

@@ -347,8 +347,8 @@ protected:
 	// Internal Item Handling
 	// ============================================================
 
-	int32 AddContainedItem(FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity,
-		FGuid RuntimeObjectId = FGuid(), int32 ItemLevel = 0, bool bPersistedCanonicalInitialItem = false);
+	int32 AddContainedItem(FName ItemDefinitionId, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity,
+		FGuid RuntimeObjectId, int32 ItemLevel);
 
 	bool RemoveContainedItemAtIndex(int32 ItemIndex, FGridContainedReceptacleItem& OutRemovedItem);
 

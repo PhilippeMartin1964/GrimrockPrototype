@@ -21,7 +21,6 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/UILocalizationText.h"
 #include "EngineUtils.h"
-#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogGridReceptacle);
 
@@ -510,7 +509,7 @@ bool AGridReceptacleActor::TryInsertItem(FName ItemDefinitionId, UGridItemDefini
 	{
 		return false; // An ID-only request cannot guess the physical N-level of an ARM.
 	}
-	const int32 NewIndex = AddContainedItem(ItemDefinitionId, nullptr, nullptr, false, 1, Candidate.RuntimeObjectId, 0);
+	const int32 NewIndex = AddContainedItem(ItemDefinitionId, nullptr, false, 1, Candidate.RuntimeObjectId, 0);
 	if (NewIndex == INDEX_NONE) return false;
 	ExecuteInsertionLinks();
 	UE_LOG(LogGridReceptacle, Verbose, TEXT("Receptacle accepted item %s ObjectId=%s Count=%d"),
@@ -534,7 +533,7 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 	const FGridReceptacleItemMetadataReadView InsertedMetadata =
 		FGridReceptacleItemMetadataReadModel::Resolve(Registry, nullptr, CursorItem.ItemDefinitionId, CursorItem.ItemLevel, false);
 	if (!InsertedMetadata.bResolved || !InsertedMetadata.bCanonicalIdentity) return false;
-	const int32 NewIndex = AddContainedItem(CursorItem.ItemDefinitionId, nullptr, nullptr, false,
+	const int32 NewIndex = AddContainedItem(CursorItem.ItemDefinitionId, nullptr, false,
 		CursorItem.Quantity, CursorItem.RuntimeObjectId, CursorItem.ItemLevel);
 
 	if (!ContainedItems.IsValidIndex(NewIndex))
@@ -974,22 +973,11 @@ int32 AGridReceptacleActor::ForceClearRuntimeContents(bool bMarkInitialItemsRemo
 
 bool AGridReceptacleActor::RestoreRuntimeContainedItem(const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor)
 {
-	if (ItemState.ItemDefinitionId.IsNone())
+	if (!ItemState.ObjectId.IsValid() || ItemState.ItemDefinitionId.IsNone() || ItemState.Quantity < 1)
 	{
-		UE_LOG(LogGridReceptacle, Warning,
-			TEXT("GridReceptacle Restore skipped contained item: ReceptacleId=%s RuntimeId=%s no ItemDefinitionId resolved."),
-			*ObjectId.ToString(), *ItemState.ObjectId.ToString());
-		return false;
+		return false; // A persisted item cannot acquire a new identity or quantity.
 	}
-	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
-	if (Registry && Registry->HasCanonicalItem(ItemState.ItemDefinitionId) &&
-		!FGridReceptacleItemMetadataReadModel::Resolve(
-			Registry, nullptr, ItemState.ItemDefinitionId, ItemState.ItemLevel,
-			false).bResolved)
-	{
-		return false; // Saved fixed item: never re-inherit default N1.
-	}
-	const int32 ItemIndex = AddContainedItem(ItemState.ItemDefinitionId, nullptr, ItemActor, false,
+	const int32 ItemIndex = AddContainedItem(ItemState.ItemDefinitionId, ItemActor, false,
 		ItemState.Quantity, ItemState.ObjectId, ItemState.ItemLevel);
 
 	if (ItemIndex == INDEX_NONE)
@@ -997,7 +985,7 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem(const FGridRuntimeItemSta
 		return false;
 	}
 	FGridContainedReceptacleItem& Item = ContainedItems[ItemIndex];
-	Item.RuntimeObjectId = ItemState.ObjectId.IsValid() ? ItemState.ObjectId : FGuid::NewGuid();
+	Item.RuntimeObjectId = ItemState.ObjectId;
 	Item.ItemLevel = ItemState.ItemLevel;
 	Item.bLightsEnabled = ItemState.bLightsEnabled;
 	Item.ReadableContentAsset = ItemState.ReadableContentAsset;
@@ -1109,210 +1097,89 @@ FText AGridReceptacleActor::GetInteractionText_Implementation(UPrimitiveComponen
 }
 
 int32 AGridReceptacleActor::AddContainedItem(
-	FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity,
-	FGuid RuntimeObjectId, int32 ItemLevel, bool bPersistedCanonicalInitialItem)
+	FName ItemDefinitionId, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity,
+	FGuid RuntimeObjectId, int32 ItemLevel)
 {
-	AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor(GetWorld());
-	const UGridItemSubsystem* CanonicalRegistry = ResolveReceptacleItemRegistry(this);
-	// The persisted/cursor/restore routes use the same complete canonical
-	// materialization. Only unconverted initial fixtures retain their old
-	// authoring source until the corresponding test assets are retired.
-	const bool bCanonicalInitialSource = bWasInitialItem && bPersistedCanonicalInitialItem;
-	const bool bKnownExplicit = CanonicalRegistry && CanonicalRegistry->HasCanonicalItem(ItemDefinitionId);
-	const bool bCanonicalWorld = bKnownExplicit && (!bWasInitialItem || bCanonicalInitialSource);
-	if (bCanonicalInitialSource && !bKnownExplicit)
-	{
-		return INDEX_NONE;
-	}
-	ItemDefinitionId = FGridReceptacleContainedIdentityReadModel::Resolve(
-		CanonicalRegistry, ItemDefinition, ItemDefinitionId);
-	if (ItemDefinitionId.IsNone())
-	{
-		return INDEX_NONE;
-	}
-	if (IsFull())
-	{
-		return INDEX_NONE;
-	}
-	// Fresh placement resolves the authored default once. Persisted cursor
-	// and restore paths separately reject invalid registered N0 before here.
-	const FGridReceptacleItemMetadataReadView Metadata =
-		FGridReceptacleItemMetadataReadModel::Resolve(
-			ResolveReceptacleItemRegistry(this), ItemDefinition,
-			ItemDefinitionId, ItemLevel, !bCanonicalInitialSource);
-	if (!Metadata.bResolved)
+	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
+	FGridResolvedItem Resolved;
+	if (IsFull() || !Registry || !Registry->IsConfigured() ||
+		!Registry->ResolveItem(ItemDefinitionId, ItemLevel, Resolved) ||
+		!Resolved.IsValid() || Resolved.ItemId != ItemDefinitionId || Resolved.ItemLevel != ItemLevel ||
+		(!Resolved.bIsArmament && ItemLevel != 0) || Quantity < 1 ||
+		Quantity > FMath::Max(1, Resolved.MaxStack))
 	{
 		UE_LOG(LogGridReceptacle, Warning,
-			TEXT("Receptacle rejected unresolved ItemLevel=%d Item=%s"),
-			ItemLevel, *ItemDefinitionId.ToString());
+			TEXT("Receptacle rejected unresolved ItemLevel=%d Item=%s"), ItemLevel, *ItemDefinitionId.ToString());
 		return INDEX_NONE;
 	}
-	const int32 ResolvedLevel = Metadata.FixedItemLevel;
-	FGridResolvedItem CanonicalProjection;
-	if (bCanonicalWorld)
+	if (!RuntimeObjectId.IsValid())
 	{
-		if (!CanonicalRegistry->ResolveItem(ItemDefinitionId, ResolvedLevel, CanonicalProjection) ||
-			!CanonicalProjection.IsValid() || (!CanonicalProjection.bIsArmament && ResolvedLevel != 0))
-		{
-			return INDEX_NONE;
-		}
-		ItemDefinition = nullptr;
+		if (!bWasInitialItem) return INDEX_NONE;
+		RuntimeObjectId = FGuid::NewGuid(); // Only a fresh authored placement creates its identity.
 	}
-	if (CanonicalRegistry && CanonicalRegistry->HasCanonicalItem(ItemDefinitionId))
-	{
-		// Old authored data must not create an actor with a different ItemId.
-		if (IsValid(ItemDefinition) && ItemDefinition->ItemDefinitionId != ItemDefinitionId)
-		{
-			ItemDefinition = nullptr;
-		}
-		if (IsValid(ItemActor) &&
-			FGridReceptacleContainedIdentityReadModel::ResolveActor(
-				ItemActor, ItemDefinitionId, ResolvedLevel) != ItemDefinitionId)
-		{
-			return INDEX_NONE;
-		}
-	}
+	if (ContainedItems.ContainsByPredicate([RuntimeObjectId](const FGridContainedReceptacleItem& Existing)
+		{ return Existing.RuntimeObjectId == RuntimeObjectId; }))
+		return INDEX_NONE;
+
+	FGridItemInstance Physical;
+	Physical.RuntimeObjectId = RuntimeObjectId;
+	Physical.ItemDefinitionId = ItemDefinitionId;
+	Physical.ItemLevel = ItemLevel;
+	Physical.Quantity = Quantity;
 	FGridContainedReceptacleItem NewItem;
-	NewItem.RuntimeObjectId = RuntimeObjectId.IsValid() ? RuntimeObjectId : FGuid::NewGuid();
+	NewItem.RuntimeObjectId = RuntimeObjectId;
 	NewItem.ItemDefinitionId = ItemDefinitionId;
-	NewItem.ItemDefinition = ItemDefinition;
-	NewItem.ItemActor = ItemActor;
 	NewItem.bWasInitialItem = bWasInitialItem;
-	NewItem.Quantity = FMath::Max(1, Quantity);
-	NewItem.ItemLevel = ResolvedLevel;
-	if (IsValid(ItemActor))
+	NewItem.Quantity = Quantity;
+	NewItem.ItemLevel = ItemLevel;
+	NewItem.Weight = Resolved.WeightKg;
+	NewItem.DisplayName = Resolved.DisplayName.IsEmpty() ? FText::FromName(ItemDefinitionId) : Resolved.DisplayName;
+	NewItem.bLightsEnabled = Resolved.LightEmitter.bDefaultEnabled;
+
+	const bool bSuppliedActor = IsValid(ItemActor);
+	if (bSuppliedActor)
 	{
+		// Physical actor identity is not inferred from an obsolete asset pointer.
+		if (ItemActor->GetWorld() != GetWorld() || ItemActor->ItemDefinitionId != ItemDefinitionId ||
+			ItemActor->GetRuntimeObjectId() != RuntimeObjectId)
+			return INDEX_NONE;
 		NewItem.ReadableContentAsset = ItemActor->ReadableContentAsset;
 		NewItem.ReadableContentId = ItemActor->ReadableContentId;
 		NewItem.ReadTitleOverride = ItemActor->ReadTitleOverride;
 		NewItem.ReadTextOverride = ItemActor->ReadTextOverride;
 	}
-	NewItem.Weight = Metadata.UnitWeightKg;
-	NewItem.DisplayName = Metadata.DisplayName;
-	if (bCanonicalWorld)
+	else if (AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor(GetWorld()))
 	{
-		NewItem.bLightsEnabled = CanonicalProjection.LightEmitter.bDefaultEnabled;
+		ItemActor = RuntimeActor->SpawnItemActorForDefinition(nullptr, ItemDefinitionId, this, ItemAttachPoint);
 	}
-	else if (ItemDefinition)
+	else if (UWorld* World = GetWorld())
 	{
-		NewItem.bLightsEnabled = ItemDefinition->IsLightEnabledByDefault();
+		const FTransform SpawnTransform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform() : GetActorTransform();
+		FActorSpawnParameters Params;
+		Params.Owner = this;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		ItemActor = World->SpawnActor<AGridItemActor>(AGridItemActor::StaticClass(),
+			SpawnTransform.GetLocation(), SpawnTransform.GetRotation().Rotator(), Params);
 	}
+	if (!IsValid(ItemActor)) return INDEX_NONE;
 
-	// Adopt a previously materialized actor only when its exact canonical
-	// identity and level agree; otherwise rebuild its complete presentation.
-	if (bCanonicalWorld && IsValid(ItemActor) &&
-		(!ItemActor->CanonicalWorldPresentation.IsValid() ||
-		 ItemActor->CanonicalWorldItemLevel != ResolvedLevel ||
-		 ItemActor->GetItemDefinitionAsset()))
+	// The same registry projection handles fresh, transferred and restored actors.
+	// An old-style fixture actor is rebuilt without consulting its historical asset.
+	if (!ItemActor->InitializeFromCanonicalItem(Physical, Registry))
 	{
-		FGridItemInstance Physical;
-		Physical.RuntimeObjectId = NewItem.RuntimeObjectId;
-		Physical.ItemDefinitionId = ItemDefinitionId;
-		Physical.ItemLevel = ResolvedLevel;
-		Physical.Quantity = NewItem.Quantity;
-		if (!ItemActor->InitializeFromCanonicalItem(Physical, CanonicalRegistry))
-		{
-			return INDEX_NONE;
-		}
-	}
-	const int32 NewIndex = ContainedItems.Add(NewItem);
-
-	const EGridReceptacleVisualPlacementMode PlacementMode = GetEffectiveVisualPlacementMode();
-	if (!IsValid(ItemActor) && (RuntimeActor || bCanonicalWorld))
-	{
-		if (RuntimeActor)
-		{
-			ItemActor = RuntimeActor->SpawnItemActorForDefinition(
-				bCanonicalWorld ? nullptr : ItemDefinition, ItemDefinitionId, this, ItemAttachPoint);
-		}
-		else if (UWorld* World = GetWorld())
-		{
-			// Standalone receptacles (including runtime tests) have a valid
-			// world and registry but no central level actor. Construct the
-			// SAME canonical item, never an incomplete ID-only fallback.
-			const FTransform SpawnTransform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform() : GetActorTransform();
-			FActorSpawnParameters Params;
-			Params.Owner = this;
-			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			ItemActor = World->SpawnActor<AGridItemActor>(AGridItemActor::StaticClass(),
-				SpawnTransform.GetLocation(), SpawnTransform.GetRotation().Rotator(), Params);
-		}
-		if (IsValid(ItemActor))
-		{
-			if (bCanonicalWorld)
-			{
-				FGridItemInstance CanonicalInstance;
-				CanonicalInstance.RuntimeObjectId = NewItem.RuntimeObjectId;
-				CanonicalInstance.ItemDefinitionId = NewItem.ItemDefinitionId;
-				CanonicalInstance.ItemLevel = NewItem.ItemLevel;
-				CanonicalInstance.Quantity = NewItem.Quantity;
-				if (!ItemActor->InitializeFromCanonicalItem(CanonicalInstance, CanonicalRegistry))
-				{
-					ItemActor->Destroy();
-					ContainedItems.RemoveAt(NewIndex);
-					return INDEX_NONE; // Fail closed, never downgrade presentation.
-				}
-			}
-			else if (ItemDefinition)
-			{
-				ItemActor->InitializeFromItemDefinition(ItemDefinition, NewItem.RuntimeObjectId);
-			}
-			else
-			{
-				ItemActor->InitializeFromItemDefinitionId(ItemDefinitionId, NewItem.RuntimeObjectId);
-			}
-			ContainedItems[NewIndex].ItemActor = ItemActor;
-		}
-	}
-	if (!IsValid(ItemActor) && bCanonicalWorld)
-	{
-		ContainedItems.RemoveAt(NewIndex);
+		if (!bSuppliedActor) ItemActor->Destroy();
 		return INDEX_NONE;
 	}
-	if (!IsValid(ItemActor))
+	NewItem.ItemActor = ItemActor;
+	const int32 NewIndex = ContainedItems.Add(NewItem);
+	ApplyVisualPlacement(ItemActor, Physical,
+		PendingPlacementHitResult.IsSet() ? &PendingPlacementHitResult.GetValue() : nullptr,
+		NewIndex, bWasInitialItem);
+	if (GetEffectiveVisualPlacementMode() != EGridReceptacleVisualPlacementMode::PhysicalAtHit)
 	{
-		UWorld* World = GetWorld();
-		if (World)
-		{
-			const FTransform SpawnTransform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform() : GetActorTransform();
-			AGridItemActor* SpawnedItemActor = World->SpawnActorDeferred<AGridItemActor>(AGridItemActor::StaticClass(), SpawnTransform, this);
-			if (SpawnedItemActor)
-			{
-				if (ItemDefinition)
-				{
-					SpawnedItemActor->InitializeFromItemDefinition(ItemDefinition, NewItem.RuntimeObjectId);
-				}
-				else
-				{
-					SpawnedItemActor->InitializeFromItemDefinitionId(ItemDefinitionId, NewItem.RuntimeObjectId);
-				}
-				UGameplayStatics::FinishSpawningActor(SpawnedItemActor, SpawnTransform);
-				SpawnedItemActor->ConfigureAsAttachedItem();
-				ContainedItems[NewIndex].ItemActor = SpawnedItemActor;
-			}
-		}
+		ItemActor->OnPlacedInWorld();
 	}
-	if (IsValid(ContainedItems[NewIndex].ItemActor.Get()))
-	{
-		FGridItemInstance PlacementItem;
-		PlacementItem.RuntimeObjectId = ContainedItems[NewIndex].RuntimeObjectId;
-		PlacementItem.ItemDefinitionId = ContainedItems[NewIndex].ItemDefinitionId;
-		PlacementItem.ItemLevel = ContainedItems[NewIndex].ItemLevel;
-		PlacementItem.Quantity = ContainedItems[NewIndex].Quantity;
-		// Canonical insertion/restore is already fully projected; only
-		// unconverted initial fixtures require the historical visual update.
-		if (!bCanonicalWorld)
-		{
-			ContainedItems[NewIndex].ItemActor->ApplyCanonicalWorldVisual(PlacementItem);
-		}
-		ApplyVisualPlacement(ContainedItems[NewIndex].ItemActor.Get(), PlacementItem,
-			PendingPlacementHitResult.IsSet() ? &PendingPlacementHitResult.GetValue() : nullptr, NewIndex, bWasInitialItem);
-		if (PlacementMode != EGridReceptacleVisualPlacementMode::PhysicalAtHit)
-		{
-			ContainedItems[NewIndex].ItemActor->OnPlacedInWorld();
-		}
-		ContainedItems[NewIndex].ItemActor->SetItemLightsEnabled(ContainedItems[NewIndex].bLightsEnabled);
-	}
+	ItemActor->SetItemLightsEnabled(NewItem.bLightsEnabled);
 	UpdateContainedItemInteractionCollision();
 	return NewIndex;
 }
@@ -1561,8 +1428,8 @@ void AGridReceptacleActor::InitializeInitialContainedItems()
 		{
 			continue;
 		}
-		AddContainedItem(ItemDefinitionId, nullptr, nullptr, true,
-			InitialItem.Quantity, FGuid(), InitialItem.ItemLevel, true);
+		AddContainedItem(ItemDefinitionId, nullptr, true,
+			InitialItem.Quantity, FGuid(), InitialItem.ItemLevel);
 	}
 }
 

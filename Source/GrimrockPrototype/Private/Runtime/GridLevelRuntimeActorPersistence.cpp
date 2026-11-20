@@ -706,49 +706,29 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 					*Pair.Key.ToString(), *ItemState.ObjectId.ToString());
 				continue;
 			}
-			const bool bCanonicalItem = RestoreRegistry &&
-				RestoreRegistry->HasCanonicalItem(RuntimeItemDefinitionId);
 			FGridResolvedItem CanonicalItem;
-			if (bCanonicalItem &&
-				!RestoreRegistry->ResolveItem(RuntimeItemDefinitionId, ItemState.ItemLevel, CanonicalItem))
+			if (!RestoreRegistry || !RestoreRegistry->ResolveItem(RuntimeItemDefinitionId, ItemState.ItemLevel, CanonicalItem) ||
+				!CanonicalItem.IsValid() || CanonicalItem.ItemLevel != ItemState.ItemLevel ||
+				!ItemState.ObjectId.IsValid() || ItemState.Quantity < 1 ||
+				ItemState.Quantity > FMath::Max(1, CanonicalItem.MaxStack))
 			{
 				UE_LOG(LogGridLevelRuntime, Warning,
 					TEXT("GridRuntimeState Apply canonical receptacle item rejected: %s N%d."),
 					*RuntimeItemDefinitionId.ToString(), ItemState.ItemLevel);
-				continue; // Invalid registered N0 never inherits an ARM level.
+				continue;
 			}
-			const bool bCanonicalWorld = bCanonicalItem;
-			UGridItemDefinitionAsset* ItemDefinition = nullptr;
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(
-				bCanonicalWorld ? nullptr : ItemDefinition, RuntimeItemDefinitionId,
-				ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get());
-			if (ItemActor)
+				nullptr, RuntimeItemDefinitionId, ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get());
+			if (IsValid(ItemActor))
 			{
-				if (bCanonicalWorld)
+				if (!ItemActor->InitializeFromCanonicalItem(PersistenceMakeVisualItem(ItemState), RestoreRegistry))
 				{
-					if (!ItemActor->InitializeFromCanonicalItem(
-						PersistenceMakeVisualItem(ItemState), RestoreRegistry))
-					{
-						ItemActor->Destroy();
-						continue; // No legacy fallback for canonical presentation.
-					}
-				}
-				else if (ItemDefinition)
-				{
-					ItemActor->InitializeFromItemDefinition(ItemDefinition, ItemState.ObjectId);
-				}
-				else
-				{
-					ItemActor->InitializeFromItemDefinitionId(RuntimeItemDefinitionId, ItemState.ObjectId);
+					ItemActor->Destroy();
+					continue;
 				}
 				ItemActor->SetRuntimeObjectId(ItemState.ObjectId);
-				ItemActor->ApplyCanonicalWorldVisual(PersistenceMakeVisualItem(ItemState));
-				ItemActor->SetItemLightsEnabled(ItemState.bLightsEnabled);
 			}
-			FGridRuntimeItemState ResolvedItemState = ItemState;
-			ResolvedItemState.ItemDefinitionId = RuntimeItemDefinitionId;
-			if (!ReceptacleActor->RestoreRuntimeContainedItem(ResolvedItemState, ItemActor) &&
-				IsValid(ItemActor))
+			if (!ReceptacleActor->RestoreRuntimeContainedItem(ItemState, ItemActor) && IsValid(ItemActor))
 			{
 				ItemActor->Destroy();
 			}

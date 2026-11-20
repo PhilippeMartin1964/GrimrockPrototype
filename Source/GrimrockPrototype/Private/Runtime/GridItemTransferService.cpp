@@ -256,8 +256,10 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 	const UWorld* World = Receptacle->GetWorld();
 	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	const bool bCanonical = Registry && Registry->HasCanonicalItem(Candidate.ItemDefinitionId);
-	if (bCanonical)
+	if (!Registry || !Registry->HasCanonicalItem(Candidate.ItemDefinitionId))
+	{
+		return LogTransferFailure(Operation, EGridItemTransferResult::InvalidItem, TEXT("Contained identity is not registered."), &Candidate);
+	}
 	{
 		FGridResolvedItem Resolved;
 		if (!Registry->ResolveItem(Candidate.ItemDefinitionId, Candidate.ItemLevel, Resolved) ||
@@ -288,9 +290,9 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 
 	if (!Inventory->AddItemToCharacterInventory(CharacterIndex, Candidate))
 	{
-		const int32 RestoredIndex = Receptacle->AddContainedItem(SourceSnapshot.ItemDefinitionId, SourceSnapshot.ItemDefinition, nullptr,
+		const int32 RestoredIndex = Receptacle->AddContainedItem(SourceSnapshot.ItemDefinitionId, nullptr,
 			SourceSnapshot.bWasInitialItem, SourceSnapshot.Quantity, SourceSnapshot.RuntimeObjectId,
-			SourceSnapshot.ItemLevel, bCanonical && SourceSnapshot.bWasInitialItem);
+			SourceSnapshot.ItemLevel);
 		if (!Receptacle->ContainedItems.IsValidIndex(RestoredIndex))
 		{
 			return LogTransferFailure(
