@@ -3,6 +3,7 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/Items/GridItemCacheParityAudit.h"
 #include "UObject/UnrealType.h"
 
 /** Editor-only proof. Never normalize the live inventory or save slots. */
@@ -39,9 +40,12 @@ namespace GridEditorInstanceCacheEvidence
         int32 NameConflicts = 0;
         int32 WeightConflicts = 0;
         int32 ExplainedWeightConflicts = 0;
+        int32 SemanticWeightConflicts = 0;
+        int32 ProjectionFailures = 0;
         int32 CachedNames = 0;
         int32 CachedWeights = 0;
-        bool CanClear() const { return Invalid == 0 && NameConflicts == 0 && WeightConflicts == ExplainedWeightConflicts; }
+        bool CanClear() const { return Invalid == 0 && NameConflicts == 0 && ProjectionFailures == 0 &&
+            WeightConflicts == ExplainedWeightConflicts + SemanticWeightConflicts; }
     };
 
     template<typename TParty, typename TVisitor>
@@ -58,7 +62,7 @@ namespace GridEditorInstanceCacheEvidence
     }
 
     inline FCounts Inspect(const FGridPartyInventoryState& Party, const UGridItemSubsystem& Registry,
-        const FLegacySources* Historical = nullptr)
+        const FLegacySources* Historical = nullptr, bool bSemantic = false)
     {
         FCounts Counts;
         Visit(Party, [&](const FGridItemInstance& Item)
@@ -79,10 +83,17 @@ namespace GridEditorInstanceCacheEvidence
                 return;
             }
             if (bName && !Item.DisplayName.EqualTo(Canonical.DisplayName)) ++Counts.NameConflicts;
+            // Audit every physical row, not only those whose mass differs.
+            const bool bSame = bSemantic && GridItemCacheParityAudit::HasSameCanonicalProjection(Registry, Item);
+            if (bSemantic && !bSame) ++Counts.ProjectionFailures;
             if (bWeight && (!FMath::IsFinite(Item.Weight) || Item.Weight != Canonical.WeightKg))
             {
                 ++Counts.WeightConflicts;
-                if (Historical)
+                if (bSemantic)
+                {
+                    if (bSame) ++Counts.SemanticWeightConflicts;
+                }
+                else if (Historical)
                 {
                     const auto* Source = Historical->Find(Item.ItemDefinitionId);
                     if (IsExplainedWeight(Item, Canonical.WeightKg, Source ? *Source : nullptr))
@@ -94,9 +105,9 @@ namespace GridEditorInstanceCacheEvidence
     }
 
     inline bool ClearVerifiedCopy(FGridPartyInventoryState& Party, const UGridItemSubsystem& Registry,
-        const FLegacySources* Historical = nullptr)
+        const FLegacySources* Historical = nullptr, bool bSemantic = false)
     {
-        if (!Inspect(Party, Registry, Historical).CanClear()) return false;
+        if (!Inspect(Party, Registry, Historical, bSemantic).CanClear()) return false;
         Visit(Party, [](FGridItemInstance& Item)
         {
             Item.DisplayName = FText::GetEmpty();

@@ -10,6 +10,7 @@ param(
     [switch]$AfterRetirement,
     [switch]$InstanceCacheEvidence,
     [switch]$WeightCacheEvidence,
+    [switch]$SemanticCacheEvidence,
     [switch]$SelfTest
 )
 Set-StrictMode -Version Latest
@@ -175,6 +176,10 @@ if ($WeightCacheEvidence) {
     if (-not $InstanceCacheEvidence) { throw 'Weight proof requires instance evidence.' }
     $Mode+= '-WeightCacheEvidence'
 }
+if ($SemanticCacheEvidence) {
+    if (-not $InstanceCacheEvidence -or $WeightCacheEvidence) { throw 'Semantic proof requires exclusive instance evidence mode.' }
+    $Mode+= '-SemanticCacheEvidence'
+}
 Assert-Closed
 & $Editor $Project @Mode '-run=GridArmClean065RetirementAudit' '-ReadOnly' '-WorldPointerPreflight' "-Copies=$Copies" "-Output=$ReportPath" '-Unattended' '-NoP4' '-NoSplash' '-NoSound' '-NullRHI' "-abslog=$(Join-Path $RunRoot 'audit.log')" | Out-Host
 $Code=$LASTEXITCODE
@@ -188,8 +193,10 @@ if ($AfterRetirement) { Compare-WorldSaveReports $BeforeReport $AfterReport $Row
 if ($InstanceCacheEvidence) {
     if (-not $AfterReport.instance_cache_evidence) { throw 'Missing cache evidence.' }
     if ($WeightCacheEvidence -and -not $AfterReport.weight_cache_evidence) { throw 'Missing weight provenance evidence.' }
+    if ($SemanticCacheEvidence -and -not $AfterReport.semantic_cache_evidence) { throw 'Missing semantic cache evidence.' }
     $Parity=$true
     $Unexplained=$false
+    $ProjectionParity=$true
     foreach ($S in @($AfterReport.saves)) {
         foreach ($Key in @('cache_instances','cache_invalid_identities','cache_name_conflicts','cache_weight_conflicts','cache_names','cache_weights')) {
             if (($S.$Key -isnot [int] -and $S.$Key -isnot [long]) -or $S.$Key -lt 0) { throw 'Invalid cache count.' }
@@ -199,10 +206,16 @@ if ($InstanceCacheEvidence) {
             $Explained=$S.cache_weight_explained
             if (($Explained -isnot [int] -and $Explained -isnot [long]) -or $Explained -lt 0 -or $Explained -gt $S.cache_weight_conflicts) { throw 'Invalid weight evidence.' }
         }
+        if ($SemanticCacheEvidence) {
+            $Explained=$S.cache_weight_semantically_redundant
+            if (($Explained -isnot [int] -and $Explained -isnot [long]) -or $Explained -lt 0 -or $Explained -gt $S.cache_weight_conflicts -or
+                ($S.cache_projection_failures -isnot [int] -and $S.cache_projection_failures -isnot [long]) -or $S.cache_projection_failures -lt 0) { throw 'Invalid semantic evidence.' }
+            if ($S.cache_projection_failures -ne 0 -or $S.cache_weight_conflicts -ne $Explained) { $ProjectionParity=$false; $Parity=$false }
+        }
         if ($S.cache_weight_conflicts -ne $Explained) { $Unexplained=$true }
         if ($S.cache_invalid_identities -ne 0 -or $S.cache_name_conflicts -ne 0 -or $S.cache_weight_conflicts -ne $Explained -or -not $S.cache_normalized_roundtrip_equal) { $Parity=$false }
     }
-    [pscustomobject]@{schema='ARM-CLEAN06.5G88/instance-cache-aggregate/v1';head=$ExpectedHead;parity=$Parity;weight_evidence=[bool]$WeightCacheEvidence;unexplained_weight=$Unexplained;source_unchanged=$true;copies_unchanged=$true} |
+    [pscustomobject]@{schema='ARM-CLEAN06.5G88/instance-cache-aggregate/v1';head=$ExpectedHead;parity=$Parity;weight_evidence=[bool]$WeightCacheEvidence;semantic_evidence=[bool]$SemanticCacheEvidence;semantic_projection_parity=$ProjectionParity;unexplained_weight=$Unexplained;source_unchanged=$true;copies_unchanged=$true} |
         ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $RunRoot 'cache-proof.json') -Encoding UTF8
 }
 $Schema=if ($AfterRetirement) { 'ARM-CLEAN06.5G86/world-post-retirement-receipt/v1' } else { 'ARM-CLEAN06.5G85/world-read-only-receipt/v1' }

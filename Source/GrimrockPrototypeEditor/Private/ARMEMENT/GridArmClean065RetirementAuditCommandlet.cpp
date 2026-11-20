@@ -60,7 +60,10 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
     const bool bWorldPreflight = FParse::Param(*Params, TEXT("WorldPointerPreflight"));
     const bool bInstanceEvidence = FParse::Param(*Params, TEXT("InstanceCacheEvidence"));
     const bool bWeightEvidence = FParse::Param(*Params, TEXT("WeightCacheEvidence"));
-    if ((bInstanceEvidence && !bWorldPreflight) || (bWeightEvidence && !bInstanceEvidence)) return 1;
+    const bool bSemanticEvidence = FParse::Param(*Params, TEXT("SemanticCacheEvidence"));
+    if ((bInstanceEvidence && !bWorldPreflight) ||
+        ((bWeightEvidence || bSemanticEvidence) && !bInstanceEvidence) ||
+        (bWeightEvidence && bSemanticEvidence)) return 1;
     GridEditorInstanceCacheEvidence::FLegacySources Historical;
     if (bWeightEvidence)
     {
@@ -87,6 +90,7 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
     Report->SetBoolField(TEXT("world_pointer_preflight"), bWorldPreflight);
     Report->SetBoolField(TEXT("instance_cache_evidence"), bInstanceEvidence);
     Report->SetBoolField(TEXT("weight_cache_evidence"), bWeightEvidence);
+    Report->SetBoolField(TEXT("semantic_cache_evidence"), bSemanticEvidence);
     Report->SetStringField(TEXT("schema"), TEXT("ARM-CLEAN06.5A/retirement-evidence/v1"));
     Report->SetObjectField(TEXT("native"), Native.Report);
     TArray<FString> Filenames;
@@ -125,12 +129,14 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
                 if (bInstanceEvidence)
                 {
                     using namespace GridEditorInstanceCacheEvidence;
-                    const FCounts Counts = Inspect(Save->PartyInventoryState, *Registry.Get(), HistoricalPolicy);
+                    const FCounts Counts = Inspect(Save->PartyInventoryState, *Registry.Get(), HistoricalPolicy, bSemanticEvidence);
                     Row->SetNumberField(TEXT("cache_instances"), Counts.Instances);
                     Row->SetNumberField(TEXT("cache_invalid_identities"), Counts.Invalid);
                     Row->SetNumberField(TEXT("cache_name_conflicts"), Counts.NameConflicts);
                     Row->SetNumberField(TEXT("cache_weight_conflicts"), Counts.WeightConflicts);
                     Row->SetNumberField(TEXT("cache_weight_explained"), Counts.ExplainedWeightConflicts);
+                    Row->SetNumberField(TEXT("cache_weight_semantically_redundant"), Counts.SemanticWeightConflicts);
+                    Row->SetNumberField(TEXT("cache_projection_failures"), Counts.ProjectionFailures);
                     Row->SetNumberField(TEXT("cache_names"), Counts.CachedNames);
                     Row->SetNumberField(TEXT("cache_weights"), Counts.CachedWeights);
                     bool bNormalizedParity = false;
@@ -141,15 +147,15 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
                         TStrongObjectPtr<UGrimrockPartySaveGame> Working(GridEditorAlchemySaveCopy::LoadExact(Bytes, CheckError));
                         TArray<uint8> NormalizedBytes;
                         const bool bEncoded = Expected.IsValid() && Working.IsValid() &&
-                            ClearVerifiedCopy(Expected->PartyInventoryState, *Registry.Get(), HistoricalPolicy) &&
-                            ClearVerifiedCopy(Working->PartyInventoryState, *Registry.Get(), HistoricalPolicy) &&
+                            ClearVerifiedCopy(Expected->PartyInventoryState, *Registry.Get(), HistoricalPolicy, bSemanticEvidence) &&
+                            ClearVerifiedCopy(Working->PartyInventoryState, *Registry.Get(), HistoricalPolicy, bSemanticEvidence) &&
                             GridEditorAlchemySaveCopy::SameSaveProperties(*Expected.Get(), *Working.Get(), CheckError) &&
                             GridEditorAlchemySaveCopy::EncodeChecked(*Working.Get(), NormalizedBytes, CheckError);
                         TStrongObjectPtr<UGrimrockPartySaveGame> Reloaded(bEncoded ?
                             GridEditorAlchemySaveCopy::LoadExact(NormalizedBytes, CheckError) : nullptr);
                         if (Reloaded.IsValid())
                         {
-                            const FCounts Remaining = Inspect(Reloaded->PartyInventoryState, *Registry.Get());
+                            const FCounts Remaining = Inspect(Reloaded->PartyInventoryState, *Registry.Get(), nullptr, bSemanticEvidence);
                             bNormalizedParity = Remaining.CanClear() && Remaining.Instances == Counts.Instances &&
                                 Remaining.CachedNames == 0 && Remaining.CachedWeights == 0 &&
                                 GridEditorAlchemySaveCopy::SameSaveProperties(*Expected.Get(), *Reloaded.Get(), CheckError);

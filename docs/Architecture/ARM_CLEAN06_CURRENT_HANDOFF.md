@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.91 — Preuve fonctionnelle des caches
+
+Parent 305cf06836036870dd9c5c0a288511ef967d6b36. 5G90 exécuté, WeightProvenance/CacheParity FAILURE. Ne pas prétendre connaître la provenance des masses. Preuve indépendante via lecteurs runtime réels : identité, poids, tri, tooltip, physique, force et balistique avant/après effacement mémoire. Valeur négative/non finie ou nom divergent refusés. Statuts SemanticWeightParity et CacheParity obligatoires. Voir [5G.91](ARM_CLEAN06_5G91_SEMANTIC_CACHE_PARITY.md).
+
 ## ARM-CLEAN06.5G.90 — Preuve de provenance des poids historiques
 
 Parent 38a8a7657ba2b7d90b6dac7bc65f4d1566fbada9. 5G89 : seul WeightConflict FAILURE. Les masses divergentes peuvent être effacées en mémoire uniquement si expliquées par l'ancien asset de même identité, son profil exact, une masse de pile ou un arrondi epsilon 1e-6. Toute divergence inexpliquée bloque. Statuts natifs WeightProvenance/CacheParity obligatoires, aucun fichier live modifié. Voir [5G.90](ARM_CLEAN06_5G90_WEIGHT_CACHE_PROVENANCE.md).
