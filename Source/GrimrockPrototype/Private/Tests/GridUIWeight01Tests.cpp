@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryWidget.h"
@@ -8,23 +9,22 @@
 
 namespace GridUIWeight01
 {
-	UGridPartyInventoryComponent* MakeInventory(int32 Strength, float ItemWeight)
+	UGridPartyInventoryComponent* MakeInventory(FGridCanonicalWeightTestWorld& Fixture, int32 Strength, FName ItemId)
 	{
-		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+		UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+		if (!Inventory) return nullptr;
 		Inventory->InitializeDefaultPartyIfNeeded();
 		FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 		Character.Attributes.Strength = Strength;
 
-		if (ItemWeight > 0.0f)
+		if (!ItemId.IsNone())
 		{
 			FGridItemInstance Item;
 			Item.RuntimeObjectId = FGuid::NewGuid();
-			Item.ItemDefinitionId = TEXT("UI_WEIGHT01_Probe");
-			Item.DisplayName = FText::FromString(TEXT("UI-WEIGHT01 Probe"));
+			Item.ItemDefinitionId = ItemId;
 			Item.Quantity = 1;
-			Item.Weight = ItemWeight;
 			Item.OwnerType = EGridItemOwnerType::World;
-			Inventory->AddItemToCharacterInventory(0, Item);
+			if (!Inventory->AddItemToCharacterInventory(0, Item)) return nullptr;
 		}
 		return Inventory;
 	}
@@ -62,9 +62,13 @@ bool FGridUIWeight01DerivedPresentationStateTest::RunTest(const FString& Paramet
 	(void)Parameters;
 	using namespace GridUIWeight01;
 
-	auto CheckState = [this](const TCHAR* Label, int32 Strength, float ItemWeight, EGridInventoryWeightState ExpectedState, bool bExpectedOverloaded)
+	const TMap<FName, float> Weights = {{TEXT("Weight39_9"), 39.9f}, {TEXT("Weight40"), 40.0f},
+		{TEXT("Weight50"), 50.0f}, {TEXT("Weight50_1"), 50.1f}, {TEXT("Weight0_1"), 0.1f}};
+	FGridCanonicalWeightTestWorld Fixture(Weights);
+	if (!TestTrue(TEXT("Transient canonical weight registry"), Fixture.Scope.Registry != nullptr)) return false;
+	auto CheckState = [this, &Fixture, &Weights](const TCHAR* Label, int32 Strength, FName ItemId, EGridInventoryWeightState ExpectedState, bool bExpectedOverloaded)
 	{
-		UGridPartyInventoryComponent* Inventory = MakeInventory(Strength, ItemWeight);
+		UGridPartyInventoryComponent* Inventory = MakeInventory(Fixture, Strength, ItemId);
 		if (!TestNotNull(*FString::Printf(TEXT("%s inventory exists"), Label), Inventory))
 		{
 			return;
@@ -76,17 +80,18 @@ bool FGridUIWeight01DerivedPresentationStateTest::RunTest(const FString& Paramet
 			return;
 		}
 
+		TestEqual(*FString::Printf(TEXT("%s exact canonical carry weight"), Label), Summary.CurrentWeight, Weights.FindRef(ItemId));
 		TestEqual(*FString::Printf(TEXT("%s weight state"), Label), static_cast<uint8>(Summary.WeightState), static_cast<uint8>(ExpectedState));
 		TestEqual(*FString::Printf(TEXT("%s overload compatibility flag"), Label), Summary.bOverloaded, bExpectedOverloaded);
 		TestEqual(*FString::Printf(TEXT("%s inventory slot count stays independent from weight"), Label), Summary.MaxInventorySlots, 40);
 	};
 
-	CheckState(TEXT("Below 80 percent"), 10, 39.9f, EGridInventoryWeightState::Normal, false);
-	CheckState(TEXT("At 80 percent"), 10, 40.0f, EGridInventoryWeightState::Heavy, false);
-	CheckState(TEXT("At capacity"), 10, 50.0f, EGridInventoryWeightState::Heavy, false);
-	CheckState(TEXT("Above capacity"), 10, 50.1f, EGridInventoryWeightState::Overloaded, true);
-	CheckState(TEXT("Zero weight at zero capacity"), 0, 0.0f, EGridInventoryWeightState::Normal, false);
-	CheckState(TEXT("Positive weight at zero capacity"), 0, 0.1f, EGridInventoryWeightState::Overloaded, true);
+	CheckState(TEXT("Below 80 percent"), 10, TEXT("Weight39_9"), EGridInventoryWeightState::Normal, false);
+	CheckState(TEXT("At 80 percent"), 10, TEXT("Weight40"), EGridInventoryWeightState::Heavy, false);
+	CheckState(TEXT("At capacity"), 10, TEXT("Weight50"), EGridInventoryWeightState::Heavy, false);
+	CheckState(TEXT("Above capacity"), 10, TEXT("Weight50_1"), EGridInventoryWeightState::Overloaded, true);
+	CheckState(TEXT("Zero weight at zero capacity"), 0, NAME_None, EGridInventoryWeightState::Normal, false);
+	CheckState(TEXT("Positive weight at zero capacity"), 0, TEXT("Weight0_1"), EGridInventoryWeightState::Overloaded, true);
 
 	return true;
 }

@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/Border.h"
 #include "Components/Image.h"
@@ -116,7 +117,9 @@ bool FGridPartyHud01ProgressionBadgeBalanceTest::RunTest(const FString& Paramete
 	(void)Parameters;
 	using namespace GridPartyHud01Tests;
 
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("PartyHudTestHeavyItem"), 100000.0f}});
+	UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+	if (!TestNotNull(TEXT("Canonical portrait inventory"), Inventory)) return false;
 	URPGClassAsset* ClassDefinition = MakeClass(Inventory, TEXT("PartyHudProgression"), 0, 0);
 	FGridCharacterInventoryState Character = MakeCharacter(MakeId(90), ClassDefinition, 10, 10, 0, 0, 0, 0);
 	Character.Level = 1;
@@ -157,7 +160,6 @@ bool FGridPartyHud01ProgressionBadgeBalanceTest::RunTest(const FString& Paramete
 	HeavySlot.Item.RuntimeObjectId = MakeId(91);
 	HeavySlot.Item.ItemDefinitionId = TEXT("PartyHudTestHeavyItem");
 	HeavySlot.Item.Quantity = 1;
-	HeavySlot.Item.Weight = 100000.0f;
 	Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.Add(HeavySlot);
 	Views.Reset();
 	TestTrue(TEXT("Overload portrait projection succeeds"), Inventory->GetPartyPortraitViews(Views));

@@ -1,0 +1,3 @@
+# ARM-CLEAN06.5G.103 — Fixtures canoniques des seuils de charge
+
+Parent exact `6a19dfa03362d840a865af3f462b37359f07fcd4`. Les tests UI Weight01, Feedback01, PartyHud01 et PartyWeight01 utilisent des définitions non-ARM dans un registre isolé, sans métadonnées d'instance. Les seuils 39.9/40/50/50.1 kg, zéro capacité, surcharge, alertes et blocage de déplacement restent identiques. Pas de changement de comportement ou de données authored ; la racine transitoire est détachée avant destruction du monde. Le helper de test conserve l'API des fixtures existantes. Aucun asset ou SaveGame modifié. La suppression des membres C++ exige encore la conversion des autres fixtures et lecteurs historiques.

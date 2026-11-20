@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
@@ -75,7 +76,7 @@ namespace
 		return Level;
 	}
 
-	bool SetCharacterTestWeight(UGridPartyInventoryComponent* Inventory, int32 CharacterIndex, float Weight)
+	bool SetCharacterTestWeight(UGridPartyInventoryComponent* Inventory, int32 CharacterIndex, FName ItemId)
 	{
 		if (!Inventory || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
 		{
@@ -90,9 +91,8 @@ namespace
 
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
-		Item.ItemDefinitionId = TEXT("PARTY_WEIGHT01_TestLoad");
+		Item.ItemDefinitionId = ItemId;
 		Item.Quantity = 1;
-		Item.Weight = FMath::Max(0.0f, Weight);
 		Item.OwnerType = EGridItemOwnerType::CharacterInventory;
 		Item.OwnerGuid = Character.CharacterId;
 		Item.OwnerCharacterIndex = CharacterIndex;
@@ -156,10 +156,14 @@ bool FGridPartyWeightMovementLockTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Weight summary is available"), Inventory->GetCharacterSummary(0, Summary));
 	TestFalse(TEXT("Default party is not overloaded"), Inventory->IsAnyActiveCharacterOverloaded());
 
-	TestTrue(TEXT("Weight exactly at capacity can be authored"), SetCharacterTestWeight(Inventory, 0, Summary.MaxWeight));
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("World canonical load definitions"), RegistryScope.AttachWithWeights(TestWorld.World,
+		{{TEXT("PARTY_WEIGHT01_AtCapacity"), Summary.MaxWeight},
+		 {TEXT("PARTY_WEIGHT01_OverCapacity"), Summary.MaxWeight + 1.0f}}))) return false;
+	TestTrue(TEXT("Weight exactly at capacity can be authored"), SetCharacterTestWeight(Inventory, 0, TEXT("PARTY_WEIGHT01_AtCapacity")));
 	TestFalse(TEXT("Weight exactly at MaxWeight is Heavy, not Overloaded"), Inventory->IsAnyActiveCharacterOverloaded());
 
-	TestTrue(TEXT("Weight above capacity can be authored"), SetCharacterTestWeight(Inventory, 0, Summary.MaxWeight + 1.0f));
+	TestTrue(TEXT("Weight above capacity can be authored"), SetCharacterTestWeight(Inventory, 0, TEXT("PARTY_WEIGHT01_OverCapacity")));
 	TestTrue(TEXT("One overloaded active character overloads party movement"), Inventory->IsAnyActiveCharacterOverloaded());
 
 	Party->SetGridStart(Runtime, 1, 1, EGridEdge::North);

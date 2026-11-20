@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 
 #include "Components/HorizontalBox.h"
 #include "Components/Image.h"
@@ -72,7 +73,8 @@ bool FGridUIFeedback01CharacterSheetPortraitAlertsTest::RunTest(const FString& P
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("TestHeavyPortraitItem"), 100000.0f}});
+	UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
 	UGridInventoryWidget* Sheet = NewObject<UGridInventoryWidget>();
 	if (!TestNotNull(TEXT("Inventory component exists"), Inventory) ||
 		!TestNotNull(TEXT("Character sheet presenter exists"), Sheet))
@@ -105,7 +107,6 @@ bool FGridUIFeedback01CharacterSheetPortraitAlertsTest::RunTest(const FString& P
 	HeavySlot.Item.RuntimeObjectId = FGuid(1, 2, 3, 5);
 	HeavySlot.Item.ItemDefinitionId = TEXT("TestHeavyPortraitItem");
 	HeavySlot.Item.Quantity = 1;
-	HeavySlot.Item.Weight = 100000.0f;
 	Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.Add(HeavySlot);
 	Sheet->RefreshSelectedCharacterDetails();
 	TestEqual(TEXT("Overload appears on the selected portrait"), Sheet->Image_CharacterWeightAlert->GetVisibility(), ESlateVisibility::HitTestInvisible);

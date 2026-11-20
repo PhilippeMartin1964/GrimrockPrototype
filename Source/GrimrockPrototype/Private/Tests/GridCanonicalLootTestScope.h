@@ -17,6 +17,19 @@ struct FGridCanonicalLootTestScope
 
 	bool Attach(UWorld* InWorld, const TArray<FName>& SyntheticIds = {})
 	{
+		TMap<FName, float> SyntheticWeights;
+		for (const FName Id : SyntheticIds)
+		{
+			if (SyntheticWeights.Contains(Id)) return false;
+			SyntheticWeights.Add(Id, 1.0f);
+		}
+		return AttachWithWeights(InWorld, SyntheticWeights);
+	}
+
+	// Synthetic definitions belong to one transient registry. No global
+	// metadata, instance copies or authored package edits are needed.
+	bool AttachWithWeights(UWorld* InWorld, const TMap<FName, float>& SyntheticWeights)
+	{
 		if (World || !IsValid(InWorld) || InWorld->GetGameInstance()) return false;
 		World = InWorld;
 		GI.Reset(NewObject<UGameInstance>(GetTransientPackage()));
@@ -25,18 +38,20 @@ struct FGridCanonicalLootTestScope
 		World->SetGameInstance(GI.Get());
 		Registry = GI->GetSubsystem<UGridItemSubsystem>();
 		if (!Registry || !Registry->IsConfigured()) return false;
-		if (SyntheticIds.IsEmpty()) return true;
+		if (SyntheticWeights.IsEmpty()) return true;
 		UGridItemSystemAsset* Production = Registry->LoadConfiguredItemSystemForPreview();
 		if (!IsValid(Production)) return false;
 		UGridItemSystemAsset* Root = DuplicateObject<UGridItemSystemAsset>(Production, GetTransientPackage());
 		if (!IsValid(Root)) return false;
-		for (const FName Id : SyntheticIds)
+		for (const auto& Pair : SyntheticWeights)
 		{
-			if (Id.IsNone() || Registry->HasCanonicalItem(Id)) return false;
+			const FName Id = Pair.Key;
+			if (Id.IsNone() || Registry->HasCanonicalItem(Id) ||
+				!FMath::IsFinite(Pair.Value) || Pair.Value < 0.0f) return false;
 			auto* Item = NewObject<UGridNonArmamentDefinitionAsset>(Root);
 			Item->ItemId = Id;
 			Item->DisplayName = FText::FromName(Id);
-			Item->WeightKg = 1.0f;
+			Item->WeightKg = Pair.Value;
 			Root->ItemDefinitions.Add(Item);
 		}
 		Registry->Deinitialize();
