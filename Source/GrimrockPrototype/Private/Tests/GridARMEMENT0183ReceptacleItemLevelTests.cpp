@@ -220,6 +220,15 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     AGrimrockPartyPawn* Party = Fixture.MakeParty();
     if (!TestNotNull(TEXT("Party and inventory available"), Party)) return false;
     FName RemovedId;
+    auto* Visual = Fixture.Receptacle->GetContainedItemActor(0);
+    if (!TestNotNull(TEXT("Restored physical actor"), Visual)) return false;
+    const FGuid RealGuid = Visual->GetRuntimeObjectId();
+    Visual->SetRuntimeObjectId(FGuid::NewGuid());
+    TestFalse(TEXT("Direct retrieval refuses conflicting physical GUID"),
+        Fixture.Receptacle->TryTakeItemAtIndex(0, Party, RemovedId));
+    TestEqual(TEXT("Direct rejection leaves original contained item"), Fixture.Receptacle->GetContainedItemCount(), 1);
+    TestNull(TEXT("Direct rejection grants no item"), Fixture.FindBagItem(Party->PartyInventoryComponent, Cursor.RuntimeObjectId));
+    Visual->SetRuntimeObjectId(RealGuid);
     if (!TestTrue(TEXT("Take restored item into inventory"),
         Fixture.Receptacle->TryTakeItemAtIndex(0, Party, RemovedId))) return false;
     TestEqual(TEXT("Retrieved item definition is correct"), RemovedId, Fixture.Dagger->ItemDefinitionId);
@@ -301,6 +310,13 @@ bool FGridClean065G48ReceptacleService::RunTest(const FString&)
     TestEqual(TEXT("Failed transfer preserves actual N12"), F.Receptacle->ContainedItems[0].ItemLevel, 12);
     TestTrue(TEXT("Failed transfer preserves physical actor"), F.Receptacle->GetContainedItemActor(0) == Visual);
     Slots[0] = FGridInventorySlot();
+    const FName PhysicalId = Visual->ItemDefinitionId;
+    Visual->ItemDefinitionId = TEXT("Key_Copper");
+    TestFalse(TEXT("Conflicting actor cannot rename the stored N12"),
+        UGridItemTransferService::TransferReceptacleItemToInventory(F.Receptacle, 0, Inventory, 0).bSuccess);
+    TestEqual(TEXT("Conflicting actor rejection retains source"), F.Receptacle->GetContainedItemCount(), 1);
+    TestTrue(TEXT("Conflicting actor rejection does not fill bag"), Slots[0].IsEmpty());
+    Visual->ItemDefinitionId = PhysicalId;
     if (!TestTrue(TEXT("Service transfers real N12 into bag"),
         UGridItemTransferService::TransferReceptacleItemToInventory(F.Receptacle, 0, Inventory, 0).bSuccess)) return false;
     TestEqual(TEXT("Source is now empty"), F.Receptacle->GetContainedItemCount(), 0);

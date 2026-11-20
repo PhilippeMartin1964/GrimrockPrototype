@@ -385,6 +385,7 @@ protected:
 
 private:
 	friend class UGridItemTransferService;
+	void ExecuteRemovalLinksWithItemEvent(const FText& RemovedItemName);
 
 	// ============================================================
 	// Runtime Initial-Item Tracking

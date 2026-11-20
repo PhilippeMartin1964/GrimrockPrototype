@@ -635,78 +635,19 @@ bool AGridReceptacleActor::TryTakeItemAtIndex(int32 ItemIndex, AGrimrockPartyPaw
 		return false;
 	}
 
-	const FGridContainedReceptacleItem& Item = ContainedItems[ItemIndex];
+	UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
+	if (!Inventory) return false;
+	Inventory->InitializeDefaultPartyIfNeeded();
+	const FName ItemId = ContainedItems[ItemIndex].ItemDefinitionId;
+	const FGridItemTransferResult Transfer = UGridItemTransferService::TransferReceptacleItemToInventoryInternal(
+		this, ItemIndex, Inventory, Inventory->GetSelectedCharacterIndex(), true);
+	if (!Transfer.bSuccess) return false;
+	OutRemovedItemDefinitionId = ItemId;
+	return true;
+}
 
-	if (Item.ItemDefinitionId.IsNone())
-	{
-		return false;
-	}
-
-	FGridItemInstance ItemInstance;
-	ItemInstance.RuntimeObjectId = Item.RuntimeObjectId.IsValid() ? Item.RuntimeObjectId : FGuid::NewGuid();
-	ItemInstance.ItemDefinitionId = Item.ItemDefinitionId;
-	ItemInstance.ItemLevel = Item.ItemLevel;
-	ItemInstance.Quantity = FMath::Max(1, Item.Quantity);
-	ItemInstance.Weight = Item.Weight;
-	ItemInstance.DisplayName = Item.DisplayName;
-	ItemInstance.bLightsEnabled = Item.bLightsEnabled;
-	ItemInstance.ReadableContentAsset = Item.ReadableContentAsset;
-	ItemInstance.ReadableContentId = Item.ReadableContentId;
-	ItemInstance.ReadTitleOverride = Item.ReadTitleOverride;
-	ItemInstance.ReadTextOverride = Item.ReadTextOverride;
-	ItemInstance.OwnerType = EGridItemOwnerType::CharacterInventory;
-	ItemInstance.OwnerCharacterIndex = PartyPawn->PartyInventoryComponent ? PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex() : INDEX_NONE;
-
-	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
-	const bool bCanonical = Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId);
-	const FGridReceptacleItemMetadataReadView TakenMetadata = bCanonical
-		? FGridReceptacleItemMetadataReadModel::Resolve(
-			Registry, Item.ItemDefinition, Item.ItemDefinitionId, Item.ItemLevel, false)
-		: FGridReceptacleItemMetadataReadView();
-	if (bCanonical)
-	{
-		if (!TakenMetadata.bResolved)
-		{
-			return false; // A saved ARM N0 is invalid, not a new N1 item.
-		}
-		ItemInstance.Weight = TakenMetadata.UnitWeightKg;
-		if (ItemInstance.DisplayName.IsEmpty())
-		{
-			ItemInstance.DisplayName = TakenMetadata.DisplayName;
-		}
-	}
-	else if (Item.ItemDefinition)
-	{
-		ItemInstance.Weight = Item.ItemDefinition->Weight;
-		ItemInstance.DisplayName = Item.ItemDefinition->DisplayName;
-	}
-	if (IsValid(Item.ItemActor.Get()))
-	{
-		ItemInstance.bLightsEnabled = Item.ItemActor->AreItemLightsEnabled();
-		ItemInstance.ReadableContentAsset = Item.ItemActor->ReadableContentAsset;
-		ItemInstance.ReadableContentId = Item.ItemActor->ReadableContentId;
-		ItemInstance.ReadTitleOverride = Item.ItemActor->ReadTitleOverride;
-		ItemInstance.ReadTextOverride = Item.ItemActor->ReadTextOverride;
-	}
-
-	if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory(ItemInstance))
-	{
-		UE_LOG(LogGridReceptacle, Warning, TEXT("Receptacle take failed: ObjectId=%s Item=%s Reason=party inventory rejected"), *ObjectId.ToString(),
-			*Item.ItemDefinitionId.ToString());
-		return false;
-	}
-
-	FGridContainedReceptacleItem RemovedItem;
-	if (!RemoveContainedItemAtIndex(ItemIndex, RemovedItem))
-	{
-		return false;
-	}
-	OutRemovedItemDefinitionId = RemovedItem.ItemDefinitionId;
-
-	const FText RemovedItemName = bCanonical && TakenMetadata.bResolved
-		? TakenMetadata.DisplayName
-		: (!RemovedItem.DisplayName.IsEmpty()
-			? RemovedItem.DisplayName : FText::FromName(RemovedItem.ItemDefinitionId));
+void AGridReceptacleActor::ExecuteRemovalLinksWithItemEvent(const FText& RemovedItemName)
+{
 	const FText RemovedMessage = FText::Format(
 		NSLOCTEXT("GridEventFeed", "ReceptacleItemRemoved", "{0} est retiré du réceptacle."),
 		RemovedItemName);
@@ -737,10 +678,6 @@ bool AGridReceptacleActor::TryTakeItemAtIndex(int32 ItemIndex, AGrimrockPartyPaw
 		GridEventFeedPublisher::EndDungeonEventGroup(this);
 	}
 
-	UE_LOG(LogGridReceptacle, Verbose, TEXT("Receptacle returned item %s ObjectId=%s Count=%d"), *RemovedItem.ItemDefinitionId.ToString(), *ObjectId.ToString(),
-		ContainedItems.Num());
-
-	return true;
 }
 
 bool AGridReceptacleActor::ConsumeItemAtIndex(int32 ItemIndex)

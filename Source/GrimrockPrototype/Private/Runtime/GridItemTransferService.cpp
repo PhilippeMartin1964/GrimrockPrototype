@@ -212,6 +212,13 @@ FGridItemTransferResult UGridItemTransferService::TransferInventorySlotToWallLoc
 FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInventory(
 	AGridReceptacleActor* Receptacle, int32 ContainedItemIndex, UGridPartyInventoryComponent* Inventory, int32 CharacterIndex)
 {
+	return TransferReceptacleItemToInventoryInternal(Receptacle, ContainedItemIndex, Inventory, CharacterIndex, false);
+}
+
+FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInventoryInternal(
+	AGridReceptacleActor* Receptacle, int32 ContainedItemIndex, UGridPartyInventoryComponent* Inventory, int32 CharacterIndex,
+	bool bPublishRemovalEvent)
+{
 	static const TCHAR* Operation = TEXT("ReceptacleItemToInventory");
 	if (!IsValid(Receptacle) || !Receptacle->IsValidContainedItemIndex(ContainedItemIndex))
 	{
@@ -247,6 +254,13 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 	if (bHadVisualActor)
 	{
 		const AGridItemActor* Visual = SourceSnapshot.ItemActor.Get();
+		if (Visual->ItemDefinitionId != Candidate.ItemDefinitionId ||
+			Visual->GetRuntimeObjectId() != Candidate.RuntimeObjectId ||
+			Visual->CanonicalWorldItemLevel != Candidate.ItemLevel ||
+			!Visual->CanonicalWorldPresentation.IsValid() || Visual->GetWorld() != Receptacle->GetWorld())
+		{
+			return LogTransferFailure(Operation, EGridItemTransferResult::InvalidItem, TEXT("Contained actor conflicts with physical source."), &Candidate);
+		}
 		Candidate.bLightsEnabled = Visual->AreItemLightsEnabled();
 		Candidate.ReadableContentAsset = Visual->ReadableContentAsset;
 		Candidate.ReadableContentId = Visual->ReadableContentId;
@@ -260,6 +274,7 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 	{
 		return LogTransferFailure(Operation, EGridItemTransferResult::InvalidItem, TEXT("Contained identity is not registered."), &Candidate);
 	}
+	FText CanonicalDisplayName;
 	{
 		FGridResolvedItem Resolved;
 		if (!Registry->ResolveItem(Candidate.ItemDefinitionId, Candidate.ItemLevel, Resolved) ||
@@ -270,6 +285,7 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 			return LogTransferFailure(Operation, EGridItemTransferResult::InvalidItem, TEXT("Contained canonical instance is invalid."), &Candidate);
 		}
 		Candidate.Weight = Resolved.WeightKg;
+		CanonicalDisplayName = Resolved.DisplayName.IsEmpty() ? FText::FromName(Candidate.ItemDefinitionId) : Resolved.DisplayName;
 	}
 
 	if (!Candidate.IsValid())
@@ -330,7 +346,14 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 			Operation, EGridItemTransferResult::DestinationInsertFailed, TEXT("Inventory insertion failed; receptacle source was restored."), &Candidate);
 	}
 
-	Receptacle->ExecuteRemovalLinks();
+	if (bPublishRemovalEvent)
+	{
+		Receptacle->ExecuteRemovalLinksWithItemEvent(CanonicalDisplayName);
+	}
+	else
+	{
+		Receptacle->ExecuteRemovalLinks();
+	}
 	return LogTransferSuccess(Operation, Candidate, TEXT("Receptacle item transferred to inventory."));
 }
 

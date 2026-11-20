@@ -1,0 +1,7 @@
+# ARM-CLEAN06.5G.51 — Restitution unifiée des réceptacles
+
+Parent f103050d152cc51e459eff6ca6e50744f5826fe3. Publication après deux statuts SUCCESS.
+
+La prise directe TryTakeItemAtIndex construisait encore un objet par lecture d'un ancien asset, pouvait inventer un GUID, clampait la quantité, puis ajoutait au sac avant le retrait du réceptacle. Elle appelle maintenant le même service natif canonique et rollback que l'interaction contextuelle, avec vérification d'accès inchangée et initialisation de groupe conservée. Le service refuse un acteur dont ItemId/GUID/niveau/monde ou projection contredit l'instance. Le groupe de notification ItemRemoved du clic direct conserve son code, sa chaîne NSLOCTEXT et l'ordre autour de ExecuteRemovalLinks ; le service Blueprint conserve son comportement antérieur sans nouvelle notification. Pas de modification de UI.csv, ST_UI, WBP ou traduction Game : chaîne existante inchangée, aucun authoring UI.
+
+Les tests ARMEMENT01.8.InsertRestoreTake et 5G48 ajoutent respectivement le refus du GUID contradictoire et du ItemId contradictoire, sans transfert ni mutation avant une restitution positive de N12. Les problèmes de réentrance des notifications et d'échec tardif du rollback ne sont pas déclarés résolus. La capture de snapshots et les conditions historiques de catégorie non-ARM restent à traiter. Aucun asset/save modifié, validation Windows et PIE/Shipping dues.

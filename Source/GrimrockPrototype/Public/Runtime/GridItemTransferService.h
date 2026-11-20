@@ -69,4 +69,10 @@ public:
 	static FGridItemTransferResult TransferInventorySlotToCharacter(
 		UGridPartyInventoryComponent* Inventory, int32 SourceCharacterIndex, int32 SourceInventorySlotIndex, int32 TargetCharacterIndex,
 		int32 RequestedQuantity);
+
+private:
+	friend class AGridReceptacleActor;
+	static FGridItemTransferResult TransferReceptacleItemToInventoryInternal(
+		AGridReceptacleActor* Receptacle, int32 ContainedItemIndex, UGridPartyInventoryComponent* Inventory,
+		int32 CharacterIndex, bool bPublishRemovalEvent);
 };

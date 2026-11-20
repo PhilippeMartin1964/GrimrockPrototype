@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.51 — Restitution unifiée des réceptacles
+
+Parent f103050d152cc51e459eff6ca6e50744f5826fe3. Publication après deux statuts SUCCESS. Le clic direct sur l’objet et le service contextuel partagent la même extraction avant insertion, rollback et contrôle des identités physiques. Le groupe d’événements historique du clic direct est conservé, sans nouvelle chaîne localisée ; 0183 et 5G48 vérifient acteur/GUID contradictoires, refus sans mutation et restitution N12. Voir [5G.51](ARM_CLEAN06_5G51_UNIFIED_RECEPTACLE_EXTRACTION.md). Aucun asset/save écrit.
+
 ## ARM-CLEAN06.5G.50 — Matérialisation centrale des réceptacles
 
 Parent 12fc5685a3bdfdc277351852645863e150231202. Publication après deux statuts SUCCESS. AddContainedItem ne reçoit plus de définition historique, toutes les routes matérialisent le niveau et la quantité exacts dans le registre, seule l’initialisation authorée crée un GUID. Restauration et service restitution rejettent les inconnus ; 5D2 couvre quantité, GUID et identité invalides/rejeu. Voir [5G.50](ARM_CLEAN06_5G50_CANONICAL_RECEPTACLE_MATERIALIZATION.md). Capture, type métier non-ARM et propriété historique réfléchie restent à traiter. Aucun asset/save écrit.
