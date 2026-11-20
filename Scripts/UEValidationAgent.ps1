@@ -554,6 +554,58 @@ function Publish-EffectsInventoryIssue {
 }
 
 
+
+# 5G.87: only tracked project-package names and fixed field classifications.
+function Publish-InstanceCacheEvidence {
+    param([string]$Sha,[string]$WorktreePath,[string]$ReportRoot,[datetime]$NotBeforeUtc)
+    $Head=@(& git -C $WorktreePath rev-parse HEAD)
+    if ($LASTEXITCODE -ne 0 -or $Head.Count -ne 1 -or $Head[0] -cne $Sha) { throw 'Wrong evidence HEAD.' }
+    $Sessions=@(Get-ChildItem -LiteralPath $ReportRoot -Directory -Filter 'TD04-*')
+    if ($Sessions.Count -ne 1) { throw 'Unexpected evidence directory count.' }
+    $Path=Join-Path $Sessions[0].FullName 'InstanceCacheBlueprintEvidence.json'
+    $File=Get-Item -LiteralPath $Path -ErrorAction Stop
+    if ($File.Length -gt 1048576 -or $File.LastWriteTimeUtc -lt $NotBeforeUtc) { throw 'Stale or oversized evidence.' }
+    $Report=Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($Report.schema -ne 1 -or $Report.blueprints_scanned -le 0 -or $Report.blueprints_scanned -gt 100000 -or @($Report.rows).Count -gt 20000) { throw 'Invalid evidence envelope.' }
+    $Counts=@{}; $Withheld=0; $Tracked=@{}
+    foreach ($Row in @($Report.rows)) {
+        $Package=[string]$Row.package
+        $Field=[string]$Row.field
+        $Kind=[string]$Row.kind
+        if ($Field -cnotin @('DisplayName','Weight') -or $Kind -cnotin @('Connected','AuthoredDefault','Surface')) { throw 'Invalid evidence row.' }
+        if ($Package.Length -gt 240 -or $Package -cnotmatch '^/Game/GrimrockPrototype/[A-Za-z0-9_/]+$') { ++$Withheld; continue }
+        if (-not $Tracked.ContainsKey($Package)) {
+            $Relative='Content/'+$Package.Substring(6)+'.uasset'
+            $null=& git -C $WorktreePath ls-files --error-unmatch -- $Relative 2>$null
+            $Tracked[$Package]=($LASTEXITCODE -eq 0)
+        }
+        if (-not $Tracked[$Package]) { ++$Withheld; continue }
+        $Key="$Package|$Field|$Kind"
+        if (-not $Counts.ContainsKey($Key)) { $Counts[$Key]=0 }
+        ++$Counts[$Key]
+    }
+    $Body=New-Object 'System.Collections.Generic.List[string]'
+    $Body.Add('# ARM-CLEAN06.5G.87 - Inventaire des pins de cache')
+    $Body.Add('')
+    $Body.Add("- Commit : $Sha")
+    $Body.Add("- Blueprints analyses : $([int]$Report.blueprints_scanned)")
+    $Body.Add("- Pins observes : $(@($Report.rows).Count)")
+    $Body.Add("- Pins hors perimetre publiable : $Withheld")
+    $Body.Add('')
+    $Body.Add('| Package versionne | Champ | Usage | Nombre |')
+    $Body.Add('|---|---|---|---:|')
+    foreach ($Key in @($Counts.Keys | Sort-Object)) {
+        $Parts=$Key.Split('|')
+        $Body.Add("| $($Parts[0]) | $($Parts[1]) | $($Parts[2]) | $($Counts[$Key]) |")
+    }
+    $Body.Add('')
+    $Body.Add('Graphes seulement : bindings indirects, valeurs CDO et assets serialises restent a verifier. Pas une autorisation de retrait.')
+    $BodyPath=Join-Path $ReportRoot 'instance-cache-evidence-public.md'
+    $Body | Set-Content -LiteralPath $BodyPath -Encoding UTF8
+    & gh issue create --repo $GitHubRepository --title ('[ARM-CLEAN06.5G.87] Pins de cache '+$Sha.Substring(0,12)) --body-file $BodyPath | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Evidence publication failed.' }
+}
+
 # A native cutover has an independent post-write validation. Publish only
 # structured metadata from that exact run, not ordinary validation results
 # and never arbitrary native messages, local paths, saved games or log lines.
@@ -901,6 +953,17 @@ try {
         }
         catch {
             Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
+        }
+
+        # One-shot graph metadata evidence. Not a schema retirement gate.
+        $EvidenceSubject=@(& git -C $WorktreePath log -1 '--format=%s')
+        if ($LASTEXITCODE -eq 0 -and $EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.]87:') {
+            try {
+                Publish-InstanceCacheEvidence -Sha $Sha -WorktreePath $WorktreePath -ReportRoot $ReportRoot -NotBeforeUtc $EffectsInventoryStartUtc
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context 'UE5.5.4/ARM-CLEAN06.5G87' -Description 'Tracked Blueprint cache pin evidence published'
+            } catch {
+                Publish-CommitStatus -Sha $Sha -State 'failure' -Context 'UE5.5.4/ARM-CLEAN06.5G87' -Description 'Blueprint cache evidence unavailable'
+            }
         }
 
         # One-shot read-only save proof. Never publish private rows, paths,

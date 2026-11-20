@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.87 — Inventaire Blueprint des caches d'instance
+
+Parent e049d063da71efa117d5dc001bc7abe850367e07. Attendre triple SUCCESS 5G86. Rapport natif en lecture seule des pins DisplayName/Weight, distingue usage actif et surface. Publication filtrée des packages suivis uniquement ; aucun retrait. Voir [5G.87](ARM_CLEAN06_5G87_INSTANCE_CACHE_BLUEPRINT_EVIDENCE.md).
+
 ## ARM-CLEAN06.5G.86 — Retrait réfléchi des deux pointeurs monde
 
 Parent c265cfe6195c1d11e01e09f21f20fc3d6ea8fd30 : publication seulement après les trois statuts SUCCESS, dont la preuve 5G85 sur copies courantes. Retrait des deux UPROPERTY, v27 conservée, test réflexion et relecture froide des mêmes octets sur l'agent ; troisième statut 5G86 obligatoire. Voir [5G.86](ARM_CLEAN06_5G86_WORLD_SAVE_POINTER_SCHEMA_RETIREMENT.md).
