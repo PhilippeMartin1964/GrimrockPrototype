@@ -106,7 +106,8 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		FName(TEXT("SyncSelectedItemDefinitionIdFromAsset")),
 		FName(TEXT("RegisterItemDefinition")),
 		FName(TEXT("FindItemDefinition")),
-		FName(TEXT("TryInsertItem"))
+		FName(TEXT("TryInsertItem")),
+		FName(TEXT("AddRuntimeItemToSelectedCharacterInventory"))
 	};
 
 	TArray<FString> LegacyReferences;
@@ -232,7 +233,7 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		AddError(FString::Printf(TEXT("5G85 serialized world struct usage requires review: %s"), *Reference));
 	TestEqual(TEXT("No native Blueprint directly uses the two serialized world structs"), WorldSaveStructReferences.Num(), 0);
 	TestTrue(TEXT("Native Blueprint inventory is not empty"), BlueprintAssets.Num() > 0);
-	TestEqual(TEXT("No Blueprint calls retired item identity APIs or historical inventory registry"), LegacyReferences.Num(), 0);
+	TestEqual(TEXT("No Blueprint calls retired item identity APIs, historical inventory registry or weight-bearing pawn grant"), LegacyReferences.Num(), 0);
 	TestNull(TEXT("Retired setter is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SetSelectedObjectItemDefinitionAsset")));
 	TestNull(TEXT("Retired sync is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SyncSelectedItemDefinitionIdFromAsset")));
 	TestNull(TEXT("Historical inventory registration is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("RegisterItemDefinition")));

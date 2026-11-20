@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.98 — Préflight Blueprint de l'ancien grant Pawn
+
+Parent fc8f8cd5a91665522c44a65f3d68ac436a7202e3 : attendre SilentTask et LocalAuto SUCCESS. Audit natif MIG09 étendu à AddRuntimeItemToSelectedCharacterInventory, fonction Blueprint historique sans niveau physique et avec poids fourni. Aucun appel C++ trouvé hors définition/déclaration. Aucun retrait avant preuve native positive. Voir [5G.98](ARM_CLEAN06_5G98_PAWN_GRANT_BLUEPRINT_PREFLIGHT.md).
+
 ## ARM-CLEAN06.5G.97 — Projectiles canoniques sans cache statique
 
 Parent 289af11fe553dad342a03c08222d4dc914e1ed4d : attendre SilentTask et LocalAuto SUCCESS. Lancers main/curseur/inventaire/combat : poids local pour journal, munitions canoniques sans copie, acteur en vol efface les caches reçus. Tests 3AV/3BB vérifient parité physique et absence de copies. Voir [5G.97](ARM_CLEAN06_5G97_PROJECTILE_CACHE_WRITER_RETIREMENT.md).
