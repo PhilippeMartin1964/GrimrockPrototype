@@ -24,6 +24,13 @@ bool FGridWorldObjectMIG09ReceptacleItemIdentityTest::RunTest(const FString& Par
 	TestNull(TEXT("Receptacle actor no longer exposes ContainedItemArchetypeId"),
 		AGridReceptacleActor::StaticClass()->FindPropertyByName(TEXT("ContainedItemArchetypeId")));
 
+	TestNull(TEXT("Contained item has no historical definition pointer in reflected schema"),
+		FGridContainedReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
+	TestNull(TEXT("Old ID-only insertion no longer reflected"),
+		AGridReceptacleActor::StaticClass()->FindFunctionByName(TEXT("TryInsertItem")));
+	TestNotNull(TEXT("Physical instance insertion remains reflected"),
+		AGridReceptacleActor::StaticClass()->FindFunctionByName(TEXT("TryInsertItemInstanceFromCursor")));
+
 	FGridContainedReceptacleItem Item;
 	Item.ItemDefinitionId = TEXT("MIG09_Item");
 	TestEqual(TEXT("Contained item identity is ItemDefinitionId only"), Item.ItemDefinitionId, FName(TEXT("MIG09_Item")));

@@ -12,7 +12,6 @@ class USceneComponent;
 class UStaticMeshComponent;
 class AGrimrockPartyPawn;
 class AGridItemActor;
-class UGridItemDefinitionAsset;
 class UGridReadableContentAsset;
 class UGridItemTransferService;
 
@@ -57,9 +56,6 @@ struct FGridContainedReceptacleItem
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
 	FName ItemDefinitionId = NAME_None;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
 	TObjectPtr<AGridItemActor> ItemActor = nullptr;
@@ -250,16 +246,6 @@ public:
 	// ============================================================
 	// Item Insertion / Removal
 	// ============================================================
-
-	/**
-     * Inserts an item into the receptacle.
-     *
-     * ID-only canonical N0 insertion; old pointer and party arguments are ignored.
-     * Physical ARM and other transfers use TryInsertItemInstanceFromCursor.
-     * The reflected signature remains until its Blueprint usage audit.
-     */
-	UFUNCTION(BlueprintCallable, Category = "Receptacle")
-	bool TryInsertItem(FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGrimrockPartyPawn* PartyPawn);
 
 	UFUNCTION(BlueprintCallable, Category = "Receptacle")
 	bool TryInsertItemInstanceFromCursor(const FGridItemInstance& CursorItem, FGridItemInstance& OutAcceptedItem);

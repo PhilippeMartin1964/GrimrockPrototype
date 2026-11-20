@@ -146,6 +146,10 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 	TestNull(TEXT("Retired sync is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SyncSelectedItemDefinitionIdFromAsset")));
 	TestNull(TEXT("Historical inventory registration is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("RegisterItemDefinition")));
 	TestNull(TEXT("Historical inventory lookup is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("FindItemDefinition")));
+	TestNull(TEXT("Historical ID-only receptacle insertion is no longer reflected"),
+		AGridReceptacleActor::StaticClass()->FindFunctionByName(TEXT("TryInsertItem")));
+	TestNull(TEXT("Historical contained definition pointer no longer reflected"),
+		FGridContainedReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	TestNotNull(TEXT("Inventory instance projection remains reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("ApplyItemDefinitionToInstance")));
 	return BlueprintAssets.Num() > 0 && LegacyReferences.IsEmpty() &&
 		ContainedStructReferences.IsEmpty() && LoadedBlueprintCount == BlueprintAssets.Num();

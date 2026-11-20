@@ -476,32 +476,6 @@ bool AGridReceptacleActor::CanAcceptCursorItemFromParty(const AGrimrockPartyPawn
 	return PartyPawn && PartyPawn->GetCursorItem(CursorItem) && CanAcceptItemInstance(CursorItem);
 }
 
-bool AGridReceptacleActor::TryInsertItem(FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGrimrockPartyPawn* PartyPawn)
-{
-	// The reflected historical signature is retained pending Blueprint audit.
-	// Neither argument can supply or rename a canonical physical identity.
-	(void)ItemDefinition;
-	(void)PartyPawn;
-	FGridItemInstance Candidate;
-	Candidate.RuntimeObjectId = FGuid::NewGuid();
-	Candidate.ItemDefinitionId = ItemDefinitionId;
-	Candidate.ItemLevel = 0;
-	Candidate.Quantity = 1;
-	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
-	FGridResolvedItem Resolved;
-	if (!Registry || !Registry->ResolveItem(ItemDefinitionId, 0, Resolved) ||
-		!Resolved.IsValid() || Resolved.bIsArmament || !CanAcceptItemInstance(Candidate))
-	{
-		return false; // An ID-only request cannot guess the physical N-level of an ARM.
-	}
-	const int32 NewIndex = AddContainedItem(ItemDefinitionId, nullptr, false, 1, Candidate.RuntimeObjectId, 0);
-	if (NewIndex == INDEX_NONE) return false;
-	ExecuteInsertionLinks();
-	UE_LOG(LogGridReceptacle, Verbose, TEXT("Receptacle accepted item %s ObjectId=%s Count=%d"),
-		*ItemDefinitionId.ToString(), *ObjectId.ToString(), ContainedItems.Num());
-	return true;
-}
-
 bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstance& CursorItem, FGridItemInstance& OutAcceptedItem)
 {
 	OutAcceptedItem = FGridItemInstance();

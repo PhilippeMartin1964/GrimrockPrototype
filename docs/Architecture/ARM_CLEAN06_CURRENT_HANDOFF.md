@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.78 — Retrait du pointeur et de l'insertion historiques
+
+Parent f5f946a466dd5936c12e00c71dc8ee8d97652ea0. Seulement après double validation du préflight 5G.77 et preuve native 5A zéro arête externe. Retirer champ FGridContainedReceptacleItem.ItemDefinition (runtime non SaveGame), API TryInsertItem sans appelant production et lecteur d'identité 3BG inutilisé. Tests réutilisent insertion physique, conservent les contradictions de présentation et vérifient la réflexion. Voir [5G.78](ARM_CLEAN06_5G78_RETIRE_RECEPTACLE_LEGACY_SCHEMA.md).
+
 ## ARM-CLEAN06.5G.77 — Préflight Blueprint des réceptacles
 
 Parent 254dadf2e72cca777239a21f502096138952cc78. MIG09 étend le scan à /Game, vérifie appels TryInsertItem et types FGridContainedReceptacleItem sur variables et pins de graphes et CDO de réceptacle vide ; aucune propriété ou fonction retirée. Un usage bloquera le retrait réfléchi et exigera analyse. Voir [5G.77](ARM_CLEAN06_5G77_RECEPTACLE_BLUEPRINT_PREFLIGHT.md).

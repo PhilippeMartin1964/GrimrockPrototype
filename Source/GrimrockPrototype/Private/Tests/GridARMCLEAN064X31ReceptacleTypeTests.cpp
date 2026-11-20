@@ -5,6 +5,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridItemActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
@@ -46,14 +47,30 @@ bool FGridClean064X31ReceptacleTypeConditions::RunTest(const FString&)
         bOk &= TestTrue(TEXT("Copper key N0 belongs to actual registry"),
             Registry->ResolveItem(Key, 0, Resolved));
 
-        auto Contain = [Receptacle](FName Id, int32 Level, UGridItemDefinitionAsset* Old)
+        AGridItemActor* StaleVisual = World->SpawnActor<AGridItemActor>();
+        if (!TestNotNull(TEXT("Optional stale visual actor"), StaleVisual))
+        {
+            World->SetGameInstance(nullptr);
+            GI->Shutdown();
+            World->DestroyWorld(false);
+            if (GEngine) GEngine->DestroyWorldContext(World);
+            return false;
+        }
+        auto Contain = [Receptacle, StaleVisual](FName Id, int32 Level, UGridItemDefinitionAsset* Old)
         {
             Receptacle->ContainedItems.Reset();
             FGridContainedReceptacleItem& Item = Receptacle->ContainedItems.AddDefaulted_GetRef();
             Item.ItemDefinitionId = Id;
             Item.ItemLevel = Level;
             Item.RuntimeObjectId = FGuid::NewGuid();
-            Item.ItemDefinition = Old;
+            if (Old)
+            {
+                StaleVisual->ItemDefinitionAsset = Old;
+                StaleVisual->ItemDefinitionId = Id;
+                StaleVisual->CanonicalWorldItemLevel = Level;
+                StaleVisual->SetRuntimeObjectId(Item.RuntimeObjectId);
+                Item.ItemActor = StaleVisual;
+            }
         };
 
         Contain(Dagger, 1, nullptr);

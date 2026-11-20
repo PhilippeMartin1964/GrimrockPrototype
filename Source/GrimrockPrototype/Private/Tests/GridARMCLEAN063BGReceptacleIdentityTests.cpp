@@ -9,7 +9,6 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/GridReceptacleContainedIdentityReadModel.h"
 #include "../Runtime/GridReceptacleItemMetadataReadModel.h"
 
 namespace ARMCLEAN063BG
@@ -61,6 +60,17 @@ namespace ARMCLEAN063BG
                 Registry->HasCanonicalItem(TEXT("Weapon_StraightSword_01"));
         }
 
+        bool Insert(FName Id, int32 Level, FGridItemInstance& Accepted) const
+        {
+            FGridItemInstance Item;
+            Item.RuntimeObjectId = FGuid::NewGuid();
+            Item.ItemDefinitionId = Id;
+            Item.ItemLevel = Level;
+            Item.Quantity = 1;
+            Item.OwnerType = EGridItemOwnerType::Cursor;
+            return Receptacle->TryInsertItemInstanceFromCursor(Item, Accepted);
+        }
+
         UGridItemDefinitionAsset* Contradictory() const
         {
             UGridItemDefinitionAsset* Old =
@@ -82,21 +92,18 @@ bool FGridBGPhysicalInsertion::RunTest(const FString&)
         return false;
     const FName ArrowId(TEXT("Item_Arrows_01"));
     UGridItemDefinitionAsset* Old = F.Contradictory();
-    TestFalse(TEXT("Empty explicit ID cannot be supplied by old pointer"),
-        F.Receptacle->TryInsertItem(NAME_None, Old, nullptr));
-    TestFalse(TEXT("Unknown explicit ID cannot be renamed by old pointer"),
-        F.Receptacle->TryInsertItem(TEXT("CLEAN06_5G49_Unknown"), Old, nullptr));
-    TestFalse(TEXT("ID-only insertion cannot guess an ARM level"),
-        F.Receptacle->TryInsertItem(TEXT("Weapon_StraightSword_01"), Old, nullptr));
-    if (!TestTrue(TEXT("Registered N0 arrow inserts with contradicting legacy asset"),
-        F.Receptacle->TryInsertItem(ArrowId, Old, nullptr))) return false;
+    FGridItemInstance Accepted;
+    TestFalse(TEXT("Empty physical ID cannot be inserted"), F.Insert(NAME_None, 0, Accepted));
+    TestFalse(TEXT("Unknown physical ID cannot be inserted"), F.Insert(TEXT("CLEAN06_5G49_Unknown"), 0, Accepted));
+    TestFalse(TEXT("Invalid physical N0 ARM cannot be inserted"), F.Insert(TEXT("Weapon_StraightSword_01"), 0, Accepted));
+    if (!TestTrue(TEXT("Registered physical N0 arrow inserts without any old source"),
+        F.Insert(ArrowId, 0, Accepted))) return false;
     if (!TestEqual(TEXT("One item physically inserted"),
         F.Receptacle->GetContainedItemCount(), 1)) return false;
     const FGridContainedReceptacleItem& Contained = F.Receptacle->ContainedItems[0];
     TestEqual(TEXT("Authoritative contained ItemId"), Contained.ItemDefinitionId, ArrowId);
     TestEqual(TEXT("N0 ammo level preserved"), Contained.ItemLevel, 0);
-    TestNull(TEXT("Contradicting definition removed as visual authority"),
-        Contained.ItemDefinition.Get());
+    TestEqual(TEXT("Physical insertion keeps input GUID"), Contained.RuntimeObjectId, Accepted.RuntimeObjectId);
     AGridItemActor* Physical = F.Receptacle->GetContainedItemActor(0);
     if (!TestNotNull(TEXT("Actual contained item actor"), Physical)) return false;
     TestEqual(TEXT("Physical actor has canonical identity"),
@@ -120,7 +127,7 @@ bool FGridBGPhysicalInsertion::RunTest(const FString&)
         Snapshot.ContainedItems[0].ObjectId == Contained.RuntimeObjectId);
     const FName FakeTag(TEXT("CLEAN06_5G49_FakeTag"));
     Old->ItemTags.Add(FakeTag);
-    F.Receptacle->ContainedItems[0].ItemDefinition = Old;
+    Physical->ItemDefinitionAsset = Old; // Deliberately stale presentation pointer.
     TestFalse(TEXT("Contradictory historical tag cannot authorize registered item"),
         F.Receptacle->ContainsItemTag(FakeTag));
     F.Receptacle->ContainedItems[0].ItemDefinitionId = TEXT("CLEAN06_5G49_Unknown");
@@ -149,8 +156,7 @@ bool FGridBGLevelAndLegacy::RunTest(const FString&)
         F.Registry, Old, ArrowId, 1, false);
     TestFalse(TEXT("N1 ammunition remains invalid"), InvalidArrow.bResolved);
     const FName SwordId(TEXT("Weapon_StraightSword_01"));
-    TestEqual(TEXT("Explicit ItemId takes precedence for registered source"),
-        FGridReceptacleContainedIdentityReadModel::Resolve(F.Registry, Old, ArrowId), ArrowId);
+
     const auto InvalidSword = FGridReceptacleItemMetadataReadModel::Resolve(
         F.Registry, nullptr, SwordId, 0, false);
     TestFalse(TEXT("Persisted N0 weapon cannot inherit N1"), InvalidSword.bResolved);
@@ -159,17 +165,6 @@ bool FGridBGLevelAndLegacy::RunTest(const FString&)
     TestTrue(TEXT("Real N20 item level retained"),
         Sword.bCanonicalIdentity && Sword.bResolved && Sword.FixedItemLevel == 20);
 
-    Old->ItemDefinitionId = TEXT("BG_UnregisteredLegacy");
-    TestEqual(TEXT("Non-migrated IDs retain old priority"),
-        FGridReceptacleContainedIdentityReadModel::Resolve(
-            F.Registry, Old, TEXT("BG_UnregisteredEntry")), Old->ItemDefinitionId);
-    Old->ItemDefinitionId = ArrowId;
-    TestTrue(TEXT("Old registered source cannot rename unrelated entry"),
-        FGridReceptacleContainedIdentityReadModel::Resolve(
-            F.Registry, Old, TEXT("BG_UnregisteredEntry")).IsNone());
-    TestEqual(TEXT("No explicit initial ID may still use old authored ItemId"),
-        FGridReceptacleContainedIdentityReadModel::Resolve(
-            F.Registry, Old, NAME_None), ArrowId);
     return !HasAnyErrors();
 }
 
@@ -182,8 +177,9 @@ bool FGridBGConflictingActor::RunTest(const FString&)
     if (!TestTrue(TEXT("Production registry and real receptacle"), F.Ready()))
         return false;
     const FName ArrowId(TEXT("Item_Arrows_01"));
+    FGridItemInstance Accepted;
     if (!TestTrue(TEXT("Registered arrow successfully inserted"),
-        F.Receptacle->TryInsertItem(ArrowId, F.Contradictory(), nullptr)))
+        F.Insert(ArrowId, 0, Accepted)))
         return false;
     AGridItemActor* Actor = F.Receptacle->GetContainedItemActor(0);
     if (!TestNotNull(TEXT("Physical actor available"), Actor)) return false;

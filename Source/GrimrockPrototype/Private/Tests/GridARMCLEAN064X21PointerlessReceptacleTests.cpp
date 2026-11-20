@@ -153,8 +153,6 @@ bool FGridClean064X21PointerlessInitialArm::RunTest(const FString&)
                 Item.ItemDefinitionId, FName(TEXT("Weapon_Dagger_01"))) ||
             !TestEqual(TEXT("Contained physical ARM level"),
                 Item.ItemLevel, Level) ||
-            !TestNull(TEXT("No legacy UObject stored on contained item"),
-                Item.ItemDefinition.Get()) ||
             !TestNull(TEXT("No legacy UObject attached to contained actor"),
                 ItemActor->GetItemDefinitionAsset()) ||
             !TestTrue(TEXT("Canonical presentation exists"),
@@ -255,8 +253,7 @@ bool FGridClean064X22PointerlessArmRestore::RunTest(const FString&)
         return false;
     }
     const FGridContainedReceptacleItem& Item = Receptacle->ContainedItems[0];
-    return TestNull(TEXT("No old DA_Weapon attached during restore"), Item.ItemDefinition.Get()) &&
-        TestNull(TEXT("Restored actor remains canonical"), Prebuilt->GetItemDefinitionAsset()) &&
+    return TestNull(TEXT("Restored actor remains canonical"), Prebuilt->GetItemDefinitionAsset()) &&
         TestTrue(TEXT("Full canonical world presentation retained"),
             Prebuilt->CanonicalWorldPresentation.IsValid()) &&
         TestEqual(TEXT("Stable GUID preserved"), Item.RuntimeObjectId, ItemState.ObjectId) &&
@@ -291,7 +288,6 @@ bool FGridClean065D2CanonicalReceptacleInsertRestore::RunTest(const FString&)
     State.bLightsEnabled = false;
     if (!TestTrue(TEXT("Restore upgrades an old-style actor to canonical presentation"),
         R->RestoreRuntimeContainedItem(State, Actor))) return false;
-    TestNull(TEXT("No old pointer after restore"), R->ContainedItems[0].ItemDefinition.Get());
     TestNull(TEXT("Actor no longer references old definition"), Actor->GetItemDefinitionAsset());
     TestTrue(TEXT("Complete canonical presentation"), Actor->CanonicalWorldPresentation.IsValid());
     TestEqual(TEXT("N20 persists"), Actor->CanonicalWorldItemLevel, 20);
