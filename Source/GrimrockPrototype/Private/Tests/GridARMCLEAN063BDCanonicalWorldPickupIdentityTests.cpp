@@ -203,7 +203,26 @@ namespace ARMCLEAN063BD
         Test.TestEqual(TEXT("Unlevelled ammo remains N0"),
             Saved->ItemLevel, 0);
         if (FCString::Strcmp(Scenario, TEXT("Capture")) == 0)
+        {
+            Actor->SetRuntimeObjectId(FGuid::NewGuid());
+            Test.TestFalse(TEXT("Conflicting physical GUID rejects entire level capture"),
+                F.Runtime->CaptureCurrentLevelRuntimeState());
+            LevelState = F.Runtime->FindRuntimeStateForCurrentLevel();
+            Saved = LevelState ? LevelState->Items.Find(Arrow.RuntimeObjectId) : nullptr;
+            if (!Test.TestNotNull(TEXT("Previous snapshot retains original GUID"), Saved)) return false;
+            Test.TestEqual(TEXT("Previous snapshot retains canonical identity"), Saved->ItemDefinitionId, ArrowId);
+            Actor->SetRuntimeObjectId(Arrow.RuntimeObjectId);
+            Actor->ItemDefinitionId = TEXT("Unknown_5G53");
+            Test.TestFalse(TEXT("Unknown physical identity rejects entire level capture"),
+                F.Runtime->CaptureCurrentLevelRuntimeState());
+            LevelState = F.Runtime->FindRuntimeStateForCurrentLevel();
+            Saved = LevelState ? LevelState->Items.Find(Arrow.RuntimeObjectId) : nullptr;
+            if (!Test.TestNotNull(TEXT("Identity failure retains original snapshot"), Saved)) return false;
+            Actor->ItemDefinitionId = ArrowId;
+            Test.TestTrue(TEXT("Corrected physical identity captures normally"),
+                F.Runtime->CaptureCurrentLevelRuntimeState());
             return !Test.HasAnyErrors();
+        }
 
         if (bPick)
         {

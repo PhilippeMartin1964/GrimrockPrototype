@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.53 — Capture atomique des objets du monde
+
+Parent 7f3847d9e3894e61e26dddd75afdb114a14181e4. Publication après deux statuts SUCCESS. Capture des pickups et munitions actives préparée avant reset du niveau, validation canonique commune des items, réceptacles et arrivées différées, aucun remplacement silencieux de GUID ou de quantité pour les lignes actives. Test 3BD Capture renforce le refus de GUID/ID physique contradictoire et la conservation du snapshot. Voir [5G.53](ARM_CLEAN06_5G53_ATOMIC_WORLD_ITEM_CAPTURE.md).
+
 ## ARM-CLEAN06.5G.52 — Capture atomique des réceptacles
 
 Parent 8c471e9151846c0d95948199969b9e6ad905bf7f. Publication après deux statuts SUCCESS. CaptureRuntimeReceptacleState exige ID/niveau/GUID/quantité canoniques et cohérence acteur, ne lit plus les anciennes identités, ne saute pas les lignes invalides et ne modifie pas la sortie en cas d’échec. Capture du niveau prévalide tous les réceptacles avant reset du snapshot. 5G52/3BG vérifient conservation de l’état antérieur ; transition et commandes de monstres respectent le refus de capture. Voir [5G.52](ARM_CLEAN06_5G52_ATOMIC_RECEPTACLE_CAPTURE.md). Aucun asset/save écrit.

@@ -133,6 +133,144 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		CapturedReceptacles.Add(Pair.Key, MoveTemp(ReceptacleState));
 	}
 
+	// Stage all physical rows before modifying the previous snapshot. The
+	// historical registry-less automation fixtures are not a production path.
+	bool bRequireCanonicalCapture = true;
+#if WITH_DEV_AUTOMATION_TESTS
+	bRequireCanonicalCapture = GetWorld() && GetWorld()->GetGameInstance();
+#endif
+	RefreshWorldItemPhysicsCells();
+	TMap<FGuid, FGridRuntimeItemState> CapturedItems;
+	TSet<FGuid> ExistingPlacedItemObjectIds;
+	for (const FGridSpawnedItemRuntimeEntry& Entry : SpawnedItemEntries)
+	{
+		AGridItemActor* ItemActor = Entry.ItemActor.Get();
+		if (!IsValid(ItemActor))
+		{
+			continue;
+		}
+		ExistingPlacedItemObjectIds.Add(Entry.ObjectId);
+		FGridRuntimeItemState ItemState;
+		ItemState.ObjectId = Entry.ObjectId;
+		ItemState.ItemDefinitionId = bRequireCanonicalCapture
+			? Entry.ItemDefinitionId
+			: FGridWorldPickupIdentityReadModel::Resolve(ItemActor, Entry.ItemDefinitionId, Entry.ItemLevel);
+		if (bRequireCanonicalCapture &&
+			(!Entry.ObjectId.IsValid() || ItemActor->GetRuntimeObjectId() != Entry.ObjectId ||
+			ItemActor->ItemDefinitionId != Entry.ItemDefinitionId ||
+			ItemActor->CanonicalWorldItemLevel != Entry.ItemLevel ||
+			CapturedItems.Contains(Entry.ObjectId)))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Capture rejected conflicting world identity: ObjectId=%s"), *Entry.ObjectId.ToString());
+			return false;
+		}
+		ItemState.ItemLevel = Entry.ItemLevel;
+		ItemState.Quantity = bRequireCanonicalCapture ? Entry.Quantity : FMath::Max(1, Entry.Quantity);
+		ItemState.CellX = Entry.Cell.X;
+		ItemState.CellY = Entry.Cell.Y;
+		ItemState.Edge = Entry.Edge;
+
+		if (ItemState.ItemDefinitionId.IsNone())
+		{
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Capture skipped item: ObjectId=%s Actor=%s no ItemDefinitionId resolved."),
+				*Entry.ObjectId.ToString(), *GetNameSafe(ItemActor));
+			if (bRequireCanonicalCapture) return false;
+			continue;
+		}
+		ItemState.Transform = ItemActor->GetActorTransform();
+		ItemState.bIsSimulatingPhysics = ItemActor->MeshComponent ? ItemActor->MeshComponent->IsSimulatingPhysics() : false;
+		if (IsValid(ItemActor->MeshComponent) && ItemState.bIsSimulatingPhysics)
+		{
+			ItemState.bHasWorldMeshTransform = true;
+			ItemState.WorldMeshTransform = ItemActor->MeshComponent->GetComponentTransform();
+		}
+		ItemState.bIsContainedInReceptacle = false;
+		ItemState.bLightsEnabled = ItemActor->AreItemLightsEnabled();
+		ItemState.ReadableContentAsset = ItemActor->ReadableContentAsset;
+		ItemState.ReadableContentId = ItemActor->ReadableContentId;
+		ItemState.ReadTitleOverride = ItemActor->ReadTitleOverride;
+		ItemState.ReadTextOverride = ItemActor->ReadTextOverride;
+		CapturedItems.Add(Entry.ObjectId, ItemState);
+	}
+	// Flying and embedded arrows are already consumed from inventory, but
+	// are not yet in SpawnedItemEntries. Capture by their single GUID before
+	// materializing any pickup. In-flight shots reload as recoverable items.
+	if (UWorld* World = GetWorld())
+	{
+		UGameInstance* GameInstance = World->GetGameInstance();
+		const UGridItemSubsystem* Canonical = GameInstance
+			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		for (TActorIterator<AGridThrownItemActor> It(World); It; ++It)
+		{
+			const AGridThrownItemActor* Arrow = *It;
+			if (!IsValid(Arrow) || Arrow->RuntimeActor != this ||
+				Arrow->HasCompletedImpactConversion() || !Arrow->bRangedAmmunitionProjectile)
+			{
+				continue;
+			}
+			const FGuid Guid = Arrow->ThrownItemInstance.RuntimeObjectId;
+			if (!Guid.IsValid() || (bRequireCanonicalCapture && Arrow->ThrownItemInstance.Quantity != 1))
+			{
+				if (bRequireCanonicalCapture) return false;
+				continue;
+			}
+			if (CapturedItems.Contains(Guid))
+			{
+				UE_LOG(LogGridLevelRuntime, Warning,
+					TEXT("[GridProjectile] CaptureDuplicateGuid Id=%s"), *Guid.ToString());
+				if (bRequireCanonicalCapture) return false;
+				continue;
+			}
+			FGridRuntimeItemState Item;
+			Item.ObjectId = Guid;
+			Item.ItemDefinitionId = Arrow->ThrownItemInstance.ItemDefinitionId;
+			Item.ItemLevel = Arrow->ThrownItemInstance.ItemLevel;
+			Item.Quantity = 1;
+			Item.Transform = Arrow->GetActorTransform();
+			Item.bHasWorldMeshTransform = IsValid(Arrow->MeshComponent);
+			Item.WorldMeshTransform = Item.bHasWorldMeshTransform
+				? Arrow->MeshComponent->GetComponentTransform() : Item.Transform;
+			// 06.3BC: a registered arrow's physical identity is ItemId/N0/GUID.
+			// Never persist an obsolete DA_Item_Arrows pointer for this source.
+			Item.ProjectileDefinitionAsset =
+				bRequireCanonicalCapture || (Canonical && Canonical->HasCanonicalItem(Item.ItemDefinitionId))
+					? nullptr : Arrow->GetItemDefinitionAsset();
+			Item.bLightsEnabled = Arrow->ThrownItemInstance.bLightsEnabled;
+			int32 X = INDEX_NONE, Y = INDEX_NONE;
+			FVector Offset;
+			if (!TryResolveWorldCellFromImpactPoint(Item.WorldMeshTransform.GetLocation(), X, Y, Offset))
+			{
+				X = Arrow->SourceCellX;
+				Y = Arrow->SourceCellY;
+			}
+			Item.CellX = X;
+			Item.CellY = Y;
+			Item.bEmbeddedProjectile = Arrow->CaptureEmbeddedAttachment(
+				Item.EmbeddedMonsterPersistenceId, Item.EmbeddedBone,
+				Item.EmbeddedBoneRelativeTransform);
+			CapturedItems.Add(Guid, Item);
+		}
+	}
+
+	if (bRequireCanonicalCapture)
+	{
+		FGridLevelRuntimeState Candidate;
+		if (const FGridLevelRuntimeState* Previous = FindRuntimeStateForCurrentLevel())
+		{
+			Candidate.LevelId = Previous->LevelId;
+			Candidate.PendingInboundItems = Previous->PendingInboundItems;
+		}
+		Candidate.Items = CapturedItems;
+		Candidate.Receptacles = CapturedReceptacles;
+		FString Error;
+		if (!FGridCanonicalWorldSnapshotReadModel::ValidateLevel(
+			FGridCanonicalWorldSnapshotReadModel::GetRegistry(GetWorld()), Candidate, Error))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Capture rejected: %s"), *Error);
+			return false;
+		}
+	}
+
 	FGridLevelRuntimeState* State = GetOrCreateRuntimeStateForCurrentLevel();
 	if (!State)
 	{
@@ -142,9 +280,8 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 	State->Doors.Reset();
 	State->InteractiveObjects.Reset();
 	State->ObjectPresence.Reset();
-	State->Items.Reset();
+	State->Items = MoveTemp(CapturedItems);
 	State->Receptacles.Reset();
-	RefreshWorldItemPhysicsCells();
 	State->Monsters.Reset();
 	State->bHasBeenVisited = true;
 
@@ -202,99 +339,6 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		}
 	}
 
-	TSet<FGuid> ExistingPlacedItemObjectIds;
-	for (const FGridSpawnedItemRuntimeEntry& Entry : SpawnedItemEntries)
-	{
-		AGridItemActor* ItemActor = Entry.ItemActor.Get();
-		if (!IsValid(ItemActor))
-		{
-			continue;
-		}
-		ExistingPlacedItemObjectIds.Add(Entry.ObjectId);
-		FGridRuntimeItemState ItemState;
-		ItemState.ObjectId = Entry.ObjectId;
-		ItemState.ItemDefinitionId = FGridWorldPickupIdentityReadModel::Resolve(ItemActor, Entry.ItemDefinitionId, Entry.ItemLevel);
-		ItemState.ItemLevel = Entry.ItemLevel;
-		ItemState.Quantity = FMath::Max(1, Entry.Quantity);
-		ItemState.CellX = Entry.Cell.X;
-		ItemState.CellY = Entry.Cell.Y;
-		ItemState.Edge = Entry.Edge;
-
-		if (ItemState.ItemDefinitionId.IsNone())
-		{
-			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Capture skipped item: ObjectId=%s Actor=%s no ItemDefinitionId resolved."),
-				*Entry.ObjectId.ToString(), *GetNameSafe(ItemActor));
-			continue;
-		}
-		ItemState.Transform = ItemActor->GetActorTransform();
-		ItemState.bIsSimulatingPhysics = ItemActor->MeshComponent ? ItemActor->MeshComponent->IsSimulatingPhysics() : false;
-		if (IsValid(ItemActor->MeshComponent) && ItemState.bIsSimulatingPhysics)
-		{
-			ItemState.bHasWorldMeshTransform = true;
-			ItemState.WorldMeshTransform = ItemActor->MeshComponent->GetComponentTransform();
-		}
-		ItemState.bIsContainedInReceptacle = false;
-		ItemState.bLightsEnabled = ItemActor->AreItemLightsEnabled();
-		ItemState.ReadableContentAsset = ItemActor->ReadableContentAsset;
-		ItemState.ReadableContentId = ItemActor->ReadableContentId;
-		ItemState.ReadTitleOverride = ItemActor->ReadTitleOverride;
-		ItemState.ReadTextOverride = ItemActor->ReadTextOverride;
-		State->Items.Add(Entry.ObjectId, ItemState);
-	}
-	// Flying and embedded arrows are already consumed from inventory, but
-	// are not yet in SpawnedItemEntries. Capture by their single GUID before
-	// materializing any pickup. In-flight shots reload as recoverable items.
-	if (UWorld* World = GetWorld())
-	{
-		UGameInstance* GameInstance = World->GetGameInstance();
-		const UGridItemSubsystem* Canonical = GameInstance
-			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		for (TActorIterator<AGridThrownItemActor> It(World); It; ++It)
-		{
-			const AGridThrownItemActor* Arrow = *It;
-			if (!IsValid(Arrow) || Arrow->RuntimeActor != this ||
-				Arrow->HasCompletedImpactConversion() || !Arrow->bRangedAmmunitionProjectile ||
-				!Arrow->ThrownItemInstance.RuntimeObjectId.IsValid())
-			{
-				continue;
-			}
-			const FGuid Guid = Arrow->ThrownItemInstance.RuntimeObjectId;
-			if (State->Items.Contains(Guid))
-			{
-				UE_LOG(LogGridLevelRuntime, Warning,
-					TEXT("[GridProjectile] CaptureDuplicateGuid Id=%s"), *Guid.ToString());
-				continue;
-			}
-			FGridRuntimeItemState Item;
-			Item.ObjectId = Guid;
-			Item.ItemDefinitionId = Arrow->ThrownItemInstance.ItemDefinitionId;
-			Item.ItemLevel = Arrow->ThrownItemInstance.ItemLevel;
-			Item.Quantity = 1;
-			Item.Transform = Arrow->GetActorTransform();
-			Item.bHasWorldMeshTransform = IsValid(Arrow->MeshComponent);
-			Item.WorldMeshTransform = Item.bHasWorldMeshTransform
-				? Arrow->MeshComponent->GetComponentTransform() : Item.Transform;
-			// 06.3BC: a registered arrow's physical identity is ItemId/N0/GUID.
-			// Never persist an obsolete DA_Item_Arrows pointer for this source.
-			Item.ProjectileDefinitionAsset =
-				Canonical && Canonical->HasCanonicalItem(Item.ItemDefinitionId)
-					? nullptr : Arrow->GetItemDefinitionAsset();
-			Item.bLightsEnabled = Arrow->ThrownItemInstance.bLightsEnabled;
-			int32 X = INDEX_NONE, Y = INDEX_NONE;
-			FVector Offset;
-			if (!TryResolveWorldCellFromImpactPoint(Item.WorldMeshTransform.GetLocation(), X, Y, Offset))
-			{
-				X = Arrow->SourceCellX;
-				Y = Arrow->SourceCellY;
-			}
-			Item.CellX = X;
-			Item.CellY = Y;
-			Item.bEmbeddedProjectile = Arrow->CaptureEmbeddedAttachment(
-				Item.EmbeddedMonsterPersistenceId, Item.EmbeddedBone,
-				Item.EmbeddedBoneRelativeTransform);
-			State->Items.Add(Guid, Item);
-		}
-	}
 
 	for (const FGridLooseItemInstance& Instance : LevelAsset->LooseItemInstances)
 	{
