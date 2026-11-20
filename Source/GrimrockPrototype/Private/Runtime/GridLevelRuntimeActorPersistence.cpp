@@ -910,7 +910,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		Unit.ItemDefinitionId = Item.ItemDefinitionId;
 		Unit.ItemLevel = Item.ItemLevel;
 		Unit.Quantity = 1;
-		Unit.Weight = ResolvedAmmo.WeightKg;
 		Unit.OwnerType = EGridItemOwnerType::World;
 		Unit.OwnerCharacterIndex = INDEX_NONE;
 		Unit.bLightsEnabled = Item.bLightsEnabled;

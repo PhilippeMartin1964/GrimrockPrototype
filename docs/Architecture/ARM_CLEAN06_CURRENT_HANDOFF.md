@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.102 — Restauration canonique des munitions sans copie
+
+Parent bbe39a6767a04637545eadef84b84164789232ac : attendre SilentTask, LocalAuto et preuve 5G101 SUCCESS. Supprimer la copie de masse à la restauration des munitions fichées. 3BC construit une instance sans copie et vérifie le poids exact au sol, identité, niveau et quantité après restauration. Aucun changement trajectoire, save, asset ou texte joueur.
+
 ## ARM-CLEAN06.5G.101 — Audit post-schema sans normalisation mémoire
 
 Parent 7ef5b11c03297a4d8ef73d0e34af60e485fd23d1 : attendre SilentTask et LocalAuto SUCCESS. Preuves historiques 5G92/5G93 conservées sur leurs SHA exacts. Le commandlet refuse les anciens modes de normalisation et vérifie le schema actuel, lecteurs canoniques (466 profils en Automation), aller-retour durable sans mutation et identité physique. Troisième statut natif obligatoire : rejeu des copies historiques vérifiées 5G92. Voir [5G.101](ARM_CLEAN06_5G101_POST_SCHEMA_INSTANCE_EVIDENCE.md).

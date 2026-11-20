@@ -90,9 +90,6 @@ namespace ARMCLEAN063BC
             Item.Quantity = 1;
             Item.OwnerType = EGridItemOwnerType::World;
             Item.OwnerCharacterIndex = INDEX_NONE;
-            FGridResolvedItem Resolved;
-            if (Registry && Registry->ResolveItem(Item.ItemDefinitionId, 0, Resolved))
-                Item.Weight = Resolved.WeightKg;
             return Item;
         }
     };
@@ -140,6 +137,8 @@ namespace ARMCLEAN063BC
             Test.TestEqual(TEXT("One recoverable pickup with original GUID"), Count, 1);
             Test.TestTrue(TEXT("Physical weight is not legacy 500 kg"),
                 F.Runtime->GetWorldItemWeightAtCell(1, 1) < 500.0f);
+            Test.TestEqual(TEXT("Pressure plate sees the exact canonical unit mass"),
+                F.Runtime->GetWorldItemWeightAtCell(1, 1), Canonical.WeightKg);
             return !Test.HasAnyErrors();
         }
 
@@ -243,6 +242,8 @@ namespace ARMCLEAN063BC
                             Arrow->ThrownItemInstance.ItemDefinitionId, Unit.ItemDefinitionId);
                         Test.TestNull(TEXT("Reattached ammo has no old item asset"),
                             Arrow->GetItemDefinitionAsset());
+                        Test.TestEqual(TEXT("Restored ammunition retains N0"), Arrow->ThrownItemInstance.ItemLevel, 0);
+                        Test.TestEqual(TEXT("Restored ammunition retains one physical unit"), Arrow->ThrownItemInstance.Quantity, 1);
                     }
                 }
             }
