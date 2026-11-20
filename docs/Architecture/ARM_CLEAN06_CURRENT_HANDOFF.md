@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.122 — Fixtures tooltips, VFX, combat et raccourcis sans copies
+
+Parent `b5d2c99910b123744cec2dd103ad9a1cfaa8ff3d` : après SilentTask et LocalAuto SUCCESS. Cinq tests n'affectent plus le nom des instances ; leur définition reste source du texte de présentation. Voir [5G.122](ARM_CLEAN06_5G122_ITEM_NAME_FIXTURE_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.121 — Projection du sac sans copies
 
 Parent `81b57e92def099761b0c54db0beacaf36a60a671` : après SilentTask et LocalAuto SUCCESS. Tri par nom/poids, filtres et capacité fixe vérifiés dans les tests UI Inventory02, sans écrire les copies d'instance. Voir [5G.121](ARM_CLEAN06_5G121_INVENTORY_SORT_FIXTURE.md).

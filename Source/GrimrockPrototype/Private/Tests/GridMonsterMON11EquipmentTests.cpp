@@ -106,7 +106,6 @@ namespace
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = ItemDefinitionId;
-		Item.DisplayName = FText::FromName(ItemDefinitionId);
 		Item.Quantity = 1;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
 		Item.OwnerCharacterIndex = CharacterIndex;

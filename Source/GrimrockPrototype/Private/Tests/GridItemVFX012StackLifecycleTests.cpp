@@ -56,7 +56,6 @@ namespace GridItemVFX012StackTests
         FGridItemInstance Item;
         Item.RuntimeObjectId = FGuid::NewGuid();
         Item.ItemDefinitionId = Definition.ItemDefinitionId;
-        Item.DisplayName = Definition.DisplayName;
         Item.Quantity = Quantity;
         Item.OwnerType = EGridItemOwnerType::World;
         Item.bLightsEnabled = bLightsEnabled;

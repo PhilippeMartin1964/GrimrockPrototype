@@ -19,7 +19,6 @@ namespace WeaponTooltipTests
         FGridItemInstance Item;
         Item.RuntimeObjectId = FGuid::NewGuid();
         Item.ItemDefinitionId = Def->ItemDefinitionId;
-        Item.DisplayName = Def->DisplayName;
         Item.ItemLevel = Level;
         Item.Quantity = 1;
         Item.OwnerType = EGridItemOwnerType::CharacterInventory;

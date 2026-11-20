@@ -125,7 +125,6 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 	FGridItemInstance QuickItem;
 	QuickItem.RuntimeObjectId = FGuid::NewGuid();
 	QuickItem.ItemDefinitionId = TEXT("Potion_TD062");
-	QuickItem.DisplayName = FText::FromString(TEXT("Potion TD06.2"));
 	QuickItem.Quantity = 2;
 	TestTrue(TEXT("The quick-item source enters the authoritative inventory"), Component->AddItemToCharacterInventory(0, QuickItem));
 
@@ -176,7 +175,6 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 	FGridItemInstance Stone;
 	Stone.RuntimeObjectId = FGuid::NewGuid();
 	Stone.ItemDefinitionId = StoneDefinition->ItemDefinitionId;
-	Stone.DisplayName = StoneDefinition->DisplayName;
 	Stone.Quantity = 1;
 	TestTrue(TEXT("The stone enters inventory"), Component->AddItemToCharacterInventory(0, Stone));
 	TestTrue(TEXT("A physical throwable can be assigned directly from inventory"),
