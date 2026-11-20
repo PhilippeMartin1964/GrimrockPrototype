@@ -8,6 +8,7 @@ param(
     [string]$BaselineHead,
     [string]$AgentStateRoot,
     [switch]$AfterRetirement,
+    [switch]$InstanceCacheEvidence,
     [switch]$SelfTest
 )
 Set-StrictMode -Version Latest
@@ -166,8 +167,11 @@ $Rows=@(Get-WorldSaveInventory $Copies)
 $ReportPath=Join-Path $RunRoot 'world-preflight.json'
 $Editor=Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
 $Project=Join-Path $WorktreePath 'GrimrockPrototype.uproject'
+if ($AfterRetirement -and $InstanceCacheEvidence) { throw 'Mixed evidence modes refused.' }
+$Mode=@()
+if ($InstanceCacheEvidence) { $Mode=@('-InstanceCacheEvidence') }
 Assert-Closed
-& $Editor $Project '-run=GridArmClean065RetirementAudit' '-ReadOnly' '-WorldPointerPreflight' "-Copies=$Copies" "-Output=$ReportPath" '-Unattended' '-NoP4' '-NoSplash' '-NoSound' '-NullRHI' "-abslog=$(Join-Path $RunRoot 'audit.log')" | Out-Host
+& $Editor $Project @Mode '-run=GridArmClean065RetirementAudit' '-ReadOnly' '-WorldPointerPreflight' "-Copies=$Copies" "-Output=$ReportPath" '-Unattended' '-NoP4' '-NoSplash' '-NoSound' '-NullRHI' "-abslog=$(Join-Path $RunRoot 'audit.log')" | Out-Host
 $Code=$LASTEXITCODE
 Assert-Closed
 Assert-Head
@@ -176,6 +180,18 @@ if ($Code -ne 0 -or -not (Test-Path -LiteralPath $ReportPath -PathType Leaf)) { 
 $AfterReport=Get-Content -LiteralPath $ReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
 Check-WorldSaveReport $AfterReport $Rows
 if ($AfterRetirement) { Compare-WorldSaveReports $BeforeReport $AfterReport $Rows }
+if ($InstanceCacheEvidence) {
+    if (-not $AfterReport.instance_cache_evidence) { throw 'Missing cache evidence.' }
+    $Parity=$true
+    foreach ($S in @($AfterReport.saves)) {
+        foreach ($Key in @('cache_instances','cache_invalid_identities','cache_name_conflicts','cache_weight_conflicts','cache_names','cache_weights')) {
+            if (($S.$Key -isnot [int] -and $S.$Key -isnot [long]) -or $S.$Key -lt 0) { throw 'Invalid cache count.' }
+        }
+        if ($S.cache_invalid_identities -ne 0 -or $S.cache_name_conflicts -ne 0 -or $S.cache_weight_conflicts -ne 0 -or -not $S.cache_normalized_roundtrip_equal) { $Parity=$false }
+    }
+    [pscustomobject]@{schema='ARM-CLEAN06.5G88/instance-cache-aggregate/v1';head=$ExpectedHead;parity=$Parity;source_unchanged=$true;copies_unchanged=$true} |
+        ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $RunRoot 'cache-proof.json') -Encoding UTF8
+}
 $Schema=if ($AfterRetirement) { 'ARM-CLEAN06.5G86/world-post-retirement-receipt/v1' } else { 'ARM-CLEAN06.5G85/world-read-only-receipt/v1' }
 [pscustomobject]@{schema=$Schema;head=$ExpectedHead;baseline_head=$BaselineHead;files=$Rows;all_source_bytes_unchanged=$true;all_copies_unchanged=$true;world_pointer_count=0;passed=$true} |
     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $RunRoot 'receipt.json') -Encoding UTF8

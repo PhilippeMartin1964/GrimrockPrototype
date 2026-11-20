@@ -2,6 +2,7 @@
 #include "GridEditorRetirementAudit.h"
 #include "GridEditorAlchemySaveCopy.h"
 #include "GridEditorWorldSaveProjection.h"
+#include "GridEditorInstanceCacheEvidence.h"
 #include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
@@ -57,6 +58,8 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
         return 2;
     }
     const bool bWorldPreflight = FParse::Param(*Params, TEXT("WorldPointerPreflight"));
+    const bool bInstanceEvidence = FParse::Param(*Params, TEXT("InstanceCacheEvidence"));
+    if (bInstanceEvidence && !bWorldPreflight) return 1;
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
     if (bWorldPreflight)
@@ -67,6 +70,7 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
     }
     auto Report = MakeShared<FJsonObject>();
     Report->SetBoolField(TEXT("world_pointer_preflight"), bWorldPreflight);
+    Report->SetBoolField(TEXT("instance_cache_evidence"), bInstanceEvidence);
     Report->SetStringField(TEXT("schema"), TEXT("ARM-CLEAN06.5A/retirement-evidence/v1"));
     Report->SetObjectField(TEXT("native"), Native.Report);
     TArray<FString> Filenames;
@@ -102,6 +106,40 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
                 Audit.Collect(*Save.Get(), Native.ItemIds);
                 Audit.Write(*Row);
                 Row->SetNumberField(TEXT("version"), Save->SaveVersion);
+                if (bInstanceEvidence)
+                {
+                    using namespace GridEditorInstanceCacheEvidence;
+                    const FCounts Counts = Inspect(Save->PartyInventoryState, *Registry.Get());
+                    Row->SetNumberField(TEXT("cache_instances"), Counts.Instances);
+                    Row->SetNumberField(TEXT("cache_invalid_identities"), Counts.Invalid);
+                    Row->SetNumberField(TEXT("cache_name_conflicts"), Counts.NameConflicts);
+                    Row->SetNumberField(TEXT("cache_weight_conflicts"), Counts.WeightConflicts);
+                    Row->SetNumberField(TEXT("cache_names"), Counts.CachedNames);
+                    Row->SetNumberField(TEXT("cache_weights"), Counts.CachedWeights);
+                    bool bNormalizedParity = false;
+                    if (Counts.CanClear())
+                    {
+                        FString CheckError;
+                        TStrongObjectPtr<UGrimrockPartySaveGame> Expected(GridEditorAlchemySaveCopy::LoadExact(Bytes, CheckError));
+                        TStrongObjectPtr<UGrimrockPartySaveGame> Working(GridEditorAlchemySaveCopy::LoadExact(Bytes, CheckError));
+                        TArray<uint8> NormalizedBytes;
+                        const bool bEncoded = Expected.IsValid() && Working.IsValid() &&
+                            ClearVerifiedCopy(Expected->PartyInventoryState, *Registry.Get()) &&
+                            ClearVerifiedCopy(Working->PartyInventoryState, *Registry.Get()) &&
+                            GridEditorAlchemySaveCopy::SameSaveProperties(*Expected.Get(), *Working.Get(), CheckError) &&
+                            GridEditorAlchemySaveCopy::EncodeChecked(*Working.Get(), NormalizedBytes, CheckError);
+                        TStrongObjectPtr<UGrimrockPartySaveGame> Reloaded(bEncoded ?
+                            GridEditorAlchemySaveCopy::LoadExact(NormalizedBytes, CheckError) : nullptr);
+                        if (Reloaded.IsValid())
+                        {
+                            const FCounts Remaining = Inspect(Reloaded->PartyInventoryState, *Registry.Get());
+                            bNormalizedParity = Remaining.CanClear() && Remaining.Instances == Counts.Instances &&
+                                Remaining.CachedNames == 0 && Remaining.CachedWeights == 0 &&
+                                GridEditorAlchemySaveCopy::SameSaveProperties(*Expected.Get(), *Reloaded.Get(), CheckError);
+                        }
+                    }
+                    Row->SetBoolField(TEXT("cache_normalized_roundtrip_equal"), bNormalizedParity);
+                }
                 if (bWorldPreflight)
                 {
                     FString CheckError;

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.88 — Redondance des caches SaveGame
+
+Parent 1fe6ddc68823cbbc7fa8c9c2fd9ae8b5f0b67b18. Rapport #212 : 72 BP, zéro pin. Audit privé des caches nom/poids, refuse divergences, normalisation mémoire uniquement si redondance attestée ; deux statuts natifs Evidence et CacheParity après compilation/tests. Voir [5G.88](ARM_CLEAN06_5G88_INSTANCE_CACHE_SAVE_EVIDENCE.md). Aucun retrait autorisé.
+
 ## ARM-CLEAN06.5G.87 — Inventaire Blueprint des caches d'instance
 
 Parent e049d063da71efa117d5dc001bc7abe850367e07. Attendre triple SUCCESS 5G86. Rapport natif en lecture seule des pins DisplayName/Weight, distingue usage actif et surface. Publication filtrée des packages suivis uniquement ; aucun retrait. Voir [5G.87](ARM_CLEAN06_5G87_INSTANCE_CACHE_BLUEPRINT_EVIDENCE.md).

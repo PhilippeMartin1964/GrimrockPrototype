@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "../ARMEMENT/GridEditorRetirementAudit.h"
+#include "../ARMEMENT/GridEditorInstanceCacheEvidence.h"
 #include "Serialization/MemoryWriter.h"
 #include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
 #include "../ARMEMENT/GridEditorAlchemySaveCopy.h"
@@ -201,6 +202,56 @@ bool FGridEditorARMCLEAN065G85WorldPreflight::RunTest(const FString&)
         GridEditorWorldSaveProjection::Build(Expected->DungeonRuntimeState));
     TestFalse(TEXT("Invalid non-ARM level refuses preflight"),
         FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(Registry.Get(), Expected->DungeonRuntimeState, Error));
+    return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN065G88CacheEvidence,
+    "Grimrock.Editor.ARM.CLEAN06.5G88.InstanceCacheEvidence",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorARMCLEAN065G88CacheEvidence::RunTest(const FString&)
+{
+    using namespace GridEditorInstanceCacheEvidence;
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr, GridEditorRetirementAudit::RootPath()));
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Production root"), Root.IsValid() && Registry->RegisterItemSystem(Root.Get(), Errors))) return false;
+    FGridResolvedItem Stone;
+    if (!TestTrue(TEXT("Canonical N0 stone"), Registry->ResolveItem(TEXT("Stone"), 0, Stone))) return false;
+    FGridPartyInventoryState Party;
+    FGridItemInstance Item;
+    Item.RuntimeObjectId = FGuid::NewGuid();
+    Item.ItemDefinitionId = TEXT("Stone");
+    Item.DisplayName = Stone.DisplayName;
+    Item.Weight = Stone.WeightKg;
+    Item.Quantity = 2;
+    Item.AbsorbedEquipmentPhysicalArmor = 3;
+    Item.ReadTitleOverride = FText::FromString(TEXT("Fixture narrative"));
+    Party.ActiveCharacters.AddDefaulted_GetRef().InventorySlots.AddDefaulted_GetRef().Item = Item;
+    Party.CharacterPool.AddDefaulted_GetRef().InventorySlots.AddDefaulted_GetRef().Item = Item;
+    Party.ActiveEquipment.AddDefaulted_GetRef().MainHand = Item;
+    Party.CursorItem = Item;
+    const FCounts Before = Inspect(Party, *Registry.Get());
+    TestEqual(TEXT("All four instance locations inspected"), Before.Instances, 4);
+    TestTrue(TEXT("Matching cache copies can clear"), Before.CanClear());
+    Party.CursorItem.DisplayName = FText::FromString(TEXT("Unexpected alias"));
+    Party.CursorItem.Weight += 1.f;
+    const FCounts Conflicts = Inspect(Party, *Registry.Get());
+    TestEqual(TEXT("Name conflict is distinguished"), Conflicts.NameConflicts, 1);
+    TestEqual(TEXT("Weight conflict is distinguished"), Conflicts.WeightConflicts, 1);
+    TestFalse(TEXT("Conflict aborts the entire operation"), ClearVerifiedCopy(Party, *Registry.Get()));
+    TestTrue(TEXT("Earlier bags remain unchanged"), Party.ActiveCharacters[0].InventorySlots[0].Item.DisplayName.EqualTo(Item.DisplayName));
+    Party.CursorItem = Item;
+    TestTrue(TEXT("Verified copy may clear"), ClearVerifiedCopy(Party, *Registry.Get()));
+    const FCounts After = Inspect(Party, *Registry.Get());
+    TestEqual(TEXT("No name cache remains"), After.CachedNames, 0);
+    TestEqual(TEXT("No weight cache remains"), After.CachedWeights, 0);
+    TestEqual(TEXT("Physical GUID remains"), Party.CursorItem.RuntimeObjectId, Item.RuntimeObjectId);
+    TestEqual(TEXT("Physical debt remains"), Party.CursorItem.AbsorbedEquipmentPhysicalArmor, 3);
+    TestTrue(TEXT("Narrative title remains"), Party.CursorItem.ReadTitleOverride.EqualTo(Item.ReadTitleOverride));
+    Party.CursorItem.ItemDefinitionId = TEXT("UnknownCacheFixture");
+    TestFalse(TEXT("Unknown ID cannot clear"), ClearVerifiedCopy(Party, *Registry.Get()));
     return !HasAnyErrors();
 }
 
