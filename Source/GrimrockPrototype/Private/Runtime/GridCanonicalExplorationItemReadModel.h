@@ -3,7 +3,6 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 // 5D: these readers must work when the approved kit and saved instance
@@ -57,37 +56,22 @@ struct FGridCanonicalExplorationItemReadModel
     // inventory, resolve N0 solely to display a disabled shortcut; no
     // virtual owned instance is invented. Execution requires a real row.
     static FSurface ResolveSurface(const UGridItemSubsystem* Registry,
-        const UGridItemDefinitionAsset* Old, const FGridCharacterInventoryState& Character,
-        FName Id, FName ActionId, bool bRequireOwned)
+        const FGridCharacterInventoryState& Character, FName Id, FName ActionId, bool bRequireOwned)
     {
         FSurface Out;
-        if (Id.IsNone() || ActionId.IsNone()) return Out;
-        const bool bCanonical = Registry && Registry->HasCanonicalItem(Id);
         FGridResolvedItem Item;
-        if (bCanonical)
-        {
-            if (!IsSurfaceItem(Id) || !Registry->ResolveItem(Id, 0, Item) ||
-                !Item.IsValid() || Item.bIsArmament || Item.AvailableActions.Num() != 1 ||
-                Item.AvailableActions[0].ActionId != ActionId ||
-                !Registry->ResolveDetailedNonArmAction(Id, 0, ActionId, Out.Action) ||
-                Out.Action.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem)
-                return FSurface();
-            Out.Mesh = Item.WorldMesh;
-        }
-        else
-        {
-            if (!IsValid(Old) || Old->ItemDefinitionId != Id ||
-                !Old->BuildQuickItemCombatActionDefinition(Out.Action) ||
-                Out.Action.ActionId != ActionId)
-                return FSurface();
-            Out.Mesh = Old->WorldMesh;
-        }
+        if (!Registry || !IsSurfaceItem(Id) || ActionId.IsNone() ||
+            !Registry->ResolveItem(Id, 0, Item) || !Item.IsValid() || Item.bIsArmament ||
+            Item.AvailableActions.Num() != 1 || Item.AvailableActions[0].ActionId != ActionId ||
+            !Registry->ResolveDetailedNonArmAction(Id, 0, ActionId, Out.Action) ||
+            Out.Action.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem)
+            return FSurface();
+        Out.Mesh = Item.WorldMesh;
         for (const auto& Slot : Character.InventorySlots)
         {
             if (!Slot.bOccupied || Slot.Item.ItemDefinitionId != Id) continue;
             if (Slot.IsEmpty() || !Slot.Item.IsValid() ||
-                (bCanonical && (Slot.Item.ItemLevel != 0 ||
-                    Slot.Item.Quantity > FMath::Max(1, Item.MaxStack))))
+                Slot.Item.ItemLevel != 0 || Slot.Item.Quantity > FMath::Max(1, Item.MaxStack))
                 return FSurface(); // Known invalid owned source never gets a fallback.
             Out.bOwned = true;
         }
@@ -101,23 +85,21 @@ struct FGridCanonicalExplorationItemReadModel
     {
         if (!IsValid(Inventory) || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Index))
             return FSurface();
-        return ResolveSurface(RegistryFor(Inventory), Inventory->FindItemDefinition(Id),
+        return ResolveSurface(RegistryFor(Inventory),
             Inventory->PartyInventoryState.ActiveCharacters[Index], Id, ActionId, bRequireOwned);
     }
 
     // Combat visuals run after consumption, hence intentionally use the
     // approved static N0 definition, not the now-removed inventory row.
+    static TSoftObjectPtr<UStaticMesh> ResolveSurfaceMesh(const UGridItemSubsystem* Registry, FName Id)
+    {
+        FGridResolvedItem Item;
+        return Registry && IsSurfaceItem(Id) && Registry->ResolveItem(Id, 0, Item) &&
+            Item.IsValid() && !Item.bIsArmament ? Item.WorldMesh : TSoftObjectPtr<UStaticMesh>();
+    }
+
     static TSoftObjectPtr<UStaticMesh> ResolveSurfaceMesh(const UGridPartyInventoryComponent* Inventory, FName Id)
     {
-        if (!IsValid(Inventory)) return {};
-        const auto* Registry = RegistryFor(Inventory);
-        if (Registry && Registry->HasCanonicalItem(Id))
-        {
-            FGridResolvedItem Item;
-            return IsSurfaceItem(Id) && Registry->ResolveItem(Id, 0, Item) && Item.IsValid()
-                ? Item.WorldMesh : TSoftObjectPtr<UStaticMesh>();
-        }
-        const auto* Old = Inventory->FindItemDefinition(Id);
-        return IsValid(Old) && Old->ItemDefinitionId == Id ? Old->WorldMesh : TSoftObjectPtr<UStaticMesh>();
+        return IsValid(Inventory) ? ResolveSurfaceMesh(RegistryFor(Inventory), Id) : TSoftObjectPtr<UStaticMesh>();
     }
 };

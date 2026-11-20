@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.46 — Consommables de surface exclusivement canoniques
+
+Parent 93abacb6de60abf8624b894b812a7de0389ee160. Publication après deux statuts SUCCESS. ResolveSurface et ResolveSurfaceMesh ne reçoivent plus d’ancien asset ni ne lisent FindItemDefinition. Huile/catalyseur N0, actions détaillées, capacité et mesh proviennent du seul registre ; HUD vide reste désactivé, exécution exige possession. Quatre tests MON12 de pipeline combat/exploration migrés au vrai registre, 5D renforcé. Voir [5G.46](ARM_CLEAN06_5G46_CANONICAL_SURFACE_ITEMS.md). Aucun asset/save modifié.
+
 ## ARM-CLEAN06.5G.45 — Désamorçage : autorité canonique exclusive
 
 Parent 4cbeb8f3d391409bf56aadc6146792c85dbb7c7a. Publication conditionnée aux deux statuts SUCCESS. HasDisarmTool ne reçoit plus aucun ancien asset et vérifie le vrai ItemSystem, N0, tag et capacité. ARM01.16.2A, TRAP01.4, TRAP01.8 et Saboteur New Game/Save migrent leurs fixtures de désamorçage au registre réel. 5D couvre registre absent et quantité invalide. Voir [5G.45](ARM_CLEAN06_5G45_CANONICAL_DISARM_TOOLS.md). Les lecteurs alchimie et menu contextuel restent séparés. Aucun asset/save modifié.

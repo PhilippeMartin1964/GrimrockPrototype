@@ -49,26 +49,38 @@ bool FGridARMCLEAN065ExplorationItemReaders::RunTest(const FString&)
     for (int32 I = 0; I < 2; ++I)
     {
         Slot.Item.ItemDefinitionId = Items[I];
-        const auto Source = Read::ResolveSurface(Registry.Get(), nullptr, Character, Items[I], Actions[I], true);
+        const auto Source = Read::ResolveSurface(Registry.Get(), Character, Items[I], Actions[I], true);
         if (!TestTrue(TEXT("Owned canonical surface QuickItem resolves without old asset"),
             Source.bResolved && Source.bOwned)) return false;
         TestTrue(TEXT("Existing exploration policy remains valid"), I == 0
             ? UGridTurnManagerComponent::IsExplorationOilSlickAction(Source.Action)
             : UGridTurnManagerComponent::IsExplorationCatalystAction(Source.Action));
         TestFalse(TEXT("Authored projectile mesh from canonical item"), Source.Mesh.IsNull());
+        TestTrue(TEXT("Post-consumption mesh comes from same registered identity"),
+            Read::ResolveSurfaceMesh(Registry.Get(), Items[I]) == Source.Mesh);
+        TestFalse(TEXT("Missing registry cannot authorize owned surface"),
+            Read::ResolveSurface(static_cast<const UGridItemSubsystem*>(nullptr), Character, Items[I], Actions[I], true).bResolved);
+        TestTrue(TEXT("Missing registry has no projectile mesh"),
+            Read::ResolveSurfaceMesh(static_cast<const UGridItemSubsystem*>(nullptr), Items[I]).IsNull());
+        TestFalse(TEXT("Unapproved identity cannot authorize surface"),
+            Read::ResolveSurface(Registry.Get(), Character, TEXT("Item_Torch"), Actions[I], false).bResolved);
+        Slot.Item.Quantity = MAX_int32;
+        TestFalse(TEXT("Over-capacity physical surface stack is rejected"),
+            Read::ResolveSurface(Registry.Get(), Character, Items[I], Actions[I], true).bResolved);
+        Slot.Item.Quantity = 1;
         TestEqual(TEXT("Exact action identity"), Source.Action.ActionId, Actions[I]);
         TestEqual(TEXT("One item consumed by authored action"), Source.Action.ResourceCosts.SourceItemQuantityCost, 1);
         TestFalse(TEXT("Stale binding cannot substitute action"),
-            Read::ResolveSurface(Registry.Get(), nullptr, Character, Items[I], Actions[1-I], true).bResolved);
+            Read::ResolveSurface(Registry.Get(), Character, Items[I], Actions[1-I], true).bResolved);
         Slot.Item.ItemLevel = 1;
         TestFalse(TEXT("Invalid owned N1 fails closed"),
-            Read::ResolveSurface(Registry.Get(), nullptr, Character, Items[I], Actions[I], true).bResolved);
+            Read::ResolveSurface(Registry.Get(), Character, Items[I], Actions[I], true).bResolved);
         Slot.Item.ItemLevel = 0;
         Slot.bOccupied = false;
-        const auto Empty = Read::ResolveSurface(Registry.Get(), nullptr, Character, Items[I], Actions[I], false);
+        const auto Empty = Read::ResolveSurface(Registry.Get(), Character, Items[I], Actions[I], false);
         TestTrue(TEXT("Empty hotbar may display disabled static action"), Empty.bResolved && !Empty.bOwned);
         TestFalse(TEXT("Empty hotbar never executes"),
-            Read::ResolveSurface(Registry.Get(), nullptr, Character, Items[I], Actions[I], true).bResolved);
+            Read::ResolveSurface(Registry.Get(), Character, Items[I], Actions[I], true).bResolved);
         Slot.bOccupied = true;
     }
     return !HasAnyErrors();

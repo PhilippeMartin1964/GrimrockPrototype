@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
@@ -1789,26 +1790,20 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 		return false;
 	}
 
-	UGridItemDefinitionAsset* OilFlask = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.DA_Item_Flask_Oil"));
-	if (!TestNotNull(TEXT("Véritable DataAsset de la flasque d'huile"), OilFlask))
-	{
-		return false;
-	}
-	FGridCombatActionDefinition RealAction;
-	if (!TestTrue(TEXT("La flasque définit une action QuickItem réelle"),
-			OilFlask->BuildQuickItemCombatActionDefinition(RealAction)))
-	{
-		return false;
-	}
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Real canonical surface registry"), RegistryScope.Attach(Fixture.TestWorld.World))) return false;
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent.Get();
-	if (!TestTrue(TEXT("Définition réelle enregistrée dans l'inventaire"),
-			Inventory->RegisterItemDefinition(OilFlask))) return false;
-
+	// This surface test does not exercise the unrelated synthetic sword.
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = FGridItemInstance();
+	const FName ItemId(TEXT("Item_Flask_Oil"));
+	FGridResolvedItem Resolved;
+	if (!TestTrue(TEXT("Canonical N0 consumable resolves"), RegistryScope.Registry->ResolveItem(ItemId, 0, Resolved))) return false;
+	FGridCombatActionDefinition RealAction;
+	if (!TestTrue(TEXT("Canonical detailed QuickItem action"), RegistryScope.Registry->ResolveDetailedNonArmAction(ItemId, 0, TEXT("Action_Alchemist_OilSlick"), RealAction))) return false;
 	FGridItemInstance Flask;
 	Flask.RuntimeObjectId = FGuid::NewGuid();
-	Flask.ItemDefinitionId = OilFlask->ItemDefinitionId;
-	Flask.DisplayName = OilFlask->DisplayName;
+	Flask.ItemDefinitionId = ItemId;
+	Flask.DisplayName = Resolved.DisplayName;
 	Flask.Quantity = 2;
 	Flask.OwnerType = EGridItemOwnerType::World;
 	if (!TestTrue(TEXT("Deux flasques ajoutées au sac du personnage"),
@@ -1940,13 +1935,16 @@ bool FARMEMENT011717OilExplorationRealPipeline::RunTest(const FString&)
 	{
 		return false;
 	}
-	UGridItemDefinitionAsset* OilItem = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.DA_Item_Flask_Oil"));
-	if (!TestNotNull(TEXT("Authored oil flask"), OilItem)) return false;
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Real canonical surface registry"), RegistryScope.Attach(Fixture.TestWorld.World))) return false;
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent.Get();
-	if (!TestTrue(TEXT("Register real oil definition"), Inventory->RegisterItemDefinition(OilItem))) return false;
+	// This surface test does not exercise the unrelated synthetic sword.
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = FGridItemInstance();
+	const FName ItemId(TEXT("Item_Flask_Oil"));
+	FGridResolvedItem Resolved;
+	if (!TestTrue(TEXT("Canonical N0 consumable resolves"), RegistryScope.Registry->ResolveItem(ItemId, 0, Resolved))) return false;
 	FGridCombatActionDefinition Definition;
-	if (!TestTrue(TEXT("Real oil action"), OilItem->BuildQuickItemCombatActionDefinition(Definition))) return false;
+	if (!TestTrue(TEXT("Canonical detailed QuickItem action"), RegistryScope.Registry->ResolveDetailedNonArmAction(ItemId, 0, TEXT("Action_Alchemist_OilSlick"), Definition))) return false;
 	TestTrue(TEXT("Only the authored oil action is admitted"), UGridTurnManagerComponent::IsExplorationOilSlickAction(Definition));
 	FGridCombatActionDefinition Altered = Definition;
 	Altered.SurfaceEffects.Reset();
@@ -1955,8 +1953,8 @@ bool FARMEMENT011717OilExplorationRealPipeline::RunTest(const FString&)
 
 	FGridItemInstance Flask;
 	Flask.RuntimeObjectId = FGuid::NewGuid();
-	Flask.ItemDefinitionId = OilItem->ItemDefinitionId;
-	Flask.DisplayName = OilItem->DisplayName;
+	Flask.ItemDefinitionId = ItemId;
+	Flask.DisplayName = Resolved.DisplayName;
 	Flask.Quantity = 2;
 	Flask.OwnerType = EGridItemOwnerType::World;
 	if (!TestTrue(TEXT("Add two flasks"), Inventory->AddItemToCharacterInventory(0, Flask))) return false;
@@ -2052,22 +2050,25 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 {
 	FGridCombatHudFixture Fixture;
 	if (!TestTrue(TEXT("Real combat fixture ready"), Fixture.IsReady())) return false;
-	UGridItemDefinitionAsset* Catalyst = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_SurfaceCatalyst_01.DA_Item_SurfaceCatalyst_01"));
-	if (!TestNotNull(TEXT("Native N1 Catalyst"), Catalyst)) return false;
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Real canonical surface registry"), RegistryScope.Attach(Fixture.TestWorld.World))) return false;
+	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent.Get();
+	// This surface test does not exercise the unrelated synthetic sword.
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = FGridItemInstance();
+	const FName ItemId(TEXT("Item_SurfaceCatalyst_01"));
+	FGridResolvedItem Resolved;
+	if (!TestTrue(TEXT("Canonical N0 consumable resolves"), RegistryScope.Registry->ResolveItem(ItemId, 0, Resolved))) return false;
 	FGridCombatActionDefinition Definition;
-	if (!TestTrue(TEXT("Catalyst QuickItem action exists"), Catalyst->BuildQuickItemCombatActionDefinition(Definition))) return false;
+	if (!TestTrue(TEXT("Canonical detailed QuickItem action"), RegistryScope.Registry->ResolveDetailedNonArmAction(ItemId, 0, TEXT("Action_Mage_SurfaceCatalyst_01"), Definition))) return false;
 	TestEqual(TEXT("Fire reaction action"), Definition.SurfaceInteraction, EGridCombatSurfaceInteraction::Fire);
 	TestEqual(TEXT("Square-area targeting"), Definition.TargetingPolicy, EGridCombatTargetingPolicy::Area);
 	TestEqual(TEXT("Square radius one"), Definition.AreaRadiusCells, 1);
 	TestTrue(TEXT("No-reaction targeting is an approved outcome"), Definition.bAllowNoSurfaceReaction);
 
-	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent.Get();
-	if (!TestTrue(TEXT("Register exact catalyst definition"), Inventory->RegisterItemDefinition(Catalyst))) return false;
 	FGridItemInstance Item;
 	Item.RuntimeObjectId = FGuid::NewGuid();
-	Item.ItemDefinitionId = Catalyst->ItemDefinitionId;
-	Item.DisplayName = Catalyst->DisplayName;
+	Item.ItemDefinitionId = ItemId;
+	Item.DisplayName = Resolved.DisplayName;
 	Item.OwnerType = EGridItemOwnerType::World;
 	Item.Quantity = 2;
 	if (!TestTrue(TEXT("Two catalyst units in inventory"), Inventory->AddItemToCharacterInventory(0, Item))) return false;
@@ -2105,16 +2106,16 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 	FGridCombatActionRequestResult Aim;
 	if (!TestTrue(TEXT("Click enters canonical targeting"), Fixture.Hud->RequestHotbarSlot(1, Aim))) return false;
 	TestEqual(TEXT("Aiming does not spend item"),
-		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 2);
+		Inventory->CountItemDefinitionInCharacterInventory(0, ItemId), 2);
 	FGridCombatActionRequestResult Invalid;
 	TestFalse(TEXT("Invalid target rejected"), Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(100,100), Invalid));
 	TestEqual(TEXT("Rejection spends nothing"),
-		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 2);
+		Inventory->CountItemDefinitionInCharacterInventory(0, ItemId), 2);
 
 	FGridCombatActionTargetingPreview ZonePreview;
 	if (!TestTrue(TEXT("Preview area around edge cell"),
 		Fixture.TurnManager->BuildCombatActionTargetingPreview(0, Definition.ActionId,
-			EGridCombatActionSourcePolicy::QuickItem, Catalyst->ItemDefinitionId, EGridEquipmentSlot::None,
+			EGridCombatActionSourcePolicy::QuickItem, ItemId, EGridEquipmentSlot::None,
 			Target, ZonePreview))) return false;
 	TestEqual(TEXT("Edge-clipped 3x3 has six traversable cells"), ZonePreview.AffectedCells.Num(), 6);
 	FGridCombatActionRequestResult Confirmed;
@@ -2139,7 +2140,7 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 	TestTrue(TEXT("Monster standing in ignited oil takes real periodic damage"),
 		Fixture.Monster->CurrentHealth < MonsterHealthBeforeFireTick);
 	TestEqual(TEXT("Exactly one catalyst spent"),
-		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 1);
+		Inventory->CountItemDefinitionInCharacterInventory(0, ItemId), 1);
 	TestEqual(TEXT("Exactly two AP spent"),
 		Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, ActionPointsBefore - 2);
 	TestEqual(TEXT("No oil flask splash for catalyst"), Fixture.Runtime->GetOilSplashPresentationCount(), 0);
@@ -2158,7 +2159,7 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 		FGridCombatActionRequestResult WaterResult;
 		TestTrue(TEXT("Non-reactive water and dry ground still accept catalyst"), Fixture.Hud->ConfirmCombatActionTarget(Target, WaterResult));
 		TestEqual(TEXT("One catalyst consumed even when no cell reacts"),
-			Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 0);
+			Inventory->CountItemDefinitionInCharacterInventory(0, ItemId), 0);
 		TestEqual(TEXT("Two AP consumed for valid Fizzle"),
 			Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, ActionPointsBefore - 4);
 		TestTrue(TEXT("Water remains Water"),
@@ -2179,15 +2180,18 @@ bool FARMEMENT01173BExplorationCatalyst::RunTest(const FString&)
 {
 	FGridCombatHudFixture Fixture;
 	if (!TestTrue(TEXT("Real-world exploration fixture"), Fixture.IsReady())) return false;
-	UGridItemDefinitionAsset* Catalyst = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_SurfaceCatalyst_01.DA_Item_SurfaceCatalyst_01"));
-	if (!TestNotNull(TEXT("Artist-owned N1 catalyst"), Catalyst)) return false;
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Real canonical surface registry"), RegistryScope.Attach(Fixture.TestWorld.World))) return false;
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent.Get();
-	if (!TestTrue(TEXT("Register catalyst"), Inventory->RegisterItemDefinition(Catalyst))) return false;
+	// This surface test does not exercise the unrelated synthetic sword.
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = FGridItemInstance();
+	const FName ItemId(TEXT("Item_SurfaceCatalyst_01"));
+	FGridResolvedItem Resolved;
+	if (!TestTrue(TEXT("Canonical N0 consumable resolves"), RegistryScope.Registry->ResolveItem(ItemId, 0, Resolved))) return false;
 	FGridItemInstance Item;
 	Item.RuntimeObjectId = FGuid::NewGuid();
-	Item.ItemDefinitionId = Catalyst->ItemDefinitionId;
-	Item.DisplayName = Catalyst->DisplayName;
+	Item.ItemDefinitionId = ItemId;
+	Item.DisplayName = Resolved.DisplayName;
 	Item.OwnerType = EGridItemOwnerType::World;
 	Item.Quantity = 2;
 	if (!TestTrue(TEXT("Own exactly two bottles"), Inventory->AddItemToCharacterInventory(0, Item)) ||
@@ -2218,13 +2222,13 @@ bool FARMEMENT01173BExplorationCatalyst::RunTest(const FString&)
 	FGridCombatActionRequestResult Rejected;
 	TestFalse(TEXT("Out of bounds rejected"), Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(80, 80), Rejected));
 	TestEqual(TEXT("Invalid preview does not consume bottle"),
-		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 2);
+		Inventory->CountItemDefinitionInCharacterInventory(0, ItemId), 2);
 
 	FGridCombatActionRequestResult Applied;
 	if (!TestTrue(TEXT("Catalyst reacts outside combat"), Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(1, 2), Applied))) return false;
 	TestTrue(TEXT("Exploration result accepted"), Applied.bAccepted);
 	TestEqual(TEXT("Exactly one bottle consumed"),
-		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 1);
+		Inventory->CountItemDefinitionInCharacterInventory(0, ItemId), 1);
 	TestEqual(TEXT("Exploration spends no AP"),
 		Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, BeforeAP);
 	const FGridCombatSurfaceState* Fire = Fixture.Runtime->FindCombatSurfaceAtCell(1, 2);
@@ -2253,7 +2257,7 @@ bool FARMEMENT01173BExplorationCatalyst::RunTest(const FString&)
 		Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(1, 2), Fizzle))) return false;
 	TestTrue(TEXT("Second result accepted"), Fizzle.bAccepted);
 	TestEqual(TEXT("Fizzle consumes final bottle"),
-		Inventory->CountItemDefinitionInCharacterInventory(0, Catalyst->ItemDefinitionId), 0);
+		Inventory->CountItemDefinitionInCharacterInventory(0, ItemId), 0);
 	TestEqual(TEXT("Fizzle consumes zero exploration AP"),
 		Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, BeforeAP);
 	FString Ownership;
