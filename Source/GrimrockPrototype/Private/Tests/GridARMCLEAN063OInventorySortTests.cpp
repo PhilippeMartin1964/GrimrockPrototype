@@ -42,8 +42,6 @@ bool FGridClean063OSortProjection::RunTest(const FString&)
 			Item.ItemDefinitionId = Id;
 			Item.ItemLevel = Level;
 			Item.Quantity = 2;
-			Item.Weight = 999.0f;
-			Item.DisplayName = FText::FromString(TEXT("Old instance name"));
 			FGridInventorySortReadView View =
 				FGridInventorySortReadModel::Resolve(Registry.Get(), ConflictingLegacy.Get(), Item);
 			TestEqual(TEXT("Canonical display name drives alphabetical sorting"),

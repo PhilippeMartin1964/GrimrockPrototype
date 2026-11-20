@@ -49,11 +49,10 @@ bool FGridClean063VUnlevelledAmmo::RunTest(const FString&)
 	Stack.ItemDefinitionId = ArrowsId;
 	Stack.ItemLevel = 0;
 	Stack.Quantity = 12;
-	Stack.Weight = 99999.0f;
 	float UnitMass = 0.0f;
 	TestTrue(TEXT("Unlevelled arrow stack resolves weight"),
 		FGridItemWeightReadModel::TryResolveUnitWeight(Registry.Get(), Stack, UnitMass));
-	TestTrue(TEXT("Arrow unit mass ignores conflicting old snapshot"),
+	TestTrue(TEXT("Arrow unit mass comes from the N0 canonical profile"),
 		FMath::IsNearlyEqual(UnitMass, N0.WeightKg));
 	TestTrue(TEXT("Stack quantity still multiplies canonical unit mass"),
 		FMath::IsNearlyEqual(FGridItemWeightReadModel::GetTotalWeight(Registry.Get(), Stack),

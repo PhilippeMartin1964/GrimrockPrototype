@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.105 — Fixtures des lecteurs canoniques et projectiles
+
+Parent d9c1f789f04250b0aa02b4896f3e7e6be3e1a06b : attendre SilentTask et LocalAuto SUCCESS. Neuf fichiers de tests de masse, tri, diagnostic, UI et vol n'injectent plus de copies statiques dans les identités canoniques ; les anciennes définitions contradictoires, refus N0/N21, profils, masses et états de vol restent vérifiés. Les scénarios de caractérisation non canoniques isolés ne sont pas encore retirés. Voir [5G.105](ARM_CLEAN06_5G105_CANONICAL_READERS_PROJECTILE_FIXTURES.md).
+
 ## ARM-CLEAN06.5G.104 — Fixtures des instances canoniques durables
 
 Parent 35bfc15b123c6b9d50a527b8ee5b5ec27f492d03 : attendre SilentTask et LocalAuto SUCCESS. Tests 3AG/AS/AT/AU/AW/AX sans copies statiques pour les objets canoniques, contrôles de projection et égalité de toutes propriétés réfléchies, sources historiques contradictoires et cas de refus maintenus. Les assertions des fixtures exclusivement historiques restent à traiter. Voir [5G.104](ARM_CLEAN06_5G104_CANONICAL_INSTANCE_FIXTURES.md).

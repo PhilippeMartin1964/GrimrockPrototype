@@ -47,8 +47,6 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 			Instance.ItemDefinitionId = ItemId;
 			Instance.ItemLevel = Level;
 			Instance.Quantity = 1;
-			Instance.Weight = 99999.0f;
-			Instance.DisplayName = FText::FromString(TEXT("STALE INSTANCE"));
 			const FGridInventoryItemMetadata Metadata =
 				FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Legacy.Get(), Instance);
 			TestTrue(TEXT("Registered ARM metadata is canonical"), Metadata.bCanonicalIdentity);
@@ -57,7 +55,7 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 				Expected.DisplayName.ToString());
 			TestEqual(TEXT("Description comes from item definition"), Metadata.Description.ToString(),
 				Expected.Description.ToString());
-			TestTrue(TEXT("WeightKg ignores stale copied fields"),
+			TestTrue(TEXT("WeightKg ignores contradictory old definition"),
 				FMath::IsNearlyEqual(Metadata.UnitWeightKg, Expected.WeightKg));
 
 			Instance.ItemLevel = 0;

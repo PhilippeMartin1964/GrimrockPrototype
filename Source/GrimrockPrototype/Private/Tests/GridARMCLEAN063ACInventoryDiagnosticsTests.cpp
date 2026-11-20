@@ -77,8 +77,7 @@ bool FGridClean063ACInventoryDiagnosticWeight::RunTest(const FString&)
 			Instance.ItemDefinitionId = ItemId;
 			Instance.ItemLevel = Level;
 			Instance.Quantity = 3;
-			Instance.Weight = -9999.0f;
-			TestEqual(TEXT("Slot diagnostics use unit weight, not stacked weight or snapshot"),
+			TestEqual(TEXT("Slot diagnostics use canonical unit weight, not stacked weight"),
 				FGridInventoryDiagnosticWeightReadModel::FormatInstanceUnitWeight(Registry.Get(), Instance),
 				FString::Printf(TEXT("%.1f"), Canonical.WeightKg));
 			Instance.ItemLevel = 0;
@@ -99,7 +98,6 @@ bool FGridClean063ACInventoryDiagnosticWeight::RunTest(const FString&)
 	Arrow.ItemDefinitionId = Old->ItemDefinitionId;
 	Arrow.ItemLevel = 0;
 	Arrow.Quantity = 12;
-	Arrow.Weight = 99999.0f;
 	TestEqual(TEXT("Unlevelled ammo slot uses canonical unit weight"),
 		FGridInventoryDiagnosticWeightReadModel::FormatInstanceUnitWeight(Registry.Get(), Arrow),
 		FString::Printf(TEXT("%.1f"), Arrows.WeightKg));

@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "../UI/GridInventoryItemMetadataReadModel.h"
 #include "Components/StaticMeshComponent.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridDungeonAsset.h"
@@ -87,7 +88,6 @@ namespace ARMCLEAN063AV
             Item.ItemDefinitionId = Id;
             Item.ItemLevel = Level;
             Item.Quantity = 1;
-            Item.Weight = 1000.0f; // Stale SaveGame metadata is never an authority.
             Item.OwnerType = EGridItemOwnerType::World;
             Item.OwnerCharacterIndex = INDEX_NONE;
             return Item;
@@ -161,6 +161,7 @@ namespace ARMCLEAN063AV
         FCString::Strcmp(Scenario, TEXT("Landing")) == 0)
     {
     const FGridItemInstance Valid = F.Make(Ids[0], 20);
+    const FGridItemInstance BeforeLaunch = Valid;
     const FVector Start = F.Runtime->GetCellCenterWorld(0, 0, 100.0f);
     const FVector Velocity(1200.0f, 0.0f, 100.0f);
     Contradictory->ItemDefinitionId = Valid.ItemDefinitionId;
@@ -171,13 +172,17 @@ namespace ARMCLEAN063AV
     if (!Test.TestNotNull(TEXT("Real canonical specialized projectile spawns without old asset"),
         Projectile)) return false;
     Test.TestNull(TEXT("Projectile has no obsolete item asset"), Projectile->GetItemDefinitionAsset());
-    Test.TestEqual(TEXT("In-flight canonical instance carries no stale mass"), Projectile->ThrownItemInstance.Weight, 0.0f);
-    Test.TestTrue(TEXT("In-flight canonical instance carries no name cache"), Projectile->ThrownItemInstance.DisplayName.IsEmpty());
-    Test.TestEqual(TEXT("Input instance is unmodified"), Valid.Weight, 1000.0f);
+    Test.TestTrue(TEXT("Input durable instance is unmodified"),
+        FGridItemInstance::StaticStruct()->CompareScriptStruct(&Valid, &BeforeLaunch, 0));
     Test.TestEqual(TEXT("Projectile retains its ID"), Projectile->GetItemDefinitionId(), Valid.ItemDefinitionId);
     FGridResolvedItem CanonicalFlightSource;
     if (!Test.TestTrue(TEXT("Physical source resolves before presentation checks"),
         F.Registry->ResolveItem(Valid.ItemDefinitionId, Valid.ItemLevel, CanonicalFlightSource))) return false;
+    const auto FlightMetadata = FGridInventoryItemMetadataReadModel::Resolve(F.Registry, nullptr, Projectile->ThrownItemInstance);
+    Test.TestTrue(TEXT("In-flight physical identity resolves canonical name and mass"), FlightMetadata.bResolved &&
+        FlightMetadata.DisplayName.EqualTo(CanonicalFlightSource.DisplayName) &&
+        FMath::IsNearlyEqual(FlightMetadata.UnitWeightKg, CanonicalFlightSource.WeightKg));
+    Test.TestEqual(TEXT("Projectile retains its GUID"), Projectile->ThrownItemInstance.RuntimeObjectId, Valid.RuntimeObjectId);
     Test.TestTrue(TEXT("Pointerless ARM projectile has complete canonical presentation"),
         Projectile->CanonicalWorldPresentation.IsValid());
     Test.TestEqual(TEXT("Projectile keeps the physical N20 level"),

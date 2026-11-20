@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "../UI/GridInventoryItemMetadataReadModel.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Core/GridLevelAsset.h"
@@ -229,7 +230,6 @@ namespace ARMCLEAN063BB
             Arrow.ItemDefinitionId = ArrowId;
             Arrow.ItemLevel = 0;
             Arrow.Quantity = 1;
-            Arrow.Weight = Ammo.WeightKg;
             Arrow.OwnerType = EGridItemOwnerType::World;
             Arrow.OwnerCharacterIndex = INDEX_NONE;
             const FVector Spawn = F.Runtime->GetCellCenterWorld(0, 0, 100.0f);
@@ -239,8 +239,10 @@ namespace ARMCLEAN063BB
             if (!Test.TestNotNull(TEXT("Canonical arrow launches without old item DA"),
                 Projectile)) return false;
             Test.TestNull(TEXT("No retired arrow asset attached"), Projectile->GetItemDefinitionAsset());
-            Test.TestEqual(TEXT("In-flight ammunition has no mass cache"), Projectile->ThrownItemInstance.Weight, 0.0f);
-            Test.TestTrue(TEXT("In-flight ammunition has no name cache"), Projectile->ThrownItemInstance.DisplayName.IsEmpty());
+            const auto FlightMetadata = FGridInventoryItemMetadataReadModel::Resolve(F.Registry, nullptr, Projectile->ThrownItemInstance);
+            Test.TestTrue(TEXT("In-flight ammo name and mass resolve from ItemSystem"), FlightMetadata.bResolved &&
+                FlightMetadata.DisplayName.EqualTo(Ammo.DisplayName) &&
+                FMath::IsNearlyEqual(FlightMetadata.UnitWeightKg, Ammo.WeightKg));
             if (Test.TestNotNull(TEXT("Movement component"), Projectile->ProjectileMovementComponent.Get()))
                 Test.TestTrue(TEXT("Real projectile uses preflight speed"),
                     FMath::IsNearlyEqual(Projectile->ProjectileMovementComponent->Velocity.Size(),

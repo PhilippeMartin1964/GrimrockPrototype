@@ -43,9 +43,9 @@ bool FGridClean063NWorldWeight::RunTest(const FString&)
 			Placed.ItemDefinitionId = Id;
 			Placed.ItemLevel = Level;
 			Placed.Quantity = 3;
-			Placed.Weight = 12345.0f; // Conflicting old world-item definition.
+			Placed.OwnerType = EGridItemOwnerType::World;
 			FGridItemInstance Contained = Placed;
-			Contained.Weight = -12345.0f; // Conflicting receptacle snapshot.
+			Contained.OwnerType = EGridItemOwnerType::Receptacle;
 			TestTrue(TEXT("Placed pickup and contained item must read identical canonical mass"),
 				FMath::IsNearlyEqual(
 					FGridItemWeightReadModel::GetTotalWeight(Registry.Get(), Placed),

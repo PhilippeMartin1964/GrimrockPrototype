@@ -45,13 +45,12 @@ bool FGridClean063IWeightRuntime::RunTest(const FString&)
 			Item.ItemDefinitionId = ItemId;
 			Item.ItemLevel = Level;
 			Item.Quantity = 3;
-			Item.Weight = 99999.0f; // Deliberately corrupt legacy snapshot.
 			float UnitMass = 0.0f;
-			TestTrue(TEXT("Canonical item mass resolves despite stale snapshot"),
+			TestTrue(TEXT("Canonical physical item mass resolves"),
 				FGridItemWeightReadModel::TryResolveUnitWeight(Registry.Get(), Item, UnitMass));
 			TestTrue(TEXT("Unit mass belongs to the canonical definition"),
 				FMath::IsNearlyEqual(UnitMass, Source.WeightKg));
-			TestTrue(TEXT("Stack multiplies canonical unit mass, not stale snapshot"),
+			TestTrue(TEXT("Stack multiplies canonical unit mass"),
 				FMath::IsNearlyEqual(FGridItemWeightReadModel::GetTotalWeight(Registry.Get(), Item),
 				3.0f * Source.WeightKg));
 			Item.ItemLevel = 0;

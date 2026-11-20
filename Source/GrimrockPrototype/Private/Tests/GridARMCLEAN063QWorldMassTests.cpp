@@ -43,7 +43,6 @@ bool FGridClean063QWorldMass::RunTest(const FString&)
 			Item.ItemDefinitionId = Id;
 			Item.ItemLevel = Level;
 			Item.Quantity = 4;
-			Item.Weight = 90000.0f;
 			const bool bExpectedOverride = Canonical.bUseItemWeightAsWorldPhysicsMass &&
 				FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg > KINDA_SMALL_NUMBER;
 			const float ExpectedKg = bExpectedOverride ? Canonical.WeightKg : 0.0f;
