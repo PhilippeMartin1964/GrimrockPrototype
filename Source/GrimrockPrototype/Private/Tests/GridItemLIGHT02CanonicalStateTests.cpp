@@ -6,7 +6,8 @@
 #include "Engine/World.h"
 #include "Misc/AutomationTest.h"
 #include "GridCanonicalLootTestScope.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "../UI/GridInventoryItemMetadataReadModel.h"
+#include "GameFramework/Actor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
@@ -55,20 +56,7 @@ namespace GridItemLIGHT02Tests
 		}
 	};
 
-	UGridItemDefinitionAsset* MakeLightDefinition(UObject* Outer, FName Id, bool bDefaultEnabled, float Weight)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
-		Definition->ItemDefinitionId = Id;
-		Definition->DisplayName = FText::FromName(Id);
-		Definition->Weight = Weight;
-		Definition->WorldMesh = NewObject<UStaticMesh>(Definition);
-		Definition->LightEmitter.bUsePointLight = true;
-		Definition->LightEmitter.bDefaultEnabled = bDefaultEnabled;
-		Definition->LightEmitter.bEnableLightFlicker = false;
-		Definition->LightEmitter.bEnableLightPositionFlicker = false;
-		Definition->LightEmitter.bEnableLightColorFlicker = false;
-		return Definition;
-	}
+
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemLIGHT02CanonicalItemLightStateTest,
@@ -79,58 +67,83 @@ bool FGridItemLIGHT02CanonicalItemLightStateTest::RunTest(const FString& Paramet
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
-	UGridItemDefinitionAsset* DefaultOn = GridItemLIGHT02Tests::MakeLightDefinition(Inventory, TEXT("LIGHT02_DefaultOn"), true, 2.5f);
-	UGridItemDefinitionAsset* DefaultOff = GridItemLIGHT02Tests::MakeLightDefinition(Inventory, TEXT("LIGHT02_DefaultOff"), false, 1.5f);
-	TestTrue(TEXT("Default-on definition registers"), Inventory->RegisterItemDefinition(DefaultOn));
-	TestTrue(TEXT("Default-off definition registers"), Inventory->RegisterItemDefinition(DefaultOff));
+    GridItemLIGHT02Tests::FTestWorld TestWorld;
+    if (!TestNotNull(TEXT("Transient light state world"), TestWorld.World)) return false;
 
-	FGridItemInstance ExtinguishedItem;
-	ExtinguishedItem.RuntimeObjectId = FGuid::NewGuid();
-	ExtinguishedItem.ItemDefinitionId = DefaultOn->ItemDefinitionId;
-	ExtinguishedItem.Quantity = 1;
-	ExtinguishedItem.bLightsEnabled = false;
-	TestTrue(TEXT("Definition metadata applies to an extinguished runtime item"), Inventory->ApplyItemDefinitionToInstance(ExtinguishedItem));
-	TestFalse(TEXT("A default-on definition does not relight an extinguished runtime item"), ExtinguishedItem.bLightsEnabled);
-	TestTrue(TEXT("Definition metadata still updates weight"), FMath::IsNearlyEqual(ExtinguishedItem.Weight, DefaultOn->Weight));
-	TestTrue(TEXT("Definition metadata still fills display name"), ExtinguishedItem.DisplayName.EqualTo(DefaultOn->DisplayName));
+    FGridCanonicalLootTestScope RegistryScope;
+    if (!TestTrue(TEXT("Canonical light fixture configured"),
+        RegistryScope.AttachWithWeights(TestWorld.World, {}, [](UGridItemSystemAsset& Root)
+        {
+            for (bool bDefaultOn : {true, false})
+            {
+                auto* Def = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+                Def->ItemId = bDefaultOn ? FName(TEXT("LIGHT02_DefaultOn")) : FName(TEXT("LIGHT02_DefaultOff"));
+                Def->DisplayName = FText::FromName(Def->ItemId);
+                Def->WeightKg = bDefaultOn ? 2.5f : 1.5f;
+                Def->LightEmitter.bUsePointLight = true;
+                Def->LightEmitter.bDefaultEnabled = bDefaultOn;
+                Def->LightEmitter.bEnableLightFlicker = false;
+                Def->LightEmitter.bEnableLightPositionFlicker = false;
+                Def->LightEmitter.bEnableLightColorFlicker = false;
+                Root.ItemDefinitions.Add(Def);
+            }
+        }))) return false;
 
-	FGridItemInstance LitItem;
-	LitItem.RuntimeObjectId = FGuid::NewGuid();
-	LitItem.ItemDefinitionId = DefaultOff->ItemDefinitionId;
-	LitItem.Quantity = 1;
-	LitItem.bLightsEnabled = true;
-	TestTrue(TEXT("Definition metadata applies to a lit runtime item"), Inventory->ApplyItemDefinitionToInstance(LitItem));
-	TestTrue(TEXT("A default-off definition does not extinguish a lit runtime item"), LitItem.bLightsEnabled);
+    AActor* Owner = TestWorld.World->SpawnActor<AActor>();
+    if (!TestNotNull(TEXT("World-scoped inventory owner"), Owner)) return false;
+    UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>(Owner);
+    if (!TestNotNull(TEXT("World-scoped inventory"), Inventory)) return false;
 
-	GridItemLIGHT02Tests::FTestWorld TestWorld;
-	if (!TestWorld.World)
-	{
-		AddError(TEXT("ITEM-LIGHT02 could not create a transient game world."));
-		return false;
-	}
+    FGridItemInstance ExtinguishedItem;
+    ExtinguishedItem.RuntimeObjectId = FGuid::NewGuid();
+    ExtinguishedItem.ItemDefinitionId = TEXT("LIGHT02_DefaultOn");
+    ExtinguishedItem.Quantity = 1;
+    ExtinguishedItem.bLightsEnabled = false;
+    TestTrue(TEXT("Canonical materialization accepts extinguished item"),
+        Inventory->ApplyItemDefinitionToInstance(ExtinguishedItem));
+    TestFalse(TEXT("A default-on definition does not relight a previously extinguished physical torch"),
+        ExtinguishedItem.bLightsEnabled);
 
-	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
-	TestNotNull(TEXT("Level runtime actor is spawned"), Runtime);
-	if (!Runtime)
-	{
-		return false;
-	}
+    FGridResolvedItem DefaultOn;
+    if (!TestTrue(TEXT("Canonical default-on definition resolves"),
+        RegistryScope.Registry->ResolveItem(ExtinguishedItem.ItemDefinitionId, 0, DefaultOn))) return false;
+    const auto ExtinguishedMetadata =
+        FGridInventoryItemMetadataReadModel::Resolve(RegistryScope.Registry, nullptr, ExtinguishedItem);
+    TestTrue(TEXT("Extinguished item name and unit mass are projected canonically"),
+        ExtinguishedMetadata.bResolved && ExtinguishedMetadata.DisplayName.EqualTo(DefaultOn.DisplayName) &&
+        FMath::IsNearlyEqual(ExtinguishedMetadata.UnitWeightKg, 2.5f));
+    TestTrue(TEXT("Source default-on light is present"), DefaultOn.LightEmitter.bDefaultEnabled);
 
-	UGridLevelAsset* Level = NewObject<UGridLevelAsset>(Runtime);
-	Level->Width = 1;
-	Level->Height = 1;
-	Level->EnsureCellCount();
-	Level->Cells[0].CellType = EGridCellType::Floor;
-	Runtime->LevelAsset = Level;
+    FGridItemInstance LitItem;
+    LitItem.RuntimeObjectId = FGuid::NewGuid();
+    LitItem.ItemDefinitionId = TEXT("LIGHT02_DefaultOff");
+    LitItem.Quantity = 1;
+    LitItem.bLightsEnabled = true;
+    TestTrue(TEXT("Canonical materialization accepts lit item"),
+        Inventory->ApplyItemDefinitionToInstance(LitItem));
+    TestTrue(TEXT("A default-off definition does not extinguish an already lit physical torch"),
+        LitItem.bLightsEnabled);
 
-	FGridCanonicalLootTestScope RegistryScope;
-	if (!TestTrue(TEXT("Canonical world registry configured"), RegistryScope.Attach(TestWorld.World))) return false;
-	FGridResolvedItem AuthoredTorch;
-	if (!TestTrue(TEXT("Real torch resolves at N0"),
-		RegistryScope.Registry->ResolveItem(TEXT("Item_Torch"), 0, AuthoredTorch)) ||
-		!TestTrue(TEXT("Real torch authored default is lit"), AuthoredTorch.LightEmitter.bDefaultEnabled))
-		return false;
+    FGridResolvedItem DefaultOff;
+    if (!TestTrue(TEXT("Canonical default-off definition resolves"),
+        RegistryScope.Registry->ResolveItem(LitItem.ItemDefinitionId, 0, DefaultOff))) return false;
+    TestFalse(TEXT("Source default-off light remains disabled by default"),
+        DefaultOff.LightEmitter.bDefaultEnabled);
+
+    AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
+    if (!TestNotNull(TEXT("Level runtime actor is spawned"), Runtime)) return false;
+    UGridLevelAsset* Level = NewObject<UGridLevelAsset>(Runtime);
+    Level->Width = 1;
+    Level->Height = 1;
+    Level->EnsureCellCount();
+    Level->Cells[0].CellType = EGridCellType::Floor;
+    Runtime->LevelAsset = Level;
+
+    FGridResolvedItem AuthoredTorch;
+    if (!TestTrue(TEXT("Real torch resolves at N0"),
+        RegistryScope.Registry->ResolveItem(TEXT("Item_Torch"), 0, AuthoredTorch)) ||
+        !TestTrue(TEXT("Real torch authored default is lit"), AuthoredTorch.LightEmitter.bDefaultEnabled))
+        return false;
 	FGridLooseItemInstance Placement;
 	Placement.InstanceId = FGuid::NewGuid();
 	Placement.CanonicalItemId = AuthoredTorch.ItemId;

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.115 — Fixture éclairage canonique
+
+Parent 4adb647208bc62cfab06bcb89ac56be8cf16247f : après SilentTask et LocalAuto SUCCESS, utiliser deux définitions transitoires et préserver la lampe allumée/éteinte, sans caches statiques. Voir [5G.115](ARM_CLEAN06_5G115_CANONICAL_LIGHT_STATE_FIXTURE.md).
+
 ## ARM-CLEAN06.5G.114R — Correction de la géométrie de test (issue #214)
 
 Parent 76c5dafa34eeddad4af59f0ffd7bec4d58ed8d7e, statut précédent LocalAuto FAILURE. Supprimer le cube de 100 cm dans la fixture portée TD02.1 pour vérifier 200/201 cm sur centre d'acteur sans modifier le gameplay. **Attendre SilentTask et LocalAuto SUCCESS avant les lots 115+.** Voir [5G.114R](ARM_CLEAN06_5G114R_REACH_FIXTURE_GEOMETRY.md).
