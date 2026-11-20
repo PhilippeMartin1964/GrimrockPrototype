@@ -6,7 +6,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemContextActionLibrary.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UObject/UnrealType.h"
@@ -55,19 +55,18 @@ namespace
 		}
 	};
 
-	FGridItemInstance MakeItem(const UGridItemDefinitionAsset* Definition, int32 Quantity)
+	FGridItemInstance MakeItem(FName Definition, int32 Quantity)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
-		Item.DisplayName = Definition->DisplayName;
+		Item.ItemDefinitionId = Definition;
 		Item.Quantity = Quantity;
 		Item.OwnerType = EGridItemOwnerType::World;
 		return Item;
 	}
 
 	void SetInventorySlot(UGridPartyInventoryComponent* Inventory, int32 CharacterIndex, int32 SlotIndex,
-		const UGridItemDefinitionAsset* Definition, int32 Quantity)
+		FName Definition, int32 Quantity)
 	{
 		FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
 		FGridItemInstance Item = MakeItem(Definition, Quantity);
@@ -104,6 +103,19 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	const FName StoneDefinition(TEXT("Stone_TD064_Merge"));
+	const FName OtherDefinition(TEXT("Other_TD064_Swap"));
+	FGridCanonicalLootTestScope Scope;
+	if (!TestTrue(TEXT("Canonical stack definitions registered"), Scope.AttachWithWeights(
+		TestWorld.World, {{OtherDefinition, 0.f}}, [&](UGridItemSystemAsset& Root)
+		{
+			auto* Stone = NewObject<UGridGenericStackableDefinitionAsset>(&Root);
+			Stone->ItemId = StoneDefinition;
+			Stone->DisplayName = FText::FromString(TEXT("Pierre TD06.4 merge"));
+			Stone->MaxStack = 10;
+			Root.ItemDefinitions.Add(Stone);
+		}))) return false;
+
 	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
 	if (!TestNotNull(TEXT("The party pawn is spawned"), Party) ||
 		!TestNotNull(TEXT("The party inventory exists"), Party ? Party->PartyInventoryComponent.Get() : nullptr))
@@ -120,22 +132,6 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 		return false;
 	}
 	Widget->InitializeInventoryWidget(Party);
-
-	UGridItemDefinitionAsset* StoneDefinition = NewObject<UGridItemDefinitionAsset>(Inventory);
-	StoneDefinition->ItemDefinitionId = TEXT("Stone_TD064_Merge");
-	StoneDefinition->DisplayName = FText::FromString(TEXT("Pierre TD06.4 merge"));
-	StoneDefinition->ItemType = EGridItemType::Misc;
-	StoneDefinition->bStackable = true;
-	StoneDefinition->MaxStackSize = 10;
-	TestTrue(TEXT("The stackable definition is registered"), Inventory->RegisterItemDefinition(StoneDefinition));
-
-	UGridItemDefinitionAsset* OtherDefinition = NewObject<UGridItemDefinitionAsset>(Inventory);
-	OtherDefinition->ItemDefinitionId = TEXT("Other_TD064_Swap");
-	OtherDefinition->DisplayName = FText::FromString(TEXT("Autre TD06.4 swap"));
-	OtherDefinition->ItemType = EGridItemType::Misc;
-	OtherDefinition->bStackable = false;
-	OtherDefinition->MaxStackSize = 1;
-	TestTrue(TEXT("The non-stackable definition is registered"), Inventory->RegisterItemDefinition(OtherDefinition));
 
 	auto TestOwnership = [this, Inventory](const TCHAR* Context)
 	{
@@ -188,7 +184,6 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 	EquipmentContext.InventorySlotIndex = INDEX_NONE;
 	EquipmentContext.EquipmentSlot = EGridEquipmentSlot::MainHand;
 	EquipmentContext.Item = Character.InventorySlots[0].Item;
-	EquipmentContext.ItemDefinition = StoneDefinition;
 	FGridFacingTargetContext EquipmentFacingTarget;
 	TArray<FGridItemContextAction> EquipmentActions;
 	TestTrue(TEXT("Equipment context actions build"),
@@ -203,7 +198,7 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Context split divides an even stack"),
 		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
 	TestEqual(TEXT("Even split leaves half in the main stack"), Character.InventorySlots[0].Item.Quantity, 2);
-	TestEqual(TEXT("Even split preserves the occupied slot before the first gap"), Character.InventorySlots[1].Item.ItemDefinitionId, OtherDefinition->ItemDefinitionId);
+	TestEqual(TEXT("Even split preserves the occupied slot before the first gap"), Character.InventorySlots[1].Item.ItemDefinitionId, OtherDefinition);
 	TestEqual(TEXT("Even split places half directly in the first free slot"), Character.InventorySlots[2].Item.Quantity, 2);
 	TestFalse(TEXT("Even split never uses the cursor"), Inventory->HasCursorItem());
 	TestTrue(TEXT("Even split preserves the main stack identity"), Character.InventorySlots[0].Item.RuntimeObjectId == EvenSourceId);
@@ -216,7 +211,7 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Context split divides an odd stack"),
 		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
 	TestEqual(TEXT("Odd split keeps the extra item in the main stack"), Character.InventorySlots[0].Item.Quantity, 3);
-	TestEqual(TEXT("Odd split preserves the occupied slot before the first gap"), Character.InventorySlots[1].Item.ItemDefinitionId, OtherDefinition->ItemDefinitionId);
+	TestEqual(TEXT("Odd split preserves the occupied slot before the first gap"), Character.InventorySlots[1].Item.ItemDefinitionId, OtherDefinition);
 	TestEqual(TEXT("Odd split places the lower half directly in the first free slot"), Character.InventorySlots[2].Item.Quantity, 2);
 	TestFalse(TEXT("Odd split never uses the cursor"), Inventory->HasCursorItem());
 	TestTrue(TEXT("Odd split preserves the main stack identity"), Character.InventorySlots[0].Item.RuntimeObjectId == OddSourceId);

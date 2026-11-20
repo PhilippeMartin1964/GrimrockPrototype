@@ -2,43 +2,18 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UObject/Class.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace
 {
-	UGridPartyInventoryComponent* GridTD064CreateInventory()
-	{
-		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
-		Component->InitializeDefaultPartyIfNeeded();
-		return Component;
-	}
-
-	UGridItemDefinitionAsset* GridTD064CreateItemDefinition(
-		UObject* Outer, FName ItemDefinitionId, EGridItemType ItemType, bool bStackable, EGridEquipmentSlot CompatibleSlot = EGridEquipmentSlot::None)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
-		Definition->ItemDefinitionId = ItemDefinitionId;
-		Definition->DisplayName = FText::FromName(ItemDefinitionId);
-		Definition->ItemType = ItemType;
-		Definition->Weight = 1.0f;
-		Definition->bStackable = bStackable;
-		Definition->MaxStackSize = bStackable ? 10 : 1;
-		if (CompatibleSlot != EGridEquipmentSlot::None)
-		{
-			Definition->CompatibleEquipmentSlots.Add(CompatibleSlot);
-		}
-		return Definition;
-	}
-
 	FGridItemInstance GridTD064CreateItem(FName ItemDefinitionId, int32 Quantity = 1)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = ItemDefinitionId;
-		Item.DisplayName = FText::FromName(ItemDefinitionId);
 		Item.Quantity = Quantity;
 		Item.OwnerType = EGridItemOwnerType::World;
 		return Item;
@@ -60,11 +35,35 @@ bool FGridTD064PartyInventoryCursorTransferContractTest::RunTest(const FString& 
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Component = GridTD064CreateInventory();
+	const FName StackId(TEXT("Potion_TD064"));
+	const FName WeaponAId(TEXT("WeaponA_TD064"));
+	const FName WeaponBId(TEXT("WeaponB_TD064"));
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("TemporaryCursor_TD064"), 1.f}}, [&](UGridItemSystemAsset& Root)
+	{
+		auto* Stack = NewObject<UGridGenericStackableDefinitionAsset>(&Root);
+		Stack->ItemId = StackId;
+		Stack->DisplayName = FText::FromName(StackId);
+		Stack->WeightKg = 1.f;
+		Stack->MaxStack = 10;
+		Root.ItemDefinitions.Add(Stack);
+		for (FName Id : {WeaponAId, WeaponBId})
+		{
+			auto* Gear = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+			Gear->ItemId = Id;
+			Gear->DisplayName = FText::FromName(Id);
+			Gear->WeightKg = 1.f;
+			Gear->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
+			Gear->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+			Root.ItemDefinitions.Add(Gear);
+		}
+	});
+	UGridPartyInventoryComponent* Component = Fixture.MakeInventory();
 	if (!TestNotNull(TEXT("The characterized party inventory component is created"), Component))
 	{
 		return false;
 	}
+
+	Component->InitializeDefaultPartyIfNeeded();
 
 	const FName ReflectedFunctions[] = { TEXT("SetCursorItem"), TEXT("ClearCursorItem"), TEXT("HasCursorItem"), TEXT("TryTakeInventorySlotToCursor"),
 		TEXT("TryTakeInventorySlotQuantityToCursor"), TEXT("TryPlaceCursorItemInCharacterInventorySlot"), TEXT("TryMoveCharacterInventorySlot"),
@@ -83,24 +82,13 @@ bool FGridTD064PartyInventoryCursorTransferContractTest::RunTest(const FString& 
 	TestFalse(TEXT("The cursor starts empty"), Component->HasCursorItem());
 	TestFalse(TEXT("Clearing an already empty cursor returns false without mutation"), Component->ClearCursorItem());
 
-	UGridItemDefinitionAsset* StackDefinition = GridTD064CreateItemDefinition(Component, TEXT("Potion_TD064"), EGridItemType::Potion, true);
-	UGridItemDefinitionAsset* WeaponADefinition =
-		GridTD064CreateItemDefinition(Component, TEXT("WeaponA_TD064"), EGridItemType::Weapon, false, EGridEquipmentSlot::MainHand);
-	UGridItemDefinitionAsset* WeaponBDefinition =
-		GridTD064CreateItemDefinition(Component, TEXT("WeaponB_TD064"), EGridItemType::Weapon, false, EGridEquipmentSlot::MainHand);
-	if (!TestNotNull(TEXT("The stack definition is created"), StackDefinition) || !TestNotNull(TEXT("Weapon A definition is created"), WeaponADefinition) ||
-		!TestNotNull(TEXT("Weapon B definition is created"), WeaponBDefinition))
-	{
+	if (!TestTrue(TEXT("Stack definition registered"), Fixture.Scope.Registry->HasCanonicalItem(StackId)) ||
+		!TestTrue(TEXT("Weapon A registered"), Fixture.Scope.Registry->HasCanonicalItem(WeaponAId)) ||
+		!TestTrue(TEXT("Weapon B registered"), Fixture.Scope.Registry->HasCanonicalItem(WeaponBId)))
 		return false;
-	}
-
-	TestTrue(TEXT("The stack definition is registered"), Component->RegisterItemDefinition(StackDefinition));
-	TestTrue(TEXT("Weapon A definition is registered"), Component->RegisterItemDefinition(WeaponADefinition));
-	TestTrue(TEXT("Weapon B definition is registered"), Component->RegisterItemDefinition(WeaponBDefinition));
-
-	const FGridItemInstance StackItem = GridTD064CreateItem(StackDefinition->ItemDefinitionId, 5);
-	const FGridItemInstance WeaponA = GridTD064CreateItem(WeaponADefinition->ItemDefinitionId);
-	const FGridItemInstance WeaponB = GridTD064CreateItem(WeaponBDefinition->ItemDefinitionId);
+	const FGridItemInstance StackItem = GridTD064CreateItem(StackId, 5);
+	const FGridItemInstance WeaponA = GridTD064CreateItem(WeaponAId);
+	const FGridItemInstance WeaponB = GridTD064CreateItem(WeaponBId);
 	const FGuid OriginalStackRuntimeId = StackItem.RuntimeObjectId;
 	const FGuid WeaponARuntimeId = WeaponA.RuntimeObjectId;
 	const FGuid WeaponBRuntimeId = WeaponB.RuntimeObjectId;
