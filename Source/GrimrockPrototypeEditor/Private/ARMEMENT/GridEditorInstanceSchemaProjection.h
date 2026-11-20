@@ -2,6 +2,7 @@
 
 #include "Save/GrimrockPartySaveGame.h"
 #include "UObject/UnrealType.h"
+#include "Misc/SecureHash.h"
 
 // Private cross-schema evidence; never published. Preserve array order,
 // occupancy, all durable root properties and all non-cache instance fields.
@@ -80,7 +81,12 @@ namespace GridEditorInstanceSchemaProjection
             Append(Row, Field->GetName());
             for (int32 Index = 0; Index < Field->ArrayDim; ++Index)
                 AppendValue(*Field, Field->ContainerPtrToValuePtr<void>(&Save, Index), Row);
-            Fields.Add(MoveTemp(Row));
+            // Keep the report bounded even for large explored dungeons. Hash
+            // the complete length-framed UTF-8 property projection, not a prefix.
+            FTCHARToUTF8 Utf8(*Row);
+            FSHAHash Digest;
+            FSHA1::HashBuffer(Utf8.Get(), Utf8.Length(), Digest.Hash);
+            Fields.Add(Field->GetName() + TEXT(":") + Digest.ToString());
         }
         return Fields;
     }

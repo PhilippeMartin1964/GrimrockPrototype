@@ -1031,6 +1031,24 @@ try {
                 Publish-CommitStatus -Sha $Sha -State $ParityState -Context ($Context+'.CacheParity') -Description 'Normalized memory parity; no live writes'
                 Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Private evidence completed; original saves unchanged'
             } catch {
+                # Only fixed diagnostic labels: never publish exception text, paths or archive data.
+                $Reason='UNCLASSIFIED'
+                switch -Exact ($_.Exception.Message) {
+                    'UE or game open; evidence refused.' { $Reason='UE_OPEN' }
+                    'Native preflight failed.' { $Reason='NATIVE_FAILED' }
+                    'Native report JSON decode failed.' { $Reason='REPORT_JSON' }
+                    'Native evidence refused.' { $Reason='REPORT_NATIVE' }
+                    'World pointer retirement preflight refused.' { $Reason='REPORT_WORLD' }
+                    'Missing instance schema projection.' { $Reason='PROJECTION_MODE' }
+                    'Missing durable save fingerprint.' { $Reason='PROJECTION_MISSING' }
+                    'Invalid durable property digest.' { $Reason='PROJECTION_FORMAT' }
+                    'Invalid private semantic receipt.' { $Reason='RECEIPT_INVALID' }
+                    'Missing schema baseline receipt.' { $Reason='RECEIPT_SCHEMA' }
+                    'Source or private copy changed; no retirement authorization.' { $Reason='COPY_CHANGED' }
+                    'Validation checkout dirty.' { $Reason='CHECKOUT_DIRTY' }
+                    'Remote master changed.' { $Reason='HEAD_CHANGED' }
+                }
+                Publish-CommitStatus -Sha $Sha -State 'failure' -Context ($Context+'.'+$Reason) -Description 'Fixed private evidence failure category'
                 Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Private evidence refused; no original slot modified'
             }
         }

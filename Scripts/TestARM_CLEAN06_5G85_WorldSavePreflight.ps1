@@ -192,7 +192,9 @@ Assert-Closed
 Assert-Head
 if ((Get-InventoryJson $Source) -cne $Expected -or (Get-InventoryJson $Copies) -cne $Expected) { throw 'Source or private copy changed; no retirement authorization.' }
 if ($Code -ne 0 -or -not (Test-Path -LiteralPath $ReportPath -PathType Leaf)) { throw 'Native preflight failed.' }
-$AfterReport=Get-Content -LiteralPath $ReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+try {
+    $AfterReport=Get-Content -LiteralPath $ReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+} catch { throw 'Native report JSON decode failed.' }
 Check-WorldSaveReport $AfterReport $Rows
 if ($AfterRetirement) { Compare-WorldSaveReports $BeforeReport $AfterReport $Rows }
 if ($InstanceCacheEvidence) {
@@ -207,7 +209,12 @@ if ($InstanceCacheEvidence) {
         foreach ($Key in @('cache_instances','cache_invalid_identities','cache_name_conflicts','cache_weight_conflicts','cache_names','cache_weights')) {
             if (($S.$Key -isnot [int] -and $S.$Key -isnot [long]) -or $S.$Key -lt 0) { throw 'Invalid cache count.' }
         }
-        if ($InstanceSchemaProjection -and @($S.durable_save_projection).Count -le 0) { throw 'Missing durable save fingerprint.' }
+        if ($InstanceSchemaProjection) {
+            if (@($S.durable_save_projection).Count -le 0) { throw 'Missing durable save fingerprint.' }
+            foreach ($Digest in @($S.durable_save_projection)) {
+                if ($Digest -isnot [string] -or $Digest -cnotmatch '^[A-Za-z0-9_]+:[0-9A-Fa-f]{40}$') { throw 'Invalid durable property digest.' }
+            }
+        }
         $Explained=0
         if ($WeightCacheEvidence) {
             $Explained=$S.cache_weight_explained
