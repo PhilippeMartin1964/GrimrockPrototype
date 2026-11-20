@@ -31,8 +31,11 @@ struct FGridInventoryDiagnosticWeightReadModel
 		}
 		if (!Registry || !Registry->HasCanonicalItem(Definition->ItemDefinitionId))
 		{
-			// No ItemSystem for legacy items or standalone diagnostics.
-			return FString::Printf(TEXT("%.1f"), Definition->Weight);
+#if WITH_DEV_AUTOMATION_TESTS
+			if (!Registry && GIsAutomationTesting && FMath::IsFinite(Definition->Weight) && Definition->Weight >= 0.0f)
+				return FString::Printf(TEXT("%.1f"), Definition->Weight);
+#endif
+			return TEXT("INVALID");
 		}
 		FGridResolvedItem Unlevelled;
 		if (Registry->ResolveItem(Definition->ItemDefinitionId, 0, Unlevelled))

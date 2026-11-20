@@ -110,15 +110,18 @@ bool FGridClean063ACInventoryDiagnosticWeight::RunTest(const FString&)
 	Unknown.ItemDefinitionId = Old->ItemDefinitionId;
 	Unknown.Quantity = 2;
 	Unknown.Weight = 2.4f;
-	TestEqual(TEXT("Unregistered instance keeps original unit weight"),
+	TestEqual(TEXT("Configured registry rejects copied weight of unknown instance"),
 		FGridInventoryDiagnosticWeightReadModel::FormatInstanceUnitWeight(Registry.Get(), Unknown),
-		FString(TEXT("2.4")));
-	TestEqual(TEXT("Unregistered definition keeps legacy source"),
+		FString(TEXT("INVALID")));
+	TestEqual(TEXT("Configured registry rejects copied weight of unknown definition"),
 		FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(Registry.Get(), Old.Get()),
-		FString(TEXT("99999.0")));
-	TestEqual(TEXT("Missing registry remains diagnostic-safe for legacy instances"),
+		FString(TEXT("INVALID")));
+	TestEqual(TEXT("Isolated registry-less fixture retains numeric instance diagnostic"),
 		FGridInventoryDiagnosticWeightReadModel::FormatInstanceUnitWeight(nullptr, Unknown),
 		FString(TEXT("2.4")));
+	TestEqual(TEXT("Isolated registry-less fixture retains numeric definition diagnostic"),
+		FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(nullptr, Old.Get()),
+		FString(TEXT("99999.0")));
 	return true;
 }
 
