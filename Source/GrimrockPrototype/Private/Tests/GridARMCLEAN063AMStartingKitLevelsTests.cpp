@@ -92,8 +92,8 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
             return false;
         const FString ExpectedName = Canonical.DisplayName.IsEmpty()
             ? ExpectedIds[Index].ToString() : Canonical.DisplayName.ToString();
-        TestTrue(TEXT("Starter has no cached name"), Item.DisplayName.IsEmpty());
-        TestEqual(TEXT("Starter has no cached weight"), Item.Weight, 0.0f);
+        TestTrue(TEXT("Starter physical GUID exists"), Item.RuntimeObjectId.IsValid());
+        TestEqual(TEXT("Starter quantity retained"), Item.Quantity, 1);
         const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), nullptr, Item);
         TestTrue(TEXT("Starter metadata resolves"), Metadata.bResolved);
         TestEqual(TEXT("Starter name comes from ItemSystem"), Metadata.DisplayName.ToString(), ExpectedName);

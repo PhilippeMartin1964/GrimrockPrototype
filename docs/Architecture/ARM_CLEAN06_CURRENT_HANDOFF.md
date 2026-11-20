@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.106 — Fixtures du cycle de vie canonique
+
+Parent 5549d047c8ab81c51f3ee022d7a4fa582ea513d7 : attendre SilentTask et LocalAuto SUCCESS. Retirer les accès aux copies dans MON8, 3AM et ARMEMENT0183 ; contrôler nom/masse par projection, GUID et quantités, niveaux, contenu narratif et restitution. Aucun changement runtime. Voir [5G.106](ARM_CLEAN06_5G106_CANONICAL_LIFECYCLE_FIXTURES.md).
+
 ## ARM-CLEAN06.5G.105 — Fixtures des lecteurs canoniques et projectiles
 
 Parent d9c1f789f04250b0aa02b4896f3e7e6be3e1a06b : attendre SilentTask et LocalAuto SUCCESS. Neuf fichiers de tests de masse, tri, diagnostic, UI et vol n'injectent plus de copies statiques dans les identités canoniques ; les anciennes définitions contradictoires, refus N0/N21, profils, masses et états de vol restent vérifiés. Les scénarios de caractérisation non canoniques isolés ne sont pas encore retirés. Voir [5G.105](ARM_CLEAN06_5G105_CANONICAL_READERS_PROJECTILE_FIXTURES.md).

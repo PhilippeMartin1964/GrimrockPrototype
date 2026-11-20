@@ -654,12 +654,13 @@ bool FGridClean064X60PointerlessLootDeath::RunTest(const FString&)
     if (!TestEqual(TEXT("Stable Stone ID"), Item.ItemDefinitionId, FName(TEXT("Stone"))) ||
         !TestEqual(TEXT("N0 untouched"), Item.ItemLevel, 0) ||
         !TestEqual(TEXT("Quantity unchanged"), Item.Quantity, 1) ||
-        !TestEqual(TEXT("Loot has no stored unit mass"), Item.Weight, 0.0f) ||
-        !TestTrue(TEXT("Loot has no stored name"), Item.DisplayName.IsEmpty()))
+        !TestTrue(TEXT("Loot owns a valid physical GUID"), Item.RuntimeObjectId.IsValid()))
         return false;
     const auto LootMeta = FGridInventoryItemMetadataReadModel::Resolve(Registry, nullptr, Item);
     if (!TestTrue(TEXT("Loot metadata resolved"), LootMeta.bResolved) ||
-        !TestEqual(TEXT("Unit mass from canonical registry"), LootMeta.UnitWeightKg, Stone.WeightKg))
+        !TestEqual(TEXT("Unit mass from canonical registry"), LootMeta.UnitWeightKg, Stone.WeightKg) ||
+        !TestTrue(TEXT("Loot display name from canonical registry"), LootMeta.DisplayName.EqualTo(
+            Stone.DisplayName.IsEmpty() ? FText::FromName(Item.ItemDefinitionId) : Stone.DisplayName)))
         return false;
     AGridItemActor* Found = nullptr;
     for (TActorIterator<AGridItemActor> It(F.World); It; ++It)

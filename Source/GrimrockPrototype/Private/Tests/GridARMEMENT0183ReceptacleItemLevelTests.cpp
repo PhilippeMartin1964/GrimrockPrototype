@@ -190,8 +190,6 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     Cursor.ItemLevel = 12;
     FGridResolvedItem Physical;
     if (!TestTrue(TEXT("Canonical transferred dagger resolves"), Fixture.RegistryScope.Registry->ResolveItem(Cursor.ItemDefinitionId, Cursor.ItemLevel, Physical))) return false;
-    Cursor.Weight = 99999.f; // Deliberately stale v27 static cache.
-    Cursor.DisplayName = FText::FromString(TEXT("STALE STATIC CACHE"));
     Cursor.ReadTitleOverride = FText::FromString(TEXT("Actual narrative title"));
     Cursor.ReadTextOverride = FText::FromString(TEXT("Actual narrative body"));
     Cursor.Quantity = 1;
@@ -204,8 +202,9 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     TestEqual(TEXT("Transfer preserves item level in returned record"), Accepted.ItemLevel, 12);
     TestNull(TEXT("Contained mass cache removed from schema"), FGridContainedReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("Weight")));
     TestNull(TEXT("Contained name cache removed from schema"), FGridContainedReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
-    TestEqual(TEXT("Accepted transfer carries no cached mass"), Accepted.Weight, 0.0f);
-    TestTrue(TEXT("Accepted transfer carries no cached name"), Accepted.DisplayName.IsEmpty());
+    TestNull(TEXT("Physical instance mass removed from schema"), FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
+    TestNull(TEXT("Physical instance name removed from schema"), FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
+    TestEqual(TEXT("Accepted physical quantity unchanged"), Accepted.Quantity, Cursor.Quantity);
     const auto AcceptedMetadata = FGridInventoryItemMetadataReadModel::Resolve(Fixture.RegistryScope.Registry, nullptr, Accepted);
     TestTrue(TEXT("Accepted item metadata resolves"), AcceptedMetadata.bResolved);
     TestEqual(TEXT("Accepted item projection uses canonical mass"), AcceptedMetadata.UnitWeightKg, Physical.WeightKg);
@@ -251,8 +250,8 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     const FGridItemInstance* Bag = Fixture.FindBagItem(Party->PartyInventoryComponent, Cursor.RuntimeObjectId);
     if (!TestNotNull(TEXT("Retrieved object exists in inventory"), Bag)) return false;
     TestEqual(TEXT("Fixed level preserved on retrieval"), Bag->ItemLevel, 12);
-    TestEqual(TEXT("Restored bag contains no weight cache"), Bag->Weight, 0.0f);
-    TestTrue(TEXT("Restored bag contains no name cache"), Bag->DisplayName.IsEmpty());
+    TestEqual(TEXT("Restored physical quantity retained"), Bag->Quantity, Cursor.Quantity);
+    TestEqual(TEXT("Restored physical GUID retained"), Bag->RuntimeObjectId, Cursor.RuntimeObjectId);
     const auto BagMetadata = FGridInventoryItemMetadataReadModel::Resolve(Fixture.RegistryScope.Registry, nullptr, *Bag);
     TestTrue(TEXT("Restored inventory canonical metadata resolves"), BagMetadata.bResolved);
     TestEqual(TEXT("Restored inventory projection canonical weight"), BagMetadata.UnitWeightKg, Physical.WeightKg);
