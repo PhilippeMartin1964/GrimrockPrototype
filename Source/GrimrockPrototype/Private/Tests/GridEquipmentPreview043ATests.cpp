@@ -32,8 +32,6 @@ namespace EquipmentPreview043A
         FGridItemInstance Instance;
         Instance.ItemDefinitionId = Def->ItemDefinitionId;
         Instance.RuntimeObjectId = FGuid::NewGuid();
-        Instance.DisplayName = Def->DisplayName;
-        Instance.Weight = Def->Weight;
         Instance.Quantity = 1;
         return Instance;
     }

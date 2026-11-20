@@ -85,7 +85,6 @@ bool FGridUIFilter01GridProjectionTest::RunTest(const FString& Parameters)
 		Slot.bOccupied = true;
 		Slot.Item.RuntimeObjectId = FGuid::NewGuid();
 		Slot.Item.ItemDefinitionId = Id;
-		Slot.Item.DisplayName = FText::FromName(Id);
 		Slot.Item.Quantity = 1;
 	};
 

@@ -68,9 +68,7 @@ namespace GridTD07333Characterization
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid(7, 3, 3, 32);
 		Item.ItemDefinitionId = Definition->ItemDefinitionId;
-		Item.DisplayName = Definition->DisplayName;
 		Item.Quantity = 1;
-		Item.Weight = Definition->Weight;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
 		Item.OwnerGuid = Character.CharacterId;
 		Item.OwnerCharacterIndex = 0;

@@ -63,9 +63,7 @@ namespace
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = TEXT("Shuriken");
-		Item.DisplayName = FText::FromString(TEXT("Shuriken"));
 		Item.Quantity = Quantity;
-		Item.Weight = 0.1f;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
 		Item.OwnerGuid = CharacterId;
 		Item.OwnerCharacterIndex = 0;
@@ -182,9 +180,7 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	FGridItemInstance EquippedTorch;
 	EquippedTorch.RuntimeObjectId = FGuid::NewGuid();
 	EquippedTorch.ItemDefinitionId = Torch.ItemId;
-	EquippedTorch.DisplayName = Torch.DisplayName;
 	EquippedTorch.Quantity = 1;
-	EquippedTorch.Weight = Torch.WeightKg;
 	EquippedTorch.bLightsEnabled = true;
 	EquippedTorch.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	EquippedTorch.OwnerGuid = Character.CharacterId;

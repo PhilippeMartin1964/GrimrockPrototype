@@ -150,7 +150,6 @@ bool FARMEMENTLOT0213ProductionMatrix::RunTest(const FString&)
             FGridItemInstance Instance;
             Instance.RuntimeObjectId = FGuid::NewGuid();
             Instance.ItemDefinitionId = Item->ItemDefinitionId;
-            Instance.DisplayName = Item->DisplayName;
             Instance.ItemLevel = Level;
             Instance.Quantity = 1;
             Instance.OwnerType = EGridItemOwnerType::CharacterInventory;

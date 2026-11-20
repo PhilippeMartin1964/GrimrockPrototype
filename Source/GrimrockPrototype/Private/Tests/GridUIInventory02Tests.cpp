@@ -46,7 +46,6 @@ namespace
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = Definition->ItemDefinitionId;
-		Item.DisplayName = Definition->DisplayName;
 		Item.Quantity = Quantity;
 		Item.OwnerType = EGridItemOwnerType::CharacterInventory;
 		Item.OwnerGuid = Owner.CharacterId;

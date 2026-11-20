@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.119 — Fixtures UI, combat et Editor sans copies
+
+Parent `c8c4ed9545015d5ec2b034411b38ace61c50bd33` : après SilentTask et LocalAuto SUCCESS. Retirer les copies d'instance de 6 tests UI/combat/Editor, sans rétablir l'ancienne attente ARMEMENT01.6 réparée en 118R. Conserver le correctif 116R de masse des shurikens. Voir [5G.119](ARM_CLEAN06_5G119_TEST_FIXTURE_CACHE_REMOVAL.md).
+
 ## ARM-CLEAN06.5G.118R — Correction du test de masse ARMEMENT01.6 (issue #216)
 
 Parent `6197550d3b457f6a185f6737080da87c5b1a9cbd`, Windows LocalAuto FAILURE : le test `Grimrock.RPG.ARMEMENT01.6.Items.EquipAndFixedLevelCombat` exigeait encore une copie C++ de poids dans l'instance, retirée en 118. Le test vérifie maintenant le profil à l'ItemLevel fixe, la masse du catalogue, l'accord de l'authoring historique et l'absence de propriété réfléchie Weight. Voir [5G.118R](ARM_CLEAN06_5G118R_LEVEL_MASS_TEST_CORRECTION.md). **Attendre SUCCESS/SUCCESS avant 119.**
