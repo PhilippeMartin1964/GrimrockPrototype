@@ -86,8 +86,6 @@ namespace ARMCLEAN063AU
             Item.OwnerType = EGridItemOwnerType::CharacterInventory;
             Item.OwnerCharacterIndex = 0;
             Item.OwnerGuid = Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
-            Item.DisplayName = FText::FromString(TEXT("STALE HISTORICAL LABEL"));
-            Item.Weight = 900.0f;
             return Item;
         }
         UGridItemDefinitionAsset* RegisterWrong(FName Id, EGridItemType Type) const

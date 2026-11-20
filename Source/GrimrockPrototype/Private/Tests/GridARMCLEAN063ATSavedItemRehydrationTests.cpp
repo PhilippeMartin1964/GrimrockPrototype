@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "../UI/GridInventoryItemMetadataReadModel.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -70,8 +71,6 @@ namespace ARMCLEAN063AT
 			Item.ItemDefinitionId = Id;
 			Item.ItemLevel = Level;
 			Item.Quantity = Quantity;
-			Item.Weight = 777.0f; // Old saved cache deliberately remains untouched.
-			Item.DisplayName = FText::FromString(TEXT("custom saved label"));
 			Item.AbsorbedEquipmentPhysicalArmor = 2;
 			Item.AbsorbedEquipmentMagicalArmor = 1;
 			Item.bLightsEnabled = true;
@@ -161,10 +160,17 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 		BeforeSword.RuntimeObjectId);
 	TestEqual(TEXT("Saved N20 preserved"), Fixture.Inventory->
 		PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.ItemLevel, 20);
-	TestEqual(TEXT("Cached weight NOT rewritten on rehydrate"), Fixture.Inventory->
-		PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.Weight, BeforeSword.Weight);
-	TestTrue(TEXT("Saved display name preserved"), Fixture.Inventory->
-		PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.DisplayName.EqualTo(BeforeSword.DisplayName));
+	const FGridItemInstance& RehydratedSword = Fixture.Inventory->
+		PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item;
+	TestTrue(TEXT("All durable item fields preserved on rehydrate"),
+		FGridItemInstance::StaticStruct()->CompareScriptStruct(&RehydratedSword, &BeforeSword, 0));
+	FGridResolvedItem ExpectedSword;
+	if (!TestTrue(TEXT("Canonical N20 sword metadata resolves"),
+		Fixture.Registry->ResolveItem(SwordId, 20, ExpectedSword))) return false;
+	const auto SwordMetadata = FGridInventoryItemMetadataReadModel::Resolve(Fixture.Registry, nullptr, RehydratedSword);
+	TestTrue(TEXT("Rehydrated name and mass come from canonical definition"), SwordMetadata.bResolved &&
+		SwordMetadata.DisplayName.EqualTo(ExpectedSword.DisplayName) &&
+		FMath::IsNearlyEqual(SwordMetadata.UnitWeightKg, ExpectedSword.WeightKg));
 	TestEqual(TEXT("Physical armor debt preserved"), Fixture.Inventory->
 		PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.AbsorbedEquipmentPhysicalArmor, 2);
 	TestEqual(TEXT("Magical armor debt preserved"), Fixture.Inventory->
@@ -204,7 +210,7 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 	TestNull(TEXT("Old arrows dropped"), Fixture.Inventory->FindItemDefinition(ArrowId));
 
 	// A real combat armor trace must preserve the authored localized name,
-	// not the internal ID or the deliberately stale instance label.
+	// not the internal ID or a historical definition label.
 	FGridResolvedItem ShieldMeta;
 	if (!TestTrue(TEXT("Canonical shield metadata"), Fixture.Registry->ResolveItem(ShieldId, 1, ShieldMeta))) return false;
 	TArray<FGridArmorAbsorptionSourceTrace> Sources;

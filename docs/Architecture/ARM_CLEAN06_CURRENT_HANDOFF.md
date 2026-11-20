@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.104 — Fixtures des instances canoniques durables
+
+Parent 35bfc15b123c6b9d50a527b8ee5b5ec27f492d03 : attendre SilentTask et LocalAuto SUCCESS. Tests 3AG/AS/AT/AU/AW/AX sans copies statiques pour les objets canoniques, contrôles de projection et égalité de toutes propriétés réfléchies, sources historiques contradictoires et cas de refus maintenus. Les assertions des fixtures exclusivement historiques restent à traiter. Voir [5G.104](ARM_CLEAN06_5G104_CANONICAL_INSTANCE_FIXTURES.md).
+
 ## ARM-CLEAN06.5G.103 — Fixtures canoniques des seuils de charge
 
 Parent 6a19dfa03362d840a865af3f462b37359f07fcd4 : publication après SilentTask et LocalAuto SUCCESS. Convertir les seuils, alertes portrait/fiche et verrou de mouvement à des masses définies dans un registre transitoire, sans recopier le poids dans les instances. Aucun runtime changé. Voir [5G.103](ARM_CLEAN06_5G103_CANONICAL_CARRY_FIXTURES.md).

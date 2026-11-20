@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "../Runtime/GridItemWeightReadModel.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -119,7 +120,6 @@ namespace ARMCLEAN063AX
             I.ItemLevel = Level;
             I.Quantity = Quantity;
             I.OwnerType = EGridItemOwnerType::World;
-            I.Weight = 900.0f; // Deliberately stale saved weight.
             return I;
         }
     };
@@ -160,7 +160,8 @@ namespace ARMCLEAN063AX
         });
     if (!Test.TestNotNull(TEXT("Physical stack exists"), Slot)) return false;
     Test.TestEqual(TEXT("Quantity stays two"), Slot->Item.Quantity, 2);
-    Test.TestEqual(TEXT("Slot has no obsolete cached weight"), Slot->Item.Weight, 0.0f);
+    Test.TestEqual(TEXT("Stack mass comes from canonical unit mass"),
+        FGridItemWeightReadModel::GetTotalWeight(F.Registry, Slot->Item), 2.0f * ResolvedItem.WeightKg);
     if (FCString::Strcmp(Stage, TEXT("Inventory")) == 0) return !Test.HasAnyErrors();
 
     Character.Resources.CurrentHealth = 1;

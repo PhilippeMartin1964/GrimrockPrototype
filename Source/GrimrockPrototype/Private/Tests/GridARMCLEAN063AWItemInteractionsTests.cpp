@@ -74,7 +74,6 @@ namespace ARMCLEAN063AW
             I.ItemDefinitionId = Id;
             I.ItemLevel = Level;
             I.Quantity = 1;
-            I.Weight = 1500.0f;
             I.OwnerType = EGridItemOwnerType::World;
             return I;
         }
