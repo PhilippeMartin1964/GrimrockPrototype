@@ -6,8 +6,8 @@
 /**
  * ARM-CLEAN06.3I: Read-only unit mass for an actual persisted item.
  * Canonical ItemIds always read WeightKg from the single registry at ItemLevel.
- * Weight copies are no longer serialized (5G93); remaining fixture-only reads
- * are temporary until the C++ members are retired.
+ * Weight copies are no longer serialized (5G93); even an isolated
+ * test world must now resolve physical mass through ItemSystem.
  */
 struct FGridItemWeightReadModel
 {
@@ -32,14 +32,6 @@ struct FGridItemWeightReadModel
 			OutUnitWeight = Resolved.WeightKg;
 			return true;
 		}
-		// Only isolated historical Automation fixtures may read copied mass.
-#if WITH_DEV_AUTOMATION_TESTS
-		if (GIsAutomationTesting && !Registry && FMath::IsFinite(Instance.Weight) && Instance.Weight >= 0.0f)
-		{
-			OutUnitWeight = Instance.Weight;
-			return true;
-		}
-#endif
 		return false;
 	}
 

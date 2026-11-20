@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.116 — Retrait du fallback de masse transitoire
+
+Parent 6dcf9e332abf6d3f50e437bbc007f8a08f752159 : après SilentTask et LocalAuto SUCCESS, retirer le fallback de poids d'instance en monde de test sans registre ; la masse physique exige ItemSystem. Contrôles 3I/3N ajustés pour vérifier le refus plutôt que d'asserter une copie. Voir [5G.116](ARM_CLEAN06_5G116_NO_REGISTRYLESS_MASS_FALLBACK.md).
+
 ## ARM-CLEAN06.5G.115 — Fixture éclairage canonique
 
 Parent 4adb647208bc62cfab06bcb89ac56be8cf16247f : après SilentTask et LocalAuto SUCCESS, utiliser deux définitions transitoires et préserver la lampe allumée/éteinte, sans caches statiques. Voir [5G.115](ARM_CLEAN06_5G115_CANONICAL_LIGHT_STATE_FIXTURE.md).
