@@ -202,26 +202,25 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		{
 			const AGridThrownItemActor* Arrow = *It;
 			if (!IsValid(Arrow) || Arrow->RuntimeActor != this ||
-				Arrow->HasCompletedImpactConversion() ||
-				(!bRequireCanonicalCapture && !Arrow->bRangedAmmunitionProjectile))
+				Arrow->HasCompletedImpactConversion())
 			{
 				continue;
 			}
+			// Every recoverable projectile uses a canonical physical identity,
+			// including Editor fixtures. No saved UObject can restore it.
 			const FGuid Guid = Arrow->ThrownItemInstance.RuntimeObjectId;
-			if (!Guid.IsValid() || (bRequireCanonicalCapture &&
-				(Arrow->ThrownItemInstance.Quantity != 1 || Arrow->GetRuntimeObjectId() != Guid ||
-				 Arrow->ItemDefinitionId != Arrow->ThrownItemInstance.ItemDefinitionId ||
-				 Arrow->CanonicalWorldItemLevel != Arrow->ThrownItemInstance.ItemLevel)))
+			if (!bRequireCanonicalCapture || !Guid.IsValid() ||
+				Arrow->ThrownItemInstance.Quantity != 1 || Arrow->GetRuntimeObjectId() != Guid ||
+				Arrow->ItemDefinitionId != Arrow->ThrownItemInstance.ItemDefinitionId ||
+				Arrow->CanonicalWorldItemLevel != Arrow->ThrownItemInstance.ItemLevel)
 			{
-				if (bRequireCanonicalCapture) return false;
-				continue;
+				return false;
 			}
 			if (CapturedItems.Contains(Guid))
 			{
 				UE_LOG(LogGridLevelRuntime, Warning,
 					TEXT("[GridProjectile] CaptureDuplicateGuid Id=%s"), *Guid.ToString());
-				if (bRequireCanonicalCapture) return false;
-				continue;
+				return false;
 			}
 			FGridRuntimeItemState Item;
 			Item.ObjectId = Guid;
@@ -237,11 +236,6 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 			Item.WorldMeshTransform = Item.bHasWorldMeshTransform ? FlightPose : Item.Transform;
 			if (!Arrow->bRangedAmmunitionProjectile)
 				Item.Transform.SetLocation(FlightPose.GetLocation());
-			// Only worldless historical fixtures still require this v27 field.
-#if WITH_DEV_AUTOMATION_TESTS
-			if (!bRequireCanonicalCapture)
-				Item.ProjectileDefinitionAsset = Arrow->GetItemDefinitionAsset();
-#endif
 			Item.bLightsEnabled = Arrow->AreItemLightsEnabled();
 			Item.ReadableContentAsset = Arrow->ThrownItemInstance.ReadableContentAsset;
 			Item.ReadableContentId = Arrow->ThrownItemInstance.ReadableContentId;
@@ -493,6 +487,13 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			return false;
 		}
 	}
+	// No legacy fixture can restore an embedded physical projectile
+	// without the registry. Reject before any level mutation.
+	if (!bRequireCanonicalRestore && State)
+	{
+		for (const auto& Pair : State->Items)
+			if (Pair.Value.bEmbeddedProjectile) return false;
+	}
 	if (!State || !State->bHasBeenVisited)
 	{
 		ApplyInitialMonsterStateForCurrentLevel();
@@ -697,12 +698,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			// Restore the complete world profile for every registered
 			// physical ItemId, including ARM N1-N20 after a PIT transfer.
 			const bool bCanonicalWorld = bCanonicalItem;
-			UGridItemDefinitionAsset* ItemDefinition = nullptr;
-#if WITH_DEV_AUTOMATION_TESTS
-			if (!bRequireCanonicalRestore && !bCanonicalWorld)
-				ItemDefinition = ItemState.ProjectileDefinitionAsset.Get();
-#endif
-			AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, RuntimeItemDefinitionId, this, nullptr);
+			AGridItemActor* ItemActor = SpawnItemActorForDefinition(nullptr, RuntimeItemDefinitionId, this, nullptr);
 			if (ItemActor)
 			{
 				if (bCanonicalWorld &&
@@ -746,7 +742,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				Entry.Edge = RuntimeEdge;
 				Entry.ItemActor = ItemActor;
 				Entry.ObjectId = Pair.Key;
-				Entry.ItemDefinitionAsset = ItemDefinition;
+				Entry.ItemDefinitionAsset = ItemActor->GetItemDefinitionAsset();
 				Entry.ItemDefinitionId = RuntimeItemDefinitionId;
 				Entry.ItemLevel = ItemState.ItemLevel;
 				Entry.Quantity = FMath::Max(1, ItemState.Quantity);
@@ -892,9 +888,8 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		{
 			continue;
 		}
-		// 06.3BC: stored embedded arrows can have a legacy pointer from an
-		// older SaveGame, or none at all. An indexed ItemId must resolve as
-		// real N0 ammunition before any projectile or world pickup is made.
+		// Embedded ammunition is resolved only by its physical identity.
+		// The v27 historical pointer is not read even in Automation.
 		const bool bCanonicalItem = RestoreRegistry &&
 			RestoreRegistry->HasCanonicalItem(Item.ItemDefinitionId);
 		FGridResolvedItem ResolvedAmmo;
@@ -903,25 +898,19 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			RestoreRegistry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, ResolvedAmmo) &&
 			!ResolvedAmmo.bIsArmament && !ResolvedAmmo.AmmoKindId.IsNone() &&
 			ResolvedAmmo.MaxStack > 1;
-		if (bCanonicalItem && !bCanonicalAmmo)
+		if (!bCanonicalAmmo)
 		{
 			UE_LOG(LogGridLevelRuntime, Warning,
 				TEXT("[GridProjectile] RestoreEmbeddedRejected Item=%s Level=%d Reason=InvalidCanonicalAmmo"),
 				*Item.ItemDefinitionId.ToString(), Item.ItemLevel);
 			continue;
 		}
-		UGridItemDefinitionAsset* Definition = nullptr;
-#if WITH_DEV_AUTOMATION_TESTS
-		if (!bRequireCanonicalRestore && !bCanonicalAmmo)
-			Definition = Item.ProjectileDefinitionAsset.Get();
-#endif
 		FGridItemInstance Unit;
 		Unit.RuntimeObjectId = Pair.Key;
 		Unit.ItemDefinitionId = Item.ItemDefinitionId;
 		Unit.ItemLevel = Item.ItemLevel;
 		Unit.Quantity = 1;
-		Unit.Weight = bCanonicalAmmo ? ResolvedAmmo.WeightKg :
-			(IsValid(Definition) ? Definition->Weight : 0.0f);
+		Unit.Weight = ResolvedAmmo.WeightKg;
 		Unit.OwnerType = EGridItemOwnerType::World;
 		Unit.OwnerCharacterIndex = INDEX_NONE;
 		Unit.bLightsEnabled = Item.bLightsEnabled;
@@ -932,9 +921,9 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			MonstersByPersistenceId.Find(Item.EmbeddedMonsterPersistenceId))
 		{
 			if (Matches->Num() == 1 && IsValid((*Matches)[0]) &&
-				!(*Matches)[0]->IsDead() && (bCanonicalAmmo || IsValid(Definition)))
+				!(*Matches)[0]->IsDead())
 			{
-				AGridThrownItemActor* Arrow = SpawnThrownItemProjectile(Unit, Definition,
+				AGridThrownItemActor* Arrow = SpawnThrownItemProjectile(Unit, nullptr,
 					SavedMesh.GetLocation(), SavedMesh.GetRotation().GetForwardVector() * 1200.0f,
 					Item.CellX, Item.CellY, true);
 				if (IsValid(Arrow))
@@ -951,7 +940,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		}
 		if (!bSuccess)
 		{
-			bSuccess = TryDropItemInstanceAtWorldTransform(Unit, Definition, SavedMesh);
+			bSuccess = TryDropItemInstanceAtWorldTransform(Unit, nullptr, SavedMesh);
 		}
 		UE_LOG(LogGridLevelRuntime, Log,
 			TEXT("[GridProjectile] LoadArrow Id=%s Reattached=%d Success=%d MonsterId=%s"),

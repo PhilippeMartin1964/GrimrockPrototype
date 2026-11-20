@@ -4,6 +4,8 @@
 #include "Core/GridLevelAsset.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridItemActor.h"
@@ -54,19 +56,26 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
         Cell.WestWall = EGridWallType::None;
     }
     Runtime->LevelAsset = Level;
-    UGridItemDefinitionAsset* Arrow = NewObject<UGridItemDefinitionAsset>(Runtime);
-    Arrow->ItemDefinitionId = TEXT("Item_TestEmbeddedArrow");
-    Arrow->ItemType = EGridItemType::Misc;
-    Arrow->Weight = 0.04f;
-    Arrow->bStackable = true;
-    Arrow->MaxStackSize = 64;
-    Arrow->ThrowSpeed = 1800.0f;
-    Arrow->ProjectileMeshForwardAxis = EGridProjectileForwardAxis::PositiveY;
+    UGameInstance* GI = NewObject<UGameInstance>(GetTransientPackage());
+    GI->Init();
+    World->SetGameInstance(GI);
+    UGridItemSubsystem* Registry = GI->GetSubsystem<UGridItemSubsystem>();
+    FGridResolvedItem CanonicalArrow;
+    if (!TestTrue(TEXT("Real canonical N0 arrow"),
+        Registry && Registry->ResolveItem(TEXT("Item_Arrows_01"), 0, CanonicalArrow)))
+    {
+        World->SetGameInstance(nullptr);
+        GI->Shutdown();
+        World->DestroyWorld(false);
+        if (GEngine) GEngine->DestroyWorldContext(World);
+        return false;
+    }
     FGridItemInstance Unit;
     Unit.RuntimeObjectId = FGuid::NewGuid();
-    Unit.ItemDefinitionId = Arrow->ItemDefinitionId;
+    Unit.ItemDefinitionId = TEXT("Item_Arrows_01");
+    Unit.ItemLevel = 0;
     Unit.Quantity = 1;
-    Unit.Weight = Arrow->Weight;
+    Unit.Weight = CanonicalArrow.WeightKg;
     Unit.OwnerType = EGridItemOwnerType::World;
     Unit.OwnerCharacterIndex = INDEX_NONE;
 
@@ -98,7 +107,7 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
         // The true world location must not be inferred from local X directly.
         Monster->SkeletalMeshComponent->SetRelativeLocation(FVector(130,0,0));
         AGridThrownItemActor* Projectile = Runtime->SpawnThrownItemProjectile(
-            Unit, Arrow, Start, (Target - Start).GetSafeNormal() * Arrow->ThrowSpeed, 1, 1, true);
+            Unit, nullptr, Start, (Target - Start).GetSafeNormal() * 1800.0f, 1, 1, true);
         if (TestNotNull(TEXT("Physical arrow projectile exists"), Projectile))
         {
             Projectile->ConfigureCombatPresentationTarget(true, Target, 24.0f, Monster->CurrentCell);
@@ -150,6 +159,7 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
             }
             if (TestNotNull(TEXT("One saved entry for embedded ammo GUID"), EmbeddedState))
             {
+                TestNull(TEXT("Captured embedded arrow has no historical pointer"), EmbeddedState->ProjectileDefinitionAsset.Get());
                 TestTrue(TEXT("Embedded state remains attached rather than ground pickup"),
                     EmbeddedState->bEmbeddedProjectile);
                 TestEqual(TEXT("Saved embedded monster identity"),
@@ -158,7 +168,7 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
                     EmbeddedState->WorldMeshTransform.GetLocation().Equals(
                         Projectile->MeshComponent->GetComponentLocation(), 0.1f));
                 AGridThrownItemActor* Restored = Runtime->SpawnThrownItemProjectile(
-                    Unit, Arrow, EmbeddedState->WorldMeshTransform.GetLocation(),
+                    Unit, nullptr, EmbeddedState->WorldMeshTransform.GetLocation(),
                     FVector(0, 1400, 0), 1, 2, true);
                 if (TestNotNull(TEXT("Embeddable save round-trip projectile"), Restored))
                 {
@@ -219,7 +229,7 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
             Projectile->Tick(0.016f);
             TestTrue(TEXT("Hidden corpse releases embedded item"), Projectile->HasCompletedImpactConversion());
             TestTrue(TEXT("Pickup registered in arrow release cell"),
-                bReleaseCellResolved && Runtime->GetWorldItemWeightAtCell(ReleaseCellX, ReleaseCellY) >= Arrow->Weight);
+                bReleaseCellResolved && Runtime->GetWorldItemWeightAtCell(ReleaseCellX, ReleaseCellY) >= CanonicalArrow.WeightKg);
             if (bReleaseCellResolved &&
                 (ReleaseCellX != Monster->CurrentCell.X || ReleaseCellY != Monster->CurrentCell.Y))
             {
@@ -240,15 +250,17 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
                         Item->MeshComponent->GetComponentQuat().Equals(MeshImpactRotation, 0.001f));
                     TestEqual(TEXT("GUID pickup is registered at the release cell X"), Item->RuntimeCellX, ReleaseCellX);
                     TestEqual(TEXT("GUID pickup is registered at the release cell Y"), Item->RuntimeCellY, ReleaseCellY);
-                    TestEqual(TEXT("GUID pickup preserves item definition"), Item->GetItemDefinitionId(), Arrow->ItemDefinitionId);
+                    TestEqual(TEXT("GUID pickup preserves item definition"), Item->GetItemDefinitionId(), Unit.ItemDefinitionId);
                 }
             }
             TestEqual(TEXT("Exactly one pickup, original GUID"), MatchingPickups, 1);
         }
     }
+    World->SetGameInstance(nullptr);
+    GI->Shutdown();
     World->DestroyWorld(false);
     if (GEngine) GEngine->DestroyWorldContext(World);
-    return true;
+    return !HasAnyErrors();
 }
 
 #endif

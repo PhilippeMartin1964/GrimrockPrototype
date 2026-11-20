@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.83 — Persistance des projectiles sans pointeur
+
+Parent 778e96c05cef30aba7499f8c26316a81da004741. Capture des projectiles toujours canonique, fixture géométrique LOT02 convertie vers Item_Arrows_01 N0, aucun accès explicite au champ ProjectileDefinitionAsset dans la persistance runtime. Champs v27 maintenus jusqu'à preuve de conversion. Voir [5G.83](ARM_CLEAN06_5G83_POINTERLESS_PROJECTILE_PERSISTENCE.md).
+
 ## ARM-CLEAN06.5G.82 — Tous les transferts inter-niveaux sans pointeur
 
 Parent 4d6bb9a2556f5c0e2dcbf87c0d36535a33557668. PIT02, PIT03 et PIT03.2 utilisent une vraie pierre N0 et le registre ; le routage inter-niveaux et l'arrivée ne lisent/écrivent plus le pointeur historique, même en Automation. Champ v27 conservé pour la preuve de retrait. Voir [5G.82](ARM_CLEAN06_5G82_POINTERLESS_PIT_FIXTURES.md).
