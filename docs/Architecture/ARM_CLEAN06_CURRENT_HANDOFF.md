@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.121 — Projection du sac sans copies
+
+Parent `81b57e92def099761b0c54db0beacaf36a60a671` : après SilentTask et LocalAuto SUCCESS. Tri par nom/poids, filtres et capacité fixe vérifiés dans les tests UI Inventory02, sans écrire les copies d'instance. Voir [5G.121](ARM_CLEAN06_5G121_INVENTORY_SORT_FIXTURE.md).
+
 ## ARM-CLEAN06.5G.120 — Métadonnées UI sans copies d'instance
 
 Parent `b7a037804e131c20e26820964e6a80f609d55d89` : après SilentTask et LocalAuto SUCCESS. Lecture de masse et de nom interdite à partir de l'instance physique, même en Automation. Les tests 3K et 3O protègent la lecture canonique et le refus de masse « fantôme ». Voir [5G.120](ARM_CLEAN06_5G120_UI_METADATA_FAIL_CLOSED.md).

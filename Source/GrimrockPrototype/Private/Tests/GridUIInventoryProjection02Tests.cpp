@@ -97,14 +97,12 @@ bool FGridUIInventory02SortingProjectionTest::RunTest(const FString& Parameters)
 		Inventory->RegisterItemDefinition(Definition);
 	};
 
-	auto PutItem = [&Character](int32 SlotIndex, FName Id, const TCHAR* DisplayName, float Weight, int32 Quantity)
+	auto PutItem = [&Character](int32 SlotIndex, FName Id, int32 Quantity)
 	{
 		FGridInventorySlot& Slot = Character.InventorySlots[SlotIndex];
 		Slot.bOccupied = true;
 		Slot.Item.RuntimeObjectId = FGuid::NewGuid();
 		Slot.Item.ItemDefinitionId = Id;
-		Slot.Item.DisplayName = FText::FromString(DisplayName);
-		Slot.Item.Weight = Weight;
 		Slot.Item.Quantity = Quantity;
 	};
 
@@ -113,10 +111,10 @@ bool FGridUIInventory02SortingProjectionTest::RunTest(const FString& Parameters)
 	RegisterDefinition(TEXT("SortSword"), TEXT("Beta Épée"), EGridItemType::Weapon, 2.0f);
 	RegisterDefinition(TEXT("SortBook"), TEXT("Gamma Livre"), EGridItemType::Book, 0.1f);
 
-	PutItem(0, TEXT("SortTorch"), TEXT("Zeta Torche"), 0.5f, 1);
-	PutItem(2, TEXT("SortPotion"), TEXT("Alpha Potion"), 1.0f, 3);
-	PutItem(4, TEXT("SortSword"), TEXT("Beta Épée"), 2.0f, 1);
-	PutItem(5, TEXT("SortBook"), TEXT("Gamma Livre"), 0.1f, 1);
+	PutItem(0, TEXT("SortTorch"), 1);
+	PutItem(2, TEXT("SortPotion"), 3);
+	PutItem(4, TEXT("SortSword"), 1);
+	PutItem(5, TEXT("SortBook"), 1);
 
 	const FGuid Slot0Id = Character.InventorySlots[0].Item.RuntimeObjectId;
 	const FGuid Slot2Id = Character.InventorySlots[2].Item.RuntimeObjectId;
@@ -124,6 +122,10 @@ bool FGridUIInventory02SortingProjectionTest::RunTest(const FString& Parameters)
 	const FGuid Slot5Id = Character.InventorySlots[5].Item.RuntimeObjectId;
 
 	Widget->InventoryComponent = Inventory;
+	TestNull(TEXT("UI projection item schema has no mass snapshot"),
+		FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
+	TestNull(TEXT("UI projection item schema has no name snapshot"),
+		FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
 
 	ExpectProjection(*this, Widget, { 2, 4, 5, 0, INDEX_NONE, INDEX_NONE }, TEXT("Default name ascending keeps six visible cells"));
 	TestEqual(TEXT("Default name ascending reports four visible items"), Widget->GetVisibleInventoryItemCount(), 4);
@@ -195,9 +197,7 @@ bool FGridUIInventory021FixedCapacityTest::RunTest(const FString& Parameters)
 	Character.InventorySlots[17].bOccupied = true;
 	Character.InventorySlots[17].Item.RuntimeObjectId = FGuid::NewGuid();
 	Character.InventorySlots[17].Item.ItemDefinitionId = Definition->ItemDefinitionId;
-	Character.InventorySlots[17].Item.DisplayName = Definition->DisplayName;
 	Character.InventorySlots[17].Item.Quantity = 1;
-	Character.InventorySlots[17].Item.Weight = Definition->Weight;
 
 	Widget->InventoryComponent = Inventory;
 
@@ -254,13 +254,11 @@ bool FGridUIInventory029InPlaceProjectionTest::RunTest(const FString& Parameters
 	Character.InventorySlots[1].bOccupied = true;
 	Character.InventorySlots[1].Item.RuntimeObjectId = FGuid::NewGuid();
 	Character.InventorySlots[1].Item.ItemDefinitionId = TEXT("ProjectionZulu");
-	Character.InventorySlots[1].Item.DisplayName = FText::FromString(TEXT("Zulu"));
 	Character.InventorySlots[1].Item.Quantity = 1;
 
 	Character.InventorySlots[6].bOccupied = true;
 	Character.InventorySlots[6].Item.RuntimeObjectId = FGuid::NewGuid();
 	Character.InventorySlots[6].Item.ItemDefinitionId = TEXT("ProjectionAlpha");
-	Character.InventorySlots[6].Item.DisplayName = FText::FromString(TEXT("Alpha"));
 	Character.InventorySlots[6].Item.Quantity = 1;
 
 	UGridInventoryWidget* Widget = CreateWidget<UGridInventoryWidget>(TestWorld.World, UGridInventoryWidget::StaticClass());
