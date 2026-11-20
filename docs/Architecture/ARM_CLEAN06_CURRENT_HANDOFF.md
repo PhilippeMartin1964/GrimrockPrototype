@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.76 — Retrait de la transaction catégories
+
+Parent ab74873252dac962923d658a302338a2f4a83aaf. La transaction 5G.71B et le runtime 5G.72 étant validés, retirer commandlet, script, plan d'écriture et hooks 5G.68/71D/71R de l'agent. La preuve native permanente contrôle 26/26 tags présents et les 466 résolutions directement, sans dépendance à l'ancien auteur ni production d'un rapport par test. Voir [5G.76](ARM_CLEAN06_5G76_RETIRE_PUZZLE_MIGRATION.md).
+
 ## ARM-CLEAN06.5G.75 — Isolation des projections historiques d'inventaire
 
 Parent 0db81454ad818900c29d99f7ed8f5bef4524f257. Matérialisation, capacité de pile et slots d'équipement : l'ancien DA est limité au code Automation ; aucun veto d'ancien ID sur une identité canonique. Masse fixture invalide refusée. Voir [5G.75](ARM_CLEAN06_5G75_INVENTORY_FIXTURE_ISOLATION.md).

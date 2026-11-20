@@ -1,7 +1,47 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "../ARMEMENT/GridEditorPuzzleCategoryMigrationPlan.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
+#include "UObject/StrongObjectPtr.h"
+
+namespace
+{
+    // Frozen parity contract from native report #208 and binary commit
+    // b8a556dc. Test expectation only: never a runtime category source.
+    const TMap<FName, FName>& ExpectedCategories()
+    {
+        static const TMap<FName, FName> Rows = {
+            { TEXT("EmptyVial"), TEXT("Component") },
+            { TEXT("Gem_Blue"), TEXT("Gem") },
+            { TEXT("GoblinKnife"), TEXT("Weapon") },
+            { TEXT("Item_Antidote"), TEXT("Potion") },
+            { TEXT("Item_Arrows_01"), TEXT("Misc") },
+            { TEXT("Item_Bomb_Fire"), TEXT("Misc") },
+            { TEXT("Item_Bomb_Toxic"), TEXT("Misc") },
+            { TEXT("Item_DefensiveElixir_Fire"), TEXT("Potion") },
+            { TEXT("Item_DefensiveElixir_Ice"), TEXT("Potion") },
+            { TEXT("Item_DefensiveElixir_Lightning"), TEXT("Potion") },
+            { TEXT("Item_DefensiveElixir_Poison"), TEXT("Potion") },
+            { TEXT("Item_DisarmTools_01"), TEXT("Misc") },
+            { TEXT("Item_Flask_Acid"), TEXT("Misc") },
+            { TEXT("Item_Flask_CorrosiveCloud"), TEXT("Misc") },
+            { TEXT("Item_Flask_Oil"), TEXT("Misc") },
+            { TEXT("Item_Panacea"), TEXT("Potion") },
+            { TEXT("Item_Potion_Healing_01"), TEXT("Potion") },
+            { TEXT("Item_RatMeat"), TEXT("Food") },
+            { TEXT("Item_RatTooth"), TEXT("Component") },
+            { TEXT("Item_SurfaceCatalyst_01"), TEXT("Misc") },
+            { TEXT("Item_TestNote"), TEXT("Scroll") },
+            { TEXT("Item_Torch"), TEXT("Torch") },
+            { TEXT("Key_Copper"), TEXT("Key") },
+            { TEXT("Key_Iron"), TEXT("Key") },
+            { TEXT("Shuriken"), TEXT("Weapon") },
+            { TEXT("Stone"), TEXT("Misc") },
+        };
+        return Rows;
+    }
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorPuzzleCategoryPreviewTest,
     "Grimrock.Editor.ARM.CLEAN06.5G69.PuzzleCategoryPreview",
@@ -9,94 +49,80 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorPuzzleCategoryPreviewTest,
 
 bool FGridEditorPuzzleCategoryPreviewTest::RunTest(const FString& Parameters)
 {
-    using namespace GridEditorPuzzleCategoryMigration;
     using namespace GridCanonicalPuzzleCategoryTags;
-    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr, GridEditorRetirementAudit::RootPath()));
-    TStrongObjectPtr<UGridItemSystemAsset> Preview(NewObject<UGridItemSystemAsset>());
-    FString Error;
-    if (!Root.IsValid() || !BuildPreview(*Root.Get(), *Preview.Get(), Error))
-    {
-        AddError(TEXT("Native category preview rejected: ") + Error);
-        return false;
-    }
-    TStrongObjectPtr<UGameInstance> BeforeGI(NewObject<UGameInstance>());
-    TStrongObjectPtr<UGameInstance> AfterGI(NewObject<UGameInstance>());
-    TStrongObjectPtr<UGridItemSubsystem> Before(NewObject<UGridItemSubsystem>(BeforeGI.Get()));
-    TStrongObjectPtr<UGridItemSubsystem> After(NewObject<UGridItemSubsystem>(AfterGI.Get()));
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
     TArray<FString> Errors;
-    if (!Before->RegisterItemSystem(Root.Get(), Errors) || !After->RegisterItemSystem(Preview.Get(), Errors))
+    if (!Root.IsValid() || !Registry->RegisterItemSystem(Root.Get(), Errors))
     {
         AddError(FString::Join(Errors, TEXT("; ")));
         return false;
     }
-    TestTrue(TEXT("Independent normalized property manifest excludes only category append"),
-        !Fingerprint(*Root.Get()).IsEmpty() && Fingerprint(*Root.Get()) == Fingerprint(*Preview.Get()));
-    int32 Checked = 0;
-    int32 NativeTagged = 0;
+
+    TestEqual(TEXT("All 48 native definitions"), Root->ItemDefinitions.Num(), 48);
+    int32 Checked = 0, NativeTagged = 0, Arms = 0;
+    TSet<FName> Seen;
     const TArray<FName> Types = { TEXT("Torch"), TEXT("Weapon"), TEXT("Shield"), TEXT("Armor"),
         TEXT("Jewelry"), TEXT("Key"), TEXT("Gem"), TEXT("Potion"), TEXT("Scroll"), TEXT("Book"),
         TEXT("Food"), TEXT("Component"), TEXT("Quest"), TEXT("Misc"), TEXT("None") };
-    for (int32 Index = 0; Index < Root->ItemDefinitions.Num(); ++Index)
+    for (const auto& Entry : Root->ItemDefinitions)
     {
-        const auto* Source = Root->ItemDefinitions[Index].Get();
-        const auto* Target = Preview->ItemDefinitions[Index].Get();
-        const FName* Type = Manifest().Find(Source->ItemId);
-        TestEqual(TEXT("Identical definition order"), Target->ItemId, Source->ItemId);
+        if (!TestNotNull(TEXT("Native definition"), Entry.Get())) return false;
+        const auto* Source = Entry.Get();
+        TestFalse(TEXT("Native identity unique"), Seen.Contains(Source->ItemId));
+        Seen.Add(Source->ItemId);
+        const bool bArm = Source->IsA<UGridArmamentDefinitionAsset>();
+        const FName* Type = ExpectedCategories().Find(Source->ItemId);
+        if (!TestTrue(TEXT("Mapping exactly separates ARM and non-ARM"), bArm != (Type != nullptr))) return false;
         TestFalse(TEXT("Native package remains clean"), Source->GetOutermost()->IsDirty());
         const int32 Count = CountReserved(Source->Tags);
-        TestTrue(TEXT("ARM has no reserved category, non-ARM has at most one"), Count == 0 || (Type && Count == 1));
+        TestEqual(TEXT("Every non-ARM has exactly one category, ARM none"), Count, bArm ? 0 : 1);
         NativeTagged += Count;
-        TArray<FName> Expected = WithoutReserved(Source->Tags);
-        if (Type) Expected.Add(ForType(*Type));
-        TestTrue(TEXT("Exact native category before or after materialization"),
-            Type ? MatchesBeforeOrAfter(Source->Tags, WithoutReserved(Source->Tags), *Type) : Count == 0);
-        TestTrue(TEXT("Only exact authored tag appended"), Target->Tags == Expected);
-        for (int32 Level = Type ? 0 : 1; Level <= (Type ? 0 : 20); ++Level)
+        if (bArm) ++Arms;
+        if (Type)
+            TestTrue(TEXT("Exact category from proven binary commit"), Source->Tags.Contains(ForType(*Type)));
+        for (int32 Level = bArm ? 1 : 0; Level <= (bArm ? 20 : 0); ++Level)
         {
-            FGridResolvedItem A, B;
-            if (!Before->ResolveItem(Source->ItemId, Level, A) || !After->ResolveItem(Source->ItemId, Level, B))
+            FGridResolvedItem Item;
+            if (!Registry->ResolveItem(Source->ItemId, Level, Item) || !Item.IsValid())
             {
                 AddError(TEXT("Resolution failed: ") + Source->ItemId.ToString());
                 return false;
             }
             const FName ExpectedType = Type ? *Type :
-                (A.Weapon.Kind == EGridCanonicalArmamentKind::Shield ? FName(TEXT("Shield")) : FName(TEXT("Weapon")));
-            TestTrue(TEXT("Resolved tags match preview"), B.Tags == Expected);
+                (Item.Weapon.Kind == EGridCanonicalArmamentKind::Shield ? FName(TEXT("Shield")) : FName(TEXT("Weapon")));
+            TestTrue(TEXT("Resolved tags match native asset"), Item.Tags == Source->Tags);
             for (FName Candidate : Types)
-                TestEqual(TEXT("Exact category predicate"), Matches(B, Candidate), Candidate == ExpectedType);
-            for (TFieldIterator<FProperty> Field(FGridResolvedItem::StaticStruct()); Field; ++Field)
-                if (Field->GetFName() != FName(TEXT("Tags")))
-                    TestTrue(FString::Printf(TEXT("%s N%d unchanged: %s"), *Source->ItemId.ToString(), Level, *Field->GetName()),
-                        Field->Identical_InContainer(&A, &B));
+                TestEqual(TEXT("Exact native category predicate"), Matches(Item, Candidate), Candidate == ExpectedType);
             ++Checked;
         }
     }
-    TestEqual(TEXT("All 466 physical item/level resolutions"), Checked, 466);
-    TestTrue(TEXT("Native category state is all-or-none"), NativeTagged == 0 || NativeTagged == 26);
-    TestFalse(TEXT("Reject a populated preview"), BuildPreview(*Root.Get(), *Preview.Get(), Error));
-    TestFalse(TEXT("Reject source/destination alias"), BuildPreview(*Root.Get(), *Root.Get(), Error));
+    TestEqual(TEXT("All 466 item/level resolutions"), Checked, 466);
+    TestEqual(TEXT("22 ARM"), Arms, 22);
+    TestEqual(TEXT("Native category migration must remain complete"), NativeTagged, 26);
+    for (const auto& Pair : ExpectedCategories())
+        TestTrue(TEXT("Every historically proved non-ARM ID remains present"), Seen.Contains(Pair.Key));
+
     const TArray<FName> Original = { TEXT("Tool.Disarm"), TEXT("QuickItem.Potion") };
     TArray<FName> Migrated = Original;
     Migrated.Add(TEXT("PuzzleCategory.Potion"));
-    TestTrue(TEXT("Exact authorized append"), MatchesBeforeOrAfter(Migrated, Original, TEXT("Potion")));
     TestTrue(TEXT("Combat tags preserved in order"), WithoutReserved(Migrated) == Original);
-    TestFalse(TEXT("Wrong explicit category rejected"), MatchesBeforeOrAfter(Migrated, Original, TEXT("Gem")));
     TestFalse(TEXT("Puzzle metadata forbidden on ARM"), IsValidMetadata(Migrated, true));
     TestTrue(TEXT("One legal non-ARM tag"), IsValidMetadata(Migrated, false));
     Migrated.Add(TEXT("PuzzleCategory.Unknown"));
-    TestFalse(TEXT("Unknown or conflicting reserved metadata rejected"), IsValidMetadata(Migrated, false));
-    TestFalse(TEXT("Unknown tag rejected"), IsValidMetadata({TEXT("PuzzleCategory.Unknown")}, false));
-    TArray<FName> Candidate;
-    TestFalse(TEXT("No unknown category"), PlanTags({}, TEXT("Unknown"), Candidate));
-    TestFalse(TEXT("No existing or partial migration"), PlanTags({TEXT("PuzzleCategory.Key")}, TEXT("Key"), Candidate));
-    FGridResolvedItem Invalid;
-    Invalid.Error = EGridCanonicalItemResolveError::None;
-    Invalid.Tags = {TEXT("PuzzleCategory.Key"), TEXT("PuzzleCategory.Gem")};
-    TestFalse(TEXT("Conflicting category fails closed"), Matches(Invalid, TEXT("Key")));
-    Invalid.Tags = {TEXT("PuzzleCategory.Key"), TEXT("PuzzleCategory.Key")};
-    TestFalse(TEXT("Duplicate category fails closed"), Matches(Invalid, TEXT("Key")));
-    Invalid.Tags = {TEXT("InventoryCategory.Key")};
-    TestFalse(TEXT("Presentation tags not category authority"), Matches(Invalid, TEXT("Key")));
+    TestFalse(TEXT("Unknown or conflicting metadata refused"), IsValidMetadata(Migrated, false));
+    TestFalse(TEXT("Unknown tag refused"), IsValidMetadata({TEXT("PuzzleCategory.Unknown")}, false));
+    FGridResolvedItem Malformed;
+    if (!TestTrue(TEXT("Actual N0 key for malformed tag cases"),
+        Registry->ResolveItem(TEXT("Key_Copper"), 0, Malformed))) return false;
+    Malformed.Tags = {TEXT("PuzzleCategory.Key"), TEXT("PuzzleCategory.Gem")};
+    TestFalse(TEXT("Conflicting category fails closed"), Matches(Malformed, TEXT("Key")));
+    Malformed.Tags = {TEXT("PuzzleCategory.Key"), TEXT("PuzzleCategory.Key")};
+    TestFalse(TEXT("Duplicate category fails closed"), Matches(Malformed, TEXT("Key")));
+    Malformed.Tags = {TEXT("InventoryCategory.Key")};
+    TestFalse(TEXT("Presentation tags not category authority"), Matches(Malformed, TEXT("Key")));
     return !HasAnyErrors();
 }
 #endif

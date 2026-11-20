@@ -3,64 +3,6 @@
 #include "Misc/AutomationTest.h"
 #include "../ARMEMENT/GridEditorRetirementAudit.h"
 #include "Serialization/MemoryWriter.h"
-#include "Serialization/JsonSerializer.h"
-#include "Serialization/JsonWriter.h"
-#include "Misc/FileHelper.h"
-#include "Misc/Paths.h"
-#include "Misc/CommandLine.h"
-#include "Misc/Parse.h"
-#include "HAL/FileManager.h"
-
-namespace
-{
-    // Minimal project metadata only; never export the full audit or saves.
-    bool WritePuzzleCategoryEvidence(const GridEditorRetirementAudit::FNativeAudit& Audit)
-    {
-        auto Result = MakeShared<FJsonObject>();
-        TArray<TSharedPtr<FJsonValue>> Sources;
-        for (const auto& Value : Audit.Report->GetArrayField(TEXT("puzzle_category_sources")))
-        {
-            const auto Original = Value->AsObject();
-            auto Row = MakeShared<FJsonObject>();
-            Row->SetStringField(TEXT("item_id"), Original->GetStringField(TEXT("item_id")));
-            Row->SetStringField(TEXT("legacy_type"), Original->GetStringField(TEXT("legacy_type")));
-            const bool bArm = Original->GetBoolField(TEXT("armament"));
-            Row->SetBoolField(TEXT("armament"), bArm);
-            Row->SetStringField(TEXT("canonical_arm_type"), bArm
-                ? Original->GetStringField(TEXT("canonical_arm_type")) : TEXT("None"));
-            int32 ExistingPuzzleTags = 0;
-            for (const auto& Tag : Original->GetArrayField(TEXT("canonical_tags")))
-                if (Tag->AsString().StartsWith(TEXT("PuzzleCategory."), ESearchCase::IgnoreCase))
-                    ++ExistingPuzzleTags;
-            Row->SetNumberField(TEXT("existing_puzzle_category_tags"), ExistingPuzzleTags);
-            Sources.Add(MakeShared<FJsonValueObject>(Row));
-        }
-        auto Counts = MakeShared<FJsonObject>();
-        TMap<FString, int32> ByType;
-        for (const auto& Value : Audit.Report->GetArrayField(TEXT("puzzle_type_links")))
-            ++ByType.FindOrAdd(Value->AsObject()->GetStringField(TEXT("type")));
-        for (const auto& Pair : ByType) Counts->SetNumberField(Pair.Key, Pair.Value);
-        Result->SetNumberField(TEXT("schema"), 1);
-        Result->SetNumberField(TEXT("level_assets_scanned"),
-            Audit.Report->GetNumberField(TEXT("puzzle_level_assets_scanned")));
-        Result->SetArrayField(TEXT("sources"), Sources);
-        Result->SetObjectField(TEXT("link_counts"), Counts);
-        FString Json;
-        if (!FJsonSerializer::Serialize(Result, TJsonWriterFactory<>::Create(&Json))) return false;
-        FString Directory;
-        // ValidateUE uses a unique report directory even when -UserDir
-        // redirects Saved; do not rely on the physical project Saved path.
-        if (!FParse::Value(FCommandLine::Get(), TEXT("ReportExportPath="), Directory) ||
-            Directory.IsEmpty())
-        {
-            Directory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Audits/ARM_CLEAN06_5G68"));
-        }
-        IFileManager::Get().MakeDirectory(*Directory, true);
-        const FString Path = FPaths::Combine(Directory, TEXT("PuzzleCategoryEvidence.json"));
-        return FFileHelper::SaveStringToFile(Json, *Path, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
-    }
-}
-
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN065NativeAudit,
     "Grimrock.Editor.ARM.CLEAN06_5A.NativeRetirementEvidence",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -133,9 +75,7 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         }
     }
     TestEqual(TEXT("22 ARM N0 and 26 non-ARM x 20 invalid levels audited"), Rejections, 542);
-    if (HasAnyErrors()) return false;
-    return TestTrue(TEXT("Minimal project-only category evidence written"),
-        WritePuzzleCategoryEvidence(Audit));
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN065SaveAudit,

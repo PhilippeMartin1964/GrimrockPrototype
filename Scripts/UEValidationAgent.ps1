@@ -533,71 +533,6 @@ function Publish-EffectsInventoryIssue {
 }
 
 
-# 5G.68: publish ONLY committed project-asset metadata, never saves/logs.
-function Publish-PuzzleCategoryEvidenceIssue {
-    param([string]$Sha, [string]$WorktreePath, [string]$ReportRoot, [datetime]$NotBeforeUtc)
-    $Subject = @(& git -C $WorktreePath log -1 '--format=%s')
-    if ($LASTEXITCODE -ne 0 -or $Subject.Count -ne 1 -or
-        $Subject[0] -cne 'ARM-CLEAN06.5G.68: publish native puzzle category evidence') { return }
-    $Head = @(& git -C $WorktreePath rev-parse HEAD)
-    if ($LASTEXITCODE -ne 0 -or $Head.Count -ne 1 -or $Head[0] -cne $Sha) { return }
-    $Sessions = @(Get-ChildItem -LiteralPath $ReportRoot -Directory -Filter 'TD04-*')
-    if ($Sessions.Count -ne 1) { return }
-    $Path = Join-Path $Sessions[0].FullName 'PuzzleCategoryEvidence.json'
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return }
-    $File = Get-Item -LiteralPath $Path
-    if ($File.Length -gt 65536 -or $File.LastWriteTimeUtc -lt $NotBeforeUtc) { return }
-    $Report = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
-    $Types = @('None','Torch','Weapon','Shield','Armor','Jewelry','Key','Gem','Potion','Scroll','Book','Food','Component','Quest','Misc')
-    $Sources = @($Report.sources)
-    if ($Report.schema -ne 1 -or $Sources.Count -ne 48 -or
-        $Report.level_assets_scanned -le 0 -or $Report.level_assets_scanned -gt 10000) { return }
-    $Ids = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-    $Body = New-Object 'System.Collections.Generic.List[string]'
-    $Body.Add('# ARM-CLEAN06.5G.68 - Categories natives')
-    $Body.Add('')
-    $Body.Add("- Commit : $Sha")
-    $Body.Add('- Contenu versionne uniquement. Aucun chemin local, journal, texte joueur, GUID, sauvegarde ou tag libre.')
-    $Body.Add('')
-    $Body.Add('| ItemId | Type historique | Type ARM canonique | Tags PuzzleCategory existants |')
-    $Body.Add('|---|---|---|---:|')
-    $ArmCount = 0
-    foreach ($Row in @($Sources | Sort-Object -Property item_id)) {
-        $Id = [string]$Row.item_id
-        $Type = [string]$Row.legacy_type
-        $ArmType = [string]$Row.canonical_arm_type
-        $Existing = $Row.existing_puzzle_category_tags
-        if ($Id -cnotmatch '^[A-Za-z][A-Za-z0-9_]{0,95}$' -or -not $Ids.Add($Id) -or
-            $Type -cnotin $Types -or $Row.armament -isnot [bool] -or
-            ($Existing -isnot [int] -and $Existing -isnot [long]) -or $Existing -lt 0 -or $Existing -gt 100) { return }
-        if ($Row.armament) {
-            if ($ArmType -cnotin @('Weapon','Shield')) { return }
-            ++$ArmCount
-        } elseif ($ArmType -cne 'None') { return }
-        $Body.Add("| $Id | $Type | $ArmType | $Existing |")
-    }
-    if ($ArmCount -ne 22) { return }
-    $Body.Add('')
-    $Body.Add("Niveaux analyses : $([int]$Report.level_assets_scanned)")
-    $Body.Add('')
-    $Body.Add('| Type de condition | Nombre de liens |')
-    $Body.Add('|---|---:|')
-    foreach ($Property in $Report.link_counts.PSObject.Properties) {
-        $Type = $Property.Name
-        $Count = $Property.Value
-        if ($Type -cnotin $Types -or ($Count -isnot [int] -and $Count -isnot [long]) -or
-            $Count -lt 0 -or $Count -gt 100000) { return }
-        $Body.Add("| $Type | $Count |")
-    }
-    $Body.Add('')
-    $Body.Add('Ce rapport ne constitue pas une autorisation de retrait.')
-    $Title = '[ARM-CLEAN06.5G.68] Categories natives ' + $Sha.Substring(0,12)
-    $BodyPath = Join-Path $StateRoot ('arm-clean06-5g68-' + $Sha.Substring(0,12) + '.md')
-    $Body | Set-Content -LiteralPath $BodyPath -Encoding UTF8
-    & gh issue create --repo $GitHubRepository --title $Title --body-file $BodyPath | Out-Null
-    if ($LASTEXITCODE -ne 0) { Write-Warning '[5G.68] Publication impossible ; rapport local.' }
-}
-
 # A native cutover has an independent post-write validation. Publish only
 # structured metadata from that exact run, not ordinary validation results
 # and never arbitrary native messages, local paths, saved games or log lines.
@@ -748,74 +683,6 @@ try {
 
     try {
         Publish-CommitStatus -Sha $Sha -State 'pending' -Description "Validation Windows en cours : $AutomationFilter"
-
-        # Read only the exact preceding failed native transaction, before
-        # checking the validation worktree for dirty packages. No recovery here.
-        $PuzzleDiagSubject = @(& git -C $RepositoryRoot show -s --format=%s $Sha)
-        $PuzzleDiagParent = @(& git -C $RepositoryRoot rev-parse ($Sha + '^'))
-        if ($LASTEXITCODE -eq 0 -and $PuzzleDiagSubject.Count -eq 1 -and $PuzzleDiagParent.Count -eq 1 -and
-            [string]$PuzzleDiagSubject[0] -ceq 'ARM-CLEAN06.5G.71D: publish bounded native failure diagnostic' -and
-            [string]$PuzzleDiagParent[0] -ceq 'ffd9b285a850fd39ab6df1119011d6657fcd2b45') {
-            $Context = 'UE5.5.4/ARM-CLEAN06.5G71D'
-            try {
-                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Context -Description 'Diagnostic natif en lecture seule'
-                $SourceSha = 'ffd9b285a850fd39ab6df1119011d6657fcd2b45'
-                $PreviousRuns = @(Get-ChildItem -LiteralPath (Join-Path $StateRoot 'Runs') -Directory |
-                    Where-Object { $_.Name -like 'ffd9b285a850-*' })
-                if ($PreviousRuns.Count -ne 1) { throw 'Exact native run unavailable or ambiguous.' }
-                $SourceRun = $PreviousRuns[0].FullName
-                $StagePath = Join-Path $SourceRun 'ArmClean065G71.stage'
-                $Stage = 'UNAVAILABLE'
-                if (Test-Path -LiteralPath $StagePath -PathType Leaf) {
-                    $StageValue = ([string](Get-Content -LiteralPath $StagePath -TotalCount 1)).Trim()
-                    if ($StageValue -cin @('SELFTEST_INIT','SELFTEST_GIT','SELFTEST_SET','SELFTEST_PATH',
-                        'SELFTEST_POINTER','SELFTEST_QUOTE','SELFTEST_SUCCESS','PREFLIGHT_INPUT','PREFLIGHT_LOCATION',
-                        'PREFLIGHT_ORDINARY_PATH','PREFLIGHT_WORKTREE','PREFLIGHT_HEAD','PREFLIGHT_REMOTE','PREFLIGHT_ANCESTRY',
-                        'PREFLIGHT_DIFF','PREFLIGHT_CLEAN','PREFLIGHT_VALIDATION','PREFLIGHT_SNAPSHOT','PREFLIGHT_EXECUTABLES',
-                        'PREFLIGHT_LFS','AUDIT','APPLY','REOPEN','AUTOMATION','PUBLISH','ROLLBACK_INCOMPLETE','SUCCESS')) {
-                        $Stage = $StageValue
-                    }
-                }
-                $Rows = New-Object 'System.Collections.Generic.List[string]'
-                $Rows.Add('Native source: ' + $SourceSha)
-                $Rows.Add('Stage: ' + $Stage)
-                $NativeRoot = Join-Path $SourceRun 'ARM-CLEAN06.5G71'
-                $OriginalManifest = $null
-                foreach ($Probe in @('audit','prior','apply','reopened')) {
-                    $ProbePath = Join-Path $NativeRoot ($Probe+'.json')
-                    if (-not (Test-Path -LiteralPath $ProbePath -PathType Leaf)) {
-                        $Rows.Add('Probe '+$Probe+': absent')
-                        continue
-                    }
-                    $J = Get-Content -LiteralPath $ProbePath -Raw | ConvertFrom-Json
-                    if ($J.schema -cne 'ARM-CLEAN06.5G71/puzzle/v1' -or $J.tagged -notin @(0,26) -or
-                        [int]$J.packages_saved -lt 0 -or [int]$J.packages_saved -gt 26 -or $J.savegames_touched -ne $false) {
-                        $Rows.Add('Probe '+$Probe+': invalid report')
-                        continue
-                    }
-                    if ($Probe -ceq 'audit') { $OriginalManifest = [string]$J.normalized_manifest }
-                    $Equal = ($null -ne $OriginalManifest -and $OriginalManifest -ceq [string]$J.normalized_manifest)
-                    $Rows.Add('Probe '+$Probe+': tags='+[int]$J.tagged+' saved='+[int]$J.packages_saved+' fingerprint_matches='+$Equal)
-                }
-                $Dirty = @(& git -C $WorktreePath status --porcelain=v1 --untracked-files=all)
-                if ($LASTEXITCODE -eq 0) { $Rows.Add('Validation worktree dirty count: '+$Dirty.Count) }
-                $Post = Join-Path $NativeRoot 'PostAutomation'
-                $PostLog = Join-Path $NativeRoot 'post-automation.stdout.log'
-                foreach ($Record in @(Get-PublicSafeDiagnostics -RunLogPath $PostLog -ReportRoot $Post)) {
-                    $Rows.Add([string]$Record)
-                }
-                $Body = Join-Path $RunDir 'ARM065G71D.public.md'
-                @('# ARM-CLEAN06.5G71 - Diagnostic natif borne','') + @($Rows | ForEach-Object {'- '+$_}) |
-                    Set-Content -LiteralPath $Body -Encoding UTF8
-                & gh issue create --repo $GitHubRepository --title '[ARM-CLEAN06.5G71D] Diagnostic conversion ffd9b285a850' --body-file $Body | Out-Null
-                if ($LASTEXITCODE -ne 0) { throw 'Diagnostic publication failed.' }
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Diagnostic structure publie'
-            } catch {
-                try { Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Diagnostic natif indisponible' }
-                catch { Write-Warning 'Diagnostic status unavailable.' }
-                Write-Warning 'Native diagnostic unavailable; private evidence retained.'
-            }
-        }
 
         if (Test-Path -LiteralPath $WorktreePath) {
             if (-not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git'))) {
@@ -1006,10 +873,6 @@ try {
 
         if ($ExitCode -ne 0) { throw "ValidateUE.ps1 a retourne le code $ExitCode. Voir $RunLog et $RunStderrLog." }
         $Phase = 'publication'
-        try {
-            Publish-PuzzleCategoryEvidenceIssue -Sha $Sha -WorktreePath $WorktreePath -ReportRoot $ReportRoot -NotBeforeUtc $EffectsInventoryStartUtc
-        }
-        catch { Write-Warning '[5G.68] Publication du rapport non bloquante.' }
         Publish-CommitStatus -Sha $Sha -State 'success' -Description "Build + Automation OK ($AutomationFilter)"
 
         try {
@@ -1017,102 +880,6 @@ try {
         }
         catch {
             Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
-        }
-
-        # Exact, one-shot 5G71 native package transaction after successful code validation.
-        $PuzzleMigrationSubject = @(& git -C $WorktreePath log -1 --format=%s)
-        if ($LASTEXITCODE -eq 0 -and $PuzzleMigrationSubject.Count -eq 1 -and
-            [string]$PuzzleMigrationSubject[0] -ceq 'ARM-CLEAN06.5G.71R: preserve complete original arrow parity and retry native transaction') {
-            $PuzzleMigrationContext = 'UE5.5.4/ARM-CLEAN06.5G71'
-            $PuzzleMigrationStage = 'HOOK_STATUS'
-            try {
-                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $PuzzleMigrationContext -Description 'Ajout des 26 categories natives'
-                # -File must itself parse and execute the complete script. A
-                # separate in-process ParseFile call is not a prerequisite.
-                # On failure only a parser identifier/line/column is public.
-                $PuzzleMigrationScript = Join-Path $WorktreePath 'Scripts\ApplyARM_CLEAN06_5G71_PuzzleCategories.ps1'
-                if (-not (Test-Path -LiteralPath $PuzzleMigrationScript -PathType Leaf)) { throw 'Native transaction script missing.' }
-                $PuzzleMigrationStage = 'HOOK_SELFTEST'
-                if ($PuzzleMigrationScript.Contains('"') -or $RunDir.Contains('"')) { throw 'Unsafe self-test argument.' }
-                $SelfTestArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
-                    $PuzzleMigrationScript + '" -SelfTest -RunDir "' + $RunDir + '"'
-                $SelfTestProcess = Start-Process -FilePath $PsExe -ArgumentList $SelfTestArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput (Join-Path $RunDir 'ARM065G71.selftest.stdout.log') -RedirectStandardError (Join-Path $RunDir 'ARM065G71.selftest.stderr.log') -ErrorAction Stop
-                if ($SelfTestProcess.ExitCode -ne 0 -or
-                    -not (Test-Path -LiteralPath (Join-Path $RunDir 'ArmClean065G71.stage') -PathType Leaf) -or
-                    (Get-Content -LiteralPath (Join-Path $RunDir 'ArmClean065G71.stage') -TotalCount 1) -cne 'SELFTEST_SUCCESS') {
-                    # Parse only structured diagnostic metadata, never raw
-                    # exception text, source snippets or paths. If the helper
-                    # could not even start, the Windows parser can identify
-                    # the exact failing extent in this read-only catch path.
-                    $PuzzleSyntaxDiagnostic = ''
-                    $PuzzleStageFile = Join-Path $RunDir 'ArmClean065G71.stage'
-                    if (-not (Test-Path -LiteralPath $PuzzleStageFile -PathType Leaf)) {
-                        try {
-                            $PuzzleTokens = $null
-                            $PuzzleErrors = $null
-                            $PuzzleSource = [IO.File]::ReadAllText($PuzzleMigrationScript)
-                            [void][System.Management.Automation.Language.Parser]::ParseInput(
-                                $PuzzleSource, [ref]$PuzzleTokens, [ref]$PuzzleErrors)
-                            if ($PuzzleErrors -and $PuzzleErrors.Count -gt 0) {
-                                $Code = [string]$PuzzleErrors[0].ErrorId
-                                $Line = [int]$PuzzleErrors[0].Extent.StartLineNumber
-                                $Column = [int]$PuzzleErrors[0].Extent.StartColumnNumber
-                                if ($Code -cmatch '^[A-Za-z][A-Za-z0-9_]{0,63}$' -and
-                                    $Line -ge 1 -and $Line -le 10000 -and $Column -ge 1 -and $Column -le 1000) {
-                                    $PuzzleSyntaxDiagnostic = 'PARSE_'+$Code+'_L'+$Line+'_C'+$Column
-                                }
-                            }
-                        } catch {
-                            # Also distinguish parser API infrastructure errors.
-                            $PuzzleSyntaxDiagnostic = 'PARSE_API_ERROR'
-                        }
-                        if ([string]::IsNullOrEmpty($PuzzleSyntaxDiagnostic)) {
-                            $PuzzleErrorLog = Join-Path $RunDir 'ARM065G71.selftest.stderr.log'
-                            if (Test-Path -LiteralPath $PuzzleErrorLog -PathType Leaf) {
-                                $PuzzleErrorText = Get-Content -LiteralPath $PuzzleErrorLog -Raw
-                                if ($PuzzleErrorText -match '(?m)^\s*\+\s*FullyQualifiedErrorId\s*:\s*([A-Za-z][A-Za-z0-9_]{0,63})\s*$') {
-                                    $PuzzleSyntaxDiagnostic = 'CHILD_'+$Matches[1]
-                                }
-                            }
-                        }
-                    }
-                    if (-not [string]::IsNullOrEmpty($PuzzleSyntaxDiagnostic)) { $PuzzleMigrationStage = $PuzzleSyntaxDiagnostic }
-                    throw 'Native transaction self-test did not complete.'
-                }
-                $PuzzleMigrationStage = 'HOOK_ARGUMENTS'
-                $PuzzleMigrationArgs = @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$PuzzleMigrationScript,
-                    '-WorktreePath',$WorktreePath,'-RepositoryRoot',$RepositoryRoot,'-EngineRoot',$EngineRoot,
-                    '-StateRoot',$StateRoot,'-RunDir',$RunDir,'-ExpectedHead',$Sha,'-GitHubRepository',$GitHubRepository)
-                $PuzzleMigrationArgLine = ($PuzzleMigrationArgs | ForEach-Object {
-                    if ($_.Contains('"')) { throw 'Unsafe argument.' }
-                    '"' + $_ + '"'
-                }) -join ' '
-                $PuzzleMigrationStage = 'HOOK_PROCESS'
-                $PuzzleMigrationProcess = Start-Process -FilePath $PsExe -ArgumentList $PuzzleMigrationArgLine -WorkingDirectory $WorktreePath -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput (Join-Path $RunDir 'ARM065G71.stdout.log') -RedirectStandardError (Join-Path $RunDir 'ARM065G71.stderr.log') -ErrorAction Stop
-                if ($PuzzleMigrationProcess.ExitCode -ne 0 -or (Get-Content -LiteralPath (Join-Path $RunDir 'ArmClean065G71.stage') -TotalCount 1) -cne 'SUCCESS') {
-                    throw 'Native transaction did not complete.'
-                }
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $PuzzleMigrationContext -Description '26 categories natives, reouverture et Automation OK'
-            } catch {
-                $PuzzleMigrationStagePath = Join-Path $RunDir 'ArmClean065G71.stage'
-                if (Test-Path -LiteralPath $PuzzleMigrationStagePath -PathType Leaf) {
-                    $RecordedPuzzleMigrationStage = ([string](Get-Content -LiteralPath $PuzzleMigrationStagePath -TotalCount 1)).Trim()
-                    if ($RecordedPuzzleMigrationStage -cne 'SELFTEST_SUCCESS' -or $PuzzleMigrationStage -ceq 'HOOK_SELFTEST') { $PuzzleMigrationStage = $RecordedPuzzleMigrationStage }
-                }
-                $PuzzleFixedStages = @('HOOK_STATUS','HOOK_SELFTEST','SELFTEST_INIT','SELFTEST_GIT','SELFTEST_SET',
-                    'SELFTEST_PATH','SELFTEST_POINTER','SELFTEST_QUOTE','SELFTEST_SUCCESS','HOOK_ARGUMENTS','HOOK_PROCESS',
-                    'PREFLIGHT_INPUT','PREFLIGHT_LOCATION','PREFLIGHT_ORDINARY_PATH','PREFLIGHT_WORKTREE',
-                    'PREFLIGHT_HEAD','PREFLIGHT_REMOTE','PREFLIGHT_ANCESTRY','PREFLIGHT_DIFF','PREFLIGHT_CLEAN',
-                    'PREFLIGHT_VALIDATION','PREFLIGHT_SNAPSHOT','PREFLIGHT_EXECUTABLES','PREFLIGHT_LFS',
-                    'AUDIT','APPLY','REOPEN','AUTOMATION','PUBLISH','ROLLBACK_INCOMPLETE','SUCCESS','PARSE_API_ERROR')
-                if ($PuzzleMigrationStage -cnotin $PuzzleFixedStages -and
-                    $PuzzleMigrationStage -cnotmatch '^PARSE_[A-Za-z][A-Za-z0-9_]{0,63}_L[0-9]{1,5}_C[0-9]{1,4}$' -and
-                    $PuzzleMigrationStage -cnotmatch '^CHILD_[A-Za-z][A-Za-z0-9_]{0,63}$') { $PuzzleMigrationStage = 'UNKNOWN' }
-                try {
-                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $PuzzleMigrationContext -Description ('Conversion ARM bloquee : '+$PuzzleMigrationStage)
-                } catch { Write-Warning 'Native transaction status unavailable.' }
-                Write-Warning ('ARM-CLEAN06.5G71: '+$PuzzleMigrationStage)
-            }
         }
 
         $Result = 'success'
