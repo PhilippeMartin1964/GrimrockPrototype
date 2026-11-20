@@ -24,18 +24,24 @@ struct FGridCanonicalExplorationItemReadModel
         return GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
     }
 
-    static bool HasDisarmTool(const UGridItemSubsystem* Registry,
-        const FGridCharacterInventoryState& Character, FName Tag)
+    static bool IsDisarmToolInstance(const UGridItemSubsystem* Registry,
+        const FGridItemInstance& Item, FName Tag)
     {
         const FName Id(TEXT("Item_DisarmTools_01"));
         FGridResolvedItem Tool;
-        if (Tag.IsNone() || !Registry || !Registry->ResolveItem(Id, 0, Tool) ||
-            !Tool.IsValid() || Tool.bIsArmament || !Tool.Tags.Contains(Tag))
-            return false;
+        return Registry && !Tag.IsNone() && Item.IsValid() &&
+            Item.ItemDefinitionId == Id && Item.ItemLevel == 0 &&
+            Registry->ResolveItem(Id, 0, Tool) && Tool.IsValid() &&
+            !Tool.bIsArmament && Tool.Tags.Contains(Tag) &&
+            Item.Quantity <= FMath::Max(1, Tool.MaxStack);
+    }
+
+    static bool HasDisarmTool(const UGridItemSubsystem* Registry,
+        const FGridCharacterInventoryState& Character, FName Tag)
+    {
         for (const auto& Slot : Character.InventorySlots)
         {
-            if (!Slot.IsEmpty() && Slot.Item.IsValid() && Slot.Item.ItemDefinitionId == Id &&
-                Slot.Item.ItemLevel == 0 && Slot.Item.Quantity <= FMath::Max(1, Tool.MaxStack))
+            if (!Slot.IsEmpty() && IsDisarmToolInstance(Registry, Slot.Item, Tag))
                 return true;
         }
         return false;

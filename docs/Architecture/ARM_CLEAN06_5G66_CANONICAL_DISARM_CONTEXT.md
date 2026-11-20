@@ -1,0 +1,5 @@
+# ARM-CLEAN06.5G.66 — Menu de désamorçage canonique
+
+Parent 6d5598305372de481b0a922460741c9293b19813. Publication après double validation du parent.
+
+Le menu contextuel et la recherche du piège adjacent exigeaient encore une ancienne définition porteuse de `Tool.Disarm` alors que l'exécution utilise déjà ItemSystem (5D). Le prédicat commun `IsDisarmToolInstance` valide identité exacte, N0, quantité, tag et résolution canonique ; `HasDisarmTool` réutilise ce contrat sur les lignes du sac. Les deux lecteurs UI appellent le même prédicat ; seule une fixture Automation sans GameInstance garde le tag historique. Aucun changement aux règles de détection, distance, ambiguïté, combat, propriété effective des outils, choix du personnage ou consommation. Le test ContextAndTargeting utilise désormais le vrai registre et aucun pointeur, vérifie le tag contradictoire et les instances invalides ; le test 5D contrôle également le prédicat partagé. Les anciennes API de lecture et les catégories de réceptacle ne sont pas modifiées dans ce lot. Aucun asset ni sauvegarde modifié ; validation Windows et recette PIE requises.

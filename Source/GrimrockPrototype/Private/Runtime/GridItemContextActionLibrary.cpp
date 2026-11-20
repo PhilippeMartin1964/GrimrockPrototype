@@ -12,6 +12,7 @@
 #include "GridCanonicalInventoryStackReadModel.h"
 #include "GridCanonicalItemInteractionReadModel.h"
 #include "GridCanonicalQuickItemUseReadModel.h"
+#include "GridCanonicalExplorationItemReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -114,6 +115,26 @@ namespace
 	{
 		return Definition && Definition->ItemTags.Contains(Tag);
 	}
+
+    // The menu and target lookup must agree with the actual exploration executor.
+    bool IsContextDisarmTool(const AGrimrockPartyPawn* Pawn,
+        const FGridItemInstance& Item, const UGridItemDefinitionAsset* Definition)
+    {
+        const UWorld* World = Pawn ? Pawn->GetWorld() : nullptr;
+        const UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+        const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+        if (Registry)
+            return FGridCanonicalExplorationItemReadModel::IsDisarmToolInstance(
+                Registry, Item, TEXT("Tool.Disarm"));
+#if WITH_DEV_AUTOMATION_TESTS
+        if (!GI && GIsAutomationTesting)
+            return Item.IsValid() && Item.ItemLevel == 0 && Item.Quantity == 1 &&
+                Item.ItemDefinitionId == FName(TEXT("Item_DisarmTools_01")) &&
+                IsValid(Definition) && Definition->ItemDefinitionId == Item.ItemDefinitionId &&
+                Definition->ItemTags.Contains(TEXT("Tool.Disarm"));
+#endif
+        return false;
+    }
 
 	void AddAction(TArray<FGridItemContextAction>& Actions, EGridItemActionType ActionType, const FText& Label,
 		const FGridFacingTargetContext* Target = nullptr, EGridEquipmentSlot EquipmentSlot = EGridEquipmentSlot::None, bool bEnabled = true,
@@ -339,9 +360,8 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	}
 
 	const bool bIsInventorySlotSource = ItemContext.InventorySlotIndex != INDEX_NONE && ItemContext.EquipmentSlot == EGridEquipmentSlot::None;
-    if (bIsInventorySlotSource && Definition &&
-        ItemContext.Item.ItemDefinitionId == FName(TEXT("Item_DisarmTools_01")) &&
-        HasItemTag(Definition, TEXT("Tool.Disarm")) &&
+    if (bIsInventorySlotSource &&
+        IsContextDisarmTool(ItemContext.PartyPawn, ItemContext.Item, Definition) &&
         OutFacingTarget.bIsValid &&
         OutFacingTarget.TargetType == EGridFacingTargetType::DungeonTrap &&
         OutFacingTarget.bAcceptsCurrentItem &&
@@ -499,9 +519,7 @@ bool UGridItemContextActionLibrary::ResolveFacingTarget(AGrimrockPartyPawn* Part
     // Authored dungeon Triggers are data-only: unlike doors/locks they need
     // not own a spawned mesh/actor, so a camera trace cannot select them.
     // Resolve the single adjacent candidate through the grid authority first.
-    if (IsValid(ItemDefinition) &&
-        CurrentItem.ItemDefinitionId == FName(TEXT("Item_DisarmTools_01")) &&
-        HasItemTag(ItemDefinition, TEXT("Tool.Disarm")) &&
+    if (IsContextDisarmTool(PartyPawn, CurrentItem, ItemDefinition) &&
         IsValid(PartyPawn->LevelRuntimeActor))
     {
         FGuid TrapId;

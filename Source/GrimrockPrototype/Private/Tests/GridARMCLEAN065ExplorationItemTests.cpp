@@ -32,6 +32,8 @@ bool FGridARMCLEAN065ExplorationItemReaders::RunTest(const FString&)
     Slot.Item.Quantity = 1;
     TestTrue(TEXT("Actual pointerless Saboteur tools qualify"),
         Read::HasDisarmTool(Registry.Get(), Character, TEXT("Tool.Disarm")));
+    TestTrue(TEXT("Same canonical instance authorizes the context reader"),
+        Read::IsDisarmToolInstance(Registry.Get(), Slot.Item, TEXT("Tool.Disarm")));
     TestFalse(TEXT("Missing registry cannot authorize a tool"), Read::HasDisarmTool(nullptr, Character, TEXT("Tool.Disarm")));
     Slot.Item.Quantity = MAX_int32;
     TestFalse(TEXT("Over-capacity tool stack cannot authorize disarm"), Read::HasDisarmTool(Registry.Get(), Character, TEXT("Tool.Disarm")));

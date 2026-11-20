@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.66 — Menu de désamorçage canonique
+
+Parent 6d5598305372de481b0a922460741c9293b19813. Le menu et la sélection du piège utilisent le même lecteur d'instance que l'exécution. Test réel sans DA historique, niveau et quantité invalides, tag contradictoire. Voir [5G.66](ARM_CLEAN06_5G66_CANONICAL_DISARM_CONTEXT.md).
+
 ## ARM-CLEAN06.5G.65 — Identité et tags physiques
 
 Parent d6545431433898b9d76b6dbb4afa81479a5581c2. Getter d'identité physique sans ancien pointeur, lecteur de ramassage refuse les ID inconnus en registre configuré, tags lus au niveau canonique exact. Voir [5G.65](ARM_CLEAN06_5G65_PHYSICAL_IDENTITY_TAGS.md).

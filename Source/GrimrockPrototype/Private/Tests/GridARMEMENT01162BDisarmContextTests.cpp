@@ -2,6 +2,8 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/World.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "RPG/RPGSkillAsset.h"
@@ -46,11 +48,24 @@ bool FARMEMENT01162BDisarmContext::RunTest(const FString&)
         FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
         Context.SetCurrentWorld(World);
     }
+    UGameInstance* GI = NewObject<UGameInstance>(GetTransientPackage());
+    GI->Init();
+    World->SetGameInstance(GI);
     auto DestroyWorld = [&]()
     {
+        World->SetGameInstance(nullptr);
+        GI->Shutdown();
         World->DestroyWorld(false);
         if (GEngine) GEngine->DestroyWorldContext(World);
     };
+
+    const UGridItemSubsystem* Registry = GI->GetSubsystem<UGridItemSubsystem>();
+    if (!TestTrue(TEXT("Actual canonical disarm tool registered"),
+        Registry && Registry->HasCanonicalItem(TEXT("Item_DisarmTools_01"))))
+    {
+        DestroyWorld();
+        return false;
+    }
 
     AGridLevelRuntimeActor* Runtime = World->SpawnActor<AGridLevelRuntimeActor>();
     AGrimrockPartyPawn* Party = World->SpawnActor<AGrimrockPartyPawn>();
@@ -100,7 +115,7 @@ bool FARMEMENT01162BDisarmContext::RunTest(const FString&)
     FGridItemActionContext ItemContext;
     ItemContext.PartyPawn = Party;
     ItemContext.Item = Instance;
-    ItemContext.ItemDefinition = Tool;
+    ItemContext.ItemDefinition = nullptr; // Production item has no historical source.
     ItemContext.CharacterIndex = 0;
     ItemContext.InventorySlotIndex = 0;
 
@@ -139,6 +154,31 @@ bool FARMEMENT01162BDisarmContext::RunTest(const FString&)
         {
             return A.ActionType == EGridItemActionType::DisarmTrap;
         }).Num(), 1);
+
+    const auto HasDisarm = [&Actions]()
+    {
+        return Actions.ContainsByPredicate([](const FGridItemContextAction& A)
+            { return A.ActionType == EGridItemActionType::DisarmTrap; });
+    };
+    Tool->ItemTags.Reset();
+    ItemContext.ItemDefinition = Tool;
+    UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, Facing, Actions);
+    TestTrue(TEXT("Contradictory old tag cannot revoke pointerless disarm"), HasDisarm());
+    Tool->ItemTags.Add(TEXT("Tool.Disarm"));
+    ItemContext.Item.ItemLevel = 1;
+    UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, Facing, Actions);
+    TestFalse(TEXT("Invalid physical level cannot offer disarm"), HasDisarm());
+    ItemContext.Item.ItemLevel = 0;
+    ItemContext.Item.Quantity = MAX_int32;
+    UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, Facing, Actions);
+    TestFalse(TEXT("Over-capacity tool cannot offer disarm"), HasDisarm());
+    ItemContext.Item.Quantity = 1;
+    ItemContext.Item.ItemDefinitionId = TEXT("Unknown_Disarm_Context");
+    Tool->ItemDefinitionId = ItemContext.Item.ItemDefinitionId;
+    UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, Facing, Actions);
+    TestFalse(TEXT("Unknown item cannot borrow old disarm tag"), HasDisarm());
+    ItemContext.Item.ItemDefinitionId = TEXT("Item_DisarmTools_01");
+    ItemContext.ItemDefinition = nullptr;
 
     Level->GetCellMutable(0, 0).NorthWall = EGridWallType::Solid;
     TestFalse(TEXT("Solid wall prevents adjacent trap selection"),
