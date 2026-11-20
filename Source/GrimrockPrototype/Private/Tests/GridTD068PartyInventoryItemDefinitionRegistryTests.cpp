@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "../UI/GridInventoryItemMetadataReadModel.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UObject/Class.h"
 #include "UObject/UObjectGlobals.h"
@@ -108,15 +109,19 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 
 	FGridItemInstance StackItem = GridTD068CreateItem(StackDefinition->ItemDefinitionId, 99);
 	TestTrue(TEXT("ApplyItemDefinitionToInstance succeeds for a registered definition"), Component->ApplyItemDefinitionToInstance(StackItem));
-	TestTrue(TEXT("Apply copies weight"), FMath::IsNearlyEqual(StackItem.Weight, 2.5f));
-	TestTrue(TEXT("Apply fills an empty display name"), StackItem.DisplayName.EqualTo(StackDefinition->DisplayName));
+	const auto StackMetadata = FGridInventoryItemMetadataReadModel::Resolve(nullptr, StackDefinition, StackItem);
+	TestTrue(TEXT("Isolated definition provides weight without an instance cache"),
+		StackMetadata.bResolved && FMath::IsNearlyEqual(StackMetadata.UnitWeightKg, 2.5f));
+	TestTrue(TEXT("Isolated definition provides name without an instance cache"),
+		StackMetadata.DisplayName.EqualTo(StackDefinition->DisplayName));
 	TestEqual(TEXT("Apply clamps a stack to MaxStackSize"), StackItem.Quantity, 3);
 	TestFalse(TEXT("Apply preserves the instance-owned disabled light state"), StackItem.bLightsEnabled);
 
 	FGridItemInstance NamedStackItem = GridTD068CreateItem(StackDefinition->ItemDefinitionId, 0);
-	NamedStackItem.DisplayName = FText::FromString(TEXT("Runtime override"));
 	TestTrue(TEXT("Apply accepts a zero incoming stack quantity and normalizes it"), Component->ApplyItemDefinitionToInstance(NamedStackItem));
-	TestTrue(TEXT("Apply preserves an existing display name"), NamedStackItem.DisplayName.EqualTo(FText::FromString(TEXT("Runtime override"))));
+	TestTrue(TEXT("Historical definition remains readable without an instance name override"),
+		FGridInventoryItemMetadataReadModel::Resolve(nullptr, StackDefinition, NamedStackItem)
+			.DisplayName.EqualTo(StackDefinition->DisplayName));
 	TestEqual(TEXT("Apply clamps a stack quantity to at least one"), NamedStackItem.Quantity, 1);
 
 	UGridItemDefinitionAsset* SingleDefinition = GridTD068CreateDefinition(Component, TEXT("SingleApply_TD068"), 4.0f, false, 1);
@@ -126,12 +131,11 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 	TestEqual(TEXT("Apply forces non-stackable quantity to one"), SingleItem.Quantity, 1);
 
 	FGridItemInstance MissingApplyItem = GridTD068CreateItem(TEXT("MissingApply_TD068"), 7);
-	MissingApplyItem.Weight = 6.0f;
-	MissingApplyItem.DisplayName = FText::FromString(TEXT("Before"));
+	const FGridItemInstance BeforeMissingApply = MissingApplyItem;
 	TestFalse(TEXT("Apply rejects a missing definition"), Component->ApplyItemDefinitionToInstance(MissingApplyItem));
 	TestEqual(TEXT("Missing-definition apply leaves quantity unchanged"), MissingApplyItem.Quantity, 7);
-	TestTrue(TEXT("Missing-definition apply leaves weight unchanged"), FMath::IsNearlyEqual(MissingApplyItem.Weight, 6.0f));
-	TestTrue(TEXT("Missing-definition apply leaves display name unchanged"), MissingApplyItem.DisplayName.EqualTo(FText::FromString(TEXT("Before"))));
+	TestTrue(TEXT("Missing-definition apply leaves all durable fields unchanged"),
+		FGridItemInstance::StaticStruct()->CompareScriptStruct(&MissingApplyItem, &BeforeMissingApply, 0));
 
 	UGridPartyInventoryComponent* SourcesComponent = GridTD068CreateInventory();
 	if (!TestNotNull(TEXT("The rehydration source component is created"), SourcesComponent))

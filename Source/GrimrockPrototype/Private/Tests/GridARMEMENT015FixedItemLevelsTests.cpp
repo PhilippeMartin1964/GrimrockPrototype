@@ -107,7 +107,10 @@ bool FARMEMENT015InstanceLevelTest::RunTest(const FString&)
 	TestEqual(TEXT("Minted level uses configured default"), NewItem.ItemLevel, 6);
 	const FGridWeaponLevelProfile* Profile = Catalogue->FindProfile(TEXT("ARM001"), 6);
 	if (!TestNotNull(TEXT("Level 6 source profile"), Profile)) { return false; }
-	TestTrue(TEXT("Catalogue weight, not generic legacy weight"), FMath::IsNearlyEqual(NewItem.Weight, Profile->WeightKg));
+	TestTrue(TEXT("Fixed-level profile retains valid authoritative unit mass"),
+		FMath::IsFinite(Profile->WeightKg) && Profile->WeightKg >= 0.0f);
+	TestNull(TEXT("Physical item schema has no weight cache"),
+		FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
 	TestEqual(TEXT("Identity remains unchanged"), NewItem.RuntimeObjectId, Identity);
 
 	FGridItemInstance SavedCopy = NewItem;

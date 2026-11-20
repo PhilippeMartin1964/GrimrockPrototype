@@ -309,8 +309,12 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
         Fixture.Inventory->AddItemToCharacterInventory(0, OldStack));
     TestEqual(TEXT("Legacy first stack ten"), Character.InventorySlots[0].Item.Quantity, 10);
     TestEqual(TEXT("Legacy remainder three"), Character.InventorySlots[1].Item.Quantity, 3);
-    TestTrue(TEXT("Legacy stack old unit weight"),
-        FMath::IsNearlyEqual(Character.InventorySlots[0].Item.Weight, 1.5f));
+    const auto HistoricalMetadata = FGridInventoryItemMetadataReadModel::Resolve(
+        nullptr, Legacy, Character.InventorySlots[0].Item);
+    TestTrue(TEXT("Isolated definition still owns its unit mass"),
+        HistoricalMetadata.bResolved && FMath::IsNearlyEqual(HistoricalMetadata.UnitWeightKg, 1.5f));
+    TestTrue(TEXT("Isolated definition still owns its name"),
+        HistoricalMetadata.DisplayName.EqualTo(Legacy->DisplayName));
     return true;
 }
 #endif

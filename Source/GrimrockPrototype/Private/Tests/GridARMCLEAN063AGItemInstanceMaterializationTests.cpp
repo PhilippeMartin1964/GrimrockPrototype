@@ -167,19 +167,22 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     Legacy.Quantity = 1;
     TestTrue(TEXT("Explicit Automation fixture uses historical metadata"),
         FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Legacy));
-    TestTrue(TEXT("Legacy mass unchanged"), FMath::IsNearlyEqual(Legacy.Weight, 1.75f));
-    TestEqual(TEXT("Legacy name unchanged"), Legacy.DisplayName.ToString(),
-        FString(TEXT("LEGACY ORIGINAL")));
+    const auto LegacyView = FGridInventoryItemMetadataReadModel::Resolve(nullptr, Old.Get(), Legacy);
+    TestTrue(TEXT("Historical definition supplies its isolated metadata"),
+        LegacyView.bResolved && FMath::IsNearlyEqual(LegacyView.UnitWeightKg, 1.75f) &&
+        LegacyView.DisplayName.EqualTo(Old->DisplayName));
     const FGridItemInstance BeforeReject = Legacy;
     Old->Weight = -0.5f;
     TestFalse(TEXT("Invalid fixture mass rejects materialization"),
         FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Legacy));
-    TestEqual(TEXT("Rejected fixture mass is unchanged"), Legacy.Weight, BeforeReject.Weight);
+    TestTrue(TEXT("Rejected historical materialization preserves durable fields"),
+        FGridItemInstance::StaticStruct()->CompareScriptStruct(&Legacy, &BeforeReject, 0));
     Old->Weight = 1.75f;
     Old->bUseWeaponCatalogue = true;
     TestFalse(TEXT("Unknown linked item without old profile still rejects"),
         FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Legacy));
-    TestEqual(TEXT("Rejected legacy mass unchanged"), Legacy.Weight, BeforeReject.Weight);
+    TestTrue(TEXT("Refused historical profile preserves durable fields"),
+        FGridItemInstance::StaticStruct()->CompareScriptStruct(&Legacy, &BeforeReject, 0));
     TestEqual(TEXT("Rejected legacy GUID unchanged"), Legacy.RuntimeObjectId, BeforeReject.RuntimeObjectId);
     return true;
 }

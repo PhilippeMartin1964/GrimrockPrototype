@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.117 — Contrats historiques sans copies d'instance
+
+Parent f7c7f4272028370ae1d25b62008bfd2fe0ccd23d : attendre SilentTask et LocalAuto SUCCESS. Les tests 3AG/AS, TD06.8 et ARMEMENT01.5 n'inspectent plus les copies C++ de nom/masse ; projection des seules définitions de caractérisation et comparaison des champs durables. Voir [5G.117](ARM_CLEAN06_5G117_LEGACY_FIXTURE_READ_MODEL.md).
+
 ## ARM-CLEAN06.5G.116R — Adaptation stricte des tests de masse (issue #215)
 
 Parent b367caca53a6ddec9faeaba58adbeb04110889d6, Windows LocalAuto FAILURE : deux tests de caractérisation (MON11 et 3AC) attendaient une masse issue d'un cache non reflété d'instance sans registre. La réparation valide désormais le refus explicite de poids « fantôme », conserve la récupération du projectile, son mesh, son GUID, la pile et le poids de définition legacy explicitement isolée. Voir [5G.116R](ARM_CLEAN06_5G116R_FAIL_CLOSED_FIXTURE_PARITY.md). Attendre SUCCESS/SUCCESS avant le lot 117.

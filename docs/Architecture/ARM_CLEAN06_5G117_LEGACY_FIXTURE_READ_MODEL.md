@@ -1,0 +1,3 @@
+# ARM-CLEAN06.5G.117 — Contrats historiques sans copies d'instance
+
+Parent `f7c7f4272028370ae1d25b62008bfd2fe0ccd23d`. Les assertions 3AG/3AS, TD06.8 et ARMEMENT01.5 n'accèdent plus aux copies `Weight`/`DisplayName` de `FGridItemInstance`. Les essais explicitement historiques utilisent la définition de test comme source de poids/texte et conservent les tests de pile (quantités, MaxStack), défaut de résolution, rejet de masse négative, refus de profil, invariants de GUID/niveau et comparaison intégrale de l'état durable réfléchi. Les tests canoniques et les preuves de sauvegardes restent inchangés. Aucune modification de runtime, d'asset, de sauvegarde ou de mécanique de combat.
