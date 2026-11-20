@@ -7,6 +7,7 @@
 #include "Engine/Blueprint.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "EdGraph/EdGraphNode.h"
 #include "EdGraph/EdGraphPin.h"
@@ -238,6 +239,10 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 	TestNull(TEXT("Retired sync is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SyncSelectedItemDefinitionIdFromAsset")));
 	TestNull(TEXT("Historical inventory registration is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("RegisterItemDefinition")));
 	TestNull(TEXT("Historical inventory lookup is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("FindItemDefinition")));
+	TestNull(TEXT("Obsolete weight-bearing pawn grant is no longer reflected"),
+		AGrimrockPartyPawn::StaticClass()->FindFunctionByName(TEXT("AddRuntimeItemToSelectedCharacterInventory")));
+	TestNotNull(TEXT("Physical pawn grant remains reflected"),
+		AGrimrockPartyPawn::StaticClass()->FindFunctionByName(TEXT("AddItemInstanceToSelectedCharacterInventory")));
 	TestNull(TEXT("Historical ID-only receptacle insertion is no longer reflected"),
 		AGridReceptacleActor::StaticClass()->FindFunctionByName(TEXT("TryInsertItem")));
 	TestNull(TEXT("Historical contained definition pointer no longer reflected"),

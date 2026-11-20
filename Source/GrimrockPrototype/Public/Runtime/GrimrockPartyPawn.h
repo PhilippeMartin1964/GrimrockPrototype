@@ -356,9 +356,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool AddItemInstanceToSelectedCharacterInventory(const FGridItemInstance& ItemInstance);
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool AddRuntimeItemToSelectedCharacterInventory(const FGuid& RuntimeObjectId, FName ItemDefinitionId, float Weight, int32 Quantity, bool bLightsEnabled);
-
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Inventory|Debug")
 	void LogPartyInventoryDiagnostics() const;
 

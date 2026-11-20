@@ -757,18 +757,6 @@ bool AGrimrockPartyPawn::AddItemInstanceToSelectedCharacterInventory(const FGrid
 	return true;
 }
 
-bool AGrimrockPartyPawn::AddRuntimeItemToSelectedCharacterInventory(
-	const FGuid& RuntimeObjectId, FName ItemDefinitionId, float Weight, int32 Quantity, bool bLightsEnabled)
-{
-	FGridItemInstance ItemInstance;
-	ItemInstance.RuntimeObjectId = RuntimeObjectId;
-	ItemInstance.ItemDefinitionId = ItemDefinitionId;
-	ItemInstance.Quantity = Quantity;
-	ItemInstance.Weight = Weight;
-	ItemInstance.bLightsEnabled = bLightsEnabled;
-	return AddItemInstanceToSelectedCharacterInventory(ItemInstance);
-}
-
 void AGrimrockPartyPawn::LogPartyInventoryDiagnostics() const
 {
 	if (PartyInventoryComponent)

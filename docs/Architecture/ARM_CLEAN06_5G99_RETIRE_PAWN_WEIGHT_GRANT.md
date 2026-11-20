@@ -1,0 +1,3 @@
+# ARM-CLEAN06.5G.99 — Retrait du grant Pawn historique
+
+Parent `cd490cb7f08481ad1886c29fc1223385a563be64` : ne publier qu'après SilentTask et LocalAuto SUCCESS, incluant le préflight natif MIG09 du lot 5G98. Aucun appel C++ relevé hors déclaration/définition. Supprimer la UFUNCTION AddRuntimeItemToSelectedCharacterInventory qui recevait un poids fourni et ne permettait pas de spécifier le niveau physique. Conserver AddItemInstanceToSelectedCharacterInventory et ses validations. Le test natif maintient l'absence de nœuds Blueprint obsolètes et vérifie la réflexion des deux signatures. Aucun asset, save, texte joueur ni gameplay modifié. Les deux membres non réfléchis de FGridItemInstance restent requis par les fixtures/audits historiques et doivent encore être supprimés.

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.99 — Retrait du grant Pawn historique
+
+Parent cd490cb7f08481ad1886c29fc1223385a563be64 : publier seulement après SilentTask et LocalAuto SUCCESS, y compris le préflight natif MIG09. Retrait de AddRuntimeItemToSelectedCharacterInventory ; conservation du grant physique recevant le niveau. Voir [5G.99](ARM_CLEAN06_5G99_RETIRE_PAWN_WEIGHT_GRANT.md).
+
 ## ARM-CLEAN06.5G.98 — Préflight Blueprint de l'ancien grant Pawn
 
 Parent fc8f8cd5a91665522c44a65f3d68ac436a7202e3 : attendre SilentTask et LocalAuto SUCCESS. Audit natif MIG09 étendu à AddRuntimeItemToSelectedCharacterInventory, fonction Blueprint historique sans niveau physique et avec poids fourni. Aucun appel C++ trouvé hors définition/déclaration. Aucun retrait avant preuve native positive. Voir [5G.98](ARM_CLEAN06_5G98_PAWN_GRANT_BLUEPRINT_PREFLIGHT.md).
