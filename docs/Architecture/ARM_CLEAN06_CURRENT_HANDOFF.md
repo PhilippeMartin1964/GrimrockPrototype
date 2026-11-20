@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.72 — Conditions de réceptacles canoniques
+
+Après validation du commit binaire 5G.71B : ContainsItemType utilise exclusivement ItemSystem, niveau/GUID/quantité physiques et catégorie canonique ; plus aucun pointeur historique dans ce lecteur. Enum et champs des liens conservés pour authoring et compatibilité. Voir [5G.72](ARM_CLEAN06_5G72_CANONICAL_RECEPTACLE_CATEGORY.md).
+
 ## ARM-CLEAN06.5G.71R — Relance après parité des flèches
 
 Parent 2c01895bbbd86cd4691a07c636fd62190fc2f6e7 ; [issue #209](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/209) : 26 tags sauvegardés et réouverts, fingerprint identique, un seul échec CompleteProductionPreview23, rollback confirmé propre. Le test reconstruit uniquement la catégorie Misc des flèches depuis la source historique sur la preview transitoire ; comparaison intégrale des 23 définitions inchangée. Relance native exacte et contrôlée, attendre statut natif et enfant binaire.

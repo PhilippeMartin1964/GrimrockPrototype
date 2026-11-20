@@ -91,20 +91,57 @@ bool FGridClean064X31ReceptacleTypeConditions::RunTest(const FString&)
         OldKey->ItemDefinitionId = Key;
         OldKey->ItemType = EGridItemType::Key;
         Contain(Key, 0, OldKey);
-        bOk &= TestTrue(TEXT("Registered non-ARM retains matching legacy gameplay category"),
+        bOk &= TestTrue(TEXT("Registered non-ARM has canonical puzzle category"),
             Receptacle->ContainsItemType(EGridItemType::Key));
         Contain(Key, 1, OldKey);
         bOk &= TestFalse(TEXT("Invalid non-ARM N1 never falls back"),
             Receptacle->ContainsItemType(EGridItemType::Key));
         Contain(Key, 0, nullptr);
-        bOk &= TestFalse(TEXT("Pointerless non-ARM has no invented puzzle category"),
+        bOk &= TestTrue(TEXT("Pointerless non-ARM uses authored puzzle category"),
             Receptacle->ContainsItemType(EGridItemType::Key));
+        OldKey->ItemType = EGridItemType::Gem;
+        Contain(Key, 0, OldKey);
+        bOk &= TestTrue(TEXT("Contradictory historical type cannot change key"),
+            Receptacle->ContainsItemType(EGridItemType::Key));
+        bOk &= TestFalse(TEXT("Contradictory historical Gem cannot satisfy puzzle"),
+            Receptacle->ContainsItemType(EGridItemType::Gem));
+        Receptacle->ContainedItems[0].Quantity = 0;
+        bOk &= TestFalse(TEXT("Empty physical quantity is refused"),
+            Receptacle->ContainsItemType(EGridItemType::Key));
+        Receptacle->ContainedItems[0].Quantity = MAX_int32;
+        bOk &= TestFalse(TEXT("Over-capacity physical quantity is refused"),
+            Receptacle->ContainsItemType(EGridItemType::Key));
+        Receptacle->ContainedItems[0].Quantity = 1;
+        Receptacle->ContainedItems[0].RuntimeObjectId.Invalidate();
+        bOk &= TestFalse(TEXT("Invalid physical GUID is refused"),
+            Receptacle->ContainsItemType(EGridItemType::Key));
+
+        const TPair<FName, EGridItemType> Cases[] = {
+            {TEXT("Stone"), EGridItemType::Misc},
+            {TEXT("Shuriken"), EGridItemType::Weapon},
+            {TEXT("GoblinKnife"), EGridItemType::Weapon},
+            {TEXT("Item_Arrows_01"), EGridItemType::Misc},
+            {TEXT("EmptyVial"), EGridItemType::Component},
+            {TEXT("Item_Torch"), EGridItemType::Torch},
+            {TEXT("Gem_Blue"), EGridItemType::Gem},
+            {TEXT("Item_Potion_Healing_01"), EGridItemType::Potion},
+            {TEXT("Item_TestNote"), EGridItemType::Scroll},
+            {TEXT("Item_RatMeat"), EGridItemType::Food}
+        };
+        for (const auto& Row : Cases)
+        {
+            Contain(Row.Key, 0, nullptr);
+            bOk &= TestTrue(FString::Printf(TEXT("Native pointerless category: %s"), *Row.Key.ToString()),
+                Receptacle->ContainsItemType(Row.Value));
+            bOk &= TestFalse(TEXT("None never matches"), Receptacle->ContainsItemType(EGridItemType::None));
+            bOk &= TestFalse(TEXT("Malformed enum never matches"), Receptacle->ContainsItemType(static_cast<EGridItemType>(255)));
+        }
 
         UGridItemDefinitionAsset* Unknown = NewObject<UGridItemDefinitionAsset>(Receptacle);
         Unknown->ItemDefinitionId = FName(TEXT("ARM_CLEAN064X31_UnregisteredGem"));
         Unknown->ItemType = EGridItemType::Gem;
         Contain(Unknown->ItemDefinitionId, 0, Unknown);
-        bOk &= TestTrue(TEXT("Truly unregistered historic gem keeps its type"),
+        bOk &= TestFalse(TEXT("Unregistered historic gem cannot authorize a puzzle"),
             Receptacle->ContainsItemType(EGridItemType::Gem));
         bOk &= TestFalse(TEXT("Unregistered gem does not become a key"),
             Receptacle->ContainsItemType(EGridItemType::Key));

@@ -7,6 +7,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
 #include "GridItemWeightReadModel.h"
 #include "GridReceptacleItemMetadataReadModel.h"
 #include "GridReceptacleInitialCanonicalReadModel.h"
@@ -296,39 +297,21 @@ bool AGridReceptacleActor::ContainsItemTag(FName ItemTag) const
 
 bool AGridReceptacleActor::ContainsItemType(EGridItemType ItemType) const
 {
+	const FName Type(*StaticEnum<EGridItemType>()->GetNameStringByValue(static_cast<int64>(ItemType)));
+	if (GridCanonicalPuzzleCategoryTags::ForType(Type).IsNone())
+	{
+		return false;
+	}
 	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
 	return ContainedItems.ContainsByPredicate(
-		[Registry, ItemType](const FGridContainedReceptacleItem& Item)
+		[Registry, Type](const FGridContainedReceptacleItem& Item)
 		{
-			if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
-			{
-				FGridResolvedItem Resolved;
-				if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved))
-				{
-					return false; // A known invalid N0/N21 cannot borrow a legacy type.
-				}
-				if (Resolved.bIsArmament)
-				{
-					const EGridItemType CanonicalType =
-						Resolved.Weapon.Kind == EGridCanonicalArmamentKind::Shield
-							? EGridItemType::Shield : EGridItemType::Weapon;
-					return ItemType == CanonicalType;
-				}
-				// Unlike ARM, every registered non-ARM item is physically N0.
-				// Keep the physical invariant explicit before consulting item type.
-				if (Item.ItemLevel != 0)
-				{
-					return false;
-				}
-				// Non-ARM still has no authored gameplay EGridItemType in ItemSystem.
-				// Preserve existing puzzle semantics only with a matching old ID;
-				// pointerless non-ARM needs a separate explicit category migration.
-				return IsValid(Item.ItemDefinition) &&
-					Item.ItemDefinition->ItemDefinitionId == Item.ItemDefinitionId &&
-					Item.ItemDefinition->ItemType == ItemType;
-			}
-			// Genuine out-of-registry items keep their historical condition.
-			return IsValid(Item.ItemDefinition) && Item.ItemDefinition->ItemType == ItemType;
+			FGridResolvedItem Resolved;
+			return Registry && Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) &&
+				Resolved.IsValid() && Resolved.ItemLevel == Item.ItemLevel &&
+				Item.RuntimeObjectId.IsValid() && Item.Quantity > 0 &&
+				Item.Quantity <= FMath::Max(1, Resolved.MaxStack) &&
+				GridCanonicalPuzzleCategoryTags::Matches(Resolved, Type);
 		});
 }
 
