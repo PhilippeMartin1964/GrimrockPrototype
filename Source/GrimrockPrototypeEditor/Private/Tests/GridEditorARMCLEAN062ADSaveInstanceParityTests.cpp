@@ -60,8 +60,6 @@ bool FGridClean062ADSaveInstanceParity::RunTest(const FString&)
 			Original.RuntimeObjectId = FGuid(0xAD06, Index + 1, Level, 0x2026);
 			Original.ItemDefinitionId = ItemId;
 			Original.ItemLevel = Level;
-			Original.DisplayName = Historical->DisplayName;
-			Original.Weight = Historical->Weight;
 			Original.Quantity = 1;
 			Original.AbsorbedEquipmentPhysicalArmor = Row.IsPassive() ? 3 : 0;
 			Original.AbsorbedEquipmentMagicalArmor = Row.IsFocus() ? 1 : 0;
@@ -95,12 +93,12 @@ bool FGridClean062ADSaveInstanceParity::RunTest(const FString&)
 			TestEqual(TEXT("Projection succeeds without migration error"),
 				Failure, EError::None);
 			FGridItemInstance Rehydrated;
-			if (!TestTrue(TEXT("Canonical read model recreates all historical item fields"),
+			if (!TestTrue(TEXT("Canonical read model recreates all durable item fields"),
 				TryRehydrateForParity(Preview, *Canonical, Rehydrated)))
 			{
 				return false;
 			}
-			if (!TestTrue(TEXT("Every single field round-trips exactly"),
+			if (!TestTrue(TEXT("Every durable field round-trips exactly"),
 				IsExactRoundTrip(Original, Rehydrated)))
 			{
 				return false;
@@ -157,8 +155,6 @@ bool FGridClean062ADRejectLossySave::RunTest(const FString&)
 	Item.RuntimeObjectId = FGuid(1, 2, 3, 4);
 	Item.ItemDefinitionId = Source->ItemDefinitionId;
 	Item.ItemLevel = 20;
-	Item.DisplayName = Source->DisplayName;
-	Item.Weight = Source->Weight;
 	Item.Quantity = 2;
 	Item.OwnerType = EGridItemOwnerType::Cursor;
 	Item.AbsorbedEquipmentPhysicalArmor = 3;
@@ -189,19 +185,23 @@ bool FGridClean062ADRejectLossySave::RunTest(const FString&)
 	TestTrue(TEXT("No stale preview survives a failed attempt"), Preview.ItemId.IsNone());
 	Item.ItemLevel = 20;
 
-	Item.DisplayName = FText::FromString(TEXT("Custom renamed weapon"));
-	TestFalse(TEXT("A custom per-instance name must never be silently discarded"),
+	TestNull(TEXT("Static name no longer belongs to the reflected item schema"),
+		FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
+	TestNull(TEXT("Static mass no longer belongs to the reflected item schema"),
+		FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
+	Canonical->DisplayName = FText::FromString(TEXT("Contradictory definition name"));
+	TestFalse(TEXT("Historical source name mismatch still rejects"),
 		TryProject(Item, *Source, *Canonical, Preview, Failure));
-	TestEqual(TEXT("Unexpected name requires explicit migration"), Failure,
+	TestEqual(TEXT("Unexpected definition name requires reconciliation"), Failure,
 		EError::StaticSnapshotMismatch);
-	Item.DisplayName = Source->DisplayName;
+	Canonical->DisplayName = Source->DisplayName;
 
-	Item.Weight += 0.2f;
-	TestFalse(TEXT("A stale/modified unit weight must be reconciled"),
+	Canonical->WeightKg += 0.2f;
+	TestFalse(TEXT("Historical source mass mismatch still rejects"),
 		TryProject(Item, *Source, *Canonical, Preview, Failure));
-	TestEqual(TEXT("Noncanonical cached weight cannot be dropped"), Failure,
+	TestEqual(TEXT("Noncanonical definition mass cannot be ignored"), Failure,
 		EError::StaticSnapshotMismatch);
-	Item.Weight = Source->Weight;
+	Canonical->WeightKg = Source->Weight;
 
 	Item.AbsorbedEquipmentPhysicalArmor = -1;
 	TestFalse(TEXT("Negative armor debt is rejected instead of clamped"),

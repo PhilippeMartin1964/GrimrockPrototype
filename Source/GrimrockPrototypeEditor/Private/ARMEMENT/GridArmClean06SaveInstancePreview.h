@@ -8,9 +8,9 @@
 /**
  * Editor-only, non-serialized ARM-CLEAN06.2AD migration preview.
  *
- * Every mutable field from FGridItemInstance is retained. Only redundant
- * DisplayName and unit Weight are omitted, and ONLY when exact parity against
- * the real, uniquely identified production definition has been proven.
+ * Every reflected physical field from FGridItemInstance is retained.
+ * Since 5G93, static name and weight no longer belong to the persisted
+ * instance. Preserve the historical source-to-definition parity check.
  *
  * The raw readable-content UObject is kept for an exact in-memory proof;
  * final stable reference serialization is a separate mandatory cutover gate.
@@ -57,7 +57,7 @@ namespace GridArmClean06SaveInstancePreview
 		const UGridArmamentDefinitionAsset& CanonicalDefinition,
 		FGridItemInstance& OutLegacy);
 
-	/** Compare every historical instance field, including the optional reading state. */
+	/** Compare every durable instance field, including the optional reading state. */
 	bool IsExactRoundTrip(const FGridItemInstance& Before,
 		const FGridItemInstance& After);
 }

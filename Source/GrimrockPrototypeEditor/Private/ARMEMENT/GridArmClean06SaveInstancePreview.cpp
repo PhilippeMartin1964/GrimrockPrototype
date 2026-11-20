@@ -38,12 +38,10 @@ bool GridArmClean06SaveInstancePreview::TryProject(
 		return false;
 	}
 	if (!CanonicalDefinition.DisplayName.EqualTo(SourceDefinition.DisplayName) ||
-		CanonicalDefinition.WeightKg != SourceDefinition.Weight ||
-		!Legacy.DisplayName.EqualTo(CanonicalDefinition.DisplayName) ||
-		Legacy.Weight != CanonicalDefinition.WeightKg)
+		CanonicalDefinition.WeightKg != SourceDefinition.Weight)
 	{
-		// Never drop an authored per-instance name, a stale weight snapshot,
-		// or a historical template mismatch without explicit reconciliation.
+		// Static instance snapshots were retired after the private v27 proof.
+		// Still reject a historical definition mismatch.
 		OutError = EError::StaticSnapshotMismatch;
 		return false;
 	}
@@ -98,9 +96,7 @@ bool GridArmClean06SaveInstancePreview::TryRehydrateForParity(
 	OutLegacy.ItemLevel = Record.ItemLevel;
 	OutLegacy.AbsorbedEquipmentPhysicalArmor = Record.AbsorbedEquipmentPhysicalArmor;
 	OutLegacy.AbsorbedEquipmentMagicalArmor = Record.AbsorbedEquipmentMagicalArmor;
-	OutLegacy.DisplayName = CanonicalDefinition.DisplayName;
 	OutLegacy.Quantity = Record.Quantity;
-	OutLegacy.Weight = CanonicalDefinition.WeightKg;
 	OutLegacy.OwnerType = Record.OwnerType;
 	OutLegacy.OwnerGuid = Record.OwnerGuid;
 	OutLegacy.OwnerCharacterIndex = Record.OwnerCharacterIndex;
@@ -123,9 +119,7 @@ bool GridArmClean06SaveInstancePreview::IsExactRoundTrip(
 		Before.ItemLevel == After.ItemLevel &&
 		Before.AbsorbedEquipmentPhysicalArmor == After.AbsorbedEquipmentPhysicalArmor &&
 		Before.AbsorbedEquipmentMagicalArmor == After.AbsorbedEquipmentMagicalArmor &&
-		Before.DisplayName.EqualTo(After.DisplayName) &&
 		Before.Quantity == After.Quantity &&
-		Before.Weight == After.Weight &&
 		Before.OwnerType == After.OwnerType &&
 		Before.OwnerGuid == After.OwnerGuid &&
 		Before.OwnerCharacterIndex == After.OwnerCharacterIndex &&

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.100 — Prévisualisation Editor des champs durables uniquement
+
+Parent 19bbb840faecdbfa5effb38bb61840d5d7bbff2f : attendre SilentTask et LocalAuto SUCCESS. Le comparateur historique 2AD ne reconstruit plus les deux caches C++ après la preuve native 5G93 ; parité source/canonique, 44 cas N1/N20 et refus d'état incohérent préservés. Voir [5G.100](ARM_CLEAN06_5G100_EDITOR_PREVIEW_DURABLE_INSTANCE_ONLY.md).
+
 ## ARM-CLEAN06.5G.99 — Retrait du grant Pawn historique
 
 Parent cd490cb7f08481ad1886c29fc1223385a563be64 : publier seulement après SilentTask et LocalAuto SUCCESS, y compris le préflight natif MIG09. Retrait de AddRuntimeItemToSelectedCharacterInventory ; conservation du grant physique recevant le niveau. Voir [5G.99](ARM_CLEAN06_5G99_RETIRE_PAWN_WEIGHT_GRANT.md).
