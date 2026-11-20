@@ -59,6 +59,17 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		return PinType.PinSubCategoryObject.Get() == ContainedStruct ||
 			PinType.PinValueType.TerminalSubCategoryObject.Get() == ContainedStruct;
 	};
+	TArray<FString> WorldSaveStructReferences;
+	const auto ReferencesWorldSaveStruct = [](const FEdGraphPinType& PinType)
+	{
+		const auto IsTarget = [](const UObject* Type)
+		{
+			return Type == FGridRuntimeItemState::StaticStruct() ||
+				Type == FGridPendingWorldItemState::StaticStruct();
+		};
+		return IsTarget(PinType.PinSubCategoryObject.Get()) ||
+			IsTarget(PinType.PinValueType.TerminalSubCategoryObject.Get());
+	};
 	int32 LoadedBlueprintCount = 0;
 
 	for (const FAssetData& BlueprintAssetData : BlueprintAssets)
@@ -89,6 +100,9 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 			if (ReferencesContainedStruct(Variable.VarType))
 				ContainedStructReferences.Add(BlueprintAssetData.PackageName.ToString() +
 					TEXT(" :: Variable=") + Variable.VarName.ToString());
+			if (ReferencesWorldSaveStruct(Variable.VarType))
+				WorldSaveStructReferences.Add(BlueprintAssetData.PackageName.ToString() +
+					TEXT(" :: Variable=") + Variable.VarName.ToString());
 		}
 		TArray<UEdGraphNode*> Nodes;
 		FBlueprintEditorUtils::GetAllNodesOfClass<UEdGraphNode>(Blueprint, Nodes);
@@ -99,6 +113,9 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 			{
 				if (Pin && ReferencesContainedStruct(Pin->PinType))
 					ContainedStructReferences.Add(FString::Printf(TEXT("%s :: Node=%s :: Pin=%s"),
+						*BlueprintAssetData.PackageName.ToString(), *GetNameSafe(Node), *Pin->PinName.ToString()));
+				if (Pin && ReferencesWorldSaveStruct(Pin->PinType))
+					WorldSaveStructReferences.Add(FString::Printf(TEXT("%s :: Node=%s :: Pin=%s"),
 						*BlueprintAssetData.PackageName.ToString(), *GetNameSafe(Node), *Pin->PinName.ToString()));
 			}
 		}
@@ -140,6 +157,9 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 	}
 	TestEqual(TEXT("No native Blueprint variable or graph pin uses contained-item struct"),
 		ContainedStructReferences.Num(), 0);
+	for (const FString& Reference : WorldSaveStructReferences)
+		AddError(FString::Printf(TEXT("5G85 serialized world struct usage requires review: %s"), *Reference));
+	TestEqual(TEXT("No native Blueprint directly uses the two serialized world structs"), WorldSaveStructReferences.Num(), 0);
 	TestTrue(TEXT("Native Blueprint inventory is not empty"), BlueprintAssets.Num() > 0);
 	TestEqual(TEXT("No Blueprint calls retired item identity APIs or historical inventory registry"), LegacyReferences.Num(), 0);
 	TestNull(TEXT("Retired setter is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SetSelectedObjectItemDefinitionAsset")));
@@ -152,7 +172,7 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		FGridContainedReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	TestNotNull(TEXT("Inventory instance projection remains reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("ApplyItemDefinitionToInstance")));
 	return BlueprintAssets.Num() > 0 && LegacyReferences.IsEmpty() &&
-		ContainedStructReferences.IsEmpty() && LoadedBlueprintCount == BlueprintAssets.Num();
+		ContainedStructReferences.IsEmpty() && WorldSaveStructReferences.IsEmpty() && LoadedBlueprintCount == BlueprintAssets.Num();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS

@@ -1,5 +1,5 @@
 #include "Runtime/GrimrockPartyPawn.h"
-#include "GridCanonicalWorldSnapshotReadModel.h"
+#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
 
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"

@@ -1,6 +1,8 @@
 #include "ARMEMENT/GridArmClean065RetirementAuditCommandlet.h"
 #include "GridEditorRetirementAudit.h"
 #include "GridEditorAlchemySaveCopy.h"
+#include "GridEditorWorldSaveProjection.h"
+#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Parse.h"
@@ -54,7 +56,17 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
         UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.5A] Native evidence refused: %s"), *Error);
         return 2;
     }
+    const bool bWorldPreflight = FParse::Param(*Params, TEXT("WorldPointerPreflight"));
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    if (bWorldPreflight)
+    {
+        TArray<FString> Errors;
+        UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr, RootPath());
+        if (!Root || !Registry->RegisterItemSystem(Root, Errors)) return 2;
+    }
     auto Report = MakeShared<FJsonObject>();
+    Report->SetBoolField(TEXT("world_pointer_preflight"), bWorldPreflight);
     Report->SetStringField(TEXT("schema"), TEXT("ARM-CLEAN06.5A/retirement-evidence/v1"));
     Report->SetObjectField(TEXT("native"), Native.Report);
     TArray<FString> Filenames;
@@ -90,6 +102,33 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
                 Audit.Collect(*Save.Get(), Native.ItemIds);
                 Audit.Write(*Row);
                 Row->SetNumberField(TEXT("version"), Save->SaveVersion);
+                if (bWorldPreflight)
+                {
+                    FString CheckError;
+                    const bool bPhysical = FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(
+                        Registry.Get(), Save->DungeonRuntimeState, CheckError);
+                    Row->SetBoolField(TEXT("canonical_world_valid"), bPhysical);
+                    TArray<TSharedPtr<FJsonValue>> Projection;
+                    for (const FString& Line : GridEditorWorldSaveProjection::Build(Save->DungeonRuntimeState))
+                        Projection.Add(MakeShared<FJsonValueString>(Line));
+                    Row->SetArrayField(TEXT("world_row_projection"), Projection);
+                    TArray<uint8> Reencoded;
+                    TStrongObjectPtr<UGrimrockPartySaveGame> Expected(
+                        GridEditorAlchemySaveCopy::LoadExact(Bytes, CheckError));
+                    const bool bEncoded = bPhysical && Expected.IsValid() &&
+                        GridEditorAlchemySaveCopy::EncodeChecked(*Save.Get(), Reencoded, CheckError);
+                    TStrongObjectPtr<UGrimrockPartySaveGame> Reloaded(bEncoded ?
+                        GridEditorAlchemySaveCopy::LoadExact(Reencoded, CheckError) : nullptr);
+                    const bool bParity = Reloaded.IsValid() &&
+                        GridEditorAlchemySaveCopy::SameSaveProperties(*Expected.Get(), *Reloaded.Get(), CheckError);
+                    Row->SetBoolField(TEXT("memory_roundtrip_equal"), bParity);
+                    if (!bPhysical || !bParity)
+                    {
+                        // Private commandlet diagnostics only.
+                        UE_LOG(LogTemp, Error, TEXT("[5G85] Save preflight failed: %s"), *CheckError);
+                        ++Failed;
+                    }
+                }
             }
         }
         Saves.Add(MakeShared<FJsonValueObject>(Row));

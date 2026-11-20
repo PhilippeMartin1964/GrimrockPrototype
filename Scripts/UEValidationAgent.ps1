@@ -882,6 +882,23 @@ try {
             Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
         }
 
+        # One-shot read-only save proof. Never publish private rows, paths,
+        # hashes, save names or native log content.
+        $Subject=@(& git -C $WorktreePath log -1 '--format=%s')
+        if ($LASTEXITCODE -eq 0 -and $Subject.Count -eq 1 -and $Subject[0] -match '^ARM-CLEAN06[.]5G[.]85:') {
+            $ProofContext='UE5.5.4/ARM-CLEAN06.5G85'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $ProofContext -Description 'Read-only world save preflight'
+                $Helper=Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1'
+                & $Helper -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot (Join-Path $RunDir 'WorldSavePreflight') -ExpectedHead $Sha
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $ProofContext -Description 'Private copies verified; canonical world; zero old pointers'
+            } catch {
+                Write-Warning '[ARM-CLEAN06.5G85] World save preflight refused; private logs only.'
+                try { Publish-CommitStatus -Sha $Sha -State 'failure' -Context $ProofContext -Description 'Preflight refused; no original save modified by helper' }
+                catch { Write-Warning '[ARM-CLEAN06.5G85] Cannot publish proof status.' }
+            }
+        }
+
         $Result = 'success'
         Write-Host "[VALIDATION-AUTO01] SUCCES $Sha. Journaux : $RunDir"
     }

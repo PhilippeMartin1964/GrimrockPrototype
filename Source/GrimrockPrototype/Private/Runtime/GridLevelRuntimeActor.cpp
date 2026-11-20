@@ -1,5 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
-#include "GridCanonicalWorldSnapshotReadModel.h"
+#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
 #include "UObject/ConstructorHelpers.h"
 
 #include "Core/GridRelocationUtils.h"

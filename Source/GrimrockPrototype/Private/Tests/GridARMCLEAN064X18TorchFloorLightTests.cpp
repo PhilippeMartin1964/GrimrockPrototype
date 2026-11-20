@@ -21,7 +21,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/GridCanonicalWorldSnapshotReadModel.h"
+#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
 
 namespace ARMCLEAN064X18
 {

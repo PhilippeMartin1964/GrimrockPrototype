@@ -3,6 +3,9 @@
 #include "Misc/AutomationTest.h"
 #include "../ARMEMENT/GridEditorRetirementAudit.h"
 #include "Serialization/MemoryWriter.h"
+#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
+#include "../ARMEMENT/GridEditorAlchemySaveCopy.h"
+#include "../ARMEMENT/GridEditorWorldSaveProjection.h"
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN065NativeAudit,
     "Grimrock.Editor.ARM.CLEAN06_5A.NativeRetirementEvidence",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -141,6 +144,60 @@ bool FGridEditorARMCLEAN065SaveAudit::RunTest(const FString&)
     for (TCHAR Ch : Paths[1]) { Wide.Add(uint8(Ch)); Wide.Add(0); }
     TestTrue(TEXT("UTF-16LE old path detected"), HasPathBytes(Wide, Paths[1], true));
     TestEqual(TEXT("Raw path audit reports one exact candidate"), RawPaths(Wide, Paths).Num(), 1);
+    return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN065G85WorldPreflight,
+    "Grimrock.Editor.ARM.CLEAN06.5G85.WorldPointerPreflight",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorARMCLEAN065G85WorldPreflight::RunTest(const FString&)
+{
+    using namespace GridEditorRetirementAudit;
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr, RootPath()));
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    TArray<FString> Errors;
+    if (!Root.IsValid() || !Registry->RegisterItemSystem(Root.Get(), Errors)) return false;
+    TStrongObjectPtr<UGrimrockPartySaveGame> Save(NewObject<UGrimrockPartySaveGame>());
+    auto& Level = Save->DungeonRuntimeState.LevelStates.Add(TEXT("Fixture"));
+    Level.LevelId = TEXT("Fixture");
+    FGridRuntimeItemState Item;
+    Item.ObjectId = FGuid::NewGuid();
+    Item.ItemDefinitionId = TEXT("Stone");
+    Item.ItemLevel = 0;
+    Item.Quantity = 1;
+    Item.CellX = 1;
+    Item.CellY = 1;
+    Level.Items.Add(Item.ObjectId, Item);
+    FGridPendingWorldItemState Pending;
+    Pending.ItemState = Item;
+    Pending.ItemState.ObjectId = FGuid::NewGuid();
+    Pending.ItemState.ReadTitleOverride = FText::FromString(TEXT("Fixture narrative"));
+    Level.PendingInboundItems.Add(Pending.ItemState.ObjectId, Pending);
+    FString Error;
+    TestTrue(TEXT("Canonical world preflight accepts actual physical identities"),
+        FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(Registry.Get(), Save->DungeonRuntimeState, Error));
+    TArray<uint8> Bytes;
+    if (!TestTrue(TEXT("Transient archive encodes"), GridEditorAlchemySaveCopy::EncodeChecked(*Save.Get(), Bytes, Error))) return false;
+    TStrongObjectPtr<UGrimrockPartySaveGame> Loaded(GridEditorAlchemySaveCopy::LoadExact(Bytes, Error));
+    if (!TestTrue(TEXT("Transient archive decodes"), Loaded.IsValid())) return false;
+    TestTrue(TEXT("All current saved properties round-trip"), GridEditorAlchemySaveCopy::SameSaveProperties(*Save.Get(), *Loaded.Get(), Error));
+    const auto Projection = GridEditorWorldSaveProjection::Build(Save->DungeonRuntimeState);
+    TestEqual(TEXT("Projection covers both physical rows"), Projection.Num(), 2);
+    TestTrue(TEXT("Private physical projection survives independent decode"),
+        Projection == GridEditorWorldSaveProjection::Build(Loaded->DungeonRuntimeState));
+    auto& Invalid = Level.PendingInboundItems.FindChecked(Pending.ItemState.ObjectId);
+    TStrongObjectPtr<UGridItemDefinitionAsset> Stale(NewObject<UGridItemDefinitionAsset>());
+    Invalid.ItemDefinitionAsset = Stale.Get();
+    Invalid.ItemState.ProjectileDefinitionAsset = Stale.Get();
+    TestTrue(TEXT("Projection excludes both retired pointers"), Projection ==
+        GridEditorWorldSaveProjection::Build(Save->DungeonRuntimeState));
+    Invalid.ItemState.ItemLevel = 1;
+    TestFalse(TEXT("Physical level change alters the projection"), Projection ==
+        GridEditorWorldSaveProjection::Build(Save->DungeonRuntimeState));
+    TestFalse(TEXT("Invalid non-ARM level refuses preflight"),
+        FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(Registry.Get(), Save->DungeonRuntimeState, Error));
     return !HasAnyErrors();
 }
 

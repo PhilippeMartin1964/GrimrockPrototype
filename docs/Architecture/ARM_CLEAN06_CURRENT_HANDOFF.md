@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.85 — Préflight du retrait des pointeurs SaveGame
+
+Parent d6796390739ee172c21077ddb0cf4408a0655517. Réutiliser le gate runtime exact dans l'audit Editor ; scan Blueprint des deux structs et aller-retour mémoire des copies v27. Agent one-shot 5G85, troisième statut obligatoire, aucune écriture dans les saves live. Voir [5G.85](ARM_CLEAN06_5G85_WORLD_SAVE_PREFLIGHT.md).
+
 ## ARM-CLEAN06.5G.84.1 — correction de la preuve de projection équipement
 
 Parent 3f98b93706e281a1f96f061e8f4408e5f00afe48, issue #210 : une seule attente de nom historique dans 3AE contredit 5G.84. Refus du cache sous registre et contrôle de la fixture sans registre ; autres assertions intactes. Attendre les deux statuts avant préflight 5G.85.

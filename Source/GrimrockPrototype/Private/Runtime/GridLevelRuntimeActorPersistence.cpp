@@ -8,7 +8,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "GridWorldPickupIdentityReadModel.h"
-#include "GridCanonicalWorldSnapshotReadModel.h"
+#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridThrownItemActor.h"
