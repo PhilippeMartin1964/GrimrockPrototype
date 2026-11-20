@@ -70,10 +70,13 @@ bool FGridClean063IWeightRuntime::RunTest(const FString&)
 	Legacy.Quantity = 4;
 	Legacy.Weight = 1.25f;
 	float UnitMass = 0.0f;
-	TestTrue(TEXT("Unregistered identity keeps temporary legacy unit mass"),
+	TestFalse(TEXT("Configured registry rejects the copied mass of unknown identity"),
 		FGridItemWeightReadModel::TryResolveUnitWeight(Registry.Get(), Legacy, UnitMass));
-	TestEqual(TEXT("Legacy unit mass unchanged"), UnitMass, 1.25f);
-	TestEqual(TEXT("Legacy quantity unchanged"), FGridItemWeightReadModel::GetTotalWeight(Registry.Get(), Legacy), 5.0f);
+	TestEqual(TEXT("Unknown identity contributes no mass"), FGridItemWeightReadModel::GetTotalWeight(Registry.Get(), Legacy), 0.0f);
+	TestTrue(TEXT("Isolated registry-less fixture keeps its numeric test mass"),
+		FGridItemWeightReadModel::TryResolveUnitWeight(nullptr, Legacy, UnitMass));
+	TestEqual(TEXT("Fixture unit mass unchanged"), UnitMass, 1.25f);
+	TestEqual(TEXT("Fixture stack mass unchanged"), FGridItemWeightReadModel::GetTotalWeight(nullptr, Legacy), 5.0f);
 	TestFalse(TEXT("Invalid empty instance cannot contribute weight"),
 		FGridItemWeightReadModel::TryResolveUnitWeight(Registry.Get(), FGridItemInstance(), UnitMass));
 	TestEqual(TEXT("Failed invalid instance resets unit weight"), UnitMass, 0.0f);

@@ -63,8 +63,12 @@ namespace
 			return FGridItemWeightReadModel::TryResolveUnitWeight(Registry, Item, UnitWeight)
 				? UnitWeight : 0.0f;
 		}
-		return IsValid(Legacy) && Legacy->ItemDefinitionId == Item.ItemDefinitionId
-			? Legacy->Weight : Item.Weight;
+#if WITH_DEV_AUTOMATION_TESTS
+		if (GIsAutomationTesting && !GI)
+			return IsValid(Legacy) && Legacy->ItemDefinitionId == Item.ItemDefinitionId
+				? Legacy->Weight : Item.Weight;
+#endif
+		return 0.0f;
 	}
 }
 

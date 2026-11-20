@@ -22,6 +22,8 @@ struct FGridItemWeightReadModel
 		{
 			FGridResolvedItem Resolved;
 			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Resolved) ||
+				!Resolved.IsValid() || Resolved.ItemId != Instance.ItemDefinitionId ||
+				Resolved.ItemLevel != Instance.ItemLevel ||
 				!FMath::IsFinite(Resolved.WeightKg) || Resolved.WeightKg < 0.0f)
 			{
 				return false; // No legacy fallback for a known but invalid canonical ID.
@@ -29,10 +31,15 @@ struct FGridItemWeightReadModel
 			OutUnitWeight = Resolved.WeightKg;
 			return true;
 		}
-		// Not-yet-migrated items retain the current snapshot behavior.
-		// A missing GameInstance registry is also a temporary pre-cutover mode.
-		OutUnitWeight = Instance.Weight;
-		return true;
+		// Only isolated historical Automation fixtures may read copied mass.
+#if WITH_DEV_AUTOMATION_TESTS
+		if (GIsAutomationTesting && !Registry && FMath::IsFinite(Instance.Weight) && Instance.Weight >= 0.0f)
+		{
+			OutUnitWeight = Instance.Weight;
+			return true;
+		}
+#endif
+		return false;
 	}
 
 	static float GetTotalWeight(const UGridItemSubsystem* Registry, const FGridItemInstance& Instance)

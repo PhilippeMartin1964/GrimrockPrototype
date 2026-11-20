@@ -64,8 +64,10 @@ bool FGridClean063NWorldWeight::RunTest(const FString&)
 	Legacy.ItemLevel = 0;
 	Legacy.Weight = 2.25f;
 	Legacy.Quantity = 4;
-	TestEqual(TEXT("Legacy world items still contribute copied weight"),
-		FGridItemWeightReadModel::GetTotalWeight(Registry.Get(), Legacy), 9.0f);
+	TestEqual(TEXT("Configured registry rejects unregistered world mass"),
+		FGridItemWeightReadModel::GetTotalWeight(Registry.Get(), Legacy), 0.0f);
+	TestEqual(TEXT("Isolated fixture retains copied weight"),
+		FGridItemWeightReadModel::GetTotalWeight(nullptr, Legacy), 9.0f);
 	return true;
 }
 

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.61 — Autorité canonique du poids
+
+Parent 4aba6cc4b9797ae0d0fd65aa2541f5aad0635ec5. Masse d'inventaire, réceptacle, plaque de pression et diagnostic de lancer n'utilise plus copie pour une identité inconnue en production ; fixtures isolées Automation conservées. Voir [5G.61](ARM_CLEAN06_5G61_CANONICAL_WEIGHT_AUTHORITY.md).
+
 ## ARM-CLEAN06.5G.60 — Conversion à l'impact sans perte
 
 Parent 614e000b080cadebdcaa659c2ef7dc595a5fa754. Un dépôt refusé conserve le projectile arrêté, en attente d'une nouvelle tentative ; la réussite seule détruit la source. Pose physique avant notification pour les dépôts hors fosse. Régression FailedImpactRetainsPhysicalSource. Voir [5G.60](ARM_CLEAN06_5G60_RETRYABLE_IMPACT.md).

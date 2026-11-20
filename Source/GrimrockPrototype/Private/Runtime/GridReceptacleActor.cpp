@@ -345,9 +345,12 @@ float AGridReceptacleActor::GetContainedTotalWeight() const
 		Instance.RuntimeObjectId = Item.RuntimeObjectId;
 		Instance.ItemDefinitionId = Item.ItemDefinitionId;
 		Instance.ItemLevel = Item.ItemLevel;
-		Instance.Quantity = FMath::Max(1, Item.Quantity);
-		Instance.Weight = Item.Weight; // Used only while the ItemId remains outside ItemSystem.
-		TotalWeight += FGridItemWeightReadModel::GetTotalWeight(Registry, Instance);
+		Instance.Quantity = Item.Quantity;
+		FGridResolvedItem Resolved;
+		if (Registry && Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Resolved) &&
+			Resolved.IsValid() && Resolved.ItemLevel == Instance.ItemLevel &&
+			Instance.IsValid() && Instance.Quantity <= FMath::Max(1, Resolved.MaxStack))
+			TotalWeight += FGridItemWeightReadModel::GetTotalWeight(Registry, Instance);
 	}
 	return TotalWeight;
 }
