@@ -922,15 +922,16 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtWorldTransform(
 	}
 	FGridRelocationBehaviorParams PitRelocation;
 	const bool bOpenPit = FindOpenPitAtCell(CellX, CellY, PitRelocation);
-	if (!TryDropItemInstanceAtCell(ItemInstance, ItemDefinition, CellX, CellY, EGridEdge::None, LocalOffset))
-	{
-		return false;
-	}
-	// An open pit routes the same GUID to the lower level instead of spawning
-	// a local actor. That is SUCCESS, not a reason to drop the arrow again.
+	// An open pit routes the same GUID instead of spawning a local actor.
+	// A successful route is already a committed transfer.
 	if (bOpenPit)
 	{
-		return true;
+		return TryDropItemInstanceAtCell(ItemInstance, ItemDefinition, CellX, CellY, EGridEdge::None, LocalOffset);
+	}
+	// Normal releases need the physical pose set before notifying links.
+	if (!TryDropItemInstanceAtCellInternal(ItemInstance, ItemDefinition, CellX, CellY, EGridEdge::None, LocalOffset, false))
+	{
+		return false;
 	}
 
 	const FGuid Id = ItemInstance.RuntimeObjectId;
@@ -954,6 +955,12 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtWorldTransform(
 				*ItemInstance.ItemDefinitionId.ToString(), *Id.ToString(), CellX, CellY,
 				*Item->MeshComponent->GetComponentLocation().ToCompactString(),
 				Item->MeshComponent->IsSimulatingPhysics() ? 1 : 0);
+		}
+		// Once the live row exists, a missing optional mesh pose does not
+		// undo ownership. A link may immediately move or consume the item.
+		if (IsValid(Item))
+		{
+			if (ActivationComponent) ActivationComponent->RefreshPressurePlatesAtCell(CellX, CellY);
 			return true;
 		}
 		return false;

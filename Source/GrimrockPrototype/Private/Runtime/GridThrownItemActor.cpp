@@ -102,12 +102,15 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 			// as impact conversion; a rejected route keeps the projectile alive.
 			FGridRelocationBehaviorParams Pit;
 			if (ProjectileMovementComponent && ProjectileMovementComponent->Velocity.Z < -10.f &&
-				CurrentLocation.Z < RuntimeActor->GetCellCenterWorld(CellX, CellY, -20.f).Z && RuntimeActor->FindOpenPitAtCell(CellX, CellY, Pit) &&
-				RuntimeActor->TryRouteWorldItemThroughOpenPit(ThrownItemInstance, GetItemDefinitionAsset(), CellX, CellY, LocalOffset))
+				CurrentLocation.Z < RuntimeActor->GetCellCenterWorld(CellX, CellY, -20.f).Z && RuntimeActor->FindOpenPitAtCell(CellX, CellY, Pit))
 			{
 				bConversionAttempted = true;
-				Destroy();
-				return;
+				if (RuntimeActor->TryRouteWorldItemThroughOpenPit(ThrownItemInstance, GetItemDefinitionAsset(), CellX, CellY, LocalOffset))
+				{
+					Destroy();
+					return;
+				}
+				bConversionAttempted = false;
 			}
 		}
 	}
@@ -715,11 +718,12 @@ void AGridThrownItemActor::ReleaseEmbeddedArrowToPickup()
 	// A dissolved monster no longer owns the arrow. Spawn a real physical
 	// pickup at the exact visible mesh pose, not at a cell center with yaw 0.
 	// Other impacts continue using the legacy generic item drop path.
-	if (!bConversionAttempted && IsValid(RuntimeActor) &&
+	// Suppress a second source during synchronous landing notifications.
+	bConversionAttempted = true;
+	if (IsValid(RuntimeActor) &&
 		RuntimeActor->TryDropItemInstanceAtWorldTransform(ThrownItemInstance,
 			GetItemDefinitionAsset(), LastWorldMeshTransform))
 	{
-		bConversionAttempted = true;
 		SetActorTickEnabled(false);
 		GetWorldTimerManager().ClearTimer(ExpirationTimerHandle);
 		UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] EmbeddedPhysicalRelease Item=%s RuntimeId=%s Tip=%s"),
@@ -729,6 +733,7 @@ void AGridThrownItemActor::ReleaseEmbeddedArrowToPickup()
 		return;
 	}
 	// Safety fallback for pits, unavailable definitions or invalid cells.
+	bConversionAttempted = false;
 	ConvertToWorldPickupAtImpact(ReleaseHit);
 }
 
@@ -840,8 +845,18 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 
 	if (!bDropped)
 	{
-		UE_LOG(LogGridThrownItem, Warning, TEXT("GridInventory Throw Impact Failed Item=%s RuntimeId=%s SourceCell=(%d,%d) Reason=NoValidDropCell"),
+		UE_LOG(LogGridThrownItem, Warning, TEXT("GridInventory Throw Impact Pending Item=%s RuntimeId=%s SourceCell=(%d,%d) Reason=NoValidDropCell"),
 			*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(), SourceCellX, SourceCellY);
+		// The source still owns the item. Do not destroy it, and do not
+		// pretend that an attempted conversion completed. A later retry
+		// uses the same GUID and the same walkable-cell fallbacks.
+		bConversionAttempted = false;
+		if (IsValid(RuntimeActor))
+		{
+			GetWorldTimerManager().SetTimer(ExpirationTimerHandle, this,
+				&AGridThrownItemActor::HandleProjectileExpired, 0.5f, false);
+		}
+		return;
 	}
 
 	UE_LOG(LogGridThrownItem, Log, TEXT("[GridProjectile] Landed Item=%s Success=%d Impact=%s Distance=%.1f"),

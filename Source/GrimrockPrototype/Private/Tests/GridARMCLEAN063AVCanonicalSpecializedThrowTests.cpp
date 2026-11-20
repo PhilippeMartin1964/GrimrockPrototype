@@ -9,6 +9,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "TimerManager.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -533,6 +534,55 @@ bool FGridClean065G59InFlightTravel::RunTest(const FString&)
         TestNull(TEXT("Restored pickup is pointerless"), Actor->GetItemDefinitionAsset());
     }
     TestEqual(TEXT("Exactly one recoverable physical item"), Pickups, 1);
+    return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065G60ImpactRetry,
+    "Grimrock.RPG.ARM.CLEAN06_5G60.FailedImpactRetainsPhysicalSource",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean065G60ImpactRetry::RunTest(const FString&)
+{
+    ARMCLEAN063AV::FFixture F;
+    if (!TestTrue(TEXT("Canonical runtime"), F.Ready())) return false;
+    const FGridItemInstance Item = F.Make(TEXT("Weapon_ThrowingKnife_01"), 20);
+    const FVector Target = F.Runtime->GetCellCenterWorld(0, 0, 100.f);
+    AGridThrownItemActor* Projectile = F.Runtime->SpawnThrownItemProjectile(
+        Item, nullptr, Target, FVector(1200,0,100), 0,0);
+    if (!TestNotNull(TEXT("Physical projectile"), Projectile)) return false;
+    // No usable landing cell, including the source fallback.
+    for (FGridLevelCellData& Cell : F.Runtime->LevelAsset->Cells)
+        Cell.bBlocksOccupancy = true;
+    if (!TestFalse(TEXT("Source is not a usable landing cell"), F.Runtime->IsWalkableCell(0,0))) return false;
+    FHitResult Hit;
+    Hit.ImpactPoint = Target;
+    Hit.Location = Target;
+    Hit.ImpactNormal = FVector::UpVector;
+    // Invoke the actual native stop handler; transient worlds do not
+    // necessarily execute reflected actor callbacks outside BeginPlay.
+    Projectile->HandleProjectileStopped(Hit);
+    if (!TestTrue(TEXT("Failed landing retains actor"), IsValid(Projectile) && !Projectile->IsActorBeingDestroyed())) return false;
+    TestFalse(TEXT("Failed landing is not completed conversion"), Projectile->HasCompletedImpactConversion());
+    TestEqual(TEXT("Original physical GUID retained"), Projectile->GetRuntimeObjectId(), Item.RuntimeObjectId);
+    TestEqual(TEXT("Original N20 retained"), Projectile->CanonicalWorldItemLevel, 20);
+    TestTrue(TEXT("Failure schedules actual retry timer"),
+        F.World->GetTimerManager().TimerExists(Projectile->ExpirationTimerHandle));
+    for (FGridLevelCellData& Cell : F.Runtime->LevelAsset->Cells)
+        Cell.bBlocksOccupancy = false;
+    if (!TestTrue(TEXT("Source can now receive pickup"), F.Runtime->IsWalkableCell(0,0))) return false;
+    // Invoke the exact timer callback, independently of Editor tick timing.
+    Projectile->HandleProjectileExpired();
+    TestTrue(TEXT("Retry commits conversion"), Projectile->HasCompletedImpactConversion());
+    int32 Count = 0;
+    for (TActorIterator<AGridItemActor> It(F.World); It; ++It)
+    {
+        AGridItemActor* Actor = *It;
+        if (!IsValid(Actor) || Actor->IsActorBeingDestroyed() || Actor->GetRuntimeObjectId() != Item.RuntimeObjectId) continue;
+        ++Count;
+        TestFalse(TEXT("Retry yields recoverable pickup"), Actor->IsA<AGridThrownItemActor>());
+        TestEqual(TEXT("Retry preserves physical N20"), Actor->CanonicalWorldItemLevel, 20);
+    }
+    TestEqual(TEXT("Exactly one physical item after retry"), Count, 1);
     return !HasAnyErrors();
 }
 

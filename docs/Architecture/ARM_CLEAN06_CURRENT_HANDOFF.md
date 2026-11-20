@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.60 — Conversion à l'impact sans perte
+
+Parent 614e000b080cadebdcaa659c2ef7dc595a5fa754. Un dépôt refusé conserve le projectile arrêté, en attente d'une nouvelle tentative ; la réussite seule détruit la source. Pose physique avant notification pour les dépôts hors fosse. Régression FailedImpactRetainsPhysicalSource. Voir [5G.60](ARM_CLEAN06_5G60_RETRYABLE_IMPACT.md).
+
 ## ARM-CLEAN06.5G.59 — Capture des objets lancés en vol
 
 Parent b9e16af9535da928514fa26d4acf2c533c33558c. Capture de tous les projectiles récupérables canoniques (pas seulement munitions), niveau/GUID/lecture/lumière conservés, restitution des objets ordinaires avec leur mesh de pickup. Transition retire les projectiles capturés du niveau source même vers un niveau inédit. Test InFlightItemTravel N20, aller-retour. Voir [5G.59](ARM_CLEAN06_5G59_IN_FLIGHT_ITEM_CAPTURE.md).

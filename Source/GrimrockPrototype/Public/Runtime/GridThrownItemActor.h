@@ -122,6 +122,9 @@ protected:
 	void HandleProjectileStopped(const FHitResult& Hit);
 
 private:
+#if WITH_DEV_AUTOMATION_TESTS
+	friend class FGridClean065G60ImpactRetry;
+#endif
 	void HandleProjectileExpired();
 	void ConvertToWorldPickupAtImpact(const FHitResult& Hit);
 	bool TryEmbedInMonster();
