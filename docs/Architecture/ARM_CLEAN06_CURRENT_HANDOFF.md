@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.123 — Instances de combat MON12 sans copie de nom
+
+Parent `a810b7a347aa79ec2961d5f66c9af3a775c8b23a` : après SilentTask et LocalAuto SUCCESS. Suppression des 18 noms recopiés dans les instances des tests MON12 ; conserver toutes les définitions de capacités, objets et actions et leurs contrôles. Voir [5G.123](ARM_CLEAN06_5G123_MON12_PHYSICAL_INSTANCE_NAMES.md).
+
 ## ARM-CLEAN06.5G.122 — Fixtures tooltips, VFX, combat et raccourcis sans copies
 
 Parent `b5d2c99910b123744cec2dd103ad9a1cfaa8ff3d` : après SilentTask et LocalAuto SUCCESS. Cinq tests n'affectent plus le nom des instances ; leur définition reste source du texte de présentation. Voir [5G.122](ARM_CLEAN06_5G122_ITEM_NAME_FIXTURE_RETIREMENT.md).

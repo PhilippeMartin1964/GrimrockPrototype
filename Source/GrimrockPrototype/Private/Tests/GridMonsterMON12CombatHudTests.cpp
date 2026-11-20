@@ -252,7 +252,6 @@ namespace
 			FGridItemInstance Weapon;
 			Weapon.RuntimeObjectId = FGuid(12, 7, 2, 1);
 			Weapon.ItemDefinitionId = TEXT("MON12_7_Sword");
-			Weapon.DisplayName = FText::FromString(TEXT("Épée de test"));
 			Weapon.Quantity = 1;
 			Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
 			Weapon.OwnerCharacterIndex = 0;
@@ -261,7 +260,7 @@ namespace
 
 			UGridItemDefinitionAsset* WeaponDefinition = NewObject<UGridItemDefinitionAsset>(Party);
 			WeaponDefinition->ItemDefinitionId = Weapon.ItemDefinitionId;
-			WeaponDefinition->DisplayName = Weapon.DisplayName;
+			WeaponDefinition->DisplayName = FText::FromString(TEXT("Épée de test"));
 			WeaponDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
 			FGridCombatActionDefinition WeaponAction;
 			WeaponAction.ActionId = TEXT("Attack_MON12_7_Sword");
@@ -778,7 +777,6 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest(const FString& Parameters)
 	FGridItemInstance Potion;
 	Potion.RuntimeObjectId = FGuid(12, 8, 4, 1);
 	Potion.ItemDefinitionId = PotionDefinition->ItemDefinitionId;
-	Potion.DisplayName = PotionDefinition->DisplayName;
 	Potion.Quantity = 2;
 	TestTrue(TEXT("Two potion units enter the inventory"), Inventory->AddItemToCharacterInventory(0, Potion));
 	TestTrue(TEXT("The potion configures shortcut two"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 1, Potion, EGridEquipmentSlot::None));
@@ -873,7 +871,6 @@ bool FGridMonsterMON1284QuickItemScrollAttackTest::RunTest(const FString& Parame
 	FGridItemInstance Scroll;
 	Scroll.RuntimeObjectId = FGuid(12, 8, 4, 3);
 	Scroll.ItemDefinitionId = ScrollDefinition->ItemDefinitionId;
-	Scroll.DisplayName = ScrollDefinition->DisplayName;
 	Scroll.Quantity = 2;
 	TestTrue(TEXT("Two scroll units enter the inventory"), Inventory->AddItemToCharacterInventory(0, Scroll));
 	TestTrue(TEXT("The scroll configures shortcut two"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 1, Scroll, EGridEquipmentSlot::None));
@@ -1274,7 +1271,6 @@ bool FGridMonsterMON1287InventoryThrowableTest::RunTest(const FString& Parameter
 	FGridItemInstance Shuriken;
 	Shuriken.RuntimeObjectId = FGuid::NewGuid();
 	Shuriken.ItemDefinitionId = ShurikenDefinition->ItemDefinitionId;
-	Shuriken.DisplayName = ShurikenDefinition->DisplayName;
 	Shuriken.Quantity = 1;
 	Shuriken.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Shuriken.OwnerCharacterIndex = 0;
@@ -1629,7 +1625,6 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 	FGridItemInstance EquippedShuriken;
 	EquippedShuriken.RuntimeObjectId = FGuid(12, 12, 1, 1);
 	EquippedShuriken.ItemDefinitionId = ShurikenDefinition->ItemDefinitionId;
-	EquippedShuriken.DisplayName = ShurikenDefinition->DisplayName;
 	EquippedShuriken.Quantity = 2;
 	EquippedShuriken.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	EquippedShuriken.OwnerGuid = Fixture.CharacterIds[0];
@@ -1803,7 +1798,6 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 	FGridItemInstance Flask;
 	Flask.RuntimeObjectId = FGuid::NewGuid();
 	Flask.ItemDefinitionId = ItemId;
-	Flask.DisplayName = Resolved.DisplayName;
 	Flask.Quantity = 2;
 	Flask.OwnerType = EGridItemOwnerType::World;
 	if (!TestTrue(TEXT("Deux flasques ajoutées au sac du personnage"),
@@ -1954,7 +1948,6 @@ bool FARMEMENT011717OilExplorationRealPipeline::RunTest(const FString&)
 	FGridItemInstance Flask;
 	Flask.RuntimeObjectId = FGuid::NewGuid();
 	Flask.ItemDefinitionId = ItemId;
-	Flask.DisplayName = Resolved.DisplayName;
 	Flask.Quantity = 2;
 	Flask.OwnerType = EGridItemOwnerType::World;
 	if (!TestTrue(TEXT("Add two flasks"), Inventory->AddItemToCharacterInventory(0, Flask))) return false;
@@ -2068,7 +2061,6 @@ bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 	FGridItemInstance Item;
 	Item.RuntimeObjectId = FGuid::NewGuid();
 	Item.ItemDefinitionId = ItemId;
-	Item.DisplayName = Resolved.DisplayName;
 	Item.OwnerType = EGridItemOwnerType::World;
 	Item.Quantity = 2;
 	if (!TestTrue(TEXT("Two catalyst units in inventory"), Inventory->AddItemToCharacterInventory(0, Item))) return false;
@@ -2191,7 +2183,6 @@ bool FARMEMENT01173BExplorationCatalyst::RunTest(const FString&)
 	FGridItemInstance Item;
 	Item.RuntimeObjectId = FGuid::NewGuid();
 	Item.ItemDefinitionId = ItemId;
-	Item.DisplayName = Resolved.DisplayName;
 	Item.OwnerType = EGridItemOwnerType::World;
 	Item.Quantity = 2;
 	if (!TestTrue(TEXT("Own exactly two bottles"), Inventory->AddItemToCharacterInventory(0, Item)) ||
@@ -2391,7 +2382,6 @@ bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = Id;
 		Item.ItemDefinitionId = Definition->ItemDefinitionId;
-		Item.DisplayName = Definition->DisplayName;
 		Item.ItemLevel = 1;
 		Item.Quantity = 1;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -2584,7 +2574,6 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = Id;
 		Item.ItemDefinitionId = Definition->ItemDefinitionId;
-		Item.DisplayName = Definition->DisplayName;
 		Item.ItemLevel = 1;
 		Item.Quantity = 1;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -2767,7 +2756,6 @@ bool FARMEMENTLOT021921DualAttackIconViewTest::RunTest(const FString&)
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = Id;
 		Item.ItemDefinitionId = Definition->ItemDefinitionId;
-		Item.DisplayName = Definition->DisplayName;
 		Item.ItemLevel = 1;
 		Item.Quantity = 1;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -3038,7 +3026,6 @@ bool FARMEMENTLOT02161MeleeN1Execution::RunTest(const FString& Parameters)
 		FGridItemInstance Equipped;
 		Equipped.RuntimeObjectId = FGuid(16, 1, 1, Index + 1);
 		Equipped.ItemDefinitionId = Definition->ItemDefinitionId;
-		Equipped.DisplayName = Definition->DisplayName;
 		Equipped.ItemLevel = 1;
 		Equipped.Quantity = 1;
 		Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -3158,7 +3145,6 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 		FGridItemInstance Weapon;
 		Weapon.RuntimeObjectId = FGuid(16, 2, CaseIndex + 1, 1);
 		Weapon.ItemDefinitionId = Bow->ItemDefinitionId;
-		Weapon.DisplayName = Bow->DisplayName;
 		Weapon.ItemLevel = 1;
 		Weapon.Quantity = 1;
 		Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -3428,7 +3414,6 @@ bool FARMEMENTLOT02163RealThrowingN1::RunTest(const FString&)
 			Equipped.ItemDefinitionId = Definition->ItemDefinitionId;
 			Equipped.ItemLevel = 1;
 			Equipped.Quantity = 1;
-			Equipped.DisplayName = Definition->DisplayName;
 			Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
 			Equipped.OwnerGuid = Fixture.CharacterIds[0];
 			Equipped.OwnerCharacterIndex = 0;
@@ -3582,7 +3567,6 @@ bool FARMEMENTLOT02164MagicN1Execution::RunTest(const FString&)
 			FGridItemInstance Weapon;
 			Weapon.RuntimeObjectId = FGuid(16, 4, Index + 1, 1);
 			Weapon.ItemDefinitionId = Definition->ItemDefinitionId;
-			Weapon.DisplayName = Definition->DisplayName;
 			Weapon.ItemLevel = 1;
 			Weapon.Quantity = 1;
 			Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -3711,7 +3695,6 @@ bool FARMEMENTLOT02165PassiveN1Execution::RunTest(const FString&)
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid(16, 5, Index + 1, 1);
 		Item.ItemDefinitionId = Definition->ItemDefinitionId;
-		Item.DisplayName = Definition->DisplayName;
 		Item.ItemLevel = 1;
 		Item.Quantity = 1;
 		if (!TestTrue(TEXT("Real passive instance resolved"), Inventory->ApplyItemDefinitionToInstance(Item)) ||

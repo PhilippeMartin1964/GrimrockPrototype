@@ -91,7 +91,6 @@ namespace
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = RuntimeObjectId;
 		Item.ItemDefinitionId = ItemDefinitionId;
-		Item.DisplayName = FText::FromString(DisplayName);
 		Item.Quantity = Quantity;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
 		Item.OwnerCharacterIndex = CharacterIndex;
