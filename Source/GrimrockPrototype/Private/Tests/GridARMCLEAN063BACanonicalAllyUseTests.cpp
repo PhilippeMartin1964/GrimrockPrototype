@@ -143,7 +143,6 @@ namespace ARMCLEAN063BA
             Source.ItemLevel = Level;
             Source.Quantity = 2;
             Source.OwnerType = EGridItemOwnerType::World;
-            Source.Weight = 900.0f; // Contradictory legacy cache.
             return Source;
         }
     };

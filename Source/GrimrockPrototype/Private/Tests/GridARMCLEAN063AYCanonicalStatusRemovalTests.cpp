@@ -120,7 +120,6 @@ namespace ARMCLEAN063AY
             Entry.ItemLevel = Level;
             Entry.Quantity = 2;
             Entry.OwnerType = EGridItemOwnerType::World;
-            Entry.Weight = 900.0f;
             return Entry;
         }
     };
