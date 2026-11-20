@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.93 — Retrait réfléchi des caches d'instance
+
+Parent 201e3fd7fc2b8aa249dca251cba75163614b37b3. Attendre les cinq statuts positifs 5G92. DisplayName/Weight retirés de la réflexion et donc du SaveGame, membres C++ temporaires conservés jusqu'au retrait des écrivains et fixtures. Relecture des octets baseline exacts avec empreinte durable et caches absents. Troisième statut 5G93 obligatoire. Voir [5G.93](ARM_CLEAN06_5G93_INSTANCE_CACHE_SCHEMA_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.92.1 — Preuve bornée et diagnostic
 
 5G92 `56aadcc8`: SilentTask/LocalAuto SUCCESS, preuve native FAILURE sans catégorie disponible. Aucun retrait. Réduire la projection privée intégrale à un digest SHA-1 par propriété racine, sans tronquer les valeurs projetées, et publier seulement une catégorie d'échec fixe si le contrôle refuse. Cause du premier refus non démontrée; vérifier les cinq statuts du nouveau SHA avant 5G93. Voir [5G92.1](ARM_CLEAN06_5G92_1_BOUNDED_SCHEMA_PROOF.md).

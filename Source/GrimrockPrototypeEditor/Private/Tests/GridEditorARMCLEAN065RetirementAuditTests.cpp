@@ -213,6 +213,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN065G88CacheEvidence,
 bool FGridEditorARMCLEAN065G88CacheEvidence::RunTest(const FString&)
 {
     using namespace GridEditorInstanceCacheEvidence;
+    TestNull(TEXT("Item name is no longer reflected or persisted"),
+        FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
+    TestNull(TEXT("Item weight is no longer reflected or persisted"),
+        FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
+    TestNotNull(TEXT("Character name is still reflected"),
+        FGridCharacterInventoryState::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr, GridEditorRetirementAudit::RootPath()));
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));

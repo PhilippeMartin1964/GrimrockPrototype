@@ -12,6 +12,7 @@ param(
     [switch]$WeightCacheEvidence,
     [switch]$SemanticCacheEvidence,
     [switch]$InstanceSchemaProjection,
+    [switch]$AfterInstanceRetirement,
     [switch]$SelfTest
 )
 Set-StrictMode -Version Latest
@@ -82,6 +83,29 @@ function Compare-WorldSaveReports($Before,$After,$Rows) {
         }
     }
 }
+function Compare-InstanceSchemaReports($Before,$After,$Rows) {
+    Check-WorldSaveReport $Before $Rows
+    Check-WorldSaveReport $After $Rows
+    if (-not $Before.instance_schema_projection -or -not $After.instance_schema_projection -or
+        -not $Before.semantic_cache_evidence -or -not $After.semantic_cache_evidence) { throw 'Missing cross-schema semantic evidence.' }
+    foreach ($Row in $Rows) {
+        $A=@($Before.saves | Where-Object { $_.filename -ceq $Row.name })[0]
+        $B=@($After.saves | Where-Object { $_.filename -ceq $Row.name })[0]
+        foreach ($S in @($A,$B)) {
+            if ($S.cache_invalid_identities -ne 0 -or $S.cache_name_conflicts -ne 0 -or
+                $S.cache_projection_failures -ne 0 -or $S.cache_weight_conflicts -ne $S.cache_weight_semantically_redundant -or
+                -not $S.cache_normalized_roundtrip_equal -or @($S.durable_save_projection).Count -le 0) { throw 'Invalid semantic baseline or post-cutover row.' }
+        }
+        if ($B.cache_names -ne 0 -or $B.cache_weights -ne 0 -or $B.instance_legacy_name_or_weight -ne 0) { throw 'Obsolete serialized cache still decoded.' }
+        foreach ($Key in @('item_instances_and_world_rows','cache_instances','readable_content_pointers','readable_ids_without_pointer')) {
+            if ($A.$Key -ne $B.$Key) { throw 'Physical or narrative count changed across instance schema.' }
+        }
+        foreach ($Key in @('durable_save_projection','world_row_projection','decoded_references','raw_path_candidates')) {
+            if ((ConvertTo-Json -InputObject @($A.$Key) -Depth 10 -Compress) -cne
+                (ConvertTo-Json -InputObject @($B.$Key) -Depth 10 -Compress)) { throw 'Durable save projection changed across instance schema.' }
+        }
+    }
+}
 if ($SelfTest) {
     $Root=Join-Path ([IO.Path]::GetTempPath()) ('Arm5G85-'+[guid]::NewGuid().ToString('N'))
     try {
@@ -98,6 +122,23 @@ if ($SelfTest) {
         $Different=$false
         try { Compare-WorldSaveReports $Report $Same $Rows } catch { $Different=$true }
         if (-not $Different) { throw 'Fixture cross-schema comparison failed.' }
+        $InstanceBefore=ConvertFrom-Json (ConvertTo-Json $Report -Depth 10)
+        $InstanceBefore | Add-Member NoteProperty instance_schema_projection $true
+        $InstanceBefore | Add-Member NoteProperty semantic_cache_evidence $true
+        $InstanceRow=$InstanceBefore.saves[0]
+        foreach ($Key in @('cache_invalid_identities','cache_name_conflicts','cache_projection_failures','cache_weight_conflicts','cache_weight_semantically_redundant','cache_instances','cache_names','cache_weights')) {
+            $InstanceRow | Add-Member NoteProperty $Key 0
+        }
+        $InstanceRow | Add-Member NoteProperty cache_normalized_roundtrip_equal $true
+        $InstanceRow | Add-Member NoteProperty durable_save_projection @('fixture-durable')
+        $InstanceAfter=ConvertFrom-Json (ConvertTo-Json $InstanceBefore -Depth 10)
+        $InstanceBefore.saves[0].cache_weights=1
+        $InstanceBefore.saves[0].instance_legacy_name_or_weight=1
+        Compare-InstanceSchemaReports $InstanceBefore $InstanceAfter $Rows
+        $InstanceAfter.saves[0].durable_save_projection=@('changed')
+        $Rejected=$false
+        try { Compare-InstanceSchemaReports $InstanceBefore $InstanceAfter $Rows } catch { $Rejected=$true }
+        if (-not $Rejected) { throw 'Instance schema difference was not detected.' }
         $Report.saves[0].pending_definition_pointers=1
         $Rejected=$false
         try { Check-WorldSaveReport $Report $Rows } catch { $Rejected=$true }
@@ -136,7 +177,9 @@ Assert-ArmX66OrdinaryPath $RunRoot
 if (Test-Path -LiteralPath $RunRoot) { throw 'Private run directory already exists.' }
 $Source=Join-Path $RepositoryRoot 'Saved\SaveGames'
 $BeforeReport=$null
-if ($AfterRetirement) {
+if ($AfterRetirement -and $AfterInstanceRetirement) { throw 'Mixed retirement modes refused.' }
+if ($AfterInstanceRetirement -and (-not $InstanceSchemaProjection -or -not $SemanticCacheEvidence -or -not $InstanceCacheEvidence)) { throw 'Instance retirement requires all semantic projection modes.' }
+if ($AfterRetirement -or $AfterInstanceRetirement) {
     if ($BaselineHead -cnotmatch '^[0-9a-f]{40}$' -or [string]::IsNullOrWhiteSpace($AgentStateRoot)) { throw 'Exact baseline required.' }
     $Parent=@(& $Git -C $WorktreePath rev-parse HEAD^)
     if ($LASTEXITCODE -ne 0 -or $Parent.Count -ne 1 -or $Parent[0] -cne $BaselineHead) { throw 'Baseline not exact parent.' }
@@ -144,7 +187,7 @@ if ($AfterRetirement) {
     Assert-ArmX66OrdinaryPath $Runs
     $Candidates=@(Get-ChildItem -LiteralPath $Runs -Directory -Filter ($BaselineHead.Substring(0,12)+'-*') | ForEach-Object {
         Assert-ArmX66OrdinaryPath $_.FullName
-        $Proof=Join-Path $_.FullName 'WorldSavePreflight'
+        $Proof=Join-Path $_.FullName $(if ($AfterInstanceRetirement) {'SemanticCacheEvidence'} else {'WorldSavePreflight'})
         $Receipt=Join-Path $Proof 'receipt.json'
         if (Test-Path -LiteralPath $Receipt -PathType Leaf) { $Proof }
     })
@@ -156,6 +199,16 @@ if ($AfterRetirement) {
     if ($Receipt.schema -cne 'ARM-CLEAN06.5G85/world-read-only-receipt/v1' -or $Receipt.head -cne $BaselineHead -or
         -not $Receipt.passed -or -not $Receipt.all_source_bytes_unchanged -or -not $Receipt.all_copies_unchanged -or
         $Receipt.world_pointer_count -ne 0 -or @($Receipt.files).Count -eq 0) { throw 'Unproven baseline receipt.' }
+    if ($AfterInstanceRetirement) {
+        $CachePath=Join-Path $Baseline 'cache-proof.json'
+        Assert-ArmX66OrdinaryPath $CachePath
+        $Cache=Get-Content -LiteralPath $CachePath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($Cache.schema -cne 'ARM-CLEAN06.5G88/instance-cache-aggregate/v1' -or $Cache.head -cne $BaselineHead -or
+            -not $Cache.parity -or -not $Cache.source_unchanged -or -not $Cache.copies_unchanged -or
+            -not $Cache.semantic_evidence -or -not $Cache.semantic_projection_parity -or -not $Cache.instance_schema_projection) {
+            throw 'Missing exact successful instance schema baseline.'
+        }
+    }
     $Source=Join-Path $Baseline 'AuditCopies'
     $ExpectedBaseline=ConvertTo-Json -InputObject @($Receipt.files) -Compress
     if ((Get-InventoryJson $Source) -cne $ExpectedBaseline) { throw 'Baseline byte mismatch.' }
@@ -165,7 +218,7 @@ if ($AfterRetirement) {
 }
 $Copies=Join-Path $RunRoot 'AuditCopies'
 $Expected=Copy-VerifiedWorldSaves $Source $Copies
-if ($AfterRetirement -and $Expected -cne $ExpectedBaseline) { throw 'Cross-schema source bytes changed.' }
+if (($AfterRetirement -or $AfterInstanceRetirement) -and $Expected -cne $ExpectedBaseline) { throw 'Cross-schema source bytes changed.' }
 $Rows=@(Get-WorldSaveInventory $Copies)
 $ReportPath=Join-Path $RunRoot 'world-preflight.json'
 $Editor=Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
@@ -197,6 +250,7 @@ try {
 } catch { throw 'Native report JSON decode failed.' }
 Check-WorldSaveReport $AfterReport $Rows
 if ($AfterRetirement) { Compare-WorldSaveReports $BeforeReport $AfterReport $Rows }
+if ($AfterInstanceRetirement) { Compare-InstanceSchemaReports $BeforeReport $AfterReport $Rows }
 if ($InstanceCacheEvidence) {
     if (-not $AfterReport.instance_cache_evidence) { throw 'Missing cache evidence.' }
     if ($WeightCacheEvidence -and -not $AfterReport.weight_cache_evidence) { throw 'Missing weight provenance evidence.' }
@@ -232,7 +286,7 @@ if ($InstanceCacheEvidence) {
     [pscustomobject]@{schema='ARM-CLEAN06.5G88/instance-cache-aggregate/v1';head=$ExpectedHead;parity=$Parity;weight_evidence=[bool]$WeightCacheEvidence;semantic_evidence=[bool]$SemanticCacheEvidence;semantic_projection_parity=$ProjectionParity;instance_schema_projection=[bool]$InstanceSchemaProjection;unexplained_weight=$Unexplained;source_unchanged=$true;copies_unchanged=$true} |
         ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $RunRoot 'cache-proof.json') -Encoding UTF8
 }
-$Schema=if ($AfterRetirement) { 'ARM-CLEAN06.5G86/world-post-retirement-receipt/v1' } else { 'ARM-CLEAN06.5G85/world-read-only-receipt/v1' }
+$Schema=if ($AfterRetirement) { 'ARM-CLEAN06.5G86/world-post-retirement-receipt/v1' } elseif ($AfterInstanceRetirement) { 'ARM-CLEAN06.5G93/instance-post-retirement-receipt/v1' } else { 'ARM-CLEAN06.5G85/world-read-only-receipt/v1' }
 [pscustomobject]@{schema=$Schema;head=$ExpectedHead;baseline_head=$BaselineHead;files=$Rows;all_source_bytes_unchanged=$true;all_copies_unchanged=$true;world_pointer_count=0;passed=$true} |
     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $RunRoot 'receipt.json') -Encoding UTF8
 Write-Host '[OK] 5G85 native world save preflight. Originals and copies unchanged.'

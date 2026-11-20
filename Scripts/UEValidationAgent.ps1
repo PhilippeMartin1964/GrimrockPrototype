@@ -1053,6 +1053,23 @@ try {
             }
         }
 
+        if ($EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.]93:') {
+            $Context='UE5.5.4/ARM-CLEAN06.5G93'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Context -Description 'Exact baseline post-schema replay'
+                $Baseline=@(& git -C $WorktreePath rev-parse HEAD^)
+                if ($LASTEXITCODE -ne 0 -or $Baseline.Count -ne 1) { throw 'Baseline parent unavailable.' }
+                $CacheRun=Join-Path $RunDir 'InstancePostRetirement'
+                & (Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot $CacheRun -ExpectedHead $Sha -InstanceCacheEvidence -SemanticCacheEvidence -InstanceSchemaProjection -AfterInstanceRetirement -BaselineHead $Baseline[0] -AgentStateRoot $StateRoot
+                $Receipt=Get-Content -LiteralPath (Join-Path $CacheRun 'receipt.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+                if ($Receipt.schema -cne 'ARM-CLEAN06.5G93/instance-post-retirement-receipt/v1' -or $Receipt.head -cne $Sha -or
+                    $Receipt.baseline_head -cne $Baseline[0] -or -not $Receipt.passed -or -not $Receipt.all_source_bytes_unchanged -or -not $Receipt.all_copies_unchanged) { throw 'Invalid post-schema receipt.' }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Exact private v27 copies; all durable projections identical'
+            } catch {
+                Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Post-schema evidence refused; no original slot modified'
+            }
+        }
+
         # One-shot read-only save proof. Never publish private rows, paths,
         # hashes, save names or native log content.
         $Subject=@(& git -C $WorktreePath log -1 '--format=%s')
