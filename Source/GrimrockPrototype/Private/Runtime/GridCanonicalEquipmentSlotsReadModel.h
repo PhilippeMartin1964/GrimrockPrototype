@@ -5,8 +5,8 @@
 
 /**
  * Read-only equipment-slot view for menus and tooltips.
- * Registered ItemIds always obey their REAL fixed-level hand policy; legacy
- * definitions can supply slots only for identities absent from DA_ItemSystem.
+ * Registered ItemIds always obey their REAL fixed-level hand policy.
+ * Historical equipment policies exist only in explicit Automation fixtures.
  * Two-handed gear offers one MainHand storage action, reserving OffHand virtually.
  */
 struct FGridCanonicalEquipmentSlotsReadView
@@ -64,7 +64,8 @@ struct FGridCanonicalEquipmentSlotsReadModel
 			return View;
 		}
 
-		if (!IsValid(LegacyDefinition) ||
+#if WITH_DEV_AUTOMATION_TESTS
+		if (!GIsAutomationTesting || !IsValid(LegacyDefinition) ||
 			LegacyDefinition->ItemDefinitionId != Item.ItemDefinitionId)
 		{
 			return View;
@@ -94,6 +95,7 @@ struct FGridCanonicalEquipmentSlotsReadModel
 			}
 			View.AllowedSlots.Add(Slot);
 		}
+#endif
 		return View;
 	}
 };

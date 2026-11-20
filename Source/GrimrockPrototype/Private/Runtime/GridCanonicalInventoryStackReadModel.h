@@ -41,12 +41,15 @@ struct FGridCanonicalInventoryStackReadModel
             View.MaxStackSize = FMath::Max(1, Resolved.MaxStack);
             return View;
         }
-        if (IsValid(Legacy) && Legacy->ItemDefinitionId == Item.ItemDefinitionId)
+        // Explicit historical inventory fixtures only; never a runtime fallback.
+#if WITH_DEV_AUTOMATION_TESTS
+        if (GIsAutomationTesting && IsValid(Legacy) && Legacy->ItemDefinitionId == Item.ItemDefinitionId)
         {
             View.bResolved = true;
             View.MaxStackSize = Legacy->bStackable
                 ? FMath::Max(1, Legacy->MaxStackSize) : 1;
         }
+#endif
         return View;
     }
 };

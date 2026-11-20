@@ -139,6 +139,16 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     TestTrue(TEXT("Arrow unit mass canonical"),
         FMath::IsNearlyEqual(Ammo.Weight, CanonicalArrow.WeightKg));
 
+    // A stale historical identity cannot veto the actual canonical item.
+    Old->ItemDefinitionId = TEXT("UnrelatedHistorical_AG");
+    FGridItemInstance Contradictory = Ammo;
+    Contradictory.Weight = 999.f;
+    TestTrue(TEXT("Canonical item resolves despite unrelated old pointer"),
+        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Contradictory));
+    TestEqual(TEXT("Canonical identity remains unchanged"), Contradictory.ItemDefinitionId, Ammo.ItemDefinitionId);
+    TestEqual(TEXT("Canonical mass restored"), Contradictory.Weight, CanonicalArrow.WeightKg);
+    Old->ItemDefinitionId = Ammo.ItemDefinitionId;
+
     FGridItemInstance InvalidAmmo = Ammo;
     InvalidAmmo.ItemLevel = 1;
     InvalidAmmo.Weight = 999.0f;
@@ -155,13 +165,18 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     Legacy.RuntimeObjectId = FGuid::NewGuid();
     Legacy.ItemDefinitionId = Old->ItemDefinitionId;
     Legacy.Quantity = 1;
-    TestTrue(TEXT("Unknown identity still uses legacy metadata"),
+    TestTrue(TEXT("Explicit Automation fixture uses historical metadata"),
         FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Legacy));
     TestTrue(TEXT("Legacy mass unchanged"), FMath::IsNearlyEqual(Legacy.Weight, 1.75f));
     TestEqual(TEXT("Legacy name unchanged"), Legacy.DisplayName.ToString(),
         FString(TEXT("LEGACY ORIGINAL")));
-    Old->bUseWeaponCatalogue = true;
     const FGridItemInstance BeforeReject = Legacy;
+    Old->Weight = -0.5f;
+    TestFalse(TEXT("Invalid fixture mass rejects materialization"),
+        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Legacy));
+    TestEqual(TEXT("Rejected fixture mass is unchanged"), Legacy.Weight, BeforeReject.Weight);
+    Old->Weight = 1.75f;
+    Old->bUseWeaponCatalogue = true;
     TestFalse(TEXT("Unknown linked item without old profile still rejects"),
         FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Legacy));
     TestEqual(TEXT("Rejected legacy mass unchanged"), Legacy.Weight, BeforeReject.Weight);

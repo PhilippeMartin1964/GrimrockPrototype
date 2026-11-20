@@ -18,9 +18,8 @@ struct FGridItemInstanceMaterializationReadModel
             Registry && Registry->HasCanonicalItem(InOutInstance.ItemDefinitionId);
         if (InOutInstance.ItemDefinitionId.IsNone() ||
             InOutInstance.ItemLevel < 0 || InOutInstance.ItemLevel > 20 ||
-            (IsValid(LegacyDefinition) &&
-                LegacyDefinition->ItemDefinitionId != InOutInstance.ItemDefinitionId) ||
-            (!bCanonicalIdentity && !IsValid(LegacyDefinition)))
+            (!bCanonicalIdentity && (!IsValid(LegacyDefinition) ||
+                LegacyDefinition->ItemDefinitionId != InOutInstance.ItemDefinitionId)))
         {
             return false;
         }
@@ -45,8 +44,10 @@ struct FGridItemInstanceMaterializationReadModel
         }
         else
         {
-            // Nonregistered items preserve their temporary legacy path,
-            // including prior per-definition weapon profile validation.
+            // Only historical inventory characterization fixtures may
+            // materialize a test-only definition outside ItemSystem.
+#if WITH_DEV_AUTOMATION_TESTS
+            if (!GIsAutomationTesting) return false;
             float UnitWeight = LegacyDefinition->Weight;
             if (LegacyDefinition->bUseWeaponCatalogue)
             {
@@ -60,11 +61,15 @@ struct FGridItemInstanceMaterializationReadModel
                 Candidate.ItemLevel = Level;
                 UnitWeight = Profile->WeightKg;
             }
+            if (!FMath::IsFinite(UnitWeight) || UnitWeight < 0.0f) return false;
             Candidate.Weight = UnitWeight;
             if (Candidate.DisplayName.IsEmpty())
             {
                 Candidate.DisplayName = LegacyDefinition->DisplayName;
             }
+#else
+            return false;
+#endif
         }
         InOutInstance = MoveTemp(Candidate);
         return true;
