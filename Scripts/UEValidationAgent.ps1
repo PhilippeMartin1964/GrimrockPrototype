@@ -997,6 +997,24 @@ try {
             }
         }
 
+        if ($EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.]90:') {
+            $Context='UE5.5.4/ARM-CLEAN06.5G90'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Context -Description 'Private historical weight provenance'
+                $CacheRun=Join-Path $RunDir 'WeightCacheEvidence'
+                & (Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot $CacheRun -ExpectedHead $Sha -InstanceCacheEvidence -WeightCacheEvidence
+                $Receipt=Get-Content -LiteralPath (Join-Path $CacheRun 'cache-proof.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+                if ($Receipt.schema -cne 'ARM-CLEAN06.5G88/instance-cache-aggregate/v1' -or $Receipt.head -cne $Sha -or -not $Receipt.source_unchanged -or -not $Receipt.copies_unchanged -or -not $Receipt.weight_evidence -or $Receipt.parity -isnot [bool] -or $Receipt.unexplained_weight -isnot [bool]) { throw 'Invalid private weight receipt.' }
+                $ParityState=if ($Receipt.parity) {'success'} else {'failure'}
+                $WeightState=if ($Receipt.unexplained_weight) {'failure'} else {'success'}
+                Publish-CommitStatus -Sha $Sha -State $WeightState -Context ($Context+'.WeightProvenance') -Description 'All divergent weights explained by source or rounding'
+                Publish-CommitStatus -Sha $Sha -State $ParityState -Context ($Context+'.CacheParity') -Description 'Normalized memory parity; no live writes'
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Private evidence completed; original saves unchanged'
+            } catch {
+                Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Private evidence refused; no original slot modified'
+            }
+        }
+
         # One-shot read-only save proof. Never publish private rows, paths,
         # hashes, save names or native log content.
         $Subject=@(& git -C $WorktreePath log -1 '--format=%s')

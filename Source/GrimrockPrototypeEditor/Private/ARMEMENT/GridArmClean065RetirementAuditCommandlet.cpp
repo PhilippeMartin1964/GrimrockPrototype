@@ -59,7 +59,22 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
     }
     const bool bWorldPreflight = FParse::Param(*Params, TEXT("WorldPointerPreflight"));
     const bool bInstanceEvidence = FParse::Param(*Params, TEXT("InstanceCacheEvidence"));
-    if (bInstanceEvidence && !bWorldPreflight) return 1;
+    const bool bWeightEvidence = FParse::Param(*Params, TEXT("WeightCacheEvidence"));
+    if ((bInstanceEvidence && !bWorldPreflight) || (bWeightEvidence && !bInstanceEvidence)) return 1;
+    GridEditorInstanceCacheEvidence::FLegacySources Historical;
+    if (bWeightEvidence)
+    {
+        for (const auto& Value : Native.Report->GetArrayField(TEXT("puzzle_category_sources")))
+        {
+            const auto Row = Value->AsObject();
+            const FName Id(*Row->GetStringField(TEXT("item_id")));
+            const auto* Old = LoadObject<UGridItemDefinitionAsset>(nullptr, *Row->GetStringField(TEXT("source")));
+            if (!IsValid(Old) || Old->ItemDefinitionId != Id || Historical.Contains(Id)) return 2;
+            Historical.Add(Id, Old);
+        }
+        if (Historical.Num() != 48) return 2;
+    }
+    const auto* HistoricalPolicy = bWeightEvidence ? &Historical : nullptr;
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
     if (bWorldPreflight)
@@ -71,6 +86,7 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
     auto Report = MakeShared<FJsonObject>();
     Report->SetBoolField(TEXT("world_pointer_preflight"), bWorldPreflight);
     Report->SetBoolField(TEXT("instance_cache_evidence"), bInstanceEvidence);
+    Report->SetBoolField(TEXT("weight_cache_evidence"), bWeightEvidence);
     Report->SetStringField(TEXT("schema"), TEXT("ARM-CLEAN06.5A/retirement-evidence/v1"));
     Report->SetObjectField(TEXT("native"), Native.Report);
     TArray<FString> Filenames;
@@ -109,11 +125,12 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
                 if (bInstanceEvidence)
                 {
                     using namespace GridEditorInstanceCacheEvidence;
-                    const FCounts Counts = Inspect(Save->PartyInventoryState, *Registry.Get());
+                    const FCounts Counts = Inspect(Save->PartyInventoryState, *Registry.Get(), HistoricalPolicy);
                     Row->SetNumberField(TEXT("cache_instances"), Counts.Instances);
                     Row->SetNumberField(TEXT("cache_invalid_identities"), Counts.Invalid);
                     Row->SetNumberField(TEXT("cache_name_conflicts"), Counts.NameConflicts);
                     Row->SetNumberField(TEXT("cache_weight_conflicts"), Counts.WeightConflicts);
+                    Row->SetNumberField(TEXT("cache_weight_explained"), Counts.ExplainedWeightConflicts);
                     Row->SetNumberField(TEXT("cache_names"), Counts.CachedNames);
                     Row->SetNumberField(TEXT("cache_weights"), Counts.CachedWeights);
                     bool bNormalizedParity = false;
@@ -124,8 +141,8 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
                         TStrongObjectPtr<UGrimrockPartySaveGame> Working(GridEditorAlchemySaveCopy::LoadExact(Bytes, CheckError));
                         TArray<uint8> NormalizedBytes;
                         const bool bEncoded = Expected.IsValid() && Working.IsValid() &&
-                            ClearVerifiedCopy(Expected->PartyInventoryState, *Registry.Get()) &&
-                            ClearVerifiedCopy(Working->PartyInventoryState, *Registry.Get()) &&
+                            ClearVerifiedCopy(Expected->PartyInventoryState, *Registry.Get(), HistoricalPolicy) &&
+                            ClearVerifiedCopy(Working->PartyInventoryState, *Registry.Get(), HistoricalPolicy) &&
                             GridEditorAlchemySaveCopy::SameSaveProperties(*Expected.Get(), *Working.Get(), CheckError) &&
                             GridEditorAlchemySaveCopy::EncodeChecked(*Working.Get(), NormalizedBytes, CheckError);
                         TStrongObjectPtr<UGrimrockPartySaveGame> Reloaded(bEncoded ?
