@@ -255,6 +255,30 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 	{
 		return false;
 	}
+	// 5G71: exactly one of the original 23 is non-ARM. Rebuild the
+	// proved category from the ORIGINAL arrow source, not the saved
+	// destination. Keep SameAuthoredFields strict for all 23 definitions.
+	int32 NativeCategories = 0;
+	for (const auto& Definition : Persisted->ItemDefinitions)
+		NativeCategories += GridCanonicalPuzzleCategoryTags::CountReserved(Definition->Tags);
+	if (!TestTrue(TEXT("Native puzzle categories are all or none"), NativeCategories == 0 || NativeCategories == 26))
+		return false;
+	if (NativeCategories == 26)
+	{
+		int32 Projected = 0;
+		for (auto& Definition : Candidate->ItemDefinitions)
+		{
+			if (Definition->IsA<UGridArmamentDefinitionAsset>()) continue;
+			if (!TestTrue(TEXT("Only original arrows receive the independently proved category"),
+				Definition->IsA<UGridAmmoDefinitionAsset>() &&
+				Definition->ItemId == Arrows->ItemDefinitionId && Arrows->ItemType == EGridItemType::Misc &&
+				GridCanonicalPuzzleCategoryTags::CountReserved(Definition->Tags) == 0))
+				return false;
+			Definition->Tags.Add(GridCanonicalPuzzleCategoryTags::ForType(FName(TEXT("Misc"))));
+			++Projected;
+		}
+		if (!TestEqual(TEXT("One original non-ARM category projected"), Projected, 1)) return false;
+	}
 	for (int32 Index = 0; Index < Candidate->ItemDefinitions.Num(); ++Index)
 	{
 		TestTrue(TEXT("Real item definition has identical authored fields"),

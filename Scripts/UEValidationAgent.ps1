@@ -1022,7 +1022,7 @@ try {
         # Exact, one-shot 5G71 native package transaction after successful code validation.
         $PuzzleMigrationSubject = @(& git -C $WorktreePath log -1 --format=%s)
         if ($LASTEXITCODE -eq 0 -and $PuzzleMigrationSubject.Count -eq 1 -and
-            [string]$PuzzleMigrationSubject[0] -ceq 'ARM-CLEAN06.5G.71: guarded native puzzle category transaction') {
+            [string]$PuzzleMigrationSubject[0] -ceq 'ARM-CLEAN06.5G.71R: preserve complete original arrow parity and retry native transaction') {
             $PuzzleMigrationContext = 'UE5.5.4/ARM-CLEAN06.5G71'
             $PuzzleMigrationStage = 'HOOK_STATUS'
             try {

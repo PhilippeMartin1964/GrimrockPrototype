@@ -20,8 +20,8 @@ Assert-ArmX66OrdinaryPath $RunDir
 $StagePath = Join-Path $RunDir 'ArmClean065G71.stage'
 if ($SelfTest) { Set-Content -LiteralPath $StagePath -Value 'SELFTEST_INIT' -Encoding ASCII }
 $GitApplication = (Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
-$ExpectedParent = '1d7e42380d92e2dc97fcf17010c14bc41c49ac4c'
-$ExpectedSubject = 'ARM-CLEAN06.5G.71: guarded native puzzle category transaction'
+$ExpectedParent = '2c01895bbbd86cd4691a07c636fd62190fc2f6e7'
+$ExpectedSubject = 'ARM-CLEAN06.5G.71R: preserve complete original arrow parity and retry native transaction'
 $BinarySubject = 'ARM-CLEAN06.5G.71B: materialize 26 native puzzle category tags'
 $Packages = @(
     'Content/GrimrockPrototype/Core/DataAssets/CanonicalStage/Definitions/DA_Canonical_EmptyVial.uasset',
@@ -52,14 +52,11 @@ $Packages = @(
     'Content/GrimrockPrototype/Core/DataAssets/CanonicalStage/Definitions/DA_Canonical_Stone.uasset'
 )
 $CodePaths = @(
-    'Source/GrimrockPrototypeEditor/Private/ARMEMENT/GridEditorPuzzleCategoryMigrationPlan.h',
-    'Source/GrimrockPrototypeEditor/Private/Tests/GridEditorARMCLEAN065G69PuzzleCategoryTests.cpp',
-    'Source/GrimrockPrototypeEditor/Public/ARMEMENT/GridArmClean065G71PuzzleCategoryCommandlet.h',
-    'Source/GrimrockPrototypeEditor/Private/ARMEMENT/GridArmClean065G71PuzzleCategoryCommandlet.cpp',
+    'Source/GrimrockPrototypeEditor/Private/Tests/GridEditorARMCLEAN062YCompleteProductionPreviewTests.cpp',
     'Scripts/ApplyARM_CLEAN06_5G71_PuzzleCategories.ps1',
     'Scripts/UEValidationAgent.ps1',
-    'docs/Architecture/ARM_CLEAN06_5G71_NATIVE_PUZZLE_CATEGORIES.md',
-    'docs/Architecture/ARM_CLEAN06_CURRENT_HANDOFF.md'
+    'docs/Architecture/ARM_CLEAN06_CURRENT_HANDOFF.md',
+    'docs/Architecture/ARM_CLEAN06_5G71_NATIVE_PUZZLE_CATEGORIES.md'
 )
 function Set-Stage([string]$Value) {
     Set-Content -LiteralPath $StagePath -Value $Value -Encoding ASCII

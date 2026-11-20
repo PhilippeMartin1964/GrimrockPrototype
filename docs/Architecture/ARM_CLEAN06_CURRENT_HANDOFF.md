@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.71R — Relance après parité des flèches
+
+Parent 2c01895bbbd86cd4691a07c636fd62190fc2f6e7 ; [issue #209](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/209) : 26 tags sauvegardés et réouverts, fingerprint identique, un seul échec CompleteProductionPreview23, rollback confirmé propre. Le test reconstruit uniquement la catégorie Misc des flèches depuis la source historique sur la preview transitoire ; comparaison intégrale des 23 définitions inchangée. Relance native exacte et contrôlée, attendre statut natif et enfant binaire.
+
 ## ARM-CLEAN06.5G.71D — Diagnostic d'échec natif
 
 Parent ffd9b285a850fd39ab6df1119011d6657fcd2b45 : SilentTask et LocalAuto SUCCESS, transaction native FAILURE ; aucun commit binaire publié. Diagnostic read-only du run précédent exact avant vérification du worktree : étape, nombres de packages, égalité du fingerprint, nombre de fichiers sales, noms de tests en échec filtrés. Aucun log brut ni chemins locaux publiés. Ne pas relancer Apply avant analyse du rapport.
