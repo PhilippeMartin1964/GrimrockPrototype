@@ -1375,7 +1375,8 @@ float AGridLevelRuntimeActor::GetWorldItemWeightAtCell(int32 CellX, int32 CellY,
 		}
 		else
 		{
-			// The old definition mass is isolated to registry-less test worlds.
+			// Historical registry-less Automation path retains only a
+			// physical identity; the canonical mass reader fails closed.
 			const UGridItemDefinitionAsset* Definition = Entry.ItemDefinitionAsset.Get();
 			if (!IsValid(Definition)) continue;
 			Instance.RuntimeObjectId = Entry.ObjectId.IsValid() ? Entry.ObjectId :
@@ -1384,7 +1385,6 @@ float AGridLevelRuntimeActor::GetWorldItemWeightAtCell(int32 CellX, int32 CellY,
 				? Entry.ItemActor->GetItemDefinitionId() : Entry.ItemDefinitionId;
 			Instance.ItemLevel = Entry.ItemLevel;
 			Instance.Quantity = FMath::Max(1, Entry.Quantity);
-			Instance.Weight = Definition->Weight;
 		}
 		const FName ItemId = Instance.ItemDefinitionId;
 		float UnitWeight = 0.0f;

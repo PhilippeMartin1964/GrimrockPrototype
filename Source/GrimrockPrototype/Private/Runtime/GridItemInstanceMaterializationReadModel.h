@@ -5,8 +5,9 @@
 
 /**
  * ARM-CLEAN06.5G.94: validate physical identity against ItemSystem.
- * Canonical instances do not carry cached name or mass. Only isolated
- * historical Automation fixtures retain temporary C++ metadata.
+ * Canonical instances do not carry cached name or mass. Historical
+ * Automation fixtures may validate old definitions but never write metadata
+ * into the physical instance.
  */
 struct FGridItemInstanceMaterializationReadModel
 {
@@ -25,7 +26,7 @@ struct FGridItemInstanceMaterializationReadModel
         }
 
         // All mutations are staged; failures never alter a saved physical
-        // identity, ownership, light state, armor debt or cached metadata.
+        // identity, ownership, light state or armor debt.
         FGridItemInstance Candidate = InOutInstance;
         if (bCanonicalIdentity)
         {
@@ -36,9 +37,6 @@ struct FGridItemInstanceMaterializationReadModel
             {
                 return false; // Physical instances never inherit an obsolete default or family alias.
             }
-            // 5G93 proved the serialized copies redundant. Do not recreate them.
-            Candidate.Weight = 0.0f;
-            Candidate.DisplayName = FText::GetEmpty();
         }
         else
         {
@@ -60,11 +58,6 @@ struct FGridItemInstanceMaterializationReadModel
                 UnitWeight = Profile->WeightKg;
             }
             if (!FMath::IsFinite(UnitWeight) || UnitWeight < 0.0f) return false;
-            Candidate.Weight = UnitWeight;
-            if (Candidate.DisplayName.IsEmpty())
-            {
-                Candidate.DisplayName = LegacyDefinition->DisplayName;
-            }
 #else
             return false;
 #endif

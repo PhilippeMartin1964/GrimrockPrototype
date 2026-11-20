@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.118 — Retrait des dernières écritures runtime de caches
+
+Parent `1d893f2bde2e02c07e4079f7d39c809d7c126117` : publier après SilentTask et LocalAuto SUCCESS. La matérialisation, les projectiles et le calcul de masse au sol ne modifient plus `FGridItemInstance::Weight/DisplayName`, même pour les anciennes fixtures. Voir [5G.118](ARM_CLEAN06_5G118_RUNTIME_CACHE_WRITERS_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.117 — Contrats historiques sans copies d'instance
 
 Parent f7c7f4272028370ae1d25b62008bfd2fe0ccd23d : attendre SilentTask et LocalAuto SUCCESS. Les tests 3AG/AS, TD06.8 et ARMEMENT01.5 n'inspectent plus les copies C++ de nom/masse ; projection des seules définitions de caractérisation et comparaison des champs durables. Voir [5G.117](ARM_CLEAN06_5G117_LEGACY_FIXTURE_READ_MODEL.md).
