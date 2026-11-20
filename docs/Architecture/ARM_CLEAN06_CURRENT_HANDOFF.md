@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.81 — Isolation des pointeurs v27 de monde
+
+Parent a0c856aa958f02cc611aa8c48041d3fd43a78d97. Capture, restore projectile et arrivée PIT02 : aucun accès aux anciens pointeurs hors fixtures Automation sans GameInstance. Les champs v27 sont conservés pour audit et conversion ultérieure. Tests BC avec pointeur contradictoire au restore, PIT02 refus direct d'une identité inconnue sans consommation de file. Voir [5G.81](ARM_CLEAN06_5G81_WORLD_SAVE_POINTER_ISOLATION.md).
+
 ## ARM-CLEAN06.5G.80 — Projection des kits de départ sans repli en jeu
 
 Parent 7978db7d489ff73148ae7dc7a291e8f70cd66160. Les projections nom/masse/niveau/main refusent les identités inconnues dans un registre, et le wizard ne présente plus les lignes non résolues. Fixtures historiques isolées sans registre et sous Automation. Tests 3Y/3AF/3AO. Voir [5G.80](ARM_CLEAN06_5G80_STRICT_STARTER_PROJECTIONS.md).

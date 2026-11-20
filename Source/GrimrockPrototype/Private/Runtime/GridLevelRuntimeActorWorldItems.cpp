@@ -1,4 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "CoreGlobals.h"
 #include "Runtime/GridPlacementTransformResolver.h"
 
 #include "Core/GridDirectionUtils.h"
@@ -38,7 +39,7 @@ namespace
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		bool bRequireCanonical = true;
 #if WITH_DEV_AUTOMATION_TESTS
-		bRequireCanonical = GI != nullptr;
+		bRequireCanonical = !GIsAutomationTesting || GI != nullptr;
 #endif
 		FGridItemInstance Candidate;
 		Candidate.ItemLevel = Entry.ItemLevel;
@@ -402,7 +403,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 		RouteRegistry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
 	bool bRequireCanonical = true;
 #if WITH_DEV_AUTOMATION_TESTS
-	bRequireCanonical = RouteGI != nullptr;
+	bRequireCanonical = !GIsAutomationTesting || RouteGI != nullptr;
 #endif
 	const bool bCanonicalRoute = bCanonicalIdentity &&
 		RouteRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, RouteCanonical) &&
@@ -569,7 +570,10 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	// The physical ItemId/N-level is the sole source of world presentation
 	// for every registered family. Never serialize DA_Weapon_* along with
 	// a valid canonical ARM item crossing a pit.
-	PendingState.ItemDefinitionAsset = bCanonicalRoute ? nullptr : ItemDefinitionAsset;
+#if WITH_DEV_AUTOMATION_TESTS
+	if (!bRequireCanonical && !bCanonicalRoute)
+		PendingState.ItemDefinitionAsset = ItemDefinitionAsset;
+#endif
 
 	// A pending landing must not replace any already-owned destination row.
 	if (const FGridLevelRuntimeState* Previous = DungeonRuntimeState.LevelStates.Find(Relocation.TargetLevelId))
@@ -658,8 +662,17 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 		const bool bKnownCanonical = InboundRegistry &&
 			InboundRegistry->HasCanonicalItem(ItemState.ItemDefinitionId);
 		FGridResolvedItem InboundCanonical;
-		if (bKnownCanonical &&
-			!InboundRegistry->ResolveItem(ItemState.ItemDefinitionId, ItemState.ItemLevel, InboundCanonical))
+		bool bRequireCanonicalInbound = true;
+#if WITH_DEV_AUTOMATION_TESTS
+		bRequireCanonicalInbound = !GIsAutomationTesting || InboundGI != nullptr;
+#endif
+		const bool bValidCanonicalInbound = bKnownCanonical &&
+			InboundRegistry->ResolveItem(ItemState.ItemDefinitionId, ItemState.ItemLevel, InboundCanonical) &&
+			InboundCanonical.IsValid() && InboundCanonical.ItemId == ItemState.ItemDefinitionId &&
+			InboundCanonical.ItemLevel == ItemState.ItemLevel &&
+			(InboundCanonical.bIsArmament ? ItemState.ItemLevel >= 1 : ItemState.ItemLevel == 0) &&
+			ItemState.Quantity <= FMath::Max(1, InboundCanonical.MaxStack);
+		if ((bRequireCanonicalInbound || bKnownCanonical) && !bValidCanonicalInbound)
 		{
 			UE_LOG(LogGridLevelRuntime, Warning,
 				TEXT("GridPit PendingItem rejected Item=%s Level=%d Reason=InvalidCanonicalItem"),
@@ -668,8 +681,11 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 		}
 		// Every canonical ItemId (ARM N1-N20 included) lands by registry
 		// alone. Ignore stale pointers even when present in a v27 snapshot.
-		UGridItemDefinitionAsset* Definition = bKnownCanonical
-			? nullptr : PendingCopy.ItemDefinitionAsset.Get();
+		UGridItemDefinitionAsset* Definition = nullptr;
+#if WITH_DEV_AUTOMATION_TESTS
+		if (!bRequireCanonicalInbound && !bKnownCanonical)
+			Definition = PendingCopy.ItemDefinitionAsset.Get();
+#endif
 
 		if (!TryDropItemInstanceAtCellInternal(ItemInstance, Definition, ItemState.CellX, ItemState.CellY, EGridEdge::None, LocalOffset, false))
 		{
@@ -1029,7 +1045,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCellInternal(
 	FGridResolvedItem CanonicalDrop;
 	bool bRequireCanonical = true;
 #if WITH_DEV_AUTOMATION_TESTS
-	bRequireCanonical = DropGameInstance != nullptr;
+	bRequireCanonical = !GIsAutomationTesting || DropGameInstance != nullptr;
 #endif
 	const bool bResolvedCanonical = bCanonicalIdentity &&
 		Registry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, CanonicalDrop) &&

@@ -164,6 +164,11 @@ namespace ARMCLEAN063BC
             Test.TestNull(TEXT("Registered projectile cannot persist old DA_Item pointer"),
                 Saved->ProjectileDefinitionAsset.Get());
 
+            // Simulate a v27 archive carrying a stale, mismatching pointer.
+            FGridLevelRuntimeState* Mutable = F.Runtime->GetOrCreateRuntimeStateForCurrentLevel();
+            if (!Mutable || !Mutable->Items.Contains(Unit.RuntimeObjectId)) return false;
+            Contradictory->ItemDefinitionId = TEXT("Key_Copper");
+            Mutable->Items.FindChecked(Unit.RuntimeObjectId).ProjectileDefinitionAsset = Contradictory;
             if (!Test.TestTrue(TEXT("Save state restores as pickup"),
                 F.Runtime->ApplyCurrentLevelRuntimeState())) return false;
             int32 Pickups = 0;
@@ -222,6 +227,10 @@ namespace ARMCLEAN063BC
                 Saved->EmbeddedMonsterPersistenceId == Monster->PersistentMonsterId);
             Test.TestNull(TEXT("No legacy arrow asset saved"), Saved->ProjectileDefinitionAsset.Get());
 
+            FGridLevelRuntimeState* Mutable = F.Runtime->GetOrCreateRuntimeStateForCurrentLevel();
+            if (!Mutable || !Mutable->Items.Contains(Unit.RuntimeObjectId)) return false;
+            Contradictory->ItemDefinitionId = TEXT("Key_Copper");
+            Mutable->Items.FindChecked(Unit.RuntimeObjectId).ProjectileDefinitionAsset = Contradictory;
             if (!Test.TestTrue(TEXT("Restore embedded arrow after snapshot"),
                 F.Runtime->ApplyCurrentLevelRuntimeState())) return false;
             int32 Embedded = 0;

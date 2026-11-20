@@ -1,4 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "CoreGlobals.h"
 
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "EngineUtils.h"
@@ -137,7 +138,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 	// historical registry-less automation fixtures are not a production path.
 	bool bRequireCanonicalCapture = true;
 #if WITH_DEV_AUTOMATION_TESTS
-	bRequireCanonicalCapture = GetWorld() && GetWorld()->GetGameInstance();
+	bRequireCanonicalCapture = !GIsAutomationTesting || !GetWorld() || GetWorld()->GetGameInstance();
 #endif
 	RefreshWorldItemPhysicsCells();
 	TMap<FGuid, FGridRuntimeItemState> CapturedItems;
@@ -197,9 +198,6 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 	// In-flight items reload as pickups, not a second shot.
 	if (UWorld* World = GetWorld())
 	{
-		UGameInstance* GameInstance = World->GetGameInstance();
-		const UGridItemSubsystem* Canonical = GameInstance
-			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		for (TActorIterator<AGridThrownItemActor> It(World); It; ++It)
 		{
 			const AGridThrownItemActor* Arrow = *It;
@@ -239,11 +237,11 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 			Item.WorldMeshTransform = Item.bHasWorldMeshTransform ? FlightPose : Item.Transform;
 			if (!Arrow->bRangedAmmunitionProjectile)
 				Item.Transform.SetLocation(FlightPose.GetLocation());
-			// 06.3BC: a registered arrow's physical identity is ItemId/N0/GUID.
-			// Never persist an obsolete DA_Item_Arrows pointer for this source.
-			Item.ProjectileDefinitionAsset =
-				bRequireCanonicalCapture || (Canonical && Canonical->HasCanonicalItem(Item.ItemDefinitionId))
-					? nullptr : Arrow->GetItemDefinitionAsset();
+			// Only worldless historical fixtures still require this v27 field.
+#if WITH_DEV_AUTOMATION_TESTS
+			if (!bRequireCanonicalCapture)
+				Item.ProjectileDefinitionAsset = Arrow->GetItemDefinitionAsset();
+#endif
 			Item.bLightsEnabled = Arrow->AreItemLightsEnabled();
 			Item.ReadableContentAsset = Arrow->ThrownItemInstance.ReadableContentAsset;
 			Item.ReadableContentId = Arrow->ThrownItemInstance.ReadableContentId;
@@ -481,11 +479,12 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel();
 	const UGridItemSubsystem* RestoreRegistry =
 		FGridCanonicalWorldSnapshotReadModel::GetRegistry(GetWorld());
-	// Registry-less historical automation worlds are not a production path.
 	// Pending inbound items on an unvisited level are also validated.
+	bool bRequireCanonicalRestore = true;
 #if WITH_DEV_AUTOMATION_TESTS
-	if (GetWorld() && GetWorld()->GetGameInstance())
+	bRequireCanonicalRestore = !GIsAutomationTesting || !GetWorld() || GetWorld()->GetGameInstance();
 #endif
+	if (bRequireCanonicalRestore)
 	{
 		FString ItemError;
 		if (State && !FGridCanonicalWorldSnapshotReadModel::ValidateLevel(RestoreRegistry, *State, ItemError))
@@ -698,10 +697,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			// Restore the complete world profile for every registered
 			// physical ItemId, including ARM N1-N20 after a PIT transfer.
 			const bool bCanonicalWorld = bCanonicalItem;
-			UGridItemDefinitionAsset* ItemDefinition = bCanonicalWorld
-				? nullptr
-				: (IsValid(ItemState.ProjectileDefinitionAsset)
-					? ItemState.ProjectileDefinitionAsset.Get() : nullptr);
+			UGridItemDefinitionAsset* ItemDefinition = nullptr;
+#if WITH_DEV_AUTOMATION_TESTS
+			if (!bRequireCanonicalRestore && !bCanonicalWorld)
+				ItemDefinition = ItemState.ProjectileDefinitionAsset.Get();
+#endif
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, RuntimeItemDefinitionId, this, nullptr);
 			if (ItemActor)
 			{
@@ -910,10 +910,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				*Item.ItemDefinitionId.ToString(), Item.ItemLevel);
 			continue;
 		}
-		UGridItemDefinitionAsset* Definition = bCanonicalAmmo
-			? nullptr
-			: (IsValid(Item.ProjectileDefinitionAsset)
-				? Item.ProjectileDefinitionAsset.Get() : nullptr);
+		UGridItemDefinitionAsset* Definition = nullptr;
+#if WITH_DEV_AUTOMATION_TESTS
+		if (!bRequireCanonicalRestore && !bCanonicalAmmo)
+			Definition = Item.ProjectileDefinitionAsset.Get();
+#endif
 		FGridItemInstance Unit;
 		Unit.RuntimeObjectId = Pair.Key;
 		Unit.ItemDefinitionId = Item.ItemDefinitionId;

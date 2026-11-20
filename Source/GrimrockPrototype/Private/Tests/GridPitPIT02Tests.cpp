@@ -374,6 +374,23 @@ bool FGridClean064X1611CanonicalPitTransfer::RunTest(const FString&)
         Restored->VisualEffectsComponent->GetConfiguredEffectCount() ==
             CanonicalTorch.VisualEffects.Effects.Num());
 
+    // Direct inbound calls must refuse even a matching legacy pointer for
+    // an unknown physical ID, keeping the queued source intact.
+    FGridPendingWorldItemState Unknown;
+    Unknown.ItemState.ObjectId = FGuid::NewGuid();
+    Unknown.ItemState.ItemDefinitionId = TEXT("UnknownPitFixture_5G81");
+    Unknown.ItemState.CellX = 1;
+    Unknown.ItemState.CellY = 1;
+    ObsoleteTorch->ItemDefinitionId = Unknown.ItemState.ItemDefinitionId;
+    Unknown.ItemDefinitionAsset = ObsoleteTorch;
+    FGridLevelRuntimeState& Active = Runtime->DungeonRuntimeState.LevelStates.FindChecked(LowerId);
+    Active.PendingInboundItems.Add(Unknown.ItemState.ObjectId, Unknown);
+    AddExpectedError(TEXT("GridPit PendingItem rejected Item="), EAutomationExpectedErrorFlags::Contains, 1);
+    TestEqual(TEXT("Unknown inbound identity is refused directly"), Runtime->ApplyPendingInboundItemsForCurrentLevel(), 0);
+    TestTrue(TEXT("Rejected pending source remains queued"),
+        Active.PendingInboundItems.Contains(Unknown.ItemState.ObjectId));
+    Active.PendingInboundItems.Remove(Unknown.ItemState.ObjectId);
+
     const FGridLevelRuntimeState* After = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
     TestTrue(TEXT("Consumed inbound queue stays empty"), After &&
         !After->PendingInboundItems.Contains(Torch.RuntimeObjectId));
