@@ -271,6 +271,27 @@ function Get-PublicSafeDiagnostics {
                                 if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
                             }
                         }
+                        # 5G85: fixed assertion categories, never raw messages.
+                        if ($TestPath -ceq 'Grimrock.Editor.ARM.CLEAN06.5G85.WorldPointerPreflight' -and
+                            $State -match '^(?i:fail|failed|error)$' -and $Test.PSObject.Properties['entries']) {
+                            foreach ($Entry in @($Test.entries)) {
+                                if ($null -eq $Entry -or $null -eq $Entry.event) { continue }
+                                if ([string]$Entry.event.type -notmatch '^(?i:error|fatal|warning)$') { continue }
+                                $Message=[string]$Entry.event.message
+                                $Category='OTHER'
+                                if ($Message -match 'Canonical world preflight accepts') { $Category='PHYSICAL_GATE' }
+                                elseif ($Message -match 'Transient archive encodes|Decoded archive re-encodes') { $Category='ENCODE' }
+                                elseif ($Message -match 'archive decodes') { $Category='DECODE' }
+                                elseif ($Message -match 'All current saved properties round-trip') { $Category='REFLECTED_PARITY' }
+                                elseif ($Message -match 'Projection covers both physical rows') { $Category='ROW_COUNT' }
+                                elseif ($Message -match 'Private physical projection survives') { $Category='PROJECTION_PARITY' }
+                                elseif ($Message -match 'Projection excludes both retired pointers') { $Category='POINTER_EXCLUSION' }
+                                elseif ($Message -match 'Physical level change alters') { $Category='LEVEL_PROJECTION' }
+                                elseif ($Message -match 'Invalid non-ARM level refuses') { $Category='INVALID_LEVEL' }
+                                $Record='ARM-CLEAN06.5G85 synthetic proof : '+$Category
+                                if (-not $Safe.Contains($Record)) { $Safe.Add($Record) }
+                            }
+                        }
                         # ARM-CLEAN06.1: only a fixed, non-sensitive error
                         # classification may leave the private Automation report.
                         if ($TestPath -ceq 'Grimrock.RPG.ARM.CLEAN06_1.SingleResolver.AmmoAfterRegister' -and

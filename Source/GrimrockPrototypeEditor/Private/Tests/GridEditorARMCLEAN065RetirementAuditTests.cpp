@@ -180,24 +180,32 @@ bool FGridEditorARMCLEAN065G85WorldPreflight::RunTest(const FString&)
         FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(Registry.Get(), Save->DungeonRuntimeState, Error));
     TArray<uint8> Bytes;
     if (!TestTrue(TEXT("Transient archive encodes"), GridEditorAlchemySaveCopy::EncodeChecked(*Save.Get(), Bytes, Error))) return false;
-    TStrongObjectPtr<UGrimrockPartySaveGame> Loaded(GridEditorAlchemySaveCopy::LoadExact(Bytes, Error));
-    if (!TestTrue(TEXT("Transient archive decodes"), Loaded.IsValid())) return false;
-    TestTrue(TEXT("All current saved properties round-trip"), GridEditorAlchemySaveCopy::SameSaveProperties(*Save.Get(), *Loaded.Get(), Error));
-    const auto Projection = GridEditorWorldSaveProjection::Build(Save->DungeonRuntimeState);
+    // The parity helper explicitly compares objects originating from UE
+    // deserialization, not a fresh transient object's FText/derived caches.
+    // Exercise the same double-decode/re-encode sequence as the commandlet.
+    TStrongObjectPtr<UGrimrockPartySaveGame> Expected(GridEditorAlchemySaveCopy::LoadExact(Bytes, Error));
+    TStrongObjectPtr<UGrimrockPartySaveGame> Working(GridEditorAlchemySaveCopy::LoadExact(Bytes, Error));
+    if (!TestTrue(TEXT("Independent transient archive decodes"), Expected.IsValid() && Working.IsValid())) return false;
+    TArray<uint8> Reencoded;
+    if (!TestTrue(TEXT("Decoded archive re-encodes"), GridEditorAlchemySaveCopy::EncodeChecked(*Working.Get(), Reencoded, Error))) return false;
+    TStrongObjectPtr<UGrimrockPartySaveGame> Loaded(GridEditorAlchemySaveCopy::LoadExact(Reencoded, Error));
+    if (!TestTrue(TEXT("Reencoded archive decodes"), Loaded.IsValid())) return false;
+    TestTrue(TEXT("All current saved properties round-trip"), GridEditorAlchemySaveCopy::SameSaveProperties(*Expected.Get(), *Loaded.Get(), Error));
+    const auto Projection = GridEditorWorldSaveProjection::Build(Expected->DungeonRuntimeState);
     TestEqual(TEXT("Projection covers both physical rows"), Projection.Num(), 2);
     TestTrue(TEXT("Private physical projection survives independent decode"),
         Projection == GridEditorWorldSaveProjection::Build(Loaded->DungeonRuntimeState));
-    auto& Invalid = Level.PendingInboundItems.FindChecked(Pending.ItemState.ObjectId);
+    auto& Invalid = Expected->DungeonRuntimeState.LevelStates.FindChecked(TEXT("Fixture")).PendingInboundItems.FindChecked(Pending.ItemState.ObjectId);
     TStrongObjectPtr<UGridItemDefinitionAsset> Stale(NewObject<UGridItemDefinitionAsset>());
     Invalid.ItemDefinitionAsset = Stale.Get();
     Invalid.ItemState.ProjectileDefinitionAsset = Stale.Get();
     TestTrue(TEXT("Projection excludes both retired pointers"), Projection ==
-        GridEditorWorldSaveProjection::Build(Save->DungeonRuntimeState));
+        GridEditorWorldSaveProjection::Build(Expected->DungeonRuntimeState));
     Invalid.ItemState.ItemLevel = 1;
     TestFalse(TEXT("Physical level change alters the projection"), Projection ==
-        GridEditorWorldSaveProjection::Build(Save->DungeonRuntimeState));
+        GridEditorWorldSaveProjection::Build(Expected->DungeonRuntimeState));
     TestFalse(TEXT("Invalid non-ARM level refuses preflight"),
-        FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(Registry.Get(), Save->DungeonRuntimeState, Error));
+        FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(Registry.Get(), Expected->DungeonRuntimeState, Error));
     return !HasAnyErrors();
 }
 

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.85.1 — reprise du préflight synthétique
+
+Parent 4e61ac0a90e11a47b3a8cd56913583a04a2e40fc, issue #211 : unique test synthétique en échec. Éliminer la comparaison incorrecte objet neuf/objet désérialisé, garder la preuve complète et ajouter catégories de diagnostic filtrées. Le sujet 5G.85 déclenchera la preuve privée seulement après LocalAuto SUCCESS.
+
 ## ARM-CLEAN06.5G.85 — Préflight du retrait des pointeurs SaveGame
 
 Parent d6796390739ee172c21077ddb0cf4408a0655517. Réutiliser le gate runtime exact dans l'audit Editor ; scan Blueprint des deux structs et aller-retour mémoire des copies v27. Agent one-shot 5G85, troisième statut obligatoire, aucune écriture dans les saves live. Voir [5G.85](ARM_CLEAN06_5G85_WORLD_SAVE_PREFLIGHT.md).
