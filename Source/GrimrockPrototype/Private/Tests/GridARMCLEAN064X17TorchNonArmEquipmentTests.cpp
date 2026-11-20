@@ -434,8 +434,7 @@ bool FGridClean064X41CanonicalEquippedLight::RunTest(const FString&)
         return false;
     }
 
-    // Unknown historical items retain their old, explicit emitter until
-    // their authoring is converted separately.
+    // After cutover an explicitly seeded historical emitter must remain inert.
     const FName LegacyId(TEXT("Legacy_X41_Light"));
     UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Inventory);
     Legacy->ItemDefinitionId = LegacyId;
@@ -453,12 +452,12 @@ bool FGridClean064X41CanonicalEquippedLight::RunTest(const FString&)
     LegacyItem.EquipmentSlot = EGridEquipmentSlot::MainHand;
     Equipment.MainHand = LegacyItem;
     PartyLight->RefreshFromEquipment(F.Inventory, nullptr);
-    return TestTrue(TEXT("Out-of-registry legacy held light is preserved"),
+    return TestFalse(TEXT("Out-of-registry legacy held light is rejected"),
             F.Pawn->DoesEquippedItemEmitLight(LegacyItem)) &&
-        TestTrue(TEXT("Out-of-registry light remains available to party"),
+        TestFalse(TEXT("Historical source cannot illuminate the party"),
             PartyLight->HasActiveIlluminationSource()) &&
-        TestEqual(TEXT("Legacy source identity preserved"),
-            PartyLight->ActiveSourceId, LegacyId) &&
+        TestTrue(TEXT("No historical source identity"),
+            PartyLight->ActiveSourceId.IsNone()) &&
         !HasAnyErrors();
 }
 
@@ -564,7 +563,7 @@ bool FGridClean064X42HeldPhysicalArm::RunTest(const FString&)
         return false;
     }
 
-    // No data migration has occurred for genuinely unregistered items.
+    // Unregistered items no longer have a held-visual fallback.
     UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Inventory);
     const FName LegacyId(TEXT("Legacy_X42_Held"));
     Legacy->ItemDefinitionId = LegacyId;
@@ -575,12 +574,14 @@ bool FGridClean064X42HeldPhysicalArm::RunTest(const FString&)
     }
     FGridItemInstance LegacyItem = ARMCLEAN064X17::MakeItem(
         LegacyId, 0, CharacterId);
-    if (!TestTrue(TEXT("Out-of-registry held fallback still exists"),
+    AGridItemActor* PreviousHeld = F.Pawn->HeldItemActor.Get();
+    if (!TestFalse(TEXT("Unregistered instance cannot spawn held actor"),
             F.Pawn->EquipHeldItemFromInstance(LegacyItem)) ||
-        !TestNotNull(TEXT("Historical held actor remains spawnable"),
-            F.Pawn->HeldItemActor.Get()) ||
-        !TestTrue(TEXT("Historical actor retains historical source"),
-            F.Pawn->HeldItemActor->GetItemDefinitionAsset() == Legacy))
+        !TestFalse(TEXT("Unregistered ID cannot spawn held actor"),
+            F.Pawn->EquipHeldItem(LegacyId)) ||
+        !TestTrue(TEXT("Rejected historical item leaves canonical torch unchanged"),
+            F.Pawn->HeldItemActor.Get() == PreviousHeld &&
+            F.Pawn->GetHeldItemDefinitionId() == FName(TEXT("Item_Torch"))))
     {
         return false;
     }

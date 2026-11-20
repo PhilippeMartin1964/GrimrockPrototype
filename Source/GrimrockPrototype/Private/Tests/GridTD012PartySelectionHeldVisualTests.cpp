@@ -4,18 +4,19 @@
 #include "Engine/World.h"
 #include "Misc/AutomationTest.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UObject/UnrealType.h"
 
 namespace GridTD012Tests
 {
-	const FName CharacterZeroLightItemId(TEXT("TD012_CharacterZeroLight"));
+	const FName CharacterZeroLightItemId(TEXT("Item_Torch"));
 
 	struct FTestWorld
 	{
 		UWorld* World = nullptr;
+		FGridCanonicalLootTestScope RegistryScope;
 
 		FTestWorld()
 		{
@@ -37,6 +38,7 @@ namespace GridTD012Tests
 
 			FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
 			Context.SetCurrentWorld(World);
+			RegistryScope.Attach(World);
 			World->InitializeActorsForPlay(FURL());
 		}
 
@@ -47,6 +49,7 @@ namespace GridTD012Tests
 				return;
 			}
 
+			RegistryScope.Detach();
 			World->DestroyWorld(false);
 			if (GEngine)
 			{
@@ -92,14 +95,13 @@ namespace GridTD012Tests
 		Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
 		Inventory->PartyInventoryState.MaxActiveCharacters = 2;
 
-		UGridItemDefinitionAsset* LightDefinition = NewObject<UGridItemDefinitionAsset>(Inventory);
-		LightDefinition->ItemDefinitionId = CharacterZeroLightItemId;
-		LightDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-		LightDefinition->LightEmitter.bUsePointLight = true;
-		LightDefinition->LightEmitter.bDefaultEnabled = true;
-		if (!Inventory->RegisterItemDefinition(LightDefinition))
+		UGameInstance* GI = World->GetGameInstance();
+		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		FGridResolvedItem Light;
+		if (!Registry || !Registry->ResolveItem(CharacterZeroLightItemId, 0, Light) ||
+			!Light.LightEmitter.HasEmitter())
 		{
-			Test.AddError(TEXT("TD01.2 could not register its data-driven light item definition."));
+			Test.AddError(TEXT("TD01.2 could not resolve the canonical torch."));
 			return nullptr;
 		}
 

@@ -1,6 +1,5 @@
 #include "Runtime/GridPartyIlluminationComponent.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -100,7 +99,7 @@ void UGridPartyIlluminationComponent::RefreshFromEquipment(UGridPartyInventoryCo
 				continue;
 			}
 
-				FGridLightEmitterConfig CandidateConfig;
+			FGridLightEmitterConfig CandidateConfig;
 			bool bHasConfig = false;
 			const bool bCanonicalRegistered = Registry &&
 				Registry->HasCanonicalItem(CandidateItem.ItemDefinitionId);
@@ -118,17 +117,6 @@ void UGridPartyIlluminationComponent::RefreshFromEquipment(UGridPartyInventoryCo
 				// if a stale DA_Weapon_* still exists in inventory.
 				CandidateConfig = Canonical.LightEmitter;
 				bHasConfig = true;
-			}
-			else
-			{
-				// Genuine out-of-registry items remain temporarily historical.
-				UGridItemDefinitionAsset* CandidateDefinition =
-					Inventory->FindItemDefinition(CandidateItem.ItemDefinitionId);
-				if (CandidateDefinition)
-				{
-					CandidateConfig = CandidateDefinition->LightEmitter;
-					bHasConfig = true;
-				}
 			}
 
 			const float CandidateScore = bHasConfig

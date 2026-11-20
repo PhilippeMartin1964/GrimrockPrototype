@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.44 — Présentation tenue et illumination exclusivement canoniques
+
+Parent 10bac631a6752f534cd941b0c833cbce693ad197. Publication après deux statuts SUCCESS. EquipHeldItem/FromInstance, DoesEquippedItemEmitLight et RefreshFromEquipment n’utilisent plus d’ancienne définition ; le Blueprint ID-only conserve N0 non-ARM. PARTY-LIGHT01 migre ses deux sources synthétiques dans un registre transitoire, VFX013, TD01.2 et la partie visuelle de MON11.4.1 utilisent la vraie torche canonique tenue ; X41/X42 exigent le refus des anciennes sources hors registre. Voir [5G.44](ARM_CLEAN06_5G44_CANONICAL_HELD_LIGHT_RETIREMENT.md). Aucun asset/save modifié.
+
 ## ARM-CLEAN06.5G.43 — Transfert équipement/monde et restauration
 
 Parent 0770d411faa185d5171e0dd5afd44eef0d8877c0. Publication après deux statuts SUCCESS. Extraction et restauration vérifient l’identité, le niveau, la capacité d’une pile physique et la politique de main canonique ; fusion de restauration interdit GUID identique, niveau ou état mutable incompatible. L’échec de restauration du lancer utilitaire est journalisé. Tests 3AS et TD02.2 renforcés. Voir [5G.43](ARM_CLEAN06_5G43_EQUIPPED_WORLD_TRANSFER_GATE.md). Aucun asset/save modifié.

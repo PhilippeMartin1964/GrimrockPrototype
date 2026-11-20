@@ -2,10 +2,11 @@
 
 #include "Components/PointLightComponent.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/World.h"
 #include "Misc/AutomationTest.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridPartyIlluminationComponent.h"
@@ -20,6 +21,8 @@ namespace GridPartyLIGHT01Tests
 	struct FTestWorld
 	{
 		UWorld* World = nullptr;
+		UGameInstance* GI = nullptr;
+		UGridItemSubsystem* Registry = nullptr;
 
 		FTestWorld()
 		{
@@ -42,6 +45,10 @@ namespace GridPartyLIGHT01Tests
 
 			FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
 			Context.SetCurrentWorld(World);
+			GI = NewObject<UGameInstance>(GetTransientPackage());
+			GI->Init();
+			World->SetGameInstance(GI);
+			Registry = GI->GetSubsystem<UGridItemSubsystem>();
 			World->InitializeActorsForPlay(FURL());
 		}
 
@@ -52,6 +59,8 @@ namespace GridPartyLIGHT01Tests
 				return;
 			}
 
+			World->SetGameInstance(nullptr);
+			if (GI) GI->Shutdown();
 			World->DestroyWorld(false);
 			if (GEngine)
 			{
@@ -60,12 +69,14 @@ namespace GridPartyLIGHT01Tests
 		}
 	};
 
-	UGridItemDefinitionAsset* MakeLightDefinition(UObject* Outer, FName Id, float Intensity, float Radius)
+	UGridOtherEquipmentDefinitionAsset* MakeLightDefinition(UObject* Outer, FName Id, float Intensity, float Radius)
 	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
-		Definition->ItemDefinitionId = Id;
-		Definition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-		Definition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::OffHand);
+		UGridOtherEquipmentDefinitionAsset* Definition = NewObject<UGridOtherEquipmentDefinitionAsset>(Outer);
+		Definition->ItemId = Id;
+		Definition->DisplayName = FText::FromName(Id);
+		Definition->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+		Definition->EquipmentSlots.Add(EGridEquipmentSlot::OffHand);
+		Definition->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
 		Definition->LightEmitter.bUsePointLight = true;
 		Definition->LightEmitter.bDefaultEnabled = true;
 		Definition->LightEmitter.PointLightRelativeLocation = FVector(91.0f, 37.0f, 22.0f);
@@ -108,6 +119,21 @@ bool FGridPartyLIGHT01EquipmentDrivenIlluminationTest::RunTest(const FString& Pa
 		return false;
 	}
 
+	// Isolated test-only root, with the production catalogues and two authored
+	// canonical lights. No old definition registration or disk mutation.
+	if (!TestNotNull(TEXT("Fixture ItemSystem"), TestWorld.Registry)) return false;
+	UGridItemSystemAsset* Production = TestWorld.Registry->LoadConfiguredItemSystemForPreview();
+	if (!TestNotNull(TEXT("Configured production root"), Production)) return false;
+	UGridItemSystemAsset* FixtureRoot = DuplicateObject<UGridItemSystemAsset>(Production, TestWorld.GI);
+	FixtureRoot->ItemDefinitions.Add(GridPartyLIGHT01Tests::MakeLightDefinition(FixtureRoot, GridPartyLIGHT01Tests::WeakLightId, 100.0f, 250.0f));
+	FixtureRoot->ItemDefinitions.Add(GridPartyLIGHT01Tests::MakeLightDefinition(FixtureRoot, GridPartyLIGHT01Tests::StrongLightId, 450.0f, 625.0f));
+	TestWorld.Registry->Deinitialize(); // Only this isolated fixture subsystem.
+	TArray<FString> Errors;
+	if (!TestTrue(TEXT("Canonical light fixtures register"), TestWorld.Registry->RegisterItemSystem(FixtureRoot, Errors)))
+	{
+		for (const FString& Error : Errors) AddError(Error);
+		return false;
+	}
 	AGrimrockPartyPawn* PartyPawn = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
 	TestNotNull(TEXT("Party pawn is spawned"), PartyPawn);
 	if (!PartyPawn || !PartyPawn->PartyInventoryComponent)
@@ -140,11 +166,6 @@ bool FGridPartyLIGHT01EquipmentDrivenIlluminationTest::RunTest(const FString& Pa
 	Inventory->PartyInventoryState.ActiveCharacters[1].CharacterId = FGuid::NewGuid();
 	Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
 	Inventory->PartyInventoryState.MaxActiveCharacters = 2;
-
-	UGridItemDefinitionAsset* WeakDefinition = GridPartyLIGHT01Tests::MakeLightDefinition(Inventory, GridPartyLIGHT01Tests::WeakLightId, 100.0f, 250.0f);
-	UGridItemDefinitionAsset* StrongDefinition = GridPartyLIGHT01Tests::MakeLightDefinition(Inventory, GridPartyLIGHT01Tests::StrongLightId, 450.0f, 625.0f);
-	TestTrue(TEXT("Weak light definition registers"), Inventory->RegisterItemDefinition(WeakDefinition));
-	TestTrue(TEXT("Strong light definition registers"), Inventory->RegisterItemDefinition(StrongDefinition));
 
 	Inventory->PartyInventoryState.ActiveEquipment[1].OffHand = GridPartyLIGHT01Tests::MakeEquippedItem(
 		GridPartyLIGHT01Tests::StrongLightId, Inventory->PartyInventoryState.ActiveCharacters[1].CharacterId, 1, EGridEquipmentSlot::OffHand);

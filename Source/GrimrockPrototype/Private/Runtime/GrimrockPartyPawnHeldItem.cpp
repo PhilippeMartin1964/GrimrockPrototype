@@ -19,111 +19,25 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridItemTransfer, Log, All);
 
 bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 {
-	if (ItemDefinitionId.IsNone())
-	{
-		return false;
-	}
-
-	if (!LevelRuntimeActor)
-	{
-		LevelRuntimeActor = Cast<AGridLevelRuntimeActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridLevelRuntimeActor::StaticClass()));
-	}
-
-	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(this, ItemDefinitionId);
-	const UWorld* OwningWorld = GetWorld();
-	UGameInstance* GameInstance = OwningWorld ? OwningWorld->GetGameInstance() : nullptr;
-	const UGridItemSubsystem* Registry = GameInstance
-		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	// Compatibility of the reflected ID-only API, not of the old item data:
+	// it can display an unlevelled canonical non-ARM, never invent ARM N1.
+	const UWorld* World = GetWorld();
+	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	FGridResolvedItem Canonical;
-	// EquipHeldItem receives an ID, not an ItemLevel. Only genuinely
-	// unlevelled registered NON-ARM items (such as the torch) can use N0.
-	// A pointerless ARM may never be guessed into a N1 equipped visual.
-	const bool bCanonicalNonArm = Registry &&
-		Registry->HasCanonicalItem(ItemDefinitionId) &&
-		Registry->ResolveItem(ItemDefinitionId, 0, Canonical) &&
-		!Canonical.bIsArmament;
-	// The legacy Blueprint entry point only has an ItemId. It cannot
-	// determine an ARM's N1-N20, so it must never generate a canonical
-	// ARM visual by guessing a level or by reading DA_Weapon_*.
-	if (Registry && Registry->HasCanonicalItem(ItemDefinitionId) && !bCanonicalNonArm)
+	if (!Registry || !Registry->ResolveItem(ItemDefinitionId, 0, Canonical) ||
+		!Canonical.IsValid() || Canonical.bIsArmament)
 	{
-		UE_LOG(LogGridItemTransfer, Warning,
-			TEXT("Held ARM visual requires equipped ItemLevel: %s."),
-			*ItemDefinitionId.ToString());
 		return false;
 	}
-	if (!ItemDefinition && !bCanonicalNonArm)
-	{
-		UE_LOG(LogGridItemTransfer, Warning,
-			TEXT("Held item equip failed: item definition %s could not be resolved."), *ItemDefinitionId.ToString());
-		return false;
-	}
-
-	ClearHeldItem();
-
-	USceneComponent* AttachParent = HeldItemRoot ? HeldItemRoot.Get() : GetRootComponent();
-	if (LevelRuntimeActor)
-	{
-		HeldItemActor = LevelRuntimeActor->SpawnItemActorForDefinition(
-			bCanonicalNonArm ? nullptr : ItemDefinition, ItemDefinitionId, this, AttachParent);
-	}
-	else if (UWorld* World = GetWorld())
-	{
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
-		SpawnParams.Instigator = GetInstigator();
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		HeldItemActor = World->SpawnActor<AGridItemActor>(AGridItemActor::StaticClass(), FTransform::Identity, SpawnParams);
-		if (HeldItemActor && !bCanonicalNonArm)
-		{
-			HeldItemActor->InitializeFromItemDefinition(ItemDefinition, FGuid());
-		}
-	}
-
-	if (!HeldItemActor)
-	{
-		UE_LOG(LogGridItemTransfer, Warning, TEXT("Held item equip failed: could not spawn item definition %s."), *ItemDefinitionId.ToString());
-		return false;
-	}
-
-	if (bCanonicalNonArm)
-	{
-		FGridItemInstance CanonicalInstance;
-		CanonicalInstance.RuntimeObjectId = FGuid::NewGuid();
-		CanonicalInstance.ItemDefinitionId = ItemDefinitionId;
-		CanonicalInstance.ItemLevel = 0;
-		CanonicalInstance.Quantity = 1;
-		if (!HeldItemActor->InitializeFromCanonicalItem(CanonicalInstance, Registry))
-		{
-			HeldItemActor->Destroy();
-			HeldItemActor = nullptr;
-			return false; // Registered identity must never degrade to old art.
-		}
-	}
-	if (HeldItemActor->MeshComponent)
-	{
-		HeldItemActor->MeshComponent->SetStaticMesh(bCanonicalNonArm
-			? Canonical.EquippedMesh.LoadSynchronous() : ItemDefinition->LoadHeldMesh());
-	}
-	if (HeldItemActor->LightEmitterComponent)
-	{
-		// Independent VisualEffects stay on the held mesh; its local
-		// PointLight is delegated to the party illumination proxy.
-		HeldItemActor->LightEmitterComponent->SetPointLightPresentationEnabled(false);
-	}
-	HeldItemActor->ConfigureAsAttachedItem();
-	HeldItemActor->AttachToComponent(AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-	HeldItemActor->SetActorRelativeLocation(HeldItemRelativeLocation);
-	HeldItemActor->SetActorRelativeRotation(HeldItemRelativeRotation);
-	HeldItemActor->SetActorRelativeScale3D(HeldItemRelativeScale);
-	HeldItemActor->OnPlacedInWorld();
-	HeldItemDefinitionId = ItemDefinitionId;
-
-	UE_LOG(LogGridItemTransfer, Verbose, TEXT("Held item equipped: %s Mesh=%s"), *ItemDefinitionId.ToString(),
-		HeldItemActor->MeshComponent ? *GetNameSafe(HeldItemActor->MeshComponent->GetStaticMesh()) : TEXT("None"));
-	return true;
+	FGridItemInstance Visual;
+	Visual.RuntimeObjectId = FGuid::NewGuid();
+	Visual.ItemDefinitionId = ItemDefinitionId;
+	Visual.ItemLevel = 0;
+	Visual.Quantity = 1;
+	Visual.bLightsEnabled = Canonical.LightEmitter.HasEmitter() && Canonical.LightEmitter.bDefaultEnabled;
+	return EquipHeldItemFromInstance(Visual);
 }
-
 
 // X.42: the selected equipped instance is the only place where ARM
 // ItemLevel N1-N20 is known. Resolve its complete visual without ever
@@ -139,9 +53,7 @@ bool AGrimrockPartyPawn::EquipHeldItemFromInstance(const FGridItemInstance& Item
 	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	if (!Registry || !Registry->HasCanonicalItem(Item.ItemDefinitionId))
 	{
-		// Only genuinely unregistered historical sources keep their
-		// pre-conversion ItemId-only path.
-		return EquipHeldItem(Item.ItemDefinitionId);
+		return false;
 	}
 
 	FGridResolvedItem Canonical;
@@ -267,8 +179,7 @@ bool AGrimrockPartyPawn::DoesEquippedItemEmitLight(const FGridItemInstance& Item
 		return (Canonical.bIsArmament || Item.ItemLevel == 0) &&
 			Canonical.LightEmitter.HasEmitter();
 	}
-	const UGridItemDefinitionAsset* ItemDefinition = ResolveEquippedItemDefinition(Item);
-	return ItemDefinition && ItemDefinition->HasLightEmitter();
+	return false; // Unknown identities have no held-light authority.
 }
 
 void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()

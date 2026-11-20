@@ -3,6 +3,8 @@
 #include "Components/PointLightComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/World.h"
 #include "Misc/AutomationTest.h"
 #include "NiagaraComponent.h"
@@ -18,6 +20,7 @@ namespace GridItemVFX013RuntimeTests
     struct FTestWorld
     {
         UWorld* World = nullptr;
+        UGameInstance* GI = nullptr;
 
         FTestWorld()
         {
@@ -39,6 +42,9 @@ namespace GridItemVFX013RuntimeTests
             {
                 FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
                 Context.SetCurrentWorld(World);
+                GI = NewObject<UGameInstance>(GetTransientPackage());
+                GI->Init();
+                World->SetGameInstance(GI);
                 World->InitializeActorsForPlay(FURL());
             }
         }
@@ -47,6 +53,8 @@ namespace GridItemVFX013RuntimeTests
         {
             if (World)
             {
+                World->SetGameInstance(nullptr);
+                if (GI) GI->Shutdown();
                 World->DestroyWorld(false);
                 if (GEngine)
                 {
@@ -147,9 +155,9 @@ bool FGridItemVFX013TorchRuntimeTest::RunTest(const FString& Parameters)
     }
 
     Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded();
-    if (!TestTrue(TEXT("Torch definition registers for held-item resolution"),
-        Party->PartyInventoryComponent->RegisterItemDefinition(Torch)) ||
-        !TestTrue(TEXT("Generic pawn can equip the authored torch"),
+    const UGridItemSubsystem* Registry = TestWorld.GI ? TestWorld.GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+    if (!TestTrue(TEXT("Canonical torch is registered"), Registry && Registry->HasCanonicalItem(Torch->ItemDefinitionId)) ||
+        !TestTrue(TEXT("Generic pawn can equip the canonical torch"),
             Party->EquipHeldItem(Torch->ItemDefinitionId)))
     {
         return false;

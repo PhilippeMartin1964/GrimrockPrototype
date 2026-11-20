@@ -171,23 +171,20 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	Party->SyncHeldVisualFromSelectedCharacterEquipment();
 	TestNull(TEXT("A non-light weapon has no permanent held visual"), Party->HeldItemActor.Get());
 
-	UGridItemDefinitionAsset* TorchDefinition = NewObject<UGridItemDefinitionAsset>(Party);
-	TorchDefinition->ItemDefinitionId = TEXT("Item_Torch");
-	TorchDefinition->DisplayName = FText::FromString(TEXT("Torche"));
-	TorchDefinition->ItemType = EGridItemType::Torch;
-	TorchDefinition->Weight = 1.0f;
-	TorchDefinition->LightEmitter.bUsePointLight = true;
-	TorchDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::OffHand);
-	UStaticMesh* TorchMesh = NewObject<UStaticMesh>(Party);
-	TorchDefinition->WorldMesh = TorchMesh;
-	Party->PartyInventoryComponent->RegisterItemDefinition(TorchDefinition);
+	// Only the held-light portion of this historical combat fixture uses
+	// the real registry; the subsequent synthetic shuriken test stays isolated.
+	FGridCanonicalLootTestScope TorchRegistryScope;
+	if (!TestTrue(TEXT("Torch registry attaches"), TorchRegistryScope.Attach(TestWorld.World))) return false;
+	FGridResolvedItem Torch;
+	if (!TestTrue(TEXT("Real canonical torch resolves"), TorchRegistryScope.Registry->ResolveItem(TEXT("Item_Torch"), 0, Torch))) return false;
+	UStaticMesh* TorchMesh = Torch.EquippedMesh.LoadSynchronous();
 
 	FGridItemInstance EquippedTorch;
 	EquippedTorch.RuntimeObjectId = FGuid::NewGuid();
-	EquippedTorch.ItemDefinitionId = TorchDefinition->ItemDefinitionId;
-	EquippedTorch.DisplayName = TorchDefinition->DisplayName;
+	EquippedTorch.ItemDefinitionId = Torch.ItemId;
+	EquippedTorch.DisplayName = Torch.DisplayName;
 	EquippedTorch.Quantity = 1;
-	EquippedTorch.Weight = TorchDefinition->Weight;
+	EquippedTorch.Weight = Torch.WeightKg;
 	EquippedTorch.bLightsEnabled = true;
 	EquippedTorch.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	EquippedTorch.OwnerGuid = Character.CharacterId;
@@ -196,12 +193,13 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].OffHand = EquippedTorch;
 	Party->SyncHeldVisualFromSelectedCharacterEquipment();
 	TestNotNull(TEXT("An equipped light keeps its held visual"), Party->HeldItemActor.Get());
-	TestEqual(TEXT("The held light uses its world mesh"),
+	TestEqual(TEXT("The held light uses its canonical equipped mesh"),
 		Party->HeldItemActor && Party->HeldItemActor->MeshComponent ? Party->HeldItemActor->MeshComponent->GetStaticMesh().Get() : nullptr, TorchMesh);
 
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
 	Party->SyncHeldVisualFromSelectedCharacterEquipment();
 	TestNull(TEXT("Removing the light does not reveal the equipped weapon"), Party->HeldItemActor.Get());
+	TorchRegistryScope.Detach();
 
 	AGridMonsterActor* TargetMonster = TestWorld.World->SpawnActor<AGridMonsterActor>();
 	TargetMonster->PersistentMonsterId = FGuid::NewGuid();
