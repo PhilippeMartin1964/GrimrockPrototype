@@ -158,6 +158,19 @@ namespace ARMCLEAN063BD
         // report so a failure can be diagnosed without private machine logs.
         if (FCString::Strcmp(Scenario, TEXT("Presentation")) == 0)
         {
+            FGridResolvedItem Resolved;
+            if (!Test.TestTrue(TEXT("Actual canonical tags resolve"),
+                F.Registry->ResolveItem(ArrowId, 0, Resolved))) return false;
+            const FName FakeTag(TEXT("ARM5G65_ContradictoryTag"));
+            Actor->ItemTags.Reset();
+            Actor->ItemTags.Add(FakeTag);
+            Test.TestFalse(TEXT("Copied actor tags cannot grant a capability"), Actor->HasItemTag(FakeTag));
+            for (FName Tag : Resolved.Tags)
+                Test.TestTrue(TEXT("Canonical tag survives contradictory actor cache"), Actor->HasItemTag(Tag));
+            Actor->CanonicalWorldItemLevel = 1;
+            for (FName Tag : Resolved.Tags)
+                Test.TestFalse(TEXT("Invalid non-ARM physical level grants no tag"), Actor->HasItemTag(Tag));
+            Actor->CanonicalWorldItemLevel = 0;
             return !Test.HasAnyErrors();
         }
         if (FCString::Strcmp(Scenario, TEXT("RegisteredLevelGuards")) == 0)
@@ -185,9 +198,15 @@ namespace ARMCLEAN063BD
             UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Runtime);
             Legacy->ItemDefinitionId = TEXT("Legacy_WorldPickup_BD");
             LegacyActor->InitializeFromItemDefinition(Legacy, FGuid::NewGuid());
-            Test.TestEqual(TEXT("Unknown item retains historical definition-first resolution"),
+            Test.TestTrue(TEXT("Configured registry rejects unknown physical identity"),
                 FGridWorldPickupIdentityReadModel::Resolve(
-                    LegacyActor, TEXT("Legacy_Entry_BD"), 0), Legacy->ItemDefinitionId);
+                    LegacyActor, TEXT("Legacy_Entry_BD"), 0).IsNone());
+            const FName Physical = LegacyActor->ItemDefinitionId;
+            Legacy->ItemDefinitionId = ArrowId;
+            Test.TestEqual(TEXT("Historical definition cannot rename physical identity"),
+                LegacyActor->GetItemDefinitionId(), Physical);
+            Test.TestTrue(TEXT("Registered old pointer cannot rescue unknown actor"),
+                FGridWorldPickupIdentityReadModel::Resolve(LegacyActor, ArrowId, 0).IsNone());
             return !Test.HasAnyErrors();
         }
 

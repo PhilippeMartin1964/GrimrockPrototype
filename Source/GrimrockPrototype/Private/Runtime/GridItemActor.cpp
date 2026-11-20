@@ -498,30 +498,38 @@ UGridItemDefinitionAsset* AGridItemActor::GetItemDefinitionAsset() const
 
 FName AGridItemActor::GetItemDefinitionId() const
 {
-	// The actor's materialized ItemId is authoritative for registered items.
-	// An optional pre-conversion DA_Item can stay attached for visuals, but
-	// must never rename a canonical pickup or block ApplyCanonicalWorldVisual.
-	if (!ItemDefinitionId.IsNone())
-	{
-		const UWorld* World = GetWorld();
-		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
-		const UGridItemSubsystem* Registry = GI
-			? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		if (Registry && Registry->HasCanonicalItem(ItemDefinitionId))
-		{
-			return ItemDefinitionId;
-		}
-	}
-	if (ItemDefinitionAsset && !ItemDefinitionAsset->ItemDefinitionId.IsNone())
-	{
-		return ItemDefinitionAsset->ItemDefinitionId;
-	}
+	// The materialized physical identity is never renamed by a definition.
+	// Consumers validate membership and physical level separately.
 	return ItemDefinitionId;
 }
 
 bool AGridItemActor::HasItemTag(FName Tag) const
 {
-	return !Tag.IsNone() && ItemTags.Contains(Tag);
+	if (Tag.IsNone()) return false;
+	const UWorld* World = GetWorld();
+	const UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	FGridItemInstance Instance;
+	Instance.RuntimeObjectId = RuntimeObjectId;
+	Instance.ItemDefinitionId = ItemDefinitionId;
+	Instance.ItemLevel = CanonicalWorldItemLevel;
+	Instance.Quantity = 1;
+	if (Registry)
+	{
+		FGridResolvedItem Item;
+		return FGridWorldPhysicsMassReadModel::TryResolveCanonical(Registry, Instance, Item) &&
+			Item.Tags.Contains(Tag);
+	}
+	if (!GI && Instance.IsValid() && CanonicalWorldPresentation.IsValid() &&
+		CanonicalWorldPresentation.ItemId == Instance.ItemDefinitionId &&
+		CanonicalWorldPresentation.ItemLevel == Instance.ItemLevel)
+	{
+		return CanonicalWorldPresentation.Tags.Contains(Tag);
+	}
+#if WITH_DEV_AUTOMATION_TESTS
+	if (!GI && GIsAutomationTesting) return ItemTags.Contains(Tag);
+#endif
+	return false;
 }
 
 void AGridItemActor::SetRuntimeCell(int32 InCellX, int32 InCellY)

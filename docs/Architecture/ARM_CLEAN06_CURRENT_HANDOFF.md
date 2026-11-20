@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.65 — Identité et tags physiques
+
+Parent d6545431433898b9d76b6dbb4afa81479a5581c2. Getter d'identité physique sans ancien pointeur, lecteur de ramassage refuse les ID inconnus en registre configuré, tags lus au niveau canonique exact. Voir [5G.65](ARM_CLEAN06_5G65_PHYSICAL_IDENTITY_TAGS.md).
+
 ## ARM-CLEAN06.5G.64 — Autorité canonique du scintillement
 
 Parent b3e4ea14ee266ebd05f178352c5c9e3bdad533bd. Le scintillement des pickups résout le profil canonique exact ; aucune ancienne définition ne peut activer ou modifier l'overlay en production. Fixtures isolées conservées. Voir [5G.64](ARM_CLEAN06_5G64_CANONICAL_WORLD_SPARKLE.md).

@@ -11,8 +11,8 @@
  * the physical object. An old DA_Item_* cannot rename a registered item
  * during pickup or SaveGame capture.
  *
- * Only unregistered identities retain their historical definition-first
- * lookup until ARM-CLEAN06.4 has converted the binary assets.
+ * Historical definition-first lookup is restricted to isolated
+ * registry-less Automation fixtures.
  */
 struct FGridWorldPickupIdentityReadModel
 {
@@ -23,19 +23,13 @@ struct FGridWorldPickupIdentityReadModel
             return EntryItemId;
         }
 
-        const UGridItemDefinitionAsset* Legacy = ItemActor->GetItemDefinitionAsset();
-        const FName LegacyItemId = IsValid(Legacy) ? Legacy->ItemDefinitionId : NAME_None;
         const FName PhysicalItemId = ItemActor->ItemDefinitionId;
         const UWorld* World = ItemActor->GetWorld();
         UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
         const UGridItemSubsystem* Registry = GameInstance
             ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 
-        const bool bKnownCanonical = Registry &&
-            (Registry->HasCanonicalItem(EntryItemId) ||
-             Registry->HasCanonicalItem(PhysicalItemId) ||
-             Registry->HasCanonicalItem(LegacyItemId));
-        if (bKnownCanonical)
+        if (Registry)
         {
             const FName Candidate = !EntryItemId.IsNone() ? EntryItemId : PhysicalItemId;
             // An old definition can contradict both identities, but a
@@ -56,15 +50,24 @@ struct FGridWorldPickupIdentityReadModel
                 Physical.FixedItemLevel == ItemLevel ? Candidate : NAME_None;
         }
 
-        // Preserve the exact old behavior for IDs not yet migrated.
-        if (!LegacyItemId.IsNone())
+        // Explicit canonical initialization in an isolated world has
+        // a trustworthy resolved projection, not a legacy definition.
+        const FGridResolvedItem& Projected = ItemActor->CanonicalWorldPresentation;
+        if (!GameInstance && Projected.IsValid() && !PhysicalItemId.IsNone() &&
+            Projected.ItemId == PhysicalItemId && Projected.ItemLevel == ItemLevel &&
+            ItemActor->CanonicalWorldItemLevel == ItemLevel &&
+            (EntryItemId.IsNone() || EntryItemId == PhysicalItemId))
         {
-            return LegacyItemId;
+            return PhysicalItemId;
         }
-        if (!ItemActor->GetItemDefinitionId().IsNone())
+#if WITH_DEV_AUTOMATION_TESTS
+        if (!GameInstance && GIsAutomationTesting)
         {
-            return ItemActor->GetItemDefinitionId();
+            const UGridItemDefinitionAsset* Legacy = ItemActor->GetItemDefinitionAsset();
+            if (IsValid(Legacy) && !Legacy->ItemDefinitionId.IsNone()) return Legacy->ItemDefinitionId;
+            return !PhysicalItemId.IsNone() ? PhysicalItemId : EntryItemId;
         }
-        return EntryItemId;
+#endif
+        return NAME_None;
     }
 };
