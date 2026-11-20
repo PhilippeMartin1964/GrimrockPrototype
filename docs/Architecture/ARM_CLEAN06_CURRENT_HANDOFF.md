@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.77 — Préflight Blueprint des réceptacles
+
+Parent 254dadf2e72cca777239a21f502096138952cc78. MIG09 étend le scan à /Game, vérifie appels TryInsertItem et types FGridContainedReceptacleItem sur variables et pins de graphes et CDO de réceptacle vide ; aucune propriété ou fonction retirée. Un usage bloquera le retrait réfléchi et exigera analyse. Voir [5G.77](ARM_CLEAN06_5G77_RECEPTACLE_BLUEPRINT_PREFLIGHT.md).
+
 ## ARM-CLEAN06.5G.76 — Retrait de la transaction catégories
 
 Parent ab74873252dac962923d658a302338a2f4a83aaf. La transaction 5G.71B et le runtime 5G.72 étant validés, retirer commandlet, script, plan d'écriture et hooks 5G.68/71D/71R de l'agent. La preuve native permanente contrôle 26/26 tags présents et les 466 résolutions directement, sans dépendance à l'ancien auteur ni production d'un rapport par test. Voir [5G.76](ARM_CLEAN06_5G76_RETIRE_PUZZLE_MIGRATION.md).

@@ -7,6 +7,9 @@
 #include "Engine/Blueprint.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridReceptacleActor.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
 #include "K2Node_CallFunction.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Modules/ModuleManager.h"
@@ -25,7 +28,7 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 	AssetRegistry.SearchAllAssets(true);
 
 	FARFilter Filter;
-	Filter.PackagePaths.Add(FName(TEXT("/Game/GrimrockPrototype")));
+	Filter.PackagePaths.Add(FName(TEXT("/Game")));
 	Filter.ClassPaths.Add(UBlueprint::StaticClass()->GetClassPathName());
 	Filter.bRecursivePaths = true;
 	Filter.bRecursiveClasses = true;
@@ -44,10 +47,18 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		FName(TEXT("SetSelectedObjectItemDefinitionAsset")),
 		FName(TEXT("SyncSelectedItemDefinitionIdFromAsset")),
 		FName(TEXT("RegisterItemDefinition")),
-		FName(TEXT("FindItemDefinition"))
+		FName(TEXT("FindItemDefinition")),
+		FName(TEXT("TryInsertItem"))
 	};
 
 	TArray<FString> LegacyReferences;
+	TArray<FString> ContainedStructReferences;
+	const UScriptStruct* ContainedStruct = FGridContainedReceptacleItem::StaticStruct();
+	const auto ReferencesContainedStruct = [ContainedStruct](const FEdGraphPinType& PinType)
+	{
+		return PinType.PinSubCategoryObject.Get() == ContainedStruct ||
+			PinType.PinValueType.TerminalSubCategoryObject.Get() == ContainedStruct;
+	};
 	int32 LoadedBlueprintCount = 0;
 
 	for (const FAssetData& BlueprintAssetData : BlueprintAssets)
@@ -61,6 +72,36 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		}
 
 		++LoadedBlueprintCount;
+		if (Blueprint->GeneratedClass &&
+			Blueprint->GeneratedClass->IsChildOf(AGridReceptacleActor::StaticClass()))
+		{
+			const auto* CDO = Cast<AGridReceptacleActor>(Blueprint->GeneratedClass->GetDefaultObject());
+			if (!CDO || !CDO->ContainedItems.IsEmpty())
+				ContainedStructReferences.Add(BlueprintAssetData.PackageName.ToString() +
+					TEXT(" :: authored runtime container is not empty or unavailable"));
+		}
+
+		// Conservative preflight before removing a reflected field from the
+		// contained-item struct. Inspect the whole typed graph surface,
+		// including split/Make/Break pins, not just connected old fields.
+		for (const FBPVariableDescription& Variable : Blueprint->NewVariables)
+		{
+			if (ReferencesContainedStruct(Variable.VarType))
+				ContainedStructReferences.Add(BlueprintAssetData.PackageName.ToString() +
+					TEXT(" :: Variable=") + Variable.VarName.ToString());
+		}
+		TArray<UEdGraphNode*> Nodes;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UEdGraphNode>(Blueprint, Nodes);
+		for (const UEdGraphNode* Node : Nodes)
+		{
+			if (!Node) continue;
+			for (const UEdGraphPin* Pin : Node->Pins)
+			{
+				if (Pin && ReferencesContainedStruct(Pin->PinType))
+					ContainedStructReferences.Add(FString::Printf(TEXT("%s :: Node=%s :: Pin=%s"),
+						*BlueprintAssetData.PackageName.ToString(), *GetNameSafe(Node), *Pin->PinName.ToString()));
+			}
+		}
 		TArray<UK2Node_CallFunction*> CallFunctions;
 		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_CallFunction>(Blueprint, CallFunctions);
 
@@ -93,6 +134,12 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		AddError(FString::Printf(TEXT("MIG09-B2C legacy item Blueprint reference remains: %s"), *Reference));
 	}
 
+	for (const FString& Reference : ContainedStructReferences)
+	{
+		AddError(FString::Printf(TEXT("5G77 contained-item struct usage requires review: %s"), *Reference));
+	}
+	TestEqual(TEXT("No native Blueprint variable or graph pin uses contained-item struct"),
+		ContainedStructReferences.Num(), 0);
 	TestTrue(TEXT("Native Blueprint inventory is not empty"), BlueprintAssets.Num() > 0);
 	TestEqual(TEXT("No Blueprint calls retired item identity APIs or historical inventory registry"), LegacyReferences.Num(), 0);
 	TestNull(TEXT("Retired setter is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SetSelectedObjectItemDefinitionAsset")));
@@ -100,7 +147,8 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 	TestNull(TEXT("Historical inventory registration is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("RegisterItemDefinition")));
 	TestNull(TEXT("Historical inventory lookup is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("FindItemDefinition")));
 	TestNotNull(TEXT("Inventory instance projection remains reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("ApplyItemDefinitionToInstance")));
-	return BlueprintAssets.Num() > 0 && LegacyReferences.IsEmpty() && LoadedBlueprintCount == BlueprintAssets.Num();
+	return BlueprintAssets.Num() > 0 && LegacyReferences.IsEmpty() &&
+		ContainedStructReferences.IsEmpty() && LoadedBlueprintCount == BlueprintAssets.Num();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
