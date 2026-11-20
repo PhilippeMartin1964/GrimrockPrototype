@@ -4,7 +4,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemContextActionLibrary.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -12,6 +12,7 @@ namespace ARMEMENT0173
 {
     struct FWorldFixture
     {
+        FGridCanonicalLootTestScope Scope;
         UWorld* World = nullptr;
         AGrimrockPartyPawn* Pawn = nullptr;
         UGridPartyInventoryComponent* Inventory = nullptr;
@@ -34,7 +35,19 @@ namespace ARMEMENT0173
                 FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
                 Context.SetCurrentWorld(World);
             }
-            if (World)
+            if (World && Scope.AttachWithWeights(World, {}, [](UGridItemSystemAsset& Root)
+            {
+                for (bool bTwoHands : {true, false})
+                {
+                    auto* Gear = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+                    Gear->ItemId = bTwoHands ? FName(TEXT("ARM0173_Bow")) : FName(TEXT("ARM0173_Dagger"));
+                    Gear->DisplayName = FText::FromName(Gear->ItemId);
+                    Gear->WeightKg = 1.f;
+                    Gear->HandPolicy = bTwoHands ? EGridNonArmamentHandPolicy::TwoHanded : EGridNonArmamentHandPolicy::OneHanded;
+                    Gear->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+                    Root.ItemDefinitions.Add(Gear);
+                }
+            }))
             {
                 Pawn = World->SpawnActor<AGrimrockPartyPawn>();
             }
@@ -54,6 +67,7 @@ namespace ARMEMENT0173
             {
                 return;
             }
+            Scope.Detach();
             World->DestroyWorld(false);
             if (GEngine)
             {
@@ -66,41 +80,22 @@ namespace ARMEMENT0173
             return World && Pawn && Inventory && Inventory->IsValidCharacterIndex(0);
         }
 
-        UGridItemDefinitionAsset* Define(FName Id, EGridItemHandUsage Usage)
-        {
-            if (!Inventory)
-            {
-                return nullptr;
-            }
-            UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
-            Definition->ItemDefinitionId = Id;
-            Definition->DisplayName = FText::FromName(Id);
-            Definition->ItemType = EGridItemType::Weapon;
-            Definition->HandUsage = Usage;
-            Definition->Weight = 1.0f;
-            Definition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-            return Inventory->RegisterItemDefinition(Definition) ? Definition : nullptr;
-        }
-
         FGridItemInstance MakeItem(FName Id) const
         {
             FGridItemInstance Item;
             Item.RuntimeObjectId = FGuid::NewGuid();
             Item.ItemDefinitionId = Id;
-            Item.DisplayName = FText::FromName(Id);
             Item.Quantity = 1;
-            Item.Weight = 1.0f;
             return Item;
         }
 
-        bool ActionsFor(const FGridItemInstance& Item, UGridItemDefinitionAsset* Definition,
+        bool ActionsFor(const FGridItemInstance& Item,
             EGridEquipmentSlot Slot, TArray<FGridItemContextAction>& Out) const
         {
             FGridItemActionContext Context;
             Context.PartyPawn = Pawn;
             Context.CharacterIndex = 0;
             Context.Item = Item;
-            Context.ItemDefinition = Definition;
             Context.InventorySlotIndex = Slot == EGridEquipmentSlot::None ? 0 : INDEX_NONE;
             Context.EquipmentSlot = Slot;
             FGridFacingTargetContext FacingTarget;
@@ -131,15 +126,15 @@ bool FARMEMENT0173TwoHandedContextActionTest::RunTest(const FString&)
     ARMEMENT0173::FWorldFixture Fixture;
     if (!TestTrue(TEXT("Pawn and inventory are available"), Fixture.Ready())) return false;
 
-    UGridItemDefinitionAsset* Bow = Fixture.Define(TEXT("ARM0173_Bow"), EGridItemHandUsage::TwoHanded);
-    if (!TestNotNull(TEXT("Two-handed definition registered"), Bow)) return false;
+    const FName Bow(TEXT("ARM0173_Bow"));
+    if (!TestTrue(TEXT("Two-handed definition registered"), Fixture.Scope.Registry->HasCanonicalItem(Bow))) return false;
 
-    const FGridItemInstance BowItem = Fixture.MakeItem(Bow->ItemDefinitionId);
+    const FGridItemInstance BowItem = Fixture.MakeItem(Bow);
     if (!TestTrue(TEXT("Bow can enter inventory"), Fixture.Inventory->AddItemToCharacterInventory(0, BowItem))) return false;
     const FGridItemInstance InBag = Fixture.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item;
 
     TArray<FGridItemContextAction> Actions;
-    if (!TestTrue(TEXT("Right-click bag context builds"), Fixture.ActionsFor(InBag, Bow, EGridEquipmentSlot::None, Actions))) return false;
+    if (!TestTrue(TEXT("Right-click bag context builds"), Fixture.ActionsFor(InBag, EGridEquipmentSlot::None, Actions))) return false;
     const auto EquipActions = ARMEMENT0173::GetEquipActions(Actions);
     if (!TestEqual(TEXT("Only one equip action for a two-handed item"), EquipActions.Num(), 1)) return false;
     TestEqual(TEXT("Two-hand action targets canonical MainHand"), EquipActions[0]->EquipmentSlot, EGridEquipmentSlot::MainHand);
@@ -151,7 +146,7 @@ bool FARMEMENT0173TwoHandedContextActionTest::RunTest(const FString&)
     TestEqual(TEXT("Same physical identity in both displayed hands"), DisplayedOffHand.RuntimeObjectId, BowItem.RuntimeObjectId);
     Actions.Reset();
     if (!TestTrue(TEXT("Right-click virtual OffHand context builds"),
-        Fixture.ActionsFor(DisplayedOffHand, Bow, EGridEquipmentSlot::OffHand, Actions))) return false;
+        Fixture.ActionsFor(DisplayedOffHand, EGridEquipmentSlot::OffHand, Actions))) return false;
     const FGridItemContextAction* Unequip = Actions.FindByPredicate([](const FGridItemContextAction& Action)
     {
         return Action.ActionType == EGridItemActionType::Unequip;
@@ -170,12 +165,12 @@ bool FARMEMENT0173OneHandContextActionTest::RunTest(const FString&)
 {
     ARMEMENT0173::FWorldFixture Fixture;
     if (!TestTrue(TEXT("Pawn and inventory are available"), Fixture.Ready())) return false;
-    UGridItemDefinitionAsset* Dagger = Fixture.Define(TEXT("ARM0173_Dagger"), EGridItemHandUsage::OneHanded);
-    if (!TestNotNull(TEXT("One-handed definition registered"), Dagger)) return false;
+    const FName Dagger(TEXT("ARM0173_Dagger"));
+    if (!TestTrue(TEXT("One-handed definition registered"), Fixture.Scope.Registry->HasCanonicalItem(Dagger))) return false;
 
     TArray<FGridItemContextAction> Actions;
     if (!TestTrue(TEXT("One-hand context builds"),
-        Fixture.ActionsFor(Fixture.MakeItem(Dagger->ItemDefinitionId), Dagger, EGridEquipmentSlot::None, Actions))) return false;
+        Fixture.ActionsFor(Fixture.MakeItem(Dagger), EGridEquipmentSlot::None, Actions))) return false;
     const auto EquipActions = ARMEMENT0173::GetEquipActions(Actions);
     if (!TestEqual(TEXT("One-handed equipment retains both slot choices"), EquipActions.Num(), 2)) return false;
     TestEqual(TEXT("MainHand remains offered first"), EquipActions[0]->EquipmentSlot, EGridEquipmentSlot::MainHand);

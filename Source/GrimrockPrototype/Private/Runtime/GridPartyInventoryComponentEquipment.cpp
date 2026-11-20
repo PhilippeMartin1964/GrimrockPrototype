@@ -133,7 +133,8 @@ bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, cons
 			return Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) &&
 				(Resolved.bIsArmament
 					? Resolved.Weapon.CanEquipInHand(TargetSlot)
-					: (Item.ItemLevel == 0 && Resolved.NonArmEquipmentSlots.Contains(TargetSlot)));
+					: (Item.ItemLevel == 0 && (Resolved.NonArmEquipmentSlots.Contains(TargetSlot) ||
+						(Resolved.bNonArmTwoHanded && TargetSlot == EGridEquipmentSlot::OffHand))));
 		}
 	}
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);

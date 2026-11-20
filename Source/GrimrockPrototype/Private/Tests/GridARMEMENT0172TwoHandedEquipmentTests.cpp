@@ -2,29 +2,27 @@
 
 #include "Misc/AutomationTest.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 namespace ARMEMENT0172
 {
-    UGridPartyInventoryComponent* CreateInventory()
+    void AddDefinitions(UGridItemSystemAsset& Root)
     {
-        UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
-        Inventory->InitializeDefaultPartyIfNeeded();
-        return Inventory;
-    }
-
-    UGridItemDefinitionAsset* AddDefinition(
-        UGridPartyInventoryComponent* Inventory, FName Id, EGridItemHandUsage Usage, EGridEquipmentSlot CompatibleSlot)
-    {
-        UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>(Inventory);
-        Item->ItemDefinitionId = Id;
-        Item->DisplayName = FText::FromName(Id);
-        Item->ItemType = EGridItemType::Weapon;
-        Item->Weight = 1.0f;
-        Item->HandUsage = Usage;
-        Item->CompatibleEquipmentSlots.Add(CompatibleSlot);
-        Inventory->RegisterItemDefinition(Item);
-        return Item;
+        auto Add = [&](FName Id, EGridNonArmamentHandPolicy Policy, EGridEquipmentSlot Slot)
+        {
+            auto* Gear = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+            Gear->ItemId = Id;
+            Gear->DisplayName = FText::FromName(Id);
+            Gear->WeightKg = 1.f;
+            Gear->HandPolicy = Policy;
+            Gear->EquipmentSlots.Add(Slot);
+            Root.ItemDefinitions.Add(Gear);
+            return Gear;
+        };
+        Add(TEXT("ARM0172_Sword"), EGridNonArmamentHandPolicy::OneHanded, EGridEquipmentSlot::MainHand);
+        Add(TEXT("ARM0172_Shield"), EGridNonArmamentHandPolicy::OneHanded, EGridEquipmentSlot::OffHand);
+        Add(TEXT("ARM0172_Bow"), EGridNonArmamentHandPolicy::TwoHanded, EGridEquipmentSlot::MainHand)->Bonuses.StrengthBonus = 7;
     }
 
     FGridItemInstance CreateItem(FName Id)
@@ -32,9 +30,7 @@ namespace ARMEMENT0172
         FGridItemInstance Item;
         Item.RuntimeObjectId = FGuid::NewGuid();
         Item.ItemDefinitionId = Id;
-        Item.DisplayName = FText::FromName(Id);
         Item.Quantity = 1;
-        Item.Weight = 1.0f;
         return Item;
     }
 
@@ -50,19 +46,6 @@ namespace ARMEMENT0172
         if (Equipment.OffHand.IsValid() && Equipment.OffHand.RuntimeObjectId == Id) ++Count;
         if (Inventory->HasCursorItem() && Inventory->GetCursorItem().RuntimeObjectId == Id) ++Count;
         return Count;
-    }
-
-    bool Setup(UGridPartyInventoryComponent* Inventory, UGridItemDefinitionAsset*& Sword,
-        UGridItemDefinitionAsset*& Shield, UGridItemDefinitionAsset*& Bow)
-    {
-        Sword = AddDefinition(Inventory, TEXT("ARM0172_Sword"), EGridItemHandUsage::OneHanded, EGridEquipmentSlot::MainHand);
-        Shield = AddDefinition(Inventory, TEXT("ARM0172_Shield"), EGridItemHandUsage::OneHanded, EGridEquipmentSlot::OffHand);
-        Bow = AddDefinition(Inventory, TEXT("ARM0172_Bow"), EGridItemHandUsage::TwoHanded, EGridEquipmentSlot::MainHand);
-        Bow->EquipmentStatBonus.StrengthBonus = 7;
-        return Sword && Shield && Bow &&
-            Inventory->FindItemDefinition(Sword->ItemDefinitionId) == Sword &&
-            Inventory->FindItemDefinition(Shield->ItemDefinitionId) == Shield &&
-            Inventory->FindItemDefinition(Bow->ItemDefinitionId) == Bow;
     }
 
     bool EquipPair(UGridPartyInventoryComponent* Inventory, FGridItemInstance& SwordItem, FGridItemInstance& ShieldItem)
@@ -82,15 +65,17 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0172InventoryTest,
 
 bool FARMEMENT0172InventoryTest::RunTest(const FString&)
 {
-    UGridPartyInventoryComponent* Inventory = ARMEMENT0172::CreateInventory();
-    UGridItemDefinitionAsset *Sword = nullptr, *Shield = nullptr, *Bow = nullptr;
-    if (!TestTrue(TEXT("Hand definitions registered"), ARMEMENT0172::Setup(Inventory, Sword, Shield, Bow))) return false;
-    TestTrue(TEXT("Bow accepts MainHand"), Bow->CanEquipToSlot(EGridEquipmentSlot::MainHand));
-    TestTrue(TEXT("Bow accepts OffHand placement request"), Bow->CanEquipToSlot(EGridEquipmentSlot::OffHand));
+    FGridCanonicalWeightTestWorld Fixture({{TEXT("ARM0172_Filler"), 1.f}}, ARMEMENT0172::AddDefinitions);
+    auto* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("Canonical inventory"), Inventory)) return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
+    const auto BowProbe = ARMEMENT0172::CreateItem(TEXT("ARM0172_Bow"));
+    TestTrue(TEXT("Bow accepts MainHand"), Inventory->CanEquipItemToSlot(0, BowProbe, EGridEquipmentSlot::MainHand));
+    TestTrue(TEXT("Bow accepts OffHand placement request"), Inventory->CanEquipItemToSlot(0, BowProbe, EGridEquipmentSlot::OffHand));
 
     FGridItemInstance SwordItem, ShieldItem;
     if (!TestTrue(TEXT("Initial sword and shield equipped"), ARMEMENT0172::EquipPair(Inventory, SwordItem, ShieldItem))) return false;
-    const FGridItemInstance BowItem = ARMEMENT0172::CreateItem(Bow->ItemDefinitionId);
+    const FGridItemInstance BowItem = ARMEMENT0172::CreateItem(TEXT("ARM0172_Bow"));
     if (!TestTrue(TEXT("Bow put in bag"), Inventory->AddItemToCharacterInventory(0, BowItem))) return false;
     if (!TestTrue(TEXT("Bow displaces both hands atomically"), Inventory->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::OffHand))) return false;
 
@@ -124,13 +109,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0172CursorTest,
 
 bool FARMEMENT0172CursorTest::RunTest(const FString&)
 {
-    UGridPartyInventoryComponent* Inventory = ARMEMENT0172::CreateInventory();
-    UGridItemDefinitionAsset *Sword = nullptr, *Shield = nullptr, *Bow = nullptr;
-    if (!TestTrue(TEXT("Definitions registered"), ARMEMENT0172::Setup(Inventory, Sword, Shield, Bow))) return false;
+    FGridCanonicalWeightTestWorld Fixture({{TEXT("ARM0172_Filler"), 1.f}}, ARMEMENT0172::AddDefinitions);
+    auto* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("Canonical inventory"), Inventory)) return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
     FGridItemInstance SwordItem, ShieldItem;
     if (!TestTrue(TEXT("Initial sword/shield equip"), ARMEMENT0172::EquipPair(Inventory, SwordItem, ShieldItem))) return false;
 
-    const FGridItemInstance BowItem = ARMEMENT0172::CreateItem(Bow->ItemDefinitionId);
+    const FGridItemInstance BowItem = ARMEMENT0172::CreateItem(TEXT("ARM0172_Bow"));
     TestTrue(TEXT("Cursor accepts bow"), Inventory->SetCursorItem(BowItem));
     TestTrue(TEXT("Two-hand cursor equip succeeds"), Inventory->TryEquipCursorItemToCharacterSlot(0, EGridEquipmentSlot::OffHand));
     TestFalse(TEXT("Cursor emptied"), Inventory->HasCursorItem());
@@ -158,12 +144,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0172CapacityTest,
 
 bool FARMEMENT0172CapacityTest::RunTest(const FString&)
 {
-    UGridPartyInventoryComponent* Inventory = ARMEMENT0172::CreateInventory();
-    UGridItemDefinitionAsset *Sword = nullptr, *Shield = nullptr, *Bow = nullptr;
-    if (!TestTrue(TEXT("Definitions registered"), ARMEMENT0172::Setup(Inventory, Sword, Shield, Bow))) return false;
+    FGridCanonicalWeightTestWorld Fixture({{TEXT("ARM0172_Filler"), 1.f}}, ARMEMENT0172::AddDefinitions);
+    auto* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("Canonical inventory"), Inventory)) return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
     FGridItemInstance SwordItem, ShieldItem;
     if (!TestTrue(TEXT("Initial sword/shield equip"), ARMEMENT0172::EquipPair(Inventory, SwordItem, ShieldItem))) return false;
-    const FGridItemInstance BowItem = ARMEMENT0172::CreateItem(Bow->ItemDefinitionId);
+    const FGridItemInstance BowItem = ARMEMENT0172::CreateItem(TEXT("ARM0172_Bow"));
 
     // Only source bag slot will be freed: two displaced hand items cannot fit.
     FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
@@ -198,11 +185,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0172OneHandReplacementTest,
 
 bool FARMEMENT0172OneHandReplacementTest::RunTest(const FString&)
 {
-    UGridPartyInventoryComponent* Inventory = ARMEMENT0172::CreateInventory();
-    UGridItemDefinitionAsset *Sword = nullptr, *Shield = nullptr, *Bow = nullptr;
-    if (!TestTrue(TEXT("Definitions registered"), ARMEMENT0172::Setup(Inventory, Sword, Shield, Bow))) return false;
-    const FGridItemInstance BowItem = ARMEMENT0172::CreateItem(Bow->ItemDefinitionId);
-    const FGridItemInstance SwordItem = ARMEMENT0172::CreateItem(Sword->ItemDefinitionId);
+    FGridCanonicalWeightTestWorld Fixture({{TEXT("ARM0172_Filler"), 1.f}}, ARMEMENT0172::AddDefinitions);
+    auto* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("Canonical inventory"), Inventory)) return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
+    const FGridItemInstance BowItem = ARMEMENT0172::CreateItem(TEXT("ARM0172_Bow"));
+    const FGridItemInstance SwordItem = ARMEMENT0172::CreateItem(TEXT("ARM0172_Sword"));
     TestTrue(TEXT("Bow added to inventory"), Inventory->AddItemToCharacterInventory(0, BowItem));
     TestTrue(TEXT("Bow initially equipped"), Inventory->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::MainHand));
     TestTrue(TEXT("Sword added to inventory"), Inventory->AddItemToCharacterInventory(0, SwordItem));
@@ -221,10 +209,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0172WorldTransferTest,
 
 bool FARMEMENT0172WorldTransferTest::RunTest(const FString&)
 {
-    UGridPartyInventoryComponent* Inventory = ARMEMENT0172::CreateInventory();
-    UGridItemDefinitionAsset *Sword = nullptr, *Shield = nullptr, *Bow = nullptr;
-    if (!TestTrue(TEXT("Definitions registered"), ARMEMENT0172::Setup(Inventory, Sword, Shield, Bow))) return false;
-    const FGridItemInstance BowItem = ARMEMENT0172::CreateItem(Bow->ItemDefinitionId);
+    FGridCanonicalWeightTestWorld Fixture({{TEXT("ARM0172_Filler"), 1.f}}, ARMEMENT0172::AddDefinitions);
+    auto* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("Canonical inventory"), Inventory)) return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
+    const FGridItemInstance BowItem = ARMEMENT0172::CreateItem(TEXT("ARM0172_Bow"));
     TestTrue(TEXT("Bow added to inventory"), Inventory->AddItemToCharacterInventory(0, BowItem));
     TestTrue(TEXT("Bow equipped"), Inventory->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::MainHand));
 

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.111 — Fixtures mains canoniques
+
+Parent 499093671105a9d2faf7a9df07e16c4fb39c157c : attendre SilentTask et LocalAuto SUCCESS. Restaurer la parité de placement OffHand des équipements non-ARM à deux mains sans modifier les choix contextuels. Voir [5G.111](ARM_CLEAN06_5G111_CANONICAL_TWO_HAND_FIXTURES.md).
+
 ## ARM-CLEAN06.5G.110 — Fixture équipement canonique
 
 Parent e8030b4dc57bbc16e47f3969ff39b526fbb71ad4 : attendre SilentTask et LocalAuto SUCCESS. TD06.6 utilise des définitions transitoires canoniques ; refus, consommation, bonus et résistances restent contrôlés. Voir [5G.110](ARM_CLEAN06_5G110_CANONICAL_EQUIPMENT_CORE_FIXTURE.md).
