@@ -192,14 +192,6 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		Item.ItemDefinitionId = ItemId;
 		Item.ItemLevel = FixedLevel;
 		Item.Quantity = Entry.Quantity;
-#if WITH_DEV_AUTOMATION_TESTS
-		if (!bExplicitNative)
-		{
-			// Worldless characterization fixtures only. Canonical items have no cache.
-			Item.DisplayName = Metadata.DisplayName;
-			Item.Weight = Metadata.UnitWeightKg;
-		}
-#endif
 		Item.OwnerGuid = Candidate.CharacterId;
 		Item.OwnerCharacterIndex = 0;
 		Item.bLightsEnabled = bExplicitNative

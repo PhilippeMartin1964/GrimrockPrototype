@@ -5,9 +5,13 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.126 — Kits de départ sans copies statiques
+
+Parent `7ef87151673eec50ca112fc27d70ab95a702a3e2` : après SilentTask et LocalAuto SUCCESS. Dernières copies de nom/poids des instances de kit historique supprimées ; la vérification d'identité/niveau/stack et les lecteurs du profil et du nom restent inchangés. Voir [5G.126](ARM_CLEAN06_5G126_STARTING_KIT_CACHE_WRITER_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.125 — Lancers physiques sans copies de poids
 
-Parent `a65582fcbc571663e469a4fdc5a96c81cdc3a5ae` : après SilentTask et LocalAuto SUCCESS. Cinq affectations Automation du poids d'instance jetée supprimées ; les logs utilisent toujours la définition explicite et les contrôles force/balistique leur projection canonique. Voir [5G.125](ARM_CLEAN06_5G125_THROW_INSTANCE_MASS_WRITER_RETIREMENT.md).
+Parent `7c7f535f069b79958e3e429910cb122e5b9facd2` : après SilentTask et LocalAuto SUCCESS. Cinq affectations Automation du poids d'instance jetée supprimées ; les logs utilisent toujours la définition explicite et les contrôles force/balistique leur projection canonique. Voir [5G.125](ARM_CLEAN06_5G125_THROW_INSTANCE_MASS_WRITER_RETIREMENT.md).
 
 ## ARM-CLEAN06.5G.124 — Fixtures Editor sans copies de métadonnées
 
