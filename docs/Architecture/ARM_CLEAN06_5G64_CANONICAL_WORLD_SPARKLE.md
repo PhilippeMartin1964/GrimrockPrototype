@@ -1,0 +1,5 @@
+# ARM-CLEAN06.5G.64 — Autorité canonique du scintillement
+
+Parent b3e4ea14ee266ebd05f178352c5c9e3bdad533bd. Publication après double validation du parent.
+
+L'activation et la reconstruction de l'overlay ITEM_SPARKLE01 utilisent le même profil résolu à l'identité et au niveau exacts. Un registre configuré ne lit aucun ancien champ du DataAsset, et une identité/niveau invalide désactive l'overlay et libère le MID. La projection canonique explicite reste disponible sans GameInstance ; seule une fixture Automation isolée peut projeter l'ancienne configuration. Le mesh physique, la phase déterministe, les paramètres de matériau et l'absence de collision/gravité de l'overlay sont préservés. Le test ITEM_SPARKLE01 étend la couverture à une identité inconnue avec un ancien matériau, à Key_Copper avec un ancien opt-in contradictoire, et au niveau N1 invalide d'un non-ARM. Aucun asset, SaveGame, shader ou texte joueur modifié. Validation Windows et contrôle visuel PIE nécessaires ; les anciennes UPROPERTY subsistent jusqu'à l'audit natif de retrait.

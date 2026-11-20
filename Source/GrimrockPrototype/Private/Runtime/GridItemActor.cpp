@@ -374,16 +374,8 @@ void AGridItemActor::ConfigureAsAttachedItem()
 
 void AGridItemActor::SetWorldSparkleEnabled(bool bEnabled)
 {
-	const bool bCanonical = CanonicalWorldPresentation.IsValid();
-	const bool bAuthorised = bCanonical
-		? (CanonicalWorldPresentation.bEnableWorldSparkle &&
-			!CanonicalWorldPresentation.WorldSparkleMaterial.IsNull())
-		: (ItemDefinitionAsset && ItemDefinitionAsset->bEnableWorldSparkle &&
-			!ItemDefinitionAsset->WorldSparkleMaterial.IsNull());
-	const bool bCanEnable = bEnabled && bAuthorised &&
-		MeshComponent && MeshComponent->GetStaticMesh() != nullptr;
-
-	bWorldSparkleActive = bCanEnable;
+	// Refresh validates the complete current profile before enabling an overlay.
+	bWorldSparkleActive = bEnabled;
 	RefreshWorldSparklePresentation();
 }
 
@@ -397,6 +389,8 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 {
 	if (!SparkleMeshComponent)
 	{
+		bWorldSparkleActive = false;
+		WorldSparkleMaterialInstance = nullptr;
 		return;
 	}
 
@@ -409,18 +403,59 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 	UStaticMesh* SourceMesh = MeshComponent ? MeshComponent->GetStaticMesh() : nullptr;
 	SparkleMeshComponent->SetStaticMesh(SourceMesh);
 
-	if (!bWorldSparkleActive ||
-		(!CanonicalWorldPresentation.IsValid() && !ItemDefinitionAsset) || !SourceMesh)
+	const auto Disable = [this]()
 	{
+		bWorldSparkleActive = false;
 		SparkleMeshComponent->SetVisibility(false, true);
 		WorldSparkleMaterialInstance = nullptr;
+	};
+	if (!bWorldSparkleActive || !SourceMesh)
+	{
+		Disable();
 		return;
 	}
 
-	const bool bCanonical = CanonicalWorldPresentation.IsValid();
-	UMaterialInterface* SparkleMaterial = bCanonical
-		? CanonicalWorldPresentation.WorldSparkleMaterial.LoadSynchronous()
-		: ItemDefinitionAsset->WorldSparkleMaterial.LoadSynchronous();
+	const UWorld* World = GetWorld();
+	const UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	FGridItemInstance Instance;
+	Instance.RuntimeObjectId = RuntimeObjectId;
+	Instance.ItemDefinitionId = ItemDefinitionId;
+	Instance.ItemLevel = CanonicalWorldItemLevel;
+	Instance.Quantity = 1;
+	FGridResolvedItem Profile;
+	bool bResolved = false;
+	if (Registry)
+	{
+		bResolved = FGridWorldPhysicsMassReadModel::TryResolveCanonical(Registry, Instance, Profile);
+	}
+	else if (!GI && Instance.IsValid() && CanonicalWorldPresentation.IsValid() &&
+		CanonicalWorldPresentation.ItemId == Instance.ItemDefinitionId &&
+		CanonicalWorldPresentation.ItemLevel == Instance.ItemLevel)
+	{
+		Profile = CanonicalWorldPresentation;
+		bResolved = true;
+	}
+#if WITH_DEV_AUTOMATION_TESTS
+	else if (!GI && GIsAutomationTesting && IsValid(ItemDefinitionAsset) &&
+		Instance.IsValid() && ItemDefinitionAsset->ItemDefinitionId == Instance.ItemDefinitionId)
+	{
+		// Only the isolated historical sparkle fixture can project these fields.
+		Profile.bEnableWorldSparkle = ItemDefinitionAsset->bEnableWorldSparkle;
+		Profile.WorldSparkleMaterial = ItemDefinitionAsset->WorldSparkleMaterial;
+		Profile.WorldSparkleColor = ItemDefinitionAsset->WorldSparkleColor;
+		Profile.WorldSparkleIntensity = ItemDefinitionAsset->WorldSparkleIntensity;
+		Profile.WorldSparkleSpeed = ItemDefinitionAsset->WorldSparkleSpeed;
+		Profile.WorldSparkleVariation = ItemDefinitionAsset->WorldSparkleVariation;
+		bResolved = true;
+	}
+#endif
+	if (!bResolved || !Profile.bEnableWorldSparkle || Profile.WorldSparkleMaterial.IsNull())
+	{
+		Disable();
+		return;
+	}
+	UMaterialInterface* SparkleMaterial = Profile.WorldSparkleMaterial.LoadSynchronous();
 	if (!SparkleMaterial)
 	{
 		bWorldSparkleActive = false;
@@ -437,14 +472,10 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 		return;
 	}
 
-	const FLinearColor SparkleColor = bCanonical ? CanonicalWorldPresentation.WorldSparkleColor
-		: ItemDefinitionAsset->WorldSparkleColor;
-	const float SparkleIntensity = bCanonical ? CanonicalWorldPresentation.WorldSparkleIntensity
-		: ItemDefinitionAsset->WorldSparkleIntensity;
-	const float SparkleSpeed = bCanonical ? CanonicalWorldPresentation.WorldSparkleSpeed
-		: ItemDefinitionAsset->WorldSparkleSpeed;
-	const float SparkleVariation = bCanonical ? CanonicalWorldPresentation.WorldSparkleVariation
-		: ItemDefinitionAsset->WorldSparkleVariation;
+	const FLinearColor SparkleColor = Profile.WorldSparkleColor;
+	const float SparkleIntensity = Profile.WorldSparkleIntensity;
+	const float SparkleSpeed = Profile.WorldSparkleSpeed;
+	const float SparkleVariation = Profile.WorldSparkleVariation;
 	WorldSparkleMaterialInstance->SetVectorParameterValue(TEXT("SparkleColor"), SparkleColor);
 	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparkleIntensity"), FMath::Max(0.0f, SparkleIntensity));
 	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparkleSpeed"), FMath::Max(0.0f, SparkleSpeed));

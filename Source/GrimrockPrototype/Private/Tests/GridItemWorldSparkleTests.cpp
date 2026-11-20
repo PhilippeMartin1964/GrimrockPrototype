@@ -4,6 +4,7 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "Materials/Material.h"
@@ -154,7 +155,51 @@ bool FGridItemWorldSparklePresentationTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Missing sparkle material never activates presentation"), MissingMaterialActor->IsWorldSparkleActive());
 	TestFalse(TEXT("Missing sparkle material keeps overlay hidden"), MissingMaterialActor->SparkleMeshComponent->IsVisible());
 
-	return true;
+	// A configured production registry must not reuse a historical opt-in,
+	// even when an old actor already holds a mesh and a valid material.
+	UGameInstance* GI = NewObject<UGameInstance>(GetTransientPackage());
+	GI->Init();
+	TestWorld.World->SetGameInstance(GI);
+	const UGridItemSubsystem* Registry = GI->GetSubsystem<UGridItemSubsystem>();
+	if (TestNotNull(TEXT("Configured registry for sparkle cutover"), Registry))
+	{
+		TestTrue(TEXT("Real registry configured"), Registry->IsConfigured());
+		ItemActor->SetWorldSparkleEnabled(true);
+		TestFalse(TEXT("Unknown ID cannot enable historical sparkle"), ItemActor->IsWorldSparkleActive());
+		TestFalse(TEXT("Unknown overlay hidden"), ItemActor->SparkleMeshComponent->IsVisible());
+		TestNull(TEXT("Unknown overlay owns no MID"), ItemActor->WorldSparkleMaterialInstance.Get());
+
+		FGridItemInstance Key;
+		Key.RuntimeObjectId = FGuid::NewGuid();
+		Key.ItemDefinitionId = TEXT("Key_Copper");
+		Key.ItemLevel = 0;
+		Key.Quantity = 1;
+		FGridResolvedItem Canonical;
+		if (TestTrue(TEXT("Actual copper key resolves"), Registry->ResolveItem(Key.ItemDefinitionId, 0, Canonical)))
+		{
+			AGridItemActor* CanonicalActor = TestWorld.World->SpawnActor<AGridItemActor>();
+			if (TestNotNull(TEXT("Canonical key actor"), CanonicalActor) &&
+				TestTrue(TEXT("Canonical key initialized"), CanonicalActor->InitializeFromCanonicalItem(Key, Registry)))
+			{
+				const bool Expected = Canonical.bEnableWorldSparkle &&
+					Canonical.WorldSparkleMaterial.LoadSynchronous() != nullptr &&
+					CanonicalActor->MeshComponent->GetStaticMesh() != nullptr;
+				// Contradictory old material and flag cannot override the registry.
+				Definition->bEnableWorldSparkle = !Canonical.bEnableWorldSparkle;
+				CanonicalActor->ItemDefinitionAsset = Definition;
+				CanonicalActor->SetWorldSparkleEnabled(true);
+				TestEqual(TEXT("Canonical sparkle policy wins"), CanonicalActor->IsWorldSparkleActive(), Expected);
+				TestEqual(TEXT("Canonical overlay visibility"), CanonicalActor->SparkleMeshComponent->IsVisible(), Expected);
+				CanonicalActor->CanonicalWorldItemLevel = 1;
+				CanonicalActor->SetWorldSparkleEnabled(true);
+				TestFalse(TEXT("Invalid non-ARM level refuses sparkle"), CanonicalActor->IsWorldSparkleActive());
+				TestFalse(TEXT("Invalid level clears overlay"), CanonicalActor->SparkleMeshComponent->IsVisible());
+			}
+		}
+	}
+	TestWorld.World->SetGameInstance(nullptr);
+	GI->Shutdown();
+	return !HasAnyErrors();
 }
 
 #endif

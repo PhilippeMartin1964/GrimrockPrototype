@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.64 — Autorité canonique du scintillement
+
+Parent b3e4ea14ee266ebd05f178352c5c9e3bdad533bd. Le scintillement des pickups résout le profil canonique exact ; aucune ancienne définition ne peut activer ou modifier l'overlay en production. Fixtures isolées conservées. Voir [5G.64](ARM_CLEAN06_5G64_CANONICAL_WORLD_SPARKLE.md).
+
 ## ARM-CLEAN06.5G.63 — Preuves des catégories d'énigmes
 
 Parent e7a77244e88986a453eed045cb07f9addfdebddb. Audit Editor en lecture seule : types historiques des 48 sources, tags canoniques distincts, comparaison ARM et liens natifs de réceptacle. Aucune décision implicite sur la taxonomie non-ARM ni conversion. Voir [5G.63](ARM_CLEAN06_5G63_PUZZLE_CATEGORY_EVIDENCE.md).
