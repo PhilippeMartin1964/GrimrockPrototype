@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.84 — Métadonnées et examen d'inventaire
+
+Parent 4b7924e4814d7912005a47a81f10badf63d13a12. Les lecteurs de nom/masse/catégorie/tooltip refusent les anciens caches pour les ID inconnus ou niveaux invalides, sauf fixtures Automation sans registre. Examiner/Lire projettent le nom et le poids depuis l'autorité unique, préservent les textes narratifs. Aucun nouveau texte ni WBP. Voir [5G.84](ARM_CLEAN06_5G84_STRICT_INVENTORY_PRESENTATION.md).
+
 ## ARM-CLEAN06.5G.83 — Persistance des projectiles sans pointeur
 
 Parent 778e96c05cef30aba7499f8c26316a81da004741. Capture des projectiles toujours canonique, fixture géométrique LOT02 convertie vers Item_Arrows_01 N0, aucun accès explicite au champ ProjectileDefinitionAsset dans la persistance runtime. Champs v27 maintenus jusqu'à preuve de conversion. Voir [5G.83](ARM_CLEAN06_5G83_POINTERLESS_PROJECTILE_PERSISTENCE.md).

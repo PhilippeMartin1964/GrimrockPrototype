@@ -1628,10 +1628,23 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 	{
 		case EGridItemActionType::Examine:
 		{
-			UGridInventorySlotWidget* SourceWidget = FindRegisteredSlotWidget(SourceSlotType, SourceSlotIndex);
-			const FText TooltipText = SourceWidget ? SourceWidget->GetTooltipText() : LastContextItem.DisplayName;
+			const UGridItemSubsystem* Registry = ResolveInventoryCanonicalRegistry(this);
+			const UGridItemDefinitionAsset* Definition =
+				InventoryComponent ? InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId) : nullptr;
+			const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry, Definition, LastContextItem);
+			if (!Metadata.bResolved) break;
+			const UGridInventorySlotWidget* SourceWidget = FindRegisteredSlotWidget(SourceSlotType, SourceSlotIndex);
+			FText TooltipText = Metadata.DisplayName;
+			if (SourceWidget && SourceWidget->GetCachedItem().RuntimeObjectId == LastContextItem.RuntimeObjectId)
+			{
+				const FText FromSlot = SourceWidget->GetTooltipText();
+				if (!FromSlot.IsEmpty()) TooltipText = FromSlot;
+			}
+			FGridItemInstance Presentation = LastContextItem;
+			Presentation.DisplayName = Metadata.DisplayName;
+			Presentation.Weight = Metadata.UnitWeightKg;
 			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute Examine Item=%s"), *LastContextItem.ItemDefinitionId.ToString());
-			PresentItemExamination(LastContextItem, TooltipText);
+			PresentItemExamination(Presentation, TooltipText);
 			bExecuted = true;
 			break;
 		}
@@ -1652,17 +1665,9 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			{
 				Title = LastContextItem.ReadableContentAsset->Title;
 			}
-			if (Title.IsEmpty() && Read.bCanonicalIdentity)
-			{
-				Title = Read.DisplayName;
-			}
 			if (Title.IsEmpty())
 			{
-				Title = LastContextItem.DisplayName;
-			}
-			if (Title.IsEmpty() && ItemDefinition && !Read.bCanonicalIdentity)
-			{
-				Title = ItemDefinition->DisplayName;
+				Title = Read.DisplayName;
 			}
 			if (Title.IsEmpty())
 			{
@@ -1695,7 +1700,12 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemReading Resolve Item=%s Source=%s Content=%s"), *LastContextItem.ItemDefinitionId.ToString(), ReadSource,
 				ResolvedContentId.IsNone() ? TEXT("None") : *ResolvedContentId.ToString());
 			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute Read Item=%s"), *LastContextItem.ItemDefinitionId.ToString());
-			PresentItemReading(LastContextItem, Title, ReadText);
+			const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(
+				ResolveInventoryCanonicalRegistry(this), ItemDefinition, LastContextItem);
+			FGridItemInstance Presentation = LastContextItem;
+			Presentation.DisplayName = Metadata.DisplayName;
+			Presentation.Weight = Metadata.UnitWeightKg;
+			PresentItemReading(Presentation, Title, ReadText);
 			bExecuted = true;
 			break;
 		}

@@ -429,9 +429,14 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	FGridResolvedItem Canonical;
 	const bool bResolvedCanonical = bCanonical &&
 		Registry->ResolveItem(CachedItem.ItemDefinitionId, CachedItem.ItemLevel, Canonical) &&
-		(Canonical.bIsArmament || CachedItem.ItemLevel == 0);
-	const bool bLegacy = !bCanonical && IsValid(Definition) &&
+		Canonical.IsValid() && Canonical.ItemId == CachedItem.ItemDefinitionId &&
+		Canonical.ItemLevel == CachedItem.ItemLevel &&
+		(Canonical.bIsArmament ? CachedItem.ItemLevel >= 1 : CachedItem.ItemLevel == 0);
+	bool bLegacy = false;
+#if WITH_DEV_AUTOMATION_TESTS
+	bLegacy = !Registry && GIsAutomationTesting && !bCanonical && IsValid(Definition) &&
 		Definition->ItemDefinitionId == CachedItem.ItemDefinitionId;
+#endif
 	FGridCombatActionDefinition QuickItemAction;
 	bool bHasQuickItemAction = false;
 	if (bResolvedCanonical)
@@ -473,15 +478,17 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.WeightText = View.Quantity > 1
 		? FText::FromString(FString::Printf(TEXT("%.1f × %d = %.1f"), View.UnitWeight, View.Quantity, View.TotalWeight))
 		: FText::FromString(FString::Printf(TEXT("%.1f"), View.UnitWeight));
+	if (!bResolvedCanonical && !bLegacy)
+	{
+		// Diagnostic identity only: do not advertise old icons or equip rules.
+		View.Icon = nullptr;
+		View.VisualId = NAME_None;
+		return View;
+	}
 	View.CompatibleSlotsText = BuildCompatibleEquipmentSlotsText(Registry, Definition, CachedItem);
 	const FGridCanonicalEquipmentSlotsReadView EquipmentSlots =
 		FGridCanonicalEquipmentSlotsReadModel::Resolve(Registry, Definition, CachedItem);
 	View.bEquippable = !EquipmentSlots.AllowedSlots.IsEmpty();
-
-	if (!bResolvedCanonical && !bLegacy)
-	{
-		return View;
-	}
 
 	// INDUS04.1: use the real instance ItemLevel, never the authored N1 action.
 	FGridWeaponTooltipProjection::Build(Definition, CachedItem, View.WeaponProfile, Registry);

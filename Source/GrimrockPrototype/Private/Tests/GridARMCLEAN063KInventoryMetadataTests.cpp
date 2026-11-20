@@ -79,10 +79,18 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 	Outside.Quantity = 1;
 	const FGridInventoryItemMetadata Old =
 		FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Legacy.Get(), Outside);
-	TestFalse(TEXT("Unregistered source remains legacy"), Old.bCanonicalIdentity);
-	TestEqual(TEXT("Legacy name retained"), Old.DisplayName.ToString(), FString(TEXT("FAKE OLD NAME")));
-	TestEqual(TEXT("Legacy weight retained"), Old.UnitWeightKg, 888.0f);
-	TestEqual(TEXT("Legacy description retained"), Old.Description.ToString(), FString(TEXT("FAKE OLD DESCRIPTION")));
+	TestFalse(TEXT("Unregistered source is not resolved"), Old.bCanonicalIdentity || Old.bResolved);
+	TestEqual(TEXT("Unknown source shows only technical identity"), Old.DisplayName.ToString(), Outside.ItemDefinitionId.ToString());
+	TestEqual(TEXT("Unknown source has no mass projection"), Old.UnitWeightKg, 0.0f);
+	TestTrue(TEXT("Unknown source has no old description"), Old.Description.IsEmpty());
+	const auto Fixture = FGridInventoryItemMetadataReadModel::Resolve(nullptr, Legacy.Get(), Outside);
+	TestTrue(TEXT("Isolated fixture resolved"), Fixture.bResolved);
+	TestEqual(TEXT("Isolated fixture name"), Fixture.DisplayName.ToString(), FString(TEXT("FAKE OLD NAME")));
+	TestEqual(TEXT("Isolated fixture mass"), Fixture.UnitWeightKg, 888.0f);
+	TestEqual(TEXT("Isolated fixture description"), Fixture.Description.ToString(), FString(TEXT("FAKE OLD DESCRIPTION")));
+	Outside.ItemDefinitionId = TEXT("Item_Arrows_01");
+	Outside.ItemLevel = 1;
+	TestFalse(TEXT("Non-ARM N1 refused"), FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), nullptr, Outside).bResolved);
 	TestTrue(TEXT("Invalid instance returns empty metadata"),
 		!FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Legacy.Get(), FGridItemInstance()).bResolved);
 	return true;

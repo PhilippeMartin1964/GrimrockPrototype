@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "CoreGlobals.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Items/GridCanonicalInventoryCategoryTags.h"
 
@@ -29,7 +30,10 @@ struct FGridCanonicalInventoryItemTypeReadModel
             View.bCanonicalIdentity = true;
             if (!Item.IsValid()) return View;
             FGridResolvedItem Resolved;
-            if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved))
+            if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) ||
+                !Resolved.IsValid() || Resolved.ItemId != Item.ItemDefinitionId ||
+                Resolved.ItemLevel != Item.ItemLevel ||
+                (Resolved.bIsArmament ? Item.ItemLevel < 1 : Item.ItemLevel != 0))
             {
                 return View; // Never read an old ItemType for an invalid ARM N0.
             }
@@ -61,12 +65,14 @@ struct FGridCanonicalInventoryItemTypeReadModel
 
         if (!Item.IsValid()) return View;
 
-        // Transitional lookup only for an ID absent from the sole registry.
-        if (IsValid(Legacy) && Legacy->ItemDefinitionId == Item.ItemDefinitionId)
+        // A diagnostic unknown ID has no category. Historical fixtures only.
+#if WITH_DEV_AUTOMATION_TESTS
+        if (!Registry && GIsAutomationTesting && IsValid(Legacy) && Legacy->ItemDefinitionId == Item.ItemDefinitionId)
         {
             View.bResolved = true;
             View.ItemType = Legacy->ItemType;
         }
+#endif
         return View;
     }
 };

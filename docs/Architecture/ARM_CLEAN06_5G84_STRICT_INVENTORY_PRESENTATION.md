@@ -1,0 +1,7 @@
+# ARM-CLEAN06.5G.84 — Métadonnées et examen d'inventaire
+
+Parent 4b7924e4814d7912005a47a81f10badf63d13a12. Publication après double validation Windows du parent.
+
+Le tri et le tooltip partageaient un lecteur encore capable d'afficher le nom/poids historique d'un ID inconnu. La catégorie de présentation avait également ce repli. Ce lot refuse les anciens champs lorsqu'un registre existe, ou hors Automation ; identité technique seulement pour diagnostic, poids projeté zéro, pas de catégorie d'usage. Les slots physiques restent visibles dans All, catégorie None classée Misc suivant la règle existante ; aucun objet supprimé. Les règles de niveau N0/N1–20 sont exactes. Le tooltip ne présente pas les anciennes capacités d'une identité non résolue. Examiner refuse une identité non résolue, utilise le texte du slot seulement pour le même GUID et transmet au Blueprint une projection normalisée ; Lire préserve les vrais overrides/asset narratifs mais n'utilise plus un ancien cache de nom pour son titre. Les fixtures isolées restent admises sous Automation.
+
+Tests 3K, 3O et 3AU : contradictions, tri, catégorie, absence de capacités, N0 et niveaux d'armes. Aucun nouveau texte statique, aucune clé ni modification UMG : UI.csv → ST_UI → WBP → Game/fr/en inchangés ; noms et descriptions FText issus des DataAssets existants, titres narratifs issus de l'instance. Checklist de localisation relue, aucune matérialisation requise, contrôle visuel PIE non effectué. Aucun SaveGame ou package modifié. Les caches de FGridItemInstance restent présents pour conversion.

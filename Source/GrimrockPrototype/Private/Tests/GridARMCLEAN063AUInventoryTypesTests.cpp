@@ -168,10 +168,11 @@ bool FGridClean063AUInventoryItemTypes::RunTest(const FString&)
         AmmoType.ItemType, EGridItemType::Misc);
     const auto LegacyType = FGridCanonicalInventoryItemTypeReadModel::Resolve(
         Fixture.Registry, RealLegacy, Potion);
-    TestFalse(TEXT("Nonregistered potion uses transitional type"),
-        LegacyType.bCanonicalIdentity);
-    TestEqual(TEXT("Potion retains old category"),
-        LegacyType.ItemType, EGridItemType::Potion);
+    TestFalse(TEXT("Unknown potion has no canonical category"),
+        LegacyType.bCanonicalIdentity || LegacyType.bResolved);
+    TestEqual(TEXT("Unknown cannot inherit Potion type"), LegacyType.ItemType, EGridItemType::None);
+    TestEqual(TEXT("Isolated fixture retains Potion type"),
+        FGridCanonicalInventoryItemTypeReadModel::Resolve(nullptr, RealLegacy, Potion).ItemType, EGridItemType::Potion);
     TestEqual(TEXT("Mismatched old definition cannot classify unknown item"),
         FGridCanonicalInventoryItemTypeReadModel::Resolve(
             Fixture.Registry, WrongSword, Potion).ItemType, EGridItemType::None);
@@ -215,23 +216,23 @@ bool FGridClean063AUInventoryItemTypes::RunTest(const FString&)
             Projection[2], INDEX_NONE);
     }
     Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Consumables);
-    TestEqual(TEXT("Only real legacy potion is consumable"),
-        Widget->GetVisibleInventoryItemCount(), 1);
+    TestEqual(TEXT("Unknown identity cannot enter Consumables"),
+        Widget->GetVisibleInventoryItemCount(), 0);
     Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::BooksAndKeys);
     TestEqual(TEXT("Bogus legacy Book category cannot hijack shield"),
         Widget->GetVisibleInventoryItemCount(), 0);
     Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Misc);
-    TestEqual(TEXT("Canonical N0 arrows belong to Misc"),
-        Widget->GetVisibleInventoryItemCount(), 1);
+    TestEqual(TEXT("Canonical arrows and uncategorized diagnostic slot belong to Misc"),
+        Widget->GetVisibleInventoryItemCount(), 2);
 
     Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::All);
     Widget->SetInventorySortMode(EGridInventorySortMode::TypeAscending);
     Widget->GetInventoryProjectionSourceSlotIndices(Projection);
     if (TestEqual(TEXT("All sort returns 4 slots"), Projection.Num(), 4))
     {
-        TestEqual(TEXT("Ascending Weapon first"), Projection[0], 0);
-        TestEqual(TEXT("Ascending Shield second"), Projection[1], 1);
-        TestEqual(TEXT("Ascending Potion third"), Projection[2], 3);
+        TestEqual(TEXT("Ascending uncategorized first"), Projection[0], 3);
+        TestEqual(TEXT("Ascending Weapon second"), Projection[1], 0);
+        TestEqual(TEXT("Ascending Shield third"), Projection[2], 1);
         TestEqual(TEXT("Ascending Misc fourth"), Projection[3], 2);
     }
     Widget->SetInventorySortMode(EGridInventorySortMode::TypeDescending);
@@ -239,9 +240,9 @@ bool FGridClean063AUInventoryItemTypes::RunTest(const FString&)
     if (TestEqual(TEXT("Descending sort returns 4 slots"), Projection.Num(), 4))
     {
         TestEqual(TEXT("Descending Misc first"), Projection[0], 2);
-        TestEqual(TEXT("Descending Potion second"), Projection[1], 3);
-        TestEqual(TEXT("Descending Shield third"), Projection[2], 1);
-        TestEqual(TEXT("Descending Weapon fourth"), Projection[3], 0);
+        TestEqual(TEXT("Descending Shield second"), Projection[1], 1);
+        TestEqual(TEXT("Descending Weapon third"), Projection[2], 0);
+        TestEqual(TEXT("Descending uncategorized fourth"), Projection[3], 3);
     }
 
     UGridInventorySlotWidget* Slot = CreateWidget<UGridInventorySlotWidget>(
@@ -255,6 +256,11 @@ bool FGridClean063AUInventoryItemTypes::RunTest(const FString&)
     TestTrue(TEXT("Sword tooltip reuses the existing localized Weapon label"),
         SwordView.ItemType.EqualTo(
             NSLOCTEXT("GridInventoryTooltip", "ItemTypeWeapon", "Arme")));
+    Slot->SetItem(Potion);
+    const auto UnknownView = Slot->GetTooltipView();
+    TestEqual(TEXT("Unknown tooltip only presents technical ID"), UnknownView.DisplayName.ToString(), PotionId.ToString());
+    TestEqual(TEXT("Unknown tooltip does not expose historical mass"), UnknownView.UnitWeight, 0.0f);
+    TestTrue(TEXT("Unknown tooltip grants no read/equip/hotbar"), !UnknownView.bReadable && !UnknownView.bEquippable && !UnknownView.bCanAssignToHotbar);
     Slot->SetItem(Shield);
     const FGridItemTooltipView ShieldView = Slot->GetTooltipView();
     TestTrue(TEXT("Shield tooltip reuses the existing localized Shield label"),

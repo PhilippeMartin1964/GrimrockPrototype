@@ -67,10 +67,11 @@ bool FGridClean063OSortProjection::RunTest(const FString&)
 	ConflictingLegacy->Weight = 1.5f;
 	const FGridInventorySortReadView Old =
 		FGridInventorySortReadModel::Resolve(Registry.Get(), ConflictingLegacy.Get(), Legacy);
-	TestEqual(TEXT("Unregistered name keeps old definition"),
-		Old.DisplayName, FString(TEXT("Old wrong weapon")));
-	TestEqual(TEXT("Unregistered weight keeps old definition"),
-		Old.TotalWeight, 4.5f);
+	TestEqual(TEXT("Unregistered sort name is technical identity"), Old.DisplayName, Legacy.ItemDefinitionId.ToString());
+	TestEqual(TEXT("Unregistered sort cannot borrow old mass"), Old.TotalWeight, 0.0f);
+	const auto Fixture = FGridInventorySortReadModel::Resolve(nullptr, ConflictingLegacy.Get(), Legacy);
+	TestEqual(TEXT("Isolated legacy fixture preserves name"), Fixture.DisplayName, FString(TEXT("Old wrong weapon")));
+	TestEqual(TEXT("Isolated legacy fixture preserves mass"), Fixture.TotalWeight, 4.5f);
 	return true;
 }
 
