@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.114 — Fixtures transferts physiques
+
+Parent 2bf33b99fe655fced1d7312a8dff5c5c78850052 : attendre SilentTask et LocalAuto SUCCESS. Voir [5G.114](ARM_CLEAN06_5G114_CANONICAL_WORLD_TRANSFER_FIXTURES.md).
+
 ## ARM-CLEAN06.5G.113 — Instances durables : bouclier et résolution visuelle
 
 Parent 79987b486ba39664165cb0f0f2b11b57c09a5817 : attendre SilentTask et LocalAuto SUCCESS. Voir [5G.113](ARM_CLEAN06_5G113_DURABLE_SHIELD_VISUAL_FIXTURES.md).

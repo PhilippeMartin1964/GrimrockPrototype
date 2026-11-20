@@ -10,7 +10,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -73,6 +73,26 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	const FName HeavyStoneId(TEXT("TD02_Stone"));
+	const FName LightStoneId(TEXT("TD02_Stone_Light"));
+	FGridCanonicalLootTestScope Scope;
+	if (!TestTrue(TEXT("Canonical world and hotbar stone definitions"), Scope.AttachWithWeights(TestWorld.World, {}, [&](UGridItemSystemAsset& Root)
+	{
+		for (bool bLight : {false, true})
+		{
+			auto* Stone = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+			Stone->ItemId = bLight ? LightStoneId : HeavyStoneId;
+			Stone->DisplayName = FText::FromString(TEXT("Stone"));
+			Stone->WeightKg = bLight ? 0.5f : 2.5f;
+			Stone->MaxStack = 99;
+			Stone->WorldMesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Engine/BasicShapes/Cube.Cube")));
+			Stone->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
+			Stone->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+			Stone->GenericThrow.InitialSpeed = 1200.f;
+			Root.ItemDefinitions.Add(Stone);
+		}
+	}))) return false;
+
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	TestNotNull(TEXT("The runtime actor is created"), Runtime);
 	if (!Runtime)
@@ -97,13 +117,6 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	Runtime->LevelAsset = LevelAsset;
 	TestEqual(TEXT("World item hand reach defaults to 200 cm"), Runtime->WorldItemPickupReach, 200.0f);
 
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Runtime);
-	Definition->ItemDefinitionId = TEXT("TD02_Stone");
-	Definition->DisplayName = FText::FromString(TEXT("Stone"));
-	Definition->Weight = 2.5f;
-	Definition->WorldMesh = NewObject<UStaticMesh>(Runtime);
-
-
 	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
 	TestNotNull(TEXT("The party pawn is created"), Party);
 	if (!Party || !Party->PartyInventoryComponent)
@@ -123,14 +136,11 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment.SetNum(1);
 	Party->PartyInventoryComponent->PartyInventoryState.SelectedCharacterIndex = 0;
-	Party->PartyInventoryComponent->RegisterItemDefinition(Definition);
 
 	FGridItemInstance WorldItem;
 	WorldItem.RuntimeObjectId = FGuid::NewGuid();
-	WorldItem.ItemDefinitionId = Definition->ItemDefinitionId;
-	WorldItem.DisplayName = Definition->DisplayName;
+	WorldItem.ItemDefinitionId = HeavyStoneId;
 	WorldItem.Quantity = 2;
-	WorldItem.Weight = Definition->Weight;
 	WorldItem.OwnerType = EGridItemOwnerType::World;
 
 	auto FindWorldItemActor = [&TestWorld](const FGuid& RuntimeObjectId) -> AGridItemActor*
@@ -151,7 +161,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	CursorAdjacentItem.OwnerType = EGridItemOwnerType::Cursor;
 	LevelAsset->GetCellMutable(1, 1).EastWall = EGridWallType::Solid;
 	TestTrue(TEXT("A cursor item can be placed by hand exactly 200 cm away even when grid movement is blocked"),
-		Runtime->TryDropItemInstanceAtCell(CursorAdjacentItem, Definition, 2, 1, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(CursorAdjacentItem, nullptr, 2, 1, EGridEdge::None, FVector::ZeroVector));
 	TestNotNull(TEXT("The 200 cm hand placement creates its world actor"), FindWorldItemActor(CursorAdjacentItem.RuntimeObjectId));
 	LevelAsset->GetCellMutable(1, 1).EastWall = EGridWallType::None;
 
@@ -159,32 +169,32 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	CursorJustBeyondReach.RuntimeObjectId = FGuid::NewGuid();
 	CursorJustBeyondReach.OwnerType = EGridItemOwnerType::Cursor;
 	TestFalse(TEXT("A cursor item is not placed by hand at 201 cm"),
-		Runtime->TryDropItemInstanceAtCell(CursorJustBeyondReach, Definition, 2, 1, EGridEdge::None, FVector(1.0f, 0.0f, 0.0f)));
+		Runtime->TryDropItemInstanceAtCell(CursorJustBeyondReach, nullptr, 2, 1, EGridEdge::None, FVector(1.0f, 0.0f, 0.0f)));
 	TestNull(TEXT("Rejected 201 cm hand placement creates no world actor"), FindWorldItemActor(CursorJustBeyondReach.RuntimeObjectId));
 
 	FGridItemInstance CursorDiagonalNearCorner = WorldItem;
 	CursorDiagonalNearCorner.RuntimeObjectId = FGuid::NewGuid();
 	CursorDiagonalNearCorner.OwnerType = EGridItemOwnerType::Cursor;
 	TestTrue(TEXT("Physical distance, not cell adjacency, owns hand placement when a diagonal point is within 200 cm"),
-		Runtime->TryDropItemInstanceAtCell(CursorDiagonalNearCorner, Definition, 2, 2, EGridEdge::None, FVector(-60.0f, -60.0f, 0.0f)));
+		Runtime->TryDropItemInstanceAtCell(CursorDiagonalNearCorner, nullptr, 2, 2, EGridEdge::None, FVector(-60.0f, -60.0f, 0.0f)));
 
 	FGridItemInstance CursorTwoCellsAway = WorldItem;
 	CursorTwoCellsAway.RuntimeObjectId = FGuid::NewGuid();
 	CursorTwoCellsAway.OwnerType = EGridItemOwnerType::Cursor;
 	TestFalse(TEXT("A cursor item cannot be placed directly two cell centres away"),
-		Runtime->TryDropItemInstanceAtCell(CursorTwoCellsAway, Definition, 3, 1, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(CursorTwoCellsAway, nullptr, 3, 1, EGridEdge::None, FVector::ZeroVector));
 	TestNull(TEXT("Rejected two-cell hand placement creates no world actor"), FindWorldItemActor(CursorTwoCellsAway.RuntimeObjectId));
 
 	FGridItemInstance CursorDiagonalItem = WorldItem;
 	CursorDiagonalItem.RuntimeObjectId = FGuid::NewGuid();
 	CursorDiagonalItem.OwnerType = EGridItemOwnerType::Cursor;
 	TestFalse(TEXT("A diagonal cell centre is outside the 200 cm hand reach"),
-		Runtime->TryDropItemInstanceAtCell(CursorDiagonalItem, Definition, 2, 2, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(CursorDiagonalItem, nullptr, 2, 2, EGridEdge::None, FVector::ZeroVector));
 
 	FGridItemInstance NearbyFreeItem = WorldItem;
 	NearbyFreeItem.RuntimeObjectId = FGuid::NewGuid();
 	TestTrue(TEXT("A free item can be dropped in the neighbouring cell"),
-		Runtime->TryDropItemInstanceAtCell(NearbyFreeItem, Definition, 1, 2, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(NearbyFreeItem, nullptr, 1, 2, EGridEdge::None, FVector::ZeroVector));
 	AGridItemActor* NearbyFreeActor = FindWorldItemActor(NearbyFreeItem.RuntimeObjectId);
 	TestNotNull(TEXT("The neighbouring free pickup actor exists"), NearbyFreeActor);
 	if (!NearbyFreeActor)
@@ -212,7 +222,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	FGridItemInstance DiagonalFreeItem = WorldItem;
 	DiagonalFreeItem.RuntimeObjectId = FGuid::NewGuid();
 	TestTrue(TEXT("A free item can be dropped on a diagonal cell"),
-		Runtime->TryDropItemInstanceAtCell(DiagonalFreeItem, Definition, 2, 2, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(DiagonalFreeItem, nullptr, 2, 2, EGridEdge::None, FVector::ZeroVector));
 	AGridItemActor* DiagonalFreeActor = FindWorldItemActor(DiagonalFreeItem.RuntimeObjectId);
 	TestNotNull(TEXT("The diagonal free pickup actor exists"), DiagonalFreeActor);
 	if (!DiagonalFreeActor)
@@ -224,7 +234,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Picking up the neighbouring free actor transfers the actor actually clicked"), Runtime->TryPickupItemActor(NearbyFreeActor, Party));
 
 	TestTrue(TEXT("A valid item can be dropped on the edge facing the party"),
-		Runtime->TryDropItemInstanceAtCell(WorldItem, Definition, 1, 2, EGridEdge::South, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(WorldItem, nullptr, 1, 2, EGridEdge::South, FVector::ZeroVector));
 	TestEqual(TEXT("Edge items are excluded from the default pressure-plate weight query"), Runtime->GetWorldItemWeightAtCell(1, 2), 0.0f);
 	TestEqual(TEXT("Edge items contribute their full stack weight when requested"), Runtime->GetWorldItemWeightAtCell(1, 2, true), 5.0f);
 
@@ -249,7 +259,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	Party->Facing = EGridEdge::North;
 	TestTrue(TEXT("A front-cell edge item is pickable when its edge faces the party"), Runtime->CanPartyPickupItemActor(DroppedItem, Party));
 	TestTrue(TEXT("Picking up the actor transfers it to the selected character"), Runtime->TryPickupItemActor(DroppedItem, Party));
-	TestTrue(TEXT("The selected character inventory now contains the item definition"), Party->HasInventoryItem(Definition->ItemDefinitionId));
+	TestTrue(TEXT("The selected character inventory now contains the item definition"), Party->HasInventoryItem(HeavyStoneId));
 	TestEqual(TEXT("Picking up the item removes its world weight"), Runtime->GetWorldItemWeightAtCell(1, 2, true), 0.0f);
 
 	int32 ResolvedX = INDEX_NONE;
@@ -284,20 +294,15 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 		return false;
 	}
 	Controller->Possess(Party);
-	Definition->HandUsage = EGridItemHandUsage::OneHanded;
-	Definition->Weight = 0.5f;
-	Definition->ThrowSpeed = 1200.0f;
-	Definition->bStackable = true;
-	Definition->MaxStackSize = 99;
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };
 	FGridItemInstance HotbarStack = WorldItem;
 	HotbarStack.RuntimeObjectId = FGuid::NewGuid();
-	HotbarStack.Weight = Definition->Weight;
+	HotbarStack.ItemDefinitionId = LightStoneId;
 	HotbarStack.Quantity = 3;
 	TestTrue(TEXT("The hotbar source stack is stored in inventory"), Party->PartyInventoryComponent->AddItemToCharacterInventory(0, HotbarStack));
-	auto CountSource = [Party, Definition]()
+	auto CountSource = [Party, LightStoneId]()
 	{
-		return Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, Definition->ItemDefinitionId);
+		return Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, LightStoneId);
 	};
 	auto CountProjectiles = [&TestWorld]()
 	{
@@ -309,7 +314,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 		return Count;
 	};
 	TestTrue(TEXT("The same aiming entry point as a numbered hotbar slot accepts the Stone"),
-		Party->BeginSelectedCharacterInventoryItemThrowAiming(Definition->ItemDefinitionId));
+		Party->BeginSelectedCharacterInventoryItemThrowAiming(LightStoneId));
 	TestEqual(TEXT("Aiming does not consume the inventory stack"), CountSource(), 3);
 	TestFalse(TEXT("Hotbar aiming does not put an inventory instance on the ordinary cursor"), Party->HasCursorItem());
 
@@ -345,7 +350,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	WeightPlate.InstanceConfig.InteractionOverrides.bOverridePressurePlateWeight = true;
 	WeightPlate.InstanceConfig.InteractionOverrides.PressurePlateWeight.bActivateWhenPartyPresent = false;
 	WeightPlate.InstanceConfig.InteractionOverrides.PressurePlateWeight.bUseItemWeight = true;
-	WeightPlate.InstanceConfig.InteractionOverrides.PressurePlateWeight.RequiredItemWeight = PreviousWeight + Definition->Weight;
+	WeightPlate.InstanceConfig.InteractionOverrides.PressurePlateWeight.RequiredItemWeight = PreviousWeight + 0.5f;
 	LevelAsset->WorldObjectInstances.Add(WeightPlate);
 	UGridWorldObjectDefinitionAsset* PlateDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	PlateDefinition->DefinitionId = WeightPlate.WorldObjectDefinitionId;
@@ -363,7 +368,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("The weight plate starts below its threshold"), Activation->GetActiveObjectIds().Contains(WeightPlate.InstanceId));
 	TestTrue(TEXT("Clicking the plate at exactly 200 cm is handled"), Controller->HandlePhysicalThrowAimingHit(PlateHit));
 	TestEqual(TEXT("The close hotbar click places exactly one Stone in the targeted cell"), Runtime->GetWorldItemWeightAtCell(2, 1),
-		PreviousWeight + Definition->Weight);
+		PreviousWeight + 0.5f);
 	TestTrue(TEXT("WorldDrop immediately refreshes and activates the weight plate without a tick"),
 		Activation->GetActiveObjectIds().Contains(WeightPlate.InstanceId));
 	TestEqual(TEXT("Placement consumes exactly one inventory unit"), CountSource(), 2);
@@ -372,13 +377,13 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Successful placement leaves no temporary cursor item"), Party->HasCursorItem());
 
 	TestFalse(TEXT("Failed physical placement restores the original source slot"),
-		Party->TryDropSelectedCharacterInventoryItemAtCell(Definition->ItemDefinitionId, -1, -1, FVector::ZeroVector));
+		Party->TryDropSelectedCharacterInventoryItemAtCell(LightStoneId, -1, -1, FVector::ZeroVector));
 	TestEqual(TEXT("Failed placement preserves the inventory quantity"), CountSource(), 2);
 	TestEqual(TEXT("Failed placement preserves the source stack identity and slot"),
 		Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.RuntimeObjectId, HotbarStack.RuntimeObjectId);
 	TestFalse(TEXT("Failed placement leaves no temporary cursor item"), Party->HasCursorItem());
 
-	TestTrue(TEXT("The remaining hotbar stack can be targeted again"), Party->BeginSelectedCharacterInventoryItemThrowAiming(Definition->ItemDefinitionId));
+	TestTrue(TEXT("The remaining hotbar stack can be targeted again"), Party->BeginSelectedCharacterInventoryItemThrowAiming(LightStoneId));
 	LevelAsset->GetCellMutable(2, 1).bBlocksOccupancy = true;
 	Controller->HandlePhysicalThrowAimingHit(PlateHit);
 	TestEqual(TEXT("An invalid near cell never falls back to throwing"), CountProjectiles(), 0);
@@ -390,14 +395,14 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Throwing consumes exactly one inventory unit"), CountSource(), 1);
 	TestFalse(TEXT("Successful throwing exits aiming"), Controller->IsPhysicalThrowAimingActive());
 
-	TestTrue(TEXT("The last unit can be aimed at a cell corner"), Party->BeginSelectedCharacterInventoryItemThrowAiming(Definition->ItemDefinitionId));
+	TestTrue(TEXT("The last unit can be aimed at a cell corner"), Party->BeginSelectedCharacterInventoryItemThrowAiming(LightStoneId));
 	PlateHit.ImpactPoint = Party->GetActorLocation() + FVector(101.0f, 172.0f, -Party->EyeHeight);
 	TestEqual(
 		TEXT("A visible corner at 199.56 cm is placeable"), Controller->ResolvePhysicalThrowTargetCursor(Party, PlateHit), EGridInteractionCursor::PlaceItem);
 	const float PreviousCornerWeight = Runtime->GetWorldItemWeightAtCell(2, 2);
 	Controller->HandlePhysicalThrowAimingHit(PlateHit);
 	TestEqual(TEXT("Placement preserves the close impact instead of clamping it out of reach"), Runtime->GetWorldItemWeightAtCell(2, 2),
-		PreviousCornerWeight + Definition->Weight);
+		PreviousCornerWeight + 0.5f);
 	TestEqual(TEXT("Corner placement consumes the last unit"), CountSource(), 0);
 	TestEqual(TEXT("Corner placement creates no additional projectile"), CountProjectiles(), 1);
 	LevelAsset->GetCellMutable(1, 1).EastWall = EGridWallType::None;

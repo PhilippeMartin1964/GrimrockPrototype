@@ -8,6 +8,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Runtime/GridItemContextActionLibrary.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -59,9 +60,7 @@ namespace
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = TEXT("TD027_CursorTransferItem");
-		Item.DisplayName = FText::FromString(TEXT("TD02.7 Cursor Transfer Item"));
 		Item.Quantity = 2;
-		Item.Weight = 0.5f;
 		Item.OwnerType = EGridItemOwnerType::World;
 		return Item;
 	}
@@ -81,6 +80,16 @@ bool FGridTD027PartyItemTransferCursorFacadeContractTest::RunTest(const FString&
 		return false;
 	}
 
+	FGridCanonicalLootTestScope Scope;
+	if (!TestTrue(TEXT("Canonical transfer stack"), Scope.AttachWithWeights(TestWorld.World, {}, [](UGridItemSystemAsset& Root)
+	{
+		auto* Stack = NewObject<UGridGenericStackableDefinitionAsset>(&Root);
+		Stack->ItemId = TEXT("TD027_CursorTransferItem");
+		Stack->DisplayName = FText::FromString(TEXT("TD02.7 Cursor Transfer Item"));
+		Stack->WeightKg = 0.5f;
+		Stack->MaxStack = 2;
+		Root.ItemDefinitions.Add(Stack);
+	}))) return false;
 	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
 	TestNotNull(TEXT("The party pawn is spawned"), Party);
 	if (!Party || !Party->PartyInventoryComponent)
@@ -184,9 +193,7 @@ bool FGridTD027PhysicalThrowRulesTest::RunTest(const FString& Parameters)
 	FGridItemInstance EquippedStone;
 	EquippedStone.RuntimeObjectId = FGuid::NewGuid();
 	EquippedStone.ItemDefinitionId = StoneDefinition->ItemDefinitionId;
-	EquippedStone.DisplayName = StoneDefinition->DisplayName;
 	EquippedStone.Quantity = 1;
-	EquippedStone.Weight = StoneDefinition->Weight;
 	EquippedStone.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	EquippedStone.OwnerCharacterIndex = CharacterIndex;
 	EquippedStone.EquipmentSlot = EGridEquipmentSlot::MainHand;

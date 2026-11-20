@@ -1,0 +1,3 @@
+# ARM-CLEAN06.5G.114 — Transferts et portée physique
+
+Parent `2bf33b99fe655fced1d7312a8dff5c5c78850052`. TD02.7 utilise une pile canonique pour le curseur ; sa caractérisation de la formule legacy est conservée sans copies d'instance. TD02.1 utilise deux identités de test canoniques distinctes (2,5 kg au sol et 0,5 kg pour le hotbar), plutôt que modifier les propriétés d'un même asset au milieu du scénario. Portée de 200 cm, seuil de plaque, conservation d'identité, consommation, projectile et rollback restent couverts. Le mesh de test vient des BasicShapes d'Unreal. Aucun changement de runtime ni d'asset produit.
