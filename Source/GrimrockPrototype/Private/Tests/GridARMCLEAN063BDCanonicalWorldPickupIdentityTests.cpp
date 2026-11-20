@@ -228,6 +228,19 @@ namespace ARMCLEAN063BD
         {
             if (!Test.TestNotNull(TEXT("Party and inventory configured"), F.Party))
                 return false;
+            Actor->SetRuntimeObjectId(FGuid::NewGuid());
+            Test.TestFalse(TEXT("Click pickup rejects conflicting physical GUID"),
+                F.Runtime->TryPickupItemActor(Actor, F.Party));
+            Test.TestEqual(TEXT("Rejected click does not grant ammo"),
+                F.Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, ArrowId), 0);
+            Actor->SetRuntimeObjectId(Arrow.RuntimeObjectId);
+            Actor->ItemDefinitionId = TEXT("Unknown_5G54");
+            Test.TestFalse(TEXT("Cell pickup rejects conflicting identity"),
+                F.Runtime->TryPickupItemAtCell(1, 1, F.Party));
+            Test.TestEqual(TEXT("Rejected cell pickup does not grant ammo"),
+                F.Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, ArrowId), 0);
+            if (!Test.TestTrue(TEXT("Refusal retains pickup actor"), IsValid(Actor))) return false;
+            Actor->ItemDefinitionId = ArrowId;
             if (!Test.TestTrue(TEXT("Actual click pickup uses canonical ItemId"),
                 F.Runtime->TryPickupItemActor(Actor, F.Party)))
                 return false;

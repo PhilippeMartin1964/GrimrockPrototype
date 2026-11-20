@@ -27,6 +27,59 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridLevelRuntime, Log, All);
 
 namespace
 {
+	// Build one physical instance for both pickup entry points. Production
+	// never invents a replacement GUID or repairs a stack during transfer.
+	bool TryBuildWorldPickupInstance(const FGridSpawnedItemRuntimeEntry& Entry, FGridItemInstance& Out)
+	{
+		const AGridItemActor* Actor = Entry.ItemActor.Get();
+		if (!IsValid(Actor)) return false;
+		const UWorld* World = Actor->GetWorld();
+		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+		bool bRequireCanonical = true;
+#if WITH_DEV_AUTOMATION_TESTS
+		bRequireCanonical = GI != nullptr;
+#endif
+		FGridItemInstance Candidate;
+		Candidate.ItemLevel = Entry.ItemLevel;
+		if (bRequireCanonical)
+		{
+			FGridResolvedItem Resolved;
+			if (!Registry || !Registry->IsConfigured() ||
+				!Entry.ObjectId.IsValid() || Actor->GetRuntimeObjectId() != Entry.ObjectId ||
+				Entry.ItemDefinitionId.IsNone() || Actor->ItemDefinitionId != Entry.ItemDefinitionId ||
+				Actor->CanonicalWorldItemLevel != Entry.ItemLevel ||
+				!Registry->ResolveItem(Entry.ItemDefinitionId, Entry.ItemLevel, Resolved) ||
+				!Resolved.IsValid() || Resolved.ItemId != Entry.ItemDefinitionId ||
+				Resolved.ItemLevel != Entry.ItemLevel ||
+				(Resolved.bIsArmament ? Entry.ItemLevel < 1 : Entry.ItemLevel != 0) ||
+				Entry.Quantity < 1 || Entry.Quantity > FMath::Max(1, Resolved.MaxStack))
+				return false;
+			Candidate.RuntimeObjectId = Entry.ObjectId;
+			Candidate.ItemDefinitionId = Entry.ItemDefinitionId;
+			Candidate.Quantity = Entry.Quantity;
+			Candidate.Weight = Resolved.WeightKg;
+		}
+		else
+		{
+			// Temporary registry-less automation fixture compatibility.
+			Candidate.ItemDefinitionId = FGridWorldPickupIdentityReadModel::Resolve(Actor, Entry.ItemDefinitionId, Entry.ItemLevel);
+			Candidate.RuntimeObjectId = Actor->GetRuntimeObjectId();
+			if (!Candidate.RuntimeObjectId.IsValid()) Candidate.RuntimeObjectId = FGuid::NewGuid();
+			Candidate.Quantity = FMath::Max(1, Entry.Quantity);
+		}
+		Candidate.bLightsEnabled = Actor->AreItemLightsEnabled();
+		Candidate.ReadableContentAsset = Actor->ReadableContentAsset;
+		Candidate.ReadableContentId = Actor->ReadableContentId;
+		Candidate.ReadTitleOverride = Actor->ReadTitleOverride;
+		Candidate.ReadTextOverride = Actor->ReadTextOverride;
+		Candidate.LastWorldTransform = IsValid(Actor->MeshComponent)
+			? Actor->MeshComponent->GetComponentTransform() : Actor->GetActorTransform();
+		if (!Candidate.IsValid()) return false;
+		Out = MoveTemp(Candidate);
+		return true;
+	}
+
 	FString GetWorldItemEdgeText(EGridEdge Edge)
 	{
 		if (const UEnum* EdgeEnum = StaticEnum<EGridEdge>())
@@ -236,30 +289,13 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 			continue;
 		}
 
-		const FName ItemDefinitionId = FGridWorldPickupIdentityReadModel::Resolve(ItemActor, Entry.ItemDefinitionId, Entry.ItemLevel);
-		if (ItemDefinitionId.IsNone())
+		FGridItemInstance ItemInstance;
+		if (!TryBuildWorldPickupInstance(Entry, ItemInstance))
 		{
-			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Item pickup failed at cell %d,%d: missing item definition id."), CellX, CellY);
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Item pickup refused: contradictory or invalid physical identity."));
 			return false;
 		}
-
-		FGridItemInstance ItemInstance;
-		ItemInstance.RuntimeObjectId = ItemActor->GetRuntimeObjectId();
-		if (!ItemInstance.RuntimeObjectId.IsValid())
-		{
-			ItemInstance.RuntimeObjectId = FGuid::NewGuid();
-		}
-		ItemInstance.ItemDefinitionId = ItemDefinitionId;
-		ItemInstance.ItemLevel = Entry.ItemLevel;
-		ItemInstance.Quantity = FMath::Max(1, Entry.Quantity);
-		ItemInstance.Weight = 0.0f;
-		ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled();
-		ItemInstance.ReadableContentAsset = ItemActor->ReadableContentAsset;
-		ItemInstance.ReadableContentId = ItemActor->ReadableContentId;
-		ItemInstance.ReadTitleOverride = ItemActor->ReadTitleOverride;
-		ItemInstance.ReadTextOverride = ItemActor->ReadTextOverride;
-		ItemInstance.LastWorldTransform = IsValid(ItemActor->MeshComponent)
-			? ItemActor->MeshComponent->GetComponentTransform() : ItemActor->GetActorTransform();
+		const FName ItemDefinitionId = ItemInstance.ItemDefinitionId;
 
 		if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory(ItemInstance))
 		{
@@ -314,30 +350,13 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 			return false;
 		}
 
-		const FName ItemDefinitionId = FGridWorldPickupIdentityReadModel::Resolve(ItemActor, Entry.ItemDefinitionId, Entry.ItemLevel);
-		if (ItemDefinitionId.IsNone())
+		FGridItemInstance ItemInstance;
+		if (!TryBuildWorldPickupInstance(Entry, ItemInstance))
 		{
-			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Item pickup failed for actor %s: missing item definition id."), *ItemActor->GetName());
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Item pickup refused: contradictory or invalid physical identity."));
 			return false;
 		}
-
-		FGridItemInstance ItemInstance;
-		ItemInstance.RuntimeObjectId = ItemActor->GetRuntimeObjectId();
-		if (!ItemInstance.RuntimeObjectId.IsValid())
-		{
-			ItemInstance.RuntimeObjectId = FGuid::NewGuid();
-		}
-		ItemInstance.ItemDefinitionId = ItemDefinitionId;
-		ItemInstance.ItemLevel = Entry.ItemLevel;
-		ItemInstance.Quantity = FMath::Max(1, Entry.Quantity);
-		ItemInstance.Weight = 0.0f;
-		ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled();
-		ItemInstance.ReadableContentAsset = ItemActor->ReadableContentAsset;
-		ItemInstance.ReadableContentId = ItemActor->ReadableContentId;
-		ItemInstance.ReadTitleOverride = ItemActor->ReadTitleOverride;
-		ItemInstance.ReadTextOverride = ItemActor->ReadTextOverride;
-		ItemInstance.LastWorldTransform = IsValid(ItemActor->MeshComponent)
-			? ItemActor->MeshComponent->GetComponentTransform() : ItemActor->GetActorTransform();
+		const FName ItemDefinitionId = ItemInstance.ItemDefinitionId;
 
 		if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory(ItemInstance))
 		{

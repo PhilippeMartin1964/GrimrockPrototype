@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.54 — Ramassage physique canonique
+
+Parent 0e67ab86c3b401c747a5badca54ea75b4d90652b. Publication après deux statuts SUCCESS. Les ramassages par cellule et clic partagent la construction de l'instance depuis GUID/ID/niveau/quantité physiques et refusent incohérences sans octroi. Le test 3BD Pickup couvre les deux refus puis le ramassage positif. Voir [5G.54](ARM_CLEAN06_5G54_CANONICAL_WORLD_PICKUP.md).
+
 ## ARM-CLEAN06.5G.53 — Capture atomique des objets du monde
 
 Parent 7f3847d9e3894e61e26dddd75afdb114a14181e4. Publication après deux statuts SUCCESS. Capture des pickups et munitions actives préparée avant reset du niveau, validation canonique commune des items, réceptacles et arrivées différées, aucun remplacement silencieux de GUID ou de quantité pour les lignes actives. Test 3BD Capture renforce le refus de GUID/ID physique contradictoire et la conservation du snapshot. Voir [5G.53](ARM_CLEAN06_5G53_ATOMIC_WORLD_ITEM_CAPTURE.md).
