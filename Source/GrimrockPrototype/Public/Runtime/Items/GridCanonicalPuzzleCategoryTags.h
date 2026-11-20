@@ -27,6 +27,35 @@ namespace GridCanonicalPuzzleCategoryTags
         return Count;
     }
 
+    inline TArray<FName> WithoutReserved(const TArray<FName>& Tags)
+    {
+        TArray<FName> Result;
+        for (FName Tag : Tags) if (!IsReserved(Tag)) Result.Add(Tag);
+        return Result;
+    }
+
+    inline bool IsValidMetadata(const TArray<FName>& Tags, bool bArm)
+    {
+        if (CountReserved(Tags) == 0) return true;
+        if (bArm || CountReserved(Tags) != 1) return false;
+        for (FName Tag : Tags)
+            if (IsReserved(Tag))
+                return ForType(FName(*Tag.ToString().RightChop(15))) == Tag;
+        return false;
+    }
+
+    // Isolated historical comparison: the only accepted delta is an appended
+    // tag explicitly proven by the caller's migration evidence.
+    inline bool MatchesBeforeOrAfter(const TArray<FName>& Actual,
+        const TArray<FName>& Original, FName Type)
+    {
+        const FName Tag = ForType(Type);
+        if (Tag.IsNone() || CountReserved(Original) != 0) return false;
+        TArray<FName> Migrated = Original;
+        Migrated.Add(Tag);
+        return Actual == Original || Actual == Migrated;
+    }
+
     inline bool Matches(const FGridResolvedItem& Item, FName Type)
     {
         const FName Tag = ForType(Type);

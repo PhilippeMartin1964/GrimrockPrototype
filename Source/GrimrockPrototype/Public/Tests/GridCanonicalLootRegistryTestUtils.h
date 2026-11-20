@@ -2,6 +2,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Items/GridCanonicalInventoryCategoryTags.h"
+#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
 
 /** Production tests accept only the explicit X.61 and X.66 registry states.
  * Exact append order/classes and existing identities are checked, not a
@@ -58,7 +59,8 @@ namespace GridCanonicalLootRegistryTestUtils
             const FName Tag = J == 0 ? GridCanonicalInventoryCategoryTags::Weapon() :
                 J == 2 ? GridCanonicalInventoryCategoryTags::Food() : GridCanonicalInventoryCategoryTags::Component();
             if (D->ItemId != IDs[J] || D->GetClass() != Class ||
-                D->Tags != TArray<FName>{Tag}) return false;
+                !GridCanonicalPuzzleCategoryTags::MatchesBeforeOrAfter(D->Tags, {Tag},
+                    J == 0 ? FName(TEXT("Weapon")) : J == 2 ? FName(TEXT("Food")) : FName(TEXT("Component")))) return false;
         }
         return true;
     }

@@ -2,6 +2,7 @@
 
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
 
 /**
  * ARM-CLEAN06.3AX/AY/AZ/BA: strictly project one authored
@@ -52,7 +53,7 @@ struct FGridCanonicalQuickItemUseReadModel
         Candidate.Icon = Item.ItemIcon;
         Candidate.ActionType = EGridCombatActionType::Ability;
         Candidate.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-        Candidate.SourceTags = Item.Tags;
+        Candidate.SourceTags = GridCanonicalPuzzleCategoryTags::WithoutReserved(Item.Tags);
         Candidate.TargetingPolicy = Bound.Action.Targeting;
         Candidate.MaximumResolvedTargets = 1;
         Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
@@ -102,7 +103,7 @@ struct FGridCanonicalQuickItemUseReadModel
         Candidate.Icon = Item.ItemIcon;
         Candidate.ActionType = EGridCombatActionType::Ability;
         Candidate.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-        Candidate.SourceTags = Item.Tags;
+        Candidate.SourceTags = GridCanonicalPuzzleCategoryTags::WithoutReserved(Item.Tags);
         Candidate.TargetingPolicy = Bound.Action.Targeting;
         Candidate.MaximumResolvedTargets = 1;
         Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
@@ -164,7 +165,7 @@ struct FGridCanonicalQuickItemUseReadModel
         Candidate.Icon = Item.ItemIcon;
         Candidate.ActionType = EGridCombatActionType::Ability;
         Candidate.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-        Candidate.SourceTags = Item.Tags;
+        Candidate.SourceTags = GridCanonicalPuzzleCategoryTags::WithoutReserved(Item.Tags);
         Candidate.TargetingPolicy = Bound.Action.Targeting;
         Candidate.MaximumResolvedTargets = 1;
         Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;

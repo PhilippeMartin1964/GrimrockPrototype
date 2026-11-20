@@ -188,7 +188,8 @@ namespace GridEditorAlchemyCutoverPlan
             const auto* A = Cast<UGridConsumableDefinitionAsset>(Actual.ItemDefinitions[BeforeCount+I].Get());
             const auto* E = Cast<UGridConsumableDefinitionAsset>(Expected.ItemDefinitions[BeforeCount+I].Get());
             if (!IsValid(A) || !IsValid(E) || (bNativePaths && A->GetPathName() != TargetPath(I)) ||
-                !FGridEditorLootDefinitionProjection::SameDefinition(*A, *E))
+                !FGridEditorLootDefinitionProjection::SameDefinition(*A, *E,
+                    bNativePaths ? (IsPotion(I) ? EGridItemType::Potion : EGridItemType::Misc) : EGridItemType::None))
             { Error = TEXT("Projected native item differs: ") + Audit::Id(I).ToString(); return false; }
         }
         for (int32 I = 0; I < AfterDetailedCount; ++I)
@@ -230,6 +231,11 @@ namespace GridEditorAlchemyCutoverPlan
         for (int32 I = BeforeCount; I < AfterCount; ++I)
             if (!IsValid(Root.ItemDefinitions[I].Get()) || Root.ItemDefinitions[I]->GetOutermost()->IsDirty())
             { Error = TEXT("Dirty or missing persisted alchemy item"); return false; }
-        return MatchesProjected(Root, Preview, Error, true);
+        if (!MatchesProjected(Root, Preview, Error, true)) return false;
+        // Mirror only the already verified native category delta onto the
+        // transient historical projection, not onto the source package.
+        for (int32 I = BeforeCount; I < AfterCount; ++I)
+            Preview.ItemDefinitions[I]->Tags = Root.ItemDefinitions[I]->Tags;
+        return true;
     }
 }

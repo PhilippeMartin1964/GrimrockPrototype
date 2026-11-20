@@ -53,6 +53,10 @@ namespace GridEditorPuzzleCategoryMigration
     inline bool BuildPreview(UGridItemSystemAsset& Root, UGridItemSystemAsset& Preview, FString& Error)
     {
         auto Fail = [&](const FString& Message) { Error = Message; return false; };
+        if (&Root == &Preview || Preview.GetOutermost() != GetTransientPackage() ||
+            !Preview.ItemDefinitions.IsEmpty() || Preview.WeaponCatalogue || Preview.WeaponVisualCatalogue ||
+            Preview.ActionCatalogue || Preview.ActionPresentationCatalogue)
+            return Fail(TEXT("Preview must be an empty transient destination"));
         GridEditorRetirementAudit::FNativeAudit Audit;
         if (!GridEditorRetirementAudit::CollectNative(Audit, Error)) return false;
         if (Root.GetPathName() != GridEditorRetirementAudit::RootPath() ||
@@ -108,6 +112,7 @@ namespace GridEditorPuzzleCategoryMigration
         Preview.ActionPresentationCatalogue = Root.ActionPresentationCatalogue;
         Preview.ItemDefinitions.Reset();
         int32 Added = 0;
+        int32 Present = 0;
         for (const auto& Source : Root.ItemDefinitions)
         {
             if (!IsValid(Source.Get()) || Source->GetOutermost()->IsDirty() || !Seen.Contains(Source->ItemId))
@@ -126,14 +131,26 @@ namespace GridEditorPuzzleCategoryMigration
                 Source->GetPathName() != TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/Definitions/") + Name + TEXT(".") + Name)
                 return Fail(TEXT("Unexpected native target: ") + Source->GetPathName());
             TArray<FName> Tags;
-            if (!PlanTags(Source->Tags, *Type, Tags)) return Fail(TEXT("Reserved category already present: ") + Name);
+            if (GridCanonicalPuzzleCategoryTags::CountReserved(Source->Tags) == 0)
+            {
+                if (!PlanTags(Source->Tags, *Type, Tags)) return Fail(TEXT("Invalid planned category: ") + Name);
+                ++Added;
+            }
+            else
+            {
+                const TArray<FName> Original = GridCanonicalPuzzleCategoryTags::WithoutReserved(Source->Tags);
+                if (!GridCanonicalPuzzleCategoryTags::MatchesBeforeOrAfter(Source->Tags, Original, *Type))
+                    return Fail(TEXT("Invalid native category tag: ") + Name);
+                Tags = Source->Tags;
+                ++Present;
+            }
             auto* Copy = DuplicateObject<UGridCanonicalItemDefinitionAsset>(Source.Get(), &Preview);
             if (!Copy) return Fail(TEXT("Preview duplication failed"));
             Copy->Tags = MoveTemp(Tags);
             Preview.ItemDefinitions.Add(Copy);
-            ++Added;
         }
-        if (Added != 26 || Root.GetOutermost()->IsDirty())
+        if (!((Added == 26 && Present == 0) || (Added == 0 && Present == 26)) ||
+            Root.GetOutermost()->IsDirty())
             return Fail(TEXT("Incomplete or dirty preview"));
         return true;
     }

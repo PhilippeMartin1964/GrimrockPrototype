@@ -75,10 +75,10 @@ bool FGridEditorARMCLEAN064X61LootProjection::RunTest(const FString&)
             NewObject<UObject>(GetTransientPackage(), FPlan::ClassFor(I), NAME_None, RF_Transient));
         if (!TestNotNull(TEXT("Conflicting transient definition"), Counterfeit) ||
             !TestTrue(TEXT("Projection re-created exactly"), FPlan::Project(*Source, I, *Counterfeit)) ||
-            !TestTrue(TEXT("Every reflected canonical property matches"), FPlan::SameDefinition(*Definition, *Counterfeit)))
+            !TestTrue(TEXT("Every reflected canonical property matches"), FPlan::SameDefinition(*Definition, *Counterfeit, FPlan::LegacyType(I))))
             return false;
         Counterfeit->WeightKg += 1.f;
-        TestFalse(TEXT("Conflicting canonical mass is detected"), FPlan::SameDefinition(*Definition, *Counterfeit));
+        TestFalse(TEXT("Conflicting canonical mass is detected"), FPlan::SameDefinition(*Definition, *Counterfeit, FPlan::LegacyType(I)));
         if (bMigrated)
             TestEqual(TEXT("Persisted canonical asset exact path"), Definition->GetPathName(), FPlan::TargetPath(I));
     }

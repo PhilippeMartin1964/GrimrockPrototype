@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.70 — Isolation des catégories et parité historique
+
+Parent 0a57d949798dc71bf0bb8538123ec05de7d304ff. Tags réservés exclus des exigences d'équipement et des QuickItems ; validation refuse tags ARM, conflits et formes inconnues. Tests de projections historiques n'acceptent que l'ajout exact de la catégorie attestée ; preview native vérifie état 0/26 ou 26/26 et refuse alias/destination non transitoire. Aucune écriture native. Voir [5G.70](ARM_CLEAN06_5G70_PUZZLE_TAG_ISOLATION.md).
+
 ## ARM-CLEAN06.5G.69 — Prévisualisation des catégories
 
 Parent eb22e645fd122de1a20700156f6068f15bd9f708, rapport [#208](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/208). Plan Editor 26 tags réservés, parité des 466 résolutions, aucune écriture native et aucun basculement runtime. Voir [5G.69](ARM_CLEAN06_5G69_PUZZLE_CATEGORY_PREVIEW.md).

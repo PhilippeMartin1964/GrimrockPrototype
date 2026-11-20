@@ -2,6 +2,7 @@
 
 #include "GridEditorNativeStoneLootPlan.h"
 #include "Runtime/Items/GridCanonicalInventoryCategoryTags.h"
+#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
 #include "Engine/GameInstance.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -161,7 +162,13 @@ struct FGridEditorLootDefinitionProjection
         return New.HasValidIdentity();
     }
 
-    static bool SameDefinition(const UGridNonArmamentDefinitionAsset& A, const UGridNonArmamentDefinitionAsset& B)
+    static FName PuzzleType(EGridItemType Type)
+    {
+        return FName(*StaticEnum<EGridItemType>()->GetNameStringByValue(static_cast<int64>(Type)));
+    }
+
+    static bool SameDefinition(const UGridNonArmamentDefinitionAsset& A, const UGridNonArmamentDefinitionAsset& B,
+        EGridItemType MigrationType = EGridItemType::None)
     {
         if (A.GetClass() != B.GetClass()) return false;
         for (TFieldIterator<FProperty> Field(A.GetClass()); Field; ++Field)
@@ -170,6 +177,8 @@ struct FGridEditorLootDefinitionProjection
             // asset bookkeeping (PrimaryAsset, UObject) is not authored here.
             if (!Field->GetOwnerStruct()->IsChildOf(UGridCanonicalItemDefinitionAsset::StaticClass()) ||
                 Field->HasAnyPropertyFlags(CPF_Transient)) continue;
+            if (Field->GetFName() == FName(TEXT("Tags")) && MigrationType != EGridItemType::None &&
+                GridCanonicalPuzzleCategoryTags::MatchesBeforeOrAfter(A.Tags, B.Tags, PuzzleType(MigrationType))) continue;
             if (!Field->Identical_InContainer(&A, &B)) return false;
         }
         return true;
@@ -182,7 +191,7 @@ struct FGridEditorLootDefinitionProjection
             Item.bIsArmament || Item.ItemId != Id(Index) || Item.ItemLevel != 0 ||
             !Item.DisplayName.EqualTo(Old.DisplayName) || !Item.Description.EqualTo(Old.Description) ||
             Item.WeightKg != Old.Weight || Item.MaxStack != Capacity(Index) ||
-            Item.Tags != TArray<FName>{CategoryTag(Index)} ||
+            !GridCanonicalPuzzleCategoryTags::MatchesBeforeOrAfter(Item.Tags, {CategoryTag(Index)}, PuzzleType(LegacyType(Index))) ||
             !Item.ItemIcon.IsNull() || !Item.WorldMesh.IsNull() || !Item.EquippedMesh.IsNull() ||
             !Item.AvailableActions.IsEmpty() || !Item.NonArmEquipmentSlots.IsEmpty() ||
             Item.bNonArmTwoHanded || Item.bReadable || Item.LightEmitter.HasEmitter() ||
@@ -238,7 +247,7 @@ struct FGridEditorLootDefinitionProjection
             {
                 const auto* Actual = Cast<UGridNonArmamentDefinitionAsset>(Root.ItemDefinitions[BaseCount + I].Get());
                 if (!IsValid(Actual) || Actual->GetPathName() != TargetPath(I) ||
-                    Actual->GetOutermost()->IsDirty() || !SameDefinition(*Actual, *Candidate))
+                    Actual->GetOutermost()->IsDirty() || !SameDefinition(*Actual, *Candidate, LegacyType(I)))
                 { Error = FString::Printf(TEXT("Saved canonical loot differs: %s"), *Id(I).ToString()); return false; }
             }
             else Preview.ItemDefinitions.Add(Candidate);

@@ -1,5 +1,6 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
+#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
 
 #include "Magic/GridProductionSpellLibrary.h"
 #include "Magic/GridSpellbookUI.h"
@@ -646,7 +647,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 				}
 				for (const FName Tag : Resolved.Tags)
 				{
-					Context.SatisfiedRequirements.Add(Tag);
+					if (!GridCanonicalPuzzleCategoryTags::IsReserved(Tag)) Context.SatisfiedRequirements.Add(Tag);
 				}
 				if (Resolved.bIsArmament && Resolved.Weapon.HasAttackSourceInHand(HandSlot))
 				{

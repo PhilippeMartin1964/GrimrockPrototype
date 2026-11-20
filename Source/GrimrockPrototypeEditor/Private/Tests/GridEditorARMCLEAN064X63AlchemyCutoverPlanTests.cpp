@@ -78,7 +78,9 @@ bool FGridEditorARMCLEAN064X63AlchemyJointProjection::RunTest(const FString&)
         TestTrue(TEXT("Gameplay modifier source tags unchanged"), Actual.SourceTags == Historical.SourceTags);
         TArray<FName> ExpectedTags = Old->ItemTags;
         if (Plan::IsPotion(I)) ExpectedTags.Add(GridCanonicalInventoryCategoryTags::Potion());
-        TestTrue(TEXT("Item tags preserve old gameplay tags and only explicit category"), Item.Tags == ExpectedTags);
+        TestTrue(TEXT("Item tags preserve old gameplay tags and only exact category metadata"),
+            GridCanonicalPuzzleCategoryTags::MatchesBeforeOrAfter(Item.Tags, ExpectedTags,
+                Plan::IsPotion(I) ? FName(TEXT("Potion")) : FName(TEXT("Misc"))));
         TestEqual(TEXT("Native weight stays zero"), Item.WeightKg, 0.f);
         TestEqual(TEXT("Native stack capacity stays one"), Item.MaxStack, 1);
         TestEqual(TEXT("No hand permission introduced"), Item.NonArmEquipmentSlots.Num(), 0);
