@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.69 — Prévisualisation des catégories
+
+Parent eb22e645fd122de1a20700156f6068f15bd9f708, rapport [#208](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/208). Plan Editor 26 tags réservés, parité des 466 résolutions, aucune écriture native et aucun basculement runtime. Voir [5G.69](ARM_CLEAN06_5G69_PUZZLE_CATEGORY_PREVIEW.md).
+
 ## ARM-CLEAN06.5G.68 — Rapport distant des catégories
 
 Parent 77385a41f2cbdaaad865681432069ea07bd72886. Rapport minimal des 48 catégories et comptes agrégés des liens, export par le test natif et publication limitée au contenu versionné par l'agent. Aucun SaveGame, chemin ou journal. Voir [5G.68](ARM_CLEAN06_5G68_PUZZLE_EVIDENCE_EXPORT.md).
