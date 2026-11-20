@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.94 — Retrait des écritures de caches à l'entrée inventaire
+
+Parent ef064706203bd57c9e44d318d3bc66e3686bb4c2 : trois statuts SUCCESS 5G93. Matérialisation canonique sans copie de nom/masse, journal via lecteur autoritaire, preuves 3AG/3AS/3AX actualisées. Les membres C++ et les fixtures non canoniques restent provisoires. Attendre SilentTask et LocalAuto du SHA exact avant le retrait des autres écrivains. Voir [5G.94](ARM_CLEAN06_5G94_CANONICAL_INVENTORY_CACHE_WRITER_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.93 — Retrait réfléchi des caches d'instance
 
 Parent 201e3fd7fc2b8aa249dca251cba75163614b37b3. Attendre les cinq statuts positifs 5G92. DisplayName/Weight retirés de la réflexion et donc du SaveGame, membres C++ temporaires conservés jusqu'au retrait des écrivains et fixtures. Relecture des octets baseline exacts avec empreinte durable et caches absents. Troisième statut 5G93 obligatoire. Voir [5G.93](ARM_CLEAN06_5G93_INSTANCE_CACHE_SCHEMA_RETIREMENT.md).

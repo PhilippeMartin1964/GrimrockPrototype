@@ -6,6 +6,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/GridItemInstanceMaterializationReadModel.h"
 #include "../Runtime/GridItemWeightReadModel.h"
+#include "../UI/GridInventoryItemMetadataReadModel.h"
 #include "UObject/StrongObjectPtr.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063AGMaterialization,
@@ -57,9 +58,11 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
             TestTrue(TEXT("Canonical materialization succeeds without old profile"),
                 FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Item));
             TestEqual(TEXT("Keeps actual fixed N-level"), Item.ItemLevel, Level);
-            TestTrue(TEXT("Cached weight from ItemSystem"), FMath::IsNearlyEqual(Item.Weight, Canonical.WeightKg));
-            TestEqual(TEXT("Fresh snapshot name canonical"), Item.DisplayName.ToString(),
-                Canonical.DisplayName.ToString());
+            TestEqual(TEXT("No cached weight on canonical materialization"), Item.Weight, 0.0f);
+            TestTrue(TEXT("No cached name on canonical materialization"), Item.DisplayName.IsEmpty());
+            const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Old.Get(), Item);
+            TestTrue(TEXT("Canonical metadata resolves"), Metadata.bResolved);
+            TestEqual(TEXT("Name from canonical reader"), Metadata.DisplayName.ToString(), Canonical.DisplayName.ToString());
             TestEqual(TEXT("Physical GUID stable"), Item.RuntimeObjectId, Before.RuntimeObjectId);
             TestEqual(TEXT("Owner GUID stable"), Item.OwnerGuid, Before.OwnerGuid);
             TestEqual(TEXT("Owner type stable"), Item.OwnerType, Before.OwnerType);
@@ -72,17 +75,15 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
             float UnitWeight = 0.0f;
             TestTrue(TEXT("Existing inventory weight reader resolves"),
                 FGridItemWeightReadModel::TryResolveUnitWeight(Registry.Get(), Item, UnitWeight));
-            TestTrue(TEXT("Cached and computed unit weights match"),
-                FMath::IsNearlyEqual(Item.Weight, UnitWeight));
+            TestTrue(TEXT("Computed unit weight matches canonical source"),
+                FMath::IsNearlyEqual(Canonical.WeightKg, UnitWeight));
 
             Item.DisplayName = FText::FromString(TEXT("CUSTOM SAVED LABEL"));
             Item.Weight = -123.0f;
-            TestTrue(TEXT("Refresh stale weight from canonical on re-entry"),
+            TestTrue(TEXT("Discard stale metadata on canonical re-entry"),
                 FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Item));
-            TestEqual(TEXT("Preserve custom saved name until 06.4 migration"),
-                Item.DisplayName.ToString(), FString(TEXT("CUSTOM SAVED LABEL")));
-            TestTrue(TEXT("Stale snapshot weight corrected"),
-                FMath::IsNearlyEqual(Item.Weight, Canonical.WeightKg));
+            TestTrue(TEXT("Stale snapshot name cleared"), Item.DisplayName.IsEmpty());
+            TestEqual(TEXT("Stale snapshot weight cleared"), Item.Weight, 0.0f);
         }
         FGridItemInstance Fresh;
         Fresh.RuntimeObjectId = FGuid::NewGuid();
@@ -134,10 +135,12 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
         FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Ammo));
     TestEqual(TEXT("Arrows retain genuine N0"), Ammo.ItemLevel, 0);
     TestEqual(TEXT("Arrows quantity unchanged"), Ammo.Quantity, 12);
-    TestEqual(TEXT("Arrow name canonical"), Ammo.DisplayName.ToString(),
-        CanonicalArrow.DisplayName.ToString());
-    TestTrue(TEXT("Arrow unit mass canonical"),
-        FMath::IsNearlyEqual(Ammo.Weight, CanonicalArrow.WeightKg));
+    TestTrue(TEXT("Arrow carries no name cache"), Ammo.DisplayName.IsEmpty());
+    TestEqual(TEXT("Arrow carries no weight cache"), Ammo.Weight, 0.0f);
+    const auto ArrowMeta = FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Old.Get(), Ammo);
+    TestTrue(TEXT("Arrow metadata resolves"), ArrowMeta.bResolved);
+    TestEqual(TEXT("Arrow name canonical"), ArrowMeta.DisplayName.ToString(), CanonicalArrow.DisplayName.ToString());
+    TestTrue(TEXT("Arrow unit mass canonical"), FMath::IsNearlyEqual(ArrowMeta.UnitWeightKg, CanonicalArrow.WeightKg));
 
     // A stale historical identity cannot veto the actual canonical item.
     Old->ItemDefinitionId = TEXT("UnrelatedHistorical_AG");
@@ -146,7 +149,7 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     TestTrue(TEXT("Canonical item resolves despite unrelated old pointer"),
         FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Contradictory));
     TestEqual(TEXT("Canonical identity remains unchanged"), Contradictory.ItemDefinitionId, Ammo.ItemDefinitionId);
-    TestEqual(TEXT("Canonical mass restored"), Contradictory.Weight, CanonicalArrow.WeightKg);
+    TestEqual(TEXT("Contradictory cache cleared"), Contradictory.Weight, 0.0f);
     Old->ItemDefinitionId = Ammo.ItemDefinitionId;
 
     FGridItemInstance InvalidAmmo = Ammo;

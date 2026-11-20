@@ -1838,12 +1838,14 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
     }
 
     // Mutable light and armor debt belong to the instance, never to its
-    // definition. Only quantity and the pre-06.4 metadata cache are updated.
+    // definition. Quantity is bounded by the resolved stack policy.
     Candidate.Quantity = FMath::Clamp(Candidate.Quantity, 1, StackPolicy.MaxStackSize);
     ItemInstance = MoveTemp(Candidate);
+    float UnitWeight = 0.0f;
+    FGridItemWeightReadModel::TryResolveUnitWeight(Registry, ItemInstance, UnitWeight);
     UE_LOG(LogGridInventory, Verbose,
         TEXT("GridInventory ItemDefinition Applied Item=%s Weight=%.2f Canonical=%s"),
-        *ItemInstance.ItemDefinitionId.ToString(), ItemInstance.Weight,
+        *ItemInstance.ItemDefinitionId.ToString(), UnitWeight,
         bCanonical ? TEXT("true") : TEXT("false"));
     return true;
 }

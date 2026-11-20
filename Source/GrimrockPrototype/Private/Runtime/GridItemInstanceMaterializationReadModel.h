@@ -4,9 +4,9 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /**
- * ARM-CLEAN06.3AG: transitional write of cached instance metadata.
- * ItemSystem owns the identity and mass of all registered objects, while
- * snapshots remain serialized only until the verified SaveGame conversion.
+ * ARM-CLEAN06.5G.94: validate physical identity against ItemSystem.
+ * Canonical instances do not carry cached name or mass. Only isolated
+ * historical Automation fixtures retain temporary C++ metadata.
  */
 struct FGridItemInstanceMaterializationReadModel
 {
@@ -36,11 +36,9 @@ struct FGridItemInstanceMaterializationReadModel
             {
                 return false; // Physical instances never inherit an obsolete default or family alias.
             }
-            Candidate.Weight = Resolved.WeightKg;
-            if (Candidate.DisplayName.IsEmpty())
-            {
-                Candidate.DisplayName = Resolved.DisplayName;
-            }
+            // 5G93 proved the serialized copies redundant. Do not recreate them.
+            Candidate.Weight = 0.0f;
+            Candidate.DisplayName = FText::GetEmpty();
         }
         else
         {

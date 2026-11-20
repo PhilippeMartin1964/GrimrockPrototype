@@ -160,7 +160,7 @@ namespace ARMCLEAN063AX
         });
     if (!Test.TestNotNull(TEXT("Physical stack exists"), Slot)) return false;
     Test.TestEqual(TEXT("Quantity stays two"), Slot->Item.Quantity, 2);
-    Test.TestTrue(TEXT("Slot weight ignores obsolete cached weight"), Slot->Item.Weight < 1.0f);
+    Test.TestEqual(TEXT("Slot has no obsolete cached weight"), Slot->Item.Weight, 0.0f);
     if (FCString::Strcmp(Stage, TEXT("Inventory")) == 0) return !Test.HasAnyErrors();
 
     Character.Resources.CurrentHealth = 1;
