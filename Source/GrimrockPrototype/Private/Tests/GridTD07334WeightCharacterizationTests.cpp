@@ -1,42 +1,41 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 namespace GridTD07334Characterization
 {
-	UGridPartyInventoryComponent* MakeInventory()
+	UGridPartyInventoryComponent* MakeInventory(FGridCanonicalWeightTestWorld& Fixture)
 	{
-		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+		UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+		if (!Inventory) return nullptr;
 		Inventory->InitializeDefaultPartyIfNeeded();
 		return Inventory;
 	}
 
-	FGridItemInstance MakeItem(const TCHAR* DefinitionId, float Weight)
+	FGridItemInstance MakeItem(const TCHAR* DefinitionId)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = FName(DefinitionId);
-		Item.DisplayName = FText::FromString(DefinitionId);
 		Item.Quantity = 1;
-		Item.Weight = Weight;
 		Item.OwnerType = EGridItemOwnerType::World;
 		return Item;
 	}
 
-	UGridItemDefinitionAsset* MakeCarryBeltDefinition(UObject* Outer)
+	void AddCarryBelt(UGridItemSystemAsset& Root)
 	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
-		Definition->ItemDefinitionId = TEXT("TD07334_CarryBelt");
+		auto* Definition = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+		Definition->ItemId = TEXT("TD07334_CarryBelt");
 		Definition->DisplayName = FText::FromString(TEXT("TD07.3.3.4 Carry Belt"));
-		Definition->ItemType = EGridItemType::Jewelry;
-		Definition->Weight = 0.0f;
-		Definition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::Belt);
-		Definition->EquipmentStatBonus.StrengthBonus = 4;
-		Definition->EquipmentStatBonus.CarryWeightBonus = 7.0f;
-		return Definition;
+		Definition->WeightKg = 0.0f;
+		Definition->EquipmentSlots.Add(EGridEquipmentSlot::Belt);
+		Definition->Bonuses.StrengthBonus = 4;
+		Definition->Bonuses.CarryWeightBonus = 7.0f;
+		Root.ItemDefinitions.Add(Definition);
 	}
 }
 
@@ -47,8 +46,9 @@ bool FGridTD07334CachedCapacityContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	using namespace GridTD07334Characterization;
-
-	UGridPartyInventoryComponent* Inventory = MakeInventory();
+	FGridCanonicalWeightTestWorld Fixture(TMap<FName, float>{});
+	UGridPartyInventoryComponent* Inventory = MakeInventory(Fixture);
+	if (!TestNotNull(TEXT("Canonical capacity fixture"), Inventory)) return false;
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 
 	Character.Attributes.Strength = 10;
@@ -71,20 +71,18 @@ bool FGridTD07334EquipmentCapacityProjectionContractTest::RunTest(const FString&
 	(void)Parameters;
 	using namespace GridTD07334Characterization;
 
-	UGridPartyInventoryComponent* Inventory = MakeInventory();
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("TD07334_HeavyPack"), 54.0f}}, AddCarryBelt);
+	UGridPartyInventoryComponent* Inventory = MakeInventory(Fixture);
+	if (!TestNotNull(TEXT("Canonical equipment capacity fixture"), Inventory)) return false;
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 	Character.Attributes.Strength = 10;
-
-	UGridItemDefinitionAsset* BeltDefinition = MakeCarryBeltDefinition(Inventory);
-	TestTrue(TEXT("Carry belt definition registers"), Inventory->RegisterItemDefinition(BeltDefinition));
-	TestTrue(TEXT("Heavy item can be stored even above base capacity"), Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_HeavyPack"), 54.0f)));
+	TestTrue(TEXT("Carry belt definition registers"), Fixture.Scope.Registry->HasCanonicalItem(TEXT("TD07334_CarryBelt")));
+	TestTrue(TEXT("Heavy item can be stored even above base capacity"), Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_HeavyPack"))));
 
 	FGridItemInstance Belt;
 	Belt.RuntimeObjectId = FGuid::NewGuid();
-	Belt.ItemDefinitionId = BeltDefinition->ItemDefinitionId;
-	Belt.DisplayName = BeltDefinition->DisplayName;
+	Belt.ItemDefinitionId = TEXT("TD07334_CarryBelt");
 	Belt.Quantity = 1;
-	Belt.Weight = BeltDefinition->Weight;
 	Belt.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	Belt.OwnerGuid = Character.CharacterId;
 	Belt.OwnerCharacterIndex = 0;
@@ -110,8 +108,10 @@ bool FGridTD07334CursorWeightBoundaryTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridTD07334Characterization;
 
-	UGridPartyInventoryComponent* Inventory = MakeInventory();
-	TestTrue(TEXT("Five-weight item enters inventory"), Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_CursorItem"), 5.0f)));
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("TD07334_CursorItem"), 5.f}});
+	UGridPartyInventoryComponent* Inventory = MakeInventory(Fixture);
+	if (!TestNotNull(TEXT("Canonical cursor fixture"), Inventory)) return false;
+	TestTrue(TEXT("Five-weight item enters inventory"), Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_CursorItem"))));
 
 	FGridInventoryCharacterSummary Summary;
 	TestTrue(TEXT("Summary resolves before cursor transfer"), Inventory->GetCharacterSummary(0, Summary));
@@ -132,14 +132,17 @@ bool FGridTD07334RestoreRecalculatesCachesTest::RunTest(const FString& Parameter
 	(void)Parameters;
 	using namespace GridTD07334Characterization;
 
-	UGridPartyInventoryComponent* Source = MakeInventory();
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("TD07334_SaveItem"), 3.f}});
+	UGridPartyInventoryComponent* Source = MakeInventory(Fixture);
+	if (!TestNotNull(TEXT("Canonical restore source"), Source)) return false;
 	Source->PartyInventoryState.bInitialCharacterCreationCompleted = true;
 	FGridCharacterInventoryState& SourceCharacter = Source->PartyInventoryState.ActiveCharacters[0];
 	SourceCharacter.Attributes.Strength = 10;
-	TestTrue(TEXT("Three-weight item enters source inventory"), Source->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_SaveItem"), 3.0f)));
+	TestTrue(TEXT("Three-weight item enters source inventory"), Source->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_SaveItem"))));
 
 	const FGridPartyInventoryState SavedState = Source->PartyInventoryState;
-	UGridPartyInventoryComponent* Restored = NewObject<UGridPartyInventoryComponent>();
+	UGridPartyInventoryComponent* Restored = Fixture.MakeInventory();
+	if (!TestNotNull(TEXT("Canonical restore destination"), Restored)) return false;
 	FText Error;
 	TestTrue(TEXT("Current-schema party state restores"), Restored->RestorePartyInventoryState(SavedState, Error));
 	TestTrue(TEXT("Restore reports no error"), Error.IsEmpty());

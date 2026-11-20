@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -9,36 +10,34 @@
 
 namespace GridTD07334Normalization
 {
-	UGridPartyInventoryComponent* MakeInventory()
+	UGridPartyInventoryComponent* MakeInventory(FGridCanonicalWeightTestWorld& Fixture)
 	{
-		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+		UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+		if (!Inventory) return nullptr;
 		Inventory->InitializeDefaultPartyIfNeeded();
 		return Inventory;
 	}
 
-	FGridItemInstance MakeItem(const TCHAR* DefinitionId, float Weight, int32 Quantity = 1)
+	FGridItemInstance MakeItem(const TCHAR* DefinitionId, int32 Quantity = 1)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = FName(DefinitionId);
-		Item.DisplayName = FText::FromString(DefinitionId);
 		Item.Quantity = Quantity;
-		Item.Weight = Weight;
 		Item.OwnerType = EGridItemOwnerType::World;
 		return Item;
 	}
 
-	UGridItemDefinitionAsset* MakeCarryBeltDefinition(UObject* Outer)
+	void AddCarryBelt(UGridItemSystemAsset& Root)
 	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
-		Definition->ItemDefinitionId = TEXT("TD07334_NormalizedCarryBelt");
+		auto* Definition = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+		Definition->ItemId = TEXT("TD07334_NormalizedCarryBelt");
 		Definition->DisplayName = FText::FromString(TEXT("TD07.3.3.4 Normalized Carry Belt"));
-		Definition->ItemType = EGridItemType::Jewelry;
-		Definition->Weight = 2.0f;
-		Definition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::Belt);
-		Definition->EquipmentStatBonus.StrengthBonus = 4;
-		Definition->EquipmentStatBonus.CarryWeightBonus = 7.0f;
-		return Definition;
+		Definition->WeightKg = 2.0f;
+		Definition->EquipmentSlots.Add(EGridEquipmentSlot::Belt);
+		Definition->Bonuses.StrengthBonus = 4;
+		Definition->Bonuses.CarryWeightBonus = 7.0f;
+		Root.ItemDefinitions.Add(Definition);
 	}
 }
 
@@ -65,10 +64,20 @@ bool FGridTD07334LiveProjectionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	using namespace GridTD07334Normalization;
-	UGridPartyInventoryComponent* Inventory = MakeInventory();
+	FGridCanonicalWeightTestWorld Fixture(TMap<FName, float>{}, [](UGridItemSystemAsset& Root)
+	{
+		auto* Pack = NewObject<UGridGenericStackableDefinitionAsset>(&Root);
+		Pack->ItemId = TEXT("TD07334_NormalizedPack");
+		Pack->DisplayName = FText::FromName(Pack->ItemId);
+		Pack->WeightKg = 3.0f;
+		Pack->MaxStack = 2;
+		Root.ItemDefinitions.Add(Pack);
+	});
+	UGridPartyInventoryComponent* Inventory = MakeInventory(Fixture);
+	if (!TestNotNull(TEXT("Canonical stack fixture"), Inventory)) return false;
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 	Character.Attributes.Strength = 10;
-	TestTrue(TEXT("Two-item stack enters inventory"), Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_NormalizedPack"), 3.0f, 2)));
+	TestTrue(TEXT("Two-item stack enters inventory"), Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_NormalizedPack"), 2)));
 	FGridInventoryCharacterSummary Summary;
 	TestTrue(TEXT("Summary resolves"), Inventory->GetCharacterSummary(0, Summary));
 	TestTrue(TEXT("CurrentWeight is calculated from quantity and item weight"), FMath::IsNearlyEqual(Summary.CurrentWeight, 6.0f));
@@ -88,18 +97,17 @@ bool FGridTD07334EquipmentPolicyTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	using namespace GridTD07334Normalization;
-	UGridPartyInventoryComponent* Inventory = MakeInventory();
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("TD07334_NormalizedHeavyPack"), 54.f}}, AddCarryBelt);
+	UGridPartyInventoryComponent* Inventory = MakeInventory(Fixture);
+	if (!TestNotNull(TEXT("Canonical equipment fixture"), Inventory)) return false;
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 	Character.Attributes.Strength = 10;
-	UGridItemDefinitionAsset* BeltDefinition = MakeCarryBeltDefinition(Inventory);
-	TestTrue(TEXT("Carry belt registers"), Inventory->RegisterItemDefinition(BeltDefinition));
-	TestTrue(TEXT("Fifty-four weight enters inventory"), Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_NormalizedHeavyPack"), 54.0f)));
+	TestTrue(TEXT("Carry belt registers"), Fixture.Scope.Registry->HasCanonicalItem(TEXT("TD07334_NormalizedCarryBelt")));
+	TestTrue(TEXT("Fifty-four weight enters inventory"), Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_NormalizedHeavyPack"))));
 	FGridItemInstance Belt;
 	Belt.RuntimeObjectId = FGuid::NewGuid();
-	Belt.ItemDefinitionId = BeltDefinition->ItemDefinitionId;
-	Belt.DisplayName = BeltDefinition->DisplayName;
+	Belt.ItemDefinitionId = TEXT("TD07334_NormalizedCarryBelt");
 	Belt.Quantity = 1;
-	Belt.Weight = BeltDefinition->Weight;
 	Belt.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	Belt.OwnerGuid = Character.CharacterId;
 	Belt.OwnerCharacterIndex = 0;

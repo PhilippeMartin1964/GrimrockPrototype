@@ -3,11 +3,12 @@
 #include "Misc/AutomationTest.h"
 
 #include "RPGMON155TestHelpers.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 namespace GridRPGPerf01Tests
 {
-	bool AssignTestWeight(UGridPartyInventoryComponent* Inventory, int32 CharacterIndex, float Weight)
+	bool AssignTestWeight(UGridPartyInventoryComponent* Inventory, int32 CharacterIndex, FName ItemId)
 	{
 		if (!Inventory || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
 		{
@@ -17,9 +18,8 @@ namespace GridRPGPerf01Tests
 		Character.InventorySlots.SetNum(1);
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
-		Item.ItemDefinitionId = TEXT("RPG_PERF01_CarryLoad");
+		Item.ItemDefinitionId = ItemId;
 		Item.Quantity = 1;
-		Item.Weight = Weight;
 		Item.OwnerType = EGridItemOwnerType::CharacterInventory;
 		Item.OwnerGuid = Character.CharacterId;
 		Item.OwnerCharacterIndex = CharacterIndex;
@@ -114,13 +114,14 @@ bool FGridRPGPerf01OverloadReadTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	FMON155RuntimeStateGuard Guard;
 	using namespace GridRPGPerf01Tests;
-	URPGClassAsset* ClassDefinition = nullptr;
-	UGridPartyInventoryComponent* Inventory = MakeMON155Inventory(1, 0, ClassDefinition);
-	if (!TestNotNull(TEXT("Inventory for overload read"), Inventory) ||
-		!TestNotNull(TEXT("Class definition exists"), ClassDefinition))
-	{
-		return false;
-	}
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("PerfLoad60"), 60.f},
+		{TEXT("PerfLoad61"), 61.f}, {TEXT("PerfLoadZero"), 0.f}});
+	UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+	if (!TestNotNull(TEXT("Inventory for overload read"), Inventory)) return false;
+	URPGClassAsset* ClassDefinition = MakeMON155Class(Inventory);
+	if (!TestNotNull(TEXT("Class definition exists"), ClassDefinition)) return false;
+	Inventory->PartyInventoryState.ActiveCharacters.Add(MakeMON155Character(ClassDefinition, 1, 0));
+	Inventory->PartyInventoryState.ActiveEquipment.SetNum(1);
 
 	FGridCharacterInventoryState Another = MakeMON155Character(ClassDefinition, 1, 0, TEXT("Second"));
 	Another.DisplayName = FText::GetEmpty();
@@ -141,20 +142,22 @@ bool FGridRPGPerf01OverloadReadTest::RunTest(const FString& Parameters)
 	}
 	TestTrue(TEXT("First character has positive carrying capacity"), FirstSummary.MaxWeight > 0.0f);
 	TestTrue(TEXT("Second character has positive carrying capacity"), SecondSummary.MaxWeight > 0.0f);
+	TestEqual(TEXT("First fixture capacity is 60 kg"), FirstSummary.MaxWeight, 60.f);
+	TestEqual(TEXT("Second fixture capacity is 60 kg"), SecondSummary.MaxWeight, 60.f);
 	TestEqual(TEXT("Unnamed second character fallback is Hero_02"),
 		Inventory->GetActiveCharacterDisplayName(1).ToString(), FString(TEXT("Hero_02")));
 	TestTrue(TEXT("Second fallback matches the full summary"),
 		Inventory->GetActiveCharacterDisplayName(1).EqualTo(SecondSummary.DisplayName));
 
 	TestTrue(TEXT("Can assign exactly the first character capacity"),
-		AssignTestWeight(Inventory, 0, FirstSummary.MaxWeight));
+		AssignTestWeight(Inventory, 0, TEXT("PerfLoad60")));
 	Inventory->GetOverloadedActiveCharacterIndices(Overloaded);
 	TestEqual(TEXT("Exactly at maximum capacity is not overloaded"), Overloaded.Num(), 0);
 	TestFalse(TEXT("Exactly at capacity does not block movement"),
 		Inventory->IsAnyActiveCharacterOverloaded());
 
 	TestTrue(TEXT("Can assign one unit beyond the first capacity"),
-		AssignTestWeight(Inventory, 0, FirstSummary.MaxWeight + 1.0f));
+		AssignTestWeight(Inventory, 0, TEXT("PerfLoad61")));
 	Inventory->GetOverloadedActiveCharacterIndices(Overloaded);
 	if (TestEqual(TEXT("Only the first character is overloaded"), Overloaded.Num(), 1))
 	{
@@ -163,7 +166,7 @@ bool FGridRPGPerf01OverloadReadTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Any-overloaded query agrees with indices"), Inventory->IsAnyActiveCharacterOverloaded());
 
 	TestTrue(TEXT("Can also overload the second character"),
-		AssignTestWeight(Inventory, 1, SecondSummary.MaxWeight + 1.0f));
+		AssignTestWeight(Inventory, 1, TEXT("PerfLoad61")));
 	Inventory->GetOverloadedActiveCharacterIndices(Overloaded);
 	if (TestEqual(TEXT("Two overloaded characters detected"), Overloaded.Num(), 2))
 	{
@@ -183,7 +186,7 @@ bool FGridRPGPerf01OverloadReadTest::RunTest(const FString& Parameters)
 	}
 
 	TestTrue(TEXT("Can clear first character's weight"),
-		AssignTestWeight(Inventory, 0, 0.0f));
+		AssignTestWeight(Inventory, 0, TEXT("PerfLoadZero")));
 	Inventory->GetOverloadedActiveCharacterIndices(Overloaded);
 	if (TestEqual(TEXT("Only second overloaded character remains"), Overloaded.Num(), 1))
 	{
@@ -192,7 +195,7 @@ bool FGridRPGPerf01OverloadReadTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Remaining second overload still blocks movement"), Inventory->IsAnyActiveCharacterOverloaded());
 
 	TestTrue(TEXT("Can clear second character's weight"),
-		AssignTestWeight(Inventory, 1, 0.0f));
+		AssignTestWeight(Inventory, 1, TEXT("PerfLoadZero")));
 	Inventory->GetOverloadedActiveCharacterIndices(Overloaded);
 	TestEqual(TEXT("No overloaded characters after unloading"), Overloaded.Num(), 0);
 	TestFalse(TEXT("Movement lock releases after unloading"), Inventory->IsAnyActiveCharacterOverloaded());

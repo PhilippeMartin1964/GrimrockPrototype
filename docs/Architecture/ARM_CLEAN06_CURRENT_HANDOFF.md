@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.107 — Fixtures de charge, équipement et état restauré
+
+Parent 7fed2e18d53608733345598e63c9bfa786ae792c : attendre SilentTask et LocalAuto SUCCESS. Migrer TD07.3.3.4 et RPG PERF01 vers un registre transitoire avec masses, pile et ceinture canoniques. Préserver règles capacité/forces, poids curseur, conservation SaveGame et index de surcharge. Voir [5G.107](ARM_CLEAN06_5G107_CANONICAL_CAPACITY_FIXTURES.md).
+
 ## ARM-CLEAN06.5G.106 — Fixtures du cycle de vie canonique
 
 Parent 5549d047c8ab81c51f3ee022d7a4fa582ea513d7 : attendre SilentTask et LocalAuto SUCCESS. Retirer les accès aux copies dans MON8, 3AM et ARMEMENT0183 ; contrôler nom/masse par projection, GUID et quantités, niveaux, contenu narratif et restitution. Aucun changement runtime. Voir [5G.106](ARM_CLEAN06_5G106_CANONICAL_LIFECYCLE_FIXTURES.md).

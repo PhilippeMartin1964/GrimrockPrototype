@@ -28,7 +28,8 @@ struct FGridCanonicalLootTestScope
 
 	// Synthetic definitions belong to one transient registry. No global
 	// metadata, instance copies or authored package edits are needed.
-	bool AttachWithWeights(UWorld* InWorld, const TMap<FName, float>& SyntheticWeights)
+	bool AttachWithWeights(UWorld* InWorld, const TMap<FName, float>& SyntheticWeights,
+		const TFunction<void(UGridItemSystemAsset&)>& Extend = {})
 	{
 		if (World || !IsValid(InWorld) || InWorld->GetGameInstance()) return false;
 		World = InWorld;
@@ -38,7 +39,7 @@ struct FGridCanonicalLootTestScope
 		World->SetGameInstance(GI.Get());
 		Registry = GI->GetSubsystem<UGridItemSubsystem>();
 		if (!Registry || !Registry->IsConfigured()) return false;
-		if (SyntheticWeights.IsEmpty()) return true;
+		if (SyntheticWeights.IsEmpty() && !Extend) return true;
 		UGridItemSystemAsset* Production = Registry->LoadConfiguredItemSystemForPreview();
 		if (!IsValid(Production)) return false;
 		UGridItemSystemAsset* Root = DuplicateObject<UGridItemSystemAsset>(Production, GetTransientPackage());
@@ -54,6 +55,7 @@ struct FGridCanonicalLootTestScope
 			Item->WeightKg = Pair.Value;
 			Root->ItemDefinitions.Add(Item);
 		}
+		if (Extend) Extend(*Root);
 		Registry->Deinitialize();
 		TArray<FString> Errors;
 		return Registry->RegisterItemSystem(Root, Errors);

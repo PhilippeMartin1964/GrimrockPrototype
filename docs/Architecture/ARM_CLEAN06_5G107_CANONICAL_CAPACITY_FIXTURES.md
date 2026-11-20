@@ -1,0 +1,3 @@
+# ARM-CLEAN06.5G.107 — Fixtures de charge, équipement et état restauré
+
+Parent `7fed2e18d53608733345598e63c9bfa786ae792c`. Les anciens tests TD07.3.3.4 et RPG PERF01 utilisent les définitions de test injectées dans une racine ItemSystem transitoire, y compris pile et équipement ceinture avec leurs bonus. Les valeurs de charge restent exactes, le curseur ne charge aucun personnage, le restore reconstruit le poids, le bonus de Force n'augmente pas la capacité de base, l'ordre des indices de surcharge est conservé. Aucune écriture de métadonnées dans FGridItemInstance. Extension locale du helper tests par callback, validée par RegisterItemSystem. Aucune modification production, asset ou sauvegarde.

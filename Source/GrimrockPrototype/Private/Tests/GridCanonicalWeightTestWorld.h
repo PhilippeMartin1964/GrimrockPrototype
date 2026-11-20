@@ -12,7 +12,8 @@ struct FGridCanonicalWeightTestWorld
     UWorld* World = nullptr;
     FGridCanonicalLootTestScope Scope;
 
-    explicit FGridCanonicalWeightTestWorld(const TMap<FName, float>& Weights)
+    explicit FGridCanonicalWeightTestWorld(const TMap<FName, float>& Weights,
+        const TFunction<void(UGridItemSystemAsset&)>& Extend = {})
     {
         const UWorld::InitializationValues Values = UWorld::InitializationValues()
             .AllowAudioPlayback(false).RequiresHitProxies(false)
@@ -26,7 +27,7 @@ struct FGridCanonicalWeightTestWorld
         if (!World || !GEngine) return;
         FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
         Context.SetCurrentWorld(World);
-        if (!Scope.AttachWithWeights(World, Weights)) Scope.Detach();
+        if (!Scope.AttachWithWeights(World, Weights, Extend)) Scope.Detach();
     }
 
     UGridPartyInventoryComponent* MakeInventory() const
