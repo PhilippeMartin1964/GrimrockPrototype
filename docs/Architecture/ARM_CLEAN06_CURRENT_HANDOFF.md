@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.94.1 — Alignement de la preuve de restitution
+
+Parent 5359516194ebbfd2b2c2e5dd6f1348c1f99b581e : SilentTask SUCCESS, LocalAuto FAILURE (issue #213, unique test ARMEMENT01.8.Receptacles.InsertRestoreTake). Le test exigeait encore nom/masse dupliqués après insertion sac. Contrôler les caches vides et la valeur canonique projetée, garder toutes les assertions d'identité, de récit et de restitution. Les assertions de la phase d'acceptation du réceptacle restent inchangées jusqu'au lot de transfert. Attendre les deux statuts du SHA correctif ; rebaser le lot 5G95 préparé, ne jamais publier son ancien arbre.
+
 ## ARM-CLEAN06.5G.94 — Retrait des écritures de caches à l'entrée inventaire
 
 Parent ef064706203bd57c9e44d318d3bc66e3686bb4c2 : trois statuts SUCCESS 5G93. Matérialisation canonique sans copie de nom/masse, journal via lecteur autoritaire, preuves 3AG/3AS/3AX actualisées. Les membres C++ et les fixtures non canoniques restent provisoires. Attendre SilentTask et LocalAuto du SHA exact avant le retrait des autres écrivains. Voir [5G.94](ARM_CLEAN06_5G94_CANONICAL_INVENTORY_CACHE_WRITER_RETIREMENT.md).

@@ -5,3 +5,7 @@ Parent `ef064706203bd57c9e44d318d3bc66e3686bb4c2` : SilentTask, LocalAuto et pre
 Les tests 3AG et 3AS vérifient maintenant l'absence des caches et la valeur du lecteur canonique, avec des métadonnées contradictoires et N0/N19/N20 ; 3AX vérifie l'absence de poids stocké. Les tests de caractérisation non canoniques restent inchangés. Aucun asset, sauvegarde, schéma ni texte joueur modifié.
 
 Ce lot ne retire pas encore les écrivains de génération initiale, loot, transfert monde/réceptacle ni les membres C++ ou les audits/fixtures historiques. Aucun nouveau fallback. Critère de sortie : deux statuts Windows du SHA exact SUCCESS. PIE, Save/Continue et Cook/Shipping restent à faire.
+
+## Reprise 5G94.1
+
+Issue #213 : unique échec `Grimrock.RPG.ARMEMENT01.8.Receptacles.InsertRestoreTake` sur 5359516194eb. Le test exigeait toujours des copies après restitution au sac. Les assertions de masse et nom sont conservées via le lecteur canonique ; les deux caches doivent être vides. Aucune correction de gameplay ni suppression de couverture. Les messages privés du test ne sont pas accessibles ; la cause est déduite du code et doit être confirmée par LocalAuto.

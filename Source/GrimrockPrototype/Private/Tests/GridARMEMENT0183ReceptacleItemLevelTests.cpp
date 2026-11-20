@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "GridCanonicalLootTestScope.h"
+#include "../UI/GridInventoryItemMetadataReadModel.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridObjectBehavior.h"
@@ -246,8 +247,12 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     const FGridItemInstance* Bag = Fixture.FindBagItem(Party->PartyInventoryComponent, Cursor.RuntimeObjectId);
     if (!TestNotNull(TEXT("Retrieved object exists in inventory"), Bag)) return false;
     TestEqual(TEXT("Fixed level preserved on retrieval"), Bag->ItemLevel, 12);
-    TestEqual(TEXT("Restored inventory projection canonical weight"), Bag->Weight, Physical.WeightKg);
-    TestTrue(TEXT("Restored inventory projection canonical name"), Bag->DisplayName.EqualTo(Physical.DisplayName));
+    TestEqual(TEXT("Restored bag contains no weight cache"), Bag->Weight, 0.0f);
+    TestTrue(TEXT("Restored bag contains no name cache"), Bag->DisplayName.IsEmpty());
+    const auto BagMetadata = FGridInventoryItemMetadataReadModel::Resolve(Fixture.RegistryScope.Registry, nullptr, *Bag);
+    TestTrue(TEXT("Restored inventory canonical metadata resolves"), BagMetadata.bResolved);
+    TestEqual(TEXT("Restored inventory projection canonical weight"), BagMetadata.UnitWeightKg, Physical.WeightKg);
+    TestTrue(TEXT("Restored inventory projection canonical name"), BagMetadata.DisplayName.EqualTo(Physical.DisplayName));
     TestTrue(TEXT("Narrative title survives save and retrieval"), Bag->ReadTitleOverride.EqualTo(Cursor.ReadTitleOverride));
     TestTrue(TEXT("Narrative body survives save and retrieval"), Bag->ReadTextOverride.EqualTo(Cursor.ReadTextOverride));
     TestEqual(TEXT("Receptacle empty after removal"), Fixture.Receptacle->GetContainedItemCount(), 0);
