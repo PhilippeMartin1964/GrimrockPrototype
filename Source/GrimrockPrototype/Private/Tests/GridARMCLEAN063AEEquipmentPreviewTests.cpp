@@ -96,8 +96,12 @@ bool FGridClean063AEEquipmentPreviewReadModel::RunTest(const FString&)
 		FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), ConflictingOld.Get(), Legacy);
 	TestEqual(TEXT("Unregistered item preserves legacy armor"), LegacyView.Bonuses.ArmorBonus, 4);
 	TestEqual(TEXT("Unregistered item keeps remaining armor logic"), LegacyView.RemainingPhysicalArmor, 3);
-	TestEqual(TEXT("Unregistered item displays its authored name"),
-		LegacyView.DisplayName.ToString(), FString(TEXT("Wrong ancient item name")));
+	TestEqual(TEXT("Unregistered item cannot display historical name in configured registry"),
+		LegacyView.DisplayName.ToString(), Legacy.ItemDefinitionId.ToString());
+	const auto IsolatedFixture =
+		FGridEquipmentPreviewItemReadModel::Resolve(nullptr, ConflictingOld.Get(), Legacy);
+	TestEqual(TEXT("Isolated historical fixture retains its authored name"),
+		IsolatedFixture.DisplayName.ToString(), FString(TEXT("Wrong ancient item name")));
 	TestEqual(TEXT("Unregistered item resistance remains unchanged"), LegacyView.Resistances.FireResistance, 14);
 	TestEqual(TEXT("No definition means no fabricated resistance"),
 		FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), nullptr, Legacy).Resistances.FireResistance, 0);

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.84.1 — correction de la preuve de projection équipement
+
+Parent 3f98b93706e281a1f96f061e8f4408e5f00afe48, issue #210 : une seule attente de nom historique dans 3AE contredit 5G.84. Refus du cache sous registre et contrôle de la fixture sans registre ; autres assertions intactes. Attendre les deux statuts avant préflight 5G.85.
+
 ## ARM-CLEAN06.5G.84 — Métadonnées et examen d'inventaire
 
 Parent 4b7924e4814d7912005a47a81f10badf63d13a12. Les lecteurs de nom/masse/catégorie/tooltip refusent les anciens caches pour les ID inconnus ou niveaux invalides, sauf fixtures Automation sans registre. Examiner/Lire projettent le nom et le poids depuis l'autorité unique, préservent les textes narratifs. Aucun nouveau texte ni WBP. Voir [5G.84](ARM_CLEAN06_5G84_STRICT_INVENTORY_PRESENTATION.md).
