@@ -45,8 +45,13 @@ struct FGridReceptacleItemMetadataReadModel
             return View;
         }
 
-        // Unknown identities preserve the old receptacle paths during 06.3.
-        // Without any old definition an ID-only item retains its fixed level.
+        // The only remaining compatibility path is for the isolated
+        // registry-less Automation fixtures that exercise old level data.
+#if WITH_DEV_AUTOMATION_TESTS
+        if (Registry || !GIsAutomationTesting) return View;
+#else
+        return View;
+#endif
         View.FixedItemLevel = IsValid(LegacyDefinition) &&
             !LegacyDefinition->bUseWeaponCatalogue ? 0 : ItemLevel;
         if (IsValid(LegacyDefinition))
@@ -63,6 +68,8 @@ struct FGridReceptacleItemMetadataReadModel
                 }
             }
             View.UnitWeightKg = Profile ? Profile->WeightKg : LegacyDefinition->Weight;
+            if (!FMath::IsFinite(View.UnitWeightKg) || View.UnitWeightKg < 0.0f)
+                return FGridReceptacleItemMetadataReadView();
             View.DisplayName = LegacyDefinition->DisplayName;
         }
         View.bResolved = true;

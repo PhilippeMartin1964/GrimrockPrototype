@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.73 — Métadonnées physiques strictes
+
+Parent 42343220eba7aaa0f1716b4d84195bd3dfbdbe9f. Le lecteur commun aux niveaux monde/réceptacles refuse les identités inconnues en présence d'un registre ; aucune masse, nom ou niveau historique n'est renvoyé. Seules les fixtures Automation sans registre conservent l'ancien chemin. Tests 3AI/3AJ mis à jour. Voir [5G.73](ARM_CLEAN06_5G73_CANONICAL_PHYSICAL_METADATA.md).
+
 ## ARM-CLEAN06.5G.72 — Conditions de réceptacles canoniques
 
 Après validation du commit binaire 5G.71B : ContainsItemType utilise exclusivement ItemSystem, niveau/GUID/quantité physiques et catégorie canonique ; plus aucun pointeur historique dans ce lecteur. Enum et champs des liens conservés pour authoring et compatibilité. Voir [5G.72](ARM_CLEAN06_5G72_CANONICAL_RECEPTACLE_CATEGORY.md).

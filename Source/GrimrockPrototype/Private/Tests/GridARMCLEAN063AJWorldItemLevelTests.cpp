@@ -119,9 +119,13 @@ bool FGridClean063AJWorldItemLevels::RunTest(const FString&)
 	Old->Weight = 2.5f;
 	const auto Legacy = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 		Registry.Get(), Old.Get(), Old->ItemDefinitionId, 0);
-	TestTrue(TEXT("Nonregistered legacy item still accepted"), Legacy.bResolved);
+	TestFalse(TEXT("Configured registry refuses unknown physical world item"), Legacy.bResolved);
 	TestFalse(TEXT("Nonregistered item is not labelled canonical"), Legacy.bCanonicalIdentity);
-	TestEqual(TEXT("Legacy world weight retained"), Legacy.UnitWeightKg, 2.5f);
+	TestEqual(TEXT("Rejected world item exposes no legacy weight"), Legacy.UnitWeightKg, 0.f);
+	const auto FixtureOnly = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
+		nullptr, Old.Get(), Old->ItemDefinitionId, 0);
+	TestTrue(TEXT("Registry-less Automation fixture remains isolated"),
+		FixtureOnly.bResolved && !FixtureOnly.bCanonicalIdentity && FixtureOnly.UnitWeightKg == 2.5f);
 	TestFalse(TEXT("Unknown non-levelled definition does not invent N9"),
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry.Get(), Old.Get(), Old->ItemDefinitionId, -1).bResolved);

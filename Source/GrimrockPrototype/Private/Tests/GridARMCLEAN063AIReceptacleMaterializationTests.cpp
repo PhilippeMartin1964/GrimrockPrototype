@@ -107,17 +107,19 @@ bool FGridClean063AIReceptacleMaterialization::RunTest(const FString&)
     const FGridReceptacleItemMetadataReadView Legacy =
         FGridReceptacleItemMetadataReadModel::Resolve(
             Registry.Get(), Old.Get(), Old->ItemDefinitionId, 0, false);
-    TestTrue(TEXT("Nonregistered initial item still resolves"), Legacy.bResolved);
-    TestFalse(TEXT("Nonregistered stays legacy"), Legacy.bCanonicalIdentity);
-    TestEqual(TEXT("Legacy level N0 preserved"), Legacy.FixedItemLevel, 0);
-    TestTrue(TEXT("Legacy unit mass preserved"), FMath::IsNearlyEqual(Legacy.UnitWeightKg, 7.5f));
-    TestEqual(TEXT("Legacy display text preserved"), Legacy.DisplayName.ToString(),
-        Old->DisplayName.ToString());
+    TestFalse(TEXT("Configured registry rejects unregistered initial item"), Legacy.bResolved);
+    TestFalse(TEXT("Unregistered identity not canonical"), Legacy.bCanonicalIdentity);
+    TestEqual(TEXT("Rejected source exposes no mass"), Legacy.UnitWeightKg, 0.f);
+    TestTrue(TEXT("Rejected source exposes no old display name"), Legacy.DisplayName.IsEmpty());
+    const auto FixtureOnly = FGridReceptacleItemMetadataReadModel::Resolve(
+        nullptr, Old.Get(), Old->ItemDefinitionId, 0, false);
+    TestTrue(TEXT("Isolated registry-less fixture keeps explicit old data"),
+        FixtureOnly.bResolved && !FixtureOnly.bCanonicalIdentity &&
+        FMath::IsNearlyEqual(FixtureOnly.UnitWeightKg, 7.5f));
     const FGridReceptacleItemMetadataReadView IdOnlyLegacy =
         FGridReceptacleItemMetadataReadModel::Resolve(
             Registry.Get(), nullptr, TEXT("LegacyIdOnly_AI"), 12, false);
-    TestTrue(TEXT("Old ID-only content still allowed"), IdOnlyLegacy.bResolved);
-    TestEqual(TEXT("Old ID-only fixed level preserved"), IdOnlyLegacy.FixedItemLevel, 12);
+    TestFalse(TEXT("Configured registry rejects unknown ID-only content"), IdOnlyLegacy.bResolved);
     // Registered physical identity wins over an obsolete definition.
     FGridResolvedItem RealSword;
     if (!TestTrue(TEXT("Real N6 sword is in the canonical registry"),
