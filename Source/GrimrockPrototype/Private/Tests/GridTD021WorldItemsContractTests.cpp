@@ -85,7 +85,10 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 			Stone->DisplayName = FText::FromString(TEXT("Stone"));
 			Stone->WeightKg = bLight ? 0.5f : 2.5f;
 			Stone->MaxStack = 99;
-			Stone->WorldMesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Engine/BasicShapes/Cube.Cube")));
+			// No visual mesh in this reach-only fixture: a 100 cm cube would
+			// change the nearest collision point and invalidate the 200 cm
+			// boundary being characterized, without changing the rule itself.
+			Stone->WorldMesh.Reset();
 			Stone->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
 			Stone->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
 			Stone->GenericThrow.InitialSpeed = 1200.f;

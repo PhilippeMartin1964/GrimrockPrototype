@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.114R — Correction de la géométrie de test (issue #214)
+
+Parent 76c5dafa34eeddad4af59f0ffd7bec4d58ed8d7e, statut précédent LocalAuto FAILURE. Supprimer le cube de 100 cm dans la fixture portée TD02.1 pour vérifier 200/201 cm sur centre d'acteur sans modifier le gameplay. **Attendre SilentTask et LocalAuto SUCCESS avant les lots 115+.** Voir [5G.114R](ARM_CLEAN06_5G114R_REACH_FIXTURE_GEOMETRY.md).
+
 ## ARM-CLEAN06.5G.114 — Fixtures transferts physiques
 
 Parent 2bf33b99fe655fced1d7312a8dff5c5c78850052 : attendre SilentTask et LocalAuto SUCCESS. Voir [5G.114](ARM_CLEAN06_5G114_CANONICAL_WORLD_TRANSFER_FIXTURES.md).
