@@ -200,7 +200,13 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		Destroy();
 		return;
 	}
-	if (Canonical.bCanonicalIdentity) InDefinition = nullptr;
+	if (Canonical.bCanonicalIdentity)
+	{
+		InDefinition = nullptr;
+		// The actor owns the physical instance, never a copy of static metadata.
+		ThrownItemInstance.Weight = 0.0f;
+		ThrownItemInstance.DisplayName = FText::GetEmpty();
+	}
 	ImpactDropOffset = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowImpactDropOffset) : 12.0f;
 	const bool bCanonicalNonArmFlight = Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bIsNonArmament;
 	const bool bCanonicalGenericArm = Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bGenericArmamentFlight;

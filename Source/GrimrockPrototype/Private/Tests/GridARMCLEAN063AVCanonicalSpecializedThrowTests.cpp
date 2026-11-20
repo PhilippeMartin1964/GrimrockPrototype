@@ -171,6 +171,9 @@ namespace ARMCLEAN063AV
     if (!Test.TestNotNull(TEXT("Real canonical specialized projectile spawns without old asset"),
         Projectile)) return false;
     Test.TestNull(TEXT("Projectile has no obsolete item asset"), Projectile->GetItemDefinitionAsset());
+    Test.TestEqual(TEXT("In-flight canonical instance carries no stale mass"), Projectile->ThrownItemInstance.Weight, 0.0f);
+    Test.TestTrue(TEXT("In-flight canonical instance carries no name cache"), Projectile->ThrownItemInstance.DisplayName.IsEmpty());
+    Test.TestEqual(TEXT("Input instance is unmodified"), Valid.Weight, 1000.0f);
     Test.TestEqual(TEXT("Projectile retains its ID"), Projectile->GetItemDefinitionId(), Valid.ItemDefinitionId);
     FGridResolvedItem CanonicalFlightSource;
     if (!Test.TestTrue(TEXT("Physical source resolves before presentation checks"),

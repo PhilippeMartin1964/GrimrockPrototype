@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.97 — Projectiles canoniques sans cache statique
+
+Parent 289af11fe553dad342a03c08222d4dc914e1ed4d : attendre SilentTask et LocalAuto SUCCESS. Lancers main/curseur/inventaire/combat : poids local pour journal, munitions canoniques sans copie, acteur en vol efface les caches reçus. Tests 3AV/3BB vérifient parité physique et absence de copies. Voir [5G.97](ARM_CLEAN06_5G97_PROJECTILE_CACHE_WRITER_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.96 — Transferts monde et réceptacles sans caches
 
 Parent d9526ad5bb4a666de19d73c5cd9f9bab772c1d40 : publication seulement après SilentTask et LocalAuto SUCCESS. Supprimer recréation nom/masse des transferts réceptacle et monde canonique, garder le libellé événementiel local, la masse des plaques via le registre et la compatibilité des fixtures historiques. Test ARMEMENT0183 : caches absents et projections canoniques. Voir [5G.96](ARM_CLEAN06_5G96_WORLD_RECEPTACLE_CACHE_WRITER_RETIREMENT.md).

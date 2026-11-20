@@ -298,7 +298,11 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 		return false;
 	}
 
-	ThrownItem.Weight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, ThrownItem);
+	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, ThrownItem);
+#if WITH_DEV_AUTOMATION_TESTS
+	if (!Ballistics.bCanonicalIdentity)
+		ThrownItem.Weight = ThrowUnitWeight;
+#endif
 	ThrownItem.OwnerType = EGridItemOwnerType::World;
 	ThrownItem.OwnerGuid = FGuid();
 	ThrownItem.OwnerCharacterIndex = INDEX_NONE;
@@ -318,7 +322,7 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 
 	UE_LOG(LogGridItemTransfer, Verbose,
 		TEXT("GridInventory Throw Item=%s RuntimeId=%s Strength=%d Weight=%.2f SpeedScale=%.3f CursorQuantityBefore=%d CursorQuantityAfter=%d Result=true"),
-		*ThrownItem.ItemDefinitionId.ToString(), *ThrownItem.RuntimeObjectId.ToString(), Strength, ThrownItem.Weight, StrengthSpeedScale, CursorItem.Quantity,
+		*ThrownItem.ItemDefinitionId.ToString(), *ThrownItem.RuntimeObjectId.ToString(), Strength, ThrowUnitWeight, StrengthSpeedScale, CursorItem.Quantity,
 		FMath::Max(0, CursorItem.Quantity - 1));
 	PartyInventoryComponent->LogInventoryOwnershipDiagnostics();
 	return true;
@@ -363,7 +367,11 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 		return false;
 	}
 
-	WorldItem.Weight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
+	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
+#if WITH_DEV_AUTOMATION_TESTS
+	if (!Ballistics.bCanonicalIdentity)
+		WorldItem.Weight = ThrowUnitWeight;
+#endif
 	// The utility projectile must visually originate at the centre of Cursor_Aim.
 	// LaunchDirection is the camera-to-cursor world ray supplied by the controller, so placing
 	// the spawn point on AimDirection keeps the projectile exactly under that screen-space cursor.
@@ -382,7 +390,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 	}
 
 	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory MainHandThrow Item=%s Character=%d Strength=%d Weight=%.2f SpeedScale=%.3f Result=true"),
-		*WorldItem.ItemDefinitionId.ToString(), CharacterIndex, Strength, WorldItem.Weight, StrengthSpeedScale);
+		*WorldItem.ItemDefinitionId.ToString(), CharacterIndex, Strength, ThrowUnitWeight, StrengthSpeedScale);
 	return true;
 }
 
@@ -472,7 +480,11 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefini
 	FGridItemInstance WorldItem = SourceSlot->Item;
 	WorldItem.RuntimeObjectId = FGuid::NewGuid();
 	WorldItem.Quantity = 1;
-	WorldItem.Weight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
+	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
+#if WITH_DEV_AUTOMATION_TESTS
+	if (!Ballistics.bCanonicalIdentity)
+		WorldItem.Weight = ThrowUnitWeight;
+#endif
 	WorldItem.OwnerType = EGridItemOwnerType::World;
 	WorldItem.OwnerGuid = FGuid();
 	WorldItem.OwnerCharacterIndex = INDEX_NONE;
@@ -491,7 +503,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefini
 	}
 
 	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory InventoryPhysicalThrow Item=%s Character=%d Strength=%d Weight=%.2f SpeedScale=%.3f Result=true"),
-		*ItemDefinitionId.ToString(), CharacterIndex, Strength, WorldItem.Weight, StrengthSpeedScale);
+		*ItemDefinitionId.ToString(), CharacterIndex, Strength, ThrowUnitWeight, StrengthSpeedScale);
 	return true;
 }
 
@@ -537,7 +549,10 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	{
 		return nullptr;
 	}
-	WorldItem.Weight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
+#if WITH_DEV_AUTOMATION_TESTS
+	if (!Ballistics.bCanonicalIdentity)
+		WorldItem.Weight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
+#endif
 
 	AGridThrownItemActor* ThrownActor = LevelRuntimeActor->SpawnThrownItemProjectile(
 		WorldItem, ItemDefinition, StartLocation, ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
@@ -596,7 +611,10 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchInventoryItemForAttack(
 	FGridItemInstance WorldItem = SourceSlot->Item;
 	WorldItem.RuntimeObjectId = FGuid::NewGuid();
 	WorldItem.Quantity = 1;
-	WorldItem.Weight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
+#if WITH_DEV_AUTOMATION_TESTS
+	if (!Ballistics.bCanonicalIdentity)
+		WorldItem.Weight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
+#endif
 	WorldItem.OwnerType = EGridItemOwnerType::World;
 	WorldItem.OwnerGuid = FGuid();
 	WorldItem.OwnerCharacterIndex = INDEX_NONE;

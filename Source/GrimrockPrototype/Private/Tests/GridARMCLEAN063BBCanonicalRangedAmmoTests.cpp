@@ -239,6 +239,8 @@ namespace ARMCLEAN063BB
             if (!Test.TestNotNull(TEXT("Canonical arrow launches without old item DA"),
                 Projectile)) return false;
             Test.TestNull(TEXT("No retired arrow asset attached"), Projectile->GetItemDefinitionAsset());
+            Test.TestEqual(TEXT("In-flight ammunition has no mass cache"), Projectile->ThrownItemInstance.Weight, 0.0f);
+            Test.TestTrue(TEXT("In-flight ammunition has no name cache"), Projectile->ThrownItemInstance.DisplayName.IsEmpty());
             if (Test.TestNotNull(TEXT("Movement component"), Projectile->ProjectileMovementComponent.Get()))
                 Test.TestTrue(TEXT("Real projectile uses preflight speed"),
                     FMath::IsNearlyEqual(Projectile->ProjectileMovementComponent->Velocity.Size(),
