@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.71D — Diagnostic d'échec natif
+
+Parent ffd9b285a850fd39ab6df1119011d6657fcd2b45 : SilentTask et LocalAuto SUCCESS, transaction native FAILURE ; aucun commit binaire publié. Diagnostic read-only du run précédent exact avant vérification du worktree : étape, nombres de packages, égalité du fingerprint, nombre de fichiers sales, noms de tests en échec filtrés. Aucun log brut ni chemins locaux publiés. Ne pas relancer Apply avant analyse du rapport.
+
 ## ARM-CLEAN06.5G.71 — Transaction native des catégories
 
 Parent 1d7e42380d92e2dc97fcf17010c14bc41c49ac4c. Commandlet Audit/Apply/Verify, 26 packages strictement autorisés et LFS vérifié, sauvegardes privées, fingerprint sans le seul tag réservé, réouverture UE indépendante puis Automation complète. Statut supplémentaire UE5.5.4/ARM-CLEAN06.5G71 et commit binaire enfant à vérifier séparément. Voir [5G.71](ARM_CLEAN06_5G71_NATIVE_PUZZLE_CATEGORIES.md).

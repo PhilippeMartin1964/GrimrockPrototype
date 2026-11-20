@@ -749,6 +749,74 @@ try {
     try {
         Publish-CommitStatus -Sha $Sha -State 'pending' -Description "Validation Windows en cours : $AutomationFilter"
 
+        # Read only the exact preceding failed native transaction, before
+        # checking the validation worktree for dirty packages. No recovery here.
+        $PuzzleDiagSubject = @(& git -C $RepositoryRoot show -s --format=%s $Sha)
+        $PuzzleDiagParent = @(& git -C $RepositoryRoot rev-parse ($Sha + '^'))
+        if ($LASTEXITCODE -eq 0 -and $PuzzleDiagSubject.Count -eq 1 -and $PuzzleDiagParent.Count -eq 1 -and
+            [string]$PuzzleDiagSubject[0] -ceq 'ARM-CLEAN06.5G.71D: publish bounded native failure diagnostic' -and
+            [string]$PuzzleDiagParent[0] -ceq 'ffd9b285a850fd39ab6df1119011d6657fcd2b45') {
+            $Context = 'UE5.5.4/ARM-CLEAN06.5G71D'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Context -Description 'Diagnostic natif en lecture seule'
+                $SourceSha = 'ffd9b285a850fd39ab6df1119011d6657fcd2b45'
+                $PreviousRuns = @(Get-ChildItem -LiteralPath (Join-Path $StateRoot 'Runs') -Directory |
+                    Where-Object { $_.Name -like 'ffd9b285a850-*' })
+                if ($PreviousRuns.Count -ne 1) { throw 'Exact native run unavailable or ambiguous.' }
+                $SourceRun = $PreviousRuns[0].FullName
+                $StagePath = Join-Path $SourceRun 'ArmClean065G71.stage'
+                $Stage = 'UNAVAILABLE'
+                if (Test-Path -LiteralPath $StagePath -PathType Leaf) {
+                    $StageValue = ([string](Get-Content -LiteralPath $StagePath -TotalCount 1)).Trim()
+                    if ($StageValue -cin @('SELFTEST_INIT','SELFTEST_GIT','SELFTEST_SET','SELFTEST_PATH',
+                        'SELFTEST_POINTER','SELFTEST_QUOTE','SELFTEST_SUCCESS','PREFLIGHT_INPUT','PREFLIGHT_LOCATION',
+                        'PREFLIGHT_ORDINARY_PATH','PREFLIGHT_WORKTREE','PREFLIGHT_HEAD','PREFLIGHT_REMOTE','PREFLIGHT_ANCESTRY',
+                        'PREFLIGHT_DIFF','PREFLIGHT_CLEAN','PREFLIGHT_VALIDATION','PREFLIGHT_SNAPSHOT','PREFLIGHT_EXECUTABLES',
+                        'PREFLIGHT_LFS','AUDIT','APPLY','REOPEN','AUTOMATION','PUBLISH','ROLLBACK_INCOMPLETE','SUCCESS')) {
+                        $Stage = $StageValue
+                    }
+                }
+                $Rows = New-Object 'System.Collections.Generic.List[string]'
+                $Rows.Add('Native source: ' + $SourceSha)
+                $Rows.Add('Stage: ' + $Stage)
+                $NativeRoot = Join-Path $SourceRun 'ARM-CLEAN06.5G71'
+                $OriginalManifest = $null
+                foreach ($Probe in @('audit','prior','apply','reopened')) {
+                    $ProbePath = Join-Path $NativeRoot ($Probe+'.json')
+                    if (-not (Test-Path -LiteralPath $ProbePath -PathType Leaf)) {
+                        $Rows.Add('Probe '+$Probe+': absent')
+                        continue
+                    }
+                    $J = Get-Content -LiteralPath $ProbePath -Raw | ConvertFrom-Json
+                    if ($J.schema -cne 'ARM-CLEAN06.5G71/puzzle/v1' -or $J.tagged -notin @(0,26) -or
+                        [int]$J.packages_saved -lt 0 -or [int]$J.packages_saved -gt 26 -or $J.savegames_touched -ne $false) {
+                        $Rows.Add('Probe '+$Probe+': invalid report')
+                        continue
+                    }
+                    if ($Probe -ceq 'audit') { $OriginalManifest = [string]$J.normalized_manifest }
+                    $Equal = ($null -ne $OriginalManifest -and $OriginalManifest -ceq [string]$J.normalized_manifest)
+                    $Rows.Add('Probe '+$Probe+': tags='+[int]$J.tagged+' saved='+[int]$J.packages_saved+' fingerprint_matches='+$Equal)
+                }
+                $Dirty = @(& git -C $WorktreePath status --porcelain=v1 --untracked-files=all)
+                if ($LASTEXITCODE -eq 0) { $Rows.Add('Validation worktree dirty count: '+$Dirty.Count) }
+                $Post = Join-Path $NativeRoot 'PostAutomation'
+                $PostLog = Join-Path $NativeRoot 'post-automation.stdout.log'
+                foreach ($Record in @(Get-PublicSafeDiagnostics -RunLogPath $PostLog -ReportRoot $Post)) {
+                    $Rows.Add([string]$Record)
+                }
+                $Body = Join-Path $RunDir 'ARM065G71D.public.md'
+                @('# ARM-CLEAN06.5G71 - Diagnostic natif borne','') + @($Rows | ForEach-Object {'- '+$_}) |
+                    Set-Content -LiteralPath $Body -Encoding UTF8
+                & gh issue create --repo $GitHubRepository --title '[ARM-CLEAN06.5G71D] Diagnostic conversion ffd9b285a850' --body-file $Body | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw 'Diagnostic publication failed.' }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Diagnostic structure publie'
+            } catch {
+                try { Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Diagnostic natif indisponible' }
+                catch { Write-Warning 'Diagnostic status unavailable.' }
+                Write-Warning 'Native diagnostic unavailable; private evidence retained.'
+            }
+        }
+
         if (Test-Path -LiteralPath $WorktreePath) {
             if (-not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git'))) {
                 throw "Repertoire de validation non vide / non gere : $WorktreePath. Aucune suppression automatique."
