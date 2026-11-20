@@ -218,9 +218,13 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		FName PrimaryActionId = NAME_None;
 		if (bCanonicalIdentity)
 		{
+			// The actual owned hand, not the drag snapshot, supplies the level
+			// and all mutable source state for a new shortcut.
 			FGridResolvedItem Item;
-			if (!Canonical->ResolveItem(SourceItem.ItemDefinitionId, SourceItem.ItemLevel, Item) ||
-				!Item.bIsArmament)
+			if (!EquippedItem.IsValid() || EquippedItem.ItemLevel != SourceItem.ItemLevel ||
+				EquippedItem.Quantity != 1 ||
+				!Canonical->ResolveItem(EquippedItem.ItemDefinitionId, EquippedItem.ItemLevel, Item) ||
+				!Item.IsValid() || !Item.bIsArmament)
 			{
 				return false; // No legacy fallback for a registered identity.
 			}
@@ -228,9 +232,9 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 			{
 				FGridResolvedBoundAction Bound;
 				if (Canonical->ResolveAttackFromEquippedInstance(
-					SourceItem, Authored.ActionId, SourceEquipmentSlot,
-					EquippedItem.RuntimeObjectId, EquippedItem.OwnerGuid,
-					EquippedItem.OwnerCharacterIndex, Bound))
+					EquippedItem, Authored.ActionId, SourceEquipmentSlot,
+					EquippedItem.RuntimeObjectId, PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId,
+					CharacterIndex, Bound))
 				{
 					PrimaryActionId = Bound.ActionId;
 					break;
@@ -266,19 +270,30 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 	else
 	{
 		const FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
-		const bool bItemStillOwned = Character.InventorySlots.ContainsByPredicate(
+		const FGridInventorySlot* OwnedSlot = Character.InventorySlots.FindByPredicate(
 			[&SourceItem](const FGridInventorySlot& Candidate)
 			{
 				return !Candidate.IsEmpty() && Candidate.Item.RuntimeObjectId == SourceItem.RuntimeObjectId &&
 					Candidate.Item.ItemDefinitionId == SourceItem.ItemDefinitionId;
 			});
-		if (!bItemStillOwned)
+		if (!OwnedSlot)
 		{
 			return false;
 		}
+		const FGridItemInstance& OwnedItem = OwnedSlot->Item;
+		if (bCanonicalIdentity)
+		{
+			FGridResolvedItem Physical;
+			if (!OwnedItem.IsValid() || OwnedItem.ItemLevel != SourceItem.ItemLevel ||
+				!Canonical->ResolveItem(OwnedItem.ItemDefinitionId, OwnedItem.ItemLevel, Physical) ||
+				!Physical.IsValid() || OwnedItem.Quantity > FMath::Max(1, Physical.MaxStack))
+			{
+				return false;
+			}
+		}
 
 		const FGridCanonicalItemInteractionReadView Capabilities =
-			FGridCanonicalItemInteractionReadModel::Resolve(Canonical, Definition, SourceItem);
+			FGridCanonicalItemInteractionReadModel::Resolve(Canonical, Definition, OwnedItem);
 		FGridCombatActionDefinition InventoryAction;
 		if (Capabilities.bCanonicalIdentity && Capabilities.bPhysicalThrowHotbar)
 		{
@@ -289,7 +304,7 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		else if (Capabilities.bCanonicalIdentity)
 		{
 			const FGridCanonicalQuickItemUseReadView Use =
-				FGridCanonicalQuickItemUseReadModel::Resolve(Canonical, SourceItem);
+				FGridCanonicalQuickItemUseReadModel::Resolve(Canonical, OwnedItem);
 			if (!Use.bResolved)
 			{
 				return false; // No fallback to old QuickItem for known IDs.

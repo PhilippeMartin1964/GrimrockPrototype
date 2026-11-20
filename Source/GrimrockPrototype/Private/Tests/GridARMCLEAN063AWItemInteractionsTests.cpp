@@ -187,6 +187,24 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
     if (!TestNotNull(TEXT("N20 physical inventory slot"), Slot)) return false;
     if (!TestTrue(TEXT("Context menu can bind the real inventory item"),
         F.HasAction(Slot->Item, nullptr, EGridItemActionType::AddToHotbar))) return false;
+    FGridItemInstance Stale = Slot->Item;
+    Stale.ItemLevel = 1;
+    TestFalse(TEXT("Same GUID and ID cannot bind a stale N1 drag of an N20 knife"),
+        F.Inventory->SetCharacterCombatHotbarBindingFromItem(
+            0, 2, Stale, EGridEquipmentSlot::None));
+    FGridCombatHotbarBinding Before;
+    TestTrue(TEXT("Rejected stale drag retains empty hotbar slot"),
+        F.Inventory->GetCharacterCombatHotbarBinding(0, 2, Before) && Before.IsEmpty());
+    auto* MutableSlot = F.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.FindByPredicate(
+        [KnifeId](const FGridInventorySlot& S)
+        { return !S.IsEmpty() && S.Item.ItemDefinitionId == KnifeId; });
+    if (!TestNotNull(TEXT("Owned knife slot is mutable"), MutableSlot)) return false;
+    MutableSlot->Item.Quantity = MAX_int32;
+    TestFalse(TEXT("Over-capacity owned stack cannot bind from a plausible snapshot"),
+        F.Inventory->SetCharacterCombatHotbarBindingFromItem(
+            0, 2, Incoming, EGridEquipmentSlot::None));
+    MutableSlot->Item.Quantity = 1;
+
     TestTrue(TEXT("Real hotbar binding requires no obsolete DA_Weapon"),
         F.Inventory->SetCharacterCombatHotbarBindingFromItem(
             0, 2, Slot->Item, EGridEquipmentSlot::None));
@@ -207,6 +225,30 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
         F.Inventory->TryConsumeSelfRestorativeQuickItem(0, Slot->Item.RuntimeObjectId, ConsumeError));
     TestTrue(TEXT("Failed self-consumption retains source item"),
         F.Inventory->CountItemDefinitionInCharacterInventory(0, KnifeId) == 1);
-    return true;
+    // The same contract applies to equipped weapon shortcuts.
+    FGridItemInstance Sword = F.Make(TEXT("Weapon_StraightSword_01"), 20);
+    Sword.OwnerGuid = Character.CharacterId;
+    Sword.OwnerCharacterIndex = 0;
+    Sword.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    Sword.EquipmentSlot = EGridEquipmentSlot::MainHand;
+    if (!TestTrue(TEXT("Equipment row available"), F.Inventory->PartyInventoryState.ActiveEquipment.IsValidIndex(0)))
+        return false;
+    auto& Main = F.Inventory->PartyInventoryState.ActiveEquipment[0].MainHand;
+    Main = Sword;
+    FGridItemInstance StaleSword = Sword;
+    StaleSword.ItemLevel = 1;
+    TestFalse(TEXT("Stale N1 equipped snapshot cannot authorize an N20 shortcut"),
+        F.Inventory->SetCharacterCombatHotbarBindingFromItem(0, 3, StaleSword, EGridEquipmentSlot::MainHand));
+    Main.Quantity = 2;
+    TestFalse(TEXT("Malformed equipped quantity cannot authorize a shortcut"),
+        F.Inventory->SetCharacterCombatHotbarBindingFromItem(0, 3, Sword, EGridEquipmentSlot::MainHand));
+    Main.Quantity = 1;
+    Main.OwnerGuid = FGuid::NewGuid();
+    TestFalse(TEXT("Actual equipped source must belong to selected character"),
+        F.Inventory->SetCharacterCombatHotbarBindingFromItem(0, 3, Sword, EGridEquipmentSlot::MainHand));
+    Main.OwnerGuid = Sword.OwnerGuid;
+    TestTrue(TEXT("Actual N20 equipped item binds a canonical attack"),
+        F.Inventory->SetCharacterCombatHotbarBindingFromItem(0, 3, Sword, EGridEquipmentSlot::MainHand));
+    return !HasAnyErrors();
 }
 #endif

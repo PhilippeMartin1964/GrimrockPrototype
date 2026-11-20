@@ -1,0 +1,5 @@
+# ARM-CLEAN06.5G.67 — Source physique des raccourcis
+
+Parent 16d20f38d8626cf423dc21f3d0d9ed062c4712ca. Publication après double validation du parent.
+
+`SetCharacterCombatHotbarBindingFromItem` vérifiait le GUID et ItemId du slot mais utilisait le niveau et les données de la copie de drag pour résoudre l'action. Pour une identité canonique, le niveau du drag doit désormais concorder avec le niveau effectivement détenu ; la résolution se fait sur le vrai slot, avec capacité de pile et quantité physique valides. Pour une main, la quantité est une unité et le propriétaire constaté est l'identité du personnage actif, non une copie du propriétaire de l'item. La quantité du drag peut être obsolète si le type de raccourci reste valide et la pile réelle est valide : le raccourci QuickItem reste de type, ne réserve pas des unités. Aucun changement de coût, action, UI ni schéma de sauvegarde. Le test 3AW couvre N20 réel, N1 obsolète avec le même GUID, pile corrompue, main avec propriétaire contradictoire et création normale. Les fixtures historiques existantes ne changent pas de politique. Validation Windows obligatoire.

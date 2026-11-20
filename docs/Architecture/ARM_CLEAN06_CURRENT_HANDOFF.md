@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.67 — Source physique des raccourcis
+
+Parent 16d20f38d8626cf423dc21f3d0d9ed062c4712ca. La création de raccourci résout l'instance réellement détenue dans le sac ou la main ; refus des niveaux de drag obsolètes, quantité invalide et propriétaire d'équipement contradictoire. Voir [5G.67](ARM_CLEAN06_5G67_HOTBAR_PHYSICAL_SOURCE.md).
+
 ## ARM-CLEAN06.5G.66 — Menu de désamorçage canonique
 
 Parent 6d5598305372de481b0a922460741c9293b19813. Le menu et la sélection du piège utilisent le même lecteur d'instance que l'exécution. Test réel sans DA historique, niveau et quantité invalides, tag contradictoire. Voir [5G.66](ARM_CLEAN06_5G66_CANONICAL_DISARM_CONTEXT.md).
