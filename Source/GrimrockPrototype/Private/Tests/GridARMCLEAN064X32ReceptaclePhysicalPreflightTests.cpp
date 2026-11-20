@@ -75,10 +75,11 @@ bool FGridClean064X32ReceptacleAcceptance::RunTest(const FString&)
 
         Item.ItemDefinitionId = FName(TEXT("ARM_CLEAN064X32_Unregistered"));
         Item.ItemLevel = 0;
-        bOk &= TestTrue(TEXT("Unknown legacy ID retains acceptance policy"),
+        bOk &= TestFalse(TEXT("Unknown ID rejected even by accept-any"),
             Receptacle->EvaluateItemAcceptance(Item, Decision));
+        bOk &= TestEqual(TEXT("Unknown ID uses InvalidItem reason"), Decision.RejectReason, EGridReceptacleRejectReason::InvalidItem);
         Item.ItemLevel = 7;
-        bOk &= TestTrue(TEXT("Unknown legacy fixed level remains compatible"),
+        bOk &= TestFalse(TEXT("Unknown ID cannot borrow a historical level"),
             Receptacle->EvaluateItemAcceptance(Item, Decision));
 
         Item.RuntimeObjectId.Invalidate();
@@ -96,6 +97,18 @@ bool FGridClean064X32ReceptacleAcceptance::RunTest(const FString&)
         Receptacle->bCanInsertItems = true;
         bOk &= TestEqual(TEXT("Preflight never changes receptacle contents"),
             Receptacle->GetContainedItemCount(), 0);
+        Item.ItemDefinitionId = Copper;
+        Item.ItemLevel = 0;
+        Item.Quantity = MAX_int32;
+        bOk &= TestFalse(TEXT("Over-capacity canonical stack rejected"), Receptacle->CanAcceptItemInstance(Item));
+        Item.Quantity = 1;
+        FGridItemInstance Accepted;
+        bOk &= TestTrue(TEXT("Canonical key physically inserts"), Receptacle->TryInsertItemInstanceFromCursor(Item, Accepted));
+        bOk &= TestEqual(TEXT("Accepted identity retained"), Accepted.RuntimeObjectId, Item.RuntimeObjectId);
+        Receptacle->MaxContainedItems = 2;
+        bOk &= TestFalse(TEXT("A duplicate physical GUID cannot insert"), Receptacle->EvaluateItemAcceptance(Item, Decision));
+        bOk &= TestFalse(TEXT("Replay creates no second contained object"), Receptacle->TryInsertItemInstanceFromCursor(Item, Accepted));
+        bOk &= TestEqual(TEXT("Replay leaves exactly one contained object"), Receptacle->GetContainedItemCount(), 1);
     }
     World->SetGameInstance(nullptr);
     GI->Shutdown();

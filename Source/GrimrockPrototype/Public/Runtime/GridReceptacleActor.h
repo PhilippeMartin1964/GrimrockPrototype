@@ -254,9 +254,9 @@ public:
 	/**
      * Inserts an item into the receptacle.
      *
-     * This is the single official insertion path.
-     * ItemDefinitionId is the source of truth.
-     * ItemDefinition is optional but preferred when available.
+     * ID-only canonical N0 insertion; old pointer and party arguments are ignored.
+     * Physical ARM and other transfers use TryInsertItemInstanceFromCursor.
+     * The reflected signature remains until its Blueprint usage audit.
      */
 	UFUNCTION(BlueprintCallable, Category = "Receptacle")
 	bool TryInsertItem(FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGrimrockPartyPawn* PartyPawn);

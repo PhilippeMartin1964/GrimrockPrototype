@@ -82,6 +82,12 @@ bool FGridBGPhysicalInsertion::RunTest(const FString&)
         return false;
     const FName ArrowId(TEXT("Item_Arrows_01"));
     UGridItemDefinitionAsset* Old = F.Contradictory();
+    TestFalse(TEXT("Empty explicit ID cannot be supplied by old pointer"),
+        F.Receptacle->TryInsertItem(NAME_None, Old, nullptr));
+    TestFalse(TEXT("Unknown explicit ID cannot be renamed by old pointer"),
+        F.Receptacle->TryInsertItem(TEXT("CLEAN06_5G49_Unknown"), Old, nullptr));
+    TestFalse(TEXT("ID-only insertion cannot guess an ARM level"),
+        F.Receptacle->TryInsertItem(TEXT("Weapon_StraightSword_01"), Old, nullptr));
     if (!TestTrue(TEXT("Registered N0 arrow inserts with contradicting legacy asset"),
         F.Receptacle->TryInsertItem(ArrowId, Old, nullptr))) return false;
     if (!TestEqual(TEXT("One item physically inserted"),
@@ -112,6 +118,15 @@ bool FGridBGPhysicalInsertion::RunTest(const FString&)
         Snapshot.ContainedItems[0].ItemLevel, 0);
     TestTrue(TEXT("Saved GUID is real contained GUID"),
         Snapshot.ContainedItems[0].ObjectId == Contained.RuntimeObjectId);
+    const FName FakeTag(TEXT("CLEAN06_5G49_FakeTag"));
+    Old->ItemTags.Add(FakeTag);
+    F.Receptacle->ContainedItems[0].ItemDefinition = Old;
+    TestFalse(TEXT("Contradictory historical tag cannot authorize registered item"),
+        F.Receptacle->ContainsItemTag(FakeTag));
+    F.Receptacle->ContainedItems[0].ItemDefinitionId = TEXT("CLEAN06_5G49_Unknown");
+    Old->ItemDefinitionId = F.Receptacle->ContainedItems[0].ItemDefinitionId;
+    TestFalse(TEXT("Even matching old pointer cannot authorize an unknown tag condition"),
+        F.Receptacle->ContainsItemTag(FakeTag));
     return !HasAnyErrors();
 }
 

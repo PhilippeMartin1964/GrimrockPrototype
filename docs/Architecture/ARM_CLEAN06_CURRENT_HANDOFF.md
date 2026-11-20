@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.49 — Insertion et tags de réceptacles canoniques
+
+Parent 57738fe3df12877ed1b4f04baa82dd0ac6f5742c. Publication après deux statuts SUCCESS. Accept-any n’accepte plus un ItemId inconnu, ni niveau/quantité invalides, ni GUID déjà présent. Insertion ID-only conserve l’API réfléchie mais ignore les anciens arguments ; aucune recherche cache au transfert. Tags des conditions proviennent uniquement du registre. X32/3BG renforcés. Voir [5G.49](ARM_CLEAN06_5G49_RECEPTACLE_CANONICAL_INSERTION.md). Type métier non-ARM et restauration historique restent distincts. Aucun asset/save écrit.
+
 ## ARM-CLEAN06.5G.48 — Restitution physique des réceptacles
 
 Parent 01777ede14caa9133c489cc4d8c9a66714acfc3e. Publication conditionnée aux deux statuts SUCCESS. Le service utilisé pour les réceptacles attachés conserve le niveau, la lecture et la lumière réelle ; valide le niveau et la capacité canonique avant extraction. Restauration conserve niveau, état initial, données de lecture, position et rang. Capture sans acteur conserve la lumière mémorisée. Régression réelle N12, sac plein puis transfert positif. Voir [5G.48](ARM_CLEAN06_5G48_RECEPTACLE_RESTITUTION.md). Aucun changement de catégorie logique ni asset/save écrit.
