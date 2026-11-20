@@ -478,6 +478,28 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
             return false;
     }
 
+    FGridItemInstance Duplicate;
+    Duplicate.RuntimeObjectId = Weapons[0].Guid;
+    Duplicate.ItemDefinitionId = Weapons[0].Id;
+    Duplicate.ItemLevel = Weapons[0].Level;
+    Duplicate.Quantity = 1;
+    Duplicate.OwnerType = EGridItemOwnerType::World;
+    TestFalse(TEXT("A second arrival cannot replace an existing queued GUID"),
+        Runtime->TryDropItemInstanceAtCell(Duplicate, 2, 2, EGridEdge::None, FVector::ZeroVector));
+    FGridItemInstance InvalidQuantity = Duplicate;
+    InvalidQuantity.RuntimeObjectId = FGuid::NewGuid();
+    InvalidQuantity.Quantity = MAX_int32;
+    TestFalse(TEXT("Oversized physical stack cannot enter pit queue"),
+        Runtime->TryDropItemInstanceAtCell(InvalidQuantity, 2, 2, EGridEdge::None, FVector::ZeroVector));
+    PendingLevel = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
+    if (!TestNotNull(TEXT("Original destination state retained"), PendingLevel) ||
+        !TestEqual(TEXT("Exactly two original arrivals remain"), PendingLevel->PendingInboundItems.Num(), 2))
+        return false;
+    const FGridPendingWorldItemState* Original = PendingLevel->PendingInboundItems.Find(Weapons[0].Guid);
+    if (!TestNotNull(TEXT("Original queued identity retained"), Original) ||
+        !TestEqual(TEXT("Original queued quantity retained"), Original->ItemState.Quantity, 1))
+        return false;
+
     // Physical save round-trip, *in memory*, before travelling downstairs.
     UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
     Save->DungeonRuntimeState = Runtime->DungeonRuntimeState;

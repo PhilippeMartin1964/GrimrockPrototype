@@ -27,9 +27,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridLevelRuntime, Log, All);
 
 namespace
 {
-	// Build one physical instance for both pickup entry points. Production
+	// Build one physical instance for pickup and pit transfer. Production
 	// never invents a replacement GUID or repairs a stack during transfer.
-	bool TryBuildWorldPickupInstance(const FGridSpawnedItemRuntimeEntry& Entry, FGridItemInstance& Out)
+	bool TryBuildPhysicalWorldInstance(const FGridSpawnedItemRuntimeEntry& Entry, FGridItemInstance& Out)
 	{
 		const AGridItemActor* Actor = Entry.ItemActor.Get();
 		if (!IsValid(Actor)) return false;
@@ -290,7 +290,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 		}
 
 		FGridItemInstance ItemInstance;
-		if (!TryBuildWorldPickupInstance(Entry, ItemInstance))
+		if (!TryBuildPhysicalWorldInstance(Entry, ItemInstance))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Item pickup refused: contradictory or invalid physical identity."));
 			return false;
@@ -351,7 +351,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 		}
 
 		FGridItemInstance ItemInstance;
-		if (!TryBuildWorldPickupInstance(Entry, ItemInstance))
+		if (!TryBuildPhysicalWorldInstance(Entry, ItemInstance))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Item pickup refused: contradictory or invalid physical identity."));
 			return false;
@@ -400,11 +400,19 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	FGridResolvedItem RouteCanonical;
 	const bool bCanonicalIdentity = RouteRegistry &&
 		RouteRegistry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
+	bool bRequireCanonical = true;
+#if WITH_DEV_AUTOMATION_TESTS
+	bRequireCanonical = RouteGI != nullptr;
+#endif
 	const bool bCanonicalRoute = bCanonicalIdentity &&
-		RouteRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, RouteCanonical);
+		RouteRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, RouteCanonical) &&
+		RouteCanonical.IsValid() && RouteCanonical.ItemId == ItemInstance.ItemDefinitionId &&
+		RouteCanonical.ItemLevel == ItemInstance.ItemLevel &&
+		(RouteCanonical.bIsArmament ? ItemInstance.ItemLevel >= 1 : ItemInstance.ItemLevel == 0) &&
+		ItemInstance.Quantity >= 1 && ItemInstance.Quantity <= FMath::Max(1, RouteCanonical.MaxStack);
 	// A known canonical ItemId at an invalid persisted level (notably ARM N0)
 	// must never fall back to an old UGridItemDefinitionAsset.
-	if (bCanonicalIdentity && !bCanonicalRoute)
+	if ((bRequireCanonical || bCanonicalIdentity) && !bCanonicalRoute)
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridPit ItemTransfer rejected Item=%s Level=%d Reason=InvalidCanonicalItem"),
@@ -434,6 +442,14 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 			AGridItemActor* Actor = Existing->ItemActor.Get();
 			if (!IsValid(Actor) || !IsValid(Actor->MeshComponent))
 				return false;
+			if (bRequireCanonical)
+			{
+				FGridItemInstance Physical;
+				if (!TryBuildPhysicalWorldInstance(*Existing, Physical) ||
+					Physical.ItemDefinitionId != ItemInstance.ItemDefinitionId ||
+					Physical.ItemLevel != ItemInstance.ItemLevel || Physical.Quantity != ItemInstance.Quantity)
+					return false;
+			}
 			const FVector Center = Actor->GetWorldPickupLocation();
 			// A physical passage is already below the source floor. Bring the
 			// entire shape above the destination floor, preserving its rotation.
@@ -555,6 +571,18 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	// a valid canonical ARM item crossing a pit.
 	PendingState.ItemDefinitionAsset = bCanonicalRoute ? nullptr : ItemDefinitionAsset;
 
+	// A pending landing must not replace any already-owned destination row.
+	if (const FGridLevelRuntimeState* Previous = DungeonRuntimeState.LevelStates.Find(Relocation.TargetLevelId))
+	{
+		if (Previous->Items.Contains(ItemState.ObjectId) || Previous->PendingInboundItems.Contains(ItemState.ObjectId))
+			return false;
+		for (const auto& Pair : Previous->Receptacles)
+		{
+			if (Pair.Value.ContainedItems.ContainsByPredicate([&ItemState](const FGridRuntimeItemState& Contained)
+				{ return Contained.ObjectId == ItemState.ObjectId; }))
+				return false;
+		}
+	}
 	FGridLevelRuntimeState& TargetState = DungeonRuntimeState.LevelStates.FindOrAdd(Relocation.TargetLevelId);
 	TargetState.LevelId = Relocation.TargetLevelId;
 	TargetState.PendingInboundItems.Add(ItemState.ObjectId, PendingState);
@@ -742,33 +770,15 @@ bool AGridLevelRuntimeActor::TransferWorldItemThroughPit(AGridItemActor* ItemAct
 	if (Entry.Edge != EGridEdge::None || !Entry.ObjectId.IsValid() || Entry.ObjectId != ItemActor->GetRuntimeObjectId())
 		return false;
 
-	// Do not materialize a legacy DA_Weapon just to route an item that
-	// already has an authoritative canonical identity.
-	const FName ItemId = Entry.ItemDefinitionId.IsNone() ? ItemActor->GetItemDefinitionId() : Entry.ItemDefinitionId;
+	FGridItemInstance ItemInstance;
+	if (!TryBuildPhysicalWorldInstance(Entry, ItemInstance))
+		return false;
+	const FName ItemId = ItemInstance.ItemDefinitionId;
 	const UWorld* RouteWorld = GetWorld();
 	UGameInstance* RouteGI = RouteWorld ? RouteWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = RouteGI ? RouteGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	const bool bCanonicalIdentity = Registry && Registry->HasCanonicalItem(ItemId);
-	UGridItemDefinitionAsset* Definition = bCanonicalIdentity ? nullptr : Entry.ItemDefinitionAsset.Get();
-	const FGridReceptacleItemMetadataReadView RouteRead = FGridWorldItemLevelReadModel::ResolvePersistedInstance(Registry, Definition, ItemId, Entry.ItemLevel);
-	if (!RouteRead.bResolved || (!RouteRead.bCanonicalIdentity && !IsValid(Definition)))
-	{
-		UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridPit ItemSelection rejected Item=%s N%d RuntimeId=%s Reason=InvalidPersistedIdentity"),
-			*ItemId.ToString(), Entry.ItemLevel, *Entry.ObjectId.ToString());
-		return false;
-	}
-
-	FGridItemInstance ItemInstance;
-	ItemInstance.RuntimeObjectId = Entry.ObjectId;
-	ItemInstance.ItemDefinitionId = ItemId;
-	ItemInstance.ItemLevel = Entry.ItemLevel;
-	ItemInstance.Quantity = FMath::Max(1, Entry.Quantity);
-	ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled();
-	ItemInstance.ReadableContentAsset = ItemActor->ReadableContentAsset;
-	ItemInstance.ReadableContentId = ItemActor->ReadableContentId;
-	ItemInstance.ReadTitleOverride = ItemActor->ReadTitleOverride;
-	ItemInstance.ReadTextOverride = ItemActor->ReadTextOverride;
-	ItemInstance.LastWorldTransform = IsValid(ItemActor->MeshComponent) ? ItemActor->MeshComponent->GetComponentTransform() : ItemActor->GetActorTransform();
+	UGridItemDefinitionAsset* Definition = Registry && Registry->HasCanonicalItem(ItemId)
+		? nullptr : Entry.ItemDefinitionAsset.Get();
 
 	// With simulating Chaos the mesh may travel while the actor root
 	// remains at its original spawn. Transfer its actual horizontal pose.
@@ -992,16 +1002,27 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	// including ARM N1-N20. The mesh-only legacy ARM route skipped canonical
 	// physics, sparkle and visual effects after a PIT02 transfer.
 	FGridResolvedItem CanonicalDrop;
+	bool bRequireCanonical = true;
+#if WITH_DEV_AUTOMATION_TESTS
+	bRequireCanonical = DropGameInstance != nullptr;
+#endif
 	const bool bResolvedCanonical = bCanonicalIdentity &&
 		Registry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, CanonicalDrop) &&
-		CanonicalDrop.IsValid();
-	if (bCanonicalIdentity && !bResolvedCanonical)
+		CanonicalDrop.IsValid() && CanonicalDrop.ItemId == ItemInstance.ItemDefinitionId &&
+		CanonicalDrop.ItemLevel == ItemInstance.ItemLevel &&
+		(CanonicalDrop.bIsArmament ? ItemInstance.ItemLevel >= 1 : ItemInstance.ItemLevel == 0) &&
+		ItemInstance.Quantity >= 1 && ItemInstance.Quantity <= FMath::Max(1, CanonicalDrop.MaxStack);
+	if ((bRequireCanonical || bCanonicalIdentity) && !bResolvedCanonical)
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridInventory WorldDrop rejected canonical Item=%s Level=%d"),
 			*ItemInstance.ItemDefinitionId.ToString(), ItemInstance.ItemLevel);
 		return false; // A known ARM N0 must never inherit N1 or use legacy.
 	}
+	if (bRequireCanonical && SpawnedItemEntries.ContainsByPredicate([&ItemInstance](const FGridSpawnedItemRuntimeEntry& Existing)
+		{ return Existing.ObjectId == ItemInstance.RuntimeObjectId && IsValid(Existing.ItemActor.Get()); }))
+		return false;
+
 	UGridItemDefinitionAsset* ItemDefinition = bCanonicalIdentity ? nullptr :
 		(IsValid(ItemDefinitionAsset) ? ItemDefinitionAsset : nullptr);
 	const FGridReceptacleItemMetadataReadView LevelRead =

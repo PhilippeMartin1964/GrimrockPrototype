@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.55 — Contrôles physiques des dépôts et fosses
+
+Parent 95d5112714acf3887abd807b1c7245739b10f6fa. Publication après deux statuts SUCCESS. Dépôt et routage valident l'ID/niveau/quantité canonique, le passage d'un acteur partage la construction physique du ramassage, une arrivée différée ne remplace jamais un GUID déjà détenu dans le niveau cible. PIT03 couvre doublon et quantité invalide. Voir [5G.55](ARM_CLEAN06_5G55_PHYSICAL_PIT_GUARDS.md).
+
 ## ARM-CLEAN06.5G.54 — Ramassage physique canonique
 
 Parent 0e67ab86c3b401c747a5badca54ea75b4d90652b. Publication après deux statuts SUCCESS. Les ramassages par cellule et clic partagent la construction de l'instance depuis GUID/ID/niveau/quantité physiques et refusent incohérences sans octroi. Le test 3BD Pickup couvre les deux refus puis le ramassage positif. Voir [5G.54](ARM_CLEAN06_5G54_CANONICAL_WORLD_PICKUP.md).
