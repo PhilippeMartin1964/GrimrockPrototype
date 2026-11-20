@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Components/StaticMeshComponent.h"
 
 #include "Core/GridDungeonAsset.h"
@@ -100,6 +101,12 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Real canonical ItemSystem attached"), RegistryScope.Attach(TestWorld.World)))
+		return false;
+	FGridResolvedItem CanonicalStone;
+	if (!TestTrue(TEXT("Real N0 stone resolves"), RegistryScope.Registry->ResolveItem(TEXT("Stone"), 0, CanonicalStone)))
+		return false;
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	if (!TestNotNull(TEXT("Runtime exists"), Runtime))
 	{
@@ -208,18 +215,17 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Pit B starts closed for gameplay"), Runtime->IsPitOpen(PitBId));
 	TestEqual(TEXT("Pit A starts at alpha 0"), PitAActor->GetCurrentOpenAlpha(), 0.0f);
 
-	UGridItemDefinitionAsset* StoneDefinition = NewObject<UGridItemDefinitionAsset>(Runtime);
-	StoneDefinition->ItemDefinitionId = TEXT("Item_PIT031_Stone");
-	StoneDefinition->Weight = 1.5f;
-
 	FGridItemInstance Stone;
 	Stone.RuntimeObjectId = FGuid::NewGuid();
-	Stone.ItemDefinitionId = StoneDefinition->ItemDefinitionId;
+	Stone.ItemDefinitionId = TEXT("Stone");
+	Stone.ItemLevel = 0;
+	Stone.Weight = CanonicalStone.WeightKg;
+	Stone.OwnerType = EGridItemOwnerType::World;
 	Stone.Quantity = 1;
 
 	TestTrue(TEXT("Stone can rest on closed animated trapdoor"),
-		Runtime->TryDropItemInstanceAtCell(Stone, StoneDefinition, 2, 2, EGridEdge::None, FVector::ZeroVector));
-	TestEqual(TEXT("Closed trapdoor carries stone weight"), Runtime->GetWorldItemWeightAtCell(2, 2, false), StoneDefinition->Weight);
+		Runtime->TryDropItemInstanceAtCell(Stone, nullptr, 2, 2, EGridEdge::None, FVector::ZeroVector));
+	TestEqual(TEXT("Closed trapdoor carries stone weight"), Runtime->GetWorldItemWeightAtCell(2, 2, false), CanonicalStone.WeightKg);
 
 	TestTrue(TEXT("Open command starts animated Pit A"), Runtime->SetPitOpen(PitAId, true, true));
 	TestTrue(TEXT("Pit A animation is running"), PitAActor->IsAnimating());

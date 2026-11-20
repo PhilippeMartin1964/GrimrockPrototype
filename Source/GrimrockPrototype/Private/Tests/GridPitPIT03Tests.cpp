@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
@@ -107,6 +108,12 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Real canonical ItemSystem attached"), RegistryScope.Attach(TestWorld.World)))
+		return false;
+	FGridResolvedItem CanonicalStone;
+	if (!TestTrue(TEXT("Real N0 stone resolves"), RegistryScope.Registry->ResolveItem(TEXT("Stone"), 0, CanonicalStone)))
+		return false;
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
 	if (!TestNotNull(TEXT("Runtime exists"), Runtime) || !TestNotNull(TEXT("Party exists"), Party))
@@ -195,18 +202,17 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	FGridRelocationBehaviorParams Relocation;
 	TestFalse(TEXT("Closed Pit A is not a fall-through cell"), Runtime->FindOpenPitAtCell(2, 2, Relocation));
 
-	UGridItemDefinitionAsset* StoneDefinition = NewObject<UGridItemDefinitionAsset>(Runtime);
-	StoneDefinition->ItemDefinitionId = TEXT("Item_PIT03_Stone");
-	StoneDefinition->Weight = 1.5f;
-
 	FGridItemInstance Stone;
 	Stone.RuntimeObjectId = FGuid::NewGuid();
-	Stone.ItemDefinitionId = StoneDefinition->ItemDefinitionId;
+	Stone.ItemDefinitionId = TEXT("Stone");
+	Stone.ItemLevel = 0;
+	Stone.Weight = CanonicalStone.WeightKg;
+	Stone.OwnerType = EGridItemOwnerType::World;
 	Stone.Quantity = 1;
 
 	TestTrue(TEXT("World Item can rest on a closed trapdoor"),
-		Runtime->TryDropItemInstanceAtCell(Stone, StoneDefinition, 2, 2, EGridEdge::None, FVector(12.0f, 8.0f, 0.0f)));
-	TestEqual(TEXT("Closed trapdoor keeps item weight on upper level"), Runtime->GetWorldItemWeightAtCell(2, 2, false), StoneDefinition->Weight);
+		Runtime->TryDropItemInstanceAtCell(Stone, nullptr, 2, 2, EGridEdge::None, FVector(12.0f, 8.0f, 0.0f)));
+	TestEqual(TEXT("Closed trapdoor keeps item weight on upper level"), Runtime->GetWorldItemWeightAtCell(2, 2, false), CanonicalStone.WeightKg);
 
 	TestTrue(TEXT("Button Activated -> Pit A Open executes"), Runtime->ExecuteLinksFromRuntimeObject(ButtonId, EGridObjectEvent::Activated));
 	TestTrue(TEXT("Pit A is open after command"), Runtime->IsPitOpen(PitAId));
@@ -235,7 +241,7 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Pit A is open after Toggle"), Runtime->IsPitOpen(PitAId));
 
 	TestTrue(TEXT("Travel to lower level succeeds"), Runtime->TravelToDungeonLevel(LowerId, 1, 1, EGridEdge::North, Party));
-	TestEqual(TEXT("Fallen item materialized normally below"), Runtime->GetWorldItemWeightAtCell(2, 2, false), StoneDefinition->Weight);
+	TestEqual(TEXT("Fallen item materialized normally below"), Runtime->GetWorldItemWeightAtCell(2, 2, false), CanonicalStone.WeightKg);
 	TestTrue(TEXT("Travel back to upper level succeeds"), Runtime->TravelToDungeonLevel(UpperId, 1, 1, EGridEdge::North, Party));
 	TestTrue(TEXT("Pit A open state survives level round-trip"), Runtime->IsPitOpen(PitAId));
 	TestTrue(TEXT("Pit B open state survives level round-trip"), Runtime->IsPitOpen(PitBId));

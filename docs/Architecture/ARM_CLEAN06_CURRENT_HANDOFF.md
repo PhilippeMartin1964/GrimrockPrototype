@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.82 — Tous les transferts inter-niveaux sans pointeur
+
+Parent 4d6bb9a2556f5c0e2dcbf87c0d36535a33557668. PIT02, PIT03 et PIT03.2 utilisent une vraie pierre N0 et le registre ; le routage inter-niveaux et l'arrivée ne lisent/écrivent plus le pointeur historique, même en Automation. Champ v27 conservé pour la preuve de retrait. Voir [5G.82](ARM_CLEAN06_5G82_POINTERLESS_PIT_FIXTURES.md).
+
 ## ARM-CLEAN06.5G.81 — Isolation des pointeurs v27 de monde
 
 Parent a0c856aa958f02cc611aa8c48041d3fd43a78d97. Capture, restore projectile et arrivée PIT02 : aucun accès aux anciens pointeurs hors fixtures Automation sans GameInstance. Les champs v27 sont conservés pour audit et conversion ultérieure. Tests BC avec pointeur contradictoire au restore, PIT02 refus direct d'une identité inconnue sans consommation de file. Voir [5G.81](ARM_CLEAN06_5G81_WORLD_SAVE_POINTER_ISOLATION.md).

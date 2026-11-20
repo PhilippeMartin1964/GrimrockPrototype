@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
@@ -105,6 +106,12 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Real canonical ItemSystem attached"), RegistryScope.Attach(TestWorld.World)))
+		return false;
+	FGridResolvedItem CanonicalStone;
+	if (!TestTrue(TEXT("Real N0 stone resolves"), RegistryScope.Registry->ResolveItem(TEXT("Stone"), 0, CanonicalStone)))
+		return false;
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
 	if (!TestNotNull(TEXT("Runtime exists"), Runtime) || !TestNotNull(TEXT("Party exists"), Party))
@@ -143,20 +150,19 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 	Runtime->LevelAsset = Upper;
 	Party->SetGridStart(Runtime, 1, 2, EGridEdge::East);
 
-	UGridItemDefinitionAsset* StoneDefinition = NewObject<UGridItemDefinitionAsset>(Runtime);
-	StoneDefinition->ItemDefinitionId = TEXT("Item_PIT02_Stone");
-	StoneDefinition->Weight = 1.25f;
-
 	FGridItemInstance Stone;
 	Stone.RuntimeObjectId = FGuid::NewGuid();
-	Stone.ItemDefinitionId = StoneDefinition->ItemDefinitionId;
+	Stone.ItemDefinitionId = TEXT("Stone");
+	Stone.ItemLevel = 0;
+	Stone.Weight = CanonicalStone.WeightKg;
+	Stone.OwnerType = EGridItemOwnerType::World;
 	Stone.Quantity = 1;
 	Stone.bLightsEnabled = false;
 
 	const FVector SourceLocalOffset(24.0f, -16.0f, 0.0f);
 	AddExpectedError(TEXT("GridPit ItemTransfer landing fallback"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestTrue(TEXT("Dropping a normal World Item on an open pit routes it away from the source level"),
-		Runtime->TryDropItemInstanceAtCell(Stone, StoneDefinition, 2, 2, EGridEdge::None, SourceLocalOffset));
+		Runtime->TryDropItemInstanceAtCell(Stone, nullptr, 2, 2, EGridEdge::None, SourceLocalOffset));
 	TestEqual(TEXT("No World Item remains on the upper pit cell"), Runtime->GetWorldItemWeightAtCell(2, 2, false), 0.0f);
 
 	const FGridLevelRuntimeState* LowerState = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
@@ -174,12 +180,12 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 	}
 	TestEqual(TEXT("Pending item resolves nearest usable destination X"), Pending->ItemState.CellX, 2);
 	TestEqual(TEXT("Pending item resolves nearest usable destination Y"), Pending->ItemState.CellY, 1);
-	TestEqual(TEXT("Pending item keeps its definition"), Pending->ItemState.ItemDefinitionId, StoneDefinition->ItemDefinitionId);
-	TestTrue(TEXT("Pending item keeps a resolvable definition asset"), Pending->ItemDefinitionAsset.Get() == StoneDefinition);
+	TestEqual(TEXT("Pending item keeps its canonical ID"), Pending->ItemState.ItemDefinitionId, Stone.ItemDefinitionId);
+	TestNull(TEXT("No pending legacy definition required"), Pending->ItemDefinitionAsset.Get());
 
 	TestTrue(TEXT("Party can travel to the lower level"), Runtime->TravelToDungeonLevel(LowerId, 1, 1, EGridEdge::North, Party));
 	TestEqual(TEXT("The queued item materializes at the resolved fallback cell on the lower level"),
-		Runtime->GetWorldItemWeightAtCell(2, 1, false), StoneDefinition->Weight);
+		Runtime->GetWorldItemWeightAtCell(2, 1, false), CanonicalStone.WeightKg);
 
 	const FGridLevelRuntimeState* LowerAfterArrival = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
 	if (!TestNotNull(TEXT("Lower runtime state still exists"), LowerAfterArrival))

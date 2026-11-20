@@ -489,6 +489,11 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 		return false;
 	}
 
+	// Inter-level ownership is persistent even in tests. No historical
+	// UObject can be needed to materialize a queued arrival.
+	if (!bCanonicalRoute)
+		return false;
+
 	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(Relocation.TargetLevelId);
 	UGridLevelAsset* TargetLevelAsset = TargetEntry && TargetEntry->bEnabled ? TargetEntry->LevelAsset.Get() : nullptr;
 	if (!TargetLevelAsset)
@@ -567,13 +572,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 
 	FGridPendingWorldItemState PendingState;
 	PendingState.ItemState = ItemState;
-	// The physical ItemId/N-level is the sole source of world presentation
-	// for every registered family. Never serialize DA_Weapon_* along with
-	// a valid canonical ARM item crossing a pit.
-#if WITH_DEV_AUTOMATION_TESTS
-	if (!bRequireCanonical && !bCanonicalRoute)
-		PendingState.ItemDefinitionAsset = ItemDefinitionAsset;
-#endif
+	// ItemId and physical N-level are the complete persistent identity.
 
 	// A pending landing must not replace any already-owned destination row.
 	if (const FGridLevelRuntimeState* Previous = DungeonRuntimeState.LevelStates.Find(Relocation.TargetLevelId))
@@ -662,32 +661,21 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 		const bool bKnownCanonical = InboundRegistry &&
 			InboundRegistry->HasCanonicalItem(ItemState.ItemDefinitionId);
 		FGridResolvedItem InboundCanonical;
-		bool bRequireCanonicalInbound = true;
-#if WITH_DEV_AUTOMATION_TESTS
-		bRequireCanonicalInbound = !GIsAutomationTesting || InboundGI != nullptr;
-#endif
 		const bool bValidCanonicalInbound = bKnownCanonical &&
 			InboundRegistry->ResolveItem(ItemState.ItemDefinitionId, ItemState.ItemLevel, InboundCanonical) &&
 			InboundCanonical.IsValid() && InboundCanonical.ItemId == ItemState.ItemDefinitionId &&
 			InboundCanonical.ItemLevel == ItemState.ItemLevel &&
 			(InboundCanonical.bIsArmament ? ItemState.ItemLevel >= 1 : ItemState.ItemLevel == 0) &&
 			ItemState.Quantity <= FMath::Max(1, InboundCanonical.MaxStack);
-		if ((bRequireCanonicalInbound || bKnownCanonical) && !bValidCanonicalInbound)
+		if (!bValidCanonicalInbound)
 		{
 			UE_LOG(LogGridLevelRuntime, Warning,
 				TEXT("GridPit PendingItem rejected Item=%s Level=%d Reason=InvalidCanonicalItem"),
 				*ItemState.ItemDefinitionId.ToString(), ItemState.ItemLevel);
 			continue; // Retain the queued snapshot for diagnostics, no legacy fallback.
 		}
-		// Every canonical ItemId (ARM N1-N20 included) lands by registry
-		// alone. Ignore stale pointers even when present in a v27 snapshot.
-		UGridItemDefinitionAsset* Definition = nullptr;
-#if WITH_DEV_AUTOMATION_TESTS
-		if (!bRequireCanonicalInbound && !bKnownCanonical)
-			Definition = PendingCopy.ItemDefinitionAsset.Get();
-#endif
-
-		if (!TryDropItemInstanceAtCellInternal(ItemInstance, Definition, ItemState.CellX, ItemState.CellY, EGridEdge::None, LocalOffset, false))
+		// Every queued physical item materializes by registry alone.
+		if (!TryDropItemInstanceAtCellInternal(ItemInstance, nullptr, ItemState.CellX, ItemState.CellY, EGridEdge::None, LocalOffset, false))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridPit PendingItem apply failed RuntimeId=%s Item=%s Level=%s Cell=(%d,%d)"),
 				*RuntimeObjectId.ToString(), *ItemState.ItemDefinitionId.ToString(), *RuntimeLevelId.ToString(), ItemState.CellX, ItemState.CellY);
