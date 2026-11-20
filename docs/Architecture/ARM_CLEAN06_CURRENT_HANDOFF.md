@@ -5,6 +5,11 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.116R — Adaptation stricte des tests de masse (issue #215)
+
+Parent b367caca53a6ddec9faeaba58adbeb04110889d6, Windows LocalAuto FAILURE : deux tests de caractérisation (MON11 et 3AC) attendaient une masse issue d'un cache non reflété d'instance sans registre. La réparation valide désormais le refus explicite de poids « fantôme », conserve la récupération du projectile, son mesh, son GUID, la pile et le poids de définition legacy explicitement isolée. Voir [5G.116R](ARM_CLEAN06_5G116R_FAIL_CLOSED_FIXTURE_PARITY.md). Attendre SUCCESS/SUCCESS avant le lot 117.
+
+
 ## ARM-CLEAN06.5G.116 — Retrait du fallback de masse transitoire
 
 Parent 6dcf9e332abf6d3f50e437bbc007f8a08f752159 : après SilentTask et LocalAuto SUCCESS, retirer le fallback de poids d'instance en monde de test sans registre ; la masse physique exige ItemSystem. Contrôles 3I/3N ajustés pour vérifier le refus plutôt que d'asserter une copie. Voir [5G.116](ARM_CLEAN06_5G116_NO_REGISTRYLESS_MASS_FALLBACK.md).

@@ -284,7 +284,8 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	ThrownItem->SetActorLocation(TargetLocation + TravelDirection * 50.0f);
 	ThrownItem->Tick(1.0f / 60.0f);
 	TestTrue(TEXT("Crossing the hit target converts the projectile"), ThrownItem->HasCompletedImpactConversion());
-	TestTrue(TEXT("The shuriken becomes a world pickup in the target cell"), Runtime->GetWorldItemWeightAtCell(1, 2) > 0.0f);
+	TestEqual(TEXT("Registry-less historical projectile cannot invent canonical pressure-plate mass"),
+		Runtime->GetWorldItemWeightAtCell(1, 2), 0.0f);
 	AGridItemActor* DroppedPickup = nullptr;
 	for (TActorIterator<AGridItemActor> It(TestWorld.World); It; ++It)
 	{
