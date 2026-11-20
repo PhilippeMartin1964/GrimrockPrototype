@@ -51,6 +51,7 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
         !Output.EndsWith(TEXT(".json")) || FPaths::FileExists(Output) ||
         !IFileManager::Get().DirectoryExists(*Copies))
         return 1;
+    if (!GridEditorInstanceCacheEvidence::HasRetiredSchema()) return 2;
     FNativeAudit Native;
     FString Error;
     if (!CollectNative(Native, Error))
@@ -63,24 +64,11 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
     const bool bWeightEvidence = FParse::Param(*Params, TEXT("WeightCacheEvidence"));
     const bool bSemanticEvidence = FParse::Param(*Params, TEXT("SemanticCacheEvidence"));
     const bool bSchemaProjection = FParse::Param(*Params, TEXT("InstanceSchemaProjection"));
-    if (bSchemaProjection && !bSemanticEvidence) return 1;
-    if ((bInstanceEvidence && !bWorldPreflight) ||
-        ((bWeightEvidence || bSemanticEvidence) && !bInstanceEvidence) ||
-        (bWeightEvidence && bSemanticEvidence)) return 1;
-    GridEditorInstanceCacheEvidence::FLegacySources Historical;
-    if (bWeightEvidence)
-    {
-        for (const auto& Value : Native.Report->GetArrayField(TEXT("puzzle_category_sources")))
-        {
-            const auto Row = Value->AsObject();
-            const FName Id(*Row->GetStringField(TEXT("item_id")));
-            const auto* Old = LoadObject<UGridItemDefinitionAsset>(nullptr, *Row->GetStringField(TEXT("source")));
-            if (!IsValid(Old) || Old->ItemDefinitionId != Id || Historical.Contains(Id)) return 2;
-            Historical.Add(Id, Old);
-        }
-        if (Historical.Num() != 48) return 2;
-    }
-    const auto* HistoricalPolicy = bWeightEvidence ? &Historical : nullptr;
+    // Pre-cutover normalization / provenance modes are historical.
+    // Current-schema evidence always checks the canonical readers and never edits an instance.
+    if (bWeightEvidence || (bSchemaProjection && !bSemanticEvidence) ||
+        (bInstanceEvidence && (!bWorldPreflight || !bSemanticEvidence)) ||
+        (bSemanticEvidence && !bInstanceEvidence)) return 1;
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
     if (bWorldPreflight)
@@ -95,6 +83,7 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
     Report->SetBoolField(TEXT("weight_cache_evidence"), bWeightEvidence);
     Report->SetBoolField(TEXT("semantic_cache_evidence"), bSemanticEvidence);
     Report->SetBoolField(TEXT("instance_schema_projection"), bSchemaProjection);
+    Report->SetBoolField(TEXT("instance_cache_schema_retired"), true);
     Report->SetStringField(TEXT("schema"), TEXT("ARM-CLEAN06.5A/retirement-evidence/v1"));
     Report->SetObjectField(TEXT("native"), Native.Report);
     TArray<FString> Filenames;
@@ -141,38 +130,34 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
                 if (bInstanceEvidence)
                 {
                     using namespace GridEditorInstanceCacheEvidence;
-                    const FCounts Counts = Inspect(Save->PartyInventoryState, *Registry.Get(), HistoricalPolicy, bSemanticEvidence);
+                    const FCounts Counts = Inspect(Save->PartyInventoryState, *Registry.Get());
                     Row->SetNumberField(TEXT("cache_instances"), Counts.Instances);
                     Row->SetNumberField(TEXT("cache_invalid_identities"), Counts.Invalid);
-                    Row->SetNumberField(TEXT("cache_name_conflicts"), Counts.NameConflicts);
-                    Row->SetNumberField(TEXT("cache_weight_conflicts"), Counts.WeightConflicts);
-                    Row->SetNumberField(TEXT("cache_weight_explained"), Counts.ExplainedWeightConflicts);
-                    Row->SetNumberField(TEXT("cache_weight_semantically_redundant"), Counts.SemanticWeightConflicts);
                     Row->SetNumberField(TEXT("cache_projection_failures"), Counts.ProjectionFailures);
-                    Row->SetNumberField(TEXT("cache_names"), Counts.CachedNames);
-                    Row->SetNumberField(TEXT("cache_weights"), Counts.CachedWeights);
+                    // These are structural post-cutover zeros, not a claim about old archive values.
+                    for (const TCHAR* Key : {TEXT("cache_name_conflicts"), TEXT("cache_weight_conflicts"),
+                        TEXT("cache_weight_explained"), TEXT("cache_weight_semantically_redundant"),
+                        TEXT("cache_names"), TEXT("cache_weights")})
+                        Row->SetNumberField(Key, 0);
                     bool bNormalizedParity = false;
-                    if (Counts.CanClear())
+                    if (Counts.IsValid())
                     {
                         FString CheckError;
                         TStrongObjectPtr<UGrimrockPartySaveGame> Expected(GridEditorAlchemySaveCopy::LoadExact(Bytes, CheckError));
                         TStrongObjectPtr<UGrimrockPartySaveGame> Working(GridEditorAlchemySaveCopy::LoadExact(Bytes, CheckError));
-                        TArray<uint8> NormalizedBytes;
+                        TArray<uint8> Reencoded;
                         const bool bEncoded = Expected.IsValid() && Working.IsValid() &&
-                            ClearVerifiedCopy(Expected->PartyInventoryState, *Registry.Get(), HistoricalPolicy, bSemanticEvidence) &&
-                            ClearVerifiedCopy(Working->PartyInventoryState, *Registry.Get(), HistoricalPolicy, bSemanticEvidence) &&
                             GridEditorAlchemySaveCopy::SameSaveProperties(*Expected.Get(), *Working.Get(), CheckError) &&
-                            GridEditorAlchemySaveCopy::EncodeChecked(*Working.Get(), NormalizedBytes, CheckError);
+                            GridEditorAlchemySaveCopy::EncodeChecked(*Working.Get(), Reencoded, CheckError);
                         TStrongObjectPtr<UGrimrockPartySaveGame> Reloaded(bEncoded ?
-                            GridEditorAlchemySaveCopy::LoadExact(NormalizedBytes, CheckError) : nullptr);
+                            GridEditorAlchemySaveCopy::LoadExact(Reencoded, CheckError) : nullptr);
                         if (Reloaded.IsValid())
                         {
-                            const FCounts Remaining = Inspect(Reloaded->PartyInventoryState, *Registry.Get(), nullptr, bSemanticEvidence);
-                            bNormalizedParity = Remaining.CanClear() && Remaining.Instances == Counts.Instances &&
-                                Remaining.CachedNames == 0 && Remaining.CachedWeights == 0 &&
+                            const FCounts Remaining = Inspect(Reloaded->PartyInventoryState, *Registry.Get());
+                            bNormalizedParity = Remaining.IsValid() && Remaining.Instances == Counts.Instances &&
                                 GridEditorAlchemySaveCopy::SameSaveProperties(*Expected.Get(), *Reloaded.Get(), CheckError) &&
                                 (!bSchemaProjection ||
-                                    GridEditorInstanceSchemaProjection::Build(*Save.Get()) ==
+                                    GridEditorInstanceSchemaProjection::Build(*Expected.Get()) ==
                                     GridEditorInstanceSchemaProjection::Build(*Reloaded.Get()));
                         }
                     }

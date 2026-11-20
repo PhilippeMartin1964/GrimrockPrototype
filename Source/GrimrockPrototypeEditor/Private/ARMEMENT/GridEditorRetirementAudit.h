@@ -319,7 +319,6 @@ namespace GridEditorRetirementAudit
     struct FSaveAudit
     {
         int32 Items = 0;
-        int32 InstanceCaches = 0;
         int32 ReadablePointers = 0;
         int32 ReadableIdsWithoutPointer = 0;
         TArray<FName> UnknownItemIds;
@@ -360,7 +359,6 @@ namespace GridEditorRetirementAudit
             if (!Value.RuntimeObjectId.IsValid() && Value.ItemDefinitionId.IsNone() &&
                 !Value.ReadableContentAsset && Value.ReadableContentId.IsNone()) return;
             Id(Value.ItemDefinitionId, Canonical);
-            if (!Value.DisplayName.IsEmpty() || Value.Weight != 0.f) ++InstanceCaches;
             Readable(Value.ItemDefinitionId, Value.ReadableContentAsset.Get(), Value.ReadableContentId);
         }
 
@@ -398,7 +396,9 @@ namespace GridEditorRetirementAudit
         void Write(FJsonObject& Row) const
         {
             Row.SetNumberField(TEXT("item_instances_and_world_rows"), Items);
-            Row.SetNumberField(TEXT("instance_legacy_name_or_weight"), InstanceCaches);
+            // The commandlet refuses a schema containing either property.
+            // Retain the post-cutover compatibility key without reading C++ fixture members.
+            Row.SetNumberField(TEXT("instance_legacy_name_or_weight"), 0);
             // 5G86: compatibility keys for the private 5A report readers.
             // The schema lacks these fields; zero here is not a decoder
             // proof about a pre-cutover archive. That proof is 5G85.

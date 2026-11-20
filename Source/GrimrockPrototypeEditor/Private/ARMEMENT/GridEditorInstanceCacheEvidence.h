@@ -1,51 +1,28 @@
 #pragma once
 
 #include "Runtime/GridInventoryTypes.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Items/GridItemCacheParityAudit.h"
 #include "UObject/UnrealType.h"
 
-/** Editor-only proof. Never normalize the live inventory or save slots. */
+/** Post-5G93 read-only proof. Historical cache normalization belongs to
+ * the exact pre-cutover commits, not the current serialized schema. */
 namespace GridEditorInstanceCacheEvidence
 {
-    // Source assets are read only in Editor evidence. No runtime fallback.
-    using FLegacySources = TMap<FName, const UGridItemDefinitionAsset*>;
-
-    inline bool IsExplainedWeight(const FGridItemInstance& Item, float CanonicalWeight,
-        const UGridItemDefinitionAsset* Legacy)
+    inline bool HasRetiredSchema()
     {
-        if (!FMath::IsFinite(Item.Weight) || Item.Weight < 0.f ||
-            !FMath::IsFinite(CanonicalWeight) || CanonicalWeight < 0.f) return false;
-        // Small absolute tolerance is restricted to floating-point rounding.
-        if (FMath::IsNearlyEqual(Item.Weight, CanonicalWeight, 0.000001f)) return true;
-        if (!IsValid(Legacy) || Legacy->ItemDefinitionId != Item.ItemDefinitionId) return false;
-        const auto Matches = [&](float Unit)
-        {
-            if (!FMath::IsFinite(Unit) || Unit < 0.f) return false;
-            if (FMath::IsNearlyEqual(Item.Weight, Unit, 0.000001f)) return true;
-            return Item.Quantity > 1 && FMath::IsFinite(Unit * Item.Quantity) &&
-                FMath::IsNearlyEqual(Item.Weight, Unit * Item.Quantity, 0.000001f);
-        };
-        if (Matches(Legacy->Weight) || Matches(CanonicalWeight)) return true;
-        const FGridWeaponLevelProfile* Profile = nullptr;
-        return Legacy->TryGetWeaponCatalogueProfile(Item.ItemLevel, Profile) &&
-            Profile && Matches(Profile->WeightKg);
+        const UScriptStruct* Schema = FGridItemInstance::StaticStruct();
+        return !Schema->FindPropertyByName(TEXT("DisplayName")) &&
+            !Schema->FindPropertyByName(TEXT("Weight"));
     }
 
     struct FCounts
     {
         int32 Instances = 0;
         int32 Invalid = 0;
-        int32 NameConflicts = 0;
-        int32 WeightConflicts = 0;
-        int32 ExplainedWeightConflicts = 0;
-        int32 SemanticWeightConflicts = 0;
         int32 ProjectionFailures = 0;
-        int32 CachedNames = 0;
-        int32 CachedWeights = 0;
-        bool CanClear() const { return Invalid == 0 && NameConflicts == 0 && ProjectionFailures == 0 &&
-            WeightConflicts == ExplainedWeightConflicts + SemanticWeightConflicts; }
+        bool bRetiredSchema = false;
+        bool IsValid() const { return bRetiredSchema && Invalid == 0 && ProjectionFailures == 0; }
     };
 
     template<typename TParty, typename TVisitor>
@@ -61,58 +38,28 @@ namespace GridEditorInstanceCacheEvidence
         Visitor(Party.CursorItem);
     }
 
-    inline FCounts Inspect(const FGridPartyInventoryState& Party, const UGridItemSubsystem& Registry,
-        const FLegacySources* Historical = nullptr, bool bSemantic = false)
+    inline FCounts Inspect(const FGridPartyInventoryState& Party, const UGridItemSubsystem& Registry)
     {
         FCounts Counts;
+        Counts.bRetiredSchema = HasRetiredSchema();
         Visit(Party, [&](const FGridItemInstance& Item)
         {
-            const bool bName = !Item.DisplayName.IsEmpty();
-            const bool bWeight = Item.Weight != 0.f;
-            Counts.CachedNames += bName ? 1 : 0;
-            Counts.CachedWeights += bWeight ? 1 : 0;
             if (!Item.RuntimeObjectId.IsValid() && Item.ItemDefinitionId.IsNone() &&
-                !Item.ReadableContentAsset && Item.ReadableContentId.IsNone() && !bName && !bWeight)
-                return;
+                !Item.ReadableContentAsset && Item.ReadableContentId.IsNone()) return;
             ++Counts.Instances;
             FGridResolvedItem Canonical;
             if (!Item.IsValid() || !Registry.ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical) ||
-                !Canonical.IsValid() || !FMath::IsFinite(Canonical.WeightKg) || Canonical.WeightKg < 0.f)
+                !Canonical.IsValid() || Canonical.ItemId != Item.ItemDefinitionId ||
+                Canonical.ItemLevel != Item.ItemLevel ||
+                (Canonical.bIsArmament ? Item.ItemLevel < 1 : Item.ItemLevel != 0) ||
+                Item.Quantity > FMath::Max(1, Canonical.MaxStack) ||
+                !FMath::IsFinite(Canonical.WeightKg) || Canonical.WeightKg < 0.f)
             {
                 ++Counts.Invalid;
                 return;
             }
-            if (bName && !Item.DisplayName.EqualTo(Canonical.DisplayName)) ++Counts.NameConflicts;
-            // Audit every physical row, not only those whose mass differs.
-            const bool bSame = bSemantic && GridItemCacheParityAudit::HasSameCanonicalProjection(Registry, Item);
-            if (bSemantic && !bSame) ++Counts.ProjectionFailures;
-            if (bWeight && (!FMath::IsFinite(Item.Weight) || Item.Weight != Canonical.WeightKg))
-            {
-                ++Counts.WeightConflicts;
-                if (bSemantic)
-                {
-                    if (bSame) ++Counts.SemanticWeightConflicts;
-                }
-                else if (Historical)
-                {
-                    const auto* Source = Historical->Find(Item.ItemDefinitionId);
-                    if (IsExplainedWeight(Item, Canonical.WeightKg, Source ? *Source : nullptr))
-                        ++Counts.ExplainedWeightConflicts;
-                }
-            }
+            if (!GridItemCacheParityAudit::HasCanonicalProjection(Registry, Item)) ++Counts.ProjectionFailures;
         });
         return Counts;
-    }
-
-    inline bool ClearVerifiedCopy(FGridPartyInventoryState& Party, const UGridItemSubsystem& Registry,
-        const FLegacySources* Historical = nullptr, bool bSemantic = false)
-    {
-        if (!Inspect(Party, Registry, Historical, bSemantic).CanClear()) return false;
-        Visit(Party, [](FGridItemInstance& Item)
-        {
-            Item.DisplayName = FText::GetEmpty();
-            Item.Weight = 0.f;
-        });
-        return true;
     }
 }

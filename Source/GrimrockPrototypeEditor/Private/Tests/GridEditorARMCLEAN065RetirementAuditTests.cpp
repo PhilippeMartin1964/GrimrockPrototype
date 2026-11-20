@@ -96,8 +96,6 @@ bool FGridEditorARMCLEAN065SaveAudit::RunTest(const FString&)
     FGridItemInstance Item;
     Item.RuntimeObjectId = FGuid::NewGuid();
     Item.ItemDefinitionId = TEXT("Stone");
-    Item.DisplayName = FText::FromString(TEXT("Fixture"));
-    Item.Weight = 1.f;
     Item.ReadableContentAsset = Readable.Get();
     Item.ReadableContentId = Readable->ReadableContentId;
     Save->PartyInventoryState.ActiveCharacters.AddDefaulted_GetRef().InventorySlots.AddDefaulted_GetRef().Item = Item;
@@ -121,7 +119,10 @@ bool FGridEditorARMCLEAN065SaveAudit::RunTest(const FString&)
     FSaveAudit Audit;
     Audit.Collect(*Save.Get(), Canonical);
     TestEqual(TEXT("Active/reserve/equipment/cursor/world/receptacle/pending rows"), Audit.Items, 7);
-    TestEqual(TEXT("Legacy item caches counted"), Audit.InstanceCaches, 4);
+    TestTrue(TEXT("Instance cache fields are absent from saved schema"), GridEditorInstanceCacheEvidence::HasRetiredSchema());
+    FJsonObject Report;
+    Audit.Write(Report);
+    TestEqual(TEXT("Retired cache count in current schema"), int32(Report.GetNumberField(TEXT("instance_legacy_name_or_weight"))), 0);
     TestEqual(TEXT("Readable pointers counted separately"), Audit.ReadablePointers, 5);
     TestNull(TEXT("Projectile definition schema removed"), FGridRuntimeItemState::StaticStruct()->FindPropertyByName(TEXT("ProjectileDefinitionAsset")));
     TestNull(TEXT("Pending definition schema removed"), FGridPendingWorldItemState::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
@@ -230,8 +231,6 @@ bool FGridEditorARMCLEAN065G88CacheEvidence::RunTest(const FString&)
     FGridItemInstance Item;
     Item.RuntimeObjectId = FGuid::NewGuid();
     Item.ItemDefinitionId = TEXT("Stone");
-    Item.DisplayName = Stone.DisplayName;
-    Item.Weight = Stone.WeightKg;
     Item.Quantity = 2;
     Item.AbsorbedEquipmentPhysicalArmor = 3;
     Item.ReadTitleOverride = FText::FromString(TEXT("Fixture narrative"));
@@ -241,61 +240,43 @@ bool FGridEditorARMCLEAN065G88CacheEvidence::RunTest(const FString&)
     Party.CursorItem = Item;
     const FCounts Before = Inspect(Party, *Registry.Get());
     TestEqual(TEXT("All four instance locations inspected"), Before.Instances, 4);
-    TestTrue(TEXT("Matching cache copies can clear"), Before.CanClear());
-    Party.CursorItem.DisplayName = FText::FromString(TEXT("Unexpected alias"));
-    Party.CursorItem.Weight += 1.f;
-    const FCounts Conflicts = Inspect(Party, *Registry.Get());
-    TestEqual(TEXT("Name conflict is distinguished"), Conflicts.NameConflicts, 1);
-    TestEqual(TEXT("Weight conflict is distinguished"), Conflicts.WeightConflicts, 1);
-    TestFalse(TEXT("Conflict aborts the entire operation"), ClearVerifiedCopy(Party, *Registry.Get()));
-    TestTrue(TEXT("Earlier bags remain unchanged"), Party.ActiveCharacters[0].InventorySlots[0].Item.DisplayName.EqualTo(Item.DisplayName));
+    TestTrue(TEXT("Canonical reader projections agree with definitions"), Before.IsValid());
+    Party.CursorItem.ItemLevel = 1;
+    TestFalse(TEXT("Wrong non-ARM level refuses audit"), Inspect(Party, *Registry.Get()).IsValid());
     Party.CursorItem = Item;
-    TStrongObjectPtr<UGridItemDefinitionAsset> HistoricalStone(NewObject<UGridItemDefinitionAsset>());
-    HistoricalStone->ItemDefinitionId = Item.ItemDefinitionId;
-    HistoricalStone->Weight = Stone.WeightKg + 2.f;
-    FLegacySources Historical;
-    Historical.Add(Item.ItemDefinitionId, HistoricalStone.Get());
-    Party.CursorItem.Weight = HistoricalStone->Weight;
-    const auto Explained = Inspect(Party, *Registry.Get(), &Historical);
-    TestEqual(TEXT("Exact historical unit weight explained"), Explained.ExplainedWeightConflicts, 1);
-    TestTrue(TEXT("Known stale cache may clear only in explicit Editor proof"), Explained.CanClear());
-    TestFalse(TEXT("Old strict policy still rejects stale weight"), Inspect(Party, *Registry.Get()).CanClear());
-    Party.CursorItem.Weight = HistoricalStone->Weight * Item.Quantity;
-    TestTrue(TEXT("Historical stack mass explained"), Inspect(Party, *Registry.Get(), &Historical).CanClear());
-    Party.CursorItem.Weight = -1.f;
-    TestFalse(TEXT("Negative weight never explained"), Inspect(Party, *Registry.Get(), &Historical).CanClear());
-    Party.CursorItem.Weight = HistoricalStone->Weight + 999.f;
-    TestFalse(TEXT("Unexplained weight rejects without mutation"), ClearVerifiedCopy(Party, *Registry.Get(), &Historical));
-    Party.CursorItem.Weight = HistoricalStone->Weight + 999.f;
-    const auto Semantic = Inspect(Party, *Registry.Get(), nullptr, true);
-    TestEqual(TEXT("Arbitrary stale positive mass is not provenance"), Semantic.ExplainedWeightConflicts, 0);
-    TestEqual(TEXT("Real runtime readers prove same outputs"), Semantic.SemanticWeightConflicts, 1);
-    TestEqual(TEXT("All physical rows have equal projections"), Semantic.ProjectionFailures, 0);
-    TestTrue(TEXT("Explicit semantic proof permits clearing static cache in memory"), Semantic.CanClear());
-    Party.CursorItem.Weight = -1.f;
-    TestFalse(TEXT("Negative mass refuses even semantic proof"), ClearVerifiedCopy(Party, *Registry.Get(), nullptr, true));
-    Party.CursorItem.Weight = HistoricalStone->Weight + 999.f;
-    Party.CursorItem.DisplayName = FText::FromString(TEXT("Unexpected name"));
-    TestFalse(TEXT("Semantic proof does not authorize name conflict"), ClearVerifiedCopy(Party, *Registry.Get(), nullptr, true));
+    Party.CursorItem.Quantity = FMath::Max(1, Stone.MaxStack) + 1;
+    TestFalse(TEXT("Oversized stack refuses audit"), Inspect(Party, *Registry.Get()).IsValid());
     Party.CursorItem = Item;
-    Party.CursorItem.Weight = HistoricalStone->Weight + 999.f;
-    TestTrue(TEXT("Verified semantic copy may clear"), ClearVerifiedCopy(Party, *Registry.Get(), nullptr, true));
-    const FCounts After = Inspect(Party, *Registry.Get());
-    TestEqual(TEXT("No name cache remains"), After.CachedNames, 0);
-    TestEqual(TEXT("No weight cache remains"), After.CachedWeights, 0);
+    Party.CursorItem.RuntimeObjectId.Invalidate();
+    TestFalse(TEXT("Invalid physical GUID refuses audit"), Inspect(Party, *Registry.Get()).IsValid());
+    Party.CursorItem = Item;
+    TestTrue(TEXT("Restored canonical state passes"), Inspect(Party, *Registry.Get()).IsValid());
     TestEqual(TEXT("Physical GUID remains"), Party.CursorItem.RuntimeObjectId, Item.RuntimeObjectId);
     TestEqual(TEXT("Physical debt remains"), Party.CursorItem.AbsorbedEquipmentPhysicalArmor, 3);
     TestTrue(TEXT("Narrative title remains"), Party.CursorItem.ReadTitleOverride.EqualTo(Item.ReadTitleOverride));
-    // The private cross-schema fingerprint ignores exactly the two item
-    // cache fields. It must detect all distinct durable state changes.
+
+    int32 Resolved = 0;
+    for (const auto& Def : Root->ItemDefinitions)
+    {
+        const bool bArm = Def->IsA<UGridArmamentDefinitionAsset>();
+        for (int32 Level = bArm ? 1 : 0; Level <= (bArm ? 20 : 0); ++Level)
+        {
+            FGridItemInstance Probe;
+            Probe.RuntimeObjectId = FGuid::NewGuid();
+            Probe.ItemDefinitionId = Def->ItemId;
+            Probe.ItemLevel = Level;
+            Probe.Quantity = 1;
+            if (TestTrue(TEXT("Canonical weight, metadata, sort, physics and throw readers"),
+                GridItemCacheParityAudit::HasCanonicalProjection(*Registry.Get(), Probe))) ++Resolved;
+        }
+    }
+    TestEqual(TEXT("All canonical physical profiles verified"), Resolved, 466);
+    // Historical 5G92/5G93 proved cache exclusion across the cutover.
+    // The current fingerprint must still detect distinct durable state changes.
     TStrongObjectPtr<UGrimrockPartySaveGame> Saved(NewObject<UGrimrockPartySaveGame>());
     Saved->PartyInventoryState = Party;
     const auto Baseline = GridEditorInstanceSchemaProjection::Build(*Saved.Get());
     auto& Cursor = Saved->PartyInventoryState.CursorItem;
-    Cursor.Weight = 765.f;
-    Cursor.DisplayName = FText::FromString(TEXT("Cached alias"));
-    TestTrue(TEXT("Only caches do not change fingerprint"),
-        Baseline == GridEditorInstanceSchemaProjection::Build(*Saved.Get()));
     Cursor.Quantity++;
     TestFalse(TEXT("Quantity change detected"), Baseline == GridEditorInstanceSchemaProjection::Build(*Saved.Get()));
     Cursor.Quantity--;
@@ -313,7 +294,7 @@ bool FGridEditorARMCLEAN065G88CacheEvidence::RunTest(const FString&)
     Saved->PartyCellX--;
     TestTrue(TEXT("Restored durable values match"), Baseline == GridEditorInstanceSchemaProjection::Build(*Saved.Get()));
     Party.CursorItem.ItemDefinitionId = TEXT("UnknownCacheFixture");
-    TestFalse(TEXT("Unknown ID cannot clear"), ClearVerifiedCopy(Party, *Registry.Get()));
+    TestFalse(TEXT("Unknown ID refuses evidence"), Inspect(Party, *Registry.Get()).IsValid());
     return !HasAnyErrors();
 }
 

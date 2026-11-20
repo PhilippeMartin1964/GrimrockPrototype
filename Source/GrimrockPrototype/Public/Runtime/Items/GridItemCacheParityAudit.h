@@ -6,11 +6,11 @@
 class UGridItemSubsystem;
 struct FGridItemInstance;
 
-// Editor evidence invokes the same implementation as the actual runtime
-// consumers. Not compiled as a game/Shipping compatibility mechanism.
+// Post-schema Editor evidence checks real runtime readers against the canonical
+// projection. Historical before/after cache proof is preserved at 5G92/5G93.
 namespace GridItemCacheParityAudit
 {
-    GRIMROCKPROTOTYPE_API bool HasSameCanonicalProjection(
+    GRIMROCKPROTOTYPE_API bool HasCanonicalProjection(
         const UGridItemSubsystem& Registry, const FGridItemInstance& Instance);
 }
 #endif

@@ -13,6 +13,7 @@ param(
     [switch]$SemanticCacheEvidence,
     [switch]$InstanceSchemaProjection,
     [switch]$AfterInstanceRetirement,
+    [switch]$ReplayRetiredInstanceSchema,
     [switch]$SelfTest
 )
 Set-StrictMode -Version Latest
@@ -179,10 +180,15 @@ $Source=Join-Path $RepositoryRoot 'Saved\SaveGames'
 $BeforeReport=$null
 if ($AfterRetirement -and $AfterInstanceRetirement) { throw 'Mixed retirement modes refused.' }
 if ($AfterInstanceRetirement -and (-not $InstanceSchemaProjection -or -not $SemanticCacheEvidence -or -not $InstanceCacheEvidence)) { throw 'Instance retirement requires all semantic projection modes.' }
+if ($ReplayRetiredInstanceSchema -and (-not $AfterInstanceRetirement -or $BaselineHead -cne '201e3fd7fc2b8aa249dca251cba75163614b37b3')) { throw 'Replay requires exact historical instance baseline.' }
 if ($AfterRetirement -or $AfterInstanceRetirement) {
     if ($BaselineHead -cnotmatch '^[0-9a-f]{40}$' -or [string]::IsNullOrWhiteSpace($AgentStateRoot)) { throw 'Exact baseline required.' }
     $Parent=@(& $Git -C $WorktreePath rev-parse HEAD^)
-    if ($LASTEXITCODE -ne 0 -or $Parent.Count -ne 1 -or $Parent[0] -cne $BaselineHead) { throw 'Baseline not exact parent.' }
+    if ($LASTEXITCODE -ne 0 -or $Parent.Count -ne 1) { throw 'Baseline parent unavailable.' }
+    if ($ReplayRetiredInstanceSchema) {
+        & $Git -C $WorktreePath merge-base --is-ancestor 'ef064706203bd57c9e44d318d3bc66e3686bb4c2' HEAD
+        if ($LASTEXITCODE -ne 0) { throw 'Replay checkout does not descend from verified cutover.' }
+    } elseif ($Parent[0] -cne $BaselineHead) { throw 'Baseline not exact parent.' }
     $Runs=Join-Path $AgentStateRoot 'Runs'
     Assert-ArmX66OrdinaryPath $Runs
     $Candidates=@(Get-ChildItem -LiteralPath $Runs -Directory -Filter ($BaselineHead.Substring(0,12)+'-*') | ForEach-Object {
@@ -251,6 +257,7 @@ try {
 Check-WorldSaveReport $AfterReport $Rows
 if ($AfterRetirement) { Compare-WorldSaveReports $BeforeReport $AfterReport $Rows }
 if ($AfterInstanceRetirement) { Compare-InstanceSchemaReports $BeforeReport $AfterReport $Rows }
+if ($ReplayRetiredInstanceSchema -and ($AfterReport.instance_cache_schema_retired -isnot [bool] -or -not $AfterReport.instance_cache_schema_retired)) { throw 'Current schema exclusion not established.' }
 if ($InstanceCacheEvidence) {
     if (-not $AfterReport.instance_cache_evidence) { throw 'Missing cache evidence.' }
     if ($WeightCacheEvidence -and -not $AfterReport.weight_cache_evidence) { throw 'Missing weight provenance evidence.' }
