@@ -2,45 +2,26 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UObject/Class.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace
 {
-	UGridPartyInventoryComponent* GridTD066CreateInventory()
+	UGridPartyInventoryComponent* GridTD066CreateInventory(const FGridCanonicalWeightTestWorld& Fixture)
 	{
-		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
-		Component->InitializeDefaultPartyIfNeeded();
+		auto* Component = Fixture.MakeInventory();
+		if (Component) Component->InitializeDefaultPartyIfNeeded();
 		return Component;
 	}
 
-	UGridItemDefinitionAsset* GridTD066CreateItemDefinition(
-		UObject* Outer, FName ItemDefinitionId, EGridItemType ItemType, EGridEquipmentSlot CompatibleSlot, float Weight = 1.0f, bool bStackable = false)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
-		Definition->ItemDefinitionId = ItemDefinitionId;
-		Definition->DisplayName = FText::FromName(ItemDefinitionId);
-		Definition->ItemType = ItemType;
-		Definition->Weight = Weight;
-		Definition->bStackable = bStackable;
-		Definition->MaxStackSize = bStackable ? 10 : 1;
-		if (CompatibleSlot != EGridEquipmentSlot::None)
-		{
-			Definition->CompatibleEquipmentSlots.Add(CompatibleSlot);
-		}
-		return Definition;
-	}
-
-	FGridItemInstance GridTD066CreateItem(FName ItemDefinitionId, int32 Quantity = 1, float Weight = 1.0f)
+	FGridItemInstance GridTD066CreateItem(FName ItemDefinitionId, int32 Quantity = 1)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = ItemDefinitionId;
-		Item.DisplayName = FText::FromName(ItemDefinitionId);
 		Item.Quantity = Quantity;
-		Item.Weight = Weight;
 		Item.OwnerType = EGridItemOwnerType::World;
 		return Item;
 	}
@@ -61,7 +42,41 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Component = GridTD066CreateInventory();
+	const FName SwordId(TEXT("Sword_TD066")), AxeId(TEXT("Axe_TD066")), ShieldId(TEXT("Shield_TD066"));
+	const FName HelmetId(TEXT("Helmet_TD066")), StackWeaponId(TEXT("StackWeapon_TD066"));
+	const FName FullInventoryWeaponId(TEXT("FullInventoryWeapon_TD066")), FillerId(TEXT("Filler_TD066"));
+	FGridCanonicalWeightTestWorld Fixture({{FillerId, 0.1f}}, [&](UGridItemSystemAsset& Root)
+	{
+		auto Gear = [&](FName Id, EGridEquipmentSlot Slot, float Weight, int32 MaxStack = 1)
+		{
+			auto* Def = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+			Def->ItemId = Id;
+			Def->DisplayName = FText::FromName(Id);
+			Def->WeightKg = Weight;
+			Def->MaxStack = MaxStack;
+			Def->EquipmentSlots.Add(Slot);
+			if (Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand)
+				Def->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
+			Root.ItemDefinitions.Add(Def);
+			return Def;
+		};
+		auto* Sword = Gear(SwordId, EGridEquipmentSlot::MainHand, 2.f);
+		Sword->Bonuses.StrengthBonus = 2;
+		Sword->Bonuses.ArmorBonus = 1;
+		Sword->Resistances.FireResistance = 3;
+		auto* Axe = Gear(AxeId, EGridEquipmentSlot::MainHand, 3.f);
+		Axe->Bonuses.StrengthBonus = 5;
+		Axe->Resistances.LightningResistance = 2;
+		auto* Shield = Gear(ShieldId, EGridEquipmentSlot::OffHand, 4.f);
+		Shield->Bonuses.ConstitutionBonus = 1;
+		Shield->Bonuses.CarryWeightBonus = 4.f;
+		Shield->Resistances.PhysicalResistance = 2;
+		Shield->Resistances.FireResistance = 1;
+		Gear(HelmetId, EGridEquipmentSlot::Head, 1.f);
+		Gear(StackWeaponId, EGridEquipmentSlot::MainHand, 1.f, 10);
+		Gear(FullInventoryWeaponId, EGridEquipmentSlot::MainHand, 1.f);
+	});
+	UGridPartyInventoryComponent* Component = GridTD066CreateInventory(Fixture);
 	if (!TestNotNull(TEXT("The characterized party inventory component is created"), Component))
 	{
 		return false;
@@ -87,13 +102,21 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestFalse(TEXT("An item without a registered definition also rejects the None equipment slot"),
 		Component->CanEquipItemToSlot(0, UnregisteredItem, EGridEquipmentSlot::None));
 
-	UGridPartyInventoryComponent* MissingDefinitionComponent = GridTD066CreateInventory();
+	UGridPartyInventoryComponent* MissingDefinitionComponent = GridTD066CreateInventory(Fixture);
 	if (!TestNotNull(TEXT("Missing-definition equipment component is created"), MissingDefinitionComponent))
 	{
 		return false;
 	}
-	TestTrue(TEXT("An unresolved item can still exist in inventory before definition rehydration"),
+	TestFalse(TEXT("Canonical inventory rejects an unresolved pickup"),
 		MissingDefinitionComponent->AddItemToCharacterInventory(0, UnregisteredItem));
+	// Inject the malformed persisted state explicitly to exercise the equip guard.
+	auto& MissingCharacter = MissingDefinitionComponent->PartyInventoryState.ActiveCharacters[0];
+	auto& MissingSlot = MissingCharacter.InventorySlots[0];
+	MissingSlot.bOccupied = true;
+	MissingSlot.Item = UnregisteredItem;
+	MissingSlot.Item.OwnerType = EGridItemOwnerType::CharacterInventory;
+	MissingSlot.Item.OwnerCharacterIndex = 0;
+	MissingSlot.Item.OwnerGuid = MissingCharacter.CharacterId;
 	AddExpectedError(TEXT("GridInventory Equip Failed Character=0 Slot=MainHand Reason=MissingDefinition Item=Unregistered_TD066"),
 		EAutomationExpectedErrorFlags::Contains, 1);
 	TestFalse(TEXT("EquipItemFromInventorySlot rejects an unresolved item atomically"),
@@ -104,45 +127,12 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestFalse(TEXT("Rejected unresolved equip leaves MainHand empty"),
 		MissingDefinitionComponent->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::MainHand));
 
-	UGridItemDefinitionAsset* SwordDefinition =
-		GridTD066CreateItemDefinition(Component, TEXT("Sword_TD066"), EGridItemType::Weapon, EGridEquipmentSlot::MainHand, 2.0f);
-	UGridItemDefinitionAsset* AxeDefinition =
-		GridTD066CreateItemDefinition(Component, TEXT("Axe_TD066"), EGridItemType::Weapon, EGridEquipmentSlot::MainHand, 3.0f);
-	UGridItemDefinitionAsset* ShieldDefinition =
-		GridTD066CreateItemDefinition(Component, TEXT("Shield_TD066"), EGridItemType::Shield, EGridEquipmentSlot::OffHand, 4.0f);
-	UGridItemDefinitionAsset* HelmetDefinition =
-		GridTD066CreateItemDefinition(Component, TEXT("Helmet_TD066"), EGridItemType::Armor, EGridEquipmentSlot::Head);
-	if (!TestNotNull(TEXT("Helmet definition is created"), HelmetDefinition))
-	{
-		return false;
-	}
-	if (!TestNotNull(TEXT("Sword definition is created"), SwordDefinition) || !TestNotNull(TEXT("Axe definition is created"), AxeDefinition) ||
-		!TestNotNull(TEXT("Shield definition is created"), ShieldDefinition))
-	{
-		return false;
-	}
-
-	SwordDefinition->EquipmentStatBonus.StrengthBonus = 2;
-	SwordDefinition->EquipmentStatBonus.ArmorBonus = 1;
-	SwordDefinition->EquipmentResistanceBonus.FireResistance = 3;
-
-	AxeDefinition->EquipmentStatBonus.StrengthBonus = 5;
-	AxeDefinition->EquipmentResistanceBonus.LightningResistance = 2;
-
-	ShieldDefinition->EquipmentStatBonus.ConstitutionBonus = 1;
-	ShieldDefinition->EquipmentStatBonus.CarryWeightBonus = 4.0f;
-	ShieldDefinition->EquipmentResistanceBonus.PhysicalResistance = 2;
-	ShieldDefinition->EquipmentResistanceBonus.FireResistance = 1;
-
-	TestTrue(TEXT("Sword definition is registered"), Component->RegisterItemDefinition(SwordDefinition));
-	TestTrue(TEXT("Axe definition is registered"), Component->RegisterItemDefinition(AxeDefinition));
-	TestTrue(TEXT("Shield definition is registered"), Component->RegisterItemDefinition(ShieldDefinition));
-	TestTrue(TEXT("Helmet definition is registered"), Component->RegisterItemDefinition(HelmetDefinition));
-
-	const FGridItemInstance Sword = GridTD066CreateItem(SwordDefinition->ItemDefinitionId, 1, SwordDefinition->Weight);
-	const FGridItemInstance Axe = GridTD066CreateItem(AxeDefinition->ItemDefinitionId, 1, AxeDefinition->Weight);
-	const FGridItemInstance Shield = GridTD066CreateItem(ShieldDefinition->ItemDefinitionId, 1, ShieldDefinition->Weight);
-	const FGridItemInstance Helmet = GridTD066CreateItem(HelmetDefinition->ItemDefinitionId);
+	for (FName Id : {SwordId, AxeId, ShieldId, HelmetId, StackWeaponId, FullInventoryWeaponId, FillerId})
+		if (!TestTrue(TEXT("Canonical fixture definition registered"), Fixture.Scope.Registry->HasCanonicalItem(Id))) return false;
+	const FGridItemInstance Sword = GridTD066CreateItem(SwordId);
+	const FGridItemInstance Axe = GridTD066CreateItem(AxeId);
+	const FGridItemInstance Shield = GridTD066CreateItem(ShieldId);
+	const FGridItemInstance Helmet = GridTD066CreateItem(HelmetId);
 	const FGuid SwordRuntimeId = Sword.RuntimeObjectId;
 	const FGuid AxeRuntimeId = Axe.RuntimeObjectId;
 	const FGuid ShieldRuntimeId = Shield.RuntimeObjectId;
@@ -161,7 +151,7 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 		Component->CanEquipItemToSlot(0, Character.InventorySlots[0].Item, EGridEquipmentSlot::MainHand));
 	// Physical item throwing (0ee09e9c) intentionally permits OneHanded items in either hand.
 	// Preserve the rejection/atomicity contract below with a genuinely incompatible head item.
-	TestEqual(TEXT("Auto hand usage recognizes the sword as one-handed"), SwordDefinition->GetEffectiveHandUsage(), EGridItemHandUsage::OneHanded);
+
 	TestTrue(TEXT("One-handed sword also accepts OffHand"),
 		Component->CanEquipItemToSlot(0, Character.InventorySlots[0].Item, EGridEquipmentSlot::OffHand));
 	TestTrue(TEXT("One-handed shield also accepts MainHand"), Component->CanEquipItemToSlot(0, Shield, EGridEquipmentSlot::MainHand));
@@ -234,48 +224,41 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestTrue(TEXT("Invalid-character stat aggregation returns an empty set"), !Component->ComputeCharacterEquipmentStatBonus(INDEX_NONE).HasAnyBonus());
 	TestTrue(TEXT("Invalid-character resistance aggregation returns an empty set"), Component->ComputeCharacterEquipmentResistances(INDEX_NONE).IsEmpty());
 
-	UGridPartyInventoryComponent* ConsumeComponent = GridTD066CreateInventory();
+	UGridPartyInventoryComponent* ConsumeComponent = GridTD066CreateInventory(Fixture);
 	if (!TestNotNull(TEXT("Combat-consumption component is created"), ConsumeComponent))
 	{
 		return false;
 	}
-	UGridItemDefinitionAsset* StackWeaponDefinition =
-		GridTD066CreateItemDefinition(ConsumeComponent, TEXT("StackWeapon_TD066"), EGridItemType::Weapon, EGridEquipmentSlot::MainHand, 1.0f, true);
-	if (!TestNotNull(TEXT("Stack weapon definition is created"), StackWeaponDefinition))
-	{
-		return false;
-	}
-	TestTrue(TEXT("Stack weapon definition is registered"), ConsumeComponent->RegisterItemDefinition(StackWeaponDefinition));
-	const FGridItemInstance StackWeapon = GridTD066CreateItem(StackWeaponDefinition->ItemDefinitionId, 3, StackWeaponDefinition->Weight);
+	const FGridItemInstance StackWeapon = GridTD066CreateItem(StackWeaponId, 3);
 	const FGuid StackRuntimeId = StackWeapon.RuntimeObjectId;
 	TestTrue(TEXT("Three-unit weapon stack enters inventory"), ConsumeComponent->AddItemToCharacterInventory(0, StackWeapon));
 	TestTrue(TEXT("Three-unit weapon stack equips to MainHand"), ConsumeComponent->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::MainHand));
 
 	TestFalse(TEXT("Combat consumption rejects the wrong hand"),
 		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-			0, EGridEquipmentSlot::OffHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 1));
+			0, EGridEquipmentSlot::OffHand, StackWeaponId, StackRuntimeId, 1));
 	TestFalse(TEXT("Combat consumption rejects the wrong definition"),
 		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(0, EGridEquipmentSlot::MainHand, TEXT("WrongDefinition_TD066"), StackRuntimeId, 1));
 	TestFalse(TEXT("Combat consumption rejects the wrong runtime identity"),
 		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-			0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, FGuid::NewGuid(), 1));
+			0, EGridEquipmentSlot::MainHand, StackWeaponId, FGuid::NewGuid(), 1));
 	TestFalse(TEXT("Combat consumption rejects zero quantity"),
 		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-			0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 0));
+			0, EGridEquipmentSlot::MainHand, StackWeaponId, StackRuntimeId, 0));
 	TestFalse(TEXT("Combat consumption rejects a quantity larger than the equipped stack"),
 		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-			0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 4));
+			0, EGridEquipmentSlot::MainHand, StackWeaponId, StackRuntimeId, 4));
 
 	TestTrue(TEXT("Combat consumption decrements a valid equipped stack"),
 		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-			0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 1));
+			0, EGridEquipmentSlot::MainHand, StackWeaponId, StackRuntimeId, 1));
 	TestTrue(TEXT("The partially consumed equipped stack remains readable"), ConsumeComponent->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem));
 	TestEqual(TEXT("Partial combat consumption decrements quantity exactly"), EquippedItem.Quantity, 2);
 	TestTrue(TEXT("Partial combat consumption preserves runtime identity"), EquippedItem.RuntimeObjectId == StackRuntimeId);
 
 	TestTrue(TEXT("Consuming the remaining stack clears the equipment slot"),
 		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-			0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 2));
+			0, EGridEquipmentSlot::MainHand, StackWeaponId, StackRuntimeId, 2));
 	TestFalse(
 		TEXT("The fully consumed equipment stack is no longer readable"), ConsumeComponent->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem));
 	TestFalse(TEXT("The fully consumed equipment slot reports empty"), ConsumeComponent->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::MainHand));
@@ -284,25 +267,12 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 		return false;
 	}
 
-	UGridPartyInventoryComponent* FullInventoryComponent = GridTD066CreateInventory();
+	UGridPartyInventoryComponent* FullInventoryComponent = GridTD066CreateInventory(Fixture);
 	if (!TestNotNull(TEXT("Full-inventory component is created"), FullInventoryComponent))
 	{
 		return false;
 	}
-	UGridItemDefinitionAsset* FullInventoryWeaponDefinition =
-		GridTD066CreateItemDefinition(FullInventoryComponent, TEXT("FullInventoryWeapon_TD066"), EGridItemType::Weapon, EGridEquipmentSlot::MainHand, 1.0f);
-	UGridItemDefinitionAsset* FillerDefinition =
-		GridTD066CreateItemDefinition(FullInventoryComponent, TEXT("Filler_TD066"), EGridItemType::Misc, EGridEquipmentSlot::None, 0.1f);
-	if (!TestNotNull(TEXT("Full-inventory weapon definition is created"), FullInventoryWeaponDefinition) ||
-		!TestNotNull(TEXT("Filler definition is created"), FillerDefinition))
-	{
-		return false;
-	}
-	TestTrue(TEXT("Full-inventory weapon definition is registered"), FullInventoryComponent->RegisterItemDefinition(FullInventoryWeaponDefinition));
-	TestTrue(TEXT("Filler definition is registered"), FullInventoryComponent->RegisterItemDefinition(FillerDefinition));
-
-	const FGridItemInstance FullInventoryWeapon =
-		GridTD066CreateItem(FullInventoryWeaponDefinition->ItemDefinitionId, 1, FullInventoryWeaponDefinition->Weight);
+	const FGridItemInstance FullInventoryWeapon = GridTD066CreateItem(FullInventoryWeaponId);
 	const FGuid FullInventoryWeaponRuntimeId = FullInventoryWeapon.RuntimeObjectId;
 	TestTrue(TEXT("Full-inventory test weapon enters inventory"), FullInventoryComponent->AddItemToCharacterInventory(0, FullInventoryWeapon));
 	TestTrue(TEXT("Full-inventory test weapon equips"), FullInventoryComponent->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::MainHand));
@@ -310,7 +280,7 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	const int32 SlotCount = FullInventoryComponent->PartyInventoryState.ActiveCharacters[0].InventorySlots.Num();
 	for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
 	{
-		const FGridItemInstance Filler = GridTD066CreateItem(FillerDefinition->ItemDefinitionId, 1, FillerDefinition->Weight);
+		const FGridItemInstance Filler = GridTD066CreateItem(FillerId);
 		TestTrue(FString::Printf(TEXT("Filler item %d fills one inventory slot"), SlotIndex), FullInventoryComponent->AddItemToCharacterInventory(0, Filler));
 	}
 

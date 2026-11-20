@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.110 — Fixture équipement canonique
+
+Parent e8030b4dc57bbc16e47f3969ff39b526fbb71ad4 : attendre SilentTask et LocalAuto SUCCESS. TD06.6 utilise des définitions transitoires canoniques ; refus, consommation, bonus et résistances restent contrôlés. Voir [5G.110](ARM_CLEAN06_5G110_CANONICAL_EQUIPMENT_CORE_FIXTURE.md).
+
 ## ARM-CLEAN06.5G.109 — Fixtures curseur et piles canoniques
 
 Parent 74f806318ce33338dad6a03aad544533a51c2121 : attendre SilentTask et LocalAuto SUCCESS. TD06.4 utilise un registre canonique transitoire ; les assertions d'opérations, refus et propriété restent en place. Voir [5G.109](ARM_CLEAN06_5G109_CANONICAL_CURSOR_STACK_FIXTURES.md).
