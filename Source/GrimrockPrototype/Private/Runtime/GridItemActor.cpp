@@ -273,18 +273,26 @@ void AGridItemActor::RefreshWorldPickupMass()
 	MassInstance.Quantity = 1;
 	float MassKg = 0.0f;
 	bool bOverrideMass = false;
-	if (CanonicalWorldPresentation.IsValid())
-	{
-		const float UnitKg = CanonicalWorldPresentation.WeightKg;
-		bOverrideMass = CanonicalWorldPresentation.bUseItemWeightAsWorldPhysicsMass &&
-			FMath::IsFinite(UnitKg) && UnitKg > KINDA_SMALL_NUMBER;
-		MassKg = bOverrideMass ? UnitKg : 0.0f;
-	}
-	else
+	if (Registry)
 	{
 		bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolve(
-			Registry, ItemDefinitionAsset, MassInstance, MassKg);
+			Registry, nullptr, MassInstance, MassKg);
 	}
+	else if (!GameInstance && CanonicalWorldPresentation.IsValid() &&
+		CanonicalWorldPresentation.ItemId == MassInstance.ItemDefinitionId &&
+		CanonicalWorldPresentation.ItemLevel == MassInstance.ItemLevel && MassInstance.IsValid())
+	{
+		// Explicit registry projection supplied at canonical initialization.
+		bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolveProjected(
+			CanonicalWorldPresentation, MassKg);
+	}
+#if WITH_DEV_AUTOMATION_TESTS
+	else if (!GameInstance && GIsAutomationTesting)
+	{
+		bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolve(
+			nullptr, ItemDefinitionAsset, MassInstance, MassKg);
+	}
+#endif
 	MeshComponent->SetMassOverrideInKg(NAME_None, bOverrideMass ? MassKg : 0.0f, bOverrideMass);
 }
 
@@ -309,16 +317,37 @@ void AGridItemActor::ConfigureAsWorldPickup()
 
 void AGridItemActor::ApplyWorldPhysicsInitialNudge()
 {
-	if (!CanonicalWorldPresentation.IsValid() && !ItemDefinitionAsset)
+	const UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GameInstance
+		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	FGridItemInstance Instance;
+	Instance.RuntimeObjectId = RuntimeObjectId;
+	Instance.ItemDefinitionId = GetItemDefinitionId();
+	Instance.ItemLevel = CanonicalWorldItemLevel;
+	Instance.Quantity = 1;
+	float AuthoredTilt = 0.0f;
+	if (Registry)
 	{
-		return;
+		FGridResolvedItem Item;
+		if (!FGridWorldPhysicsMassReadModel::TryResolveCanonical(Registry, Instance, Item)) return;
+		AuthoredTilt = Item.WorldPhysicsInitialTiltDegrees;
 	}
-
-	const float AuthoredTilt = CanonicalWorldPresentation.IsValid()
-		? CanonicalWorldPresentation.WorldPhysicsInitialTiltDegrees
-		: ItemDefinitionAsset->WorldPhysicsInitialTiltDegrees;
+	else if (!GameInstance && CanonicalWorldPresentation.IsValid() && Instance.IsValid() &&
+		CanonicalWorldPresentation.ItemId == Instance.ItemDefinitionId &&
+		CanonicalWorldPresentation.ItemLevel == Instance.ItemLevel)
+	{
+		AuthoredTilt = CanonicalWorldPresentation.WorldPhysicsInitialTiltDegrees;
+	}
+#if WITH_DEV_AUTOMATION_TESTS
+	else if (!GameInstance && GIsAutomationTesting && IsValid(ItemDefinitionAsset))
+	{
+		AuthoredTilt = ItemDefinitionAsset->WorldPhysicsInitialTiltDegrees;
+	}
+#endif
+	if (!FMath::IsFinite(AuthoredTilt)) return;
 	const float TiltDegrees = FMath::Clamp(AuthoredTilt, 0.0f, 45.0f);
-	if (!FMath::IsFinite(TiltDegrees) || TiltDegrees <= KINDA_SMALL_NUMBER)
+	if (TiltDegrees <= KINDA_SMALL_NUMBER)
 	{
 		return;
 	}
