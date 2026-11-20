@@ -320,8 +320,6 @@ namespace GridEditorRetirementAudit
     {
         int32 Items = 0;
         int32 InstanceCaches = 0;
-        int32 ProjectilePointers = 0;
-        int32 PendingPointers = 0;
         int32 ReadablePointers = 0;
         int32 ReadableIdsWithoutPointer = 0;
         TArray<FName> UnknownItemIds;
@@ -369,12 +367,6 @@ namespace GridEditorRetirementAudit
         void World(const FGridRuntimeItemState& Value, const TSet<FName>& Canonical)
         {
             Id(Value.ItemDefinitionId, Canonical);
-            if (IsValid(Value.ProjectileDefinitionAsset.Get()))
-            {
-                ++ProjectilePointers;
-                Ref(TEXT("ProjectileDefinitionAsset"), Value.ItemDefinitionId, Value.ProjectileDefinitionAsset.Get(),
-                    Value.ItemDefinitionId != Value.ProjectileDefinitionAsset->ItemDefinitionId);
-            }
             Readable(Value.ItemDefinitionId, Value.ReadableContentAsset.Get(), Value.ReadableContentId);
         }
 
@@ -399,12 +391,6 @@ namespace GridEditorRetirementAudit
                 {
                     const auto& Value = Entry.Value;
                     World(Value.ItemState, Canonical);
-                    if (IsValid(Value.ItemDefinitionAsset.Get()))
-                    {
-                        ++PendingPointers;
-                        Ref(TEXT("PendingInboundItems.ItemDefinitionAsset"), Value.ItemState.ItemDefinitionId,
-                            Value.ItemDefinitionAsset.Get(), Value.ItemState.ItemDefinitionId != Value.ItemDefinitionAsset->ItemDefinitionId);
-                    }
                 }
             }
         }
@@ -413,8 +399,11 @@ namespace GridEditorRetirementAudit
         {
             Row.SetNumberField(TEXT("item_instances_and_world_rows"), Items);
             Row.SetNumberField(TEXT("instance_legacy_name_or_weight"), InstanceCaches);
-            Row.SetNumberField(TEXT("projectile_definition_pointers"), ProjectilePointers);
-            Row.SetNumberField(TEXT("pending_definition_pointers"), PendingPointers);
+            // 5G86: compatibility keys for the private 5A report readers.
+            // The schema lacks these fields; zero here is not a decoder
+            // proof about a pre-cutover archive. That proof is 5G85.
+            Row.SetNumberField(TEXT("projectile_definition_pointers"), 0);
+            Row.SetNumberField(TEXT("pending_definition_pointers"), 0);
             Row.SetNumberField(TEXT("readable_content_pointers"), ReadablePointers);
             Row.SetNumberField(TEXT("readable_ids_without_pointer"), ReadableIdsWithoutPointer);
             Row.SetArrayField(TEXT("unknown_item_ids"), Names(UnknownItemIds));

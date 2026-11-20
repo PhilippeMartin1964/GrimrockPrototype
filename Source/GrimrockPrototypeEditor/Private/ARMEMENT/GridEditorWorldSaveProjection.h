@@ -25,8 +25,7 @@ namespace GridEditorWorldSaveProjection
             Append(Key.ToString());
             for (TFieldIterator<FProperty> Field(FGridRuntimeItemState::StaticStruct()); Field; ++Field)
             {
-                if (!Field->HasAnyPropertyFlags(CPF_SaveGame) ||
-                    Field->GetFName() == FName(TEXT("ProjectileDefinitionAsset"))) continue;
+                if (!Field->HasAnyPropertyFlags(CPF_SaveGame)) continue;
                 FString Value;
                 Field->ExportTextItem_Direct(Value, Field->ContainerPtrToValuePtr<void>(&Item),
                     nullptr, nullptr, PPF_None);

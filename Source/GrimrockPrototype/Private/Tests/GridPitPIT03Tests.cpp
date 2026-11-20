@@ -475,8 +475,8 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
             !TestEqual(TEXT("Weapon lands at adjacent resolved Y"), P->ItemState.CellY, ExpectedLanding.Y) ||
             !TestEqual(TEXT("Weapon N-level preserved"), P->ItemState.ItemLevel, W.Level) ||
             !TestEqual(TEXT("Weapon ID preserved"), P->ItemState.ItemDefinitionId, W.Id) ||
-            !TestNull(TEXT("No legacy DA_Weapon pointer in PIT02 queue"),
-                P->ItemDefinitionAsset.Get()))
+            !TestNull(TEXT("No old reflected definition in PIT02 schema"),
+                FGridPendingWorldItemState::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset"))))
             return false;
         int32 Count = 0;
         FindLive(F.World, W.Guid, Count);

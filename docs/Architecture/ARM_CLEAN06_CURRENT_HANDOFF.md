@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.86 — Retrait réfléchi des deux pointeurs monde
+
+Parent c265cfe6195c1d11e01e09f21f20fc3d6ea8fd30 : publication seulement après les trois statuts SUCCESS, dont la preuve 5G85 sur copies courantes. Retrait des deux UPROPERTY, v27 conservée, test réflexion et relecture froide des mêmes octets sur l'agent ; troisième statut 5G86 obligatoire. Voir [5G.86](ARM_CLEAN06_5G86_WORLD_SAVE_POINTER_SCHEMA_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.85.1 — reprise du préflight synthétique
 
 Parent 4e61ac0a90e11a47b3a8cd56913583a04a2e40fc, issue #211 : unique test synthétique en échec. Éliminer la comparaison incorrecte objet neuf/objet désérialisé, garder la preuve complète et ajouter catégories de diagnostic filtrées. Le sujet 5G.85 déclenchera la preuve privée seulement après LocalAuto SUCCESS.

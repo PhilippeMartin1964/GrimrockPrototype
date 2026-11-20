@@ -159,7 +159,7 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
             }
             if (TestNotNull(TEXT("One saved entry for embedded ammo GUID"), EmbeddedState))
             {
-                TestNull(TEXT("Captured embedded arrow has no historical pointer"), EmbeddedState->ProjectileDefinitionAsset.Get());
+                TestNull(TEXT("Embedded arrow snapshot no longer has a definition field"), FGridRuntimeItemState::StaticStruct()->FindPropertyByName(TEXT("ProjectileDefinitionAsset")));
                 TestTrue(TEXT("Embedded state remains attached rather than ground pickup"),
                     EmbeddedState->bEmbeddedProjectile);
                 TestEqual(TEXT("Saved embedded monster identity"),

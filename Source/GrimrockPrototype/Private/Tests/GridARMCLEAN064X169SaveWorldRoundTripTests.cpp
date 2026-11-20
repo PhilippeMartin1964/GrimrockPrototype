@@ -36,7 +36,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FGridClean064X169SaveSchemaGate::RunTest(const FString&)
 {
-    // The two legacy fields must not be deleted until the physical SaveGame cutover.
+    // Tagged v27 archives retain every physical field; the two redundant
+    // definition pointers have now been removed after the native preflight.
     TestTrue(TEXT("World item GUID is saved"),
         ARMCLEAN064X169::IsSavedProperty(FGridRuntimeItemState::StaticStruct(),
             GET_MEMBER_NAME_CHECKED(FGridRuntimeItemState, ObjectId)));
@@ -49,15 +50,13 @@ bool FGridClean064X169SaveSchemaGate::RunTest(const FString&)
     TestTrue(TEXT("World item quantity is saved"),
         ARMCLEAN064X169::IsSavedProperty(FGridRuntimeItemState::StaticStruct(),
             GET_MEMBER_NAME_CHECKED(FGridRuntimeItemState, Quantity)));
-    TestTrue(TEXT("Legacy projectile pointer remains a saved field during cutover"),
-        ARMCLEAN064X169::IsSavedProperty(FGridRuntimeItemState::StaticStruct(),
-            GET_MEMBER_NAME_CHECKED(FGridRuntimeItemState, ProjectileDefinitionAsset)));
+    TestNull(TEXT("Historical projectile pointer is absent from reflection"),
+        FGridRuntimeItemState::StaticStruct()->FindPropertyByName(TEXT("ProjectileDefinitionAsset")));
     TestTrue(TEXT("Pending pit transfer identity is saved"),
         ARMCLEAN064X169::IsSavedProperty(FGridPendingWorldItemState::StaticStruct(),
             GET_MEMBER_NAME_CHECKED(FGridPendingWorldItemState, ItemState)));
-    TestTrue(TEXT("Legacy pending-item pointer remains a saved field during cutover"),
-        ARMCLEAN064X169::IsSavedProperty(FGridPendingWorldItemState::StaticStruct(),
-            GET_MEMBER_NAME_CHECKED(FGridPendingWorldItemState, ItemDefinitionAsset)));
+    TestNull(TEXT("Historical pending pointer is absent from reflection"),
+        FGridPendingWorldItemState::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
     TestTrue(TEXT("Destination level pending items are saved"),
         ARMCLEAN064X169::IsSavedProperty(FGridLevelRuntimeState::StaticStruct(),
             GET_MEMBER_NAME_CHECKED(FGridLevelRuntimeState, PendingInboundItems)));
@@ -108,7 +107,6 @@ bool FGridClean064X169SaveWorldRoundTrip::RunTest(const FString&)
     Ground.bHasWorldMeshTransform = true;
     Ground.WorldMeshTransform = FTransform(FVector(620.0, 1020.0, 15.0));
     Ground.bLightsEnabled = false;
-    Ground.ProjectileDefinitionAsset = nullptr;
     Upper.Items.Add(GroundId, Ground);
 
     // Synthetic ItemId proves N20 serialization without requiring a real asset lookup.
@@ -147,7 +145,6 @@ bool FGridClean064X169SaveWorldRoundTrip::RunTest(const FString&)
     Lower.LevelId = LowerLevelId;
     FGridPendingWorldItemState Falling;
     Falling.ItemState = MakeItem(FallingId, TEXT("Key_Iron"), 0, 1);
-    Falling.ItemDefinitionAsset = nullptr;
     Lower.PendingInboundItems.Add(FallingId, Falling);
 
     FText ValidationError;
@@ -203,8 +200,6 @@ bool FGridClean064X169SaveWorldRoundTrip::RunTest(const FString&)
         SavedGround->bIsSimulatingPhysics && SavedGround->bHasWorldMeshTransform &&
         SavedGround->WorldMeshTransform.GetLocation().Equals(FVector(620.0, 1020.0, 15.0), 0.01));
     TestFalse(TEXT("Darkened item remains unlit"), SavedGround->bLightsEnabled);
-    TestNull(TEXT("Canonical fixture does not recreate a legacy projectile pointer"),
-        SavedGround->ProjectileDefinitionAsset.Get());
     TestEqual(TEXT("Levelled item ID remains stable"),
         SavedLevelled->ItemDefinitionId, FName(TEXT("ARM_CLEAN06_Fixture_Armament")));
     TestEqual(TEXT("Highest authored level survives"), SavedLevelled->ItemLevel, 20);
@@ -245,8 +240,6 @@ bool FGridClean064X169SaveWorldRoundTrip::RunTest(const FString&)
     TestEqual(TEXT("Pending key identity survives"),
         SavedFalling->ItemState.ItemDefinitionId, FName(TEXT("Key_Iron")));
     TestEqual(TEXT("Pending item preserves N0"), SavedFalling->ItemState.ItemLevel, 0);
-    TestNull(TEXT("Pending canonical item does not gain a legacy pointer"),
-        SavedFalling->ItemDefinitionAsset.Get());
 
     FText LoadedError;
     TestTrue(TEXT("Round-tripped snapshot remains valid without mutation"),

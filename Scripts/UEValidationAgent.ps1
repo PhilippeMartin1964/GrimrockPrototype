@@ -906,13 +906,21 @@ try {
         # One-shot read-only save proof. Never publish private rows, paths,
         # hashes, save names or native log content.
         $Subject=@(& git -C $WorktreePath log -1 '--format=%s')
-        if ($LASTEXITCODE -eq 0 -and $Subject.Count -eq 1 -and $Subject[0] -match '^ARM-CLEAN06[.]5G[.]85:') {
-            $ProofContext='UE5.5.4/ARM-CLEAN06.5G85'
+        if ($LASTEXITCODE -eq 0 -and $Subject.Count -eq 1 -and $Subject[0] -match '^ARM-CLEAN06[.]5G[.](85|86):') {
+            $AfterRetirement=$Matches[1] -eq '86'
+            $ProofContext=if ($AfterRetirement) { 'UE5.5.4/ARM-CLEAN06.5G86' } else { 'UE5.5.4/ARM-CLEAN06.5G85' }
             try {
                 Publish-CommitStatus -Sha $Sha -State 'pending' -Context $ProofContext -Description 'Read-only world save preflight'
                 $Helper=Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1'
-                & $Helper -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot (Join-Path $RunDir 'WorldSavePreflight') -ExpectedHead $Sha
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $ProofContext -Description 'Private copies verified; canonical world; zero old pointers'
+                if ($AfterRetirement) {
+                    $Baseline=@(& git -C $WorktreePath rev-parse HEAD^)
+                    if ($LASTEXITCODE -ne 0 -or $Baseline.Count -ne 1) { throw 'Baseline parent unavailable.' }
+                    & $Helper -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot (Join-Path $RunDir 'WorldSavePreflight') -ExpectedHead $Sha -AfterRetirement -BaselineHead $Baseline[0] -AgentStateRoot $StateRoot
+                    Publish-CommitStatus -Sha $Sha -State 'success' -Context $ProofContext -Description 'Exact v27 private copies; same physical projections after removal'
+                } else {
+                    & $Helper -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot (Join-Path $RunDir 'WorldSavePreflight') -ExpectedHead $Sha
+                    Publish-CommitStatus -Sha $Sha -State 'success' -Context $ProofContext -Description 'Private copies verified; canonical world; zero old pointers'
+                }
             } catch {
                 Write-Warning '[ARM-CLEAN06.5G85] World save preflight refused; private logs only.'
                 try { Publish-CommitStatus -Sha $Sha -State 'failure' -Context $ProofContext -Description 'Preflight refused; no original save modified by helper' }

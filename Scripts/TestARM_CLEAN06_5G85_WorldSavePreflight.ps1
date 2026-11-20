@@ -5,6 +5,9 @@ param(
     [string]$EngineRoot,
     [string]$RunRoot,
     [string]$ExpectedHead,
+    [string]$BaselineHead,
+    [string]$AgentStateRoot,
+    [switch]$AfterRetirement,
     [switch]$SelfTest
 )
 Set-StrictMode -Version Latest
@@ -60,6 +63,21 @@ function Check-WorldSaveReport($Report,$Rows) {
         }
     }
 }
+function Compare-WorldSaveReports($Before,$After,$Rows) {
+    Check-WorldSaveReport $Before $Rows
+    Check-WorldSaveReport $After $Rows
+    foreach ($Row in $Rows) {
+        $A=@($Before.saves | Where-Object { $_.filename -ceq $Row.name })[0]
+        $B=@($After.saves | Where-Object { $_.filename -ceq $Row.name })[0]
+        foreach ($Key in @('item_instances_and_world_rows','instance_legacy_name_or_weight','readable_content_pointers','readable_ids_without_pointer')) {
+            if ($A.$Key -ne $B.$Key) { throw 'Physical or narrative count changed across schema.' }
+        }
+        foreach ($Key in @('world_row_projection','decoded_references','raw_path_candidates')) {
+            if ((ConvertTo-Json -InputObject @($A.$Key) -Depth 10 -Compress) -cne
+                (ConvertTo-Json -InputObject @($B.$Key) -Depth 10 -Compress)) { throw 'Physical or reference evidence changed across schema.' }
+        }
+    }
+}
 if ($SelfTest) {
     $Root=Join-Path ([IO.Path]::GetTempPath()) ('Arm5G85-'+[guid]::NewGuid().ToString('N'))
     try {
@@ -68,8 +86,14 @@ if ($SelfTest) {
         [IO.File]::WriteAllBytes((Join-Path $Source 'Fixture.sav'),[byte[]]@(1,2,3,4))
         $Expected=Copy-VerifiedWorldSaves $Source $Copies
         $Rows=@(Get-WorldSaveInventory $Source)
-        $Report=[pscustomobject]@{schema='ARM-CLEAN06.5A/retirement-evidence/v1';world_pointer_preflight=$true;deletion_authorized=$false;save_count=1;decode_failures=0;native=[pscustomobject]@{canonical_count=48;resolved_item_levels=466;external_referencer_edges=0};saves=@([pscustomobject]@{filename='Fixture.sav';decoded=$true;version=27;bytes=4;canonical_world_valid=$true;memory_roundtrip_equal=$true;unknown_item_ids=@();projectile_definition_pointers=0;pending_definition_pointers=0;readable_ids_without_pointer=0;decoded_references=@();raw_path_candidates=@();world_row_projection=@()})}
+        $Report=[pscustomobject]@{schema='ARM-CLEAN06.5A/retirement-evidence/v1';world_pointer_preflight=$true;deletion_authorized=$false;save_count=1;decode_failures=0;native=[pscustomobject]@{canonical_count=48;resolved_item_levels=466;external_referencer_edges=0};saves=@([pscustomobject]@{filename='Fixture.sav';decoded=$true;version=27;bytes=4;canonical_world_valid=$true;memory_roundtrip_equal=$true;unknown_item_ids=@();projectile_definition_pointers=0;pending_definition_pointers=0;readable_ids_without_pointer=0;decoded_references=@();raw_path_candidates=@();world_row_projection=@();item_instances_and_world_rows=0;instance_legacy_name_or_weight=0;readable_content_pointers=0})}
         Check-WorldSaveReport $Report $Rows
+        $Same=ConvertFrom-Json (ConvertTo-Json $Report -Depth 10)
+        Compare-WorldSaveReports $Report $Same $Rows
+        $Same.saves[0].world_row_projection=@('changed')
+        $Different=$false
+        try { Compare-WorldSaveReports $Report $Same $Rows } catch { $Different=$true }
+        if (-not $Different) { throw 'Fixture cross-schema comparison failed.' }
         $Report.saves[0].pending_definition_pointers=1
         $Rejected=$false
         try { Check-WorldSaveReport $Report $Rows } catch { $Rejected=$true }
@@ -107,8 +131,37 @@ Assert-Head
 Assert-ArmX66OrdinaryPath $RunRoot
 if (Test-Path -LiteralPath $RunRoot) { throw 'Private run directory already exists.' }
 $Source=Join-Path $RepositoryRoot 'Saved\SaveGames'
+$BeforeReport=$null
+if ($AfterRetirement) {
+    if ($BaselineHead -cnotmatch '^[0-9a-f]{40}$' -or [string]::IsNullOrWhiteSpace($AgentStateRoot)) { throw 'Exact baseline required.' }
+    $Parent=@(& $Git -C $WorktreePath rev-parse HEAD^)
+    if ($LASTEXITCODE -ne 0 -or $Parent.Count -ne 1 -or $Parent[0] -cne $BaselineHead) { throw 'Baseline not exact parent.' }
+    $Runs=Join-Path $AgentStateRoot 'Runs'
+    Assert-ArmX66OrdinaryPath $Runs
+    $Candidates=@(Get-ChildItem -LiteralPath $Runs -Directory -Filter ($BaselineHead.Substring(0,12)+'-*') | ForEach-Object {
+        Assert-ArmX66OrdinaryPath $_.FullName
+        $Proof=Join-Path $_.FullName 'WorldSavePreflight'
+        $Receipt=Join-Path $Proof 'receipt.json'
+        if (Test-Path -LiteralPath $Receipt -PathType Leaf) { $Proof }
+    })
+    if ($Candidates.Count -ne 1) { throw 'Unique private baseline receipt required.' }
+    $Baseline=$Candidates[0]
+    $ReceiptPath=Join-Path $Baseline 'receipt.json'
+    Assert-ArmX66OrdinaryPath $ReceiptPath
+    $Receipt=Get-Content -LiteralPath $ReceiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($Receipt.schema -cne 'ARM-CLEAN06.5G85/world-read-only-receipt/v1' -or $Receipt.head -cne $BaselineHead -or
+        -not $Receipt.passed -or -not $Receipt.all_source_bytes_unchanged -or -not $Receipt.all_copies_unchanged -or
+        $Receipt.world_pointer_count -ne 0 -or @($Receipt.files).Count -eq 0) { throw 'Unproven baseline receipt.' }
+    $Source=Join-Path $Baseline 'AuditCopies'
+    $ExpectedBaseline=ConvertTo-Json -InputObject @($Receipt.files) -Compress
+    if ((Get-InventoryJson $Source) -cne $ExpectedBaseline) { throw 'Baseline byte mismatch.' }
+    $BeforePath=Join-Path $Baseline 'world-preflight.json'
+    Assert-ArmX66OrdinaryPath $BeforePath
+    $BeforeReport=Get-Content -LiteralPath $BeforePath -Raw -Encoding UTF8 | ConvertFrom-Json
+}
 $Copies=Join-Path $RunRoot 'AuditCopies'
 $Expected=Copy-VerifiedWorldSaves $Source $Copies
+if ($AfterRetirement -and $Expected -cne $ExpectedBaseline) { throw 'Cross-schema source bytes changed.' }
 $Rows=@(Get-WorldSaveInventory $Copies)
 $ReportPath=Join-Path $RunRoot 'world-preflight.json'
 $Editor=Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
@@ -120,7 +173,10 @@ Assert-Closed
 Assert-Head
 if ((Get-InventoryJson $Source) -cne $Expected -or (Get-InventoryJson $Copies) -cne $Expected) { throw 'Source or private copy changed; no retirement authorization.' }
 if ($Code -ne 0 -or -not (Test-Path -LiteralPath $ReportPath -PathType Leaf)) { throw 'Native preflight failed.' }
-Check-WorldSaveReport (Get-Content -LiteralPath $ReportPath -Raw -Encoding UTF8 | ConvertFrom-Json) $Rows
-[pscustomobject]@{schema='ARM-CLEAN06.5G85/world-read-only-receipt/v1';head=$ExpectedHead;files=$Rows;all_source_bytes_unchanged=$true;all_copies_unchanged=$true;world_pointer_count=0;passed=$true} |
+$AfterReport=Get-Content -LiteralPath $ReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+Check-WorldSaveReport $AfterReport $Rows
+if ($AfterRetirement) { Compare-WorldSaveReports $BeforeReport $AfterReport $Rows }
+$Schema=if ($AfterRetirement) { 'ARM-CLEAN06.5G86/world-post-retirement-receipt/v1' } else { 'ARM-CLEAN06.5G85/world-read-only-receipt/v1' }
+[pscustomobject]@{schema=$Schema;head=$ExpectedHead;baseline_head=$BaselineHead;files=$Rows;all_source_bytes_unchanged=$true;all_copies_unchanged=$true;world_pointer_count=0;passed=$true} |
     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $RunRoot 'receipt.json') -Encoding UTF8
 Write-Host '[OK] 5G85 native world save preflight. Originals and copies unchanged.'

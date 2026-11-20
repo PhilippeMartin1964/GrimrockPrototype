@@ -89,8 +89,6 @@ bool FGridEditorARMCLEAN065SaveAudit::RunTest(const FString&)
 {
     using namespace GridEditorRetirementAudit;
     TStrongObjectPtr<UGrimrockPartySaveGame> Save(NewObject<UGrimrockPartySaveGame>());
-    TStrongObjectPtr<UGridItemDefinitionAsset> Legacy(NewObject<UGridItemDefinitionAsset>());
-    Legacy->ItemDefinitionId = TEXT("Stone");
     TStrongObjectPtr<UGridReadableContentAsset> Readable(NewObject<UGridReadableContentAsset>());
     Readable->ReadableContentId = TEXT("FixtureReadable");
     FGridItemInstance Item;
@@ -107,14 +105,14 @@ bool FGridEditorARMCLEAN065SaveAudit::RunTest(const FString&)
     FGridRuntimeItemState World;
     World.ObjectId = FGuid::NewGuid();
     World.ItemDefinitionId = TEXT("Stone");
-    World.ProjectileDefinitionAsset = Legacy.Get();
     FGridLevelRuntimeState Level;
     Level.Items.Add(World.ObjectId, World);
     Level.Receptacles.Add(FGuid::NewGuid()).ContainedItems.Add(World);
     auto& Pending = Level.PendingInboundItems.Add(FGuid::NewGuid());
     Pending.ItemState = World;
-    Pending.ItemDefinitionAsset = Legacy.Get();
     Pending.ItemState.ItemDefinitionId = TEXT("UnknownFixture");
+    Pending.ItemState.ReadableContentAsset = Readable.Get();
+    Pending.ItemState.ReadableContentId = TEXT("ConflictingReadableFixture");
     Save->DungeonRuntimeState.LevelStates.Add(TEXT("Fixture"), Level);
 
     TSet<FName> Canonical = {FName(TEXT("Stone"))};
@@ -122,13 +120,13 @@ bool FGridEditorARMCLEAN065SaveAudit::RunTest(const FString&)
     Audit.Collect(*Save.Get(), Canonical);
     TestEqual(TEXT("Active/reserve/equipment/cursor/world/receptacle/pending rows"), Audit.Items, 7);
     TestEqual(TEXT("Legacy item caches counted"), Audit.InstanceCaches, 4);
-    TestEqual(TEXT("Readable pointers counted separately"), Audit.ReadablePointers, 4);
-    TestEqual(TEXT("Projectile pointers in all world containers"), Audit.ProjectilePointers, 3);
-    TestEqual(TEXT("Pending item pointer"), Audit.PendingPointers, 1);
+    TestEqual(TEXT("Readable pointers counted separately"), Audit.ReadablePointers, 5);
+    TestNull(TEXT("Projectile definition schema removed"), FGridRuntimeItemState::StaticStruct()->FindPropertyByName(TEXT("ProjectileDefinitionAsset")));
+    TestNull(TEXT("Pending definition schema removed"), FGridPendingWorldItemState::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
     TestTrue(TEXT("Unknown ID is reported, not substituted"), Audit.UnknownItemIds.Contains(TEXT("UnknownFixture")));
     int32 Conflicts = 0;
     for (const auto& Row : Audit.References) if (Row->AsObject()->GetBoolField(TEXT("identity_conflict"))) ++Conflicts;
-    TestEqual(TEXT("Both mismatched world pointers detected"), Conflicts, 2);
+    TestEqual(TEXT("Narrative identity conflict remains detected"), Conflicts, 1);
     TestTrue(TEXT("Source pointer remains unchanged"), Save->PartyInventoryState.CursorItem.ReadableContentAsset.Get() == Readable.Get());
 
     // Actual FString serialization covers an ASCII path that can be lost
@@ -196,11 +194,8 @@ bool FGridEditorARMCLEAN065G85WorldPreflight::RunTest(const FString&)
     TestTrue(TEXT("Private physical projection survives independent decode"),
         Projection == GridEditorWorldSaveProjection::Build(Loaded->DungeonRuntimeState));
     auto& Invalid = Expected->DungeonRuntimeState.LevelStates.FindChecked(TEXT("Fixture")).PendingInboundItems.FindChecked(Pending.ItemState.ObjectId);
-    TStrongObjectPtr<UGridItemDefinitionAsset> Stale(NewObject<UGridItemDefinitionAsset>());
-    Invalid.ItemDefinitionAsset = Stale.Get();
-    Invalid.ItemState.ProjectileDefinitionAsset = Stale.Get();
-    TestTrue(TEXT("Projection excludes both retired pointers"), Projection ==
-        GridEditorWorldSaveProjection::Build(Expected->DungeonRuntimeState));
+    TestNull(TEXT("Projection requires no old projectile pointer"), FGridRuntimeItemState::StaticStruct()->FindPropertyByName(TEXT("ProjectileDefinitionAsset")));
+    TestNull(TEXT("Projection requires no old pending pointer"), FGridPendingWorldItemState::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
     Invalid.ItemState.ItemLevel = 1;
     TestFalse(TEXT("Physical level change alters the projection"), Projection ==
         GridEditorWorldSaveProjection::Build(Expected->DungeonRuntimeState));

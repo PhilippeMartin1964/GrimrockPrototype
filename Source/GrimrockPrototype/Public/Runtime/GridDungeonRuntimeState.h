@@ -123,10 +123,6 @@ struct FGridRuntimeItemState
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	FTransform EmbeddedBoneRelativeTransform = FTransform::Identity;
 
-	/** Resolve dynamically spawned ammunition even if not referenced by the level. */
-	UPROPERTY(SaveGame, BlueprintReadWrite)
-	TObjectPtr<UGridItemDefinitionAsset> ProjectileDefinitionAsset = nullptr;
-
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	bool bIsContainedInReceptacle = false;
 
@@ -170,9 +166,6 @@ struct FGridPendingWorldItemState
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	FGridRuntimeItemState ItemState;
 
-	/** Keeps the definition resolvable even when the destination level does not otherwise reference this item type. */
-	UPROPERTY(SaveGame, BlueprintReadWrite)
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;
 };
 
 USTRUCT(BlueprintType)

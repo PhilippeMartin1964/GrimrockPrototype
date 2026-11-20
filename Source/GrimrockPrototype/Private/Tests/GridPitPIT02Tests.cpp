@@ -181,7 +181,7 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Pending item resolves nearest usable destination X"), Pending->ItemState.CellX, 2);
 	TestEqual(TEXT("Pending item resolves nearest usable destination Y"), Pending->ItemState.CellY, 1);
 	TestEqual(TEXT("Pending item keeps its canonical ID"), Pending->ItemState.ItemDefinitionId, Stone.ItemDefinitionId);
-	TestNull(TEXT("No pending legacy definition required"), Pending->ItemDefinitionAsset.Get());
+	TestNull(TEXT("Pending definition field retired"), FGridPendingWorldItemState::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
 
 	TestTrue(TEXT("Party can travel to the lower level"), Runtime->TravelToDungeonLevel(LowerId, 1, 1, EGridEdge::North, Party));
 	TestEqual(TEXT("The queued item materializes at the resolved fallback cell on the lower level"),
@@ -306,8 +306,8 @@ bool FGridClean064X1611CanonicalPitTransfer::RunTest(const FString&)
         ? LowerState->PendingInboundItems.Find(Torch.RuntimeObjectId) : nullptr;
     if (!TestNotNull(TEXT("Torch queued on lower level"), Pending))
         return false;
-    TestNull(TEXT("Canonical non-ARM pit transfer carries no legacy UObject"),
-        Pending->ItemDefinitionAsset.Get());
+    TestNull(TEXT("Non-ARM pit transfer has no reflected old definition"),
+        FGridPendingWorldItemState::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
     TestEqual(TEXT("Queued canonical identity"), Pending->ItemState.ItemDefinitionId, Torch.ItemDefinitionId);
     TestEqual(TEXT("Queued N0 is stable"), Pending->ItemState.ItemLevel, 0);
     TestTrue(TEXT("Queued flame stays lit"), Pending->ItemState.bLightsEnabled);
@@ -380,15 +380,13 @@ bool FGridClean064X1611CanonicalPitTransfer::RunTest(const FString&)
         Restored->VisualEffectsComponent->GetConfiguredEffectCount() ==
             CanonicalTorch.VisualEffects.Effects.Num());
 
-    // Direct inbound calls must refuse even a matching legacy pointer for
-    // an unknown physical ID, keeping the queued source intact.
+    // Direct inbound calls must refuse an unknown physical ID and
+    // leave the queued source intact.
     FGridPendingWorldItemState Unknown;
     Unknown.ItemState.ObjectId = FGuid::NewGuid();
     Unknown.ItemState.ItemDefinitionId = TEXT("UnknownPitFixture_5G81");
     Unknown.ItemState.CellX = 1;
     Unknown.ItemState.CellY = 1;
-    ObsoleteTorch->ItemDefinitionId = Unknown.ItemState.ItemDefinitionId;
-    Unknown.ItemDefinitionAsset = ObsoleteTorch;
     FGridLevelRuntimeState& Active = Runtime->DungeonRuntimeState.LevelStates.FindChecked(LowerId);
     Active.PendingInboundItems.Add(Unknown.ItemState.ObjectId, Unknown);
     AddExpectedError(TEXT("GridPit PendingItem rejected Item="), EAutomationExpectedErrorFlags::Contains, 1);

@@ -161,14 +161,11 @@ namespace ARMCLEAN063BC
             Test.TestEqual(TEXT("Saved unlevelled arrow"), Saved->ItemLevel, 0);
             Test.TestTrue(TEXT("Saved true mesh pose"), Saved->bHasWorldMeshTransform);
             Test.TestFalse(TEXT("Flying arrow is not an embedded arrow"), Saved->bEmbeddedProjectile);
-            Test.TestNull(TEXT("Registered projectile cannot persist old DA_Item pointer"),
-                Saved->ProjectileDefinitionAsset.Get());
-
-            // Simulate a v27 archive carrying a stale, mismatching pointer.
-            FGridLevelRuntimeState* Mutable = F.Runtime->GetOrCreateRuntimeStateForCurrentLevel();
-            if (!Mutable || !Mutable->Items.Contains(Unit.RuntimeObjectId)) return false;
+            Test.TestNull(TEXT("Projectile definition field is retired"),
+                FGridRuntimeItemState::StaticStruct()->FindPropertyByName(TEXT("ProjectileDefinitionAsset")));
+            // The stale input definition is still present in the fixture but
+            // cannot influence reconstruction from the physical snapshot.
             Contradictory->ItemDefinitionId = TEXT("Key_Copper");
-            Mutable->Items.FindChecked(Unit.RuntimeObjectId).ProjectileDefinitionAsset = Contradictory;
             if (!Test.TestTrue(TEXT("Save state restores as pickup"),
                 F.Runtime->ApplyCurrentLevelRuntimeState())) return false;
             int32 Pickups = 0;
@@ -225,12 +222,9 @@ namespace ARMCLEAN063BC
             Test.TestTrue(TEXT("Correct monster GUID captured"),
                 Saved->bEmbeddedProjectile &&
                 Saved->EmbeddedMonsterPersistenceId == Monster->PersistentMonsterId);
-            Test.TestNull(TEXT("No legacy arrow asset saved"), Saved->ProjectileDefinitionAsset.Get());
-
-            FGridLevelRuntimeState* Mutable = F.Runtime->GetOrCreateRuntimeStateForCurrentLevel();
-            if (!Mutable || !Mutable->Items.Contains(Unit.RuntimeObjectId)) return false;
+            Test.TestNull(TEXT("No saved projectile definition field"),
+                FGridRuntimeItemState::StaticStruct()->FindPropertyByName(TEXT("ProjectileDefinitionAsset")));
             Contradictory->ItemDefinitionId = TEXT("Key_Copper");
-            Mutable->Items.FindChecked(Unit.RuntimeObjectId).ProjectileDefinitionAsset = Contradictory;
             if (!Test.TestTrue(TEXT("Restore embedded arrow after snapshot"),
                 F.Runtime->ApplyCurrentLevelRuntimeState())) return false;
             int32 Embedded = 0;
