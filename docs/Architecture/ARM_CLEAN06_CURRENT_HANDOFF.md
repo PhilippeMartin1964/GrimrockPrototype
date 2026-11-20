@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.48 — Restitution physique des réceptacles
+
+Parent 01777ede14caa9133c489cc4d8c9a66714acfc3e. Publication conditionnée aux deux statuts SUCCESS. Le service utilisé pour les réceptacles attachés conserve le niveau, la lecture et la lumière réelle ; valide le niveau et la capacité canonique avant extraction. Restauration conserve niveau, état initial, données de lecture, position et rang. Capture sans acteur conserve la lumière mémorisée. Régression réelle N12, sac plein puis transfert positif. Voir [5G.48](ARM_CLEAN06_5G48_RECEPTACLE_RESTITUTION.md). Aucun changement de catégorie logique ni asset/save écrit.
+
 ## ARM-CLEAN06.5G.47 — Serrure murale : transfert physique canonique
 
 Parent 6f70b0999121c74185a0080be03d2a7a03072cce. Publication après deux statuts SUCCESS. CanAcceptKeyInstance vérifie identité, niveau, quantité, liste d’IDs et capacité de la serrure avant extraction ; plus de recherche historique pour le visuel. X30 couvre ID historique explicitement accepté mais physiquement refusé, conservation du sac et transfert canonique réel. CanAcceptKeyDefinition reste la lecture de la règle d’authoring. Voir [5G.47](ARM_CLEAN06_5G47_CANONICAL_WALL_LOCK_TRANSFER.md). Aucun asset/save écrit.

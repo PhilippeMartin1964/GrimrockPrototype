@@ -969,7 +969,7 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState(FGridRuntimeReceptacleS
 		ItemState.Quantity = FMath::Max(1, Item.Quantity);
 		ItemState.bIsContainedInReceptacle = true;
 		ItemState.ReceptacleObjectId = ObjectId;
-		ItemState.bLightsEnabled = true;
+		ItemState.bLightsEnabled = Item.bLightsEnabled;
 		ItemState.ReadableContentAsset = Item.ReadableContentAsset;
 		ItemState.ReadableContentId = Item.ReadableContentId;
 		ItemState.ReadTitleOverride = Item.ReadTitleOverride;

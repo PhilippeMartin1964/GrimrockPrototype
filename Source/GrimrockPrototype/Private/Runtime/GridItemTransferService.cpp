@@ -1,6 +1,9 @@
 #include "Runtime/GridItemTransferService.h"
 
 #include "Runtime/GridItemActor.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridWallLockActor.h"
@@ -228,12 +231,44 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 	FGridItemInstance Candidate;
 	Candidate.RuntimeObjectId = SourceSnapshot.RuntimeObjectId;
 	Candidate.ItemDefinitionId = SourceSnapshot.ItemDefinitionId;
+	Candidate.ItemLevel = SourceSnapshot.ItemLevel;
 	Candidate.DisplayName = SourceSnapshot.DisplayName;
 	Candidate.Quantity = SourceSnapshot.Quantity;
 	Candidate.Weight = SourceSnapshot.Weight;
 	Candidate.bLightsEnabled = SourceSnapshot.bLightsEnabled;
+	Candidate.ReadableContentAsset = SourceSnapshot.ReadableContentAsset;
+	Candidate.ReadableContentId = SourceSnapshot.ReadableContentId;
+	Candidate.ReadTitleOverride = SourceSnapshot.ReadTitleOverride;
+	Candidate.ReadTextOverride = SourceSnapshot.ReadTextOverride;
+	Candidate.OwnerType = EGridItemOwnerType::Receptacle;
+	Candidate.OwnerGuid = Receptacle->ObjectId;
 	const bool bHadVisualActor = IsValid(SourceSnapshot.ItemActor.Get());
 	Candidate.LastWorldTransform = bHadVisualActor ? SourceSnapshot.ItemActor->GetActorTransform() : FTransform::Identity;
+	if (bHadVisualActor)
+	{
+		const AGridItemActor* Visual = SourceSnapshot.ItemActor.Get();
+		Candidate.bLightsEnabled = Visual->AreItemLightsEnabled();
+		Candidate.ReadableContentAsset = Visual->ReadableContentAsset;
+		Candidate.ReadableContentId = Visual->ReadableContentId;
+		Candidate.ReadTitleOverride = Visual->ReadTitleOverride;
+		Candidate.ReadTextOverride = Visual->ReadTextOverride;
+	}
+	const UWorld* World = Receptacle->GetWorld();
+	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const bool bCanonical = Registry && Registry->HasCanonicalItem(Candidate.ItemDefinitionId);
+	if (bCanonical)
+	{
+		FGridResolvedItem Resolved;
+		if (!Registry->ResolveItem(Candidate.ItemDefinitionId, Candidate.ItemLevel, Resolved) ||
+			!Resolved.IsValid() || Resolved.ItemLevel != Candidate.ItemLevel ||
+			(!Resolved.bIsArmament && Candidate.ItemLevel != 0) ||
+			Candidate.Quantity > FMath::Max(1, Resolved.MaxStack))
+		{
+			return LogTransferFailure(Operation, EGridItemTransferResult::InvalidItem, TEXT("Contained canonical instance is invalid."), &Candidate);
+		}
+		Candidate.Weight = Resolved.WeightKg;
+	}
 
 	if (!Candidate.IsValid())
 	{
@@ -244,6 +279,7 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 		return LogTransferFailure(Operation, EGridItemTransferResult::InventoryFull, TEXT("Destination inventory is full."), &Candidate);
 	}
 
+	const bool bInitialRemovalAlreadyRecorded = Receptacle->RemovedInitialItemDefinitionIds.Contains(SourceSnapshot.ItemDefinitionId);
 	FGridContainedReceptacleItem RemovedItem;
 	if (!Receptacle->RemoveContainedItemAtIndex(ContainedItemIndex, RemovedItem))
 	{
@@ -253,7 +289,8 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 	if (!Inventory->AddItemToCharacterInventory(CharacterIndex, Candidate))
 	{
 		const int32 RestoredIndex = Receptacle->AddContainedItem(SourceSnapshot.ItemDefinitionId, SourceSnapshot.ItemDefinition, nullptr,
-			SourceSnapshot.bWasInitialItem, SourceSnapshot.Quantity, SourceSnapshot.RuntimeObjectId);
+			SourceSnapshot.bWasInitialItem, SourceSnapshot.Quantity, SourceSnapshot.RuntimeObjectId,
+			SourceSnapshot.ItemLevel, bCanonical && SourceSnapshot.bWasInitialItem);
 		if (!Receptacle->ContainedItems.IsValidIndex(RestoredIndex))
 		{
 			return LogTransferFailure(
@@ -261,17 +298,30 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 		}
 
 		FGridContainedReceptacleItem& RestoredItem = Receptacle->ContainedItems[RestoredIndex];
-		RestoredItem.Weight = SourceSnapshot.Weight;
-		RestoredItem.DisplayName = SourceSnapshot.DisplayName;
-		RestoredItem.bLightsEnabled = SourceSnapshot.bLightsEnabled;
-		if (SourceSnapshot.bWasInitialItem)
+		RestoredItem.Weight = Candidate.Weight;
+		RestoredItem.DisplayName = Candidate.DisplayName;
+		RestoredItem.bLightsEnabled = Candidate.bLightsEnabled;
+		RestoredItem.ReadableContentAsset = Candidate.ReadableContentAsset;
+		RestoredItem.ReadableContentId = Candidate.ReadableContentId;
+		RestoredItem.ReadTitleOverride = Candidate.ReadTitleOverride;
+		RestoredItem.ReadTextOverride = Candidate.ReadTextOverride;
+		if (SourceSnapshot.bWasInitialItem && !bInitialRemovalAlreadyRecorded)
 		{
 			Receptacle->RemovedInitialItemDefinitionIds.Remove(SourceSnapshot.ItemDefinitionId);
 		}
 		if (bHadVisualActor && IsValid(RestoredItem.ItemActor.Get()))
 		{
 			RestoredItem.ItemActor->SetActorTransform(Candidate.LastWorldTransform, false, nullptr, ETeleportType::TeleportPhysics);
-			RestoredItem.ItemActor->SetItemLightsEnabled(SourceSnapshot.bLightsEnabled);
+			RestoredItem.ItemActor->SetItemLightsEnabled(Candidate.bLightsEnabled);
+			RestoredItem.ItemActor->InitializeReadableContent(Candidate.ReadableContentAsset, Candidate.ReadableContentId,
+				Candidate.ReadTitleOverride, Candidate.ReadTextOverride);
+		}
+		if (RestoredIndex != ContainedItemIndex && Receptacle->ContainedItems.IsValidIndex(ContainedItemIndex))
+		{
+			FGridContainedReceptacleItem Restored = MoveTemp(Receptacle->ContainedItems[RestoredIndex]);
+			Receptacle->ContainedItems.RemoveAt(RestoredIndex);
+			Receptacle->ContainedItems.Insert(MoveTemp(Restored), ContainedItemIndex);
+			Receptacle->UpdateContainedItemInteractionCollision();
 		}
 
 		return LogTransferFailure(

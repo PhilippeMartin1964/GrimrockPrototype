@@ -9,6 +9,8 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridItemActor.h"
+#include "Runtime/GridItemTransferService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -260,6 +262,57 @@ bool FARMEMENT0183FullSaveTest::RunTest(const FString&)
     TestEqual(TEXT("Saved fixed level survives a second capture"), Restored->ContainedItems[0].ItemLevel, 14);
     TestEqual(TEXT("Only one instance remains in runtime"), Fixture.Receptacle->ContainedItems.Num(), 1);
     return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065G48ReceptacleService,
+    "Grimrock.RPG.ARM.CLEAN06_5G48.ReceptacleServicePhysicalRestitution",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean065G48ReceptacleService::RunTest(const FString&)
+{
+    ARMEMENT0183::FFixture F;
+    if (!TestTrue(TEXT("Fixture ready"), F.Ready())) return false;
+    F.AddInitial(12);
+    if (!TestTrue(TEXT("Real N12 initial item"), F.Build()) ||
+        !TestEqual(TEXT("One contained item"), F.Receptacle->GetContainedItemCount(), 1)) return false;
+    AGrimrockPartyPawn* Party = F.MakeParty();
+    if (!TestNotNull(TEXT("Party"), Party)) return false;
+    UGridPartyInventoryComponent* Inventory = Party->PartyInventoryComponent;
+    auto& Slots = Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots;
+    Slots.SetNum(1);
+    const FGuid Id = F.Receptacle->ContainedItems[0].RuntimeObjectId;
+    AGridItemActor* Visual = F.Receptacle->GetContainedItemActor(0);
+    if (!TestNotNull(TEXT("Canonical visual"), Visual)) return false;
+    const FName ReadId(TEXT("Fixture_5G48_Read"));
+    const FText Title = FText::FromString(TEXT("Inscription"));
+    const FText Body = FText::FromString(TEXT("Persistent physical text"));
+    Visual->InitializeReadableContent(nullptr, ReadId, Title, Body);
+    Visual->SetItemLightsEnabled(false);
+    // Full bag must reject before deleting the source or its actor.
+    Slots[0].bOccupied = true;
+    Slots[0].Item = FGridItemInstance();
+    Slots[0].Item.RuntimeObjectId = FGuid::NewGuid();
+    Slots[0].Item.ItemDefinitionId = TEXT("Key_Copper");
+    Slots[0].Item.Quantity = 1;
+    TestFalse(TEXT("Full destination refuses"),
+        UGridItemTransferService::TransferReceptacleItemToInventory(F.Receptacle, 0, Inventory, 0).bSuccess);
+    if (!TestEqual(TEXT("Failed transfer preserves contained row"), F.Receptacle->GetContainedItemCount(), 1)) return false;
+    TestEqual(TEXT("Failed transfer preserves GUID"), F.Receptacle->ContainedItems[0].RuntimeObjectId, Id);
+    TestEqual(TEXT("Failed transfer preserves actual N12"), F.Receptacle->ContainedItems[0].ItemLevel, 12);
+    TestTrue(TEXT("Failed transfer preserves physical actor"), F.Receptacle->GetContainedItemActor(0) == Visual);
+    Slots[0] = FGridInventorySlot();
+    if (!TestTrue(TEXT("Service transfers real N12 into bag"),
+        UGridItemTransferService::TransferReceptacleItemToInventory(F.Receptacle, 0, Inventory, 0).bSuccess)) return false;
+    TestEqual(TEXT("Source is now empty"), F.Receptacle->GetContainedItemCount(), 0);
+    const FGridItemInstance* Item = F.FindBagItem(Inventory, Id);
+    if (!TestNotNull(TEXT("Same physical item in bag"), Item)) return false;
+    TestEqual(TEXT("N12 retained across service transfer"), Item->ItemLevel, 12);
+    TestEqual(TEXT("Exactly one unit"), Item->Quantity, 1);
+    TestEqual(TEXT("Readable identity retained"), Item->ReadableContentId, ReadId);
+    TestTrue(TEXT("Readable title retained"), Item->ReadTitleOverride.EqualTo(Title));
+    TestTrue(TEXT("Readable body retained"), Item->ReadTextOverride.EqualTo(Body));
+    TestFalse(TEXT("Current extinguished state retained"), Item->bLightsEnabled);
+    return !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
