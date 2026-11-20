@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.74 — Autorité canonique des capacités d'interaction
+
+Parent 15e89ba3bd5be245659a381b3d75d2a493dcca70. Les identités inconnues ne peuvent plus recevoir Lire/Consommer/Raccourci ni métadonnées de l'ancien DA en présence du registre ; texte instance conserve sa priorité pour les identités valides. Fixture Automation sans registre uniquement. Voir [5G.74](ARM_CLEAN06_5G74_CANONICAL_INTERACTION_CAPABILITIES.md).
+
 ## ARM-CLEAN06.5G.73 — Métadonnées physiques strictes
 
 Parent 42343220eba7aaa0f1716b4d84195bd3dfbdbe9f. Le lecteur commun aux niveaux monde/réceptacles refuse les identités inconnues en présence d'un registre ; aucune masse, nom ou niveau historique n'est renvoyé. Seules les fixtures Automation sans registre conservent l'ancien chemin. Tests 3AI/3AJ mis à jour. Voir [5G.73](ARM_CLEAN06_5G73_CANONICAL_PHYSICAL_METADATA.md).

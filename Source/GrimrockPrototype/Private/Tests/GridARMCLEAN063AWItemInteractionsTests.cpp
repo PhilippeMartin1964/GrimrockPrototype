@@ -172,8 +172,29 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
     Book->DisplayName = FText::FromString(TEXT("Legacy book"));
     const auto Legacy = FGridCanonicalItemInteractionReadModel::Resolve(
         F.Registry, Book, F.Make(Book->ItemDefinitionId, 0));
-    TestFalse(TEXT("Unregistered reading remains on old path"), Legacy.bCanonicalIdentity);
-    TestTrue(TEXT("Unregistered book remains readable"), Legacy.bCanRead);
+    TestFalse(TEXT("Unregistered reading is not canonical"), Legacy.bCanonicalIdentity);
+    TestFalse(TEXT("Configured registry refuses unknown readable source"),
+        Legacy.bResolved || Legacy.bCanRead || Legacy.bCanConsumeLegacy ||
+        Legacy.bCanConsumeCanonical || Legacy.bCanAddToHotbar || Legacy.bPhysicalThrowHotbar);
+    TestTrue(TEXT("Unknown reader exposes no historical presentation"),
+        Legacy.DisplayName.IsEmpty() && Legacy.DefaultReadText.IsEmpty());
+    FGridItemInstance UnknownWithText = F.Make(Book->ItemDefinitionId, 0);
+    UnknownWithText.ReadTextOverride = FText::FromString(TEXT("Unknown source text"));
+    TestFalse(TEXT("Instance text cannot authorize an unknown identity"),
+        FGridCanonicalItemInteractionReadModel::Resolve(F.Registry, Book, UnknownWithText).bCanRead);
+    TestFalse(TEXT("Real menu refuses unknown Read"),
+        F.HasAction(UnknownWithText, Book, EGridItemActionType::Read));
+    Book->ItemType = EGridItemType::Potion;
+    Book->bProvidesQuickItemCombatAction = true;
+    TestFalse(TEXT("Historical potion cannot grant unknown Consume"),
+        FGridCanonicalItemInteractionReadModel::Resolve(F.Registry, Book, UnknownWithText).bCanConsumeLegacy);
+    TestFalse(TEXT("Real menu refuses unknown Consume"),
+        F.HasAction(UnknownWithText, Book, EGridItemActionType::Consume));
+    Book->ItemType = EGridItemType::Book;
+    const auto FixtureRead = FGridCanonicalItemInteractionReadModel::Resolve(
+        nullptr, Book, F.Make(Book->ItemDefinitionId, 0));
+    TestTrue(TEXT("Isolated registry-less readable fixture remains supported"),
+        FixtureRead.bResolved && FixtureRead.bCanRead);
 
     const FGridItemInstance Incoming = F.Make(KnifeId, 20);
     if (!TestTrue(TEXT("Real canonical knife enters inventory without old DA"),

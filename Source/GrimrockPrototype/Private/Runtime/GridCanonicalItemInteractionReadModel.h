@@ -7,9 +7,10 @@
 
 /**
  * ARM-CLEAN06.3AW: context/read/hotbar capabilities of an actual item instance.
- * Membership is checked by ItemId before reading the legacy definition.
- * Canonical consumable UseActions cannot be executed by the old QuickItem
- * combat/exploration executor: do not grant an invented action.
+ * A configured registry is the sole authority. Historical capabilities
+ * are available only to isolated registry-less Automation fixtures.
+ * Instance-authored readable content remains independent of static data
+ * for a valid physical canonical item.
  */
 struct FGridCanonicalItemInteractionReadView
 {
@@ -74,7 +75,13 @@ struct FGridCanonicalItemInteractionReadModel
 			return Out;
 		}
 
-		// Unregistered items remain on the existing authoring/executor path.
+		// No production identity may obtain an interaction from historical
+		// data, including readable text on an unknown instance.
+#if WITH_DEV_AUTOMATION_TESTS
+		if (Registry || !GIsAutomationTesting) return Out;
+#else
+		return Out;
+#endif
 		const bool bLegacy = IsValid(OldDefinition) &&
 			OldDefinition->ItemDefinitionId == Item.ItemDefinitionId;
 		Out.bResolved = bLegacy;
