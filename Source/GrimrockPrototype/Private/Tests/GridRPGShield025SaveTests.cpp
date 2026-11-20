@@ -183,9 +183,7 @@ namespace Shield025
 				Item.RuntimeObjectId = FGuid::NewGuid();
 				Item.ItemDefinitionId = ShieldDef.ItemId;
 				Item.ItemLevel = 1;
-				Item.DisplayName = ShieldDef.DisplayName;
 				Item.Quantity = 1;
-				Item.Weight = ShieldDef.WeightKg;
 				Item.AbsorbedEquipmentPhysicalArmor = Spent;
 				Item.OwnerType = Owner;
 				Item.OwnerGuid = Owner == EGridItemOwnerType::Cursor ? FGuid() : CharacterId;

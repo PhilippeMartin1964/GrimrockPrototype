@@ -66,7 +66,6 @@ namespace ARMEMENT0162
 		Item.ItemDefinitionId = Definition->ItemDefinitionId;
 		Item.ItemLevel = Level;
 		Item.Quantity = 1;
-		Item.Weight = 4.25f;
 		return Item;
 	}
 
@@ -304,7 +303,7 @@ bool FARMEMENT0162NoMutationTest::RunTest(const FString&)
 	TestEqual(TEXT("ItemDefinitionId remains unchanged"), Item.ItemDefinitionId, Original.ItemDefinitionId);
 	TestEqual(TEXT("ItemLevel remains unchanged"), Item.ItemLevel, Original.ItemLevel);
 	TestEqual(TEXT("Quantity remains unchanged"), Item.Quantity, Original.Quantity);
-	TestTrue(TEXT("Weight remains unchanged"), FMath::IsNearlyEqual(Item.Weight, Original.Weight));
+	TestTrue(TEXT("Complete durable item state remains unchanged"), FGridItemInstance::StaticStruct()->CompareScriptStruct(&Item, &Original, 0));
 	TestEqual(TEXT("Definition archetype remains unchanged"), Definition->WeaponArchetypeId, OriginalArchetype);
 	TestEqual(TEXT("Default item level remains unchanged"), Definition->DefaultWeaponItemLevel, OriginalDefaultLevel);
 	TestFalse(TEXT("Visual-only opt-in does not enable combat catalogue"), Definition->bUseWeaponCatalogue);
