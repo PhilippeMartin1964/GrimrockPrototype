@@ -66,7 +66,7 @@ namespace
 #if WITH_DEV_AUTOMATION_TESTS
 		if (GIsAutomationTesting && !GI)
 			return IsValid(Legacy) && Legacy->ItemDefinitionId == Item.ItemDefinitionId
-				? Legacy->Weight : Item.Weight;
+				? Legacy->Weight : 0.0f;
 #endif
 		return 0.0f;
 	}
@@ -299,10 +299,6 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 	}
 
 	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, ThrownItem);
-#if WITH_DEV_AUTOMATION_TESTS
-	if (!Ballistics.bCanonicalIdentity)
-		ThrownItem.Weight = ThrowUnitWeight;
-#endif
 	ThrownItem.OwnerType = EGridItemOwnerType::World;
 	ThrownItem.OwnerGuid = FGuid();
 	ThrownItem.OwnerCharacterIndex = INDEX_NONE;
@@ -368,10 +364,6 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 	}
 
 	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
-#if WITH_DEV_AUTOMATION_TESTS
-	if (!Ballistics.bCanonicalIdentity)
-		WorldItem.Weight = ThrowUnitWeight;
-#endif
 	// The utility projectile must visually originate at the centre of Cursor_Aim.
 	// LaunchDirection is the camera-to-cursor world ray supplied by the controller, so placing
 	// the spawn point on AimDirection keeps the projectile exactly under that screen-space cursor.
@@ -481,10 +473,6 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefini
 	WorldItem.RuntimeObjectId = FGuid::NewGuid();
 	WorldItem.Quantity = 1;
 	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
-#if WITH_DEV_AUTOMATION_TESTS
-	if (!Ballistics.bCanonicalIdentity)
-		WorldItem.Weight = ThrowUnitWeight;
-#endif
 	WorldItem.OwnerType = EGridItemOwnerType::World;
 	WorldItem.OwnerGuid = FGuid();
 	WorldItem.OwnerCharacterIndex = INDEX_NONE;
@@ -549,10 +537,6 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	{
 		return nullptr;
 	}
-#if WITH_DEV_AUTOMATION_TESTS
-	if (!Ballistics.bCanonicalIdentity)
-		WorldItem.Weight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
-#endif
 
 	AGridThrownItemActor* ThrownActor = LevelRuntimeActor->SpawnThrownItemProjectile(
 		WorldItem, ItemDefinition, StartLocation, ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
@@ -611,10 +595,6 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchInventoryItemForAttack(
 	FGridItemInstance WorldItem = SourceSlot->Item;
 	WorldItem.RuntimeObjectId = FGuid::NewGuid();
 	WorldItem.Quantity = 1;
-#if WITH_DEV_AUTOMATION_TESTS
-	if (!Ballistics.bCanonicalIdentity)
-		WorldItem.Weight = GridPartyPawnThrowUnitWeight(this, ItemDefinition, WorldItem);
-#endif
 	WorldItem.OwnerType = EGridItemOwnerType::World;
 	WorldItem.OwnerGuid = FGuid();
 	WorldItem.OwnerCharacterIndex = INDEX_NONE;

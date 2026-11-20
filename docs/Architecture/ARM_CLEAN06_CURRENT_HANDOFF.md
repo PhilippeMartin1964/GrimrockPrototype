@@ -5,9 +5,13 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.125 — Lancers physiques sans copies de poids
+
+Parent `a65582fcbc571663e469a4fdc5a96c81cdc3a5ae` : après SilentTask et LocalAuto SUCCESS. Cinq affectations Automation du poids d'instance jetée supprimées ; les logs utilisent toujours la définition explicite et les contrôles force/balistique leur projection canonique. Voir [5G.125](ARM_CLEAN06_5G125_THROW_INSTANCE_MASS_WRITER_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.124 — Fixtures Editor sans copies de métadonnées
 
-Parent `e121171d235b0c823a0dfb334a61dd478c30ced5` : publier après SilentTask et LocalAuto SUCCESS. Audit matrices d'armes N1/N20, SaveGame v27 et tests de trajectoire, récupération et flèche fichée sans copie de nom/poids dans les instances. Voir [5G.124](ARM_CLEAN06_5G124_EDITOR_INSTANCE_FIXTURES.md).
+Parent `be0819966d02cf57b2770f7ee732fceac3809cf6` : publier après SilentTask et LocalAuto SUCCESS. Audit matrices d'armes N1/N20, SaveGame v27 et tests de trajectoire, récupération et flèche fichée sans copie de nom/poids dans les instances. Voir [5G.124](ARM_CLEAN06_5G124_EDITOR_INSTANCE_FIXTURES.md).
 
 ## ARM-CLEAN06.5G.123 — Instances de combat MON12 sans copie de nom
 
