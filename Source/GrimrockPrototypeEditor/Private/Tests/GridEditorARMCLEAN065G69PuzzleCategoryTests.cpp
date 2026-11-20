@@ -29,6 +29,8 @@ bool FGridEditorPuzzleCategoryPreviewTest::RunTest(const FString& Parameters)
         AddError(FString::Join(Errors, TEXT("; ")));
         return false;
     }
+    TestTrue(TEXT("Independent normalized property manifest excludes only category append"),
+        !Fingerprint(*Root.Get()).IsEmpty() && Fingerprint(*Root.Get()) == Fingerprint(*Preview.Get()));
     int32 Checked = 0;
     int32 NativeTagged = 0;
     const TArray<FName> Types = { TEXT("Torch"), TEXT("Weapon"), TEXT("Shield"), TEXT("Armor"),

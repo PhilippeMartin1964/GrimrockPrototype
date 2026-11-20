@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.71 — Transaction native des catégories
+
+Parent 1d7e42380d92e2dc97fcf17010c14bc41c49ac4c. Commandlet Audit/Apply/Verify, 26 packages strictement autorisés et LFS vérifié, sauvegardes privées, fingerprint sans le seul tag réservé, réouverture UE indépendante puis Automation complète. Statut supplémentaire UE5.5.4/ARM-CLEAN06.5G71 et commit binaire enfant à vérifier séparément. Voir [5G.71](ARM_CLEAN06_5G71_NATIVE_PUZZLE_CATEGORIES.md).
+
 ## ARM-CLEAN06.5G.70 — Isolation des catégories et parité historique
 
 Parent 0a57d949798dc71bf0bb8538123ec05de7d304ff. Tags réservés exclus des exigences d'équipement et des QuickItems ; validation refuse tags ARM, conflits et formes inconnues. Tests de projections historiques n'acceptent que l'ajout exact de la catégorie attestée ; preview native vérifie état 0/26 ou 26/26 et refuse alias/destination non transitoire. Aucune écriture native. Voir [5G.70](ARM_CLEAN06_5G70_PUZZLE_TAG_ISOLATION.md).

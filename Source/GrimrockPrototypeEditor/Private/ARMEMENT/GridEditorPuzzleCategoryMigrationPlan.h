@@ -154,4 +154,29 @@ namespace GridEditorPuzzleCategoryMigration
             return Fail(TEXT("Incomplete or dirty preview"));
         return true;
     }
+
+    // Deterministic property evidence after removing only the reserved tag
+    // from the exact non-ARM definitions. Used by independent UE processes.
+    inline FString Fingerprint(const UGridItemSystemAsset& Root)
+    {
+        FString Result;
+        for (const auto& Def : Root.ItemDefinitions)
+        {
+            if (!IsValid(Def.Get())) return FString();
+            Result += Def->ItemId.ToString() + TEXT("|") + Def->GetClass()->GetPathName() + TEXT("\n");
+            const auto OriginalTags = GridCanonicalPuzzleCategoryTags::WithoutReserved(Def->Tags);
+            for (FName Tag : OriginalTags)
+                Result += FString::Printf(TEXT("Tag[%d]=%s\n"), Tag.ToString().Len(), *Tag.ToString());
+            for (TFieldIterator<FProperty> Field(Def->GetClass()); Field; ++Field)
+            {
+                if (!Field->GetOwnerStruct()->IsChildOf(UGridCanonicalItemDefinitionAsset::StaticClass()) ||
+                    Field->HasAnyPropertyFlags(CPF_Transient) || Field->GetFName() == FName(TEXT("Tags"))) continue;
+                FString Value;
+                Field->ExportTextItem_Direct(Value, Field->ContainerPtrToValuePtr<void>(Def.Get()),
+                    nullptr, Def.Get(), PPF_None);
+                Result += FString::Printf(TEXT("%s[%d]=%s\n"), *Field->GetName(), Value.Len(), *Value);
+            }
+        }
+        return Result;
+    }
 }

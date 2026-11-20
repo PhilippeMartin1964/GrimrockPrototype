@@ -951,6 +951,102 @@ try {
             Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
         }
 
+        # Exact, one-shot 5G71 native package transaction after successful code validation.
+        $PuzzleMigrationSubject = @(& git -C $WorktreePath log -1 --format=%s)
+        if ($LASTEXITCODE -eq 0 -and $PuzzleMigrationSubject.Count -eq 1 -and
+            [string]$PuzzleMigrationSubject[0] -ceq 'ARM-CLEAN06.5G.71: guarded native puzzle category transaction') {
+            $PuzzleMigrationContext = 'UE5.5.4/ARM-CLEAN06.5G71'
+            $PuzzleMigrationStage = 'HOOK_STATUS'
+            try {
+                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $PuzzleMigrationContext -Description 'Ajout des 26 categories natives'
+                # -File must itself parse and execute the complete script. A
+                # separate in-process ParseFile call is not a prerequisite.
+                # On failure only a parser identifier/line/column is public.
+                $PuzzleMigrationScript = Join-Path $WorktreePath 'Scripts\ApplyARM_CLEAN06_5G71_PuzzleCategories.ps1'
+                if (-not (Test-Path -LiteralPath $PuzzleMigrationScript -PathType Leaf)) { throw 'Native transaction script missing.' }
+                $PuzzleMigrationStage = 'HOOK_SELFTEST'
+                if ($PuzzleMigrationScript.Contains('"') -or $RunDir.Contains('"')) { throw 'Unsafe self-test argument.' }
+                $SelfTestArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+                    $PuzzleMigrationScript + '" -SelfTest -RunDir "' + $RunDir + '"'
+                $SelfTestProcess = Start-Process -FilePath $PsExe -ArgumentList $SelfTestArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput (Join-Path $RunDir 'ARM065G71.selftest.stdout.log') -RedirectStandardError (Join-Path $RunDir 'ARM065G71.selftest.stderr.log') -ErrorAction Stop
+                if ($SelfTestProcess.ExitCode -ne 0 -or
+                    -not (Test-Path -LiteralPath (Join-Path $RunDir 'ArmClean065G71.stage') -PathType Leaf) -or
+                    (Get-Content -LiteralPath (Join-Path $RunDir 'ArmClean065G71.stage') -TotalCount 1) -cne 'SELFTEST_SUCCESS') {
+                    # Parse only structured diagnostic metadata, never raw
+                    # exception text, source snippets or paths. If the helper
+                    # could not even start, the Windows parser can identify
+                    # the exact failing extent in this read-only catch path.
+                    $PuzzleSyntaxDiagnostic = ''
+                    $PuzzleStageFile = Join-Path $RunDir 'ArmClean065G71.stage'
+                    if (-not (Test-Path -LiteralPath $PuzzleStageFile -PathType Leaf)) {
+                        try {
+                            $PuzzleTokens = $null
+                            $PuzzleErrors = $null
+                            $PuzzleSource = [IO.File]::ReadAllText($PuzzleMigrationScript)
+                            [void][System.Management.Automation.Language.Parser]::ParseInput(
+                                $PuzzleSource, [ref]$PuzzleTokens, [ref]$PuzzleErrors)
+                            if ($PuzzleErrors -and $PuzzleErrors.Count -gt 0) {
+                                $Code = [string]$PuzzleErrors[0].ErrorId
+                                $Line = [int]$PuzzleErrors[0].Extent.StartLineNumber
+                                $Column = [int]$PuzzleErrors[0].Extent.StartColumnNumber
+                                if ($Code -cmatch '^[A-Za-z][A-Za-z0-9_]{0,63}$' -and
+                                    $Line -ge 1 -and $Line -le 10000 -and $Column -ge 1 -and $Column -le 1000) {
+                                    $PuzzleSyntaxDiagnostic = 'PARSE_'+$Code+'_L'+$Line+'_C'+$Column
+                                }
+                            }
+                        } catch {
+                            # Also distinguish parser API infrastructure errors.
+                            $PuzzleSyntaxDiagnostic = 'PARSE_API_ERROR'
+                        }
+                        if ([string]::IsNullOrEmpty($PuzzleSyntaxDiagnostic)) {
+                            $PuzzleErrorLog = Join-Path $RunDir 'ARM065G71.selftest.stderr.log'
+                            if (Test-Path -LiteralPath $PuzzleErrorLog -PathType Leaf) {
+                                $PuzzleErrorText = Get-Content -LiteralPath $PuzzleErrorLog -Raw
+                                if ($PuzzleErrorText -match '(?m)^\s*\+\s*FullyQualifiedErrorId\s*:\s*([A-Za-z][A-Za-z0-9_]{0,63})\s*$') {
+                                    $PuzzleSyntaxDiagnostic = 'CHILD_'+$Matches[1]
+                                }
+                            }
+                        }
+                    }
+                    if (-not [string]::IsNullOrEmpty($PuzzleSyntaxDiagnostic)) { $PuzzleMigrationStage = $PuzzleSyntaxDiagnostic }
+                    throw 'Native transaction self-test did not complete.'
+                }
+                $PuzzleMigrationStage = 'HOOK_ARGUMENTS'
+                $PuzzleMigrationArgs = @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$PuzzleMigrationScript,
+                    '-WorktreePath',$WorktreePath,'-RepositoryRoot',$RepositoryRoot,'-EngineRoot',$EngineRoot,
+                    '-StateRoot',$StateRoot,'-RunDir',$RunDir,'-ExpectedHead',$Sha,'-GitHubRepository',$GitHubRepository)
+                $PuzzleMigrationArgLine = ($PuzzleMigrationArgs | ForEach-Object {
+                    if ($_.Contains('"')) { throw 'Unsafe argument.' }
+                    '"' + $_ + '"'
+                }) -join ' '
+                $PuzzleMigrationStage = 'HOOK_PROCESS'
+                $PuzzleMigrationProcess = Start-Process -FilePath $PsExe -ArgumentList $PuzzleMigrationArgLine -WorkingDirectory $WorktreePath -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput (Join-Path $RunDir 'ARM065G71.stdout.log') -RedirectStandardError (Join-Path $RunDir 'ARM065G71.stderr.log') -ErrorAction Stop
+                if ($PuzzleMigrationProcess.ExitCode -ne 0 -or (Get-Content -LiteralPath (Join-Path $RunDir 'ArmClean065G71.stage') -TotalCount 1) -cne 'SUCCESS') {
+                    throw 'Native transaction did not complete.'
+                }
+                Publish-CommitStatus -Sha $Sha -State 'success' -Context $PuzzleMigrationContext -Description '26 categories natives, reouverture et Automation OK'
+            } catch {
+                $PuzzleMigrationStagePath = Join-Path $RunDir 'ArmClean065G71.stage'
+                if (Test-Path -LiteralPath $PuzzleMigrationStagePath -PathType Leaf) {
+                    $RecordedPuzzleMigrationStage = ([string](Get-Content -LiteralPath $PuzzleMigrationStagePath -TotalCount 1)).Trim()
+                    if ($RecordedPuzzleMigrationStage -cne 'SELFTEST_SUCCESS' -or $PuzzleMigrationStage -ceq 'HOOK_SELFTEST') { $PuzzleMigrationStage = $RecordedPuzzleMigrationStage }
+                }
+                $PuzzleFixedStages = @('HOOK_STATUS','HOOK_SELFTEST','SELFTEST_INIT','SELFTEST_GIT','SELFTEST_SET',
+                    'SELFTEST_PATH','SELFTEST_POINTER','SELFTEST_QUOTE','SELFTEST_SUCCESS','HOOK_ARGUMENTS','HOOK_PROCESS',
+                    'PREFLIGHT_INPUT','PREFLIGHT_LOCATION','PREFLIGHT_ORDINARY_PATH','PREFLIGHT_WORKTREE',
+                    'PREFLIGHT_HEAD','PREFLIGHT_REMOTE','PREFLIGHT_ANCESTRY','PREFLIGHT_DIFF','PREFLIGHT_CLEAN',
+                    'PREFLIGHT_VALIDATION','PREFLIGHT_SNAPSHOT','PREFLIGHT_EXECUTABLES','PREFLIGHT_LFS',
+                    'AUDIT','APPLY','REOPEN','AUTOMATION','PUBLISH','ROLLBACK_INCOMPLETE','SUCCESS','PARSE_API_ERROR')
+                if ($PuzzleMigrationStage -cnotin $PuzzleFixedStages -and
+                    $PuzzleMigrationStage -cnotmatch '^PARSE_[A-Za-z][A-Za-z0-9_]{0,63}_L[0-9]{1,5}_C[0-9]{1,4}$' -and
+                    $PuzzleMigrationStage -cnotmatch '^CHILD_[A-Za-z][A-Za-z0-9_]{0,63}$') { $PuzzleMigrationStage = 'UNKNOWN' }
+                try {
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Context $PuzzleMigrationContext -Description ('Conversion ARM bloquee : '+$PuzzleMigrationStage)
+                } catch { Write-Warning 'Native transaction status unavailable.' }
+                Write-Warning ('ARM-CLEAN06.5G71: '+$PuzzleMigrationStage)
+            }
+        }
+
         $Result = 'success'
         Write-Host "[VALIDATION-AUTO01] SUCCES $Sha. Journaux : $RunDir"
     }
