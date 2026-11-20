@@ -204,8 +204,12 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     TestEqual(TEXT("Transfer preserves item level in returned record"), Accepted.ItemLevel, 12);
     TestNull(TEXT("Contained mass cache removed from schema"), FGridContainedReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("Weight")));
     TestNull(TEXT("Contained name cache removed from schema"), FGridContainedReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
-    TestEqual(TEXT("Accepted v27 projection uses canonical mass"), Accepted.Weight, Physical.WeightKg);
-    TestTrue(TEXT("Accepted v27 projection uses canonical name"), Accepted.DisplayName.EqualTo(Physical.DisplayName));
+    TestEqual(TEXT("Accepted transfer carries no cached mass"), Accepted.Weight, 0.0f);
+    TestTrue(TEXT("Accepted transfer carries no cached name"), Accepted.DisplayName.IsEmpty());
+    const auto AcceptedMetadata = FGridInventoryItemMetadataReadModel::Resolve(Fixture.RegistryScope.Registry, nullptr, Accepted);
+    TestTrue(TEXT("Accepted item metadata resolves"), AcceptedMetadata.bResolved);
+    TestEqual(TEXT("Accepted item projection uses canonical mass"), AcceptedMetadata.UnitWeightKg, Physical.WeightKg);
+    TestTrue(TEXT("Accepted item projection uses canonical name"), AcceptedMetadata.DisplayName.EqualTo(Physical.DisplayName));
     TestTrue(TEXT("Narrative title retained independently"), Accepted.ReadTitleOverride.EqualTo(Cursor.ReadTitleOverride));
     TestTrue(TEXT("Narrative body retained independently"), Accepted.ReadTextOverride.EqualTo(Cursor.ReadTextOverride));
     TestTrue(TEXT("Total receptacle weight is canonical"), FMath::IsNearlyEqual(Fixture.Receptacle->GetContainedTotalWeight(), Physical.WeightKg));

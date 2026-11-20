@@ -59,7 +59,6 @@ namespace
 			Candidate.RuntimeObjectId = Entry.ObjectId;
 			Candidate.ItemDefinitionId = Entry.ItemDefinitionId;
 			Candidate.Quantity = Entry.Quantity;
-			Candidate.Weight = Resolved.WeightKg;
 		}
 		else
 		{

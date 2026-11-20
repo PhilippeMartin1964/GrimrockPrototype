@@ -515,10 +515,9 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 
 	OutAcceptedItem = CursorItem;
 	OutAcceptedItem.ItemLevel = AcceptedReceptacleItem.ItemLevel;
-	// The v27 transfer record still has these fields, but the receptacle
-	// stores neither static property. Never propagate a stale cache.
-	OutAcceptedItem.Weight = InsertedMetadata.UnitWeightKg;
-	OutAcceptedItem.DisplayName = InsertedMetadata.DisplayName;
+	// Canonical physical transfers must not carry static metadata copies.
+	OutAcceptedItem.Weight = 0.0f;
+	OutAcceptedItem.DisplayName = FText::GetEmpty();
 	OutAcceptedItem.OwnerType = EGridItemOwnerType::Receptacle;
 	OutAcceptedItem.OwnerGuid = ObjectId;
 	OutAcceptedItem.OwnerCharacterIndex = INDEX_NONE;

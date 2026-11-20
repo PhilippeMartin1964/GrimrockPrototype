@@ -282,9 +282,8 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 		{
 			return LogTransferFailure(Operation, EGridItemTransferResult::InvalidItem, TEXT("Contained canonical instance is invalid."), &Candidate);
 		}
-		Candidate.Weight = Resolved.WeightKg;
+		// Keep the notification label local; the physical instance has no cache.
 		CanonicalDisplayName = Resolved.DisplayName.IsEmpty() ? FText::FromName(Candidate.ItemDefinitionId) : Resolved.DisplayName;
-		Candidate.DisplayName = CanonicalDisplayName;
 	}
 
 	if (!Candidate.IsValid())

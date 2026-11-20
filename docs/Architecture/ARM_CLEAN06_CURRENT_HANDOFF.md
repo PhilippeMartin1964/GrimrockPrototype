@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.96 — Transferts monde et réceptacles sans caches
+
+Parent d9526ad5bb4a666de19d73c5cd9f9bab772c1d40 : publication seulement après SilentTask et LocalAuto SUCCESS. Supprimer recréation nom/masse des transferts réceptacle et monde canonique, garder le libellé événementiel local, la masse des plaques via le registre et la compatibilité des fixtures historiques. Test ARMEMENT0183 : caches absents et projections canoniques. Voir [5G.96](ARM_CLEAN06_5G96_WORLD_RECEPTACLE_CACHE_WRITER_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.95 — Génération des instances sans métadonnées dupliquées
 
 Parent 4259f93607192acedd1c72bf1e1d53e06de9114d : publication seulement après SilentTask et LocalAuto SUCCESS. Les loots et kits de départ canoniques ne recopient plus nom/masse, tests MON8 et 3AM lisent l'autorité canonique. Fixtures non canoniques isolées conservées. Voir [5G.95](ARM_CLEAN06_5G95_GENERATION_CACHE_WRITER_RETIREMENT.md).
