@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.92 — Empreinte durable avant retrait du schéma d'instance
+
+Parent e7702d3d7f1b6f5b42f8a58f5e7acd5eb1da51b5. Publication après succès des cinq statuts 5G91. Projection privée de toutes les propriétés SaveGame racines, parcours des conteneurs d'instance excluant uniquement DisplayName/Weight de FGridItemInstance et champs transitoires, comparaison avant/après normalisation. Nouvelle preuve baseline 5G92 + SemanticWeightParity/CacheParity. Voir [5G.92](ARM_CLEAN06_5G92_INSTANCE_SCHEMA_BASELINE.md).
+
 ## ARM-CLEAN06.5G.91 — Preuve fonctionnelle des caches
 
 Parent 305cf06836036870dd9c5c0a288511ef967d6b36. 5G90 exécuté, WeightProvenance/CacheParity FAILURE. Ne pas prétendre connaître la provenance des masses. Preuve indépendante via lecteurs runtime réels : identité, poids, tri, tooltip, physique, force et balistique avant/après effacement mémoire. Valeur négative/non finie ou nom divergent refusés. Statuts SemanticWeightParity et CacheParity obligatoires. Voir [5G.91](ARM_CLEAN06_5G91_SEMANTIC_CACHE_PARITY.md).

@@ -4,6 +4,7 @@
 #include "../ARMEMENT/GridEditorRetirementAudit.h"
 #include "../ARMEMENT/GridEditorInstanceCacheEvidence.h"
 #include "Serialization/MemoryWriter.h"
+#include "../ARMEMENT/GridEditorInstanceSchemaProjection.h"
 #include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
 #include "../ARMEMENT/GridEditorAlchemySaveCopy.h"
 #include "../ARMEMENT/GridEditorWorldSaveProjection.h"
@@ -279,6 +280,32 @@ bool FGridEditorARMCLEAN065G88CacheEvidence::RunTest(const FString&)
     TestEqual(TEXT("Physical GUID remains"), Party.CursorItem.RuntimeObjectId, Item.RuntimeObjectId);
     TestEqual(TEXT("Physical debt remains"), Party.CursorItem.AbsorbedEquipmentPhysicalArmor, 3);
     TestTrue(TEXT("Narrative title remains"), Party.CursorItem.ReadTitleOverride.EqualTo(Item.ReadTitleOverride));
+    // The private cross-schema fingerprint ignores exactly the two item
+    // cache fields. It must detect all distinct durable state changes.
+    TStrongObjectPtr<UGrimrockPartySaveGame> Saved(NewObject<UGrimrockPartySaveGame>());
+    Saved->PartyInventoryState = Party;
+    const auto Baseline = GridEditorInstanceSchemaProjection::Build(*Saved.Get());
+    auto& Cursor = Saved->PartyInventoryState.CursorItem;
+    Cursor.Weight = 765.f;
+    Cursor.DisplayName = FText::FromString(TEXT("Cached alias"));
+    TestTrue(TEXT("Only caches do not change fingerprint"),
+        Baseline == GridEditorInstanceSchemaProjection::Build(*Saved.Get()));
+    Cursor.Quantity++;
+    TestFalse(TEXT("Quantity change detected"), Baseline == GridEditorInstanceSchemaProjection::Build(*Saved.Get()));
+    Cursor.Quantity--;
+    Cursor.AbsorbedEquipmentPhysicalArmor++;
+    TestFalse(TEXT("Armor debt change detected"), Baseline == GridEditorInstanceSchemaProjection::Build(*Saved.Get()));
+    Cursor.AbsorbedEquipmentPhysicalArmor--;
+    Cursor.ReadTitleOverride = FText::FromString(TEXT("Different actual readable title"));
+    TestFalse(TEXT("Readable title change detected"), Baseline == GridEditorInstanceSchemaProjection::Build(*Saved.Get()));
+    Cursor.ReadTitleOverride = Party.CursorItem.ReadTitleOverride;
+    Saved->PartyInventoryState.ActiveCharacters[0].DisplayName = FText::FromString(TEXT("Actual hero name"));
+    TestFalse(TEXT("Character name is not an item cache"), Baseline == GridEditorInstanceSchemaProjection::Build(*Saved.Get()));
+    Saved->PartyInventoryState.ActiveCharacters[0].DisplayName = Party.ActiveCharacters[0].DisplayName;
+    Saved->PartyCellX++;
+    TestFalse(TEXT("Position change detected"), Baseline == GridEditorInstanceSchemaProjection::Build(*Saved.Get()));
+    Saved->PartyCellX--;
+    TestTrue(TEXT("Restored durable values match"), Baseline == GridEditorInstanceSchemaProjection::Build(*Saved.Get()));
     Party.CursorItem.ItemDefinitionId = TEXT("UnknownCacheFixture");
     TestFalse(TEXT("Unknown ID cannot clear"), ClearVerifiedCopy(Party, *Registry.Get()));
     return !HasAnyErrors();

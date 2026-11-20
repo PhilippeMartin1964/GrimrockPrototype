@@ -3,6 +3,7 @@
 #include "GridEditorAlchemySaveCopy.h"
 #include "GridEditorWorldSaveProjection.h"
 #include "GridEditorInstanceCacheEvidence.h"
+#include "GridEditorInstanceSchemaProjection.h"
 #include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
@@ -61,6 +62,8 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
     const bool bInstanceEvidence = FParse::Param(*Params, TEXT("InstanceCacheEvidence"));
     const bool bWeightEvidence = FParse::Param(*Params, TEXT("WeightCacheEvidence"));
     const bool bSemanticEvidence = FParse::Param(*Params, TEXT("SemanticCacheEvidence"));
+    const bool bSchemaProjection = FParse::Param(*Params, TEXT("InstanceSchemaProjection"));
+    if (bSchemaProjection && !bSemanticEvidence) return 1;
     if ((bInstanceEvidence && !bWorldPreflight) ||
         ((bWeightEvidence || bSemanticEvidence) && !bInstanceEvidence) ||
         (bWeightEvidence && bSemanticEvidence)) return 1;
@@ -91,6 +94,7 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
     Report->SetBoolField(TEXT("instance_cache_evidence"), bInstanceEvidence);
     Report->SetBoolField(TEXT("weight_cache_evidence"), bWeightEvidence);
     Report->SetBoolField(TEXT("semantic_cache_evidence"), bSemanticEvidence);
+    Report->SetBoolField(TEXT("instance_schema_projection"), bSchemaProjection);
     Report->SetStringField(TEXT("schema"), TEXT("ARM-CLEAN06.5A/retirement-evidence/v1"));
     Report->SetObjectField(TEXT("native"), Native.Report);
     TArray<FString> Filenames;
@@ -126,6 +130,14 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
                 Audit.Collect(*Save.Get(), Native.ItemIds);
                 Audit.Write(*Row);
                 Row->SetNumberField(TEXT("version"), Save->SaveVersion);
+                if (bSchemaProjection)
+                {
+                    const auto Projection = GridEditorInstanceSchemaProjection::Build(*Save.Get());
+                    TArray<TSharedPtr<FJsonValue>> Fields;
+                    for (const FString& Field : Projection)
+                        Fields.Add(MakeShared<FJsonValueString>(Field));
+                    Row->SetArrayField(TEXT("durable_save_projection"), Fields);
+                }
                 if (bInstanceEvidence)
                 {
                     using namespace GridEditorInstanceCacheEvidence;
@@ -158,7 +170,10 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
                             const FCounts Remaining = Inspect(Reloaded->PartyInventoryState, *Registry.Get(), nullptr, bSemanticEvidence);
                             bNormalizedParity = Remaining.CanClear() && Remaining.Instances == Counts.Instances &&
                                 Remaining.CachedNames == 0 && Remaining.CachedWeights == 0 &&
-                                GridEditorAlchemySaveCopy::SameSaveProperties(*Expected.Get(), *Reloaded.Get(), CheckError);
+                                GridEditorAlchemySaveCopy::SameSaveProperties(*Expected.Get(), *Reloaded.Get(), CheckError) &&
+                                (!bSchemaProjection ||
+                                    GridEditorInstanceSchemaProjection::Build(*Save.Get()) ==
+                                    GridEditorInstanceSchemaProjection::Build(*Reloaded.Get()));
                         }
                     }
                     Row->SetBoolField(TEXT("cache_normalized_roundtrip_equal"), bNormalizedParity);

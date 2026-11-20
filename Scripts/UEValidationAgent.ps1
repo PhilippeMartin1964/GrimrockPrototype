@@ -1015,15 +1015,17 @@ try {
             }
         }
 
-        if ($EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.]91:') {
-            $Context='UE5.5.4/ARM-CLEAN06.5G91'
+        if ($EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.](91|92):') {
+            $SchemaBaseline=$Matches[1] -eq '92'
+            $Context='UE5.5.4/ARM-CLEAN06.5G'+$Matches[1]
             try {
                 Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Context -Description 'Private functional cache invariance'
                 $CacheRun=Join-Path $RunDir 'SemanticCacheEvidence'
-                & (Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot $CacheRun -ExpectedHead $Sha -InstanceCacheEvidence -SemanticCacheEvidence
+                & (Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot $CacheRun -ExpectedHead $Sha -InstanceCacheEvidence -SemanticCacheEvidence -InstanceSchemaProjection:$SchemaBaseline
                 $Receipt=Get-Content -LiteralPath (Join-Path $CacheRun 'cache-proof.json') -Raw -Encoding UTF8 | ConvertFrom-Json
                 if ($Receipt.schema -cne 'ARM-CLEAN06.5G88/instance-cache-aggregate/v1' -or $Receipt.head -cne $Sha -or -not $Receipt.source_unchanged -or -not $Receipt.copies_unchanged -or -not $Receipt.semantic_evidence -or $Receipt.parity -isnot [bool] -or $Receipt.semantic_projection_parity -isnot [bool]) { throw 'Invalid private semantic receipt.' }
                 $ParityState=if ($Receipt.parity) {'success'} else {'failure'}
+                if ($SchemaBaseline -and -not $Receipt.instance_schema_projection) { throw 'Missing schema baseline receipt.' }
                 $ProjectionState=if ($Receipt.semantic_projection_parity) {'success'} else {'failure'}
                 Publish-CommitStatus -Sha $Sha -State $ProjectionState -Context ($Context+'.SemanticWeightParity') -Description 'Actual canonical consumer projections unchanged'
                 Publish-CommitStatus -Sha $Sha -State $ParityState -Context ($Context+'.CacheParity') -Description 'Normalized memory parity; no live writes'
