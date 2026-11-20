@@ -7,6 +7,8 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemActor.h"
+#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridItemTransferService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -140,6 +142,58 @@ bool FGridClean064X30PointerlessLockVisual::RunTest(const FString&)
 		bOk &= TestEqual(TEXT("Failed attempt adds no logical key"),
 			InvalidLock->GetContainedItemCount(), 0);
 	}
+
+	// Even an explicitly accepted stale ID is not a physical key.
+	const FName UnknownId(TEXT("CLEAN06_5G47_UnknownKey"));
+	UGridPartyInventoryComponent* Inventory = Party->PartyInventoryComponent;
+	UGridItemDefinitionAsset* Old = NewObject<UGridItemDefinitionAsset>(Inventory);
+	Old->ItemDefinitionId = UnknownId;
+	bOk &= TestTrue(TEXT("Contradictory historical fixture registers"), Inventory->RegisterItemDefinition(Old));
+	AGridWallLockActor* UnknownLock = World->SpawnActor<AGridWallLockActor>(
+		AGridWallLockActor::StaticClass(), FTransform::Identity, Params);
+	if (TestNotNull(TEXT("Unknown-ID lock"), UnknownLock))
+	{
+		Data.ObjectId = FGuid::NewGuid();
+		Data.Behavior.Lock.AcceptedKeyIds.Add(UnknownId);
+		UnknownLock->InitializeRuntimeWorldObject(Data, nullptr, FTransform::Identity);
+		FGridItemInstance Unknown = Key;
+		Unknown.ItemDefinitionId = UnknownId;
+		Unknown.ItemLevel = 0;
+		Unknown.RuntimeObjectId = FGuid::NewGuid();
+		bOk &= TestTrue(TEXT("Authored ID rule remains explicit"), UnknownLock->CanAcceptKeyDefinition(UnknownId));
+		bOk &= TestFalse(TEXT("Historical accepted ID is not a physical key"), UnknownLock->CanAcceptKeyInstance(Unknown));
+		bOk &= TestFalse(TEXT("Historical key cannot unlock through context"), UnknownLock->TryUnlockWithContextItem(Party, Unknown));
+		bOk &= TestFalse(TEXT("Historical refusal never unlocks"), UnknownLock->bIsUnlocked);
+		bOk &= TestEqual(TEXT("Historical refusal creates no contained key"), UnknownLock->GetContainedItemCount(), 0);
+		Inventory->PartyInventoryState.ActiveCharacters.SetNum(1);
+		auto& Hero = Inventory->PartyInventoryState.ActiveCharacters[0];
+		Hero.CharacterId = FGuid::NewGuid();
+		Hero.InventorySlots.SetNum(1);
+		Hero.InventorySlots[0].bOccupied = true;
+		Unknown.OwnerType = EGridItemOwnerType::CharacterInventory;
+		Unknown.OwnerGuid = Hero.CharacterId;
+		Unknown.OwnerCharacterIndex = 0;
+		Hero.InventorySlots[0].Item = Unknown;
+		bOk &= TestFalse(TEXT("Historical inventory key refused before extraction"),
+			UGridItemTransferService::TransferInventorySlotToWallLock(Inventory, 0, 0, UnknownLock, Party).bSuccess);
+		bOk &= TestEqual(TEXT("Rejected inventory transfer preserves GUID"), Hero.InventorySlots[0].Item.RuntimeObjectId, Unknown.RuntimeObjectId);
+		bOk &= TestEqual(TEXT("Rejected inventory transfer preserves quantity"), Hero.InventorySlots[0].Item.Quantity, 1);
+		Key.ItemLevel = 0;
+		Key.Quantity = MAX_int32;
+		bOk &= TestFalse(TEXT("Over-capacity key source rejected before split"), UnknownLock->CanAcceptKeyInstance(Key));
+		Key.Quantity = 1;
+		bOk &= TestTrue(TEXT("Valid canonical key preflight"), UnknownLock->CanAcceptKeyInstance(Key));
+		Key.RuntimeObjectId = FGuid::NewGuid(); // Distinct physical key from the first lock.
+		Key.OwnerType = EGridItemOwnerType::CharacterInventory;
+		Key.OwnerGuid = Hero.CharacterId;
+		Key.OwnerCharacterIndex = 0;
+		Hero.InventorySlots[0].Item = Key;
+		bOk &= TestTrue(TEXT("Real inventory key unlocks canonically"),
+			UGridItemTransferService::TransferInventorySlotToWallLock(Inventory, 0, 0, UnknownLock, Party).bSuccess);
+		bOk &= TestTrue(TEXT("Successful inventory transfer consumes slot"), Hero.InventorySlots[0].IsEmpty());
+		bOk &= TestEqual(TEXT("Exactly one canonical key inserted"), UnknownLock->GetContainedItemCount(), 1);
+	}
+	else bOk = false;
 
 	World->SetGameInstance(nullptr);
 	GI->Shutdown();

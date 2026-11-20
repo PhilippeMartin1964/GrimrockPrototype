@@ -22,6 +22,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lock")
 	bool CanAcceptKeyDefinition(FName ItemDefinitionId) const;
 
+	/** Physical preflight in addition to the authored ID-only rule. */
+	bool CanAcceptKeyInstance(const FGridItemInstance& KeyItem) const;
+
 	virtual bool CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
 	virtual void Interact_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
 	virtual void InteractWithHit_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult) override;

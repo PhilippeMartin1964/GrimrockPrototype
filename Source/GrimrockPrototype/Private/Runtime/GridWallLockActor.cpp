@@ -3,7 +3,6 @@
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "GridWallLockAcceptedKeyReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -95,7 +94,7 @@ bool AGridWallLockActor::TryInteractWithParty(AGrimrockPartyPawn* PartyPawn)
 		UE_LOG(LogGridWallLock, Log, TEXT("GridWallLock CursorKeyAttempt ObjectId=%s CursorItemDefinitionId=%s"), *ObjectId.ToString(),
 			*CursorItem.ItemDefinitionId.ToString());
 
-		if (!IsAcceptedKey(CursorItem.ItemDefinitionId))
+		if (!CanAcceptKeyInstance(CursorItem))
 		{
 			const FText Message = GetEffectiveMissingKeyMessage();
 			GridEventFeedPublisher::PublishDungeonEvent(
@@ -151,9 +150,21 @@ bool AGridWallLockActor::CanAcceptKeyDefinition(FName ItemDefinitionId) const
 	return IsAcceptedKey(ItemDefinitionId);
 }
 
+bool AGridWallLockActor::CanAcceptKeyInstance(const FGridItemInstance& KeyItem) const
+{
+	if (bIsUnlocked || IsFull() || !KeyItem.IsValid() || !IsAcceptedKey(KeyItem.ItemDefinitionId)) return false;
+	const UWorld* World = GetWorld();
+	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	FGridResolvedItem Resolved;
+	return Registry && Registry->ResolveItem(KeyItem.ItemDefinitionId, KeyItem.ItemLevel, Resolved) &&
+		Resolved.IsValid() && Resolved.ItemLevel == KeyItem.ItemLevel &&
+		(Resolved.bIsArmament || KeyItem.ItemLevel == 0) && KeyItem.Quantity <= FMath::Max(1, Resolved.MaxStack);
+}
+
 bool AGridWallLockActor::TryUnlockWithContextItem(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& KeyItem)
 {
-	if (!PartyPawn || !PartyPawn->LevelRuntimeActor || !KeyItem.IsValid() || bIsUnlocked || !IsAcceptedKey(KeyItem.ItemDefinitionId))
+	if (!PartyPawn || !PartyPawn->LevelRuntimeActor || !CanAcceptKeyInstance(KeyItem) || KeyItem.Quantity != 1)
 	{
 		return false;
 	}
@@ -237,42 +248,25 @@ bool AGridWallLockActor::AttachInsertedKeyVisual(AGrimrockPartyPawn* PartyPawn, 
 		return false;
 	}
 
+	if (!CanAcceptKeyInstance(CursorItem)) return false;
 	const FGuid VisualRuntimeObjectId = CursorItem.Quantity > 1 ? FGuid::NewGuid() : CursorItem.RuntimeObjectId;
 	const UWorld* World = GetWorld();
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GameInstance
 		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	const bool bPointerlessCanonical = Registry &&
-		Registry->HasCanonicalItem(CursorItem.ItemDefinitionId);
-	UGridItemDefinitionAsset* ItemDefinition = nullptr;
-	if (!bPointerlessCanonical)
+	AGridItemActor* CanonicalVisual = PartyPawn->LevelRuntimeActor->SpawnItemActorForDefinition(
+		nullptr, CursorItem.ItemDefinitionId, this, ItemAttachPoint.Get());
+	if (!IsValid(CanonicalVisual)) return false;
+	FGridItemInstance PhysicalKey = CursorItem;
+	PhysicalKey.RuntimeObjectId = VisualRuntimeObjectId;
+	PhysicalKey.Quantity = 1;
+	if (!CanonicalVisual->InitializeFromCanonicalItem(PhysicalKey, Registry))
 	{
-		ItemDefinition = PartyPawn->PartyInventoryComponent
-			? PartyPawn->PartyInventoryComponent->FindItemDefinition(CursorItem.ItemDefinitionId) : nullptr;
-	}
-	AGridItemActor* CanonicalVisual = nullptr;
-	if (bPointerlessCanonical)
-	{
-		// Prebuild the complete world presentation (mesh, light, effects)
-		// before AddContainedItem. Its legacy-ID-only spawn cannot by itself
-		// project a registered key with no historical definition.
-		CanonicalVisual = PartyPawn->LevelRuntimeActor->SpawnItemActorForDefinition(
-			nullptr, CursorItem.ItemDefinitionId, this, ItemAttachPoint.Get());
-		if (!IsValid(CanonicalVisual))
-		{
-			return false;
-		}
-		FGridItemInstance PhysicalKey = CursorItem;
-		PhysicalKey.RuntimeObjectId = VisualRuntimeObjectId;
-		PhysicalKey.Quantity = 1;
-		if (!CanonicalVisual->InitializeFromCanonicalItem(PhysicalKey, Registry))
-		{
-			CanonicalVisual->Destroy();
-			return false; // No known ID may revert to incomplete legacy art.
-		}
+		CanonicalVisual->Destroy();
+		return false;
 	}
 	const int32 ItemIndex = AddContainedItem(
-		CursorItem.ItemDefinitionId, ItemDefinition, CanonicalVisual, false,
+		CursorItem.ItemDefinitionId, nullptr, CanonicalVisual, false,
 		1, VisualRuntimeObjectId, CursorItem.ItemLevel);
 	if (ItemIndex == INDEX_NONE)
 	{

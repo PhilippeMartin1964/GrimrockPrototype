@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.47 — Serrure murale : transfert physique canonique
+
+Parent 6f70b0999121c74185a0080be03d2a7a03072cce. Publication après deux statuts SUCCESS. CanAcceptKeyInstance vérifie identité, niveau, quantité, liste d’IDs et capacité de la serrure avant extraction ; plus de recherche historique pour le visuel. X30 couvre ID historique explicitement accepté mais physiquement refusé, conservation du sac et transfert canonique réel. CanAcceptKeyDefinition reste la lecture de la règle d’authoring. Voir [5G.47](ARM_CLEAN06_5G47_CANONICAL_WALL_LOCK_TRANSFER.md). Aucun asset/save écrit.
+
 ## ARM-CLEAN06.5G.46 — Consommables de surface exclusivement canoniques
 
 Parent 93abacb6de60abf8624b894b812a7de0389ee160. Publication après deux statuts SUCCESS. ResolveSurface et ResolveSurfaceMesh ne reçoivent plus d’ancien asset ni ne lisent FindItemDefinition. Huile/catalyseur N0, actions détaillées, capacité et mesh proviennent du seul registre ; HUD vide reste désactivé, exécution exige possession. Quatre tests MON12 de pipeline combat/exploration migrés au vrai registre, 5D renforcé. Voir [5G.46](ARM_CLEAN06_5G46_CANONICAL_SURFACE_ITEMS.md). Aucun asset/save modifié.

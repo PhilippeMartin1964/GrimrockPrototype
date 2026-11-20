@@ -178,7 +178,7 @@ FGridItemTransferResult UGridItemTransferService::TransferInventorySlotToWallLoc
 
 	const FGridInventorySlot SourceSnapshot = CharacterState.InventorySlots[InventorySlotIndex];
 	FGridItemInstance KeyItem = SourceSnapshot.Item;
-	if (!KeyItem.IsValid() || !WallLock->CanAcceptKeyDefinition(KeyItem.ItemDefinitionId))
+	if (!WallLock->CanAcceptKeyInstance(KeyItem))
 	{
 		return LogTransferFailure(Operation, EGridItemTransferResult::DestinationRejectsItem, TEXT("Wall lock rejected the selected key."), &KeyItem);
 	}
