@@ -1033,6 +1033,10 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	/** Materialize an inbound item without pit chaining or notifying links before dequeue. */
+	bool TryDropItemInstanceAtCellInternal(const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinitionAsset,
+		int32 CellX, int32 CellY, EGridEdge Edge, const FVector& LocalOffset, bool bNotifyAndRoute);
+
     /** One topology/discovery pipeline for passive and active scanning. */
     int32 EvaluateDungeonTrapPerception(
         AGrimrockPartyPawn* PartyPawn, FRandomStream& RandomStream, bool bActiveSearch);

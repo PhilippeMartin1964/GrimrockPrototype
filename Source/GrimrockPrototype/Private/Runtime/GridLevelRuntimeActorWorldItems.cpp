@@ -614,6 +614,8 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 	int32 AppliedCount = 0;
 	for (const FGuid& RuntimeObjectId : PendingIds)
 	{
+		if ((CurrentDungeonLevelId.IsNone() ? FName(TEXT("SingleLevel")) : CurrentDungeonLevelId) != RuntimeLevelId)
+			break; // A prior notification may have changed the current level.
 		const FGridLevelRuntimeState* ReadState = DungeonRuntimeState.LevelStates.Find(RuntimeLevelId);
 		const FGridPendingWorldItemState* Pending = ReadState ? ReadState->PendingInboundItems.Find(RuntimeObjectId) : nullptr;
 		if (!Pending)
@@ -623,7 +625,10 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 
 		const FGridPendingWorldItemState PendingCopy = *Pending;
 		const FGridRuntimeItemState& ItemState = PendingCopy.ItemState;
-		if (!LevelAsset->IsValidCoord(ItemState.CellX, ItemState.CellY))
+		if (!RuntimeObjectId.IsValid() || RuntimeObjectId != ItemState.ObjectId ||
+			ItemState.Quantity < 1 || ItemState.bIsContainedInReceptacle ||
+			ItemState.ReceptacleObjectId.IsValid() || ItemState.bEmbeddedProjectile ||
+			!LevelAsset->IsValidCoord(ItemState.CellX, ItemState.CellY))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridPit PendingItem apply skipped RuntimeId=%s Reason=InvalidCell Cell=(%d,%d)"),
 				*RuntimeObjectId.ToString(), ItemState.CellX, ItemState.CellY);
@@ -634,7 +639,7 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 		ItemInstance.RuntimeObjectId = RuntimeObjectId;
 		ItemInstance.ItemDefinitionId = ItemState.ItemDefinitionId;
 		ItemInstance.ItemLevel = ItemState.ItemLevel;
-		ItemInstance.Quantity = FMath::Max(1, ItemState.Quantity);
+		ItemInstance.Quantity = ItemState.Quantity;
 		ItemInstance.bLightsEnabled = ItemState.bLightsEnabled;
 		ItemInstance.ReadableContentAsset = ItemState.ReadableContentAsset;
 		ItemInstance.ReadableContentId = ItemState.ReadableContentId;
@@ -666,7 +671,7 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 		UGridItemDefinitionAsset* Definition = bKnownCanonical
 			? nullptr : PendingCopy.ItemDefinitionAsset.Get();
 
-		if (!TryDropItemInstanceAtCell(ItemInstance, Definition, ItemState.CellX, ItemState.CellY, EGridEdge::None, LocalOffset))
+		if (!TryDropItemInstanceAtCellInternal(ItemInstance, Definition, ItemState.CellX, ItemState.CellY, EGridEdge::None, LocalOffset, false))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridPit PendingItem apply failed RuntimeId=%s Item=%s Level=%s Cell=(%d,%d)"),
 				*RuntimeObjectId.ToString(), *ItemState.ItemDefinitionId.ToString(), *RuntimeLevelId.ToString(), ItemState.CellX, ItemState.CellY);
@@ -698,12 +703,18 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 			UE_LOG(LogGridLevelRuntime, Error,
 				TEXT("GridPit PendingItem spawn bookkeeping missing Item=%s RuntimeId=%s Level=%s"),
 				*ItemState.ItemDefinitionId.ToString(), *RuntimeObjectId.ToString(), *RuntimeLevelId.ToString());
+			continue; // Do not acknowledge an arrival that has no physical row.
 		}
 		if (FGridLevelRuntimeState* MutableState = DungeonRuntimeState.LevelStates.Find(RuntimeLevelId))
 		{
 			MutableState->PendingInboundItems.Remove(RuntimeObjectId);
 		}
 		++AppliedCount;
+		// Ownership is now exclusively in the live world. Publish links afterwards.
+		if (ActivationComponent)
+		{
+			ActivationComponent->RefreshPressurePlatesAtCell(ItemState.CellX, ItemState.CellY);
+		}
 	}
 
 	if (AppliedCount > 0)
@@ -965,6 +976,13 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinitionAsset, int32 CellX, int32 CellY, EGridEdge Edge, const FVector& LocalOffset)
 {
+	return TryDropItemInstanceAtCellInternal(ItemInstance, ItemDefinitionAsset, CellX, CellY, Edge, LocalOffset, true);
+}
+
+bool AGridLevelRuntimeActor::TryDropItemInstanceAtCellInternal(
+	const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinitionAsset, int32 CellX, int32 CellY, EGridEdge Edge,
+	const FVector& LocalOffset, bool bNotifyAndRoute)
+{
 	if (!LevelAsset || !ItemInstance.IsValid() || !LevelAsset->IsValidCoord(CellX, CellY))
 	{
 		return false;
@@ -1042,6 +1060,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 		FGridRelocationBehaviorParams PitRelocation;
 		if (FindOpenPitAtCell(CellX, CellY, PitRelocation))
 		{
+			if (!bNotifyAndRoute) return false; // Pending arrivals cannot silently route to another pit.
 			FGridItemInstance ResolvedInstance = ItemInstance;
 			ResolvedInstance.ItemLevel = ResolvedItemLevel;
 			return TryRouteWorldItemThroughOpenPit(ResolvedInstance, ItemDefinition, CellX, CellY, LocalOffset);
@@ -1128,7 +1147,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 
 	SpawnedItemActors.Add(ItemActor);
 	SpawnedItemEntries.Add(Entry);
-	if (ActivationComponent)
+	if (bNotifyAndRoute && ActivationComponent)
 	{
 		ActivationComponent->RefreshPressurePlatesAtCell(CellX, CellY);
 	}

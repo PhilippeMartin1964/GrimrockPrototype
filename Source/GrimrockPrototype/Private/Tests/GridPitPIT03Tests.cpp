@@ -500,6 +500,29 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
         !TestEqual(TEXT("Original queued quantity retained"), Original->ItemState.Quantity, 1))
         return false;
 
+    // A malformed inbound row must not be repaired, acknowledged or spawned.
+    FGridLevelRuntimeState& UpperState = Runtime->DungeonRuntimeState.LevelStates.FindOrAdd(UpperId);
+    UpperState.LevelId = UpperId;
+    const FGuid InvalidKey = FGuid::NewGuid();
+    FGridPendingWorldItemState InvalidArrival = *Original;
+    InvalidArrival.ItemState.ObjectId = FGuid::NewGuid(); // Conflicts with map key.
+    InvalidArrival.ItemState.CellX = 1;
+    InvalidArrival.ItemState.CellY = 1;
+    UpperState.PendingInboundItems.Add(InvalidKey, InvalidArrival);
+    TestEqual(TEXT("Conflicting inbound GUID refuses materialization"),
+        Runtime->ApplyPendingInboundItemsForCurrentLevel(), 0);
+    FGridLevelRuntimeState* UpperAfter = Runtime->DungeonRuntimeState.LevelStates.Find(UpperId);
+    if (!TestNotNull(TEXT("Upper state retained"), UpperAfter) ||
+        !TestTrue(TEXT("Invalid arrival remains queued"), UpperAfter->PendingInboundItems.Contains(InvalidKey))) return false;
+    UpperAfter->PendingInboundItems[InvalidKey].ItemState.ObjectId = InvalidKey;
+    UpperAfter->PendingInboundItems[InvalidKey].ItemState.Quantity = 0;
+    TestEqual(TEXT("Zero quantity does not become one"),
+        Runtime->ApplyPendingInboundItemsForCurrentLevel(), 0);
+    UpperAfter = Runtime->DungeonRuntimeState.LevelStates.Find(UpperId);
+    if (!TestNotNull(TEXT("Upper state after refusal"), UpperAfter) ||
+        !TestTrue(TEXT("Zero quantity remains queued"), UpperAfter->PendingInboundItems.Contains(InvalidKey))) return false;
+    UpperAfter->PendingInboundItems.Remove(InvalidKey);
+
     // Physical save round-trip, *in memory*, before travelling downstairs.
     UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
     Save->DungeonRuntimeState = Runtime->DungeonRuntimeState;

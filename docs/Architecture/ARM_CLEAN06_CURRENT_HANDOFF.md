@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.56 — Restitution des arrivées différées
+
+Parent 5fcaf31c714821937bef2416c2eb939eecb2be08. Publication après deux statuts SUCCESS. Arrivée en attente validée sans correction GUID/quantité, matérialisation sans chaînage ni notification de plaque avant dequeue, notification après transfert d'ownership, arrêt de boucle si changement de niveau. Test PIT03 garde les lignes invalides en attente. Voir [5G.56](ARM_CLEAN06_5G56_INBOUND_OWNERSHIP_COMMIT.md).
+
 ## ARM-CLEAN06.5G.55 — Contrôles physiques des dépôts et fosses
 
 Parent 95d5112714acf3887abd807b1c7245739b10f6fa. Publication après deux statuts SUCCESS. Dépôt et routage valident l'ID/niveau/quantité canonique, le passage d'un acteur partage la construction physique du ramassage, une arrivée différée ne remplace jamais un GUID déjà détenu dans le niveau cible. PIT03 couvre doublon et quantité invalide. Voir [5G.55](ARM_CLEAN06_5G55_PHYSICAL_PIT_GUARDS.md).
