@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "CoreGlobals.h"
 
 /** Starter kit may save old snapshots, but their value comes from ItemSystem. */
 struct FGridStartingKitStaticMetadataReadView
@@ -24,6 +25,7 @@ struct FGridStartingKitStaticMetadataReadModel
 			Result.bCanonicalIdentity = true;
 			FGridResolvedItem Canonical;
 			if (!Registry->ResolveItem(ItemId, FixedItemLevel, Canonical) ||
+				!Canonical.IsValid() || (!Canonical.bIsArmament && FixedItemLevel != 0) ||
 				!FMath::IsFinite(Canonical.WeightKg) || Canonical.WeightKg < 0.0f)
 			{
 				return Result; // No N1 promotion or legacy fallback for known invalid item.
@@ -34,9 +36,15 @@ struct FGridStartingKitStaticMetadataReadModel
 			Result.UnitWeightKg = Canonical.WeightKg;
 			return Result;
 		}
-		Result.bResolved = true;
-		Result.DisplayName = LegacyName;
-		Result.UnitWeightKg = LegacyWeight;
+		// Only isolated worldless Automation fixtures may use old metadata.
+#if WITH_DEV_AUTOMATION_TESTS
+		if (!Registry && GIsAutomationTesting && FMath::IsFinite(LegacyWeight) && LegacyWeight >= 0.0f)
+		{
+			Result.bResolved = true;
+			Result.DisplayName = LegacyName;
+			Result.UnitWeightKg = LegacyWeight;
+		}
+#endif
 		return Result;
 	}
 };

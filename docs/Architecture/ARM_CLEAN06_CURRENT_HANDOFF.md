@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.80 — Projection des kits de départ sans repli en jeu
+
+Parent 7978db7d489ff73148ae7dc7a291e8f70cd66160. Les projections nom/masse/niveau/main refusent les identités inconnues dans un registre, et le wizard ne présente plus les lignes non résolues. Fixtures historiques isolées sans registre et sous Automation. Tests 3Y/3AF/3AO. Voir [5G.80](ARM_CLEAN06_5G80_STRICT_STARTER_PROJECTIONS.md).
+
 ## ARM-CLEAN06.5G.79 — Réceptacle sans cache statique
 
 Parent 90f9435fa9a99215e77ecf47da04f6bb82c1cf88. Retrait Weight/DisplayName du struct runtime contenu après préflight 5G.77 et 5G.78 validés. Transferts v27 reçoivent masse et nom canoniques, overrides de lecture préservés, rollback sans copie statique. Test 0183 injecte caches contradictoires. Voir [5G.79](ARM_CLEAN06_5G79_RECEPTACLE_STATIC_CACHE_RETIREMENT.md).

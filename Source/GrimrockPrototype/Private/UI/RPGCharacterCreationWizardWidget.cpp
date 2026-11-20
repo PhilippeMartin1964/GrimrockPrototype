@@ -575,9 +575,8 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescript
             const FGridStartingKitDisplayReadView ItemView =
                 FGridStartingKitDisplayReadModel::Resolve(
                     CanonicalRegistry, Item, Entry.ItemLevel, Entry.CanonicalItemId);
-            // A registered invalid ARM must never borrow the old definition's
-            // display name or claim an inherited N1 level in the frontend.
-            if (ItemView.bCanonicalIdentity && !ItemView.bResolved)
+            // Match the grant path: never advertise an unresolved item.
+            if (!ItemView.bResolved)
             {
                 continue;
             }

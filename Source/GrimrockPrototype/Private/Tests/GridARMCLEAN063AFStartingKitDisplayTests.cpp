@@ -92,10 +92,12 @@ bool FGridClean063AFStartingKitDisplay::RunTest(const FString&)
     const FGridStartingKitDisplayReadView Legacy =
         FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0);
     TestFalse(TEXT("Unknown item remains outside registry"), Legacy.bCanonicalIdentity);
-    TestTrue(TEXT("Legacy unlevelled item still displays"), Legacy.bResolved);
-    TestEqual(TEXT("Legacy authored text retained"), Legacy.DisplayName.ToString(),
-        Old->DisplayName.ToString());
-    TestEqual(TEXT("Legacy level remains N0"), Legacy.FixedItemLevel, 0);
+    TestFalse(TEXT("Unknown starter with registry never displays"), Legacy.bResolved);
+    TestTrue(TEXT("Unknown starter never leaks legacy label"), Legacy.DisplayName.IsEmpty());
+    const auto Fixture = FGridStartingKitDisplayReadModel::Resolve(nullptr, Old.Get(), 0);
+    TestTrue(TEXT("Isolated Automation fixture still displays"), Fixture.bResolved);
+    TestEqual(TEXT("Fixture authored text retained"), Fixture.DisplayName.ToString(), Old->DisplayName.ToString());
+    TestEqual(TEXT("Fixture level remains N0"), Fixture.FixedItemLevel, 0);
     TestFalse(TEXT("Negative authored level rejected"),
         FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), -1).bResolved);
     TestFalse(TEXT("Legacy item cannot invent N9"),

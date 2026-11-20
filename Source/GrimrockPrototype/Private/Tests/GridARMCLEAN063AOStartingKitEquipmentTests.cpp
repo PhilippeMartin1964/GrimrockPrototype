@@ -186,14 +186,17 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	TestTrue(TEXT("Distinct physical GUIDs"),
 		NormalEquipment.MainHand.RuntimeObjectId != NormalEquipment.OffHand.RuntimeObjectId);
 
-	// Unknown identities retain the temporary original equip policy.
+	// The historical hand rules are now isolated to worldless fixtures.
 	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
 	Old->ItemDefinitionId = TEXT("LegacyStarter_AO");
 	Old->HandUsage = EGridItemHandUsage::OneHanded;
 	const auto OldPolicy = FGridStartingKitEquipmentPolicyReadModel::Resolve(
 		Registry.Get(), Old.Get(), 0, EGridEquipmentSlot::MainHand);
 	TestFalse(TEXT("Unknown entry remains outside canonical registry"), OldPolicy.bCanonicalIdentity);
-	TestTrue(TEXT("Unknown pre-conversion entry may still equip"), OldPolicy.bResolved && !OldPolicy.bTwoHanded);
+	TestFalse(TEXT("Unknown entry cannot equip in configured world"), OldPolicy.bResolved);
+	const auto FixturePolicy = FGridStartingKitEquipmentPolicyReadModel::Resolve(
+		nullptr, Old.Get(), 0, EGridEquipmentSlot::MainHand);
+	TestTrue(TEXT("Isolated fixture still equips"), FixturePolicy.bResolved && !FixturePolicy.bTwoHanded);
 	return true;
 }
 #endif
