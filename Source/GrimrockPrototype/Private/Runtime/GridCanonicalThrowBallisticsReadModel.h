@@ -30,7 +30,9 @@ struct FGridCanonicalThrowBallisticsReadModel
 		if (Out.bCanonicalIdentity)
 		{
 			FGridResolvedItem Canonical;
-			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical))
+			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) ||
+				!Canonical.IsValid() || Canonical.ItemId != Instance.ItemDefinitionId ||
+				Canonical.ItemLevel != Instance.ItemLevel || Instance.Quantity > FMath::Max(1, Canonical.MaxStack))
 			{
 				return Out; // No synthetic N1 or old projectile for a known invalid ARM.
 			}
@@ -62,6 +64,11 @@ struct FGridCanonicalThrowBallisticsReadModel
 			// flight is a refusal, never a historical fallback.
 			return Out;
 		}
+		// Only active, registry-less Automation fixtures may use old physics.
+#if !WITH_DEV_AUTOMATION_TESTS
+		return Out;
+#else
+		if (!GIsAutomationTesting || Registry) return Out;
 		if (!IsValid(LegacyDefinition) ||
 			LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
 		{
@@ -79,5 +86,6 @@ struct FGridCanonicalThrowBallisticsReadModel
 		Out.InitialSpeed = LegacyDefinition->ThrowSpeed;
 		Out.Arc = LegacyDefinition->ThrowArc;
 		return Out;
+#endif
 	}
 };

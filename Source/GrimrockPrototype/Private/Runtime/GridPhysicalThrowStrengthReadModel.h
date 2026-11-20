@@ -33,6 +33,8 @@ struct FGridPhysicalThrowStrengthReadModel
 		{
 			FGridResolvedItem Canonical;
 			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) ||
+				!Canonical.IsValid() || Canonical.ItemId != Instance.ItemDefinitionId ||
+				Canonical.ItemLevel != Instance.ItemLevel || Instance.Quantity > FMath::Max(1, Canonical.MaxStack) ||
 				(!Canonical.bIsArmament && Instance.ItemLevel != 0))
 			{
 				return Out; // A known invalid N0 does not fall back to stale copies.
@@ -70,6 +72,11 @@ struct FGridPhysicalThrowStrengthReadModel
 			return Out;
 		}
 		// Identities absent from ItemSystem keep legacy physics during 06.3.
+		// Only active, registry-less Automation fixtures may use old physics.
+#if !WITH_DEV_AUTOMATION_TESTS
+		return Out;
+#else
+		if (!GIsAutomationTesting || Registry) return Out;
 		if (!IsValid(LegacyDefinition) ||
 			LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
 		{
@@ -82,5 +89,6 @@ struct FGridPhysicalThrowStrengthReadModel
 		Out.SpeedScale = LegacyDefinition->GetThrowSpeedScaleForStrength(Strength);
 		Out.bCanThrow = Out.SpeedScale > 0.0f;
 		return Out;
+#endif
 	}
 };

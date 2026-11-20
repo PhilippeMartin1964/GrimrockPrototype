@@ -5,7 +5,7 @@
 
 /** Same authored throw preflight for context menu and Pawn execution.
  * Registered items exclusively use materialized flight policies.
- * Historical definitions supply flight only outside the registry.
+ * Historical definitions supply flight only in registry-less Automation fixtures.
  */
 struct FGridPhysicalThrowPreflightReadView
 {

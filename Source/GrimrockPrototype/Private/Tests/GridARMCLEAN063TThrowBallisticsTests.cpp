@@ -67,8 +67,10 @@ bool FGridClean063TThrowBallistics::RunTest(const FString&)
 	Legacy.RuntimeObjectId = FGuid::NewGuid();
 	Legacy.ItemLevel = 0;
 	Legacy.Quantity = 1;
+	TestFalse(TEXT("Configured registry rejects unknown flight even with matching old asset"),
+		FGridCanonicalThrowBallisticsReadModel::Resolve(Registry.Get(), Old.Get(), Legacy).bResolved);
 	const FGridCanonicalThrowBallisticsReadView Fallback =
-		FGridCanonicalThrowBallisticsReadModel::Resolve(Registry.Get(), Old.Get(), Legacy);
+		FGridCanonicalThrowBallisticsReadModel::Resolve(nullptr, Old.Get(), Legacy);
 	TestFalse(TEXT("Unregistered throw retains old source"), Fallback.bCanonicalIdentity);
 	TestTrue(TEXT("Unregistered throw resolves"), Fallback.bResolved);
 	TestEqual(TEXT("Unregistered throw speed unchanged"), Fallback.InitialSpeed, 12.0f);

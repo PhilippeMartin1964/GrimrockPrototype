@@ -266,8 +266,10 @@ namespace ARMCLEAN063AV
     Oversized.Quantity = 2;
     Test.TestNull(TEXT("One physical projectile cannot carry two armaments"),
         F.Runtime->SpawnThrownItemProjectile(Oversized, Contradictory, Start, Velocity, 0, 0));
+    Test.TestFalse(TEXT("Unknown identity cannot resolve Strength with matching old asset"),
+        FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Legacy, Unknown, 20).bResolved);
     const auto LegacyGate =
-        FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Legacy, Unknown, 20);
+        FGridPhysicalThrowStrengthReadModel::Resolve(nullptr, Legacy, Unknown, 20);
     Test.TestFalse(TEXT("Unregistered item stays on legacy path"), LegacyGate.bCanonicalIdentity);
     Test.TestEqual(TEXT("Legacy speed-scale curve unchanged"),
         LegacyGate.SpeedScale, Legacy->GetThrowSpeedScaleForStrength(20));

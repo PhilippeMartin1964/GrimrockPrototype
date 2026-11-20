@@ -73,8 +73,10 @@ bool FGridClean063UPhysicalThrowStrength::RunTest(const FString&)
 	Other.RuntimeObjectId = FGuid::NewGuid();
 	Other.ItemDefinitionId = Old->ItemDefinitionId;
 	Other.Quantity = 1;
+	TestFalse(TEXT("Configured registry rejects unknown strength gate"),
+		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), Old.Get(), Other, 10).bResolved);
 	const FGridPhysicalThrowStrengthReadView Legacy =
-		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), Old.Get(), Other, 10);
+		FGridPhysicalThrowStrengthReadModel::Resolve(nullptr, Old.Get(), Other, 10);
 	TestFalse(TEXT("Legacy item is never classified as canonical"), Legacy.bCanonicalIdentity);
 	TestEqual(TEXT("Legacy speed modifier unchanged"),
 		Legacy.SpeedScale, Old->GetThrowSpeedScaleForStrength(10));

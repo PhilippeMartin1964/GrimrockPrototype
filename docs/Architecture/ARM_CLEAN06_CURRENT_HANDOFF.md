@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.58 — Préflight canonique des lancers
+
+Parent 60b5d8f9e148f463c1899f10633118e63c1bbd40. Balistique et force refusent une identité absente du registre et une quantité hors capacité ; seules les fixtures Automation sans registre gardent l'ancien calcul. Tests 3T/3U/3AV/3BF adaptés pour distinguer refus réel et fixture isolée ; le menu vérifie aussi le refus. Voir [5G.58](ARM_CLEAN06_5G58_CANONICAL_THROW_PREFLIGHT.md).
+
 ## ARM-CLEAN06.5G.57 — Autorité canonique du lancement
 
 Parent 5ee2bc3c62f3be4d0dd26a0382eb969d14bffab5. Publication après deux statuts SUCCESS. Le spawn exige un ItemId et niveau exacts, une unité physique, une résolution canonique valide ; l'initialisation native rejette aussi le contournement. Le fallback est limité aux fixtures sans GameInstance pendant Automation. Test 3AV InvalidAndLegacy renforcé. Voir [5G.57](ARM_CLEAN06_5G57_CANONICAL_PROJECTILE_LAUNCH.md).

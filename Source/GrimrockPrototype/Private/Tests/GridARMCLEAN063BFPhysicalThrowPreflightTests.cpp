@@ -223,14 +223,19 @@ bool FGridBFLegacy::RunTest(const FString&)
     Old->ThrowSpeed = 1800.0f;
     Old->ThrowArc = 0.08f;
     const auto I = F.Make(Old->ItemDefinitionId, 0);
+    const auto Rejected = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 25);
+    TestFalse(TEXT("Configured registry cannot advertise a throw that launch refuses"), Rejected.bCanThrow);
+    TestFalse(TEXT("Unknown item has no canonical preflight"), Rejected.bResolved);
+    bool Present = false;
+    TestFalse(TEXT("Unknown item cannot launch via actual context menu"), F.MenuThrow(I, Old, Present));
     const auto Valid = FGridPhysicalThrowPreflightReadModel::Resolve(
-        F.Registry, Old, I, 25);
+        nullptr, Old, I, 25);
     TestTrue(TEXT("Historical unregistered throw uses exact old physics"),
         !Valid.bCanonicalIdentity && Valid.bResolved && Valid.bCanThrow &&
         FMath::IsNearlyEqual(Valid.Ballistics.Arc, Old->ThrowArc));
     Old->ThrowArc = std::numeric_limits<float>::quiet_NaN();
     TestFalse(TEXT("Unregistered source rejects nonfinite authored arc"),
-        FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 25).bCanThrow);
+        FGridPhysicalThrowPreflightReadModel::Resolve(nullptr, Old, I, 25).bCanThrow);
     Old->ThrowArc = 0.08f;
     Old->ThrowSpeed = 0.0f;
     TestFalse(TEXT("Unregistered source rejects zero authored speed"),
@@ -238,7 +243,7 @@ bool FGridBFLegacy::RunTest(const FString&)
     Old->ThrowSpeed = 1800.0f;
     TestFalse(TEXT("Wrong old definition cannot supply speed"),
         FGridPhysicalThrowPreflightReadModel::Resolve(
-            F.Registry, Old, F.Make(TEXT("BF_Unregistered_Other"), 0), 25).bCanThrow);
+            nullptr, Old, F.Make(TEXT("BF_Unregistered_Other"), 0), 25).bCanThrow);
     TestFalse(TEXT("Missing old definition cannot supply speed"),
         FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, nullptr, I, 25).bCanThrow);
     Old->ItemDefinitionId = TEXT("Weapon_ThrowingKnife_01");
