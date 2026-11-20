@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.118R — Correction du test de masse ARMEMENT01.6 (issue #216)
+
+Parent `6197550d3b457f6a185f6737080da87c5b1a9cbd`, Windows LocalAuto FAILURE : le test `Grimrock.RPG.ARMEMENT01.6.Items.EquipAndFixedLevelCombat` exigeait encore une copie C++ de poids dans l'instance, retirée en 118. Le test vérifie maintenant le profil à l'ItemLevel fixe, la masse du catalogue, l'accord de l'authoring historique et l'absence de propriété réfléchie Weight. Voir [5G.118R](ARM_CLEAN06_5G118R_LEVEL_MASS_TEST_CORRECTION.md). **Attendre SUCCESS/SUCCESS avant 119.**
+
 ## ARM-CLEAN06.5G.118 — Retrait des dernières écritures runtime de caches
 
 Parent `1d893f2bde2e02c07e4079f7d39c809d7c126117` : publier après SilentTask et LocalAuto SUCCESS. La matérialisation, les projectiles et le calcul de masse au sol ne modifient plus `FGridItemInstance::Weight/DisplayName`, même pour les anciennes fixtures. Voir [5G.118](ARM_CLEAN06_5G118_RUNTIME_CACHE_WRITERS_RETIREMENT.md).

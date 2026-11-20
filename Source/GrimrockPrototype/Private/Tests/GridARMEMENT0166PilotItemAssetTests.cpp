@@ -101,7 +101,16 @@ bool FARMEMENT0166EquipmentAttackTest::RunTest(const FString&)
         if (!TestNotNull(TEXT("RPG catalogue loaded"), Catalogue)) { continue; }
         const FGridWeaponLevelProfile* Profile = Catalogue->FindProfile(Item->WeaponArchetypeId, 1);
         if (!TestNotNull(TEXT("Level one profile exists"), Profile)) { continue; }
-        TestTrue(TEXT("Instance weight is catalogue weight"), FMath::IsNearlyEqual(Instance.Weight, Profile->WeightKg));
+        const FGridWeaponLevelProfile* FixedLevelProfile = nullptr;
+        if (!TestTrue(TEXT("Fixed instance level resolves in the original weapon catalogue"),
+                Item->TryGetWeaponCatalogueProfile(Instance.ItemLevel, FixedLevelProfile)) ||
+            !TestNotNull(TEXT("Resolved fixed-level profile"), FixedLevelProfile)) continue;
+        TestTrue(TEXT("Level-one mass remains exactly catalogue-derived"),
+            FMath::IsNearlyEqual(FixedLevelProfile->WeightKg, Profile->WeightKg));
+        TestTrue(TEXT("Legacy authoring mass agrees with the catalogue"),
+            FMath::IsNearlyEqual(Item->Weight, FixedLevelProfile->WeightKg));
+        TestNull(TEXT("Physical item no longer reflects redundant Weight"),
+            FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
         TestEqual(TEXT("Combat action availability"), Item->CanProvideAttackFromSlot(Spec.Slot), Spec.bAttack);
         if (Spec.bAttack)
         {
