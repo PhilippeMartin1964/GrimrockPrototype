@@ -71,12 +71,6 @@ struct FGridContainedReceptacleItem
 	int32 ItemLevel = 0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-	float Weight = 0.0f;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-	FText DisplayName;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
 	bool bLightsEnabled = true;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Reading")

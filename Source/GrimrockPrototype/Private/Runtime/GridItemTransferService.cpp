@@ -239,9 +239,7 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 	Candidate.RuntimeObjectId = SourceSnapshot.RuntimeObjectId;
 	Candidate.ItemDefinitionId = SourceSnapshot.ItemDefinitionId;
 	Candidate.ItemLevel = SourceSnapshot.ItemLevel;
-	Candidate.DisplayName = SourceSnapshot.DisplayName;
 	Candidate.Quantity = SourceSnapshot.Quantity;
-	Candidate.Weight = SourceSnapshot.Weight;
 	Candidate.bLightsEnabled = SourceSnapshot.bLightsEnabled;
 	Candidate.ReadableContentAsset = SourceSnapshot.ReadableContentAsset;
 	Candidate.ReadableContentId = SourceSnapshot.ReadableContentId;
@@ -286,6 +284,7 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 		}
 		Candidate.Weight = Resolved.WeightKg;
 		CanonicalDisplayName = Resolved.DisplayName.IsEmpty() ? FText::FromName(Candidate.ItemDefinitionId) : Resolved.DisplayName;
+		Candidate.DisplayName = CanonicalDisplayName;
 	}
 
 	if (!Candidate.IsValid())
@@ -316,8 +315,6 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 		}
 
 		FGridContainedReceptacleItem& RestoredItem = Receptacle->ContainedItems[RestoredIndex];
-		RestoredItem.Weight = Candidate.Weight;
-		RestoredItem.DisplayName = Candidate.DisplayName;
 		RestoredItem.bLightsEnabled = Candidate.bLightsEnabled;
 		RestoredItem.ReadableContentAsset = Candidate.ReadableContentAsset;
 		RestoredItem.ReadableContentId = Candidate.ReadableContentId;

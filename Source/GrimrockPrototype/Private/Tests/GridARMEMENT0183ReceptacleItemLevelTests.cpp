@@ -189,7 +189,10 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     Cursor.ItemLevel = 12;
     FGridResolvedItem Physical;
     if (!TestTrue(TEXT("Canonical transferred dagger resolves"), Fixture.RegistryScope.Registry->ResolveItem(Cursor.ItemDefinitionId, Cursor.ItemLevel, Physical))) return false;
-    Cursor.Weight = Physical.WeightKg;
+    Cursor.Weight = 99999.f; // Deliberately stale v27 static cache.
+    Cursor.DisplayName = FText::FromString(TEXT("STALE STATIC CACHE"));
+    Cursor.ReadTitleOverride = FText::FromString(TEXT("Actual narrative title"));
+    Cursor.ReadTextOverride = FText::FromString(TEXT("Actual narrative body"));
     Cursor.Quantity = 1;
     Cursor.OwnerType = EGridItemOwnerType::Cursor;
 
@@ -198,6 +201,13 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
         Fixture.Receptacle->TryInsertItemInstanceFromCursor(Cursor, Accepted))) return false;
     TestEqual(TEXT("Transfer preserves identity"), Accepted.RuntimeObjectId, Cursor.RuntimeObjectId);
     TestEqual(TEXT("Transfer preserves item level in returned record"), Accepted.ItemLevel, 12);
+    TestNull(TEXT("Contained mass cache removed from schema"), FGridContainedReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("Weight")));
+    TestNull(TEXT("Contained name cache removed from schema"), FGridContainedReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
+    TestEqual(TEXT("Accepted v27 projection uses canonical mass"), Accepted.Weight, Physical.WeightKg);
+    TestTrue(TEXT("Accepted v27 projection uses canonical name"), Accepted.DisplayName.EqualTo(Physical.DisplayName));
+    TestTrue(TEXT("Narrative title retained independently"), Accepted.ReadTitleOverride.EqualTo(Cursor.ReadTitleOverride));
+    TestTrue(TEXT("Narrative body retained independently"), Accepted.ReadTextOverride.EqualTo(Cursor.ReadTextOverride));
+    TestTrue(TEXT("Total receptacle weight is canonical"), FMath::IsNearlyEqual(Fixture.Receptacle->GetContainedTotalWeight(), Physical.WeightKg));
     TestEqual(TEXT("Receptacle owns one item"), Fixture.Receptacle->GetContainedItemCount(), 1);
     if (!TestEqual(TEXT("Contained item level is still 12"), Fixture.Receptacle->ContainedItems[0].ItemLevel, 12)) return false;
 
@@ -236,6 +246,10 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     const FGridItemInstance* Bag = Fixture.FindBagItem(Party->PartyInventoryComponent, Cursor.RuntimeObjectId);
     if (!TestNotNull(TEXT("Retrieved object exists in inventory"), Bag)) return false;
     TestEqual(TEXT("Fixed level preserved on retrieval"), Bag->ItemLevel, 12);
+    TestEqual(TEXT("Restored inventory projection canonical weight"), Bag->Weight, Physical.WeightKg);
+    TestTrue(TEXT("Restored inventory projection canonical name"), Bag->DisplayName.EqualTo(Physical.DisplayName));
+    TestTrue(TEXT("Narrative title survives save and retrieval"), Bag->ReadTitleOverride.EqualTo(Cursor.ReadTitleOverride));
+    TestTrue(TEXT("Narrative body survives save and retrieval"), Bag->ReadTextOverride.EqualTo(Cursor.ReadTextOverride));
     TestEqual(TEXT("Receptacle empty after removal"), Fixture.Receptacle->GetContainedItemCount(), 0);
     return true;
 }

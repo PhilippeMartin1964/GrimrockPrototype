@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.79 — Réceptacle sans cache statique
+
+Parent 90f9435fa9a99215e77ecf47da04f6bb82c1cf88. Retrait Weight/DisplayName du struct runtime contenu après préflight 5G.77 et 5G.78 validés. Transferts v27 reçoivent masse et nom canoniques, overrides de lecture préservés, rollback sans copie statique. Test 0183 injecte caches contradictoires. Voir [5G.79](ARM_CLEAN06_5G79_RECEPTACLE_STATIC_CACHE_RETIREMENT.md).
+
 ## ARM-CLEAN06.5G.78 — Retrait du pointeur et de l'insertion historiques
 
 Parent f5f946a466dd5936c12e00c71dc8ee8d97652ea0. Seulement après double validation du préflight 5G.77 et preuve native 5A zéro arête externe. Retirer champ FGridContainedReceptacleItem.ItemDefinition (runtime non SaveGame), API TryInsertItem sans appelant production et lecteur d'identité 3BG inutilisé. Tests réutilisent insertion physique, conservent les contradictions de présentation et vérifient la réflexion. Voir [5G.78](ARM_CLEAN06_5G78_RETIRE_RECEPTACLE_LEGACY_SCHEMA.md).

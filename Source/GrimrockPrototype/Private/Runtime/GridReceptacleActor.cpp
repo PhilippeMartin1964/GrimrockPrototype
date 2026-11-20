@@ -501,12 +501,6 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 	}
 
 	FGridContainedReceptacleItem& AcceptedReceptacleItem = ContainedItems[NewIndex];
-	// SaveGame 27 still owns possible custom instance text. Preserve it until
-	// 06.4, but present the canonical name to the player for registered IDs.
-	if (!CursorItem.DisplayName.IsEmpty())
-	{
-		AcceptedReceptacleItem.DisplayName = CursorItem.DisplayName;
-	}
 	AcceptedReceptacleItem.bLightsEnabled = CursorItem.bLightsEnabled;
 	AcceptedReceptacleItem.ReadableContentAsset = CursorItem.ReadableContentAsset;
 	AcceptedReceptacleItem.ReadableContentId = CursorItem.ReadableContentId;
@@ -521,11 +515,10 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 
 	OutAcceptedItem = CursorItem;
 	OutAcceptedItem.ItemLevel = AcceptedReceptacleItem.ItemLevel;
-	OutAcceptedItem.Weight = AcceptedReceptacleItem.Weight;
-	if (OutAcceptedItem.DisplayName.IsEmpty())
-	{
-		OutAcceptedItem.DisplayName = AcceptedReceptacleItem.DisplayName;
-	}
+	// The v27 transfer record still has these fields, but the receptacle
+	// stores neither static property. Never propagate a stale cache.
+	OutAcceptedItem.Weight = InsertedMetadata.UnitWeightKg;
+	OutAcceptedItem.DisplayName = InsertedMetadata.DisplayName;
 	OutAcceptedItem.OwnerType = EGridItemOwnerType::Receptacle;
 	OutAcceptedItem.OwnerGuid = ObjectId;
 	OutAcceptedItem.OwnerCharacterIndex = INDEX_NONE;
@@ -1013,8 +1006,6 @@ int32 AGridReceptacleActor::AddContainedItem(
 	NewItem.bWasInitialItem = bWasInitialItem;
 	NewItem.Quantity = Quantity;
 	NewItem.ItemLevel = ItemLevel;
-	NewItem.Weight = Resolved.WeightKg;
-	NewItem.DisplayName = Resolved.DisplayName.IsEmpty() ? FText::FromName(ItemDefinitionId) : Resolved.DisplayName;
 	NewItem.bLightsEnabled = Resolved.LightEmitter.bDefaultEnabled;
 
 	const bool bSuppliedActor = IsValid(ItemActor);
