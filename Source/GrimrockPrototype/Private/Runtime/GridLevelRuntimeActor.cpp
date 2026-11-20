@@ -1886,6 +1886,18 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 	{
 		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridRuntimeState Stored Level=%s Receptacles=%d Items=%d Doors=%d Monsters=%d"), *OldLevelId.ToString(),
 			StoredState->Receptacles.Num(), StoredState->Items.Num(), StoredState->Doors.Num(), StoredState->Monsters.Num());
+		// Captured projectiles belong to the old level. Retire them even
+		// when the destination has never been visited (no restore pass).
+		if (UWorld* World = GetWorld())
+		{
+			for (TActorIterator<AGridThrownItemActor> It(World); It; ++It)
+			{
+				AGridThrownItemActor* Projectile = *It;
+				if (IsValid(Projectile) && Projectile->RuntimeActor == this &&
+					StoredState->Items.Contains(Projectile->ThrownItemInstance.RuntimeObjectId))
+					Projectile->Destroy();
+			}
+		}
 	}
 
 	TArray<AGridMonsterActor*> Monsters;

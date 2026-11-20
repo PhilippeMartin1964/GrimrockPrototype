@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.59 — Capture des objets lancés en vol
+
+Parent b9e16af9535da928514fa26d4acf2c533c33558c. Capture de tous les projectiles récupérables canoniques (pas seulement munitions), niveau/GUID/lecture/lumière conservés, restitution des objets ordinaires avec leur mesh de pickup. Transition retire les projectiles capturés du niveau source même vers un niveau inédit. Test InFlightItemTravel N20, aller-retour. Voir [5G.59](ARM_CLEAN06_5G59_IN_FLIGHT_ITEM_CAPTURE.md).
+
 ## ARM-CLEAN06.5G.58 — Préflight canonique des lancers
 
 Parent 60b5d8f9e148f463c1899f10633118e63c1bbd40. Balistique et force refusent une identité absente du registre et une quantité hors capacité ; seules les fixtures Automation sans registre gardent l'ancien calcul. Tests 3T/3U/3AV/3BF adaptés pour distinguer refus réel et fixture isolée ; le menu vérifie aussi le refus. Voir [5G.58](ARM_CLEAN06_5G58_CANONICAL_THROW_PREFLIGHT.md).

@@ -3,6 +3,8 @@
 #include "Misc/AutomationTest.h"
 #include "Components/StaticMeshComponent.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridDungeonAsset.h"
+#include "Runtime/GridDungeonRuntimeState.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -460,4 +462,78 @@ bool FGridClean065E4DLegacyLookup::RunTest(const FString&)
     TestFalse(TEXT("Explicit inventory map cannot alter ItemSystem"), F.Registry->ResolveItem(Unknown, 0, Resolved));
     return !HasAnyErrors();
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065G59InFlightTravel,
+    "Grimrock.RPG.ARM.CLEAN06_5G59.InFlightItemTravel",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean065G59InFlightTravel::RunTest(const FString&)
+{
+    ARMCLEAN063AV::FFixture F;
+    if (!TestTrue(TEXT("Canonical runtime"), F.Ready())) return false;
+    UGridDungeonAsset* Dungeon = NewObject<UGridDungeonAsset>(F.Runtime);
+    UGridLevelAsset* SourceLevel = F.Runtime->LevelAsset;
+    UGridLevelAsset* TargetLevel = NewObject<UGridLevelAsset>(Dungeon);
+    TargetLevel->Width = 2;
+    TargetLevel->Height = 2;
+    TargetLevel->EnsureCellCount();
+    for (FGridLevelCellData& Cell : TargetLevel->Cells)
+    {
+        Cell.CellType = EGridCellType::Floor;
+        Cell.bBlocksOccupancy = false;
+    }
+    FGridDungeonLevelEntry Source;
+    Source.LevelId = TEXT("FlightSource");
+    Source.LevelAsset = SourceLevel;
+    Source.bEnabled = true;
+    FGridDungeonLevelEntry Target;
+    Target.LevelId = TEXT("FlightTarget");
+    Target.LevelAsset = TargetLevel;
+    Target.bEnabled = true;
+    Dungeon->Levels = {Source, Target};
+    Dungeon->DefaultLevelId = Source.LevelId;
+    F.Runtime->DungeonAsset = Dungeon;
+    F.Runtime->CurrentDungeonLevelId = Source.LevelId;
+    AGrimrockPartyPawn* Party = F.World->SpawnActor<AGrimrockPartyPawn>();
+    if (!TestNotNull(TEXT("Party"), Party)) return false;
+    Party->SetGridStart(F.Runtime, 0, 0, EGridEdge::North);
+    FGridItemInstance Item = F.Make(TEXT("Weapon_ThrowingKnife_01"), 20);
+    Item.ReadableContentId = TEXT("FixtureFlightRead");
+    Item.ReadTitleOverride = FText::FromString(TEXT("Flight text"));
+    Item.bLightsEnabled = false;
+    AGridThrownItemActor* Flight = F.Runtime->SpawnThrownItemProjectile(
+        Item, nullptr, F.Runtime->GetCellCenterWorld(0, 0, 100.f), FVector(1200,0,100), 0,0);
+    if (!TestNotNull(TEXT("Live non-ammo projectile"), Flight)) return false;
+    if (!TestTrue(TEXT("Capture includes hand-thrown armament"), F.Runtime->CaptureCurrentLevelRuntimeState())) return false;
+    const FGridLevelRuntimeState* Saved = F.Runtime->FindRuntimeStateForCurrentLevel();
+    const FGridRuntimeItemState* Row = Saved ? Saved->Items.Find(Item.RuntimeObjectId) : nullptr;
+    if (!TestNotNull(TEXT("Original GUID in source snapshot"), Row)) return false;
+    TestEqual(TEXT("Exact N20"), Row->ItemLevel, 20);
+    TestEqual(TEXT("Readable metadata preserved"), Row->ReadableContentId, Item.ReadableContentId);
+    TestFalse(TEXT("Pickup does not inherit flight mesh scale"), Row->bHasWorldMeshTransform);
+    TestFalse(TEXT("Current light state preserved"), Row->bLightsEnabled);
+    if (!TestTrue(TEXT("Travel to unexplored level"), F.Runtime->TravelToDungeonLevel(Target.LevelId, 0,0,EGridEdge::North,Party))) return false;
+    for (TActorIterator<AGridThrownItemActor> It(F.World); It; ++It)
+        if (IsValid(*It) && !It->IsActorBeingDestroyed() && It->GetRuntimeObjectId() == Item.RuntimeObjectId)
+        {
+            AddError(TEXT("Old projectile escaped into new level"));
+            return false;
+        }
+    if (!TestTrue(TEXT("Return to saved source"), F.Runtime->TravelToDungeonLevel(Source.LevelId, 0,0,EGridEdge::North,Party))) return false;
+    int32 Pickups = 0;
+    for (TActorIterator<AGridItemActor> It(F.World); It; ++It)
+    {
+        AGridItemActor* Actor = *It;
+        if (!IsValid(Actor) || Actor->IsActorBeingDestroyed() || Actor->GetRuntimeObjectId() != Item.RuntimeObjectId) continue;
+        ++Pickups;
+        TestFalse(TEXT("Reload yields pickup, not projectile"), Actor->IsA<AGridThrownItemActor>());
+        TestEqual(TEXT("Restored N20"), Actor->CanonicalWorldItemLevel, 20);
+        TestEqual(TEXT("Restored actual ItemId"), Actor->ItemDefinitionId, Item.ItemDefinitionId);
+        TestEqual(TEXT("Restored readable metadata"), Actor->ReadableContentId, Item.ReadableContentId);
+        TestFalse(TEXT("Restored light state"), Actor->AreItemLightsEnabled());
+        TestNull(TEXT("Restored pickup is pointerless"), Actor->GetItemDefinitionAsset());
+    }
+    TestEqual(TEXT("Exactly one recoverable physical item"), Pickups, 1);
+    return !HasAnyErrors();
+}
+
 #endif

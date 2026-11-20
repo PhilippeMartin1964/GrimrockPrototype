@@ -192,9 +192,9 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		ItemState.ReadTextOverride = ItemActor->ReadTextOverride;
 		CapturedItems.Add(Entry.ObjectId, ItemState);
 	}
-	// Flying and embedded arrows are already consumed from inventory, but
-	// are not yet in SpawnedItemEntries. Capture by their single GUID before
-	// materializing any pickup. In-flight shots reload as recoverable items.
+	// Every recoverable projectile is already consumed from inventory, but
+	// is not yet in SpawnedItemEntries. Capture by its physical GUID.
+	// In-flight items reload as pickups, not a second shot.
 	if (UWorld* World = GetWorld())
 	{
 		UGameInstance* GameInstance = World->GetGameInstance();
@@ -204,12 +204,16 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		{
 			const AGridThrownItemActor* Arrow = *It;
 			if (!IsValid(Arrow) || Arrow->RuntimeActor != this ||
-				Arrow->HasCompletedImpactConversion() || !Arrow->bRangedAmmunitionProjectile)
+				Arrow->HasCompletedImpactConversion() ||
+				(!bRequireCanonicalCapture && !Arrow->bRangedAmmunitionProjectile))
 			{
 				continue;
 			}
 			const FGuid Guid = Arrow->ThrownItemInstance.RuntimeObjectId;
-			if (!Guid.IsValid() || (bRequireCanonicalCapture && Arrow->ThrownItemInstance.Quantity != 1))
+			if (!Guid.IsValid() || (bRequireCanonicalCapture &&
+				(Arrow->ThrownItemInstance.Quantity != 1 || Arrow->GetRuntimeObjectId() != Guid ||
+				 Arrow->ItemDefinitionId != Arrow->ThrownItemInstance.ItemDefinitionId ||
+				 Arrow->CanonicalWorldItemLevel != Arrow->ThrownItemInstance.ItemLevel)))
 			{
 				if (bRequireCanonicalCapture) return false;
 				continue;
@@ -227,21 +231,35 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 			Item.ItemLevel = Arrow->ThrownItemInstance.ItemLevel;
 			Item.Quantity = 1;
 			Item.Transform = Arrow->GetActorTransform();
-			Item.bHasWorldMeshTransform = IsValid(Arrow->MeshComponent);
-			Item.WorldMeshTransform = Item.bHasWorldMeshTransform
+			const FTransform FlightPose = IsValid(Arrow->MeshComponent)
 				? Arrow->MeshComponent->GetComponentTransform() : Item.Transform;
+			// Only arrows preserve the flight mesh pose. Other recoverable
+			// items rematerialize their canonical pickup mesh, not its flight scale.
+			Item.bHasWorldMeshTransform = Arrow->bRangedAmmunitionProjectile && IsValid(Arrow->MeshComponent);
+			Item.WorldMeshTransform = Item.bHasWorldMeshTransform ? FlightPose : Item.Transform;
+			if (!Arrow->bRangedAmmunitionProjectile)
+				Item.Transform.SetLocation(FlightPose.GetLocation());
 			// 06.3BC: a registered arrow's physical identity is ItemId/N0/GUID.
 			// Never persist an obsolete DA_Item_Arrows pointer for this source.
 			Item.ProjectileDefinitionAsset =
 				bRequireCanonicalCapture || (Canonical && Canonical->HasCanonicalItem(Item.ItemDefinitionId))
 					? nullptr : Arrow->GetItemDefinitionAsset();
-			Item.bLightsEnabled = Arrow->ThrownItemInstance.bLightsEnabled;
+			Item.bLightsEnabled = Arrow->AreItemLightsEnabled();
+			Item.ReadableContentAsset = Arrow->ThrownItemInstance.ReadableContentAsset;
+			Item.ReadableContentId = Arrow->ThrownItemInstance.ReadableContentId;
+			Item.ReadTitleOverride = Arrow->ThrownItemInstance.ReadTitleOverride;
+			Item.ReadTextOverride = Arrow->ThrownItemInstance.ReadTextOverride;
 			int32 X = INDEX_NONE, Y = INDEX_NONE;
 			FVector Offset;
-			if (!TryResolveWorldCellFromImpactPoint(Item.WorldMeshTransform.GetLocation(), X, Y, Offset))
+			if (!TryResolveWorldCellFromImpactPoint(FlightPose.GetLocation(), X, Y, Offset))
 			{
 				X = Arrow->SourceCellX;
 				Y = Arrow->SourceCellY;
+				if (!Arrow->bRangedAmmunitionProjectile)
+				{
+					if (!IsWalkableCell(X, Y)) return false;
+					Item.Transform.SetLocation(GetCellCenterWorld(X, Y, 12.f));
+				}
 			}
 			Item.CellX = X;
 			Item.CellY = Y;
@@ -664,7 +682,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		const FName RuntimeItemDefinitionId = ItemState.ItemDefinitionId;
 		if (!bFoundExistingItem && !RuntimeItemDefinitionId.IsNone())
 		{
-			// A flying canonical arrow reloads as a pickup, not a second
+			// A flying canonical item reloads as a pickup, not a second
 			// projectile. Old SaveGame pointers are not its authoring authority.
 			const bool bCanonicalItem = RestoreRegistry &&
 				RestoreRegistry->HasCanonicalItem(RuntimeItemDefinitionId);
