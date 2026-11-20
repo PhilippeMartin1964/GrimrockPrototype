@@ -60,7 +60,6 @@ bool FGridClean063OSortProjection::RunTest(const FString&)
 	Legacy.ItemDefinitionId = TEXT("LegacySort_063O");
 	Legacy.Quantity = 3;
 	Legacy.ItemLevel = 0;
-	Legacy.Weight = 2.0f;
 	ConflictingLegacy->ItemDefinitionId = Legacy.ItemDefinitionId;
 	ConflictingLegacy->Weight = 1.5f;
 	const FGridInventorySortReadView Old =
@@ -69,7 +68,12 @@ bool FGridClean063OSortProjection::RunTest(const FString&)
 	TestEqual(TEXT("Unregistered sort cannot borrow old mass"), Old.TotalWeight, 0.0f);
 	const auto Fixture = FGridInventorySortReadModel::Resolve(nullptr, ConflictingLegacy.Get(), Legacy);
 	TestEqual(TEXT("Isolated legacy fixture preserves name"), Fixture.DisplayName, FString(TEXT("Old wrong weapon")));
-	TestEqual(TEXT("Isolated legacy fixture preserves mass"), Fixture.TotalWeight, 4.5f);
+	TestEqual(TEXT("Isolated legacy fixture preserves explicit definition mass"), Fixture.TotalWeight, 4.5f);
+	const auto NoDefinition = FGridInventorySortReadModel::Resolve(nullptr, nullptr, Legacy);
+	TestEqual(TEXT("No source definition sorts by technical identity"),
+		NoDefinition.DisplayName, Legacy.ItemDefinitionId.ToString());
+	TestEqual(TEXT("No source definition contributes no artificial weight"),
+		NoDefinition.TotalWeight, 0.0f);
 	return true;
 }
 

@@ -86,6 +86,13 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 	TestEqual(TEXT("Isolated fixture name"), Fixture.DisplayName.ToString(), FString(TEXT("FAKE OLD NAME")));
 	TestEqual(TEXT("Isolated fixture mass"), Fixture.UnitWeightKg, 888.0f);
 	TestEqual(TEXT("Isolated fixture description"), Fixture.Description.ToString(), FString(TEXT("FAKE OLD DESCRIPTION")));
+	const auto NoDefinition = FGridInventoryItemMetadataReadModel::Resolve(nullptr, nullptr, Outside);
+	TestFalse(TEXT("Fixture without definition cannot project static metadata"),
+		NoDefinition.bResolved);
+	TestEqual(TEXT("Definition-less fixture exposes only technical name"),
+		NoDefinition.DisplayName.ToString(), Outside.ItemDefinitionId.ToString());
+	TestTrue(TEXT("Definition-less fixture has no description"), NoDefinition.Description.IsEmpty());
+	TestEqual(TEXT("Definition-less fixture has zero mass"), NoDefinition.UnitWeightKg, 0.0f);
 	Outside.ItemDefinitionId = TEXT("Item_Arrows_01");
 	Outside.ItemLevel = 1;
 	TestFalse(TEXT("Non-ARM N1 refused"), FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), nullptr, Outside).bResolved);

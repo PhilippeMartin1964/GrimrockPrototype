@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.120 — Métadonnées UI sans copies d'instance
+
+Parent `b7a037804e131c20e26820964e6a80f609d55d89` : après SilentTask et LocalAuto SUCCESS. Lecture de masse et de nom interdite à partir de l'instance physique, même en Automation. Les tests 3K et 3O protègent la lecture canonique et le refus de masse « fantôme ». Voir [5G.120](ARM_CLEAN06_5G120_UI_METADATA_FAIL_CLOSED.md).
+
 ## ARM-CLEAN06.5G.119 — Fixtures UI, combat et Editor sans copies
 
 Parent `c8c4ed9545015d5ec2b034411b38ace61c50bd33` : après SilentTask et LocalAuto SUCCESS. Retirer les copies d'instance de 6 tests UI/combat/Editor, sans rétablir l'ancienne attente ARMEMENT01.6 réparée en 118R. Conserver le correctif 116R de masse des shurikens. Voir [5G.119](ARM_CLEAN06_5G119_TEST_FIXTURE_CACHE_REMOVAL.md).

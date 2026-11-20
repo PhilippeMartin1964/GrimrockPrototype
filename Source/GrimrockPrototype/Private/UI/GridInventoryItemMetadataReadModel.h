@@ -55,14 +55,10 @@ struct FGridInventoryItemMetadataReadModel
 			Result.Description = LegacyDefinition->Description;
 			Result.UnitWeightKg = LegacyDefinition->Weight;
 		}
-		else
-		{
-			Result.UnitWeightKg = Instance.Weight;
-			Result.DisplayName = Instance.DisplayName;
-		}
+		// Historical Automation tests may explicitly supply a definition,
+		// never a name or a mass copied into the physical instance.
 		if (Result.DisplayName.IsEmpty())
-			Result.DisplayName = Instance.DisplayName.IsEmpty()
-				? FText::FromName(Instance.ItemDefinitionId) : Instance.DisplayName;
+			Result.DisplayName = FText::FromName(Instance.ItemDefinitionId);
 #endif
 		return Result;
 	}
