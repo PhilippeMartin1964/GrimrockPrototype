@@ -1,27 +1,27 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace
 {
-	UGridPartyInventoryComponent* CreateInitializedInventoryComponent()
+	UGridPartyInventoryComponent* CreateInitializedInventoryComponent(FGridCanonicalWeightTestWorld& Fixture)
 	{
-		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
+		UGridPartyInventoryComponent* Component = Fixture.MakeInventory();
+		if (!Component) return nullptr;
 		Component->InitializeDefaultPartyIfNeeded();
 		return Component;
 	}
 
-	FGridItemInstance CreateTestItem(const TCHAR* DefinitionId, float Weight)
+	FGridItemInstance CreateTestItem(const TCHAR* DefinitionId)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = FName(DefinitionId);
-		Item.DisplayName = FText::FromString(DefinitionId);
 		Item.Quantity = 1;
-		Item.Weight = Weight;
 		Item.OwnerType = EGridItemOwnerType::World;
 		return Item;
 	}
@@ -32,7 +32,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyInventoryDefaultInitializationTest, "
 
 bool FGridPartyInventoryDefaultInitializationTest::RunTest(const FString& Parameters)
 {
-	UGridPartyInventoryComponent* Component = CreateInitializedInventoryComponent();
+	FGridCanonicalWeightTestWorld Fixture(TMap<FName, float>{});
+	UGridPartyInventoryComponent* Component = CreateInitializedInventoryComponent(Fixture);
 
 	TestNotNull(TEXT("Inventory component is created"), Component);
 	if (!Component)
@@ -67,14 +68,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyInventorySelectedCharacterPickupTest,
 
 bool FGridPartyInventorySelectedCharacterPickupTest::RunTest(const FString& Parameters)
 {
-	UGridPartyInventoryComponent* Component = CreateInitializedInventoryComponent();
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("CC0_TestTorch"), 2.5f}});
+	UGridPartyInventoryComponent* Component = CreateInitializedInventoryComponent(Fixture);
 	if (!Component)
 	{
 		AddError(TEXT("Failed to create the inventory component."));
 		return false;
 	}
 
-	const FGridItemInstance Item = CreateTestItem(TEXT("CC0_TestTorch"), 2.5f);
+	const FGridItemInstance Item = CreateTestItem(TEXT("CC0_TestTorch"));
 	TestTrue(TEXT("An item can be added to the selected character"), Component->AddItemToSelectedCharacterInventory(Item));
 
 	const FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
@@ -96,7 +98,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyInventoryCarryWeightTest, "Grimrock.C
 
 bool FGridPartyInventoryCarryWeightTest::RunTest(const FString& Parameters)
 {
-	UGridPartyInventoryComponent* Component = CreateInitializedInventoryComponent();
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("CC0_HeavyItem"), 51.f}});
+	UGridPartyInventoryComponent* Component = CreateInitializedInventoryComponent(Fixture);
 	if (!Component)
 	{
 		AddError(TEXT("Failed to create the inventory component."));
@@ -111,7 +114,7 @@ bool FGridPartyInventoryCarryWeightTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Carry capacity uses Strength x 5"), FMath::IsNearlyEqual(Summary.BaseMaxWeight, 50.0f));
 	TestTrue(TEXT("An empty inventory is not overloaded"), !Summary.bOverloaded);
 
-	const FGridItemInstance HeavyItem = CreateTestItem(TEXT("CC0_HeavyItem"), 51.0f);
+	const FGridItemInstance HeavyItem = CreateTestItem(TEXT("CC0_HeavyItem"));
 	TestTrue(TEXT("The heavy item can still be stored"), Component->AddItemToSelectedCharacterInventory(HeavyItem));
 	TestTrue(TEXT("Updated weight summary resolves"), Component->GetCharacterSummary(0, Summary));
 	TestTrue(TEXT("Current weight includes the stored item"), FMath::IsNearlyEqual(Summary.CurrentWeight, 51.0f));
@@ -125,19 +128,26 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyInventoryExclusiveOwnershipTest, "Gri
 
 bool FGridPartyInventoryExclusiveOwnershipTest::RunTest(const FString& Parameters)
 {
-	UGridPartyInventoryComponent* Component = CreateInitializedInventoryComponent();
+	FGridCanonicalWeightTestWorld Fixture(TMap<FName, float>{}, [](UGridItemSystemAsset& Root)
+	{
+		auto* Gear = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+		Gear->ItemId = TEXT("CC0_TestWeapon");
+		Gear->DisplayName = FText::FromName(Gear->ItemId);
+		Gear->WeightKg = 3.f;
+		Gear->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
+		Gear->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+		Root.ItemDefinitions.Add(Gear);
+	});
+	UGridPartyInventoryComponent* Component = CreateInitializedInventoryComponent(Fixture);
 	if (!Component)
 	{
 		AddError(TEXT("Failed to create the inventory component."));
 		return false;
 	}
 
-	UGridItemDefinitionAsset* WeaponDefinition = NewObject<UGridItemDefinitionAsset>(Component);
-	WeaponDefinition->ItemDefinitionId = TEXT("CC0_TestWeapon");
-	WeaponDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-	TestTrue(TEXT("The ownership fixture registers its weapon definition"), Component->RegisterItemDefinition(WeaponDefinition));
+	TestTrue(TEXT("The ownership fixture registers its equipment definition"), Fixture.Scope.Registry->HasCanonicalItem(TEXT("CC0_TestWeapon")));
 
-	const FGridItemInstance Item = CreateTestItem(TEXT("CC0_TestWeapon"), 3.0f);
+	const FGridItemInstance Item = CreateTestItem(TEXT("CC0_TestWeapon"));
 	const FGuid RuntimeObjectId = Item.RuntimeObjectId;
 	TestTrue(TEXT("The test item enters inventory"), Component->AddItemToSelectedCharacterInventory(Item));
 

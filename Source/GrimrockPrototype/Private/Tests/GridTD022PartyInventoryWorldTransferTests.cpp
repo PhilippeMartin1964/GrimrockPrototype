@@ -1,19 +1,18 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 
 #include "Runtime/GridPartyInventoryComponent.h"
 
 namespace
 {
-	FGridItemInstance MakeTD022EquippedItem(const FGuid& CharacterId, FName ItemDefinitionId, int32 Quantity, float UnitWeight)
+	FGridItemInstance MakeTD022EquippedItem(const FGuid& CharacterId, FName ItemDefinitionId, int32 Quantity)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = ItemDefinitionId;
-		Item.DisplayName = FText::FromName(ItemDefinitionId);
 		Item.Quantity = Quantity;
-		Item.Weight = UnitWeight;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
 		Item.OwnerGuid = CharacterId;
 		Item.OwnerCharacterIndex = 0;
@@ -29,7 +28,18 @@ bool FGridTD022EquipmentWorldTransferContractTest::RunTest(const FString& Parame
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	FGridCanonicalWeightTestWorld Fixture({{TEXT("TD02_Other"), 0.5f}}, [](UGridItemSystemAsset& Root)
+	{
+		auto* Gear = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+		Gear->ItemId = TEXT("TD02_Shuriken");
+		Gear->DisplayName = FText::FromName(Gear->ItemId);
+		Gear->WeightKg = 0.5f;
+		Gear->MaxStack = 2;
+		Gear->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
+		Gear->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+		Root.ItemDefinitions.Add(Gear);
+	});
+	UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
 	TestNotNull(TEXT("The party inventory component is created"), Inventory);
 	if (!Inventory)
 	{
@@ -46,7 +56,7 @@ bool FGridTD022EquipmentWorldTransferContractTest::RunTest(const FString& Parame
 	const FName ShurikenId(TEXT("TD02_Shuriken"));
 	const FName OtherItemId(TEXT("TD02_Other"));
 	FGridItemInstance& MainHand = Inventory->PartyInventoryState.ActiveEquipment[0].MainHand;
-	MainHand = MakeTD022EquippedItem(Character.CharacterId, ShurikenId, 2, 0.5f);
+	MainHand = MakeTD022EquippedItem(Character.CharacterId, ShurikenId, 2);
 	const FGuid OriginalStackRuntimeId = MainHand.RuntimeObjectId;
 
 	FGridItemInstance ExtractedItem;
@@ -94,7 +104,6 @@ bool FGridTD022EquipmentWorldTransferContractTest::RunTest(const FString& Parame
 	FGridItemInstance OtherWorldItem = FinalUnit;
 	OtherWorldItem.RuntimeObjectId = FGuid::NewGuid();
 	OtherWorldItem.ItemDefinitionId = OtherItemId;
-	OtherWorldItem.DisplayName = FText::FromName(OtherItemId);
 	OtherWorldItem.OwnerType = EGridItemOwnerType::World;
 	OtherWorldItem.OwnerGuid = FGuid();
 	OtherWorldItem.OwnerCharacterIndex = INDEX_NONE;

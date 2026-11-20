@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 
 #include "Runtime/GridPartyInventoryComponent.h"
 
@@ -11,7 +12,23 @@ bool FGridTD023PartyInventoryDiagnosticsContractTest::RunTest(const FString& Par
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	FGridCanonicalWeightTestWorld Fixture(TMap<FName, float>{}, [](UGridItemSystemAsset& Root)
+	{
+		auto* Stone = NewObject<UGridGenericStackableDefinitionAsset>(&Root);
+		Stone->ItemId = TEXT("TD02_Stone");
+		Stone->DisplayName = FText::FromString(TEXT("Stone"));
+		Stone->WeightKg = 1.f;
+		Stone->MaxStack = 2;
+		Root.ItemDefinitions.Add(Stone);
+		auto* Sword = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+		Sword->ItemId = TEXT("TD02_Sword");
+		Sword->DisplayName = FText::FromString(TEXT("Sword"));
+		Sword->WeightKg = 3.f;
+		Sword->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
+		Sword->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+		Root.ItemDefinitions.Add(Sword);
+	});
+	UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
 	TestNotNull(TEXT("The party inventory component is created"), Inventory);
 	if (!Inventory)
 	{
@@ -28,9 +45,7 @@ bool FGridTD023PartyInventoryDiagnosticsContractTest::RunTest(const FString& Par
 	FGridItemInstance Stone;
 	Stone.RuntimeObjectId = FGuid::NewGuid();
 	Stone.ItemDefinitionId = TEXT("TD02_Stone");
-	Stone.DisplayName = FText::FromString(TEXT("Stone"));
 	Stone.Quantity = 2;
-	Stone.Weight = 1.0f;
 	Stone.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Stone.OwnerGuid = Character.CharacterId;
 	Stone.OwnerCharacterIndex = 0;
@@ -46,15 +61,16 @@ bool FGridTD023PartyInventoryDiagnosticsContractTest::RunTest(const FString& Par
 	FGridItemInstance Sword;
 	Sword.RuntimeObjectId = FGuid::NewGuid();
 	Sword.ItemDefinitionId = TEXT("TD02_Sword");
-	Sword.DisplayName = FText::FromString(TEXT("Sword"));
 	Sword.Quantity = 1;
-	Sword.Weight = 3.0f;
 	Sword.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	Sword.OwnerGuid = Character.CharacterId;
 	Sword.OwnerCharacterIndex = 0;
 	Sword.EquipmentSlot = EGridEquipmentSlot::MainHand;
 	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Sword;
 
+	FGridInventoryCharacterSummary Summary;
+	if (!TestTrue(TEXT("Canonical summary available"), Inventory->GetCharacterSummary(0, Summary))) return false;
+	TestEqual(TEXT("Diagnostic fixture carries five canonical kilograms"), Summary.CurrentWeight, 5.f);
 	const FString EquipmentDiagnostics = Inventory->GetEquipmentDiagnosticsForCharacter(0);
 	TestTrue(TEXT("Equipment diagnostics expose the equipped main-hand item"), EquipmentDiagnostics.Contains(TEXT("MainHand=TD02_Sword")));
 	TestEqual(TEXT("Invalid character diagnostics preserve the empty equipment contract"), Inventory->GetEquipmentDiagnosticsForCharacter(99),

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.108 — Fixtures propriété et diagnostics canoniques
+
+Parent 0865139aae6f2ac753329bb92348963efedae2cf : attendre SilentTask et LocalAuto SUCCESS. Les tests CC0, TD02.2 et TD02.3 utilisent des définitions synthétiques canoniques (masse, pile, emplacement) sans copie d'instance. Transferts et rollbacks, GUID, propriétaire, surcharge et diagnostics conservés. Voir [5G.108](ARM_CLEAN06_5G108_CANONICAL_OWNERSHIP_FIXTURES.md).
+
 ## ARM-CLEAN06.5G.107 — Fixtures de charge, équipement et état restauré
 
 Parent 7fed2e18d53608733345598e63c9bfa786ae792c : attendre SilentTask et LocalAuto SUCCESS. Migrer TD07.3.3.4 et RPG PERF01 vers un registre transitoire avec masses, pile et ceinture canoniques. Préserver règles capacité/forces, poids curseur, conservation SaveGame et index de surcharge. Voir [5G.107](ARM_CLEAN06_5G107_CANONICAL_CAPACITY_FIXTURES.md).
