@@ -312,7 +312,8 @@ public:
 	// Runtime State Capture / Restore
 	// ============================================================
 
-	void CaptureRuntimeReceptacleState(FGridRuntimeReceptacleState& OutState) const;
+	/** Read-only all-or-nothing capture; failure leaves OutState unchanged. */
+	bool CaptureRuntimeReceptacleState(FGridRuntimeReceptacleState& OutState) const;
 
 	/**
      * Authoritative runtime clear:

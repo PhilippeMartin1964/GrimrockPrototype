@@ -1877,7 +1877,11 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 	AbortActiveCombatAndMonsterActions();
 
 	const FName OldLevelId = ResolveRuntimeStateLevelId(DungeonAsset, CurrentDungeonLevelId);
-	CaptureCurrentLevelRuntimeState();
+	if (!CaptureCurrentLevelRuntimeState())
+	{
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Dungeon travel rejected: source level capture failed."));
+		return false;
+	}
 	if (const FGridLevelRuntimeState* StoredState = DungeonRuntimeState.LevelStates.Find(OldLevelId))
 	{
 		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridRuntimeState Stored Level=%s Receptacles=%d Items=%d Doors=%d Monsters=%d"), *OldLevelId.ToString(),

@@ -9,7 +9,6 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridItemWeightReadModel.h"
 #include "GridReceptacleItemMetadataReadModel.h"
-#include "GridReceptacleContainedIdentityReadModel.h"
 #include "GridReceptacleInitialCanonicalReadModel.h"
 #include "GridReceptacleAcceptedCanonicalReadModel.h"
 #include "Engine/GameInstance.h"
@@ -798,62 +797,45 @@ bool AGridReceptacleActor::TryPlaceCursorItemFromHit(AGrimrockPartyPawn* PartyPa
 	return bPlaced;
 }
 
-void AGridReceptacleActor::CaptureRuntimeReceptacleState(FGridRuntimeReceptacleState& OutState) const
+bool AGridReceptacleActor::CaptureRuntimeReceptacleState(FGridRuntimeReceptacleState& OutState) const
 {
-	OutState.ObjectId = ObjectId;
-	OutState.bCanRemoveItem = bCanRemoveItem;
-	OutState.bCanInsertItems = bCanInsertItems;
-	OutState.ContainedItems.Reset();
-
-	const UGridItemSubsystem* CanonicalRegistry = ResolveReceptacleItemRegistry(this);
+	FGridRuntimeReceptacleState Candidate;
+	Candidate.ObjectId = ObjectId;
+	Candidate.bCanRemoveItem = bCanRemoveItem;
+	Candidate.bCanInsertItems = bCanInsertItems;
+	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
+	TSet<FGuid> Seen;
 	for (const FGridContainedReceptacleItem& Item : ContainedItems)
 	{
-		FName ResolvedItemId = Item.ItemDefinitionId;
-		if (IsValid(Item.ItemActor.Get()))
-		{
-			const FName ObservedId =
-				FGridReceptacleContainedIdentityReadModel::ResolveActor(
-					Item.ItemActor.Get(), ResolvedItemId, Item.ItemLevel);
-			if (CanonicalRegistry && CanonicalRegistry->HasCanonicalItem(ResolvedItemId) &&
-				ObservedId != ResolvedItemId)
-			{
-				UE_LOG(LogGridReceptacle, Warning,
-					TEXT("GridReceptacle Capture rejected conflicting actor Item=%s Actor=%s"),
-					*ResolvedItemId.ToString(), *GetNameSafe(Item.ItemActor.Get()));
-				continue;
-			}
-			if (ResolvedItemId.IsNone())
-			{
-				ResolvedItemId = ObservedId;
-			}
-		}
-		if (ResolvedItemId.IsNone() && Item.bWasInitialItem)
-		{
-			ResolvedItemId = FGridReceptacleContainedIdentityReadModel::Resolve(
-				CanonicalRegistry, Item.ItemDefinition, Item.ItemDefinitionId);
-		}
-		if (!ResolvedItemId.IsNone() && CanonicalRegistry &&
-			CanonicalRegistry->HasCanonicalItem(ResolvedItemId) &&
-			!FGridReceptacleItemMetadataReadModel::Resolve(
-				CanonicalRegistry, nullptr, ResolvedItemId, Item.ItemLevel, false).bResolved)
+		FGridResolvedItem Resolved;
+		if (!Registry || !Registry->IsConfigured() ||
+			!Item.RuntimeObjectId.IsValid() || Seen.Contains(Item.RuntimeObjectId) ||
+			!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) ||
+			!Resolved.IsValid() || Resolved.ItemId != Item.ItemDefinitionId || Resolved.ItemLevel != Item.ItemLevel ||
+			(!Resolved.bIsArmament && Item.ItemLevel != 0) ||
+			Item.Quantity < 1 || Item.Quantity > FMath::Max(1, Resolved.MaxStack))
 		{
 			UE_LOG(LogGridReceptacle, Warning,
-					TEXT("GridReceptacle Capture rejected invalid canonical item %s level %d"),
-					*ResolvedItemId.ToString(), Item.ItemLevel);
-			continue;
+				TEXT("GridReceptacle Capture rejected invalid canonical item %s level %d RuntimeId=%s"),
+				*Item.ItemDefinitionId.ToString(), Item.ItemLevel, *Item.RuntimeObjectId.ToString());
+			return false; // Do not silently save a smaller inventory.
 		}
-		if (ResolvedItemId.IsNone())
+		Seen.Add(Item.RuntimeObjectId);
+		const AGridItemActor* Visual = Item.ItemActor.Get();
+		if (IsValid(Visual) && (Visual->GetWorld() != GetWorld() ||
+			Visual->ItemDefinitionId != Item.ItemDefinitionId || Visual->GetRuntimeObjectId() != Item.RuntimeObjectId ||
+			Visual->CanonicalWorldItemLevel != Item.ItemLevel || !Visual->CanonicalWorldPresentation.IsValid()))
 		{
 			UE_LOG(LogGridReceptacle, Warning,
-				TEXT("GridReceptacle Capture skipped contained item: ReceptacleId=%s RuntimeId=%s Actor=%s no ItemDefinitionId resolved."),
-				*ObjectId.ToString(), *Item.RuntimeObjectId.ToString(), *GetNameSafe(Item.ItemActor.Get()));
-			continue;
+				TEXT("GridReceptacle Capture rejected conflicting actor Item=%s Actor=%s"),
+				*Item.ItemDefinitionId.ToString(), *GetNameSafe(Visual));
+			return false;
 		}
 		FGridRuntimeItemState ItemState;
-		ItemState.ObjectId = Item.RuntimeObjectId.IsValid() ? Item.RuntimeObjectId : FGuid::NewGuid();
-		ItemState.ItemDefinitionId = ResolvedItemId;
+		ItemState.ObjectId = Item.RuntimeObjectId;
+		ItemState.ItemDefinitionId = Item.ItemDefinitionId;
 		ItemState.ItemLevel = Item.ItemLevel;
-		ItemState.Quantity = FMath::Max(1, Item.Quantity);
+		ItemState.Quantity = Item.Quantity;
 		ItemState.bIsContainedInReceptacle = true;
 		ItemState.ReceptacleObjectId = ObjectId;
 		ItemState.bLightsEnabled = Item.bLightsEnabled;
@@ -861,21 +843,23 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState(FGridRuntimeReceptacleS
 		ItemState.ReadableContentId = Item.ReadableContentId;
 		ItemState.ReadTitleOverride = Item.ReadTitleOverride;
 		ItemState.ReadTextOverride = Item.ReadTextOverride;
-		if (IsValid(Item.ItemActor.Get()))
+		if (IsValid(Visual))
 		{
-			ItemState.Transform = Item.ItemActor->GetActorTransform();
-			ItemState.bLightsEnabled = Item.ItemActor->AreItemLightsEnabled();
-			ItemState.ReadableContentAsset = Item.ItemActor->ReadableContentAsset;
-			ItemState.ReadableContentId = Item.ItemActor->ReadableContentId;
-			ItemState.ReadTitleOverride = Item.ItemActor->ReadTitleOverride;
-			ItemState.ReadTextOverride = Item.ItemActor->ReadTextOverride;
+			ItemState.Transform = Visual->GetActorTransform();
+			ItemState.bLightsEnabled = Visual->AreItemLightsEnabled();
+			ItemState.ReadableContentAsset = Visual->ReadableContentAsset;
+			ItemState.ReadableContentId = Visual->ReadableContentId;
+			ItemState.ReadTitleOverride = Visual->ReadTitleOverride;
+			ItemState.ReadTextOverride = Visual->ReadTextOverride;
 		}
 		else
 		{
 			ItemState.Transform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform() : GetActorTransform();
 		}
-		OutState.ContainedItems.Add(ItemState);
+		Candidate.ContainedItems.Add(ItemState);
 	}
+	OutState = MoveTemp(Candidate);
+	return true;
 }
 
 int32 AGridReceptacleActor::ForceClearRuntimeContents(bool bMarkInitialItemsRemoved)

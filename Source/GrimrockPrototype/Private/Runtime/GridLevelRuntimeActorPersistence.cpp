@@ -117,6 +117,22 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		return false;
 	}
 
+	// Validate every receptacle before resetting any existing level snapshot.
+	TMap<FGuid, FGridRuntimeReceptacleState> CapturedReceptacles;
+	for (const TPair<FGuid, TObjectPtr<AGridRuntimeObjectActor>>& Pair : SpawnedRuntimeObjectActors)
+	{
+		const AGridReceptacleActor* Receptacle = Cast<AGridReceptacleActor>(Pair.Value.Get());
+		if (!IsValid(Receptacle)) continue;
+		FGridRuntimeReceptacleState ReceptacleState;
+		if (!Pair.Key.IsValid() || !Receptacle->CaptureRuntimeReceptacleState(ReceptacleState) ||
+			ReceptacleState.ObjectId != Pair.Key)
+		{
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Capture rejected receptacle %s"), *Pair.Key.ToString());
+			return false;
+		}
+		CapturedReceptacles.Add(Pair.Key, MoveTemp(ReceptacleState));
+	}
+
 	FGridLevelRuntimeState* State = GetOrCreateRuntimeStateForCurrentLevel();
 	if (!State)
 	{
@@ -306,17 +322,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		State->ObjectPresence.Add(Spawn.SpawnId, PresenceState);
 	}
 
-	for (const TPair<FGuid, TObjectPtr<AGridRuntimeObjectActor>>& Pair : SpawnedRuntimeObjectActors)
-	{
-		AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor>(Pair.Value.Get());
-		if (!IsValid(ReceptacleActor))
-		{
-			continue;
-		}
-		FGridRuntimeReceptacleState ReceptacleState;
-		ReceptacleActor->CaptureRuntimeReceptacleState(ReceptacleState);
-		State->Receptacles.Add(Pair.Key, ReceptacleState);
-	}
+	State->Receptacles = MoveTemp(CapturedReceptacles);
 
 	TArray<AGridMonsterActor*> Monsters;
 	PersistenceGetWorldMonsters(GetWorld(), Monsters);

@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "GridCanonicalLootTestScope.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridDungeonAsset.h"
 #include "Core/GridObjectBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
@@ -328,6 +329,71 @@ bool FGridClean065G48ReceptacleService::RunTest(const FString&)
     TestTrue(TEXT("Readable title retained"), Item->ReadTitleOverride.EqualTo(Title));
     TestTrue(TEXT("Readable body retained"), Item->ReadTextOverride.EqualTo(Body));
     TestFalse(TEXT("Current extinguished state retained"), Item->bLightsEnabled);
+    return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065G52ReceptacleCapture,
+    "Grimrock.RPG.ARM.CLEAN06_5G52.AtomicReceptacleCapture",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridClean065G52ReceptacleCapture::RunTest(const FString&)
+{
+    ARMEMENT0183::FFixture F;
+    if (!TestTrue(TEXT("Fixture ready"), F.Ready())) return false;
+    F.AddInitial(12);
+    if (!TestTrue(TEXT("Materialize N12 receptacle"), F.Build())) return false;
+    UGridDungeonAsset* Dungeon = NewObject<UGridDungeonAsset>(F.Runtime);
+    FGridDungeonLevelEntry Source;
+    Source.LevelId = TEXT("CaptureSource");
+    Source.LevelAsset = F.Level;
+    Source.bEnabled = true;
+    UGridLevelAsset* DestinationLevel = NewObject<UGridLevelAsset>(F.Runtime);
+    DestinationLevel->Width = 3;
+    DestinationLevel->Height = 3;
+    DestinationLevel->EnsureCellCount();
+    for (FGridLevelCellData& Cell : DestinationLevel->Cells)
+    {
+        Cell.CellType = EGridCellType::Floor;
+        Cell.bBlocksOccupancy = false;
+    }
+    FGridDungeonLevelEntry Destination;
+    Destination.LevelId = TEXT("CaptureDestination");
+    Destination.LevelAsset = DestinationLevel;
+    Destination.bEnabled = true;
+    Dungeon->Levels = { Source, Destination };
+    Dungeon->DefaultLevelId = Source.LevelId;
+    F.Runtime->DungeonAsset = Dungeon;
+    F.Runtime->CurrentDungeonLevelId = Source.LevelId;
+    AGrimrockPartyPawn* Party = F.MakeParty();
+    if (!TestNotNull(TEXT("Party"), Party) ||
+        !TestTrue(TEXT("Capture valid initial level"), F.Runtime->CaptureCurrentLevelRuntimeState())) return false;
+    const FGridRuntimeReceptacleState* Previous = F.SavedReceptacle();
+    if (!TestNotNull(TEXT("Existing snapshot"), Previous) ||
+        !TestEqual(TEXT("Existing physical item"), Previous->ContainedItems.Num(), 1)) return false;
+    const FGuid Id = Previous->ContainedItems[0].ObjectId;
+    auto* Visual = F.Receptacle->GetContainedItemActor(0);
+    if (!TestNotNull(TEXT("Canonical visual"), Visual)) return false;
+    FGridRuntimeReceptacleState LastGood = *Previous;
+    Visual->SetRuntimeObjectId(FGuid::NewGuid());
+    TestFalse(TEXT("Receptacle capture refuses conflicting physical GUID"), F.Receptacle->CaptureRuntimeReceptacleState(LastGood));
+    if (!TestEqual(TEXT("Failed local capture leaves last good row"), LastGood.ContainedItems.Num(), 1)) return false;
+    TestEqual(TEXT("Failed local capture preserves identity"), LastGood.ContainedItems[0].ObjectId, Id);
+    TestFalse(TEXT("Level capture refuses before resetting prior world state"), F.Runtime->CaptureCurrentLevelRuntimeState());
+    Previous = F.SavedReceptacle();
+    if (!TestNotNull(TEXT("Previous level snapshot still present"), Previous) ||
+        !TestEqual(TEXT("No partial level capture"), Previous->ContainedItems.Num(), 1)) return false;
+    TestEqual(TEXT("Previous physical identity not rewritten"), Previous->ContainedItems[0].ObjectId, Id);
+    TestFalse(TEXT("Travel refuses invalid source capture"),
+        F.Runtime->TravelToDungeonLevel(Destination.LevelId, 1, 1, EGridEdge::North, Party));
+    if (!TestTrue(TEXT("Rejected travel preserves source level"), F.Runtime->LevelAsset == F.Level) ||
+        !TestEqual(TEXT("Rejected travel preserves source id"), F.Runtime->CurrentDungeonLevelId, Source.LevelId) ||
+        !TestTrue(TEXT("Rejected travel retains receptacle"), IsValid(F.Receptacle)) ||
+        !TestTrue(TEXT("Rejected travel retains physical actor"), IsValid(Visual))) return false;
+    Visual->SetRuntimeObjectId(Id);
+    F.Receptacle->ContainedItems[0].Quantity = MAX_int32;
+    TestFalse(TEXT("Malformed physical quantity cannot be clamped on save"), F.Runtime->CaptureCurrentLevelRuntimeState());
+    F.Receptacle->ContainedItems[0].Quantity = 1;
+    TestTrue(TEXT("Corrected source captures normally"), F.Runtime->CaptureCurrentLevelRuntimeState());
     return !HasAnyErrors();
 }
 

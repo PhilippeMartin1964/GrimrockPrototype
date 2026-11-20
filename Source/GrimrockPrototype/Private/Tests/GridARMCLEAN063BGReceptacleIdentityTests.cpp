@@ -189,7 +189,7 @@ bool FGridBGConflictingActor::RunTest(const FString&)
     if (!TestNotNull(TEXT("Physical actor available"), Actor)) return false;
     Actor->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
     FGridRuntimeReceptacleState Snapshot;
-    F.Receptacle->CaptureRuntimeReceptacleState(Snapshot);
+    TestFalse(TEXT("Conflict rejects entire receptacle capture"), F.Receptacle->CaptureRuntimeReceptacleState(Snapshot));
     TestEqual(TEXT("Cannot capture registered item through contradictory actor"),
         Snapshot.ContainedItems.Num(), 0);
     TestEqual(TEXT("No change to contained logical ItemId"),

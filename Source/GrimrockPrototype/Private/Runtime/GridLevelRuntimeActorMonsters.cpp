@@ -434,9 +434,9 @@ bool AGridLevelRuntimeActor::ExecuteMonsterSpawnCommand(FGuid SpawnId, EGridObje
 	}
 
 	const FGridLevelRuntimeState* ExistingState = FindRuntimeStateForCurrentLevel();
-	if (!ExistingState || !ExistingState->bHasBeenVisited)
+	if ((!ExistingState || !ExistingState->bHasBeenVisited) && !CaptureCurrentLevelRuntimeState())
 	{
-		CaptureCurrentLevelRuntimeState();
+		return false;
 	}
 
 	const bool bIsCurrentlySpawned = FindSpawnedMonsterActor(SpawnId) != nullptr;
@@ -553,9 +553,9 @@ bool AGridLevelRuntimeActor::TeleportSpawnedMonster(FGuid SpawnId, int32 TargetC
 	}
 
 	const FGridLevelRuntimeState* ExistingState = FindRuntimeStateForCurrentLevel();
-	if (!ExistingState || !ExistingState->bHasBeenVisited)
+	if ((!ExistingState || !ExistingState->bHasBeenVisited) && !CaptureCurrentLevelRuntimeState())
 	{
-		CaptureCurrentLevelRuntimeState();
+		return false;
 	}
 
 	const FIntPoint PreviousCell = Monster->CurrentCell;

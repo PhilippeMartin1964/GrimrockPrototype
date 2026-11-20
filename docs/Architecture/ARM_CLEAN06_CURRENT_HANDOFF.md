@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.52 — Capture atomique des réceptacles
+
+Parent 8c471e9151846c0d95948199969b9e6ad905bf7f. Publication après deux statuts SUCCESS. CaptureRuntimeReceptacleState exige ID/niveau/GUID/quantité canoniques et cohérence acteur, ne lit plus les anciennes identités, ne saute pas les lignes invalides et ne modifie pas la sortie en cas d’échec. Capture du niveau prévalide tous les réceptacles avant reset du snapshot. 5G52/3BG vérifient conservation de l’état antérieur ; transition et commandes de monstres respectent le refus de capture. Voir [5G.52](ARM_CLEAN06_5G52_ATOMIC_RECEPTACLE_CAPTURE.md). Aucun asset/save écrit.
+
 ## ARM-CLEAN06.5G.51 — Restitution unifiée des réceptacles
 
 Parent f103050d152cc51e459eff6ca6e50744f5826fe3. Publication après deux statuts SUCCESS. Le clic direct sur l’objet et le service contextuel partagent la même extraction avant insertion, rollback et contrôle des identités physiques. Le groupe d’événements historique du clic direct est conservé, sans nouvelle chaîne localisée ; 0183 et 5G48 vérifient acteur/GUID contradictoires, refus sans mutation et restitution N12. Voir [5G.51](ARM_CLEAN06_5G51_UNIFIED_RECEPTACLE_EXTRACTION.md). Aucun asset/save écrit.
