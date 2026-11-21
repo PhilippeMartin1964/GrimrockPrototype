@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "GridCanonicalLootTestScope.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
@@ -3129,25 +3130,27 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 		{ TEXT("ARM045"), TEXT("ShortBow") },
 		{ TEXT("ARM048"), TEXT("RecurveBow") }
 	};
-	UGridItemDefinitionAsset* Arrows = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
-	if (!TestNotNull(TEXT("Real production arrows"), Arrows) ||
-		!TestEqual(TEXT("One shared arrow identity"), Arrows->ItemDefinitionId, FName(TEXT("Item_Arrows_01"))) ||
-		!TestTrue(TEXT("Arrow definition is stackable and valid"), Arrows->IsValidDefinition() && Arrows->bStackable))
+	FGridCanonicalRegistryFixture Canonical;
+	FGridResolvedItem Arrows;
+	if (!TestTrue(TEXT("Production arrows resolve at physical N0"),
+		Canonical.Resolve(TEXT("Item_Arrows_01"), 0, Arrows)) ||
+		!TestTrue(TEXT("Canonical arrows are stackable non-ARM ammunition"),
+			!Arrows.bIsArmament && Arrows.MaxStack >= 2 && !Arrows.AmmoKindId.IsNone()))
 		return false;
 
-	auto EquipBowAndArrows = [this, Arrows](
-		FGridCombatHudFixture& Fixture, const UGridItemDefinitionAsset* Bow,
+	auto EquipBowAndArrows = [this, &Arrows](
+		FGridCombatHudFixture& Fixture, const FGridResolvedItem& Bow,
 		int32 CaseIndex, int32 ArrowCount) -> bool
 	{
 		UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-		if (!TestTrue(TEXT("Register real N1 bow"),
-				Inventory->RegisterItemDefinition(const_cast<UGridItemDefinitionAsset*>(Bow))) ||
-			!TestTrue(TEXT("Register real arrows"), Inventory->RegisterItemDefinition(Arrows)))
+		if (!TestNull(TEXT("No historical bow definition registered"),
+			Inventory->FindItemDefinition(Bow.ItemId)) ||
+			!TestNull(TEXT("No historical ammo definition registered"),
+				Inventory->FindItemDefinition(Arrows.ItemId)))
 			return false;
 		FGridItemInstance Weapon;
 		Weapon.RuntimeObjectId = FGuid(16, 2, CaseIndex + 1, 1);
-		Weapon.ItemDefinitionId = Bow->ItemDefinitionId;
+		Weapon.ItemDefinitionId = Bow.ItemId;
 		Weapon.ItemLevel = 1;
 		Weapon.Quantity = 1;
 		Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -3159,12 +3162,12 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 
 		FGridItemInstance ArrowStack;
 		ArrowStack.RuntimeObjectId = FGuid(16, 2, CaseIndex + 1, 2);
-		ArrowStack.ItemDefinitionId = Arrows->ItemDefinitionId;
+		ArrowStack.ItemDefinitionId = Arrows.ItemId;
 		ArrowStack.Quantity = ArrowCount;
 		if (!TestTrue(TEXT("Resolve physical arrow stack"), Inventory->ApplyItemDefinitionToInstance(ArrowStack)) ||
 			!TestTrue(TEXT("Place arrows in character bag"), Inventory->AddItemToCharacterInventory(0, ArrowStack)) ||
 			!TestEqual(TEXT("Exact starting arrow count"),
-				Inventory->CountItemDefinitionInCharacterInventory(0, Arrows->ItemDefinitionId), ArrowCount))
+				Inventory->CountItemDefinitionInCharacterInventory(0, Arrows.ItemId), ArrowCount))
 			return false;
 		Fixture.Hud->RefreshFromSources();
 		return true;
@@ -3173,42 +3176,42 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(Cases)); ++Index)
 	{
 		const FBowCase& Case = Cases[Index];
-		const FString Name(Case.Asset);
-		const FString AssetPath = FString::Printf(
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
-			*Name, *Name);
 		const FString Context(Case.Archetype);
-		UGridItemDefinitionAsset* Bow = LoadObject<UGridItemDefinitionAsset>(nullptr, *AssetPath);
-		if (!TestNotNull(*FString::Printf(TEXT("%s actual N1 bow"), *Context), Bow))
-			return false;
-		if (!TestTrue(*FString::Printf(TEXT("%s valid catalogue identity"), *Context),
-				Bow->IsValidDefinition() && Bow->bUseWeaponCatalogue &&
-				Bow->DefaultWeaponItemLevel == 1 && Bow->WeaponArchetypeId == FName(Case.Archetype)) ||
-			!TestEqual(*FString::Printf(TEXT("%s requires actual arrows"), *Context),
-				Bow->RequiredAmmunitionItemDefinitionId, Arrows->ItemDefinitionId) ||
+		const FName BowId(*FString::Printf(TEXT("Weapon_%s_01"), Case.Asset));
+		FGridResolvedItem Bow;
+		if (!TestTrue(*FString::Printf(TEXT("%s canonical N1 bow"), *Context),
+			Canonical.Resolve(BowId, 1, Bow))) return false;
+		if (!TestTrue(*FString::Printf(TEXT("%s canonical archetype identity"), *Context),
+				Bow.bIsArmament && Bow.ItemId == BowId && Bow.ItemLevel == 1 &&
+				Bow.ArchetypeId == FName(Case.Archetype)) ||
+			!TestEqual(*FString::Printf(TEXT("%s requires the actual arrow kind"), *Context),
+				Bow.Weapon.RequiredAmmoKindId, Arrows.AmmoKindId) ||
 			!TestTrue(*FString::Printf(TEXT("%s uses two hands"), *Context),
-				Bow->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded) ||
-			!TestTrue(*FString::Printf(TEXT("%s attack is permitted in MainHand"), *Context),
-				Bow->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand)))
+				Bow.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded) ||
+			!TestTrue(*FString::Printf(TEXT("%s attacks from MainHand"), *Context),
+				Bow.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand)))
 			return false;
 
 		// Accepted shot: real projectile created, exactly one physical arrow
 		// removed, the original bag stack GUID preserved and AP spent once.
 		{
 			FGridCombatHudFixture Fixture;
+			FGridCanonicalLootTestScope RegistryScope;
 			if (!TestTrue(TEXT("Live ranged combat fixture"), Fixture.IsReady()) ||
+				!TestTrue(TEXT("Live ItemSystem attached to ranged world"),
+					RegistryScope.Attach(Fixture.TestWorld.World)) ||
 				!EquipBowAndArrows(Fixture, Bow, Index, 2))
 				return false;
 			UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
 			TArray<FGridAvailableCombatAction> Catalog;
 			Fixture.TurnManager->GetAvailableCombatActions(0, Catalog);
 			const FGridAvailableCombatAction* Action = Catalog.FindByPredicate(
-				[Bow](const FGridAvailableCombatAction& A)
+				[BowId](const FGridAvailableCombatAction& A)
 				{
 					return A.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
 						A.Definition.ActionType == EGridCombatActionType::RangedAttack &&
 						A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
-						A.SourceDefinitionId == Bow->ItemDefinitionId &&
+						A.SourceDefinitionId == BowId &&
 						A.SourceEquipmentSlot == EGridEquipmentSlot::MainHand;
 				});
 			if (!TestNotNull(*FString::Printf(TEXT("%s real ranged attack catalogue action"), *Context), Action))
@@ -3222,7 +3225,7 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 				!TestTrue(*FString::Printf(TEXT("%s N1 AP cost fits turn"), *Context), Cost >= 1 && Cost <= 4) ||
 				!TestTrue(*FString::Printf(TEXT("%s primary shortcut is physical bow"), *Context),
 					Fixture.Hud->View.Actions[0].bResolved &&
-					Fixture.Hud->View.Actions[0].Action.SourceDefinitionId == Bow->ItemDefinitionId))
+					Fixture.Hud->View.Actions[0].Action.SourceDefinitionId == Bow.ItemId))
 				return false;
 
 			const int32 LogBefore = Fixture.TurnManager->GetCombatLogEntries().Num();
@@ -3233,22 +3236,22 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 				!TestTrue(*FString::Printf(TEXT("%s accepted combat transaction"), *Context), Shot.bAccepted))
 				return false;
 			TestEqual(*FString::Printf(TEXT("%s exactly one arrow consumed"), *Context),
-				Inventory->CountItemDefinitionInCharacterInventory(0, Arrows->ItemDefinitionId), 1);
+				Inventory->CountItemDefinitionInCharacterInventory(0, Arrows.ItemId), 1);
 			TestEqual(*FString::Printf(TEXT("%s AP cost paid once"), *Context),
 				Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 4 - Cost);
 			TestEqual(*FString::Printf(TEXT("%s one combat resolution logged"), *Context),
 				Fixture.TurnManager->GetCombatLogEntries().Num() - LogBefore, 1);
 			TestEqual(*FString::Printf(TEXT("%s actual weapon source"), *Context),
-				Shot.AttackRequest.OffensiveItemDefinitionId, Bow->ItemDefinitionId);
+				Shot.AttackRequest.OffensiveItemDefinitionId, Bow.ItemId);
 			TestTrue(*FString::Printf(TEXT("%s attack preserves real d20 trace"), *Context),
 				Shot.AttackResult.Trace.bValid && Shot.AttackResult.Trace.Attack.Roll.bUsed);
 			TestTrue(*FString::Printf(TEXT("%s target is never healed"), *Context),
 				Fixture.Monster->CurrentHealth <= HealthBefore);
 			const FGridInventorySlot* RemainingStack =
 				Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.FindByPredicate(
-					[Arrows](const FGridInventorySlot& Slot)
+					[&Arrows](const FGridInventorySlot& Slot)
 					{
-						return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == Arrows->ItemDefinitionId;
+						return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == Arrows.ItemId;
 					});
 			TestTrue(*FString::Printf(TEXT("%s remaining arrows preserve stack GUID"), *Context),
 				RemainingStack && RemainingStack->Item.RuntimeObjectId == FGuid(16, 2, Index + 1, 2) &&
@@ -3256,7 +3259,7 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 			int32 ArrowProjectiles = 0;
 			for (TActorIterator<AGridThrownItemActor> It(Fixture.TestWorld.World); It; ++It)
 			{
-				if (IsValid(*It) && It->ThrownItemInstance.ItemDefinitionId == Arrows->ItemDefinitionId)
+				if (IsValid(*It) && It->ThrownItemInstance.ItemDefinitionId == Arrows.ItemId)
 					++ArrowProjectiles;
 			}
 			TestEqual(*FString::Printf(TEXT("%s one recoverable arrow projectile launched"), *Context),
@@ -3264,7 +3267,7 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 
 			// Empty ammunition gate: no second attack, AP or log change.
 			if (!TestTrue(TEXT("Clear remaining single test arrow"),
-					Inventory->RemoveItemDefinitionFromCharacterInventory(0, Arrows->ItemDefinitionId, 1)))
+					Inventory->RemoveItemDefinitionFromCharacterInventory(0, Arrows.ItemId, 1)))
 				return false;
 			Fixture.Hud->RefreshFromSources();
 			const int32 APBeforeReject = Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints;
@@ -3281,7 +3284,10 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 		// A solid wall is a refusal BEFORE projectile spawn and ammo/AP charge.
 		{
 			FGridCombatHudFixture Fixture;
+			FGridCanonicalLootTestScope RegistryScope;
 			if (!TestTrue(TEXT("Wall refusal uses live combat world"), Fixture.IsReady()) ||
+				!TestTrue(TEXT("ItemSystem attached before wall-refusal test"),
+					RegistryScope.Attach(Fixture.TestWorld.World)) ||
 				!EquipBowAndArrows(Fixture, Bow, Index + 10, 2))
 				return false;
 			Fixture.Runtime->LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::Solid;
@@ -3290,7 +3296,7 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 			TestFalse(*FString::Printf(TEXT("%s wall blocks ranged hotbar shot"), *Context),
 				Fixture.Hud->RequestHotbarSlot(0, Rejected));
 			TestEqual(*FString::Printf(TEXT("%s wall preserves two arrows"), *Context),
-				Fixture.Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, Arrows->ItemDefinitionId), 2);
+				Fixture.Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, Arrows.ItemId), 2);
 			TestEqual(*FString::Printf(TEXT("%s wall refusal spends no AP"), *Context),
 				Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, 4);
 			TestEqual(*FString::Printf(TEXT("%s wall creates no attack log"), *Context),
@@ -3309,15 +3315,18 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 		// with line of sight and arrows. No fake range modifier is authored.
 		{
 			FGridCombatHudFixture Fixture;
+			FGridCanonicalLootTestScope RegistryScope;
 			if (!TestTrue(TEXT("Range refusal uses live combat world"), Fixture.IsReady()) ||
+				!TestTrue(TEXT("ItemSystem attached before range-refusal test"),
+					RegistryScope.Attach(Fixture.TestWorld.World)) ||
 				!EquipBowAndArrows(Fixture, Bow, Index + 20, 2))
 				return false;
 			TArray<FGridAvailableCombatAction> Catalog;
 			Fixture.TurnManager->GetAvailableCombatActions(0, Catalog);
 			const FGridAvailableCombatAction* Action = Catalog.FindByPredicate(
-				[Bow](const FGridAvailableCombatAction& A)
+				[BowId](const FGridAvailableCombatAction& A)
 				{
-					return A.SourceDefinitionId == Bow->ItemDefinitionId &&
+					return A.SourceDefinitionId == BowId &&
 						A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
 						A.SourceEquipmentSlot == EGridEquipmentSlot::MainHand;
 				});
@@ -3360,7 +3369,7 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 			TestEqual(*FString::Printf(TEXT("%s out-of-range rejection reason"), *Context),
 				Reason, EGridPlayerAttackRejectReason::TargetOutOfRange);
 			TestEqual(*FString::Printf(TEXT("%s out-of-range cannot consume arrows"), *Context),
-				Fixture.Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, Arrows->ItemDefinitionId), 2);
+				Fixture.Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, Arrows.ItemId), 2);
 			TestEqual(*FString::Printf(TEXT("%s out-of-range costs zero AP"), *Context),
 				Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, 4);
 			TestEqual(*FString::Printf(TEXT("%s out-of-range produces no attack log"), *Context),
