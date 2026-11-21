@@ -5,7 +5,10 @@
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "UObject/StrongObjectPtr.h"
 
 namespace RPG0310
 {
@@ -24,19 +27,34 @@ namespace RPG0310
 		{ TEXT("Alchemist"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Alchemist.DA_Class_Alchemist") }
 	};
 
-	const TCHAR* AlchemistItemPaths[] = {
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Antidote.DA_Item_Antidote"),
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Bomb_Fire.DA_Item_Bomb_Fire"),
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Bomb_Toxic.DA_Item_Bomb_Toxic"),
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DefensiveElixir_Fire.DA_Item_DefensiveElixir_Fire"),
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DefensiveElixir_Ice.DA_Item_DefensiveElixir_Ice"),
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DefensiveElixir_Lightning.DA_Item_DefensiveElixir_Lightning"),
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DefensiveElixir_Poison.DA_Item_DefensiveElixir_Poison"),
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Acid.DA_Item_Flask_Acid"),
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_CorrosiveCloud.DA_Item_Flask_CorrosiveCloud"),
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.DA_Item_Flask_Oil"),
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Panacea.DA_Item_Panacea")
+	struct FAlchemistItemSpec
+	{
+		FName ItemId;
+		FName ActionId;
 	};
+	// The eleven canonical quick items; no historical DA_Item_* paths.
+	const FAlchemistItemSpec AlchemistItems[] = {
+		{ TEXT("Item_Antidote"), TEXT("Action_Alchemist_Antidote") },
+		{ TEXT("Item_Bomb_Fire"), TEXT("Action_Alchemist_FireBomb") },
+		{ TEXT("Item_Bomb_Toxic"), TEXT("Action_Alchemist_ToxicBomb") },
+		{ TEXT("Item_DefensiveElixir_Fire"), TEXT("Action_Alchemist_DefensiveElixir_Fire") },
+		{ TEXT("Item_DefensiveElixir_Ice"), TEXT("Action_Alchemist_DefensiveElixir_Ice") },
+		{ TEXT("Item_DefensiveElixir_Lightning"), TEXT("Action_Alchemist_DefensiveElixir_Lightning") },
+		{ TEXT("Item_DefensiveElixir_Poison"), TEXT("Action_Alchemist_DefensiveElixir_Poison") },
+		{ TEXT("Item_Flask_Acid"), TEXT("Action_Alchemist_AcidFlask") },
+		{ TEXT("Item_Flask_CorrosiveCloud"), TEXT("Action_Alchemist_CorrosiveCloud") },
+		{ TEXT("Item_Flask_Oil"), TEXT("Action_Alchemist_OilSlick") },
+		{ TEXT("Item_Panacea"), TEXT("Action_Alchemist_Panacea") }
+	};
+
+	bool RegisterProductionItemSystem(FAutomationTestBase& Test, UGridItemSubsystem& Registry)
+	{
+		UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+			TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+		if (!Test.TestNotNull(TEXT("Production canonical DA_ItemSystem loads"), Root)) return false;
+		TArray<FString> Errors;
+		return Test.TestTrue(TEXT("Production item registry validates"), Registry.RegisterItemSystem(Root, Errors));
+	}
 
 	TArray<URPGClassAsset*> LoadProductionClasses(FAutomationTestBase& Test)
 	{
@@ -284,22 +302,29 @@ bool FRPG0310ActionEconomyTest::RunTest(const FString&)
 		}
 	}
 
+	TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+	TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+	if (!RPG0310::RegisterProductionItemSystem(*this, *Registry.Get())) return false;
+
 	int32 CheckedQuickItems = 0;
-	for (const TCHAR* Path : RPG0310::AlchemistItemPaths)
+	for (const RPG0310::FAlchemistItemSpec& Spec : RPG0310::AlchemistItems)
 	{
-		UGridItemDefinitionAsset* Item = LoadObject<UGridItemDefinitionAsset>(nullptr, Path);
-		if (!TestNotNull(*FString::Printf(TEXT("Alchemist QuickItem loads: %s"), Path), Item))
+		FGridResolvedItem Item;
+		if (!TestTrue(*FString::Printf(TEXT("Canonical QuickItem %s resolves"),
+			*Spec.ItemId.ToString()), Registry->ResolveItem(Spec.ItemId, 0, Item)))
 		{
 			continue;
 		}
 		FGridCombatActionDefinition Action;
-		if (!TestTrue(*FString::Printf(TEXT("%s builds a QuickItem action"), *Item->ItemDefinitionId.ToString()),
-			Item->BuildQuickItemCombatActionDefinition(Action)))
+		if (!TestTrue(*FString::Printf(TEXT("%s resolves a detailed action"),
+			*Spec.ItemId.ToString()), Registry->ResolveDetailedNonArmAction(
+			Spec.ItemId, 0, Spec.ActionId, Action)))
 		{
 			continue;
 		}
-		TestTrue(*FString::Printf(TEXT("%s stays inside RPG03 economy bounds"), *Action.ActionId.ToString()),
-			RPG0310::HasSaneActionEconomy(Action));
+		TestEqual(TEXT("Canonical QuickItem resolves its exact ActionId"), Action.ActionId, Spec.ActionId);
+		TestTrue(*FString::Printf(TEXT("%s stays inside RPG03 economy bounds"),
+			*Action.ActionId.ToString()), RPG0310::HasSaneActionEconomy(Action));
 		TestEqual(TEXT("Materialized Alchemist QuickItems consume exactly one source item"),
 			Action.ResourceCosts.SourceItemQuantityCost, 1);
 		++CheckedQuickItems;
@@ -327,18 +352,23 @@ bool FRPG0310AppliedStatusClosureTest::RunTest(const FString&)
 			RPG0310::GatherAppliedStatusIds(Action, AppliedStatusIds);
 		}
 	}
-	for (const TCHAR* Path : RPG0310::AlchemistItemPaths)
+	TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+	TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+	if (!RPG0310::RegisterProductionItemSystem(*this, *Registry.Get())) return false;
+	int32 CheckedQuickItems = 0;
+	for (const RPG0310::FAlchemistItemSpec& Spec : RPG0310::AlchemistItems)
 	{
-		if (UGridItemDefinitionAsset* Item = LoadObject<UGridItemDefinitionAsset>(nullptr, Path))
+		FGridCombatActionDefinition Action;
+		if (!TestTrue(*FString::Printf(TEXT("%s canonical status source resolves"),
+			*Spec.ItemId.ToString()), Registry->ResolveDetailedNonArmAction(
+			Spec.ItemId, 0, Spec.ActionId, Action)))
 		{
-			FGridCombatActionDefinition Action;
-			if (Item->BuildQuickItemCombatActionDefinition(Action))
-			{
-				RPG0310::GatherAppliedStatusIds(Action, AppliedStatusIds);
-			}
+			continue;
 		}
+		RPG0310::GatherAppliedStatusIds(Action, AppliedStatusIds);
+		++CheckedQuickItems;
 	}
-
+	TestEqual(TEXT("All eleven canonical Alchemist status sources audited"), CheckedQuickItems, 11);
 	TestTrue(TEXT("At least one RPG03 action applies a status"), !AppliedStatusIds.IsEmpty());
 	for (const FName EffectId : AppliedStatusIds)
 	{

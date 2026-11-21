@@ -14,6 +14,8 @@
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridCanonicalInventoryCategoryTags.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
@@ -191,26 +193,40 @@ bool FGridTD0737RatLootDefinitionsNormalizedTest::RunTest(const FString& Paramet
 	(void)Parameters;
 	using namespace GridTD0737Normalization;
 
-	UGridItemDefinitionAsset* RatMeat =
-		LoadObject<UGridItemDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_RatMeat.DA_Item_RatMeat"));
-	UGridItemDefinitionAsset* RatTooth =
-		LoadObject<UGridItemDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_RatTooth.DA_Item_RatTooth"));
-	UGridMonsterDefinitionAsset* Rat =
-		LoadObject<UGridMonsterDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant"));
-
-	if (!TestNotNull(TEXT("DA_Item_RatMeat exists"), RatMeat) || !TestNotNull(TEXT("DA_Item_RatTooth exists"), RatTooth) ||
-		!TestNotNull(TEXT("DA_MON_RatGiant exists"), Rat))
+	// H.21: rat loot is now authorized by DA_ItemSystem. Do not require the
+	// retired DA_Item_RatMeat/DA_Item_RatTooth in a production test.
+	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+	UGridMonsterDefinitionAsset* Rat = LoadObject<UGridMonsterDefinitionAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant"));
+	if (!TestNotNull(TEXT("Canonical item registry exists"), Root) ||
+		!TestNotNull(TEXT("Rat loot authoring exists"), Rat))
 	{
 		return false;
 	}
-
-	TestEqual(TEXT("Rat meat id"), RatMeat->ItemDefinitionId, FName(TEXT("Item_RatMeat")));
-	TestEqual(TEXT("Rat meat type"), RatMeat->ItemType, EGridItemType::Food);
-	TestTrue(TEXT("Rat meat definition validates"), RatMeat->IsValidDefinition());
-
-	TestEqual(TEXT("Rat tooth id"), RatTooth->ItemDefinitionId, FName(TEXT("Item_RatTooth")));
-	TestEqual(TEXT("Rat tooth type"), RatTooth->ItemType, EGridItemType::Component);
-	TestTrue(TEXT("Rat tooth definition validates"), RatTooth->IsValidDefinition());
+	const UGridCanonicalItemDefinitionAsset* RatMeat = nullptr;
+	const UGridCanonicalItemDefinitionAsset* RatTooth = nullptr;
+	for (const TObjectPtr<UGridCanonicalItemDefinitionAsset>& Definition : Root->ItemDefinitions)
+	{
+		if (!IsValid(Definition)) continue;
+		if (Definition->ItemId == FName(TEXT("Item_RatMeat"))) RatMeat = Definition;
+		if (Definition->ItemId == FName(TEXT("Item_RatTooth"))) RatTooth = Definition;
+	}
+	if (!TestNotNull(TEXT("Canonical rat meat exists"), RatMeat) ||
+		!TestNotNull(TEXT("Canonical rat tooth exists"), RatTooth))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Rat meat retains the canonical consumable class"),
+		RatMeat->IsA<UGridConsumableDefinitionAsset>());
+	TestTrue(TEXT("Rat meat retains Food category"),
+		RatMeat->Tags.Contains(GridCanonicalInventoryCategoryTags::Food()));
+	TestTrue(TEXT("Rat meat validates canonical identity"), RatMeat->HasValidIdentity());
+	TestTrue(TEXT("Rat tooth retains the canonical stackable class"),
+		RatTooth->IsA<UGridGenericStackableDefinitionAsset>());
+	TestTrue(TEXT("Rat tooth retains Component category"),
+		RatTooth->Tags.Contains(GridCanonicalInventoryCategoryTags::Component()));
+	TestTrue(TEXT("Rat tooth validates canonical identity"), RatTooth->HasValidIdentity());
 
 	const FGridMonsterLootEntry* MeatLoot = FindLootEntry(Rat, TEXT("Item_RatMeat"));
 	const FGridMonsterLootEntry* ToothLoot = FindLootEntry(Rat, TEXT("Item_RatTooth"));
