@@ -14,7 +14,6 @@
 #include "EngineUtils.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridPartyIlluminationComponent.h"
@@ -126,27 +125,24 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X18TorchFloorLightState,
 bool FGridClean064X18TorchFloorLightState::RunTest(const FString&)
 {
     ARMCLEAN064X18::FFixture F;
-    UGridItemDefinitionAsset* Torch = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch.DA_Item_Torch"));
-    if (!TestNotNull(TEXT("Real torch asset"), Torch) ||
-        !TestNotNull(TEXT("World runtime"), F.Runtime) ||
+    const FName TorchId(TEXT("Item_Torch"));
+    if (!TestNotNull(TEXT("World runtime"), F.Runtime) ||
         !TestNotNull(TEXT("Inventory"), F.Inventory) ||
         !TestNotNull(TEXT("Canonical registry"), F.Registry) ||
         !TestTrue(TEXT("Torch exists in canonical registry"),
-            F.Registry->HasCanonicalItem(Torch->ItemDefinitionId)) ||
-        !TestTrue(TEXT("Legacy torch available for held presentation"),
-            F.Inventory->RegisterItemDefinition(Torch)))
+            F.Registry && F.Registry->HasCanonicalItem(TorchId)))
         return false;
 
     FGridResolvedItem Definition;
     if (!TestTrue(TEXT("Torch canonical N0 resolves"),
-        F.Registry->ResolveItem(Torch->ItemDefinitionId, 0, Definition)) ||
+        F.Registry->ResolveItem(TorchId, 0, Definition)) ||
+        !TestFalse(TEXT("Torch remains non-ARM N0"), Definition.bIsArmament) ||
         !TestTrue(TEXT("Torch uses point light"), Definition.LightEmitter.bUsePointLight) ||
         !TestTrue(TEXT("Torch has authored flame Niagara"),
             !Definition.VisualEffects.Effects.IsEmpty()))
         return false;
 
-    const FGridItemInstance Lit = ARMCLEAN064X18::FFixture::Make(Torch->ItemDefinitionId, true);
+    const FGridItemInstance Lit = ARMCLEAN064X18::FFixture::Make(TorchId, true);
     if (!TestTrue(TEXT("Lit torch can be dropped on dungeon floor"),
         F.Runtime->TryDropItemInstanceAtCell(Lit, 1, 1, EGridEdge::None, FVector::ZeroVector)))
         return false;
@@ -200,10 +196,10 @@ bool FGridClean064X18TorchFloorLightState::RunTest(const FString&)
     if (!TestTrue(TEXT("Torch lights party after ground pickup"),
         Light->HasActiveIlluminationSource()) ||
         !TestEqual(TEXT("Party light uses exact torch identity"),
-            Light->ActiveSourceId, Torch->ItemDefinitionId))
+            Light->ActiveSourceId, TorchId))
         return false;
 
-    const FGridItemInstance Off = ARMCLEAN064X18::FFixture::Make(Torch->ItemDefinitionId, false);
+    const FGridItemInstance Off = ARMCLEAN064X18::FFixture::Make(TorchId, false);
     if (!TestTrue(TEXT("An unlit torch can be dropped"),
         F.Runtime->TryDropItemInstanceAtCell(Off, 1, 1, EGridEdge::None, FVector(20.f, 0.f, 0.f))))
         return false;
