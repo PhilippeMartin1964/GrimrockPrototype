@@ -3685,25 +3685,28 @@ bool FARMEMENTLOT02165PassiveN1Execution::RunTest(const FString&)
 	};
 	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(Cases)); ++Index)
 	{
-		const FString Name(Cases[Index].Asset);
 		const FString Context(Cases[Index].Id);
-		const FString Path = FString::Printf(
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
-			*Name, *Name);
-		UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
-		if (!TestNotNull(*FString::Printf(TEXT("%s real passive"), *Context), Definition) ||
-			!TestTrue(TEXT("Passive is authentic N1 asset"),
-				Definition->IsValidDefinition() && Definition->bUseWeaponCatalogue &&
-				Definition->WeaponArchetypeId == FName(Cases[Index].Id) &&
-				Definition->DefaultWeaponItemLevel == 1 &&
-				Definition->CanEquipToSlot(EGridEquipmentSlot::OffHand) &&
-				!Definition->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand)))
-			return false;
+		const FName ItemId(*FString::Printf(TEXT("Weapon_%s_01"), Cases[Index].Asset));
 		FGridCombatHudFixture F;
-		if (!TestTrue(TEXT("Passive combat fixture"), F.IsReady()))
+		FGridCanonicalLootTestScope RegistryScope;
+		if (!TestTrue(TEXT("Passive combat fixture"), F.IsReady()) ||
+			!TestTrue(TEXT("Real ItemSystem attached for passive equipment"),
+				RegistryScope.Attach(F.TestWorld.World)))
+			return false;
+		FGridResolvedItem Definition;
+		if (!TestTrue(*FString::Printf(TEXT("%s real canonical N1 passive"), *Context),
+				RegistryScope.Registry->ResolveItem(ItemId, 1, Definition)) ||
+			!TestTrue(TEXT("Canonical passive identity and OffHand permission"),
+				Definition.IsValid() && Definition.bIsArmament &&
+				Definition.ItemId == ItemId && Definition.ItemLevel == 1 &&
+				Definition.ArchetypeId == FName(Cases[Index].Id) &&
+				Definition.Weapon.Kind != EGridCanonicalArmamentKind::Weapon &&
+				Definition.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand) &&
+				!Definition.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand)))
 			return false;
 		UGridPartyInventoryComponent* Inventory = F.Party->PartyInventoryComponent;
-		if (!TestTrue(TEXT("Register passive production definition"), Inventory->RegisterItemDefinition(Definition)))
+		if (!TestNull(TEXT("No old passive definition registered"),
+			Inventory->FindItemDefinition(ItemId)))
 			return false;
 		Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = FGridItemInstance();
 		Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
@@ -3712,7 +3715,7 @@ bool FARMEMENTLOT02165PassiveN1Execution::RunTest(const FString&)
 
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid(16, 5, Index + 1, 1);
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemDefinitionId = Definition.ItemId;
 		Item.ItemLevel = 1;
 		Item.Quantity = 1;
 		if (!TestTrue(TEXT("Real passive instance resolved"), Inventory->ApplyItemDefinitionToInstance(Item)) ||
@@ -3732,25 +3735,14 @@ bool FARMEMENTLOT02165PassiveN1Execution::RunTest(const FString&)
 			!TestTrue(TEXT("Equip actual passive to OffHand"),
 				Inventory->EquipItemFromInventorySlot(0, BagIndex, EGridEquipmentSlot::OffHand)))
 			return false;
-		// ARM-CLEAN02: the N1 serialized equipment snapshot is no longer the
-		// combat authority. Validate the real fixed-level catalogue profile.
-		const FGridWeaponLevelProfile* LevelProfile = nullptr;
-		if (!TestTrue(TEXT("Passive N1 catalogue profile available"),
-			Definition->TryGetWeaponCatalogueProfile(Item.ItemLevel, LevelProfile)) ||
-			!TestNotNull(TEXT("Passive N1 catalogue profile"), LevelProfile))
-		{
-			return false;
-		}
-		const FGridEquipmentStatBonus EffectiveBonuses =
-			Definition->GetEffectiveEquipmentStatBonusForInstance(Item);
-		TestEqual(TEXT("Physical armor follows catalogue N1"), EffectiveBonuses.ArmorBonus, LevelProfile->PhysicalArmor);
-		TestEqual(TEXT("Magical armor follows catalogue N1"), EffectiveBonuses.MagicalArmorBonus, LevelProfile->MagicalArmor);
+		// Canonical ARM N1 is the only source of nominal armor;
+		// spent amounts are bound exclusively to the physical GUID.
+		const int32 NominalPhysical = Definition.Weapon.PhysicalArmor;
+		const int32 NominalMagical = Definition.Weapon.MagicalArmor;
 		TestEqual(TEXT("No duplicate physical armor reserve"),
-			Inventory->GetEffectiveCurrentPhysicalArmor(0),
-			PhysicalBefore + EffectiveBonuses.ArmorBonus);
+			Inventory->GetEffectiveCurrentPhysicalArmor(0), PhysicalBefore + NominalPhysical);
 		TestEqual(TEXT("No duplicate magical armor reserve"),
-			Inventory->GetEffectiveCurrentMagicalArmor(0),
-			MagicalBefore + EffectiveBonuses.MagicalArmorBonus);
+			Inventory->GetEffectiveCurrentMagicalArmor(0), MagicalBefore + NominalMagical);
 		F.Hud->RefreshFromSources();
 		TestEqual(TEXT("A passive does not create an attack button"),
 			F.Hud->View.Actions[0].Action.Definition.ActionId, FName(TEXT("Attack_Unarmed")));
@@ -3758,13 +3750,13 @@ bool FARMEMENTLOT02165PassiveN1Execution::RunTest(const FString&)
 		F.TurnManager->GetAvailableCombatActions(0, Catalog);
 		TestFalse(TEXT("Passive adds no offensive combat source"),
 			Catalog.ContainsByPredicate(
-				[Definition](const FGridAvailableCombatAction& A)
+				[ItemId](const FGridAvailableCombatAction& A)
 				{
-					return A.SourceDefinitionId == Definition->ItemDefinitionId &&
+					return A.SourceDefinitionId == ItemId &&
 						A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
 				}));
-		const int32 PhysicalDebit = EffectiveBonuses.ArmorBonus > 0 ? 1 : 0;
-		const int32 MagicalDebit = EffectiveBonuses.MagicalArmorBonus > 0 ? 1 : 0;
+		const int32 PhysicalDebit = NominalPhysical > 0 ? 1 : 0;
+		const int32 MagicalDebit = NominalMagical > 0 ? 1 : 0;
 		if (PhysicalDebit)
 		{
 			TArray<FGridArmorAbsorptionSourceTrace> Sources;
