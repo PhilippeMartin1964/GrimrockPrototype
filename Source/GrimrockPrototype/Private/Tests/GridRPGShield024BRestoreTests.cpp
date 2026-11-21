@@ -8,7 +8,8 @@
 #include "GameFramework/Actor.h"
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -18,6 +19,8 @@ namespace Shield024B
 	struct FTestWorld
 	{
 		UWorld* World = nullptr;
+		UGameInstance* GI = nullptr;
+		UGridItemSubsystem* Registry = nullptr;
 		FTestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
@@ -31,12 +34,18 @@ namespace Shield024B
 			{
 				FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
 				Context.SetCurrentWorld(World);
+				GI = NewObject<UGameInstance>(GetTransientPackage());
+				GI->Init();
+				World->SetGameInstance(GI);
+				Registry = GI->GetSubsystem<UGridItemSubsystem>();
 			}
 		}
 		~FTestWorld()
 		{
 			if (World)
 			{
+				World->SetGameInstance(nullptr);
+				if (GI) GI->Shutdown();
 				World->DestroyWorld(false);
 				if (GEngine)
 				{
@@ -80,7 +89,7 @@ namespace Shield024B
 		AGrimrockPartyPawn* Party = nullptr;
 		UGridTurnManagerComponent* Manager = nullptr;
 		URPGClassAsset* Class = nullptr;
-		UGridItemDefinitionAsset* ShieldDef = nullptr;
+		FGridResolvedItem ShieldDef;
 
 		bool Initialize(EGridCombatTargetingPolicy Targeting)
 		{
@@ -138,13 +147,14 @@ namespace Shield024B
 			}
 			State.ActiveEquipment.SetNum(3);
 
-			ShieldDef = LoadObject<UGridItemDefinitionAsset>(nullptr,
-				TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-			if (!ShieldDef || !Party->PartyInventoryComponent->RegisterItemDefinition(ShieldDef))
+			if (!TestWorld.Registry ||
+				!TestWorld.Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, ShieldDef) ||
+				!ShieldDef.bIsArmament || ShieldDef.Weapon.PhysicalArmor != 5 ||
+				Party->PartyInventoryComponent->FindItemDefinition(ShieldDef.ItemId))
 				return false;
 			FGridItemInstance Shield;
 			Shield.RuntimeObjectId = FGuid::NewGuid();
-			Shield.ItemDefinitionId = ShieldDef->ItemDefinitionId;
+			Shield.ItemDefinitionId = ShieldDef.ItemId;
 			Shield.ItemLevel = 1;
 			Shield.Quantity = 1;
 			Shield.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -216,10 +226,9 @@ bool FShield024BPartyRestorationTest::RunTest(const FString&)
 	auto& Target = State.ActiveCharacters[1];
 	auto& Shield = State.ActiveEquipment[1].OffHand;
 	const FGuid Id = Shield.RuntimeObjectId;
-	const bool bAssetDirty = Fixture.ShieldDef->GetOutermost()->IsDirty();
 	const int32 SourceHP = State.ActiveCharacters[0].Resources.CurrentHealth;
 	const int32 TargetHP = Target.Resources.CurrentHealth;
-	TestEqual(TEXT("Shield N1 grants five physical armor"), Fixture.ShieldDef->EquipmentStatBonus.ArmorBonus, 5);
+	TestEqual(TEXT("Canonical shield N1 grants five physical armor"), Fixture.ShieldDef.Weapon.PhysicalArmor, 5);
 	TestEqual(TEXT("Initially target shield depleted"), Inv->GetEffectiveCurrentPhysicalArmor(1), 0);
 
 	TestTrue(TEXT("Party restoration action accepted"), Fixture.CastParty());
@@ -248,7 +257,8 @@ bool FShield024BPartyRestorationTest::RunTest(const FString&)
 	TestTrue(TEXT("Post-restore UI summary exists"), Inv->GetCharacterSummary(1, Summary));
 	TestEqual(TEXT("UI sees complete target physical pool"), Summary.Resources.CurrentPhysicalArmor, 7);
 	TestEqual(TEXT("UI sees restored target magic"), Summary.Resources.CurrentMagicalArmor, 3);
-	TestEqual(TEXT("Production shield dataasset stays unmodified"), Fixture.ShieldDef->GetOutermost()->IsDirty(), bAssetDirty);
+	TestNull(TEXT("Restoration does not register any historical shield definition"),
+		Inv->FindItemDefinition(Fixture.ShieldDef.ItemId));
 	return true;
 }
 
