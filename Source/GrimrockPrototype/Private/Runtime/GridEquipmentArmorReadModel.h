@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CoreGlobals.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
@@ -37,7 +38,11 @@ struct FGridEquipmentArmorReadModel
 			Out.RemainingMagical = Canonical.RemainingMagicalArmor;
 			return true;
 		}
-		if (!IsValid(LegacyDefinition) ||
+		// Unregistered items cannot borrow an obsolete armor reservoir in a
+		// canonical game. Only isolated, registry-less Automation fixtures
+		// retain the historical formula; Shipping compiles no legacy reader.
+#if WITH_DEV_AUTOMATION_TESTS
+		if (Registry || !GIsAutomationTesting || !IsValid(LegacyDefinition) ||
 			LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
 		{
 			return false;
@@ -53,5 +58,8 @@ struct FGridEquipmentArmorReadModel
 			? FMath::Max(0, Legacy.MagicalArmorBonus - FMath::Max(0, Instance.AbsorbedEquipmentMagicalArmor))
 			: Legacy.MagicalArmorBonus;
 		return true;
+#else
+		return false;
+#endif
 	}
 };

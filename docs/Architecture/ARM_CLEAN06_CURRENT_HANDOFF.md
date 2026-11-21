@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.133 — Armure, bonus et résistances : aucune attribution hors registre
+
+Après validation Windows de 5G.132 (`ec21801000b48476c8ac922e80c12f7875e50dc6`), les lecteurs `GridEquipmentArmorReadModel` et `GridEquipmentContributionReadModel` n'autorisent plus de réserve d'armure, de bonus ou de résistances d'une ancienne définition pour un ItemId absent du `DA_ItemSystem` configuré. Les formules historiques sont conservées uniquement en `WITH_DEV_AUTOMATION_TESTS` sans registre ; les tests 3H et 3AD vérifient les deux cas. Aucun asset, schéma ou SaveGame modifié. Voir [5G.133](ARM_CLEAN06_5G133_ARMOR_CONTRIBUTIONS_FAIL_CLOSED.md). Validation des deux statuts Windows exigée sur le SHA du lot.
+
 ## ARM-CLEAN06.5G.132 — Refuser l'équipement d'identités inconnues en monde canonique
 
 Après PIE validé de 5G.131 (`24791da73c2a392c652f581dd50592c140653006`, SilentTask/LocalAuto SUCCESS), le chemin d'équipement conservait dans `CanEquipItemToSlot` et `IsTwoHandedItem` une autorisation legacy pour les ID absents de `DA_ItemSystem`. Le menu et les tooltips utilisaient aussi une projection historique en Automation lorsque le registre était présent. Le lot 5G.132 refuse désormais l'inconnu si un registre GI est disponible, préserve la lecture N0/N1-N20 pour les identités réelles, et limite le test de l'ancien contrat aux fixtures Automation sans registre. Adaptation du test `CanonicalContextAndTooltipEquipmentSlots` (politiques, menu, tooltip et exécuteur). Voir [5G.132](ARM_CLEAN06_5G132_UNKNOWN_EQUIPMENT_FAIL_CLOSED.md). Tests Windows à vérifier sur le SHA du lot.

@@ -34,10 +34,13 @@ struct FGridEquipmentContributionReadModel
 				Result = Canonical.NonArmEquipmentBonuses;
 			}
 		}
-		else if (IsValid(LegacyDefinition) && LegacyDefinition->ItemDefinitionId == Instance.ItemDefinitionId)
+#if WITH_DEV_AUTOMATION_TESTS
+		else if (!Registry && GIsAutomationTesting && IsValid(LegacyDefinition) &&
+			LegacyDefinition->ItemDefinitionId == Instance.ItemDefinitionId)
 		{
 			Result = LegacyDefinition->EquipmentStatBonus;
 		}
+#endif
 		Result.ArmorBonus = Armor.NominalPhysical;
 		Result.MagicalArmorBonus = Armor.NominalMagical;
 		return Result;
@@ -59,12 +62,15 @@ struct FGridEquipmentContributionReadModel
 					? Resolved.NonArmEquipmentResistances : FGridDamageResistanceSet();
 			return FGridDamageResistanceSet(); // No historical resistance for registered ARM.
 		}
-		// Only unregistered identities retain the temporary historical reader.
-		if (!Instance.IsValid() || !IsValid(LegacyDefinition) ||
-			LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
+		// No resistance from unknown identities in a configured game.
+#if WITH_DEV_AUTOMATION_TESTS
+		if (!Registry && GIsAutomationTesting && Instance.IsValid() &&
+			IsValid(LegacyDefinition) &&
+			LegacyDefinition->ItemDefinitionId == Instance.ItemDefinitionId)
 		{
-			return FGridDamageResistanceSet();
+			return LegacyDefinition->EquipmentResistanceBonus;
 		}
-		return LegacyDefinition->EquipmentResistanceBonus;
+#endif
+		return FGridDamageResistanceSet();
 	}
 };

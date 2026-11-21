@@ -95,7 +95,7 @@ bool FGridClean063HArmorRuntime::RunTest(const FString&)
 	TestEqual(TEXT("Overspent debt is not reset"), Shield.AbsorbedEquipmentPhysicalArmor,
 		Expected.NominalPhysicalArmor + 7);
 
-	// Unknown IDs retain their existing definition-based reader until migration.
+	// A configured canonical game refuses all obsolete armor from unknown IDs.
 	TStrongObjectPtr<UGridItemDefinitionAsset> Legacy(NewObject<UGridItemDefinitionAsset>());
 	Legacy->ItemDefinitionId = TEXT("LegacyArmor_063H");
 	Legacy->EquipmentStatBonus.ArmorBonus = 8;
@@ -106,11 +106,15 @@ bool FGridClean063HArmorRuntime::RunTest(const FString&)
 	LegacyItem.Quantity = 1;
 	LegacyItem.AbsorbedEquipmentPhysicalArmor = 3;
 	LegacyItem.AbsorbedEquipmentMagicalArmor = 2;
-	TestTrue(TEXT("Non-registered item keeps its prior armor reader"),
+	TestFalse(TEXT("Unknown ID cannot inherit old armor in a configured world"),
 		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), Legacy.Get(), LegacyItem, Armor));
-	TestEqual(TEXT("Legacy physical reserve remains five"), Armor.RemainingPhysical, 5);
-	TestEqual(TEXT("Legacy magical reserve remains four"), Armor.RemainingMagical, 4);
-	TestFalse(TEXT("Unknown item with no definition is rejected"),
+	TestEqual(TEXT("Rejected legacy armor view is reset"), Armor.NominalPhysical, 0);
+	TestEqual(TEXT("Rejected legacy magic view is reset"), Armor.NominalMagical, 0);
+	TestTrue(TEXT("Registry-less Automation fixture retains historical armor characterization"),
+		FGridEquipmentArmorReadModel::TryResolve(nullptr, Legacy.Get(), LegacyItem, Armor));
+	TestEqual(TEXT("Isolated fixture physical reserve remains five"), Armor.RemainingPhysical, 5);
+	TestEqual(TEXT("Isolated fixture magical reserve remains four"), Armor.RemainingMagical, 4);
+	TestFalse(TEXT("Unknown item without definition is rejected"),
 		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), nullptr, LegacyItem, Armor));
 	TestEqual(TEXT("Rejected unknown result has zero remaining armor"), Armor.RemainingPhysical, 0);
 	return true;

@@ -106,7 +106,8 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 	TestEqual(TEXT("Canonical shield armor survives missing old definition"),
 		WithoutDefinition.ArmorBonus, Shield.Weapon.PhysicalArmor);
 
-	// Nonregistered entries and standalone/no-GI tests retain the old behavior.
+	// Unregistered identities are invalid in a configured canonical game.
+	// Historical bonus and resistance characterization remains registry-less only.
 	Old->ItemDefinitionId = TEXT("LegacyStats_063AD");
 	Old->EquipmentStatBonus.ArmorBonus = 7;
 	Old->EquipmentStatBonus.MagicalArmorBonus = 4;
@@ -115,13 +116,19 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 	Legacy.ItemDefinitionId = Old->ItemDefinitionId;
 	Legacy.ItemLevel = 0;
 	Legacy.Quantity = 1;
-	const FGridEquipmentStatBonus LegacyBonuses =
+	const FGridEquipmentStatBonus Refused =
 		FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Old.Get(), Legacy);
-	TestEqual(TEXT("Legacy armor remains seven"), LegacyBonuses.ArmorBonus, 7);
-	TestEqual(TEXT("Legacy magical armor remains four"), LegacyBonuses.MagicalArmorBonus, 4);
-	TestEqual(TEXT("Legacy attribute contribution unchanged"), LegacyBonuses.StrengthBonus, 3);
-	TestEqual(TEXT("Legacy resistance contribution unchanged"),
-		FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Old.Get(), Legacy).FireResistance, 12);
+	TestFalse(TEXT("Configured canonical game rejects unknown legacy bonus"),
+		Refused.HasAnyBonus());
+	TestTrue(TEXT("Configured canonical game rejects unknown legacy resistances"),
+		FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Old.Get(), Legacy).IsEmpty());
+	const FGridEquipmentStatBonus LegacyBonuses =
+		FGridEquipmentContributionReadModel::ResolveStatBonuses(nullptr, Old.Get(), Legacy);
+	TestEqual(TEXT("Isolated legacy armor remains seven"), LegacyBonuses.ArmorBonus, 7);
+	TestEqual(TEXT("Isolated legacy magical armor remains four"), LegacyBonuses.MagicalArmorBonus, 4);
+	TestEqual(TEXT("Isolated legacy attribute contribution unchanged"), LegacyBonuses.StrengthBonus, 3);
+	TestEqual(TEXT("Isolated legacy resistance contribution unchanged"),
+		FGridEquipmentContributionReadModel::ResolveResistances(nullptr, Old.Get(), Legacy).FireResistance, 12);
 	TestTrue(TEXT("Missing definition gives no resistance contribution"),
 		FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), nullptr, Legacy).IsEmpty());
 	return true;
