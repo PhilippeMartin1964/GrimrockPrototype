@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.14 — Copie privée de la véritable palette Unreal avant opération native
+
+Parent H.13 `ec0344291de1960eac90f5c4970b1ed91a1c9332` validé SUCCESS/SUCCESS. La palette `DA_EquippedWeaponActionIcons.uasset` existe encore dans `Content/GrimrockPrototype/UI/Icons/Combat/`, mais son blob Git est un **pointeur LFS** de 129 octets. Un nouveau script `Scripts/PrepareARM_CLEAN06_5H14_IconPaletteSnapshot.ps1` copie uniquement le **véritable binaire local** dans `D:\GrimrockNativeSnapshots` (ou `-StateRoot` extérieur), sur branche `master` propre, SHA local/distant exact, Editor/jeu fermés, sans symlink ni pointeur LFS. Les empreintes SHA256 et tailles sont vérifiées avant/après, puis consignées dans un reçu privé `deletion_authorized=false`. Un autotest synthétique positif/négatif est ajouté au préflight Windows. Aucune mutation d'asset effectuée. Voir [5H.14](ARM_CLEAN06_5H14_ICON_PALETTE_PRIVATE_BINARY_SNAPSHOT.md).
+
+
 ## ARM-CLEAN06.5H.13 — Garde natif prêt pour la palette historique absente
 
 Parent H.12 `c6af46f579caacb6b655c5af0403b2c2081a5617` validé SUCCESS/SUCCESS. Les gardes de classification 5A, le script d'audit complet et le planificateur non destructif acceptent désormais strictement **54 candidats avec palette historique** ou **53 sans cette seule palette**. Tous les autres rôles restent requis (48 définitions, 2 catalogues sources, 2 Readables sauvegardés, 1 redirecteur). Une fixture positive 53 est ajoutée, les refus de parité et d'arêtes externes demeurent. Il ne s'agit que de la préparation d'une éventuelle **transaction native Editor séparée**, toujours `deletion_authorized=false`. Aucun binaire supprimé. Voir [5H.13](ARM_CLEAN06_5H13_ICON_PALETTE_CANARY_READINESS.md).

@@ -201,6 +201,7 @@ $RetirementSelfTestHead=@(& $RetirementSelfTestGit -C $RepoRoot rev-parse HEAD)
 if ($LASTEXITCODE -ne 0 -or $RetirementSelfTestHead.Count -ne 1) { throw 'Cannot determine HEAD for retirement audit self-test.' }
 & (Join-Path $PSScriptRoot 'AuditARM_CLEAN06_5_Retirement.ps1') -ExpectedHead $RetirementSelfTestHead[0] -SelfTest
 & (Join-Path $PSScriptRoot 'PlanARM_CLEAN06_5H12_Retirement.ps1') -SelfTest
+& (Join-Path $PSScriptRoot 'PrepareARM_CLEAN06_5H14_IconPaletteSnapshot.ps1') -SelfTest
 & (Join-Path $PSScriptRoot 'InstallARM_CLEAN06_5B_ReadableSaveCopy.ps1') -SelfTest
 & (Join-Path $PSScriptRoot 'TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -SelfTest
 Assert-FileExists -Path $ProjectFile -Description 'Projet Unreal'
