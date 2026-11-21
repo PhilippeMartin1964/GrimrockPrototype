@@ -32,6 +32,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GrimrockPlayerController.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -3489,66 +3490,104 @@ bool FARMEMENTLOT02163RealThrowingN1::RunTest(const FString&)
 			TestEqual(*FString::Printf(TEXT("%s exactly one world projectile"), *Context), Count, 1);
 		}
 
-		// A separate, legitimate single copy in the bag is executed through
-		// its QuickItem contribution, not through a synthetic second weapon.
+		// Canonical inventory ARM uses a PHYSICAL hotbar throw. It enters
+		// aiming and commits only on the world click, not a QuickItem attack.
 		{
-			// H.61 intentionally preserves the isolated historical QuickItem
-			// characterization. The canonical inventory throw enters an aiming
-			// state instead of resolving a synchronous combat QuickItem attack.
-			const FString AssetName(Case.Name);
-			const FString Path = FString::Printf(
-				TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
-				*AssetName, *AssetName);
-			UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
-			if (!TestNotNull(TEXT("Historical inventory QuickItem fixture"), Definition) ||
-				!TestEqual(TEXT("Historical item identity matches canonical ARM"),
-					Definition->ItemDefinitionId, ItemId))
-				return false;
 			FGridCombatHudFixture Fixture;
-			if (!TestTrue(TEXT("Inventory throw combat world"), Fixture.IsReady()))
+			FGridCanonicalLootTestScope RegistryScope;
+			if (!TestTrue(TEXT("Canonical inventory throw combat world"), Fixture.IsReady()) ||
+				!TestTrue(TEXT("ItemSystem attached to inventory throw world"),
+					RegistryScope.Attach(Fixture.TestWorld.World)))
 				return false;
 			UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-			if (!TestTrue(TEXT("Register inventory throwable"), Inventory->RegisterItemDefinition(Definition)))
+			if (!TestNull(TEXT("No historical inventory throwing definition registered"),
+				Inventory->FindItemDefinition(ItemId)))
 				return false;
+			// Preserve the physical strength check; do not bypass throw policy.
+			Inventory->PartyInventoryState.ActiveCharacters[0].Attributes.Strength = 20;
 			FGridItemInstance BagItem;
 			BagItem.RuntimeObjectId = FGuid(16, 3, Index + 1, 2);
-			BagItem.ItemDefinitionId = Definition->ItemDefinitionId;
+			BagItem.ItemDefinitionId = ItemId;
 			BagItem.ItemLevel = 1;
 			BagItem.Quantity = 1;
-			if (!TestTrue(TEXT("Apply production item definition"), Inventory->ApplyItemDefinitionToInstance(BagItem)) ||
-				!TestTrue(TEXT("Place physical throwing item into bag"), Inventory->AddItemToCharacterInventory(0, BagItem)))
+			if (!TestTrue(TEXT("Canonical N1 throwable materializes"),
+					Inventory->ApplyItemDefinitionToInstance(BagItem)) ||
+				!TestTrue(TEXT("Physical N1 throwable placed in bag"),
+					Inventory->AddItemToCharacterInventory(0, BagItem)))
 				return false;
-			FGridCombatActionDefinition Quick;
-			if (!TestTrue(*FString::Printf(TEXT("%s actual inventory throw action"), *Context),
-					Definition->BuildInventoryCombatActionDefinition(Quick)))
+			UClass* ControllerClass = LoadClass<AGrimrockPlayerController>(nullptr,
+				TEXT("/Game/GrimrockPrototype/Blueprints/Runtime/BP_GrimrockPlayerController.BP_GrimrockPlayerController_C"));
+			if (!TestNotNull(TEXT("Production player controller class loads"), ControllerClass))
 				return false;
+			AGrimrockPlayerController* Controller =
+				Fixture.TestWorld.World->SpawnActor<AGrimrockPlayerController>(ControllerClass);
+			if (!TestNotNull(TEXT("Controller spawned in live inventory throw world"), Controller))
+				return false;
+			Controller->Possess(Fixture.Party);
+			if (!TestTrue(TEXT("Controller possesses the live party pawn"),
+				Fixture.Party->GetController() == Controller))
+				return false;
+			if (!TestTrue(TEXT("Bind physical inventory throw to second hotbar slot"),
+				Inventory->SetCharacterCombatHotbarBindingFromItem(
+					0, 1, BagItem, EGridEquipmentSlot::None)))
+				return false;
+			FGridCombatHotbarBinding Binding;
+			if (!TestTrue(TEXT("Physical hotbar binding is persisted"),
+					Inventory->GetCharacterCombatHotbarBinding(0, 1, Binding)) ||
+				!TestTrue(TEXT("Physical binding is not the old QuickItem attack"),
+					Binding.IsPhysicalThrowItemBinding() &&
+					Binding.ActionId == FGridCombatHotbarBinding::MakePhysicalThrowItemActionId(ItemId)))
+				return false;
+			Fixture.Hud->RefreshFromSources();
 			const int32 APBefore = Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints;
 			const int32 LogsBefore = Fixture.TurnManager->GetCombatLogEntries().Num();
 			FGridCombatActionRequestResult ActionResult;
-			if (!TestTrue(*FString::Printf(TEXT("%s inventory throw resolves via TurnManager"), *Context),
-					Fixture.TurnManager->RequestCharacterCombatAction(0, Quick.ActionId,
-						EGridCombatActionSourcePolicy::QuickItem, Definition->ItemDefinitionId,
-						EGridEquipmentSlot::None, ActionResult)) ||
-				!TestTrue(TEXT("Real QuickItem throw accepted"), ActionResult.bAccepted))
+			if (!TestTrue(*FString::Printf(TEXT("%s real physical hotbar enters aiming"), *Context),
+				Fixture.Hud->RequestHotbarSlot(1, ActionResult)) ||
+				!TestTrue(TEXT("Controller remains in the physical throw aiming state"),
+					Controller->IsPhysicalThrowAimingActive()))
 				return false;
-			TestEqual(*FString::Printf(TEXT("%s exactly one bag item consumed"), *Context),
-				Inventory->CountItemDefinitionInCharacterInventory(0, Definition->ItemDefinitionId), 0);
-			TestTrue(*FString::Printf(TEXT("%s AP not increased"), *Context),
-				Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints < APBefore);
-			TestEqual(*FString::Printf(TEXT("%s inventory throw resolves once"), *Context),
-				Fixture.TurnManager->GetCombatLogEntries().Num() - LogsBefore, 1);
+			TestEqual(TEXT("Starting aim consumes zero inventory items"),
+				Inventory->CountItemDefinitionInCharacterInventory(0, ItemId), 1);
+			TestFalse(TEXT("Aiming does not place a temporary cursor item"),
+				Fixture.Party->HasCursorItem());
+			const FVector Impact = Fixture.Party->GetActorLocation() +
+				FVector(0.0f, 240.0f, -Fixture.Party->EyeHeight);
+			FHitResult Hit(Fixture.Monster, nullptr, Impact, FVector::UpVector);
+			Hit.bBlockingHit = true;
+			Hit.ImpactPoint = Impact;
+			if (!TestEqual(TEXT("Beyond hand reach selects physical throw, not placement"),
+				Controller->ResolvePhysicalThrowTargetCursor(Fixture.Party, Hit),
+				EGridInteractionCursor::AimThrow) ||
+				!TestTrue(TEXT("Mouse hit commits a single world throw"),
+					Controller->HandlePhysicalThrowAimingHit(Hit)))
+				return false;
+			TestFalse(TEXT("Successful world throw exits aiming"),
+				Controller->IsPhysicalThrowAimingActive());
+			TestEqual(TEXT("Exactly one N1 throwing item consumed from bag"),
+				Inventory->CountItemDefinitionInCharacterInventory(0, ItemId), 0);
+			TestEqual(TEXT("Physical inventory targeting charges no combat AP"),
+				Fixture.TurnManager->PlayerCharacterTurnStates[0].RemainingActionPoints, APBefore);
+			TestEqual(TEXT("Physical throw creates no fictional combat attack log"),
+				Fixture.TurnManager->GetCombatLogEntries().Num(), LogsBefore);
 			int32 Projectiles = 0;
 			for (TActorIterator<AGridThrownItemActor> It(Fixture.TestWorld.World); It; ++It)
 			{
-				if (IsValid(*It) && It->ThrownItemInstance.ItemDefinitionId == Definition->ItemDefinitionId)
+				if (IsValid(*It) && It->ThrownItemInstance.ItemDefinitionId == ItemId)
 				{
 					++Projectiles;
-					TestNotEqual(*FString::Printf(TEXT("%s launched unit has fresh GUID"), *Context),
+					TestNotEqual(*FString::Printf(TEXT("%s new projectile GUID differs from consumed bag source"), *Context),
 						It->ThrownItemInstance.RuntimeObjectId, BagItem.RuntimeObjectId);
+					TestEqual(TEXT("Projectile is a single physical item"),
+						It->ThrownItemInstance.Quantity, 1);
+					TestEqual(TEXT("Projectile remains level N1"),
+						It->ThrownItemInstance.ItemLevel, 1);
 				}
 			}
-			TestEqual(*FString::Printf(TEXT("%s one recoverable QuickItem projectile"), *Context), Projectiles, 1);
+			TestEqual(*FString::Printf(TEXT("%s one physical inventory projectile"), *Context),
+				Projectiles, 1);
 		}
+
 	}
 	return true;
 }
