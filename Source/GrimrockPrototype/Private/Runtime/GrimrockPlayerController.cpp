@@ -4,9 +4,9 @@
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
-#include "Components/LineBatchComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Core/GridLevelAsset.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
 #include "Engine/EngineTypes.h"
 #include "EngineUtils.h"
@@ -38,7 +38,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridTurnManagerInput, Log, All);
 
 namespace
 {
-	constexpr uint32 CombatTargetingPreviewBatchId = 0xC0128601u;
 	AGridReceptacleActor* ResolveReceptacleFromHitActor(AActor* HitActor)
 	{
 		if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor>(HitActor))
@@ -258,17 +257,6 @@ void AGrimrockPlayerController::BeginPlay()
 	InputMode.SetHideCursorDuringCapture(false);
 	SetInputMode(InputMode);
 	InitializeCustomCursor();
-	// MON12.8.6.SHIPPING01: own a real runtime scene primitive.
-	if (IsLocalController() && GetNetMode() != NM_DedicatedServer)
-	{
-		CombatTargetingPreviewLines = NewObject<ULineBatchComponent>(this, TEXT("CombatTargetingPreviewLines"));
-		if (IsValid(CombatTargetingPreviewLines))
-		{
-			CombatTargetingPreviewLines->SetHiddenInGame(false);
-			CombatTargetingPreviewLines->SetVisibility(true);
-			CombatTargetingPreviewLines->RegisterComponent();
-		}
-	}
 }
 
 void AGrimrockPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -277,12 +265,6 @@ void AGrimrockPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason
 	{
 		WorldInteractionTooltipWidget->RemoveFromParent();
 		WorldInteractionTooltipWidget = nullptr;
-	}
-	if (IsValid(CombatTargetingPreviewLines))
-	{
-		CombatTargetingPreviewLines->ClearBatch(CombatTargetingPreviewBatchId);
-		CombatTargetingPreviewLines->DestroyComponent();
-		CombatTargetingPreviewLines = nullptr;
 	}
 	Super::EndPlay(EndPlayReason);
 }
@@ -978,36 +960,27 @@ bool AGrimrockPlayerController::TryResolveCombatTargetCellUnderCursor(FIntPoint&
 
 void AGrimrockPlayerController::DrawCombatTargetingPreview(const AGrimrockPartyPawn& PartyPawn) const
 {
-	ULineBatchComponent* Lines = CombatTargetingPreviewLines.Get();
-	if (!IsValid(Lines)) return;
-	Lines->ClearBatch(CombatTargetingPreviewBatchId);
-
 	const UGridCombatHudWidget* Hud = PartyPawn.CombatHudWidgetInstance;
 	const AGridLevelRuntimeActor* RuntimeActor = PartyPawn.LevelRuntimeActor;
-	if (!IsValid(Hud) || !Hud->IsCombatActionTargetingActive() ||
-		!IsValid(RuntimeActor) || !IsValid(RuntimeActor->LevelAsset))
+	if (!IsValid(Hud) || !Hud->IsCombatActionTargetingActive() || !IsValid(RuntimeActor) || !IsValid(RuntimeActor->LevelAsset))
 	{
 		return;
 	}
 
 	const FGridCombatActionTargetingPreview& Preview = Hud->TargetingPreview;
 	const float HalfCell = FMath::Max(4.0f, RuntimeActor->LevelAsset->CellSize * 0.46f);
-	const FLinearColor AreaColor = Preview.bValid
-		? FLinearColor(FColor(48, 220, 96)) : FLinearColor(FColor(220, 48, 48));
+	const FColor AreaColor = Preview.bValid ? FColor(48, 220, 96) : FColor(220, 48, 48);
 	for (const FIntPoint& Cell : Preview.AffectedCells)
 	{
 		const bool bCenter = Cell == Preview.TargetCell;
-		Lines->DrawBox(RuntimeActor->GetCellCenterWorld(Cell.X, Cell.Y, 8.0f),
-			FVector(HalfCell, HalfCell, bCenter ? 5.0f : 2.5f),
-			bCenter && Preview.bValid ? FLinearColor::Yellow : AreaColor,
-			0.0f, SDPG_World, bCenter ? 5.0f : 2.0f, CombatTargetingPreviewBatchId);
+		DrawDebugBox(GetWorld(), RuntimeActor->GetCellCenterWorld(Cell.X, Cell.Y, 8.0f), FVector(HalfCell, HalfCell, bCenter ? 5.0f : 2.5f),
+			bCenter && Preview.bValid ? FColor::Yellow : AreaColor, false, 0.0f, 0, bCenter ? 5.0f : 2.0f);
 	}
-	if (Preview.AffectedCells.IsEmpty() &&
-		RuntimeActor->IsValidCell(Preview.TargetCell.X, Preview.TargetCell.Y))
+
+	if (Preview.AffectedCells.IsEmpty() && RuntimeActor->IsValidCell(Preview.TargetCell.X, Preview.TargetCell.Y))
 	{
-		Lines->DrawBox(RuntimeActor->GetCellCenterWorld(Preview.TargetCell.X, Preview.TargetCell.Y, 8.0f),
-			FVector(HalfCell, HalfCell, 5.0f), FLinearColor::Red,
-			0.0f, SDPG_World, 5.0f, CombatTargetingPreviewBatchId);
+		DrawDebugBox(GetWorld(), RuntimeActor->GetCellCenterWorld(Preview.TargetCell.X, Preview.TargetCell.Y, 8.0f), FVector(HalfCell, HalfCell, 5.0f),
+			FColor::Red, false, 0.0f, 0, 5.0f);
 	}
 }
 
@@ -1017,20 +990,12 @@ bool AGrimrockPlayerController::UpdateCombatTargeting()
 	UGridCombatHudWidget* Hud = PartyPawn ? PartyPawn->CombatHudWidgetInstance.Get() : nullptr;
 	if (!IsValid(Hud) || !Hud->IsCombatActionTargetingActive())
 	{
-		if (IsValid(CombatTargetingPreviewLines))
-		{
-			CombatTargetingPreviewLines->ClearBatch(CombatTargetingPreviewBatchId);
-		}
 		return false;
 	}
 	if (bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() ||
 		(IsValid(PartyPawn->LevelRuntimeActor) && PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()))
 	{
 		Hud->CancelCombatActionTargeting();
-		if (IsValid(CombatTargetingPreviewLines))
-		{
-			CombatTargetingPreviewLines->ClearBatch(CombatTargetingPreviewBatchId);
-		}
 		DefaultMouseCursor = EMouseCursor::Default;
 		CurrentMouseCursor = EMouseCursor::Default;
 		return false;

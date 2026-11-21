@@ -7,7 +7,6 @@
 #include "GrimrockPlayerController.generated.h"
 
 class UPrimitiveComponent;
-class ULineBatchComponent;
 class UUserWidget;
 class UGridNavigationTooltipWidget;
 class AGridReceptacleActor;
@@ -109,10 +108,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
 	EGridInteractionCursor CurrentGridInteractionCursor = EGridInteractionCursor::Default;
-
-	/** World-space runtime visualization; works without DrawDebug in Shipping. */
-	UPROPERTY(Transient)
-	TObjectPtr<ULineBatchComponent> CombatTargetingPreviewLines;
 
 	/** Optional override; otherwise reuse the Persistent HUD's compact tooltip class. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Grid Interaction|Tooltip")
