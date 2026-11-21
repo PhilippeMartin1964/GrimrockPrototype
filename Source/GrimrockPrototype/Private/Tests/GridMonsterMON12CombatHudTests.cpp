@@ -3395,35 +3395,39 @@ bool FARMEMENTLOT02163RealThrowingN1::RunTest(const FString&)
 		{ TEXT("ARM057"), TEXT("Javelin") },
 		{ TEXT("ARM058"), TEXT("Dart") }
 	};
+	FGridCanonicalRegistryFixture Canonical;
 	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(Cases)); ++Index)
 	{
 		const FCase& Case = Cases[Index];
 		const FString Context(Case.Id);
-		const FString AssetName(Case.Name);
-		const FString Path = FString::Printf(
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
-			*AssetName, *AssetName);
-		UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
-		if (!TestNotNull(*FString::Printf(TEXT("%s actual DataAsset"), *Context), Definition) ||
-			!TestTrue(*FString::Printf(TEXT("%s real N1 throwable"), *Context),
-				Definition->IsValidDefinition() && Definition->bUseWeaponCatalogue &&
-				Definition->WeaponArchetypeId == FName(Case.Id) &&
-				Definition->DefaultWeaponItemLevel == 1 &&
-				Definition->IsCombatThrowable() && !Definition->bStackable))
+		const FName ItemId(*FString::Printf(TEXT("Weapon_%s_01"), Case.Name));
+		FGridResolvedItem Physical;
+		if (!TestTrue(*FString::Printf(TEXT("%s canonical N1 projectile ARM"), *Context),
+			Canonical.Resolve(ItemId, 1, Physical)) ||
+			!TestTrue(*FString::Printf(TEXT("%s non-stackable physical attack N1"), *Context),
+				Physical.IsValid() && Physical.bIsArmament &&
+				Physical.ItemId == ItemId && Physical.ItemLevel == 1 &&
+				Physical.ArchetypeId == FName(Case.Id) &&
+				Physical.MaxStack == 1 && Physical.Weapon.Projectile.bEnabled &&
+				Physical.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand)))
 			return false;
 
 		// The equipped attack transfers its one physical item to a real
 		// projectile and never leaves an inventory duplicate.
 		{
 			FGridCombatHudFixture Fixture;
-			if (!TestTrue(TEXT("Throwing test combat world"), Fixture.IsReady()))
+			FGridCanonicalLootTestScope RegistryScope;
+			if (!TestTrue(TEXT("Throwing test combat world"), Fixture.IsReady()) ||
+				!TestTrue(TEXT("ItemSystem attached to equipped throw world"),
+					RegistryScope.Attach(Fixture.TestWorld.World)))
 				return false;
 			UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-			if (!TestTrue(TEXT("Register real throwing definition"), Inventory->RegisterItemDefinition(Definition)))
+			if (!TestNull(TEXT("No historical throwing weapon registered"),
+				Inventory->FindItemDefinition(ItemId)))
 				return false;
 			FGridItemInstance Equipped;
 			Equipped.RuntimeObjectId = FGuid(16, 3, Index + 1, 1);
-			Equipped.ItemDefinitionId = Definition->ItemDefinitionId;
+			Equipped.ItemDefinitionId = ItemId;
 			Equipped.ItemLevel = 1;
 			Equipped.Quantity = 1;
 			Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -3463,17 +3467,17 @@ bool FARMEMENTLOT02163RealThrowingN1::RunTest(const FString&)
 			TestEqual(*FString::Printf(TEXT("%s combat resolved once"), *Context),
 				Fixture.TurnManager->GetCombatLogEntries().Num() - LogsBefore, 1);
 			TestEqual(*FString::Printf(TEXT("%s attack identifies thrown item"), *Context),
-				Request.OffensiveItemDefinitionId, Definition->ItemDefinitionId);
+				Request.OffensiveItemDefinitionId, ItemId);
 			FGridItemInstance StillEquipped;
 			TestFalse(*FString::Printf(TEXT("%s spent hand is empty"), *Context),
 				Inventory->GetEquippedItem(0, EGridEquipmentSlot::MainHand, StillEquipped));
 			TestEqual(*FString::Printf(TEXT("%s source does not appear in bag"), *Context),
-				Inventory->CountItemDefinitionInCharacterInventory(0, Definition->ItemDefinitionId), 0);
+				Inventory->CountItemDefinitionInCharacterInventory(0, ItemId), 0);
 
 			int32 Count = 0;
 			for (TActorIterator<AGridThrownItemActor> It(Fixture.TestWorld.World); It; ++It)
 			{
-				if (IsValid(*It) && It->ThrownItemInstance.ItemDefinitionId == Definition->ItemDefinitionId)
+				if (IsValid(*It) && It->ThrownItemInstance.ItemDefinitionId == ItemId)
 				{
 					++Count;
 					TestEqual(*FString::Printf(TEXT("%s physical throw preserves GUID"), *Context),
@@ -3488,6 +3492,18 @@ bool FARMEMENTLOT02163RealThrowingN1::RunTest(const FString&)
 		// A separate, legitimate single copy in the bag is executed through
 		// its QuickItem contribution, not through a synthetic second weapon.
 		{
+			// H.61 intentionally preserves the isolated historical QuickItem
+			// characterization. The canonical inventory throw enters an aiming
+			// state instead of resolving a synchronous combat QuickItem attack.
+			const FString AssetName(Case.Name);
+			const FString Path = FString::Printf(
+				TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
+				*AssetName, *AssetName);
+			UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
+			if (!TestNotNull(TEXT("Historical inventory QuickItem fixture"), Definition) ||
+				!TestEqual(TEXT("Historical item identity matches canonical ARM"),
+					Definition->ItemDefinitionId, ItemId))
+				return false;
 			FGridCombatHudFixture Fixture;
 			if (!TestTrue(TEXT("Inventory throw combat world"), Fixture.IsReady()))
 				return false;
