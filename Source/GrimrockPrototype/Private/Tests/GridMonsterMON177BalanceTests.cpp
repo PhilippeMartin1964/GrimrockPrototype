@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "RPG/RPGCharacterRulesLibrary.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Monsters/GridMonsterBalanceTypes.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
@@ -21,11 +21,25 @@ namespace MON177Balance
 		return Definition;
 	}
 
-	UGridItemDefinitionAsset* LoadItemDefinition(FAutomationTestBase& Test, const TCHAR* AssetPath, const TCHAR* Label)
+	const UGridCanonicalItemDefinitionAsset* FindCanonicalItemDefinition(
+		FAutomationTestBase& Test, const UGridItemSystemAsset* Root,
+		FName ItemId)
 	{
-		UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, AssetPath);
-		Test.TestNotNull(Label, Definition);
-		return Definition;
+		const UGridCanonicalItemDefinitionAsset* Found = nullptr;
+		if (Root)
+		{
+			for (const TObjectPtr<UGridCanonicalItemDefinitionAsset>& Definition : Root->ItemDefinitions)
+			{
+				if (IsValid(Definition) && Definition->ItemId == ItemId)
+				{
+					Found = Definition;
+					break;
+				}
+			}
+		}
+		Test.TestNotNull(*FString::Printf(TEXT("Canonical loot ItemId %s resolves"),
+			*ItemId.ToString()), Found);
+		return Found;
 	}
 
 	const FGridMonsterLootEntry* FindLootEntry(const UGridMonsterDefinitionAsset* Definition, FName ItemDefinitionId)
@@ -101,22 +115,21 @@ bool FGridMonsterMON177ProductionLootBaselineTest::RunTest(const FString& Parame
 	using namespace MON177Balance;
 
 	UGridMonsterDefinitionAsset* Goblin = LoadGoblinDefinition(*this);
-	UGridItemDefinitionAsset* Knife = LoadItemDefinition(
-		*this, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_GoblinKnife.DA_Item_GoblinKnife"), TEXT("Production GoblinKnife definition loads"));
-	UGridItemDefinitionAsset* Stone =
-		LoadItemDefinition(*this, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Stone.DA_Item_Stone"), TEXT("Production Stone definition loads"));
-	UGridItemDefinitionAsset* Vial = LoadItemDefinition(
-		*this, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_EmptyVial.DA_Item_EmptyVial"), TEXT("Production EmptyVial definition loads"));
-	if (!Goblin || !Knife || !Stone || !Vial)
-	{
-		return false;
-	}
+	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+	if (!TestNotNull(TEXT("Canonical production item registry loads"), Root) || !Goblin) return false;
+	const UGridCanonicalItemDefinitionAsset* Knife = FindCanonicalItemDefinition(*this, Root, TEXT("GoblinKnife"));
+	const UGridCanonicalItemDefinitionAsset* Stone = FindCanonicalItemDefinition(*this, Root, TEXT("Stone"));
+	const UGridCanonicalItemDefinitionAsset* Vial = FindCanonicalItemDefinition(*this, Root, TEXT("EmptyVial"));
+	if (!Knife || !Stone || !Vial) return false;
 
-	TestTrue(TEXT("GoblinKnife definition is valid"), Knife->IsValidDefinition());
-	TestTrue(TEXT("Stone definition is valid"), Stone->IsValidDefinition());
-	TestTrue(TEXT("EmptyVial definition is valid"), Vial->IsValidDefinition());
-	TestEqual(TEXT("GoblinKnife stable item id"), Knife->ItemDefinitionId, FName(TEXT("GoblinKnife")));
-	TestEqual(TEXT("EmptyVial stable item id"), Vial->ItemDefinitionId, FName(TEXT("EmptyVial")));
+	TestTrue(TEXT("GoblinKnife canonical identity valid"), Knife->HasValidIdentity());
+	TestTrue(TEXT("Stone canonical identity valid"), Stone->HasValidIdentity());
+	TestTrue(TEXT("EmptyVial canonical identity valid"), Vial->HasValidIdentity());
+	TestEqual(TEXT("GoblinKnife stable ItemId"), Knife->ItemId, FName(TEXT("GoblinKnife")));
+	TestEqual(TEXT("Stone stable ItemId"), Stone->ItemId, FName(TEXT("Stone")));
+	TestEqual(TEXT("EmptyVial stable ItemId"), Vial->ItemId, FName(TEXT("EmptyVial")));
+
 	TestEqual(TEXT("Goblin loot table has exactly three authored entries"), Goblin->LootTable.Num(), 3);
 
 	const FGridMonsterLootEntry* KnifeEntry = FindLootEntry(Goblin, FName(TEXT("GoblinKnife")));
