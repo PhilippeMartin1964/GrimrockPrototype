@@ -4,6 +4,8 @@
 
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/World.h"
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
@@ -18,6 +20,8 @@ namespace Shield024A
 	struct FTestWorld
 	{
 		UWorld* World = nullptr;
+		UGameInstance* GI = nullptr;
+		UGridItemSubsystem* Registry = nullptr;
 		FTestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
@@ -37,8 +41,22 @@ namespace Shield024A
 				Context.SetCurrentWorld(World);
 			}
 		}
+		bool ConfigureCanonicalItems()
+		{
+			if (!World) return false;
+			if (!GI)
+			{
+				GI = NewObject<UGameInstance>(GetTransientPackage());
+				GI->Init();
+				World->SetGameInstance(GI);
+				Registry = GI->GetSubsystem<UGridItemSubsystem>();
+			}
+			return Registry && Registry->IsConfigured();
+		}
 		~FTestWorld()
 		{
+			if (World) World->SetGameInstance(nullptr);
+			if (GI) GI->Shutdown();
 			if (World)
 			{
 				World->DestroyWorld(false);
@@ -57,11 +75,20 @@ namespace Shield024A
 		AGrimrockPartyPawn* Party = nullptr;
 		UGridTurnManagerComponent* TurnManager = nullptr;
 		UGridPartyInventoryComponent* Inventory = nullptr;
-		UGridItemDefinitionAsset* ShieldDefinition = nullptr;
+		FGridResolvedItem ShieldDefinition;
 
 		bool Initialize(int32 BasePhysical = 2, int32 BaseMagical = 3, bool bEquipShield = true)
 		{
 			if (!TestWorld.World)
+				return false;
+			// Real ARM075 tests use the configured ItemSystem; synthetic
+			// magic-focus-only cases stay isolated without a GameInstance.
+			if (bEquipShield &&
+				(!TestWorld.ConfigureCanonicalItems() ||
+				 !TestWorld.Registry->ResolveItem(
+					 TEXT("Weapon_RoundShield_01"), 1, ShieldDefinition) ||
+				 !ShieldDefinition.bIsArmament ||
+				 ShieldDefinition.Weapon.PhysicalArmor != 5))
 				return false;
 
 			Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
@@ -111,13 +138,11 @@ namespace Shield024A
 
 			if (bEquipShield)
 			{
-				ShieldDefinition = LoadObject<UGridItemDefinitionAsset>(nullptr,
-					TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-				if (!ShieldDefinition || !Inventory->RegisterItemDefinition(ShieldDefinition))
-					return false;
+				if (Inventory->FindItemDefinition(ShieldDefinition.ItemId))
+					return false; // Never register the old DataAsset.
 				FGridItemInstance Shield;
 				Shield.RuntimeObjectId = FGuid::NewGuid();
-				Shield.ItemDefinitionId = ShieldDefinition->ItemDefinitionId;
+				Shield.ItemDefinitionId = ShieldDefinition.ItemId;
 				Shield.ItemLevel = 1;
 				Shield.Quantity = 1;
 				Shield.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -162,8 +187,8 @@ bool FGridShield024APhysicalEquipmentSurfaceTest::RunTest(const FString&)
 	auto& Char = Fixture.Inventory->PartyInventoryState.ActiveCharacters[0];
 	auto& Shield = Fixture.Inventory->PartyInventoryState.ActiveEquipment[0].OffHand;
 	const FGuid ShieldId = Shield.RuntimeObjectId;
-	const bool bShieldInitiallyDirty = Fixture.ShieldDefinition->GetOutermost()->IsDirty();
-	TestEqual(TEXT("Production round shield N1 has 5 physical armor"), Fixture.ShieldDefinition->EquipmentStatBonus.ArmorBonus, 5);
+	TestEqual(TEXT("Production canonical round shield N1 has 5 physical armor"),
+		Fixture.ShieldDefinition.Weapon.PhysicalArmor, 5);
 	TestEqual(TEXT("Before surface: base 2 + shield 5"), Fixture.Inventory->GetEffectiveCurrentPhysicalArmor(0), 7);
 	if (!TestTrue(TEXT("Physical periodic surface placed on party cell"),
 		Fixture.AddSurface(EGridCombatSurfaceType::Oil, EGridDamageType::Physical, 4)))
@@ -191,7 +216,8 @@ bool FGridShield024APhysicalEquipmentSurfaceTest::RunTest(const FString&)
 	FGridInventoryCharacterSummary Summary;
 	TestTrue(TEXT("UI read model generated"), Fixture.Inventory->GetCharacterSummary(0, Summary));
 	TestEqual(TEXT("UI sees depleted effective armor"), Summary.Resources.CurrentPhysicalArmor, 0);
-	TestEqual(TEXT("Production shield asset remains clean"), Fixture.ShieldDefinition->GetOutermost()->IsDirty(), bShieldInitiallyDirty);
+	TestNull(TEXT("No historical shield definition registered during surface combat"),
+		Fixture.Inventory->FindItemDefinition(Fixture.ShieldDefinition.ItemId));
 	return true;
 }
 
