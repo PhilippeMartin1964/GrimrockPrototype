@@ -9,7 +9,6 @@
 #include "Misc/AutomationTest.h"
 #include "NiagaraComponent.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -64,11 +63,6 @@ namespace GridItemVFX013RuntimeTests
         }
     };
 
-    UGridItemDefinitionAsset* LoadTorch()
-    {
-        return LoadObject<UGridItemDefinitionAsset>(nullptr,
-            TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch.DA_Item_Torch"));
-    }
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemVFX013TorchRuntimeTest,
@@ -79,16 +73,22 @@ bool FGridItemVFX013TorchRuntimeTest::RunTest(const FString& Parameters)
 {
     (void)Parameters;
 
-    UGridItemDefinitionAsset* Torch = GridItemVFX013RuntimeTests::LoadTorch();
-    if (!TestNotNull(TEXT("Production DA_Item_Torch loads"), Torch) ||
-        !TestTrue(TEXT("Torch retains its light emitter"), Torch ? Torch->HasLightEmitter() : false) ||
-        !TestTrue(TEXT("Torch has migrated Niagara"), Torch ? Torch->VisualEffects.Effects.Num() > 0 : false))
+    const FName TorchId(TEXT("Item_Torch"));
+    GridItemVFX013RuntimeTests::FTestWorld TestWorld;
+    if (!TestNotNull(TEXT("Transient game world created"), TestWorld.World) ||
+        !TestNotNull(TEXT("Transient game instance created"), TestWorld.GI))
     {
         return false;
     }
 
-    GridItemVFX013RuntimeTests::FTestWorld TestWorld;
-    if (!TestNotNull(TEXT("Transient game world created"), TestWorld.World))
+    const UGridItemSubsystem* Registry = TestWorld.GI->GetSubsystem<UGridItemSubsystem>();
+    FGridResolvedItem Torch;
+    if (!TestNotNull(TEXT("Canonical registry available"), Registry) ||
+        !TestTrue(TEXT("Production torch N0 resolves from ItemSystem"),
+            Registry && Registry->ResolveItem(TorchId, 0, Torch)) ||
+        !TestFalse(TEXT("Torch is a non-ARM N0 physical item"), Torch.bIsArmament) ||
+        !TestTrue(TEXT("Torch retains its point light"), Torch.LightEmitter.bUsePointLight) ||
+        !TestTrue(TEXT("Torch has its canonical Niagara effects"), !Torch.VisualEffects.Effects.IsEmpty()))
     {
         return false;
     }
@@ -99,7 +99,17 @@ bool FGridItemVFX013TorchRuntimeTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    WorldTorch->InitializeFromItemDefinition(Torch, FGuid::NewGuid());
+    FGridItemInstance WorldTorchItem;
+    WorldTorchItem.RuntimeObjectId = FGuid::NewGuid();
+    WorldTorchItem.ItemDefinitionId = TorchId;
+    WorldTorchItem.ItemLevel = 0;
+    WorldTorchItem.Quantity = 1;
+    WorldTorchItem.OwnerType = EGridItemOwnerType::World;
+    if (!TestTrue(TEXT("Canonical world torch initializes"),
+            WorldTorch->InitializeFromCanonicalItem(WorldTorchItem, Registry)) ||
+        !TestNull(TEXT("Canonical world torch holds no legacy definition"),
+            WorldTorch->GetItemDefinitionAsset()))
+        return false;
     UGridItemVisualEffectsComponent* Visuals = WorldTorch->VisualEffectsComponent;
     if (!TestNotNull(TEXT("Independent Niagara executor exists"), Visuals))
     {
@@ -155,10 +165,9 @@ bool FGridItemVFX013TorchRuntimeTest::RunTest(const FString& Parameters)
     }
 
     Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded();
-    const UGridItemSubsystem* Registry = TestWorld.GI ? TestWorld.GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-    if (!TestTrue(TEXT("Canonical torch is registered"), Registry && Registry->HasCanonicalItem(Torch->ItemDefinitionId)) ||
+    if (!TestTrue(TEXT("Canonical torch is registered"), Registry && Registry->HasCanonicalItem(TorchId)) ||
         !TestTrue(TEXT("Generic pawn can equip the canonical torch"),
-            Party->EquipHeldItem(Torch->ItemDefinitionId)))
+            Party->EquipHeldItem(TorchId)))
     {
         return false;
     }
