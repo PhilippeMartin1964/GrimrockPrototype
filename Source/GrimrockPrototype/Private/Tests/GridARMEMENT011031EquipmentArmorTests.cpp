@@ -3,39 +3,76 @@
 #include "Misc/AutomationTest.h"
 
 #include "Runtime/Combat/GridCombatResolver.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/GrimrockPartyPawn.h"
+#include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 namespace ARMEMENT011031
 {
-    constexpr const TCHAR* ShieldPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01");
-
-    UGridItemDefinitionAsset* LoadRealShield()
+    struct FWorldFixture
     {
-        return LoadObject<UGridItemDefinitionAsset>(nullptr, ShieldPath);
-    }
+        UWorld* World = nullptr;
+        UGameInstance* GI = nullptr;
+        UGridItemSubsystem* Registry = nullptr;
 
-    UGridPartyInventoryComponent* MakeInventory(UGridItemDefinitionAsset* Shield, int32 BaseArmor)
-    {
-        if (!Shield) return nullptr;
-        UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
-        Inventory->InitializeDefaultPartyIfNeeded();
-        if (!Inventory->IsValidCharacterIndex(0) || !Inventory->RegisterItemDefinition(Shield))
+        FWorldFixture()
         {
-            return nullptr;
+            const UWorld::InitializationValues Values = UWorld::InitializationValues()
+                .AllowAudioPlayback(false).RequiresHitProxies(false)
+                .CreatePhysicsScene(false).CreateNavigation(false)
+                .CreateAISystem(false).ShouldSimulatePhysics(false)
+                .SetTransactional(false);
+            World = UWorld::CreateWorld(EWorldType::Game, false,
+                FName(*FString::Printf(TEXT("ARMH40_Armor_%s"),
+                    *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
+                nullptr, true, ERHIFeatureLevel::Num, &Values);
+            if (!World || !GEngine) return;
+            GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
+            GI = NewObject<UGameInstance>(GetTransientPackage());
+            GI->Init();
+            World->SetGameInstance(GI);
+            Registry = GI->GetSubsystem<UGridItemSubsystem>();
         }
-        Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentPhysicalArmor = BaseArmor;
-        Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth = 20;
-        return Inventory;
-    }
 
-    FGridItemInstance MakeInstance(UGridPartyInventoryComponent* Inventory, UGridItemDefinitionAsset* Shield)
+        ~FWorldFixture()
+        {
+            if (World) World->SetGameInstance(nullptr);
+            if (GI) GI->Shutdown();
+            if (World)
+            {
+                World->DestroyWorld(false);
+                if (GEngine) GEngine->DestroyWorldContext(World);
+            }
+        }
+
+        bool ResolveShield(FGridResolvedItem& Out) const
+        {
+            return Registry && Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, Out) &&
+                Out.bIsArmament && Out.Weapon.PhysicalArmor == 5;
+        }
+
+        UGridPartyInventoryComponent* NewInventory(int32 BaseArmor) const
+        {
+            AGrimrockPartyPawn* Pawn = World ? World->SpawnActor<AGrimrockPartyPawn>() : nullptr;
+            UGridPartyInventoryComponent* Inventory = Pawn ? Pawn->PartyInventoryComponent.Get() : nullptr;
+            if (!Inventory) return nullptr;
+            Inventory->InitializeDefaultPartyIfNeeded();
+            if (!Inventory->IsValidCharacterIndex(0)) return nullptr;
+            Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentPhysicalArmor = BaseArmor;
+            Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth = 20;
+            return Inventory;
+        }
+    };
+
+    FGridItemInstance MakeInstance(UGridPartyInventoryComponent* Inventory, FName ShieldId)
     {
         FGridItemInstance Item;
         Item.RuntimeObjectId = FGuid::NewGuid();
-        Item.ItemDefinitionId = Shield->ItemDefinitionId;
+        Item.ItemDefinitionId = ShieldId;
+        Item.ItemLevel = 1;
         Item.Quantity = 1;
         if (!Inventory->ApplyItemDefinitionToInstance(Item))
         {
@@ -55,10 +92,10 @@ namespace ARMEMENT011031
         return INDEX_NONE;
     }
 
-    bool EquipShield(UGridPartyInventoryComponent* Inventory, UGridItemDefinitionAsset* Shield, FGuid& OutRuntimeId)
+    bool EquipShield(UGridPartyInventoryComponent* Inventory, FName ShieldId, FGuid& OutRuntimeId)
     {
-        if (!Inventory || !Shield) return false;
-        FGridItemInstance Instance = MakeInstance(Inventory, Shield);
+        if (!Inventory || ShieldId.IsNone()) return false;
+        FGridItemInstance Instance = MakeInstance(Inventory, ShieldId);
         if (!Instance.IsValid() || !Inventory->AddItemToCharacterInventory(0, Instance)) return false;
         OutRuntimeId = Instance.RuntimeObjectId;
         const int32 Index = FindBagSlot(Inventory, OutRuntimeId);
@@ -88,19 +125,20 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011031RealShieldDamage,
 
 bool FARMEMENT011031RealShieldDamage::RunTest(const FString&)
 {
-    UGridItemDefinitionAsset* Shield = ARMEMENT011031::LoadRealShield();
-    if (!TestNotNull(TEXT("Real ARM075 shield definition"), Shield)) return false;
-    const UGridWeaponCatalogueAsset* Catalogue = Shield->WeaponCatalogue.LoadSynchronous();
-    if (!TestNotNull(TEXT("Real authoritative weapon and shield catalogue"), Catalogue)) return false;
-    const FGridWeaponLevelProfile* Profile = Catalogue->FindProfile(TEXT("ARM075"), 1);
-    if (!TestNotNull(TEXT("Real ARM075 level-one profile"), Profile)) return false;
-    TestEqual(TEXT("Canonical level-one round shield armor is five"), Profile->PhysicalArmor, 5);
-    TestEqual(TEXT("Item bonus is copied from level-one catalogue"), Shield->EquipmentStatBonus.ArmorBonus, Profile->PhysicalArmor);
+    ARMEMENT011031::FWorldFixture Fixture;
+    FGridResolvedItem Shield;
+    if (!TestNotNull(TEXT("Canonical test world"), Fixture.World) ||
+        !TestTrue(TEXT("Real ARM075 N1 resolves from ItemSystem"), Fixture.ResolveShield(Shield)))
+        return false;
+    TestEqual(TEXT("Canonical level-one round shield armor is five"), Shield.Weapon.PhysicalArmor, 5);
 
-    UGridPartyInventoryComponent* Inventory = ARMEMENT011031::MakeInventory(Shield, 0);
-    if (!TestNotNull(TEXT("Inventory with real shield registered"), Inventory)) return false;
+    UGridPartyInventoryComponent* Inventory = Fixture.NewInventory(0);
+    if (!TestNotNull(TEXT("World inventory for canonical shield"), Inventory) ||
+        !TestNull(TEXT("No historical ARM075 definition registered"),
+            Inventory->FindItemDefinition(Shield.ItemId))) return false;
     FGuid ShieldId;
-    if (!TestTrue(TEXT("Real shield equipped in OffHand"), ARMEMENT011031::EquipShield(Inventory, Shield, ShieldId))) return false;
+    if (!TestTrue(TEXT("Real shield equipped in OffHand"),
+        ARMEMENT011031::EquipShield(Inventory, Shield.ItemId, ShieldId))) return false;
     TestEqual(TEXT("Effective reserve starts with five"), Inventory->GetEffectiveCurrentPhysicalArmor(0), 5);
 
     FGridInventoryCharacterSummary Summary;
@@ -133,12 +171,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011031Persistence,
 
 bool FARMEMENT011031Persistence::RunTest(const FString&)
 {
-    UGridItemDefinitionAsset* Shield = ARMEMENT011031::LoadRealShield();
-    if (!TestNotNull(TEXT("Real round shield"), Shield)) return false;
-    UGridPartyInventoryComponent* Inventory = ARMEMENT011031::MakeInventory(Shield, 0);
-    if (!TestNotNull(TEXT("Test inventory"), Inventory)) return false;
+    ARMEMENT011031::FWorldFixture Fixture;
+    FGridResolvedItem Shield;
+    if (!TestTrue(TEXT("Real ARM075 N1 resolves from ItemSystem"), Fixture.ResolveShield(Shield)))
+        return false;
+    UGridPartyInventoryComponent* Inventory = Fixture.NewInventory(0);
+    if (!TestNotNull(TEXT("Canonical inventory"), Inventory)) return false;
     FGuid ShieldId;
-    if (!TestTrue(TEXT("Equip round shield"), ARMEMENT011031::EquipShield(Inventory, Shield, ShieldId))) return false;
+    if (!TestTrue(TEXT("Equip round shield"), ARMEMENT011031::EquipShield(Inventory, Shield.ItemId, ShieldId))) return false;
     const FGridAttackResult Hit = ARMEMENT011031::HitWithPhysicalDamage(Inventory, 3);
     TestEqual(TEXT("Three armor absorbed"), Hit.PhysicalArmorDamage, 3);
     TestEqual(TEXT("Two armor remain"), Inventory->GetEffectiveCurrentPhysicalArmor(0), 2);
@@ -154,7 +194,7 @@ bool FARMEMENT011031Persistence::RunTest(const FString&)
     TestEqual(TEXT("Equipped instance preserved GUID"), Inventory->PartyInventoryState.ActiveEquipment[0].OffHand.RuntimeObjectId, ShieldId);
 
     const FGridPartyInventoryState SerializedStateModel = Inventory->PartyInventoryState;
-    UGridPartyInventoryComponent* Loaded = ARMEMENT011031::MakeInventory(Shield, 0);
+    UGridPartyInventoryComponent* Loaded = Fixture.NewInventory(0);
     if (!TestNotNull(TEXT("Fresh inventory for state restore"), Loaded)) return false;
     Loaded->PartyInventoryState = SerializedStateModel;
     TestEqual(TEXT("State copy retains worn shield armor"), Loaded->GetEffectiveCurrentPhysicalArmor(0), 2);
@@ -170,12 +210,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011031Restore,
 
 bool FARMEMENT011031Restore::RunTest(const FString&)
 {
-    UGridItemDefinitionAsset* Shield = ARMEMENT011031::LoadRealShield();
-    if (!TestNotNull(TEXT("Real shield"), Shield)) return false;
-    UGridPartyInventoryComponent* Inventory = ARMEMENT011031::MakeInventory(Shield, 2);
-    if (!TestNotNull(TEXT("Test inventory"), Inventory)) return false;
+    ARMEMENT011031::FWorldFixture Fixture;
+    FGridResolvedItem Shield;
+    if (!TestTrue(TEXT("Real ARM075 N1 resolves from ItemSystem"), Fixture.ResolveShield(Shield)))
+        return false;
+    UGridPartyInventoryComponent* Inventory = Fixture.NewInventory(2);
+    if (!TestNotNull(TEXT("Canonical inventory"), Inventory)) return false;
     FGuid ShieldId;
-    if (!TestTrue(TEXT("Equip shield"), ARMEMENT011031::EquipShield(Inventory, Shield, ShieldId))) return false;
+    if (!TestTrue(TEXT("Equip shield"), ARMEMENT011031::EquipShield(Inventory, Shield.ItemId, ShieldId))) return false;
     TestEqual(TEXT("Base armor two plus shield five"), Inventory->GetEffectiveCurrentPhysicalArmor(0), 7);
 
     const FGridAttackResult Hit = ARMEMENT011031::HitWithPhysicalDamage(Inventory, 6);
