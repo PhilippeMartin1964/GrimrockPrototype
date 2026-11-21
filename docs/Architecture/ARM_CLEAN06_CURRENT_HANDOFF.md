@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.135 — Matérialisation directe inconnue : une seule autorité
+
+Après SUCCESS/SUCCESS de 5G.134 (`59d4831bbf80b8cea00ed0869deea7aaa4e78eff`), `FGridItemInstanceMaterializationReadModel::TryApply` refuse aussi une identité historique hors `DA_ItemSystem` lorsque le registre est présent en Automation ; précédemment son repli historique acceptait le cas malgré le registre, même si les points d'entrée de l'inventaire étaient verrouillés. Le test `CanonicalInstanceMaterialization` contrôle le refus sans mutation d'instance et conserve les valeurs de la fixture uniquement avec `Registry=nullptr`. Aucun runtime canonical modifié, aucun asset/SaveGame. Voir [5G.135](ARM_CLEAN06_5G135_DIRECT_MATERIALIZATION_REGISTRY_GATE.md). Tests Windows obligatoires.
+
 ## ARM-CLEAN06.5G.134 — Admission de l'inventaire et piles : refus des identités inconnues
 
 Parent `3f25386d82eda1995b656b7357667242c29a50be` après SUCCESS/SUCCESS Windows de 5G.133.1. La fixture Automation avec vrai GameInstance ne doit plus contourner `ApplyItemDefinitionToInstance` via `RequiresResolvedInventoryDefinition`, ni utiliser un `MaxStackSize` depuis une définition inconnue au registre. Les définitions historiques restent accessibles uniquement aux fixtures sans registre. `CanonicalInventoryMaterializationWithoutLegacyDefinition` couvre le refus d'ajout en quantités 13 et 1 sans mutation du sac et les métadonnées de fixture à part. Voir [5G.134](ARM_CLEAN06_5G134_UNKNOWN_STACK_ADMISSION_FAIL_CLOSED.md). Deux statuts Windows exigés sur nouveau SHA.

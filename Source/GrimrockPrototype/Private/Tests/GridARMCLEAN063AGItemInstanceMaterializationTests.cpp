@@ -165,22 +165,27 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     Legacy.RuntimeObjectId = FGuid::NewGuid();
     Legacy.ItemDefinitionId = Old->ItemDefinitionId;
     Legacy.Quantity = 1;
-    TestTrue(TEXT("Explicit Automation fixture uses historical metadata"),
+    const FGridItemInstance BeforeUnknown = Legacy;
+    TestFalse(TEXT("Configured registry cannot materialize an unknown historical ID"),
         FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Legacy));
+    TestTrue(TEXT("Rejected unknown physical identity is unchanged"),
+        FGridItemInstance::StaticStruct()->CompareScriptStruct(&Legacy, &BeforeUnknown, 0));
+    TestTrue(TEXT("Registry-less Automation fixture retains historical materialization"),
+        FGridItemInstanceMaterializationReadModel::TryApply(nullptr, Old.Get(), Legacy));
     const auto LegacyView = FGridInventoryItemMetadataReadModel::Resolve(nullptr, Old.Get(), Legacy);
     TestTrue(TEXT("Historical definition supplies its isolated metadata"),
         LegacyView.bResolved && FMath::IsNearlyEqual(LegacyView.UnitWeightKg, 1.75f) &&
         LegacyView.DisplayName.EqualTo(Old->DisplayName));
     const FGridItemInstance BeforeReject = Legacy;
     Old->Weight = -0.5f;
-    TestFalse(TEXT("Invalid fixture mass rejects materialization"),
-        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Legacy));
+    TestFalse(TEXT("Invalid registry-less fixture mass rejects materialization"),
+        FGridItemInstanceMaterializationReadModel::TryApply(nullptr, Old.Get(), Legacy));
     TestTrue(TEXT("Rejected historical materialization preserves durable fields"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&Legacy, &BeforeReject, 0));
     Old->Weight = 1.75f;
     Old->bUseWeaponCatalogue = true;
-    TestFalse(TEXT("Unknown linked item without old profile still rejects"),
-        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Legacy));
+    TestFalse(TEXT("Registry-less linked item without old profile still rejects"),
+        FGridItemInstanceMaterializationReadModel::TryApply(nullptr, Old.Get(), Legacy));
     TestTrue(TEXT("Refused historical profile preserves durable fields"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&Legacy, &BeforeReject, 0));
     TestEqual(TEXT("Rejected legacy GUID unchanged"), Legacy.RuntimeObjectId, BeforeReject.RuntimeObjectId);

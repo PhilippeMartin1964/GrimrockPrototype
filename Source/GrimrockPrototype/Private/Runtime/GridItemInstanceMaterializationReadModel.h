@@ -43,7 +43,7 @@ struct FGridItemInstanceMaterializationReadModel
             // Only historical inventory characterization fixtures may
             // materialize a test-only definition outside ItemSystem.
 #if WITH_DEV_AUTOMATION_TESTS
-            if (!GIsAutomationTesting) return false;
+            if (Registry || !GIsAutomationTesting) return false;
             float UnitWeight = LegacyDefinition->Weight;
             if (LegacyDefinition->bUseWeaponCatalogue)
             {
