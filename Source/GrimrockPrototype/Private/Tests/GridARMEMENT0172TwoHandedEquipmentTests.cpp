@@ -1,7 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
@@ -235,11 +235,19 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0172ProductionPilotTest,
 
 bool FARMEMENT0172ProductionPilotTest::RunTest(const FString&)
 {
-    UGridItemDefinitionAsset* Bow = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ShortBow_01.DA_Weapon_ShortBow_01"));
-    if (!TestNotNull(TEXT("Production ShortBow pilot exists"), Bow)) return false;
-    TestEqual(TEXT("ShortBow authoring is two-handed"), Bow->GetEffectiveHandUsage(), EGridItemHandUsage::TwoHanded);
-    TestTrue(TEXT("ShortBow can be placed from either hand slot"), Bow->CanEquipToSlot(EGridEquipmentSlot::MainHand) && Bow->CanEquipToSlot(EGridEquipmentSlot::OffHand));
+    FGridCanonicalRegistryFixture Fixture;
+    FGridResolvedItem Bow;
+    if (!TestTrue(TEXT("Production ShortBow N1 resolves from ItemSystem"),
+        Fixture.Resolve(TEXT("Weapon_ShortBow_01"), 1, Bow)))
+        return false;
+    TestTrue(TEXT("ShortBow is an ARM N1 weapon"), Bow.bIsArmament);
+    TestEqual(TEXT("ShortBow canonical hand policy is two-handed"),
+        Bow.Weapon.HandPolicy, EGridCanonicalHandPolicy::TwoHanded);
+    TestTrue(TEXT("ShortBow supports an equip request from either hand"),
+        Bow.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand) &&
+        Bow.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand));
+    // Physical MainHand storage and virtual OffHand occupancy are exercised
+    // by the preceding canonical two-handed inventory/cursor tests.
     return true;
 }
 
