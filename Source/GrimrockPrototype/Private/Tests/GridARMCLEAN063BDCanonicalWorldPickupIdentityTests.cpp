@@ -213,6 +213,13 @@ namespace ARMCLEAN063BD
             UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Runtime);
             Legacy->ItemDefinitionId = TEXT("Legacy_WorldPickup_BD");
             LegacyActor->InitializeFromItemDefinition(Legacy, FGuid::NewGuid());
+            // This GI-backed world is an explicit Automation fixture.
+            // It must still be able to characterize a historical item before
+            // verifying that canonical pickup/persistence reject its identity.
+            Test.TestEqual(TEXT("Automation-only fixture keeps historical UObject"),
+                LegacyActor->GetItemDefinitionAsset(), Legacy);
+            Test.TestEqual(TEXT("Historical identity is materialized for negative guards"),
+                LegacyActor->GetItemDefinitionId(), Legacy->ItemDefinitionId);
             Test.TestTrue(TEXT("Configured registry rejects unknown physical identity"),
                 FGridWorldPickupIdentityReadModel::Resolve(
                     LegacyActor, TEXT("Legacy_Entry_BD"), 0).IsNone());

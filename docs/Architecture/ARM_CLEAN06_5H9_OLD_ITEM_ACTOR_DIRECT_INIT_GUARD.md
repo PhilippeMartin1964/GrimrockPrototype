@@ -1,0 +1,11 @@
+# ARM-CLEAN06.5H.9 — Blocage de l'initialisation directe depuis un vieux DataAsset
+
+**Parent :** `8c3415aca23bad373ede6ce2404484d1dc12adcf` (publication après `UE5.5.4/SilentTask` et `UE5.5.4/LocalAuto` SUCCESS sur ce SHA).
+
+`AGridItemActor::InitializeFromItemDefinition` reste exposé aux Blueprints et acceptait une `UGridItemDefinitionAsset` dans un monde de jeu configuré, alors que la création canonique doit passer par `InitializeFromCanonicalItem` et le seul registre `DA_ItemSystem`. H.7 protège le point de spawn du runtime, mais un autre appel direct de la méthode historique pouvait encore attacher un ancien ItemId, mesh, éclairage et effets à un acteur.
+
+**Garde corrigé après l'échec Automation du premier SHA H.9 :** la fonction `void` refuse immédiatement le pointeur ancien lorsqu'un acteur appartient à un `UWorld` disposant d'une `GameInstance` **en dehors d'un test Automation réellement actif**. Le refus intervient avant toute mutation des propriétés et composants. Une exception strictement compilée sous `WITH_DEV_AUTOMATION_TESTS` et activée par `GIsAutomationTesting` préserve les tests historiques : certaines fixtures VFX et réceptacles utilisent volontairement une `GameInstance` pour vérifier la conversion d'un acteur ancien vers une présentation canonique. La présence d'une `GameInstance` n'y accorde toujours aucune autorité d'ItemId dans les résolveurs de pickup et de sauvegarde.
+
+Les trois échecs du SHA initial `2fb17fd26fff1f954b75b44804008e53a73447c8` (issue GitHub #219) étaient `TorchRuntimeAndHeldVisual`, `CanonicalWorldPickupIdentity.LegacyIdentity` et `CanonicalReceptacleInsertRestore`. Le test `LegacyIdentity` conserve la matérialisation volontaire de l'ancien acteur **uniquement en fixture**, puis prouve que le registre canonique rejette son identité inconnue et qu'un pointeur historique ne peut pas la sauver. Les tests VFX et réceptacles caractérisent de nouveau leur transition à l'identique. Les appels canoniques `InitializeFromCanonicalItem` ne changent pas.
+
+**Hors périmètre :** suppression de la classe C++ historique, migration de ses binaires, éditeur UI, Cook/Shipping, anciennes sauvegardes. Aucun `.uasset`, `.umap`, `.sav` ou asset de personnage n'est modifié.

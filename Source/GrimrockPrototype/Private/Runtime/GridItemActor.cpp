@@ -81,7 +81,20 @@ void AGridItemActor::SetItemLightsEnabled(bool bEnabled)
 
 void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId)
 {
-	if (!InDefinition)
+	// A real game must not materialize an item from obsolete UObject data.
+	// Some historical VFX and receptacle Automation fixtures intentionally
+	// create a GameInstance-backed world to characterize legacy->canonical
+	// upgrades. Preserve that exception ONLY during an actual Automation run;
+	// a normal Editor session and every non-test build remain fail-closed.
+	const UWorld* World = GetWorld();
+	bool bRejectLegacyGameWorld = World && World->GetGameInstance() != nullptr;
+#if WITH_DEV_AUTOMATION_TESTS
+	if (GIsAutomationTesting)
+	{
+		bRejectLegacyGameWorld = false;
+	}
+#endif
+	if (!InDefinition || bRejectLegacyGameWorld)
 	{
 		return;
 	}

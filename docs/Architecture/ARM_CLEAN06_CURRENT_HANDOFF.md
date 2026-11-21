@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.9 — Refus des vieux DataAssets à l'initialisation directe
+
+Parent H.8 `8c3415aca23bad373ede6ce2404484d1dc12adcf` validé SUCCESS/SUCCESS. Le premier SHA H.9 `2fb17fd26fff` a échoué sur **3 fixtures Automation** (GitHub #219). Correction H.9 : `AGridItemActor::InitializeFromItemDefinition` refuse l'ancien UObject dans un monde avec GameInstance **en dehors d'Automation** ; les fixtures anciennes dont `GIsAutomationTesting` est vrai (y compris GI-backed) peuvent caractériser l'ancien acteur, tandis que les résolveurs canoniques continuent à refuser les identités inconnues. Les tests `LegacyIdentity`, VFX Torch et ReceptacleRestore doivent repasser. Aucun asset ni SaveGame modifié. Voir [5H.9](ARM_CLEAN06_5H9_OLD_ITEM_ACTOR_DIRECT_INIT_GUARD.md).
+
+
 ## ARM-CLEAN06.5H.8 — Ancienne table d'inventaire interdite hors fixture Automation
 
 Parent H.7 `b7e5f2d30278fc7dc97c0bacf3ab937c7172fd51` : attendre les deux statuts Windows SUCCESS. `FGridLegacyItemLookup::Resolve` ne parcourt plus les anciennes définitions d'inventaire que dans un world **sans GameInstance** sous `GIsAutomationTesting`; un monde de jeu configuré retourne nullptr même si une vieille identité est dans la table locale. Le test `PhysicalTransferLegacyLookup` vérifie le refus, l'exception Automation isolée et le refus après retour de GI. Le build non-test compile uniquement le retour nullptr. Aucun `.uasset` ou `.sav` touché. Voir [5H.8](ARM_CLEAN06_5H8_LEGACY_INVENTORY_LOOKUP_GATE.md).
