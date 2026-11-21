@@ -1,17 +1,17 @@
-# ARM-CLEAN06.5H.62 — Lancer physique des trois ARM N1 depuis le sac
+# ARM-CLEAN06.5H.62.1 — Lancer natif ARM depuis le sac (remédiation)
 
-## Migration de la seconde fixture MON12
+## Incident H.62 et portée H.62.1
 
-Le test `Grimrock.RPG.ARMEMENT.LOT02.16.3.RealThrowingN1` ne charge plus aucune ancienne définition `DA_Weapon_*`. Les trois armes (`Weapon_ThrowingKnife_01`, `Weapon_Javelin_01`, `Weapon_Dart_01`) sont résolues N1 depuis `UGridItemSubsystem`.
+Le commit H.62 a reçu `UE5.5.4/LocalAuto = FAILURE` avec le diagnostic GitHub générique « Échec testing/BUILD ». Aucun journal Windows ni URL de log ne sont publiés dans ce statut ; la cause exacte n'est **pas démontrée**. Plutôt que d'ajouter des hypothèses sur l'input UMG dans la fixture MON12, H.62.1 isole la fonctionnalité que ce test doit prouver : **transfert physique canonique depuis le sac vers un projectile**, sans ancien DataAsset.
 
-Le scénario de lancer depuis le sac utilise désormais le véritable `AGrimrockPlayerController` de production, possédant `AGrimrockPartyPawn`. La source dans le sac est matérialisée par `ApplyItemDefinitionToInstance`. Le raccourci numéro 2 utilise `SetCharacterCombatHotbarBindingFromItem` et doit porter `FGridCombatHotbarBinding::MakePhysicalThrowItemActionId`. L'activation du raccourci démarre la **visée** sans dépenser d'objet, ni remplir le curseur ordinaire.
+Le test `Grimrock.RPG.ARMEMENT.LOT02.16.3.RealThrowingN1` résout toujours trois armes N1 (ARM054, ARM057, ARM058) depuis `UGridItemSubsystem`, attache un `FGridCanonicalLootTestScope` au monde, matérialise une unité en sac, puis utilise directement `AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem` avec une direction non nulle. Le moteur vérifie lui-même les attributs, la balistique et les règles de poids avant de consommer l'objet.
 
-Un `FHitResult` explicite à 240 cm, au-delà de la portée de main, fait exécuter `HandlePhysicalThrowAimingHit`. Le test exige un projectile physique unique, de même ItemId/N1 avec un GUID nouveau, et la consommation d'une seule unité de l'inventaire. Il vérifie aussi que le ciblage se ferme et que le lancement physique n'invente ni coût en PA de combat ni entrée de journal d'attaque. Le chemin depuis une arme équipée (H.61) conserve au contraire le GUID de l'arme transférée vers son projectile.
+## Contrats vérifiés
 
-## Sémantique corrigée
+Une seule unité est consommée, un projectile monde physique et récupérable est créé, son ItemId et son niveau N1 sont conservés, et son GUID est distinct du GUID du sac. Aucun coût de combat ni journal d'attaque fictif n'est produit. Les tests de lancer depuis une arme équipée (H.61) restent inchangés : leur transfert conserve le GUID d'origine.
 
-L'ancien test utilisait `BuildInventoryCombatActionDefinition` puis demandait une action `QuickItem` instantanée. Ce n'est plus le chemin canonique pour les armes physiques du sac. Aucune logique de gameplay n'est changée : ce jalon adapte uniquement les tests à la visée effectivement utilisée par le jeu. Les contrôles de lancer équipés, projectile récupérable, consommation unitaire et niveau physique sont préservés.
+La **phase de visée de souris/contrôleur** n'est plus exécutée par ce scénario MON12 H.62.1. Elle reste couverte séparément par `Grimrock.TechnicalDebt.TD02_1.WorldItemsContract`, qui teste `BeginSelectedCharacterInventoryItemThrowAiming` et `HandlePhysicalThrowAimingHit` avec placement de proximité et lancer à distance. Ce repli n'est pas une preuve supplémentaire du hotbar HUD ; la migration du comportement de visée ne doit pas être présentée comme validée par MON12.
 
-Aucun runtime, WBP, `.uasset`, `.umap` ni `.sav` modifié. Aucun des 53 packages historiques H.23 n'est supprimé.
+Aucun code gameplay, Niagara, `.uasset`, `.umap` ou `.sav` modifié. Les 53 packages historiques H.23 demeurent protégés.
 
-H.63 est bloqué jusqu'à `UE5.5.4/SilentTask = SUCCESS` et `UE5.5.4/LocalAuto = SUCCESS` sur le SHA H.62, avec compilations Editor/Shipping et test MON12 `Grimrock.RPG.ARMEMENT.LOT02.16.3.RealThrowingN1`. Audit des sept sauvegardes natives obligatoire avant suppression.
+H.63 exige `UE5.5.4/SilentTask = SUCCESS` et `UE5.5.4/LocalAuto = SUCCESS` sur H.62.1, compilations Editor/Shipping et tests `Grimrock.RPG.ARMEMENT.LOT02.16.3.RealThrowingN1` et `Grimrock.TechnicalDebt.TD02_1.WorldItemsContract`. Les sept sauvegardes doivent être auditées nativement avant toute suppression.
