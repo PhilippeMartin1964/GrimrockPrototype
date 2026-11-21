@@ -3,15 +3,31 @@
 #include "Misc/AutomationTest.h"
 
 #include "Runtime/Combat/GridCombatActionCatalog.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "UObject/StrongObjectPtr.h"
 #include "UI/GridQuickItemSurfaceTooltipText.h"
 
 namespace ARMEMENT011713
 {
-	UGridItemDefinitionAsset* LoadOil()
+	bool ResolveOilAction(FAutomationTestBase& Test, FGridCombatActionDefinition& OutAction)
 	{
-		return LoadObject<UGridItemDefinitionAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.DA_Item_Flask_Oil"));
+		TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+		TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+		UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+			TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+		if (!Test.TestNotNull(TEXT("Production canonical ItemSystem loads"), Root)) return false;
+		TArray<FString> Errors;
+		if (!Test.TestTrue(TEXT("Production canonical registry validates"),
+			Registry->RegisterItemSystem(Root, Errors))) return false;
+		FGridResolvedItem Oil;
+		if (!Test.TestTrue(TEXT("Oil flask resolves at physical level N0"),
+			Registry->ResolveItem(TEXT("Item_Flask_Oil"), 0, Oil)) ||
+			!Test.TestFalse(TEXT("Oil flask is not ARM"), Oil.bIsArmament))
+			return false;
+		return Test.TestTrue(TEXT("Authored canonical OilSlick QuickItem action resolves"),
+			Registry->ResolveDetailedNonArmAction(TEXT("Item_Flask_Oil"), 0,
+				TEXT("Action_Alchemist_OilSlick"), OutAction));
 	}
 
 	FGridCombatActionCatalogContext MakeContext()
@@ -55,15 +71,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011713OilCombatAvailability,
 
 bool FARMEMENT011713OilCombatAvailability::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Oil = ARMEMENT011713::LoadOil();
-	if (!TestNotNull(TEXT("Actual authored Oil DataAsset"), Oil))
-	{
-		return false;
-	}
-
 	FGridCombatActionDefinition Action;
-	if (!TestTrue(TEXT("Oil has a real executable QuickItem definition"),
-		Oil->BuildQuickItemCombatActionDefinition(Action)))
+	if (!ARMEMENT011713::ResolveOilAction(*this, Action))
 	{
 		return false;
 	}
@@ -118,14 +127,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011713OilTooltip,
 
 bool FARMEMENT011713OilTooltip::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Oil = ARMEMENT011713::LoadOil();
-	if (!TestNotNull(TEXT("Production Oil item"), Oil))
-	{
-		return false;
-	}
 	FGridCombatActionDefinition Action;
-	if (!TestTrue(TEXT("Same action source used by inventory and hotbar"),
-		Oil->BuildQuickItemCombatActionDefinition(Action)))
+	if (!ARMEMENT011713::ResolveOilAction(*this, Action))
 	{
 		return false;
 	}
