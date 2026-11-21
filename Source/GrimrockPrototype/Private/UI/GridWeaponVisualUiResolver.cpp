@@ -24,15 +24,23 @@ FGridResolvedInventoryItemIcon FGridWeaponVisualUiResolver::ResolveInventoryItem
 		}
 		return Result; // Never use a copied legacy icon for an invalid canonical item.
 	}
-	if (IsValid(LegacyDefinition) && LegacyDefinition->ItemDefinitionId == Item.ItemDefinitionId)
+	// H.68: a configured game never borrows an icon from an unknown
+	// historical item. Worldless Automation alone may characterize that old UI.
+#if WITH_DEV_AUTOMATION_TESTS
+	if (!Registry && GIsAutomationTesting && IsValid(LegacyDefinition) &&
+		LegacyDefinition->ItemDefinitionId == Item.ItemDefinitionId)
 	{
 		const FGridResolvedWeaponVisual Legacy = Resolve(*LegacyDefinition, &Item);
 		Result.VisualId = Legacy.VisualId;
 		Result.Icon = Legacy.Icon;
 	}
+#else
+	(void)LegacyDefinition;
+#endif
 	return Result;
 }
 
+#if WITH_DEV_AUTOMATION_TESTS
 FGridResolvedWeaponVisual FGridWeaponVisualUiResolver::Resolve(
 	const UGridItemDefinitionAsset& Definition, const FGridItemInstance* Item)
 {
@@ -67,3 +75,5 @@ void FGridWeaponVisualUiResolver::ApplyCatalogueIcon(
 		InOutActionIcon = Visual.Icon;
 	}
 }
+
+#endif // WITH_DEV_AUTOMATION_TESTS: historical UI fixtures only

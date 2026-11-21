@@ -76,23 +76,32 @@ bool FGridClean063JInventoryIconTest::RunTest(const FString&)
 		}
 	}
 
-	// Item IDs outside the registered system retain their authored icon during 06.3.
+	// H.68: once ItemSystem exists, an unknown ID cannot borrow old UI
+	// fields even if an obsolete asset pointer is still in memory.
 	ConflictingLegacy->ItemDefinitionId = TEXT("LegacyOther_063J");
 	FGridItemInstance LegacyInstance;
 	LegacyInstance.ItemDefinitionId = ConflictingLegacy->ItemDefinitionId;
 	LegacyInstance.RuntimeObjectId = FGuid::NewGuid();
 	LegacyInstance.ItemLevel = 1;
 	LegacyInstance.Quantity = 1;
-	const FGridResolvedInventoryItemIcon Legacy =
+	const FGridResolvedInventoryItemIcon Unknown =
 		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(
 			Registry.Get(), ConflictingLegacy.Get(), LegacyInstance);
-	TestFalse(TEXT("Unknown ID uses temporary old presentation"), Legacy.bCanonicalIdentity);
-	TestEqual(TEXT("Unknown item keeps existing icon"),
-		Legacy.Icon.ToSoftObjectPath().ToString(), ConflictingLegacy->Icon.ToSoftObjectPath().ToString());
+	TestFalse(TEXT("Unknown ID is not canonical"), Unknown.bCanonicalIdentity);
+	TestTrue(TEXT("Configured registry fails closed on unregistered icon"), Unknown.Icon.IsNull());
+	TestTrue(TEXT("Configured registry cannot fabricate a VisualId"), Unknown.VisualId.IsNone());
 	const FGridResolvedInventoryItemIcon Missing =
 		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(
 			Registry.Get(), nullptr, LegacyInstance);
-	TestTrue(TEXT("Missing legacy definition produces no fabricated icon"), Missing.Icon.IsNull());
+	TestTrue(TEXT("Missing definition also produces no fabricated icon"), Missing.Icon.IsNull());
+
+	const FGridResolvedInventoryItemIcon WorldlessFixture =
+		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(
+			nullptr, ConflictingLegacy.Get(), LegacyInstance);
+	TestFalse(TEXT("Worldless test identity remains noncanonical"), WorldlessFixture.bCanonicalIdentity);
+	TestEqual(TEXT("Only worldless Automation retains historical icon fixture"),
+		WorldlessFixture.Icon.ToSoftObjectPath().ToString(),
+		ConflictingLegacy->Icon.ToSoftObjectPath().ToString());
 	return true;
 }
 

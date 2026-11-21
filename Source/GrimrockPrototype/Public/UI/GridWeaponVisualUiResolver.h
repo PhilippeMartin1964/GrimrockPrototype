@@ -26,10 +26,12 @@ struct GRIMROCKPROTOTYPE_API FGridWeaponVisualUiResolver
 		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Item);
 
-	/** Loads a soft catalogue once on first UI presentation; no per-frame work. */
+#if WITH_DEV_AUTOMATION_TESTS
+	/** Historical preview for worldless Automation fixtures only; absent in Shipping. */
 	static FGridResolvedWeaponVisual Resolve(const UGridItemDefinitionAsset& Definition, const FGridItemInstance* Item);
 
-	/** Change an existing action icon only if a complete catalogue profile resolves. */
+	/** Historical action-icon preview for worldless Automation fixtures only. */
 	static void ApplyCatalogueIcon(const UGridItemDefinitionAsset* Definition, const FGridItemInstance* Item,
 		TSoftObjectPtr<UTexture2D>& InOutActionIcon);
+#endif
 };

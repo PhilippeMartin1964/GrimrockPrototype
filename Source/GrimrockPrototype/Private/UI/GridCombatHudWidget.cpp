@@ -1744,8 +1744,10 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 				Registry, SourceDefinitionId, ActionView.bResolved,
 				SourceItem, ActionView.Action);
 		}
-		else if (!bCanonicalIdentity)
+#if WITH_DEV_AUTOMATION_TESTS
+		else if (!Registry && GIsAutomationTesting && !bCanonicalIdentity)
 		{
+			// Legacy action metadata is for worldless Editor test fixtures only.
 			const UGridItemDefinitionAsset* ItemDefinition =
 				IsValid(InventoryComponent) && !SourceDefinitionId.IsNone()
 					? InventoryComponent->FindItemDefinition(SourceDefinitionId)
@@ -1772,6 +1774,7 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 				}
 			}
 		}
+#endif // WITH_DEV_AUTOMATION_TESTS
 
 		if (ActionView.bResolved)
 		{
