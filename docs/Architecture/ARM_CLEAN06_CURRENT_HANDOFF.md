@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.10 — Enregistrement des anciennes définitions uniquement sous Automation
+
+Parent H.9 corrigé `0cf3a932cf91fb7eb2ccefdd32cbb04b9f7df5c9` : publication uniquement après deux statuts Windows SUCCESS. `UGridPartyInventoryComponent::RegisterItemDefinition` exige désormais une session réelle `GIsAutomationTesting`; la lookup native `FindItemDefinition` réutilise le même garde, sans perturber les fixtures historiques GI-backed. Le test `LegacyInventoryRegistrationGate` couvre le refus Editor hors Automation et l'exception de test. Voir [5H.10](ARM_CLEAN06_5H10_AUTOMATION_ONLY_LEGACY_REGISTRATION.md).
+
+
 ## ARM-CLEAN06.5H.9 — Refus des vieux DataAssets à l'initialisation directe
 
 Parent H.8 `8c3415aca23bad373ede6ce2404484d1dc12adcf` validé SUCCESS/SUCCESS. Le premier SHA H.9 `2fb17fd26fff` a échoué sur **3 fixtures Automation** (GitHub #219). Correction H.9 : `AGridItemActor::InitializeFromItemDefinition` refuse l'ancien UObject dans un monde avec GameInstance **en dehors d'Automation** ; les fixtures anciennes dont `GIsAutomationTesting` est vrai (y compris GI-backed) peuvent caractériser l'ancien acteur, tandis que les résolveurs canoniques continuent à refuser les identités inconnues. Les tests `LegacyIdentity`, VFX Torch et ReceptacleRestore doivent repasser. Aucun asset ni SaveGame modifié. Voir [5H.9](ARM_CLEAN06_5H9_OLD_ITEM_ACTOR_DIRECT_INIT_GUARD.md).

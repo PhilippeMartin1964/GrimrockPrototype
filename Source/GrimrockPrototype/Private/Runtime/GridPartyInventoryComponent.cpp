@@ -3,6 +3,7 @@
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #include "GridEquipmentSlotUtils.h"
+#include "GridLegacyInventoryRegistrationGate.h"
 #include "GridItemWeightReadModel.h"
 #include "GridItemInstanceMaterializationReadModel.h"
 #include "GridCanonicalInventoryStackReadModel.h"
@@ -1561,7 +1562,8 @@ bool UGridPartyInventoryComponent::TryConsumeSelfRestorativeQuickItem(
 #if WITH_DEV_AUTOMATION_TESTS
 bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAsset* Definition)
 {
-	if (!Definition || Definition->ItemDefinitionId.IsNone())
+	if (!Definition || Definition->ItemDefinitionId.IsNone() ||
+		!FGridLegacyInventoryRegistrationGate::Allows(GIsAutomationTesting))
 	{
 		return false;
 	}
@@ -1793,7 +1795,7 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
 UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName ItemDefinitionId) const
 {
 #if WITH_DEV_AUTOMATION_TESTS
-	if (!GIsAutomationTesting) return nullptr;
+	if (!FGridLegacyInventoryRegistrationGate::Allows(GIsAutomationTesting)) return nullptr;
 	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
 	if (ItemDefinitionId.IsNone() || (Registry && Registry->HasCanonicalItem(ItemDefinitionId)))
 	{
