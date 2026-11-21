@@ -6,6 +6,7 @@
 #include "Runtime/Combat/GridCombatTraceTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "CoreGlobals.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 
@@ -22,6 +23,22 @@ namespace
 				return GameInstance->GetSubsystem<UGridItemSubsystem>();
 			}
 		}
+		return nullptr;
+	}
+
+	const UGridItemDefinitionAsset* GridPartyInventoryHistoricalDefinitionForAutomation(
+		const UGridPartyInventoryComponent* Inventory, const UGridItemSubsystem* Registry, FName ItemId)
+	{
+#if WITH_DEV_AUTOMATION_TESTS
+		if (!Registry && GIsAutomationTesting && IsValid(Inventory))
+		{
+			return Inventory->FindItemDefinition(ItemId);
+		}
+#else
+		(void)Inventory;
+		(void)Registry;
+		(void)ItemId;
+#endif
 		return nullptr;
 	}
 
@@ -57,17 +74,18 @@ namespace
 bool UGridPartyInventoryComponent::TryResolveEquipmentArmorRead(
 	const FGridItemInstance& Item, FGridEquipmentArmorReadView& OutView) const
 {
+	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
 	return FGridEquipmentArmorReadModel::TryResolve(
-		GridPartyInventoryCanonicalRegistry(this), FindItemDefinition(Item.ItemDefinitionId),
+		Registry, GridPartyInventoryHistoricalDefinitionForAutomation(this, Registry, Item.ItemDefinitionId),
 		Item, OutView);
 }
 
 FGridEquipmentStatBonus UGridPartyInventoryComponent::GetEquipmentBonusesForInstance(
 	const FGridItemInstance& Item) const
 {
+	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
 	return FGridEquipmentContributionReadModel::ResolveStatBonuses(
-		GridPartyInventoryCanonicalRegistry(this),
-		FindItemDefinition(Item.ItemDefinitionId), Item);
+		Registry, GridPartyInventoryHistoricalDefinitionForAutomation(this, Registry, Item.ItemDefinitionId), Item);
 }
 
 bool UGridPartyInventoryComponent::IsTwoHandedItem(const FGridItemInstance& Item) const
@@ -183,7 +201,8 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	// items. Registered canonical ARM must not require DA_Weapon_* to equip.
 	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
 	const bool bCanonicalItem = Registry && Registry->HasCanonicalItem(Source.ItemDefinitionId);
-	if (!bCanonicalItem && !FindItemDefinition(Source.ItemDefinitionId))
+	if (!bCanonicalItem &&
+		!GridPartyInventoryHistoricalDefinitionForAutomation(this, Registry, Source.ItemDefinitionId))
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=MissingDefinition Item=%s"),
 			CharacterIndex, GridEquipmentSlotUtils::GetLogName(TargetSlot), *Source.ItemDefinitionId.ToString());
@@ -495,13 +514,19 @@ int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterInde
 					Source.DisplayName = Resolved.DisplayName;
 				}
 			}
-			else if (const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item->ItemDefinitionId))
+			#if WITH_DEV_AUTOMATION_TESTS
+			else if (!Registry && GIsAutomationTesting)
 			{
-				if (Definition->ItemDefinitionId == Item->ItemDefinitionId && !Definition->DisplayName.IsEmpty())
+				if (const UGridItemDefinitionAsset* Definition =
+					GridPartyInventoryHistoricalDefinitionForAutomation(this, Registry, Item->ItemDefinitionId))
 				{
-					Source.DisplayName = Definition->DisplayName;
+					if (Definition->ItemDefinitionId == Item->ItemDefinitionId && !Definition->DisplayName.IsEmpty())
+					{
+						Source.DisplayName = Definition->DisplayName;
+					}
 				}
 			}
+#endif
 			Source.bEquipment = true;
 			Source.Maximum = Bonus;
 			Source.Before = Before;
@@ -594,8 +619,9 @@ FGridDamageResistanceSet UGridPartyInventoryComponent::ComputeCharacterEquipment
 				return;
 			}
 
+			const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
 			TotalResistances.Add(FGridEquipmentContributionReadModel::ResolveResistances(
-				GridPartyInventoryCanonicalRegistry(this), FindItemDefinition(Item.ItemDefinitionId), Item));
+				Registry, GridPartyInventoryHistoricalDefinitionForAutomation(this, Registry, Item.ItemDefinitionId), Item));
 		});
 
 	return TotalResistances;

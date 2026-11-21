@@ -4,6 +4,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "CoreGlobals.h"
 #include "GridEquippedGuardItemReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -28,9 +29,15 @@ namespace
 	FGridEquippedGuardItemReadView ResolveGuardItem(const UGridPartyInventoryComponent* Inventory,
 		const FGridItemInstance& Item)
 	{
-		return FGridEquippedGuardItemReadModel::Resolve(
-			ResolveGuardRegistry(Inventory),
-			Inventory->FindItemDefinition(Item.ItemDefinitionId), Item);
+		const UGridItemSubsystem* Registry = ResolveGuardRegistry(Inventory);
+		const UGridItemDefinitionAsset* LegacyDefinition = nullptr;
+#if WITH_DEV_AUTOMATION_TESTS
+		if (!Registry && GIsAutomationTesting)
+		{
+			LegacyDefinition = Inventory->FindItemDefinition(Item.ItemDefinitionId);
+		}
+#endif
+		return FGridEquippedGuardItemReadModel::Resolve(Registry, LegacyDefinition, Item);
 	}
 }
 

@@ -2,6 +2,7 @@
 
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "CoreGlobals.h"
 #include "GridCanonicalItemInteractionReadModel.h"
 #include "GridCanonicalQuickItemUseReadModel.h"
 #include "Engine/GameInstance.h"
@@ -179,16 +180,20 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		return false;
 	}
 
-	// ARM-CLEAN06.3C: migrated equipment uses ONLY the registered
-	// ItemId -> ActionId/PresentationId catalogue. Other item families
-	// retain their existing reader until their own migration.
+	// All live shortcut sources now resolve exclusively through ItemSystem.
+	// Worldless historical Editor fixtures remain isolated below.
 	const UWorld* World = GetWorld();
 	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Canonical = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	const bool bCanonicalIdentity = Canonical &&
 		Canonical->HasCanonicalItem(SourceItem.ItemDefinitionId);
-	const UGridItemDefinitionAsset* Definition = bCanonicalIdentity ? nullptr :
-		FindItemDefinition(SourceItem.ItemDefinitionId);
+	const UGridItemDefinitionAsset* Definition = nullptr;
+#if WITH_DEV_AUTOMATION_TESTS
+	if (!Canonical && GIsAutomationTesting)
+	{
+		Definition = FindItemDefinition(SourceItem.ItemDefinitionId);
+	}
+#endif
 	if (!bCanonicalIdentity &&
 		(!IsValid(Definition) || !Definition->IsValidDefinition()))
 	{
@@ -202,11 +207,12 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		{
 			return false;
 		}
-		if (!bCanonicalIdentity &&
-			!Definition->CompatibleEquipmentSlots.Contains(SourceEquipmentSlot))
+		#if WITH_DEV_AUTOMATION_TESTS
+		if (!bCanonicalIdentity && !Definition->CompatibleEquipmentSlots.Contains(SourceEquipmentSlot))
 		{
 			return false;
 		}
+#endif
 
 		FGridItemInstance EquippedItem;
 		if (!GetEquippedItem(CharacterIndex, SourceEquipmentSlot, EquippedItem) || EquippedItem.RuntimeObjectId != SourceItem.RuntimeObjectId ||
@@ -241,7 +247,8 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 				}
 			}
 		}
-		else
+		#if WITH_DEV_AUTOMATION_TESTS
+		else if (!Canonical && GIsAutomationTesting && Definition)
 		{
 			const FGridCombatActionDefinition* PrimaryAction =
 				Definition->CombatActions.FindByPredicate(
@@ -255,6 +262,7 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 				PrimaryActionId = PrimaryAction->ActionId;
 			}
 		}
+#endif
 
 		if (PrimaryActionId.IsNone())
 		{
@@ -313,18 +321,21 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 			Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
 		}
-		else if (Definition->BuildInventoryCombatActionDefinition(InventoryAction))
+		#if WITH_DEV_AUTOMATION_TESTS
+		else if (!Canonical && GIsAutomationTesting && Definition &&
+			Definition->BuildInventoryCombatActionDefinition(InventoryAction))
 		{
 			Binding.ActionId = InventoryAction.ActionId;
 			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 			Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
 		}
-		else if (Definition->IsPhysicallyThrowable())
+		else if (!Canonical && GIsAutomationTesting && Definition && Definition->IsPhysicallyThrowable())
 		{
 			Binding.ActionId = FGridCombatHotbarBinding::MakePhysicalThrowItemActionId(SourceItem.ItemDefinitionId);
 			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 			Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
 		}
+#endif
 		else
 		{
 			return false;
