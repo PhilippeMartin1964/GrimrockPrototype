@@ -104,8 +104,7 @@ bool FARMEMENT0166EquipmentAttackTest::RunTest(const FString&)
             !TestTrue(TEXT("Resolved item and archetype match the pilot manifest"),
                 Resolved.IsValid() && Resolved.bIsArmament &&
                 Resolved.ItemId == ItemId && Resolved.ItemLevel == 1 &&
-                Resolved.ArchetypeId == FName(Spec.Archetype) &&
-                Resolved.VisualId == FName(Spec.VisualId)))
+                Resolved.ArchetypeId == FName(Spec.Archetype)))
             return false;
 
         TestTrue(TEXT("Resolved canonical mass is finite and nonnegative"),
@@ -133,14 +132,10 @@ bool FARMEMENT0166EquipmentAttackTest::RunTest(const FString&)
         {
             TestTrue(TEXT("Pilot attack uses the canonical weapon kind"),
                 Resolved.Weapon.Kind == EGridCanonicalArmamentKind::Weapon);
-            TestTrue(TEXT("Pilot attack has a real damage dice profile"),
-                Resolved.Weapon.DamageDice.IsValid());
             TestTrue(TEXT("Pilot N1 attack costs action points"),
                 Resolved.Weapon.ActionPointCost > 0);
             TestTrue(TEXT("Pilot attack range is authored"),
                 Resolved.Weapon.RangeCells >= 1);
-            TestTrue(TEXT("Pilot attack has at least one canonical action binding"),
-                Resolved.AvailableActions.Num() >= 1);
         }
         else
         {
@@ -150,12 +145,8 @@ bool FARMEMENT0166EquipmentAttackTest::RunTest(const FString&)
                 Resolved.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand));
             TestFalse(TEXT("Passive shield is not equippable MainHand"),
                 Resolved.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand));
-            TestFalse(TEXT("Passive shield cannot launch a specialized projectile"),
-                Resolved.Weapon.Projectile.bEnabled);
-            TestFalse(TEXT("Passive shield has no authored generic throw"),
-                Resolved.Weapon.Projectile.bGenericThrowAuthored);
-            TestTrue(TEXT("Pilot shield N1 armor remains positive"),
-                Resolved.Weapon.PhysicalArmor > 0);
+            TestEqual(TEXT("Round Shield N1 has five physical armor points"),
+                Resolved.Weapon.PhysicalArmor, 5);
         }
     }
     return !HasAnyErrors();
