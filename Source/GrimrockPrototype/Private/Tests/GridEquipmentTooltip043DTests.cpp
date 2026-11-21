@@ -1,7 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventorySlotWidget.h"
 #include "UI/GridInventoryWidget.h"
@@ -9,11 +9,11 @@
 
 namespace EquipmentTooltip043D
 {
-    FGridItemInstance MakeItem(const UGridItemDefinitionAsset* Definition)
+    FGridItemInstance MakeItem(FName ItemId)
     {
         FGridItemInstance Item;
         Item.RuntimeObjectId = FGuid::NewGuid();
-        Item.ItemDefinitionId = Definition->ItemDefinitionId;
+        Item.ItemDefinitionId = ItemId;
         Item.ItemLevel = 1;
         Item.Quantity = 1;
         Item.OwnerType = EGridItemOwnerType::CharacterInventory;
@@ -22,14 +22,14 @@ namespace EquipmentTooltip043D
     }
 
     FGridItemTooltipView BuildView(UGridPartyInventoryComponent* Inventory,
-        const UGridItemDefinitionAsset* Definition)
+        FName ItemId)
     {
         UGridInventoryWidget* Parent = NewObject<UGridInventoryWidget>();
         Parent->InventoryComponent = Inventory;
         UGridInventorySlotWidget* Slot = NewObject<UGridInventorySlotWidget>();
         Slot->SetOwnerInventoryWidget(Parent);
         Slot->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, INDEX_NONE);
-        Slot->SetItem(MakeItem(Definition));
+        Slot->SetItem(MakeItem(ItemId));
         return Slot->GetTooltipView();
     }
 }
@@ -40,33 +40,45 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEquipmentTooltip043DHandUsageTest,
 
 bool FEquipmentTooltip043DHandUsageTest::RunTest(const FString&)
 {
-    UGridItemDefinitionAsset* Axe = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_GreatAxe_01.DA_Weapon_GreatAxe_01"));
-    UGridItemDefinitionAsset* Pick = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_WarPick_01.DA_Weapon_WarPick_01"));
-    if (!TestNotNull(TEXT("Production ARM031 Great Axe"), Axe) ||
-        !TestNotNull(TEXT("Production ARM025 War Pick"), Pick))
+    FGridCanonicalWeightTestWorld Fixture({});
+    const UGridItemSubsystem* Registry = Fixture.Scope.Registry;
+    FGridResolvedItem Axe;
+    FGridResolvedItem Pick;
+    if (!TestNotNull(TEXT("Canonical tooltip test world"), Fixture.World) ||
+        !TestNotNull(TEXT("Production ItemSystem registry"), Registry) ||
+        !TestTrue(TEXT("Production ARM031 Great Axe N1 resolves"),
+            Registry && Registry->ResolveItem(TEXT("Weapon_GreatAxe_01"), 1, Axe)) ||
+        !TestTrue(TEXT("Production ARM025 War Pick N1 resolves"),
+            Registry && Registry->ResolveItem(TEXT("Weapon_WarPick_01"), 1, Pick)))
         return false;
 
     TestTrue(TEXT("Great Axe is genuinely two-handed"),
-        Axe->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded);
-    TestTrue(TEXT("War Pick is genuinely one-handed"),
-        Pick->GetEffectiveHandUsage() == EGridItemHandUsage::OneHanded);
+        Axe.bIsArmament && Axe.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded);
+    TestTrue(TEXT("War Pick is a one-handed weapon usable in both hands"),
+        Pick.bIsArmament &&
+        Pick.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
+        Pick.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand) &&
+        Pick.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand));
 
-    const bool AxeWasDirty = Axe->GetOutermost()->IsDirty();
-    const bool PickWasDirty = Pick->GetOutermost()->IsDirty();
-    UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+    UGridItemSystemAsset* Root = Registry->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Read-only production root"), Root)) return false;
+    const bool bRootDirty = Root->GetOutermost()->IsDirty();
+    UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("World-bound canonical inventory"), Inventory))
+        return false;
     Inventory->InitializeDefaultPartyIfNeeded();
-    if (!TestTrue(TEXT("Great Axe definition registered"), Inventory->RegisterItemDefinition(Axe)) ||
-        !TestTrue(TEXT("War Pick definition registered"), Inventory->RegisterItemDefinition(Pick)))
+    if (!TestNull(TEXT("No historical Great Axe definition registered"),
+            Inventory->FindItemDefinition(Axe.ItemId)) ||
+        !TestNull(TEXT("No historical War Pick definition registered"),
+            Inventory->FindItemDefinition(Pick.ItemId)))
         return false;
 
     const FText TwoHands = FUILocalizationText::Get(TEXT("Inventory.Tooltip.Equipment.TwoHands"));
     if (!TestFalse(TEXT("Two hands key exists in the generated ST_UI"), TwoHands.IsEmpty()))
         return false;
 
-    const FGridItemTooltipView AxeView = EquipmentTooltip043D::BuildView(Inventory, Axe);
-    const FGridItemTooltipView PickView = EquipmentTooltip043D::BuildView(Inventory, Pick);
+    const FGridItemTooltipView AxeView = EquipmentTooltip043D::BuildView(Inventory, Axe.ItemId);
+    const FGridItemTooltipView PickView = EquipmentTooltip043D::BuildView(Inventory, Pick.ItemId);
     if (!TestTrue(TEXT("Great Axe tooltip valid"), AxeView.bValid) ||
         !TestTrue(TEXT("War Pick tooltip valid"), PickView.bValid))
         return false;
@@ -83,8 +95,8 @@ bool FEquipmentTooltip043DHandUsageTest::RunTest(const FString&)
             FUILocalizationText::Get(TEXT("Inventory.Tooltip.Global.OffHand")).ToString()));
     TestFalse(TEXT("War Pick is not mislabeled two handed"),
         PickView.CompatibleSlotsText.EqualTo(TwoHands));
-    TestEqual(TEXT("Great Axe DataAsset not modified"), Axe->GetOutermost()->IsDirty(), AxeWasDirty);
-    TestEqual(TEXT("War Pick DataAsset not modified"), Pick->GetOutermost()->IsDirty(), PickWasDirty);
+    TestEqual(TEXT("Canonical ItemSystem package remains read-only"),
+        Root->GetOutermost()->IsDirty(), bRootDirty);
     return true;
 }
 
