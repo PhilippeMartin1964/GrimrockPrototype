@@ -185,7 +185,6 @@ bool FGridHotbarContext01InventoryActionTest::RunTest(const FString& Parameters)
 	FGridItemInstance Key;
 	Key.RuntimeObjectId = FGuid::NewGuid();
 	Key.ItemDefinitionId = KeyDefinition->ItemDefinitionId;
-	Key.DisplayName = KeyDefinition->DisplayName;
 	Key.Quantity = 1;
 	TestTrue(TEXT("The ordinary key enters inventory"), Inventory->AddItemToCharacterInventory(CharacterIndex, Key));
 

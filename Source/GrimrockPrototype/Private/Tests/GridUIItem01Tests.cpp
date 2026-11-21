@@ -206,9 +206,7 @@ bool FGridUIItem01EquipmentComparisonTest::RunTest(const FString& Parameters)
 	FGridItemInstance Equipped;
 	Equipped.RuntimeObjectId = FGuid::NewGuid();
 	Equipped.ItemDefinitionId = EquippedDefinition->ItemDefinitionId;
-	Equipped.DisplayName = EquippedDefinition->DisplayName;
 	Equipped.Quantity = 1;
-	Equipped.Weight = EquippedDefinition->Weight;
 	Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	Equipped.OwnerCharacterIndex = 0;
 	Equipped.EquipmentSlot = EGridEquipmentSlot::Belt;

@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.129.1 — Correction BUILD_FAILED du retrait d'instance
+
+Parent `6abc1c6bb5823334b2bbb78151c6b5e3f631093c` : le 5G.129 a échoué au BUILD Windows (issue [#217](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/217)) avec huit accès C2039 à `FGridItemInstance::DisplayName/Weight` dans trois fichiers de fixtures hotbar/tooltip. Correction ciblée des huit affectations, sans réintroduction de membres et sans modification runtime. Attendre les deux statuts Windows SUCCESS sur le SHA correctif avant 5G.130. Voir [5G.129.1](ARM_CLEAN06_5G1291_BUILD_FIXTURE_WRITERS.md).
+
 ## ARM-CLEAN06.5G.129 — Retrait physique des anciens membres C++ de FGridItemInstance
 
 Parent `bbb11f375811f682e4810665004d6d5f98f0e3bd` : après SUCCESS/SUCCESS de 5G.128, suppression définitive des membres non réfléchis `FGridItemInstance::DisplayName` et `Weight`, avec nettoyage de la dernière fixture de raccourci HotbarContext01 qui copiait un nom. La définition historique de la pierre du test, les champs durables, les schémas Unreal et les données de sauvegarde restent inchangés depuis 5G.93. Attendre SilentTask et LocalAuto SUCCESS sur le SHA exact. Voir [5G.129](ARM_CLEAN06_5G129_INSTANCE_CPP_MEMBER_REMOVAL.md).

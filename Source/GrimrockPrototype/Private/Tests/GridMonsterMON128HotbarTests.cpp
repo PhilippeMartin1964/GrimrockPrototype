@@ -346,7 +346,6 @@ bool FGridMON128QuickItemDropTest::RunTest(const FString& Parameters)
 	FGridItemInstance Potion;
 	Potion.RuntimeObjectId = FGuid::NewGuid();
 	Potion.ItemDefinitionId = PotionDefinition->ItemDefinitionId;
-	Potion.DisplayName = PotionDefinition->DisplayName;
 	Potion.Quantity = 3;
 	Potion.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Potion.OwnerCharacterIndex = 0;
@@ -439,7 +438,6 @@ bool FGridMON1289UniqueEquipmentBindingTest::RunTest(const FString& Parameters)
 	FGridItemInstance Weapon;
 	Weapon.RuntimeObjectId = FGuid::NewGuid();
 	Weapon.ItemDefinitionId = WeaponDefinition->ItemDefinitionId;
-	Weapon.DisplayName = WeaponDefinition->DisplayName;
 	Weapon.Quantity = 1;
 	Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	Weapon.OwnerCharacterIndex = 0;
@@ -496,7 +494,6 @@ bool FGridMON1289QuickItemBindingLifetimeTest::RunTest(const FString& Parameters
 	FGridItemInstance Potion;
 	Potion.RuntimeObjectId = FGuid::NewGuid();
 	Potion.ItemDefinitionId = PotionDefinition->ItemDefinitionId;
-	Potion.DisplayName = PotionDefinition->DisplayName;
 	Potion.Quantity = 2;
 	TestTrue(TEXT("Two potion units enter the inventory"), Component->AddItemToCharacterInventory(0, Potion));
 	TestTrue(TEXT("The potion configures slot two"), Component->SetCharacterCombatHotbarBindingFromItem(0, 1, Potion, EGridEquipmentSlot::None));
@@ -595,7 +592,6 @@ bool FGridMON1288ClearShortcutKeepsItemSourceTest::RunTest(const FString& Parame
 	FGridItemInstance Potion;
 	Potion.RuntimeObjectId = FGuid::NewGuid();
 	Potion.ItemDefinitionId = TEXT("Potion_MON1288");
-	Potion.DisplayName = FText::FromString(TEXT("Potion MON12.8.8"));
 	Potion.Quantity = 3;
 	Potion.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Potion.OwnerCharacterIndex = 0;
@@ -615,7 +611,6 @@ bool FGridMON1288ClearShortcutKeepsItemSourceTest::RunTest(const FString& Parame
 	FGridItemInstance EquippedWeapon;
 	EquippedWeapon.RuntimeObjectId = FGuid::NewGuid();
 	EquippedWeapon.ItemDefinitionId = TEXT("Sword_MON1288");
-	EquippedWeapon.DisplayName = FText::FromString(TEXT("Épée MON12.8.8"));
 	EquippedWeapon.Quantity = 1;
 	EquippedWeapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	EquippedWeapon.OwnerCharacterIndex = 0;
