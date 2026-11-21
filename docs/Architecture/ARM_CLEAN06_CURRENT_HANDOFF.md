@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.7 — Spawn d'objet canonique obligatoire dans un monde configuré
+
+Parent H.6 `42f48e54fcd3c668c0396661398f2c70d1b31727` à valider avant la publication H.7. `SpawnItemActorForDefinition` rejette désormais un ancien `UGridItemDefinitionAsset` ou un ItemId inconnu en présence d'une GameInstance ; seuls un registre configuré et un ItemId enregistré autorisent la matérialisation. Le world sans GameInstance reste compatible avec les fixtures historiques. Le scénario `CanonicalWorldPickupIdentity.RegisteredLevelGuards` protège les refus et l'acceptation canonique. Voir [5H.7](ARM_CLEAN06_5H7_REGISTERED_WORLD_ITEM_SPAWN_GUARD.md). Aucun asset ni SaveGame modifié.
+
+
 ## ARM-CLEAN06.5H.6 — Les anciens kits de 12 ne sont plus chargés hors Editor
 
 Parent `5e6e3a751bbb48c33ffb9ea3e292f0b7398c3cf3` : ne publier qu'après H.5 SUCCESS/SUCCESS. L'ancien générateur de 12 kits, ses `DA_Weapon_*/DA_Item_*` LoadObject et son tableau de recettes ne sont plus compilés dans les builds non-Editor. Les six classes du jeu se reconnaissent depuis les 18 recettes approuvées et restent strictement canoniques. L'audit historique de 12 kits reste possible en Editor ; une nouvelle Automation vérifie 6 classes, 12 + 18 kits, et leur non-mutation. Le Cook/Shipping reste à démontrer séparément. Voir [5H.6](ARM_CLEAN06_5H6_SHIPPING_LEGACY_STARTER_RETIREMENT.md).

@@ -189,6 +189,21 @@ namespace ARMCLEAN063BD
             Test.TestEqual(TEXT("Known ARM N20 preserved"),
                 FGridWorldPickupIdentityReadModel::Resolve(
                     Sword, Sword->ItemDefinitionId, 20), Sword->ItemDefinitionId);
+
+            // A live, configured game must never materialize an old UObject
+            // definition or an unknown ItemId through the generic spawn API.
+            Test.TestNull(TEXT("Configured world refuses obsolete definition source"),
+                F.Runtime->SpawnItemActorForDefinition(Old, ArrowId, F.Runtime, nullptr));
+            Test.TestNull(TEXT("Configured world refuses unknown canonical identity"),
+                F.Runtime->SpawnItemActorForDefinition(
+                    nullptr, TEXT("Unknown_H7_Spawn"), F.Runtime, nullptr));
+            AGridItemActor* CanonicalSpawn = F.Runtime->SpawnItemActorForDefinition(
+                nullptr, ArrowId, F.Runtime, nullptr);
+            if (!Test.TestNotNull(TEXT("Canonical actor still spawns"), CanonicalSpawn))
+                return false;
+            Test.TestEqual(TEXT("Canonical actor preserves its requested identity"),
+                CanonicalSpawn->GetItemDefinitionId(), ArrowId);
+            CanonicalSpawn->Destroy();
             return !Test.HasAnyErrors();
         }
         if (FCString::Strcmp(Scenario, TEXT("LegacyIdentity")) == 0)

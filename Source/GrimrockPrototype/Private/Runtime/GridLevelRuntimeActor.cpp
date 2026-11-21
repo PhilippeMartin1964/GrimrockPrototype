@@ -1989,6 +1989,21 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	{
 		return nullptr;
 	}
+	// A real GameInstance owns the authoritative ItemSystem. Historical
+	// UObject definitions are permitted only in isolated, worldless Editor
+	// fixtures; a configured game cannot spawn an unknown or obsolete item.
+	if (UGameInstance* GameInstance = World->GetGameInstance())
+	{
+		const UGridItemSubsystem* Registry = GameInstance->GetSubsystem<UGridItemSubsystem>();
+		if (ItemDefinition || !Registry || !Registry->IsConfigured() ||
+			ItemDefinitionId.IsNone() || !Registry->HasCanonicalItem(ItemDefinitionId))
+		{
+			UE_LOG(LogGridLevelRuntime, Warning,
+				TEXT("Grid item spawn refused without canonical registry identity: %s."),
+				*ItemDefinitionId.ToString());
+			return nullptr;
+		}
+	}
 	const FTransform SpawnTransform(AttachParent ? AttachParent->GetComponentRotation() : FRotator::ZeroRotator,
 		AttachParent ? AttachParent->GetComponentLocation() : GetActorLocation(), FVector::OneVector);
 	if (!IsSafeRuntimeRenderTransform(SpawnTransform))
