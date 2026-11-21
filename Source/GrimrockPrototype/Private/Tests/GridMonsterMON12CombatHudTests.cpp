@@ -2525,61 +2525,102 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 {
 	FGridCombatHudFixture Fixture;
 	if (!TestTrue(TEXT("N1 dual strike has a live combat world"), Fixture.IsReady())) return false;
-	UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
-	UGridItemDefinitionAsset* MainGauche = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_MainGauche_01.DA_Weapon_MainGauche_01"));
-	UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-	UGridItemDefinitionAsset* GreatAxe = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_GreatAxe_01.DA_Weapon_GreatAxe_01"));
-	if (!TestNotNull(TEXT("Real ARM001"), Dagger) ||
-		!TestNotNull(TEXT("Real ARM013"), MainGauche) ||
-		!TestNotNull(TEXT("Passive ARM075"), Shield) ||
-		!TestNotNull(TEXT("Two-hand ARM031"), GreatAxe)) return false;
-
-	// Do not alter shared production DataAssets in an automation test. Give
-	// the *actual weapon profiles* separate, deterministic transient audio.
-	// The previous test set bAudioEnabled=false and thus could never detect
-	// a missing OffHand audio request even though combat delegates succeeded.
-	Dagger = DuplicateObject<UGridItemDefinitionAsset>(Dagger, Fixture.Runtime);
-	MainGauche = DuplicateObject<UGridItemDefinitionAsset>(MainGauche, Fixture.Runtime);
-	if (!TestNotNull(TEXT("Runtime copy of ARM001"), Dagger) ||
-		!TestNotNull(TEXT("Runtime copy of ARM013"), MainGauche)) return false;
+	// Each real attack has a distinct presentation in the canonical catalogue.
+	// Audio variants are injected ONLY into a detached transient registry copy.
+	// Never mutate the production ActionPresentationCatalogue .uasset.
 	USoundWave* MainAttackSound = NewObject<USoundWave>(Fixture.Runtime, TEXT("Test_Dual_MainAttackSound"));
 	USoundWave* OffAttackSound = NewObject<USoundWave>(Fixture.Runtime, TEXT("Test_Dual_OffAttackSound"));
 	USoundWave* MainImpactSound = NewObject<USoundWave>(Fixture.Runtime, TEXT("Test_Dual_MainImpactSound"));
 	USoundWave* OffImpactSound = NewObject<USoundWave>(Fixture.Runtime, TEXT("Test_Dual_OffImpactSound"));
-	const auto ConfigureSourceAudio = [](UGridItemDefinitionAsset* Item, USoundWave* AttackSound, USoundWave* ImpactSound)
-	{
-		Item->bProvidesAttackPresentation = true;
-		FGridPlayerAttackPresentationProfile& Profile = Item->PlayerAttackPresentationProfile;
-		Profile.MotionStyle = EGridPlayerAttackMotionStyle::Swing;
-		Profile.bAnimateHeldItem = false;
-		Profile.AttackAudio.Sounds.Reset();
-		Profile.AttackAudio.Sounds.Add(AttackSound);
-		Profile.ImpactHitAudio.Sounds.Reset();
-		Profile.ImpactHitAudio.Sounds.Add(ImpactSound);
-		Profile.ImpactMissAudio.Sounds.Reset();
-		Profile.ImpactMissAudio.Sounds.Add(ImpactSound);
-		Profile.AttackAudio.VolumeMultiplier = 1.0f;
-		Profile.ImpactHitAudio.VolumeMultiplier = 1.0f;
-		Profile.ImpactMissAudio.VolumeMultiplier = 1.0f;
-		Profile.ImpactDelaySeconds = 0.16f;
-		Profile.RecoveryDelaySeconds = 0.18f;
-	};
-	ConfigureSourceAudio(Dagger, MainAttackSound, MainImpactSound);
-	ConfigureSourceAudio(MainGauche, OffAttackSound, OffImpactSound);
-	if (!TestTrue(TEXT("MainHand has a valid audible presentation profile"), Dagger->HasValidPlayerAttackPresentation()) ||
-		!TestTrue(TEXT("OffHand has an independent audible presentation profile"), MainGauche->HasValidPlayerAttackPresentation()))
+	bool bTwoDistinctPresentationsConfigured = false;
+	FGridCanonicalLootTestScope RegistryScope;
+	const TMap<FName, float> NoSyntheticWeights;
+	if (!TestTrue(TEXT("Private ItemSystem with independent dual audio"),
+		RegistryScope.AttachWithWeights(Fixture.TestWorld.World, NoSyntheticWeights,
+		[&](UGridItemSystemAsset& Root)
+		{
+			if (!Root.WeaponCatalogue || !Root.ActionCatalogue || !Root.ActionPresentationCatalogue)
+				return;
+			UGridActionPresentationCatalogueAsset* PrivatePresentations =
+				DuplicateObject<UGridActionPresentationCatalogueAsset>(
+					Root.ActionPresentationCatalogue.Get(), &Root);
+			if (!PrivatePresentations) return;
+			Root.ActionPresentationCatalogue = PrivatePresentations;
+			const auto FindAttackPresentation = [&Root](FName ArchetypeId) -> FName
+			{
+				const FGridCanonicalWeaponArchetype* Weapon = Root.WeaponCatalogue->Find(ArchetypeId);
+				if (!Weapon) return NAME_None;
+				FName PresentationId = NAME_None;
+				for (const FGridItemActionBinding& Binding : Weapon->Actions)
+				{
+					const FGridCanonicalAction* Action = Root.ActionCatalogue->Find(Binding.ActionId);
+					if (Action && Action->Kind == EGridCanonicalActionKind::Attack)
+					{
+						if (!PresentationId.IsNone()) return NAME_None;
+						PresentationId = Binding.PresentationId;
+					}
+				}
+				return PresentationId;
+			};
+			const FName MainPresentationId = FindAttackPresentation(TEXT("ARM001"));
+			const FName OffPresentationId = FindAttackPresentation(TEXT("ARM013"));
+			if (MainPresentationId.IsNone() || OffPresentationId.IsNone() ||
+				MainPresentationId == OffPresentationId) return;
+			const auto ConfigureAudio = [PrivatePresentations](FName PresentationId,
+				USoundWave* AttackSound, USoundWave* ImpactSound) -> bool
+			{
+				FGridCanonicalActionPresentation* P =
+					PrivatePresentations->Presentations.FindByPredicate(
+						[PresentationId](const FGridCanonicalActionPresentation& Candidate)
+						{
+							return Candidate.PresentationId == PresentationId;
+						});
+				if (!P) return false;
+				P->MotionStyle = EGridPlayerAttackMotionStyle::Swing;
+				P->bAnimateHeldItem = false;
+				P->AttackAudio.Sounds.Reset();
+				P->AttackAudio.Sounds.Add(AttackSound);
+				P->ImpactHitAudio.Sounds.Reset();
+				P->ImpactHitAudio.Sounds.Add(ImpactSound);
+				P->ImpactMissAudio.Sounds.Reset();
+				P->ImpactMissAudio.Sounds.Add(ImpactSound);
+				P->AttackAudio.VolumeMultiplier = 1.0f;
+				P->ImpactHitAudio.VolumeMultiplier = 1.0f;
+				P->ImpactMissAudio.VolumeMultiplier = 1.0f;
+				P->ImpactDelaySeconds = 0.16f;
+				P->RecoveryDelaySeconds = 0.18f;
+				return P->IsValid();
+			};
+			bTwoDistinctPresentationsConfigured =
+				ConfigureAudio(MainPresentationId, MainAttackSound, MainImpactSound) &&
+				ConfigureAudio(OffPresentationId, OffAttackSound, OffImpactSound);
+		})))
+		return false;
+	if (!TestTrue(TEXT("Two transient canonical presentations have separate sounds"),
+		bTwoDistinctPresentationsConfigured))
 		return false;
 
+	FGridResolvedItem Dagger, MainGauche, Shield, GreatAxe;
+	if (!TestTrue(TEXT("ARM001 Dagger N1 canonical"), RegistryScope.Registry->ResolveItem(
+		TEXT("Weapon_Dagger_01"), 1, Dagger)) ||
+		!TestTrue(TEXT("ARM013 Main-gauche N1 canonical"), RegistryScope.Registry->ResolveItem(
+			TEXT("Weapon_MainGauche_01"), 1, MainGauche)) ||
+		!TestTrue(TEXT("ARM075 Shield N1 canonical"), RegistryScope.Registry->ResolveItem(
+			TEXT("Weapon_RoundShield_01"), 1, Shield)) ||
+		!TestTrue(TEXT("ARM031 Great Axe N1 canonical"), RegistryScope.Registry->ResolveItem(
+			TEXT("Weapon_GreatAxe_01"), 1, GreatAxe)) ||
+		!TestTrue(TEXT("Canonical dual weapons have independent attack hands"),
+			Dagger.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand) &&
+			MainGauche.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand) &&
+			Shield.Weapon.Kind == EGridCanonicalArmamentKind::Shield &&
+			GreatAxe.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded))
+		return false;
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-	auto MakeEquipped = [&Fixture](const UGridItemDefinitionAsset* Definition, FGuid Id, EGridEquipmentSlot Hand)
+	const auto MakeEquipped = [&Fixture](FName ItemId, FGuid Id, EGridEquipmentSlot Hand)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = Id;
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemDefinitionId = ItemId;
 		Item.ItemLevel = 1;
 		Item.Quantity = 1;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -2588,14 +2629,18 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 		Item.EquipmentSlot = Hand;
 		return Item;
 	};
-	const FGridItemInstance Main = MakeEquipped(Dagger, FGuid(19,2,1,1), EGridEquipmentSlot::MainHand);
-	const FGridItemInstance Off = MakeEquipped(MainGauche, FGuid(19,2,1,2), EGridEquipmentSlot::OffHand);
+	const FGridItemInstance Main = MakeEquipped(Dagger.ItemId, FGuid(19,2,1,1), EGridEquipmentSlot::MainHand);
+	const FGridItemInstance Off = MakeEquipped(MainGauche.ItemId, FGuid(19,2,1,2), EGridEquipmentSlot::OffHand);
 	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Main;
 	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Off;
-	if (!TestTrue(TEXT("Register MainHand N1 asset"), Inventory->RegisterItemDefinition(Dagger)) ||
-		!TestTrue(TEXT("Register OffHand N1 asset"), Inventory->RegisterItemDefinition(MainGauche)) ||
-		!TestTrue(TEXT("Register passive N1 shield"), Inventory->RegisterItemDefinition(Shield)) ||
-		!TestTrue(TEXT("Register two-handed N1 axe"), Inventory->RegisterItemDefinition(GreatAxe))) return false;
+	if (!TestNull(TEXT("No historical main weapon definition registered"),
+		Inventory->FindItemDefinition(Dagger.ItemId)) ||
+		!TestNull(TEXT("No historical off weapon definition registered"),
+			Inventory->FindItemDefinition(MainGauche.ItemId)) ||
+		!TestNull(TEXT("No historical shield definition registered"),
+			Inventory->FindItemDefinition(Shield.ItemId)) ||
+		!TestNull(TEXT("No historical two-hand definition registered"),
+			Inventory->FindItemDefinition(GreatAxe.ItemId))) return false;
 	FGridDualWieldPair Pair;
 	if (!TestTrue(TEXT("Two different physical one-handed weapons are eligible"),
 			FGridDualWieldPolicy::TryResolve(Inventory, 0, Pair)) ||
@@ -2721,14 +2766,14 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 		Fixture.TurnManager->GetCombatLogEntries().Num(), LogBeforeRefusal);
 
 	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand =
-		MakeEquipped(Shield, FGuid(19,2,1,3), EGridEquipmentSlot::OffHand);
+		MakeEquipped(Shield.ItemId, FGuid(19,2,1,3), EGridEquipmentSlot::OffHand);
 	Fixture.Hud->RefreshFromSources();
 	TestEqual(TEXT("Equipping shield falls back to standalone MainHand"),
 		Fixture.Hud->View.Actions[0].Action.SourceDefinitionId, Main.ItemDefinitionId);
 	TestTrue(TEXT("Dual action disappears when OffHand is passive"),
 		Fixture.Hud->View.Actions[0].Action.Definition.ActionId != FGridDualWieldPolicy::ActionId());
 	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand =
-		MakeEquipped(GreatAxe, FGuid(19,2,1,4), EGridEquipmentSlot::MainHand);
+		MakeEquipped(GreatAxe.ItemId, FGuid(19,2,1,4), EGridEquipmentSlot::MainHand);
 	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
 	Fixture.Hud->RefreshFromSources();
 	TestTrue(TEXT("Two-handed weapon never creates dual attack"),
