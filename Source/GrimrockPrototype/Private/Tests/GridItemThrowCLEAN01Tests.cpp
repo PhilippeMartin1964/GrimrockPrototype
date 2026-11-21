@@ -47,20 +47,18 @@ bool FGridItemThrowCLEAN01Test::RunTest(const FString& Parameters)
 	if (!TestTrue(TEXT("Production canonical registry validates"),
 		Registry->RegisterItemSystem(Root, Errors))) return false;
 	FGridResolvedItem Shuriken;
-	if (!TestTrue(TEXT("Shuriken N1 resolves canonically"),
-		Registry->ResolveItem(TEXT("Shuriken"), 1, Shuriken))) return false;
-	TestTrue(TEXT("Production Shuriken is an armament"), Shuriken.bIsArmament);
-	// A specialized combat projectile (Shuriken) must NOT be mistaken
-	// for a normal non-combat hand toss. The pipeline projects three such
-	// items with bEnabled=true and both generic flags disabled.
-	TestFalse(TEXT("Shuriken does not borrow ordinary physical hand-toss permission"),
-		Shuriken.Weapon.Projectile.bGenericThrowOneHanded);
-	TestFalse(TEXT("Shuriken does not duplicate a generic throw policy"),
-		Shuriken.Weapon.Projectile.bGenericThrowAuthored);
-	TestTrue(TEXT("Shuriken physically launches with a positive speed"),
-		Shuriken.Weapon.Projectile.InitialSpeed > 0.f);
-	TestTrue(TEXT("Shuriken explicitly enables a combat projectile"),
-		Shuriken.Weapon.Projectile.bEnabled);
+	if (!TestTrue(TEXT("Shuriken N0 resolves canonically"),
+		Registry->ResolveItem(TEXT("Shuriken"), 0, Shuriken))) return false;
+	// H.25.1: Unlike the 22 ARM N1-N20 weapons, production Shuriken
+	// is one of the 26 canonical NON-armament N0 identities.
+	// Its throw is authored on the non-armament item, not WeaponCatalogue.
+	TestFalse(TEXT("Shuriken is a non-ARM canonical item"), Shuriken.bIsArmament);
+	TestEqual(TEXT("Shuriken has the physical non-ARM level"), Shuriken.ItemLevel, 0);
+	TestTrue(TEXT("Shuriken owns recoverable combat throw policy"),
+		Shuriken.GenericThrow.bCombatRecoverable);
+	TestTrue(TEXT("Shuriken physically launches with positive authored speed"),
+		FMath::IsFinite(Shuriken.GenericThrow.InitialSpeed) &&
+		Shuriken.GenericThrow.InitialSpeed > KINDA_SMALL_NUMBER);
 
 	return true;
 }
