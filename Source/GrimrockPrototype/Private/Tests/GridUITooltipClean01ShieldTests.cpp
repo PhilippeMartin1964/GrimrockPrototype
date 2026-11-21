@@ -2,7 +2,8 @@
 
 #include "Misc/AutomationTest.h"
 #include "RPG/RPGClassAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventorySlotWidget.h"
 #include "UI/GridInventoryWidget.h"
@@ -10,17 +11,13 @@
 
 namespace TooltipClean01
 {
-    UGridItemDefinitionAsset* Shield()
-    {
-        return LoadObject<UGridItemDefinitionAsset>(nullptr,
-            TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-    }
+    const FName ShieldId(TEXT("Weapon_RoundShield_01"));
 
-    FGridItemInstance Item(UGridItemDefinitionAsset* Def, int32 Absorbed)
+    FGridItemInstance Item(FName ItemId, int32 Absorbed)
     {
         FGridItemInstance I;
         I.RuntimeObjectId = FGuid::NewGuid();
-        I.ItemDefinitionId = Def->ItemDefinitionId;
+        I.ItemDefinitionId = ItemId;
         I.ItemLevel = 1;
         I.Quantity = 1;
         I.AbsorbedEquipmentPhysicalArmor = Absorbed;
@@ -44,16 +41,24 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUITooltipClean01NominalShieldTest,
 
 bool FUITooltipClean01NominalShieldTest::RunTest(const FString&)
 {
-    UGridItemDefinitionAsset* Def = TooltipClean01::Shield();
-    if (!TestNotNull(TEXT("Production ARM075 round shield"), Def)) return false;
-    const bool WasDirty = Def->GetOutermost()->IsDirty();
+    FGridCanonicalRegistryFixture Fixture;
+    FGridResolvedItem Shield;
+    if (!TestTrue(TEXT("Production ARM075 N1 resolves canonically"),
+        Fixture.Resolve(TooltipClean01::ShieldId, 1, Shield)) ||
+        !TestTrue(TEXT("Shield is passive ARM075 with nominal armor five"),
+            Shield.bIsArmament && Shield.Weapon.PhysicalArmor == 5))
+        return false;
+    UGridItemSystemAsset* Root = Fixture.Registry->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Production ItemSystem root"), Root)) return false;
+    const bool WasDirty = Root->GetOutermost()->IsDirty();
 
     for (int32 Spent : {0, 3, 5, 20})
     {
         FGridWeaponTooltipPresentation Presentation;
         if (!TestTrue(TEXT("Passive catalogue read model built"),
                 FGridWeaponTooltipProjection::Build(
-                    Def, TooltipClean01::Item(Def, Spent), Presentation)))
+                    nullptr, TooltipClean01::Item(Shield.ItemId, Spent),
+                    Presentation, Fixture.Registry.Get())))
             return false;
         TestTrue(TEXT("Shield is passive"), Presentation.bPassive);
         TestEqual(TEXT("Nominal armor never diminishes with use"),
@@ -66,7 +71,7 @@ bool FUITooltipClean01NominalShieldTest::RunTest(const FString&)
                 return Fact.StatId == TEXT("WeaponPhysicalArmorRemaining");
             }).Num(), 1);
     }
-    TestEqual(TEXT("Real DataAsset remains read-only"), Def->GetOutermost()->IsDirty(), WasDirty);
+    TestEqual(TEXT("Canonical root remains read-only"), Root->GetOutermost()->IsDirty(), WasDirty);
     return true;
 }
 
@@ -76,13 +81,22 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUITooltipClean01RecoveryAndPreviewTest,
 
 bool FUITooltipClean01RecoveryAndPreviewTest::RunTest(const FString&)
 {
-    UGridItemDefinitionAsset* Def = TooltipClean01::Shield();
-    UGridItemDefinitionAsset* Axe = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_GreatAxe_01.DA_Weapon_GreatAxe_01"));
-    if (!TestNotNull(TEXT("Production shield"), Def) ||
-        !TestNotNull(TEXT("Production two-handed axe"), Axe)) return false;
+    FGridCanonicalWeightTestWorld Fixture({});
+    const UGridItemSubsystem* Registry = Fixture.Scope.Registry;
+    FGridResolvedItem Def;
+    FGridResolvedItem Axe;
+    if (!TestNotNull(TEXT("World-bound canonical ItemSystem"), Registry) ||
+        !TestTrue(TEXT("Production ARM075 N1 round shield resolves"),
+            Registry && Registry->ResolveItem(TooltipClean01::ShieldId, 1, Def)) ||
+        !TestTrue(TEXT("Production ARM031 N1 two-handed axe resolves"),
+            Registry && Registry->ResolveItem(TEXT("Weapon_GreatAxe_01"), 1, Axe)) ||
+        !TestTrue(TEXT("Shield passive armor and Great Axe hand policy"),
+            Def.bIsArmament && Def.Weapon.PhysicalArmor == 5 &&
+            Axe.bIsArmament && Axe.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded))
+        return false;
 
-    UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+    UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("Canonical inventory"), Inventory)) return false;
     URPGClassAsset* Class = NewObject<URPGClassAsset>(Inventory);
     Class->ClassId = TEXT("TooltipClean01ShieldClass");
     Class->DisplayName = FText::FromString(TEXT("Shield class"));
@@ -90,8 +104,10 @@ bool FUITooltipClean01RecoveryAndPreviewTest::RunTest(const FString&)
     Class->BasePhysicalArmor = 0;
     Class->BaseMagicalArmor = 3;
     if (!TestTrue(TEXT("Valid synthetic class"), Class->IsValidDefinition()) ||
-        !TestTrue(TEXT("Register ARM075"), Inventory->RegisterItemDefinition(Def)) ||
-        !TestTrue(TEXT("Register ARM031"), Inventory->RegisterItemDefinition(Axe))) return false;
+        !TestNull(TEXT("No historical shield registered"),
+            Inventory->FindItemDefinition(Def.ItemId)) ||
+        !TestNull(TEXT("No historical Great Axe registered"),
+            Inventory->FindItemDefinition(Axe.ItemId))) return false;
 
     FGridCharacterInventoryState Character;
     Character.CharacterId = FGuid::NewGuid();
@@ -107,11 +123,11 @@ bool FUITooltipClean01RecoveryAndPreviewTest::RunTest(const FString&)
     State.ActiveEquipment.SetNum(1);
     State.SelectedCharacterIndex = 0;
 
-    State.ActiveEquipment[0].OffHand = TooltipClean01::Item(Def, 3);
+    State.ActiveEquipment[0].OffHand = TooltipClean01::Item(Def.ItemId, 3);
     const FGuid Id = State.ActiveEquipment[0].OffHand.RuntimeObjectId;
     FGridItemInstance AxeItem;
     AxeItem.RuntimeObjectId = FGuid::NewGuid();
-    AxeItem.ItemDefinitionId = Axe->ItemDefinitionId;
+    AxeItem.ItemDefinitionId = Axe.ItemId;
     AxeItem.ItemLevel = 1;
     AxeItem.Quantity = 1;
     AxeItem.OwnerType = EGridItemOwnerType::CharacterInventory;
@@ -151,7 +167,8 @@ bool FUITooltipClean01RecoveryAndPreviewTest::RunTest(const FString&)
 
     FGridWeaponTooltipPresentation RestoredShield;
     TestTrue(TEXT("Shield fact built after victory"),
-        FGridWeaponTooltipProjection::Build(Def, State.ActiveEquipment[0].OffHand, RestoredShield));
+        FGridWeaponTooltipProjection::Build(nullptr,
+            State.ActiveEquipment[0].OffHand, RestoredShield, Registry));
     TestEqual(TEXT("Restored shield displays full 5/5"),
         TooltipClean01::Fact(RestoredShield, TEXT("WeaponPhysicalArmorRemaining")), FString(TEXT("5/5")));
     return true;
