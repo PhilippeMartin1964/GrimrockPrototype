@@ -91,16 +91,14 @@ bool FGridClean064X17TorchHandRegression::RunTest(const FString&)
         !TestTrue(TEXT("Active party member exists"), F.Inventory->IsValidCharacterIndex(0)))
         {return false;}
 
-    UGridItemDefinitionAsset* Torch = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch.DA_Item_Torch"));
-    if (!TestNotNull(TEXT("Real torch definition"), Torch) ||
-        !TestTrue(TEXT("Torch ItemId is registered canonically"),
-            F.Registry->HasCanonicalItem(Torch->ItemDefinitionId)))
+    const FName TorchId(TEXT("Item_Torch"));
+    if (!TestTrue(TEXT("Torch ItemId is registered canonically"),
+            F.Registry->HasCanonicalItem(TorchId)))
         {return false;}
 
     FGridResolvedItem Resolved;
     if (!TestTrue(TEXT("Real torch physical N0 resolves canonically"),
-        F.Registry->ResolveItem(Torch->ItemDefinitionId, 0, Resolved)) ||
+        F.Registry->ResolveItem(TorchId, 0, Resolved)) ||
         !TestFalse(TEXT("Torch is NOT an armament"), Resolved.bIsArmament) ||
         !TestTrue(TEXT("Registered torch allows main hand"),
             Resolved.NonArmEquipmentSlots.Contains(EGridEquipmentSlot::MainHand)) ||
@@ -110,23 +108,20 @@ bool FGridClean064X17TorchHandRegression::RunTest(const FString&)
             Resolved.LightEmitter.bUsePointLight))
         {return false;}
 
-    if (!TestTrue(TEXT("Legacy torch registered for held-light visual during cutover"),
-        F.Inventory->RegisterItemDefinition(Torch)))
-        {return false;}
     FGridCharacterInventoryState& Character = F.Inventory->PartyInventoryState.ActiveCharacters[0];
     if (!TestTrue(TEXT("Two inventory slots available"),
         Character.InventorySlots.Num() >= 2)) {return false;}
     FGridItemInstance Main = ARMCLEAN064X17::MakeItem(
-        Torch->ItemDefinitionId, 0, Character.CharacterId, true);
+        TorchId, 0, Character.CharacterId, true);
     FGridItemInstance Off = ARMCLEAN064X17::MakeItem(
-        Torch->ItemDefinitionId, 0, Character.CharacterId, true);
+        TorchId, 0, Character.CharacterId, true);
     Character.InventorySlots[0].bOccupied = true;
     Character.InventorySlots[0].Item = Main;
     Character.InventorySlots[1].bOccupied = true;
     Character.InventorySlots[1].Item = Off;
 
     const auto MainSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(
-        F.Registry, Torch, Main);
+        F.Registry, nullptr, Main);
     if (!TestTrue(TEXT("Torch menu offers both hands"),
         MainSlots.bCanonicalIdentity && MainSlots.bResolved &&
         MainSlots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand) &&
@@ -170,7 +165,7 @@ bool FGridClean064X17TorchHandRegression::RunTest(const FString&)
     if (!TestTrue(TEXT("Lit equipped torch activates party illumination"),
         PartyLight->HasActiveIlluminationSource()) ||
         !TestEqual(TEXT("Torch ItemId is party light source"),
-            PartyLight->ActiveSourceId, Torch->ItemDefinitionId) ||
+            PartyLight->ActiveSourceId, TorchId) ||
         !TestTrue(TEXT("Torch supplies actual point light"),
             PartyLight->RuntimeConfig.bUsePointLight &&
             PartyLight->RuntimeConfig.LightIntensity > 0.0f &&
