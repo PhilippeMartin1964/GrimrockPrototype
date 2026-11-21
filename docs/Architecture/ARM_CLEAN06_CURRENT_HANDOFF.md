@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.1 — Classement des packages après nouvel audit privé
+
+Après SUCCESS/SUCCESS de 5G.135 (`c6b1492da26422fc4dbc94f2234642a5240f2579`), l'opérateur a transmis un nouveau rapport 5A/v1 : 48 identités canoniques et historiques, 466 résolutions, 14 actions, 54 packages inventoriés, **0 arête externe AssetRegistry**, 7/7 saves v27 décodées sans ItemId inconnu, 2 Readables résolus. **Attention :** le collecteur renvoie à zéro par compatibilité certains champs cache/pointeurs depuis le retrait du schéma C++ ; les modes de preuve spécialisés sont désactivés dans ce passage. Les 54 packages comprennent **2 catalogues canoniques à conserver**, **2 Readables à conserver**, 48 définitions historiques, une palette encore chargée par des tests Editor et un redirecteur. Aucun retrait autorisé (`deletion_authorized=false`). Voir [classification 5H.1](ARM_CLEAN06_5H1_RETIREMENT_DISPOSITION.md). Aucun fichier privé publié.
+
+
 > **Document de continuité, pas une autorisation de conversion.**
 > Lors de toute reprise, **relire le HEAD réel de `origin/master` et ses statuts**
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
