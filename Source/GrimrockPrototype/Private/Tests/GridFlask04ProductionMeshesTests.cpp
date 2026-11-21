@@ -1,6 +1,6 @@
 #include "Misc/AutomationTest.h"
 #include "Runtime/GridLevelRuntimeActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Engine/StaticMesh.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
@@ -17,12 +17,23 @@ bool FGridFlask04ProductionMeshes::RunTest(const FString&)
 		Defaults->OilFlaskFallbackMesh.LoadSynchronous());
 	TestNotNull(TEXT("Versioned catalyst bottle fallback loads"),
 		Defaults->CatalystFlaskFallbackMesh.LoadSynchronous());
-	const UGridItemDefinitionAsset* OilItem = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.DA_Item_Flask_Oil"));
-	const UGridItemDefinitionAsset* CatalystItem = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_SurfaceCatalyst_01.DA_Item_SurfaceCatalyst_01"));
-	TestNotNull(TEXT("Oil quick item is versioned"), OilItem);
-	TestNotNull(TEXT("Catalyst quick item is versioned"), CatalystItem);
+	// Both flasks are now authored in the canonical stage. Never use the
+	// retired DA_Item_* as a production-mesh acceptance dependency.
+	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+	if (!TestNotNull(TEXT("Canonical production item registry loads"), Root)) return false;
+	const auto CheckFlask = [this, Root](FName ItemId, const TCHAR* Description)
+	{
+		const auto* Entry = Root->ItemDefinitions.FindByPredicate(
+			[ItemId](const TObjectPtr<UGridCanonicalItemDefinitionAsset>& Candidate)
+			{
+				return IsValid(Candidate.Get()) && Candidate->ItemId == ItemId;
+			});
+		return TestTrue(Description, Entry && IsValid(Entry->Get()) &&
+			(*Entry)->HasValidIdentity() && (*Entry)->IsA<UGridNonArmamentDefinitionAsset>());
+	};
+	CheckFlask(TEXT("Item_Flask_Oil"), TEXT("Oil flask resolves as canonical consumable"));
+	CheckFlask(TEXT("Item_SurfaceCatalyst_01"), TEXT("Catalyst resolves as canonical consumable"));
 
 	// The level uses the Blueprint class, not the native CDO used above.
 	// Assert the *actual production* Blueprint inherited the game-owned fallbacks.

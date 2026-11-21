@@ -1,7 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/GridLightEmitterTypes.h"
 #include "UObject/UnrealType.h"
 
@@ -41,12 +41,19 @@ bool FGridLightCONFIG02SinglePointLightAuthorityTest::RunTest(const FString& Par
 	Config.FlickerRadiusAmount = 14.0f;
 	TestTrue(TEXT("Canonical point-light configuration remains valid"), Config.IsValid());
 
-	const UGridItemDefinitionAsset* TorchDefinition = LoadObject<UGridItemDefinitionAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch.DA_Item_Torch"));
-	if (!TestNotNull(TEXT("Production DA_Item_Torch loads"), TorchDefinition))
+	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+	if (!TestNotNull(TEXT("Canonical production registry loads"), Root)) return false;
+	const UGridNonArmamentDefinitionAsset* TorchDefinition = nullptr;
+	for (const TObjectPtr<UGridCanonicalItemDefinitionAsset>& Entry : Root->ItemDefinitions)
 	{
-		return false;
+		if (IsValid(Entry.Get()) && Entry->ItemId == FName(TEXT("Item_Torch")))
+		{
+			TorchDefinition = Cast<UGridNonArmamentDefinitionAsset>(Entry.Get());
+			break;
+		}
 	}
+	if (!TestNotNull(TEXT("Canonical Item_Torch resolves"), TorchDefinition)) return false;
 
 	TestTrue(TEXT("Production torch still authors a point light"), TorchDefinition->LightEmitter.bUsePointLight);
 	TestTrue(TEXT("Production torch owns a positive canonical intensity"),
