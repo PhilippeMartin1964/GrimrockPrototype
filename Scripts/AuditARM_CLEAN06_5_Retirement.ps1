@@ -97,7 +97,10 @@ CheckClean
 CheckClosed
 $Report=Join-Path $Run 'retirement-evidence.json'
 $Log=Join-Path $Run 'audit.log'
-& $Editor $ProjectFile '-run=GridArmClean065RetirementAudit' '-ReadOnly' "-Copies=$Copies" "-Output=$Report" '-Unattended' '-NoP4' '-NoSplash' '-NoSound' '-NullRHI' "-abslog=$Log"
+# Full post-cutover evidence: world identities and in-memory SaveGame
+# round-trip parity. These modes never rewrite the live saves or copies.
+$EvidenceModes=@('-WorldPointerPreflight','-InstanceCacheEvidence','-SemanticCacheEvidence','-InstanceSchemaProjection')
+& $Editor $ProjectFile '-run=GridArmClean065RetirementAudit' '-ReadOnly' @EvidenceModes "-Copies=$Copies" "-Output=$Report" '-Unattended' '-NoP4' '-NoSplash' '-NoSound' '-NullRHI' "-abslog=$Log"
 $UEExit=$LASTEXITCODE
 CheckClean
 if ((ConvertTo-Json -InputObject @(Inventory $Live) -Compress) -cne $InventoryJson -or
@@ -107,8 +110,41 @@ if (-not (Test-Path -LiteralPath $Report -PathType Leaf)) { throw 'Native audit 
 $Result=Get-Content -LiteralPath $Report -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($Result.schema -cne 'ARM-CLEAN06.5A/retirement-evidence/v1' -or $Result.deletion_authorized -or
     [int]$Result.save_count -ne $Before.Count) { throw 'Unexpected evidence report.' }
+# False compatibility counters in the retired C++ schema are insufficient
+# evidence. Require the active, non-mutating proof modes and every per-save
+# projection/round-trip check to have actually run and passed.
+if (-not $Result.world_pointer_preflight -or -not $Result.instance_cache_evidence -or
+    -not $Result.semantic_cache_evidence -or -not $Result.instance_schema_projection -or
+    -not $Result.instance_cache_schema_retired -or $Result.weight_cache_evidence) {
+    throw 'Required post-cutover evidence modes were not executed.'
+}
+$ExpectedRoles=@{
+    historical_item_definition=48
+    historical_catalogue_source=2
+    save_readable_fixture=2
+    historical_throwing_knife_redirector=1
+    historical_action_icon_palette=1
+    unclassified_keep_and_investigate=0
+}
+if (-not $Result.native.candidate_role_counts -or
+    [int]$Result.native.unclassified_candidate_count -ne 0 -or
+    [int]$Result.native.candidate_asset_count -ne 54) {
+    throw 'Native candidate disposition was not proven.'
+}
+foreach ($Role in $ExpectedRoles.Keys) {
+    if ([int]$Result.native.candidate_role_counts.$Role -ne $ExpectedRoles[$Role]) {
+        throw ('Unexpected native retirement candidate role: '+$Role)
+    }
+}
+foreach ($Save in @($Result.saves)) {
+    if (-not $Save.decoded -or -not $Save.canonical_world_valid -or
+        -not $Save.memory_roundtrip_equal -or -not $Save.cache_normalized_roundtrip_equal -or
+        $Save.cache_invalid_identities -ne 0 -or $Save.cache_projection_failures -ne 0) {
+        throw ('Private save evidence incomplete: '+$Save.filename)
+    }
+}
 Write-Host ('[ARM-CLEAN06.5A] REPORT '+$Report)
 Write-Host ('Canonical='+$Result.native.canonical_count+' Legacy='+$Result.native.legacy_definition_count+' ExternalEdges='+$Result.native.external_referencer_edges)
 Write-Host ('Saves='+$Result.save_count+' DecodeFailures='+$Result.decode_failures)
 if ($UEExit -ne 0 -or $Result.decode_failures -ne 0) { throw 'Read-only report contains incomplete decoding evidence; retain it for review.' }
-Write-Host '[OK] Read-only audit completed. No deletion authorized.'
+Write-Host '[OK] Full canonical world/instance and memory round-trip evidence passed. No deletion authorized.'

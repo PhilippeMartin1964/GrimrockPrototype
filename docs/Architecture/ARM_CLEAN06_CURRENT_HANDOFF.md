@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.5 — Audit privé exige désormais les preuves canoniques complètes
+
+Parent H.4 `0f686044f537b13111c3eb6c4e42ea37d7db3214` : ne publier H.5 qu'après double SUCCESS Windows. Le script d'audit natif privé active désormais en lecture seule les preflights `WorldPointerPreflight`, `InstanceCacheEvidence`, `SemanticCacheEvidence`, `InstanceSchemaProjection`, et refuse toute sauvegarde dont les contrôles de round-trip/identité/poids canoniques échouent. Il exige aussi la taxonomie 54 packages introduite en H.4. Les modes et résultats privés ne sont pas exécutés en CI : validation Windows compile et vérifie les tests sans toucher aux `.sav` de l'utilisateur. Voir [5H.5](ARM_CLEAN06_5H5_FULL_PRIVATE_RETIREMENT_EVIDENCE.md).
+
+
 ## ARM-CLEAN06.5H.4 — Audit de classification native et correctif de la nomenclature
 
 Parent H.3 `a1f6d236430ddbe9c56e58221c1b4234963338e9` à valider avant publication. `GridEditorRetirementAudit` ajoute `candidate_role_counts`, un rôle par candidat, et le compteur explicite des inconnus ; un test natif contrôle les 54 packages 48+2+2+1+1. **Correction H.1** : `Weapons/DA_WeaponCatalogue` et `Weapons/DA_WeaponVisualCatalogue` sont des sources **historiques** d'édition, non les vrais catalogues canoniques `CanonicalStage/DA_CanonicalWeaponCatalogue` et `DA_CanonicalWeaponVisualCatalogue`. Aucun droit de suppression n'est produit. Voir [5H.4](ARM_CLEAN06_5H4_NATIVE_CANDIDATE_CLASSIFICATION.md). Vérifier double statut Windows sur le nouveau SHA avant H.5.
