@@ -5,8 +5,7 @@
 #include "UI/GridItemTooltipWeaponLineWidget.h"
 #include "UI/GridInventoryUiTypes.h"
 #include "UI/UILocalizationText.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "UI/GridWeaponTooltipProjection.h"
 
@@ -68,20 +67,22 @@ bool FGridNativeItemTooltipLocalization04::RunTest(const FString&)
         UGridItemTooltipWeaponLineWidget::VisibleDeltaState(AP) ==
             EGridItemTooltipDeltaState::Neutral);
 
-    UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_AssassinDagger_01.DA_Weapon_AssassinDagger_01"));
-    if (!TestNotNull(TEXT("ARM002 production DataAsset"), Dagger))
+    FGridCanonicalRegistryFixture Fixture;
+    FGridResolvedItem Dagger;
+    if (!TestTrue(TEXT("ARM002 N9 production ItemSystem profile"),
+        Fixture.Resolve(TEXT("Weapon_AssassinDagger_01"), 9, Dagger)) ||
+        !TestTrue(TEXT("Assassin Dagger is a canonical ARM"), Dagger.bIsArmament))
         return false;
     FGridItemInstance RealItem;
     RealItem.RuntimeObjectId = FGuid::NewGuid();
-    RealItem.ItemDefinitionId = Dagger->ItemDefinitionId;
+    RealItem.ItemDefinitionId = Dagger.ItemId;
     RealItem.ItemLevel = 9;
     RealItem.Quantity = 1;
     RealItem.OwnerType = EGridItemOwnerType::CharacterInventory;
     RealItem.OwnerCharacterIndex = 0;
     FGridWeaponTooltipPresentation Profile;
     if (!TestTrue(TEXT("Existing N9 projection survives UI key migration"),
-        FGridWeaponTooltipProjection::Build(Dagger, RealItem, Profile)))
+        FGridWeaponTooltipProjection::Build(nullptr, RealItem, Profile, Fixture.Registry.Get())))
         return false;
     TestTrue(TEXT("Localized dice label resolved from ST_UI"),
         !Profile.Facts.IsEmpty() && !Profile.Facts[0].Label.IsEmpty());
