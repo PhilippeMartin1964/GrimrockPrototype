@@ -444,38 +444,37 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponTooltipPhysicalSubtypeRawDamageTest,
 
 bool FWeaponTooltipPhysicalSubtypeRawDamageTest::RunTest(const FString&)
 {
-    // Real N1 assets from the PIE screenshot: war pick (piercing) versus
-    // equipped dagger (slashing), without altering either DataAsset.
-    UGridItemDefinitionAsset* Pick = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_WarPick_01.DA_Weapon_WarPick_01"));
-    UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
-    if (!TestNotNull(TEXT("Production ARM025 war pick"), Pick) ||
-        !TestNotNull(TEXT("Production ARM001 dagger"), Dagger))
+    // Real ARM025 N1 (piercing) versus equipped ARM001 N1 (slashing),
+    // projected exclusively from the single production ItemSystem.
+    FGridCanonicalRegistryFixture Fixture;
+    const FName PickId(TEXT("Weapon_WarPick_01"));
+    const FName DaggerId(TEXT("Weapon_Dagger_01"));
+    FGridResolvedItem Pick, Dagger;
+    if (!TestTrue(TEXT("Canonical ARM025 War Pick N1 resolves"),
+            Fixture.Resolve(PickId, 1, Pick)) ||
+        !TestTrue(TEXT("Canonical ARM001 Dagger N1 resolves"),
+            Fixture.Resolve(DaggerId, 1, Dagger)) ||
+        !TestTrue(TEXT("Both are real ARM weapons"),
+            Pick.bIsArmament && Dagger.bIsArmament))
         return false;
-
-    const bool bPickDirty = Pick->GetOutermost()->IsDirty();
-    const bool bDaggerDirty = Dagger->GetOutermost()->IsDirty();
-    const FGridWeaponLevelProfile* PickN1 = nullptr;
-    const FGridWeaponLevelProfile* DaggerN1 = nullptr;
-    if (!TestTrue(TEXT("War pick N1 resolves"), Pick->TryGetWeaponCatalogueProfile(1, PickN1)) ||
-        !TestTrue(TEXT("Dagger N1 resolves"), Dagger->TryGetWeaponCatalogueProfile(1, DaggerN1)) ||
-        !TestNotNull(TEXT("War pick N1 data"), PickN1) ||
-        !TestNotNull(TEXT("Dagger N1 data"), DaggerN1))
+    UGridItemSystemAsset* Root = Fixture.Registry->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Read-only production ItemSystem"), Root))
         return false;
+    const bool bRootDirty = Root->GetOutermost()->IsDirty();
 
     TestTrue(TEXT("Both damage types are physical"),
-        PickN1->DamageType == EGridDamageType::Physical &&
-        DaggerN1->DamageType == EGridDamageType::Physical);
+        Pick.Weapon.DamageType == EGridDamageType::Physical &&
+        Dagger.Weapon.DamageType == EGridDamageType::Physical);
     TestTrue(TEXT("Piercing versus slashing are different physical subtypes"),
-        PickN1->PhysicalSubtype == EGridPhysicalDamageSubtype::Piercing &&
-        DaggerN1->PhysicalSubtype == EGridPhysicalDamageSubtype::Slashing);
+        Pick.Weapon.PhysicalSubtype == EGridPhysicalDamageSubtype::Piercing &&
+        Dagger.Weapon.PhysicalSubtype == EGridPhysicalDamageSubtype::Slashing);
 
     TArray<FGridWeaponTooltipComparisonFact> Facts;
-    if (!TestTrue(TEXT("Real war pick / dagger comparison built"),
+    if (!TestTrue(TEXT("Canonical War Pick / Dagger comparison built"),
         FGridWeaponTooltipProjection::BuildComparison(
-            Pick, WeaponTooltipTests::MakeItem(Pick, 1),
-            Dagger, WeaponTooltipTests::MakeItem(Dagger, 1), Facts)))
+            nullptr, WeaponTooltipTests::MakeCanonicalItem(PickId, 1),
+            nullptr, WeaponTooltipTests::MakeCanonicalItem(DaggerId, 1),
+            Facts, Fixture.Registry.Get())))
         return false;
 
     for (const FName StatId : { FName(TEXT("WeaponMinDamage")), FName(TEXT("WeaponMaxDamage")) })
@@ -483,13 +482,13 @@ bool FWeaponTooltipPhysicalSubtypeRawDamageTest::RunTest(const FString&)
         const auto* Damage = Facts.FindByPredicate(
             [StatId](const FGridWeaponTooltipComparisonFact& Fact)
             { return Fact.StatId == StatId; });
-        if (!TestNotNull(TEXT("Real physical raw damage row exists"), Damage))
+        if (!TestNotNull(TEXT("Canonical physical raw damage row exists"), Damage))
             return false;
         TestTrue(TEXT("Different physical subtypes allow raw numeric delta"), Damage->bHasDelta);
-        TestEqual(TEXT("War pick gains three raw damage points"), Damage->Delta, 3.f);
+        TestEqual(TEXT("War Pick gains three raw damage points"), Damage->Delta, 3.f);
         TestEqual(TEXT("Delta is signed +3"), Damage->DeltaText.ToString(), FString(TEXT("+3")));
-        TestTrue(TEXT("Raw damage increase is beneficial"), Damage->DeltaState ==
-            EGridItemTooltipDeltaState::Positive);
+        TestTrue(TEXT("Raw damage increase is beneficial"),
+            Damage->DeltaState == EGridItemTooltipDeltaState::Positive);
     }
 
     const auto* DamageType = Facts.FindByPredicate(
@@ -505,8 +504,8 @@ bool FWeaponTooltipPhysicalSubtypeRawDamageTest::RunTest(const FString&)
     TestFalse(TEXT("Dice formula has no arithmetic delta"), Dice->bHasDelta);
     TestFalse(TEXT("Different physical subtype labels remain distinct"),
         DamageType->CandidateText.EqualTo(DamageType->EquippedText));
-    TestEqual(TEXT("Pick asset remains clean"), Pick->GetOutermost()->IsDirty(), bPickDirty);
-    TestEqual(TEXT("Dagger asset remains clean"), Dagger->GetOutermost()->IsDirty(), bDaggerDirty);
+    TestEqual(TEXT("Canonical ItemSystem remains clean"),
+        Root->GetOutermost()->IsDirty(), bRootDirty);
     return true;
 }
 
