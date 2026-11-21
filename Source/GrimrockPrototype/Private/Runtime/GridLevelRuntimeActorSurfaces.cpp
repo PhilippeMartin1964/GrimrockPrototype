@@ -27,6 +27,12 @@
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
+#include "HAL/IConsoleManager.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Parse.h"
+#include "Misc/Paths.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridSurfaceRuntime, Log, All);
 
@@ -61,6 +67,27 @@ namespace
 		return FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.f);
 	}
 	constexpr float OilExplorationTimerInterval = 0.25f;
+
+	// Opt-in, fixed-field probe for Shipping (where usual UE logs can be stripped).
+	// Never reads, lists or modifies any saved game.
+	void WriteOilShippingVisualAudit(int32 OilCellCount, int32 DecalCount, bool bMaterialAvailable)
+	{
+		if (!FParse::Param(FCommandLine::Get(), TEXT("GrimrockVisualAudit"))) return;
+		auto ReadCVar = [](const TCHAR* Name)
+		{
+			const IConsoleVariable* Variable = IConsoleManager::Get().FindConsoleVariable(Name);
+			return Variable ? Variable->GetInt() : -1;
+		};
+		const FString Line = FString::Printf(
+			TEXT("OilCells=%d MaterialLoaded=%d DecalComponents=%d r.Decals=%d r.DBuffer=%d r.DecalQuality=%d"),
+			OilCellCount, bMaterialAvailable ? 1 : 0, DecalCount,
+			ReadCVar(TEXT("r.Decals")), ReadCVar(TEXT("r.DBuffer")),
+			ReadCVar(TEXT("r.DecalQuality")));
+		const FString Path = FPaths::ProjectSavedDir() / TEXT("VisualDiagnostics/OilSurface.txt");
+		IFileManager::Get().MakeDirectory(*FPaths::GetPath(Path), true);
+		FFileHelper::SaveStringToFile(Line + LINE_TERMINATOR, *Path,
+			FFileHelper::EEncodingOptions::ForceUTF8, &IFileManager::Get(), FILEWRITE_Append);
+	}
 }
 
 
@@ -1752,9 +1779,11 @@ void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 	{
 		UE_LOG(LogGridSurfaceRuntime, Warning,
 			TEXT("[ARMEMENT01.17.1.4] Matériau de décalque d'huile introuvable."));
+		WriteOilShippingVisualAudit(Pending.Num(), 0, false);
 		return;
 	}
 
+	const int32 OilCellCount = Pending.Num();
 	const float Size = LevelAsset->CellSize;
 	// La flaque est une projection dans un volume traversant Z=0, pas un
 	// plan à Z+2 ou au sommet supposé de la bounding box du mesh.
@@ -1820,6 +1849,7 @@ void AGridLevelRuntimeActor::RefreshCombatOilSurfaceVisuals()
 		Decal->RegisterComponent();
 		ActiveOilDecals.Add(Decal);
 	}
+	WriteOilShippingVisualAudit(OilCellCount, ActiveOilDecals.Num(), true);
 }
 
 

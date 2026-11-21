@@ -75,6 +75,16 @@ source restent payés une seule fois pour l'action entière.
 ordinaires avec les boutons, portes, réceptacles et objets. Le survol convertit
 le point d'impact en cellule via le runtime du niveau.
 
+**Correctif MON12.8.6.SHIPPING01 (21.11.2026) :** le rendu précédent
+utilisait `DrawDebugBox` dans `AGrimrockPlayerController`, ce qui affichait
+les carrés en PIE mais pas dans le jeu Shipping. Le contrôleur possède désormais
+un `ULineBatchComponent` de scène propre au joueur local, créé en `BeginPlay`,
+rempli avec `DrawBox` pour chaque cellule et vidé au changement/à la sortie du
+mode de visée. Les couleurs, épaisseurs, positions et le calcul des cellules
+restent inchangés. Une compilation Shipping compile réellement cette API ;
+l'Automation teste le rendu de lignes et leur effacement, mais **la preuve
+visuelle nécessite encore un exécutable Shipping lancé avec GPU**.
+
 La prévisualisation native utilise :
 
 - jaune pour la cellule centrale valide ;
