@@ -15,7 +15,7 @@
 #include "RPG/RPGSkillService.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "Runtime/GridGenericObjectActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -33,12 +33,6 @@ namespace ARMEMENT01163
     {
         return LoadObject<URPGRaceAsset>(nullptr,
             TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Race_Human.DA_Race_Human"));
-    }
-
-    static UGridItemDefinitionAsset* DisarmTools()
-    {
-        return LoadObject<UGridItemDefinitionAsset>(nullptr,
-            TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DisarmTools_01.DA_Item_DisarmTools_01"));
     }
 
     static URPGSkillAsset* TrapSkill()
@@ -99,27 +93,31 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01163SaboteurKitOnly,
 bool FARMEMENT01163SaboteurKitOnly::RunTest(const FString&)
 {
     URPGClassAsset* Rogue = ARMEMENT01163::RogueClass();
-    UGridItemDefinitionAsset* Tool = ARMEMENT01163::DisarmTools();
+    const FName ToolId(TEXT("Item_DisarmTools_01"));
+    FGridCanonicalRegistryFixture Canonical;
+    FGridResolvedItem Tool;
     if (!TestNotNull(TEXT("Production Rogue class"), Rogue) ||
-        !TestNotNull(TEXT("Published disarm tool DataAsset"), Tool))
+        !TestTrue(TEXT("Canonical ItemSystem configured for Saboteur"),
+            Canonical.bReady && Canonical.Resolve(ToolId, 0, Tool)))
     {
         return false;
     }
-    TestEqual(TEXT("Canonical reusable tool identity"), Tool->ItemDefinitionId,
-        FName(TEXT("Item_DisarmTools_01")));
+    TestEqual(TEXT("Canonical reusable tool identity"), Tool.ItemId, ToolId);
+    TestFalse(TEXT("Disarm tool is a non-ARM N0 item"), Tool.bIsArmament);
     TestTrue(TEXT("Tool has its real disarm gameplay tag"),
-        Tool->ItemTags.Contains(FName(TEXT("Tool.Disarm"))));
-    TestEqual(TEXT("Tool is not equipable in the hands"), Tool->HandUsage,
-        EGridItemHandUsage::NotHandHeld);
-    TestFalse(TEXT("One reusable tool, never a stack"), Tool->bStackable);
-    TestTrue(TEXT("Real tool has a valid definition"), Tool->IsValidDefinition());
+        Tool.Tags.Contains(FName(TEXT("Tool.Disarm"))));
+    TestEqual(TEXT("Tool cannot be equipped in the hands"), Tool.NonArmHandPolicy,
+        EGridNonArmamentHandPolicy::NotHandHeld);
+    TestEqual(TEXT("One reusable tool, never a stack"), Tool.MaxStack, 1);
+    TestTrue(TEXT("Real tool has a valid canonical projection"), Tool.IsValid());
 
     const int32 OriginalCount = Rogue->StartingEquipmentKits.Num();
     const FName OriginalDefault = Rogue->DefaultStartingEquipmentKitId;
     URPGClassAsset* Preview = DuplicateObject<URPGClassAsset>(Rogue, GetTransientPackage());
     FString Error;
     if (!TestTrue(TEXT("Three production Rogue kits can be previewed"),
-        Preview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*Preview, Error)))
+        Preview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+            *Preview, Error, Canonical.Registry.Get())))
     {
         AddError(Error);
         return false;
@@ -134,11 +132,11 @@ bool FARMEMENT01163SaboteurKitOnly::RunTest(const FString&)
         int32 ToolCount = 0;
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
-            if (Entry.ItemDefinition && Entry.ItemDefinition->ItemDefinitionId == Tool->ItemDefinitionId)
+            if (Entry.CanonicalItemId == ToolId)
             {
                 ++ToolCount;
-                TestTrue(TEXT("Saboteur receives the published tool asset, not a clone"),
-                    Entry.ItemDefinition.Get() == Tool);
+                TestNull(TEXT("Saboteur recipe has no historical tool pointer"),
+                    Entry.ItemDefinition.Get());
                 TestEqual(TEXT("Tool is in bag, not an equipment hand"),
                     Entry.TargetSlot, EGridEquipmentSlot::None);
                 TestEqual(TEXT("One actual disarm tool is granted"), Entry.Quantity, 1);
@@ -151,7 +149,7 @@ bool FARMEMENT01163SaboteurKitOnly::RunTest(const FString&)
         {
             TestEqual(TEXT("Saboteur keeps stiletto and receives one support item"), Kit.Items.Num(), 2);
             TestEqual(TEXT("Main hand retains the canonical stiletto"),
-                Kit.Items[0].ItemDefinition->ItemDefinitionId, FName(TEXT("Weapon_Stiletto_01")));
+                Kit.Items[0].CanonicalItemId, FName(TEXT("Weapon_Stiletto_01")));
             TestEqual(TEXT("Stiletto stays equipped"),
                 Kit.Items[0].TargetSlot, EGridEquipmentSlot::MainHand);
         }
@@ -168,11 +166,10 @@ bool FARMEMENT01163NewGameDisarmSave::RunTest(const FString&)
     URPGClassAsset* Rogue = ARMEMENT01163::RogueClass();
     URPGRaceAsset* Human = ARMEMENT01163::HumanRace();
     URPGSkillAsset* Traps = ARMEMENT01163::TrapSkill();
-    UGridItemDefinitionAsset* Tool = ARMEMENT01163::DisarmTools();
+    const FName ToolId(TEXT("Item_DisarmTools_01"));
     if (!TestNotNull(TEXT("Production Rogue"), Rogue) ||
         !TestNotNull(TEXT("Production Human"), Human) ||
-        !TestNotNull(TEXT("Production Traps skill"), Traps) ||
-        !TestNotNull(TEXT("Published physical tool"), Tool)) return false;
+        !TestNotNull(TEXT("Production Traps skill"), Traps)) return false;
     if (!TestTrue(TEXT("Traps skill is valid"), Traps->IsValidDefinition())) return false;
     TestFalse(TEXT("N1 cannot disarm without learned Skill_Traps"),
         Traps->bAllowUntrainedChecks);
@@ -204,7 +201,7 @@ bool FARMEMENT01163NewGameDisarmSave::RunTest(const FString&)
         return false;
     }
     const FGridCharacterInventoryState& Hero = Inventory->PartyInventoryState.ActiveCharacters[0];
-    const FGridItemInstance* Tools = ARMEMENT01163::FindBagItem(Hero, Tool->ItemDefinitionId);
+    const FGridItemInstance* Tools = ARMEMENT01163::FindBagItem(Hero, ToolId);
     const FGridItemInstance& Stiletto = Inventory->PartyInventoryState.ActiveEquipment[0].MainHand;
     if (!TestNotNull(TEXT("Tool is physically granted in the Saboteur bag"), Tools)) return false;
     const FGuid ToolGuid = Tools->RuntimeObjectId;
@@ -215,10 +212,15 @@ bool FARMEMENT01163NewGameDisarmSave::RunTest(const FString&)
         Tools->OwnerType, EGridItemOwnerType::CharacterInventory);
     TestEqual(TEXT("Tool retains quantity one"), Tools->Quantity, 1);
     TestNull(TEXT("Starter tool does not depend on historical inventory cache"),
-        Inventory->FindItemDefinition(Tool->ItemDefinitionId));
+        Inventory->FindItemDefinition(ToolId));
     FGridResolvedItem CanonicalTool;
-    TestTrue(TEXT("Starter tool resolves from canonical ItemSystem"), Fixture.RegistryScope.Registry &&
-        Fixture.RegistryScope.Registry->ResolveItem(Tool->ItemDefinitionId, 0, CanonicalTool));
+    if (!TestTrue(TEXT("Starter tool resolves from canonical ItemSystem"),
+        Fixture.RegistryScope.Registry &&
+        Fixture.RegistryScope.Registry->ResolveItem(ToolId, 0, CanonicalTool)) ||
+        !TestFalse(TEXT("Starter tool must be non-ARM N0"), CanonicalTool.bIsArmament) ||
+        !TestTrue(TEXT("Starter tool retains disarm tag"),
+            CanonicalTool.Tags.Contains(FName(TEXT("Tool.Disarm")))))
+        return false;
     TestEqual(TEXT("Main-hand weapon unchanged"), Stiletto.ItemDefinitionId,
         FName(TEXT("Weapon_Stiletto_01")));
     TestEqual(TEXT("Kit ID saved on hero"), Hero.StartingEquipmentKitId,
@@ -267,7 +269,7 @@ bool FARMEMENT01163NewGameDisarmSave::RunTest(const FString&)
     TestEqual(TEXT("Untrained rejection consumes no RNG"),
         Dice.GetCurrentSeed(), SeedBefore);
     TestEqual(TEXT("Refused attempt preserves actual tool"),
-        Inventory->CountItemDefinitionInCharacterInventory(0, Tool->ItemDefinitionId), 1);
+        Inventory->CountItemDefinitionInCharacterInventory(0, ToolId), 1);
 
     // Spend one of the FOUR level-one skill points through the actual RPG
     // skill economy, not by silently adding rank/talent to the starting kit.
@@ -285,7 +287,7 @@ bool FARMEMENT01163NewGameDisarmSave::RunTest(const FString&)
     TestTrue(TEXT("Trap is persistently disarmed"),
         Runtime->IsTriggerTrapDisarmed(Trap.InstanceId));
     TestEqual(TEXT("Tool is reusable after success"),
-        Inventory->CountItemDefinitionInCharacterInventory(0, Tool->ItemDefinitionId), 1);
+        Inventory->CountItemDefinitionInCharacterInventory(0, ToolId), 1);
 
     UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
     Save->PartyInventoryState = Inventory->PartyInventoryState;
@@ -297,7 +299,7 @@ bool FARMEMENT01163NewGameDisarmSave::RunTest(const FString&)
         Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromMemory(Bytes));
     if (!TestNotNull(TEXT("SaveGame reload succeeds"), Loaded)) return false;
     const FGridCharacterInventoryState& SavedHero = Loaded->PartyInventoryState.ActiveCharacters[0];
-    const FGridItemInstance* SavedTool = ARMEMENT01163::FindBagItem(SavedHero, Tool->ItemDefinitionId);
+    const FGridItemInstance* SavedTool = ARMEMENT01163::FindBagItem(SavedHero, ToolId);
     if (!TestNotNull(TEXT("Tool survives real SaveGame binary roundtrip"), SavedTool)) return false;
     TestEqual(TEXT("Same tool GUID survives Save/Continue"), SavedTool->RuntimeObjectId, ToolGuid);
     TestEqual(TEXT("Same hero GUID survives Save/Continue"), SavedHero.CharacterId, HeroGuid);
@@ -316,7 +318,7 @@ bool FARMEMENT01163NewGameDisarmSave::RunTest(const FString&)
         return false;
     }
     TestEqual(TEXT("Continue leaves exactly one physical disarm tool"),
-        Continued->CountItemDefinitionInCharacterInventory(0, Tool->ItemDefinitionId), 1);
+        Continued->CountItemDefinitionInCharacterInventory(0, ToolId), 1);
     AGridLevelRuntimeActor* ContinuedRuntime = Fixture.World->SpawnActor<AGridLevelRuntimeActor>();
     if (!TestNotNull(TEXT("Continued runtime"), ContinuedRuntime)) return false;
     ContinuedRuntime->LevelAsset = Level;
