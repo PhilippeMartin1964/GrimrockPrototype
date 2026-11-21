@@ -12,7 +12,9 @@
 #include "GridWorldPhysicsMassReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#if WITH_DEV_AUTOMATION_TESTS
 #include "Runtime/Combat/GridWorldItemVisualResolver.h"
+#endif
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"

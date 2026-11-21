@@ -1,5 +1,7 @@
 #pragma once
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 #include "CoreMinimal.h"
 
 class UGridItemDefinitionAsset;
@@ -24,3 +26,5 @@ public:
 	static FGridResolvedWorldItemMesh Resolve(
 		const UGridItemDefinitionAsset& Definition, const FGridItemInstance* Instance = nullptr);
 };
+
+#endif // WITH_DEV_AUTOMATION_TESTS: historical weapon visuals

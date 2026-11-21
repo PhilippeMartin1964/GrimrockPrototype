@@ -3,7 +3,6 @@
 #include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Components/StaticMeshComponent.h"
-#include "Runtime/Combat/GridWorldItemVisualResolver.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridEditorLooseItemPreviewReadModel.h"
 #include "Engine/GameInstance.h"

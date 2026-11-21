@@ -1,5 +1,7 @@
 #include "Runtime/Combat/GridWeaponVisualResolver.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 #include "Runtime/GridInventoryTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
@@ -154,3 +156,5 @@ bool FGridWeaponVisualResolver::TryResolve(
 	}
 	return Finish(OutVisual, OutError, EGridWeaponVisualResolutionError::None);
 }
+
+#endif // WITH_DEV_AUTOMATION_TESTS: historical visual resolver

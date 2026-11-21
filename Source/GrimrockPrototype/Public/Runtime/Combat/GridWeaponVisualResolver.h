@@ -1,5 +1,7 @@
 #pragma once
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 #include "CoreMinimal.h"
 #include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
 
@@ -34,3 +36,5 @@ public:
 		FGridResolvedWeaponVisual& OutVisual,
 		EGridWeaponVisualResolutionError& OutError);
 };
+
+#endif // WITH_DEV_AUTOMATION_TESTS: historical weapon visuals

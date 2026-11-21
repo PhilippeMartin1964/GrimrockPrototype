@@ -1,5 +1,7 @@
 #include "Runtime/Combat/GridWorldItemVisualResolver.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 #include "Runtime/Combat/GridWeaponVisualResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Engine/StaticMesh.h"
@@ -46,3 +48,5 @@ FGridResolvedWorldItemMesh FGridWorldItemVisualResolver::Resolve(
 	}
 	return Result;
 }
+
+#endif // WITH_DEV_AUTOMATION_TESTS: historical visual resolver
