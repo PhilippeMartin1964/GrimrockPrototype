@@ -6,6 +6,7 @@
 #include "RPG/RPGStartingEquipmentService.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "UObject/UnrealType.h"
 
 namespace ARMEMENT0191
@@ -53,6 +54,17 @@ namespace ARMEMENT0191
 	{
 		FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
 		Entry.ItemDefinition = Definition;
+		Entry.ItemLevel = Level;
+		Entry.TargetSlot = Slot;
+		Entry.Quantity = 1;
+	}
+
+	void AddCanonicalEntry(FRPGStartingEquipmentKit& Kit, FName ItemId,
+		int32 Level, EGridEquipmentSlot Slot)
+	{
+		FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
+		Entry.CanonicalItemId = ItemId;
+		Entry.ItemDefinition = nullptr;
 		Entry.ItemLevel = Level;
 		Entry.TargetSlot = Slot;
 		Entry.Quantity = 1;
@@ -116,37 +128,64 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0191TwoHandsKitTest,
 
 bool FARMEMENT0191TwoHandsKitTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Bow = LoadObject<UGridItemDefinitionAsset>(nullptr, ARMEMENT0191::BowPath);
-	UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr, ARMEMENT0191::DaggerPath);
-	if (!TestNotNull(TEXT("Pilot bow exists"), Bow) || !TestNotNull(TEXT("Pilot dagger exists"), Dagger)) return false;
+	FGridCanonicalWeightTestWorld Fixture({});
+	const UGridItemSubsystem* Registry = Fixture.Scope.Registry;
+	const FName BowId(TEXT("Weapon_ShortBow_01"));
+	const FName DaggerId(TEXT("Weapon_Dagger_01"));
+	FGridResolvedItem Bow, Dagger;
+	if (!TestNotNull(TEXT("Canonical starting-kit registry"), Registry) ||
+		!TestTrue(TEXT("Physical short bow N9 resolves"),
+			Registry->ResolveItem(BowId, 9, Bow)) ||
+		!TestTrue(TEXT("Physical dagger N1 resolves"),
+			Registry->ResolveItem(DaggerId, 1, Dagger)) ||
+		!TestTrue(TEXT("Bow is canonical two-handed ARM"),
+			Bow.bIsArmament && Bow.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded) ||
+		!TestTrue(TEXT("Dagger is canonical ARM N1"), Dagger.bIsArmament))
+		return false;
+
 	URPGClassAsset* Class = ARMEMENT0191::MakeClass();
 	URPGRaceAsset* Race = ARMEMENT0191::MakeRace();
 	FRPGStartingEquipmentKit& Kit = ARMEMENT0191::AddKit(Class, TEXT("Ranger_Archer"), true);
-	ARMEMENT0191::AddEntry(Kit, Bow, 9, EGridEquipmentSlot::OffHand);
-	ARMEMENT0191::AddEntry(Kit, Dagger, 0, EGridEquipmentSlot::None);
-	UGridPartyInventoryComponent* Inventory = ARMEMENT0191::NewInventory();
-	if (!TestTrue(TEXT("Class with archer kit is valid"), Class->IsValidDefinition())) return false;
+	ARMEMENT0191::AddCanonicalEntry(Kit, BowId, 9, EGridEquipmentSlot::OffHand);
+	ARMEMENT0191::AddCanonicalEntry(Kit, DaggerId, 1, EGridEquipmentSlot::None);
+	UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+	if (!TestNotNull(TEXT("World-bound canonical inventory"), Inventory)) return false;
+	Inventory->InitializeDefaultPartyIfNeeded();
+	if (!TestTrue(TEXT("Class with canonical archer kit is valid"), Class->IsValidDefinition())) return false;
 	FText Error;
-	if (!TestTrue(TEXT("Create hero and equip archer kit atomically"), Inventory->CreateInitialCharacter(ARMEMENT0191::MakeRequest(Class, Race), Error))) return false;
+	if (!TestTrue(TEXT("Create hero and equip canonical archer kit atomically"),
+		Inventory->CreateInitialCharacter(ARMEMENT0191::MakeRequest(Class, Race), Error)))
+	{
+		AddError(Error.ToString());
+		return false;
+	}
 
-	TestEqual(TEXT("Selection saved on character"), Inventory->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId, FName(TEXT("Ranger_Archer")));
+	const auto& State = Inventory->PartyInventoryState;
+	TestEqual(TEXT("Selection saved on character"),
+		State.ActiveCharacters[0].StartingEquipmentKitId, FName(TEXT("Ranger_Archer")));
 	TestTrue(TEXT("Two-handed bow reserves both hands"), Inventory->IsTwoHandedEquipped(0));
-	const FGridCharacterEquipmentState& Gear = Inventory->PartyInventoryState.ActiveEquipment[0];
-	TestEqual(TEXT("Bow stored in canonical MainHand"), Gear.MainHand.ItemDefinitionId, Bow->ItemDefinitionId);
-	TestEqual(TEXT("Bow is level 9"), Gear.MainHand.ItemLevel, 9);
+	const FGridCharacterEquipmentState& Gear = State.ActiveEquipment[0];
+	TestEqual(TEXT("Bow stored in canonical MainHand"), Gear.MainHand.ItemDefinitionId, BowId);
+	TestEqual(TEXT("Bow is N9"), Gear.MainHand.ItemLevel, 9);
 	TestFalse(TEXT("Virtual OffHand has no duplicate physical object"), Gear.OffHand.IsValid());
-	TestEqual(TEXT("Only one physical bow"), ARMEMENT0191::CountPhysicalItem(Inventory, Bow->ItemDefinitionId), 1);
-	TestEqual(TEXT("Dagger granted once to bag"), ARMEMENT0191::CountPhysicalItem(Inventory, Dagger->ItemDefinitionId), 1);
-	TestEqual(TEXT("Default dagger level materialized"),
-		Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.ItemLevel, Dagger->DefaultWeaponItemLevel);
+	TestEqual(TEXT("Only one physical bow"), ARMEMENT0191::CountPhysicalItem(Inventory, BowId), 1);
+	TestEqual(TEXT("Dagger granted once to bag"), ARMEMENT0191::CountPhysicalItem(Inventory, DaggerId), 1);
+	const FGridItemInstance& BagDagger = State.ActiveCharacters[0].InventorySlots[0].Item;
+	TestEqual(TEXT("Dagger has explicit canonical N1"), BagDagger.ItemLevel, 1);
+	TestEqual(TEXT("Dagger in bag retains stable ItemId"), BagDagger.ItemDefinitionId, DaggerId);
 	FGridItemInstance VisualOffHand;
-	TestTrue(TEXT("OffHand projects same equipped bow"), Inventory->GetEquippedItem(0, EGridEquipmentSlot::OffHand, VisualOffHand));
-	TestEqual(TEXT("Projected bow retains the physical GUID"), VisualOffHand.RuntimeObjectId, Gear.MainHand.RuntimeObjectId);
+	TestTrue(TEXT("OffHand projects same equipped bow"),
+		Inventory->GetEquippedItem(0, EGridEquipmentSlot::OffHand, VisualOffHand));
+	TestEqual(TEXT("Projected bow retains physical GUID"),
+		VisualOffHand.RuntimeObjectId, Gear.MainHand.RuntimeObjectId);
 	FString OwnershipError;
-	TestTrue(TEXT("Kit items have unique valid ownership"), Inventory->ValidateInventoryOwnership(OwnershipError));
-	TestTrue(TEXT("Equipped bow is registered for combat"), Inventory->FindItemDefinition(Bow->ItemDefinitionId) == Bow);
-	TestTrue(TEXT("Bag dagger is registered for combat"), Inventory->FindItemDefinition(Dagger->ItemDefinitionId) == Dagger);
-	return true;
+	TestTrue(TEXT("Kit items have unique valid ownership"),
+		Inventory->ValidateInventoryOwnership(OwnershipError));
+	TestNull(TEXT("Bow needs no old definition registration"),
+		Inventory->FindItemDefinition(BowId));
+	TestNull(TEXT("Dagger needs no old definition registration"),
+		Inventory->FindItemDefinition(DaggerId));
+	return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0191OneHandKitTest,
