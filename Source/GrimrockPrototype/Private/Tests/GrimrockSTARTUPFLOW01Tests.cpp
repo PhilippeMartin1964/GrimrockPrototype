@@ -11,6 +11,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Engine/Engine.h"
+#include "GameFramework/PlayerController.h"
 #include "Engine/World.h"
 
 namespace STARTUPFLOW01Canonical
@@ -296,6 +297,77 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 		InvalidDungeon->HasCompletedInitialCharacterCreation());
 	TestFalse(TEXT("Missing definition error is reported"), Error.IsEmpty());
 	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGrimrockSTARTUPFLOW01FrontendControllerInventoryTest,
+	"Grimrock.StartupFlow.STARTUPFLOW01.FrontendControllerCanonicalInventory",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGrimrockSTARTUPFLOW01FrontendControllerInventoryTest::RunTest(const FString&)
+{
+	STARTUPFLOW01Canonical::FWorld Fixture;
+	if (!TestNotNull(TEXT("Frontend world exists"), Fixture.World) ||
+		!TestTrue(TEXT("Frontend GI configured canonical ItemSystem"),
+			Fixture.Registry && Fixture.Registry->IsConfigured()))
+	{
+		return false;
+	}
+
+	APlayerController* MenuController = Fixture.World->SpawnActor<APlayerController>();
+	if (!TestNotNull(TEXT("Real menu PlayerController exists"), MenuController))
+	{
+		return false;
+	}
+
+	// Same lifecycle as UGrimrockMainMenuWidget: the frontend inventory
+	// must be an actual world-owned ActorComponent, never widget-outered.
+	UGridPartyInventoryComponent* Frontend = NewObject<UGridPartyInventoryComponent>(MenuController);
+	if (!TestNotNull(TEXT("Frontend inventory created"), Frontend))
+	{
+		return false;
+	}
+	MenuController->AddInstanceComponent(Frontend);
+	Frontend->RegisterComponent();
+	TestTrue(TEXT("Frontend inventory registered on menu controller"), Frontend->IsRegistered());
+	TestTrue(TEXT("Frontend inventory resolves menu world"), Frontend->GetWorld() == Fixture.World);
+	TestTrue(TEXT("Frontend inventory shares configured ItemSystem with menu"),
+		Frontend->GetWorld() && Frontend->GetWorld()->GetGameInstance() == Fixture.GI &&
+		Fixture.Registry->HasCanonicalItem(TEXT("Weapon_StraightSword_01")));
+
+	URPGRaceAsset* Race = LoadObject<URPGRaceAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Race_Human.DA_Race_Human"));
+	URPGClassAsset* Class = LoadObject<URPGClassAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior"));
+	if (!TestNotNull(TEXT("Production race"), Race) ||
+		!TestNotNull(TEXT("Production Warrior class"), Class))
+	{
+		Frontend->DestroyComponent();
+		return false;
+	}
+
+	Frontend->ResetPartyForNewGame();
+	FRPGCharacterCreationRequest Request;
+	Request.DisplayName = FText::FromString(TEXT("Frontend Controller Hero"));
+	Request.RaceDefinition = Race;
+	Request.ClassDefinition = Class;
+	Request.CombatActionSourceClassDefinition = Class;
+	FText Error;
+	const bool bCreated = Frontend->CreateInitialCharacter(Request, Error);
+	if (!TestTrue(TEXT("Frontend UI inventory can create a hero with canonical starter kit"), bCreated))
+	{
+		AddError(Error.ToString());
+	}
+	if (bCreated)
+	{
+		TestTrue(TEXT("Frontend character creation committed"), Frontend->HasCompletedInitialCharacterCreation());
+		TestTrue(TEXT("Starter kit identity persisted in prepared character"),
+			Frontend->PartyInventoryState.ActiveCharacters.Num() == 1 &&
+			!Frontend->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId.IsNone());
+	}
+	Frontend->DestroyComponent();
+	return !HasAnyErrors();
 }
 
 #endif

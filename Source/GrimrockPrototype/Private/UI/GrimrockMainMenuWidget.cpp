@@ -1,10 +1,13 @@
 #include "UI/GrimrockMainMenuWidget.h"
 
 #include "Components/Button.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/GrimrockGameInstance.h"
 #include "UI/RPGCharacterCreationWidget.h"
 #include "UObject/UObjectGlobals.h"
@@ -208,10 +211,35 @@ bool UGrimrockMainMenuWidget::OpenNewGameCharacterCreation()
 		return false;
 	}
 
-	NewGamePartyInventory = NewObject<UGridPartyInventoryComponent>(this);
+	// The menu is a UUserWidget, not an AActor. A component outered to
+	// the widget has no game World and cannot resolve the GameInstance's
+	// canonical ItemSystem when CreateInitialCharacter builds the starter kit.
+	const UWorld* FrontendWorld = PlayerController->GetWorld();
+	UGameInstance* FrontendGameInstance = FrontendWorld ? FrontendWorld->GetGameInstance() : nullptr;
+	const UGridItemSubsystem* CanonicalRegistry = FrontendGameInstance
+		? FrontendGameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	if (!CanonicalRegistry || !CanonicalRegistry->IsConfigured())
+	{
+		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=ItemSystemNotConfigured"), *GetName());
+		return false;
+	}
+
+	// A world-owned transient component shares the real frontend GI registry
+	// with the later dungeon pawn. No legacy definitions, saved items or
+	// character actors are created in the menu.
+	NewGamePartyInventory = NewObject<UGridPartyInventoryComponent>(PlayerController);
 	if (!NewGamePartyInventory)
 	{
 		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=NoFrontendPartyInventory"), *GetName());
+		return false;
+	}
+	PlayerController->AddInstanceComponent(NewGamePartyInventory);
+	NewGamePartyInventory->RegisterComponent();
+	if (!NewGamePartyInventory->IsRegistered() || NewGamePartyInventory->GetWorld() != FrontendWorld)
+	{
+		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=FrontendInventoryWorldMismatch"), *GetName());
+		NewGamePartyInventory->DestroyComponent();
+		NewGamePartyInventory = nullptr;
 		return false;
 	}
 	NewGamePartyInventory->ResetPartyForNewGame();
@@ -219,6 +247,7 @@ bool UGrimrockMainMenuWidget::OpenNewGameCharacterCreation()
 	NewGameCharacterCreationWidget = CreateWidget<URPGCharacterCreationWidget>(PlayerController, WidgetClass);
 	if (!NewGameCharacterCreationWidget)
 	{
+		NewGamePartyInventory->DestroyComponent();
 		NewGamePartyInventory = nullptr;
 		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=CreateCharacterCreationWidgetFailed"), *GetName());
 		return false;
@@ -235,7 +264,7 @@ bool UGrimrockMainMenuWidget::OpenNewGameCharacterCreation()
 	SetVisibility(ESlateVisibility::Collapsed);
 
 	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(NewGameCharacterCreationWidget->TakeWidget());
+	// The wizard root is not focusable; Slate must not be asked to focus it.
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	PlayerController->SetInputMode(InputMode);
 	PlayerController->bShowMouseCursor = true;
@@ -253,7 +282,11 @@ void UGrimrockMainMenuWidget::CloseNewGameCharacterCreation(bool bRestoreMainMen
 		NewGameCharacterCreationWidget->RemoveFromParent();
 		NewGameCharacterCreationWidget = nullptr;
 	}
-	NewGamePartyInventory = nullptr;
+	if (NewGamePartyInventory)
+	{
+		NewGamePartyInventory->DestroyComponent();
+		NewGamePartyInventory = nullptr;
+	}
 
 	if (bRestoreMainMenu)
 	{
@@ -275,7 +308,7 @@ void UGrimrockMainMenuWidget::RestoreMainMenuInput()
 	}
 
 	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(TakeWidget());
+	// Main-menu root is also non-focusable; mouse UI needs no forced root focus.
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	PlayerController->SetInputMode(InputMode);
 	PlayerController->bShowMouseCursor = true;

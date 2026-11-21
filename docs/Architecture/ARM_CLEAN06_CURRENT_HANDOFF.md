@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.131 — Nouvelle partie : ItemSystem inaccessible au frontend
+
+Parent `48bda88d02ef9cce4af3a9bc2415bf922e13b736`, validé Windows SUCCESS/SUCCESS. Une partie existante est validée en PIE, mais le bouton « Créer le personnage » du menu `L_MainMenu` refuse la création (`StartingEquipment requires configured ItemSystem`). Cause : `GrimrockMainMenuWidget` créait un `UGridPartyInventoryComponent` avec un `UUserWidget` pour Outer, sans monde pour résoudre le `GameInstanceSubsystem`. Le correctif rattache et enregistre le composant au `PlayerController` du menu, pré-vérifie le registre canonique, détruit le composant transitoire à la fermeture et supprime le focus invalide des widgets racine non focusables. Nouveau test `Grimrock.StartupFlow.STARTUPFLOW01.FrontendControllerCanonicalInventory`. Voir [5G.131](ARM_CLEAN06_5G131_FRONTEND_NEW_GAME_REGISTRY.md). Attendre les statuts Windows sur le nouveau SHA et recette PIE de « Nouvelle partie ».
+
 ## ARM-CLEAN06.5G.130 — Rejet de la garde inconnue en partie canonique
 
 Parent `9d924786a08aca7e0da25cc77c78eb57279929f1` : après validation de 5G.129.1, `GridEquippedGuardItemReadModel` ne doit plus classer ARM013 ou bouclier d'une identité absente de `DA_ItemSystem` dans une partie configurée. La compatibilité sans registre est réservée à Automation ; le test `CanonicalGuardItemIdentity` couvre rejet et fixture. Aucun asset ou SaveGame modifié. Publication conditionnée aux deux statuts Windows SUCCESS sur le parent, puis validation du nouveau SHA. Voir [5G.130](ARM_CLEAN06_5G130_GUARD_UNKNOWN_FAIL_CLOSED.md).
