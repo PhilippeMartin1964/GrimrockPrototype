@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.13 — Garde natif prêt pour la palette historique absente
+
+Parent H.12 `c6af46f579caacb6b655c5af0403b2c2081a5617` validé SUCCESS/SUCCESS. Les gardes de classification 5A, le script d'audit complet et le planificateur non destructif acceptent désormais strictement **54 candidats avec palette historique** ou **53 sans cette seule palette**. Tous les autres rôles restent requis (48 définitions, 2 catalogues sources, 2 Readables sauvegardés, 1 redirecteur). Une fixture positive 53 est ajoutée, les refus de parité et d'arêtes externes demeurent. Il ne s'agit que de la préparation d'une éventuelle **transaction native Editor séparée**, toujours `deletion_authorized=false`. Aucun binaire supprimé. Voir [5H.13](ARM_CLEAN06_5H13_ICON_PALETTE_CANARY_READINESS.md).
+
+
 ## ARM-CLEAN06.5H.12 — Plan de retrait non destructif à partir des preuves complètes
 
 Parent H.11 `01f82ebe9b8d803b7cf5a44e3cecbfe85a1fdf12` (SilentTask et LocalAuto SUCCESS). Le nouvel audit natif privé fourni le 21.11 a exécuté les quatre contrôles spécialisés : 7/7 sauvegardes v27 décodées, 7/7 validations physiques et round-trips en mémoire, 0 ID inconnu, 145 lignes physiques, 2 pointeurs Readables à préserver, 48 identités historiques appariées aux 48 canoniques et 54 candidats classés sans arêtes externes au groupe. **Aucune suppression autorisée** (`deletion_authorized=false`). Le nouveau `Scripts/PlanARM_CLEAN06_5H12_Retirement.ps1` prépare un inventaire privé et non destructif : 48 définitions à examiner, 6 packages protégés/différés et un relevé conservateur de mentions de vieux chemins dans `Source/` et `Scripts/`. Ne jamais interpréter l'absence de mention comme preuve exhaustive. Validation par fixture `-SelfTest` intégrée à `ValidateUE.ps1`. Voir [5H.12](ARM_CLEAN06_5H12_EVIDENCE_ACCEPTANCE_AND_STATIC_CONSUMERS.md).

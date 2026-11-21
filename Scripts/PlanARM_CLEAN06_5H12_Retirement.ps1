@@ -14,7 +14,7 @@ $RequiredRoles = [ordered]@{
     historical_catalogue_source = 2
     save_readable_fixture = 2
     historical_throwing_knife_redirector = 1
-    historical_action_icon_palette = 1
+    historical_action_icon_palette = 1 # canary: 0 or 1 at audit time
     unclassified_keep_and_investigate = 0
 }
 $ProtectedReadables = @(
@@ -34,10 +34,15 @@ function Assert-ArmH12Evidence($Evidence) {
         throw 'Not a fully executed, non-destructive post-cutover report.'
     }
     $Native = $Evidence.native
+    $PaletteCount = [int]$Native.candidate_role_counts.historical_action_icon_palette
+    if ($PaletteCount -notin @(0, 1)) {
+        throw 'Old icon palette count must be exactly zero or one.'
+    }
+    $ExpectedCandidateCount = 53 + $PaletteCount
     if ([int]$Native.canonical_count -ne 48 -or [int]$Native.armament_count -ne 22 -or
         [int]$Native.resolved_item_levels -ne 466 -or
         [int]$Native.legacy_definition_count -ne 48 -or
-        [int]$Native.candidate_asset_count -ne 54 -or
+        [int]$Native.candidate_asset_count -ne $ExpectedCandidateCount -or
         [int]$Native.external_referencer_edges -ne 0 -or
         [int]$Native.unclassified_candidate_count -ne 0 -or
         $Native.native_root_dirty -ne $false -or
@@ -46,12 +51,16 @@ function Assert-ArmH12Evidence($Evidence) {
         throw 'Native canonical identity or candidate inventory differs.'
     }
     foreach ($Role in @($RequiredRoles.Keys)) {
-        if ([int]$Native.candidate_role_counts.$Role -ne $RequiredRoles[$Role]) {
+        $Expected = $RequiredRoles[$Role]
+        if ($Role -eq 'historical_action_icon_palette') { $Expected = $PaletteCount }
+        if ([int]$Native.candidate_role_counts.$Role -ne $Expected) {
             throw ('Unexpected retirement role: ' + $Role)
         }
     }
     $Candidates = @($Native.candidates)
-    if ($Candidates.Count -ne 54) { throw 'Exactly 54 classified candidates required.' }
+    if ($Candidates.Count -ne $ExpectedCandidateCount) {
+        throw 'Candidate list does not match explicit canary disposition.'
+    }
     $Seen = @{}
     foreach ($Candidate in $Candidates) {
         $Package = [string]$Candidate.package
@@ -218,7 +227,17 @@ if ($SelfTest) {
     $Rejected = $false
     try { [void](Assert-ArmH12Evidence $Evidence) } catch { $Rejected = $true }
     if (-not $Rejected) { throw 'An external package referencer was accepted.' }
-    Write-Host '[OK] 5H12 fully isolated evidence gate: positive and two negative fixtures.'
+    $Evidence.native.candidates[0].external_referencers = @()
+    $Evidence.native.candidates = @($Evidence.native.candidates |
+        Where-Object { $_.retirement_role -ne 'historical_action_icon_palette' })
+    $Evidence.native.candidate_asset_count = 53
+    $Evidence.native.candidate_role_counts.historical_action_icon_palette = 0
+    $AfterCanary = Assert-ArmH12Evidence $Evidence
+    if ($AfterCanary.protected_and_deferred.Count -ne 5 -or
+        $AfterCanary.historical_definitions.Count -ne 48) {
+        throw 'Retired icon canary fixture must keep 53 remaining candidates.'
+    }
+    Write-Host '[OK] 5H12 read-only evidence gate: 54+53 canary states and two negative fixtures.'
     return
 }
 

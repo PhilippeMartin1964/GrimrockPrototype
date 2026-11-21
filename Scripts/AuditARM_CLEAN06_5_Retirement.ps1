@@ -123,12 +123,13 @@ $ExpectedRoles=@{
     historical_catalogue_source=2
     save_readable_fixture=2
     historical_throwing_knife_redirector=1
-    historical_action_icon_palette=1
     unclassified_keep_and_investigate=0
 }
+$LegacyIconPalettes=[int]$Result.native.candidate_role_counts.historical_action_icon_palette
 if (-not $Result.native.candidate_role_counts -or
+    $LegacyIconPalettes -notin @(0,1) -or
     [int]$Result.native.unclassified_candidate_count -ne 0 -or
-    [int]$Result.native.candidate_asset_count -ne 54) {
+    [int]$Result.native.candidate_asset_count -ne (53 + $LegacyIconPalettes)) {
     throw 'Native candidate disposition was not proven.'
 }
 foreach ($Role in $ExpectedRoles.Keys) {

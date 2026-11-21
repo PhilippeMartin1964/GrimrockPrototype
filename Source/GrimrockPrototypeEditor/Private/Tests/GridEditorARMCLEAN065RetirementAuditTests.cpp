@@ -32,13 +32,18 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         Audit.Report->GetArrayField(TEXT("canonical_ids_without_legacy_source")).Num(), 0);
     TestEqual(TEXT("No external package referencer remains after native 5F"),
         int32(Audit.Report->GetNumberField(TEXT("external_referencer_edges"))), 0);
-    // A report of 54 paths is not a deletion manifest. It includes old
-    // catalogues that are separate from the canonical staged catalogues
-    // and two readable assets still held by private v27 saves.
-    TestEqual(TEXT("Whole retirement candidate inventory (not a delete list)"),
-        int32(Audit.Report->GetNumberField(TEXT("candidate_asset_count"))), 54);
+    // The old icon palette is the one isolated canary allowed to disappear
+    // after a separate, backed-up native Editor retirement. The other 53
+    // assets MUST stay classified; this is still not a delete manifest.
     const TSharedPtr<FJsonObject> Roles = Audit.Report->GetObjectField(TEXT("candidate_role_counts"));
     if (!TestTrue(TEXT("Candidate roles are reported"), Roles.IsValid())) return false;
+    const int32 LegacyIconPalettes =
+        int32(Roles->GetNumberField(TEXT("historical_action_icon_palette")));
+    TestTrue(TEXT("Old icon palette is present once or retired entirely"),
+        LegacyIconPalettes == 0 || LegacyIconPalettes == 1);
+    TestEqual(TEXT("Retirement inventory retains all non-palette candidates"),
+        int32(Audit.Report->GetNumberField(TEXT("candidate_asset_count"))),
+        53 + LegacyIconPalettes);
     TestEqual(TEXT("48 historical item definitions"),
         int32(Roles->GetNumberField(TEXT("historical_item_definition"))), 48);
     TestEqual(TEXT("Two OLD sources, not canonical staged catalogues"),
@@ -47,8 +52,7 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         int32(Roles->GetNumberField(TEXT("save_readable_fixture"))), 2);
     TestEqual(TEXT("Throwing knife redirector requires fix-up"),
         int32(Roles->GetNumberField(TEXT("historical_throwing_knife_redirector"))), 1);
-    TestEqual(TEXT("One legacy action icon palette"),
-        int32(Roles->GetNumberField(TEXT("historical_action_icon_palette"))), 1);
+    // Icon canary count checked above; never infer general deletion approval.
     TestEqual(TEXT("No unclassified paths in current sample"),
         int32(Roles->GetNumberField(TEXT("unclassified_keep_and_investigate"))), 0);
     TestEqual(TEXT("Every candidate is covered by an explicit non-deleting role"),
