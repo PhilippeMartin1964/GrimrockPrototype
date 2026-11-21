@@ -20,6 +20,8 @@ namespace RPGStartingPresets
         int32 ItemLevel = 0;
     };
 
+#if WITH_EDITOR
+    // Old two-kit authoring fixtures never ship in the packaged game.
     struct FKitSpec
     {
         const TCHAR* ClassId;
@@ -79,6 +81,8 @@ namespace RPGStartingPresets
             {TEXT("DA_Item_Bomb_Fire"), EGridEquipmentSlot::None}, false }
     };
 
+
+#endif // WITH_EDITOR: historical two-kit recipes
 
     // ARMEMENT01.13: the eighteen approved N1 orientations. These are
     // source-controlled recipes, not talent grants or equipment restrictions.
@@ -191,7 +195,9 @@ namespace RPGStartingPresets
 
     bool IsSupportedClass(FName ClassId)
     {
-        for (const FKitSpec& Spec : Kits)
+        // All six production classes have three approved kits. Never consult
+        // the obsolete two-kit list in packaged builds or Editor production.
+        for (const FApprovedKitSpec& Spec : ApprovedKits)
         {
             if (ClassId == FName(Spec.ClassId))
             {
@@ -201,6 +207,7 @@ namespace RPGStartingPresets
         return false;
     }
 
+#if WITH_EDITOR
     UGridItemDefinitionAsset* ResolveItem(const TCHAR* AssetName)
     {
         const bool bWeapon = FCString::Strncmp(AssetName, TEXT("DA_Weapon_"), 10) == 0;
@@ -210,6 +217,8 @@ namespace RPGStartingPresets
             Folder, AssetName, AssetName);
         return LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
     }
+
+#endif // WITH_EDITOR: old source path loader
 
     bool AddItem(
         FRPGStartingEquipmentKit& Kit, const FItemSpec& Spec,
@@ -247,9 +256,10 @@ namespace RPGStartingPresets
             Entry.TargetSlot = Spec.Slot;
             return true;
         }
-        // Historical worldless fixtures and the old two-kit editor audit
-        // remain until their retirement. Production with a registry never
-        // loads these paths or uses them as fallback.
+#if WITH_EDITOR
+        // Only Editor fixtures/audits can load the old path. Approved
+        // starter kits also require GIsAutomationTesting when registry-less.
+        // Shipping never contains this source lookup.
         UGridItemDefinitionAsset* Definition = ResolveItem(Spec.AssetName);
         if (!IsValid(Definition) || Definition->ItemDefinitionId.IsNone() ||
             (Spec.Slot != EGridEquipmentSlot::None && !Definition->CanEquipToSlot(Spec.Slot)))
@@ -266,6 +276,10 @@ namespace RPGStartingPresets
         Entry.Quantity = 1;
         Entry.TargetSlot = Spec.Slot;
         return true;
+#else
+        OutError = TEXT("Historical kit definitions are Editor-only.");
+        return false;
+#endif
     }
 }
 
@@ -288,6 +302,12 @@ bool FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(
     URPGClassAsset& TransientClass, FString& OutError)
 {
     OutError.Reset();
+#if !WITH_EDITOR
+    // Retained as a source-compatible API, but never materialize obsolete
+    // DA_Weapon/DA_Item assets in a packaged game.
+    OutError = TEXT("Historical two-kit previews are Editor-only.");
+    return false;
+#else
     if (!RPGStartingPresets::IsSupportedClass(TransientClass.ClassId))
     {
         OutError = FString::Printf(
@@ -342,6 +362,7 @@ bool FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(
         return false;
     }
     return true;
+#endif // WITH_EDITOR
 }
 
 bool FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(

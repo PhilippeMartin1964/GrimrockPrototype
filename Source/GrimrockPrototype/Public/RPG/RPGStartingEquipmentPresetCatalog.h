@@ -18,7 +18,7 @@ class GRIMROCKPROTOTYPE_API FRPGStartingEquipmentPresetCatalog
 public:
     static bool IsProductionClassAsset(const URPGClassAsset* ClassAsset);
 
-    /** Populate an initially unconfigured transient class. Transactional. */
+    /** Historical two-kit migration/audit only (Editor). Packaged builds fail closed. */
     static bool TryPopulateTransientClass(URPGClassAsset& TransientClass, FString& OutError);
 
     /** ARMEMENT01.13.2: active New Game path, three approved N1 kits per class.

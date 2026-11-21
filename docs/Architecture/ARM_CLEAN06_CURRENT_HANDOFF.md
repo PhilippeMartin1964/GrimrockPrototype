@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.6 — Les anciens kits de 12 ne sont plus chargés hors Editor
+
+Parent `5e6e3a751bbb48c33ffb9ea3e292f0b7398c3cf3` : ne publier qu'après H.5 SUCCESS/SUCCESS. L'ancien générateur de 12 kits, ses `DA_Weapon_*/DA_Item_*` LoadObject et son tableau de recettes ne sont plus compilés dans les builds non-Editor. Les six classes du jeu se reconnaissent depuis les 18 recettes approuvées et restent strictement canoniques. L'audit historique de 12 kits reste possible en Editor ; une nouvelle Automation vérifie 6 classes, 12 + 18 kits, et leur non-mutation. Le Cook/Shipping reste à démontrer séparément. Voir [5H.6](ARM_CLEAN06_5H6_SHIPPING_LEGACY_STARTER_RETIREMENT.md).
+
+
 ## ARM-CLEAN06.5H.5 — Audit privé exige désormais les preuves canoniques complètes
 
 Parent H.4 `0f686044f537b13111c3eb6c4e42ea37d7db3214` : ne publier H.5 qu'après double SUCCESS Windows. Le script d'audit natif privé active désormais en lecture seule les preflights `WorldPointerPreflight`, `InstanceCacheEvidence`, `SemanticCacheEvidence`, `InstanceSchemaProjection`, et refuse toute sauvegarde dont les contrôles de round-trip/identité/poids canoniques échouent. Il exige aussi la taxonomie 54 packages introduite en H.4. Les modes et résultats privés ne sont pas exécutés en CI : validation Windows compile et vérifie les tests sans toucher aux `.sav` de l'utilisateur. Voir [5H.5](ARM_CLEAN06_5H5_FULL_PRIVATE_RETIREMENT_EVIDENCE.md).
