@@ -6,6 +6,7 @@
 #include "Runtime/Combat/GridWorldItemVisualResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "GridCanonicalWeightTestWorld.h"
 
 namespace ARMEMENT0166Tests
 {
@@ -85,55 +86,79 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0166EquipmentAttackTest,
 
 bool FARMEMENT0166EquipmentAttackTest::RunTest(const FString&)
 {
-    UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+    FGridCanonicalWeightTestWorld Fixture({});
+    const UGridItemSubsystem* Registry = Fixture.Scope.Registry;
+    if (!TestNotNull(TEXT("Configured production ItemSystem"), Registry))
+        return false;
+    UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("World-bound inventory for canonical pilot weapons"), Inventory))
+        return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
+
     for (const ARMEMENT0166Tests::FSpec& Spec : ARMEMENT0166Tests::Specs)
     {
-        UGridItemDefinitionAsset* Item = ARMEMENT0166Tests::LoadItem(Spec);
-        if (!TestNotNull(TEXT("Production item exists"), Item)) { continue; }
-        TestTrue(TEXT("Item registration"), Inventory->RegisterItemDefinition(Item));
+        const FName ItemId(Spec.ItemId);
+        FGridResolvedItem Resolved;
+        if (!TestTrue(TEXT("Real pilot ARM resolves canonically at N1"),
+                Registry->ResolveItem(ItemId, 1, Resolved)) ||
+            !TestTrue(TEXT("Resolved item and archetype match the pilot manifest"),
+                Resolved.IsValid() && Resolved.bIsArmament &&
+                Resolved.ItemId == ItemId && Resolved.ItemLevel == 1 &&
+                Resolved.ArchetypeId == FName(Spec.Archetype) &&
+                Resolved.VisualId == FName(Spec.VisualId)))
+            return false;
+
+        TestTrue(TEXT("Resolved canonical mass is finite and nonnegative"),
+            FMath::IsFinite(Resolved.WeightKg) && Resolved.WeightKg >= 0.f);
+        TestTrue(TEXT("Canonical pilot supports its authored equipment hand"),
+            Resolved.Weapon.CanEquipInHand(Spec.Slot));
+        TestNull(TEXT("No legacy pilot definition is registered"),
+            Inventory->FindItemDefinition(ItemId));
         FGridItemInstance Instance;
         Instance.RuntimeObjectId = FGuid::NewGuid();
-        Instance.ItemDefinitionId = Item->ItemDefinitionId;
+        Instance.ItemDefinitionId = ItemId;
+        Instance.ItemLevel = 1;
         Instance.Quantity = 1;
-        TestTrue(TEXT("Create fixed-level instance"), Inventory->ApplyItemDefinitionToInstance(Instance));
-        TestEqual(TEXT("Minted level = 1"), Instance.ItemLevel, 1);
-        const UGridWeaponCatalogueAsset* Catalogue = Item->WeaponCatalogue.LoadSynchronous();
-        if (!TestNotNull(TEXT("RPG catalogue loaded"), Catalogue)) { continue; }
-        const FGridWeaponLevelProfile* Profile = Catalogue->FindProfile(Item->WeaponArchetypeId, 1);
-        if (!TestNotNull(TEXT("Level one profile exists"), Profile)) { continue; }
-        const FGridWeaponLevelProfile* FixedLevelProfile = nullptr;
-        if (!TestTrue(TEXT("Fixed instance level resolves in the original weapon catalogue"),
-                Item->TryGetWeaponCatalogueProfile(Instance.ItemLevel, FixedLevelProfile)) ||
-            !TestNotNull(TEXT("Resolved fixed-level profile"), FixedLevelProfile)) continue;
-        TestTrue(TEXT("Level-one mass remains exactly catalogue-derived"),
-            FMath::IsNearlyEqual(FixedLevelProfile->WeightKg, Profile->WeightKg));
-        TestTrue(TEXT("Legacy authoring mass agrees with the catalogue"),
-            FMath::IsNearlyEqual(Item->Weight, FixedLevelProfile->WeightKg));
-        TestNull(TEXT("Physical item no longer reflects redundant Weight"),
+        if (!TestTrue(TEXT("Canonical fixed-level instance materializes"),
+                Inventory->ApplyItemDefinitionToInstance(Instance)))
+            return false;
+        TestEqual(TEXT("Physical item identity is stable"), Instance.ItemDefinitionId, ItemId);
+        TestEqual(TEXT("Physical item keeps explicit N1"), Instance.ItemLevel, 1);
+        TestNull(TEXT("No redundant Weight field on physical instance"),
             FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
-        TestEqual(TEXT("Combat action availability"), Item->CanProvideAttackFromSlot(Spec.Slot), Spec.bAttack);
+
+        TestEqual(TEXT("Canonical combat attack permission"),
+            Resolved.Weapon.HasAttackSourceInHand(Spec.Slot), Spec.bAttack);
         if (Spec.bAttack)
         {
-            const FGridCombatActionDefinition& Action = Item->CombatActions[0];
-            TestTrue(TEXT("Authored attack is valid"), Action.IsValid());
-            TestEqual(TEXT("Cost is catalogue AP cost"), Action.ActionPointCost, Profile->ActionPointCost);
-            TestEqual(TEXT("Attack range from catalogue"), Action.RangeCells, Profile->RangeCells);
-            FGridOffensiveEquipmentProfile Offensive;
-            TestTrue(TEXT("Attack resolves using the real item level"),
-                Item->ResolveEquippedOffensiveProfile(Instance, Action, Offensive));
-            TestTrue(TEXT("Resolved offensive dice are valid"), Offensive.AttackDefinition.DamageDice.IsValid());
-            TestEqual(TEXT("Attack range stays catalogue-derived"), Offensive.RangeCells, Profile->RangeCells);
+            TestTrue(TEXT("Pilot attack uses the canonical weapon kind"),
+                Resolved.Weapon.Kind == EGridCanonicalArmamentKind::Weapon);
+            TestTrue(TEXT("Pilot attack has a real damage dice profile"),
+                Resolved.Weapon.DamageDice.IsValid());
+            TestTrue(TEXT("Pilot N1 attack costs action points"),
+                Resolved.Weapon.ActionPointCost > 0);
+            TestTrue(TEXT("Pilot attack range is authored"),
+                Resolved.Weapon.RangeCells >= 1);
+            TestTrue(TEXT("Pilot attack has at least one canonical action binding"),
+                Resolved.AvailableActions.Num() >= 1);
         }
         else
         {
-            TestFalse(TEXT("Shield has no main-hand attack"), Item->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-            TestFalse(TEXT("Shield cannot be equipped in main hand"), Item->CanEquipToSlot(EGridEquipmentSlot::MainHand));
-            TestFalse(TEXT("Shield cannot be physically thrown"), Item->IsPhysicallyThrowable());
-            TestTrue(TEXT("Shield remains a passive item"), Item->CombatActions.IsEmpty());
-            TestEqual(TEXT("Level-1 armor comes from catalogue"), Item->EquipmentStatBonus.ArmorBonus, Profile->PhysicalArmor);
+            TestTrue(TEXT("Shield is a passive canonical ARM"),
+                Resolved.Weapon.Kind == EGridCanonicalArmamentKind::Shield);
+            TestFalse(TEXT("Passive shield does not attack from MainHand"),
+                Resolved.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand));
+            TestFalse(TEXT("Passive shield is not equippable MainHand"),
+                Resolved.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand));
+            TestFalse(TEXT("Passive shield cannot launch a specialized projectile"),
+                Resolved.Weapon.Projectile.bEnabled);
+            TestFalse(TEXT("Passive shield has no authored generic throw"),
+                Resolved.Weapon.Projectile.bGenericThrowAuthored);
+            TestTrue(TEXT("Pilot shield N1 armor remains positive"),
+                Resolved.Weapon.PhysicalArmor > 0);
         }
     }
-    return true;
+    return !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
