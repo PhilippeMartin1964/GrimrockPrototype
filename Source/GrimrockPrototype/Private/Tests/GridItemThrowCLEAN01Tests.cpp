@@ -5,6 +5,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "../Runtime/GridPhysicalThrowStrengthReadModel.h"
 #include "Engine/GameInstance.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
@@ -25,19 +26,10 @@ bool FGridItemThrowCLEAN01Test::RunTest(const FString& Parameters)
 
 	TestNull(TEXT("Legacy bThrowable property is physically removed"), ItemClass->FindPropertyByName(TEXT("bThrowable")));
 
-	UGridItemDefinitionAsset* PhysicalItem = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-	PhysicalItem->HandUsage = EGridItemHandUsage::OneHanded;
-	PhysicalItem->Weight = 1.0f;
-	PhysicalItem->ThrowSpeed = 1200.0f;
-	PhysicalItem->bCombatThrowWeapon = false;
-	TestTrue(TEXT("A one-handed item with valid weight and speed is physically throwable"), PhysicalItem->IsPhysicallyThrowable());
-	TestFalse(TEXT("Physical throwability does not grant combat throw authority"), PhysicalItem->IsCombatThrowable());
-	PhysicalItem->bCombatThrowWeapon = true;
-	TestTrue(TEXT("Explicit combat throw authority enables combat throwing"), PhysicalItem->IsCombatThrowable());
-
-	// The current Shuriken combat and physical policy is owned only by the
-	// canonical item/weapon catalogues. Old UGridItemDefinitionAsset is a
-	// synthetic backwards-characterization fixture above, not an asset source.
+	// H.67: Physical throw eligibility is an ItemSystem read, not an
+	// authored synthetic UGridItemDefinitionAsset that may disappear at cutover.
+	// The remaining reflection check above guards the old bThrowable removal
+	// until the UGridItemDefinitionAsset type itself is retired.
 	TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
 	TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
 	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
@@ -60,7 +52,43 @@ bool FGridItemThrowCLEAN01Test::RunTest(const FString& Parameters)
 		FMath::IsFinite(Shuriken.GenericThrow.InitialSpeed) &&
 		Shuriken.GenericThrow.InitialSpeed > KINDA_SMALL_NUMBER);
 
-	return true;
+	FGridItemInstance PhysicalShuriken;
+	PhysicalShuriken.RuntimeObjectId = FGuid::NewGuid();
+	PhysicalShuriken.ItemDefinitionId = Shuriken.ItemId;
+	PhysicalShuriken.ItemLevel = 0;
+	PhysicalShuriken.Quantity = 1;
+	const FGridPhysicalThrowStrengthReadView Allowed =
+		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), nullptr, PhysicalShuriken, 100);
+	TestTrue(TEXT("Physical throw gate recognizes the canonical Shuriken"), Allowed.bCanonicalIdentity);
+	TestTrue(TEXT("Shuriken physical throw is resolved without historical item definition"), Allowed.bResolved);
+	TestTrue(TEXT("Shuriken is carried and thrown with one hand"), Allowed.bOneHanded);
+	TestTrue(TEXT("High enough Strength allows real Shuriken physical throwing"), Allowed.bCanThrow);
+	TestTrue(TEXT("Physical throw uses the only canonical unit mass"),
+		FMath::IsNearlyEqual(Allowed.UnitWeightKg, Shuriken.WeightKg));
+	TestTrue(TEXT("Valid physical throw has a positive speed multiplier"), Allowed.SpeedScale > 0.f);
+
+	const FGridPhysicalThrowStrengthReadView NoStrength =
+		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), nullptr, PhysicalShuriken, 0);
+	TestTrue(TEXT("Strength zero still recognizes canonical identity"), NoStrength.bCanonicalIdentity);
+	TestTrue(TEXT("Strength zero resolves without a legacy definition"), NoStrength.bResolved);
+	TestFalse(TEXT("Strength zero cannot physically throw the Shuriken"), NoStrength.bCanThrow);
+
+	PhysicalShuriken.ItemLevel = 1;
+	const FGridPhysicalThrowStrengthReadView WrongLevel =
+		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), nullptr, PhysicalShuriken, 100);
+	TestTrue(TEXT("Wrong-level N1 Shuriken cannot escape canonical membership"), WrongLevel.bCanonicalIdentity);
+	TestFalse(TEXT("N1 non-ARM Shuriken is not resolved"), WrongLevel.bResolved);
+	TestFalse(TEXT("N1 non-ARM Shuriken cannot be thrown"), WrongLevel.bCanThrow);
+
+	PhysicalShuriken.ItemDefinitionId = TEXT("Unknown_ItemThrowClean01");
+	PhysicalShuriken.ItemLevel = 0;
+	const FGridPhysicalThrowStrengthReadView Unknown =
+		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), nullptr, PhysicalShuriken, 100);
+	TestFalse(TEXT("Unknown item is not a canonical identity"), Unknown.bCanonicalIdentity);
+	TestFalse(TEXT("Configured registry does not invent legacy throw authority"), Unknown.bResolved);
+	TestFalse(TEXT("Unknown item cannot be thrown without an authored source"), Unknown.bCanThrow);
+
+	return !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
