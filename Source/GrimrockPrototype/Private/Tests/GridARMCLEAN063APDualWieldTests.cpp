@@ -158,6 +158,14 @@ bool FGridClean063APDualWield::RunTest(const FString&)
 	Equipment.OffHand.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	TestTrue(TEXT("Valid pair restored"), FGridDualWieldPolicy::TryResolve(
 		Inventory.Get(), 0, Pair, Registry.Get()));
-	return true;
+
+	const FName SavedMainId = Equipment.MainHand.ItemDefinitionId;
+	Equipment.MainHand.ItemDefinitionId = TEXT("Unknown_RegisteredWorld_DualWield");
+	TestFalse(TEXT("An unregistered physical weapon never creates a canonical dual pair"),
+		FGridDualWieldPolicy::TryResolve(Inventory.Get(), 0, Pair, Registry.Get()));
+	Equipment.MainHand.ItemDefinitionId = SavedMainId;
+	TestTrue(TEXT("Restoring both real source IDs restores canonical dual eligibility"),
+		FGridDualWieldPolicy::TryResolve(Inventory.Get(), 0, Pair, Registry.Get()));
+	return !HasAnyErrors();
 }
 #endif

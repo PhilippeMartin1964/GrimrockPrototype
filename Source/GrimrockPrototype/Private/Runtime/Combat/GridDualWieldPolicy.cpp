@@ -2,6 +2,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridCanonicalEquippedAttackReadModel.h"
+#include "CoreGlobals.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 
@@ -61,7 +62,14 @@ namespace
 			return false;
 		}
 
-		// Only not-yet-migrated identities retain their historical path.
+		// After canonical migration, the old dual-attack authoring path
+		// exists for *worldless* Automation fixtures only. A configured
+		// ItemSystem must not borrow a copied attack for an unknown ItemId.
+#if WITH_DEV_AUTOMATION_TESTS
+		if (Registry || !GIsAutomationTesting)
+		{
+			return false;
+		}
 		OutSource.Definition = Inventory->FindItemDefinition(OutSource.Item.ItemDefinitionId);
 		if (!IsValid(OutSource.Definition) || !OutSource.Definition->IsValidDefinition() ||
 			OutSource.Definition->GetEffectiveHandUsage() != EGridItemHandUsage::OneHanded ||
@@ -91,6 +99,9 @@ namespace
 		OutSource.Action = *Attack;
 		OutSource.SourceTags = OutSource.Definition->ItemTags;
 		return true;
+#else
+		return false;
+#endif // WITH_DEV_AUTOMATION_TESTS
 	}
 }
 
