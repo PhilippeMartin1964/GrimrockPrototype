@@ -4,20 +4,12 @@
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGStartingEquipmentService.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "GridCanonicalWeightTestWorld.h"
 #include "UObject/UnrealType.h"
 
 namespace ARMEMENT0191
 {
-	static constexpr const TCHAR* BowPath =
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ShortBow_01.DA_Weapon_ShortBow_01");
-	static constexpr const TCHAR* DaggerPath =
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01");
-	static constexpr const TCHAR* ShieldPath =
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01");
-
 	URPGRaceAsset* MakeRace()
 	{
 		URPGRaceAsset* Race = NewObject<URPGRaceAsset>();
@@ -48,15 +40,6 @@ namespace ARMEMENT0191
 			Class->DefaultStartingEquipmentKitId = KitId;
 		}
 		return Kit;
-	}
-
-	void AddEntry(FRPGStartingEquipmentKit& Kit, UGridItemDefinitionAsset* Definition, int32 Level, EGridEquipmentSlot Slot)
-	{
-		FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
-		Entry.ItemDefinition = Definition;
-		Entry.ItemLevel = Level;
-		Entry.TargetSlot = Slot;
-		Entry.Quantity = 1;
 	}
 
 	void AddCanonicalEntry(FRPGStartingEquipmentKit& Kit, FName ItemId,
@@ -261,40 +244,79 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0191RollbackTest,
 
 bool FARMEMENT0191RollbackTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Bow = LoadObject<UGridItemDefinitionAsset>(nullptr, ARMEMENT0191::BowPath);
-	UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr, ARMEMENT0191::ShieldPath);
-	UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr, ARMEMENT0191::DaggerPath);
-	if (!TestNotNull(TEXT("Pilot assets exist"), Bow) || !TestNotNull(TEXT("Pilot shield exists"), Shield) ||
-		!TestNotNull(TEXT("Pilot dagger exists"), Dagger)) return false;
+	FGridCanonicalWeightTestWorld Fixture({});
+	const UGridItemSubsystem* Registry = Fixture.Scope.Registry;
+	const FName BowId(TEXT("Weapon_ShortBow_01"));
+	const FName DaggerId(TEXT("Weapon_Dagger_01"));
+	const FName ShieldId(TEXT("Weapon_RoundShield_01"));
+	FGridResolvedItem Bow, Dagger, Shield;
+	if (!TestNotNull(TEXT("Canonical kit registry"), Registry) ||
+		!TestTrue(TEXT("Physical bow N9 resolves"), Registry->ResolveItem(BowId, 9, Bow)) ||
+		!TestTrue(TEXT("Physical dagger N1 resolves"), Registry->ResolveItem(DaggerId, 1, Dagger)) ||
+		!TestTrue(TEXT("Physical shield N1 resolves"), Registry->ResolveItem(ShieldId, 1, Shield)) ||
+		!TestTrue(TEXT("All rejected-kit items are authored ARM entries"),
+			Bow.bIsArmament && Dagger.bIsArmament && Shield.bIsArmament &&
+			Bow.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded &&
+			Shield.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand)))
+		return false;
+
 	URPGClassAsset* Class = ARMEMENT0191::MakeClass();
 	FRPGStartingEquipmentKit& Kit = ARMEMENT0191::AddKit(Class, TEXT("Conflicting"), true);
-	ARMEMENT0191::AddEntry(Kit, Bow, 9, EGridEquipmentSlot::MainHand);
-	ARMEMENT0191::AddEntry(Kit, Shield, 0, EGridEquipmentSlot::OffHand);
-	UGridPartyInventoryComponent* Inventory = ARMEMENT0191::NewInventory();
+	ARMEMENT0191::AddCanonicalEntry(Kit, BowId, 9, EGridEquipmentSlot::MainHand);
+	ARMEMENT0191::AddCanonicalEntry(Kit, ShieldId, 1, EGridEquipmentSlot::OffHand);
+	UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+	if (!TestNotNull(TEXT("World-bound canonical inventory"), Inventory)) return false;
+	Inventory->InitializeDefaultPartyIfNeeded();
+	if (!TestTrue(TEXT("Incompatible kit is structurally valid"), Class->IsValidDefinition()) ||
+		!TestTrue(TEXT("Initial party contains a provisional character"),
+			Inventory->IsValidCharacterIndex(0)))
+		return false;
 	const FGuid BeforeId = Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
 	const FName BeforeClassId = Inventory->PartyInventoryState.ActiveCharacters[0].ClassId;
 	FText Error;
-	TestFalse(TEXT("Two-handed bow plus shield cannot be granted"), Inventory->CreateInitialCharacter(
-		ARMEMENT0191::MakeRequest(Class, ARMEMENT0191::MakeRace()), Error));
-	TestFalse(TEXT("Rejected creation has an explanation"), Error.IsEmpty());
-	TestFalse(TEXT("Rejected creation does not mark completion"), Inventory->HasCompletedInitialCharacterCreation());
-	TestEqual(TEXT("Previous character identity unchanged"), Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId, BeforeId);
-	TestEqual(TEXT("Previous character class unchanged"), Inventory->PartyInventoryState.ActiveCharacters[0].ClassId, BeforeClassId);
-	TestFalse(TEXT("Failed kit did not register bow"), Inventory->FindItemDefinition(Bow->ItemDefinitionId) != nullptr);
+	TestFalse(TEXT("Canonical two-handed bow plus shield cannot be granted"),
+		Inventory->CreateInitialCharacter(
+			ARMEMENT0191::MakeRequest(Class, ARMEMENT0191::MakeRace()), Error));
+	TestFalse(TEXT("Incompatible hand equipment reports a reason"), Error.IsEmpty());
+	TestFalse(TEXT("Rejected creation does not mark completion"),
+		Inventory->HasCompletedInitialCharacterCreation());
+	TestEqual(TEXT("Original character GUID unchanged"),
+		Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId, BeforeId);
+	TestEqual(TEXT("Original character class unchanged"),
+		Inventory->PartyInventoryState.ActiveCharacters[0].ClassId, BeforeClassId);
+	TestFalse(TEXT("No bow leaked into equipped MainHand"),
+		Inventory->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::MainHand));
+	TestFalse(TEXT("No shield leaked into OffHand"),
+		Inventory->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::OffHand));
+	TestEqual(TEXT("No physical bow granted"), ARMEMENT0191::CountPhysicalItem(Inventory, BowId), 0);
+	TestEqual(TEXT("No physical shield granted"), ARMEMENT0191::CountPhysicalItem(Inventory, ShieldId), 0);
+	TestNull(TEXT("No obsolete bow definition registered"), Inventory->FindItemDefinition(BowId));
 
-	// Capacity failure after staging one item must likewise reject the entire kit.
+	// An already staged item must also roll back when the bag has only one slot.
 	Kit.Items.Reset();
-	ARMEMENT0191::AddEntry(Kit, Dagger, 0, EGridEquipmentSlot::None);
-	ARMEMENT0191::AddEntry(Kit, Shield, 0, EGridEquipmentSlot::None);
+	ARMEMENT0191::AddCanonicalEntry(Kit, DaggerId, 1, EGridEquipmentSlot::None);
+	ARMEMENT0191::AddCanonicalEntry(Kit, ShieldId, 1, EGridEquipmentSlot::None);
 	Inventory->DefaultInventorySlotCountPerCharacter = 1;
 	Error = FText::GetEmpty();
-	TestFalse(TEXT("Full bag rejects both staged grants"), Inventory->CreateInitialCharacter(
-		ARMEMENT0191::MakeRequest(Class, ARMEMENT0191::MakeRace()), Error));
-	TestFalse(TEXT("Capacity failure returns an explanation"), Error.IsEmpty());
-	TestFalse(TEXT("Capacity failure does not mark completion"), Inventory->HasCompletedInitialCharacterCreation());
-	TestEqual(TEXT("Capacity failure keeps original character"), Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId, BeforeId);
-	TestFalse(TEXT("Failed kit does not register dagger"), Inventory->FindItemDefinition(Dagger->ItemDefinitionId) != nullptr);
-	return true;
+	TestFalse(TEXT("Full canonical bag rejects both staged grants"),
+		Inventory->CreateInitialCharacter(
+			ARMEMENT0191::MakeRequest(Class, ARMEMENT0191::MakeRace()), Error));
+	TestFalse(TEXT("Bag capacity failure reports a reason"), Error.IsEmpty());
+	TestFalse(TEXT("Bag capacity rejection does not mark completion"),
+		Inventory->HasCompletedInitialCharacterCreation());
+	TestEqual(TEXT("Bag failure preserves original character GUID"),
+		Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId, BeforeId);
+	TestEqual(TEXT("Bag failure preserves original class"),
+		Inventory->PartyInventoryState.ActiveCharacters[0].ClassId, BeforeClassId);
+	TestEqual(TEXT("No physical dagger granted"), ARMEMENT0191::CountPhysicalItem(Inventory, DaggerId), 0);
+	TestEqual(TEXT("No physical shield granted after bag failure"),
+		ARMEMENT0191::CountPhysicalItem(Inventory, ShieldId), 0);
+	TestNull(TEXT("No obsolete dagger definition registered"),
+		Inventory->FindItemDefinition(DaggerId));
+	FString OwnershipError;
+	TestTrue(TEXT("Rejected kits leave party ownership valid"),
+		Inventory->ValidateInventoryOwnership(OwnershipError));
+	return !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
