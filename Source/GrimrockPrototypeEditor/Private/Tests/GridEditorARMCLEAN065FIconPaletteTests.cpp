@@ -2,6 +2,9 @@
 #include "Misc/AutomationTest.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
+#include "AssetRegistry/AssetData.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
 #include "Misc/AssetRegistryInterface.h"
 #include "Modules/ModuleManager.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
@@ -40,8 +43,18 @@ bool FGridEditorARM065FPalette::RunTest(const FString&)
     using namespace UE::AssetRegistry;
     IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
     Registry.SearchAllAssets(true);
+    const FName RetiredPalettePackage(
+        TEXT("/Game/GrimrockPrototype/UI/Icons/Combat/DA_EquippedWeaponActionIcons"));
+    TArray<FAssetData> RetiredAssets;
+    Registry.GetAssetsByPackageName(RetiredPalettePackage, RetiredAssets, true);
+    TestEqual(TEXT("The historical icon palette remains retired in AssetRegistry"),
+        RetiredAssets.Num(), 0);
+    const FString RetiredPaletteFile = FPaths::ProjectContentDir() /
+        TEXT("GrimrockPrototype/UI/Icons/Combat/DA_EquippedWeaponActionIcons.uasset");
+    TestFalse(TEXT("The retired icon palette must be absent on disk"),
+        IFileManager::Get().FileExists(*RetiredPaletteFile));
     TArray<FName> Refs;
-    Registry.GetReferencers(FName(TEXT("/Game/GrimrockPrototype/UI/Icons/Combat/DA_EquippedWeaponActionIcons")),
+    Registry.GetReferencers(RetiredPalettePackage,
         Refs, EDependencyCategory::Package, FDependencyQuery());
     TestEqual(TEXT("No package referencer to retired palette"), Refs.Num(), 0);
     return !HasAnyErrors();
