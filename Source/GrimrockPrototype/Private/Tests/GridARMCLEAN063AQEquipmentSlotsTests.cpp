@@ -211,22 +211,42 @@ bool FGridClean063AQEquipmentSlots::RunTest(const FString& Stage)
 	TestFalse(TEXT("Registered ARM N0 cannot fall back to old slots"), InvalidSlots.bResolved);
 	TestTrue(TEXT("Registered ARM N0 has no actions"), InvalidSlots.AllowedSlots.IsEmpty());
 
-	// Transitional unknown IDs keep the existing one/two-hand semantics.
+	int32 TwoHandLabels = 0;
+	// Unknown IDs must never inherit old equipment grants in a canonical world.
 	UGridItemDefinitionAsset* Legacy = ARMCLEAN063AQ::MakeContradictoryDefinition(
 		Fixture.Inventory, TEXT("ARM063AQ_Legacy"),
 		EGridItemHandUsage::OneHanded, EGridEquipmentSlot::Head);
 	FGridItemInstance LegacyItem =
 		ARMCLEAN063AQ::MakeItem(Legacy->ItemDefinitionId, 0, CharacterId);
 	const auto OldSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(Fixture.Registry, Legacy, LegacyItem);
-	TestFalse(TEXT("Unmigrated ID is not canonical"), OldSlots.bCanonicalIdentity);
-	TestTrue(TEXT("Unmigrated ID uses old allowed hands"), OldSlots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand) &&
-		OldSlots.AllowedSlots.Contains(EGridEquipmentSlot::OffHand));
-	TestTrue(TEXT("Unmigrated explicit Head remains available"), OldSlots.AllowedSlots.Contains(EGridEquipmentSlot::Head));
+	TestFalse(TEXT("Unknown ID remains outside canonical registry"), OldSlots.bCanonicalIdentity);
+	TestFalse(TEXT("Configured registry forbids unknown legacy equipment"), OldSlots.bResolved);
+	TestTrue(TEXT("Unknown ID has no menu/tooltip slot grants"), OldSlots.AllowedSlots.IsEmpty());
+	const auto IsolatedFixtureSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(nullptr, Legacy, LegacyItem);
+	TestTrue(TEXT("Registry-less Automation fixture retains old slot characterization"),
+		IsolatedFixtureSlots.bResolved &&
+		IsolatedFixtureSlots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand) &&
+		IsolatedFixtureSlots.AllowedSlots.Contains(EGridEquipmentSlot::OffHand) &&
+		IsolatedFixtureSlots.AllowedSlots.Contains(EGridEquipmentSlot::Head));
+	if (!TestTrue(TEXT("Unknown legacy definition fixture registered for executor parity"),
+		Fixture.Inventory->RegisterItemDefinition(Legacy))) return false;
+	TestFalse(TEXT("Executor also refuses unknown main-hand equipment in canonical world"),
+		Fixture.Inventory->CanEquipItemToSlot(0, LegacyItem, EGridEquipmentSlot::MainHand));
+	TestFalse(TEXT("Executor refuses unknown obsolete Head slot in canonical world"),
+		Fixture.Inventory->CanEquipItemToSlot(0, LegacyItem, EGridEquipmentSlot::Head));
+	TestTrue(TEXT("Unknown ID does not gain equip context menu actions"),
+		ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, LegacyItem, Legacy, TwoHandLabels).IsEmpty());
+	Legacy->HandUsage = EGridItemHandUsage::TwoHanded;
+	FGridCharacterEquipmentState& EquipmentState = Fixture.Inventory->PartyInventoryState.ActiveEquipment[0];
+	const FGridItemInstance PreviousMainHand = EquipmentState.MainHand;
+	EquipmentState.MainHand = LegacyItem;
+	TestFalse(TEXT("Unknown historical two-hand flags do not reserve OffHand"),
+		Fixture.Inventory->IsTwoHandedEquipped(0));
+	EquipmentState.MainHand = PreviousMainHand;
 	TestEqual(TEXT("No modification of canonical item state"), AxeN12.ItemLevel, 12);
 	if (Stage == TEXT("Policy")) return !HasAnyErrors();
 
 	// Actual context menu uses the same canonical read model.
-	int32 TwoHandLabels = 0;
 	const auto AxeMenu = ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, AxeN12, Axe, TwoHandLabels);
 	TestEqual(TEXT("Axe contextual action count"), AxeMenu.Num(), 1);
 	TestEqual(TEXT("Axe contextual two-handed label count"), TwoHandLabels, 1);

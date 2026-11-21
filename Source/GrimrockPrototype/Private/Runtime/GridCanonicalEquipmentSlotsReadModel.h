@@ -65,7 +65,9 @@ struct FGridCanonicalEquipmentSlotsReadModel
 		}
 
 #if WITH_DEV_AUTOMATION_TESTS
-		if (!GIsAutomationTesting || !IsValid(LegacyDefinition) ||
+		// No obsolete slot grants for an unknown ItemId while a real registry
+		// is present, even during Automation. Only isolated fixtures may use it.
+		if (Registry || !GIsAutomationTesting || !IsValid(LegacyDefinition) ||
 			LegacyDefinition->ItemDefinitionId != Item.ItemDefinitionId)
 		{
 			return View;

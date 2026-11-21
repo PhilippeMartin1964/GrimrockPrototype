@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.132 — Refuser l'équipement d'identités inconnues en monde canonique
+
+Après PIE validé de 5G.131 (`24791da73c2a392c652f581dd50592c140653006`, SilentTask/LocalAuto SUCCESS), le chemin d'équipement conservait dans `CanEquipItemToSlot` et `IsTwoHandedItem` une autorisation legacy pour les ID absents de `DA_ItemSystem`. Le menu et les tooltips utilisaient aussi une projection historique en Automation lorsque le registre était présent. Le lot 5G.132 refuse désormais l'inconnu si un registre GI est disponible, préserve la lecture N0/N1-N20 pour les identités réelles, et limite le test de l'ancien contrat aux fixtures Automation sans registre. Adaptation du test `CanonicalContextAndTooltipEquipmentSlots` (politiques, menu, tooltip et exécuteur). Voir [5G.132](ARM_CLEAN06_5G132_UNKNOWN_EQUIPMENT_FAIL_CLOSED.md). Tests Windows à vérifier sur le SHA du lot.
+
 ## ARM-CLEAN06.5G.131 — Nouvelle partie : ItemSystem inaccessible au frontend
 
 Parent `48bda88d02ef9cce4af3a9bc2415bf922e13b736`, validé Windows SUCCESS/SUCCESS. Une partie existante est validée en PIE, mais le bouton « Créer le personnage » du menu `L_MainMenu` refuse la création (`StartingEquipment requires configured ItemSystem`). Cause : `GrimrockMainMenuWidget` créait un `UGridPartyInventoryComponent` avec un `UUserWidget` pour Outer, sans monde pour résoudre le `GameInstanceSubsystem`. Le correctif rattache et enregistre le composant au `PlayerController` du menu, pré-vérifie le registre canonique, détruit le composant transitoire à la fermeture et supprime le focus invalide des widgets racine non focusables. Nouveau test `Grimrock.StartupFlow.STARTUPFLOW01.FrontendControllerCanonicalInventory`. Voir [5G.131](ARM_CLEAN06_5G131_FRONTEND_NEW_GAME_REGISTRY.md). Attendre les statuts Windows sur le nouveau SHA et recette PIE de « Nouvelle partie ».
