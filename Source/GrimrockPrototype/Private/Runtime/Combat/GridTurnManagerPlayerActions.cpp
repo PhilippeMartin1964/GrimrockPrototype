@@ -17,6 +17,7 @@
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "CoreGlobals.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -47,6 +48,7 @@ namespace
 		return Profile;
 	}
 
+#if WITH_DEV_AUTOMATION_TESTS
 	bool ResolveMON12ItemAttackProfile(const UGridItemDefinitionAsset* Definition,
 		const FGridItemInstance& EquippedItem, FGridOffensiveEquipmentProfile& OutProfile)
 	{
@@ -66,6 +68,8 @@ namespace
 		}
 		return false;
 	}
+
+#endif // historical attack profiles for Automation only
 
 	// Transient execution view of the sole canonical weapon source.
 	// Used by ordinary attacks AND class actions that borrow equipped damage.
@@ -95,6 +99,7 @@ namespace
 		return false;
 	}
 
+#if WITH_DEV_AUTOMATION_TESTS
 	void ResolveMON12AttackStatusApplications(
 		const UGridItemDefinitionAsset* Definition, FName AttackId, TArray<FGridCombatStatusApplicationProfile>& OutProfiles)
 	{
@@ -142,6 +147,8 @@ namespace
 					return Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
 				});
 	}
+
+#endif // historical status/armor/action lookup for Automation only
 
 	int32 GetScalingAttributeValue(const FRPGAttributes& Attributes, EGridAttackScalingAttribute ScalingAttribute)
 	{
@@ -406,7 +413,9 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			ResolvedAttackSourceTags = CombatActionOverride->Definition.SourceTags;
 		}
 	}
-	else if (ResolvedAttackSourceTags.IsEmpty() && !OffensiveItemDefinitionId.IsNone())
+	#if WITH_DEV_AUTOMATION_TESTS
+	else if (!AttackRegistry && GIsAutomationTesting &&
+		ResolvedAttackSourceTags.IsEmpty() && !OffensiveItemDefinitionId.IsNone())
 	{
 		if (const UGridItemDefinitionAsset* OffensiveDefinition =
 				PartyPawn->PartyInventoryComponent->FindItemDefinition(OffensiveItemDefinitionId))
@@ -415,6 +424,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 				ResolvedAttackSourceTags = OffensiveDefinition->ItemTags;
 		}
 	}
+#endif
 
 	TArray<FGridCombatStatusApplicationProfile> AttackStatusApplications;
 	TArray<FGridCombatArmorEffectProfile> AttackArmorEffects;
@@ -430,7 +440,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		AttackStatusApplications = DirectCanonicalAction.StatusApplications;
 		AttackArmorEffects = DirectCanonicalAction.ArmorEffects;
 	}
-	else if (!OffensiveItemDefinitionId.IsNone())
+	#if WITH_DEV_AUTOMATION_TESTS
+	else if (!AttackRegistry && GIsAutomationTesting && !OffensiveItemDefinitionId.IsNone())
 	{
 		const UGridItemDefinitionAsset* OffensiveDefinition =
 			PartyPawn->PartyInventoryComponent->FindItemDefinition(OffensiveItemDefinitionId);
@@ -440,6 +451,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			ResolveMON12AttackArmorEffects(OffensiveDefinition, OffensiveProfile.AttackId, AttackArmorEffects);
 		}
 	}
+#endif
 
 	TArray<FGridCombatModifierProfile> ChoiceModifiers;
 	FGridResolvedCombatModifiers ResolvedAttackModifiers;
@@ -706,14 +718,17 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	const int32 SubsequentAccuracyModifier =
 		CombatActionOverride ? CombatActionOverride->Definition.SubsequentResolutionAccuracyModifier : 0;
 	int32 SourceItemQuantityCost = CombatActionOverride ? FMath::Max(0, CombatActionOverride->CurrentSourceItemQuantityCost) : 0;
-	const UGridItemDefinitionAsset* SourceItemDefinition =
-		OffensiveItemDefinitionId.IsNone() || bCanonicalAttackSource
-			? nullptr : Inventory->FindItemDefinition(OffensiveItemDefinitionId);
-	// Read one exact owned source for both ammo and the physical throw
-	// decision. A registered item must never borrow bCombatThrowWeapon
-	// from its old DA_Weapon_* even when that pointer is still loaded.
+	// Read one exact owned source for both ammo and the physical throw.
+	// A registered item never borrows old DA_Weapon_* flags or ammo IDs.
 	const UGridItemSubsystem* AmmoRegistry = World && World->GetGameInstance()
 		? World->GetGameInstance()->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	const UGridItemDefinitionAsset* SourceItemDefinition = nullptr;
+#if WITH_DEV_AUTOMATION_TESTS
+	if (!AmmoRegistry && GIsAutomationTesting && !OffensiveItemDefinitionId.IsNone())
+	{
+		SourceItemDefinition = Inventory->FindItemDefinition(OffensiveItemDefinitionId);
+	}
+#endif
 	FGridItemInstance AmmoSourceInstance;
 	if (SourcePolicy == EGridCombatActionSourcePolicy::Equipment)
 	{
@@ -754,7 +769,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	const FGridRangedAmmunitionRequirement AmmoRequirement =
 		FGridRangedAmmunitionPolicy::ResolveForAttack(
 			AmmoRegistry, OffensiveItemDefinitionId, AmmoSourceInstance.ItemLevel,
-			SourceItemDefinition, bResolvedRangedAttack);
+			SourceItemDefinition, bResolvedRangedAttack && bItemSourceAttack);
 	// Preflight before reserving AP, mana or the source item.
 	if (!FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
 			*Inventory, AttackerCharacterIndex, AmmoRequirement))
@@ -804,16 +819,21 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 	if (bResolvedRangedAttack && !AmmoRequirement.AmmunitionItemId.IsNone())
 	{
 		const FName AmmunitionId = AmmoRequirement.AmmunitionItemId;
-		UGridItemDefinitionAsset* AmmunitionDefinition = AmmoRequirement.bCanonicalAmmunition
-			? nullptr : Inventory->FindItemDefinition(AmmunitionId);
-		// Canonical launch speed was validated together with the ammo join
-		// before reserving AP. Never consult a historical arrow for it.
-		const float LaunchSpeed = AmmoRequirement.bCanonicalAmmunition
-			? AmmoRequirement.AmmunitionLaunchSpeed
-			: (IsValid(AmmunitionDefinition) &&
-				AmmunitionDefinition->ItemDefinitionId == AmmunitionId &&
-				FMath::IsFinite(AmmunitionDefinition->ThrowSpeed)
-				? FMath::Clamp(AmmunitionDefinition->ThrowSpeed, 400.0f, 4800.0f) : 0.0f);
+		UGridItemDefinitionAsset* AmmunitionDefinition = nullptr;
+		// Canonical launch speed was validated before reserving AP.
+		float LaunchSpeed = AmmoRequirement.bCanonicalAmmunition
+			? AmmoRequirement.AmmunitionLaunchSpeed : 0.0f;
+#if WITH_DEV_AUTOMATION_TESTS
+		if (!AmmoRegistry && GIsAutomationTesting && !AmmoRequirement.bCanonicalAmmunition)
+		{
+			AmmunitionDefinition = Inventory->FindItemDefinition(AmmunitionId);
+			if (IsValid(AmmunitionDefinition) && AmmunitionDefinition->ItemDefinitionId == AmmunitionId &&
+				FMath::IsFinite(AmmunitionDefinition->ThrowSpeed))
+			{
+				LaunchSpeed = FMath::Clamp(AmmunitionDefinition->ThrowSpeed, 400.0f, 4800.0f);
+			}
+		}
+#endif
 		bSourceCommitted = IsValid(RuntimeActor) && FMath::IsFinite(LaunchSpeed) && LaunchSpeed > KINDA_SMALL_NUMBER &&
 			(AmmoRequirement.bCanonicalAmmunition || IsValid(AmmunitionDefinition));
 		if (bSourceCommitted)
@@ -1306,36 +1326,43 @@ bool UGridTurnManagerComponent::ResolveCombatActionWeaponProfile(const UGridPart
 			return true;
 		}
 
-		const UGridItemDefinitionAsset* Definition = PartyInventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
-		if (!IsValid(Definition))
+#if WITH_DEV_AUTOMATION_TESTS
+		if (!Canonical && GIsAutomationTesting)
 		{
-			OutRejectReason = EGridPlayerAttackRejectReason::EquippedItemDefinitionUnavailable;
-			return false;
-		}
-		if (!DoesMON12ItemDeclareAttack(Definition))
-		{
-			continue;
-		}
-		if (!Definition->IsValidDefinition() || !Definition->CanProvideAttackFromSlot(HandSlot))
-		{
-			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
-			return false;
-		}
-		if (!ActionDefinition.WeaponAttackProfile.MatchesItemTags(Definition->ItemTags))
-		{
-			continue;
-		}
-		if (!ResolveMON12ItemAttackProfile(Definition, EquippedItem, OutProfile) ||
-			!ActionDefinition.WeaponAttackProfile.ApplyToOffensiveProfile(ActionDefinition.ActionId, ActionDefinition.RangeCells, OutProfile))
-		{
-			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
-			return false;
-		}
+			const UGridItemDefinitionAsset* Definition = PartyInventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
+			if (!IsValid(Definition))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::EquippedItemDefinitionUnavailable;
+				return false;
+			}
+			if (!DoesMON12ItemDeclareAttack(Definition))
+			{
+				continue;
+			}
+			if (!Definition->IsValidDefinition() || !Definition->CanProvideAttackFromSlot(HandSlot))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
+			if (!ActionDefinition.WeaponAttackProfile.MatchesItemTags(Definition->ItemTags))
+			{
+				continue;
+			}
+			if (!ResolveMON12ItemAttackProfile(Definition, EquippedItem, OutProfile) ||
+				!ActionDefinition.WeaponAttackProfile.ApplyToOffensiveProfile(ActionDefinition.ActionId, ActionDefinition.RangeCells, OutProfile))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
 
-		OutItemDefinitionId = EquippedItem.ItemDefinitionId;
-		OutEquipmentSlot = HandSlot;
-		OutItemTags = Definition->ItemTags;
-		return true;
+			OutItemDefinitionId = EquippedItem.ItemDefinitionId;
+			OutEquipmentSlot = HandSlot;
+			OutItemTags = Definition->ItemTags;
+			return true;
+		}
+#endif
+		OutRejectReason = EGridPlayerAttackRejectReason::EquippedItemDefinitionUnavailable;
+		return false;
 	}
 
 	if (ActionDefinition.WeaponAttackProfile.bAllowUnarmed)
@@ -1402,31 +1429,38 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyIn
 			return true;
 		}
 
-		const UGridItemDefinitionAsset* Definition = PartyInventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
-		if (!IsValid(Definition))
+#if WITH_DEV_AUTOMATION_TESTS
+		if (!Canonical && GIsAutomationTesting)
 		{
-			OutRejectReason = EGridPlayerAttackRejectReason::EquippedItemDefinitionUnavailable;
-			return false;
-		}
-		if (!Definition->IsValidDefinition())
-		{
-			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
-			return false;
-		}
-		if (!Definition->CanProvideAttackFromSlot(RequestedEquipmentSlot))
-		{
-			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
-			return false;
-		}
+			const UGridItemDefinitionAsset* Definition = PartyInventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
+			if (!IsValid(Definition))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::EquippedItemDefinitionUnavailable;
+				return false;
+			}
+			if (!Definition->IsValidDefinition())
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
+			if (!Definition->CanProvideAttackFromSlot(RequestedEquipmentSlot))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
 
-		if (!ResolveMON12ItemAttackProfile(Definition, EquippedItem, OutProfile))
-		{
-			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
-			return false;
+			if (!ResolveMON12ItemAttackProfile(Definition, EquippedItem, OutProfile))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
+			OutItemDefinitionId = EquippedItem.ItemDefinitionId;
+			OutEquipmentSlot = RequestedEquipmentSlot;
+			return true;
 		}
-		OutItemDefinitionId = EquippedItem.ItemDefinitionId;
-		OutEquipmentSlot = RequestedEquipmentSlot;
-		return true;
+#endif
+		OutRejectReason = EGridPlayerAttackRejectReason::EquippedItemDefinitionUnavailable;
+		return false;
 	}
 
 	const EGridEquipmentSlot HandSlots[] = { EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand };
@@ -1461,32 +1495,39 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyIn
 			return true;
 		}
 
-		const UGridItemDefinitionAsset* Definition = PartyInventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
-		if (!IsValid(Definition))
+#if WITH_DEV_AUTOMATION_TESTS
+		if (!Canonical && GIsAutomationTesting)
 		{
-			OutRejectReason = EGridPlayerAttackRejectReason::EquippedItemDefinitionUnavailable;
-			return false;
-		}
+			const UGridItemDefinitionAsset* Definition = PartyInventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
+			if (!IsValid(Definition))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::EquippedItemDefinitionUnavailable;
+				return false;
+			}
 
-		if (!DoesMON12ItemDeclareAttack(Definition))
-		{
-			continue;
-		}
-		if (!Definition->IsValidDefinition() || !Definition->CanProvideAttackFromSlot(HandSlot))
-		{
-			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
-			return false;
-		}
+			if (!DoesMON12ItemDeclareAttack(Definition))
+			{
+				continue;
+			}
+			if (!Definition->IsValidDefinition() || !Definition->CanProvideAttackFromSlot(HandSlot))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
 
-		if (!ResolveMON12ItemAttackProfile(Definition, EquippedItem, OutProfile))
-		{
-			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
-			return false;
-		}
+			if (!ResolveMON12ItemAttackProfile(Definition, EquippedItem, OutProfile))
+			{
+				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+				return false;
+			}
 
-		OutItemDefinitionId = EquippedItem.ItemDefinitionId;
-		OutEquipmentSlot = HandSlot;
-		return true;
+			OutItemDefinitionId = EquippedItem.ItemDefinitionId;
+			OutEquipmentSlot = HandSlot;
+			return true;
+		}
+#endif
+		OutRejectReason = EGridPlayerAttackRejectReason::EquippedItemDefinitionUnavailable;
+		return false;
 	}
 
 	OutProfile = MakeUnarmedOffensiveProfile();

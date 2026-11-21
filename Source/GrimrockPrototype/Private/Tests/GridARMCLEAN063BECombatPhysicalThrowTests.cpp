@@ -150,9 +150,14 @@ bool FGridBECombatThrowLegacy::RunTest(const FString&)
     Old->ItemDefinitionId = TEXT("BE_LegacyCombatThrow");
     Old->bCombatThrowWeapon = true;
     const FGridItemInstance Item = ARMCLEAN063BE::MakeItem(Old->ItemDefinitionId, 0);
-    const auto Legacy = FGridCombatPhysicalThrowSourceReadModel::Resolve(
+    const auto UnknownConfigured = FGridCombatPhysicalThrowSourceReadModel::Resolve(
         Registry.Get(), Old.Get(), Item, 0, false);
-    TestTrue(TEXT("Unregistered bCombatThrowWeapon still forces one legacy projectile"),
+    TestTrue(TEXT("Configured registry never borrows unknown bCombatThrowWeapon"),
+        !UnknownConfigured.bCanonicalIdentity && UnknownConfigured.bRejectAction &&
+        !UnknownConfigured.bLaunchPhysicalProjectile);
+    const auto Legacy = FGridCombatPhysicalThrowSourceReadModel::Resolve(
+        nullptr, Old.Get(), Item, 0, false);
+    TestTrue(TEXT("Only isolated Automation may characterize a historical combat throw"),
         !Legacy.bCanonicalIdentity && Legacy.bResolved &&
         Legacy.bLaunchPhysicalProjectile && !Legacy.bRejectAction);
     const auto Missing = FGridCombatPhysicalThrowSourceReadModel::Resolve(
