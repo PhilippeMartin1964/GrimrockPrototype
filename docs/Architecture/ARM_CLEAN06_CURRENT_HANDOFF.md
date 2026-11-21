@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.3 — Kits approuvés : pas de fallback hors Automation
+
+Parent H.2 `d5b082a387e7bed8fbdaff173d181d1be32348fd` validé SilentTask/LocalAuto. `TryPopulateApprovedTransientClass` interdit désormais l'accès aux anciens objets de kit lorsque le registre est absent **même dans l'éditeur de développement hors Automation** ; la fixture de parité conservée n'est autorisée que si `GIsAutomationTesting` est vrai. Un test dédié vérifie le garde, les contrôles existants 5C vérifient les vrais kits. Aucun asset, sauvegarde ou UI modifié. Voir [5H.3](ARM_CLEAN06_5H3_APPROVED_STARTER_AUTOMATION_GATE.md). Vérifier les deux statuts Windows sur ce SHA.
+
+
 ## ARM-CLEAN06.5H.2 — Tests Editor 06.2 découplés de la palette historique
 
 Parent `11628391943503fa3f037d47183a55f0a5fe8017` (SilentTask et LocalAuto SUCCESS). Les huit tests 062K/P/Q/U/V/W/X/Y ne chargent plus directement `DA_EquippedWeaponActionIcons` : une fixture Automation transiente reprend les douze catégories de `DA_ItemSystem.WeaponVisualCatalogue.ActionIcons`. Les assertions de migration restent, **mais leur entrée est désormais canonique et n'est plus une preuve de parité indépendante de la palette historique**. Les assets, WBP et SaveGames restent inchangés. Exiger les deux statuts Windows sur le SHA H.2 ; aucune suppression du DataAsset autorisée. Voir [5H.2](ARM_CLEAN06_5H2_EDITOR_ICON_FIXTURE_CANONICAL.md).

@@ -2,6 +2,7 @@
 
 #include "RPG/RPGClassAsset.h"
 #include "GridStartingKitEquipmentPolicyReadModel.h"
+#include "GridApprovedStarterLegacyFixtureGate.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UI/UILocalizationText.h"
@@ -360,13 +361,15 @@ bool FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
         return TransientClass.IsValidDefinition();
     }
 
-#if !WITH_DEV_AUTOMATION_TESTS
-    if (!CanonicalRegistry)
+    // A Development Editor build also compiles Automation tests. That is
+    // NOT permission to materialize the old 18-kit definitions during
+    // ordinary Editor use without a configured canonical ItemSystem.
+    if (!CanonicalRegistry &&
+        !FGridApprovedStarterLegacyFixtureGate::Allows(GIsAutomationTesting))
     {
         OutError = TEXT("Production starter kits require the canonical ItemSystem.");
         return false;
     }
-#endif
     TArray<FRPGStartingEquipmentKit> Candidate;
     FName DefaultId = NAME_None;
     for (const RPGStartingPresets::FApprovedKitSpec& Spec : RPGStartingPresets::ApprovedKits)
