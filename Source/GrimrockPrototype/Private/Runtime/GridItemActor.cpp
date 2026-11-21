@@ -8,6 +8,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridCanonicalItemMeshReadModel.h"
+#include "GridLegacyWorldActorInitGate.h"
 #include "GridWorldPhysicsMassReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -81,20 +82,11 @@ void AGridItemActor::SetItemLightsEnabled(bool bEnabled)
 
 void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId)
 {
-	// A real game must not materialize an item from obsolete UObject data.
-	// Some historical VFX and receptacle Automation fixtures intentionally
-	// create a GameInstance-backed world to characterize legacy->canonical
-	// upgrades. Preserve that exception ONLY during an actual Automation run;
-	// a normal Editor session and every non-test build remain fail-closed.
-	const UWorld* World = GetWorld();
-	bool bRejectLegacyGameWorld = World && World->GetGameInstance() != nullptr;
 #if WITH_DEV_AUTOMATION_TESTS
-	if (GIsAutomationTesting)
-	{
-		bRejectLegacyGameWorld = false;
-	}
-#endif
-	if (!InDefinition || bRejectLegacyGameWorld)
+	// Retained only to characterize historic world visuals and receptacle
+	// upgrades in real Automation runs, including GI-backed test worlds.
+	// Shipping and ordinary Editor sessions never materialize legacy actors.
+	if (!FGridLegacyWorldActorInitGate::Allows(GIsAutomationTesting) || !IsValid(InDefinition))
 	{
 		return;
 	}
@@ -127,6 +119,11 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 		VisualEffectsComponent->ApplyConfig(InDefinition->VisualEffects);
 	}
 	RefreshWorldSparklePresentation();
+#else
+	// Legacy DataAsset projection is not compiled into a game build.
+	(void)InDefinition;
+	(void)InRuntimeObjectId;
+#endif
 }
 
 bool AGridItemActor::InitializeFromCanonicalItem(

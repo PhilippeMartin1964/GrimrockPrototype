@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.11 — Projection des anciens acteurs uniquement compilée en Automation
+
+Parent H.10 `d52575c0afe15daddf19c6678ba56af9f953dd36` à valider avant publication. La lecture des vieux DataAssets dans `AGridItemActor::InitializeFromItemDefinition` est désormais entourée de `WITH_DEV_AUTOMATION_TESTS`, et `GIsAutomationTesting` doit réellement être vrai pour la déclencher. Hors tests/Shipping l'API est inerte sans mutation. Les scénarios historiques avec GameInstance (torche, réceptacle, pickup) restent possibles pendant Automation. Voir [5H.11](ARM_CLEAN06_5H11_AUTOMATION_ONLY_ACTOR_INITIALIZATION.md). Aucun asset/sauvegarde modifié.
+
+
 ## ARM-CLEAN06.5H.10 — Enregistrement des anciennes définitions uniquement sous Automation
 
 Parent H.9 corrigé `0cf3a932cf91fb7eb2ccefdd32cbb04b9f7df5c9` : publication uniquement après deux statuts Windows SUCCESS. `UGridPartyInventoryComponent::RegisterItemDefinition` exige désormais une session réelle `GIsAutomationTesting`; la lookup native `FindItemDefinition` réutilise le même garde, sans perturber les fixtures historiques GI-backed. Le test `LegacyInventoryRegistrationGate` couvre le refus Editor hors Automation et l'exception de test. Voir [5H.10](ARM_CLEAN06_5H10_AUTOMATION_ONLY_LEGACY_REGISTRATION.md).
