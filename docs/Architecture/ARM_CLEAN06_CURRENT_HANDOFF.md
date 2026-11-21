@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.134 — Admission de l'inventaire et piles : refus des identités inconnues
+
+Parent `3f25386d82eda1995b656b7357667242c29a50be` après SUCCESS/SUCCESS Windows de 5G.133.1. La fixture Automation avec vrai GameInstance ne doit plus contourner `ApplyItemDefinitionToInstance` via `RequiresResolvedInventoryDefinition`, ni utiliser un `MaxStackSize` depuis une définition inconnue au registre. Les définitions historiques restent accessibles uniquement aux fixtures sans registre. `CanonicalInventoryMaterializationWithoutLegacyDefinition` couvre le refus d'ajout en quantités 13 et 1 sans mutation du sac et les métadonnées de fixture à part. Voir [5G.134](ARM_CLEAN06_5G134_UNKNOWN_STACK_ADMISSION_FAIL_CLOSED.md). Deux statuts Windows exigés sur nouveau SHA.
+
 ## ARM-CLEAN06.5G.133.1 — Correction de fixture de prévisualisation (issue #218)
 
 Le commit 5G.133 `de043a5f1e18485b92b43db124170373dcf127bf` compile mais `LocalAuto` a échoué uniquement sur `Grimrock.RPG.ARM.CLEAN06_3.CanonicalEquipmentPreviewReadModel` (issue [#218](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/218)). Le test réclamait encore bonus ARM, réserve et résistance historiques pour une identité absente de `DA_ItemSystem` alors qu'un registre était configuré. La fixture attend désormais le refus strict en présence du registre, et vérifie séparément l'ancienne parité chiffrée sans registre. Aucun changement runtime ni asset. Voir [5G.133.1](ARM_CLEAN06_5G1331_PREVIEW_TEST_REGISTRY_POLICY.md). Bloquer 5G.134 jusqu'aux deux statuts SUCCESS du SHA correctif.

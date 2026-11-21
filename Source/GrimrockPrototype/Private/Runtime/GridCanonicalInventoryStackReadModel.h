@@ -43,7 +43,8 @@ struct FGridCanonicalInventoryStackReadModel
         }
         // Explicit historical inventory fixtures only; never a runtime fallback.
 #if WITH_DEV_AUTOMATION_TESTS
-        if (GIsAutomationTesting && IsValid(Legacy) && Legacy->ItemDefinitionId == Item.ItemDefinitionId)
+        if (!Registry && GIsAutomationTesting && IsValid(Legacy) &&
+            Legacy->ItemDefinitionId == Item.ItemDefinitionId)
         {
             View.bResolved = true;
             View.MaxStackSize = Legacy->bStackable

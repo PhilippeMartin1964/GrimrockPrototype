@@ -59,13 +59,12 @@ namespace
 		const UGridItemDefinitionAsset* Definition, FName ItemId)
 	{
 #if WITH_DEV_AUTOMATION_TESTS
-		if (GIsAutomationTesting)
+		if (GIsAutomationTesting && !ResolvePartyWeightRegistry(Inventory))
 		{
-			const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(Inventory);
-			// Preserve explicitly seeded historical fixtures and the isolated
-			// no-registry characterization tests, not unknown IDs in a real registry.
-			return (IsValid(Definition) && Definition->bUseWeaponCatalogue) ||
-				(Registry && (Registry->HasCanonicalItem(ItemId) || !IsValid(Definition)));
+			// Only registry-less historical Automation fixtures may bypass
+			// canonical materialization. A configured GameInstance cannot
+			// grant unknown physical ItemIds via the legacy definition map.
+			return IsValid(Definition) && Definition->bUseWeaponCatalogue;
 		}
 #endif
 		(void)Inventory;

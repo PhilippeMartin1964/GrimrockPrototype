@@ -294,7 +294,7 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     TestFalse(TEXT("Invalid N0 cannot restore into empty hand"), Fixture.Inventory->TryRestoreExtractedItemToEquipment(0, EGridEquipmentSlot::MainHand, SwordN0));
     TestFalse(TEXT("Unknown or invalid restore leaves hand empty"), Hand.IsValid());
 
-    // Explicitly registered historical automation fixtures retain their former capacities.
+    // An unknown item may not gain inventory capacity from an obsolete definition.
     Fixture.ClearSlots();
     UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(Fixture.Inventory);
     Legacy->ItemDefinitionId = TEXT("ARM063AS_Unregistered_Stack");
@@ -305,12 +305,28 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     if (!TestTrue(TEXT("Legacy item definition registered"),
         Fixture.Inventory->RegisterItemDefinition(Legacy))) return false;
     FGridItemInstance OldStack = ARMCLEAN063AS::MakeItem(Legacy->ItemDefinitionId, 0, 13);
-    TestTrue(TEXT("Legacy pickup retains old stack policy"),
+    const auto RefusedPolicy =
+        FGridCanonicalInventoryStackReadModel::Resolve(Fixture.Registry, Legacy, OldStack);
+    TestFalse(TEXT("Configured registry refuses unknown legacy stack capacity"), RefusedPolicy.bResolved);
+    TestFalse(TEXT("Unknown stack cannot enter canonical inventory"),
+        Fixture.Inventory->CanAddItemToCharacterInventory(0, OldStack));
+    TestFalse(TEXT("Unknown stack cannot be granted"),
         Fixture.Inventory->AddItemToCharacterInventory(0, OldStack));
-    TestEqual(TEXT("Legacy first stack ten"), Character.InventorySlots[0].Item.Quantity, 10);
-    TestEqual(TEXT("Legacy remainder three"), Character.InventorySlots[1].Item.Quantity, 3);
+    OldStack.Quantity = 1;
+    TestFalse(TEXT("Single unknown item is refused, not just oversized stacks"),
+        Fixture.Inventory->CanAddItemToCharacterInventory(0, OldStack));
+    TestFalse(TEXT("Single unknown item cannot be granted"),
+        Fixture.Inventory->AddItemToCharacterInventory(0, OldStack));
+    TestTrue(TEXT("Rejected inventory leaves all slots empty"),
+        Character.InventorySlots[0].IsEmpty() && Character.InventorySlots[1].IsEmpty());
+    OldStack.Quantity = 13;
+    const auto IsolatedPolicy =
+        FGridCanonicalInventoryStackReadModel::Resolve(nullptr, Legacy, OldStack);
+    TestTrue(TEXT("Registry-less Automation fixture still has old stack limit"),
+        IsolatedPolicy.bResolved && IsolatedPolicy.MaxStackSize == 10 &&
+        IsolatedPolicy.IsStackable());
     const auto HistoricalMetadata = FGridInventoryItemMetadataReadModel::Resolve(
-        nullptr, Legacy, Character.InventorySlots[0].Item);
+        nullptr, Legacy, OldStack);
     TestTrue(TEXT("Isolated definition still owns its unit mass"),
         HistoricalMetadata.bResolved && FMath::IsNearlyEqual(HistoricalMetadata.UnitWeightKg, 1.5f));
     TestTrue(TEXT("Isolated definition still owns its name"),
