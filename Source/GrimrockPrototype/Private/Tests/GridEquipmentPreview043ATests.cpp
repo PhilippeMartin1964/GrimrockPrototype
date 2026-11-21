@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridEquipmentPreviewTypes.h"
 
 namespace EquipmentPreview043A
@@ -247,45 +248,72 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEquipmentPreview043AProductionGreatAxeTest,
 bool FEquipmentPreview043AProductionGreatAxeTest::RunTest(const FString&)
 {
     using namespace EquipmentPreview043A;
-    UGridItemDefinitionAsset* GreatAxe = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_GreatAxe_01.DA_Weapon_GreatAxe_01"));
-    UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-    if (!TestNotNull(TEXT("Production great axe asset"), GreatAxe) ||
-        !TestNotNull(TEXT("Production round shield asset"), Shield)) return false;
-    if (!TestTrue(TEXT("Great axe has effective TwoHanded hand usage"),
-        GreatAxe->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded)) return false;
-
-    UGridPartyInventoryComponent* Inventory = MakeInventory();
-    if (!TestTrue(TEXT("Register great axe"), Inventory->RegisterItemDefinition(GreatAxe)) ||
-        !TestTrue(TEXT("Register shield"), Inventory->RegisterItemDefinition(Shield)))
+    FGridCanonicalWeightTestWorld Fixture({});
+    const UGridItemSubsystem* Registry = Fixture.Scope.Registry;
+    FGridResolvedItem GreatAxe;
+    FGridResolvedItem Shield;
+    if (!TestNotNull(TEXT("Canonical preview test world"), Fixture.World) ||
+        !TestNotNull(TEXT("Production ItemSystem registry"), Registry) ||
+        !TestTrue(TEXT("Production ARM031 Great Axe N1 resolves"),
+            Registry && Registry->ResolveItem(TEXT("Weapon_GreatAxe_01"), 1, GreatAxe)) ||
+        !TestTrue(TEXT("Production ARM075 Round Shield N1 resolves"),
+            Registry && Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, Shield)))
         return false;
-    FGridItemInstance ShieldItem = Item(Shield);
+    if (!TestTrue(TEXT("Great Axe has canonical two-handed policy"),
+            GreatAxe.bIsArmament &&
+            GreatAxe.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded) ||
+        !TestTrue(TEXT("Canonical shield N1 nominal armor is five"),
+            Shield.bIsArmament && Shield.Weapon.PhysicalArmor == 5))
+        return false;
+
+    UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("Canonical inventory bound to game world"), Inventory))
+        return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
+    if (!TestNull(TEXT("No historical Great Axe registered"),
+            Inventory->FindItemDefinition(GreatAxe.ItemId)) ||
+        !TestNull(TEXT("No historical Round Shield registered"),
+            Inventory->FindItemDefinition(Shield.ItemId)))
+        return false;
+
+    FGridItemInstance ShieldItem;
+    ShieldItem.RuntimeObjectId = FGuid::NewGuid();
+    ShieldItem.ItemDefinitionId = Shield.ItemId;
     ShieldItem.ItemLevel = 1;
-    FGridItemInstance AxeItem = Item(GreatAxe);
+    ShieldItem.Quantity = 1;
+    FGridItemInstance AxeItem;
+    AxeItem.RuntimeObjectId = FGuid::NewGuid();
+    AxeItem.ItemDefinitionId = GreatAxe.ItemId;
     AxeItem.ItemLevel = 1;
-    if (!TestTrue(TEXT("Equip real round shield"),
-        Install(Inventory, ShieldItem, EGridEquipmentSlot::OffHand)) ||
-        !TestTrue(TEXT("Add real great axe into bag"),
+    AxeItem.Quantity = 1;
+    if (!TestTrue(TEXT("Canonical N1 shield materializes"),
+            Inventory->ApplyItemDefinitionToInstance(ShieldItem)) ||
+        !TestTrue(TEXT("Canonical N1 Great Axe materializes"),
+            Inventory->ApplyItemDefinitionToInstance(AxeItem)))
+        return false;
+
+    if (!TestTrue(TEXT("Equip canonical round shield"),
+            Install(Inventory, ShieldItem, EGridEquipmentSlot::OffHand)) ||
+        !TestTrue(TEXT("Add canonical Great Axe into bag"),
             Inventory->AddItemToCharacterInventory(0, AxeItem)))
         return false;
     FGridEquipmentPreviewResult Preview;
-    if (!TestTrue(TEXT("Real catalogue great axe preview"),
+    if (!TestTrue(TEXT("Real ItemSystem Great Axe preview"),
         Inventory->PreviewEquipFromInventorySlot(0,
             FindSlot(Inventory, AxeItem.RuntimeObjectId),
             EGridEquipmentSlot::MainHand, Preview)))
         return false;
-    TestTrue(TEXT("Great axe occupies both hands in preview"),
+    TestTrue(TEXT("Great Axe occupies both hands in preview"),
         Preview.bCandidateUsesTwoHands && Preview.bWouldReleaseBothHands);
     if (!TestEqual(TEXT("One physical shield displaced"), Preview.DisplacedItems.Num(), 1))
         return false;
-    TestEqual(TEXT("Displaced real shield identity"),
+    TestEqual(TEXT("Displaced canonical shield identity"),
         Preview.DisplacedItems[0].RuntimeObjectId, ShieldItem.RuntimeObjectId);
-    TestEqual(TEXT("Shield ARM075 N1 expected nominal armor"),
-        Shield->EquipmentStatBonus.ArmorBonus, 5);
+    TestEqual(TEXT("Shield ARM075 N1 nominal armor"),
+        Shield.Weapon.PhysicalArmor, 5);
     TestEqual(TEXT("Real shield armor loss is minus five when intact"),
         Preview.EffectivePhysicalArmorAfter - Preview.EffectivePhysicalArmorBefore, -5);
-    TestTrue(TEXT("Great axe still in bag after preview"),
+    TestTrue(TEXT("Great Axe still in bag after preview"),
         FindSlot(Inventory, AxeItem.RuntimeObjectId) != INDEX_NONE);
     return true;
 }
