@@ -3552,33 +3552,37 @@ bool FARMEMENTLOT02164MagicN1Execution::RunTest(const FString&)
 		{ TEXT("ARM067"), TEXT("ElementalStaff"), true },
 		{ TEXT("ARM069"), TEXT("HolyScepter"), false }
 	};
+	FGridCanonicalRegistryFixture Canonical;
 	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(Cases)); ++Index)
 	{
 		const FString Context(Cases[Index].Id);
-		const FString AssetName(Cases[Index].Asset);
-		const FString Path = FString::Printf(
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
-			*AssetName, *AssetName);
-		UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
-		if (!TestNotNull(*FString::Printf(TEXT("%s real N1 DataAsset"), *Context), Definition) ||
-			!TestTrue(TEXT("Magic item is valid and catalogue-backed"),
-				Definition->IsValidDefinition() && Definition->bUseWeaponCatalogue &&
-				Definition->WeaponArchetypeId == FName(Cases[Index].Id) &&
-				Definition->DefaultWeaponItemLevel == 1) ||
-			!TestEqual(TEXT("Magic item has authored hand usage"),
-				Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded, Cases[Index].bTwoHanded) ||
-			!TestTrue(TEXT("Magic item does not require arrows"), Definition->RequiredAmmunitionItemDefinitionId.IsNone()))
+		const FName ItemId(*FString::Printf(TEXT("Weapon_%s_01"), Cases[Index].Asset));
+		FGridResolvedItem Definition;
+		if (!TestTrue(*FString::Printf(TEXT("%s real N1 canonical magic weapon"), *Context),
+			Canonical.Resolve(ItemId, 1, Definition)) ||
+			!TestTrue(TEXT("Magic item is valid and matches the N1 ARM archetype"),
+				Definition.IsValid() && Definition.bIsArmament &&
+				Definition.ItemId == ItemId && Definition.ItemLevel == 1 &&
+				Definition.ArchetypeId == FName(Cases[Index].Id)) ||
+			!TestEqual(TEXT("Magic item has canonical two-hand policy"),
+				Definition.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded,
+				Cases[Index].bTwoHanded) ||
+			!TestTrue(TEXT("Magic item does not require arrows"),
+				Definition.Weapon.RequiredAmmoKindId.IsNone()))
 			return false;
 
-		auto Configure = [this, Definition, Index](FGridCombatHudFixture& F) -> bool
+		auto Configure = [this, &Definition, Index](FGridCombatHudFixture& F,
+			FGridCanonicalLootTestScope& RegistryScope) -> bool
 		{
 			if (!TestTrue(TEXT("Magic test combat fixture is ready"), F.IsReady()) ||
-				!TestTrue(TEXT("Register real magic weapon"),
-					F.Party->PartyInventoryComponent->RegisterItemDefinition(Definition)))
+				!TestTrue(TEXT("Production ItemSystem attached for magic combat"),
+					RegistryScope.Attach(F.TestWorld.World)) ||
+				!TestNull(TEXT("No old magic weapon definition registered"),
+					F.Party->PartyInventoryComponent->FindItemDefinition(Definition.ItemId)))
 				return false;
 			FGridItemInstance Weapon;
 			Weapon.RuntimeObjectId = FGuid(16, 4, Index + 1, 1);
-			Weapon.ItemDefinitionId = Definition->ItemDefinitionId;
+			Weapon.ItemDefinitionId = Definition.ItemId;
 			Weapon.ItemLevel = 1;
 			Weapon.Quantity = 1;
 			Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -3593,14 +3597,15 @@ bool FARMEMENTLOT02164MagicN1Execution::RunTest(const FString&)
 
 		{
 			FGridCombatHudFixture F;
-			if (!Configure(F))
+			FGridCanonicalLootTestScope RegistryScope;
+			if (!Configure(F, RegistryScope))
 				return false;
 			TArray<FGridAvailableCombatAction> Actions;
 			F.TurnManager->GetAvailableCombatActions(0, Actions);
 			const FGridAvailableCombatAction* Action = Actions.FindByPredicate(
-				[Definition](const FGridAvailableCombatAction& A)
+				[ItemId](const FGridAvailableCombatAction& A)
 				{
-					return A.SourceDefinitionId == Definition->ItemDefinitionId &&
+					return A.SourceDefinitionId == ItemId &&
 						A.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
 						A.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
 				});
@@ -3631,16 +3636,17 @@ bool FARMEMENTLOT02164MagicN1Execution::RunTest(const FString&)
 				F.TurnManager->GetCombatLogEntries().Num() - LogsBefore, 1);
 			TestEqual(TEXT("Magic weapon remains held after attacking"),
 				F.Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].MainHand.ItemDefinitionId,
-				Definition->ItemDefinitionId);
+				Definition.ItemId);
 			TestEqual(TEXT("Correct N1 magic source resolved"),
-				Out.AttackRequest.OffensiveItemDefinitionId, Definition->ItemDefinitionId);
+				Out.AttackRequest.OffensiveItemDefinitionId, Definition.ItemId);
 			TestTrue(TEXT("Magic hit result has a real combat trace"),
 				Out.AttackResult.Trace.bValid && Out.AttackResult.Trace.Attack.Roll.bUsed);
 		}
 
 		{
 			FGridCombatHudFixture F;
-			if (!Configure(F))
+			FGridCanonicalLootTestScope RegistryScope;
+			if (!Configure(F, RegistryScope))
 				return false;
 			F.Runtime->LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::Solid;
 			const int32 ManaBefore = F.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMana;
