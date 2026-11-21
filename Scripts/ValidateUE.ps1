@@ -204,6 +204,7 @@ if ($LASTEXITCODE -ne 0 -or $RetirementSelfTestHead.Count -ne 1) { throw 'Cannot
 & (Join-Path $PSScriptRoot 'PrepareARM_CLEAN06_5H14_IconPaletteSnapshot.ps1') -SelfTest
 & (Join-Path $PSScriptRoot 'PreflightARM_CLEAN06_5H15_PaletteContinuity.ps1') -SelfTest
 & (Join-Path $PSScriptRoot 'VerifyARM_CLEAN06_5H16_Canary.ps1') -SelfTest
+& (Join-Path $PSScriptRoot 'AssertARM_CLEAN06_5H18_ShippingGuards.ps1') -SelfTest
 & (Join-Path $PSScriptRoot 'InstallARM_CLEAN06_5B_ReadableSaveCopy.ps1') -SelfTest
 & (Join-Path $PSScriptRoot 'TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -SelfTest
 Assert-FileExists -Path $ProjectFile -Description 'Projet Unreal'

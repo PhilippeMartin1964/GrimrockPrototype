@@ -79,9 +79,6 @@ struct FGridCanonicalItemInteractionReadModel
 		// data, including readable text on an unknown instance.
 #if WITH_DEV_AUTOMATION_TESTS
 		if (Registry || !GIsAutomationTesting) return Out;
-#else
-		return Out;
-#endif
 		const bool bLegacy = IsValid(OldDefinition) &&
 			OldDefinition->ItemDefinitionId == Item.ItemDefinitionId;
 		Out.bResolved = bLegacy;
@@ -104,6 +101,7 @@ struct FGridCanonicalItemInteractionReadModel
 				OldDefinition->BuildInventoryCombatActionDefinition(LegacyAction) ||
 				OldDefinition->IsPhysicallyThrowable();
 		}
+#endif // WITH_DEV_AUTOMATION_TESTS
 		return Out;
 	}
 };

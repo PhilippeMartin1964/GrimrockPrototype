@@ -79,9 +79,6 @@ struct FGridStartingKitEquipmentPolicyReadModel
 		}
 		View.bTwoHanded =
 			LegacyDefinition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded;
-#else
-		return View;
-#endif
 
 		if (View.bTwoHanded &&
 			AuthoredSlot != EGridEquipmentSlot::MainHand &&
@@ -92,6 +89,7 @@ struct FGridStartingKitEquipmentPolicyReadModel
 		View.PhysicalSlot = View.bTwoHanded
 			? EGridEquipmentSlot::MainHand : AuthoredSlot;
 		View.bResolved = true;
+#endif // WITH_DEV_AUTOMATION_TESTS
 		return View;
 	}
 };

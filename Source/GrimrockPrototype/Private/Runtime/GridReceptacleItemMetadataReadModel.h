@@ -49,9 +49,6 @@ struct FGridReceptacleItemMetadataReadModel
         // registry-less Automation fixtures that exercise old level data.
 #if WITH_DEV_AUTOMATION_TESTS
         if (Registry || !GIsAutomationTesting) return View;
-#else
-        return View;
-#endif
         View.FixedItemLevel = IsValid(LegacyDefinition) &&
             !LegacyDefinition->bUseWeaponCatalogue ? 0 : ItemLevel;
         if (IsValid(LegacyDefinition))
@@ -73,6 +70,7 @@ struct FGridReceptacleItemMetadataReadModel
             View.DisplayName = LegacyDefinition->DisplayName;
         }
         View.bResolved = true;
+#endif // WITH_DEV_AUTOMATION_TESTS
         return View;
     }
 };

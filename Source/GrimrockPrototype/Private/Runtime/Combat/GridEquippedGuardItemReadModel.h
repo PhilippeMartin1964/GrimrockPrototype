@@ -47,9 +47,6 @@ struct FGridEquippedGuardItemReadModel
 		// Preserve the historical fallback solely for registry-less Automation fixtures.
 #if WITH_DEV_AUTOMATION_TESTS
 		if (Registry || !GIsAutomationTesting) return View;
-#else
-		return View;
-#endif
 		if (!Item.IsValid() || Item.EquipmentSlot != EGridEquipmentSlot::OffHand ||
 			!IsValid(LegacyDefinition) ||
 			LegacyDefinition->ItemDefinitionId != Item.ItemDefinitionId)
@@ -62,6 +59,7 @@ struct FGridEquippedGuardItemReadModel
 			LegacyDefinition->bUseWeaponCatalogue &&
 			LegacyDefinition->WeaponArchetypeId == FName(TEXT("ARM013"));
 		View.bIsShield = LegacyDefinition->ItemType == EGridItemType::Shield;
+#endif // WITH_DEV_AUTOMATION_TESTS
 		return View;
 	}
 };

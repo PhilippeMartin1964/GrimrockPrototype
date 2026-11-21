@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.18 — Correction compilation Win64 Shipping C4702
+
+Le packaging Shipping local du 21.11.2026 a révélé un échec **avant Cook** (UAT ExitCode=6) avec des erreurs MSVC `C4702` « code inaccessible ». Cause : quatre modèles canoniques conservaient, sous `#else return View/Out; #endif`, un corps historique encore compilé en Shipping, donc inatteignable. Le lot H.18 déplace **l'intégralité du fallback legacy** sous `#if WITH_DEV_AUTOMATION_TESTS`, avec un seul `return` commun final. Les modèles corrigés sont `GridEquippedGuardItemReadModel`, `GridCanonicalItemInteractionReadModel`, `GridStartingKitEquipmentPolicyReadModel` et `GridReceptacleItemMetadataReadModel`. L'autorité des données canoniques en runtime et le comportement des fixtures Editor sont inchangés. Ajout `Scripts/AssertARM_CLEAN06_5H18_ShippingGuards.ps1` avec fixture négative et contrôle des 4 sources dans `ValidateUE.ps1`. Voir [5H.18](ARM_CLEAN06_5H18_SHIPPING_C4702_FIX.md). **Attention :** l'agent Windows compile Editor/Automation ; il ne réalise pas le Cook/Shipping. Relancer `ValidatePackage.ps1 -Configuration Shipping` sur le checkout local au nouveau SHA validé ; le succès Editor ne vaut pas preuve d'un packaging réussi.
+
+
 ## ARM-CLEAN06.5H.17 — Interdiction de réintroduction de la palette
 
 Parent publication du retrait natif `76f13b1b90e1efb22e0af68aa9655b8eccd5d65b` validée Windows SilentTask + LocalAuto SUCCESS, un seul `.uasset` supprimé : `DA_EquippedWeaponActionIcons.uasset`. Le test permanent `Grimrock.RPG.ARM.CLEAN06_5G.DetachedIconPaletteSchema` exige désormais **l'absence physique du binaire** et **aucun AssetRegistry FAssetData** pour le package historique, en plus de zéro référent package, de l'absence de l'ancienne propriété WBP et de la présence des 12 icônes canoniques. Voir [5H.17](ARM_CLEAN06_5H17_PERMANENT_ICON_RETIREMENT_GUARD.md). Aucun autre asset supprimé. Les tests PIE visuels, Save/Continue de bout en bout et Cook/Shipping restent à faire ; cette barrière Automation ne prouve pas ces comportements.
