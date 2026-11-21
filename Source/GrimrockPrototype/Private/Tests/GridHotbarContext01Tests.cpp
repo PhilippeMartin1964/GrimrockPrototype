@@ -116,7 +116,6 @@ bool FGridHotbarContext01InventoryActionTest::RunTest(const FString& Parameters)
 	FGridItemInstance Stone;
 	Stone.RuntimeObjectId = FGuid::NewGuid();
 	Stone.ItemDefinitionId = StoneDefinition->ItemDefinitionId;
-	Stone.DisplayName = StoneDefinition->DisplayName;
 	Stone.Quantity = 4;
 	TestTrue(TEXT("The stone stack enters inventory"), Inventory->AddItemToCharacterInventory(CharacterIndex, Stone));
 	TestEqual(TEXT("The inventory owns four stones"), Inventory->CountItemDefinitionInCharacterInventory(CharacterIndex, Stone.ItemDefinitionId), 4);

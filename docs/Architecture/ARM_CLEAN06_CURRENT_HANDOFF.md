@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.129 — Retrait physique des anciens membres C++ de FGridItemInstance
+
+Parent `bbb11f375811f682e4810665004d6d5f98f0e3bd` : après SUCCESS/SUCCESS de 5G.128, suppression définitive des membres non réfléchis `FGridItemInstance::DisplayName` et `Weight`, avec nettoyage de la dernière fixture de raccourci HotbarContext01 qui copiait un nom. La définition historique de la pierre du test, les champs durables, les schémas Unreal et les données de sauvegarde restent inchangés depuis 5G.93. Attendre SilentTask et LocalAuto SUCCESS sur le SHA exact. Voir [5G.129](ARM_CLEAN06_5G129_INSTANCE_CPP_MEMBER_REMOVAL.md).
+
 ## ARM-CLEAN06.5G.128 — Aucune copie statique dans les transferts et fixtures identifiés
 
 Parent `765699a66ce9cc19e5661b252e759a36baef18fa` : attendre SilentTask et LocalAuto SUCCESS sur le nouveau SHA. Retrait des dernières affectations identifiées dans les chemins UI.Item01, équipements 043B, PIT02/PIT03/PIT031, inventaire Examine/Read, réceptacles et projectiles. Les membres physiques C++ non réfléchis subsistent : leur suppression sera un jalon distinct après audit. Voir [5G.128](ARM_CLEAN06_5G128_PHYSICAL_INSTANCE_CACHE_WRITERS.md).

@@ -316,15 +316,8 @@ struct FGridItemInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment|Armor", meta = (ClampMin = "0"))
 	int32 AbsorbedEquipmentMagicalArmor = 0;
 
-	// 5G93: no longer reflected or serialized. Temporary C++ members
-	// solely until the remaining characterization fixtures and writers
-	// are converted; never authoritative for a canonical item.
-	FText DisplayName;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	int32 Quantity = 1;
-
-	float Weight = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ownership")
 	EGridItemOwnerType OwnerType = EGridItemOwnerType::None;
