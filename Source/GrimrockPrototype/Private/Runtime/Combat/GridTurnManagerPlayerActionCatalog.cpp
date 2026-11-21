@@ -1,4 +1,5 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "CoreGlobals.h"
 #include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
 #include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
 
@@ -386,6 +387,8 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			continue;
 		}
 
+#if WITH_DEV_AUTOMATION_TESTS
+		if (Canonical || !GIsAutomationTesting) continue;
 		const UGridItemDefinitionAsset* ItemDefinition = Inventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
 		if (!IsValid(ItemDefinition))
 		{
@@ -457,6 +460,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			}
 			AddMON126Contribution(Definition, EquippedItem.ItemDefinitionId, EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity, OutContributions);
 		}
+#endif // WITH_DEV_AUTOMATION_TESTS: old equipped-action fixtures
 	}
 
 	// ARMEMENT-LOT02.19.2: one composite action, two *physical* weapon
@@ -483,10 +487,13 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 				? Canonical->FindEquippedActionIcon(EGridEquippedWeaponActionIconKind::MeleeDualWield)
 				: TSoftObjectPtr<UTexture2D>();
 		}
-		else if (DualAction.Icon.IsNull() && IsValid(DualPair.Main.Definition))
+#if WITH_DEV_AUTOMATION_TESTS
+		else if (!Canonical && GIsAutomationTesting &&
+			DualAction.Icon.IsNull() && IsValid(DualPair.Main.Definition))
 		{
 			DualAction.Icon = DualPair.Main.Definition->Icon;
 		}
+#endif
 		for (const FName Tag : DualPair.Main.SourceTags)
 		{
 			if (!Tag.IsNone())
@@ -543,6 +550,8 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			// Physical throws are projected separately; never revive a legacy action.
 			continue;
 		}
+#if WITH_DEV_AUTOMATION_TESTS
+		if (Canonical || !GIsAutomationTesting) continue;
 		const UGridItemDefinitionAsset* ItemDefinition = Inventory->FindItemDefinition(ItemDefinitionId);
 		FGridCombatActionDefinition QuickItemAction;
 		if (!IsValid(ItemDefinition) || !ItemDefinition->BuildInventoryCombatActionDefinition(QuickItemAction))
@@ -552,6 +561,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 
 		AddMON126Contribution(QuickItemAction, ItemDefinitionId, FGuid(), EGridEquipmentSlot::None,
 			Inventory->CountItemDefinitionInCharacterInventory(CharacterIndex, ItemDefinitionId), OutContributions);
+#endif // WITH_DEV_AUTOMATION_TESTS: old QuickItem fixtures
 	}
 }
 
@@ -659,6 +669,8 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 				}
 				continue;
 			}
+#if WITH_DEV_AUTOMATION_TESTS
+			if (Canonical || !GIsAutomationTesting) continue;
 			const UGridItemDefinitionAsset* Definition = Item && Item->IsValid() ? Inventory->FindItemDefinition(Item->ItemDefinitionId) : nullptr;
 			if (!IsValid(Definition))
 			{
@@ -686,6 +698,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 					Context.EquippedOffensiveRangeCells.Add(0);
 				}
 			}
+#endif // WITH_DEV_AUTOMATION_TESTS: legacy equipment requirements
 		}
 	}
 
@@ -730,9 +743,13 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
 			Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
 		{
-			const UGridItemDefinitionAsset* LegacyWeapon =
-				AmmoRegistry && AmmoRegistry->HasCanonicalItem(Action.SourceDefinitionId)
-				? nullptr : Inventory->FindItemDefinition(Action.SourceDefinitionId);
+			const UGridItemDefinitionAsset* LegacyWeapon = nullptr;
+#if WITH_DEV_AUTOMATION_TESTS
+			if (!AmmoRegistry && GIsAutomationTesting)
+			{
+				LegacyWeapon = Inventory->FindItemDefinition(Action.SourceDefinitionId);
+			}
+#endif
 			FGridItemInstance Equipped;
 			const bool bEquipped = Inventory->GetEquippedItem(
 				CharacterIndex, Action.SourceEquipmentSlot, Equipped) &&

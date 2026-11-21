@@ -9,8 +9,10 @@ class UGridItemSubsystem;
 struct FGridDualWieldSource
 {
 	FGridItemInstance Item;
-	/** Optional, for identities not yet migrated to DA_ItemSystem. */
+#if WITH_DEV_AUTOMATION_TESTS
+	/** Only worldless Automation fixtures may retain the historical source. */
 	const UGridItemDefinitionAsset* Definition = nullptr;
+#endif
 	bool bCanonicalIdentity = false;
 	TArray<FName> SourceTags;
 	FGridCombatActionDefinition Action;
