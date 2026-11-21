@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridInventoryTypes.h"
@@ -181,11 +182,21 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponTooltipSlotIntegrationTest,
 
 bool FWeaponTooltipSlotIntegrationTest::RunTest(const FString&)
 {
-    UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_AssassinDagger_01.DA_Weapon_AssassinDagger_01"));
-    if (!TestNotNull(TEXT("Canonical ARM002"), Dagger))
+    FGridCanonicalWeightTestWorld Fixture({});
+    const UGridItemSubsystem* Registry = Fixture.Scope.Registry;
+    const FName DaggerId(TEXT("Weapon_AssassinDagger_01"));
+    FGridResolvedItem Dagger;
+    if (!TestNotNull(TEXT("World-bound ItemSystem registry"), Registry) ||
+        !TestTrue(TEXT("Canonical ARM002 N9 resolves"),
+            Registry && Registry->ResolveItem(DaggerId, 9, Dagger)) ||
+        !TestTrue(TEXT("N9 dagger has a real weapon profile"),
+            Dagger.bIsArmament && Dagger.Weapon.DamageDice.bEnabled))
         return false;
-    UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+    UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("World-bound canonical inventory"), Inventory) ||
+        !TestNull(TEXT("No old ARM002 definition registered"),
+            Inventory->FindItemDefinition(DaggerId)))
+        return false;
     FGridCharacterInventoryState Hero;
     Hero.CharacterId = FGuid::NewGuid();
     Hero.DisplayName = FText::FromString(TEXT("Weapon profile preview"));
@@ -194,20 +205,19 @@ bool FWeaponTooltipSlotIntegrationTest::RunTest(const FString&)
     Inventory->PartyInventoryState.ActiveEquipment.SetNum(1);
     Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
     Inventory->PartyInventoryState.MaxActiveCharacters = 6;
-    if (!TestTrue(TEXT("Production definition registered to test inventory"),
-        Inventory->RegisterItemDefinition(Dagger)))
-        return false;
+    // The transient parent widget must discover ItemSystem through the
+    // inventory component's GameInstance rather than an old definition map.
 
     UGridInventoryWidget* Parent = NewObject<UGridInventoryWidget>();
     Parent->InventoryComponent = Inventory;
     UGridInventorySlotWidget* Slot = NewObject<UGridInventorySlotWidget>();
     Slot->SetOwnerInventoryWidget(Parent);
     Slot->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, 0);
-    FGridItemInstance Item = WeaponTooltipTests::MakeItem(Dagger, 9);
+    FGridItemInstance Item = WeaponTooltipTests::MakeCanonicalItem(DaggerId, 9);
     Slot->SetItem(Item);
 
     // Attach a genuinely equipped N1 to exercise the existing inventory comparison route.
-    FGridItemInstance Equipped = WeaponTooltipTests::MakeItem(Dagger, 1);
+    FGridItemInstance Equipped = WeaponTooltipTests::MakeCanonicalItem(DaggerId, 1);
     Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
     Equipped.EquipmentSlot = EGridEquipmentSlot::MainHand;
     Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Equipped;
