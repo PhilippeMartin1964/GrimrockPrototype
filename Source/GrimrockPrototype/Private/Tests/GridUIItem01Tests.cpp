@@ -73,9 +73,7 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	FGridItemInstance Candidate;
 	Candidate.RuntimeObjectId = FGuid::NewGuid();
 	Candidate.ItemDefinitionId = CandidateDefinition->ItemDefinitionId;
-	Candidate.DisplayName = CandidateDefinition->DisplayName;
 	Candidate.Quantity = 2;
-	Candidate.Weight = CandidateDefinition->Weight;
 	Candidate.bLightsEnabled = true;
 	Candidate.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Candidate.OwnerCharacterIndex = 0;
@@ -153,9 +151,7 @@ bool FGridUIItem01EmptyEquipmentComparisonTest::RunTest(const FString& Parameter
 	FGridItemInstance Candidate;
 	Candidate.RuntimeObjectId = FGuid::NewGuid();
 	Candidate.ItemDefinitionId = CandidateDefinition->ItemDefinitionId;
-	Candidate.DisplayName = CandidateDefinition->DisplayName;
 	Candidate.Quantity = 1;
-	Candidate.Weight = CandidateDefinition->Weight;
 	Candidate.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Candidate.OwnerCharacterIndex = 0;
 	SlotWidget->SetItem(Candidate);
@@ -228,9 +224,7 @@ bool FGridUIItem01EquipmentComparisonTest::RunTest(const FString& Parameters)
 	FGridItemInstance Candidate;
 	Candidate.RuntimeObjectId = FGuid::NewGuid();
 	Candidate.ItemDefinitionId = CandidateDefinition->ItemDefinitionId;
-	Candidate.DisplayName = CandidateDefinition->DisplayName;
 	Candidate.Quantity = 1;
-	Candidate.Weight = CandidateDefinition->Weight;
 	Candidate.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Candidate.OwnerCharacterIndex = 0;
 	SlotWidget->SetItem(Candidate);

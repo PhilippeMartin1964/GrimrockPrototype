@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.128 — Aucune copie statique dans les transferts et fixtures identifiés
+
+Parent `765699a66ce9cc19e5661b252e759a36baef18fa` : attendre SilentTask et LocalAuto SUCCESS sur le nouveau SHA. Retrait des dernières affectations identifiées dans les chemins UI.Item01, équipements 043B, PIT02/PIT03/PIT031, inventaire Examine/Read, réceptacles et projectiles. Les membres physiques C++ non réfléchis subsistent : leur suppression sera un jalon distinct après audit. Voir [5G.128](ARM_CLEAN06_5G128_PHYSICAL_INSTANCE_CACHE_WRITERS.md).
+
 ## ARM-CLEAN06.5G.127 — Status et soutien canonique sans masse d'instance
 
 Parent `b87c6973697a016ee4caa4bbbbee0ef1332b62a8` : attendre SilentTask et LocalAuto SUCCESS. Les tests 3AY/3AZ/3BA d'effets d'état et de soins sur un allié cessent d'injecter une masse statique contradictoire dans les instances. Niveaux, actions, cibles, coûts et rejets restent vérifiés. Voir [5G.127](ARM_CLEAN06_5G127_STATUS_FIXTURE_CACHE_REMOVAL.md).

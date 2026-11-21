@@ -154,7 +154,6 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 	Stone.RuntimeObjectId = FGuid::NewGuid();
 	Stone.ItemDefinitionId = TEXT("Stone");
 	Stone.ItemLevel = 0;
-	Stone.Weight = CanonicalStone.WeightKg;
 	Stone.OwnerType = EGridItemOwnerType::World;
 	Stone.Quantity = 1;
 	Stone.bLightsEnabled = false;

@@ -219,7 +219,6 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	Stone.RuntimeObjectId = FGuid::NewGuid();
 	Stone.ItemDefinitionId = TEXT("Stone");
 	Stone.ItemLevel = 0;
-	Stone.Weight = CanonicalStone.WeightKg;
 	Stone.OwnerType = EGridItemOwnerType::World;
 	Stone.Quantity = 1;
 

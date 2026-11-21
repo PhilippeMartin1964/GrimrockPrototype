@@ -823,10 +823,6 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 			ProjectileItem.ItemDefinitionId = AmmunitionId;
 			ProjectileItem.ItemLevel = 0;
 			ProjectileItem.Quantity = 1;
-#if WITH_DEV_AUTOMATION_TESTS
-			if (!AmmoRequirement.bCanonicalAmmunition)
-				ProjectileItem.Weight = AmmunitionDefinition->Weight;
-#endif
 			ProjectileItem.OwnerType = EGridItemOwnerType::World;
 			ProjectileItem.OwnerCharacterIndex = INDEX_NONE;
 			ProjectileItem.EquipmentSlot = EGridEquipmentSlot::None;

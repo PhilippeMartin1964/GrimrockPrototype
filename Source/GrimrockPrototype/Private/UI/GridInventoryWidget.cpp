@@ -1640,11 +1640,8 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 				const FText FromSlot = SourceWidget->GetTooltipText();
 				if (!FromSlot.IsEmpty()) TooltipText = FromSlot;
 			}
-			FGridItemInstance Presentation = LastContextItem;
-			Presentation.DisplayName = Metadata.DisplayName;
-			Presentation.Weight = Metadata.UnitWeightKg;
 			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute Examine Item=%s"), *LastContextItem.ItemDefinitionId.ToString());
-			PresentItemExamination(Presentation, TooltipText);
+			PresentItemExamination(LastContextItem, TooltipText);
 			bExecuted = true;
 			break;
 		}
@@ -1700,12 +1697,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemReading Resolve Item=%s Source=%s Content=%s"), *LastContextItem.ItemDefinitionId.ToString(), ReadSource,
 				ResolvedContentId.IsNone() ? TEXT("None") : *ResolvedContentId.ToString());
 			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute Read Item=%s"), *LastContextItem.ItemDefinitionId.ToString());
-			const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(
-				ResolveInventoryCanonicalRegistry(this), ItemDefinition, LastContextItem);
-			FGridItemInstance Presentation = LastContextItem;
-			Presentation.DisplayName = Metadata.DisplayName;
-			Presentation.Weight = Metadata.UnitWeightKg;
-			PresentItemReading(Presentation, Title, ReadText);
+			PresentItemReading(LastContextItem, Title, ReadText);
 			bExecuted = true;
 			break;
 		}

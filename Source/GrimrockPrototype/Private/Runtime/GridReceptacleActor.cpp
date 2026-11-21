@@ -515,9 +515,6 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 
 	OutAcceptedItem = CursorItem;
 	OutAcceptedItem.ItemLevel = AcceptedReceptacleItem.ItemLevel;
-	// Canonical physical transfers must not carry static metadata copies.
-	OutAcceptedItem.Weight = 0.0f;
-	OutAcceptedItem.DisplayName = FText::GetEmpty();
 	OutAcceptedItem.OwnerType = EGridItemOwnerType::Receptacle;
 	OutAcceptedItem.OwnerGuid = ObjectId;
 	OutAcceptedItem.OwnerCharacterIndex = INDEX_NONE;

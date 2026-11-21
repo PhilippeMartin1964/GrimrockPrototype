@@ -34,9 +34,7 @@ namespace GlobalTooltip043B
         FGridItemInstance It;
         It.RuntimeObjectId = FGuid::NewGuid();
         It.ItemDefinitionId = Definition->ItemDefinitionId;
-        It.DisplayName = Definition->DisplayName;
         It.Quantity = 1;
-        It.Weight = Definition->Weight;
         return It;
     }
 
