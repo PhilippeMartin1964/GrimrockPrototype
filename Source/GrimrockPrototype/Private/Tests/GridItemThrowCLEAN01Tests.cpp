@@ -3,6 +3,10 @@
 #include "Misc/AutomationTest.h"
 
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemThrowCLEAN01Test, "Grimrock.Items.ITEM_THROW_CLEAN01",
@@ -31,19 +35,33 @@ bool FGridItemThrowCLEAN01Test::RunTest(const FString& Parameters)
 	PhysicalItem->bCombatThrowWeapon = true;
 	TestTrue(TEXT("Explicit combat throw authority enables combat throwing"), PhysicalItem->IsCombatThrowable());
 
-	const TCHAR* ShurikenAssetPath =
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Shuriken.DA_Weapon_Shuriken");
-	UGridItemDefinitionAsset* Shuriken = LoadObject<UGridItemDefinitionAsset>(nullptr, ShurikenAssetPath);
-	if (!TestNotNull(TEXT("Production DA_Weapon_Shuriken loads"), Shuriken))
-	{
-		return false;
-	}
+	// The current Shuriken combat and physical policy is owned only by the
+	// canonical item/weapon catalogues. Old UGridItemDefinitionAsset is a
+	// synthetic backwards-characterization fixture above, not an asset source.
+	TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+	TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+	if (!TestNotNull(TEXT("Production canonical root loads"), Root)) return false;
+	TArray<FString> Errors;
+	if (!TestTrue(TEXT("Production canonical registry validates"),
+		Registry->RegisterItemSystem(Root, Errors))) return false;
+	FGridResolvedItem Shuriken;
+	if (!TestTrue(TEXT("Shuriken N1 resolves canonically"),
+		Registry->ResolveItem(TEXT("Shuriken"), 1, Shuriken))) return false;
+	TestTrue(TEXT("Production Shuriken is an armament"), Shuriken.bIsArmament);
+	// A specialized combat projectile (Shuriken) must NOT be mistaken
+	// for a normal non-combat hand toss. The pipeline projects three such
+	// items with bEnabled=true and both generic flags disabled.
+	TestFalse(TEXT("Shuriken does not borrow ordinary physical hand-toss permission"),
+		Shuriken.Weapon.Projectile.bGenericThrowOneHanded);
+	TestFalse(TEXT("Shuriken does not duplicate a generic throw policy"),
+		Shuriken.Weapon.Projectile.bGenericThrowAuthored);
+	TestTrue(TEXT("Shuriken physically launches with a positive speed"),
+		Shuriken.Weapon.Projectile.InitialSpeed > 0.f);
+	TestTrue(TEXT("Shuriken explicitly enables a combat projectile"),
+		Shuriken.Weapon.Projectile.bEnabled);
 
-	TestEqual(TEXT("Shuriken explicitly authors one-handed physical usage"), Shuriken->HandUsage, EGridItemHandUsage::OneHanded);
-	TestTrue(TEXT("Shuriken explicitly authors combat projectile semantics"), Shuriken->bCombatThrowWeapon);
-	TestTrue(TEXT("Shuriken is physically throwable"), Shuriken->IsPhysicallyThrowable());
-	TestTrue(TEXT("Shuriken is combat throwable"), Shuriken->IsCombatThrowable());
-	TestTrue(TEXT("Shuriken remains a valid item definition"), Shuriken->IsValidDefinition());
 	return true;
 }
 
