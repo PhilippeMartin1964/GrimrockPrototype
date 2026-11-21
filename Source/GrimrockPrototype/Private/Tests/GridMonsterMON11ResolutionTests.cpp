@@ -9,7 +9,7 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/Combat/GridEquippedGuardResolver.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -431,15 +431,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON11EquippedGuardRuntimeTest,
 
 bool FGridMonsterMON11EquippedGuardRuntimeTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-	UGridItemDefinitionAsset* ParryingDagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_MainGauche_01.DA_Weapon_MainGauche_01"));
-	if (!TestNotNull(TEXT("Real ARM075 shield"), Shield) ||
-		!TestNotNull(TEXT("Real ARM013 Main-gauche"), ParryingDagger))
-	{
-		return false;
-	}
+	// Both real ARM definitions are resolved from each isolated monster world's
+	// ItemSystem. No historical DA_Weapon_* is a source for combat guards.
+	const FName ShieldId(TEXT("Weapon_RoundShield_01"));
+	const FName ParryingDaggerId(TEXT("Weapon_MainGauche_01"));
 
 	FGridMonsterAttackDefinition Bite;
 	Bite.AttackId = TEXT("Attack_GuardTest_Bite");
@@ -450,30 +445,43 @@ bool FGridMonsterMON11EquippedGuardRuntimeTest::RunTest(const FString&)
 	Bite.MinRangeCells = 1;
 	Bite.MaxRangeCells = 1;
 
-	const auto EquipOffHand = [](FGridMON11ResolutionFixture& Fixture, UGridItemDefinitionAsset* Definition)
+	const auto EquipOffHand = [](FGridMON11ResolutionFixture& Fixture,
+		const FGridCanonicalLootTestScope& RegistryScope, FName ItemId) -> bool
 	{
-		UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-		Inventory->RegisterItemDefinition(Definition);
+		FGridResolvedItem Definition;
+		UGridPartyInventoryComponent* Inventory = Fixture.Party
+			? Fixture.Party->PartyInventoryComponent.Get() : nullptr;
+		if (!Inventory || !RegistryScope.Registry ||
+			!RegistryScope.Registry->ResolveItem(ItemId, 1, Definition) ||
+			!Definition.bIsArmament ||
+			!Definition.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand) ||
+			Inventory->FindItemDefinition(ItemId))
+			return false;
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemDefinitionId = Definition.ItemId;
 		Item.ItemLevel = 1;
 		Item.Quantity = 1;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
 		Item.OwnerCharacterIndex = 0;
 		Item.EquipmentSlot = EGridEquipmentSlot::OffHand;
 		Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Item;
+		return true;
 	};
 
 	{
 		FGridMON11ResolutionFixture Fixture;
+		FGridCanonicalLootTestScope RegistryScope;
 		if (!TestTrue(TEXT("Real monster damage world for shield exists"), Fixture.IsReady()) ||
+			!TestTrue(TEXT("Real ItemSystem attached to monster world"),
+				RegistryScope.Attach(Fixture.TestWorld.World)) ||
 			!TestNotNull(TEXT("Monster has combat component"), Fixture.Monster->CombatComponent.Get()) ||
 			!TestTrue(TEXT("Monster combat can bind this party"), Fixture.Monster->CombatComponent->InitializeCombat(Fixture.Party)))
 		{
 			return false;
 		}
-		EquipOffHand(Fixture, Shield);
+		if (!TestTrue(TEXT("Canonical ARM075 N1 equipped in OffHand"),
+			EquipOffHand(Fixture, RegistryScope, ShieldId))) return false;
 		const int32 BeforeHP = Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth;
 		TestEqual(TEXT("Shield armor before real monster bite"), Fixture.Party->PartyInventoryComponent->GetEffectiveCurrentPhysicalArmor(0), 5);
 		FRandomStream Stream(FindSeedForNaturalAttackRoll(10));
@@ -492,13 +500,17 @@ bool FGridMonsterMON11EquippedGuardRuntimeTest::RunTest(const FString&)
 
 	{
 		FGridMON11ResolutionFixture Fixture;
+		FGridCanonicalLootTestScope RegistryScope;
 		if (!TestTrue(TEXT("Real monster damage world for parry exists"), Fixture.IsReady()) ||
+			!TestTrue(TEXT("Real ItemSystem attached to parry world"),
+				RegistryScope.Attach(Fixture.TestWorld.World)) ||
 			!TestNotNull(TEXT("Monster combat component for parry"), Fixture.Monster->CombatComponent.Get()) ||
 			!TestTrue(TEXT("Parry monster combat can bind party"), Fixture.Monster->CombatComponent->InitializeCombat(Fixture.Party)))
 		{
 			return false;
 		}
-		EquipOffHand(Fixture, ParryingDagger);
+		if (!TestTrue(TEXT("Canonical ARM013 N1 equipped in OffHand"),
+			EquipOffHand(Fixture, RegistryScope, ParryingDaggerId))) return false;
 		const int32 BeforeHP = Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth;
 		int32 TransformCalls = 0;
 		const FGridPartyAttackResultTransform ParryCallback =
