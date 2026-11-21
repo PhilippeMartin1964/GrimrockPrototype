@@ -43,6 +43,33 @@ namespace GridEditorRetirementAudit
         };
     }
 
+    // This is a disposition taxonomy, never an automatic deletion list.
+    // In particular the legacy DA_WeaponCatalogue and DA_WeaponVisualCatalogue
+    // are NOT the DA_CanonicalWeapon* catalogues stored by DA_ItemSystem.
+    inline FString CandidateRetirementRole(const FAssetData& Data)
+    {
+        const FString Package = Data.PackageName.ToString();
+        const FName Class = Data.AssetClassPath.GetAssetName();
+        if (Class == UGridItemDefinitionAsset::StaticClass()->GetFName())
+            return TEXT("historical_item_definition");
+        if ((Package == TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue") &&
+             Class == FName(TEXT("GridWeaponCatalogueAsset"))) ||
+            (Package == TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue") &&
+             Class == FName(TEXT("GridWeaponVisualCatalogueAsset"))))
+            return TEXT("historical_catalogue_source");
+        if ((Package == TEXT("/Game/GrimrockPrototype/Core/DataAssets/Tests/Readables/DA_BookPage_Test") ||
+             Package == TEXT("/Game/GrimrockPrototype/Core/DataAssets/Tests/Readables/DA_Scroll_Test")) &&
+            Class == UGridReadableContentAsset::StaticClass()->GetFName())
+            return TEXT("save_readable_fixture");
+        if (Package == TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ThrowingKnife") &&
+            Class == FName(TEXT("ObjectRedirector")))
+            return TEXT("historical_throwing_knife_redirector");
+        if (Package == TEXT("/Game/GrimrockPrototype/UI/Icons/Combat/DA_EquippedWeaponActionIcons") &&
+            Class == FName(TEXT("GridEquippedWeaponActionIconPalette")))
+            return TEXT("historical_action_icon_palette");
+        return TEXT("unclassified_keep_and_investigate");
+    }
+
     struct FNativeAudit
     {
         TSet<FName> ItemIds;
@@ -135,6 +162,7 @@ namespace GridEditorRetirementAudit
             { return A.GetSoftObjectPath().ToString() < B.GetSoftObjectPath().ToString(); });
 
         int32 LegacyCount = 0;
+        TMap<FString, int32> CandidateRoleCounts;
         int32 ExternalEdges = 0;
         TMap<EGridItemType, int32> LegacyCategoryCounts;
         TArray<TSharedPtr<FJsonValue>> CategoryRows;
@@ -152,6 +180,9 @@ namespace GridEditorRetirementAudit
             Row->SetStringField(TEXT("package"), Data.PackageName.ToString());
             Row->SetStringField(TEXT("object"), ObjectPath);
             Row->SetStringField(TEXT("class"), Data.AssetClassPath.ToString());
+            const FString RetirementRole = CandidateRetirementRole(Data);
+            Row->SetStringField(TEXT("retirement_role"), RetirementRole);
+            ++CandidateRoleCounts.FindOrAdd(RetirementRole);
             if (Data.AssetClassPath.GetAssetName() == UGridItemDefinitionAsset::StaticClass()->GetFName())
             {
                 const auto* Legacy = Cast<UGridItemDefinitionAsset>(Data.GetAsset());
@@ -223,6 +254,20 @@ namespace GridEditorRetirementAudit
         Out.CandidatePaths.Sort();
         Out.Report->SetNumberField(TEXT("legacy_definition_count"), LegacyCount);
         Out.Report->SetNumberField(TEXT("candidate_asset_count"), Assets.Num());
+        TSharedRef<FJsonObject> Roles = MakeShared<FJsonObject>();
+        for (const TCHAR* Name : {
+            TEXT("historical_item_definition"),
+            TEXT("historical_catalogue_source"),
+            TEXT("save_readable_fixture"),
+            TEXT("historical_throwing_knife_redirector"),
+            TEXT("historical_action_icon_palette"),
+            TEXT("unclassified_keep_and_investigate")})
+        {
+            Roles->SetNumberField(Name, CandidateRoleCounts.FindRef(Name));
+        }
+        Out.Report->SetObjectField(TEXT("candidate_role_counts"), Roles);
+        Out.Report->SetNumberField(TEXT("unclassified_candidate_count"),
+            CandidateRoleCounts.FindRef(TEXT("unclassified_keep_and_investigate")));
         Out.Report->SetNumberField(TEXT("external_referencer_edges"), ExternalEdges);
         Out.Report->SetArrayField(TEXT("legacy_ids_without_canonical"), Names(UnmappedIds));
         Out.Report->SetArrayField(TEXT("canonical_ids_without_legacy_source"), Names(MissingLegacyIds));

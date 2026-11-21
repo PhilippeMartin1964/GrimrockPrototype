@@ -12,12 +12,15 @@
 - Une sauvegarde contient **deux références Readables résolues** vers `Tests/Readables/DA_Scroll_Test` et `Tests/Readables/DA_BookPage_Test`, avec deux chemins bruts correspondants. **Ne pas supprimer ces assets.**
 - Quatre `UGridLevelAsset` examinés ; aucun lien `ReceptacleContainsItemType` trouvé dans ce périmètre. Les 48 sources de catégories historiques et leurs tags canoniques sont présents pour comparaison future.
 
+
+> **Rectificatif 5H.4 :** les deux catalogues du répertoire `Weapons/` sont des **sources historiques de migration**, et non les autorités runtime. Les vrais catalogues canonisés sont `CanonicalStage/DA_CanonicalWeaponCatalogue` et `CanonicalStage/DA_CanonicalWeaponVisualCatalogue`, liés depuis `DA_ItemSystem`. Ils ne font pas partie des 54 candidats. Tant que les tests Editor utilisent les anciennes sources, leur conservation est indispensable.
+
 ## Classification obligatoire des 54 packages (pas un ensemble de suppressions)
 
 | Groupe | Nombre | Disposition |
 |---|---:|---|
 | `UGridItemDefinitionAsset` historiques | **48** | Candidats à un retrait natif ultérieur uniquement après neutralisation de tous les consommateurs et preuve de parité. Ne pas supprimer maintenant. |
-| `DA_WeaponCatalogue`, `DA_WeaponVisualCatalogue` | **2** | **À CONSERVER** : catalogues encore canoniques, utilisés par le registre ; leur apparition dans l'inventaire tient au filtre large `Weapons/`. |
+| `DA_WeaponCatalogue`, `DA_WeaponVisualCatalogue` | **2** | **À CONSERVER POUR L'INSTANT** : **catalogues historiques**, sources des outils/tests Editor, distincts des catalogues canoniques sous `CanonicalStage/`. Leur présence dans le rapport tient au filtre large `Weapons/`. |
 | `UGridReadableContentAsset` de test | **2** | **À CONSERVER** : deux références effectivement décodées dans une sauvegarde v27. |
 | Redirecteur `DA_Weapon_ThrowingKnife` | **1** | Examiner et traiter ses chemins/redirects via Unreal Editor avant toute suppression ; il référence encore le package historique `DA_Weapon_ThrowingKnife_01`. |
 | `DA_EquippedWeaponActionIcons` | **1** | L'arête WBP externe précédente a disparu, mais des tests Editor chargent encore explicitement cette palette ; ne pas supprimer avant leur conversion et la validation native. |
@@ -31,7 +34,7 @@ L'analyse AssetRegistry ne garantit pas l'absence de chemins C++ explicites, de 
 ## Suite utile et critères d'arrêt
 
 1. **Préparer les tests et consumers historiques** qui chargent encore explicitement les anciens assets (notamment tests Editor de production 06.2 et anciens chemins d'authoring), sans créer de deuxième autorité runtime.
-2. **Établir une liste blanche fermée de packages éligibles** par classes et identités, excluant impérativement les quatre ressources canoniques/Readables à conserver ; traiter la palette et le redirecteur par lots séparés.
+2. **Établir une liste blanche fermée de packages éligibles** par classes et identités, excluant impérativement les deux anciens catalogues sources à maintenir pour les outils Editor ainsi que les deux Readables sauvegardés ; traiter la palette et le redirecteur par lots séparés.
 3. **Retrait éventuel : Unreal Editor natif seulement**, sauvegarde privée des packages, preuve de graphes de références complets, contrôle des chemins SaveGame v27, validation en second processus, rollback et un seul commit atomique de binaires autorisés. Les fichiers privés `.sav` ne sont ni modifiés ni publiés.
 4. Exiger `UE5.5.4/SilentTask` et `UE5.5.4/LocalAuto` sur chaque SHA modifiant du code ou des assets ; valider PIE, Save/Continue et Cook/Shipping avant fermeture ARM-CLEAN06.6.
 

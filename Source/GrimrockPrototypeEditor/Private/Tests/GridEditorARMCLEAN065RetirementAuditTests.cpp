@@ -32,6 +32,33 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         Audit.Report->GetArrayField(TEXT("canonical_ids_without_legacy_source")).Num(), 0);
     TestEqual(TEXT("No external package referencer remains after native 5F"),
         int32(Audit.Report->GetNumberField(TEXT("external_referencer_edges"))), 0);
+    // A report of 54 paths is not a deletion manifest. It includes old
+    // catalogues that are separate from the canonical staged catalogues
+    // and two readable assets still held by private v27 saves.
+    TestEqual(TEXT("Whole retirement candidate inventory (not a delete list)"),
+        int32(Audit.Report->GetNumberField(TEXT("candidate_asset_count"))), 54);
+    const TSharedPtr<FJsonObject> Roles = Audit.Report->GetObjectField(TEXT("candidate_role_counts"));
+    if (!TestTrue(TEXT("Candidate roles are reported"), Roles.IsValid())) return false;
+    TestEqual(TEXT("48 historical item definitions"),
+        int32(Roles->GetNumberField(TEXT("historical_item_definition"))), 48);
+    TestEqual(TEXT("Two OLD sources, not canonical staged catalogues"),
+        int32(Roles->GetNumberField(TEXT("historical_catalogue_source"))), 2);
+    TestEqual(TEXT("Two saved readable fixtures protected"),
+        int32(Roles->GetNumberField(TEXT("save_readable_fixture"))), 2);
+    TestEqual(TEXT("Throwing knife redirector requires fix-up"),
+        int32(Roles->GetNumberField(TEXT("historical_throwing_knife_redirector"))), 1);
+    TestEqual(TEXT("One legacy action icon palette"),
+        int32(Roles->GetNumberField(TEXT("historical_action_icon_palette"))), 1);
+    TestEqual(TEXT("No unclassified paths in current sample"),
+        int32(Roles->GetNumberField(TEXT("unclassified_keep_and_investigate"))), 0);
+    TestEqual(TEXT("Every candidate is covered by an explicit non-deleting role"),
+        int32(Audit.Report->GetNumberField(TEXT("unclassified_candidate_count"))), 0);
+    for (const TSharedPtr<FJsonValue>& Candidate : Audit.Report->GetArrayField(TEXT("candidates")))
+    {
+        const auto Row = Candidate->AsObject();
+        TestTrue(TEXT("Every candidate has a declared role"),
+            Row.IsValid() && !Row->GetStringField(TEXT("retirement_role")).IsEmpty());
+    }
     const auto& Categories = Audit.Report->GetArrayField(TEXT("puzzle_category_sources"));
     TestEqual(TEXT("Every native historical source has explicit category evidence"), Categories.Num(), 48);
     TSet<FName> CategoryIds;

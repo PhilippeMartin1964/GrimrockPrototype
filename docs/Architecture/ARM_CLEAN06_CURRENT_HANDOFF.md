@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.4 — Audit de classification native et correctif de la nomenclature
+
+Parent H.3 `a1f6d236430ddbe9c56e58221c1b4234963338e9` à valider avant publication. `GridEditorRetirementAudit` ajoute `candidate_role_counts`, un rôle par candidat, et le compteur explicite des inconnus ; un test natif contrôle les 54 packages 48+2+2+1+1. **Correction H.1** : `Weapons/DA_WeaponCatalogue` et `Weapons/DA_WeaponVisualCatalogue` sont des sources **historiques** d'édition, non les vrais catalogues canoniques `CanonicalStage/DA_CanonicalWeaponCatalogue` et `DA_CanonicalWeaponVisualCatalogue`. Aucun droit de suppression n'est produit. Voir [5H.4](ARM_CLEAN06_5H4_NATIVE_CANDIDATE_CLASSIFICATION.md). Vérifier double statut Windows sur le nouveau SHA avant H.5.
+
+
 ## ARM-CLEAN06.5H.3 — Kits approuvés : pas de fallback hors Automation
 
 Parent H.2 `d5b082a387e7bed8fbdaff173d181d1be32348fd` validé SilentTask/LocalAuto. `TryPopulateApprovedTransientClass` interdit désormais l'accès aux anciens objets de kit lorsque le registre est absent **même dans l'éditeur de développement hors Automation** ; la fixture de parité conservée n'est autorisée que si `GIsAutomationTesting` est vrai. Un test dédié vérifie le garde, les contrôles existants 5C vérifient les vrais kits. Aucun asset, sauvegarde ou UI modifié. Voir [5H.3](ARM_CLEAN06_5H3_APPROVED_STARTER_AUTOMATION_GATE.md). Vérifier les deux statuts Windows sur ce SHA.
@@ -12,7 +17,7 @@ Parent `11628391943503fa3f037d47183a55f0a5fe8017` (SilentTask et LocalAuto SUCCE
 
 ## ARM-CLEAN06.5H.1 — Classement des packages après nouvel audit privé
 
-Après SUCCESS/SUCCESS de 5G.135 (`c6b1492da26422fc4dbc94f2234642a5240f2579`), l'opérateur a transmis un nouveau rapport 5A/v1 : 48 identités canoniques et historiques, 466 résolutions, 14 actions, 54 packages inventoriés, **0 arête externe AssetRegistry**, 7/7 saves v27 décodées sans ItemId inconnu, 2 Readables résolus. **Attention :** le collecteur renvoie à zéro par compatibilité certains champs cache/pointeurs depuis le retrait du schéma C++ ; les modes de preuve spécialisés sont désactivés dans ce passage. Les 54 packages comprennent **2 catalogues canoniques à conserver**, **2 Readables à conserver**, 48 définitions historiques, une palette encore chargée par des tests Editor et un redirecteur. Aucun retrait autorisé (`deletion_authorized=false`). Voir [classification 5H.1](ARM_CLEAN06_5H1_RETIREMENT_DISPOSITION.md). Aucun fichier privé publié.
+Après SUCCESS/SUCCESS de 5G.135 (`c6b1492da26422fc4dbc94f2234642a5240f2579`), l'opérateur a transmis un nouveau rapport 5A/v1 : 48 identités canoniques et historiques, 466 résolutions, 14 actions, 54 packages inventoriés, **0 arête externe AssetRegistry**, 7/7 saves v27 décodées sans ItemId inconnu, 2 Readables résolus. **Attention :** le collecteur renvoie à zéro par compatibilité certains champs cache/pointeurs depuis le retrait du schéma C++ ; les modes de preuve spécialisés sont désactivés dans ce passage. Les 54 packages comprennent **2 anciens catalogues sources à conserver provisoirement**, **2 Readables à conserver**, 48 définitions historiques, une palette encore chargée par des tests Editor et un redirecteur. Aucun retrait autorisé (`deletion_authorized=false`). Voir [classification 5H.1](ARM_CLEAN06_5H1_RETIREMENT_DISPOSITION.md). Aucun fichier privé publié.
 
 
 > **Document de continuité, pas une autorisation de conversion.**
