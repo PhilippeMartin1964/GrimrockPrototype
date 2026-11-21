@@ -194,27 +194,65 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0191OneHandKitTest,
 
 bool FARMEMENT0191OneHandKitTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr, ARMEMENT0191::DaggerPath);
-	UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr, ARMEMENT0191::ShieldPath);
-	if (!TestNotNull(TEXT("Pilot dagger exists"), Dagger) || !TestNotNull(TEXT("Pilot shield exists"), Shield)) return false;
+	FGridCanonicalWeightTestWorld Fixture({});
+	const UGridItemSubsystem* Registry = Fixture.Scope.Registry;
+	const FName DaggerId(TEXT("Weapon_Dagger_01"));
+	const FName ShieldId(TEXT("Weapon_RoundShield_01"));
+	FGridResolvedItem Dagger, Shield;
+	if (!TestNotNull(TEXT("Canonical kit registry"), Registry) ||
+		!TestTrue(TEXT("Production dagger N4 resolves"),
+			Registry->ResolveItem(DaggerId, 4, Dagger)) ||
+		!TestTrue(TEXT("Production shield N1 resolves"),
+			Registry->ResolveItem(ShieldId, 1, Shield)) ||
+		!TestTrue(TEXT("Dagger can occupy MainHand"),
+			Dagger.bIsArmament && Dagger.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand)) ||
+		!TestTrue(TEXT("Shield can occupy OffHand with physical armor"),
+			Shield.bIsArmament && Shield.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand) &&
+			Shield.Weapon.PhysicalArmor == 5))
+		return false;
+
 	URPGClassAsset* Class = ARMEMENT0191::MakeClass();
 	FRPGStartingEquipmentKit& Kit = ARMEMENT0191::AddKit(Class, TEXT("Warrior_Defender"), true);
-	ARMEMENT0191::AddEntry(Kit, Dagger, 4, EGridEquipmentSlot::MainHand);
-	ARMEMENT0191::AddEntry(Kit, Shield, 0, EGridEquipmentSlot::OffHand);
-	UGridPartyInventoryComponent* Inventory = ARMEMENT0191::NewInventory();
+	ARMEMENT0191::AddCanonicalEntry(Kit, DaggerId, 4, EGridEquipmentSlot::MainHand);
+	ARMEMENT0191::AddCanonicalEntry(Kit, ShieldId, 1, EGridEquipmentSlot::OffHand);
+	UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+	if (!TestNotNull(TEXT("World-bound canonical inventory"), Inventory)) return false;
+	Inventory->InitializeDefaultPartyIfNeeded();
+	if (!TestTrue(TEXT("Configured one-hand starting kit is valid"), Class->IsValidDefinition()))
+		return false;
 	FText Error;
-	if (!TestTrue(TEXT("Two compatible one-hand items can be granted"), Inventory->CreateInitialCharacter(
-		ARMEMENT0191::MakeRequest(Class, ARMEMENT0191::MakeRace()), Error))) return false;
+	if (!TestTrue(TEXT("Both canonical one-hand items granted atomically"),
+		Inventory->CreateInitialCharacter(
+			ARMEMENT0191::MakeRequest(Class, ARMEMENT0191::MakeRace()), Error)))
+	{
+		AddError(Error.ToString());
+		return false;
+	}
 	FGridItemInstance Main, Off;
-	TestTrue(TEXT("MainHand has dagger"), Inventory->GetEquippedItem(0, EGridEquipmentSlot::MainHand, Main));
-	TestTrue(TEXT("OffHand has shield"), Inventory->GetEquippedItem(0, EGridEquipmentSlot::OffHand, Off));
-	TestEqual(TEXT("Dagger fixed level preserved"), Main.ItemLevel, 4);
-	TestEqual(TEXT("Shield default level preserved"), Off.ItemLevel, Shield->DefaultWeaponItemLevel);
-	TestTrue(TEXT("Two hands have unique physical GUIDs"), Main.RuntimeObjectId != Off.RuntimeObjectId);
+	if (!TestTrue(TEXT("MainHand has canonical dagger"),
+		Inventory->GetEquippedItem(0, EGridEquipmentSlot::MainHand, Main)) ||
+		!TestTrue(TEXT("OffHand has canonical shield"),
+		Inventory->GetEquippedItem(0, EGridEquipmentSlot::OffHand, Off)))
+		return false;
+	TestEqual(TEXT("Dagger ItemId retained"), Main.ItemDefinitionId, DaggerId);
+	TestEqual(TEXT("Shield ItemId retained"), Off.ItemDefinitionId, ShieldId);
+	TestEqual(TEXT("Dagger explicit N4 retained"), Main.ItemLevel, 4);
+	TestEqual(TEXT("Shield explicit N1 retained"), Off.ItemLevel, 1);
+	TestTrue(TEXT("Each item has its own valid GUID"),
+		Main.RuntimeObjectId.IsValid() && Off.RuntimeObjectId.IsValid() &&
+		Main.RuntimeObjectId != Off.RuntimeObjectId);
 	TestFalse(TEXT("No virtual two-hand reservation"), Inventory->IsTwoHandedEquipped(0));
+	TestEqual(TEXT("Exactly one dagger owned"), ARMEMENT0191::CountPhysicalItem(Inventory, DaggerId), 1);
+	TestEqual(TEXT("Exactly one shield owned"), ARMEMENT0191::CountPhysicalItem(Inventory, ShieldId), 1);
+	TestEqual(TEXT("Kit id persists on the created character"),
+		Inventory->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId,
+		FName(TEXT("Warrior_Defender")));
+	TestNull(TEXT("No historic dagger registered"), Inventory->FindItemDefinition(DaggerId));
+	TestNull(TEXT("No historic shield registered"), Inventory->FindItemDefinition(ShieldId));
 	FString OwnershipError;
-	TestTrue(TEXT("One-hand kit ownership valid"), Inventory->ValidateInventoryOwnership(OwnershipError));
-	return true;
+	TestTrue(TEXT("One-hand kit ownership remains valid"),
+		Inventory->ValidateInventoryOwnership(OwnershipError));
+	return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0191RollbackTest,
