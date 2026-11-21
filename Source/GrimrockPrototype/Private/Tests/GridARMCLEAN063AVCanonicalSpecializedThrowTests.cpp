@@ -466,9 +466,19 @@ bool FGridClean065E4DLegacyLookup::RunTest(const FString&)
     TestNull(TEXT("Registered ID cannot enter the obsolete map"), Inventory->FindItemDefinition(Known));
     TestNull(TEXT("Canonical transfer ignores old inventory entry"), FGridLegacyItemLookup::Resolve(Party, Known));
     TestNull(TEXT("Unknown transfer cannot use an old level entry"), FGridLegacyItemLookup::Resolve(Party, Unknown));
-    TestTrue(TEXT("Unknown entry registered"), Inventory->RegisterItemDefinition(OldUnknown));
-    TestEqual(TEXT("Transfer reads its own explicit map, not the level"), FGridLegacyItemLookup::Resolve(Party, Unknown), OldUnknown);
-    TestFalse(TEXT("Explicit inventory map cannot alter ItemSystem"), F.Registry->ResolveItem(Unknown, 0, Resolved));
+    TestTrue(TEXT("Unknown entry registered for historical fixture"), Inventory->RegisterItemDefinition(OldUnknown));
+    TestNull(TEXT("Configured canonical world refuses unknown legacy inventory lookup"),
+        FGridLegacyItemLookup::Resolve(Party, Unknown));
+    // Isolated Automation without a GameInstance may still characterize
+    // old authoring assets, but cannot leak that authority into real games.
+    F.World->SetGameInstance(nullptr);
+    TestEqual(TEXT("Worldless Automation fixture reads only its explicit old map"),
+        FGridLegacyItemLookup::Resolve(Party, Unknown), OldUnknown);
+    F.World->SetGameInstance(F.GI);
+    TestNull(TEXT("Restored configured world rejects the same old fixture"),
+        FGridLegacyItemLookup::Resolve(Party, Unknown));
+    TestFalse(TEXT("Explicit inventory map cannot alter ItemSystem"),
+        F.Registry->ResolveItem(Unknown, 0, Resolved));
     return !HasAnyErrors();
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065G59InFlightTravel,

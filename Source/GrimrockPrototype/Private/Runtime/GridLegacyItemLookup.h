@@ -20,16 +20,23 @@ struct FGridLegacyItemLookup
 
 	static UGridItemDefinitionAsset* Resolve(const AGrimrockPartyPawn* Party, FName ItemId)
 	{
-		if (!Party || ItemId.IsNone() || IsRegistered(Party, ItemId))
+#if WITH_DEV_AUTOMATION_TESTS
+		// Only worldless Automation fixtures may consult the historical
+		// inventory definition map. An unknown ID in a GameInstance-owned
+		// world must never gain gameplay metadata from an old DataAsset.
+		const UWorld* World = Party ? Party->GetWorld() : nullptr;
+		if (!Party || ItemId.IsNone() || !GIsAutomationTesting || !World ||
+			World->GetGameInstance() != nullptr)
 		{
 			return nullptr;
 		}
 		UGridItemDefinitionAsset* Old = Party->PartyInventoryComponent
 			? Party->PartyInventoryComponent->FindItemDefinition(ItemId) : nullptr;
-		if (IsValid(Old) && Old->ItemDefinitionId == ItemId)
-		{
-			return Old;
-		}
+		return IsValid(Old) && Old->ItemDefinitionId == ItemId ? Old : nullptr;
+#else
+		(void)Party;
+		(void)ItemId;
 		return nullptr;
+#endif
 	}
 };

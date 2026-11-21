@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.8 — Ancienne table d'inventaire interdite hors fixture Automation
+
+Parent H.7 `b7e5f2d30278fc7dc97c0bacf3ab937c7172fd51` : attendre les deux statuts Windows SUCCESS. `FGridLegacyItemLookup::Resolve` ne parcourt plus les anciennes définitions d'inventaire que dans un world **sans GameInstance** sous `GIsAutomationTesting`; un monde de jeu configuré retourne nullptr même si une vieille identité est dans la table locale. Le test `PhysicalTransferLegacyLookup` vérifie le refus, l'exception Automation isolée et le refus après retour de GI. Le build non-test compile uniquement le retour nullptr. Aucun `.uasset` ou `.sav` touché. Voir [5H.8](ARM_CLEAN06_5H8_LEGACY_INVENTORY_LOOKUP_GATE.md).
+
+
 ## ARM-CLEAN06.5H.7 — Spawn d'objet canonique obligatoire dans un monde configuré
 
 Parent H.6 `42f48e54fcd3c668c0396661398f2c70d1b31727` à valider avant la publication H.7. `SpawnItemActorForDefinition` rejette désormais un ancien `UGridItemDefinitionAsset` ou un ItemId inconnu en présence d'une GameInstance ; seuls un registre configuré et un ItemId enregistré autorisent la matérialisation. Le world sans GameInstance reste compatible avec les fixtures historiques. Le scénario `CanonicalWorldPickupIdentity.RegisteredLevelGuards` protège les refus et l'acceptation canonique. Voir [5H.7](ARM_CLEAN06_5H7_REGISTERED_WORLD_ITEM_SPAWN_GUARD.md). Aucun asset ni SaveGame modifié.
