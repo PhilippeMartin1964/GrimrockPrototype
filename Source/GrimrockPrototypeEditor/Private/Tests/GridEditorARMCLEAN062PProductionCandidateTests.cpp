@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridEditorCanonicalIconFixture.h"
 #include "ARMEMENT/GridArmClean06ProductionCandidate.h"
 #include "ARMEMENT/GridArmClean06ActionIconsProjection.h"
 #include "ARMEMENT/GridArmClean06VisualProjection.h"
@@ -25,11 +26,10 @@ bool FGridClean062PProductionCandidate::RunTest(const FString&)
 	const UGridWeaponVisualCatalogueAsset* SourceVisuals =
 		LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr,
 			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue"));
-	const UGridEquippedWeaponActionIconPalette* SourceIcons =
-		LoadObject<UGridEquippedWeaponActionIconPalette>(nullptr,
-			TEXT("/Game/GrimrockPrototype/UI/Icons/Combat/DA_EquippedWeaponActionIcons.DA_EquippedWeaponActionIcons"));
+	TStrongObjectPtr<UGridEquippedWeaponActionIconPalette> SourceIcons(
+		GridEditorCanonicalIconFixture::Create());
 	if (!TestNotNull(TEXT("Source weapon visuals"), SourceVisuals) ||
-		!TestNotNull(TEXT("Source icon palette"), SourceIcons))
+		!TestNotNull(TEXT("Source icon palette"), SourceIcons.Get()))
 	{
 		return false;
 	}

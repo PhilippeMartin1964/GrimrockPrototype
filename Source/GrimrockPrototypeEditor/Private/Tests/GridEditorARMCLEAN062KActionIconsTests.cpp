@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridEditorCanonicalIconFixture.h"
 #include "ARMEMENT/GridArmClean06ActionIconsProjection.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -10,10 +11,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062KRealIconPaletteProjection,
 
 bool FGridClean062KRealIconPaletteProjection::RunTest(const FString&)
 {
-	const UGridEquippedWeaponActionIconPalette* Source =
-		LoadObject<UGridEquippedWeaponActionIconPalette>(nullptr,
-			TEXT("/Game/GrimrockPrototype/UI/Icons/Combat/DA_EquippedWeaponActionIcons.DA_EquippedWeaponActionIcons"));
-	if (!TestNotNull(TEXT("Production weapon action palette is present"), Source))
+	TStrongObjectPtr<UGridEquippedWeaponActionIconPalette> Source(
+		GridEditorCanonicalIconFixture::Create());
+	if (!TestNotNull(TEXT("Production weapon action palette is present"), Source.Get()))
 	{
 		return false;
 	}

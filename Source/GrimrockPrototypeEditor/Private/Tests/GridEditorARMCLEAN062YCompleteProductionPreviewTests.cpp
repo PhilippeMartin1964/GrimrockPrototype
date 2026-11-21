@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridEditorCanonicalIconFixture.h"
 #include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "ARMEMENT/GridArmClean06CompleteProductionPreview.h"
 #include "../ARMEMENT/GridEditorArmHandThrowPlan.h"
@@ -74,15 +75,14 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 	const UGridWeaponVisualCatalogueAsset* Visuals =
 		LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr,
 			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue"));
-	const UGridEquippedWeaponActionIconPalette* Icons =
-		LoadObject<UGridEquippedWeaponActionIconPalette>(nullptr,
-			TEXT("/Game/GrimrockPrototype/UI/Icons/Combat/DA_EquippedWeaponActionIcons.DA_EquippedWeaponActionIcons"));
+	TStrongObjectPtr<UGridEquippedWeaponActionIconPalette> Icons(
+		GridEditorCanonicalIconFixture::Create());
 	const UGridItemDefinitionAsset* Arrows =
 		LoadObject<UGridItemDefinitionAsset>(nullptr,
 			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
 	if (!TestNotNull(TEXT("Real numbers"), Numerics) ||
 		!TestNotNull(TEXT("Real visual source"), Visuals) ||
-		!TestNotNull(TEXT("Real action icons"), Icons) ||
+		!TestNotNull(TEXT("Real action icons"), Icons.Get()) ||
 		!TestNotNull(TEXT("Real arrows"), Arrows))
 	{
 		return false;

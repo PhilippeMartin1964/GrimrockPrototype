@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridEditorCanonicalIconFixture.h"
 #include "ARMEMENT/GridArmClean06ProductionCandidate.h"
 #include "ARMEMENT/GridArmClean06ProjectileVisualProjection.h"
 #include "Engine/StaticMesh.h"
@@ -29,11 +30,10 @@ bool FGridClean062XRealProjectileVisuals::RunTest(const FString&)
 	const UGridWeaponVisualCatalogueAsset* Historical =
 		LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr,
 			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue"));
-	const UGridEquippedWeaponActionIconPalette* Icons =
-		LoadObject<UGridEquippedWeaponActionIconPalette>(nullptr,
-			TEXT("/Game/GrimrockPrototype/UI/Icons/Combat/DA_EquippedWeaponActionIcons.DA_EquippedWeaponActionIcons"));
+	TStrongObjectPtr<UGridEquippedWeaponActionIconPalette> Icons(
+		GridEditorCanonicalIconFixture::Create());
 	if (!TestNotNull(TEXT("Existing visual catalogue"), Historical) ||
-		!TestNotNull(TEXT("Existing action icon palette"), Icons))
+		!TestNotNull(TEXT("Existing action icon palette"), Icons.Get()))
 	{
 		return false;
 	}

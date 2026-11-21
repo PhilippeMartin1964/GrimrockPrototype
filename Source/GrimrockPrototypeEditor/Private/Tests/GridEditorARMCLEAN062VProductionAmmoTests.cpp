@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridEditorCanonicalIconFixture.h"
 #include "ARMEMENT/GridArmClean06ProductionAmmoCandidate.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
@@ -26,15 +27,14 @@ bool FGridClean062VRealAmmo::RunTest(const FString&)
 	const UGridWeaponVisualCatalogueAsset* Visuals =
 		LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr,
 			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue"));
-	const UGridEquippedWeaponActionIconPalette* Icons =
-		LoadObject<UGridEquippedWeaponActionIconPalette>(nullptr,
-			TEXT("/Game/GrimrockPrototype/UI/Icons/Combat/DA_EquippedWeaponActionIcons.DA_EquippedWeaponActionIcons"));
+	TStrongObjectPtr<UGridEquippedWeaponActionIconPalette> Icons(
+		GridEditorCanonicalIconFixture::Create());
 	const UGridItemDefinitionAsset* SourceArrows =
 		LoadObject<UGridItemDefinitionAsset>(nullptr,
 			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
 	if (!TestNotNull(TEXT("Source numbers"), N1ToN20) ||
 		!TestNotNull(TEXT("Source visual catalogue"), Visuals) ||
-		!TestNotNull(TEXT("Source action icons"), Icons) ||
+		!TestNotNull(TEXT("Source action icons"), Icons.Get()) ||
 		!TestNotNull(TEXT("Real Arrow definition"), SourceArrows))
 	{
 		return false;

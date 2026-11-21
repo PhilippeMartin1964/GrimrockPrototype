@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.2 — Tests Editor 06.2 découplés de la palette historique
+
+Parent `11628391943503fa3f037d47183a55f0a5fe8017` (SilentTask et LocalAuto SUCCESS). Les huit tests 062K/P/Q/U/V/W/X/Y ne chargent plus directement `DA_EquippedWeaponActionIcons` : une fixture Automation transiente reprend les douze catégories de `DA_ItemSystem.WeaponVisualCatalogue.ActionIcons`. Les assertions de migration restent, **mais leur entrée est désormais canonique et n'est plus une preuve de parité indépendante de la palette historique**. Les assets, WBP et SaveGames restent inchangés. Exiger les deux statuts Windows sur le SHA H.2 ; aucune suppression du DataAsset autorisée. Voir [5H.2](ARM_CLEAN06_5H2_EDITOR_ICON_FIXTURE_CANONICAL.md).
+
+
 ## ARM-CLEAN06.5H.1 — Classement des packages après nouvel audit privé
 
 Après SUCCESS/SUCCESS de 5G.135 (`c6b1492da26422fc4dbc94f2234642a5240f2579`), l'opérateur a transmis un nouveau rapport 5A/v1 : 48 identités canoniques et historiques, 466 résolutions, 14 actions, 54 packages inventoriés, **0 arête externe AssetRegistry**, 7/7 saves v27 décodées sans ItemId inconnu, 2 Readables résolus. **Attention :** le collecteur renvoie à zéro par compatibilité certains champs cache/pointeurs depuis le retrait du schéma C++ ; les modes de preuve spécialisés sont désactivés dans ce passage. Les 54 packages comprennent **2 catalogues canoniques à conserver**, **2 Readables à conserver**, 48 définitions historiques, une palette encore chargée par des tests Editor et un redirecteur. Aucun retrait autorisé (`deletion_authorized=false`). Voir [classification 5H.1](ARM_CLEAN06_5H1_RETIREMENT_DISPOSITION.md). Aucun fichier privé publié.
