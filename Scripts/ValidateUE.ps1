@@ -210,6 +210,20 @@ if ($LASTEXITCODE -ne 0 -or $RetirementSelfTestHead.Count -ne 1) { throw 'Cannot
 & (Join-Path $PSScriptRoot 'TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -SelfTest
 Assert-FileExists -Path $ProjectFile -Description 'Projet Unreal'
 
+# ARMEMENT01.17.1.4.SHIPPING01: guard the cook contract in the automatic
+# Windows preflight, without touching any save file or packaged binary.
+$OilCookConfig = Get-Content -LiteralPath (Join-Path $RepoRoot 'Config\DefaultGame.ini') -Raw -Encoding UTF8
+$OilCookRule = '+DirectoriesToAlwaysCook=(Path="/Game/GrimrockPrototype/Art/Materials/Surfaces")'
+if (-not $OilCookConfig.Contains($OilCookRule)) {
+    throw 'Oil decal materials are no longer explicitly included in Shipping cook.'
+}
+foreach ($OilAsset in @('M_Surface_Oil.uasset','MI_Surface_Oil.uasset')) {
+    $OilAssetPath = Join-Path $RepoRoot ('Content\GrimrockPrototype\Art\Materials\Surfaces\' + $OilAsset)
+    Assert-FileExists -Path $OilAssetPath -Description ('Shipping oil decal ' + $OilAsset)
+}
+Write-Host '[OK] Oil decal cook configuration and both source assets.'
+
+
 $ResolvedEngineRoot = Resolve-GrimrockEngineRoot -RequestedRoot $EngineRoot
 $BuildBatch = Join-Path $ResolvedEngineRoot 'Engine\Build\BatchFiles\Build.bat'
 $EditorCmd = Join-Path $ResolvedEngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'

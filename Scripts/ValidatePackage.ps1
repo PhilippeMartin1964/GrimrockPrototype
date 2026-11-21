@@ -274,6 +274,25 @@ if (-not $PresentationFound -or $SkillAssets.Count -ne 25)
 
 Write-Host '[OK] UI-RPG Shipping DataAssets verified in cooked Windows content.'
 
+# ARMEMENT01.17.1.4.SHIPPING01: C++ dynamically loads the oil decal instance,
+# so full cook must preserve both native master and instance, unlike PIE.
+$CookedOilRoot = Join-Path $RepoRoot 'Saved\Cooked\Windows\GrimrockPrototype\Content\GrimrockPrototype\Art\Materials\Surfaces'
+$CookedOilMaster = Join-Path $CookedOilRoot 'M_Surface_Oil.uasset'
+$CookedOilInstance = Join-Path $CookedOilRoot 'MI_Surface_Oil.uasset'
+
+Write-Host ''
+Write-Host '=== Shipping oil decal cooked asset validation ==='
+$OilMasterFound = Test-Path -LiteralPath $CookedOilMaster -PathType Leaf
+$OilInstanceFound = Test-Path -LiteralPath $CookedOilInstance -PathType Leaf
+Write-Host ('Oil master  : ' + $(if ($OilMasterFound) { '[OK]' } else { '[MISSING]' }))
+Write-Host ('Oil instance: ' + $(if ($OilInstanceFound) { '[OK]' } else { '[MISSING]' }))
+if (-not $OilMasterFound -or -not $OilInstanceFound)
+{
+    throw 'ARMEMENT01.17.1.4 Shipping failed: cooked M_Surface_Oil or MI_Surface_Oil missing.'
+}
+Write-Host '[OK] Both oil decal resources present in cooked Windows content.'
+
+
 $ArchiveFiles = @(Get-ChildItem -LiteralPath $SessionArchivePath -Recurse -File)
 $ArchiveBytes = 0L
 foreach ($ArchiveFile in $ArchiveFiles)
