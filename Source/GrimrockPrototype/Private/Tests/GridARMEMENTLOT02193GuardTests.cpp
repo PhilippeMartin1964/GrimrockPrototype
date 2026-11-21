@@ -3,17 +3,17 @@
 #include "Misc/AutomationTest.h"
 #include "Runtime/Combat/GridCombatLog.h"
 #include "Runtime/Combat/GridEquippedGuardResolver.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 
 namespace GridGuard193
 {
-	FGridItemInstance MakeEquipped(const UGridItemDefinitionAsset* Definition, EGridEquipmentSlot Slot)
+	FGridItemInstance MakeEquipped(FName ItemId, EGridEquipmentSlot Slot)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemDefinitionId = ItemId;
 		Item.ItemLevel = 1;
 		Item.Quantity = 1;
 		Item.OwnerCharacterIndex = 0;
@@ -22,9 +22,10 @@ namespace GridGuard193
 		return Item;
 	}
 
-	UGridPartyInventoryComponent* MakeInventory(UGridItemDefinitionAsset* Definition)
+	UGridPartyInventoryComponent* MakeInventory(FGridCanonicalWeightTestWorld& Fixture, FName ItemId)
 	{
-		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+		UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+		if (!Inventory || Inventory->FindItemDefinition(ItemId)) return nullptr;
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = FGuid::NewGuid();
 		Character.DisplayName = FText::FromString(TEXT("Garde"));
@@ -33,8 +34,8 @@ namespace GridGuard193
 		Character.Resources.CurrentMagicalArmor = 0;
 		Inventory->PartyInventoryState.ActiveCharacters.Add(Character);
 		Inventory->PartyInventoryState.ActiveEquipment.SetNum(1);
-		Inventory->RegisterItemDefinition(Definition);
-		Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = MakeEquipped(Definition, EGridEquipmentSlot::OffHand);
+		Inventory->PartyInventoryState.ActiveEquipment[0].OffHand =
+			MakeEquipped(ItemId, EGridEquipmentSlot::OffHand);
 		return Inventory;
 	}
 
@@ -61,13 +62,19 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridGuard193ParryEligibilityTest,
 
 bool FGridGuard193ParryEligibilityTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* MainGauche = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_MainGauche_01.DA_Weapon_MainGauche_01"));
-	if (!TestNotNull(TEXT("Real ARM013 Main-gauche exists"), MainGauche))
-	{
+	FGridCanonicalWeightTestWorld Fixture({});
+	FGridResolvedItem MainGauche;
+	if (!TestNotNull(TEXT("Configured production ItemSystem"), Fixture.Scope.Registry) ||
+		!TestTrue(TEXT("Real ARM013 Main-gauche N1 resolves canonically"),
+			Fixture.Scope.Registry->ResolveItem(TEXT("Weapon_MainGauche_01"), 1, MainGauche)) ||
+		!TestTrue(TEXT("ARM013 is an off-hand-capable armament"),
+			MainGauche.bIsArmament &&
+			MainGauche.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand)))
 		return false;
-	}
-	UGridPartyInventoryComponent* Inventory = GridGuard193::MakeInventory(MainGauche);
+	UGridPartyInventoryComponent* Inventory =
+		GridGuard193::MakeInventory(Fixture, MainGauche.ItemId);
+	if (!TestNotNull(TEXT("World-bound inventory without historical Main-gauche"), Inventory))
+		return false;
 	FGridMonsterAttackDefinition Melee;
 	Melee.AttackId = TEXT("Test_Monster_Melee");
 	Melee.DamageType = EGridDamageType::Physical;
@@ -129,13 +136,19 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridGuard193ShieldBlockTest,
 
 bool FGridGuard193ShieldBlockTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-	if (!TestNotNull(TEXT("Real ARM075 round shield"), Shield))
-	{
+	FGridCanonicalWeightTestWorld Fixture({});
+	FGridResolvedItem Shield;
+	if (!TestNotNull(TEXT("Configured production ItemSystem"), Fixture.Scope.Registry) ||
+		!TestTrue(TEXT("Real ARM075 round shield N1 resolves canonically"),
+			Fixture.Scope.Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, Shield)) ||
+		!TestTrue(TEXT("ARM075 is a passive off-hand shield with five armor"),
+			Shield.bIsArmament && Shield.Weapon.PhysicalArmor == 5 &&
+			Shield.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand)))
 		return false;
-	}
-	UGridPartyInventoryComponent* Inventory = GridGuard193::MakeInventory(Shield);
+	UGridPartyInventoryComponent* Inventory =
+		GridGuard193::MakeInventory(Fixture, Shield.ItemId);
+	if (!TestNotNull(TEXT("World-bound inventory without historical shield"), Inventory))
+		return false;
 	TestEqual(TEXT("Shield starts at five physical armor"), Inventory->GetEffectiveCurrentPhysicalArmor(0), 5);
 	FGridAttackResult First = GridGuard193::MakePhysicalHit(4);
 	First.PhysicalArmorDamage = 4;
