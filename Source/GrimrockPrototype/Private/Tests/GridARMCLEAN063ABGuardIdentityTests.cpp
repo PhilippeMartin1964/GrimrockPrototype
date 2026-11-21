@@ -90,8 +90,8 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 		}
 	}
 
-	// Unregistered legacy item and standalone tests without a world keep
-	// the original fallback until the 06.4 asset migration.
+	// Unknown identities fail closed in a configured canonical world; only
+	// isolated registry-less Automation fixtures retain the old guard rules.
 	ConflictingLegacy->ItemDefinitionId = TEXT("LegacyGuard_063AB");
 	ConflictingLegacy->ItemType = EGridItemType::Weapon;
 	FGridItemInstance Unknown;
@@ -100,14 +100,19 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 	Unknown.ItemLevel = 1;
 	Unknown.Quantity = 1;
 	Unknown.EquipmentSlot = EGridEquipmentSlot::OffHand;
-	const FGridEquippedGuardItemReadView Old =
+	const FGridEquippedGuardItemReadView Refused =
 		FGridEquippedGuardItemReadModel::Resolve(Registry.Get(), ConflictingLegacy.Get(), Unknown);
-	TestFalse(TEXT("Unknown identity stays outside canonical registry"), Old.bCanonicalIdentity);
-	TestTrue(TEXT("Unknown item preserves legacy ARM013 rule"), Old.bCanParry);
+	TestFalse(TEXT("Unknown identity stays outside canonical registry"), Refused.bCanonicalIdentity);
+	TestFalse(TEXT("Configured canonical registry refuses unknown guard rule"), Refused.bResolved);
+	TestFalse(TEXT("Unknown cannot inherit historical parry"), Refused.bCanParry);
+	TestFalse(TEXT("Unknown cannot inherit historical shield"), Refused.bIsShield);
+	TestTrue(TEXT("Isolated Automation fixture still exercises historical ARM013 parry"),
+		FGridEquippedGuardItemReadModel::Resolve(nullptr, ConflictingLegacy.Get(), Unknown).bCanParry);
 	ConflictingLegacy->ItemType = EGridItemType::Shield;
-	TestTrue(TEXT("Unknown shield keeps historical classification"),
-		FGridEquippedGuardItemReadModel::Resolve(
-			Registry.Get(), ConflictingLegacy.Get(), Unknown).bIsShield);
+	TestFalse(TEXT("Configured canonical registry refuses unknown historical shield"),
+		FGridEquippedGuardItemReadModel::Resolve(Registry.Get(), ConflictingLegacy.Get(), Unknown).bResolved);
+	TestTrue(TEXT("Registry-less Automation fixture still recognizes historical shield"),
+		FGridEquippedGuardItemReadModel::Resolve(nullptr, ConflictingLegacy.Get(), Unknown).bIsShield);
 	TestFalse(TEXT("Unknown item without definition has no guard reaction"),
 		FGridEquippedGuardItemReadModel::Resolve(Registry.Get(), nullptr, Unknown).bResolved);
 	return true;

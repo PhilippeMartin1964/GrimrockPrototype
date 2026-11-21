@@ -5,6 +5,10 @@
 > avant d'utiliser ce point daté. Si le dépôt a avancé, ne jamais revenir au
 > jalon présenté ici. Une conversation ChatGPT peut s'interrompre sans préavis.
 
+## ARM-CLEAN06.5G.130 — Rejet de la garde inconnue en partie canonique
+
+Parent `9d924786a08aca7e0da25cc77c78eb57279929f1` : après validation de 5G.129.1, `GridEquippedGuardItemReadModel` ne doit plus classer ARM013 ou bouclier d'une identité absente de `DA_ItemSystem` dans une partie configurée. La compatibilité sans registre est réservée à Automation ; le test `CanonicalGuardItemIdentity` couvre rejet et fixture. Aucun asset ou SaveGame modifié. Publication conditionnée aux deux statuts Windows SUCCESS sur le parent, puis validation du nouveau SHA. Voir [5G.130](ARM_CLEAN06_5G130_GUARD_UNKNOWN_FAIL_CLOSED.md).
+
 ## ARM-CLEAN06.5G.129.1 — Correction BUILD_FAILED du retrait d'instance
 
 Parent `6abc1c6bb5823334b2bbb78151c6b5e3f631093c` : le 5G.129 a échoué au BUILD Windows (issue [#217](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/217)) avec huit accès C2039 à `FGridItemInstance::DisplayName/Weight` dans trois fichiers de fixtures hotbar/tooltip. Correction ciblée des huit affectations, sans réintroduction de membres et sans modification runtime. Attendre les deux statuts Windows SUCCESS sur le SHA correctif avant 5G.130. Voir [5G.129.1](ARM_CLEAN06_5G1291_BUILD_FIXTURE_WRITERS.md).

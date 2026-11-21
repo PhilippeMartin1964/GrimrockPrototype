@@ -43,13 +43,20 @@ struct FGridEquippedGuardItemReadModel
 				Canonical.Weapon.Kind == EGridCanonicalArmamentKind::Shield;
 			return View;
 		}
+		// No unknown identity may borrow an obsolete guard rule in a configured game.
+		// Preserve the historical fallback solely for registry-less Automation fixtures.
+#if WITH_DEV_AUTOMATION_TESTS
+		if (Registry || !GIsAutomationTesting) return View;
+#else
+		return View;
+#endif
 		if (!Item.IsValid() || Item.EquipmentSlot != EGridEquipmentSlot::OffHand ||
 			!IsValid(LegacyDefinition) ||
 			LegacyDefinition->ItemDefinitionId != Item.ItemDefinitionId)
 		{
 			return View;
 		}
-		// Transitional compatibility for objects not registered in ItemSystem.
+		// Isolated Automation compatibility, never a production authority.
 		View.bResolved = true;
 		View.bCanParry = LegacyDefinition->ItemType == EGridItemType::Weapon &&
 			LegacyDefinition->bUseWeaponCatalogue &&
