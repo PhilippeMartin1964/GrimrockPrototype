@@ -3,7 +3,11 @@
 #include "Misc/AutomationTest.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/Combat/GridCombatEventFeedFormatter.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/GrimrockPartyPawn.h"
+#include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridEventFeedWidget.h"
 #include "UI/GridCombatTooltipWidget.h"
@@ -11,26 +15,76 @@
 
 namespace ARMEMENT011033
 {
-	UGridItemDefinitionAsset* Shield()
+	struct FWorldFixture
 	{
-		return LoadObject<UGridItemDefinitionAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-	}
+		UWorld* World = nullptr;
+		UGameInstance* GI = nullptr;
+		UGridItemSubsystem* Registry = nullptr;
+		FGridResolvedItem Shield;
 
-	UGridPartyInventoryComponent* EquipShield(int32 BaseArmor)
+		FWorldFixture()
+		{
+			const UWorld::InitializationValues Values = UWorld::InitializationValues()
+				.AllowAudioPlayback(false).RequiresHitProxies(false)
+				.CreatePhysicsScene(false).CreateNavigation(false)
+				.CreateAISystem(false).ShouldSimulatePhysics(false)
+				.SetTransactional(false);
+			World = UWorld::CreateWorld(EWorldType::Game, false,
+				FName(*FString::Printf(TEXT("ARMH41_CombatTooltip_%s"),
+					*FGuid::NewGuid().ToString(EGuidFormats::Digits))),
+				nullptr, true, ERHIFeatureLevel::Num, &Values);
+			if (!World || !GEngine) return;
+			GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
+			GI = NewObject<UGameInstance>(GetTransientPackage());
+			GI->Init();
+			World->SetGameInstance(GI);
+			Registry = GI->GetSubsystem<UGridItemSubsystem>();
+			if (Registry) Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, Shield);
+		}
+
+		~FWorldFixture()
+		{
+			if (World) World->SetGameInstance(nullptr);
+			if (GI) GI->Shutdown();
+			if (World)
+			{
+				World->DestroyWorld(false);
+				if (GEngine) GEngine->DestroyWorldContext(World);
+			}
+		}
+
+		bool Ready() const
+		{
+			return Registry && Shield.IsValid() && Shield.bIsArmament &&
+				Shield.ItemId == FName(TEXT("Weapon_RoundShield_01")) &&
+				Shield.ItemLevel == 1 && Shield.Weapon.PhysicalArmor == 5;
+		}
+
+		UGridPartyInventoryComponent* NewInventory(int32 BaseArmor) const
+		{
+			AGrimrockPartyPawn* Pawn = World ? World->SpawnActor<AGrimrockPartyPawn>() : nullptr;
+			UGridPartyInventoryComponent* Inventory = Pawn ? Pawn->PartyInventoryComponent.Get() : nullptr;
+			if (!Inventory) return nullptr;
+			Inventory->InitializeDefaultPartyIfNeeded();
+			if (!Inventory->IsValidCharacterIndex(0)) return nullptr;
+			Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentPhysicalArmor = BaseArmor;
+			Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth = 20;
+			return Inventory;
+		}
+	};
+
+	UGridPartyInventoryComponent* EquipShield(FWorldFixture& Fixture, int32 BaseArmor)
 	{
-		UGridItemDefinitionAsset* Definition = Shield();
-		if (!Definition) return nullptr;
-		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
-		Inventory->InitializeDefaultPartyIfNeeded();
-		if (!Inventory->IsValidCharacterIndex(0) || !Inventory->RegisterItemDefinition(Definition)) return nullptr;
-		Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentPhysicalArmor = BaseArmor;
-		Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth = 20;
+		if (!Fixture.Ready()) return nullptr;
+		UGridPartyInventoryComponent* Inventory = Fixture.NewInventory(BaseArmor);
+		if (!Inventory || Inventory->FindItemDefinition(Fixture.Shield.ItemId)) return nullptr;
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemDefinitionId = Fixture.Shield.ItemId;
+		Item.ItemLevel = 1;
 		Item.Quantity = 1;
-		if (!Inventory->ApplyItemDefinitionToInstance(Item) || !Inventory->AddItemToCharacterInventory(0, Item)) return nullptr;
+		if (!Inventory->ApplyItemDefinitionToInstance(Item) ||
+			!Inventory->AddItemToCharacterInventory(0, Item)) return nullptr;
 		const TArray<FGridInventorySlot>& Slots = Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots;
 		int32 Slot = INDEX_NONE;
 		for (int32 Index = 0; Index < Slots.Num(); ++Index)
@@ -41,7 +95,8 @@ namespace ARMEMENT011033
 				break;
 			}
 		}
-		if (Slot == INDEX_NONE || !Inventory->EquipItemFromInventorySlot(0, Slot, EGridEquipmentSlot::OffHand)) return nullptr;
+		if (Slot == INDEX_NONE ||
+			!Inventory->EquipItemFromInventorySlot(0, Slot, EGridEquipmentSlot::OffHand)) return nullptr;
 		return Inventory;
 	}
 
@@ -158,10 +213,10 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 	}
 	if (!bAllKeysMaterialized) return false;
 
-	UGridItemDefinitionAsset* Definition = ARMEMENT011033::Shield();
-	if (!TestNotNull(TEXT("Real N1 round shield"), Definition)) return false;
-	TestEqual(TEXT("Canonical shield physical armor"), Definition->EquipmentStatBonus.ArmorBonus, 5);
-	UGridPartyInventoryComponent* Inventory = ARMEMENT011033::EquipShield(0);
+	ARMEMENT011033::FWorldFixture Fixture;
+	if (!TestTrue(TEXT("Real ARM075 N1 resolved from ItemSystem"), Fixture.Ready())) return false;
+	TestEqual(TEXT("Canonical shield physical armor"), Fixture.Shield.Weapon.PhysicalArmor, 5);
+	UGridPartyInventoryComponent* Inventory = ARMEMENT011033::EquipShield(Fixture, 0);
 	if (!TestNotNull(TEXT("Equipped real shield"), Inventory)) return false;
 	const FGridAttackResult First = ARMEMENT011033::Apply(Inventory, 4);
 	TestEqual(TEXT("Four absorbed points"), First.PhysicalArmorDamage, 4);
@@ -170,7 +225,7 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 	TestEqual(TEXT("One source recorded"), First.Trace.Damage.PhysicalArmorSources.Num(), 1);
 	if (!First.Trace.Damage.PhysicalArmorSources.IsValidIndex(0)) return false;
 	const FGridArmorAbsorptionSourceTrace& Source = First.Trace.Damage.PhysicalArmorSources[0];
-	TestEqual(TEXT("Correct item definition"), Source.ItemDefinitionId, Definition->ItemDefinitionId);
+	TestEqual(TEXT("Correct item definition"), Source.ItemDefinitionId, Fixture.Shield.ItemId);
 	TestTrue(TEXT("Equipment is identified"), Source.bEquipment);
 	TestEqual(TEXT("Before at impact"), Source.Before, 5);
 	TestEqual(TEXT("Absorbed at impact"), Source.Absorbed, 4);
@@ -241,7 +296,7 @@ bool FGridARMEMENT011033ImpactSnapshot::RunTest(const FString&)
 	TestEqual(TEXT("Immutable source snapshot travels with the feed"),
 		Feed.CombatTooltipTrace.Damage.PhysicalArmorSources[0].Absorbed, 4);
 	TestTrue(TEXT("Text fallback states source explicitly"),
-		UGridEventFeedWidget::BuildEntryTooltipText(Feed).ToString().Contains(Definition->DisplayName.ToString()));
+		UGridEventFeedWidget::BuildEntryTooltipText(Feed).ToString().Contains(Fixture.Shield.DisplayName.ToString()));
 	TestFalse(TEXT("Main feed remains compact"),
 		UGridEventFeedWidget::BuildEntryText(Feed).ToString().Contains(TEXT("protection epuisee")));
 	return true;
@@ -253,7 +308,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT011033DepletionSnapshot,
 
 bool FGridARMEMENT011033DepletionSnapshot::RunTest(const FString&)
 {
-	UGridPartyInventoryComponent* Inventory = ARMEMENT011033::EquipShield(0);
+	ARMEMENT011033::FWorldFixture Fixture;
+	UGridPartyInventoryComponent* Inventory = ARMEMENT011033::EquipShield(Fixture, 0);
 	if (!TestNotNull(TEXT("Equipped shield"), Inventory)) return false;
 	const FGridAttackResult First = ARMEMENT011033::Apply(Inventory, 4);
 	const FGridAttackResult Second = ARMEMENT011033::Apply(Inventory, 5);
@@ -285,7 +341,7 @@ bool FGridARMEMENT011033DepletionSnapshot::RunTest(const FString&)
 		UGridCombatTooltipWidget::BuildDisplayTexts(ThirdView);
 	TestTrue(TEXT("C++ creates new depletion notice"), SecondText.bShowStatus);
 	TestTrue(TEXT("Depletion notice names real equipped shield"),
-		SecondText.Status.ToString().Contains(ARMEMENT011033::Shield()->DisplayName.ToString()));
+		SecondText.Status.ToString().Contains(Fixture.Shield.DisplayName.ToString()));
 	TestTrue(TEXT("C++ creates already-depleted notice"), ThirdText.bShowStatus);
 	TestFalse(TEXT("Different status messages for new and past depletion"),
 		SecondText.Status.EqualTo(ThirdText.Status));
@@ -318,7 +374,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT011033MultipleSources,
 
 bool FGridARMEMENT011033MultipleSources::RunTest(const FString&)
 {
-	UGridPartyInventoryComponent* Inventory = ARMEMENT011033::EquipShield(2);
+	ARMEMENT011033::FWorldFixture Fixture;
+	UGridPartyInventoryComponent* Inventory = ARMEMENT011033::EquipShield(Fixture, 2);
 	if (!TestNotNull(TEXT("Shield plus two base armor"), Inventory)) return false;
 	const FGridAttackResult Hit = ARMEMENT011033::Apply(Inventory, 6);
 	const auto& Rows = Hit.Trace.Damage.PhysicalArmorSources;
