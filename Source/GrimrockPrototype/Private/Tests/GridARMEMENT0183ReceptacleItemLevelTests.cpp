@@ -10,7 +10,6 @@
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemTransferService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -21,8 +20,7 @@
 
 namespace ARMEMENT0183
 {
-    static const TCHAR* DaggerPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01");
+    const FName DaggerId(TEXT("Weapon_Dagger_01"));
 
     struct FFixture
     {
@@ -30,7 +28,6 @@ namespace ARMEMENT0183
         FGridCanonicalLootTestScope RegistryScope;
         AGridLevelRuntimeActor* Runtime = nullptr;
         UGridLevelAsset* Level = nullptr;
-        UGridItemDefinitionAsset* Dagger = nullptr;
         AGridReceptacleActor* Receptacle = nullptr;
         FGuid ReceptacleId;
 
@@ -51,7 +48,6 @@ namespace ARMEMENT0183
             if (!World) return;
             Runtime = World->SpawnActor<AGridLevelRuntimeActor>();
             if (!Runtime) return;
-            Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr, DaggerPath);
             Level = NewObject<UGridLevelAsset>(Runtime);
             Level->Width = 3;
             Level->Height = 3;
@@ -91,13 +87,13 @@ namespace ARMEMENT0183
             if (GEngine) GEngine->DestroyWorldContext(World);
         }
 
-        bool Ready() const { return World && Runtime && Level && Dagger; }
+        bool Ready() const { return World && Runtime && Level; }
 
         void AddInitial(int32 LevelNumber)
         {
             FGridReceptacleInitialItemConfig& Initial =
                 Level->WorldObjectInstances[0].InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef();
-            Initial.CanonicalItemId = TEXT("Weapon_Dagger_01");
+            Initial.CanonicalItemId = DaggerId;
             Initial.Quantity = 1;
             Initial.ItemLevel = LevelNumber;
         }
@@ -106,6 +102,12 @@ namespace ARMEMENT0183
         {
             if (!Ready()) return false;
             if (!RegistryScope.Attach(World)) return false;
+            FGridResolvedItem Dagger;
+            if (!RegistryScope.Registry ||
+                !RegistryScope.Registry->ResolveItem(DaggerId, 1, Dagger) ||
+                !Dagger.bIsArmament ||
+                Dagger.ItemId != DaggerId)
+                return false;
             Runtime->RebuildLevel();
             Receptacle = Runtime->FindRuntimeObjectActor<AGridReceptacleActor>(ReceptacleId);
             return Receptacle != nullptr;
@@ -149,7 +151,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0183InitialTest,
 bool FARMEMENT0183InitialTest::RunTest(const FString&)
 {
     ARMEMENT0183::FFixture Fixture;
-    if (!TestTrue(TEXT("Pilot dagger and runtime fixture available"), Fixture.Ready())) return false;
+    if (!TestTrue(TEXT("Canonical runtime fixture available"), Fixture.Ready())) return false;
     Fixture.AddInitial(9);
     Fixture.AddInitial(1);
     Fixture.AddInitial(0); // Invalid persisted ARM level must not materialize.
@@ -180,13 +182,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0183TransferTest,
 bool FARMEMENT0183TransferTest::RunTest(const FString&)
 {
     ARMEMENT0183::FFixture Fixture;
-    if (!TestTrue(TEXT("Pilot dagger and runtime fixture available"), Fixture.Ready()) ||
+    if (!TestTrue(TEXT("Canonical runtime fixture available"), Fixture.Ready()) ||
         !TestTrue(TEXT("Empty receptacle materialized"), Fixture.Build())) return false;
     TestEqual(TEXT("Receptacle initially empty"), Fixture.Receptacle->GetContainedItemCount(), 0);
 
     FGridItemInstance Cursor;
     Cursor.RuntimeObjectId = FGuid::NewGuid();
-    Cursor.ItemDefinitionId = Fixture.Dagger->ItemDefinitionId;
+    Cursor.ItemDefinitionId = ARMEMENT0183::DaggerId;
     Cursor.ItemLevel = 12;
     FGridResolvedItem Physical;
     if (!TestTrue(TEXT("Canonical transferred dagger resolves"), Fixture.RegistryScope.Registry->ResolveItem(Cursor.ItemDefinitionId, Cursor.ItemLevel, Physical))) return false;
@@ -246,7 +248,7 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     Visual->SetRuntimeObjectId(RealGuid);
     if (!TestTrue(TEXT("Take restored item into inventory"),
         Fixture.Receptacle->TryTakeItemAtIndex(0, Party, RemovedId))) return false;
-    TestEqual(TEXT("Retrieved item definition is correct"), RemovedId, Fixture.Dagger->ItemDefinitionId);
+    TestEqual(TEXT("Retrieved canonical ItemId is correct"), RemovedId, ARMEMENT0183::DaggerId);
     const FGridItemInstance* Bag = Fixture.FindBagItem(Party->PartyInventoryComponent, Cursor.RuntimeObjectId);
     if (!TestNotNull(TEXT("Retrieved object exists in inventory"), Bag)) return false;
     TestEqual(TEXT("Fixed level preserved on retrieval"), Bag->ItemLevel, 12);
@@ -269,7 +271,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0183FullSaveTest,
 bool FARMEMENT0183FullSaveTest::RunTest(const FString&)
 {
     ARMEMENT0183::FFixture Fixture;
-    if (!TestTrue(TEXT("Pilot dagger and runtime fixture available"), Fixture.Ready())) return false;
+    if (!TestTrue(TEXT("Canonical runtime fixture available"), Fixture.Ready())) return false;
     Fixture.AddInitial(7);
     if (!TestTrue(TEXT("Receptacle created"), Fixture.Build())) return false;
     if (!TestTrue(TEXT("Save initial world"), Fixture.Runtime->CaptureCurrentLevelRuntimeState())) return false;
