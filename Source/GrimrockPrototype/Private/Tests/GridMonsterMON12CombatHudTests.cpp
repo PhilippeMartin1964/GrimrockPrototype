@@ -3009,28 +3009,27 @@ bool FARMEMENTLOT02161MeleeN1Execution::RunTest(const FString& Parameters)
 		FGridCombatHudFixture Fixture;
 		if (!TestTrue(*FString::Printf(TEXT("%s: live combat fixture"), *Context), Fixture.IsReady()))
 			return false;
-
-		const FString Name(Case.AssetName);
-		const FString AssetPath = FString::Printf(
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_%s_01.DA_Weapon_%s_01"),
-			*Name, *Name);
-		UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *AssetPath);
-		if (!TestNotNull(*FString::Printf(TEXT("%s: real weapon DataAsset"), *Context), Definition))
-			return false;
-		if (!TestTrue(*FString::Printf(TEXT("%s: matching catalogue identity"), *Context),
-				Definition->bUseWeaponCatalogue &&
-				Definition->WeaponArchetypeId == FName(Case.ArchetypeId) &&
-				Definition->DefaultWeaponItemLevel == 1) ||
-			!TestTrue(*FString::Printf(TEXT("%s: authorized attack slot"), *Context),
-				Definition->CanProvideAttackFromSlot(Case.Slot)) ||
+		FGridCanonicalLootTestScope RegistryScope;
+		if (!TestTrue(*FString::Printf(TEXT("%s: canonical ItemSystem attached"), *Context),
+			RegistryScope.Attach(Fixture.TestWorld.World))) return false;
+		const FName ItemId(*FString::Printf(TEXT("Weapon_%s_01"), Case.AssetName));
+		FGridResolvedItem Definition;
+		if (!TestTrue(*FString::Printf(TEXT("%s: N1 ARM resolves"), *Context),
+			RegistryScope.Registry->ResolveItem(ItemId, 1, Definition))) return false;
+		if (!TestTrue(*FString::Printf(TEXT("%s: matching canonical ARM identity"), *Context),
+				Definition.IsValid() && Definition.bIsArmament &&
+				Definition.ItemId == ItemId && Definition.ItemLevel == 1 &&
+				Definition.ArchetypeId == FName(Case.ArchetypeId)) ||
+			!TestTrue(*FString::Printf(TEXT("%s: authorized physical attack slot"), *Context),
+				Definition.Weapon.HasAttackSourceInHand(Case.Slot)) ||
 			!TestEqual(*FString::Printf(TEXT("%s: physical two-hand contract"), *Context),
-				Definition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded, Case.bTwoHanded))
+				Definition.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded, Case.bTwoHanded))
 			return false;
 
 		UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
 		FGridItemInstance Equipped;
 		Equipped.RuntimeObjectId = FGuid(16, 1, 1, Index + 1);
-		Equipped.ItemDefinitionId = Definition->ItemDefinitionId;
+		Equipped.ItemDefinitionId = Definition.ItemId;
 		Equipped.ItemLevel = 1;
 		Equipped.Quantity = 1;
 		Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -3043,9 +3042,8 @@ bool FARMEMENTLOT02161MeleeN1Execution::RunTest(const FString& Parameters)
 			Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Equipped;
 		else
 			Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Equipped;
-		if (!TestTrue(*FString::Printf(TEXT("%s: register actual weapon"), *Context),
-				Inventory->RegisterItemDefinition(Definition)))
-			return false;
+		if (!TestNull(*FString::Printf(TEXT("%s: no old weapon definition registered"), *Context),
+			Inventory->FindItemDefinition(ItemId))) return false;
 
 		TArray<FGridAvailableCombatAction> Available;
 		Fixture.TurnManager->GetAvailableCombatActions(0, Available);
