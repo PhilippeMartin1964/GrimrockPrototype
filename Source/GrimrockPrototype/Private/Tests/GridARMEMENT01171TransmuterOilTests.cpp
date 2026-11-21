@@ -49,20 +49,30 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01171OilContract,
 
 bool FARMEMENT01171OilContract::RunTest(const FString&)
 {
-    UGridItemDefinitionAsset* Oil = ARMEMENT01171::OilFlask();
-    if (!TestNotNull(TEXT("Real RPG03 oil-flask DataAsset is materialized"), Oil))
+    const FName OilId(TEXT("Item_Flask_Oil"));
+    const FName ActionId(TEXT("Action_Alchemist_OilSlick"));
+    FGridCanonicalRegistryFixture Canonical;
+    FGridResolvedItem Resolved;
+    if (!TestTrue(TEXT("Production Oil N0 resolves through ItemSystem"),
+            Canonical.Resolve(OilId, 0, Resolved)) ||
+        !TestFalse(TEXT("Oil is a physical non-ARM item"), Resolved.bIsArmament))
         return false;
 
-    TestEqual(TEXT("Canonical oil-flask inventory identity"), Oil->ItemDefinitionId,
-        FName(TEXT("Item_Flask_Oil")));
-    TestTrue(TEXT("Oil flask is a genuine approved item definition"), Oil->IsValidDefinition());
-    TestTrue(TEXT("Oil is explicitly a QuickItem"), Oil->bProvidesQuickItemCombatAction);
-    TestTrue(TEXT("Alchemy source tag exists"), Oil->ItemTags.Contains(FName(TEXT("QuickItem.Alchemy"))));
-    TestTrue(TEXT("Flask source tag exists"), Oil->ItemTags.Contains(FName(TEXT("QuickItem.Flask"))));
+    TestEqual(TEXT("Canonical oil-flask inventory identity"), Resolved.ItemId, OilId);
+    TestTrue(TEXT("Oil flask is an approved canonical definition"), Resolved.IsValid());
+    TestTrue(TEXT("Oil has an explicit QuickItem action binding"),
+        Resolved.AvailableActions.ContainsByPredicate([ActionId](const FGridItemActionBinding& Binding)
+        {
+            return Binding.ActionId == ActionId;
+        }));
+    TestTrue(TEXT("Alchemy source tag exists"),
+        Resolved.Tags.Contains(FName(TEXT("QuickItem.Alchemy"))));
+    TestTrue(TEXT("Flask source tag exists"),
+        Resolved.Tags.Contains(FName(TEXT("QuickItem.Flask"))));
 
     FGridCombatActionDefinition Action;
-    if (!TestTrue(TEXT("Oil flask already builds a runnable QuickItem action"),
-        Oil->BuildQuickItemCombatActionDefinition(Action))) return false;
+    if (!TestTrue(TEXT("Oil flask resolves its authored detailed QuickItem action"),
+        Canonical.Registry->ResolveDetailedNonArmAction(OilId, 0, ActionId, Action))) return false;
     TestEqual(TEXT("Correct existing action identity"), Action.ActionId,
         FName(TEXT("Action_Alchemist_OilSlick")));
     TestEqual(TEXT("Uses established inventory QuickItem authority"), Action.SourcePolicy,
@@ -82,10 +92,8 @@ bool FARMEMENT01171OilContract::RunTest(const FString&)
     TestEqual(TEXT("Existing oil lasts four rounds"), Action.SurfaceEffects[0].DurationRounds, 4);
     TestEqual(TEXT("Oil terrain traversal penalty is preserved"),
         Action.SurfaceEffects[0].TraversalCostModifier, 1);
-    FGridCanonicalRegistryFixture Canonical;
-    FGridResolvedItem Resolved;
-    TestTrue(TEXT("Exact oil save identity resolves through ItemSystem at N0"),
-        Canonical.Resolve(Oil->ItemDefinitionId, 0, Resolved) && !Resolved.bIsArmament);
+    TestTrue(TEXT("Exact oil save identity is canonical N0"),
+        Resolved.ItemId == OilId && Resolved.ItemLevel == 0 && !Resolved.bIsArmament);
     return true;
 }
 
