@@ -2366,22 +2366,25 @@ bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
 {
 	FGridCombatHudFixture Fixture;
 	if (!TestTrue(TEXT("Combat world and HUD are ready"), Fixture.IsReady())) return false;
-	UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
-	UGridItemDefinitionAsset* MainGauche = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_MainGauche_01.DA_Weapon_MainGauche_01"));
-	if (!TestNotNull(TEXT("Real ARM001 Dagger"), Dagger) ||
-		!TestNotNull(TEXT("Real ARM013 Main-gauche"), MainGauche) ||
-		!TestTrue(TEXT("Real ARM013 explicitly allows an OffHand attack"),
-			MainGauche->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand)))
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Production ItemSystem attached to MON12 world"),
+		RegistryScope.Attach(Fixture.TestWorld.World))) return false;
+	FGridResolvedItem Dagger, MainGauche;
+	if (!TestTrue(TEXT("Real ARM001 Dagger N1 resolves canonically"),
+		RegistryScope.Registry->ResolveItem(TEXT("Weapon_Dagger_01"), 1, Dagger)) ||
+		!TestTrue(TEXT("Real ARM013 Main-gauche N1 resolves canonically"),
+			RegistryScope.Registry->ResolveItem(TEXT("Weapon_MainGauche_01"), 1, MainGauche)) ||
+		!TestTrue(TEXT("Main-gauche is canonical ARM with an actual OffHand attack"),
+			Dagger.bIsArmament && MainGauche.bIsArmament &&
+			MainGauche.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand)))
 		return false;
 
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-	auto ItemFor = [&Fixture](const UGridItemDefinitionAsset* Definition, const FGuid& Id, EGridEquipmentSlot Slot)
+	auto ItemFor = [&Fixture](const FGridResolvedItem& Definition, const FGuid& Id, EGridEquipmentSlot Slot)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = Id;
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemDefinitionId = Definition.ItemId;
 		Item.ItemLevel = 1;
 		Item.Quantity = 1;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -2394,8 +2397,10 @@ bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
 	const FGridItemInstance Off = ItemFor(MainGauche, FGuid(19, 1, 2, 2), EGridEquipmentSlot::OffHand);
 	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Main;
 	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Off;
-	if (!TestTrue(TEXT("Register real dagger"), Inventory->RegisterItemDefinition(Dagger)) ||
-		!TestTrue(TEXT("Register real Main-gauche"), Inventory->RegisterItemDefinition(MainGauche))) return false;
+	if (!TestNull(TEXT("Dagger does not register old definition"),
+		Inventory->FindItemDefinition(Dagger.ItemId)) ||
+		!TestNull(TEXT("Main-gauche does not register old definition"),
+			Inventory->FindItemDefinition(MainGauche.ItemId))) return false;
 
 	Fixture.Hud->RefreshFromSources();
 	TArray<FGridAvailableCombatAction> Available;
@@ -2466,22 +2471,22 @@ bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
 
 	// Passive shield, incompatible MainHand-only dagger and a two-handed
 	// weapon must never create a fabricated secondary strike.
-	UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-	UGridItemDefinitionAsset* Assassin = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_AssassinDagger_01.DA_Weapon_AssassinDagger_01"));
-	UGridItemDefinitionAsset* GreatAxe = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_GreatAxe_01.DA_Weapon_GreatAxe_01"));
-	if (!TestNotNull(TEXT("Actual passive shield"), Shield) ||
-		!TestNotNull(TEXT("Actual MainHand-only dagger"), Assassin) ||
-		!TestNotNull(TEXT("Actual two-handed axe"), GreatAxe) ||
-		!TestFalse(TEXT("Shield is not an offensive source"), Shield->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand)) ||
-		!TestFalse(TEXT("Assassin dagger is not an authorized OffHand attack"),
-			Assassin->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand)))
+	FGridResolvedItem Shield, Assassin, GreatAxe;
+	if (!TestTrue(TEXT("Canonical passive shield N1"),
+		RegistryScope.Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, Shield)) ||
+		!TestTrue(TEXT("Canonical MainHand Assassin Dagger N1"),
+			RegistryScope.Registry->ResolveItem(TEXT("Weapon_AssassinDagger_01"), 1, Assassin)) ||
+		!TestTrue(TEXT("Canonical two-handed Great Axe N1"),
+			RegistryScope.Registry->ResolveItem(TEXT("Weapon_GreatAxe_01"), 1, GreatAxe)) ||
+		!TestTrue(TEXT("Shield is a passive canonical ARM"),
+			Shield.bIsArmament && Shield.Weapon.Kind == EGridCanonicalArmamentKind::Shield) ||
+		!TestTrue(TEXT("Great Axe retains a two-handed policy"),
+			GreatAxe.bIsArmament && GreatAxe.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded) ||
+		!TestFalse(TEXT("Shield is not an offensive OffHand source"),
+			Shield.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand)) ||
+		!TestFalse(TEXT("Assassin Dagger is not an authorized OffHand attack"),
+			Assassin.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand)))
 		return false;
-	Inventory->RegisterItemDefinition(Shield);
-	Inventory->RegisterItemDefinition(Assassin);
-	Inventory->RegisterItemDefinition(GreatAxe);
 	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Main;
 	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand =
 		ItemFor(Shield, FGuid(19, 1, 2, 3), EGridEquipmentSlot::OffHand);
@@ -2506,7 +2511,7 @@ bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
 	TestFalse(TEXT("Two-handed weapon never adds a second shortcut"),
 		Fixture.Hud->View.Actions[2].bHasBinding);
 	TestEqual(TEXT("Great axe is the only physical primary attack"),
-		Fixture.Hud->View.Actions[0].Action.SourceDefinitionId, GreatAxe->ItemDefinitionId);
+		Fixture.Hud->View.Actions[0].Action.SourceDefinitionId, GreatAxe.ItemId);
 	return true;
 }
 
