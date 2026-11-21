@@ -3,6 +3,7 @@ param(
     [string]$AutomationFilter,
     [string]$ReportRoot,
     [switch]$SkipBuild,
+    [switch]$BuildShipping,
     [switch]$SkipAutomation,
     [switch]$UseRHI,
     [switch]$ShowAutomationOutput
@@ -250,6 +251,29 @@ if (-not $SkipBuild)
     Invoke-GrimrockNativeStep -Label 'UE5.5.4 Development Editor build' -Executable $BuildBatch -Arguments $BuildArguments
     Set-GrimrockValidationStage -Stage 'BUILD_OK'
     Write-Host '[OK] Development Editor build.'
+
+    # VALIDATION-AUTO01.SHIPPING01: compile the optimized runtime target in
+    # the same isolated worktree; this catches diagnostics masked in Editor.
+    # Deliberately no Cook/Stage/Package on every commit.
+    if ($BuildShipping)
+    {
+        $ShippingArguments = @(
+            'GrimrockPrototype',
+            $Platform,
+            'Shipping',
+            "-Project=$ProjectFile",
+            '-WaitMutex',
+            '-NoHotReloadFromIDE'
+        )
+        if (-not [string]::IsNullOrWhiteSpace($AgentSdk))
+        {
+            $ShippingArguments += "-WindowsSDKVersion=$AgentSdk"
+        }
+        Set-GrimrockValidationStage -Stage 'BUILD_STARTED'
+        Invoke-GrimrockNativeStep -Label 'UE5.5.4 Shipping runtime build' -Executable $BuildBatch -Arguments $ShippingArguments
+        Set-GrimrockValidationStage -Stage 'BUILD_OK'
+        Write-Host '[OK] Shipping runtime build (no Cook/Stage/Package).'
+    }
 }
 
 if (-not $SkipAutomation)

@@ -936,6 +936,9 @@ try {
         }
         $ValidateArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $ValidatePath +
             '" -EngineRoot "' + $EngineRoot + '" -AutomationFilter "' + $AutomationFilter + '" -ReportRoot "' + $ReportRoot + '"'
+        # Validate Shipping on every new SHA in the dedicated worktree.
+        # This is a compile-only gate; packaging is validated independently.
+        $ValidateArguments += ' -BuildShipping'
         if ($UseRHI) { $ValidateArguments += ' -UseRHI' }
         $RunStderrLog = Join-Path $RunDir 'Agent.stderr.log'
         $EffectsInventoryStartUtc = [DateTime]::UtcNow.AddSeconds(-5)
@@ -946,7 +949,7 @@ try {
 
         if ($ExitCode -ne 0) { throw "ValidateUE.ps1 a retourne le code $ExitCode. Voir $RunLog et $RunStderrLog." }
         $Phase = 'publication'
-        Publish-CommitStatus -Sha $Sha -State 'success' -Description "Build + Automation OK ($AutomationFilter)"
+        Publish-CommitStatus -Sha $Sha -State 'success' -Description "Editor + Shipping + Automation OK ($AutomationFilter)"
 
         try {
             Publish-EffectsInventoryIssue -Sha $Sha -WorktreePath $WorktreePath -NotBeforeUtc $EffectsInventoryStartUtc
