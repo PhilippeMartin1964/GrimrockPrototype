@@ -4,6 +4,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "CoreGlobals.h"
 #include "../Runtime/GridCanonicalEquipmentSlotsReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -250,8 +251,13 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
         Preview.ActualTargetSlot, EquippedItem) &&
         EquippedItem.RuntimeObjectId != Candidate.RuntimeObjectId)
     {
-        const UGridItemDefinitionAsset* EquippedDef =
-            Inventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
+        const UGridItemDefinitionAsset* EquippedDef = nullptr;
+#if WITH_DEV_AUTOMATION_TESTS
+        if (!Registry && GIsAutomationTesting)
+        {
+            EquippedDef = Inventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
+        }
+#endif
         FGridWeaponTooltipProjection::BuildComparison(
             CandidateDefinition, Candidate, EquippedDef, EquippedItem,
             OutScenario.WeaponFacts, Registry);

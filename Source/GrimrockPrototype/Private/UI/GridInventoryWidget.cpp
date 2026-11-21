@@ -14,6 +14,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "CoreGlobals.h"
 #include "GridInventorySortReadModel.h"
 #include "GridCanonicalInventoryItemTypeReadModel.h"
 #include "../Runtime/GridCanonicalQuickItemUseReadModel.h"
@@ -44,6 +45,22 @@ namespace
         }
         UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
         return GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+    }
+
+    const UGridItemDefinitionAsset* ResolveInventoryHistoricalDefinitionForAutomation(
+        const UGridInventoryWidget* Widget, FName ItemId)
+    {
+#if WITH_DEV_AUTOMATION_TESTS
+        if (IsValid(Widget) && IsValid(Widget->InventoryComponent) &&
+            !ResolveInventoryCanonicalRegistry(Widget) && GIsAutomationTesting)
+        {
+            return Widget->InventoryComponent->FindItemDefinition(ItemId);
+        }
+#else
+        (void)Widget;
+        (void)ItemId;
+#endif
+        return nullptr;
     }
 
 	struct FGridInventoryProjectionEntry
@@ -1034,7 +1051,7 @@ void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int3
 				}
 
 				const FGridItemInstance& Item = InventorySlot.Item;
-				const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Item.ItemDefinitionId);
+				const UGridItemDefinitionAsset* Definition = ResolveInventoryHistoricalDefinitionForAutomation(this, Item.ItemDefinitionId);
 				const EGridItemType ItemType =
 					FGridCanonicalInventoryItemTypeReadModel::Resolve(
 						Registry, Definition, Item).ItemType;
@@ -1138,7 +1155,7 @@ int32 UGridInventoryWidget::GetVisibleInventoryItemCount() const
 			continue;
 		}
 
-		const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(InventorySlot.Item.ItemDefinitionId);
+		const UGridItemDefinitionAsset* Definition = ResolveInventoryHistoricalDefinitionForAutomation(this, InventorySlot.Item.ItemDefinitionId);
 		const EGridItemType ItemType =
 			FGridCanonicalInventoryItemTypeReadModel::Resolve(
 				Registry, Definition, InventorySlot.Item).ItemType;
@@ -1503,7 +1520,7 @@ bool UGridInventoryWidget::BuildContextActionsForSlot(
 	}
 
 	ItemContext.Item = LastContextItem;
-	ItemContext.ItemDefinition = InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId);
+	ItemContext.ItemDefinition = const_cast<UGridItemDefinitionAsset*>(ResolveInventoryHistoricalDefinitionForAutomation(this, LastContextItem.ItemDefinitionId));
 	return UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, OutFacingTarget, OutActions);
 }
 
@@ -1630,7 +1647,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		{
 			const UGridItemSubsystem* Registry = ResolveInventoryCanonicalRegistry(this);
 			const UGridItemDefinitionAsset* Definition =
-				InventoryComponent ? InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId) : nullptr;
+				InventoryComponent ? ResolveInventoryHistoricalDefinitionForAutomation(this, LastContextItem.ItemDefinitionId) : nullptr;
 			const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry, Definition, LastContextItem);
 			if (!Metadata.bResolved) break;
 			const UGridInventorySlotWidget* SourceWidget = FindRegisteredSlotWidget(SourceSlotType, SourceSlotIndex);
@@ -1649,7 +1666,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		case EGridItemActionType::Read:
 		{
 			const UGridItemDefinitionAsset* ItemDefinition =
-				InventoryComponent ? InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId) : nullptr;
+				InventoryComponent ? ResolveInventoryHistoricalDefinitionForAutomation(this, LastContextItem.ItemDefinitionId) : nullptr;
 			const FGridCanonicalItemInteractionReadView Read =
 				FGridCanonicalItemInteractionReadModel::Resolve(
 					ResolveInventoryCanonicalRegistry(this), ItemDefinition, LastContextItem);
@@ -1719,7 +1736,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
             }
 
             const UGridItemDefinitionAsset* Definition =
-                InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId);
+                ResolveInventoryHistoricalDefinitionForAutomation(this, LastContextItem.ItemDefinitionId);
             const UGridItemSubsystem* Registry = ResolveInventoryCanonicalRegistry(this);
             const FGridCanonicalItemInteractionReadView Capabilities =
                 FGridCanonicalItemInteractionReadModel::Resolve(
@@ -1727,10 +1744,18 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
             const FGridCanonicalQuickItemUseReadView CanonicalUse =
                 FGridCanonicalQuickItemUseReadModel::Resolve(Registry, LastContextItem);
             FGridCombatActionDefinition QuickItemAction;
-            const bool bHaveAction = Capabilities.bCanConsumeCanonical
-                ? (CanonicalUse.bResolved && (QuickItemAction = CanonicalUse.Action, true))
-                : (Capabilities.bCanConsumeLegacy && IsValid(Definition) &&
-                    Definition->BuildQuickItemCombatActionDefinition(QuickItemAction));
+            bool bHaveAction = Capabilities.bCanConsumeCanonical && CanonicalUse.bResolved;
+            if (bHaveAction)
+            {
+                QuickItemAction = CanonicalUse.Action;
+            }
+#if WITH_DEV_AUTOMATION_TESTS
+            else if (!Registry && GIsAutomationTesting &&
+                Capabilities.bCanConsumeLegacy && IsValid(Definition))
+            {
+                bHaveAction = Definition->BuildQuickItemCombatActionDefinition(QuickItemAction);
+            }
+#endif
             if (!bHaveAction ||
                 QuickItemAction.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
                 QuickItemAction.ResolutionProfile != EGridCombatActionResolutionProfile::Effect)
@@ -2020,7 +2045,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		case EGridItemActionType::AddToHotbar:
 		{
 			const UGridItemDefinitionAsset* OldDefinition = InventoryComponent
-				? InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId) : nullptr;
+				? ResolveInventoryHistoricalDefinitionForAutomation(this, LastContextItem.ItemDefinitionId) : nullptr;
 			const FGridCanonicalItemInteractionReadView Capabilities =
 				FGridCanonicalItemInteractionReadModel::Resolve(
 					ResolveInventoryCanonicalRegistry(this), OldDefinition, LastContextItem);

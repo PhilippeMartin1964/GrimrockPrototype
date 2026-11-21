@@ -4,12 +4,29 @@
 #include "GridEquipmentArmorReadModel.h"
 #include "GridEquipmentPreviewItemReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "CoreGlobals.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
 namespace
 {
+    const UGridItemDefinitionAsset* ResolvePreviewHistoricalDefinitionForAutomation(
+        const UGridPartyInventoryComponent* Inventory, const UGridItemSubsystem* Registry, FName ItemId)
+    {
+#if WITH_DEV_AUTOMATION_TESTS
+        if (!Registry && GIsAutomationTesting && IsValid(Inventory))
+        {
+            return Inventory->FindItemDefinition(ItemId);
+        }
+#else
+        (void)Inventory;
+        (void)Registry;
+        (void)ItemId;
+#endif
+        return nullptr;
+    }
+
     struct FPreviewEquipmentTotals
     {
         FGridEquipmentStatBonus Bonuses;
@@ -165,7 +182,7 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
         Entry.RuntimeObjectId = Item.RuntimeObjectId;
         const FGridEquipmentPreviewItemReadView Read =
             FGridEquipmentPreviewItemReadModel::Resolve(
-                Registry, FindItemDefinition(Item.ItemDefinitionId), Item);
+                Registry, ResolvePreviewHistoricalDefinitionForAutomation(this, Registry, Item.ItemDefinitionId), Item);
         Entry.DisplayName = Read.DisplayName;
         Entry.RemainingPhysicalArmor = Read.RemainingPhysicalArmor;
     };
@@ -223,7 +240,7 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
                 if (!Item.IsValid()) return;
                 const FGridEquipmentPreviewItemReadView Read =
                     FGridEquipmentPreviewItemReadModel::Resolve(
-                        Registry, FindItemDefinition(Item.ItemDefinitionId), Item);
+                        Registry, ResolvePreviewHistoricalDefinitionForAutomation(this, Registry, Item.ItemDefinitionId), Item);
                 // Independently aggregate the same bonus and resistance sources
                 // as live equipment; lack of an armor reserve must not mask
                 // a real resistance contribution in a read-only projection.

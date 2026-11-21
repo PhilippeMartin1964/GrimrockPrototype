@@ -14,6 +14,7 @@
 #include "../Runtime/GridCanonicalEquipmentSlotsReadModel.h"
 #include "../Runtime/GridCanonicalItemInteractionReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "CoreGlobals.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "UI/GridWeaponTooltipProjection.h"
@@ -378,7 +379,13 @@ const UGridItemDefinitionAsset* UGridInventorySlotWidget::GetItemDefinition() co
 	const UGridInventoryWidget* InventoryWidget = OwningInventoryWidget.Get();
 	const UGridPartyInventoryComponent* InventoryComponent = InventoryWidget ? InventoryWidget->InventoryComponent : nullptr;
 
-	return InventoryComponent ? InventoryComponent->FindItemDefinition(CachedItem.ItemDefinitionId) : nullptr;
+	#if WITH_DEV_AUTOMATION_TESTS
+    if (!GetCanonicalItemRegistry(this) && GIsAutomationTesting && InventoryComponent)
+    {
+        return InventoryComponent->FindItemDefinition(CachedItem.ItemDefinitionId);
+    }
+#endif
+    return nullptr;
 }
 
 FString UGridInventorySlotWidget::GetDisplayNameText() const
@@ -445,10 +452,12 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		bHasQuickItemAction = Use.bResolved;
 		if (bHasQuickItemAction) QuickItemAction = Use.Action;
 	}
+	#if WITH_DEV_AUTOMATION_TESTS
 	else if (bLegacy)
 	{
 		bHasQuickItemAction = Definition->BuildQuickItemCombatActionDefinition(QuickItemAction);
 	}
+#endif
 	if (bHasQuickItemAction)
 	{
 		const FText SurfaceUsage = FGridQuickItemSurfaceTooltipText::Build(QuickItemAction);
@@ -573,7 +582,12 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		const UGridItemDefinitionAsset* EquippedDefinition = nullptr;
 		if (bHasEquippedItem)
 		{
-			EquippedDefinition = InventoryComponent->FindItemDefinition(EquippedItem.ItemDefinitionId);
+			#if WITH_DEV_AUTOMATION_TESTS
+            if (!Registry && GIsAutomationTesting)
+            {
+                EquippedDefinition = InventoryComponent->FindItemDefinition(EquippedItem.ItemDefinitionId);
+            }
+#endif
 			const FGridInventoryItemMetadata EquippedMetadata = FGridInventoryItemMetadataReadModel::Resolve(
 				Registry, EquippedDefinition, EquippedItem);
 			Comparison.EquippedItemDisplayText = EquippedMetadata.DisplayName.IsEmpty()
