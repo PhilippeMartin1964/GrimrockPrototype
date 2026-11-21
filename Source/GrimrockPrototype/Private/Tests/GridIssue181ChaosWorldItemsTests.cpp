@@ -270,15 +270,25 @@ bool FGridIssue181ExplicitLocalDisarm::RunTest(const FString&)
 	Rank.SkillId = TEXT("Skill_Traps");
 	Rank.Rank = 1;
 	Hero.SkillRanks.Add(Rank);
-	UGridItemDefinitionAsset* Tool =
-		LoadObject<UGridItemDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DisarmTools_01.DA_Item_DisarmTools_01"));
-	if (!TestTrue(TEXT("Real tool registered"), Inventory->RegisterItemDefinition(Tool)))
+	const FName ToolId(TEXT("Item_DisarmTools_01"));
+	const UGridItemSubsystem* Registry = F.GI
+		? F.GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	FGridResolvedItem CanonicalTool;
+	if (!TestNotNull(TEXT("Canonical ItemSystem is available"), Registry) ||
+		!TestTrue(TEXT("Real N0 disarm tool resolves canonically"),
+			Registry && Registry->ResolveItem(ToolId, 0, CanonicalTool)) ||
+		!TestFalse(TEXT("Disarm tool is a non-ARM N0 item"), CanonicalTool.bIsArmament))
 		return false;
 	FGridItemInstance Tools;
 	Tools.RuntimeObjectId = FGuid::NewGuid();
-	Tools.ItemDefinitionId = TEXT("Item_DisarmTools_01");
+	Tools.ItemDefinitionId = ToolId;
+	Tools.ItemLevel = 0;
 	Tools.Quantity = 1;
-	TestTrue(TEXT("Operator carries their tools"), Inventory->AddItemToCharacterInventory(0, Tools));
+	if (!TestTrue(TEXT("Canonical tool instance projected"),
+			Inventory->ApplyItemDefinitionToInstance(Tools)) ||
+		!TestTrue(TEXT("Operator carries their tools"),
+			Inventory->AddItemToCharacterInventory(0, Tools)))
+		return false;
 	URPGSkillAsset* Skill = LoadObject<URPGSkillAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/Skills/DA_Skill_Traps.DA_Skill_Traps"));
 	TestTrue(TEXT("Trap detected before disarm"), F.Runtime->IsTriggerTrapDetected(F.TrapId) || F.Runtime->TryRecordDungeonTrapDetection(F.TrapId));
 	FRandomStream Dice(181);
