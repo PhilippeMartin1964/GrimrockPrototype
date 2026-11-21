@@ -20,7 +20,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "RPG/RPGSkillAsset.h"
 #include "RPG/RPGSkillCheckService.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Save/GrimrockPartySaveGame.h"
 
 namespace GridIssue181
@@ -493,23 +492,26 @@ bool FGridIssue181FlyingProjectilePassage::RunTest(const FString&)
 	Item.ItemDefinitionId = TEXT("Weapon_Dagger_01");
 	Item.ItemLevel = 20;
 	Item.Quantity = 1;
-	// X.39: placed canonical ARM actors no longer retain DA_Weapon_*.
-	// This PIT02 test deliberately exercises a LEGACY ordinary hand throw,
-	// so obtain the still-authored throwable definition independently. Never
-	// reattach it to the physical world actor or downgrade canonical identity.
+	// X.39: already-placed ARM actors and thrown ARM instances require only
+	// ItemId + physical N20. Do not read or attach any DA_Weapon_*.
 	AGridItemActor* PlacedDagger = F.Find(Item.ItemDefinitionId);
 	if (!TestNotNull(TEXT("Real authored dagger exists"), PlacedDagger) ||
-		!TestNull(TEXT("X.39 world actor is pointerless despite native legacy placement"),
+		!TestNull(TEXT("Placed canonical dagger has no historical definition pointer"),
 			PlacedDagger->GetItemDefinitionAsset()))
 		return false;
-	UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
-	if (!TestNotNull(TEXT("Legacy ordinary throw test retains its own authored source"), Definition) ||
-		!TestEqual(TEXT("Throw source ItemId matches canonical physical dagger"),
-			Definition->ItemDefinitionId, Item.ItemDefinitionId))
+	const UGridItemSubsystem* Registry = F.GI ? F.GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	FGridResolvedItem Canonical;
+	if (!TestNotNull(TEXT("Configured ItemSystem in physics world"), Registry) ||
+		!TestTrue(TEXT("Native Dagger N20 resolves without old asset"),
+			Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical)) ||
+		!TestTrue(TEXT("Physical dagger identity and throw policy are canonical"),
+			Canonical.IsValid() && Canonical.bIsArmament &&
+			Canonical.ItemId == Item.ItemDefinitionId && Canonical.ItemLevel == 20 &&
+			(Canonical.Weapon.Projectile.bEnabled ||
+			 Canonical.Weapon.Projectile.bGenericThrowAuthored)))
 		return false;
 	AGridThrownItemActor* Projectile =
-		F.Runtime->SpawnThrownItemProjectile(Item, Definition, FVector(5500.f, 4900.f, 140.f), FVector(0.f, 0.f, -250.f), 27, 23);
+		F.Runtime->SpawnThrownItemProjectile(Item, nullptr, FVector(5500.f, 4900.f, 140.f), FVector(0.f, 0.f, -250.f), 27, 23);
 	if (!TestNotNull(TEXT("Actual throwing pipeline creates the projectile"), Projectile))
 		return false;
 	Projectile->DispatchBeginPlay(); // The isolated test world has no GameMode.
