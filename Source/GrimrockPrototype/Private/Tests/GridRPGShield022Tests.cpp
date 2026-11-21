@@ -2,16 +2,60 @@
 
 #include "Misc/AutomationTest.h"
 #include "RPG/RPGClassAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/GrimrockPartyPawn.h"
+#include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 namespace Shield022
 {
-	UGridItemDefinitionAsset* RealShield()
+	struct FWorldFixture
 	{
-		return LoadObject<UGridItemDefinitionAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-	}
+		UWorld* World = nullptr;
+		UGameInstance* GI = nullptr;
+		UGridItemSubsystem* Registry = nullptr;
+		UGridPartyInventoryComponent* Inventory = nullptr;
+
+		FWorldFixture()
+		{
+			const UWorld::InitializationValues Values = UWorld::InitializationValues()
+				.AllowAudioPlayback(false).RequiresHitProxies(false)
+				.CreatePhysicsScene(false).CreateNavigation(false)
+				.CreateAISystem(false).ShouldSimulatePhysics(false)
+				.SetTransactional(false);
+			World = UWorld::CreateWorld(EWorldType::Game, false,
+				FName(*FString::Printf(TEXT("ARMH35_Shield022_%s"),
+					*FGuid::NewGuid().ToString(EGuidFormats::Digits))),
+				nullptr, true, ERHIFeatureLevel::Num, &Values);
+			if (!World || !GEngine) return;
+			GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
+			GI = NewObject<UGameInstance>(GetTransientPackage());
+			GI->Init();
+			World->SetGameInstance(GI);
+			Registry = GI->GetSubsystem<UGridItemSubsystem>();
+			AGrimrockPartyPawn* Pawn = World->SpawnActor<AGrimrockPartyPawn>();
+			Inventory = Pawn ? Pawn->PartyInventoryComponent.Get() : nullptr;
+			if (Inventory) Inventory->PartyInventoryState = FGridPartyInventoryState();
+		}
+		~FWorldFixture()
+		{
+			if (World) World->SetGameInstance(nullptr);
+			if (GI) GI->Shutdown();
+			if (World)
+			{
+				World->DestroyWorld(false);
+				if (GEngine) GEngine->DestroyWorldContext(World);
+			}
+		}
+
+		bool ResolveShield(FGridResolvedItem& Out) const
+		{
+			return Registry && Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, Out)
+				&& Out.bIsArmament && Out.Weapon.PhysicalArmor == 5;
+		}
+	};
 
 	URPGClassAsset* MakeClass(UObject* Outer, FName Id, int32 Physical, int32 Magical)
 	{
@@ -41,11 +85,11 @@ namespace Shield022
 		return Result;
 	}
 
-	FGridItemInstance MakeItem(const UGridItemDefinitionAsset* Definition, int32 Spent)
+	FGridItemInstance MakeItem(FName ItemId, int32 Spent)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemDefinitionId = ItemId;
 		Item.Quantity = 1;
 		Item.ItemLevel = 1;
 		Item.AbsorbedEquipmentPhysicalArmor = Spent;
@@ -59,31 +103,33 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FShield022VictoryRefillTest,
 
 bool FShield022VictoryRefillTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Shield = Shield022::RealShield();
-	if (!TestNotNull(TEXT("Real ARM075 N1 round shield"), Shield))
+	Shield022::FWorldFixture Fixture;
+	FGridResolvedItem Shield;
+	const FName ShieldId(TEXT("Weapon_RoundShield_01"));
+	if (!TestNotNull(TEXT("Canonical game world"), Fixture.World) ||
+		!TestNotNull(TEXT("Real party inventory"), Fixture.Inventory) ||
+		!TestTrue(TEXT("Real ARM075 N1 resolves from ItemSystem"), Fixture.ResolveShield(Shield)))
 		return false;
-	TestEqual(TEXT("Round shield grants five physical armor"), Shield->EquipmentStatBonus.ArmorBonus, 5);
-	const bool bShieldDirty = Shield->GetOutermost()->IsDirty();
-
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	TestEqual(TEXT("Round shield grants five physical armor"), Shield.Weapon.PhysicalArmor, 5);
+	UGridPartyInventoryComponent* Inventory = Fixture.Inventory;
 	URPGClassAsset* Class = Shield022::MakeClass(Inventory, TEXT("Shield022VictoryClass"), 2, 3);
 	if (!TestTrue(TEXT("Synthetic class valid"), Class->IsValidDefinition()) ||
-		!TestTrue(TEXT("Shield definition registered"), Inventory->RegisterItemDefinition(Shield)))
+		!TestNull(TEXT("No historical shield definition registered"), Inventory->FindItemDefinition(ShieldId)))
 		return false;
 
 	Inventory->PartyInventoryState.ActiveCharacters.Add(Shield022::MakeCharacter(Class, 14));
 	Inventory->PartyInventoryState.ActiveEquipment.SetNum(1);
 	auto& State = Inventory->PartyInventoryState;
-	State.ActiveEquipment[0].OffHand = Shield022::MakeItem(Shield, 5);
+	State.ActiveEquipment[0].OffHand = Shield022::MakeItem(ShieldId, 5);
 	State.ActiveEquipment[0].OffHand.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	State.ActiveEquipment[0].OffHand.OwnerCharacterIndex = 0;
 	State.ActiveEquipment[0].OffHand.EquipmentSlot = EGridEquipmentSlot::OffHand;
 	State.ActiveCharacters[0].InventorySlots[0].bOccupied = true;
-	State.ActiveCharacters[0].InventorySlots[0].Item = Shield022::MakeItem(Shield, 4);
+	State.ActiveCharacters[0].InventorySlots[0].Item = Shield022::MakeItem(ShieldId, 4);
 	State.ActiveCharacters[0].InventorySlots[0].Item.OwnerType = EGridItemOwnerType::CharacterInventory;
 	State.ActiveCharacters[0].InventorySlots[0].Item.OwnerCharacterIndex = 0;
 	State.bHasCursorItem = true;
-	State.CursorItem = Shield022::MakeItem(Shield, 2);
+	State.CursorItem = Shield022::MakeItem(ShieldId, 2);
 	State.CursorItem.OwnerType = EGridItemOwnerType::Cursor;
 
 	const FGuid EquippedId = State.ActiveEquipment[0].OffHand.RuntimeObjectId;
@@ -120,7 +166,7 @@ bool FShield022VictoryRefillTest::RunTest(const FString&)
 	TestEqual(TEXT("Next Victory returns physical armor"), Inventory->RefillArmorReservesAfterVictory(), 1);
 	TestEqual(TEXT("Second Victory restores full physical pool"), Inventory->GetEffectiveCurrentPhysicalArmor(0), 7);
 	TestEqual(TEXT("Second Victory restores magic"), State.ActiveCharacters[0].Resources.CurrentMagicalArmor, 3);
-	TestEqual(TEXT("Real DataAsset not modified"), Shield->GetOutermost()->IsDirty(), bShieldDirty);
+	TestNull(TEXT("Shield remains pointerless after both victories"), Inventory->FindItemDefinition(ShieldId));
 	return true;
 }
 
@@ -130,23 +176,27 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FShield022DownedNoRefillTest,
 
 bool FShield022DownedNoRefillTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Shield = Shield022::RealShield();
-	if (!TestNotNull(TEXT("Real ARM075 shield"), Shield))
+	Shield022::FWorldFixture Fixture;
+	FGridResolvedItem Shield;
+	const FName ShieldId(TEXT("Weapon_RoundShield_01"));
+	if (!TestNotNull(TEXT("Canonical game world"), Fixture.World) ||
+		!TestNotNull(TEXT("Real party inventory"), Fixture.Inventory) ||
+		!TestTrue(TEXT("Real ARM075 N1 shield resolves"), Fixture.ResolveShield(Shield)))
 		return false;
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	UGridPartyInventoryComponent* Inventory = Fixture.Inventory;
 	URPGClassAsset* Class = Shield022::MakeClass(Inventory, TEXT("Shield022DefeatClass"), 1, 4);
 	if (!TestTrue(TEXT("Synthetic class valid"), Class->IsValidDefinition()) ||
-		!TestTrue(TEXT("Shield registered"), Inventory->RegisterItemDefinition(Shield)))
+		!TestNull(TEXT("No legacy shield registered"), Inventory->FindItemDefinition(ShieldId)))
 		return false;
 
 	Inventory->PartyInventoryState.ActiveCharacters.Add(Shield022::MakeCharacter(Class, 0));
 	Inventory->PartyInventoryState.ActiveEquipment.SetNum(1);
 	auto& State = Inventory->PartyInventoryState;
-	State.ActiveEquipment[0].OffHand = Shield022::MakeItem(Shield, 5);
+	State.ActiveEquipment[0].OffHand = Shield022::MakeItem(ShieldId, 5);
 	State.ActiveCharacters[0].Resources.CurrentPhysicalArmor = 0;
 	State.ActiveCharacters[0].Resources.CurrentMagicalArmor = 0;
 	State.bHasCursorItem = true;
-	State.CursorItem = Shield022::MakeItem(Shield, 4);
+	State.CursorItem = Shield022::MakeItem(ShieldId, 4);
 
 	TestEqual(TEXT("No living member means no refill"), Inventory->RefillArmorReservesAfterVictory(), 0);
 	TestEqual(TEXT("Downed shield remains depleted"), State.ActiveEquipment[0].OffHand.AbsorbedEquipmentPhysicalArmor, 5);
