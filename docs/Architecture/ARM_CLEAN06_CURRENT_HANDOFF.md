@@ -1,5 +1,10 @@
 # ARM-CLEAN06 — Point de reprise fiable (17 novembre 2026)
 
+## ARM-CLEAN06.5H.12 — Plan de retrait non destructif à partir des preuves complètes
+
+Parent H.11 `01f82ebe9b8d803b7cf5a44e3cecbfe85a1fdf12` (SilentTask et LocalAuto SUCCESS). Le nouvel audit natif privé fourni le 21.11 a exécuté les quatre contrôles spécialisés : 7/7 sauvegardes v27 décodées, 7/7 validations physiques et round-trips en mémoire, 0 ID inconnu, 145 lignes physiques, 2 pointeurs Readables à préserver, 48 identités historiques appariées aux 48 canoniques et 54 candidats classés sans arêtes externes au groupe. **Aucune suppression autorisée** (`deletion_authorized=false`). Le nouveau `Scripts/PlanARM_CLEAN06_5H12_Retirement.ps1` prépare un inventaire privé et non destructif : 48 définitions à examiner, 6 packages protégés/différés et un relevé conservateur de mentions de vieux chemins dans `Source/` et `Scripts/`. Ne jamais interpréter l'absence de mention comme preuve exhaustive. Validation par fixture `-SelfTest` intégrée à `ValidateUE.ps1`. Voir [5H.12](ARM_CLEAN06_5H12_EVIDENCE_ACCEPTANCE_AND_STATIC_CONSUMERS.md).
+
+
 ## ARM-CLEAN06.5H.11 — Projection des anciens acteurs uniquement compilée en Automation
 
 Parent H.10 `d52575c0afe15daddf19c6678ba56af9f953dd36` à valider avant publication. La lecture des vieux DataAssets dans `AGridItemActor::InitializeFromItemDefinition` est désormais entourée de `WITH_DEV_AUTOMATION_TESTS`, et `GIsAutomationTesting` doit réellement être vrai pour la déclencher. Hors tests/Shipping l'API est inerte sans mutation. Les scénarios historiques avec GameInstance (torche, réceptacle, pickup) restent possibles pendant Automation. Voir [5H.11](ARM_CLEAN06_5H11_AUTOMATION_ONLY_ACTOR_INITIALIZATION.md). Aucun asset/sauvegarde modifié.
