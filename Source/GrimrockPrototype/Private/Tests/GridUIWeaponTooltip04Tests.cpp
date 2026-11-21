@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridInventoryTypes.h"
@@ -26,6 +27,18 @@ namespace WeaponTooltipTests
         return Item;
     }
 
+    FGridItemInstance MakeCanonicalItem(FName ItemId, int32 Level)
+    {
+        FGridItemInstance Item;
+        Item.RuntimeObjectId = FGuid::NewGuid();
+        Item.ItemDefinitionId = ItemId;
+        Item.ItemLevel = Level;
+        Item.Quantity = 1;
+        Item.OwnerType = EGridItemOwnerType::CharacterInventory;
+        Item.OwnerCharacterIndex = 0;
+        return Item;
+    }
+
     const FGridWeaponTooltipFact* Find(const FGridWeaponTooltipPresentation& View, FName Id)
     {
         return View.Facts.FindByPredicate([Id](const FGridWeaponTooltipFact& Fact)
@@ -41,33 +54,35 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponTooltipFixedLevelsTest,
 
 bool FWeaponTooltipFixedLevelsTest::RunTest(const FString&)
 {
-    UGridWeaponCatalogueAsset* Catalogue =
-        LoadObject<UGridWeaponCatalogueAsset>(nullptr, WeaponTooltipTests::CataloguePath);
-    UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_AssassinDagger_01.DA_Weapon_AssassinDagger_01"));
-    if (!TestNotNull(TEXT("Canonical catalogue"), Catalogue) ||
-        !TestNotNull(TEXT("ARM002 authored item"), Dagger))
+    FGridCanonicalRegistryFixture Fixture;
+    const FName DaggerId(TEXT("Weapon_AssassinDagger_01"));
+    FGridResolvedItem P1, P9;
+    if (!TestTrue(TEXT("Canonical production ARM002 N1 resolves"),
+        Fixture.Resolve(DaggerId, 1, P1)) ||
+        !TestTrue(TEXT("Canonical production ARM002 N9 resolves"),
+            Fixture.Resolve(DaggerId, 9, P9)) ||
+        !TestTrue(TEXT("Both levels are offensive armament"),
+            P1.bIsArmament && P9.bIsArmament &&
+            P1.Weapon.DamageDice.bEnabled && P9.Weapon.DamageDice.bEnabled))
         return false;
-    const bool bCatDirty = Catalogue->GetOutermost()->IsDirty();
-    const bool bItemDirty = Dagger->GetOutermost()->IsDirty();
+    UGridItemSystemAsset* Root = Fixture.Registry->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Production ItemSystem root"), Root)) return false;
+    const bool bRootDirty = Root->GetOutermost()->IsDirty();
 
     FGridWeaponTooltipPresentation N1;
     FGridWeaponTooltipPresentation N9;
     const bool bN1 = FGridWeaponTooltipProjection::Build(
-        Dagger, WeaponTooltipTests::MakeItem(Dagger, 1), N1);
+        nullptr, WeaponTooltipTests::MakeCanonicalItem(DaggerId, 1),
+        N1, Fixture.Registry.Get());
     const bool bN9 = FGridWeaponTooltipProjection::Build(
-        Dagger, WeaponTooltipTests::MakeItem(Dagger, 9), N9);
+        nullptr, WeaponTooltipTests::MakeCanonicalItem(DaggerId, 9),
+        N9, Fixture.Registry.Get());
     if (!TestTrue(TEXT("N1 profile resolved"), bN1) ||
         !TestTrue(TEXT("N9 profile resolved"), bN9))
         return false;
     TestEqual(TEXT("N1 real level"), N1.ItemLevel, 1);
     TestEqual(TEXT("N9 real level"), N9.ItemLevel, 9);
     TestFalse(TEXT("ARM002 is an attacking weapon"), N1.bPassive);
-    const FGridWeaponLevelProfile* P1 = Catalogue->FindProfile(TEXT("ARM002"), 1);
-    const FGridWeaponLevelProfile* P9 = Catalogue->FindProfile(TEXT("ARM002"), 9);
-    if (!TestNotNull(TEXT("Actual N1"), P1) ||
-        !TestNotNull(TEXT("Actual N9"), P9))
-        return false;
     const FGridWeaponTooltipFact* Dice1 = WeaponTooltipTests::Find(N1, TEXT("WeaponDice"));
     const FGridWeaponTooltipFact* Dice9 = WeaponTooltipTests::Find(N9, TEXT("WeaponDice"));
     const FGridWeaponTooltipFact* Minimum9 = WeaponTooltipTests::Find(N9, TEXT("WeaponMinDamage"));
@@ -77,26 +92,27 @@ bool FWeaponTooltipFixedLevelsTest::RunTest(const FString&)
         !TestNotNull(TEXT("N9 minimum"), Minimum9) ||
         !TestNotNull(TEXT("N9 maximum"), Maximum9))
         return false;
-    const FString N1Suffix = P1->DamageDice.FlatBonus == 0
-        ? FString() : FString::Printf(TEXT(" + %d"), P1->DamageDice.FlatBonus);
+    const FString N1Suffix = P1.Weapon.DamageDice.FlatBonus == 0
+        ? FString() : FString::Printf(TEXT(" + %d"), P1.Weapon.DamageDice.FlatBonus);
     TestEqual(TEXT("N1 formula exactly"), Dice1->ValueText.ToString(),
-        FString::Printf(TEXT("%dd%d%s"), P1->DamageDice.DiceCount,
-            P1->DamageDice.DiceSides, *N1Suffix));
+        FString::Printf(TEXT("%dd%d%s"), P1.Weapon.DamageDice.DiceCount,
+            P1.Weapon.DamageDice.DiceSides, *N1Suffix));
     TestEqual(TEXT("N9 minimum from actual dice"), Minimum9->ValueText.ToString(),
-        FString::FromInt(P9->DamageDice.GetMinimumDamage()));
+        FString::FromInt(P9.Weapon.DamageDice.GetMinimumDamage()));
     TestEqual(TEXT("N9 maximum from actual dice"), Maximum9->ValueText.ToString(),
-        FString::FromInt(P9->DamageDice.GetMaximumDamage()));
+        FString::FromInt(P9.Weapon.DamageDice.GetMaximumDamage()));
     const FGridWeaponTooltipFact* ActionPoints = WeaponTooltipTests::Find(N9, TEXT("WeaponAP"));
     if (TestNotNull(TEXT("N9 PA fact"), ActionPoints))
     {
-        TestEqual(TEXT("N9 PA consistent with workbook"), ActionPoints->ValueText.ToString(),
-            FString::FromInt(P9->ActionPointCost));
+        TestEqual(TEXT("N9 PA consistent with canonical catalogue"),
+            ActionPoints->ValueText.ToString(),
+            FString::FromInt(P9.Weapon.ActionPointCost));
     }
     TestTrue(TEXT("N1 and N9 formulas differ when catalogue changes"),
-        P1->DamageDice.FlatBonus == P9->DamageDice.FlatBonus ||
+        P1.Weapon.DamageDice.FlatBonus == P9.Weapon.DamageDice.FlatBonus ||
             !Dice1->ValueText.EqualTo(Dice9->ValueText));
-    TestEqual(TEXT("Catalogue package untouched"), Catalogue->GetOutermost()->IsDirty(), bCatDirty);
-    TestEqual(TEXT("Item package untouched"), Dagger->GetOutermost()->IsDirty(), bItemDirty);
+    TestEqual(TEXT("Production ItemSystem root untouched"),
+        Root->GetOutermost()->IsDirty(), bRootDirty);
     return true;
 }
 
@@ -106,32 +122,38 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponTooltipPassiveLegacyTest,
 
 bool FWeaponTooltipPassiveLegacyTest::RunTest(const FString&)
 {
-    UGridWeaponCatalogueAsset* Catalogue =
-        LoadObject<UGridWeaponCatalogueAsset>(nullptr, WeaponTooltipTests::CataloguePath);
-    UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-    if (!TestNotNull(TEXT("Catalogue"), Catalogue) ||
-        !TestNotNull(TEXT("ARM075 shield"), Shield))
+    FGridCanonicalRegistryFixture Fixture;
+    const FName ShieldId(TEXT("Weapon_RoundShield_01"));
+    FGridResolvedItem Shield;
+    if (!TestTrue(TEXT("Canonical ARM075 N12 resolves"),
+            Fixture.Resolve(ShieldId, 12, Shield)) ||
+        !TestTrue(TEXT("Shield is a passive ARM with physical armor"),
+            Shield.bIsArmament && Shield.Weapon.PhysicalArmor > 0 &&
+            !Shield.Weapon.DamageDice.bEnabled))
         return false;
 
     FGridWeaponTooltipPresentation Passive;
     if (!TestTrue(TEXT("Passive level 12 resolved"),
-        FGridWeaponTooltipProjection::Build(
-            Shield, WeaponTooltipTests::MakeItem(Shield, 12), Passive)))
+        FGridWeaponTooltipProjection::Build(nullptr,
+            WeaponTooltipTests::MakeCanonicalItem(ShieldId, 12),
+            Passive, Fixture.Registry.Get())))
         return false;
     TestTrue(TEXT("Passive shield flagged as passive"), Passive.bPassive);
     TestTrue(TEXT("No fictional attack dice"), Passive.DiceText.IsEmpty());
-    TestTrue(TEXT("No fictional weapon PA"), WeaponTooltipTests::Find(Passive, TEXT("WeaponAP")) == nullptr);
-    TestTrue(TEXT("No fictional damage line"), WeaponTooltipTests::Find(Passive, TEXT("WeaponDice")) == nullptr);
-    const FGridWeaponLevelProfile* P = Catalogue->FindProfile(TEXT("ARM075"), 12);
+    TestTrue(TEXT("No fictional weapon PA"),
+        WeaponTooltipTests::Find(Passive, TEXT("WeaponAP")) == nullptr);
+    TestTrue(TEXT("No fictional damage line"),
+        WeaponTooltipTests::Find(Passive, TEXT("WeaponDice")) == nullptr);
     const FGridWeaponTooltipFact* Armor =
         WeaponTooltipTests::Find(Passive, TEXT("WeaponPhysicalArmor"));
-    if (!TestNotNull(TEXT("Actual passive profile"), P) ||
-        !TestNotNull(TEXT("Shield physical armor shown"), Armor))
+    if (!TestNotNull(TEXT("Shield physical armor shown"), Armor))
         return false;
-    TestEqual(TEXT("Physical armor uses actual level 12"), Armor->ValueText.ToString(),
-        FString::FromInt(P->PhysicalArmor));
+    TestEqual(TEXT("Physical armor uses actual level 12"),
+        Armor->ValueText.ToString(),
+        FString::FromInt(Shield.Weapon.PhysicalArmor));
 
+    // A deliberately unregistered legacy object is a negative characterization
+    // fixture only. It is not an authorized production data source.
     UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>();
     Legacy->ItemDefinitionId = TEXT("Legacy_ItemWithoutCatalogue");
     Legacy->DisplayName = FText::FromString(TEXT("Legacy item"));
@@ -139,13 +161,16 @@ bool FWeaponTooltipPassiveLegacyTest::RunTest(const FString&)
     TestFalse(TEXT("Legacy is not retroactively migrated"),
         FGridWeaponTooltipProjection::Build(
             Legacy, WeaponTooltipTests::MakeItem(Legacy, 0), LegacyView));
-    TestFalse(TEXT("Legacy produces no new weapon profile"), LegacyView.bHasProfile);
+    TestFalse(TEXT("Legacy produces no new weapon profile"),
+        LegacyView.bHasProfile);
 
     FGridWeaponTooltipPresentation InvalidLevel;
     TestFalse(TEXT("No guessing a level outside N1-N20"),
-        FGridWeaponTooltipProjection::Build(
-            Shield, WeaponTooltipTests::MakeItem(Shield, 21), InvalidLevel));
-    TestFalse(TEXT("Invalid level remains empty"), InvalidLevel.bHasProfile);
+        FGridWeaponTooltipProjection::Build(nullptr,
+            WeaponTooltipTests::MakeCanonicalItem(ShieldId, 21),
+            InvalidLevel, Fixture.Registry.Get()));
+    TestFalse(TEXT("Invalid level remains empty"),
+        InvalidLevel.bHasProfile);
     return true;
 }
 
