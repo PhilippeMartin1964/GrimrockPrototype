@@ -2746,22 +2746,30 @@ bool FARMEMENTLOT021921DualAttackIconViewTest::RunTest(const FString&)
 	FGridCombatHudFixture Fixture;
 	if (!TestTrue(TEXT("HUD and combat fixture are ready"), Fixture.IsReady())) return false;
 
-	UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
-	UGridItemDefinitionAsset* MainGauche = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_MainGauche_01.DA_Weapon_MainGauche_01"));
-	UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-	if (!TestNotNull(TEXT("Real ARM001 dagger"), Dagger) ||
-		!TestNotNull(TEXT("Real ARM013 Main-gauche"), MainGauche) ||
-		!TestNotNull(TEXT("Real ARM075 shield"), Shield)) return false;
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("ItemSystem attached to contextual icon combat world"),
+		RegistryScope.Attach(Fixture.TestWorld.World))) return false;
+	FGridResolvedItem Dagger, MainGauche, Shield;
+	if (!TestTrue(TEXT("Real ARM001 Dagger N1 canonically resolved"),
+		RegistryScope.Registry->ResolveItem(TEXT("Weapon_Dagger_01"), 1, Dagger)) ||
+		!TestTrue(TEXT("Real ARM013 Main-gauche N1 canonically resolved"),
+			RegistryScope.Registry->ResolveItem(TEXT("Weapon_MainGauche_01"), 1, MainGauche)) ||
+		!TestTrue(TEXT("Real ARM075 Shield N1 canonically resolved"),
+			RegistryScope.Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, Shield)) ||
+		!TestTrue(TEXT("Dual weapon sources and passive shield are authoritative"),
+			Dagger.bIsArmament && MainGauche.bIsArmament && Shield.bIsArmament &&
+			Dagger.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand) &&
+			MainGauche.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand) &&
+			Shield.Weapon.Kind == EGridCanonicalArmamentKind::Shield &&
+			!Shield.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand)))
+		return false;
 
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-	auto MakeEquipped = [&Fixture](const UGridItemDefinitionAsset* Definition, const FGuid& Id, EGridEquipmentSlot Slot)
+	auto MakeEquipped = [&Fixture](const FGridResolvedItem& Definition, const FGuid& Id, EGridEquipmentSlot Slot)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = Id;
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemDefinitionId = Definition.ItemId;
 		Item.ItemLevel = 1;
 		Item.Quantity = 1;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -2774,9 +2782,12 @@ bool FARMEMENTLOT021921DualAttackIconViewTest::RunTest(const FString&)
 		MakeEquipped(Dagger, FGuid(19, 2, 11, 1), EGridEquipmentSlot::MainHand);
 	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand =
 		MakeEquipped(MainGauche, FGuid(19, 2, 11, 2), EGridEquipmentSlot::OffHand);
-	if (!TestTrue(TEXT("Register dagger"), Inventory->RegisterItemDefinition(Dagger)) ||
-		!TestTrue(TEXT("Register Main-gauche"), Inventory->RegisterItemDefinition(MainGauche)) ||
-		!TestTrue(TEXT("Register shield"), Inventory->RegisterItemDefinition(Shield))) return false;
+	if (!TestNull(TEXT("No historical dagger definition registered"),
+		Inventory->FindItemDefinition(Dagger.ItemId)) ||
+		!TestNull(TEXT("No historical Main-gauche definition registered"),
+			Inventory->FindItemDefinition(MainGauche.ItemId)) ||
+		!TestNull(TEXT("No historical shield definition registered"),
+			Inventory->FindItemDefinition(Shield.ItemId))) return false;
 
 	Fixture.Hud->RefreshFromSources();
 	const FGridCombatHudActionView DualView = Fixture.Hud->View.Actions[0];
@@ -2789,9 +2800,7 @@ bool FARMEMENTLOT021921DualAttackIconViewTest::RunTest(const FString&)
 
 	// A real alternative texture verifies that a single Designer Image
 	// can show the system action icon without modifying the WBP hierarchy.
-	const TSoftObjectPtr<UTexture2D> DedicatedIcon = !MainGauche->CombatActions.IsEmpty() &&
-		!MainGauche->CombatActions[0].Icon.IsNull()
-			? MainGauche->CombatActions[0].Icon : MainGauche->Icon;
+	const TSoftObjectPtr<UTexture2D> DedicatedIcon = MainGauche.ItemIcon;
 	if (!TestTrue(TEXT("Test has a real alternate Texture2D"), !DedicatedIcon.IsNull())) return false;
 	TestEqual(TEXT("Configured dual icon overrides the dagger-only image"),
 		UGridCombatHudActionWidget::ResolveDisplayedIcon(DualView, DedicatedIcon).ToSoftObjectPath(),
