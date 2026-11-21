@@ -7,7 +7,8 @@
 #include "Engine/World.h"
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -17,6 +18,8 @@ namespace Shield023
 	struct FRestWorld
 	{
 		UWorld* World = nullptr;
+		UGameInstance* GI = nullptr;
+		UGridItemSubsystem* Registry = nullptr;
 
 		FRestWorld()
 		{
@@ -35,6 +38,10 @@ namespace Shield023
 			{
 				FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
 				Context.SetCurrentWorld(World);
+				GI = NewObject<UGameInstance>(GetTransientPackage());
+				GI->Init();
+				World->SetGameInstance(GI);
+				Registry = GI->GetSubsystem<UGridItemSubsystem>();
 			}
 		}
 
@@ -44,6 +51,8 @@ namespace Shield023
 			{
 				return;
 			}
+			World->SetGameInstance(nullptr);
+			if (GI) GI->Shutdown();
 			World->DestroyWorld(false);
 			if (GEngine)
 			{
@@ -58,7 +67,7 @@ namespace Shield023
 		AGridLevelRuntimeActor* Runtime = nullptr;
 		AGrimrockPartyPawn* Party = nullptr;
 		UGridTurnManagerComponent* TurnManager = nullptr;
-		UGridItemDefinitionAsset* Shield = nullptr;
+		FGridResolvedItem Shield;
 		URPGClassAsset* CharacterClass = nullptr;
 
 		bool Initialize()
@@ -66,12 +75,14 @@ namespace Shield023
 			if (!TestWorld.World)
 				return false;
 
-			Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
-				TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
+			if (!TestWorld.Registry ||
+				!TestWorld.Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, Shield) ||
+				!Shield.bIsArmament || Shield.Weapon.PhysicalArmor != 5)
+				return false;
 			Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 			Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
-			if (!Shield || !Runtime || !Party || !Party->PartyInventoryComponent ||
-				!Party->PartyInventoryComponent->RegisterItemDefinition(Shield))
+			if (!Runtime || !Party || !Party->PartyInventoryComponent ||
+				Party->PartyInventoryComponent->FindItemDefinition(Shield.ItemId))
 			{
 				return false;
 			}
@@ -121,7 +132,7 @@ namespace Shield023
 
 			FGridItemInstance ShieldInstance;
 			ShieldInstance.RuntimeObjectId = FGuid::NewGuid();
-			ShieldInstance.ItemDefinitionId = Shield->ItemDefinitionId;
+			ShieldInstance.ItemDefinitionId = Shield.ItemId;
 			ShieldInstance.ItemLevel = 1;
 			ShieldInstance.Quantity = 1;
 			ShieldInstance.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -157,7 +168,7 @@ bool FShield023ExplicitRest::RunTest(const FString&)
 	const int32 Mana = Character.Resources.CurrentMana;
 	TestEqual(TEXT("Armor consumed before explicit rest"), Inventory->GetEffectiveCurrentPhysicalArmor(0), 0);
 	TestEqual(TEXT("Magical armor consumed before explicit rest"), Character.Resources.CurrentMagicalArmor, 0);
-	TestEqual(TEXT("Real shield physical bonus"), Fixture.Shield->EquipmentStatBonus.ArmorBonus, 5);
+	TestEqual(TEXT("Real canonical shield physical bonus"), Fixture.Shield.Weapon.PhysicalArmor, 5);
 
 	TestTrue(TEXT("Explicit out-of-combat rest accepted"), Fixture.TurnManager->TryRestParty());
 	TestEqual(TEXT("Equipped shield replenished"), Shield.AbsorbedEquipmentPhysicalArmor, 0);
