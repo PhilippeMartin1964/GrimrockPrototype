@@ -264,27 +264,25 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponTooltipRealComparisonTest,
 
 bool FWeaponTooltipRealComparisonTest::RunTest(const FString&)
 {
-    UGridWeaponCatalogueAsset* Catalogue =
-        LoadObject<UGridWeaponCatalogueAsset>(nullptr, WeaponTooltipTests::CataloguePath);
-    UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_AssassinDagger_01.DA_Weapon_AssassinDagger_01"));
-    UGridItemDefinitionAsset* Shield = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01.DA_Weapon_RoundShield_01"));
-    if (!TestNotNull(TEXT("Production catalogue"), Catalogue) ||
-        !TestNotNull(TEXT("ARM002"), Dagger) ||
-        !TestNotNull(TEXT("ARM075"), Shield))
+    FGridCanonicalRegistryFixture Fixture;
+    const FName DaggerId(TEXT("Weapon_AssassinDagger_01"));
+    const FName ShieldId(TEXT("Weapon_RoundShield_01"));
+    FGridResolvedItem P9, P1, S12, S1;
+    if (!TestTrue(TEXT("Canonical ARM002 N9 resolves"), Fixture.Resolve(DaggerId, 9, P9)) ||
+        !TestTrue(TEXT("Canonical ARM002 N1 resolves"), Fixture.Resolve(DaggerId, 1, P1)) ||
+        !TestTrue(TEXT("Canonical ARM075 N12 resolves"), Fixture.Resolve(ShieldId, 12, S12)) ||
+        !TestTrue(TEXT("Canonical ARM075 N1 resolves"), Fixture.Resolve(ShieldId, 1, S1)))
         return false;
-    const bool bBeforeCatalogue = Catalogue->GetOutermost()->IsDirty();
+    UGridItemSystemAsset* Root = Fixture.Registry->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Read-only production ItemSystem"), Root)) return false;
+    const bool bBeforeRoot = Root->GetOutermost()->IsDirty();
+
     TArray<FGridWeaponTooltipComparisonFact> Facts;
-    const FGridItemInstance N9 = WeaponTooltipTests::MakeItem(Dagger, 9);
-    const FGridItemInstance N1 = WeaponTooltipTests::MakeItem(Dagger, 1);
-    if (!TestTrue(TEXT("Two real weapon levels comparable"),
-        FGridWeaponTooltipProjection::BuildComparison(Dagger, N9, Dagger, N1, Facts)))
-        return false;
-    const FGridWeaponLevelProfile* P9 = Catalogue->FindProfile(TEXT("ARM002"), 9);
-    const FGridWeaponLevelProfile* P1 = Catalogue->FindProfile(TEXT("ARM002"), 1);
-    if (!TestNotNull(TEXT("Source profile N9"), P9) ||
-        !TestNotNull(TEXT("Source profile N1"), P1))
+    const FGridItemInstance N9 = WeaponTooltipTests::MakeCanonicalItem(DaggerId, 9);
+    const FGridItemInstance N1 = WeaponTooltipTests::MakeCanonicalItem(DaggerId, 1);
+    if (!TestTrue(TEXT("Two canonical ARM002 weapon levels comparable"),
+        FGridWeaponTooltipProjection::BuildComparison(
+            nullptr, N9, nullptr, N1, Facts, Fixture.Registry.Get())))
         return false;
     const auto* Min = Facts.FindByPredicate([](const FGridWeaponTooltipComparisonFact& F)
     {
@@ -298,37 +296,42 @@ bool FWeaponTooltipRealComparisonTest::RunTest(const FString&)
         !TestNotNull(TEXT("Text-only NdM+K comparison"), Dice))
         return false;
     TestTrue(TEXT("Same damage semantics permit numeric delta"), Min->bHasDelta);
-    TestEqual(TEXT("Minimum damage from the exact two levels"), Min->Delta,
-        static_cast<float>(P9->DamageDice.GetMinimumDamage() -
-            P1->DamageDice.GetMinimumDamage()));
+    TestEqual(TEXT("Minimum damage from exact canonical levels"), Min->Delta,
+        static_cast<float>(P9.Weapon.DamageDice.GetMinimumDamage() -
+            P1.Weapon.DamageDice.GetMinimumDamage()));
     TestFalse(TEXT("Dice formulas are not arithmetic deltas"), Dice->bHasDelta);
 
     TArray<FGridWeaponTooltipComparisonFact> Incompatible;
-    TestFalse(TEXT("Cannot claim weapon and shield have comparable attacks"),
+    TestFalse(TEXT("Weapon and shield have incomparable attack roles"),
         FGridWeaponTooltipProjection::BuildComparison(
-            Dagger, N9, Shield, WeaponTooltipTests::MakeItem(Shield, 12), Incompatible));
-    TestEqual(TEXT("Incompatible roles leave no partial comparison"), Incompatible.Num(), 0);
+            nullptr, N9, nullptr,
+            WeaponTooltipTests::MakeCanonicalItem(ShieldId, 12),
+            Incompatible, Fixture.Registry.Get()));
+    TestEqual(TEXT("Incompatible roles leave no partial comparison"),
+        Incompatible.Num(), 0);
 
     TArray<FGridWeaponTooltipComparisonFact> ShieldFacts;
-    if (!TestTrue(TEXT("Two passive shield levels comparable"),
+    if (!TestTrue(TEXT("Two canonical passive shield levels comparable"),
         FGridWeaponTooltipProjection::BuildComparison(
-            Shield, WeaponTooltipTests::MakeItem(Shield, 12),
-            Shield, WeaponTooltipTests::MakeItem(Shield, 1), ShieldFacts)))
+            nullptr, WeaponTooltipTests::MakeCanonicalItem(ShieldId, 12),
+            nullptr, WeaponTooltipTests::MakeCanonicalItem(ShieldId, 1),
+            ShieldFacts, Fixture.Registry.Get())))
         return false;
-    TestTrue(TEXT("No fictitious shield dice"), ShieldFacts.FindByPredicate(
-        [](const FGridWeaponTooltipComparisonFact& F) { return F.StatId == TEXT("WeaponDice"); }) == nullptr);
-    const auto* Armor = ShieldFacts.FindByPredicate(
-        [](const FGridWeaponTooltipComparisonFact& F)
-        { return F.StatId == TEXT("WeaponPhysicalArmor"); });
-    const FGridWeaponLevelProfile* S12 = Catalogue->FindProfile(TEXT("ARM075"), 12);
-    const FGridWeaponLevelProfile* S1 = Catalogue->FindProfile(TEXT("ARM075"), 1);
-    if (!TestNotNull(TEXT("Shield N12"), S12) ||
-        !TestNotNull(TEXT("Shield N1"), S1) ||
-        !TestNotNull(TEXT("Shield armor comparison"), Armor))
+    TestTrue(TEXT("No fictitious shield dice"),
+        ShieldFacts.FindByPredicate([](const FGridWeaponTooltipComparisonFact& F)
+        {
+            return F.StatId == TEXT("WeaponDice");
+        }) == nullptr);
+    const auto* Armor = ShieldFacts.FindByPredicate([](const FGridWeaponTooltipComparisonFact& F)
+    {
+        return F.StatId == TEXT("WeaponPhysicalArmor");
+    });
+    if (!TestNotNull(TEXT("Canonical shield armor comparison"), Armor))
         return false;
     TestEqual(TEXT("Shield delta from canonical N12 and N1"), Armor->Delta,
-        static_cast<float>(S12->PhysicalArmor - S1->PhysicalArmor));
-    TestEqual(TEXT("Catalogue not mutated"), Catalogue->GetOutermost()->IsDirty(), bBeforeCatalogue);
+        static_cast<float>(S12.Weapon.PhysicalArmor - S1.Weapon.PhysicalArmor));
+    TestEqual(TEXT("ItemSystem root not mutated"),
+        Root->GetOutermost()->IsDirty(), bBeforeRoot);
     return true;
 }
 
