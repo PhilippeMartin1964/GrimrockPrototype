@@ -166,11 +166,18 @@ namespace ARMCLEAN063BB
             UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
             Legacy->ItemDefinitionId = TEXT("Legacy_Bow_BB");
             Legacy->RequiredAmmunitionItemDefinitionId = TEXT("Legacy_Arrow_BB");
-            const auto LegacyRequirement = FGridRangedAmmunitionPolicy::ResolveForAttack(
+            const auto UnknownConfigured = FGridRangedAmmunitionPolicy::ResolveForAttack(
                 F.Registry, Legacy->ItemDefinitionId, 0, Legacy, true);
-            Test.TestTrue(TEXT("Unregistered weapon keeps original ammo join"),
-                !LegacyRequirement.bCanonicalSource && LegacyRequirement.bValid &&
-                LegacyRequirement.AmmunitionItemId == Legacy->RequiredAmmunitionItemDefinitionId);
+            Test.TestFalse(TEXT("Unregistered launcher cannot borrow historical ammo in a configured world"),
+                UnknownConfigured.bValid);
+            Test.TestTrue(TEXT("Configured unknown launcher never invents an ammo join"),
+                UnknownConfigured.AmmunitionItemId.IsNone() &&
+                !UnknownConfigured.bCanonicalAmmunition);
+            const auto WorldlessLegacy = FGridRangedAmmunitionPolicy::ResolveForAttack(
+                nullptr, Legacy->ItemDefinitionId, 0, Legacy, true);
+            Test.TestTrue(TEXT("Only worldless Automation can characterize the historical ammo join"),
+                !WorldlessLegacy.bCanonicalSource && WorldlessLegacy.bValid &&
+                WorldlessLegacy.AmmunitionItemId == Legacy->RequiredAmmunitionItemDefinitionId);
             return !Test.HasAnyErrors();
         }
 

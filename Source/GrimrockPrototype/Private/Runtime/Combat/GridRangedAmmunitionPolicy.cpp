@@ -3,6 +3,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "CoreGlobals.h"
 
 bool FGridRangedAmmunitionPolicy::TryResolveCanonicalLaunchSpeed(
 	const FGridResolvedItem* Weapon, const FGridResolvedItem& Ammo, float& OutSpeed)
@@ -66,26 +67,20 @@ FGridRangedAmmunitionRequirement FGridRangedAmmunitionPolicy::ResolveForAttack(
 		return Result;
 	}
 
-	// Unregistered items remain on their original path until binary migration.
-	Result.bValid = true;
-	if (IsValid(LegacyWeapon))
+	// H.72: an unknown ranged launcher has no ammunition policy in a
+	// configured game. Never borrow its old RequiredAmmunitionItemDefinitionId.
+#if WITH_DEV_AUTOMATION_TESTS
+	// Preserve historical source characterization ONLY for isolated
+	// Automation without a configured ItemSystem.
+	if (!Registry && GIsAutomationTesting && IsValid(LegacyWeapon) &&
+		LegacyWeapon->ItemDefinitionId == WeaponItemId)
 	{
+		Result.bValid = true;
 		Result.AmmunitionItemId = LegacyWeapon->RequiredAmmunitionItemDefinitionId;
 	}
-	// An unregistered launcher can still require a registered arrow. Its
-	// identity join is historical, but the arrow's own data never is.
-	if (IsValid(Registry) && Registry->HasCanonicalItem(Result.AmmunitionItemId))
-	{
-		Result.bCanonicalAmmunition = true;
-		FGridResolvedItem Ammo;
-		Result.bValid = Registry->ResolveItem(Result.AmmunitionItemId, 0, Ammo) &&
-			TryResolveCanonicalLaunchSpeed(nullptr, Ammo, Result.AmmunitionLaunchSpeed);
-		if (Result.bValid)
-		{
-			Result.AmmunitionWeightKg = Ammo.WeightKg;
-			Result.AmmunitionMaxStack = Ammo.MaxStack;
-		}
-	}
+#else
+	(void)LegacyWeapon;
+#endif
 	return Result;
 }
 
@@ -120,6 +115,7 @@ bool FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(
 		 Inventory.RemoveItemDefinitionFromCharacterInventory(CharacterIndex, Requirement.AmmunitionItemId, 1));
 }
 
+#if WITH_DEV_AUTOMATION_TESTS
 bool FGridRangedAmmunitionPolicy::HasRequiredAmmunition(
 	const UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
 	const UGridItemDefinitionAsset& Weapon)
@@ -151,3 +147,5 @@ bool FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(
 {
 	return !bRangedAttack || ConsumeRequiredAmmunition(Inventory, CharacterIndex, Weapon);
 }
+
+#endif // WITH_DEV_AUTOMATION_TESTS: historical definition overloads

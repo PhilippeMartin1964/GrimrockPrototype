@@ -48,6 +48,8 @@ public:
 		UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
 		const FGridRangedAmmunitionRequirement& Requirement);
 
+#if WITH_DEV_AUTOMATION_TESTS
+	/** Historical authoring overloads for isolated Editor Automation only. */
 	static bool HasRequiredAmmunition(
 		const UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
 		const UGridItemDefinitionAsset& Weapon);
@@ -66,4 +68,5 @@ public:
 	static bool ConsumeRequiredAmmunitionForAttack(
 		UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
 		const UGridItemDefinitionAsset& Weapon, bool bRangedAttack);
+#endif
 };
