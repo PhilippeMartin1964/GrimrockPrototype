@@ -94,8 +94,8 @@ namespace RPGStartingPresets
     };
 
     // Production recipes only: all source identities and physical levels are
-    // authoritative in DA_ItemSystem. No Editor, Automation or packaged mode
-    // may synthesize a legacy DA_Item_/DA_Weapon_ lookup.
+    // authoritative in the canonical ItemSystem. No Editor, Automation or
+    // packaged mode may synthesize an obsolete asset-package lookup.
     bool AddApprovedItem(
         FRPGStartingEquipmentKit& Kit, const FApprovedItemSpec& Spec,
         FString& OutError, const UGridItemSubsystem* Registry)
