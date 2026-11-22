@@ -4,7 +4,7 @@
 #include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "../ARMEMENT/GridEditorNativePalettePlan.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "UObject/Package.h"
 #include "UObject/UnrealType.h"
 

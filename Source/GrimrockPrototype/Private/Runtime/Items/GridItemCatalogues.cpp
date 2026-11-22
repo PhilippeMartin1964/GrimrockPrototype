@@ -1,6 +1,6 @@
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
-#include "Runtime/Items/GridCanonicalInventoryCategoryTags.h"
-#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
+#include "Runtime/Items/GridItemCatalogues.h"
+#include "Runtime/Items/GridInventoryCategoryTags.h"
+#include "Runtime/Items/GridPuzzleCategoryTags.h"
 
 namespace
 {
@@ -588,14 +588,14 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 			continue;
 		}
 		Ids.Add(Item->ItemId);
-		if (!GridCanonicalPuzzleCategoryTags::IsValidMetadata(Item->Tags,
+		if (!GridPuzzleCategoryTags::IsValidMetadata(Item->Tags,
 			Item->IsA<UGridArmamentDefinitionAsset>()))
 		{
 			bValid = AddError(Errors, TEXT("Item system: invalid or misplaced puzzle category tags"));
 		}
-		if (GridCanonicalInventoryCategoryTags::Count(Item->Tags) > 1 ||
+		if (GridInventoryCategoryTags::Count(Item->Tags) > 1 ||
 			(Cast<UGridArmamentDefinitionAsset>(Item) &&
-				GridCanonicalInventoryCategoryTags::Count(Item->Tags) != 0))
+				GridInventoryCategoryTags::Count(Item->Tags) != 0))
 		{
 			bValid = AddError(Errors, TEXT("Item system: conflicting or misplaced non-ARM presentation category tags"));
 		}

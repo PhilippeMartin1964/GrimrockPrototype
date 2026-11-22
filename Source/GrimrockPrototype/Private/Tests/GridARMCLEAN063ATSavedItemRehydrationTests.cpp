@@ -57,8 +57,8 @@ namespace ARMCLEAN063AT
 		}
 		bool Ready() const
 		{
-			return Registry && Registry->HasCanonicalItem(TEXT("Weapon_StraightSword_01")) &&
-				Registry->HasCanonicalItem(TEXT("Item_Arrows_01")) &&
+			return Registry && Registry->ContainsItem(TEXT("Weapon_StraightSword_01")) &&
+				Registry->ContainsItem(TEXT("Item_Arrows_01")) &&
 				Inventory && Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(0) &&
 				Inventory->PartyInventoryState.ActiveEquipment.IsValidIndex(0);
 		}
@@ -351,31 +351,31 @@ bool FGridClean063ATStrictPartyRehydration::RunTest(const FString&)
 	FName Missing = NAME_None;
 	F.Put(0, F.Make(Sword, 20, 1));
 	TestTrue(TEXT("Valid canonical party rehydrates"),
-		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+		F.Inventory->RehydrateOwnedItems(Missing));
 	const FGuid StableGuid = F.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.RuntimeObjectId;
 	UGridItemDefinitionAsset* Old = ARMCLEAN063AT::MakeLegacy(F.Inventory, Unknown);
 	TestTrue(TEXT("Seed historical map for rollback test"), F.Inventory->RegisterItemDefinition(Old));
 	F.Put(1, F.Make(Unknown, 0, 1));
 	TestFalse(TEXT("Old definition cannot authorize unknown saved identity"),
-		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+		F.Inventory->RehydrateOwnedItems(Missing));
 	TestEqual(TEXT("Unknown identity reported"), Missing, Unknown);
 	TestEqual(TEXT("Failed validation preserves prior map"), F.Inventory->FindItemDefinition(Unknown), Old);
 	F.Put(1, F.Make(Unknown, 0, 0));
 	TestFalse(TEXT("Malformed occupied unknown object cannot be skipped"),
-		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+		F.Inventory->RehydrateOwnedItems(Missing));
 	TestEqual(TEXT("Malformed identity reported"), Missing, Unknown);
 	F.Put(1, F.Make(NAME_None, 0, 1));
 	TestFalse(TEXT("Occupied slot without identity cannot be skipped"),
-		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+		F.Inventory->RehydrateOwnedItems(Missing));
 	F.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[1] = FGridInventorySlot();
 	F.Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = F.Make(Unknown, 1, 0);
 	TestFalse(TEXT("Malformed equipped item cannot be skipped"),
-		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+		F.Inventory->RehydrateOwnedItems(Missing));
 	F.Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
 	F.Inventory->PartyInventoryState.bHasCursorItem = true;
 	F.Inventory->PartyInventoryState.CursorItem = F.Make(Unknown, 0, 0, EGridItemOwnerType::Cursor);
 	TestFalse(TEXT("Malformed cursor cannot be skipped"),
-		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+		F.Inventory->RehydrateOwnedItems(Missing));
 	F.Inventory->PartyInventoryState.bHasCursorItem = false;
 	F.Inventory->PartyInventoryState.CursorItem = FGridItemInstance();
 	auto& Hotbar = F.Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots;
@@ -388,12 +388,12 @@ bool FGridClean063ATStrictPartyRehydration::RunTest(const FString&)
 	Shortcut.PreferredEquipmentSlot = EGridEquipmentSlot::MainHand;
 	Hotbar[1] = Shortcut;
 	TestFalse(TEXT("Unknown shortcut cannot authorize legacy definition"),
-		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+		F.Inventory->RehydrateOwnedItems(Missing));
 	TestEqual(TEXT("Unknown shortcut reports exact identity"), Missing, Unknown);
 	TestEqual(TEXT("Failed shortcut validation preserves prior map"), F.Inventory->FindItemDefinition(Unknown), Old);
 	Hotbar[1].SourceDefinitionId = TEXT("Weapon_Dagger_01");
 	TestTrue(TEXT("Canonical-only state succeeds once corrected"),
-		F.Inventory->RehydrateCanonicalOwnedItemDefinitions(Missing));
+		F.Inventory->RehydrateOwnedItems(Missing));
 	TestNull(TEXT("Successful canonical restore removes old map"), F.Inventory->FindItemDefinition(Unknown));
 	TestTrue(TEXT("Shortcut-only identity does not fabricate a physical source"), Missing.IsNone());
 	TestEqual(TEXT("Shortcut source GUID preserved"), Hotbar[1].PreferredSourceRuntimeId, Shortcut.PreferredSourceRuntimeId);

@@ -2,8 +2,8 @@
 
 #include "GridEditorNativeInitialContentPlan.h"
 #include "Core/GridObjectInstanceBehavior.h"
-#include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
-#include "EditorTools/GridEditorCanonicalLockRuleAuthoring.h"
+#include "EditorTools/GridEditorReceptacleRuleAuthoring.h"
+#include "EditorTools/GridEditorLockRuleAuthoring.h"
 #include "UObject/Package.h"
 
 /** X.59: remove only three proven dormant lists. Reuse X.58 reflection helpers. */
@@ -76,7 +76,7 @@ struct FGridEditorNativeDormantOverridesPlan
             if (Seen.Contains(Index) || Object.CellX != T.X || Object.CellY != T.Y ||
                 !Source.IsValidCoord(Object.CellX, Object.CellY) ||
                 Object.Type != EGridLevelObjectType::Receptacle ||
-                !Registry->HasCanonicalItem(ItemId) || !O.AcceptedKeys.AcceptedKeyIds.IsEmpty())
+                !Registry->ContainsItem(ItemId) || !O.AcceptedKeys.AcceptedKeyIds.IsEmpty())
             { Error = TEXT("Approved owner, cell, type or ID changed."); return false; }
             Seen.Add(Index);
             ++Plan.Rows;
@@ -91,7 +91,7 @@ struct FGridEditorNativeDormantOverridesPlan
                 if (!O.ReceptacleRules.AcceptedItems.IsEmpty())
                 { Error = TEXT("Unexpected dormant torch list."); return false; }
                 TArray<FGridReceptacleAcceptedItemConfig> Reactivated;
-                if (!FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(
+                if (!FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(
                         Registry, Definition->DefaultBehavior.Receptacle.AcceptedItems, Reactivated) ||
                     Reactivated.Num() != 1 ||
                     Reactivated[0].CanonicalItemId != ItemId)
@@ -102,7 +102,7 @@ struct FGridEditorNativeDormantOverridesPlan
                 if (!O.ReceptacleRules.AcceptedItems.IsEmpty())
                 { Error = TEXT("Unexpected dormant key owner rule list."); return false; }
                 FGridLockAcceptedKeyInstanceRuleValues Reactivated;
-                if (!FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(
+                if (!FGridEditorLockRuleAuthoring::TryCopyDefaults(
                         Registry, Definition->DefaultBehavior.Lock, Reactivated) ||
                     Reactivated.AcceptedKeyIds.Num() != 1 ||
                     Reactivated.AcceptedKeyIds[0] != ItemId)

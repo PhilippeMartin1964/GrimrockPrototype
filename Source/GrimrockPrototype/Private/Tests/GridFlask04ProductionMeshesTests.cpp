@@ -1,6 +1,6 @@
 #include "Misc/AutomationTest.h"
 #include "Runtime/GridLevelRuntimeActor.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Engine/StaticMesh.h"
 
 #if WITH_DEV_AUTOMATION_TESTS

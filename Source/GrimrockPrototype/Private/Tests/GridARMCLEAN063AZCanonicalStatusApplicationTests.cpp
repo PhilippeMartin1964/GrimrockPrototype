@@ -11,8 +11,8 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/GridCanonicalItemInteractionReadModel.h"
-#include "../Runtime/GridCanonicalQuickItemUseReadModel.h"
+#include "../Runtime/GridItemInteractionReadModel.h"
+#include "../Runtime/GridQuickItemUseReadModel.h"
 
 namespace ARMCLEAN063AZ
 {
@@ -109,7 +109,7 @@ namespace ARMCLEAN063AZ
         bool Ready() const
         {
             return Registry && Item && Inventory && Inventory->IsValidCharacterIndex(0) &&
-                Registry->HasCanonicalItem(ItemId());
+                Registry->ContainsItem(ItemId());
         }
 
         FGridItemInstance Make(int32 Level = 0) const
@@ -141,8 +141,8 @@ bool FGridClean063AZStatusProjection::RunTest(const FString&)
     if (!TestTrue(TEXT("Authored ActionId and PresentationId resolve"),
         F.Registry->ResolveBoundAction(ARMCLEAN063AZ::ItemId(), 0,
             ARMCLEAN063AZ::ActionId(), Bound))) return false;
-    const auto View = FGridCanonicalQuickItemUseReadModel::Resolve(F.Registry, F.Make());
-    if (!TestTrue(TEXT("Registered self-status action is projected"), View.bCanonicalIdentity && View.bResolved))
+    const auto View = FGridQuickItemUseReadModel::Resolve(F.Registry, F.Make());
+    if (!TestTrue(TEXT("Registered self-status action is projected"), View.bRegisteredIdentity && View.bResolved))
         return false;
     TestTrue(TEXT("Projected action accepted by the combat schema"), View.Action.IsValid());
     TestEqual(TEXT("Authoritative ActionId"), View.Action.ActionId, ARMCLEAN063AZ::ActionId());
@@ -163,7 +163,7 @@ bool FGridClean063AZStatusProjection::RunTest(const FString&)
         TestEqual(TEXT("No inferred armor gate"), Application.ArmorGate, EGridCombatStatusArmorGate::None);
     }
 
-    const auto Capabilities = FGridCanonicalItemInteractionReadModel::Resolve(F.Registry, nullptr, F.Make());
+    const auto Capabilities = FGridItemInteractionReadModel::Resolve(F.Registry, nullptr, F.Make());
     TestTrue(TEXT("Combat quick-item hotbar accepts registered ApplyStatus"), Capabilities.bCanAddToHotbar);
     TestFalse(TEXT("Combat-only status does not masquerade as inline Consume"), Capabilities.bCanConsumeCanonical);
     TestFalse(TEXT("Status item is not a throwing weapon"), Capabilities.bPhysicalThrowHotbar);
@@ -171,7 +171,7 @@ bool FGridClean063AZStatusProjection::RunTest(const FString&)
     const auto Try = [&Item](const FGridResolvedBoundAction& Source)
     {
         FGridCombatActionDefinition Candidate;
-        return FGridCanonicalQuickItemUseReadModel::TryProjectSingleStatusApplication(Item, Source, Candidate);
+        return FGridQuickItemUseReadModel::TryProjectSingleStatusApplication(Item, Source, Candidate);
     };
 
     FGridResolvedBoundAction Invalid = Bound;
@@ -212,8 +212,8 @@ bool FGridClean063AZStatusProjection::RunTest(const FString&)
     Invalid.ItemLevel = 21;
     TestFalse(TEXT("Item level cannot be forged"), Try(Invalid));
 
-    const auto KnownInvalid = FGridCanonicalQuickItemUseReadModel::Resolve(F.Registry, F.Make(21));
-    TestTrue(TEXT("Invalid registered identity is recognized"), KnownInvalid.bCanonicalIdentity);
+    const auto KnownInvalid = FGridQuickItemUseReadModel::Resolve(F.Registry, F.Make(21));
+    TestTrue(TEXT("Invalid registered identity is recognized"), KnownInvalid.bRegisteredIdentity);
     TestFalse(TEXT("No fallback on invalid item level"), KnownInvalid.bResolved);
     return !HasAnyErrors();
 }
@@ -265,7 +265,7 @@ bool FGridClean063AZStatusCombat::RunTest(const FString&)
         TestFalse(TEXT("Status buff is not physical throw"), Binding.IsPhysicalThrowItemBinding());
     }
 
-    const auto Use = FGridCanonicalQuickItemUseReadModel::Resolve(F.Registry, Slot->Item);
+    const auto Use = FGridQuickItemUseReadModel::Resolve(F.Registry, Slot->Item);
     if (!TestTrue(TEXT("Canonical usage resolved for actual stored item"), Use.bResolved)) return false;
 
     // The real status resolver must locate a valid, independent status asset.

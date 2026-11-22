@@ -11,7 +11,7 @@
 #include "RPG/RPGSkillService.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "GridCanonicalExplorationItemReadModel.h"
+#include "GridExplorationItemReadModel.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridInteractableInterface.h"
@@ -420,7 +420,7 @@ bool AGridLevelRuntimeActor::TryInteractWithRevealedDungeonTrap(
         const FGridCharacterInventoryState& Character =
             Inventory->PartyInventoryState.ActiveCharacters[i];
         if (Character.Resources.CurrentHealth <= 0 ||
-            !FGridCanonicalExplorationItemReadModel::HasDisarmTool(Inventory, i, Def->DungeonTrap.RequiredToolTag))
+            !FGridExplorationItemReadModel::HasDisarmTool(Inventory, i, Def->DungeonTrap.RequiredToolTag))
         {
             continue;
         }
@@ -559,7 +559,7 @@ bool AGridLevelRuntimeActor::TryGetDungeonTrapDisarmOdds(
     FGridPartyInventoryState Eligible = Inventory->PartyInventoryState;
     for (int32 Index = 0; Index < Eligible.ActiveCharacters.Num(); ++Index)
     {
-        if (!FGridCanonicalExplorationItemReadModel::HasDisarmTool(Inventory, Index, Definition->DungeonTrap.RequiredToolTag))
+        if (!FGridExplorationItemReadModel::HasDisarmTool(Inventory, Index, Definition->DungeonTrap.RequiredToolTag))
         {
             Eligible.ActiveCharacters[Index].Resources.CurrentHealth = 0;
         }
@@ -713,7 +713,7 @@ bool AGridLevelRuntimeActor::TryDisarmTriggerTrap(
     // The context source slot must still own a genuine tool. A different
     // trained party member may perform the check only if THEY also carry
     // their own required tool; clicking a tool does not teleport it.
-    if (!FGridCanonicalExplorationItemReadModel::HasDisarmTool(
+    if (!FGridExplorationItemReadModel::HasDisarmTool(
         Inventory, CharacterIndex, TrapDefinition->DungeonTrap.RequiredToolTag))
     {
         return false;
@@ -741,7 +741,7 @@ bool AGridLevelRuntimeActor::TryDisarmTriggerTrap(
     FGridPartyInventoryState EligibleParty = PartyState;
     for (int32 Index = 0; Index < EligibleParty.ActiveCharacters.Num(); ++Index)
     {
-        if (!FGridCanonicalExplorationItemReadModel::HasDisarmTool(Inventory, Index, TrapDefinition->DungeonTrap.RequiredToolTag))
+        if (!FGridExplorationItemReadModel::HasDisarmTool(Inventory, Index, TrapDefinition->DungeonTrap.RequiredToolTag))
         {
             EligibleParty.ActiveCharacters[Index].Resources.CurrentHealth = 0;
         }

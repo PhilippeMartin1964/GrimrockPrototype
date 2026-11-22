@@ -1,7 +1,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "CoreGlobals.h"
-#include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
-#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
+#include "Runtime/Combat/GridAttackPresentationReadModel.h"
+#include "Runtime/Items/GridPuzzleCategoryTags.h"
 
 #include "Magic/GridProductionSpellLibrary.h"
 #include "Magic/GridSpellbookUI.h"
@@ -20,10 +20,10 @@
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridDualWieldPolicy.h"
-#include "GridCanonicalActionIconReadModel.h"
-#include "GridCanonicalEquippedAttackReadModel.h"
-#include "../GridCanonicalQuickItemUseReadModel.h"
-#include "../GridCanonicalExplorationItemReadModel.h"
+#include "GridActionIconReadModel.h"
+#include "GridEquippedAttackReadModel.h"
+#include "../GridQuickItemUseReadModel.h"
+#include "../GridExplorationItemReadModel.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
@@ -343,7 +343,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			continue;
 		}
 
-		if (Canonical && Canonical->HasCanonicalItem(EquippedItem.ItemDefinitionId))
+		if (Canonical && Canonical->ContainsItem(EquippedItem.ItemDefinitionId))
 		{
 			// 06.3AP: identical canonical source transport for single attacks and dual wield.
 			// No historical CombatActions or N1 snapshots for a registered ItemId.
@@ -377,7 +377,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			for (const FGridItemActionBinding& Binding : Resolved.AvailableActions)
 			{
 				FGridCombatActionDefinition Definition;
-				if (FGridCanonicalEquippedAttackReadModel::TryResolve(
+				if (FGridEquippedAttackReadModel::TryResolve(
 					Canonical, EquippedItem, HandSlot, Binding.ActionId, Definition))
 				{
 					AddMON126Contribution(Definition, EquippedItem.ItemDefinitionId,
@@ -480,7 +480,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 		DualAction.SubsequentResolutionAccuracyModifier = 0;
 		DualAction.OffensiveProfile = DualPair.Main.Profile;
 		DualAction.RangeCells = DualPair.Main.Profile.RangeCells;
-		if (DualPair.Main.bCanonicalIdentity)
+		if (DualPair.Main.bRegisteredIdentity)
 		{
 			// Dual strike's action icon is NOT the old inventory item icon.
 			DualAction.Icon = Canonical
@@ -530,16 +530,16 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 
 	for (const FName ItemDefinitionId : QuickItemDefinitionIds)
 	{
-		if (Canonical && Canonical->HasCanonicalItem(ItemDefinitionId))
+		if (Canonical && Canonical->ContainsItem(ItemDefinitionId))
 		{
 			const FGridInventorySlot* Source = Character.InventorySlots.FindByPredicate(
 				[ItemDefinitionId](const FGridInventorySlot& Slot)
 				{
 					return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == ItemDefinitionId;
 				});
-			const FGridCanonicalQuickItemUseReadView Use = Source
-				? FGridCanonicalQuickItemUseReadModel::Resolve(Canonical, Source->Item)
-				: FGridCanonicalQuickItemUseReadView();
+			const FGridQuickItemUseReadView Use = Source
+				? FGridQuickItemUseReadModel::Resolve(Canonical, Source->Item)
+				: FGridQuickItemUseReadView();
 			if (Use.bResolved)
 			{
 				AddMON126Contribution(Use.Action, ItemDefinitionId, FGuid(),
@@ -648,7 +648,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 		{
 			const FGridItemInstance* Item = Equipment.GetSlot(HandSlot);
 			if (Item && Item->IsValid() && Item->EquipmentSlot == HandSlot &&
-				Canonical && Canonical->HasCanonicalItem(Item->ItemDefinitionId))
+				Canonical && Canonical->ContainsItem(Item->ItemDefinitionId))
 			{
 				FGridResolvedItem Resolved;
 				if (!Canonical->ResolveItem(Item->ItemDefinitionId, Item->ItemLevel, Resolved))
@@ -657,7 +657,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 				}
 				for (const FName Tag : Resolved.Tags)
 				{
-					if (!GridCanonicalPuzzleCategoryTags::IsReserved(Tag)) Context.SatisfiedRequirements.Add(Tag);
+					if (!GridPuzzleCategoryTags::IsReserved(Tag)) Context.SatisfiedRequirements.Add(Tag);
 				}
 				if (Resolved.bIsArmament && Resolved.Weapon.HasAttackSourceInHand(HandSlot))
 				{
@@ -1196,7 +1196,7 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Canonical = GameInstance
 			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		if (Canonical && Canonical->HasCanonicalItem(Action.SourceDefinitionId) &&
+		if (Canonical && Canonical->ContainsItem(Action.SourceDefinitionId) &&
 			(ExplicitTargetCharacterIndices.Num() != 1 ||
 				!Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(ExplicitTargetCharacterIndices[0]) ||
 				Inventory->PartyInventoryState.ActiveCharacters[ExplicitTargetCharacterIndices[0]].Resources.CurrentHealth <= 0))
@@ -1884,7 +1884,7 @@ bool UGridTurnManagerComponent::RequestExplorationCatalystActionAtCell(
 	}
 
 	// Re-read the EXACT owned item; never trust the HUD's cached definition.
-	auto Source = FGridCanonicalExplorationItemReadModel::ResolveSurface(
+	auto Source = FGridExplorationItemReadModel::ResolveSurface(
 		Inventory, Action.CharacterIndex, Action.SourceDefinitionId, Action.Definition.ActionId, true);
 	const FGridCombatActionDefinition& FreshDefinition = Source.Action;
 	const FGridCharacterInventoryState& Character =
@@ -2052,7 +2052,7 @@ bool UGridTurnManagerComponent::RequestExplorationOilActionAtCell(
 	}
 
 	// Never trust a cached HUD definition: resolve the actual owned item afresh.
-	auto Source = FGridCanonicalExplorationItemReadModel::ResolveSurface(
+	auto Source = FGridExplorationItemReadModel::ResolveSurface(
 		Inventory, Action.CharacterIndex, Action.SourceDefinitionId, Action.Definition.ActionId, true);
 	const FGridCombatActionDefinition& FreshDefinition = Source.Action;
 	if (!Source.bResolved ||
@@ -2278,8 +2278,8 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		TargetMonsters.Add(TargetMonster);
 	}
 
-	const FGridAttackPresentationSource PresentationSource = FGridCanonicalAttackPresentationReadModel::Capture(
-		FGridCanonicalAttackPresentationReadModel::RegistryFor(Inventory), Inventory, Action.CharacterIndex,
+	const FGridAttackPresentationSource PresentationSource = FGridAttackPresentationReadModel::Capture(
+		FGridAttackPresentationReadModel::RegistryFor(Inventory), Inventory, Action.CharacterIndex,
 		EffectiveOffensiveItemDefinitionId, EffectiveOffensiveEquipmentSlot,
 		EffectiveOffensiveProfile.AttackId, bUsesEquippedWeaponAction);
 	const bool bQuickItem = Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
@@ -2852,7 +2852,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	// authored projectile hits the target cell. Outcomes include dry Fizzle.
 	if (bCatalystArea && IsValid(RuntimeActor))
 	{
-		auto Mesh = FGridCanonicalExplorationItemReadModel::ResolveSurfaceMesh(Inventory, Action.SourceDefinitionId);
+		auto Mesh = FGridExplorationItemReadModel::ResolveSurfaceMesh(Inventory, Action.SourceDefinitionId);
 		RuntimeActor->PlaySurfaceCatalystArea(
 			PartyCell, Preview.TargetCell, CatalystPlan, Mesh.LoadSynchronous());
 	}
@@ -2873,7 +2873,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	}
 	if (OilFlaskAppliedCells > 0 && IsValid(RuntimeActor))
 	{
-		auto Mesh = FGridCanonicalExplorationItemReadModel::ResolveSurfaceMesh(Inventory, Action.SourceDefinitionId);
+		auto Mesh = FGridExplorationItemReadModel::ResolveSurfaceMesh(Inventory, Action.SourceDefinitionId);
 		RuntimeActor->PlayOilFlaskThrowAtCell(PartyCell, Preview.TargetCell, Mesh.LoadSynchronous());
 		FGridHudEventEntry OilEvent;
 		OilEvent.Category = EGridHudEventCategory::Combat;

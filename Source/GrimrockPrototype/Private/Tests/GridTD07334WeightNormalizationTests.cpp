@@ -102,7 +102,7 @@ bool FGridTD07334EquipmentPolicyTest::RunTest(const FString& Parameters)
 	if (!TestNotNull(TEXT("Canonical equipment fixture"), Inventory)) return false;
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 	Character.Attributes.Strength = 10;
-	TestTrue(TEXT("Carry belt registers"), Fixture.Scope.Registry->HasCanonicalItem(TEXT("TD07334_NormalizedCarryBelt")));
+	TestTrue(TEXT("Carry belt registers"), Fixture.Scope.Registry->ContainsItem(TEXT("TD07334_NormalizedCarryBelt")));
 	TestTrue(TEXT("Fifty-four weight enters inventory"), Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_NormalizedHeavyPack"))));
 	FGridItemInstance Belt;
 	Belt.RuntimeObjectId = FGuid::NewGuid();

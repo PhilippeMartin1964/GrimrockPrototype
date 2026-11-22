@@ -6,7 +6,7 @@
 /** New overrides copy explicit key IDs atomically.
  * Script-owned IDs, duplicates and order are preserved without inference.
  */
-struct FGridEditorCanonicalLockRuleAuthoring
+struct FGridEditorLockRuleAuthoring
 {
     static bool TryCopyDefaults(const UGridItemSubsystem* Registry,
         const FGridLockBehaviorParams& Defaults,

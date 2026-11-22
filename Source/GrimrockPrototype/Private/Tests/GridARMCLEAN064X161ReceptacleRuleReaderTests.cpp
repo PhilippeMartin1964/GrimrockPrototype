@@ -9,7 +9,7 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/GridReceptacleAcceptedCanonicalReadModel.h"
+#include "../Runtime/GridReceptacleAcceptedReadModel.h"
 
 namespace ARMCLEAN064X161
 {
@@ -80,30 +80,30 @@ bool FGridClean064X161Rules::RunTest(const FString&)
     ARMCLEAN064X161::FFixture F;
     if (!TestNotNull(TEXT("Canonical item registry"), F.Registry) ||
         !TestTrue(TEXT("Production arrow and sword identities registered"),
-            F.Registry->HasCanonicalItem(TEXT("Item_Arrows_01")) &&
-            F.Registry->HasCanonicalItem(TEXT("Weapon_StraightSword_01"))))
+            F.Registry->ContainsItem(TEXT("Item_Arrows_01")) &&
+            F.Registry->ContainsItem(TEXT("Weapon_StraightSword_01"))))
         {return false;}
 
     FGridReceptacleAcceptedItemConfig Rule;
     Rule.CanonicalItemId = TEXT("Item_Arrows_01");
     FName Found = NAME_None;
     if (!TestTrue(TEXT("Canonical ID-only rule resolves"),
-            FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(F.Registry, Rule, Found)) ||
+            FGridReceptacleAcceptedReadModel::TryResolveItemId(F.Registry, Rule, Found)) ||
         !TestEqual(TEXT("ID-only rule is exact"), Found, Rule.CanonicalItemId) ||
         !TestFalse(TEXT("Canonical rule without registry fails closed"),
-            FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(nullptr, Rule, Found)) ||
+            FGridReceptacleAcceptedReadModel::TryResolveItemId(nullptr, Rule, Found)) ||
         !TestTrue(TEXT("Failure clears previous result"), Found.IsNone()))
         {return false;}
 
     FGridReceptacleAcceptedItemConfig Unknown = Rule;
     Unknown.CanonicalItemId = TEXT("ARM_CLEAN06_X161_NOT_REGISTERED");
     if (!TestFalse(TEXT("Unknown persisted ItemId cannot fallback"),
-            FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(F.Registry, Unknown, Found)))
+            FGridReceptacleAcceptedReadModel::TryResolveItemId(F.Registry, Unknown, Found)))
         {return false;}
     FGridReceptacleAcceptedItemConfig Sword;
     Sword.CanonicalItemId = TEXT("Weapon_StraightSword_01");
     FGridReceptacleAcceptedItemConfig Empty;
-    if (!TestFalse(TEXT("Empty identity cannot accept"), FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(F.Registry, Empty, Found))) return false;
+    if (!TestFalse(TEXT("Empty identity cannot accept"), FGridReceptacleAcceptedReadModel::TryResolveItemId(F.Registry, Empty, Found))) return false;
     FGridReceptacleBehaviorParams Params;
     Params.bAcceptAnyItem = false;
     Params.MaxContainedItems = 2;

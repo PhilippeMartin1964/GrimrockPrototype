@@ -8,7 +8,7 @@
  * Never grants an attack, a passive guard, a block or a spell.
  * Canonical ArchetypeId is the only ARM group authority; no old DA_Weapon.
  */
-struct FGridCanonicalActionIconReadModel
+struct FGridActionIconReadModel
 {
     static EGridEquippedWeaponActionIconKind Classify(
         const FGridResolvedItem& Item, const FGridCombatActionDefinition& Action)

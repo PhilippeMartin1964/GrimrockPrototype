@@ -9,11 +9,11 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
 #include "GridPhysicalThrowPreflightReadModel.h"
-#include "GridCanonicalEquipmentSlotsReadModel.h"
-#include "GridCanonicalInventoryStackReadModel.h"
-#include "GridCanonicalItemInteractionReadModel.h"
-#include "GridCanonicalQuickItemUseReadModel.h"
-#include "GridCanonicalExplorationItemReadModel.h"
+#include "GridEquipmentSlots.h"
+#include "GridInventoryStackReadModel.h"
+#include "GridItemInteractionReadModel.h"
+#include "GridQuickItemUseReadModel.h"
+#include "GridExplorationItemReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -125,7 +125,7 @@ namespace
         const UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
         const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
         if (Registry)
-            return FGridCanonicalExplorationItemReadModel::IsDisarmToolInstance(
+            return FGridExplorationItemReadModel::IsDisarmToolInstance(
                 Registry, Item, TEXT("Tool.Disarm"));
 #if WITH_DEV_AUTOMATION_TESTS
         if (!GI && GIsAutomationTesting)
@@ -265,8 +265,8 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		}
 	}
 #endif
-	const FGridCanonicalItemInteractionReadView Capabilities =
-		FGridCanonicalItemInteractionReadModel::Resolve(ItemRegistry, Definition, ItemContext.Item);
+	const FGridItemInteractionReadView Capabilities =
+		FGridItemInteractionReadModel::Resolve(ItemRegistry, Definition, ItemContext.Item);
 
 	ResolveFacingTarget(ItemContext.PartyPawn, ItemContext.Item, Definition, OutFacingTarget);
 
@@ -285,8 +285,8 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GameInstance
 			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		const FGridCanonicalEquipmentSlotsReadView Slots =
-			FGridCanonicalEquipmentSlotsReadModel::Resolve(
+		const FGridEquipmentSlotsView Slots =
+			FGridEquipmentSlots::Resolve(
 				Registry, Definition, ItemContext.Item);
 
 		if (Slots.bTwoHanded && Slots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand))
@@ -314,8 +314,8 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	if ((Capabilities.bCanConsumeLegacy && Definition) || Capabilities.bCanConsumeCanonical)
 	{
 		FGridCombatActionDefinition QuickItemAction;
-		const FGridCanonicalQuickItemUseReadView CanonicalUse =
-			FGridCanonicalQuickItemUseReadModel::Resolve(ItemRegistry, ItemContext.Item);
+		const FGridQuickItemUseReadView CanonicalUse =
+			FGridQuickItemUseReadModel::Resolve(ItemRegistry, ItemContext.Item);
 		bool bActionResolved = Capabilities.bCanConsumeCanonical && CanonicalUse.bResolved;
 		if (bActionResolved)
 		{
@@ -456,8 +456,8 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		const UWorld* World = ItemContext.PartyPawn->GetWorld();
 		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		const FGridCanonicalInventoryStackReadView StackPolicy =
-			FGridCanonicalInventoryStackReadModel::Resolve(Registry, Definition, ItemContext.Item);
+		const FGridInventoryStackReadView StackPolicy =
+			FGridInventoryStackReadModel::Resolve(Registry, Definition, ItemContext.Item);
 		if (StackPolicy.IsStackable())
 		{
 			AddAction(OutActions, EGridItemActionType::SplitStack,

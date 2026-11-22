@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "../Runtime/GridCanonicalProjectileVisualReadModel.h"
+#include "../Runtime/GridProjectileVisuals.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -38,9 +38,9 @@ bool FGridClean063RProjectileVisual::RunTest(const FString&)
 			FGridResolvedItem Expected;
 			if (!TestTrue(TEXT("Real N1 or N20 resolves"), Registry->ResolveItem(Id, Level, Expected)))
 				return false;
-			const FGridCanonicalProjectileVisualReadView Visual =
-				FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Instance);
-			TestTrue(TEXT("Flight visual is a known canonical item"), Visual.bCanonicalIdentity);
+			const FGridProjectileVisualView Visual =
+				FGridProjectileVisuals::Resolve(Registry.Get(), Instance);
+			TestTrue(TEXT("Flight visual is a known canonical item"), Visual.bRegisteredIdentity);
 			TestTrue(TEXT("Flight visual resolved at real level"), Visual.bResolved);
 			TestTrue(TEXT("Throwing ARM uses authored projectile visual"), Visual.bHasProjectileVisual);
 			TestEqual(TEXT("Resolved flight visual ID"), Visual.VisualId, Expected.VisualId);
@@ -67,9 +67,9 @@ bool FGridClean063RProjectileVisual::RunTest(const FString&)
 			TestTrue(TEXT("Flight visual projection does not touch item GUID"),
 				Instance.RuntimeObjectId.IsValid());
 			Instance.ItemLevel = 0;
-			const FGridCanonicalProjectileVisualReadView Invalid =
-				FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Instance);
-			TestTrue(TEXT("Registered invalid N0 retains canonical classification"), Invalid.bCanonicalIdentity);
+			const FGridProjectileVisualView Invalid =
+				FGridProjectileVisuals::Resolve(Registry.Get(), Instance);
+			TestTrue(TEXT("Registered invalid N0 retains canonical classification"), Invalid.bRegisteredIdentity);
 			TestFalse(TEXT("Registered invalid N0 does not reuse DA_Weapon flight mesh"), Invalid.bResolved);
 			TestTrue(TEXT("Registered invalid N0 has no mesh"), Invalid.ProjectileMesh.IsNull());
 			TestFalse(TEXT("Registered invalid N0 cannot inherit flight policy"), Invalid.FlightPolicy.bEnabled);
@@ -79,9 +79,9 @@ bool FGridClean063RProjectileVisual::RunTest(const FString&)
 	Unknown.RuntimeObjectId = FGuid::NewGuid();
 	Unknown.ItemDefinitionId = TEXT("Unregistered_063R");
 	Unknown.Quantity = 1;
-	const FGridCanonicalProjectileVisualReadView Legacy =
-		FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Unknown);
-	TestFalse(TEXT("Unregistered instance does not override legacy flight"), Legacy.bCanonicalIdentity);
+	const FGridProjectileVisualView Legacy =
+		FGridProjectileVisuals::Resolve(Registry.Get(), Unknown);
+	TestFalse(TEXT("Unregistered instance does not override legacy flight"), Legacy.bRegisteredIdentity);
 	return true;
 }
 

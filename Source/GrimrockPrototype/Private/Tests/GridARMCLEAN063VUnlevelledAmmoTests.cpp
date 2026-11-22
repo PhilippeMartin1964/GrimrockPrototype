@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
 #include "../Runtime/GridItemWeightReadModel.h"
-#include "../Runtime/GridCanonicalItemMeshReadModel.h"
+#include "../Runtime/GridItemMeshResolver.h"
 #include "../UI/GridInventoryItemMetadataReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UI/GridWeaponVisualUiResolver.h"
@@ -27,7 +27,7 @@ bool FGridClean063VUnlevelledAmmo::RunTest(const FString&)
 		return false;
 	}
 	const FName ArrowsId(TEXT("Item_Arrows_01"));
-	if (!TestTrue(TEXT("Production arrows have a canonical ItemId"), Registry->HasCanonicalItem(ArrowsId)))
+	if (!TestTrue(TEXT("Production arrows have a canonical ItemId"), Registry->ContainsItem(ArrowsId)))
 		return false;
 
 	FGridResolvedItem N0;
@@ -59,17 +59,17 @@ bool FGridClean063VUnlevelledAmmo::RunTest(const FString&)
 			12.0f * N0.WeightKg));
 	const FGridInventoryItemMetadata Meta =
 		FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), nullptr, Stack);
-	TestTrue(TEXT("Arrow tooltip remains canonical"), Meta.bCanonicalIdentity && Meta.bResolved);
+	TestTrue(TEXT("Arrow tooltip remains canonical"), Meta.bRegisteredIdentity && Meta.bResolved);
 	TestTrue(TEXT("Arrow tooltip uses authored mass"),
 		FMath::IsNearlyEqual(Meta.UnitWeightKg, N0.WeightKg));
 	const FGridResolvedInventoryItemIcon Icon =
 		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(Registry.Get(), nullptr, Stack);
-	TestTrue(TEXT("Arrow icon no longer falls back to old DA"), Icon.bCanonicalIdentity);
+	TestTrue(TEXT("Arrow icon no longer falls back to old DA"), Icon.bRegisteredIdentity);
 	TestEqual(TEXT("Arrow icon from sole canonical source"),
 		Icon.Icon.ToSoftObjectPath().ToString(), N0.ItemIcon.ToSoftObjectPath().ToString());
-	const FGridCanonicalItemMeshReadView Mesh =
-		FGridCanonicalItemMeshReadModel::Resolve(Registry.Get(), Stack);
-	TestTrue(TEXT("Arrow world mesh resolves for recovered N0 pickup"), Mesh.bResolved && Mesh.bCanonicalIdentity);
+	const FGridItemMeshView Mesh =
+		FGridItemMeshResolver::Resolve(Registry.Get(), Stack);
+	TestTrue(TEXT("Arrow world mesh resolves for recovered N0 pickup"), Mesh.bResolved && Mesh.bRegisteredIdentity);
 	TestEqual(TEXT("Arrow world mesh from sole canonical source"),
 		Mesh.WorldMesh.ToSoftObjectPath().ToString(), N0.WorldMesh.ToSoftObjectPath().ToString());
 

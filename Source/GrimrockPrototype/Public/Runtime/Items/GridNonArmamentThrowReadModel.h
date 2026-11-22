@@ -5,7 +5,7 @@
 
 /** Read-only numerical projections of generic NON-arm throws. Not an action
  * source, not a weapon projectile, never a permission to attack. */
-struct FGridCanonicalNonArmamentThrowReadModel
+struct FGridNonArmamentThrowReadModel
 {
     static bool TryBallistics(
         const UGridNonArmamentDefinitionAsset* Item,

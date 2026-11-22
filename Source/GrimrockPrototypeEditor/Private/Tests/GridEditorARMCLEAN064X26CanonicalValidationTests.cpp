@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Core/GridLevelAsset.h"
-#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "EditorTools/GridEditorItemLevelPolicy.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
@@ -34,20 +34,20 @@ bool FGridEditorClean064X26CanonicalAuthoring::RunTest(const FString&)
 	const FName Dagger(TEXT("Weapon_Dagger_01"));
 	const FName Arrows(TEXT("Item_Arrows_01"));
 	if (!TestTrue(TEXT("Persisted ARM N1 legal"),
-			FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Dagger, 1)) ||
+			FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Dagger, 1)) ||
 		!TestTrue(TEXT("Persisted ARM N20 legal"),
-			FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Dagger, 20)) ||
+			FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Dagger, 20)) ||
 		!TestFalse(TEXT("Persisted ARM N0 forbidden"),
-			FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Dagger, 0)) ||
+			FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Dagger, 0)) ||
 		!TestTrue(TEXT("Unlevelled ammo N0 legal"),
-			FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Arrows, 0)) ||
+			FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Arrows, 0)) ||
 		!TestFalse(TEXT("Unlevelled ammo N1 forbidden"),
-			FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Arrows, 1)) ||
+			FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Arrows, 1)) ||
 		!TestFalse(TEXT("Unregistered identity forbidden"),
-			FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 				Registry.Get(), TEXT("ARM_CLEAN064X26_Unknown"), 1)) ||
 		!TestFalse(TEXT("Missing registry is never an authority"),
-			FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(nullptr, Dagger, 1)))
+			FGridEditorItemLevelPolicy::CanAuthorItemLevel(nullptr, Dagger, 1)))
 	{
 		return false;
 	}

@@ -7,8 +7,8 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "EditorTools/GridEditorReceptacleRuleAuthoring.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "UObject/StrongObjectPtr.h"
@@ -38,7 +38,7 @@ bool VerifyPlanInvariance(FAutomationTestBase& Test, const UGridItemSubsystem* R
 {
     TArray<FGridReceptacleAcceptedItemConfig> Copy;
     if (!Test.TestTrue(TEXT("Explicit rules copy atomically"),
-        FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(Registry, Input, Copy)) ||
+        FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(Registry, Input, Copy)) ||
         !Test.TestEqual(TEXT("Copy preserves exact rule count"), Copy.Num(), Input.Num())) return false;
     for (int32 Index = 0; Index < Input.Num(); ++Index)
         if (!Test.TestEqual(TEXT("Identity and order preserved"), Copy[Index].CanonicalItemId, Input[Index].CanonicalItemId)) return false;
@@ -67,15 +67,15 @@ bool FGridClean064X164AtomicPreview::RunTest(const FString&)
     Invalid.CanonicalItemId = TEXT("X164_Unregistered");
     Rules.Add(Invalid);
     if (!TestFalse(TEXT("Unknown identity blocks entire list"),
-            FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(F.Registry.Get(), Rules, Proposed)) ||
+            FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(F.Registry.Get(), Rules, Proposed)) ||
         !TestTrue(TEXT("No partial output"), Proposed.IsEmpty())) return false;
     Rules.Last().CanonicalItemId = NAME_None;
     if (!TestFalse(TEXT("Empty identity blocks entire list"),
-            FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(F.Registry.Get(), Rules, Proposed)) ||
+            FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(F.Registry.Get(), Rules, Proposed)) ||
         !TestTrue(TEXT("No partial output"), Proposed.IsEmpty())) return false;
     Rules.Pop();
     return TestFalse(TEXT("No registry never copies rules"),
-            FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(nullptr, Rules, Proposed)) &&
+            FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(nullptr, Rules, Proposed)) &&
         TestTrue(TEXT("No partial output"), Proposed.IsEmpty()) &&
         TestEqual(TEXT("Native catalogue not modified"), F.ItemSystem->GetOutermost()->IsDirty(), bDirtyBefore);
 }

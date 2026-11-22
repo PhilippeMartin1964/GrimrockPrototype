@@ -45,7 +45,7 @@ bool FGridClean063UPhysicalThrowStrength::RunTest(const FString&)
 				return false;
 			const FGridPhysicalThrowStrengthReadView Gate =
 				FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), Old.Get(), Item, 100);
-			TestTrue(TEXT("Registered ARM StrengthGate identity"), Gate.bCanonicalIdentity);
+			TestTrue(TEXT("Registered ARM StrengthGate identity"), Gate.bRegisteredIdentity);
 			TestTrue(TEXT("Registered ARM level resolves"), Gate.bResolved);
 			TestTrue(TEXT("One-handed thrown ARM is one-handed"), Gate.bOneHanded);
 			TestTrue(TEXT("Gate mass is canonical despite old contradictory definition"),
@@ -61,7 +61,7 @@ bool FGridClean063UPhysicalThrowStrength::RunTest(const FString&)
 			Item.ItemLevel = 0;
 			const FGridPhysicalThrowStrengthReadView Invalid =
 				FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), Old.Get(), Item, 100);
-			TestTrue(TEXT("Invalid registered level stays canonical"), Invalid.bCanonicalIdentity);
+			TestTrue(TEXT("Invalid registered level stays canonical"), Invalid.bRegisteredIdentity);
 			TestFalse(TEXT("Invalid N0 refuses thrown item"), Invalid.bCanThrow);
 			TestFalse(TEXT("Invalid N0 cannot expose stale mass"), Invalid.bResolved);
 		}
@@ -77,7 +77,7 @@ bool FGridClean063UPhysicalThrowStrength::RunTest(const FString&)
 		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), Old.Get(), Other, 10).bResolved);
 	const FGridPhysicalThrowStrengthReadView Legacy =
 		FGridPhysicalThrowStrengthReadModel::Resolve(nullptr, Old.Get(), Other, 10);
-	TestFalse(TEXT("Legacy item is never classified as canonical"), Legacy.bCanonicalIdentity);
+	TestFalse(TEXT("Legacy item is never classified as canonical"), Legacy.bRegisteredIdentity);
 	TestEqual(TEXT("Legacy speed modifier unchanged"),
 		Legacy.SpeedScale, Old->GetThrowSpeedScaleForStrength(10));
 	TestEqual(TEXT("Legacy throw permission unchanged"),

@@ -22,11 +22,11 @@ namespace
 	bool GridPartyPawnResolveThrowProfile(
 		const AGrimrockPartyPawn* Pawn, const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex,
 		const UGridItemDefinitionAsset* Definition, const FGridItemInstance& Instance,
-		int32& OutStrength, float& OutSpeedScale, FGridCanonicalThrowBallisticsReadView& OutBallistics)
+		int32& OutStrength, float& OutSpeedScale, FGridThrowBallisticsReadView& OutBallistics)
 	{
 		OutStrength = 0;
 		OutSpeedScale = 0.0f;
-		OutBallistics = FGridCanonicalThrowBallisticsReadView();
+		OutBallistics = FGridThrowBallisticsReadView();
 		if (!Pawn || !Inventory || !Instance.IsValid())
 		{
 			return false;
@@ -58,7 +58,7 @@ namespace
 		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		float UnitWeight = 0.0f;
-		if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+		if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
 		{
 			return FGridItemWeightReadModel::TryResolveUnitWeight(Registry, Item, UnitWeight)
 				? UnitWeight : 0.0f;
@@ -279,7 +279,7 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 	const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex();
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
-	FGridCanonicalThrowBallisticsReadView Ballistics;
+	FGridThrowBallisticsReadView Ballistics;
 	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex, ItemDefinition, CursorItem, Strength, StrengthSpeedScale, Ballistics))
 	{
 		return false;
@@ -341,7 +341,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 	UGridItemDefinitionAsset* ItemDefinition = ResolveEquippedItemDefinition(EquippedItem);
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
-	FGridCanonicalThrowBallisticsReadView Ballistics;
+	FGridThrowBallisticsReadView Ballistics;
 	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex, ItemDefinition, EquippedItem, Strength, StrengthSpeedScale, Ballistics))
 	{
 		return false;
@@ -452,7 +452,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefini
 	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(this, ItemDefinitionId);
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
-	FGridCanonicalThrowBallisticsReadView Ballistics;
+	FGridThrowBallisticsReadView Ballistics;
 	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex, ItemDefinition, SourceSlot->Item, Strength, StrengthSpeedScale, Ballistics))
 	{
 		return false;
@@ -513,10 +513,10 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	UGridItemDefinitionAsset* ItemDefinition = ResolveEquippedItemDefinition(EquippedItem);
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
-	FGridCanonicalThrowBallisticsReadView Ballistics;
+	FGridThrowBallisticsReadView Ballistics;
 	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex,
 		ItemDefinition, EquippedItem, Strength, StrengthSpeedScale, Ballistics) ||
-		!(Ballistics.bSpecializedProjectile || (!Ballistics.bCanonicalIdentity && IsValid(ItemDefinition) && ItemDefinition->IsCombatThrowable())))
+		!(Ballistics.bSpecializedProjectile || (!Ballistics.bRegisteredIdentity && IsValid(ItemDefinition) && ItemDefinition->IsCombatThrowable())))
 	{
 		return nullptr;
 	}
@@ -572,11 +572,11 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchInventoryItemForAttack(
 	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(this, ExpectedItemDefinitionId);
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
-	FGridCanonicalThrowBallisticsReadView Ballistics;
+	FGridThrowBallisticsReadView Ballistics;
 	if (!SourceSlot ||
 		!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex,
 			ItemDefinition, SourceSlot->Item, Strength, StrengthSpeedScale, Ballistics) ||
-		!(Ballistics.bSpecializedProjectile || (!Ballistics.bCanonicalIdentity && IsValid(ItemDefinition) && ItemDefinition->IsCombatThrowable())))
+		!(Ballistics.bSpecializedProjectile || (!Ballistics.bRegisteredIdentity && IsValid(ItemDefinition) && ItemDefinition->IsCombatThrowable())))
 	{
 		return nullptr;
 	}

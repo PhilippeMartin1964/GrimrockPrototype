@@ -243,8 +243,8 @@ bool FGridClean064X1611CanonicalPitTransfer::RunTest(const FString&)
     GridPIT02Canonical::FScopedRegistry Scope(TestWorld.World);
     if (!TestNotNull(TEXT("Transient world"), TestWorld.World) ||
         !TestNotNull(TEXT("Registered canonical item subsystem"), Scope.Registry) ||
-        !TestTrue(TEXT("Torch identity exists"), Scope.Registry->HasCanonicalItem(TEXT("Item_Torch"))) ||
-        !TestTrue(TEXT("Sword identity exists"), Scope.Registry->HasCanonicalItem(TEXT("Weapon_StraightSword_01"))))
+        !TestTrue(TEXT("Torch identity exists"), Scope.Registry->ContainsItem(TEXT("Item_Torch"))) ||
+        !TestTrue(TEXT("Sword identity exists"), Scope.Registry->ContainsItem(TEXT("Weapon_StraightSword_01"))))
         return false;
 
     FGridResolvedItem CanonicalTorch;

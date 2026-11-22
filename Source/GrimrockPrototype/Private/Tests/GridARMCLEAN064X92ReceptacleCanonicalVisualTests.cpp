@@ -12,7 +12,7 @@
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 
 namespace ARMCLEAN064X92
 {

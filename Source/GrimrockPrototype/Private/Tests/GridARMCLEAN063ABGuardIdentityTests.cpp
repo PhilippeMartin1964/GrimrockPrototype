@@ -51,7 +51,7 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 			const FGridEquippedGuardItemReadView View =
 				FGridEquippedGuardItemReadModel::Resolve(
 					Registry.Get(), ConflictingLegacy.Get(), OffHand);
-			TestTrue(TEXT("Known ARM identified canonically"), View.bCanonicalIdentity && View.bResolved);
+			TestTrue(TEXT("Known ARM identified canonically"), View.bRegisteredIdentity && View.bResolved);
 			const bool bOffHand = Definition.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand);
 			const bool bExpectedParry = bOffHand &&
 				Definition.Weapon.Kind == EGridCanonicalArmamentKind::Weapon &&
@@ -76,7 +76,7 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 			const FGridEquippedGuardItemReadView BadLevel =
 				FGridEquippedGuardItemReadModel::Resolve(
 					Registry.Get(), ConflictingLegacy.Get(), OffHand);
-			TestTrue(TEXT("Known N0 remains classified as canonical"), BadLevel.bCanonicalIdentity);
+			TestTrue(TEXT("Known N0 remains classified as canonical"), BadLevel.bRegisteredIdentity);
 			TestFalse(TEXT("Known N0 cannot fall back to parry"), BadLevel.bCanParry);
 			TestFalse(TEXT("Known N0 cannot fall back to shield"), BadLevel.bIsShield);
 			TestFalse(TEXT("Known N0 does not resolve"), BadLevel.bResolved);
@@ -102,7 +102,7 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 	Unknown.EquipmentSlot = EGridEquipmentSlot::OffHand;
 	const FGridEquippedGuardItemReadView Refused =
 		FGridEquippedGuardItemReadModel::Resolve(Registry.Get(), ConflictingLegacy.Get(), Unknown);
-	TestFalse(TEXT("Unknown identity stays outside canonical registry"), Refused.bCanonicalIdentity);
+	TestFalse(TEXT("Unknown identity stays outside canonical registry"), Refused.bRegisteredIdentity);
 	TestFalse(TEXT("Configured canonical registry refuses unknown guard rule"), Refused.bResolved);
 	TestFalse(TEXT("Unknown cannot inherit historical parry"), Refused.bCanParry);
 	TestFalse(TEXT("Unknown cannot inherit historical shield"), Refused.bIsShield);

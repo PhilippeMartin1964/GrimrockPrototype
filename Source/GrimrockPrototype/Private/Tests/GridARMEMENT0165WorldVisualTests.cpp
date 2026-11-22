@@ -46,7 +46,7 @@ bool FARMEMENT0165RuntimeMeshTest::RunTest(const FString&)
         AGridItemActor* Actor = Fixture.World->SpawnActor<AGridItemActor>();
         if (!TestNotNull(TEXT("Native pickup actor spawned"), Actor)) continue;
         if (!TestTrue(TEXT("Runtime actor reads canonical physical instance"),
-            Actor->InitializeFromCanonicalItem(Instance, Fixture.Scope.Registry)))
+            Actor->InitializeFromItemInstance(Instance, Fixture.Scope.Registry)))
             continue;
         UStaticMesh* Expected = Canonical.WorldMesh.LoadSynchronous();
         TestNotNull(TEXT("Authored canonical real world geometry"), Expected);
@@ -71,7 +71,7 @@ bool FARMEMENT0165RuntimeMeshTest::RunTest(const FString&)
     if (TestNotNull(TEXT("Invalid visual fixture actor"), Rejected))
     {
         TestFalse(TEXT("Invalid canonical N0 cannot borrow N1 world mesh"),
-            Rejected->InitializeFromCanonicalItem(Invalid, Fixture.Scope.Registry));
+            Rejected->InitializeFromItemInstance(Invalid, Fixture.Scope.Registry));
     }
     return !HasAnyErrors();
 }

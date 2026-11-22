@@ -35,7 +35,7 @@ struct FGridWorldPickupIdentityReadModel
             // An old definition can contradict both identities, but a
             // disagreement between the actual actor and the registered
             // runtime entry is unsafe: do not turn it into another item.
-            if (Candidate.IsNone() || !Registry->HasCanonicalItem(Candidate) ||
+            if (Candidate.IsNone() || !Registry->ContainsItem(Candidate) ||
                 (!PhysicalItemId.IsNone() && PhysicalItemId != Candidate))
             {
                 return NAME_None;
@@ -46,7 +46,7 @@ struct FGridWorldPickupIdentityReadModel
             const FGridReceptacleItemMetadataReadView Physical =
                 FGridWorldItemLevelReadModel::ResolvePersistedInstance(
                     Registry, nullptr, Candidate, ItemLevel);
-            return Physical.bCanonicalIdentity && Physical.bResolved &&
+            return Physical.bRegisteredIdentity && Physical.bResolved &&
                 Physical.FixedItemLevel == ItemLevel ? Candidate : NAME_None;
         }
 

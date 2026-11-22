@@ -23,7 +23,7 @@ struct FGridEquipmentContributionReadModel
 			return Result; // Known invalid canonical ARM never falls back to old armor.
 		}
 		FGridResolvedItem Canonical;
-		if (Registry && Registry->HasCanonicalItem(Instance.ItemDefinitionId))
+		if (Registry && Registry->ContainsItem(Instance.ItemDefinitionId))
 		{
 			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical))
 			{
@@ -51,7 +51,7 @@ struct FGridEquipmentContributionReadModel
 		const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Instance)
 	{
-		if (Registry && Registry->HasCanonicalItem(Instance.ItemDefinitionId))
+		if (Registry && Registry->ContainsItem(Instance.ItemDefinitionId))
 		{
 			FGridResolvedItem Resolved;
 			if (!Instance.IsValid() ||

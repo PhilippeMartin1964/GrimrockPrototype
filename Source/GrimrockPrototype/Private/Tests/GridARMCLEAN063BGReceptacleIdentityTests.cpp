@@ -56,8 +56,8 @@ namespace ARMCLEAN063BG
         bool Ready() const
         {
             return Registry && Receptacle &&
-                Registry->HasCanonicalItem(TEXT("Item_Arrows_01")) &&
-                Registry->HasCanonicalItem(TEXT("Weapon_StraightSword_01"));
+                Registry->ContainsItem(TEXT("Item_Arrows_01")) &&
+                Registry->ContainsItem(TEXT("Weapon_StraightSword_01"));
         }
 
         bool Insert(FName Id, int32 Level, FGridItemInstance& Accepted) const
@@ -150,7 +150,7 @@ bool FGridBGLevelAndLegacy::RunTest(const FString&)
     const auto Arrow = FGridReceptacleItemMetadataReadModel::Resolve(
         F.Registry, Old, ArrowId, 0, false);
     TestTrue(TEXT("Registered arrow N0 ignores contradicting old definition"),
-        Arrow.bCanonicalIdentity && Arrow.bResolved && Arrow.FixedItemLevel == 0 &&
+        Arrow.bRegisteredIdentity && Arrow.bResolved && Arrow.FixedItemLevel == 0 &&
         Arrow.UnitWeightKg < Old->Weight);
     const auto InvalidArrow = FGridReceptacleItemMetadataReadModel::Resolve(
         F.Registry, Old, ArrowId, 1, false);
@@ -163,7 +163,7 @@ bool FGridBGLevelAndLegacy::RunTest(const FString&)
     const auto Sword = FGridReceptacleItemMetadataReadModel::Resolve(
         F.Registry, Old, SwordId, 20, false);
     TestTrue(TEXT("Real N20 item level retained"),
-        Sword.bCanonicalIdentity && Sword.bResolved && Sword.FixedItemLevel == 20);
+        Sword.bRegisteredIdentity && Sword.bResolved && Sword.FixedItemLevel == 20);
 
     return !HasAnyErrors();
 }

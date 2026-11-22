@@ -6,7 +6,7 @@
 /** Transient defensive identity: no new chance, reaction or armor reservoir. */
 struct FGridEquippedGuardItemReadView
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	bool bCanParry = false;
 	bool bIsShield = false;
@@ -20,9 +20,9 @@ struct FGridEquippedGuardItemReadModel
 		const FGridItemInstance& Item)
 	{
 		FGridEquippedGuardItemReadView View;
-		if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+		if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
 		{
-			View.bCanonicalIdentity = true;
+			View.bRegisteredIdentity = true;
 			if (!Item.IsValid() || Item.EquipmentSlot != EGridEquipmentSlot::OffHand)
 			{
 				return View;

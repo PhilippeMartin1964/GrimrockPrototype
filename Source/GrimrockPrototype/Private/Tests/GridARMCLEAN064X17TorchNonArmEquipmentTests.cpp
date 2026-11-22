@@ -14,7 +14,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/GridCanonicalEquipmentSlotsReadModel.h"
+#include "../Runtime/GridEquipmentSlots.h"
 
 namespace ARMCLEAN064X17
 {
@@ -93,7 +93,7 @@ bool FGridClean064X17TorchHandRegression::RunTest(const FString&)
 
     const FName TorchId(TEXT("Item_Torch"));
     if (!TestTrue(TEXT("Torch ItemId is registered canonically"),
-            F.Registry->HasCanonicalItem(TorchId)))
+            F.Registry->ContainsItem(TorchId)))
         {return false;}
 
     FGridResolvedItem Resolved;
@@ -120,10 +120,10 @@ bool FGridClean064X17TorchHandRegression::RunTest(const FString&)
     Character.InventorySlots[1].bOccupied = true;
     Character.InventorySlots[1].Item = Off;
 
-    const auto MainSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(
+    const auto MainSlots = FGridEquipmentSlots::Resolve(
         F.Registry, nullptr, Main);
     if (!TestTrue(TEXT("Torch menu offers both hands"),
-        MainSlots.bCanonicalIdentity && MainSlots.bResolved &&
+        MainSlots.bRegisteredIdentity && MainSlots.bResolved &&
         MainSlots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand) &&
         MainSlots.AllowedSlots.Contains(EGridEquipmentSlot::OffHand) &&
         !MainSlots.bTwoHanded) ||
@@ -184,10 +184,10 @@ bool FGridClean064X17TorchHandRegression::RunTest(const FString&)
     OldAmmo->HandUsage = EGridItemHandUsage::OneHanded;
     FGridItemInstance Ammo = ARMCLEAN064X17::MakeItem(
         OldAmmo->ItemDefinitionId, 0, Character.CharacterId);
-    auto AmmoSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(
+    auto AmmoSlots = FGridEquipmentSlots::Resolve(
         F.Registry, OldAmmo, Ammo);
     if (!TestTrue(TEXT("Canonical ammo has no equip actions"),
-        AmmoSlots.bCanonicalIdentity && AmmoSlots.bResolved &&
+        AmmoSlots.bRegisteredIdentity && AmmoSlots.bResolved &&
         AmmoSlots.AllowedSlots.IsEmpty()) ||
         !TestFalse(TEXT("Canonical ammo cannot equip despite old OneHanded flag"),
             F.Inventory->CanEquipItemToSlot(0, Ammo, EGridEquipmentSlot::MainHand)))

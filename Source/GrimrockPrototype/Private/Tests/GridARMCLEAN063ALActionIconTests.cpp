@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/Combat/GridCanonicalActionIconReadModel.h"
+#include "../Runtime/Combat/GridActionIconReadModel.h"
 #include "UObject/StrongObjectPtr.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063ALActionIcons,
@@ -58,7 +58,7 @@ bool FGridClean063ALActionIcons::RunTest(const FString&)
                 Transport.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
                 Transport.ActionType = Action->bRangedAttack
                     ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
-                const Kind Classified = FGridCanonicalActionIconReadModel::Classify(Item, Transport);
+                const Kind Classified = FGridActionIconReadModel::Classify(Item, Transport);
                 TestTrue(TEXT("Real attack has a nonempty visual category"), Classified != Kind::None);
                 const auto Actual = Registry->FindEquippedActionIcon(Classified);
                 const TSoftObjectPtr<UTexture2D>* Expected =
@@ -69,10 +69,10 @@ bool FGridClean063ALActionIcons::RunTest(const FString&)
                 if (Classified == Case.ExpectedKind) bFoundExpected = true;
                 Transport.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
                 TestEqual(TEXT("Spell cannot inherit an equipped weapon action icon"),
-                    FGridCanonicalActionIconReadModel::Classify(Item, Transport), Kind::None);
+                    FGridActionIconReadModel::Classify(Item, Transport), Kind::None);
                 Transport.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
                 TestEqual(TEXT("Consumable cannot inherit equipped weapon icon"),
-                    FGridCanonicalActionIconReadModel::Classify(Item, Transport), Kind::None);
+                    FGridActionIconReadModel::Classify(Item, Transport), Kind::None);
             }
             TestTrue(TEXT("Production weapon retains its expected icon family"), bFoundExpected);
             FGridCombatActionDefinition Invented;
@@ -81,7 +81,7 @@ bool FGridClean063ALActionIcons::RunTest(const FString&)
             Invented.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
             Invented.ActionType = EGridCombatActionType::MeleeAttack;
             TestEqual(TEXT("Unbound imaginary attack cannot receive an icon"),
-                FGridCanonicalActionIconReadModel::Classify(Item, Invented), Kind::None);
+                FGridActionIconReadModel::Classify(Item, Invented), Kind::None);
         }
     }
     FGridResolvedItem Shield;
@@ -93,7 +93,7 @@ bool FGridClean063ALActionIcons::RunTest(const FString&)
     ForgedShieldAttack.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
     ForgedShieldAttack.ActionType = EGridCombatActionType::MeleeAttack;
     TestEqual(TEXT("Passive shield cannot invent offensive icon"),
-        FGridCanonicalActionIconReadModel::Classify(Shield, ForgedShieldAttack), Kind::None);
+        FGridActionIconReadModel::Classify(Shield, ForgedShieldAttack), Kind::None);
 
     FGridResolvedItem OneHand;
     if (!TestTrue(TEXT("Real one-handed sword exists"),
@@ -104,7 +104,7 @@ bool FGridClean063ALActionIcons::RunTest(const FString&)
     Composite.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
     Composite.ActionType = EGridCombatActionType::MeleeAttack;
     TestEqual(TEXT("Actually selected composite has one dual icon kind"),
-        FGridCanonicalActionIconReadModel::Classify(OneHand, Composite), Kind::MeleeDualWield);
+        FGridActionIconReadModel::Classify(OneHand, Composite), Kind::MeleeDualWield);
     return true;
 }
 

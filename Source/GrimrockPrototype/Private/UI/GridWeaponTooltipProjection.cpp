@@ -19,7 +19,7 @@ namespace
         {
             return false;
         }
-        if (Registry && Registry->HasCanonicalItem(Instance.ItemDefinitionId))
+        if (Registry && Registry->ContainsItem(Instance.ItemDefinitionId))
         {
             FGridResolvedItem Resolved;
             if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Resolved) ||

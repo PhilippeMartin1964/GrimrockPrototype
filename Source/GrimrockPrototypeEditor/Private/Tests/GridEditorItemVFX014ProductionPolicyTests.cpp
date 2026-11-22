@@ -131,7 +131,7 @@ bool FGridItemVFX014ProductionPolicyAuditTest::RunTest(const FString& Parameters
     // Inspect all 48 identities from the root, including non-ARM N0 and
     // ARM N1. No AssetRegistry walk of obsolete UGridItemDefinitionAsset.
     TArray<FName> Ids;
-    Source.Registry->GetCanonicalItemIds(Ids);
+    Source.Registry->GetItemIds(Ids);
     TestEqual(TEXT("All native production items are audited"), Ids.Num(), 48);
     int32 Checked = 0;
     int32 Invalid = 0;

@@ -77,7 +77,7 @@ bool FGridBECombatThrowCanonicalActions::RunTest(const FString&)
                 Registry.Get(), nullptr, Item,
                 Bound.Action.SourceItemQuantityCost, Bound.Action.bRangedAttack);
             TestTrue(TEXT("N1/N20 canonical combat throw launches without old definition"),
-                NoLegacy.bCanonicalIdentity && NoLegacy.bResolved &&
+                NoLegacy.bRegisteredIdentity && NoLegacy.bResolved &&
                 NoLegacy.bLaunchPhysicalProjectile && !NoLegacy.bRejectAction);
 
             UGridItemDefinitionAsset* Old = NewObject<UGridItemDefinitionAsset>(GI.Get());
@@ -93,7 +93,7 @@ bool FGridBECombatThrowCanonicalActions::RunTest(const FString&)
             const auto NoCost = FGridCombatPhysicalThrowSourceReadModel::Resolve(
                 Registry.Get(), Old, Item, 0, true);
             TestTrue(TEXT("No authored source cost cannot permit a free ranged projectile"),
-                NoCost.bCanonicalIdentity && NoCost.bRejectAction &&
+                NoCost.bRegisteredIdentity && NoCost.bRejectAction &&
                 !NoCost.bLaunchPhysicalProjectile);
             const auto BadCost = FGridCombatPhysicalThrowSourceReadModel::Resolve(
                 Registry.Get(), Old, Item, 2, true);
@@ -123,7 +123,7 @@ bool FGridBECombatThrowInvalidKnown::RunTest(const FString&)
             Registry.Get(), Old.Get(),
             ARMCLEAN063BE::MakeItem(Old->ItemDefinitionId, Level), 1, true);
         TestTrue(TEXT("Known invalid ARM fails closed without old throw"),
-            Bad.bCanonicalIdentity && Bad.bRejectAction &&
+            Bad.bRegisteredIdentity && Bad.bRejectAction &&
             !Bad.bLaunchPhysicalProjectile);
     }
     Old->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
@@ -131,7 +131,7 @@ bool FGridBECombatThrowInvalidKnown::RunTest(const FString&)
         Registry.Get(), Old.Get(),
         ARMCLEAN063BE::MakeItem(Old->ItemDefinitionId, 1), 0, false);
     TestTrue(TEXT("Old flag cannot create projectile for canonical straight sword"),
-        Sword.bCanonicalIdentity && Sword.bResolved &&
+        Sword.bRegisteredIdentity && Sword.bResolved &&
         !Sword.bLaunchPhysicalProjectile && !Sword.bRejectAction);
     return !HasAnyErrors();
 }
@@ -153,12 +153,12 @@ bool FGridBECombatThrowLegacy::RunTest(const FString&)
     const auto UnknownConfigured = FGridCombatPhysicalThrowSourceReadModel::Resolve(
         Registry.Get(), Old.Get(), Item, 0, false);
     TestTrue(TEXT("Configured registry never borrows unknown bCombatThrowWeapon"),
-        !UnknownConfigured.bCanonicalIdentity && UnknownConfigured.bRejectAction &&
+        !UnknownConfigured.bRegisteredIdentity && UnknownConfigured.bRejectAction &&
         !UnknownConfigured.bLaunchPhysicalProjectile);
     const auto Legacy = FGridCombatPhysicalThrowSourceReadModel::Resolve(
         nullptr, Old.Get(), Item, 0, false);
     TestTrue(TEXT("Only isolated Automation may characterize a historical combat throw"),
-        !Legacy.bCanonicalIdentity && Legacy.bResolved &&
+        !Legacy.bRegisteredIdentity && Legacy.bResolved &&
         Legacy.bLaunchPhysicalProjectile && !Legacy.bRejectAction);
     const auto Missing = FGridCombatPhysicalThrowSourceReadModel::Resolve(
         Registry.Get(), nullptr, Item, 0, true);

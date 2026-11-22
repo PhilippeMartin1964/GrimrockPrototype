@@ -6,7 +6,7 @@
 /** The acceptance rule is a registered ItemId, independent of a physical level.
  * Unknown, empty or unavailable identities cannot produce acceptance.
  */
-struct FGridReceptacleAcceptedCanonicalReadModel
+struct FGridReceptacleAcceptedReadModel
 {
     static bool TryResolveItemId(const UGridItemSubsystem* Registry,
         const FGridReceptacleAcceptedItemConfig& Rule, FName& OutItemId)
@@ -14,7 +14,7 @@ struct FGridReceptacleAcceptedCanonicalReadModel
         OutItemId = NAME_None;
         if (!IsValid(Registry) || !Registry->IsConfigured() ||
             Rule.CanonicalItemId.IsNone() ||
-            !Registry->HasCanonicalItem(Rule.CanonicalItemId))
+            !Registry->ContainsItem(Rule.CanonicalItemId))
         {
             return false;
         }

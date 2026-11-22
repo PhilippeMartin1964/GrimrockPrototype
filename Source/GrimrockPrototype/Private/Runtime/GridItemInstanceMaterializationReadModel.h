@@ -15,11 +15,11 @@ struct FGridItemInstanceMaterializationReadModel
         const UGridItemDefinitionAsset* LegacyDefinition,
         FGridItemInstance& InOutInstance)
     {
-        const bool bCanonicalIdentity =
-            Registry && Registry->HasCanonicalItem(InOutInstance.ItemDefinitionId);
+        const bool bRegisteredIdentity =
+            Registry && Registry->ContainsItem(InOutInstance.ItemDefinitionId);
         if (InOutInstance.ItemDefinitionId.IsNone() ||
             InOutInstance.ItemLevel < 0 || InOutInstance.ItemLevel > 20 ||
-            (!bCanonicalIdentity && (!IsValid(LegacyDefinition) ||
+            (!bRegisteredIdentity && (!IsValid(LegacyDefinition) ||
                 LegacyDefinition->ItemDefinitionId != InOutInstance.ItemDefinitionId)))
         {
             return false;
@@ -28,7 +28,7 @@ struct FGridItemInstanceMaterializationReadModel
         // All mutations are staged; failures never alter a saved physical
         // identity, ownership, light state or armor debt.
         FGridItemInstance Candidate = InOutInstance;
-        if (bCanonicalIdentity)
+        if (bRegisteredIdentity)
         {
             FGridResolvedItem Resolved;
             if (!Registry->ResolveItem(Candidate.ItemDefinitionId, Candidate.ItemLevel, Resolved) ||

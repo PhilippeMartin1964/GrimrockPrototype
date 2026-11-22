@@ -1,4 +1,4 @@
-#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "EditorTools/GridEditorItemLevelPolicy.h"
 
 SelectedPaletteEntryId = Entry->EntryId;
 PaintObjectType = Entry->DefaultWorldObjectDefinition->SupportedType;
@@ -45,7 +45,7 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 			? ExistingLoose->ItemLevel : CanonicalEntry->CanonicalDefaultItemLevel;
 		const UGridItemSubsystem* Registry = ResolveEditorItemRegistry();
 		FGridResolvedItem Resolved;
-		if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry, TargetId, TargetLevel) ||
+		if (!FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry, TargetId, TargetLevel) ||
 			!Registry->ResolveItem(TargetId, TargetLevel, Resolved) ||
 			ExistingLoose->Quantity < 1 ||
 			(TargetId != ExistingLoose->CanonicalItemId &&

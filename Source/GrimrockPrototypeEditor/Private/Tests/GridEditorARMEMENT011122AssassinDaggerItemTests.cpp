@@ -51,7 +51,7 @@ bool FARMEMENT011122Definition::RunTest(const FString&)
     if (!TestTrue(TEXT("Canonical ItemSystem configured"), Fixture.Ready()))
         return false;
     TArray<FName> Ids;
-    Fixture.Registry->GetCanonicalItemIds(Ids);
+    Fixture.Registry->GetItemIds(Ids);
     int32 Found = 0;
     for (FName Id : Ids)
         if (Id == FName(ARMEMENT011122Tests::ItemId)) ++Found;

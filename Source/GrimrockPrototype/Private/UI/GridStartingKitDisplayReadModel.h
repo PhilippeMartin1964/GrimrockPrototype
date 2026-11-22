@@ -10,7 +10,7 @@
  */
 struct FGridStartingKitDisplayReadView
 {
-    bool bCanonicalIdentity = false;
+    bool bRegisteredIdentity = false;
     bool bResolved = false;
     int32 FixedItemLevel = 0;
     FText DisplayName;
@@ -28,9 +28,9 @@ struct FGridStartingKitDisplayReadModel
         {
             // The explicit item ID is an assertion of canonical authority,
             // not a request to infer an ARM default or load an old asset.
-            View.bCanonicalIdentity = true;
+            View.bRegisteredIdentity = true;
             FGridResolvedItem Metadata;
-            if (!Registry || !Registry->HasCanonicalItem(ExplicitItemId) ||
+            if (!Registry || !Registry->ContainsItem(ExplicitItemId) ||
                 (IsValid(LegacyDefinition) && LegacyDefinition->ItemDefinitionId != ExplicitItemId) ||
                 !Registry->ResolveItem(ExplicitItemId, AuthoredItemLevel, Metadata) ||
                 !Metadata.IsValid() || (!Metadata.bIsArmament && AuthoredItemLevel != 0))
@@ -42,7 +42,7 @@ struct FGridStartingKitDisplayReadModel
         }
         if (!IsValid(LegacyDefinition)) return View;
         const FName ItemId = LegacyDefinition->ItemDefinitionId;
-        View.bCanonicalIdentity = Registry && Registry->HasCanonicalItem(ItemId);
+        View.bRegisteredIdentity = Registry && Registry->ContainsItem(ItemId);
         if (ItemId.IsNone() || AuthoredItemLevel < 0 || AuthoredItemLevel > 20)
         {
             return View;

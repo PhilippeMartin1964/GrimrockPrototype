@@ -8,7 +8,7 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 

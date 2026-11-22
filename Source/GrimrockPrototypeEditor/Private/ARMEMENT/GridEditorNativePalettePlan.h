@@ -2,7 +2,7 @@
 
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../EditorTools/Widgets/GridEditorCanonicalPaletteReadModel.h"
+#include "../EditorTools/Widgets/GridEditorPaletteReadModel.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UObjectGlobals.h"
 
@@ -43,8 +43,8 @@ struct FGridEditorNativePalettePlan
                 Error = FString::Printf(TEXT("Invalid direct entry: %s"), *Entry.EntryId.ToString());
                 return false;
             }
-            const FGridEditorCanonicalPaletteReadView Before =
-                FGridEditorCanonicalPaletteReadModel::Resolve(Entry, Registry);
+            const FGridEditorPaletteReadView Before =
+                FGridEditorPaletteReadModel::Resolve(Entry, Registry);
             if (!Before.bCanonicalSource || !Before.bResolved ||
                 Before.ItemId != Entry.CanonicalItemId)
             {
@@ -52,8 +52,8 @@ struct FGridEditorNativePalettePlan
                     *Entry.EntryId.ToString());
                 return false;
             }
-            const FGridEditorCanonicalPaletteReadView After =
-                FGridEditorCanonicalPaletteReadModel::Resolve(Entry, Registry);
+            const FGridEditorPaletteReadView After =
+                FGridEditorPaletteReadModel::Resolve(Entry, Registry);
             if (!Entry.IsValidEntry() || !After.bCanonicalSource || !After.bResolved ||
                 After.ItemId != Before.ItemId ||
                 !After.DisplayName.EqualTo(Before.DisplayName) ||

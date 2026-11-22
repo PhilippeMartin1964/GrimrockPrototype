@@ -7,7 +7,7 @@
 /** Temporary C++ projection of identity and mass for an inventory tooltip. */
 struct FGridInventoryItemMetadata
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	FText DisplayName;
 	FText Description;
@@ -24,9 +24,9 @@ struct FGridInventoryItemMetadataReadModel
 		{
 			return Result;
 		}
-		if (Registry && Registry->HasCanonicalItem(Instance.ItemDefinitionId))
+		if (Registry && Registry->ContainsItem(Instance.ItemDefinitionId))
 		{
-			Result.bCanonicalIdentity = true;
+			Result.bRegisteredIdentity = true;
 			// Never display historical text or weight for a registered invalid N0.
 			Result.DisplayName = FText::FromName(Instance.ItemDefinitionId);
 			FGridResolvedItem Canonical;

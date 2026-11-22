@@ -8,29 +8,29 @@
  * transfers. Once ItemId belongs to DA_ItemSystem, MaxStack is authoritative,
  * even when an obsolete DA_Item* contradicts it or does not exist.
  */
-struct FGridCanonicalInventoryStackReadView
+struct FGridInventoryStackReadView
 {
-    bool bCanonicalIdentity = false;
+    bool bRegisteredIdentity = false;
     bool bResolved = false;
     int32 MaxStackSize = 1;
 
     bool IsStackable() const { return bResolved && MaxStackSize > 1; }
 };
 
-struct FGridCanonicalInventoryStackReadModel
+struct FGridInventoryStackReadModel
 {
-    static FGridCanonicalInventoryStackReadView Resolve(
+    static FGridInventoryStackReadView Resolve(
         const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* Legacy,
         const FGridItemInstance& Item)
     {
-        FGridCanonicalInventoryStackReadView View;
+        FGridInventoryStackReadView View;
         if (Item.ItemDefinitionId.IsNone() || Item.ItemLevel < 0 || Item.ItemLevel > 20)
         {
             return View;
         }
-        if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+        if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
         {
-            View.bCanonicalIdentity = true;
+            View.bRegisteredIdentity = true;
             FGridResolvedItem Resolved;
             if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) ||
                 (!Resolved.bIsArmament && Item.ItemLevel != 0))

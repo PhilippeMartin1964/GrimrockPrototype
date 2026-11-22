@@ -6,7 +6,7 @@
 
 /** Editor-only, read-only projection from the same canonical registry used
  * by the runtime. No legacy fallback for a persisted CanonicalItemId. */
-struct FGridEditorCanonicalPaletteReadView
+struct FGridEditorPaletteReadView
 {
     bool bCanonicalSource = false;
     bool bResolved = false;
@@ -16,12 +16,12 @@ struct FGridEditorCanonicalPaletteReadView
     TSoftObjectPtr<UTexture2D> Icon;
 };
 
-struct FGridEditorCanonicalPaletteReadModel
+struct FGridEditorPaletteReadModel
 {
-    static FGridEditorCanonicalPaletteReadView Resolve(
+    static FGridEditorPaletteReadView Resolve(
         const FGridObjectPaletteEntry& Entry, const UGridItemSubsystem* Registry)
     {
-        FGridEditorCanonicalPaletteReadView Out;
+        FGridEditorPaletteReadView Out;
         if (!Entry.IsDirectItemEntry())
         {
             Out.DisplayName = Entry.GetEffectiveDisplayName();
@@ -36,7 +36,7 @@ struct FGridEditorCanonicalPaletteReadModel
         Out.Description = FText::GetEmpty();
         Out.Icon.Reset();
         if (!IsValid(Registry) || !Registry->IsConfigured() ||
-            !Registry->HasCanonicalItem(Entry.CanonicalItemId) ||
+            !Registry->ContainsItem(Entry.CanonicalItemId) ||
             Entry.DefaultWorldObjectDefinition ||
             Entry.Icon || Entry.DefaultMonsterDefinition || Entry.DefaultStoryCompanionDefinition ||
             Entry.CanonicalDefaultItemLevel < 0 || Entry.CanonicalDefaultItemLevel > 20)

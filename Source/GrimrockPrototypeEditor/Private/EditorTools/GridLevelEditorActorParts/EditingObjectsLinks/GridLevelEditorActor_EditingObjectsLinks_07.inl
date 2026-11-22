@@ -1,5 +1,5 @@
 #include "Core/GridObjectInstanceBehavior.h"
-#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "EditorTools/GridEditorItemLevelPolicy.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 
@@ -110,7 +110,7 @@ bool AGridLevelEditorActor::SetSelectedObjectItemLevel(int32 NewItemLevel)
 	}
 	const FName CanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
 	const bool bAllowed = (Loose ? Loose->Quantity : Spawn->Quantity) > 0 &&
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+		FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 			ResolveEditorItemRegistry(), CanonicalId, NewItemLevel);
 	if (!bAllowed)
 	{
@@ -138,23 +138,23 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 	const FName PreviousCanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
 	if (PreviousCanonicalId == NewItemDefinitionId)
 		return (Loose ? Loose->Quantity : Spawn->Quantity) > 0 &&
-			FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 				ResolveEditorItemRegistry(), NewItemDefinitionId, Loose ? Loose->ItemLevel : Spawn->ItemLevel);
 
 	const UGridItemSubsystem* Registry = ResolveEditorItemRegistry();
-	if (Registry && Registry->HasCanonicalItem(NewItemDefinitionId))
+	if (Registry && Registry->ContainsItem(NewItemDefinitionId))
 	{
 		const int32 CurrentLevel = Loose ? Loose->ItemLevel : Spawn->ItemLevel;
 		int32 AuthoredLevel = CurrentLevel;
-		if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+		if (!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 			Registry, NewItemDefinitionId, AuthoredLevel))
 		{
 			// Changing an item's identity is a NEW authoring operation, not
 			// restoring a persisted item: explicitly select physical N0 for
 			// unlevelled families, otherwise N1. Never persist ARM N0.
-			AuthoredLevel = FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			AuthoredLevel = FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 				Registry, NewItemDefinitionId, 0) ? 0 : 1;
-			if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			if (!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 				Registry, NewItemDefinitionId, AuthoredLevel))
 			{
 				return false;

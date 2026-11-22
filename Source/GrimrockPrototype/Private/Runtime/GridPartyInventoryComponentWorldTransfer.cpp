@@ -14,7 +14,7 @@ namespace
 		const UWorld* World = Inventory->GetWorld();
 		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		return Registry && Registry->HasCanonicalItem(ItemId);
+		return Registry && Registry->ContainsItem(ItemId);
 	}
 }
 

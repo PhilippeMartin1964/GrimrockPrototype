@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "../Runtime/GridCanonicalItemMeshReadModel.h"
+#include "../Runtime/GridItemMeshResolver.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -40,9 +40,9 @@ bool FGridClean063PFreshReceptacleMesh::RunTest(const FString&)
 			FGridResolvedItem FromRegistry;
 			if (!TestTrue(TEXT("Real N1/N20 item resolves"), Registry->ResolveItem(ID, Level, FromRegistry)))
 				return false;
-			const FGridCanonicalItemMeshReadView Fresh =
-				FGridCanonicalItemMeshReadModel::Resolve(Registry.Get(), Actual);
-			TestTrue(TEXT("Fresh insertion keeps one canonical mesh"), Fresh.bResolved && Fresh.bCanonicalIdentity);
+			const FGridItemMeshView Fresh =
+				FGridItemMeshResolver::Resolve(Registry.Get(), Actual);
+			TestTrue(TEXT("Fresh insertion keeps one canonical mesh"), Fresh.bResolved && Fresh.bRegisteredIdentity);
 			TestTrue(TEXT("Insertion keeps catalogue-authored local offset"),
 				Fresh.WorldTransform.Equals(FromRegistry.WorldVisualTransform));
 			TestEqual(TEXT("Insertion keeps canonical WorldMesh"),
@@ -51,8 +51,8 @@ bool FGridClean063PFreshReceptacleMesh::RunTest(const FString&)
 			TestEqual(TEXT("Presentation does not rewrite contained instance GUID"), Actual.RuntimeObjectId.IsValid(), true);
 		}
 		Actual.ItemLevel = 0;
-		const FGridCanonicalItemMeshReadView Invalid = FGridCanonicalItemMeshReadModel::Resolve(Registry.Get(), Actual);
-		TestTrue(TEXT("Registered invalid N0 cannot receive legacy mesh"), Invalid.bCanonicalIdentity && !Invalid.bResolved &&
+		const FGridItemMeshView Invalid = FGridItemMeshResolver::Resolve(Registry.Get(), Actual);
+		TestTrue(TEXT("Registered invalid N0 cannot receive legacy mesh"), Invalid.bRegisteredIdentity && !Invalid.bResolved &&
 			Invalid.WorldMesh.IsNull());
 	}
 	return true;

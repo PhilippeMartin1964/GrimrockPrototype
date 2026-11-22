@@ -7,7 +7,7 @@
 /** The equipment hand is a canonical item rule, never copied into a kit. */
 struct FGridStartingKitEquipmentPolicyReadView
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	bool bTwoHanded = false;
 	EGridEquipmentSlot PhysicalSlot = EGridEquipmentSlot::None;
@@ -22,8 +22,8 @@ struct FGridStartingKitEquipmentPolicyReadModel
 		FName ItemId, int32 FixedItemLevel, EGridEquipmentSlot AuthoredSlot)
 	{
 		FGridStartingKitEquipmentPolicyReadView View;
-		View.bCanonicalIdentity = Registry && Registry->HasCanonicalItem(ItemId);
-		if (!View.bCanonicalIdentity || AuthoredSlot == EGridEquipmentSlot::None)
+		View.bRegisteredIdentity = Registry && Registry->ContainsItem(ItemId);
+		if (!View.bRegisteredIdentity || AuthoredSlot == EGridEquipmentSlot::None)
 		{
 			return View;
 		}

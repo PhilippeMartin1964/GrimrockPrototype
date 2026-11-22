@@ -15,7 +15,7 @@ struct FGridLegacyItemLookup
 		const UWorld* World = Party ? Party->GetWorld() : nullptr;
 		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		return Registry && Registry->HasCanonicalItem(ItemId);
+		return Registry && Registry->ContainsItem(ItemId);
 	}
 
 	static UGridItemDefinitionAsset* Resolve(const AGrimrockPartyPawn* Party, FName ItemId)

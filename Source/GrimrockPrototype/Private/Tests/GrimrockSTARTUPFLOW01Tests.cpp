@@ -334,7 +334,7 @@ bool FGrimrockSTARTUPFLOW01FrontendControllerInventoryTest::RunTest(const FStrin
 	TestTrue(TEXT("Frontend inventory resolves menu world"), Frontend->GetWorld() == Fixture.World);
 	TestTrue(TEXT("Frontend inventory shares configured ItemSystem with menu"),
 		Frontend->GetWorld() && Frontend->GetWorld()->GetGameInstance() == Fixture.GI &&
-		Fixture.Registry->HasCanonicalItem(TEXT("Weapon_StraightSword_01")));
+		Fixture.Registry->ContainsItem(TEXT("Weapon_StraightSword_01")));
 
 	URPGRaceAsset* Race = LoadObject<URPGRaceAsset>(nullptr,
 		TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Race_Human.DA_Race_Human"));

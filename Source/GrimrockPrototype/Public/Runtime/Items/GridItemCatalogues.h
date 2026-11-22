@@ -7,7 +7,7 @@
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "Runtime/Items/GridEquippedWeaponActionIconTypes.h"
-#include "GridCanonicalItemCatalogues.generated.h"
+#include "GridItemCatalogues.generated.h"
 
 class UNiagaraSystem;
 class USoundBase;

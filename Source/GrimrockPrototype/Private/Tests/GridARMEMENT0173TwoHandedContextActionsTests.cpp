@@ -127,7 +127,7 @@ bool FARMEMENT0173TwoHandedContextActionTest::RunTest(const FString&)
     if (!TestTrue(TEXT("Pawn and inventory are available"), Fixture.Ready())) return false;
 
     const FName Bow(TEXT("ARM0173_Bow"));
-    if (!TestTrue(TEXT("Two-handed definition registered"), Fixture.Scope.Registry->HasCanonicalItem(Bow))) return false;
+    if (!TestTrue(TEXT("Two-handed definition registered"), Fixture.Scope.Registry->ContainsItem(Bow))) return false;
 
     const FGridItemInstance BowItem = Fixture.MakeItem(Bow);
     if (!TestTrue(TEXT("Bow can enter inventory"), Fixture.Inventory->AddItemToCharacterInventory(0, BowItem))) return false;
@@ -166,7 +166,7 @@ bool FARMEMENT0173OneHandContextActionTest::RunTest(const FString&)
     ARMEMENT0173::FWorldFixture Fixture;
     if (!TestTrue(TEXT("Pawn and inventory are available"), Fixture.Ready())) return false;
     const FName Dagger(TEXT("ARM0173_Dagger"));
-    if (!TestTrue(TEXT("One-handed definition registered"), Fixture.Scope.Registry->HasCanonicalItem(Dagger))) return false;
+    if (!TestTrue(TEXT("One-handed definition registered"), Fixture.Scope.Registry->ContainsItem(Dagger))) return false;
 
     TArray<FGridItemContextAction> Actions;
     if (!TestTrue(TEXT("One-hand context builds"),

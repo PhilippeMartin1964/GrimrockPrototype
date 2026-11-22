@@ -13,7 +13,7 @@ struct FGridDualWieldSource
 	/** Only worldless Automation fixtures may retain the historical source. */
 	const UGridItemDefinitionAsset* Definition = nullptr;
 #endif
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	TArray<FName> SourceTags;
 	FGridCombatActionDefinition Action;
 	FGridOffensiveEquipmentProfile Profile;

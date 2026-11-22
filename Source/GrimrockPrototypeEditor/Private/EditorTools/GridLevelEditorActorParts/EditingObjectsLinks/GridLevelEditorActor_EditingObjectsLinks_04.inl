@@ -1,4 +1,4 @@
-#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "EditorTools/GridEditorItemLevelPolicy.h"
 
 bool AGridLevelEditorActor::TryGetSelectedObjectWorldLocation(FVector& OutWorldLocation) const
 {
@@ -140,7 +140,7 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 	if (Entry->IsDirectItemEntry())
 	{
 		if (!Entry->IsValidEntry() ||
-			!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+			!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 				ResolveEditorItemRegistry(), Entry->CanonicalItemId,
 				Entry->CanonicalDefaultItemLevel))
 		{

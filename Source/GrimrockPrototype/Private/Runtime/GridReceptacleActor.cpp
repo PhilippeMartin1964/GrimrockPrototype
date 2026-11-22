@@ -7,11 +7,11 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
+#include "Runtime/Items/GridPuzzleCategoryTags.h"
 #include "GridItemWeightReadModel.h"
 #include "GridReceptacleItemMetadataReadModel.h"
-#include "GridReceptacleInitialCanonicalReadModel.h"
-#include "GridReceptacleAcceptedCanonicalReadModel.h"
+#include "GridReceptacleInitialReadModel.h"
+#include "GridReceptacleAcceptedReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
@@ -145,7 +145,7 @@ void AGridReceptacleActor::InitializeRuntimeWorldObject(
 	for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Params.AcceptedItems)
 	{
 		FName EffectiveId = NAME_None;
-		if (FGridReceptacleAcceptedCanonicalReadModel::TryResolveItemId(
+		if (FGridReceptacleAcceptedReadModel::TryResolveItemId(
 			AcceptanceRegistry, AcceptedItem, EffectiveId))
 		{
 			AcceptedItemDefinitionIds.AddUnique(EffectiveId);
@@ -182,7 +182,7 @@ void AGridReceptacleActor::InitializeRuntimeWorldObject(
 	for (const FGridReceptacleInitialItemConfig& ConfigItem : Params.InitialContent)
 	{
 		FGridInitialReceptacleItem InitialItem;
-		if (!FGridReceptacleInitialCanonicalReadModel::TryResolve(
+		if (!FGridReceptacleInitialReadModel::TryResolve(
 			ItemRegistry, ConfigItem, InitialItem))
 		{
 			// A known canonical identity may not be downgraded to legacy
@@ -298,7 +298,7 @@ bool AGridReceptacleActor::ContainsItemTag(FName ItemTag) const
 bool AGridReceptacleActor::ContainsItemType(EGridItemType ItemType) const
 {
 	const FName Type(*StaticEnum<EGridItemType>()->GetNameStringByValue(static_cast<int64>(ItemType)));
-	if (GridCanonicalPuzzleCategoryTags::ForType(Type).IsNone())
+	if (GridPuzzleCategoryTags::ForType(Type).IsNone())
 	{
 		return false;
 	}
@@ -311,7 +311,7 @@ bool AGridReceptacleActor::ContainsItemType(EGridItemType ItemType) const
 				Resolved.IsValid() && Resolved.ItemLevel == Item.ItemLevel &&
 				Item.RuntimeObjectId.IsValid() && Item.Quantity > 0 &&
 				Item.Quantity <= FMath::Max(1, Resolved.MaxStack) &&
-				GridCanonicalPuzzleCategoryTags::Matches(Resolved, Type);
+				GridPuzzleCategoryTags::Matches(Resolved, Type);
 		});
 }
 
@@ -491,7 +491,7 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
 	const FGridReceptacleItemMetadataReadView InsertedMetadata =
 		FGridReceptacleItemMetadataReadModel::Resolve(Registry, nullptr, CursorItem.ItemDefinitionId, CursorItem.ItemLevel, false);
-	if (!InsertedMetadata.bResolved || !InsertedMetadata.bCanonicalIdentity) return false;
+	if (!InsertedMetadata.bResolved || !InsertedMetadata.bRegisteredIdentity) return false;
 	const int32 NewIndex = AddContainedItem(CursorItem.ItemDefinitionId, nullptr, false,
 		CursorItem.Quantity, CursorItem.RuntimeObjectId, CursorItem.ItemLevel);
 
@@ -1033,7 +1033,7 @@ int32 AGridReceptacleActor::AddContainedItem(
 
 	// The same registry projection handles fresh, transferred and restored actors.
 	// An old-style fixture actor is rebuilt without consulting its historical asset.
-	if (!ItemActor->InitializeFromCanonicalItem(Physical, Registry))
+	if (!ItemActor->InitializeFromItemInstance(Physical, Registry))
 	{
 		if (!bSuppliedActor) ItemActor->Destroy();
 		return INDEX_NONE;

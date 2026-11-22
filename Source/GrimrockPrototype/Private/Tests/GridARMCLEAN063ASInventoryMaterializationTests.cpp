@@ -9,7 +9,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/GridCanonicalInventoryStackReadModel.h"
+#include "../Runtime/GridInventoryStackReadModel.h"
 #include "../Runtime/GridItemInstanceMaterializationReadModel.h"
 #include "../UI/GridInventoryItemMetadataReadModel.h"
 
@@ -62,8 +62,8 @@ namespace ARMCLEAN063AS
         bool Ready() const
         {
             return Registry && Inventory && Inventory->IsValidCharacterIndex(0) &&
-                Registry->HasCanonicalItem(TEXT("Item_Arrows_01")) &&
-                Registry->HasCanonicalItem(TEXT("Weapon_StraightSword_01"));
+                Registry->ContainsItem(TEXT("Item_Arrows_01")) &&
+                Registry->ContainsItem(TEXT("Weapon_StraightSword_01"));
         }
         void ClearSlots() const
         {
@@ -140,8 +140,8 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     TestEqual(TEXT("Armor magic debt preserved"), Materialized.AbsorbedEquipmentMagicalArmor, 2);
     TestTrue(TEXT("Live light state preserved"), Materialized.bLightsEnabled);
 
-    const auto Policy = FGridCanonicalInventoryStackReadModel::Resolve(Fixture.Registry, nullptr, Materialized);
-    TestTrue(TEXT("Stack reads canonical identity without old DA"), Policy.bCanonicalIdentity && Policy.bResolved);
+    const auto Policy = FGridInventoryStackReadModel::Resolve(Fixture.Registry, nullptr, Materialized);
+    TestTrue(TEXT("Stack reads canonical identity without old DA"), Policy.bRegisteredIdentity && Policy.bResolved);
     TestEqual(TEXT("Stack capacity from real root"), Policy.MaxStackSize, Ammo.MaxStack);
     TestTrue(TEXT("Inventory can accept full canonical ammo quantity"),
         Fixture.Inventory->CanAddItemToCharacterInventory(0, Incoming));
@@ -200,12 +200,12 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     TestTrue(TEXT("Contradictory old metadata does not affect canonical mass"), ConflictMeta.bResolved &&
         FMath::IsNearlyEqual(ConflictMeta.UnitWeightKg, Ammo.WeightKg));
     TestEqual(TEXT("Old max stack is ignored for registered ID"),
-        FGridCanonicalInventoryStackReadModel::Resolve(Fixture.Registry, WrongOld, Conflict).MaxStackSize,
+        FGridInventoryStackReadModel::Resolve(Fixture.Registry, WrongOld, Conflict).MaxStackSize,
         Ammo.MaxStack);
 
     FGridItemInstance InvalidAmmo = ARMCLEAN063AS::MakeItem(AmmoId, 1, 1);
-    const auto InvalidPolicy = FGridCanonicalInventoryStackReadModel::Resolve(Fixture.Registry, WrongOld, InvalidAmmo);
-    TestTrue(TEXT("Invalid ammo still recognized canonical"), InvalidPolicy.bCanonicalIdentity);
+    const auto InvalidPolicy = FGridInventoryStackReadModel::Resolve(Fixture.Registry, WrongOld, InvalidAmmo);
+    TestTrue(TEXT("Invalid ammo still recognized canonical"), InvalidPolicy.bRegisteredIdentity);
     TestFalse(TEXT("Physical ammo N1 stack policy rejected"), InvalidPolicy.bResolved);
     TestFalse(TEXT("Physical ammo N1 cannot materialize"), Fixture.Inventory->ApplyItemDefinitionToInstance(InvalidAmmo));
     TestFalse(TEXT("Physical ammo N1 cannot enter inventory"), Fixture.Inventory->CanAddItemToCharacterInventory(0, InvalidAmmo));
@@ -306,7 +306,7 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
         Fixture.Inventory->RegisterItemDefinition(Legacy))) return false;
     FGridItemInstance OldStack = ARMCLEAN063AS::MakeItem(Legacy->ItemDefinitionId, 0, 13);
     const auto RefusedPolicy =
-        FGridCanonicalInventoryStackReadModel::Resolve(Fixture.Registry, Legacy, OldStack);
+        FGridInventoryStackReadModel::Resolve(Fixture.Registry, Legacy, OldStack);
     TestFalse(TEXT("Configured registry refuses unknown legacy stack capacity"), RefusedPolicy.bResolved);
     TestFalse(TEXT("Unknown stack cannot enter canonical inventory"),
         Fixture.Inventory->CanAddItemToCharacterInventory(0, OldStack));
@@ -321,7 +321,7 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
         Character.InventorySlots[0].IsEmpty() && Character.InventorySlots[1].IsEmpty());
     OldStack.Quantity = 13;
     const auto IsolatedPolicy =
-        FGridCanonicalInventoryStackReadModel::Resolve(nullptr, Legacy, OldStack);
+        FGridInventoryStackReadModel::Resolve(nullptr, Legacy, OldStack);
     TestTrue(TEXT("Registry-less Automation fixture still has old stack limit"),
         IsolatedPolicy.bResolved && IsolatedPolicy.MaxStackSize == 10 &&
         IsolatedPolicy.IsStackable());

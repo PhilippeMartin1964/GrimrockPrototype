@@ -7,12 +7,12 @@
 
 namespace UIRPG061SkillCatalogAuthoringTests
 {
-	const FRPGCanonicalSkillDefinition* FindDefinition(
-		const TArray<FRPGCanonicalSkillDefinition>& Definitions,
+	const FRPGSkillDefinition* FindDefinition(
+		const TArray<FRPGSkillDefinition>& Definitions,
 		FName SkillId)
 	{
 		return Definitions.FindByPredicate(
-			[SkillId](const FRPGCanonicalSkillDefinition& Definition)
+			[SkillId](const FRPGSkillDefinition& Definition)
 			{
 				return Definition.SkillId == SkillId;
 			});
@@ -33,13 +33,13 @@ bool FUIRPG061CanonicalSkillCatalogTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Canonical Skill catalog validates"), FRPGSkillCatalogAuthoring::ValidateCanonicalCatalog(Error));
 	TestTrue(TEXT("Canonical Skill catalog validation returns no error"), Error.IsEmpty());
 
-	TArray<FRPGCanonicalSkillDefinition> Definitions;
+	TArray<FRPGSkillDefinition> Definitions;
 	FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(Definitions);
 	TestEqual(TEXT("Canonical catalog contains exactly twenty-five Skills"), Definitions.Num(), 25);
 
 	TSet<FName> SeenIds;
 	int32 TrainedOnlyCount = 0;
-	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
+	for (const FRPGSkillDefinition& Definition : Definitions)
 	{
 		TestFalse(TEXT("Canonical SkillId is not None"), Definition.SkillId.IsNone());
 		TestTrue(TEXT("Canonical governing attribute is explicit"), Definition.GoverningAttribute != ERPGSkillGoverningAttribute::None);
@@ -52,22 +52,22 @@ bool FUIRPG061CanonicalSkillCatalogTest::RunTest(const FString& Parameters)
 	}
 	TestEqual(TEXT("Exactly six Skills require training"), TrainedOnlyCount, 6);
 
-	const FRPGCanonicalSkillDefinition* HeavyWeapons = FindDefinition(Definitions, TEXT("Skill_HeavyWeapons"));
+	const FRPGSkillDefinition* HeavyWeapons = FindDefinition(Definitions, TEXT("Skill_HeavyWeapons"));
 	TestTrue(TEXT("Heavy Weapons mechanical contract matches rules"), HeavyWeapons &&
 		HeavyWeapons->GoverningAttribute == ERPGSkillGoverningAttribute::Strength &&
 		HeavyWeapons->bAllowUntrainedChecks);
 
-	const FRPGCanonicalSkillDefinition* Lockpicking = FindDefinition(Definitions, TEXT("Skill_Lockpicking"));
+	const FRPGSkillDefinition* Lockpicking = FindDefinition(Definitions, TEXT("Skill_Lockpicking"));
 	TestTrue(TEXT("Lockpicking mechanical contract matches rules"), Lockpicking &&
 		Lockpicking->GoverningAttribute == ERPGSkillGoverningAttribute::Dexterity &&
 		!Lockpicking->bAllowUntrainedChecks);
 
-	const FRPGCanonicalSkillDefinition* Religion = FindDefinition(Definitions, TEXT("Skill_Religion"));
+	const FRPGSkillDefinition* Religion = FindDefinition(Definitions, TEXT("Skill_Religion"));
 	TestTrue(TEXT("Religion contract matches rules"), Religion &&
 		Religion->GoverningAttribute == ERPGSkillGoverningAttribute::Wisdom &&
 		!Religion->bAllowUntrainedChecks);
 
-	const FRPGCanonicalSkillDefinition* Deception = FindDefinition(Definitions, TEXT("Skill_Deception"));
+	const FRPGSkillDefinition* Deception = FindDefinition(Definitions, TEXT("Skill_Deception"));
 	TestTrue(TEXT("Deception contract matches rules"), Deception &&
 		Deception->GoverningAttribute == ERPGSkillGoverningAttribute::Charisma &&
 		Deception->bAllowUntrainedChecks);
@@ -84,7 +84,7 @@ bool FUIRPG061SkillAuthoringPreservesExtensionsTest::RunTest(const FString& Para
 {
 	(void)Parameters;
 
-	FRPGCanonicalSkillDefinition Lockpicking;
+	FRPGSkillDefinition Lockpicking;
 	TestTrue(
 		TEXT("Lockpicking canonical definition resolves"),
 		FRPGSkillCatalogAuthoring::TryGetCanonicalDefinition(TEXT("Skill_Lockpicking"), Lockpicking));
@@ -129,12 +129,12 @@ bool FUIRPG062AProductionSkillCatalogTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TArray<FRPGCanonicalSkillDefinition> Definitions;
+	TArray<FRPGSkillDefinition> Definitions;
 	FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(Definitions);
 	TestEqual(TEXT("Twenty-five canonical Skill definitions are expected"), Definitions.Num(), 25);
 
 	int32 LoadedCount = 0;
-	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
+	for (const FRPGSkillDefinition& Definition : Definitions)
 	{
 		const FString AssetName = FString::Printf(TEXT("DA_%s"), *Definition.SkillId.ToString());
 		const FString ObjectPath = FString::Printf(

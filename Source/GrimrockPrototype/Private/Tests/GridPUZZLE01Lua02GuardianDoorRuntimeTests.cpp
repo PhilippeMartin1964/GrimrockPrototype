@@ -121,7 +121,7 @@ bool FGridPUZZLE01Lua02RuntimeGuardianDoorCompletionTest::RunTest(const FString&
 	TArray<FString> RegistryErrors;
 	if (!TestTrue(TEXT("Real gem identity exists and controlled test stack registers"),
 		bReplacedGem && ItemRegistry.Registry->RegisterItemSystem(TestRoot.Get(), RegistryErrors)) ||
-		!TestTrue(TEXT("Wrong item is also registered"), ItemRegistry.Registry->HasCanonicalItem(WrongItemId)))
+		!TestTrue(TEXT("Wrong item is also registered"), ItemRegistry.Registry->ContainsItem(WrongItemId)))
 		return false;
 
 	const UGridLevelAsset* ProductionLevel = LoadObject<UGridLevelAsset>(

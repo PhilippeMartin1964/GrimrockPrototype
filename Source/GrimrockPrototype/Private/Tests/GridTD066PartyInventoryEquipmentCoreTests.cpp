@@ -128,7 +128,7 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 		MissingDefinitionComponent->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::MainHand));
 
 	for (FName Id : {SwordId, AxeId, ShieldId, HelmetId, StackWeaponId, FullInventoryWeaponId, FillerId})
-		if (!TestTrue(TEXT("Canonical fixture definition registered"), Fixture.Scope.Registry->HasCanonicalItem(Id))) return false;
+		if (!TestTrue(TEXT("Canonical fixture definition registered"), Fixture.Scope.Registry->ContainsItem(Id))) return false;
 	const FGridItemInstance Sword = GridTD066CreateItem(SwordId);
 	const FGridItemInstance Axe = GridTD066CreateItem(AxeId);
 	const FGridItemInstance Shield = GridTD066CreateItem(ShieldId);

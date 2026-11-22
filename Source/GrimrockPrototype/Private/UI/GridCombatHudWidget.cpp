@@ -24,11 +24,11 @@
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/Combat/GridCanonicalActionIconReadModel.h"
-#include "GridCombatHudCanonicalActionReadModel.h"
-#include "../Runtime/GridCanonicalItemInteractionReadModel.h"
-#include "../Runtime/GridCanonicalQuickItemUseReadModel.h"
-#include "../Runtime/GridCanonicalExplorationItemReadModel.h"
+#include "../Runtime/Combat/GridActionIconReadModel.h"
+#include "GridCombatHudActionReadModel.h"
+#include "../Runtime/GridItemInteractionReadModel.h"
+#include "../Runtime/GridQuickItemUseReadModel.h"
+#include "../Runtime/GridExplorationItemReadModel.h"
 #include "../Runtime/GridPhysicalThrowStrengthReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -139,7 +139,7 @@ namespace
 		const UWorld* World = IsValid(PartyPawn) ? PartyPawn->GetWorld() : InventoryComponent->GetWorld();
 		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		const bool bCanonical = Registry && Registry->HasCanonicalItem(Binding.SourceDefinitionId);
+		const bool bCanonical = Registry && Registry->ContainsItem(Binding.SourceDefinitionId);
 		const UGridItemDefinitionAsset* OldDefinition = bCanonical ? nullptr :
 			InventoryComponent->FindItemDefinition(Binding.SourceDefinitionId);
 		const FGridInventorySlot* Source = Character.InventorySlots.FindByPredicate(
@@ -153,8 +153,8 @@ namespace
 			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.NoInventoryCopies"));
 			return Action;
 		}
-		const FGridCanonicalItemInteractionReadView Capabilities =
-			FGridCanonicalItemInteractionReadModel::Resolve(Registry, OldDefinition, Source->Item);
+		const FGridItemInteractionReadView Capabilities =
+			FGridItemInteractionReadModel::Resolve(Registry, OldDefinition, Source->Item);
 		if (bCanonical ? !Capabilities.bPhysicalThrowHotbar :
 			(!IsValid(OldDefinition) || !OldDefinition->IsPhysicallyThrowable()))
 		{
@@ -206,7 +206,7 @@ namespace
         const UWorld* World = Inventory->GetWorld();
         UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
         const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-        const bool bCanonical = Registry && Registry->HasCanonicalItem(Binding.SourceDefinitionId);
+        const bool bCanonical = Registry && Registry->ContainsItem(Binding.SourceDefinitionId);
         const FGridCharacterInventoryState& Character =
             Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
         const FGridInventorySlot* Source = Character.InventorySlots.FindByPredicate(
@@ -218,9 +218,9 @@ namespace
         {
             return false;
         }
-        const FGridCanonicalQuickItemUseReadView Use = bCanonical
-            ? FGridCanonicalQuickItemUseReadModel::Resolve(Registry, Source->Item)
-            : FGridCanonicalQuickItemUseReadView();
+        const FGridQuickItemUseReadView Use = bCanonical
+            ? FGridQuickItemUseReadModel::Resolve(Registry, Source->Item)
+            : FGridQuickItemUseReadView();
         const UGridItemDefinitionAsset* Definition = bCanonical ? nullptr :
             Inventory->FindItemDefinition(Binding.SourceDefinitionId);
         FGridCombatActionDefinition QuickItem;
@@ -304,7 +304,7 @@ namespace
 		{
 			return false;
 		}
-		const auto Source = FGridCanonicalExplorationItemReadModel::ResolveSurface(
+		const auto Source = FGridExplorationItemReadModel::ResolveSurface(
 			Inventory, CharacterIndex, Binding.SourceDefinitionId, Binding.ActionId, false);
 		const FGridCombatActionDefinition& Definition = Source.Action;
 		if (!Source.bResolved ||
@@ -757,7 +757,7 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 		const EGridCombatActionSourcePolicy Policy = View.bResolved
 			? View.Action.Definition.SourcePolicy : View.Binding.SourcePolicy;
 		TSoftObjectPtr<UTexture2D> Icon;
-		if (Policy == EGridCombatActionSourcePolicy::Equipment && Registry && Registry->HasCanonicalItem(SourceId))
+		if (Policy == EGridCombatActionSourcePolicy::Equipment && Registry && Registry->ContainsItem(SourceId))
 		{
 			FGridItemInstance Equipped;
 			const FGridItemInstance* Source = nullptr;
@@ -770,7 +770,7 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 			// Same strict projection as the HUD builder, including stale GUID
 			// and missing bound source. No historical icon can reappear.
 			FGridAvailableCombatAction Projected = View.Action;
-			FGridCombatHudCanonicalActionReadModel::Apply(Registry, SourceId, View.bResolved, Source, Projected);
+			FGridCombatHudActionReadModel::Apply(Registry, SourceId, View.bResolved, Source, Projected);
 			Icon = Projected.Definition.Icon;
 		}
 		else
@@ -1717,10 +1717,10 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 			? ActionView.Action.SourceDefinitionId : ActionView.Binding.SourceDefinitionId;
 		const EGridCombatActionSourcePolicy SourcePolicy = ActionView.bResolved
 			? ActionView.Action.Definition.SourcePolicy : ActionView.Binding.SourcePolicy;
-		const bool bCanonicalIdentity =
-			Registry && Registry->HasCanonicalItem(SourceDefinitionId);
+		const bool bRegisteredIdentity =
+			Registry && Registry->ContainsItem(SourceDefinitionId);
 		const bool bCanonicalEquipment =
-			SourcePolicy == EGridCombatActionSourcePolicy::Equipment && bCanonicalIdentity;
+			SourcePolicy == EGridCombatActionSourcePolicy::Equipment && bRegisteredIdentity;
 
 		FGridItemInstance EquippedItem;
 		const FGridItemInstance* SourceItem = nullptr;
@@ -1740,12 +1740,12 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 		{
 			// Registered ARM: ONLY WeaponVisualCatalogue.ActionIcons, never
 			// item icons from DA_Weapon_*, even when a legacy copy exists.
-			FGridCombatHudCanonicalActionReadModel::Apply(
+			FGridCombatHudActionReadModel::Apply(
 				Registry, SourceDefinitionId, ActionView.bResolved,
 				SourceItem, ActionView.Action);
 		}
 #if WITH_DEV_AUTOMATION_TESTS
-		else if (!Registry && GIsAutomationTesting && !bCanonicalIdentity)
+		else if (!Registry && GIsAutomationTesting && !bRegisteredIdentity)
 		{
 			// Legacy action metadata is for worldless Editor test fixtures only.
 			const UGridItemDefinitionAsset* ItemDefinition =

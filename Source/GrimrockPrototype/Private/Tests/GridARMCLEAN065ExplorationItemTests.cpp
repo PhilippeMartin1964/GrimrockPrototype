@@ -1,6 +1,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
-#include "../Runtime/GridCanonicalExplorationItemReadModel.h"
+#include "../Runtime/GridExplorationItemReadModel.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -10,7 +10,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMCLEAN065ExplorationItemReaders,
 
 bool FGridARMCLEAN065ExplorationItemReaders::RunTest(const FString&)
 {
-    using Read = FGridCanonicalExplorationItemReadModel;
+    using Read = FGridExplorationItemReadModel;
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,

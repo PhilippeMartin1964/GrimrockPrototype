@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "../Runtime/GridCanonicalThrowBallisticsReadModel.h"
+#include "../Runtime/GridThrowBallisticsReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -44,18 +44,18 @@ bool FGridClean063TThrowBallistics::RunTest(const FString&)
 			FGridResolvedItem Canonical;
 			if (!TestTrue(TEXT("Real ranged/throwing ARM exists"), Registry->ResolveItem(Id, Level, Canonical)))
 				return false;
-			const FGridCanonicalThrowBallisticsReadView Shot =
-				FGridCanonicalThrowBallisticsReadModel::Resolve(Registry.Get(), Old.Get(), Item);
-			TestTrue(TEXT("Canonical N1/N20 physical throw has one source"), Shot.bCanonicalIdentity);
+			const FGridThrowBallisticsReadView Shot =
+				FGridThrowBallisticsReadModel::Resolve(Registry.Get(), Old.Get(), Item);
+			TestTrue(TEXT("Canonical N1/N20 physical throw has one source"), Shot.bRegisteredIdentity);
 			TestTrue(TEXT("Canonical specialized throw is resolved"), Shot.bResolved && Shot.bSpecializedProjectile);
 			TestTrue(TEXT("Throw speed ignores contradictory DA_Weapon value"),
 				FMath::IsNearlyEqual(Shot.InitialSpeed, Canonical.Weapon.Projectile.InitialSpeed));
 			TestTrue(TEXT("Throw arc ignores contradictory DA_Weapon value"),
 				FMath::IsNearlyEqual(Shot.Arc, Canonical.Weapon.Projectile.Arc));
 			Item.ItemLevel = 0;
-			const FGridCanonicalThrowBallisticsReadView Invalid =
-				FGridCanonicalThrowBallisticsReadModel::Resolve(Registry.Get(), Old.Get(), Item);
-			TestTrue(TEXT("Known invalid ARM stays classified"), Invalid.bCanonicalIdentity);
+			const FGridThrowBallisticsReadView Invalid =
+				FGridThrowBallisticsReadModel::Resolve(Registry.Get(), Old.Get(), Item);
+			TestTrue(TEXT("Known invalid ARM stays classified"), Invalid.bRegisteredIdentity);
 			TestFalse(TEXT("Known invalid level never falls back to old speed"), Invalid.bResolved);
 			TestEqual(TEXT("No generated launch speed on N0"), Invalid.InitialSpeed, 0.0f);
 		}
@@ -68,10 +68,10 @@ bool FGridClean063TThrowBallistics::RunTest(const FString&)
 	Legacy.ItemLevel = 0;
 	Legacy.Quantity = 1;
 	TestFalse(TEXT("Configured registry rejects unknown flight even with matching old asset"),
-		FGridCanonicalThrowBallisticsReadModel::Resolve(Registry.Get(), Old.Get(), Legacy).bResolved);
-	const FGridCanonicalThrowBallisticsReadView Fallback =
-		FGridCanonicalThrowBallisticsReadModel::Resolve(nullptr, Old.Get(), Legacy);
-	TestFalse(TEXT("Unregistered throw retains old source"), Fallback.bCanonicalIdentity);
+		FGridThrowBallisticsReadModel::Resolve(Registry.Get(), Old.Get(), Legacy).bResolved);
+	const FGridThrowBallisticsReadView Fallback =
+		FGridThrowBallisticsReadModel::Resolve(nullptr, Old.Get(), Legacy);
+	TestFalse(TEXT("Unregistered throw retains old source"), Fallback.bRegisteredIdentity);
 	TestTrue(TEXT("Unregistered throw resolves"), Fallback.bResolved);
 	TestEqual(TEXT("Unregistered throw speed unchanged"), Fallback.InitialSpeed, 12.0f);
 	TestEqual(TEXT("Unregistered throw arc unchanged"), Fallback.Arc, 33.0f);

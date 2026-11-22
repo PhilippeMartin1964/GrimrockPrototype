@@ -17,7 +17,7 @@ bool FGridClean062VRealAmmo::RunTest(const FString&)
     if (!TestTrue(TEXT("Real production ItemSystem validates"), Registry.bReady))
         return false;
     TArray<FName> Ids;
-    Registry.Registry->GetCanonicalItemIds(Ids);
+    Registry.Registry->GetItemIds(Ids);
     TestEqual(TEXT("One 48-item canonical item registry"), Ids.Num(), 48);
 
     TArray<FGridWeaponPipelineRow> Manifest;

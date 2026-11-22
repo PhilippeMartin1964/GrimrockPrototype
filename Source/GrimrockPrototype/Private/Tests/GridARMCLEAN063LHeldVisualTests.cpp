@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "../Runtime/GridCanonicalItemMeshReadModel.h"
+#include "../Runtime/GridItemMeshResolver.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -41,9 +41,9 @@ bool FGridClean063LHeldVisual::RunTest(const FString&)
 			FGridResolvedItem Canonical;
 			if (!TestTrue(TEXT("Real level resolves"), Registry->ResolveItem(Id, Level, Canonical)))
 				return false;
-			const FGridCanonicalItemMeshReadView Mesh =
-				FGridCanonicalItemMeshReadModel::Resolve(Registry.Get(), Instance);
-			TestTrue(TEXT("Resolved mesh view is explicitly canonical"), Mesh.bCanonicalIdentity);
+			const FGridItemMeshView Mesh =
+				FGridItemMeshResolver::Resolve(Registry.Get(), Instance);
+			TestTrue(TEXT("Resolved mesh view is explicitly canonical"), Mesh.bRegisteredIdentity);
 			TestTrue(TEXT("Valid canonical mesh view is resolved"), Mesh.bResolved);
 			TestEqual(TEXT("Mesh visual identity preserved"), Mesh.VisualId, Canonical.VisualId);
 			TestEqual(TEXT("Canonical world mesh reference preserved"),
@@ -54,9 +54,9 @@ bool FGridClean063LHeldVisual::RunTest(const FString&)
 				Canonical.EquippedMesh.ToSoftObjectPath().ToString());
 
 			Instance.ItemLevel = 0;
-			const FGridCanonicalItemMeshReadView Invalid =
-				FGridCanonicalItemMeshReadModel::Resolve(Registry.Get(), Instance);
-			TestTrue(TEXT("Known canonical ID remains classified when N0 invalid"), Invalid.bCanonicalIdentity);
+			const FGridItemMeshView Invalid =
+				FGridItemMeshResolver::Resolve(Registry.Get(), Instance);
+			TestTrue(TEXT("Known canonical ID remains classified when N0 invalid"), Invalid.bRegisteredIdentity);
 			TestFalse(TEXT("Invalid level never resolves a legacy mesh"), Invalid.bResolved);
 			TestTrue(TEXT("Invalid N0 equipped mesh remains null"), Invalid.EquippedMesh.IsNull());
 		}
@@ -65,12 +65,12 @@ bool FGridClean063LHeldVisual::RunTest(const FString&)
 	Other.ItemDefinitionId = TEXT("NonCanonical_Held063L");
 	Other.RuntimeObjectId = FGuid::NewGuid();
 	Other.Quantity = 1;
-	const FGridCanonicalItemMeshReadView Unregistered =
-		FGridCanonicalItemMeshReadModel::Resolve(Registry.Get(), Other);
+	const FGridItemMeshView Unregistered =
+		FGridItemMeshResolver::Resolve(Registry.Get(), Other);
 	TestFalse(TEXT("Noncanonical item does not override existing held meshes"),
-		Unregistered.bCanonicalIdentity);
+		Unregistered.bRegisteredIdentity);
 	TestFalse(TEXT("Noncanonical view has no invented mesh"), Unregistered.bResolved);
-	TestTrue(TEXT("Null registry makes no new authority"), !FGridCanonicalItemMeshReadModel::Resolve(nullptr, Other).bResolved);
+	TestTrue(TEXT("Null registry makes no new authority"), !FGridItemMeshResolver::Resolve(nullptr, Other).bResolved);
 	return true;
 }
 

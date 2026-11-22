@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/GridLevelAsset.h"
-#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "EditorTools/GridEditorItemLevelPolicy.h"
 #include "UObject/UnrealType.h"
 
 /** X.58: only the original 17+1 authored receptacle contents.
@@ -79,7 +79,7 @@ struct FGridEditorNativeInitialContentPlan
             {
                 ++Plan.Rows;
                 FGridResolvedItem Physical;
-                if (Item.Quantity < 1 || !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+                if (Item.Quantity < 1 || !FGridEditorItemLevelPolicy::CanAuthorItemLevel(
                         Registry, Item.CanonicalItemId, Item.ItemLevel) ||
                     !Registry->ResolveItem(Item.CanonicalItemId, Item.ItemLevel, Physical) ||
                     !Physical.IsValid() || Physical.ItemId != Item.CanonicalItemId ||

@@ -1,5 +1,5 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
+#include "Runtime/Combat/GridAttackPresentationReadModel.h"
 
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
@@ -301,8 +301,8 @@ bool UGridTurnManagerComponent::ExecuteReactionCounterAttack(int32 CharacterInde
 	Request.OffensiveItemDefinitionId = OffensiveItemDefinitionId;
 	Request.OffensiveEquipmentSlot = OffensiveEquipmentSlot;
 	Request.ActionPointCost = 0;
-	Request.PresentationSource = FGridCanonicalAttackPresentationReadModel::Capture(
-		FGridCanonicalAttackPresentationReadModel::RegistryFor(Inventory), Inventory, CharacterIndex,
+	Request.PresentationSource = FGridAttackPresentationReadModel::Capture(
+		FGridAttackPresentationReadModel::RegistryFor(Inventory), Inventory, CharacterIndex,
 		OffensiveItemDefinitionId, OffensiveEquipmentSlot, Request.AttackId, true);
 
 	++PlayerAttackRequestedBroadcastCount;

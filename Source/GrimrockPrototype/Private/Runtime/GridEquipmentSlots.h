@@ -9,30 +9,30 @@
  * Historical equipment policies exist only in explicit Automation fixtures.
  * Two-handed gear offers one MainHand storage action, reserving OffHand virtually.
  */
-struct FGridCanonicalEquipmentSlotsReadView
+struct FGridEquipmentSlotsView
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	bool bTwoHanded = false;
 	TArray<EGridEquipmentSlot> AllowedSlots;
 };
 
-struct FGridCanonicalEquipmentSlotsReadModel
+struct FGridEquipmentSlots
 {
-	static FGridCanonicalEquipmentSlotsReadView Resolve(
+	static FGridEquipmentSlotsView Resolve(
 		const UGridItemSubsystem* Registry,
 		const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Item)
 	{
-		FGridCanonicalEquipmentSlotsReadView View;
+		FGridEquipmentSlotsView View;
 		if (!Item.IsValid() || Item.ItemDefinitionId.IsNone())
 		{
 			return View;
 		}
 
-		if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+		if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
 		{
-			View.bCanonicalIdentity = true;
+			View.bRegisteredIdentity = true;
 			FGridResolvedItem Canonical;
 			if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical))
 			{

@@ -3,7 +3,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 
 // Reserved puzzle-only metadata; does not confer equipment or action permissions.
-namespace GridCanonicalPuzzleCategoryTags
+namespace GridPuzzleCategoryTags
 {
     inline bool IsReserved(FName Tag)
     {

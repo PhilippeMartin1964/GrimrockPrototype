@@ -4,7 +4,7 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/Package.h"
 #include "UObject/StrongObjectPtr.h"
@@ -48,7 +48,7 @@ bool FGridClean064X81RealLockAudit::RunTest(const FString&)
             !TestEqual(TEXT("Exact Copper/Iron key ID"),
                 Rule.AcceptedKeyIds[0], ExpectedIds[Index]) ||
             !TestTrue(TEXT("Lock key registered in canonical system"),
-                Registry->HasCanonicalItem(ExpectedIds[Index])))
+                Registry->ContainsItem(ExpectedIds[Index])))
             return false;
 
         if (!TestEqual(TEXT("Read-only lock package"),

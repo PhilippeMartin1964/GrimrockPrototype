@@ -6,7 +6,7 @@
 class URPGSkillAsset;
 
 /** Définition Editor-only de l'identité et de la mécanique canonique d'une compétence. */
-struct GRIMROCKPROTOTYPEEDITOR_API FRPGCanonicalSkillDefinition
+struct GRIMROCKPROTOTYPEEDITOR_API FRPGSkillDefinition
 {
 	FName SkillId = NAME_None;
 	ERPGSkillGoverningAttribute GoverningAttribute = ERPGSkillGoverningAttribute::None;
@@ -25,9 +25,9 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGSkillCatalogAuthoring
 	static const TCHAR* ProductionFolder();
 
 	/** Retourne les 25 compétences canoniques dans l'ordre de la spécification. */
-	static void GetCanonicalDefinitions(TArray<FRPGCanonicalSkillDefinition>& OutDefinitions);
+	static void GetCanonicalDefinitions(TArray<FRPGSkillDefinition>& OutDefinitions);
 
-	static bool TryGetCanonicalDefinition(FName SkillId, FRPGCanonicalSkillDefinition& OutDefinition);
+	static bool TryGetCanonicalDefinition(FName SkillId, FRPGSkillDefinition& OutDefinition);
 	static bool ValidateCanonicalCatalog(FString& OutError);
 
 	/**
@@ -35,10 +35,10 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGSkillCatalogAuthoring
 	 * Un DisplayName déjà sérialisé pour le même SkillId est préservé exactement.
 	 * Description et RequirementGrants sont également préservés.
 	 */
-	static void ConfigureSkill(URPGSkillAsset& SkillAsset, const FRPGCanonicalSkillDefinition& Definition);
+	static void ConfigureSkill(URPGSkillAsset& SkillAsset, const FRPGSkillDefinition& Definition);
 
 	/** Vérifie uniquement l'identité et les champs mécaniques canoniques, jamais le texte authored. */
-	static bool IsCanonicalSkill(const URPGSkillAsset& SkillAsset, const FRPGCanonicalSkillDefinition& Definition);
+	static bool IsCanonicalSkill(const URPGSkillAsset& SkillAsset, const FRPGSkillDefinition& Definition);
 
 	/** Cree/actualise les Skills canoniques. OnlySkillId limite l'ecriture a un seul DataAsset. */
 	static bool AuthorProductionAssets(FString& OutError, FName OnlySkillId = NAME_None);

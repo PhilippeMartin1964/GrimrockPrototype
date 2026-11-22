@@ -45,7 +45,7 @@ bool FGridClean062LProductionItems::RunTest(const FString&)
     TestEqual(TEXT("22 unique item IDs"), IDs.Num(), 22);
     TestEqual(TEXT("22 unique archetypes"), Archetypes.Num(), 22);
     TArray<FName> All;
-    Fixture.Registry->GetCanonicalItemIds(All);
+    Fixture.Registry->GetItemIds(All);
     TestEqual(TEXT("Root remains the single 48-item source"), All.Num(), 48);
     return !HasAnyErrors();
 }

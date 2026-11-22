@@ -78,7 +78,7 @@ namespace ARMCLEAN063BC
         bool Ready() const
         {
             return Runtime && Registry && Runtime->IsWalkableCell(1, 1) &&
-                Registry->HasCanonicalItem(TEXT("Item_Arrows_01"));
+                Registry->ContainsItem(TEXT("Item_Arrows_01"));
         }
 
         FGridItemInstance Arrow() const

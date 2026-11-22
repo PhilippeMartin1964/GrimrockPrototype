@@ -6,7 +6,7 @@
 /** Read-only loot validation and metadata projection from ItemSystem. */
 struct FGridLootStaticMetadataReadView
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	FText DisplayName;
 	float UnitWeightKg = 0.0f;
@@ -19,11 +19,11 @@ struct FGridLootStaticMetadataReadModel
 		const FGridItemInstance& Instance)
 	{
 		FGridLootStaticMetadataReadView Result;
-		if (!Instance.IsValid() || !IsValid(Registry) || !Registry->HasCanonicalItem(Instance.ItemDefinitionId))
+		if (!Instance.IsValid() || !IsValid(Registry) || !Registry->ContainsItem(Instance.ItemDefinitionId))
 		{
 			return Result;
 		}
-		Result.bCanonicalIdentity = true;
+		Result.bRegisteredIdentity = true;
 		FGridResolvedItem Canonical;
 		if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) ||
 			!Canonical.IsValid() || !FMath::IsFinite(Canonical.WeightKg) || Canonical.WeightKg < 0.0f)

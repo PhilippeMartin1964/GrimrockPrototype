@@ -6,7 +6,7 @@
  * authorize equipment, throwing, combat, crafting or item consumption.
  * These names are intentionally disjoint from old gameplay tags.
  */
-namespace GridCanonicalInventoryCategoryTags
+namespace GridInventoryCategoryTags
 {
     inline FName Weapon() { return FName(TEXT("InventoryCategory.Weapon")); }
     inline FName Food() { return FName(TEXT("InventoryCategory.Food")); }

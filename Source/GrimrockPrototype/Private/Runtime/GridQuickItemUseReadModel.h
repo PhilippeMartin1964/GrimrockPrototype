@@ -2,7 +2,7 @@
 
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
+#include "Runtime/Items/GridPuzzleCategoryTags.h"
 
 /**
  * ARM-CLEAN06.3AX/AY/AZ/BA: strictly project one authored
@@ -13,15 +13,15 @@
  * must be extended and content converted before an AP cost can be charged.
  * Reject other kinds/effects instead of inventing an execution policy.
  */
-struct FGridCanonicalQuickItemUseReadView
+struct FGridQuickItemUseReadView
 {
-    bool bCanonicalIdentity = false;
+    bool bRegisteredIdentity = false;
     bool bResolved = false;
     bool bExplorationCompatible = false;
     FGridCombatActionDefinition Action;
 };
 
-struct FGridCanonicalQuickItemUseReadModel
+struct FGridQuickItemUseReadModel
 {
     static bool TryProjectSingleHeal(
         const FGridResolvedItem& Item, const FGridResolvedBoundAction& Bound,
@@ -53,7 +53,7 @@ struct FGridCanonicalQuickItemUseReadModel
         Candidate.Icon = Item.ItemIcon;
         Candidate.ActionType = EGridCombatActionType::Ability;
         Candidate.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-        Candidate.SourceTags = GridCanonicalPuzzleCategoryTags::WithoutReserved(Item.Tags);
+        Candidate.SourceTags = GridPuzzleCategoryTags::WithoutReserved(Item.Tags);
         Candidate.TargetingPolicy = Bound.Action.Targeting;
         Candidate.MaximumResolvedTargets = 1;
         Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
@@ -103,7 +103,7 @@ struct FGridCanonicalQuickItemUseReadModel
         Candidate.Icon = Item.ItemIcon;
         Candidate.ActionType = EGridCombatActionType::Ability;
         Candidate.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-        Candidate.SourceTags = GridCanonicalPuzzleCategoryTags::WithoutReserved(Item.Tags);
+        Candidate.SourceTags = GridPuzzleCategoryTags::WithoutReserved(Item.Tags);
         Candidate.TargetingPolicy = Bound.Action.Targeting;
         Candidate.MaximumResolvedTargets = 1;
         Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
@@ -165,7 +165,7 @@ struct FGridCanonicalQuickItemUseReadModel
         Candidate.Icon = Item.ItemIcon;
         Candidate.ActionType = EGridCombatActionType::Ability;
         Candidate.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-        Candidate.SourceTags = GridCanonicalPuzzleCategoryTags::WithoutReserved(Item.Tags);
+        Candidate.SourceTags = GridPuzzleCategoryTags::WithoutReserved(Item.Tags);
         Candidate.TargetingPolicy = Bound.Action.Targeting;
         Candidate.MaximumResolvedTargets = 1;
         Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
@@ -191,13 +191,13 @@ struct FGridCanonicalQuickItemUseReadModel
         return true;
     }
 
-    static FGridCanonicalQuickItemUseReadView Resolve(
+    static FGridQuickItemUseReadView Resolve(
         const UGridItemSubsystem* Registry, const FGridItemInstance& Instance)
     {
-        FGridCanonicalQuickItemUseReadView Out;
-        Out.bCanonicalIdentity = Registry &&
-            Registry->HasCanonicalItem(Instance.ItemDefinitionId);
-        if (!Out.bCanonicalIdentity || !Instance.IsValid())
+        FGridQuickItemUseReadView Out;
+        Out.bRegisteredIdentity = Registry &&
+            Registry->ContainsItem(Instance.ItemDefinitionId);
+        if (!Out.bRegisteredIdentity || !Instance.IsValid())
         {
             return Out;
         }

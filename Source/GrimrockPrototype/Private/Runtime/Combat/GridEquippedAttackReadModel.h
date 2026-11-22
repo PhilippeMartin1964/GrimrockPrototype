@@ -1,19 +1,19 @@
 #pragma once
 
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "GridCanonicalActionIconReadModel.h"
+#include "GridActionIconReadModel.h"
 
 /** Shared transient transport for one physically equipped canonical attack.
  * No legacy definition, catalogue, SaveGame write or implicit N1 fallback.
  */
-struct FGridCanonicalEquippedAttackReadModel
+struct FGridEquippedAttackReadModel
 {
 	static bool TryResolve(const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Item, EGridEquipmentSlot Hand,
 		FName ActionId, FGridCombatActionDefinition& OutAction)
 	{
 		OutAction = FGridCombatActionDefinition();
-		if (!IsValid(Registry) || !Registry->HasCanonicalItem(Item.ItemDefinitionId)) return false;
+		if (!IsValid(Registry) || !Registry->ContainsItem(Item.ItemDefinitionId)) return false;
 		FGridResolvedItem Resolved;
 		if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) ||
 			!Resolved.bIsArmament || !Resolved.Weapon.HasAttackSourceInHand(Hand)) return false;
@@ -35,7 +35,7 @@ struct FGridCanonicalEquippedAttackReadModel
 		Action.TargetingPolicy = Bound.Action.Targeting;
 		Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
 		Action.Icon = Registry->FindEquippedActionIcon(
-			FGridCanonicalActionIconReadModel::Classify(Resolved, Action));
+			FGridActionIconReadModel::Classify(Resolved, Action));
 		Action.ActionPointCost = Resolved.Weapon.ActionPointCost;
 		Action.RangeCells = Resolved.Weapon.RangeCells;
 		Action.bRequiresLineOfSight = Bound.Action.bRequiresLineOfSight;

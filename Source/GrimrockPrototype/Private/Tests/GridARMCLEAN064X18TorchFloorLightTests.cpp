@@ -20,7 +20,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
+#include "Runtime/Items/GridWorldSnapshotReadModel.h"
 
 namespace ARMCLEAN064X18
 {
@@ -130,7 +130,7 @@ bool FGridClean064X18TorchFloorLightState::RunTest(const FString&)
         !TestNotNull(TEXT("Inventory"), F.Inventory) ||
         !TestNotNull(TEXT("Canonical registry"), F.Registry) ||
         !TestTrue(TEXT("Torch exists in canonical registry"),
-            F.Registry && F.Registry->HasCanonicalItem(TorchId)))
+            F.Registry && F.Registry->ContainsItem(TorchId)))
         return false;
 
     FGridResolvedItem Definition;
@@ -288,7 +288,7 @@ bool FGridClean064X1610WorldRestore::RunTest(const FString&)
 {
     ARMCLEAN064X18::FFixture F;
     if (!TestTrue(TEXT("Runtime registry has canonical torch"),
-            F.Runtime && F.Registry && F.Registry->HasCanonicalItem(ARMCLEAN064X1610::TorchId)))
+            F.Runtime && F.Registry && F.Registry->ContainsItem(ARMCLEAN064X1610::TorchId)))
         return false;
     FGridResolvedItem Projected;
     if (!TestTrue(TEXT("Torch N0 resolves"), F.Registry->ResolveItem(
@@ -331,7 +331,7 @@ bool FGridClean064X1610ReceptacleRestore::RunTest(const FString&)
 {
     ARMCLEAN064X18::FFixture F;
     if (!TestTrue(TEXT("Runtime registry has canonical torch"),
-            F.Runtime && F.Registry && F.Registry->HasCanonicalItem(ARMCLEAN064X1610::TorchId)))
+            F.Runtime && F.Registry && F.Registry->ContainsItem(ARMCLEAN064X1610::TorchId)))
         return false;
     FGridResolvedItem Projected;
     if (!TestTrue(TEXT("Torch N0 resolves"), F.Registry->ResolveItem(
@@ -404,7 +404,7 @@ bool FGridClean5G34WorldPreflight::RunTest(const FString&)
     const int32 BeforeCount = State->Items.Num();
     FString Error;
     TestTrue(TEXT("Complete valid snapshot preflights"),
-        FGridCanonicalWorldSnapshotReadModel::ValidateLevel(F.Registry, *State, Error));
+        FGridWorldSnapshotReadModel::ValidateLevel(F.Registry, *State, Error));
     State->Items[TorchGuid].ItemLevel = 1;
     State->Items[TorchGuid].Transform.SetLocation(FVector(9999.f, 9999.f, 9999.f));
     TestFalse(TEXT("Invalid N1 torch rejects before touching actors"), F.Runtime->ApplyCurrentLevelRuntimeState());
@@ -423,13 +423,13 @@ bool FGridClean5G34WorldPreflight::RunTest(const FString&)
     Pending.ItemState = Torch;
     State->PendingInboundItems.Add(TorchGuid, Pending);
     TestFalse(TEXT("Pending duplicate of a ground GUID is rejected"),
-        FGridCanonicalWorldSnapshotReadModel::ValidateLevel(F.Registry, *State, Error));
+        FGridWorldSnapshotReadModel::ValidateLevel(F.Registry, *State, Error));
     State->PendingInboundItems.Reset();
     Pending.ItemState.ObjectId = OtherGuid;
     Pending.ItemState.Quantity = 0;
     State->PendingInboundItems.Add(OtherGuid, Pending);
     TestFalse(TEXT("Malformed pending physical item rejected"),
-        FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(F.Registry, F.Runtime->DungeonRuntimeState, Error));
+        FGridWorldSnapshotReadModel::ValidateDungeon(F.Registry, F.Runtime->DungeonRuntimeState, Error));
     State->PendingInboundItems.Reset();
     const FGuid Owner = FGuid::NewGuid();
     FGridRuntimeReceptacleState Contained;
@@ -441,7 +441,7 @@ bool FGridClean5G34WorldPreflight::RunTest(const FString&)
     Contained.ContainedItems.Add(ContainedTorch);
     State->Receptacles.Add(Owner, Contained);
     TestFalse(TEXT("Contained item must identify its actual owner"),
-        FGridCanonicalWorldSnapshotReadModel::ValidateLevel(F.Registry, *State, Error));
+        FGridWorldSnapshotReadModel::ValidateLevel(F.Registry, *State, Error));
     State->Receptacles.Remove(Owner);
     TestEqual(TEXT("Original number of ground items"), State->Items.Num(), BeforeCount);
     TestTrue(TEXT("Corrected snapshot applies"), F.Runtime->ApplyCurrentLevelRuntimeState());

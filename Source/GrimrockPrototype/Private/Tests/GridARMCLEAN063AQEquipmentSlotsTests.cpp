@@ -14,7 +14,7 @@
 #include "UI/GridInventorySlotWidget.h"
 #include "UI/GridEquipmentTooltipGlobalProjection.h"
 #include "UI/UILocalizationText.h"
-#include "../Runtime/GridCanonicalEquipmentSlotsReadModel.h"
+#include "../Runtime/GridEquipmentSlots.h"
 
 namespace ARMCLEAN063AQ
 {
@@ -67,7 +67,7 @@ namespace ARMCLEAN063AQ
 		bool IsReady() const
 		{
 			return World && Pawn && Inventory && Registry &&
-				Registry->HasCanonicalItem(TEXT("Weapon_GreatAxe_01")) &&
+				Registry->ContainsItem(TEXT("Weapon_GreatAxe_01")) &&
 				Inventory->IsValidCharacterIndex(0);
 		}
 	};
@@ -171,17 +171,17 @@ bool FGridClean063AQEquipmentSlots::RunTest(const FString& Stage)
 	const FGridItemInstance AmmoN0 =
 		ARMCLEAN063AQ::MakeItem(Ammo->ItemDefinitionId, 0, CharacterId);
 
-	const FGridCanonicalEquipmentSlotsReadView AxeSlots =
-		FGridCanonicalEquipmentSlotsReadModel::Resolve(Fixture.Registry, Axe, AxeN12);
+	const FGridEquipmentSlotsView AxeSlots =
+		FGridEquipmentSlots::Resolve(Fixture.Registry, Axe, AxeN12);
 	TestTrue(TEXT("Canonical great axe overrides obsolete one-handed flag"),
-		AxeSlots.bCanonicalIdentity && AxeSlots.bResolved && AxeSlots.bTwoHanded);
+		AxeSlots.bRegisteredIdentity && AxeSlots.bResolved && AxeSlots.bTwoHanded);
 	TestEqual(TEXT("Great axe has one physical storage action"), AxeSlots.AllowedSlots.Num(), 1);
 	if (!AxeSlots.AllowedSlots.IsEmpty())
 		TestEqual(TEXT("Two-handed action targets MainHand"), AxeSlots.AllowedSlots[0], EGridEquipmentSlot::MainHand);
 
-	const auto ShieldSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(Fixture.Registry, Shield, ShieldN20);
+	const auto ShieldSlots = FGridEquipmentSlots::Resolve(Fixture.Registry, Shield, ShieldN20);
 	TestTrue(TEXT("Canonical shield is not two-handed despite its old asset"),
-		ShieldSlots.bCanonicalIdentity && ShieldSlots.bResolved && !ShieldSlots.bTwoHanded);
+		ShieldSlots.bRegisteredIdentity && ShieldSlots.bResolved && !ShieldSlots.bTwoHanded);
 	TestEqual(TEXT("Canonical shield has just one allowed hand"), ShieldSlots.AllowedSlots.Num(), 1);
 	if (!ShieldSlots.AllowedSlots.IsEmpty())
 		TestEqual(TEXT("Shield is OffHand-only"), ShieldSlots.AllowedSlots[0], EGridEquipmentSlot::OffHand);
@@ -189,8 +189,8 @@ bool FGridClean063AQEquipmentSlots::RunTest(const FString& Stage)
 	FGridResolvedItem RealSword;
 	if (!TestTrue(TEXT("Real sword N4 resolves"), Fixture.Registry->ResolveItem(
 		SwordN4.ItemDefinitionId, SwordN4.ItemLevel, RealSword))) return false;
-	const auto SwordSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(Fixture.Registry, Sword, SwordN4);
-	TestTrue(TEXT("Sword hand policy comes from canonical root"), SwordSlots.bCanonicalIdentity && SwordSlots.bResolved);
+	const auto SwordSlots = FGridEquipmentSlots::Resolve(Fixture.Registry, Sword, SwordN4);
+	TestTrue(TEXT("Sword hand policy comes from canonical root"), SwordSlots.bRegisteredIdentity && SwordSlots.bResolved);
 	TestFalse(TEXT("One-hand sword is not mislabeled two hands"), SwordSlots.bTwoHanded);
 	TestEqual(TEXT("Sword MainHand follows canonical policy"),
 		SwordSlots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand),
@@ -200,14 +200,14 @@ bool FGridClean063AQEquipmentSlots::RunTest(const FString& Stage)
 		RealSword.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand));
 	TestFalse(TEXT("Old Head slot never leaks into registered ARM"), SwordSlots.AllowedSlots.Contains(EGridEquipmentSlot::Head));
 
-	const auto AmmoSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(Fixture.Registry, Ammo, AmmoN0);
+	const auto AmmoSlots = FGridEquipmentSlots::Resolve(Fixture.Registry, Ammo, AmmoN0);
 	TestTrue(TEXT("Registered ammo N0 is resolved as non-armament"),
-		AmmoSlots.bCanonicalIdentity && AmmoSlots.bResolved);
+		AmmoSlots.bRegisteredIdentity && AmmoSlots.bResolved);
 	TestTrue(TEXT("Ammo cannot become wearable via stale old flags"), AmmoSlots.AllowedSlots.IsEmpty());
 	FGridItemInstance InvalidAxe = AxeN12;
 	InvalidAxe.ItemLevel = 0;
-	const auto InvalidSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(Fixture.Registry, Axe, InvalidAxe);
-	TestTrue(TEXT("Invalid ARM N0 is still a known identity"), InvalidSlots.bCanonicalIdentity);
+	const auto InvalidSlots = FGridEquipmentSlots::Resolve(Fixture.Registry, Axe, InvalidAxe);
+	TestTrue(TEXT("Invalid ARM N0 is still a known identity"), InvalidSlots.bRegisteredIdentity);
 	TestFalse(TEXT("Registered ARM N0 cannot fall back to old slots"), InvalidSlots.bResolved);
 	TestTrue(TEXT("Registered ARM N0 has no actions"), InvalidSlots.AllowedSlots.IsEmpty());
 
@@ -218,11 +218,11 @@ bool FGridClean063AQEquipmentSlots::RunTest(const FString& Stage)
 		EGridItemHandUsage::OneHanded, EGridEquipmentSlot::Head);
 	FGridItemInstance LegacyItem =
 		ARMCLEAN063AQ::MakeItem(Legacy->ItemDefinitionId, 0, CharacterId);
-	const auto OldSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(Fixture.Registry, Legacy, LegacyItem);
-	TestFalse(TEXT("Unknown ID remains outside canonical registry"), OldSlots.bCanonicalIdentity);
+	const auto OldSlots = FGridEquipmentSlots::Resolve(Fixture.Registry, Legacy, LegacyItem);
+	TestFalse(TEXT("Unknown ID remains outside canonical registry"), OldSlots.bRegisteredIdentity);
 	TestFalse(TEXT("Configured registry forbids unknown legacy equipment"), OldSlots.bResolved);
 	TestTrue(TEXT("Unknown ID has no menu/tooltip slot grants"), OldSlots.AllowedSlots.IsEmpty());
-	const auto IsolatedFixtureSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(nullptr, Legacy, LegacyItem);
+	const auto IsolatedFixtureSlots = FGridEquipmentSlots::Resolve(nullptr, Legacy, LegacyItem);
 	TestTrue(TEXT("Registry-less Automation fixture retains old slot characterization"),
 		IsolatedFixtureSlots.bResolved &&
 		IsolatedFixtureSlots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand) &&

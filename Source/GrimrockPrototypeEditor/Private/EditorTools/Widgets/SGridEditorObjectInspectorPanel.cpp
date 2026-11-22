@@ -16,10 +16,10 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
-#include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
-#include "EditorTools/GridEditorCanonicalLockRuleAuthoring.h"
-#include "EditorTools/GridEditorCanonicalReceptacleInitialAuthoring.h"
+#include "EditorTools/GridEditorItemLevelPolicy.h"
+#include "EditorTools/GridEditorReceptacleRuleAuthoring.h"
+#include "EditorTools/GridEditorLockRuleAuthoring.h"
+#include "EditorTools/GridEditorReceptacleInitialAuthoring.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "NiagaraSystem.h"
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
@@ -1309,7 +1309,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 	const FName CanonicalId = LooseItem ? LooseItem->CanonicalItemId : ItemSpawn->CanonicalItemId;
 	const int32 PhysicalLevel = LooseItem ? LooseItem->ItemLevel : ItemSpawn->ItemLevel;
 	const bool bCanonicalArm = !CanonicalId.IsNone() &&
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+		FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 			CurrentEditorActor->ResolveEditorItemRegistry(), CanonicalId, 1);
 
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
@@ -1570,7 +1570,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 									if (!Object || !Object->InstanceConfig.InteractionOverrides.ReceptacleRules.AcceptedItems.IsValidIndex(Index)) return;
 									const auto& Current = Object->InstanceConfig.InteractionOverrides.ReceptacleRules.AcceptedItems[Index];
 									FGridReceptacleAcceptedItemConfig Proposed = Current;
-									if (!FGridEditorCanonicalReceptacleRuleAuthoring::TrySelectCanonicalId(
+									if (!FGridEditorReceptacleRuleAuthoring::TrySelectCanonicalId(
 										EditorActor->ResolveEditorItemRegistry(), GetNameFromEditorText(NewText), Proposed) ||
 										Current.CanonicalItemId == Proposed.CanonicalItemId)
 									{
@@ -1644,7 +1644,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 							if (!Object || !Object->InstanceConfig.ReceptacleInitialContent.IsValidIndex(InitialIndex)) return;
 							const FGridReceptacleInitialItemConfig& Current = Object->InstanceConfig.ReceptacleInitialContent[InitialIndex];
 							FGridReceptacleInitialItemConfig Proposed = Current;
-							if (!FGridEditorCanonicalReceptacleInitialAuthoring::TrySelectCanonicalId(
+							if (!FGridEditorReceptacleInitialAuthoring::TrySelectCanonicalId(
 								EditorActor->ResolveEditorItemRegistry(), GetNameFromEditorText(NewText), Proposed) ||
 								(Current.CanonicalItemId == Proposed.CanonicalItemId &&
 								 Current.ItemLevel == Proposed.ItemLevel))
@@ -1684,7 +1684,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 							const FGridWorldObjectInstance* Object = Level
 								? Level->FindWorldObjectInstanceById(ObjectId) : nullptr;
 							return Object && Object->InstanceConfig.ReceptacleInitialContent.IsValidIndex(InitialIndex) &&
-								FGridEditorCanonicalReceptacleInitialAuthoring::IsLevelEditable(
+								FGridEditorReceptacleInitialAuthoring::IsLevelEditable(
 									Editor->ResolveEditorItemRegistry(), Object->InstanceConfig.ReceptacleInitialContent[InitialIndex]);
 						})
 						.Value(InitialItem.ItemLevel)
@@ -1700,7 +1700,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 							if (!Object || !Object->InstanceConfig.ReceptacleInitialContent.IsValidIndex(InitialIndex)) return;
 							FGridReceptacleInitialItemConfig Proposed = Object->InstanceConfig.ReceptacleInitialContent[InitialIndex];
 							if (Proposed.ItemLevel == NewValue ||
-								!FGridEditorCanonicalReceptacleInitialAuthoring::TrySetLevel(Registry, NewValue, Proposed))
+								!FGridEditorReceptacleInitialAuthoring::TrySetLevel(Registry, NewValue, Proposed))
 							{
 								RequestRefresh();
 								return;
@@ -1759,7 +1759,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 						AGridLevelEditorActor* EditorActor = GetEditorActor();
 						const UGridItemSubsystem* Registry = EditorActor
 							? EditorActor->ResolveEditorItemRegistry() : nullptr;
-						if (!FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(
+						if (!FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(
 							Registry, DefaultReceptacle.AcceptedItems, CanonicalRules))
 						{
 							UE_LOG(LogTemp, Warning, TEXT("Receptacle override refused: invalid ItemSystem or source."));
@@ -1939,7 +1939,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLockBehaviorSection(FG
 						AGridLevelEditorActor* EditorActor = GetEditorActor();
 						const UGridItemSubsystem* Registry = EditorActor
 							? EditorActor->ResolveEditorItemRegistry() : nullptr;
-						if (!FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(
+						if (!FGridEditorLockRuleAuthoring::TryCopyDefaults(
 							Registry, DefaultLock, CanonicalKeys))
 						{
 							UE_LOG(LogTemp, Warning, TEXT("Lock override refused: unable to materialize the existing accepted key set."));

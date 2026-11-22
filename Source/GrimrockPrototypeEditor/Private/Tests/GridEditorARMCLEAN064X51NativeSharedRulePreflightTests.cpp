@@ -2,10 +2,10 @@
 
 #include "Misc/AutomationTest.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
+#include "EditorTools/GridEditorReceptacleRuleAuthoring.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/Package.h"
 #include "UObject/StrongObjectPtr.h"
@@ -60,7 +60,7 @@ bool FGridEditorARMCLEAN064X51NativeSharedRules::RunTest(const FString&)
             !TestEqual(TEXT("Canonical accepted ItemId is authored"),
                 Source.AcceptedItems[0].CanonicalItemId, ReceptacleIds[Index]) ||
             !TestTrue(TEXT("Accepted real ItemId belongs to ItemSystem"),
-                Registry->HasCanonicalItem(ReceptacleIds[Index])))
+                Registry->ContainsItem(ReceptacleIds[Index])))
             return false;
         TStrongObjectPtr<UGridWorldObjectDefinitionAsset> Copy(
             DuplicateObject<UGridWorldObjectDefinitionAsset>(
@@ -70,7 +70,7 @@ bool FGridEditorARMCLEAN064X51NativeSharedRules::RunTest(const FString&)
         const FGridReceptacleBehaviorParams& After = Copy->DefaultBehavior.Receptacle;
         TArray<FGridReceptacleAcceptedItemConfig> Preview;
         if (!TestTrue(TEXT("Explicit rule remains authorable"),
-            FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(
+            FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(
                 Registry.Get(), After.AcceptedItems, Preview)) ||
             !TestEqual(TEXT("Exactly one pointerless canonical rule"), Preview.Num(), 1) ||
             !TestEqual(TEXT("Physical acceptance ItemId unchanged"),
@@ -100,7 +100,7 @@ bool FGridEditorARMCLEAN064X51NativeSharedRules::RunTest(const FString&)
             !TestEqual(TEXT("Native canonical key identity"),
                 Source.AcceptedKeyIds[0], KeyIds[Index]) ||
             !TestTrue(TEXT("Accepted key remains registered"),
-                Registry->HasCanonicalItem(KeyIds[Index])))
+                Registry->ContainsItem(KeyIds[Index])))
             return false;
         TStrongObjectPtr<UGridWorldObjectDefinitionAsset> Copy(
             DuplicateObject<UGridWorldObjectDefinitionAsset>(

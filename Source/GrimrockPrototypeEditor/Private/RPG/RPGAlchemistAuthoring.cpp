@@ -832,7 +832,7 @@ bool FRPGAlchemistAuthoring::PlanUnregisteredItems(const UGridItemSubsystem& Reg
 {
     OutItemIds.Reset();
     OutError.Reset();
-    if (!Registry.IsConfigured() || !Registry.HasCanonicalItem(TEXT("Item_Flask_Oil")))
+    if (!Registry.IsConfigured() || !Registry.ContainsItem(TEXT("Item_Flask_Oil")))
     {
         OutError = TEXT("Canonical Oil/root must be available before legacy alchemy authoring.");
         return false;
@@ -850,7 +850,7 @@ bool FRPGAlchemistAuthoring::PlanUnregisteredItems(const UGridItemSubsystem& Reg
             return false;
         }
         Seen.Add(Id);
-        if (!Registry.HasCanonicalItem(Id))
+        if (!Registry.ContainsItem(Id))
         {
             Pending.Add(Id);
             continue;

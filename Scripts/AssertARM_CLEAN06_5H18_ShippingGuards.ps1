@@ -6,7 +6,7 @@ $ErrorActionPreference='Stop'
 $Root=Split-Path -Parent $PSScriptRoot
 $Models=@(
     @{ path='Source/GrimrockPrototype/Private/Runtime/Combat/GridEquippedGuardItemReadModel.h'; returns='View'; legacy='LegacyDefinition' },
-    @{ path='Source/GrimrockPrototype/Private/Runtime/GridCanonicalItemInteractionReadModel.h'; returns='Out'; legacy='OldDefinition' },
+    @{ path='Source/GrimrockPrototype/Private/Runtime/GridItemInteractionReadModel.h'; returns='Out'; legacy='OldDefinition' },
     @{ path='Source/GrimrockPrototype/Private/RPG/GridStartingKitEquipmentPolicyReadModel.h'; returns='View'; legacy='LegacyDefinition' },
     @{ path='Source/GrimrockPrototype/Private/Runtime/GridReceptacleItemMetadataReadModel.h'; returns='View'; legacy='LegacyDefinition' }
 )

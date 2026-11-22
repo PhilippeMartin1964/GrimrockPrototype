@@ -5,7 +5,7 @@
 #include "../ARMEMENT/GridEditorInstanceCacheEvidence.h"
 #include "Serialization/MemoryWriter.h"
 #include "../ARMEMENT/GridEditorInstanceSchemaProjection.h"
-#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
+#include "Runtime/Items/GridWorldSnapshotReadModel.h"
 #include "../ARMEMENT/GridEditorAlchemySaveCopy.h"
 #include "../ARMEMENT/GridEditorWorldSaveProjection.h"
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN065NativeAudit,
@@ -208,7 +208,7 @@ bool FGridEditorARMCLEAN065G85WorldPreflight::RunTest(const FString&)
     Level.PendingInboundItems.Add(Pending.ItemState.ObjectId, Pending);
     FString Error;
     TestTrue(TEXT("Canonical world preflight accepts actual physical identities"),
-        FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(Registry.Get(), Save->DungeonRuntimeState, Error));
+        FGridWorldSnapshotReadModel::ValidateDungeon(Registry.Get(), Save->DungeonRuntimeState, Error));
     TArray<uint8> Bytes;
     if (!TestTrue(TEXT("Transient archive encodes"), GridEditorAlchemySaveCopy::EncodeChecked(*Save.Get(), Bytes, Error))) return false;
     // The parity helper explicitly compares objects originating from UE
@@ -233,7 +233,7 @@ bool FGridEditorARMCLEAN065G85WorldPreflight::RunTest(const FString&)
     TestFalse(TEXT("Physical level change alters the projection"), Projection ==
         GridEditorWorldSaveProjection::Build(Expected->DungeonRuntimeState));
     TestFalse(TEXT("Invalid non-ARM level refuses preflight"),
-        FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(Registry.Get(), Expected->DungeonRuntimeState, Error));
+        FGridWorldSnapshotReadModel::ValidateDungeon(Registry.Get(), Expected->DungeonRuntimeState, Error));
     return !HasAnyErrors();
 }
 

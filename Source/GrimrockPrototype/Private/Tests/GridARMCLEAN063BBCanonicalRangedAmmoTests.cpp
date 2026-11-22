@@ -76,8 +76,8 @@ namespace ARMCLEAN063BB
         bool Ready() const
         {
             return Registry && Inventory &&
-                Registry->HasCanonicalItem(TEXT("Weapon_ShortBow_01")) &&
-                Registry->HasCanonicalItem(TEXT("Item_Arrows_01"));
+                Registry->ContainsItem(TEXT("Weapon_ShortBow_01")) &&
+                Registry->ContainsItem(TEXT("Item_Arrows_01"));
         }
 
         FGridRangedAmmunitionRequirement Resolve(

@@ -40,7 +40,7 @@ FGridRangedAmmunitionRequirement FGridRangedAmmunitionPolicy::ResolveForAttack(
 		Result.bValid = true; // Melee actions do not require or consume arrows.
 		return Result;
 	}
-	if (IsValid(Registry) && Registry->HasCanonicalItem(WeaponItemId))
+	if (IsValid(Registry) && Registry->ContainsItem(WeaponItemId))
 	{
 		Result.bCanonicalSource = true;
 		FGridResolvedItem Weapon;

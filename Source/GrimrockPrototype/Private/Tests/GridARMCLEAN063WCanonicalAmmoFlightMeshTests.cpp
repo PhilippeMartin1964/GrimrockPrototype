@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "../Runtime/GridCanonicalProjectileVisualReadModel.h"
+#include "../Runtime/GridProjectileVisuals.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -31,9 +31,9 @@ bool FGridClean063WAmmoFlightMesh::RunTest(const FString&)
 	FGridResolvedItem Canonical;
 	if (!TestTrue(TEXT("Production arrow resolves at real N0"),
 		Registry->ResolveItem(Arrow.ItemDefinitionId, Arrow.ItemLevel, Canonical))) return false;
-	const FGridCanonicalProjectileVisualReadView Flight =
-		FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Arrow);
-	TestTrue(TEXT("Ammo is registered"), Flight.bCanonicalIdentity);
+	const FGridProjectileVisualView Flight =
+		FGridProjectileVisuals::Resolve(Registry.Get(), Arrow);
+	TestTrue(TEXT("Ammo is registered"), Flight.bRegisteredIdentity);
 	TestTrue(TEXT("Ammo N0 is a real resolved item"), Flight.bResolved);
 	TestTrue(TEXT("Arrow is classified as ammo without synthetic ARM actions"), Flight.bIsAmmunition);
 	TestFalse(TEXT("Arrows do not invent a dedicated weapon projectile animation"), Flight.bHasProjectileVisual);
@@ -45,23 +45,23 @@ bool FGridClean063WAmmoFlightMesh::RunTest(const FString&)
 	FGridResolvedItem LegacyFamilyRead;
 	TestFalse(TEXT("Registry rejects former non-ARM N1 family alias"),
 		Registry->ResolveItem(Arrow.ItemDefinitionId, Arrow.ItemLevel, LegacyFamilyRead));
-	const FGridCanonicalProjectileVisualReadView InvalidPhysical =
-		FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Arrow);
-	TestTrue(TEXT("Non-ARM N1 keeps canonical membership"), InvalidPhysical.bCanonicalIdentity);
+	const FGridProjectileVisualView InvalidPhysical =
+		FGridProjectileVisuals::Resolve(Registry.Get(), Arrow);
+	TestTrue(TEXT("Non-ARM N1 keeps canonical membership"), InvalidPhysical.bRegisteredIdentity);
 	TestFalse(TEXT("Non-ARM N1 is not a physical ammo flight"), InvalidPhysical.bResolved);
 	TestFalse(TEXT("Invalid flight cannot classify ammunition"), InvalidPhysical.bIsAmmunition);
 	TestTrue(TEXT("Invalid N1 flight has no canonical mesh"), InvalidPhysical.WorldMesh.IsNull());
 	Arrow.ItemLevel = -1;
-	const FGridCanonicalProjectileVisualReadView Invalid =
-		FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Arrow);
-	TestTrue(TEXT("Invalid known arrow retains canonical membership"), Invalid.bCanonicalIdentity);
+	const FGridProjectileVisualView Invalid =
+		FGridProjectileVisuals::Resolve(Registry.Get(), Arrow);
+	TestTrue(TEXT("Invalid known arrow retains canonical membership"), Invalid.bRegisteredIdentity);
 	TestFalse(TEXT("Invalid known arrow may not use old mesh"), Invalid.bResolved);
 	TestTrue(TEXT("Invalid arrow mesh is cleared"), Invalid.WorldMesh.IsNull());
 	Arrow.ItemLevel = 0;
 	Arrow.RuntimeObjectId = FGuid();
-	const FGridCanonicalProjectileVisualReadView BadGuid =
-		FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Arrow);
-	TestTrue(TEXT("Missing GUID still classifies known ammo as canonical"), BadGuid.bCanonicalIdentity);
+	const FGridProjectileVisualView BadGuid =
+		FGridProjectileVisuals::Resolve(Registry.Get(), Arrow);
+	TestTrue(TEXT("Missing GUID still classifies known ammo as canonical"), BadGuid.bRegisteredIdentity);
 	TestFalse(TEXT("Missing GUID never resolves a mesh"), BadGuid.bResolved);
 	TestTrue(TEXT("Missing GUID cannot display an obsolete mesh"), BadGuid.WorldMesh.IsNull());
 	FGridItemInstance Unregistered;
@@ -69,7 +69,7 @@ bool FGridClean063WAmmoFlightMesh::RunTest(const FString&)
 	Unregistered.ItemDefinitionId = TEXT("UnregisteredArrow_063W");
 	Unregistered.Quantity = 1;
 	TestFalse(TEXT("Unregistered ammo keeps old flight path"),
-		FGridCanonicalProjectileVisualReadModel::Resolve(Registry.Get(), Unregistered).bCanonicalIdentity);
+		FGridProjectileVisuals::Resolve(Registry.Get(), Unregistered).bRegisteredIdentity);
 	return true;
 }
 

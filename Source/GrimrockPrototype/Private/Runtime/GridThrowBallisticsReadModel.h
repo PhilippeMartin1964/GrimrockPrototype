@@ -4,30 +4,30 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** Transient flight numbers; the strength-to-weight gate remains a separate policy. */
-struct FGridCanonicalThrowBallisticsReadView
+struct FGridThrowBallisticsReadView
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	bool bSpecializedProjectile = false;
 	float InitialSpeed = 0.0f;
 	float Arc = 0.0f;
 };
 
-struct FGridCanonicalThrowBallisticsReadModel
+struct FGridThrowBallisticsReadModel
 {
-	static FGridCanonicalThrowBallisticsReadView Resolve(
+	static FGridThrowBallisticsReadView Resolve(
 		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Instance)
 	{
-		FGridCanonicalThrowBallisticsReadView Out;
+		FGridThrowBallisticsReadView Out;
 		// Membership must be recognized BEFORE IsValid(): an invalid
 		// registered N21 is not an unknown legacy identity.
-		Out.bCanonicalIdentity = Registry && Registry->HasCanonicalItem(Instance.ItemDefinitionId);
+		Out.bRegisteredIdentity = Registry && Registry->ContainsItem(Instance.ItemDefinitionId);
 		if (!Instance.IsValid())
 		{
 			return Out;
 		}
-		if (Out.bCanonicalIdentity)
+		if (Out.bRegisteredIdentity)
 		{
 			FGridResolvedItem Canonical;
 			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) ||

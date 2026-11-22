@@ -49,7 +49,7 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 				Registry->ResolveItem(ArmId, ExpectedLevel, Expected))) return false;
 			const FGridEditorLooseItemPreviewReadView Preview =
 				FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Placement);
-			TestTrue(TEXT("Known placement stays canonical"), Preview.bCanonicalIdentity);
+			TestTrue(TEXT("Known placement stays canonical"), Preview.bRegisteredIdentity);
 			TestTrue(TEXT("Known placement resolves"), Preview.bResolved);
 			TestEqual(TEXT("Preview level mirrors world materialization"), Preview.EffectiveItemLevel, ExpectedLevel);
 			TestEqual(TEXT("Editor preview uses global authored world mesh"),
@@ -60,13 +60,13 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 		}
 		Placement.ItemLevel = 0;
 		const auto Zero = FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Placement);
-		TestTrue(TEXT("N0 remains known canonical"), Zero.bCanonicalIdentity);
+		TestTrue(TEXT("N0 remains known canonical"), Zero.bRegisteredIdentity);
 		TestFalse(TEXT("Editor preview refuses N0 despite old N3 default"), Zero.bResolved);
 		TestTrue(TEXT("N0 has no historical mesh"), Zero.WorldMesh.IsNull());
 		Placement.ItemLevel = 21;
 		const FGridEditorLooseItemPreviewReadView Invalid =
 			FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Placement);
-		TestTrue(TEXT("Registered invalid level stays classified"), Invalid.bCanonicalIdentity);
+		TestTrue(TEXT("Registered invalid level stays classified"), Invalid.bRegisteredIdentity);
 		TestFalse(TEXT("Registered invalid level cannot use old world visual"), Invalid.bResolved);
 		TestTrue(TEXT("Invalid level has no mesh"), Invalid.WorldMesh.IsNull());
 	}
@@ -81,7 +81,7 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 		Registry->ResolveItem(Old->ItemDefinitionId, 0, ExpectedAmmo))) return false;
 	const FGridEditorLooseItemPreviewReadView Ammo =
 		FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);
-	TestTrue(TEXT("Arrow editor preview uses canonical registry"), Ammo.bCanonicalIdentity && Ammo.bResolved);
+	TestTrue(TEXT("Arrow editor preview uses canonical registry"), Ammo.bRegisteredIdentity && Ammo.bResolved);
 	TestEqual(TEXT("Arrow remains level zero"), Ammo.EffectiveItemLevel, 0);
 	TestEqual(TEXT("Arrow preview uses sole ammo mesh"),
 		Ammo.WorldMesh.ToSoftObjectPath().ToString(),
@@ -97,7 +97,7 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 	InvalidDefault.ItemLevel = 0;
 	const FGridEditorLooseItemPreviewReadView BadDefault =
 		FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), InvalidDefault);
-	TestTrue(TEXT("Known invalid default classified canonical"), BadDefault.bCanonicalIdentity);
+	TestTrue(TEXT("Known invalid default classified canonical"), BadDefault.bRegisteredIdentity);
 	TestFalse(TEXT("Known ARM authored N0 without valid default fails"), BadDefault.bResolved);
 	TestTrue(TEXT("Invalid default cannot expose old mesh"), BadDefault.WorldMesh.IsNull());
 	Old->DefaultWeaponItemLevel = 3;
@@ -106,13 +106,13 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 	Arrows.ItemLevel = 1;
 	const FGridEditorLooseItemPreviewReadView InvalidAmmo =
 		FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);
-	TestTrue(TEXT("Invalid ammo level remains classified canonical"), InvalidAmmo.bCanonicalIdentity);
+	TestTrue(TEXT("Invalid ammo level remains classified canonical"), InvalidAmmo.bRegisteredIdentity);
 	TestFalse(TEXT("Non-ARM cannot invent N1 despite transitional registry support"), InvalidAmmo.bResolved);
 	Arrows.ItemLevel = 0;
 	TestNull(TEXT("Legacy pointer is no longer a placement property"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	Arrows.CanonicalItemId = NAME_None;
 	const auto Missing = FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);
-	TestFalse(TEXT("Missing ID is not canonical"), Missing.bCanonicalIdentity);
+	TestFalse(TEXT("Missing ID is not canonical"), Missing.bRegisteredIdentity);
 	TestFalse(TEXT("Missing ID cannot preview"), Missing.bResolved);
 	Arrows.CanonicalItemId = TEXT("LegacyEditorPreview_063Z");
 	TestFalse(TEXT("Unknown ID cannot preview"),

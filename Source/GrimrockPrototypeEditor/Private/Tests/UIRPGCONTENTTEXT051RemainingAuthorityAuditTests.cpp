@@ -78,7 +78,7 @@ bool FUIRPGCONTENTTEXT051RemainingAuthorityAuditTest::RunTest(const FString&)
 	// still owns and reapplies DisplayName from C++ on every authoring pass.
 	// Description is already preserved.
 	// ---------------------------------------------------------------------
-	TArray<FRPGCanonicalSkillDefinition> CanonicalSkills;
+	TArray<FRPGSkillDefinition> CanonicalSkills;
 	FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(CanonicalSkills);
 	TestEqual(TEXT("Remaining-authority audit sees twenty-five canonical Skills"), CanonicalSkills.Num(), 25);
 
@@ -87,7 +87,7 @@ bool FUIRPGCONTENTTEXT051RemainingAuthorityAuditTest::RunTest(const FString&)
 	int32 SkillDisplayNameOverwriteCount = 0;
 	int32 SkillDescriptionPreservedCount = 0;
 
-	for (const FRPGCanonicalSkillDefinition& Definition : CanonicalSkills)
+	for (const FRPGSkillDefinition& Definition : CanonicalSkills)
 	{
 		URPGSkillAsset* Serialized =
 			LoadObject<URPGSkillAsset>(nullptr, *SkillObjectPath(Definition.SkillId));
@@ -308,12 +308,12 @@ bool FUIRPGCONTENTTEXT052SkillTextPreservationTest::RunTest(const FString&)
 {
 	using namespace UIRPGCONTENTTEXT051;
 
-	TArray<FRPGCanonicalSkillDefinition> Definitions;
+	TArray<FRPGSkillDefinition> Definitions;
 	FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(Definitions);
 	TestEqual(TEXT("Skill preservation covers twenty-five canonical definitions"), Definitions.Num(), 25);
 
 	int32 PreservedSkillCount = 0;
-	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
+	for (const FRPGSkillDefinition& Definition : Definitions)
 	{
 		URPGSkillAsset* Serialized =
 			LoadObject<URPGSkillAsset>(nullptr, *SkillObjectPath(Definition.SkillId));
@@ -392,7 +392,7 @@ bool FUIRPGCONTENTTEXT052SkillTextPreservationTest::RunTest(const FString&)
 	TestEqual(TEXT("Serialized DisplayName preservation covers all twenty-five production Skills"), PreservedSkillCount, 25);
 
 	// Empty is still authored data: preservation is exact, not a non-empty-only policy.
-	FRPGCanonicalSkillDefinition Representative;
+	FRPGSkillDefinition Representative;
 	if (TestTrue(
 			TEXT("Representative Skill definition resolves for empty-text preservation"),
 			FRPGSkillCatalogAuthoring::TryGetCanonicalDefinition(TEXT("Skill_HeavyWeapons"), Representative)))
@@ -431,14 +431,14 @@ bool FUIRPGCONTENTTEXT053SkillBootstrapOnlyTest::RunTest(const FString&)
 {
 	using namespace UIRPGCONTENTTEXT051;
 
-	TArray<FRPGCanonicalSkillDefinition> Definitions;
+	TArray<FRPGSkillDefinition> Definitions;
 	FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(Definitions);
 	TestEqual(TEXT("Bootstrap-only audit covers twenty-five canonical Skills"), Definitions.Num(), 25);
 
 	int32 BootstrapCount = 0;
 	int32 ProductionPresentationCount = 0;
 
-	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
+	for (const FRPGSkillDefinition& Definition : Definitions)
 	{
 		URPGSkillAsset* Fresh = NewObject<URPGSkillAsset>(GetTransientPackage());
 		if (!TestNotNull(

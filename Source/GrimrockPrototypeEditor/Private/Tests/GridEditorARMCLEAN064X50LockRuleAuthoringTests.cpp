@@ -3,9 +3,9 @@
 #include "Misc/AutomationTest.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "EditorTools/GridEditorCanonicalLockRuleAuthoring.h"
+#include "EditorTools/GridEditorLockRuleAuthoring.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/Package.h"
 #include "UObject/StrongObjectPtr.h"
@@ -36,10 +36,10 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
     FGridLockAcceptedKeyInstanceRuleValues Out;
     Out.AcceptedKeyIds.Add(TEXT("X50_KeepOnFailure"));
     if (!TestFalse(TEXT("Missing registry cannot author or modify override"),
-        FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(nullptr, Shared, Out)) ||
+        FGridEditorLockRuleAuthoring::TryCopyDefaults(nullptr, Shared, Out)) ||
         !TestEqual(TEXT("Rejected draft keeps previous ID"), Out.AcceptedKeyIds[0], FName(TEXT("X50_KeepOnFailure"))) ||
         !TestTrue(TEXT("Explicit IDs copy atomically"),
-            FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(Registry.Get(), Shared, Out)) ||
+            FGridEditorLockRuleAuthoring::TryCopyDefaults(Registry.Get(), Shared, Out)) ||
         !TestTrue(TEXT("Explicit IDs including script IDs and order are preserved"), Out.AcceptedKeyIds == Shared.AcceptedKeyIds))
         return false;
 
@@ -90,7 +90,7 @@ bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
         const FGridLockBehaviorParams& RealLock = Real->DefaultBehavior.Lock;
         FGridLockAcceptedKeyInstanceRuleValues Projection;
         if (!TestTrue(TEXT("Real definition projects exact canonical-only key set"),
-            FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(
+            FGridEditorLockRuleAuthoring::TryCopyDefaults(
                 Registry.Get(), RealLock, Projection)) ||
             !TestEqual(TEXT("Real projected accepted key count"), Projection.AcceptedKeyIds.Num(), 1) ||
             !TestEqual(TEXT("Real projected key retains ID"), Projection.AcceptedKeyIds[0], ExpectedIds[Index]) ||

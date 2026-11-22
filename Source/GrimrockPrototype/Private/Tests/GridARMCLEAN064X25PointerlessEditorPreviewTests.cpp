@@ -109,7 +109,7 @@ bool FGridClean064X25PointerlessEditorPreview::RunTest(const FString&)
 	const auto Preflight = FGridEditorLooseItemPreviewReadModel::Resolve(
 		F.Registry, Placement);
 	if (!TestTrue(TEXT("Explicit canonical ItemId recognized without legacy asset"),
-			Preflight.bCanonicalIdentity && Preflight.bResolved) ||
+			Preflight.bRegisteredIdentity && Preflight.bResolved) ||
 		!TestEqual(TEXT("Physical N20 level preserved"), Preflight.EffectiveItemLevel, 20) ||
 		!TestTrue(TEXT("Preview mesh is canonical"), Preflight.WorldMesh == Expected.WorldMesh) ||
 		!TestTrue(TEXT("Preview transform is canonical"),
@@ -139,7 +139,7 @@ bool FGridClean064X25PointerlessEditorPreview::RunTest(const FString&)
 		const auto Resolution = FGridEditorLooseItemPreviewReadModel::Resolve(
 			F.Registry, Placement);
 		if (!TestTrue(TEXT("Explicit ARM remains classified canonical"),
-			Resolution.bCanonicalIdentity) ||
+			Resolution.bRegisteredIdentity) ||
 			!TestEqual(TEXT("ARM N0 rejected and N1 accepted"),
 				Resolution.bResolved, Level == 1))
 		{
@@ -176,7 +176,7 @@ bool FGridClean064X25PointerlessEditorPreview::RunTest(const FString&)
 	Placement.CanonicalItemId = TEXT("Weapon_Dagger_01");
 	if (!TestTrue(TEXT("No registry cannot authorize legacy fallback"),
 		FGridEditorLooseItemPreviewReadModel::Resolve(
-			nullptr, Placement).bCanonicalIdentity) ||
+			nullptr, Placement).bRegisteredIdentity) ||
 		!TestFalse(TEXT("No registry means no resolved preview"),
 			FGridEditorLooseItemPreviewReadModel::Resolve(
 				nullptr, Placement).bResolved))

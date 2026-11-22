@@ -43,10 +43,10 @@ struct FGridEditorCanonicalStarterTestWorld
     bool Ready() const
     {
         return World && Registry && Registry->IsConfigured() &&
-            Registry->HasCanonicalItem(TEXT("Item_Potion_Healing_01")) &&
-            Registry->HasCanonicalItem(TEXT("Item_Arrows_01")) &&
-            Registry->HasCanonicalItem(TEXT("Item_DisarmTools_01")) &&
-            Registry->HasCanonicalItem(TEXT("Item_SurfaceCatalyst_01"));
+            Registry->ContainsItem(TEXT("Item_Potion_Healing_01")) &&
+            Registry->ContainsItem(TEXT("Item_Arrows_01")) &&
+            Registry->ContainsItem(TEXT("Item_DisarmTools_01")) &&
+            Registry->ContainsItem(TEXT("Item_SurfaceCatalyst_01"));
     }
 
     UGridPartyInventoryComponent* MakeInventory() const

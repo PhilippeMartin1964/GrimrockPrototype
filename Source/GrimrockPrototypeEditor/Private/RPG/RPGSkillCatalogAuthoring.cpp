@@ -15,12 +15,12 @@ namespace RPGSkillCatalogAuthoringPrivate
 	const TCHAR* ProductionFolderPath = TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/Skills");
 
 	void AddDefinition(
-		TArray<FRPGCanonicalSkillDefinition>& OutDefinitions,
+		TArray<FRPGSkillDefinition>& OutDefinitions,
 		const TCHAR* SkillId,
 		ERPGSkillGoverningAttribute GoverningAttribute,
 		bool bAllowUntrainedChecks)
 	{
-		FRPGCanonicalSkillDefinition Definition;
+		FRPGSkillDefinition Definition;
 		Definition.SkillId = FName(SkillId);
 		Definition.GoverningAttribute = GoverningAttribute;
 		Definition.bAllowUntrainedChecks = bAllowUntrainedChecks;
@@ -32,7 +32,7 @@ namespace RPGSkillCatalogAuthoringPrivate
 		return FString::Printf(TEXT("DA_%s"), *SkillId.ToString());
 	}
 
-	URPGSkillAsset* FindOrCreateSkillAsset(const FRPGCanonicalSkillDefinition& Definition, FString& OutError)
+	URPGSkillAsset* FindOrCreateSkillAsset(const FRPGSkillDefinition& Definition, FString& OutError)
 	{
 		const FString AssetName = MakeAssetName(Definition.SkillId);
 		const FString PackageName = FString::Printf(
@@ -99,7 +99,7 @@ const TCHAR* FRPGSkillCatalogAuthoring::ProductionFolder()
 	return RPGSkillCatalogAuthoringPrivate::ProductionFolderPath;
 }
 
-void FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(TArray<FRPGCanonicalSkillDefinition>& OutDefinitions)
+void FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(TArray<FRPGSkillDefinition>& OutDefinitions)
 {
 	using namespace RPGSkillCatalogAuthoringPrivate;
 
@@ -131,18 +131,18 @@ void FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(TArray<FRPGCanonicalSkil
 	AddDefinition(OutDefinitions, TEXT("Skill_Deception"), ERPGSkillGoverningAttribute::Charisma, true);
 }
 
-bool FRPGSkillCatalogAuthoring::TryGetCanonicalDefinition(FName SkillId, FRPGCanonicalSkillDefinition& OutDefinition)
+bool FRPGSkillCatalogAuthoring::TryGetCanonicalDefinition(FName SkillId, FRPGSkillDefinition& OutDefinition)
 {
-	OutDefinition = FRPGCanonicalSkillDefinition();
+	OutDefinition = FRPGSkillDefinition();
 	if (SkillId.IsNone())
 	{
 		return false;
 	}
 
-	TArray<FRPGCanonicalSkillDefinition> Definitions;
+	TArray<FRPGSkillDefinition> Definitions;
 	GetCanonicalDefinitions(Definitions);
-	const FRPGCanonicalSkillDefinition* Found = Definitions.FindByPredicate(
-		[SkillId](const FRPGCanonicalSkillDefinition& Definition)
+	const FRPGSkillDefinition* Found = Definitions.FindByPredicate(
+		[SkillId](const FRPGSkillDefinition& Definition)
 		{
 			return Definition.SkillId == SkillId;
 		});
@@ -159,7 +159,7 @@ bool FRPGSkillCatalogAuthoring::ValidateCanonicalCatalog(FString& OutError)
 {
 	OutError.Reset();
 
-	TArray<FRPGCanonicalSkillDefinition> Definitions;
+	TArray<FRPGSkillDefinition> Definitions;
 	GetCanonicalDefinitions(Definitions);
 	if (Definitions.Num() != RPGSkillCatalogAuthoringPrivate::CanonicalSkillCount)
 	{
@@ -171,7 +171,7 @@ bool FRPGSkillCatalogAuthoring::ValidateCanonicalCatalog(FString& OutError)
 	}
 
 	TSet<FName> SeenSkillIds;
-	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
+	for (const FRPGSkillDefinition& Definition : Definitions)
 	{
 		if (Definition.SkillId.IsNone() ||
 			Definition.GoverningAttribute == ERPGSkillGoverningAttribute::None ||
@@ -190,7 +190,7 @@ bool FRPGSkillCatalogAuthoring::ValidateCanonicalCatalog(FString& OutError)
 
 void FRPGSkillCatalogAuthoring::ConfigureSkill(
 	URPGSkillAsset& SkillAsset,
-	const FRPGCanonicalSkillDefinition& Definition)
+	const FRPGSkillDefinition& Definition)
 {
 	const bool bPreserveSerializedDisplayName =
 		!SkillAsset.SkillId.IsNone() && SkillAsset.SkillId == Definition.SkillId;
@@ -213,7 +213,7 @@ void FRPGSkillCatalogAuthoring::ConfigureSkill(
 
 bool FRPGSkillCatalogAuthoring::IsCanonicalSkill(
 	const URPGSkillAsset& SkillAsset,
-	const FRPGCanonicalSkillDefinition& Definition)
+	const FRPGSkillDefinition& Definition)
 {
 	return SkillAsset.SkillId == Definition.SkillId &&
 		SkillAsset.GoverningAttribute == Definition.GoverningAttribute &&
@@ -230,7 +230,7 @@ bool FRPGSkillCatalogAuthoring::AuthorProductionAssets(FString& OutError, FName 
 	}
 	if (!OnlySkillId.IsNone())
 	{
-		FRPGCanonicalSkillDefinition Expected;
+		FRPGSkillDefinition Expected;
 		if (!TryGetCanonicalDefinition(OnlySkillId, Expected))
 		{
 			OutError = FString::Printf(TEXT("SkillId non canonique : %s"), *OnlySkillId.ToString());
@@ -238,9 +238,9 @@ bool FRPGSkillCatalogAuthoring::AuthorProductionAssets(FString& OutError, FName 
 		}
 	}
 
-	TArray<FRPGCanonicalSkillDefinition> Definitions;
+	TArray<FRPGSkillDefinition> Definitions;
 	GetCanonicalDefinitions(Definitions);
-	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
+	for (const FRPGSkillDefinition& Definition : Definitions)
 	{
 		if (!OnlySkillId.IsNone() && Definition.SkillId != OnlySkillId)
 		{

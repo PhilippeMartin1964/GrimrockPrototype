@@ -6,7 +6,7 @@
 #include "Engine/GameInstance.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
+#include "Runtime/Combat/GridAttackPresentationReadModel.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
@@ -96,7 +96,7 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 	}
 
 	TestFalse(TEXT("Unknown item never enters the canonical registry"),
-		Items->HasCanonicalItem(TEXT("NonProductionItem")));
+		Items->ContainsItem(TEXT("NonProductionItem")));
 	// Pre-retirement authored sources are all present or all gone. After
 	// retirement, the canonical runtime assertions below remain mandatory.
 	IAssetRegistry& AR = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(
@@ -150,7 +150,7 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 				Old->GetOutermost()->IsDirty(), bWasDirty);
 		}
 		TestTrue(TEXT("Each official ARM is known to the one runtime registry"),
-			Items->HasCanonicalItem(ItemId));
+			Items->ContainsItem(ItemId));
 		FGridResolvedItem N1, N20;
 		if (!TestTrue(TEXT("Persisted ARM resolves at N1"),
 				Items->ResolveItem(ItemId, 1, N1)) ||
@@ -234,10 +234,10 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 			Request.OffensiveItemDefinitionId = ItemId;
 			Request.OffensiveEquipmentSlot = EGridEquipmentSlot::MainHand;
 			Request.AttackId = Bound.ActionId;
-			Request.PresentationSource = FGridCanonicalAttackPresentationReadModel::CaptureFromInstance(
+			Request.PresentationSource = FGridAttackPresentationReadModel::CaptureFromInstance(
 				Items.Get(), Equipped, Equipped.OwnerGuid, 0, EGridEquipmentSlot::MainHand, Bound.ActionId, false);
 			FGridPlayerAttackPresentationProfile Actual;
-			const bool bPresentationResolved = FGridCanonicalAttackPresentationReadModel::TryResolve(
+			const bool bPresentationResolved = FGridAttackPresentationReadModel::TryResolve(
 				Items.Get(), Request, Actual);
 			TestTrue(TEXT("Exact canonical runtime attack presentation"), bPresentationResolved);
 			if (bPresentationResolved)
@@ -263,7 +263,7 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 			TestEqual(TEXT("Real source level captured"), Request.PresentationSource.ItemLevel, Level);
 			TestEqual(TEXT("Real source GUID captured"), Request.PresentationSource.RuntimeObjectId, Equipped.RuntimeObjectId);
 			Request.PresentationSource.ItemLevel = 0;
-			TestFalse(TEXT("Known ARM cannot synthesize N1 media"), FGridCanonicalAttackPresentationReadModel::TryResolve(Items.Get(), Request, Actual));
+			TestFalse(TEXT("Known ARM cannot synthesize N1 media"), FGridAttackPresentationReadModel::TryResolve(Items.Get(), Request, Actual));
 		}
 		Equipped.ItemLevel = 0;
 		TestFalse(TEXT("Old Level=0 cannot read N1 implicitly"),

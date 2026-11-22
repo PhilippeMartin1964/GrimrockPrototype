@@ -341,7 +341,7 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
                     After->OwnerType == (Entry.TargetSlot == EGridEquipmentSlot::None
                         ? EGridItemOwnerType::CharacterInventory : EGridItemOwnerType::EquipmentSlot)) ||
                     !TestTrue(TEXT("Exact canonical ID available after disk load, without a legacy definition"),
-                        NativeWorld.Scope.Registry->HasCanonicalItem(Entry.CanonicalItemId) &&
+                        NativeWorld.Scope.Registry->ContainsItem(Entry.CanonicalItemId) &&
                          Continued->FindItemDefinition(Entry.CanonicalItemId) == nullptr))
                 {
                     return false;

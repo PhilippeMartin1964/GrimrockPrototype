@@ -1,8 +1,63 @@
-# Consolidation — état de référence CLEANUP01
+# Consolidation — architecture, nomenclature et état de référence
 
-**Référence :** `master`, `a8de4f58b6c7ecc42e62aef0dbbe8fa9b7ede272`, relevé du 22 novembre 2026. Lot documentaire limité à [DataModel.svg](../Architecture/DataModel.svg), [DataModel.md](../Architecture/DataModel.md) et ce fichier. Aucun code, asset, script, configuration ou SaveGame modifié ; aucun renommage ou retrait engagé. CLEANUP02 attend la validation de CLEANUP01.
+**Référence :** `master`, `a8de4f58b6c7ecc42e62aef0dbbe8fa9b7ede272`, relevé du 22 novembre 2026. Lot documentaire limité à [DataModel.svg](../Architecture/DataModel.svg), [DataModel.md](../Architecture/DataModel.md) et ce fichier. Aucun code, asset, script, configuration ou SaveGame modifié ; aucun renommage ou retrait engagé. Cette référence et ses constats datés sont conservés ci-dessous ; l’état courant et la clôture ARM-CLEAN06 figurent dans la mise à jour suivante.
 
-## 1. État réel et preuves
+## État courant — ARM-CLEAN06 clos, CLEANUP02 en cours
+
+ARM-CLEAN06 est **clos**, sur confirmation utilisateur des recettes PIE et Shipping : Continue, inventaire, équipement, présentation, combat et Save/Continue validés. Référence fonctionnelle `420dce2ee4f55c3630e8a99fa7ae9d77299a461e` : SilentTask/LocalAuto SUCCESS, 2 044 tests réussis (48 avec avertissements analysés), sept copies v27 compatibles dont les deux récentes, originaux inchangés, Build/Cook/Stage/Package/Archive Shipping réussis. Preuves privées conservées sous `D:/GrimrockNativeSnapshots/ARM_CLEAN06_FinalAcceptance_420dce2ee4f5_20261122-155244/`. Le problème visuel de ciblage déjà reporté reste hors périmètre.
+
+### Plan de nomenclature et résolution des collisions
+
+| Ensemble cohérent | Décision | Validation avant publication |
+| --- | --- | --- |
+| Helpers C++ non réfléchis | 46 identifiants et 30 fichiers renommés ; `GridEquipmentSlots.h`, `GridItemMeshResolver.h`, `GridProjectileVisuals.h`, `GridItemCatalogues.h` ; consommateurs et garde PowerShell mis à jour sans changement de logique | Compilation Editor, tests Grimrock, Shipping et deux statuts Windows |
+| Types et propriétés réfléchis | Noms métier sans Canonical lorsqu’ils sont libres ; Core Redirects conservant les anciens chemins ; aucune valeur ItemId/ActionId/ArchetypeId/GUID modifiée | Assets existants, anciens noms, copies v27, UHT et suite native |
+| Organisation des assets | Examiner/appliquer par AssetTools natif : `Items/DA_ItemSystem`, `Items/Catalogues/`, `Items/Definitions/` ; conserver les redirections nécessaires | Snapshot privé, registre/références/chargement, copies v27 et Cook/Package |
+| Trois classes en collision | `UGridCanonicalItemDefinitionAsset`, `UGridCanonicalWeaponCatalogueAsset`, `UGridCanonicalWeaponVisualCatalogueAsset` restent nommées ainsi ; leurs noms cibles sont réellement occupés | Report explicite à CLEANUP03/CLEANUP04 : supprimer leurs consommateurs/déplacer des responsabilités dépasserait une opération de nomenclature |
+| Tests, gardes et preuves historiques | Garder les noms/filtres Automation et les reçus figés ; modifier seulement les consommateurs indispensables aux fichiers renommés | Pas de suppression de tests, de scripts ou de Core Redirects historiques |
+
+Mesure reproductible : identifiants C++ distincts contenant `Canonical`, hors commentaires et chaînes, tous modules et tests inclus : **258 avant CLEANUP02**, **212 apr?s le lot des noms internes**. La comparaison des 1 440 fichiers C++ au parent confirme uniquement les substitutions pr?vues, sans autre changement de code. Ce nombre n’est ni un compte de lignes ni un nombre d’occurrences textuelles. Les tests historiques, les trois classes en collision et les distinctions métier encore utiles peuvent subsister. Les inventaires suivants restent la photographie exhaustive du parent de CLEANUP01, et non un index automatiquement réécrit au fil des renommages.
+
+<details>
+<summary>Renommages de fichiers non réfléchis du premier lot — 30 chemins</summary>
+
+| Chemin Source initial | Chemin Source actuel |
+| --- | --- |
+| `GrimrockPrototype/Private/Runtime/Combat/GridCanonicalActionIconReadModel.h` | `GrimrockPrototype/Private/Runtime/Combat/GridActionIconReadModel.h` |
+| `GrimrockPrototype/Private/Runtime/Combat/GridCanonicalEquippedAttackReadModel.h` | `GrimrockPrototype/Private/Runtime/Combat/GridEquippedAttackReadModel.h` |
+| `GrimrockPrototype/Private/Runtime/GridCanonicalEquipmentSlotsReadModel.h` | `GrimrockPrototype/Private/Runtime/GridEquipmentSlots.h` |
+| `GrimrockPrototype/Private/Runtime/GridCanonicalExplorationItemReadModel.h` | `GrimrockPrototype/Private/Runtime/GridExplorationItemReadModel.h` |
+| `GrimrockPrototype/Private/Runtime/GridCanonicalInventoryDefinitionDiagnosticReadModel.h` | `GrimrockPrototype/Private/Runtime/GridInventoryDefinitionDiagnosticReadModel.h` |
+| `GrimrockPrototype/Private/Runtime/GridCanonicalInventoryStackReadModel.h` | `GrimrockPrototype/Private/Runtime/GridInventoryStackReadModel.h` |
+| `GrimrockPrototype/Private/Runtime/GridCanonicalItemInteractionReadModel.h` | `GrimrockPrototype/Private/Runtime/GridItemInteractionReadModel.h` |
+| `GrimrockPrototype/Private/Runtime/GridCanonicalItemMeshReadModel.h` | `GrimrockPrototype/Private/Runtime/GridItemMeshResolver.h` |
+| `GrimrockPrototype/Private/Runtime/GridCanonicalItemSpawnReadModel.h` | `GrimrockPrototype/Private/Runtime/GridItemSpawnReadModel.h` |
+| `GrimrockPrototype/Private/Runtime/GridCanonicalProjectileVisualReadModel.h` | `GrimrockPrototype/Private/Runtime/GridProjectileVisuals.h` |
+| `GrimrockPrototype/Private/Runtime/GridCanonicalQuickItemUseReadModel.h` | `GrimrockPrototype/Private/Runtime/GridQuickItemUseReadModel.h` |
+| `GrimrockPrototype/Private/Runtime/GridCanonicalThrowBallisticsReadModel.h` | `GrimrockPrototype/Private/Runtime/GridThrowBallisticsReadModel.h` |
+| `GrimrockPrototype/Private/Runtime/GridReceptacleAcceptedCanonicalReadModel.h` | `GrimrockPrototype/Private/Runtime/GridReceptacleAcceptedReadModel.h` |
+| `GrimrockPrototype/Private/Runtime/GridReceptacleInitialCanonicalReadModel.h` | `GrimrockPrototype/Private/Runtime/GridReceptacleInitialReadModel.h` |
+| `GrimrockPrototype/Private/Runtime/Items/GridCanonicalItemCatalogues.cpp` | `GrimrockPrototype/Private/Runtime/Items/GridItemCatalogues.cpp` |
+| `GrimrockPrototype/Private/UI/GridCanonicalInventoryItemTypeReadModel.h` | `GrimrockPrototype/Private/UI/GridInventoryItemTypeReadModel.h` |
+| `GrimrockPrototype/Private/UI/GridCombatHudCanonicalActionReadModel.h` | `GrimrockPrototype/Private/UI/GridCombatHudActionReadModel.h` |
+| `GrimrockPrototype/Public/Runtime/Combat/GridCanonicalAttackPresentationReadModel.h` | `GrimrockPrototype/Public/Runtime/Combat/GridAttackPresentationReadModel.h` |
+| `GrimrockPrototype/Public/Runtime/Items/GridCanonicalInventoryCategoryTags.h` | `GrimrockPrototype/Public/Runtime/Items/GridInventoryCategoryTags.h` |
+| `GrimrockPrototype/Public/Runtime/Items/GridCanonicalItemCatalogues.h` | `GrimrockPrototype/Public/Runtime/Items/GridItemCatalogues.h` |
+| `GrimrockPrototype/Public/Runtime/Items/GridCanonicalNonArmamentReadPolicies.h` | `GrimrockPrototype/Public/Runtime/Items/GridNonArmamentReadPolicies.h` |
+| `GrimrockPrototype/Public/Runtime/Items/GridCanonicalNonArmamentThrowReadModel.h` | `GrimrockPrototype/Public/Runtime/Items/GridNonArmamentThrowReadModel.h` |
+| `GrimrockPrototype/Public/Runtime/Items/GridCanonicalPuzzleCategoryTags.h` | `GrimrockPrototype/Public/Runtime/Items/GridPuzzleCategoryTags.h` |
+| `GrimrockPrototype/Public/Runtime/Items/GridCanonicalWorldSnapshotReadModel.h` | `GrimrockPrototype/Public/Runtime/Items/GridWorldSnapshotReadModel.h` |
+| `GrimrockPrototypeEditor/Private/Details/GridEditorCanonicalArmamentPreview.h` | `GrimrockPrototypeEditor/Private/Details/GridEditorArmamentPreview.h` |
+| `GrimrockPrototypeEditor/Private/EditorTools/Widgets/GridEditorCanonicalPaletteReadModel.h` | `GrimrockPrototypeEditor/Private/EditorTools/Widgets/GridEditorPaletteReadModel.h` |
+| `GrimrockPrototypeEditor/Public/EditorTools/GridEditorCanonicalItemLevelPolicy.h` | `GrimrockPrototypeEditor/Public/EditorTools/GridEditorItemLevelPolicy.h` |
+| `GrimrockPrototypeEditor/Public/EditorTools/GridEditorCanonicalLockRuleAuthoring.h` | `GrimrockPrototypeEditor/Public/EditorTools/GridEditorLockRuleAuthoring.h` |
+| `GrimrockPrototypeEditor/Public/EditorTools/GridEditorCanonicalReceptacleInitialAuthoring.h` | `GrimrockPrototypeEditor/Public/EditorTools/GridEditorReceptacleInitialAuthoring.h` |
+| `GrimrockPrototypeEditor/Public/EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h` | `GrimrockPrototypeEditor/Public/EditorTools/GridEditorReceptacleRuleAuthoring.h` |
+
+</details>
+
+## 1. État et preuves historiques de CLEANUP01
+
 
 | Contrôle préalable | Résultat vérifié |
 | --- | --- |

@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/GridPhysicalThrowStrengthReadModel.h"
 #include "Engine/GameInstance.h"
@@ -59,7 +59,7 @@ bool FGridItemThrowCLEAN01Test::RunTest(const FString& Parameters)
 	PhysicalShuriken.Quantity = 1;
 	const FGridPhysicalThrowStrengthReadView Allowed =
 		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), nullptr, PhysicalShuriken, 100);
-	TestTrue(TEXT("Physical throw gate recognizes the canonical Shuriken"), Allowed.bCanonicalIdentity);
+	TestTrue(TEXT("Physical throw gate recognizes the canonical Shuriken"), Allowed.bRegisteredIdentity);
 	TestTrue(TEXT("Shuriken physical throw is resolved without historical item definition"), Allowed.bResolved);
 	TestTrue(TEXT("Shuriken is carried and thrown with one hand"), Allowed.bOneHanded);
 	TestTrue(TEXT("High enough Strength allows real Shuriken physical throwing"), Allowed.bCanThrow);
@@ -69,14 +69,14 @@ bool FGridItemThrowCLEAN01Test::RunTest(const FString& Parameters)
 
 	const FGridPhysicalThrowStrengthReadView NoStrength =
 		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), nullptr, PhysicalShuriken, 0);
-	TestTrue(TEXT("Strength zero still recognizes canonical identity"), NoStrength.bCanonicalIdentity);
+	TestTrue(TEXT("Strength zero still recognizes canonical identity"), NoStrength.bRegisteredIdentity);
 	TestTrue(TEXT("Strength zero resolves without a legacy definition"), NoStrength.bResolved);
 	TestFalse(TEXT("Strength zero cannot physically throw the Shuriken"), NoStrength.bCanThrow);
 
 	PhysicalShuriken.ItemLevel = 1;
 	const FGridPhysicalThrowStrengthReadView WrongLevel =
 		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), nullptr, PhysicalShuriken, 100);
-	TestTrue(TEXT("Wrong-level N1 Shuriken cannot escape canonical membership"), WrongLevel.bCanonicalIdentity);
+	TestTrue(TEXT("Wrong-level N1 Shuriken cannot escape canonical membership"), WrongLevel.bRegisteredIdentity);
 	TestFalse(TEXT("N1 non-ARM Shuriken is not resolved"), WrongLevel.bResolved);
 	TestFalse(TEXT("N1 non-ARM Shuriken cannot be thrown"), WrongLevel.bCanThrow);
 
@@ -84,7 +84,7 @@ bool FGridItemThrowCLEAN01Test::RunTest(const FString& Parameters)
 	PhysicalShuriken.ItemLevel = 0;
 	const FGridPhysicalThrowStrengthReadView Unknown =
 		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), nullptr, PhysicalShuriken, 100);
-	TestFalse(TEXT("Unknown item is not a canonical identity"), Unknown.bCanonicalIdentity);
+	TestFalse(TEXT("Unknown item is not a canonical identity"), Unknown.bRegisteredIdentity);
 	TestFalse(TEXT("Configured registry does not invent legacy throw authority"), Unknown.bResolved);
 	TestFalse(TEXT("Unknown item cannot be thrown without an authored source"), Unknown.bCanThrow);
 

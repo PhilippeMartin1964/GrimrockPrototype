@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "UI/GridEquippedWeaponActionIconPalette.h"
 #include "UObject/UObjectGlobals.h"
 

@@ -1,4 +1,4 @@
-#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "EditorTools/GridEditorItemLevelPolicy.h"
 
 #include "Core/GridObjectInstanceBehavior.h"
 
@@ -18,7 +18,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		? ObjectPalette->FindEntryById(SelectedPaletteEntryId) : nullptr;
 	if (PaintObjectType == EGridLevelObjectType::Item &&
 		(!PaletteEntry || !PaletteEntry->IsDirectItemEntry() || !PaletteEntry->IsValidEntry() ||
-		 !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+		 !FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 			ResolveEditorItemRegistry(), PaletteEntry->CanonicalItemId,
 			PaletteEntry->CanonicalDefaultItemLevel)))
 	{
@@ -28,7 +28,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 	// A generator may be an empty editor draft; an authored palette identity is explicit.
 	if (PaintObjectType == EGridLevelObjectType::ItemSpawn && PaletteEntry &&
 		!PaletteEntry->CanonicalItemId.IsNone() &&
-		!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+		!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 			ResolveEditorItemRegistry(), PaletteEntry->CanonicalItemId, PaletteEntry->CanonicalDefaultItemLevel))
 		return;
 	const UGridWorldObjectDefinitionAsset* WorldObjectDefinition = FindWorldObjectDefinitionById(WorldObjectDefinitionId);

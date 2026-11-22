@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
 #include "../Runtime/GridInventoryDiagnosticWeightReadModel.h"
-#include "../Runtime/GridCanonicalInventoryDefinitionDiagnosticReadModel.h"
+#include "../Runtime/GridInventoryDefinitionDiagnosticReadModel.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
@@ -25,9 +25,9 @@ bool FGridClean063ACInventoryDiagnosticWeight::RunTest(const FString&)
 		for (const FString& Error : Errors) AddError(Error);
 		return false;
 	}
-	TArray<FGridCanonicalInventoryDefinitionDiagnosticRow> Rows;
+	TArray<FGridInventoryDefinitionDiagnosticRow> Rows;
 	if (!TestTrue(TEXT("Canonical definitions available without inventory cache"),
-		FGridCanonicalInventoryDefinitionDiagnosticReadModel::Build(Registry.Get(), Rows))) return false;
+		FGridInventoryDefinitionDiagnosticReadModel::Build(Registry.Get(), Rows))) return false;
 	TestEqual(TEXT("Every registered identity is present"), Rows.Num(), Root->ItemDefinitions.Num());
 	TSet<FName> Seen;
 	for (const auto& Row : Rows)
@@ -44,7 +44,7 @@ bool FGridClean063ACInventoryDiagnosticWeight::RunTest(const FString&)
 		TestTrue(TEXT("Shield allowed in OffHand"), Shield->Slots.Contains(EGridEquipmentSlot::OffHand));
 		TestFalse(TEXT("Shield forbidden in MainHand"), Shield->Slots.Contains(EGridEquipmentSlot::MainHand));
 	}
-	TestFalse(TEXT("Absent registry is explicit"), FGridCanonicalInventoryDefinitionDiagnosticReadModel::Build(nullptr, Rows));
+	TestFalse(TEXT("Absent registry is explicit"), FGridInventoryDefinitionDiagnosticReadModel::Build(nullptr, Rows));
 	TestTrue(TEXT("Absent registry clears rows"), Rows.IsEmpty());
 	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
 	Old->Weight = 99999.0f;

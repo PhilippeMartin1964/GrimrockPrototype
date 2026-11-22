@@ -8,7 +8,7 @@
 
 /** Only the physical ARM source captured at execution can authorize its
  * catalogue presentation. No inventory lookups after debit, no old DA. */
-struct FGridCanonicalAttackPresentationReadModel
+struct FGridAttackPresentationReadModel
 {
 	static const UGridItemSubsystem* RegistryFor(const UGridPartyInventoryComponent* Inventory)
 	{
@@ -22,7 +22,7 @@ struct FGridCanonicalAttackPresentationReadModel
 		EGridEquipmentSlot Hand, FName AttackId, bool bBorrowWeaponAttack)
 	{
 		FGridAttackPresentationSource Out;
-		if (!IsValid(Registry) || !Registry->HasCanonicalItem(Item.ItemDefinitionId)) return Out;
+		if (!IsValid(Registry) || !Registry->ContainsItem(Item.ItemDefinitionId)) return Out;
 		FGridResolvedItem Resolved;
 		if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) || !Resolved.bIsArmament)
 			return Out;

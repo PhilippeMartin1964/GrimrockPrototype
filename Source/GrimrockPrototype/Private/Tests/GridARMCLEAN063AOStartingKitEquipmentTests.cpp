@@ -101,7 +101,7 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	const FGridStartingKitEquipmentPolicyReadView BowPolicy =
 		FGridStartingKitEquipmentPolicyReadModel::Resolve(
 			Registry.Get(), Bow.Get(), 6, EGridEquipmentSlot::OffHand);
-	TestTrue(TEXT("Canonical bow permitted from authored OffHand"), BowPolicy.bCanonicalIdentity && BowPolicy.bResolved);
+	TestTrue(TEXT("Canonical bow permitted from authored OffHand"), BowPolicy.bRegisteredIdentity && BowPolicy.bResolved);
 	TestTrue(TEXT("Canonical bow reserves both hands"), BowPolicy.bTwoHanded);
 	TestEqual(TEXT("Two-handed bow physical storage is MainHand"),
 		BowPolicy.PhysicalSlot, EGridEquipmentSlot::MainHand);
@@ -192,7 +192,7 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	Old->HandUsage = EGridItemHandUsage::OneHanded;
 	const auto OldPolicy = FGridStartingKitEquipmentPolicyReadModel::Resolve(
 		Registry.Get(), Old.Get(), 0, EGridEquipmentSlot::MainHand);
-	TestFalse(TEXT("Unknown entry remains outside canonical registry"), OldPolicy.bCanonicalIdentity);
+	TestFalse(TEXT("Unknown entry remains outside canonical registry"), OldPolicy.bRegisteredIdentity);
 	TestFalse(TEXT("Unknown entry cannot equip in configured world"), OldPolicy.bResolved);
 	const auto FixturePolicy = FGridStartingKitEquipmentPolicyReadModel::Resolve(
 		nullptr, Old.Get(), 0, EGridEquipmentSlot::MainHand);

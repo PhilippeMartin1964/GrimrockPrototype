@@ -3,31 +3,31 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "CoreGlobals.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/Items/GridCanonicalInventoryCategoryTags.h"
+#include "Runtime/Items/GridInventoryCategoryTags.h"
 
 /** ARM-CLEAN06.3AU: transient inventory type projection; no persisted data. */
-struct FGridCanonicalInventoryItemTypeReadView
+struct FGridInventoryItemTypeReadView
 {
-    bool bCanonicalIdentity = false;
+    bool bRegisteredIdentity = false;
     bool bResolved = false;
     EGridItemType ItemType = EGridItemType::None;
 };
 
-struct FGridCanonicalInventoryItemTypeReadModel
+struct FGridInventoryItemTypeReadModel
 {
-    static FGridCanonicalInventoryItemTypeReadView Resolve(
+    static FGridInventoryItemTypeReadView Resolve(
         const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* Legacy,
         const FGridItemInstance& Item)
     {
-        FGridCanonicalInventoryItemTypeReadView View;
+        FGridInventoryItemTypeReadView View;
         if (Item.ItemDefinitionId.IsNone()) return View;
 
-        if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+        if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
         {
             // Recognize membership before IsValid(): that method rejects
             // N21 itself, but an invalid known ID must NEVER borrow a
             // legacy category, even in diagnostic/tooltip projections.
-            View.bCanonicalIdentity = true;
+            View.bRegisteredIdentity = true;
             if (!Item.IsValid()) return View;
             FGridResolvedItem Resolved;
             if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) ||
@@ -49,7 +49,7 @@ struct FGridCanonicalInventoryItemTypeReadModel
             {
                 // Presentation only: retain the explicitly authored category
                 // without inferring combat/equip/use permissions from it.
-                using namespace GridCanonicalInventoryCategoryTags;
+                using namespace GridInventoryCategoryTags;
                 if (Count(Resolved.Tags) > 1)
                 {
                     View.bResolved = false;

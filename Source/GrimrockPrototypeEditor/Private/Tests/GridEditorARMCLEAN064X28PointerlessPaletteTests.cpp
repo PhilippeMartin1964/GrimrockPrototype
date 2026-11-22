@@ -7,7 +7,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../EditorTools/Widgets/GridEditorCanonicalPaletteReadModel.h"
+#include "../EditorTools/Widgets/GridEditorPaletteReadModel.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorClean064X28PointerlessPalette,
 	"Grimrock.RPG.ARM.CLEAN06_4X28.PointerlessCanonicalPalettePlacement",
@@ -93,8 +93,8 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 		if (GEngine) GEngine->DestroyWorldContext(World);
 		return false;
 	}
-	const FGridEditorCanonicalPaletteReadView ArmTile =
-		FGridEditorCanonicalPaletteReadModel::Resolve(Arm, Registry);
+	const FGridEditorPaletteReadView ArmTile =
+		FGridEditorPaletteReadModel::Resolve(Arm, Registry);
 	bOk &= TestTrue(TEXT("Pointerless palette tile resolves from ItemSystem"),
 		ArmTile.bCanonicalSource && ArmTile.bResolved);
 	bOk &= TestEqual(TEXT("Tile uses registered ID"), ArmTile.ItemId,

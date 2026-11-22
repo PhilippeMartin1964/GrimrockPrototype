@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "GridItemSubsystem.generated.h"
 
@@ -297,7 +297,7 @@ public:
 	}
 
 	/** Sorted read-only identity inventory for diagnostics. No asset pointers escape. */
-	void GetCanonicalItemIds(TArray<FName>& OutIds) const
+	void GetItemIds(TArray<FName>& OutIds) const
 	{
 		OutIds.Reset();
 		if (IsConfigured())
@@ -308,7 +308,7 @@ public:
 	}
 
 	/** Exact ItemId membership; unknown IDs are handled only by their not-yet-migrated readers. */
-	bool HasCanonicalItem(FName ItemId) const
+	bool ContainsItem(FName ItemId) const
 	{
 		return RootRegistry && !ItemId.IsNone() && ItemIndex.Contains(ItemId);
 	}

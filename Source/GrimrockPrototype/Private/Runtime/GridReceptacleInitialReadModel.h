@@ -6,7 +6,7 @@
 /** Initial content is an exact physical ItemId, quantity and level.
  * The serialized config contains no historical source.
  */
-struct FGridReceptacleInitialCanonicalReadModel
+struct FGridReceptacleInitialReadModel
 {
     static bool TryResolve(const UGridItemSubsystem* Registry,
         const FGridReceptacleInitialItemConfig& Source,

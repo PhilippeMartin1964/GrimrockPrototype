@@ -93,8 +93,8 @@ namespace ARMCLEAN063BD
         bool Ready() const
         {
             return World && Registry && Runtime &&
-                Registry->HasCanonicalItem(TEXT("Item_Arrows_01")) &&
-                Registry->HasCanonicalItem(TEXT("Weapon_StraightSword_01")) &&
+                Registry->ContainsItem(TEXT("Item_Arrows_01")) &&
+                Registry->ContainsItem(TEXT("Weapon_StraightSword_01")) &&
                 Runtime->IsWalkableCell(1, 1);
         }
 
@@ -150,7 +150,7 @@ namespace ARMCLEAN063BD
         Test.TestEqual(TEXT("Shared pickup/save identity uses real ItemId"),
             FGridWorldPickupIdentityReadModel::Resolve(Actor, ArrowId, 0), ArrowId);
         Test.TestTrue(TEXT("Canonical presentation still applies to the physical item"),
-            Actor->ApplyCanonicalWorldVisual(Arrow));
+            Actor->ApplyResolvedWorldVisual(Arrow));
         Test.TestTrue(TEXT("Canonical world mesh present"),
             Actor->MeshComponent && Actor->MeshComponent->GetStaticMesh() != nullptr);
 

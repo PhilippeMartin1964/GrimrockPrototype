@@ -4,7 +4,7 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/Package.h"
 #include "UObject/StrongObjectPtr.h"
@@ -46,7 +46,7 @@ bool FGridClean064X71RealReceptacleAudit::RunTest(const FString&)
             !TestEqual(TEXT("Canonical accepted ItemId unchanged"),
                 R.AcceptedItems[0].CanonicalItemId, ExpectedIds[Index]) ||
             !TestTrue(TEXT("Registered physical item is accepted"),
-                Registry->HasCanonicalItem(ExpectedIds[Index])))
+                Registry->ContainsItem(ExpectedIds[Index])))
             return false;
         if (!TestEqual(TEXT("Real receptacle package unchanged"), 
             Definition->GetOutermost()->IsDirty(), bDirty)) return false;

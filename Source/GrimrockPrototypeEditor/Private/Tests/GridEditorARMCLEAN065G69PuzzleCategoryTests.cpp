@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
+#include "Runtime/Items/GridPuzzleCategoryTags.h"
 #include "UObject/StrongObjectPtr.h"
 
 namespace
@@ -49,7 +49,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorPuzzleCategoryPreviewTest,
 
 bool FGridEditorPuzzleCategoryPreviewTest::RunTest(const FString& Parameters)
 {
-    using namespace GridCanonicalPuzzleCategoryTags;
+    using namespace GridPuzzleCategoryTags;
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());

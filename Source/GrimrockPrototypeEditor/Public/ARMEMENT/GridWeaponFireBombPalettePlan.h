@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/GridObjectPaletteAsset.h"
-#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "EditorTools/GridEditorItemLevelPolicy.h"
 
 // ARMEMENT01.10.2.3: editor-only grouping; explicit canonical identities
 // and physical defaults for new entries, never a second item definition.
@@ -29,7 +29,7 @@ namespace ARMEMENT011023
         return Entry.IsDirectItemEntry() &&
             !Entry.DefaultWorldObjectDefinition && !Entry.Icon &&
             !Entry.DefaultMonsterDefinition && !Entry.DefaultStoryCompanionDefinition &&
-            FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+            FGridEditorItemLevelPolicy::CanAuthorItemLevel(
                 Registry, Entry.CanonicalItemId, Entry.CanonicalDefaultItemLevel);
     }
 
@@ -70,7 +70,7 @@ namespace ARMEMENT011023
             const FName Id(Target->EntryId);
             const FName DesiredCategory(Target->Category);
             if (Id.IsNone() || DesiredCategory.IsNone() || RequestedIds.Contains(Id) ||
-                !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry, Id, Target->NewPhysicalLevel))
+                !FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry, Id, Target->NewPhysicalLevel))
             {
                 OutError = FString::Printf(TEXT("Invalid requested canonical identity or level: %s"), Target->EntryId);
                 return false;

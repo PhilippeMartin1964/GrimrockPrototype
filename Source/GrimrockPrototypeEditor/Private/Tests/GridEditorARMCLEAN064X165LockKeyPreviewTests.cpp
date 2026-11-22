@@ -7,8 +7,8 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "EditorTools/GridEditorCanonicalLockRuleAuthoring.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "EditorTools/GridEditorLockRuleAuthoring.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "UObject/StrongObjectPtr.h"
@@ -41,7 +41,7 @@ bool VerifyCopy(FAutomationTestBase& Test, const UGridItemSubsystem* Registry,
     Source.bConsumeKeyOnUnlock = true;
     FGridLockAcceptedKeyInstanceRuleValues Proposed;
     if (!Test.TestTrue(TEXT("Explicit key list copies atomically"),
-        FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(Registry, Source, Proposed)) ||
+        FGridEditorLockRuleAuthoring::TryCopyDefaults(Registry, Source, Proposed)) ||
         !Test.TestTrue(TEXT("Exact order, duplicates and explicit IDs preserved"),
             Proposed.AcceptedKeyIds == ExplicitIds) ||
         !Test.TestTrue(TEXT("Source remains unchanged"), Source.AcceptedKeyIds == ExplicitIds))
@@ -69,7 +69,7 @@ bool FGridClean064X165KeyAtomicPreview::RunTest(const FString&)
     FGridLockAcceptedKeyInstanceRuleValues Out;
     Out.AcceptedKeyIds = {TEXT("KeepOnFailure")};
     return TestFalse(TEXT("Unavailable registry blocks change"),
-            FGridEditorCanonicalLockRuleAuthoring::TryCopyDefaults(nullptr, Source, Out)) &&
+            FGridEditorLockRuleAuthoring::TryCopyDefaults(nullptr, Source, Out)) &&
         TestTrue(TEXT("Failure keeps previous output"), Out.AcceptedKeyIds == TArray<FName>{TEXT("KeepOnFailure")}) &&
         TestEqual(TEXT("Native catalogue not modified"), F.ItemSystem->GetOutermost()->IsDirty(), WasDirty);
 }

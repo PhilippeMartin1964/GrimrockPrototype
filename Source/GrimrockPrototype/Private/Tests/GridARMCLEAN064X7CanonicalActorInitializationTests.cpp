@@ -10,7 +10,7 @@
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -112,7 +112,7 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
         AGridItemActor* Actor = Fixture.World->SpawnActor<AGridItemActor>();
         if (!TestNotNull(TEXT("Actual item actor spawned"), Actor) ||
             !TestTrue(TEXT("Canonical actor init succeeds"),
-                Actor->InitializeFromCanonicalItem(Instance, Registry.Get())))
+                Actor->InitializeFromItemInstance(Instance, Registry.Get())))
         {
             return false;
         }
@@ -158,7 +158,7 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
             FGridItemInstance Invalid = Instance;
             Invalid.ItemLevel = 0;
             if (!TestFalse(TEXT("ARM N0 is never guessed as N1"),
-                    Actor->InitializeFromCanonicalItem(Invalid, Registry.Get())) ||
+                    Actor->InitializeFromItemInstance(Invalid, Registry.Get())) ||
                 !TestEqual(TEXT("Failed initialization preserves physical N1"),
                     Actor->CanonicalWorldItemLevel, 1) ||
                 !TestEqual(TEXT("Failed initialization preserves GUID"),
@@ -177,7 +177,7 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
             if (!TestFalse(TEXT("Registry rejects non-ARM N1 before actor initialization"),
                     Registry->ResolveItem(Invalid.ItemDefinitionId, 1, FamilyRead)) ||
                 !TestFalse(TEXT("Non-ARM N1 cannot materialize an actor"),
-                    Actor->InitializeFromCanonicalItem(Invalid, Registry.Get())) ||
+                    Actor->InitializeFromItemInstance(Invalid, Registry.Get())) ||
                 !TestEqual(TEXT("Failed non-ARM initialization preserves physical N0"),
                     Actor->CanonicalWorldItemLevel, 0) ||
                 !TestEqual(TEXT("Failed non-ARM initialization preserves ItemId"),
@@ -194,7 +194,7 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
         FGridItemInstance Unknown = Instance;
         Unknown.ItemDefinitionId = FName(TEXT("ARM_CLEAN064X7_MissingItem"));
         if (!TestFalse(TEXT("Unknown ItemId cannot use historical visual data"),
-                Actor->InitializeFromCanonicalItem(Unknown, Registry.Get())) ||
+                Actor->InitializeFromItemInstance(Unknown, Registry.Get())) ||
             !TestEqual(TEXT("Unknown ID failure preserves existing item"),
                 Actor->GetItemDefinitionId(), Instance.ItemDefinitionId))
         {

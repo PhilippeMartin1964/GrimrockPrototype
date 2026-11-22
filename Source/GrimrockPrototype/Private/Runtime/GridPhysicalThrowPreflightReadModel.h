@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GridCanonicalThrowBallisticsReadModel.h"
+#include "GridThrowBallisticsReadModel.h"
 #include "GridPhysicalThrowStrengthReadModel.h"
 
 /** Same authored throw preflight for context menu and Pawn execution.
@@ -9,11 +9,11 @@
  */
 struct FGridPhysicalThrowPreflightReadView
 {
-    bool bCanonicalIdentity = false;
+    bool bRegisteredIdentity = false;
     bool bResolved = false;
     bool bCanThrow = false;
     FGridPhysicalThrowStrengthReadView Strength;
-    FGridCanonicalThrowBallisticsReadView Ballistics;
+    FGridThrowBallisticsReadView Ballistics;
 };
 
 struct FGridPhysicalThrowPreflightReadModel
@@ -25,11 +25,11 @@ struct FGridPhysicalThrowPreflightReadModel
     {
         FGridPhysicalThrowPreflightReadView Out;
         Out.Ballistics =
-            FGridCanonicalThrowBallisticsReadModel::Resolve(Registry, Legacy, Instance);
+            FGridThrowBallisticsReadModel::Resolve(Registry, Legacy, Instance);
         Out.Strength =
             FGridPhysicalThrowStrengthReadModel::Resolve(Registry, Legacy, Instance, Strength);
-        Out.bCanonicalIdentity =
-            Out.Ballistics.bCanonicalIdentity || Out.Strength.bCanonicalIdentity;
+        Out.bRegisteredIdentity =
+            Out.Ballistics.bRegisteredIdentity || Out.Strength.bRegisteredIdentity;
         Out.bResolved = Out.Strength.bResolved && Out.Ballistics.bResolved;
         Out.bCanThrow = Out.bResolved && Out.Strength.bCanThrow &&
             FMath::IsFinite(Out.Ballistics.InitialSpeed) &&

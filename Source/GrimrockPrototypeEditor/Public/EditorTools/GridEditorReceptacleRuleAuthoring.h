@@ -6,13 +6,13 @@
 /** Author explicit registered acceptance identities; no old asset picker.
  * None is an editable empty draft, never an effective acceptance rule.
  */
-struct FGridEditorCanonicalReceptacleRuleAuthoring
+struct FGridEditorReceptacleRuleAuthoring
 {
     static bool TrySelectCanonicalId(const UGridItemSubsystem* Registry,
         FName ItemId, FGridReceptacleAcceptedItemConfig& InOut)
     {
         if (!IsValid(Registry) || !Registry->IsConfigured() ||
-            (!ItemId.IsNone() && !Registry->HasCanonicalItem(ItemId)))
+            (!ItemId.IsNone() && !Registry->ContainsItem(ItemId)))
         {
             return false;
         }
@@ -31,7 +31,7 @@ struct FGridEditorCanonicalReceptacleRuleAuthoring
         for (const FGridReceptacleAcceptedItemConfig& Rule : Defaults)
         {
             if (Rule.CanonicalItemId.IsNone() ||
-                !Registry->HasCanonicalItem(Rule.CanonicalItemId))
+                !Registry->ContainsItem(Rule.CanonicalItemId))
             {
                 return false;
             }

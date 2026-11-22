@@ -12,8 +12,8 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/GridCanonicalItemInteractionReadModel.h"
-#include "../Runtime/GridCanonicalQuickItemUseReadModel.h"
+#include "../Runtime/GridItemInteractionReadModel.h"
+#include "../Runtime/GridQuickItemUseReadModel.h"
 
 namespace ARMCLEAN063BA
 {
@@ -132,7 +132,7 @@ namespace ARMCLEAN063BA
         {
             return Registry && Item && Inventory && Status &&
                 Inventory->IsValidCharacterIndex(0) &&
-                Inventory->IsValidCharacterIndex(1) && Registry->HasCanonicalItem(ItemId());
+                Inventory->IsValidCharacterIndex(1) && Registry->ContainsItem(ItemId());
         }
 
         FGridItemInstance Make(int32 Level = 0) const
@@ -158,9 +158,9 @@ namespace ARMCLEAN063BA
         FGridResolvedBoundAction Bound;
         if (!Test.TestTrue(TEXT("Use binding resolves through DA_ItemSystem"),
             F.Registry->ResolveBoundAction(ItemId(), 0, ActionId(), Bound))) return false;
-        const FGridCanonicalQuickItemUseReadView View =
-            FGridCanonicalQuickItemUseReadModel::Resolve(F.Registry, F.Make());
-        if (!Test.TestTrue(TEXT("Explicit Ally action resolves"), View.bCanonicalIdentity && View.bResolved))
+        const FGridQuickItemUseReadView View =
+            FGridQuickItemUseReadModel::Resolve(F.Registry, F.Make());
+        if (!Test.TestTrue(TEXT("Explicit Ally action resolves"), View.bRegisteredIdentity && View.bResolved))
             return false;
         Test.TestTrue(TEXT("Projection accepted by existing QuickItem schema"), View.Action.IsValid());
         Test.TestFalse(TEXT("Ally action is never an exploration self-consume"), View.bExplorationCompatible);
@@ -199,8 +199,8 @@ namespace ARMCLEAN063BA
             }
         }
 
-        const FGridCanonicalItemInteractionReadView Capabilities =
-            FGridCanonicalItemInteractionReadModel::Resolve(F.Registry, nullptr, F.Make());
+        const FGridItemInteractionReadView Capabilities =
+            FGridItemInteractionReadModel::Resolve(F.Registry, nullptr, F.Make());
         Test.TestFalse(TEXT("No context Consume shortcut for Ally"), Capabilities.bCanConsumeCanonical);
         Test.TestTrue(TEXT("Combat hotbar binding is authorized"), Capabilities.bCanAddToHotbar);
 
@@ -208,13 +208,13 @@ namespace ARMCLEAN063BA
         FGridResolvedBoundAction Invalid = Bound;
         Invalid.Action.Targeting = EGridCombatTargetingPolicy::Party;
         const bool bInvalidParty = Kind == EGridCanonicalEffectKind::Heal
-            ? FGridCanonicalQuickItemUseReadModel::TryProjectSingleHeal(Item, Invalid, Other)
+            ? FGridQuickItemUseReadModel::TryProjectSingleHeal(Item, Invalid, Other)
             : Kind == EGridCanonicalEffectKind::ApplyStatus
-                ? FGridCanonicalQuickItemUseReadModel::TryProjectSingleStatusApplication(Item, Invalid, Other)
-                : FGridCanonicalQuickItemUseReadModel::TryProjectSingleStatusRemoval(Item, Invalid, Other);
+                ? FGridQuickItemUseReadModel::TryProjectSingleStatusApplication(Item, Invalid, Other)
+                : FGridQuickItemUseReadModel::TryProjectSingleStatusRemoval(Item, Invalid, Other);
         Test.TestFalse(TEXT("Party/area is not inferred as Ally"), bInvalidParty);
-        const auto WrongLevel = FGridCanonicalQuickItemUseReadModel::Resolve(F.Registry, F.Make(21));
-        Test.TestTrue(TEXT("N21 registered identity remains known"), WrongLevel.bCanonicalIdentity);
+        const auto WrongLevel = FGridQuickItemUseReadModel::Resolve(F.Registry, F.Make(21));
+        Test.TestTrue(TEXT("N21 registered identity remains known"), WrongLevel.bRegisteredIdentity);
         Test.TestFalse(TEXT("Invalid level fails closed"), WrongLevel.bResolved);
 
         if (!Test.TestTrue(TEXT("Real canonical item enters inventory"),

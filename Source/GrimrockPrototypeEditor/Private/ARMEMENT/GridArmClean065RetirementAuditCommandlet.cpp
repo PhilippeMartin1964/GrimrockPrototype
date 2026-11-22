@@ -4,7 +4,7 @@
 #include "GridEditorWorldSaveProjection.h"
 #include "GridEditorInstanceCacheEvidence.h"
 #include "GridEditorInstanceSchemaProjection.h"
-#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
+#include "Runtime/Items/GridWorldSnapshotReadModel.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Parse.h"
@@ -166,7 +166,7 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
                 if (bWorldPreflight)
                 {
                     FString CheckError;
-                    const bool bPhysical = FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(
+                    const bool bPhysical = FGridWorldSnapshotReadModel::ValidateDungeon(
                         Registry.Get(), Save->DungeonRuntimeState, CheckError);
                     Row->SetBoolField(TEXT("canonical_world_valid"), bPhysical);
                     TArray<TSharedPtr<FJsonValue>> Projection;

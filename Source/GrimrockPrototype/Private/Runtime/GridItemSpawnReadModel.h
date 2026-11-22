@@ -6,7 +6,7 @@
 /** One-shot materialization of the authored physical generator identity.
  * The generator's stable GUID also identifies the resulting pickup.
  */
-struct FGridCanonicalItemSpawnReadModel
+struct FGridItemSpawnReadModel
 {
     static bool TryMaterialize(const FGridItemSpawnInstance& Source,
         const UGridItemSubsystem* Registry, FGridLooseItemInstance& Out)

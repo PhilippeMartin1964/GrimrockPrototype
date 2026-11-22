@@ -49,7 +49,7 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 			Instance.Quantity = 1;
 			const FGridInventoryItemMetadata Metadata =
 				FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Legacy.Get(), Instance);
-			TestTrue(TEXT("Registered ARM metadata is canonical"), Metadata.bCanonicalIdentity);
+			TestTrue(TEXT("Registered ARM metadata is canonical"), Metadata.bRegisteredIdentity);
 			TestTrue(TEXT("Authored N1/N20 identity resolves"), Metadata.bResolved);
 			TestEqual(TEXT("DisplayName comes from item definition"), Metadata.DisplayName.ToString(),
 				Expected.DisplayName.ToString());
@@ -61,7 +61,7 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 			Instance.ItemLevel = 0;
 			const FGridInventoryItemMetadata Invalid =
 				FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Legacy.Get(), Instance);
-			TestTrue(TEXT("Known canonical identity stays classified canonical"), Invalid.bCanonicalIdentity);
+			TestTrue(TEXT("Known canonical identity stays classified canonical"), Invalid.bRegisteredIdentity);
 			TestFalse(TEXT("Level zero does not silently rehydrate legacy fields"), Invalid.bResolved);
 			TestEqual(TEXT("Invalid canonical weight never falls back"), Invalid.UnitWeightKg, 0.0f);
 			TestTrue(TEXT("Invalid canonical description never copies old text"), Invalid.Description.IsEmpty());
@@ -77,7 +77,7 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 	Outside.Quantity = 1;
 	const FGridInventoryItemMetadata Old =
 		FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Legacy.Get(), Outside);
-	TestFalse(TEXT("Unregistered source is not resolved"), Old.bCanonicalIdentity || Old.bResolved);
+	TestFalse(TEXT("Unregistered source is not resolved"), Old.bRegisteredIdentity || Old.bResolved);
 	TestEqual(TEXT("Unknown source shows only technical identity"), Old.DisplayName.ToString(), Outside.ItemDefinitionId.ToString());
 	TestEqual(TEXT("Unknown source has no mass projection"), Old.UnitWeightKg, 0.0f);
 	TestTrue(TEXT("Unknown source has no old description"), Old.Description.IsEmpty());

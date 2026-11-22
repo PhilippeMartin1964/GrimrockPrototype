@@ -47,7 +47,7 @@ struct FGridCanonicalLootTestScope
 		for (const auto& Pair : SyntheticWeights)
 		{
 			const FName Id = Pair.Key;
-			if (Id.IsNone() || Registry->HasCanonicalItem(Id) ||
+			if (Id.IsNone() || Registry->ContainsItem(Id) ||
 				!FMath::IsFinite(Pair.Value) || Pair.Value < 0.0f) return false;
 			auto* Item = NewObject<UGridNonArmamentDefinitionAsset>(Root);
 			Item->ItemId = Id;

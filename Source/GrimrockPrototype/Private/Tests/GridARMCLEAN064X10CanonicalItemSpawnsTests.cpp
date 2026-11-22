@@ -10,8 +10,8 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
-#include "../Runtime/GridCanonicalItemSpawnReadModel.h"
+#include "Runtime/Items/GridItemCatalogues.h"
+#include "../Runtime/GridItemSpawnReadModel.h"
 #include "UObject/StrongObjectPtr.h"
 
 namespace ARMCLEAN064X10
@@ -110,7 +110,7 @@ bool FGridClean064X10BIdentity::RunTest(const FString&)
     Spawn.Quantity = 3;
     FGridLooseItemInstance Materialized;
     if (!TestTrue(TEXT("N0 canonical source materializes"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Materialized)))
+        FGridItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Materialized)))
         {return false;}
     return TestTrue(TEXT("Stable GUID"), Materialized.InstanceId == Spawn.SpawnId) &&
         TestEqual(TEXT("Canonical ID"), Materialized.CanonicalItemId, Spawn.CanonicalItemId) &&
@@ -159,7 +159,7 @@ bool FGridClean064X10C1AmmoN1::RunTest(const FString&)
     FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("Item_Arrows_01"), 1, 1);
     FGridLooseItemInstance Out;
     return TestFalse(TEXT("Strict persisted physical identity condition"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
+        FGridItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C2WeaponN0,
@@ -172,7 +172,7 @@ bool FGridClean064X10C2WeaponN0::RunTest(const FString&)
     FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("Weapon_StraightSword_01"), 0, 1);
     FGridLooseItemInstance Out;
     return TestFalse(TEXT("Strict persisted physical identity condition"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
+        FGridItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C3WeaponN20,
@@ -185,7 +185,7 @@ bool FGridClean064X10C3WeaponN20::RunTest(const FString&)
     FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("Weapon_StraightSword_01"), 20, 1);
     FGridLooseItemInstance Out;
     return TestTrue(TEXT("Strict persisted physical identity condition"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
+        FGridItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C4UnknownId,
@@ -198,7 +198,7 @@ bool FGridClean064X10C4UnknownId::RunTest(const FString&)
     FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("ARM_CLEAN06_X10_UNKNOWN"), 0, 1);
     FGridLooseItemInstance Out;
     return TestFalse(TEXT("Strict persisted physical identity condition"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
+        FGridItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C5ZeroQuantity,
@@ -211,7 +211,7 @@ bool FGridClean064X10C5ZeroQuantity::RunTest(const FString&)
     FGridItemSpawnInstance Spawn = ARMCLEAN064X10::MakeSpawn(TEXT("Item_Arrows_01"), 0, 0);
     FGridLooseItemInstance Out;
     return TestFalse(TEXT("Strict persisted physical identity condition"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
+        FGridItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10C6ContradictorySource,
@@ -225,7 +225,7 @@ bool FGridClean064X10C6ContradictorySource::RunTest(const FString&)
     Spawn.SpawnId.Invalidate();
     FGridLooseItemInstance Out;
     return TestFalse(TEXT("Strict persisted physical identity condition"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
+        FGridItemSpawnReadModel::TryMaterialize(Spawn, Probe.Registry.Get(), Out));
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10DWorld,
@@ -245,7 +245,7 @@ bool FGridClean064X10DWorld::RunTest(const FString&)
     Spawn.Quantity = 3;
     FGridLooseItemInstance Initial;
     if (!TestTrue(TEXT("Read model creates placement"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Spawn, F.Registry, Initial)))
+        FGridItemSpawnReadModel::TryMaterialize(Spawn, F.Registry, Initial)))
         {return false;}
     F.Runtime->AddPlacedItemActor(Initial);
     AGridItemActor* Actor = nullptr;
@@ -272,14 +272,14 @@ bool FGridClean064X10ELegacy::RunTest(const FString&)
     if (!TestNull(TEXT("Historical generator field removed"),
             FGridItemSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition"))) ||
         !TestFalse(TEXT("Empty ID cannot materialize"),
-            FGridCanonicalItemSpawnReadModel::TryMaterialize(Synthetic, Probe.Registry.Get(), Out)))
+            FGridItemSpawnReadModel::TryMaterialize(Synthetic, Probe.Registry.Get(), Out)))
         return false;
     Synthetic.CanonicalItemId = TEXT("Stone");
     if (!TestFalse(TEXT("Missing registry cannot materialize"),
-            FGridCanonicalItemSpawnReadModel::TryMaterialize(Synthetic, nullptr, Out)))
+            FGridItemSpawnReadModel::TryMaterialize(Synthetic, nullptr, Out)))
         return false;
     Synthetic.bSpawnAtStart = false;
     return TestFalse(TEXT("Disabled generator cannot materialize"),
-        FGridCanonicalItemSpawnReadModel::TryMaterialize(Synthetic, Probe.Registry.Get(), Out));
+        FGridItemSpawnReadModel::TryMaterialize(Synthetic, Probe.Registry.Get(), Out));
 }
 #endif

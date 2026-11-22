@@ -179,7 +179,7 @@ bool FGridItemWorldSparklePresentationTest::RunTest(const FString& Parameters)
 		{
 			AGridItemActor* CanonicalActor = TestWorld.World->SpawnActor<AGridItemActor>();
 			if (TestNotNull(TEXT("Canonical key actor"), CanonicalActor) &&
-				TestTrue(TEXT("Canonical key initialized"), CanonicalActor->InitializeFromCanonicalItem(Key, Registry)))
+				TestTrue(TEXT("Canonical key initialized"), CanonicalActor->InitializeFromItemInstance(Key, Registry)))
 			{
 				const bool Expected = Canonical.bEnableWorldSparkle &&
 					Canonical.WorldSparkleMaterial.LoadSynchronous() != nullptr &&

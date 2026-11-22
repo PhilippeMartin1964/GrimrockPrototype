@@ -3,9 +3,9 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** One read-only flight appearance resolved for the true physical item instance. */
-struct FGridCanonicalProjectileVisualReadView
+struct FGridProjectileVisualView
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	bool bHasProjectileVisual = false;
 	bool bGenericArmamentFlight = false;
@@ -20,20 +20,20 @@ struct FGridCanonicalProjectileVisualReadView
 };
 
 /** No synthetic N1: armaments require N1-N20, ammunition retains canonical N0. */
-struct FGridCanonicalProjectileVisualReadModel
+struct FGridProjectileVisuals
 {
-	static FGridCanonicalProjectileVisualReadView Resolve(
+	static FGridProjectileVisualView Resolve(
 		const UGridItemSubsystem* Registry, const FGridItemInstance& Instance)
 	{
-		FGridCanonicalProjectileVisualReadView Result;
+		FGridProjectileVisualView Result;
 		// Membership is determined by ItemId before inspecting the persisted
 		// instance: an invalid N-1, GUID or quantity must never cause a legacy
 		// fallback for an already registered canonical identity.
-		if (!Registry || !Registry->HasCanonicalItem(Instance.ItemDefinitionId))
+		if (!Registry || !Registry->ContainsItem(Instance.ItemDefinitionId))
 		{
 			return Result;
 		}
-		Result.bCanonicalIdentity = true;
+		Result.bRegisteredIdentity = true;
 		if (!Instance.IsValid())
 		{
 			return Result;

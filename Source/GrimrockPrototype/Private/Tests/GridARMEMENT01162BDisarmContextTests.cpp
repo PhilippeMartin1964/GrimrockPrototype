@@ -61,7 +61,7 @@ bool FARMEMENT01162BDisarmContext::RunTest(const FString&)
 
     const UGridItemSubsystem* Registry = GI->GetSubsystem<UGridItemSubsystem>();
     if (!TestTrue(TEXT("Actual canonical disarm tool registered"),
-        Registry && Registry->HasCanonicalItem(TEXT("Item_DisarmTools_01"))))
+        Registry && Registry->ContainsItem(TEXT("Item_DisarmTools_01"))))
     {
         DestroyWorld();
         return false;

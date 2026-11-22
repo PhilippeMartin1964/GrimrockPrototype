@@ -34,7 +34,7 @@ namespace ARMEMENT011023Tests
         for (const auto& Spec : ARMEMENT011023::Specs)
         {
             if (FName(Spec.EntryId) == FName(TEXT("Weapon_StraightSword_01"))) continue;
-            if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+            if (!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
                 Registry, FName(Spec.EntryId), Spec.NewPhysicalLevel)) return false;
             Out.Add(&Spec);
         }
@@ -81,7 +81,7 @@ bool FARMEMENT011023IdempotenceTest::RunTest(const FString&)
         if (!TestNotNull(TEXT("Expected direct item entry"), Entry)) continue;
         TestEqual(TEXT("Expected category"), Entry->PaletteCategory, FName(Target->Category));
         TestEqual(TEXT("Canonical identity matches"), Entry->CanonicalItemId, FName(Target->EntryId));
-        TestTrue(TEXT("Physical default resolves"), FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+        TestTrue(TEXT("Physical default resolves"), FGridEditorItemLevelPolicy::CanAuthorItemLevel(
             Canonical.Registry.Get(), Entry->CanonicalItemId, Entry->CanonicalDefaultItemLevel));
         TestNull(TEXT("No old source created"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")));
         TestEqual(TEXT("Gameplay type still Item"), Entry->GetEffectiveObjectType(), EGridLevelObjectType::Item);

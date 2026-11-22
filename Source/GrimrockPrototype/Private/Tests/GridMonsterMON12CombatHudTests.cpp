@@ -38,7 +38,7 @@
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "UI/GridCombatHudWidget.h"
-#include "../Runtime/Combat/GridCanonicalActionIconReadModel.h"
+#include "../Runtime/Combat/GridActionIconReadModel.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UObject/UObjectGlobals.h"
@@ -2934,7 +2934,7 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 			Item.ArchetypeId = FName(*FString::Printf(TEXT("ARM%03d"), Id));
 			Action.Definition.ActionType = Family.Type;
 			TestEqual(FString::Printf(TEXT("Visual family of %s"), *Item.ArchetypeId.ToString()),
-				FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Family.Expected);
+				FGridActionIconReadModel::Classify(Item, Action.Definition), Family.Expected);
 		}
 	}
 	// Complete the 82-archtype audit: passive focus objects (70-71)
@@ -2946,7 +2946,7 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 		Item.AvailableActions.Reset();
 		Item.ArchetypeId = FName(*FString::Printf(TEXT("ARM%03d"), Id));
 		TestEqual(FString::Printf(TEXT("Passive ARM%03d has no offensive icon"), Id),
-			FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
+			FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 	}
 	Item.Weapon.Kind = EGridCanonicalArmamentKind::Weapon;
 	// A thrown weapon switched to an actually authored melee action takes
@@ -2955,15 +2955,15 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 	Item.ArchetypeId = TEXT("ARM054");
 	Action.Definition.ActionType = EGridCombatActionType::MeleeAttack;
 	TestEqual(TEXT("Thrown knife melee mode has an individual melee icon"),
-		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::MeleeOneHand);
+		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::MeleeOneHand);
 	Item.ArchetypeId = TEXT("ARM010");
 	Action.Definition.ActionType = EGridCombatActionType::RangedAttack;
 	TestEqual(TEXT("Combat throwable hatchet uses throw icon for throw mode"),
-		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::ThrownWeapon);
+		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::ThrownWeapon);
 	Action.Definition.ActionType = EGridCombatActionType::MeleeAttack;
 	Action.Definition.ActionId = FGridDualWieldPolicy::ActionId();
 	TestEqual(TEXT("Two physical one-handed attacks share one dual icon"),
-		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::MeleeDualWield);
+		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::MeleeDualWield);
 
 	Action.Definition.ActionId = TEXT("Action_Test");
 	Item.AvailableActions.Reset();
@@ -2971,29 +2971,29 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 	Action.Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
 	Item.ArchetypeId = TEXT("ARM075");
 	TestEqual(TEXT("A passive shield must never manufacture an offensive icon"),
-		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
+		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 	Action.Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Defense;
 	Action.Definition.ActionType = EGridCombatActionType::Defend;
 	TestEqual(TEXT("Unbound passive shield has no defensive shortcut"),
-		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
+		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 	Item.AvailableActions.AddDefaulted_GetRef().ActionId = Action.Definition.ActionId;
 	TestEqual(TEXT("Only a real shield defense action receives a block icon"),
-		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::DefenseBlock);
+		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::DefenseBlock);
 	Item.Weapon.Kind = EGridCanonicalArmamentKind::Weapon;
 	Item.ArchetypeId = TEXT("ARM013");
 	TestEqual(TEXT("Future authored Main-gauche defense uses the parry icon"),
-		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::DefenseParry);
+		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::DefenseParry);
 
 	Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
 	TestEqual(TEXT("Spellbook actions are entirely outside ARMEMENT icon palette"),
-		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
+		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 	Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 	TestEqual(TEXT("Consumables are entirely outside ARMEMENT icon palette"),
-		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
+		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 	Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
 	Item.bIsArmament = false;
 	TestEqual(TEXT("Non-ARM equipment retains its own action icon"),
-		FGridCanonicalActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
+		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 
 	// Outside the canonical equipment path the explicit action icon is
 	// preserved. Even a colliding composite ActionId cannot repaint spells.

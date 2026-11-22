@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "../Runtime/GridCanonicalItemMeshReadModel.h"
+#include "../Runtime/GridItemMeshResolver.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -41,8 +41,8 @@ bool FGridClean063MCanonicalWorldMesh::RunTest(const FString&)
 			Instance.ItemDefinitionId = Id;
 			Instance.ItemLevel = Level;
 			Instance.Quantity = 1;
-			FGridCanonicalItemMeshReadView View = FGridCanonicalItemMeshReadModel::Resolve(Registry.Get(), Instance);
-			TestTrue(TEXT("World mesh source is canonical"), View.bCanonicalIdentity);
+			FGridItemMeshView View = FGridItemMeshResolver::Resolve(Registry.Get(), Instance);
+			TestTrue(TEXT("World mesh source is canonical"), View.bRegisteredIdentity);
 			TestTrue(TEXT("World mesh resolves at instance level"), View.bResolved);
 			TestEqual(TEXT("World visual profile identity is stable"), View.VisualId, Source.VisualId);
 			TestEqual(TEXT("Canonical world mesh path is not an old item copy"),
@@ -52,8 +52,8 @@ bool FGridClean063MCanonicalWorldMesh::RunTest(const FString&)
 			TestTrue(TEXT("Pickup resolution is read-only on real instance"),
 				Instance.ItemLevel == Level && Instance.RuntimeObjectId.IsValid());
 			Instance.ItemLevel = 0;
-			View = FGridCanonicalItemMeshReadModel::Resolve(Registry.Get(), Instance);
-			TestTrue(TEXT("Invalid N0 is still a known canonical identity"), View.bCanonicalIdentity);
+			View = FGridItemMeshResolver::Resolve(Registry.Get(), Instance);
+			TestTrue(TEXT("Invalid N0 is still a known canonical identity"), View.bRegisteredIdentity);
 			TestFalse(TEXT("Invalid N0 must not get a legacy mesh"), View.bResolved);
 			TestTrue(TEXT("Invalid N0 world mesh is empty"), View.WorldMesh.IsNull());
 			TestTrue(TEXT("Invalid N0 cannot reuse world visual transform"),
@@ -65,8 +65,8 @@ bool FGridClean063MCanonicalWorldMesh::RunTest(const FString&)
 	Legacy.RuntimeObjectId = FGuid::NewGuid();
 	Legacy.ItemDefinitionId = TEXT("Unregistered_063M");
 	Legacy.Quantity = 1;
-	const FGridCanonicalItemMeshReadView Old = FGridCanonicalItemMeshReadModel::Resolve(Registry.Get(), Legacy);
-	TestFalse(TEXT("Unknown item does not replace its legacy world mesh"), Old.bCanonicalIdentity);
+	const FGridItemMeshView Old = FGridItemMeshResolver::Resolve(Registry.Get(), Legacy);
+	TestFalse(TEXT("Unknown item does not replace its legacy world mesh"), Old.bRegisteredIdentity);
 	TestFalse(TEXT("Unknown item has no fabricated canonical visual"), Old.bResolved);
 	return true;
 }

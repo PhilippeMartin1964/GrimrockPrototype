@@ -6,7 +6,7 @@
 /** Read-only starter metadata projection; historical fixture values are not serialized. */
 struct FGridStartingKitStaticMetadataReadView
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	FText DisplayName;
 	float UnitWeightKg = 0.0f;
@@ -20,9 +20,9 @@ struct FGridStartingKitStaticMetadataReadModel
 	{
 		FGridStartingKitStaticMetadataReadView Result;
 		if (ItemId.IsNone()) return Result;
-		if (Registry && Registry->HasCanonicalItem(ItemId))
+		if (Registry && Registry->ContainsItem(ItemId))
 		{
-			Result.bCanonicalIdentity = true;
+			Result.bRegisteredIdentity = true;
 			FGridResolvedItem Canonical;
 			if (!Registry->ResolveItem(ItemId, FixedItemLevel, Canonical) ||
 				!Canonical.IsValid() || (!Canonical.bIsArmament && FixedItemLevel != 0) ||

@@ -82,9 +82,9 @@ bool FGridTD064PartyInventoryCursorTransferContractTest::RunTest(const FString& 
 	TestFalse(TEXT("The cursor starts empty"), Component->HasCursorItem());
 	TestFalse(TEXT("Clearing an already empty cursor returns false without mutation"), Component->ClearCursorItem());
 
-	if (!TestTrue(TEXT("Stack definition registered"), Fixture.Scope.Registry->HasCanonicalItem(StackId)) ||
-		!TestTrue(TEXT("Weapon A registered"), Fixture.Scope.Registry->HasCanonicalItem(WeaponAId)) ||
-		!TestTrue(TEXT("Weapon B registered"), Fixture.Scope.Registry->HasCanonicalItem(WeaponBId)))
+	if (!TestTrue(TEXT("Stack definition registered"), Fixture.Scope.Registry->ContainsItem(StackId)) ||
+		!TestTrue(TEXT("Weapon A registered"), Fixture.Scope.Registry->ContainsItem(WeaponAId)) ||
+		!TestTrue(TEXT("Weapon B registered"), Fixture.Scope.Registry->ContainsItem(WeaponBId)))
 		return false;
 	const FGridItemInstance StackItem = GridTD064CreateItem(StackId, 5);
 	const FGridItemInstance WeaponA = GridTD064CreateItem(WeaponAId);

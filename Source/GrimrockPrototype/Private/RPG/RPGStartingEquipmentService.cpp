@@ -59,7 +59,7 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		const FName ItemId = bExplicitCanonical ? Entry.CanonicalItemId
 			: (IsValid(Definition) ? Definition->ItemDefinitionId : NAME_None);
 		const bool bCanonicalRegistered = CanonicalRegistry &&
-			CanonicalRegistry->HasCanonicalItem(ItemId);
+			CanonicalRegistry->ContainsItem(ItemId);
 		if (!bAllowLegacyFixture && !bCanonicalRegistered)
 		{
 			OutError = TEXT("Starting kit item is not registered in the canonical ItemSystem.");

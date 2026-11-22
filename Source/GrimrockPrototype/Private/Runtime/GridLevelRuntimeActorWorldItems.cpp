@@ -398,13 +398,13 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	UGameInstance* RouteGI = RouteWorld ? RouteWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* RouteRegistry = RouteGI ? RouteGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	FGridResolvedItem RouteCanonical;
-	const bool bCanonicalIdentity = RouteRegistry &&
-		RouteRegistry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
+	const bool bRegisteredIdentity = RouteRegistry &&
+		RouteRegistry->ContainsItem(ItemInstance.ItemDefinitionId);
 	bool bRequireCanonical = true;
 #if WITH_DEV_AUTOMATION_TESTS
 	bRequireCanonical = !GIsAutomationTesting || RouteGI != nullptr;
 #endif
-	const bool bCanonicalRoute = bCanonicalIdentity &&
+	const bool bCanonicalRoute = bRegisteredIdentity &&
 		RouteRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, RouteCanonical) &&
 		RouteCanonical.IsValid() && RouteCanonical.ItemId == ItemInstance.ItemDefinitionId &&
 		RouteCanonical.ItemLevel == ItemInstance.ItemLevel &&
@@ -412,7 +412,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 		ItemInstance.Quantity >= 1 && ItemInstance.Quantity <= FMath::Max(1, RouteCanonical.MaxStack);
 	// A known canonical ItemId at an invalid persisted level (notably ARM N0)
 	// must never fall back to an old UGridItemDefinitionAsset.
-	if ((bRequireCanonical || bCanonicalIdentity) && !bCanonicalRoute)
+	if ((bRequireCanonical || bRegisteredIdentity) && !bCanonicalRoute)
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridPit ItemTransfer rejected Item=%s Level=%d Reason=InvalidCanonicalItem"),
@@ -658,7 +658,7 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 		const UGridItemSubsystem* InboundRegistry =
 			InboundGI ? InboundGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		const bool bKnownCanonical = InboundRegistry &&
-			InboundRegistry->HasCanonicalItem(ItemState.ItemDefinitionId);
+			InboundRegistry->ContainsItem(ItemState.ItemDefinitionId);
 		FGridResolvedItem InboundCanonical;
 		const bool bValidCanonicalInbound = bKnownCanonical &&
 			InboundRegistry->ResolveItem(ItemState.ItemDefinitionId, ItemState.ItemLevel, InboundCanonical) &&
@@ -791,7 +791,7 @@ bool AGridLevelRuntimeActor::TransferWorldItemThroughPit(AGridItemActor* ItemAct
 	const UWorld* RouteWorld = GetWorld();
 	UGameInstance* RouteGI = RouteWorld ? RouteWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = RouteGI ? RouteGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	UGridItemDefinitionAsset* Definition = Registry && Registry->HasCanonicalItem(ItemId)
+	UGridItemDefinitionAsset* Definition = Registry && Registry->ContainsItem(ItemId)
 		? nullptr : Entry.ItemDefinitionAsset.Get();
 
 	// With simulating Chaos the mesh may travel while the actor root
@@ -1024,8 +1024,8 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCellInternal(
 	UGameInstance* DropGameInstance = DropWorld ? DropWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = DropGameInstance
 		? DropGameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	const bool bCanonicalIdentity = Registry &&
-		Registry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
+	const bool bRegisteredIdentity = Registry &&
+		Registry->ContainsItem(ItemInstance.ItemDefinitionId);
 	// One canonical world-item initializer for *all* registered families,
 	// including ARM N1-N20. The mesh-only legacy ARM route skipped canonical
 	// physics, sparkle and visual effects after a PIT02 transfer.
@@ -1034,13 +1034,13 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCellInternal(
 #if WITH_DEV_AUTOMATION_TESTS
 	bRequireCanonical = !GIsAutomationTesting || DropGameInstance != nullptr;
 #endif
-	const bool bResolvedCanonical = bCanonicalIdentity &&
+	const bool bResolvedCanonical = bRegisteredIdentity &&
 		Registry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, CanonicalDrop) &&
 		CanonicalDrop.IsValid() && CanonicalDrop.ItemId == ItemInstance.ItemDefinitionId &&
 		CanonicalDrop.ItemLevel == ItemInstance.ItemLevel &&
 		(CanonicalDrop.bIsArmament ? ItemInstance.ItemLevel >= 1 : ItemInstance.ItemLevel == 0) &&
 		ItemInstance.Quantity >= 1 && ItemInstance.Quantity <= FMath::Max(1, CanonicalDrop.MaxStack);
-	if ((bRequireCanonical || bCanonicalIdentity) && !bResolvedCanonical)
+	if ((bRequireCanonical || bRegisteredIdentity) && !bResolvedCanonical)
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridInventory WorldDrop rejected canonical Item=%s Level=%d"),
@@ -1051,12 +1051,12 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCellInternal(
 		{ return Existing.ObjectId == ItemInstance.RuntimeObjectId && IsValid(Existing.ItemActor.Get()); }))
 		return false;
 
-	UGridItemDefinitionAsset* ItemDefinition = bCanonicalIdentity ? nullptr :
+	UGridItemDefinitionAsset* ItemDefinition = bRegisteredIdentity ? nullptr :
 		(IsValid(ItemDefinitionAsset) ? ItemDefinitionAsset : nullptr);
 	const FGridReceptacleItemMetadataReadView LevelRead =
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry, ItemDefinition, ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel);
-	if (!LevelRead.bResolved || (!LevelRead.bCanonicalIdentity && !IsValid(ItemDefinition)))
+	if (!LevelRead.bResolved || (!LevelRead.bRegisteredIdentity && !IsValid(ItemDefinition)))
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridInventory WorldDrop Failed Item=%s InvalidPersistedItemLevel=%d"),
@@ -1111,11 +1111,11 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCellInternal(
 	FGridItemInstance DroppedVisualItem = ItemInstance;
 	DroppedVisualItem.RuntimeObjectId = RuntimeObjectId;
 	DroppedVisualItem.ItemLevel = ResolvedItemLevel;
-	if (bCanonicalIdentity)
+	if (bRegisteredIdentity)
 	{
 		// One full projection for ARM and non-ARM world pickups. The saved
 		// light state is still applied explicitly below, after initialization.
-		if (!ItemActor->InitializeFromCanonicalItem(DroppedVisualItem, Registry))
+		if (!ItemActor->InitializeFromItemInstance(DroppedVisualItem, Registry))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning,
 				TEXT("GridInventory WorldDrop Failed Item=%s Reason=CanonicalInitializationFailed"),
@@ -1134,7 +1134,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCellInternal(
 		{
 			ItemActor->InitializeFromItemDefinitionId(ItemInstance.ItemDefinitionId, RuntimeObjectId);
 		}
-		ItemActor->ApplyCanonicalWorldVisual(DroppedVisualItem);
+		ItemActor->ApplyResolvedWorldVisual(DroppedVisualItem);
 	}
 	ItemActor->SetRuntimeObjectId(RuntimeObjectId);
 	ItemActor->SetRuntimeCell(CellX, CellY);
@@ -1187,24 +1187,24 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 	const UWorld* SpawnWorld = GetWorld();
 	UGameInstance* SpawnGI = SpawnWorld ? SpawnWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* SpawnRegistry = SpawnGI ? SpawnGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	const bool bCanonicalIdentity = SpawnRegistry &&
-		SpawnRegistry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
+	const bool bRegisteredIdentity = SpawnRegistry &&
+		SpawnRegistry->ContainsItem(ItemInstance.ItemDefinitionId);
 	bool bRequireCanonical = true;
 #if WITH_DEV_AUTOMATION_TESTS
 	bRequireCanonical = !GIsAutomationTesting || SpawnGI != nullptr;
 #endif
 	FGridResolvedItem Canonical;
-	const bool bCanonicalResolved = bCanonicalIdentity &&
+	const bool bCanonicalResolved = bRegisteredIdentity &&
 		SpawnRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, Canonical) &&
 		Canonical.IsValid() && Canonical.ItemId == ItemInstance.ItemDefinitionId &&
 		Canonical.ItemLevel == ItemInstance.ItemLevel &&
 		(Canonical.bIsArmament ? ItemInstance.ItemLevel >= 1 : ItemInstance.ItemLevel == 0) &&
 		ItemInstance.Quantity == 1;
-	if ((bRequireCanonical || bCanonicalIdentity) && !bCanonicalResolved)
+	if ((bRequireCanonical || bRegisteredIdentity) && !bCanonicalResolved)
 		return nullptr;
 	// A thrown item must retain a valid persisted physical level.
 	// A rejected registered identity cannot launch from an old definition.
-	const bool bValidCanonicalPhysicalLevel = !bCanonicalIdentity ||
+	const bool bValidCanonicalPhysicalLevel = !bRegisteredIdentity ||
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			SpawnRegistry, nullptr, ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel).bResolved;
 	const bool bCanonicalSpecialized = bCanonicalResolved && Canonical.bIsArmament &&
@@ -1223,16 +1223,16 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 		FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f &&
 		FMath::IsFinite(Canonical.GenericThrow.InitialSpeed) &&
 		Canonical.GenericThrow.InitialSpeed > KINDA_SMALL_NUMBER && FMath::IsFinite(Canonical.GenericThrow.Arc);
-	const bool bMatchingLegacy = !bRequireCanonical && !bCanonicalIdentity && IsValid(ItemDefinition) &&
+	const bool bMatchingLegacy = !bRequireCanonical && !bRegisteredIdentity && IsValid(ItemDefinition) &&
 		ItemDefinition->ItemDefinitionId == ItemInstance.ItemDefinitionId;
 	const bool bValidProjectileSource = bRangedAmmunitionProjectile
-		? (bCanonicalIdentity
+		? (bRegisteredIdentity
 			? (bCanonicalResolved && !Canonical.bIsArmament &&
 				!Canonical.AmmoKindId.IsNone() && Canonical.MaxStack > 1 &&
 				ItemInstance.ItemLevel == 0 && ItemInstance.Quantity == 1)
 			: (bMatchingLegacy && ItemDefinition->bStackable && ItemInstance.Quantity == 1 &&
 				!ItemDefinition->IsCombatThrowable()))
-		: (bCanonicalIdentity
+		: (bRegisteredIdentity
 			? (bCanonicalSpecialized || bCanonicalGenericNonArm || bCanonicalGenericArm)
 			: (bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()));
 	if (!ItemInstance.IsValid() || !bValidCanonicalPhysicalLevel || !bValidProjectileSource ||
@@ -1262,7 +1262,7 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 		return nullptr;
 	}
 
-	ThrownActor->InitializeThrownItem(this, ItemInstance, bCanonicalIdentity ? nullptr : ItemDefinition,
+	ThrownActor->InitializeThrownItem(this, ItemInstance, bRegisteredIdentity ? nullptr : ItemDefinition,
 		LaunchVelocity, SourceCellX, SourceCellY);
 	if (!IsValid(ThrownActor) || ThrownActor->IsActorBeingDestroyed())
 	{

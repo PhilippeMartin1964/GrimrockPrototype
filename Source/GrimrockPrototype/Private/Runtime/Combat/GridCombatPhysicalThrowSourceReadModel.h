@@ -12,7 +12,7 @@
  */
 struct FGridCombatPhysicalThrowSourceReadView
 {
-    bool bCanonicalIdentity = false;
+    bool bRegisteredIdentity = false;
     bool bResolved = false;
     bool bLaunchPhysicalProjectile = false;
     bool bRejectAction = false;
@@ -28,10 +28,10 @@ struct FGridCombatPhysicalThrowSourceReadModel
         bool bRangedAttack)
     {
         FGridCombatPhysicalThrowSourceReadView Out;
-        Out.bCanonicalIdentity = Registry &&
-            Registry->HasCanonicalItem(Instance.ItemDefinitionId);
+        Out.bRegisteredIdentity = Registry &&
+            Registry->ContainsItem(Instance.ItemDefinitionId);
 
-        if (Out.bCanonicalIdentity)
+        if (Out.bRegisteredIdentity)
         {
             FGridResolvedItem Weapon;
             if (!Instance.IsValid() ||

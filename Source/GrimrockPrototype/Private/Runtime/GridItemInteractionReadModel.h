@@ -3,7 +3,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "GridCanonicalQuickItemUseReadModel.h"
+#include "GridQuickItemUseReadModel.h"
 
 /**
  * ARM-CLEAN06.3AW: context/read/hotbar capabilities of an actual item instance.
@@ -12,9 +12,9 @@
  * Instance-authored readable content remains independent of static data
  * for a valid physical canonical item.
  */
-struct FGridCanonicalItemInteractionReadView
+struct FGridItemInteractionReadView
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	bool bCanRead = false;
 	bool bCanConsumeLegacy = false;
@@ -27,14 +27,14 @@ struct FGridCanonicalItemInteractionReadView
 	TSoftObjectPtr<UTexture2D> ItemIcon;
 };
 
-struct FGridCanonicalItemInteractionReadModel
+struct FGridItemInteractionReadModel
 {
-	static FGridCanonicalItemInteractionReadView Resolve(
+	static FGridItemInteractionReadView Resolve(
 		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* OldDefinition,
 		const FGridItemInstance& Item)
 	{
-		FGridCanonicalItemInteractionReadView Out;
-		Out.bCanonicalIdentity = Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId);
+		FGridItemInteractionReadView Out;
+		Out.bRegisteredIdentity = Registry && Registry->ContainsItem(Item.ItemDefinitionId);
 		if (!Item.IsValid())
 		{
 			return Out;
@@ -42,7 +42,7 @@ struct FGridCanonicalItemInteractionReadModel
 		const bool bHasInstanceText = !Item.ReadTextOverride.IsEmpty() ||
 			(IsValid(Item.ReadableContentAsset) && !Item.ReadableContentAsset->BodyText.IsEmpty());
 
-		if (Out.bCanonicalIdentity)
+		if (Out.bRegisteredIdentity)
 		{
 			FGridResolvedItem Canonical;
 			if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical) ||
@@ -63,8 +63,8 @@ struct FGridCanonicalItemInteractionReadModel
 				FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f &&
 				FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) &&
 				Canonical.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER;
-			const FGridCanonicalQuickItemUseReadView Use =
-				FGridCanonicalQuickItemUseReadModel::Resolve(Registry, Item);
+			const FGridQuickItemUseReadView Use =
+				FGridQuickItemUseReadModel::Resolve(Registry, Item);
 			// Only a true direct self-heal may appear as the inline "Consume"
             // action. Status cleansing uses the combat hotbar executor.
             Out.bCanConsumeCanonical = Use.bResolved &&

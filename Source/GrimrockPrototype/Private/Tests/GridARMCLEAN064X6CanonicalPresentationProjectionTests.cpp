@@ -5,7 +5,7 @@
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "UObject/StrongObjectPtr.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X6CanonicalPresentation,

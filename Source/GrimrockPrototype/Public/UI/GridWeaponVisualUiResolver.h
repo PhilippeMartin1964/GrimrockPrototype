@@ -10,7 +10,7 @@ struct FGridItemInstance;
 /** Transient presentation for an item's icon (not an equipped combat-action icon). */
 struct GRIMROCKPROTOTYPE_API FGridResolvedInventoryItemIcon
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	FName VisualId = NAME_None;
 	TSoftObjectPtr<UTexture2D> Icon;
 };

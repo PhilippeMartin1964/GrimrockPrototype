@@ -13,9 +13,9 @@ FGridResolvedInventoryItemIcon FGridWeaponVisualUiResolver::ResolveInventoryItem
 	{
 		return Result;
 	}
-	if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+	if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
 	{
-		Result.bCanonicalIdentity = true;
+		Result.bRegisteredIdentity = true;
 		FGridResolvedItem Canonical;
 		if (Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical))
 		{

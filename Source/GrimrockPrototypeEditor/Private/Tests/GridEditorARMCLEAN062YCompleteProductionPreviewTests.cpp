@@ -44,7 +44,7 @@ bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
         return false;
     }
     TArray<FName> ItemIds;
-    Fixture.Registry->GetCanonicalItemIds(ItemIds);
+    Fixture.Registry->GetItemIds(ItemIds);
     TestEqual(TEXT("Canonical index holds exactly 48 identities"), ItemIds.Num(), 48);
     int32 Arms = 0, CompleteProfiles = 0, SpecializedFlights = 0, VisualFlights = 0;
     for (const FGridWeaponPipelineRow& Row : Manifest)

@@ -2,10 +2,10 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Combat/GridDualWieldPolicy.h"
-#include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
+#include "Runtime/Combat/GridAttackPresentationReadModel.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/Combat/GridCanonicalEquippedAttackReadModel.h"
+#include "../Runtime/Combat/GridEquippedAttackReadModel.h"
 #include "UObject/StrongObjectPtr.h"
 
 namespace ARMCLEAN063AP
@@ -67,7 +67,7 @@ bool FGridClean063APDualWield::RunTest(const FString&)
 	FGridDualWieldPair Pair;
 	if (!TestTrue(TEXT("Two actual canonical sources form a dual pair"),
 		FGridDualWieldPolicy::TryResolve(Inventory.Get(), 0, Pair, Registry.Get()))) return false;
-	TestTrue(TEXT("Both sources use canonical identity"), Pair.Main.bCanonicalIdentity && Pair.Off.bCanonicalIdentity);
+	TestTrue(TEXT("Both sources use canonical identity"), Pair.Main.bRegisteredIdentity && Pair.Off.bRegisteredIdentity);
 	TestNull(TEXT("No old main weapon asset used"), Pair.Main.Definition);
 	TestNull(TEXT("No old offhand weapon asset used"), Pair.Off.Definition);
 	TestEqual(TEXT("Main physical GUID"), Pair.Main.Item.RuntimeObjectId, MainId);
@@ -87,13 +87,13 @@ bool FGridClean063APDualWield::RunTest(const FString&)
 	MainRequest.OffensiveItemDefinitionId = Pair.Main.Item.ItemDefinitionId;
 	MainRequest.OffensiveEquipmentSlot = EGridEquipmentSlot::MainHand;
 	MainRequest.AttackId = Pair.Main.Action.ActionId;
-	MainRequest.PresentationSource = FGridCanonicalAttackPresentationReadModel::Capture(
+	MainRequest.PresentationSource = FGridAttackPresentationReadModel::Capture(
 		Registry.Get(), Inventory.Get(), 0, MainRequest.OffensiveItemDefinitionId, MainRequest.OffensiveEquipmentSlot, MainRequest.AttackId, false);
 	FGridPlayerAttackRequest OffRequest;
 	OffRequest.OffensiveItemDefinitionId = Pair.Off.Item.ItemDefinitionId;
 	OffRequest.OffensiveEquipmentSlot = EGridEquipmentSlot::OffHand;
 	OffRequest.AttackId = Pair.Off.Action.ActionId;
-	OffRequest.PresentationSource = FGridCanonicalAttackPresentationReadModel::Capture(
+	OffRequest.PresentationSource = FGridAttackPresentationReadModel::Capture(
 		Registry.Get(), Inventory.Get(), 0, OffRequest.OffensiveItemDefinitionId, OffRequest.OffensiveEquipmentSlot, OffRequest.AttackId, false);
 	TestEqual(TEXT("First strike captures real N3"), MainRequest.PresentationSource.ItemLevel, 3);
 	TestEqual(TEXT("Second strike captures real N19"), OffRequest.PresentationSource.ItemLevel, 19);
@@ -105,14 +105,14 @@ bool FGridClean063APDualWield::RunTest(const FString&)
 	Equipment.MainHand = FGridItemInstance();
 	Equipment.OffHand = FGridItemInstance();
 	FGridPlayerAttackPresentationProfile MainFX, OffFX;
-	TestTrue(TEXT("Main presentation resolves after source removal"), FGridCanonicalAttackPresentationReadModel::TryResolve(Registry.Get(), MainRequest, MainFX));
-	TestTrue(TEXT("Off presentation resolves independently after source removal"), FGridCanonicalAttackPresentationReadModel::TryResolve(Registry.Get(), OffRequest, OffFX));
+	TestTrue(TEXT("Main presentation resolves after source removal"), FGridAttackPresentationReadModel::TryResolve(Registry.Get(), MainRequest, MainFX));
+	TestTrue(TEXT("Off presentation resolves independently after source removal"), FGridAttackPresentationReadModel::TryResolve(Registry.Get(), OffRequest, OffFX));
 	Equipment.MainHand = SavedMain;
 	Equipment.OffHand = SavedOff;
-	const auto Borrowed = FGridCanonicalAttackPresentationReadModel::Capture(
+	const auto Borrowed = FGridAttackPresentationReadModel::Capture(
 		Registry.Get(), Inventory.Get(), 0, MainRequest.OffensiveItemDefinitionId, MainRequest.OffensiveEquipmentSlot, TEXT("Skill_TestBorrowedWeapon"), true);
 	TestEqual(TEXT("Borrowed weapon skill keeps physical primary binding"), Borrowed.ActionId, MainRequest.AttackId);
-	const auto WrongAction = FGridCanonicalAttackPresentationReadModel::Capture(
+	const auto WrongAction = FGridAttackPresentationReadModel::Capture(
 		Registry.Get(), Inventory.Get(), 0, MainRequest.OffensiveItemDefinitionId, MainRequest.OffensiveEquipmentSlot, TEXT("Unbound_Action"), false);
 	TestTrue(TEXT("Unknown standard action cannot invent media"), WrongAction.ActionId.IsNone());
 	for (const FName Tag : Pair.Main.SourceTags)
@@ -122,7 +122,7 @@ bool FGridClean063APDualWield::RunTest(const FString&)
 	TestEqual(TEXT("Composite cost stays 3 AP"), FGridDualWieldPolicy::ActionPointCost, 3);
 	TestEqual(TEXT("Offhand coefficient stays 50 percent"), FGridDualWieldPolicy::OffHandDamagePercent, 50);
 	FGridCombatActionDefinition Single;
-	TestTrue(TEXT("Standalone shares canonical reader"), FGridCanonicalEquippedAttackReadModel::TryResolve(
+	TestTrue(TEXT("Standalone shares canonical reader"), FGridEquippedAttackReadModel::TryResolve(
 		Registry.Get(), Equipment.MainHand, EGridEquipmentSlot::MainHand, Pair.Main.Action.ActionId, Single));
 	TestEqual(TEXT("Same standalone versus dual main damage"), Single.OffensiveProfile.AttackDefinition.DamageDice.GetMaximumDamage(),
 		Pair.Main.Profile.AttackDefinition.DamageDice.GetMaximumDamage());
@@ -132,7 +132,7 @@ bool FGridClean063APDualWield::RunTest(const FString&)
 	FGridItemInstance InvalidDirect = Equipment.MainHand;
 	InvalidDirect.ItemLevel = 0;
 	FGridCombatActionDefinition Rejected;
-	TestFalse(TEXT("Direct standard reader rejects N0 without fallback"), FGridCanonicalEquippedAttackReadModel::TryResolve(
+	TestFalse(TEXT("Direct standard reader rejects N0 without fallback"), FGridEquippedAttackReadModel::TryResolve(
 		Registry.Get(), InvalidDirect, EGridEquipmentSlot::MainHand, Single.ActionId, Rejected));
 	TestFalse(TEXT("Rejected direct reader clears action"), Rejected.IsValid());
 

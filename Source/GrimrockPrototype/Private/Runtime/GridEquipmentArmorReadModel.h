@@ -25,7 +25,7 @@ struct FGridEquipmentArmorReadModel
 		{
 			return false;
 		}
-		if (Registry && Registry->HasCanonicalItem(Instance.ItemDefinitionId))
+		if (Registry && Registry->ContainsItem(Instance.ItemDefinitionId))
 		{
 			FGridCanonicalArmorReserveView Canonical;
 			if (!Registry->ResolveArmorReserveForInstance(Instance, Canonical))

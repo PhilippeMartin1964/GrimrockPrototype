@@ -145,7 +145,7 @@ bool FGridPartyInventoryExclusiveOwnershipTest::RunTest(const FString& Parameter
 		return false;
 	}
 
-	TestTrue(TEXT("The ownership fixture registers its equipment definition"), Fixture.Scope.Registry->HasCanonicalItem(TEXT("CC0_TestWeapon")));
+	TestTrue(TEXT("The ownership fixture registers its equipment definition"), Fixture.Scope.Registry->ContainsItem(TEXT("CC0_TestWeapon")));
 
 	const FGridItemInstance Item = CreateTestItem(TEXT("CC0_TestWeapon"));
 	const FGuid RuntimeObjectId = Item.RuntimeObjectId;

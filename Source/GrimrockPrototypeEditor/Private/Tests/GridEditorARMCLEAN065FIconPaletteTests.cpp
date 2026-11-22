@@ -7,7 +7,7 @@
 #include "Misc/Paths.h"
 #include "Misc/AssetRegistryInterface.h"
 #include "Modules/ModuleManager.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "UI/GridCombatHudWidget.h"
 #include "UObject/UnrealType.h"
 

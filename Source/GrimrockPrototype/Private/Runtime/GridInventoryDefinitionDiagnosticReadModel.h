@@ -3,7 +3,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** Diagnostics only. Reads the canonical catalogue, never the inventory's historical cache. */
-struct FGridCanonicalInventoryDefinitionDiagnosticRow
+struct FGridInventoryDefinitionDiagnosticRow
 {
 	FName ItemId = NAME_None;
 	bool bResolved = false;
@@ -15,15 +15,15 @@ struct FGridCanonicalInventoryDefinitionDiagnosticRow
 	FString WeightText = TEXT("INVALID");
 };
 
-struct FGridCanonicalInventoryDefinitionDiagnosticReadModel
+struct FGridInventoryDefinitionDiagnosticReadModel
 {
 	static bool Build(const UGridItemSubsystem* Registry,
-		TArray<FGridCanonicalInventoryDefinitionDiagnosticRow>& OutRows)
+		TArray<FGridInventoryDefinitionDiagnosticRow>& OutRows)
 	{
 		OutRows.Reset();
 		if (!IsValid(Registry) || !Registry->IsConfigured()) return false;
 		TArray<FName> Ids;
-		Registry->GetCanonicalItemIds(Ids);
+		Registry->GetItemIds(Ids);
 		for (FName Id : Ids)
 		{
 			auto& Row = OutRows.AddDefaulted_GetRef();

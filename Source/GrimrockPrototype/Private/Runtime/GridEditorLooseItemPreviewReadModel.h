@@ -6,7 +6,7 @@
 /** A preview is an authored placement, not yet a persisted FGridItemInstance. */
 struct FGridEditorLooseItemPreviewReadView
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	int32 EffectiveItemLevel = 0;
 	FName VisualId = NAME_None;
@@ -23,8 +23,8 @@ struct FGridEditorLooseItemPreviewReadModel
 		const UGridItemSubsystem* Registry, const FGridLooseItemInstance& Placement)
 	{
 		FGridEditorLooseItemPreviewReadView View;
-		View.bCanonicalIdentity = !Placement.CanonicalItemId.IsNone();
-		if (!View.bCanonicalIdentity || !IsValid(Registry) || !Registry->IsConfigured() ||
+		View.bRegisteredIdentity = !Placement.CanonicalItemId.IsNone();
+		if (!View.bRegisteredIdentity || !IsValid(Registry) || !Registry->IsConfigured() ||
 			!Placement.InstanceId.IsValid() || Placement.Quantity < 1)
 			return View;
 

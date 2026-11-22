@@ -43,7 +43,7 @@ bool FARMEMENT01154InventoryItemAudit::RunTest(const FString&)
     if (!TestTrue(TEXT("Canonical production registry configured"), Fixture.Ready()))
         return false;
     TArray<FName> Ids;
-    Fixture.Registry->GetCanonicalItemIds(Ids);
+    Fixture.Registry->GetItemIds(Ids);
     if (!TestEqual(TEXT("Exactly 48 canonical identities"), Ids.Num(), 48))
         return false;
 

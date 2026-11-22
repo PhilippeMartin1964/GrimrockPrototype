@@ -3,7 +3,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
-namespace GridEditorCanonicalArmamentPreview
+namespace GridEditorArmamentPreview
 {
     /** A transient registry with the configured root, never a second data source.
      * Refuse an unindexed new/duplicate asset rather than displaying another

@@ -10,7 +10,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
+#include "Runtime/Combat/GridAttackPresentationReadModel.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Engine/GameInstance.h"
@@ -438,10 +438,10 @@ FGridPlayerAttackPresentationProfile UGridPlayerAttackPresentationComponent::Res
 	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Canonical = GameInstance ?
 		GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	if (IsValid(Canonical) && Canonical->HasCanonicalItem(Request.OffensiveItemDefinitionId))
+	if (IsValid(Canonical) && Canonical->ContainsItem(Request.OffensiveItemDefinitionId))
 	{
 		FGridPlayerAttackPresentationProfile ArmProfile;
-		if (FGridCanonicalAttackPresentationReadModel::TryResolve(Canonical, Request, ArmProfile))
+		if (FGridAttackPresentationReadModel::TryResolve(Canonical, Request, ArmProfile))
 		{
 			return ArmProfile;
 		}

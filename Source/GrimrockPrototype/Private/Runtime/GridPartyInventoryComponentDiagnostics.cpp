@@ -1,7 +1,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "GridEquipmentSlotUtils.h"
-#include "GridCanonicalInventoryDefinitionDiagnosticReadModel.h"
+#include "GridInventoryDefinitionDiagnosticReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
 #include "GridInventoryDiagnosticWeightReadModel.h"
@@ -189,9 +189,9 @@ void UGridPartyInventoryComponent::LogPartyInventoryDiagnostics() const
 
 FString UGridPartyInventoryComponent::GetItemDefinitionDiagnostics() const
 {
-	TArray<FGridCanonicalInventoryDefinitionDiagnosticRow> Rows;
+	TArray<FGridInventoryDefinitionDiagnosticRow> Rows;
 	FString Result = TEXT("GridItemDefinition Diagnostics\n");
-	if (!FGridCanonicalInventoryDefinitionDiagnosticReadModel::Build(GridPartyInventoryDiagnosticsRegistry(this), Rows))
+	if (!FGridInventoryDefinitionDiagnosticReadModel::Build(GridPartyInventoryDiagnosticsRegistry(this), Rows))
 		return Result + TEXT("ItemSystem=UNCONFIGURED\n");
 	Result += FString::Printf(TEXT("CanonicalDefinitions=%d\n"), Rows.Num());
 	for (const auto& Row : Rows)
@@ -215,8 +215,8 @@ void UGridPartyInventoryComponent::LogItemDefinitionDiagnostics() const
 
 void UGridPartyInventoryComponent::LogEquipmentCompatibilityDiagnostics() const
 {
-	TArray<FGridCanonicalInventoryDefinitionDiagnosticRow> Rows;
-	if (!FGridCanonicalInventoryDefinitionDiagnosticReadModel::Build(GridPartyInventoryDiagnosticsRegistry(this), Rows))
+	TArray<FGridInventoryDefinitionDiagnosticRow> Rows;
+	if (!FGridInventoryDefinitionDiagnosticReadModel::Build(GridPartyInventoryDiagnosticsRegistry(this), Rows))
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility ItemSystem=UNCONFIGURED"));
 		return;
@@ -290,7 +290,7 @@ void UGridPartyInventoryComponent::LogSelectedCharacterEquipmentStatBonusDiagnos
 			if (!Bonus.HasAnyBonus())
 			{
 				const UGridItemSubsystem* Registry = GridPartyInventoryDiagnosticsRegistry(this);
-				if (!(Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId)) &&
+				if (!(Registry && Registry->ContainsItem(Item.ItemDefinitionId)) &&
                     !ResolveDiagnosticHistoricalDefinitionForAutomation(this, Registry, Item.ItemDefinitionId))
 				{
 					UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentStatBonus Item=%s Slot=%s Warning=MissingDefinition"), *Item.ItemDefinitionId.ToString(),
@@ -327,7 +327,7 @@ void UGridPartyInventoryComponent::LogSelectedCharacterResistanceDiagnostics() c
 			const UGridItemSubsystem* Registry = GridPartyInventoryDiagnosticsRegistry(this);
             const UGridItemDefinitionAsset* Definition =
                 ResolveDiagnosticHistoricalDefinitionForAutomation(this, Registry, Item.ItemDefinitionId);
-			if (!Definition && !(Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId)))
+			if (!Definition && !(Registry && Registry->ContainsItem(Item.ItemDefinitionId)))
 			{
 				UE_LOG(LogGridInventory, Warning, TEXT("GridDamageResistance Item=%s Slot=%s Warning=MissingDefinition"), *Item.ItemDefinitionId.ToString(),
 					GridEquipmentSlotUtils::GetLogName(Slot));

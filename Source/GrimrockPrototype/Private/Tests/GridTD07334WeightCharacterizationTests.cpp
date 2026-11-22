@@ -76,7 +76,7 @@ bool FGridTD07334EquipmentCapacityProjectionContractTest::RunTest(const FString&
 	if (!TestNotNull(TEXT("Canonical equipment capacity fixture"), Inventory)) return false;
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 	Character.Attributes.Strength = 10;
-	TestTrue(TEXT("Carry belt definition registers"), Fixture.Scope.Registry->HasCanonicalItem(TEXT("TD07334_CarryBelt")));
+	TestTrue(TEXT("Carry belt definition registers"), Fixture.Scope.Registry->ContainsItem(TEXT("TD07334_CarryBelt")));
 	TestTrue(TEXT("Heavy item can be stored even above base capacity"), Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_HeavyPack"))));
 
 	FGridItemInstance Belt;

@@ -9,7 +9,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/GridCanonicalQuickItemUseReadModel.h"
+#include "../Runtime/GridQuickItemUseReadModel.h"
 
 namespace ARMCLEAN063AX
 {
@@ -109,7 +109,7 @@ namespace ARMCLEAN063AX
         bool Ready() const
         {
             return Registry && Consumable && Inventory && Inventory->IsValidCharacterIndex(0) &&
-                Registry->HasCanonicalItem(ItemId());
+                Registry->ContainsItem(ItemId());
         }
 
         FGridItemInstance Make(int32 Level = 0, int32 Quantity = 1) const
@@ -137,8 +137,8 @@ namespace ARMCLEAN063AX
     if (!Test.TestTrue(TEXT("Canonical N0 consumable resolves"),
         F.Registry->ResolveItem(ARMCLEAN063AX::FFixture::ItemId(), 0, ResolvedItem))) return false;
     Test.TestEqual(TEXT("Canonical stack policy kept"), ResolvedItem.MaxStack, 5);
-    const auto View = FGridCanonicalQuickItemUseReadModel::Resolve(F.Registry, F.Make());
-    Test.TestTrue(TEXT("One registered Use/Heal action resolves"), View.bCanonicalIdentity && View.bResolved);
+    const auto View = FGridQuickItemUseReadModel::Resolve(F.Registry, F.Make());
+    Test.TestTrue(TEXT("One registered Use/Heal action resolves"), View.bRegisteredIdentity && View.bResolved);
     Test.TestTrue(TEXT("Self heal with zero mana/cooldown is usable in exploration"), View.bExplorationCompatible);
     Test.TestEqual(TEXT("Exact authored magnitude"), View.Action.EffectProfile.RestoreHealth, 8);
     Test.TestEqual(TEXT("Actual ActionId, no old Use_* identity"), View.Action.ActionId,
@@ -211,8 +211,8 @@ namespace ARMCLEAN063AX
 
     if (FCString::Strcmp(Stage, TEXT("Exploration")) == 0) return !Test.HasAnyErrors();
     const FGridItemInstance Invalid = F.Make(21);
-    const auto Bad = FGridCanonicalQuickItemUseReadModel::Resolve(F.Registry, Invalid);
-    Test.TestTrue(TEXT("Invalid known ID is still canonical"), Bad.bCanonicalIdentity);
+    const auto Bad = FGridQuickItemUseReadModel::Resolve(F.Registry, Invalid);
+    Test.TestTrue(TEXT("Invalid known ID is still canonical"), Bad.bRegisteredIdentity);
     Test.TestFalse(TEXT("Invalid N21 has no executable action"), Bad.bResolved);
 
     FGridResolvedBoundAction Bound;
@@ -222,15 +222,15 @@ namespace ARMCLEAN063AX
     Bound.Action.Effects[0].Kind = EGridCanonicalEffectKind::Teleport;
     FGridCombatActionDefinition Unsupported;
     Test.TestFalse(TEXT("Unsupported teleport is rejected, not converted into a heal"),
-        FGridCanonicalQuickItemUseReadModel::TryProjectSingleHeal(ResolvedItem, Bound, Unsupported));
+        FGridQuickItemUseReadModel::TryProjectSingleHeal(ResolvedItem, Bound, Unsupported));
     Bound.Action.Effects[0].Kind = EGridCanonicalEffectKind::Heal;
     Bound.Action.Effects[0].Magnitude = 0;
     Test.TestFalse(TEXT("Zero-magnitude heal rejected"),
-        FGridCanonicalQuickItemUseReadModel::TryProjectSingleHeal(ResolvedItem, Bound, Unsupported));
+        FGridQuickItemUseReadModel::TryProjectSingleHeal(ResolvedItem, Bound, Unsupported));
     Bound.Action.Effects[0].Magnitude = 8;
     Bound.Action.Targeting = EGridCombatTargetingPolicy::Area;
     Test.TestFalse(TEXT("Area action cannot masquerade as self-restoration"),
-        FGridCanonicalQuickItemUseReadModel::TryProjectSingleHeal(ResolvedItem, Bound, Unsupported));
+        FGridQuickItemUseReadModel::TryProjectSingleHeal(ResolvedItem, Bound, Unsupported));
     return !Test.HasAnyErrors();
     }
 }

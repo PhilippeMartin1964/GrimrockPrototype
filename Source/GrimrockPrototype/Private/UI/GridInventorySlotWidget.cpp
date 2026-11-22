@@ -9,10 +9,10 @@
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridWeaponVisualUiResolver.h"
 #include "GridInventoryItemMetadataReadModel.h"
-#include "GridCanonicalInventoryItemTypeReadModel.h"
+#include "GridInventoryItemTypeReadModel.h"
 #include "../Runtime/GridEquipmentPreviewItemReadModel.h"
-#include "../Runtime/GridCanonicalEquipmentSlotsReadModel.h"
-#include "../Runtime/GridCanonicalItemInteractionReadModel.h"
+#include "../Runtime/GridEquipmentSlots.h"
+#include "../Runtime/GridItemInteractionReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
 #include "Engine/GameInstance.h"
@@ -105,8 +105,8 @@ namespace
 		const UGridItemDefinitionAsset* Definition,
 		const FGridItemInstance& Item)
 	{
-		const FGridCanonicalEquipmentSlotsReadView Slots =
-			FGridCanonicalEquipmentSlotsReadModel::Resolve(Registry, Definition, Item);
+		const FGridEquipmentSlotsView Slots =
+			FGridEquipmentSlots::Resolve(Registry, Definition, Item);
 		if (Slots.bTwoHanded && !Slots.AllowedSlots.IsEmpty())
 		{
 			// The physical MainHand slot is a two-hand usage label to players.
@@ -197,7 +197,7 @@ namespace
 		const UGridItemDefinitionAsset* Equipped, const FGridItemInstance* EquippedInstance,
 		bool bComparison, TArray<FGridItemTooltipStatLine>& OutLines)
 	{
-		if (!(Registry && Registry->HasCanonicalItem(CandidateInstance.ItemDefinitionId)) &&
+		if (!(Registry && Registry->ContainsItem(CandidateInstance.ItemDefinitionId)) &&
 			(!IsValid(Candidate) || Candidate->ItemDefinitionId != CandidateInstance.ItemDefinitionId))
 		{
 			return;
@@ -432,7 +432,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.DisplayName = Metadata.DisplayName.IsEmpty() ? FText::FromName(CachedItem.ItemDefinitionId)
 		: Metadata.DisplayName;
 	View.Description = Metadata.Description;
-	const bool bCanonical = Registry && Registry->HasCanonicalItem(CachedItem.ItemDefinitionId);
+	const bool bCanonical = Registry && Registry->ContainsItem(CachedItem.ItemDefinitionId);
 	FGridResolvedItem Canonical;
 	const bool bResolvedCanonical = bCanonical &&
 		Registry->ResolveItem(CachedItem.ItemDefinitionId, CachedItem.ItemLevel, Canonical) &&
@@ -448,7 +448,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	bool bHasQuickItemAction = false;
 	if (bResolvedCanonical)
 	{
-		const auto Use = FGridCanonicalQuickItemUseReadModel::Resolve(Registry, CachedItem);
+		const auto Use = FGridQuickItemUseReadModel::Resolve(Registry, CachedItem);
 		bHasQuickItemAction = Use.bResolved;
 		if (bHasQuickItemAction) QuickItemAction = Use.Action;
 	}
@@ -468,8 +468,8 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 				: FText::Join(FText::FromString(TEXT("\n\n")), TArray<FText>{ View.Description, SurfaceUsage });
 		}
 	}
-	const FGridCanonicalInventoryItemTypeReadView TypeView =
-		FGridCanonicalInventoryItemTypeReadModel::Resolve(Registry, Definition, CachedItem);
+	const FGridInventoryItemTypeReadView TypeView =
+		FGridInventoryItemTypeReadModel::Resolve(Registry, Definition, CachedItem);
 	View.ItemType = TypeView.bResolved
 		? GetItemTypeDisplayName(TypeView.ItemType)
 		: NSLOCTEXT("GridInventoryTooltip", "ItemTypeUnknown", "Objet");
@@ -495,13 +495,13 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		return View;
 	}
 	View.CompatibleSlotsText = BuildCompatibleEquipmentSlotsText(Registry, Definition, CachedItem);
-	const FGridCanonicalEquipmentSlotsReadView EquipmentSlots =
-		FGridCanonicalEquipmentSlotsReadModel::Resolve(Registry, Definition, CachedItem);
+	const FGridEquipmentSlotsView EquipmentSlots =
+		FGridEquipmentSlots::Resolve(Registry, Definition, CachedItem);
 	View.bEquippable = !EquipmentSlots.AllowedSlots.IsEmpty();
 
 	// INDUS04.1: use the real instance ItemLevel, never the authored N1 action.
 	FGridWeaponTooltipProjection::Build(Definition, CachedItem, View.WeaponProfile, Registry);
-	const auto Capabilities = FGridCanonicalItemInteractionReadModel::Resolve(Registry, Definition, CachedItem);
+	const auto Capabilities = FGridItemInteractionReadModel::Resolve(Registry, Definition, CachedItem);
 	View.bReadable = Capabilities.bCanRead;
 	View.bProvidesLight = bResolvedCanonical ? Canonical.LightEmitter.HasEmitter() : Definition->HasLightEmitter();
 	View.bLightEnabled = View.bProvidesLight && CachedItem.bLightsEnabled;

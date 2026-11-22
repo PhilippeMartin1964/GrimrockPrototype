@@ -7,7 +7,7 @@
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "GridCanonicalItemMeshReadModel.h"
+#include "GridItemMeshResolver.h"
 #include "GridLegacyWorldActorInitGate.h"
 #include "GridWorldPhysicsMassReadModel.h"
 #include "Engine/GameInstance.h"
@@ -128,12 +128,12 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 #endif
 }
 
-bool AGridItemActor::InitializeFromCanonicalItem(
+bool AGridItemActor::InitializeFromItemInstance(
 	const FGridItemInstance& Instance, const UGridItemSubsystem* Registry)
 {
 	// The entire resolve must complete before touching the actor.
 	if (!Registry || !Instance.IsValid() ||
-		!Registry->HasCanonicalItem(Instance.ItemDefinitionId) ||
+		!Registry->ContainsItem(Instance.ItemDefinitionId) ||
 		!MeshComponent || !LightEmitterComponent || !VisualEffectsComponent)
 	{
 		return false;
@@ -173,7 +173,7 @@ bool AGridItemActor::InitializeFromCanonicalItem(
 	return true;
 }
 
-bool AGridItemActor::ApplyCanonicalWorldVisual(const FGridItemInstance& Instance)
+bool AGridItemActor::ApplyResolvedWorldVisual(const FGridItemInstance& Instance)
 {
 	if (!MeshComponent || !Instance.IsValid() || Instance.ItemDefinitionId != GetItemDefinitionId())
 	{
@@ -183,9 +183,9 @@ bool AGridItemActor::ApplyCanonicalWorldVisual(const FGridItemInstance& Instance
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GameInstance
 		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	const FGridCanonicalItemMeshReadView Visual =
-		FGridCanonicalItemMeshReadModel::Resolve(Registry, Instance);
-	if (!Visual.bCanonicalIdentity)
+	const FGridItemMeshView Visual =
+		FGridItemMeshResolver::Resolve(Registry, Instance);
+	if (!Visual.bRegisteredIdentity)
 	{
 		return false; // Unregistered identities preserve historical pickup visual behavior.
 	}

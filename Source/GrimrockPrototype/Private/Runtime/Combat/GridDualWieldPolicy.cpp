@@ -1,7 +1,7 @@
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "GridCanonicalEquippedAttackReadModel.h"
+#include "GridEquippedAttackReadModel.h"
 #include "CoreGlobals.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -25,9 +25,9 @@ namespace
 		{
 			return false; // A two-handed item's virtual OffHand is not a second physical weapon.
 		}
-		if (Registry && Registry->HasCanonicalItem(OutSource.Item.ItemDefinitionId))
+		if (Registry && Registry->ContainsItem(OutSource.Item.ItemDefinitionId))
 		{
-			OutSource.bCanonicalIdentity = true;
+			OutSource.bRegisteredIdentity = true;
 			FGridResolvedItem Canonical;
 			if (!Registry->ResolveItem(
 					OutSource.Item.ItemDefinitionId, OutSource.Item.ItemLevel, Canonical) ||
@@ -43,7 +43,7 @@ namespace
 			for (const FGridItemActionBinding& Binding : Canonical.AvailableActions)
 			{
 				FGridCombatActionDefinition Candidate;
-				if (!FGridCanonicalEquippedAttackReadModel::TryResolve(
+				if (!FGridEquippedAttackReadModel::TryResolve(
 					Registry, OutSource.Item, Slot, Binding.ActionId, Candidate))
 					continue;
 				if (Candidate.ActionType != EGridCombatActionType::MeleeAttack ||

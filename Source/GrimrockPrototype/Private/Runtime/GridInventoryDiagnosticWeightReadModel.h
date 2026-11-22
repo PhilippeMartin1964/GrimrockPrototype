@@ -29,7 +29,7 @@ struct FGridInventoryDiagnosticWeightReadModel
 		{
 			return TEXT("INVALID");
 		}
-		if (!Registry || !Registry->HasCanonicalItem(Definition->ItemDefinitionId))
+		if (!Registry || !Registry->ContainsItem(Definition->ItemDefinitionId))
 		{
 #if WITH_DEV_AUTOMATION_TESTS
 			if (!Registry && GIsAutomationTesting && FMath::IsFinite(Definition->Weight) && Definition->Weight >= 0.0f)

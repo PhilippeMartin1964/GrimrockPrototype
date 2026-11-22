@@ -1,7 +1,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "GridEquipmentSlotUtils.h"
-#include "GridCanonicalInventoryStackReadModel.h"
+#include "GridInventoryStackReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
 #include "Engine/GameInstance.h"
@@ -186,8 +186,8 @@ bool UGridPartyInventoryComponent::TryTakeInventorySlotQuantityToCursor(int32 Ch
 	const UGridItemSubsystem* Registry = ResolveCursorStackRegistry(this);
     const UGridItemDefinitionAsset* Definition =
         ResolveCursorHistoricalDefinitionForAutomation(this, Registry, InventorySlot.Item.ItemDefinitionId);
-	const FGridCanonicalInventoryStackReadView StackPolicy =
-		FGridCanonicalInventoryStackReadModel::Resolve(
+	const FGridInventoryStackReadView StackPolicy =
+		FGridInventoryStackReadModel::Resolve(
 			Registry, Definition, InventorySlot.Item);
 	const bool bCanSplitStack = StackPolicy.IsStackable() &&
 		InventorySlot.Item.Quantity > 1 && Quantity < InventorySlot.Item.Quantity;
@@ -268,8 +268,8 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 	const UGridItemSubsystem* Registry = ResolveCursorStackRegistry(this);
     const UGridItemDefinitionAsset* Definition =
         ResolveCursorHistoricalDefinitionForAutomation(this, Registry, CursorItem.ItemDefinitionId);
-	const FGridCanonicalInventoryStackReadView StackPolicy =
-		FGridCanonicalInventoryStackReadModel::Resolve(
+	const FGridInventoryStackReadView StackPolicy =
+		FGridInventoryStackReadModel::Resolve(
 			Registry, Definition, CursorItem);
 	if (StackPolicy.IsStackable() && TargetSlot.Item.ItemDefinitionId == CursorItem.ItemDefinitionId)
 	{
@@ -376,8 +376,8 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 	const UGridItemSubsystem* Registry = ResolveCursorStackRegistry(this);
     const UGridItemDefinitionAsset* Definition =
         ResolveCursorHistoricalDefinitionForAutomation(this, Registry, SourceItem.ItemDefinitionId);
-	const FGridCanonicalInventoryStackReadView StackPolicy =
-		FGridCanonicalInventoryStackReadModel::Resolve(
+	const FGridInventoryStackReadView StackPolicy =
+		FGridInventoryStackReadModel::Resolve(
 			Registry, Definition, SourceItem);
 	if (StackPolicy.IsStackable() && TargetSlot.Item.ItemDefinitionId == SourceItem.ItemDefinitionId)
 	{

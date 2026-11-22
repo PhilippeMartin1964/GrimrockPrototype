@@ -6,7 +6,7 @@
 /** Same read-only throw gate for menu, controller and actual projectile launch. */
 struct FGridPhysicalThrowStrengthReadView
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	bool bOneHanded = false;
 	bool bCanThrow = false;
@@ -24,12 +24,12 @@ struct FGridPhysicalThrowStrengthReadModel
 		FGridPhysicalThrowStrengthReadView Out;
 		// Membership must be recognized BEFORE IsValid(): an invalid
 		// registered N21 is not an unknown legacy identity.
-		Out.bCanonicalIdentity = Registry && Registry->HasCanonicalItem(Instance.ItemDefinitionId);
+		Out.bRegisteredIdentity = Registry && Registry->ContainsItem(Instance.ItemDefinitionId);
 		if (!Instance.IsValid())
 		{
 			return Out;
 		}
-		if (Out.bCanonicalIdentity)
+		if (Out.bRegisteredIdentity)
 		{
 			FGridResolvedItem Canonical;
 			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) ||

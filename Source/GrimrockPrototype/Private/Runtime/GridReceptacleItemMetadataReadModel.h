@@ -6,7 +6,7 @@
 /** Read-only identity, fixed level and static metadata for contained items. */
 struct FGridReceptacleItemMetadataReadView
 {
-    bool bCanonicalIdentity = false;
+    bool bRegisteredIdentity = false;
     bool bResolved = false;
     int32 FixedItemLevel = 0;
     float UnitWeightKg = 0.0f;
@@ -21,14 +21,14 @@ struct FGridReceptacleItemMetadataReadModel
         FName ItemId, int32 ItemLevel, bool /*bAllowAuthoredDefault*/)
     {
         FGridReceptacleItemMetadataReadView View;
-        View.bCanonicalIdentity = Registry && Registry->HasCanonicalItem(ItemId);
+        View.bRegisteredIdentity = Registry && Registry->ContainsItem(ItemId);
         if (ItemId.IsNone() || ItemLevel < 0 || ItemLevel > 20 ||
-            (!View.bCanonicalIdentity && IsValid(LegacyDefinition) && LegacyDefinition->ItemDefinitionId != ItemId))
+            (!View.bRegisteredIdentity && IsValid(LegacyDefinition) && LegacyDefinition->ItemDefinitionId != ItemId))
         {
             return View;
         }
 
-        if (View.bCanonicalIdentity)
+        if (View.bRegisteredIdentity)
         {
             FGridResolvedItem Canonical;
             if (!Registry->ResolveItem(ItemId, ItemLevel, Canonical) ||

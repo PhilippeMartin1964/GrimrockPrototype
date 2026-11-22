@@ -268,7 +268,7 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 	const UWorld* World = Receptacle->GetWorld();
 	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	if (!Registry || !Registry->HasCanonicalItem(Candidate.ItemDefinitionId))
+	if (!Registry || !Registry->ContainsItem(Candidate.ItemDefinitionId))
 	{
 		return LogTransferFailure(Operation, EGridItemTransferResult::InvalidItem, TEXT("Contained identity is not registered."), &Candidate);
 	}

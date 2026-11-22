@@ -3,9 +3,9 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** Soft references for an actual canonical item instance, not a synthetic N1. */
-struct FGridCanonicalItemMeshReadView
+struct FGridItemMeshView
 {
-	bool bCanonicalIdentity = false;
+	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	FName VisualId = NAME_None;
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
@@ -14,18 +14,18 @@ struct FGridCanonicalItemMeshReadView
 };
 
 /** Never consults legacy copies; noncanonical callers keep their original path. */
-struct FGridCanonicalItemMeshReadModel
+struct FGridItemMeshResolver
 {
-	static FGridCanonicalItemMeshReadView Resolve(const UGridItemSubsystem* Registry,
+	static FGridItemMeshView Resolve(const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Instance)
 	{
-		FGridCanonicalItemMeshReadView Result;
+		FGridItemMeshView Result;
 		if (!Instance.IsValid() || !Registry ||
-			!Registry->HasCanonicalItem(Instance.ItemDefinitionId))
+			!Registry->ContainsItem(Instance.ItemDefinitionId))
 		{
 			return Result;
 		}
-		Result.bCanonicalIdentity = true;
+		Result.bRegisteredIdentity = true;
 		FGridResolvedItem Item;
 		if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Item))
 		{

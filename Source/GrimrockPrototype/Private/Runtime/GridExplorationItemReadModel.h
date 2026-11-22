@@ -7,7 +7,7 @@
 
 // 5D: these readers must work when the approved kit and saved instance
 // carry only their durable ItemId/level, without a historical DataAsset.
-struct FGridCanonicalExplorationItemReadModel
+struct FGridExplorationItemReadModel
 {
     struct FSurface
     {

@@ -8,7 +8,7 @@
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Text/STextBlock.h"
-#include "GridEditorCanonicalArmamentPreview.h"
+#include "GridEditorArmamentPreview.h"
 
 namespace
 {
@@ -96,7 +96,7 @@ namespace
 			UGridItemSystemAsset* Root = GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
 			FGridResolvedItem N1, N20;
 			FString Error;
-			if (GridEditorCanonicalArmamentPreview::Resolve(Root, Item, N1, N20, Error))
+			if (GridEditorArmamentPreview::Resolve(Root, Item, N1, N20, Error))
 			{
 				AddReadOnlyLine(Overview, FText::FromString(TEXT("Profil N1")), FText::FromString(FormatWeaponLevel(N1)));
 				AddReadOnlyLine(Overview, FText::FromString(TEXT("Profil N20")), FText::FromString(FormatWeaponLevel(N20)));

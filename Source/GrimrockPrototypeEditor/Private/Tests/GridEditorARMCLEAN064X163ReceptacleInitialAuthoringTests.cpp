@@ -1,9 +1,9 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "EditorTools/GridEditorCanonicalReceptacleInitialAuthoring.h"
+#include "EditorTools/GridEditorReceptacleInitialAuthoring.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -26,7 +26,7 @@ bool FGridClean064X163InitialAuthoring::RunTest(const FString&)
     const FName Arrows = TEXT("Item_Arrows_01");
     const FName Sword = TEXT("Weapon_StraightSword_01");
     const FName Unknown = TEXT("X163_Unknown");
-    using FAuthoring = FGridEditorCanonicalReceptacleInitialAuthoring;
+    using FAuthoring = FGridEditorReceptacleInitialAuthoring;
     FGridReceptacleInitialItemConfig Draft;
     Draft.Quantity = 5;
     if (!TestFalse(TEXT("Missing registry cannot change initial content"),

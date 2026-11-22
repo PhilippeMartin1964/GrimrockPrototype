@@ -10,7 +10,7 @@
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/GridCanonicalItemInteractionReadModel.h"
+#include "../Runtime/GridItemInteractionReadModel.h"
 
 namespace ARMCLEAN063AW
 {
@@ -63,8 +63,8 @@ namespace ARMCLEAN063AW
         bool Ready() const
         {
             return Registry && Pawn && Inventory && Inventory->IsValidCharacterIndex(0) &&
-                Registry->HasCanonicalItem(TEXT("Weapon_ThrowingKnife_01")) &&
-                Registry->HasCanonicalItem(TEXT("Item_Arrows_01"));
+                Registry->ContainsItem(TEXT("Weapon_ThrowingKnife_01")) &&
+                Registry->ContainsItem(TEXT("Item_Arrows_01"));
         }
 
         FGridItemInstance Make(FName Id, int32 Level) const
@@ -120,11 +120,11 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
     {
         const FGridItemInstance Knife = F.Make(KnifeId, Level);
         const auto Canonical =
-            FGridCanonicalItemInteractionReadModel::Resolve(F.Registry, nullptr, Knife);
+            FGridItemInteractionReadModel::Resolve(F.Registry, nullptr, Knife);
         const auto Wrong =
-            FGridCanonicalItemInteractionReadModel::Resolve(F.Registry, Contradictory, Knife);
+            FGridItemInteractionReadModel::Resolve(F.Registry, Contradictory, Knife);
         TestTrue(TEXT("Actual N1/N20 armament has canonical identity"),
-            Canonical.bCanonicalIdentity && Canonical.bResolved);
+            Canonical.bRegisteredIdentity && Canonical.bResolved);
         TestTrue(TEXT("Specialized throwing ARM supports physical utility hotbar"),
             Canonical.bCanAddToHotbar && Canonical.bPhysicalThrowHotbar);
         TestTrue(TEXT("Contradictory legacy asset cannot add Consume or Read"),
@@ -144,21 +144,21 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
 
     for (int32 InvalidLevel : {0, 21})
     {
-        const auto Bad = FGridCanonicalItemInteractionReadModel::Resolve(
+        const auto Bad = FGridItemInteractionReadModel::Resolve(
             F.Registry, Contradictory, F.Make(KnifeId, InvalidLevel));
-        TestTrue(TEXT("Known N0/N21 is classified before instance validation"), Bad.bCanonicalIdentity);
+        TestTrue(TEXT("Known N0/N21 is classified before instance validation"), Bad.bRegisteredIdentity);
         TestFalse(TEXT("Invalid registered level refuses legacy capabilities"), Bad.bResolved ||
             Bad.bCanRead || Bad.bCanConsumeLegacy || Bad.bCanAddToHotbar);
     }
 
     FGridItemInstance Arrow = F.Make(TEXT("Item_Arrows_01"), 0);
-    const auto Ammo = FGridCanonicalItemInteractionReadModel::Resolve(F.Registry, Contradictory, Arrow);
-    TestTrue(TEXT("Canonical N0 ammo resolves"), Ammo.bCanonicalIdentity && Ammo.bResolved);
+    const auto Ammo = FGridItemInteractionReadModel::Resolve(F.Registry, Contradictory, Arrow);
+    TestTrue(TEXT("Canonical N0 ammo resolves"), Ammo.bRegisteredIdentity && Ammo.bResolved);
     TestFalse(TEXT("Ammo receives no fabricated physical throw shortcut"), Ammo.bCanAddToHotbar);
 
     FGridItemInstance WithText = F.Make(KnifeId, 1);
     WithText.ReadTextOverride = FText::FromString(TEXT("Genuine instance text"));
-    const auto GenuineRead = FGridCanonicalItemInteractionReadModel::Resolve(
+    const auto GenuineRead = FGridItemInteractionReadModel::Resolve(
         F.Registry, Contradictory, WithText);
     TestTrue(TEXT("Canonical item retains truly authored instance text"), GenuineRead.bCanRead);
     TestTrue(TEXT("Context offers Read only for genuine canonical instance content"),
@@ -169,9 +169,9 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
     Book->ItemType = EGridItemType::Book;
     Book->ReadText = FText::FromString(TEXT("Legacy readable body"));
     Book->DisplayName = FText::FromString(TEXT("Legacy book"));
-    const auto Legacy = FGridCanonicalItemInteractionReadModel::Resolve(
+    const auto Legacy = FGridItemInteractionReadModel::Resolve(
         F.Registry, Book, F.Make(Book->ItemDefinitionId, 0));
-    TestFalse(TEXT("Unregistered reading is not canonical"), Legacy.bCanonicalIdentity);
+    TestFalse(TEXT("Unregistered reading is not canonical"), Legacy.bRegisteredIdentity);
     TestFalse(TEXT("Configured registry refuses unknown readable source"),
         Legacy.bResolved || Legacy.bCanRead || Legacy.bCanConsumeLegacy ||
         Legacy.bCanConsumeCanonical || Legacy.bCanAddToHotbar || Legacy.bPhysicalThrowHotbar);
@@ -180,17 +180,17 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
     FGridItemInstance UnknownWithText = F.Make(Book->ItemDefinitionId, 0);
     UnknownWithText.ReadTextOverride = FText::FromString(TEXT("Unknown source text"));
     TestFalse(TEXT("Instance text cannot authorize an unknown identity"),
-        FGridCanonicalItemInteractionReadModel::Resolve(F.Registry, Book, UnknownWithText).bCanRead);
+        FGridItemInteractionReadModel::Resolve(F.Registry, Book, UnknownWithText).bCanRead);
     TestFalse(TEXT("Real menu refuses unknown Read"),
         F.HasAction(UnknownWithText, Book, EGridItemActionType::Read));
     Book->ItemType = EGridItemType::Potion;
     Book->bProvidesQuickItemCombatAction = true;
     TestFalse(TEXT("Historical potion cannot grant unknown Consume"),
-        FGridCanonicalItemInteractionReadModel::Resolve(F.Registry, Book, UnknownWithText).bCanConsumeLegacy);
+        FGridItemInteractionReadModel::Resolve(F.Registry, Book, UnknownWithText).bCanConsumeLegacy);
     TestFalse(TEXT("Real menu refuses unknown Consume"),
         F.HasAction(UnknownWithText, Book, EGridItemActionType::Consume));
     Book->ItemType = EGridItemType::Book;
-    const auto FixtureRead = FGridCanonicalItemInteractionReadModel::Resolve(
+    const auto FixtureRead = FGridItemInteractionReadModel::Resolve(
         nullptr, Book, F.Make(Book->ItemDefinitionId, 0));
     TestTrue(TEXT("Isolated registry-less readable fixture remains supported"),
         FixtureRead.bResolved && FixtureRead.bCanRead);

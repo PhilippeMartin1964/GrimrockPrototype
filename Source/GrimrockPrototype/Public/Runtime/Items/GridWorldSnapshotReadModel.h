@@ -8,7 +8,7 @@
 /** Read-only physical identity gate before saved world data can mutate the live dungeon.
  * Old serialized pointers cannot authorize, disambiguate or replace an ItemId.
  */
-struct FGridCanonicalWorldSnapshotReadModel
+struct FGridWorldSnapshotReadModel
 {
     static const UGridItemSubsystem* GetRegistry(const UWorld* World)
     {

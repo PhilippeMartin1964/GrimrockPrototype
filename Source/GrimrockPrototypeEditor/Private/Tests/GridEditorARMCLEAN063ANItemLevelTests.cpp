@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Core/GridLevelAsset.h"
-#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "EditorTools/GridEditorItemLevelPolicy.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
@@ -33,26 +33,26 @@ bool FGridClean063ANAuthoring::RunTest(const FString&)
 	for (int32 Authored : {1, 20})
 	{
 		TestTrue(TEXT("Canonical ARM permits actual N1-N20"),
-			FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Sword, Authored));
+			FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Sword, Authored));
 		FGridResolvedItem Canonical;
 		TestTrue(TEXT("Same fixed level resolves in actual canonical system"),
 			Registry->ResolveItem(Sword, Authored, Canonical) && Canonical.bIsArmament &&
 			Canonical.ItemLevel == Authored);
 	}
 	TestFalse(TEXT("N21 never accepted"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Sword, 21));
+		FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Sword, 21));
 	TestFalse(TEXT("ARM N0 is not an inherited default"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Sword, 0));
+		FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Sword, 0));
 	TestTrue(TEXT("Canonical ammo permits only true N0"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Ammo, 0));
+		FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Ammo, 0));
 	TestFalse(TEXT("Canonical ammo N1 is rejected"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Ammo, 1));
+		FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Ammo, 1));
 	TestFalse(TEXT("Unknown ID cannot authorize even N0"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Unknown, 0));
+		FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Unknown, 0));
 	TestFalse(TEXT("Unknown ID cannot authorize N1"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry.Get(), Unknown, 1));
+		FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry.Get(), Unknown, 1));
 	TestFalse(TEXT("Missing editor registry fails closed"),
-		FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(nullptr, Sword, 1));
+		FGridEditorItemLevelPolicy::CanAuthorItemLevel(nullptr, Sword, 1));
 
 	const UWorld::InitializationValues Settings = UWorld::InitializationValues()
 		.AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(false)

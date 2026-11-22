@@ -5,7 +5,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
-#include "../Runtime/GridCanonicalEquipmentSlotsReadModel.h"
+#include "../Runtime/GridEquipmentSlots.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "UI/GridWeaponTooltipProjection.h"
@@ -158,7 +158,7 @@ void FGridEquipmentTooltipGlobalProjection::GatherAllowedSlots(
     const FGridItemInstance& Candidate,
     TArray<EGridEquipmentSlot>& OutSlots)
 {
-    OutSlots = FGridCanonicalEquipmentSlotsReadModel::Resolve(
+    OutSlots = FGridEquipmentSlots::Resolve(
         Registry, CandidateDefinition, Candidate).AllowedSlots;
 }
 
@@ -178,7 +178,7 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
     UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
     const UGridItemSubsystem* Registry = GameInstance
         ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-    const auto Slots = FGridCanonicalEquipmentSlotsReadModel::Resolve(
+    const auto Slots = FGridEquipmentSlots::Resolve(
         Registry, CandidateDefinition, Candidate);
     if (!Slots.bResolved || !Slots.AllowedSlots.Contains(RequestedSlot))
     {

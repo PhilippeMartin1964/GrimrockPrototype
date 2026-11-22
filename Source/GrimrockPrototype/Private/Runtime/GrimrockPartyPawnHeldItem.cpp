@@ -3,7 +3,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "GridCanonicalItemMeshReadModel.h"
+#include "GridItemMeshResolver.h"
 #include "GridLegacyItemLookup.h"
 #include "Engine/World.h"
 #include "GridEquipmentSlotUtils.h"
@@ -51,7 +51,7 @@ bool AGrimrockPartyPawn::EquipHeldItemFromInstance(const FGridItemInstance& Item
 	const UWorld* OwningWorld = GetWorld();
 	UGameInstance* GI = OwningWorld ? OwningWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	if (!Registry || !Registry->HasCanonicalItem(Item.ItemDefinitionId))
+	if (!Registry || !Registry->ContainsItem(Item.ItemDefinitionId))
 	{
 		return false;
 	}
@@ -97,7 +97,7 @@ bool AGrimrockPartyPawn::EquipHeldItemFromInstance(const FGridItemInstance& Item
 	// equipped instance retains its actual GUID for inventory/save logic.
 	FGridItemInstance Visual = Item;
 	Visual.RuntimeObjectId = FGuid::NewGuid();
-	if (!HeldItemActor->InitializeFromCanonicalItem(Visual, Registry))
+	if (!HeldItemActor->InitializeFromItemInstance(Visual, Registry))
 	{
 		HeldItemActor->Destroy();
 		HeldItemActor = nullptr;
@@ -165,7 +165,7 @@ bool AGrimrockPartyPawn::DoesEquippedItemEmitLight(const FGridItemInstance& Item
 	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GI
 		? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+	if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
 	{
 		FGridResolvedItem Canonical;
 		if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical))
@@ -245,9 +245,9 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 			{
 				if (const UGridItemSubsystem* Registry = GameInstance->GetSubsystem<UGridItemSubsystem>())
 				{
-					const FGridCanonicalItemMeshReadView Visual =
-						FGridCanonicalItemMeshReadModel::Resolve(Registry, *VisualItem);
-					if (Visual.bCanonicalIdentity && HeldItemActor->MeshComponent)
+					const FGridItemMeshView Visual =
+						FGridItemMeshResolver::Resolve(Registry, *VisualItem);
+					if (Visual.bRegisteredIdentity && HeldItemActor->MeshComponent)
 					{
 						UStaticMesh* CanonicalHeldMesh = Visual.bResolved
 							? Visual.EquippedMesh.LoadSynchronous() : nullptr;

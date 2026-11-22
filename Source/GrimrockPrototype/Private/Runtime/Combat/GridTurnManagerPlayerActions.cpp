@@ -1,5 +1,5 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/Combat/GridCanonicalAttackPresentationReadModel.h"
+#include "Runtime/Combat/GridAttackPresentationReadModel.h"
 #include "Camera/CameraComponent.h"
 
 #include "Core/GridDirectionUtils.h"
@@ -10,7 +10,7 @@
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "GridCombatPhysicalThrowSourceReadModel.h"
-#include "GridCanonicalEquippedAttackReadModel.h"
+#include "GridEquippedAttackReadModel.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
@@ -88,7 +88,7 @@ namespace
 		for (const FGridItemActionBinding& Binding : OutItem.AvailableActions)
 		{
 			FGridCombatActionDefinition Action;
-			if (!FGridCanonicalEquippedAttackReadModel::TryResolve(
+			if (!FGridEquippedAttackReadModel::TryResolve(
 					&Registry, Equipped, SourceHand, Binding.ActionId, Action))
 			{
 				continue;
@@ -383,7 +383,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	UGameInstance* AttackSourceGI = AttackSourceWorld ? AttackSourceWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* AttackRegistry = AttackSourceGI ? AttackSourceGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	const bool bCanonicalAttackSource = AttackRegistry &&
-		AttackRegistry->HasCanonicalItem(OffensiveItemDefinitionId);
+		AttackRegistry->ContainsItem(OffensiveItemDefinitionId);
 	FGridCombatActionDefinition DirectCanonicalAction;
 	if (bCanonicalAttackSource)
 	{
@@ -401,7 +401,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			}
 			ResolvedAttackSourceTags = ResolvedSource.Tags;
 			if (!CombatActionOverride &&
-				!FGridCanonicalEquippedAttackReadModel::TryResolve(AttackRegistry, ActualSource,
+				!FGridEquippedAttackReadModel::TryResolve(AttackRegistry, ActualSource,
 					OffensiveEquipmentSlot, OffensiveProfile.AttackId, DirectCanonicalAction))
 			{
 				return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
@@ -691,12 +691,12 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	Request.OffensiveItemDefinitionId = OffensiveItemDefinitionId;
 	Request.OffensiveEquipmentSlot = OffensiveEquipmentSlot;
 	Request.ActionPointCost = SafeAttackActionPointCost;
-	Request.PresentationSource = FGridCanonicalAttackPresentationReadModel::Capture(
+	Request.PresentationSource = FGridAttackPresentationReadModel::Capture(
 		AttackRegistry, PartyPawn->PartyInventoryComponent.Get(), AttackerCharacterIndex,
 		OffensiveItemDefinitionId, OffensiveEquipmentSlot, Request.AttackId, bUsesEquippedWeaponAction);
 	// Capture both sources before the first AP spend or callback.
 	const FGridAttackPresentationSource OffPresentationSource = bDualWieldAction
-		? FGridCanonicalAttackPresentationReadModel::Capture(
+		? FGridAttackPresentationReadModel::Capture(
 			AttackRegistry, PartyPawn->PartyInventoryComponent.Get(), AttackerCharacterIndex,
 			DualPair.Off.Item.ItemDefinitionId, EGridEquipmentSlot::OffHand, DualPair.Off.Action.ActionId, false)
 		: FGridAttackPresentationSource();
@@ -1299,7 +1299,7 @@ bool UGridTurnManagerComponent::ResolveCombatActionWeaponProfile(const UGridPart
 			continue;
 		}
 
-		if (Canonical && Canonical->HasCanonicalItem(EquippedItem.ItemDefinitionId))
+		if (Canonical && Canonical->ContainsItem(EquippedItem.ItemDefinitionId))
 		{
 			FGridResolvedItem Item;
 			if (!Canonical->ResolveItem(EquippedItem.ItemDefinitionId, EquippedItem.ItemLevel, Item))
@@ -1415,7 +1415,7 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyIn
 			return true;
 		}
 
-		if (Canonical && Canonical->HasCanonicalItem(EquippedItem.ItemDefinitionId))
+		if (Canonical && Canonical->ContainsItem(EquippedItem.ItemDefinitionId))
 		{
 			FGridResolvedItem Item;
 			if (!TryResolveCanonicalOffensiveProfile(
@@ -1472,7 +1472,7 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyIn
 			continue;
 		}
 
-		if (Canonical && Canonical->HasCanonicalItem(EquippedItem.ItemDefinitionId))
+		if (Canonical && Canonical->ContainsItem(EquippedItem.ItemDefinitionId))
 		{
 			FGridResolvedItem Item;
 			if (!Canonical->ResolveItem(EquippedItem.ItemDefinitionId, EquippedItem.ItemLevel, Item))

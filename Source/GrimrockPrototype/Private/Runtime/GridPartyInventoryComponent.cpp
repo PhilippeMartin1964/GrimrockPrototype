@@ -6,8 +6,8 @@
 #include "GridLegacyInventoryRegistrationGate.h"
 #include "GridItemWeightReadModel.h"
 #include "GridItemInstanceMaterializationReadModel.h"
-#include "GridCanonicalInventoryStackReadModel.h"
-#include "GridCanonicalQuickItemUseReadModel.h"
+#include "GridInventoryStackReadModel.h"
+#include "GridQuickItemUseReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -1079,7 +1079,7 @@ bool UGridPartyInventoryComponent::CanAcceptSingleInventoryItem(const FGridItemI
 	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
 	// A single cursor/slot is not a multi-stack grant. Never discard units
 	// by accepting a canonical materialization that clamps its quantity.
-	return !(Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId)) ||
+	return !(Registry && Registry->ContainsItem(Item.ItemDefinitionId)) ||
 		Candidate.Quantity == Item.Quantity;
 }
 
@@ -1102,8 +1102,8 @@ bool UGridPartyInventoryComponent::CanAddItemToCharacterInventory(int32 Characte
 	}
 
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
-	const FGridCanonicalInventoryStackReadView StackPolicy =
-		FGridCanonicalInventoryStackReadModel::Resolve(
+	const FGridInventoryStackReadView StackPolicy =
+		FGridInventoryStackReadModel::Resolve(
 			ResolvePartyWeightRegistry(this), Definition, ItemToAdd);
 	const bool bStackable = StackPolicy.IsStackable();
 	const int32 MaxStackSize = StackPolicy.MaxStackSize;
@@ -1154,8 +1154,8 @@ bool UGridPartyInventoryComponent::AddItemToCharacterInventory(int32 CharacterIn
 	}
 
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
-	const FGridCanonicalInventoryStackReadView StackPolicy =
-		FGridCanonicalInventoryStackReadModel::Resolve(
+	const FGridInventoryStackReadView StackPolicy =
+		FGridInventoryStackReadModel::Resolve(
 			ResolvePartyWeightRegistry(this), Definition, ItemToAdd);
 	const bool bStackable = StackPolicy.IsStackable();
 	const int32 MaxStackSize = StackPolicy.MaxStackSize;
@@ -1245,8 +1245,8 @@ bool UGridPartyInventoryComponent::TrySplitInventoryStackToFirstFreeSlot(int32 C
 
 	FGridInventorySlot& SourceSlot = CharacterState.InventorySlots[SourceSlotIndex];
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(SourceSlot.Item.ItemDefinitionId);
-	const FGridCanonicalInventoryStackReadView StackPolicy =
-		FGridCanonicalInventoryStackReadModel::Resolve(
+	const FGridInventoryStackReadView StackPolicy =
+		FGridInventoryStackReadModel::Resolve(
 			ResolvePartyWeightRegistry(this), Definition, SourceSlot.Item);
 	if (!StackPolicy.IsStackable() || SourceSlot.Item.Quantity < 2)
 	{
@@ -1470,10 +1470,10 @@ bool UGridPartyInventoryComponent::TryConsumeSelfRestorativeQuickItem(
 
     const FName ItemId = SourceSlot->Item.ItemDefinitionId;
     const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
-    const bool bCanonical = Registry && Registry->HasCanonicalItem(ItemId);
-    const FGridCanonicalQuickItemUseReadView Canonical = bCanonical
-        ? FGridCanonicalQuickItemUseReadModel::Resolve(Registry, SourceSlot->Item)
-        : FGridCanonicalQuickItemUseReadView();
+    const bool bCanonical = Registry && Registry->ContainsItem(ItemId);
+    const FGridQuickItemUseReadView Canonical = bCanonical
+        ? FGridQuickItemUseReadModel::Resolve(Registry, SourceSlot->Item)
+        : FGridQuickItemUseReadView();
     const UGridItemDefinitionAsset* Definition = bCanonical ? nullptr : FindItemDefinition(ItemId);
     FGridCombatActionDefinition Action;
     const bool bHaveAction = bCanonical
@@ -1569,7 +1569,7 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAss
 	}
 
 	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
-	if (Registry && Registry->HasCanonicalItem(Definition->ItemDefinitionId))
+	if (Registry && Registry->ContainsItem(Definition->ItemDefinitionId))
 	{
 		// The canonical authority already owns this ID. Compatibility
 		// callers receive success but no old pointer is retained.
@@ -1599,7 +1599,7 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAss
 }
 #endif // WITH_DEV_AUTOMATION_TESTS
 
-bool UGridPartyInventoryComponent::RehydrateCanonicalOwnedItemDefinitions(FName& OutMissingDefinitionId)
+bool UGridPartyInventoryComponent::RehydrateOwnedItems(FName& OutMissingDefinitionId)
 {
 	OutMissingDefinitionId = NAME_None;
 	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
@@ -1639,7 +1639,7 @@ bool UGridPartyInventoryComponent::RehydrateCanonicalOwnedItemDefinitions(FName&
 			// A shortcut identifies a family, not a physical instance. Its actual
 			// source GUID, slot and level are checked when the action is resolved.
 			if (!Binding.IsEmpty() && bItemSource && !Binding.SourceDefinitionId.IsNone() &&
-				!Registry->HasCanonicalItem(Binding.SourceDefinitionId))
+				!Registry->ContainsItem(Binding.SourceDefinitionId))
 			{
 				OutMissingDefinitionId = Binding.SourceDefinitionId;
 				return false;
@@ -1687,7 +1687,7 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
 	auto CollectItem = [Registry, &DefinitionIds, &OutMissingDefinitionId](
 		const FGridItemInstance& Item) -> bool
 	{
-		const bool bCanonical = Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId);
+		const bool bCanonical = Registry && Registry->ContainsItem(Item.ItemDefinitionId);
 		if (bCanonical)
 		{
 			FGridResolvedItem Canonical;
@@ -1770,7 +1770,7 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
 	TMap<FName, TObjectPtr<UGridItemDefinitionAsset>> ReplacementDefinitions;
 	for (const FName DefinitionId : DefinitionIds)
 	{
-		if (Registry && Registry->HasCanonicalItem(DefinitionId))
+		if (Registry && Registry->ContainsItem(DefinitionId))
 		{
 			continue;
 		}
@@ -1797,7 +1797,7 @@ UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName
 #if WITH_DEV_AUTOMATION_TESTS
 	if (!FGridLegacyInventoryRegistrationGate::Allows(GIsAutomationTesting)) return nullptr;
 	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
-	if (ItemDefinitionId.IsNone() || (Registry && Registry->HasCanonicalItem(ItemDefinitionId)))
+	if (ItemDefinitionId.IsNone() || (Registry && Registry->ContainsItem(ItemDefinitionId)))
 	{
 		return nullptr; // Historical lookup only, including stale map entries.
 	}
@@ -1815,7 +1815,7 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
 {
     const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemInstance.ItemDefinitionId);
     const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
-    const bool bCanonical = Registry && Registry->HasCanonicalItem(ItemInstance.ItemDefinitionId);
+    const bool bCanonical = Registry && Registry->ContainsItem(ItemInstance.ItemDefinitionId);
     if (!bCanonical && !Definition)
     {
         UE_LOG(LogGridInventory, Verbose,
@@ -1831,8 +1831,8 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
     {
         return false;
     }
-    const FGridCanonicalInventoryStackReadView StackPolicy =
-        FGridCanonicalInventoryStackReadModel::Resolve(Registry, Definition, Candidate);
+    const FGridInventoryStackReadView StackPolicy =
+        FGridInventoryStackReadModel::Resolve(Registry, Definition, Candidate);
     if (!StackPolicy.bResolved)
     {
         return false;

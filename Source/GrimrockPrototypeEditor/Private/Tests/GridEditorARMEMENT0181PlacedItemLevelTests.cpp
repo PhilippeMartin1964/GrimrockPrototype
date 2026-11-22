@@ -79,7 +79,7 @@ namespace ARMEMENT0181
         bool Ready() const
         {
             return World && Runtime && Level &&
-                (!Registry || Registry->HasCanonicalItem(TEXT("Weapon_Dagger_01")));
+                (!Registry || Registry->ContainsItem(TEXT("Weapon_Dagger_01")));
         }
 
         FGuid Place(int32 CellX, int32 CellY, int32 LevelNumber)

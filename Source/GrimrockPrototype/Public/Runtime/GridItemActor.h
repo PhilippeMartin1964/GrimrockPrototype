@@ -58,7 +58,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	FGuid RuntimeObjectId;
 
-	/** Transient source level from ApplyCanonicalWorldVisual; never a SaveGame authority. */
+	/** Transient source level from ApplyResolvedWorldVisual; never a SaveGame authority. */
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|World Physics")
 	int32 CanonicalWorldItemLevel = 0;
 
@@ -94,10 +94,10 @@ public:
 
 	/** Opt-in canonical initialization. No legacy source pointer and no N1 guess.
 	 * Failure leaves the actor untouched. Caller owns runtime light state. */
-	bool InitializeFromCanonicalItem(const FGridItemInstance& Instance, const UGridItemSubsystem* Registry);
+	bool InitializeFromItemInstance(const FGridItemInstance& Instance, const UGridItemSubsystem* Registry);
 
 	/** Materialize world art using the real N1-N20 instance, preserving noncanonical objects. */
-	bool ApplyCanonicalWorldVisual(const FGridItemInstance& Instance);
+	bool ApplyResolvedWorldVisual(const FGridItemInstance& Instance);
 
 	/** Opt-in mass property uses the same canonical weight read model as the inventory. */
 	void RefreshWorldPickupMass();

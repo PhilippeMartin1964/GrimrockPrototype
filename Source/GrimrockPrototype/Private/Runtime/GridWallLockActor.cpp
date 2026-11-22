@@ -260,7 +260,7 @@ bool AGridWallLockActor::AttachInsertedKeyVisual(AGrimrockPartyPawn* PartyPawn, 
 	FGridItemInstance PhysicalKey = CursorItem;
 	PhysicalKey.RuntimeObjectId = VisualRuntimeObjectId;
 	PhysicalKey.Quantity = 1;
-	if (!CanonicalVisual->InitializeFromCanonicalItem(PhysicalKey, Registry))
+	if (!CanonicalVisual->InitializeFromItemInstance(PhysicalKey, Registry))
 	{
 		CanonicalVisual->Destroy();
 		return false;

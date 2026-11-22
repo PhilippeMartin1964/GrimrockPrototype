@@ -31,7 +31,7 @@ bool GridItemCacheParityAudit::HasCanonicalProjection(
     const FText Name = Canonical.DisplayName.IsEmpty()
         ? FText::FromName(Instance.ItemDefinitionId) : Canonical.DisplayName;
     const auto Meta = FGridInventoryItemMetadataReadModel::Resolve(&Registry, nullptr, Instance);
-    if (!Meta.bResolved || !Meta.bCanonicalIdentity || Meta.UnitWeightKg != Canonical.WeightKg ||
+    if (!Meta.bResolved || !Meta.bRegisteredIdentity || Meta.UnitWeightKg != Canonical.WeightKg ||
         !Meta.DisplayName.EqualTo(Name) || !Meta.Description.EqualTo(Canonical.Description)) return false;
     const auto Sort = FGridInventorySortReadModel::Resolve(&Registry, nullptr, Instance);
     if (Sort.TotalWeight != Total || Sort.DisplayName != Name.ToString()) return false;
@@ -67,11 +67,11 @@ bool GridItemCacheParityAudit::HasCanonicalProjection(
                 0.65f, 1.5f) * FMath::Lerp(1.f, 0.65f,
                     FMath::Clamp(Canonical.WeightKg / FMath::Max(KINDA_SMALL_NUMBER, Limit), 0.f, 1.f)),
                 0.5f, 1.5f) : 0.f;
-        if (!View.bCanonicalIdentity || !View.Strength.bCanonicalIdentity || !View.Strength.bResolved ||
+        if (!View.bRegisteredIdentity || !View.Strength.bRegisteredIdentity || !View.Strength.bResolved ||
             View.Strength.UnitWeightKg != Canonical.WeightKg || View.Strength.MaxWeightKg != Limit ||
             View.Strength.bOneHanded != bOneHanded || View.Strength.bCanThrow != bStrengthAllows ||
             !FMath::IsNearlyEqual(View.Strength.SpeedScale, ExpectedScale) ||
-            !View.Ballistics.bCanonicalIdentity || View.Ballistics.bResolved != bFlight ||
+            !View.Ballistics.bRegisteredIdentity || View.Ballistics.bResolved != bFlight ||
             View.bResolved != bFlight || View.bCanThrow != (bFlight && bStrengthAllows)) return false;
         if (bFlight && (View.Ballistics.InitialSpeed != Speed || View.Ballistics.Arc != Arc ||
             View.Ballistics.bSpecializedProjectile !=

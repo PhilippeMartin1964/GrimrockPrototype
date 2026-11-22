@@ -1,5 +1,5 @@
 #include "ARMEMENT/GridWeaponPipelinePalette.h"
-#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "EditorTools/GridEditorItemLevelPolicy.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 namespace
@@ -9,7 +9,7 @@ namespace
         return Entry.IsDirectItemEntry() &&
             !Entry.DefaultWorldObjectDefinition && !Entry.Icon &&
             !Entry.DefaultMonsterDefinition && !Entry.DefaultStoryCompanionDefinition &&
-            FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+            FGridEditorItemLevelPolicy::CanAuthorItemLevel(
                 Registry, Entry.CanonicalItemId, Entry.CanonicalDefaultItemLevel);
     }
 }
@@ -21,7 +21,7 @@ EGridWeaponPipelinePaletteState FGridWeaponPipelinePalette::Inspect(
     using State = EGridWeaponPipelinePaletteState;
     Detail.Reset();
     if (ItemId.IsNone() || !IsValid(Registry) || !Registry->IsConfigured() ||
-        !Registry->HasCanonicalItem(ItemId))
+        !Registry->ContainsItem(ItemId))
     {
         Detail = TEXT("InvalidCanonicalPaletteIdentity");
         return State::Conflict;
@@ -88,7 +88,7 @@ bool FGridWeaponPipelinePalette::Propose(
     if (Status == EGridWeaponPipelinePaletteState::Conflict)
         return false;
     if (Status == EGridWeaponPipelinePaletteState::Missing &&
-        !FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(Registry, ItemId, NewPhysicalLevel))
+        !FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry, ItemId, NewPhysicalLevel))
     {
         Error = TEXT("InvalidNewPhysicalLevel");
         return false;

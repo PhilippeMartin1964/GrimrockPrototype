@@ -14,8 +14,8 @@
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
-#include "Runtime/Items/GridCanonicalInventoryCategoryTags.h"
+#include "Runtime/Items/GridItemCatalogues.h"
+#include "Runtime/Items/GridInventoryCategoryTags.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
@@ -220,12 +220,12 @@ bool FGridTD0737RatLootDefinitionsNormalizedTest::RunTest(const FString& Paramet
 	TestTrue(TEXT("Rat meat retains the canonical consumable class"),
 		RatMeat->IsA<UGridConsumableDefinitionAsset>());
 	TestTrue(TEXT("Rat meat retains Food category"),
-		RatMeat->Tags.Contains(GridCanonicalInventoryCategoryTags::Food()));
+		RatMeat->Tags.Contains(GridInventoryCategoryTags::Food()));
 	TestTrue(TEXT("Rat meat validates canonical identity"), RatMeat->HasValidIdentity());
 	TestTrue(TEXT("Rat tooth retains the canonical stackable class"),
 		RatTooth->IsA<UGridGenericStackableDefinitionAsset>());
 	TestTrue(TEXT("Rat tooth retains Component category"),
-		RatTooth->Tags.Contains(GridCanonicalInventoryCategoryTags::Component()));
+		RatTooth->Tags.Contains(GridInventoryCategoryTags::Component()));
 	TestTrue(TEXT("Rat tooth validates canonical identity"), RatTooth->HasValidIdentity());
 
 	const FGridMonsterLootEntry* MeatLoot = FindLootEntry(Rat, TEXT("Item_RatMeat"));

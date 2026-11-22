@@ -1,5 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
-#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
+#include "Runtime/Items/GridWorldSnapshotReadModel.h"
 #include "UObject/ConstructorHelpers.h"
 
 #include "Core/GridRelocationUtils.h"
@@ -21,7 +21,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "GridWorldItemLevelReadModel.h"
-#include "GridCanonicalItemSpawnReadModel.h"
+#include "GridItemSpawnReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridLeverActor.h"
@@ -1863,8 +1863,8 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 	{
 		const FGridLevelRuntimeState* Destination = DungeonRuntimeState.LevelStates.Find(TargetLevelId);
 		FString ItemError;
-		if (Destination && !FGridCanonicalWorldSnapshotReadModel::ValidateLevel(
-			FGridCanonicalWorldSnapshotReadModel::GetRegistry(GetWorld()), *Destination, ItemError))
+		if (Destination && !FGridWorldSnapshotReadModel::ValidateLevel(
+			FGridWorldSnapshotReadModel::GetRegistry(GetWorld()), *Destination, ItemError))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Dungeon travel rejected: %s"), *ItemError);
 			return false;
@@ -1996,7 +1996,7 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	{
 		const UGridItemSubsystem* Registry = GameInstance->GetSubsystem<UGridItemSubsystem>();
 		if (ItemDefinition || !Registry || !Registry->IsConfigured() ||
-			ItemDefinitionId.IsNone() || !Registry->HasCanonicalItem(ItemDefinitionId))
+			ItemDefinitionId.IsNone() || !Registry->ContainsItem(ItemDefinitionId))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning,
 				TEXT("Grid item spawn refused without canonical registry identity: %s."),
@@ -2165,7 +2165,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	PlacedVisualItem.ItemDefinitionId = ItemDefinitionId;
 	PlacedVisualItem.ItemLevel = ResolvedItemLevel;
 	PlacedVisualItem.Quantity = ObjectData.Quantity;
-	if (!ItemActor->InitializeFromCanonicalItem(PlacedVisualItem, Registry))
+	if (!ItemActor->InitializeFromItemInstance(PlacedVisualItem, Registry))
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("Placed canonical item skipped: initialization failed %s."), *ItemDefinitionId.ToString());
@@ -2313,7 +2313,7 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 		const UGridItemSubsystem* ItemRegistry = SpawnGI
 			? SpawnGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		FGridLooseItemInstance Generated;
-		if (!FGridCanonicalItemSpawnReadModel::TryMaterialize(
+		if (!FGridItemSpawnReadModel::TryMaterialize(
 			Spawn, ItemRegistry, Generated))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning,

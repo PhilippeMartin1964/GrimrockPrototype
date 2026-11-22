@@ -143,7 +143,7 @@ bool FWeaponIndustrial05LegacyExceptions::RunTest(const FString&)
         ThrowingKnife.ArchetypeId == FName(TEXT("ARM054")) &&
         ThrowingKnife.Weapon.Projectile.bEnabled);
     TestFalse(TEXT("Legacy ThrowingKnife redirector is not a canonical ItemId"),
-        Canonical.Registry->HasCanonicalItem(TEXT("Weapon_ThrowingKnife")));
+        Canonical.Registry->ContainsItem(TEXT("Weapon_ThrowingKnife")));
 
     // Confirm the approved Shadow/Assassin recipes use stable ItemIds, not
     // old DataAsset pointers; historical two-item kits are not production.

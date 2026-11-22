@@ -34,7 +34,7 @@ bool UGrimrockStartupModeComponent::RestorePendingNewGameParty(
 
 	// Frontend and dungeon share the same canonical ItemSystem authority.
 	FName MissingDefinitionId = NAME_None;
-	if (!Inventory->RehydrateCanonicalOwnedItemDefinitions(MissingDefinitionId))
+	if (!Inventory->RehydrateOwnedItems(MissingDefinitionId))
 	{
 		OutError = FText::FromString(FString::Printf(
 			TEXT("New Game item definition '%s' cannot be restored."),

@@ -123,7 +123,7 @@ bool FARMEMENT0192SaveRestoreTest::RunTest(const FString&)
     Fixture.Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Shield;
 
     FName MissingDefinitionId;
-    const bool bResolved = Fixture.Inventory->RehydrateCanonicalOwnedItemDefinitions(MissingDefinitionId);
+    const bool bResolved = Fixture.Inventory->RehydrateOwnedItems(MissingDefinitionId);
     if (!TestTrue(TEXT("Saved bag and equipment rehydrate without level references"), bResolved)) return false;
     TestTrue(TEXT("No missing definition"), MissingDefinitionId.IsNone());
     TestNull(TEXT("No historical dagger registered"), Fixture.Inventory->FindItemDefinition(DaggerId));
@@ -141,7 +141,7 @@ bool FARMEMENT0192SaveRestoreTest::RunTest(const FString&)
     Other.Item = Fixture.SaveItem(TEXT("Weapon_Unknown_0192"));
     MissingDefinitionId = NAME_None;
     TestFalse(TEXT("Unknown saved item is rejected"),
-        Fixture.Inventory->RehydrateCanonicalOwnedItemDefinitions(MissingDefinitionId));
+        Fixture.Inventory->RehydrateOwnedItems(MissingDefinitionId));
     TestEqual(TEXT("Missing ID is reported"), MissingDefinitionId, FName(TEXT("Weapon_Unknown_0192")));
     TestNull(TEXT("Failed rehydration cannot create historical dagger"),
         Fixture.Inventory->FindItemDefinition(DaggerId));

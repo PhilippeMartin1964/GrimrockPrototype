@@ -1,8 +1,8 @@
 #pragma once
 #if WITH_DEV_AUTOMATION_TESTS
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
-#include "Runtime/Items/GridCanonicalInventoryCategoryTags.h"
-#include "Runtime/Items/GridCanonicalPuzzleCategoryTags.h"
+#include "Runtime/Items/GridItemCatalogues.h"
+#include "Runtime/Items/GridInventoryCategoryTags.h"
+#include "Runtime/Items/GridPuzzleCategoryTags.h"
 
 /** Production tests accept only the explicit X.61 and X.66 registry states.
  * Exact append order/classes and existing identities are checked, not a
@@ -42,7 +42,7 @@ namespace GridCanonicalLootRegistryTestUtils
                 if (!C || C->ItemId != AlchemyIds[J] || C->WeightKg != 0.f || C->MaxStack != 1 ||
                     C->UseActions.Num() != 1 || C->UseActions[0].ActionId != ActionIds[J] ||
                     C->UseActions[0].PresentationId != FName(TEXT("PRES_AttackNoFX")) ||
-                    C->Tags.Contains(GridCanonicalInventoryCategoryTags::Potion()) != bPotion ||
+                    C->Tags.Contains(GridInventoryCategoryTags::Potion()) != bPotion ||
                     Root.ActionCatalogue->DetailedActions[4+J].Definition.ActionId != ActionIds[J])
                     return false;
                 continue;
@@ -56,10 +56,10 @@ namespace GridCanonicalLootRegistryTestUtils
             const UClass* Class = J == 0 ? UGridNonArmamentDefinitionAsset::StaticClass() :
                 J == 2 ? UGridConsumableDefinitionAsset::StaticClass() :
                 UGridGenericStackableDefinitionAsset::StaticClass();
-            const FName Tag = J == 0 ? GridCanonicalInventoryCategoryTags::Weapon() :
-                J == 2 ? GridCanonicalInventoryCategoryTags::Food() : GridCanonicalInventoryCategoryTags::Component();
+            const FName Tag = J == 0 ? GridInventoryCategoryTags::Weapon() :
+                J == 2 ? GridInventoryCategoryTags::Food() : GridInventoryCategoryTags::Component();
             if (D->ItemId != IDs[J] || D->GetClass() != Class ||
-                !GridCanonicalPuzzleCategoryTags::MatchesBeforeOrAfter(D->Tags, {Tag},
+                !GridPuzzleCategoryTags::MatchesBeforeOrAfter(D->Tags, {Tag},
                     J == 0 ? FName(TEXT("Weapon")) : J == 2 ? FName(TEXT("Food")) : FName(TEXT("Component")))) return false;
         }
         return true;

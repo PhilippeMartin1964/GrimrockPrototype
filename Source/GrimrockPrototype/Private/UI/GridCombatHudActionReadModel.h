@@ -2,20 +2,20 @@
 
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/Combat/GridCanonicalActionIconReadModel.h"
+#include "../Runtime/Combat/GridActionIconReadModel.h"
 
 /** Presentation-only, fail-closed canonical equipment-action icon bridge.
  * True means a registered ItemId was handled, INCLUDING rejected stale or
  * invalid sources. The caller must never borrow an old DA_Weapon icon then.
  * False means unknown/non-equipment and preserves the legacy/quick-item path.
  */
-struct FGridCombatHudCanonicalActionReadModel
+struct FGridCombatHudActionReadModel
 {
 	static bool Apply(const UGridItemSubsystem* Registry, FName SourceDefinitionId,
 		bool bResolvedAction, const FGridItemInstance* EquippedSource,
 		FGridAvailableCombatAction& InOutAction)
 	{
-		if (!IsValid(Registry) || !Registry->HasCanonicalItem(SourceDefinitionId) ||
+		if (!IsValid(Registry) || !Registry->ContainsItem(SourceDefinitionId) ||
 			(bResolvedAction && InOutAction.Definition.SourcePolicy != EGridCombatActionSourcePolicy::Equipment))
 		{
 			return false;
@@ -70,7 +70,7 @@ struct FGridCombatHudCanonicalActionReadModel
 		}
 
 		const EGridEquippedWeaponActionIconKind Kind =
-			FGridCanonicalActionIconReadModel::Classify(Canonical, InOutAction.Definition);
+			FGridActionIconReadModel::Classify(Canonical, InOutAction.Definition);
 		InOutAction.Definition.Icon = Registry->FindEquippedActionIcon(Kind);
 		return true;
 	}

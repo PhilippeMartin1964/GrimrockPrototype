@@ -241,7 +241,7 @@ bool FGridClean064X22PointerlessArmRestore::RunTest(const FString&)
     AGridItemActor* Prebuilt = F.World->SpawnActor<AGridItemActor>();
     if (!TestNotNull(TEXT("Prebuilt actor"), Prebuilt) ||
         !TestTrue(TEXT("Restored ARM resolves without historical source"),
-            Prebuilt->InitializeFromCanonicalItem(Instance, F.Registry)) ||
+            Prebuilt->InitializeFromItemInstance(Instance, F.Registry)) ||
         !TestTrue(TEXT("Restore accepts canonical actor without reattaching old source"),
             Receptacle->RestoreRuntimeContainedItem(ItemState, Prebuilt)))
     {

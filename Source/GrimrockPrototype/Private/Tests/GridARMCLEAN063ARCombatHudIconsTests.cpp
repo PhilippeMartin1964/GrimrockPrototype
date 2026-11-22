@@ -4,7 +4,7 @@
 #include "Engine/GameInstance.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../UI/GridCombatHudCanonicalActionReadModel.h"
+#include "../UI/GridCombatHudActionReadModel.h"
 #include "UObject/StrongObjectPtr.h"
 
 namespace ARMCLEAN063AR
@@ -81,7 +81,7 @@ bool FGridClean063ARHudActionIcons::RunTest(const FString&)
 		Action.Definition.DisplayName = FText::FromString(TEXT("Sword Slash"));
 		const FText ActionLabel = Action.Definition.DisplayName;
 		TestTrue(TEXT("Registered sword bypasses legacy enrichment"),
-			FGridCombatHudCanonicalActionReadModel::Apply(
+			FGridCombatHudActionReadModel::Apply(
 				Registry.Get(), SwordId, true, &Source, Action));
 		const auto Expected = Registry->FindEquippedActionIcon(
 			EGridEquippedWeaponActionIconKind::MeleeOneHand);
@@ -99,19 +99,19 @@ bool FGridClean063ARHudActionIcons::RunTest(const FString&)
 		FGridItemInstance WrongSource = Source;
 		WrongSource.RuntimeObjectId = FGuid::NewGuid();
 		TestTrue(TEXT("Known identity remains handled when GUID is stale"),
-			FGridCombatHudCanonicalActionReadModel::Apply(
+			FGridCombatHudActionReadModel::Apply(
 				Registry.Get(), SwordId, true, &WrongSource, Stale));
 		TestTrue(TEXT("Stale GUID never borrows an obsolete item icon"), Stale.Definition.Icon.IsNull());
 
 		Stale = ARMCLEAN063AR::Attack(Source, TEXT("Invented_Unbound_Action_AR"));
 		TestTrue(TEXT("Unbound action cannot fall back to legacy icon"),
-			FGridCombatHudCanonicalActionReadModel::Apply(
+			FGridCombatHudActionReadModel::Apply(
 				Registry.Get(), SwordId, true, &Source, Stale));
 		TestTrue(TEXT("Unbound action has no manufactured image"), Stale.Definition.Icon.IsNull());
 
 		Stale = ARMCLEAN063AR::Attack(Source, Canonical.AvailableActions[0].ActionId);
 		TestTrue(TEXT("Missing equipment still marks registered identity"),
-			FGridCombatHudCanonicalActionReadModel::Apply(
+			FGridCombatHudActionReadModel::Apply(
 				Registry.Get(), SwordId, false, nullptr, Stale));
 		TestTrue(TEXT("Missing equipment does not receive a weapon icon"), Stale.Definition.Icon.IsNull());
 	}
@@ -123,7 +123,7 @@ bool FGridClean063ARHudActionIcons::RunTest(const FString&)
 	FGridAvailableCombatAction Dual = ARMCLEAN063AR::Attack(
 		DualMain, FGridDualWieldPolicy::ActionId());
 	TestTrue(TEXT("Existing dual composite is handled as canonical"),
-		FGridCombatHudCanonicalActionReadModel::Apply(
+		FGridCombatHudActionReadModel::Apply(
 			Registry.Get(), DualMain.ItemDefinitionId, true, &DualMain, Dual));
 	TestFalse(TEXT("Actual dual icon must be configured before retiring fallback"),
 		Registry->FindEquippedActionIcon(EGridEquippedWeaponActionIconKind::MeleeDualWield).IsNull());
@@ -137,7 +137,7 @@ bool FGridClean063ARHudActionIcons::RunTest(const FString&)
 	FGridAvailableCombatAction ForgedShield = ARMCLEAN063AR::Attack(
 		Shield, TEXT("ForgedShieldAttack_AR"));
 	TestTrue(TEXT("Passive shield is canonical regardless of fake attack"),
-		FGridCombatHudCanonicalActionReadModel::Apply(
+		FGridCombatHudActionReadModel::Apply(
 			Registry.Get(), Shield.ItemDefinitionId, true, &Shield, ForgedShield));
 	TestTrue(TEXT("Passive shield action cannot acquire old or new attack icon"),
 		ForgedShield.Definition.Icon.IsNull());
@@ -147,7 +147,7 @@ bool FGridClean063ARHudActionIcons::RunTest(const FString&)
 	FGridAvailableCombatAction Invalid = ARMCLEAN063AR::Attack(
 		BadLevel, TEXT("FakeLevelZeroAction_AR"));
 	TestTrue(TEXT("Known ARM N0 still bypasses legacy definition"),
-		FGridCombatHudCanonicalActionReadModel::Apply(
+		FGridCombatHudActionReadModel::Apply(
 			Registry.Get(), SwordId, true, &BadLevel, Invalid));
 	TestTrue(TEXT("Persisted N0 never manufactures an icon"), Invalid.Definition.Icon.IsNull());
 
@@ -156,7 +156,7 @@ bool FGridClean063ARHudActionIcons::RunTest(const FString&)
 	FGridAvailableCombatAction Legacy = ARMCLEAN063AR::Attack(Unknown, TEXT("OldAction_AR"));
 	const auto PriorIcon = Legacy.Definition.Icon.ToSoftObjectPath();
 	TestFalse(TEXT("Unmigrated ID stays in its legacy presentation path"),
-		FGridCombatHudCanonicalActionReadModel::Apply(
+		FGridCombatHudActionReadModel::Apply(
 			Registry.Get(), Unknown.ItemDefinitionId, true, &Unknown, Legacy));
 	TestEqual(TEXT("Unknown ID icon is preserved for legacy branch"),
 		Legacy.Definition.Icon.ToSoftObjectPath().ToString(), PriorIcon.ToString());
@@ -165,7 +165,7 @@ bool FGridClean063ARHudActionIcons::RunTest(const FString&)
 		DualMain, TEXT("QuickItem_AR"));
 	Quick.Definition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 	TestFalse(TEXT("Quick-item action never becomes a weapon icon"),
-		FGridCombatHudCanonicalActionReadModel::Apply(
+		FGridCombatHudActionReadModel::Apply(
 			Registry.Get(), DualMain.ItemDefinitionId, true, &DualMain, Quick));
 	TestEqual(TEXT("Quick-item icon remains untouched"),
 		Quick.Definition.Icon.ToSoftObjectPath().ToString(),

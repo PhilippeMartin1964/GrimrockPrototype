@@ -1,6 +1,6 @@
 #include "Core/GridBoundary.h"
 #include "Core/GridRelocationUtils.h"
-#include "EditorTools/GridEditorCanonicalItemLevelPolicy.h"
+#include "EditorTools/GridEditorItemLevelPolicy.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel()
@@ -458,7 +458,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 						TEXT("Receptacle InitialContent requires a canonical ItemId."), ObjectId);
 				if (InitialItem.Quantity < 1)
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent requires Quantity >= 1."), ObjectId);
-				if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+				if (!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 					ResolveEditorItemRegistry(), InitialItem.CanonicalItemId, InitialItem.ItemLevel))
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent has an invalid canonical identity or physical level."), ObjectId);
 			}
@@ -468,7 +468,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	const auto ValidateItemDefinition = [this, &AddMessage](
 		FGuid ObjectId, FName CanonicalItemId, int32 PhysicalLevel, int32 Quantity)
 	{
-		if (!FGridEditorCanonicalItemLevelPolicy::CanAuthorCanonicalLevel(
+		if (!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 			ResolveEditorItemRegistry(), CanonicalItemId, PhysicalLevel))
 			AddMessage(EGridLevelValidationSeverity::Error,
 				TEXT("Canonical item placement requires an ItemId registered with a valid physical ItemLevel."), ObjectId);

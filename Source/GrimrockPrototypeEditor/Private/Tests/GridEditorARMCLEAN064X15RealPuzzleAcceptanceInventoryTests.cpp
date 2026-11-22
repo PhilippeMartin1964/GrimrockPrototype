@@ -9,7 +9,7 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "UObject/StrongObjectPtr.h"
@@ -31,7 +31,7 @@ struct FReferenceCount
         {
             ++Missing;
         }
-        else if (Registry && Registry->HasCanonicalItem(ItemId))
+        else if (Registry && Registry->ContainsItem(ItemId))
         {
             ++CanonicalKnown;
         }

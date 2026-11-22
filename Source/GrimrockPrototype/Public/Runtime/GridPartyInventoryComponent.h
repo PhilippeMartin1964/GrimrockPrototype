@@ -223,7 +223,7 @@ public:
 #endif
 
 	/** Production New Game/Continue: validate against the configured registry; never restore old definitions. */
-	bool RehydrateCanonicalOwnedItemDefinitions(FName& OutMissingDefinitionId);
+	bool RehydrateOwnedItems(FName& OutMissingDefinitionId);
 
 #if WITH_DEV_AUTOMATION_TESTS
 	// Historical fixture helper; no runtime caller in Shipping.

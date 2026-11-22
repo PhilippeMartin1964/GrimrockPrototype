@@ -4,6 +4,8 @@ Référence vérifiée : `a8de4f58b6c7ecc42e62aef0dbbe8fa9b7ede272`, `master`, 2
 
 ## Lecture du modèle
 
+Mise à jour CLEANUP02 : noms internes simplifiés, sans évolution du schéma ou des identités. La référence fonctionnelle reste `420dce2e`. Les noms réfléchis et chemins d’assets sont traités dans les lots suivants.
+
 Le SVG initial était un modèle relationnel de 29 entités et 37 relations. Ces 29 entités sont conservées, corrigées ou identifiées comme projections de champs embarqués. Le modèle enrichi comprend 47 entités ou sous-ensembles, répartis en six panneaux. Ce découpage ne change pas le modèle relationnel : les références `FK → [panneau]` relient les domaines sans faire traverser les autres entités par des traits.
 
 - **Vert** : déclaration implémentée, confrontée aux sources et aux preuves disponibles. Cela ne signifie pas que toutes les gammes de contenu sont créées, ni que la recette graphique est terminée.
@@ -121,7 +123,7 @@ Le niveau physique non ARM est aujourd'hui strictement zéro : appliquer une pro
 Les chemins suivants sont relatifs à la racine du dépôt :
 
 - `Source/GrimrockPrototype/Public/Runtime/Items/GridCanonicalItemDefinitionAsset.h` : héritage, cinq champs, spécialisations et slots.
-- `Source/GrimrockPrototype/Public/Runtime/Items/GridCanonicalItemCatalogues.h` et son `.cpp` privé : catalogues, structures, validations et jointures.
+- `Source/GrimrockPrototype/Public/Runtime/Items/GridItemCatalogues.h` et son `.cpp` privé : catalogues, structures, validations et jointures.
 - `Source/GrimrockPrototype/Public/Runtime/Items/GridItemSubsystem.h` et son `.cpp` privé : configuration, niveaux, projection et actions détaillées.
 - `Source/GrimrockPrototype/Public/Runtime/GridInventoryTypes.h` : instance, possession, résistances, bonus et 18 slots.
 - `Source/GrimrockPrototype/Public/Runtime/Combat/GridWeaponCatalogueAsset.h` : structures de croissance encore réutilisées par le modèle actuel.

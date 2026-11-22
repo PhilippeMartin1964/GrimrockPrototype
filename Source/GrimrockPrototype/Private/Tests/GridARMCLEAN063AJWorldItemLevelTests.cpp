@@ -45,8 +45,8 @@ bool FGridClean063AJWorldItemLevels::RunTest(const FString&)
 				Registry.Get(), Old.Get(), Id, Level);
 			const auto Dropped = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 				Registry.Get(), Old.Get(), Id, Level);
-			TestTrue(TEXT("Authored fixed level accepted"), Placed.bCanonicalIdentity && Placed.bResolved);
-			TestTrue(TEXT("Persisted fixed level accepted"), Dropped.bCanonicalIdentity && Dropped.bResolved);
+			TestTrue(TEXT("Authored fixed level accepted"), Placed.bRegisteredIdentity && Placed.bResolved);
+			TestTrue(TEXT("Persisted fixed level accepted"), Dropped.bRegisteredIdentity && Dropped.bResolved);
 			TestEqual(TEXT("Authoring keeps N-level"), Placed.FixedItemLevel, Level);
 			TestEqual(TEXT("World drop keeps N-level"), Dropped.FixedItemLevel, Level);
 			TestTrue(TEXT("Canonical world unit mass"), FMath::IsNearlyEqual(Dropped.UnitWeightKg, Canonical.WeightKg));
@@ -55,12 +55,12 @@ bool FGridClean063AJWorldItemLevels::RunTest(const FString&)
 		}
 		const auto Initial = FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
 			Registry.Get(), Old.Get(), Id, 0);
-		TestTrue(TEXT("Malformed placement still classified canonical"), Initial.bCanonicalIdentity);
+		TestTrue(TEXT("Malformed placement still classified canonical"), Initial.bRegisteredIdentity);
 		TestFalse(TEXT("New authored ARM N0 cannot inherit obsolete N7"), Initial.bResolved);
 		TestEqual(TEXT("Rejected placement has no fallback mass"), Initial.UnitWeightKg, 0.0f);
 		const auto PersistedZero = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry.Get(), Old.Get(), Id, 0);
-		TestTrue(TEXT("Persisted invalid N0 remains known canonical"), PersistedZero.bCanonicalIdentity);
+		TestTrue(TEXT("Persisted invalid N0 remains known canonical"), PersistedZero.bRegisteredIdentity);
 		TestFalse(TEXT("Existing ARM N0 never reinherits on drop"), PersistedZero.bResolved);
 		TestEqual(TEXT("Rejected instance has no fallback metadata"), PersistedZero.UnitWeightKg, 0.0f);
 		TestFalse(TEXT("Authored N0 without definition cannot invent default"),
@@ -86,7 +86,7 @@ bool FGridClean063AJWorldItemLevels::RunTest(const FString&)
 	const auto RegisteredMismatch = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 		Registry.Get(), Old.Get(), TEXT("Weapon_GreatAxe_01"), 7);
 	TestTrue(TEXT("World registered N7 cannot be rejected by stale pointer"),
-		RegisteredMismatch.bCanonicalIdentity && RegisteredMismatch.bResolved &&
+		RegisteredMismatch.bRegisteredIdentity && RegisteredMismatch.bResolved &&
 		RegisteredMismatch.FixedItemLevel == 7 &&
 		FMath::IsNearlyEqual(RegisteredMismatch.UnitWeightKg, RealGreatAxe.WeightKg));
 	TestEqual(TEXT("World registered name remains canonical"),
@@ -120,12 +120,12 @@ bool FGridClean063AJWorldItemLevels::RunTest(const FString&)
 	const auto Legacy = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 		Registry.Get(), Old.Get(), Old->ItemDefinitionId, 0);
 	TestFalse(TEXT("Configured registry refuses unknown physical world item"), Legacy.bResolved);
-	TestFalse(TEXT("Nonregistered item is not labelled canonical"), Legacy.bCanonicalIdentity);
+	TestFalse(TEXT("Nonregistered item is not labelled canonical"), Legacy.bRegisteredIdentity);
 	TestEqual(TEXT("Rejected world item exposes no legacy weight"), Legacy.UnitWeightKg, 0.f);
 	const auto FixtureOnly = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 		nullptr, Old.Get(), Old->ItemDefinitionId, 0);
 	TestTrue(TEXT("Registry-less Automation fixture remains isolated"),
-		FixtureOnly.bResolved && !FixtureOnly.bCanonicalIdentity && FixtureOnly.UnitWeightKg == 2.5f);
+		FixtureOnly.bResolved && !FixtureOnly.bRegisteredIdentity && FixtureOnly.UnitWeightKg == 2.5f);
 	TestFalse(TEXT("Unknown non-levelled definition does not invent N9"),
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry.Get(), Old.Get(), Old->ItemDefinitionId, -1).bResolved);

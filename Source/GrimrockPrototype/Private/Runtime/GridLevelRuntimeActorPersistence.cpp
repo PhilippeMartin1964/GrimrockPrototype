@@ -8,7 +8,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "GridWorldPickupIdentityReadModel.h"
-#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
+#include "Runtime/Items/GridWorldSnapshotReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridThrownItemActor.h"
@@ -273,8 +273,8 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		Candidate.Items = CapturedItems;
 		Candidate.Receptacles = CapturedReceptacles;
 		FString Error;
-		if (!FGridCanonicalWorldSnapshotReadModel::ValidateLevel(
-			FGridCanonicalWorldSnapshotReadModel::GetRegistry(GetWorld()), Candidate, Error))
+		if (!FGridWorldSnapshotReadModel::ValidateLevel(
+			FGridWorldSnapshotReadModel::GetRegistry(GetWorld()), Candidate, Error))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Capture rejected: %s"), *Error);
 			return false;
@@ -472,7 +472,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 
 	const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel();
 	const UGridItemSubsystem* RestoreRegistry =
-		FGridCanonicalWorldSnapshotReadModel::GetRegistry(GetWorld());
+		FGridWorldSnapshotReadModel::GetRegistry(GetWorld());
 	// Pending inbound items on an unvisited level are also validated.
 	bool bRequireCanonicalRestore = true;
 #if WITH_DEV_AUTOMATION_TESTS
@@ -481,7 +481,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	if (bRequireCanonicalRestore)
 	{
 		FString ItemError;
-		if (State && !FGridCanonicalWorldSnapshotReadModel::ValidateLevel(RestoreRegistry, *State, ItemError))
+		if (State && !FGridWorldSnapshotReadModel::ValidateLevel(RestoreRegistry, *State, ItemError))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Apply rejected: %s"), *ItemError);
 			return false;
@@ -658,7 +658,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 
 			if (AGridItemActor* ItemActor = Entry.ItemActor.Get())
 			{
-				ItemActor->ApplyCanonicalWorldVisual(PersistenceMakeVisualItem(ItemState));
+				ItemActor->ApplyResolvedWorldVisual(PersistenceMakeVisualItem(ItemState));
 				ItemActor->SetActorTransform(ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
 				if (ItemState.bHasWorldMeshTransform && IsValid(ItemActor->MeshComponent))
 				{
@@ -685,7 +685,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			// A flying canonical item reloads as a pickup, not a second
 			// projectile. Old SaveGame pointers are not its authoring authority.
 			const bool bCanonicalItem = RestoreRegistry &&
-				RestoreRegistry->HasCanonicalItem(RuntimeItemDefinitionId);
+				RestoreRegistry->ContainsItem(RuntimeItemDefinitionId);
 			FGridResolvedItem ResolvedItem;
 			if (bCanonicalItem &&
 				!RestoreRegistry->ResolveItem(RuntimeItemDefinitionId, ItemState.ItemLevel, ResolvedItem))
@@ -702,7 +702,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			if (ItemActor)
 			{
 				if (bCanonicalWorld &&
-					!ItemActor->InitializeFromCanonicalItem(
+					!ItemActor->InitializeFromItemInstance(
 						PersistenceMakeVisualItem(ItemState), RestoreRegistry))
 				{
 					UE_LOG(LogGridLevelRuntime, Warning,
@@ -716,7 +716,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 					ItemPlacement ? FIntPoint(ItemPlacement->CellX, ItemPlacement->CellY) : FIntPoint(ItemState.CellX, ItemState.CellY);
 				const EGridEdge RuntimeEdge = ItemPlacement ? ItemPlacement->SurfaceSide : ItemState.Edge;
 
-				ItemActor->ApplyCanonicalWorldVisual(PersistenceMakeVisualItem(ItemState));
+				ItemActor->ApplyResolvedWorldVisual(PersistenceMakeVisualItem(ItemState));
 				ItemActor->SetActorTransform(ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
 				if (ItemState.bHasWorldMeshTransform && IsValid(ItemActor->MeshComponent))
 				{
@@ -785,7 +785,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				nullptr, RuntimeItemDefinitionId, ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get());
 			if (IsValid(ItemActor))
 			{
-				if (!ItemActor->InitializeFromCanonicalItem(PersistenceMakeVisualItem(ItemState), RestoreRegistry))
+				if (!ItemActor->InitializeFromItemInstance(PersistenceMakeVisualItem(ItemState), RestoreRegistry))
 				{
 					ItemActor->Destroy();
 					continue;
@@ -891,7 +891,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		// Embedded ammunition is resolved only by its physical identity.
 		// The v27 historical pointer is not read even in Automation.
 		const bool bCanonicalItem = RestoreRegistry &&
-			RestoreRegistry->HasCanonicalItem(Item.ItemDefinitionId);
+			RestoreRegistry->ContainsItem(Item.ItemDefinitionId);
 		FGridResolvedItem ResolvedAmmo;
 		const bool bCanonicalAmmo = bCanonicalItem &&
 			Item.ItemLevel == 0 &&

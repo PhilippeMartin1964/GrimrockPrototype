@@ -11,8 +11,8 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "../Runtime/GridCanonicalItemInteractionReadModel.h"
-#include "../Runtime/GridCanonicalQuickItemUseReadModel.h"
+#include "../Runtime/GridItemInteractionReadModel.h"
+#include "../Runtime/GridQuickItemUseReadModel.h"
 
 namespace ARMCLEAN063AY
 {
@@ -109,7 +109,7 @@ namespace ARMCLEAN063AY
         bool Ready() const
         {
             return Registry && Item && Inventory && Inventory->IsValidCharacterIndex(0) &&
-                Registry->HasCanonicalItem(ItemId());
+                Registry->ContainsItem(ItemId());
         }
 
         FGridItemInstance Make(int32 Level = 0) const
@@ -141,9 +141,9 @@ bool FGridClean063AYStatusProjection::RunTest(const FString&)
     if (!TestTrue(TEXT("Actual ActionId and presentation link resolves"),
         F.Registry->ResolveBoundAction(ARMCLEAN063AY::ItemId(), 0,
             ARMCLEAN063AY::ActionId(), Bound))) return false;
-    const auto View = FGridCanonicalQuickItemUseReadModel::Resolve(F.Registry, F.Make());
+    const auto View = FGridQuickItemUseReadModel::Resolve(F.Registry, F.Make());
     TestTrue(TEXT("Canonical status cleansing projects without historical item"),
-        View.bCanonicalIdentity && View.bResolved);
+        View.bRegisteredIdentity && View.bResolved);
     TestFalse(TEXT("Status cleansing never uses exploration self-heal executor"),
         View.bExplorationCompatible);
     TestTrue(TEXT("Projected QuickItem passes existing action validator"),
@@ -167,7 +167,7 @@ bool FGridClean063AYStatusProjection::RunTest(const FString&)
     }
 
     const auto Capability =
-        FGridCanonicalItemInteractionReadModel::Resolve(F.Registry, nullptr, F.Make());
+        FGridItemInteractionReadModel::Resolve(F.Registry, nullptr, F.Make());
     TestTrue(TEXT("Status cleanse may be assigned to combat hotbar"),
         Capability.bCanAddToHotbar);
     TestFalse(TEXT("No inline Consume action for combat-only status removal"),
@@ -177,7 +177,7 @@ bool FGridClean063AYStatusProjection::RunTest(const FString&)
     auto TryProject = [&Item](FGridResolvedBoundAction Modified)
     {
         FGridCombatActionDefinition Output;
-        return FGridCanonicalQuickItemUseReadModel::TryProjectSingleStatusRemoval(
+        return FGridQuickItemUseReadModel::TryProjectSingleStatusRemoval(
             Item, Modified, Output);
     };
     FGridResolvedBoundAction Modified = Bound;
@@ -208,8 +208,8 @@ bool FGridClean063AYStatusProjection::RunTest(const FString&)
     Modified.Action.Effects[0].Kind = EGridCanonicalEffectKind::Heal;
     TestFalse(TEXT("Heal not projected as RemoveStatus"), TryProject(Modified));
 
-    const auto Invalid = FGridCanonicalQuickItemUseReadModel::Resolve(F.Registry, F.Make(21));
-    TestTrue(TEXT("N21 identity remains known"), Invalid.bCanonicalIdentity);
+    const auto Invalid = FGridQuickItemUseReadModel::Resolve(F.Registry, F.Make(21));
+    TestTrue(TEXT("N21 identity remains known"), Invalid.bRegisteredIdentity);
     TestFalse(TEXT("Invalid level has no executable action"), Invalid.bResolved);
     // AX self-healing remains a separate, supported projection.
     return !HasAnyErrors();
@@ -262,7 +262,7 @@ bool FGridClean063AYStatusCombat::RunTest(const FString&)
     if (TestTrue(TEXT("Hotbar binding stored"), F.Inventory->GetCharacterCombatHotbarBinding(0, 4, Binding)))
         TestEqual(TEXT("Exact canonical ActionId used"), Binding.ActionId, ARMCLEAN063AY::ActionId());
 
-    const auto Use = FGridCanonicalQuickItemUseReadModel::Resolve(F.Registry, Slot->Item);
+    const auto Use = FGridQuickItemUseReadModel::Resolve(F.Registry, Slot->Item);
     if (!TestTrue(TEXT("Canonical combat action resolved"), Use.bResolved)) return false;
     UGridStatusEffectDefinitionAsset* Status = NewObject<UGridStatusEffectDefinitionAsset>(F.World);
     Status->EffectId = ARMCLEAN063AY::StatusId();

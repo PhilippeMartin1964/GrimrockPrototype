@@ -7,9 +7,9 @@
 #include "Modules/ModuleManager.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "EditorTools/GridEditorCanonicalReceptacleRuleAuthoring.h"
+#include "EditorTools/GridEditorReceptacleRuleAuthoring.h"
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "UObject/StrongObjectPtr.h"
@@ -89,7 +89,7 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
             ++ReceptacleLists;
             TArray<FGridReceptacleAcceptedItemConfig> Proposed;
             if (!TestTrue(TEXT("Every actual receptacle list copies atomically"),
-                FGridEditorCanonicalReceptacleRuleAuthoring::TryCopyDefaults(
+                FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(
                     Registry.Get(), R.AcceptedItems, Proposed)))
                 return false;
             ReceptacleRules += R.AcceptedItems.Num();
@@ -106,7 +106,7 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
                 if (!TestTrue(TEXT("Only the two approved shared acceptance rules"),
                         !ExpectedId.IsNone() && AcceptedId == ExpectedId &&
                         Rule.CanonicalItemId == ExpectedId &&
-                        Registry->HasCanonicalItem(AcceptedId)))
+                        Registry->ContainsItem(AcceptedId)))
                     return false;
                 AddInfo(FString::Printf(TEXT(
                     "[ARM-CLEAN06.4X.52] RECEPTACLE package=%s definition=%s index=%d legacy=%d canonical=%s"),
@@ -127,7 +127,7 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
             if (!TestTrue(TEXT("Only approved shared Copper/Iron rules exist"),
                 !ExpectedKey.IsNone() && Lock.AcceptedKeyIds.Num() == 1 &&
                 Lock.AcceptedKeyIds[0] == ExpectedKey &&
-                Registry->HasCanonicalItem(ExpectedKey)))
+                Registry->ContainsItem(ExpectedKey)))
                 return false;
             AddInfo(FString::Printf(TEXT(
                 "[ARM-CLEAN06.4X.52] LOCK package=%s definition=%s legacy=%d canonical=%s"),

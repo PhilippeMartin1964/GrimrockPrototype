@@ -295,7 +295,7 @@ bool FGridMonsterMON8MultipleIndependentDropsTest::RunTest(const FString& Parame
 	const FName ItemIds[] = { TEXT("Stone"), TEXT("Item_RatTooth"), TEXT("Item_RatMeat") };
 	for (const FName ItemId : ItemIds)
 	{
-		if (!TestTrue(TEXT("Real loot identity registered"), LootRegistry.Registry->HasCanonicalItem(ItemId))) return false;
+		if (!TestTrue(TEXT("Real loot identity registered"), LootRegistry.Registry->ContainsItem(ItemId))) return false;
 		Definition->LootTable.Add(MakeMON8LootEntry(ItemId, 1.0f));
 	}
 

@@ -3,8 +3,8 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
-#include "GridCanonicalItemInteractionReadModel.h"
-#include "GridCanonicalQuickItemUseReadModel.h"
+#include "GridItemInteractionReadModel.h"
+#include "GridQuickItemUseReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 
@@ -185,8 +185,8 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 	const UWorld* World = GetWorld();
 	UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Canonical = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	const bool bCanonicalIdentity = Canonical &&
-		Canonical->HasCanonicalItem(SourceItem.ItemDefinitionId);
+	const bool bRegisteredIdentity = Canonical &&
+		Canonical->ContainsItem(SourceItem.ItemDefinitionId);
 	const UGridItemDefinitionAsset* Definition = nullptr;
 #if WITH_DEV_AUTOMATION_TESTS
 	if (!Canonical && GIsAutomationTesting)
@@ -194,7 +194,7 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		Definition = FindItemDefinition(SourceItem.ItemDefinitionId);
 	}
 #endif
-	if (!bCanonicalIdentity &&
+	if (!bRegisteredIdentity &&
 		(!IsValid(Definition) || !Definition->IsValidDefinition()))
 	{
 		return false;
@@ -208,7 +208,7 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 			return false;
 		}
 		#if WITH_DEV_AUTOMATION_TESTS
-		if (!bCanonicalIdentity && !Definition->CompatibleEquipmentSlots.Contains(SourceEquipmentSlot))
+		if (!bRegisteredIdentity && !Definition->CompatibleEquipmentSlots.Contains(SourceEquipmentSlot))
 		{
 			return false;
 		}
@@ -222,7 +222,7 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		}
 
 		FName PrimaryActionId = NAME_None;
-		if (bCanonicalIdentity)
+		if (bRegisteredIdentity)
 		{
 			// The actual owned hand, not the drag snapshot, supplies the level
 			// and all mutable source state for a new shortcut.
@@ -289,7 +289,7 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 			return false;
 		}
 		const FGridItemInstance& OwnedItem = OwnedSlot->Item;
-		if (bCanonicalIdentity)
+		if (bRegisteredIdentity)
 		{
 			FGridResolvedItem Physical;
 			if (!OwnedItem.IsValid() || OwnedItem.ItemLevel != SourceItem.ItemLevel ||
@@ -300,19 +300,19 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 			}
 		}
 
-		const FGridCanonicalItemInteractionReadView Capabilities =
-			FGridCanonicalItemInteractionReadModel::Resolve(Canonical, Definition, OwnedItem);
+		const FGridItemInteractionReadView Capabilities =
+			FGridItemInteractionReadModel::Resolve(Canonical, Definition, OwnedItem);
 		FGridCombatActionDefinition InventoryAction;
-		if (Capabilities.bCanonicalIdentity && Capabilities.bPhysicalThrowHotbar)
+		if (Capabilities.bRegisteredIdentity && Capabilities.bPhysicalThrowHotbar)
 		{
 			Binding.ActionId = FGridCombatHotbarBinding::MakePhysicalThrowItemActionId(SourceItem.ItemDefinitionId);
 			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 			Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
 		}
-		else if (Capabilities.bCanonicalIdentity)
+		else if (Capabilities.bRegisteredIdentity)
 		{
-			const FGridCanonicalQuickItemUseReadView Use =
-				FGridCanonicalQuickItemUseReadModel::Resolve(Canonical, OwnedItem);
+			const FGridQuickItemUseReadView Use =
+				FGridQuickItemUseReadModel::Resolve(Canonical, OwnedItem);
 			if (!Use.bResolved)
 			{
 				return false; // No fallback to old QuickItem for known IDs.

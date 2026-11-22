@@ -5,8 +5,8 @@
 #include "Engine/GameInstance.h"
 #include "Core/GridLevelAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
-#include "../Runtime/GridReceptacleInitialCanonicalReadModel.h"
+#include "Runtime/Items/GridItemCatalogues.h"
+#include "../Runtime/GridReceptacleInitialReadModel.h"
 #include "UObject/StrongObjectPtr.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X91RealReceptacleSources,
@@ -67,7 +67,7 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
                 ++ReceptacleCount;
                 FGridInitialReceptacleItem Initial;
                 if (!TestTrue(TEXT("Persisted initial identity resolves exactly"),
-                    FGridReceptacleInitialCanonicalReadModel::TryResolve(
+                    FGridReceptacleInitialReadModel::TryResolve(
                         Registry.Get(), Config, Initial)) ||
                     !TestTrue(TEXT("Old pointer is not the identity authority"),
                         Initial.ItemDefinitionId == Config.CanonicalItemId) ||
@@ -89,7 +89,7 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
                 else {++NonArmCount;}
                 FGridInitialReceptacleItem Unused;
                 if (!TestFalse(TEXT("Canonical entry without real registry fails closed"),
-                    FGridReceptacleInitialCanonicalReadModel::TryResolve(
+                    FGridReceptacleInitialReadModel::TryResolve(
                         nullptr, Config, Unused)))
                 {
                     return false;
@@ -122,7 +122,7 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     Invalid.ItemLevel = 0;
     Invalid.Quantity = 1;
     if (!TestFalse(TEXT("Persisted ARM N0 cannot inherit an arbitrary N1"),
-        FGridReceptacleInitialCanonicalReadModel::TryResolve(
+        FGridReceptacleInitialReadModel::TryResolve(
             Registry.Get(), Invalid, Out)))
     {
         return false;
@@ -130,7 +130,7 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     Invalid.CanonicalItemId = TEXT("Item_Arrows_01");
     Invalid.ItemLevel = 1;
     if (!TestFalse(TEXT("Canonical ammunition cannot become N1"),
-        FGridReceptacleInitialCanonicalReadModel::TryResolve(
+        FGridReceptacleInitialReadModel::TryResolve(
             Registry.Get(), Invalid, Out)))
     {
         return false;
@@ -138,7 +138,7 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     Invalid.CanonicalItemId = TEXT("ARM_CLEAN064X91_UNKNOWN");
     Invalid.ItemLevel = 0;
     if (!TestFalse(TEXT("Unknown canonical identity cannot fall back"),
-        FGridReceptacleInitialCanonicalReadModel::TryResolve(
+        FGridReceptacleInitialReadModel::TryResolve(
             Registry.Get(), Invalid, Out)))
     {
         return false;
@@ -147,12 +147,12 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     Invalid.CanonicalItemId = NAME_None;
     Invalid.Quantity = 1;
     if (!TestFalse(TEXT("Empty persisted identity fails closed"),
-            FGridReceptacleInitialCanonicalReadModel::TryResolve(Registry.Get(), Invalid, Out)))
+            FGridReceptacleInitialReadModel::TryResolve(Registry.Get(), Invalid, Out)))
         return false;
     Invalid.CanonicalItemId = TEXT("Item_Arrows_01");
     Invalid.Quantity = 0;
     if (!TestFalse(TEXT("Zero quantity cannot be clamped into an item"),
-            FGridReceptacleInitialCanonicalReadModel::TryResolve(Registry.Get(), Invalid, Out)) ||
+            FGridReceptacleInitialReadModel::TryResolve(Registry.Get(), Invalid, Out)) ||
         !TestTrue(TEXT("No physical identity on rejection"), Out.ItemDefinitionId.IsNone()))
         return false;
     AddInfo(FString::Printf(TEXT(

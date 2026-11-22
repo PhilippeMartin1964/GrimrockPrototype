@@ -58,8 +58,8 @@ namespace ARMCLEAN063BF
         {
             return Registry && Pawn && Pawn->PartyInventoryComponent &&
                 Pawn->PartyInventoryComponent->IsValidCharacterIndex(0) &&
-                Registry->HasCanonicalItem(TEXT("Weapon_ThrowingKnife_01")) &&
-                Registry->HasCanonicalItem(TEXT("Weapon_StraightSword_01"));
+                Registry->ContainsItem(TEXT("Weapon_ThrowingKnife_01")) &&
+                Registry->ContainsItem(TEXT("Weapon_StraightSword_01"));
         }
         FGridItemInstance Make(FName Id, int32 Level=1) const
         {
@@ -125,7 +125,7 @@ bool FGridBFCanonical::RunTest(const FString&)
             const auto Wrong = FGridPhysicalThrowPreflightReadModel::Resolve(
                 F.Registry, Old, I, 100);
             TestTrue(TEXT("Real canonical specialized N1/N20 flight is valid"),
-                NoOld.bCanonicalIdentity && NoOld.bResolved && NoOld.bCanThrow &&
+                NoOld.bRegisteredIdentity && NoOld.bResolved && NoOld.bCanThrow &&
                 NoOld.Ballistics.bSpecializedProjectile);
             TestTrue(TEXT("Contradictory old flight cannot override canonical policy"),
                 Wrong.bCanThrow && Wrong.Ballistics.bSpecializedProjectile &&
@@ -171,8 +171,8 @@ bool FGridBFGeneric::RunTest(const FString&)
             Canonical.WeightKg >= 0.0f && Canonical.WeightKg <= 25.0f + KINDA_SMALL_NUMBER;
         const auto Native = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, nullptr, I, 100);
         const auto Contradictory = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 100);
-        TestTrue(TEXT("Ordinary registered source remains canonical"), Native.bCanonicalIdentity &&
-            Contradictory.bCanonicalIdentity);
+        TestTrue(TEXT("Ordinary registered source remains canonical"), Native.bRegisteredIdentity &&
+            Contradictory.bRegisteredIdentity);
         TestFalse(TEXT("No specialized action authorized"), Native.Ballistics.bSpecializedProjectile);
         TestEqual(TEXT("Native flight resolution matches exact authored validity"), Native.bResolved, bExpectedFlight);
         TestEqual(TEXT("Native physical permission matches authored hand, mass and speed"), Native.bCanThrow, bExpectedPermission);
@@ -201,7 +201,7 @@ bool FGridBFGeneric::RunTest(const FString&)
             const auto Invalid = FGridPhysicalThrowPreflightReadModel::Resolve(
                 F.Registry, Old, F.Make(I.ItemDefinitionId, InvalidLevel), 100);
             TestTrue(TEXT("Invalid physical level cannot borrow old data"),
-                Invalid.bCanonicalIdentity && !Invalid.bResolved && !Invalid.bCanThrow);
+                Invalid.bRegisteredIdentity && !Invalid.bResolved && !Invalid.bCanThrow);
         }
         return !HasAnyErrors();
     }
@@ -231,7 +231,7 @@ bool FGridBFLegacy::RunTest(const FString&)
     const auto Valid = FGridPhysicalThrowPreflightReadModel::Resolve(
         nullptr, Old, I, 25);
     TestTrue(TEXT("Historical unregistered throw uses exact old physics"),
-        !Valid.bCanonicalIdentity && Valid.bResolved && Valid.bCanThrow &&
+        !Valid.bRegisteredIdentity && Valid.bResolved && Valid.bCanThrow &&
         FMath::IsNearlyEqual(Valid.Ballistics.Arc, Old->ThrowArc));
     Old->ThrowArc = std::numeric_limits<float>::quiet_NaN();
     TestFalse(TEXT("Unregistered source rejects nonfinite authored arc"),
@@ -252,7 +252,7 @@ bool FGridBFLegacy::RunTest(const FString&)
         const auto Bad = FGridPhysicalThrowPreflightReadModel::Resolve(
             F.Registry, Old, F.Make(Old->ItemDefinitionId, Level), 100);
         TestTrue(TEXT("Registered invalid ARM N0/N21 never receives old throw"),
-            Bad.bCanonicalIdentity && !Bad.bResolved && !Bad.bCanThrow);
+            Bad.bRegisteredIdentity && !Bad.bResolved && !Bad.bCanThrow);
     }
     return !HasAnyErrors();
 }

@@ -9,9 +9,9 @@
 #include "Core/GridTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Engine/GameInstance.h"
-#include "GridEditorCanonicalPaletteReadModel.h"
+#include "GridEditorPaletteReadModel.h"
 #include "Runtime/GridPitTrapdoorActor.h"
 
 #include "Brushes/SlateImageBrush.h"
@@ -683,8 +683,8 @@ bool SGridEditorToolPalettePanel::DoesPaletteEntryPassFilters(const FGridObjectP
 		return Candidate.Contains(Search, ESearchCase::IgnoreCase);
 	};
 
-	const FGridEditorCanonicalPaletteReadView CanonicalView =
-		FGridEditorCanonicalPaletteReadModel::Resolve(
+	const FGridEditorPaletteReadView CanonicalView =
+		FGridEditorPaletteReadModel::Resolve(
 			Entry, bCanonicalPreviewReady ? CanonicalPreviewRegistry.Get() : nullptr);
 	if (Matches(CanonicalView.DisplayName.ToString()) || Matches(Entry.EntryId.ToString()) || Matches(Category.ToString()))
 	{
@@ -923,8 +923,8 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteTile(const FGridObj
 	const bool bSelected = CurrentEditorActor && CurrentEditorActor->SelectedPaletteEntryId == Entry.EntryId;
 	const bool bFavorite = IsFavoriteEntry(Entry.EntryId);
 
-	const FGridEditorCanonicalPaletteReadView CanonicalView =
-		FGridEditorCanonicalPaletteReadModel::Resolve(
+	const FGridEditorPaletteReadView CanonicalView =
+		FGridEditorPaletteReadModel::Resolve(
 			Entry, bCanonicalPreviewReady ? CanonicalPreviewRegistry.Get() : nullptr);
 	const FText Label = CanonicalView.DisplayName;
 	const FName EntryId = Entry.EntryId;

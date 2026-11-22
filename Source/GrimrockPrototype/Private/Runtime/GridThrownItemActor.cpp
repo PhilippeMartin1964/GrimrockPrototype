@@ -8,7 +8,7 @@
 #include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "GridCanonicalProjectileVisualReadModel.h"
+#include "GridProjectileVisuals.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -191,24 +191,24 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 #if WITH_DEV_AUTOMATION_TESTS
 	bRequireCanonical = !GIsAutomationTesting || GameInstance != nullptr;
 #endif
-	const FGridCanonicalProjectileVisualReadView Canonical =
-		FGridCanonicalProjectileVisualReadModel::Resolve(Registry, InItemInstance);
-	if ((bRequireCanonical || Canonical.bCanonicalIdentity) &&
+	const FGridProjectileVisualView Canonical =
+		FGridProjectileVisuals::Resolve(Registry, InItemInstance);
+	if ((bRequireCanonical || Canonical.bRegisteredIdentity) &&
 		(!InItemInstance.IsValid() || InItemInstance.Quantity != 1 ||
-		 !Canonical.bCanonicalIdentity || !Canonical.bResolved))
+		 !Canonical.bRegisteredIdentity || !Canonical.bResolved))
 	{
 		Destroy();
 		return;
 	}
-	if (Canonical.bCanonicalIdentity)
+	if (Canonical.bRegisteredIdentity)
 	{
 		InDefinition = nullptr;
 		// Physical flight keeps the saved identity and mutable state only.
 	}
 	ImpactDropOffset = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowImpactDropOffset) : 12.0f;
-	const bool bCanonicalNonArmFlight = Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bIsNonArmament;
-	const bool bCanonicalGenericArm = Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bGenericArmamentFlight;
-	const bool bPointerlessCanonical = Canonical.bCanonicalIdentity;
+	const bool bCanonicalNonArmFlight = Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bIsNonArmament;
+	const bool bCanonicalGenericArm = Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bGenericArmamentFlight;
+	const bool bPointerlessCanonical = Canonical.bRegisteredIdentity;
 	if (bPointerlessCanonical)
 	{
 		InDefinition = nullptr;
@@ -224,7 +224,7 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		// Complete physical presentation for a registered projectile that no
 		// longer has an old DA_Item/DA_Weapon: world mesh, Niagara and light.
 		// Its actual flight mesh/rotation will be selected below.
-		if (!Canonical.bResolved || !InitializeFromCanonicalItem(InItemInstance, Registry))
+		if (!Canonical.bResolved || !InitializeFromItemInstance(InItemInstance, Registry))
 		{
 			UE_LOG(LogGridThrownItem, Warning,
 				TEXT("Canonical thrown item rejected: ItemId=%s Level=%d"),
@@ -247,10 +247,10 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	// ARM flight reads its N1-N20 profile; arrows are an unlevelled family
 	// and keep their actual ItemLevel=0 without any synthetic weapon level.
 	const bool bCanonicalArmamentProjectile =
-		Canonical.bCanonicalIdentity && Canonical.bResolved &&
+		Canonical.bRegisteredIdentity && Canonical.bResolved &&
 		(Canonical.bHasProjectileVisual || Canonical.bGenericArmamentFlight);
 	const bool bCanonicalAmmoFlight =
-		Canonical.bCanonicalIdentity && Canonical.bResolved && Canonical.bIsAmmunition;
+		Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bIsAmmunition;
 	// The same N1-N20 weapon policy owns recoverable landing offset,
 	// lifetime, arc and initial speed; the launcher supplies the velocity.
 	if (bCanonicalArmamentProjectile)
@@ -274,7 +274,7 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		// world/flight mesh, while the historical arrow orientation is unchanged.
 		MeshComponent->SetStaticMesh(Canonical.WorldMesh.LoadSynchronous());
 	}
-	else if (Canonical.bCanonicalIdentity && !Canonical.bResolved && MeshComponent)
+	else if (Canonical.bRegisteredIdentity && !Canonical.bResolved && MeshComponent)
 	{
 		// A known invalid item level cannot render an obsolete definition copy.
 		MeshComponent->SetStaticMesh(nullptr);

@@ -10,7 +10,7 @@
  * Unregistered old items continue using their established runtime readers
  * until the guarded binary migration.
  */
-struct FGridCanonicalNonArmamentReadPolicies
+struct FGridNonArmamentReadPolicies
 {
     static bool CanRead(const UGridNonArmamentDefinitionAsset* Definition,
         const FGridItemInstance& Instance)

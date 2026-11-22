@@ -1,5 +1,5 @@
 #include "Runtime/GrimrockPartyPawn.h"
-#include "Runtime/Items/GridCanonicalWorldSnapshotReadModel.h"
+#include "Runtime/Items/GridWorldSnapshotReadModel.h"
 
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
@@ -125,7 +125,7 @@ bool AGrimrockPartyPawn::RehydrateLoadedItemDefinitions(FText& OutError)
 	}
 
 	FName MissingDefinitionId = NAME_None;
-	if (!PartyInventoryComponent->RehydrateCanonicalOwnedItemDefinitions(MissingDefinitionId))
+	if (!PartyInventoryComponent->RehydrateOwnedItems(MissingDefinitionId))
 	{
 		OutError = FText::FromString(FString::Printf(TEXT("La définition d'objet sauvegardée '%s' est introuvable."), *MissingDefinitionId.ToString()));
 		return false;
@@ -167,8 +167,8 @@ bool AGrimrockPartyPawn::LoadCurrentGameData(FText& OutError, bool bApplyDungeon
 	// Inspect every saved level, including inactive destinations, before
 	// rebuilding actors or changing the live party.
 	FString WorldItemError;
-	if (bApplyDungeonState && !FGridCanonicalWorldSnapshotReadModel::ValidateDungeon(
-		FGridCanonicalWorldSnapshotReadModel::GetRegistry(GetWorld()),
+	if (bApplyDungeonState && !FGridWorldSnapshotReadModel::ValidateDungeon(
+		FGridWorldSnapshotReadModel::GetRegistry(GetWorld()),
 		SaveGame->DungeonRuntimeState, WorldItemError))
 	{
 		UE_LOG(LogGrimrockPartySave, Warning, TEXT("Saved world item preflight rejected: %s"), *WorldItemError);

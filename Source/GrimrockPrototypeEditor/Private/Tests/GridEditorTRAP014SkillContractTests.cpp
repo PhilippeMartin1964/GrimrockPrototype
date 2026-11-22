@@ -10,7 +10,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTRAP014CanonicalDexterity,
 
 bool FTRAP014CanonicalDexterity::RunTest(const FString&)
 {
-    FRPGCanonicalSkillDefinition Definition;
+    FRPGSkillDefinition Definition;
     if (!TestTrue(TEXT("Editor catalog provides canonical Skill_Traps"),
         FRPGSkillCatalogAuthoring::TryGetCanonicalDefinition(TEXT("Skill_Traps"), Definition)))
     {

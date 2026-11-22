@@ -4,10 +4,10 @@
 #include "Engine/GameInstance.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
-#include "../EditorTools/Widgets/GridEditorCanonicalPaletteReadModel.h"
+#include "../EditorTools/Widgets/GridEditorPaletteReadModel.h"
 
 namespace ARMCLEAN064X13
 {
@@ -52,8 +52,8 @@ bool Verify(FAutomationTestBase& Test, EField Field)
             F.Registry->ResolveItem(Entry.CanonicalItemId,
                 Entry.CanonicalDefaultItemLevel, Resolved)))
             {return false;}
-        const FGridEditorCanonicalPaletteReadView View =
-            FGridEditorCanonicalPaletteReadModel::Resolve(Entry, F.Registry.Get());
+        const FGridEditorPaletteReadView View =
+            FGridEditorPaletteReadModel::Resolve(Entry, F.Registry.Get());
         if (!Test.TestTrue(TEXT("Canonical tile resolves exact persisted item"),
                 View.bCanonicalSource && View.bResolved && View.ItemId == Entry.CanonicalItemId))
             return false;

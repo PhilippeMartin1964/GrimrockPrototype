@@ -58,7 +58,7 @@ bool FGridClean063JInventoryIconTest::RunTest(const FString&)
 			const FGridResolvedInventoryItemIcon Icon =
 				FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(
 					Registry.Get(), ConflictingLegacy.Get(), Instance);
-			TestTrue(TEXT("Registered ARM cannot consult legacy icon"), Icon.bCanonicalIdentity);
+			TestTrue(TEXT("Registered ARM cannot consult legacy icon"), Icon.bRegisteredIdentity);
 			TestEqual(TEXT("Visible item icon uses canonical WeaponVisualCatalogue"),
 				Icon.Icon.ToSoftObjectPath().ToString(), Canonical.ItemIcon.ToSoftObjectPath().ToString());
 			TestEqual(TEXT("Inventory tooltip visual identity uses canonical VisualId"),
@@ -70,7 +70,7 @@ bool FGridClean063JInventoryIconTest::RunTest(const FString&)
 			const FGridResolvedInventoryItemIcon Invalid =
 				FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(
 					Registry.Get(), ConflictingLegacy.Get(), Instance);
-			TestTrue(TEXT("N0 retains known canonical identity"), Invalid.bCanonicalIdentity);
+			TestTrue(TEXT("N0 retains known canonical identity"), Invalid.bRegisteredIdentity);
 			TestTrue(TEXT("N0 cannot fall back to old icon"), Invalid.Icon.IsNull());
 			TestTrue(TEXT("N0 visual identity is reset"), Invalid.VisualId.IsNone());
 		}
@@ -87,7 +87,7 @@ bool FGridClean063JInventoryIconTest::RunTest(const FString&)
 	const FGridResolvedInventoryItemIcon Unknown =
 		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(
 			Registry.Get(), ConflictingLegacy.Get(), LegacyInstance);
-	TestFalse(TEXT("Unknown ID is not canonical"), Unknown.bCanonicalIdentity);
+	TestFalse(TEXT("Unknown ID is not canonical"), Unknown.bRegisteredIdentity);
 	TestTrue(TEXT("Configured registry fails closed on unregistered icon"), Unknown.Icon.IsNull());
 	TestTrue(TEXT("Configured registry cannot fabricate a VisualId"), Unknown.VisualId.IsNone());
 	const FGridResolvedInventoryItemIcon Missing =
@@ -98,7 +98,7 @@ bool FGridClean063JInventoryIconTest::RunTest(const FString&)
 	const FGridResolvedInventoryItemIcon WorldlessFixture =
 		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(
 			nullptr, ConflictingLegacy.Get(), LegacyInstance);
-	TestFalse(TEXT("Worldless test identity remains noncanonical"), WorldlessFixture.bCanonicalIdentity);
+	TestFalse(TEXT("Worldless test identity remains noncanonical"), WorldlessFixture.bRegisteredIdentity);
 	TestEqual(TEXT("Only worldless Automation retains historical icon fixture"),
 		WorldlessFixture.Icon.ToSoftObjectPath().ToString(),
 		ConflictingLegacy->Icon.ToSoftObjectPath().ToString());

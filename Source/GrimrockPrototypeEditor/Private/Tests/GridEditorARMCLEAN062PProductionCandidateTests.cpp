@@ -41,7 +41,7 @@ bool FGridClean062PProductionCandidate::RunTest(const FString&)
     TestEqual(TEXT("Exactly 22 ARM N1 canonical definitions"), Arms, 22);
     TestEqual(TEXT("22 distinct production IDs"), Ids.Num(), Arms);
     TArray<FName> All;
-    Registry.Registry->GetCanonicalItemIds(All);
+    Registry.Registry->GetItemIds(All);
     TestEqual(TEXT("No obsolete 23-item candidate: 48 real identities"), All.Num(), 48);
     return !HasAnyErrors();
 }

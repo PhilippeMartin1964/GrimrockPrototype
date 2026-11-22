@@ -95,7 +95,7 @@ bool UGridPartyInventoryComponent::IsTwoHandedItem(const FGridItemInstance& Item
 		return false;
 	}
 	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
-	if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+	if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
 	{
 		FGridResolvedItem Resolved;
 		return Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) &&
@@ -149,7 +149,7 @@ bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, cons
 	// A canonical configured game accepts ONLY registered ItemIds and their
 	// exact N0/N1-N20 policies. No unknown-ID historical slot fallback.
 	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
-	if (Registry && Registry->HasCanonicalItem(Item.ItemDefinitionId))
+	if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
 	{
 		FGridResolvedItem Resolved;
 		return Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) &&
@@ -200,7 +200,7 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	// Preserve the existing missing-definition diagnostic for non-canonical
 	// items. Registered canonical ARM must not require DA_Weapon_* to equip.
 	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
-	const bool bCanonicalItem = Registry && Registry->HasCanonicalItem(Source.ItemDefinitionId);
+	const bool bCanonicalItem = Registry && Registry->ContainsItem(Source.ItemDefinitionId);
 	if (!bCanonicalItem &&
 		!GridPartyInventoryHistoricalDefinitionForAutomation(this, Registry, Source.ItemDefinitionId))
 	{
@@ -505,7 +505,7 @@ int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterInde
 			Source.ItemDefinitionId = Item->ItemDefinitionId;
 			Source.DisplayName = FText::FromName(Item->ItemDefinitionId);
 			const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
-			if (Registry && Registry->HasCanonicalItem(Item->ItemDefinitionId))
+			if (Registry && Registry->ContainsItem(Item->ItemDefinitionId))
 			{
 				FGridResolvedItem Resolved;
 				if (Registry->ResolveItem(Item->ItemDefinitionId, Item->ItemLevel, Resolved) &&

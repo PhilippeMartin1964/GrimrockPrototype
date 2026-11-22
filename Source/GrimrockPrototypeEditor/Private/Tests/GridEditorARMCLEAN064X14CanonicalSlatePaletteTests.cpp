@@ -3,11 +3,11 @@
 #include "Misc/AutomationTest.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "UObject/StrongObjectPtr.h"
-#include "../EditorTools/Widgets/GridEditorCanonicalPaletteReadModel.h"
+#include "../EditorTools/Widgets/GridEditorPaletteReadModel.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorClean064X14SlateReadModel,
     "Grimrock.RPG.ARM.CLEAN06_4X14.CanonicalSlatePaletteReadModel",
@@ -34,8 +34,8 @@ bool FGridEditorClean064X14SlateReadModel::RunTest(const FString&)
     {
         if (!Entry.IsDirectItemEntry()) {continue;}
         ++Count;
-        const FGridEditorCanonicalPaletteReadView View =
-            FGridEditorCanonicalPaletteReadModel::Resolve(Entry, Registry.Get());
+        const FGridEditorPaletteReadView View =
+            FGridEditorPaletteReadModel::Resolve(Entry, Registry.Get());
         FGridResolvedItem Expected;
         if (!TestTrue(TEXT("Canonical identity resolves at authored physical level"),
                 Registry->ResolveItem(Entry.CanonicalItemId, Entry.CanonicalDefaultItemLevel, Expected)))
@@ -60,13 +60,13 @@ bool FGridEditorClean064X14SlateReadModel::RunTest(const FString&)
 
     FGridObjectPaletteEntry Bad = *Arm;
     Bad.CanonicalDefaultItemLevel = 0;
-    const auto WrongLevel = FGridEditorCanonicalPaletteReadModel::Resolve(Bad, Registry.Get());
+    const auto WrongLevel = FGridEditorPaletteReadModel::Resolve(Bad, Registry.Get());
     Bad = *Arm;
     Bad.CanonicalItemId = TEXT("ARM_CLEAN06_UNKNOWN");
-    const auto Unknown = FGridEditorCanonicalPaletteReadModel::Resolve(Bad, Registry.Get());
+    const auto Unknown = FGridEditorPaletteReadModel::Resolve(Bad, Registry.Get());
     Bad = *Arm;
     Bad.CanonicalItemId = NAME_None;
-    const auto NoRegistry = FGridEditorCanonicalPaletteReadModel::Resolve(*Arm, nullptr);
+    const auto NoRegistry = FGridEditorPaletteReadModel::Resolve(*Arm, nullptr);
     return TestFalse(TEXT("ARM N0 cannot resolve"), WrongLevel.bResolved) &&
         TestFalse(TEXT("Unknown direct identity cannot resolve"), Unknown.bResolved) &&
         TestTrue(TEXT("Unknown identity has no icon or description"), Unknown.Icon.IsNull() && Unknown.Description.IsEmpty()) &&

@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "RPG/RPGCharacterRulesLibrary.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Monsters/GridMonsterBalanceTypes.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 

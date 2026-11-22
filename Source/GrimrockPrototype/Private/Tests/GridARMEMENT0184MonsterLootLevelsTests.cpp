@@ -68,7 +68,7 @@ namespace ARMEMENT0184
         bool Ready() const
         {
             return World && Runtime && Level && LootRegistry.Registry &&
-                LootRegistry.Registry->HasCanonicalItem(Dagger) && LootRegistry.Registry->HasCanonicalItem(Bow);
+                LootRegistry.Registry->ContainsItem(Dagger) && LootRegistry.Registry->ContainsItem(Bow);
         }
 
         FGridMonsterLootEntry MakeEntry(FName ItemId, int32 LevelNumber) const
