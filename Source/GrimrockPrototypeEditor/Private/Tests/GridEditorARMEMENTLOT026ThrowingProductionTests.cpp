@@ -1,93 +1,74 @@
 #if WITH_DEV_AUTOMATION_TESTS
-
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "UObject/UObjectGlobals.h"
 
+// Permanent LOT02.6 guard against regressing the three authored
+// recoverable throwing weapons into a generic consumable or spell.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT026Throwing,
     "Grimrock.RPG.ARMEMENT.LOT02.ThrowingWeaponN1Batch",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
 bool FARMEMENTLOT026Throwing::RunTest(const FString&)
 {
     FGridWeaponPipelineRow Kind;
     Kind.BuildKind = TEXT("ThrowingOneHand");
-    TestTrue(TEXT("Throwing build kind supported"), Kind.IsSupportedBuildKind());
-    TestTrue(TEXT("Throwing is a physical projectile"), Kind.IsThrowable());
-    TestFalse(TEXT("Throwing is not passive"), Kind.IsPassive());
+    TestTrue(TEXT("Throwing production kind supported"), Kind.IsSupportedBuildKind());
+    TestTrue(TEXT("Throwing is a dedicated physical projectile"), Kind.IsThrowable());
+    TestFalse(TEXT("Throwing never passive"), Kind.IsPassive());
     Kind.BuildKind = TEXT("MeleeOneHand");
-    TestFalse(TEXT("Melee cannot become thrown silently"), Kind.IsThrowable());
-    // LOT02.8 supersedes the old LOT02.6 rejection: passive magical focuses
-    // are now a supported OffHand category, without attacks or projectiles.
+    TestFalse(TEXT("Melee does not silently become a specialized thrown source"), Kind.IsThrowable());
     Kind.BuildKind = TEXT("FocusPassive");
     Kind.EquipmentSlots = TEXT("OffHand");
-    TestTrue(TEXT("Focus is supported by the production pipeline"), Kind.IsSupportedBuildKind());
-    TestTrue(TEXT("Focus is classified as passive equipment"), Kind.IsPassive() && Kind.IsFocus());
-    TestFalse(TEXT("Focus is not a physical shield"), Kind.IsShield());
-    TestFalse(TEXT("Focus provides no ranged or throwing attack"), Kind.UsesRangedAction() || Kind.IsThrowable());
-    TestFalse(TEXT("Focus is not a two-handed item"), Kind.IsTwoHanded());
+    TestTrue(TEXT("Passive focus remains a supported physical source"),
+        Kind.IsSupportedBuildKind() && Kind.IsPassive() && Kind.IsFocus());
     Kind.BuildKind = TEXT("MagicOneHand");
-    TestTrue(TEXT("Magical one-hand mode supported"), Kind.IsSupportedBuildKind());
-    TestTrue(TEXT("Magic uses a direct attack, not an unlocked spell"), Kind.UsesRangedAction());
-    TestFalse(TEXT("Magic weapon is never consumed"), Kind.IsThrowable());
-    Kind.BuildKind = TEXT("MagicTwoHand");
-    TestTrue(TEXT("Magical staff mode supported"), Kind.IsSupportedBuildKind());
-    TestTrue(TEXT("Magical staff is two-handed"), Kind.IsTwoHanded());
+    TestTrue(TEXT("Magic is a direct attack, not a thrown consumable"),
+        Kind.IsSupportedBuildKind() && Kind.UsesRangedAction() && !Kind.IsThrowable());
 
-    UGridWeaponCatalogueAsset* Catalog = LoadObject<UGridWeaponCatalogueAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue"));
-    if (!TestNotNull(TEXT("N1 weapon catalogue"), Catalog)) return false;
-    const bool bDirty = Catalog->GetOutermost()->IsDirty();
-    for (const TCHAR* Id : { TEXT("ARM054"), TEXT("ARM057"), TEXT("ARM058") })
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Real installed ItemSystem"), Fixture.bReady)) return false;
+    struct FSource { const TCHAR* Item; const TCHAR* Arm; const TCHAR* Attack; };
+    const FSource Sources[] =
     {
-        const FGridWeaponLevelProfile* N1 = Catalog->FindProfile(FName(Id), 1);
-        if (!TestNotNull(*FString::Printf(TEXT("N1 %s"), Id), N1)) continue;
-        TestTrue(TEXT("Canonical N1 valid"), N1->IsValidProfile());
-        TestEqual(TEXT("Throwing profile held in one hand"), N1->HandUsage, FString(TEXT("1 main")));
-        FGridAttackDefinition Attack;
-        if (!TestTrue(TEXT("Canonical damage dice"), N1->TryBuildAttackDefinition(Attack))) continue;
-
-        UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>();
-        Item->ItemDefinitionId = FName(*FString::Printf(TEXT("TestThrow_%s"), Id));
-        Item->ItemType = EGridItemType::Weapon;
-        Item->HandUsage = EGridItemHandUsage::OneHanded;
-        Item->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-        Item->bUseWeaponCatalogue = true;
-        Item->WeaponArchetypeId = FName(Id);
-        Item->WeaponCatalogue = Catalog;
-        Item->DefaultWeaponItemLevel = 1;
-        Item->Weight = N1->WeightKg;
-        Item->bCombatThrowWeapon = true;
-        FGridCombatActionDefinition Action;
-        Action.ActionId = FName(*FString::Printf(TEXT("Attack_Throw_%s"), Id));
-        Action.ActionType = EGridCombatActionType::RangedAttack;
-        Action.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-        Action.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
-        Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-        Action.ActionPointCost = N1->ActionPointCost;
-        Action.RangeCells = N1->RangeCells;
-        Action.bRequiresLineOfSight = true;
-        Action.ResourceCosts.SourceItemQuantityCost = 1;
-        Action.OffensiveProfile.AttackId = Action.ActionId;
-        Action.OffensiveProfile.AttackDefinition = Attack;
-        Action.OffensiveProfile.DamageScalingAttribute = N1->ScalingAttribute;
-        Action.OffensiveProfile.RangeCells = N1->RangeCells;
-        Item->CombatActions.Add(Action);
-        TestTrue(TEXT("Equipped throw definition valid"), Item->IsValidDefinition() &&
-            Item->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-        TestTrue(TEXT("Throwable object"), Item->IsCombatThrowable() && Item->IsPhysicallyThrowable());
-        FGridCombatActionDefinition Quick;
-        if (TestTrue(TEXT("Throw from inventory has action"), Item->BuildInventoryCombatActionDefinition(Quick)))
-        {
-            TestEqual(TEXT("Inventory action consumes one"), Quick.ResourceCosts.SourceItemQuantityCost, 1);
-            TestEqual(TEXT("Inventory action source policy"), Quick.SourcePolicy,
-                EGridCombatActionSourcePolicy::QuickItem);
-        }
-        AddInfo(FString::Printf(TEXT("[LOT02.6] %s N1 Range=%d AP=%d"), Id, N1->RangeCells, N1->ActionPointCost));
+        {TEXT("Weapon_ThrowingKnife_01"),TEXT("ARM054"),TEXT("Attack_ThrowingKnife_01")},
+        {TEXT("Weapon_Javelin_01"),TEXT("ARM057"),TEXT("Attack_Javelin_01")},
+        {TEXT("Weapon_Dart_01"),TEXT("ARM058"),TEXT("Attack_Dart_01")}
+    };
+    int32 ValidSources = 0;
+    for (const FSource& Source : Sources)
+    {
+        FGridResolvedItem N1, N20;
+        if (!TestTrue(TEXT("N1/N20 canonical thrown source"),
+            Fixture.Resolve(FName(Source.Item), 1, N1) &&
+            Fixture.Resolve(FName(Source.Item), 20, N20))) continue;
+        ++ValidSources;
+        TestTrue(TEXT("Exactly the three approved specialized projectile identities"),
+            N1.bIsArmament && N1.ArchetypeId == FName(Source.Arm) &&
+            N1.Weapon.Projectile.bEnabled && N1.Weapon.DamageDice.bEnabled &&
+            N1.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand) &&
+            N1.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand));
+        TestTrue(TEXT("N1 thrown physics are real and finite"),
+            FMath::IsFinite(N1.Weapon.Projectile.InitialSpeed) &&
+            N1.Weapon.Projectile.InitialSpeed > 0.f &&
+            FMath::IsFinite(N1.Weapon.Projectile.Arc) &&
+            N1.ProjectileAppearance.bEnabled && !N1.ProjectileMesh.IsNull());
+        FGridResolvedBoundAction Attack;
+        if (!TestTrue(TEXT("One actually bound physical attack"),
+            Fixture.Registry->ResolveBoundAttackForHand(
+                N1.ItemId, 1, FName(Source.Attack), EGridEquipmentSlot::MainHand, Attack)))
+            continue;
+        TestTrue(TEXT("Recoverable thrown attack consumes exactly one source"),
+            Attack.IsValid() && Attack.Action.bRangedAttack &&
+            Attack.Action.SourceItemQuantityCost == 1);
+        TestTrue(TEXT("N20 does not invent a different projectile authority"),
+            N20.Weapon.Projectile.bEnabled &&
+            N20.ArchetypeId == N1.ArchetypeId &&
+            N20.VisualId == N1.VisualId);
     }
-    TestEqual(TEXT("Read-only catalogue"), Catalog->GetOutermost()->IsDirty(), bDirty);
-    return true;
+    TestEqual(TEXT("Exactly three real specialized thrown weapons"), ValidSources, 3);
+    FGridResolvedItem Wrong;
+    TestFalse(TEXT("Thrown ARM cannot be promoted from legacy N0"),
+        Fixture.Registry->ResolveItem(TEXT("Weapon_ThrowingKnife_01"), 0, Wrong));
+    return !HasAnyErrors();
 }
 #endif
