@@ -80,8 +80,12 @@ bool FARMEMENT011122Definition::RunTest(const FString&)
                 EGridEquipmentSlot::MainHand, Bound)))
         {
             TestTrue(TEXT("Real attack resolved and authored"), Bound.IsValid());
-            TestEqual(TEXT("Bound action cost matches N1 weapon"),
-                Bound.Action.ActionPointCost, Item.Weapon.ActionPointCost);
+            // Compact actions intentionally do not duplicate the N1 weapon AP
+            // cost. Check the bound action's identity and its numeric owner.
+            TestEqual(TEXT("Bound action keeps exact canonical identity"),
+                Bound.Action.ActionId, Item.AvailableActions[0].ActionId);
+            TestTrue(TEXT("N1 weapon alone owns the positive AP cost"),
+                Item.Weapon.ActionPointCost > 0);
         }
     }
     TestTrue(TEXT("Canonical equipped mesh exists"),
