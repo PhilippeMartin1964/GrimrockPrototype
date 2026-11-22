@@ -32,21 +32,21 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         Audit.Report->GetArrayField(TEXT("canonical_ids_without_legacy_source")).Num(), 48);
     TestEqual(TEXT("No external package referencer remains after native 5F"),
         int32(Audit.Report->GetNumberField(TEXT("external_referencer_edges"))), 0);
-    // After the atomic 49-package source retirement only the two protected
-    // historical authoring catalogues and two SaveGame Readables may remain.
-    // No package from the deleted set may be silently reintroduced.
+    // Following the two atomic package retirements, ONLY the two SaveGame
+    // Readables may remain in the candidate inventory. Never silently
+    // reintroduce a retired weapon source, catalogue or redirector.
     const TSharedPtr<FJsonObject> Roles = Audit.Report->GetObjectField(TEXT("candidate_role_counts"));
     if (!TestTrue(TEXT("Candidate roles are reported"), Roles.IsValid())) return false;
     const int32 LegacyIconPalettes =
         int32(Roles->GetNumberField(TEXT("historical_action_icon_palette")));
     TestEqual(TEXT("No historical icon palette remains"),
         LegacyIconPalettes, 0);
-    TestEqual(TEXT("Exactly four deliberately retained packages"),
-        int32(Audit.Report->GetNumberField(TEXT("candidate_asset_count"))), 4);
+    TestEqual(TEXT("Only the two SavedGame Readable fixtures remain"),
+        int32(Audit.Report->GetNumberField(TEXT("candidate_asset_count"))), 2);
     TestEqual(TEXT("Zero obsolete item-definition packages"),
         int32(Roles->GetNumberField(TEXT("historical_item_definition"))), 0);
-    TestEqual(TEXT("Two OLD sources, not canonical staged catalogues"),
-        int32(Roles->GetNumberField(TEXT("historical_catalogue_source"))), 2);
+    TestEqual(TEXT("No obsolete authoring catalogue source survives"),
+        int32(Roles->GetNumberField(TEXT("historical_catalogue_source"))), 0);
     TestEqual(TEXT("Two saved readable fixtures protected"),
         int32(Roles->GetNumberField(TEXT("save_readable_fixture"))), 2);
     TestEqual(TEXT("No dangling ThrowingKnife redirector"),

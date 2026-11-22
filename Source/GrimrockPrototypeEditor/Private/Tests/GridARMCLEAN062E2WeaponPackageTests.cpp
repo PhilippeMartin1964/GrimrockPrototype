@@ -78,7 +78,7 @@ bool FGridClean062E2WeaponPackageRegistryTest::RunTest(const FString&)
         if (Package == CombatCatalogue || Package == VisualCatalogue)
         {
             ++KnownCatalogues;
-            continue; // Historical source catalogues remain protected.
+            continue; // Obsolete source catalogue would count as a regression.
         }
         if (!Package.StartsWith(Prefix)) continue;
         ++WeaponPackages;
@@ -103,8 +103,8 @@ bool FGridClean062E2WeaponPackageRegistryTest::RunTest(const FString&)
             ++UnexpectedClasses;
         }
     }
-    TestEqual(TEXT("Both historical source catalogues remain protected"),
-        KnownCatalogues, 2);
+    TestEqual(TEXT("No obsolete source catalogue survives the final retirement"),
+        KnownCatalogues, 0);
     TestEqual(TEXT("All distinct historical weapon paths classified"),
         Seen.Num(), WeaponPackages);
     TestEqual(TEXT("Every historical weapon package is classified"),
