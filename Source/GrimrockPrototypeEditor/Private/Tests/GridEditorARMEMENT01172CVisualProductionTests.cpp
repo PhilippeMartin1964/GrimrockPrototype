@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 #include "Materials/Material.h"
+#include "MaterialDomain.h"
 #include "Engine/Texture2D.h"
 #include "Engine/StaticMesh.h"
 
