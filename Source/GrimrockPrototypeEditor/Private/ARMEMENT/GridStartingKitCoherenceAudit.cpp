@@ -2,7 +2,9 @@
 
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "UObject/StrongObjectPtr.h"
 #include "UI/RPGSkillPresentationAsset.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/UnrealType.h"
@@ -27,27 +29,60 @@ namespace StartingKitAudit
     /** REVIEW CANDIDATES only: these are not unlocks, prerequisites or final design decisions.
      * Empty branch means current assets cannot justify linking the kit to a talent branch.
      */
+    // Immutable OCT-2026 historical review records. No 12-kit gameplay
+    // authority survives: real NewGame now uses 18 canonical kits. These
+    // identity/slot pairs are retained solely to reproduce the unapproved
+    // 01.9.4/01.9.5 review report without loading old DA_Item/DA_Weapon assets.
     struct FReviewProposal
     {
         const TCHAR* KitId;
         const TCHAR* BranchId;
         const TCHAR* RelatedSkillId;
+        const TCHAR* FirstId;
+        EGridEquipmentSlot FirstSlot;
+        const TCHAR* SecondId;
+        EGridEquipmentSlot SecondSlot;
+        bool bHistoricalDefault;
     };
 
     const FReviewProposal Proposals[] =
     {
-        {TEXT("Warrior_Defender"), TEXT("Guardian"), TEXT("Skill_Shield")},
-        {TEXT("Warrior_Skirmisher"), TEXT(""), TEXT("Skill_Throwing")},
-        {TEXT("Rogue_Shadow"), TEXT("Shadow"), TEXT("Skill_Stealth")},
-        {TEXT("Rogue_Explorer"), TEXT(""), TEXT("Skill_Perception")},
-        {TEXT("Ranger_Archer"), TEXT("Marksman"), TEXT("Skill_RangedWeapons")},
-        {TEXT("Ranger_Pathfinder"), TEXT("Scout"), TEXT("Skill_Survival")},
-        {TEXT("Mage_Scholar"), TEXT("Arcanist"), TEXT("Skill_Arcana")},
-        {TEXT("Mage_Wanderer"), TEXT(""), TEXT("Skill_Arcana")},
-        {TEXT("Priest_Pilgrim"), TEXT(""), TEXT("Skill_Religion")},
-        {TEXT("Priest_Protector"), TEXT("Protection"), TEXT("Skill_Shield")},
-        {TEXT("Alchemist_Apothecary"), TEXT("Apothecary"), TEXT("Skill_Alchemy")},
-        {TEXT("Alchemist_Firestarter"), TEXT("Grenadier"), TEXT("Skill_Alchemy")}
+        {TEXT("Warrior_Defender"), TEXT("Guardian"), TEXT("Skill_Shield"),
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::MainHand,
+            TEXT("Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand, true},
+        {TEXT("Warrior_Skirmisher"), TEXT(""), TEXT("Skill_Throwing"),
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::MainHand,
+            TEXT("Weapon_ThrowingKnife_01"), EGridEquipmentSlot::None, false},
+        {TEXT("Rogue_Shadow"), TEXT("Shadow"), TEXT("Skill_Stealth"),
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::MainHand,
+            TEXT("Weapon_ThrowingKnife_01"), EGridEquipmentSlot::None, true},
+        {TEXT("Rogue_Explorer"), TEXT(""), TEXT("Skill_Perception"),
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::MainHand,
+            TEXT("Item_Torch"), EGridEquipmentSlot::None, false},
+        {TEXT("Ranger_Archer"), TEXT("Marksman"), TEXT("Skill_RangedWeapons"),
+            TEXT("Weapon_ShortBow_01"), EGridEquipmentSlot::MainHand,
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::None, true},
+        {TEXT("Ranger_Pathfinder"), TEXT("Scout"), TEXT("Skill_Survival"),
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::MainHand,
+            TEXT("Item_Torch"), EGridEquipmentSlot::None, false},
+        {TEXT("Mage_Scholar"), TEXT("Arcanist"), TEXT("Skill_Arcana"),
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::None,
+            TEXT("Item_BlueGem"), EGridEquipmentSlot::None, true},
+        {TEXT("Mage_Wanderer"), TEXT(""), TEXT("Skill_Arcana"),
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::None,
+            TEXT("Item_Torch"), EGridEquipmentSlot::None, false},
+        {TEXT("Priest_Pilgrim"), TEXT(""), TEXT("Skill_Religion"),
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::MainHand,
+            TEXT("Item_Torch"), EGridEquipmentSlot::None, true},
+        {TEXT("Priest_Protector"), TEXT("Protection"), TEXT("Skill_Shield"),
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::MainHand,
+            TEXT("Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand, false},
+        {TEXT("Alchemist_Apothecary"), TEXT("Apothecary"), TEXT("Skill_Alchemy"),
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::None,
+            TEXT("Item_EmptyVial"), EGridEquipmentSlot::None, true},
+        {TEXT("Alchemist_Firestarter"), TEXT("Grenadier"), TEXT("Skill_Alchemy"),
+            TEXT("Weapon_Dagger_01"), EGridEquipmentSlot::None,
+            TEXT("Item_Bomb_Fire"), EGridEquipmentSlot::None, false}
     };
 
     FString CsvEscape(FString Value)
@@ -114,42 +149,69 @@ namespace StartingKitAudit
         OutCopy = DuplicateObject<URPGClassAsset>(Production, GetTransientPackage());
         if (!OutCopy)
         {
-            OutError = TEXT("Cannot duplicate production class for read-only audit.");
+            OutError = TEXT("Cannot duplicate class for historical read-only review.");
             return false;
         }
-        if (OutCopy->StartingEquipmentKits.IsEmpty() &&
-            OutCopy->DefaultStartingEquipmentKitId.IsNone() &&
-            !FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(*OutCopy, OutError))
+        // Create archive-only *canonical identities* on the transient copy.
+        // No old DataAsset reference, no player-facing kit, no item authoring.
+        OutCopy->StartingEquipmentKits.Reset();
+        OutCopy->DefaultStartingEquipmentKitId = NAME_None;
+        const FString Prefix = Production->ClassId.ToString() + TEXT("_");
+        for (const FReviewProposal& Proposal : Proposals)
         {
-            return false;
+            if (!FString(Proposal.KitId).StartsWith(Prefix)) continue;
+            FRPGStartingEquipmentKit& Kit = OutCopy->StartingEquipmentKits.AddDefaulted_GetRef();
+            Kit.KitId = FName(Proposal.KitId);
+            Kit.DisplayName = FText::FromString(Proposal.KitId);
+            const TCHAR* Ids[] = { Proposal.FirstId, Proposal.SecondId };
+            const EGridEquipmentSlot Slots[] = { Proposal.FirstSlot, Proposal.SecondSlot };
+            for (int32 Index = 0; Index < 2; ++Index)
+            {
+                FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
+                Entry.CanonicalItemId = FName(Ids[Index]);
+                Entry.ItemLevel = FString(Ids[Index]).StartsWith(TEXT("Weapon_")) ? 1 : 0;
+                Entry.Quantity = 1;
+                Entry.TargetSlot = Slots[Index];
+            }
+            if (Proposal.bHistoricalDefault)
+                OutCopy->DefaultStartingEquipmentKitId = Kit.KitId;
         }
-        if (!OutCopy->IsValidDefinition() || OutCopy->StartingEquipmentKits.Num() != 2)
+        if (OutCopy->StartingEquipmentKits.Num() != 2 ||
+            OutCopy->DefaultStartingEquipmentKitId.IsNone() ||
+            !OutCopy->IsValidDefinition())
         {
-            OutError = TEXT("Production class has invalid or unexpected starting-kit content.");
+            OutError = TEXT("Archived two-kit review cannot be represented as transient canonical IDs.");
             return false;
         }
         return true;
     }
 
-    FString DescribeItems(const FRPGStartingEquipmentKit& Kit, FString& OutError)
+    FString DescribeItems(
+        const FRPGStartingEquipmentKit& Kit,
+        const UGridItemSubsystem* Registry, FString& OutError)
     {
         TArray<FString> Descriptions;
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
-            const UGridItemDefinitionAsset* Item = Entry.ItemDefinition.Get();
-            if (!IsValid(Item) || Item->ItemDefinitionId.IsNone() || Entry.Quantity < 1 ||
-                (Entry.TargetSlot != EGridEquipmentSlot::None && !Item->CanEquipToSlot(Entry.TargetSlot)))
+            FGridResolvedItem Item;
+            if (!IsValid(Registry) || Entry.CanonicalItemId.IsNone() ||
+                !Registry->ResolveItem(Entry.CanonicalItemId, Entry.ItemLevel, Item) ||
+                !Item.IsValid() || Entry.Quantity < 1 ||
+                (Entry.TargetSlot != EGridEquipmentSlot::None &&
+                    (!Item.bIsArmament || !Item.Weapon.CanEquipInHand(Entry.TargetSlot))))
             {
-                OutError = FString::Printf(TEXT("Invalid starter item in %s."), *Kit.KitId.ToString());
+                OutError = FString::Printf(TEXT("Historical review entry missing native item in %s."),
+                    *Kit.KitId.ToString());
                 return {};
             }
             Descriptions.Add(FString::Printf(TEXT("%s x%d @%s [ItemLevel=%d]"),
-                *Item->ItemDefinitionId.ToString(), Entry.Quantity,
-                *StaticEnum<EGridEquipmentSlot>()->GetNameStringByValue(static_cast<int64>(Entry.TargetSlot)),
-                Entry.ItemLevel));
+                *Entry.CanonicalItemId.ToString(), Entry.Quantity,
+                *StaticEnum<EGridEquipmentSlot>()->GetNameStringByValue(
+                    static_cast<int64>(Entry.TargetSlot)), Entry.ItemLevel));
         }
         return FString::Join(Descriptions, TEXT("; "));
     }
+
 }
 
 bool FGridStartingKitCoherenceAudit::BuildProductionReport(
@@ -165,6 +227,22 @@ bool FGridStartingKitCoherenceAudit::BuildProductionReport(
         SkillCatalog->Skills.Num() != ExpectedSkills)
     {
         OutError = TEXT("Production Skill affinity catalog is absent, invalid, or not 25 Skills.");
+        return false;
+    }
+
+    // Registered canonical ItemSystem is the only item source, including
+    // this archived twelve-kit advisory review. Do not load old DA_* sources.
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>(GetTransientPackage()));
+    TStrongObjectPtr<UGridItemSubsystem> Registry(
+        NewObject<UGridItemSubsystem>(GI.Get()));
+    TArray<FString> RegistryErrors;
+    if (!IsValid(Root) || Root->ItemDefinitions.Num() != 48 ||
+        !Registry.IsValid() || !Registry->RegisterItemSystem(Root, RegistryErrors))
+    {
+        OutError = TEXT("Production ItemSystem unavailable: ") +
+            FString::Join(RegistryErrors, TEXT("; "));
         return false;
     }
 
@@ -288,7 +366,7 @@ bool FGridStartingKitCoherenceAudit::BuildProductionReport(
                 return false;
             }
             FString ItemError;
-            const FString ActualItems = DescribeItems(Kit, ItemError);
+            const FString ActualItems = DescribeItems(Kit, Registry.Get(), ItemError);
             if (!ItemError.IsEmpty())
             {
                 OutError = ItemError;
