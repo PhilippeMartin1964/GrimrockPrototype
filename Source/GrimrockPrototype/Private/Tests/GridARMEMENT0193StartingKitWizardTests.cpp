@@ -84,68 +84,150 @@ bool FARMEMENT0193WizardReadModelTest::RunTest(const FString&)
     if (!TestNotNull(TEXT("Canonical NewGame GameInstance world"), Fixture.World) ||
         !TestNotNull(TEXT("Configured canonical ItemSystem"), Fixture.Scope.Registry))
         return false;
-    URPGCharacterCreationWizardWidget* Wizard = CreateWidget<URPGCharacterCreationWizardWidget>(Fixture.World,
-        URPGCharacterCreationWizardWidget::StaticClass());
+    URPGClassAsset* Ranger = ARMEMENT0193::Class(TEXT("Ranger"));
+    if (!TestNotNull(TEXT("Production Ranger exists"), Ranger))
+        return false;
+    URPGClassAsset* RangerPreview =
+        DuplicateObject<URPGClassAsset>(Ranger, GetTransientPackage());
+    FString Error;
+    if (!TestTrue(TEXT("Canonical Ranger preview materializes"),
+        RangerPreview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+            *RangerPreview, Error, Fixture.Scope.Registry)))
+    {
+        AddError(Error);
+        return false;
+    }
+    URPGCharacterCreationWizardWidget* Wizard =
+        CreateWidget<URPGCharacterCreationWizardWidget>(
+            Fixture.World, URPGCharacterCreationWizardWidget::StaticClass());
+    if (!TestNotNull(TEXT("World-bound wizard exists"), Wizard))
+        return false;
+    Wizard->ClassDefinition = RangerPreview;
+    const TArray<FRPGStartingEquipmentKit> Kits =
+        Wizard->GetAvailableStartingEquipmentKits();
+    if (!TestEqual(TEXT("Ranger presents three approved starting kits"), Kits.Num(), 3))
+        return false;
+    TestEqual(TEXT("Ranger default kit selected"),
+        Wizard->GetSelectedStartingEquipmentKitId(),
+        FName(TEXT("Kit_Ranger_Marksman")));
+    TestFalse(TEXT("Unknown cross-class ID refused without selecting"),
+        Wizard->SelectStartingEquipmentKit(TEXT("Kit_Warrior_Guardian")));
+    TestEqual(TEXT("Rejected ID does not change Ranger default"),
+        Wizard->GetSelectedStartingEquipmentKitId(),
+        FName(TEXT("Kit_Ranger_Marksman")));
+    return !HasAnyErrors();
+}
+
+// Dedicated test names allow the isolated Windows agent to report whether
+// a failure is in the UI's canonical text read model or class-switch behavior.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0193WizardHunterDescriptionTest,
+    "Grimrock.RPG.ARMEMENT01.9.WizardSelection.HunterCanonicalDescription",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENT0193WizardHunterDescriptionTest::RunTest(const FString&)
+{
+    FGridCanonicalWeightTestWorld Fixture({});
+    if (!TestNotNull(TEXT("Canonical game world"), Fixture.World) ||
+        !TestNotNull(TEXT("Configured game-world ItemSystem"), Fixture.Scope.Registry))
+        return false;
+    URPGClassAsset* Ranger = ARMEMENT0193::Class(TEXT("Ranger"));
+    if (!TestNotNull(TEXT("Actual production Ranger"), Ranger)) return false;
+    URPGClassAsset* Preview =
+        DuplicateObject<URPGClassAsset>(Ranger, GetTransientPackage());
+    FString Error;
+    if (!TestTrue(TEXT("Hunter source recipes are canonical"),
+        Preview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+            *Preview, Error, Fixture.Scope.Registry)))
+    {
+        AddError(Error);
+        return false;
+    }
+    URPGCharacterCreationWizardWidget* Wizard =
+        CreateWidget<URPGCharacterCreationWizardWidget>(
+            Fixture.World, URPGCharacterCreationWizardWidget::StaticClass());
+    if (!TestNotNull(TEXT("World-bound NewGame widget"), Wizard))
+        return false;
+    Wizard->ClassDefinition = Preview;
+    const TArray<FRPGStartingEquipmentKit> Kits =
+        Wizard->GetAvailableStartingEquipmentKits();
+    if (!TestEqual(TEXT("Three Ranger kits"), Kits.Num(), 3)) return false;
+    if (!TestTrue(TEXT("Ranger Hunter alternative can be selected"),
+        Wizard->SelectStartingEquipmentKit(TEXT("Kit_Ranger_Hunter"))))
+        return false;
+    TestEqual(TEXT("Selected Hunter kit ID retained"),
+        Wizard->GetSelectedStartingEquipmentKitId(),
+        FName(TEXT("Kit_Ranger_Hunter")));
+    const FRPGStartingEquipmentKit* Hunter = Kits.FindByPredicate(
+        [](const FRPGStartingEquipmentKit& Kit)
+        { return Kit.KitId == FName(TEXT("Kit_Ranger_Hunter")); });
+    if (!TestNotNull(TEXT("Hunter recipe exists"), Hunter) ||
+        !TestTrue(TEXT("Hunter recipe has physical items"), !Hunter->Items.IsEmpty()))
+        return false;
+    TestNull(TEXT("Hunter item has no historic ItemDefinition"),
+        Hunter->Items[0].ItemDefinition.Get());
+    FGridResolvedItem Item;
+    if (!TestTrue(TEXT("Hunter spear N1 resolves canonically"),
+        Fixture.Scope.Registry->ResolveItem(
+            Hunter->Items[0].CanonicalItemId, Hunter->Items[0].ItemLevel, Item)))
+        return false;
+    const FString AuthoredName = Item.DisplayName.IsEmpty()
+        ? Item.ItemId.ToString() : Item.DisplayName.ToString();
+    TestTrue(TEXT("Real selected-kit description contains canonical authored item name"),
+        Wizard->GetSelectedStartingEquipmentKitDescription().ToString().Contains(AuthoredName));
+    return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0193WizardClassSwitchTest,
+    "Grimrock.RPG.ARMEMENT01.9.WizardSelection.CrossClassReset",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENT0193WizardClassSwitchTest::RunTest(const FString&)
+{
+    FGridCanonicalWeightTestWorld Fixture({});
+    if (!TestNotNull(TEXT("World for class switch"), Fixture.World) ||
+        !TestNotNull(TEXT("Canonical registry for class switch"), Fixture.Scope.Registry))
+        return false;
     URPGClassAsset* Ranger = ARMEMENT0193::Class(TEXT("Ranger"));
     URPGClassAsset* Warrior = ARMEMENT0193::Class(TEXT("Warrior"));
-    if (!TestNotNull(TEXT("Wizard object exists"), Wizard) ||
-        !TestNotNull(TEXT("Production Ranger exists"), Ranger) ||
-        !TestNotNull(TEXT("Production Warrior exists"), Warrior)) return false;
-
-    // The fixture's world resolves canonical items; provide the widget with
-    // explicitly materialized class previews rather than relying on the
-    // historical registryless test-only DA_Item fallback.
+    if (!TestNotNull(TEXT("Ranger class exists"), Ranger) ||
+        !TestNotNull(TEXT("Warrior class exists"), Warrior))
+        return false;
     URPGClassAsset* RangerPreview =
         DuplicateObject<URPGClassAsset>(Ranger, GetTransientPackage());
     URPGClassAsset* WarriorPreview =
         DuplicateObject<URPGClassAsset>(Warrior, GetTransientPackage());
-    FString PreviewError;
-    if (!TestTrue(TEXT("Canonical Ranger preview is complete"),
-            RangerPreview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
-                *RangerPreview, PreviewError, Fixture.Scope.Registry)) ||
-        !TestTrue(TEXT("Canonical Warrior preview is complete"),
-            WarriorPreview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
-                *WarriorPreview, PreviewError, Fixture.Scope.Registry)))
+    FString Error;
+    if (!TestTrue(TEXT("Ranger native recipes loaded"),
+        RangerPreview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+            *RangerPreview, Error, Fixture.Scope.Registry)) ||
+        !TestTrue(TEXT("Warrior native recipes loaded"),
+        WarriorPreview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+            *WarriorPreview, Error, Fixture.Scope.Registry)))
     {
-        AddError(PreviewError);
+        AddError(Error);
         return false;
     }
-    Wizard->ClassDefinition = RangerPreview;
-    const TArray<FRPGStartingEquipmentKit> Kits = Wizard->GetAvailableStartingEquipmentKits();
-    if (!TestEqual(TEXT("Ranger presents three approved starting kits"), Kits.Num(), 3)) return false;
-    TestEqual(TEXT("Ranger default kit selected"), Wizard->GetSelectedStartingEquipmentKitId(),
-        FName(TEXT("Kit_Ranger_Marksman")));
-    TestFalse(TEXT("Unknown ID refused without selecting"),
-        Wizard->SelectStartingEquipmentKit(TEXT("Kit_Warrior_Guardian")));
-    TestEqual(TEXT("Rejected ID does not change default"), Wizard->GetSelectedStartingEquipmentKitId(),
-        FName(TEXT("Kit_Ranger_Marksman")));
-    if (!TestTrue(TEXT("Ranger alternative can be selected"),
-        Wizard->SelectStartingEquipmentKit(TEXT("Kit_Ranger_Hunter")))) return false;
-    TestEqual(TEXT("Ranger alternative selection is retained"), Wizard->GetSelectedStartingEquipmentKitId(),
-        FName(TEXT("Kit_Ranger_Hunter")));
-    const FRPGStartingEquipmentKit* Pathfinder = Kits.FindByPredicate(
-        [](const FRPGStartingEquipmentKit& Kit) { return Kit.KitId == FName(TEXT("Kit_Ranger_Hunter")); });
-    if (!TestNotNull(TEXT("Pathfinder kit exists"), Pathfinder)) return false;
-    TestNull(TEXT("Native Hunter kit has no old item definition pointer"),
-        Pathfinder->Items[0].ItemDefinition.Get());
-    FGridResolvedItem Pilot;
-    if (!TestTrue(TEXT("Physical Hunter item resolves at its canonical level"),
-        Fixture.Scope.Registry->ResolveItem(
-            Pathfinder->Items[0].CanonicalItemId, Pathfinder->Items[0].ItemLevel, Pilot)))
+    URPGCharacterCreationWizardWidget* Wizard =
+        CreateWidget<URPGCharacterCreationWizardWidget>(
+            Fixture.World, URPGCharacterCreationWizardWidget::StaticClass());
+    if (!TestNotNull(TEXT("World-bound wizard for class switch"), Wizard))
         return false;
-    const FString PilotName = Pilot.DisplayName.IsEmpty()
-        ? Pilot.ItemId.ToString() : Pilot.DisplayName.ToString();
-    TestTrue(TEXT("Selection description includes authored display name"),
-        Wizard->GetSelectedStartingEquipmentKitDescription().ToString().Contains(PilotName));
+    Wizard->ClassDefinition = RangerPreview;
+    if (!TestTrue(TEXT("Hunter alternative is selectable"),
+        Wizard->SelectStartingEquipmentKit(TEXT("Kit_Ranger_Hunter"))))
+        return false;
+    TestEqual(TEXT("Hunter alternative was selected"),
+        Wizard->GetSelectedStartingEquipmentKitId(), FName(TEXT("Kit_Ranger_Hunter")));
 
     Wizard->ClassDefinition = WarriorPreview;
     Wizard->RefreshPreview();
-    TestEqual(TEXT("Switching class resets to Warrior default"), Wizard->GetSelectedStartingEquipmentKitId(),
-        FName(TEXT("Kit_Warrior_Guardian")));
-    TestFalse(TEXT("Old Ranger kit cannot be selected for Warrior"),
+    TestEqual(TEXT("Switching to Warrior resets to Guardian default"),
+        Wizard->GetSelectedStartingEquipmentKitId(), FName(TEXT("Kit_Warrior_Guardian")));
+    TestFalse(TEXT("Old Ranger Hunter kit cannot be chosen for Warrior"),
         Wizard->SelectStartingEquipmentKit(TEXT("Kit_Ranger_Hunter")));
-    TestEqual(TEXT("Three Warrior options are offered"), Wizard->GetAvailableStartingEquipmentKits().Num(), 3);
-    return true;
+    TestEqual(TEXT("Three Warrior starter kits remain available"),
+        Wizard->GetAvailableStartingEquipmentKits().Num(), 3);
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0193RequestTest,
