@@ -374,8 +374,8 @@ bool FWeaponTooltipPAValenceTest::RunTest(const FString&)
         for (int32 B = 0; B < Physical.Num(); ++B)
         {
             if (A == B) continue;
-            const FGridCanonicalResolvedWeapon& Candidate = Physical[A].Weapon;
-            const FGridCanonicalResolvedWeapon& Equipped = Physical[B].Weapon;
+            const FGridResolvedWeapon& Candidate = Physical[A].Weapon;
+            const FGridResolvedWeapon& Equipped = Physical[B].Weapon;
             if (CheaperId.IsNone() && Candidate.ActionPointCost > 0 &&
                 Candidate.ActionPointCost < Equipped.ActionPointCost)
             {

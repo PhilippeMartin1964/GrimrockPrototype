@@ -31,9 +31,9 @@ bool FGridClean062AEProductionArmorReserves::RunTest(const FString&)
                 Item.ArchetypeId, FName(Row.ArchetypeId));
             const int32 Physical = FMath::Min(3, Item.Weapon.PhysicalArmor);
             const int32 Magical = FMath::Min(2, Item.Weapon.MagicalArmor);
-            FGridCanonicalArmorReserveView Reserve;
+            FGridArmorReserveView Reserve;
             if (!TestTrue(TEXT("Spent armor never duplicates nominal armor"),
-                FGridCanonicalArmorReserveResolver::TryCompute(
+                FGridArmorReserveResolver::TryCompute(
                     Item.Weapon, Physical, Magical, Reserve)))
                 continue;
             TestEqual(TEXT("Real nominal physical armor preserved"),
@@ -66,13 +66,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062AENeverRefillShield,
 
 bool FGridClean062AENeverRefillShield::RunTest(const FString&)
 {
-	FGridCanonicalResolvedWeapon Shield;
-	Shield.Kind = EGridCanonicalArmamentKind::Shield;
+	FGridResolvedWeapon Shield;
+	Shield.Kind = EGridArmamentKind::Shield;
 	Shield.PhysicalArmor = 5;
 	Shield.MagicalArmor = 2;
-	FGridCanonicalArmorReserveView View;
+	FGridArmorReserveView View;
 	if (!TestTrue(TEXT("A 5-point physical shield can be three points spent"),
-		FGridCanonicalArmorReserveResolver::TryCompute(Shield, 3, 1, View)))
+		FGridArmorReserveResolver::TryCompute(Shield, 3, 1, View)))
 	{
 		return false;
 	}
@@ -81,12 +81,12 @@ bool FGridClean062AENeverRefillShield::RunTest(const FString&)
 	TestEqual(TEXT("Three physical points remain consumed"), View.SpentPhysicalArmor, 3);
 
 	TestTrue(TEXT("Exhausted physical reserve remains exhausted"),
-		FGridCanonicalArmorReserveResolver::TryCompute(Shield, 5, 2, View));
+		FGridArmorReserveResolver::TryCompute(Shield, 5, 2, View));
 	TestEqual(TEXT("No free physical refill"), View.RemainingPhysicalArmor, 0);
 	TestEqual(TEXT("No free magical refill"), View.RemainingMagicalArmor, 0);
 
 	TestTrue(TEXT("Outdated higher spent amount is retained and remaining is clamped"),
-		FGridCanonicalArmorReserveResolver::TryCompute(Shield, 9, 3, View));
+		FGridArmorReserveResolver::TryCompute(Shield, 9, 3, View));
 	TestEqual(TEXT("Spent amount is never silently clamped"),
 		View.SpentPhysicalArmor, 9);
 	TestEqual(TEXT("Overdepletion still leaves no shield armor"),
@@ -95,14 +95,14 @@ bool FGridClean062AENeverRefillShield::RunTest(const FString&)
 	TestEqual(TEXT("No negative remaining magical armor"), View.RemainingMagicalArmor, 0);
 
 	TestFalse(TEXT("Negative persisted physical debt is invalid"),
-		FGridCanonicalArmorReserveResolver::TryCompute(Shield, -1, 0, View));
+		FGridArmorReserveResolver::TryCompute(Shield, -1, 0, View));
 	TestEqual(TEXT("Failure clears the previous successful physical result"),
 		View.SpentPhysicalArmor, 0);
 	TestEqual(TEXT("Failure clears previous magical result"),
 		View.SpentMagicalArmor, 0);
 	Shield.PhysicalArmor = -1;
 	TestFalse(TEXT("Negative nominal armor is invalid"),
-		FGridCanonicalArmorReserveResolver::TryCompute(Shield, 0, 0, View));
+		FGridArmorReserveResolver::TryCompute(Shield, 0, 0, View));
 	return true;
 }
 

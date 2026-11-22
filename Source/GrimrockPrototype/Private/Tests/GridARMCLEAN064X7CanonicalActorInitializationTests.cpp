@@ -124,10 +124,10 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
             !TestEqual(TEXT("Stable runtime GUID"), Actor->GetRuntimeObjectId(),
                 Instance.RuntimeObjectId) ||
             !TestEqual(TEXT("Real explicit item level"),
-                Actor->CanonicalWorldItemLevel, Instance.ItemLevel) ||
+                Actor->WorldItemLevel, Instance.ItemLevel) ||
             !TestTrue(TEXT("Presentation is transient and matches original ID"),
-                Actor->CanonicalWorldPresentation.IsValid() &&
-                Actor->CanonicalWorldPresentation.ItemId == Definition->ItemId) ||
+                Actor->ResolvedWorldPresentation.IsValid() &&
+                Actor->ResolvedWorldPresentation.ItemId == Definition->ItemId) ||
             !TestEqual(TEXT("Tags are from canonical family"),
                 Actor->ItemTags.Num(), Expected.Tags.Num()) ||
             !TestTrue(TEXT("The world item remains initially unlit"),
@@ -160,7 +160,7 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
             if (!TestFalse(TEXT("ARM N0 is never guessed as N1"),
                     Actor->InitializeFromItemInstance(Invalid, Registry.Get())) ||
                 !TestEqual(TEXT("Failed initialization preserves physical N1"),
-                    Actor->CanonicalWorldItemLevel, 1) ||
+                    Actor->WorldItemLevel, 1) ||
                 !TestEqual(TEXT("Failed initialization preserves GUID"),
                     Actor->GetRuntimeObjectId(), Instance.RuntimeObjectId))
             {
@@ -179,13 +179,13 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
                 !TestFalse(TEXT("Non-ARM N1 cannot materialize an actor"),
                     Actor->InitializeFromItemInstance(Invalid, Registry.Get())) ||
                 !TestEqual(TEXT("Failed non-ARM initialization preserves physical N0"),
-                    Actor->CanonicalWorldItemLevel, 0) ||
+                    Actor->WorldItemLevel, 0) ||
                 !TestEqual(TEXT("Failed non-ARM initialization preserves ItemId"),
                     Actor->GetItemDefinitionId(), Instance.ItemDefinitionId) ||
                 !TestEqual(TEXT("Failed non-ARM initialization preserves GUID"),
                     Actor->GetRuntimeObjectId(), Instance.RuntimeObjectId) ||
                 !TestTrue(TEXT("Failed non-ARM initialization keeps original presentation"),
-                    Actor->CanonicalWorldPresentation.IsValid()))
+                    Actor->ResolvedWorldPresentation.IsValid()))
             {
                 return false;
             }

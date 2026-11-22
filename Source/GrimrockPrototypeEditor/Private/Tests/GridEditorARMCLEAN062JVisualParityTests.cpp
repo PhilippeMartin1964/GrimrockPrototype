@@ -33,7 +33,7 @@ bool FGridClean062JVisualProjectionTest::RunTest(const FString&)
         FGridResolvedItem Item;
         if (!TestTrue(TEXT("Real canonical visual N1 resolves"),
             Fixture.Resolve(FName(Row.ItemDefinitionId), 1, Item))) continue;
-        const FGridCanonicalWeaponVisual* Visual =
+        const FGridWeaponVisual* Visual =
             Root->WeaponVisualCatalogue->FindForArchetype(Archetype);
         if (!TestNotNull(TEXT("Archetype visual binding is in unique catalogue"), Visual))
             continue;

@@ -96,7 +96,7 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
             for (int32 Index = 0; Index < R.AcceptedItems.Num(); ++Index)
             {
                 const FGridReceptacleAcceptedItemConfig& Rule = R.AcceptedItems[Index];
-                const FName AcceptedId = Proposed[Index].CanonicalItemId;
+                const FName AcceptedId = Proposed[Index].ItemId;
                 const FName ExpectedId = Package ==
                     TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Receptacle_TorchHolder")
                     ? FName(TEXT("Item_Torch"))
@@ -105,7 +105,7 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
                         ? FName(TEXT("Gem_Blue")) : NAME_None);
                 if (!TestTrue(TEXT("Only the two approved shared acceptance rules"),
                         !ExpectedId.IsNone() && AcceptedId == ExpectedId &&
-                        Rule.CanonicalItemId == ExpectedId &&
+                        Rule.ItemId == ExpectedId &&
                         Registry->ContainsItem(AcceptedId)))
                     return false;
                 AddInfo(FString::Printf(TEXT(

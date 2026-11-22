@@ -66,7 +66,7 @@ bool FGridEditorARMCLEAN064X62AlchemyEvidence::RunTest(const FString&)
     UGridActionCatalogueAsset* Duplicate = DuplicateObject<UGridActionCatalogueAsset>(
         Root->ActionCatalogue.Get(), GetTransientPackage());
     if (!TestNotNull(TEXT("Private action catalogue clone"), Duplicate)) return false;
-    FGridCanonicalRuntimeAction Conflict = Duplicate->DetailedActions[0];
+    FGridRuntimeAction Conflict = Duplicate->DetailedActions[0];
     Conflict.Definition.ActionPointCost += 1;
     Duplicate->DetailedActions.Add(Conflict);
     TArray<FString> Errors;

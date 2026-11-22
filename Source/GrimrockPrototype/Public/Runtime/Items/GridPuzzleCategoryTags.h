@@ -64,7 +64,7 @@ namespace GridPuzzleCategoryTags
         if (Item.bIsArmament)
         {
             return Count == 0 && Item.ItemLevel >= 1 && Item.ItemLevel <= 20 &&
-                Type == (Item.Weapon.Kind == EGridCanonicalArmamentKind::Shield ? FName(TEXT("Shield")) : FName(TEXT("Weapon")));
+                Type == (Item.Weapon.Kind == EGridArmamentKind::Shield ? FName(TEXT("Shield")) : FName(TEXT("Weapon")));
         }
         return Item.ItemLevel == 0 && Count == 1 && Item.Tags.Contains(Tag);
     }

@@ -93,10 +93,10 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 		return;
 	}
 
-	CanonicalWorldPresentation = FGridResolvedItem();
+	ResolvedWorldPresentation = FGridResolvedItem();
 	ItemDefinitionAsset = InDefinition;
 	ItemDefinitionId = InDefinition->ItemDefinitionId;
-	CanonicalWorldItemLevel = 0;
+	WorldItemLevel = 0;
 	ItemTags = InDefinition->ItemTags;
 	SetRuntimeObjectId(InRuntimeObjectId);
 	if (!RuntimeObjectId.IsValid())
@@ -153,17 +153,17 @@ bool AGridItemActor::InitializeFromItemInstance(
 
 	ItemDefinitionAsset = nullptr;
 	ItemDefinitionId = Projected.ItemId;
-	CanonicalWorldItemLevel = Projected.ItemLevel;
+	WorldItemLevel = Projected.ItemLevel;
 	ItemTags = Projected.Tags;
 	SetRuntimeObjectId(Instance.RuntimeObjectId);
 	// This is not a second authority: a transient copy from the sole registry.
-	CanonicalWorldPresentation = MoveTemp(Projected);
+	ResolvedWorldPresentation = MoveTemp(Projected);
 
-	MeshComponent->SetStaticMesh(CanonicalWorldPresentation.WorldMesh.LoadSynchronous());
-	MeshComponent->SetRelativeTransform(CanonicalWorldPresentation.WorldVisualTransform);
+	MeshComponent->SetStaticMesh(ResolvedWorldPresentation.WorldMesh.LoadSynchronous());
+	MeshComponent->SetRelativeTransform(ResolvedWorldPresentation.WorldVisualTransform);
 	SetItemLightsEnabled(false);
-	LightEmitterComponent->ApplyConfig(CanonicalWorldPresentation.LightEmitter);
-	VisualEffectsComponent->ApplyConfig(CanonicalWorldPresentation.VisualEffects);
+	LightEmitterComponent->ApplyConfig(ResolvedWorldPresentation.LightEmitter);
+	VisualEffectsComponent->ApplyConfig(ResolvedWorldPresentation.VisualEffects);
 	// Reinitialization must not keep another pickup's active sparkle.
 	SetWorldSparkleEnabled(false);
 	if (MeshComponent->IsSimulatingPhysics())
@@ -189,7 +189,7 @@ bool AGridItemActor::ApplyResolvedWorldVisual(const FGridItemInstance& Instance)
 	{
 		return false; // Unregistered identities preserve historical pickup visual behavior.
 	}
-	CanonicalWorldItemLevel = Instance.ItemLevel;
+	WorldItemLevel = Instance.ItemLevel;
 	// Explicitly clear rather than reusing an old DA_Weapon_* mesh if N0 is invalid.
 	UStaticMesh* NewMesh = Visual.bResolved ? Visual.WorldMesh.LoadSynchronous() : nullptr;
 	const FTransform NewTransform = Visual.bResolved ? Visual.WorldTransform : FTransform::Identity;
@@ -217,10 +217,10 @@ void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, co
 		return;
 	}
 
-	CanonicalWorldPresentation = FGridResolvedItem();
+	ResolvedWorldPresentation = FGridResolvedItem();
 	ItemDefinitionAsset = nullptr;
 	ItemDefinitionId = InItemDefinitionId;
-	CanonicalWorldItemLevel = 0;
+	WorldItemLevel = 0;
 	ItemTags.Reset();
 	SetRuntimeObjectId(InRuntimeObjectId);
 	if (!RuntimeObjectId.IsValid())
@@ -281,7 +281,7 @@ void AGridItemActor::RefreshWorldPickupMass()
 	FGridItemInstance MassInstance;
 	MassInstance.RuntimeObjectId = RuntimeObjectId;
 	MassInstance.ItemDefinitionId = GetItemDefinitionId();
-	MassInstance.ItemLevel = CanonicalWorldItemLevel;
+	MassInstance.ItemLevel = WorldItemLevel;
 	MassInstance.Quantity = 1;
 	float MassKg = 0.0f;
 	bool bOverrideMass = false;
@@ -290,13 +290,13 @@ void AGridItemActor::RefreshWorldPickupMass()
 		bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolve(
 			Registry, nullptr, MassInstance, MassKg);
 	}
-	else if (!GameInstance && CanonicalWorldPresentation.IsValid() &&
-		CanonicalWorldPresentation.ItemId == MassInstance.ItemDefinitionId &&
-		CanonicalWorldPresentation.ItemLevel == MassInstance.ItemLevel && MassInstance.IsValid())
+	else if (!GameInstance && ResolvedWorldPresentation.IsValid() &&
+		ResolvedWorldPresentation.ItemId == MassInstance.ItemDefinitionId &&
+		ResolvedWorldPresentation.ItemLevel == MassInstance.ItemLevel && MassInstance.IsValid())
 	{
 		// Explicit registry projection supplied at canonical initialization.
 		bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolveProjected(
-			CanonicalWorldPresentation, MassKg);
+			ResolvedWorldPresentation, MassKg);
 	}
 #if WITH_DEV_AUTOMATION_TESTS
 	else if (!GameInstance && GIsAutomationTesting)
@@ -336,7 +336,7 @@ void AGridItemActor::ApplyWorldPhysicsInitialNudge()
 	FGridItemInstance Instance;
 	Instance.RuntimeObjectId = RuntimeObjectId;
 	Instance.ItemDefinitionId = GetItemDefinitionId();
-	Instance.ItemLevel = CanonicalWorldItemLevel;
+	Instance.ItemLevel = WorldItemLevel;
 	Instance.Quantity = 1;
 	float AuthoredTilt = 0.0f;
 	if (Registry)
@@ -345,11 +345,11 @@ void AGridItemActor::ApplyWorldPhysicsInitialNudge()
 		if (!FGridWorldPhysicsMassReadModel::TryResolveCanonical(Registry, Instance, Item)) return;
 		AuthoredTilt = Item.WorldPhysicsInitialTiltDegrees;
 	}
-	else if (!GameInstance && CanonicalWorldPresentation.IsValid() && Instance.IsValid() &&
-		CanonicalWorldPresentation.ItemId == Instance.ItemDefinitionId &&
-		CanonicalWorldPresentation.ItemLevel == Instance.ItemLevel)
+	else if (!GameInstance && ResolvedWorldPresentation.IsValid() && Instance.IsValid() &&
+		ResolvedWorldPresentation.ItemId == Instance.ItemDefinitionId &&
+		ResolvedWorldPresentation.ItemLevel == Instance.ItemLevel)
 	{
-		AuthoredTilt = CanonicalWorldPresentation.WorldPhysicsInitialTiltDegrees;
+		AuthoredTilt = ResolvedWorldPresentation.WorldPhysicsInitialTiltDegrees;
 	}
 #if WITH_DEV_AUTOMATION_TESTS
 	else if (!GameInstance && GIsAutomationTesting && IsValid(ItemDefinitionAsset))
@@ -433,7 +433,7 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 	FGridItemInstance Instance;
 	Instance.RuntimeObjectId = RuntimeObjectId;
 	Instance.ItemDefinitionId = ItemDefinitionId;
-	Instance.ItemLevel = CanonicalWorldItemLevel;
+	Instance.ItemLevel = WorldItemLevel;
 	Instance.Quantity = 1;
 	FGridResolvedItem Profile;
 	bool bResolved = false;
@@ -441,11 +441,11 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 	{
 		bResolved = FGridWorldPhysicsMassReadModel::TryResolveCanonical(Registry, Instance, Profile);
 	}
-	else if (!GI && Instance.IsValid() && CanonicalWorldPresentation.IsValid() &&
-		CanonicalWorldPresentation.ItemId == Instance.ItemDefinitionId &&
-		CanonicalWorldPresentation.ItemLevel == Instance.ItemLevel)
+	else if (!GI && Instance.IsValid() && ResolvedWorldPresentation.IsValid() &&
+		ResolvedWorldPresentation.ItemId == Instance.ItemDefinitionId &&
+		ResolvedWorldPresentation.ItemLevel == Instance.ItemLevel)
 	{
-		Profile = CanonicalWorldPresentation;
+		Profile = ResolvedWorldPresentation;
 		bResolved = true;
 	}
 #if WITH_DEV_AUTOMATION_TESTS
@@ -524,7 +524,7 @@ bool AGridItemActor::HasItemTag(FName Tag) const
 	FGridItemInstance Instance;
 	Instance.RuntimeObjectId = RuntimeObjectId;
 	Instance.ItemDefinitionId = ItemDefinitionId;
-	Instance.ItemLevel = CanonicalWorldItemLevel;
+	Instance.ItemLevel = WorldItemLevel;
 	Instance.Quantity = 1;
 	if (Registry)
 	{
@@ -532,11 +532,11 @@ bool AGridItemActor::HasItemTag(FName Tag) const
 		return FGridWorldPhysicsMassReadModel::TryResolveCanonical(Registry, Instance, Item) &&
 			Item.Tags.Contains(Tag);
 	}
-	if (!GI && Instance.IsValid() && CanonicalWorldPresentation.IsValid() &&
-		CanonicalWorldPresentation.ItemId == Instance.ItemDefinitionId &&
-		CanonicalWorldPresentation.ItemLevel == Instance.ItemLevel)
+	if (!GI && Instance.IsValid() && ResolvedWorldPresentation.IsValid() &&
+		ResolvedWorldPresentation.ItemId == Instance.ItemDefinitionId &&
+		ResolvedWorldPresentation.ItemLevel == Instance.ItemLevel)
 	{
-		return CanonicalWorldPresentation.Tags.Contains(Tag);
+		return ResolvedWorldPresentation.Tags.Contains(Tag);
 	}
 #if WITH_DEV_AUTOMATION_TESTS
 	if (!GI && GIsAutomationTesting) return ItemTags.Contains(Tag);

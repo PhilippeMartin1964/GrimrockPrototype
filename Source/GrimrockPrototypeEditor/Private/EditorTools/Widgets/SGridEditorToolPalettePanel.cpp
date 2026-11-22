@@ -122,9 +122,9 @@ void SGridEditorToolPalettePanel::Construct(const FArguments& InArgs)
 		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
 		              "DA_ItemSystem.DA_ItemSystem"));
 	TArray<FString> CanonicalErrors;
-	bCanonicalPreviewReady = CanonicalPreviewRegistry.IsValid() &&
+	bRegisteredPreviewReady = CanonicalPreviewRegistry.IsValid() &&
 		CanonicalPreviewRegistry->RegisterItemSystem(CanonicalRoot, CanonicalErrors);
-	if (!bCanonicalPreviewReady)
+	if (!bRegisteredPreviewReady)
 	{
 		UE_LOG(LogGridEditor, Warning,
 			TEXT("Canonical editor palette preview registry unavailable: %d validation errors."),
@@ -685,7 +685,7 @@ bool SGridEditorToolPalettePanel::DoesPaletteEntryPassFilters(const FGridObjectP
 
 	const FGridEditorPaletteReadView CanonicalView =
 		FGridEditorPaletteReadModel::Resolve(
-			Entry, bCanonicalPreviewReady ? CanonicalPreviewRegistry.Get() : nullptr);
+			Entry, bRegisteredPreviewReady ? CanonicalPreviewRegistry.Get() : nullptr);
 	if (Matches(CanonicalView.DisplayName.ToString()) || Matches(Entry.EntryId.ToString()) || Matches(Category.ToString()))
 	{
 		return true;
@@ -925,7 +925,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteTile(const FGridObj
 
 	const FGridEditorPaletteReadView CanonicalView =
 		FGridEditorPaletteReadModel::Resolve(
-			Entry, bCanonicalPreviewReady ? CanonicalPreviewRegistry.Get() : nullptr);
+			Entry, bRegisteredPreviewReady ? CanonicalPreviewRegistry.Get() : nullptr);
 	const FText Label = CanonicalView.DisplayName;
 	const FName EntryId = Entry.EntryId;
 	UTexture2D* IconTexture = Entry.IsDirectItemEntry()

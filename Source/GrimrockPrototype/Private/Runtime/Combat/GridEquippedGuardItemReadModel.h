@@ -37,10 +37,10 @@ struct FGridEquippedGuardItemReadModel
 			const bool bAllowedOffHand =
 				Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand);
 			View.bCanParry = bAllowedOffHand &&
-				Canonical.Weapon.Kind == EGridCanonicalArmamentKind::Weapon &&
+				Canonical.Weapon.Kind == EGridArmamentKind::Weapon &&
 				Canonical.ArchetypeId == FName(TEXT("ARM013"));
 			View.bIsShield = bAllowedOffHand &&
-				Canonical.Weapon.Kind == EGridCanonicalArmamentKind::Shield;
+				Canonical.Weapon.Kind == EGridArmamentKind::Shield;
 			return View;
 		}
 		// No unknown identity may borrow an obsolete guard rule in a configured game.

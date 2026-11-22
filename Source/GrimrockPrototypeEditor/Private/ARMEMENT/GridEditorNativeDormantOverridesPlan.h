@@ -94,7 +94,7 @@ struct FGridEditorNativeDormantOverridesPlan
                 if (!FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(
                         Registry, Definition->DefaultBehavior.Receptacle.AcceptedItems, Reactivated) ||
                     Reactivated.Num() != 1 ||
-                    Reactivated[0].CanonicalItemId != ItemId)
+                    Reactivated[0].ItemId != ItemId)
                 { Error = TEXT("Cannot reauthor exact canonical torch rule."); return false; }
             }
             else

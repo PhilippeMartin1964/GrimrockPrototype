@@ -242,7 +242,7 @@ bool FARMEMENT0172ProductionPilotTest::RunTest(const FString&)
         return false;
     TestTrue(TEXT("ShortBow is an ARM N1 weapon"), Bow.bIsArmament);
     TestEqual(TEXT("ShortBow canonical hand policy is two-handed"),
-        Bow.Weapon.HandPolicy, EGridCanonicalHandPolicy::TwoHanded);
+        Bow.Weapon.HandPolicy, EGridHandPolicy::TwoHanded);
     TestTrue(TEXT("ShortBow supports an equip request from either hand"),
         Bow.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand) &&
         Bow.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand));

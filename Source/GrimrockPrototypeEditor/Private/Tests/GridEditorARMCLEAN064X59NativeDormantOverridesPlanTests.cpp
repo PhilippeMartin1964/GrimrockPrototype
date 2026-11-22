@@ -93,7 +93,7 @@ bool FGridEditorARMCLEAN064X59NativeDormantPlan::RunTest(const FString&)
         return false;
     --Owner->CellX;
     FGridReceptacleAcceptedItemConfig& Wrong = Owner->InstanceConfig.InteractionOverrides.ReceptacleRules.AcceptedItems.AddDefaulted_GetRef();
-    Wrong.CanonicalItemId = TEXT("Gem_Blue");
+    Wrong.ItemId = TEXT("Gem_Blue");
     if (!TestFalse(TEXT("Unexpected authored rule refused"), FPlan::TryBuildLevel(*Copy.Get(), Registry.Get(), 0, Repeated, Error)))
         return false;
 

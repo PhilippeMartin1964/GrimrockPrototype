@@ -134,7 +134,7 @@ namespace RPGStartingPresets
             }
         }
         FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
-        Entry.CanonicalItemId = ItemId;
+        Entry.ItemId = ItemId;
         Entry.ItemLevel = Spec.ItemLevel;
         Entry.Quantity = Spec.Quantity;
         Entry.TargetSlot = Spec.Slot;

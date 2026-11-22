@@ -32,25 +32,25 @@ bool FGridClean064X162Authoring::RunTest(const FString&)
     FGridReceptacleAcceptedItemConfig Rule;
     if (!TestFalse(TEXT("No registry cannot rewrite rule"),
         FGridEditorReceptacleRuleAuthoring::TrySelectCanonicalId(nullptr, Arrow, Rule)) ||
-        !TestTrue(TEXT("Rejected draft remains empty"), Rule.CanonicalItemId.IsNone()) ||
+        !TestTrue(TEXT("Rejected draft remains empty"), Rule.ItemId.IsNone()) ||
         !TestTrue(TEXT("Known ItemId accepted"),
             FGridEditorReceptacleRuleAuthoring::TrySelectCanonicalId(Registry.Get(), Arrow, Rule)) ||
-        !TestEqual(TEXT("Arrow identity persisted"), Rule.CanonicalItemId, Arrow) ||
+        !TestEqual(TEXT("Arrow identity persisted"), Rule.ItemId, Arrow) ||
         !TestTrue(TEXT("Switch to canonical sword"),
             FGridEditorReceptacleRuleAuthoring::TrySelectCanonicalId(Registry.Get(), Sword, Rule)) ||
-        !TestEqual(TEXT("No stale identity"), Rule.CanonicalItemId, Sword) ||
+        !TestEqual(TEXT("No stale identity"), Rule.ItemId, Sword) ||
         !TestFalse(TEXT("Unknown ID rejected atomically"),
             FGridEditorReceptacleRuleAuthoring::TrySelectCanonicalId(Registry.Get(), TEXT("X162_Unknown"), Rule)) ||
-        !TestEqual(TEXT("Rejected edit keeps prior ID"), Rule.CanonicalItemId, Sword) ||
+        !TestEqual(TEXT("Rejected edit keeps prior ID"), Rule.ItemId, Sword) ||
         !TestTrue(TEXT("Clear draft"),
             FGridEditorReceptacleRuleAuthoring::TrySelectCanonicalId(Registry.Get(), NAME_None, Rule)) ||
-        !TestTrue(TEXT("Cleared draft has no identity"), Rule.CanonicalItemId.IsNone()))
+        !TestTrue(TEXT("Cleared draft has no identity"), Rule.ItemId.IsNone()))
         return false;
 
     FGridReceptacleAcceptedItemConfig DefaultArrow;
-    DefaultArrow.CanonicalItemId = Arrow;
+    DefaultArrow.ItemId = Arrow;
     FGridReceptacleAcceptedItemConfig DefaultSword;
-    DefaultSword.CanonicalItemId = Sword;
+    DefaultSword.ItemId = Sword;
     TArray<FGridReceptacleAcceptedItemConfig> Defaults = {DefaultArrow, DefaultSword, DefaultArrow};
     TArray<FGridReceptacleAcceptedItemConfig> Copies;
     if (!TestFalse(TEXT("Missing registry refuses defaults"),
@@ -59,9 +59,9 @@ bool FGridClean064X162Authoring::RunTest(const FString&)
         !TestTrue(TEXT("Ordered canonical copy succeeds"),
             FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(Registry.Get(), Defaults, Copies)) ||
         !TestEqual(TEXT("Copies preserve count"), Copies.Num(), 3) ||
-        !TestEqual(TEXT("First identity preserved"), Copies[0].CanonicalItemId, Arrow) ||
-        !TestEqual(TEXT("Second identity preserved"), Copies[1].CanonicalItemId, Sword) ||
-        !TestEqual(TEXT("Duplicate identity preserved"), Copies[2].CanonicalItemId, Arrow))
+        !TestEqual(TEXT("First identity preserved"), Copies[0].ItemId, Arrow) ||
+        !TestEqual(TEXT("Second identity preserved"), Copies[1].ItemId, Sword) ||
+        !TestEqual(TEXT("Duplicate identity preserved"), Copies[2].ItemId, Arrow))
         return false;
 
     UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
@@ -74,18 +74,18 @@ bool FGridClean064X162Authoring::RunTest(const FString&)
     Instance.InstanceConfig.InteractionOverrides.ReceptacleRules.MaxContainedItems = 4;
     const FGridObjectBehaviorParams Effective = GridObjectInstanceBehavior::Resolve(Instance, Definition);
     if (!TestEqual(TEXT("Override rule count"), Effective.Receptacle.AcceptedItems.Num(), 3) ||
-        !TestEqual(TEXT("Override gains canonical identity"), Effective.Receptacle.AcceptedItems[0].CanonicalItemId,
+        !TestEqual(TEXT("Override gains canonical identity"), Effective.Receptacle.AcceptedItems[0].ItemId,
             Arrow) ||
         !TestEqual(TEXT("Override capacity remains 4"), Effective.Receptacle.MaxContainedItems, 4))
         {return false;}
 
     FGridReceptacleAcceptedItemConfig Invalid;
-    Invalid.CanonicalItemId = TEXT("X162_Unknown");
+    Invalid.ItemId = TEXT("X162_Unknown");
     Defaults.Add(Invalid);
     if (!TestFalse(TEXT("Unknown default rejects entire copy"),
             FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(Registry.Get(), Defaults, Copies)) ||
         !TestTrue(TEXT("No partial copy of unknown default"), Copies.IsEmpty())) return false;
-    Defaults.Last().CanonicalItemId = NAME_None;
+    Defaults.Last().ItemId = NAME_None;
     return TestFalse(TEXT("Empty default rejects entire copy"),
             FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(Registry.Get(), Defaults, Copies)) &&
         TestTrue(TEXT("No partial new rule set after failure"), Copies.IsEmpty()) &&

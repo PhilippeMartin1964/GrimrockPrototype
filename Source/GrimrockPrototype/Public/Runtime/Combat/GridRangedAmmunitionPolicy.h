@@ -18,11 +18,11 @@ struct FGridResolvedItem;
  */
 struct FGridRangedAmmunitionRequirement
 {
-	bool bCanonicalSource = false;
+	bool bRegisteredSource = false;
 	bool bValid = false;
 	FName AmmunitionItemId = NAME_None;
 	float AmmunitionWeightKg = 0.0f;
-	bool bCanonicalAmmunition = false;
+	bool bRegisteredAmmunition = false;
 	int32 AmmunitionMaxStack = 0;
 	float AmmunitionLaunchSpeed = 0.0f;
 };

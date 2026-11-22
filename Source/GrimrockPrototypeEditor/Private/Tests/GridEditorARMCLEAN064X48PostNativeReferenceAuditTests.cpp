@@ -79,7 +79,7 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
             ++LooseTotal;
             if (LevelIndex != 0 ||
                 !Item.InstanceId.IsValid() || SeenLoose.Contains(Item.InstanceId) ||
-                Item.CanonicalItemId.IsNone() || !Known.Contains(Item.CanonicalItemId) ||
+                Item.ItemId.IsNone() || !Known.Contains(Item.ItemId) ||
                 Item.Quantity < 1 || !Level->IsValidCoord(Item.CellX, Item.CellY) ||
                 Item.ItemLevel < 0 || Item.ItemLevel > 20)
             {
@@ -95,7 +95,7 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
                 Object.InstanceConfig.ReceptacleInitialContent)
             {
                 ++InitialTotal;
-                if (Item.CanonicalItemId.IsNone() || !Known.Contains(Item.CanonicalItemId) ||
+                if (Item.ItemId.IsNone() || !Known.Contains(Item.ItemId) ||
                     Item.Quantity < 1 || Item.ItemLevel < 0 || Item.ItemLevel > 20)
                 {
                     AddError(TEXT("Initial receptacle content identity changed unexpectedly."));
@@ -137,7 +137,7 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
     {
         if (!Entry.IsDirectItemEntry()) continue;
         ++PaletteRows;
-        if (Entry.CanonicalItemId.IsNone() || !Known.Contains(Entry.CanonicalItemId) ||
+        if (Entry.ItemId.IsNone() || !Known.Contains(Entry.ItemId) ||
             !Entry.IsValidEntry())
         {
             AddError(TEXT("Canonical palette entry lost identity or retained contradictory source."));
@@ -178,7 +178,7 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
                 (Package ==
                     TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Guardian")
                     ? FName(TEXT("Gem_Blue")) : NAME_None);
-            if (Required.IsNone() || Rule.CanonicalItemId != Required ||
+            if (Required.IsNone() || Rule.ItemId != Required ||
                 !Known.Contains(Required))
             {
                 AddError(TEXT("Shared receptacle rule does not match exact registered identity."));

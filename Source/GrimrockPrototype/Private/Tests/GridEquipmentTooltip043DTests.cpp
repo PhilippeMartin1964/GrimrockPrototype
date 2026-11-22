@@ -53,10 +53,10 @@ bool FEquipmentTooltip043DHandUsageTest::RunTest(const FString&)
         return false;
 
     TestTrue(TEXT("Great Axe is genuinely two-handed"),
-        Axe.bIsArmament && Axe.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded);
+        Axe.bIsArmament && Axe.Weapon.HandPolicy == EGridHandPolicy::TwoHanded);
     TestTrue(TEXT("War Pick is a one-handed weapon usable in both hands"),
         Pick.bIsArmament &&
-        Pick.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
+        Pick.Weapon.HandPolicy != EGridHandPolicy::TwoHanded &&
         Pick.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand) &&
         Pick.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand));
 

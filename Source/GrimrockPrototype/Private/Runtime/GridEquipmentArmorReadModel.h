@@ -27,7 +27,7 @@ struct FGridEquipmentArmorReadModel
 		}
 		if (Registry && Registry->ContainsItem(Instance.ItemDefinitionId))
 		{
-			FGridCanonicalArmorReserveView Canonical;
+			FGridArmorReserveView Canonical;
 			if (!Registry->ResolveArmorReserveForInstance(Instance, Canonical))
 			{
 				return false; // Never reinterpret an invalid physical level via an old definition.

@@ -165,7 +165,7 @@ namespace StartingKitAudit
             for (int32 Index = 0; Index < 2; ++Index)
             {
                 FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
-                Entry.CanonicalItemId = FName(Ids[Index]);
+                Entry.ItemId = FName(Ids[Index]);
                 Entry.ItemLevel = 0; // Exact historical unversioned kit recipe, NOT a physical ARM N0.
                 Entry.Quantity = 1;
                 Entry.TargetSlot = Slots[Index];
@@ -192,7 +192,7 @@ namespace StartingKitAudit
         TArray<FString> Descriptions;
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
-            if (Entry.CanonicalItemId.IsNone() || Entry.Quantity != 1 ||
+            if (Entry.ItemId.IsNone() || Entry.Quantity != 1 ||
                 Entry.ItemLevel != 0 || Entry.ItemDefinition.Get() != nullptr)
             {
                 OutError = FString::Printf(TEXT("Corrupt archived two-item review: %s"),
@@ -200,7 +200,7 @@ namespace StartingKitAudit
                 return {};
             }
             Descriptions.Add(FString::Printf(TEXT("%s x%d @%s [ItemLevel=%d]"),
-                *Entry.CanonicalItemId.ToString(), Entry.Quantity,
+                *Entry.ItemId.ToString(), Entry.Quantity,
                 *StaticEnum<EGridEquipmentSlot>()->GetNameStringByValue(
                     static_cast<int64>(Entry.TargetSlot)), Entry.ItemLevel));
         }

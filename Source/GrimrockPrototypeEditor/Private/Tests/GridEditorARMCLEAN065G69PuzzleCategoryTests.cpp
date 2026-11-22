@@ -92,7 +92,7 @@ bool FGridEditorPuzzleCategoryPreviewTest::RunTest(const FString& Parameters)
                 return false;
             }
             const FName ExpectedType = Type ? *Type :
-                (Item.Weapon.Kind == EGridCanonicalArmamentKind::Shield ? FName(TEXT("Shield")) : FName(TEXT("Weapon")));
+                (Item.Weapon.Kind == EGridArmamentKind::Shield ? FName(TEXT("Shield")) : FName(TEXT("Weapon")));
             TestTrue(TEXT("Resolved tags match native asset"), Item.Tags == Source->Tags);
             for (FName Candidate : Types)
                 TestEqual(TEXT("Exact native category predicate"), Matches(Item, Candidate), Candidate == ExpectedType);

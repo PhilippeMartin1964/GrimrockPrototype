@@ -120,7 +120,7 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
             ++RealLoose;
             FGridResolvedItem Resolved;
             if (!TestTrue(TEXT("Real physical level resolves without default inheritance"),
-                F.Registry->ResolveItem(Entry.CanonicalItemId, Entry.ItemLevel, Resolved)))
+                F.Registry->ResolveItem(Entry.ItemId, Entry.ItemLevel, Resolved)))
             {
                 return false;
             }
@@ -181,15 +181,15 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
 
     FGridResolvedItem NonArmResolved;
     if (!TestTrue(TEXT("NonARM physical N0 resolves"),
-        F.Registry->ResolveItem(NonArm.CanonicalItemId, NonArm.ItemLevel, NonArmResolved)) ||
+        F.Registry->ResolveItem(NonArm.ItemId, NonArm.ItemLevel, NonArmResolved)) ||
         !TestNull(TEXT("NonARM actor no longer attaches legacy ItemDefinition"),
             NonArmActor->GetItemDefinitionAsset()) ||
         !TestTrue(TEXT("NonARM actor owns a transient canonical projection"),
-            NonArmActor->CanonicalWorldPresentation.IsValid()) ||
+            NonArmActor->ResolvedWorldPresentation.IsValid()) ||
         !TestEqual(TEXT("Physical N0 remains N0"),
-            NonArmActor->CanonicalWorldItemLevel, 0) ||
+            NonArmActor->WorldItemLevel, 0) ||
         !TestEqual(TEXT("World identity persists"),
-            NonArmActor->GetItemDefinitionId(), NonArm.CanonicalItemId) ||
+            NonArmActor->GetItemDefinitionId(), NonArm.ItemId) ||
         !TestEqual(TEXT("Canonical light configuration used at placement"),
             NonArmActor->LightEmitterComponent->RuntimeConfig.bUsePointLight,
             NonArmResolved.LightEmitter.bUsePointLight) ||
@@ -207,7 +207,7 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     // The real migrated ARM resolves only from the canonical placement schema.
     FGridResolvedItem ArmResolved;
     if (!TestTrue(TEXT("Real ARM projection resolves at authored physical level"),
-            F.Registry->ResolveItem(Arm.CanonicalItemId, Arm.ItemLevel, ArmResolved)) ||
+            F.Registry->ResolveItem(Arm.ItemId, Arm.ItemLevel, ArmResolved)) ||
         !TestNull(TEXT("Legacy placement property removed from schema"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition"))))
         return false;
     AGridItemActor* ArmActor = PlaceAtOrigin(Arm);
@@ -216,7 +216,7 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
         !TestNull(TEXT("X.40: Real ARM entry discards DA_Weapon source"),
             ArmEntry->ItemDefinitionAsset.Get()) ||
         !TestEqual(TEXT("X.40: Runtime entry retains authoritative ARM ID"),
-            ArmEntry->ItemDefinitionId, Arm.CanonicalItemId) ||
+            ArmEntry->ItemDefinitionId, Arm.ItemId) ||
         !TestEqual(TEXT("X.40: Runtime entry preserves authored ARM level"),
             ArmEntry->ItemLevel, Arm.ItemLevel))
     {
@@ -227,11 +227,11 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
         !TestNull(TEXT("Real ARM actor must never inherit the historic pointer"),
             ArmActor->GetItemDefinitionAsset()) ||
         !TestTrue(TEXT("Real authored ARM has full canonical world presentation"),
-            ArmActor->CanonicalWorldPresentation.IsValid()) ||
+            ArmActor->ResolvedWorldPresentation.IsValid()) ||
         !TestEqual(TEXT("Persisted ARM physical level is never invented"),
-            ArmActor->CanonicalWorldItemLevel, Arm.ItemLevel) ||
+            ArmActor->WorldItemLevel, Arm.ItemLevel) ||
         !TestEqual(TEXT("ARM canonical identity remains authoritative"),
-            ArmActor->GetItemDefinitionId(), Arm.CanonicalItemId) ||
+            ArmActor->GetItemDefinitionId(), Arm.ItemId) ||
         !TestTrue(TEXT("Real authored ARM has a stable valid GUID"),
             ArmActor->GetRuntimeObjectId().IsValid()) ||
         !TestTrue(TEXT("Real ARM mesh is canonical"),
@@ -249,7 +249,7 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     }
 
     FGridLooseItemInstance MissingId = Arm;
-    MissingId.CanonicalItemId = NAME_None;
+    MissingId.ItemId = NAME_None;
     if (!TestNull(TEXT("Missing authored ItemId cannot spawn"), PlaceAtOrigin(MissingId)))
         return false;
 
@@ -269,17 +269,17 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
         FGridResolvedItem Projection;
         if (!TestNotNull(TEXT("Pointerless ARM actor is spawned"), Canonical) ||
             !TestTrue(TEXT("Pointerless ARM physical level is registered"),
-                F.Registry->ResolveItem(Pointerless.CanonicalItemId, Level, Projection)) ||
+                F.Registry->ResolveItem(Pointerless.ItemId, Level, Projection)) ||
             !TestNull(TEXT("Canonical ARM actor has no legacy definition"),
                 Canonical->GetItemDefinitionAsset()) ||
             !TestEqual(TEXT("Canonical ARM runtime GUID unchanged"),
                 Canonical->GetRuntimeObjectId(), Pointerless.InstanceId) ||
             !TestEqual(TEXT("Canonical ARM N level unchanged"),
-                Canonical->CanonicalWorldItemLevel, Level) ||
+                Canonical->WorldItemLevel, Level) ||
             !TestEqual(TEXT("Canonical ARM ItemId unchanged"),
-                Canonical->GetItemDefinitionId(), Pointerless.CanonicalItemId) ||
+                Canonical->GetItemDefinitionId(), Pointerless.ItemId) ||
             !TestTrue(TEXT("Canonical ARM presentation is transient"),
-                Canonical->CanonicalWorldPresentation.IsValid()) ||
+                Canonical->ResolvedWorldPresentation.IsValid()) ||
             !TestTrue(TEXT("Canonical ARM world mesh from visual catalogue"),
                 Canonical->MeshComponent->GetStaticMesh() == Projection.WorldMesh.LoadSynchronous()) ||
             !TestEqual(TEXT("Canonical ARM persistent Niagara configuration"),
@@ -316,7 +316,7 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     Invalid.Quantity = 0;
     if (!TestNull(TEXT("Zero quantity cannot spawn"), PlaceAtOrigin(Invalid))) return false;
     Invalid = Arm;
-    Invalid.CanonicalItemId = TEXT("X8_UnknownIdentity");
+    Invalid.ItemId = TEXT("X8_UnknownIdentity");
     if (!TestNull(TEXT("Unknown identity cannot spawn"), PlaceAtOrigin(Invalid))) return false;
     Invalid = Arm;
     Invalid.InstanceId.Invalidate();

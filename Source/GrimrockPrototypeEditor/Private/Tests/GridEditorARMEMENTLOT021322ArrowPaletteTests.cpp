@@ -53,7 +53,7 @@ bool FARMEMENTLOT021322Arrows::RunTest(const FString&)
     const FName ArrowId(TEXT("Item_Arrows_01"));
     const FGridObjectPaletteEntry* Entry = Palette->FindEntryById(ArrowId);
     if (!TestNotNull(TEXT("Arrow is available in editor palette"), Entry)) return false;
-    TestEqual(TEXT("Canonical arrow identity"), Entry->CanonicalItemId, ArrowId);
+    TestEqual(TEXT("Canonical arrow identity"), Entry->ItemId, ArrowId);
     TestTrue(TEXT("Any retained arrow source matches"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")) == nullptr);
     TestEqual(TEXT("Category Items"), Entry->PaletteCategory, FName(TEXT("Items")));
     TestNull(TEXT("Direct arrow entry must not duplicate the item icon"), Entry->Icon.Get());
@@ -103,7 +103,7 @@ bool FARMEMENTLOT021322Arrows::RunTest(const FString&)
             Editor->PlaceSelectedObject();
             bPlacement = Level->LooseItemInstances.Num() == 1 &&
                 FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")) == nullptr &&
-                Level->LooseItemInstances[0].CanonicalItemId == ArrowId &&
+                Level->LooseItemInstances[0].ItemId == ArrowId &&
                 Level->LooseItemInstances[0].ItemLevel == 0 &&
                 Level->LooseItemInstances[0].PaletteEntryId == ArrowId &&
                 Level->LooseItemInstances[0].CellX == 1 &&

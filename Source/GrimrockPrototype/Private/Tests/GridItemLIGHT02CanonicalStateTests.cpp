@@ -146,7 +146,7 @@ bool FGridItemLIGHT02CanonicalItemLightStateTest::RunTest(const FString& Paramet
         return false;
 	FGridLooseItemInstance Placement;
 	Placement.InstanceId = FGuid::NewGuid();
-	Placement.CanonicalItemId = AuthoredTorch.ItemId;
+	Placement.ItemId = AuthoredTorch.ItemId;
 	Placement.Quantity = 1;
 	Placement.CellX = 0;
 	Placement.CellY = 0;

@@ -46,7 +46,7 @@ struct FGridPhysicalThrowStrengthReadModel
 			Out.bOneHanded = Canonical.bIsArmament
 				? (Canonical.Weapon.Projectile.bGenericThrowAuthored
 					? Canonical.Weapon.Projectile.bGenericThrowOneHanded
-					: Canonical.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
+					: Canonical.Weapon.HandPolicy != EGridHandPolicy::TwoHanded &&
 						Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand))
 				: Canonical.NonArmHandPolicy == EGridNonArmamentHandPolicy::OneHanded;
 			Out.UnitWeightKg = Canonical.WeightKg;

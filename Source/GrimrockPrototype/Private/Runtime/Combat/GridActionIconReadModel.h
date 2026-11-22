@@ -34,7 +34,7 @@ struct FGridActionIconReadModel
         if (Action.ActionId == FGridDualWieldPolicy::ActionId())
         {
             return bAttack && Action.ActionType == EGridCombatActionType::MeleeAttack &&
-                Item.Weapon.Kind == EGridCanonicalArmamentKind::Weapon
+                Item.Weapon.Kind == EGridArmamentKind::Weapon
                 ? Kind::MeleeDualWield : Kind::None;
         }
 
@@ -62,14 +62,14 @@ struct FGridActionIconReadModel
         }
         if (bDefense)
         {
-            if (Item.Weapon.Kind == EGridCanonicalArmamentKind::Shield && Id >= 72 && Id <= 82)
+            if (Item.Weapon.Kind == EGridArmamentKind::Shield && Id >= 72 && Id <= 82)
             {
                 return Kind::DefenseBlock;
             }
-            return Id == 13 && Item.Weapon.Kind == EGridCanonicalArmamentKind::Weapon
+            return Id == 13 && Item.Weapon.Kind == EGridArmamentKind::Weapon
                 ? Kind::DefenseParry : Kind::None;
         }
-        if (Item.Weapon.Kind != EGridCanonicalArmamentKind::Weapon)
+        if (Item.Weapon.Kind != EGridArmamentKind::Weapon)
         {
             return Kind::None; // Passive focus and shield have no attack icon.
         }

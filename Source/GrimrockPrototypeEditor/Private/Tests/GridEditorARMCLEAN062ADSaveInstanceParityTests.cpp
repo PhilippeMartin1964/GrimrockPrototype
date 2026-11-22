@@ -282,11 +282,11 @@ bool FGridClean062ADRejectLossySave::RunTest(const FString&)
         Registry.Registry->ResolveItem(Valid.ItemId, 21, Invalid));
     TestFalse(TEXT("Unknown ItemId cannot guess archetype"),
         Registry.Registry->ResolveItem(TEXT("Weapon_WrongIdentity"), 20, Invalid));
-    FGridCanonicalArmorReserveView Reserve;
+    FGridArmorReserveView Reserve;
     TestFalse(TEXT("Negative physical debt rejected"),
-        FGridCanonicalArmorReserveResolver::TryCompute(Valid.Weapon, -1, 0, Reserve));
+        FGridArmorReserveResolver::TryCompute(Valid.Weapon, -1, 0, Reserve));
     TestFalse(TEXT("Negative magical debt rejected"),
-        FGridCanonicalArmorReserveResolver::TryCompute(Valid.Weapon, 0, -1, Reserve));
+        FGridArmorReserveResolver::TryCompute(Valid.Weapon, 0, -1, Reserve));
     return !HasAnyErrors();
 }
 #endif // WITH_DEV_AUTOMATION_TESTS

@@ -86,7 +86,7 @@ namespace ARMEMENT0182
         {
             FGridItemSpawnInstance& Spawn = Level->ItemSpawns.AddDefaulted_GetRef();
             Spawn.SpawnId = FGuid::NewGuid();
-            Spawn.CanonicalItemId = TEXT("Weapon_Dagger_01");
+            Spawn.ItemId = TEXT("Weapon_Dagger_01");
             Spawn.ItemLevel = ItemLevel;
             Spawn.Quantity = 1;
             Spawn.CellX = X;

@@ -102,7 +102,7 @@ bool FARMEMENT0165EditorPreviewTest::RunTest(const FString&)
         const ARMEMENT0165::FPilot& Pilot = ARMEMENT0165::Pilots[Index];
         FGridLooseItemInstance& Placed = Level->LooseItemInstances.AddDefaulted_GetRef();
         Placed.InstanceId = FGuid::NewGuid();
-        Placed.CanonicalItemId = FName(Pilot.ItemId);
+        Placed.ItemId = FName(Pilot.ItemId);
         Placed.ItemLevel = 1;
         Placed.CellX = Index;
         Placed.CellY = 1;
@@ -116,7 +116,7 @@ bool FARMEMENT0165EditorPreviewTest::RunTest(const FString&)
     {
         FGridResolvedItem Item;
         if (!TestTrue(TEXT("Same canonical visual source as runtime actor"),
-            Fixture.Scope.Registry->ResolveItem(Placed.CanonicalItemId, 1, Item)))
+            Fixture.Scope.Registry->ResolveItem(Placed.ItemId, 1, Item)))
             continue;
         AGridEditorPreviewObjectActor* Actor = nullptr;
         for (TActorIterator<AGridEditorPreviewObjectActor> It(Fixture.World); It; ++It)

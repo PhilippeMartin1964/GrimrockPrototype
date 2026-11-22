@@ -39,7 +39,7 @@ struct FGridStartingKitEquipmentPolicyReadModel
 			{
 				return View;
 			}
-			View.bTwoHanded = Item.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded;
+			View.bTwoHanded = Item.Weapon.HandPolicy == EGridHandPolicy::TwoHanded;
 		}
 		else
 		{

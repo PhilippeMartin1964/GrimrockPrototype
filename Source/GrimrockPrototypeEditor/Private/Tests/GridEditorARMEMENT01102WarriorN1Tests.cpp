@@ -91,7 +91,7 @@ bool FARMEMENT01102WarriorSource::RunTest(const FString&)
             N1.bIsArmament && N1.ArchetypeId == ArmId &&
             N1.Weapon.DamageDice.bEnabled &&
             N1.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand));
-        const FGridCanonicalWeaponArchetype* Numeric = Root->WeaponCatalogue->Find(ArmId);
+        const FGridWeaponArchetype* Numeric = Root->WeaponCatalogue->Find(ArmId);
         if (TestNotNull(TEXT("Single authored Warrior class affinity"), Numeric))
             TestTrue(TEXT("Warrior is explicitly primary/secondary and never inferred"),
                 Numeric->PrimaryClassId == FName(TEXT("Warrior")) ||
@@ -103,7 +103,7 @@ bool FARMEMENT01102WarriorSource::RunTest(const FString&)
             TestTrue(TEXT("Authoritative action is valid and not empty"),
                 Bound.IsValid() && Bound.ActionId == FName(Spec.AttackId));
         TestEqual(TEXT("Only GreatAxe occupies both hands"),
-            N1.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded,
+            N1.Weapon.HandPolicy == EGridHandPolicy::TwoHanded,
             ArmId == FName(TEXT("ARM031")));
     }
     TestEqual(TEXT("Exactly four Warrior N1 identities"), UniqueItems.Num(), 4);
@@ -138,7 +138,7 @@ bool FARMEMENT01102WarriorGuard::RunTest(const FString&)
         TestTrue(TEXT("Unique registered armament identity and visuals"),
             Item.ArchetypeId == FName(Spec.ArchetypeId) && Item.MaxStack == 1 &&
             !Item.ItemIcon.IsNull() && !Item.WorldMesh.IsNull() && !Item.EquippedMesh.IsNull());
-        const FGridCanonicalWeaponVisual* Visual =
+        const FGridWeaponVisual* Visual =
             Root->WeaponVisualCatalogue->FindForArchetype(Item.ArchetypeId);
         if (TestNotNull(TEXT("Exactly one unique visual binding"), Visual))
             TestEqual(TEXT("Visual join cannot point at a different weapon"),
@@ -151,9 +151,9 @@ bool FARMEMENT01102WarriorGuard::RunTest(const FString&)
             TestTrue(TEXT("Action costs and range belong only to canonical weapon numerics"),
                 Item.Weapon.ActionPointCost > 0 && Item.Weapon.RangeCells > 0);
             TestNull(TEXT("Compact action must not duplicate weapon AP"),
-                FGridCanonicalAction::StaticStruct()->FindPropertyByName(TEXT("ActionPointCost")));
+                FGridAction::StaticStruct()->FindPropertyByName(TEXT("ActionPointCost")));
             TestNull(TEXT("Compact action must not duplicate weapon range"),
-                FGridCanonicalAction::StaticStruct()->FindPropertyByName(TEXT("RangeCells")));
+                FGridAction::StaticStruct()->FindPropertyByName(TEXT("RangeCells")));
         }
     }
     TestEqual(TEXT("All four Warrior items are really materialized"), Present, 4);

@@ -1566,7 +1566,7 @@ struct FGridCombatSurfaceConversionProfile
 	 * final output after that reaction has been emitted/resolved.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion")
-	bool bTriggerCanonicalReactionBeforeConversion = false;
+	bool bTriggerReactionBeforeConversion = false;
 
 	/** Traversal budget authored for the converted output surface. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion", meta = (ClampMin = "0", ClampMax = "4"))

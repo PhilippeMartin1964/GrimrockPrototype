@@ -23,14 +23,14 @@ struct FGridEditorLooseItemPreviewReadModel
 		const UGridItemSubsystem* Registry, const FGridLooseItemInstance& Placement)
 	{
 		FGridEditorLooseItemPreviewReadView View;
-		View.bRegisteredIdentity = !Placement.CanonicalItemId.IsNone();
+		View.bRegisteredIdentity = !Placement.ItemId.IsNone();
 		if (!View.bRegisteredIdentity || !IsValid(Registry) || !Registry->IsConfigured() ||
 			!Placement.InstanceId.IsValid() || Placement.Quantity < 1)
 			return View;
 
 		FGridResolvedItem Canonical;
-		if (!Registry->ResolveItem(Placement.CanonicalItemId, Placement.ItemLevel, Canonical) ||
-			!Canonical.IsValid() || Canonical.ItemId != Placement.CanonicalItemId ||
+		if (!Registry->ResolveItem(Placement.ItemId, Placement.ItemLevel, Canonical) ||
+			!Canonical.IsValid() || Canonical.ItemId != Placement.ItemId ||
 			Canonical.ItemLevel != Placement.ItemLevel)
 			return View;
 

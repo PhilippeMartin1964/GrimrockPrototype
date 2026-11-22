@@ -136,7 +136,7 @@ bool FARMEMENT01103ProductionBindings::RunTest(const FString&)
         TestTrue(TEXT("N1 weight is finite and positive"),
             FMath::IsFinite(Item.WeightKg) && Item.WeightKg > 0.f);
         TestEqual(TEXT("Only Great Axe has two-handed policy"),
-            Item.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded,
+            Item.Weapon.HandPolicy == EGridHandPolicy::TwoHanded,
             Item.ArchetypeId == FName(TEXT("ARM031")));
 
         const FName EntryId(Spec.ItemId);
@@ -144,7 +144,7 @@ bool FARMEMENT01103ProductionBindings::RunTest(const FString&)
         if (TestNotNull(TEXT("Direct collectible palette entry exists"), Entry))
         {
             TestEqual(TEXT("Weapon category"), Entry->PaletteCategory, FName(TEXT("Weapon")));
-            TestEqual(TEXT("Canonical item identity"), Entry->CanonicalItemId, Item.ItemId);
+            TestEqual(TEXT("Canonical item identity"), Entry->ItemId, Item.ItemId);
             TestNull(TEXT("Old pointer property absent"),
                 FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")));
             TestNull(TEXT("No duplicate icon"), Entry->Icon.Get());
@@ -158,7 +158,7 @@ bool FARMEMENT01103ProductionBindings::RunTest(const FString&)
         }
         int32 DungeonCount = 0;
         for (const FGridLooseItemInstance& Placed : Dungeon->LooseItemInstances)
-            if (Placed.CanonicalItemId == Item.ItemId &&
+            if (Placed.ItemId == Item.ItemId &&
                 Placed.ItemLevel >= 1 && Placed.ItemLevel <= 20) ++DungeonCount;
         TestTrue(TEXT("Canonical weapon still placed in production dungeon"),
             DungeonCount > 0);
@@ -210,7 +210,7 @@ bool FARMEMENT01103TransientPlacement::RunTest(const FString&)
         const FGridLooseItemInstance* Placed = Level->LooseItemInstances.FindByPredicate(
             [ItemId = Item.ItemId, Index](const FGridLooseItemInstance& Candidate)
             {
-                return Candidate.CanonicalItemId == ItemId &&
+                return Candidate.ItemId == ItemId &&
                     Candidate.ItemLevel >= 1 && Candidate.ItemLevel <= 20 &&
                     Candidate.CellX == Index && Candidate.CellY == 1;
             });
@@ -233,7 +233,7 @@ bool FARMEMENT01103TransientPlacement::RunTest(const FString&)
             FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
         FGridResolvedItem Canonical;
         if (!TestTrue(TEXT("Preview item resolves exact physical level"),
-            Registry->ResolveItem(Placed.CanonicalItemId, Placed.ItemLevel, Canonical))) continue;
+            Registry->ResolveItem(Placed.ItemId, Placed.ItemLevel, Canonical))) continue;
         UStaticMesh* Expected = Canonical.WorldMesh.LoadSynchronous();
         if (!TestNotNull(TEXT("Actual canonical world mesh"), Expected)) continue;
         AGridEditorPreviewObjectActor* Actor = nullptr;
@@ -276,7 +276,7 @@ bool FARMEMENT01103RealInventory::RunTest(const FString&)
             ARMEMENT01103::PhysicalCount(Inventory, Instance.RuntimeObjectId), 1);
         const FGridCharacterEquipmentState& Gear = Inventory->PartyInventoryState.ActiveEquipment[0];
         TestEqual(TEXT("MainHand preserves GUID"), Gear.MainHand.RuntimeObjectId, Instance.RuntimeObjectId);
-        const bool bTwo = Definition.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded;
+        const bool bTwo = Definition.Weapon.HandPolicy == EGridHandPolicy::TwoHanded;
         TestEqual(TEXT("Two-hand policy from ItemSystem"), Inventory->IsTwoHandedEquipped(0), bTwo);
         if (bTwo)
         {

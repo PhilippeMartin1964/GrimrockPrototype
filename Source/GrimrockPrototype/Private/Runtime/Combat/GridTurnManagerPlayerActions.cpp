@@ -382,10 +382,10 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	const UWorld* AttackSourceWorld = GetWorld();
 	UGameInstance* AttackSourceGI = AttackSourceWorld ? AttackSourceWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* AttackRegistry = AttackSourceGI ? AttackSourceGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	const bool bCanonicalAttackSource = AttackRegistry &&
+	const bool bRegisteredAttackSource = AttackRegistry &&
 		AttackRegistry->ContainsItem(OffensiveItemDefinitionId);
 	FGridCombatActionDefinition DirectCanonicalAction;
-	if (bCanonicalAttackSource)
+	if (bRegisteredAttackSource)
 	{
 		if (OffensiveEquipmentSlot != EGridEquipmentSlot::None)
 		{
@@ -433,7 +433,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		AttackStatusApplications = CombatActionOverride->Definition.StatusApplications;
 		AttackArmorEffects = CombatActionOverride->Definition.ArmorEffects;
 	}
-	else if (bCanonicalAttackSource)
+	else if (bRegisteredAttackSource)
 	{
 		// The same standard action as HUD/dual wield; its current compact
 		// representation is proven lossless by the native retirement gate.
@@ -821,10 +821,10 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 		const FName AmmunitionId = AmmoRequirement.AmmunitionItemId;
 		UGridItemDefinitionAsset* AmmunitionDefinition = nullptr;
 		// Canonical launch speed was validated before reserving AP.
-		float LaunchSpeed = AmmoRequirement.bCanonicalAmmunition
+		float LaunchSpeed = AmmoRequirement.bRegisteredAmmunition
 			? AmmoRequirement.AmmunitionLaunchSpeed : 0.0f;
 #if WITH_DEV_AUTOMATION_TESTS
-		if (!AmmoRegistry && GIsAutomationTesting && !AmmoRequirement.bCanonicalAmmunition)
+		if (!AmmoRegistry && GIsAutomationTesting && !AmmoRequirement.bRegisteredAmmunition)
 		{
 			AmmunitionDefinition = Inventory->FindItemDefinition(AmmunitionId);
 			if (IsValid(AmmunitionDefinition) && AmmunitionDefinition->ItemDefinitionId == AmmunitionId &&
@@ -835,7 +835,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 		}
 #endif
 		bSourceCommitted = IsValid(RuntimeActor) && FMath::IsFinite(LaunchSpeed) && LaunchSpeed > KINDA_SMALL_NUMBER &&
-			(AmmoRequirement.bCanonicalAmmunition || IsValid(AmmunitionDefinition));
+			(AmmoRequirement.bRegisteredAmmunition || IsValid(AmmunitionDefinition));
 		if (bSourceCommitted)
 		{
 			FGridItemInstance ProjectileItem;

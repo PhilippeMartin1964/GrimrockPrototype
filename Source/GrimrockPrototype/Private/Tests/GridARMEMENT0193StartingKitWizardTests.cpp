@@ -199,7 +199,7 @@ bool FARMEMENT0193WizardHunterDescriptionTest::RunTest(const FString&)
     FGridResolvedItem Item;
     if (!TestTrue(TEXT("Hunter spear N1 resolves canonically"),
         Fixture.Scope.Registry->ResolveItem(
-            Hunter->Items[0].CanonicalItemId, Hunter->Items[0].ItemLevel, Item)))
+            Hunter->Items[0].ItemId, Hunter->Items[0].ItemLevel, Item)))
         return false;
     const FString AuthoredName = Item.DisplayName.IsEmpty()
         ? Item.ItemId.ToString() : Item.DisplayName.ToString();

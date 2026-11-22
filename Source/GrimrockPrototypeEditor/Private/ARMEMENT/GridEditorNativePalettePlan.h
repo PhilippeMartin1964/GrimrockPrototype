@@ -36,7 +36,7 @@ struct FGridEditorNativePalettePlan
                 continue;
             }
             ++Direct;
-            if (Entry.CanonicalItemId.IsNone() ||
+            if (Entry.ItemId.IsNone() ||
                 !Entry.IsValidEntry() ||
                 Entry.DefaultMonsterDefinition || Entry.DefaultStoryCompanionDefinition)
             {
@@ -45,8 +45,8 @@ struct FGridEditorNativePalettePlan
             }
             const FGridEditorPaletteReadView Before =
                 FGridEditorPaletteReadModel::Resolve(Entry, Registry);
-            if (!Before.bCanonicalSource || !Before.bResolved ||
-                Before.ItemId != Entry.CanonicalItemId)
+            if (!Before.bRegisteredSource || !Before.bResolved ||
+                Before.ItemId != Entry.ItemId)
             {
                 Error = FString::Printf(TEXT("Unresolved canonical item or physical level: %s"),
                     *Entry.EntryId.ToString());
@@ -54,7 +54,7 @@ struct FGridEditorNativePalettePlan
             }
             const FGridEditorPaletteReadView After =
                 FGridEditorPaletteReadModel::Resolve(Entry, Registry);
-            if (!Entry.IsValidEntry() || !After.bCanonicalSource || !After.bResolved ||
+            if (!Entry.IsValidEntry() || !After.bRegisteredSource || !After.bResolved ||
                 After.ItemId != Before.ItemId ||
                 !After.DisplayName.EqualTo(Before.DisplayName) ||
                 !After.Description.EqualTo(Before.Description) ||

@@ -13,7 +13,7 @@ bool FGridClean062PresentationVariantsTest::RunTest(const FString&)
 {
 	TStrongObjectPtr<UGridActionPresentationCatalogueAsset> Catalogue(
 		NewObject<UGridActionPresentationCatalogueAsset>());
-	FGridCanonicalActionPresentation& Presentation =
+	FGridActionPresentation& Presentation =
 		Catalogue->Presentations.AddDefaulted_GetRef();
 	Presentation.PresentationId = TEXT("SwordSwingStandard");
 	Presentation.MotionStyle = EGridPlayerAttackMotionStyle::Swing;
@@ -58,7 +58,7 @@ bool FGridClean062PresentationVariantsTest::RunTest(const FString&)
 		}
 		return false;
 	}
-	const FGridCanonicalActionPresentation* Found =
+	const FGridActionPresentation* Found =
 		Catalogue->Find(TEXT("SwordSwingStandard"));
 	if (!TestNotNull(TEXT("Presentation resolved by one stable ID"), Found))
 	{
@@ -92,7 +92,7 @@ bool FGridClean062PresentationInvalidTest::RunTest(const FString&)
 {
 	TStrongObjectPtr<UGridActionPresentationCatalogueAsset> Catalogue(
 		NewObject<UGridActionPresentationCatalogueAsset>());
-	FGridCanonicalActionPresentation& Presentation = Catalogue->Presentations.AddDefaulted_GetRef();
+	FGridActionPresentation& Presentation = Catalogue->Presentations.AddDefaulted_GetRef();
 	Presentation.PresentationId = TEXT("TestAttack");
 	TArray<FString> Errors;
 	TestTrue(TEXT("Empty optional event channels are valid"), Catalogue->Validate(Errors));

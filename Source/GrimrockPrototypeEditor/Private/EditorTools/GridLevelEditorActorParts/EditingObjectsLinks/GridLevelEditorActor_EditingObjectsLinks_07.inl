@@ -108,7 +108,7 @@ bool AGridLevelEditorActor::SetSelectedObjectItemLevel(int32 NewItemLevel)
 	{
 		return false;
 	}
-	const FName CanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
+	const FName CanonicalId = Loose ? Loose->ItemId : Spawn->ItemId;
 	const bool bAllowed = (Loose ? Loose->Quantity : Spawn->Quantity) > 0 &&
 		FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 			ResolveEditorItemRegistry(), CanonicalId, NewItemLevel);
@@ -135,7 +135,7 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 	FGridItemSpawnInstance* Spawn = Loose ? nullptr : LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId);
 	if (!Loose && !Spawn) return false;
 
-	const FName PreviousCanonicalId = Loose ? Loose->CanonicalItemId : Spawn->CanonicalItemId;
+	const FName PreviousCanonicalId = Loose ? Loose->ItemId : Spawn->ItemId;
 	if (PreviousCanonicalId == NewItemDefinitionId)
 		return (Loose ? Loose->Quantity : Spawn->Quantity) > 0 &&
 			FGridEditorItemLevelPolicy::CanAuthorItemLevel(
@@ -171,12 +171,12 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 		LevelAsset->Modify();
 		if (Loose)
 		{
-			Loose->CanonicalItemId = NewItemDefinitionId;
+			Loose->ItemId = NewItemDefinitionId;
 			Loose->ItemLevel = AuthoredLevel;
 		}
 		else
 		{
-			Spawn->CanonicalItemId = NewItemDefinitionId;
+			Spawn->ItemId = NewItemDefinitionId;
 			Spawn->ItemLevel = AuthoredLevel;
 		}
 		LevelAsset->MarkPackageDirty();

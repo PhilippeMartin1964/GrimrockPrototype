@@ -80,13 +80,13 @@ struct FGridEditorNativeInitialContentPlan
                 ++Plan.Rows;
                 FGridResolvedItem Physical;
                 if (Item.Quantity < 1 || !FGridEditorItemLevelPolicy::CanAuthorItemLevel(
-                        Registry, Item.CanonicalItemId, Item.ItemLevel) ||
-                    !Registry->ResolveItem(Item.CanonicalItemId, Item.ItemLevel, Physical) ||
-                    !Physical.IsValid() || Physical.ItemId != Item.CanonicalItemId ||
+                        Registry, Item.ItemId, Item.ItemLevel) ||
+                    !Registry->ResolveItem(Item.ItemId, Item.ItemLevel, Physical) ||
+                    !Physical.IsValid() || Physical.ItemId != Item.ItemId ||
                     Physical.ItemLevel != Item.ItemLevel)
                 {
                     Error = FString::Printf(TEXT("Invalid registered physical initial item %s on %s."),
-                        *Item.CanonicalItemId.ToString(), *Object.InstanceId.ToString());
+                        *Item.ItemId.ToString(), *Object.InstanceId.ToString());
                     return false;
                 }
             }

@@ -32,8 +32,8 @@ namespace
 			if (!Registry->ResolveItem(
 					OutSource.Item.ItemDefinitionId, OutSource.Item.ItemLevel, Canonical) ||
 				!Canonical.bIsArmament ||
-				Canonical.Weapon.Kind != EGridCanonicalArmamentKind::Weapon ||
-				Canonical.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded ||
+				Canonical.Weapon.Kind != EGridArmamentKind::Weapon ||
+				Canonical.Weapon.HandPolicy == EGridHandPolicy::TwoHanded ||
 				!Canonical.Weapon.HasAttackSourceInHand(Slot) ||
 				Canonical.Weapon.RangeCells != 1 ||
 				!Canonical.Weapon.RequiredAmmoKindId.IsNone())

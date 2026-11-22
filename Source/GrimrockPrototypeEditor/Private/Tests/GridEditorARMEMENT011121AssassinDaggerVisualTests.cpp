@@ -63,7 +63,7 @@ bool FARMEMENT011121VisualCatalogueIntegrity::RunTest(const FString&)
         TestFalse(TEXT("No duplicate Assassin Dagger VisualId"), SeenVisuals.Contains(VisualId));
         SeenArms.Add(Archetype);
         SeenVisuals.Add(VisualId);
-        const FGridCanonicalWeaponVisual* Visual =
+        const FGridWeaponVisual* Visual =
             Root->WeaponVisualCatalogue->FindForArchetype(Archetype);
         if (!TestNotNull(TEXT("Approved final native AssassinDagger visual"), Visual))
             continue;

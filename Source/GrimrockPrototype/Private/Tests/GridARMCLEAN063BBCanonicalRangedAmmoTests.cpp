@@ -118,16 +118,16 @@ namespace ARMCLEAN063BB
         const FGridRangedAmmunitionRequirement Required = F.Resolve(OldWeapon);
         const auto NoLegacy = F.Resolve();
         Test.TestTrue(TEXT("Canonical source wins over conflicting old definition"),
-            Required.bCanonicalSource && Required.bValid && Required.AmmunitionItemId == ArrowId);
+            Required.bRegisteredSource && Required.bValid && Required.AmmunitionItemId == ArrowId);
         Test.TestTrue(TEXT("No old weapon needed for canonical ammo resolution"),
-            NoLegacy.bCanonicalSource && NoLegacy.bValid &&
+            NoLegacy.bRegisteredSource && NoLegacy.bValid &&
             NoLegacy.AmmunitionItemId == Required.AmmunitionItemId);
         Test.TestTrue(TEXT("Arrow weight comes from registry"),
             FMath::IsNearlyEqual(Required.AmmunitionWeightKg, Ammo.WeightKg));
 
         if (FCString::Strcmp(Scenario, TEXT("Projection")) == 0)
         {
-            Test.TestTrue(TEXT("Canonical ammunition is valid before any AP reservation"), Required.bCanonicalAmmunition);
+            Test.TestTrue(TEXT("Canonical ammunition is valid before any AP reservation"), Required.bRegisteredAmmunition);
             // Migration parity of the old arrow source was proven by the
             // native X.66 asset audit. Runtime flight now has one authority.
             Test.TestTrue(TEXT("Canonical arrow owns finite authored flight speed"),
@@ -162,7 +162,7 @@ namespace ARMCLEAN063BB
             Test.TestFalse(TEXT("N1 ammo cannot be physical flight"), FGridRangedAmmunitionPolicy::TryResolveCanonicalLaunchSpeed(nullptr, ProbeAmmo, Speed));
             const auto InvalidN0 = F.Resolve(OldWeapon, 0);
             Test.TestTrue(TEXT("Known but invalid canonical N0 fails closed"),
-                InvalidN0.bCanonicalSource && !InvalidN0.bValid);
+                InvalidN0.bRegisteredSource && !InvalidN0.bValid);
             const auto Melee = F.Resolve(OldWeapon, 1, false);
             Test.TestTrue(TEXT("Melee needs no arrow"), Melee.bValid && Melee.AmmunitionItemId.IsNone());
             UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
@@ -174,11 +174,11 @@ namespace ARMCLEAN063BB
                 UnknownConfigured.bValid);
             Test.TestTrue(TEXT("Configured unknown launcher never invents an ammo join"),
                 UnknownConfigured.AmmunitionItemId.IsNone() &&
-                !UnknownConfigured.bCanonicalAmmunition);
+                !UnknownConfigured.bRegisteredAmmunition);
             const auto WorldlessLegacy = FGridRangedAmmunitionPolicy::ResolveForAttack(
                 nullptr, Legacy->ItemDefinitionId, 0, Legacy, true);
             Test.TestTrue(TEXT("Only worldless Automation can characterize the historical ammo join"),
-                !WorldlessLegacy.bCanonicalSource && WorldlessLegacy.bValid &&
+                !WorldlessLegacy.bRegisteredSource && WorldlessLegacy.bValid &&
                 WorldlessLegacy.AmmunitionItemId == Legacy->RequiredAmmunitionItemDefinitionId);
             return !Test.HasAnyErrors();
         }
@@ -265,8 +265,8 @@ namespace ARMCLEAN063BB
             Test.TestTrue(TEXT("Projectile uses real canonical mesh"),
                 Projectile->MeshComponent && Projectile->MeshComponent->GetStaticMesh() != nullptr);
             Test.TestTrue(TEXT("Pointerless ammunition has complete canonical presentation"),
-                Projectile->CanonicalWorldPresentation.IsValid());
-            Test.TestEqual(TEXT("Ammo keeps physical level N0"), Projectile->CanonicalWorldItemLevel, 0);
+                Projectile->ResolvedWorldPresentation.IsValid());
+            Test.TestEqual(TEXT("Ammo keeps physical level N0"), Projectile->WorldItemLevel, 0);
             Test.TestTrue(TEXT("Arrow mesh remains the registered world mesh"),
                 Projectile->MeshComponent->GetStaticMesh() == Ammo.WorldMesh.LoadSynchronous());
             Test.TestEqual(TEXT("Ammo point-light profile comes from ItemSystem"),

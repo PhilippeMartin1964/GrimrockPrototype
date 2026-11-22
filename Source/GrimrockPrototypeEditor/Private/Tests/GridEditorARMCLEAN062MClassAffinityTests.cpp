@@ -22,7 +22,7 @@ bool FGridClean062MClassAffinityProjection::RunTest(const FString&)
     TestEqual(TEXT("Six authentic class preference records"),
         Root->WeaponCatalogue->ClassPreferences.Num(), 6);
     TSet<FName> Classes, Archetypes;
-    for (const FGridCanonicalClassPreference& Class : Root->WeaponCatalogue->ClassPreferences)
+    for (const FGridClassPreference& Class : Root->WeaponCatalogue->ClassPreferences)
     {
         TestTrue(TEXT("Class ID is explicitly authored"), !Class.ClassId.IsNone());
         TestFalse(TEXT("No duplicate global class advice"), Classes.Contains(Class.ClassId));
@@ -30,7 +30,7 @@ bool FGridClean062MClassAffinityProjection::RunTest(const FString&)
         TestTrue(TEXT("Class branches are not an inferred fallback"),
             !Class.CanonicalBranches.IsEmpty());
     }
-    for (const FGridCanonicalWeaponArchetype& Arm : Root->WeaponCatalogue->Archetypes)
+    for (const FGridWeaponArchetype& Arm : Root->WeaponCatalogue->Archetypes)
     {
         TestFalse(TEXT("No duplicate canonical numeric archetype"), Archetypes.Contains(Arm.ArchetypeId));
         Archetypes.Add(Arm.ArchetypeId);

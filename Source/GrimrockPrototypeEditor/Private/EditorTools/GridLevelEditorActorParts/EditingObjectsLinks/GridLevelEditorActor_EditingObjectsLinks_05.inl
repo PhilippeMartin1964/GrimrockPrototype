@@ -40,15 +40,15 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 		if ((bReplaceLooseIdentity && !CanonicalEntry) ||
 			(CanonicalEntry && (!CanonicalEntry->IsDirectItemEntry() || !CanonicalEntry->IsValidEntry())))
 			return false;
-		const FName TargetId = bReplaceLooseIdentity ? CanonicalEntry->CanonicalItemId : ExistingLoose->CanonicalItemId;
-		const int32 TargetLevel = TargetId == ExistingLoose->CanonicalItemId
-			? ExistingLoose->ItemLevel : CanonicalEntry->CanonicalDefaultItemLevel;
+		const FName TargetId = bReplaceLooseIdentity ? CanonicalEntry->ItemId : ExistingLoose->ItemId;
+		const int32 TargetLevel = TargetId == ExistingLoose->ItemId
+			? ExistingLoose->ItemLevel : CanonicalEntry->DefaultItemLevel;
 		const UGridItemSubsystem* Registry = ResolveEditorItemRegistry();
 		FGridResolvedItem Resolved;
 		if (!FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry, TargetId, TargetLevel) ||
 			!Registry->ResolveItem(TargetId, TargetLevel, Resolved) ||
 			ExistingLoose->Quantity < 1 ||
-			(TargetId != ExistingLoose->CanonicalItemId &&
+			(TargetId != ExistingLoose->ItemId &&
 			 ExistingLoose->Quantity > FMath::Max(1, Resolved.MaxStack)))
 			return false;
 	}
@@ -69,10 +69,10 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 	}
 	else if (FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId))
 	{
-		if (bReplaceLooseIdentity && LooseItemInstance->CanonicalItemId != CanonicalEntry->CanonicalItemId)
+		if (bReplaceLooseIdentity && LooseItemInstance->ItemId != CanonicalEntry->ItemId)
 		{
-			LooseItemInstance->CanonicalItemId = CanonicalEntry->CanonicalItemId;
-			LooseItemInstance->ItemLevel = CanonicalEntry->CanonicalDefaultItemLevel;
+			LooseItemInstance->ItemId = CanonicalEntry->ItemId;
+			LooseItemInstance->ItemLevel = CanonicalEntry->DefaultItemLevel;
 		}
 		LooseItemInstance->ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
 		LooseItemInstance->ReadableContentId = ObjectBehavior.Item.DefaultReadableContentId;

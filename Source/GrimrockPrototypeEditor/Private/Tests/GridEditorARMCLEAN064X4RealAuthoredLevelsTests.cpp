@@ -218,7 +218,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
         {
             if (!Placement.InstanceId.IsValid() ||
                 PhysicalGuids.Contains(Placement.InstanceId) ||
-                !Check(Placement.CanonicalItemId, nullptr,
+                !Check(Placement.ItemId, nullptr,
                     Placement.ItemLevel, Placement.Quantity, true))
             {
                 AddError(TEXT("Invalid source, duplicate GUID or level in real loose placement."));
@@ -231,7 +231,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
         for (const FGridItemSpawnInstance& Spawn : Level->ItemSpawns)
         {
             if (!Spawn.SpawnId.IsValid() ||
-                !Check(Spawn.CanonicalItemId, nullptr,
+                !Check(Spawn.ItemId, nullptr,
                     Spawn.ItemLevel, Spawn.Quantity, true))
             {
                 AddError(TEXT("Invalid source identity or level in authored spawn."));
@@ -245,7 +245,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
             for (const FGridReceptacleInitialItemConfig& Initial :
                 World.InstanceConfig.ReceptacleInitialContent)
             {
-                if (!Check(Initial.CanonicalItemId, nullptr,
+                if (!Check(Initial.ItemId, nullptr,
                     Initial.ItemLevel, Initial.Quantity, true))
                 {
                     AddError(TEXT("Invalid initial receptacle physical level."));
@@ -278,8 +278,8 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
             continue;
         }
         // X.5 materialized the physical default in the palette.
-        if (!Check(Entry.CanonicalItemId, nullptr,
-                Entry.CanonicalDefaultItemLevel, 1, true))
+        if (!Check(Entry.ItemId, nullptr,
+                Entry.DefaultItemLevel, 1, true))
         {
             AddError(TEXT("Physical level for a direct palette item is unresolved."));
             return false;

@@ -42,7 +42,7 @@ FGridRangedAmmunitionRequirement FGridRangedAmmunitionPolicy::ResolveForAttack(
 	}
 	if (IsValid(Registry) && Registry->ContainsItem(WeaponItemId))
 	{
-		Result.bCanonicalSource = true;
+		Result.bRegisteredSource = true;
 		FGridResolvedItem Weapon;
 		if (!Registry->ResolveItem(WeaponItemId, WeaponLevel, Weapon) ||
 			!Weapon.bIsArmament)
@@ -59,7 +59,7 @@ FGridRangedAmmunitionRequirement FGridRangedAmmunitionPolicy::ResolveForAttack(
 		{
 			return Result;
 		}
-		Result.bCanonicalAmmunition = true;
+		Result.bRegisteredAmmunition = true;
 		Result.AmmunitionItemId = Ammo.ItemId;
 		Result.AmmunitionWeightKg = Ammo.WeightKg;
 		Result.AmmunitionMaxStack = Ammo.MaxStack;
@@ -90,7 +90,7 @@ bool FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
 {
 	if (!Requirement.bValid) return false;
 	if (Requirement.AmmunitionItemId.IsNone()) return true;
-	if (Requirement.bCanonicalAmmunition)
+	if (Requirement.bRegisteredAmmunition)
 	{
 		if (!Inventory.IsValidCharacterIndex(CharacterIndex)) return false;
 		// The ID-based debit below must never be able to select a malformed

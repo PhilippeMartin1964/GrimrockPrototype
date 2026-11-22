@@ -1306,9 +1306,9 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 	const FGridLooseItemInstance* LooseItem = CurrentEditorActor->LevelAsset->FindLooseItemInstanceById(ObjectId);
 	const FGridItemSpawnInstance* ItemSpawn = CurrentEditorActor->LevelAsset->FindItemSpawnInstanceById(ObjectId);
 	if (!LooseItem && !ItemSpawn) return SNullWidget::NullWidget;
-	const FName CanonicalId = LooseItem ? LooseItem->CanonicalItemId : ItemSpawn->CanonicalItemId;
+	const FName CanonicalId = LooseItem ? LooseItem->ItemId : ItemSpawn->ItemId;
 	const int32 PhysicalLevel = LooseItem ? LooseItem->ItemLevel : ItemSpawn->ItemLevel;
-	const bool bCanonicalArm = !CanonicalId.IsNone() &&
+	const bool bRegisteredArm = !CanonicalId.IsNone() &&
 		FGridEditorItemLevelPolicy::CanAuthorItemLevel(
 			CurrentEditorActor->ResolveEditorItemRegistry(), CanonicalId, 1);
 
@@ -1340,7 +1340,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 			.Text(FText::FromString(TEXT("Canonical placement: identity and preview come from ItemSystem; no legacy asset is required.")))
 			.AutoWrapText(true)];
 	}
-	if (bCanonicalArm)
+	if (bRegisteredArm)
 	{
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
 			FText::FromString(TEXT("Item Level (physical N1-N20)")),
@@ -1556,7 +1556,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 			for (int32 Index = 0; Index < Overrides.ReceptacleRules.AcceptedItems.Num(); ++Index)
 			{
 				const FName AuthoredItemId =
-					Overrides.ReceptacleRules.AcceptedItems[Index].CanonicalItemId;
+					Overrides.ReceptacleRules.AcceptedItems[Index].ItemId;
 				AcceptedItemsList->AddSlot().AutoHeight().Padding(0.f, 2.f)[
 					SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)[
@@ -1572,7 +1572,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 									FGridReceptacleAcceptedItemConfig Proposed = Current;
 									if (!FGridEditorReceptacleRuleAuthoring::TrySelectCanonicalId(
 										EditorActor->ResolveEditorItemRegistry(), GetNameFromEditorText(NewText), Proposed) ||
-										Current.CanonicalItemId == Proposed.CanonicalItemId)
+										Current.ItemId == Proposed.ItemId)
 									{
 										RequestRefresh();
 										return;
@@ -1618,7 +1618,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 			for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Receptacle.AcceptedItems)
 			{
 				AcceptedItemsList->AddSlot().AutoHeight().Padding(0.f, 2.f)[
-					SNew(STextBlock).Text(GetNameText(AcceptedItem.CanonicalItemId))];
+					SNew(STextBlock).Text(GetNameText(AcceptedItem.ItemId))];
 			}
 			if (Receptacle.AcceptedItems.IsEmpty())
 			{
@@ -1635,7 +1635,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)[
 					SNew(SEditableTextBox)
-						.Text(GetNameText(InitialItem.CanonicalItemId))
+						.Text(GetNameText(InitialItem.ItemId))
 						.ToolTipText(FText::FromString(TEXT("Enter a registered ItemId. Changing an identity keeps its valid physical level; otherwise it starts at N1 for weapons or N0 for unlevelled items.")))
 						.OnTextCommitted_Lambda([this, ObjectId, InitialIndex](const FText& NewText, ETextCommit::Type)
 						{
@@ -1646,7 +1646,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 							FGridReceptacleInitialItemConfig Proposed = Current;
 							if (!FGridEditorReceptacleInitialAuthoring::TrySelectCanonicalId(
 								EditorActor->ResolveEditorItemRegistry(), GetNameFromEditorText(NewText), Proposed) ||
-								(Current.CanonicalItemId == Proposed.CanonicalItemId &&
+								(Current.ItemId == Proposed.ItemId &&
 								 Current.ItemLevel == Proposed.ItemLevel))
 							{
 								RequestRefresh();

@@ -67,7 +67,7 @@ bool FGridClean064X31ReceptacleTypeConditions::RunTest(const FString&)
             {
                 StaleVisual->ItemDefinitionAsset = Old;
                 StaleVisual->ItemDefinitionId = Id;
-                StaleVisual->CanonicalWorldItemLevel = Level;
+                StaleVisual->WorldItemLevel = Level;
                 StaleVisual->SetRuntimeObjectId(Item.RuntimeObjectId);
                 Item.ItemActor = StaleVisual;
             }

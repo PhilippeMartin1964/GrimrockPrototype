@@ -255,8 +255,8 @@ bool FARMLot02132Ammo::RunTest(const FString&)
         FGridRangedAmmunitionPolicy::ResolveForAttack(Fixture.Registry,
             Recurve.ItemId, 1, nullptr, true);
     if (!TestTrue(TEXT("One canonical, resolved arrow source"),
-        Required.bValid && Required.bCanonicalSource &&
-        Required.bCanonicalAmmunition && Required.AmmunitionItemId == ArrowId))
+        Required.bValid && Required.bRegisteredSource &&
+        Required.bRegisteredAmmunition && Required.AmmunitionItemId == ArrowId))
         return false;
     UGridPartyInventoryComponent* Inv = Fixture.MakeInventory();
     if (!TestNotNull(TEXT("World-bound canonical inventory"), Inv)) return false;

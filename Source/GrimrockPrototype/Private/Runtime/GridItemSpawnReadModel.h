@@ -14,17 +14,17 @@ struct FGridItemSpawnReadModel
         Out = FGridLooseItemInstance();
         if (!Source.SpawnId.IsValid() || !Source.bSpawnAtStart ||
             !IsValid(Registry) || !Registry->IsConfigured() ||
-            Source.CanonicalItemId.IsNone() || Source.Quantity < 1)
+            Source.ItemId.IsNone() || Source.Quantity < 1)
             return false;
 
         FGridResolvedItem Physical;
-        if (!Registry->ResolveItem(Source.CanonicalItemId, Source.ItemLevel, Physical) ||
-            !Physical.IsValid() || Physical.ItemId != Source.CanonicalItemId ||
+        if (!Registry->ResolveItem(Source.ItemId, Source.ItemLevel, Physical) ||
+            !Physical.IsValid() || Physical.ItemId != Source.ItemId ||
             Physical.ItemLevel != Source.ItemLevel)
             return false;
 
         Out.InstanceId = Source.SpawnId;
-        Out.CanonicalItemId = Source.CanonicalItemId;
+        Out.ItemId = Source.ItemId;
         Out.ItemLevel = Source.ItemLevel;
         Out.Quantity = Source.Quantity;
         Out.CellX = Source.CellX;

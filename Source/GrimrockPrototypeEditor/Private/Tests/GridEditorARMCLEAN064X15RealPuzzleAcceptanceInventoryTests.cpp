@@ -111,7 +111,7 @@ bool FGridEditorClean064X15RealAcceptanceInventory::RunTest(const FString&)
             {
                 ++OverrideReceptacleCount;
                 for (const FGridReceptacleAcceptedItemConfig& Rule : O.ReceptacleRules.AcceptedItems)
-                    {InstanceAccepted.Visit(Rule.CanonicalItemId, Registry.Get());}
+                    {InstanceAccepted.Visit(Rule.ItemId, Registry.Get());}
             }
             if (O.bOverrideAcceptedKeys)
             {
@@ -158,7 +158,7 @@ bool FGridEditorClean064X15RealAcceptanceInventory::RunTest(const FString&)
             for (const FGridReceptacleAcceptedItemConfig& Rule :
                 Definition->DefaultBehavior.Receptacle.AcceptedItems)
             {
-                DefinitionAccepted.Visit(Rule.CanonicalItemId, Registry.Get());
+                DefinitionAccepted.Visit(Rule.ItemId, Registry.Get());
             }
         }
 

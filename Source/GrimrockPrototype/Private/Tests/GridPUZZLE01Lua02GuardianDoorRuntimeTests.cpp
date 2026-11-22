@@ -228,7 +228,7 @@ bool FGridPUZZLE01Lua02RuntimeGuardianDoorCompletionTest::RunTest(const FString&
 	GuardianDefinition->DefaultBehavior.Receptacle.bAcceptAnyItem = false;
 	GuardianDefinition->DefaultBehavior.Receptacle.MaxContainedItems = 1;
 	FGridReceptacleAcceptedItemConfig AcceptedGem;
-	AcceptedGem.CanonicalItemId = BlueGemId;
+	AcceptedGem.ItemId = BlueGemId;
 	GuardianDefinition->DefaultBehavior.Receptacle.AcceptedItems.Add(AcceptedGem);
 	Runtime->WorldObjectDefinitions.Add(GuardianDefinition);
 

@@ -107,7 +107,7 @@ bool FARMEMENT0171ProductionPaletteTest::RunTest(const FString&)
         TestEqual(TEXT("EntryId occurs once"), Count, 1);
         TestTrue(TEXT("Pilot retains legacy Items or migrated Weapon palette category"),
             Entry->PaletteCategory == FName(TEXT("Items")) || Entry->PaletteCategory == FName(TEXT("Weapon")));
-        TestEqual(TEXT("Entry stores the canonical ItemId"), Entry->CanonicalItemId, Item.ItemId);
+        TestEqual(TEXT("Entry stores the canonical ItemId"), Entry->ItemId, Item.ItemId);
         TestTrue(TEXT("Any retained pilot source matches"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")) == nullptr);
         TestTrue(TEXT("No companion WorldObjectDefinition"), Entry->DefaultWorldObjectDefinition == nullptr);
         TestTrue(TEXT("No duplicate palette Icon"), Entry->Icon == nullptr);
@@ -164,7 +164,7 @@ bool FARMEMENT0171PlacementPreviewTest::RunTest(const FString&)
         if (Level->LooseItemInstances.Num() <= Index) { continue; }
         const FGridLooseItemInstance& Placed = Level->LooseItemInstances[Index];
         TestNull(TEXT("New canonical item does not persist old definition"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
-        TestEqual(TEXT("Real canonical ItemId persisted"), Placed.CanonicalItemId, Definition.ItemId);
+        TestEqual(TEXT("Real canonical ItemId persisted"), Placed.ItemId, Definition.ItemId);
         TestTrue(TEXT("ARM physical N1–N20 retained"), Placed.ItemLevel >= 1 && Placed.ItemLevel <= 20);
         TestEqual(TEXT("Palette identity is persisted on placement"), Placed.PaletteEntryId, FName(Pilot.ItemId));
         TestEqual(TEXT("Correct grid X"), Placed.CellX, Index);
@@ -185,7 +185,7 @@ bool FARMEMENT0171PlacementPreviewTest::RunTest(const FString&)
         TestNull(TEXT("New registered placement is pointerless"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
         FGridResolvedItem Canonical;
         if (!TestTrue(TEXT("Canonical physical preview resolves"),
-            Registry->ResolveItem(Placed.CanonicalItemId, Placed.ItemLevel, Canonical))) { continue; }
+            Registry->ResolveItem(Placed.ItemId, Placed.ItemLevel, Canonical))) { continue; }
         UStaticMesh* ExpectedMesh = Canonical.WorldMesh.LoadSynchronous();
         if (!TestNotNull(TEXT("Resolved canonical mesh"), ExpectedMesh)) { continue; }
         AGridEditorPreviewObjectActor* Preview = nullptr;

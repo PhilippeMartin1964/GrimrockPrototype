@@ -46,7 +46,7 @@ bool FGridClean064UQuickActionMigration::RunTest(const FString&)
         return false;
     }
     int32 Checked = 0;
-    for (const FGridCanonicalRuntimeAction& Entry : Root->ActionCatalogue->DetailedActions)
+    for (const FGridRuntimeAction& Entry : Root->ActionCatalogue->DetailedActions)
     {
         const FGridCombatActionDefinition& Saved = Entry.Definition;
         if (Saved.SourcePolicy == EGridCombatActionSourcePolicy::Equipment)

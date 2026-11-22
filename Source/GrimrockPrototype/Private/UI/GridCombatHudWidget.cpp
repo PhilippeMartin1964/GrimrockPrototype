@@ -1719,7 +1719,7 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 			? ActionView.Action.Definition.SourcePolicy : ActionView.Binding.SourcePolicy;
 		const bool bRegisteredIdentity =
 			Registry && Registry->ContainsItem(SourceDefinitionId);
-		const bool bCanonicalEquipment =
+		const bool bRegisteredEquipment =
 			SourcePolicy == EGridCombatActionSourcePolicy::Equipment && bRegisteredIdentity;
 
 		FGridItemInstance EquippedItem;
@@ -1736,7 +1736,7 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 			SourceItem = &EquippedItem;
 		}
 
-		if (bCanonicalEquipment)
+		if (bRegisteredEquipment)
 		{
 			// Registered ARM: ONLY WeaponVisualCatalogue.ActionIcons, never
 			// item icons from DA_Weapon_*, even when a legacy copy exists.

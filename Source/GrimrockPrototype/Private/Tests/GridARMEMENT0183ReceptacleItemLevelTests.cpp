@@ -93,7 +93,7 @@ namespace ARMEMENT0183
         {
             FGridReceptacleInitialItemConfig& Initial =
                 Level->WorldObjectInstances[0].InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef();
-            Initial.CanonicalItemId = DaggerId;
+            Initial.ItemId = DaggerId;
             Initial.Quantity = 1;
             Initial.ItemLevel = LevelNumber;
         }

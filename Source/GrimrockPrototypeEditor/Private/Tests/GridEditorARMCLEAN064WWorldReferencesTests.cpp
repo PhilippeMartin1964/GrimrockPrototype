@@ -79,13 +79,13 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
         for (const FGridLooseItemInstance& Item : Level->LooseItemInstances)
         {
             if (!TestTrue(TEXT("Loose item maintains exact source ItemId"),
-                Visit(nullptr, Item.CanonicalItemId, true))) { return false; }
+                Visit(nullptr, Item.ItemId, true))) { return false; }
             ++Loose;
         }
         for (const FGridItemSpawnInstance& Item : Level->ItemSpawns)
         {
             if (!TestTrue(TEXT("Spawn maintains exact source ItemId"),
-                Visit(nullptr, Item.CanonicalItemId, true))) { return false; }
+                Visit(nullptr, Item.ItemId, true))) { return false; }
             ++Spawn;
         }
         for (const FGridWorldObjectInstance& World : Level->WorldObjectInstances)
@@ -94,7 +94,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
                 World.InstanceConfig.ReceptacleInitialContent)
             {
                 if (!TestTrue(TEXT("Receptacle maintains exact source ItemId"),
-                    Visit(nullptr, Item.CanonicalItemId, true))) { return false; }
+                    Visit(nullptr, Item.ItemId, true))) { return false; }
                 ++Receptacle;
             }
         }
@@ -108,7 +108,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
     {
         if (!Entry.IsDirectItemEntry()) { continue; }
         if (!TestTrue(TEXT("Palette item retains exact source ItemId"),
-                Visit(nullptr, Entry.CanonicalItemId, true)))
+                Visit(nullptr, Entry.ItemId, true)))
         {
             return false;
         }

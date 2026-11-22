@@ -150,13 +150,13 @@ void AGridReceptacleActor::InitializeRuntimeWorldObject(
 		{
 			AcceptedItemDefinitionIds.AddUnique(EffectiveId);
 		}
-		else if (!AcceptedItem.CanonicalItemId.IsNone())
+		else if (!AcceptedItem.ItemId.IsNone())
 		{
 			// Never turn an invalid persisted canonical rule into a
 			// permissive legacy rule or an accept-any fallback.
 			UE_LOG(LogGridReceptacle, Warning,
 				TEXT("Receptacle acceptance rule rejected: canonical ItemId=%s ObjectId=%s."),
-				*AcceptedItem.CanonicalItemId.ToString(), *ObjectId.ToString());
+				*AcceptedItem.ItemId.ToString(), *ObjectId.ToString());
 		}
 	}
 
@@ -189,7 +189,7 @@ void AGridReceptacleActor::InitializeRuntimeWorldObject(
 			// data when the registry or its physical N-level is invalid.
 			UE_LOG(LogGridReceptacle, Warning,
 				TEXT("Receptacle initial item rejected: invalid physical identity for %s."),
-				*ConfigItem.CanonicalItemId.ToString());
+				*ConfigItem.ItemId.ToString());
 			continue;
 		}
 		InitialContainedItems.Add(InitialItem);
@@ -773,7 +773,7 @@ bool AGridReceptacleActor::CaptureRuntimeReceptacleState(FGridRuntimeReceptacleS
 		const AGridItemActor* Visual = Item.ItemActor.Get();
 		if (IsValid(Visual) && (Visual->GetWorld() != GetWorld() ||
 			Visual->ItemDefinitionId != Item.ItemDefinitionId || Visual->GetRuntimeObjectId() != Item.RuntimeObjectId ||
-			Visual->CanonicalWorldItemLevel != Item.ItemLevel || !Visual->CanonicalWorldPresentation.IsValid()))
+			Visual->WorldItemLevel != Item.ItemLevel || !Visual->ResolvedWorldPresentation.IsValid()))
 		{
 			UE_LOG(LogGridReceptacle, Warning,
 				TEXT("GridReceptacle Capture rejected conflicting actor Item=%s Actor=%s"),

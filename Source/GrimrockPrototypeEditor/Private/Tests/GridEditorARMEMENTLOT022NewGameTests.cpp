@@ -147,7 +147,7 @@ namespace ARMEMENTLOT022
             if (Spec.SecondarySlot == TEXT("OffHand") &&
                 !Test.TestTrue(TEXT("Second item is physically OffHand-compatible"),
                     Secondary.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand) &&
-                    Primary.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded))
+                    Primary.Weapon.HandPolicy != EGridHandPolicy::TwoHanded))
                 return false;
         }
 
@@ -196,7 +196,7 @@ namespace ARMEMENTLOT022
             CountPhysical(State, PrimaryId), 1);
         Test.TestNull(TEXT("No historical primary definition registered"),
             Party->FindItemDefinition(PrimaryId));
-        if (Primary.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded)
+        if (Primary.Weapon.HandPolicy == EGridHandPolicy::TwoHanded)
             Test.TestFalse(TEXT("Two-handed primary leaves no second physical object"),
                 Gear.OffHand.IsValid());
 

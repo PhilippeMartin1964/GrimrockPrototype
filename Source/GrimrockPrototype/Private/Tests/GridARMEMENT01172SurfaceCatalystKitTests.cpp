@@ -132,7 +132,7 @@ bool FARMEMENT01172BStarterSave::RunTest(const FString&)
         int32 CatalystEntries = 0;
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
-            if (Entry.CanonicalItemId == ARMEMENT01172B::CatalystId)
+            if (Entry.ItemId == ARMEMENT01172B::CatalystId)
             {
                 ++CatalystEntries;
                 TestNull(TEXT("No old catalyst pointer in canonical recipe"),
@@ -149,7 +149,7 @@ bool FARMEMENT01172BStarterSave::RunTest(const FString&)
         {
             TestEqual(TEXT("Staff plus one catalyst"), Kit.Items.Num(), 2);
             TestEqual(TEXT("Elemental staff equipped in main hand"),
-                Kit.Items[0].CanonicalItemId, FName(TEXT("Weapon_ElementalStaff_01")));
+                Kit.Items[0].ItemId, FName(TEXT("Weapon_ElementalStaff_01")));
             TestEqual(TEXT("Staff retains main-hand ownership"),
                 Kit.Items[0].TargetSlot, EGridEquipmentSlot::MainHand);
         }

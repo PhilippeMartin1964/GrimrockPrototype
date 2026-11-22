@@ -38,20 +38,20 @@ bool FGridEditorClean064X14SlateReadModel::RunTest(const FString&)
             FGridEditorPaletteReadModel::Resolve(Entry, Registry.Get());
         FGridResolvedItem Expected;
         if (!TestTrue(TEXT("Canonical identity resolves at authored physical level"),
-                Registry->ResolveItem(Entry.CanonicalItemId, Entry.CanonicalDefaultItemLevel, Expected)))
+                Registry->ResolveItem(Entry.ItemId, Entry.DefaultItemLevel, Expected)))
             return false;
         const FString ExpectedLabel = Expected.DisplayName.IsEmpty()
-            ? Entry.CanonicalItemId.ToString() : Expected.DisplayName.ToString();
+            ? Entry.ItemId.ToString() : Expected.DisplayName.ToString();
         if (!TestTrue(TEXT("Real direct entry uses canonical projection"),
-                View.bCanonicalSource && View.bResolved) ||
-            !TestEqual(TEXT("ItemId unchanged"), View.ItemId, Entry.CanonicalItemId) ||
+                View.bRegisteredSource && View.bResolved) ||
+            !TestEqual(TEXT("ItemId unchanged"), View.ItemId, Entry.ItemId) ||
             !TestEqual(TEXT("Visible label uses canonical resolution"), View.DisplayName.ToString(), ExpectedLabel) ||
             !TestEqual(TEXT("Search description uses canonical resolution"),
                 View.Description.ToString(), Expected.Description.ToString()) ||
             !TestTrue(TEXT("Tile icon uses canonical resolution"),
                 View.Icon.ToSoftObjectPath() == Expected.ItemIcon.ToSoftObjectPath()) )
             {return false;}
-        if (Entry.CanonicalDefaultItemLevel > 0 && !Arm) {Arm = &Entry;}
+        if (Entry.DefaultItemLevel > 0 && !Arm) {Arm = &Entry;}
     }
     if (!TestEqual(TEXT("33 real direct entries"), Count, 33) ||
         !TestNull(TEXT("Removed palette pointer schema"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition"))) ||
@@ -59,13 +59,13 @@ bool FGridEditorClean064X14SlateReadModel::RunTest(const FString&)
         {return false;}
 
     FGridObjectPaletteEntry Bad = *Arm;
-    Bad.CanonicalDefaultItemLevel = 0;
+    Bad.DefaultItemLevel = 0;
     const auto WrongLevel = FGridEditorPaletteReadModel::Resolve(Bad, Registry.Get());
     Bad = *Arm;
-    Bad.CanonicalItemId = TEXT("ARM_CLEAN06_UNKNOWN");
+    Bad.ItemId = TEXT("ARM_CLEAN06_UNKNOWN");
     const auto Unknown = FGridEditorPaletteReadModel::Resolve(Bad, Registry.Get());
     Bad = *Arm;
-    Bad.CanonicalItemId = NAME_None;
+    Bad.ItemId = NAME_None;
     const auto NoRegistry = FGridEditorPaletteReadModel::Resolve(*Arm, nullptr);
     return TestFalse(TEXT("ARM N0 cannot resolve"), WrongLevel.bResolved) &&
         TestFalse(TEXT("Unknown direct identity cannot resolve"), Unknown.bResolved) &&

@@ -272,8 +272,8 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
         const FGridObjectPaletteEntry* NewEntry = Candidate->FindEntryById(EntryId);
         if (TestNotNull(TEXT("Authored new canonical entry"), NewEntry))
         {
-            TestEqual(TEXT("Explicit physical N1"), NewEntry->CanonicalDefaultItemLevel, 1);
-            TestEqual(TEXT("Explicit ItemId"), NewEntry->CanonicalItemId, EntryId);
+            TestEqual(TEXT("Explicit physical N1"), NewEntry->DefaultItemLevel, 1);
+            TestEqual(TEXT("Explicit ItemId"), NewEntry->ItemId, EntryId);
             TestNull(TEXT("No legacy source created"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")));
         }
         FString Detail;
@@ -318,7 +318,7 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
             if (TestTrue(TEXT("Canonical dagger is a second real item"),
                 Canonical.Registry->ResolveItem(TEXT("Weapon_Dagger_01"), 1, Other)))
             {
-                TargetEntry->CanonicalItemId = Other.ItemId;
+                TargetEntry->ItemId = Other.ItemId;
                 TestTrue(TEXT("Palette entry pointing to a different item rejected"),
                     FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Canonical.Registry.Get(), false, Detail) ==
                         EGridWeaponPipelinePaletteState::Conflict);

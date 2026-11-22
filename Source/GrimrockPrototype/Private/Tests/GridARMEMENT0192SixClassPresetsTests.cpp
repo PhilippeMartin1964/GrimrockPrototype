@@ -131,10 +131,10 @@ bool FARMEMENT0192CatalogTest::RunTest(const FString&)
                 TestNull(TEXT("No obsolete ItemDefinition pointer"),
                     Entry.ItemDefinition.Get());
                 TestFalse(TEXT("Canonical source ItemId is explicit"),
-                    Entry.CanonicalItemId.IsNone());
+                    Entry.ItemId.IsNone());
                 FGridResolvedItem Native;
                 if (!TestTrue(TEXT("Registry resolves each exact source and level"),
-                    Fixture.Resolve(Entry.CanonicalItemId, Entry.ItemLevel, Native)))
+                    Fixture.Resolve(Entry.ItemId, Entry.ItemLevel, Native)))
                     return false;
                 TestTrue(TEXT("Stack count is within registered limits"),
                     Entry.Quantity >= 1 && Entry.Quantity <= Native.MaxStack);

@@ -169,7 +169,7 @@ namespace ARMEMENTLOT02
         EGridEquipmentSlot Slot, int32 Level, int32 Quantity)
     {
         FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
-        Entry.CanonicalItemId = ItemId;
+        Entry.ItemId = ItemId;
         Entry.TargetSlot = Slot;
         Entry.ItemLevel = Level;
         Entry.Quantity = Quantity;

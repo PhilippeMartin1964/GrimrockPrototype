@@ -254,8 +254,8 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 		const AGridItemActor* Visual = SourceSnapshot.ItemActor.Get();
 		if (Visual->ItemDefinitionId != Candidate.ItemDefinitionId ||
 			Visual->GetRuntimeObjectId() != Candidate.RuntimeObjectId ||
-			Visual->CanonicalWorldItemLevel != Candidate.ItemLevel ||
-			!Visual->CanonicalWorldPresentation.IsValid() || Visual->GetWorld() != Receptacle->GetWorld())
+			Visual->WorldItemLevel != Candidate.ItemLevel ||
+			!Visual->ResolvedWorldPresentation.IsValid() || Visual->GetWorld() != Receptacle->GetWorld())
 		{
 			return LogTransferFailure(Operation, EGridItemTransferResult::InvalidItem, TEXT("Contained actor conflicts with physical source."), &Candidate);
 		}

@@ -70,13 +70,13 @@ namespace ARMCLEAN063AZ
             Item->UseActions.Add(Binding);
             System->ItemDefinitions.Add(Item);
 
-            FGridCanonicalAction Use;
+            FGridAction Use;
             Use.ActionId = ActionId();
-            Use.Kind = EGridCanonicalActionKind::Use;
+            Use.Kind = EGridActionKind::Use;
             Use.Targeting = EGridCombatTargetingPolicy::Self;
             Use.SourceItemQuantityCost = 1;
-            FGridCanonicalActionEffect Effect;
-            Effect.Kind = EGridCanonicalEffectKind::ApplyStatus;
+            FGridActionEffect Effect;
+            Effect.Kind = EGridEffectKind::ApplyStatus;
             Effect.StatusId = StatusId();
             Effect.Magnitude = 1;
             Use.Effects.Add(Effect);
@@ -199,13 +199,13 @@ bool FGridClean063AZStatusProjection::RunTest(const FString&)
     Invalid.Action.SourceItemQuantityCost = 0;
     TestFalse(TEXT("Unpaid status application disallowed"), Try(Invalid));
     Invalid = Bound;
-    Invalid.Action.Effects[0].Kind = EGridCanonicalEffectKind::RemoveStatus;
+    Invalid.Action.Effects[0].Kind = EGridEffectKind::RemoveStatus;
     TestFalse(TEXT("AY RemoveStatus cannot be misclassified"), Try(Invalid));
     Invalid = Bound;
-    Invalid.Action.Effects[0].Kind = EGridCanonicalEffectKind::Heal;
+    Invalid.Action.Effects[0].Kind = EGridEffectKind::Heal;
     TestFalse(TEXT("AX Heal cannot be misclassified"), Try(Invalid));
     Invalid = Bound;
-    const FGridCanonicalActionEffect Copy = Invalid.Action.Effects[0];
+    const FGridActionEffect Copy = Invalid.Action.Effects[0];
     Invalid.Action.Effects.Add(Copy); // Copy before TArray mutation: no self-append reference.
     TestFalse(TEXT("Multiple effects remain unsupported"), Try(Invalid));
     Invalid = Bound;

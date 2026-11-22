@@ -82,7 +82,7 @@ bool FARMEMENT0163MaterializedAssetTest::RunTest(const FString&)
     for (const ARMEMENT0163::FFinalPilot& Pilot : ARMEMENT0163::Pilots)
     {
         const FName ArmId(Pilot.ArchetypeId);
-        const FGridCanonicalWeaponVisual* Profile =
+        const FGridWeaponVisual* Profile =
             Root->WeaponVisualCatalogue->FindForArchetype(ArmId);
         if (!TestNotNull(TEXT("Actual production pilot profile"), Profile)) continue;
         FGridResolvedItem Item;
@@ -146,7 +146,7 @@ bool FARMEMENT0163PassiveTest::RunTest(const FString&)
         Fixture.Resolve(TEXT("Weapon_RoundShield_01"), 1, Shield))) return false;
     TestEqual(TEXT("Shield visual is unique"), Shield.VisualId, FName(TEXT("VIS_RoundShield_01")));
     TestEqual(TEXT("Actual passive shield kind"),
-        Shield.Weapon.Kind, EGridCanonicalArmamentKind::Shield);
+        Shield.Weapon.Kind, EGridArmamentKind::Shield);
     TestTrue(TEXT("No attacking bindings"), Shield.AvailableActions.IsEmpty());
     TestFalse(TEXT("No MainHand attack"), Shield.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand));
     TestFalse(TEXT("No OffHand attack"), Shield.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand));

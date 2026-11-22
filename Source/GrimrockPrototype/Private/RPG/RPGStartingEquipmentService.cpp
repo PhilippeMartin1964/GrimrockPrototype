@@ -55,8 +55,8 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 	for (const FRPGStartingEquipmentEntry& Entry : Kit->Items)
 	{
 		UGridItemDefinitionAsset* Definition = Entry.ItemDefinition.Get();
-		const bool bExplicitCanonical = !Entry.CanonicalItemId.IsNone();
-		const FName ItemId = bExplicitCanonical ? Entry.CanonicalItemId
+		const bool bExplicitCanonical = !Entry.ItemId.IsNone();
+		const FName ItemId = bExplicitCanonical ? Entry.ItemId
 			: (IsValid(Definition) ? Definition->ItemDefinitionId : NAME_None);
 		const bool bCanonicalRegistered = CanonicalRegistry &&
 			CanonicalRegistry->ContainsItem(ItemId);
@@ -79,7 +79,7 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		// Never resurrect the old pointer-only N0/default-level rule.
 		if (bCanonicalRegistered && !bExplicitCanonical)
 		{
-			OutError = TEXT("Registered starting kit item requires CanonicalItemId and an explicit physical level.");
+			OutError = TEXT("Registered starting kit item requires ItemId and an explicit physical level.");
 			return false;
 		}
 		const bool bExplicitNative = bCanonicalRegistered;

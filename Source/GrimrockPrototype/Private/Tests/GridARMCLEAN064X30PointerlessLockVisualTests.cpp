@@ -106,7 +106,7 @@ bool FGridClean064X30PointerlessLockVisual::RunTest(const FString&)
 			bOk &= TestNull(TEXT("Inserted key has no historical asset"),
 				Visual->GetItemDefinitionAsset());
 			bOk &= TestTrue(TEXT("Inserted key has full canonical presentation"),
-				Visual->CanonicalWorldPresentation.IsValid());
+				Visual->ResolvedWorldPresentation.IsValid());
 			bOk &= TestEqual(TEXT("Inserted item keeps real ItemId"),
 				Visual->GetItemDefinitionId(), CopperId);
 			bOk &= TestEqual(TEXT("Inserted item keeps original physical GUID"),

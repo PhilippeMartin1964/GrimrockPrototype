@@ -17,7 +17,7 @@ struct FGridEditorReceptacleInitialAuthoring
             InOut.Quantity < 1)
             return false;
 
-        if (InOut.CanonicalItemId == NewId)
+        if (InOut.ItemId == NewId)
             return FGridEditorItemLevelPolicy::CanAuthorItemLevel(
                 Registry, NewId, InOut.ItemLevel);
 
@@ -27,7 +27,7 @@ struct FGridEditorReceptacleInitialAuthoring
                 Registry, NewId, 0) ? 0 : 1;
         if (!FGridEditorItemLevelPolicy::CanAuthorItemLevel(Registry, NewId, Level))
             return false;
-        InOut.CanonicalItemId = NewId;
+        InOut.ItemId = NewId;
         InOut.ItemLevel = Level;
         return true;
     }
@@ -36,14 +36,14 @@ struct FGridEditorReceptacleInitialAuthoring
         const FGridReceptacleInitialItemConfig& Item)
     {
         return FGridEditorItemLevelPolicy::CanAuthorItemLevel(
-                Registry, Item.CanonicalItemId, 1);
+                Registry, Item.ItemId, 1);
     }
 
     static bool TrySetLevel(const UGridItemSubsystem* Registry,
         int32 NewLevel, FGridReceptacleInitialItemConfig& InOut)
     {
         if (!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
-                Registry, InOut.CanonicalItemId, NewLevel))
+                Registry, InOut.ItemId, NewLevel))
             return false;
         InOut.ItemLevel = NewLevel;
         return true;

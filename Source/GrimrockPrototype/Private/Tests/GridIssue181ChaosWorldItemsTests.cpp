@@ -73,7 +73,7 @@ namespace GridIssue181
 				});
 			if (bSwordN20)
 				for (FGridLooseItemInstance& Item : Level->LooseItemInstances)
-					if (Item.CanonicalItemId == TEXT("Weapon_LongSword_01"))
+					if (Item.ItemId == TEXT("Weapon_LongSword_01"))
 						Item.ItemLevel = 20;
 			Level->MonsterSpawns.Reset();
 			Level->ItemSpawns.Reset();
@@ -217,7 +217,7 @@ bool FGridIssue181PlacedMeshSelection::RunTest(const FString&)
 	if (TestNotNull(TEXT("Sword arrives downstairs"), ArrivedSword))
 	{
 		TestEqual(TEXT("Same sword GUID downstairs"), ArrivedSword->RuntimeObjectId, SwordGuid);
-		TestEqual(TEXT("Same N20 downstairs"), ArrivedSword->CanonicalWorldItemLevel, 20);
+		TestEqual(TEXT("Same N20 downstairs"), ArrivedSword->WorldItemLevel, 20);
 	}
 	return !HasAnyErrors();
 }
@@ -452,7 +452,7 @@ bool FGridIssue181AfterOpenChaosPassage::RunTest(const FString&)
 	TestTrue(TEXT("Post-opening fall reaches local destination"), Arrival.X >= 5400.f && Arrival.X < 5600.f && Arrival.Y >= 4600.f && Arrival.Y < 4800.f);
 	TestTrue(TEXT("Arrival is accessible above destination floor"), Axe->MeshComponent->Bounds.GetBox().Min.Z >= 0.f);
 	TestEqual(TEXT("Physical transfer preserves GUID"), Axe->RuntimeObjectId, Guid);
-	TestEqual(TEXT("Physical transfer preserves item level"), Axe->CanonicalWorldItemLevel, 1);
+	TestEqual(TEXT("Physical transfer preserves item level"), Axe->WorldItemLevel, 1);
 	TestTrue(TEXT("Local arrival never enters an orphaned inbound queue"), F.Runtime->DungeonRuntimeState.LevelStates[F.UpperId].PendingInboundItems.IsEmpty());
 	return !HasAnyErrors();
 }
@@ -522,7 +522,7 @@ bool FGridIssue181FlyingProjectilePassage::RunTest(const FString&)
 		if (!It->IsActorBeingDestroyed() && It->GetRuntimeObjectId() == Item.RuntimeObjectId)
 		{
 			++Count;
-			TestEqual(TEXT("Thrown N20 preserved"), It->CanonicalWorldItemLevel, 20);
+			TestEqual(TEXT("Thrown N20 preserved"), It->WorldItemLevel, 20);
 			TestTrue(TEXT("Thrown item arrives in authored local cell"), It->GetWorldPickupLocation().Y >= 4600.f && It->GetWorldPickupLocation().Y < 4800.f);
 		}
 	TestEqual(TEXT("Exactly one pickup replaces the projectile"), Count, 1);

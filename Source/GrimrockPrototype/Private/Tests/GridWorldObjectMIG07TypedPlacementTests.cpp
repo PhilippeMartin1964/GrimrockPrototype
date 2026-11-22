@@ -35,13 +35,13 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	Door.InstanceConfig.Relocation.TargetCellX = 0;
 	Door.InstanceConfig.Relocation.TargetCellY = 0;
 	Door.InstanceConfig.Relocation.TargetLevelId = TEXT("LowerLevel");
-	Door.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef().CanonicalItemId = ItemDefinition->ItemDefinitionId;
+	Door.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef().ItemId = ItemDefinition->ItemDefinitionId;
 	Door.InstanceConfig.bStartsUnlocked = true;
 	Level->WorldObjectInstances.Add(Door);
 
 	FGridLooseItemInstance LooseItem;
 	LooseItem.InstanceId = FGuid::NewGuid();
-	LooseItem.CanonicalItemId = ItemDefinition->ItemDefinitionId;
+	LooseItem.ItemId = ItemDefinition->ItemDefinitionId;
 	LooseItem.CellX = 5;
 	LooseItem.CellY = 6;
 	LooseItem.LocalYaw = 22.5f;
@@ -62,7 +62,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 
 	FGridItemSpawnInstance ItemSpawn;
 	ItemSpawn.SpawnId = FGuid::NewGuid();
-	ItemSpawn.CanonicalItemId = ItemDefinition->ItemDefinitionId;
+	ItemSpawn.ItemId = ItemDefinition->ItemDefinitionId;
 	ItemSpawn.CellX = 9;
 	ItemSpawn.CellY = 10;
 	ItemSpawn.bSpawnAtStart = true;
@@ -106,7 +106,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	{
 		const FGridLooseItemInstance& Instance = Level->LooseItemInstances[0];
 		TestEqual(TEXT("Loose item keeps stable instance id"), Instance.InstanceId, LooseItem.InstanceId);
-		TestEqual(TEXT("Loose item retains explicit ItemId"), Instance.CanonicalItemId, ItemDefinition->ItemDefinitionId);
+		TestEqual(TEXT("Loose item retains explicit ItemId"), Instance.ItemId, ItemDefinition->ItemDefinitionId);
 		TestEqual(TEXT("Loose item defaults to quantity one"), Instance.Quantity, 1);
 		TestEqual(TEXT("Loose item preserves local yaw bridge"), Instance.LocalYaw, 22.5f);
 	}
@@ -127,7 +127,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	{
 		const FGridItemSpawnInstance& Spawn = Level->ItemSpawns[0];
 		TestEqual(TEXT("Item SpawnId remains stable"), Spawn.SpawnId, ItemSpawn.SpawnId);
-		TestEqual(TEXT("ItemSpawn keeps explicit ItemId"), Spawn.CanonicalItemId, ItemDefinition->ItemDefinitionId);
+		TestEqual(TEXT("ItemSpawn keeps explicit ItemId"), Spawn.ItemId, ItemDefinition->ItemDefinitionId);
 		TestEqual(TEXT("ItemSpawn defaults to quantity one"), Spawn.Quantity, 1);
 		TestTrue(TEXT("ItemSpawn stores startup generation semantically"), Spawn.bSpawnAtStart);
 	}

@@ -184,9 +184,9 @@ namespace ARMCLEAN063AV
         FMath::IsNearlyEqual(FlightMetadata.UnitWeightKg, CanonicalFlightSource.WeightKg));
     Test.TestEqual(TEXT("Projectile retains its GUID"), Projectile->ThrownItemInstance.RuntimeObjectId, Valid.RuntimeObjectId);
     Test.TestTrue(TEXT("Pointerless ARM projectile has complete canonical presentation"),
-        Projectile->CanonicalWorldPresentation.IsValid());
+        Projectile->ResolvedWorldPresentation.IsValid());
     Test.TestEqual(TEXT("Projectile keeps the physical N20 level"),
-        Projectile->CanonicalWorldItemLevel, Valid.ItemLevel);
+        Projectile->WorldItemLevel, Valid.ItemLevel);
     Test.TestTrue(TEXT("Flight mesh is still the dedicated projectile mesh"),
         Projectile->MeshComponent->GetStaticMesh() == CanonicalFlightSource.ProjectileMesh.LoadSynchronous());
     Test.TestEqual(TEXT("Point-light profile comes from ItemSystem"),
@@ -423,8 +423,8 @@ bool FGridClean065D3GenericArmFlight::RunTest(const FString&)
                 auto* Projectile = F.Runtime->SpawnThrownItemProjectile(Instance, Stale, Start, FVector(1200,0,100), 0,0);
                 if (!TestNotNull(TEXT("Ordinary ARM spawns without old definition"), Projectile)) return false;
                 TestNull(TEXT("Old definition discarded"), Projectile->GetItemDefinitionAsset());
-                TestTrue(TEXT("Complete canonical world presentation"), Projectile->CanonicalWorldPresentation.IsValid());
-                TestEqual(TEXT("Physical N preserved"), Projectile->CanonicalWorldItemLevel, N);
+                TestTrue(TEXT("Complete canonical world presentation"), Projectile->ResolvedWorldPresentation.IsValid());
+                TestEqual(TEXT("Physical N preserved"), Projectile->WorldItemLevel, N);
                 TestTrue(TEXT("Ordinary flight mesh is real world mesh"), Projectile->MeshComponent->GetStaticMesh() == Item.WorldMesh.LoadSynchronous());
                 Projectile->Destroy();
             }
@@ -447,11 +447,11 @@ bool FGridClean065E4DLegacyLookup::RunTest(const FString&)
     auto* OldUnknown = NewObject<UGridItemDefinitionAsset>(F.Runtime);
     OldUnknown->ItemDefinitionId = Unknown;
     FGridLooseItemInstance KnownPlacement;
-    KnownPlacement.CanonicalItemId = Known;
+    KnownPlacement.ItemId = Known;
     KnownPlacement.ItemLevel = 1;
     F.Runtime->LevelAsset->LooseItemInstances.Add(KnownPlacement);
     FGridLooseItemInstance UnknownPlacement;
-    UnknownPlacement.CanonicalItemId = Unknown;
+    UnknownPlacement.ItemId = Unknown;
     F.Runtime->LevelAsset->LooseItemInstances.Add(UnknownPlacement);
     FGridResolvedItem Resolved;
     TestTrue(TEXT("Known ID resolves independently of level placement"), F.Registry->ResolveItem(Known, 1, Resolved));
@@ -545,7 +545,7 @@ bool FGridClean065G59InFlightTravel::RunTest(const FString&)
         if (!IsValid(Actor) || Actor->IsActorBeingDestroyed() || Actor->GetRuntimeObjectId() != Item.RuntimeObjectId) continue;
         ++Pickups;
         TestFalse(TEXT("Reload yields pickup, not projectile"), Actor->IsA<AGridThrownItemActor>());
-        TestEqual(TEXT("Restored N20"), Actor->CanonicalWorldItemLevel, 20);
+        TestEqual(TEXT("Restored N20"), Actor->WorldItemLevel, 20);
         TestEqual(TEXT("Restored actual ItemId"), Actor->ItemDefinitionId, Item.ItemDefinitionId);
         TestEqual(TEXT("Restored readable metadata"), Actor->ReadableContentId, Item.ReadableContentId);
         TestFalse(TEXT("Restored light state"), Actor->AreItemLightsEnabled());
@@ -582,7 +582,7 @@ bool FGridClean065G60ImpactRetry::RunTest(const FString&)
     if (!TestTrue(TEXT("Failed landing retains actor"), IsValid(Projectile) && !Projectile->IsActorBeingDestroyed())) return false;
     TestFalse(TEXT("Failed landing is not completed conversion"), Projectile->HasCompletedImpactConversion());
     TestEqual(TEXT("Original physical GUID retained"), Projectile->GetRuntimeObjectId(), Item.RuntimeObjectId);
-    TestEqual(TEXT("Original N20 retained"), Projectile->CanonicalWorldItemLevel, 20);
+    TestEqual(TEXT("Original N20 retained"), Projectile->WorldItemLevel, 20);
     TestTrue(TEXT("Failure schedules actual retry timer"),
         F.World->GetTimerManager().TimerExists(Projectile->ExpirationTimerHandle));
     for (FGridLevelCellData& Cell : F.Runtime->LevelAsset->Cells)
@@ -598,7 +598,7 @@ bool FGridClean065G60ImpactRetry::RunTest(const FString&)
         if (!IsValid(Actor) || Actor->IsActorBeingDestroyed() || Actor->GetRuntimeObjectId() != Item.RuntimeObjectId) continue;
         ++Count;
         TestFalse(TEXT("Retry yields recoverable pickup"), Actor->IsA<AGridThrownItemActor>());
-        TestEqual(TEXT("Retry preserves physical N20"), Actor->CanonicalWorldItemLevel, 20);
+        TestEqual(TEXT("Retry preserves physical N20"), Actor->WorldItemLevel, 20);
     }
     TestEqual(TEXT("Exactly one physical item after retry"), Count, 1);
     return !HasAnyErrors();

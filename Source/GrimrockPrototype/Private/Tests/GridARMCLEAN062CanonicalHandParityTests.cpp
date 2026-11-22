@@ -78,13 +78,13 @@ bool FGridClean062ProductionARMHandsTest::RunTest(const FString&)
     TestEqual(TEXT("Nineteen real MainHand attacks"), AttackMain, 19);
     TestEqual(TEXT("Two real OffHand attacks"), AttackOff, 2);
 
-    FGridCanonicalResolvedWeapon Guard;
-    Guard.Kind = EGridCanonicalArmamentKind::Focus;
-    Guard.HandPolicy = EGridCanonicalHandPolicy::OffHand;
+    FGridResolvedWeapon Guard;
+    Guard.Kind = EGridArmamentKind::Focus;
+    Guard.HandPolicy = EGridHandPolicy::OffHand;
     Guard.AttackSourceSlots.Add(EGridEquipmentSlot::OffHand);
     TestFalse(TEXT("Passive focus never grants attack"), Guard.HasAttackSourceInHand(EGridEquipmentSlot::OffHand));
-    Guard.Kind = EGridCanonicalArmamentKind::Weapon;
-    Guard.HandPolicy = EGridCanonicalHandPolicy::MainHand;
+    Guard.Kind = EGridArmamentKind::Weapon;
+    Guard.HandPolicy = EGridHandPolicy::MainHand;
     TestFalse(TEXT("MainHand-only never attacks OffHand"), Guard.HasAttackSourceInHand(EGridEquipmentSlot::OffHand));
     return !HasAnyErrors();
 }

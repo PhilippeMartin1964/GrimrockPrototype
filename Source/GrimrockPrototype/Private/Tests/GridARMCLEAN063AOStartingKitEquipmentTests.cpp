@@ -24,7 +24,7 @@ namespace ARMCLEAN063AO
 	{
 		FRPGStartingEquipmentEntry& Entry = Class->StartingEquipmentKits[0].Items.AddDefaulted_GetRef();
 		Entry.ItemDefinition = Definition;
-		Entry.CanonicalItemId = Definition->ItemDefinitionId;
+		Entry.ItemId = Definition->ItemDefinitionId;
 		Entry.ItemLevel = Definition->DefaultWeaponItemLevel; // Explicit test fixture authoring.
 		Entry.Quantity = 1;
 		Entry.TargetSlot = Slot;
@@ -91,8 +91,8 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	{
 		return false;
 	}
-	TestEqual(TEXT("Actual bow is two handed"), RealBow.Weapon.HandPolicy, EGridCanonicalHandPolicy::TwoHanded);
-	TestEqual(TEXT("Actual shield is offhand only"), RealShield.Weapon.HandPolicy, EGridCanonicalHandPolicy::OffHand);
+	TestEqual(TEXT("Actual bow is two handed"), RealBow.Weapon.HandPolicy, EGridHandPolicy::TwoHanded);
+	TestEqual(TEXT("Actual shield is offhand only"), RealShield.Weapon.HandPolicy, EGridHandPolicy::OffHand);
 	TestTrue(TEXT("Actual sword equips MainHand"), RealSword.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand));
 	TestTrue(TEXT("Old bow would incorrectly reject both hands"), !Bow->CanEquipToSlot(EGridEquipmentSlot::OffHand));
 	TestTrue(TEXT("Old shield would incorrectly reserve two hands"),

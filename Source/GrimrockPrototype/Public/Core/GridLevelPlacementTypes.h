@@ -278,8 +278,8 @@ struct FGridLooseItemInstance
 	FGuid InstanceId;
 
 	/** Sole authored identity. Resolved by ItemSystem at the explicit physical level. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item|Canonical")
-	FName CanonicalItemId = NAME_None;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
+	FName ItemId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "1"))
 	int32 Quantity = 1;
@@ -389,8 +389,8 @@ struct FGridItemSpawnInstance
 	FGuid SpawnId;
 
 	/** Registered identity of the generated physical item. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Canonical")
-	FName CanonicalItemId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	FName ItemId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "1"))
 	int32 Quantity = 1;

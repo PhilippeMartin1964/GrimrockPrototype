@@ -85,23 +85,23 @@ bool FGridClean064X161Rules::RunTest(const FString&)
         {return false;}
 
     FGridReceptacleAcceptedItemConfig Rule;
-    Rule.CanonicalItemId = TEXT("Item_Arrows_01");
+    Rule.ItemId = TEXT("Item_Arrows_01");
     FName Found = NAME_None;
     if (!TestTrue(TEXT("Canonical ID-only rule resolves"),
             FGridReceptacleAcceptedReadModel::TryResolveItemId(F.Registry, Rule, Found)) ||
-        !TestEqual(TEXT("ID-only rule is exact"), Found, Rule.CanonicalItemId) ||
+        !TestEqual(TEXT("ID-only rule is exact"), Found, Rule.ItemId) ||
         !TestFalse(TEXT("Canonical rule without registry fails closed"),
             FGridReceptacleAcceptedReadModel::TryResolveItemId(nullptr, Rule, Found)) ||
         !TestTrue(TEXT("Failure clears previous result"), Found.IsNone()))
         {return false;}
 
     FGridReceptacleAcceptedItemConfig Unknown = Rule;
-    Unknown.CanonicalItemId = TEXT("ARM_CLEAN06_X161_NOT_REGISTERED");
+    Unknown.ItemId = TEXT("ARM_CLEAN06_X161_NOT_REGISTERED");
     if (!TestFalse(TEXT("Unknown persisted ItemId cannot fallback"),
             FGridReceptacleAcceptedReadModel::TryResolveItemId(F.Registry, Unknown, Found)))
         {return false;}
     FGridReceptacleAcceptedItemConfig Sword;
-    Sword.CanonicalItemId = TEXT("Weapon_StraightSword_01");
+    Sword.ItemId = TEXT("Weapon_StraightSword_01");
     FGridReceptacleAcceptedItemConfig Empty;
     if (!TestFalse(TEXT("Empty identity cannot accept"), FGridReceptacleAcceptedReadModel::TryResolveItemId(F.Registry, Empty, Found))) return false;
     FGridReceptacleBehaviorParams Params;
@@ -153,7 +153,7 @@ bool FGridClean064X161Rules::RunTest(const FString&)
         GridObjectInstanceBehavior::Resolve(Placement, Definition);
     if (!TestTrue(TEXT("Instance override replaces definition rule"),
             Effective.Receptacle.AcceptedItems.Num() == 1 &&
-            Effective.Receptacle.AcceptedItems[0].CanonicalItemId == Sword.CanonicalItemId) ||
+            Effective.Receptacle.AcceptedItems[0].ItemId == Sword.ItemId) ||
         !TestEqual(TEXT("Override capacity remains instance-owned"),
             Effective.Receptacle.MaxContainedItems, 3))
         {return false;}

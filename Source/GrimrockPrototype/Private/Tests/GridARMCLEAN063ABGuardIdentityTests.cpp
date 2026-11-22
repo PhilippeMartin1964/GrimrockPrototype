@@ -54,10 +54,10 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 			TestTrue(TEXT("Known ARM identified canonically"), View.bRegisteredIdentity && View.bResolved);
 			const bool bOffHand = Definition.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand);
 			const bool bExpectedParry = bOffHand &&
-				Definition.Weapon.Kind == EGridCanonicalArmamentKind::Weapon &&
+				Definition.Weapon.Kind == EGridArmamentKind::Weapon &&
 				Definition.ArchetypeId == FName(TEXT("ARM013"));
 			const bool bExpectedShield = bOffHand &&
-				Definition.Weapon.Kind == EGridCanonicalArmamentKind::Shield;
+				Definition.Weapon.Kind == EGridArmamentKind::Shield;
 			TestEqual(TEXT("Parry eligibility ignores contradictory old archetype/type"),
 				View.bCanParry, bExpectedParry);
 			TestEqual(TEXT("Shield classification ignores contradictory old type"),

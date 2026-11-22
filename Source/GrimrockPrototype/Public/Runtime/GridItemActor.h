@@ -60,13 +60,13 @@ public:
 
 	/** Transient source level from ApplyResolvedWorldVisual; never a SaveGame authority. */
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|World Physics")
-	int32 CanonicalWorldItemLevel = 0;
+	int32 WorldItemLevel = 0;
 
 	/** ARM-CLEAN06.4X.7: a resolved, transient presentation snapshot, never
 	 * authored, network replicated, SaveGame-serialized or legacy-owned.
 	 * Initialized only after successful canonical ItemId + physical N-level resolution. */
-	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|Canonical")
-	FGridResolvedItem CanonicalWorldPresentation;
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item")
+	FGridResolvedItem ResolvedWorldPresentation;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Reading")
 	TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;

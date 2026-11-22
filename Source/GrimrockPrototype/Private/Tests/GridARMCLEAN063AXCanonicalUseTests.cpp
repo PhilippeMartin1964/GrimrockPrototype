@@ -67,13 +67,13 @@ namespace ARMCLEAN063AX
                 Production->ActionPresentationCatalogue->Presentations[0].PresentationId;
             Consumable->UseActions.Add(Binding);
             System->ItemDefinitions.Add(Consumable);
-            FGridCanonicalAction Heal;
+            FGridAction Heal;
             Heal.ActionId = ActionId();
-            Heal.Kind = EGridCanonicalActionKind::Use;
+            Heal.Kind = EGridActionKind::Use;
             Heal.Targeting = EGridCombatTargetingPolicy::Self;
             Heal.SourceItemQuantityCost = 1;
-            FGridCanonicalActionEffect Effect;
-            Effect.Kind = EGridCanonicalEffectKind::Heal;
+            FGridActionEffect Effect;
+            Effect.Kind = EGridEffectKind::Heal;
             Effect.Magnitude = 8;
             Heal.Effects.Add(Effect);
             System->ActionCatalogue->Actions.Add(Heal);
@@ -219,11 +219,11 @@ namespace ARMCLEAN063AX
     if (!Test.TestTrue(TEXT("Synthetic binding is checked against real registry"),
         F.Registry->ResolveBoundAction(ARMCLEAN063AX::FFixture::ItemId(), 0,
             ARMCLEAN063AX::FFixture::ActionId(), Bound))) return false;
-    Bound.Action.Effects[0].Kind = EGridCanonicalEffectKind::Teleport;
+    Bound.Action.Effects[0].Kind = EGridEffectKind::Teleport;
     FGridCombatActionDefinition Unsupported;
     Test.TestFalse(TEXT("Unsupported teleport is rejected, not converted into a heal"),
         FGridQuickItemUseReadModel::TryProjectSingleHeal(ResolvedItem, Bound, Unsupported));
-    Bound.Action.Effects[0].Kind = EGridCanonicalEffectKind::Heal;
+    Bound.Action.Effects[0].Kind = EGridEffectKind::Heal;
     Bound.Action.Effects[0].Magnitude = 0;
     Test.TestFalse(TEXT("Zero-magnitude heal rejected"),
         FGridQuickItemUseReadModel::TryProjectSingleHeal(ResolvedItem, Bound, Unsupported));

@@ -70,13 +70,13 @@ namespace ARMCLEAN063AY
             Item->UseActions.Add(Binding);
             System->ItemDefinitions.Add(Item);
 
-            FGridCanonicalAction Use;
+            FGridAction Use;
             Use.ActionId = ActionId();
-            Use.Kind = EGridCanonicalActionKind::Use;
+            Use.Kind = EGridActionKind::Use;
             Use.Targeting = EGridCombatTargetingPolicy::Self;
             Use.SourceItemQuantityCost = 1;
-            FGridCanonicalActionEffect Effect;
-            Effect.Kind = EGridCanonicalEffectKind::RemoveStatus;
+            FGridActionEffect Effect;
+            Effect.Kind = EGridEffectKind::RemoveStatus;
             Effect.StatusId = StatusId();
             Effect.Magnitude = 1;
             Use.Effects.Add(Effect);
@@ -198,14 +198,14 @@ bool FGridClean063AYStatusProjection::RunTest(const FString&)
     Modified = Bound;
     // UE TArray may reallocate on Add: never append an element by a
     // reference into the very array being mutated (assertion in Automation).
-    const FGridCanonicalActionEffect ExtraEffect = Modified.Action.Effects[0];
+    const FGridActionEffect ExtraEffect = Modified.Action.Effects[0];
     Modified.Action.Effects.Add(ExtraEffect);
     TestFalse(TEXT("Mixed/multiple effects refuse ambiguous execution"), TryProject(Modified));
     Modified = Bound;
-    Modified.Action.Effects[0].Kind = EGridCanonicalEffectKind::ApplyStatus;
+    Modified.Action.Effects[0].Kind = EGridEffectKind::ApplyStatus;
     TestFalse(TEXT("ApplyStatus cannot masquerade as RemoveStatus"), TryProject(Modified));
     Modified = Bound;
-    Modified.Action.Effects[0].Kind = EGridCanonicalEffectKind::Heal;
+    Modified.Action.Effects[0].Kind = EGridEffectKind::Heal;
     TestFalse(TEXT("Heal not projected as RemoveStatus"), TryProject(Modified));
 
     const auto Invalid = FGridQuickItemUseReadModel::Resolve(F.Registry, F.Make(21));

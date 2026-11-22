@@ -41,7 +41,7 @@ bool VerifyPlanInvariance(FAutomationTestBase& Test, const UGridItemSubsystem* R
         FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(Registry, Input, Copy)) ||
         !Test.TestEqual(TEXT("Copy preserves exact rule count"), Copy.Num(), Input.Num())) return false;
     for (int32 Index = 0; Index < Input.Num(); ++Index)
-        if (!Test.TestEqual(TEXT("Identity and order preserved"), Copy[Index].CanonicalItemId, Input[Index].CanonicalItemId)) return false;
+        if (!Test.TestEqual(TEXT("Identity and order preserved"), Copy[Index].ItemId, Input[Index].ItemId)) return false;
     ++SafeCount;
     return true;
 }
@@ -56,20 +56,20 @@ bool FGridClean064X164AtomicPreview::RunTest(const FString&)
     if (!TestTrue(TEXT("Actual canonical registry"), F.bReady)) return false;
     const bool bDirtyBefore = F.ItemSystem->GetOutermost()->IsDirty();
     FGridReceptacleAcceptedItemConfig A, B;
-    A.CanonicalItemId = TEXT("Item_Arrows_01");
-    B.CanonicalItemId = TEXT("Weapon_StraightSword_01");
+    A.ItemId = TEXT("Item_Arrows_01");
+    B.ItemId = TEXT("Weapon_StraightSword_01");
     TArray<FGridReceptacleAcceptedItemConfig> Rules = {A, B, A, A};
     int32 Safe = 0;
     if (!ARMCLEAN064X164::VerifyPlanInvariance(*this, F.Registry.Get(), Rules, Safe) ||
         !ARMCLEAN064X164::VerifyPlanInvariance(*this, F.Registry.Get(), {}, Safe)) return false;
     TArray<FGridReceptacleAcceptedItemConfig> Proposed;
     FGridReceptacleAcceptedItemConfig Invalid;
-    Invalid.CanonicalItemId = TEXT("X164_Unregistered");
+    Invalid.ItemId = TEXT("X164_Unregistered");
     Rules.Add(Invalid);
     if (!TestFalse(TEXT("Unknown identity blocks entire list"),
             FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(F.Registry.Get(), Rules, Proposed)) ||
         !TestTrue(TEXT("No partial output"), Proposed.IsEmpty())) return false;
-    Rules.Last().CanonicalItemId = NAME_None;
+    Rules.Last().ItemId = NAME_None;
     if (!TestFalse(TEXT("Empty identity blocks entire list"),
             FGridEditorReceptacleRuleAuthoring::TryCopyDefaults(F.Registry.Get(), Rules, Proposed)) ||
         !TestTrue(TEXT("No partial output"), Proposed.IsEmpty())) return false;

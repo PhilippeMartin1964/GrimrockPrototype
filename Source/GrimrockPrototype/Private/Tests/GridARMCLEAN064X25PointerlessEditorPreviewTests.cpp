@@ -96,13 +96,13 @@ bool FGridClean064X25PointerlessEditorPreview::RunTest(const FString&)
 	Placement.InstanceId = FGuid::NewGuid();
 	Placement.CellX = 0;
 	Placement.CellY = 0;
-	Placement.CanonicalItemId = TEXT("Weapon_Dagger_01");
+	Placement.ItemId = TEXT("Weapon_Dagger_01");
 	Placement.ItemLevel = 20;
 	Placement.Quantity = 1;
 
 	FGridResolvedItem Expected;
 	if (!TestTrue(TEXT("Real N20 ARM resolves"), F.Registry->ResolveItem(
-			Placement.CanonicalItemId, Placement.ItemLevel, Expected)))
+			Placement.ItemId, Placement.ItemLevel, Expected)))
 	{
 		return false;
 	}
@@ -147,11 +147,11 @@ bool FGridClean064X25PointerlessEditorPreview::RunTest(const FString&)
 		}
 	}
 
-	Placement.CanonicalItemId = TEXT("Item_Arrows_01");
+	Placement.ItemId = TEXT("Item_Arrows_01");
 	Placement.ItemLevel = 0;
 	FGridResolvedItem Arrows;
 	if (!TestTrue(TEXT("Real non-ARM arrows resolve at N0"),
-			F.Registry->ResolveItem(Placement.CanonicalItemId, 0, Arrows)) ||
+			F.Registry->ResolveItem(Placement.ItemId, 0, Arrows)) ||
 		!TestTrue(TEXT("Pointerless arrows preview works at N0"),
 			FGridEditorLooseItemPreviewReadModel::Resolve(
 				F.Registry, Placement).bResolved))
@@ -166,14 +166,14 @@ bool FGridClean064X25PointerlessEditorPreview::RunTest(const FString&)
 	}
 
 	Placement.ItemLevel = 20;
-	Placement.CanonicalItemId = TEXT("Weapon_Dagger_01");
+	Placement.ItemId = TEXT("Weapon_Dagger_01");
 	if (!TestNull(TEXT("Old placement source cannot be represented"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition"))))
 		return false;
-	Placement.CanonicalItemId = NAME_None;
+	Placement.ItemId = NAME_None;
 	if (!TestFalse(TEXT("Missing identity cannot preview"),
 		FGridEditorLooseItemPreviewReadModel::Resolve(F.Registry, Placement).bResolved))
 		return false;
-	Placement.CanonicalItemId = TEXT("Weapon_Dagger_01");
+	Placement.ItemId = TEXT("Weapon_Dagger_01");
 	if (!TestTrue(TEXT("No registry cannot authorize legacy fallback"),
 		FGridEditorLooseItemPreviewReadModel::Resolve(
 			nullptr, Placement).bRegisteredIdentity) ||
@@ -183,7 +183,7 @@ bool FGridClean064X25PointerlessEditorPreview::RunTest(const FString&)
 	{
 		return false;
 	}
-	Placement.CanonicalItemId = TEXT("ARM_CLEAN064X25_Unknown");
+	Placement.ItemId = TEXT("ARM_CLEAN064X25_Unknown");
 	if (!TestFalse(TEXT("Unregistered persisted ID fails closed"),
 		FGridEditorLooseItemPreviewReadModel::Resolve(
 			F.Registry, Placement).bResolved))

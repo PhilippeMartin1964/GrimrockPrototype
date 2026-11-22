@@ -57,7 +57,7 @@ bool FGridEditorARMCLEAN064X55NativePalette::RunTest(const FString&)
         if (Expected.IsDirectItemEntry())
         {
             ++Direct;
-            if (Expected.CanonicalDefaultItemLevel > 0 && ArmIndex == INDEX_NONE)
+            if (Expected.DefaultItemLevel > 0 && ArmIndex == INDEX_NONE)
                 ArmIndex = Index;
         }
         if (!TestTrue(TEXT("Order and all reflected fields preserved"),
@@ -91,10 +91,10 @@ bool FGridEditorARMCLEAN064X55NativePalette::RunTest(const FString&)
             TestTrue(TEXT("Rejected transaction exposes no proposal"), Rejected.IsEmpty()) &&
             TestFalse(TEXT("Rejected transaction explains failure"), Reason.IsEmpty());
     };
-    Copy->Entries[ArmIndex].CanonicalDefaultItemLevel = 0;
+    Copy->Entries[ArmIndex].DefaultItemLevel = 0;
     if (!Refuses(TEXT("ARM N0 cannot pass native preflight"))) return false;
     Copy->Entries = Plan;
-    Copy->Entries[ArmIndex].CanonicalItemId = TEXT("X55_UnknownItem");
+    Copy->Entries[ArmIndex].ItemId = TEXT("X55_UnknownItem");
     if (!Refuses(TEXT("Unknown ID cannot pass native preflight"))) return false;
     Copy->Entries = Plan;
     Copy->Entries.RemoveAt(ArmIndex);

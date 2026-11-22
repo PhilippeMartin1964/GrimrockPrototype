@@ -91,7 +91,7 @@ bool FARMEMENT01111ApprovedSources::RunTest(const FString&)
         Seen.Add(ArmId);
         TestTrue(TEXT("Real N1 melee belongs to its approved starter recipe"),
             ARMEMENT01111::IsApprovedPlacement(Spec, Rows));
-        const FGridCanonicalWeaponArchetype* Authoring =
+        const FGridWeaponArchetype* Authoring =
             Root->WeaponCatalogue->Find(ArmId);
         if (TestNotNull(TEXT("Canonical numeric class affinity"), Authoring))
             TestTrue(TEXT("Class explicitly primary or secondary"),
@@ -153,7 +153,7 @@ bool FARMEMENT01111Readiness::RunTest(const FString&)
         FGridResolvedItem N1;
         if (!TestTrue(TEXT("Canonical real N1 melee item"),
             Fixture.Resolve(FName(Spec.Item), 1, N1))) continue;
-        const FGridCanonicalWeaponVisual* Visual =
+        const FGridWeaponVisual* Visual =
             Root->WeaponVisualCatalogue->FindForArchetype(FName(Spec.Arm));
         const bool bMapped = Visual && Visual->VisualId == N1.VisualId;
         const bool bIcon = N1.ItemIcon.LoadSynchronous() != nullptr;

@@ -1,10 +1,10 @@
-# Modèle relationnel des objets — CLEANUP01
+# Modèle relationnel des objets — CLEANUP02
 
-Référence vérifiée : `a8de4f58b6c7ecc42e62aef0dbbe8fa9b7ede272`, `master`, 22 novembre 2026. [Diagramme SVG](DataModel.svg) · [Consolidation et preuves](../Technical/Consolidation.md).
+Référence fonctionnelle et recette ARM-CLEAN06 : `420dce2ee4f55c3630e8a99fa7ae9d77299a461e`, `master`, 22 novembre 2026. Nomenclature actualisée dans CLEANUP02. [Diagramme SVG](DataModel.svg) · [Consolidation et preuves](../Technical/Consolidation.md).
 
 ## Lecture du modèle
 
-Mise à jour CLEANUP02 : noms internes simplifiés, sans évolution du schéma ou des identités. La référence fonctionnelle reste `420dce2e`. Les noms réfléchis et chemins d’assets sont traités dans les lots suivants.
+Mise à jour CLEANUP02 : noms internes simplifiés, sans évolution du schéma ou des identités. La référence fonctionnelle reste `420dce2e`. 24 types réfléchis et dix propriétés portent désormais des noms métier avec redirections de compatibilité. Les trois classes dont le nom cible reste occupé sont conservées ; les chemins d’assets relèvent du lot natif suivant.
 
 Le SVG initial était un modèle relationnel de 29 entités et 37 relations. Ces 29 entités sont conservées, corrigées ou identifiées comme projections de champs embarqués. Le modèle enrichi comprend 47 entités ou sous-ensembles, répartis en six panneaux. Ce découpage ne change pas le modèle relationnel : les références `FK → [panneau]` relient les domaines sans faire traverser les autres entités par des traits.
 
@@ -18,7 +18,7 @@ Le SVG initial était un modèle relationnel de 29 entités et 37 relations. Ces
 
 `UGridItemSystemAsset`, matérialisé par `DA_ItemSystem`, référence les définitions et quatre catalogues globaux. `UGridItemSubsystem` charge cette racine depuis `ConfiguredItemSystem`, la valide une fois par GameInstance et construit `ItemIndex`. Les vues `FGridResolvedItem` et `FGridResolvedBoundAction` sont transitoires. Une identité ou un niveau inconnu échoue explicitement ; aucune ancienne définition ne doit compléter un objet enregistré.
 
-La base abstraite `UGridCanonicalItemDefinitionAsset` contient exactement les cinq champs communs `ItemId`, `DisplayName`, `Description`, `WeightKg`, `Tags`. Le nom C++ actuel est conservé jusqu'à CLEANUP02. Une définition d'armement ajoute seulement `ArchetypeId`. La racine référence aujourd'hui **48 définitions**, dont **22 armements** ; ce n'est pas le nombre d'archétypes du catalogue.
+La base abstraite `UGridCanonicalItemDefinitionAsset` contient exactement les cinq champs communs `ItemId`, `DisplayName`, `Description`, `WeightKg`, `Tags`. Le nom C++ actuel est conservé jusqu’à résolution de sa collision dans CLEANUP03/CLEANUP04. Une définition d'armement ajoute seulement `ArchetypeId`. La racine référence aujourd'hui **48 définitions**, dont **22 armements** ; ce n'est pas le nombre d'archétypes du catalogue.
 
 | Classe concrète actuelle | Assets | Champs propres / rôle |
 | --- | ---: | --- |
@@ -36,13 +36,13 @@ Les quatre dernières classes héritent de `UGridNonArmamentDefinitionAsset`. `G
 
 `DA_CanonicalWeaponCatalogue` contient **82 archétypes** et **6 préférences de classe**. Les 22 définitions ARM actuelles n'en matérialisent qu'une partie ; la présence d'une ligne numérique ne prouve pas sa disponibilité complète en gameplay. Le rapport natif de retrait résout 466 couples objet/niveau : 22 × 20 ARM + 26 non ARM au niveau zéro.
 
-`FGridCanonicalWeaponArchetype` porte l'autorité mécanique : `Kind`, `HandPolicy`, `AttackSourceSlots`, type/sous-type de dégâts, attribut d'échelle, précision, PA, portée, N1, croissance, réactions, projectile, affinités et bindings d'actions. `bHandAndKindProven` constitue un garde explicite. Équiper en main gauche ne confère pas automatiquement une attaque en main gauche.
+`FGridWeaponArchetype` porte l'autorité mécanique : `Kind`, `HandPolicy`, `AttackSourceSlots`, type/sous-type de dégâts, attribut d'échelle, précision, PA, portée, N1, croissance, réactions, projectile, affinités et bindings d'actions. `bHandAndKindProven` constitue un garde explicite. Équiper en main gauche ne confère pas automatiquement une attaque en main gauche.
 
 La progression N1..N20 est une projection des bases `DamageDiceN1`, `PhysicalArmorN1`, `MagicalArmorN1` et de cinq `FGridWeaponIntegerGrowthRule`. Chaque règle contient `StepEveryLevels`, `StepAmount` et ses `Exceptions` ; chaque exception est `FGridWeaponGrowthException { ItemLevel, Value }`, correction absolue. Le `StatKey` et le champ `MaxLevel_20` de l'ancien SVG n'existent pas. La règle contenante identifie la statistique ; les bornes de niveau sont un contrat de résolution.
 
-Les affinités sont `PrimaryClassId`, `SecondaryClassIds`, `SecondarySourceLabel` dans l'archétype. Les six `FGridCanonicalClassPreference` sont des descriptions/conseils de classe dans le catalogue. Il n'existe pas de table `CLASS_AFFINITY` avec enum `RecommendationTier`. Ces conseils ne sont pas des prérequis d'équipement.
+Les affinités sont `PrimaryClassId`, `SecondaryClassIds`, `SecondarySourceLabel` dans l'archétype. Les six `FGridClassPreference` sont des descriptions/conseils de classe dans le catalogue. Il n'existe pas de table `CLASS_AFFINITY` avec enum `RecommendationTier`. Ces conseils ne sont pas des prérequis d'équipement.
 
-`FGridCanonicalReactionPolicy` porte `ReactionId`, `Trigger`, `Chance`, `Absorption`, sans `ReactionKind` ou `AbsorptionPolicy`. Le projectile mécanique porte activation, paramètres de lancer générique, vitesse, arc, durée et décalage de retombée ; la collision relève des acteurs et de leurs politiques, sans champ `CollisionBehavior` dans cette structure.
+`FGridReactionPolicy` porte `ReactionId`, `Trigger`, `Chance`, `Absorption`, sans `ReactionKind` ou `AbsorptionPolicy`. Le projectile mécanique porte activation, paramètres de lancer générique, vitesse, arc, durée et décalage de retombée ; la collision relève des acteurs et de leurs politiques, sans champ `CollisionBehavior` dans cette structure.
 
 ## C — Autorités visuelles
 
@@ -56,9 +56,9 @@ Les noms de propriétés exacts remplacent `VisualBindings`, `CosmeticProgressio
 
 Le propriétaire d'un `FGridItemActionBinding` est un archétype ARM, une définition non ARM ou un consommable. Chaque binding contient seulement `ActionId` et `PresentationId`.
 
-`DA_ActionCatalogue` possède deux collections effectivement utilisées : `Actions` (`FGridCanonicalAction`) et `DetailedActions` (`FGridCanonicalRuntimeAction`, contenant `FGridCombatActionDefinition`). La validation cherche l'identité dans les formes autorisées ; `ResolveDetailedNonArmAction` exige la forme détaillée, valide sa présentation et son identité. La preuve native constate 14 actions détaillées. Ces formes sont signalées en ambre : il faut démontrer leurs rôles et la parité avant de supprimer ou fusionner une représentation.
+`DA_ActionCatalogue` possède deux collections effectivement utilisées : `Actions` (`FGridAction`) et `DetailedActions` (`FGridRuntimeAction`, contenant `FGridCombatActionDefinition`). La validation cherche l'identité dans les formes autorisées ; `ResolveDetailedNonArmAction` exige la forme détaillée, valide sa présentation et son identité. La preuve native constate 14 actions détaillées. Ces formes sont signalées en ambre : il faut démontrer leurs rôles et la parité avant de supprimer ou fusionner une représentation.
 
-L'action compacte possède `Kind`, `Targeting`, les flags de portée/ligne de vue, `SourceItemQuantityCost`, `ManaCost`, `CooldownRounds`, `WeaponDamagePercent`, `Effects`. Chaque `FGridCanonicalActionEffect` possède `Kind`, `Magnitude`, `StatusId` ; le `TypedPayload` initial n'existe pas ici. Le catalogue valide la présence de `StatusId` pour les opérations de statut, pas une table SQL de statuts. `UGridStatusEffectDefinitionAsset` utilise **`EffectId`**, avec durée, cumul, tags, contrôle, périodicité, modificateurs et réactions. Les formes détaillées ont leurs propres payloads et références de statuts : ne pas prétendre qu'une simple chaîne remplace tous ces mécanismes.
+L'action compacte possède `Kind`, `Targeting`, les flags de portée/ligne de vue, `SourceItemQuantityCost`, `ManaCost`, `CooldownRounds`, `WeaponDamagePercent`, `Effects`. Chaque `FGridActionEffect` possède `Kind`, `Magnitude`, `StatusId` ; le `TypedPayload` initial n'existe pas ici. Le catalogue valide la présence de `StatusId` pour les opérations de statut, pas une table SQL de statuts. `UGridStatusEffectDefinitionAsset` utilise **`EffectId`**, avec durée, cumul, tags, contrôle, périodicité, modificateurs et réactions. Les formes détaillées ont leurs propres payloads et références de statuts : ne pas prétendre qu'une simple chaîne remplace tous ces mécanismes.
 
 `DA_ActionPresentationCatalogue` possède également `Presentations` et `DetailedPresentations`. Le profil compact porte mouvement, temporisations, offsets, dix groupes audio et cinq groupes VFX ; le détaillé contient `FGridPlayerAttackPresentationProfile` avec `PresentationId`. Ces données décrivent les événements réels ; elles n'accordent ni dégâts, ni PA, ni capacités. Sorts, talents et statuts conservent leurs autorités spécialisées ; ils ne deviennent pas des définitions d'objets.
 
@@ -72,7 +72,7 @@ L'instance conserve quantité, propriétaire, emplacement, réserves de protecti
 
 `FGridCharacterEquipmentState` possède 18 slots hors `None`. Un objet à deux mains occupe sa source physique et réserve virtuellement la seconde main : ne pas y créer un second GUID, une quantité ou une attaque. La hotbar référence l'action et, pour l'équipement, le GUID et l'emplacement source ; elle ne possède pas une nouvelle instance.
 
-`UGridLevelAsset.LooseItemInstances` et `ItemSpawns` contiennent `CanonicalItemId`, niveau, quantité, identité de placement et coordonnées ; le placement libre ajoute transformation locale et lecture. Les réceptacles, serrures, loot et kits initiaux utilisent aussi les identités canoniques : ces producteurs ne sont pas de nouvelles autorités de définition. Les snapshots `FGridRuntimeItemState`, `FGridPendingWorldItemState`, `FGridRuntimeReceptacleState` sont agrégés par `FGridLevelRuntimeState`, puis `FGridDungeonRuntimeState`.
+`UGridLevelAsset.LooseItemInstances` et `ItemSpawns` contiennent `ItemId`, niveau, quantité, identité de placement et coordonnées ; le placement libre ajoute transformation locale et lecture. Les réceptacles, serrures, loot et kits initiaux utilisent aussi les identités canoniques : ces producteurs ne sont pas de nouvelles autorités de définition. Les snapshots `FGridRuntimeItemState`, `FGridPendingWorldItemState`, `FGridRuntimeReceptacleState` sont agrégés par `FGridLevelRuntimeState`, puis `FGridDungeonRuntimeState`.
 
 `UGrimrockPartySaveGame.CurrentSaveVersion = 27` exige la version exacte et valide les états au chargement. Il contient inventaire, donjon, quêtes, ordre des portraits, position du groupe et horloge logique. Le niveau RPG et des projections de personnage sont reconstruits ; les vues résolues d'objet et les catalogues ne sont pas des données persistées dans les instances.
 
@@ -151,21 +151,21 @@ Les noms relationnels sont conservés comme repères documentaires ; les types c
 | `AMMO_DEFINITION` | UGridAmmoDefinitionAsset · 1 asset |
 | `OTHER_EQUIPMENT_DEFINITION` | UGridOtherEquipmentDefinitionAsset · 3 assets |
 | `GENERIC_ITEM_VISUAL` | UGridNonArmamentDefinitionAsset · 7 assets directs |
-| `WEAPON_ARCHETYPE` | FGridCanonicalWeaponArchetype |
+| `WEAPON_ARCHETYPE` | FGridWeaponArchetype |
 | `ITEM_ACTION_BINDING` | FGridItemActionBinding |
 | `AMMO_KIND` | FName AmmoKindId / RequiredAmmoKindId |
-| `CLASS_AFFINITY` | Champs de FGridCanonicalWeaponArchetype |
+| `CLASS_AFFINITY` | Champs de FGridWeaponArchetype |
 | `LEVEL_PROGRESSION` | N1 + 5 FGridWeaponIntegerGrowthRule |
-| `REACTION_POLICY` | FGridCanonicalReactionPolicy |
-| `PROJECTILE_POLICY` | FGridCanonicalProjectilePolicy |
+| `REACTION_POLICY` | FGridReactionPolicy |
+| `PROJECTILE_POLICY` | FGridProjectilePolicy |
 | `PROGRESSION_EXCEPTION` | FGridWeaponGrowthException |
-| `VISUAL_BINDING` | FGridCanonicalWeaponVisualBinding |
-| `VISUAL_PROFILE` | FGridCanonicalWeaponVisual |
+| `VISUAL_BINDING` | FGridWeaponVisualBinding |
+| `VISUAL_PROFILE` | FGridWeaponVisual |
 | `ACTION_ICON` | EGridEquippedWeaponActionIconKind → texture |
-| `ACTION_DEFINITION` | FGridCanonicalAction |
-| `ACTION_EFFECT` | FGridCanonicalActionEffect |
+| `ACTION_DEFINITION` | FGridAction |
+| `ACTION_EFFECT` | FGridActionEffect |
 | `STATUS_EFFECT_ASSET` | UGridStatusEffectDefinitionAsset |
-| `PRESENTATION_PROFILE` | FGridCanonicalActionPresentation |
+| `PRESENTATION_PROFILE` | FGridActionPresentation |
 | `ITEM_INSTANCE` | FGridItemInstance |
 | `LEVEL_ASSET` | UGridLevelAsset · DA_GridLevel_* |
 | `ITEM_PLACEMENT` | FGridLooseItemInstance / FGridItemSpawnInstance |

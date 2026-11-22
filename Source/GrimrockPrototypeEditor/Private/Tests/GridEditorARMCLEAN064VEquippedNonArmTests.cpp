@@ -51,7 +51,7 @@ bool FGridClean064VEquippedNonArm::RunTest(const FString&)
         return false;
     }
     int32 Validated = 0;
-    for (const FGridCanonicalRuntimeAction& Record : Root->ActionCatalogue->DetailedActions)
+    for (const FGridRuntimeAction& Record : Root->ActionCatalogue->DetailedActions)
     {
         const FGridCombatActionDefinition& Source = Record.Definition;
         if (Source.SourcePolicy != EGridCombatActionSourcePolicy::Equipment) { continue; }

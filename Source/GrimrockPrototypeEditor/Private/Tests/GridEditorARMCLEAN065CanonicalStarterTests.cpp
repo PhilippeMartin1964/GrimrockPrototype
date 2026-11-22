@@ -68,9 +68,9 @@ bool FGridEditorARMCLEAN065CanonicalStarterKits::RunTest(const FString&)
                 TestNull(TEXT("Native test entry has no obsolete ItemDefinition"),
                     Entry.ItemDefinition.Get());
                 TestFalse(TEXT("Stable native ItemId is explicit"),
-                    Entry.CanonicalItemId.IsNone());
+                    Entry.ItemId.IsNone());
                 TestEqual(TEXT("Reference and native ItemId are identical"),
-                    Entry.CanonicalItemId, Source.CanonicalItemId);
+                    Entry.ItemId, Source.ItemId);
                 TestEqual(TEXT("Both native projections preserve the same physical level"),
                     Entry.ItemLevel, Source.ItemLevel);
                 TestEqual(TEXT("Identical quantity"), Entry.Quantity, Source.Quantity);
@@ -81,16 +81,16 @@ bool FGridEditorARMCLEAN065CanonicalStarterKits::RunTest(const FString&)
                 else
                 {
                     const auto* Slot = Character.InventorySlots.FindByPredicate([&](const FGridInventorySlot& Row)
-                        { return !Row.IsEmpty() && Row.Item.ItemDefinitionId == Entry.CanonicalItemId; });
+                        { return !Row.IsEmpty() && Row.Item.ItemDefinitionId == Entry.ItemId; });
                     if (Slot) Granted = &Slot->Item;
                 }
                 if (!TestNotNull(TEXT("Item actually granted"), Granted)) return false;
                 TestTrue(TEXT("Grant preserves identity, owner, physical level and quantity"), Granted->IsValid() &&
-                    Granted->ItemDefinitionId == Entry.CanonicalItemId && Granted->OwnerGuid == Character.CharacterId &&
+                    Granted->ItemDefinitionId == Entry.ItemId && Granted->OwnerGuid == Character.CharacterId &&
                     Granted->ItemLevel == Entry.ItemLevel && Granted->Quantity == Entry.Quantity);
                 FGridResolvedItem Resolved;
                 if (!TestTrue(TEXT("Canonical display and combat profile resolve"),
-                    Registry->ResolveItem(Entry.CanonicalItemId, Entry.ItemLevel, Resolved))) return false;
+                    Registry->ResolveItem(Entry.ItemId, Entry.ItemLevel, Resolved))) return false;
                 if (Resolved.bIsArmament)
                     TestFalse(TEXT("Canonical weapon icon available"), Resolved.ItemIcon.IsNull());
             }

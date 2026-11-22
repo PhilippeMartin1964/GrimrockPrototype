@@ -86,7 +86,7 @@ namespace ARMEMENT0181
         {
             FGridLooseItemInstance& Item = Level->LooseItemInstances.AddDefaulted_GetRef();
             Item.InstanceId = FGuid::NewGuid();
-            Item.CanonicalItemId = TEXT("Weapon_Dagger_01");
+            Item.ItemId = TEXT("Weapon_Dagger_01");
             Item.ItemLevel = LevelNumber;
             Item.Quantity = 1;
             Item.CellX = CellX;

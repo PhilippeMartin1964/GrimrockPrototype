@@ -23,7 +23,7 @@ namespace ARMCLEAN064X45
         {
             Result += FString::Printf(TEXT("|%s;%s;%d;%d;%d;%d;%d;%s;%.6f;%s;%s;%s;%s;%s;%s"),
                 *Item.InstanceId.ToString(EGuidFormats::Digits),
-                *Item.CanonicalItemId.ToString(), Item.ItemLevel, Item.Quantity,
+                *Item.ItemId.ToString(), Item.ItemLevel, Item.Quantity,
                 Item.CellX, Item.CellY, static_cast<int32>(Item.SurfaceSide),
                 *Item.LocalOffset.ToString(), Item.LocalYaw,
                 *Item.LogicId.ToString(), *GetPathNameSafe(Item.ReadableContentAsset.Get()),
@@ -48,7 +48,7 @@ namespace ARMCLEAN064X45
         {
             if (!Item.InstanceId.IsValid() || Seen.Contains(Item.InstanceId) ||
                 !Level.IsValidCoord(Item.CellX, Item.CellY) ||
-                Item.CanonicalItemId.IsNone() || Item.Quantity < 1 ||
+                Item.ItemId.IsNone() || Item.Quantity < 1 ||
                 Item.ItemLevel < 0 || Item.ItemLevel > 20 ||
                 Item.LocalOffset.ContainsNaN() || !FMath::IsFinite(Item.LocalYaw))
             {
@@ -57,8 +57,8 @@ namespace ARMCLEAN064X45
             }
             Seen.Add(Item.InstanceId);
             FGridResolvedItem Resolved;
-            if (!Registry.ResolveItem(Item.CanonicalItemId, Item.ItemLevel, Resolved) ||
-                !Resolved.IsValid() || Resolved.ItemId != Item.CanonicalItemId ||
+            if (!Registry.ResolveItem(Item.ItemId, Item.ItemLevel, Resolved) ||
+                !Resolved.IsValid() || Resolved.ItemId != Item.ItemId ||
                 Resolved.ItemLevel != Item.ItemLevel ||
                 (!Resolved.bIsArmament && Item.ItemLevel != 0) ||
                 Item.Quantity > FMath::Max(1, Resolved.MaxStack))
@@ -135,7 +135,7 @@ bool FGridEditorARMCLEAN064X45NativeLoosePreflight::RunTest(const FString&)
         [Registry = Registry.Get()](const FGridLooseItemInstance& Item)
         {
             FGridResolvedItem Canonical;
-            return Registry->ResolveItem(Item.CanonicalItemId, Item.ItemLevel, Canonical) &&
+            return Registry->ResolveItem(Item.ItemId, Item.ItemLevel, Canonical) &&
                 Canonical.bIsArmament;
         });
     if (!TestNotNull(TEXT("There are authored ARM among the 44"), FirstArm))

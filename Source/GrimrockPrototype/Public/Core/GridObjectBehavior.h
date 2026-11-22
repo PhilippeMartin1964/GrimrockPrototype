@@ -79,8 +79,8 @@ struct FGridReceptacleInitialItemConfig
 	GENERATED_BODY()
 
 	/** Stable registered identity for initial content. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial Content|Canonical")
-	FName CanonicalItemId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial Content")
+	FName ItemId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial Content", meta = (ClampMin = "1"))
 	int32 Quantity = 1;
@@ -96,8 +96,8 @@ struct FGridReceptacleAcceptedItemConfig
 	GENERATED_BODY()
 
 	/** Only explicit registered identity controls the acceptance rule. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accepted Items|Canonical")
-	FName CanonicalItemId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accepted Items")
+	FName ItemId = NAME_None;
 };
 
 USTRUCT(BlueprintType)

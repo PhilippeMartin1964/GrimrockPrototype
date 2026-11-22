@@ -121,7 +121,7 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
                 ++RealCount;
                 FGridResolvedItem Resolved;
                 if (!TestTrue(TEXT("Persisted source is in one registry"),
-                    F.Registry->ResolveItem(Source.CanonicalItemId, Source.ItemLevel, Resolved)))
+                    F.Registry->ResolveItem(Source.ItemId, Source.ItemLevel, Resolved)))
                     {return false;}
                 if (!Resolved.bIsArmament && !bHasNonArm)
                     {NonArm = Source; bHasNonArm = true;}
@@ -145,18 +145,18 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
     FGridResolvedItem Canonical;
     if (!TestNotNull(TEXT("Physical actor exists"), Actor) ||
         !TestTrue(TEXT("Physical N0 projection resolves"),
-            F.Registry->ResolveItem(NonArm.CanonicalItemId, NonArm.ItemLevel, Canonical)))
+            F.Registry->ResolveItem(NonArm.ItemId, NonArm.ItemLevel, Canonical)))
         {return false;}
     if (!TestTrue(TEXT("Initial logical status retained"), Entry.bWasInitialItem) ||
-        !TestEqual(TEXT("Logical identity retained"), Entry.ItemDefinitionId, NonArm.CanonicalItemId) ||
+        !TestEqual(TEXT("Logical identity retained"), Entry.ItemDefinitionId, NonArm.ItemId) ||
         !TestEqual(TEXT("Actual quantity retained"), Entry.Quantity, NonArm.Quantity) ||
         !TestEqual(TEXT("Physical N0 retained"), Entry.ItemLevel, NonArm.ItemLevel) ||
         !TestNull(TEXT("Physical actor no longer reads legacy definition"),
             Actor->GetItemDefinitionAsset()) ||
         !TestTrue(TEXT("Physical actor projects canonical family"),
-            Actor->CanonicalWorldPresentation.IsValid()) ||
-        !TestEqual(TEXT("Actor ItemId"), Actor->GetItemDefinitionId(), NonArm.CanonicalItemId) ||
-        !TestEqual(TEXT("Actor level"), Actor->CanonicalWorldItemLevel, NonArm.ItemLevel) ||
+            Actor->ResolvedWorldPresentation.IsValid()) ||
+        !TestEqual(TEXT("Actor ItemId"), Actor->GetItemDefinitionId(), NonArm.ItemId) ||
+        !TestEqual(TEXT("Actor level"), Actor->WorldItemLevel, NonArm.ItemLevel) ||
         !TestTrue(TEXT("Actor GUID is the contained item GUID"),
             Actor->GetRuntimeObjectId() == Entry.RuntimeObjectId) ||
         !TestEqual(TEXT("Light configuration from canonical source"),
@@ -213,7 +213,7 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
         if (!TestNull(TEXT("Migrated ARM actor retains no historical source"),
                 AR->GetContainedItemActor(0)->GetItemDefinitionAsset()) ||
             !TestTrue(TEXT("Migrated ARM has full canonical presentation"),
-                AR->GetContainedItemActor(0)->CanonicalWorldPresentation.IsValid()))
+                AR->GetContainedItemActor(0)->ResolvedWorldPresentation.IsValid()))
             return false;
         if (!TestEqual(TEXT("Native ARM physical level"), AR->ContainedItems[0].ItemLevel, Arm.ItemLevel))
             return false;

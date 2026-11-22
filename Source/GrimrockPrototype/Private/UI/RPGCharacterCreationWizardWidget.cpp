@@ -568,13 +568,13 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescript
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
             const UGridItemDefinitionAsset* Item = Entry.ItemDefinition.Get();
-            if (!Item && Entry.CanonicalItemId.IsNone())
+            if (!Item && Entry.ItemId.IsNone())
             {
                 continue;
             }
             const FGridStartingKitDisplayReadView ItemView =
                 FGridStartingKitDisplayReadModel::Resolve(
-                    CanonicalRegistry, Item, Entry.ItemLevel, Entry.CanonicalItemId);
+                    CanonicalRegistry, Item, Entry.ItemLevel, Entry.ItemId);
             // Match the grant path: never advertise an unresolved item.
             if (!ItemView.bResolved)
             {

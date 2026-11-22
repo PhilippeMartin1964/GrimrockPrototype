@@ -31,7 +31,7 @@ struct FGridQuickItemUseReadModel
         if (!Item.IsValid() || Item.bIsArmament || !Item.AmmoKindId.IsNone() ||
             !Bound.IsValid() || Bound.ItemId != Item.ItemId ||
             Bound.ItemLevel != Item.ItemLevel ||
-            Bound.Action.Kind != EGridCanonicalActionKind::Use ||
+            Bound.Action.Kind != EGridActionKind::Use ||
             (Bound.Action.Targeting != EGridCombatTargetingPolicy::Self &&
              Bound.Action.Targeting != EGridCombatTargetingPolicy::Ally) ||
             Bound.Action.bRangedAttack || Bound.Action.bRequiresLineOfSight ||
@@ -39,7 +39,7 @@ struct FGridQuickItemUseReadModel
             Bound.Action.SourceItemQuantityCost != 1 ||
             Bound.Action.ManaCost < 0 || Bound.Action.CooldownRounds < 0 ||
             Bound.Action.Effects.Num() != 1 ||
-            Bound.Action.Effects[0].Kind != EGridCanonicalEffectKind::Heal ||
+            Bound.Action.Effects[0].Kind != EGridEffectKind::Heal ||
             Bound.Action.Effects[0].Magnitude <= 0 ||
             !Bound.Action.Effects[0].StatusId.IsNone())
         {
@@ -57,7 +57,7 @@ struct FGridQuickItemUseReadModel
         Candidate.TargetingPolicy = Bound.Action.Targeting;
         Candidate.MaximumResolvedTargets = 1;
         Candidate.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-        Candidate.ActionPointCost = 0; // No AP is authored by FGridCanonicalAction.
+        Candidate.ActionPointCost = 0; // No AP is authored by FGridAction.
         Candidate.ResourceCosts.ManaCost = Bound.Action.ManaCost;
         Candidate.ResourceCosts.SourceItemQuantityCost = 1;
         Candidate.CooldownRounds = Bound.Action.CooldownRounds;
@@ -81,7 +81,7 @@ struct FGridQuickItemUseReadModel
         if (!Item.IsValid() || Item.bIsArmament || !Item.AmmoKindId.IsNone() ||
             !Bound.IsValid() || Bound.ItemId != Item.ItemId ||
             Bound.ItemLevel != Item.ItemLevel ||
-            Bound.Action.Kind != EGridCanonicalActionKind::Use ||
+            Bound.Action.Kind != EGridActionKind::Use ||
             (Bound.Action.Targeting != EGridCombatTargetingPolicy::Self &&
              Bound.Action.Targeting != EGridCombatTargetingPolicy::Ally) ||
             Bound.Action.bRangedAttack || Bound.Action.bRequiresLineOfSight ||
@@ -89,7 +89,7 @@ struct FGridQuickItemUseReadModel
             Bound.Action.SourceItemQuantityCost != 1 ||
             Bound.Action.ManaCost < 0 || Bound.Action.CooldownRounds < 0 ||
             Bound.Action.Effects.Num() != 1 ||
-            Bound.Action.Effects[0].Kind != EGridCanonicalEffectKind::RemoveStatus ||
+            Bound.Action.Effects[0].Kind != EGridEffectKind::RemoveStatus ||
             Bound.Action.Effects[0].Magnitude != 1 ||
             Bound.Action.Effects[0].StatusId.IsNone())
         {
@@ -143,7 +143,7 @@ struct FGridQuickItemUseReadModel
         if (!Item.IsValid() || Item.bIsArmament || !Item.AmmoKindId.IsNone() ||
             !Bound.IsValid() || Bound.ItemId != Item.ItemId ||
             Bound.ItemLevel != Item.ItemLevel ||
-            Bound.Action.Kind != EGridCanonicalActionKind::Use ||
+            Bound.Action.Kind != EGridActionKind::Use ||
             (Bound.Action.Targeting != EGridCombatTargetingPolicy::Self &&
              Bound.Action.Targeting != EGridCombatTargetingPolicy::Ally) ||
             Bound.Action.bRangedAttack || Bound.Action.bRequiresLineOfSight ||
@@ -151,7 +151,7 @@ struct FGridQuickItemUseReadModel
             Bound.Action.SourceItemQuantityCost != 1 ||
             Bound.Action.ManaCost < 0 || Bound.Action.CooldownRounds < 0 ||
             Bound.Action.Effects.Num() != 1 ||
-            Bound.Action.Effects[0].Kind != EGridCanonicalEffectKind::ApplyStatus ||
+            Bound.Action.Effects[0].Kind != EGridEffectKind::ApplyStatus ||
             Bound.Action.Effects[0].Magnitude != 1 ||
             Bound.Action.Effects[0].StatusId.IsNone())
         {

@@ -51,7 +51,7 @@ struct FGridEquipmentSlots
 			}
 
 			View.bTwoHanded =
-				Canonical.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded;
+				Canonical.Weapon.HandPolicy == EGridHandPolicy::TwoHanded;
 			if (Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand))
 			{
 				View.AllowedSlots.Add(EGridEquipmentSlot::MainHand);

@@ -57,9 +57,9 @@ bool FGridEditorClean064X12PalettePlacement::RunTest(const FString&)
     const FGridObjectPaletteEntry* NonArm = nullptr;
     for (const FGridObjectPaletteEntry& Entry : Palette->Entries)
     {
-        if (!Entry.IsDirectItemEntry() || Entry.CanonicalItemId.IsNone()) {continue;}
-        if (Entry.CanonicalDefaultItemLevel == 0 && !NonArm) {NonArm = &Entry;}
-        if (Entry.CanonicalDefaultItemLevel > 0 && !Arm) {Arm = &Entry;}
+        if (!Entry.IsDirectItemEntry() || Entry.ItemId.IsNone()) {continue;}
+        if (Entry.DefaultItemLevel == 0 && !NonArm) {NonArm = &Entry;}
+        if (Entry.DefaultItemLevel > 0 && !Arm) {Arm = &Entry;}
     }
     if (!TestNotNull(TEXT("One real nonARM palette item"), NonArm) ||
         !TestNotNull(TEXT("One real ARM palette item"), Arm)) {return false;}
@@ -91,9 +91,9 @@ bool FGridEditorClean064X12PalettePlacement::RunTest(const FString&)
         if (Level->LooseItemInstances.Num() != Before + 1) {return false;}
         const FGridLooseItemInstance& Item = Level->LooseItemInstances.Last();
         return Item.InstanceId.IsValid() &&
-            Item.CanonicalItemId == Entry->CanonicalItemId &&
+            Item.ItemId == Entry->ItemId &&
             FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")) == nullptr &&
-            Item.ItemLevel == Entry->CanonicalDefaultItemLevel &&
+            Item.ItemLevel == Entry->DefaultItemLevel &&
             Item.Quantity == 1 &&
             Item.CellX == 1 && Item.CellY == 1;
     };
@@ -115,13 +115,13 @@ bool FGridEditorClean064X12PalettePlacement::RunTest(const FString&)
         !TestTrue(TEXT("Selected item GUID never changed"),
             Level->LooseItemInstances.Last().InstanceId == ArmGuid) ||
         !TestEqual(TEXT("Selected ARM ItemId never changed"),
-            Level->LooseItemInstances.Last().CanonicalItemId, Arm->CanonicalItemId))
+            Level->LooseItemInstances.Last().ItemId, Arm->ItemId))
         {return false;}
 
     TStrongObjectPtr<UGridObjectPaletteAsset> Invalid(NewObject<UGridObjectPaletteAsset>(Editor));
     FGridObjectPaletteEntry Bad = *Arm;
     Bad.EntryId = TEXT("ARM_CLEAN06_4X12_INVALID");
-    Bad.CanonicalItemId = TEXT("ARM_CLEAN06_UNKNOWN");
+    Bad.ItemId = TEXT("ARM_CLEAN06_UNKNOWN");
     Invalid->Entries.Add(Bad);
     Editor->ObjectPalette = Invalid.Get();
     if (!TestFalse(TEXT("Contradictory canonical entry cannot be selected"),

@@ -105,7 +105,7 @@ bool FGridClean064X10BIdentity::RunTest(const FString&)
 
     FGridItemSpawnInstance Spawn;
     Spawn.SpawnId = FGuid::NewGuid();
-    Spawn.CanonicalItemId = TEXT("Item_Arrows_01");
+    Spawn.ItemId = TEXT("Item_Arrows_01");
     Spawn.ItemLevel = 0;
     Spawn.Quantity = 3;
     FGridLooseItemInstance Materialized;
@@ -113,7 +113,7 @@ bool FGridClean064X10BIdentity::RunTest(const FString&)
         FGridItemSpawnReadModel::TryMaterialize(Spawn, Registry.Get(), Materialized)))
         {return false;}
     return TestTrue(TEXT("Stable GUID"), Materialized.InstanceId == Spawn.SpawnId) &&
-        TestEqual(TEXT("Canonical ID"), Materialized.CanonicalItemId, Spawn.CanonicalItemId) &&
+        TestEqual(TEXT("Canonical ID"), Materialized.ItemId, Spawn.ItemId) &&
         TestEqual(TEXT("Physical level"), Materialized.ItemLevel, 0) &&
         TestEqual(TEXT("Quantity"), Materialized.Quantity, 3) &&
         TestNull(TEXT("Materialized placement has no legacy property"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
@@ -142,7 +142,7 @@ static FGridItemSpawnInstance MakeSpawn(FName Id, int32 Level, int32 Quantity = 
 {
     FGridItemSpawnInstance Spawn;
     Spawn.SpawnId = FGuid::NewGuid();
-    Spawn.CanonicalItemId = Id;
+    Spawn.ItemId = Id;
     Spawn.ItemLevel = Level;
     Spawn.Quantity = Quantity;
     return Spawn;
@@ -240,7 +240,7 @@ bool FGridClean064X10DWorld::RunTest(const FString&)
         {return false;}
     FGridItemSpawnInstance Spawn;
     Spawn.SpawnId = FGuid::NewGuid();
-    Spawn.CanonicalItemId = TEXT("Item_Arrows_01");
+    Spawn.ItemId = TEXT("Item_Arrows_01");
     Spawn.ItemLevel = 0;
     Spawn.Quantity = 3;
     FGridLooseItemInstance Initial;
@@ -254,9 +254,9 @@ bool FGridClean064X10DWorld::RunTest(const FString&)
         if (It->GetRuntimeObjectId() == Spawn.SpawnId) {Actor = *It; break;}
     }
     if (!TestNotNull(TEXT("Spawned physical actor"), Actor)) {return false;}
-    return TestEqual(TEXT("World actor identity"), Actor->GetItemDefinitionId(), Spawn.CanonicalItemId) &&
+    return TestEqual(TEXT("World actor identity"), Actor->GetItemDefinitionId(), Spawn.ItemId) &&
         TestNull(TEXT("World actor uses no old definition"), Actor->GetItemDefinitionAsset()) &&
-        TestTrue(TEXT("Actor has canonical projection"), Actor->CanonicalWorldPresentation.IsValid());
+        TestTrue(TEXT("Actor has canonical projection"), Actor->ResolvedWorldPresentation.IsValid());
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10ELegacy,
@@ -274,7 +274,7 @@ bool FGridClean064X10ELegacy::RunTest(const FString&)
         !TestFalse(TEXT("Empty ID cannot materialize"),
             FGridItemSpawnReadModel::TryMaterialize(Synthetic, Probe.Registry.Get(), Out)))
         return false;
-    Synthetic.CanonicalItemId = TEXT("Stone");
+    Synthetic.ItemId = TEXT("Stone");
     if (!TestFalse(TEXT("Missing registry cannot materialize"),
             FGridItemSpawnReadModel::TryMaterialize(Synthetic, nullptr, Out)))
         return false;

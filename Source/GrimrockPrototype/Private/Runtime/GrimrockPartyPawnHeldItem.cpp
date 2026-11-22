@@ -229,7 +229,7 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 
 	const bool bNeedsNewHeldVisual =
 		GetHeldItemDefinitionId() != VisualItem->ItemDefinitionId ||
-		!HeldItemActor || HeldItemActor->CanonicalWorldItemLevel != VisualItem->ItemLevel;
+		!HeldItemActor || HeldItemActor->WorldItemLevel != VisualItem->ItemLevel;
 	if (bNeedsNewHeldVisual && !EquipHeldItemFromInstance(*VisualItem))
 	{
 		return; // Never build an ARM held visual from an invented physical N-level.

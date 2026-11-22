@@ -92,7 +92,7 @@ private:
 	TSharedPtr<SVerticalBox> PaletteResultsRoot;
 	TStrongObjectPtr<UGameInstance> CanonicalPreviewGI;
 	TStrongObjectPtr<UGridItemSubsystem> CanonicalPreviewRegistry;
-	bool bCanonicalPreviewReady = false;
+	bool bRegisteredPreviewReady = false;
 };
 
 #endif

@@ -92,7 +92,7 @@ bool FUITooltipClean01RecoveryAndPreviewTest::RunTest(const FString&)
             Registry && Registry->ResolveItem(TEXT("Weapon_GreatAxe_01"), 1, Axe)) ||
         !TestTrue(TEXT("Shield passive armor and Great Axe hand policy"),
             Def.bIsArmament && Def.Weapon.PhysicalArmor == 5 &&
-            Axe.bIsArmament && Axe.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded))
+            Axe.bIsArmament && Axe.Weapon.HandPolicy == EGridHandPolicy::TwoHanded))
         return false;
 
     UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();

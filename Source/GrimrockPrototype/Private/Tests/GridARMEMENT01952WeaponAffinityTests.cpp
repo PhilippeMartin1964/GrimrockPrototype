@@ -4,17 +4,17 @@
 
 namespace ARMEMENT01952
 {
-    const FGridCanonicalWeaponArchetype* Find(FName Id)
+    const FGridWeaponArchetype* Find(FName Id)
     {
         UGridItemSystemAsset* Root = GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
         return Root && Root->WeaponCatalogue ? Root->WeaponCatalogue->Find(Id) : nullptr;
     }
-    const FGridCanonicalClassPreference* Preference(FName Id)
+    const FGridClassPreference* Preference(FName Id)
     {
         UGridItemSystemAsset* Root = GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
         return Root && Root->WeaponCatalogue
             ? Root->WeaponCatalogue->ClassPreferences.FindByPredicate(
-                [Id](const FGridCanonicalClassPreference& Row){return Row.ClassId == Id;})
+                [Id](const FGridClassPreference& Row){return Row.ClassId == Id;})
             : nullptr;
     }
 }
@@ -34,9 +34,9 @@ bool FGridARMEMENT01952ProjectionCoverage::RunTest(const FString&)
     for (int32 Index = 1; Index <= 82; ++Index)
     {
         const FName Id(*FString::Printf(TEXT("ARM%03d"), Index));
-        const FGridCanonicalWeaponArchetype* Row = Root->WeaponCatalogue->Find(Id);
+        const FGridWeaponArchetype* Row = Root->WeaponCatalogue->Find(Id);
         if (!TestNotNull(TEXT("Canonical numeric archetype is authored"), Row)) continue;
-        FGridCanonicalResolvedWeapon N1, N20;
+        FGridResolvedWeapon N1, N20;
         if (TestTrue(TEXT("Both physical edge profiles from canonical authoring"),
             Row->TryResolve(1, N1) && Row->TryResolve(20, N20))) NumericProfiles += 20;
     }
@@ -61,7 +61,7 @@ bool FGridARMEMENT01952Examples::RunTest(const FString&)
     };
     for (const FExpected& Expected : Examples)
     {
-        const FGridCanonicalWeaponArchetype* Arm = ARMEMENT01952::Find(FName(Expected.Arm));
+        const FGridWeaponArchetype* Arm = ARMEMENT01952::Find(FName(Expected.Arm));
         if (!TestNotNull(TEXT("Canonical weapon affinity row"), Arm)) continue;
         TestEqual(TEXT("Exact primary class"), Arm->PrimaryClassId, FName(Expected.Primary));
         if (Expected.Secondary)
@@ -78,9 +78,9 @@ bool FGridARMEMENT01952Preferences::RunTest(const FString&)
 {
     FGridCanonicalRegistryFixture Fixture;
     if (!TestTrue(TEXT("Canonical ItemSystem"), Fixture.bReady)) return false;
-    const FGridCanonicalClassPreference* Warrior = ARMEMENT01952::Preference(TEXT("Warrior"));
-    const FGridCanonicalClassPreference* Mage = ARMEMENT01952::Preference(TEXT("Mage"));
-    const FGridCanonicalClassPreference* Priest = ARMEMENT01952::Preference(TEXT("Priest"));
+    const FGridClassPreference* Warrior = ARMEMENT01952::Preference(TEXT("Warrior"));
+    const FGridClassPreference* Mage = ARMEMENT01952::Preference(TEXT("Mage"));
+    const FGridClassPreference* Priest = ARMEMENT01952::Preference(TEXT("Priest"));
     if (!TestNotNull(TEXT("Warrior advice exists"), Warrior) ||
         !TestNotNull(TEXT("Mage advice exists"), Mage) ||
         !TestNotNull(TEXT("Priest advice exists"), Priest)) return false;

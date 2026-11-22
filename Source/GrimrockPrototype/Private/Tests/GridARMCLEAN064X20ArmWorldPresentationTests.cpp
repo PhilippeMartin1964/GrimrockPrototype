@@ -45,7 +45,7 @@ bool FGridClean064X20ArmWorldPresentation::RunTest(const FString&)
     }
     Root->WeaponCatalogue = Rules.Get();
 
-    FGridCanonicalWeaponVisual& Edited = Visuals->VisualProfiles[0];
+    FGridWeaponVisual& Edited = Visuals->VisualProfiles[0];
     Edited.LightEmitter.bDefaultEnabled = true;
     Edited.LightEmitter.bUsePointLight = true;
     Edited.LightEmitter.LightIntensity = 427.f;
@@ -69,9 +69,9 @@ bool FGridClean064X20ArmWorldPresentation::RunTest(const FString&)
         return false;
     }
 
-    const FGridCanonicalWeaponVisualBinding* Binding =
+    const FGridWeaponVisualBinding* Binding =
         Visuals->ArchetypeBindings.FindByPredicate(
-            [&Edited](const FGridCanonicalWeaponVisualBinding& Entry)
+            [&Edited](const FGridWeaponVisualBinding& Entry)
             {
                 return Entry.VisualId == Edited.VisualId;
             });
@@ -89,8 +89,8 @@ bool FGridClean064X20ArmWorldPresentation::RunTest(const FString&)
     }
     if (!TestNotNull(TEXT("ARM item for edited visual"), Item)) { return false; }
 
-    FGridCanonicalWeaponArchetype* Rule = Rules->Archetypes.FindByPredicate(
-        [&Item](const FGridCanonicalWeaponArchetype& Entry)
+    FGridWeaponArchetype* Rule = Rules->Archetypes.FindByPredicate(
+        [&Item](const FGridWeaponArchetype& Entry)
         {
             return Entry.ArchetypeId == Item->ArchetypeId;
         });
@@ -118,7 +118,7 @@ bool FGridClean064X20ArmWorldPresentation::RunTest(const FString&)
         }
     }
 
-    const FGridCanonicalWeaponArchetype* Native =
+    const FGridWeaponArchetype* Native =
         Actual->WeaponCatalogue->Find(Item->ArchetypeId);
     return TestNotNull(TEXT("Native physics policy unchanged"), Native) &&
         TestFalse(TEXT("Native tilt was not written"), Native->WorldPhysicsInitialTiltDegrees == 17.f);

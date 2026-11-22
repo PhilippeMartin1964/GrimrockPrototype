@@ -37,7 +37,7 @@ bool FGridClean062HGeneratedActionProjectionTest::RunTest(const FString&)
         TestEqual(TEXT("Canonical action ID matches original identity"),
             Bound.ActionId, FName(Row.AttackId));
         TestEqual(TEXT("Detailed action kind remains Attack"),
-            Bound.Action.Kind, EGridCanonicalActionKind::Attack);
+            Bound.Action.Kind, EGridActionKind::Attack);
         TestTrue(TEXT("Resource cost is never negative"),
             Bound.Action.ManaCost >= 0 && Bound.Action.SourceItemQuantityCost >= 0);
         if (Bound.Action.bRangedAttack) ++Ranged;

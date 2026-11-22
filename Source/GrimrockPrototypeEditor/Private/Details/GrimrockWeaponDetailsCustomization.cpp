@@ -15,7 +15,7 @@ namespace
 	FString FormatWeaponLevel(const FGridResolvedItem& Item)
 	{
 		const auto& Profile = Item.Weapon;
-		const FString Damage = Profile.Kind == EGridCanonicalArmamentKind::Weapon && Profile.DamageDice.bEnabled
+		const FString Damage = Profile.Kind == EGridArmamentKind::Weapon && Profile.DamageDice.bEnabled
 			? FString::Printf(TEXT("%dd%d+%d"), Profile.DamageDice.DiceCount,
 				Profile.DamageDice.DiceSides, Profile.DamageDice.FlatBonus)
 			: TEXT("passif (aucune attaque)");

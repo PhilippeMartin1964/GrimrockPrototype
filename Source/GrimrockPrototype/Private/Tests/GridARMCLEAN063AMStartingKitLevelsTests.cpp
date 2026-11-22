@@ -39,13 +39,13 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     Sword->Weight = 9999.0f;
     FRPGStartingEquipmentEntry& Inherited = Kit.Items.AddDefaulted_GetRef();
     Inherited.ItemDefinition = Sword.Get();
-    Inherited.CanonicalItemId = Sword->ItemDefinitionId;
+    Inherited.ItemId = Sword->ItemDefinitionId;
     Inherited.ItemLevel = 6;
     Inherited.Quantity = 1;
 
     FRPGStartingEquipmentEntry& Explicit = Kit.Items.AddDefaulted_GetRef();
     Explicit.ItemDefinition = Sword.Get();
-    Explicit.CanonicalItemId = Sword->ItemDefinitionId;
+    Explicit.ItemId = Sword->ItemDefinitionId;
     Explicit.ItemLevel = 20;
     Explicit.Quantity = 1;
 
@@ -57,7 +57,7 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     Arrows->Weight = 9999.0f;
     FRPGStartingEquipmentEntry& Ammunition = Kit.Items.AddDefaulted_GetRef();
     Ammunition.ItemDefinition = Arrows.Get();
-    Ammunition.CanonicalItemId = Arrows->ItemDefinitionId;
+    Ammunition.ItemId = Arrows->ItemDefinitionId;
     Ammunition.ItemLevel = 0;
     Ammunition.Quantity = 1;
 
@@ -111,7 +111,7 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     Invalid->bUseWeaponCatalogue = false;
     FRPGStartingEquipmentEntry& Bad = Kit.Items.AddDefaulted_GetRef();
     Bad.ItemDefinition = Invalid.Get();
-    Bad.CanonicalItemId = Invalid->ItemDefinitionId;
+    Bad.ItemId = Invalid->ItemDefinitionId;
     Bad.ItemLevel = 0;
     Bad.Quantity = 1;
     FGridCharacterInventoryState Rejected;
@@ -133,7 +133,7 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
 
     // Non-ARM N1 must not be accepted merely because a legacy flag says ARM.
     Bad.ItemDefinition = Arrows.Get();
-    Bad.CanonicalItemId = Arrows->ItemDefinitionId;
+    Bad.ItemId = Arrows->ItemDefinitionId;
     Bad.ItemLevel = 1;
     Failure.Reset();
     TestFalse(TEXT("Canonical ammunition N1 is invalid"),
@@ -144,7 +144,7 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     // A pointer-only registered entry must no longer promote N0 to the
     // previous default level (6), even though its old asset still exists.
     Bad.ItemDefinition = Sword.Get();
-    Bad.CanonicalItemId = NAME_None;
+    Bad.ItemId = NAME_None;
     Bad.ItemLevel = 0;
     TestFalse(TEXT("Pointer-only registered ARM rejected"),
         FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,

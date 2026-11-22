@@ -2480,9 +2480,9 @@ bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
 		!TestTrue(TEXT("Canonical two-handed Great Axe N1"),
 			RegistryScope.Registry->ResolveItem(TEXT("Weapon_GreatAxe_01"), 1, GreatAxe)) ||
 		!TestTrue(TEXT("Shield is a passive canonical ARM"),
-			Shield.bIsArmament && Shield.Weapon.Kind == EGridCanonicalArmamentKind::Shield) ||
+			Shield.bIsArmament && Shield.Weapon.Kind == EGridArmamentKind::Shield) ||
 		!TestTrue(TEXT("Great Axe retains a two-handed policy"),
-			GreatAxe.bIsArmament && GreatAxe.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded) ||
+			GreatAxe.bIsArmament && GreatAxe.Weapon.HandPolicy == EGridHandPolicy::TwoHanded) ||
 		!TestFalse(TEXT("Shield is not an offensive OffHand source"),
 			Shield.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand)) ||
 		!TestFalse(TEXT("Assassin Dagger is not an authorized OffHand attack"),
@@ -2548,13 +2548,13 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 			Root.ActionPresentationCatalogue = PrivatePresentations;
 			const auto FindAttackPresentation = [&Root](FName ArchetypeId) -> FName
 			{
-				const FGridCanonicalWeaponArchetype* Weapon = Root.WeaponCatalogue->Find(ArchetypeId);
+				const FGridWeaponArchetype* Weapon = Root.WeaponCatalogue->Find(ArchetypeId);
 				if (!Weapon) return NAME_None;
 				FName PresentationId = NAME_None;
 				for (const FGridItemActionBinding& Binding : Weapon->Actions)
 				{
-					const FGridCanonicalAction* Action = Root.ActionCatalogue->Find(Binding.ActionId);
-					if (Action && Action->Kind == EGridCanonicalActionKind::Attack)
+					const FGridAction* Action = Root.ActionCatalogue->Find(Binding.ActionId);
+					if (Action && Action->Kind == EGridActionKind::Attack)
 					{
 						if (!PresentationId.IsNone()) return NAME_None;
 						PresentationId = Binding.PresentationId;
@@ -2569,9 +2569,9 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 			const auto ConfigureAudio = [PrivatePresentations](FName PresentationId,
 				USoundWave* AttackSound, USoundWave* ImpactSound) -> bool
 			{
-				FGridCanonicalActionPresentation* P =
+				FGridActionPresentation* P =
 					PrivatePresentations->Presentations.FindByPredicate(
-						[PresentationId](const FGridCanonicalActionPresentation& Candidate)
+						[PresentationId](const FGridActionPresentation& Candidate)
 						{
 							return Candidate.PresentationId == PresentationId;
 						});
@@ -2612,8 +2612,8 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 		!TestTrue(TEXT("Canonical dual weapons have independent attack hands"),
 			Dagger.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand) &&
 			MainGauche.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand) &&
-			Shield.Weapon.Kind == EGridCanonicalArmamentKind::Shield &&
-			GreatAxe.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded))
+			Shield.Weapon.Kind == EGridArmamentKind::Shield &&
+			GreatAxe.Weapon.HandPolicy == EGridHandPolicy::TwoHanded))
 		return false;
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
 	const auto MakeEquipped = [&Fixture](FName ItemId, FGuid Id, EGridEquipmentSlot Hand)
@@ -2805,7 +2805,7 @@ bool FARMEMENTLOT021921DualAttackIconViewTest::RunTest(const FString&)
 			Dagger.bIsArmament && MainGauche.bIsArmament && Shield.bIsArmament &&
 			Dagger.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand) &&
 			MainGauche.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand) &&
-			Shield.Weapon.Kind == EGridCanonicalArmamentKind::Shield &&
+			Shield.Weapon.Kind == EGridArmamentKind::Shield &&
 			!Shield.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand)))
 		return false;
 
@@ -2892,11 +2892,11 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 {
 	using Kind = EGridEquippedWeaponActionIconKind;
 	FGridResolvedItem Item;
-	Item.Error = EGridCanonicalItemResolveError::None;
+	Item.Error = EGridItemResolveError::None;
 	Item.ItemId = TEXT("IconFamilyFixture");
 	Item.ItemLevel = 1;
 	Item.bIsArmament = true;
-	Item.Weapon.Kind = EGridCanonicalArmamentKind::Weapon;
+	Item.Weapon.Kind = EGridArmamentKind::Weapon;
 
 	FGridAvailableCombatAction Action;
 	Action.Definition.ActionId = FName(TEXT("Attack_Test"));
@@ -2942,13 +2942,13 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 	Action.Definition.ActionType = EGridCombatActionType::RangedAttack;
 	for (int32 Id = 70; Id <= 82; ++Id)
 	{
-		Item.Weapon.Kind = Id <= 71 ? EGridCanonicalArmamentKind::Focus : EGridCanonicalArmamentKind::Shield;
+		Item.Weapon.Kind = Id <= 71 ? EGridArmamentKind::Focus : EGridArmamentKind::Shield;
 		Item.AvailableActions.Reset();
 		Item.ArchetypeId = FName(*FString::Printf(TEXT("ARM%03d"), Id));
 		TestEqual(FString::Printf(TEXT("Passive ARM%03d has no offensive icon"), Id),
 			FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::None);
 	}
-	Item.Weapon.Kind = EGridCanonicalArmamentKind::Weapon;
+	Item.Weapon.Kind = EGridArmamentKind::Weapon;
 	// A thrown weapon switched to an actually authored melee action takes
 	// the one-handed melee icon, not its default thrown classification.
 	Item.AvailableActions.AddDefaulted_GetRef().ActionId = Action.Definition.ActionId;
@@ -2967,7 +2967,7 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 
 	Action.Definition.ActionId = TEXT("Action_Test");
 	Item.AvailableActions.Reset();
-	Item.Weapon.Kind = EGridCanonicalArmamentKind::Shield;
+	Item.Weapon.Kind = EGridArmamentKind::Shield;
 	Action.Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
 	Item.ArchetypeId = TEXT("ARM075");
 	TestEqual(TEXT("A passive shield must never manufacture an offensive icon"),
@@ -2979,7 +2979,7 @@ bool FARMEMENTLOT0220EquippedIconCategories::RunTest(const FString&)
 	Item.AvailableActions.AddDefaulted_GetRef().ActionId = Action.Definition.ActionId;
 	TestEqual(TEXT("Only a real shield defense action receives a block icon"),
 		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::DefenseBlock);
-	Item.Weapon.Kind = EGridCanonicalArmamentKind::Weapon;
+	Item.Weapon.Kind = EGridArmamentKind::Weapon;
 	Item.ArchetypeId = TEXT("ARM013");
 	TestEqual(TEXT("Future authored Main-gauche defense uses the parry icon"),
 		FGridActionIconReadModel::Classify(Item, Action.Definition), Kind::DefenseParry);
@@ -3078,7 +3078,7 @@ bool FARMEMENTLOT02161MeleeN1Execution::RunTest(const FString& Parameters)
 			!TestTrue(*FString::Printf(TEXT("%s: authorized physical attack slot"), *Context),
 				Definition.Weapon.HasAttackSourceInHand(Case.Slot)) ||
 			!TestEqual(*FString::Printf(TEXT("%s: physical two-hand contract"), *Context),
-				Definition.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded, Case.bTwoHanded))
+				Definition.Weapon.HandPolicy == EGridHandPolicy::TwoHanded, Case.bTwoHanded))
 			return false;
 
 		UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
@@ -3241,7 +3241,7 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 			!TestEqual(*FString::Printf(TEXT("%s requires the actual arrow kind"), *Context),
 				Bow.Weapon.RequiredAmmoKindId, Arrows.AmmoKindId) ||
 			!TestTrue(*FString::Printf(TEXT("%s uses two hands"), *Context),
-				Bow.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded) ||
+				Bow.Weapon.HandPolicy == EGridHandPolicy::TwoHanded) ||
 			!TestTrue(*FString::Printf(TEXT("%s attacks from MainHand"), *Context),
 				Bow.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand)))
 			return false;
@@ -3631,7 +3631,7 @@ bool FARMEMENTLOT02164MagicN1Execution::RunTest(const FString&)
 				Definition.ItemId == ItemId && Definition.ItemLevel == 1 &&
 				Definition.ArchetypeId == FName(Cases[Index].Id)) ||
 			!TestEqual(TEXT("Magic item has canonical two-hand policy"),
-				Definition.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded,
+				Definition.Weapon.HandPolicy == EGridHandPolicy::TwoHanded,
 				Cases[Index].bTwoHanded) ||
 			!TestTrue(TEXT("Magic item does not require arrows"),
 				Definition.Weapon.RequiredAmmoKindId.IsNone()))
@@ -3766,7 +3766,7 @@ bool FARMEMENTLOT02165PassiveN1Execution::RunTest(const FString&)
 				Definition.IsValid() && Definition.bIsArmament &&
 				Definition.ItemId == ItemId && Definition.ItemLevel == 1 &&
 				Definition.ArchetypeId == FName(Cases[Index].Id) &&
-				Definition.Weapon.Kind != EGridCanonicalArmamentKind::Weapon &&
+				Definition.Weapon.Kind != EGridArmamentKind::Weapon &&
 				Definition.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand) &&
 				!Definition.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand)))
 			return false;

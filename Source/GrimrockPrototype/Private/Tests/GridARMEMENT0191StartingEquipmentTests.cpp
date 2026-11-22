@@ -46,7 +46,7 @@ namespace ARMEMENT0191
 		int32 Level, EGridEquipmentSlot Slot)
 	{
 		FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
-		Entry.CanonicalItemId = ItemId;
+		Entry.ItemId = ItemId;
 		Entry.ItemDefinition = nullptr;
 		Entry.ItemLevel = Level;
 		Entry.TargetSlot = Slot;
@@ -122,7 +122,7 @@ bool FARMEMENT0191TwoHandsKitTest::RunTest(const FString&)
 		!TestTrue(TEXT("Physical dagger N1 resolves"),
 			Registry->ResolveItem(DaggerId, 1, Dagger)) ||
 		!TestTrue(TEXT("Bow is canonical two-handed ARM"),
-			Bow.bIsArmament && Bow.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded) ||
+			Bow.bIsArmament && Bow.Weapon.HandPolicy == EGridHandPolicy::TwoHanded) ||
 		!TestTrue(TEXT("Dagger is canonical ARM N1"), Dagger.bIsArmament))
 		return false;
 
@@ -256,7 +256,7 @@ bool FARMEMENT0191RollbackTest::RunTest(const FString&)
 		!TestTrue(TEXT("Physical shield N1 resolves"), Registry->ResolveItem(ShieldId, 1, Shield)) ||
 		!TestTrue(TEXT("All rejected-kit items are authored ARM entries"),
 			Bow.bIsArmament && Dagger.bIsArmament && Shield.bIsArmament &&
-			Bow.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded &&
+			Bow.Weapon.HandPolicy == EGridHandPolicy::TwoHanded &&
 			Shield.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand)))
 		return false;
 

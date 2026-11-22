@@ -26,7 +26,7 @@ bool FARMEMENTLOT028Focus::RunTest(const FString&)
         return false;
     TestTrue(TEXT("Focus is a real passive OffHand item"),
         Focus.bIsArmament && Focus.ArchetypeId == FName(TEXT("ARM070")) &&
-        Focus.Weapon.Kind == EGridCanonicalArmamentKind::Focus &&
+        Focus.Weapon.Kind == EGridArmamentKind::Focus &&
         Focus.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand) &&
         !Focus.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand) &&
         !Focus.Weapon.DamageDice.bEnabled &&

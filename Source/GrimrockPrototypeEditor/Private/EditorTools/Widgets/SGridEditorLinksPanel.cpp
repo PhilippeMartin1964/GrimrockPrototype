@@ -88,7 +88,7 @@ namespace
 		}
 		if (const FGridLooseItemInstance* Instance = LevelAsset->FindLooseItemInstanceById(ObjectId))
 		{
-			return Instance->CanonicalItemId;
+			return Instance->ItemId;
 		}
 		if (const FGridMonsterSpawnInstance* Instance = LevelAsset->FindMonsterSpawnInstanceById(ObjectId))
 		{
@@ -98,7 +98,7 @@ namespace
 		}
 		if (const FGridItemSpawnInstance* Instance = LevelAsset->FindItemSpawnInstanceById(ObjectId))
 		{
-			return !Instance->CanonicalItemId.IsNone() ? Instance->CanonicalItemId : Instance->PaletteEntryId;
+			return !Instance->ItemId.IsNone() ? Instance->ItemId : Instance->PaletteEntryId;
 		}
 		if (const FGridLogicObjectInstance* Instance = LevelAsset->FindLogicObjectInstanceById(ObjectId))
 		{

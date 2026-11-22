@@ -70,7 +70,7 @@ bool FGridBECombatThrowCanonicalActions::RunTest(const FString&)
             if (!TestTrue(TEXT("One real attack action resolves"),
                 Registry->ResolveBoundAction(Id, Level, ActionId, Bound))) return false;
             if (!TestTrue(TEXT("The actual authored throw consumes one physical item"),
-                Bound.Action.Kind == EGridCanonicalActionKind::Attack &&
+                Bound.Action.Kind == EGridActionKind::Attack &&
                 Bound.Action.SourceItemQuantityCost == 1)) return false;
 
             const auto NoLegacy = FGridCombatPhysicalThrowSourceReadModel::Resolve(

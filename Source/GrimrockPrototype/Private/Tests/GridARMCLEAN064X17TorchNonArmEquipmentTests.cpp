@@ -272,7 +272,7 @@ bool FGridClean064X23PointerlessHeldTorch::RunTest(const FString&)
             !TestNull(TEXT("Held visual never references a legacy torch definition"),
                 F.Pawn->HeldItemActor->GetItemDefinitionAsset()) ||
             !TestTrue(TEXT("Held actor retains canonical presentation"),
-                F.Pawn->HeldItemActor->CanonicalWorldPresentation.IsValid()) ||
+                F.Pawn->HeldItemActor->ResolvedWorldPresentation.IsValid()) ||
             !TestTrue(TEXT("Party illumination works with pointerless torch"),
                 PartyLight->HasActiveIlluminationSource()) ||
             !TestEqual(TEXT("Correct light source ItemId"),
@@ -505,9 +505,9 @@ bool FGridClean064X42HeldPhysicalArm::RunTest(const FString&)
             !TestNull(TEXT("Held actor does not retain DA_Weapon"),
                 F.Pawn->HeldItemActor->GetItemDefinitionAsset()) ||
             !TestTrue(TEXT("Held actor owns complete canonical projection"),
-                F.Pawn->HeldItemActor->CanonicalWorldPresentation.IsValid()) ||
+                F.Pawn->HeldItemActor->ResolvedWorldPresentation.IsValid()) ||
             !TestEqual(TEXT("Physical equipped level retained in visual"),
-                F.Pawn->HeldItemActor->CanonicalWorldItemLevel, Level) ||
+                F.Pawn->HeldItemActor->WorldItemLevel, Level) ||
             !TestEqual(TEXT("ItemId retained in visual"),
                 F.Pawn->GetHeldItemDefinitionId(), ArmId) ||
             !TestTrue(TEXT("Held mesh is the canonical equipped mesh"),
@@ -553,7 +553,7 @@ bool FGridClean064X42HeldPhysicalArm::RunTest(const FString&)
         !TestNull(TEXT("Registered torch has no old UObject"),
             F.Pawn->HeldItemActor->GetItemDefinitionAsset()) ||
         !TestEqual(TEXT("Torch N0 remains unchanged"),
-            F.Pawn->HeldItemActor->CanonicalWorldItemLevel, 0))
+            F.Pawn->HeldItemActor->WorldItemLevel, 0))
     {
         return false;
     }

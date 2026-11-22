@@ -99,7 +99,7 @@ bool FARMEMENTLOT0213ProductionMatrix::RunTest(const FString&)
         Check(TEXT("physical equipment permission"),
             Definition.Weapon.CanEquipInHand(Slot));
         Check(TEXT("two-handed policy"),
-            (Definition.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded) == Case.bTwoHand);
+            (Definition.Weapon.HandPolicy == EGridHandPolicy::TwoHanded) == Case.bTwoHand);
         Check(TEXT("authored attack bindings"),
             Definition.AvailableActions.Num() == (Case.bPassive ? 0 : 1));
         if (Case.bPassive)

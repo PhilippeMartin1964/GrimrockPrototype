@@ -58,7 +58,7 @@ struct FGridItemInteractionReadModel
 			Out.bCanRead = bHasInstanceText || Canonical.bReadable || !Out.DefaultReadText.IsEmpty();
 			Out.bPhysicalThrowHotbar = Canonical.bIsArmament &&
 				Canonical.Weapon.Projectile.bEnabled &&
-				Canonical.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded &&
+				Canonical.Weapon.HandPolicy != EGridHandPolicy::TwoHanded &&
 				Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand) &&
 				FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f &&
 				FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) &&

@@ -33,8 +33,8 @@ bool FARMEMENTLOT025MarksmanStarter::RunTest(const FString&)
     const FGridRangedAmmunitionRequirement Required =
         FGridRangedAmmunitionPolicy::ResolveForAttack(Fixture.Registry, BowId, 1, nullptr, true);
     TestTrue(TEXT("Valid canonical ammo preflight"),
-        Required.bValid && Required.bCanonicalSource &&
-        Required.bCanonicalAmmunition && Required.AmmunitionItemId == ArrowId);
+        Required.bValid && Required.bRegisteredSource &&
+        Required.bRegisteredAmmunition && Required.AmmunitionItemId == ArrowId);
 
     URPGClassAsset* Ranger = LoadObject<URPGClassAsset>(nullptr,
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger"));

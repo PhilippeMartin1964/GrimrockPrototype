@@ -302,11 +302,11 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 			}
 			for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : DefaultBehavior.Receptacle.AcceptedItems)
 			{
-				if (AcceptedItem.CanonicalItemId.IsNone()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Receptacle AcceptedItems requires an explicit canonical ItemId."));
+				if (AcceptedItem.ItemId.IsNone()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Receptacle AcceptedItems requires an explicit canonical ItemId."));
 			}
 			for (const FGridReceptacleInitialItemConfig& InitialItem : DefaultBehavior.Receptacle.InitialContent)
 			{
-				if (InitialItem.CanonicalItemId.IsNone() || InitialItem.Quantity < 1 ||
+				if (InitialItem.ItemId.IsNone() || InitialItem.Quantity < 1 ||
 					InitialItem.ItemLevel < 0 || InitialItem.ItemLevel > 20)
 					AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Receptacle InitialContent requires an explicit canonical ItemId, physical level and positive quantity."));
 			}

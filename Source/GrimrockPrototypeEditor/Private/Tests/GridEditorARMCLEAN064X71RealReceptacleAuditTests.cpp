@@ -44,7 +44,7 @@ bool FGridClean064X71RealReceptacleAudit::RunTest(const FString&)
         const FGridReceptacleBehaviorParams& R = Definition->DefaultBehavior.Receptacle;
         if (!TestEqual(TEXT("One exact native accepted-item rule"), R.AcceptedItems.Num(), 1) ||
             !TestEqual(TEXT("Canonical accepted ItemId unchanged"),
-                R.AcceptedItems[0].CanonicalItemId, ExpectedIds[Index]) ||
+                R.AcceptedItems[0].ItemId, ExpectedIds[Index]) ||
             !TestTrue(TEXT("Registered physical item is accepted"),
                 Registry->ContainsItem(ExpectedIds[Index])))
             return false;

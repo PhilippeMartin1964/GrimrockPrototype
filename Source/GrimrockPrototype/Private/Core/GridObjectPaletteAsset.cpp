@@ -37,7 +37,7 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridWorldObjectDefinitionV
 		if (Entry.DefaultWorldObjectDefinition && Entry.DefaultWorldObjectDefinition->SupportedType == EGridLevelObjectType::Item)
 		{
 			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
-				FString::Printf(TEXT("Palette entry '%s' cannot use a WorldObjectDefinition for a collectible Item. Use CanonicalItemId instead."), *EntryName));
+				FString::Printf(TEXT("Palette entry '%s' cannot use a WorldObjectDefinition for a collectible Item. Use ItemId instead."), *EntryName));
 		}
 
 		if (Entry.IsDirectItemEntry())
@@ -52,7 +52,7 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridWorldObjectDefinitionV
 				OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
 					FString::Printf(TEXT("Palette entry '%s' is a direct collectible and must use the item icon from ItemSystem."), *EntryName));
 			}
-			if (Entry.CanonicalDefaultItemLevel < 0 || Entry.CanonicalDefaultItemLevel > 20)
+			if (Entry.DefaultItemLevel < 0 || Entry.DefaultItemLevel > 20)
 			{
 				OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
 					FString::Printf(TEXT("Palette entry '%s' has a physical item level outside N0-N20."), *EntryName));
@@ -63,7 +63,7 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridWorldObjectDefinitionV
 		if (!Entry.DefaultWorldObjectDefinition)
 		{
 			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
-				FString::Printf(TEXT("Palette entry '%s' requires DefaultWorldObjectDefinition or CanonicalItemId."), *EntryName));
+				FString::Printf(TEXT("Palette entry '%s' requires DefaultWorldObjectDefinition or ItemId."), *EntryName));
 			continue;
 		}
 
@@ -129,7 +129,7 @@ void UGridObjectPaletteAsset::PostEditChangeChainProperty(FPropertyChangedChainE
 	// Only normalize the entry being edited. A collectible must never retain
 	// a palette-level icon that is hidden by EditConditionHides.
 	const bool bNewItemDefinition =
-		PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FGridObjectPaletteEntry, CanonicalItemId);
+		PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FGridObjectPaletteEntry, ItemId);
 	const bool bArrayEntryAddedOrDuplicated =
 		PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayAdd ||
 		PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate;

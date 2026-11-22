@@ -206,15 +206,15 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		// Physical flight keeps the saved identity and mutable state only.
 	}
 	ImpactDropOffset = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowImpactDropOffset) : 12.0f;
-	const bool bCanonicalNonArmFlight = Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bIsNonArmament;
-	const bool bCanonicalGenericArm = Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bGenericArmamentFlight;
+	const bool bRegisteredNonArmFlight = Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bIsNonArmament;
+	const bool bRegisteredGenericArm = Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bGenericArmamentFlight;
 	const bool bPointerlessCanonical = Canonical.bRegisteredIdentity;
 	if (bPointerlessCanonical)
 	{
 		InDefinition = nullptr;
 		ImpactDropOffset = 12.0f;
 	}
-	if (bCanonicalNonArmFlight)
+	if (bRegisteredNonArmFlight)
 	{
 		InDefinition = nullptr; // Never attach an obsolete non-ARM definition.
 		ImpactDropOffset = FMath::Max(0.0f, Canonical.GenericThrow.ImpactDropOffset);
@@ -246,21 +246,21 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 
 	// ARM flight reads its N1-N20 profile; arrows are an unlevelled family
 	// and keep their actual ItemLevel=0 without any synthetic weapon level.
-	const bool bCanonicalArmamentProjectile =
+	const bool bRegisteredArmamentProjectile =
 		Canonical.bRegisteredIdentity && Canonical.bResolved &&
 		(Canonical.bHasProjectileVisual || Canonical.bGenericArmamentFlight);
-	const bool bCanonicalAmmoFlight =
+	const bool bRegisteredAmmoFlight =
 		Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bIsAmmunition;
 	// The same N1-N20 weapon policy owns recoverable landing offset,
 	// lifetime, arc and initial speed; the launcher supplies the velocity.
-	if (bCanonicalArmamentProjectile)
+	if (bRegisteredArmamentProjectile)
 	{
 		ImpactDropOffset = FMath::Max(0.0f, Canonical.FlightPolicy.ImpactDropOffset);
 	}
-	bUseCanonicalProjectileForwardAxis = bCanonicalArmamentProjectile || bCanonicalNonArmFlight;
-	if (bCanonicalNonArmFlight)
+	bUseCanonicalProjectileForwardAxis = bRegisteredArmamentProjectile || bRegisteredNonArmFlight;
+	if (bRegisteredNonArmFlight)
 		CanonicalProjectileForwardAxis = Canonical.GenericThrow.MeshForwardAxis;
-	if (bCanonicalArmamentProjectile)
+	if (bRegisteredArmamentProjectile)
 	{
 		CanonicalProjectileForwardAxis = Canonical.Appearance.MeshForwardAxis;
 		if (MeshComponent)
@@ -268,7 +268,7 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 			MeshComponent->SetStaticMesh(Canonical.ProjectileMesh.LoadSynchronous());
 		}
 	}
-	else if (bCanonicalAmmoFlight && MeshComponent)
+	else if (bRegisteredAmmoFlight && MeshComponent)
 	{
 		// Ammo is not an armament: its canonical UGridAmmoDefinitionAsset owns the
 		// world/flight mesh, while the historical arrow orientation is unchanged.
@@ -281,13 +281,13 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	}
 
 	InitialFlightWorldLocation = GetActorLocation();
-	const FRotator VisualRotation = bCanonicalArmamentProjectile
+	const FRotator VisualRotation = bRegisteredArmamentProjectile
 		? Canonical.Appearance.RelativeRotation
-		: bCanonicalNonArmFlight ? Canonical.GenericThrow.VisualRelativeRotation
+		: bRegisteredNonArmFlight ? Canonical.GenericThrow.VisualRelativeRotation
 		: (InDefinition ? InDefinition->ThrowVisualRelativeRotation : FRotator(-90.0f, 0.0f, 0.0f));
-	FVector VisualScale = bCanonicalArmamentProjectile
+	FVector VisualScale = bRegisteredArmamentProjectile
 		? Canonical.Appearance.RelativeScale
-		: bCanonicalNonArmFlight ? Canonical.GenericThrow.VisualRelativeScale
+		: bRegisteredNonArmFlight ? Canonical.GenericThrow.VisualRelativeScale
 		: (InDefinition ? InDefinition->ThrowVisualRelativeScale : FVector(1.5f));
 	if (VisualScale.ContainsNaN())
 	{
@@ -297,12 +297,12 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	VisualScale.Y = FMath::Clamp(FMath::Abs(VisualScale.Y), 0.01f, 100.0f);
 	VisualScale.Z = FMath::Clamp(FMath::Abs(VisualScale.Z), 0.01f, 100.0f);
 	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
-	const EGridThrowVisualMode VisualMode = bCanonicalArmamentProjectile
-		? (Canonical.Appearance.Mode == EGridCanonicalProjectileVisualMode::Stable
+	const EGridThrowVisualMode VisualMode = bRegisteredArmamentProjectile
+		? (Canonical.Appearance.Mode == EGridProjectileVisualMode::Stable
 			? EGridThrowVisualMode::Stable
-			: Canonical.Appearance.Mode == EGridCanonicalProjectileVisualMode::Spin
+			: Canonical.Appearance.Mode == EGridProjectileVisualMode::Spin
 				? EGridThrowVisualMode::Spin : EGridThrowVisualMode::Tumble)
-		: bCanonicalNonArmFlight
+		: bRegisteredNonArmFlight
 			? (Canonical.GenericThrow.VisualMode == EGridNonArmamentThrowVisualMode::Stable ? EGridThrowVisualMode::Stable
 				: Canonical.GenericThrow.VisualMode == EGridNonArmamentThrowVisualMode::Spin ? EGridThrowVisualMode::Spin : EGridThrowVisualMode::Tumble)
 		: (InDefinition ? InDefinition->ThrowVisualMode : EGridThrowVisualMode::Tumble);
@@ -313,27 +313,27 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 
 		case EGridThrowVisualMode::Spin:
 			AppliedThrowVisualAngularVelocityDegreesPerSecond =
-				FVector(0.0f, 0.0f, bCanonicalArmamentProjectile
+				FVector(0.0f, 0.0f, bRegisteredArmamentProjectile
 					? FMath::Max(0.0f, Canonical.Appearance.SpinDegreesPerSecond)
-					: bCanonicalNonArmFlight ? FMath::Max(0.0f, Canonical.GenericThrow.VisualSpinDegreesPerSecond)
+					: bRegisteredNonArmFlight ? FMath::Max(0.0f, Canonical.GenericThrow.VisualSpinDegreesPerSecond)
 					: (InDefinition ? FMath::Max(0.0f, InDefinition->ThrowVisualSpinDegreesPerSecond) : 1080.0f));
 			break;
 
 		case EGridThrowVisualMode::Tumble:
 		default:
 		{
-			FVector TumbleAxis = bCanonicalArmamentProjectile
+			FVector TumbleAxis = bRegisteredArmamentProjectile
 				? Canonical.Appearance.TumbleAxis
-				: bCanonicalNonArmFlight ? Canonical.GenericThrow.VisualTumbleAxis
+				: bRegisteredNonArmFlight ? Canonical.GenericThrow.VisualTumbleAxis
 				: (InDefinition ? InDefinition->ThrowVisualTumbleAxis : FVector(0.65f, 0.35f, 1.0f));
 			if (TumbleAxis.ContainsNaN() || TumbleAxis.IsNearlyZero())
 			{
 				TumbleAxis = FVector(0.65f, 0.35f, 1.0f);
 			}
 			TumbleAxis.Normalize();
-			const float TumbleSpeed = bCanonicalArmamentProjectile
+			const float TumbleSpeed = bRegisteredArmamentProjectile
 				? FMath::Max(0.0f, Canonical.Appearance.TumbleDegreesPerSecond)
-				: bCanonicalNonArmFlight ? FMath::Max(0.0f, Canonical.GenericThrow.VisualTumbleDegreesPerSecond)
+				: bRegisteredNonArmFlight ? FMath::Max(0.0f, Canonical.GenericThrow.VisualTumbleDegreesPerSecond)
 				: (InDefinition ? FMath::Max(0.0f, InDefinition->ThrowVisualTumbleDegreesPerSecond) : 180.0f);
 			AppliedThrowVisualAngularVelocityDegreesPerSecond = TumbleAxis * TumbleSpeed;
 			break;
@@ -367,9 +367,9 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		ProjectileMovementComponent->Activate(true);
 	}
 
-	const float LifeSeconds = bCanonicalArmamentProjectile
+	const float LifeSeconds = bRegisteredArmamentProjectile
 		? FMath::Max(0.01f, Canonical.FlightPolicy.FlightLifetime)
-		: bCanonicalNonArmFlight ? FMath::Max(0.01f, Canonical.GenericThrow.LifeSeconds)
+		: bRegisteredNonArmFlight ? FMath::Max(0.01f, Canonical.GenericThrow.LifeSeconds)
 		: (InDefinition ? FMath::Max(0.01f, InDefinition->ThrowLifeSeconds) : 5.0f);
 	GetWorldTimerManager().SetTimer(ExpirationTimerHandle, this, &AGridThrownItemActor::HandleProjectileExpired, LifeSeconds, false);
 }

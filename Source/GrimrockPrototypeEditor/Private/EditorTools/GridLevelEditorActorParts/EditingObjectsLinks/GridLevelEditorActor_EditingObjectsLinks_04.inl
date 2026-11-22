@@ -141,8 +141,8 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 	{
 		if (!Entry->IsValidEntry() ||
 			!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
-				ResolveEditorItemRegistry(), Entry->CanonicalItemId,
-				Entry->CanonicalDefaultItemLevel))
+				ResolveEditorItemRegistry(), Entry->ItemId,
+				Entry->DefaultItemLevel))
 		{
 			return false;
 		}

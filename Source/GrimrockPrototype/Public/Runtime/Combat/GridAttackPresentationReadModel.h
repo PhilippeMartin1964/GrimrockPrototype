@@ -88,14 +88,14 @@ struct FGridAttackPresentationReadModel
 		Profile.PeakLocationOffset = P.PeakLocationOffset;
 		Profile.PeakRotationOffset = P.PeakRotationOffset;
 		Profile.FeedbackDurationSeconds = P.FeedbackDurationSeconds;
-		const auto CopyAudio = [](const FGridCanonicalAudioVariants& A, FGridPlayerAttackAudioDefinition& B)
+		const auto CopyAudio = [](const FGridAudioVariants& A, FGridPlayerAttackAudioDefinition& B)
 		{
 			B.Sounds = A.Sounds;
 			B.VolumeMultiplier = A.VolumeMultiplier;
 			B.PitchMin = A.PitchMin;
 			B.PitchMax = A.PitchMax;
 		};
-		const auto CopyVFX = [](const FGridCanonicalVFXVariants& A, FGridPlayerAttackVFXDefinition& B)
+		const auto CopyVFX = [](const FGridVFXVariants& A, FGridPlayerAttackVFXDefinition& B)
 		{
 			B.Systems = A.Systems;
 			B.bAttachToHeldItem = A.bAttachToHeldItem;

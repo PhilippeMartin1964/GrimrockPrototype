@@ -447,29 +447,29 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 				if (!Receptacle.bAcceptAnyItem && Receptacle.AcceptedItems.IsEmpty())
 					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Receptacle does not accept any item because AcceptedItems is empty."), ObjectId);
 				for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Receptacle.AcceptedItems)
-					if (AcceptedItem.CanonicalItemId.IsNone())
+					if (AcceptedItem.ItemId.IsNone())
 						AddMessage(EGridLevelValidationSeverity::Warning,
 							TEXT("Receptacle AcceptedItems requires a canonical ItemId."), ObjectId);
 			}
 			for (const FGridReceptacleInitialItemConfig& InitialItem : Obj.InstanceConfig.ReceptacleInitialContent)
 			{
-				if (InitialItem.CanonicalItemId.IsNone())
+				if (InitialItem.ItemId.IsNone())
 					AddMessage(EGridLevelValidationSeverity::Error,
 						TEXT("Receptacle InitialContent requires a canonical ItemId."), ObjectId);
 				if (InitialItem.Quantity < 1)
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent requires Quantity >= 1."), ObjectId);
 				if (!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
-					ResolveEditorItemRegistry(), InitialItem.CanonicalItemId, InitialItem.ItemLevel))
+					ResolveEditorItemRegistry(), InitialItem.ItemId, InitialItem.ItemLevel))
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent has an invalid canonical identity or physical level."), ObjectId);
 			}
 		}
 	}
 
 	const auto ValidateItemDefinition = [this, &AddMessage](
-		FGuid ObjectId, FName CanonicalItemId, int32 PhysicalLevel, int32 Quantity)
+		FGuid ObjectId, FName ItemId, int32 PhysicalLevel, int32 Quantity)
 	{
 		if (!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
-			ResolveEditorItemRegistry(), CanonicalItemId, PhysicalLevel))
+			ResolveEditorItemRegistry(), ItemId, PhysicalLevel))
 			AddMessage(EGridLevelValidationSeverity::Error,
 				TEXT("Canonical item placement requires an ItemId registered with a valid physical ItemLevel."), ObjectId);
 		if (Quantity < 1)
@@ -480,7 +480,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	for (const FGridLooseItemInstance& LooseItemInstance : LevelAsset->LooseItemInstances)
 	{
 		const bool bValidCell = ValidatePlacement(LooseItemInstance.InstanceId, LooseItemInstance.CellX, LooseItemInstance.CellY, LooseItemInstance.PaletteEntryId, EGridLevelObjectType::Item);
-		ValidateItemDefinition(LooseItemInstance.InstanceId, LooseItemInstance.CanonicalItemId, LooseItemInstance.ItemLevel, LooseItemInstance.Quantity);
+		ValidateItemDefinition(LooseItemInstance.InstanceId, LooseItemInstance.ItemId, LooseItemInstance.ItemLevel, LooseItemInstance.Quantity);
 		if (bValidCell)
 		{
 			const FGridLevelCellData& Cell = LevelAsset->GetCell(LooseItemInstance.CellX, LooseItemInstance.CellY);
@@ -491,7 +491,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	for (const FGridItemSpawnInstance& ItemSpawn : LevelAsset->ItemSpawns)
 	{
 		ValidatePlacement(ItemSpawn.SpawnId, ItemSpawn.CellX, ItemSpawn.CellY, ItemSpawn.PaletteEntryId, EGridLevelObjectType::ItemSpawn);
-		ValidateItemDefinition(ItemSpawn.SpawnId, ItemSpawn.CanonicalItemId, ItemSpawn.ItemLevel, ItemSpawn.Quantity);
+		ValidateItemDefinition(ItemSpawn.SpawnId, ItemSpawn.ItemId, ItemSpawn.ItemLevel, ItemSpawn.Quantity);
 	}
 	for (const FGridMonsterSpawnInstance& MonsterSpawn : LevelAsset->MonsterSpawns)
 	{

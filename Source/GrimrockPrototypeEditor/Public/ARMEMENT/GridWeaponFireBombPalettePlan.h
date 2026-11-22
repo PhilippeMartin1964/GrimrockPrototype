@@ -30,7 +30,7 @@ namespace ARMEMENT011023
             !Entry.DefaultWorldObjectDefinition && !Entry.Icon &&
             !Entry.DefaultMonsterDefinition && !Entry.DefaultStoryCompanionDefinition &&
             FGridEditorItemLevelPolicy::CanAuthorItemLevel(
-                Registry, Entry.CanonicalItemId, Entry.CanonicalDefaultItemLevel);
+                Registry, Entry.ItemId, Entry.DefaultItemLevel);
     }
 
     // Copy-first: conflicts cannot expose a partially authored proposal.
@@ -85,7 +85,7 @@ namespace ARMEMENT011023
                     Existing = &Entry;
                     ++Count;
                 }
-                else if (Entry.CanonicalItemId == Id)
+                else if (Entry.ItemId == Id)
                 {
                     OutError = FString::Printf(TEXT("Item already exposed by another EntryId: %s"), *Entry.EntryId.ToString());
                     return false;
@@ -101,12 +101,12 @@ namespace ARMEMENT011023
                 FGridObjectPaletteEntry& NewEntry = Candidate.AddDefaulted_GetRef();
                 NewEntry.EntryId = Id;
                 NewEntry.PaletteCategory = DesiredCategory;
-                NewEntry.CanonicalItemId = Id;
-                NewEntry.CanonicalDefaultItemLevel = Target->NewPhysicalLevel;
+                NewEntry.ItemId = Id;
+                NewEntry.DefaultItemLevel = Target->NewPhysicalLevel;
                 ++Added;
                 continue;
             }
-            if (!IsCanonicalDirect(*Existing, Registry) || Existing->CanonicalItemId != Id ||
+            if (!IsCanonicalDirect(*Existing, Registry) || Existing->ItemId != Id ||
                 !Existing->IsValidEntry())
             {
                 OutError = FString::Printf(TEXT("Conflicting direct collectible entry: %s"), Target->EntryId);

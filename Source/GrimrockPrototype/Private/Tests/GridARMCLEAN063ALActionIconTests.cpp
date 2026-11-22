@@ -50,8 +50,8 @@ bool FGridClean063ALActionIcons::RunTest(const FString&)
             bool bFoundExpected = false;
             for (const FGridItemActionBinding& Binding : Item.AvailableActions)
             {
-                const FGridCanonicalAction* Action = Root->ActionCatalogue->Find(Binding.ActionId);
-                if (!Action || Action->Kind != EGridCanonicalActionKind::Attack) continue;
+                const FGridAction* Action = Root->ActionCatalogue->Find(Binding.ActionId);
+                if (!Action || Action->Kind != EGridActionKind::Attack) continue;
                 FGridCombatActionDefinition Transport;
                 Transport.ActionId = Action->ActionId;
                 Transport.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;

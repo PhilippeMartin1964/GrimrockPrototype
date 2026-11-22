@@ -62,10 +62,10 @@ bool FGridClean065H6EditorStarterParity::RunTest(const FString&)
                 TestFalse(TEXT("No legacy item authority in an approved recipe"),
                     Entry.ItemDefinition.Get() != nullptr);
                 TestFalse(TEXT("Stable canonical physical ItemId"),
-                    Entry.CanonicalItemId.IsNone());
+                    Entry.ItemId.IsNone());
                 FGridResolvedItem Item;
                 TestTrue(TEXT("Exact canonical starter identity and level resolve"),
-                    Fixture.Resolve(Entry.CanonicalItemId, Entry.ItemLevel, Item));
+                    Fixture.Resolve(Entry.ItemId, Entry.ItemLevel, Item));
                 TestTrue(TEXT("Quantity is bounded by the native stack policy"),
                     Entry.Quantity >= 1 && Entry.Quantity <= Item.MaxStack);
             }

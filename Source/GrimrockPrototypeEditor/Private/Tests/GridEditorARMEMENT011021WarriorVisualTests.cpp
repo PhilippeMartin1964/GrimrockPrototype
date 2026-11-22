@@ -64,7 +64,7 @@ bool FARMEMENT011021VisualCatalogueIntegrity::RunTest(const FString&)
         TestFalse(TEXT("No duplicate Warrior VisualId"), SeenVisuals.Contains(VisualId));
         SeenArms.Add(Archetype);
         SeenVisuals.Add(VisualId);
-        const FGridCanonicalWeaponVisual* Visual =
+        const FGridWeaponVisual* Visual =
             Root->WeaponVisualCatalogue->FindForArchetype(Archetype);
         if (!TestNotNull(TEXT("Approved final native Warrior visual"), Visual))
             continue;

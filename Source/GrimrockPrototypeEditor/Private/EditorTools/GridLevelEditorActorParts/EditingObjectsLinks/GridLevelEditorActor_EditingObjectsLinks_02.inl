@@ -19,17 +19,17 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 	if (PaintObjectType == EGridLevelObjectType::Item &&
 		(!PaletteEntry || !PaletteEntry->IsDirectItemEntry() || !PaletteEntry->IsValidEntry() ||
 		 !FGridEditorItemLevelPolicy::CanAuthorItemLevel(
-			ResolveEditorItemRegistry(), PaletteEntry->CanonicalItemId,
-			PaletteEntry->CanonicalDefaultItemLevel)))
+			ResolveEditorItemRegistry(), PaletteEntry->ItemId,
+			PaletteEntry->DefaultItemLevel)))
 	{
 		UE_LOG(LogGridEditor, Warning, TEXT("Canonical palette placement rejected: invalid canonical palette identity."));
 		return;
 	}
 	// A generator may be an empty editor draft; an authored palette identity is explicit.
 	if (PaintObjectType == EGridLevelObjectType::ItemSpawn && PaletteEntry &&
-		!PaletteEntry->CanonicalItemId.IsNone() &&
+		!PaletteEntry->ItemId.IsNone() &&
 		!FGridEditorItemLevelPolicy::CanAuthorItemLevel(
-			ResolveEditorItemRegistry(), PaletteEntry->CanonicalItemId, PaletteEntry->CanonicalDefaultItemLevel))
+			ResolveEditorItemRegistry(), PaletteEntry->ItemId, PaletteEntry->DefaultItemLevel))
 		return;
 	const UGridWorldObjectDefinitionAsset* WorldObjectDefinition = FindWorldObjectDefinitionById(WorldObjectDefinitionId);
 	const bool bSuppressBaseWall = WorldObjectDefinition && WorldObjectDefinition->SuppressesBaseWall();
@@ -108,8 +108,8 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		LooseItemInstance.LocalOffset = FVector(NewFloorOffset.X, NewFloorOffset.Y, 0.0f);
 		LooseItemInstance.InstanceId = NewId;
 		LooseItemInstance.SurfaceSide = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
-		LooseItemInstance.CanonicalItemId = PaletteEntry->CanonicalItemId;
-		LooseItemInstance.ItemLevel = PaletteEntry->CanonicalDefaultItemLevel;
+		LooseItemInstance.ItemId = PaletteEntry->ItemId;
+		LooseItemInstance.ItemLevel = PaletteEntry->DefaultItemLevel;
 		LooseItemInstance.ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
 		LooseItemInstance.ReadableContentId = ObjectBehavior.Item.DefaultReadableContentId;
 		LooseItemInstance.ReadTitleOverride = ObjectBehavior.Item.DefaultReadTitleOverride;
@@ -128,10 +128,10 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		FGridItemSpawnInstance& ItemSpawn = LevelAsset->ItemSpawns.AddDefaulted_GetRef();
 		InitializeAuthoring(ItemSpawn);
 		ItemSpawn.SpawnId = NewId;
-		if (PaletteEntry && !PaletteEntry->CanonicalItemId.IsNone())
+		if (PaletteEntry && !PaletteEntry->ItemId.IsNone())
 		{
-			ItemSpawn.CanonicalItemId = PaletteEntry->CanonicalItemId;
-			ItemSpawn.ItemLevel = PaletteEntry->CanonicalDefaultItemLevel;
+			ItemSpawn.ItemId = PaletteEntry->ItemId;
+			ItemSpawn.ItemLevel = PaletteEntry->DefaultItemLevel;
 		}
 		ItemSpawn.bSpawnAtStart = bObjectInitiallyEnabled;
 	}

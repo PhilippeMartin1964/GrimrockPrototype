@@ -167,10 +167,10 @@ namespace ARMCLEAN063BD
             Test.TestFalse(TEXT("Copied actor tags cannot grant a capability"), Actor->HasItemTag(FakeTag));
             for (FName Tag : Resolved.Tags)
                 Test.TestTrue(TEXT("Canonical tag survives contradictory actor cache"), Actor->HasItemTag(Tag));
-            Actor->CanonicalWorldItemLevel = 1;
+            Actor->WorldItemLevel = 1;
             for (FName Tag : Resolved.Tags)
                 Test.TestFalse(TEXT("Invalid non-ARM physical level grants no tag"), Actor->HasItemTag(Tag));
-            Actor->CanonicalWorldItemLevel = 0;
+            Actor->WorldItemLevel = 0;
             return !Test.HasAnyErrors();
         }
         if (FCString::Strcmp(Scenario, TEXT("RegisteredLevelGuards")) == 0)

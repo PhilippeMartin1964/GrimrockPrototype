@@ -57,9 +57,9 @@ namespace
 	}
 }
 
-const FGridCanonicalAction* UGridActionCatalogueAsset::Find(FName ActionId) const
+const FGridAction* UGridActionCatalogueAsset::Find(FName ActionId) const
 {
-	return Actions.FindByPredicate([ActionId](const FGridCanonicalAction& Entry)
+	return Actions.FindByPredicate([ActionId](const FGridAction& Entry)
 	{
 		return Entry.ActionId == ActionId;
 	});
@@ -67,8 +67,8 @@ const FGridCanonicalAction* UGridActionCatalogueAsset::Find(FName ActionId) cons
 
 const FGridCombatActionDefinition* UGridActionCatalogueAsset::FindDetailed(FName ActionId) const
 {
-	const FGridCanonicalRuntimeAction* Entry = DetailedActions.FindByPredicate(
-		[ActionId](const FGridCanonicalRuntimeAction& Candidate)
+	const FGridRuntimeAction* Entry = DetailedActions.FindByPredicate(
+		[ActionId](const FGridRuntimeAction& Candidate)
 		{
 			return Candidate.Definition.ActionId == ActionId;
 		});
@@ -79,7 +79,7 @@ bool UGridActionCatalogueAsset::Validate(TArray<FString>& Errors) const
 {
 	bool bValid = true;
 	TSet<FName> Seen;
-	for (const FGridCanonicalAction& Action : Actions)
+	for (const FGridAction& Action : Actions)
 	{
 		if (Action.ActionId.IsNone() || Seen.Contains(Action.ActionId))
 		{
@@ -89,20 +89,20 @@ bool UGridActionCatalogueAsset::Validate(TArray<FString>& Errors) const
 		Seen.Add(Action.ActionId);
 		if (Action.CooldownRounds < 0 || Action.ManaCost < 0 ||
 			Action.SourceItemQuantityCost < 0 ||
-			((Action.Kind != EGridCanonicalActionKind::Attack &&
+			((Action.Kind != EGridActionKind::Attack &&
 				(Action.bRangedAttack || Action.bRequiresLineOfSight)) ||
-			 (Action.Kind != EGridCanonicalActionKind::Attack &&
-			  Action.Kind != EGridCanonicalActionKind::Use &&
+			 (Action.Kind != EGridActionKind::Attack &&
+			  Action.Kind != EGridActionKind::Use &&
 			  Action.SourceItemQuantityCost != 0)) ||
 			Action.WeaponDamagePercent < 0 || Action.WeaponDamagePercent > 500)
 		{
 			bValid = AddError(Errors, FString::Printf(TEXT("Action %s: invalid cost/cooldown/scaling"),
 				*Action.ActionId.ToString()));
 		}
-		for (const FGridCanonicalActionEffect& Effect : Action.Effects)
+		for (const FGridActionEffect& Effect : Action.Effects)
 		{
-			const bool bStatus = Effect.Kind == EGridCanonicalEffectKind::ApplyStatus ||
-				Effect.Kind == EGridCanonicalEffectKind::RemoveStatus;
+			const bool bStatus = Effect.Kind == EGridEffectKind::ApplyStatus ||
+				Effect.Kind == EGridEffectKind::RemoveStatus;
 			if ((bStatus && Effect.StatusId.IsNone()) || (!bStatus && !Effect.StatusId.IsNone()))
 			{
 				bValid = AddError(Errors, FString::Printf(TEXT("Action %s: incorrect typed status effect"),
@@ -110,7 +110,7 @@ bool UGridActionCatalogueAsset::Validate(TArray<FString>& Errors) const
 			}
 		}
 	}
-	for (const FGridCanonicalRuntimeAction& Detailed : DetailedActions)
+	for (const FGridRuntimeAction& Detailed : DetailedActions)
 	{
 		const FName ActionId = Detailed.Definition.ActionId;
 		if (ActionId.IsNone() || Seen.Contains(ActionId) ||
@@ -124,7 +124,7 @@ bool UGridActionCatalogueAsset::Validate(TArray<FString>& Errors) const
 	return bValid;
 }
 
-bool FGridCanonicalAudioVariants::IsValid() const
+bool FGridAudioVariants::IsValid() const
 {
 	if (!FMath::IsFinite(VolumeMultiplier) || VolumeMultiplier < 0.0f ||
 		!FMath::IsFinite(PitchMin) || PitchMin <= 0.0f ||
@@ -142,7 +142,7 @@ bool FGridCanonicalAudioVariants::IsValid() const
 	return true;
 }
 
-bool FGridCanonicalVFXVariants::IsValid() const
+bool FGridVFXVariants::IsValid() const
 {
 	if (LocationOffset.ContainsNaN() || RotationOffset.ContainsNaN() ||
 		Scale.ContainsNaN() || Scale.X <= 0.0f || Scale.Y <= 0.0f ||
@@ -160,7 +160,7 @@ bool FGridCanonicalVFXVariants::IsValid() const
 	return true;
 }
 
-bool FGridCanonicalActionPresentation::IsValid() const
+bool FGridActionPresentation::IsValid() const
 {
 	if (PresentationId.IsNone() || !FMath::IsFinite(MotionDurationSeconds) ||
 		MotionDurationSeconds < 0.0f || !FMath::IsFinite(ImpactDelaySeconds) ||
@@ -180,10 +180,10 @@ bool FGridCanonicalActionPresentation::IsValid() const
 		ImpactMissVFX.IsValid() && ParryVFX.IsValid() && BlockVFX.IsValid();
 }
 
-const FGridCanonicalActionPresentation* UGridActionPresentationCatalogueAsset::Find(
+const FGridActionPresentation* UGridActionPresentationCatalogueAsset::Find(
 	FName PresentationId) const
 {
-	return Presentations.FindByPredicate([PresentationId](const FGridCanonicalActionPresentation& Entry)
+	return Presentations.FindByPredicate([PresentationId](const FGridActionPresentation& Entry)
 	{
 		return Entry.PresentationId == PresentationId;
 	});
@@ -192,8 +192,8 @@ const FGridCanonicalActionPresentation* UGridActionPresentationCatalogueAsset::F
 const FGridPlayerAttackPresentationProfile*
 UGridActionPresentationCatalogueAsset::FindDetailed(FName PresentationId) const
 {
-	const FGridCanonicalRuntimePresentation* Entry = DetailedPresentations.FindByPredicate(
-		[PresentationId](const FGridCanonicalRuntimePresentation& Candidate)
+	const FGridRuntimePresentation* Entry = DetailedPresentations.FindByPredicate(
+		[PresentationId](const FGridRuntimePresentation& Candidate)
 		{
 			return Candidate.PresentationId == PresentationId;
 		});
@@ -204,7 +204,7 @@ bool UGridActionPresentationCatalogueAsset::Validate(TArray<FString>& Errors) co
 {
 	bool bValid = true;
 	TSet<FName> Seen;
-	for (const FGridCanonicalActionPresentation& Entry : Presentations)
+	for (const FGridActionPresentation& Entry : Presentations)
 	{
 		if (Entry.PresentationId.IsNone() || Seen.Contains(Entry.PresentationId) ||
 			!Entry.IsValid())
@@ -213,7 +213,7 @@ bool UGridActionPresentationCatalogueAsset::Validate(TArray<FString>& Errors) co
 		}
 		Seen.Add(Entry.PresentationId);
 	}
-	for (const FGridCanonicalRuntimePresentation& Detailed : DetailedPresentations)
+	for (const FGridRuntimePresentation& Detailed : DetailedPresentations)
 	{
 		if (Detailed.PresentationId.IsNone() ||
 			Seen.Contains(Detailed.PresentationId) ||
@@ -227,16 +227,16 @@ bool UGridActionPresentationCatalogueAsset::Validate(TArray<FString>& Errors) co
 	return bValid;
 }
 
-const FGridCanonicalWeaponVisual* UGridCanonicalWeaponVisualCatalogueAsset::FindForArchetype(
+const FGridWeaponVisual* UGridCanonicalWeaponVisualCatalogueAsset::FindForArchetype(
 	FName ArchetypeId) const
 {
-	const FGridCanonicalWeaponVisualBinding* Binding = ArchetypeBindings.FindByPredicate(
-		[ArchetypeId](const FGridCanonicalWeaponVisualBinding& Entry)
+	const FGridWeaponVisualBinding* Binding = ArchetypeBindings.FindByPredicate(
+		[ArchetypeId](const FGridWeaponVisualBinding& Entry)
 		{
 			return Entry.ArchetypeId == ArchetypeId;
 		});
 	return Binding ? VisualProfiles.FindByPredicate(
-		[Binding](const FGridCanonicalWeaponVisual& Entry)
+		[Binding](const FGridWeaponVisual& Entry)
 		{
 			return Entry.VisualId == Binding->VisualId;
 		}) : nullptr;
@@ -246,14 +246,14 @@ bool UGridCanonicalWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors)
 {
 	bool bValid = true;
 	TSet<FName> SeenProfiles;
-	for (const FGridCanonicalWeaponVisual& Profile : VisualProfiles)
+	for (const FGridWeaponVisual& Profile : VisualProfiles)
 	{
 		if (Profile.VisualId.IsNone() || SeenProfiles.Contains(Profile.VisualId))
 		{
 			bValid = AddError(Errors, TEXT("Visual catalogue: missing/duplicate VisualId"));
 		}
 		SeenProfiles.Add(Profile.VisualId);
-		const FGridCanonicalProjectileVisual& Flight = Profile.ProjectileAppearance;
+		const FGridProjectileVisual& Flight = Profile.ProjectileAppearance;
 		if (Flight.bEnabled &&
 			(Profile.ProjectileMesh.IsNull() ||
 			 Flight.RelativeRotation.ContainsNaN() ||
@@ -264,7 +264,7 @@ bool UGridCanonicalWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors)
 			 static_cast<uint8>(Flight.MeshForwardAxis) >
 				static_cast<uint8>(EGridProjectileForwardAxis::NegativeZ) ||
 			 static_cast<uint8>(Flight.Mode) >
-				static_cast<uint8>(EGridCanonicalProjectileVisualMode::Spin)))
+				static_cast<uint8>(EGridProjectileVisualMode::Spin)))
 		{
 			bValid = AddError(Errors, FString::Printf(
 				TEXT("Visual catalogue: incomplete projectile appearance for %s"),
@@ -272,7 +272,7 @@ bool UGridCanonicalWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors)
 		}
 	}
 	TSet<FName> SeenBindings;
-	for (const FGridCanonicalWeaponVisualBinding& Binding : ArchetypeBindings)
+	for (const FGridWeaponVisualBinding& Binding : ArchetypeBindings)
 	{
 		if (!IsArmId(Binding.ArchetypeId) || SeenBindings.Contains(Binding.ArchetypeId) ||
 			!SeenProfiles.Contains(Binding.VisualId))
@@ -289,7 +289,7 @@ bool UGridCanonicalWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors)
 	return bValid;
 }
 
-bool FGridCanonicalResolvedWeapon::CanEquipInHand(EGridEquipmentSlot Slot) const
+bool FGridResolvedWeapon::CanEquipInHand(EGridEquipmentSlot Slot) const
 {
 	if (Slot != EGridEquipmentSlot::MainHand && Slot != EGridEquipmentSlot::OffHand)
 	{
@@ -297,30 +297,30 @@ bool FGridCanonicalResolvedWeapon::CanEquipInHand(EGridEquipmentSlot Slot) const
 	}
 	switch (HandPolicy)
 	{
-	case EGridCanonicalHandPolicy::MainHand:
+	case EGridHandPolicy::MainHand:
 		return Slot == EGridEquipmentSlot::MainHand;
-	case EGridCanonicalHandPolicy::OffHand:
+	case EGridHandPolicy::OffHand:
 		return Slot == EGridEquipmentSlot::OffHand;
-	case EGridCanonicalHandPolicy::EitherHand:
-	case EGridCanonicalHandPolicy::TwoHanded:
+	case EGridHandPolicy::EitherHand:
+	case EGridHandPolicy::TwoHanded:
 		return true;
 	default:
 		return false;
 	}
 }
 
-bool FGridCanonicalResolvedWeapon::HasAttackSourceInHand(EGridEquipmentSlot Slot) const
+bool FGridResolvedWeapon::HasAttackSourceInHand(EGridEquipmentSlot Slot) const
 {
-	return Kind == EGridCanonicalArmamentKind::Weapon &&
+	return Kind == EGridArmamentKind::Weapon &&
 		CanEquipInHand(Slot) && AttackSourceSlots.Contains(Slot);
 }
 
-bool FGridCanonicalArmorReserveResolver::TryCompute(
-	const FGridCanonicalResolvedWeapon& Weapon,
+bool FGridArmorReserveResolver::TryCompute(
+	const FGridResolvedWeapon& Weapon,
 	int32 SpentPhysicalArmor, int32 SpentMagicalArmor,
-	FGridCanonicalArmorReserveView& OutView)
+	FGridArmorReserveView& OutView)
 {
-	OutView = FGridCanonicalArmorReserveView();
+	OutView = FGridArmorReserveView();
 	if (Weapon.PhysicalArmor < 0 || Weapon.MagicalArmor < 0 ||
 		SpentPhysicalArmor < 0 || SpentMagicalArmor < 0)
 	{
@@ -338,9 +338,9 @@ bool FGridCanonicalArmorReserveResolver::TryCompute(
 	return true;
 }
 
-bool FGridCanonicalWeaponArchetype::TryResolve(int32 Level, FGridCanonicalResolvedWeapon& Out) const
+bool FGridWeaponArchetype::TryResolve(int32 Level, FGridResolvedWeapon& Out) const
 {
-	Out = FGridCanonicalResolvedWeapon();
+	Out = FGridResolvedWeapon();
 	if (Level < 1 || Level > 20 || !IsArmId(ArchetypeId) ||
 		!DiceCountGrowth.IsValid() || !DiceSidesGrowth.IsValid() || !FlatBonusGrowth.IsValid() ||
 		!PhysicalArmorGrowth.IsValid() || !MagicalArmorGrowth.IsValid())
@@ -367,7 +367,7 @@ bool FGridCanonicalWeaponArchetype::TryResolve(int32 Level, FGridCanonicalResolv
 	{
 		return false;
 	}
-	const bool bOffensive = Kind == EGridCanonicalArmamentKind::Weapon;
+	const bool bOffensive = Kind == EGridArmamentKind::Weapon;
 	if (bOffensive != DamageDiceN1.bEnabled ||
 		(!bOffensive && (DamageDiceN1.DiceCount != 0 || DamageDiceN1.DiceSides != 0 ||
 			DamageDiceN1.FlatBonus != 0)) ||
@@ -406,10 +406,10 @@ bool FGridCanonicalWeaponArchetype::TryResolve(int32 Level, FGridCanonicalResolv
 	return true;
 }
 
-const FGridCanonicalWeaponArchetype* UGridCanonicalWeaponCatalogueAsset::Find(
+const FGridWeaponArchetype* UGridCanonicalWeaponCatalogueAsset::Find(
 	FName ArchetypeId) const
 {
-	return Archetypes.FindByPredicate([ArchetypeId](const FGridCanonicalWeaponArchetype& Entry)
+	return Archetypes.FindByPredicate([ArchetypeId](const FGridWeaponArchetype& Entry)
 	{
 		return Entry.ArchetypeId == ArchetypeId;
 	});
@@ -429,7 +429,7 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 			bValid = AddError(Errors, TEXT("Weapon catalogue: six class preference rows required"));
 		}
 		TSet<FName> PreferenceIds;
-		for (const FGridCanonicalClassPreference& Preference : ClassPreferences)
+		for (const FGridClassPreference& Preference : ClassPreferences)
 		{
 			if (Preference.ClassId.IsNone() || PreferenceIds.Contains(Preference.ClassId))
 			{
@@ -440,7 +440,7 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 	}
 	int32 PassiveProfiles = 0;
 	TSet<FName> Seen;
-	for (const FGridCanonicalWeaponArchetype& Archetype : Archetypes)
+	for (const FGridWeaponArchetype& Archetype : Archetypes)
 	{
 		if (!IsArmId(Archetype.ArchetypeId) || Seen.Contains(Archetype.ArchetypeId))
 		{
@@ -472,7 +472,7 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 			bValid = AddError(Errors, TEXT("Weapon catalogue: invalid generic hand throw policy"));
 		}
 		TSet<FName> SeenReactions;
-		for (const FGridCanonicalReactionPolicy& Reaction : Archetype.Reactions)
+		for (const FGridReactionPolicy& Reaction : Archetype.Reactions)
 		{
 			if (Reaction.ReactionId.IsNone() || SeenReactions.Contains(Reaction.ReactionId) ||
 				!FMath::IsFinite(Reaction.Chance) || Reaction.Chance < 0.0f ||
@@ -482,7 +482,7 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 			}
 			SeenReactions.Add(Reaction.ReactionId);
 		}
-		FGridCanonicalResolvedWeapon HandView;
+		FGridResolvedWeapon HandView;
 		HandView.Kind = Archetype.Kind;
 		HandView.HandPolicy = Archetype.HandPolicy;
 		TSet<EGridEquipmentSlot> SeenAttackSlots;
@@ -490,7 +490,7 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 		{
 			if ((Slot != EGridEquipmentSlot::MainHand && Slot != EGridEquipmentSlot::OffHand) ||
 				SeenAttackSlots.Contains(Slot) || !HandView.CanEquipInHand(Slot) ||
-				Archetype.Kind != EGridCanonicalArmamentKind::Weapon)
+				Archetype.Kind != EGridArmamentKind::Weapon)
 			{
 				bValid = AddError(Errors, TEXT("Weapon catalogue: invalid attack source hand"));
 			}
@@ -523,7 +523,7 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 		if (!ClassPreferences.IsEmpty())
 		{
 			if (Archetype.PrimaryClassId.IsNone() ||
-				!ClassPreferences.ContainsByPredicate([&Archetype](const FGridCanonicalClassPreference& Row)
+				!ClassPreferences.ContainsByPredicate([&Archetype](const FGridClassPreference& Row)
 				{
 					return Row.ClassId == Archetype.PrimaryClassId;
 				}))
@@ -532,7 +532,7 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 			}
 			for (FName ClassId : Archetype.SecondaryClassIds)
 			{
-				if (!ClassPreferences.ContainsByPredicate([ClassId](const FGridCanonicalClassPreference& Row)
+				if (!ClassPreferences.ContainsByPredicate([ClassId](const FGridClassPreference& Row)
 				{
 					return Row.ClassId == ClassId;
 				}))
@@ -543,7 +543,7 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 		}
 		for (int32 Level = 1; Level <= 20; ++Level)
 		{
-			FGridCanonicalResolvedWeapon Weapon;
+			FGridResolvedWeapon Weapon;
 			if (!Archetype.TryResolve(Level, Weapon))
 			{
 				bValid = AddError(Errors, FString::Printf(TEXT("Weapon catalogue: invalid %s N%d"),
@@ -665,9 +665,9 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 		}
 		if (const UGridArmamentDefinitionAsset* Weapon = Cast<UGridArmamentDefinitionAsset>(Item))
 		{
-			const FGridCanonicalWeaponArchetype* Archetype =
+			const FGridWeaponArchetype* Archetype =
 				WeaponCatalogue->Find(Weapon->ArchetypeId);
-			const FGridCanonicalWeaponVisual* Visual =
+			const FGridWeaponVisual* Visual =
 				WeaponVisualCatalogue->FindForArchetype(Weapon->ArchetypeId);
 			if (!Archetype || !Archetype->bHandAndKindProven || !Visual)
 			{
@@ -683,13 +683,13 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 					TEXT("Item system: active projectile physics/visual mismatch for %s"),
 					*Item->ItemId.ToString()));
 			}
-			if (Archetype->Kind == EGridCanonicalArmamentKind::Weapon)
+			if (Archetype->Kind == EGridArmamentKind::Weapon)
 			{
 				const bool bHasAttack = Archetype->Actions.ContainsByPredicate(
 					[this](const FGridItemActionBinding& Binding)
 					{
-						const FGridCanonicalAction* Action = ActionCatalogue->Find(Binding.ActionId);
-						return Action && Action->Kind == EGridCanonicalActionKind::Attack;
+						const FGridAction* Action = ActionCatalogue->Find(Binding.ActionId);
+						return Action && Action->Kind == EGridActionKind::Attack;
 					});
 				if (Archetype->AttackSourceSlots.IsEmpty() || !bHasAttack)
 				{
@@ -706,7 +706,7 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 	}
 	// Only live item definitions need a complete visual mapping (checked above).
 	// A catalogue may describe valid ARM archetypes without a concrete item.
-	for (const FGridCanonicalWeaponArchetype& Weapon : WeaponCatalogue->Archetypes)
+	for (const FGridWeaponArchetype& Weapon : WeaponCatalogue->Archetypes)
 	{
 		if (!Weapon.RequiredAmmoKindId.IsNone() &&
 			!AmmoKinds.Contains(Weapon.RequiredAmmoKindId))

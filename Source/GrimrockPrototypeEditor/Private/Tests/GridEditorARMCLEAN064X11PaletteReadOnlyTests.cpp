@@ -51,30 +51,30 @@ bool FGridEditorClean064X11RealPalette::RunTest(const FString&)
             {return false;}
         EntryIds.Add(Entry.EntryId);
         if (!TestTrue(TEXT("All real direct items have persisted ItemId"),
-            !Entry.CanonicalItemId.IsNone()) ||
+            !Entry.ItemId.IsNone()) ||
             !TestTrue(TEXT("Direct entry has valid canonical structure"), Entry.IsValidEntry()))
             {return false;}
 
         FGridResolvedItem Resolved;
         if (!TestTrue(TEXT("Real palette item and level resolve"),
-            Registry->ResolveItem(Entry.CanonicalItemId,
-                Entry.CanonicalDefaultItemLevel, Resolved)) ||
+            Registry->ResolveItem(Entry.ItemId,
+                Entry.DefaultItemLevel, Resolved)) ||
             !TestTrue(TEXT("Resolved identity is unchanged"),
-                Resolved.IsValid() && Resolved.ItemId == Entry.CanonicalItemId &&
-                Resolved.ItemLevel == Entry.CanonicalDefaultItemLevel))
+                Resolved.IsValid() && Resolved.ItemId == Entry.ItemId &&
+                Resolved.ItemLevel == Entry.DefaultItemLevel))
             {return false;}
         if (Resolved.bIsArmament)
         {
             ++Arms;
             if (!TestTrue(TEXT("Real ARM palette default is physical N1-N20"),
-                Entry.CanonicalDefaultItemLevel >= 1 &&
-                Entry.CanonicalDefaultItemLevel <= 20)) {return false;}
+                Entry.DefaultItemLevel >= 1 &&
+                Entry.DefaultItemLevel <= 20)) {return false;}
         }
         else
         {
             ++NonArms;
             if (!TestEqual(TEXT("Real nonARM palette default is physical N0"),
-                Entry.CanonicalDefaultItemLevel, 0)) {return false;}
+                Entry.DefaultItemLevel, 0)) {return false;}
         }
     }
     if (!TestEqual(TEXT("All 33 direct entries inspected"), Direct, 33) ||

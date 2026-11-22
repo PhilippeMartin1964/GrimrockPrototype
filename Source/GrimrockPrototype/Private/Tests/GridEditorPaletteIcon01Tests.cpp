@@ -46,7 +46,7 @@ bool FGridEditorPaletteIcon01::RunTest(const FString& Parameters)
 	FGridObjectPaletteEntry DirectItemEntry;
 	DirectItemEntry.EntryId = Item->ItemDefinitionId;
 	DirectItemEntry.PaletteCategory = TEXT("Items");
-	DirectItemEntry.CanonicalItemId = Item->ItemDefinitionId;
+	DirectItemEntry.ItemId = Item->ItemDefinitionId;
 	DirectItemEntry.Icon = WorldIcon; // Simulate setting Icon before choosing the ItemDefinition.
 	TestFalse(TEXT("Duplicate icon is invalid before normalizing"), DirectItemEntry.IsValidEntry());
 	TestTrue(TEXT("Switch to direct item clears its stale palette icon"), DirectItemEntry.ClearRedundantIconForDirectItem());
@@ -57,7 +57,7 @@ bool FGridEditorPaletteIcon01::RunTest(const FString& Parameters)
 
 	FGridObjectPaletteEntry CanonicalEntry = DirectItemEntry;
 	CanonicalEntry.EntryId = TEXT("Canonical_Icon01");
-	CanonicalEntry.CanonicalItemId = TEXT("Item_Icon01");
+	CanonicalEntry.ItemId = TEXT("Item_Icon01");
 	CanonicalEntry.Icon = WorldIcon;
 	TestFalse(TEXT("Pointerless direct entry cannot own a duplicate icon"), CanonicalEntry.IsValidEntry());
 	TestTrue(TEXT("Pointerless direct item clears stale icon"), CanonicalEntry.ClearRedundantIconForDirectItem());

@@ -164,8 +164,8 @@ struct FRPGStartingEquipmentEntry
 
 	/** Explicit canonical identity for newly authored kits. Existing pre-cutover
 	 * kits retain ItemDefinition until their native content is migrated. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment|Canonical")
-	FName CanonicalItemId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment")
+	FName ItemId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment")
 	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;

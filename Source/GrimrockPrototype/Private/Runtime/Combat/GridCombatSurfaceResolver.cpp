@@ -169,7 +169,7 @@ bool FGridCombatSurfaceResolver::ResolveConversionReaction(
 	FGridCombatSurfaceReactionResult& OutResult)
 {
 	OutResult = FGridCombatSurfaceReactionResult();
-	if (!Conversion.IsValid() || !Conversion.bTriggerCanonicalReactionBeforeConversion ||
+	if (!Conversion.IsValid() || !Conversion.bTriggerReactionBeforeConversion ||
 		!Conversion.InputSurfaceTypes.Contains(ExistingSurface.SurfaceType))
 	{
 		return false;

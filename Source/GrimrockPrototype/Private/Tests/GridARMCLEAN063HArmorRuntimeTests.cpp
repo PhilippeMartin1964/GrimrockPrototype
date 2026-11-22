@@ -40,7 +40,7 @@ bool FGridClean063HArmorRuntime::RunTest(const FString&)
 	Shield.AbsorbedEquipmentPhysicalArmor = 2;
 	Shield.AbsorbedEquipmentMagicalArmor = 1;
 
-	FGridCanonicalArmorReserveView Expected;
+	FGridArmorReserveView Expected;
 	if (!TestTrue(TEXT("Real N20 shield reserve resolves"), Registry->ResolveArmorReserveForInstance(Shield, Expected)))
 	{
 		return false;
@@ -64,7 +64,7 @@ bool FGridClean063HArmorRuntime::RunTest(const FString&)
 	for (const int32 Level : ProductionLevels)
 	{
 		Aegis.ItemLevel = Level;
-		FGridCanonicalArmorReserveView Authoritative;
+		FGridArmorReserveView Authoritative;
 		if (!TestTrue(TEXT("Real Holy Aegis reserve resolves"),
 			Registry->ResolveArmorReserveForInstance(Aegis, Authoritative)))
 		{

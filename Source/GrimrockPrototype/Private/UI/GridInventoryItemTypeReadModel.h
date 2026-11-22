@@ -42,7 +42,7 @@ struct FGridInventoryItemTypeReadModel
             {
                 // Passive shields have their own category. Focus and
                 // offensive weapons occupy the existing Weapon equipment type.
-                View.ItemType = Resolved.Weapon.Kind == EGridCanonicalArmamentKind::Shield
+                View.ItemType = Resolved.Weapon.Kind == EGridArmamentKind::Shield
                     ? EGridItemType::Shield : EGridItemType::Weapon;
             }
             else

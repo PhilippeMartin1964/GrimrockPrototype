@@ -42,7 +42,7 @@ bool FGridClean062QProductionActions::RunTest(const FString&)
         TestTrue(TEXT("MainHand bound action and presentation are valid"),
             Registry.Registry->ResolveBoundAttackForHand(
                 Item.ItemId, 1, ActionId, EGridEquipmentSlot::MainHand, Action) &&
-            Action.IsValid() && Action.Action.Kind == EGridCanonicalActionKind::Attack &&
+            Action.IsValid() && Action.Action.Kind == EGridActionKind::Attack &&
             !Action.PresentationId.IsNone());
         if (Item.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand))
         {

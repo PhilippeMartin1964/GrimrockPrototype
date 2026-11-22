@@ -172,7 +172,7 @@ bool FGridClean065D4NonArmContributions::RunTest(const FString&)
 		TestTrue(TEXT("Exact native resistance"), FGridDamageResistanceSet::StaticStruct()->CompareScriptStruct(&R, &Gear->Resistances, 0));
 		FGridEquipmentArmorReadView Armor;
 		if (!TestTrue(TEXT("Physical non-ARM armor resolves"), FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), nullptr, Item, Armor))) return false;
-		FGridCanonicalArmorReserveView Direct;
+		FGridArmorReserveView Direct;
 		TestTrue(TEXT("Public registry resolves same non-ARM reserve"), Registry->ResolveArmorReserveForInstance(Item, Direct));
 		TestEqual(TEXT("Exact spent physical debt"), Direct.SpentPhysicalArmor, 2);
 		TestEqual(TEXT("Exact spent magical debt"), Direct.SpentMagicalArmor, 3);

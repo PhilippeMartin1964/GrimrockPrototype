@@ -17,7 +17,7 @@ namespace ARMCLEAN064X24
 	{
 		FRPGStartingEquipmentEntry& Entry =
 			Class->StartingEquipmentKits[0].Items.AddDefaulted_GetRef();
-		Entry.CanonicalItemId = ItemId;
+		Entry.ItemId = ItemId;
 		Entry.ItemLevel = Level;
 		Entry.TargetSlot = Slot;
 		Entry.Quantity = Quantity;

@@ -60,20 +60,20 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	OutItem = FGridResolvedItem();
 	if (!RootRegistry)
 	{
-		OutItem.Error = EGridCanonicalItemResolveError::RegistryNotConfigured;
+		OutItem.Error = EGridItemResolveError::RegistryNotConfigured;
 		return false;
 	}
 	// Armaments have authored N1-N20 progression. Ammo, food and other
 	// unlevelled identities legitimately persist as ItemLevel=0.
 	if (ItemLevel < 0 || ItemLevel > 20)
 	{
-		OutItem.Error = EGridCanonicalItemResolveError::InvalidItemLevel;
+		OutItem.Error = EGridItemResolveError::InvalidItemLevel;
 		return false;
 	}
 	const TObjectPtr<UGridCanonicalItemDefinitionAsset>* Found = ItemIndex.Find(ItemId);
 	if (!Found || !IsValid(Found->Get()))
 	{
-		OutItem.Error = EGridCanonicalItemResolveError::UnknownItemId;
+		OutItem.Error = EGridItemResolveError::UnknownItemId;
 		return false;
 	}
 
@@ -83,7 +83,7 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 	{
 		// One physical level contract for every reader. No non-ARM N1 family
 		// alias and no ARM N0 default promotion.
-		OutItem.Error = EGridCanonicalItemResolveError::InvalidItemLevel;
+		OutItem.Error = EGridItemResolveError::InvalidItemLevel;
 		return false;
 	}
 	OutItem.ItemId = Definition->ItemId;
@@ -124,40 +124,40 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		OutItem.WorldMesh = Ammo->WorldMesh;
 		OutItem.AmmoKindId = Ammo->AmmoKindId;
 		OutItem.MaxStack = Ammo->MaxStack;
-		OutItem.Error = EGridCanonicalItemResolveError::None;
+		OutItem.Error = EGridItemResolveError::None;
 		return true;
 	}
 
 	if (const UGridArmamentDefinitionAsset* Armament =
 		Cast<UGridArmamentDefinitionAsset>(Definition))
 	{
-		const FGridCanonicalWeaponArchetype* Archetype =
+		const FGridWeaponArchetype* Archetype =
 			RootRegistry->WeaponCatalogue->Find(Armament->ArchetypeId);
 		// Numeric parity never grants an active weapon an implicit attack.
 		// A real offensive ARM requires a bound attack and a source hand.
 		const bool bMissingOffensiveAction = Archetype &&
-			Archetype->Kind == EGridCanonicalArmamentKind::Weapon &&
+			Archetype->Kind == EGridArmamentKind::Weapon &&
 			(Archetype->AttackSourceSlots.IsEmpty() ||
 				!Archetype->Actions.ContainsByPredicate(
 					[this](const FGridItemActionBinding& Binding)
 					{
-						const FGridCanonicalAction* Action =
+						const FGridAction* Action =
 							RootRegistry->ActionCatalogue->Find(Binding.ActionId);
-						return Action && Action->Kind == EGridCanonicalActionKind::Attack;
+						return Action && Action->Kind == EGridActionKind::Attack;
 					}));
 		if (!Archetype || !Archetype->bHandAndKindProven || bMissingOffensiveAction ||
 			!Archetype->TryResolve(ItemLevel, OutItem.Weapon))
 		{
 			OutItem = FGridResolvedItem();
-			OutItem.Error = EGridCanonicalItemResolveError::InvalidArchetype;
+			OutItem.Error = EGridItemResolveError::InvalidArchetype;
 			return false;
 		}
-		const FGridCanonicalWeaponVisual* Visual =
+		const FGridWeaponVisual* Visual =
 			RootRegistry->WeaponVisualCatalogue->FindForArchetype(Armament->ArchetypeId);
 		if (!Visual)
 		{
 			OutItem = FGridResolvedItem();
-			OutItem.Error = EGridCanonicalItemResolveError::MissingVisual;
+			OutItem.Error = EGridItemResolveError::MissingVisual;
 			return false;
 		}
 		if (OutItem.Weapon.Projectile.bEnabled !=
@@ -165,7 +165,7 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 			(OutItem.Weapon.Projectile.bEnabled && Visual->ProjectileMesh.IsNull()))
 		{
 			OutItem = FGridResolvedItem();
-			OutItem.Error = EGridCanonicalItemResolveError::IncompleteProjectileVisual;
+			OutItem.Error = EGridItemResolveError::IncompleteProjectileVisual;
 			return false;
 		}
 		OutItem.ArchetypeId = Armament->ArchetypeId;
@@ -235,7 +235,7 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 			OutItem.AvailableActions = Consumable->UseActions;
 		}
 	}
-	OutItem.Error = EGridCanonicalItemResolveError::None;
+	OutItem.Error = EGridItemResolveError::None;
 	return true;
 }
 
@@ -276,10 +276,10 @@ TSoftObjectPtr<UTexture2D> UGridItemSubsystem::FindEquippedActionIcon(
 
 bool UGridItemSubsystem::ResolveArmorReserveForInstance(
 	const FGridItemInstance& Instance,
-	FGridCanonicalArmorReserveView& OutReserve) const
+	FGridArmorReserveView& OutReserve) const
 {
 	// A failed read must never expose a cached amount from an earlier item.
-	OutReserve = FGridCanonicalArmorReserveView();
+	OutReserve = FGridArmorReserveView();
 	if (!RootRegistry || !Instance.IsValid() ||
 		Instance.AbsorbedEquipmentPhysicalArmor < 0 ||
 		Instance.AbsorbedEquipmentMagicalArmor < 0)
@@ -318,7 +318,7 @@ bool UGridItemSubsystem::ResolveArmorReserveForInstance(
 	{
 		return false;
 	}
-	return FGridCanonicalArmorReserveResolver::TryCompute(
+	return FGridArmorReserveResolver::TryCompute(
 		Resolved.Weapon,
 		Instance.AbsorbedEquipmentPhysicalArmor,
 		Instance.AbsorbedEquipmentMagicalArmor,
@@ -331,14 +331,14 @@ bool UGridItemSubsystem::ResolveBoundAction(
 	OutAction = FGridResolvedBoundAction();
 	if (!RootRegistry)
 	{
-		OutAction.Error = EGridCanonicalBoundActionError::RegistryNotConfigured;
+		OutAction.Error = EGridBoundActionError::RegistryNotConfigured;
 		return false;
 	}
 
 	FGridResolvedItem Item;
 	if (!ResolveItem(ItemId, ItemLevel, Item))
 	{
-		OutAction.Error = EGridCanonicalBoundActionError::ItemResolutionFailed;
+		OutAction.Error = EGridBoundActionError::ItemResolutionFailed;
 		OutAction.ItemError = Item.Error;
 		return false;
 	}
@@ -351,23 +351,23 @@ bool UGridItemSubsystem::ResolveBoundAction(
 		});
 	if (!Binding)
 	{
-		OutAction.Error = EGridCanonicalBoundActionError::ActionNotBound;
+		OutAction.Error = EGridBoundActionError::ActionNotBound;
 		return false;
 	}
 
-	const FGridCanonicalAction* Action = RootRegistry->ActionCatalogue ?
+	const FGridAction* Action = RootRegistry->ActionCatalogue ?
 		RootRegistry->ActionCatalogue->Find(Binding->ActionId) : nullptr;
 	if (!Action)
 	{
-		OutAction.Error = EGridCanonicalBoundActionError::ActionDefinitionMissing;
+		OutAction.Error = EGridBoundActionError::ActionDefinitionMissing;
 		return false;
 	}
-	const FGridCanonicalActionPresentation* Presentation =
+	const FGridActionPresentation* Presentation =
 		RootRegistry->ActionPresentationCatalogue ?
 		RootRegistry->ActionPresentationCatalogue->Find(Binding->PresentationId) : nullptr;
 	if (!Presentation)
 	{
-		OutAction.Error = EGridCanonicalBoundActionError::PresentationDefinitionMissing;
+		OutAction.Error = EGridBoundActionError::PresentationDefinitionMissing;
 		return false;
 	}
 	OutAction.ItemId = Item.ItemId;
@@ -376,8 +376,8 @@ bool UGridItemSubsystem::ResolveBoundAction(
 	OutAction.PresentationId = Binding->PresentationId;
 	OutAction.Action = *Action;
 	OutAction.Presentation = *Presentation;
-	OutAction.ItemError = EGridCanonicalItemResolveError::None;
-	OutAction.Error = EGridCanonicalBoundActionError::None;
+	OutAction.ItemError = EGridItemResolveError::None;
+	OutAction.Error = EGridBoundActionError::None;
 	return true;
 }
 
@@ -510,29 +510,29 @@ bool UGridItemSubsystem::ResolveBoundAttackForHand(
 	OutAttack = FGridResolvedBoundAction();
 	if (!RootRegistry)
 	{
-		OutAttack.Error = EGridCanonicalBoundActionError::RegistryNotConfigured;
+		OutAttack.Error = EGridBoundActionError::RegistryNotConfigured;
 		return false;
 	}
 	FGridResolvedItem Item;
 	if (!ResolveItem(ItemId, ItemLevel, Item))
 	{
-		OutAttack.Error = EGridCanonicalBoundActionError::ItemResolutionFailed;
+		OutAttack.Error = EGridBoundActionError::ItemResolutionFailed;
 		OutAttack.ItemError = Item.Error;
 		return false;
 	}
 	if (!Item.bIsArmament || !Item.Weapon.HasAttackSourceInHand(SourceHand))
 	{
-		OutAttack.Error = EGridCanonicalBoundActionError::AttackSourceNotAuthorized;
+		OutAttack.Error = EGridBoundActionError::AttackSourceNotAuthorized;
 		return false;
 	}
 	if (!ResolveBoundAction(ItemId, ItemLevel, ActionId, OutAttack))
 	{
 		return false; // Preserve exact action/presentation resolution failure.
 	}
-	if (OutAttack.Action.Kind != EGridCanonicalActionKind::Attack)
+	if (OutAttack.Action.Kind != EGridActionKind::Attack)
 	{
 		OutAttack = FGridResolvedBoundAction();
-		OutAttack.Error = EGridCanonicalBoundActionError::ActionIsNotAttack;
+		OutAttack.Error = EGridBoundActionError::ActionIsNotAttack;
 		return false;
 	}
 	return true;
@@ -547,7 +547,7 @@ bool UGridItemSubsystem::ResolveAttackFromEquippedInstance(
 	OutAttack = FGridResolvedBoundAction();
 	if (!RootRegistry)
 	{
-		OutAttack.Error = EGridCanonicalBoundActionError::RegistryNotConfigured;
+		OutAttack.Error = EGridBoundActionError::RegistryNotConfigured;
 		return false;
 	}
 
@@ -560,7 +560,7 @@ bool UGridItemSubsystem::ResolveAttackFromEquippedInstance(
 		!ObservedSlotRuntimeObjectId.IsValid() ||
 		!ObservedCharacterId.IsValid() || ObservedCharacterIndex < 0)
 	{
-		OutAttack.Error = EGridCanonicalBoundActionError::InvalidSourceInstance;
+		OutAttack.Error = EGridBoundActionError::InvalidSourceInstance;
 		return false;
 	}
 
@@ -574,7 +574,7 @@ bool UGridItemSubsystem::ResolveAttackFromEquippedInstance(
 		Instance.OwnerGuid != ObservedCharacterId ||
 		Instance.OwnerCharacterIndex != ObservedCharacterIndex)
 	{
-		OutAttack.Error = EGridCanonicalBoundActionError::EquipmentSourceMismatch;
+		OutAttack.Error = EGridBoundActionError::EquipmentSourceMismatch;
 		return false;
 	}
 

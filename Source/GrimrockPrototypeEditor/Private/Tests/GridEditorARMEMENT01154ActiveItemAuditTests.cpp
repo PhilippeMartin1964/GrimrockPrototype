@@ -122,11 +122,11 @@ bool FARMEMENT01154InventoryItemAudit::RunTest(const FString&)
         int32 References = 0;
         for (const FGridObjectPaletteEntry& Entry : Palette->Entries)
         {
-            if (Entry.CanonicalItemId == ARMEMENT01154::PotionId)
+            if (Entry.ItemId == ARMEMENT01154::PotionId)
             {
                 ++References;
                 TestTrue(TEXT("Potion palette is canonical and direct"),
-                    Entry.IsValidEntry() && Entry.CanonicalItemId == ARMEMENT01154::PotionId);
+                    Entry.IsValidEntry() && Entry.ItemId == ARMEMENT01154::PotionId);
             }
         }
         AddInfo(FString::Printf(TEXT("[ARM-CLEAN06] Potion palette entries=%d"), References));

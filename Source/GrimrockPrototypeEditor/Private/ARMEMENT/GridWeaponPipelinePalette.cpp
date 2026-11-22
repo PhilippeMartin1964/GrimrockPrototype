@@ -10,7 +10,7 @@ namespace
             !Entry.DefaultWorldObjectDefinition && !Entry.Icon &&
             !Entry.DefaultMonsterDefinition && !Entry.DefaultStoryCompanionDefinition &&
             FGridEditorItemLevelPolicy::CanAuthorItemLevel(
-                Registry, Entry.CanonicalItemId, Entry.CanonicalDefaultItemLevel);
+                Registry, Entry.ItemId, Entry.DefaultItemLevel);
     }
 }
 
@@ -36,7 +36,7 @@ EGridWeaponPipelinePaletteState FGridWeaponPipelinePalette::Inspect(
             ++Count;
             Matching = &Entry;
         }
-        if (Entry.CanonicalItemId == ItemId && Entry.EntryId != ItemId)
+        if (Entry.ItemId == ItemId && Entry.EntryId != ItemId)
             ++Aliases;
         if (Entry.IsDirectItemEntry() && !IsCanonicalDirect(Entry, Registry))
         {
@@ -54,7 +54,7 @@ EGridWeaponPipelinePaletteState FGridWeaponPipelinePalette::Inspect(
         Detail = TEXT("DirectItemPaletteEntryMissing");
         return State::Missing;
     }
-    if (!IsCanonicalDirect(*Matching, Registry) || Matching->CanonicalItemId != ItemId ||
+    if (!IsCanonicalDirect(*Matching, Registry) || Matching->ItemId != ItemId ||
         !Matching->IsValidEntry())
     {
         Detail = TEXT("PaletteEntryReferencesDifferentItem");
@@ -99,8 +99,8 @@ bool FGridWeaponPipelinePalette::Propose(
         FGridObjectPaletteEntry& Entry = Candidate.AddDefaulted_GetRef();
         Entry.EntryId = ItemId;
         Entry.PaletteCategory = TEXT("Weapon");
-        Entry.CanonicalItemId = ItemId;
-        Entry.CanonicalDefaultItemLevel = NewPhysicalLevel;
+        Entry.ItemId = ItemId;
+        Entry.DefaultItemLevel = NewPhysicalLevel;
     }
     UGridObjectPaletteAsset* Copy = NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
     Copy->Entries = Candidate;

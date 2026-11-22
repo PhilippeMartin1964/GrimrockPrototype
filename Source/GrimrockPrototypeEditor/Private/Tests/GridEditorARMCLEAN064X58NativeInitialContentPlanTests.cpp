@@ -74,7 +74,7 @@ bool FGridEditorARMCLEAN064X58NativeInitialPlan::RunTest(const FString&)
     auto* Owner = Copy->WorldObjectInstances.FindByPredicate([](const FGridWorldObjectInstance& Object)
         { return !Object.InstanceConfig.ReceptacleInitialContent.IsEmpty(); });
     if (!TestNotNull(TEXT("Real initial-content owner"), Owner)) return false;
-    Owner->InstanceConfig.ReceptacleInitialContent[0].CanonicalItemId = TEXT("X58_Unknown");
+    Owner->InstanceConfig.ReceptacleInitialContent[0].ItemId = TEXT("X58_Unknown");
     if (!TestFalse(TEXT("Unregistered identity refused"),
             FPlan::TryBuildLevel(*Copy.Get(), Registry.Get(), 17, Repeated, Error)) ||
         !TestTrue(TEXT("Rejected plan has no mutation proposal"), Repeated.WorldObjects.IsEmpty()))

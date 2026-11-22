@@ -184,7 +184,7 @@ bool FARMEMENT01171StarterAndSave::RunTest(const FString&)
         int32 OilEntries = 0;
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
-            if (Entry.CanonicalItemId == OilId)
+            if (Entry.ItemId == OilId)
             {
                 ++OilEntries;
                 TestNull(TEXT("Approved Oil kit entry has no historical pointer"),
@@ -201,9 +201,9 @@ bool FARMEMENT01171StarterAndSave::RunTest(const FString&)
         {
             TestEqual(TEXT("Transmuter retains dagger, orb and oil"), Kit.Items.Num(), 3);
             TestEqual(TEXT("Canonical dagger stays main hand"),
-                Kit.Items[0].CanonicalItemId, FName(TEXT("Weapon_Dagger_01")));
+                Kit.Items[0].ItemId, FName(TEXT("Weapon_Dagger_01")));
             TestEqual(TEXT("Orb stays passive off-hand"),
-                Kit.Items[1].CanonicalItemId, FName(TEXT("Weapon_ArcaneOrb_01")));
+                Kit.Items[1].ItemId, FName(TEXT("Weapon_ArcaneOrb_01")));
         }
     }
 

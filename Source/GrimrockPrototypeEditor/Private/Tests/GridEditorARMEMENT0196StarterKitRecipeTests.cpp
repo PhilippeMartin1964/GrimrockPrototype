@@ -218,11 +218,11 @@ bool FARMEMENT0196Catalogue::RunTest(const FString&)
     for (const auto& Recipe : Recipes)
     {
         const FName Class(*Recipe.ClassId);
-        const FGridCanonicalWeaponArchetype* Primary =
+        const FGridWeaponArchetype* Primary =
             Catalogue->Find(Recipe.Weapon1);
         if (!TestNotNull(TEXT("Primary numeric ARM exists at N1"), Primary))
             continue;
-        FGridCanonicalResolvedWeapon N1;
+        FGridResolvedWeapon N1;
         TestTrue(TEXT("Primary authoring resolves N1 and a MainHand policy"),
             Primary->TryResolve(1, N1) &&
             N1.CanEquipInHand(EGridEquipmentSlot::MainHand));
@@ -231,11 +231,11 @@ bool FARMEMENT0196Catalogue::RunTest(const FString&)
         UniqueWeapons.Add(Recipe.Weapon1);
         if (!Recipe.Weapon2.IsNone())
         {
-            const FGridCanonicalWeaponArchetype* Second =
+            const FGridWeaponArchetype* Second =
                 Catalogue->Find(Recipe.Weapon2);
             if (!TestNotNull(TEXT("Second numeric ARM exists at N1"), Second))
                 continue;
-            FGridCanonicalResolvedWeapon N2;
+            FGridResolvedWeapon N2;
             TestTrue(TEXT("Secondary physical level resolves from native catalogue"),
                 Second->TryResolve(Recipe.Weapon2Level, N2));
             TestTrue(TEXT("Second has actual primary/secondary class advice"),
@@ -243,17 +243,17 @@ bool FARMEMENT0196Catalogue::RunTest(const FString&)
             if (Recipe.Weapon2Slot == TEXT("OffHand"))
             {
                 TestFalse(TEXT("Two-hand primary cannot hold an equipped OffHand item"),
-                    N1.HandPolicy == EGridCanonicalHandPolicy::TwoHanded);
+                    N1.HandPolicy == EGridHandPolicy::TwoHanded);
                 TestTrue(TEXT("OffHand item is physically authorized"),
                     N2.CanEquipInHand(EGridEquipmentSlot::OffHand));
                 TestFalse(TEXT("OffHand item may not itself occupy both hands"),
-                    N2.HandPolicy == EGridCanonicalHandPolicy::TwoHanded);
+                    N2.HandPolicy == EGridHandPolicy::TwoHanded);
             }
             UniqueWeapons.Add(Recipe.Weapon2);
         }
     }
     TestEqual(TEXT("22 unique approved N1 archetypes"), UniqueWeapons.Num(), 22);
-    const FGridCanonicalWeaponArchetype* Dagger = Catalogue->Find(TEXT("ARM001"));
+    const FGridWeaponArchetype* Dagger = Catalogue->Find(TEXT("ARM001"));
     if (TestNotNull(TEXT("One known Rogue dagger class advice"), Dagger))
         TestTrue(TEXT("Warrior does not acquire the Rogue dagger talent by fallback"),
             Dagger->PrimaryClassId != FName(TEXT("Warrior")) &&

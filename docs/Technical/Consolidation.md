@@ -6,6 +6,8 @@
 
 ARM-CLEAN06 est **clos**, sur confirmation utilisateur des recettes PIE et Shipping : Continue, inventaire, équipement, présentation, combat et Save/Continue validés. Référence fonctionnelle `420dce2ee4f55c3630e8a99fa7ae9d77299a461e` : SilentTask/LocalAuto SUCCESS, 2 044 tests réussis (48 avec avertissements analysés), sept copies v27 compatibles dont les deux récentes, originaux inchangés, Build/Cook/Stage/Package/Archive Shipping réussis. Preuves privées conservées sous `D:/GrimrockNativeSnapshots/ARM_CLEAN06_FinalAcceptance_420dce2ee4f5_20261122-155244/`. Le problème visuel de ciblage déjà reporté reste hors périmètre.
 
+Le lot des noms internes est publié sous `809a677f` (Editor + Shipping + 2 044 tests locaux, puis statuts Windows exacts contrôlés avant la suite). Le lot réfléchi renomme 24 types et dix propriétés, plus 20 helpers/membres C++ associés. **34 Core Redirects** sont ajoutés ; les enums conservent aussi leurs noms de valeurs sérialisées par `ValueChanges`. Les anciennes classes et leurs trois noms occupés restent intactes. Validation locale : Editor et Shipping compilés, 2 044 tests Grimrock réussis, 53 assets avec toutes leurs propriétés métier identiques après résolution des anciens noms, 70 Blueprints compilés sans réenregistrement, sept copies v27 rechargées et round-trippées sans perte. Empreintes originales et Readables inchangées. Les anciens chemins sont testés par le chargement des vrais assets et par les copies v27, sans conversion de sauvegarde.
+
 ### Plan de nomenclature et résolution des collisions
 
 | Ensemble cohérent | Décision | Validation avant publication |
@@ -16,7 +18,49 @@ ARM-CLEAN06 est **clos**, sur confirmation utilisateur des recettes PIE et Shipp
 | Trois classes en collision | `UGridCanonicalItemDefinitionAsset`, `UGridCanonicalWeaponCatalogueAsset`, `UGridCanonicalWeaponVisualCatalogueAsset` restent nommées ainsi ; leurs noms cibles sont réellement occupés | Report explicite à CLEANUP03/CLEANUP04 : supprimer leurs consommateurs/déplacer des responsabilités dépasserait une opération de nomenclature |
 | Tests, gardes et preuves historiques | Garder les noms/filtres Automation et les reçus figés ; modifier seulement les consommateurs indispensables aux fichiers renommés | Pas de suppression de tests, de scripts ou de Core Redirects historiques |
 
-Mesure reproductible : identifiants C++ distincts contenant `Canonical`, hors commentaires et chaînes, tous modules et tests inclus : **258 avant CLEANUP02**, **212 apr?s le lot des noms internes**. La comparaison des 1 440 fichiers C++ au parent confirme uniquement les substitutions pr?vues, sans autre changement de code. Ce nombre n’est ni un compte de lignes ni un nombre d’occurrences textuelles. Les tests historiques, les trois classes en collision et les distinctions métier encore utiles peuvent subsister. Les inventaires suivants restent la photographie exhaustive du parent de CLEANUP01, et non un index automatiquement réécrit au fil des renommages.
+<details>
+<summary>Noms réfléchis et propriétés — correspondances conservées par Core Redirects</summary>
+
+| Avant | Après |
+| --- | --- |
+| `EGridCanonicalArmamentKind` | `EGridArmamentKind` |
+| `EGridCanonicalHandPolicy` | `EGridHandPolicy` |
+| `EGridCanonicalActionKind` | `EGridActionKind` |
+| `EGridCanonicalEffectKind` | `EGridEffectKind` |
+| `EGridCanonicalReactionTrigger` | `EGridReactionTrigger` |
+| `FGridCanonicalActionEffect` | `FGridActionEffect` |
+| `FGridCanonicalAction` | `FGridAction` |
+| `FGridCanonicalRuntimeAction` | `FGridRuntimeAction` |
+| `FGridCanonicalAudioVariants` | `FGridAudioVariants` |
+| `FGridCanonicalVFXVariants` | `FGridVFXVariants` |
+| `FGridCanonicalActionPresentation` | `FGridActionPresentation` |
+| `FGridCanonicalRuntimePresentation` | `FGridRuntimePresentation` |
+| `FGridCanonicalWeaponVisualBinding` | `FGridWeaponVisualBinding` |
+| `EGridCanonicalProjectileVisualMode` | `EGridProjectileVisualMode` |
+| `FGridCanonicalProjectileVisual` | `FGridProjectileVisual` |
+| `FGridCanonicalWeaponVisual` | `FGridWeaponVisual` |
+| `FGridCanonicalProjectilePolicy` | `FGridProjectilePolicy` |
+| `FGridCanonicalReactionPolicy` | `FGridReactionPolicy` |
+| `FGridCanonicalResolvedWeapon` | `FGridResolvedWeapon` |
+| `FGridCanonicalArmorReserveView` | `FGridArmorReserveView` |
+| `FGridCanonicalWeaponArchetype` | `FGridWeaponArchetype` |
+| `FGridCanonicalClassPreference` | `FGridClassPreference` |
+| `EGridCanonicalItemResolveError` | `EGridItemResolveError` |
+| `EGridCanonicalBoundActionError` | `EGridBoundActionError` |
+| `FGridLooseItemInstance.CanonicalItemId` | `FGridLooseItemInstance.ItemId` |
+| `FGridItemSpawnInstance.CanonicalItemId` | `FGridItemSpawnInstance.ItemId` |
+| `FGridReceptacleInitialItemConfig.CanonicalItemId` | `FGridReceptacleInitialItemConfig.ItemId` |
+| `FGridReceptacleAcceptedItemConfig.CanonicalItemId` | `FGridReceptacleAcceptedItemConfig.ItemId` |
+| `FGridObjectPaletteEntry.CanonicalItemId` | `FGridObjectPaletteEntry.ItemId` |
+| `FGridObjectPaletteEntry.CanonicalDefaultItemLevel` | `FGridObjectPaletteEntry.DefaultItemLevel` |
+| `FRPGStartingEquipmentEntry.CanonicalItemId` | `FRPGStartingEquipmentEntry.ItemId` |
+| `AGridItemActor.CanonicalWorldItemLevel` | `AGridItemActor.WorldItemLevel` |
+| `AGridItemActor.CanonicalWorldPresentation` | `AGridItemActor.ResolvedWorldPresentation` |
+| `FGridCombatSurfaceConversionProfile.bTriggerCanonicalReactionBeforeConversion` | `FGridCombatSurfaceConversionProfile.bTriggerReactionBeforeConversion` |
+
+</details>
+
+Mesure reproductible : identifiants C++ distincts contenant `Canonical`, hors commentaires et chaînes, tous modules et tests inclus : **258 avant CLEANUP02**, **212 apr?s le lot des noms internes**, **163 apr?s le lot r?fl?chi et ses membres associ?s**. La comparaison des 1 440 fichiers C++ au parent confirme uniquement les substitutions pr?vues, sans autre changement de code. Ce nombre n’est ni un compte de lignes ni un nombre d’occurrences textuelles. Les tests historiques, les trois classes en collision et les distinctions métier encore utiles peuvent subsister. Les inventaires suivants restent la photographie exhaustive du parent de CLEANUP01, et non un index automatiquement réécrit au fil des renommages.
 
 <details>
 <summary>Renommages de fichiers non réfléchis du premier lot — 30 chemins</summary>

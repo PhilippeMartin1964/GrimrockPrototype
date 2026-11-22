@@ -31,7 +31,7 @@ bool FGridClean064X163InitialAuthoring::RunTest(const FString&)
     Draft.Quantity = 5;
     if (!TestFalse(TEXT("Missing registry cannot change initial content"),
         FAuthoring::TrySelectCanonicalId(nullptr, Sword, Draft)) ||
-        !TestTrue(TEXT("Rejected draft unchanged"), Draft.CanonicalItemId.IsNone() &&
+        !TestTrue(TEXT("Rejected draft unchanged"), Draft.ItemId.IsNone() &&
             Draft.ItemLevel == 0 && Draft.Quantity == 5))
         return false;
 
@@ -43,7 +43,7 @@ bool FGridClean064X163InitialAuthoring::RunTest(const FString&)
         !TestFalse(TEXT("Non-ARM level not editable"), FAuthoring::IsLevelEditable(Registry.Get(), Canonical)) ||
         !TestFalse(TEXT("Unknown registered identity refused"),
             FAuthoring::TrySelectCanonicalId(Registry.Get(), Unknown, Canonical)) ||
-        !TestEqual(TEXT("Refused identity preserves arrow"), Canonical.CanonicalItemId, Arrows) ||
+        !TestEqual(TEXT("Refused identity preserves arrow"), Canonical.ItemId, Arrows) ||
         !TestTrue(TEXT("New ARM explicit physical N1"),
             FAuthoring::TrySelectCanonicalId(Registry.Get(), Sword, Canonical)) ||
         !TestEqual(TEXT("New ARM N1"), Canonical.ItemLevel, 1) ||
@@ -62,7 +62,7 @@ bool FGridClean064X163InitialAuthoring::RunTest(const FString&)
         return false;
 
     FGridReceptacleInitialItemConfig Invalid;
-    Invalid.CanonicalItemId = Sword;
+    Invalid.ItemId = Sword;
     Invalid.ItemLevel = 0;
     if (!TestFalse(TEXT("Same ID does not repair a persisted invalid ARM N0"),
             FAuthoring::TrySelectCanonicalId(Registry.Get(), Sword, Invalid)) ||

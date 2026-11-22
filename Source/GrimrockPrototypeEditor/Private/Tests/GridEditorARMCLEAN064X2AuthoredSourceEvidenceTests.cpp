@@ -151,7 +151,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         {
             if (!Item.InstanceId.IsValid() ||
                 LoosePlacementGuids.Contains(Item.InstanceId) ||
-                !CheckSource(Item.CanonicalItemId, nullptr,
+                !CheckSource(Item.ItemId, nullptr,
                     Item.ItemLevel, Item.Quantity, true))
             {
                 AddError(TEXT("Invalid loose placement identity, GUID or authored level."));
@@ -163,7 +163,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         for (const FGridItemSpawnInstance& Item : Level->ItemSpawns)
         {
             if (!Item.SpawnId.IsValid() ||
-                !CheckSource(Item.CanonicalItemId, nullptr,
+                !CheckSource(Item.ItemId, nullptr,
                     Item.ItemLevel, Item.Quantity, true))
             {
                 AddError(TEXT("Invalid authored item spawn identity or level."));
@@ -176,7 +176,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
             for (const FGridReceptacleInitialItemConfig& Item :
                 Object.InstanceConfig.ReceptacleInitialContent)
             {
-                if (!CheckSource(Item.CanonicalItemId, nullptr,
+                if (!CheckSource(Item.ItemId, nullptr,
                     Item.ItemLevel, Item.Quantity, true))
                 {
                     AddError(TEXT("Invalid receptacle initial item identity or level."));
@@ -199,8 +199,8 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
     {
         if (!Entry.IsDirectItemEntry()) { continue; }
         // X.5 materialized the physical palette default.
-        if (!CheckSource(Entry.CanonicalItemId, nullptr,
-            Entry.CanonicalDefaultItemLevel, 1, true))
+        if (!CheckSource(Entry.ItemId, nullptr,
+            Entry.DefaultItemLevel, 1, true))
         {
             AddError(TEXT("Invalid direct palette identity or inherited level."));
             return false;
@@ -243,7 +243,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
             Receptacle.AcceptedItems)
         {
             ++AcceptanceRules;
-            if (Rule.CanonicalItemId.IsNone() || !Registry.Contains(Rule.CanonicalItemId))
+            if (Rule.ItemId.IsNone() || !Registry.Contains(Rule.ItemId))
             {
                 ++UnmappedAcceptanceRules;
             }

@@ -27,7 +27,7 @@ namespace
             {
                 return false; // Known N0, invalid level or non-ARM never borrows old N1.
             }
-            const FGridCanonicalResolvedWeapon& Weapon = Resolved.Weapon;
+            const FGridResolvedWeapon& Weapon = Resolved.Weapon;
             OutProfile.ArchetypeId = Resolved.ArchetypeId;
             OutProfile.ItemLevel = Resolved.ItemLevel;
             OutProfile.DisplayName = Resolved.DisplayName;

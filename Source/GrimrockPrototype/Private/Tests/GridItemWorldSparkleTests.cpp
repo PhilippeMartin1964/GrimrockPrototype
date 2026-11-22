@@ -190,7 +190,7 @@ bool FGridItemWorldSparklePresentationTest::RunTest(const FString& Parameters)
 				CanonicalActor->SetWorldSparkleEnabled(true);
 				TestEqual(TEXT("Canonical sparkle policy wins"), CanonicalActor->IsWorldSparkleActive(), Expected);
 				TestEqual(TEXT("Canonical overlay visibility"), CanonicalActor->SparkleMeshComponent->IsVisible(), Expected);
-				CanonicalActor->CanonicalWorldItemLevel = 1;
+				CanonicalActor->WorldItemLevel = 1;
 				CanonicalActor->SetWorldSparkleEnabled(true);
 				TestFalse(TEXT("Invalid non-ARM level refuses sparkle"), CanonicalActor->IsWorldSparkleActive());
 				TestFalse(TEXT("Invalid level clears overlay"), CanonicalActor->SparkleMeshComponent->IsVisible());

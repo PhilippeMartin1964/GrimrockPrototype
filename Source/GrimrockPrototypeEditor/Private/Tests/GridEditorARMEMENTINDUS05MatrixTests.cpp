@@ -172,11 +172,11 @@ bool FWeaponIndustrial05LegacyExceptions::RunTest(const FString&)
     if (Assassin->Items.Num() == 2)
     {
         TestEqual(TEXT("N1 assassin dagger remains equipped"),
-            Assassin->Items[0].CanonicalItemId, FName(TEXT("Weapon_AssassinDagger_01")));
+            Assassin->Items[0].ItemId, FName(TEXT("Weapon_AssassinDagger_01")));
         TestEqual(TEXT("Mainhand retains its physical placement"),
             Assassin->Items[0].TargetSlot, EGridEquipmentSlot::MainHand);
         TestEqual(TEXT("N1 throwing knife remains in bag"),
-            Assassin->Items[1].CanonicalItemId, FName(TEXT("Weapon_ThrowingKnife_01")));
+            Assassin->Items[1].ItemId, FName(TEXT("Weapon_ThrowingKnife_01")));
         TestEqual(TEXT("Throwing knife not equipped"),
             Assassin->Items[1].TargetSlot, EGridEquipmentSlot::None);
         TestNull(TEXT("No old item pointer in canonical starter"),

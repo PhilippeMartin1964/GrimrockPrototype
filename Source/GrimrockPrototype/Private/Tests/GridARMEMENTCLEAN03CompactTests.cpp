@@ -21,13 +21,13 @@ bool FGridARMCLEAN03LosslessCatalogueTest::RunTest(const FString&)
         Root->WeaponCatalogue->Archetypes.Num(), 82);
     int32 Profiles = 0;
     TSet<FName> Ids;
-    for (const FGridCanonicalWeaponArchetype& Arm : Root->WeaponCatalogue->Archetypes)
+    for (const FGridWeaponArchetype& Arm : Root->WeaponCatalogue->Archetypes)
     {
         TestFalse(TEXT("No duplicate numeric archetype"), Ids.Contains(Arm.ArchetypeId));
         Ids.Add(Arm.ArchetypeId);
         for (int32 Level = 1; Level <= 20; ++Level)
         {
-            FGridCanonicalResolvedWeapon N;
+            FGridResolvedWeapon N;
             if (!TestTrue(TEXT("One physical N1-N20 numeric profile"),
                 Arm.TryResolve(Level, N))) continue;
             ++Profiles;
@@ -36,7 +36,7 @@ bool FGridARMCLEAN03LosslessCatalogueTest::RunTest(const FString&)
             TestTrue(TEXT("No negative armor from growth rules"),
                 N.PhysicalArmor >= 0 && N.MagicalArmor >= 0);
         }
-        FGridCanonicalResolvedWeapon Bad;
+        FGridResolvedWeapon Bad;
         TestFalse(TEXT("No level-zero growth profile"), Arm.TryResolve(0, Bad));
         TestFalse(TEXT("No level-twenty-one growth profile"), Arm.TryResolve(21, Bad));
     }

@@ -57,8 +57,8 @@ bool FGridClean062VRealAmmo::RunTest(const FString&)
             FGridRangedAmmunitionPolicy::ResolveForAttack(
                 Registry.Registry.Get(), Weapon.ItemId, 1, nullptr, true);
         TestTrue(TEXT("Actual bow preflight rejects historical lookup"),
-            Requirement.bValid && Requirement.bCanonicalSource &&
-            Requirement.bCanonicalAmmunition &&
+            Requirement.bValid && Requirement.bRegisteredSource &&
+            Requirement.bRegisteredAmmunition &&
             Requirement.AmmunitionItemId == Arrows.ItemId);
         TestTrue(TEXT("Only ranged rows require an arrow kind"), Row.BuildKind == TEXT("Ranged"));
     }

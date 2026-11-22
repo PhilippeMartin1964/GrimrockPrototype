@@ -57,8 +57,8 @@ bool FARMEMENT01141RangerStartingAmmunition::RunTest(const FString&)
             FGridRangedAmmunitionPolicy::ResolveForAttack(
                 NativeWorld.Scope.Registry, BowIds[KitIndex], 1, nullptr, true);
         if (!TestTrue(TEXT("Native Ranger bow has valid ranged ammunition policy"),
-            BowRequirement.bCanonicalSource && BowRequirement.bValid &&
-            BowRequirement.bCanonicalAmmunition)) return false;
+            BowRequirement.bRegisteredSource && BowRequirement.bValid &&
+            BowRequirement.bRegisteredAmmunition)) return false;
         TestEqual(TEXT("Canonical bow requires the registered arrow identity"),
             BowRequirement.AmmunitionItemId, ArrowId);
         TestEqual(TEXT("New ranger starts with twelve arrows"),

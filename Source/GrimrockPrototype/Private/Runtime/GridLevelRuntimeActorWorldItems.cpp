@@ -49,7 +49,7 @@ namespace
 			if (!Registry || !Registry->IsConfigured() ||
 				!Entry.ObjectId.IsValid() || Actor->GetRuntimeObjectId() != Entry.ObjectId ||
 				Entry.ItemDefinitionId.IsNone() || Actor->ItemDefinitionId != Entry.ItemDefinitionId ||
-				Actor->CanonicalWorldItemLevel != Entry.ItemLevel ||
+				Actor->WorldItemLevel != Entry.ItemLevel ||
 				!Registry->ResolveItem(Entry.ItemDefinitionId, Entry.ItemLevel, Resolved) ||
 				!Resolved.IsValid() || Resolved.ItemId != Entry.ItemDefinitionId ||
 				Resolved.ItemLevel != Entry.ItemLevel ||
@@ -404,7 +404,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 #if WITH_DEV_AUTOMATION_TESTS
 	bRequireCanonical = !GIsAutomationTesting || RouteGI != nullptr;
 #endif
-	const bool bCanonicalRoute = bRegisteredIdentity &&
+	const bool bRegisteredRoute = bRegisteredIdentity &&
 		RouteRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, RouteCanonical) &&
 		RouteCanonical.IsValid() && RouteCanonical.ItemId == ItemInstance.ItemDefinitionId &&
 		RouteCanonical.ItemLevel == ItemInstance.ItemLevel &&
@@ -412,7 +412,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 		ItemInstance.Quantity >= 1 && ItemInstance.Quantity <= FMath::Max(1, RouteCanonical.MaxStack);
 	// A known canonical ItemId at an invalid persisted level (notably ARM N0)
 	// must never fall back to an old UGridItemDefinitionAsset.
-	if ((bRequireCanonical || bRegisteredIdentity) && !bCanonicalRoute)
+	if ((bRequireCanonical || bRegisteredIdentity) && !bRegisteredRoute)
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridPit ItemTransfer rejected Item=%s Level=%d Reason=InvalidCanonicalItem"),
@@ -420,7 +420,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 		return false;
 	}
 	if (!DungeonAsset || !ItemInstance.IsValid() ||
-		(!bCanonicalRoute && !IsValid(ItemDefinitionAsset)) ||
+		(!bRegisteredRoute && !IsValid(ItemDefinitionAsset)) ||
 		!FindOpenPitAtCell(CellX, CellY, Relocation))
 	{
 		return false;
@@ -490,7 +490,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 
 	// Inter-level ownership is persistent even in tests. No historical
 	// UObject can be needed to materialize a queued arrival.
-	if (!bCanonicalRoute)
+	if (!bRegisteredRoute)
 		return false;
 
 	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(Relocation.TargetLevelId);
@@ -1194,31 +1194,31 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 	bRequireCanonical = !GIsAutomationTesting || SpawnGI != nullptr;
 #endif
 	FGridResolvedItem Canonical;
-	const bool bCanonicalResolved = bRegisteredIdentity &&
+	const bool bRegisteredResolved = bRegisteredIdentity &&
 		SpawnRegistry->ResolveItem(ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel, Canonical) &&
 		Canonical.IsValid() && Canonical.ItemId == ItemInstance.ItemDefinitionId &&
 		Canonical.ItemLevel == ItemInstance.ItemLevel &&
 		(Canonical.bIsArmament ? ItemInstance.ItemLevel >= 1 : ItemInstance.ItemLevel == 0) &&
 		ItemInstance.Quantity == 1;
-	if ((bRequireCanonical || bRegisteredIdentity) && !bCanonicalResolved)
+	if ((bRequireCanonical || bRegisteredIdentity) && !bRegisteredResolved)
 		return nullptr;
 	// A thrown item must retain a valid persisted physical level.
 	// A rejected registered identity cannot launch from an old definition.
 	const bool bValidCanonicalPhysicalLevel = !bRegisteredIdentity ||
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			SpawnRegistry, nullptr, ItemInstance.ItemDefinitionId, ItemInstance.ItemLevel).bResolved;
-	const bool bCanonicalSpecialized = bCanonicalResolved && Canonical.bIsArmament &&
+	const bool bRegisteredSpecialized = bRegisteredResolved && Canonical.bIsArmament &&
 		Canonical.Weapon.Projectile.bEnabled &&
 		FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) &&
 		Canonical.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER &&
 		!Canonical.ProjectileMesh.IsNull();
-	const bool bCanonicalGenericArm = bCanonicalResolved && Canonical.bIsArmament &&
+	const bool bRegisteredGenericArm = bRegisteredResolved && Canonical.bIsArmament &&
 		Canonical.Weapon.Projectile.bGenericThrowAuthored &&
 		Canonical.Weapon.Projectile.bGenericThrowOneHanded &&
 		FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f &&
 		FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) &&
 		Canonical.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER && FMath::IsFinite(Canonical.Weapon.Projectile.Arc);
-	const bool bCanonicalGenericNonArm = bCanonicalResolved && !Canonical.bIsArmament &&
+	const bool bRegisteredGenericNonArm = bRegisteredResolved && !Canonical.bIsArmament &&
 		Canonical.NonArmHandPolicy == EGridNonArmamentHandPolicy::OneHanded &&
 		FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f &&
 		FMath::IsFinite(Canonical.GenericThrow.InitialSpeed) &&
@@ -1227,13 +1227,13 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 		ItemDefinition->ItemDefinitionId == ItemInstance.ItemDefinitionId;
 	const bool bValidProjectileSource = bRangedAmmunitionProjectile
 		? (bRegisteredIdentity
-			? (bCanonicalResolved && !Canonical.bIsArmament &&
+			? (bRegisteredResolved && !Canonical.bIsArmament &&
 				!Canonical.AmmoKindId.IsNone() && Canonical.MaxStack > 1 &&
 				ItemInstance.ItemLevel == 0 && ItemInstance.Quantity == 1)
 			: (bMatchingLegacy && ItemDefinition->bStackable && ItemInstance.Quantity == 1 &&
 				!ItemDefinition->IsCombatThrowable()))
 		: (bRegisteredIdentity
-			? (bCanonicalSpecialized || bCanonicalGenericNonArm || bCanonicalGenericArm)
+			? (bRegisteredSpecialized || bRegisteredGenericNonArm || bRegisteredGenericArm)
 			: (bMatchingLegacy && ItemDefinition->IsPhysicallyThrowable()));
 	if (!ItemInstance.IsValid() || !bValidCanonicalPhysicalLevel || !bValidProjectileSource ||
 		LaunchVelocity.IsNearlyZero() || !IsWalkableCell(SourceCellX, SourceCellY))

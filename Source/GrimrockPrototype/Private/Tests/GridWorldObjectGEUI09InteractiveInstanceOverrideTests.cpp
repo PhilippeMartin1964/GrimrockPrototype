@@ -88,7 +88,7 @@ bool FGridWorldObjectGEUI09InteractiveInstanceOverridesTest::RunTest(const FStri
 
 	// Receptacle puzzle rules. Presentation stays on Definition.
 	FGridReceptacleAcceptedItemConfig AcceptedGem;
-	AcceptedGem.CanonicalItemId = TEXT("Gem_Blue");
+	AcceptedGem.ItemId = TEXT("Gem_Blue");
 	Instance.InstanceConfig.InteractionOverrides.bOverrideReceptacleRules = true;
 	auto& Receptacle = Instance.InstanceConfig.InteractionOverrides.ReceptacleRules;
 	Receptacle.bAcceptAnyItem = false;

@@ -58,7 +58,7 @@ bool FGridEditorARMCLEAN064X51NativeSharedRules::RunTest(const FString&)
         const FGridReceptacleBehaviorParams& Source = Original->DefaultBehavior.Receptacle;
         if (!TestEqual(TEXT("One accepted item per shared receptacle"), Source.AcceptedItems.Num(), 1) ||
             !TestEqual(TEXT("Canonical accepted ItemId is authored"),
-                Source.AcceptedItems[0].CanonicalItemId, ReceptacleIds[Index]) ||
+                Source.AcceptedItems[0].ItemId, ReceptacleIds[Index]) ||
             !TestTrue(TEXT("Accepted real ItemId belongs to ItemSystem"),
                 Registry->ContainsItem(ReceptacleIds[Index])))
             return false;
@@ -74,7 +74,7 @@ bool FGridEditorARMCLEAN064X51NativeSharedRules::RunTest(const FString&)
                 Registry.Get(), After.AcceptedItems, Preview)) ||
             !TestEqual(TEXT("Exactly one pointerless canonical rule"), Preview.Num(), 1) ||
             !TestEqual(TEXT("Physical acceptance ItemId unchanged"),
-                Preview[0].CanonicalItemId, ReceptacleIds[Index]) ||
+                Preview[0].ItemId, ReceptacleIds[Index]) ||
             !TestEqual(TEXT("Accept-any state unchanged"), After.bAcceptAnyItem, Before.bAcceptAnyItem) ||
             !TestEqual(TEXT("Capacity unchanged"), After.MaxContainedItems, Before.MaxContainedItems) ||
             !TestEqual(TEXT("Visual placement mode unchanged"), After.VisualPlacementMode, Before.VisualPlacementMode) ||

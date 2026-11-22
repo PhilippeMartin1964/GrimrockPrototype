@@ -132,7 +132,7 @@ bool FARMEMENT01163SaboteurKitOnly::RunTest(const FString&)
         int32 ToolCount = 0;
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
-            if (Entry.CanonicalItemId == ToolId)
+            if (Entry.ItemId == ToolId)
             {
                 ++ToolCount;
                 TestNull(TEXT("Saboteur recipe has no historical tool pointer"),
@@ -149,7 +149,7 @@ bool FARMEMENT01163SaboteurKitOnly::RunTest(const FString&)
         {
             TestEqual(TEXT("Saboteur keeps stiletto and receives one support item"), Kit.Items.Num(), 2);
             TestEqual(TEXT("Main hand retains the canonical stiletto"),
-                Kit.Items[0].CanonicalItemId, FName(TEXT("Weapon_Stiletto_01")));
+                Kit.Items[0].ItemId, FName(TEXT("Weapon_Stiletto_01")));
             TestEqual(TEXT("Stiletto stays equipped"),
                 Kit.Items[0].TargetSlot, EGridEquipmentSlot::MainHand);
         }

@@ -15,8 +15,8 @@ struct FGridProjectileVisualView
 	FName VisualId = NAME_None;
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
 	TSoftObjectPtr<UStaticMesh> ProjectileMesh;
-	FGridCanonicalProjectileVisual Appearance;
-	FGridCanonicalProjectilePolicy FlightPolicy;
+	FGridProjectileVisual Appearance;
+	FGridProjectilePolicy FlightPolicy;
 };
 
 /** No synthetic N1: armaments require N1-N20, ammunition retains canonical N0. */

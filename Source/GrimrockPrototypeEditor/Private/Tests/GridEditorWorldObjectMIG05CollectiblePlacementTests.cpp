@@ -95,7 +95,7 @@ bool FGridEditorWorldObjectMIG05DirectItemPlacementTest::RunTest(const FString& 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>(EditorActor);
 	FGridObjectPaletteEntry& Entry = Palette->Entries.AddDefaulted_GetRef();
 	Entry.EntryId = TEXT("BlueGem");
-	Entry.CanonicalItemId = Definition->ItemDefinitionId;
+	Entry.ItemId = Definition->ItemDefinitionId;
 	EditorActor->ObjectPalette = Palette;
 
 	EditorActor->SelectedCellX = 1;
@@ -118,7 +118,7 @@ bool FGridEditorWorldObjectMIG05DirectItemPlacementTest::RunTest(const FString& 
 	const FGridLooseItemInstance& PlacedItem = Level->LooseItemInstances[0];
 	TestEqual(TEXT("Placed collectible type is Item"), Level->GetTypedPlacementType(PlacedItem.InstanceId), EGridLevelObjectType::Item);
 	TestTrue(TEXT("Placed collectible has no companion world object"), Level->WorldObjectInstances.IsEmpty());
-	TestEqual(TEXT("Placed collectible stores the canonical ItemId"), PlacedItem.CanonicalItemId, Definition->ItemDefinitionId);
+	TestEqual(TEXT("Placed collectible stores the canonical ItemId"), PlacedItem.ItemId, Definition->ItemDefinitionId);
 	TestNull(TEXT("Placed collectible has no old definition"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	TestEqual(TEXT("Placement creates exactly one typed entry"), Level->GetTypedPlacementCount(), 1);
 	TestEqual(TEXT("Placed collectible keeps the selected cell X"), PlacedItem.CellX, 1);

@@ -13,12 +13,12 @@ struct FGridReceptacleAcceptedReadModel
     {
         OutItemId = NAME_None;
         if (!IsValid(Registry) || !Registry->IsConfigured() ||
-            Rule.CanonicalItemId.IsNone() ||
-            !Registry->ContainsItem(Rule.CanonicalItemId))
+            Rule.ItemId.IsNone() ||
+            !Registry->ContainsItem(Rule.ItemId))
         {
             return false;
         }
-        OutItemId = Rule.CanonicalItemId;
+        OutItemId = Rule.ItemId;
         return true;
     }
 };

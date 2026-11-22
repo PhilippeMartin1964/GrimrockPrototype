@@ -32,7 +32,7 @@ namespace ARMCLEAN063BA
         AGrimrockPartyPawn* Pawn = nullptr;
         UGridPartyInventoryComponent* Inventory = nullptr;
 
-        explicit FFixture(EGridCanonicalEffectKind Kind)
+        explicit FFixture(EGridEffectKind Kind)
         {
             const UWorld::InitializationValues Values = UWorld::InitializationValues()
                 .AllowAudioPlayback(false).RequiresHitProxies(false)
@@ -70,15 +70,15 @@ namespace ARMCLEAN063BA
             Binding.PresentationId = Production->ActionPresentationCatalogue->Presentations[0].PresentationId;
             Item->UseActions.Add(Binding);
             System->ItemDefinitions.Add(Item);
-            FGridCanonicalAction Action;
+            FGridAction Action;
             Action.ActionId = ActionId();
-            Action.Kind = EGridCanonicalActionKind::Use;
+            Action.Kind = EGridActionKind::Use;
             Action.Targeting = EGridCombatTargetingPolicy::Ally;
             Action.SourceItemQuantityCost = 1;
-            FGridCanonicalActionEffect Effect;
+            FGridActionEffect Effect;
             Effect.Kind = Kind;
-            Effect.Magnitude = Kind == EGridCanonicalEffectKind::Heal ? 8 : 1;
-            Effect.StatusId = Kind == EGridCanonicalEffectKind::Heal ? NAME_None : StatusId();
+            Effect.Magnitude = Kind == EGridEffectKind::Heal ? 8 : 1;
+            Effect.StatusId = Kind == EGridEffectKind::Heal ? NAME_None : StatusId();
             Action.Effects.Add(Effect);
             System->ActionCatalogue->Actions.Add(Action);
             Registry->Deinitialize();
@@ -147,7 +147,7 @@ namespace ARMCLEAN063BA
         }
     };
 
-    static bool RunScenario(FAutomationTestBase& Test, EGridCanonicalEffectKind Kind)
+    static bool RunScenario(FAutomationTestBase& Test, EGridEffectKind Kind)
     {
         FFixture F(Kind);
         if (!Test.TestTrue(TEXT("Real isolated registry, two party characters and status asset"), F.Ready()))
@@ -172,13 +172,13 @@ namespace ARMCLEAN063BA
         Test.TestEqual(TEXT("No invented AP cost"), View.Action.ActionPointCost, 0);
         Test.TestEqual(TEXT("No fabricated mana cost"), View.Action.ResourceCosts.ManaCost, 0);
         Test.TestEqual(TEXT("Single authored effect survives"), Bound.Action.Effects.Num(), 1);
-        if (Kind == EGridCanonicalEffectKind::Heal)
+        if (Kind == EGridEffectKind::Heal)
         {
             Test.TestEqual(TEXT("Authored heal magnitude"), View.Action.EffectProfile.RestoreHealth, 8);
             Test.TestTrue(TEXT("No added statuses"), View.Action.StatusApplications.IsEmpty());
             Test.TestTrue(TEXT("No removed statuses"), View.Action.StatusRemovals.IsEmpty());
         }
-        else if (Kind == EGridCanonicalEffectKind::ApplyStatus)
+        else if (Kind == EGridEffectKind::ApplyStatus)
         {
             if (Test.TestEqual(TEXT("One status application"), View.Action.StatusApplications.Num(), 1))
             {
@@ -189,7 +189,7 @@ namespace ARMCLEAN063BA
                 Test.TestEqual(TEXT("Definition owns potency"), Applied.PotencyOverride, INDEX_NONE);
             }
         }
-        else if (Kind == EGridCanonicalEffectKind::RemoveStatus)
+        else if (Kind == EGridEffectKind::RemoveStatus)
         {
             if (Test.TestEqual(TEXT("One status removal"), View.Action.StatusRemovals.Num(), 1))
             {
@@ -207,9 +207,9 @@ namespace ARMCLEAN063BA
         FGridCombatActionDefinition Other;
         FGridResolvedBoundAction Invalid = Bound;
         Invalid.Action.Targeting = EGridCombatTargetingPolicy::Party;
-        const bool bInvalidParty = Kind == EGridCanonicalEffectKind::Heal
+        const bool bInvalidParty = Kind == EGridEffectKind::Heal
             ? FGridQuickItemUseReadModel::TryProjectSingleHeal(Item, Invalid, Other)
-            : Kind == EGridCanonicalEffectKind::ApplyStatus
+            : Kind == EGridEffectKind::ApplyStatus
                 ? FGridQuickItemUseReadModel::TryProjectSingleStatusApplication(Item, Invalid, Other)
                 : FGridQuickItemUseReadModel::TryProjectSingleStatusRemoval(Item, Invalid, Other);
         Test.TestFalse(TEXT("Party/area is not inferred as Ally"), bInvalidParty);
@@ -294,13 +294,13 @@ namespace ARMCLEAN063BA
             Test.TestTrue(TEXT("Full-health caster does not prevent Ally target selection"),
                 Available[0].bEnabled);
         }
-        if (Kind == EGridCanonicalEffectKind::Heal)
+        if (Kind == EGridEffectKind::Heal)
         {
             Test.TestEqual(TEXT("Target, not caster, needs the healing"),
                 FMath::Min(Target.DerivedStats.MaxHealth, Target.Resources.CurrentHealth +
                     View.Action.EffectProfile.RestoreHealth), 18);
         }
-        else if (Kind == EGridCanonicalEffectKind::ApplyStatus)
+        else if (Kind == EGridEffectKind::ApplyStatus)
         {
             if (!Test.TestTrue(TEXT("Status definition is valid"), F.Status->IsValidDefinition())) return false;
             FGridAttackTargetStats TargetBefore;
@@ -344,7 +344,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063BAAllyHeal,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridClean063BAAllyHeal::RunTest(const FString&)
 {
-    return ARMCLEAN063BA::RunScenario(*this, EGridCanonicalEffectKind::Heal);
+    return ARMCLEAN063BA::RunScenario(*this, EGridEffectKind::Heal);
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063BAAllyApply,
@@ -352,7 +352,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063BAAllyApply,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridClean063BAAllyApply::RunTest(const FString&)
 {
-    return ARMCLEAN063BA::RunScenario(*this, EGridCanonicalEffectKind::ApplyStatus);
+    return ARMCLEAN063BA::RunScenario(*this, EGridEffectKind::ApplyStatus);
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063BAAllyRemove,
@@ -360,7 +360,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063BAAllyRemove,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridClean063BAAllyRemove::RunTest(const FString&)
 {
-    return ARMCLEAN063BA::RunScenario(*this, EGridCanonicalEffectKind::RemoveStatus);
+    return ARMCLEAN063BA::RunScenario(*this, EGridEffectKind::RemoveStatus);
 }
 
 #endif

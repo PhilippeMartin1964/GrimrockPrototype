@@ -2128,11 +2128,11 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	}
 	if (!IsSafeRuntimeRenderTransform(Transform))
 	{
-		LogUnsafeItemTransform(TEXT("AddPlacedItemActor"), ObjectData.CanonicalItemId, this, nullptr, nullptr, Transform);
+		LogUnsafeItemTransform(TEXT("AddPlacedItemActor"), ObjectData.ItemId, this, nullptr, nullptr, Transform);
 		return;
 	}
 
-	const FName ItemDefinitionId = ObjectData.CanonicalItemId;
+	const FName ItemDefinitionId = ObjectData.ItemId;
 	const UWorld* PlacementWorld = GetWorld();
 	UGameInstance* PlacementGameInstance = PlacementWorld ? PlacementWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = PlacementGameInstance
@@ -2318,7 +2318,7 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 		{
 			UE_LOG(LogGridLevelRuntime, Warning,
 				TEXT("ItemSpawn skipped: invalid authored physical identity for SpawnId=%s ItemId=%s N%d."),
-				*Spawn.SpawnId.ToString(), *Spawn.CanonicalItemId.ToString(), Spawn.ItemLevel);
+				*Spawn.SpawnId.ToString(), *Spawn.ItemId.ToString(), Spawn.ItemLevel);
 			continue;
 		}
 		AddPlacedItemActor(Generated);

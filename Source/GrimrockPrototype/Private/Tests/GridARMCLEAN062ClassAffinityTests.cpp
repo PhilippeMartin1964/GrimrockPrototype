@@ -19,13 +19,13 @@ bool FGridClean062ClassParityTest::RunTest(const FString&)
     TestEqual(TEXT("82 authoring archetype affinities retained"), Catalogue->Archetypes.Num(), 82);
     TestEqual(TEXT("Six distinct class preferences retained"), Catalogue->ClassPreferences.Num(), 6);
     TSet<FName> SeenClasses, SeenArms;
-    for (const FGridCanonicalClassPreference& Class : Catalogue->ClassPreferences)
+    for (const FGridClassPreference& Class : Catalogue->ClassPreferences)
     {
         TestFalse(TEXT("No duplicate class advice"), SeenClasses.Contains(Class.ClassId));
         SeenClasses.Add(Class.ClassId);
         TestTrue(TEXT("No unqualified empty class identity"), !Class.ClassId.IsNone());
     }
-    for (const FGridCanonicalWeaponArchetype& Arm : Catalogue->Archetypes)
+    for (const FGridWeaponArchetype& Arm : Catalogue->Archetypes)
     {
         TestFalse(TEXT("No duplicate ARM authoring identity"), SeenArms.Contains(Arm.ArchetypeId));
         SeenArms.Add(Arm.ArchetypeId);

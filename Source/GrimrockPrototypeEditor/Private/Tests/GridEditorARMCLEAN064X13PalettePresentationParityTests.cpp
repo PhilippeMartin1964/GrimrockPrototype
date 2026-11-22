@@ -49,13 +49,13 @@ bool Verify(FAutomationTestBase& Test, EField Field)
         ++Count;
         FGridResolvedItem Resolved;
         if (!Test.TestTrue(TEXT("Persisted palette identity resolves physically"),
-            F.Registry->ResolveItem(Entry.CanonicalItemId,
-                Entry.CanonicalDefaultItemLevel, Resolved)))
+            F.Registry->ResolveItem(Entry.ItemId,
+                Entry.DefaultItemLevel, Resolved)))
             {return false;}
         const FGridEditorPaletteReadView View =
             FGridEditorPaletteReadModel::Resolve(Entry, F.Registry.Get());
         if (!Test.TestTrue(TEXT("Canonical tile resolves exact persisted item"),
-                View.bCanonicalSource && View.bResolved && View.ItemId == Entry.CanonicalItemId))
+                View.bRegisteredSource && View.bResolved && View.ItemId == Entry.ItemId))
             return false;
         bool bSame = false;
         switch (Field)
@@ -63,7 +63,7 @@ bool Verify(FAutomationTestBase& Test, EField Field)
             case EField::Label:
             {
                 const FString Expected = Resolved.DisplayName.IsEmpty()
-                    ? Entry.CanonicalItemId.ToString() : Resolved.DisplayName.ToString();
+                    ? Entry.ItemId.ToString() : Resolved.DisplayName.ToString();
                 bSame = View.DisplayName.ToString() == Expected;
                 break;
             }

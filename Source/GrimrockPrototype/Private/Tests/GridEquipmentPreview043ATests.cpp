@@ -261,7 +261,7 @@ bool FEquipmentPreview043AProductionGreatAxeTest::RunTest(const FString&)
         return false;
     if (!TestTrue(TEXT("Great Axe has canonical two-handed policy"),
             GreatAxe.bIsArmament &&
-            GreatAxe.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded) ||
+            GreatAxe.Weapon.HandPolicy == EGridHandPolicy::TwoHanded) ||
         !TestTrue(TEXT("Canonical shield N1 nominal armor is five"),
             Shield.bIsArmament && Shield.Weapon.PhysicalArmor == 5))
         return false;

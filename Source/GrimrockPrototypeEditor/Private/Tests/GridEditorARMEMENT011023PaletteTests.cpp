@@ -80,9 +80,9 @@ bool FARMEMENT011023IdempotenceTest::RunTest(const FString&)
         const FGridObjectPaletteEntry* Entry = Copy->FindEntryById(FName(Target->EntryId));
         if (!TestNotNull(TEXT("Expected direct item entry"), Entry)) continue;
         TestEqual(TEXT("Expected category"), Entry->PaletteCategory, FName(Target->Category));
-        TestEqual(TEXT("Canonical identity matches"), Entry->CanonicalItemId, FName(Target->EntryId));
+        TestEqual(TEXT("Canonical identity matches"), Entry->ItemId, FName(Target->EntryId));
         TestTrue(TEXT("Physical default resolves"), FGridEditorItemLevelPolicy::CanAuthorItemLevel(
-            Canonical.Registry.Get(), Entry->CanonicalItemId, Entry->CanonicalDefaultItemLevel));
+            Canonical.Registry.Get(), Entry->ItemId, Entry->DefaultItemLevel));
         TestNull(TEXT("No old source created"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")));
         TestEqual(TEXT("Gameplay type still Item"), Entry->GetEffectiveObjectType(), EGridLevelObjectType::Item);
         TestNull(TEXT("No world-object wrapper"), Entry->DefaultWorldObjectDefinition.Get());
@@ -180,8 +180,8 @@ bool FARMEMENT011023BombPlacementTest::RunTest(const FString&)
         Editor->SelectedEdge = EGridEdge::None;
         // The real proposal is canonical; inject a matching old source only
         // to prove that the former editor bypass stays closed.
-        TestEqual(TEXT("Proposed fire bomb resolves at N0"), Bomb->CanonicalItemId, BombId);
-        TestEqual(TEXT("Proposed fire bomb level"), Bomb->CanonicalDefaultItemLevel, 0);
+        TestEqual(TEXT("Proposed fire bomb resolves at N0"), Bomb->ItemId, BombId);
+        TestEqual(TEXT("Proposed fire bomb level"), Bomb->DefaultItemLevel, 0);
         TestNull(TEXT("Proposal carries no historical pointer"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")));
         Bomb->DefaultWorldObjectDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Palette);
         TestFalse(TEXT("Mixed world source cannot be selected"), Editor->ApplyPaletteEntry(BombId));
@@ -201,7 +201,7 @@ bool FARMEMENT011023BombPlacementTest::RunTest(const FString&)
                 const FGridLooseItemInstance& Placed = Level->LooseItemInstances[0];
                 TestEqual(TEXT("Correct persistent palette entry id"),
                     Placed.PaletteEntryId, FName(TEXT("Item_Bomb_Fire")));
-                TestEqual(TEXT("Correct canonical ItemId persists"), Placed.CanonicalItemId, BombId);
+                TestEqual(TEXT("Correct canonical ItemId persists"), Placed.ItemId, BombId);
                 TestEqual(TEXT("Physical N0 persists"), Placed.ItemLevel, 0);
                 TestEqual(TEXT("One physical bomb"), Placed.Quantity, 1);
                 TestTrue(TEXT("Stable authored identity"), Placed.InstanceId.IsValid());

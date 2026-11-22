@@ -29,18 +29,18 @@ struct FGridObjectPaletteEntry
 			EditCondition = "DefaultWorldObjectDefinition != nullptr", EditConditionHides))
 	TObjectPtr<UTexture2D> Icon = nullptr;
 
-	/** World-object definition for non-collectible entries. Collectibles use CanonicalItemId and ItemSystem. */
+	/** World-object definition for non-collectible entries. Collectibles use ItemId and ItemSystem. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette")
 	TObjectPtr<UGridWorldObjectDefinitionAsset> DefaultWorldObjectDefinition = nullptr;
 
 	/** Sole stable identity for direct collectibles. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Item|Canonical")
-	FName CanonicalItemId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Item")
+	FName ItemId = NAME_None;
 
 	/** Explicit physical default for new placements: ARM N1-N20, other items N0. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Item|Canonical",
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Item",
 		meta = (ClampMin = "0", ClampMax = "20"))
-	int32 CanonicalDefaultItemLevel = 0;
+	int32 DefaultItemLevel = 0;
 
 	/** Required default when the definition places a MonsterSpawn. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Monster")
@@ -52,7 +52,7 @@ struct FGridObjectPaletteEntry
 
 	bool IsDirectItemEntry() const
 	{
-		return !CanonicalItemId.IsNone();
+		return !ItemId.IsNone();
 	}
 
 #if WITH_EDITOR
@@ -88,7 +88,7 @@ struct FGridObjectPaletteEntry
 	{
 		if (IsDirectItemEntry())
 		{
-			return FText::FromName(CanonicalItemId);
+			return FText::FromName(ItemId);
 		}
 
 		if (DefaultWorldObjectDefinition && !DefaultWorldObjectDefinition->DisplayName.IsEmpty())
@@ -110,8 +110,8 @@ struct FGridObjectPaletteEntry
 		if (IsDirectItemEntry())
 		{
 			return !DefaultWorldObjectDefinition && !Icon && !DefaultMonsterDefinition &&
-				!DefaultStoryCompanionDefinition && CanonicalDefaultItemLevel >= 0 &&
-				CanonicalDefaultItemLevel <= 20;
+				!DefaultStoryCompanionDefinition && DefaultItemLevel >= 0 &&
+				DefaultItemLevel <= 20;
 		}
 
 		return DefaultWorldObjectDefinition && !DefaultWorldObjectDefinition->DefinitionId.IsNone() && DefaultWorldObjectDefinition->SupportedType != EGridLevelObjectType::None

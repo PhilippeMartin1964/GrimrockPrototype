@@ -40,7 +40,7 @@ bool FGridClean063VUnlevelledAmmo::RunTest(const FString&)
 		FGridResolvedItem Refused = N0;
 		TestFalse(TEXT("Non-ARM physical level above N0 rejected at sole registry"),
 			Registry->ResolveItem(ArrowsId, Level, Refused));
-		TestEqual(TEXT("Invalid level error"), Refused.Error, EGridCanonicalItemResolveError::InvalidItemLevel);
+		TestEqual(TEXT("Invalid level error"), Refused.Error, EGridItemResolveError::InvalidItemLevel);
 		TestTrue(TEXT("No stale data after failure"), Refused.ItemId.IsNone() && Refused.ItemIcon.IsNull());
 	}
 
@@ -75,13 +75,13 @@ bool FGridClean063VUnlevelledAmmo::RunTest(const FString&)
 
 	FGridResolvedItem Invalid;
 	TestFalse(TEXT("Negative levels still rejected"), Registry->ResolveItem(ArrowsId, -1, Invalid));
-	TestEqual(TEXT("Negative level reason"), Invalid.Error, EGridCanonicalItemResolveError::InvalidItemLevel);
+	TestEqual(TEXT("Negative level reason"), Invalid.Error, EGridItemResolveError::InvalidItemLevel);
 	TestFalse(TEXT("Unlevelled item above N20 still rejected"), Registry->ResolveItem(ArrowsId, 21, Invalid));
-	TestEqual(TEXT("Above N20 reason"), Invalid.Error, EGridCanonicalItemResolveError::InvalidItemLevel);
+	TestEqual(TEXT("Above N20 reason"), Invalid.Error, EGridItemResolveError::InvalidItemLevel);
 	TestFalse(TEXT("ARM014 N0 must still fail closed"),
 		Registry->ResolveItem(TEXT("Weapon_StraightSword_01"), 0, Invalid));
 	TestEqual(TEXT("Weapons cannot silently become N1"),
-		Invalid.Error, EGridCanonicalItemResolveError::InvalidItemLevel);
+		Invalid.Error, EGridItemResolveError::InvalidItemLevel);
 	return true;
 }
 

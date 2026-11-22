@@ -52,10 +52,10 @@ struct FGridWorldPickupIdentityReadModel
 
         // Explicit canonical initialization in an isolated world has
         // a trustworthy resolved projection, not a legacy definition.
-        const FGridResolvedItem& Projected = ItemActor->CanonicalWorldPresentation;
+        const FGridResolvedItem& Projected = ItemActor->ResolvedWorldPresentation;
         if (!GameInstance && Projected.IsValid() && !PhysicalItemId.IsNone() &&
             Projected.ItemId == PhysicalItemId && Projected.ItemLevel == ItemLevel &&
-            ItemActor->CanonicalWorldItemLevel == ItemLevel &&
+            ItemActor->WorldItemLevel == ItemLevel &&
             (EntryItemId.IsNone() || EntryItemId == PhysicalItemId))
         {
             return PhysicalItemId;

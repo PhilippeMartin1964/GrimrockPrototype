@@ -17,7 +17,7 @@ class UTexture2D;
 
 /** Canonical ARM category: shields and passive focus items have no invented attack. */
 UENUM(BlueprintType)
-enum class EGridCanonicalArmamentKind : uint8
+enum class EGridArmamentKind : uint8
 {
 	Weapon,
 	Shield,
@@ -25,7 +25,7 @@ enum class EGridCanonicalArmamentKind : uint8
 };
 
 UENUM(BlueprintType)
-enum class EGridCanonicalHandPolicy : uint8
+enum class EGridHandPolicy : uint8
 {
 	MainHand,
 	OffHand,
@@ -34,7 +34,7 @@ enum class EGridCanonicalHandPolicy : uint8
 };
 
 UENUM(BlueprintType)
-enum class EGridCanonicalActionKind : uint8
+enum class EGridActionKind : uint8
 {
 	Attack,
 	Defend,
@@ -43,7 +43,7 @@ enum class EGridCanonicalActionKind : uint8
 };
 
 UENUM(BlueprintType)
-enum class EGridCanonicalEffectKind : uint8
+enum class EGridEffectKind : uint8
 {
 	Damage,
 	Heal,
@@ -57,7 +57,7 @@ enum class EGridCanonicalEffectKind : uint8
 };
 
 UENUM(BlueprintType)
-enum class EGridCanonicalReactionTrigger : uint8
+enum class EGridReactionTrigger : uint8
 {
 	IncomingAttack,
 	ParrySuccess,
@@ -65,12 +65,12 @@ enum class EGridCanonicalReactionTrigger : uint8
 };
 
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalActionEffect
+struct GRIMROCKPROTOTYPE_API FGridActionEffect
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
-	EGridCanonicalEffectKind Kind = EGridCanonicalEffectKind::Damage;
+	EGridEffectKind Kind = EGridEffectKind::Damage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
 	int32 Magnitude = 0;
@@ -81,7 +81,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalActionEffect
 };
 
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalAction
+struct GRIMROCKPROTOTYPE_API FGridAction
 {
 	GENERATED_BODY()
 
@@ -89,7 +89,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalAction
 	FName ActionId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
-	EGridCanonicalActionKind Kind = EGridCanonicalActionKind::Attack;
+	EGridActionKind Kind = EGridActionKind::Attack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
 	EGridCombatTargetingPolicy Targeting = EGridCombatTargetingPolicy::Hostile;
@@ -118,14 +118,14 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalAction
 	int32 WeaponDamagePercent = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
-	TArray<FGridCanonicalActionEffect> Effects;
+	TArray<FGridActionEffect> Effects;
 };
 
 /** Lossless authored execution policy for non-ARM actions using the very
  * same combat definition consumed by the existing combat runtime.
  * Disjoint ActionIds from compact weapon actions; one global catalogue. */
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalRuntimeAction
+struct GRIMROCKPROTOTYPE_API FGridRuntimeAction
 {
 	GENERATED_BODY()
 
@@ -140,13 +140,13 @@ class GRIMROCKPROTOTYPE_API UGridActionCatalogueAsset : public UPrimaryDataAsset
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Actions")
-	TArray<FGridCanonicalAction> Actions;
+	TArray<FGridAction> Actions;
 
 	/** Detailed non-ARM policies, never stored a second time in Actions. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Actions|Detailed")
-	TArray<FGridCanonicalRuntimeAction> DetailedActions;
+	TArray<FGridRuntimeAction> DetailedActions;
 
-	const FGridCanonicalAction* Find(FName ActionId) const;
+	const FGridAction* Find(FName ActionId) const;
 	const FGridCombatActionDefinition* FindDetailed(FName ActionId) const;
 	bool Validate(TArray<FString>& Errors) const;
 };
@@ -157,7 +157,7 @@ public:
  * A single SoundBase pointer would irreversibly discard that information.
  */
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalAudioVariants
+struct GRIMROCKPROTOTYPE_API FGridAudioVariants
 {
 	GENERATED_BODY()
 
@@ -178,7 +178,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalAudioVariants
 
 /** A Niagara event may own several systems and its attachment transform. */
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalVFXVariants
+struct GRIMROCKPROTOTYPE_API FGridVFXVariants
 {
 	GENERATED_BODY()
 
@@ -211,7 +211,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalVFXVariants
  * Material/reaction/outcome channels are genuine opt-in extensions.
  */
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalActionPresentation
+struct GRIMROCKPROTOTYPE_API FGridActionPresentation
 {
 	GENERATED_BODY()
 
@@ -243,49 +243,49 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalActionPresentation
 	float FeedbackDurationSeconds = 1.25f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	FGridCanonicalAudioVariants AttackAudio;
+	FGridAudioVariants AttackAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	FGridCanonicalAudioVariants ImpactHitAudio;
+	FGridAudioVariants ImpactHitAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	FGridCanonicalAudioVariants ImpactMissAudio;
+	FGridAudioVariants ImpactMissAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	FGridCanonicalAudioVariants ImpactFleshAudio;
+	FGridAudioVariants ImpactFleshAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	FGridCanonicalAudioVariants ImpactMetalAudio;
+	FGridAudioVariants ImpactMetalAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	FGridCanonicalAudioVariants ImpactWoodAudio;
+	FGridAudioVariants ImpactWoodAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	FGridCanonicalAudioVariants ParryAudio;
+	FGridAudioVariants ParryAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	FGridCanonicalAudioVariants BlockAudio;
+	FGridAudioVariants BlockAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	FGridCanonicalAudioVariants CriticalAudio;
+	FGridAudioVariants CriticalAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
-	FGridCanonicalAudioVariants HeavyAudio;
+	FGridAudioVariants HeavyAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
-	FGridCanonicalVFXVariants AttackVFX;
+	FGridVFXVariants AttackVFX;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
-	FGridCanonicalVFXVariants ImpactHitVFX;
+	FGridVFXVariants ImpactHitVFX;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
-	FGridCanonicalVFXVariants ImpactMissVFX;
+	FGridVFXVariants ImpactMissVFX;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
-	FGridCanonicalVFXVariants ParryVFX;
+	FGridVFXVariants ParryVFX;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
-	FGridCanonicalVFXVariants BlockVFX;
+	FGridVFXVariants BlockVFX;
 
 	bool IsValid() const;
 };
@@ -293,7 +293,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalActionPresentation
 /** Full player presentation data where compact channels are not yet a
  * proven lossless projection; disjoint IDs in the SAME global catalogue. */
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalRuntimePresentation
+struct GRIMROCKPROTOTYPE_API FGridRuntimePresentation
 {
 	GENERATED_BODY()
 
@@ -311,18 +311,18 @@ class GRIMROCKPROTOTYPE_API UGridActionPresentationCatalogueAsset : public UPrim
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentations")
-	TArray<FGridCanonicalActionPresentation> Presentations;
+	TArray<FGridActionPresentation> Presentations;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentations|Detailed")
-	TArray<FGridCanonicalRuntimePresentation> DetailedPresentations;
+	TArray<FGridRuntimePresentation> DetailedPresentations;
 
-	const FGridCanonicalActionPresentation* Find(FName PresentationId) const;
+	const FGridActionPresentation* Find(FName PresentationId) const;
 	const FGridPlayerAttackPresentationProfile* FindDetailed(FName PresentationId) const;
 	bool Validate(TArray<FString>& Errors) const;
 };
 
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponVisualBinding
+struct GRIMROCKPROTOTYPE_API FGridWeaponVisualBinding
 {
 	GENERATED_BODY()
 
@@ -335,7 +335,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponVisualBinding
 
 /** Visual-only mode; map from EGridThrowVisualMode explicitly in the Editor converter. */
 UENUM(BlueprintType)
-enum class EGridCanonicalProjectileVisualMode : uint8
+enum class EGridProjectileVisualMode : uint8
 {
 	Stable,
 	Tumble,
@@ -347,7 +347,7 @@ enum class EGridCanonicalProjectileVisualMode : uint8
  * weapon damage or concrete item definitions.
  */
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalProjectileVisual
+struct GRIMROCKPROTOTYPE_API FGridProjectileVisual
 {
 	GENERATED_BODY()
 
@@ -365,7 +365,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalProjectileVisual
 	EGridProjectileForwardAxis MeshForwardAxis = EGridProjectileForwardAxis::PositiveX;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
-	EGridCanonicalProjectileVisualMode Mode = EGridCanonicalProjectileVisualMode::Tumble;
+	EGridProjectileVisualMode Mode = EGridProjectileVisualMode::Tumble;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
 	FVector TumbleAxis = FVector(0.65f, 0.35f, 1.0f);
@@ -378,7 +378,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalProjectileVisual
 };
 
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponVisual
+struct GRIMROCKPROTOTYPE_API FGridWeaponVisual
 {
 	GENERATED_BODY()
 
@@ -443,7 +443,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponVisual
 
 	/** Exact authored Stable/Tumble/Spin presentation; no gameplay physics. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
-	FGridCanonicalProjectileVisual ProjectileAppearance;
+	FGridProjectileVisual ProjectileAppearance;
 };
 
 UCLASS(BlueprintType)
@@ -453,21 +453,21 @@ class GRIMROCKPROTOTYPE_API UGridCanonicalWeaponVisualCatalogueAsset : public UP
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
-	TArray<FGridCanonicalWeaponVisualBinding> ArchetypeBindings;
+	TArray<FGridWeaponVisualBinding> ArchetypeBindings;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
-	TArray<FGridCanonicalWeaponVisual> VisualProfiles;
+	TArray<FGridWeaponVisual> VisualProfiles;
 
 	/** Object icon is distinct from action icon; icons never create actions. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	TMap<EGridEquippedWeaponActionIconKind, TSoftObjectPtr<UTexture2D>> ActionIcons;
 
-	const FGridCanonicalWeaponVisual* FindForArchetype(FName ArchetypeId) const;
+	const FGridWeaponVisual* FindForArchetype(FName ArchetypeId) const;
 	bool Validate(TArray<FString>& Errors) const;
 };
 
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalProjectilePolicy
+struct GRIMROCKPROTOTYPE_API FGridProjectilePolicy
 {
 	GENERATED_BODY()
 
@@ -499,7 +499,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalProjectilePolicy
 };
 
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalReactionPolicy
+struct GRIMROCKPROTOTYPE_API FGridReactionPolicy
 {
 	GENERATED_BODY()
 
@@ -507,7 +507,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalReactionPolicy
 	FName ReactionId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Reaction")
-	EGridCanonicalReactionTrigger Trigger = EGridCanonicalReactionTrigger::IncomingAttack;
+	EGridReactionTrigger Trigger = EGridReactionTrigger::IncomingAttack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Reaction", meta = (ClampMin = "0", ClampMax = "1"))
 	float Chance = 0.0f;
@@ -518,15 +518,15 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalReactionPolicy
 
 /** Fully resolved N1..N20 numeric view. NEVER stored on an item or in SaveGame. */
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalResolvedWeapon
+struct GRIMROCKPROTOTYPE_API FGridResolvedWeapon
 {
 	GENERATED_BODY()
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Resolved")
-	EGridCanonicalArmamentKind Kind = EGridCanonicalArmamentKind::Weapon;
+	EGridArmamentKind Kind = EGridArmamentKind::Weapon;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Resolved")
-	EGridCanonicalHandPolicy HandPolicy = EGridCanonicalHandPolicy::MainHand;
+	EGridHandPolicy HandPolicy = EGridHandPolicy::MainHand;
 
 	/** Explicit attack-source permission, independent of hand equip permission. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Resolved")
@@ -567,7 +567,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalResolvedWeapon
 
 	/** Transient runtime view of the global projectile policy. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Resolved")
-	FGridCanonicalProjectilePolicy Projectile;
+	FGridProjectilePolicy Projectile;
 };
 
 /**
@@ -577,7 +577,7 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalResolvedWeapon
  * This view never repairs, refills or persists a depleted reserve.
  */
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalArmorReserveView
+struct GRIMROCKPROTOTYPE_API FGridArmorReserveView
 {
 	GENERATED_BODY()
 
@@ -604,17 +604,17 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalArmorReserveView
  * Pure read model; does not accept an ItemId or alter an instance/SaveGame.
  * The caller first resolves the actual item's N1..N20 profile via registry.
  */
-class GRIMROCKPROTOTYPE_API FGridCanonicalArmorReserveResolver
+class GRIMROCKPROTOTYPE_API FGridArmorReserveResolver
 {
 public:
-	static bool TryCompute(const FGridCanonicalResolvedWeapon& Weapon,
+	static bool TryCompute(const FGridResolvedWeapon& Weapon,
 		int32 SpentPhysicalArmor, int32 SpentMagicalArmor,
-		FGridCanonicalArmorReserveView& OutView);
+		FGridArmorReserveView& OutView);
 };
 
 /** One archetype owns combat ONLY, with the same five lossless growth rules as CLEAN03. */
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponArchetype
+struct GRIMROCKPROTOTYPE_API FGridWeaponArchetype
 {
 	GENERATED_BODY()
 
@@ -629,10 +629,10 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponArchetype
 	bool bHandAndKindProven = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
-	EGridCanonicalArmamentKind Kind = EGridCanonicalArmamentKind::Weapon;
+	EGridArmamentKind Kind = EGridArmamentKind::Weapon;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
-	EGridCanonicalHandPolicy HandPolicy = EGridCanonicalHandPolicy::MainHand;
+	EGridHandPolicy HandPolicy = EGridHandPolicy::MainHand;
 
 	/** World pickup physical policy, per archetype rather than shared VisualId.
 	 * Numeric mass remains the concrete item's WeightKg. */
@@ -688,10 +688,10 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponArchetype
 	FName RequiredAmmoKindId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
-	FGridCanonicalProjectilePolicy Projectile;
+	FGridProjectilePolicy Projectile;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
-	TArray<FGridCanonicalReactionPolicy> Reactions;
+	TArray<FGridReactionPolicy> Reactions;
 
 	/** Original Primary/Secondary advisory metadata, never an equip restriction. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
@@ -715,12 +715,12 @@ struct GRIMROCKPROTOTYPE_API FGridCanonicalWeaponArchetype
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Combat")
 	TArray<EGridEquipmentSlot> AttackSourceSlots;
 
-	bool TryResolve(int32 Level, FGridCanonicalResolvedWeapon& Out) const;
+	bool TryResolve(int32 Level, FGridResolvedWeapon& Out) const;
 };
 
 /** Canonical copy of each of the six workbook Classes-tab rows. */
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridCanonicalClassPreference
+struct GRIMROCKPROTOTYPE_API FGridClassPreference
 {
 	GENERATED_BODY()
 
@@ -753,13 +753,13 @@ class GRIMROCKPROTOTYPE_API UGridCanonicalWeaponCatalogueAsset : public UPrimary
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Catalogue")
-	TArray<FGridCanonicalWeaponArchetype> Archetypes;
+	TArray<FGridWeaponArchetype> Archetypes;
 
 	/** Global class advice from six original rows; no per-weapon duplicates. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Class Affinity")
-	TArray<FGridCanonicalClassPreference> ClassPreferences;
+	TArray<FGridClassPreference> ClassPreferences;
 
-	const FGridCanonicalWeaponArchetype* Find(FName ArchetypeId) const;
+	const FGridWeaponArchetype* Find(FName ArchetypeId) const;
 	bool Validate(TArray<FString>& Errors) const;
 };
 

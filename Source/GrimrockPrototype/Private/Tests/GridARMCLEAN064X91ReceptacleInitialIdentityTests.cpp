@@ -70,7 +70,7 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
                     FGridReceptacleInitialReadModel::TryResolve(
                         Registry.Get(), Config, Initial)) ||
                     !TestTrue(TEXT("Old pointer is not the identity authority"),
-                        Initial.ItemDefinitionId == Config.CanonicalItemId) ||
+                        Initial.ItemDefinitionId == Config.ItemId) ||
                     !TestEqual(TEXT("Physical level is preserved"),
                         Initial.ItemLevel, Config.ItemLevel) ||
                     !TestEqual(TEXT("Quantity is preserved"),
@@ -118,7 +118,7 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     TestNull(TEXT("Runtime transition provenance removed"), FGridInitialReceptacleItem::StaticStruct()->FindPropertyByName(TEXT("bHasPersistedCanonicalIdentity")));
     FGridInitialReceptacleItem Out;
     FGridReceptacleInitialItemConfig Invalid;
-    Invalid.CanonicalItemId = TEXT("Weapon_StraightSword_01");
+    Invalid.ItemId = TEXT("Weapon_StraightSword_01");
     Invalid.ItemLevel = 0;
     Invalid.Quantity = 1;
     if (!TestFalse(TEXT("Persisted ARM N0 cannot inherit an arbitrary N1"),
@@ -127,7 +127,7 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     {
         return false;
     }
-    Invalid.CanonicalItemId = TEXT("Item_Arrows_01");
+    Invalid.ItemId = TEXT("Item_Arrows_01");
     Invalid.ItemLevel = 1;
     if (!TestFalse(TEXT("Canonical ammunition cannot become N1"),
         FGridReceptacleInitialReadModel::TryResolve(
@@ -135,7 +135,7 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
     {
         return false;
     }
-    Invalid.CanonicalItemId = TEXT("ARM_CLEAN064X91_UNKNOWN");
+    Invalid.ItemId = TEXT("ARM_CLEAN064X91_UNKNOWN");
     Invalid.ItemLevel = 0;
     if (!TestFalse(TEXT("Unknown canonical identity cannot fall back"),
         FGridReceptacleInitialReadModel::TryResolve(
@@ -144,12 +144,12 @@ bool FGridClean064X91RealReceptacleSources::RunTest(const FString&)
         return false;
     }
 
-    Invalid.CanonicalItemId = NAME_None;
+    Invalid.ItemId = NAME_None;
     Invalid.Quantity = 1;
     if (!TestFalse(TEXT("Empty persisted identity fails closed"),
             FGridReceptacleInitialReadModel::TryResolve(Registry.Get(), Invalid, Out)))
         return false;
-    Invalid.CanonicalItemId = TEXT("Item_Arrows_01");
+    Invalid.ItemId = TEXT("Item_Arrows_01");
     Invalid.Quantity = 0;
     if (!TestFalse(TEXT("Zero quantity cannot be clamped into an item"),
             FGridReceptacleInitialReadModel::TryResolve(Registry.Get(), Invalid, Out)) ||

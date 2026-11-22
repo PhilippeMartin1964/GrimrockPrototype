@@ -159,7 +159,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		if (bRequireCanonicalCapture &&
 			(!Entry.ObjectId.IsValid() || ItemActor->GetRuntimeObjectId() != Entry.ObjectId ||
 			ItemActor->ItemDefinitionId != Entry.ItemDefinitionId ||
-			ItemActor->CanonicalWorldItemLevel != Entry.ItemLevel ||
+			ItemActor->WorldItemLevel != Entry.ItemLevel ||
 			CapturedItems.Contains(Entry.ObjectId)))
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Capture rejected conflicting world identity: ObjectId=%s"), *Entry.ObjectId.ToString());
@@ -212,7 +212,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 			if (!bRequireCanonicalCapture || !Guid.IsValid() ||
 				Arrow->ThrownItemInstance.Quantity != 1 || Arrow->GetRuntimeObjectId() != Guid ||
 				Arrow->ItemDefinitionId != Arrow->ThrownItemInstance.ItemDefinitionId ||
-				Arrow->CanonicalWorldItemLevel != Arrow->ThrownItemInstance.ItemLevel)
+				Arrow->WorldItemLevel != Arrow->ThrownItemInstance.ItemLevel)
 			{
 				return false;
 			}
@@ -684,10 +684,10 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		{
 			// A flying canonical item reloads as a pickup, not a second
 			// projectile. Old SaveGame pointers are not its authoring authority.
-			const bool bCanonicalItem = RestoreRegistry &&
+			const bool bRegisteredItem = RestoreRegistry &&
 				RestoreRegistry->ContainsItem(RuntimeItemDefinitionId);
 			FGridResolvedItem ResolvedItem;
-			if (bCanonicalItem &&
+			if (bRegisteredItem &&
 				!RestoreRegistry->ResolveItem(RuntimeItemDefinitionId, ItemState.ItemLevel, ResolvedItem))
 			{
 				UE_LOG(LogGridLevelRuntime, Warning,
@@ -697,11 +697,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			}
 			// Restore the complete world profile for every registered
 			// physical ItemId, including ARM N1-N20 after a PIT transfer.
-			const bool bCanonicalWorld = bCanonicalItem;
+			const bool bRegisteredWorld = bRegisteredItem;
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(nullptr, RuntimeItemDefinitionId, this, nullptr);
 			if (ItemActor)
 			{
-				if (bCanonicalWorld &&
+				if (bRegisteredWorld &&
 					!ItemActor->InitializeFromItemInstance(
 						PersistenceMakeVisualItem(ItemState), RestoreRegistry))
 				{
@@ -890,15 +890,15 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		}
 		// Embedded ammunition is resolved only by its physical identity.
 		// The v27 historical pointer is not read even in Automation.
-		const bool bCanonicalItem = RestoreRegistry &&
+		const bool bRegisteredItem = RestoreRegistry &&
 			RestoreRegistry->ContainsItem(Item.ItemDefinitionId);
 		FGridResolvedItem ResolvedAmmo;
-		const bool bCanonicalAmmo = bCanonicalItem &&
+		const bool bRegisteredAmmo = bRegisteredItem &&
 			Item.ItemLevel == 0 &&
 			RestoreRegistry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, ResolvedAmmo) &&
 			!ResolvedAmmo.bIsArmament && !ResolvedAmmo.AmmoKindId.IsNone() &&
 			ResolvedAmmo.MaxStack > 1;
-		if (!bCanonicalAmmo)
+		if (!bRegisteredAmmo)
 		{
 			UE_LOG(LogGridLevelRuntime, Warning,
 				TEXT("[GridProjectile] RestoreEmbeddedRejected Item=%s Level=%d Reason=InvalidCanonicalAmmo"),

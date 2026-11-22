@@ -84,7 +84,7 @@ bool FGridEditorClean064X26CanonicalAuthoring::RunTest(const FString&)
 	Loose.InstanceId = FGuid::NewGuid();
 	Loose.CellX = 1;
 	Loose.CellY = 1;
-	Loose.CanonicalItemId = Dagger;
+	Loose.ItemId = Dagger;
 	Loose.ItemLevel = 20;
 	Loose.Quantity = 1;
 	const FGuid LooseId = Loose.InstanceId;
@@ -93,7 +93,7 @@ bool FGridEditorClean064X26CanonicalAuthoring::RunTest(const FString&)
 	Spawn.SpawnId = FGuid::NewGuid();
 	Spawn.CellX = 2;
 	Spawn.CellY = 1;
-	Spawn.CanonicalItemId = Arrows;
+	Spawn.ItemId = Arrows;
 	Spawn.ItemLevel = 0;
 	Spawn.Quantity = 3;
 	const FGuid SpawnId = Spawn.SpawnId;
@@ -156,12 +156,12 @@ bool FGridEditorClean064X26CanonicalAuthoring::RunTest(const FString&)
 		Messages, LooseId, TEXT("Canonical item placement"));
 	Loose.ItemLevel = 20;
 	const bool bSchemaClean = TestNull(TEXT("Contradictory source is no longer representable"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
-	const FName SavedId = Loose.CanonicalItemId;
-	Loose.CanonicalItemId = NAME_None;
+	const FName SavedId = Loose.ItemId;
+	Loose.ItemId = NAME_None;
 	Messages = Editor->ValidateCurrentLevel();
 	const bool bRejectMissing = HasSpecificError(Messages, LooseId, TEXT("Canonical item placement"));
-	Loose.CanonicalItemId = SavedId;
-	Spawn.CanonicalItemId = TEXT("ARM_CLEAN064X26_Unknown");
+	Loose.ItemId = SavedId;
+	Spawn.ItemId = TEXT("ARM_CLEAN064X26_Unknown");
 	Messages = Editor->ValidateCurrentLevel();
 	const bool bRejectUnknown = HasSpecificError(
 		Messages, SpawnId, TEXT("Canonical item placement"));

@@ -45,7 +45,7 @@ bool FARMEMENTLOT027MagicAndSpear::RunTest(const FString&)
         TestTrue(TEXT("Weapon numeric and physical handedness comes from canonical source"),
             Item.bIsArmament && Item.ArchetypeId == FName(Source.Arm) &&
             Item.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand) &&
-            (Item.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded) == Source.bTwo &&
+            (Item.Weapon.HandPolicy == EGridHandPolicy::TwoHanded) == Source.bTwo &&
             Item.Weapon.DamageDice.bEnabled);
         FGridResolvedBoundAction Attack;
         if (TestTrue(TEXT("Actual MainHand attack resolves"),

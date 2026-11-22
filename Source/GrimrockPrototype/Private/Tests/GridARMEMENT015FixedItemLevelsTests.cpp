@@ -214,11 +214,11 @@ bool FARMEMENTCLEAN02LevelArmorAuthorityTest::RunTest(const FString&)
         !N1.Weapon.DamageDice.bEnabled && !N20.Weapon.DamageDice.bEnabled &&
         N1.Weapon.PhysicalArmor >= 0 && N20.Weapon.PhysicalArmor >= 0 &&
         N1.Weapon.MagicalArmor >= 0 && N20.Weapon.MagicalArmor >= 0);
-    FGridCanonicalArmorReserveView AtOne, AtTwenty;
+    FGridArmorReserveView AtOne, AtTwenty;
     TestTrue(TEXT("Physical N1 reserve is computed, not an item cache"),
-        FGridCanonicalArmorReserveResolver::TryCompute(N1.Weapon, 0, 0, AtOne));
+        FGridArmorReserveResolver::TryCompute(N1.Weapon, 0, 0, AtOne));
     TestTrue(TEXT("Physical N20 reserve is computed from level growth"),
-        FGridCanonicalArmorReserveResolver::TryCompute(N20.Weapon, 0, 0, AtTwenty));
+        FGridArmorReserveResolver::TryCompute(N20.Weapon, 0, 0, AtTwenty));
     TestEqual(TEXT("Actual N1 physical armor"), AtOne.NominalPhysicalArmor, N1.Weapon.PhysicalArmor);
     TestEqual(TEXT("Actual N20 physical armor"), AtTwenty.NominalPhysicalArmor, N20.Weapon.PhysicalArmor);
     TestEqual(TEXT("Actual N1 magical armor"), AtOne.NominalMagicalArmor, N1.Weapon.MagicalArmor);

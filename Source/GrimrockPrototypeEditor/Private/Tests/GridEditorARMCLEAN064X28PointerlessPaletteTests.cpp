@@ -59,13 +59,13 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 	FGridObjectPaletteEntry& Arm = Palette->Entries[0];
 	Arm.EntryId = TEXT("X28_Arm");
 	Arm.PaletteCategory = TEXT("Items");
-	Arm.CanonicalItemId = TEXT("Weapon_Dagger_01");
-	Arm.CanonicalDefaultItemLevel = 20;
+	Arm.ItemId = TEXT("Weapon_Dagger_01");
+	Arm.DefaultItemLevel = 20;
 	FGridObjectPaletteEntry& Ammo = Palette->Entries[1];
 	Ammo.EntryId = TEXT("X28_Ammo");
 	Ammo.PaletteCategory = TEXT("Items");
-	Ammo.CanonicalItemId = TEXT("Item_Arrows_01");
-	Ammo.CanonicalDefaultItemLevel = 0;
+	Ammo.ItemId = TEXT("Item_Arrows_01");
+	Ammo.DefaultItemLevel = 0;
 
 	TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
 	bOk &= TestTrue(TEXT("Pointerless ARM is a direct item entry"), Arm.IsDirectItemEntry());
@@ -85,9 +85,9 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 	}
 	FGridResolvedItem ExpectedArm, ExpectedAmmo;
 	if (!TestTrue(TEXT("Registered N20 ARM exists"),
-			Registry->ResolveItem(Arm.CanonicalItemId, Arm.CanonicalDefaultItemLevel, ExpectedArm)) ||
+			Registry->ResolveItem(Arm.ItemId, Arm.DefaultItemLevel, ExpectedArm)) ||
 		!TestTrue(TEXT("Registered N0 ammo exists"),
-			Registry->ResolveItem(Ammo.CanonicalItemId, Ammo.CanonicalDefaultItemLevel, ExpectedAmmo)))
+			Registry->ResolveItem(Ammo.ItemId, Ammo.DefaultItemLevel, ExpectedAmmo)))
 	{
 		World->DestroyWorld(false);
 		if (GEngine) GEngine->DestroyWorldContext(World);
@@ -96,9 +96,9 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 	const FGridEditorPaletteReadView ArmTile =
 		FGridEditorPaletteReadModel::Resolve(Arm, Registry);
 	bOk &= TestTrue(TEXT("Pointerless palette tile resolves from ItemSystem"),
-		ArmTile.bCanonicalSource && ArmTile.bResolved);
+		ArmTile.bRegisteredSource && ArmTile.bResolved);
 	bOk &= TestEqual(TEXT("Tile uses registered ID"), ArmTile.ItemId,
-		Arm.CanonicalItemId);
+		Arm.ItemId);
 	bOk &= TestEqual(TEXT("Tile uses canonical icon"), ArmTile.Icon.ToSoftObjectPath().ToString(),
 		ExpectedArm.ItemIcon.ToSoftObjectPath().ToString());
 
@@ -111,8 +111,8 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 	if (Level->LooseItemInstances.Num() == 1)
 	{
 		const FGridLooseItemInstance& Placed = Level->LooseItemInstances[0];
-		bOk &= TestEqual(TEXT("Placed ARM ItemId"), Placed.CanonicalItemId,
-			Arm.CanonicalItemId);
+		bOk &= TestEqual(TEXT("Placed ARM ItemId"), Placed.ItemId,
+			Arm.ItemId);
 		bOk &= TestEqual(TEXT("Placed ARM level N20"), Placed.ItemLevel, 20);
 		bOk &= TestNull(TEXT("Placed ARM does not store an old definition"),
 			FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
@@ -129,7 +129,7 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 	{
 		const FGridLooseItemInstance& Placed = Level->LooseItemInstances[1];
 		bOk &= TestEqual(TEXT("Placed ammo is Item_Arrows_01"),
-			Placed.CanonicalItemId, Ammo.CanonicalItemId);
+			Placed.ItemId, Ammo.ItemId);
 		bOk &= TestEqual(TEXT("Placed ammo remains N0"), Placed.ItemLevel, 0);
 		bOk &= TestNull(TEXT("Placed ammo is pointerless"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 
@@ -149,11 +149,11 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 			Editor->SetSelectedObjectItemDefinitionId(Sword));
 		bOk &= TestTrue(TEXT("Apply subsequent metadata edit"), Editor->ApplyEditedSelectedObject());
 		bOk &= TestEqual(TEXT("Metadata cannot restore stale palette identity"),
-			Level->LooseItemInstances[0].CanonicalItemId, Sword);
+			Level->LooseItemInstances[0].ItemId, Sword);
 		bOk &= TestEqual(TEXT("Metadata preserves N12 after explicit ID change"),
 			Level->LooseItemInstances[0].ItemLevel, 12);
 		bOk &= TestTrue(TEXT("Restore test item ID explicitly"),
-			Editor->SetSelectedObjectItemDefinitionId(Arm.CanonicalItemId));
+			Editor->SetSelectedObjectItemDefinitionId(Arm.ItemId));
 	}
 
 	const FGridObjectPaletteEntry OriginalArm = Arm;
@@ -190,7 +190,7 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 	const int32 PlacedCount = Level->LooseItemInstances.Num();
 	FGridObjectPaletteEntry Bad = OriginalArm;
 	Bad.EntryId = TEXT("X28_InvalidN0");
-	Bad.CanonicalDefaultItemLevel = 0;
+	Bad.DefaultItemLevel = 0;
 	Palette->Entries.Add(Bad);
 	bOk &= TestFalse(TEXT("Persisted registered ARM N0 cannot be selected"),
 		Editor->ApplyPaletteEntry(Bad.EntryId));
@@ -198,15 +198,15 @@ bool FGridEditorClean064X28PointerlessPalette::RunTest(const FString&)
 		Level->LooseItemInstances.Num(), PlacedCount);
 
 	Bad.EntryId = TEXT("X28_Unknown");
-	Bad.CanonicalItemId = TEXT("X28_UnregisteredItem");
-	Bad.CanonicalDefaultItemLevel = 1;
+	Bad.ItemId = TEXT("X28_UnregisteredItem");
+	Bad.DefaultItemLevel = 1;
 	Palette->Entries.Add(Bad);
 	bOk &= TestFalse(TEXT("Unknown ItemId cannot pass editor source registry"),
 		Editor->ApplyPaletteEntry(Bad.EntryId));
 
 	Bad = OriginalArm;
 	Bad.EntryId = TEXT("X28_Contradictory");
-	Bad.CanonicalItemId = TEXT("ARM_CLEAN06_UNKNOWN");
+	Bad.ItemId = TEXT("ARM_CLEAN06_UNKNOWN");
 	Palette->Entries.Add(Bad);
 	bOk &= TestFalse(TEXT("Unknown canonical item cannot be selected"),
 		Editor->ApplyPaletteEntry(Bad.EntryId));

@@ -135,7 +135,7 @@ bool FARMEMENT01101ReadinessAudit::RunTest(const FString&)
         FGridResolvedItem N1;
         if (!TestTrue(TEXT("Actual native weapon N1 available"),
             Fixture.Resolve(ItemId, 1, N1))) continue;
-        const FGridCanonicalWeaponVisual* Visual =
+        const FGridWeaponVisual* Visual =
             Root->WeaponVisualCatalogue->FindForArchetype(ArmId);
         const bool bMapped = Visual && Visual->VisualId == FName(Row.VisualId);
         const bool bIcon = N1.ItemIcon.LoadSynchronous() != nullptr;

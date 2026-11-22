@@ -39,7 +39,7 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 		Old->ItemDefinitionId = ArmId;
 		FGridLooseItemInstance Placement;
 		Placement.InstanceId = FGuid::NewGuid();
-		Placement.CanonicalItemId = ArmId;
+		Placement.ItemId = ArmId;
 		for (const int32 Level : {1, 20})
 		{
 			Placement.ItemLevel = Level;
@@ -74,7 +74,7 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 	Old->ItemDefinitionId = TEXT("Item_Arrows_01");
 	FGridLooseItemInstance Arrows;
 	Arrows.InstanceId = FGuid::NewGuid();
-	Arrows.CanonicalItemId = TEXT("Item_Arrows_01");
+	Arrows.ItemId = TEXT("Item_Arrows_01");
 	Arrows.ItemLevel = 0;
 	FGridResolvedItem ExpectedAmmo;
 	if (!TestTrue(TEXT("Production unlevelled arrows resolve at N0"),
@@ -93,7 +93,7 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 	Old->bUseWeaponCatalogue = false;
 	FGridLooseItemInstance InvalidDefault;
 	InvalidDefault.InstanceId = FGuid::NewGuid();
-	InvalidDefault.CanonicalItemId = TEXT("Weapon_RoundShield_01");
+	InvalidDefault.ItemId = TEXT("Weapon_RoundShield_01");
 	InvalidDefault.ItemLevel = 0;
 	const FGridEditorLooseItemPreviewReadView BadDefault =
 		FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), InvalidDefault);
@@ -110,11 +110,11 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 	TestFalse(TEXT("Non-ARM cannot invent N1 despite transitional registry support"), InvalidAmmo.bResolved);
 	Arrows.ItemLevel = 0;
 	TestNull(TEXT("Legacy pointer is no longer a placement property"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
-	Arrows.CanonicalItemId = NAME_None;
+	Arrows.ItemId = NAME_None;
 	const auto Missing = FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);
 	TestFalse(TEXT("Missing ID is not canonical"), Missing.bRegisteredIdentity);
 	TestFalse(TEXT("Missing ID cannot preview"), Missing.bResolved);
-	Arrows.CanonicalItemId = TEXT("LegacyEditorPreview_063Z");
+	Arrows.ItemId = TEXT("LegacyEditorPreview_063Z");
 	TestFalse(TEXT("Unknown ID cannot preview"),
 		FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows).bResolved);
 	return true;

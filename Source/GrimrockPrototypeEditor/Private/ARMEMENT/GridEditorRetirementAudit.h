@@ -226,7 +226,7 @@ namespace GridEditorRetirementAudit
                     Category->SetArrayField(TEXT("canonical_tags"), Names(Resolved.Tags));
                     if (bArm)
                     {
-                        const EGridItemType Type = Resolved.Weapon.Kind == EGridCanonicalArmamentKind::Shield
+                        const EGridItemType Type = Resolved.Weapon.Kind == EGridArmamentKind::Shield
                             ? EGridItemType::Shield : EGridItemType::Weapon;
                         Category->SetStringField(TEXT("canonical_arm_type"), CategoryName(Type));
                         Category->SetBoolField(TEXT("arm_type_matches"), Type == Legacy->ItemType);

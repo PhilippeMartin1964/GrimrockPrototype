@@ -7,7 +7,7 @@
 #include "GridItemSubsystem.generated.h"
 
 UENUM(BlueprintType)
-enum class EGridCanonicalItemResolveError : uint8
+enum class EGridItemResolveError : uint8
 {
 	None,
 	RegistryNotConfigured,
@@ -28,7 +28,7 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	GENERATED_BODY()
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
-	EGridCanonicalItemResolveError Error = EGridCanonicalItemResolveError::RegistryNotConfigured;
+	EGridItemResolveError Error = EGridItemResolveError::RegistryNotConfigured;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	FName ItemId = NAME_None;
@@ -95,7 +95,7 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	TSoftObjectPtr<UStaticMesh> ProjectileMesh;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
-	FGridCanonicalProjectileVisual ProjectileAppearance;
+	FGridProjectileVisual ProjectileAppearance;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	FName ArchetypeId = NAME_None;
@@ -104,7 +104,7 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	bool bIsArmament = false;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
-	FGridCanonicalResolvedWeapon Weapon;
+	FGridResolvedWeapon Weapon;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	FName AmmoKindId = NAME_None;
@@ -153,11 +153,11 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Physics")
 	float WorldPhysicsInitialTiltDegrees = 0.f;
 
-	bool IsValid() const { return Error == EGridCanonicalItemResolveError::None; }
+	bool IsValid() const { return Error == EGridItemResolveError::None; }
 };
 
 UENUM(BlueprintType)
-enum class EGridCanonicalBoundActionError : uint8
+enum class EGridBoundActionError : uint8
 {
 	None,
 	RegistryNotConfigured,
@@ -181,10 +181,10 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedBoundAction
 	GENERATED_BODY()
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
-	EGridCanonicalBoundActionError Error = EGridCanonicalBoundActionError::RegistryNotConfigured;
+	EGridBoundActionError Error = EGridBoundActionError::RegistryNotConfigured;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
-	EGridCanonicalItemResolveError ItemError = EGridCanonicalItemResolveError::None;
+	EGridItemResolveError ItemError = EGridItemResolveError::None;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
 	FName ItemId = NAME_None;
@@ -199,12 +199,12 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedBoundAction
 	FName PresentationId = NAME_None;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
-	FGridCanonicalAction Action;
+	FGridAction Action;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Action")
-	FGridCanonicalActionPresentation Presentation;
+	FGridActionPresentation Presentation;
 
-	bool IsValid() const { return Error == EGridCanonicalBoundActionError::None; }
+	bool IsValid() const { return Error == EGridBoundActionError::None; }
 };
 
 /**
@@ -240,7 +240,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Item System|Armor")
 	bool ResolveArmorReserveForInstance(const FGridItemInstance& Instance,
-		FGridCanonicalArmorReserveView& OutReserve) const;
+		FGridArmorReserveView& OutReserve) const;
 
 	/** Resolve ONLY an authored ItemActionBinding via the four global catalogues. */
 	UFUNCTION(BlueprintCallable, Category = "Item System")

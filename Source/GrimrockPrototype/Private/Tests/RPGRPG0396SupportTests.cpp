@@ -390,7 +390,7 @@ bool FRPG0396ConversionReactionBridgeTest::RunTest(const FString&)
 	FGridCombatSurfaceConversionProfile ToFire;
 	ToFire.InputSurfaceTypes = { EGridCombatSurfaceType::Poison, EGridCombatSurfaceType::Ice };
 	ToFire.OutputSurfaceType = EGridCombatSurfaceType::Fire;
-	ToFire.bTriggerCanonicalReactionBeforeConversion = true;
+	ToFire.bTriggerReactionBeforeConversion = true;
 
 	FGridResolvedCombatModifiers Modifiers;
 	Modifiers.SurfaceReactionDamagePercentModifier = 50;
@@ -411,12 +411,12 @@ bool FRPG0396ConversionReactionBridgeTest::RunTest(const FString&)
 	TestEqual(TEXT("Intermediate Ice + Fire reaction outputs Water"),
 		Reaction.OutputSurfaceType, EGridCombatSurfaceType::Water);
 
-	ToFire.bTriggerCanonicalReactionBeforeConversion = false;
+	ToFire.bTriggerReactionBeforeConversion = false;
 	TestFalse(TEXT("Ordinary conversions do not emit canonical reactions by default"),
 		FGridCombatSurfaceResolver::ResolveConversionReaction(Poison, ToFire, Modifiers, Reaction));
 
 	FGridCombatSurfaceConversionProfile ToPoison = ToFire;
-	ToPoison.bTriggerCanonicalReactionBeforeConversion = true;
+	ToPoison.bTriggerReactionBeforeConversion = true;
 	ToPoison.OutputSurfaceType = EGridCombatSurfaceType::Poison;
 	TestFalse(TEXT("Poison output does not invent a canonical Poison interaction"),
 		FGridCombatSurfaceResolver::ResolveConversionReaction(Ice, ToPoison, Modifiers, Reaction));

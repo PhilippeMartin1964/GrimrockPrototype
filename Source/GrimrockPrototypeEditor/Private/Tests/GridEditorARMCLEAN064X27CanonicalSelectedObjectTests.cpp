@@ -54,7 +54,7 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	Loose.InstanceId = FGuid::NewGuid();
 	Loose.CellX = 1;
 	Loose.CellY = 1;
-	Loose.CanonicalItemId = Dagger;
+	Loose.ItemId = Dagger;
 	Loose.ItemLevel = 20;
 	Loose.Quantity = 1;
 	const FGuid StableLooseId = Loose.InstanceId;
@@ -70,20 +70,20 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	// dropped, but GUID, quantity and a valid physical level stay stable.
 	bOk &= TestTrue(TEXT("Select canonical sword by ID"),
 		Editor->SetSelectedObjectItemDefinitionId(Sword));
-	bOk &= TestEqual(TEXT("Canonical sword ID persisted"), Loose.CanonicalItemId, Sword);
+	bOk &= TestEqual(TEXT("Canonical sword ID persisted"), Loose.ItemId, Sword);
 	bOk &= TestEqual(TEXT("Valid N20 kept on sword"), Loose.ItemLevel, 20);
 	bOk &= TestNull(TEXT("Old asset removed from new canonical selection"),
 		FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	bOk &= TestFalse(TEXT("Unknown identity cannot contradict persisted canonical ID"),
 		Editor->SetSelectedObjectItemDefinitionId(TEXT("ARM_CLEAN064X27_Unregistered")));
 	bOk &= TestEqual(TEXT("Rejected identity has not changed canonical ID"),
-		Loose.CanonicalItemId, Sword);
+		Loose.ItemId, Sword);
 	bOk &= TestEqual(TEXT("Rejected identity has not changed physical level"),
 		Loose.ItemLevel, 20);
 
 	bOk &= TestTrue(TEXT("Select unlevelled registered arrows"),
 		Editor->SetSelectedObjectItemDefinitionId(Arrows));
-	bOk &= TestEqual(TEXT("Family changes to arrows"), Loose.CanonicalItemId, Arrows);
+	bOk &= TestEqual(TEXT("Family changes to arrows"), Loose.ItemId, Arrows);
 	bOk &= TestEqual(TEXT("New non-ARM family is physically N0"), Loose.ItemLevel, 0);
 	bOk &= TestNull(TEXT("No legacy field exists"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 
@@ -93,7 +93,7 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	bOk &= TestFalse(TEXT("Unknown canonical ID cannot change selected identity"),
 		Editor->SetSelectedObjectItemDefinitionId(TEXT("ARM_CLEAN064X27_Unknown")));
 	bOk &= TestEqual(TEXT("Rejected identity leaves real item unchanged"),
-		Loose.CanonicalItemId, Shield);
+		Loose.ItemId, Shield);
 	bOk &= TestEqual(TEXT("Rejected identity leaves physical N1 unchanged"),
 		Loose.ItemLevel, 1);
 	bOk &= TestEqual(TEXT("Changing ID retains original level instance GUID"),
@@ -106,7 +106,7 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	Spawn.SpawnId = FGuid::NewGuid();
 	Spawn.CellX = 2;
 	Spawn.CellY = 1;
-	Spawn.CanonicalItemId = Arrows;
+	Spawn.ItemId = Arrows;
 	Spawn.ItemLevel = 0;
 	Spawn.Quantity = 5;
 	const FGuid StableSpawnId = Spawn.SpawnId;
@@ -114,7 +114,7 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	bOk &= TestFalse(TEXT("Stack of five arrows cannot silently become five daggers"),
 		Editor->SetSelectedObjectItemDefinitionId(Dagger));
 	bOk &= TestEqual(TEXT("Rejected conversion leaves ammo identity"),
-		Spawn.CanonicalItemId, Arrows);
+		Spawn.ItemId, Arrows);
 	bOk &= TestEqual(TEXT("Rejected conversion leaves quantity"),
 		Spawn.Quantity, 5);
 	// Author explicitly changes quantity before changing from a stack to
@@ -122,7 +122,7 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	Spawn.Quantity = 1;
 	bOk &= TestTrue(TEXT("One item spawn changes from arrows N0 to dagger N1"),
 		Editor->SetSelectedObjectItemDefinitionId(Dagger));
-	bOk &= TestEqual(TEXT("Spawn canonical ID updated"), Spawn.CanonicalItemId, Dagger);
+	bOk &= TestEqual(TEXT("Spawn canonical ID updated"), Spawn.ItemId, Dagger);
 	bOk &= TestEqual(TEXT("New ARM spawn has physical N1"), Spawn.ItemLevel, 1);
 	bOk &= TestNull(TEXT("Generator schema has no old pointer"), FGridItemSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	bOk &= TestEqual(TEXT("Spawn GUID retained"), Spawn.SpawnId, StableSpawnId);
@@ -130,7 +130,7 @@ bool FGridEditorClean064X27CanonicalSelectedObject::RunTest(const FString&)
 	bOk &= TestFalse(TEXT("Empty ID cannot replace physical generator identity"),
 		Editor->SetSelectedObjectItemDefinitionId(NAME_None));
 	bOk &= TestEqual(TEXT("Canonical identity survives rejected empty ID"),
-		Spawn.CanonicalItemId, Dagger);
+		Spawn.ItemId, Dagger);
 
 	World->DestroyWorld(false);
 	if (GEngine) GEngine->DestroyWorldContext(World);

@@ -104,11 +104,11 @@ namespace GridTD075ReceptacleRecovery
 		Receptacle.WallSide = EGridEdge::North;
 
 		FGridReceptacleInitialItemConfig& InitialA = Receptacle.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef();
-		InitialA.CanonicalItemId = TEXT("Item_TD075_A");
+		InitialA.ItemId = TEXT("Item_TD075_A");
 		InitialA.Quantity = 1;
 
 		FGridReceptacleInitialItemConfig& InitialB = Receptacle.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef();
-		InitialB.CanonicalItemId = TEXT("Item_TD075_B");
+		InitialB.ItemId = TEXT("Item_TD075_B");
 		InitialB.Quantity = 1;
 
 		Level->Links.Add(MakeTD075Link(EGridObjectEvent::Activated, EGridObjectCommand::ReceptacleConsumeItem));

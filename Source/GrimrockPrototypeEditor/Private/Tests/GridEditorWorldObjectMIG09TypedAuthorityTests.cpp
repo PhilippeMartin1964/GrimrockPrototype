@@ -74,7 +74,7 @@ bool FGridMIG09EditorTypedMutationsTest::RunTest(const FString& Parameters)
 	FGridLooseItemInstance& LooseItem = Level->LooseItemInstances.AddDefaulted_GetRef();
 	LooseItem.InstanceId = FGuid::NewGuid();
 	LooseItem.CellX = 1;
-	LooseItem.CanonicalItemId = ItemDefinition->ItemDefinitionId;
+	LooseItem.ItemId = ItemDefinition->ItemDefinitionId;
 	LooseItem.Quantity = 7;
 	LooseItem.LocalOffset = FVector(3.f, 4.f, 5.f);
 	LooseItem.ReadTextOverride = FText::FromString(TEXT("Keep this text"));
@@ -86,7 +86,7 @@ bool FGridMIG09EditorTypedMutationsTest::RunTest(const FString& Parameters)
 	FGridItemSpawnInstance& ItemSpawn = Level->ItemSpawns.AddDefaulted_GetRef();
 	ItemSpawn.SpawnId = FGuid::NewGuid();
 	ItemSpawn.CellX = 3;
-	ItemSpawn.CanonicalItemId = TEXT("Item_Arrows_01");
+	ItemSpawn.ItemId = TEXT("Item_Arrows_01");
 	ItemSpawn.Quantity = 9;
 	FGridLogicObjectInstance& Logic = Level->LogicObjects.AddDefaulted_GetRef();
 	Logic.InstanceId = FGuid::NewGuid();
@@ -119,7 +119,7 @@ bool FGridMIG09EditorTypedMutationsTest::RunTest(const FString& Parameters)
 	FGridObjectBehaviorParams EditedBehavior = Editor->ObjectBehavior;
 	EditedBehavior.Receptacle.MaxContainedItems = 99;
 	FGridReceptacleInitialItemConfig& Content = EditedBehavior.Receptacle.InitialContent.AddDefaulted_GetRef();
-	Content.CanonicalItemId = ItemDefinition->ItemDefinitionId;
+	Content.ItemId = ItemDefinition->ItemDefinitionId;
 	Content.Quantity = 2;
 	TestTrue(TEXT("Apply only instance behavior"), Editor->ApplyBehaviorToSelectedObject(EditedBehavior));
 	TestEqual(TEXT("Definition rule remains authoritative"), Editor->ObjectBehavior.Receptacle.MaxContainedItems, 4);
@@ -139,7 +139,7 @@ bool FGridMIG09EditorTypedValidationTest::RunTest(const FString& Parameters)
 	FGridLooseItemInstance& LooseItem = Level->LooseItemInstances.AddDefaulted_GetRef();
 	LooseItem.InstanceId = FGuid::NewGuid();
 	LooseItem.CellX = 1;
-	LooseItem.CanonicalItemId = TEXT("Item_Arrows_01");
+	LooseItem.ItemId = TEXT("Item_Arrows_01");
 	FGridItemSpawnInstance& ItemSpawn = Level->ItemSpawns.AddDefaulted_GetRef();
 	ItemSpawn.SpawnId = FGuid::NewGuid();
 	ItemSpawn.CellX = 2;
@@ -168,7 +168,7 @@ bool FGridMIG09EditorTypedValidationTest::RunTest(const FString& Parameters)
 		return Message.OptionalObjectId == ItemSpawn.SpawnId && Message.CellX == 2 && Message.CellY == 0;
 	}));
 	Logic.Logic.NodeType = EGridLogicNodeType::Latch;
-	ItemSpawn.CanonicalItemId = TEXT("Stone");
+	ItemSpawn.ItemId = TEXT("Stone");
 	ItemSpawn.SpawnId = LooseItem.InstanceId;
 	Messages = Fixture.Editor->ValidateCurrentLevel();
 	TestFalse(TEXT("Latch supports reset"), HasError(Messages, Logic.InstanceId, TEXT("not supported")));

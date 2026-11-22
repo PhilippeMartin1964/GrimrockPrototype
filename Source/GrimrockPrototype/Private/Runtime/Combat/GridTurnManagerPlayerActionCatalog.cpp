@@ -2779,7 +2779,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				// and lets existing action/reaction modifiers feed the same C6 result.
 				// The conversion is then applied unconditionally and remains the
 				// authority for the final selected output.
-				if (Conversion.bTriggerCanonicalReactionBeforeConversion &&
+				if (Conversion.bTriggerReactionBeforeConversion &&
 					Action.Definition.SurfaceInteraction == EGridCombatSurfaceInteraction::None)
 				{
 					const FGridCombatSurfaceState* ExistingSurface =

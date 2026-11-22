@@ -17,7 +17,7 @@ struct FGridEditorReceptacleRuleAuthoring
             return false;
         }
         FGridReceptacleAcceptedItemConfig NewRule;
-        NewRule.CanonicalItemId = ItemId;
+        NewRule.ItemId = ItemId;
         InOut = NewRule;
         return true;
     }
@@ -30,8 +30,8 @@ struct FGridEditorReceptacleRuleAuthoring
         if (!IsValid(Registry) || !Registry->IsConfigured()) return false;
         for (const FGridReceptacleAcceptedItemConfig& Rule : Defaults)
         {
-            if (Rule.CanonicalItemId.IsNone() ||
-                !Registry->ContainsItem(Rule.CanonicalItemId))
+            if (Rule.ItemId.IsNone() ||
+                !Registry->ContainsItem(Rule.ItemId))
             {
                 return false;
             }

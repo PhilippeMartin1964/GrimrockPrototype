@@ -14,7 +14,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
 
 namespace
 {
-	const UGridItemSubsystem* GridPartyInventoryCanonicalRegistry(const UGridPartyInventoryComponent* Inventory)
+	const UGridItemSubsystem* GridPartyInventoryRegistry(const UGridPartyInventoryComponent* Inventory)
 	{
 		if (const UWorld* World = Inventory->GetWorld())
 		{
@@ -74,7 +74,7 @@ namespace
 bool UGridPartyInventoryComponent::TryResolveEquipmentArmorRead(
 	const FGridItemInstance& Item, FGridEquipmentArmorReadView& OutView) const
 {
-	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
+	const UGridItemSubsystem* Registry = GridPartyInventoryRegistry(this);
 	return FGridEquipmentArmorReadModel::TryResolve(
 		Registry, GridPartyInventoryHistoricalDefinitionForAutomation(this, Registry, Item.ItemDefinitionId),
 		Item, OutView);
@@ -83,7 +83,7 @@ bool UGridPartyInventoryComponent::TryResolveEquipmentArmorRead(
 FGridEquipmentStatBonus UGridPartyInventoryComponent::GetEquipmentBonusesForInstance(
 	const FGridItemInstance& Item) const
 {
-	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
+	const UGridItemSubsystem* Registry = GridPartyInventoryRegistry(this);
 	return FGridEquipmentContributionReadModel::ResolveStatBonuses(
 		Registry, GridPartyInventoryHistoricalDefinitionForAutomation(this, Registry, Item.ItemDefinitionId), Item);
 }
@@ -94,13 +94,13 @@ bool UGridPartyInventoryComponent::IsTwoHandedItem(const FGridItemInstance& Item
 	{
 		return false;
 	}
-	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
+	const UGridItemSubsystem* Registry = GridPartyInventoryRegistry(this);
 	if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
 	{
 		FGridResolvedItem Resolved;
 		return Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) &&
 			(Resolved.bIsArmament
-				? Resolved.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded
+				? Resolved.Weapon.HandPolicy == EGridHandPolicy::TwoHanded
 				: (Item.ItemLevel == 0 && Resolved.bNonArmTwoHanded));
 	}
 	// An unknown ID in a canonical game cannot borrow legacy two-hand rules.
@@ -148,7 +148,7 @@ bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, cons
 
 	// A canonical configured game accepts ONLY registered ItemIds and their
 	// exact N0/N1-N20 policies. No unknown-ID historical slot fallback.
-	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
+	const UGridItemSubsystem* Registry = GridPartyInventoryRegistry(this);
 	if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
 	{
 		FGridResolvedItem Resolved;
@@ -199,9 +199,9 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	const FGridItemInstance Source = Character.InventorySlots[InventorySlotIndex].Item;
 	// Preserve the existing missing-definition diagnostic for non-canonical
 	// items. Registered canonical ARM must not require DA_Weapon_* to equip.
-	const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
-	const bool bCanonicalItem = Registry && Registry->ContainsItem(Source.ItemDefinitionId);
-	if (!bCanonicalItem &&
+	const UGridItemSubsystem* Registry = GridPartyInventoryRegistry(this);
+	const bool bRegisteredItem = Registry && Registry->ContainsItem(Source.ItemDefinitionId);
+	if (!bRegisteredItem &&
 		!GridPartyInventoryHistoricalDefinitionForAutomation(this, Registry, Source.ItemDefinitionId))
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=MissingDefinition Item=%s"),
@@ -504,7 +504,7 @@ int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterInde
 			FGridArmorAbsorptionSourceTrace& Source = OutSources->AddDefaulted_GetRef();
 			Source.ItemDefinitionId = Item->ItemDefinitionId;
 			Source.DisplayName = FText::FromName(Item->ItemDefinitionId);
-			const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
+			const UGridItemSubsystem* Registry = GridPartyInventoryRegistry(this);
 			if (Registry && Registry->ContainsItem(Item->ItemDefinitionId))
 			{
 				FGridResolvedItem Resolved;
@@ -619,7 +619,7 @@ FGridDamageResistanceSet UGridPartyInventoryComponent::ComputeCharacterEquipment
 				return;
 			}
 
-			const UGridItemSubsystem* Registry = GridPartyInventoryCanonicalRegistry(this);
+			const UGridItemSubsystem* Registry = GridPartyInventoryRegistry(this);
 			TotalResistances.Add(FGridEquipmentContributionReadModel::ResolveResistances(
 				Registry, GridPartyInventoryHistoricalDefinitionForAutomation(this, Registry, Item.ItemDefinitionId), Item));
 		});

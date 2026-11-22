@@ -67,7 +67,7 @@ bool FARMEMENT0166AuthoredDefinitionsTest::RunTest(const FString&)
         TestEqual(TEXT("Attack permission is governed by canonical ARM type"),
             Item.Weapon.HasAttackSourceInHand(Spec.Slot), Spec.bAttack);
         TestEqual(TEXT("Shield versus attacking weapon distinction"),
-            Item.Weapon.Kind == EGridCanonicalArmamentKind::Shield, !Spec.bAttack);
+            Item.Weapon.Kind == EGridArmamentKind::Shield, !Spec.bAttack);
     }
     return !HasAnyErrors();
 }
@@ -123,7 +123,7 @@ bool FARMEMENT0166EquipmentAttackTest::RunTest(const FString&)
         if (Spec.bAttack)
         {
             TestTrue(TEXT("Pilot attack uses the canonical weapon kind"),
-                Resolved.Weapon.Kind == EGridCanonicalArmamentKind::Weapon);
+                Resolved.Weapon.Kind == EGridArmamentKind::Weapon);
             TestTrue(TEXT("Pilot N1 attack costs action points"),
                 Resolved.Weapon.ActionPointCost > 0);
             TestTrue(TEXT("Pilot attack range is authored"),
@@ -132,7 +132,7 @@ bool FARMEMENT0166EquipmentAttackTest::RunTest(const FString&)
         else
         {
             TestTrue(TEXT("Shield is a passive canonical ARM"),
-                Resolved.Weapon.Kind == EGridCanonicalArmamentKind::Shield);
+                Resolved.Weapon.Kind == EGridArmamentKind::Shield);
             TestFalse(TEXT("Passive shield does not attack from MainHand"),
                 Resolved.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand));
             TestFalse(TEXT("Passive shield is not equippable MainHand"),

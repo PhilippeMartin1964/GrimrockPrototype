@@ -22,7 +22,7 @@
 		if (InitialContent.IsEmpty()) return TEXT("EMPTY_RECEPTACLE");
 		for (const FGridReceptacleInitialItemConfig& InitialItem : InitialContent)
 		{
-			if (InitialItem.CanonicalItemId.IsNone() ||
+			if (InitialItem.ItemId.IsNone() ||
 				InitialItem.ItemLevel < 0 || InitialItem.ItemLevel > 20 || InitialItem.Quantity < 1)
 				return TEXT("ERROR_INVALID_INITIAL_CONTENT");
 		}
@@ -45,13 +45,13 @@
 		Result += FString::Printf(TEXT("Level=%s Asset=%s\n"), *LevelLabel, *Asset->GetName());
 		for (const FGridLooseItemInstance& LooseItemInstance : Asset->LooseItemInstances)
 		{
-			if (!LooseItemInstance.CanonicalItemId.IsNone()) ++ItemPlacementsUsingDefinitionId;
+			if (!LooseItemInstance.ItemId.IsNone()) ++ItemPlacementsUsingDefinitionId;
 			const bool bHasPhysicalFields = LooseItemInstance.InstanceId.IsValid() &&
-				!LooseItemInstance.CanonicalItemId.IsNone() && LooseItemInstance.Quantity > 0 &&
+				!LooseItemInstance.ItemId.IsNone() && LooseItemInstance.Quantity > 0 &&
 				LooseItemInstance.ItemLevel >= 0 && LooseItemInstance.ItemLevel <= 20;
 			Result += FString::Printf(TEXT("  Item ObjectId=%s Cell=(%d,%d) ItemId=%s N%d Status=%s\n"),
 				*LooseItemInstance.InstanceId.ToString(), LooseItemInstance.CellX, LooseItemInstance.CellY,
-				*LooseItemInstance.CanonicalItemId.ToString(), LooseItemInstance.ItemLevel,
+				*LooseItemInstance.ItemId.ToString(), LooseItemInstance.ItemLevel,
 				bHasPhysicalFields ? TEXT("AUTHORED_CANONICAL_FIELDS") : TEXT("ERROR_INVALID_CANONICAL_FIELDS"));
 		}
 		for (const FGridWorldObjectInstance& WorldObjectInstance : Asset->WorldObjectInstances)

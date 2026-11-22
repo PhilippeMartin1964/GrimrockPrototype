@@ -104,7 +104,7 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
             FGridResolvedItem Item;
             TestFalse(TEXT("Wrong physical family level rejected"), Registry->ResolveItem(Def->ItemId, Level, Item));
             TestEqual(TEXT("Exact invalid physical level diagnostic"), Item.Error,
-                EGridCanonicalItemResolveError::InvalidItemLevel);
+                EGridItemResolveError::InvalidItemLevel);
             TestTrue(TEXT("Invalid level exposes no metadata"), Item.ItemId.IsNone());
             ++Rejections;
         }

@@ -40,8 +40,8 @@ bool FGridEditorARMCLEAN064X37WorldPresentationProjection::RunTest(const FString
         TestFalse(TEXT("Single authored visual profile per ARM"), VisualIds.Contains(VisualId));
         ItemIds.Add(Id);
         VisualIds.Add(VisualId);
-        const FGridCanonicalWeaponArchetype* Numeric = Root->WeaponCatalogue->Find(Archetype);
-        const FGridCanonicalWeaponVisual* Visual =
+        const FGridWeaponArchetype* Numeric = Root->WeaponCatalogue->Find(Archetype);
+        const FGridWeaponVisual* Visual =
             Root->WeaponVisualCatalogue->FindForArchetype(Archetype);
         if (!TestNotNull(TEXT("Native numeric physics authoring"), Numeric) ||
             !TestNotNull(TEXT("Native world visual authoring"), Visual))

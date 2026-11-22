@@ -446,7 +446,7 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
         if (!TestNotNull(TEXT("Weapon actor exists above trap"), Actor) ||
             !TestEqual(TEXT("One actor per weapon"), Count, 1) ||
             !TestTrue(TEXT("Weapon starts with complete canonical presentation"),
-                Actor->CanonicalWorldPresentation.IsValid() && Actor->MeshComponent &&
+                Actor->ResolvedWorldPresentation.IsValid() && Actor->MeshComponent &&
                 Actor->MeshComponent->GetStaticMesh() == W.Resolved.WorldMesh.LoadSynchronous()) ||
             !TestNull(TEXT("No legacy weapon definition on ground actor"),
                 Actor->GetItemDefinitionAsset()))
@@ -555,10 +555,10 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
             !TestTrue(TEXT("Weapon root is in the actual adjacent arrival cell"),
                 Actor->GetActorLocation().Equals(ExpectedCenter, 80.f)) ||
             !TestEqual(TEXT("ItemId below"), Actor->GetItemDefinitionId(), W.Id) ||
-            !TestEqual(TEXT("Exact N-level below"), Actor->CanonicalWorldItemLevel, W.Level) ||
+            !TestEqual(TEXT("Exact N-level below"), Actor->WorldItemLevel, W.Level) ||
             !TestNull(TEXT("No obsolete item pointer below"), Actor->GetItemDefinitionAsset()) ||
             !TestTrue(TEXT("Canonical physical weapon mesh below"),
-                Actor->CanonicalWorldPresentation.IsValid() && Actor->MeshComponent &&
+                Actor->ResolvedWorldPresentation.IsValid() && Actor->MeshComponent &&
                 Actor->MeshComponent->GetStaticMesh() == W.Resolved.WorldMesh.LoadSynchronous()))
             return false;
     }
@@ -589,9 +589,9 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
                 FMath::Abs(Actor->GetActorLocation().X - ExpectedCenter.X) <= 80.f &&
                 FMath::Abs(Actor->GetActorLocation().Y - ExpectedCenter.Y) <= 80.f) ||
             !TestEqual(TEXT("Level remains fixed after second load"),
-                Actor->CanonicalWorldItemLevel, W.Level) ||
+                Actor->WorldItemLevel, W.Level) ||
             !TestTrue(TEXT("Canonical mesh survives second level load"),
-                Actor->CanonicalWorldPresentation.IsValid() && Actor->MeshComponent &&
+                Actor->ResolvedWorldPresentation.IsValid() && Actor->MeshComponent &&
                 Actor->MeshComponent->GetStaticMesh() == W.Resolved.WorldMesh.LoadSynchronous()))
             return false;
     }

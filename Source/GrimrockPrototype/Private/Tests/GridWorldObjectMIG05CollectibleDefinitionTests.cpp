@@ -90,7 +90,7 @@ bool FGridWorldObjectPaletteDisplayNameAuthorityTest::RunTest(const FString& Par
 
 	FGridObjectPaletteEntry ItemEntry;
 	ItemEntry.EntryId = TEXT("Item_Entry");
-	ItemEntry.CanonicalItemId = ItemDefinition->ItemDefinitionId;
+	ItemEntry.ItemId = ItemDefinition->ItemDefinitionId;
 	TestEqual(TEXT("Direct-item context-free name is stable ID"), ItemEntry.GetEffectiveDisplayName().ToString(), FString(TEXT("Item_Test")));
 
 	ItemDefinition->DisplayName = FText::FromString(TEXT("Item Beta"));
@@ -116,9 +116,9 @@ bool FGridWorldObjectPaletteDisplayNameAuthorityTest::RunTest(const FString& Par
 			// (X.14/X.55); this raw helper has only the stable identity fallback.
 			if (ProductionEntry.IsDirectItemEntry())
 			{
-				TestFalse(TEXT("Pointerless direct entry has a stable ID"), ProductionEntry.CanonicalItemId.IsNone());
+				TestFalse(TEXT("Pointerless direct entry has a stable ID"), ProductionEntry.ItemId.IsNone());
 				TestEqual(TEXT("Raw context-free helper returns the stable ID"),
-					ProductionEntry.GetEffectiveDisplayName().ToString(), ProductionEntry.CanonicalItemId.ToString());
+					ProductionEntry.GetEffectiveDisplayName().ToString(), ProductionEntry.ItemId.ToString());
 				continue;
 			}
 
@@ -158,7 +158,7 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("BlueGem");
-	Entry.CanonicalItemId = Definition->ItemDefinitionId;
+	Entry.ItemId = Definition->ItemDefinitionId;
 
 	TestTrue(TEXT("Direct collectible palette entry is valid without an object definition"), Entry.IsValidEntry());
 	TestTrue(TEXT("Direct collectible entry owns no companion definition"), Entry.DefaultWorldObjectDefinition == nullptr);
@@ -204,7 +204,7 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	ItemData.InstanceId = FGuid::NewGuid();
 	ItemData.CellX = 0;
 	ItemData.CellY = 0;
-	ItemData.CanonicalItemId = Definition->ItemDefinitionId;
+	ItemData.ItemId = Definition->ItemDefinitionId;
 
 	FTransform PlacementTransform;
 	TestTrue(TEXT("Loose item placement transform resolves without any WorldObjectDefinition"), GridPlacementTransformResolver::ResolveLooseItem(*Runtime, ItemData, PlacementTransform));
@@ -251,7 +251,7 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("CopperKey");
-	Entry.CanonicalItemId = Definition->ItemDefinitionId;
+	Entry.ItemId = Definition->ItemDefinitionId;
 	Entry.DefaultWorldObjectDefinition = LegacyDefinition;
 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>();
@@ -265,13 +265,13 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 		}));
 
 	TestFalse(TEXT("Dual-definition entry is invalid"), Entry.IsValidEntry());
-	Palette->Entries[0].CanonicalItemId = NAME_None;
+	Palette->Entries[0].ItemId = NAME_None;
 	TestFalse(TEXT("Item WorldObjectDefinition alone is not a valid palette entry"), Palette->Entries[0].IsValidEntry());
 	TestFalse(TEXT("Palette rejects Item WorldObjectDefinition without a direct ItemDefinition"), Palette->ValidatePalette(Messages));
-	TestTrue(TEXT("Legacy collectible palette rejection directs authors to CanonicalItemId"),
+	TestTrue(TEXT("Legacy collectible palette rejection directs authors to ItemId"),
 		Messages.ContainsByPredicate([](const FGridWorldObjectDefinitionValidationMessage& Message)
 		{
-			return Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error && Message.Message.Contains(TEXT("Use CanonicalItemId instead"));
+			return Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error && Message.Message.Contains(TEXT("Use ItemId instead"));
 		}));
 
 	TestFalse(TEXT("WorldObjectDefinition rejects collectible Item type"), LegacyDefinition->ValidateDefinition(Messages));
@@ -310,7 +310,7 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 		Runtime->TryDropItemInstanceAtCell(Unknown, nullptr, 0, 0, EGridEdge::None, FVector::ZeroVector));
 
 	LegacyDefinition->SupportedType = EGridLevelObjectType::Receptacle;
-	LegacyDefinition->DefaultBehavior.Receptacle.InitialContent.AddDefaulted_GetRef().CanonicalItemId = Definition->ItemDefinitionId;
+	LegacyDefinition->DefaultBehavior.Receptacle.InitialContent.AddDefaulted_GetRef().ItemId = Definition->ItemDefinitionId;
 	TestFalse(TEXT("Receptacle canonical ID cannot supply an obsolete runtime item definition"),
 		Runtime->TryDropItemInstanceAtCell(Unknown, nullptr, 0, 0, EGridEdge::None, FVector::ZeroVector));
 
@@ -333,7 +333,7 @@ bool FGridWorldObjectMIG05PaletteIconAuthorityTest::RunTest(const FString& Param
 
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("SilverKey");
-	Entry.CanonicalItemId = Definition->ItemDefinitionId;
+	Entry.ItemId = Definition->ItemDefinitionId;
 	Entry.Icon = NewObject<UTexture2D>();
 
 	TestFalse(TEXT("Direct collectible entry is invalid when Palette Icon duplicates ItemDefinition.Icon"), Entry.IsValidEntry());

@@ -59,7 +59,7 @@ namespace ARMEMENT01132
     const FGridItemInstance* Find(const FGridCharacterInventoryState& Character,
         const FGridCharacterEquipmentState& Equipment, const FRPGStartingEquipmentEntry& Entry)
     {
-        const FName Id = Entry.CanonicalItemId;
+        const FName Id = Entry.ItemId;
         if (Id.IsNone()) return nullptr;
         if (Entry.TargetSlot != EGridEquipmentSlot::None)
         {
@@ -224,16 +224,16 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
                 FGridResolvedItem NativeItem;
                 if (!TestTrue(TEXT("New Game source resolves from game-world ItemSystem"),
                     NativeWorld.Scope.Registry->ResolveItem(
-                        Entry.CanonicalItemId, Entry.ItemLevel, NativeItem)))
+                        Entry.ItemId, Entry.ItemLevel, NativeItem)))
                     return false;
                 TestEqual(TEXT("Persisted exact canonical physical ItemId"),
-                    Item->ItemDefinitionId, Entry.CanonicalItemId);
+                    Item->ItemDefinitionId, Entry.ItemId);
                 TestEqual(TEXT("Persisted explicit N1/N0 physical level"),
                     Item->ItemLevel, Entry.ItemLevel);
                 TestNull(TEXT("Canonical recipe never embeds an obsolete definition"),
                     Entry.ItemDefinition.Get());
                 TestNull(TEXT("No legacy map entry for a canonical starting item"),
-                    Party->FindItemDefinition(Entry.CanonicalItemId));
+                    Party->FindItemDefinition(Entry.ItemId));
                 if (Item->ItemDefinitionId == FName(TEXT("Item_Arrows_01")) && bBag)
                 {
                     if (Kit.KitId == FName(TEXT("Kit_Ranger_Marksman"))) bMarksmanArrows = Item->Quantity == 12;
@@ -341,8 +341,8 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
                     After->OwnerType == (Entry.TargetSlot == EGridEquipmentSlot::None
                         ? EGridItemOwnerType::CharacterInventory : EGridItemOwnerType::EquipmentSlot)) ||
                     !TestTrue(TEXT("Exact canonical ID available after disk load, without a legacy definition"),
-                        NativeWorld.Scope.Registry->ContainsItem(Entry.CanonicalItemId) &&
-                         Continued->FindItemDefinition(Entry.CanonicalItemId) == nullptr))
+                        NativeWorld.Scope.Registry->ContainsItem(Entry.ItemId) &&
+                         Continued->FindItemDefinition(Entry.ItemId) == nullptr))
                 {
                     return false;
                 }
@@ -399,7 +399,7 @@ bool FARMEMENT01132Legacy::RunTest(const FString&)
                     Entry.ItemDefinition.Get());
                 FGridResolvedItem Resolved;
                 TestTrue(TEXT("Every approved physical item resolves at the exact level"),
-                    Canonical.Resolve(Entry.CanonicalItemId, Entry.ItemLevel, Resolved));
+                    Canonical.Resolve(Entry.ItemId, Entry.ItemLevel, Resolved));
             }
         }
     }

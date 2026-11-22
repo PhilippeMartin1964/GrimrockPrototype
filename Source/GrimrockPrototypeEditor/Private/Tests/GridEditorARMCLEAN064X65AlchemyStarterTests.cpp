@@ -67,7 +67,7 @@ bool FGridEditorARMCLEAN064X65AlchemyStarterAuthoring::RunTest(const FString&)
         const FRPGStartingEquipmentEntry* Entry = Kit->Items.FindByPredicate(
             [&](const FRPGStartingEquipmentEntry& Row)
             {
-                return Row.CanonicalItemId == ItemIds[I];
+                return Row.ItemId == ItemIds[I];
             });
         if (!TestNotNull(TEXT("Explicit canonical consumable identity"), Entry)) continue;
         TestNull(TEXT("No historical pointer in approved starter"), Entry->ItemDefinition.Get());

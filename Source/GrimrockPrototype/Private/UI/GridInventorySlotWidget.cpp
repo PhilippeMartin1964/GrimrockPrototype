@@ -81,7 +81,7 @@ namespace
 		}
 	}
 
-	const UGridItemSubsystem* GetCanonicalItemRegistry(const UGridInventorySlotWidget* Slot)
+	const UGridItemSubsystem* GetItemRegistry(const UGridInventorySlotWidget* Slot)
 	{
 		if (!IsValid(Slot)) return nullptr;
 		const UWorld* World = Slot->GetWorld();
@@ -336,7 +336,7 @@ void UGridInventorySlotWidget::SetItem(const FGridItemInstance& InItem)
 	bHasItem = true;
 	CachedIconTexture = nullptr;
 	CachedVisualId = NAME_None;
-	const UGridItemSubsystem* Registry = GetCanonicalItemRegistry(this);
+	const UGridItemSubsystem* Registry = GetItemRegistry(this);
 	const FGridResolvedInventoryItemIcon Visual =
 		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(Registry, GetItemDefinition(), CachedItem);
 	CachedVisualId = Visual.VisualId;
@@ -380,7 +380,7 @@ const UGridItemDefinitionAsset* UGridInventorySlotWidget::GetItemDefinition() co
 	const UGridPartyInventoryComponent* InventoryComponent = InventoryWidget ? InventoryWidget->InventoryComponent : nullptr;
 
 	#if WITH_DEV_AUTOMATION_TESTS
-    if (!GetCanonicalItemRegistry(this) && GIsAutomationTesting && InventoryComponent)
+    if (!GetItemRegistry(this) && GIsAutomationTesting && InventoryComponent)
     {
         return InventoryComponent->FindItemDefinition(CachedItem.ItemDefinitionId);
     }
@@ -396,7 +396,7 @@ FString UGridInventorySlotWidget::GetDisplayNameText() const
 	}
 
 	const FGridInventoryItemMetadata Metadata = FGridInventoryItemMetadataReadModel::Resolve(
-		GetCanonicalItemRegistry(this), GetItemDefinition(), CachedItem);
+		GetItemRegistry(this), GetItemDefinition(), CachedItem);
 	return Metadata.DisplayName.IsEmpty() ? CachedItem.ItemDefinitionId.ToString()
 		: Metadata.DisplayName.ToString();
 }
@@ -420,7 +420,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	}
 
 	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
-	const UGridItemSubsystem* Registry = GetCanonicalItemRegistry(this);
+	const UGridItemSubsystem* Registry = GetItemRegistry(this);
 	const FGridInventoryItemMetadata Metadata = FGridInventoryItemMetadataReadModel::Resolve(
 		Registry, Definition, CachedItem);
 	View.bValid = true;
