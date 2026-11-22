@@ -148,10 +148,12 @@ bool FARMEMENT01102WarriorGuard::RunTest(const FString&)
             Fixture.Registry->ResolveBoundAttackForHand(
                 Item.ItemId, 1, FName(Spec.AttackId), EGridEquipmentSlot::MainHand, Attack)))
         {
-            TestEqual(TEXT("Action cost comes from canonical numeric source"),
-                Attack.Action.ActionPointCost, Item.Weapon.ActionPointCost);
-            TestEqual(TEXT("Action range comes from canonical numeric source"),
-                Attack.Action.RangeCells, Item.Weapon.RangeCells);
+            TestTrue(TEXT("Action costs and range belong only to canonical weapon numerics"),
+                Item.Weapon.ActionPointCost > 0 && Item.Weapon.RangeCells > 0);
+            TestNull(TEXT("Compact action must not duplicate weapon AP"),
+                FGridCanonicalAction::StaticStruct()->FindPropertyByName(TEXT("ActionPointCost")));
+            TestNull(TEXT("Compact action must not duplicate weapon range"),
+                FGridCanonicalAction::StaticStruct()->FindPropertyByName(TEXT("RangeCells")));
         }
     }
     TestEqual(TEXT("All four Warrior items are really materialized"), Present, 4);
