@@ -311,12 +311,12 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		}
 	}
 
-	if ((Capabilities.bCanConsumeLegacy && Definition) || Capabilities.bCanConsumeCanonical)
+	if ((Capabilities.bCanConsumeLegacy && Definition) || Capabilities.bCanConsumeItem)
 	{
 		FGridCombatActionDefinition QuickItemAction;
 		const FGridQuickItemUseReadView CanonicalUse =
 			FGridQuickItemUseReadModel::Resolve(ItemRegistry, ItemContext.Item);
-		bool bActionResolved = Capabilities.bCanConsumeCanonical && CanonicalUse.bResolved;
+		bool bActionResolved = Capabilities.bCanConsumeItem && CanonicalUse.bResolved;
 		if (bActionResolved)
 		{
 			QuickItemAction = CanonicalUse.Action;
@@ -333,7 +333,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 			QuickItemAction.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 			QuickItemAction.EffectProfile.IsValid();
 		bool bUsefulEffect = bSelfRestoration;
-		if (Capabilities.bCanConsumeCanonical && !CanonicalUse.bExplorationCompatible)
+		if (Capabilities.bCanConsumeItem && !CanonicalUse.bExplorationCompatible)
 		{
 			const UGridTurnManagerComponent* Turns = ItemContext.PartyPawn->LevelRuntimeActor
 				? ItemContext.PartyPawn->LevelRuntimeActor->FindComponentByClass<UGridTurnManagerComponent>()

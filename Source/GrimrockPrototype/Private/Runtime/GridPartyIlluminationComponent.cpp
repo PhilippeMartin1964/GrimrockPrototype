@@ -101,9 +101,9 @@ void UGridPartyIlluminationComponent::RefreshFromEquipment(UGridPartyInventoryCo
 
 			FGridLightEmitterConfig CandidateConfig;
 			bool bHasConfig = false;
-			const bool bCanonicalRegistered = Registry &&
+			const bool bItemRegistered = Registry &&
 				Registry->ContainsItem(CandidateItem.ItemDefinitionId);
-			if (bCanonicalRegistered)
+			if (bItemRegistered)
 			{
 				FGridResolvedItem Canonical;
 				if (!Registry->ResolveItem(CandidateItem.ItemDefinitionId,

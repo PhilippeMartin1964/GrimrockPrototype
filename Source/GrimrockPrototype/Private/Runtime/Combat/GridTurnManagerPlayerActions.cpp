@@ -73,7 +73,7 @@ namespace
 
 	// Transient execution view of the sole canonical weapon source.
 	// Used by ordinary attacks AND class actions that borrow equipped damage.
-	bool TryResolveCanonicalOffensiveProfile(
+	bool TryResolveOffensiveProfile(
 		const UGridItemSubsystem& Registry, const FGridItemInstance& Equipped,
 		EGridEquipmentSlot SourceHand, FGridOffensiveEquipmentProfile& Out,
 		FGridResolvedItem& OutItem)
@@ -1312,7 +1312,7 @@ bool UGridTurnManagerComponent::ResolveCombatActionWeaponProfile(const UGridPart
 			{
 				continue;
 			}
-			if (!TryResolveCanonicalOffensiveProfile(
+			if (!TryResolveOffensiveProfile(
 					*Canonical, EquippedItem, HandSlot, OutProfile, Item) ||
 				!ActionDefinition.WeaponAttackProfile.ApplyToOffensiveProfile(
 					ActionDefinition.ActionId, ActionDefinition.RangeCells, OutProfile))
@@ -1418,7 +1418,7 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyIn
 		if (Canonical && Canonical->ContainsItem(EquippedItem.ItemDefinitionId))
 		{
 			FGridResolvedItem Item;
-			if (!TryResolveCanonicalOffensiveProfile(
+			if (!TryResolveOffensiveProfile(
 					*Canonical, EquippedItem, RequestedEquipmentSlot, OutProfile, Item))
 			{
 				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
@@ -1484,7 +1484,7 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyIn
 			{
 				continue;
 			}
-			if (!TryResolveCanonicalOffensiveProfile(
+			if (!TryResolveOffensiveProfile(
 					*Canonical, EquippedItem, HandSlot, OutProfile, Item))
 			{
 				OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;

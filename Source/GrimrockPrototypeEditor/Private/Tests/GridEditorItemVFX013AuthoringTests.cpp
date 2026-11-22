@@ -95,7 +95,7 @@ bool FGridItemVFX013ProductionPreflightTest::RunTest(const FString& Parameters)
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Items(NewObject<UGridItemSubsystem>(GI.Get()));
     UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
     if (!TestNotNull(TEXT("Canonical ItemSystem root"), Root)) return false;
     TArray<FString> Errors;
     if (!TestTrue(TEXT("Canonical ItemSystem registers"), Items->RegisterItemSystem(Root, Errors)))
@@ -125,7 +125,7 @@ bool FGridItemVFX013MigratedProductionTest::RunTest(const FString& Parameters)
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Items(NewObject<UGridItemSubsystem>(GI.Get()));
     UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
     if (!TestNotNull(TEXT("Canonical ItemSystem root"), Root)) return false;
     TArray<FString> Errors;
     if (!TestTrue(TEXT("Canonical ItemSystem registers"), Items->RegisterItemSystem(Root, Errors)))

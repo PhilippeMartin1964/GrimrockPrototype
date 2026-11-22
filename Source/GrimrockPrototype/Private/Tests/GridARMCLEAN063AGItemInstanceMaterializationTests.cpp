@@ -18,7 +18,7 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     TestNull(TEXT("No reflected instance name"), FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
     TestNull(TEXT("No reflected instance weight"), FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real ItemSystem"), Root.Get())) return false;
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));

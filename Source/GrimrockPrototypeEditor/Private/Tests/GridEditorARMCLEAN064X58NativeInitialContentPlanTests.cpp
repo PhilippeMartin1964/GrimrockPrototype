@@ -16,7 +16,7 @@ bool FGridEditorARMCLEAN064X58NativeInitialPlan::RunTest(const FString&)
 {
     using FPlan = FGridEditorNativeInitialContentPlan;
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real ItemSystem"), Root.Get()) ||
         !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
         return false;

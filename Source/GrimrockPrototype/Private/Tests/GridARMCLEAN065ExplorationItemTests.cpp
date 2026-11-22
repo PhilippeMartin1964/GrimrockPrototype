@@ -14,7 +14,7 @@ bool FGridARMCLEAN065ExplorationItemReaders::RunTest(const FString&)
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     TArray<FString> Errors;
     if (!TestNotNull(TEXT("Real registry"), Root.Get()) ||
         !TestTrue(TEXT("Register actual native definitions"), Registry->RegisterItemSystem(Root.Get(), Errors))) return false;

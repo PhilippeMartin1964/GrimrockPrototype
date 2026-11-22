@@ -42,7 +42,7 @@ namespace ARMEMENT0171Tests
             : GI(NewObject<UGameInstance>()),
               Registry(NewObject<UGridItemSubsystem>(GI.Get())),
               Root(LoadObject<UGridItemSystemAsset>(nullptr,
-                  TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")))
+                  TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")))
         {
         }
 

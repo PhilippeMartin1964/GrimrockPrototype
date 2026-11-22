@@ -1,4 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
+#include "Engine/AssetManager.h"
+#include "Misc/PackageName.h"
+#include "UObject/CoreRedirects.h"
 
 #include "Misc/AutomationTest.h"
 #include "../ARMEMENT/GridEditorRetirementAudit.h"
@@ -62,6 +65,50 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         TestTrue(TEXT("Every candidate has a declared role"),
             Row.IsValid() && !Row->GetStringField(TEXT("retirement_role")).IsEmpty());
     }
+    const auto& ActivePackages = Audit.Report->GetArrayField(TEXT("active_packages"));
+    TestEqual(TEXT("Root owns 53 distinct live packages"), ActivePackages.Num(), 53);
+    const auto& Aliases = Audit.Report->GetArrayField(TEXT("active_compatibility_redirectors"));
+    TestEqual(TEXT("All 53 former paths remain live compatibility aliases"), Aliases.Num(), 53);
+    int32 RedirectedIds = 0;
+    for (const auto& Value : Aliases)
+    {
+        const auto Row = Value->AsObject();
+        const FString Package = Row->GetStringField(TEXT("package"));
+        const FString Target = Row->GetStringField(TEXT("target"));
+        TestTrue(TEXT("Alias target belongs to the live Items tree"),
+            Target.StartsWith(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/")));
+        const FString OldPath = Package + TEXT(".") + FPackageName::GetShortName(Package);
+        // Cook omits UObjectRedirector packages. Config-backed exact object
+        // redirects preserve runtime soft paths; native aliases serve Editor loads.
+        TestEqual(TEXT("Former object path has a runtime core asset redirect"),
+            FCoreRedirects::GetRedirectedName(ECoreRedirectFlags::Type_Object,
+                FCoreRedirectObjectName(OldPath)).ToString(),
+            Target + TEXT(".") + FPackageName::GetShortName(Target));
+        // In Editor, a loaded UObjectRedirector deliberately prevents an
+        // in-place Core fixup. Verify its native path and the mapped runtime
+        // path separately, without unloading or modifying any package.
+        const FSoftObjectPath RuntimePath(FCoreRedirects::GetRedirectedName(
+            ECoreRedirectFlags::Type_Object, FCoreRedirectObjectName(OldPath)).ToString());
+        const auto* Asset = LoadObject<UPrimaryDataAsset>(nullptr, *OldPath);
+        if (!TestNotNull(TEXT("Former object path resolves to a primary data asset"), Asset)) continue;
+        TestTrue(TEXT("Mapped runtime soft path loads the same asset as its native alias"), RuntimePath.TryLoad() == Asset);
+        TestTrue(TEXT("Former soft path loads through its native Editor alias"), FSoftObjectPath(OldPath).TryLoad() == Asset);
+        const FPrimaryAssetId CurrentId = Asset->GetPrimaryAssetId();
+        const FPrimaryAssetId OldId(CurrentId.PrimaryAssetType, FName(*FPackageName::GetShortName(Package)));
+        if (OldId == CurrentId)
+        {
+            // UE returns an invalid ID when no redirect is required.
+            TestFalse(TEXT("Unchanged PrimaryAssetId has no artificial self-redirect"),
+                UAssetManager::Get().GetRedirectedPrimaryAssetId(OldId).IsValid());
+        }
+        else
+        {
+            TestEqual(TEXT("Derived former PrimaryAssetId redirects to current identity"),
+                UAssetManager::Get().GetRedirectedPrimaryAssetId(OldId), CurrentId);
+            ++RedirectedIds;
+        }
+    }
+    TestEqual(TEXT("Exactly 50 derived PrimaryAssetIds were renamed"), RedirectedIds, 50);
     const auto& Categories = Audit.Report->GetArrayField(TEXT("puzzle_category_sources"));
     TestEqual(TEXT("No obsolete type source remains after cutover"), Categories.Num(), 0);
     TSet<FName> CategoryIds;

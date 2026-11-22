@@ -116,7 +116,7 @@ bool FGridMonsterMON177ProductionLootBaselineTest::RunTest(const FString& Parame
 
 	UGridMonsterDefinitionAsset* Goblin = LoadGoblinDefinition(*this);
 	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
 	if (!TestNotNull(TEXT("Canonical production item registry loads"), Root) || !Goblin) return false;
 	const UGridCanonicalItemDefinitionAsset* Knife = FindCanonicalItemDefinition(*this, Root, TEXT("GoblinKnife"));
 	const UGridCanonicalItemDefinitionAsset* Stone = FindCanonicalItemDefinition(*this, Root, TEXT("Stone"));

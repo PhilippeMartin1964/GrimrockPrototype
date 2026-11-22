@@ -15,7 +15,7 @@ namespace ARMEMENT011713
 		TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
 		TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
 		UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
 		if (!Test.TestNotNull(TEXT("Production canonical ItemSystem loads"), Root)) return false;
 		TArray<FString> Errors;
 		if (!Test.TestTrue(TEXT("Production canonical registry validates"),

@@ -4,7 +4,7 @@ Référence fonctionnelle et recette ARM-CLEAN06 : `420dce2ee4f55c3630e8a99fa7ae
 
 ## Lecture du modèle
 
-Mise à jour CLEANUP02 : noms internes simplifiés, sans évolution du schéma ou des identités. La référence fonctionnelle reste `420dce2e`. 24 types réfléchis et dix propriétés portent désormais des noms métier avec redirections de compatibilité. Les trois classes dont le nom cible reste occupé sont conservées ; les chemins d’assets relèvent du lot natif suivant.
+Mise à jour CLEANUP02 : noms internes simplifiés, sans évolution du schéma ou des identités. La référence fonctionnelle reste `420dce2e`. 24 types réfléchis et dix propriétés portent désormais des noms métier avec redirections de compatibilité. Les trois classes dont le nom cible reste occupé sont conservées ; les 53 assets sont organisés sous `Items/`, avec conservation des 53 anciens chemins par redirecteurs natifs et de 50 Primary Asset IDs dérivés par alias. Les identités métier restent inchangées. Les anciens chemins restent aussi couverts en Shipping par 53 Core Asset Redirects exacts (chemins d’objet), car les `UObjectRedirector` ne sont pas embarqués comme packages IoStore.
 
 Le SVG initial était un modèle relationnel de 29 entités et 37 relations. Ces 29 entités sont conservées, corrigées ou identifiées comme projections de champs embarqués. Le modèle enrichi comprend 47 entités ou sous-ensembles, répartis en six panneaux. Ce découpage ne change pas le modèle relationnel : les références `FK → [panneau]` relient les domaines sans faire traverser les autres entités par des traits.
 
@@ -32,9 +32,11 @@ La base abstraite `UGridCanonicalItemDefinitionAsset` contient exactement les ci
 
 Les quatre dernières classes héritent de `UGridNonArmamentDefinitionAsset`. `GENERIC_ITEM_VISUAL` de l'ancien SVG correspond donc à des champs de cette classe, pas à une table indépendante 1:1 attachée à tous les objets. Les visuels non ARM n'appartiennent pas au catalogue visuel ARM. Les consommables disposent encore de `UseActions` ; la validation interdit de remplir simultanément cette liste et `ActionBindings` héritée.
 
+Les assets sont organisés sous `Content/GrimrockPrototype/Core/DataAssets/Items/` : racine `DA_ItemSystem`, quatre catalogues dans `Catalogues/` (`DA_WeaponCatalogue`, `DA_WeaponVisualCatalogue`, `DA_ActionCatalogue`, `DA_ActionPresentationCatalogue`) et 48 définitions dans `Definitions/`, notamment `DA_Weapon_ThrowingKnife_01`. `CanonicalStage/` ne contient plus que les 53 redirecteurs de compatibilité ; aucune seconde définition n’y est conservée. Le Cook inclut les deux arborescences ainsi que les deux Readables protégés dans `Tests/Readables/`. Les Primary Asset IDs dérivés du nom ont 50 redirections ; aucun ItemId, ActionId, ArchetypeId ou GUID n’est renommé. Les classes C++ en collision gardent leur nom actuel, ce qui ne rend pas les anciens catalogues historiques actifs.
+
 ## B — Armement, progression et classes
 
-`DA_CanonicalWeaponCatalogue` contient **82 archétypes** et **6 préférences de classe**. Les 22 définitions ARM actuelles n'en matérialisent qu'une partie ; la présence d'une ligne numérique ne prouve pas sa disponibilité complète en gameplay. Le rapport natif de retrait résout 466 couples objet/niveau : 22 × 20 ARM + 26 non ARM au niveau zéro.
+`DA_WeaponCatalogue` contient **82 archétypes** et **6 préférences de classe**. Les 22 définitions ARM actuelles n'en matérialisent qu'une partie ; la présence d'une ligne numérique ne prouve pas sa disponibilité complète en gameplay. Le rapport natif de retrait résout 466 couples objet/niveau : 22 × 20 ARM + 26 non ARM au niveau zéro.
 
 `FGridWeaponArchetype` porte l'autorité mécanique : `Kind`, `HandPolicy`, `AttackSourceSlots`, type/sous-type de dégâts, attribut d'échelle, précision, PA, portée, N1, croissance, réactions, projectile, affinités et bindings d'actions. `bHandAndKindProven` constitue un garde explicite. Équiper en main gauche ne confère pas automatiquement une attaque en main gauche.
 
@@ -46,7 +48,7 @@ Les affinités sont `PrimaryClassId`, `SecondaryClassIds`, `SecondarySourceLabel
 
 ## C — Autorités visuelles
 
-`DA_CanonicalWeaponVisualCatalogue` contient `ArchetypeBindings`, `VisualProfiles`, `ActionIcons`. Une liaison joint `ArchetypeId` à `VisualId`. Le profil possède icône d'objet, meshes monde/équipé/décoration, transformations, finitions, lumière, VFX permanents, scintillement et projectile visuel. `ProjectileAppearance` distingue pose, axes, rotation stable/tumble/spin ; la balistique reste dans le domaine mécanique.
+`DA_WeaponVisualCatalogue` contient `ArchetypeBindings`, `VisualProfiles`, `ActionIcons`. Une liaison joint `ArchetypeId` à `VisualId`. Le profil possède icône d'objet, meshes monde/équipé/décoration, transformations, finitions, lumière, VFX permanents, scintillement et projectile visuel. `ProjectileAppearance` distingue pose, axes, rotation stable/tumble/spin ; la balistique reste dans le domaine mécanique.
 
 `ActionIcons` est une map de **12 catégories** `EGridEquippedWeaponActionIconKind` vers des textures. Cette map n'est ni une définition d'action ni l'icône de l'objet. L'ancienne palette `DA_EquippedWeaponActionIcons` est retirée ; son absence est contrôlée par Automation. Une catégorie d'icône est dérivée, sans relation FK persistée depuis chaque binding.
 

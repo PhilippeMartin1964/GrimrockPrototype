@@ -42,7 +42,7 @@ bool FGridLightCONFIG02SinglePointLightAuthorityTest::RunTest(const FString& Par
 	TestTrue(TEXT("Canonical point-light configuration remains valid"), Config.IsValid());
 
 	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
 	if (!TestNotNull(TEXT("Canonical production registry loads"), Root)) return false;
 	const UGridNonArmamentDefinitionAsset* TorchDefinition = nullptr;
 	for (const TObjectPtr<UGridCanonicalItemDefinitionAsset>& Entry : Root->ItemDefinitions)

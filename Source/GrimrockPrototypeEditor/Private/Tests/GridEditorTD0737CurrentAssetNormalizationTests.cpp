@@ -196,7 +196,7 @@ bool FGridTD0737RatLootDefinitionsNormalizedTest::RunTest(const FString& Paramet
 	// H.21: rat loot is now authorized by DA_ItemSystem. Do not require the
 	// retired DA_Item_RatMeat/DA_Item_RatTooth in a production test.
 	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
 	UGridMonsterDefinitionAsset* Rat = LoadObject<UGridMonsterDefinitionAsset>(nullptr,
 		TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant"));
 	if (!TestNotNull(TEXT("Canonical item registry exists"), Root) ||

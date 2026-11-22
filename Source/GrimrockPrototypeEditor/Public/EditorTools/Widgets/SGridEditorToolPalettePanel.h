@@ -90,8 +90,8 @@ private:
 	FOnGetGridEditorToolPaletteActor OnGetEditorActor;
 	FOnGridEditorToolPaletteRequestRefresh OnRequestRefresh;
 	TSharedPtr<SVerticalBox> PaletteResultsRoot;
-	TStrongObjectPtr<UGameInstance> CanonicalPreviewGI;
-	TStrongObjectPtr<UGridItemSubsystem> CanonicalPreviewRegistry;
+	TStrongObjectPtr<UGameInstance> ItemPreviewGI;
+	TStrongObjectPtr<UGridItemSubsystem> ItemPreviewRegistry;
 	bool bRegisteredPreviewReady = false;
 };
 

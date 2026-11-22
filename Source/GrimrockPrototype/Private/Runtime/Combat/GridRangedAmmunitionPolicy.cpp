@@ -5,7 +5,7 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
 
-bool FGridRangedAmmunitionPolicy::TryResolveCanonicalLaunchSpeed(
+bool FGridRangedAmmunitionPolicy::TryResolveLaunchSpeed(
 	const FGridResolvedItem* Weapon, const FGridResolvedItem& Ammo, float& OutSpeed)
 {
 	OutSpeed = 0.0f;
@@ -63,7 +63,7 @@ FGridRangedAmmunitionRequirement FGridRangedAmmunitionPolicy::ResolveForAttack(
 		Result.AmmunitionItemId = Ammo.ItemId;
 		Result.AmmunitionWeightKg = Ammo.WeightKg;
 		Result.AmmunitionMaxStack = Ammo.MaxStack;
-		Result.bValid = TryResolveCanonicalLaunchSpeed(&Weapon, Ammo, Result.AmmunitionLaunchSpeed);
+		Result.bValid = TryResolveLaunchSpeed(&Weapon, Ammo, Result.AmmunitionLaunchSpeed);
 		return Result;
 	}
 

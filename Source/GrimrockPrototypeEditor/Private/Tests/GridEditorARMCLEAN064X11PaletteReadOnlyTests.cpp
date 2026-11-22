@@ -16,7 +16,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorClean064X11RealPalette,
 bool FGridEditorClean064X11RealPalette::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     TStrongObjectPtr<UGridObjectPaletteAsset> Palette(LoadObject<UGridObjectPaletteAsset>(
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.DA_ObjectPalette_Default")));
     if (!TestNotNull(TEXT("Native canonical item registry"), Root.Get()) ||

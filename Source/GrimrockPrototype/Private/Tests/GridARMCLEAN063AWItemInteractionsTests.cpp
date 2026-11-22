@@ -174,7 +174,7 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
     TestFalse(TEXT("Unregistered reading is not canonical"), Legacy.bRegisteredIdentity);
     TestFalse(TEXT("Configured registry refuses unknown readable source"),
         Legacy.bResolved || Legacy.bCanRead || Legacy.bCanConsumeLegacy ||
-        Legacy.bCanConsumeCanonical || Legacy.bCanAddToHotbar || Legacy.bPhysicalThrowHotbar);
+        Legacy.bCanConsumeItem || Legacy.bCanAddToHotbar || Legacy.bPhysicalThrowHotbar);
     TestTrue(TEXT("Unknown reader exposes no historical presentation"),
         Legacy.DisplayName.IsEmpty() && Legacy.DefaultReadText.IsEmpty());
     FGridItemInstance UnknownWithText = F.Make(Book->ItemDefinitionId, 0);

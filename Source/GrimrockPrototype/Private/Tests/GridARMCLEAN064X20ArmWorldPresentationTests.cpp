@@ -15,8 +15,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X20ArmWorldPresentation,
 bool FGridClean064X20ArmWorldPresentation::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Actual(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-                      "DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Actual item system"), Actual.Get()) ||
         !TestNotNull(TEXT("Actual ARM visual catalogue"), Actual->WeaponVisualCatalogue.Get()))
     {

@@ -22,7 +22,7 @@ bool FGridClean064X1661RealAcceptanceManifest::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> ItemSystem(
         LoadObject<UGridItemSystemAsset>(nullptr,
-            TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+            TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real ItemSystem"), ItemSystem.Get())) return false;
     const bool bSystemDirty = ItemSystem->GetOutermost()->IsDirty();
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());

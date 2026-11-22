@@ -17,8 +17,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X50LockRuleAuthoring,
 bool FGridEditorARMCLEAN064X50LockRuleAuthoring::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-                      "DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real ItemSystem root"), Root.Get())) return false;
     const bool bRootDirty = Root->GetOutermost()->IsDirty();
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());

@@ -58,9 +58,9 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		const bool bExplicitCanonical = !Entry.ItemId.IsNone();
 		const FName ItemId = bExplicitCanonical ? Entry.ItemId
 			: (IsValid(Definition) ? Definition->ItemDefinitionId : NAME_None);
-		const bool bCanonicalRegistered = CanonicalRegistry &&
+		const bool bItemRegistered = CanonicalRegistry &&
 			CanonicalRegistry->ContainsItem(ItemId);
-		if (!bAllowLegacyFixture && !bCanonicalRegistered)
+		if (!bAllowLegacyFixture && !bItemRegistered)
 		{
 			OutError = TEXT("Starting kit item is not registered in the canonical ItemSystem.");
 			return false;
@@ -68,7 +68,7 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		if (ItemId.IsNone() ||
 			Entry.ItemLevel < 0 || Entry.ItemLevel > 20 || Entry.Quantity < 1 ||
 			(!IsValid(Definition) && !bExplicitCanonical) ||
-			(bExplicitCanonical && (!bCanonicalRegistered ||
+			(bExplicitCanonical && (!bItemRegistered ||
 				(IsValid(Definition) && Definition->ItemDefinitionId != ItemId))))
 		{
 			OutError = TEXT("Starting kit contains an invalid item definition, canonical ID, level or quantity.");
@@ -77,12 +77,12 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		// All production kits have been migrated (5C). A registered
 		// physical item now requires an explicit stable ID and level.
 		// Never resurrect the old pointer-only N0/default-level rule.
-		if (bCanonicalRegistered && !bExplicitCanonical)
+		if (bItemRegistered && !bExplicitCanonical)
 		{
 			OutError = TEXT("Registered starting kit item requires ItemId and an explicit physical level.");
 			return false;
 		}
-		const bool bExplicitNative = bCanonicalRegistered;
+		const bool bExplicitNative = bItemRegistered;
 		FGridResolvedItem NativeItem;
 		if (bExplicitNative &&
 			(!CanonicalRegistry->ResolveItem(ItemId, Entry.ItemLevel, NativeItem) ||

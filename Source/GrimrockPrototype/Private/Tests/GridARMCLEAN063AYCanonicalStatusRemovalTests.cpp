@@ -171,7 +171,7 @@ bool FGridClean063AYStatusProjection::RunTest(const FString&)
     TestTrue(TEXT("Status cleanse may be assigned to combat hotbar"),
         Capability.bCanAddToHotbar);
     TestFalse(TEXT("No inline Consume action for combat-only status removal"),
-        Capability.bCanConsumeCanonical);
+        Capability.bCanConsumeItem);
     TestFalse(TEXT("No physical throw shortcut"), Capability.bPhysicalThrowHotbar);
 
     auto TryProject = [&Item](FGridResolvedBoundAction Modified)

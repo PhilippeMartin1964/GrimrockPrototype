@@ -103,7 +103,7 @@ bool FGridTD07352ShurikenAssetAuthorityTest::RunTest(const FString& Parameters)
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
     UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
     if (!TestNotNull(TEXT("Canonical root loads"), Root))
         return false;
     TArray<FString> Errors;

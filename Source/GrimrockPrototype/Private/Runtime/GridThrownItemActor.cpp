@@ -187,13 +187,13 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GameInstance
 		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	bool bRequireCanonical = true;
+	bool bRequireRegisteredItem = true;
 #if WITH_DEV_AUTOMATION_TESTS
-	bRequireCanonical = !GIsAutomationTesting || GameInstance != nullptr;
+	bRequireRegisteredItem = !GIsAutomationTesting || GameInstance != nullptr;
 #endif
 	const FGridProjectileVisualView Canonical =
 		FGridProjectileVisuals::Resolve(Registry, InItemInstance);
-	if ((bRequireCanonical || Canonical.bRegisteredIdentity) &&
+	if ((bRequireRegisteredItem || Canonical.bRegisteredIdentity) &&
 		(!InItemInstance.IsValid() || InItemInstance.Quantity != 1 ||
 		 !Canonical.bRegisteredIdentity || !Canonical.bResolved))
 	{
@@ -208,8 +208,8 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	ImpactDropOffset = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowImpactDropOffset) : 12.0f;
 	const bool bRegisteredNonArmFlight = Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bIsNonArmament;
 	const bool bRegisteredGenericArm = Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bGenericArmamentFlight;
-	const bool bPointerlessCanonical = Canonical.bRegisteredIdentity;
-	if (bPointerlessCanonical)
+	const bool bIdentityOnlyItem = Canonical.bRegisteredIdentity;
+	if (bIdentityOnlyItem)
 	{
 		InDefinition = nullptr;
 		ImpactDropOffset = 12.0f;
@@ -219,7 +219,7 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		InDefinition = nullptr; // Never attach an obsolete non-ARM definition.
 		ImpactDropOffset = FMath::Max(0.0f, Canonical.GenericThrow.ImpactDropOffset);
 	}
-	if (bPointerlessCanonical)
+	if (bIdentityOnlyItem)
 	{
 		// Complete physical presentation for a registered projectile that no
 		// longer has an old DA_Item/DA_Weapon: world mesh, Niagara and light.
@@ -257,12 +257,12 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	{
 		ImpactDropOffset = FMath::Max(0.0f, Canonical.FlightPolicy.ImpactDropOffset);
 	}
-	bUseCanonicalProjectileForwardAxis = bRegisteredArmamentProjectile || bRegisteredNonArmFlight;
+	bUseResolvedProjectileForwardAxis = bRegisteredArmamentProjectile || bRegisteredNonArmFlight;
 	if (bRegisteredNonArmFlight)
-		CanonicalProjectileForwardAxis = Canonical.GenericThrow.MeshForwardAxis;
+		ResolvedProjectileForwardAxis = Canonical.GenericThrow.MeshForwardAxis;
 	if (bRegisteredArmamentProjectile)
 	{
-		CanonicalProjectileForwardAxis = Canonical.Appearance.MeshForwardAxis;
+		ResolvedProjectileForwardAxis = Canonical.Appearance.MeshForwardAxis;
 		if (MeshComponent)
 		{
 			MeshComponent->SetStaticMesh(Canonical.ProjectileMesh.LoadSynchronous());
@@ -386,9 +386,9 @@ void AGridThrownItemActor::AlignMeshForwardToFlight()
 	{
 		return;
 	}
-	if (bUseCanonicalProjectileForwardAxis)
+	if (bUseResolvedProjectileForwardAxis)
 	{
-		MeshComponent->SetRelativeRotation(FGridProjectileGeometry::MeshToFlightRotation(CanonicalProjectileForwardAxis));
+		MeshComponent->SetRelativeRotation(FGridProjectileGeometry::MeshToFlightRotation(ResolvedProjectileForwardAxis));
 	}
 	else if (Definition)
 	{

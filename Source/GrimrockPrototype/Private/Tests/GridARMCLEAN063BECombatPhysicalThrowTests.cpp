@@ -24,7 +24,7 @@ namespace ARMCLEAN063BE
         TStrongObjectPtr<UGridItemSubsystem>& Registry)
     {
         Root.Reset(LoadObject<UGridItemSystemAsset>(nullptr,
-            TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+            TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
         if (!Test.TestNotNull(TEXT("Production DA_ItemSystem"), Root.Get()))
             return false;
         GI.Reset(NewObject<UGameInstance>());

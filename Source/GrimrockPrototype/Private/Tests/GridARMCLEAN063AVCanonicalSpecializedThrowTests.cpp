@@ -332,7 +332,7 @@ bool FGridClean065DGenericThrow::RunTest(const FString&)
     ARMCLEAN063AV::FFixture F;
     if (!TestTrue(TEXT("Configured real registry"), F.Ready())) return false;
     auto* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
     if (!TestNotNull(TEXT("Native root"), Root)) return false;
     const FVector Start = F.Runtime->GetCellCenterWorld(0, 0, 100.f);
     const FVector Velocity(1200.f, 0.f, 100.f);
@@ -392,7 +392,7 @@ bool FGridClean065D3GenericArmFlight::RunTest(const FString&)
     ARMCLEAN063AV::FFixture F;
     if (!TestTrue(TEXT("Actual runtime registry"), F.Ready())) return false;
     auto* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
     if (!TestNotNull(TEXT("Native root"), Root)) return false;
     int32 Authored = 0;
     for (const auto& D : Root->ItemDefinitions)

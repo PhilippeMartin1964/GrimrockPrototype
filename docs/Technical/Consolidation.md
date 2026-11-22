@@ -2,11 +2,97 @@
 
 **Référence :** `master`, `a8de4f58b6c7ecc42e62aef0dbbe8fa9b7ede272`, relevé du 22 novembre 2026. Lot documentaire limité à [DataModel.svg](../Architecture/DataModel.svg), [DataModel.md](../Architecture/DataModel.md) et ce fichier. Aucun code, asset, script, configuration ou SaveGame modifié ; aucun renommage ou retrait engagé. Cette référence et ses constats datés sont conservés ci-dessous ; l’état courant et la clôture ARM-CLEAN06 figurent dans la mise à jour suivante.
 
-## État courant — ARM-CLEAN06 clos, CLEANUP02 en cours
+## État courant — ARM-CLEAN06 clos, CLEANUP02 — nomenclature consolidée
 
 ARM-CLEAN06 est **clos**, sur confirmation utilisateur des recettes PIE et Shipping : Continue, inventaire, équipement, présentation, combat et Save/Continue validés. Référence fonctionnelle `420dce2ee4f55c3630e8a99fa7ae9d77299a461e` : SilentTask/LocalAuto SUCCESS, 2 044 tests réussis (48 avec avertissements analysés), sept copies v27 compatibles dont les deux récentes, originaux inchangés, Build/Cook/Stage/Package/Archive Shipping réussis. Preuves privées conservées sous `D:/GrimrockNativeSnapshots/ARM_CLEAN06_FinalAcceptance_420dce2ee4f5_20261122-155244/`. Le problème visuel de ciblage déjà reporté reste hors périmètre.
 
-Le lot des noms internes est publié sous `809a677f` (Editor + Shipping + 2 044 tests locaux, puis statuts Windows exacts contrôlés avant la suite). Le lot réfléchi renomme 24 types et dix propriétés, plus 20 helpers/membres C++ associés. **34 Core Redirects** sont ajoutés ; les enums conservent aussi leurs noms de valeurs sérialisées par `ValueChanges`. Les anciennes classes et leurs trois noms occupés restent intactes. Validation locale : Editor et Shipping compilés, 2 044 tests Grimrock réussis, 53 assets avec toutes leurs propriétés métier identiques après résolution des anciens noms, 70 Blueprints compilés sans réenregistrement, sept copies v27 rechargées et round-trippées sans perte. Empreintes originales et Readables inchangées. Les anciens chemins sont testés par le chargement des vrais assets et par les copies v27, sans conversion de sauvegarde.
+Le lot des noms internes est publié sous `809a677f` (Editor + Shipping + 2 044 tests locaux, puis statuts Windows exacts contrôlés avant la suite). Le lot réfléchi `9fe0f3a2` a également reçu SilentTask et LocalAuto SUCCESS sur son SHA exact. Il renomme 24 types et dix propriétés, plus 20 helpers/membres C++ associés. **34 Core Redirects** sont ajoutés ; les enums conservent aussi leurs noms de valeurs sérialisées par `ValueChanges`. Les anciennes classes et leurs trois noms occupés restent intactes. Validation locale : Editor et Shipping compilés, 2 044 tests Grimrock réussis, 53 assets avec toutes leurs propriétés métier identiques après résolution des anciens noms, 70 Blueprints compilés sans réenregistrement, sept copies v27 rechargées et round-trippées sans perte. Empreintes originales et Readables inchangées. Les anciens chemins sont testés par le chargement des vrais assets et par les copies v27, sans conversion de sauvegarde.
+
+Le dernier lot organise **53 assets** sous `Items/` (racine, quatre catalogues, 48 définitions), avec **50 noms simplifiés**, par `AssetTools.rename_assets` et enregistrement natif Unreal uniquement. Les 53 fichiers source sont devenus des `ObjectRedirector`, sans suppression des anciens chemins. Snapshot privé vérifié avant écriture ; toutes les propriétés métier sont égales après normalisation des seuls chemins. **50 `PrimaryAssetIdRedirects`** préservent aussi les identités dérivées des noms : ces assets n’étaient pas inscrits à un scan AssetManager, mais leur contrat natif reste couvert. Le Cook conserve `Items/` et `CanonicalStage/`. Comme IoStore n’embarque pas les `UObjectRedirector` en packages, **53 Core Asset Redirects exacts** garantissent la résolution des anciens chemins d’objet par `FSoftObjectPath` en Shipping ; le test vérifie la correspondance `FCoreRedirects`, le chargement du chemin final et l’ancien chemin via son alias natif. En Editor, un redirecteur déjà chargé empêche volontairement le fixup en place ; le contrôle distingue donc ces deux contrats. Les chemins de package natifs restent portés par les redirecteurs Editor ; aucune redirection INI de package seul ne court-circuite le renommage du nom d’objet. Aucun identifiant métier durable n’a changé. Les deux Readables restent à leur emplacement exact.
+
+Le contrôle de retrait dérive ses 53 packages actifs de la racine validée ; il ne dispense pas globalement le dossier `Items/` d’audit. Les redirecteurs de nomenclature ne sont exclus des candidats historiques que s’ils résolvent vers ces packages. Les anciennes définitions, catalogues, palette et redirecteur ThrowingKnife doivent toujours être absents ; seuls les deux Readables restent candidats protégés. Le test existant vérifie en plus les 53 anciens chemins, leurs redirections Core de chemin complet et leurs Primary Asset IDs. Dix-neuf noms internes de leurs consommateurs sont harmonisés (`ItemPreviewRegistry`, `ResolvedProjectileForwardAxis`, `TryResolveLaunchSpeed`, indicateurs d’instances enregistrées), sans changer les décisions du code.
+
+### Validation du dernier lot et intégrité
+
+Development Editor et Shipping compilés ; suite Grimrock complète : **2 044 réussites** (1 997 sans avertissement, 47 avec avertissements attendus), zéro échec et zéro test non exécuté. L’écart 47/48 avec le poste de validation correspond à la disponibilité locale de FireFX déjà identifiée, pas à un test retiré. Les 53 assets ont été rechargés depuis le disque et comparés champ par champ au snapshot ; 70 Blueprints compilés en mémoire, sans réenregistrement, zéro erreur de compilateur. Sept copies v27 : décodage, reconstitution des instances, validation monde, projections et round-trips sémantiques égaux ; empreintes des sept originaux, des copies d’audit et des deux Readables inchangées.
+
+Build/Cook/Stage/Package/Archive Shipping réussis sur le contenu du lot avant publication. Contrôle supplémentaire par listing natif UnrealPak/IoStore : les 53 packages courants sont présents. L’absence des deux Readables dans le premier Cook a conduit à leur inclusion explicite par `DirectoriesToAlwaysCook`, sans modifier leurs assets ; le second packaging les contient bien tous les deux. Le message Windows de rattachement du ShaderCompileWorker au job object n’empêche pas le Cook ; le commandlet de Cook finit avec zéro erreur et zéro avertissement. La validation après push sur le SHA exact et le packaging archivé à ce SHA restent suivis jusqu’à clôture, sans assimiler un résultat parent au nouveau commit.
+
+SVG : XML valide, 96 IDs uniques, 47 entités (37 vertes, cinq ambre, cinq futures), aucun chevauchement ni débordement détecté ; rendu contrôlé. `git diff --check` sans erreur. Preuves et snapshots privés conservés dans `D:/GrimrockNativeSnapshots/CLEANUP02_20261122-162148/` ; aucune donnée de partie publiée.
+
+Inventaire courant après ce lot : **4 355 fichiers/entrées**, dont 1 445 sous `Source/` (1 440 C++ `.h/.cpp/.inl`), 1 378 sous `Content/`, 62 scripts PowerShell et 1 442 fichiers sous `docs/`. L’augmentation de 53 fichiers correspond aux redirecteurs natifs conservés en plus des 53 assets déplacés ; les renommages C++ ne changent pas les effectifs. Aucun fichier utilisateur ou historique n’a été supprimé.
+
+### Exclusions justifiées et protections conservées
+
+- Les trois UCLASS en collision et les fichiers portant directement leur nom attendent l’analyse de leurs consommateurs dans CLEANUP03/CLEANUP04. Les anciennes classes ne sont ni écrasées, ni renommées artificiellement, ni supprimées.
+- Les noms/filtres des tests, commandlets et scripts de jalons ainsi que les clés de rapports d’audit restent stables pour la traçabilité et les gardes Windows. Les scripts de snapshot/reprise restent liés à leurs SHA historiques ; leurs anciens chemins ne sont pas des consommateurs de production à réécrire. Réexamen des scripts dans CLEANUP06 uniquement.
+- `Legacy` reste explicite quand il désigne réellement un ancien schéma ou une fixture de compatibilité. `Canonical` demeure pour la normalisation mathématique (`GridBoundary::MakeCanonical`), les identités RPG normatives, les comparaisons au modèle enregistré et les preuves historiques. Il ne désigne plus les helpers/familles d’assets renommés.
+- `DA_GridLevel_New_Level_03` est un niveau existant : aucun remplacement métier n’est démontré et l’identité du niveau peut être persistée ; report à un examen ciblé, sans modifier LevelId. Les autres `New`/`Old` détectés sont notamment `NewObject`, `NewGuid`, `NewGame`, des états précédent/suivant ou des fragments de mots ; `Stage` du pipeline de packaging est une responsabilité réelle. Aucun fichier Content avec suffixe de transition V2/V3 ou Temporary n’est identifié.
+- Les 34 Core Redirects du lot réfléchi, les 53 Core Asset Redirects, les redirections antérieures, les 53 redirecteurs natifs et 50 alias Primary Asset IDs restent nécessaires. Aucun retrait de protection ni fixup destructif de redirecteurs dans CLEANUP02.
+- L’équipement futur reste exclusivement conceptuel dans le SVG. Aucun changement fonctionnel, future gamme d’équipement ou recette du ciblage reporté n’est engagé. CLEANUP03 attend une validation finale distincte de CLEANUP02.
+
+<details>
+<summary>Organisation native des assets — correspondance exhaustive des 53 packages</summary>
+
+Chemins relatifs à `/Game/GrimrockPrototype/Core/DataAssets/` ; chaque ancien package reste un redirecteur valide.
+
+| Ancien package | Package courant |
+| --- | --- |
+| `CanonicalStage/DA_ActionCatalogue` | `Items/Catalogues/DA_ActionCatalogue` |
+| `CanonicalStage/DA_ActionPresentationCatalogue` | `Items/Catalogues/DA_ActionPresentationCatalogue` |
+| `CanonicalStage/DA_CanonicalWeaponCatalogue` | `Items/Catalogues/DA_WeaponCatalogue` |
+| `CanonicalStage/DA_CanonicalWeaponVisualCatalogue` | `Items/Catalogues/DA_WeaponVisualCatalogue` |
+| `CanonicalStage/DA_ItemSystem` | `Items/DA_ItemSystem` |
+| `CanonicalStage/Definitions/DA_Canonical_EmptyVial` | `Items/Definitions/DA_Item_EmptyVial` |
+| `CanonicalStage/Definitions/DA_Canonical_Gem_Blue` | `Items/Definitions/DA_Item_Gem_Blue` |
+| `CanonicalStage/Definitions/DA_Canonical_GoblinKnife` | `Items/Definitions/DA_Item_GoblinKnife` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_Antidote` | `Items/Definitions/DA_Item_Antidote` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_Arrows_01` | `Items/Definitions/DA_Item_Arrows_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_Bomb_Fire` | `Items/Definitions/DA_Item_Bomb_Fire` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_Bomb_Toxic` | `Items/Definitions/DA_Item_Bomb_Toxic` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_DefensiveElixir_Fire` | `Items/Definitions/DA_Item_DefensiveElixir_Fire` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_DefensiveElixir_Ice` | `Items/Definitions/DA_Item_DefensiveElixir_Ice` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_DefensiveElixir_Lightning` | `Items/Definitions/DA_Item_DefensiveElixir_Lightning` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_DefensiveElixir_Poison` | `Items/Definitions/DA_Item_DefensiveElixir_Poison` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_DisarmTools_01` | `Items/Definitions/DA_Item_DisarmTools_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_Flask_Acid` | `Items/Definitions/DA_Item_Flask_Acid` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_Flask_CorrosiveCloud` | `Items/Definitions/DA_Item_Flask_CorrosiveCloud` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_Flask_Oil` | `Items/Definitions/DA_Item_Flask_Oil` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_Panacea` | `Items/Definitions/DA_Item_Panacea` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_Potion_Healing_01` | `Items/Definitions/DA_Item_Potion_Healing_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_RatMeat` | `Items/Definitions/DA_Item_RatMeat` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_RatTooth` | `Items/Definitions/DA_Item_RatTooth` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_SurfaceCatalyst_01` | `Items/Definitions/DA_Item_SurfaceCatalyst_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_TestNote` | `Items/Definitions/DA_Item_TestNote` |
+| `CanonicalStage/Definitions/DA_Canonical_Item_Torch` | `Items/Definitions/DA_Item_Torch` |
+| `CanonicalStage/Definitions/DA_Canonical_Key_Copper` | `Items/Definitions/DA_Item_Key_Copper` |
+| `CanonicalStage/Definitions/DA_Canonical_Key_Iron` | `Items/Definitions/DA_Item_Key_Iron` |
+| `CanonicalStage/Definitions/DA_Canonical_Shuriken` | `Items/Definitions/DA_Item_Shuriken` |
+| `CanonicalStage/Definitions/DA_Canonical_Stone` | `Items/Definitions/DA_Item_Stone` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_ArcaneOrb_01` | `Items/Definitions/DA_Weapon_ArcaneOrb_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_ArcaneWand_01` | `Items/Definitions/DA_Weapon_ArcaneWand_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_AssassinDagger_01` | `Items/Definitions/DA_Weapon_AssassinDagger_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_Dagger_01` | `Items/Definitions/DA_Weapon_Dagger_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_Dart_01` | `Items/Definitions/DA_Weapon_Dart_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_ElementalStaff_01` | `Items/Definitions/DA_Weapon_ElementalStaff_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_FireWand_01` | `Items/Definitions/DA_Weapon_FireWand_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_GreatAxe_01` | `Items/Definitions/DA_Weapon_GreatAxe_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_HolyAegis_01` | `Items/Definitions/DA_Weapon_HolyAegis_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_HolyScepter_01` | `Items/Definitions/DA_Weapon_HolyScepter_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_Javelin_01` | `Items/Definitions/DA_Weapon_Javelin_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_LongSword_01` | `Items/Definitions/DA_Weapon_LongSword_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_Mace_01` | `Items/Definitions/DA_Weapon_Mace_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_MainGauche_01` | `Items/Definitions/DA_Weapon_MainGauche_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_RecurveBow_01` | `Items/Definitions/DA_Weapon_RecurveBow_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_RoundShield_01` | `Items/Definitions/DA_Weapon_RoundShield_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_ShortBow_01` | `Items/Definitions/DA_Weapon_ShortBow_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_ShortSpear_01` | `Items/Definitions/DA_Weapon_ShortSpear_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_Stiletto_01` | `Items/Definitions/DA_Weapon_Stiletto_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_StraightSword_01` | `Items/Definitions/DA_Weapon_StraightSword_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_ThrowingKnife_01` | `Items/Definitions/DA_Weapon_ThrowingKnife_01` |
+| `CanonicalStage/Definitions/DA_Canonical_Weapon_WarPick_01` | `Items/Definitions/DA_Weapon_WarPick_01` |
+
+</details>
 
 ### Plan de nomenclature et résolution des collisions
 
@@ -14,7 +100,7 @@ Le lot des noms internes est publié sous `809a677f` (Editor + Shipping + 2 044 
 | --- | --- | --- |
 | Helpers C++ non réfléchis | 46 identifiants et 30 fichiers renommés ; `GridEquipmentSlots.h`, `GridItemMeshResolver.h`, `GridProjectileVisuals.h`, `GridItemCatalogues.h` ; consommateurs et garde PowerShell mis à jour sans changement de logique | Compilation Editor, tests Grimrock, Shipping et deux statuts Windows |
 | Types et propriétés réfléchis | Noms métier sans Canonical lorsqu’ils sont libres ; Core Redirects conservant les anciens chemins ; aucune valeur ItemId/ActionId/ArchetypeId/GUID modifiée | Assets existants, anciens noms, copies v27, UHT et suite native |
-| Organisation des assets | Examiner/appliquer par AssetTools natif : `Items/DA_ItemSystem`, `Items/Catalogues/`, `Items/Definitions/` ; conserver les redirections nécessaires | Snapshot privé, registre/références/chargement, copies v27 et Cook/Package |
+| Organisation des assets | 53 déplacements effectués par AssetTools natif, dont 50 renommages : `Items/DA_ItemSystem`, `Items/Catalogues/`, `Items/Definitions/` ; 53 redirecteurs natifs et 50 alias Primary Asset IDs conservés | Snapshot privé, registre/références/chargement, copies v27 et Cook/Package |
 | Trois classes en collision | `UGridCanonicalItemDefinitionAsset`, `UGridCanonicalWeaponCatalogueAsset`, `UGridCanonicalWeaponVisualCatalogueAsset` restent nommées ainsi ; leurs noms cibles sont réellement occupés | Report explicite à CLEANUP03/CLEANUP04 : supprimer leurs consommateurs/déplacer des responsabilités dépasserait une opération de nomenclature |
 | Tests, gardes et preuves historiques | Garder les noms/filtres Automation et les reçus figés ; modifier seulement les consommateurs indispensables aux fichiers renommés | Pas de suppression de tests, de scripts ou de Core Redirects historiques |
 
@@ -60,7 +146,7 @@ Le lot des noms internes est publié sous `809a677f` (Editor + Shipping + 2 044 
 
 </details>
 
-Mesure reproductible : identifiants C++ distincts contenant `Canonical`, hors commentaires et chaînes, tous modules et tests inclus : **258 avant CLEANUP02**, **212 apr?s le lot des noms internes**, **163 apr?s le lot r?fl?chi et ses membres associ?s**. La comparaison des 1 440 fichiers C++ au parent confirme uniquement les substitutions pr?vues, sans autre changement de code. Ce nombre n’est ni un compte de lignes ni un nombre d’occurrences textuelles. Les tests historiques, les trois classes en collision et les distinctions métier encore utiles peuvent subsister. Les inventaires suivants restent la photographie exhaustive du parent de CLEANUP01, et non un index automatiquement réécrit au fil des renommages.
+Mesure reproductible : identifiants C++ distincts contenant `Canonical`, hors commentaires et chaînes, fichiers `.h`, `.cpp`, `.inl`, tous modules et tests inclus : **258 avant CLEANUP02**, **212 après les noms internes**, **163 après le lot réfléchi**, **144 après harmonisation des consommateurs d’assets**, soit **114 noms normalisés**. La comparaison des 1 440 fichiers C++ au parent de chaque lot confirme uniquement les substitutions prévues ; les deux fichiers du contrôle de retrait et son test sont relus séparément pour le dernier lot. Ce nombre ne compte ni les lignes ni les occurrences textuelles. Les inventaires suivants restent la photographie historique de CLEANUP01.
 
 <details>
 <summary>Renommages de fichiers non réfléchis du premier lot — 30 chemins</summary>

@@ -24,7 +24,7 @@ namespace GridEditorRetirementAudit
 {
     inline const TCHAR* RootPath()
     {
-        return TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem");
+        return TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem");
     }
 
     inline TArray<TSharedPtr<FJsonValue>> Names(TArray<FName> Values)
@@ -45,7 +45,7 @@ namespace GridEditorRetirementAudit
 
     // This is a disposition taxonomy, never an automatic deletion list.
     // In particular the legacy DA_WeaponCatalogue and DA_WeaponVisualCatalogue
-    // are NOT the DA_CanonicalWeapon* catalogues stored by DA_ItemSystem.
+    // are NOT the active catalogues owned by DA_ItemSystem in Items/Catalogues.
     inline FString CandidateRetirementRole(const FAssetData& Data)
     {
         const FString Package = Data.PackageName.ToString();
@@ -123,6 +123,27 @@ namespace GridEditorRetirementAudit
         Out.Report->SetNumberField(TEXT("resolved_item_levels"), ResolveCount);
         Out.Report->SetNumberField(TEXT("detailed_actions"), Root->ActionCatalogue->DetailedActions.Num());
 
+        // Derive the live package set from the validated root, never from a
+        // directory exemption: an unrelated legacy asset in Items still fails.
+        TSet<FName> ActivePackages;
+        const auto AddActive = [&](const UObject* Object)
+        {
+            if (IsValid(Object)) ActivePackages.Add(Object->GetOutermost()->GetFName());
+        };
+        AddActive(Root.Get());
+        AddActive(Root->WeaponCatalogue.Get());
+        AddActive(Root->WeaponVisualCatalogue.Get());
+        AddActive(Root->ActionCatalogue.Get());
+        AddActive(Root->ActionPresentationCatalogue.Get());
+        for (const auto& Definition : Root->ItemDefinitions) AddActive(Definition.Get());
+        if (ActivePackages.Num() != 53)
+        {
+            Error = TEXT("Expected 53 distinct packages owned by the active root");
+            return false;
+        }
+        TArray<TSharedPtr<FJsonValue>> CompatibilityRedirectors;
+        Out.Report->SetArrayField(TEXT("active_packages"), Names(ActivePackages.Array()));
+
         using namespace UE::AssetRegistry;
         IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
         Registry.SearchAllAssets(true);
@@ -139,8 +160,25 @@ namespace GridEditorRetirementAudit
         {
             const FString Package = Data.PackageName.ToString();
             const FName Class = Data.AssetClassPath.GetAssetName();
-            return Class == UGridItemDefinitionAsset::StaticClass()->GetFName() ||
-                Package.StartsWith(Base + TEXT("Weapons/")) ||
+            if (Class == UGridItemDefinitionAsset::StaticClass()->GetFName()) return true;
+            if (ActivePackages.Contains(Data.PackageName)) return false;
+            if (Class == FName(TEXT("ObjectRedirector")) &&
+                Package.StartsWith(Base + TEXT("CanonicalStage/")))
+            {
+                // Only a redirector resolving to a current owned package is an
+                // active compatibility alias. Dangling/unrelated ones stay candidates.
+                const UPrimaryDataAsset* Target = LoadObject<UPrimaryDataAsset>(nullptr, *Data.GetSoftObjectPath().ToString());
+                if (IsValid(Target) && Target->GetOutermost()->GetFName() != Data.PackageName &&
+                    ActivePackages.Contains(Target->GetOutermost()->GetFName()))
+                {
+                    auto Row = MakeShared<FJsonObject>();
+                    Row->SetStringField(TEXT("package"), Package);
+                    Row->SetStringField(TEXT("target"), Target->GetOutermost()->GetName());
+                    CompatibilityRedirectors.Add(MakeShared<FJsonValueObject>(Row));
+                    return false;
+                }
+            }
+            return Package.StartsWith(Base + TEXT("Weapons/")) ||
                 Package.StartsWith(Base + TEXT("Items/")) ||
                 Package.StartsWith(Base + TEXT("Tests/")) ||
                 Package.EndsWith(TEXT("/DA_EquippedWeaponActionIcons")) ||
@@ -153,6 +191,7 @@ namespace GridEditorRetirementAudit
             Assets.Add(Data);
             LegacyPackages.Add(Data.PackageName);
         }
+        Out.Report->SetArrayField(TEXT("active_compatibility_redirectors"), CompatibilityRedirectors);
         if (Assets.IsEmpty())
         {
             Error = TEXT("No historical candidates returned by AssetRegistry");

@@ -165,7 +165,7 @@ bool FGridClean063AZStatusProjection::RunTest(const FString&)
 
     const auto Capabilities = FGridItemInteractionReadModel::Resolve(F.Registry, nullptr, F.Make());
     TestTrue(TEXT("Combat quick-item hotbar accepts registered ApplyStatus"), Capabilities.bCanAddToHotbar);
-    TestFalse(TEXT("Combat-only status does not masquerade as inline Consume"), Capabilities.bCanConsumeCanonical);
+    TestFalse(TEXT("Combat-only status does not masquerade as inline Consume"), Capabilities.bCanConsumeItem);
     TestFalse(TEXT("Status item is not a throwing weapon"), Capabilities.bPhysicalThrowHotbar);
 
     const auto Try = [&Item](const FGridResolvedBoundAction& Source)

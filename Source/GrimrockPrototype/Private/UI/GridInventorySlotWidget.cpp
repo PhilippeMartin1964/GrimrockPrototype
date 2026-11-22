@@ -434,7 +434,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.Description = Metadata.Description;
 	const bool bCanonical = Registry && Registry->ContainsItem(CachedItem.ItemDefinitionId);
 	FGridResolvedItem Canonical;
-	const bool bResolvedCanonical = bCanonical &&
+	const bool bResolvedItem = bCanonical &&
 		Registry->ResolveItem(CachedItem.ItemDefinitionId, CachedItem.ItemLevel, Canonical) &&
 		Canonical.IsValid() && Canonical.ItemId == CachedItem.ItemDefinitionId &&
 		Canonical.ItemLevel == CachedItem.ItemLevel &&
@@ -446,7 +446,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 #endif
 	FGridCombatActionDefinition QuickItemAction;
 	bool bHasQuickItemAction = false;
-	if (bResolvedCanonical)
+	if (bResolvedItem)
 	{
 		const auto Use = FGridQuickItemUseReadModel::Resolve(Registry, CachedItem);
 		bHasQuickItemAction = Use.bResolved;
@@ -487,7 +487,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.WeightText = View.Quantity > 1
 		? FText::FromString(FString::Printf(TEXT("%.1f × %d = %.1f"), View.UnitWeight, View.Quantity, View.TotalWeight))
 		: FText::FromString(FString::Printf(TEXT("%.1f"), View.UnitWeight));
-	if (!bResolvedCanonical && !bLegacy)
+	if (!bResolvedItem && !bLegacy)
 	{
 		// Diagnostic identity only: do not advertise old icons or equip rules.
 		View.Icon = nullptr;
@@ -503,7 +503,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	FGridWeaponTooltipProjection::Build(Definition, CachedItem, View.WeaponProfile, Registry);
 	const auto Capabilities = FGridItemInteractionReadModel::Resolve(Registry, Definition, CachedItem);
 	View.bReadable = Capabilities.bCanRead;
-	View.bProvidesLight = bResolvedCanonical ? Canonical.LightEmitter.HasEmitter() : Definition->HasLightEmitter();
+	View.bProvidesLight = bResolvedItem ? Canonical.LightEmitter.HasEmitter() : Definition->HasLightEmitter();
 	View.bLightEnabled = View.bProvidesLight && CachedItem.bLightsEnabled;
 	if (View.bProvidesLight)
 	{

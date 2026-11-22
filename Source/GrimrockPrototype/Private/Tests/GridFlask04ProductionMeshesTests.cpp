@@ -20,7 +20,7 @@ bool FGridFlask04ProductionMeshes::RunTest(const FString&)
 	// Both flasks are now authored in the canonical stage. Never use the
 	// retired DA_Item_* as a production-mesh acceptance dependency.
 	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
 	if (!TestNotNull(TEXT("Canonical production item registry loads"), Root)) return false;
 	const auto CheckFlask = [this, Root](FName ItemId, const TCHAR* Description)
 	{

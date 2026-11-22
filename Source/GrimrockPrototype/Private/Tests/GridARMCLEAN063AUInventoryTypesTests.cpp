@@ -275,7 +275,7 @@ bool FGridClean064X61LootPresentationCategory::RunTest(const FString&)
 {
     using namespace GridInventoryCategoryTags;
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real root"), Root.Get()) ||
         !TestTrue(TEXT("Exact native registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
         return false;
@@ -342,7 +342,7 @@ bool FGridClean064X61LootPresentationCategory::RunTest(const FString&)
         const auto Interaction = FGridItemInteractionReadModel::Resolve(Registry.Get(), Wrong, Item);
         TestTrue(TEXT("No read/consume/hotbar/throw capability invented"),
             Interaction.bRegisteredIdentity && Interaction.bResolved && !Interaction.bCanRead &&
-            !Interaction.bCanConsumeLegacy && !Interaction.bCanConsumeCanonical &&
+            !Interaction.bCanConsumeLegacy && !Interaction.bCanConsumeItem &&
             !Interaction.bCanAddToHotbar && !Interaction.bPhysicalThrowHotbar);
         const auto Stack = FGridInventoryStackReadModel::Resolve(Registry.Get(), Wrong, Item);
         TestEqual(TEXT("Exact capacity wins over stale source"), Stack.MaxStackSize, Capacities[I]);
@@ -358,7 +358,7 @@ bool FGridClean064X63PotionPresentationOnly::RunTest(const FString&)
 {
     namespace Tags = GridInventoryCategoryTags;
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real root"), Root.Get())) return false;
     TStrongObjectPtr<UGridItemSystemAsset> Preview(NewObject<UGridItemSystemAsset>());
     Preview->WeaponCatalogue = Root->WeaponCatalogue;
@@ -390,7 +390,7 @@ bool FGridClean064X63PotionPresentationOnly::RunTest(const FString&)
         EGridInventoryFilterCategory::Consumables);
     const auto Interaction = FGridItemInteractionReadModel::Resolve(Registry.Get(), Wrong, Item);
     TestTrue(TEXT("A category grants no unbound action"), Interaction.bResolved &&
-        !Interaction.bCanConsumeLegacy && !Interaction.bCanConsumeCanonical && !Interaction.bCanAddToHotbar &&
+        !Interaction.bCanConsumeLegacy && !Interaction.bCanConsumeItem && !Interaction.bCanAddToHotbar &&
         !Interaction.bPhysicalThrowHotbar);
     const auto Slots = FGridEquipmentSlots::Resolve(Registry.Get(), Wrong, Item);
     TestTrue(TEXT("Potion category grants no slot"), Slots.bResolved && Slots.AllowedSlots.IsEmpty());

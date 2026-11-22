@@ -136,9 +136,9 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 
 	// Stage all physical rows before modifying the previous snapshot. The
 	// historical registry-less automation fixtures are not a production path.
-	bool bRequireCanonicalCapture = true;
+	bool bRequireRegisteredItemCapture = true;
 #if WITH_DEV_AUTOMATION_TESTS
-	bRequireCanonicalCapture = !GIsAutomationTesting || !GetWorld() || GetWorld()->GetGameInstance();
+	bRequireRegisteredItemCapture = !GIsAutomationTesting || !GetWorld() || GetWorld()->GetGameInstance();
 #endif
 	RefreshWorldItemPhysicsCells();
 	TMap<FGuid, FGridRuntimeItemState> CapturedItems;
@@ -153,10 +153,10 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		ExistingPlacedItemObjectIds.Add(Entry.ObjectId);
 		FGridRuntimeItemState ItemState;
 		ItemState.ObjectId = Entry.ObjectId;
-		ItemState.ItemDefinitionId = bRequireCanonicalCapture
+		ItemState.ItemDefinitionId = bRequireRegisteredItemCapture
 			? Entry.ItemDefinitionId
 			: FGridWorldPickupIdentityReadModel::Resolve(ItemActor, Entry.ItemDefinitionId, Entry.ItemLevel);
-		if (bRequireCanonicalCapture &&
+		if (bRequireRegisteredItemCapture &&
 			(!Entry.ObjectId.IsValid() || ItemActor->GetRuntimeObjectId() != Entry.ObjectId ||
 			ItemActor->ItemDefinitionId != Entry.ItemDefinitionId ||
 			ItemActor->WorldItemLevel != Entry.ItemLevel ||
@@ -166,7 +166,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 			return false;
 		}
 		ItemState.ItemLevel = Entry.ItemLevel;
-		ItemState.Quantity = bRequireCanonicalCapture ? Entry.Quantity : FMath::Max(1, Entry.Quantity);
+		ItemState.Quantity = bRequireRegisteredItemCapture ? Entry.Quantity : FMath::Max(1, Entry.Quantity);
 		ItemState.CellX = Entry.Cell.X;
 		ItemState.CellY = Entry.Cell.Y;
 		ItemState.Edge = Entry.Edge;
@@ -175,7 +175,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		{
 			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Capture skipped item: ObjectId=%s Actor=%s no ItemDefinitionId resolved."),
 				*Entry.ObjectId.ToString(), *GetNameSafe(ItemActor));
-			if (bRequireCanonicalCapture) return false;
+			if (bRequireRegisteredItemCapture) return false;
 			continue;
 		}
 		ItemState.Transform = ItemActor->GetActorTransform();
@@ -209,7 +209,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 			// Every recoverable projectile uses a canonical physical identity,
 			// including Editor fixtures. No saved UObject can restore it.
 			const FGuid Guid = Arrow->ThrownItemInstance.RuntimeObjectId;
-			if (!bRequireCanonicalCapture || !Guid.IsValid() ||
+			if (!bRequireRegisteredItemCapture || !Guid.IsValid() ||
 				Arrow->ThrownItemInstance.Quantity != 1 || Arrow->GetRuntimeObjectId() != Guid ||
 				Arrow->ItemDefinitionId != Arrow->ThrownItemInstance.ItemDefinitionId ||
 				Arrow->WorldItemLevel != Arrow->ThrownItemInstance.ItemLevel)
@@ -262,7 +262,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		}
 	}
 
-	if (bRequireCanonicalCapture)
+	if (bRequireRegisteredItemCapture)
 	{
 		FGridLevelRuntimeState Candidate;
 		if (const FGridLevelRuntimeState* Previous = FindRuntimeStateForCurrentLevel())
@@ -474,11 +474,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	const UGridItemSubsystem* RestoreRegistry =
 		FGridWorldSnapshotReadModel::GetRegistry(GetWorld());
 	// Pending inbound items on an unvisited level are also validated.
-	bool bRequireCanonicalRestore = true;
+	bool bRequireRegisteredItemRestore = true;
 #if WITH_DEV_AUTOMATION_TESTS
-	bRequireCanonicalRestore = !GIsAutomationTesting || !GetWorld() || GetWorld()->GetGameInstance();
+	bRequireRegisteredItemRestore = !GIsAutomationTesting || !GetWorld() || GetWorld()->GetGameInstance();
 #endif
-	if (bRequireCanonicalRestore)
+	if (bRequireRegisteredItemRestore)
 	{
 		FString ItemError;
 		if (State && !FGridWorldSnapshotReadModel::ValidateLevel(RestoreRegistry, *State, ItemError))
@@ -489,7 +489,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	}
 	// No legacy fixture can restore an embedded physical projectile
 	// without the registry. Reject before any level mutation.
-	if (!bRequireCanonicalRestore && State)
+	if (!bRequireRegisteredItemRestore && State)
 	{
 		for (const auto& Pair : State->Items)
 			if (Pair.Value.bEmbeddedProjectile) return false;

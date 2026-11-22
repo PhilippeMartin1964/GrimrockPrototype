@@ -22,7 +22,7 @@ struct FFixture
     bool bReady = false;
     FFixture()
         : Root(LoadObject<UGridItemSystemAsset>(nullptr,
-            TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")))
+            TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")))
         , Palette(LoadObject<UGridObjectPaletteAsset>(nullptr,
             TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.DA_ObjectPalette_Default")))
         , GI(NewObject<UGameInstance>())

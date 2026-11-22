@@ -15,8 +15,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064WRealReferences,
 bool FGridClean064WRealReferences::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-                      "DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real canonical registry loaded"), Root.Get()) ||
         !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
     {

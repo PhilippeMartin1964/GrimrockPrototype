@@ -33,7 +33,7 @@ public:
 	/** Canonical flight policy only. An enabled specialized launcher wins;
 	 * otherwise use the unlevelled ammo's migrated generic speed, with the
 	 * existing ranged-ammo clamp. Invalid data never falls back. */
-	static bool TryResolveCanonicalLaunchSpeed(const FGridResolvedItem* Weapon,
+	static bool TryResolveLaunchSpeed(const FGridResolvedItem* Weapon,
 		const FGridResolvedItem& Ammo, float& OutSpeed);
 
 	static FGridRangedAmmunitionRequirement ResolveForAttack(

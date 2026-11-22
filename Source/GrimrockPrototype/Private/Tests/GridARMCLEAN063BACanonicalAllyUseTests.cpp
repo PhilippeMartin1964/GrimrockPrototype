@@ -201,7 +201,7 @@ namespace ARMCLEAN063BA
 
         const FGridItemInteractionReadView Capabilities =
             FGridItemInteractionReadModel::Resolve(F.Registry, nullptr, F.Make());
-        Test.TestFalse(TEXT("No context Consume shortcut for Ally"), Capabilities.bCanConsumeCanonical);
+        Test.TestFalse(TEXT("No context Consume shortcut for Ally"), Capabilities.bCanConsumeItem);
         Test.TestTrue(TEXT("Combat hotbar binding is authorized"), Capabilities.bCanAddToHotbar);
 
         FGridCombatActionDefinition Other;

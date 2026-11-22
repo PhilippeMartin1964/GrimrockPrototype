@@ -45,12 +45,10 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 	}
 	TestEqual(TEXT("DefaultGame.ini points at the only native ItemSystem root"),
 		ConfiguredPath->ToSoftObjectPath().ToString(),
-		FString(TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-			"DA_ItemSystem.DA_ItemSystem")));
+		FString(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
 
 	TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-			"DA_ItemSystem.DA_ItemSystem")));
+		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
 	if (!TestNotNull(TEXT("Canonical registry is a real saved .uasset"), Root.Get()))
 	{
 		return false;

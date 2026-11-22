@@ -1698,7 +1698,7 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 	}
 	if (bInteractionOnlyEffect && !Action.Definition.bAllowNoSurfaceReaction)
 	{
-		bool bHasCanonicalReaction = false;
+		bool bHasReaction = false;
 		const FGridResolvedCombatModifiers NoModifiers;
 		for (const FIntPoint& Cell : OutPreview.AffectedCells)
 		{
@@ -1707,11 +1707,11 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 			if (Surface && FGridCombatSurfaceResolver::ResolveReaction(
 					*Surface, Action.Definition.SurfaceInteraction, NoModifiers, PreviewReaction))
 			{
-				bHasCanonicalReaction = true;
+				bHasReaction = true;
 				break;
 			}
 		}
-		if (!bHasCanonicalReaction)
+		if (!bHasReaction)
 		{
 			OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Combat.Targeting.Invalid.NoSurfaceReaction"));
 			return false;

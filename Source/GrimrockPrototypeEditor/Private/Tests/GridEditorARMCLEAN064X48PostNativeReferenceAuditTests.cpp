@@ -24,8 +24,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X48PostNativeRefs,
 bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-                      "DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Native item system root"), Root.Get()) ||
         !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
     {

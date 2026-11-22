@@ -95,7 +95,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X10BIdentity,
 bool FGridClean064X10BIdentity::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Actual canonical catalogue"), Root.Get())) {return false;}
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
@@ -129,7 +129,7 @@ struct FCaseRegistry
     bool bReady = false;
     FCaseRegistry()
         : Root(LoadObject<UGridItemSystemAsset>(
-            nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")))
+            nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")))
         , GI(NewObject<UGameInstance>())
         , Registry(NewObject<UGridItemSubsystem>(GI.Get()))
     {

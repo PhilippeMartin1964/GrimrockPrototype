@@ -50,7 +50,7 @@ namespace RPG0310
 	bool RegisterProductionItemSystem(FAutomationTestBase& Test, UGridItemSubsystem& Registry)
 	{
 		UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
 		if (!Test.TestNotNull(TEXT("Production canonical DA_ItemSystem loads"), Root)) return false;
 		TArray<FString> Errors;
 		return Test.TestTrue(TEXT("Production item registry validates"), Registry.RegisterItemSystem(Root, Errors));

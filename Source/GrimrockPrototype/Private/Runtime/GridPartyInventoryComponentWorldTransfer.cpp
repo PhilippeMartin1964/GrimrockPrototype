@@ -9,7 +9,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
 
 namespace
 {
-	bool IsCanonicalWorldTransferItem(const UGridPartyInventoryComponent* Inventory, FName ItemId)
+	bool IsRegisteredWorldTransferItem(const UGridPartyInventoryComponent* Inventory, FName ItemId)
 	{
 		const UWorld* World = Inventory->GetWorld();
 		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
@@ -37,7 +37,7 @@ bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 	}
 
 	if (!CanAcceptSingleInventoryItem(*EquippedItem) ||
-		(IsCanonicalWorldTransferItem(this, EquippedItem->ItemDefinitionId) &&
+		(IsRegisteredWorldTransferItem(this, EquippedItem->ItemDefinitionId) &&
 			!CanEquipItemToSlot(CharacterIndex, *EquippedItem, PhysicalSource)))
 	{
 		return false; // An invalid source must remain owned, not become a world item.
@@ -80,7 +80,7 @@ bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 Char
 
 	const bool bTwoHanded = IsTwoHandedItem(WorldItem);
 	const EGridEquipmentSlot ActualTarget = bTwoHanded ? EGridEquipmentSlot::MainHand : TargetSlot;
-	if ((IsCanonicalWorldTransferItem(this, WorldItem.ItemDefinitionId) &&
+	if ((IsRegisteredWorldTransferItem(this, WorldItem.ItemDefinitionId) &&
 		!CanEquipItemToSlot(CharacterIndex, WorldItem, TargetSlot)) ||
 		(bTwoHanded && PartyInventoryState.ActiveEquipment[CharacterIndex].OffHand.IsValid()) ||
 		(ActualTarget == EGridEquipmentSlot::OffHand && IsTwoHandedEquipped(CharacterIndex)))

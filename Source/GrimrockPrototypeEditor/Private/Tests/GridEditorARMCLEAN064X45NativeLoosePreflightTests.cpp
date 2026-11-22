@@ -78,8 +78,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X45NativeLoosePreflight,
 bool FGridEditorARMCLEAN064X45NativeLoosePreflight::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-                      "DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     TStrongObjectPtr<UGridLevelAsset> Real(LoadObject<UGridLevelAsset>(
         nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/"
                       "DA_GridLevel_00.DA_GridLevel_00")));

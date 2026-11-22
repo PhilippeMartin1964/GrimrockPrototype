@@ -1744,7 +1744,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
             const FGridQuickItemUseReadView CanonicalUse =
                 FGridQuickItemUseReadModel::Resolve(Registry, LastContextItem);
             FGridCombatActionDefinition QuickItemAction;
-            bool bHaveAction = Capabilities.bCanConsumeCanonical && CanonicalUse.bResolved;
+            bool bHaveAction = Capabilities.bCanConsumeItem && CanonicalUse.bResolved;
             if (bHaveAction)
             {
                 QuickItemAction = CanonicalUse.Action;

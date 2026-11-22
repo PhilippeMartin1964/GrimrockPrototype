@@ -14,7 +14,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X163InitialAuthoring,
 bool FGridClean064X163InitialAuthoring::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real canonical registry"), Root.Get())) {return false;}
     const bool WasDirty = Root->GetOutermost()->IsDirty();
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());

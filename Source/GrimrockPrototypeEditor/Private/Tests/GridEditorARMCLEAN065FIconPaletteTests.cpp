@@ -29,7 +29,7 @@ bool FGridEditorARM065FPalette::RunTest(const FString&)
     TestTrue(TEXT("Generated class has no legacy property"),
         FindFProperty<FProperty>(Widget, OldProperty) == nullptr);
     const auto* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
     if (!Root || !Root->WeaponVisualCatalogue)
     {
         AddError(TEXT("Canonical icon authority unavailable"));

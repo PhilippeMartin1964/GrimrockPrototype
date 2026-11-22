@@ -18,7 +18,7 @@ struct FGridItemInteractionReadView
 	bool bResolved = false;
 	bool bCanRead = false;
 	bool bCanConsumeLegacy = false;
-	bool bCanConsumeCanonical = false;
+	bool bCanConsumeItem = false;
 	bool bCanAddToHotbar = false;
 	bool bPhysicalThrowHotbar = false;
 	FText DisplayName;
@@ -67,7 +67,7 @@ struct FGridItemInteractionReadModel
 				FGridQuickItemUseReadModel::Resolve(Registry, Item);
 			// Only a true direct self-heal may appear as the inline "Consume"
             // action. Status cleansing uses the combat hotbar executor.
-            Out.bCanConsumeCanonical = Use.bResolved &&
+            Out.bCanConsumeItem = Use.bResolved &&
                 Use.Action.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
                 Use.Action.EffectProfile.IsValid();
 			Out.bCanAddToHotbar = Out.bPhysicalThrowHotbar || Use.bResolved;

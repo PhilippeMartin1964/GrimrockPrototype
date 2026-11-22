@@ -15,8 +15,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X6CanonicalPresentation,
 bool FGridClean064X6CanonicalPresentation::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-                      "DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real single ItemSystem"), Root.Get()) ||
         !TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get())))
     {
@@ -185,8 +184,7 @@ enum class EGridProjectionProbe : uint8
 bool RunX6Probe(FAutomationTestBase& Test, EGridProjectionProbe Mode)
 {
     UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-                      "DA_ItemSystem.DA_ItemSystem"));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
     if (!Test.TestNotNull(TEXT("Real root"), Root) || !Test.TestTrue(TEXT("Exact 34/38 registry shape"),
         GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root))) { return false; }
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());

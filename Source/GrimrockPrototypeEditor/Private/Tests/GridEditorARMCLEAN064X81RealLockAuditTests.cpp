@@ -20,8 +20,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064X81RealLockAudit,
 bool FGridClean064X81RealLockAudit::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-                      "DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real item system"), Root.Get())) return false;
     const bool bSystemDirty = Root->GetOutermost()->IsDirty();
     TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());

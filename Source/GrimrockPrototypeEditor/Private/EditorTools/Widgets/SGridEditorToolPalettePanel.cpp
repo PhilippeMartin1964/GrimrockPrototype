@@ -116,14 +116,13 @@ void SGridEditorToolPalettePanel::Construct(const FArguments& InArgs)
 
 	// One transient read-only projection per open Slate panel. This does not
 	// replace the registered runtime ItemSystem or modify any DataAsset.
-	CanonicalPreviewGI.Reset(NewObject<UGameInstance>(GetTransientPackage()));
-	CanonicalPreviewRegistry.Reset(NewObject<UGridItemSubsystem>(CanonicalPreviewGI.Get()));
+	ItemPreviewGI.Reset(NewObject<UGameInstance>(GetTransientPackage()));
+	ItemPreviewRegistry.Reset(NewObject<UGridItemSubsystem>(ItemPreviewGI.Get()));
 	UGridItemSystemAsset* CanonicalRoot = LoadObject<UGridItemSystemAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-		              "DA_ItemSystem.DA_ItemSystem"));
+		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
 	TArray<FString> CanonicalErrors;
-	bRegisteredPreviewReady = CanonicalPreviewRegistry.IsValid() &&
-		CanonicalPreviewRegistry->RegisterItemSystem(CanonicalRoot, CanonicalErrors);
+	bRegisteredPreviewReady = ItemPreviewRegistry.IsValid() &&
+		ItemPreviewRegistry->RegisterItemSystem(CanonicalRoot, CanonicalErrors);
 	if (!bRegisteredPreviewReady)
 	{
 		UE_LOG(LogGridEditor, Warning,
@@ -685,7 +684,7 @@ bool SGridEditorToolPalettePanel::DoesPaletteEntryPassFilters(const FGridObjectP
 
 	const FGridEditorPaletteReadView CanonicalView =
 		FGridEditorPaletteReadModel::Resolve(
-			Entry, bRegisteredPreviewReady ? CanonicalPreviewRegistry.Get() : nullptr);
+			Entry, bRegisteredPreviewReady ? ItemPreviewRegistry.Get() : nullptr);
 	if (Matches(CanonicalView.DisplayName.ToString()) || Matches(Entry.EntryId.ToString()) || Matches(Category.ToString()))
 	{
 		return true;
@@ -925,7 +924,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteTile(const FGridObj
 
 	const FGridEditorPaletteReadView CanonicalView =
 		FGridEditorPaletteReadModel::Resolve(
-			Entry, bRegisteredPreviewReady ? CanonicalPreviewRegistry.Get() : nullptr);
+			Entry, bRegisteredPreviewReady ? ItemPreviewRegistry.Get() : nullptr);
 	const FText Label = CanonicalView.DisplayName;
 	const FName EntryId = Entry.EntryId;
 	UTexture2D* IconTexture = Entry.IsDirectItemEntry()

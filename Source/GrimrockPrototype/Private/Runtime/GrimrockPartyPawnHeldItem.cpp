@@ -249,11 +249,11 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 						FGridItemMeshResolver::Resolve(Registry, *VisualItem);
 					if (Visual.bRegisteredIdentity && HeldItemActor->MeshComponent)
 					{
-						UStaticMesh* CanonicalHeldMesh = Visual.bResolved
+						UStaticMesh* ResolvedHeldMesh = Visual.bResolved
 							? Visual.EquippedMesh.LoadSynchronous() : nullptr;
-						if (HeldItemActor->MeshComponent->GetStaticMesh() != CanonicalHeldMesh)
+						if (HeldItemActor->MeshComponent->GetStaticMesh() != ResolvedHeldMesh)
 						{
-							HeldItemActor->MeshComponent->SetStaticMesh(CanonicalHeldMesh);
+							HeldItemActor->MeshComponent->SetStaticMesh(ResolvedHeldMesh);
 						}
 					}
 				}

@@ -15,7 +15,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063ACInventoryDiagnosticWeight,
 bool FGridClean063ACInventoryDiagnosticWeight::RunTest(const FString&)
 {
 	TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
 	if (!TestNotNull(TEXT("Real canonical ItemSystem"), Root.Get())) return false;
 	TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
 	TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));

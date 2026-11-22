@@ -15,8 +15,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064VEquippedNonArm,
 bool FGridClean064VEquippedNonArm::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-                      "DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Native registry"), Root.Get()) ||
         !TestNotNull(TEXT("Single action catalogue"), Root->ActionCatalogue.Get()) ||
         !TestNotNull(TEXT("Single presentation catalogue"), Root->ActionPresentationCatalogue.Get()))

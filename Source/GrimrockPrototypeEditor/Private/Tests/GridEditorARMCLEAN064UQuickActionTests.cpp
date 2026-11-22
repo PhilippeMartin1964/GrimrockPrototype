@@ -15,8 +15,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064UQuickActionMigration,
 bool FGridClean064UQuickActionMigration::RunTest(const FString&)
 {
     TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/"
-                      "DA_ItemSystem.DA_ItemSystem")));
+        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Native canonical registry loaded"), Root.Get()) ||
         !TestNotNull(TEXT("Single action catalogue loaded"), Root->ActionCatalogue.Get()))
     {
