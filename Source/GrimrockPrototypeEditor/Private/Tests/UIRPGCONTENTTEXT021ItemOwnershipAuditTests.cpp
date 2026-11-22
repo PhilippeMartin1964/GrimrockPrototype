@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 
 #include "RPG/RPGAlchemistAuthoring.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -50,6 +51,63 @@ namespace UIRPGCONTENTTEXT021
 			*Before.ToString(),
 			*After.ToString());
 	}
+
+    // Inspect the complete historical alchemy batch in AssetRegistry before
+    // loading an individual package. Missing one source is not a successful
+    // retirement; all eleven must be intact or all must be gone.
+    int32 CountHistoricalAlchemySources()
+    {
+        IAssetRegistry& Assets = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(
+            TEXT("AssetRegistry")).Get();
+        Assets.SearchAllAssets(true);
+        TArray<FAssetData> Entries;
+        Assets.GetAssetsByPath(
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items")), Entries, false);
+        TSet<FString> OldPaths;
+        for (const FAssetData& Entry : Entries)
+        {
+            if (Entry.AssetClassPath.GetAssetName() ==
+                UGridItemDefinitionAsset::StaticClass()->GetFName())
+                OldPaths.Add(Entry.GetSoftObjectPath().ToString());
+        }
+        TArray<FName> Ids;
+        CollectProductionItemIds(Ids);
+        int32 Count = 0;
+        for (FName ItemId : Ids)
+            Count += OldPaths.Contains(FRPGAlchemistAuthoring::GetItemObjectPath(ItemId)) ? 1 : 0;
+        return Count;
+    }
+
+    bool IsNativeAlchemyTextComplete()
+    {
+        FGridCanonicalRegistryFixture Fixture;
+        if (!Fixture.bReady) return false;
+        TArray<FName> Ids;
+        CollectProductionItemIds(Ids);
+        if (Ids.Num() != 11) return false;
+        TSet<FName> Unique;
+        for (const FName Id : Ids)
+        {
+            if (Id.IsNone() || Unique.Contains(Id)) return false;
+            Unique.Add(Id);
+            FGridResolvedItem Item;
+            if (!Fixture.Resolve(Id, 0, Item) || Item.bIsArmament ||
+                Item.DisplayName.IsEmpty() ||
+                Item.DisplayName.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")) ||
+                Item.Description.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")) ||
+                Item.AvailableActions.Num() != 1)
+                return false;
+            FGridCombatActionDefinition Action;
+            if (!Fixture.Registry->ResolveDetailedNonArmAction(
+                    Id, 0, Item.AvailableActions[0].ActionId, Action) ||
+                Action.ActionId != Item.AvailableActions[0].ActionId ||
+                Action.DisplayName.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")) ||
+                Action.Description.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")))
+                return false;
+        }
+        return Unique.Num() == 11;
+    }
+
 }
 
 /**
@@ -70,6 +128,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FUIRPGCONTENTTEXT021ItemTextOwnershipAuditTest::RunTest(const FString&)
 {
 	using namespace UIRPGCONTENTTEXT021;
+	const int32 Historical = CountHistoricalAlchemySources();
+	if (!TestTrue(TEXT("No partially retired Alchemist source batch"),
+		Historical == 11 || Historical == 0)) return false;
+	if (Historical == 0)
+	{
+		TestTrue(TEXT("Historical serialized text audit is retired; native text remains authored"), IsNativeAlchemyTextComplete());
+		return !HasAnyErrors();
+	}
 
 	TArray<FName> ItemIds;
 	CollectProductionItemIds(ItemIds);
@@ -274,6 +340,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FUIRPGCONTENTTEXT022ItemTextPreservationTest::RunTest(const FString&)
 {
 	using namespace UIRPGCONTENTTEXT021;
+	const int32 Historical = CountHistoricalAlchemySources();
+	if (!TestTrue(TEXT("No partially retired Alchemist source batch"),
+		Historical == 11 || Historical == 0)) return false;
+	if (Historical == 0)
+	{
+		TestTrue(TEXT("Historical reauthoring fixture is retired; native text remains authored"), IsNativeAlchemyTextComplete());
+		return !HasAnyErrors();
+	}
 
 	TArray<FName> ItemIds;
 	CollectProductionItemIds(ItemIds);
@@ -525,6 +599,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FUIRPGCONTENTTEXT024FinalItemOwnershipAuditTest::RunTest(const FString&)
 {
 	using namespace UIRPGCONTENTTEXT021;
+	const int32 Historical = CountHistoricalAlchemySources();
+	if (!TestTrue(TEXT("No partially retired Alchemist source batch"),
+		Historical == 11 || Historical == 0)) return false;
+	if (Historical == 0)
+	{
+		TestTrue(TEXT("Historical text fallback probe is retired; native text remains authored"), IsNativeAlchemyTextComplete());
+		return !HasAnyErrors();
+	}
 
 	TArray<FName> ItemIds;
 	CollectProductionItemIds(ItemIds);
@@ -644,24 +726,31 @@ bool FUIRPGCONTENTTEXT025CanonicalTextRetirementParityTest::RunTest(const FStrin
     if (!TestEqual(TEXT("Exactly eleven Alchemist item source identities"), ItemIds.Num(), 11))
         return false;
 
+    const int32 Historical = CountHistoricalAlchemySources();
+    if (!TestTrue(TEXT("Alchemist legacy batch is all eleven or fully retired"),
+        Historical == 0 || Historical == 11))
+        return false;
+    TestTrue(TEXT("All eleven native Alchemist item/action presentations stay authored"),
+        IsNativeAlchemyTextComplete());
     int32 Matched = 0;
     for (const FName ItemId : ItemIds)
     {
         const FString OldPath = FRPGAlchemistAuthoring::GetItemObjectPath(ItemId);
-        const UGridItemDefinitionAsset* Old =
-            LoadObject<UGridItemDefinitionAsset>(nullptr, *OldPath);
-        if (!TestNotNull(TEXT("Historical text reference exists before retirement"), Old))
+        const UGridItemDefinitionAsset* Old = Historical == 11
+            ? LoadObject<UGridItemDefinitionAsset>(nullptr, *OldPath) : nullptr;
+        if (Historical == 11 &&
+            !TestNotNull(TEXT("Historical authored text source before retirement"), Old))
             continue;
-        const bool bOldDirty = Old->GetOutermost()->IsDirty();
+        const bool bOldDirty = Old && Old->GetOutermost()->IsDirty();
         FGridResolvedItem Native;
         if (!TestTrue(TEXT("Canonical N0 Alchemist item resolves"),
             Fixture.Resolve(ItemId, 0, Native)))
             continue;
         TestFalse(TEXT("Alchemist text is attached to a non-ARM item"), Native.bIsArmament);
-        const bool bSameItemText =
+        const bool bSameItemText = !Old || (
             Native.DisplayName.ToString() == Old->DisplayName.ToString() &&
             Native.Description.ToString() == Old->Description.ToString() &&
-            Native.ReadText.ToString() == Old->ReadText.ToString();
+            Native.ReadText.ToString() == Old->ReadText.ToString());
         TestTrue(*FString::Printf(
             TEXT("%s preserves authored item name, description and reading text"),
             *ItemId.ToString()), bSameItemText);
@@ -685,11 +774,12 @@ bool FUIRPGCONTENTTEXT025CanonicalTextRetirementParityTest::RunTest(const FStrin
             TestFalse(TEXT("Detailed action description is not an authoring placeholder"),
                 Action.Description.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
         }
-        TestEqual(TEXT("Historical item not modified by parity"),
-            Old->GetOutermost()->IsDirty(), bOldDirty);
+        if (Old)
+            TestEqual(TEXT("Historical item not modified by parity"),
+                Old->GetOutermost()->IsDirty(), bOldDirty);
         if (bSameItemText && bOneNativeAction) ++Matched;
     }
-    TestEqual(TEXT("Eleven Alchemist texts agree with their registered replacements"),
+    TestEqual(TEXT("Eleven Alchemist native texts complete and source-parity when present"),
         Matched, 11);
     TestEqual(TEXT("Installed ItemSystem was not modified by parity"),
         Root->GetOutermost()->IsDirty(), bRootDirty);
