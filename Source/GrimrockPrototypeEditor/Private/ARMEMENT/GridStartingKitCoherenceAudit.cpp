@@ -2,9 +2,6 @@
 
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
-#include "Runtime/Items/GridItemSubsystem.h"
-#include "Engine/GameInstance.h"
-#include "UObject/StrongObjectPtr.h"
 #include "UI/RPGSkillPresentationAsset.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/UnrealType.h"
@@ -152,7 +149,7 @@ namespace StartingKitAudit
             OutError = TEXT("Cannot duplicate class for historical read-only review.");
             return false;
         }
-        // Create archive-only *canonical identities* on the transient copy.
+        // Reconstruct the exact unversioned archival review rows on a transient copy.
         // No old DataAsset reference, no player-facing kit, no item authoring.
         OutCopy->StartingEquipmentKits.Reset();
         OutCopy->DefaultStartingEquipmentKitId = NAME_None;
@@ -169,7 +166,7 @@ namespace StartingKitAudit
             {
                 FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
                 Entry.CanonicalItemId = FName(Ids[Index]);
-                Entry.ItemLevel = FString(Ids[Index]).StartsWith(TEXT("Weapon_")) ? 1 : 0;
+                Entry.ItemLevel = 0; // Exact historical unversioned kit recipe, NOT a physical ARM N0.
                 Entry.Quantity = 1;
                 Entry.TargetSlot = Slots[Index];
             }
@@ -186,21 +183,19 @@ namespace StartingKitAudit
         return true;
     }
 
-    FString DescribeItems(
-        const FRPGStartingEquipmentKit& Kit,
-        const UGridItemSubsystem* Registry, FString& OutError)
+    FString DescribeItems(const FRPGStartingEquipmentKit& Kit, FString& OutError)
     {
+        // This is a stable archival snapshot of the OCT-2026 12-kit proposal.
+        // It records historical names, slots and unversioned levels verbatim.
+        // Source IDs are NOT claims of availability in the current ItemSystem:
+        // the 18 approved kits and the canonical 48-item tests prove that.
         TArray<FString> Descriptions;
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
-            FGridResolvedItem Item;
-            if (!IsValid(Registry) || Entry.CanonicalItemId.IsNone() ||
-                !Registry->ResolveItem(Entry.CanonicalItemId, Entry.ItemLevel, Item) ||
-                !Item.IsValid() || Entry.Quantity < 1 ||
-                (Entry.TargetSlot != EGridEquipmentSlot::None &&
-                    (!Item.bIsArmament || !Item.Weapon.CanEquipInHand(Entry.TargetSlot))))
+            if (Entry.CanonicalItemId.IsNone() || Entry.Quantity != 1 ||
+                Entry.ItemLevel != 0 || Entry.ItemDefinition.Get() != nullptr)
             {
-                OutError = FString::Printf(TEXT("Historical review entry missing native item in %s."),
+                OutError = FString::Printf(TEXT("Corrupt archived two-item review: %s"),
                     *Kit.KitId.ToString());
                 return {};
             }
@@ -227,22 +222,6 @@ bool FGridStartingKitCoherenceAudit::BuildProductionReport(
         SkillCatalog->Skills.Num() != ExpectedSkills)
     {
         OutError = TEXT("Production Skill affinity catalog is absent, invalid, or not 25 Skills.");
-        return false;
-    }
-
-    // Registered canonical ItemSystem is the only item source, including
-    // this archived twelve-kit advisory review. Do not load old DA_* sources.
-    UGridItemSystemAsset* Root =
-        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
-    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>(GetTransientPackage()));
-    TStrongObjectPtr<UGridItemSubsystem> Registry(
-        NewObject<UGridItemSubsystem>(GI.Get()));
-    TArray<FString> RegistryErrors;
-    if (!IsValid(Root) || Root->ItemDefinitions.Num() != 48 ||
-        !Registry.IsValid() || !Registry->RegisterItemSystem(Root, RegistryErrors))
-    {
-        OutError = TEXT("Production ItemSystem unavailable: ") +
-            FString::Join(RegistryErrors, TEXT("; "));
         return false;
     }
 
@@ -366,7 +345,7 @@ bool FGridStartingKitCoherenceAudit::BuildProductionReport(
                 return false;
             }
             FString ItemError;
-            const FString ActualItems = DescribeItems(Kit, Registry.Get(), ItemError);
+            const FString ActualItems = DescribeItems(Kit, ItemError);
             if (!ItemError.IsEmpty())
             {
                 OutError = ItemError;
