@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
@@ -14,19 +15,18 @@ namespace ARMEMENT0192
     struct FClassSpec
     {
         const TCHAR* Name;
-        const TCHAR* DefaultKit;
         const TCHAR* ApprovedDefaultKit;
         int32 ApprovedItemCount;
     };
 
     const FClassSpec Classes[] =
     {
-        {TEXT("Warrior"), TEXT("Warrior_Defender"), TEXT("Kit_Warrior_Guardian"), 2},
-        {TEXT("Rogue"), TEXT("Rogue_Shadow"), TEXT("Kit_Rogue_Shadow"), 2},
-        {TEXT("Ranger"), TEXT("Ranger_Archer"), TEXT("Kit_Ranger_Marksman"), 3},
-        {TEXT("Mage"), TEXT("Mage_Scholar"), TEXT("Kit_Mage_Arcanist"), 2},
-        {TEXT("Priest"), TEXT("Priest_Pilgrim"), TEXT("Kit_Priest_Protection"), 2},
-        {TEXT("Alchemist"), TEXT("Alchemist_Apothecary"), TEXT("Kit_Alchemist_Apothecary"), 2}
+        {TEXT("Warrior"), TEXT("Kit_Warrior_Guardian"), 2},
+        {TEXT("Rogue"), TEXT("Kit_Rogue_Shadow"), 2},
+        {TEXT("Ranger"), TEXT("Kit_Ranger_Marksman"), 3},
+        {TEXT("Mage"), TEXT("Kit_Mage_Arcanist"), 2},
+        {TEXT("Priest"), TEXT("Kit_Priest_Protection"), 2},
+        {TEXT("Alchemist"), TEXT("Kit_Alchemist_Apothecary"), 2}
     };
 
     URPGClassAsset* LoadClass(const TCHAR* ClassName)
@@ -90,11 +90,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0192CatalogTest,
 
 bool FARMEMENT0192CatalogTest::RunTest(const FString&)
 {
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Actual native ItemSystem is configured"), Fixture.bReady))
+        return false;
     for (const ARMEMENT0192::FClassSpec& Spec : ARMEMENT0192::Classes)
     {
         URPGClassAsset* Original = ARMEMENT0192::LoadClass(Spec.Name);
-        if (!TestNotNull(FString::Printf(TEXT("%s production class exists"), Spec.Name), Original)) return false;
-        TestTrue(FString::Printf(TEXT("%s is recognized as production"), Spec.Name),
+        if (!TestNotNull(FString::Printf(TEXT("%s production class exists"), Spec.Name), Original))
+            return false;
+        TestTrue(FString::Printf(TEXT("%s is a supported production class"), Spec.Name),
             FRPGStartingEquipmentPresetCatalog::IsProductionClassAsset(Original));
         const int32 OriginalCount = Original->StartingEquipmentKits.Num();
         const FName OriginalDefault = Original->DefaultStartingEquipmentKitId;
@@ -102,38 +106,57 @@ bool FARMEMENT0192CatalogTest::RunTest(const FString&)
         URPGClassAsset* Preview = ARMEMENT0192::DuplicateForPresets(Original);
         if (!TestNotNull(TEXT("Transient class copy created"), Preview)) return false;
         FString Error;
-        if (!TestTrue(FString::Printf(TEXT("%s starter recipes built: %s"), Spec.Name, *Error),
-            FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(*Preview, Error))) return false;
-        if (!TestEqual(FString::Printf(TEXT("%s has two kits"), Spec.Name), Preview->StartingEquipmentKits.Num(), 2)) return false;
-        TestEqual(FString::Printf(TEXT("%s default kit is deterministic"), Spec.Name),
-            Preview->DefaultStartingEquipmentKitId, FName(Spec.DefaultKit));
+        if (!TestTrue(TEXT("Three approved native recipes build without old DA_Items"),
+            FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+                *Preview, Error, Fixture.Registry.Get())))
+        {
+            AddError(Error);
+            return false;
+        }
+        if (!TestEqual(TEXT("Exactly three active kits per class"),
+            Preview->StartingEquipmentKits.Num(), 3))
+            return false;
+        TestEqual(TEXT("Approved deterministic default preserved"),
+            Preview->DefaultStartingEquipmentKitId, FName(Spec.ApprovedDefaultKit));
         TSet<FName> KitIds;
         for (const FRPGStartingEquipmentKit& Kit : Preview->StartingEquipmentKits)
         {
-            TestFalse(TEXT("Kit id not empty"), Kit.KitId.IsNone());
-            TestFalse(TEXT("Kit ids unique"), KitIds.Contains(Kit.KitId));
+            TestFalse(TEXT("One non-empty canonical kit id"), Kit.KitId.IsNone());
+            TestFalse(TEXT("No duplicate native kit ids per class"), KitIds.Contains(Kit.KitId));
             KitIds.Add(Kit.KitId);
-            TestEqual(TEXT("Every kit defines two production items"), Kit.Items.Num(), 2);
+            TestTrue(TEXT("Approved kit has physical starter entries"), !Kit.Items.IsEmpty());
             for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
             {
-                if (!TestNotNull(TEXT("Item definition resolves"), Entry.ItemDefinition.Get())) return false;
-                TestTrue(TEXT("Item definition has stable identity"), !Entry.ItemDefinition->ItemDefinitionId.IsNone());
-                TestEqual(TEXT("Starting item uses default catalogue level"), Entry.ItemLevel, 0);
-                TestEqual(TEXT("Starting quantity one"), Entry.Quantity, 1);
-                TestTrue(TEXT("Equip compatibility or bag destination"),
-                    Entry.TargetSlot == EGridEquipmentSlot::None || Entry.ItemDefinition->CanEquipToSlot(Entry.TargetSlot));
+                TestNull(TEXT("No obsolete ItemDefinition pointer"),
+                    Entry.ItemDefinition.Get());
+                TestFalse(TEXT("Canonical source ItemId is explicit"),
+                    Entry.CanonicalItemId.IsNone());
+                FGridResolvedItem Native;
+                if (!TestTrue(TEXT("Registry resolves each exact source and level"),
+                    Fixture.Resolve(Entry.CanonicalItemId, Entry.ItemLevel, Native)))
+                    return false;
+                TestTrue(TEXT("Stack count is within registered limits"),
+                    Entry.Quantity >= 1 && Entry.Quantity <= Native.MaxStack);
+                TestTrue(TEXT("Equipped canonical starter respects the hand policy"),
+                    Entry.TargetSlot == EGridEquipmentSlot::None ||
+                    (Native.bIsArmament && Native.Weapon.CanEquipInHand(Entry.TargetSlot)));
             }
         }
-        TestTrue(TEXT("Built class remains valid"), Preview->IsValidDefinition());
-        TestEqual(TEXT("Production class kits left untouched"), Original->StartingEquipmentKits.Num(), OriginalCount);
-        TestEqual(TEXT("Production default left untouched"), Original->DefaultStartingEquipmentKitId, OriginalDefault);
+        TestTrue(TEXT("Native class preview remains valid"), Preview->IsValidDefinition());
+        TestEqual(TEXT("Production kits remain untouched"),
+            Original->StartingEquipmentKits.Num(), OriginalCount);
+        TestEqual(TEXT("Production default remains untouched"),
+            Original->DefaultStartingEquipmentKitId, OriginalDefault);
 
-        // Explicit authoring wins; a second call must be strictly idempotent.
-        if (!TestTrue(TEXT("Second materialization preserves the authored kits"),
-            FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(*Preview, Error))) return false;
-        TestEqual(TEXT("No duplicated kits"), Preview->StartingEquipmentKits.Num(), 2);
+        // Explicit authoring wins; idempotence applies to all three native kits.
+        if (!TestTrue(TEXT("Repeated canonical materialization is idempotent"),
+            FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+                *Preview, Error, Fixture.Registry.Get())))
+            return false;
+        TestEqual(TEXT("No duplicated approved options"),
+            Preview->StartingEquipmentKits.Num(), 3);
     }
-    return true;
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0192SixClassCreationTest,
@@ -176,6 +199,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0192RangerTest,
 
 bool FARMEMENT0192RangerTest::RunTest(const FString&)
 {
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Native Ranger kit registry available"), Fixture.bReady)) return false;
     URPGClassAsset* Ranger = ARMEMENT0192::LoadClass(TEXT("Ranger"));
     URPGRaceAsset* Human = ARMEMENT0192::LoadHuman();
     if (!TestNotNull(TEXT("Production Ranger exists"), Ranger) || !TestNotNull(TEXT("Production race exists"), Human)) return false;
@@ -201,7 +226,7 @@ bool FARMEMENT0192RangerTest::RunTest(const FString&)
     URPGClassAsset* Preview = ARMEMENT0192::DuplicateForPresets(Ranger);
     FString Failure;
     if (!TestTrue(TEXT("Ranger alternate kits available"),
-        Preview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*Preview, Failure))) return false;
+        Preview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*Preview, Failure, Fixture.Registry.Get()))) return false;
     const FRPGStartingEquipmentKit* Trail = Preview->FindStartingEquipmentKit(TEXT("Kit_Ranger_Hunter"));
     if (!TestNotNull(TEXT("Approved Hunter kit can be selected in wizard"), Trail)) return false;
 
@@ -212,7 +237,8 @@ bool FARMEMENT0192RangerTest::RunTest(const FString&)
     TArray<UGridItemDefinitionAsset*> Definitions;
     if (!TestTrue(TEXT("Alternative kit builds independently"),
         FRPGStartingEquipmentService::TryBuildKit(Preview, Trail->KitId,
-            Candidate, CandidateEquipment, Definitions, Failure))) return false;
+            Candidate, CandidateEquipment, Definitions, Failure, Fixture.Registry.Get()))) return false;
+    TestEqual(TEXT("Native starter returns no obsolete definitions"), Definitions.Num(), 0);
     TestEqual(TEXT("Alternative kit records selected ID"), Candidate.StartingEquipmentKitId, Trail->KitId);
     TestTrue(TEXT("Alternative kit leaves OffHand available"), !CandidateEquipment.OffHand.IsValid());
     TestTrue(TEXT("Alternative kit has one-handed weapon"), CandidateEquipment.MainHand.IsValid());
