@@ -1,0 +1,864 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="4482" height="4198" viewBox="0 0 4482.0 4198.0" role="img" aria-labelledby="title description" version="1.1">
+  <title id="title">GrimrockPrototype — modèle relationnel vérifié et futur équipement — CLEANUP01</title>
+  <desc id="description">Six panneaux entité-relation. Héritage et valeurs embarquées distingués. Vert : implémenté et vérifié dans les déclarations et preuves disponibles ; ambre : transition ou correspondance partielle ; gris pointillé : proposition non implémentée. Les FK textuelles A à F établissent les relations entre panneaux. Référence a8de4f58, 22 novembre 2026.</desc>
+  <metadata id="editable-model-source">{"baseline": "a8de4f58b6c7ecc42e62aef0dbbe8fa9b7ede272", "panels": [{"title": "A · Registre et définitions", "note": "Héritage C++ : triangle vide. Les lignes « FK → » relient aussi les panneaux entre eux.", "nodes": [{"id": "ITEM_SYSTEM", "title": "ITEM_SYSTEM", "type": "UGridItemSystemAsset · DA_ItemSystem", "fields": ["ItemDefinitions : TArray&lt;definition*&gt; [48]", "WeaponCatalogue → B ; WeaponVisualCatalogue → C", "ActionCatalogue → D ; ActionPresentationCatalogue → D", "4 références globales obligatoires ; pas dans chaque objet"], "state": "v"}, {"id": "ITEM_DEFINITION", "title": "ITEM_DEFINITION", "type": "UGridCanonicalItemDefinitionAsset · abstraite", "fields": ["PK logique : FName ItemId", "FText DisplayName ; FText Description", "float WeightKg ; TArray&lt;FName&gt; Tags", "Identité de définition ≠ GUID de l’instance [E]"], "state": "v"}, {"id": "ARMAMENT_DEFINITION", "title": "ARMAMENT_DEFINITION", "type": "UGridArmamentDefinitionAsset · 22 assets", "fields": ["Hérite des 5 champs communs", "FName ArchetypeId : FK → WEAPON_ARCHETYPE [B]", "Aucun nom, poids, mesh ou N1 dupliqué"], "state": "v"}, {"id": "GENERIC_ITEM_VISUAL", "title": "GENERIC_ITEM_VISUAL / NON_ARMAMENT", "type": "UGridNonArmamentDefinitionAsset · 7 assets directs", "fields": ["Icon ; WorldMesh ; ActionBindings[] → D", "LightEmitter ; VisualEffects ; WorldSparkle*", "ReadText ; bReadable ; GenericThrow", "bUseItemWeightAsWorldPhysicsMass ; WorldPhysicsInitialTiltDegrees", "Classe parente des 4 spécialisations ci-dessous"], "state": "v"}, {"id": "CONSUMABLE_DEFINITION", "title": "CONSUMABLE_DEFINITION", "type": "UGridConsumableDefinitionAsset · 12 assets", "fields": ["int32 MaxStack ; UseActions[] → ITEM_ACTION_BINDING [D]", "ActionBindings et UseActions : pas deux listes non vides"], "state": "v"}, {"id": "AMMO_DEFINITION", "title": "AMMO_DEFINITION", "type": "UGridAmmoDefinitionAsset · 1 asset", "fields": ["FName AmmoKindId : FK logique → AMMO_KIND [B]", "int32 MaxStack ; niveau physique N0"], "state": "v"}, {"id": "OTHER_EQUIPMENT_DEFINITION", "title": "OTHER_EQUIPMENT_DEFINITION", "type": "UGridOtherEquipmentDefinitionAsset · 3 assets", "fields": ["EquipmentSlots : TArray&lt;EGridEquipmentSlot&gt; → E", "Bonuses : FGridEquipmentStatBonus", "Resistances : FGridDamageResistanceSet", "HandPolicy ; EquippedMesh ; int32 MaxStack", "Torche, shuriken, pierre ; pas une gamme d’armures [F]"], "state": "v"}, {"id": "GENERIC_STACKABLE", "title": "GENERIC_STACKABLE_DEFINITION", "type": "UGridGenericStackableDefinitionAsset · 3 assets", "fields": ["int32 MaxStack ; hérite de NON_ARMAMENT", "Fiole vide, dent de rat, catalyseur"], "state": "v"}], "edges": [["ITEM_SYSTEM", "ITEM_DEFINITION", "1 registre référence 0..n définitions", "solid"], ["ITEM_DEFINITION", "ARMAMENT_DEFINITION", "héritage", "inherit"], ["ITEM_DEFINITION", "GENERIC_ITEM_VISUAL", "héritage", "inherit"], ["GENERIC_ITEM_VISUAL", "CONSUMABLE_DEFINITION", "héritage", "inherit"], ["GENERIC_ITEM_VISUAL", "AMMO_DEFINITION", "héritage", "inherit"], ["GENERIC_ITEM_VISUAL", "OTHER_EQUIPMENT_DEFINITION", "héritage", "inherit"], ["GENERIC_ITEM_VISUAL", "GENERIC_STACKABLE", "héritage", "inherit"]], "dot": "digraph G {\ngraph [rankdir=TB, bgcolor=\"transparent\", pad=\"0.2\", nodesep=\"0.40\", ranksep=\"0.65\", splines=polyline, outputorder=edgesfirst];\nnode [shape=plain, fontname=\"Segoe UI\", fontsize=15];\nedge [fontname=\"Segoe UI\", fontsize=12, color=\"#617384\", arrowsize=0.7];\nITEM_SYSTEM [id=\"ITEM_SYSTEM\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;ITEM_SYSTEM&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridItemSystemAsset · DA_ItemSystem&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ItemDefinitions : TArray&amp;lt;definition*&amp;gt; [48]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;WeaponCatalogue → B ; WeaponVisualCatalogue → C&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ActionCatalogue → D ; ActionPresentationCatalogue → D&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;4 références globales obligatoires ; pas dans chaque objet&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nITEM_DEFINITION [id=\"ITEM_DEFINITION\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;ITEM_DEFINITION&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridCanonicalItemDefinitionAsset · abstraite&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PK logique : FName ItemId&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;FText DisplayName ; FText Description&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;float WeightKg ; TArray&amp;lt;FName&amp;gt; Tags&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Identité de définition ≠ GUID de l’instance [E]&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nARMAMENT_DEFINITION [id=\"ARMAMENT_DEFINITION\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;ARMAMENT_DEFINITION&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridArmamentDefinitionAsset · 22 assets&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Hérite des 5 champs communs&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;FName ArchetypeId : FK → WEAPON_ARCHETYPE [B]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Aucun nom, poids, mesh ou N1 dupliqué&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nGENERIC_ITEM_VISUAL [id=\"GENERIC_ITEM_VISUAL\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;GENERIC_ITEM_VISUAL / NON_ARMAMENT&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridNonArmamentDefinitionAsset · 7 assets directs&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Icon ; WorldMesh ; ActionBindings[] → D&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;LightEmitter ; VisualEffects ; WorldSparkle*&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ReadText ; bReadable ; GenericThrow&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;bUseItemWeightAsWorldPhysicsMass ; WorldPhysicsInitialTiltDegrees&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Classe parente des 4 spécialisations ci-dessous&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nCONSUMABLE_DEFINITION [id=\"CONSUMABLE_DEFINITION\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;CONSUMABLE_DEFINITION&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridConsumableDefinitionAsset · 12 assets&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;int32 MaxStack ; UseActions[] → ITEM_ACTION_BINDING [D]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ActionBindings et UseActions : pas deux listes non vides&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nAMMO_DEFINITION [id=\"AMMO_DEFINITION\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;AMMO_DEFINITION&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridAmmoDefinitionAsset · 1 asset&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;FName AmmoKindId : FK logique → AMMO_KIND [B]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;int32 MaxStack ; niveau physique N0&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nOTHER_EQUIPMENT_DEFINITION [id=\"OTHER_EQUIPMENT_DEFINITION\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;OTHER_EQUIPMENT_DEFINITION&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridOtherEquipmentDefinitionAsset · 3 assets&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;EquipmentSlots : TArray&amp;lt;EGridEquipmentSlot&amp;gt; → E&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Bonuses : FGridEquipmentStatBonus&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Resistances : FGridDamageResistanceSet&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;HandPolicy ; EquippedMesh ; int32 MaxStack&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Torche, shuriken, pierre ; pas une gamme d’armures [F]&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nGENERIC_STACKABLE [id=\"GENERIC_STACKABLE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;GENERIC_STACKABLE_DEFINITION&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridGenericStackableDefinitionAsset · 3 assets&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;int32 MaxStack ; hérite de NON_ARMAMENT&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Fiole vide, dent de rat, catalyseur&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nITEM_SYSTEM -&gt; ITEM_DEFINITION [label=\"1 registre référence 0..n définitions\", style=\"solid\"];\nITEM_DEFINITION -&gt; ARMAMENT_DEFINITION [label=\"héritage\", style=\"solid\", dir=back, arrowtail=empty, arrowhead=none];\nITEM_DEFINITION -&gt; GENERIC_ITEM_VISUAL [label=\"héritage\", style=\"solid\", dir=back, arrowtail=empty, arrowhead=none];\nGENERIC_ITEM_VISUAL -&gt; CONSUMABLE_DEFINITION [label=\"héritage\", style=\"solid\", dir=back, arrowtail=empty, arrowhead=none];\nGENERIC_ITEM_VISUAL -&gt; AMMO_DEFINITION [label=\"héritage\", style=\"solid\", dir=back, arrowtail=empty, arrowhead=none];\nGENERIC_ITEM_VISUAL -&gt; OTHER_EQUIPMENT_DEFINITION [label=\"héritage\", style=\"solid\", dir=back, arrowtail=empty, arrowhead=none];\nGENERIC_ITEM_VISUAL -&gt; GENERIC_STACKABLE [label=\"héritage\", style=\"solid\", dir=back, arrowtail=empty, arrowhead=none];\n}"}, {"title": "B · Armement, progression et affinités", "note": "Les sous-ensembles encadrés sont des valeurs embarquées ; ils ne deviennent pas des tables ou DataAssets.", "nodes": [{"id": "WEAPON_CATALOGUE", "title": "WEAPON_CATALOGUE", "type": "UGridCanonicalWeaponCatalogueAsset", "fields": ["DA_CanonicalWeaponCatalogue", "Archetypes[] : 82 lignes ; 22 liés aux objets actuels", "ClassPreferences[] : 6 descriptions de classes"], "state": "v"}, {"id": "WEAPON_ARCHETYPE", "title": "WEAPON_ARCHETYPE", "type": "FGridCanonicalWeaponArchetype", "fields": ["PK logique : FName ArchetypeId ; bHandAndKindProven", "Kind : Weapon / Shield / Focus ; HandPolicy", "DamageType ; PhysicalSubtype ; ScalingAttribute", "AccuracyBonus ; ActionPointCost ; RangeCells", "RequiredAmmoKindId → AMMO_KIND ; Actions[] → D", "AttackSourceSlots[] → E ; physique de monde explicite"], "state": "v"}, {"id": "LEVEL_PROGRESSION", "title": "LEVEL_PROGRESSION · embarqué dans archétype", "type": "N1 + 5 FGridWeaponIntegerGrowthRule", "fields": ["DamageDiceN1 ; PhysicalArmorN1 ; MagicalArmorN1", "DiceCountGrowth ; DiceSidesGrowth ; FlatBonusGrowth", "PhysicalArmorGrowth ; MagicalArmorGrowth", "N1..N20 : contrat de résolution, pas champ MaxLevel", "Règle : StepEveryLevels ; StepAmount ; Exceptions[]"], "state": "v"}, {"id": "PROGRESSION_EXCEPTION", "title": "PROGRESSION_EXCEPTION", "type": "FGridWeaponGrowthException", "fields": ["int32 ItemLevel ; int32 Value (valeur absolue)", "La statistique est celle de la règle contenante", "Pas de StatKey ni PK indépendante"], "state": "v"}, {"id": "CLASS_AFFINITY", "title": "CLASS_AFFINITY · dans archétype", "type": "Champs de FGridCanonicalWeaponArchetype", "fields": ["PrimaryClassId ; SecondaryClassIds[]", "SecondarySourceLabel : traçabilité", "Conseil de classe ; ne vaut pas prérequis d’équipement"], "state": "v"}, {"id": "CLASS_PREFERENCE", "title": "CLASS_PREFERENCE", "type": "FGridCanonicalClassPreference", "fields": ["FName ClassId ; CanonicalBranches ; PriorityWeapons", "EmblematicExamples ; Alternatives", "DominantAttributes ; Synergies"], "state": "v"}, {"id": "REACTION_POLICY", "title": "REACTION_POLICY", "type": "FGridCanonicalReactionPolicy", "fields": ["FName ReactionId ; Trigger ; float Chance", "int32 Absorption ; Reactions[] dans archétype", "Passif distinct d’une action active ; pas de ReactionKind"], "state": "v"}, {"id": "PROJECTILE_POLICY", "title": "PROJECTILE_POLICY", "type": "FGridCanonicalProjectilePolicy", "fields": ["bEnabled ; bGenericThrowAuthored ; bGenericThrowOneHanded", "InitialSpeed ; Arc ; FlightLifetime ; ImpactDropOffset", "Collision exécutée par les acteurs, pas champ CollisionBehavior"], "state": "v"}, {"id": "AMMO_KIND", "title": "AMMO_KIND · jointure logique", "type": "FName AmmoKindId / RequiredAmmoKindId", "fields": ["Pas de classe ni catalogue AmmoKind autonome", "1 kind enregistré → 1 ItemId de munition [A]", "0..n archétypes peuvent demander ce kind"], "state": "v"}], "edges": [["WEAPON_CATALOGUE", "WEAPON_ARCHETYPE", "1 → 0..n Archetypes", "solid"], ["WEAPON_CATALOGUE", "CLASS_PREFERENCE", "1 → 0..n ClassPreferences", "solid"], ["WEAPON_ARCHETYPE", "LEVEL_PROGRESSION", "1 → 1 ensemble N1 + règles", "solid"], ["WEAPON_ARCHETYPE", "CLASS_AFFINITY", "1 → 1 ensemble d’affinités", "solid"], ["WEAPON_ARCHETYPE", "REACTION_POLICY", "1 → 0..n Reactions", "solid"], ["WEAPON_ARCHETYPE", "PROJECTILE_POLICY", "1 → 1 valeur (option activée)", "solid"], ["WEAPON_ARCHETYPE", "AMMO_KIND", "0..n → 0..1 kind requis", "solid"], ["LEVEL_PROGRESSION", "PROGRESSION_EXCEPTION", "chaque règle : 1 → 0..n Exceptions", "solid"]], "dot": "digraph G {\ngraph [rankdir=TB, bgcolor=\"transparent\", pad=\"0.2\", nodesep=\"0.40\", ranksep=\"0.65\", splines=polyline, outputorder=edgesfirst];\nnode [shape=plain, fontname=\"Segoe UI\", fontsize=15];\nedge [fontname=\"Segoe UI\", fontsize=12, color=\"#617384\", arrowsize=0.7];\nWEAPON_CATALOGUE [id=\"WEAPON_CATALOGUE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;WEAPON_CATALOGUE&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridCanonicalWeaponCatalogueAsset&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;DA_CanonicalWeaponCatalogue&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Archetypes[] : 82 lignes ; 22 liés aux objets actuels&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ClassPreferences[] : 6 descriptions de classes&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nWEAPON_ARCHETYPE [id=\"WEAPON_ARCHETYPE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;WEAPON_ARCHETYPE&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalWeaponArchetype&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PK logique : FName ArchetypeId ; bHandAndKindProven&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Kind : Weapon / Shield / Focus ; HandPolicy&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;DamageType ; PhysicalSubtype ; ScalingAttribute&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;AccuracyBonus ; ActionPointCost ; RangeCells&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;RequiredAmmoKindId → AMMO_KIND ; Actions[] → D&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;AttackSourceSlots[] → E ; physique de monde explicite&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nLEVEL_PROGRESSION [id=\"LEVEL_PROGRESSION\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;LEVEL_PROGRESSION · embarqué dans archétype&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;N1 + 5 FGridWeaponIntegerGrowthRule&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;DamageDiceN1 ; PhysicalArmorN1 ; MagicalArmorN1&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;DiceCountGrowth ; DiceSidesGrowth ; FlatBonusGrowth&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PhysicalArmorGrowth ; MagicalArmorGrowth&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;N1..N20 : contrat de résolution, pas champ MaxLevel&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Règle : StepEveryLevels ; StepAmount ; Exceptions[]&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nPROGRESSION_EXCEPTION [id=\"PROGRESSION_EXCEPTION\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;PROGRESSION_EXCEPTION&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridWeaponGrowthException&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;int32 ItemLevel ; int32 Value (valeur absolue)&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;La statistique est celle de la règle contenante&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Pas de StatKey ni PK indépendante&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nCLASS_AFFINITY [id=\"CLASS_AFFINITY\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;CLASS_AFFINITY · dans archétype&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;Champs de FGridCanonicalWeaponArchetype&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PrimaryClassId ; SecondaryClassIds[]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;SecondarySourceLabel : traçabilité&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Conseil de classe ; ne vaut pas prérequis d’équipement&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nCLASS_PREFERENCE [id=\"CLASS_PREFERENCE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;CLASS_PREFERENCE&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalClassPreference&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;FName ClassId ; CanonicalBranches ; PriorityWeapons&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;EmblematicExamples ; Alternatives&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;DominantAttributes ; Synergies&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nREACTION_POLICY [id=\"REACTION_POLICY\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;REACTION_POLICY&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalReactionPolicy&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;FName ReactionId ; Trigger ; float Chance&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;int32 Absorption ; Reactions[] dans archétype&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Passif distinct d’une action active ; pas de ReactionKind&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nPROJECTILE_POLICY [id=\"PROJECTILE_POLICY\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;PROJECTILE_POLICY&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalProjectilePolicy&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;bEnabled ; bGenericThrowAuthored ; bGenericThrowOneHanded&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;InitialSpeed ; Arc ; FlightLifetime ; ImpactDropOffset&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Collision exécutée par les acteurs, pas champ CollisionBehavior&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nAMMO_KIND [id=\"AMMO_KIND\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;AMMO_KIND · jointure logique&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FName AmmoKindId / RequiredAmmoKindId&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Pas de classe ni catalogue AmmoKind autonome&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;1 kind enregistré → 1 ItemId de munition [A]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;0..n archétypes peuvent demander ce kind&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nWEAPON_CATALOGUE -&gt; WEAPON_ARCHETYPE [label=\"1 → 0..n Archetypes\", style=\"solid\"];\nWEAPON_CATALOGUE -&gt; CLASS_PREFERENCE [label=\"1 → 0..n ClassPreferences\", style=\"solid\"];\nWEAPON_ARCHETYPE -&gt; LEVEL_PROGRESSION [label=\"1 → 1 ensemble N1 + règles\", style=\"solid\"];\nWEAPON_ARCHETYPE -&gt; CLASS_AFFINITY [label=\"1 → 1 ensemble d’affinités\", style=\"solid\"];\nWEAPON_ARCHETYPE -&gt; REACTION_POLICY [label=\"1 → 0..n Reactions\", style=\"solid\"];\nWEAPON_ARCHETYPE -&gt; PROJECTILE_POLICY [label=\"1 → 1 valeur (option activée)\", style=\"solid\"];\nWEAPON_ARCHETYPE -&gt; AMMO_KIND [label=\"0..n → 0..1 kind requis\", style=\"solid\"];\nLEVEL_PROGRESSION -&gt; PROGRESSION_EXCEPTION [label=\"chaque règle : 1 → 0..n Exceptions\", style=\"solid\"];\n}"}, {"title": "C · Visuels et icônes", "note": "Autorités ARM et non-ARM distinctes ; aucune icône ne confère une capacité de combat.", "nodes": [{"id": "WEAPON_VISUAL_CATALOGUE", "title": "WEAPON_VISUAL_CATALOGUE", "type": "UGridCanonicalWeaponVisualCatalogueAsset", "fields": ["DA_CanonicalWeaponVisualCatalogue", "ArchetypeBindings[] ; VisualProfiles[]", "ActionIcons : TMap&lt;kind, texture&gt; [12 catégories]"], "state": "v"}, {"id": "VISUAL_BINDING", "title": "VISUAL_BINDING", "type": "FGridCanonicalWeaponVisualBinding", "fields": ["ArchetypeId : FK → WEAPON_ARCHETYPE [B]", "VisualId : FK → VISUAL_PROFILE", "Un binding par archétype visuellement pris en charge"], "state": "v"}, {"id": "VISUAL_PROFILE", "title": "VISUAL_PROFILE", "type": "FGridCanonicalWeaponVisual", "fields": ["PK logique : VisualId ; FamilyTag", "ItemIcon ; WorldMesh ; EquippedMesh", "OrnamentMesh ; OrnamentTransform ; WorldTransform", "LevelFinishIds[] ; LightEmitter ; VisualEffects", "WorldSparkle* ; ProjectileMesh ; ProjectileAppearance"], "state": "v"}, {"id": "PROJECTILE_VISUAL", "title": "PROJECTILE_VISUAL", "type": "FGridCanonicalProjectileVisual", "fields": ["bEnabled ; RelativeRotation ; RelativeScale", "MeshForwardAxis ; Mode : Stable / Tumble / Spin", "TumbleAxis ; TumbleDegreesPerSecond ; SpinDegreesPerSecond"], "state": "v"}, {"id": "ACTION_ICON", "title": "ACTION_ICON · entrée de map", "type": "EGridEquippedWeaponActionIconKind → texture", "fields": ["12 icônes catégorielles : ActionIcons[kind]", "Distinctes de ItemIcon ; kind dérivé des règles", "Pas de ActionTexture ni PK propre dans le C++"], "state": "v"}, {"id": "NON_ARM_PRESENTATION", "title": "PRÉSENTATION NON-ARM", "type": "Champs hérités UGridNonArmamentDefinitionAsset", "fields": ["Icon ; WorldMesh ; LightEmitter ; VisualEffects", "WorldSparkle* ; lecture ; physique ; lancer générique", "EquippedMesh seulement dans OtherEquipment [A]", "Pas de jointure ARM obligatoire ; pas de fallback ARM"], "state": "v"}], "edges": [["WEAPON_VISUAL_CATALOGUE", "VISUAL_BINDING", "1 → 0..n ArchetypeBindings", "solid"], ["WEAPON_VISUAL_CATALOGUE", "VISUAL_PROFILE", "1 → 0..n VisualProfiles", "solid"], ["WEAPON_VISUAL_CATALOGUE", "ACTION_ICON", "1 → 0..n entrées ActionIcons", "solid"], ["VISUAL_BINDING", "VISUAL_PROFILE", "0..n bindings → 1 profil", "solid"], ["VISUAL_PROFILE", "PROJECTILE_VISUAL", "1 → 1 valeur embarquée", "solid"]], "dot": "digraph G {\ngraph [rankdir=TB, bgcolor=\"transparent\", pad=\"0.2\", nodesep=\"0.40\", ranksep=\"0.65\", splines=polyline, outputorder=edgesfirst];\nnode [shape=plain, fontname=\"Segoe UI\", fontsize=15];\nedge [fontname=\"Segoe UI\", fontsize=12, color=\"#617384\", arrowsize=0.7];\nWEAPON_VISUAL_CATALOGUE [id=\"WEAPON_VISUAL_CATALOGUE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;WEAPON_VISUAL_CATALOGUE&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridCanonicalWeaponVisualCatalogueAsset&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;DA_CanonicalWeaponVisualCatalogue&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ArchetypeBindings[] ; VisualProfiles[]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ActionIcons : TMap&amp;lt;kind, texture&amp;gt; [12 catégories]&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nVISUAL_BINDING [id=\"VISUAL_BINDING\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;VISUAL_BINDING&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalWeaponVisualBinding&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ArchetypeId : FK → WEAPON_ARCHETYPE [B]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;VisualId : FK → VISUAL_PROFILE&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Un binding par archétype visuellement pris en charge&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nVISUAL_PROFILE [id=\"VISUAL_PROFILE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;VISUAL_PROFILE&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalWeaponVisual&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PK logique : VisualId ; FamilyTag&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ItemIcon ; WorldMesh ; EquippedMesh&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;OrnamentMesh ; OrnamentTransform ; WorldTransform&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;LevelFinishIds[] ; LightEmitter ; VisualEffects&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;WorldSparkle* ; ProjectileMesh ; ProjectileAppearance&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nPROJECTILE_VISUAL [id=\"PROJECTILE_VISUAL\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;PROJECTILE_VISUAL&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalProjectileVisual&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;bEnabled ; RelativeRotation ; RelativeScale&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;MeshForwardAxis ; Mode : Stable / Tumble / Spin&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;TumbleAxis ; TumbleDegreesPerSecond ; SpinDegreesPerSecond&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nACTION_ICON [id=\"ACTION_ICON\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;ACTION_ICON · entrée de map&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;EGridEquippedWeaponActionIconKind → texture&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;12 icônes catégorielles : ActionIcons[kind]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Distinctes de ItemIcon ; kind dérivé des règles&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Pas de ActionTexture ni PK propre dans le C++&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nNON_ARM_PRESENTATION [id=\"NON_ARM_PRESENTATION\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;PRÉSENTATION NON-ARM&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;Champs hérités UGridNonArmamentDefinitionAsset&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Icon ; WorldMesh ; LightEmitter ; VisualEffects&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;WorldSparkle* ; lecture ; physique ; lancer générique&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;EquippedMesh seulement dans OtherEquipment [A]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Pas de jointure ARM obligatoire ; pas de fallback ARM&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nWEAPON_VISUAL_CATALOGUE -&gt; VISUAL_BINDING [label=\"1 → 0..n ArchetypeBindings\", style=\"solid\"];\nWEAPON_VISUAL_CATALOGUE -&gt; VISUAL_PROFILE [label=\"1 → 0..n VisualProfiles\", style=\"solid\"];\nWEAPON_VISUAL_CATALOGUE -&gt; ACTION_ICON [label=\"1 → 0..n entrées ActionIcons\", style=\"solid\"];\nVISUAL_BINDING -&gt; VISUAL_PROFILE [label=\"0..n bindings → 1 profil\", style=\"solid\"];\nVISUAL_PROFILE -&gt; PROJECTILE_VISUAL [label=\"1 → 1 valeur embarquée\", style=\"solid\"];\n}"}, {"title": "D · Actions, effets et présentation", "note": "Ambre : deux représentations implémentées et utilisées ; leur consolidation exige une preuve de parité.", "nodes": [{"id": "ACTION_CATALOGUE", "title": "ACTION_CATALOGUE", "type": "UGridActionCatalogueAsset · DA_ActionCatalogue", "fields": ["Actions[] : FGridCanonicalAction", "DetailedActions[] : FGridCanonicalRuntimeAction", "Une autorité catalogue ; représentations à réconcilier"], "state": "a"}, {"id": "ITEM_ACTION_BINDING", "title": "ITEM_ACTION_BINDING", "type": "FGridItemActionBinding", "fields": ["FName ActionId : FK → catalogue actions", "FName PresentationId : FK → catalogue présentation", "Possédé par archétype.Actions [B], ou", "non-ARM.ActionBindings / consommable.UseActions [A]"], "state": "v"}, {"id": "ACTION_DEFINITION", "title": "ACTION_DEFINITION", "type": "FGridCanonicalAction", "fields": ["PK logique : ActionId ; Kind ; Targeting", "bRangedAttack ; bRequiresLineOfSight", "SourceItemQuantityCost ; ManaCost ; CooldownRounds", "WeaponDamagePercent ; Effects[]"], "state": "v"}, {"id": "DETAILED_ACTION", "title": "DETAILED_ACTION", "type": "FGridCanonicalRuntimeAction", "fields": ["Definition : FGridCombatActionDefinition", "Identité Definition.ActionId ; effets typés détaillés", "14 actions détaillées dans la preuve native"], "state": "a"}, {"id": "ACTION_EFFECT", "title": "ACTION_EFFECT", "type": "FGridCanonicalActionEffect", "fields": ["Kind : Damage / Heal / ApplyStatus / RemoveStatus /", "Armor / Move / Surface / Trap / Teleport", "int32 Magnitude ; FName StatusId", "Pas de TypedPayload générique dans cette structure"], "state": "v"}, {"id": "STATUS_EFFECT_ASSET", "title": "STATUS_EFFECT_ASSET", "type": "UGridStatusEffectDefinitionAsset", "fields": ["PK logique : EffectId (et non StatusId)", "DisplayName ; Description ; StatusTags ; Icon", "Disposition ; DurationUnit ; DefaultDuration ; StackPolicy", "PeriodicDamage / Healing ; Control ; CombatModifiers / Reactions", "StatusId [action compacte] : identité sémantique → EffectId"], "state": "a"}, {"id": "PRESENTATION_CATALOGUE", "title": "PRESENTATION_CATALOGUE", "type": "UGridActionPresentationCatalogueAsset", "fields": ["DA_ActionPresentationCatalogue", "Presentations[] ; DetailedPresentations[]"], "state": "a"}, {"id": "PRESENTATION_PROFILE", "title": "PRESENTATION_PROFILE", "type": "FGridCanonicalActionPresentation", "fields": ["PK logique : PresentationId ; MotionStyle ; bAnimateHeldItem", "MotionDurationSeconds ; ImpactDelaySeconds ; RecoveryDelaySeconds", "PeakLocationOffset ; PeakRotationOffset ; FeedbackDurationSeconds", "Attack / Hit / Miss / Flesh / Metal / Wood audio", "Parry / Block / Critical / Heavy audio ; 5 groupes VFX"], "state": "v"}, {"id": "DETAILED_PRESENTATION", "title": "DETAILED_PRESENTATION", "type": "FGridCanonicalRuntimePresentation", "fields": ["FName PresentationId", "Profile : FGridPlayerAttackPresentationProfile", "Présentation détaillée non-ARM ; même catalogue global"], "state": "a"}], "edges": [["ACTION_CATALOGUE", "ACTION_DEFINITION", "1 → 0..n Actions", "solid"], ["ACTION_CATALOGUE", "DETAILED_ACTION", "1 → 0..n DetailedActions", "solid"], ["ITEM_ACTION_BINDING", "ACTION_DEFINITION", "0..n → 1 action compacte OU détaillée", "solid"], ["ITEM_ACTION_BINDING", "PRESENTATION_CATALOGUE", "0..n → 1 présentation résolue", "solid"], ["ACTION_DEFINITION", "ACTION_EFFECT", "1 → 0..n Effects", "solid"], ["ACTION_EFFECT", "STATUS_EFFECT_ASSET", "0..n → 0..1 statut si pertinent", "dashed"], ["PRESENTATION_CATALOGUE", "PRESENTATION_PROFILE", "1 → 0..n Presentations", "solid"], ["PRESENTATION_CATALOGUE", "DETAILED_PRESENTATION", "1 → 0..n DetailedPresentations", "solid"]], "dot": "digraph G {\ngraph [rankdir=TB, bgcolor=\"transparent\", pad=\"0.2\", nodesep=\"0.40\", ranksep=\"0.65\", splines=polyline, outputorder=edgesfirst];\nnode [shape=plain, fontname=\"Segoe UI\", fontsize=15];\nedge [fontname=\"Segoe UI\", fontsize=12, color=\"#617384\", arrowsize=0.7];\nACTION_CATALOGUE [id=\"ACTION_CATALOGUE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#a76a08\" BGCOLOR=\"#fff2cf\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#a76a08\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;ACTION_CATALOGUE&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridActionCatalogueAsset · DA_ActionCatalogue&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Actions[] : FGridCanonicalAction&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;DetailedActions[] : FGridCanonicalRuntimeAction&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Une autorité catalogue ; représentations à réconcilier&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nITEM_ACTION_BINDING [id=\"ITEM_ACTION_BINDING\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;ITEM_ACTION_BINDING&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridItemActionBinding&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;FName ActionId : FK → catalogue actions&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;FName PresentationId : FK → catalogue présentation&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Possédé par archétype.Actions [B], ou&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;non-ARM.ActionBindings / consommable.UseActions [A]&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nACTION_DEFINITION [id=\"ACTION_DEFINITION\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;ACTION_DEFINITION&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalAction&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PK logique : ActionId ; Kind ; Targeting&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;bRangedAttack ; bRequiresLineOfSight&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;SourceItemQuantityCost ; ManaCost ; CooldownRounds&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;WeaponDamagePercent ; Effects[]&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nDETAILED_ACTION [id=\"DETAILED_ACTION\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#a76a08\" BGCOLOR=\"#fff2cf\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#a76a08\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;DETAILED_ACTION&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalRuntimeAction&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Definition : FGridCombatActionDefinition&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Identité Definition.ActionId ; effets typés détaillés&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;14 actions détaillées dans la preuve native&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nACTION_EFFECT [id=\"ACTION_EFFECT\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;ACTION_EFFECT&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalActionEffect&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Kind : Damage / Heal / ApplyStatus / RemoveStatus /&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Armor / Move / Surface / Trap / Teleport&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;int32 Magnitude ; FName StatusId&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Pas de TypedPayload générique dans cette structure&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nSTATUS_EFFECT_ASSET [id=\"STATUS_EFFECT_ASSET\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#a76a08\" BGCOLOR=\"#fff2cf\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#a76a08\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;STATUS_EFFECT_ASSET&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridStatusEffectDefinitionAsset&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PK logique : EffectId (et non StatusId)&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;DisplayName ; Description ; StatusTags ; Icon&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Disposition ; DurationUnit ; DefaultDuration ; StackPolicy&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PeriodicDamage / Healing ; Control ; CombatModifiers / Reactions&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;StatusId [action compacte] : identité sémantique → EffectId&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nPRESENTATION_CATALOGUE [id=\"PRESENTATION_CATALOGUE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#a76a08\" BGCOLOR=\"#fff2cf\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#a76a08\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;PRESENTATION_CATALOGUE&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridActionPresentationCatalogueAsset&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;DA_ActionPresentationCatalogue&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Presentations[] ; DetailedPresentations[]&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nPRESENTATION_PROFILE [id=\"PRESENTATION_PROFILE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;PRESENTATION_PROFILE&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalActionPresentation&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PK logique : PresentationId ; MotionStyle ; bAnimateHeldItem&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;MotionDurationSeconds ; ImpactDelaySeconds ; RecoveryDelaySeconds&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PeakLocationOffset ; PeakRotationOffset ; FeedbackDurationSeconds&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Attack / Hit / Miss / Flesh / Metal / Wood audio&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Parry / Block / Critical / Heavy audio ; 5 groupes VFX&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nDETAILED_PRESENTATION [id=\"DETAILED_PRESENTATION\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#a76a08\" BGCOLOR=\"#fff2cf\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#a76a08\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;DETAILED_PRESENTATION&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCanonicalRuntimePresentation&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;FName PresentationId&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Profile : FGridPlayerAttackPresentationProfile&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Présentation détaillée non-ARM ; même catalogue global&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nACTION_CATALOGUE -&gt; ACTION_DEFINITION [label=\"1 → 0..n Actions\", style=\"solid\"];\nACTION_CATALOGUE -&gt; DETAILED_ACTION [label=\"1 → 0..n DetailedActions\", style=\"solid\"];\nITEM_ACTION_BINDING -&gt; ACTION_DEFINITION [label=\"0..n → 1 action compacte OU détaillée\", style=\"solid\"];\nITEM_ACTION_BINDING -&gt; PRESENTATION_CATALOGUE [label=\"0..n → 1 présentation résolue\", style=\"solid\"];\nACTION_DEFINITION -&gt; ACTION_EFFECT [label=\"1 → 0..n Effects\", style=\"solid\"];\nACTION_EFFECT -&gt; STATUS_EFFECT_ASSET [label=\"0..n → 0..1 statut si pertinent\", style=\"dashed\"];\nPRESENTATION_CATALOGUE -&gt; PRESENTATION_PROFILE [label=\"1 → 0..n Presentations\", style=\"solid\"];\nPRESENTATION_CATALOGUE -&gt; DETAILED_PRESENTATION [label=\"1 → 0..n DetailedPresentations\", style=\"solid\"];\n}"}, {"title": "E · Instances, possession, monde et sauvegarde", "note": "Les FK sont des identités C++ validées au runtime ; aucune contrainte SQL n’est supposée.", "nodes": [{"id": "ITEM_SUBSYSTEM", "title": "RÉSOLUTION · UGridItemSubsystem", "type": "UGameInstanceSubsystem · une configuration par GI", "fields": ["ConfiguredItemSystem → ITEM_SYSTEM [A]", "RootRegistry + ItemIndex : caches transitoires", "ResolveItem / ResolveBoundAction / ResolveArmorReserveForInstance", "FGridResolvedItem / FGridResolvedBoundAction : vues transitoires", "N1..N20 pour ARM ; N0 strict pour non-ARM"], "state": "v"}, {"id": "ITEM_INSTANCE", "title": "ITEM_INSTANCE", "type": "FGridItemInstance", "fields": ["PK runtime : FGuid RuntimeObjectId", "ItemDefinitionId : FK → ItemId [A] ; ItemLevel ; Quantity", "AbsorbedEquipmentPhysicalArmor / MagicalArmor", "OwnerType ; OwnerGuid ; OwnerCharacterIndex ; EquipmentSlot", "bLightsEnabled ; LastWorldTransform", "ReadableContentAsset / Id ; ReadTitleOverride ; ReadTextOverride"], "state": "v"}, {"id": "EQUIPMENT_STATE", "title": "ÉQUIPEMENT · FGridCharacterEquipmentState", "type": "18 emplacements EGridEquipmentSlot (hors None)", "fields": ["MainHand ; OffHand ; Head ; Chest ; Legs ; Feet", "Amulet ; Ring1 ; Ring2 ; Shoulders ; Gloves ; Belt", "Cloak ; Talisman ; QuickSlot1 ; QuickSlot2 ; Shirt ; Bracers", "1 instance physique au plus par emplacement", "Deux mains : OffHand réservé, pas seconde instance ni attaque"], "state": "v"}, {"id": "PARTY_STATE", "title": "POSSESSION · FGridPartyInventoryState", "type": "FGridCharacterInventoryState / FGridInventorySlot", "fields": ["ActiveCharacters[] ; ActiveEquipment[] ; CharacterPool[]", "CharacterId : GUID ; InventorySlots[] ; CombatHotbarSlots[]", "bHasCursorItem ; CursorItem ; SelectedCharacterIndex", "Instance localisée : sac, équipement, curseur, monde, réceptacle", "Action de hotbar → ActionId + GUID / emplacement source"], "state": "v"}, {"id": "LEVEL_ASSET", "title": "LEVEL_ASSET", "type": "UGridLevelAsset · DA_GridLevel_*", "fields": ["LooseItemInstances[] : FGridLooseItemInstance", "ItemSpawns[] : FGridItemSpawnInstance", "WorldObjectInstances[] : réceptacles / serrures ; autres placements"], "state": "v"}, {"id": "ITEM_PLACEMENT", "title": "ITEM_PLACEMENT", "type": "FGridLooseItemInstance / FGridItemSpawnInstance", "fields": ["InstanceId ou SpawnId : GUID ; CanonicalItemId : FK → A", "ItemLevel ; Quantity ; CellX ; CellY ; LogicId ; Tag ; Notes", "Loose : SurfaceSide ; LocalOffset ; LocalYaw ; lecture", "Spawn : bSpawnAtStart ; PaletteEntryId pour les deux", "Aucun pointeur vers une ancienne définition d’objet"], "state": "v"}, {"id": "SAVE_GAME", "title": "PERSISTANCE · UGrimrockPartySaveGame", "type": "CurrentSaveVersion = 27 · correspondance exacte", "fields": ["PartyInventoryState ; DungeonRuntimeState", "CampaignQuestState ; PartyPortraitOrder", "CurrentDungeonLevelId ; PartyCellX/Y ; PartyFacing", "GameplayElapsedSeconds ; Serialize + validation stricte", "Pas de migration implicite d’une version antérieure"], "state": "v"}, {"id": "WORLD_STATE", "title": "MONDE · FGridDungeonRuntimeState", "type": "FGridLevelRuntimeState et snapshots physiques", "fields": ["LevelStates : états durables par niveau", "Identités / niveaux / quantités ; réceptacles, clés et projectiles", "État mutable reconstruit sans catalogue copié"], "state": "v"}, {"id": "READABLE", "title": "LECTURE · UGridReadableContentAsset", "type": "Exception durable distincte de la définition d’objet", "fields": ["ReadableContentAsset ; ReadableContentId", "ReadTitleOverride ; ReadTextOverride : état de l’instance", "DA_BookPage_Test et DA_Scroll_Test conservés", "2 références sauvegardées protégées ; ne pas supprimer"], "state": "v"}], "edges": [["ITEM_SUBSYSTEM", "ITEM_INSTANCE", "résolution par ItemDefinitionId + niveau", "dashed"], ["PARTY_STATE", "ITEM_INSTANCE", "1 agrégat → 0..n instances possédées", "solid"], ["PARTY_STATE", "EQUIPMENT_STATE", "1 → 0..n équipements de personnages", "solid"], ["LEVEL_ASSET", "ITEM_PLACEMENT", "1 → 0..n placements", "solid"], ["SAVE_GAME", "PARTY_STATE", "1 → 1 snapshot de groupe", "solid"], ["SAVE_GAME", "WORLD_STATE", "1 → 1 snapshot de donjon", "solid"], ["ITEM_INSTANCE", "READABLE", "0..n → 0..1 contenu réutilisable", "solid"]], "dot": "digraph G {\ngraph [rankdir=TB, bgcolor=\"transparent\", pad=\"0.2\", nodesep=\"0.40\", ranksep=\"0.65\", splines=polyline, outputorder=edgesfirst];\nnode [shape=plain, fontname=\"Segoe UI\", fontsize=15];\nedge [fontname=\"Segoe UI\", fontsize=12, color=\"#617384\", arrowsize=0.7];\nITEM_SUBSYSTEM [id=\"ITEM_SUBSYSTEM\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;RÉSOLUTION · UGridItemSubsystem&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGameInstanceSubsystem · une configuration par GI&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ConfiguredItemSystem → ITEM_SYSTEM [A]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;RootRegistry + ItemIndex : caches transitoires&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ResolveItem / ResolveBoundAction / ResolveArmorReserveForInstance&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;FGridResolvedItem / FGridResolvedBoundAction : vues transitoires&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;N1..N20 pour ARM ; N0 strict pour non-ARM&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nITEM_INSTANCE [id=\"ITEM_INSTANCE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;ITEM_INSTANCE&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridItemInstance&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PK runtime : FGuid RuntimeObjectId&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ItemDefinitionId : FK → ItemId [A] ; ItemLevel ; Quantity&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;AbsorbedEquipmentPhysicalArmor / MagicalArmor&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;OwnerType ; OwnerGuid ; OwnerCharacterIndex ; EquipmentSlot&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;bLightsEnabled ; LastWorldTransform&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ReadableContentAsset / Id ; ReadTitleOverride ; ReadTextOverride&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nEQUIPMENT_STATE [id=\"EQUIPMENT_STATE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;ÉQUIPEMENT · FGridCharacterEquipmentState&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;18 emplacements EGridEquipmentSlot (hors None)&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;MainHand ; OffHand ; Head ; Chest ; Legs ; Feet&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Amulet ; Ring1 ; Ring2 ; Shoulders ; Gloves ; Belt&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Cloak ; Talisman ; QuickSlot1 ; QuickSlot2 ; Shirt ; Bracers&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;1 instance physique au plus par emplacement&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Deux mains : OffHand réservé, pas seconde instance ni attaque&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nPARTY_STATE [id=\"PARTY_STATE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;POSSESSION · FGridPartyInventoryState&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridCharacterInventoryState / FGridInventorySlot&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ActiveCharacters[] ; ActiveEquipment[] ; CharacterPool[]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;CharacterId : GUID ; InventorySlots[] ; CombatHotbarSlots[]&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;bHasCursorItem ; CursorItem ; SelectedCharacterIndex&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Instance localisée : sac, équipement, curseur, monde, réceptacle&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Action de hotbar → ActionId + GUID / emplacement source&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nLEVEL_ASSET [id=\"LEVEL_ASSET\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;LEVEL_ASSET&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;UGridLevelAsset · DA_GridLevel_*&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;LooseItemInstances[] : FGridLooseItemInstance&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ItemSpawns[] : FGridItemSpawnInstance&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;WorldObjectInstances[] : réceptacles / serrures ; autres placements&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nITEM_PLACEMENT [id=\"ITEM_PLACEMENT\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;ITEM_PLACEMENT&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridLooseItemInstance / FGridItemSpawnInstance&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;InstanceId ou SpawnId : GUID ; CanonicalItemId : FK → A&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ItemLevel ; Quantity ; CellX ; CellY ; LogicId ; Tag ; Notes&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Loose : SurfaceSide ; LocalOffset ; LocalYaw ; lecture&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Spawn : bSpawnAtStart ; PaletteEntryId pour les deux&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Aucun pointeur vers une ancienne définition d’objet&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nSAVE_GAME [id=\"SAVE_GAME\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;PERSISTANCE · UGrimrockPartySaveGame&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;CurrentSaveVersion = 27 · correspondance exacte&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;PartyInventoryState ; DungeonRuntimeState&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;CampaignQuestState ; PartyPortraitOrder&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;CurrentDungeonLevelId ; PartyCellX/Y ; PartyFacing&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;GameplayElapsedSeconds ; Serialize + validation stricte&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Pas de migration implicite d’une version antérieure&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nWORLD_STATE [id=\"WORLD_STATE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;MONDE · FGridDungeonRuntimeState&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;FGridLevelRuntimeState et snapshots physiques&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;LevelStates : états durables par niveau&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Identités / niveaux / quantités ; réceptacles, clés et projectiles&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;État mutable reconstruit sans catalogue copié&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nREADABLE [id=\"READABLE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;LECTURE · UGridReadableContentAsset&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;Exception durable distincte de la définition d’objet&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ReadableContentAsset ; ReadableContentId&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ReadTitleOverride ; ReadTextOverride : état de l’instance&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;DA_BookPage_Test et DA_Scroll_Test conservés&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;2 références sauvegardées protégées ; ne pas supprimer&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nITEM_SUBSYSTEM -&gt; ITEM_INSTANCE [label=\"résolution par ItemDefinitionId + niveau\", style=\"dashed\"];\nPARTY_STATE -&gt; ITEM_INSTANCE [label=\"1 agrégat → 0..n instances possédées\", style=\"solid\"];\nPARTY_STATE -&gt; EQUIPMENT_STATE [label=\"1 → 0..n équipements de personnages\", style=\"solid\"];\nLEVEL_ASSET -&gt; ITEM_PLACEMENT [label=\"1 → 0..n placements\", style=\"solid\"];\nSAVE_GAME -&gt; PARTY_STATE [label=\"1 → 1 snapshot de groupe\", style=\"solid\"];\nSAVE_GAME -&gt; WORLD_STATE [label=\"1 → 1 snapshot de donjon\", style=\"solid\"];\nITEM_INSTANCE -&gt; READABLE [label=\"0..n → 0..1 contenu réutilisable\", style=\"solid\"];\n}"}, {"title": "F · Extension conceptuelle de l’équipement", "note": "PROPOSITION DOCUMENTAIRE UNIQUEMENT · Aucun type, champ, DataAsset, slot ou mécanisme ajouté.", "nodes": [{"id": "FUTURE_EQUIPMENT", "title": "FUTUR ÉQUIPEMENT · extension de A", "type": "Concept sans nom C++ arrêté", "fields": ["Réutiliser ItemId, GUID, poids, visuels et possession existants", "Définition spécialisée compatible avec OtherEquipment", "Ni deuxième registre d’objets, ni duplication des 5 champs", "Schéma équipé existant ; gamme de contenu non matérialisée"], "state": "f"}, {"id": "EQUIPMENT_TAXONOMY", "title": "CATÉGORIE / SOUS-CATÉGORIE", "type": "Taxonomie proposée, pas des valeurs d’enum actuelles", "fields": ["Armure : légère / intermédiaire / lourde ; vêtements", "Casques ; épaulières ; protections corporelles ; brassards", "Gants ; ceintures ; bottes ; capes", "Anneaux ; amulettes ; accessoires (Talisman, QuickSlots)", "Catégorie distincte du slot : un anneau → Ring1 OU Ring2"], "state": "f"}, {"id": "EQUIPMENT_RULES", "title": "NIVEAU, QUALITÉ ET PRÉREQUIS", "type": "Extension à définir avant toute implémentation", "fields": ["Qualité de base ou variante : autorité unique à décider", "Prérequis : attributs, compétences, niveau, classe si nécessaire", "Niveau d’objet distinct du niveau de personnage", "Non-ARM actuel N0 : progression future exige nouveau contrat", "Affinité de classe conseillée ≠ condition obligatoire"], "state": "f"}, {"id": "EQUIPMENT_BONUSES", "title": "PROTECTIONS ET CARACTÉRISTIQUES", "type": "Socle implémenté · FGridEquipmentStatBonus", "fields": ["Strength / Dexterity / Constitution / Intelligence / Wisdom / Charisma", "MaxHealthBonus ; MaxManaBonus ; CarryWeightBonus", "ArmorBonus ; MagicalArmorBonus", "FGridDamageResistanceSet : physique + 7 types magiques", "Réserve dépensée portée par chaque FGridItemInstance"], "state": "v"}, {"id": "EQUIPMENT_EFFECTS", "title": "COMPÉTENCES ET EFFETS CONDITIONNELS", "type": "Extension conceptuelle · pas d’auto-application actuelle", "fields": ["Références vers compétences, modificateurs et effets existants", "Conditions / déclencheurs ; cumul ; retrait au déséquipement", "Séparer bonus constants, passifs et actions disponibles", "Pas de copie d’un effet global dans chaque instance"], "state": "f"}, {"id": "EQUIPMENT_VISUAL_PERSISTENCE", "title": "VARIANTES VISUELLES ET PERSISTANCE", "type": "Contrat futur à décider", "fields": ["Réutiliser Icon / WorldMesh / EquippedMesh ; aucune copie ARM", "Apparence corporelle multicouche / conflits : à concevoir", "Sauver seulement état mutable : qualité variable, affixes si retenus", "Nouveau champ durable → version + conversion explicite sur copies", "Ni poids, ni protections statiques, ni caches sauvegardés"], "state": "f"}], "edges": [["FUTURE_EQUIPMENT", "EQUIPMENT_TAXONOMY", "1 → 1 classification proposée", "dashed"], ["FUTURE_EQUIPMENT", "EQUIPMENT_RULES", "1 → 0..n conditions proposées", "dashed"], ["FUTURE_EQUIPMENT", "EQUIPMENT_BONUSES", "réutilise le socle de A et E", "dashed"], ["FUTURE_EQUIPMENT", "EQUIPMENT_EFFECTS", "1 → 0..n références proposées", "dashed"], ["FUTURE_EQUIPMENT", "EQUIPMENT_VISUAL_PERSISTENCE", "réutilise / complète A et E", "dashed"]], "dot": "digraph G {\ngraph [rankdir=TB, bgcolor=\"transparent\", pad=\"0.2\", nodesep=\"0.40\", ranksep=\"0.65\", splines=polyline, outputorder=edgesfirst];\nnode [shape=plain, fontname=\"Segoe UI\", fontsize=15];\nedge [fontname=\"Segoe UI\", fontsize=12, color=\"#617384\", arrowsize=0.7];\nFUTURE_EQUIPMENT [id=\"FUTURE_EQUIPMENT\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#7b818b\" BGCOLOR=\"#f0f1f3\" STYLE=\"DASHED\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#7b818b\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;FUTUR ÉQUIPEMENT · extension de A&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;Concept sans nom C++ arrêté&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Réutiliser ItemId, GUID, poids, visuels et possession existants&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Définition spécialisée compatible avec OtherEquipment&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Ni deuxième registre d’objets, ni duplication des 5 champs&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Schéma équipé existant ; gamme de contenu non matérialisée&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nEQUIPMENT_TAXONOMY [id=\"EQUIPMENT_TAXONOMY\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#7b818b\" BGCOLOR=\"#f0f1f3\" STYLE=\"DASHED\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#7b818b\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;CATÉGORIE / SOUS-CATÉGORIE&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;Taxonomie proposée, pas des valeurs d’enum actuelles&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Armure : légère / intermédiaire / lourde ; vêtements&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Casques ; épaulières ; protections corporelles ; brassards&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Gants ; ceintures ; bottes ; capes&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Anneaux ; amulettes ; accessoires (Talisman, QuickSlots)&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Catégorie distincte du slot : un anneau → Ring1 OU Ring2&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nEQUIPMENT_RULES [id=\"EQUIPMENT_RULES\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#7b818b\" BGCOLOR=\"#f0f1f3\" STYLE=\"DASHED\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#7b818b\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;NIVEAU, QUALITÉ ET PRÉREQUIS&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;Extension à définir avant toute implémentation&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Qualité de base ou variante : autorité unique à décider&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Prérequis : attributs, compétences, niveau, classe si nécessaire&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Niveau d’objet distinct du niveau de personnage&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Non-ARM actuel N0 : progression future exige nouveau contrat&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Affinité de classe conseillée ≠ condition obligatoire&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nEQUIPMENT_BONUSES [id=\"EQUIPMENT_BONUSES\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#267647\" BGCOLOR=\"#e6f4ea\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#267647\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;PROTECTIONS ET CARACTÉRISTIQUES&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;Socle implémenté · FGridEquipmentStatBonus&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Strength / Dexterity / Constitution / Intelligence / Wisdom / Charisma&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;MaxHealthBonus ; MaxManaBonus ; CarryWeightBonus&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;ArmorBonus ; MagicalArmorBonus&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;FGridDamageResistanceSet : physique + 7 types magiques&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Réserve dépensée portée par chaque FGridItemInstance&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nEQUIPMENT_EFFECTS [id=\"EQUIPMENT_EFFECTS\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#7b818b\" BGCOLOR=\"#f0f1f3\" STYLE=\"DASHED\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#7b818b\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;COMPÉTENCES ET EFFETS CONDITIONNELS&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;Extension conceptuelle · pas d’auto-application actuelle&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Références vers compétences, modificateurs et effets existants&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Conditions / déclencheurs ; cumul ; retrait au déséquipement&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Séparer bonus constants, passifs et actions disponibles&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Pas de copie d’un effet global dans chaque instance&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nEQUIPMENT_VISUAL_PERSISTENCE [id=\"EQUIPMENT_VISUAL_PERSISTENCE\", label=&lt;&lt;TABLE BORDER=\"2\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"7\" COLOR=\"#7b818b\" BGCOLOR=\"#f0f1f3\" STYLE=\"DASHED\"&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\" BGCOLOR=\"#7b818b\"&gt;&lt;FONT COLOR=\"white\"&gt;&lt;B&gt;VARIANTES VISUELLES ET PERSISTANCE&lt;/B&gt;&lt;/FONT&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;&lt;B&gt;Contrat futur à décider&lt;/B&gt;&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Réutiliser Icon / WorldMesh / EquippedMesh ; aucune copie ARM&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Apparence corporelle multicouche / conflits : à concevoir&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Sauver seulement état mutable : qualité variable, affixes si retenus&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Nouveau champ durable → version + conversion explicite sur copies&lt;/TD&gt;&lt;/TR&gt;&lt;TR&gt;&lt;TD ALIGN=\"LEFT\"&gt;Ni poids, ni protections statiques, ni caches sauvegardés&lt;/TD&gt;&lt;/TR&gt;&lt;/TABLE&gt;&gt;];\nFUTURE_EQUIPMENT -&gt; EQUIPMENT_TAXONOMY [label=\"1 → 1 classification proposée\", style=\"dashed\"];\nFUTURE_EQUIPMENT -&gt; EQUIPMENT_RULES [label=\"1 → 0..n conditions proposées\", style=\"dashed\"];\nFUTURE_EQUIPMENT -&gt; EQUIPMENT_BONUSES [label=\"réutilise le socle de A et E\", style=\"dashed\"];\nFUTURE_EQUIPMENT -&gt; EQUIPMENT_EFFECTS [label=\"1 → 0..n références proposées\", style=\"dashed\"];\nFUTURE_EQUIPMENT -&gt; EQUIPMENT_VISUAL_PERSISTENCE [label=\"réutilise / complète A et E\", style=\"dashed\"];\n}"}]}</metadata>
+  <rect width="100%" height="100%" fill="#f8fafc" />
+  <text x="40" y="55" font-family="Segoe UI, sans-serif" font-size="32" font-weight="700" fill="#172d42">GRIMROCKPROTOTYPE · MODÈLE RELATIONNEL DES OBJETS</text>
+  <text x="40" y="93" font-family="Segoe UI, sans-serif" font-size="22" font-weight="400" fill="#172d42">CLEANUP01 · État confronté au C++ et aux DataAssets au SHA a8de4f58 · 22 novembre 2026</text>
+  <rect x="40.0" y="123" width="30" height="25" fill="#e6f4ea" stroke="#267647" stroke-width="2" />
+  <text x="82.0" y="143" font-family="Segoe UI, sans-serif" font-size="20" font-weight="400" fill="#172d42">Implémenté et vérifié (schéma ; contenu précisé)</text>
+  <rect x="1507.3333333333333" y="123" width="30" height="25" fill="#fff2cf" stroke="#a76a08" stroke-width="2" />
+  <text x="1549.3333333333333" y="143" font-family="Segoe UI, sans-serif" font-size="20" font-weight="400" fill="#172d42">Partiel / transition / correspondance à qualifier</text>
+  <rect x="2974.6666666666665" y="123" width="30" height="25" fill="#f0f1f3" stroke="#7b818b" stroke-width="2" stroke-dasharray="7 4" />
+  <text x="3016.6666666666665" y="143" font-family="Segoe UI, sans-serif" font-size="20" font-weight="400" fill="#172d42">Prévu, non implémenté — concept uniquement</text>
+  <text x="40" y="187" font-family="Segoe UI, sans-serif" font-size="19" font-weight="400" fill="#172d42">PK / FK = identités logiques, sans base SQL. 1 → 0..n = référence ou composition ; les mentions « héritage » désignent les sous-classes.</text>
+  <text x="40" y="220" font-family="Segoe UI, sans-serif" font-size="19" font-weight="400" fill="#172d42">Les champs FK → [panneau] relient les domaines sans traverser les entités. Les sous-structures ne possèdent pas de PK artificielle.</text>
+  <rect x="40" y="260" width="1967.0" height="1246.0" rx="12" fill="#ffffff" stroke="#cbd5df" stroke-width="2" />
+  <text x="60" y="294" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#172d42">A · Registre et définitions</text>
+  <text x="60" y="325" font-family="Segoe UI, sans-serif" font-size="15" font-weight="400" fill="#172d42">Héritage C++ : triangle vide. Les lignes « FK → » relient aussi les panneaux entre eux.</text>
+  <svg width="1624.0" height="1151.0" viewBox="0.00 0.00 1624.00 1151.00" x="211.5" y="343">
+    <g id="p00_graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 1136.15)">
+      <title>G</title>
+      <g id="p00_edge1" class="edge">
+        <title>ITEM_SYSTEM-&gt;ITEM_DEFINITION</title>
+        <path fill="none" stroke="#617384" d="M413.75,-908.14C413.75,-889.35 413.75,-869.69 413.75,-850.67" />
+        <polygon fill="#617384" stroke="#617384" points="416.2,-850.79 413.75,-843.79 411.3,-850.79 416.2,-850.79" />
+        <text xml:space="preserve" text-anchor="middle" x="503.75" y="-872.35" font-family="Segoe UI" font-size="12.00">1 registre référence 0..n définitions</text>
+      </g>
+      <g id="p00_edge2" class="edge">
+        <title>ITEM_DEFINITION-&gt;ARMAMENT_DEFINITION</title>
+        <path fill="none" stroke="#617384" d="M399.03,-620.32C395.07,-589.62 390.85,-556.88 387.11,-527.83" />
+        <polygon fill="none" stroke="#617384" points="396.57,-620.37 399.89,-627 401.43,-619.75 396.57,-620.37" />
+        <text xml:space="preserve" text-anchor="middle" x="417.26" y="-593.1" font-family="Segoe UI" font-size="12.00">héritage</text>
+      </g>
+      <g id="p00_edge3" class="edge">
+        <title>ITEM_DEFINITION-&gt;GENERIC_ITEM_VISUAL</title>
+        <path fill="none" stroke="#617384" d="M567.01,-623.51C594.23,-603.79 622.74,-583.15 650.41,-563.11" />
+        <polygon fill="none" stroke="#617384" points="565.57,-621.53 561.34,-627.62 568.44,-625.5 565.57,-621.53" />
+        <text xml:space="preserve" text-anchor="middle" x="626.42" y="-593.1" font-family="Segoe UI" font-size="12.00">héritage</text>
+      </g>
+      <g id="p00_edge4" class="edge">
+        <title>GENERIC_ITEM_VISUAL-&gt;CONSUMABLE_DEFINITION</title>
+        <path fill="none" stroke="#617384" d="M578.34,-317.52C574.1,-315.41 571.75,-314.25 571.75,-314.25 571.75,-314.25 423.75,-249 423.75,-249 423.75,-249 379.36,-223.97 330.56,-196.45" />
+        <polygon fill="none" stroke="#617384" points="577.14,-319.66 584.49,-320.57 579.31,-315.27 577.14,-319.66" />
+        <text xml:space="preserve" text-anchor="middle" x="536.73" y="-278.85" font-family="Segoe UI" font-size="12.00">héritage</text>
+      </g>
+      <g id="p00_edge5" class="edge">
+        <title>GENERIC_ITEM_VISUAL-&gt;AMMO_DEFINITION</title>
+        <path fill="none" stroke="#617384" d="M737.59,-307.27C713.37,-269.26 687.82,-229.17 666.89,-196.34" />
+        <polygon fill="none" stroke="#617384" points="735.46,-308.48 741.29,-313.06 739.59,-305.84 735.46,-308.48" />
+        <text xml:space="preserve" text-anchor="middle" x="742.62" y="-278.85" font-family="Segoe UI" font-size="12.00">héritage</text>
+      </g>
+      <g id="p00_edge6" class="edge">
+        <title>GENERIC_ITEM_VISUAL-&gt;OTHER_EQUIPMENT_DEFINITION</title>
+        <path fill="none" stroke="#617384" d="M903.93,-307.24C916.26,-287.88 928.94,-267.98 941.18,-248.78" />
+        <polygon fill="none" stroke="#617384" points="901.91,-305.84 900.21,-313.06 906.04,-308.48 901.91,-305.84" />
+        <text xml:space="preserve" text-anchor="middle" x="941.62" y="-278.85" font-family="Segoe UI" font-size="12.00">héritage</text>
+      </g>
+      <g id="p00_edge7" class="edge">
+        <title>GENERIC_ITEM_VISUAL-&gt;GENERIC_STACKABLE</title>
+        <path fill="none" stroke="#617384" d="M1063.32,-323C1146.82,-283.5 1219.75,-249 1219.75,-249 1219.75,-249 1259.27,-223.97 1302.73,-196.45" />
+        <polygon fill="none" stroke="#617384" points="1062.38,-320.73 1057.1,-325.94 1064.48,-325.16 1062.38,-320.73" />
+        <text xml:space="preserve" text-anchor="middle" x="1183.21" y="-278.85" font-family="Segoe UI" font-size="12.00">héritage</text>
+      </g>
+      <g id="ITEM_SYSTEM" class="node">
+        <title>ITEM_SYSTEM</title>
+        <polygon fill="#e6f4ea" stroke="none" points="216.5,-907.75 216.5,-1121.75 611,-1121.75 611,-907.75 216.5,-907.75" />
+        <polygon fill="#267647" stroke="none" points="218.5,-1084.75 218.5,-1119.75 609,-1119.75 609,-1084.75 218.5,-1084.75" />
+        <text xml:space="preserve" text-anchor="start" x="225.5" y="-1099.5" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">ITEM_SYSTEM</text>
+        <text xml:space="preserve" text-anchor="start" x="225.5" y="-1064.5" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridItemSystemAsset · DA_ItemSystem</text>
+        <text xml:space="preserve" text-anchor="start" x="225.5" y="-1028.5" font-family="Segoe UI" font-size="15.00">ItemDefinitions : TArray&lt;definition*&gt; [48]</text>
+        <text xml:space="preserve" text-anchor="start" x="225.5" y="-993.5" font-family="Segoe UI" font-size="15.00">WeaponCatalogue → B ; WeaponVisualCatalogue → C</text>
+        <text xml:space="preserve" text-anchor="start" x="225.5" y="-958.5" font-family="Segoe UI" font-size="15.00">ActionCatalogue → D ; ActionPresentationCatalogue → D</text>
+        <text xml:space="preserve" text-anchor="start" x="225.5" y="-923.5" font-family="Segoe UI" font-size="15.00">4 références globales obligatoires ; pas dans chaque objet</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="217.5,-908.75 217.5,-1120.75 610,-1120.75 610,-908.75 217.5,-908.75" />
+      </g>
+      <g id="ITEM_DEFINITION" class="node">
+        <title>ITEM_DEFINITION</title>
+        <polygon fill="#e6f4ea" stroke="none" points="240.88,-628.5 240.88,-842.5 586.62,-842.5 586.62,-628.5 240.88,-628.5" />
+        <polygon fill="#267647" stroke="none" points="242.88,-805.5 242.88,-840.5 584.62,-840.5 584.62,-805.5 242.88,-805.5" />
+        <text xml:space="preserve" text-anchor="start" x="249.88" y="-820.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">ITEM_DEFINITION</text>
+        <text xml:space="preserve" text-anchor="start" x="249.88" y="-785.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridCanonicalItemDefinitionAsset · abstraite</text>
+        <text xml:space="preserve" text-anchor="start" x="249.88" y="-749.25" font-family="Segoe UI" font-size="15.00">PK logique : FName ItemId</text>
+        <text xml:space="preserve" text-anchor="start" x="249.88" y="-714.25" font-family="Segoe UI" font-size="15.00">FText DisplayName ; FText Description</text>
+        <text xml:space="preserve" text-anchor="start" x="249.88" y="-679.25" font-family="Segoe UI" font-size="15.00">float WeightKg ; TArray&lt;FName&gt; Tags</text>
+        <text xml:space="preserve" text-anchor="start" x="249.88" y="-644.25" font-family="Segoe UI" font-size="15.00">Identité de définition ≠ GUID de l’instance [E]</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="241.88,-629.5 241.88,-841.5 585.62,-841.5 585.62,-629.5 241.88,-629.5" />
+      </g>
+      <g id="ARMAMENT_DEFINITION" class="node">
+        <title>ARMAMENT_DEFINITION</title>
+        <polygon fill="#e6f4ea" stroke="none" points="194.62,-349.25 194.62,-528.25 556.88,-528.25 556.88,-349.25 194.62,-349.25" />
+        <polygon fill="#267647" stroke="none" points="196.62,-491.25 196.62,-526.25 554.88,-526.25 554.88,-491.25 196.62,-491.25" />
+        <text xml:space="preserve" text-anchor="start" x="203.62" y="-506" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">ARMAMENT_DEFINITION</text>
+        <text xml:space="preserve" text-anchor="start" x="203.62" y="-471" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridArmamentDefinitionAsset · 22 assets</text>
+        <text xml:space="preserve" text-anchor="start" x="203.62" y="-435" font-family="Segoe UI" font-size="15.00">Hérite des 5 champs communs</text>
+        <text xml:space="preserve" text-anchor="start" x="203.62" y="-400" font-family="Segoe UI" font-size="15.00">FName ArchetypeId : FK → WEAPON_ARCHETYPE [B]</text>
+        <text xml:space="preserve" text-anchor="start" x="203.62" y="-365" font-family="Segoe UI" font-size="15.00">Aucun nom, poids, mesh ou N1 dupliqué</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="195.62,-350.25 195.62,-527.25 555.88,-527.25 555.88,-350.25 195.62,-350.25" />
+      </g>
+      <g id="GENERIC_ITEM_VISUAL" class="node">
+        <title>GENERIC_ITEM_VISUAL</title>
+        <polygon fill="#e6f4ea" stroke="none" points="585.62,-314.25 585.62,-563.25 1055.88,-563.25 1055.88,-314.25 585.62,-314.25" />
+        <polygon fill="#267647" stroke="none" points="587.62,-526.25 587.62,-561.25 1053.88,-561.25 1053.88,-526.25 587.62,-526.25" />
+        <text xml:space="preserve" text-anchor="start" x="594.62" y="-541" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">GENERIC_ITEM_VISUAL / NON_ARMAMENT</text>
+        <text xml:space="preserve" text-anchor="start" x="594.62" y="-506" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridNonArmamentDefinitionAsset · 7 assets directs</text>
+        <text xml:space="preserve" text-anchor="start" x="594.62" y="-470" font-family="Segoe UI" font-size="15.00">Icon ; WorldMesh ; ActionBindings[] → D</text>
+        <text xml:space="preserve" text-anchor="start" x="594.62" y="-435" font-family="Segoe UI" font-size="15.00">LightEmitter ; VisualEffects ; WorldSparkle*</text>
+        <text xml:space="preserve" text-anchor="start" x="594.62" y="-400" font-family="Segoe UI" font-size="15.00">ReadText ; bReadable ; GenericThrow</text>
+        <text xml:space="preserve" text-anchor="start" x="594.62" y="-365" font-family="Segoe UI" font-size="15.00">bUseItemWeightAsWorldPhysicsMass ; WorldPhysicsInitialTiltDegrees</text>
+        <text xml:space="preserve" text-anchor="start" x="594.62" y="-330" font-family="Segoe UI" font-size="15.00">Classe parente des 4 spécialisations ci-dessous</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="586.62,-315.25 586.62,-562.25 1054.88,-562.25 1054.88,-315.25 586.62,-315.25" />
+      </g>
+      <g id="CONSUMABLE_DEFINITION" class="node">
+        <title>CONSUMABLE_DEFINITION</title>
+        <polygon fill="#e6f4ea" stroke="none" points="0,-52.5 0,-196.5 409.5,-196.5 409.5,-52.5 0,-52.5" />
+        <polygon fill="#267647" stroke="none" points="2,-159.5 2,-194.5 407.5,-194.5 407.5,-159.5 2,-159.5" />
+        <text xml:space="preserve" text-anchor="start" x="9" y="-174.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">CONSUMABLE_DEFINITION</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-139.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridConsumableDefinitionAsset · 12 assets</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-103.25" font-family="Segoe UI" font-size="15.00">int32 MaxStack ; UseActions[] → ITEM_ACTION_BINDING [D]</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-68.25" font-family="Segoe UI" font-size="15.00">ActionBindings et UseActions : pas deux listes non vides</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1,-53.5 1,-195.5 408.5,-195.5 408.5,-53.5 1,-53.5" />
+      </g>
+      <g id="AMMO_DEFINITION" class="node">
+        <title>AMMO_DEFINITION</title>
+        <polygon fill="#e6f4ea" stroke="none" points="438.75,-52.5 438.75,-196.5 804.75,-196.5 804.75,-52.5 438.75,-52.5" />
+        <polygon fill="#267647" stroke="none" points="440.75,-159.5 440.75,-194.5 802.75,-194.5 802.75,-159.5 440.75,-159.5" />
+        <text xml:space="preserve" text-anchor="start" x="447.75" y="-174.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">AMMO_DEFINITION</text>
+        <text xml:space="preserve" text-anchor="start" x="447.75" y="-139.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridAmmoDefinitionAsset · 1 asset</text>
+        <text xml:space="preserve" text-anchor="start" x="447.75" y="-103.25" font-family="Segoe UI" font-size="15.00">FName AmmoKindId : FK logique → AMMO_KIND [B]</text>
+        <text xml:space="preserve" text-anchor="start" x="447.75" y="-68.25" font-family="Segoe UI" font-size="15.00">int32 MaxStack ; niveau physique N0</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="439.75,-53.5 439.75,-195.5 803.75,-195.5 803.75,-53.5 439.75,-53.5" />
+      </g>
+      <g id="OTHER_EQUIPMENT_DEFINITION" class="node">
+        <title>OTHER_EQUIPMENT_DEFINITION</title>
+        <polygon fill="#e6f4ea" stroke="none" points="834.12,0 834.12,-249 1205.38,-249 1205.38,0 834.12,0" />
+        <polygon fill="#267647" stroke="none" points="836.12,-212 836.12,-247 1203.38,-247 1203.38,-212 836.12,-212" />
+        <text xml:space="preserve" text-anchor="start" x="843.12" y="-226.75" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">OTHER_EQUIPMENT_DEFINITION</text>
+        <text xml:space="preserve" text-anchor="start" x="843.12" y="-191.75" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridOtherEquipmentDefinitionAsset · 3 assets</text>
+        <text xml:space="preserve" text-anchor="start" x="843.12" y="-155.75" font-family="Segoe UI" font-size="15.00">EquipmentSlots : TArray&lt;EGridEquipmentSlot&gt; → E</text>
+        <text xml:space="preserve" text-anchor="start" x="843.12" y="-120.75" font-family="Segoe UI" font-size="15.00">Bonuses : FGridEquipmentStatBonus</text>
+        <text xml:space="preserve" text-anchor="start" x="843.12" y="-85.75" font-family="Segoe UI" font-size="15.00">Resistances : FGridDamageResistanceSet</text>
+        <text xml:space="preserve" text-anchor="start" x="843.12" y="-50.75" font-family="Segoe UI" font-size="15.00">HandPolicy ; EquippedMesh ; int32 MaxStack</text>
+        <text xml:space="preserve" text-anchor="start" x="843.12" y="-15.75" font-family="Segoe UI" font-size="15.00">Torche, shuriken, pierre ; pas une gamme d’armures [F]</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="835.12,-1 835.12,-248 1204.38,-248 1204.38,-1 835.12,-1" />
+      </g>
+      <g id="GENERIC_STACKABLE" class="node">
+        <title>GENERIC_STACKABLE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="1234.75,-52.5 1234.75,-196.5 1594.75,-196.5 1594.75,-52.5 1234.75,-52.5" />
+        <polygon fill="#267647" stroke="none" points="1236.75,-159.5 1236.75,-194.5 1592.75,-194.5 1592.75,-159.5 1236.75,-159.5" />
+        <text xml:space="preserve" text-anchor="start" x="1243.75" y="-174.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">GENERIC_STACKABLE_DEFINITION</text>
+        <text xml:space="preserve" text-anchor="start" x="1243.75" y="-139.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridGenericStackableDefinitionAsset · 3 assets</text>
+        <text xml:space="preserve" text-anchor="start" x="1243.75" y="-103.25" font-family="Segoe UI" font-size="15.00">int32 MaxStack ; hérite de NON_ARMAMENT</text>
+        <text xml:space="preserve" text-anchor="start" x="1243.75" y="-68.25" font-family="Segoe UI" font-size="15.00">Fiole vide, dent de rat, catalyseur</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1235.75,-53.5 1235.75,-195.5 1593.75,-195.5 1593.75,-53.5 1235.75,-53.5" />
+      </g>
+    </g>
+  </svg>
+  <rect x="2027.0" y="260" width="2375.0" height="1246.0" rx="12" fill="#ffffff" stroke="#cbd5df" stroke-width="2" />
+  <text x="2047.0" y="294" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#172d42">B · Armement, progression et affinités</text>
+  <text x="2047.0" y="325" font-family="Segoe UI, sans-serif" font-size="15" font-weight="400" fill="#172d42">Les sous-ensembles encadrés sont des valeurs embarquées ; ils ne deviennent pas des tables ou DataAssets.</text>
+  <svg width="2049.0" height="1116.0" viewBox="0.00 0.00 2049.00 1116.00" x="2190.0" y="343">
+    <g id="p01_graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 1101.15)">
+      <title>G</title>
+      <g id="p01_edge1" class="edge">
+        <title>WEAPON_CATALOGUE-&gt;WEAPON_ARCHETYPE</title>
+        <path fill="none" stroke="#617384" d="M1140.22,-907.82C1127.42,-889.23 1113.59,-869.14 1099.75,-849.06" />
+        <polygon fill="#617384" stroke="#617384" points="1101.91,-847.87 1095.92,-843.49 1097.87,-850.65 1101.91,-847.87" />
+        <text xml:space="preserve" text-anchor="middle" x="1168.81" y="-872.35" font-family="Segoe UI" font-size="12.00">1 → 0..n Archetypes</text>
+      </g>
+      <g id="p01_edge2" class="edge">
+        <title>WEAPON_CATALOGUE-&gt;CLASS_PREFERENCE</title>
+        <path fill="none" stroke="#617384" d="M1261.73,-907.82C1285.8,-872.7 1313.53,-832.23 1338.03,-796.49" />
+        <polygon fill="#617384" stroke="#617384" points="1339.77,-798.28 1341.71,-791.12 1335.73,-795.51 1339.77,-798.28" />
+        <text xml:space="preserve" text-anchor="middle" x="1356.03" y="-872.35" font-family="Segoe UI" font-size="12.00">1 → 0..n ClassPreferences</text>
+      </g>
+      <g id="p01_edge3" class="edge">
+        <title>WEAPON_ARCHETYPE-&gt;LEVEL_PROGRESSION</title>
+        <path fill="none" stroke="#617384" d="M804.94,-633.53C628.22,-573.19 394.12,-493.25 394.12,-493.25 394.12,-493.25 391.65,-491.75 387.25,-489.09" />
+        <polygon fill="#617384" stroke="#617384" points="388.66,-487.07 381.4,-485.55 386.12,-491.27 388.66,-487.07" />
+        <text xml:space="preserve" text-anchor="middle" x="583.54" y="-523.1" font-family="Segoe UI" font-size="12.00">1 → 1 ensemble N1 + règles</text>
+      </g>
+      <g id="p01_edge4" class="edge">
+        <title>WEAPON_ARCHETYPE-&gt;CLASS_AFFINITY</title>
+        <path fill="none" stroke="#617384" d="M826.05,-558.7C786.61,-526.43 745.64,-492.91 709.35,-463.21" />
+        <polygon fill="#617384" stroke="#617384" points="711.24,-461.59 704.27,-459.06 708.14,-465.39 711.24,-461.59" />
+        <text xml:space="preserve" text-anchor="middle" x="853.17" y="-523.1" font-family="Segoe UI" font-size="12.00">1 → 1 ensemble d’affinités</text>
+      </g>
+      <g id="p01_edge5" class="edge">
+        <title>WEAPON_ARCHETYPE-&gt;REACTION_POLICY</title>
+        <path fill="none" stroke="#617384" d="M998.12,-558.7C998.12,-527.63 998.12,-495.4 998.12,-466.54" />
+        <polygon fill="#617384" stroke="#617384" points="1000.58,-466.61 998.13,-459.61 995.68,-466.61 1000.58,-466.61" />
+        <text xml:space="preserve" text-anchor="middle" x="1045" y="-523.1" font-family="Segoe UI" font-size="12.00">1 → 0..n Reactions</text>
+      </g>
+      <g id="p01_edge6" class="edge">
+        <title>WEAPON_ARCHETYPE-&gt;PROJECTILE_POLICY</title>
+        <path fill="none" stroke="#617384" d="M1184.72,-558.7C1227.48,-526.43 1271.91,-492.91 1311.26,-463.21" />
+        <polygon fill="#617384" stroke="#617384" points="1312.72,-465.18 1316.83,-459.01 1309.77,-461.27 1312.72,-465.18" />
+        <text xml:space="preserve" text-anchor="middle" x="1303.98" y="-523.1" font-family="Segoe UI" font-size="12.00">1 → 1 valeur (option activée)</text>
+      </g>
+      <g id="p01_edge7" class="edge">
+        <title>WEAPON_ARCHETYPE-&gt;AMMO_KIND</title>
+        <path fill="none" stroke="#617384" d="M1191.5,-568.41C1200.66,-562.21 1206.12,-558.5 1206.12,-558.5 1206.12,-558.5 1385.12,-534.5 1385.12,-534.5 1385.12,-534.5 1669.12,-493.25 1669.12,-493.25 1669.12,-493.25 1688.35,-480.28 1714.33,-462.74" />
+        <polygon fill="#617384" stroke="#617384" points="1715.39,-464.98 1719.82,-459.04 1712.65,-460.92 1715.39,-464.98" />
+        <text xml:space="preserve" text-anchor="middle" x="1558.31" y="-523.1" font-family="Segoe UI" font-size="12.00">0..n → 0..1 kind requis</text>
+      </g>
+      <g id="p01_edge8" class="edge">
+        <title>LEVEL_PROGRESSION-&gt;PROGRESSION_EXCEPTION</title>
+        <path fill="none" stroke="#617384" d="M190.12,-244.53C190.12,-225.34 190.12,-205.75 190.12,-187.26" />
+        <polygon fill="#617384" stroke="#617384" points="192.58,-187.36 190.13,-180.36 187.68,-187.36 192.58,-187.36" />
+        <text xml:space="preserve" text-anchor="middle" x="277.12" y="-208.85" font-family="Segoe UI" font-size="12.00">chaque règle : 1 → 0..n Exceptions</text>
+      </g>
+      <g id="WEAPON_CATALOGUE" class="node">
+        <title>WEAPON_CATALOGUE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="1031.25,-907.75 1031.25,-1086.75 1371,-1086.75 1371,-907.75 1031.25,-907.75" />
+        <polygon fill="#267647" stroke="none" points="1033.25,-1049.75 1033.25,-1084.75 1369,-1084.75 1369,-1049.75 1033.25,-1049.75" />
+        <text xml:space="preserve" text-anchor="start" x="1040.25" y="-1064.5" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">WEAPON_CATALOGUE</text>
+        <text xml:space="preserve" text-anchor="start" x="1040.25" y="-1029.5" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridCanonicalWeaponCatalogueAsset</text>
+        <text xml:space="preserve" text-anchor="start" x="1040.25" y="-993.5" font-family="Segoe UI" font-size="15.00">DA_CanonicalWeaponCatalogue</text>
+        <text xml:space="preserve" text-anchor="start" x="1040.25" y="-958.5" font-family="Segoe UI" font-size="15.00">Archetypes[] : 82 lignes ; 22 liés aux objets actuels</text>
+        <text xml:space="preserve" text-anchor="start" x="1040.25" y="-923.5" font-family="Segoe UI" font-size="15.00">ClassPreferences[] : 6 descriptions de classes</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1032.25,-908.75 1032.25,-1085.75 1370,-1085.75 1370,-908.75 1032.25,-908.75" />
+      </g>
+      <g id="WEAPON_ARCHETYPE" class="node">
+        <title>WEAPON_ARCHETYPE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="804.62,-558.5 804.62,-842.5 1191.62,-842.5 1191.62,-558.5 804.62,-558.5" />
+        <polygon fill="#267647" stroke="none" points="806.62,-805.5 806.62,-840.5 1189.62,-840.5 1189.62,-805.5 806.62,-805.5" />
+        <text xml:space="preserve" text-anchor="start" x="813.62" y="-820.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">WEAPON_ARCHETYPE</text>
+        <text xml:space="preserve" text-anchor="start" x="813.62" y="-785.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalWeaponArchetype</text>
+        <text xml:space="preserve" text-anchor="start" x="813.62" y="-749.25" font-family="Segoe UI" font-size="15.00">PK logique : FName ArchetypeId ; bHandAndKindProven</text>
+        <text xml:space="preserve" text-anchor="start" x="813.62" y="-714.25" font-family="Segoe UI" font-size="15.00">Kind : Weapon / Shield / Focus ; HandPolicy</text>
+        <text xml:space="preserve" text-anchor="start" x="813.62" y="-679.25" font-family="Segoe UI" font-size="15.00">DamageType ; PhysicalSubtype ; ScalingAttribute</text>
+        <text xml:space="preserve" text-anchor="start" x="813.62" y="-644.25" font-family="Segoe UI" font-size="15.00">AccuracyBonus ; ActionPointCost ; RangeCells</text>
+        <text xml:space="preserve" text-anchor="start" x="813.62" y="-609.25" font-family="Segoe UI" font-size="15.00">RequiredAmmoKindId → AMMO_KIND ; Actions[] → D</text>
+        <text xml:space="preserve" text-anchor="start" x="813.62" y="-574.25" font-family="Segoe UI" font-size="15.00">AttackSourceSlots[] → E ; physique de monde explicite</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="805.62,-559.5 805.62,-841.5 1190.62,-841.5 1190.62,-559.5 805.62,-559.5" />
+      </g>
+      <g id="LEVEL_PROGRESSION" class="node">
+        <title>LEVEL_PROGRESSION</title>
+        <polygon fill="#e6f4ea" stroke="none" points="0,-244.25 0,-493.25 380.25,-493.25 380.25,-244.25 0,-244.25" />
+        <polygon fill="#267647" stroke="none" points="2,-456.25 2,-491.25 378.25,-491.25 378.25,-456.25 2,-456.25" />
+        <text xml:space="preserve" text-anchor="start" x="9" y="-471" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">LEVEL_PROGRESSION · embarqué dans archétype</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-436" font-family="Segoe UI" font-weight="bold" font-size="15.00">N1 + 5 FGridWeaponIntegerGrowthRule</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-400" font-family="Segoe UI" font-size="15.00">DamageDiceN1 ; PhysicalArmorN1 ; MagicalArmorN1</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-365" font-family="Segoe UI" font-size="15.00">DiceCountGrowth ; DiceSidesGrowth ; FlatBonusGrowth</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-330" font-family="Segoe UI" font-size="15.00">PhysicalArmorGrowth ; MagicalArmorGrowth</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-295" font-family="Segoe UI" font-size="15.00">N1..N20 : contrat de résolution, pas champ MaxLevel</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-260" font-family="Segoe UI" font-size="15.00">Règle : StepEveryLevels ; StepAmount ; Exceptions[]</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1,-245.25 1,-492.25 379.25,-492.25 379.25,-245.25 1,-245.25" />
+      </g>
+      <g id="PROGRESSION_EXCEPTION" class="node">
+        <title>PROGRESSION_EXCEPTION</title>
+        <polygon fill="#e6f4ea" stroke="none" points="36,0 36,-179 344.25,-179 344.25,0 36,0" />
+        <polygon fill="#267647" stroke="none" points="38,-142 38,-177 342.25,-177 342.25,-142 38,-142" />
+        <text xml:space="preserve" text-anchor="start" x="45" y="-156.75" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">PROGRESSION_EXCEPTION</text>
+        <text xml:space="preserve" text-anchor="start" x="45" y="-121.75" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridWeaponGrowthException</text>
+        <text xml:space="preserve" text-anchor="start" x="45" y="-85.75" font-family="Segoe UI" font-size="15.00">int32 ItemLevel ; int32 Value (valeur absolue)</text>
+        <text xml:space="preserve" text-anchor="start" x="45" y="-50.75" font-family="Segoe UI" font-size="15.00">La statistique est celle de la règle contenante</text>
+        <text xml:space="preserve" text-anchor="start" x="45" y="-15.75" font-family="Segoe UI" font-size="15.00">Pas de StatKey ni PK indépendante</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="37,-1 37,-178 343.25,-178 343.25,-1 37,-1" />
+      </g>
+      <g id="CLASS_AFFINITY" class="node">
+        <title>CLASS_AFFINITY</title>
+        <polygon fill="#e6f4ea" stroke="none" points="409.12,-279.25 409.12,-458.25 781.12,-458.25 781.12,-279.25 409.12,-279.25" />
+        <polygon fill="#267647" stroke="none" points="411.12,-421.25 411.12,-456.25 779.12,-456.25 779.12,-421.25 411.12,-421.25" />
+        <text xml:space="preserve" text-anchor="start" x="418.12" y="-436" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">CLASS_AFFINITY · dans archétype</text>
+        <text xml:space="preserve" text-anchor="start" x="418.12" y="-401" font-family="Segoe UI" font-weight="bold" font-size="15.00">Champs de FGridCanonicalWeaponArchetype</text>
+        <text xml:space="preserve" text-anchor="start" x="418.12" y="-365" font-family="Segoe UI" font-size="15.00">PrimaryClassId ; SecondaryClassIds[]</text>
+        <text xml:space="preserve" text-anchor="start" x="418.12" y="-330" font-family="Segoe UI" font-size="15.00">SecondarySourceLabel : traçabilité</text>
+        <text xml:space="preserve" text-anchor="start" x="418.12" y="-295" font-family="Segoe UI" font-size="15.00">Conseil de classe ; ne vaut pas prérequis d’équipement</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="410.12,-280.25 410.12,-457.25 780.12,-457.25 780.12,-280.25 410.12,-280.25" />
+      </g>
+      <g id="CLASS_PREFERENCE" class="node">
+        <title>CLASS_PREFERENCE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="1220.88,-611 1220.88,-790 1585.38,-790 1585.38,-611 1220.88,-611" />
+        <polygon fill="#267647" stroke="none" points="1222.88,-753 1222.88,-788 1583.38,-788 1583.38,-753 1222.88,-753" />
+        <text xml:space="preserve" text-anchor="start" x="1229.88" y="-767.75" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">CLASS_PREFERENCE</text>
+        <text xml:space="preserve" text-anchor="start" x="1229.88" y="-732.75" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalClassPreference</text>
+        <text xml:space="preserve" text-anchor="start" x="1229.88" y="-696.75" font-family="Segoe UI" font-size="15.00">FName ClassId ; CanonicalBranches ; PriorityWeapons</text>
+        <text xml:space="preserve" text-anchor="start" x="1229.88" y="-661.75" font-family="Segoe UI" font-size="15.00">EmblematicExamples ; Alternatives</text>
+        <text xml:space="preserve" text-anchor="start" x="1229.88" y="-626.75" font-family="Segoe UI" font-size="15.00">DominantAttributes ; Synergies</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1221.88,-612 1221.88,-789 1584.38,-789 1584.38,-612 1221.88,-612" />
+      </g>
+      <g id="REACTION_POLICY" class="node">
+        <title>REACTION_POLICY</title>
+        <polygon fill="#e6f4ea" stroke="none" points="810.25,-279.25 810.25,-458.25 1186,-458.25 1186,-279.25 810.25,-279.25" />
+        <polygon fill="#267647" stroke="none" points="812.25,-421.25 812.25,-456.25 1184,-456.25 1184,-421.25 812.25,-421.25" />
+        <text xml:space="preserve" text-anchor="start" x="819.25" y="-436" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">REACTION_POLICY</text>
+        <text xml:space="preserve" text-anchor="start" x="819.25" y="-401" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalReactionPolicy</text>
+        <text xml:space="preserve" text-anchor="start" x="819.25" y="-365" font-family="Segoe UI" font-size="15.00">FName ReactionId ; Trigger ; float Chance</text>
+        <text xml:space="preserve" text-anchor="start" x="819.25" y="-330" font-family="Segoe UI" font-size="15.00">int32 Absorption ; Reactions[] dans archétype</text>
+        <text xml:space="preserve" text-anchor="start" x="819.25" y="-295" font-family="Segoe UI" font-size="15.00">Passif distinct d’une action active ; pas de ReactionKind</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="811.25,-280.25 811.25,-457.25 1185,-457.25 1185,-280.25 811.25,-280.25" />
+      </g>
+      <g id="PROJECTILE_POLICY" class="node">
+        <title>PROJECTILE_POLICY</title>
+        <polygon fill="#e6f4ea" stroke="none" points="1215.38,-279.25 1215.38,-458.25 1654.88,-458.25 1654.88,-279.25 1215.38,-279.25" />
+        <polygon fill="#267647" stroke="none" points="1217.38,-421.25 1217.38,-456.25 1652.88,-456.25 1652.88,-421.25 1217.38,-421.25" />
+        <text xml:space="preserve" text-anchor="start" x="1224.38" y="-436" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">PROJECTILE_POLICY</text>
+        <text xml:space="preserve" text-anchor="start" x="1224.38" y="-401" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalProjectilePolicy</text>
+        <text xml:space="preserve" text-anchor="start" x="1224.38" y="-365" font-family="Segoe UI" font-size="15.00">bEnabled ; bGenericThrowAuthored ; bGenericThrowOneHanded</text>
+        <text xml:space="preserve" text-anchor="start" x="1224.38" y="-330" font-family="Segoe UI" font-size="15.00">InitialSpeed ; Arc ; FlightLifetime ; ImpactDropOffset</text>
+        <text xml:space="preserve" text-anchor="start" x="1224.38" y="-295" font-family="Segoe UI" font-size="15.00">Collision exécutée par les acteurs, pas champ CollisionBehavior</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1216.38,-280.25 1216.38,-457.25 1653.88,-457.25 1653.88,-280.25 1216.38,-280.25" />
+      </g>
+      <g id="AMMO_KIND" class="node">
+        <title>AMMO_KIND</title>
+        <polygon fill="#e6f4ea" stroke="none" points="1684.12,-279.25 1684.12,-458.25 2020.12,-458.25 2020.12,-279.25 1684.12,-279.25" />
+        <polygon fill="#267647" stroke="none" points="1686.12,-421.25 1686.12,-456.25 2018.12,-456.25 2018.12,-421.25 1686.12,-421.25" />
+        <text xml:space="preserve" text-anchor="start" x="1693.12" y="-436" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">AMMO_KIND · jointure logique</text>
+        <text xml:space="preserve" text-anchor="start" x="1693.12" y="-401" font-family="Segoe UI" font-weight="bold" font-size="15.00">FName AmmoKindId / RequiredAmmoKindId</text>
+        <text xml:space="preserve" text-anchor="start" x="1693.12" y="-365" font-family="Segoe UI" font-size="15.00">Pas de classe ni catalogue AmmoKind autonome</text>
+        <text xml:space="preserve" text-anchor="start" x="1693.12" y="-330" font-family="Segoe UI" font-size="15.00">1 kind enregistré → 1 ItemId de munition [A]</text>
+        <text xml:space="preserve" text-anchor="start" x="1693.12" y="-295" font-family="Segoe UI" font-size="15.00">0..n archétypes peuvent demander ce kind</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1685.12,-280.25 1685.12,-457.25 2019.12,-457.25 2019.12,-280.25 1685.12,-280.25" />
+      </g>
+    </g>
+  </svg>
+  <rect x="40" y="1526.0" width="1967.0" height="1246.0" rx="12" fill="#ffffff" stroke="#cbd5df" stroke-width="2" />
+  <text x="60" y="1560.0" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#172d42">C · Visuels et icônes</text>
+  <text x="60" y="1591.0" font-family="Segoe UI, sans-serif" font-size="15" font-weight="400" fill="#172d42">Autorités ARM et non-ARM distinctes ; aucune icône ne confère une capacité de combat.</text>
+  <svg width="1041.0" height="1046.0" viewBox="0.00 0.00 1041.00 1046.00" x="503.0" y="1609.0">
+    <g id="p10_graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 1031.15)">
+      <title>G</title>
+      <g id="p10_edge1" class="edge">
+        <title>WEAPON_VISUAL_CATALOGUE-&gt;VISUAL_BINDING</title>
+        <path fill="none" stroke="#617384" d="M312.96,-820.6C283.76,-797.41 260.25,-778.75 260.25,-778.75 260.25,-778.75 251.47,-764 239.82,-744.44" />
+        <polygon fill="#617384" stroke="#617384" points="242.06,-743.4 236.37,-738.64 237.85,-745.91 242.06,-743.4" />
+        <text xml:space="preserve" text-anchor="middle" x="331.12" y="-767.35" font-family="Segoe UI" font-size="12.00">1 → 0..n ArchetypeBindings</text>
+      </g>
+      <g id="p10_edge2" class="edge">
+        <title>WEAPON_VISUAL_CATALOGUE-&gt;VISUAL_PROFILE</title>
+        <path fill="none" stroke="#617384" d="M412.9,-820.37C399.86,-716.61 380,-558.5 380,-558.5 380,-558.5 369.76,-533.07 356.8,-500.88" />
+        <polygon fill="#617384" stroke="#617384" points="359.08,-500 354.2,-494.42 354.54,-501.83 359.08,-500" />
+        <text xml:space="preserve" text-anchor="middle" x="459.38" y="-645.23" font-family="Segoe UI" font-size="12.00">1 → 0..n VisualProfiles</text>
+      </g>
+      <g id="p10_edge3" class="edge">
+        <title>WEAPON_VISUAL_CATALOGUE-&gt;ACTION_ICON</title>
+        <path fill="none" stroke="#617384" d="M534.48,-820.45C565.88,-795.35 600.18,-767.94 631.95,-742.55" />
+        <polygon fill="#617384" stroke="#617384" points="633.15,-744.73 637.09,-738.44 630.09,-740.9 633.15,-744.73" />
+        <text xml:space="preserve" text-anchor="middle" x="678.71" y="-767.35" font-family="Segoe UI" font-size="12.00">1 → 0..n entrées ActionIcons</text>
+      </g>
+      <g id="p10_edge4" class="edge">
+        <title>VISUAL_BINDING-&gt;VISUAL_PROFILE</title>
+        <path fill="none" stroke="#617384" d="M221.62,-558.51C229.65,-540.12 238.27,-520.36 246.81,-500.8" />
+        <polygon fill="#617384" stroke="#617384" points="249.04,-501.81 249.59,-494.41 244.55,-499.85 249.04,-501.81" />
+        <text xml:space="preserve" text-anchor="middle" x="296.26" y="-523.1" font-family="Segoe UI" font-size="12.00">0..n bindings → 1 profil</text>
+      </g>
+      <g id="p10_edge5" class="edge">
+        <title>VISUAL_PROFILE-&gt;PROJECTILE_VISUAL</title>
+        <path fill="none" stroke="#617384" d="M304,-244.53C304,-225.34 304,-205.75 304,-187.26" />
+        <polygon fill="#617384" stroke="#617384" points="306.45,-187.36 304,-180.36 301.55,-187.36 306.45,-187.36" />
+        <text xml:space="preserve" text-anchor="middle" x="367.75" y="-208.85" font-family="Segoe UI" font-size="12.00">1 → 1 valeur embarquée</text>
+      </g>
+      <g id="WEAPON_VISUAL_CATALOGUE" class="node">
+        <title>WEAPON_VISUAL_CATALOGUE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="251.5,-820.25 251.5,-999.25 596.5,-999.25 596.5,-820.25 251.5,-820.25" />
+        <polygon fill="#267647" stroke="none" points="253.5,-962.25 253.5,-997.25 594.5,-997.25 594.5,-962.25 253.5,-962.25" />
+        <text xml:space="preserve" text-anchor="start" x="260.5" y="-977" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">WEAPON_VISUAL_CATALOGUE</text>
+        <text xml:space="preserve" text-anchor="start" x="260.5" y="-942" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridCanonicalWeaponVisualCatalogueAsset</text>
+        <text xml:space="preserve" text-anchor="start" x="260.5" y="-906" font-family="Segoe UI" font-size="15.00">DA_CanonicalWeaponVisualCatalogue</text>
+        <text xml:space="preserve" text-anchor="start" x="260.5" y="-871" font-family="Segoe UI" font-size="15.00">ArchetypeBindings[] ; VisualProfiles[]</text>
+        <text xml:space="preserve" text-anchor="start" x="260.5" y="-836" font-family="Segoe UI" font-size="15.00">ActionIcons : TMap&lt;kind, texture&gt; [12 catégories]</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="252.5,-821.25 252.5,-998.25 595.5,-998.25 595.5,-821.25 252.5,-821.25" />
+      </g>
+      <g id="VISUAL_BINDING" class="node">
+        <title>VISUAL_BINDING</title>
+        <polygon fill="#e6f4ea" stroke="none" points="0,-558.5 0,-737.5 366,-737.5 366,-558.5 0,-558.5" />
+        <polygon fill="#267647" stroke="none" points="2,-700.5 2,-735.5 364,-735.5 364,-700.5 2,-700.5" />
+        <text xml:space="preserve" text-anchor="start" x="9" y="-715.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">VISUAL_BINDING</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-680.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalWeaponVisualBinding</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-644.25" font-family="Segoe UI" font-size="15.00">ArchetypeId : FK → WEAPON_ARCHETYPE [B]</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-609.25" font-family="Segoe UI" font-size="15.00">VisualId : FK → VISUAL_PROFILE</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-574.25" font-family="Segoe UI" font-size="15.00">Un binding par archétype visuellement pris en charge</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1,-559.5 1,-736.5 365,-736.5 365,-559.5 1,-559.5" />
+      </g>
+      <g id="VISUAL_PROFILE" class="node">
+        <title>VISUAL_PROFILE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="115.38,-244.25 115.38,-493.25 492.62,-493.25 492.62,-244.25 115.38,-244.25" />
+        <polygon fill="#267647" stroke="none" points="117.38,-456.25 117.38,-491.25 490.62,-491.25 490.62,-456.25 117.38,-456.25" />
+        <text xml:space="preserve" text-anchor="start" x="124.38" y="-471" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">VISUAL_PROFILE</text>
+        <text xml:space="preserve" text-anchor="start" x="124.38" y="-436" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalWeaponVisual</text>
+        <text xml:space="preserve" text-anchor="start" x="124.38" y="-400" font-family="Segoe UI" font-size="15.00">PK logique : VisualId ; FamilyTag</text>
+        <text xml:space="preserve" text-anchor="start" x="124.38" y="-365" font-family="Segoe UI" font-size="15.00">ItemIcon ; WorldMesh ; EquippedMesh</text>
+        <text xml:space="preserve" text-anchor="start" x="124.38" y="-330" font-family="Segoe UI" font-size="15.00">OrnamentMesh ; OrnamentTransform ; WorldTransform</text>
+        <text xml:space="preserve" text-anchor="start" x="124.38" y="-295" font-family="Segoe UI" font-size="15.00">LevelFinishIds[] ; LightEmitter ; VisualEffects</text>
+        <text xml:space="preserve" text-anchor="start" x="124.38" y="-260" font-family="Segoe UI" font-size="15.00">WorldSparkle* ; ProjectileMesh ; ProjectileAppearance</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="116.38,-245.25 116.38,-492.25 491.62,-492.25 491.62,-245.25 116.38,-245.25" />
+      </g>
+      <g id="PROJECTILE_VISUAL" class="node">
+        <title>PROJECTILE_VISUAL</title>
+        <polygon fill="#e6f4ea" stroke="none" points="85.75,0 85.75,-179 522.25,-179 522.25,0 85.75,0" />
+        <polygon fill="#267647" stroke="none" points="87.75,-142 87.75,-177 520.25,-177 520.25,-142 87.75,-142" />
+        <text xml:space="preserve" text-anchor="start" x="94.75" y="-156.75" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">PROJECTILE_VISUAL</text>
+        <text xml:space="preserve" text-anchor="start" x="94.75" y="-121.75" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalProjectileVisual</text>
+        <text xml:space="preserve" text-anchor="start" x="94.75" y="-85.75" font-family="Segoe UI" font-size="15.00">bEnabled ; RelativeRotation ; RelativeScale</text>
+        <text xml:space="preserve" text-anchor="start" x="94.75" y="-50.75" font-family="Segoe UI" font-size="15.00">MeshForwardAxis ; Mode : Stable / Tumble / Spin</text>
+        <text xml:space="preserve" text-anchor="start" x="94.75" y="-15.75" font-family="Segoe UI" font-size="15.00">TumbleAxis ; TumbleDegreesPerSecond ; SpinDegreesPerSecond</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="86.75,-1 86.75,-178 521.25,-178 521.25,-1 86.75,-1" />
+      </g>
+      <g id="ACTION_ICON" class="node">
+        <title>ACTION_ICON</title>
+        <polygon fill="#e6f4ea" stroke="none" points="567.5,-558.5 567.5,-737.5 930.5,-737.5 930.5,-558.5 567.5,-558.5" />
+        <polygon fill="#267647" stroke="none" points="569.5,-700.5 569.5,-735.5 928.5,-735.5 928.5,-700.5 569.5,-700.5" />
+        <text xml:space="preserve" text-anchor="start" x="576.5" y="-715.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">ACTION_ICON · entrée de map</text>
+        <text xml:space="preserve" text-anchor="start" x="576.5" y="-680.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">EGridEquippedWeaponActionIconKind → texture</text>
+        <text xml:space="preserve" text-anchor="start" x="576.5" y="-644.25" font-family="Segoe UI" font-size="15.00">12 icônes catégorielles : ActionIcons[kind]</text>
+        <text xml:space="preserve" text-anchor="start" x="576.5" y="-609.25" font-family="Segoe UI" font-size="15.00">Distinctes de ItemIcon ; kind dérivé des règles</text>
+        <text xml:space="preserve" text-anchor="start" x="576.5" y="-574.25" font-family="Segoe UI" font-size="15.00">Pas de ActionTexture ni PK propre dans le C++</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="568.5,-559.5 568.5,-736.5 929.5,-736.5 929.5,-559.5 568.5,-559.5" />
+      </g>
+      <g id="NON_ARM_PRESENTATION" class="node">
+        <title>NON_ARM_PRESENTATION</title>
+        <polygon fill="#e6f4ea" stroke="none" points="625.5,-802.75 625.5,-1016.75 1012.5,-1016.75 1012.5,-802.75 625.5,-802.75" />
+        <polygon fill="#267647" stroke="none" points="627.5,-979.75 627.5,-1014.75 1010.5,-1014.75 1010.5,-979.75 627.5,-979.75" />
+        <text xml:space="preserve" text-anchor="start" x="634.5" y="-994.5" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">PRÉSENTATION NON-ARM</text>
+        <text xml:space="preserve" text-anchor="start" x="634.5" y="-959.5" font-family="Segoe UI" font-weight="bold" font-size="15.00">Champs hérités UGridNonArmamentDefinitionAsset</text>
+        <text xml:space="preserve" text-anchor="start" x="634.5" y="-923.5" font-family="Segoe UI" font-size="15.00">Icon ; WorldMesh ; LightEmitter ; VisualEffects</text>
+        <text xml:space="preserve" text-anchor="start" x="634.5" y="-888.5" font-family="Segoe UI" font-size="15.00">WorldSparkle* ; lecture ; physique ; lancer générique</text>
+        <text xml:space="preserve" text-anchor="start" x="634.5" y="-853.5" font-family="Segoe UI" font-size="15.00">EquippedMesh seulement dans OtherEquipment [A]</text>
+        <text xml:space="preserve" text-anchor="start" x="634.5" y="-818.5" font-family="Segoe UI" font-size="15.00">Pas de jointure ARM obligatoire ; pas de fallback ARM</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="626.5,-803.75 626.5,-1015.75 1011.5,-1015.75 1011.5,-803.75 626.5,-803.75" />
+      </g>
+    </g>
+  </svg>
+  <rect x="2027.0" y="1526.0" width="2375.0" height="1246.0" rx="12" fill="#ffffff" stroke="#cbd5df" stroke-width="2" />
+  <text x="2047.0" y="1560.0" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#172d42">D · Actions, effets et présentation</text>
+  <text x="2047.0" y="1591.0" font-family="Segoe UI, sans-serif" font-size="15" font-weight="400" fill="#172d42">Ambre : deux représentations implémentées et utilisées ; leur consolidation exige une preuve de parité.</text>
+  <svg width="1680.0" height="1151.0" viewBox="0.00 0.00 1680.00 1151.00" x="2374.5" y="1609.0">
+    <g id="p11_graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 1136.15)">
+      <title>G</title>
+      <g id="p11_edge1" class="edge">
+        <title>ACTION_CATALOGUE-&gt;ACTION_DEFINITION</title>
+        <path fill="none" stroke="#617384" d="M364.39,-925.26C389.52,-900.73 417.13,-873.78 443.42,-848.12" />
+        <polygon fill="#617384" stroke="#617384" points="444.98,-850.02 448.28,-843.37 441.56,-846.51 444.98,-850.02" />
+        <text xml:space="preserve" text-anchor="middle" x="465.52" y="-872.35" font-family="Segoe UI" font-size="12.00">1 → 0..n Actions</text>
+      </g>
+      <g id="p11_edge2" class="edge">
+        <title>ACTION_CATALOGUE-&gt;DETAILED_ACTION</title>
+        <path fill="none" stroke="#617384" d="M240.24,-925.26C229.01,-895.61 216.44,-862.41 205,-832.23" />
+        <polygon fill="#617384" stroke="#617384" points="207.43,-831.71 202.66,-826.04 202.85,-833.45 207.43,-831.71" />
+        <text xml:space="preserve" text-anchor="middle" x="287.02" y="-872.35" font-family="Segoe UI" font-size="12.00">1 → 0..n DetailedActions</text>
+      </g>
+      <g id="p11_edge3" class="edge">
+        <title>ITEM_ACTION_BINDING-&gt;ACTION_DEFINITION</title>
+        <path fill="none" stroke="#617384" d="M667.33,-908.14C655.06,-888.93 642.22,-868.81 629.82,-849.39" />
+        <polygon fill="#617384" stroke="#617384" points="631.92,-848.13 626.09,-843.55 627.79,-850.77 631.92,-848.13" />
+        <text xml:space="preserve" text-anchor="middle" x="749.43" y="-872.35" font-family="Segoe UI" font-size="12.00">0..n → 1 action compacte OU détaillée</text>
+      </g>
+      <g id="p11_edge4" class="edge">
+        <title>ITEM_ACTION_BINDING-&gt;PRESENTATION_CATALOGUE</title>
+        <path fill="none" stroke="#617384" d="M832.46,-907.9C845.65,-893.61 854.75,-883.75 854.75,-883.75 854.75,-883.75 874.23,-849.6 894.43,-814.19" />
+        <polygon fill="#617384" stroke="#617384" points="896.38,-815.71 897.72,-808.42 892.13,-813.29 896.38,-815.71" />
+        <text xml:space="preserve" text-anchor="middle" x="938.86" y="-872.35" font-family="Segoe UI" font-size="12.00">0..n → 1 présentation résolue</text>
+      </g>
+      <g id="p11_edge5" class="edge">
+        <title>ACTION_DEFINITION-&gt;ACTION_EFFECT</title>
+        <path fill="none" stroke="#617384" d="M548.4,-628.5C546.26,-604.19 543.97,-578.23 541.79,-553.6" />
+        <polygon fill="#617384" stroke="#617384" points="544.25,-553.57 541.19,-546.81 539.37,-554 544.25,-553.57" />
+        <text xml:space="preserve" text-anchor="middle" x="584.53" y="-593.1" font-family="Segoe UI" font-size="12.00">1 → 0..n Effects</text>
+      </g>
+      <g id="p11_edge6" class="edge">
+        <title>ACTION_EFFECT-&gt;STATUS_EFFECT_ASSET</title>
+        <path fill="none" stroke="#617384" stroke-dasharray="5,2" d="M531.75,-332.04C531.75,-308.03 531.75,-282.25 531.75,-257.32" />
+        <polygon fill="#617384" stroke="#617384" points="534.2,-257.41 531.75,-250.41 529.3,-257.41 534.2,-257.41" />
+        <text xml:space="preserve" text-anchor="middle" x="604.88" y="-278.85" font-family="Segoe UI" font-size="12.00">0..n → 0..1 statut si pertinent</text>
+      </g>
+      <g id="p11_edge7" class="edge">
+        <title>PRESENTATION_CATALOGUE-&gt;PRESENTATION_PROFILE</title>
+        <path fill="none" stroke="#617384" d="M1051.68,-663.52C1097.6,-634.67 1152.11,-600.41 1204.5,-567.49" />
+        <polygon fill="#617384" stroke="#617384" points="1205.63,-569.67 1210.26,-563.87 1203.03,-565.52 1205.63,-569.67" />
+        <text xml:space="preserve" text-anchor="middle" x="1216.56" y="-593.1" font-family="Segoe UI" font-size="12.00">1 → 0..n Presentations</text>
+      </g>
+      <g id="p11_edge8" class="edge">
+        <title>PRESENTATION_CATALOGUE-&gt;DETAILED_PRESENTATION</title>
+        <path fill="none" stroke="#617384" d="M938.75,-663.52C938.75,-625.44 938.75,-577.94 938.75,-536.51" />
+        <polygon fill="#617384" stroke="#617384" points="941.2,-536.56 938.75,-529.56 936.3,-536.56 941.2,-536.56" />
+        <text xml:space="preserve" text-anchor="middle" x="1017.5" y="-593.1" font-family="Segoe UI" font-size="12.00">1 → 0..n DetailedPresentations</text>
+      </g>
+      <g id="ACTION_CATALOGUE" class="node">
+        <title>ACTION_CATALOGUE</title>
+        <polygon fill="#fff2cf" stroke="none" points="87.75,-925.25 87.75,-1104.25 459.75,-1104.25 459.75,-925.25 87.75,-925.25" />
+        <polygon fill="#a76a08" stroke="none" points="89.75,-1067.25 89.75,-1102.25 457.75,-1102.25 457.75,-1067.25 89.75,-1067.25" />
+        <text xml:space="preserve" text-anchor="start" x="96.75" y="-1082" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">ACTION_CATALOGUE</text>
+        <text xml:space="preserve" text-anchor="start" x="96.75" y="-1047" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridActionCatalogueAsset · DA_ActionCatalogue</text>
+        <text xml:space="preserve" text-anchor="start" x="96.75" y="-1011" font-family="Segoe UI" font-size="15.00">Actions[] : FGridCanonicalAction</text>
+        <text xml:space="preserve" text-anchor="start" x="96.75" y="-976" font-family="Segoe UI" font-size="15.00">DetailedActions[] : FGridCanonicalRuntimeAction</text>
+        <text xml:space="preserve" text-anchor="start" x="96.75" y="-941" font-family="Segoe UI" font-size="15.00">Une autorité catalogue ; représentations à réconcilier</text>
+        <polygon fill="none" stroke="#a76a08" stroke-width="2" points="88.75,-926.25 88.75,-1103.25 458.75,-1103.25 458.75,-926.25 88.75,-926.25" />
+      </g>
+      <g id="ITEM_ACTION_BINDING" class="node">
+        <title>ITEM_ACTION_BINDING</title>
+        <polygon fill="#e6f4ea" stroke="none" points="540.88,-907.75 540.88,-1121.75 928.62,-1121.75 928.62,-907.75 540.88,-907.75" />
+        <polygon fill="#267647" stroke="none" points="542.88,-1084.75 542.88,-1119.75 926.62,-1119.75 926.62,-1084.75 542.88,-1084.75" />
+        <text xml:space="preserve" text-anchor="start" x="549.88" y="-1099.5" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">ITEM_ACTION_BINDING</text>
+        <text xml:space="preserve" text-anchor="start" x="549.88" y="-1064.5" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridItemActionBinding</text>
+        <text xml:space="preserve" text-anchor="start" x="549.88" y="-1028.5" font-family="Segoe UI" font-size="15.00">FName ActionId : FK → catalogue actions</text>
+        <text xml:space="preserve" text-anchor="start" x="549.88" y="-993.5" font-family="Segoe UI" font-size="15.00">FName PresentationId : FK → catalogue présentation</text>
+        <text xml:space="preserve" text-anchor="start" x="549.88" y="-958.5" font-family="Segoe UI" font-size="15.00">Possédé par archétype.Actions [B], ou</text>
+        <text xml:space="preserve" text-anchor="start" x="549.88" y="-923.5" font-family="Segoe UI" font-size="15.00">non-ARM.ActionBindings / consommable.UseActions [A]</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="541.88,-908.75 541.88,-1120.75 927.62,-1120.75 927.62,-908.75 541.88,-908.75" />
+      </g>
+      <g id="ACTION_DEFINITION" class="node">
+        <title>ACTION_DEFINITION</title>
+        <polygon fill="#e6f4ea" stroke="none" points="366.88,-628.5 366.88,-842.5 748.62,-842.5 748.62,-628.5 366.88,-628.5" />
+        <polygon fill="#267647" stroke="none" points="368.88,-805.5 368.88,-840.5 746.62,-840.5 746.62,-805.5 368.88,-805.5" />
+        <text xml:space="preserve" text-anchor="start" x="375.88" y="-820.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">ACTION_DEFINITION</text>
+        <text xml:space="preserve" text-anchor="start" x="375.88" y="-785.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalAction</text>
+        <text xml:space="preserve" text-anchor="start" x="375.88" y="-749.25" font-family="Segoe UI" font-size="15.00">PK logique : ActionId ; Kind ; Targeting</text>
+        <text xml:space="preserve" text-anchor="start" x="375.88" y="-714.25" font-family="Segoe UI" font-size="15.00">bRangedAttack ; bRequiresLineOfSight</text>
+        <text xml:space="preserve" text-anchor="start" x="375.88" y="-679.25" font-family="Segoe UI" font-size="15.00">SourceItemQuantityCost ; ManaCost ; CooldownRounds</text>
+        <text xml:space="preserve" text-anchor="start" x="375.88" y="-644.25" font-family="Segoe UI" font-size="15.00">WeaponDamagePercent ; Effects[]</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="367.88,-629.5 367.88,-841.5 747.62,-841.5 747.62,-629.5 367.88,-629.5" />
+      </g>
+      <g id="DETAILED_ACTION" class="node">
+        <title>DETAILED_ACTION</title>
+        <polygon fill="#fff2cf" stroke="none" points="0,-646 0,-825 337.5,-825 337.5,-646 0,-646" />
+        <polygon fill="#a76a08" stroke="none" points="2,-788 2,-823 335.5,-823 335.5,-788 2,-788" />
+        <text xml:space="preserve" text-anchor="start" x="9" y="-802.75" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">DETAILED_ACTION</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-767.75" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalRuntimeAction</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-731.75" font-family="Segoe UI" font-size="15.00">Definition : FGridCombatActionDefinition</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-696.75" font-family="Segoe UI" font-size="15.00">Identité Definition.ActionId ; effets typés détaillés</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-661.75" font-family="Segoe UI" font-size="15.00">14 actions détaillées dans la preuve native</text>
+        <polygon fill="none" stroke="#a76a08" stroke-width="2" points="1,-647 1,-824 336.5,-824 336.5,-647 1,-647" />
+      </g>
+      <g id="ACTION_EFFECT" class="node">
+        <title>ACTION_EFFECT</title>
+        <polygon fill="#e6f4ea" stroke="none" points="349.88,-331.75 349.88,-545.75 713.62,-545.75 713.62,-331.75 349.88,-331.75" />
+        <polygon fill="#267647" stroke="none" points="351.88,-508.75 351.88,-543.75 711.62,-543.75 711.62,-508.75 351.88,-508.75" />
+        <text xml:space="preserve" text-anchor="start" x="358.88" y="-523.5" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">ACTION_EFFECT</text>
+        <text xml:space="preserve" text-anchor="start" x="358.88" y="-488.5" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalActionEffect</text>
+        <text xml:space="preserve" text-anchor="start" x="358.88" y="-452.5" font-family="Segoe UI" font-size="15.00">Kind : Damage / Heal / ApplyStatus / RemoveStatus /</text>
+        <text xml:space="preserve" text-anchor="start" x="358.88" y="-417.5" font-family="Segoe UI" font-size="15.00">Armor / Move / Surface / Trap / Teleport</text>
+        <text xml:space="preserve" text-anchor="start" x="358.88" y="-382.5" font-family="Segoe UI" font-size="15.00">int32 Magnitude ; FName StatusId</text>
+        <text xml:space="preserve" text-anchor="start" x="358.88" y="-347.5" font-family="Segoe UI" font-size="15.00">Pas de TypedPayload générique dans cette structure</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="350.88,-332.75 350.88,-544.75 712.62,-544.75 712.62,-332.75 350.88,-332.75" />
+      </g>
+      <g id="STATUS_EFFECT_ASSET" class="node">
+        <title>STATUS_EFFECT_ASSET</title>
+        <polygon fill="#fff2cf" stroke="none" points="306.75,0 306.75,-249 756.75,-249 756.75,0 306.75,0" />
+        <polygon fill="#a76a08" stroke="none" points="308.75,-212 308.75,-247 754.75,-247 754.75,-212 308.75,-212" />
+        <text xml:space="preserve" text-anchor="start" x="315.75" y="-226.75" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">STATUS_EFFECT_ASSET</text>
+        <text xml:space="preserve" text-anchor="start" x="315.75" y="-191.75" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridStatusEffectDefinitionAsset</text>
+        <text xml:space="preserve" text-anchor="start" x="315.75" y="-155.75" font-family="Segoe UI" font-size="15.00">PK logique : EffectId (et non StatusId)</text>
+        <text xml:space="preserve" text-anchor="start" x="315.75" y="-120.75" font-family="Segoe UI" font-size="15.00">DisplayName ; Description ; StatusTags ; Icon</text>
+        <text xml:space="preserve" text-anchor="start" x="315.75" y="-85.75" font-family="Segoe UI" font-size="15.00">Disposition ; DurationUnit ; DefaultDuration ; StackPolicy</text>
+        <text xml:space="preserve" text-anchor="start" x="315.75" y="-50.75" font-family="Segoe UI" font-size="15.00">PeriodicDamage / Healing ; Control ; CombatModifiers / Reactions</text>
+        <text xml:space="preserve" text-anchor="start" x="315.75" y="-15.75" font-family="Segoe UI" font-size="15.00">StatusId [action compacte] : identité sémantique → EffectId</text>
+        <polygon fill="none" stroke="#a76a08" stroke-width="2" points="307.75,-1 307.75,-248 755.75,-248 755.75,-1 307.75,-1" />
+      </g>
+      <g id="PRESENTATION_CATALOGUE" class="node">
+        <title>PRESENTATION_CATALOGUE</title>
+        <polygon fill="#fff2cf" stroke="none" points="786.5,-663.5 786.5,-807.5 1091,-807.5 1091,-663.5 786.5,-663.5" />
+        <polygon fill="#a76a08" stroke="none" points="788.5,-770.5 788.5,-805.5 1089,-805.5 1089,-770.5 788.5,-770.5" />
+        <text xml:space="preserve" text-anchor="start" x="795.5" y="-785.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">PRESENTATION_CATALOGUE</text>
+        <text xml:space="preserve" text-anchor="start" x="795.5" y="-750.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridActionPresentationCatalogueAsset</text>
+        <text xml:space="preserve" text-anchor="start" x="795.5" y="-714.25" font-family="Segoe UI" font-size="15.00">DA_ActionPresentationCatalogue</text>
+        <text xml:space="preserve" text-anchor="start" x="795.5" y="-679.25" font-family="Segoe UI" font-size="15.00">Presentations[] ; DetailedPresentations[]</text>
+        <polygon fill="none" stroke="#a76a08" stroke-width="2" points="787.5,-664.5 787.5,-806.5 1090,-806.5 1090,-664.5 787.5,-664.5" />
+      </g>
+      <g id="PRESENTATION_PROFILE" class="node">
+        <title>PRESENTATION_PROFILE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="1164,-314.25 1164,-563.25 1651.5,-563.25 1651.5,-314.25 1164,-314.25" />
+        <polygon fill="#267647" stroke="none" points="1166,-526.25 1166,-561.25 1649.5,-561.25 1649.5,-526.25 1166,-526.25" />
+        <text xml:space="preserve" text-anchor="start" x="1173" y="-541" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">PRESENTATION_PROFILE</text>
+        <text xml:space="preserve" text-anchor="start" x="1173" y="-506" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalActionPresentation</text>
+        <text xml:space="preserve" text-anchor="start" x="1173" y="-470" font-family="Segoe UI" font-size="15.00">PK logique : PresentationId ; MotionStyle ; bAnimateHeldItem</text>
+        <text xml:space="preserve" text-anchor="start" x="1173" y="-435" font-family="Segoe UI" font-size="15.00">MotionDurationSeconds ; ImpactDelaySeconds ; RecoveryDelaySeconds</text>
+        <text xml:space="preserve" text-anchor="start" x="1173" y="-400" font-family="Segoe UI" font-size="15.00">PeakLocationOffset ; PeakRotationOffset ; FeedbackDurationSeconds</text>
+        <text xml:space="preserve" text-anchor="start" x="1173" y="-365" font-family="Segoe UI" font-size="15.00">Attack / Hit / Miss / Flesh / Metal / Wood audio</text>
+        <text xml:space="preserve" text-anchor="start" x="1173" y="-330" font-family="Segoe UI" font-size="15.00">Parry / Block / Critical / Heavy audio ; 5 groupes VFX</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1165,-315.25 1165,-562.25 1650.5,-562.25 1650.5,-315.25 1165,-315.25" />
+      </g>
+      <g id="DETAILED_PRESENTATION" class="node">
+        <title>DETAILED_PRESENTATION</title>
+        <polygon fill="#fff2cf" stroke="none" points="743,-349.25 743,-528.25 1134.5,-528.25 1134.5,-349.25 743,-349.25" />
+        <polygon fill="#a76a08" stroke="none" points="745,-491.25 745,-526.25 1132.5,-526.25 1132.5,-491.25 745,-491.25" />
+        <text xml:space="preserve" text-anchor="start" x="752" y="-506" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">DETAILED_PRESENTATION</text>
+        <text xml:space="preserve" text-anchor="start" x="752" y="-471" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCanonicalRuntimePresentation</text>
+        <text xml:space="preserve" text-anchor="start" x="752" y="-435" font-family="Segoe UI" font-size="15.00">FName PresentationId</text>
+        <text xml:space="preserve" text-anchor="start" x="752" y="-400" font-family="Segoe UI" font-size="15.00">Profile : FGridPlayerAttackPresentationProfile</text>
+        <text xml:space="preserve" text-anchor="start" x="752" y="-365" font-family="Segoe UI" font-size="15.00">Présentation détaillée non-ARM ; même catalogue global</text>
+        <polygon fill="none" stroke="#a76a08" stroke-width="2" points="744,-350.25 744,-527.25 1133.5,-527.25 1133.5,-350.25 744,-350.25" />
+      </g>
+    </g>
+  </svg>
+  <rect x="40" y="2792.0" width="1967.0" height="1316.0" rx="12" fill="#ffffff" stroke="#cbd5df" stroke-width="2" />
+  <text x="60" y="2826.0" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#172d42">E · Instances, possession, monde et sauvegarde</text>
+  <text x="60" y="2857.0" font-family="Segoe UI, sans-serif" font-size="15" font-weight="400" fill="#172d42">Les FK sont des identités C++ validées au runtime ; aucune contrainte SQL n’est supposée.</text>
+  <svg width="1927.0" height="1221.0" viewBox="0.00 0.00 1927.00 1221.00" x="60.0" y="2875.0">
+    <g id="p20_graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 1206.15)">
+      <title>G</title>
+      <g id="p20_edge1" class="edge">
+        <title>ITEM_SUBSYSTEM-&gt;ITEM_INSTANCE</title>
+        <path fill="none" stroke="#617384" stroke-dasharray="5,2" d="M240.74,-628.74C241.25,-610.1 241.78,-590.7 242.3,-571.57" />
+        <polygon fill="#617384" stroke="#617384" points="244.75,-571.68 242.49,-564.62 239.85,-571.55 244.75,-571.68" />
+        <text xml:space="preserve" text-anchor="middle" x="345.86" y="-593.1" font-family="Segoe UI" font-size="12.00">résolution par ItemDefinitionId + niveau</text>
+      </g>
+      <g id="p20_edge7" class="edge">
+        <title>ITEM_INSTANCE-&gt;READABLE</title>
+        <path fill="none" stroke="#617384" d="M246.38,-279.65C246.38,-260.34 246.38,-240.7 246.38,-221.94" />
+        <polygon fill="#617384" stroke="#617384" points="248.83,-222.18 246.38,-215.18 243.93,-222.18 248.83,-222.18" />
+        <text xml:space="preserve" text-anchor="middle" x="325.12" y="-243.85" font-family="Segoe UI" font-size="12.00">0..n → 0..1 contenu réutilisable</text>
+      </g>
+      <g id="p20_edge2" class="edge">
+        <title>PARTY_STATE-&gt;ITEM_INSTANCE</title>
+        <path fill="none" stroke="#617384" d="M540.99,-628.51C512.82,-608.79 483.45,-588.23 454.63,-568.05" />
+        <polygon fill="#617384" stroke="#617384" points="456.08,-566.08 448.94,-564.07 453.27,-570.09 456.08,-566.08" />
+        <text xml:space="preserve" text-anchor="middle" x="592" y="-593.1" font-family="Segoe UI" font-size="12.00">1 agrégat → 0..n instances possédées</text>
+      </g>
+      <g id="p20_edge3" class="edge">
+        <title>PARTY_STATE-&gt;EQUIPMENT_STATE</title>
+        <path fill="none" stroke="#617384" d="M717.38,-628.74C717.38,-604.34 717.38,-578.63 717.38,-553.96" />
+        <polygon fill="#617384" stroke="#617384" points="719.83,-554.14 717.38,-547.14 714.93,-554.14 719.83,-554.14" />
+        <text xml:space="preserve" text-anchor="middle" x="816" y="-593.1" font-family="Segoe UI" font-size="12.00">1 → 0..n équipements de personnages</text>
+      </g>
+      <g id="p20_edge4" class="edge">
+        <title>LEVEL_ASSET-&gt;ITEM_PLACEMENT</title>
+        <path fill="none" stroke="#617384" d="M1675.38,-978.02C1675.38,-949.3 1675.38,-916.77 1675.38,-885.58" />
+        <polygon fill="#617384" stroke="#617384" points="1677.83,-885.77 1675.38,-878.77 1672.93,-885.77 1677.83,-885.77" />
+        <text xml:space="preserve" text-anchor="middle" x="1727.12" y="-907.35" font-family="Segoe UI" font-size="12.00">1 → 0..n placements</text>
+      </g>
+      <g id="p20_edge5" class="edge">
+        <title>SAVE_GAME-&gt;PARTY_STATE</title>
+        <path fill="none" stroke="#617384" d="M939.93,-942.84C916.6,-923.05 892.41,-902.52 868.94,-882.6" />
+        <polygon fill="#617384" stroke="#617384" points="870.74,-880.92 863.82,-878.26 867.57,-884.66 870.74,-880.92" />
+        <text xml:space="preserve" text-anchor="middle" x="969.62" y="-907.35" font-family="Segoe UI" font-size="12.00">1 → 1 snapshot de groupe</text>
+      </g>
+      <g id="p20_edge6" class="edge">
+        <title>SAVE_GAME-&gt;WORLD_STATE</title>
+        <path fill="none" stroke="#617384" d="M1117.39,-942.84C1125.35,-912.14 1133.77,-879.68 1141.34,-850.49" />
+        <polygon fill="#617384" stroke="#617384" points="1143.69,-851.21 1143.08,-843.82 1138.95,-849.98 1143.69,-851.21" />
+        <text xml:space="preserve" text-anchor="middle" x="1193.75" y="-907.35" font-family="Segoe UI" font-size="12.00">1 → 1 snapshot de donjon</text>
+      </g>
+      <g id="ITEM_SUBSYSTEM" class="node">
+        <title>ITEM_SUBSYSTEM</title>
+        <polygon fill="#e6f4ea" stroke="none" points="0,-628.5 0,-877.5 474.75,-877.5 474.75,-628.5 0,-628.5" />
+        <polygon fill="#267647" stroke="none" points="2,-840.5 2,-875.5 472.75,-875.5 472.75,-840.5 2,-840.5" />
+        <text xml:space="preserve" text-anchor="start" x="9" y="-855.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">RÉSOLUTION · UGridItemSubsystem</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-820.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGameInstanceSubsystem · une configuration par GI</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-784.25" font-family="Segoe UI" font-size="15.00">ConfiguredItemSystem → ITEM_SYSTEM [A]</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-749.25" font-family="Segoe UI" font-size="15.00">RootRegistry + ItemIndex : caches transitoires</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-714.25" font-family="Segoe UI" font-size="15.00">ResolveItem / ResolveBoundAction / ResolveArmorReserveForInstance</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-679.25" font-family="Segoe UI" font-size="15.00">FGridResolvedItem / FGridResolvedBoundAction : vues transitoires</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-644.25" font-family="Segoe UI" font-size="15.00">N1..N20 pour ARM ; N0 strict pour non-ARM</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1,-629.5 1,-876.5 473.75,-876.5 473.75,-629.5 1,-629.5" />
+      </g>
+      <g id="ITEM_INSTANCE" class="node">
+        <title>ITEM_INSTANCE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="24,-279.25 24,-563.25 468.75,-563.25 468.75,-279.25 24,-279.25" />
+        <polygon fill="#267647" stroke="none" points="26,-526.25 26,-561.25 466.75,-561.25 466.75,-526.25 26,-526.25" />
+        <text xml:space="preserve" text-anchor="start" x="33" y="-541" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">ITEM_INSTANCE</text>
+        <text xml:space="preserve" text-anchor="start" x="33" y="-506" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridItemInstance</text>
+        <text xml:space="preserve" text-anchor="start" x="33" y="-470" font-family="Segoe UI" font-size="15.00">PK runtime : FGuid RuntimeObjectId</text>
+        <text xml:space="preserve" text-anchor="start" x="33" y="-435" font-family="Segoe UI" font-size="15.00">ItemDefinitionId : FK → ItemId [A] ; ItemLevel ; Quantity</text>
+        <text xml:space="preserve" text-anchor="start" x="33" y="-400" font-family="Segoe UI" font-size="15.00">AbsorbedEquipmentPhysicalArmor / MagicalArmor</text>
+        <text xml:space="preserve" text-anchor="start" x="33" y="-365" font-family="Segoe UI" font-size="15.00">OwnerType ; OwnerGuid ; OwnerCharacterIndex ; EquipmentSlot</text>
+        <text xml:space="preserve" text-anchor="start" x="33" y="-330" font-family="Segoe UI" font-size="15.00">bLightsEnabled ; LastWorldTransform</text>
+        <text xml:space="preserve" text-anchor="start" x="33" y="-295" font-family="Segoe UI" font-size="15.00">ReadableContentAsset / Id ; ReadTitleOverride ; ReadTextOverride</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="25,-280.25 25,-562.25 467.75,-562.25 467.75,-280.25 25,-280.25" />
+      </g>
+      <g id="EQUIPMENT_STATE" class="node">
+        <title>EQUIPMENT_STATE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="505.88,-296.75 505.88,-545.75 928.88,-545.75 928.88,-296.75 505.88,-296.75" />
+        <polygon fill="#267647" stroke="none" points="507.88,-508.75 507.88,-543.75 926.88,-543.75 926.88,-508.75 507.88,-508.75" />
+        <text xml:space="preserve" text-anchor="start" x="514.88" y="-523.5" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">ÉQUIPEMENT · FGridCharacterEquipmentState</text>
+        <text xml:space="preserve" text-anchor="start" x="514.88" y="-488.5" font-family="Segoe UI" font-weight="bold" font-size="15.00">18 emplacements EGridEquipmentSlot (hors None)</text>
+        <text xml:space="preserve" text-anchor="start" x="514.88" y="-452.5" font-family="Segoe UI" font-size="15.00">MainHand ; OffHand ; Head ; Chest ; Legs ; Feet</text>
+        <text xml:space="preserve" text-anchor="start" x="514.88" y="-417.5" font-family="Segoe UI" font-size="15.00">Amulet ; Ring1 ; Ring2 ; Shoulders ; Gloves ; Belt</text>
+        <text xml:space="preserve" text-anchor="start" x="514.88" y="-382.5" font-family="Segoe UI" font-size="15.00">Cloak ; Talisman ; QuickSlot1 ; QuickSlot2 ; Shirt ; Bracers</text>
+        <text xml:space="preserve" text-anchor="start" x="514.88" y="-347.5" font-family="Segoe UI" font-size="15.00">1 instance physique au plus par emplacement</text>
+        <text xml:space="preserve" text-anchor="start" x="514.88" y="-312.5" font-family="Segoe UI" font-size="15.00">Deux mains : OffHand réservé, pas seconde instance ni attaque</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="506.88,-297.75 506.88,-544.75 927.88,-544.75 927.88,-297.75 506.88,-297.75" />
+      </g>
+      <g id="PARTY_STATE" class="node">
+        <title>PARTY_STATE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="503.62,-628.5 503.62,-877.5 931.12,-877.5 931.12,-628.5 503.62,-628.5" />
+        <polygon fill="#267647" stroke="none" points="505.62,-840.5 505.62,-875.5 929.12,-875.5 929.12,-840.5 505.62,-840.5" />
+        <text xml:space="preserve" text-anchor="start" x="512.62" y="-855.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">POSSESSION · FGridPartyInventoryState</text>
+        <text xml:space="preserve" text-anchor="start" x="512.62" y="-820.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridCharacterInventoryState / FGridInventorySlot</text>
+        <text xml:space="preserve" text-anchor="start" x="512.62" y="-784.25" font-family="Segoe UI" font-size="15.00">ActiveCharacters[] ; ActiveEquipment[] ; CharacterPool[]</text>
+        <text xml:space="preserve" text-anchor="start" x="512.62" y="-749.25" font-family="Segoe UI" font-size="15.00">CharacterId : GUID ; InventorySlots[] ; CombatHotbarSlots[]</text>
+        <text xml:space="preserve" text-anchor="start" x="512.62" y="-714.25" font-family="Segoe UI" font-size="15.00">bHasCursorItem ; CursorItem ; SelectedCharacterIndex</text>
+        <text xml:space="preserve" text-anchor="start" x="512.62" y="-679.25" font-family="Segoe UI" font-size="15.00">Instance localisée : sac, équipement, curseur, monde, réceptacle</text>
+        <text xml:space="preserve" text-anchor="start" x="512.62" y="-644.25" font-family="Segoe UI" font-size="15.00">Action de hotbar → ActionId + GUID / emplacement source</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="504.62,-629.5 504.62,-876.5 930.12,-876.5 930.12,-629.5 504.62,-629.5" />
+      </g>
+      <g id="LEVEL_ASSET" class="node">
+        <title>LEVEL_ASSET</title>
+        <polygon fill="#e6f4ea" stroke="none" points="1452.25,-977.75 1452.25,-1156.75 1898.5,-1156.75 1898.5,-977.75 1452.25,-977.75" />
+        <polygon fill="#267647" stroke="none" points="1454.25,-1119.75 1454.25,-1154.75 1896.5,-1154.75 1896.5,-1119.75 1454.25,-1119.75" />
+        <text xml:space="preserve" text-anchor="start" x="1461.25" y="-1134.5" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">LEVEL_ASSET</text>
+        <text xml:space="preserve" text-anchor="start" x="1461.25" y="-1099.5" font-family="Segoe UI" font-weight="bold" font-size="15.00">UGridLevelAsset · DA_GridLevel_*</text>
+        <text xml:space="preserve" text-anchor="start" x="1461.25" y="-1063.5" font-family="Segoe UI" font-size="15.00">LooseItemInstances[] : FGridLooseItemInstance</text>
+        <text xml:space="preserve" text-anchor="start" x="1461.25" y="-1028.5" font-family="Segoe UI" font-size="15.00">ItemSpawns[] : FGridItemSpawnInstance</text>
+        <text xml:space="preserve" text-anchor="start" x="1461.25" y="-993.5" font-family="Segoe UI" font-size="15.00">WorldObjectInstances[] : réceptacles / serrures ; autres placements</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1453.25,-978.75 1453.25,-1155.75 1897.5,-1155.75 1897.5,-978.75 1453.25,-978.75" />
+      </g>
+      <g id="ITEM_PLACEMENT" class="node">
+        <title>ITEM_PLACEMENT</title>
+        <polygon fill="#e6f4ea" stroke="none" points="1483.38,-628.5 1483.38,-877.5 1867.38,-877.5 1867.38,-628.5 1483.38,-628.5" />
+        <polygon fill="#267647" stroke="none" points="1485.38,-840.5 1485.38,-875.5 1865.38,-875.5 1865.38,-840.5 1485.38,-840.5" />
+        <text xml:space="preserve" text-anchor="start" x="1492.38" y="-855.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">ITEM_PLACEMENT</text>
+        <text xml:space="preserve" text-anchor="start" x="1492.38" y="-820.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridLooseItemInstance / FGridItemSpawnInstance</text>
+        <text xml:space="preserve" text-anchor="start" x="1492.38" y="-784.25" font-family="Segoe UI" font-size="15.00">InstanceId ou SpawnId : GUID ; CanonicalItemId : FK → A</text>
+        <text xml:space="preserve" text-anchor="start" x="1492.38" y="-749.25" font-family="Segoe UI" font-size="15.00">ItemLevel ; Quantity ; CellX ; CellY ; LogicId ; Tag ; Notes</text>
+        <text xml:space="preserve" text-anchor="start" x="1492.38" y="-714.25" font-family="Segoe UI" font-size="15.00">Loose : SurfaceSide ; LocalOffset ; LocalYaw ; lecture</text>
+        <text xml:space="preserve" text-anchor="start" x="1492.38" y="-679.25" font-family="Segoe UI" font-size="15.00">Spawn : bSpawnAtStart ; PaletteEntryId pour les deux</text>
+        <text xml:space="preserve" text-anchor="start" x="1492.38" y="-644.25" font-family="Segoe UI" font-size="15.00">Aucun pointeur vers une ancienne définition d’objet</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="1484.38,-629.5 1484.38,-876.5 1866.38,-876.5 1866.38,-629.5 1484.38,-629.5" />
+      </g>
+      <g id="SAVE_GAME" class="node">
+        <title>SAVE_GAME</title>
+        <polygon fill="#e6f4ea" stroke="none" points="895.25,-942.75 895.25,-1191.75 1275.5,-1191.75 1275.5,-942.75 895.25,-942.75" />
+        <polygon fill="#267647" stroke="none" points="897.25,-1154.75 897.25,-1189.75 1273.5,-1189.75 1273.5,-1154.75 897.25,-1154.75" />
+        <text xml:space="preserve" text-anchor="start" x="904.25" y="-1169.5" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">PERSISTANCE · UGrimrockPartySaveGame</text>
+        <text xml:space="preserve" text-anchor="start" x="904.25" y="-1134.5" font-family="Segoe UI" font-weight="bold" font-size="15.00">CurrentSaveVersion = 27 · correspondance exacte</text>
+        <text xml:space="preserve" text-anchor="start" x="904.25" y="-1098.5" font-family="Segoe UI" font-size="15.00">PartyInventoryState ; DungeonRuntimeState</text>
+        <text xml:space="preserve" text-anchor="start" x="904.25" y="-1063.5" font-family="Segoe UI" font-size="15.00">CampaignQuestState ; PartyPortraitOrder</text>
+        <text xml:space="preserve" text-anchor="start" x="904.25" y="-1028.5" font-family="Segoe UI" font-size="15.00">CurrentDungeonLevelId ; PartyCellX/Y ; PartyFacing</text>
+        <text xml:space="preserve" text-anchor="start" x="904.25" y="-993.5" font-family="Segoe UI" font-size="15.00">GameplayElapsedSeconds ; Serialize + validation stricte</text>
+        <text xml:space="preserve" text-anchor="start" x="904.25" y="-958.5" font-family="Segoe UI" font-size="15.00">Pas de migration implicite d’une version antérieure</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="896.25,-943.75 896.25,-1190.75 1274.5,-1190.75 1274.5,-943.75 896.25,-943.75" />
+      </g>
+      <g id="WORLD_STATE" class="node">
+        <title>WORLD_STATE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="959.75,-663.5 959.75,-842.5 1373,-842.5 1373,-663.5 959.75,-663.5" />
+        <polygon fill="#267647" stroke="none" points="961.75,-805.5 961.75,-840.5 1371,-840.5 1371,-805.5 961.75,-805.5" />
+        <text xml:space="preserve" text-anchor="start" x="968.75" y="-820.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">MONDE · FGridDungeonRuntimeState</text>
+        <text xml:space="preserve" text-anchor="start" x="968.75" y="-785.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">FGridLevelRuntimeState et snapshots physiques</text>
+        <text xml:space="preserve" text-anchor="start" x="968.75" y="-749.25" font-family="Segoe UI" font-size="15.00">LevelStates : états durables par niveau</text>
+        <text xml:space="preserve" text-anchor="start" x="968.75" y="-714.25" font-family="Segoe UI" font-size="15.00">Identités / niveaux / quantités ; réceptacles, clés et projectiles</text>
+        <text xml:space="preserve" text-anchor="start" x="968.75" y="-679.25" font-family="Segoe UI" font-size="15.00">État mutable reconstruit sans catalogue copié</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="960.75,-664.5 960.75,-841.5 1372,-841.5 1372,-664.5 960.75,-664.5" />
+      </g>
+      <g id="READABLE" class="node">
+        <title>READABLE</title>
+        <polygon fill="#e6f4ea" stroke="none" points="55.5,0 55.5,-214 437.25,-214 437.25,0 55.5,0" />
+        <polygon fill="#267647" stroke="none" points="57.5,-177 57.5,-212 435.25,-212 435.25,-177 57.5,-177" />
+        <text xml:space="preserve" text-anchor="start" x="64.5" y="-191.75" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">LECTURE · UGridReadableContentAsset</text>
+        <text xml:space="preserve" text-anchor="start" x="64.5" y="-156.75" font-family="Segoe UI" font-weight="bold" font-size="15.00">Exception durable distincte de la définition d’objet</text>
+        <text xml:space="preserve" text-anchor="start" x="64.5" y="-120.75" font-family="Segoe UI" font-size="15.00">ReadableContentAsset ; ReadableContentId</text>
+        <text xml:space="preserve" text-anchor="start" x="64.5" y="-85.75" font-family="Segoe UI" font-size="15.00">ReadTitleOverride ; ReadTextOverride : état de l’instance</text>
+        <text xml:space="preserve" text-anchor="start" x="64.5" y="-50.75" font-family="Segoe UI" font-size="15.00">DA_BookPage_Test et DA_Scroll_Test conservés</text>
+        <text xml:space="preserve" text-anchor="start" x="64.5" y="-15.75" font-family="Segoe UI" font-size="15.00">2 références sauvegardées protégées ; ne pas supprimer</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="56.5,-1 56.5,-213 436.25,-213 436.25,-1 56.5,-1" />
+      </g>
+    </g>
+  </svg>
+  <rect x="2027.0" y="2792.0" width="2375.0" height="1316.0" rx="12" fill="#ffffff" stroke="#cbd5df" stroke-width="2" />
+  <text x="2047.0" y="2826.0" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#172d42">F · Extension conceptuelle de l’équipement</text>
+  <text x="2047.0" y="2857.0" font-family="Segoe UI, sans-serif" font-size="15" font-weight="400" fill="#172d42">PROPOSITION DOCUMENTAIRE UNIQUEMENT · Aucun type, champ, DataAsset, slot ou mécanisme ajouté.</text>
+  <svg width="2335.0" height="557.0" viewBox="0.00 0.00 2335.00 557.00" x="2047.0" y="2875.0">
+    <g id="p21_graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 542.65)">
+      <title>G</title>
+      <g id="p21_edge1" class="edge">
+        <title>FUTURE_EQUIPMENT-&gt;EQUIPMENT_TAXONOMY</title>
+        <path fill="none" stroke="#617384" stroke-dasharray="5,2" d="M920.54,-369.68C710.85,-319.17 419.5,-249 419.5,-249 419.5,-249 416.81,-247.47 412.04,-244.76" />
+        <polygon fill="#617384" stroke="#617384" points="413.54,-242.79 406.24,-241.45 411.11,-247.05 413.54,-242.79" />
+        <text xml:space="preserve" text-anchor="middle" x="648.45" y="-278.85" font-family="Segoe UI" font-size="12.00">1 → 1 classification proposée</text>
+      </g>
+      <g id="p21_edge2" class="edge">
+        <title>FUTURE_EQUIPMENT-&gt;EQUIPMENT_RULES</title>
+        <path fill="none" stroke="#617384" stroke-dasharray="5,2" d="M957.53,-314.25C925.22,-294.46 891.14,-273.57 857.89,-253.2" />
+        <polygon fill="#617384" stroke="#617384" points="859.35,-251.22 852.1,-249.65 856.79,-255.4 859.35,-251.22" />
+        <text xml:space="preserve" text-anchor="middle" x="982.05" y="-278.85" font-family="Segoe UI" font-size="12.00">1 → 0..n conditions proposées</text>
+      </g>
+      <g id="p21_edge3" class="edge">
+        <title>FUTURE_EQUIPMENT-&gt;EQUIPMENT_BONUSES</title>
+        <path fill="none" stroke="#617384" stroke-dasharray="5,2" d="M1130.5,-314.25C1130.5,-295.78 1130.5,-276.36 1130.5,-257.3" />
+        <polygon fill="#617384" stroke="#617384" points="1132.95,-257.37 1130.5,-250.37 1128.05,-257.37 1132.95,-257.37" />
+        <text xml:space="preserve" text-anchor="middle" x="1195.75" y="-278.85" font-family="Segoe UI" font-size="12.00">réutilise le socle de A et E</text>
+      </g>
+      <g id="p21_edge4" class="edge">
+        <title>FUTURE_EQUIPMENT-&gt;EQUIPMENT_EFFECTS</title>
+        <path fill="none" stroke="#617384" stroke-dasharray="5,2" d="M1300.96,-314.25C1341.98,-288.75 1385.89,-261.44 1427.22,-235.74" />
+        <polygon fill="#617384" stroke="#617384" points="1428.43,-237.87 1433.08,-232.1 1425.84,-233.71 1428.43,-237.87" />
+        <text xml:space="preserve" text-anchor="middle" x="1430.91" y="-278.85" font-family="Segoe UI" font-size="12.00">1 → 0..n références proposées</text>
+      </g>
+      <g id="p21_edge5" class="edge">
+        <title>FUTURE_EQUIPMENT-&gt;EQUIPMENT_VISUAL_PERSISTENCE</title>
+        <path fill="none" stroke="#617384" stroke-dasharray="5,2" d="M1340.4,-368.75C1545.96,-318.32 1828.5,-249 1828.5,-249 1828.5,-249 1831.06,-247.71 1835.66,-245.4" />
+        <polygon fill="#617384" stroke="#617384" points="1836.64,-247.65 1841.8,-242.32 1834.44,-243.27 1836.64,-247.65" />
+        <text xml:space="preserve" text-anchor="middle" x="1793.18" y="-278.85" font-family="Segoe UI" font-size="12.00">réutilise / complète A et E</text>
+      </g>
+      <g id="FUTURE_EQUIPMENT" class="node">
+        <title>FUTURE_EQUIPMENT</title>
+        <polygon fill="#f0f1f3" stroke="none" points="920.5,-314.25 920.5,-528.25 1340.5,-528.25 1340.5,-314.25 920.5,-314.25" />
+        <polygon fill="#7b818b" stroke="none" points="922.5,-491.25 922.5,-526.25 1338.5,-526.25 1338.5,-491.25 922.5,-491.25" />
+        <text xml:space="preserve" text-anchor="start" x="929.5" y="-506" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">FUTUR ÉQUIPEMENT · extension de A</text>
+        <text xml:space="preserve" text-anchor="start" x="929.5" y="-471" font-family="Segoe UI" font-weight="bold" font-size="15.00">Concept sans nom C++ arrêté</text>
+        <text xml:space="preserve" text-anchor="start" x="929.5" y="-435" font-family="Segoe UI" font-size="15.00">Réutiliser ItemId, GUID, poids, visuels et possession existants</text>
+        <text xml:space="preserve" text-anchor="start" x="929.5" y="-400" font-family="Segoe UI" font-size="15.00">Définition spécialisée compatible avec OtherEquipment</text>
+        <text xml:space="preserve" text-anchor="start" x="929.5" y="-365" font-family="Segoe UI" font-size="15.00">Ni deuxième registre d’objets, ni duplication des 5 champs</text>
+        <text xml:space="preserve" text-anchor="start" x="929.5" y="-330" font-family="Segoe UI" font-size="15.00">Schéma équipé existant ; gamme de contenu non matérialisée</text>
+        <polygon fill="none" stroke="#7b818b" stroke-width="2" stroke-dasharray="5,2" points="921.5,-315.25 921.5,-527.25 1339.5,-527.25 1339.5,-315.25 921.5,-315.25" />
+      </g>
+      <g id="EQUIPMENT_TAXONOMY" class="node">
+        <title>EQUIPMENT_TAXONOMY</title>
+        <polygon fill="#f0f1f3" stroke="none" points="0,0 0,-249 405,-249 405,0 0,0" />
+        <polygon fill="#7b818b" stroke="none" points="2,-212 2,-247 403,-247 403,-212 2,-212" />
+        <text xml:space="preserve" text-anchor="start" x="9" y="-226.75" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">CATÉGORIE / SOUS-CATÉGORIE</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-191.75" font-family="Segoe UI" font-weight="bold" font-size="15.00">Taxonomie proposée, pas des valeurs d’enum actuelles</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-155.75" font-family="Segoe UI" font-size="15.00">Armure : légère / intermédiaire / lourde ; vêtements</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-120.75" font-family="Segoe UI" font-size="15.00">Casques ; épaulières ; protections corporelles ; brassards</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-85.75" font-family="Segoe UI" font-size="15.00">Gants ; ceintures ; bottes ; capes</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-50.75" font-family="Segoe UI" font-size="15.00">Anneaux ; amulettes ; accessoires (Talisman, QuickSlots)</text>
+        <text xml:space="preserve" text-anchor="start" x="9" y="-15.75" font-family="Segoe UI" font-size="15.00">Catégorie distincte du slot : un anneau → Ring1 OU Ring2</text>
+        <polygon fill="none" stroke="#7b818b" stroke-width="2" stroke-dasharray="5,2" points="1,-1 1,-248 404,-248 404,-1 1,-1" />
+      </g>
+      <g id="EQUIPMENT_RULES" class="node">
+        <title>EQUIPMENT_RULES</title>
+        <polygon fill="#f0f1f3" stroke="none" points="433.88,0 433.88,-249 865.12,-249 865.12,0 433.88,0" />
+        <polygon fill="#7b818b" stroke="none" points="435.88,-212 435.88,-247 863.12,-247 863.12,-212 435.88,-212" />
+        <text xml:space="preserve" text-anchor="start" x="442.88" y="-226.75" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">NIVEAU, QUALITÉ ET PRÉREQUIS</text>
+        <text xml:space="preserve" text-anchor="start" x="442.88" y="-191.75" font-family="Segoe UI" font-weight="bold" font-size="15.00">Extension à définir avant toute implémentation</text>
+        <text xml:space="preserve" text-anchor="start" x="442.88" y="-155.75" font-family="Segoe UI" font-size="15.00">Qualité de base ou variante : autorité unique à décider</text>
+        <text xml:space="preserve" text-anchor="start" x="442.88" y="-120.75" font-family="Segoe UI" font-size="15.00">Prérequis : attributs, compétences, niveau, classe si nécessaire</text>
+        <text xml:space="preserve" text-anchor="start" x="442.88" y="-85.75" font-family="Segoe UI" font-size="15.00">Niveau d’objet distinct du niveau de personnage</text>
+        <text xml:space="preserve" text-anchor="start" x="442.88" y="-50.75" font-family="Segoe UI" font-size="15.00">Non-ARM actuel N0 : progression future exige nouveau contrat</text>
+        <text xml:space="preserve" text-anchor="start" x="442.88" y="-15.75" font-family="Segoe UI" font-size="15.00">Affinité de classe conseillée ≠ condition obligatoire</text>
+        <polygon fill="none" stroke="#7b818b" stroke-width="2" stroke-dasharray="5,2" points="434.88,-1 434.88,-248 864.12,-248 864.12,-1 434.88,-1" />
+      </g>
+      <g id="EQUIPMENT_BONUSES" class="node">
+        <title>EQUIPMENT_BONUSES</title>
+        <polygon fill="#e6f4ea" stroke="none" points="894.62,0 894.62,-249 1366.38,-249 1366.38,0 894.62,0" />
+        <polygon fill="#267647" stroke="none" points="896.62,-212 896.62,-247 1364.38,-247 1364.38,-212 896.62,-212" />
+        <text xml:space="preserve" text-anchor="start" x="903.62" y="-226.75" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">PROTECTIONS ET CARACTÉRISTIQUES</text>
+        <text xml:space="preserve" text-anchor="start" x="903.62" y="-191.75" font-family="Segoe UI" font-weight="bold" font-size="15.00">Socle implémenté · FGridEquipmentStatBonus</text>
+        <text xml:space="preserve" text-anchor="start" x="903.62" y="-155.75" font-family="Segoe UI" font-size="15.00">Strength / Dexterity / Constitution / Intelligence / Wisdom / Charisma</text>
+        <text xml:space="preserve" text-anchor="start" x="903.62" y="-120.75" font-family="Segoe UI" font-size="15.00">MaxHealthBonus ; MaxManaBonus ; CarryWeightBonus</text>
+        <text xml:space="preserve" text-anchor="start" x="903.62" y="-85.75" font-family="Segoe UI" font-size="15.00">ArmorBonus ; MagicalArmorBonus</text>
+        <text xml:space="preserve" text-anchor="start" x="903.62" y="-50.75" font-family="Segoe UI" font-size="15.00">FGridDamageResistanceSet : physique + 7 types magiques</text>
+        <text xml:space="preserve" text-anchor="start" x="903.62" y="-15.75" font-family="Segoe UI" font-size="15.00">Réserve dépensée portée par chaque FGridItemInstance</text>
+        <polygon fill="none" stroke="#267647" stroke-width="2" points="895.62,-1 895.62,-248 1365.38,-248 1365.38,-1 895.62,-1" />
+      </g>
+      <g id="EQUIPMENT_EFFECTS" class="node">
+        <title>EQUIPMENT_EFFECTS</title>
+        <polygon fill="#f0f1f3" stroke="none" points="1395.25,-17.5 1395.25,-231.5 1813.75,-231.5 1813.75,-17.5 1395.25,-17.5" />
+        <polygon fill="#7b818b" stroke="none" points="1397.25,-194.5 1397.25,-229.5 1811.75,-229.5 1811.75,-194.5 1397.25,-194.5" />
+        <text xml:space="preserve" text-anchor="start" x="1404.25" y="-209.25" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">COMPÉTENCES ET EFFETS CONDITIONNELS</text>
+        <text xml:space="preserve" text-anchor="start" x="1404.25" y="-174.25" font-family="Segoe UI" font-weight="bold" font-size="15.00">Extension conceptuelle · pas d’auto-application actuelle</text>
+        <text xml:space="preserve" text-anchor="start" x="1404.25" y="-138.25" font-family="Segoe UI" font-size="15.00">Références vers compétences, modificateurs et effets existants</text>
+        <text xml:space="preserve" text-anchor="start" x="1404.25" y="-103.25" font-family="Segoe UI" font-size="15.00">Conditions / déclencheurs ; cumul ; retrait au déséquipement</text>
+        <text xml:space="preserve" text-anchor="start" x="1404.25" y="-68.25" font-family="Segoe UI" font-size="15.00">Séparer bonus constants, passifs et actions disponibles</text>
+        <text xml:space="preserve" text-anchor="start" x="1404.25" y="-33.25" font-family="Segoe UI" font-size="15.00">Pas de copie d’un effet global dans chaque instance</text>
+        <polygon fill="none" stroke="#7b818b" stroke-width="2" stroke-dasharray="5,2" points="1396.25,-18.5 1396.25,-230.5 1812.75,-230.5 1812.75,-18.5 1396.25,-18.5" />
+      </g>
+      <g id="EQUIPMENT_VISUAL_PERSISTENCE" class="node">
+        <title>EQUIPMENT_VISUAL_PERSISTENCE</title>
+        <polygon fill="#f0f1f3" stroke="none" points="1843.12,0 1843.12,-249 2305.88,-249 2305.88,0 1843.12,0" />
+        <polygon fill="#7b818b" stroke="none" points="1845.12,-212 1845.12,-247 2303.88,-247 2303.88,-212 1845.12,-212" />
+        <text xml:space="preserve" text-anchor="start" x="1852.12" y="-226.75" font-family="Segoe UI" font-weight="bold" font-size="15.00" fill="white">VARIANTES VISUELLES ET PERSISTANCE</text>
+        <text xml:space="preserve" text-anchor="start" x="1852.12" y="-191.75" font-family="Segoe UI" font-weight="bold" font-size="15.00">Contrat futur à décider</text>
+        <text xml:space="preserve" text-anchor="start" x="1852.12" y="-155.75" font-family="Segoe UI" font-size="15.00">Réutiliser Icon / WorldMesh / EquippedMesh ; aucune copie ARM</text>
+        <text xml:space="preserve" text-anchor="start" x="1852.12" y="-120.75" font-family="Segoe UI" font-size="15.00">Apparence corporelle multicouche / conflits : à concevoir</text>
+        <text xml:space="preserve" text-anchor="start" x="1852.12" y="-85.75" font-family="Segoe UI" font-size="15.00">Sauver seulement état mutable : qualité variable, affixes si retenus</text>
+        <text xml:space="preserve" text-anchor="start" x="1852.12" y="-50.75" font-family="Segoe UI" font-size="15.00">Nouveau champ durable → version + conversion explicite sur copies</text>
+        <text xml:space="preserve" text-anchor="start" x="1852.12" y="-15.75" font-family="Segoe UI" font-size="15.00">Ni poids, ni protections statiques, ni caches sauvegardés</text>
+        <polygon fill="none" stroke="#7b818b" stroke-width="2" stroke-dasharray="5,2" points="1844.12,-1 1844.12,-248 2304.88,-248 2304.88,-1 1844.12,-1" />
+      </g>
+    </g>
+  </svg>
+  <text x="40" y="4173.0" font-family="Segoe UI, sans-serif" font-size="18" font-weight="400" fill="#172d42">Sources et cardinalités détaillées : DataModel.md · Preuves, inventaires et limites : ../Technical/Consolidation.md · Aucun changement fonctionnel.</text>
+</svg>
