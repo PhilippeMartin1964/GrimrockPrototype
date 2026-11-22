@@ -2,6 +2,30 @@
 
 **Référence :** `master`, `a8de4f58b6c7ecc42e62aef0dbbe8fa9b7ede272`, relevé du 22 novembre 2026. Lot documentaire limité à [DataModel.svg](../Architecture/DataModel.svg), [DataModel.md](../Architecture/DataModel.md) et ce fichier. Aucun code, asset, script, configuration ou SaveGame modifié ; aucun renommage ou retrait engagé. Cette référence et ses constats datés sont conservés ci-dessous ; l’état courant et la clôture ARM-CLEAN06 figurent dans la mise à jour suivante.
 
+## CLEANUP04 — simplification C++
+
+### CLEANUP04-A — résidus natifs inutilisés
+
+Référence : `36205b2d02e511c61119e5e3acf7ca2f85e49332`. Retrait limité aux résidus D01–D06 ; D08–D13 et CLEANUP04-B ne sont pas engagés. Les constats/quantités CLEANUP03 ci-dessous restent ceux du SHA audité.
+
+| Candidat | Décision et preuve |
+| --- | --- |
+| D01 · GridNonArmamentReadPolicies.h | Supprimé : helper non réfléchi, aucun include, appel ou chargement indirect identifié |
+| D02 · GridNonArmamentThrowReadModel.h | Supprimé : même absence de consommateurs ; lecteurs actuels inchangés |
+| D03 · FormatFloatWithBonus | Supprimé de GridInventoryWidget.cpp : fonction anonyme native, une seule occurrence, aucun appel |
+| D04 · GridAssassinDaggerN1ItemAuthoringSpecs.h | Supprimé : table/namespace d’authoring sans consommateur, aucun mécanisme de génération trouvé ; les identités et assets AssassinDagger restent intacts |
+| D05 · FGridCharacterSpellbookState::Sanitize | Supprimé : méthode inline sans appel, non UFUNCTION, absente des bindings UHT et des hooks de struct ; la validation active des sorts est conservée |
+| D06 · FGridCharacterEquipmentState::ClearSlot | Supprimé : mêmes garanties natives ; slots, propriétés, règles de transfert et sérialisation inchangés |
+| D07 · FRPGCharacterPortraitOption | Conservé : USTRUCT(BlueprintType) publique toujours enregistrée, avec quatre UPROPERTY ; zéro usage C++/nom sérialisé repéré ne démontre pas l’extinction du contrat Blueprint/public. Retrait non justifié dans ce lot sans évolution réfléchie ni preuve complète des consommateurs |
+
+Bilan : **trois headers supprimés, trois fichiers C++ modifiés, 191 lignes C++ retirées, aucune ligne C++ ajoutée** ; ce document est le seul autre fichier modifié (sept chemins au total). Recherche dans Source, plugins/configurations/scripts versionnés et packages uasset/umap ; aucun test supprimé, wrapper ajouté, type réfléchi, champ, identité persistante ou redirect modifié. Les six gen.cpp des trois headers concernés restent **identiques octet par octet** en Editor et Shipping ; les 1 439 autres fichiers Source et D07 sont inchangés.
+
+Validations locales : Development Editor et Shipping réussis ; **61 tests Magic et huit UI Inventory**, sans avertissement/échec ; **2 044 tests Grimrock réussis (1 997 sans avertissement, 47 avec avertissements identiques à la baseline locale), zéro échec et zéro non-exécuté**. **Build/Cook/Stage/Package/Archive Shipping réussis sur le contenu du lot ; listing natif et INI de l’archive contrôlés : 53 assets courants, deux Readables, 53 redirects d’objet et 50 alias Primary IDs présents**. Références/includes et diff --check vérifiés. Empreintes des sept sauvegardes personnelles et des deux Readables conservées. Aucune nouvelle conversion ni nouvelle lecture de sauvegarde personnelle ; schéma v27 et réflexion inchangés, round-trips couverts par la suite existante.
+
+Localisation : chaîne `UI.csv → ST_UI → WBP → Game/fr/en` inchangée ; aucun texte joueur, binding ou clé modifié par le retrait du formatter inutilisé. Aucun authoring UMG ni régénération de localisation requis.
+
+Publication : un commit atomique ; clôture conditionnée à **SilentTask et LocalAuto SUCCESS sur le SHA publié**, résultats dans le compte rendu de clôture. Preuves privées sous `D:/GrimrockNativeSnapshots/CLEANUP04A_20261122-223557/`. Aucune régression détectée dans les contrôles exécutés ; D07 reste la réserve explicite. Arrêt après CLEANUP04-A pour validation utilisateur.
+
 ## CLEANUP03 — audit C++ et préparation de CLEANUP04
 
 **Référence :** `176bb664116181ba91078f1067feddba94358f60`, `master`, 22 novembre 2026. CLEANUP01/02 et ARM-CLEAN06 sont clos. Audit uniquement ; CLEANUP04 n’est pas engagé. Les inventaires historiques plus bas restent datés et ne remplacent pas les chiffres suivants.

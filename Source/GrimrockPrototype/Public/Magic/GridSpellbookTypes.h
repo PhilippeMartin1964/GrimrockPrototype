@@ -72,26 +72,6 @@ struct FGridCharacterSpellbookState
 		return KnownSpellIds.RemoveSingle(SpellId) > 0 ? EGridSpellbookMutationResult::Success : EGridSpellbookMutationResult::NotKnown;
 	}
 
-	void Sanitize()
-	{
-		TSet<FName> SeenSpellIds;
-		for (int32 Index = KnownSpellIds.Num() - 1; Index >= 0; --Index)
-		{
-			const FName SpellId = KnownSpellIds[Index];
-			if (SpellId.IsNone() || SeenSpellIds.Contains(SpellId))
-			{
-				KnownSpellIds.RemoveAt(Index);
-				continue;
-			}
-			SeenSpellIds.Add(SpellId);
-		}
-		KnownSpellIds.Sort(
-			[](const FName Left, const FName Right)
-			{
-				return Left.ToString() < Right.ToString();
-			});
-	}
-
 	bool IsValid() const
 	{
 		if (!CharacterId.IsValid())

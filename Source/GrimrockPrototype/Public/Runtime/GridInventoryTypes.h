@@ -677,13 +677,6 @@ struct FGridCharacterEquipmentState
 		return Item && Item->IsValid();
 	}
 
-	void ClearSlot(EGridEquipmentSlot Slot)
-	{
-		if (FGridItemInstance* Item = GetMutableSlot(Slot))
-		{
-			*Item = FGridItemInstance();
-		}
-	}
 };
 
 USTRUCT(BlueprintType)

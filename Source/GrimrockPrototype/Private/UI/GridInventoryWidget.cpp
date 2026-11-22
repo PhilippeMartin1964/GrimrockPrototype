@@ -114,17 +114,6 @@ namespace
 		return FText::FromString(FString::Printf(TEXT("%d (%+d)"), FinalValue, Bonus));
 	}
 
-	FText FormatFloatWithBonus(float FinalValue, float Bonus, int32 FractionDigits = 1)
-	{
-		const FString FinalValueText = FString::Printf(TEXT("%.*f"), FractionDigits, FinalValue);
-		if (FMath::IsNearlyZero(Bonus))
-		{
-			return FText::FromString(FinalValueText);
-		}
-
-		return FText::FromString(FString::Printf(TEXT("%s (%+.*f)"), *FinalValueText, FractionDigits, Bonus));
-	}
-
 	FText FormatCurrentMaxWithMaxBonus(int32 CurrentValue, int32 FinalMaxValue, int32 MaxBonus)
 	{
 		if (MaxBonus == 0)
